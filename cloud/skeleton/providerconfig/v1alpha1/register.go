@@ -22,7 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 
-	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig"
+	"sigs.k8s.io/cluster-api-provider-skeleton/cloud/aws/providerconfig"
 )
 
 // +k8s:deepcopy-gen=false
@@ -31,7 +31,7 @@ type AWSProviderConfigCodec struct {
 	decoder runtime.Decoder
 }
 
-const GroupName = "awsproviderconfig"
+const GroupName = "skeletonproviderconfig"
 
 var SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha1"}
 

@@ -28,7 +28,7 @@ func init() {
 	localSchemeBuilder.Register(addKnownTypes)
 }
 
-const GroupName = "awsproviderconfig"
+const GroupName = "skeletonproviderconfig"
 
 var SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: runtime.APIVersionInternal}
 

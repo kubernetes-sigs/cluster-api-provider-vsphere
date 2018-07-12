@@ -44,8 +44,8 @@ spec:
           limits:
             cpu: 100m
             memory: 30Mi
-      - name: aws-cluster-controller
-        image: gcr.io/k8s-cluster-api/aws-cluster-controller:0.0.1
+      - name: skeleton-cluster-controller
+        image: gcr.io/k8s-cluster-api/skeleton-cluster-controller:0.0.1
         volumeMounts:
           - name: config
             mountPath: /etc/kubernetes
@@ -68,8 +68,8 @@ spec:
           limits:
             cpu: 400m
             memory: 500Mi
-      - name: aws-machine-controller
-        image: gcr.io/k8s-cluster-api/aws-machine-controller:0.0.1
+      - name: skeleton-machine-controller
+        image: gcr.io/k8s-cluster-api/skeleton-machine-controller:0.0.1
         volumeMounts:
           - name: config
             mountPath: /etc/kubernetes

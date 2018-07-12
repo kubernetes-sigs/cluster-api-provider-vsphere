@@ -14,13 +14,13 @@
 
 # Reproducible builder image
 FROM golang:1.10.0 as builder
-WORKDIR /go/src/sigs.k8s.io/cluster-api-provider-aws
+WORKDIR /go/src/sigs.k8s.io/cluster-api-provider-skeleton
 # This expects that the context passed to the docker build command is
-# the cluster-api-provider-aws directory.
-# e.g. docker build -t <tag> -f <this_Dockerfile> <path_to_cluster-api-aws>
+# the cluster-api-provider-skeleton directory.
+# e.g. docker build -t <tag> -f <this_Dockerfile> <path_to_cluster-api-skeleton>
 COPY . . 
 
-RUN CGO_ENABLED=0 GOOS=linux go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/cmd/cluster-controller
+RUN CGO_ENABLED=0 GOOS=linux go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-skeleton/cmd/cluster-controller
 
 # Final container
 FROM debian:stretch-slim

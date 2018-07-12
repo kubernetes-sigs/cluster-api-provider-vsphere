@@ -17,7 +17,7 @@
 GCR_BUCKET = k8s-cluster-api
 PREFIX = gcr.io/$(GCR_BUCKET)
 DEV_PREFIX ?= gcr.io/$(shell gcloud config get-value project)
-NAME = aws-cluster-controller
+NAME = skeleton-cluster-controller
 TAG = 0.0.1
 
 image:

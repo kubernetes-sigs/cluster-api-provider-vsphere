@@ -26,15 +26,15 @@ depend-update: work
 generate: gendeepcopy
 
 gendeepcopy:
-	go build -o $$GOPATH/bin/deepcopy-gen sigs.k8s.io/cluster-api-provider-aws/vendor/k8s.io/code-generator/cmd/deepcopy-gen
+	go build -o $$GOPATH/bin/deepcopy-gen sigs.k8s.io/cluster-api-provider-skeleton/vendor/k8s.io/code-generator/cmd/deepcopy-gen
 	deepcopy-gen \
-	  -i ./cloud/aws/providerconfig,./cloud/aws/providerconfig/v1alpha1 \
+	  -i ./cloud/skeleton/providerconfig,./cloud/skeleton/providerconfig/v1alpha1 \
 	  -O zz_generated.deepcopy \
 	  -h boilerplate.go.txt
 
 build: depend
-	CGO_ENABLED=0 go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/cmd/cluster-controller
-	CGO_ENABLED=0 go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/cmd/machine-controller
+	CGO_ENABLED=0 go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-skeleton/cmd/cluster-controller
+	CGO_ENABLED=0 go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-skeleton/cmd/machine-controller
 
 images: depend
 	$(MAKE) -C cmd/cluster-controller image

@@ -1,16 +1,20 @@
 # Introduction
 
 These instructions are intended to make it easier for developers to create new
-Cluster API provider repositories. Arguably, it may be easier to just use
-`apiserver-builder` directly. In any case, there is no intent to maintain these
-instructions. Better automation or more sophisticated code sharing should be
-preferred over this duck tape and bubble gum.  ¯\_(ツ)_/¯
+Cluster API provider repositories. For more information on the Cluster API project
+please see the base repository [here](https://github.com/kubernetes-sigs/cluster-api).
+
+Arguably, it may be easier to just use `apiserver-builder` directly. In any case,
+there is no intent to maintain these instructions. Better automation or more 
+sophisticated code sharing should be preferred over this duct tape and bubble gum.
+
+¯\_(ツ)_/¯
 
 # Quickstart
 
 - The name of provider repos [should](
 https://github.com/kubernetes-sigs/cluster-api/issues/383) be of the form
-`cluster-api-provider- $(cloud)`. For example, `cluster-api-provider-openshift`
+`cluster-api-provider-$(cloud)`. For example, `cluster-api-provider-openshift`
 is the name of the repo which implements the Cluster API provider for OpenShift.
 
 - [Create](https://help.github.com/articles/creating-a-new-repository/) a new
@@ -37,7 +41,7 @@ some name changes, e.g. on OS X, something like this might work:
 find . -type f -path ./.git -prune -o -print -exec sed -i '' s/skeleton/ssh/ {} +
 ```
 
-The following directorie must be moved:
+The following directories must be renamed/moved:
 
 ```
 git mv cloud/skeleton/ cloud/ssh/

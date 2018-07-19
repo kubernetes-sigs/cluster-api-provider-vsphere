@@ -12,7 +12,7 @@
 // limitations under the License.
 
 // +k8s:deepcopy-gen=package,register
-// +k8s:conversion-gen=sigs.k8s.io/cluster-api-provider-skeleton/cloud/aws/providerconfig
+// +k8s:conversion-gen=sigs.k8s.io/cluster-api-provider-skeleton/cloud/skeleton/providerconfig
 // +k8s:openapi-gen=true
 // +k8s:defaulter-gen=TypeMeta
 

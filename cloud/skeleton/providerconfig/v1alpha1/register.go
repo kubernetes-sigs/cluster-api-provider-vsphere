@@ -26,7 +26,7 @@ import (
 )
 
 // +k8s:deepcopy-gen=false
-type AWSProviderConfigCodec struct {
+type SkeletonProviderConfigCodec struct {
 	encoder runtime.Encoder
 	decoder runtime.Decoder
 }
@@ -47,16 +47,16 @@ func init() {
 
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
-		&AWSMachineProviderConfig{},
+		&SkeletonMachineProviderConfig{},
 	)
 	scheme.AddKnownTypes(SchemeGroupVersion,
-		&AWSClusterProviderConfig{},
+		&SkeletonClusterProviderConfig{},
 	)
 	scheme.AddKnownTypes(SchemeGroupVersion,
-		&AWSMachineProviderStatus{},
+		&SkeletonMachineProviderStatus{},
 	)
 	scheme.AddKnownTypes(SchemeGroupVersion,
-		&AWSClusterProviderStatus{},
+		&SkeletonClusterProviderStatus{},
 	)
 	return nil
 }
@@ -72,7 +72,7 @@ func NewScheme() (*runtime.Scheme, error) {
 	return scheme, nil
 }
 
-func NewCodec() (*AWSProviderConfigCodec, error) {
+func NewCodec() (*SkeletonProviderConfigCodec, error) {
 	scheme, err := NewScheme()
 	if err != nil {
 		return nil, err
@@ -82,14 +82,14 @@ func NewCodec() (*AWSProviderConfigCodec, error) {
 	if err != nil {
 		return nil, err
 	}
-	codec := AWSProviderConfigCodec{
+	codec := SkeletonProviderConfigCodec{
 		encoder: encoder,
 		decoder: codecFactory.UniversalDecoder(SchemeGroupVersion),
 	}
 	return &codec, nil
 }
 
-func (codec *AWSProviderConfigCodec) DecodeFromProviderConfig(providerConfig clusterv1.ProviderConfig, out runtime.Object) error {
+func (codec *SkeletonProviderConfigCodec) DecodeFromProviderConfig(providerConfig clusterv1.ProviderConfig, out runtime.Object) error {
 	if providerConfig.Value != nil {
 		_, _, err := codec.decoder.Decode(providerConfig.Value.Raw, nil, out)
 		if err != nil {
@@ -99,7 +99,7 @@ func (codec *AWSProviderConfigCodec) DecodeFromProviderConfig(providerConfig clu
 	return nil
 }
 
-func (codec *AWSProviderConfigCodec) EncodeToProviderConfig(in runtime.Object) (*clusterv1.ProviderConfig, error) {
+func (codec *SkeletonProviderConfigCodec) EncodeToProviderConfig(in runtime.Object) (*clusterv1.ProviderConfig, error) {
 	var buf bytes.Buffer
 	if err := codec.encoder.Encode(in, &buf); err != nil {
 		return nil, fmt.Errorf("encoding failed: %v", err)
@@ -109,7 +109,7 @@ func (codec *AWSProviderConfigCodec) EncodeToProviderConfig(in runtime.Object) (
 	}, nil
 }
 
-func (codec *AWSProviderConfigCodec) EncodeProviderStatus(in runtime.Object) (*runtime.RawExtension, error) {
+func (codec *SkeletonProviderConfigCodec) EncodeProviderStatus(in runtime.Object) (*runtime.RawExtension, error) {
 	var buf bytes.Buffer
 	if err := codec.encoder.Encode(in, &buf); err != nil {
 		return nil, fmt.Errorf("encoding failed: %v", err)
@@ -118,7 +118,7 @@ func (codec *AWSProviderConfigCodec) EncodeProviderStatus(in runtime.Object) (*r
 	return &runtime.RawExtension{Raw: buf.Bytes()}, nil
 }
 
-func (codec *AWSProviderConfigCodec) DecodeProviderStatus(providerStatus *runtime.RawExtension, out runtime.Object) error {
+func (codec *SkeletonProviderConfigCodec) DecodeProviderStatus(providerStatus *runtime.RawExtension, out runtime.Object) error {
 	if providerStatus != nil {
 		_, _, err := codec.decoder.Decode(providerStatus.Raw, nil, out)
 		if err != nil {

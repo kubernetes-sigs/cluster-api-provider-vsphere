@@ -42,16 +42,16 @@ func Resource(resource string) schema.GroupResource {
 
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
-		&AWSMachineProviderConfig{},
+		&SkeletonMachineProviderConfig{},
 	)
 	scheme.AddKnownTypes(SchemeGroupVersion,
-		&AWSClusterProviderConfig{},
+		&SkeletonClusterProviderConfig{},
 	)
 	scheme.AddKnownTypes(SchemeGroupVersion,
-		&AWSMachineProviderStatus{},
+		&SkeletonMachineProviderStatus{},
 	)
 	scheme.AddKnownTypes(SchemeGroupVersion,
-		&AWSClusterProviderStatus{},
+		&SkeletonClusterProviderStatus{},
 	)
 	return nil
 }

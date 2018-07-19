@@ -12,5 +12,5 @@ spec:
     providerConfig:
       value:
         apiVersion: "skeletonproviderconfig/v1alpha1"
-        kind: "AWSClusterProviderConfig"
+        kind: "SkeletonClusterProviderConfig"
 

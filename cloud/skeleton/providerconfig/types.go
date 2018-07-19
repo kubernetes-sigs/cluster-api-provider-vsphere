@@ -18,21 +18,21 @@ import (
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-type AWSMachineProviderConfig struct {
+type SkeletonMachineProviderConfig struct {
 	metav1.TypeMeta `json:",inline"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-type AWSClusterProviderConfig struct {
+type SkeletonClusterProviderConfig struct {
 	metav1.TypeMeta `json:",inline"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-type AWSMachineProviderStatus struct {
+type SkeletonMachineProviderStatus struct {
 	metav1.TypeMeta `json:",inline"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-type AWSClusterProviderStatus struct {
+type SkeletonClusterProviderStatus struct {
 	metav1.TypeMeta `json:",inline"`
 }

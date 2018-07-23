@@ -2,11 +2,9 @@
 
 approvers:
   - sig-cluster-lifecycle-leads
-  - sig-skeleton-leads
+  - sig-vmware-leads
   - cluster-api-admins
-  - cluster-api-maintainers
-  - cluster-api-skeleton-maintainers
+  - cluster-api-vsphere-maintainers
 
 reviewers:
-  - cluster-api-maintainers
-  - cluster-api-skeleton-maintainers
+  - cluster-api-vsphere-maintainers

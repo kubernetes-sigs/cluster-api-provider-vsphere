@@ -12,22 +12,8 @@ aliases:
     - luxas
     - roberthbailey
     - kris-nova
-  cluster-api-maintainers:
-    - jessicaochen
-    - k4leung4
-    - karan
-    - kris-nova
-    - krousey
-    - medinatiger
-    - mkjelland
-    - roberthbailey
-    - rsdcastro
-    - spew
-  sig-skeleton-leads:
-    - justinsb
-    - kris-nova
-    - countspongebob
-  cluster-api-skeleton-maintainers:
-    - detiber
-    - chuckha
-    - davidewatson
+  sig-vmware-leads:
+    - frapposelli
+    - cantbewong
+  cluster-api-vsphere-maintainers:
+    - frapposelli

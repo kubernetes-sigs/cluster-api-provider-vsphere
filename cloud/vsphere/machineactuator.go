@@ -36,9 +36,9 @@ import (
 	"k8s.io/client-go/tools/record"
 
 	"encoding/base64"
-	"sigs.k8s.io/cluster-api/cloud/vsphere/namedmachines"
-	vsphereconfig "sigs.k8s.io/cluster-api/cloud/vsphere/vsphereproviderconfig"
-	vsphereconfigv1 "sigs.k8s.io/cluster-api/cloud/vsphere/vsphereproviderconfig/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/cloud/vsphere/namedmachines"
+	vsphereconfig "sigs.k8s.io/cluster-api-provider-vsphere/cloud/vsphere/vsphereproviderconfig"
+	vsphereconfigv1 "sigs.k8s.io/cluster-api-provider-vsphere/cloud/vsphere/vsphereproviderconfig/v1alpha1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	apierrors "sigs.k8s.io/cluster-api/pkg/errors"

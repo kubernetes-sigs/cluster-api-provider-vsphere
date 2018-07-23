@@ -8,6 +8,12 @@
   revision = "75cd24fc2f2c2a2088577d12123ddee5f54e0675"
 
 [[projects]]
+  name = "cloud.google.com/go"
+  packages = ["compute/metadata"]
+  revision = "aad3f485ee528456e0768f20397b4d9dd941e755"
+  version = "v0.25.0"
+
+[[projects]]
   name = "github.com/NYTimes/gziphandler"
   packages = ["."]
   revision = "2600fb119af974220d3916a5916d6e31176aac1b"
@@ -213,6 +219,12 @@
   version = "v0.3.5"
 
 [[projects]]
+  name = "github.com/inconshreveable/mousetrap"
+  packages = ["."]
+  revision = "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
+  version = "v1.0"
+
+[[projects]]
   name = "github.com/json-iterator/go"
   packages = ["."]
   revision = "ab8a2e0c74be9d3be70b3184d9acc634935ded82"
@@ -319,6 +331,12 @@
   revision = "ae68e2d4c00fed4943b5f6698d504a5fe083da8a"
 
 [[projects]]
+  name = "github.com/spf13/cobra"
+  packages = ["."]
+  revision = "ef82de70bb3f60c65fb8eebacbb2d122ef517385"
+  version = "v0.0.3"
+
+[[projects]]
   name = "github.com/spf13/pflag"
   packages = ["."]
   revision = "583c0c0531f06d5278b7d917446061adc344b5cd"
@@ -341,6 +359,7 @@
   name = "golang.org/x/net"
   packages = [
     "context",
+    "context/ctxhttp",
     "html",
     "html/atom",
     "http/httpguts",
@@ -352,6 +371,18 @@
     "websocket"
   ]
   revision = "039a4258aec0ad3c79b905677cceeab13b296a77"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/oauth2"
+  packages = [
+    ".",
+    "google",
+    "internal",
+    "jws",
+    "jwt"
+  ]
+  revision = "ef147856a6ddbb60760db74283d2424e98c87bff"
 
 [[projects]]
   branch = "master"
@@ -393,6 +424,37 @@
     "internal/fastwalk"
   ]
   revision = "2087f8c10712366cfc2f4fcb1bf99eeef61ab21e"
+
+[[projects]]
+  branch = "master"
+  name = "google.golang.org/api"
+  packages = [
+    "cloudbilling/v1",
+    "cloudresourcemanager/v1",
+    "compute/v1",
+    "gensupport",
+    "googleapi",
+    "googleapi/internal/uritemplates",
+    "servicemanagement/v1"
+  ]
+  revision = "cd7aead8ef3786a3a18faf2d54d3960991153b64"
+
+[[projects]]
+  name = "google.golang.org/appengine"
+  packages = [
+    ".",
+    "internal",
+    "internal/app_identity",
+    "internal/base",
+    "internal/datastore",
+    "internal/log",
+    "internal/modules",
+    "internal/remote_api",
+    "internal/urlfetch",
+    "urlfetch"
+  ]
+  revision = "b1f26356af11148e710935ed1ac8a7f5702c7612"
+  version = "v1.1.0"
 
 [[projects]]
   branch = "master"
@@ -735,7 +797,6 @@
     "tools/clientcmd/api",
     "tools/clientcmd/api/latest",
     "tools/clientcmd/api/v1",
-    "tools/leaderelection",
     "tools/leaderelection/resourcelock",
     "tools/metrics",
     "tools/pager",
@@ -744,6 +805,7 @@
     "transport",
     "util/buffer",
     "util/cert",
+    "util/cert/triple",
     "util/flowcontrol",
     "util/homedir",
     "util/integer",
@@ -787,9 +849,25 @@
   branch = "master"
   name = "sigs.k8s.io/cluster-api"
   packages = [
+    "cloud/google",
+    "cloud/google/clients",
+    "cloud/google/clients/errors",
+    "cloud/google/config",
+    "cloud/google/gceproviderconfig",
+    "cloud/google/gceproviderconfig/v1alpha1",
+    "cloud/google/machinesetup",
+    "cloud/vsphere",
+    "cloud/vsphere/namedmachines",
+    "cloud/vsphere/vsphereproviderconfig",
+    "cloud/vsphere/vsphereproviderconfig/v1alpha1",
+    "clusterctl/clusterdeployer",
+    "clusterctl/clusterdeployer/minikube",
+    "clusterctl/cmd",
+    "clusterctl/providercomponents",
     "pkg/apis/cluster",
     "pkg/apis/cluster/common",
     "pkg/apis/cluster/v1alpha1",
+    "pkg/cert",
     "pkg/client/clientset_generated/clientset",
     "pkg/client/clientset_generated/clientset/scheme",
     "pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1",
@@ -798,11 +876,14 @@
     "pkg/client/informers_generated/externalversions/cluster/v1alpha1",
     "pkg/client/informers_generated/externalversions/internalinterfaces",
     "pkg/client/listers_generated/cluster/v1alpha1",
-    "pkg/controller/cluster",
+    "pkg/clientcmd",
+    "pkg/cmd-runner",
     "pkg/controller/config",
     "pkg/controller/machine",
     "pkg/controller/noderefutil",
     "pkg/controller/sharedinformers",
+    "pkg/errors",
+    "pkg/kubeadm",
     "pkg/util"
   ]
   revision = "b770dd7b06fb75834ead5169db85ea79b6215563"
@@ -810,6 +891,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "cdc10cd8ccd232cdec9f8e7e969f8734a337dbcdadab8d271e460e88879a08da"
+  inputs-digest = "2aa64acc75baae9f6a6d7079831f0801111bd28ff9757a7fc9b50ef00d62e569"
   solver-name = "gps-cdcl"
   solver-version = 1

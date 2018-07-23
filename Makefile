@@ -28,21 +28,18 @@ generate: gendeepcopy
 gendeepcopy:
 	go build -o $$GOPATH/bin/deepcopy-gen sigs.k8s.io/cluster-api-provider-vsphere/vendor/k8s.io/code-generator/cmd/deepcopy-gen
 	deepcopy-gen \
-	  -i ./cloud/vsphere/providerconfig,./cloud/vsphere/providerconfig/v1alpha1 \
+	  -i ./cloud/vsphere/vsphereproviderconfig,./cloud/vsphere/vsphereproviderconfig/v1alpha1 \
 	  -O zz_generated.deepcopy \
 	  -h boilerplate.go.txt
 
 build: depend
-	CGO_ENABLED=0 go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-vsphere/cmd/cluster-controller
-	CGO_ENABLED=0 go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-vsphere/cmd/machine-controller
+	CGO_ENABLED=0 go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-vsphere/cloud/vsphere/cmd/vsphere-machine-controller
 
 images: depend
-	$(MAKE) -C cmd/cluster-controller image
-	$(MAKE) -C cmd/machine-controller image
+	$(MAKE) -C cloud/vsphere/cmd/vsphere-machine-controller image
 
 push: depend
-	$(MAKE) -C cmd/cluster-controller push
-	$(MAKE) -C cmd/machine-controller push
+	$(MAKE) -C cloud/vsphere/cmd/vsphere-machine-controller push
 
 check: depend fmt vet
 

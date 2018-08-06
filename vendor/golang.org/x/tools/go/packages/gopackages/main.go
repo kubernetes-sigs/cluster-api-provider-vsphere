@@ -27,8 +27,8 @@ import (
 // flags
 var (
 	depsFlag = flag.Bool("deps", false, "show dependencies too")
-	cgoFlag  = flag.Bool("cgo", true, "process cgo files")
-	mode     = flag.String("mode", "metadata", "mode (one of metadata, typecheck, wholeprogram)")
+	testFlag = flag.Bool("test", false, "include any tests implied by the patterns")
+	mode     = flag.String("mode", "imports", "mode (one of files, imports, types, syntax, allsyntax)")
 	private  = flag.Bool("private", false, "show non-exported declarations too")
 
 	cpuprofile = flag.String("cpuprofile", "", "write CPU profile to this file")
@@ -102,25 +102,30 @@ func main() {
 		}()
 	}
 
+	// Load, parse, and type-check the packages named on the command line.
+	cfg := &packages.Config{
+		Mode:  packages.LoadSyntax,
+		Error: func(error) {}, // we'll take responsibility for printing errors
+		Tests: *testFlag,
+	}
+
 	// -mode flag
-	load := packages.TypeCheck
 	switch strings.ToLower(*mode) {
-	case "metadata":
-		load = packages.Metadata
-	case "typecheck":
-		load = packages.TypeCheck
-	case "wholeprogram":
-		load = packages.WholeProgram
+	case "files":
+		cfg.Mode = packages.LoadFiles
+	case "imports":
+		cfg.Mode = packages.LoadImports
+	case "types":
+		cfg.Mode = packages.LoadTypes
+	case "syntax":
+		cfg.Mode = packages.LoadSyntax
+	case "allsyntax":
+		cfg.Mode = packages.LoadAllSyntax
 	default:
 		log.Fatalf("invalid mode: %s", *mode)
 	}
 
-	// Load, parse, and type-check the packages named on the command line.
-	opts := &packages.Options{
-		Error:      func(error) {}, // we'll take responsibility for printing errors
-		DisableCgo: !*cgoFlag,
-	}
-	lpkgs, err := load(opts, flag.Args()...)
+	lpkgs, err := packages.Load(cfg, flag.Args()...)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -163,9 +168,8 @@ func main() {
 func print(lpkg *packages.Package) {
 	// title
 	var kind string
-	if lpkg.IsTest {
-		kind = "test "
-	}
+	// TODO(matloob): If IsTest is added back print "test command" or
+	// "test package" for packages with IsTest == true.
 	if lpkg.Name == "main" {
 		kind += "command"
 	} else {
@@ -173,24 +177,23 @@ func print(lpkg *packages.Package) {
 	}
 	fmt.Printf("Go %s %q:\n", kind, lpkg.ID) // unique ID
 	fmt.Printf("\tpackage %s\n", lpkg.Name)
-	fmt.Printf("\treflect.Type.PkgPath %q\n", lpkg.PkgPath)
 
 	// characterize type info
-	if lpkg.Type == nil {
+	if lpkg.Types == nil {
 		fmt.Printf("\thas no exported type info\n")
-	} else if !lpkg.Type.Complete() {
+	} else if !lpkg.Types.Complete() {
 		fmt.Printf("\thas incomplete exported type info\n")
-	} else if len(lpkg.Files) == 0 {
+	} else if len(lpkg.Syntax) == 0 {
 		fmt.Printf("\thas complete exported type info\n")
 	} else {
 		fmt.Printf("\thas complete exported type info and typed ASTs\n")
 	}
-	if lpkg.Type != nil && lpkg.IllTyped && len(lpkg.Errors) == 0 {
+	if lpkg.Types != nil && lpkg.IllTyped && len(lpkg.Errors) == 0 {
 		fmt.Printf("\thas an error among its dependencies\n")
 	}
 
 	// source files
-	for _, src := range lpkg.Srcs {
+	for _, src := range lpkg.GoFiles {
 		fmt.Printf("\tfile %s\n", src)
 	}
 
@@ -216,9 +219,9 @@ func print(lpkg *packages.Package) {
 	}
 
 	// package members (TypeCheck or WholeProgram mode)
-	if lpkg.Type != nil {
-		qual := types.RelativeTo(lpkg.Type)
-		scope := lpkg.Type.Scope()
+	if lpkg.Types != nil {
+		qual := types.RelativeTo(lpkg.Types)
+		scope := lpkg.Types.Scope()
 		for _, name := range scope.Names() {
 			obj := scope.Lookup(name)
 			if !obj.Exported() && !*private {

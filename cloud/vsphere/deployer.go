@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"os/user"
 	"strings"
 
 	"github.com/golang/glog"
@@ -62,9 +63,14 @@ func (d *DeploymentClient) GetKubeConfig(cluster *clusterv1.Cluster, master *clu
 		return "", err
 	}
 
+	usr, err := user.Current()
+	if err != nil {
+		return "", err
+	}
+
 	var out bytes.Buffer
 	cmd := exec.Command(
-		"ssh", "-i", "~/.ssh/vsphere_tmp",
+		"ssh", "-i", usr.HomeDir+"/.ssh/vsphere_tmp",
 		"-q",
 		"-o", "StrictHostKeyChecking no",
 		"-o", "UserKnownHostsFile /dev/null",

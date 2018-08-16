@@ -105,25 +105,25 @@
   name = "github.com/go-openapi/jsonpointer"
   packages = ["."]
   revision = "3a0015ad55fa9873f41605d3e8f28cd279c32ab2"
-  version = "0.15.0"
+  version = "0.16.0"
 
 [[projects]]
   name = "github.com/go-openapi/jsonreference"
   packages = ["."]
   revision = "3fb327e6747da3043567ee86abd02bb6376b6be2"
-  version = "0.15.0"
+  version = "0.16.0"
 
 [[projects]]
   name = "github.com/go-openapi/spec"
   packages = ["."]
-  revision = "bce47c9386f9ecd6b86f450478a80103c3fe1402"
-  version = "0.15.0"
+  revision = "384415f06ee238aae1df5caad877de6ceac3a5c4"
+  version = "0.16.0"
 
 [[projects]]
   name = "github.com/go-openapi/swag"
   packages = ["."]
-  revision = "2b0bd4f193d011c203529df626a65d63cb8a79e8"
-  version = "0.15.0"
+  revision = "becd2f08beafcca035645a8a101e0e3e18140458"
+  version = "0.16.0"
 
 [[projects]]
   name = "github.com/gogo/protobuf"
@@ -164,7 +164,7 @@
   branch = "master"
   name = "github.com/google/btree"
   packages = ["."]
-  revision = "e89373fe6b4a7413d7acd6da1725b83ef713e6e4"
+  revision = "4030bb1f1f0c35b30ca7009e9ebd06849dd45306"
 
 [[projects]]
   branch = "master"
@@ -236,8 +236,8 @@
     "pkg/builders",
     "pkg/controller"
   ]
-  revision = "e809ac2f9f0c238f08d08a876f8b3f499604f941"
-  version = "v1.9-alpha.3"
+  revision = "14201e804a58a140011a0044b15331f477535f91"
+  version = "v1.9-alpha.4"
 
 [[projects]]
   branch = "master"
@@ -333,8 +333,8 @@
 [[projects]]
   name = "github.com/spf13/pflag"
   packages = ["."]
-  revision = "583c0c0531f06d5278b7d917446061adc344b5cd"
-  version = "v1.0.1"
+  revision = "9a97c102cda95a86cec2345a6f09f55a939babf5"
+  version = "v1.0.2"
 
 [[projects]]
   name = "github.com/ugorji/go"
@@ -346,7 +346,7 @@
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
-  revision = "80fca2ff14a3fb7db622c9a5462f8ce9ea026cba"
+  revision = "de0752318171da717af4ce24d0a2e8626afaeb11"
 
 [[projects]]
   branch = "master"
@@ -363,7 +363,7 @@
     "trace",
     "websocket"
   ]
-  revision = "f4c29de78a2a91c00474a2e689954305c350adf9"
+  revision = "aaf60122140d3fcf75376d319f0554393160eb50"
 
 [[projects]]
   branch = "master"
@@ -372,7 +372,7 @@
     "unix",
     "windows"
   ]
-  revision = "2be389f392cd91df245b41638f818a1c041f0c08"
+  revision = "1c9583448a9c3aa0f9a6a5241bf73c0bd8aafded"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -404,13 +404,13 @@
     "imports",
     "internal/fastwalk"
   ]
-  revision = "3c07937fe18c27668fd78bbaed3d6b8b39e202ea"
+  revision = "1dfe8478fdec02e49c998048ab9f761d64949349"
 
 [[projects]]
   branch = "master"
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
-  revision = "daca94659cb50e9f37c1b834680f2e46358f10b0"
+  revision = "d0a8f471bba2dbb160885b0000d814ee5d559bad"
 
 [[projects]]
   name = "google.golang.org/grpc"
@@ -638,7 +638,7 @@
     "plugin/pkg/authenticator/token/webhook",
     "plugin/pkg/authorizer/webhook"
   ]
-  revision = "e155c61c2126110d5dae107c33bbfc15031ff933"
+  revision = "ac89a8a86cfeed91f4962fa34fea154b12c9a06a"
 
 [[projects]]
   branch = "release-6.0"
@@ -782,7 +782,7 @@
     "parser",
     "types"
   ]
-  revision = "906d99f89cd644eecf75ab547b29bf9f876f0b59"
+  revision = "4242d8e6c5dba56827bb7bcf14ad11cda38f3991"
 
 [[projects]]
   branch = "master"
@@ -827,7 +827,7 @@
     "pkg/kubeadm",
     "pkg/util"
   ]
-  revision = "c8f5046fb0b9a3a16b7f8b92f6dda7b0f65b4f55"
+  revision = "051f338bdacb76117d73a86258bc58c946add7b5"
 
 [solve-meta]
   analyzer-name = "dep"

@@ -819,6 +819,7 @@
     "pkg/client/listers_generated/cluster/v1alpha1",
     "pkg/clientcmd",
     "pkg/cmd-runner",
+    "pkg/controller/cluster",
     "pkg/controller/config",
     "pkg/controller/machine",
     "pkg/controller/noderefutil",
@@ -833,6 +834,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2aa64acc75baae9f6a6d7079831f0801111bd28ff9757a7fc9b50ef00d62e569"
+  inputs-digest = "82139b7fb2ada8f3ad396760ae1a76850e4257d6ffc2a130b02d8ab2d87796ae"
   solver-name = "gps-cdcl"
   solver-version = 1

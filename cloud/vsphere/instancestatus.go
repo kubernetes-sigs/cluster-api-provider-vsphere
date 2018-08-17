@@ -19,6 +19,7 @@ package vsphere
 import (
 	"bytes"
 	"fmt"
+
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -36,7 +37,7 @@ type instanceStatus *clusterv1.Machine
 
 // Get the status of the instance identified by the given machine
 func (vc *VsphereClient) instanceStatus(machine *clusterv1.Machine) (instanceStatus, error) {
-	currentMachine, err := util.GetMachineIfExists(vc.machineClient, machine.ObjectMeta.Name)
+	currentMachine, err := util.GetMachineIfExists(vc.clusterV1alpha1.Machines(machine.Namespace), machine.ObjectMeta.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +52,7 @@ func (vc *VsphereClient) instanceStatus(machine *clusterv1.Machine) (instanceSta
 // Sets the status of the instance identified by the given machine to the given machine
 func (vc *VsphereClient) updateInstanceStatus(machine *clusterv1.Machine) error {
 	status := instanceStatus(machine)
-	currentMachine, err := util.GetMachineIfExists(vc.machineClient, machine.ObjectMeta.Name)
+	currentMachine, err := util.GetMachineIfExists(vc.clusterV1alpha1.Machines(machine.Namespace), machine.ObjectMeta.Name)
 	if err != nil {
 		return err
 	}
@@ -66,7 +67,7 @@ func (vc *VsphereClient) updateInstanceStatus(machine *clusterv1.Machine) error 
 		return err
 	}
 
-	_, err = vc.machineClient.Update(m)
+	_, err = vc.clusterV1alpha1.Machines(m.Namespace).Update(m)
 	return err
 }
 

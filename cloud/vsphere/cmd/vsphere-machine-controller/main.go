@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/cloud/vsphere"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 	clusterapiclientsetscheme "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/scheme"
+	"sigs.k8s.io/cluster-api/pkg/controller/cluster"
 	"sigs.k8s.io/cluster-api/pkg/controller/config"
 	"sigs.k8s.io/cluster-api/pkg/controller/machine"
 	"sigs.k8s.io/cluster-api/pkg/controller/sharedinformers"
@@ -62,33 +63,54 @@ func main() {
 		glog.Fatalf("Could not create client for talking to the apiserver: %v", err)
 	}
 
-	clientSet, err := kubernetes.NewForConfig(
+	machineClientSet, err := kubernetes.NewForConfig(
 		rest.AddUserAgent(config, "machine-controller-manager"),
 	)
 	if err != nil {
 		glog.Fatalf("Invalid API configuration for kubeconfig-control: %v", err)
 	}
 
-	eventRecorder, err := createRecorder(clientSet)
+	clusterClientSet, err := kubernetes.NewForConfig(
+		rest.AddUserAgent(config, "cluster-controller-manager"),
+	)
+	if err != nil {
+		glog.Fatalf("Invalid API configuration for kubeconfig-control: %v", err)
+	}
+
+	machineEventRecorder, err := createRecorder(machineClientSet, "machine-controller-manager")
 	if err != nil {
 		glog.Fatalf("Could not create vSphere event recorder: %v", err)
 	}
 
-	actuator, err := vsphere.NewMachineActuator(client.ClusterV1alpha1().Machines(corev1.NamespaceDefault), eventRecorder, *namedMachinesPath)
+	shutdown := make(chan struct{})
+	si := sharedinformers.NewSharedInformers(config, shutdown)
+
+	machineActuator, err := vsphere.NewMachineActuator(client.ClusterV1alpha1(), si.Factory.Cluster().V1alpha1(), machineEventRecorder, *namedMachinesPath)
 	if err != nil {
 		glog.Fatalf("Could not create vSphere machine actuator: %v", err)
 	}
 
-	shutdown := make(chan struct{})
-	si := sharedinformers.NewSharedInformers(config, shutdown)
-	// If this doesn't compile, the code generator probably
-	// overwrote the customized NewMachineController function.
-	c := machine.NewMachineController(config, si, actuator)
-	c.RunAsync(shutdown)
+	clusterEventRecorder, err := createRecorder(clusterClientSet, "cluster-controller-manager")
+	if err != nil {
+		glog.Fatalf("Could not create vSphere event recorder: %v", err)
+	}
+
+	clusterActuator, err := vsphere.NewClusterActuator(client.ClusterV1alpha1(), si.Factory.Cluster().V1alpha1(), clusterEventRecorder)
+	if err != nil {
+		glog.Fatalf("Could not create vSphere cluster actuator: %v", err)
+	}
+
+	controllers := []controller.Controller{
+		machine.NewMachineController(config, si, machineActuator),
+		cluster.NewClusterController(config, si, clusterActuator),
+	}
+	controller.StartControllerManager(controllers...)
+
+	// Blockforever
 	select {}
 }
 
-func createRecorder(kubeClient *kubernetes.Clientset) (record.EventRecorder, error) {
+func createRecorder(kubeClient *kubernetes.Clientset, source string) (record.EventRecorder, error) {
 
 	eventsScheme := runtime.NewScheme()
 	if err := corev1.AddToScheme(eventsScheme); err != nil {
@@ -96,9 +118,8 @@ func createRecorder(kubeClient *kubernetes.Clientset) (record.EventRecorder, err
 	}
 	// We also emit events for our own types.
 	clusterapiclientsetscheme.AddToScheme(eventsScheme)
-
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(glog.Infof)
 	eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: v1core.New(kubeClient.CoreV1().RESTClient()).Events("")})
-	return eventBroadcaster.NewRecorder(eventsScheme, corev1.EventSource{Component: vsphereMachineControllerName}), nil
+	return eventBroadcaster.NewRecorder(eventsScheme, corev1.EventSource{Component: source}), nil
 }

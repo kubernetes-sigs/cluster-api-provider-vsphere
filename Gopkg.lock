@@ -222,7 +222,7 @@
   name = "github.com/json-iterator/go"
   packages = ["."]
   revision = "1624edc4454b8682399def8740d46db5e4362ba4"
-  version = "1.1.5"
+  version = "v1.1.5"
 
 [[projects]]
   name = "github.com/juju/ratelimit"
@@ -247,7 +247,7 @@
     "jlexer",
     "jwriter"
   ]
-  revision = "03f2033d19d5860aef995fe360ac7d395cd8ce65"
+  revision = "60711f1a8329503b04e1c88535f419d0bb440bff"
 
 [[projects]]
   name = "github.com/matttproud/golang_protobuf_extensions"
@@ -363,7 +363,7 @@
     "trace",
     "websocket"
   ]
-  revision = "922f4815f713f213882e8ef45e0d315b164d705c"
+  revision = "8a410e7b638dca158bf9e766925842f6651ff828"
 
 [[projects]]
   branch = "master"
@@ -372,7 +372,7 @@
     "unix",
     "windows"
   ]
-  revision = "3b58ed4ad3395d483fc92d5d14123ce2c3581fec"
+  revision = "4910a1d54f876d7b22162a85f4d066d3ee649450"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -404,7 +404,7 @@
     "imports",
     "internal/fastwalk"
   ]
-  revision = "447b503c8ba6e20bc730585499fc01c81a78c621"
+  revision = "f6ba5742950514ddd66494151ed5498ed77969ca"
 
 [[projects]]
   branch = "master"
@@ -638,7 +638,7 @@
     "plugin/pkg/authenticator/token/webhook",
     "plugin/pkg/authorizer/webhook"
   ]
-  revision = "ac89a8a86cfeed91f4962fa34fea154b12c9a06a"
+  revision = "5bf8a03d2a15f7495ca6e25c67afc48e10b13f90"
 
 [[projects]]
   branch = "release-6.0"
@@ -801,8 +801,8 @@
   name = "sigs.k8s.io/cluster-api"
   packages = [
     "clusterctl/clusterdeployer",
-    "clusterctl/clusterdeployer/externalclusterprovisioner",
-    "clusterctl/clusterdeployer/minikube",
+    "clusterctl/clusterdeployer/bootstrap/existing",
+    "clusterctl/clusterdeployer/bootstrap/minikube",
     "clusterctl/cmd",
     "clusterctl/providercomponents",
     "clusterctl/validation",
@@ -823,11 +823,12 @@
     "pkg/controller/machine",
     "pkg/controller/noderefutil",
     "pkg/controller/sharedinformers",
+    "pkg/deployer",
     "pkg/errors",
     "pkg/kubeadm",
     "pkg/util"
   ]
-  revision = "e1903be683739379be57f78a4095cd51726495fd"
+  revision = "2d1ad4ce4a02270e38fa959f25c7810ece46939d"
 
 [solve-meta]
   analyzer-name = "dep"

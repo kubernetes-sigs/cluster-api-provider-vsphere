@@ -1,4 +1,4 @@
-package vsphere
+package utils
 
 import (
 	"errors"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/labels"
+	"sigs.k8s.io/cluster-api-provider-vsphere/cloud/vsphere/constants"
 	vsphereconfig "sigs.k8s.io/cluster-api-provider-vsphere/cloud/vsphere/vsphereproviderconfig"
 	vsphereconfigv1 "sigs.k8s.io/cluster-api-provider-vsphere/cloud/vsphere/vsphereproviderconfig/v1alpha1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -37,7 +38,7 @@ func GetIP(_ *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
 	if machine.ObjectMeta.Annotations == nil {
 		return "", errors.New("could not get IP")
 	}
-	if ip, ok := machine.ObjectMeta.Annotations[VmIpAnnotationKey]; ok {
+	if ip, ok := machine.ObjectMeta.Annotations[constants.VmIpAnnotationKey]; ok {
 		glog.Infof("Returning IP from machine annotation %s", ip)
 		return ip, nil
 	}
@@ -80,4 +81,40 @@ func GetClusterProviderStatus(cluster *clusterv1.Cluster) (*vsphereconfig.Vspher
 		return nil, fmt.Errorf("cluster providerstatus failure to cast to vsphere; type: %v", gvk)
 	}
 	return status, nil
+}
+
+func GetMachineProviderConfig(providerConfig clusterv1.ProviderConfig) (*vsphereconfig.VsphereMachineProviderConfig, error) {
+	_, codecFactory, err := vsphereconfigv1.NewSchemeAndCodecs()
+	if err != nil {
+		return nil, err
+	}
+	obj, gvk, err := codecFactory.UniversalDecoder().Decode(providerConfig.Value.Raw, nil, nil)
+	if err != nil {
+		return nil, fmt.Errorf("machine providerconfig decoding failure: %v", err)
+	}
+
+	config, ok := obj.(*vsphereconfig.VsphereMachineProviderConfig)
+	if !ok {
+		return nil, fmt.Errorf("machine providerconfig failure to cast to vsphere; type: %v", gvk)
+	}
+
+	return config, nil
+}
+
+func GetClusterProviderConfig(providerConfig clusterv1.ProviderConfig) (*vsphereconfig.VsphereClusterProviderConfig, error) {
+	_, codecFactory, err := vsphereconfigv1.NewSchemeAndCodecs()
+	if err != nil {
+		return nil, err
+	}
+	obj, gvk, err := codecFactory.UniversalDecoder().Decode(providerConfig.Value.Raw, nil, nil)
+	if err != nil {
+		return nil, fmt.Errorf("cluster providerconfig decoding failure: %v", err)
+	}
+
+	config, ok := obj.(*vsphereconfig.VsphereClusterProviderConfig)
+	if !ok {
+		return nil, fmt.Errorf("cluster providerconfig failure to cast to vsphere; type: %v", gvk)
+	}
+
+	return config, nil
 }

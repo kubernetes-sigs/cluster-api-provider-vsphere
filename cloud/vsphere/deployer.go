@@ -25,7 +25,7 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
-
+	"sigs.k8s.io/cluster-api-provider-vsphere/cloud/vsphere/constants"
 	clustercommon "sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
@@ -47,7 +47,7 @@ func NewDeploymentClient() *DeploymentClient {
 
 func (*DeploymentClient) GetIP(_ *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
 	if machine.ObjectMeta.Annotations != nil {
-		if ip, ok := machine.ObjectMeta.Annotations[VmIpAnnotationKey]; ok {
+		if ip, ok := machine.ObjectMeta.Annotations[constants.VmIpAnnotationKey]; ok {
 			glog.Infof("Returning IP from machine annotation %s", ip)
 			return ip, nil
 		}

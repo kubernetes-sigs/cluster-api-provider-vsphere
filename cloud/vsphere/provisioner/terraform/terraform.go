@@ -63,7 +63,6 @@ const (
 	TfVarsFilename              = "variables.tfvars"
 	TfStateFilename             = "terraform.tfstate"
 	startupScriptFilename       = "machine-startup.sh"
-	KubeadmTokenTtl             = time.Duration(10) * time.Minute
 )
 
 type Provisioner struct {
@@ -731,7 +730,7 @@ func (vc *Provisioner) getKubeadmToken(cluster *clusterv1.Cluster) (string, erro
 	}
 	tokenParams := kubeadm.TokenCreateParams{
 		KubeConfig: tmpconfig,
-		Ttl:        KubeadmTokenTtl,
+		Ttl:        constants.KubeadmTokenTtl,
 	}
 	output, err := kubeadm.New().TokenCreate(tokenParams)
 	if err != nil {

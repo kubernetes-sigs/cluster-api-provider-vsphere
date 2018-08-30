@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"os"
 	"os/exec"
 	"strings"
@@ -117,6 +118,24 @@ func GetSubnet(netRange clusterv1.NetworkRanges) string {
 	return netRange.CIDRBlocks[0]
 }
 
+func GetVMId(machine *clusterv1.Machine) (string, error) {
+	if machine.ObjectMeta.Annotations != nil {
+		if vmid, ok := machine.ObjectMeta.Annotations[constants.VirtualMachineRef]; ok {
+			return vmid, nil
+		}
+	}
+	return "", nil
+}
+
+func GetActiveTasks(machine *clusterv1.Machine) (string, error) {
+	if machine.ObjectMeta.Annotations != nil {
+		if taskref, ok := machine.ObjectMeta.Annotations[constants.VirtualMachineTaskRef]; ok {
+			return taskref, nil
+		}
+	}
+	return "", nil
+}
+
 func CreateTempFile(contents string) (string, error) {
 	tmpFile, err := ioutil.TempFile("", "")
 	if err != nil {
@@ -164,4 +183,15 @@ func GetKubeConfig(cluster *clusterv1.Cluster, master *clusterv1.Machine) (strin
 	err = cmd.Run()
 	result := strings.TrimSpace(out.String())
 	return result, err
+}
+
+// ByteToGiB returns n/1024^3. The input must be an integer that can be
+// appropriately divisible.
+func ByteToGiB(n int64) int64 {
+	return n / int64(math.Pow(1024, 3))
+}
+
+// GiBToByte returns n*1024^3.
+func GiBToByte(n int64) int64 {
+	return int64(n * int64(math.Pow(1024, 3)))
 }

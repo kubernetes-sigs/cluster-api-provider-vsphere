@@ -17,15 +17,7 @@ limitations under the License.
 package vsphere
 
 import (
-	"bytes"
-	"errors"
-	"fmt"
-	"os"
-	"os/exec"
-	"strings"
-
-	"github.com/golang/glog"
-	"sigs.k8s.io/cluster-api-provider-vsphere/cloud/vsphere/constants"
+	vsphereutils "sigs.k8s.io/cluster-api-provider-vsphere/cloud/vsphere/utils"
 	clustercommon "sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
@@ -45,34 +37,10 @@ func NewDeploymentClient() *DeploymentClient {
 	return &DeploymentClient{}
 }
 
-func (*DeploymentClient) GetIP(_ *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
-	if machine.ObjectMeta.Annotations != nil {
-		if ip, ok := machine.ObjectMeta.Annotations[constants.VmIpAnnotationKey]; ok {
-			glog.Infof("Returning IP from machine annotation %s", ip)
-			return ip, nil
-		}
-	}
-
-	return "", errors.New("could not get IP")
+func (*DeploymentClient) GetIP(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
+	return vsphereutils.GetIP(cluster, machine)
 }
 
 func (d *DeploymentClient) GetKubeConfig(cluster *clusterv1.Cluster, master *clusterv1.Machine) (string, error) {
-	ip, err := d.GetIP(cluster, master)
-	if err != nil {
-		return "", err
-	}
-
-	var out bytes.Buffer
-	cmd := exec.Command(
-		"ssh", "-i", "~/.ssh/vsphere_tmp",
-		"-q",
-		"-o", "StrictHostKeyChecking no",
-		"-o", "UserKnownHostsFile /dev/null",
-		fmt.Sprintf("ubuntu@%s", ip),
-		"sudo cat /etc/kubernetes/admin.conf")
-	cmd.Stdout = &out
-	cmd.Stderr = os.Stderr
-	cmd.Run()
-	result := strings.TrimSpace(out.String())
-	return result, nil
+	return vsphereutils.GetKubeConfig(cluster, master)
 }

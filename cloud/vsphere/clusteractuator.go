@@ -18,6 +18,7 @@ package vsphere
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/golang/glog"
@@ -41,6 +42,7 @@ type ClusterActuator struct {
 	clusterV1alpha1 clusterv1alpha1.ClusterV1alpha1Interface
 	lister          v1alpha1.Interface
 	eventRecorder   record.EventRecorder
+	k8sClient       kubernetes.Interface
 }
 
 // Reconcile will create or update the cluster
@@ -86,6 +88,41 @@ func (vc *ClusterActuator) updateK8sAPIStatus(cluster *clusterv1.Cluster) error 
 	return vc.updateClusterAPIStatus(cluster, currentClusterAPIStatus)
 }
 
+// fetchKubeConfig returns the cached copy of the Kubeconfig in the secrets for the target cluster
+// In case the secret does not exist, then it fetches from the target master node and caches it for
+func (vc *ClusterActuator) fetchKubeConfig(cluster *clusterv1.Cluster, masters []*clusterv1.Machine) (string, error) {
+	var kubeconfig string
+	secret, err := vc.k8sClient.Core().Secrets(cluster.Namespace).Get(fmt.Sprintf(constants.KubeConfigSecretName, cluster.UID), metav1.GetOptions{})
+	if err != nil {
+		// TODO: Check for the proper err type for *not present* case. rather than all other cases
+		// Fetch the kubeconfig and create the secret saving it
+		// Currently we support only a single master thus the below assumption
+		// Once we start supporting multiple masters, the kubeconfig needs to
+		// be generated differently, with the URL from the LB endpoint
+		master := masters[0]
+		kubeconfig, err = vsphereutils.GetKubeConfig(cluster, master)
+		if err != nil || kubeconfig == "" {
+			glog.Infof("[cluster-actuator] error retrieving kubeconfig for target cluster, will requeue")
+			return "", &clustererror.RequeueAfterError{RequeueAfter: constants.RequeueAfterSeconds}
+		}
+		configmap := make(map[string]string)
+		configmap[constants.KubeConfigSecretData] = kubeconfig
+		secret = &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: fmt.Sprintf(constants.KubeConfigSecretName, cluster.UID),
+			},
+			StringData: configmap,
+		}
+		secret, err = vc.k8sClient.Core().Secrets(cluster.Namespace).Create(secret)
+		if err != nil {
+			glog.Warningf("Could not create the secret for the saving kubeconfig: err [%s]", err.Error())
+		}
+	} else {
+		kubeconfig = string(secret.Data[constants.KubeConfigSecretData])
+	}
+	return kubeconfig, nil
+}
+
 func (vc *ClusterActuator) getClusterAPIStatus(cluster *clusterv1.Cluster) (vsphereconfig.APIStatus, error) {
 	masters, err := vsphereutils.GetMasterForCluster(cluster, vc.lister)
 	if err != nil {
@@ -96,14 +133,9 @@ func (vc *ClusterActuator) getClusterAPIStatus(cluster *clusterv1.Cluster) (vsph
 		glog.Infof("No masters for the cluster [%s] present", cluster.Name)
 		return vsphereconfig.ApiNotReady, nil
 	}
-	// Currently we support only a single master thus the below assumption
-	// Once we start supporting multiple masters, the kubeconfig needs to
-	// be generated differently, with the URL from the LB endpoint
-	master := masters[0]
-	kubeconfig, err := vsphereutils.GetKubeConfig(cluster, master)
-	if err != nil || kubeconfig == "" {
-		glog.Infof("[cluster-actuator] error retrieving kubeconfig for target cluster, will requeue")
-		return vsphereconfig.ApiNotReady, &clustererror.RequeueAfterError{RequeueAfter: constants.RequeueAfterSeconds}
+	kubeconfig, err := vc.fetchKubeConfig(cluster, masters)
+	if err != nil {
+		return vsphereconfig.ApiNotReady, err
 	}
 	kconfigFile, err := vsphereutils.CreateTempFile(kubeconfig)
 	if err != nil {
@@ -216,10 +248,11 @@ func (vc *ClusterActuator) Delete(cluster *clusterv1.Cluster) error {
 }
 
 // NewClusterActuator creates the instance for the ClusterActuator
-func NewClusterActuator(clusterV1alpha1 clusterv1alpha1.ClusterV1alpha1Interface, lister v1alpha1.Interface, eventRecorder record.EventRecorder) (*ClusterActuator, error) {
+func NewClusterActuator(clusterV1alpha1 clusterv1alpha1.ClusterV1alpha1Interface, k8sClient kubernetes.Interface, lister v1alpha1.Interface, eventRecorder record.EventRecorder) (*ClusterActuator, error) {
 	return &ClusterActuator{
 		clusterV1alpha1: clusterV1alpha1,
 		lister:          lister,
 		eventRecorder:   eventRecorder,
+		k8sClient:       k8sClient,
 	}, nil
 }

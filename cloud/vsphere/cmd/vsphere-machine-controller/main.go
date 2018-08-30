@@ -85,7 +85,12 @@ func main() {
 	shutdown := make(chan struct{})
 	si := sharedinformers.NewSharedInformers(config, shutdown)
 
-	machineActuator, err := vsphere.NewMachineActuator(client.ClusterV1alpha1(), si.Factory.Cluster().V1alpha1(), machineEventRecorder, *namedMachinesPath)
+	// machineActuator, err := vsphere.NewTerraformMachineActuator(client.ClusterV1alpha1(), si.Factory.Cluster().V1alpha1(), machineEventRecorder, *namedMachinesPath)
+	// if err != nil {
+	// 	glog.Fatalf("Could not create vSphere machine actuator: %v", err)
+	// }
+
+	machineActuator, err := vsphere.NewGovmomiMachineActuator(client.ClusterV1alpha1(), machineClientSet, si.Factory.Cluster().V1alpha1(), machineEventRecorder)
 	if err != nil {
 		glog.Fatalf("Could not create vSphere machine actuator: %v", err)
 	}
@@ -95,7 +100,7 @@ func main() {
 		glog.Fatalf("Could not create vSphere event recorder: %v", err)
 	}
 
-	clusterActuator, err := vsphere.NewClusterActuator(client.ClusterV1alpha1(), si.Factory.Cluster().V1alpha1(), clusterEventRecorder)
+	clusterActuator, err := vsphere.NewClusterActuator(client.ClusterV1alpha1(), clusterClientSet, si.Factory.Cluster().V1alpha1(), clusterEventRecorder)
 	if err != nil {
 		glog.Fatalf("Could not create vSphere cluster actuator: %v", err)
 	}

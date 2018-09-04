@@ -65,8 +65,8 @@
 [[projects]]
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
-  revision = "346938d642f2ec3594ed81d874461961cd0faa76"
-  version = "v1.1.0"
+  revision = "8991bc29aa16c548c550c7ff78260e27b9ab7c73"
+  version = "v1.1.1"
 
 [[projects]]
   name = "github.com/elazarl/go-bindata-assetfs"
@@ -157,8 +157,8 @@
     "ptypes/duration",
     "ptypes/timestamp"
   ]
-  revision = "b4deda0973fb4c70b50d226b1af49f3da59f5265"
-  version = "v1.1.0"
+  revision = "aa810b61a9c79d51363740d207bb46cf8e620ed5"
+  version = "v1.2.0"
 
 [[projects]]
   branch = "master"
@@ -192,13 +192,13 @@
   revision = "9cad4c3443a7200dd6400aef47183728de563a38"
 
 [[projects]]
-  branch = "master"
   name = "github.com/hashicorp/golang-lru"
   packages = [
     ".",
     "simplelru"
   ]
-  revision = "0fb14efe8c47ae851c0034ed7a448854d3d34cf3"
+  revision = "20f1fb78b0740ba8c3cb143a61e86ba5c8669768"
+  version = "v0.5.0"
 
 [[projects]]
   branch = "master"
@@ -222,7 +222,7 @@
   name = "github.com/json-iterator/go"
   packages = ["."]
   revision = "1624edc4454b8682399def8740d46db5e4362ba4"
-  version = "1.1.5"
+  version = "v1.1.5"
 
 [[projects]]
   name = "github.com/juju/ratelimit"
@@ -247,7 +247,7 @@
     "jlexer",
     "jwriter"
   ]
-  revision = "03f2033d19d5860aef995fe360ac7d395cd8ce65"
+  revision = "60711f1a8329503b04e1c88535f419d0bb440bff"
 
 [[projects]]
   name = "github.com/matttproud/golang_protobuf_extensions"
@@ -346,7 +346,7 @@
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
-  revision = "de0752318171da717af4ce24d0a2e8626afaeb11"
+  revision = "0709b304e793a5edb4a2c0145f281ecdc20838a4"
 
 [[projects]]
   branch = "master"
@@ -363,7 +363,7 @@
     "trace",
     "websocket"
   ]
-  revision = "aaf60122140d3fcf75376d319f0554393160eb50"
+  revision = "8a410e7b638dca158bf9e766925842f6651ff828"
 
 [[projects]]
   branch = "master"
@@ -372,7 +372,7 @@
     "unix",
     "windows"
   ]
-  revision = "1c9583448a9c3aa0f9a6a5241bf73c0bd8aafded"
+  revision = "2b024373dcd9800f0cae693839fac6ede8d64a8c"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -404,13 +404,13 @@
     "imports",
     "internal/fastwalk"
   ]
-  revision = "1dfe8478fdec02e49c998048ab9f761d64949349"
+  revision = "7ca132754999accbaa5c1735eda29e7ce0f3bf03"
 
 [[projects]]
   branch = "master"
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
-  revision = "d0a8f471bba2dbb160885b0000d814ee5d559bad"
+  revision = "11092d34479b07829b72e10713b159248caf5dad"
 
 [[projects]]
   name = "google.golang.org/grpc"
@@ -638,7 +638,7 @@
     "plugin/pkg/authenticator/token/webhook",
     "plugin/pkg/authorizer/webhook"
   ]
-  revision = "ac89a8a86cfeed91f4962fa34fea154b12c9a06a"
+  revision = "88bc12176361e8c9b418ff9a1c5b4ffa1835c678"
 
 [[projects]]
   branch = "release-6.0"
@@ -801,8 +801,8 @@
   name = "sigs.k8s.io/cluster-api"
   packages = [
     "clusterctl/clusterdeployer",
-    "clusterctl/clusterdeployer/externalclusterprovisioner",
-    "clusterctl/clusterdeployer/minikube",
+    "clusterctl/clusterdeployer/bootstrap/existing",
+    "clusterctl/clusterdeployer/bootstrap/minikube",
     "clusterctl/cmd",
     "clusterctl/providercomponents",
     "clusterctl/validation",
@@ -823,11 +823,12 @@
     "pkg/controller/machine",
     "pkg/controller/noderefutil",
     "pkg/controller/sharedinformers",
+    "pkg/deployer",
     "pkg/errors",
     "pkg/kubeadm",
     "pkg/util"
   ]
-  revision = "051f338bdacb76117d73a86258bc58c946add7b5"
+  revision = "211cb357ea5f6d249857b3bd1d6dc0acd86df364"
 
 [solve-meta]
   analyzer-name = "dep"

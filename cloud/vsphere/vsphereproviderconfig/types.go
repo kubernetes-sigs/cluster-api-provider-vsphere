@@ -20,7 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// +k8s:deepcopy-gen=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type VsphereMachineProviderConfig struct {
 	metav1.TypeMeta `json:",inline"`
@@ -31,7 +30,6 @@ type VsphereMachineProviderConfig struct {
 	MachineVariables map[string]string `json:"machineVariables"`
 }
 
-// +k8s:deepcopy-gen=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type VsphereClusterProviderConfig struct {
 	metav1.TypeMeta `json:",inline"`
@@ -39,4 +37,18 @@ type VsphereClusterProviderConfig struct {
 	VsphereUser     string `json:"vsphereUser"`
 	VspherePassword string `json:"vspherePassword"`
 	VsphereServer   string `json:"vsphereServer"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type VsphereMachineProviderStatus struct {
+	metav1.TypeMeta `json:",inline"`
+
+	LastUpdated string `json:"lastUpdated"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type VsphereClusterProviderStatus struct {
+	metav1.TypeMeta `json:",inline"`
+
+	LastUpdated string `json:"lastUpdated"`
 }

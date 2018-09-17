@@ -19,14 +19,14 @@
 #   name = "github.com/x/y"
 #   version = "2.4.0"
 #
-# [prune]
-#   non-go = false
-#   go-tests = true
-#   unused-packages = true
-
 required = [
   "k8s.io/code-generator/cmd/deepcopy-gen",
 ]
+
+[prune]
+  non-go = true
+  go-tests = true
+  unused-packages = true
 
 [[constraint]]
   name = "sigs.k8s.io/cluster-api"

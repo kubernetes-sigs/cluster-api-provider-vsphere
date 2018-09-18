@@ -118,3 +118,11 @@ func GetClusterProviderConfig(providerConfig clusterv1.ProviderConfig) (*vsphere
 
 	return config, nil
 }
+
+// Just a temporary hack to grab a single range from the config.
+func GetSubnet(netRange clusterv1.NetworkRanges) string {
+	if len(netRange.CIDRBlocks) == 0 {
+		return ""
+	}
+	return netRange.CIDRBlocks[0]
+}

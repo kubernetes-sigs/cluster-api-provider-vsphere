@@ -41,6 +41,7 @@ import (
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/cloud/vsphere/constants"
 	"sigs.k8s.io/cluster-api-provider-vsphere/cloud/vsphere/namedmachines"
+	vpshereprovisionercommon "sigs.k8s.io/cluster-api-provider-vsphere/cloud/vsphere/provisioner/common"
 	vsphereutils "sigs.k8s.io/cluster-api-provider-vsphere/cloud/vsphere/utils"
 	vsphereconfig "sigs.k8s.io/cluster-api-provider-vsphere/cloud/vsphere/vsphereproviderconfig"
 	vsphereconfigv1 "sigs.k8s.io/cluster-api-provider-vsphere/cloud/vsphere/vsphereproviderconfig/v1alpha1"
@@ -220,8 +221,8 @@ func (vc *Provisioner) saveStartupScript(cluster *clusterv1.Cluster, machine *cl
 				"invalid master configuration: missing Machine.Spec.Versions.ControlPlane"), constants.CreateEventAction)
 		}
 		var err error
-		startupScript, err = getMasterStartupScript(
-			templateParams{
+		startupScript, err = vpshereprovisionercommon.GetMasterStartupScript(
+			vpshereprovisionercommon.TemplateParams{
 				Cluster:   cluster,
 				Machine:   machine,
 				Preloaded: preloaded,
@@ -238,8 +239,8 @@ func (vc *Provisioner) saveStartupScript(cluster *clusterv1.Cluster, machine *cl
 		if err != nil {
 			return "", err
 		}
-		startupScript, err = getNodeStartupScript(
-			templateParams{
+		startupScript, err = vpshereprovisionercommon.GetNodeStartupScript(
+			vpshereprovisionercommon.TemplateParams{
 				Token:     kubeadmToken,
 				Cluster:   cluster,
 				Machine:   machine,
@@ -697,10 +698,10 @@ func (vc *Provisioner) validateCluster(cluster *clusterv1.Cluster) error {
 	if cluster.Spec.ClusterNetwork.ServiceDomain == "" {
 		return errors.New("invalid cluster configuration: missing Cluster.Spec.ClusterNetwork.ServiceDomain")
 	}
-	if getSubnet(cluster.Spec.ClusterNetwork.Pods) == "" {
+	if vsphereutils.GetSubnet(cluster.Spec.ClusterNetwork.Pods) == "" {
 		return errors.New("invalid cluster configuration: missing Cluster.Spec.ClusterNetwork.Pods")
 	}
-	if getSubnet(cluster.Spec.ClusterNetwork.Services) == "" {
+	if vsphereutils.GetSubnet(cluster.Spec.ClusterNetwork.Services) == "" {
 		return errors.New("invalid cluster configuration: missing Cluster.Spec.ClusterNetwork.Services")
 	}
 
@@ -802,14 +803,6 @@ func (vc *Provisioner) handleMachineError(machine *clusterv1.Machine, err *apier
 
 	glog.Errorf("Machine error: %v", err.Message)
 	return err
-}
-
-// Just a temporary hack to grab a single range from the config.
-func getSubnet(netRange clusterv1.NetworkRanges) string {
-	if len(netRange.CIDRBlocks) == 0 {
-		return ""
-	}
-	return netRange.CIDRBlocks[0]
 }
 
 func run(cmd string, args ...string) error {

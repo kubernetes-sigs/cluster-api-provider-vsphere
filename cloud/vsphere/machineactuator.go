@@ -805,14 +805,23 @@ func createTempFile(contents string) (string, error) {
 		glog.Warningf("Error creating temporary file")
 		return "", err
 	}
-	defer os.Remove(tmpFile.Name())
-	_, err = tmpFile.Write([]byte(contents))
-	if err != nil {
+	// For any error in this method, clean up the temp file
+	defer func(pErr *error, path string) {
+		if *pErr != nil {
+			if err := os.Remove(path); err != nil {
+				glog.Warningf("Error removing file '%v': %v", err)
+			}
+		}
+	}(&err, tmpFile.Name())
+
+	if _, err = tmpFile.Write([]byte(contents)); err != nil {
 		glog.Warningf("Error writing to temporary file '%s'", tmpFile.Name())
 		return "", err
 	}
-	err = os.Chmod(tmpFile.Name(), 0644)
-	if err != nil {
+	if err = tmpFile.Close(); err != nil {
+		return "", err
+	}
+	if err = os.Chmod(tmpFile.Name(), 0644); err != nil {
 		glog.Warningf("Error setting file permission to 0644 for the temporary file '%s'", tmpFile.Name())
 		return "", err
 	}

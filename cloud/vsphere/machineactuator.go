@@ -18,6 +18,8 @@ package vsphere
 
 import (
 	"bytes"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -26,31 +28,35 @@ import (
 	"os/exec"
 	"path"
 	"regexp"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/golang/glog"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/tools/record"
 
-	"encoding/base64"
 	"sigs.k8s.io/cluster-api-provider-vsphere/cloud/vsphere/namedmachines"
 	vsphereconfig "sigs.k8s.io/cluster-api-provider-vsphere/cloud/vsphere/vsphereproviderconfig"
 	vsphereconfigv1 "sigs.k8s.io/cluster-api-provider-vsphere/cloud/vsphere/vsphereproviderconfig/v1alpha1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
+	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
+	v1alpha1 "sigs.k8s.io/cluster-api/pkg/client/informers_generated/externalversions/cluster/v1alpha1"
 	apierrors "sigs.k8s.io/cluster-api/pkg/errors"
 	"sigs.k8s.io/cluster-api/pkg/kubeadm"
 	"sigs.k8s.io/cluster-api/pkg/util"
-	"time"
 )
 
 const (
+	apiServerPort                    = 443
 	VmIpAnnotationKey                = "vm-ip-address"
 	ControlPlaneVersionAnnotationKey = "control-plane-version"
 	KubeletVersionAnnotationKey      = "kubelet-version"
+	LastUpdatedKey                   = "last-updated"
 
 	// Filename in which named machines are saved using a ConfigMap (in master).
 	NamedMachinesFilename = "vsphere_named_machines.yaml"
@@ -73,9 +79,10 @@ const (
 )
 
 type VsphereClient struct {
+	clusterV1alpha1   clusterv1alpha1.ClusterV1alpha1Interface
 	scheme            *runtime.Scheme
 	codecFactory      *serializer.CodecFactory
-	machineClient     client.MachineInterface
+	lister            v1alpha1.Interface
 	namedMachineWatch *namedmachines.ConfigWatch
 	eventRecorder     record.EventRecorder
 	// Once the vsphere-deployer is deleted, both DeploymentClient and VsphereClient can depend on
@@ -83,7 +90,7 @@ type VsphereClient struct {
 	*DeploymentClient
 }
 
-func NewMachineActuator(machineClient client.MachineInterface, eventRecorder record.EventRecorder, namedMachinePath string) (*VsphereClient, error) {
+func NewMachineActuator(clusterV1alpha1 clusterv1alpha1.ClusterV1alpha1Interface, lister v1alpha1.Interface, eventRecorder record.EventRecorder, namedMachinePath string) (*VsphereClient, error) {
 	scheme, codecFactory, err := vsphereconfigv1.NewSchemeAndCodecs()
 	if err != nil {
 		return nil, err
@@ -96,9 +103,10 @@ func NewMachineActuator(machineClient client.MachineInterface, eventRecorder rec
 		glog.Errorf("error creating named machine config watch: %+v", err)
 	}
 	return &VsphereClient{
+		clusterV1alpha1:   clusterV1alpha1,
 		scheme:            scheme,
 		codecFactory:      codecFactory,
-		machineClient:     machineClient,
+		lister:            lister,
 		namedMachineWatch: nmWatch,
 		eventRecorder:     eventRecorder,
 		DeploymentClient:  NewDeploymentClient(),
@@ -205,7 +213,20 @@ func (vc *VsphereClient) cleanUpStagingDir(machine *clusterv1.Machine) error {
 // Builds and saves the startup script for the passed machine and cluster.
 // Returns the full path of the saved startup script and possible error.
 func (vc *VsphereClient) saveStartupScript(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
+	config, err := vc.machineproviderconfig(machine.Spec.ProviderConfig)
+	if err != nil {
+		return "", vc.handleMachineError(machine, apierrors.InvalidMachineConfiguration(
+			"Cannot unmarshal providerConfig field: %v", err), createEventAction)
+	}
 	preloaded := false
+	if val, ok := config.MachineVariables["preloaded"]; ok {
+		preloaded, err = strconv.ParseBool(val)
+		if err != nil {
+			return "", vc.handleMachineError(machine, apierrors.InvalidMachineConfiguration(
+				"Invalid value for preloaded: %v", err), createEventAction)
+		}
+	}
+
 	var startupScript string
 
 	if util.IsMaster(machine) {
@@ -228,7 +249,7 @@ func (vc *VsphereClient) saveStartupScript(cluster *clusterv1.Cluster, machine *
 		if len(cluster.Status.APIEndpoints) == 0 {
 			return "", errors.New("invalid cluster state: cannot create a Kubernetes node without an API endpoint")
 		}
-		kubeadmToken, err := getKubeadmToken()
+		kubeadmToken, err := vc.getKubeadmToken(cluster)
 		if err != nil {
 			return "", err
 		}
@@ -332,7 +353,7 @@ func (vc *VsphereClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.M
 		tfState, _ := vc.GetTfState(machine)
 		vc.cleanUpStagingDir(machine)
 		vc.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Created", "Created Machine %v", machine.Name)
-		return vc.updateAnnotations(machine, vmIp, tfState)
+		return vc.updateAnnotations(cluster, machine, vmIp, tfState)
 	} else {
 		glog.Infof("Skipped creating a VM for machine %s that already exists.", machine.ObjectMeta.Name)
 	}
@@ -433,7 +454,7 @@ func (vc *VsphereClient) Delete(cluster *clusterv1.Cluster, machine *clusterv1.M
 
 	// Update annotation for the state.
 	machine.ObjectMeta.Annotations[StatusMachineTerraformState] = ""
-	_, err = vc.machineClient.Update(machine)
+	_, err = vc.clusterV1alpha1.Machines(machine.Namespace).Update(machine)
 
 	if err == nil {
 		vc.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Killing", "Killing machine %v", machine.Name)
@@ -452,7 +473,7 @@ func (vc *VsphereClient) Update(cluster *clusterv1.Cluster, goalMachine *cluster
 		ip, _ := vc.DeploymentClient.GetIP(nil, goalMachine)
 		glog.Info("Version annotations do not exist. Populating existing state for bootstrapped machine.")
 		tfState, _ := vc.GetTfState(goalMachine)
-		return vc.updateAnnotations(goalMachine, ip, tfState)
+		return vc.updateAnnotations(cluster, goalMachine, ip, tfState)
 	}
 
 	if util.IsMaster(goalMachine) {
@@ -561,7 +582,7 @@ func (vc *VsphereClient) updateMasterInPlace(machine *clusterv1.Machine) error {
 
 	// Update annotation for version.
 	machine.ObjectMeta.Annotations[ControlPlaneVersionAnnotationKey] = machine.Spec.Versions.ControlPlane
-	if _, err := vc.machineClient.Update(machine); err != nil {
+	if _, err := vc.clusterV1alpha1.Machines(machine.Namespace).Update(machine); err != nil {
 		return err
 	}
 
@@ -628,7 +649,7 @@ func (vc *VsphereClient) GetTfState(machine *clusterv1.Machine) (string, error) 
 // We are storing these as annotations and not in Machine Status because that's intended for
 // "Provider-specific status" that will usually be used to detect updates. Additionally,
 // Status requires yet another version API resource which is too heavy to store IP and TF state.
-func (vc *VsphereClient) updateAnnotations(machine *clusterv1.Machine, vmIp, tfState string) error {
+func (vc *VsphereClient) updateAnnotations(cluster *clusterv1.Cluster, machine *clusterv1.Machine, vmIP, tfState string) error {
 	glog.Infof("Updating annotations for machine %s", machine.ObjectMeta.Name)
 	if machine.ObjectMeta.Annotations == nil {
 		machine.ObjectMeta.Annotations = make(map[string]string)
@@ -636,13 +657,22 @@ func (vc *VsphereClient) updateAnnotations(machine *clusterv1.Machine, vmIp, tfS
 
 	tfStateB64 := base64.StdEncoding.EncodeToString([]byte(tfState))
 
-	machine.ObjectMeta.Annotations[VmIpAnnotationKey] = vmIp
+	machine.ObjectMeta.Annotations[VmIpAnnotationKey] = vmIP
 	machine.ObjectMeta.Annotations[ControlPlaneVersionAnnotationKey] = machine.Spec.Versions.ControlPlane
 	machine.ObjectMeta.Annotations[KubeletVersionAnnotationKey] = machine.Spec.Versions.Kubelet
 	machine.ObjectMeta.Annotations[StatusMachineTerraformState] = tfStateB64
 
-	_, err := vc.machineClient.Update(machine)
+	_, err := vc.clusterV1alpha1.Machines(machine.Namespace).Update(machine)
 	if err != nil {
+		return err
+	}
+	// Update the cluster status with updated time stamp for tracking purposes
+	status := &vsphereconfig.VsphereClusterProviderStatus{LastUpdated: time.Now().UTC().String()}
+	out, err := json.Marshal(status)
+	cluster.Status.ProviderStatus = &runtime.RawExtension{Raw: out}
+	_, err = vc.clusterV1alpha1.Clusters(cluster.Namespace).UpdateStatus(cluster)
+	if err != nil {
+		glog.Infof("Error in updating the status: %s", err)
 		return err
 	}
 	return nil
@@ -728,9 +758,23 @@ func (vc *VsphereClient) validateCluster(cluster *clusterv1.Cluster) error {
 	return nil
 }
 
-func getKubeadmToken() (string, error) {
+func (vc *VsphereClient) getKubeadmToken(cluster *clusterv1.Cluster) (string, error) {
+	// From the cluster locate the master node
+	master, err := vc.getMasterForCluster(cluster)
+	if err != nil {
+		return "", err
+	}
+	kubeconfig, err := vc.DeploymentClient.GetKubeConfig(cluster, master)
+	if err != nil {
+		return "", err
+	}
+	tmpconfig, err := createTempFile(kubeconfig)
+	if err != nil {
+		return "", err
+	}
 	tokenParams := kubeadm.TokenCreateParams{
-		Ttl: KubeadmTokenTtl,
+		KubeConfig: tmpconfig,
+		Ttl:        KubeadmTokenTtl,
 	}
 	output, err := kubeadm.New().TokenCreate(tokenParams)
 	if err != nil {
@@ -739,17 +783,62 @@ func getKubeadmToken() (string, error) {
 	return strings.TrimSpace(output), err
 }
 
+func (vc *VsphereClient) getMasterForCluster(cluster *clusterv1.Cluster) (*clusterv1.Machine, error) {
+	machines, err := vc.lister.Machines().Lister().Machines(cluster.Namespace).List(labels.Everything())
+	if err != nil {
+		return nil, err
+	}
+	for _, machine := range machines {
+		//glog.Infof("%v", machine)
+		if util.IsMaster(machine) {
+			// Return the first master for now. Need to handle the multi-master case better
+			glog.Infof("Found the master VM %s", machine.Name)
+			return machine, nil
+		}
+	}
+	return nil, fmt.Errorf("No master node found for the cluster %s", cluster.Name)
+}
+
+func createTempFile(contents string) (string, error) {
+	tmpFile, err := ioutil.TempFile("", "")
+	if err != nil {
+		glog.Warningf("Error creating temporary file")
+		return "", err
+	}
+	// For any error in this method, clean up the temp file
+	defer func(pErr *error, path string) {
+		if *pErr != nil {
+			if err := os.Remove(path); err != nil {
+				glog.Warningf("Error removing file '%v': %v", err)
+			}
+		}
+	}(&err, tmpFile.Name())
+
+	if _, err = tmpFile.Write([]byte(contents)); err != nil {
+		glog.Warningf("Error writing to temporary file '%s'", tmpFile.Name())
+		return "", err
+	}
+	if err = tmpFile.Close(); err != nil {
+		return "", err
+	}
+	if err = os.Chmod(tmpFile.Name(), 0644); err != nil {
+		glog.Warningf("Error setting file permission to 0644 for the temporary file '%s'", tmpFile.Name())
+		return "", err
+	}
+	return tmpFile.Name(), nil
+}
+
 // If the VsphereClient has a client for updating Machine objects, this will set
 // the appropriate reason/message on the Machine.Status. If not, such as during
 // cluster installation, it will operate as a no-op. It also returns the
 // original error for convenience, so callers can do "return handleMachineError(...)".
 func (vc *VsphereClient) handleMachineError(machine *clusterv1.Machine, err *apierrors.MachineError, eventAction string) error {
-	if vc.machineClient != nil {
+	if vc.clusterV1alpha1 != nil {
 		reason := err.Reason
 		message := err.Message
 		machine.Status.ErrorReason = &reason
 		machine.Status.ErrorMessage = &message
-		vc.machineClient.UpdateStatus(machine)
+		vc.clusterV1alpha1.Machines(machine.Namespace).UpdateStatus(machine)
 	}
 	if eventAction != "" {
 		vc.eventRecorder.Eventf(machine, corev1.EventTypeWarning, "Failed"+eventAction, "%v", err.Reason)

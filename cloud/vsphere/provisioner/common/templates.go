@@ -14,17 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package terraform
+package common
 
 import (
 	"bytes"
 	"fmt"
 	"text/template"
 
+	vsphereutils "sigs.k8s.io/cluster-api-provider-vsphere/cloud/vsphere/utils"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
-type templateParams struct {
+type TemplateParams struct {
 	Token        string
 	Cluster      *clusterv1.Cluster
 	Machine      *clusterv1.Machine
@@ -33,7 +34,7 @@ type templateParams struct {
 }
 
 // Returns the startup script for the nodes.
-func getNodeStartupScript(params templateParams) (string, error) {
+func GetNodeStartupScript(params TemplateParams) (string, error) {
 	var buf bytes.Buffer
 	tName := "fullScript"
 	if isPreloaded(params) {
@@ -46,7 +47,7 @@ func getNodeStartupScript(params templateParams) (string, error) {
 	return buf.String(), nil
 }
 
-func getMasterStartupScript(params templateParams) (string, error) {
+func GetMasterStartupScript(params TemplateParams) (string, error) {
 	var buf bytes.Buffer
 	tName := "fullScript"
 	if isPreloaded(params) {
@@ -59,7 +60,7 @@ func getMasterStartupScript(params templateParams) (string, error) {
 	return buf.String(), nil
 }
 
-func isPreloaded(params templateParams) bool {
+func isPreloaded(params TemplateParams) bool {
 	return params.Preloaded
 }
 
@@ -75,7 +76,7 @@ func PreloadNodeScript(version string, dockerImages []string) (string, error) {
 
 func preloadScript(t *template.Template, version string, dockerImages []string) (string, error) {
 	var buf bytes.Buffer
-	params := templateParams{
+	params := TemplateParams{
 		Machine:      &clusterv1.Machine{},
 		DockerImages: dockerImages,
 	}
@@ -96,10 +97,10 @@ func init() {
 	// Force a compliation error if getSubnet changes. This is the
 	// signature the templates expect, so changes need to be
 	// reflected in templates below.
-	var _ func(clusterv1.NetworkRanges) string = getSubnet
+	var _ func(clusterv1.NetworkRanges) string = vsphereutils.GetSubnet
 	funcMap := map[string]interface{}{
 		"endpoint":  endpoint,
-		"getSubnet": getSubnet,
+		"getSubnet": vsphereutils.GetSubnet,
 	}
 	nodeStartupScriptTemplate = template.Must(template.New("nodeStartupScript").Funcs(funcMap).Parse(nodeStartupScript))
 	nodeStartupScriptTemplate = template.Must(nodeStartupScriptTemplate.Parse(genericTemplates))

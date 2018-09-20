@@ -20,6 +20,8 @@ import (
 	"github.com/golang/glog"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
+	"sigs.k8s.io/cluster-api-provider-vsphere/cloud/vsphere/constants"
+	vsphereutils "sigs.k8s.io/cluster-api-provider-vsphere/cloud/vsphere/utils"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	v1alpha1 "sigs.k8s.io/cluster-api/pkg/client/informers_generated/externalversions/cluster/v1alpha1"
@@ -85,13 +87,13 @@ func (vc *ClusterActuator) ensureLoadBalancerMembers(cluster *clusterv1.Cluster)
 // Temporary implementation: Simply use the first master IP that you can find
 func (vc *ClusterActuator) setMasterNodeIPAsEndpoint(cluster *clusterv1.Cluster) error {
 	if len(cluster.Status.APIEndpoints) == 0 {
-		masters, err := GetMasterForCluster(cluster, vc.lister)
+		masters, err := vsphereutils.GetMasterForCluster(cluster, vc.lister)
 		if err != nil {
 			glog.Infof("Error retrieving master nodes for the cluster: %s", err)
 			return err
 		}
 		for _, master := range masters {
-			ip, err := GetIP(cluster, master)
+			ip, err := vsphereutils.GetIP(cluster, master)
 			if err != nil {
 				glog.Infof("Master node [%s] IP not ready yet: %s", master.Name, err)
 				// continue the loop to see if there are any other master available that has the
@@ -101,7 +103,7 @@ func (vc *ClusterActuator) setMasterNodeIPAsEndpoint(cluster *clusterv1.Cluster)
 			cluster.Status.APIEndpoints = []clusterv1.APIEndpoint{
 				clusterv1.APIEndpoint{
 					Host: ip,
-					Port: apiServerPort,
+					Port: constants.ApiServerPort,
 				}}
 			_, err = vc.clusterV1alpha1.Clusters(cluster.Namespace).UpdateStatus(cluster)
 			if err != nil {

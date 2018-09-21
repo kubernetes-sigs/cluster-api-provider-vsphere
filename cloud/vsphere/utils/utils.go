@@ -1,8 +1,14 @@
 package utils
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"os/exec"
+	"strings"
 
 	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/labels"
@@ -25,7 +31,6 @@ func GetMasterForCluster(cluster *clusterv1.Cluster, lister v1alpha1.Interface) 
 		if util.IsMaster(machine) {
 			masters = append(masters, machine)
 			// Return the first master for now. Need to handle the multi-master case better
-			glog.Infof("Found the master VM %s", machine.Name)
 		}
 	}
 	if len(masters) == 0 {
@@ -39,7 +44,6 @@ func GetIP(_ *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
 		return "", errors.New("could not get IP")
 	}
 	if ip, ok := machine.ObjectMeta.Annotations[constants.VmIpAnnotationKey]; ok {
-		glog.Infof("Returning IP from machine annotation %s", ip)
 		return ip, nil
 	}
 	return "", errors.New("could not get IP")
@@ -49,17 +53,10 @@ func GetMachineProviderStatus(machine *clusterv1.Machine) (*vsphereconfig.Vspher
 	if machine.Status.ProviderStatus == nil {
 		return nil, nil
 	}
-	_, codecFactory, err := vsphereconfigv1.NewSchemeAndCodecs()
+	status := &vsphereconfig.VsphereMachineProviderStatus{}
+	err := json.Unmarshal(machine.Status.ProviderStatus.Raw, status)
 	if err != nil {
 		return nil, err
-	}
-	obj, gvk, err := codecFactory.UniversalDecoder().Decode(machine.Status.ProviderStatus.Raw, nil, nil)
-	if err != nil {
-		return nil, fmt.Errorf("machine providerstatus decoding failure: %v", err)
-	}
-	status, ok := obj.(*vsphereconfig.VsphereMachineProviderStatus)
-	if !ok {
-		return nil, fmt.Errorf("machine providerstatus failure to cast to vsphere; type: %v", gvk)
 	}
 	return status, nil
 }
@@ -68,17 +65,10 @@ func GetClusterProviderStatus(cluster *clusterv1.Cluster) (*vsphereconfig.Vspher
 	if cluster.Status.ProviderStatus == nil {
 		return nil, nil
 	}
-	_, codecFactory, err := vsphereconfigv1.NewSchemeAndCodecs()
+	status := &vsphereconfig.VsphereClusterProviderStatus{}
+	err := json.Unmarshal(cluster.Status.ProviderStatus.Raw, status)
 	if err != nil {
 		return nil, err
-	}
-	obj, gvk, err := codecFactory.UniversalDecoder().Decode(cluster.Status.ProviderStatus.Raw, nil, nil)
-	if err != nil {
-		return nil, fmt.Errorf("cluster providerstatus decoding failure: %v", err)
-	}
-	status, ok := obj.(*vsphereconfig.VsphereClusterProviderStatus)
-	if !ok {
-		return nil, fmt.Errorf("cluster providerstatus failure to cast to vsphere; type: %v", gvk)
 	}
 	return status, nil
 }
@@ -125,4 +115,53 @@ func GetSubnet(netRange clusterv1.NetworkRanges) string {
 		return ""
 	}
 	return netRange.CIDRBlocks[0]
+}
+
+func CreateTempFile(contents string) (string, error) {
+	tmpFile, err := ioutil.TempFile("", "")
+	if err != nil {
+		glog.Warningf("Error creating temporary file")
+		return "", err
+	}
+	// For any error in this method, clean up the temp file
+	defer func(pErr *error, path string) {
+		if *pErr != nil {
+			if err := os.Remove(path); err != nil {
+				glog.Warningf("Error removing file '%v': %v", err)
+			}
+		}
+	}(&err, tmpFile.Name())
+
+	if _, err = tmpFile.Write([]byte(contents)); err != nil {
+		glog.Warningf("Error writing to temporary file '%s'", tmpFile.Name())
+		return "", err
+	}
+	if err = tmpFile.Close(); err != nil {
+		return "", err
+	}
+	if err = os.Chmod(tmpFile.Name(), 0644); err != nil {
+		glog.Warningf("Error setting file permission to 0644 for the temporary file '%s'", tmpFile.Name())
+		return "", err
+	}
+	return tmpFile.Name(), nil
+}
+
+func GetKubeConfig(cluster *clusterv1.Cluster, master *clusterv1.Machine) (string, error) {
+	ip, err := GetIP(cluster, master)
+	if err != nil {
+		return "", err
+	}
+	var out bytes.Buffer
+	cmd := exec.Command(
+		"ssh", "-i", "~/.ssh/vsphere_tmp",
+		"-q",
+		"-o", "StrictHostKeyChecking no",
+		"-o", "UserKnownHostsFile /dev/null",
+		fmt.Sprintf("ubuntu@%s", ip),
+		"sudo cat /etc/kubernetes/admin.conf")
+	cmd.Stdout = &out
+	cmd.Stderr = os.Stderr
+	err = cmd.Run()
+	result := strings.TrimSpace(out.String())
+	return result, err
 }

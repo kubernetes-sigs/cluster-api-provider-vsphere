@@ -50,5 +50,21 @@ type VsphereMachineProviderStatus struct {
 type VsphereClusterProviderStatus struct {
 	metav1.TypeMeta `json:",inline"`
 
-	LastUpdated string `json:"lastUpdated"`
+	LastUpdated string    `json:"lastUpdated"`
+	APIStatus   APIStatus `json:"clusterApiStatus"`
+}
+
+type APIStatus int
+
+const (
+	NotReady APIStatus = iota
+	Ready
+)
+
+func (status APIStatus) String() string {
+	names := [...]string{"NotReady", "Ready"}
+	if status < NotReady || NotReady > Ready {
+		return "Unknown"
+	}
+	return names[status]
 }

@@ -14,24 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package clusterdeployer
+package error
 
 import (
-	"k8s.io/client-go/kubernetes"
-	"sigs.k8s.io/cluster-api/pkg/clientcmd"
+	"fmt"
+	"time"
 )
 
-type clientFactory struct {
+// RequeueAfterError represents that an actuator managed object should be
+// requeued for further processing after the given RequeueAfter time has
+// passed.
+type RequeueAfterError struct {
+	RequeueAfter time.Duration
 }
 
-func NewClientFactory() ClientFactory {
-	return &clientFactory{}
-}
-
-func (f *clientFactory) NewClusterClientFromKubeconfig(kubeconfig string) (ClusterClient, error) {
-	return NewClusterClient(kubeconfig)
-}
-
-func (f *clientFactory) NewCoreClientsetFromKubeconfigFile(kubeconfigPath string) (*kubernetes.Clientset, error) {
-	return clientcmd.NewCoreClientSetForDefaultSearchPath(kubeconfigPath, clientcmd.NewConfigOverrides())
+// Error implements the error interface
+func (e *RequeueAfterError) Error() string {
+	return fmt.Sprintf("requeue cluster in: %s", e.RequeueAfter)
 }

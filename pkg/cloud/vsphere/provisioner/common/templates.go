@@ -18,9 +18,11 @@ package common
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"text/template"
 
+	vsphereconfig "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig"
 	vsphereutils "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/utils"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
@@ -86,10 +88,12 @@ func preloadScript(t *template.Template, version string, dockerImages []string) 
 }
 
 var (
-	nodeStartupScriptTemplate   *template.Template
-	masterStartupScriptTemplate *template.Template
-	cloudInitUserDataTemplate   *template.Template
-	cloudProviderConfigTemplate *template.Template
+	nodeStartupScriptTemplate        *template.Template
+	masterStartupScriptTemplate      *template.Template
+	cloudInitUserDataTemplate        *template.Template
+	cloudProviderConfigTemplate      *template.Template
+	cloudInitMetaDataNetworkTemplate *template.Template
+	cloudInitMetaDataTemplate        *template.Template
 )
 
 func init() {
@@ -108,8 +112,30 @@ func init() {
 	nodeStartupScriptTemplate = template.Must(nodeStartupScriptTemplate.Parse(genericTemplates))
 	masterStartupScriptTemplate = template.Must(template.New("masterStartupScript").Funcs(funcMap).Parse(masterStartupScript))
 	masterStartupScriptTemplate = template.Must(masterStartupScriptTemplate.Parse(genericTemplates))
-	cloudInitUserDataTemplate = template.Must(template.New("cloudInitUserData").Parse(cloudinit))
+	cloudInitUserDataTemplate = template.Must(template.New("cloudInitUserData").Parse(cloudInitUserData))
 	cloudProviderConfigTemplate = template.Must(template.New("cloudProviderConfig").Parse(cloudProviderConfig))
+	cloudInitMetaDataNetworkTemplate = template.Must(template.New("cloudInitMetaDataNetwork").Parse(networkSpec))
+	cloudInitMetaDataTemplate = template.Must(template.New("cloudInitMetaData").Parse(cloudInitMetaData))
+}
+
+// Returns the startup script for the nodes.
+func GetCloudInitMetaData(name string, params *vsphereconfig.VsphereMachineProviderConfig) (string, error) {
+	var buf bytes.Buffer
+	param := CloudInitMetadataNetworkTemplate{
+		Networks: params.MachineSpec.Networks,
+	}
+	if err := cloudInitMetaDataNetworkTemplate.Execute(&buf, param); err != nil {
+		return "", err
+	}
+	param2 := CloudInitMetadataTemplate{
+		NetworkSpec: base64.StdEncoding.EncodeToString(buf.Bytes()),
+		Hostname:    name,
+	}
+	buf.Reset()
+	if err := cloudInitMetaDataTemplate.Execute(&buf, param2); err != nil {
+		return "", err
+	}
+	return buf.String(), nil
 }
 
 // Returns the startup script for the nodes.
@@ -147,10 +173,62 @@ type CloudInitTemplate struct {
 	Script              string
 	IsMaster            bool
 	CloudProviderConfig string
+	SSHPublicKey        string
 }
 
-const cloudinit = `
+type CloudInitMetadataNetworkTemplate struct {
+	Networks []vsphereconfig.NetworkSpec
+}
+type CloudInitMetadataTemplate struct {
+	NetworkSpec string
+	Hostname    string
+}
+
+const cloudInitMetaData = `
+{
+  "network": "{{ .NetworkSpec }}",
+  "network.encoding": "base64",
+  "local-hostname": "{{ .Hostname }}"
+}
+`
+
+const networkSpec = `
+version: 1
+config:
+{{- range $index, $network := .Networks}}
+  - type: physical
+    name: eth{{ $index }}
+    subnets:
+    {{- if eq $network.IPConfig.NetworkType "static" }}
+      - type: static
+        address: {{ $network.IPConfig.IP }}
+        {{- if $network.IPConfig.Gateway }}
+        gateway: {{ $network.IPConfig.Gateway }}
+        {{- end }}
+        {{- if $network.IPConfig.Netmask }}
+        netmask: {{ $network.IPConfig.Netmask }}
+        {{- end }}
+        {{- if $network.IPConfig.Dns }}
+        dns_nameservers:
+        {{- range $network.IPConfig.Dns }}
+          - {{ . }}
+        {{- end }}
+        {{- end }}
+    {{- else }}
+      - type: dhcp
+    {{- end }}
+{{- end }}
+`
+
+const cloudInitUserData = `
 #cloud-config
+users:
+- name: ubuntu
+  ssh_authorized_keys:
+    - {{ .SSHPublicKey }}
+  sudo: ALL=(ALL) NOPASSWD:ALL
+  groups: sudo
+  shell: /bin/bash
 write_files:
   - path: /tmp/boot.sh
     content: |

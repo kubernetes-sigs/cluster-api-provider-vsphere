@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"strconv"
 	"time"
 
 	"github.com/golang/glog"
@@ -16,6 +15,7 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	vsphereconfig "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig"
 	vsphereconfigv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
 	vpshereprovisionercommon "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/provisioner/common"
@@ -44,7 +44,6 @@ func (pv *Provisioner) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mac
 		// In case an active task is going on, wait for its completion
 		return pv.verifyAndUpdateTask(s, machine, task)
 	}
-	pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Creating", "Creating Machine %v", machine.Name)
 	return pv.cloneVirtualMachine(s, cluster, machine)
 }
 
@@ -108,6 +107,11 @@ func (pv *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 		// err returned by the getCloudInitUserData would be of type RequeueAfterError in case kubeadm is not ready yet
 		return err
 	}
+	metaData, err := pv.getCloudInitMetaData(cluster, machine)
+	if err != nil {
+		// err returned by the getCloudInitUserData would be of type RequeueAfterError in case kubeadm is not ready yet
+		return err
+	}
 	ctx, cancel := context.WithCancel(*s.context)
 	defer cancel()
 
@@ -116,9 +120,9 @@ func (pv *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 	if err != nil {
 		return err
 	}
-	glog.V(4).Infof("[DEBUG] ExpandVirtualMachineCloneSpec: Preparing clone spec for VM")
+	glog.V(4).Infof("[cloneVirtualMachine]: Preparing clone spec for VM %s", machine.Name)
 
-	dc, err := s.finder.DatacenterOrDefault(ctx, machineConfig.MachineVariables[constants.ProviderDatacenter])
+	dc, err := s.finder.DatacenterOrDefault(ctx, machineConfig.MachineSpec.Datacenter)
 	if err != nil {
 		return err
 	}
@@ -129,13 +133,13 @@ func (pv *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 		return err
 	}
 
-	ds, err := s.finder.DatastoreOrDefault(ctx, machineConfig.MachineVariables[constants.ProviderDatastore])
+	ds, err := s.finder.DatastoreOrDefault(ctx, machineConfig.MachineSpec.Datastore)
 	if err != nil {
 		return err
 	}
 	spec.Location.Datastore = types.NewReference(ds.Reference())
 
-	pool, err := s.finder.ResourcePoolOrDefault(ctx, machineConfig.MachineVariables[constants.ProviderResPool])
+	pool, err := s.finder.ResourcePoolOrDefault(ctx, machineConfig.MachineSpec.ResourcePool)
 	if err != nil {
 		return err
 	}
@@ -147,26 +151,15 @@ func (pv *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 	spec.Config.Flags = &types.VirtualMachineFlagInfo{
 		DiskUuidEnabled: &diskUUIDEnabled,
 	}
-	// var extraconfigs []types.BaseOptionValue
-	// extraconfigs = append(extraconfigs, &types.OptionValue{Key: "govmomi.Test", Value: "Yay"})
-	// spec.Config.ExtraConfig = extraconfigs
-	if scpu, ok := machineConfig.MachineVariables["num_cpus"]; ok {
-		cpu, err := strconv.ParseInt(scpu, 10, 32)
-		if err != nil {
-			return err
-		}
-		spec.Config.NumCPUs = int32(cpu)
+	if machineConfig.MachineSpec.NumCPUs > 0 {
+		spec.Config.NumCPUs = int32(machineConfig.MachineSpec.NumCPUs)
 	}
-	if smemory, ok := machineConfig.MachineVariables["memory"]; ok {
-		memory, err := strconv.ParseInt(smemory, 10, 64)
-		if err != nil {
-			return err
-		}
-		spec.Config.MemoryMB = memory
+	if machineConfig.MachineSpec.MemoryMB > 0 {
+		spec.Config.MemoryMB = machineConfig.MachineSpec.MemoryMB
 	}
 	spec.Config.Annotation = fmt.Sprintf("Virtual Machine is part of the cluster %s managed by cluster-api", cluster.Name)
 	spec.Location.DiskMoveType = string(types.VirtualMachineRelocateDiskMoveOptionsMoveAllDiskBackingsAndAllowSharing)
-	src, err := s.finder.VirtualMachine(ctx, machineConfig.MachineVariables[constants.ProviderTemplate])
+	src, err := s.finder.VirtualMachine(ctx, machineConfig.MachineSpec.VMTemplate)
 	if err != nil {
 		return err
 	}
@@ -174,85 +167,142 @@ func (pv *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 	if err != nil {
 		return fmt.Errorf("error fetching virtual machine or template properties: %s", err)
 	}
-	if vmProps.Config.VAppConfig == nil {
-		return fmt.Errorf("this source VM lacks a vApp configuration and cannot have vApp properties set on it")
-	}
-	allProperties := vmProps.Config.VAppConfig.GetVmConfigInfo().Property
-	var props []types.VAppPropertySpec
-	for _, p := range allProperties {
-		defaultValue := " "
-		if p.DefaultValue != "" {
-			defaultValue = p.DefaultValue
+
+	if machineConfig.MachineSpec.VsphereCloudInit {
+		// In case of vsphere cloud-init datasource present, set the appropriate extraconfig options
+		var extraconfigs []types.BaseOptionValue
+		extraconfigs = append(extraconfigs, &types.OptionValue{Key: "guestinfo.metadata", Value: metaData})
+		extraconfigs = append(extraconfigs, &types.OptionValue{Key: "guestinfo.metadata.encoding", Value: "base64"})
+		extraconfigs = append(extraconfigs, &types.OptionValue{Key: "guestinfo.userdata", Value: userData})
+		extraconfigs = append(extraconfigs, &types.OptionValue{Key: "guestinfo.userdata.encoding", Value: "base64"})
+		spec.Config.ExtraConfig = extraconfigs
+	} else {
+		// This case is to support backwords compatibility, where we are using the ubuntu cloud image ovf properties
+		// to drive the cloud-init workflow. Once the vsphere cloud-init datastore is merged as part of the official
+		// cloud-init, then we can potentially remove this flag from the spec as then all the native cloud images
+		// available for the different distros will include this new datasource.
+		// See (https://github.com/akutz/cloud-init-vmware-guestinfo/ - vmware cloud-init datasource) for details
+		if vmProps.Config.VAppConfig == nil {
+			return fmt.Errorf("this source VM lacks a vApp configuration and cannot have vApp properties set on it")
 		}
-		prop := types.VAppPropertySpec{
-			ArrayUpdateSpec: types.ArrayUpdateSpec{
-				Operation: types.ArrayUpdateOperationEdit,
-			},
-			Info: &types.VAppPropertyInfo{
-				Key:   p.Key,
-				Id:    p.Id,
-				Value: defaultValue,
-			},
-		}
-		if p.Id == "user-data" {
-			prop.Info.Value = userData
-		}
-		if p.Id == "public-keys" {
-			prop.Info.Value, err = pv.GetSSHPublicKey(cluster)
-			if err != nil {
-				return err
+		allProperties := vmProps.Config.VAppConfig.GetVmConfigInfo().Property
+		var props []types.VAppPropertySpec
+		for _, p := range allProperties {
+			defaultValue := " "
+			if p.DefaultValue != "" {
+				defaultValue = p.DefaultValue
 			}
+			prop := types.VAppPropertySpec{
+				ArrayUpdateSpec: types.ArrayUpdateSpec{
+					Operation: types.ArrayUpdateOperationEdit,
+				},
+				Info: &types.VAppPropertyInfo{
+					Key:   p.Key,
+					Id:    p.Id,
+					Value: defaultValue,
+				},
+			}
+			if p.Id == "user-data" {
+				prop.Info.Value = userData
+			}
+			if p.Id == "public-keys" {
+				prop.Info.Value, err = pv.GetSSHPublicKey(cluster)
+				if err != nil {
+					return err
+				}
+			}
+			if p.Id == "hostname" {
+				prop.Info.Value = machine.Name
+			}
+			props = append(props, prop)
 		}
-		if p.Id == "hostname" {
-			prop.Info.Value = machine.Name
+		spec.Config.VAppConfig = &types.VmConfigSpec{
+			Property: props,
 		}
-		props = append(props, prop)
 	}
-	spec.Config.VAppConfig = &types.VmConfigSpec{
-		Property: props,
-	}
-	// reconfigure disks as needed
+
 	l := object.VirtualDeviceList(vmProps.Config.Hardware.Device)
-	diskSpecs := []types.BaseVirtualDeviceConfigSpec{}
+	deviceSpecs := []types.BaseVirtualDeviceConfigSpec{}
 	disks := l.SelectByType((*types.VirtualDisk)(nil))
-	var targetdisk *types.VirtualDisk
-	disklabel := machineConfig.MachineVariables["disk_label"]
+	// For the disks listed under the MachineSpec.Disks property, they are used
+	// only for resizing a maching disk on the template. Currently, no new disk
+	// is added. Only the matched disks via the DiskLabel are resized. If the
+	// MachineSpec.Disks is specified but none of the disks matched to the disks
+	// present in the VM Template then error is returned. This is to avoid the
+	// case when the user did want to resize but accidentally passed a wrong
+	// disk label. A 100% matching of disks in not enforced as the user might be
+	// interested in resizing only a subset of disks and thus we don't want to
+	// force the user to list all the disk and sizes if they don't want to change
+	// all.
+	diskMap := func(diskSpecs []vsphereconfig.DiskSpec) map[string]int64 {
+		diskMap := make(map[string]int64)
+		for _, s := range diskSpecs {
+			diskMap[s.DiskLabel] = s.DiskSizeGB
+		}
+		return diskMap
+	}(machineConfig.MachineSpec.Disks)
+	diskChange := false
 	for _, dev := range disks {
 		disk := dev.(*types.VirtualDisk)
-		if disk.DeviceInfo.GetDescription().Label == disklabel {
-			newsize, err := strconv.ParseInt(machineConfig.MachineVariables["disk_size"], 10, 64)
-			if err != nil {
-				return err
+		if newSize, ok := diskMap[disk.DeviceInfo.GetDescription().Label]; ok {
+			if disk.CapacityInBytes > vsphereutils.GiBToByte(newSize) {
+				return errors.New("[FATAL] Disk size provided should be more than actual disk size of the template. Please correct the machineSpec to proceed")
 			}
-			if disk.CapacityInBytes > vsphereutils.GiBToByte(newsize) {
-				return errors.New("Disk size provided should be more than actual disk size of the template")
-			}
-			disk.CapacityInBytes = vsphereutils.GiBToByte(newsize)
-			targetdisk = disk
-			// Currently we only have 1 disk support so break out here
-			break
+			glog.V(4).Infof("[cloneVirtualMachine] Resizing the disk \"%s\" to new size \"%d\"", disk.DeviceInfo.GetDescription().Label, newSize)
+			diskChange = true
+			disk.CapacityInBytes = vsphereutils.GiBToByte(newSize)
+			diskspec := &types.VirtualDeviceConfigSpec{}
+			diskspec.Operation = types.VirtualDeviceConfigSpecOperationEdit
+			diskspec.Device = disk
+			deviceSpecs = append(deviceSpecs, diskspec)
 		}
 	}
-	if targetdisk == nil {
-		return fmt.Errorf("Could not locate the disk with label %s", disklabel)
+	if !diskChange && len(machineConfig.MachineSpec.Disks) > 0 {
+		glog.V(4).Info("[cloneVirtualMachine] No disks were resized while cloning from template")
+		return fmt.Errorf("[FATAL] None of the disks specified in the MachineSpec matched with the disks on the template %s", machineConfig.MachineSpec.VMTemplate)
 	}
-	diskspec := &types.VirtualDeviceConfigSpec{}
-	diskspec.Operation = types.VirtualDeviceConfigSpecOperationEdit
-	diskspec.Device = targetdisk
-	diskSpecs = append(diskSpecs, diskspec)
-	spec.Config.DeviceChange = diskSpecs
+
+	nics := l.SelectByType((*types.VirtualEthernetCard)(nil))
+	// Remove any existing nics on the source vm
+	for _, dev := range nics {
+		nic := dev.(types.BaseVirtualEthernetCard).GetVirtualEthernetCard()
+		nicspec := &types.VirtualDeviceConfigSpec{}
+		nicspec.Operation = types.VirtualDeviceConfigSpecOperationRemove
+		nicspec.Device = nic
+		deviceSpecs = append(deviceSpecs, nicspec)
+	}
+	// Add new nics based on the user info
+	nicid := int32(-100)
+	for _, network := range machineConfig.MachineSpec.Networks {
+		netRef, err := s.finder.Network(ctx, network.NetworkName)
+		if err != nil {
+			return err
+		}
+		nic := types.VirtualVmxnet3{}
+		nic.Key = nicid
+		nic.Backing, err = netRef.EthernetCardBackingInfo(ctx)
+		if err != nil {
+			return err
+		}
+		nicspec := &types.VirtualDeviceConfigSpec{}
+		nicspec.Operation = types.VirtualDeviceConfigSpecOperationAdd
+		nicspec.Device = &nic
+		deviceSpecs = append(deviceSpecs, nicspec)
+		nicid--
+	}
+	spec.Config.DeviceChange = deviceSpecs
+	pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Creating", "Creating Machine %v", machine.Name)
 	task, err := src.Clone(ctx, vmFolder, machine.Name, spec)
 	if err != nil {
 		return err
 	}
 	return pv.setTaskRef(machine, task.Reference().Value)
-
 }
 
 // Properties is a convenience method that wraps fetching the
 // VirtualMachine MO from its higher-level object.
 func Properties(vm *object.VirtualMachine) (*mo.VirtualMachine, error) {
-	glog.Infof("[DEBUG] Fetching properties for VM %q", vm.InventoryPath)
+	glog.V(4).Infof("[DEBUG] Fetching properties for VM %q", vm.InventoryPath)
 	ctx, cancel := context.WithTimeout(context.Background(), constants.DefaultAPITimeout)
 	defer cancel()
 	var props mo.VirtualMachine
@@ -359,6 +409,19 @@ func (pv *Provisioner) updateAnnotations(cluster *clusterv1.Cluster, machine *cl
 	return nil
 }
 
+func (pv *Provisioner) getCloudInitMetaData(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
+	machineconfig, err := vsphereutils.GetMachineProviderConfig(machine.Spec.ProviderConfig)
+	if err != nil {
+		return "", err
+	}
+	metadata, err := vpshereprovisionercommon.GetCloudInitMetaData(machine.Name, machineconfig)
+	if err != nil {
+		return "", err
+	}
+	metadata = base64.StdEncoding.EncodeToString([]byte(metadata))
+	return metadata, nil
+}
+
 func (pv *Provisioner) getCloudInitUserData(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
 	script, err := pv.getStartupScript(cluster, machine)
 	if err != nil {
@@ -368,11 +431,16 @@ func (pv *Provisioner) getCloudInitUserData(cluster *clusterv1.Cluster, machine 
 	if err != nil {
 		return "", err
 	}
+	publicKey, err := pv.GetSSHPublicKey(cluster)
+	if err != nil {
+		return "", err
+	}
 	userdata, err := vpshereprovisionercommon.GetCloudInitUserData(
 		vpshereprovisionercommon.CloudInitTemplate{
 			Script:              script,
 			IsMaster:            util.IsMaster(machine),
 			CloudProviderConfig: config,
+			SSHPublicKey:        publicKey,
 		},
 	)
 	if err != nil {
@@ -394,14 +462,14 @@ func (pv *Provisioner) getCloudProviderConfig(cluster *clusterv1.Cluster, machin
 	// TODO(ssurana): revisit once we solve https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/60
 	cloudProviderConfig, err := vpshereprovisionercommon.GetCloudProviderConfigConfig(
 		vpshereprovisionercommon.CloudProviderConfigTemplate{
-			Datacenter:   machineconfig.MachineVariables[constants.ProviderDatacenter],
+			Datacenter:   machineconfig.MachineSpec.Datacenter,
 			Server:       clusterConfig.VsphereServer,
 			Insecure:     true, // TODO(ssurana): Needs to be a user input
 			UserName:     clusterConfig.VsphereUser,
 			Password:     clusterConfig.VspherePassword,
-			ResourcePool: machineconfig.MachineVariables[constants.ProviderResPool],
-			Datastore:    machineconfig.MachineVariables[constants.ProviderDatastore],
-			Network:      machineconfig.MachineVariables[constants.ProviderNetwork],
+			ResourcePool: machineconfig.MachineSpec.ResourcePool,
+			Datastore:    machineconfig.MachineSpec.Datastore,
+			Network:      machineconfig.MachineSpec.Networks[0].NetworkName,
 		},
 	)
 	if err != nil {
@@ -414,19 +482,12 @@ func (pv *Provisioner) getCloudProviderConfig(cluster *clusterv1.Cluster, machin
 // Builds and returns the startup script for the passed machine and cluster.
 // Returns the full path of the saved startup script and possible error.
 func (pv *Provisioner) getStartupScript(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
-	config, err := vsphereutils.GetMachineProviderConfig(machine.Spec.ProviderConfig)
+	machineconfig, err := vsphereutils.GetMachineProviderConfig(machine.Spec.ProviderConfig)
 	if err != nil {
 		return "", pv.HandleMachineError(machine, apierrors.InvalidMachineConfiguration(
 			"Cannot unmarshal providerConfig field: %v", err), constants.CreateEventAction)
 	}
-	preloaded := false
-	if val, ok := config.MachineVariables["preloaded"]; ok {
-		preloaded, err = strconv.ParseBool(val)
-		if err != nil {
-			return "", pv.HandleMachineError(machine, apierrors.InvalidMachineConfiguration(
-				"Invalid value for preloaded: %v", err), constants.CreateEventAction)
-		}
-	}
+	preloaded := machineconfig.MachineSpec.Preloaded
 	var startupScript string
 	if util.IsMaster(machine) {
 		if machine.Spec.Versions.ControlPlane == "" {
@@ -446,7 +507,7 @@ func (pv *Provisioner) getStartupScript(cluster *clusterv1.Cluster, machine *clu
 		}
 	} else {
 		if len(cluster.Status.APIEndpoints) == 0 {
-			glog.Infof("invalid cluster state: cannot create a Kubernetes node without an API endpoint")
+			glog.Infof("Waiting for Kubernetes API Endpoint to be populated..Retrying in %s", constants.RequeueAfterSeconds)
 			return "", &clustererror.RequeueAfterError{RequeueAfter: constants.RequeueAfterSeconds}
 		}
 		kubeadmToken, err := pv.GetKubeadmToken(cluster)

@@ -70,7 +70,7 @@ func (vc *ClusterActuator) Reconcile(cluster *clusterv1.Cluster) error {
 		glog.Infof("Error setting the Load Balancer members for the cluster: %s", err)
 		return err
 	}
-	// Check if the target kuberenetes is ready or not, and update the ProviderStatus if change is detected
+	// Check if the target kubernetes is ready or not, and update the ProviderStatus if change is detected
 	err = vc.updateK8sAPIStatus(cluster)
 	if err != nil {
 		return err
@@ -90,11 +90,11 @@ func (vc *ClusterActuator) getClusterAPIStatus(cluster *clusterv1.Cluster) (vsph
 	masters, err := vsphereutils.GetMasterForCluster(cluster, vc.lister)
 	if err != nil {
 		glog.Infof("Error retrieving master nodes for the cluster: %s", err)
-		return vsphereconfig.NotReady, err
+		return vsphereconfig.ApiNotReady, err
 	}
 	if len(masters) == 0 {
 		glog.Infof("No masters for the cluster [%s] present", cluster.Name)
-		return vsphereconfig.NotReady, nil
+		return vsphereconfig.ApiNotReady, nil
 	}
 	// Currently we support only a single master thus the below assumption
 	// Once we start supporting multiple masters, the kubeconfig needs to
@@ -103,28 +103,28 @@ func (vc *ClusterActuator) getClusterAPIStatus(cluster *clusterv1.Cluster) (vsph
 	kubeconfig, err := vsphereutils.GetKubeConfig(cluster, master)
 	if err != nil || kubeconfig == "" {
 		glog.Infof("[cluster-actuator] error retrieving kubeconfig for target cluster, will requeue")
-		return vsphereconfig.NotReady, &clustererror.RequeueAfterError{RequeueAfter: constants.RequeueAfterSeconds}
+		return vsphereconfig.ApiNotReady, &clustererror.RequeueAfterError{RequeueAfter: constants.RequeueAfterSeconds}
 	}
 	kconfigFile, err := vsphereutils.CreateTempFile(kubeconfig)
 	if err != nil {
-		return vsphereconfig.NotReady, err
+		return vsphereconfig.ApiNotReady, err
 	}
 	clientConfig, err := clientcmd.BuildConfigFromFlags("", kconfigFile)
 	if err != nil {
 		glog.Infof("[cluster-actuator] error creating client config for target cluster [%s], will requeue", err.Error())
-		return vsphereconfig.NotReady, &clustererror.RequeueAfterError{RequeueAfter: constants.RequeueAfterSeconds}
+		return vsphereconfig.ApiNotReady, &clustererror.RequeueAfterError{RequeueAfter: constants.RequeueAfterSeconds}
 	}
 	clientSet, err := kubernetes.NewForConfig(clientConfig)
 	if err != nil {
 		glog.Infof("[cluster-actuator] error creating clientset for target cluster [%s], will requeue", err.Error())
-		return vsphereconfig.NotReady, &clustererror.RequeueAfterError{RequeueAfter: constants.RequeueAfterSeconds}
+		return vsphereconfig.ApiNotReady, &clustererror.RequeueAfterError{RequeueAfter: constants.RequeueAfterSeconds}
 	}
 	_, err = clientSet.Core().Nodes().List(metav1.ListOptions{})
 	if err != nil {
 		glog.Infof("[cluster-actuator] target cluster API not yet ready [%s], will requeue", err.Error())
-		return vsphereconfig.NotReady, &clustererror.RequeueAfterError{RequeueAfter: constants.RequeueAfterSeconds}
+		return vsphereconfig.ApiNotReady, &clustererror.RequeueAfterError{RequeueAfter: constants.RequeueAfterSeconds}
 	}
-	return vsphereconfig.Ready, nil
+	return vsphereconfig.ApiReady, nil
 }
 
 func (vc *ClusterActuator) updateClusterAPIStatus(cluster *clusterv1.Cluster, newStatus vsphereconfig.APIStatus) error {
@@ -132,11 +132,7 @@ func (vc *ClusterActuator) updateClusterAPIStatus(cluster *clusterv1.Cluster, ne
 	if err != nil {
 		return err
 	}
-	currentAPIStatus, err := vc.getClusterAPIStatus(cluster)
-	if err != nil {
-		return err
-	}
-	if oldProviderStatus != nil && oldProviderStatus.APIStatus == currentAPIStatus {
+	if oldProviderStatus != nil && oldProviderStatus.APIStatus == newStatus {
 		// Nothing to update
 		return nil
 	}
@@ -145,14 +141,14 @@ func (vc *ClusterActuator) updateClusterAPIStatus(cluster *clusterv1.Cluster, ne
 	if oldProviderStatus != nil {
 		newProviderStatus = oldProviderStatus.DeepCopy()
 	}
-	newProviderStatus.APIStatus = currentAPIStatus
+	newProviderStatus.APIStatus = newStatus
 	newProviderStatus.LastUpdated = time.Now().UTC().String()
 	out, err := json.Marshal(newProviderStatus)
 	ncluster := cluster.DeepCopy()
 	ncluster.Status.ProviderStatus = &runtime.RawExtension{Raw: out}
 	_, err = vc.clusterV1alpha1.Clusters(ncluster.Namespace).UpdateStatus(ncluster)
 	if err != nil {
-		glog.Infof("Error in updating the cluster api status from [%s] to [%s]: %s", oldProviderStatus.APIStatus, currentAPIStatus, err)
+		glog.Infof("Error in updating the cluster api status from [%s] to [%s]: %s", oldProviderStatus.APIStatus, newStatus, err)
 		return err
 	}
 	return nil

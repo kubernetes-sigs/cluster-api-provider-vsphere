@@ -54,17 +54,9 @@ type VsphereClusterProviderStatus struct {
 	APIStatus   APIStatus `json:"clusterApiStatus"`
 }
 
-type APIStatus int
+type APIStatus string
 
 const (
-	NotReady APIStatus = iota
-	Ready
+	ApiNotReady APIStatus = "NotReady"
+	ApiReady    APIStatus = "Ready"
 )
-
-func (status APIStatus) String() string {
-	names := [...]string{"NotReady", "Ready"}
-	if status < NotReady || NotReady > Ready {
-		return "Unknown"
-	}
-	return names[status]
-}

@@ -127,13 +127,13 @@ func GetVMId(machine *clusterv1.Machine) (string, error) {
 	return "", nil
 }
 
-func GetActiveTasks(machine *clusterv1.Machine) (string, error) {
+func GetActiveTasks(machine *clusterv1.Machine) string {
 	if machine.ObjectMeta.Annotations != nil {
 		if taskref, ok := machine.ObjectMeta.Annotations[constants.VirtualMachineTaskRef]; ok {
-			return taskref, nil
+			return taskref
 		}
 	}
-	return "", nil
+	return ""
 }
 
 func CreateTempFile(contents string) (string, error) {

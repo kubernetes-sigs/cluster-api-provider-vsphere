@@ -38,7 +38,7 @@ func (vc *Provisioner) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mac
 		return err
 	}
 	glog.Infof("Using session %v", usersession)
-	task, _ := vsphereutils.GetActiveTasks(machine)
+	task := vsphereutils.GetActiveTasks(machine)
 	if task != "" {
 		// In case an active task is going on, wait for its completion
 		return vc.verifyAndUpdateTask(s, machine, task)
@@ -109,7 +109,7 @@ func (vc *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 	}
 	glog.Infof("[DEBUG] ExpandVirtualMachineCloneSpec: Preparing clone spec for VM")
 
-	dc, err := s.finder.DatacenterOrDefault(ctx, machineConfig.MachineVariables[constants.Provider_Datacenter])
+	dc, err := s.finder.DatacenterOrDefault(ctx, machineConfig.MachineVariables[constants.ProviderDatacenter])
 	if err != nil {
 		return err
 	}
@@ -120,13 +120,13 @@ func (vc *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 		return err
 	}
 
-	ds, err := s.finder.DatastoreOrDefault(ctx, machineConfig.MachineVariables[constants.Provider_Datastore])
+	ds, err := s.finder.DatastoreOrDefault(ctx, machineConfig.MachineVariables[constants.ProviderDatastore])
 	if err != nil {
 		return err
 	}
 	spec.Location.Datastore = types.NewReference(ds.Reference())
 
-	pool, err := s.finder.ResourcePoolOrDefault(ctx, machineConfig.MachineVariables[constants.Provider_ResPool])
+	pool, err := s.finder.ResourcePoolOrDefault(ctx, machineConfig.MachineVariables[constants.ProviderResPool])
 	if err != nil {
 		return err
 	}
@@ -157,7 +157,7 @@ func (vc *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 	}
 	spec.Config.Annotation = fmt.Sprintf("Virtual Machine is part of the cluster %s managed by cluster-api", cluster.Name)
 	spec.Location.DiskMoveType = string(types.VirtualMachineRelocateDiskMoveOptionsMoveAllDiskBackingsAndAllowSharing)
-	src, err := s.finder.VirtualMachine(ctx, machineConfig.MachineVariables[constants.Provider_Template])
+	src, err := s.finder.VirtualMachine(ctx, machineConfig.MachineVariables[constants.ProviderTemplate])
 	if err != nil {
 		return err
 	}
@@ -312,6 +312,9 @@ func (vc *Provisioner) updateAnnotations(cluster *clusterv1.Cluster, machine *cl
 	ncluster := cluster.DeepCopy()
 	status := &vsphereconfig.VsphereClusterProviderStatus{LastUpdated: time.Now().UTC().String()}
 	out, err := json.Marshal(status)
+	if err != nil {
+		return err
+	}
 	ncluster.Status.ProviderStatus = &runtime.RawExtension{Raw: out}
 	_, err = vc.clusterV1alpha1.Clusters(ncluster.Namespace).UpdateStatus(ncluster)
 	if err != nil {
@@ -356,14 +359,14 @@ func (vc *Provisioner) getCloudProviderConfig(cluster *clusterv1.Cluster, machin
 	// TODO(ssurana): revisit once we solve https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/60
 	cloudProviderConfig, err := vpshereprovisionercommon.GetCloudProviderConfigConfig(
 		vpshereprovisionercommon.CloudProviderConfigTemplate{
-			Datacenter:   machineconfig.MachineVariables[constants.Provider_Datacenter],
+			Datacenter:   machineconfig.MachineVariables[constants.ProviderDatacenter],
 			Server:       clusterConfig.VsphereServer,
 			Insecure:     true, // TODO(ssurana): Needs to be a user input
 			UserName:     clusterConfig.VsphereUser,
 			Password:     clusterConfig.VspherePassword,
-			ResourcePool: machineconfig.MachineVariables[constants.Provider_ResPool],
-			Datastore:    machineconfig.MachineVariables[constants.Provider_Datastore],
-			Network:      machineconfig.MachineVariables[constants.Provider_Network],
+			ResourcePool: machineconfig.MachineVariables[constants.ProviderResPool],
+			Datastore:    machineconfig.MachineVariables[constants.ProviderDatastore],
+			Network:      machineconfig.MachineVariables[constants.ProviderNetwork],
 		},
 	)
 	if err != nil {

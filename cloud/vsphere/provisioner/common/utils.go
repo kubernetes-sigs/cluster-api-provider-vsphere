@@ -3,6 +3,7 @@ package common
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -62,6 +63,7 @@ func (vc *ProvisionerUtil) GetKubeadmToken(cluster *clusterv1.Cluster) (string, 
 	if err != nil {
 		return "", err
 	}
+	defer os.Remove(tmpconfig)
 	tokenParams := kubeadm.TokenCreateParams{
 		KubeConfig: tmpconfig,
 		Ttl:        constants.KubeadmTokenTtl,
@@ -78,7 +80,7 @@ func (vc *ProvisionerUtil) GetKubeadmToken(cluster *clusterv1.Cluster) (string, 
 	ncluster.ObjectMeta.Annotations[constants.KubeadmToken] = token
 	// Even though this time might be off by few sec compared to the actual expiry on the token it should not have any impact
 	ncluster.ObjectMeta.Annotations[constants.KubeadmTokenExpiryTime] = time.Now().Add(constants.KubeadmTokenTtl).Format(time.RFC3339)
-	_, err = vc.clusterV1alpha1.Clusters(cluster.Namespace).UpdateStatus(ncluster)
+	_, err = vc.clusterV1alpha1.Clusters(cluster.Namespace).Update(ncluster)
 	if err != nil {
 		glog.Infof("Could not cache the kubeadm token on cluster object: %s", err)
 	}

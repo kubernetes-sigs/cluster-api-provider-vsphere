@@ -156,12 +156,14 @@ write_files:
     content: |
       {{ .Script }}
     permissions: '0755'
-    encoding: base64{{ if .IsMaster }}
+    encoding: base64
+  {{- if .IsMaster }}
   - path: /etc/kubernetes/cloud-config/cloud-config.yaml
     content: |
       {{ .CloudProviderConfig }}
     permissions: '0600'
-    encoding: base64{{end}}
+    encoding: base64
+  {{- end }}
 runcmd:
   - /tmp/boot.sh
 `

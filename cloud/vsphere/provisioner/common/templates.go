@@ -88,6 +88,8 @@ func preloadScript(t *template.Template, version string, dockerImages []string) 
 var (
 	nodeStartupScriptTemplate   *template.Template
 	masterStartupScriptTemplate *template.Template
+	cloudInitUserDataTemplate   *template.Template
+	cloudProviderConfigTemplate *template.Template
 )
 
 func init() {
@@ -106,7 +108,88 @@ func init() {
 	nodeStartupScriptTemplate = template.Must(nodeStartupScriptTemplate.Parse(genericTemplates))
 	masterStartupScriptTemplate = template.Must(template.New("masterStartupScript").Funcs(funcMap).Parse(masterStartupScript))
 	masterStartupScriptTemplate = template.Must(masterStartupScriptTemplate.Parse(genericTemplates))
+	cloudInitUserDataTemplate = template.Must(template.New("cloudInitUserData").Parse(cloudinit))
+	cloudProviderConfigTemplate = template.Must(template.New("cloudProviderConfig").Parse(cloudProviderConfig))
 }
+
+// Returns the startup script for the nodes.
+func GetCloudInitUserData(params CloudInitTemplate) (string, error) {
+	var buf bytes.Buffer
+
+	if err := cloudInitUserDataTemplate.Execute(&buf, params); err != nil {
+		return "", err
+	}
+	return buf.String(), nil
+}
+
+// Returns the startup script for the nodes.
+func GetCloudProviderConfigConfig(params CloudProviderConfigTemplate) (string, error) {
+	var buf bytes.Buffer
+
+	if err := cloudProviderConfigTemplate.Execute(&buf, params); err != nil {
+		return "", err
+	}
+	return buf.String(), nil
+}
+
+type CloudProviderConfigTemplate struct {
+	Datacenter   string
+	Server       string
+	Insecure     bool
+	UserName     string
+	Password     string
+	ResourcePool string
+	Datastore    string
+	Network      string
+}
+
+type CloudInitTemplate struct {
+	Script              string
+	IsMaster            bool
+	CloudProviderConfig string
+}
+
+const cloudinit = `
+#cloud-config
+write_files:
+  - path: /tmp/boot.sh
+    content: |
+      {{ .Script }}
+    permissions: '0755'
+    encoding: base64
+  {{- if .IsMaster }}
+  - path: /etc/kubernetes/cloud-config/cloud-config.yaml
+    content: |
+      {{ .CloudProviderConfig }}
+    permissions: '0600'
+    encoding: base64
+  {{- end }}
+runcmd:
+  - /tmp/boot.sh
+`
+
+const cloudProviderConfig = `
+[Global]
+datacenters = "{{ .Datacenter }}"
+insecure-flag = "{{ if .Insecure }}1{{ else }}0{{ end }}" #set to 1 if the vCenter uses a self-signed cert
+
+[VirtualCenter "{{ .Server }}"]
+        user = "{{ .UserName }}"
+        password = "{{ .Password }}"
+
+[Workspace]
+        server = "{{ .Server }}"
+        datacenter = "{{ .Datacenter }}"
+        folder = "{{ .ResourcePool }}"
+        default-datastore = "{{ .Datastore }}"
+        resourcepool-path = "{{ .ResourcePool }}"
+
+[Disk]
+        scsicontrollertype = pvscsi
+
+[Network]
+        public-network = "{{ .Network }}"
+`
 
 const genericTemplates = `
 {{ define "fullScript" -}}

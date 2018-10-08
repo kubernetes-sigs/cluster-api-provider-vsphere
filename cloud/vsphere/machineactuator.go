@@ -19,33 +19,44 @@ package vsphere
 import (
 	"fmt"
 
+	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/record"
-	"sigs.k8s.io/cluster-api-provider-vsphere/cloud/vsphere/namedmachines"
+	"sigs.k8s.io/cluster-api-provider-vsphere/cloud/vsphere/provisioner/govmomi"
 	"sigs.k8s.io/cluster-api-provider-vsphere/cloud/vsphere/provisioner/terraform"
 	vsphereconfigv1 "sigs.k8s.io/cluster-api-provider-vsphere/cloud/vsphere/vsphereproviderconfig/v1alpha1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	v1alpha1 "sigs.k8s.io/cluster-api/pkg/client/informers_generated/externalversions/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/pkg/controller/machine"
 )
 
 type VsphereClient struct {
-	clusterV1alpha1   clusterv1alpha1.ClusterV1alpha1Interface
-	scheme            *runtime.Scheme
-	codecFactory      *serializer.CodecFactory
-	lister            v1alpha1.Interface
-	namedMachineWatch *namedmachines.ConfigWatch
-	eventRecorder     record.EventRecorder
-	// Once the vsphere-deployer is deleted, both DeploymentClient and VsphereClient can depend on
-	// something that implements GetIP instead of the VsphereClient depending on DeploymentClient.
-	deploymentClient *DeploymentClient
-
-	terraformProvisioner *terraform.Provisioner
+	clusterV1alpha1 clusterv1alpha1.ClusterV1alpha1Interface
+	scheme          *runtime.Scheme
+	provisioner     machine.Actuator
 }
 
-func NewMachineActuator(clusterV1alpha1 clusterv1alpha1.ClusterV1alpha1Interface, lister v1alpha1.Interface, eventRecorder record.EventRecorder, namedMachinePath string) (*VsphereClient, error) {
-	scheme, codecFactory, err := vsphereconfigv1.NewSchemeAndCodecs()
+func NewGovmomiMachineActuator(clusterV1alpha1 clusterv1alpha1.ClusterV1alpha1Interface, k8sClient kubernetes.Interface, lister v1alpha1.Interface, eventRecorder record.EventRecorder) (*VsphereClient, error) {
+	scheme, _, err := vsphereconfigv1.NewSchemeAndCodecs()
+	if err != nil {
+		return nil, err
+	}
+	provisioner, err := govmomi.New(clusterV1alpha1, k8sClient, lister, eventRecorder)
+	if err != nil {
+		return nil, err
+	}
+
+	return &VsphereClient{
+		clusterV1alpha1: clusterV1alpha1,
+		scheme:          scheme,
+		provisioner:     provisioner,
+	}, nil
+}
+
+func NewTerraformMachineActuator(clusterV1alpha1 clusterv1alpha1.ClusterV1alpha1Interface, lister v1alpha1.Interface, eventRecorder record.EventRecorder, namedMachinePath string) (*VsphereClient, error) {
+	scheme, _, err := vsphereconfigv1.NewSchemeAndCodecs()
 	if err != nil {
 		return nil, err
 	}
@@ -57,13 +68,9 @@ func NewMachineActuator(clusterV1alpha1 clusterv1alpha1.ClusterV1alpha1Interface
 	}
 
 	return &VsphereClient{
-		clusterV1alpha1:      clusterV1alpha1,
-		scheme:               scheme,
-		codecFactory:         codecFactory,
-		lister:               lister,
-		eventRecorder:        eventRecorder,
-		deploymentClient:     deploymentClient,
-		terraformProvisioner: provisioner,
+		clusterV1alpha1: clusterV1alpha1,
+		scheme:          scheme,
+		provisioner:     provisioner,
 	}, nil
 }
 
@@ -71,8 +78,13 @@ func (vc *VsphereClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.M
 	//creator := nativeprovisioner.NewCreator()
 	//creator.Create(cluster, machine)
 
-	if vc.terraformProvisioner != nil {
-		return vc.terraformProvisioner.Create(cluster, machine)
+	if vc.provisioner != nil {
+		err := vc.provisioner.Create(cluster, machine)
+		if err != nil {
+			glog.Error(err)
+			return err
+		}
+		return nil
 	}
 
 	return fmt.Errorf("No provisioner available")
@@ -82,8 +94,8 @@ func (vc *VsphereClient) Delete(cluster *clusterv1.Cluster, machine *clusterv1.M
 	//deleter := nativeprovisioner.NewDeleter()
 	//deleter.Delete(cluster, machine)
 
-	if vc.terraformProvisioner != nil {
-		return vc.terraformProvisioner.Delete(cluster, machine)
+	if vc.provisioner != nil {
+		return vc.provisioner.Delete(cluster, machine)
 	}
 
 	return fmt.Errorf("No provisioner available")
@@ -93,8 +105,8 @@ func (vc *VsphereClient) Update(cluster *clusterv1.Cluster, goalMachine *cluster
 	//updater := nativeprovisioner.NewUpdater()
 	//updater.Update(cluster, goalMachine)
 
-	if vc.terraformProvisioner != nil {
-		return vc.terraformProvisioner.Update(cluster, goalMachine)
+	if vc.provisioner != nil {
+		return vc.provisioner.Update(cluster, goalMachine)
 	}
 
 	return fmt.Errorf("No provisioner available")
@@ -104,8 +116,8 @@ func (vc *VsphereClient) Exists(cluster *clusterv1.Cluster, machine *clusterv1.M
 	//validator := nativeprovisioner.NewValidator()
 	//validator.Exists(cluster, goalMachine)
 
-	if vc.terraformProvisioner != nil {
-		return vc.terraformProvisioner.Exists(cluster, machine)
+	if vc.provisioner != nil {
+		return vc.provisioner.Exists(cluster, machine)
 	}
 
 	return false, fmt.Errorf("No provisioner available")

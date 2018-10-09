@@ -43,7 +43,7 @@ push: depend
 
 check: depend fmt vet
 
-test:
+test: depend
 	go test -race -cover ./cmd/... ./cloud/...
 
 fmt:

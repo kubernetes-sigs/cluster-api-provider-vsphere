@@ -75,9 +75,6 @@ func NewTerraformMachineActuator(clusterV1alpha1 clusterv1alpha1.ClusterV1alpha1
 }
 
 func (vc *VsphereClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
-	//creator := nativeprovisioner.NewCreator()
-	//creator.Create(cluster, machine)
-
 	if vc.provisioner != nil {
 		err := vc.provisioner.Create(cluster, machine)
 		if err != nil {
@@ -91,9 +88,6 @@ func (vc *VsphereClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.M
 }
 
 func (vc *VsphereClient) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
-	//deleter := nativeprovisioner.NewDeleter()
-	//deleter.Delete(cluster, machine)
-
 	if vc.provisioner != nil {
 		return vc.provisioner.Delete(cluster, machine)
 	}
@@ -102,9 +96,6 @@ func (vc *VsphereClient) Delete(cluster *clusterv1.Cluster, machine *clusterv1.M
 }
 
 func (vc *VsphereClient) Update(cluster *clusterv1.Cluster, goalMachine *clusterv1.Machine) error {
-	//updater := nativeprovisioner.NewUpdater()
-	//updater.Update(cluster, goalMachine)
-
 	if vc.provisioner != nil {
 		return vc.provisioner.Update(cluster, goalMachine)
 	}
@@ -113,9 +104,6 @@ func (vc *VsphereClient) Update(cluster *clusterv1.Cluster, goalMachine *cluster
 }
 
 func (vc *VsphereClient) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
-	//validator := nativeprovisioner.NewValidator()
-	//validator.Exists(cluster, goalMachine)
-
 	if vc.provisioner != nil {
 		return vc.provisioner.Exists(cluster, machine)
 	}

@@ -26,7 +26,7 @@ import (
 )
 
 func (vc *Provisioner) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
-	glog.Info("Inside Govmomi provisioner create method")
+	glog.Infof("govmomi.Actuator.Create %s", machine.Spec.Name)
 	s, err := vc.sessionFromProviderConfig(cluster, machine)
 	if err != nil {
 		return err
@@ -60,7 +60,7 @@ func (vc *Provisioner) verifyAndUpdateTask(s *SessionContext, machine *clusterv1
 	if err != nil {
 		//TODO: inspect the error and act appropriately.
 		// Naive assumption is that the task does not exist any more, thus clear that from the machine
-		return vc.removeTaskRef(machine)
+		return vc.setTaskRef(machine, "")
 	}
 	switch taskmo.Info.State {
 	// Queued or Running
@@ -73,16 +73,20 @@ func (vc *Provisioner) verifyAndUpdateTask(s *SessionContext, machine *clusterv1
 			vmref := taskmo.Info.Result.(types.ManagedObjectReference)
 			vc.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Created", "Created Machine %s(%s)", machine.Name, vmref.Value)
 			// Update the Machine object with the VM Reference annotation
-			return vc.updateVMReferenceAnnotations(machine, vmref, true)
+			err := vc.updateVMReference(machine, vmref.Value)
+			if err != nil {
+				return err
+			}
+			return vc.setTaskRef(machine, "")
 		} else if taskmo.Info.DescriptionId == "VirtualMachine.reconfigure" {
 			vc.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Reconfigured", "Reconfigured Machine %s", taskmo.Info.EntityName)
 		}
-		return vc.removeTaskRef(machine)
+		return vc.setTaskRef(machine, "")
 	case types.TaskInfoStateError:
 		if taskmo.Info.DescriptionId == "VirtualMachine.clone" {
 			vc.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Failed", "Creation failed for Machine %v", machine.Name)
 			// Clear the reference to the failed task so that the next reconcile loop can re-create it
-			return vc.removeTaskRef(machine)
+			return vc.setTaskRef(machine, "")
 		}
 	default:
 		glog.Warningf("unknown state %s for task %s detected", taskmoref, taskmo.Info.State)
@@ -189,7 +193,7 @@ func (vc *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 			prop.Info.Value = userData
 		}
 		if p.Id == "public-keys" {
-			prop.Info.Value, err = vc.utils.GetSSHPublicKey(cluster)
+			prop.Info.Value, err = vc.GetSSHPublicKey(cluster)
 			if err != nil {
 				return err
 			}
@@ -236,7 +240,7 @@ func (vc *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 	if err != nil {
 		return err
 	}
-	return vc.setTaskRef(machine, task.Reference())
+	return vc.setTaskRef(machine, task.Reference().Value)
 
 }
 
@@ -264,41 +268,72 @@ func (vc *Provisioner) removeTaskRef(machine *clusterv1.Machine) error {
 	return err
 }
 
-// Updates the VM Reference on the Machine object to the VM in the vsphere infrastructure
-// This method is ideally to be called only during inital creation of the VM
-func (vc *Provisioner) updateVMReferenceAnnotations(machine *clusterv1.Machine, vmref types.ManagedObjectReference, cleartask bool) error {
-	nmachine := machine.DeepCopy()
-	if nmachine.ObjectMeta.Annotations == nil {
-		nmachine.ObjectMeta.Annotations = make(map[string]string)
+func (vc *Provisioner) updateVMReference(machine *clusterv1.Machine, vmref string) error {
+	oldProviderStatus, err := vsphereutils.GetMachineProviderStatus(machine)
+	if err != nil {
+		return err
 	}
-	nmachine.ObjectMeta.Annotations[constants.VirtualMachineRef] = vmref.Value
-	if cleartask {
-		// Clear any reference to active task
-		delete(nmachine.ObjectMeta.Annotations, constants.VirtualMachineTaskRef)
+
+	if oldProviderStatus != nil && oldProviderStatus.MachineRef == vmref {
+		// Nothing to update
+		return nil
 	}
-	_, err := vc.clusterV1alpha1.Machines(nmachine.Namespace).Update(nmachine)
-	return err
+	newProviderStatus := &vsphereconfig.VsphereMachineProviderStatus{}
+	// create a copy of the old status so that any other fields except the ones we want to change can be retained
+	if oldProviderStatus != nil {
+		newProviderStatus = oldProviderStatus.DeepCopy()
+	}
+	newProviderStatus.MachineRef = vmref
+	newProviderStatus.LastUpdated = time.Now().UTC().String()
+	out, err := json.Marshal(newProviderStatus)
+	newMachine := machine.DeepCopy()
+	newMachine.Status.ProviderStatus = &runtime.RawExtension{Raw: out}
+	_, err = vc.clusterV1alpha1.Machines(newMachine.Namespace).UpdateStatus(newMachine)
+	if err != nil {
+		glog.Infof("Error in updating the machine ref: %s", err)
+		return err
+	}
+	return nil
 }
 
-// Sets the current task reference on the Machine object
-func (vc *Provisioner) setTaskRef(machine *clusterv1.Machine, taskref types.ManagedObjectReference) error {
-	nmachine := machine.DeepCopy()
-	if nmachine.ObjectMeta.Annotations == nil {
-		nmachine.ObjectMeta.Annotations = make(map[string]string)
+func (vc *Provisioner) setTaskRef(machine *clusterv1.Machine, taskref string) error {
+	oldProviderStatus, err := vsphereutils.GetMachineProviderStatus(machine)
+	if err != nil {
+		return err
 	}
-	nmachine.ObjectMeta.Annotations[constants.VirtualMachineTaskRef] = taskref.Value
-	_, err := vc.clusterV1alpha1.Machines(nmachine.Namespace).Update(nmachine)
-	return err
+
+	if oldProviderStatus != nil && oldProviderStatus.TaskRef == taskref {
+		// Nothing to update
+		return nil
+	}
+	newProviderStatus := &vsphereconfig.VsphereMachineProviderStatus{}
+	// create a copy of the old status so that any other fields except the ones we want to change can be retained
+	if oldProviderStatus != nil {
+		newProviderStatus = oldProviderStatus.DeepCopy()
+	}
+	newProviderStatus.TaskRef = taskref
+	newProviderStatus.LastUpdated = time.Now().UTC().String()
+	out, err := json.Marshal(newProviderStatus)
+	newMachine := machine.DeepCopy()
+	newMachine.Status.ProviderStatus = &runtime.RawExtension{Raw: out}
+	_, err = vc.clusterV1alpha1.Machines(newMachine.Namespace).UpdateStatus(newMachine)
+	if err != nil {
+		glog.Infof("Error in updating the machine ref: %s", err)
+		return err
+	}
+	return nil
 }
 
 // We are storing these as annotations and not in Machine Status because that's intended for
 // "Provider-specific status" that will usually be used to detect updates. Additionally,
 // Status requires yet another version API resource which is too heavy to store IP and TF state.
 func (vc *Provisioner) updateAnnotations(cluster *clusterv1.Cluster, machine *clusterv1.Machine, vmIP string, vm *object.VirtualMachine) error {
+	glog.Infof("Updating annotations for machine %s", machine.ObjectMeta.Name)
 	nmachine := machine.DeepCopy()
 	if nmachine.ObjectMeta.Annotations == nil {
 		nmachine.ObjectMeta.Annotations = make(map[string]string)
 	}
+	glog.Infof("updateAnnotations - IP = %s", vmIP)
 	nmachine.ObjectMeta.Annotations[constants.VmIpAnnotationKey] = vmIP
 	nmachine.ObjectMeta.Annotations[constants.ControlPlaneVersionAnnotationKey] = nmachine.Spec.Versions.ControlPlane
 	nmachine.ObjectMeta.Annotations[constants.KubeletVersionAnnotationKey] = nmachine.Spec.Versions.Kubelet
@@ -381,21 +416,21 @@ func (vc *Provisioner) getCloudProviderConfig(cluster *clusterv1.Cluster, machin
 func (vc *Provisioner) getStartupScript(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
 	config, err := vsphereutils.GetMachineProviderConfig(machine.Spec.ProviderConfig)
 	if err != nil {
-		return "", vc.utils.HandleMachineError(machine, apierrors.InvalidMachineConfiguration(
+		return "", vc.HandleMachineError(machine, apierrors.InvalidMachineConfiguration(
 			"Cannot unmarshal providerConfig field: %v", err), constants.CreateEventAction)
 	}
 	preloaded := false
 	if val, ok := config.MachineVariables["preloaded"]; ok {
 		preloaded, err = strconv.ParseBool(val)
 		if err != nil {
-			return "", vc.utils.HandleMachineError(machine, apierrors.InvalidMachineConfiguration(
+			return "", vc.HandleMachineError(machine, apierrors.InvalidMachineConfiguration(
 				"Invalid value for preloaded: %v", err), constants.CreateEventAction)
 		}
 	}
 	var startupScript string
 	if util.IsMaster(machine) {
 		if machine.Spec.Versions.ControlPlane == "" {
-			return "", vc.utils.HandleMachineError(machine, apierrors.InvalidMachineConfiguration(
+			return "", vc.HandleMachineError(machine, apierrors.InvalidMachineConfiguration(
 				"invalid master configuration: missing Machine.Spec.Versions.ControlPlane"), constants.CreateEventAction)
 		}
 		var err error
@@ -414,7 +449,7 @@ func (vc *Provisioner) getStartupScript(cluster *clusterv1.Cluster, machine *clu
 			glog.Infof("invalid cluster state: cannot create a Kubernetes node without an API endpoint")
 			return "", &clustererror.RequeueAfterError{RequeueAfter: constants.RequeueAfterSeconds}
 		}
-		kubeadmToken, err := vc.utils.GetKubeadmToken(cluster)
+		kubeadmToken, err := vc.GetKubeadmToken(cluster)
 		if err != nil {
 			glog.Infof("Error generating kubeadm token, will requeue: %s", err.Error())
 			return "", &clustererror.RequeueAfterError{RequeueAfter: constants.RequeueAfterSeconds}

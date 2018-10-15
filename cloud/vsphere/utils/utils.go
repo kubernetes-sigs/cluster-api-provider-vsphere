@@ -119,21 +119,19 @@ func GetSubnet(netRange clusterv1.NetworkRanges) string {
 }
 
 func GetVMId(machine *clusterv1.Machine) (string, error) {
-	if machine.ObjectMeta.Annotations != nil {
-		if vmid, ok := machine.ObjectMeta.Annotations[constants.VirtualMachineRef]; ok {
-			return vmid, nil
-		}
+	ps, err := GetMachineProviderStatus(machine)
+	if err != nil || ps == nil {
+		return "", err
 	}
-	return "", nil
+	return ps.MachineRef, nil
 }
 
 func GetActiveTasks(machine *clusterv1.Machine) string {
-	if machine.ObjectMeta.Annotations != nil {
-		if taskref, ok := machine.ObjectMeta.Annotations[constants.VirtualMachineTaskRef]; ok {
-			return taskref
-		}
+	ps, err := GetMachineProviderStatus(machine)
+	if err != nil || ps == nil {
+		return ""
 	}
-	return ""
+	return ps.TaskRef
 }
 
 func CreateTempFile(contents string) (string, error) {
@@ -168,8 +166,10 @@ func CreateTempFile(contents string) (string, error) {
 func GetKubeConfig(cluster *clusterv1.Cluster, master *clusterv1.Machine) (string, error) {
 	ip, err := GetIP(cluster, master)
 	if err != nil {
+		glog.Info("cannot get kubeconfig because found no IP")
 		return "", err
 	}
+	glog.Infof("pulling kubeconfig (using ssh) from %s", ip)
 	var out bytes.Buffer
 	cmd := exec.Command(
 		"ssh", "-i", "~/.ssh/vsphere_tmp",
@@ -181,7 +181,13 @@ func GetKubeConfig(cluster *clusterv1.Cluster, master *clusterv1.Machine) (strin
 	cmd.Stdout = &out
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
+	if err != nil {
+		glog.Infof("ssh failed with error = %#v", err)
+	}
 	result := strings.TrimSpace(out.String())
+	if len(result) > 0 {
+		glog.Info("ssh pulled kubeconfig")
+	}
 	return result, err
 }
 

@@ -22,6 +22,8 @@ func (vc *Provisioner) Update(cluster *clusterv1.Cluster, machine *clusterv1.Mac
 	// Fetch any active task in vsphere if any
 	// If an active task is there,
 
+	glog.Infof("govmomi.Actuator.Update %s", machine.Spec.Name)
+
 	s, err := vc.sessionFromProviderConfig(cluster, machine)
 	if err != nil {
 		return err
@@ -48,12 +50,13 @@ func (vc *Provisioner) Update(cluster *clusterv1.Cluster, machine *clusterv1.Mac
 	}
 
 	if _, err := vsphereutils.GetIP(cluster, machine); err != nil {
+		glog.Info("actuator.Update() - did not find IP, waiting on IP")
 		vm := object.NewVirtualMachine(s.session.Client, vmref)
 		vmIP, err := vm.WaitForIP(ctx)
 		if err != nil {
 			return err
 		}
-		vc.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "IP Detcted", "IP %s detected for Virtual Machine %s", vmIP, vm.Name)
+		vc.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "IP Detected", "IP %s detected for Virtual Machine %s", vmIP, vm.Name)
 		return vc.updateIP(cluster, machine, vmIP)
 	}
 	return nil
@@ -65,6 +68,7 @@ func (vc *Provisioner) updateIP(cluster *clusterv1.Cluster, machine *clusterv1.M
 	if nmachine.ObjectMeta.Annotations == nil {
 		nmachine.ObjectMeta.Annotations = make(map[string]string)
 	}
+	glog.Infof("updateIP - IP = %s", vmIP)
 	nmachine.ObjectMeta.Annotations[constants.VmIpAnnotationKey] = vmIP
 	_, err := vc.clusterV1alpha1.Machines(nmachine.Namespace).Update(nmachine)
 	if err != nil {

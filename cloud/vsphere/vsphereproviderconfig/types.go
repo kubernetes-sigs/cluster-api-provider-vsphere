@@ -44,6 +44,8 @@ type VsphereMachineProviderStatus struct {
 	metav1.TypeMeta `json:",inline"`
 
 	LastUpdated string `json:"lastUpdated"`
+	MachineRef  string `json:"machineRef"`
+	TaskRef     string `json:"taskRef"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

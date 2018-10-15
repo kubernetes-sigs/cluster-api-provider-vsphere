@@ -92,8 +92,10 @@ func (vc *ClusterActuator) updateK8sAPIStatus(cluster *clusterv1.Cluster) error 
 // In case the secret does not exist, then it fetches from the target master node and caches it for
 func (vc *ClusterActuator) fetchKubeConfig(cluster *clusterv1.Cluster, masters []*clusterv1.Machine) (string, error) {
 	var kubeconfig string
+	glog.Infof("attempting to fetch kubeconfig")
 	secret, err := vc.k8sClient.Core().Secrets(cluster.Namespace).Get(fmt.Sprintf(constants.KubeConfigSecretName, cluster.UID), metav1.GetOptions{})
 	if err != nil {
+		glog.Info("could not pull secrets for kubeconfig")
 		// TODO: Check for the proper err type for *not present* case. rather than all other cases
 		// Fetch the kubeconfig and create the secret saving it
 		// Currently we support only a single master thus the below assumption
@@ -118,6 +120,7 @@ func (vc *ClusterActuator) fetchKubeConfig(cluster *clusterv1.Cluster, masters [
 			glog.Warningf("Could not create the secret for the saving kubeconfig: err [%s]", err.Error())
 		}
 	} else {
+		glog.Info("found kubeconfig in secrets")
 		kubeconfig = string(secret.Data[constants.KubeConfigSecretData])
 	}
 	return kubeconfig, nil

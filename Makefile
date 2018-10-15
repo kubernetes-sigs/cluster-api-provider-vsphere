@@ -12,12 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Keep an existing GOPATH, make a private one if it is undefined
+GOPATH_DEFAULT := $(PWD)/.go
+export GOPATH ?= $(GOPATH_DEFAULT)
+GOBIN_DEFAULT := $(GOPATH)/bin
+export GOBIN ?= $(GOBIN_DEFAULT)
+HAS_DEP := $(shell command -v dep;)
+
 .PHONY: gendeepcopy
 
 all: generate build images
 
-depend:
-	dep version || go get -u github.com/golang/dep/cmd/dep
+$(GOBIN):
+	echo "create gobin"
+	mkdir -p $(GOBIN)
+
+depend: $(GOBIN)
+ifndef HAS_DEP
+	curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+endif
 	dep ensure
 
 depend-update: work

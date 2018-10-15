@@ -765,7 +765,7 @@ func createTempFile(contents string) (string, error) {
 	defer func(pErr *error, path string) {
 		if *pErr != nil {
 			if err := os.Remove(path); err != nil {
-				glog.Warningf("Error removing file '%v': %v", err)
+				glog.Warningf("Error removing file '%s': %v", path, err)
 			}
 		}
 	}(&err, tmpFile.Name())

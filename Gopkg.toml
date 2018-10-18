@@ -30,7 +30,7 @@ required = [
 
 [[constraint]]
   name = "sigs.k8s.io/cluster-api"
-  branch = "master"
+  revision = "7db708b5df567c79e2e46f9c37cdbf001bef1302"
 
 [[constraint]]
   name = "k8s.io/code-generator"

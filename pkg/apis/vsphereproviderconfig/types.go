@@ -26,6 +26,7 @@ type VsphereMachineProviderConfig struct {
 
 	// Name of the machine that's registered in the NamedMachines ConfigMap.
 	VsphereMachine string `json:"vsphereMachine"`
+	MachineRef     string `json:"machineRef,omitempty"`
 	// List of variables for the chosen machine.
 	MachineVariables map[string]string `json:"machineVariables"`
 }
@@ -44,7 +45,6 @@ type VsphereMachineProviderStatus struct {
 	metav1.TypeMeta `json:",inline"`
 
 	LastUpdated string `json:"lastUpdated"`
-	MachineRef  string `json:"machineRef"`
 	TaskRef     string `json:"taskRef"`
 }
 

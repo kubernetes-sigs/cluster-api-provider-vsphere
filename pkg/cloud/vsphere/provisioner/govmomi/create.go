@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"strconv"
 	"time"
 
@@ -15,7 +16,7 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	vsphereconfig "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig"
+	vsphereconfigv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
 	vpshereprovisionercommon "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/provisioner/common"
 	vsphereutils "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/utils"
@@ -26,7 +27,7 @@ import (
 )
 
 func (pv *Provisioner) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
-	glog.Infof("govmomi.Actuator.Create %s", machine.Spec.Name)
+	glog.V(4).Infof("govmomi.Actuator.Create %s", machine.Spec.Name)
 	s, err := pv.sessionFromProviderConfig(cluster, machine)
 	if err != nil {
 		return err
@@ -37,7 +38,7 @@ func (pv *Provisioner) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mac
 	if err != nil {
 		return err
 	}
-	glog.Infof("Using session %v", usersession)
+	glog.V(4).Infof("Using session %v", usersession)
 	task := vsphereutils.GetActiveTasks(machine)
 	if task != "" {
 		// In case an active task is going on, wait for its completion
@@ -73,10 +74,14 @@ func (pv *Provisioner) verifyAndUpdateTask(s *SessionContext, machine *clusterv1
 			vmref := taskmo.Info.Result.(types.ManagedObjectReference)
 			pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Created", "Created Machine %s(%s)", machine.Name, vmref.Value)
 			// Update the Machine object with the VM Reference annotation
-			err := pv.updateVMReference(machine, vmref.Value)
+			updatedmachine, err := pv.updateVMReference(machine, vmref.Value)
 			if err != nil {
 				return err
 			}
+			// This is needed otherwise the update status on the original machine object would fail as the resource has been updated by the previous call
+			// Note: We are not mutating the object retrieved from the informer ever. The updatedmachine is the updated resource generated using DeepCopy
+			// This would just update the reference to be the newer object so that the status update works
+			machine = updatedmachine
 			return pv.setTaskRef(machine, "")
 		} else if taskmo.Info.DescriptionId == "VirtualMachine.reconfigure" {
 			pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Reconfigured", "Reconfigured Machine %s", taskmo.Info.EntityName)
@@ -111,7 +116,7 @@ func (pv *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 	if err != nil {
 		return err
 	}
-	glog.Infof("[DEBUG] ExpandVirtualMachineCloneSpec: Preparing clone spec for VM")
+	glog.V(4).Infof("[DEBUG] ExpandVirtualMachineCloneSpec: Preparing clone spec for VM")
 
 	dc, err := s.finder.DatacenterOrDefault(ctx, machineConfig.MachineVariables[constants.ProviderDatacenter])
 	if err != nil {
@@ -268,32 +273,28 @@ func (pv *Provisioner) removeTaskRef(machine *clusterv1.Machine) error {
 	return err
 }
 
-func (pv *Provisioner) updateVMReference(machine *clusterv1.Machine, vmref string) error {
-	oldProviderStatus, err := vsphereutils.GetMachineProviderStatus(machine)
-	if err != nil {
-		return err
-	}
-
-	if oldProviderStatus != nil && oldProviderStatus.MachineRef == vmref {
-		// Nothing to update
-		return nil
-	}
-	newProviderStatus := &vsphereconfig.VsphereMachineProviderStatus{}
-	// create a copy of the old status so that any other fields except the ones we want to change can be retained
-	if oldProviderStatus != nil {
-		newProviderStatus = oldProviderStatus.DeepCopy()
-	}
-	newProviderStatus.MachineRef = vmref
-	newProviderStatus.LastUpdated = time.Now().UTC().String()
-	out, err := json.Marshal(newProviderStatus)
+func (vc *Provisioner) updateVMReference(machine *clusterv1.Machine, vmref string) (*clusterv1.Machine, error) {
+	providerConfig, err := vsphereutils.GetMachineProviderConfig(machine.Spec.ProviderConfig)
+	providerConfig.MachineRef = vmref
+	// Set the Kind and APIVersion again since they are not returned
+	// See the following Issues for details:
+	// https://github.com/kubernetes/client-go/issues/308
+	// https://github.com/kubernetes/kubernetes/issues/3030
+	providerConfig.Kind = reflect.TypeOf(*providerConfig).Name()
+	providerConfig.APIVersion = vsphereconfigv1.SchemeGroupVersion.String()
 	newMachine := machine.DeepCopy()
-	newMachine.Status.ProviderStatus = &runtime.RawExtension{Raw: out}
-	_, err = pv.clusterV1alpha1.Machines(newMachine.Namespace).UpdateStatus(newMachine)
+	out, err := json.Marshal(providerConfig)
+	if err != nil {
+		glog.Infof("Error marshaling ProviderConfig: %s", err)
+		return machine, err
+	}
+	newMachine.Spec.ProviderConfig.Value = &runtime.RawExtension{Raw: out}
+	newMachine, err = vc.clusterV1alpha1.Machines(newMachine.Namespace).Update(newMachine)
 	if err != nil {
 		glog.Infof("Error in updating the machine ref: %s", err)
-		return err
+		return machine, err
 	}
-	return nil
+	return newMachine, nil
 }
 
 func (pv *Provisioner) setTaskRef(machine *clusterv1.Machine, taskref string) error {
@@ -306,7 +307,7 @@ func (pv *Provisioner) setTaskRef(machine *clusterv1.Machine, taskref string) er
 		// Nothing to update
 		return nil
 	}
-	newProviderStatus := &vsphereconfig.VsphereMachineProviderStatus{}
+	newProviderStatus := &vsphereconfigv1.VsphereMachineProviderStatus{}
 	// create a copy of the old status so that any other fields except the ones we want to change can be retained
 	if oldProviderStatus != nil {
 		newProviderStatus = oldProviderStatus.DeepCopy()
@@ -333,11 +334,10 @@ func (pv *Provisioner) updateAnnotations(cluster *clusterv1.Cluster, machine *cl
 	if nmachine.ObjectMeta.Annotations == nil {
 		nmachine.ObjectMeta.Annotations = make(map[string]string)
 	}
-	glog.Infof("updateAnnotations - IP = %s", vmIP)
+	glog.V(4).Infof("updateAnnotations - IP = %s", vmIP)
 	nmachine.ObjectMeta.Annotations[constants.VmIpAnnotationKey] = vmIP
 	nmachine.ObjectMeta.Annotations[constants.ControlPlaneVersionAnnotationKey] = nmachine.Spec.Versions.ControlPlane
 	nmachine.ObjectMeta.Annotations[constants.KubeletVersionAnnotationKey] = nmachine.Spec.Versions.Kubelet
-	nmachine.ObjectMeta.Annotations[constants.VirtualMachineRef] = vm.Reference().Value
 
 	_, err := pv.clusterV1alpha1.Machines(nmachine.Namespace).Update(nmachine)
 	if err != nil {
@@ -345,7 +345,7 @@ func (pv *Provisioner) updateAnnotations(cluster *clusterv1.Cluster, machine *cl
 	}
 	// Update the cluster status with updated time stamp for tracking purposes
 	ncluster := cluster.DeepCopy()
-	status := &vsphereconfig.VsphereClusterProviderStatus{LastUpdated: time.Now().UTC().String()}
+	status := &vsphereconfigv1.VsphereClusterProviderStatus{LastUpdated: time.Now().UTC().String()}
 	out, err := json.Marshal(status)
 	if err != nil {
 		return err

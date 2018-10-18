@@ -1,0 +1,7 @@
+[gerrit]
+host=p3-review.eng.vmware.com
+port=29418
+project=cluster-api-provider-vsphere.git
+defaultbranch=master
+defaultremote=p3
+

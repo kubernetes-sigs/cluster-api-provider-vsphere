@@ -14,7 +14,7 @@ limitations under the License.
 package main
 
 import (
-	_ "sigs.k8s.io/cluster-api-provider-vsphere/cloud/vsphere"
+	_ "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere"
 	"sigs.k8s.io/cluster-api/clusterctl/cmd"
 )
 

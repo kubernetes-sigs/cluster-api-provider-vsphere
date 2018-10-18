@@ -18,9 +18,9 @@ WORKDIR /go/src/sigs.k8s.io/cluster-api-provider-vsphere
 # This expects that the context passed to the docker build command is
 # the cluster-api directory.
 # e.g. docker build -t <tag> -f <this_Dockerfile> <path_to_cluster-api>
-COPY . . 
+COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-vsphere/cloud/vsphere/cmd/vsphere-machine-controller
+RUN CGO_ENABLED=0 GOOS=linux go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-vsphere/cmd/vsphere-machine-controller
 
 # Final container
 FROM debian:stretch-slim

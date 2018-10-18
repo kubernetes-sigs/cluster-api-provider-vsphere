@@ -20,7 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
-	"sigs.k8s.io/cluster-api-provider-vsphere/cloud/vsphere/vsphereproviderconfig"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/vsphereproviderconfig"
 )
 
 const GroupName = "vsphereproviderconfig"

@@ -46,7 +46,7 @@ type ClusterActuator struct {
 }
 
 // Reconcile will create or update the cluster
-func (vc *ClusterActuator) Reconcile(cluster *clusterv1.Cluster) error {
+func (ca *ClusterActuator) Reconcile(cluster *clusterv1.Cluster) error {
 	glog.Infof("Attempting to reconcile cluster %s", cluster.ObjectMeta.Name)
 
 	// The generic workflow would be as follows:
@@ -57,7 +57,7 @@ func (vc *ClusterActuator) Reconcile(cluster *clusterv1.Cluster) error {
 	// In the absence of the lb creation, the logic would be to simply take the first master node
 	// and use that as the API endpoint for now.
 	if len(cluster.Status.APIEndpoints) == 0 {
-		err := vc.provisionLoadBalancer(cluster)
+		err := ca.provisionLoadBalancer(cluster)
 		if err != nil {
 			glog.Infof("Error could not provision the Load Balancer for the cluster: %s", err)
 			return err
@@ -67,33 +67,33 @@ func (vc *ClusterActuator) Reconcile(cluster *clusterv1.Cluster) error {
 		//return nil
 	}
 	// At this stage we are expecting the lb endpoint to be present in the final lb implementation
-	err := vc.ensureLoadBalancerMembers(cluster)
+	err := ca.ensureLoadBalancerMembers(cluster)
 	if err != nil {
 		glog.Infof("Error setting the Load Balancer members for the cluster: %s", err)
 		return err
 	}
 	// Check if the target kubernetes is ready or not, and update the ProviderStatus if change is detected
-	err = vc.updateK8sAPIStatus(cluster)
+	err = ca.updateK8sAPIStatus(cluster)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (vc *ClusterActuator) updateK8sAPIStatus(cluster *clusterv1.Cluster) error {
-	currentClusterAPIStatus, err := vc.getClusterAPIStatus(cluster)
+func (ca *ClusterActuator) updateK8sAPIStatus(cluster *clusterv1.Cluster) error {
+	currentClusterAPIStatus, err := ca.getClusterAPIStatus(cluster)
 	if err != nil {
 		return err
 	}
-	return vc.updateClusterAPIStatus(cluster, currentClusterAPIStatus)
+	return ca.updateClusterAPIStatus(cluster, currentClusterAPIStatus)
 }
 
 // fetchKubeConfig returns the cached copy of the Kubeconfig in the secrets for the target cluster
 // In case the secret does not exist, then it fetches from the target master node and caches it for
-func (vc *ClusterActuator) fetchKubeConfig(cluster *clusterv1.Cluster, masters []*clusterv1.Machine) (string, error) {
+func (ca *ClusterActuator) fetchKubeConfig(cluster *clusterv1.Cluster, masters []*clusterv1.Machine) (string, error) {
 	var kubeconfig string
 	glog.Infof("attempting to fetch kubeconfig")
-	secret, err := vc.k8sClient.Core().Secrets(cluster.Namespace).Get(fmt.Sprintf(constants.KubeConfigSecretName, cluster.UID), metav1.GetOptions{})
+	secret, err := ca.k8sClient.Core().Secrets(cluster.Namespace).Get(fmt.Sprintf(constants.KubeConfigSecretName, cluster.UID), metav1.GetOptions{})
 	if err != nil {
 		glog.Info("could not pull secrets for kubeconfig")
 		// TODO: Check for the proper err type for *not present* case. rather than all other cases
@@ -115,7 +115,7 @@ func (vc *ClusterActuator) fetchKubeConfig(cluster *clusterv1.Cluster, masters [
 			},
 			StringData: configmap,
 		}
-		secret, err = vc.k8sClient.Core().Secrets(cluster.Namespace).Create(secret)
+		secret, err = ca.k8sClient.Core().Secrets(cluster.Namespace).Create(secret)
 		if err != nil {
 			glog.Warningf("Could not create the secret for the saving kubeconfig: err [%s]", err.Error())
 		}
@@ -126,8 +126,8 @@ func (vc *ClusterActuator) fetchKubeConfig(cluster *clusterv1.Cluster, masters [
 	return kubeconfig, nil
 }
 
-func (vc *ClusterActuator) getClusterAPIStatus(cluster *clusterv1.Cluster) (vsphereconfig.APIStatus, error) {
-	masters, err := vsphereutils.GetMasterForCluster(cluster, vc.lister)
+func (ca *ClusterActuator) getClusterAPIStatus(cluster *clusterv1.Cluster) (vsphereconfig.APIStatus, error) {
+	masters, err := vsphereutils.GetMasterForCluster(cluster, ca.lister)
 	if err != nil {
 		glog.Infof("Error retrieving master nodes for the cluster: %s", err)
 		return vsphereconfig.ApiNotReady, err
@@ -136,7 +136,7 @@ func (vc *ClusterActuator) getClusterAPIStatus(cluster *clusterv1.Cluster) (vsph
 		glog.Infof("No masters for the cluster [%s] present", cluster.Name)
 		return vsphereconfig.ApiNotReady, nil
 	}
-	kubeconfig, err := vc.fetchKubeConfig(cluster, masters)
+	kubeconfig, err := ca.fetchKubeConfig(cluster, masters)
 	if err != nil {
 		return vsphereconfig.ApiNotReady, err
 	}
@@ -162,7 +162,7 @@ func (vc *ClusterActuator) getClusterAPIStatus(cluster *clusterv1.Cluster) (vsph
 	return vsphereconfig.ApiReady, nil
 }
 
-func (vc *ClusterActuator) updateClusterAPIStatus(cluster *clusterv1.Cluster, newStatus vsphereconfig.APIStatus) error {
+func (ca *ClusterActuator) updateClusterAPIStatus(cluster *clusterv1.Cluster, newStatus vsphereconfig.APIStatus) error {
 	oldProviderStatus, err := vsphereutils.GetClusterProviderStatus(cluster)
 	if err != nil {
 		return err
@@ -181,7 +181,7 @@ func (vc *ClusterActuator) updateClusterAPIStatus(cluster *clusterv1.Cluster, ne
 	out, err := json.Marshal(newProviderStatus)
 	ncluster := cluster.DeepCopy()
 	ncluster.Status.ProviderStatus = &runtime.RawExtension{Raw: out}
-	_, err = vc.clusterV1alpha1.Clusters(ncluster.Namespace).UpdateStatus(ncluster)
+	_, err = ca.clusterV1alpha1.Clusters(ncluster.Namespace).UpdateStatus(ncluster)
 	if err != nil {
 		glog.Infof("Error in updating the cluster api status from [%s] to [%s]: %s", oldProviderStatus.APIStatus, newStatus, err)
 		return err
@@ -189,7 +189,7 @@ func (vc *ClusterActuator) updateClusterAPIStatus(cluster *clusterv1.Cluster, ne
 	return nil
 }
 
-func (vc *ClusterActuator) provisionLoadBalancer(cluster *clusterv1.Cluster) error {
+func (ca *ClusterActuator) provisionLoadBalancer(cluster *clusterv1.Cluster) error {
 	// TODO(ssurana):
 	// 1. implement the lb provisioning
 	// 2. update the lb public endpoint to the cluster endpoint
@@ -198,9 +198,9 @@ func (vc *ClusterActuator) provisionLoadBalancer(cluster *clusterv1.Cluster) err
 
 // ensureLoadBalancerMembers would be responsible for keeping the master API endpoints
 // synced with the lb members at all times.
-func (vc *ClusterActuator) ensureLoadBalancerMembers(cluster *clusterv1.Cluster) error {
+func (ca *ClusterActuator) ensureLoadBalancerMembers(cluster *clusterv1.Cluster) error {
 	// This is the temporary implementation until we do the proper LB implementation
-	err := vc.setMasterNodeIPAsEndpoint(cluster)
+	err := ca.setMasterNodeIPAsEndpoint(cluster)
 	if err != nil {
 		glog.Infof("Error registering master node's IP as API Endpoint for the cluster: %s", err)
 		return err
@@ -210,10 +210,10 @@ func (vc *ClusterActuator) ensureLoadBalancerMembers(cluster *clusterv1.Cluster)
 
 // TODO(ssurana): Remove this method once we have the proper lb implementation
 // Temporary implementation: Simply use the first master IP that you can find
-func (vc *ClusterActuator) setMasterNodeIPAsEndpoint(cluster *clusterv1.Cluster) error {
+func (ca *ClusterActuator) setMasterNodeIPAsEndpoint(cluster *clusterv1.Cluster) error {
 	ncluster := cluster.DeepCopy()
 	if len(ncluster.Status.APIEndpoints) == 0 {
-		masters, err := vsphereutils.GetMasterForCluster(ncluster, vc.lister)
+		masters, err := vsphereutils.GetMasterForCluster(ncluster, ca.lister)
 		if err != nil {
 			glog.Infof("Error retrieving master nodes for the cluster: %s", err)
 			return err
@@ -231,21 +231,21 @@ func (vc *ClusterActuator) setMasterNodeIPAsEndpoint(cluster *clusterv1.Cluster)
 					Host: ip,
 					Port: constants.ApiServerPort,
 				}}
-			_, err = vc.clusterV1alpha1.Clusters(ncluster.Namespace).UpdateStatus(ncluster)
+			_, err = ca.clusterV1alpha1.Clusters(ncluster.Namespace).UpdateStatus(ncluster)
 			if err != nil {
-				vc.eventRecorder.Eventf(ncluster, corev1.EventTypeWarning, "Failed Update", "Error in updating API Endpoint: %s", err)
+				ca.eventRecorder.Eventf(ncluster, corev1.EventTypeWarning, "Failed Update", "Error in updating API Endpoint: %s", err)
 				glog.Infof("Error in updating the status: %s", err)
 				return err
 			}
-			vc.eventRecorder.Eventf(ncluster, corev1.EventTypeNormal, "Updated", "Updated API Endpoint to %v", ip)
+			ca.eventRecorder.Eventf(ncluster, corev1.EventTypeNormal, "Updated", "Updated API Endpoint to %v", ip)
 		}
 	}
 	return nil
 }
 
 // Delete will delete any cluster level resources for the cluster.
-func (vc *ClusterActuator) Delete(cluster *clusterv1.Cluster) error {
-	vc.eventRecorder.Eventf(cluster, corev1.EventTypeNormal, "Deleted", "Deleting cluster %s", cluster.Name)
+func (ca *ClusterActuator) Delete(cluster *clusterv1.Cluster) error {
+	ca.eventRecorder.Eventf(cluster, corev1.EventTypeNormal, "Deleted", "Deleting cluster %s", cluster.Name)
 	glog.Infof("Attempting to cleaning up resources of cluster %s", cluster.ObjectMeta.Name)
 	return nil
 }

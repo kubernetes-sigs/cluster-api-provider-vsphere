@@ -18,13 +18,13 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
-func (vc *Provisioner) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+func (pv *Provisioner) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	// Fetch any active task in vsphere if any
 	// If an active task is there,
 
 	glog.Infof("govmomi.Actuator.Update %s", machine.Spec.Name)
 
-	s, err := vc.sessionFromProviderConfig(cluster, machine)
+	s, err := pv.sessionFromProviderConfig(cluster, machine)
 	if err != nil {
 		return err
 	}
@@ -56,21 +56,21 @@ func (vc *Provisioner) Update(cluster *clusterv1.Cluster, machine *clusterv1.Mac
 		if err != nil {
 			return err
 		}
-		vc.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "IP Detected", "IP %s detected for Virtual Machine %s", vmIP, vm.Name)
-		return vc.updateIP(cluster, machine, vmIP)
+		pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "IP Detected", "IP %s detected for Virtual Machine %s", vmIP, vm.Name)
+		return pv.updateIP(cluster, machine, vmIP)
 	}
 	return nil
 }
 
 // Updates the detected IP for the machine and updates the cluster object signifying a change in the infrastructure
-func (vc *Provisioner) updateIP(cluster *clusterv1.Cluster, machine *clusterv1.Machine, vmIP string) error {
+func (pv *Provisioner) updateIP(cluster *clusterv1.Cluster, machine *clusterv1.Machine, vmIP string) error {
 	nmachine := machine.DeepCopy()
 	if nmachine.ObjectMeta.Annotations == nil {
 		nmachine.ObjectMeta.Annotations = make(map[string]string)
 	}
 	glog.Infof("updateIP - IP = %s", vmIP)
 	nmachine.ObjectMeta.Annotations[constants.VmIpAnnotationKey] = vmIP
-	_, err := vc.clusterV1alpha1.Machines(nmachine.Namespace).Update(nmachine)
+	_, err := pv.clusterV1alpha1.Machines(nmachine.Namespace).Update(nmachine)
 	if err != nil {
 		return err
 	}
@@ -79,6 +79,6 @@ func (vc *Provisioner) updateIP(cluster *clusterv1.Cluster, machine *clusterv1.M
 	out, err := json.Marshal(status)
 	ncluster := cluster.DeepCopy()
 	ncluster.Status.ProviderStatus = &runtime.RawExtension{Raw: out}
-	_, err = vc.clusterV1alpha1.Clusters(ncluster.Namespace).UpdateStatus(ncluster)
+	_, err = pv.clusterV1alpha1.Clusters(ncluster.Namespace).UpdateStatus(ncluster)
 	return err
 }

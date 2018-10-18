@@ -16,15 +16,15 @@ import (
 )
 
 // Delete the machine
-func (vc *Provisioner) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
-	s, err := vc.sessionFromProviderConfig(cluster, machine)
+func (pv *Provisioner) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+	s, err := pv.sessionFromProviderConfig(cluster, machine)
 	if err != nil {
 		return err
 	}
 	ctx, cancel := context.WithCancel(*s.context)
 	defer cancel()
 
-	if exists, _ := vc.Exists(cluster, machine); exists {
+	if exists, _ := pv.Exists(cluster, machine); exists {
 		moref, err := vsphereutils.GetVMId(machine)
 		if err != nil {
 			return err
@@ -38,7 +38,7 @@ func (vc *Provisioner) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Mac
 		if err != nil {
 			return err
 		}
-		vc.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Killing", "Killing machine %v", machine.Name)
+		pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Killing", "Killing machine %v", machine.Name)
 		vmo := object.NewVirtualMachine(s.session.Client, vmref)
 		if vm.Runtime.PowerState == types.VirtualMachinePowerStatePoweredOn {
 			task, err := vmo.PowerOff(ctx)
@@ -56,11 +56,11 @@ func (vc *Provisioner) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Mac
 		taskinfo, err := task.WaitForResult(ctx, nil)
 		if taskinfo.State == types.TaskInfoStateSuccess {
 			glog.Infof("Virtual Machine %v deleted successfully", vm.Name)
-			vc.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Killed", "Machine %v deletion complete", machine.Name)
+			pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Killed", "Machine %v deletion complete", machine.Name)
 			return nil
 		}
-		vc.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Killed", "Machine %v deletion complete", machine.Name)
-		glog.Errorf("VM Deletion failed on VC with following reason %v", taskinfo.Reason)
+		pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Killed", "Machine %v deletion complete", machine.Name)
+		glog.Errorf("VM Deletion failed on pv with following reason %v", taskinfo.Reason)
 		return errors.New("VM Deletion failed")
 	}
 	return nil

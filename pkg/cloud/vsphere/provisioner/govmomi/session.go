@@ -19,13 +19,13 @@ type SessionContext struct {
 	finder  *find.Finder
 }
 
-func (vc *Provisioner) sessionFromProviderConfig(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (*SessionContext, error) {
+func (pv *Provisioner) sessionFromProviderConfig(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (*SessionContext, error) {
 	var sc SessionContext
 	vsphereConfig, err := vsphereutils.GetClusterProviderConfig(cluster.Spec.ProviderConfig)
 	if err != nil {
 		return nil, err
 	}
-	if ses, ok := vc.sessioncache[vsphereConfig.VsphereServer+vsphereConfig.VsphereUser]; ok {
+	if ses, ok := pv.sessioncache[vsphereConfig.VsphereServer+vsphereConfig.VsphereUser]; ok {
 		s, ok := ses.(SessionContext)
 		if ok {
 			// Test if the session is valid and return
@@ -51,6 +51,6 @@ func (vc *Provisioner) sessionFromProviderConfig(cluster *clusterv1.Cluster, mac
 	sc.context = &ctx
 	finder := find.NewFinder(sc.session.Client, false)
 	sc.finder = finder
-	vc.sessioncache[vsphereConfig.VsphereServer+vsphereConfig.VsphereUser] = sc
+	pv.sessioncache[vsphereConfig.VsphereServer+vsphereConfig.VsphereUser] = sc
 	return &sc, nil
 }

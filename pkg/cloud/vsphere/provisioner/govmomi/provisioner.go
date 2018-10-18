@@ -21,6 +21,6 @@ func New(clusterV1alpha1 clusterv1alpha1.ClusterV1alpha1Interface, k8sClient kub
 		lister:          lister,
 		eventRecorder:   eventRecorder,
 		sessioncache:    make(map[string]interface{}),
-		k8sClient:		k8sClient,
+		k8sClient:       k8sClient,
 	}, nil
 }

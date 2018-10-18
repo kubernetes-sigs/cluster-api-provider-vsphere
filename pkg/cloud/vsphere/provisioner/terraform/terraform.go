@@ -104,8 +104,8 @@ func saveFile(contents, path string, perm os.FileMode) error {
 
 // Stage the machine for running terraform.
 // Return: machine's staging dir path, error
-func (vc *Provisioner) prepareStageMachineDir(machine *clusterv1.Machine, eventAction string) (string, error) {
-	err := vc.cleanUpStagingDir(machine)
+func (pv *Provisioner) prepareStageMachineDir(machine *clusterv1.Machine, eventAction string) (string, error) {
+	err := pv.cleanUpStagingDir(machine)
 	if err != nil {
 		return "", err
 	}
@@ -113,7 +113,7 @@ func (vc *Provisioner) prepareStageMachineDir(machine *clusterv1.Machine, eventA
 	machineName := machine.ObjectMeta.Name
 	config, err := vsphereutils.GetMachineProviderConfig(machine.Spec.ProviderConfig)
 	if err != nil {
-		return "", vc.handleMachineError(machine, apierrors.InvalidMachineConfiguration(
+		return "", pv.handleMachineError(machine, apierrors.InvalidMachineConfiguration(
 			"Cannot unmarshal providerConfig field: %v", err), eventAction)
 	}
 
@@ -126,7 +126,7 @@ func (vc *Provisioner) prepareStageMachineDir(machine *clusterv1.Machine, eventA
 	tfConfigPath := path.Join(machinePath, TfConfigFilename)
 	tfVarsPath := path.Join(machinePath, TfVarsFilename)
 
-	namedMachines, err := vc.namedMachineWatch.NamedMachines()
+	namedMachines, err := pv.namedMachineWatch.NamedMachines()
 	if err != nil {
 		return "", err
 	}
@@ -147,7 +147,7 @@ func (vc *Provisioner) prepareStageMachineDir(machine *clusterv1.Machine, eventA
 	}
 
 	// Save the tfstate file (if not bootstrapping).
-	_, err = vc.stageTfState(machine)
+	_, err = pv.stageTfState(machine)
 	if err != nil {
 		return "", err
 	}
@@ -156,7 +156,7 @@ func (vc *Provisioner) prepareStageMachineDir(machine *clusterv1.Machine, eventA
 }
 
 // Returns the path to the tfstate file staged from the tf state in annotations.
-func (vc *Provisioner) stageTfState(machine *clusterv1.Machine) (string, error) {
+func (pv *Provisioner) stageTfState(machine *clusterv1.Machine) (string, error) {
 	machinePath := fmt.Sprintf(MachinePathStageFormat, machine.ObjectMeta.Name)
 	tfStateFilePath := path.Join(machinePath, TfStateFilename)
 
@@ -190,24 +190,24 @@ func (vc *Provisioner) stageTfState(machine *clusterv1.Machine) (string, error) 
 }
 
 // Cleans up the staging directory.
-func (vc *Provisioner) cleanUpStagingDir(machine *clusterv1.Machine) error {
+func (pv *Provisioner) cleanUpStagingDir(machine *clusterv1.Machine) error {
 	glog.Infof("Cleaning up the staging dir for machine %s", machine.ObjectMeta.Name)
 	return os.RemoveAll(fmt.Sprintf(MachinePathStageFormat, machine.ObjectMeta.Name))
 }
 
 // Builds and saves the startup script for the passed machine and cluster.
 // Returns the full path of the saved startup script and possible error.
-func (vc *Provisioner) saveStartupScript(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
+func (pv *Provisioner) saveStartupScript(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
 	config, err := vsphereutils.GetMachineProviderConfig(machine.Spec.ProviderConfig)
 	if err != nil {
-		return "", vc.handleMachineError(machine, apierrors.InvalidMachineConfiguration(
+		return "", pv.handleMachineError(machine, apierrors.InvalidMachineConfiguration(
 			"Cannot unmarshal providerConfig field: %v", err), constants.CreateEventAction)
 	}
 	preloaded := false
 	if val, ok := config.MachineVariables["preloaded"]; ok {
 		preloaded, err = strconv.ParseBool(val)
 		if err != nil {
-			return "", vc.handleMachineError(machine, apierrors.InvalidMachineConfiguration(
+			return "", pv.handleMachineError(machine, apierrors.InvalidMachineConfiguration(
 				"Invalid value for preloaded: %v", err), constants.CreateEventAction)
 		}
 	}
@@ -216,7 +216,7 @@ func (vc *Provisioner) saveStartupScript(cluster *clusterv1.Cluster, machine *cl
 
 	if util.IsMaster(machine) {
 		if machine.Spec.Versions.ControlPlane == "" {
-			return "", vc.handleMachineError(machine, apierrors.InvalidMachineConfiguration(
+			return "", pv.handleMachineError(machine, apierrors.InvalidMachineConfiguration(
 				"invalid master configuration: missing Machine.Spec.Versions.ControlPlane"), constants.CreateEventAction)
 		}
 		var err error
@@ -234,7 +234,7 @@ func (vc *Provisioner) saveStartupScript(cluster *clusterv1.Cluster, machine *cl
 		if len(cluster.Status.APIEndpoints) == 0 {
 			return "", errors.New("invalid cluster state: cannot create a Kubernetes node without an API endpoint")
 		}
-		kubeadmToken, err := vc.getKubeadmToken(cluster)
+		kubeadmToken, err := pv.getKubeadmToken(cluster)
 		if err != nil {
 			return "", err
 		}
@@ -262,10 +262,10 @@ func (vc *Provisioner) saveStartupScript(cluster *clusterv1.Cluster, machine *cl
 	return startupScriptPath, nil
 }
 
-func (vc *Provisioner) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+func (pv *Provisioner) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	config, err := vsphereutils.GetMachineProviderConfig(machine.Spec.ProviderConfig)
 	if err != nil {
-		return vc.handleMachineError(machine, apierrors.InvalidMachineConfiguration(
+		return pv.handleMachineError(machine, apierrors.InvalidMachineConfiguration(
 			"Cannot unmarshal providerConfig field: %v", err), constants.CreateEventAction)
 	}
 
@@ -274,15 +274,15 @@ func (vc *Provisioner) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mac
 		return err
 	}
 
-	if verr := vc.validateMachine(machine, config); verr != nil {
-		return vc.handleMachineError(machine, verr, constants.CreateEventAction)
+	if verr := pv.validateMachine(machine, config); verr != nil {
+		return pv.handleMachineError(machine, verr, constants.CreateEventAction)
 	}
 
-	if verr := vc.validateCluster(cluster); verr != nil {
+	if verr := pv.validateCluster(cluster); verr != nil {
 		return verr
 	}
 
-	machinePath, err := vc.prepareStageMachineDir(machine, constants.CreateEventAction)
+	machinePath, err := pv.prepareStageMachineDir(machine, constants.CreateEventAction)
 	if err != nil {
 		return errors.New(fmt.Sprintf("error while staging machine: %+v", err))
 	}
@@ -290,14 +290,14 @@ func (vc *Provisioner) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mac
 	glog.Infof("Staged for machine create at %s", machinePath)
 
 	// Save the startup script.
-	startupScriptPath, err := vc.saveStartupScript(cluster, machine)
+	startupScriptPath, err := pv.saveStartupScript(cluster, machine)
 	if err != nil {
 		return errors.New(fmt.Sprintf("could not write startup script %+v", err))
 	}
 	defer cleanUpStartupScript(machine.Name, startupScriptPath)
 
 	glog.Infof("Checking if machine %s exists", machine.ObjectMeta.Name)
-	instance, err := vc.instanceIfExists(machine)
+	instance, err := pv.instanceIfExists(machine)
 	if err != nil {
 		return err
 	}
@@ -335,10 +335,10 @@ func (vc *Provisioner) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mac
 		glog.Infof("Machine %s created with ip address %s", machine.ObjectMeta.Name, vmIp)
 
 		// Annotate the machine so that we remember exactly what VM we created for it.
-		tfState, _ := vc.GetTfState(machine)
-		vc.cleanUpStagingDir(machine)
-		vc.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Created", "Created Machine %v", machine.Name)
-		return vc.updateAnnotations(cluster, machine, vmIp, tfState)
+		tfState, _ := pv.GetTfState(machine)
+		pv.cleanUpStagingDir(machine)
+		pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Created", "Created Machine %v", machine.Name)
+		return pv.updateAnnotations(cluster, machine, vmIp, tfState)
 	} else {
 		glog.Infof("Skipped creating a VM for machine %s that already exists.", machine.ObjectMeta.Name)
 	}
@@ -401,9 +401,9 @@ func runTerraformCmd(stdout bool, workingDir string, arg ...string) (bytes.Buffe
 	return out, nil
 }
 
-func (vc *Provisioner) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+func (pv *Provisioner) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	// Check if the instance exists, return if it doesn't
-	instance, err := vc.instanceIfExists(machine)
+	instance, err := pv.instanceIfExists(machine)
 	if err != nil {
 		return err
 	}
@@ -416,7 +416,7 @@ func (vc *Provisioner) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Mac
 		return err
 	}
 
-	machinePath, err := vc.prepareStageMachineDir(machine, constants.DeleteEventAction)
+	machinePath, err := pv.prepareStageMachineDir(machine, constants.DeleteEventAction)
 
 	// destroy it
 	args := []string{
@@ -435,30 +435,30 @@ func (vc *Provisioner) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Mac
 		return fmt.Errorf("could not run terraform: %s", err)
 	}
 
-	vc.cleanUpStagingDir(machine)
+	pv.cleanUpStagingDir(machine)
 
 	// Update annotation for the state.
 	machine.ObjectMeta.Annotations[StatusMachineTerraformState] = ""
-	_, err = vc.clusterV1alpha1.Machines(machine.Namespace).Update(machine)
+	_, err = pv.clusterV1alpha1.Machines(machine.Namespace).Update(machine)
 
 	if err == nil {
-		vc.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Killing", "Killing machine %v", machine.Name)
+		pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Killing", "Killing machine %v", machine.Name)
 	}
 
 	return err
 }
 
-func (vc *Provisioner) PostDelete(cluster *clusterv1.Cluster) error {
+func (pv *Provisioner) PostDelete(cluster *clusterv1.Cluster) error {
 	return nil
 }
 
-func (vc *Provisioner) Update(cluster *clusterv1.Cluster, goalMachine *clusterv1.Machine) error {
+func (pv *Provisioner) Update(cluster *clusterv1.Cluster, goalMachine *clusterv1.Machine) error {
 	// Check if the annotations we want to track exist, if not, the user likely created a master machine with their own annotation.
 	if _, ok := goalMachine.ObjectMeta.Annotations[constants.ControlPlaneVersionAnnotationKey]; !ok {
-		ip, _ := vc.deploymentClient.GetIP(nil, goalMachine)
+		ip, _ := pv.deploymentClient.GetIP(nil, goalMachine)
 		glog.Info("Version annotations do not exist. Populating existing state for bootstrapped machine.")
-		tfState, _ := vc.GetTfState(goalMachine)
-		return vc.updateAnnotations(cluster, goalMachine, ip, tfState)
+		tfState, _ := pv.GetTfState(goalMachine)
+		return pv.updateAnnotations(cluster, goalMachine, ip, tfState)
 	}
 
 	if util.IsMaster(goalMachine) {
@@ -466,9 +466,9 @@ func (vc *Provisioner) Update(cluster *clusterv1.Cluster, goalMachine *clusterv1
 		glog.Info("Upgrade for master machine.. Check if upgrade needed.")
 
 		// If the saved versions and new versions differ, do in-place upgrade.
-		if vc.needsMasterUpdate(goalMachine) {
+		if pv.needsMasterUpdate(goalMachine) {
 			glog.Infof("Doing in-place upgrade for master from v%s to v%s", goalMachine.Annotations[constants.ControlPlaneVersionAnnotationKey], goalMachine.Spec.Versions.ControlPlane)
-			err := vc.updateMasterInPlace(goalMachine)
+			err := pv.updateMasterInPlace(goalMachine)
 			if err != nil {
 				glog.Errorf("Master in-place upgrade failed: %+v", err)
 				return err
@@ -477,9 +477,9 @@ func (vc *Provisioner) Update(cluster *clusterv1.Cluster, goalMachine *clusterv1
 			glog.Info("UNSUPPORTED MASTER UPDATE.")
 		}
 	} else {
-		if vc.needsNodeUpdate(goalMachine) {
+		if pv.needsNodeUpdate(goalMachine) {
 			// Node upgrades
-			if err := vc.updateNode(cluster, goalMachine); err != nil {
+			if err := pv.updateNode(cluster, goalMachine); err != nil {
 				glog.Errorf("Node %s update failed: %+v", goalMachine.ObjectMeta.Name, err)
 				return err
 			}
@@ -491,33 +491,33 @@ func (vc *Provisioner) Update(cluster *clusterv1.Cluster, goalMachine *clusterv1
 	return nil
 }
 
-func (vc *Provisioner) needsControlPlaneUpdate(machine *clusterv1.Machine) bool {
+func (pv *Provisioner) needsControlPlaneUpdate(machine *clusterv1.Machine) bool {
 	return machine.Spec.Versions.ControlPlane != machine.Annotations[constants.ControlPlaneVersionAnnotationKey]
 }
 
-func (vc *Provisioner) needsKubeletUpdate(machine *clusterv1.Machine) bool {
+func (pv *Provisioner) needsKubeletUpdate(machine *clusterv1.Machine) bool {
 	return machine.Spec.Versions.Kubelet != machine.Annotations[constants.KubeletVersionAnnotationKey]
 }
 
 // Returns true if the node is needed to be upgraded.
-func (vc *Provisioner) needsNodeUpdate(machine *clusterv1.Machine) bool {
+func (pv *Provisioner) needsNodeUpdate(machine *clusterv1.Machine) bool {
 	return !util.IsMaster(machine) &&
-		vc.needsKubeletUpdate(machine)
+		pv.needsKubeletUpdate(machine)
 }
 
 // Returns true if the master is needed to be upgraded.
-func (vc *Provisioner) needsMasterUpdate(machine *clusterv1.Machine) bool {
+func (pv *Provisioner) needsMasterUpdate(machine *clusterv1.Machine) bool {
 	return util.IsMaster(machine) &&
-		vc.needsControlPlaneUpdate(machine)
+		pv.needsControlPlaneUpdate(machine)
 	// TODO: we should support kubelet upgrades here as well.
 }
 
-func (vc *Provisioner) updateKubelet(machine *clusterv1.Machine) error {
-	if vc.needsKubeletUpdate(machine) {
+func (pv *Provisioner) updateKubelet(machine *clusterv1.Machine) error {
+	if pv.needsKubeletUpdate(machine) {
 		// Kubelet packages are versioned 1.10.1-00 and so on.
 		kubeletAptVersion := machine.Spec.Versions.Kubelet + "-00"
 		cmd := fmt.Sprintf("sudo apt-get install kubelet=%s", kubeletAptVersion)
-		if _, err := vc.remoteSshCommand(machine, cmd, "~/.ssh/vsphere_tmp", "ubuntu"); err != nil {
+		if _, err := pv.remoteSshCommand(machine, cmd, "~/.ssh/vsphere_tmp", "ubuntu"); err != nil {
 			glog.Errorf("remoteSshCommand while installing new kubelet version: %v", err)
 			return err
 		}
@@ -525,19 +525,19 @@ func (vc *Provisioner) updateKubelet(machine *clusterv1.Machine) error {
 	return nil
 }
 
-func (vc *Provisioner) updateControlPlane(machine *clusterv1.Machine) error {
-	if vc.needsControlPlaneUpdate(machine) {
+func (pv *Provisioner) updateControlPlane(machine *clusterv1.Machine) error {
+	if pv.needsControlPlaneUpdate(machine) {
 		// Pull the kudeadm for target version K8s.
 		cmd := fmt.Sprintf("curl -sSL https://dl.k8s.io/release/v%s/bin/linux/amd64/kubeadm | sudo tee /usr/bin/kubeadm > /dev/null; "+
 			"sudo chmod a+rx /usr/bin/kubeadm", machine.Spec.Versions.ControlPlane)
-		if _, err := vc.remoteSshCommand(machine, cmd, "~/.ssh/vsphere_tmp", "ubuntu"); err != nil {
+		if _, err := pv.remoteSshCommand(machine, cmd, "~/.ssh/vsphere_tmp", "ubuntu"); err != nil {
 			glog.Infof("remoteSshCommand failed while downloading new kubeadm: %+v", err)
 			return err
 		}
 
 		// Next upgrade control plane
 		cmd = fmt.Sprintf("sudo kubeadm upgrade apply %s -y", "v"+machine.Spec.Versions.ControlPlane)
-		if _, err := vc.remoteSshCommand(machine, cmd, "~/.ssh/vsphere_tmp", "ubuntu"); err != nil {
+		if _, err := pv.remoteSshCommand(machine, cmd, "~/.ssh/vsphere_tmp", "ubuntu"); err != nil {
 			glog.Infof("remoteSshCommand failed while upgrading control plane: %+v", err)
 			return err
 		}
@@ -546,12 +546,12 @@ func (vc *Provisioner) updateControlPlane(machine *clusterv1.Machine) error {
 }
 
 // Update the passed node machine by recreating it.
-func (vc *Provisioner) updateNode(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
-	if err := vc.Delete(cluster, machine); err != nil {
+func (pv *Provisioner) updateNode(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+	if err := pv.Delete(cluster, machine); err != nil {
 		return err
 	}
 
-	if err := vc.Create(cluster, machine); err != nil {
+	if err := pv.Create(cluster, machine); err != nil {
 		return err
 	}
 	return nil
@@ -559,24 +559,24 @@ func (vc *Provisioner) updateNode(cluster *clusterv1.Cluster, machine *clusterv1
 
 // Assumes that update is needed.
 // For now support only K8s control plane upgrades.
-func (vc *Provisioner) updateMasterInPlace(machine *clusterv1.Machine) error {
+func (pv *Provisioner) updateMasterInPlace(machine *clusterv1.Machine) error {
 	// Execute a control plane upgrade.
-	if err := vc.updateControlPlane(machine); err != nil {
+	if err := pv.updateControlPlane(machine); err != nil {
 		return err
 	}
 
 	// Update annotation for version.
 	machine.ObjectMeta.Annotations[constants.ControlPlaneVersionAnnotationKey] = machine.Spec.Versions.ControlPlane
-	if _, err := vc.clusterV1alpha1.Machines(machine.Namespace).Update(machine); err != nil {
+	if _, err := pv.clusterV1alpha1.Machines(machine.Namespace).Update(machine); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (vc *Provisioner) remoteSshCommand(m *clusterv1.Machine, cmd, privateKeyPath, sshUser string) (string, error) {
+func (pv *Provisioner) remoteSshCommand(m *clusterv1.Machine, cmd, privateKeyPath, sshUser string) (string, error) {
 	glog.Infof("Remote SSH execution '%s' on %s", cmd, m.ObjectMeta.Name)
 
-	publicIP, err := vc.deploymentClient.GetIP(nil, m)
+	publicIP, err := pv.deploymentClient.GetIP(nil, m)
 	if err != nil {
 		return "", err
 	}
@@ -600,15 +600,15 @@ func (vc *Provisioner) remoteSshCommand(m *clusterv1.Machine, cmd, privateKeyPat
 	return strings.TrimSpace(parts[1]), nil
 }
 
-func (vc *Provisioner) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
-	i, err := vc.instanceIfExists(machine)
+func (pv *Provisioner) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
+	i, err := pv.instanceIfExists(machine)
 	if err != nil {
 		return false, err
 	}
 	return i != nil, err
 }
 
-func (vc *Provisioner) GetTfState(machine *clusterv1.Machine) (string, error) {
+func (pv *Provisioner) GetTfState(machine *clusterv1.Machine) (string, error) {
 	if machine.ObjectMeta.Annotations != nil {
 		if tfStateB64, ok := machine.ObjectMeta.Annotations[StatusMachineTerraformState]; ok {
 			glog.Infof("Returning tfstate for machine %s from annotation", machine.ObjectMeta.Name)
@@ -633,7 +633,7 @@ func (vc *Provisioner) GetTfState(machine *clusterv1.Machine) (string, error) {
 // We are storing these as annotations and not in Machine Status because that's intended for
 // "Provider-specific status" that will usually be used to detect updates. Additionally,
 // Status requires yet another version API resource which is too heavy to store IP and TF state.
-func (vc *Provisioner) updateAnnotations(cluster *clusterv1.Cluster, machine *clusterv1.Machine, vmIP, tfState string) error {
+func (pv *Provisioner) updateAnnotations(cluster *clusterv1.Cluster, machine *clusterv1.Machine, vmIP, tfState string) error {
 	glog.Infof("Updating annotations for machine %s", machine.ObjectMeta.Name)
 	if machine.ObjectMeta.Annotations == nil {
 		machine.ObjectMeta.Annotations = make(map[string]string)
@@ -646,7 +646,7 @@ func (vc *Provisioner) updateAnnotations(cluster *clusterv1.Cluster, machine *cl
 	machine.ObjectMeta.Annotations[constants.KubeletVersionAnnotationKey] = machine.Spec.Versions.Kubelet
 	machine.ObjectMeta.Annotations[StatusMachineTerraformState] = tfStateB64
 
-	_, err := vc.clusterV1alpha1.Machines(machine.Namespace).Update(machine)
+	_, err := pv.clusterV1alpha1.Machines(machine.Namespace).Update(machine)
 	if err != nil {
 		return err
 	}
@@ -654,7 +654,7 @@ func (vc *Provisioner) updateAnnotations(cluster *clusterv1.Cluster, machine *cl
 	status := &vsphereconfig.VsphereClusterProviderStatus{LastUpdated: time.Now().UTC().String()}
 	out, err := json.Marshal(status)
 	cluster.Status.ProviderStatus = &runtime.RawExtension{Raw: out}
-	_, err = vc.clusterV1alpha1.Clusters(cluster.Namespace).UpdateStatus(cluster)
+	_, err = pv.clusterV1alpha1.Clusters(cluster.Namespace).UpdateStatus(cluster)
 	if err != nil {
 		glog.Infof("Error in updating the status: %s", err)
 		return err
@@ -663,9 +663,9 @@ func (vc *Provisioner) updateAnnotations(cluster *clusterv1.Cluster, machine *cl
 }
 
 // Returns the machine object if the passed machine exists in terraform state.
-func (vc *Provisioner) instanceIfExists(machine *clusterv1.Machine) (*clusterv1.Machine, error) {
+func (pv *Provisioner) instanceIfExists(machine *clusterv1.Machine) (*clusterv1.Machine, error) {
 	machinePath := fmt.Sprintf(MachinePathStageFormat, machine.ObjectMeta.Name)
-	tfStateFilePath, err := vc.stageTfState(machine)
+	tfStateFilePath, err := pv.stageTfState(machine)
 	if err != nil {
 		return nil, err
 	}
@@ -686,14 +686,14 @@ func (vc *Provisioner) instanceIfExists(machine *clusterv1.Machine) (*clusterv1.
 	return nil, nil
 }
 
-func (vc *Provisioner) validateMachine(machine *clusterv1.Machine, config *vsphereconfig.VsphereMachineProviderConfig) *apierrors.MachineError {
+func (pv *Provisioner) validateMachine(machine *clusterv1.Machine, config *vsphereconfig.VsphereMachineProviderConfig) *apierrors.MachineError {
 	if machine.Spec.Versions.Kubelet == "" {
 		return apierrors.InvalidMachineConfiguration("spec.versions.kubelet can't be empty")
 	}
 	return nil
 }
 
-func (vc *Provisioner) validateCluster(cluster *clusterv1.Cluster) error {
+func (pv *Provisioner) validateCluster(cluster *clusterv1.Cluster) error {
 	if cluster.Spec.ClusterNetwork.ServiceDomain == "" {
 		return errors.New("invalid cluster configuration: missing Cluster.Spec.ClusterNetwork.ServiceDomain")
 	}
@@ -714,13 +714,13 @@ func (vc *Provisioner) validateCluster(cluster *clusterv1.Cluster) error {
 	return nil
 }
 
-func (vc *Provisioner) getKubeadmToken(cluster *clusterv1.Cluster) (string, error) {
+func (pv *Provisioner) getKubeadmToken(cluster *clusterv1.Cluster) (string, error) {
 	// From the cluster locate the master node
-	master, err := vc.getMasterForCluster(cluster)
+	master, err := pv.getMasterForCluster(cluster)
 	if err != nil {
 		return "", err
 	}
-	kubeconfig, err := vc.deploymentClient.GetKubeConfig(cluster, master)
+	kubeconfig, err := pv.deploymentClient.GetKubeConfig(cluster, master)
 	if err != nil {
 		return "", err
 	}
@@ -739,8 +739,8 @@ func (vc *Provisioner) getKubeadmToken(cluster *clusterv1.Cluster) (string, erro
 	return strings.TrimSpace(output), err
 }
 
-func (vc *Provisioner) getMasterForCluster(cluster *clusterv1.Cluster) (*clusterv1.Machine, error) {
-	machines, err := vc.lister.Machines().Lister().Machines(cluster.Namespace).List(labels.Everything())
+func (pv *Provisioner) getMasterForCluster(cluster *clusterv1.Cluster) (*clusterv1.Machine, error) {
+	machines, err := pv.lister.Machines().Lister().Machines(cluster.Namespace).List(labels.Everything())
 	if err != nil {
 		return nil, err
 	}
@@ -788,16 +788,16 @@ func createTempFile(contents string) (string, error) {
 // the appropriate reason/message on the Machine.Status. If not, such as during
 // cluster installation, it will operate as a no-op. It also returns the
 // original error for convenience, so callers can do "return handleMachineError(...)".
-func (vc *Provisioner) handleMachineError(machine *clusterv1.Machine, err *apierrors.MachineError, eventAction string) error {
-	if vc.clusterV1alpha1 != nil {
+func (pv *Provisioner) handleMachineError(machine *clusterv1.Machine, err *apierrors.MachineError, eventAction string) error {
+	if pv.clusterV1alpha1 != nil {
 		reason := err.Reason
 		message := err.Message
 		machine.Status.ErrorReason = &reason
 		machine.Status.ErrorMessage = &message
-		vc.clusterV1alpha1.Machines(machine.Namespace).UpdateStatus(machine)
+		pv.clusterV1alpha1.Machines(machine.Namespace).UpdateStatus(machine)
 	}
 	if eventAction != "" {
-		vc.eventRecorder.Eventf(machine, corev1.EventTypeWarning, "Failed"+eventAction, "%v", err.Reason)
+		pv.eventRecorder.Eventf(machine, corev1.EventTypeWarning, "Failed"+eventAction, "%v", err.Reason)
 	}
 
 	glog.Errorf("Machine error: %v", err.Message)

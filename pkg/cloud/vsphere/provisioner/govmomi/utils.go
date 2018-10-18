@@ -17,7 +17,7 @@ import (
 	"sigs.k8s.io/cluster-api/pkg/kubeadm"
 )
 
-func (vc *Provisioner) GetKubeadmToken(cluster *clusterv1.Cluster) (string, error) {
+func (pv *Provisioner) GetKubeadmToken(cluster *clusterv1.Cluster) (string, error) {
 	var token string
 	if cluster.ObjectMeta.Annotations != nil {
 		if token, ok := cluster.ObjectMeta.Annotations[constants.KubeadmToken]; ok {
@@ -28,14 +28,14 @@ func (vc *Provisioner) GetKubeadmToken(cluster *clusterv1.Cluster) (string, erro
 		}
 	}
 	// From the cluster locate the master node
-	master, err := vsphereutils.GetMasterForCluster(cluster, vc.lister)
+	master, err := vsphereutils.GetMasterForCluster(cluster, pv.lister)
 	if err != nil {
 		return "", err
 	}
 	if len(master) == 0 {
 		return "", errors.New("No master available")
 	}
-	kubeconfig, err := vc.GetKubeConfig(cluster)
+	kubeconfig, err := pv.GetKubeConfig(cluster)
 	if err != nil {
 		return "", err
 	}
@@ -60,7 +60,7 @@ func (vc *Provisioner) GetKubeadmToken(cluster *clusterv1.Cluster) (string, erro
 	ncluster.ObjectMeta.Annotations[constants.KubeadmToken] = token
 	// Even though this time might be off by few sec compared to the actual expiry on the token it should not have any impact
 	ncluster.ObjectMeta.Annotations[constants.KubeadmTokenExpiryTime] = time.Now().Add(constants.KubeadmTokenTtl).Format(time.RFC3339)
-	_, err = vc.clusterV1alpha1.Clusters(cluster.Namespace).Update(ncluster)
+	_, err = pv.clusterV1alpha1.Clusters(cluster.Namespace).Update(ncluster)
 	if err != nil {
 		glog.Infof("Could not cache the kubeadm token on cluster object: %s", err)
 	}
@@ -71,17 +71,17 @@ func (vc *Provisioner) GetKubeadmToken(cluster *clusterv1.Cluster) (string, erro
 // the appropriate reason/message on the Machine.Status. If not, such as during
 // cluster installation, it will operate as a no-op. It also returns the
 // original error for convenience, so callers can do "return handleMachineError(...)".
-func (vc *Provisioner) HandleMachineError(machine *clusterv1.Machine, err *apierrors.MachineError, eventAction string) error {
-	if vc.clusterV1alpha1 != nil {
+func (pv *Provisioner) HandleMachineError(machine *clusterv1.Machine, err *apierrors.MachineError, eventAction string) error {
+	if pv.clusterV1alpha1 != nil {
 		nmachine := machine.DeepCopy()
 		reason := err.Reason
 		message := err.Message
 		nmachine.Status.ErrorReason = &reason
 		nmachine.Status.ErrorMessage = &message
-		vc.clusterV1alpha1.Machines(nmachine.Namespace).UpdateStatus(nmachine)
+		pv.clusterV1alpha1.Machines(nmachine.Namespace).UpdateStatus(nmachine)
 	}
 	if eventAction != "" {
-		vc.eventRecorder.Eventf(machine, corev1.EventTypeWarning, "Failed"+eventAction, "%v", err.Reason)
+		pv.eventRecorder.Eventf(machine, corev1.EventTypeWarning, "Failed"+eventAction, "%v", err.Reason)
 	}
 
 	glog.Errorf("Machine error: %v", err.Message)
@@ -92,34 +92,34 @@ func (vc *Provisioner) HandleMachineError(machine *clusterv1.Machine, err *apier
 // the appropriate reason/message on the Cluster.Status. If not, such as during
 // cluster installation, it will operate as a no-op. It also returns the
 // original error for convenience, so callers can do "return handleClusterError(...)".
-func (vc *Provisioner) HandleClusterError(cluster *clusterv1.Cluster, err *apierrors.ClusterError, eventAction string) error {
-	if vc.clusterV1alpha1 != nil {
+func (pv *Provisioner) HandleClusterError(cluster *clusterv1.Cluster, err *apierrors.ClusterError, eventAction string) error {
+	if pv.clusterV1alpha1 != nil {
 		ncluster := cluster.DeepCopy()
 		reason := err.Reason
 		message := err.Message
 		ncluster.Status.ErrorReason = reason
 		ncluster.Status.ErrorMessage = message
-		vc.clusterV1alpha1.Clusters(ncluster.Namespace).UpdateStatus(ncluster)
+		pv.clusterV1alpha1.Clusters(ncluster.Namespace).UpdateStatus(ncluster)
 	}
 	if eventAction != "" {
-		vc.eventRecorder.Eventf(cluster, corev1.EventTypeWarning, "Failed"+eventAction, "%v", err.Reason)
+		pv.eventRecorder.Eventf(cluster, corev1.EventTypeWarning, "Failed"+eventAction, "%v", err.Reason)
 	}
 
 	glog.Errorf("Cluster error: %v", err.Message)
 	return err
 }
 
-func (vc *Provisioner) GetSSHPublicKey(cluster *clusterv1.Cluster) (string, error) {
+func (pv *Provisioner) GetSSHPublicKey(cluster *clusterv1.Cluster) (string, error) {
 	// TODO(ssurana): the secret currently is stored in the default namespace. This needs to be changed
-	secret, err := vc.k8sClient.Core().Secrets("default").Get("sshkeys", metav1.GetOptions{})
+	secret, err := pv.k8sClient.Core().Secrets("default").Get("sshkeys", metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
 	return string(secret.Data["vsphere_tmp.pub"]), nil
 }
 
-func (vc *Provisioner) GetKubeConfig(cluster *clusterv1.Cluster) (string, error) {
-	secret, err := vc.k8sClient.Core().Secrets(cluster.Namespace).Get(fmt.Sprintf(constants.KubeConfigSecretName, cluster.UID), metav1.GetOptions{})
+func (pv *Provisioner) GetKubeConfig(cluster *clusterv1.Cluster) (string, error) {
+	secret, err := pv.k8sClient.Core().Secrets(cluster.Namespace).Get(fmt.Sprintf(constants.KubeConfigSecretName, cluster.UID), metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}

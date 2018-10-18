@@ -182,7 +182,7 @@ func GetKubeConfig(cluster *clusterv1.Cluster, master *clusterv1.Machine) (strin
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
 	if err != nil {
-		glog.Infof("ssh failed with error = %#v", err)
+		glog.Infof("ssh failed with error = %s", err.Error())
 	}
 	result := strings.TrimSpace(out.String())
 	if len(result) > 0 {

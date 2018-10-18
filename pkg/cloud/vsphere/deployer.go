@@ -37,7 +37,7 @@ func NewDeploymentClient() *DeploymentClient {
 	return &DeploymentClient{}
 }
 
-func (*DeploymentClient) GetIP(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
+func (d *DeploymentClient) GetIP(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
 	return vsphereutils.GetIP(cluster, machine)
 }
 

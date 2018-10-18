@@ -10,13 +10,13 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
-func (vc *Provisioner) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
+func (pv *Provisioner) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
 	glog.Infof("govmomi.Actuator.Exists %s", machine.Spec.Name)
 	if machine.Status.NodeRef != nil {
 		glog.Infof("govmomi.Actuator.Exists() - running on target cluster, returning exist")
 		return true, nil
 	}
-	s, err := vc.sessionFromProviderConfig(cluster, machine)
+	s, err := pv.sessionFromProviderConfig(cluster, machine)
 	if err != nil {
 		return false, err
 	}

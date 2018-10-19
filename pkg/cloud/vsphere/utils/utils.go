@@ -13,9 +13,9 @@ import (
 
 	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/labels"
+	vsphereconfig "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig"
+	vsphereconfigv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
-	vsphereconfig "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/vsphereproviderconfig"
-	vsphereconfigv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/vsphereproviderconfig/v1alpha1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	v1alpha1 "sigs.k8s.io/cluster-api/pkg/client/informers_generated/externalversions/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/util"

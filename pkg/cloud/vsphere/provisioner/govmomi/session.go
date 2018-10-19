@@ -40,14 +40,27 @@ func (pv *Provisioner) sessionFromProviderConfig(cluster *clusterv1.Cluster, mac
 	if soapURL == nil || err != nil {
 		return nil, fmt.Errorf("error parsing vSphere URL %s : [%s]", soapURL, err)
 	}
-	// Set the credentials
-	soapURL.User = url.UserPassword(vsphereConfig.VsphereUser, vsphereConfig.VspherePassword)
+
+	// making sure we don't log in during client creation
+	soapURL.User = nil
+
 	// Temporarily setting the insecure flag True
 	// TODO(ssurana): handle the certs better
 	sc.session, err = govmomi.NewClient(ctx, soapURL, true)
 	if err != nil {
 		return nil, fmt.Errorf("error setting up new vSphere SOAP client: %s", err)
 	}
+
+	// TODO(frapposelli): replace `dev` with version string
+	sc.session.Client.UserAgent = "kubernetes-cluster-api-provider-vsphere/dev"
+
+	// Set the credentials and login
+	// This is done as a separate step to inject the User Agent
+	soapURL.User = url.UserPassword(vsphereConfig.VsphereUser, vsphereConfig.VspherePassword)
+	if err := sc.session.Login(ctx, soapURL.User); err != nil {
+		return nil, fmt.Errorf("error logging into vSphere: %s", err)
+	}
+
 	sc.context = &ctx
 	finder := find.NewFinder(sc.session.Client, false)
 	sc.finder = finder

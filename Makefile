@@ -57,7 +57,7 @@ push: depend
 check: depend fmt vet
 
 test: depend
-	go test -race -cover ./cmd/... ./cloud/...
+	go test -race -cover ./cmd/... ./pkg/...
 
 fmt:
 	hack/verify-gofmt.sh

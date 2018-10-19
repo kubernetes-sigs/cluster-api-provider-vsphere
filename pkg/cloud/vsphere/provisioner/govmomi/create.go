@@ -15,10 +15,10 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	vsphereconfig "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
 	vpshereprovisionercommon "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/provisioner/common"
 	vsphereutils "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/utils"
-	vsphereconfig "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/vsphereproviderconfig"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clustererror "sigs.k8s.io/cluster-api/pkg/controller/error"
 	apierrors "sigs.k8s.io/cluster-api/pkg/errors"
@@ -119,7 +119,7 @@ func (pv *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 	}
 	s.finder.SetDatacenter(dc)
 
-	folders, err := dc.Folders(ctx)
+	vmFolder, err := s.finder.FolderOrDefault(ctx, machineConfig.MachineVariables[constants.ProviderVmFolder])
 	if err != nil {
 		return err
 	}
@@ -236,7 +236,7 @@ func (pv *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 	diskspec.Device = targetdisk
 	diskSpecs = append(diskSpecs, diskspec)
 	spec.Config.DeviceChange = diskSpecs
-	task, err := src.Clone(ctx, folders.VmFolder, machine.Name, spec)
+	task, err := src.Clone(ctx, vmFolder, machine.Name, spec)
 	if err != nil {
 		return err
 	}

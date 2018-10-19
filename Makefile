@@ -41,7 +41,7 @@ generate: gendeepcopy
 gendeepcopy:
 	go build -o $$GOPATH/bin/deepcopy-gen sigs.k8s.io/cluster-api-provider-vsphere/vendor/k8s.io/code-generator/cmd/deepcopy-gen
 	deepcopy-gen \
-	  -i ./pkg/cloud/vsphere/vsphereproviderconfig,./pkg/cloud/vsphere/vsphereproviderconfig/v1alpha1 \
+	  -i ./pkg/apis/vsphereproviderconfig,./pkg/apis/vsphereproviderconfig/v1alpha1 \
 	  -O zz_generated.deepcopy \
 	  -h boilerplate.go.txt
 

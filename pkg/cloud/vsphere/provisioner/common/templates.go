@@ -302,6 +302,8 @@ cat > /etc/systemd/system/kubelet.service.d/20-cloud.conf << EOF
 Environment="KUBELET_DNS_ARGS=--cluster-dns=${CLUSTER_DNS_SERVER} --cluster-domain=${CLUSTER_DNS_DOMAIN}"
 Environment="KUBELET_EXTRA_ARGS=--cloud-provider=vsphere"
 EOF
+# clear the content of the /etc/default/kubelet otherwise in v 1.11.* it causes failure to use the env variable set in the 20-cloud.conf file above
+echo > /etc/default/kubelet
 systemctl daemon-reload
 systemctl restart kubelet.service
 

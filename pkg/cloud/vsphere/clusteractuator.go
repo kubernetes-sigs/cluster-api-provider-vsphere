@@ -28,7 +28,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/record"
-	vsphereconfig "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig"
+	vsphereconfigv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
 	vsphereutils "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/utils"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -47,7 +47,7 @@ type ClusterActuator struct {
 
 // Reconcile will create or update the cluster
 func (ca *ClusterActuator) Reconcile(cluster *clusterv1.Cluster) error {
-	glog.Infof("Attempting to reconcile cluster %s", cluster.ObjectMeta.Name)
+	glog.V(4).Infof("Attempting to reconcile cluster %s", cluster.ObjectMeta.Name)
 
 	// The generic workflow would be as follows:
 	// 1. If cluster.Status.APIEndpoints is not there, spawn a lb and generate an endpoint
@@ -92,10 +92,10 @@ func (ca *ClusterActuator) updateK8sAPIStatus(cluster *clusterv1.Cluster) error 
 // In case the secret does not exist, then it fetches from the target master node and caches it for
 func (ca *ClusterActuator) fetchKubeConfig(cluster *clusterv1.Cluster, masters []*clusterv1.Machine) (string, error) {
 	var kubeconfig string
-	glog.Infof("attempting to fetch kubeconfig")
+	glog.V(4).Infof("attempting to fetch kubeconfig")
 	secret, err := ca.k8sClient.Core().Secrets(cluster.Namespace).Get(fmt.Sprintf(constants.KubeConfigSecretName, cluster.UID), metav1.GetOptions{})
 	if err != nil {
-		glog.Info("could not pull secrets for kubeconfig")
+		glog.V(4).Info("could not pull secrets for kubeconfig")
 		// TODO: Check for the proper err type for *not present* case. rather than all other cases
 		// Fetch the kubeconfig and create the secret saving it
 		// Currently we support only a single master thus the below assumption
@@ -120,49 +120,49 @@ func (ca *ClusterActuator) fetchKubeConfig(cluster *clusterv1.Cluster, masters [
 			glog.Warningf("Could not create the secret for the saving kubeconfig: err [%s]", err.Error())
 		}
 	} else {
-		glog.Info("found kubeconfig in secrets")
+		glog.V(4).Info("found kubeconfig in secrets")
 		kubeconfig = string(secret.Data[constants.KubeConfigSecretData])
 	}
 	return kubeconfig, nil
 }
 
-func (ca *ClusterActuator) getClusterAPIStatus(cluster *clusterv1.Cluster) (vsphereconfig.APIStatus, error) {
+func (ca *ClusterActuator) getClusterAPIStatus(cluster *clusterv1.Cluster) (vsphereconfigv1.APIStatus, error) {
 	masters, err := vsphereutils.GetMasterForCluster(cluster, ca.lister)
 	if err != nil {
 		glog.Infof("Error retrieving master nodes for the cluster: %s", err)
-		return vsphereconfig.ApiNotReady, err
+		return vsphereconfigv1.ApiNotReady, err
 	}
 	if len(masters) == 0 {
 		glog.Infof("No masters for the cluster [%s] present", cluster.Name)
-		return vsphereconfig.ApiNotReady, nil
+		return vsphereconfigv1.ApiNotReady, nil
 	}
 	kubeconfig, err := ca.fetchKubeConfig(cluster, masters)
 	if err != nil {
-		return vsphereconfig.ApiNotReady, err
+		return vsphereconfigv1.ApiNotReady, err
 	}
 	kconfigFile, err := vsphereutils.CreateTempFile(kubeconfig)
 	if err != nil {
-		return vsphereconfig.ApiNotReady, err
+		return vsphereconfigv1.ApiNotReady, err
 	}
 	clientConfig, err := clientcmd.BuildConfigFromFlags("", kconfigFile)
 	if err != nil {
 		glog.Infof("[cluster-actuator] error creating client config for target cluster [%s], will requeue", err.Error())
-		return vsphereconfig.ApiNotReady, &clustererror.RequeueAfterError{RequeueAfter: constants.RequeueAfterSeconds}
+		return vsphereconfigv1.ApiNotReady, &clustererror.RequeueAfterError{RequeueAfter: constants.RequeueAfterSeconds}
 	}
 	clientSet, err := kubernetes.NewForConfig(clientConfig)
 	if err != nil {
 		glog.Infof("[cluster-actuator] error creating clientset for target cluster [%s], will requeue", err.Error())
-		return vsphereconfig.ApiNotReady, &clustererror.RequeueAfterError{RequeueAfter: constants.RequeueAfterSeconds}
+		return vsphereconfigv1.ApiNotReady, &clustererror.RequeueAfterError{RequeueAfter: constants.RequeueAfterSeconds}
 	}
 	_, err = clientSet.Core().Nodes().List(metav1.ListOptions{})
 	if err != nil {
 		glog.Infof("[cluster-actuator] target cluster API not yet ready [%s], will requeue", err.Error())
-		return vsphereconfig.ApiNotReady, &clustererror.RequeueAfterError{RequeueAfter: constants.RequeueAfterSeconds}
+		return vsphereconfigv1.ApiNotReady, &clustererror.RequeueAfterError{RequeueAfter: constants.RequeueAfterSeconds}
 	}
-	return vsphereconfig.ApiReady, nil
+	return vsphereconfigv1.ApiReady, nil
 }
 
-func (ca *ClusterActuator) updateClusterAPIStatus(cluster *clusterv1.Cluster, newStatus vsphereconfig.APIStatus) error {
+func (ca *ClusterActuator) updateClusterAPIStatus(cluster *clusterv1.Cluster, newStatus vsphereconfigv1.APIStatus) error {
 	oldProviderStatus, err := vsphereutils.GetClusterProviderStatus(cluster)
 	if err != nil {
 		return err
@@ -171,7 +171,7 @@ func (ca *ClusterActuator) updateClusterAPIStatus(cluster *clusterv1.Cluster, ne
 		// Nothing to update
 		return nil
 	}
-	newProviderStatus := &vsphereconfig.VsphereClusterProviderStatus{}
+	newProviderStatus := &vsphereconfigv1.VsphereClusterProviderStatus{}
 	// create a copy of the old status so that any other fields except the ones we want to change can be retained
 	if oldProviderStatus != nil {
 		newProviderStatus = oldProviderStatus.DeepCopy()

@@ -50,11 +50,11 @@ func GetIP(_ *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
 	return "", errors.New("could not get IP")
 }
 
-func GetMachineProviderStatus(machine *clusterv1.Machine) (*vsphereconfig.VsphereMachineProviderStatus, error) {
+func GetMachineProviderStatus(machine *clusterv1.Machine) (*vsphereconfigv1.VsphereMachineProviderStatus, error) {
 	if machine.Status.ProviderStatus == nil {
 		return nil, nil
 	}
-	status := &vsphereconfig.VsphereMachineProviderStatus{}
+	status := &vsphereconfigv1.VsphereMachineProviderStatus{}
 	err := json.Unmarshal(machine.Status.ProviderStatus.Raw, status)
 	if err != nil {
 		return nil, err
@@ -62,11 +62,11 @@ func GetMachineProviderStatus(machine *clusterv1.Machine) (*vsphereconfig.Vspher
 	return status, nil
 }
 
-func GetClusterProviderStatus(cluster *clusterv1.Cluster) (*vsphereconfig.VsphereClusterProviderStatus, error) {
+func GetClusterProviderStatus(cluster *clusterv1.Cluster) (*vsphereconfigv1.VsphereClusterProviderStatus, error) {
 	if cluster.Status.ProviderStatus == nil {
 		return nil, nil
 	}
-	status := &vsphereconfig.VsphereClusterProviderStatus{}
+	status := &vsphereconfigv1.VsphereClusterProviderStatus{}
 	err := json.Unmarshal(cluster.Status.ProviderStatus.Raw, status)
 	if err != nil {
 		return nil, err
@@ -83,12 +83,10 @@ func GetMachineProviderConfig(providerConfig clusterv1.ProviderConfig) (*vsphere
 	if err != nil {
 		return nil, fmt.Errorf("machine providerconfig decoding failure: %v", err)
 	}
-
 	config, ok := obj.(*vsphereconfig.VsphereMachineProviderConfig)
 	if !ok {
 		return nil, fmt.Errorf("machine providerconfig failure to cast to vsphere; type: %v", gvk)
 	}
-
 	return config, nil
 }
 
@@ -101,12 +99,10 @@ func GetClusterProviderConfig(providerConfig clusterv1.ProviderConfig) (*vsphere
 	if err != nil {
 		return nil, fmt.Errorf("cluster providerconfig decoding failure: %v", err)
 	}
-
 	config, ok := obj.(*vsphereconfig.VsphereClusterProviderConfig)
 	if !ok {
 		return nil, fmt.Errorf("cluster providerconfig failure to cast to vsphere; type: %v", gvk)
 	}
-
 	return config, nil
 }
 
@@ -119,11 +115,11 @@ func GetSubnet(netRange clusterv1.NetworkRanges) string {
 }
 
 func GetVMId(machine *clusterv1.Machine) (string, error) {
-	ps, err := GetMachineProviderStatus(machine)
-	if err != nil || ps == nil {
+	pc, err := GetMachineProviderConfig(machine.Spec.ProviderConfig)
+	if err != nil {
 		return "", err
 	}
-	return ps.MachineRef, nil
+	return pc.MachineRef, nil
 }
 
 func GetActiveTasks(machine *clusterv1.Machine) string {

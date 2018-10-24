@@ -12,7 +12,7 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	vsphereconfig "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig"
+	vsphereconfigv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
 	vsphereutils "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/utils"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -22,7 +22,7 @@ func (pv *Provisioner) Update(cluster *clusterv1.Cluster, machine *clusterv1.Mac
 	// Fetch any active task in vsphere if any
 	// If an active task is there,
 
-	glog.Infof("govmomi.Actuator.Update %s", machine.Spec.Name)
+	glog.V(4).Infof("govmomi.Actuator.Update %s", machine.Spec.Name)
 
 	s, err := pv.sessionFromProviderConfig(cluster, machine)
 	if err != nil {
@@ -50,7 +50,7 @@ func (pv *Provisioner) Update(cluster *clusterv1.Cluster, machine *clusterv1.Mac
 	}
 
 	if _, err := vsphereutils.GetIP(cluster, machine); err != nil {
-		glog.Info("actuator.Update() - did not find IP, waiting on IP")
+		glog.V(4).Info("actuator.Update() - did not find IP, waiting on IP")
 		vm := object.NewVirtualMachine(s.session.Client, vmref)
 		vmIP, err := vm.WaitForIP(ctx)
 		if err != nil {
@@ -68,14 +68,14 @@ func (pv *Provisioner) updateIP(cluster *clusterv1.Cluster, machine *clusterv1.M
 	if nmachine.ObjectMeta.Annotations == nil {
 		nmachine.ObjectMeta.Annotations = make(map[string]string)
 	}
-	glog.Infof("updateIP - IP = %s", vmIP)
+	glog.V(4).Infof("updateIP - IP = %s", vmIP)
 	nmachine.ObjectMeta.Annotations[constants.VmIpAnnotationKey] = vmIP
 	_, err := pv.clusterV1alpha1.Machines(nmachine.Namespace).Update(nmachine)
 	if err != nil {
 		return err
 	}
 	// Update the cluster status with updated time stamp for tracking purposes
-	status := &vsphereconfig.VsphereClusterProviderStatus{LastUpdated: time.Now().UTC().String()}
+	status := &vsphereconfigv1.VsphereClusterProviderStatus{LastUpdated: time.Now().UTC().String()}
 	out, err := json.Marshal(status)
 	ncluster := cluster.DeepCopy()
 	ncluster.Status.ProviderStatus = &runtime.RawExtension{Raw: out}

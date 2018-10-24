@@ -651,7 +651,7 @@ func (pv *Provisioner) updateAnnotations(cluster *clusterv1.Cluster, machine *cl
 		return err
 	}
 	// Update the cluster status with updated time stamp for tracking purposes
-	status := &vsphereconfig.VsphereClusterProviderStatus{LastUpdated: time.Now().UTC().String()}
+	status := &vsphereconfigv1.VsphereClusterProviderStatus{LastUpdated: time.Now().UTC().String()}
 	out, err := json.Marshal(status)
 	cluster.Status.ProviderStatus = &runtime.RawExtension{Raw: out}
 	_, err = pv.clusterV1alpha1.Clusters(cluster.Namespace).UpdateStatus(cluster)

@@ -26,8 +26,10 @@ type VsphereMachineProviderConfig struct {
 
 	// Name of the machine that's registered in the NamedMachines ConfigMap.
 	VsphereMachine string `json:"vsphereMachine"`
+	MachineRef     string `json:"machineRef,omitempty"`
 	// List of variables for the chosen machine.
-	MachineVariables map[string]string `json:"machineVariables"`
+	MachineVariables map[string]string  `json:"machineVariables"`
+	MachineSpec      VsphereMachineSpec `json:"machineSpec,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -44,6 +46,7 @@ type VsphereMachineProviderStatus struct {
 	metav1.TypeMeta `json:",inline"`
 
 	LastUpdated string `json:"lastUpdated"`
+	TaskRef     string `json:"taskRef"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -52,6 +55,44 @@ type VsphereClusterProviderStatus struct {
 
 	LastUpdated string    `json:"lastUpdated"`
 	APIStatus   APIStatus `json:"clusterApiStatus"`
+}
+
+type VsphereMachineSpec struct {
+	Datacenter       string        `json:"datacenter"`
+	Datastore        string        `json:"datastore"`
+	ResourcePool     string        `json:"resourcePool,omitempty"`
+	Networks         []NetworkSpec `json:"networks"`
+	NumCPUs          int32         `json:"numCPUs,omitempty"`
+	MemoryMB         int64         `json:"memoryMB,omitempty"`
+	VMTemplate       string        `json:"template"`
+	Disks            []DiskSpec    `json:"disks"`
+	Preloaded        bool          `json:"preloaded,omitempty"`
+	VsphereCloudInit bool          `json:"vsphereCloudInit,omitempty"`
+}
+
+type NetworkSpec struct {
+	NetworkName string   `json:"networkName"`
+	IPConfig    IPConfig `json:"ipConfig,omitempty"`
+}
+
+type IPConfig struct {
+	NetworkType NetworkType `json:"networkType"`
+	IP          string      `json:"ip,omitempty"`
+	Netmask     string      `json:"netmask,omitempty"`
+	Gateway     string      `json:"gateway,omitempty"`
+	Dns         []string    `json:"dns,omitempty"`
+}
+
+type NetworkType string
+
+const (
+	Static NetworkType = "static"
+	DHCP   NetworkType = "dhcp"
+)
+
+type DiskSpec struct {
+	DiskSizeGB int64  `json:"diskSizeGB,omitempty"`
+	DiskLabel  string `json:"diskLabel,omitempty"`
 }
 
 type APIStatus string

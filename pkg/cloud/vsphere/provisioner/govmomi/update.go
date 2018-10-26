@@ -56,7 +56,7 @@ func (pv *Provisioner) Update(cluster *clusterv1.Cluster, machine *clusterv1.Mac
 		if err != nil {
 			return err
 		}
-		pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "IP Detected", "IP %s detected for Virtual Machine %s", vmIP, vm.Name)
+		pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "IP Detected", "IP %s detected for Virtual Machine %s", vmIP, vm.Name())
 		return pv.updateIP(cluster, machine, vmIP)
 	}
 	return nil

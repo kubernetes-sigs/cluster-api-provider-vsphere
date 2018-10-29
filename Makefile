@@ -54,6 +54,9 @@ images: depend
 push: depend
 	$(MAKE) -C cmd/vsphere-machine-controller push
 
+ci_push: depend
+	$(MAKE) -C cmd/vsphere-machine-controller ci_push
+
 check: depend fmt vet
 
 test: depend

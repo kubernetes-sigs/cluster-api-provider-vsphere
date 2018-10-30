@@ -19,47 +19,58 @@ package vsphere
 import (
 	"fmt"
 
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+
 	"github.com/golang/glog"
-	"k8s.io/apimachinery/pkg/runtime"
+
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/record"
-	vsphereconfigv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/provisioner/govmomi"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/provisioner/terraform"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
-	v1alpha1 "sigs.k8s.io/cluster-api/pkg/client/informers_generated/externalversions/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/pkg/client/informers_generated/externalversions/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/controller/machine"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type VsphereClient struct {
-	clusterV1alpha1 clusterv1alpha1.ClusterV1alpha1Interface
-	scheme          *runtime.Scheme
-	provisioner     machine.Actuator
+	clusterV1alpha1  clusterv1alpha1.ClusterV1alpha1Interface
+	controllerClient client.Client
+	//scheme          *runtime.Scheme
+	provisioner machine.Actuator
 }
 
-func NewGovmomiMachineActuator(clusterV1alpha1 clusterv1alpha1.ClusterV1alpha1Interface, k8sClient kubernetes.Interface, lister v1alpha1.Interface, eventRecorder record.EventRecorder) (*VsphereClient, error) {
-	scheme, _, err := vsphereconfigv1.NewSchemeAndCodecs()
+//TODO: remove 2nd arguments
+func NewGovmomiMachineActuator(m manager.Manager, clusterV1alpha1 clusterv1alpha1.ClusterV1alpha1Interface, k8sClient kubernetes.Interface, lister v1alpha1.Interface, eventRecorder record.EventRecorder) (*VsphereClient, error) {
+	clusterClient, err := clientset.NewForConfig(m.GetConfig())
 	if err != nil {
-		return nil, err
+		glog.Fatalf("Invalid API configuration for kubeconfig-control: %v", err)
 	}
-	provisioner, err := govmomi.New(clusterV1alpha1, k8sClient, lister, eventRecorder)
+
+	//scheme, _, err := vsphereconfigv1.NewSchemeAndCodecs()
+	//if err != nil {
+	//	return nil, err
+	//}
+	provisioner, err := govmomi.New(clusterClient.ClusterV1alpha1(), k8sClient, lister, eventRecorder)
 	if err != nil {
 		return nil, err
 	}
 
 	return &VsphereClient{
-		clusterV1alpha1: clusterV1alpha1,
-		scheme:          scheme,
-		provisioner:     provisioner,
+		clusterV1alpha1:  clusterV1alpha1,
+		controllerClient: m.GetClient(),
+		//scheme:          scheme,
+		provisioner: provisioner,
 	}, nil
 }
 
-func NewTerraformMachineActuator(clusterV1alpha1 clusterv1alpha1.ClusterV1alpha1Interface, lister v1alpha1.Interface, eventRecorder record.EventRecorder, namedMachinePath string) (*VsphereClient, error) {
-	scheme, _, err := vsphereconfigv1.NewSchemeAndCodecs()
-	if err != nil {
-		return nil, err
-	}
+func NewTerraformMachineActuator(m manager.Manager, clusterV1alpha1 clusterv1alpha1.ClusterV1alpha1Interface, lister v1alpha1.Interface, eventRecorder record.EventRecorder, namedMachinePath string) (*VsphereClient, error) {
+	//scheme, _, err := vsphereconfigv1.NewSchemeAndCodecs()
+	//if err != nil {
+	//	return nil, err
+	//}
 
 	deploymentClient := NewDeploymentClient()
 	provisioner, err := terraform.New(clusterV1alpha1, lister, eventRecorder, namedMachinePath, deploymentClient)
@@ -68,9 +79,10 @@ func NewTerraformMachineActuator(clusterV1alpha1 clusterv1alpha1.ClusterV1alpha1
 	}
 
 	return &VsphereClient{
-		clusterV1alpha1: clusterV1alpha1,
-		scheme:          scheme,
-		provisioner:     provisioner,
+		clusterV1alpha1:  clusterV1alpha1,
+		controllerClient: m.GetClient(),
+		//scheme:          scheme,
+		provisioner: provisioner,
 	}, nil
 }
 

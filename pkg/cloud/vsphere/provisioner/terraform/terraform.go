@@ -39,13 +39,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 
-	vsphereconfig "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig"
 	vsphereconfigv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/namedmachines"
 	vpshereprovisionercommon "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/provisioner/common"
 	vsphereutils "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/utils"
-	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	v1alpha1 "sigs.k8s.io/cluster-api/pkg/client/informers_generated/externalversions/cluster/v1alpha1"
@@ -67,7 +66,6 @@ const (
 
 type Provisioner struct {
 	clusterV1alpha1   clusterv1alpha1.ClusterV1alpha1Interface
-	scheme            *runtime.Scheme
 	lister            v1alpha1.Interface
 	namedMachineWatch *namedmachines.ConfigWatch
 	eventRecorder     record.EventRecorder
@@ -77,20 +75,14 @@ type Provisioner struct {
 }
 
 func New(clusterV1alpha1 clusterv1alpha1.ClusterV1alpha1Interface, lister v1alpha1.Interface, eventRecorder record.EventRecorder, namedMachinePath string, depClient clusterdeployer.ProviderDeployer) (*Provisioner, error) {
-	scheme, _, err := vsphereconfigv1.NewSchemeAndCodecs()
-	if err != nil {
-		return nil, err
-	}
-
 	// DEPRECATED: Remove when vsphere-deployer is deleted.
-	var nmWatch *namedmachines.ConfigWatch
-	nmWatch, err = namedmachines.NewConfigWatch(namedMachinePath)
+	//var nmWatch *namedmachines.ConfigWatch
+	nmWatch, err := namedmachines.NewConfigWatch(namedMachinePath)
 	if err != nil {
 		glog.Errorf("error creating named machine config watch: %+v", err)
 	}
 	return &Provisioner{
 		clusterV1alpha1:   clusterV1alpha1,
-		scheme:            scheme,
 		lister:            lister,
 		namedMachineWatch: nmWatch,
 		eventRecorder:     eventRecorder,
@@ -686,7 +678,7 @@ func (pv *Provisioner) instanceIfExists(machine *clusterv1.Machine) (*clusterv1.
 	return nil, nil
 }
 
-func (pv *Provisioner) validateMachine(machine *clusterv1.Machine, config *vsphereconfig.VsphereMachineProviderConfig) *apierrors.MachineError {
+func (pv *Provisioner) validateMachine(machine *clusterv1.Machine, config *vsphereconfigv1.VsphereMachineProviderConfig) *apierrors.MachineError {
 	if machine.Spec.Versions.Kubelet == "" {
 		return apierrors.InvalidMachineConfiguration("spec.versions.kubelet can't be empty")
 	}

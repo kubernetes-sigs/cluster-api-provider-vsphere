@@ -15,7 +15,6 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	vsphereconfig "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig"
 	vsphereconfigv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
 	vpshereprovisionercommon "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/provisioner/common"
@@ -255,7 +254,7 @@ func (pv *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 	// interested in resizing only a subset of disks and thus we don't want to
 	// force the user to list all the disk and sizes if they don't want to change
 	// all.
-	diskMap := func(diskSpecs []vsphereconfig.DiskSpec) map[string]int64 {
+	diskMap := func(diskSpecs []vsphereconfigv1.DiskSpec) map[string]int64 {
 		diskMap := make(map[string]int64)
 		for _, s := range diskSpecs {
 			diskMap[s.DiskLabel] = s.DiskSizeGB

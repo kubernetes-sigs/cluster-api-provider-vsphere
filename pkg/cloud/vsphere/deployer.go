@@ -30,7 +30,7 @@ func init() {
 
 // Contains vsphere-specific deployment logic
 // that implements ProviderDeployer interface at
-// sigs.k8s.io/cluster-api/clusterctl/clusterdeployer/clusterdeployer.go
+// sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterdeployer.go
 type DeploymentClient struct{}
 
 func NewDeploymentClient() *DeploymentClient {

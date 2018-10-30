@@ -45,6 +45,16 @@ type ClusterActuator struct {
 	k8sClient       kubernetes.Interface
 }
 
+// NewClusterActuator creates the instance for the ClusterActuator
+func NewClusterActuator(clusterV1alpha1 clusterv1alpha1.ClusterV1alpha1Interface, k8sClient kubernetes.Interface, lister v1alpha1.Interface, eventRecorder record.EventRecorder) (*ClusterActuator, error) {
+	return &ClusterActuator{
+		clusterV1alpha1: clusterV1alpha1,
+		lister:          lister,
+		eventRecorder:   eventRecorder,
+		k8sClient:       k8sClient,
+	}, nil
+}
+
 // Reconcile will create or update the cluster
 func (ca *ClusterActuator) Reconcile(cluster *clusterv1.Cluster) error {
 	glog.V(4).Infof("Attempting to reconcile cluster %s", cluster.ObjectMeta.Name)
@@ -248,14 +258,4 @@ func (ca *ClusterActuator) Delete(cluster *clusterv1.Cluster) error {
 	ca.eventRecorder.Eventf(cluster, corev1.EventTypeNormal, "Deleted", "Deleting cluster %s", cluster.Name)
 	glog.Infof("Attempting to cleaning up resources of cluster %s", cluster.ObjectMeta.Name)
 	return nil
-}
-
-// NewClusterActuator creates the instance for the ClusterActuator
-func NewClusterActuator(clusterV1alpha1 clusterv1alpha1.ClusterV1alpha1Interface, k8sClient kubernetes.Interface, lister v1alpha1.Interface, eventRecorder record.EventRecorder) (*ClusterActuator, error) {
-	return &ClusterActuator{
-		clusterV1alpha1: clusterV1alpha1,
-		lister:          lister,
-		eventRecorder:   eventRecorder,
-		k8sClient:       k8sClient,
-	}, nil
 }

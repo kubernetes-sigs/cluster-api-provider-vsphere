@@ -1,0 +1,9 @@
+apiVersion: vsphereproviderconfig.sigs.k8s.io/v1alpha1
+kind: VsphereMachineProviderConfig
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: vspheremachineproviderconfig-sample
+spec:
+  # Add fields here
+  foo: bar

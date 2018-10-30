@@ -13,10 +13,10 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff"
+	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 	"github.com/google/uuid"
 	"k8s.io/apimachinery/pkg/labels"
-	vsphereconfig "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig"
 	vsphereconfigv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -77,34 +77,46 @@ func GetClusterProviderStatus(cluster *clusterv1.Cluster) (*vsphereconfigv1.Vsph
 	return status, nil
 }
 
-func GetMachineProviderConfig(providerConfig clusterv1.ProviderConfig) (*vsphereconfig.VsphereMachineProviderConfig, error) {
-	_, codecFactory, err := vsphereconfigv1.NewSchemeAndCodecs()
+func GetMachineProviderConfig(providerConfig clusterv1.ProviderConfig) (*vsphereconfigv1.VsphereMachineProviderConfig, error) {
+	//_, codecFactory, err := vsphereconfigv1.NewSchemeAndCodecs()
+	//if err != nil {
+	//	return nil, err
+	//}
+	//obj, gvk, err := codecFactory.UniversalDecoder().Decode(providerConfig.Value.Raw, nil, nil)
+	//if err != nil {
+	//	return nil, fmt.Errorf("machine providerconfig decoding failure: %v", err)
+	//}
+	//config, ok := obj.(*vsphereconfigv1.VsphereMachineProviderConfig)
+	//if !ok {
+	//	return nil, fmt.Errorf("machine providerconfig failure to cast to vsphere; type: %v", gvk)
+	//}
+	config := &vsphereconfigv1.VsphereMachineProviderConfig{}
+
+	err := yaml.Unmarshal(providerConfig.Value.Raw, config)
 	if err != nil {
-		return nil, err
-	}
-	obj, gvk, err := codecFactory.UniversalDecoder().Decode(providerConfig.Value.Raw, nil, nil)
-	if err != nil {
-		return nil, fmt.Errorf("machine providerconfig decoding failure: %v", err)
-	}
-	config, ok := obj.(*vsphereconfig.VsphereMachineProviderConfig)
-	if !ok {
-		return nil, fmt.Errorf("machine providerconfig failure to cast to vsphere; type: %v", gvk)
+		return nil, fmt.Errorf("machine providerconfig unmarshalling failure: %s", err.Error())
 	}
 	return config, nil
 }
 
-func GetClusterProviderConfig(providerConfig clusterv1.ProviderConfig) (*vsphereconfig.VsphereClusterProviderConfig, error) {
-	_, codecFactory, err := vsphereconfigv1.NewSchemeAndCodecs()
+func GetClusterProviderConfig(providerConfig clusterv1.ProviderConfig) (*vsphereconfigv1.VsphereClusterProviderConfig, error) {
+	//_, codecFactory, err := vsphereconfigv1.NewSchemeAndCodecs()
+	//if err != nil {
+	//	return nil, err
+	//}
+	//obj, gvk, err := codecFactory.UniversalDecoder().Decode(providerConfig.Value.Raw, nil, nil)
+	//if err != nil {
+	//	return nil, fmt.Errorf("cluster providerconfig decoding failure: %v", err)
+	//}
+	//config, ok := obj.(*vsphereconfigv1.VsphereClusterProviderConfig)
+	//if !ok {
+	//	return nil, fmt.Errorf("cluster providerconfig failure to cast to vsphere; type: %v", gvk)
+	//}
+	config := &vsphereconfigv1.VsphereClusterProviderConfig{}
+
+	err := yaml.Unmarshal(providerConfig.Value.Raw, config)
 	if err != nil {
-		return nil, err
-	}
-	obj, gvk, err := codecFactory.UniversalDecoder().Decode(providerConfig.Value.Raw, nil, nil)
-	if err != nil {
-		return nil, fmt.Errorf("cluster providerconfig decoding failure: %v", err)
-	}
-	config, ok := obj.(*vsphereconfig.VsphereClusterProviderConfig)
-	if !ok {
-		return nil, fmt.Errorf("cluster providerconfig failure to cast to vsphere; type: %v", gvk)
+		return nil, fmt.Errorf("cluster providerconfig unmarshalling failure: %s", err.Error())
 	}
 	return config, nil
 }

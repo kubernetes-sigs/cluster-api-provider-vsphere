@@ -12,58 +12,60 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Keep an existing GOPATH, make a private one if it is undefined
-GOPATH_DEFAULT := $(PWD)/.go
-export GOPATH ?= $(GOPATH_DEFAULT)
-GOBIN_DEFAULT := $(GOPATH)/bin
-export GOBIN ?= $(GOBIN_DEFAULT)
-HAS_DEP := $(shell command -v dep;)
+# Image URL to use all building/pushing image targets
+IMG ?= vsphere-cluster-api-controller:latest
 
-.PHONY: gendeepcopy
+all: test manager clusterctl
 
-all: generate build images
+# Run tests
+test: generate fmt vet manifests
+	go test ./pkg/... ./cmd/... -coverprofile cover.out
 
-$(GOBIN):
-	echo "create gobin"
-	mkdir -p $(GOBIN)
+# Build manager binary
+manager: generate fmt vet
+    CGO_ENABLED=0 go build -a -ldflags '-extldflags "-static"' -o bin/manager sigs.k8s.io/cluster-api-provider-vsphere/cmd/manager
+#	go build -o bin/manager sigs.k8s.io/cluster-api-provider-vsphere/cmd/manager
 
-depend: $(GOBIN)
-ifndef HAS_DEP
-	curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-endif
-	dep ensure
+# Build the clusterctl binary
+clusterctl: generate fmt vet
+    CGO_ENABLED=0 go build -a -ldflags '-extldflags "-static"' -o bin/clusterctl sigs.k8s.io/cluster-api-provider-vsphere/cmd/clusterctl
+#	go build -o bin/clusterctl sigs.k8s.io/cluster-api-provider-vsphere/cmd/clusterctl
 
-depend-update: work
-	dep ensure -update
+# Run against the configured Kubernetes cluster in ~/.kube/config
+run: generate fmt vet
+	go run ./cmd/manager/main.go
 
-generate: gendeepcopy
+# Install CRDs into a cluster
+install: manifests
+	kubectl apply -f config/crds
 
-gendeepcopy:
-	go build -o $$GOPATH/bin/deepcopy-gen sigs.k8s.io/cluster-api-provider-vsphere/vendor/k8s.io/code-generator/cmd/deepcopy-gen
-	deepcopy-gen \
-	  -i ./pkg/apis/vsphereproviderconfig,./pkg/apis/vsphereproviderconfig/v1alpha1 \
-	  -O zz_generated.deepcopy \
-	  -h boilerplate.go.txt
+# Deploy controller in the configured Kubernetes cluster in ~/.kube/config
+deploy: manifests
+	kubectl apply -f config/crds
+	kustomize build config/default | kubectl apply -f -
 
-build: depend
-	CGO_ENABLED=0 go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-vsphere/cmd/vsphere-machine-controller
+# Generate manifests e.g. CRD, RBAC etc.
+manifests:
+	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go all
 
-images: depend
-	$(MAKE) -C cmd/vsphere-machine-controller image
-
-push: depend
-	$(MAKE) -C cmd/vsphere-machine-controller push
-
-ci_push: depend
-	$(MAKE) -C cmd/vsphere-machine-controller ci_push
-
-check: depend fmt vet
-
-test: depend
-	go test -race -cover ./cmd/... ./pkg/...
-
+# Run go fmt against code
 fmt:
-	hack/verify-gofmt.sh
+	go fmt ./pkg/... ./cmd/...
 
+# Run go vet against code
 vet:
-	go vet ./...
+	go vet ./pkg/... ./cmd/...
+
+# Generate code
+generate:
+	go generate ./pkg/... ./cmd/...
+
+# Build the docker image
+docker-build: test
+	docker build . -t ${IMG}
+	@echo "updating kustomize image patch file for manager resource"
+	sed -i'' -e 's@image: .*@image: '"${IMG}"'@' ./config/default/manager_image_patch.yaml
+
+# Push the docker image
+docker-push:
+	docker push ${IMG}

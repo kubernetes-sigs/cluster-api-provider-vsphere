@@ -37,7 +37,8 @@ type instanceStatus *clusterv1.Machine
 
 // Get the status of the instance identified by the given machine
 func (vc *VsphereClient) instanceStatus(machine *clusterv1.Machine) (instanceStatus, error) {
-	currentMachine, err := util.GetMachineIfExists(vc.clusterV1alpha1.Machines(machine.Namespace), machine.ObjectMeta.Name)
+	currentMachine, err := util.GetMachineIfExists(vc.controllerClient, machine.Namespace, machine.ObjectMeta.Name)
+	//currentMachine, err := util.GetMachineIfExists(vc.clusterV1alpha1.Machines(machine.Namespace), machine.Namespace, machine.ObjectMeta.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +53,8 @@ func (vc *VsphereClient) instanceStatus(machine *clusterv1.Machine) (instanceSta
 // Sets the status of the instance identified by the given machine to the given machine
 func (vc *VsphereClient) updateInstanceStatus(machine *clusterv1.Machine) error {
 	status := instanceStatus(machine)
-	currentMachine, err := util.GetMachineIfExists(vc.clusterV1alpha1.Machines(machine.Namespace), machine.ObjectMeta.Name)
+	currentMachine, err := util.GetMachineIfExists(vc.controllerClient, machine.Namespace, machine.ObjectMeta.Name)
+	//currentMachine, err := util.GetMachineIfExists(vc.clusterV1alpha1.Machines(machine.Namespace), machine.Namespace, machine.ObjectMeta.Name)
 	if err != nil {
 		return err
 	}
@@ -84,7 +86,9 @@ func (vc *VsphereClient) machineInstanceStatus(machine *clusterv1.Machine) (inst
 		return nil, nil
 	}
 
-	serializer := json.NewSerializer(json.DefaultMetaFactory, vc.scheme, vc.scheme, false)
+	//TODO: Remove the old version if nil works
+	serializer := json.NewSerializer(json.DefaultMetaFactory, nil, nil, false)
+	//serializer := json.NewSerializer(json.DefaultMetaFactory, vc.scheme, vc.scheme, false)
 	var status clusterv1.Machine
 	_, _, err := serializer.Decode([]byte(a), &schema.GroupVersionKind{Group: "", Version: "cluster.k8s.io/v1alpha1", Kind: "Machine"}, &status)
 	if err != nil {
@@ -99,7 +103,9 @@ func (vc *VsphereClient) setMachineInstanceStatus(machine *clusterv1.Machine, st
 	// Avoid status within status within status ...
 	status.ObjectMeta.Annotations[InstanceStatusAnnotationKey] = ""
 
-	serializer := json.NewSerializer(json.DefaultMetaFactory, vc.scheme, vc.scheme, false)
+	//TODO: Remove the old version if nil works
+	serializer := json.NewSerializer(json.DefaultMetaFactory, nil, nil, false)
+	//serializer := json.NewSerializer(json.DefaultMetaFactory, vc.scheme, vc.scheme, false)
 	b := []byte{}
 	buff := bytes.NewBuffer(b)
 	err := serializer.Encode((*clusterv1.Machine)(status), buff)

@@ -14,10 +14,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v1alpha1 contains API Schema definitions for the vsphereproviderconfig v1alpha1 API group
-// +k8s:openapi-gen=true
-// +k8s:deepcopy-gen=package,register
-// +k8s:conversion-gen=sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig
-// +k8s:defaulter-gen=TypeMeta
-// +groupName=vsphereproviderconfig.sigs.k8s.io
-package v1alpha1
+// Package vsphereproviderconfig contains vsphereproviderconfig API versions
+package vsphereproviderconfig

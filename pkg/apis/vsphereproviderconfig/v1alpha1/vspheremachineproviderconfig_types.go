@@ -1,5 +1,5 @@
 /*
-Copyright 2017 The Kubernetes Authors.
+Copyright 2018 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,10 +20,40 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-type VsphereMachineProviderConfig struct {
-	metav1.TypeMeta `json:",inline"`
+// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
+// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+// VsphereMachineProviderConfigSpec defines the desired state of VsphereMachineProviderConfig
+type VsphereMachineProviderConfigSpec struct {
+	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
+	// Important: Run "make" to regenerate code after modifying this file
+}
+
+// VsphereMachineProviderConfigStatus defines the observed state of VsphereMachineProviderConfig
+type VsphereMachineProviderConfigStatus struct {
+	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
+	// Important: Run "make" to regenerate code after modifying this file
+}
+
+// VsphereMachineProviderConfigStatus defines the observed state of VsphereMachineProviderConfig
+type VsphereMachineProviderStatus struct {
+	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
+	// Important: Run "make" to regenerate code after modifying this file
+	LastUpdated string `json:"lastUpdated"`
+	TaskRef     string `json:"taskRef"`
+}
+
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// VsphereMachineProviderConfig is the Schema for the vspheremachineproviderconfigs API
+// +k8s:openapi-gen=true
+type VsphereMachineProviderConfig struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	//Spec   VsphereMachineProviderConfigSpec   `json:"spec,omitempty"`
+	//Status VsphereMachineProviderConfigStatus `json:"status,omitempty"`
 	// Name of the machine that's registered in the NamedMachines ConfigMap.
 	VsphereMachine string `json:"vsphereMachine"`
 	MachineRef     string `json:"machineRef,omitempty"`
@@ -33,29 +63,19 @@ type VsphereMachineProviderConfig struct {
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-type VsphereClusterProviderConfig struct {
-	metav1.TypeMeta `json:",inline"`
 
-	VsphereUser     string `json:"vsphereUser"`
-	VspherePassword string `json:"vspherePassword"`
-	VsphereServer   string `json:"vsphereServer"`
+// VsphereMachineProviderConfigList contains a list of VsphereMachineProviderConfig
+type VsphereMachineProviderConfigList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []VsphereMachineProviderConfig `json:"items"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-type VsphereMachineProviderStatus struct {
-	metav1.TypeMeta `json:",inline"`
-
-	LastUpdated string `json:"lastUpdated"`
-	TaskRef     string `json:"taskRef"`
+func init() {
+	SchemeBuilder.Register(&VsphereMachineProviderConfig{}, &VsphereMachineProviderConfigList{})
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-type VsphereClusterProviderStatus struct {
-	metav1.TypeMeta `json:",inline"`
-
-	LastUpdated string    `json:"lastUpdated"`
-	APIStatus   APIStatus `json:"clusterApiStatus"`
-}
+//**** New extensions
 
 type VsphereMachineSpec struct {
 	Datacenter       string        `json:"datacenter"`
@@ -95,10 +115,3 @@ type DiskSpec struct {
 	DiskSizeGB int64  `json:"diskSizeGB,omitempty"`
 	DiskLabel  string `json:"diskLabel,omitempty"`
 }
-
-type APIStatus string
-
-const (
-	ApiNotReady APIStatus = "NotReady"
-	ApiReady    APIStatus = "Ready"
-)

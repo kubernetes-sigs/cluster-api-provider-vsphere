@@ -14,9 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// +k8s:deepcopy-gen=package,register
-// +k8s:conversion-gen=sigs.k8s.io/cluster-api/machinecontroller/cloud/vsphere/vsphereproviderconfig
-// +k8s:openapi-gen=true
-// +k8s:defaulter-gen=TypeMeta
+package apis
 
-package vsphereproviderconfig
+import (
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
+)
+
+func init() {
+	// Register the types with the Scheme so the components can map objects to GroupVersionKinds and back
+	AddToSchemes = append(AddToSchemes, v1alpha1.SchemeBuilder.AddToScheme)
+}

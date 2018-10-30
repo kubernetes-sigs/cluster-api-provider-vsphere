@@ -24,7 +24,7 @@ class VIOClusterApi(helpers.target.Target, helpers.make.MakeHelper):
 
     def GetRepositories(self, hosttype):
         repos = [{"rcs": "git",
-                  "src": "cluster-api-provider-vsphere.git;%(branch);",
+                  "src": "core-build/cluster-api-provider-vsphere.git;%(branch);",
                   "dst": "cluster-api-provider-vsphere"}]
         return repos
 

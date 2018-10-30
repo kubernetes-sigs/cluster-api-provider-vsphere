@@ -46,3 +46,7 @@ jobs:
         - echo "${VMC_INFO}" | base64 -d | gzip -d >vmc_info.env
       script:
         - docker run --rm -v $(pwd)/ssh:/root/ssh --env-file $(pwd)/vmc_info.env -e VSPHERE_MACHINE_CONTROLLER_REGISTRY="luoh/cluster-api-provider-vsphere:${MCID}" -ti luoh/cluster-api-provider-vsphere-travis-ci:latest
+      
+branches:
+  only:
+    - master

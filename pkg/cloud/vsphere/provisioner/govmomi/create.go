@@ -128,7 +128,8 @@ func (pv *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 	}
 	s.finder.SetDatacenter(dc)
 
-	vmFolder, err := s.finder.FolderOrDefault(ctx, machineConfig.MachineVariables[constants.ProviderVmFolder])
+	glog.V(4).Infof("clone VM to folder %s", machineConfig.MachineSpec.VMFolder)
+	vmFolder, err := s.finder.FolderOrDefault(ctx, machineConfig.MachineSpec.VMFolder)
 	if err != nil {
 		return err
 	}
@@ -293,6 +294,7 @@ func (pv *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 	spec.Config.DeviceChange = deviceSpecs
 	pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Creating", "Creating Machine %v", machine.Name)
 	task, err := src.Clone(ctx, vmFolder, machine.Name, spec)
+	glog.V(6).Infof("clone VM with spec %v", spec)
 	if err != nil {
 		return err
 	}

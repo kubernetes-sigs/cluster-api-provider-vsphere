@@ -26,10 +26,11 @@ jobs:
       before_install:
         - DOCKER_PASSWORD=$(echo ${DOCKER_PASSWORD} | base64 -d | gzip -d); export DOCKER_PASSWORD
         - DOCKER_USERNAME=$(echo ${DOCKER_USERNAME} | base64 -d | gzip -d); export DOCKER_USERNAME
+        - MCID=$(echo ${TRAVIS_COMMIT} | cut -c1-8) && [[ ${TRAVIS_PULL_REQUEST} != "false" ]] && MCID=$(echo ${TRAVIS_PULL_REQUEST_SHA} | cut -c1-8); echo "DEBUG ${TRAVIS_PULL_REQUEST_SHA}"; export MCID; echo "MCID=${MCID}"
       install:
         - make depend
       script:
-        - make ci_push
+        - VERSION=${MCID} make ci_push
 
     - stage:    e2e test
       if: |
@@ -39,7 +40,7 @@ jobs:
 
       before_script:
         - mkdir -p ssh
-        - MCID=$(echo ${TRAVIS_COMMIT} | cut -c1-8) && [[ ${TRAVIS_PULL_REQUEST} != "false" ]] && MCID=$(echo ${TRAVIS_PULL_REQUEST_SHA} | cut -c1-8); export MCID; echo "MCID=${MCID}"
+        - MCID=$(echo ${TRAVIS_COMMIT} | cut -c1-8) && [[ ${TRAVIS_PULL_REQUEST} != "false" ]] && MCID=$(echo ${TRAVIS_PULL_REQUEST_SHA} | cut -c1-8); echo "DEBUG ${TRAVIS_PULL_REQUEST_SHA}"; export MCID; echo "MCID=${MCID}"
         - echo "${JUMPHOST_KEY_FILE}" | base64 -d | gzip -d  >ssh/jumphost
         - echo "${BOOTSTRAPPER_KEY_FILE}" | base64 -d | gzip -d >ssh/bootstrapper
         - echo "${VMC_INFO}" | base64 -d | gzip -d >vmc_info.env

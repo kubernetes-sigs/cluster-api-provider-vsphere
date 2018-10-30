@@ -14,7 +14,6 @@ const (
 	DeleteEventAction                = "Delete"
 	ProviderDatacenter               = "datacenter"
 	ProviderDatastore                = "datastore"
-	ProviderVmFolder                 = "vm_folder"
 	ProviderResPool                  = "resource_pool"
 	ProviderNetwork                  = "network"
 	ProviderTemplate                 = "vm_template"

@@ -3,6 +3,7 @@ package govmomi
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strings"
 	"time"
@@ -10,11 +11,17 @@ import (
 	"github.com/golang/glog"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	vsphereconfigv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
 	vsphereutils "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/utils"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	apierrors "sigs.k8s.io/cluster-api/pkg/errors"
 	"sigs.k8s.io/cluster-api/pkg/kubeadm"
+	"sigs.k8s.io/yaml"
+)
+
+const (
+	DefaultSSHPublicKeyFile = "/root/.ssh/vsphere_tmp.pub"
 )
 
 func (pv *Provisioner) GetKubeadmToken(cluster *clusterv1.Cluster) (string, error) {
@@ -110,8 +117,17 @@ func (pv *Provisioner) HandleClusterError(cluster *clusterv1.Cluster, err *apier
 }
 
 func (pv *Provisioner) GetSSHPublicKey(cluster *clusterv1.Cluster) (string, error) {
-	// TODO(ssurana): the secret currently is stored in the default namespace. This needs to be changed
-	secret, err := pv.k8sClient.Core().Secrets("default").Get("sshkeys", metav1.GetOptions{})
+	// First try to read the public key file from the mounted secrets volume
+	key, err := ioutil.ReadFile(DefaultSSHPublicKeyFile)
+	if err == nil {
+		return string(key), nil
+	}
+
+	// If the mounted secrets volume not found, try to request it from the API server.
+	// TODO(sflxn): We're trying to pull secrets from the default namespace and with name 'sshkeys'.  With
+	// the CRD changes, this is no longer the case.  These two values are generated from kustomize.  We
+	// need a different way to pass knowledge of the namespace and sshkeys into this container.
+	secret, err := pv.k8sClient.Core().Secrets(cluster.Namespace).Get("sshkeys", metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -124,4 +140,20 @@ func (pv *Provisioner) GetKubeConfig(cluster *clusterv1.Cluster) (string, error)
 		return "", err
 	}
 	return string(secret.Data[constants.KubeConfigSecretData]), nil
+}
+
+func clusterProviderFromProviderConfig(providerConfig clusterv1.ProviderConfig) (*vsphereconfigv1.VsphereClusterProviderConfig, error) {
+	var config vsphereconfigv1.VsphereClusterProviderConfig
+	if err := yaml.Unmarshal(providerConfig.Value.Raw, &config); err != nil {
+		return nil, err
+	}
+	return &config, nil
+}
+
+func machineProviderFromProviderConfig(providerConfig clusterv1.ProviderConfig) (*vsphereconfigv1.VsphereMachineProviderConfig, error) {
+	var config vsphereconfigv1.VsphereMachineProviderConfig
+	if err := yaml.Unmarshal(providerConfig.Value.Raw, &config); err != nil {
+		return nil, err
+	}
+	return &config, nil
 }

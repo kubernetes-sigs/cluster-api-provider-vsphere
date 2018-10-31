@@ -1,12 +1,12 @@
 # Adds namespace to all resources.
-namespace: provider-system
+namespace: vsphere-provider-system
 
 # Value of this field is prepended to the
 # names of all resources, e.g. a deployment named
 # "wordpress" becomes "alices-wordpress".
 # Note that it should also match with the prefix (text before '-') of the namespace
 # field above.
-namePrefix: provider-
+namePrefix: vsphere-provider-
 
 # Labels to add to all resources and selectors.
 #commonLabels:
@@ -18,9 +18,23 @@ namePrefix: provider-
 # YAML string, with resources separated by document
 # markers ("---").
 resources:
+- ../crds/vsphereproviderconfig_v1alpha1_vsphereclusterproviderconfig.yaml
+- ../crds/vsphereproviderconfig_v1alpha1_vspheremachineproviderconfig.yaml
 - ../rbac/rbac_role.yaml
 - ../rbac/rbac_role_binding.yaml
 - ../manager/manager.yaml
 
 patches:
-- manager_image_patch.yaml
+- vsphere_manager_image_patch.yaml
+
+secretGenerator:
+- name: machine-sshkeys
+  commands:
+    vsphere_tmp: "cat ~/.ssh/vsphere_tmp"
+    vsphere_tmp.pub: "cat ~/.ssh/vsphere_tmp.pub"
+  type: Opaque
+
+configMapGenerator:
+- name: named-machines
+  files:
+  - "../../cmd/clusterctl/examples/vsphere/namedmachines.yaml.template"

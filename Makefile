@@ -13,7 +13,14 @@
 # limitations under the License.
 
 # Image URL to use all building/pushing image targets
-IMG ?= vsphere-cluster-api-controller:latest
+IMG ?= gcr.io/cnx-cluster-api/vsphere-cluster-api-provider:latest
+
+# Retrieves the git hash
+VERSION ?= $(shell git describe --exact-match 2> /dev/null || \
+	   git describe --match=$(git rev-parse --short=8 HEAD) --always --dirty --abbrev=8)
+
+# Registry to push images to in CI
+REGISTRY_CI ?= gcr.io/cnx-cluster-api/vsphere-cluster-api-provider:ci
 
 all: test manager clusterctl
 
@@ -22,14 +29,12 @@ test: generate fmt vet manifests
 	go test ./pkg/... ./cmd/... -coverprofile cover.out
 
 # Build manager binary
-manager: generate fmt vet
-    CGO_ENABLED=0 go build -a -ldflags '-extldflags "-static"' -o bin/manager sigs.k8s.io/cluster-api-provider-vsphere/cmd/manager
-#	go build -o bin/manager sigs.k8s.io/cluster-api-provider-vsphere/cmd/manager
+manager: fmt vet
+	go build -o bin/manager sigs.k8s.io/cluster-api-provider-vsphere/cmd/manager
 
 # Build the clusterctl binary
-clusterctl: generate fmt vet
-    CGO_ENABLED=0 go build -a -ldflags '-extldflags "-static"' -o bin/clusterctl sigs.k8s.io/cluster-api-provider-vsphere/cmd/clusterctl
-#	go build -o bin/clusterctl sigs.k8s.io/cluster-api-provider-vsphere/cmd/clusterctl
+clusterctl: fmt vet
+	go build -o bin/clusterctl sigs.k8s.io/cluster-api-provider-vsphere/cmd/clusterctl
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
 run: generate fmt vet
@@ -60,12 +65,28 @@ vet:
 generate:
 	go generate ./pkg/... ./cmd/...
 
+# Create YAML file for deployment
+create-yaml:
+	cmd/clusterctl/examples/vsphere/generate-yaml.sh
+
 # Build the docker image
 docker-build: test
 	docker build . -t ${IMG}
 	@echo "updating kustomize image patch file for manager resource"
-	sed -i'' -e 's@image: .*@image: '"${IMG}"'@' ./config/default/manager_image_patch.yaml
+	sed -i'' -e 's@image: .*@image: '"${IMG}"'@' ./config/default/vsphere_manager_image_patch.yaml
 
 # Push the docker image
 docker-push:
+	@echo "logging into gcr.io registry with key file"
+	@docker login -u _json_key --password-stdin gcr.io <"$(GCR_KEY_FILE)"
 	docker push ${IMG}
+
+# Used for CI
+ci_image:
+	docker build -t "$(REGISTRY_CI):$(VERSION)" -f ./Dockerfile ../..
+
+ci_push: ci_image
+# Log into the registry with a Docker username and password.
+	@echo "logging into gcr.io registry with key file"
+	@docker login -u _json_key --password-stdin gcr.io <"$(GCR_KEY_FILE)"
+	docker push "$(REGISTRY_CI):$(VERSION)"

@@ -56,6 +56,7 @@ func init() {
 			glog.Fatalf("Could not create vSphere machine actuator: %v", err)
 			return err
 		}
+
 		return machine.AddWithActuator(m, actuator)
 	})
 }

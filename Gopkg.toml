@@ -32,22 +32,34 @@ required = [
     "sigs.k8s.io/controller-runtime/pkg/runtime/signals",
     "sigs.k8s.io/controller-runtime/pkg/source",
     "sigs.k8s.io/testing_frameworks/integration", # for integration testing
+    "sigs.k8s.io/yaml",
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1",
     ]
 
 [prune]
-  non-go = true
   go-tests = true
-  unused-packages = true
 
 [[constraint]]
   name = "sigs.k8s.io/cluster-api"
-  revision = "7db708b5df567c79e2e46f9c37cdbf001bef1302"
-
-[[constraint]]
-  name = "k8s.io/code-generator"
-  branch = "release-1.9"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/vmware/govmomi"
   branch = "master"
+
+
+# STANZAS BELOW ARE GENERATED AND MAY BE WRITTEN - DO NOT MODIFY BELOW THIS LINE.
+
+[[constraint]]
+  name="sigs.k8s.io/controller-runtime"
+  version="v0.1.1"
+
+[[constraint]]
+  name="sigs.k8s.io/controller-tools"
+  version="v0.1.1"
+
+# For dependency below: Refer to issue https://github.com/golang/dep/issues/1799
+[[override]]
+name = "gopkg.in/fsnotify.v1"
+source = "https://github.com/fsnotify/fsnotify.git"
+version="v1.4.7"

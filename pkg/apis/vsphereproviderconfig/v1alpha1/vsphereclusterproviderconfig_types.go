@@ -30,18 +30,6 @@ const (
 	ApiReady    APIStatus = "Ready"
 )
 
-// VsphereClusterProviderConfigSpec defines the desired state of VsphereClusterProviderConfig
-type VsphereClusterProviderConfigSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-}
-
-// VsphereClusterProviderConfigStatus defines the observed state of VsphereClusterProviderConfig
-type VsphereClusterProviderConfigStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-}
-
 // VsphereClusterProviderStatus defines the observed state of VsphereClusterProviderConfig
 type VsphereClusterProviderStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
@@ -59,8 +47,6 @@ type VsphereClusterProviderConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	//Spec   VsphereClusterProviderConfigSpec   `json:"spec,omitempty"`
-	//Status VsphereClusterProviderConfigStatus `json:"status,omitempty"`
 	VsphereUser     string `json:"vsphereUser"`
 	VspherePassword string `json:"vspherePassword"`
 	VsphereServer   string `json:"vsphereServer"`

@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff"
-	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 	"github.com/google/uuid"
 	"k8s.io/apimachinery/pkg/labels"
@@ -22,6 +21,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	v1alpha1 "sigs.k8s.io/cluster-api/pkg/client/informers_generated/externalversions/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/util"
+	"sigs.k8s.io/yaml"
 )
 
 // GetMasterForCluster returns the master nodes for the given cluster
@@ -66,12 +66,25 @@ func GetMachineProviderStatus(machine *clusterv1.Machine) (*vsphereconfigv1.Vsph
 }
 
 func GetClusterProviderStatus(cluster *clusterv1.Cluster) (*vsphereconfigv1.VsphereClusterProviderStatus, error) {
+	if cluster != nil {
+		glog.V(4).Infof("GetClusterProviderStatus - cluster = %#v", cluster)
+		glog.V(4).Infof("GetClusterProviderStatus - cluster.status = %#v", cluster.Status)
+		if cluster.Status.ProviderStatus != nil {
+			glog.V(4).Infof("GetClusterProviderStatus - cluster.status.ProviderStatus = %#v", cluster.Status.ProviderStatus)
+		}
+	} else {
+		glog.V(4).Info("GetClusterProviderStatus - cluster is nil")
+	}
+
 	if cluster.Status.ProviderStatus == nil {
 		return nil, nil
 	}
+
 	status := &vsphereconfigv1.VsphereClusterProviderStatus{}
 	err := json.Unmarshal(cluster.Status.ProviderStatus.Raw, status)
 	if err != nil {
+		glog.V(4).Infof("unmarshaling provider status = %#v", status)
+
 		return nil, err
 	}
 	return status, nil

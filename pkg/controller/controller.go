@@ -44,6 +44,7 @@ var siStopper = make(chan struct{})
 func AddToManager(m manager.Manager) error {
 	for _, f := range AddToManagerFuncs {
 		if err := f(m); err != nil {
+			glog.Infof("Failed to add to manager:  %s", err.Error())
 			return err
 		}
 	}

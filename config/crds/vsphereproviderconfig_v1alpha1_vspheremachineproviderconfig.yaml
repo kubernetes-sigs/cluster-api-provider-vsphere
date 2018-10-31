@@ -74,6 +74,8 @@ spec:
               type: string
             template:
               type: string
+            vmFolder:
+              type: string
             vsphereCloudInit:
               type: boolean
           required:

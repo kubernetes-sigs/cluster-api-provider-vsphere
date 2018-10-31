@@ -55,6 +55,7 @@ func init() {
 			glog.Fatalf("Could not create vSphere cluster actuator: %v", err)
 			return err
 		}
+
 		return cluster.AddWithActuator(m, actuator)
 	})
 }

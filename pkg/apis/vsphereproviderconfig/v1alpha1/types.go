@@ -61,6 +61,7 @@ type VsphereMachineSpec struct {
 	Datacenter       string        `json:"datacenter"`
 	Datastore        string        `json:"datastore"`
 	ResourcePool     string        `json:"resourcePool,omitempty"`
+	VMFolder         string        `json:"vmFolder,omitempty"`
 	Networks         []NetworkSpec `json:"networks"`
 	NumCPUs          int32         `json:"numCPUs,omitempty"`
 	MemoryMB         int64         `json:"memoryMB,omitempty"`

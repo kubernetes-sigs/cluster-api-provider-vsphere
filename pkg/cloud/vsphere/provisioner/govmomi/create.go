@@ -160,10 +160,30 @@ func (pv *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 	}
 	spec.Config.Annotation = fmt.Sprintf("Virtual Machine is part of the cluster %s managed by cluster-api", cluster.Name)
 	spec.Location.DiskMoveType = string(types.VirtualMachineRelocateDiskMoveOptionsMoveAllDiskBackingsAndAllowSharing)
-	src, err := s.finder.VirtualMachine(ctx, machineConfig.MachineSpec.VMTemplate)
-	if err != nil {
-		return err
+	var src *object.VirtualMachine
+	if vsphereutils.IsValidUUID(machineConfig.MachineSpec.VMTemplate) {
+		// If the passed VMTemplate is a valid UUID, then first try to find it treating that as InstanceUUID
+		// In case if are not able to locate a matching VM then fall back to searching using the VMTemplate
+		// as a name
+		glog.V(4).Infof("Trying to resolve the VMTemplate as InstanceUUID %s", machineConfig.MachineSpec.VMTemplate)
+		si := object.NewSearchIndex(s.session.Client)
+		instanceUUID := true
+		templateref, err := si.FindByUuid(ctx, dc, machineConfig.MachineSpec.VMTemplate, true, &instanceUUID)
+		if err != nil {
+			return fmt.Errorf("error quering virtual machine or template using FindByUuid: %s", err)
+		}
+		if templateref != nil {
+			src = object.NewVirtualMachine(s.session.Client, templateref.Reference())
+		}
 	}
+	if src == nil {
+		glog.V(4).Infof("Trying to resolve the VMTemplate as Name %s", machineConfig.MachineSpec.VMTemplate)
+		src, err = s.finder.VirtualMachine(ctx, machineConfig.MachineSpec.VMTemplate)
+		if err != nil {
+			return err
+		}
+	}
+
 	vmProps, err := Properties(src)
 	if err != nil {
 		return fmt.Errorf("error fetching virtual machine or template properties: %s", err)

@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
+	"github.com/google/uuid"
 	"k8s.io/apimachinery/pkg/labels"
 	vsphereconfig "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig"
 	vsphereconfigv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
@@ -196,4 +197,9 @@ func ByteToGiB(n int64) int64 {
 // GiBToByte returns n*1024^3.
 func GiBToByte(n int64) int64 {
 	return int64(n * int64(math.Pow(1024, 3)))
+}
+
+func IsValidUUID(str string) bool {
+	_, err := uuid.Parse(str)
+	return err == nil
 }

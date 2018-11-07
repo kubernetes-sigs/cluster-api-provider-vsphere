@@ -20,8 +20,10 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
+	"strings"
 	"text/template"
 
+	corev1 "k8s.io/api/core/v1"
 	vsphereconfig "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig"
 	vsphereutils "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/utils"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -100,6 +102,23 @@ func init() {
 	endpoint := func(apiEndpoint *clusterv1.APIEndpoint) string {
 		return fmt.Sprintf("%s:%d", apiEndpoint.Host, apiEndpoint.Port)
 	}
+
+	labelMap := func(labels map[string]string) string {
+		var builder strings.Builder
+		for k, v := range labels {
+			builder.WriteString(fmt.Sprintf("%s=%s,", k, v))
+		}
+		return strings.TrimRight(builder.String(), ",")
+	}
+
+	taintMap := func(taints []corev1.Taint) string {
+		var builder strings.Builder
+		for _, taint := range taints {
+			builder.WriteString(fmt.Sprintf("%s=%s:%s,", taint.Key, taint.Value, taint.Effect))
+		}
+		return strings.TrimRight(builder.String(), ",")
+	}
+
 	// Force a compliation error if getSubnet changes. This is the
 	// signature the templates expect, so changes need to be
 	// reflected in templates below.
@@ -107,6 +126,8 @@ func init() {
 	funcMap := map[string]interface{}{
 		"endpoint":  endpoint,
 		"getSubnet": vsphereutils.GetSubnet,
+		"labelMap":  labelMap,
+		"taintMap":  taintMap,
 	}
 	nodeStartupScriptTemplate = template.Must(template.New("nodeStartupScript").Funcs(funcMap).Parse(nodeStartupScript))
 	nodeStartupScriptTemplate = template.Must(nodeStartupScriptTemplate.Parse(genericTemplates))
@@ -347,6 +368,8 @@ MASTER={{ index .Cluster.Status.APIEndpoints 0 | endpoint }}
 MACHINE={{ .Machine.ObjectMeta.Name }}
 CLUSTER_DNS_DOMAIN={{ .Cluster.Spec.ClusterNetwork.ServiceDomain }}
 SERVICE_CIDR={{ getSubnet .Cluster.Spec.ClusterNetwork.Services }}
+NODE_LABEL_OPTION={{ if .Machine.Spec.Labels }}--node-labels={{ labelMap .Machine.Spec.Labels }}{{ end }}
+NODE_TAINTS_OPTION={{ if .Machine.Spec.Taints }}--register-with-taints={{ taintMap .Machine.Spec.Taints }}{{ end }}
 
 # Our Debian packages have versions like "1.8.0-00" or "1.8.0-01". Do a prefix
 # search based on our SemVer to find the right (newest) package version.
@@ -378,7 +401,7 @@ CLUSTER_DNS_SERVER=$(prips ${SERVICE_CIDR} | head -n 11 | tail -n 1)
 cat > /etc/systemd/system/kubelet.service.d/20-cloud.conf << EOF
 [Service]
 Environment="KUBELET_DNS_ARGS=--cluster-dns=${CLUSTER_DNS_SERVER} --cluster-domain=${CLUSTER_DNS_DOMAIN}"
-Environment="KUBELET_EXTRA_ARGS=--cloud-provider=vsphere"
+Environment="KUBELET_EXTRA_ARGS=--cloud-provider=vsphere ${NODE_LABEL_OPTION} ${NODE_TAINTS_OPTION}"
 EOF
 # clear the content of the /etc/default/kubelet otherwise in v 1.11.* it causes failure to use the env variable set in the 20-cloud.conf file above
 echo > /etc/default/kubelet
@@ -432,6 +455,8 @@ CONTROL_PLANE_VERSION={{ .Machine.Spec.Versions.ControlPlane }}
 CLUSTER_DNS_DOMAIN={{ .Cluster.Spec.ClusterNetwork.ServiceDomain }}
 POD_CIDR={{ getSubnet .Cluster.Spec.ClusterNetwork.Pods }}
 SERVICE_CIDR={{ getSubnet .Cluster.Spec.ClusterNetwork.Services }}
+NODE_LABEL_OPTION={{ if .Machine.Spec.Labels }}--node-labels={{ labelMap .Machine.Spec.Labels }}{{ end }}
+NODE_TAINTS_OPTION={{ if .Machine.Spec.Taints }}--register-with-taints={{ taintMap .Machine.Spec.Taints }}{{ end }}
 
 # kubeadm uses 10th IP as DNS server
 CLUSTER_DNS_SERVER=$(prips ${SERVICE_CIDR} | head -n 11 | tail -n 1)
@@ -465,7 +490,7 @@ systemctl start docker
 cat > /etc/systemd/system/kubelet.service.d/20-cloud.conf << EOF
 [Service]
 Environment="KUBELET_DNS_ARGS=--cluster-dns=${CLUSTER_DNS_SERVER} --cluster-domain=${CLUSTER_DNS_DOMAIN}"
-Environment="KUBELET_EXTRA_ARGS=--cloud-provider=vsphere --cloud-config=/etc/kubernetes/cloud-config/cloud-config.yaml"
+Environment="KUBELET_EXTRA_ARGS=--cloud-provider=vsphere --cloud-config=/etc/kubernetes/cloud-config/cloud-config.yaml ${NODE_LABEL_OPTION} ${NODE_TAINTS_OPTION}"
 EOF
 # clear the content of the /etc/default/kubelet otherwise in v 1.11.* it causes failure to use the env variable set in the 20-cloud.conf file above
 echo > /etc/default/kubelet

@@ -10,7 +10,9 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
+	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	"github.com/google/uuid"
 	"k8s.io/apimachinery/pkg/labels"
@@ -202,4 +204,12 @@ func GiBToByte(n int64) int64 {
 func IsValidUUID(str string) bool {
 	_, err := uuid.Parse(str)
 	return err == nil
+}
+
+func GetNextBackOff() time.Duration {
+	b := backoff.NewExponentialBackOff()
+	b.InitialInterval = constants.RequeueAfterSeconds
+	b.MaxInterval = constants.RequeueAfterSeconds + 10*time.Second
+	b.Reset()
+	return b.NextBackOff()
 }

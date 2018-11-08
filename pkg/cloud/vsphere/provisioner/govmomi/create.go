@@ -109,7 +109,7 @@ func (pv *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 	}
 	metaData, err := pv.getCloudInitMetaData(cluster, machine)
 	if err != nil {
-		// err returned by the getCloudInitUserData would be of type RequeueAfterError in case kubeadm is not ready yet
+		// err returned by the getCloudInitMetaData would be of type RequeueAfterError in case kubeadm is not ready yet
 		return err
 	}
 	ctx, cancel := context.WithCancel(*s.context)
@@ -347,6 +347,10 @@ func (pv *Provisioner) removeTaskRef(machine *clusterv1.Machine) error {
 
 func (vc *Provisioner) updateVMReference(machine *clusterv1.Machine, vmref string) (*clusterv1.Machine, error) {
 	providerConfig, err := vsphereutils.GetMachineProviderConfig(machine.Spec.ProviderConfig)
+	if err != nil {
+		glog.Infof("Error fetching MachineProviderConfig: %s", err)
+		return machine, err
+	}
 	providerConfig.MachineRef = vmref
 	// Set the Kind and APIVersion again since they are not returned
 	// See the following Issues for details:
@@ -528,14 +532,21 @@ func (pv *Provisioner) getStartupScript(cluster *clusterv1.Cluster, machine *clu
 			return "", err
 		}
 	} else {
-		if len(cluster.Status.APIEndpoints) == 0 {
-			glog.Infof("Waiting for Kubernetes API Endpoint to be populated..Retrying in %s", constants.RequeueAfterSeconds)
-			return "", &clustererror.RequeueAfterError{RequeueAfter: constants.RequeueAfterSeconds}
+		clusterstatus, err := vsphereutils.GetClusterProviderStatus(cluster)
+		if err != nil {
+			glog.Infof("Error fetching cluster ProviderStatus field: %s", err)
+			return "", err
+		}
+		if clusterstatus.APIStatus != vsphereconfigv1.ApiReady {
+			duration := vsphereutils.GetNextBackOff()
+			glog.Infof("Waiting for Kubernetes API Status to be \"Ready\". Retrying in %s", duration)
+			return "", &clustererror.RequeueAfterError{RequeueAfter: duration}
 		}
 		kubeadmToken, err := pv.GetKubeadmToken(cluster)
 		if err != nil {
-			glog.Infof("Error generating kubeadm token, will requeue: %s", err.Error())
-			return "", &clustererror.RequeueAfterError{RequeueAfter: constants.RequeueAfterSeconds}
+			duration := vsphereutils.GetNextBackOff()
+			glog.Infof("Error generating kubeadm token, will retry in %s error: %s", duration, err.Error())
+			return "", &clustererror.RequeueAfterError{RequeueAfter: duration}
 		}
 		startupScript, err = vpshereprovisionercommon.GetNodeStartupScript(
 			vpshereprovisionercommon.TemplateParams{

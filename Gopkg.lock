@@ -958,7 +958,6 @@
   revision = "e3762e86a74c878ffed47484592986685639c2cd"
 
 [[projects]]
-  branch = "master"
   digest = "1:797d85ec2636b83dafa570b602919912108b913b34e213c9205214361bab722a"
   name = "sigs.k8s.io/cluster-api"
   packages = [
@@ -1002,6 +1001,7 @@
   input-imports = [
     "github.com/ghodss/yaml",
     "github.com/golang/glog",
+    "github.com/google/uuid",
     "github.com/kubernetes-incubator/apiserver-builder/pkg/controller",
     "github.com/spf13/pflag",
     "github.com/vmware/govmomi",

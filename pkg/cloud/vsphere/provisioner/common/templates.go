@@ -365,7 +365,7 @@ apt-get update
 KUBELET_VERSION={{ .Machine.Spec.Versions.Kubelet }}
 TOKEN={{ .Token }}
 MASTER={{ index .Cluster.Status.APIEndpoints 0 | endpoint }}
-MACHINE={{ .Machine.ObjectMeta.Name }}
+MACHINE={{ .Machine.ObjectMeta.Namespace }}/{{ .Machine.ObjectMeta.Name }}
 CLUSTER_DNS_DOMAIN={{ .Cluster.Spec.ClusterNetwork.ServiceDomain }}
 SERVICE_CIDR={{ getSubnet .Cluster.Spec.ClusterNetwork.Services }}
 NODE_LABEL_OPTION={{ if .Machine.Spec.Labels }}--node-labels={{ labelMap .Machine.Spec.Labels }}{{ end }}
@@ -450,7 +450,7 @@ chmod a+rx /usr/bin/kubeadm.dl
 {{ define "configure" -}}
 KUBELET_VERSION={{ .Machine.Spec.Versions.Kubelet }}
 PORT=443
-MACHINE={{ .Machine.ObjectMeta.Name }}
+MACHINE={{ .Machine.ObjectMeta.Namespace }}/{{ .Machine.ObjectMeta.Name }}
 CONTROL_PLANE_VERSION={{ .Machine.Spec.Versions.ControlPlane }}
 CLUSTER_DNS_DOMAIN={{ .Cluster.Spec.ClusterNetwork.ServiceDomain }}
 POD_CIDR={{ getSubnet .Cluster.Spec.ClusterNetwork.Pods }}

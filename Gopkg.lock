@@ -42,6 +42,14 @@
   revision = "3a771d992973f24aa725d07868b467d1ddfceafb"
 
 [[projects]]
+  digest = "1:97b8422f271b83e760ce1279715d0f5d124f267459b56806306a64a0f82721c9"
+  name = "github.com/cenkalti/backoff"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "2ea60e5f094469f9e65adb9cd103795b73ae743e"
+  version = "v2.0.0"
+
+[[projects]]
   digest = "1:913d0a501196096674150d3a6fa99465e4b3735e851c22cab3ea0544e329e07d"
   name = "github.com/coreos/etcd"
   packages = [
@@ -999,6 +1007,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/cenkalti/backoff",
     "github.com/ghodss/yaml",
     "github.com/golang/glog",
     "github.com/google/uuid",

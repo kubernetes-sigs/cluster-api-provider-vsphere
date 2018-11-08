@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math/rand"
 	"reflect"
 	"time"
 
@@ -537,13 +536,15 @@ func (pv *Provisioner) getStartupScript(cluster *clusterv1.Cluster, machine *clu
 			return "", err
 		}
 		if clusterstatus.APIStatus != vsphereconfigv1.ApiReady {
-			glog.Infof("Waiting for Kubernetes API Status to be \"Ready\". Retrying in %s", constants.RequeueAfterSeconds)
-			return "", &clustererror.RequeueAfterError{RequeueAfter: time.Duration(rand.Float64()*10)*time.Second + constants.RequeueAfterSeconds}
+			duration := vsphereutils.GetNextBackOff()
+			glog.Infof("Waiting for Kubernetes API Status to be \"Ready\". Retrying in %s", duration)
+			return "", &clustererror.RequeueAfterError{RequeueAfter: duration}
 		}
 		kubeadmToken, err := pv.GetKubeadmToken(cluster)
 		if err != nil {
-			glog.Infof("Error generating kubeadm token, will requeue: %s", err.Error())
-			return "", &clustererror.RequeueAfterError{RequeueAfter: time.Duration(rand.Float64()*10)*time.Second + constants.RequeueAfterSeconds}
+			duration := vsphereutils.GetNextBackOff()
+			glog.Infof("Error generating kubeadm token, will retry in %s error: %s", duration, err.Error())
+			return "", &clustererror.RequeueAfterError{RequeueAfter: duration}
 		}
 		startupScript, err = vpshereprovisionercommon.GetNodeStartupScript(
 			vpshereprovisionercommon.TemplateParams{

@@ -337,9 +337,6 @@ echo done.
 
 const nodeStartupScript = `
 {{ define "install" -}}
-# Disable swap otherwise kubelet won't run
-swapoff -a
-sed -i '/ swap / s/^/#/' /etc/fstab
 
 apt-get update
 apt-get install -y apt-transport-https prips
@@ -359,18 +356,7 @@ deb http://apt.kubernetes.io/ kubernetes-xenial main
 EOF
 apt-get update
 
-{{- end }} {{/* end install */}}
-
-{{ define "configure" -}}
 KUBELET_VERSION={{ .Machine.Spec.Versions.Kubelet }}
-TOKEN={{ .Token }}
-MASTER={{ index .Cluster.Status.APIEndpoints 0 | endpoint }}
-MACHINE={{ .Machine.ObjectMeta.Namespace }}/{{ .Machine.ObjectMeta.Name }}
-CLUSTER_DNS_DOMAIN={{ .Cluster.Spec.ClusterNetwork.ServiceDomain }}
-SERVICE_CIDR={{ getSubnet .Cluster.Spec.ClusterNetwork.Services }}
-NODE_LABEL_OPTION={{ if .Machine.Spec.Labels }}--node-labels={{ labelMap .Machine.Spec.Labels }}{{ end }}
-NODE_TAINTS_OPTION={{ if .Machine.Spec.Taints }}--register-with-taints={{ taintMap .Machine.Spec.Taints }}{{ end }}
-
 # Our Debian packages have versions like "1.8.0-00" or "1.8.0-01". Do a prefix
 # search based on our SemVer to find the right (newest) package version.
 function getversion() {
@@ -390,23 +376,32 @@ KUBECTL=$(getversion kubectl ${KUBELET_VERSION}-)
 # Explicit cni version is a temporary workaround till the right version can be automatically detected correctly
 apt-get install -y kubelet=${KUBELET} kubeadm=${KUBEADM} kubectl=${KUBECTL}
 
+{{- end }} {{/* end install */}}
+
+{{ define "configure" -}}
+TOKEN={{ .Token }}
+MASTER={{ index .Cluster.Status.APIEndpoints 0 | endpoint }}
+MACHINE={{ .Machine.ObjectMeta.Namespace }}/{{ .Machine.ObjectMeta.Name }}
+
+# Disable swap otherwise kubelet won't run
+swapoff -a
+sed -i '/ swap / s/^/#/' /etc/fstab
+
 systemctl enable docker || true
 systemctl start docker || true
 
 sysctl net.bridge.bridge-nf-call-iptables=1
 
-# kubeadm uses 10th IP as DNS server
-CLUSTER_DNS_SERVER=$(prips ${SERVICE_CIDR} | head -n 11 | tail -n 1)
+` +
+	"PUBLICIP=`ip route get 8.8.8.8 | awk '{printf \"%s\", $NF; exit}'`" + `
 
 cat > /etc/systemd/system/kubelet.service.d/20-cloud.conf << EOF
 [Service]
-Environment="KUBELET_DNS_ARGS=--cluster-dns=${CLUSTER_DNS_SERVER} --cluster-domain=${CLUSTER_DNS_DOMAIN}"
-Environment="KUBELET_EXTRA_ARGS=--cloud-provider=vsphere ${NODE_LABEL_OPTION} ${NODE_TAINTS_OPTION}"
+Environment="KUBELET_EXTRA_ARGS=--node-ip=${PUBLICIP} --cloud-provider=vsphere ${NODE_LABEL_OPTION} ${NODE_TAINTS_OPTION}"
 EOF
 # clear the content of the /etc/default/kubelet otherwise in v 1.11.* it causes failure to use the env variable set in the 20-cloud.conf file above
 echo > /etc/default/kubelet
 systemctl daemon-reload
-systemctl restart kubelet.service
 
 kubeadm join --token "${TOKEN}" "${MASTER}" --skip-preflight-checks --discovery-token-unsafe-skip-ca-verification
 
@@ -419,10 +414,6 @@ done
 
 const masterStartupScript = `
 {{ define "install" -}}
-
-# Disable swap otherwise kubelet won't run
-swapoff -a
-sed -i '/ swap / s/^/#/' /etc/fstab
 
 KUBELET_VERSION={{ .Machine.Spec.Versions.Kubelet }}
 
@@ -444,22 +435,6 @@ export VERSION=v${KUBELET_VERSION}
 export ARCH=amd64
 curl -sSL https://dl.k8s.io/release/${VERSION}/bin/linux/${ARCH}/kubeadm > /usr/bin/kubeadm.dl
 chmod a+rx /usr/bin/kubeadm.dl
-{{- end }} {{/* end install */}}
-
-
-{{ define "configure" -}}
-KUBELET_VERSION={{ .Machine.Spec.Versions.Kubelet }}
-PORT=443
-MACHINE={{ .Machine.ObjectMeta.Namespace }}/{{ .Machine.ObjectMeta.Name }}
-CONTROL_PLANE_VERSION={{ .Machine.Spec.Versions.ControlPlane }}
-CLUSTER_DNS_DOMAIN={{ .Cluster.Spec.ClusterNetwork.ServiceDomain }}
-POD_CIDR={{ getSubnet .Cluster.Spec.ClusterNetwork.Pods }}
-SERVICE_CIDR={{ getSubnet .Cluster.Spec.ClusterNetwork.Services }}
-NODE_LABEL_OPTION={{ if .Machine.Spec.Labels }}--node-labels={{ labelMap .Machine.Spec.Labels }}{{ end }}
-NODE_TAINTS_OPTION={{ if .Machine.Spec.Taints }}--register-with-taints={{ taintMap .Machine.Spec.Taints }}{{ end }}
-
-# kubeadm uses 10th IP as DNS server
-CLUSTER_DNS_SERVER=$(prips ${SERVICE_CIDR} | head -n 11 | tail -n 1)
 
 # Our Debian packages have versions like "1.8.0-00" or "1.8.0-01". Do a prefix
 # search based on our SemVer to find the right (newest) package version.
@@ -484,27 +459,41 @@ apt-get install -y \
 
 mv /usr/bin/kubeadm.dl /usr/bin/kubeadm
 chmod a+rx /usr/bin/kubeadm
+{{- end }} {{/* end install */}}
+
+
+{{ define "configure" -}}
+PORT=443
+MACHINE={{ .Machine.ObjectMeta.Name }}
+CONTROL_PLANE_VERSION={{ .Machine.Spec.Versions.ControlPlane }}
+CLUSTER_DNS_DOMAIN={{ .Cluster.Spec.ClusterNetwork.ServiceDomain }}
+POD_CIDR={{ getSubnet .Cluster.Spec.ClusterNetwork.Pods }}
+SERVICE_CIDR={{ getSubnet .Cluster.Spec.ClusterNetwork.Services }}
+
+# Disable swap otherwise kubelet won't run
+swapoff -a
+sed -i '/ swap / s/^/#/' /etc/fstab
 
 systemctl enable docker
 systemctl start docker
-cat > /etc/systemd/system/kubelet.service.d/20-cloud.conf << EOF
-[Service]
-Environment="KUBELET_DNS_ARGS=--cluster-dns=${CLUSTER_DNS_SERVER} --cluster-domain=${CLUSTER_DNS_DOMAIN}"
-Environment="KUBELET_EXTRA_ARGS=--cloud-provider=vsphere --cloud-config=/etc/kubernetes/cloud-config/cloud-config.yaml ${NODE_LABEL_OPTION} ${NODE_TAINTS_OPTION}"
-EOF
-# clear the content of the /etc/default/kubelet otherwise in v 1.11.* it causes failure to use the env variable set in the 20-cloud.conf file above
-echo > /etc/default/kubelet
-systemctl daemon-reload
-systemctl restart kubelet.service
+
 ` +
 	"PRIVATEIP=`ip route get 8.8.8.8 | awk '{printf \"%s\", $NF; exit}'`" + `
 echo $PRIVATEIP > /tmp/.ip
 ` +
 	"PUBLICIP=`ip route get 8.8.8.8 | awk '{printf \"%s\", $NF; exit}'`" + `
 
+cat > /etc/systemd/system/kubelet.service.d/20-cloud.conf << EOF
+[Service]
+Environment="KUBELET_EXTRA_ARGS=--node-ip=${PUBLICIP} --cloud-provider=vsphere --cloud-config=/etc/kubernetes/cloud-config/cloud-config.yaml ${NODE_LABEL_OPTION} ${NODE_TAINTS_OPTION}"
+EOF
+# clear the content of the /etc/default/kubelet otherwise in v 1.11.* it causes failure to use the env variable set in the 20-cloud.conf file above
+echo > /etc/default/kubelet
+systemctl daemon-reload
+
 # Set up kubeadm config file to pass parameters to kubeadm init.
 cat > /etc/kubernetes/kubeadm_config.yaml <<EOF
-apiVersion: kubeadm.k8s.io/v1alpha1
+apiVersion: kubeadm.k8s.io/v1alpha2
 kind: MasterConfiguration
 api:
   advertiseAddress: ${PUBLICIP}
@@ -512,6 +501,7 @@ api:
 networking:
   serviceSubnet: ${SERVICE_CIDR}
   podSubnet: ${POD_CIDR}
+  dnsDomain: ${CLUSTER_DNS_DOMAIN}
 kubernetesVersion: v${CONTROL_PLANE_VERSION}
 apiServerCertSANs:
 - ${PUBLICIP}
@@ -533,6 +523,14 @@ controllerManagerExtraVolumes:
   - name: cloud-config
     hostPath: /etc/kubernetes/cloud-config
     mountPath: /etc/kubernetes/cloud-config
+kubeletConfiguration:
+  baseConfig:
+    clusterDomain: ${CLUSTER_DNS_DOMAIN}
+nodeRegistration:
+  criSocket: /var/run/dockershim.sock
+  taints:
+  - effect: NoSchedule
+    key: node-role.kubernetes.io/master
 EOF
 
 kubeadm init --config /etc/kubernetes/kubeadm_config.yaml

@@ -13,14 +13,13 @@
 # limitations under the License.
 
 # Image URL to use all building/pushing image targets
-IMG ?= gcr.io/cnx-cluster-api/vsphere-cluster-api-provider:latest
+PRODUCTION_IMG ?= gcr.io/cnx-cluster-api/vsphere-cluster-api-provider:latest
+CI_IMG ?= gcr.io/cnx-cluster-api/vsphere-cluster-api-provider
+DEV_IMG ?= # <== NOTE:  outside dev, change this!!!
 
 # Retrieves the git hash
 VERSION ?= $(shell git describe --exact-match 2> /dev/null || \
 	   git describe --match=$(git rev-parse --short=8 HEAD) --always --dirty --abbrev=8)
-
-# Registry to push images to in CI
-REGISTRY_CI ?= gcr.io/cnx-cluster-api/vsphere-cluster-api-provider:ci
 
 all: test manager clusterctl
 
@@ -65,28 +64,69 @@ vet:
 generate:
 	go generate ./pkg/... ./cmd/...
 
+
+####################################
+# DEVELOPMENT Build and Push targets
+####################################
+
 # Create YAML file for deployment
-create-yaml:
+dev-yaml:
+	@echo "updating kustomize image patch file for manager resource"
+	sed -i'' -e 's@image: .*@image: '"${DEV_IMG}"'@' ./config/default/vsphere_manager_image_patch.yaml
 	cmd/clusterctl/examples/vsphere/generate-yaml.sh
 
 # Build the docker image
-docker-build: test
-	docker build . -t ${IMG}
+dev-build: test
+	docker build . -t ${DEV_IMG}
 	@echo "updating kustomize image patch file for manager resource"
-	sed -i'' -e 's@image: .*@image: '"${IMG}"'@' ./config/default/vsphere_manager_image_patch.yaml
+	sed -i'' -e 's@image: .*@image: '"${DEV_IMG}"'@' ./config/default/vsphere_manager_image_patch.yaml
 
 # Push the docker image
-docker-push:
+dev-push:
+	docker push ${DEV_IMG}
+
+
+###################################
+# PRODUCTION Build and Push targets
+###################################
+
+# Create YAML file for deployment
+prod-yaml:
+	@echo "updating kustomize image patch file for manager resource"
+	sed -i'' -e 's@image: .*@image: '"${PRODUCTION_IMG}"'@' ./config/default/vsphere_manager_image_patch.yaml
+	cmd/clusterctl/examples/vsphere/generate-yaml.sh
+
+# Build the docker image
+prod-build: test
+	docker build . -t ${PRODUCTION_IMG}
+	@echo "updating kustomize image patch file for manager resource"
+	sed -i'' -e 's@image: .*@image: '"${PRODUCTION_IMG}"'@' ./config/default/vsphere_manager_image_patch.yaml
+
+# Push the docker image
+prod-push:
 	@echo "logging into gcr.io registry with key file"
 	@docker login -u _json_key --password-stdin gcr.io <"$(GCR_KEY_FILE)"
-	docker push ${IMG}
+	docker push ${PRODUCTION_IMG}
 
-# Used for CI
-ci_image:
-	docker build -t "$(REGISTRY_CI):$(VERSION)" -f ./Dockerfile ../..
 
-ci_push: ci_image
-# Log into the registry with a Docker username and password.
+###################################
+# CI Build and Push targets
+###################################
+
+# Create YAML file for deployment into CI
+ci-yaml:
+	@echo "updating kustomize image patch file for manager resource"
+	sed -i'' -e 's@image: .*@image: '"$(CI_IMG):$(VERSION)"'@' ./config/default/vsphere_manager_image_patch.yaml
+	cmd/clusterctl/examples/vsphere/generate-yaml.sh
+
+ci-image:
+	docker build . -t "$(CI_IMG):$(VERSION)"
+	@echo "updating kustomize image patch file for manager resource"
+	sed -i'' -e 's@image: .*@image: '"$(CI_IMG):$(VERSION)"'@' ./config/default/vsphere_manager_image_patch.yaml
+
+ci-push: ci-image
+# Log into the registry with a service account file.  In CI, GCR_KEY_FILE contains the content and not the file name.
 	@echo "logging into gcr.io registry with key file"
-	@docker login -u _json_key --password-stdin gcr.io <"$(GCR_KEY_FILE)"
-	docker push "$(REGISTRY_CI):$(VERSION)"
+	@echo $$GCR_KEY_FILE | docker login -u _json_key --password-stdin gcr.io
+	docker push "$(CI_IMG):$(VERSION)"
+	@echo docker logout gcr.io

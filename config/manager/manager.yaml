@@ -80,6 +80,7 @@ spec:
               fieldPath: spec.nodeName
         args:
         - "--namedmachines=/etc/named-machines/vsphere_named_machines.yaml"
+        - "--logtostderr"
         resources:
           requests:
             cpu: 200m

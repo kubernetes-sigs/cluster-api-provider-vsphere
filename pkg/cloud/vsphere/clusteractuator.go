@@ -194,7 +194,6 @@ func (ca *ClusterActuator) updateClusterAPIStatus(cluster *clusterv1.Cluster, ne
 
 	_, err = ca.clusterV1alpha1.Clusters(ncluster.Namespace).UpdateStatus(ncluster)
 	if err != nil {
-		glog.Infof("Error in updating the cluster api status from [%s] to [%s]: %s", oldProviderStatus.APIStatus, newStatus, err)
 		return err
 	}
 	return nil

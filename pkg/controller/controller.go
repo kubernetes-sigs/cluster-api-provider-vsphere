@@ -59,6 +59,10 @@ func getSharedInformerFactory(m manager.Manager) externalversions.SharedInformer
 
 	doOnce.Do(func() {
 		siFactory = externalversions.NewSharedInformerFactory(client, 10*time.Second)
+		// Call informers that we care about so they can be monitored when we call Start() below.
+		// The generated factory code doesn't mention this, but it's necessary.
+		siFactory.Cluster().V1alpha1().Clusters().Informer()
+		siFactory.Cluster().V1alpha1().Machines().Informer()
 		siFactory.Start(siStopper)
 	})
 

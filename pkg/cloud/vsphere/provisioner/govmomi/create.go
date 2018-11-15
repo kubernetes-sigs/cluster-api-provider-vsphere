@@ -485,6 +485,7 @@ func (pv *Provisioner) getCloudProviderConfig(cluster *clusterv1.Cluster, machin
 		return "", err
 	}
 
+	// TODO(ssurana): revisit once we solve https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/60
 	cpc := vpshereprovisionercommon.CloudProviderConfigTemplate{
 		Datacenter:   machineconfig.MachineSpec.Datacenter,
 		Server:       clusterConfig.VsphereServer,
@@ -499,7 +500,6 @@ func (pv *Provisioner) getCloudProviderConfig(cluster *clusterv1.Cluster, machin
 		cpc.Network = machineconfig.MachineSpec.Networks[0].NetworkName
 	}
 
-	// TODO(ssurana): revisit once we solve https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/60
 	cloudProviderConfig, err := vpshereprovisionercommon.GetCloudProviderConfigConfig(cpc)
 	if err != nil {
 		return "", err

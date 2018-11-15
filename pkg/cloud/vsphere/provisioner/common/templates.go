@@ -480,7 +480,7 @@ KUBEADM=$(getversion kubeadm ${KUBELET_VERSION}-)
 # Explicit cni version is a temporary workaround till the right version can be automatically detected correctly
 apt-get install -y \
     kubelet=${KUBELET} \
-    kubeadm=${KUBEADM}
+    kubeadm=${KUBEADM} 
 
 mv /usr/bin/kubeadm.dl /usr/bin/kubeadm
 chmod a+rx /usr/bin/kubeadm

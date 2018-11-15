@@ -60,30 +60,20 @@ func GetMachineProviderStatus(machine *clusterv1.Machine) (*vsphereconfigv1.Vsph
 	status := &vsphereconfigv1.VsphereMachineProviderStatus{}
 	err := json.Unmarshal(machine.Status.ProviderStatus.Raw, status)
 	if err != nil {
+		glog.V(4).Infof("error unmarshaling machine provider status: %s", err.Error())
 		return nil, err
 	}
 	return status, nil
 }
 
 func GetClusterProviderStatus(cluster *clusterv1.Cluster) (*vsphereconfigv1.VsphereClusterProviderStatus, error) {
-	if cluster != nil {
-		glog.V(4).Infof("GetClusterProviderStatus - cluster = %#v", cluster)
-		glog.V(4).Infof("GetClusterProviderStatus - cluster.status = %#v", cluster.Status)
-		if cluster.Status.ProviderStatus != nil {
-			glog.V(4).Infof("GetClusterProviderStatus - cluster.status.ProviderStatus = %#v", cluster.Status.ProviderStatus)
-		}
-	} else {
-		glog.V(4).Info("GetClusterProviderStatus - cluster is nil")
-	}
-
 	if cluster.Status.ProviderStatus == nil {
 		return nil, nil
 	}
-
 	status := &vsphereconfigv1.VsphereClusterProviderStatus{}
 	err := json.Unmarshal(cluster.Status.ProviderStatus.Raw, status)
 	if err != nil {
-		glog.V(4).Infof("unmarshaling provider status = %#v", status)
+		glog.V(4).Infof("error unmarshaling cluster provider status: %s", err.Error())
 
 		return nil, err
 	}
@@ -91,18 +81,6 @@ func GetClusterProviderStatus(cluster *clusterv1.Cluster) (*vsphereconfigv1.Vsph
 }
 
 func GetMachineProviderConfig(providerConfig clusterv1.ProviderConfig) (*vsphereconfigv1.VsphereMachineProviderConfig, error) {
-	//_, codecFactory, err := vsphereconfigv1.NewSchemeAndCodecs()
-	//if err != nil {
-	//	return nil, err
-	//}
-	//obj, gvk, err := codecFactory.UniversalDecoder().Decode(providerConfig.Value.Raw, nil, nil)
-	//if err != nil {
-	//	return nil, fmt.Errorf("machine providerconfig decoding failure: %v", err)
-	//}
-	//config, ok := obj.(*vsphereconfigv1.VsphereMachineProviderConfig)
-	//if !ok {
-	//	return nil, fmt.Errorf("machine providerconfig failure to cast to vsphere; type: %v", gvk)
-	//}
 	config := &vsphereconfigv1.VsphereMachineProviderConfig{}
 
 	err := yaml.Unmarshal(providerConfig.Value.Raw, config)
@@ -113,18 +91,6 @@ func GetMachineProviderConfig(providerConfig clusterv1.ProviderConfig) (*vsphere
 }
 
 func GetClusterProviderConfig(providerConfig clusterv1.ProviderConfig) (*vsphereconfigv1.VsphereClusterProviderConfig, error) {
-	//_, codecFactory, err := vsphereconfigv1.NewSchemeAndCodecs()
-	//if err != nil {
-	//	return nil, err
-	//}
-	//obj, gvk, err := codecFactory.UniversalDecoder().Decode(providerConfig.Value.Raw, nil, nil)
-	//if err != nil {
-	//	return nil, fmt.Errorf("cluster providerconfig decoding failure: %v", err)
-	//}
-	//config, ok := obj.(*vsphereconfigv1.VsphereClusterProviderConfig)
-	//if !ok {
-	//	return nil, fmt.Errorf("cluster providerconfig failure to cast to vsphere; type: %v", gvk)
-	//}
 	config := &vsphereconfigv1.VsphereClusterProviderConfig{}
 
 	err := yaml.Unmarshal(providerConfig.Value.Raw, config)

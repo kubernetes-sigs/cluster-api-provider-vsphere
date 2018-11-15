@@ -49,10 +49,6 @@ func NewGovmomiMachineActuator(m manager.Manager, clusterV1alpha1 clusterv1alpha
 		glog.Fatalf("Invalid API configuration for kubeconfig-control: %v", err)
 	}
 
-	//scheme, _, err := vsphereconfigv1.NewSchemeAndCodecs()
-	//if err != nil {
-	//	return nil, err
-	//}
 	provisioner, err := govmomi.New(clusterClient.ClusterV1alpha1(), k8sClient, lister, eventRecorder)
 	if err != nil {
 		return nil, err
@@ -67,11 +63,6 @@ func NewGovmomiMachineActuator(m manager.Manager, clusterV1alpha1 clusterv1alpha
 }
 
 func NewTerraformMachineActuator(m manager.Manager, clusterV1alpha1 clusterv1alpha1.ClusterV1alpha1Interface, lister v1alpha1.Interface, eventRecorder record.EventRecorder, namedMachinePath string) (*VsphereClient, error) {
-	//scheme, _, err := vsphereconfigv1.NewSchemeAndCodecs()
-	//if err != nil {
-	//	return nil, err
-	//}
-
 	deploymentClient := NewDeploymentClient()
 	provisioner, err := terraform.New(clusterV1alpha1, lister, eventRecorder, namedMachinePath, deploymentClient)
 	if err != nil {

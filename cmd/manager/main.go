@@ -22,7 +22,6 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
 
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/controller"
 	clusterapis "sigs.k8s.io/cluster-api/pkg/apis"

@@ -93,6 +93,7 @@ func (ca *ClusterActuator) Reconcile(cluster *clusterv1.Cluster) error {
 func (ca *ClusterActuator) updateK8sAPIStatus(cluster *clusterv1.Cluster) error {
 	currentClusterAPIStatus, err := ca.getClusterAPIStatus(cluster)
 	if err != nil {
+		glog.V(4).Infof("ClusterActuator failed to get cluster status: %s", err.Error())
 		return err
 	}
 	return ca.updateClusterAPIStatus(cluster, currentClusterAPIStatus)
@@ -194,6 +195,7 @@ func (ca *ClusterActuator) updateClusterAPIStatus(cluster *clusterv1.Cluster, ne
 
 	_, err = ca.clusterV1alpha1.Clusters(ncluster.Namespace).UpdateStatus(ncluster)
 	if err != nil {
+		glog.V(4).Infof("ClusterActuator failed to update the cluster status: %s", err.Error())
 		return err
 	}
 	return nil

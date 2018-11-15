@@ -54,7 +54,6 @@ func init() {
 		actuator, err := vsphere.NewGovmomiMachineActuator(m, client.ClusterV1alpha1(), machineClientSet, informer, machineEventRecorder)
 		if err != nil {
 			glog.Fatalf("Could not create vSphere machine actuator: %v", err)
-			return err
 		}
 
 		return machine.AddWithActuator(m, actuator)

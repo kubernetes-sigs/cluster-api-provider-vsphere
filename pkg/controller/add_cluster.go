@@ -53,7 +53,6 @@ func init() {
 		actuator, err := vsphere.NewClusterActuator(client.ClusterV1alpha1(), clusterClientSet, informer, clusterEventRecorder)
 		if err != nil {
 			glog.Fatalf("Could not create vSphere cluster actuator: %v", err)
-			return err
 		}
 
 		return cluster.AddWithActuator(m, actuator)

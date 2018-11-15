@@ -382,6 +382,8 @@ apt-get install -y kubelet=${KUBELET} kubeadm=${KUBEADM} kubectl=${KUBECTL}
 TOKEN={{ .Token }}
 MASTER={{ index .Cluster.Status.APIEndpoints 0 | endpoint }}
 MACHINE={{ .Machine.ObjectMeta.Namespace }}/{{ .Machine.ObjectMeta.Name }}
+NODE_LABEL_OPTION={{ if .Machine.Spec.Labels }}--node-labels={{ labelMap .Machine.Spec.Labels }}{{ end }}
+NODE_TAINTS_OPTION={{ if .Machine.Spec.Taints }}--register-with-taints={{ taintMap .Machine.Spec.Taints }}{{ end }}
 
 # Disable swap otherwise kubelet won't run
 swapoff -a
@@ -469,6 +471,8 @@ CONTROL_PLANE_VERSION={{ .Machine.Spec.Versions.ControlPlane }}
 CLUSTER_DNS_DOMAIN={{ .Cluster.Spec.ClusterNetwork.ServiceDomain }}
 POD_CIDR={{ getSubnet .Cluster.Spec.ClusterNetwork.Pods }}
 SERVICE_CIDR={{ getSubnet .Cluster.Spec.ClusterNetwork.Services }}
+NODE_LABEL_OPTION={{ if .Machine.Spec.Labels }}--node-labels={{ labelMap .Machine.Spec.Labels }}{{ end }}
+NODE_TAINTS_OPTION={{ if .Machine.Spec.Taints }}--register-with-taints={{ taintMap .Machine.Spec.Taints }}{{ end }}
 
 # Disable swap otherwise kubelet won't run
 swapoff -a

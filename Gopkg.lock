@@ -785,12 +785,8 @@
   revision = "a9a16210091c9a2b6a937e06a182955c03654c4c"
 
 [[projects]]
-<<<<<<< HEAD
-  digest = "1:797d85ec2636b83dafa570b602919912108b913b34e213c9205214361bab722a"
-=======
   branch = "master"
   digest = "1:6b7a77993317b22949361ac6da302af3c0fe959180a84df11ee206bbc9a9b73d"
->>>>>>> Dep ensure to get latest vendor code
   name = "sigs.k8s.io/cluster-api"
   packages = [
     "cmd/clusterctl/clientcmd",
@@ -901,18 +897,15 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
-<<<<<<< HEAD
     "github.com/cenkalti/backoff",
     "github.com/ghodss/yaml",
     "github.com/golang/glog",
     "github.com/google/uuid",
     "github.com/kubernetes-incubator/apiserver-builder/pkg/controller",
-=======
     "github.com/emicklei/go-restful",
     "github.com/golang/glog",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
->>>>>>> Dep ensure to get latest vendor code
     "github.com/spf13/pflag",
     "github.com/vmware/govmomi",
     "github.com/vmware/govmomi/find",

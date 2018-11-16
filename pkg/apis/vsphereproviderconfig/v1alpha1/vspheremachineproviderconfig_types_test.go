@@ -35,9 +35,8 @@ func TestStorageVsphereMachineProviderConfig(t *testing.T) {
 			Name:      "foo",
 			Namespace: "default",
 		},
-		VsphereMachine:   "machine",
-		MachineRef:       "ref123",
-		MachineVariables: map[string]string{"a": "b"},
+		VsphereMachine: "machine",
+		MachineRef:     "ref123",
 		MachineSpec: VsphereMachineSpec{
 			Datacenter:   "dc1",
 			Datastore:    "ds1",

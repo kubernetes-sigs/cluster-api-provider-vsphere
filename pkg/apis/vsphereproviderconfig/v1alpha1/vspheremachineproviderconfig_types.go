@@ -44,8 +44,7 @@ type VsphereMachineProviderConfig struct {
 	VsphereMachine string `json:"vsphereMachine"`
 	MachineRef     string `json:"machineRef,omitempty"`
 	// List of variables for the chosen machine.
-	MachineVariables map[string]string  `json:"machineVariables"`
-	MachineSpec      VsphereMachineSpec `json:"machineSpec,omitempty"`
+	MachineSpec VsphereMachineSpec `json:"machineSpec,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

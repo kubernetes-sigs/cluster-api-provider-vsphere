@@ -17,32 +17,21 @@ spec:
           apiVersion: "vsphereproviderconfig/v1alpha1"
           kind: "VsphereMachineProviderConfig"
           vsphereMachine: "standard-node"
-          machineVariables:
+          machineSpec:
             datacenter: ""
             datastore: ""
-            resource_pool: ""
-            network: ""
-            num_cpus: "2"
-            memory: "2048"
-            vm_template: ""
-            disk_label: ""
-            disk_size: ""
-            virtual_machine_domain: ""
-          # machineSpec:
-          #   datacenter: ""
-          #   datastore: ""
-          #   resourcePool: ""
-          #   networks:
-          #   - networkName: ""
-          #     ipConfig:
-          #       networkType: dhcp
-          #   numCPUs: 2
-          #   memoryMB: 2048
-          #   template: ""
-          #   disks:
-          #   - diskLabel: ""
-          #     diskSizeGB: 20
-          #   preloaded: false
+            resourcePool: ""
+            networks:
+            - networkName: ""
+              ipConfig:
+                networkType: dhcp
+            numCPUs: 2
+            memoryMB: 2048
+            template: ""
+            disks:
+            - diskLabel: ""
+              diskSizeGB: 20
+            preloaded: false
       versions:
         kubelet: 1.10.1
       roles:

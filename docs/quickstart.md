@@ -24,8 +24,8 @@ $> make
 $> cd out
 $> sudo cp ./minikube /usr/local/bin  (on linux)
    sudo cp ./minikube-darwin-amd64 /usr/local/bin/minikube (on Mac)
-   
-   
+
+
 $> export LATEST_VERSION=$(curl -L -s -H 'Accept: application/json' https://github.com/machine-drivers/docker-machine-driver-vmware/releases/latest | sed -e 's/.*"tag_name":"\([^"]*\)".*/\1/') \
    && curl -L -o docker-machine-driver-vmware https://github.com/machine-drivers/docker-machine-driver-vmware/releases/download/$LATEST_VERSION/docker-machine-driver-vmware_darwin_amd64 \
    && chmod +x docker-machine-driver-vmware \
@@ -37,8 +37,8 @@ $> export LATEST_VERSION=$(curl -L -s -H 'Accept: application/json' https://gith
 To run clusterctl on vCenter, you must build the CLI from this repo.  The following instruction assumes $GOPATH is defined and $GOPATH/bin is in your current path.
 
 ```
-$> git clone https://github.com/kubernetes-sigs/cluster-api-provider-vsphere $GOPATH/src/sigs.k8s.io/cluster-api-provider-vsphere
-$> cd $GOPATH/src/sigs.k8s.io/cluster-api-provider-vsphere/clusterctl
+$> go get sigs.k8s.io/cluster-api-provider-vsphere
+$> cd $GOPATH/src/sigs.k8s.io/cluster-api-provider-vsphere/cmd/clusterctl
 $> go build && go install
 ```
 
@@ -54,7 +54,7 @@ The current cluster api components and clusterctl CLI assumes two preconditions:
 
 ### Prepare cluster definition files
 
-In *$GOPATH/src/sigs.k8s.io/cluster-api-provider-vsphere/clusterctl/examples/vsphere*, there are some example definition files. There is also a generate-yaml.sh file.  Run the generate script and copy the .template file to the same name without the .template extensions.
+In *$GOPATH/src/sigs.k8s.io/cluster-api-provider-vsphere/cmd/clusterctl/examples/vsphere*, there are some example definition files. There is also a generate-yaml.sh file.  Run the generate script and copy the .template file to the same name without the .template extensions.
 ```
 $> ./generate-yaml.sh
 $> cp cluster.yaml.template cluster.yaml

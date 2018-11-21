@@ -24,7 +24,7 @@ import (
 	"text/template"
 
 	corev1 "k8s.io/api/core/v1"
-	vsphereconfig "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig"
+	vsphereconfigv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
 	vsphereutils "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/utils"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
@@ -140,7 +140,7 @@ func init() {
 }
 
 // Returns the startup script for the nodes.
-func GetCloudInitMetaData(name string, params *vsphereconfig.VsphereMachineProviderConfig) (string, error) {
+func GetCloudInitMetaData(name string, params *vsphereconfigv1.VsphereMachineProviderConfig) (string, error) {
 	var buf bytes.Buffer
 	param := CloudInitMetadataNetworkTemplate{
 		Networks: params.MachineSpec.Networks,
@@ -198,7 +198,7 @@ type CloudInitTemplate struct {
 }
 
 type CloudInitMetadataNetworkTemplate struct {
-	Networks []vsphereconfig.NetworkSpec
+	Networks []vsphereconfigv1.NetworkSpec
 }
 type CloudInitMetadataTemplate struct {
 	NetworkSpec string
@@ -457,7 +457,7 @@ KUBEADM=$(getversion kubeadm ${KUBELET_VERSION}-)
 # Explicit cni version is a temporary workaround till the right version can be automatically detected correctly
 apt-get install -y \
     kubelet=${KUBELET} \
-    kubeadm=${KUBEADM}
+    kubeadm=${KUBEADM} 
 
 mv /usr/bin/kubeadm.dl /usr/bin/kubeadm
 chmod a+rx /usr/bin/kubeadm

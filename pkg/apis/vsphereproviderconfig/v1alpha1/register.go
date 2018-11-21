@@ -1,5 +1,5 @@
 /*
-Copyright 2017 The Kubernetes Authors.
+Copyright 2018 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,47 +14,25 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// NOTE: Boilerplate only.  Ignore this file.
+
+// Package v1alpha1 contains API Schema definitions for the vsphereproviderconfig v1alpha1 API group
+// +k8s:openapi-gen=true
+// +k8s:deepcopy-gen=package,register
+// +k8s:conversion-gen=sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig
+// +k8s:defaulter-gen=TypeMeta
+// +groupName=vsphereproviderconfig.sigs.k8s.io
 package v1alpha1
 
 import (
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig"
+	"sigs.k8s.io/controller-runtime/pkg/runtime/scheme"
 )
-
-const GroupName = "vsphereproviderconfig"
-
-var SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha1"}
 
 var (
-	SchemeBuilder      runtime.SchemeBuilder
-	localSchemeBuilder = &SchemeBuilder
-	AddToScheme        = localSchemeBuilder.AddToScheme
+	// SchemeGroupVersion is group version used to register these objects
+	SchemeGroupVersion = schema.GroupVersion{Group: "vsphereproviderconfig.sigs.k8s.io", Version: "v1alpha1"}
+
+	// SchemeBuilder is used to add go types to the GroupVersionKind scheme
+	SchemeBuilder = &scheme.Builder{GroupVersion: SchemeGroupVersion}
 )
-
-func init() {
-	localSchemeBuilder.Register(addKnownTypes)
-}
-
-func addKnownTypes(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(SchemeGroupVersion,
-		&VsphereClusterProviderConfig{},
-		&VsphereMachineProviderConfig{},
-		&VsphereClusterProviderStatus{},
-		&VsphereMachineProviderStatus{},
-	)
-	return nil
-}
-
-func NewSchemeAndCodecs() (*runtime.Scheme, *serializer.CodecFactory, error) {
-	scheme := runtime.NewScheme()
-	if err := AddToScheme(scheme); err != nil {
-		return nil, nil, err
-	}
-	if err := vsphereproviderconfig.AddToScheme(scheme); err != nil {
-		return nil, nil, err
-	}
-	codecs := serializer.NewCodecFactory(scheme)
-	return scheme, &codecs, nil
-}

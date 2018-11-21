@@ -15,7 +15,6 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	vsphereconfig "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig"
 	vsphereconfigv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
 	vpshereprovisionercommon "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/provisioner/common"
@@ -27,7 +26,7 @@ import (
 )
 
 func (pv *Provisioner) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
-	glog.V(4).Infof("govmomi.Actuator.Create %s", machine.Spec.Name)
+	glog.V(4).Infof("govmomi.Actuator.Create %s", machine.Name)
 	s, err := pv.sessionFromProviderConfig(cluster, machine)
 	if err != nil {
 		return err
@@ -255,7 +254,7 @@ func (pv *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 	// interested in resizing only a subset of disks and thus we don't want to
 	// force the user to list all the disk and sizes if they don't want to change
 	// all.
-	diskMap := func(diskSpecs []vsphereconfig.DiskSpec) map[string]int64 {
+	diskMap := func(diskSpecs []vsphereconfigv1.DiskSpec) map[string]int64 {
 		diskMap := make(map[string]int64)
 		for _, s := range diskSpecs {
 			diskMap[s.DiskLabel] = s.DiskSizeGB
@@ -485,19 +484,23 @@ func (pv *Provisioner) getCloudProviderConfig(cluster *clusterv1.Cluster, machin
 	if err != nil {
 		return "", err
 	}
+
 	// TODO(ssurana): revisit once we solve https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/60
-	cloudProviderConfig, err := vpshereprovisionercommon.GetCloudProviderConfigConfig(
-		vpshereprovisionercommon.CloudProviderConfigTemplate{
-			Datacenter:   machineconfig.MachineSpec.Datacenter,
-			Server:       clusterConfig.VsphereServer,
-			Insecure:     true, // TODO(ssurana): Needs to be a user input
-			UserName:     clusterConfig.VsphereUser,
-			Password:     clusterConfig.VspherePassword,
-			ResourcePool: machineconfig.MachineSpec.ResourcePool,
-			Datastore:    machineconfig.MachineSpec.Datastore,
-			Network:      machineconfig.MachineSpec.Networks[0].NetworkName,
-		},
-	)
+	cpc := vpshereprovisionercommon.CloudProviderConfigTemplate{
+		Datacenter:   machineconfig.MachineSpec.Datacenter,
+		Server:       clusterConfig.VsphereServer,
+		Insecure:     true, // TODO(ssurana): Needs to be a user input
+		UserName:     clusterConfig.VsphereUser,
+		Password:     clusterConfig.VspherePassword,
+		ResourcePool: machineconfig.MachineSpec.ResourcePool,
+		Datastore:    machineconfig.MachineSpec.Datastore,
+		Network:      "",
+	}
+	if len(machineconfig.MachineSpec.Networks) > 0 {
+		cpc.Network = machineconfig.MachineSpec.Networks[0].NetworkName
+	}
+
+	cloudProviderConfig, err := vpshereprovisionercommon.GetCloudProviderConfigConfig(cpc)
 	if err != nil {
 		return "", err
 	}

@@ -3,6 +3,7 @@ package govmomi
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strings"
 	"time"
@@ -15,6 +16,10 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	apierrors "sigs.k8s.io/cluster-api/pkg/errors"
 	"sigs.k8s.io/cluster-api/pkg/kubeadm"
+)
+
+const (
+	DefaultSSHPublicKeyFile = "/root/.ssh/vsphere_tmp.pub"
 )
 
 func (pv *Provisioner) GetKubeadmToken(cluster *clusterv1.Cluster) (string, error) {
@@ -110,8 +115,17 @@ func (pv *Provisioner) HandleClusterError(cluster *clusterv1.Cluster, err *apier
 }
 
 func (pv *Provisioner) GetSSHPublicKey(cluster *clusterv1.Cluster) (string, error) {
-	// TODO(ssurana): the secret currently is stored in the default namespace. This needs to be changed
-	secret, err := pv.k8sClient.Core().Secrets("default").Get("sshkeys", metav1.GetOptions{})
+	// First try to read the public key file from the mounted secrets volume
+	key, err := ioutil.ReadFile(DefaultSSHPublicKeyFile)
+	if err == nil {
+		return string(key), nil
+	}
+
+	// If the mounted secrets volume not found, try to request it from the API server.
+	// TODO(sflxn): We're trying to pull secrets from the default namespace and with name 'sshkeys'.  With
+	// the CRD changes, this is no longer the case.  These two values are generated from kustomize.  We
+	// need a different way to pass knowledge of the namespace and sshkeys into this container.
+	secret, err := pv.k8sClient.Core().Secrets(cluster.Namespace).Get("sshkeys", metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}

@@ -26,11 +26,11 @@ jobs:
       before_install:
         - DOCKER_PASSWORD=$(echo ${DOCKER_PASSWORD} | base64 -d | gzip -d); export DOCKER_PASSWORD
         - DOCKER_USERNAME=$(echo ${DOCKER_USERNAME} | base64 -d | gzip -d); export DOCKER_USERNAME
+        - GCR_KEY_FILE=$(echo ${GCR_KEY_FILE} | base64 -d | gzip -d); export GCR_KEY_FILE
         - MCID=$(echo ${TRAVIS_COMMIT} | cut -c1-8) && [[ ${TRAVIS_PULL_REQUEST} != "false" ]] && MCID=$(echo ${TRAVIS_PULL_REQUEST_SHA} | cut -c1-8); echo "DEBUG ${TRAVIS_PULL_REQUEST_SHA}"; export MCID; echo "MCID=${MCID}"
       install:
-        - make depend
       script:
-        - VERSION=${MCID} make ci_push
+        - VERSION=${MCID} make ci-push
 
     - stage:    e2e test
       if: |
@@ -45,7 +45,7 @@ jobs:
         - echo "${BOOTSTRAPPER_KEY_FILE}" | base64 -d | gzip -d >ssh/bootstrapper
         - echo "${VMC_INFO}" | base64 -d | gzip -d >vmc_info.env
       script:
-        - docker run --rm -v $(pwd)/ssh:/root/ssh --env-file $(pwd)/vmc_info.env -e VSPHERE_MACHINE_CONTROLLER_REGISTRY="luoh/cluster-api-provider-vsphere:${MCID}" -ti luoh/cluster-api-provider-vsphere-travis-ci:latest
+        - docker run --rm -v $(pwd)/ssh:/root/ssh --env-file $(pwd)/vmc_info.env -e VSPHERE_MACHINE_CONTROLLER_REGISTRY="gcr.io/cnx-cluster-api/vsphere-cluster-api-provider:${MCID}" -e PROVIDER_COMPONENT_SPEC="provider-components-v2.0.yml" -ti luoh/cluster-api-provider-vsphere-travis-ci:latest
       
 branches:
   only:

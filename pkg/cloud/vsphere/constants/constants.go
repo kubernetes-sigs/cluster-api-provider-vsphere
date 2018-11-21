@@ -23,8 +23,8 @@ const (
 	VirtualMachineRef                = "vm-moid"
 	KubeadmToken                     = "k8s-token"
 	KubeadmTokenExpiryTime           = "k8s-token-expiry-time"
-	KubeadmTokenTtl                  = 10 * time.Minute
-	KubeadmTokenLeftTime             = 5 * time.Minute
+	KubeadmTokenTtl                  = 20 * time.Minute
+	KubeadmTokenLeftTime             = 15 * time.Minute
 	RequeueAfterSeconds              = 20 * time.Second
 	KubeConfigSecretName             = "%s-kubeconfig"
 	KubeConfigSecretData             = "admin-kubeconfig"

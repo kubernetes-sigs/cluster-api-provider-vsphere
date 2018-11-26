@@ -119,7 +119,7 @@ ci-yaml:
 	sed -i'' -e 's@image: .*@image: '"$(CI_IMG):$(VERSION)"'@' ./config/default/vsphere_manager_image_patch.yaml
 	cmd/clusterctl/examples/vsphere/generate-yaml.sh
 
-ci-image:
+ci-image: generate fmt vet manifests
 	docker build . -t "$(CI_IMG):$(VERSION)"
 	@echo "updating kustomize image patch file for manager resource"
 	sed -i'' -e 's@image: .*@image: '"$(CI_IMG):$(VERSION)"'@' ./config/default/vsphere_manager_image_patch.yaml

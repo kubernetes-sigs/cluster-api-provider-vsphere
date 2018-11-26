@@ -87,10 +87,6 @@ spec:
           type: object
         metadata:
           type: object
-        vsphereMachine:
-          type: string
-      required:
-      - vsphereMachine
   version: v1alpha1
 status:
   acceptedNames:

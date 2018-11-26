@@ -10,7 +10,6 @@ items:
       value:
         apiVersion: "vsphereproviderconfig/v1alpha1"
         kind: "VsphereMachineProviderConfig"
-        vsphereMachine: "standard-master"
         machineSpec:
           datacenter: ""
           datastore: ""

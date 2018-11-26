@@ -9,17 +9,10 @@ const (
 	VmIpAnnotationKey                = "vm-ip-address"
 	ControlPlaneVersionAnnotationKey = "control-plane-version"
 	KubeletVersionAnnotationKey      = "kubelet-version"
-	LastUpdatedKey                   = "last-updated"
 	CreateEventAction                = "Create"
 	DeleteEventAction                = "Delete"
-	ProviderDatacenter               = "datacenter"
-	ProviderDatastore                = "datastore"
-	ProviderResPool                  = "resource_pool"
-	ProviderNetwork                  = "network"
-	ProviderTemplate                 = "vm_template"
 	DefaultAPITimeout                = 5 * time.Minute
 	VirtualMachineTaskRef            = "current-task-ref"
-	VirtualMachineRef                = "vm-moid"
 	KubeadmToken                     = "k8s-token"
 	KubeadmTokenExpiryTime           = "k8s-token-expiry-time"
 	KubeadmTokenTtl                  = 10 * time.Minute

@@ -39,12 +39,8 @@ type VsphereMachineProviderStatus struct {
 type VsphereMachineProviderConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	// Name of the machine that's registered in the NamedMachines ConfigMap.
-	VsphereMachine string `json:"vsphereMachine"`
-	MachineRef     string `json:"machineRef,omitempty"`
-	// List of variables for the chosen machine.
-	MachineSpec VsphereMachineSpec `json:"machineSpec,omitempty"`
+	MachineRef        string             `json:"machineRef,omitempty"`
+	MachineSpec       VsphereMachineSpec `json:"machineSpec,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

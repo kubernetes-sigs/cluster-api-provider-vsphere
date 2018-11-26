@@ -102,7 +102,6 @@ items:
         value:
           apiVersion: "vsphereproviderconfig/v1alpha1"
           kind: "VsphereMachineProviderConfig"
-          vsphereMachine: "standard-node"
         machineSpec:
           datacenter: "mydc"
           datastore: "mydatastore"

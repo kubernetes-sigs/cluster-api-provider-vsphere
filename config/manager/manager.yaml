@@ -69,8 +69,6 @@ spec:
         - name: sshkeys
           mountPath: /root/.ssh/vsphere_tmp.pub
           subPath: vsphere_tmp.pub
-        - name: named-machines
-          mountPath: /etc/named-machines
         - name: kubeadm
           mountPath: /usr/bin/kubeadm
         env:
@@ -79,7 +77,6 @@ spec:
             fieldRef:
               fieldPath: spec.nodeName
         args:
-        - "--namedmachines=/etc/named-machines/vsphere_named_machines.yaml"
         - "--logtostderr"
         resources:
           requests:
@@ -101,9 +98,6 @@ spec:
         secret:
           defaultMode: 0600
           secretName: machine-sshkeys
-      - name: named-machines
-        configMap:
-          name: named-machines
       - name: kubeadm
         hostPath:
           path: /usr/bin/kubeadm

@@ -11,10 +11,10 @@ For convenience, a generation script which populates templates where possible.
 ./generate-yaml.sh
 ```
 2. To define the master machine, copy `machines.yaml.template` to `machines.yaml` and
-manually edit `machineVariables`.
+manually edit `machineSpec`.
 
 3. To define nodes, copy `machineset.yaml.template` to `machineset.yaml` and
-manually edit `machineVariables`. If needed, adjust `replicas` as well.
+manually edit `machineSpec`. If needed, adjust `replicas` as well.
 
 4. Copy `cluster.yaml.template` to `cluster.yaml` and
 manually edit `providerConfig`.

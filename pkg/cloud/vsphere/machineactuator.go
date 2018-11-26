@@ -26,7 +26,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/provisioner/govmomi"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/provisioner/terraform"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
@@ -38,8 +37,7 @@ import (
 type VsphereClient struct {
 	clusterV1alpha1  clusterv1alpha1.ClusterV1alpha1Interface
 	controllerClient client.Client
-	//scheme          *runtime.Scheme
-	provisioner machine.Actuator
+	provisioner      machine.Actuator
 }
 
 //TODO: remove 2nd arguments
@@ -57,23 +55,7 @@ func NewGovmomiMachineActuator(m manager.Manager, clusterV1alpha1 clusterv1alpha
 	return &VsphereClient{
 		clusterV1alpha1:  clusterV1alpha1,
 		controllerClient: m.GetClient(),
-		//scheme:          scheme,
-		provisioner: provisioner,
-	}, nil
-}
-
-func NewTerraformMachineActuator(m manager.Manager, clusterV1alpha1 clusterv1alpha1.ClusterV1alpha1Interface, lister v1alpha1.Interface, eventRecorder record.EventRecorder, namedMachinePath string) (*VsphereClient, error) {
-	deploymentClient := NewDeploymentClient()
-	provisioner, err := terraform.New(clusterV1alpha1, lister, eventRecorder, namedMachinePath, deploymentClient)
-	if err != nil {
-		return nil, err
-	}
-
-	return &VsphereClient{
-		clusterV1alpha1:  clusterV1alpha1,
-		controllerClient: m.GetClient(),
-		//scheme:          scheme,
-		provisioner: provisioner,
+		provisioner:      provisioner,
 	}, nil
 }
 

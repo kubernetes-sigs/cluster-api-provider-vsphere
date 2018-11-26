@@ -85,15 +85,12 @@ spec:
           - template
           - disks
           type: object
-        machineVariables:
-          type: object
         metadata:
           type: object
         vsphereMachine:
           type: string
       required:
       - vsphereMachine
-      - machineVariables
   version: v1alpha1
 status:
   acceptedNames:

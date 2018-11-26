@@ -157,13 +157,6 @@ func (in *VsphereMachineProviderConfig) DeepCopyInto(out *VsphereMachineProvider
 	*out = *in
 	out.TypeMeta = in.TypeMeta
 	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
-	if in.MachineVariables != nil {
-		in, out := &in.MachineVariables, &out.MachineVariables
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
-	}
 	in.MachineSpec.DeepCopyInto(&out.MachineSpec)
 	return
 }

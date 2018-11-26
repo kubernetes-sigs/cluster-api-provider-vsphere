@@ -33,8 +33,3 @@ secretGenerator:
     vsphere_tmp: "cat ~/.ssh/vsphere_tmp"
     vsphere_tmp.pub: "cat ~/.ssh/vsphere_tmp.pub"
   type: Opaque
-
-configMapGenerator:
-- name: named-machines
-  files:
-  - "../../cmd/clusterctl/examples/vsphere/namedmachines.yaml.template"

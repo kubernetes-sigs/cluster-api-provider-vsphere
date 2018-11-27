@@ -311,7 +311,9 @@ func (pv *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 		nicid--
 	}
 	spec.Config.DeviceChange = deviceSpecs
-	pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Creating", "Creating Machine %v", machine.Name)
+	if pv.eventRecorder != nil { // TODO: currently supporting nil for testing
+		pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Creating", "Creating Machine %v", machine.Name)
+	}
 	task, err := src.Clone(ctx, vmFolder, machine.Name, spec)
 	glog.V(6).Infof("clone VM with spec %v", spec)
 	if err != nil {
@@ -392,6 +394,9 @@ func (pv *Provisioner) setTaskRef(machine *clusterv1.Machine, taskref string) er
 	out, err := json.Marshal(newProviderStatus)
 	newMachine := machine.DeepCopy()
 	newMachine.Status.ProviderStatus = &runtime.RawExtension{Raw: out}
+	if pv.clusterV1alpha1 == nil { // TODO: currently supporting nil for testing
+		return nil
+	}
 	_, err = pv.clusterV1alpha1.Machines(newMachine.Namespace).UpdateStatus(newMachine)
 	if err != nil {
 		glog.Infof("Error in updating the machine ref: %s", err)

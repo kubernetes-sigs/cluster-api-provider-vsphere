@@ -66,7 +66,7 @@ type VsphereMachineSpec struct {
 	Networks         []NetworkSpec `json:"networks"`
 	NumCPUs          int32         `json:"numCPUs,omitempty"`
 	MemoryMB         int64         `json:"memoryMB,omitempty"`
-	VMTemplate       string        `json:"template"`
+	VMTemplate       string        `json:"template" yaml:"template"`
 	Disks            []DiskSpec    `json:"disks"`
 	Preloaded        bool          `json:"preloaded,omitempty"`
 	VsphereCloudInit bool          `json:"vsphereCloudInit,omitempty"`

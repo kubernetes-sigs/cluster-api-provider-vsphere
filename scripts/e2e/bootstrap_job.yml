@@ -1,0 +1,65 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cluster-api-provider-vsphere-ci
+spec:
+  backoffLimit: 4
+  template:
+    spec:
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+      containers:
+      - name: cluster-api-provider-vsphere-ci
+        image: gcr.io/cnx-cluster-api/cluster-api-provider-vsphere-ci:latest
+        env:
+          - name: TARGET_VM_SSH
+            valueFrom:
+              secretKeyRef:
+                name: clusterapi-provider-vsphere-ci-prow
+                key: target-vm-ssh
+          - name: TARGET_VM_SSH_PUB
+            valueFrom:
+              secretKeyRef:
+                name: clusterapi-provider-vsphere-ci-prow
+                key: target-vm-ssh-pub
+          - name: VSPHERE_CONTROLLER_VERSION
+            valueFrom:
+              secretKeyRef:
+                name: clusterapi-provider-vsphere-ci-prow
+                key: vsphere-controller-version
+          - name: PROVIDER_COMPONENT_SPEC
+            valueFrom:
+              secretKeyRef:
+                name: clusterapi-provider-vsphere-ci-prow
+                key: provider-component-spec
+          - name: VSPHERE_SERVER
+            valueFrom:
+              secretKeyRef:
+                name: clusterapi-provider-vsphere-ci-prow
+                key: vsphere-server
+          - name: VSPHERE_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: clusterapi-provider-vsphere-ci-prow
+                key: vsphere-username
+          - name: VSPHERE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: clusterapi-provider-vsphere-ci-prow
+                key: vsphere-password
+        volumeMounts:
+          - name: kube
+            mountPath: /root/.kube
+          - name: sshkeys
+            mountPath: /root/.ssh
+        command:
+        - "./clusterctl.sh"
+      volumes:
+      - name: kube
+        hostPath:
+          path: /home/vmware/.kube
+      - name: sshkeys
+        hostPath:
+          path: /home/vmware/.ssh
+      restartPolicy: Never

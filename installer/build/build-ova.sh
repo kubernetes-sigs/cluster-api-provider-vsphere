@@ -24,10 +24,9 @@ KUBERNETES_DEFAULT_VERSION=$(curl -sSL https://dl.k8s.io/release/stable-1.txt)
 function setenv() {
   tmpvar=$1
   fallback=$2
-  # if a cli argument was specified, it's a local file, gcloud bucket upload, or revision number.
   if [ -n "${!tmpvar}" ]; then
     export $1_VERSION="${!tmpvar}"
-  else   # if a cli argument was NOT specified, use the version specified by $fallback
+  else
     export $1_VERSION="${fallback}"
   fi
 }

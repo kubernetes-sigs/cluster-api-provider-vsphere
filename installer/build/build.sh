@@ -24,8 +24,11 @@ ROOT_WORK_DIR="/go/src/sigs.k8s.io/cluster-api-provider-vsphere"
 ROOT_INSTALLER_DIR="${ROOT_DIR}/installer"
 ROOT_INSTALLER_WORK_DIR="${ROOT_WORK_DIR}/installer"
 
+# TODO(frapposelli): hardcoding version for now, this will be removed once a
+#                    tagging strategy is established for the project
 # TAG=${DRONE_TAG:-$(git describe --abbrev=0 --tags)} # e.g. `v0.9.0`
 TAG="v0.0.1"
+
 REV=$(git rev-parse --short=8 HEAD)
 BUILD_OVA_REVISION="${TAG}-${REV}"
 
@@ -60,9 +63,6 @@ elif [ "$step" == "ova-ci" ]; then
   export BUILD_OVA_REVISION=${BUILD_OVA_REVISION}
   export TAG=${TAG}
   export BUILD_NUMBER=${BUILD_NUMBER}
-  export DRONE_BUILD_NUMBER=${DRONE_BUILD_NUMBER}
-  export DRONE_BUILD_EVENT=${DRONE_BUILD_EVENT}
-  export DRONE_DEPLOY_TO=${DRONE_DEPLOY_TO}
   ./build/build-ova.sh $*
 else
   usage

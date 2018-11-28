@@ -248,7 +248,7 @@ func getMemory() string {
 	si := &syscall.Sysinfo_t{}
 	err := syscall.Sysinfo(si)
 	if err != nil {
-		panic("Austin, we have a problem... syscall.Sysinfo:" + err.Error())
+		panic("panic! could not fetch syscall.Sysinfo struct:" + err.Error())
 	}
 	return fmt.Sprintf("%s Memory", humanize.IBytes(uint64(si.Totalram)))
 }

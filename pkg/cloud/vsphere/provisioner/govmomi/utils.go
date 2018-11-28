@@ -18,7 +18,7 @@ import (
 	"sigs.k8s.io/cluster-api/pkg/kubeadm"
 )
 
-const (
+var (
 	DefaultSSHPublicKeyFile = "/root/.ssh/vsphere_tmp.pub"
 )
 

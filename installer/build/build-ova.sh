@@ -58,7 +58,7 @@ export KUBERNETES_VERSION=${KUBERNETES_VERSION:-}
 EOF
 
 echo -e "--------------------------------------------------
-buidling ova with env...\n
+building ova with env...\n
 $(cat $ENV_FILE | sed 's/export //g')"
 
 echo "--------------------------------------------------"

@@ -2,6 +2,7 @@
 set -euf -o pipefail
 
 echo "Kubernetes version being provisioned: $KUBERNETES_VERSION"
+# TODO(frapposelli): parametrize CNI / CRICTL version
 CNI_VERSION="v0.6.0"
 CRICTL_VERSION="v1.11.1"
 

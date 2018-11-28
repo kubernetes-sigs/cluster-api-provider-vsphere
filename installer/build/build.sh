@@ -56,7 +56,7 @@ if [ "$step" == "ova-dev" ]; then
     -e TAG=${TAG} \
     -e BUILD_NUMBER=${BUILD_NUMBER} \
     -e TERM -w ${ROOT_INSTALLER_WORK_DIR} \
-    docker.io/frapposelli/cluster-api-ova-build:latest ./build/build-ova.sh $*
+    gcr.io/cnx-cluster-api/cluster-api-ova-build:latest ./build/build-ova.sh $*
 elif [ "$step" == "ova-ci" ]; then
   echo "starting ci build..."
   export DEBUG=${DEBUG}

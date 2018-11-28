@@ -17,7 +17,7 @@ set -eu
 OVA_REV=$(git rev-parse --verify --short=8 HEAD)
 IMAGE="cluster-api-ova-build"
 # TODO(frapposelli): find a better home for the build container
-REPO="docker.io/frapposelli/"
+REPO="gcr.io/cnx-cluster-api/"
 
 # `docker build` the build container
 docker build --pull --force-rm --no-cache -t "$IMAGE:$OVA_REV" -f build/container/Dockerfile .
@@ -27,5 +27,5 @@ docker tag "$IMAGE:$OVA_REV" "$REPO$IMAGE:latest"
 docker tag "$IMAGE:$OVA_REV" "$REPO$IMAGE:$OVA_REV"
 
 # push both container tags using gcloud for auth
-# gcloud docker -- push "$REPO$IMAGE:latest"
-# gcloud docker -- push "$REPO$IMAGE:$OVA_REV"
+docker push "$REPO$IMAGE:latest"
+docker push "$REPO$IMAGE:$OVA_REV"

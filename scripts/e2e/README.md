@@ -68,7 +68,7 @@ note: the actual Prow job definition file is at [k8s.io/test-infra](test-infra/c
 the vsphere-machine-controller containers for CI purpose are hosted at   
 `gcr.io/cnx-cluster-api/vsphere-cluster-api-provider`   
 the cluster-api-provider-vsphere-ci hosted at   
-`gcr/cnx-cluster-api/cluster-api-provider-vsphere-ci` 
+`gcr.io/cnx-cluster-api/cluster-api-provider-vsphere-ci` 
 
 
 **Test CI locally (non-Prow)**   

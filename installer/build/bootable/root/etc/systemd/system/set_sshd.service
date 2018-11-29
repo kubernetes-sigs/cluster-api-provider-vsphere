@@ -1,0 +1,10 @@
+[Unit]
+Description=set up sshd service
+Before=sshd.service
+
+[Service]
+Type=oneshot
+ExecStart=/etc/vmware/set_sshd.sh
+
+[Install]
+WantedBy=network-online.target

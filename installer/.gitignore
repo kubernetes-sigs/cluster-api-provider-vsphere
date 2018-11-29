@@ -1,0 +1,6 @@
+bin
+*.gas
+
+build/baseimage/*.img
+build/baseimage/cache/
+build/baseimage/root/installer.env

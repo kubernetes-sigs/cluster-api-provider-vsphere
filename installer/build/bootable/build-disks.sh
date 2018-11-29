@@ -28,22 +28,29 @@ function setup_grub() {
 
   mkdir -p "${root}/boot/grub2"
   ln -sfv grub2 "${root}/boot/grub"
-
   rm -rf "${root}/boot/grub2/fonts"
-  cp "${DIR}/boot/ascii.pf2" "${root}/boot/grub2/"
+  curl -L"#" -o "${root}/boot/grub2/ascii.pf2" https://storage.googleapis.com/cluster-api-provider-vsphere-build/boot/ascii.pf2
   mkdir -p "${root}/boot/grub2/themes/photon"
-  cp "${DIR}/boot/splash.png" "${root}/boot/grub2/themes/photon/photon.png"
-  cp "${DIR}"/boot/terminal_*.tga "${root}/boot/grub2/themes/photon/"
-  cp "${DIR}/boot/theme.txt" "${root}/boot/grub2/themes/photon/"
-
+  curl -L"#" -o "${root}/boot/grub2/themes/photon/photon.png" https://storage.googleapis.com/cluster-api-provider-vsphere-build/boot/splash.png
+  curl -L"#" -o "${root}/boot/grub2/themes/photon/terminal_c.tga" https://storage.googleapis.com/cluster-api-provider-vsphere-build/boot/terminal_c.tga
+  curl -L"#" -o "${root}/boot/grub2/themes/photon/terminal_e.tga" https://storage.googleapis.com/cluster-api-provider-vsphere-build/boot/terminal_e.tga
+  curl -L"#" -o "${root}/boot/grub2/themes/photon/terminal_n.tga" https://storage.googleapis.com/cluster-api-provider-vsphere-build/boot/terminal_n.tga
+  curl -L"#" -o "${root}/boot/grub2/themes/photon/terminal_ne.tga" https://storage.googleapis.com/cluster-api-provider-vsphere-build/boot/terminal_ne.tga
+  curl -L"#" -o "${root}/boot/grub2/themes/photon/terminal_nw.tga" https://storage.googleapis.com/cluster-api-provider-vsphere-build/boot/terminal_nw.tga
+  curl -L"#" -o "${root}/boot/grub2/themes/photon/terminal_s.tga" https://storage.googleapis.com/cluster-api-provider-vsphere-build/boot/terminal_s.tga
+  curl -L"#" -o "${root}/boot/grub2/themes/photon/terminal_se.tga" https://storage.googleapis.com/cluster-api-provider-vsphere-build/boot/terminal_se.tga
+  curl -L"#" -o "${root}/boot/grub2/themes/photon/terminal_sw.tga" https://storage.googleapis.com/cluster-api-provider-vsphere-build/boot/terminal_sw.tga
+  curl -L"#" -o "${root}/boot/grub2/themes/photon/terminal_w.tga" https://storage.googleapis.com/cluster-api-provider-vsphere-build/boot/terminal_w.tga
+  curl -L"#" -o "${root}/boot/grub2/themes/photon/theme.txt" https://storage.googleapis.com/cluster-api-provider-vsphere-build/boot/theme.txt
 
 # EFI Install
   mkdir -p "$root/boot/efi"
   mount -t vfat "${boot_device}" "$root/boot/efi"
-#   cp boot/unifont.pf2 /usr/share/grub/
   grub2-install --target=x86_64-efi --efi-directory="${root}"/boot/efi --bootloader-id=Boot --root-directory="${root}" --recheck
   rm "${root}/boot/efi/EFI/Boot/grubx64.efi"
-  cp "${DIR}"/EFI/BOOT/* "${root}/boot/efi/EFI/Boot/"
+  
+  curl -L"#" -o "${root}/boot/efi/EFI/Boot/bootx64.efi" https://storage.googleapis.com/cluster-api-provider-vsphere-build/EFI/BOOT/bootx64.efi
+  curl -L"#" -o "${root}/boot/efi/EFI/Boot/grubx64.efi" https://storage.googleapis.com/cluster-api-provider-vsphere-build/EFI/BOOT/grubx64.efi
   mkdir -p "${root}/boot/efi/boot/grub2"
 
   log3 "configure grub"

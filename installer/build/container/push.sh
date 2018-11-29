@@ -16,7 +16,6 @@ set -eu
 
 OVA_REV=$(git rev-parse --verify --short=8 HEAD)
 IMAGE="cluster-api-ova-build"
-# TODO(frapposelli): find a better home for the build container
 REPO="gcr.io/cnx-cluster-api/"
 
 # `docker build` the build container

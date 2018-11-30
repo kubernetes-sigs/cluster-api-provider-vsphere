@@ -35,14 +35,14 @@ func init() {
 
 		client, err := clientset.NewForConfig(m.GetConfig())
 		if err != nil {
-			glog.Fatalf("Invalid API configuration for kubeconfig-control: %v", err)
+			glog.Fatalf("Failed to create clientset: %v", err)
 		}
 
 		machineClientSet, err := kubernetes.NewForConfig(
 			rest.AddUserAgent(m.GetConfig(), "machine-controller-manager"),
 		)
 		if err != nil {
-			glog.Fatalf("Invalid API configuration for kubeconfig-control: %v", err)
+			glog.Fatalf("Failed to create client: %v", err)
 		}
 
 		machineEventRecorder, err := createRecorder(machineClientSet, "machine-controller-manager")

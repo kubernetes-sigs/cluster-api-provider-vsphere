@@ -1,6 +1,7 @@
 package source
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"go/ast"
@@ -14,7 +15,7 @@ import (
 type CompletionItem struct {
 	Label, Detail string
 	Kind          CompletionItemKind
-	Score         int
+	Score         float64
 }
 
 type CompletionItemKind int
@@ -33,18 +34,19 @@ const (
 	PackageCompletionItem
 )
 
-func Completion(ctx context.Context, f *File, pos token.Pos) ([]CompletionItem, error) {
+func Completion(ctx context.Context, f *File, pos token.Pos) ([]CompletionItem, string, error) {
 	file, err := f.GetAST()
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	pkg, err := f.GetPackage()
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
-	items, _, err := completions(file, pos, pkg.Fset, pkg.Types, pkg.TypesInfo)
-	return items, err
+	return completions(file, pos, pkg.Fset, pkg.Types, pkg.TypesInfo)
 }
+
+const stdScore float64 = 1.0
 
 type finder func(types.Object, float64, []CompletionItem) []CompletionItem
 
@@ -88,7 +90,7 @@ func completions(file *ast.File, pos token.Pos, fset *token.FileSet, pkg *types.
 		if !seen[obj] {
 			seen[obj] = true
 			if typ != nil && matchingTypes(typ, obj.Type()) {
-				weight *= 10
+				weight *= 10.0
 			}
 			item := formatCompletion(obj, pkgStringer, weight, func(v *types.Var) bool {
 				return isParameter(sig, v)
@@ -102,7 +104,6 @@ func completions(file *ast.File, pos token.Pos, fset *token.FileSet, pkg *types.
 	if items, ok := complit(path, pos, pkg, info, found); ok {
 		return items, "", nil
 	}
-
 	switch n := path[0].(type) {
 	case *ast.Ident:
 		// Set the filter prefix.
@@ -110,7 +111,8 @@ func completions(file *ast.File, pos token.Pos, fset *token.FileSet, pkg *types.
 
 		// Is this the Sel part of a selector?
 		if sel, ok := path[1].(*ast.SelectorExpr); ok && sel.Sel == n {
-			return selector(sel, info, found)
+			items, err = selector(sel, pos, info, found)
+			return items, prefix, err
 		}
 		// reject defining identifiers
 		if obj, ok := info.Defs[n]; ok {
@@ -132,10 +134,12 @@ func completions(file *ast.File, pos token.Pos, fset *token.FileSet, pkg *types.
 	//   recv.‸(arg)
 	case *ast.TypeAssertExpr:
 		// Create a fake selector expression.
-		return selector(&ast.SelectorExpr{X: n.X}, info, found)
+		items, err = selector(&ast.SelectorExpr{X: n.X}, pos, info, found)
+		return items, prefix, err
 
 	case *ast.SelectorExpr:
-		return selector(n, info, found)
+		items, err = selector(n, pos, info, found)
+		return items, prefix, err
 
 	default:
 		// fallback to lexical completions
@@ -148,7 +152,7 @@ func completions(file *ast.File, pos token.Pos, fset *token.FileSet, pkg *types.
 // selector finds completions for
 // the specified selector expression.
 // TODO(rstambler): Set the prefix filter correctly for selectors.
-func selector(sel *ast.SelectorExpr, info *types.Info, found finder) (items []CompletionItem, prefix string, err error) {
+func selector(sel *ast.SelectorExpr, pos token.Pos, info *types.Info, found finder) (items []CompletionItem, err error) {
 	// Is sel a qualified identifier?
 	if id, ok := sel.X.(*ast.Ident); ok {
 		if pkgname, ok := info.Uses[id].(*types.PkgName); ok {
@@ -157,38 +161,38 @@ func selector(sel *ast.SelectorExpr, info *types.Info, found finder) (items []Co
 			scope := pkgname.Imported().Scope()
 			// TODO testcase: bad import
 			for _, name := range scope.Names() {
-				items = found(scope.Lookup(name), 1, items)
+				items = found(scope.Lookup(name), stdScore, items)
 			}
-			return items, prefix, nil
+			return items, nil
 		}
 	}
 
 	// Inv: sel is a true selector.
 	tv, ok := info.Types[sel.X]
 	if !ok {
-		return nil, "", fmt.Errorf("cannot resolve %s", sel.X)
+		return nil, fmt.Errorf("cannot resolve %s", sel.X)
 	}
 
 	// methods of T
 	mset := types.NewMethodSet(tv.Type)
 	for i := 0; i < mset.Len(); i++ {
-		items = found(mset.At(i).Obj(), 1, items)
+		items = found(mset.At(i).Obj(), stdScore, items)
 	}
 
 	// methods of *T
 	if tv.Addressable() && !types.IsInterface(tv.Type) && !isPointer(tv.Type) {
 		mset := types.NewMethodSet(types.NewPointer(tv.Type))
 		for i := 0; i < mset.Len(); i++ {
-			items = found(mset.At(i).Obj(), 1, items)
+			items = found(mset.At(i).Obj(), stdScore, items)
 		}
 	}
 
 	// fields of T
 	for _, f := range fieldSelections(tv.Type) {
-		items = found(f, 1, items)
+		items = found(f, stdScore, items)
 	}
 
-	return items, prefix, nil
+	return items, nil
 }
 
 // lexical finds completions in the lexical environment.
@@ -233,7 +237,7 @@ func lexical(path []ast.Node, pos token.Pos, pkg *types.Package, info *types.Inf
 				}
 			}
 
-			score := 1.0
+			score := stdScore
 			// Rank builtins significantly lower than other results.
 			if scope == types.Universe {
 				score *= 0.1
@@ -339,7 +343,7 @@ func complit(path []ast.Node, pos token.Pos, pkg *types.Package, info *types.Inf
 					structPkg = field.Pkg()
 				}
 				if !addedFields[field] {
-					items = found(field, 10, items)
+					items = found(field, 10.0, items)
 				}
 			}
 			// Add lexical completions if the user hasn't typed a key value expression
@@ -415,6 +419,7 @@ func formatCompletion(obj types.Object, qualifier types.Qualifier, score float64
 		Label:  label,
 		Detail: detail,
 		Kind:   kind,
+		Score:  score,
 	}
 }
 
@@ -437,7 +442,7 @@ func formatType(typ types.Type, qualifier types.Qualifier) (detail string, kind 
 
 // formatParams correctly format the parameters of a function.
 func formatParams(t *types.Tuple, variadic bool, qualifier types.Qualifier) string {
-	var b strings.Builder
+	var b bytes.Buffer
 	b.WriteByte('(')
 	for i := 0; i < t.Len(); i++ {
 		if i > 0 {
@@ -486,14 +491,14 @@ func qualifier(f *ast.File, pkg *types.Package, info *types.Info) types.Qualifie
 		}
 	}
 	// Define qualifier to replace full package paths with names of the imports.
-	return func(pkg *types.Package) string {
-		if pkg == pkg {
+	return func(p *types.Package) string {
+		if p == pkg {
 			return ""
 		}
-		if name, ok := imports[pkg]; ok {
+		if name, ok := imports[p]; ok {
 			return name
 		}
-		return pkg.Name()
+		return p.Name()
 	}
 }
 

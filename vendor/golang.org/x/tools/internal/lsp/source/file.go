@@ -8,8 +8,9 @@ import (
 	"fmt"
 	"go/ast"
 	"go/token"
-	"golang.org/x/tools/go/packages"
 	"io/ioutil"
+
+	"golang.org/x/tools/go/packages"
 )
 
 // File holds all the information we know about a file.
@@ -30,6 +31,13 @@ type File struct {
 type Range struct {
 	Start token.Pos
 	End   token.Pos
+}
+
+// TextEdit represents a change to a section of a document.
+// The text within the specified range should be replaced by the supplied new text.
+type TextEdit struct {
+	Range   Range
+	NewText string
 }
 
 // SetContent sets the overlay contents for a file.

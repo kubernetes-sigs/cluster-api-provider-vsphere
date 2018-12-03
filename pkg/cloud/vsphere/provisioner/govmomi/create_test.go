@@ -17,6 +17,7 @@ limitations under the License.
 package govmomi
 
 import (
+	"context"
 	"crypto/tls"
 	"log"
 	"reflect"
@@ -73,7 +74,7 @@ func TestCreate(t *testing.T) {
 			},
 		},
 		Spec: v1alpha1.ClusterSpec{
-			ProviderConfig: v1alpha1.ProviderConfig{
+			ProviderSpec: v1alpha1.ProviderSpec{
 				Value: &runtime.RawExtension{
 					Raw: raw,
 				},
@@ -138,7 +139,7 @@ func TestCreate(t *testing.T) {
 			Name: "machine1",
 		},
 		Spec: v1alpha1.MachineSpec{
-			ProviderConfig: v1alpha1.ProviderConfig{
+			ProviderSpec: v1alpha1.ProviderSpec{
 				Value: &runtime.RawExtension{
 					Raw: raw,
 				},
@@ -156,7 +157,7 @@ func TestCreate(t *testing.T) {
 
 	DefaultSSHPublicKeyFile = "create_test.go" // any file will avoid the k8s client path in GetSSHPublicKey()
 
-	err = p.Create(cluster, machine)
+	err = p.Create(context.Background(), cluster, machine)
 	if err != nil {
 		log.Fatal(err)
 	}

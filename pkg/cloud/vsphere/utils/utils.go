@@ -80,20 +80,20 @@ func GetClusterProviderStatus(cluster *clusterv1.Cluster) (*vsphereconfigv1.Vsph
 	return status, nil
 }
 
-func GetMachineProviderConfig(providerConfig clusterv1.ProviderConfig) (*vsphereconfigv1.VsphereMachineProviderConfig, error) {
+func GetMachineProviderSpec(providerSpec clusterv1.ProviderSpec) (*vsphereconfigv1.VsphereMachineProviderConfig, error) {
 	config := &vsphereconfigv1.VsphereMachineProviderConfig{}
 
-	err := yaml.Unmarshal(providerConfig.Value.Raw, config)
+	err := yaml.Unmarshal(providerSpec.Value.Raw, config)
 	if err != nil {
 		return nil, fmt.Errorf("machine providerconfig unmarshalling failure: %s", err.Error())
 	}
 	return config, nil
 }
 
-func GetClusterProviderConfig(providerConfig clusterv1.ProviderConfig) (*vsphereconfigv1.VsphereClusterProviderConfig, error) {
+func GetClusterProviderSpec(providerSpec clusterv1.ProviderSpec) (*vsphereconfigv1.VsphereClusterProviderConfig, error) {
 	config := &vsphereconfigv1.VsphereClusterProviderConfig{}
 
-	err := yaml.Unmarshal(providerConfig.Value.Raw, config)
+	err := yaml.Unmarshal(providerSpec.Value.Raw, config)
 	if err != nil {
 		return nil, fmt.Errorf("cluster providerconfig unmarshalling failure: %s", err.Error())
 	}
@@ -109,7 +109,7 @@ func GetSubnet(netRange clusterv1.NetworkRanges) string {
 }
 
 func GetVMId(machine *clusterv1.Machine) (string, error) {
-	pc, err := GetMachineProviderConfig(machine.Spec.ProviderConfig)
+	pc, err := GetMachineProviderSpec(machine.Spec.ProviderSpec)
 	if err != nil {
 		return "", err
 	}

@@ -9729,7 +9729,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.apimachinery.pkg.apis.meta.v1.MicroTime
-  scalar: string
+  untyped: {}
 - name: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
   struct:
     fields:
@@ -9895,7 +9895,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.apimachinery.pkg.apis.meta.v1.Time
-  scalar: string
+  untyped: {}
 - name: io.k8s.apimachinery.pkg.apis.meta.v1.WatchEvent
   struct:
     fields:

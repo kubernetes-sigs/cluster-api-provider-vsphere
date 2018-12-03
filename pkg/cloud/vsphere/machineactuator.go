@@ -17,6 +17,7 @@ limitations under the License.
 package vsphere
 
 import (
+	"context"
 	"fmt"
 
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -59,9 +60,9 @@ func NewGovmomiMachineActuator(m manager.Manager, clusterV1alpha1 clusterv1alpha
 	}, nil
 }
 
-func (vc *VsphereClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+func (vc *VsphereClient) Create(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	if vc.provisioner != nil {
-		err := vc.provisioner.Create(cluster, machine)
+		err := vc.provisioner.Create(ctx, cluster, machine)
 		if err != nil {
 			glog.Error(err)
 			return err
@@ -72,25 +73,25 @@ func (vc *VsphereClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.M
 	return fmt.Errorf("No provisioner available")
 }
 
-func (vc *VsphereClient) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+func (vc *VsphereClient) Delete(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	if vc.provisioner != nil {
-		return vc.provisioner.Delete(cluster, machine)
+		return vc.provisioner.Delete(ctx, cluster, machine)
 	}
 
 	return fmt.Errorf("No provisioner available")
 }
 
-func (vc *VsphereClient) Update(cluster *clusterv1.Cluster, goalMachine *clusterv1.Machine) error {
+func (vc *VsphereClient) Update(ctx context.Context, cluster *clusterv1.Cluster, goalMachine *clusterv1.Machine) error {
 	if vc.provisioner != nil {
-		return vc.provisioner.Update(cluster, goalMachine)
+		return vc.provisioner.Update(ctx, cluster, goalMachine)
 	}
 
 	return fmt.Errorf("No provisioner available")
 }
 
-func (vc *VsphereClient) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
+func (vc *VsphereClient) Exists(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
 	if vc.provisioner != nil {
-		return vc.provisioner.Exists(cluster, machine)
+		return vc.provisioner.Exists(ctx, cluster, machine)
 	}
 
 	return false, fmt.Errorf("No provisioner available")

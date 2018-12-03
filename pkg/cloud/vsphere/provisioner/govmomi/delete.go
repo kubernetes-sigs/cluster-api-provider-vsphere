@@ -16,15 +16,15 @@ import (
 )
 
 // Delete the machine
-func (pv *Provisioner) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+func (pv *Provisioner) Delete(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	s, err := pv.sessionFromProviderConfig(cluster, machine)
 	if err != nil {
 		return err
 	}
-	ctx, cancel := context.WithCancel(*s.context)
+	deletectx, cancel := context.WithCancel(*s.context)
 	defer cancel()
 
-	if exists, _ := pv.Exists(cluster, machine); exists {
+	if exists, _ := pv.Exists(ctx, cluster, machine); exists {
 		moref, err := vsphereutils.GetVMId(machine)
 		if err != nil {
 			return err
@@ -34,26 +34,26 @@ func (pv *Provisioner) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Mac
 			Type:  "VirtualMachine",
 			Value: moref,
 		}
-		err = s.session.RetrieveOne(ctx, vmref, []string{"name", "runtime.powerState"}, &vm)
+		err = s.session.RetrieveOne(deletectx, vmref, []string{"name", "runtime.powerState"}, &vm)
 		if err != nil {
 			return err
 		}
 		pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Killing", "Killing machine %v", machine.Name)
 		vmo := object.NewVirtualMachine(s.session.Client, vmref)
 		if vm.Runtime.PowerState == types.VirtualMachinePowerStatePoweredOn {
-			task, err := vmo.PowerOff(ctx)
+			task, err := vmo.PowerOff(deletectx)
 			if err != nil {
 				glog.Infof("Error trigerring power off operation on the Virtual Machine %s", vm.Name)
 				return err
 			}
-			err = task.Wait(ctx)
+			err = task.Wait(deletectx)
 			if err != nil {
 				glog.Infof("Error powering off the Virtual Machine %s", vm.Name)
 				return err
 			}
 		}
-		task, err := vmo.Destroy(ctx)
-		taskinfo, err := task.WaitForResult(ctx, nil)
+		task, err := vmo.Destroy(deletectx)
+		taskinfo, err := task.WaitForResult(deletectx, nil)
 		if taskinfo.State == types.TaskInfoStateSuccess {
 			glog.Infof("Virtual Machine %v deleted successfully", vm.Name)
 			pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Killed", "Machine %v deletion complete", machine.Name)

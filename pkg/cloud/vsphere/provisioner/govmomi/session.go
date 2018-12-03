@@ -21,7 +21,7 @@ type SessionContext struct {
 
 func (pv *Provisioner) sessionFromProviderConfig(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (*SessionContext, error) {
 	var sc SessionContext
-	vsphereConfig, err := vsphereutils.GetClusterProviderConfig(cluster.Spec.ProviderConfig)
+	vsphereConfig, err := vsphereutils.GetClusterProviderSpec(cluster.Spec.ProviderSpec)
 	if err != nil {
 		return nil, err
 	}

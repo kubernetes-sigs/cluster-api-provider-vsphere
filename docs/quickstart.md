@@ -66,7 +66,7 @@ $> make prod-yaml
 
 Once that command has been executed, there should now be an `out/` folder in the repo's root path.  This folder should now contain 4 base yaml files, provider-components.yaml, machines.yaml, cluster.yaml, addons.yaml.
 
-In cluster.yaml, update the name of the cluster and the providerConfig section with your vCenter auth data. Below is an example.
+In cluster.yaml, update the name of the cluster and the providerSpec section with your vCenter auth data. Below is an example.
 ```
 apiVersion: "cluster.k8s.io/v1alpha1"
 kind: Cluster
@@ -79,7 +79,7 @@ spec:
         pods:
             cidrBlocks: ["192.168.0.0/16"]
         serviceDomain: "cluster.local"
-    providerConfig:
+    providerSpec:
       value:
         apiVersion: "vsphereproviderconfig/v1alpha1"
         kind: "VsphereClusterProviderConfig"
@@ -88,7 +88,7 @@ spec:
         vsphereServer: "mycluster.mycompany.com"
 ```
 
-The machines.yaml file defines the master nodes of your cluster, and the machineset.yaml defines the worker nodes of your cluster.  Edit the providerConfig section of both files.  Below is an example of a modified providerConfig section.
+The machines.yaml file defines the master nodes of your cluster, and the machineset.yaml defines the worker nodes of your cluster.  Edit the providerSpec section of both files.  Below is an example of a modified providerSpec section.
 ```
 items:
 - apiVersion: "cluster.k8s.io/v1alpha1"
@@ -98,7 +98,7 @@ items:
     labels:
       set: master
   spec:
-      providerConfig:
+      providerSpec:
         value:
           apiVersion: "vsphereproviderconfig/v1alpha1"
           kind: "VsphereMachineProviderConfig"

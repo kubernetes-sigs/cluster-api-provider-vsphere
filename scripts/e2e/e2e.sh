@@ -166,6 +166,7 @@ get_bootstrap_vm
 apply_secret_to_bootstrap "${vsphere_controller_version}"
 
 # launch the job at bootstrap cluster
+fill_file_with_value "bootstrap_job.template"
 run_cmd_on_bootstrap "${bootstrap_vm_ip}" "cat > /tmp/bootstrap_job.yml" < bootstrap_job.yml
 run_cmd_on_bootstrap "${bootstrap_vm_ip}" "kubectl create -f /tmp/bootstrap_job.yml"
 

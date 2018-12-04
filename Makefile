@@ -15,6 +15,7 @@
 # Image URL to use all building/pushing image targets
 PRODUCTION_IMG ?= gcr.io/cnx-cluster-api/vsphere-cluster-api-provider:latest
 CI_IMG ?= gcr.io/cnx-cluster-api/vsphere-cluster-api-provider
+CLUSTERCTL_CI_IMG ?= gcr.io/cnx-cluster-api/clusterctl
 DEV_IMG ?= # <== NOTE:  outside dev, change this!!!
 
 # Retrieves the git hash
@@ -121,6 +122,7 @@ ci-yaml:
 
 ci-image: generate fmt vet manifests
 	docker build . -t "$(CI_IMG):$(VERSION)"
+	docker build . -f cmd/clusterctl/Dockerfile -t "$(CLUSTERCTL_CI_IMG):$(VERSION)"
 	@echo "updating kustomize image patch file for manager resource"
 	sed -i'' -e 's@image: .*@image: '"$(CI_IMG):$(VERSION)"'@' ./config/default/vsphere_manager_image_patch.yaml
 
@@ -129,4 +131,5 @@ ci-push: ci-image
 	@echo "logging into gcr.io registry with key file"
 	@echo $$GCR_KEY_FILE | docker login -u _json_key --password-stdin gcr.io
 	docker push "$(CI_IMG):$(VERSION)"
+	docker push "$(CLUSTERCTL_CI_IMG):$(VERSION)"
 	@echo docker logout gcr.io

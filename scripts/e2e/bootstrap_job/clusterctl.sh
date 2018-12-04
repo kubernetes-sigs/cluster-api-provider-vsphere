@@ -46,7 +46,7 @@ chmod +x /usr/local/bin/kubectl
 
 # run clusterctl
 echo "test ${PROVIDER_COMPONENT_SPEC}"
-./bin/clusterctl create cluster --existing-bootstrap-cluster-kubeconfig ~/.kube/config -c ./spec/cluster.yml \
+/tmp/clusterctl/clusterctl create cluster --existing-bootstrap-cluster-kubeconfig ~/.kube/config -c ./spec/cluster.yml \
     -m ./spec/machines.yml \
     -p ./spec/${PROVIDER_COMPONENT_SPEC} \
     --provider vsphere \

@@ -42,6 +42,7 @@ type VirtualMachine struct {
 
 	log string
 	sid int32
+	run container
 }
 
 func NewVirtualMachine(parent types.ManagedObjectReference, spec *types.VirtualMachineConfigSpec) (*VirtualMachine, types.BaseMethodFault) {
@@ -93,7 +94,7 @@ func NewVirtualMachine(parent types.ManagedObjectReference, spec *types.VirtualM
 		MemoryMB:          32,
 		Uuid:              uuid.New().String(),
 		InstanceUuid:      uuid.New().String(),
-		Version:           "vmx-11",
+		Version:           esx.HardwareVersion,
 		Files: &types.VirtualMachineFileInfo{
 			SnapshotDirectory: dsPath,
 			SuspendDirectory:  dsPath,
@@ -260,7 +261,33 @@ func (vm *VirtualMachine) apply(spec *types.VirtualMachineConfigSpec) {
 		vm.Config.Hardware.NumCoresPerSocket = spec.NumCoresPerSocket
 	}
 
-	vm.Config.ExtraConfig = append(vm.Config.ExtraConfig, spec.ExtraConfig...)
+	var changes []types.PropertyChange
+	for _, c := range spec.ExtraConfig {
+		val := c.GetOptionValue()
+		key := strings.TrimPrefix(val.Key, "SET.")
+		if key == val.Key {
+			vm.Config.ExtraConfig = append(vm.Config.ExtraConfig, c)
+			continue
+		}
+		changes = append(changes, types.PropertyChange{Name: key, Val: val.Value})
+
+		switch key {
+		case "guest.ipAddress":
+			ip := val.Value.(string)
+			vm.Guest.Net[0].IpAddress = []string{ip}
+			changes = append(changes,
+				types.PropertyChange{Name: "summary." + key, Val: ip},
+				types.PropertyChange{Name: "guest.net", Val: vm.Guest.Net},
+			)
+		case "guest.hostName":
+			changes = append(changes,
+				types.PropertyChange{Name: "summary." + key, Val: val.Value},
+			)
+		}
+	}
+	if len(changes) != 0 {
+		Map.Update(vm, changes)
+	}
 
 	vm.Config.Modified = time.Now()
 }
@@ -322,8 +349,8 @@ func (vm *VirtualMachine) createFile(spec string, name string, register bool) (*
 	file := path.Join(ds.Info.GetDatastoreInfo().Url, p.Path)
 
 	if name != "" {
-		if path.Ext(file) != "" {
-			file = path.Dir(file)
+		if path.Ext(p.Path) == ".vmx" {
+			file = path.Dir(file) // vm.Config.Files.VmPathName can be a directory or full path to .vmx
 		}
 
 		file = path.Join(file, name)
@@ -380,6 +407,15 @@ func (vm *VirtualMachine) logPrintf(format string, v ...interface{}) {
 
 func (vm *VirtualMachine) create(spec *types.VirtualMachineConfigSpec, register bool) types.BaseMethodFault {
 	vm.apply(spec)
+
+	if spec.Version != "" {
+		v := strings.TrimPrefix(spec.Version, "vmx-")
+		_, err := strconv.Atoi(v)
+		if err != nil {
+			log.Printf("unsupported hardware version: %s", spec.Version)
+			return new(types.NotSupported)
+		}
+	}
 
 	files := []struct {
 		spec string
@@ -480,10 +516,12 @@ func (vm *VirtualMachine) configureDevice(devices object.VirtualDeviceList, spec
 	case types.BaseVirtualEthernetCard:
 		controller = devices.PickController((*types.VirtualPCIController)(nil))
 		var net types.ManagedObjectReference
+		var name string
 
 		switch b := d.Backing.(type) {
 		case *types.VirtualEthernetCardNetworkBackingInfo:
-			summary = b.DeviceName
+			name = b.DeviceName
+			summary = name
 			net = Map.FindByName(b.DeviceName, dc.Network).Reference()
 			b.Network = &net
 		case *types.VirtualEthernetCardDistributedVirtualPortBackingInfo:
@@ -500,6 +538,16 @@ func (vm *VirtualMachine) configureDevice(devices object.VirtualDeviceList, spec
 		c := x.GetVirtualEthernetCard()
 		if c.MacAddress == "" {
 			c.MacAddress = vm.generateMAC()
+		}
+
+		if spec.Operation == types.VirtualDeviceConfigSpecOperationAdd {
+			vm.Guest.Net = append(vm.Guest.Net, types.GuestNicInfo{
+				Network:        name,
+				IpAddress:      nil,
+				MacAddress:     c.MacAddress,
+				Connected:      true,
+				DeviceConfigId: c.Key,
+			})
 		}
 	case *types.VirtualDisk:
 		summary = fmt.Sprintf("%s KB", numberToString(x.CapacityInKB, ','))
@@ -747,16 +795,19 @@ func (c *powerVMTask) Run(task *Task) (types.AnyType, types.BaseMethodFault) {
 	event := c.event()
 	switch c.state {
 	case types.VirtualMachinePowerStatePoweredOn:
+		c.run.start(c.VirtualMachine)
 		c.ctx.postEvent(
 			&types.VmStartingEvent{VmEvent: event},
 			&types.VmPoweredOnEvent{VmEvent: event},
 		)
 	case types.VirtualMachinePowerStatePoweredOff:
+		c.run.stop(c.VirtualMachine)
 		c.ctx.postEvent(
 			&types.VmStoppingEvent{VmEvent: event},
 			&types.VmPoweredOffEvent{VmEvent: event},
 		)
 	case types.VirtualMachinePowerStateSuspended:
+		c.run.pause(c.VirtualMachine)
 		c.ctx.postEvent(
 			&types.VmSuspendingEvent{VmEvent: event},
 			&types.VmSuspendedEvent{VmEvent: event},
@@ -853,6 +904,25 @@ func (vm *VirtualMachine) ReconfigVMTask(ctx *Context, req *types.ReconfigVM_Tas
 	}
 }
 
+func (vm *VirtualMachine) UpgradeVMTask(req *types.UpgradeVM_Task) soap.HasFault {
+	body := &methods.UpgradeVM_TaskBody{}
+
+	task := CreateTask(vm, "upgradeVm", func(t *Task) (types.AnyType, types.BaseMethodFault) {
+		if vm.Config.Version != esx.HardwareVersion {
+			Map.Update(vm, []types.PropertyChange{{
+				Name: "config.version", Val: esx.HardwareVersion,
+			}})
+		}
+		return nil, nil
+	})
+
+	body.Res = &types.UpgradeVM_TaskResponse{
+		Returnval: task.Run(),
+	}
+
+	return body
+}
+
 func (vm *VirtualMachine) DestroyTask(ctx *Context, req *types.Destroy_Task) soap.HasFault {
 	task := CreateTask(vm, "destroy", func(t *Task) (types.AnyType, types.BaseMethodFault) {
 		r := vm.UnregisterVM(ctx, &types.UnregisterVM{
@@ -877,6 +947,8 @@ func (vm *VirtualMachine) DestroyTask(ctx *Context, req *types.Destroy_Task) soa
 			Name:       vm.Config.Files.LogDirectory,
 			Datacenter: &dc,
 		})
+
+		vm.run.remove(vm)
 
 		return nil, nil
 	})
@@ -1026,7 +1098,7 @@ func (vm *VirtualMachine) RelocateVMTask(req *types.RelocateVM_Task) soap.HasFau
 			pool := Map.Get(*ref).(*ResourcePool)
 			Map.RemoveReference(pool, &pool.Vm, *ref)
 
-			changes = append(changes, types.PropertyChange{Name: "resourcePool", Val: *ref})
+			changes = append(changes, types.PropertyChange{Name: "resourcePool", Val: ref})
 		}
 
 		if ref := req.Spec.Host; ref != nil {
@@ -1034,8 +1106,8 @@ func (vm *VirtualMachine) RelocateVMTask(req *types.RelocateVM_Task) soap.HasFau
 			Map.RemoveReference(host, &host.Vm, *ref)
 
 			changes = append(changes,
-				types.PropertyChange{Name: "runtime.host", Val: *ref},
-				types.PropertyChange{Name: "summary.runtime.host", Val: *ref},
+				types.PropertyChange{Name: "runtime.host", Val: ref},
+				types.PropertyChange{Name: "summary.runtime.host", Val: ref},
 			)
 		}
 
@@ -1053,6 +1125,8 @@ func (vm *VirtualMachine) RelocateVMTask(req *types.RelocateVM_Task) soap.HasFau
 
 func (vm *VirtualMachine) CreateSnapshotTask(req *types.CreateSnapshot_Task) soap.HasFault {
 	task := CreateTask(vm, "createSnapshot", func(t *Task) (types.AnyType, types.BaseMethodFault) {
+		var changes []types.PropertyChange
+
 		if vm.Snapshot == nil {
 			vm.Snapshot = &types.VirtualMachineSnapshotInfo{}
 		}
@@ -1084,10 +1158,14 @@ func (vm *VirtualMachine) CreateSnapshotTask(req *types.CreateSnapshot_Task) soa
 			ss := findSnapshotInTree(vm.Snapshot.RootSnapshotList, *cur)
 			ss.ChildSnapshotList = append(ss.ChildSnapshotList, treeItem)
 		} else {
-			vm.Snapshot.RootSnapshotList = append(vm.Snapshot.RootSnapshotList, treeItem)
+			changes = append(changes, types.PropertyChange{
+				Name: "snapshot.rootSnapshotList",
+				Val:  append(vm.Snapshot.RootSnapshotList, treeItem),
+			})
 		}
 
-		vm.Snapshot.CurrentSnapshot = &snapshot.Self
+		changes = append(changes, types.PropertyChange{Name: "snapshot.currentSnapshot", Val: snapshot.Self})
+		Map.Update(vm, changes)
 
 		return nil, nil
 	})
@@ -1127,7 +1205,9 @@ func (vm *VirtualMachine) RemoveAllSnapshotsTask(req *types.RemoveAllSnapshots_T
 
 		refs := allSnapshotsInTree(vm.Snapshot.RootSnapshotList)
 
-		vm.Snapshot = nil
+		Map.Update(vm, []types.PropertyChange{
+			{Name: "snapshot", Val: nil},
+		})
 
 		for _, ref := range refs {
 			Map.Remove(ref)
@@ -1163,6 +1243,7 @@ func (vm *VirtualMachine) ShutdownGuest(ctx *Context, c *types.ShutdownGuest) so
 		&types.VmGuestShutdownEvent{VmEvent: event},
 		&types.VmPoweredOffEvent{VmEvent: event},
 	)
+	vm.run.stop(vm)
 
 	Map.Update(vm, []types.PropertyChange{
 		{Name: "runtime.powerState", Val: types.VirtualMachinePowerStatePoweredOff},

@@ -58,7 +58,7 @@ type Exported struct {
 	written  map[string]map[string]string // the full set of exported files
 	fset     *token.FileSet               // The file set used when parsing expectations
 	notes    []*expect.Note               // The list of expectations extracted from go source files
-	markers  map[string]marker            // The set of markers extracted from go source files
+	markers  map[string]Range             // The set of markers extracted from go source files
 	contents map[string][]byte
 }
 
@@ -94,6 +94,19 @@ func TestAll(t *testing.T, f func(*testing.T, Exporter)) {
 	}
 }
 
+// BenchmarkAll invokes the testing function once for each exporter registered in
+// the All global.
+// Each exporter will be run as a sub-test named after the exporter being used.
+func BenchmarkAll(b *testing.B, f func(*testing.B, Exporter)) {
+	b.Helper()
+	for _, e := range All {
+		b.Run(e.Name(), func(b *testing.B) {
+			b.Helper()
+			f(b, e)
+		})
+	}
+}
+
 // Export is called to write out a test directory from within a test function.
 // It takes the exporter and the build system agnostic module descriptions, and
 // uses them to build a temporary directory.
@@ -103,7 +116,7 @@ func TestAll(t *testing.T, f func(*testing.T, Exporter)) {
 // The file deletion in the cleanup can be skipped by setting the skip-cleanup
 // flag when invoking the test, allowing the temporary directory to be left for
 // debugging tests.
-func Export(t *testing.T, exporter Exporter, modules []Module) *Exported {
+func Export(t testing.TB, exporter Exporter, modules []Module) *Exported {
 	t.Helper()
 	dirname := strings.Replace(t.Name(), "/", "_", -1)
 	dirname = strings.Replace(dirname, "#", "_", -1) // duplicate subtests get a #NNN suffix.

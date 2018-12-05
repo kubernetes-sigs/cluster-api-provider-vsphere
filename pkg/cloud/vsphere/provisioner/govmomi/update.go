@@ -18,7 +18,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
-func (pv *Provisioner) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+func (pv *Provisioner) Update(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	// Fetch any active task in vsphere if any
 	// If an active task is there,
 
@@ -28,7 +28,7 @@ func (pv *Provisioner) Update(cluster *clusterv1.Cluster, machine *clusterv1.Mac
 	if err != nil {
 		return err
 	}
-	ctx, cancel := context.WithCancel(*s.context)
+	updatectx, cancel := context.WithCancel(*s.context)
 	defer cancel()
 
 	moref, err := vsphereutils.GetVMId(machine)
@@ -40,7 +40,7 @@ func (pv *Provisioner) Update(cluster *clusterv1.Cluster, machine *clusterv1.Mac
 		Type:  "VirtualMachine",
 		Value: moref,
 	}
-	err = s.session.RetrieveOne(ctx, vmref, []string{"name", "runtime"}, &vmmo)
+	err = s.session.RetrieveOne(updatectx, vmref, []string{"name", "runtime"}, &vmmo)
 	if err != nil {
 		return nil
 	}
@@ -52,7 +52,7 @@ func (pv *Provisioner) Update(cluster *clusterv1.Cluster, machine *clusterv1.Mac
 	if _, err := vsphereutils.GetIP(cluster, machine); err != nil {
 		glog.V(4).Info("actuator.Update() - did not find IP, waiting on IP")
 		vm := object.NewVirtualMachine(s.session.Client, vmref)
-		vmIP, err := vm.WaitForIP(ctx)
+		vmIP, err := vm.WaitForIP(updatectx)
 		if err != nil {
 			return err
 		}

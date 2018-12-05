@@ -17,7 +17,7 @@ manually edit `machineSpec`.
 manually edit `machineSpec`. If needed, adjust `replicas` as well.
 
 4. Copy `cluster.yaml.template` to `cluster.yaml` and
-manually edit `providerConfig`.
+manually edit `providerSpec`.
 
 5. *Optional*: Copy `addons.yaml.template` to `addons.yaml` and
 +manually edit `parameters`.

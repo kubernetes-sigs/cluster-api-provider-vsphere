@@ -55,3 +55,167 @@ load test_helper
   govc vm.create -c 1 -ds vol6 -g centos64Guest -pool testPool -m 4096 "$id"
   govc vm.destroy "$id"
 }
+
+@test "vcsim set vm properties" {
+  vcsim_env
+
+  vm=/DC0/vm/DC0_H0_VM0
+
+  run govc object.collect $vm guest.ipAddress
+  assert_success ""
+
+  run govc vm.change -vm $vm -e SET.guest.ipAddress=10.0.0.1
+  assert_success
+
+  run govc object.collect -s $vm guest.ipAddress
+  assert_success "10.0.0.1"
+
+  run govc object.collect -s $vm summary.guest.ipAddress
+  assert_success "10.0.0.1"
+
+  netip=$(govc object.collect -json -s $vm guest.net | jq -r .[].Val.GuestNicInfo[].IpAddress[0])
+  [ "$netip" = "10.0.0.1" ]
+
+  run govc vm.info -vm.ip 10.0.0.1
+  assert_success
+
+  run govc object.collect -s $vm guest.hostName
+  assert_success ""
+
+  run govc vm.change -vm $vm -e SET.guest.hostName=localhost.localdomain
+  assert_success
+
+  run govc object.collect -s $vm guest.hostName
+  assert_success "localhost.localdomain"
+
+  run govc object.collect -s $vm summary.guest.hostName
+  assert_success "localhost.localdomain"
+
+  run govc vm.info -vm.dns localhost.localdomain
+  assert_success
+
+  uuid=$(uuidgen)
+  run govc vm.change -vm $vm -e SET.config.uuid="$uuid"
+  assert_success
+
+  run govc object.collect -s $vm config.uuid
+  assert_success "$uuid"
+}
+
+@test "vcsim vm.create" {
+  vcsim_env
+
+  run govc vm.create foo.yakity
+  assert_success
+
+  run govc vm.create bar.yakity
+  assert_success
+}
+
+@test "vcsim issue #1251" {
+  vcsim_env
+
+  govc object.collect -type ComputeResource -n 1 / name &
+  pid=$!
+
+  run govc object.rename /DC0/host/DC0_C0 DC0_C0b
+  assert_success
+
+  wait $pid
+
+  govc object.collect -type ClusterComputeResource -n 1 / name &
+  pid=$!
+
+  run govc object.rename /DC0/host/DC0_C0b DC0_C0
+  assert_success
+
+  wait $pid
+}
+
+@test "vcsim run container" {
+  if ! docker version ; then
+    skip "docker client not installed"
+  fi
+
+  vm=DC0_H0_VM0
+
+  if docker inspect $vm ; then
+    flunk "$vm container still exists"
+  fi
+
+  vcsim_env -autostart=false
+
+  run govc vm.change -vm $vm -e RUN.container=nginx
+  assert_success
+
+  run govc vm.power -on $vm
+  assert_success
+
+  if ! docker inspect $vm ; then
+    flunk "$vm container does not exist"
+  fi
+
+  ip=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $vm)
+  run govc object.collect -s vm/$vm guest.ipAddress
+  assert_success "$ip"
+
+  run govc object.collect -s vm/$vm summary.guest.ipAddress
+  assert_success "$ip"
+
+  netip=$(govc object.collect -json -s vm/$vm guest.net | jq -r .[].Val.GuestNicInfo[].IpAddress[0])
+  [ "$netip" = "$ip" ]
+
+  run govc vm.power -s $vm
+  assert_success
+
+  run docker inspect -f '{{.State.Status}}' $vm
+  assert_success "exited"
+
+  run govc vm.power -on $vm
+  assert_success
+
+  run docker inspect -f '{{.State.Status}}' $vm
+  assert_success "running"
+
+  run govc vm.destroy $vm
+  assert_success
+
+  if docker inspect $vm ; then
+    flunk "$vm container still exists"
+  fi
+
+  vm=DC0_H0_VM1
+
+  # test json encoded args
+  run govc vm.change -vm $vm -e RUN.container="[\"-v\", \"$PWD:/usr/share/nginx/html:ro\", \"nginx\"]"
+  assert_success
+
+  run govc vm.power -on $vm
+  assert_success
+
+  run docker inspect $vm
+  assert_success
+
+  ip=$(govc object.collect -s vm/$vm guest.ipAddress)
+  run curl -f "http://$ip/vcsim.bats"
+  assert_success
+
+  # test suspend/resume
+  run docker inspect -f '{{.State.Status}}' $vm
+  assert_success "running"
+
+  run govc vm.power -suspend $vm
+  assert_success
+
+  run docker inspect -f '{{.State.Status}}' $vm
+  assert_success "paused"
+
+  run govc vm.power -on $vm
+  assert_success
+
+  run docker inspect -f '{{.State.Status}}' $vm
+  assert_success "running"
+
+  run govc vm.destroy $vm
+  assert_success
+}

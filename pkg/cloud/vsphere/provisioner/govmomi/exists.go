@@ -11,13 +11,13 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
-func (pv *Provisioner) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
+func (pv *Provisioner) Exists(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
 	s, err := pv.sessionFromProviderConfig(cluster, machine)
 	if err != nil {
 		glog.V(4).Infof("Exists check, session from provider config error: %s", err.Error())
 		return false, err
 	}
-	ctx, cancel := context.WithCancel(*s.context)
+	existsctx, cancel := context.WithCancel(*s.context)
 	defer cancel()
 
 	moref, err := vsphereutils.GetVMId(machine)
@@ -30,7 +30,7 @@ func (pv *Provisioner) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Mac
 		Type:  "VirtualMachine",
 		Value: moref,
 	}
-	err = s.session.RetrieveOne(ctx, vmref, []string{"name"}, &vm)
+	err = s.session.RetrieveOne(existsctx, vmref, []string{"name"}, &vm)
 	if err != nil {
 		glog.V(4).Infof("Exists check, RetrieveOne failed: %s", err.Error())
 		return false, nil

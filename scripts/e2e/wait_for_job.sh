@@ -30,7 +30,13 @@ do
    fi;
    kubectl get jobs --no-headers;
 done;
+
+job=$(kubectl get jobs --no-headers)
+word="No resources found"
+test "${job#*$word}" != "$job" && exit 1
 echo "all jobs finished";
+
+
 
 echo "--------- vsphere manager log begin ----------"
 manager_pod_name=$(kubectl get pods -a --no-headers -n vsphere-provider-system | grep vsphere | awk -F" " '{print $1}')

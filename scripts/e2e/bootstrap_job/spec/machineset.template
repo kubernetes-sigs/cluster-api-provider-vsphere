@@ -12,7 +12,7 @@ spec:
       labels:
         node-type: worker-node
     spec:
-      providerConfig:
+      providerSpec:
         value:
           apiVersion: "vsphereproviderconfig/v1alpha1"
           kind: "VsphereMachineProviderConfig"

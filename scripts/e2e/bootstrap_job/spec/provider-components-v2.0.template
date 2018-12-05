@@ -132,15 +132,8 @@ spec:
           - template
           - disks
           type: object
-        machineVariables:
-          type: object
         metadata:
           type: object
-        vsphereMachine:
-          type: string
-      required:
-      - vsphereMachine
-      - machineVariables
   version: v1alpha1
 status:
   acceptedNames:
@@ -417,7 +410,7 @@ spec:
               - pods
               - serviceDomain
               type: object
-            providerConfig:
+            providerSpec:
               properties:
                 value:
                   type: object
@@ -477,6 +470,10 @@ spec:
     plural: machinedeployments
   scope: Namespaced
   subresources:
+    scale:
+      labelSelectorPath: .status.labelSelector
+      specReplicasPath: .spec.replicas
+      statusReplicasPath: .status.replicas
     status: {}
   validation:
     openAPIV3Schema:
@@ -525,7 +522,7 @@ spec:
                       type: object
                     metadata:
                       type: object
-                    providerConfig:
+                    providerSpec:
                       properties:
                         value:
                           type: object
@@ -552,7 +549,7 @@ spec:
                       - kubelet
                       type: object
                   required:
-                  - providerConfig
+                  - providerSpec
                   type: object
               type: object
           required:
@@ -618,7 +615,7 @@ spec:
               type: object
             metadata:
               type: object
-            providerConfig:
+            providerSpec:
               properties:
                 value:
                   type: object
@@ -645,7 +642,7 @@ spec:
               - kubelet
               type: object
           required:
-          - providerConfig
+          - providerSpec
           type: object
         status:
           properties:
@@ -661,11 +658,25 @@ spec:
               type: string
             errorReason:
               type: string
+            lastOperation:
+              properties:
+                description:
+                  type: string
+                lastUpdated:
+                  format: date-time
+                  type: string
+                state:
+                  type: string
+                type:
+                  type: string
+              type: object
             lastUpdated:
               format: date-time
               type: string
             nodeRef:
               type: object
+            phase:
+              type: string
             providerStatus:
               type: object
             versions:
@@ -700,6 +711,10 @@ spec:
     plural: machinesets
   scope: Namespaced
   subresources:
+    scale:
+      labelSelectorPath: .status.labelSelector
+      specReplicasPath: .spec.replicas
+      statusReplicasPath: .status.replicas
     status: {}
   validation:
     openAPIV3Schema:
@@ -730,7 +745,7 @@ spec:
                       type: object
                     metadata:
                       type: object
-                    providerConfig:
+                    providerSpec:
                       properties:
                         value:
                           type: object
@@ -757,7 +772,7 @@ spec:
                       - kubelet
                       type: object
                   required:
-                  - providerConfig
+                  - providerSpec
                   type: object
               type: object
           required:
@@ -937,7 +952,7 @@ spec:
     spec:
       containers:
       - command:
-        - /root/manager
+        - /manager
         image: gcr.io/k8s-cluster-api/cluster-api-controller:latest
         name: manager
         resources:

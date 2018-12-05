@@ -6,7 +6,7 @@ items:
     labels:
       set: master
   spec:
-    providerConfig:
+    providerSpec:
       value:
         apiVersion: "vsphereproviderconfig/v1alpha1"
         kind: "VsphereMachineProviderConfig"

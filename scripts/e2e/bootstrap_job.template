@@ -11,11 +11,11 @@ spec:
         key: node-role.kubernetes.io/master
       initContainers:
       - name: clusterctl-bin
-      image: gcr.io/cnx-cluster-api/clusterctl:${VERSION}
-      command: ['sh', '-c', 'cp /root/clusterctl /tmp/clusterctl/clusterctl && chmod +x /tmp/clusterctl/clusterctl']
-      volumeMounts:
-        - name: shared-data
-          mountPath: /tmp/clusterctl
+        image: gcr.io/cnx-cluster-api/clusterctl:${VERSION}
+        command: ['sh', '-c', 'cp /root/clusterctl /tmp/clusterctl/clusterctl && chmod +x /tmp/clusterctl/clusterctl']
+        volumeMounts:
+          - name: shared-data
+            mountPath: /tmp/clusterctl
       containers:
       - name: cluster-api-provider-vsphere-ci
         image: gcr.io/cnx-cluster-api/cluster-api-provider-vsphere-ci:latest

@@ -57,7 +57,7 @@ while test $# -gt 0; do
             echo "options:"
             echo "-h, --help                show brief help"
             echo "-f, --force-overwrite     if file to be generated already exists, force script to overwrite it"
-            echo "--kubecon					Use the containers from the kubecon demo"
+            echo "--kubecon                 Use the containers from the kubecon demo"
             exit 0
             ;;
           -f)
@@ -118,9 +118,8 @@ kustomize build $CLUSTER_API_CRD_PATH/default/ >> $PROVIDERCOMPONENT_GENERATED_F
 
 if [ $USE_KUBECON = 1 ]; then
   echo "Updating generated provider-components.yaml file with containers from kubecon 2018..."
-#  CONTROLLER_CONTAINER=$(grep cluster-api-controller ${PROVIDERCOMPONENT_GENERATED_FILE})
-  CONTROLLER_CONTAINER=`grep "image:.*cluster-api-controller" ${PROVIDERCOMPONENT_GENERATED_FILE} | awk '{ print $2 }'`
-  VSPHERE_PROVIDER_CONTAINER=`grep "image:.*vsphere-cluster-api" ${PROVIDERCOMPONENT_GENERATED_FILE} | awk '{ print $2 }'`
+  CONTROLLER_CONTAINER=$(grep "image:.*cluster-api-controller" ${PROVIDERCOMPONENT_GENERATED_FILE} | awk '{ print $2 }')
+  VSPHERE_PROVIDER_CONTAINER=$(grep "image:.*vsphere-cluster-api" ${PROVIDERCOMPONENT_GENERATED_FILE} | awk '{ print $2 }')
 
   cat $PROVIDERCOMPONENT_GENERATED_FILE | \
   	sed -e "s|$VSPHERE_PROVIDER_CONTAINER|$KUBECON_VSPHERE_PROVIDER|" \

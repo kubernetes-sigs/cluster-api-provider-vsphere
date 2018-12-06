@@ -39,6 +39,11 @@ MACHINE_CONTROLLER_SSH_HOME=~/.ssh/
 CLUSTER_API_CRD_PATH=$GOPATH/src/sigs.k8s.io/cluster-api-provider-vsphere/vendor/sigs.k8s.io/cluster-api/config
 VSPHERE_CLUSTER_API_CRD_PATH=$GOPATH/src/sigs.k8s.io/cluster-api-provider-vsphere/config
 
+KUBECON_CONTROLLER='gcr.io/cnx-cluster-api/cluster-api-controller:kubecon2018'
+KUBECON_VSPHERE_PROVIDER='gcr.io/cnx-cluster-api/vsphere-cluster-api-provider:kubecon2018'
+
+USE_KUBECON="${USE_KUBECON:-0}"
+
 OVERWRITE=0
 
 SCRIPT=$(basename $0)
@@ -52,6 +57,7 @@ while test $# -gt 0; do
             echo "options:"
             echo "-h, --help                show brief help"
             echo "-f, --force-overwrite     if file to be generated already exists, force script to overwrite it"
+            echo "--kubecon					Use the containers from the kubecon demo"
             exit 0
             ;;
           -f)
@@ -60,6 +66,10 @@ while test $# -gt 0; do
             ;;
           --force-overwrite)
             OVERWRITE=1
+            shift
+            ;;
+          --kubecon)
+            USE_KUBECON=1
             shift
             ;;
           *)
@@ -105,6 +115,23 @@ MACHINE_CONTROLLER_SSH_PRIVATE=$(cat $MACHINE_CONTROLLER_SSH_HOME$MACHINE_CONTRO
 kustomize build $VSPHERE_CLUSTER_API_CRD_PATH/default/ > $PROVIDERCOMPONENT_GENERATED_FILE
 echo "---" >> $PROVIDERCOMPONENT_GENERATED_FILE
 kustomize build $CLUSTER_API_CRD_PATH/default/ >> $PROVIDERCOMPONENT_GENERATED_FILE
+
+if [ $USE_KUBECON = 1 ]; then
+  echo "Updating generated provider-components.yaml file with containers from kubecon 2018..."
+#  CONTROLLER_CONTAINER=$(grep cluster-api-controller ${PROVIDERCOMPONENT_GENERATED_FILE})
+  CONTROLLER_CONTAINER=`grep "image:.*cluster-api-controller" ${PROVIDERCOMPONENT_GENERATED_FILE} | awk '{ print $2 }'`
+  VSPHERE_PROVIDER_CONTAINER=`grep "image:.*vsphere-cluster-api" ${PROVIDERCOMPONENT_GENERATED_FILE} | awk '{ print $2 }'`
+
+  cat $PROVIDERCOMPONENT_GENERATED_FILE | \
+  	sed -e "s|$VSPHERE_PROVIDER_CONTAINER|$KUBECON_VSPHERE_PROVIDER|" \
+  	> $PROVIDERCOMPONENT_GENERATED_FILE.new
+
+  cat $PROVIDERCOMPONENT_GENERATED_FILE.new | \
+  	sed -e "s|$CONTROLLER_CONTAINER|$KUBECON_CONTROLLER|" \
+  	> $PROVIDERCOMPONENT_GENERATED_FILE
+
+  rm $PROVIDERCOMPONENT_GENERATED_FILE.new
+fi
 
 echo "Done generating $PROVIDERCOMPONENT_GENERATED_FILE"
 

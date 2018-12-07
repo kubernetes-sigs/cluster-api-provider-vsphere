@@ -1,9 +1,7 @@
 Test cluster-api-provider-vsphere
 
-***Integration with Prow***   
-apply hack/secret.yml to Prow cluster/local cluster   
-apply hack/job.yml at Prow cluster/local cluster   
-note: the actual Prow job definition file will be at k8s.io/test-infra   
+**Prow**   
+note: the actual Prow job definition file is at [k8s.io/test-infra](test-infra/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere)    
 
 ```
             +-----------------------------------------------------+
@@ -40,35 +38,19 @@ note: the actual Prow job definition file will be at k8s.io/test-infra
            |                                                       |
            +-------------------------------------------------------+
 ``` 
-
  
-***Launch CI from travis-ci***  
-```
-docker run \
-  --rm \
-  -v $HOME/.ssh:/root/ssh \
-  -e GOVC_URL=$GOVC_URL \
-  -e GOVC_USERNAME=$GOVC_USERNAME \
-  -e GOVC_PASSWORD=$GOVC_PASSWORD \
-  -e JUMPHOST=$JUMPHOST \
-  -e GOVC_INSECURE="true" \
-  -e VSPHERE_MACHINE_CONTROLLER_REGISTRY=$VSPHERE_MACHINE_CONTROLLER_REGISTRY \
-  -ti luoh/cluster-api-provider-vsphere-travis-ci:latest
-```
-note: set `$VSPHER_MACHINE_CONTROLLER_REGISTRY` if you want to test your local build controller
    
-   
-***Architecture***  
+**Architecture**    
 ```
 
                                              +-----------------------------------+
       +----------------------+               |          VMC Infra                |
-      |   travis-ci env      |               |-----------------------------------|
+      |   Prow/Local cluster |               |-----------------------------------|
       |----------------------|               |+----+ +--------------------------+|
       |                      |               ||    | |  bootstrap cluster       ||
       |                      |               ||    | |                          ||
       | cluster-api-vsphere- |               ||JUMP| |  cluster-api-vsphere-ci  ||
-      | travis-ci            |  SSH + HTTP   ||HOST| |  (a k8s job)             ||
+      | -ci                  |  SSH + HTTP   ||HOST| |  (a k8s job)             ||
       |                      | +-----------> ||    | |                          ||
       |                      | <-----------+ ||    | |                          ||
       |                      |               ||    | +--------------------------+|
@@ -82,10 +64,24 @@ note: set `$VSPHER_MACHINE_CONTROLLER_REGISTRY` if you want to test your local b
                                              
 ```
       
-***Containers***  
+**Containers**    
 the vsphere-machine-controller containers for CI purpose are hosted at   
 `gcr.io/cnx-cluster-api/vsphere-cluster-api-provider`   
-the cluster-api-provider-vsphere-travis-ci hosted at   
-`luoh/cluster-api-provider-vsphere-travis-ci`   
 the cluster-api-provider-vsphere-ci hosted at   
-`gcr/cnx-cluster-api/cluster-api-provider-vsphere-ci`   
+`gcr/cnx-cluster-api/cluster-api-provider-vsphere-ci` 
+
+
+**Test CI locally (non-Prow)**   
+****Prerequisite**** 
+1) A local cluster (prefer minikube)   
+2) Apply the secret (based on secret.template) to local cluster   
+ 
+**Steps with minikube**   
+`cd ./scripts/e2e/hack && make build`   
+this will build ci container that contains cluster-api-provider-vsphere code from your working directory.    
+
+this is only necessary when we want minikube to pull image from local docker images   
+`eval $(minikube docker-env)`   
+
+`kubectl create -f job.yml`   
+and monitor the job status   

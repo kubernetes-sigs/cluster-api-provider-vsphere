@@ -11,7 +11,8 @@ spec:
         key: node-role.kubernetes.io/master
       containers:
       - name: cluster-api-provider-vsphere-ci
-        image: luoh/cluster-api-provider-vsphere-prow-ci:latest
+        image: gcr.io/cnx-cluster-api/cluster-api-provider-vsphere-ci-debug:debug
+        imagePullPolicy: Never
         env:
           - name: JUMPHOST
             valueFrom:
@@ -56,9 +57,7 @@ spec:
           - name: docker-socket
             mountPath: /var/run/docker.sock
         command:
-        - "./e2e.sh"
-        args:
-        - ${VSPHERE_CONTROLLER_VERSION}
+        - "./scripts/e2e/e2e.sh"
       volumes:
       - name: docker-socket
         hostPath:

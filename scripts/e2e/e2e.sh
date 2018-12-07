@@ -39,7 +39,7 @@ fill_file_with_value() {
 }
 
 revert_bootstrap_vm() {
-   bootstrap_vm=$(govc find / -type m -name clusterapi-bootstrap-prow)
+   bootstrap_vm=$(govc find / -type m -name clusterapi-bootstrap-$1)
    snapshot_name="cluster-api-provider-vsphere-ci-0.0.1"
    govc snapshot.revert -vm "${bootstrap_vm}" "${snapshot_name}"  
    bootstrap_vm_ip=$(govc vm.ip "${bootstrap_vm}")
@@ -65,7 +65,7 @@ get_bootstrap_vm() {
    until [ $bootstrap_vm_ip ]
    do
       sleep 6
-      revert_bootstrap_vm
+      revert_bootstrap_vm "$1"
       retry=$((retry - 1))
       if [ $retry -lt 0 ]
       then
@@ -140,27 +140,28 @@ install_govc() {
    export PATH=${govc_bin}:$PATH
 }
 
-vsphere_controller_version=""
 # the main loop
+vsphere_controller_version=""
+context=""
 if [ -z "${PROW_JOB_ID}" ] ; then
-   vsphere_controller_version="$1"
+   context="debug"
    start_docker
-   clone_clusterapi_vsphere_repo
-   current=$(pwd)
-   cd /go/src/sigs.k8s.io/cluster-api-provider-vsphere || exit 1
-   export VERSION="${vsphere_controller_version}" && make ci-push
-   cd "${current}" || exit 1
+   vsphere_controller_version=$(shell git describe --exact-match 2> /dev/null || \
+      git describe --match=$(git rev-parse --short=8 HEAD) --always --dirty --abbrev=8)
 else
-   # in Prow context, clusterapi-vsphere already been checked out
+   context="prow"
    vsphere_controller_version="${PULL_PULL_SHA}"
-   export VERSION="${vsphere_controller_version}" && make ci-push
-   cd ./scripts/e2e || exit 1
 fi
+
+export VERSION="${vsphere_controller_version}" && make ci-push
+cd ./scripts/e2e/bootstrap_job && make && cd .. || exit 1
+
+export_base64_value "CONTEXT" "$context"
 echo "build vSphere controller version: ${vsphere_controller_version}"
 
 # get bootstrap VM
 install_govc
-get_bootstrap_vm
+get_bootstrap_vm "$context"
 
 # apply secret at bootstrap cluster
 apply_secret_to_bootstrap "${vsphere_controller_version}"
@@ -175,7 +176,7 @@ run_cmd_on_bootstrap "${bootstrap_vm_ip}" 'bash -s' < wait_for_job.sh
 ret="$?"
 
 # cleanup
-delete_vm "clusterapi-prow"
-get_bootstrap_vm
+get_bootstrap_vm "$context"
+delete_vm "clusterapi-""$context"
 
 exit "${ret}"

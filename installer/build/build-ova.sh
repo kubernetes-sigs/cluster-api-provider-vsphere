@@ -22,12 +22,12 @@ KUBERNETES_DEFAULT_VERSION=$(curl -sSL https://dl.k8s.io/release/stable-1.txt)
 
 # Check if it's a file in `scripts`, URL, or REVISION
 function setenv() {
-  tmpvar=$1
-  fallback=$2
+  tmpvar="$1"
+  fallback="$2"
   if [ -n "${!tmpvar}" ]; then
-    export $1_VERSION="${!tmpvar}"
+    export "$1"="${!tmpvar}"
   else
-    export $1_VERSION="${fallback}"
+    export "$1"="${fallback}"
   fi
 }
 
@@ -37,7 +37,15 @@ do
 
   case $key in
     --kubernetes-version)
-      KUBERNETES="$2"
+      KUBERNETES_VERSION="$2"
+      shift 2 # past argument
+      ;;
+    --ci-root-password)
+      CI_ROOT_PASSWORD="$2"
+      shift 2 # past argument
+      ;;
+    --ci-root-ssh-key)
+      CI_ROOT_SSH_KEY="$2"
       shift 2 # past argument
       ;;
     *)
@@ -47,13 +55,17 @@ do
 done
 
 # set Kubernetes Version
-setenv KUBERNETES "$KUBERNETES_DEFAULT_VERSION"
+setenv KUBERNETES_VERSION "$KUBERNETES_DEFAULT_VERSION"
+setenv CI_ROOT_PASSWORD ""
+setenv CI_ROOT_SSH_KEY ""
 
 
 ENV_FILE="${CACHE}/installer.env"
 touch $ENV_FILE
 cat > $ENV_FILE <<EOF
 export KUBERNETES_VERSION=${KUBERNETES_VERSION:-}
+export CI_ROOT_PASSWORD=${CI_ROOT_PASSWORD:-}
+export CI_ROOT_SSH_KEY=${CI_ROOT_SSH_KEY:-}
 EOF
 
 echo -e "--------------------------------------------------

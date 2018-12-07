@@ -42,11 +42,11 @@
     <ProductSection ovf:class="appliance" ovf:required="false">
       <Info>Appliance Properties</Info>
       <Category>1. Appliance Configuration</Category>
-      <Property ovf:key="root_pwd" ovf:password="true" ovf:qualifiers="MinLen(8),MaxLen(128)" ovf:type="string" ovf:userConfigurable="true" ovf:value="">
+      <Property ovf:key="root_pwd" ovf:password="true" ovf:qualifiers="MinLen(8),MaxLen(128)" ovf:type="string" ovf:userConfigurable="true" ovf:value="--ci-root-password--">
         <Label>1.1. Root Password</Label>
         <Description>The initial password of the root user. Subsequent changes of password should be performed in operating system. (8-128 characters)</Description>
       </Property>
-      <Property ovf:key="root_ssh_key" ovf:qualifiers="MinLen(8),MaxLen(65535)" ovf:type="string" ovf:userConfigurable="true" ovf:value="">
+      <Property ovf:key="root_ssh_key" ovf:qualifiers="MinLen(8),MaxLen(65535)" ovf:type="string" ovf:userConfigurable="true" ovf:value="--ci-root-ssh-key--">
         <Label>1.2. Root SSH Key</Label>
         <Description>Specifies a SSH key for the root user can log in using SSH.</Description>
       </Property>

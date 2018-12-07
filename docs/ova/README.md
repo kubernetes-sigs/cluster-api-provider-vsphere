@@ -42,6 +42,11 @@ If called with the values below, `build.sh` will include Kubernetes version v1.1
 ./build/build.sh ova-dev --kubernetes-version v1.12.1
 ```
 
+The `build.sh` script can also prefill default values for root password and root ssh key, this is used by our CI when deploying the OVA on VMC for testing
+```
+./build/build.sh ova-dev --ci-root-password '<my password>' --ci-root-ssh-key 'ssh-rsa <my rsa key> <my comment>'
+```
+
 ## Deploy
 
 The OVA must be deployed to a vCenter.

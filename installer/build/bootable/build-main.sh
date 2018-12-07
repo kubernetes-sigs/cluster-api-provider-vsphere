@@ -145,6 +145,8 @@ function main {
     cd "${PACKAGE}"
     log2 "updating version number"
     sed -i -e "s|--version--|${BUILD_OVA_REVISION}|" cluster-api-vsphere-${BUILD_OVA_REVISION}.ovf
+    sed -i -e "s|--ci-root-password--|${CI_ROOT_PASSWORD}|" cluster-api-vsphere-${BUILD_OVA_REVISION}.ovf
+    sed -i -e "s|--ci-root-ssh-key--|${CI_ROOT_SSH_KEY}|" cluster-api-vsphere-${BUILD_OVA_REVISION}.ovf
     log2 "updating image sizes"
     for image in "${IMAGEFILES[@]}"
     do

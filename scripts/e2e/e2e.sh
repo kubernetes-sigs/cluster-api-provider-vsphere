@@ -258,6 +258,7 @@ export_base64_value "TARGET_VM_PREFIX" "$target_vm_prefix"
 # get bootstrap VM
 #install_govc
 go get -u github.com/vmware/govmomi/govc
+
 if [ -z "$1" ]; then
    # use vm snapshot by default
    get_bootstrap_vm "$context"

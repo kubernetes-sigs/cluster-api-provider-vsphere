@@ -20,11 +20,11 @@ spec:
       - name: cluster-api-provider-vsphere-ci
         image: gcr.io/cnx-cluster-api/cluster-api-provider-vsphere-ci:${VERSION}
         env:
-          - name: CONTEXT
+          - name: TARGET_VM_PREFIX
             valueFrom:
               secretKeyRef:
                 name: clusterapi-provider-vsphere-ci-secret
-                key: context
+                key: target-vm-prefix
           - name: TARGET_VM_SSH
             valueFrom:
               secretKeyRef:
@@ -60,22 +60,17 @@ spec:
               secretKeyRef:
                 name: clusterapi-provider-vsphere-ci-secret
                 key: vsphere-password
+          - name: BOOTSTRAP_KUBECONFIG
+            valueFrom:
+              secretKeyRef:
+                name: clusterapi-provider-vsphere-ci-secret
+                key: bootstrap-kubeconfig
         volumeMounts:
-          - name: kube
-            mountPath: /root/.kube
-          - name: sshkeys
-            mountPath: /root/.ssh
           - name: shared-data
             mountPath: /tmp/clusterctl/
         command:
         - "./clusterctl.sh"
       volumes:
-      - name: kube
-        hostPath:
-          path: /home/vmware/.kube
-      - name: sshkeys
-        hostPath:
-          path: /home/vmware/.ssh
       - name: shared-data
         emptyDir: {}
       restartPolicy: Never

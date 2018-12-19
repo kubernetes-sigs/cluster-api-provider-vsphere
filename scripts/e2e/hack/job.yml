@@ -13,6 +13,8 @@ spec:
       - name: cluster-api-provider-vsphere-ci
         image: gcr.io/cnx-cluster-api/cluster-api-provider-vsphere-ci-debug:debug
         imagePullPolicy: Never
+        securityContext:
+          privileged: true
         env:
           - name: JUMPHOST
             valueFrom:
@@ -56,9 +58,14 @@ spec:
             mountPath: /root/ssh/.bootstrapper
           - name: docker-socket
             mountPath: /var/run/docker.sock
+          - name: host-dev
+            mountPath: /dev
         command:
         - "./scripts/e2e/e2e.sh"
       volumes:
+      - name: host-dev
+        hostPath:
+          path: /dev
       - name: docker-socket
         hostPath:
           path: /var/run/docker.sock

@@ -18,19 +18,6 @@
 
 DEBUG=${DEBUG:-}
 set -e -o pipefail +h && [ -n "$DEBUG" ] && set -x
-ROOT_DIR="$(go env GOPATH)/src/sigs.k8s.io/cluster-api-provider-vsphere"
-ROOT_WORK_DIR="/go/src/sigs.k8s.io/cluster-api-provider-vsphere"
-
-ROOT_INSTALLER_DIR="${ROOT_DIR}/installer"
-ROOT_INSTALLER_WORK_DIR="${ROOT_WORK_DIR}/installer"
-
-# TODO(frapposelli): hardcoding version for now, this will be removed once a
-#                    tagging strategy is established for the project
-# TAG=${DRONE_TAG:-$(git describe --abbrev=0 --tags)} # e.g. `v0.9.0`
-TAG="v0.0.1"
-
-REV=$(git rev-parse --short=8 HEAD)
-BUILD_OVA_REVISION="${TAG}-${REV}"
 
 function usage() {
     echo -e "Usage:
@@ -47,7 +34,20 @@ step=$1; shift
 echo "--------------------------------------------------"
 if [ "$step" == "ova-dev" ]; then
   echo "starting docker dev build container..."
-  docker run -it --rm --privileged -v /dev:/dev \
+  ROOT_DIR="$GOPATH/src/sigs.k8s.io/cluster-api-provider-vsphere"
+  ROOT_WORK_DIR="/go/src/sigs.k8s.io/cluster-api-provider-vsphere"
+
+  ROOT_INSTALLER_DIR="${ROOT_DIR}/installer"
+  ROOT_INSTALLER_WORK_DIR="${ROOT_WORK_DIR}/installer"
+
+  # TODO(frapposelli): hardcoding version for now, this will be removed once a
+  #                    tagging strategy is established for the project
+  # TAG=${DRONE_TAG:-$(git describe --abbrev=0 --tags)} # e.g. `v0.9.0`
+  TAG="v0.0.1"
+
+  REV=$(git rev-parse --short=8 HEAD)
+  BUILD_OVA_REVISION="${TAG}-${REV}"
+  docker run -t --rm --privileged -v /dev:/dev \
     -v ${ROOT_DIR}:${ROOT_WORK_DIR}:ro \
     -v ${ROOT_INSTALLER_DIR}/bin:${ROOT_INSTALLER_WORK_DIR}/bin \
     -e DEBUG=${DEBUG} \

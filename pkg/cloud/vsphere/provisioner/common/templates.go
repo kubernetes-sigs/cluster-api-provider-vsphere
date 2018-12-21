@@ -119,21 +119,36 @@ func init() {
 		return strings.TrimRight(builder.String(), ",")
 	}
 
+	base64Decode := func(content string) (string, error) {
+		dec, err := base64.StdEncoding.DecodeString(content)
+		if err != nil {
+			return "", err
+		}
+		return string(dec), nil
+	}
+
+	indent := func(spaces int, v string) string {
+		padding := strings.Repeat(" ", spaces)
+		return padding + strings.Replace(v, "\n", "\n"+padding, -1)
+	}
+
 	// Force a compliation error if getSubnet changes. This is the
 	// signature the templates expect, so changes need to be
 	// reflected in templates below.
 	var _ func(clusterv1.NetworkRanges) string = vsphereutils.GetSubnet
 	funcMap := map[string]interface{}{
-		"endpoint":  endpoint,
-		"getSubnet": vsphereutils.GetSubnet,
-		"labelMap":  labelMap,
-		"taintMap":  taintMap,
+		"endpoint":     endpoint,
+		"getSubnet":    vsphereutils.GetSubnet,
+		"labelMap":     labelMap,
+		"taintMap":     taintMap,
+		"base64Decode": base64Decode,
+		"indent":       indent,
 	}
 	nodeStartupScriptTemplate = template.Must(template.New("nodeStartupScript").Funcs(funcMap).Parse(nodeStartupScript))
 	nodeStartupScriptTemplate = template.Must(nodeStartupScriptTemplate.Parse(genericTemplates))
 	masterStartupScriptTemplate = template.Must(template.New("masterStartupScript").Funcs(funcMap).Parse(masterStartupScript))
 	masterStartupScriptTemplate = template.Must(masterStartupScriptTemplate.Parse(genericTemplates))
-	cloudInitUserDataTemplate = template.Must(template.New("cloudInitUserData").Parse(cloudInitUserData))
+	cloudInitUserDataTemplate = template.Must(template.New("cloudInitUserData").Funcs(funcMap).Parse(cloudInitUserData))
 	cloudProviderConfigTemplate = template.Must(template.New("cloudProviderConfig").Parse(cloudProviderConfig))
 	cloudInitMetaDataNetworkTemplate = template.Must(template.New("cloudInitMetaDataNetwork").Parse(networkSpec))
 	cloudInitMetaDataTemplate = template.Must(template.New("cloudInitMetaData").Parse(cloudInitMetaData))
@@ -195,6 +210,7 @@ type CloudInitTemplate struct {
 	IsMaster            bool
 	CloudProviderConfig string
 	SSHPublicKey        string
+	TrustedCerts        []string
 }
 
 type CloudInitMetadataNetworkTemplate struct {
@@ -250,6 +266,14 @@ users:
   sudo: ALL=(ALL) NOPASSWD:ALL
   groups: sudo
   shell: /bin/bash
+{{- if .TrustedCerts }}
+ca-certs:
+  trusted:
+  {{- range .TrustedCerts }}
+  - |
+{{ indent 3 (base64Decode .) }}
+  {{- end }}
+{{- end }}
 write_files:
   - path: /tmp/boot.sh
     content: |

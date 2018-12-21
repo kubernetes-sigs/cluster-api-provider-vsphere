@@ -123,6 +123,9 @@ items:
           - diskLabel: "Hard disk 1"
             diskSizeGB: 20
           preloaded: false
+          trustedCerts:
+          - zzzz
+          - aaaa
     versions:
       kubelet: 1.11.1
       controlPlane: 1.11.1

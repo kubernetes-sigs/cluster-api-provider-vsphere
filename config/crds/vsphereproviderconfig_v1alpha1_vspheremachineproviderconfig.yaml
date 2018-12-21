@@ -74,6 +74,10 @@ spec:
               type: string
             template:
               type: string
+            trustedCerts:
+              items:
+                type: string
+              type: array
             vmFolder:
               type: string
             vsphereCloudInit:

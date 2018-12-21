@@ -405,12 +405,194 @@ EOF
 echo > /etc/default/kubelet
 systemctl daemon-reload
 
+# (gjayavelu) Begin workaround to avoid asymetric routing issue on worker nodes due to multiple interfaces
+# and each having their own gateways.
+cat > readInterfaces.awk << EOF
+BEGIN {
+
+    start = 0;
+    outAll = 0
+
+    for (i = 2; i < ARGC; i++) {
+        split(ARGV[i], arg, "=");
+        if (arg[1] == "device")
+            device = arg[2];
+        else if (arg[1] == "output" && arg[2] == "all")
+            outAll = 1;
+        else if (arg[1] == "debug" && arg[2] == "1")
+            debug = 1;
+    }
+
+    if (!length(device)) {
+        print "awk -f readInterfaces.awk <interfaces file> device=<eth device> [output=all] [debug=1]"
+        exit 1;
+    }
+}
+
+{
+    # Look for iface line and if the interface comes with the device name
+    # scan whether it is dhcp or static or manual
+    # e.g. iface eth0 inet [static | dhcp | manual]
+    if (\$1 == "iface")  {
+        # Ethernet name matches - switch the line scanning on
+        if (\$2 == device) {
+            if (debug)
+                print \$0;
+            # It's a DHCP interface
+            if (match(\$0, / dhcp/)) {
+                print "dhcp";
+                gotTypeNoAddr = 1;
+                exit 0;
+                # It's a static network interface. We want to scan the
+                # addresses after the static line
+            }
+            else if (match (\$0, / static/)) {
+                static = 1;
+                next;
+            }
+            else if (match (\$0, / manual/)) {
+                print "manual";
+                gotTypeNoAddr = 1;
+                exit 0;
+            }
+            # If it is other inteface line, switch it off
+            # Go to the next line
+        }
+        else {
+            static = 0;
+            next;
+        }
+    }
+    else if (\$1 == "auto") {
+        static = 0;
+        next;
+    }
+
+    # At here, it means we are after the iface static line of
+    # after the device we are searching for
+    # Scan for the static content
+    if (static) {
+        # 2nd field to end of the line
+        if (length(\$1)) {
+            interface[\$1] = substr(\$0, index(\$0, \$2));
+            gotAddr = 1;
+        }
+    }
+}
+
+END {
+    if (gotAddr) {
+        printf("%s %s %s\n", interface["address"], interface["netmask"], interface["gateway"]);
+        if (outAll) {
+            delete interface["address"];
+            delete interface["netmask"];
+            delete interface["gateway"];
+            for (field in interface) {
+                printf("%s %s\n", field, interface[field]);
+            }
+        }
+        exit 0;
+    }
+    else {
+        if (gotTypeNoAddr)
+            exit 0;
+        else
+            exit 1;
+    }
+}
+EOF
+
+toaddr() {
+    b1=$(( ($1 & 0xFF000000) >> 24))
+    b2=$(( ($1 & 0xFF0000) >> 16))
+    b3=$(( ($1 & 0xFF00) >> 8))
+    b4=$(( $1 & 0xFF ))
+    eval "$2=\$b1.\$b2.\$b3.\$b4"
+}
+
+tonum() {
+    if [[ $1 =~ ([[:digit:]]+)\.([[:digit:]]+)\.([[:digit:]]+)\.([[:digit:]]+) ]]; then
+        addr=$(( (${BASH_REMATCH[1]} << 24) + (${BASH_REMATCH[2]} << 16) + (${BASH_REMATCH[3]} << 8) + ${BASH_REMATCH[4]} ))
+        eval "$2=\$addr"
+    fi
+}
+
+configure_routes() {
+    rt_tables_file=/etc/iproute2/rt_tables
+    grep -q -F "$1 $2-table" $rt_tables_file || echo $1 $2-table >> $rt_tables_file
+    ip rule add from $3 lookup $2-table >>/tmp/routes 2>&1
+    ip route add $3 dev $2 table $2-table >>/tmp/routes 2>&1
+    if [ -n "$4" ]; then
+      ip route add default via $4 table $2-table >>/tmp/routes 2>&1
+    fi
+}
+get_network_info() {
+    if [[ $1 =~ ^([0-9\.]+)/([0-9]+)$ ]]; then
+      ip_addr=${BASH_REMATCH[1]}
+      prefix_len=${BASH_REMATCH[2]}
+      zeros=$((32-prefix_len))
+      netmask_num=0
+      for (( i=0; i<$zeros; i++ )); do
+          netmask_num=$(( (netmask_num << 1) ^ 1 ))
+      done
+      netmask_num=$((netmask_num ^ 0xFFFFFFFF))
+      tonum $ip_addr ip_addr_num
+      tonum $netmask netmask_num
+
+      network_num=$(( ip_addr_num & netmask_num ))
+
+      toaddr $network_num network
+      eval "$2=\$network/$prefix_len"
+    fi
+}
+
+entry_num=100
+network_script=/etc/network/interfaces.d/50-cloud-init.cfg
+
+rt_tables=()
+for iface in $(ifconfig | cut -d ' ' -f1| tr ':' '\n' | awk NF | grep ^eth)
+do
+   net_info=$(awk -f readInterfaces.awk $network_script device=$iface)
+   IFS=' ' read -r -a array <<< "$net_info"
+   if [ "$net_info" = "dhcp" ]; then
+     int_addr=$(ip -f inet addr show $iface | grep -Po 'inet \K[\d.]+/[\d.]+')
+     dhcp_lease=/var/lib/dhcp/dhclient.$iface.leases
+     if [ -f "$dhcp_lease" ]; then
+       gateway=$(grep "option routers" $dhcp_lease | tail -n 1 | awk '{print $3}' | sed -e 's/;//')
+     fi
+   elif [ "${#array[@]}" -ge "1" ]; then
+     gateway=${array[1]}
+     int_addr=${array[0]}
+   fi
+
+   get_network_info $int_addr network
+   rt_tables+=($iface)
+   configure_routes $entry_num $iface $network $gateway
+   let "entry_num++"
+done
+# End of workaround
+
 kubeadm join --token "${TOKEN}" "${MASTER}" --skip-preflight-checks --discovery-token-unsafe-skip-ca-verification
 
 for tries in $(seq 1 60); do
 	kubectl --kubeconfig /etc/kubernetes/kubelet.conf annotate --overwrite node $(hostname) machine=${MACHINE} && break
 	sleep 1
 done
+
+# (gjayavelu) Begin workaround to configure route for weave network
+weave_addr=""
+while [[ -z "$weave_addr" ]];
+do
+  sleep 1
+  printf "Waiting for weave interface\n"
+  weave_addr=$((ip -f inet addr show weave || true) | (grep -Po 'inet \K[\d.]+/[\d.]+' || true))
+done
+get_network_info $weave_addr weave_net
+for iface in "${rt_tables[@]}"
+do
+    ip route add $weave_net dev weave table $iface-table >>/tmp/routes 2>&1
+done
+# End of workaround
 {{- end }} {{/* end configure */}}
 `
 

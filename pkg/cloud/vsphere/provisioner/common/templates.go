@@ -654,8 +654,6 @@ items:
               command:
                 - /home/weave/launch.sh
               env:
-                - name: WEAVE_NO_FASTDP
-                  value: "true"
                 - name: IPALLOC_RANGE
                   value: ${POD_CIDR}
                 - name: HOSTNAME
@@ -693,8 +691,6 @@ items:
             - name: weave-npc
               args: []
               env:
-                - name: WEAVE_NO_FASTDP
-                  value: "true"
                 - name: HOSTNAME
                   valueFrom:
                     fieldRef:

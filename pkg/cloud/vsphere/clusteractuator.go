@@ -45,6 +45,16 @@ type ClusterActuator struct {
 	k8sClient       kubernetes.Interface
 }
 
+// NewClusterActuator creates the instance for the ClusterActuator
+func NewClusterActuator(clusterV1alpha1 clusterv1alpha1.ClusterV1alpha1Interface, k8sClient kubernetes.Interface, lister v1alpha1.Interface, eventRecorder record.EventRecorder) (*ClusterActuator, error) {
+	return &ClusterActuator{
+		clusterV1alpha1: clusterV1alpha1,
+		lister:          lister,
+		eventRecorder:   eventRecorder,
+		k8sClient:       k8sClient,
+	}, nil
+}
+
 // Reconcile will create or update the cluster
 func (ca *ClusterActuator) Reconcile(cluster *clusterv1.Cluster) error {
 	glog.V(4).Infof("Attempting to reconcile cluster %s", cluster.ObjectMeta.Name)
@@ -83,6 +93,7 @@ func (ca *ClusterActuator) Reconcile(cluster *clusterv1.Cluster) error {
 func (ca *ClusterActuator) updateK8sAPIStatus(cluster *clusterv1.Cluster) error {
 	currentClusterAPIStatus, err := ca.getClusterAPIStatus(cluster)
 	if err != nil {
+		glog.V(4).Infof("ClusterActuator failed to get cluster status: %s", err.Error())
 		return err
 	}
 	return ca.updateClusterAPIStatus(cluster, currentClusterAPIStatus)
@@ -181,9 +192,10 @@ func (ca *ClusterActuator) updateClusterAPIStatus(cluster *clusterv1.Cluster, ne
 	out, err := json.Marshal(newProviderStatus)
 	ncluster := cluster.DeepCopy()
 	ncluster.Status.ProviderStatus = &runtime.RawExtension{Raw: out}
+
 	_, err = ca.clusterV1alpha1.Clusters(ncluster.Namespace).UpdateStatus(ncluster)
 	if err != nil {
-		glog.Infof("Error in updating the cluster api status from [%s] to [%s]: %s", oldProviderStatus.APIStatus, newStatus, err)
+		glog.V(4).Infof("ClusterActuator failed to update the cluster status: %s", err.Error())
 		return err
 	}
 	return nil
@@ -248,14 +260,4 @@ func (ca *ClusterActuator) Delete(cluster *clusterv1.Cluster) error {
 	ca.eventRecorder.Eventf(cluster, corev1.EventTypeNormal, "Deleted", "Deleting cluster %s", cluster.Name)
 	glog.Infof("Attempting to cleaning up resources of cluster %s", cluster.ObjectMeta.Name)
 	return nil
-}
-
-// NewClusterActuator creates the instance for the ClusterActuator
-func NewClusterActuator(clusterV1alpha1 clusterv1alpha1.ClusterV1alpha1Interface, k8sClient kubernetes.Interface, lister v1alpha1.Interface, eventRecorder record.EventRecorder) (*ClusterActuator, error) {
-	return &ClusterActuator{
-		clusterV1alpha1: clusterV1alpha1,
-		lister:          lister,
-		eventRecorder:   eventRecorder,
-		k8sClient:       k8sClient,
-	}, nil
 }

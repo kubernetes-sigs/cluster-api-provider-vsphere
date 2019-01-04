@@ -1,0 +1,10 @@
+[Unit]
+Description=Kubernetes watchdog timer
+
+[Timer]
+OnBootSec=0min
+OnCalendar=*:0/1
+Unit=kubernetes-watchdog.service
+
+[Install]
+WantedBy=timers.target

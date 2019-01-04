@@ -20,22 +20,45 @@
 #   version = "2.4.0"
 #
 required = [
-  "k8s.io/code-generator/cmd/deepcopy-gen",
-]
+    "github.com/emicklei/go-restful",
+    "github.com/onsi/ginkgo", # for test framework
+    "github.com/onsi/gomega", # for test matchers
+    "k8s.io/code-generator/cmd/deepcopy-gen", # for go generate
+    "sigs.k8s.io/controller-tools/cmd/controller-gen", # for crd/rbac generation
+    "sigs.k8s.io/controller-runtime/pkg/client/config",
+    "sigs.k8s.io/controller-runtime/pkg/controller",
+    "sigs.k8s.io/controller-runtime/pkg/handler",
+    "sigs.k8s.io/controller-runtime/pkg/manager",
+    "sigs.k8s.io/controller-runtime/pkg/runtime/signals",
+    "sigs.k8s.io/controller-runtime/pkg/source",
+    "sigs.k8s.io/testing_frameworks/integration", # for integration testing
+    "sigs.k8s.io/yaml",
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1",
+    ]
 
 [prune]
+  unused-packages = true
   non-go = true
   go-tests = true
-  unused-packages = true
 
 [[constraint]]
   name = "sigs.k8s.io/cluster-api"
   revision = "7db708b5df567c79e2e46f9c37cdbf001bef1302"
 
 [[constraint]]
-  name = "k8s.io/code-generator"
-  branch = "release-1.9"
-
-[[constraint]]
   name = "github.com/vmware/govmomi"
   branch = "master"
+
+[[constraint]]
+  name = "k8s.io/apimachinery"
+  version = "kubernetes-1.11.2"
+
+[[constraint]]
+  name = "k8s.io/cluster-bootstrap"
+  branch = "master"
+
+# For dependency below: Refer to issue https://github.com/golang/dep/issues/1799
+[[override]]
+name = "gopkg.in/fsnotify.v1"
+source = "https://github.com/fsnotify/fsnotify.git"
+version="v1.4.7"

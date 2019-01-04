@@ -15,7 +15,6 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	vsphereconfig "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig"
 	vsphereconfigv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
 	vpshereprovisionercommon "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/provisioner/common"
@@ -26,15 +25,15 @@ import (
 	"sigs.k8s.io/cluster-api/pkg/util"
 )
 
-func (pv *Provisioner) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
-	glog.V(4).Infof("govmomi.Actuator.Create %s", machine.Spec.Name)
+func (pv *Provisioner) Create(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+	glog.V(4).Infof("govmomi.Actuator.Create %s", machine.Name)
 	s, err := pv.sessionFromProviderConfig(cluster, machine)
 	if err != nil {
 		return err
 	}
-	ctx, cancel := context.WithCancel(*s.context)
+	createctx, cancel := context.WithCancel(*s.context)
 	defer cancel()
-	usersession, err := s.session.SessionManager.UserSession(ctx)
+	usersession, err := s.session.SessionManager.UserSession(createctx)
 	if err != nil {
 		return err
 	}
@@ -116,7 +115,7 @@ func (pv *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 	defer cancel()
 
 	var spec types.VirtualMachineCloneSpec
-	machineConfig, err := vsphereutils.GetMachineProviderConfig(machine.Spec.ProviderConfig)
+	machineConfig, err := vsphereutils.GetMachineProviderSpec(machine.Spec.ProviderSpec)
 	if err != nil {
 		return err
 	}
@@ -128,7 +127,8 @@ func (pv *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 	}
 	s.finder.SetDatacenter(dc)
 
-	vmFolder, err := s.finder.FolderOrDefault(ctx, machineConfig.MachineVariables[constants.ProviderVmFolder])
+	glog.V(4).Infof("clone VM to folder %s", machineConfig.MachineSpec.VMFolder)
+	vmFolder, err := s.finder.FolderOrDefault(ctx, machineConfig.MachineSpec.VMFolder)
 	if err != nil {
 		return err
 	}
@@ -254,7 +254,7 @@ func (pv *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 	// interested in resizing only a subset of disks and thus we don't want to
 	// force the user to list all the disk and sizes if they don't want to change
 	// all.
-	diskMap := func(diskSpecs []vsphereconfig.DiskSpec) map[string]int64 {
+	diskMap := func(diskSpecs []vsphereconfigv1.DiskSpec) map[string]int64 {
 		diskMap := make(map[string]int64)
 		for _, s := range diskSpecs {
 			diskMap[s.DiskLabel] = s.DiskSizeGB
@@ -311,8 +311,11 @@ func (pv *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 		nicid--
 	}
 	spec.Config.DeviceChange = deviceSpecs
-	pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Creating", "Creating Machine %v", machine.Name)
+	if pv.eventRecorder != nil { // TODO: currently supporting nil for testing
+		pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Creating", "Creating Machine %v", machine.Name)
+	}
 	task, err := src.Clone(ctx, vmFolder, machine.Name, spec)
+	glog.V(6).Infof("clone VM with spec %v", spec)
 	if err != nil {
 		return err
 	}
@@ -344,25 +347,25 @@ func (pv *Provisioner) removeTaskRef(machine *clusterv1.Machine) error {
 }
 
 func (vc *Provisioner) updateVMReference(machine *clusterv1.Machine, vmref string) (*clusterv1.Machine, error) {
-	providerConfig, err := vsphereutils.GetMachineProviderConfig(machine.Spec.ProviderConfig)
+	providerSpec, err := vsphereutils.GetMachineProviderSpec(machine.Spec.ProviderSpec)
 	if err != nil {
 		glog.Infof("Error fetching MachineProviderConfig: %s", err)
 		return machine, err
 	}
-	providerConfig.MachineRef = vmref
+	providerSpec.MachineRef = vmref
 	// Set the Kind and APIVersion again since they are not returned
 	// See the following Issues for details:
 	// https://github.com/kubernetes/client-go/issues/308
 	// https://github.com/kubernetes/kubernetes/issues/3030
-	providerConfig.Kind = reflect.TypeOf(*providerConfig).Name()
-	providerConfig.APIVersion = vsphereconfigv1.SchemeGroupVersion.String()
+	providerSpec.Kind = reflect.TypeOf(*providerSpec).Name()
+	providerSpec.APIVersion = vsphereconfigv1.SchemeGroupVersion.String()
 	newMachine := machine.DeepCopy()
-	out, err := json.Marshal(providerConfig)
+	out, err := json.Marshal(providerSpec)
 	if err != nil {
 		glog.Infof("Error marshaling ProviderConfig: %s", err)
 		return machine, err
 	}
-	newMachine.Spec.ProviderConfig.Value = &runtime.RawExtension{Raw: out}
+	newMachine.Spec.ProviderSpec.Value = &runtime.RawExtension{Raw: out}
 	newMachine, err = vc.clusterV1alpha1.Machines(newMachine.Namespace).Update(newMachine)
 	if err != nil {
 		glog.Infof("Error in updating the machine ref: %s", err)
@@ -391,6 +394,9 @@ func (pv *Provisioner) setTaskRef(machine *clusterv1.Machine, taskref string) er
 	out, err := json.Marshal(newProviderStatus)
 	newMachine := machine.DeepCopy()
 	newMachine.Status.ProviderStatus = &runtime.RawExtension{Raw: out}
+	if pv.clusterV1alpha1 == nil { // TODO: currently supporting nil for testing
+		return nil
+	}
 	_, err = pv.clusterV1alpha1.Machines(newMachine.Namespace).UpdateStatus(newMachine)
 	if err != nil {
 		glog.Infof("Error in updating the machine ref: %s", err)
@@ -434,7 +440,7 @@ func (pv *Provisioner) updateAnnotations(cluster *clusterv1.Cluster, machine *cl
 }
 
 func (pv *Provisioner) getCloudInitMetaData(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
-	machineconfig, err := vsphereutils.GetMachineProviderConfig(machine.Spec.ProviderConfig)
+	machineconfig, err := vsphereutils.GetMachineProviderSpec(machine.Spec.ProviderSpec)
 	if err != nil {
 		return "", err
 	}
@@ -475,27 +481,31 @@ func (pv *Provisioner) getCloudInitUserData(cluster *clusterv1.Cluster, machine 
 }
 
 func (pv *Provisioner) getCloudProviderConfig(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
-	clusterConfig, err := vsphereutils.GetClusterProviderConfig(cluster.Spec.ProviderConfig)
+	clusterConfig, err := vsphereutils.GetClusterProviderSpec(cluster.Spec.ProviderSpec)
 	if err != nil {
 		return "", err
 	}
-	machineconfig, err := vsphereutils.GetMachineProviderConfig(machine.Spec.ProviderConfig)
+	machineconfig, err := vsphereutils.GetMachineProviderSpec(machine.Spec.ProviderSpec)
 	if err != nil {
 		return "", err
 	}
+
 	// TODO(ssurana): revisit once we solve https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/60
-	cloudProviderConfig, err := vpshereprovisionercommon.GetCloudProviderConfigConfig(
-		vpshereprovisionercommon.CloudProviderConfigTemplate{
-			Datacenter:   machineconfig.MachineSpec.Datacenter,
-			Server:       clusterConfig.VsphereServer,
-			Insecure:     true, // TODO(ssurana): Needs to be a user input
-			UserName:     clusterConfig.VsphereUser,
-			Password:     clusterConfig.VspherePassword,
-			ResourcePool: machineconfig.MachineSpec.ResourcePool,
-			Datastore:    machineconfig.MachineSpec.Datastore,
-			Network:      machineconfig.MachineSpec.Networks[0].NetworkName,
-		},
-	)
+	cpc := vpshereprovisionercommon.CloudProviderConfigTemplate{
+		Datacenter:   machineconfig.MachineSpec.Datacenter,
+		Server:       clusterConfig.VsphereServer,
+		Insecure:     true, // TODO(ssurana): Needs to be a user input
+		UserName:     clusterConfig.VsphereUser,
+		Password:     clusterConfig.VspherePassword,
+		ResourcePool: machineconfig.MachineSpec.ResourcePool,
+		Datastore:    machineconfig.MachineSpec.Datastore,
+		Network:      "",
+	}
+	if len(machineconfig.MachineSpec.Networks) > 0 {
+		cpc.Network = machineconfig.MachineSpec.Networks[0].NetworkName
+	}
+
+	cloudProviderConfig, err := vpshereprovisionercommon.GetCloudProviderConfigConfig(cpc)
 	if err != nil {
 		return "", err
 	}
@@ -506,10 +516,10 @@ func (pv *Provisioner) getCloudProviderConfig(cluster *clusterv1.Cluster, machin
 // Builds and returns the startup script for the passed machine and cluster.
 // Returns the full path of the saved startup script and possible error.
 func (pv *Provisioner) getStartupScript(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
-	machineconfig, err := vsphereutils.GetMachineProviderConfig(machine.Spec.ProviderConfig)
+	machineconfig, err := vsphereutils.GetMachineProviderSpec(machine.Spec.ProviderSpec)
 	if err != nil {
 		return "", pv.HandleMachineError(machine, apierrors.InvalidMachineConfiguration(
-			"Cannot unmarshal providerConfig field: %v", err), constants.CreateEventAction)
+			"Cannot unmarshal providerSpec field: %v", err), constants.CreateEventAction)
 	}
 	preloaded := machineconfig.MachineSpec.Preloaded
 	var startupScript string

@@ -15,7 +15,7 @@ package main
 
 import (
 	_ "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere"
-	"sigs.k8s.io/cluster-api/clusterctl/cmd"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 )
 
 func main() {

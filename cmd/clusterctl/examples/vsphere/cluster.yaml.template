@@ -9,7 +9,7 @@ spec:
         pods:
             cidrBlocks: ["192.168.0.0/16"]
         serviceDomain: "cluster.local"
-    providerConfig:
+    providerSpec:
       value:
         apiVersion: "vsphereproviderconfig/v1alpha1"
         kind: "VsphereClusterProviderConfig"

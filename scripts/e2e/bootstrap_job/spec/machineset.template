@@ -1,0 +1,37 @@
+apiVersion: "cluster.k8s.io/v1alpha1"
+kind: MachineSet
+metadata:
+  name: clusterapi-machineset-1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      node-type: worker-node
+  template:
+    metadata:
+      labels:
+        node-type: worker-node
+    spec:
+      providerSpec:
+        value:
+          apiVersion: "vsphereproviderconfig/v1alpha1"
+          kind: "VsphereMachineProviderConfig"
+          machineSpec:
+            datacenter: "SDDC-Datacenter"
+            datastore: "WorkloadDatastore"
+            resourcePool: "clusterapi"
+            vmFolder: "clusterapi"
+            networks:
+            - networkName: "sddc-cgw-network-3"
+              ipConfig:
+                networkType: dhcp
+            numCPUs: 2
+            memoryMB: 2048
+            template: "ubuntu-16.04-server-cloudimg-amd64"
+            disks:
+            - diskLabel: "Hard disk 1"
+              diskSizeGB: 15
+      versions:
+        kubelet: 1.11.2
+      roles:
+      - Node

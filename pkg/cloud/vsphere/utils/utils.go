@@ -16,12 +16,12 @@ import (
 	"github.com/golang/glog"
 	"github.com/google/uuid"
 	"k8s.io/apimachinery/pkg/labels"
-	vsphereconfig "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig"
 	vsphereconfigv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	v1alpha1 "sigs.k8s.io/cluster-api/pkg/client/informers_generated/externalversions/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/util"
+	"sigs.k8s.io/yaml"
 )
 
 // GetMasterForCluster returns the master nodes for the given cluster
@@ -60,6 +60,7 @@ func GetMachineProviderStatus(machine *clusterv1.Machine) (*vsphereconfigv1.Vsph
 	status := &vsphereconfigv1.VsphereMachineProviderStatus{}
 	err := json.Unmarshal(machine.Status.ProviderStatus.Raw, status)
 	if err != nil {
+		glog.V(4).Infof("error unmarshaling machine provider status: %s", err.Error())
 		return nil, err
 	}
 	return status, nil
@@ -72,39 +73,29 @@ func GetClusterProviderStatus(cluster *clusterv1.Cluster) (*vsphereconfigv1.Vsph
 	status := &vsphereconfigv1.VsphereClusterProviderStatus{}
 	err := json.Unmarshal(cluster.Status.ProviderStatus.Raw, status)
 	if err != nil {
+		glog.V(4).Infof("error unmarshaling cluster provider status: %s", err.Error())
+
 		return nil, err
 	}
 	return status, nil
 }
 
-func GetMachineProviderConfig(providerConfig clusterv1.ProviderConfig) (*vsphereconfig.VsphereMachineProviderConfig, error) {
-	_, codecFactory, err := vsphereconfigv1.NewSchemeAndCodecs()
+func GetMachineProviderSpec(providerSpec clusterv1.ProviderSpec) (*vsphereconfigv1.VsphereMachineProviderConfig, error) {
+	config := &vsphereconfigv1.VsphereMachineProviderConfig{}
+
+	err := yaml.Unmarshal(providerSpec.Value.Raw, config)
 	if err != nil {
-		return nil, err
-	}
-	obj, gvk, err := codecFactory.UniversalDecoder().Decode(providerConfig.Value.Raw, nil, nil)
-	if err != nil {
-		return nil, fmt.Errorf("machine providerconfig decoding failure: %v", err)
-	}
-	config, ok := obj.(*vsphereconfig.VsphereMachineProviderConfig)
-	if !ok {
-		return nil, fmt.Errorf("machine providerconfig failure to cast to vsphere; type: %v", gvk)
+		return nil, fmt.Errorf("machine providerconfig unmarshalling failure: %s", err.Error())
 	}
 	return config, nil
 }
 
-func GetClusterProviderConfig(providerConfig clusterv1.ProviderConfig) (*vsphereconfig.VsphereClusterProviderConfig, error) {
-	_, codecFactory, err := vsphereconfigv1.NewSchemeAndCodecs()
+func GetClusterProviderSpec(providerSpec clusterv1.ProviderSpec) (*vsphereconfigv1.VsphereClusterProviderConfig, error) {
+	config := &vsphereconfigv1.VsphereClusterProviderConfig{}
+
+	err := yaml.Unmarshal(providerSpec.Value.Raw, config)
 	if err != nil {
-		return nil, err
-	}
-	obj, gvk, err := codecFactory.UniversalDecoder().Decode(providerConfig.Value.Raw, nil, nil)
-	if err != nil {
-		return nil, fmt.Errorf("cluster providerconfig decoding failure: %v", err)
-	}
-	config, ok := obj.(*vsphereconfig.VsphereClusterProviderConfig)
-	if !ok {
-		return nil, fmt.Errorf("cluster providerconfig failure to cast to vsphere; type: %v", gvk)
+		return nil, fmt.Errorf("cluster providerconfig unmarshalling failure: %s", err.Error())
 	}
 	return config, nil
 }
@@ -118,7 +109,7 @@ func GetSubnet(netRange clusterv1.NetworkRanges) string {
 }
 
 func GetVMId(machine *clusterv1.Machine) (string, error) {
-	pc, err := GetMachineProviderConfig(machine.Spec.ProviderConfig)
+	pc, err := GetMachineProviderSpec(machine.Spec.ProviderSpec)
 	if err != nil {
 		return "", err
 	}

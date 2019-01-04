@@ -520,10 +520,10 @@ tonum() {
 configure_routes() {
     rt_tables_file=/etc/iproute2/rt_tables
     grep -q -F "$1 $2-table" $rt_tables_file || echo $1 $2-table >> $rt_tables_file
-    ip rule add from $3 lookup $2-table >>/tmp/routes 2>&1
-    ip route add $3 dev $2 table $2-table >>/tmp/routes 2>&1
+    ip rule add from $3 lookup $2-table || true >>/tmp/routes 2>&1
+    ip route add $3 dev $2 table $2-table || true >>/tmp/routes 2>&1
     if [ -n "$4" ]; then
-      ip route add default via $4 table $2-table >>/tmp/routes 2>&1
+      ip route add default via $4 table $2-table || true >>/tmp/routes 2>&1
     fi
 }
 get_network_info() {
@@ -555,7 +555,7 @@ do
    net_info=$(awk -f readInterfaces.awk $network_script device=$iface)
    IFS=' ' read -r -a array <<< "$net_info"
    if [ "$net_info" = "dhcp" ]; then
-     int_addr=$(ip -f inet addr show $iface | grep -Po 'inet \K[\d.]+/[\d.]+')
+     int_addr=$(ip -f inet addr show $iface | grep -Po 'inet \K[\d.]+/[\d.]+' || true)
      dhcp_lease=/var/lib/dhcp/dhclient.$iface.leases
      if [ -f "$dhcp_lease" ]; then
        gateway=$(grep "option routers" $dhcp_lease | tail -n 1 | awk '{print $3}' | sed -e 's/;//')
@@ -563,6 +563,10 @@ do
    elif [ "${#array[@]}" -ge "1" ]; then
      gateway=${array[1]}
      int_addr=${array[0]}
+   fi
+
+   if [ -z "$int_addr" ]; then
+     continue
    fi
 
    get_network_info $int_addr network

@@ -18,7 +18,7 @@
 
 DEBUG=${DEBUG:-}
 set -e -o pipefail +h && [ -n "$DEBUG" ] && set -x
-ROOT_DIR="$GOPATH/src/sigs.k8s.io/cluster-api-provider-vsphere"
+ROOT_DIR="$(go env GOPATH)/src/sigs.k8s.io/cluster-api-provider-vsphere"
 ROOT_WORK_DIR="/go/src/sigs.k8s.io/cluster-api-provider-vsphere"
 
 ROOT_INSTALLER_DIR="${ROOT_DIR}/installer"

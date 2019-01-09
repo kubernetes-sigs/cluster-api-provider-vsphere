@@ -145,7 +145,7 @@ func (ca *ClusterActuator) getClusterAPIStatus(cluster *clusterv1.Cluster) (vsph
 	}
 	if len(masters) == 0 {
 		glog.Infof("No masters for the cluster [%s] present", cluster.Name)
-		return vsphereconfigv1.ApiNotReady, nil
+		return vsphereconfigv1.ApiNotReady, &clustererror.RequeueAfterError{RequeueAfter: constants.RequeueAfterSeconds}
 	}
 	kubeconfig, err := ca.fetchKubeConfig(cluster, masters)
 	if err != nil {

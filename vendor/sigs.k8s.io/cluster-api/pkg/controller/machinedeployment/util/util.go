@@ -25,7 +25,7 @@ import (
 	"strings"
 
 	"github.com/davecgh/go-spew/spew"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -503,7 +503,7 @@ func DeploymentComplete(deployment *v1alpha1.MachineDeployment, newStatus *v1alp
 }
 
 // NewMSNewReplicas calculates the number of replicas a deployment's new MS should have.
-// When one of the followings is true, we're rolling out the deployment; otherwise, we're scaling it.
+// When one of the following is true, we're rolling out the deployment; otherwise, we're scaling it.
 // 1) The new MS is saturated: newMS's replicas == deployment's replicas
 // 2) Max number of machines allowed is reached: deployment's replicas + maxSurge == all MSs' replicas
 func NewMSNewReplicas(deployment *v1alpha1.MachineDeployment, allMSs []*v1alpha1.MachineSet, newMS *v1alpha1.MachineSet) (int32, error) {
@@ -544,7 +544,7 @@ func NewMSNewReplicas(deployment *v1alpha1.MachineDeployment, allMSs []*v1alpha1
 		// Do not exceed the number of desired replicas.
 		scaleUpCount = int32(integer.Int32Min(scaleUpCount, *(deployment.Spec.Replicas)-*(newMS.Spec.Replicas)))
 		return *(newMS.Spec.Replicas) + scaleUpCount, nil
-		// -- return 0, fmt.Errorf("deployment type %v isn't supported", deployment.Spec.Strategy.Type)
+		// -- return 0, errors.Errorf("deployment type %v isn't supported", deployment.Spec.Strategy.Type)
 	}
 }
 

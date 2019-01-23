@@ -137,7 +137,7 @@ Note, the disk size above in this example needs to be 15GB or higher.
 The most basic workflow for creating a cluster using *clusterctl* actually ends up creating two clusters.  The first is called the **bootstrap** cluster.  This cluster is created using minikube.  The cluster api components are installed on this cluster.  *Clusterctl* then uses the cluster api server on the bootstrap cluster to create the **target** cluster.  Once the target cluster has been created, *clusterctl* will cleanup by deleting the bootstrap cluster.  There are other workflows to create the target cluster, but for this intro, the most basic workflow is used.  The command is shown below.  Once the CLI has finished, it will put the kubeconfig file for your target cluster in your current folder.  You can use that kubeconfig file to access your new cluster.
 
 ```
-$> clusterctl create cluster -c cluster.yaml -m machines.yaml -p provider-components.yaml --provider vsphere --vm-driver vmware
+$> clusterctl create cluster --provider vsphere --bootstrap-type minikube --bootstrap-flags "--vm-driver,vmware" -c cluster.yaml -m machines.yaml -p provider-components.yaml
 $> kubectl --kubeconfig ./kubeconfig get no
 ```
 

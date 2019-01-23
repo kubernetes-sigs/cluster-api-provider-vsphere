@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"time"
 
-	"github.com/golang/glog"
 	corev1 "k8s.io/api/core/v1"
 	machineryerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -15,6 +14,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	tokenapi "k8s.io/cluster-bootstrap/token/api"
 	tokenutil "k8s.io/cluster-bootstrap/token/util"
+	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
 	vsphereutils "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/utils"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -62,7 +62,7 @@ func (pv *Provisioner) GetKubeadmToken(cluster *clusterv1.Cluster) (string, erro
 	ncluster.ObjectMeta.Annotations[constants.KubeadmTokenExpiryTime] = time.Now().Add(constants.KubeadmTokenTtl).Format(time.RFC3339)
 	_, err = pv.clusterV1alpha1.Clusters(cluster.Namespace).Update(ncluster)
 	if err != nil {
-		glog.Infof("Could not cache the kubeadm token on cluster object: %s", err)
+		klog.Infof("Could not cache the kubeadm token on cluster object: %s", err)
 	}
 	return token, err
 }
@@ -140,7 +140,7 @@ func (pv *Provisioner) HandleMachineError(machine *clusterv1.Machine, err *apier
 		pv.eventRecorder.Eventf(machine, corev1.EventTypeWarning, "Failed"+eventAction, "%v", err.Reason)
 	}
 
-	glog.Errorf("Machine error: %v", err.Message)
+	klog.Errorf("Machine error: %v", err.Message)
 	return err
 }
 
@@ -161,7 +161,7 @@ func (pv *Provisioner) HandleClusterError(cluster *clusterv1.Cluster, err *apier
 		pv.eventRecorder.Eventf(cluster, corev1.EventTypeWarning, "Failed"+eventAction, "%v", err.Reason)
 	}
 
-	glog.Errorf("Cluster error: %v", err.Message)
+	klog.Errorf("Cluster error: %v", err.Message)
 	return err
 }
 

@@ -58,6 +58,15 @@ const (
 	//
 	// Example: cannot resolve EC2 IP address.
 	DeleteMachineError MachineStatusError = "DeleteError"
+
+	// This error indicates that the machine did not join the cluster
+	// as a new node within the expected timeframe after instance
+	// creation at the provider succeeded
+	//
+	// Example use case: A controller that deletes Machines which do
+	// not result in a Node joining the cluster within a given timeout
+	// and that are managed by a MachineSet
+	JoinClusterTimeoutMachineError = "JoinClusterTimeoutError"
 )
 
 type ClusterStatusError string
@@ -100,6 +109,6 @@ type MachineDeploymentStrategyType string
 
 const (
 	// Replace the old MachineSet by new one using rolling update
-	// i.e gradually scale down the old MachineSet and scale up the new one.
+	// i.e. gradually scale down the old MachineSet and scale up the new one.
 	RollingUpdateMachineDeploymentStrategyType MachineDeploymentStrategyType = "RollingUpdate"
 )

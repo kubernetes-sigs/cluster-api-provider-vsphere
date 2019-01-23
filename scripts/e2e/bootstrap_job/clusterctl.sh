@@ -18,7 +18,7 @@ export TARGET_VM_SSH_PUB=$(echo -n "${TARGET_VM_SSH_PUB}" | base64 -w 0)
 
 for filename in spec/*.template; do
   newfilename="$(echo "$filename" | sed 's/template/yml/g')"
-  rm -f "$newfilename" temp.sh  
+  rm -f "$newfilename" temp.sh
   ( echo "cat <<EOF >$newfilename";
     cat "$filename";
     echo "EOF";
@@ -46,7 +46,7 @@ chmod +x /usr/local/bin/kubectl
 
 # run clusterctl
 echo "test ${PROVIDER_COMPONENT_SPEC}"
-/tmp/clusterctl/clusterctl create cluster --existing-bootstrap-cluster-kubeconfig ~/.kube/config -c ./spec/cluster.yml \
+/tmp/clusterctl/clusterctl create cluster -e ~/.kube/config -c ./spec/cluster.yml \
     -m ./spec/machines.yml \
     -p ./spec/${PROVIDER_COMPONENT_SPEC} \
     --provider vsphere \

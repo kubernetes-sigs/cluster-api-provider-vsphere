@@ -23,8 +23,9 @@ import (
 	"sort"
 	"strconv"
 
+	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/api/equality"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	apirand "k8s.io/apimachinery/pkg/util/rand"
@@ -127,6 +128,11 @@ func (r *ReconcileMachineDeployment) getNewMachineSet(d *clusterv1alpha1.Machine
 	// Add machineTemplateHash label to selector.
 	newMSSelector := dutil.CloneSelectorAndAddLabel(&d.Spec.Selector, dutil.DefaultMachineDeploymentUniqueLabelKey, machineTemplateSpecHash)
 
+	minReadySeconds := int32(0)
+	if d.Spec.MinReadySeconds != nil {
+		minReadySeconds = *d.Spec.MinReadySeconds
+	}
+
 	// Create new MachineSet
 	newMS := clusterv1alpha1.MachineSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -138,7 +144,7 @@ func (r *ReconcileMachineDeployment) getNewMachineSet(d *clusterv1alpha1.Machine
 		},
 		Spec: clusterv1alpha1.MachineSetSpec{
 			Replicas:        new(int32),
-			MinReadySeconds: *d.Spec.MinReadySeconds,
+			MinReadySeconds: minReadySeconds,
 			Selector:        *newMSSelector,
 			Template:        newMSTemplate,
 		},
@@ -160,7 +166,7 @@ func (r *ReconcileMachineDeployment) getNewMachineSet(d *clusterv1alpha1.Machine
 	createdMS := &newMS
 	switch {
 	// We may end up hitting this due to a slow cache or a fast resync of the Deployment.
-	case errors.IsAlreadyExists(err):
+	case apierrors.IsAlreadyExists(err):
 		alreadyExists = true
 
 		ms := &clusterv1alpha1.MachineSet{}
@@ -202,13 +208,13 @@ func (r *ReconcileMachineDeployment) getNewMachineSet(d *clusterv1alpha1.Machine
 // when a deployment is paused and not during the normal rollout process.
 func (r *ReconcileMachineDeployment) scale(deployment *clusterv1alpha1.MachineDeployment, newMS *clusterv1alpha1.MachineSet, oldMSs []*clusterv1alpha1.MachineSet) error {
 	if deployment.Spec.Replicas == nil {
-		return fmt.Errorf("spec replicas for deployment %v is nil, this is unexpected", deployment.Name)
+		return errors.Errorf("spec replicas for deployment %v is nil, this is unexpected", deployment.Name)
 	}
 	// If there is only one active machine set then we should scale that up to the full count of the
 	// deployment. If there is no active machine set, then we should scale up the newest machine set.
 	if activeOrLatest := dutil.FindOneActiveOrLatest(newMS, oldMSs); activeOrLatest != nil {
 		if activeOrLatest.Spec.Replicas == nil {
-			return fmt.Errorf("spec replicas for machine set %v is nil, this is unexpected", activeOrLatest.Name)
+			return errors.Errorf("spec replicas for machine set %v is nil, this is unexpected", activeOrLatest.Name)
 		}
 		if *(activeOrLatest.Spec.Replicas) == *(deployment.Spec.Replicas) {
 			return nil
@@ -346,7 +352,7 @@ func calculateStatus(allMSs []*clusterv1alpha1.MachineSet, newMS *clusterv1alpha
 
 func (r *ReconcileMachineDeployment) scaleMachineSet(ms *clusterv1alpha1.MachineSet, newScale int32, deployment *clusterv1alpha1.MachineDeployment) (bool, error) {
 	if ms.Spec.Replicas == nil {
-		return false, fmt.Errorf("spec replicas for machine set %v is nil, this is unexpected", ms.Name)
+		return false, errors.Errorf("spec replicas for machine set %v is nil, this is unexpected", ms.Name)
 	}
 	// No need to scale
 	if *(ms.Spec.Replicas) == newScale {
@@ -365,7 +371,7 @@ func (r *ReconcileMachineDeployment) scaleMachineSet(ms *clusterv1alpha1.Machine
 
 func (r *ReconcileMachineDeployment) scaleMachineSetOperation(ms *clusterv1alpha1.MachineSet, newScale int32, deployment *clusterv1alpha1.MachineDeployment, scaleOperation string) (bool, error) {
 	if ms.Spec.Replicas == nil {
-		return false, fmt.Errorf("spec replicas for machine set %v is nil, this is unexpected", ms.Name)
+		return false, errors.Errorf("spec replicas for machine set %v is nil, this is unexpected", ms.Name)
 	}
 	sizeNeedsUpdate := *(ms.Spec.Replicas) != newScale
 
@@ -384,7 +390,7 @@ func (r *ReconcileMachineDeployment) scaleMachineSetOperation(ms *clusterv1alpha
 	return scaled, err
 }
 
-// cleanupDeployment is responsible for cleaning up a deployment ie. retains all but the latest N old machine sets
+// cleanupDeployment is responsible for cleaning up a deployment i.e. retains all but the latest N old machine sets
 // where N=d.Spec.RevisionHistoryLimit. Old machine sets are older versions of the machinetemplate of a deployment kept
 // around by default 1) for historical reasons and 2) for the ability to rollback a deployment.
 func (r *ReconcileMachineDeployment) cleanupDeployment(oldMSs []*clusterv1alpha1.MachineSet, deployment *clusterv1alpha1.MachineDeployment) error {
@@ -409,14 +415,14 @@ func (r *ReconcileMachineDeployment) cleanupDeployment(oldMSs []*clusterv1alpha1
 	for i := int32(0); i < diff; i++ {
 		ms := cleanableMSes[i]
 		if ms.Spec.Replicas == nil {
-			return fmt.Errorf("spec replicas for machine set %v is nil, this is unexpected", ms.Name)
+			return errors.Errorf("spec replicas for machine set %v is nil, this is unexpected", ms.Name)
 		}
 		// Avoid delete machine set with non-zero replica counts
 		if ms.Status.Replicas != 0 || *(ms.Spec.Replicas) != 0 || ms.Generation > ms.Status.ObservedGeneration || ms.DeletionTimestamp != nil {
 			continue
 		}
 		klog.V(4).Infof("Trying to cleanup machine set %q for deployment %q", ms.Name, deployment.Name)
-		if err := r.Delete(context.Background(), ms); err != nil && !errors.IsNotFound(err) {
+		if err := r.Delete(context.Background(), ms); err != nil && !apierrors.IsNotFound(err) {
 			// Return error instead of aggregating and continuing DELETEs on the theory
 			// that we may be overloading the api server.
 			return err
@@ -433,7 +439,7 @@ func (r *ReconcileMachineDeployment) cleanupDeployment(oldMSs []*clusterv1alpha1
 // machineMap should come from getMachineMapForDeployment(d, msList).
 func (r *ReconcileMachineDeployment) isScalingEvent(d *clusterv1alpha1.MachineDeployment, msList []*clusterv1alpha1.MachineSet, machineMap map[types.UID]*clusterv1alpha1.MachineList) (bool, error) {
 	if d.Spec.Replicas == nil {
-		return false, fmt.Errorf("spec replicas for deployment %v is nil, this is unexpected", d.Name)
+		return false, errors.Errorf("spec replicas for deployment %v is nil, this is unexpected", d.Name)
 	}
 	newMS, oldMSs, err := r.getAllMachineSetsAndSyncRevision(d, msList, machineMap, false)
 	if err != nil {
@@ -468,6 +474,8 @@ func updateMachineDeployment(c client.Client, d *clusterv1alpha1.MachineDeployme
 		if err := c.Get(context.Background(), types.NamespacedName{Namespace: d.Namespace, Name: d.Name}, d); err != nil {
 			return err
 		}
+
+		clusterv1alpha1.PopulateDefaultsMachineDeployment(d)
 		// Apply modifications
 		modify(d)
 		// Update the machineDeployment

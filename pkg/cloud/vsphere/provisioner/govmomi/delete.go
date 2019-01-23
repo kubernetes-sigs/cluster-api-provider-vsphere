@@ -4,13 +4,12 @@ import (
 	"context"
 	"errors"
 
-	"github.com/golang/glog"
-
 	"github.com/vmware/govmomi/object"
 
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/klog"
 	vsphereutils "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/utils"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
@@ -43,24 +42,24 @@ func (pv *Provisioner) Delete(ctx context.Context, cluster *clusterv1.Cluster, m
 		if vm.Runtime.PowerState == types.VirtualMachinePowerStatePoweredOn {
 			task, err := vmo.PowerOff(deletectx)
 			if err != nil {
-				glog.Infof("Error trigerring power off operation on the Virtual Machine %s", vm.Name)
+				klog.Infof("Error trigerring power off operation on the Virtual Machine %s", vm.Name)
 				return err
 			}
 			err = task.Wait(deletectx)
 			if err != nil {
-				glog.Infof("Error powering off the Virtual Machine %s", vm.Name)
+				klog.Infof("Error powering off the Virtual Machine %s", vm.Name)
 				return err
 			}
 		}
 		task, err := vmo.Destroy(deletectx)
 		taskinfo, err := task.WaitForResult(deletectx, nil)
 		if taskinfo.State == types.TaskInfoStateSuccess {
-			glog.Infof("Virtual Machine %v deleted successfully", vm.Name)
+			klog.Infof("Virtual Machine %v deleted successfully", vm.Name)
 			pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Killed", "Machine %v deletion complete", machine.Name)
 			return nil
 		}
 		pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Killed", "Machine %v deletion complete", machine.Name)
-		glog.Errorf("VM Deletion failed on pv with following reason %v", taskinfo.Reason)
+		klog.Errorf("VM Deletion failed on pv with following reason %v", taskinfo.Reason)
 		return errors.New("VM Deletion failed")
 	}
 	return nil

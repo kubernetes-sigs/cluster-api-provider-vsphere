@@ -19,8 +19,8 @@ package main
 import (
 	"flag"
 
-	"github.com/golang/glog"
 	"github.com/spf13/pflag"
+	"k8s.io/klog"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/controller"
@@ -34,38 +34,50 @@ var (
 	namedMachinesPath = pflag.String("namedmachines", "", "path to named machines yaml file")
 )
 
+// initLogs is a temporary hack to enable proper logging until upstream dependencies
+// are migrated to fully utilize klog instead of glog.
+func initLogs() {
+	flag.Set("logtostderr", "true")
+	flags := flag.NewFlagSet("klog", flag.ExitOnError)
+	klog.InitFlags(flags)
+	flags.Set("alsologtostderr", "true")
+	flags.Set("v", "3")
+	flag.Parse()
+}
+
 func main() {
+	initLogs()
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
 
 	// Get a config to talk to the apiserver
 	cfg, err := config.GetConfig()
 	if err != nil {
-		glog.Fatalf("Failed to get config: %s", err.Error())
+		klog.Fatalf("Failed to get config: %s", err.Error())
 	}
 
 	// Create a new Cmd to provide shared dependencies and start components
 	mgr, err := manager.New(cfg, manager.Options{})
 	if err != nil {
-		glog.Fatal(err)
+		klog.Fatal(err)
 	}
 
 	// Setup Scheme for all resources
 	if err := apis.AddToScheme(mgr.GetScheme()); err != nil {
-		glog.Fatal(err)
+		klog.Fatal(err)
 	}
 
 	if err := clusterapis.AddToScheme(mgr.GetScheme()); err != nil {
-		glog.Fatal(err)
+		klog.Fatal(err)
 	}
 
 	// Setup all Controllers
 	if err := controller.AddToManager(mgr); err != nil {
-		glog.Fatal(err)
+		klog.Fatal(err)
 	}
 
-	glog.Info("Starting the Cmd.")
+	klog.Info("Starting the Cmd.")
 
 	// Start the Cmd
-	glog.Fatal(mgr.Start(signals.SetupSignalHandler()))
+	klog.Fatal(mgr.Start(signals.SetupSignalHandler()))
 }

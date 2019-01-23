@@ -22,10 +22,9 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	"github.com/golang/glog"
-
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/provisioner/govmomi"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
@@ -45,7 +44,7 @@ type VsphereClient struct {
 func NewGovmomiMachineActuator(m manager.Manager, clusterV1alpha1 clusterv1alpha1.ClusterV1alpha1Interface, k8sClient kubernetes.Interface, lister v1alpha1.Interface, eventRecorder record.EventRecorder) (*VsphereClient, error) {
 	clusterClient, err := clientset.NewForConfig(m.GetConfig())
 	if err != nil {
-		glog.Fatalf("Invalid API configuration for kubeconfig-control: %v", err)
+		klog.Fatalf("Invalid API configuration for kubeconfig-control: %v", err)
 	}
 
 	provisioner, err := govmomi.New(clusterClient.ClusterV1alpha1(), k8sClient, lister, eventRecorder)
@@ -64,7 +63,7 @@ func (vc *VsphereClient) Create(ctx context.Context, cluster *clusterv1.Cluster,
 	if vc.provisioner != nil {
 		err := vc.provisioner.Create(ctx, cluster, machine)
 		if err != nil {
-			glog.Error(err)
+			klog.Error(err)
 			return err
 		}
 		return nil

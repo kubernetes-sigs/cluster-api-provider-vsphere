@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: controller-manager
+  name: provider-controller-manager
   namespace: system
 spec:
   template:

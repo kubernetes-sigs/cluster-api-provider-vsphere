@@ -18,7 +18,7 @@
 
 DEBUG=${DEBUG:-}
 set -e -o pipefail +h && [ -n "$DEBUG" ] && set -x
-ROOT_DIR="$GOPATH/src/sigs.k8s.io/cluster-api-provider-vsphere"
+ROOT_DIR="$(go env GOPATH)/src/sigs.k8s.io/cluster-api-provider-vsphere"
 ROOT_WORK_DIR="/go/src/sigs.k8s.io/cluster-api-provider-vsphere"
 
 ROOT_INSTALLER_DIR="${ROOT_DIR}/installer"
@@ -50,7 +50,6 @@ if [ "$step" == "ova-dev" ]; then
   docker run -it --rm --privileged -v /dev:/dev \
     -v ${ROOT_DIR}:${ROOT_WORK_DIR}:ro \
     -v ${ROOT_INSTALLER_DIR}/bin:${ROOT_INSTALLER_WORK_DIR}/bin \
-    -v /var/run/docker.sock:/var/run/docker.sock \
     -e DEBUG=${DEBUG} \
     -e BUILD_OVA_REVISION=${BUILD_OVA_REVISION} \
     -e TAG=${TAG} \

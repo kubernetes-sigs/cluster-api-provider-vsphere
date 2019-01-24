@@ -21,4 +21,4 @@ Participation in the Kubernetes community is governed by the [Kubernetes Code of
 
 ### Quick Start
 
-Go [here](docs/quickstart.md) for an example of how to get up and going with the cluster api using vSphere.
+Go [here](docs/README.md) for an example of how to get up and going with the cluster api using vSphere.

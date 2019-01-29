@@ -37,9 +37,12 @@ required = [
     ]
 
 [prune]
-  unused-packages = true
-  non-go = true
   go-tests = true
+  unused-packages = true
+
+  [[prune.project]]
+  name = "sigs.k8s.io/cluster-api"
+  unused-packages = false
 
 [[constraint]]
   name = "sigs.k8s.io/cluster-api"

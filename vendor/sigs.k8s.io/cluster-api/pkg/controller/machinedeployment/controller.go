@@ -18,10 +18,10 @@ package machinedeployment
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 
-	"k8s.io/apimachinery/pkg/api/errors"
+	"github.com/pkg/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -95,8 +95,18 @@ func (r *ReconcileMachineDeployment) getMachineSetsForDeployment(d *v1alpha1.Mac
 	// List all MachineSets to find those we own but that no longer match our
 	// selector.
 	machineSets := &v1alpha1.MachineSetList{}
-	err := r.List(context.Background(), client.InNamespace(d.Namespace), machineSets)
-	if err != nil {
+	listOptions := &client.ListOptions{
+		Namespace: d.Namespace,
+		// This is set so the fake client can be used for unit test. See:
+		// https://github.com/kubernetes-sigs/controller-runtime/issues/168
+		Raw: &metav1.ListOptions{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: v1alpha1.SchemeGroupVersion.String(),
+				Kind:       "MachineSet",
+			},
+		},
+	}
+	if err := r.Client.List(context.Background(), listOptions, machineSets); err != nil {
 		return nil, err
 	}
 
@@ -136,7 +146,7 @@ func (r *ReconcileMachineDeployment) Reconcile(request reconcile.Request) (recon
 	d := &v1alpha1.MachineDeployment{}
 	err := r.Get(context.TODO(), request.NamespacedName, d)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			// Object not found, return.  Created objects are automatically garbage collected.
 			// For additional cleanup logic use finalizers.
 			return reconcile.Result{}, nil
@@ -144,6 +154,8 @@ func (r *ReconcileMachineDeployment) Reconcile(request reconcile.Request) (recon
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
 	}
+
+	v1alpha1.PopulateDefaultsMachineDeployment(d)
 
 	everything := metav1.LabelSelector{}
 	if reflect.DeepEqual(d.Spec.Selector, &everything) {
@@ -180,7 +192,7 @@ func (r *ReconcileMachineDeployment) Reconcile(request reconcile.Request) (recon
 		return reconcile.Result{}, r.rolloutRolling(d, msList, machineMap)
 	}
 
-	return reconcile.Result{}, fmt.Errorf("unexpected deployment strategy type: %s", d.Spec.Strategy.Type)
+	return reconcile.Result{}, errors.Errorf("unexpected deployment strategy type: %s", d.Spec.Strategy.Type)
 }
 
 // getMachineDeploymentsForMachineSet returns a list of Deployments that potentially
@@ -192,8 +204,18 @@ func (r *ReconcileMachineDeployment) getMachineDeploymentsForMachineSet(ms *v1al
 	}
 
 	dList := &v1alpha1.MachineDeploymentList{}
-	err := r.Client.List(context.Background(), client.InNamespace(ms.Namespace), dList)
-	if err != nil {
+	listOptions := &client.ListOptions{
+		Namespace: ms.Namespace,
+		// This is set so the fake client can be used for unit test. See:
+		// https://github.com/kubernetes-sigs/controller-runtime/issues/168
+		Raw: &metav1.ListOptions{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: v1alpha1.SchemeGroupVersion.String(),
+				Kind:       "MachineDeployment",
+			},
+		},
+	}
+	if err := r.Client.List(context.Background(), listOptions, dList); err != nil {
 		klog.Warningf("failed to list machine deployments, %v", err)
 		return nil
 	}
@@ -228,8 +250,18 @@ func (r *ReconcileMachineDeployment) getMachineMapForDeployment(d *v1alpha1.Mach
 		return nil, err
 	}
 	machines := &v1alpha1.MachineList{}
-	err = r.List(context.Background(), client.InNamespace(d.Namespace).MatchingLabels(selector), machines)
-	if err != nil {
+	listOptions := &client.ListOptions{
+		Namespace: d.Namespace,
+		// This is set so the fake client can be used for unit test. See:
+		// https://github.com/kubernetes-sigs/controller-runtime/issues/168
+		Raw: &metav1.ListOptions{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: v1alpha1.SchemeGroupVersion.String(),
+				Kind:       "Machine",
+			},
+		},
+	}
+	if err = r.Client.List(context.Background(), listOptions.MatchingLabels(selector), machines); err != nil {
 		return nil, err
 	}
 	// Group Machines by their controller (if it's in msList).

@@ -13,9 +13,9 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff"
-	"github.com/golang/glog"
 	"github.com/google/uuid"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/klog"
 	vsphereconfigv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -32,13 +32,13 @@ func GetMasterForCluster(cluster *clusterv1.Cluster, lister v1alpha1.Interface) 
 		return nil, err
 	}
 	for _, machine := range machines {
-		if util.IsMaster(machine) {
+		if util.IsControlPlaneMachine(machine) {
 			masters = append(masters, machine)
 			// Return the first master for now. Need to handle the multi-master case better
 		}
 	}
 	if len(masters) == 0 {
-		glog.Infof("No master node found for the cluster %s", cluster.Name)
+		klog.Infof("No master node found for the cluster %s", cluster.Name)
 	}
 	return masters, nil
 }
@@ -60,7 +60,7 @@ func GetMachineProviderStatus(machine *clusterv1.Machine) (*vsphereconfigv1.Vsph
 	status := &vsphereconfigv1.VsphereMachineProviderStatus{}
 	err := json.Unmarshal(machine.Status.ProviderStatus.Raw, status)
 	if err != nil {
-		glog.V(4).Infof("error unmarshaling machine provider status: %s", err.Error())
+		klog.V(4).Infof("error unmarshaling machine provider status: %s", err.Error())
 		return nil, err
 	}
 	return status, nil
@@ -73,7 +73,7 @@ func GetClusterProviderStatus(cluster *clusterv1.Cluster) (*vsphereconfigv1.Vsph
 	status := &vsphereconfigv1.VsphereClusterProviderStatus{}
 	err := json.Unmarshal(cluster.Status.ProviderStatus.Raw, status)
 	if err != nil {
-		glog.V(4).Infof("error unmarshaling cluster provider status: %s", err.Error())
+		klog.V(4).Infof("error unmarshaling cluster provider status: %s", err.Error())
 
 		return nil, err
 	}
@@ -127,27 +127,27 @@ func GetActiveTasks(machine *clusterv1.Machine) string {
 func CreateTempFile(contents string) (string, error) {
 	tmpFile, err := ioutil.TempFile("", "")
 	if err != nil {
-		glog.Warningf("Error creating temporary file")
+		klog.Warningf("Error creating temporary file")
 		return "", err
 	}
 	// For any error in this method, clean up the temp file
 	defer func(pErr *error, path string) {
 		if *pErr != nil {
 			if err := os.Remove(path); err != nil {
-				glog.Warningf("Error removing file '%s': %v", path, err)
+				klog.Warningf("Error removing file '%s': %v", path, err)
 			}
 		}
 	}(&err, tmpFile.Name())
 
 	if _, err = tmpFile.Write([]byte(contents)); err != nil {
-		glog.Warningf("Error writing to temporary file '%s'", tmpFile.Name())
+		klog.Warningf("Error writing to temporary file '%s'", tmpFile.Name())
 		return "", err
 	}
 	if err = tmpFile.Close(); err != nil {
 		return "", err
 	}
 	if err = os.Chmod(tmpFile.Name(), 0644); err != nil {
-		glog.Warningf("Error setting file permission to 0644 for the temporary file '%s'", tmpFile.Name())
+		klog.Warningf("Error setting file permission to 0644 for the temporary file '%s'", tmpFile.Name())
 		return "", err
 	}
 	return tmpFile.Name(), nil
@@ -156,10 +156,10 @@ func CreateTempFile(contents string) (string, error) {
 func GetKubeConfig(cluster *clusterv1.Cluster, master *clusterv1.Machine) (string, error) {
 	ip, err := GetIP(cluster, master)
 	if err != nil {
-		glog.Info("cannot get kubeconfig because found no IP")
+		klog.Info("cannot get kubeconfig because found no IP")
 		return "", err
 	}
-	glog.Infof("pulling kubeconfig (using ssh) from %s", ip)
+	klog.Infof("pulling kubeconfig (using ssh) from %s", ip)
 	var out bytes.Buffer
 	cmd := exec.Command(
 		"ssh", "-i", "~/.ssh/vsphere_tmp",
@@ -172,11 +172,11 @@ func GetKubeConfig(cluster *clusterv1.Cluster, master *clusterv1.Machine) (strin
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
 	if err != nil {
-		glog.Infof("ssh failed with error = %s", err.Error())
+		klog.Infof("ssh failed with error = %s", err.Error())
 	}
 	result := strings.TrimSpace(out.String())
 	if len(result) > 0 {
-		glog.Info("ssh pulled kubeconfig")
+		klog.Info("ssh pulled kubeconfig")
 	}
 	return result, err
 }

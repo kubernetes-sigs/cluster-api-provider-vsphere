@@ -9,12 +9,12 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/klog"
 	vsphereconfigv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
 	vpshereprovisionercommon "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/provisioner/common"
@@ -26,7 +26,7 @@ import (
 )
 
 func (pv *Provisioner) Create(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
-	glog.V(4).Infof("govmomi.Actuator.Create %s", machine.Name)
+	klog.V(4).Infof("govmomi.Actuator.Create %s", machine.Name)
 	s, err := pv.sessionFromProviderConfig(cluster, machine)
 	if err != nil {
 		return err
@@ -37,7 +37,7 @@ func (pv *Provisioner) Create(ctx context.Context, cluster *clusterv1.Cluster, m
 	if err != nil {
 		return err
 	}
-	glog.V(4).Infof("Using session %v", usersession)
+	klog.V(4).Infof("Using session %v", usersession)
 	task := vsphereutils.GetActiveTasks(machine)
 	if task != "" {
 		// In case an active task is going on, wait for its completion
@@ -92,7 +92,7 @@ func (pv *Provisioner) verifyAndUpdateTask(s *SessionContext, machine *clusterv1
 			return pv.setTaskRef(machine, "")
 		}
 	default:
-		glog.Warningf("unknown state %s for task %s detected", taskmoref, taskmo.Info.State)
+		klog.Warningf("unknown state %s for task %s detected", taskmoref, taskmo.Info.State)
 		return fmt.Errorf("Unknown state %s for task %s detected", taskmoref, taskmo.Info.State)
 	}
 	return nil
@@ -119,7 +119,7 @@ func (pv *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 	if err != nil {
 		return err
 	}
-	glog.V(4).Infof("[cloneVirtualMachine]: Preparing clone spec for VM %s", machine.Name)
+	klog.V(4).Infof("[cloneVirtualMachine]: Preparing clone spec for VM %s", machine.Name)
 
 	dc, err := s.finder.DatacenterOrDefault(ctx, machineConfig.MachineSpec.Datacenter)
 	if err != nil {
@@ -127,7 +127,7 @@ func (pv *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 	}
 	s.finder.SetDatacenter(dc)
 
-	glog.V(4).Infof("clone VM to folder %s", machineConfig.MachineSpec.VMFolder)
+	klog.V(4).Infof("clone VM to folder %s", machineConfig.MachineSpec.VMFolder)
 	vmFolder, err := s.finder.FolderOrDefault(ctx, machineConfig.MachineSpec.VMFolder)
 	if err != nil {
 		return err
@@ -164,7 +164,7 @@ func (pv *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 		// If the passed VMTemplate is a valid UUID, then first try to find it treating that as InstanceUUID
 		// In case if are not able to locate a matching VM then fall back to searching using the VMTemplate
 		// as a name
-		glog.V(4).Infof("Trying to resolve the VMTemplate as InstanceUUID %s", machineConfig.MachineSpec.VMTemplate)
+		klog.V(4).Infof("Trying to resolve the VMTemplate as InstanceUUID %s", machineConfig.MachineSpec.VMTemplate)
 		si := object.NewSearchIndex(s.session.Client)
 		instanceUUID := true
 		templateref, err := si.FindByUuid(ctx, dc, machineConfig.MachineSpec.VMTemplate, true, &instanceUUID)
@@ -176,7 +176,7 @@ func (pv *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 		}
 	}
 	if src == nil {
-		glog.V(4).Infof("Trying to resolve the VMTemplate as Name %s", machineConfig.MachineSpec.VMTemplate)
+		klog.V(4).Infof("Trying to resolve the VMTemplate as Name %s", machineConfig.MachineSpec.VMTemplate)
 		src, err = s.finder.VirtualMachine(ctx, machineConfig.MachineSpec.VMTemplate)
 		if err != nil {
 			return err
@@ -268,7 +268,7 @@ func (pv *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 			if disk.CapacityInBytes > vsphereutils.GiBToByte(newSize) {
 				return errors.New("[FATAL] Disk size provided should be more than actual disk size of the template. Please correct the machineSpec to proceed")
 			}
-			glog.V(4).Infof("[cloneVirtualMachine] Resizing the disk \"%s\" to new size \"%d\"", disk.DeviceInfo.GetDescription().Label, newSize)
+			klog.V(4).Infof("[cloneVirtualMachine] Resizing the disk \"%s\" to new size \"%d\"", disk.DeviceInfo.GetDescription().Label, newSize)
 			diskChange = true
 			disk.CapacityInBytes = vsphereutils.GiBToByte(newSize)
 			diskspec := &types.VirtualDeviceConfigSpec{}
@@ -278,7 +278,7 @@ func (pv *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 		}
 	}
 	if !diskChange && len(machineConfig.MachineSpec.Disks) > 0 {
-		glog.V(4).Info("[cloneVirtualMachine] No disks were resized while cloning from template")
+		klog.V(4).Info("[cloneVirtualMachine] No disks were resized while cloning from template")
 		return fmt.Errorf("[FATAL] None of the disks specified in the MachineSpec matched with the disks on the template %s", machineConfig.MachineSpec.VMTemplate)
 	}
 
@@ -315,7 +315,7 @@ func (pv *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 		pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Creating", "Creating Machine %v", machine.Name)
 	}
 	task, err := src.Clone(ctx, vmFolder, machine.Name, spec)
-	glog.V(6).Infof("clone VM with spec %v", spec)
+	klog.V(6).Infof("clone VM with spec %v", spec)
 	if err != nil {
 		return err
 	}
@@ -325,7 +325,7 @@ func (pv *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 // Properties is a convenience method that wraps fetching the
 // VirtualMachine MO from its higher-level object.
 func Properties(vm *object.VirtualMachine) (*mo.VirtualMachine, error) {
-	glog.V(4).Infof("[DEBUG] Fetching properties for VM %q", vm.InventoryPath)
+	klog.V(4).Infof("[DEBUG] Fetching properties for VM %q", vm.InventoryPath)
 	ctx, cancel := context.WithTimeout(context.Background(), constants.DefaultAPITimeout)
 	defer cancel()
 	var props mo.VirtualMachine
@@ -349,7 +349,7 @@ func (pv *Provisioner) removeTaskRef(machine *clusterv1.Machine) error {
 func (vc *Provisioner) updateVMReference(machine *clusterv1.Machine, vmref string) (*clusterv1.Machine, error) {
 	providerSpec, err := vsphereutils.GetMachineProviderSpec(machine.Spec.ProviderSpec)
 	if err != nil {
-		glog.Infof("Error fetching MachineProviderConfig: %s", err)
+		klog.Infof("Error fetching MachineProviderConfig: %s", err)
 		return machine, err
 	}
 	providerSpec.MachineRef = vmref
@@ -362,13 +362,13 @@ func (vc *Provisioner) updateVMReference(machine *clusterv1.Machine, vmref strin
 	newMachine := machine.DeepCopy()
 	out, err := json.Marshal(providerSpec)
 	if err != nil {
-		glog.Infof("Error marshaling ProviderConfig: %s", err)
+		klog.Infof("Error marshaling ProviderConfig: %s", err)
 		return machine, err
 	}
 	newMachine.Spec.ProviderSpec.Value = &runtime.RawExtension{Raw: out}
 	newMachine, err = vc.clusterV1alpha1.Machines(newMachine.Namespace).Update(newMachine)
 	if err != nil {
-		glog.Infof("Error in updating the machine ref: %s", err)
+		klog.Infof("Error in updating the machine ref: %s", err)
 		return machine, err
 	}
 	return newMachine, nil
@@ -399,7 +399,7 @@ func (pv *Provisioner) setTaskRef(machine *clusterv1.Machine, taskref string) er
 	}
 	_, err = pv.clusterV1alpha1.Machines(newMachine.Namespace).UpdateStatus(newMachine)
 	if err != nil {
-		glog.Infof("Error in updating the machine ref: %s", err)
+		klog.Infof("Error in updating the machine ref: %s", err)
 		return err
 	}
 	return nil
@@ -409,12 +409,12 @@ func (pv *Provisioner) setTaskRef(machine *clusterv1.Machine, taskref string) er
 // "Provider-specific status" that will usually be used to detect updates. Additionally,
 // Status requires yet another version API resource which is too heavy to store IP and TF state.
 func (pv *Provisioner) updateAnnotations(cluster *clusterv1.Cluster, machine *clusterv1.Machine, vmIP string, vm *object.VirtualMachine) error {
-	glog.Infof("Updating annotations for machine %s", machine.ObjectMeta.Name)
+	klog.Infof("Updating annotations for machine %s", machine.ObjectMeta.Name)
 	nmachine := machine.DeepCopy()
 	if nmachine.ObjectMeta.Annotations == nil {
 		nmachine.ObjectMeta.Annotations = make(map[string]string)
 	}
-	glog.V(4).Infof("updateAnnotations - IP = %s", vmIP)
+	klog.V(4).Infof("updateAnnotations - IP = %s", vmIP)
 	nmachine.ObjectMeta.Annotations[constants.VmIpAnnotationKey] = vmIP
 	nmachine.ObjectMeta.Annotations[constants.ControlPlaneVersionAnnotationKey] = nmachine.Spec.Versions.ControlPlane
 	nmachine.ObjectMeta.Annotations[constants.KubeletVersionAnnotationKey] = nmachine.Spec.Versions.Kubelet
@@ -433,7 +433,7 @@ func (pv *Provisioner) updateAnnotations(cluster *clusterv1.Cluster, machine *cl
 	ncluster.Status.ProviderStatus = &runtime.RawExtension{Raw: out}
 	_, err = pv.clusterV1alpha1.Clusters(ncluster.Namespace).UpdateStatus(ncluster)
 	if err != nil {
-		glog.Infof("Error in updating the status: %s", err)
+		klog.Infof("Error in updating the status: %s", err)
 		return err
 	}
 	return nil
@@ -468,7 +468,7 @@ func (pv *Provisioner) getCloudInitUserData(cluster *clusterv1.Cluster, machine 
 	userdata, err := vpshereprovisionercommon.GetCloudInitUserData(
 		vpshereprovisionercommon.CloudInitTemplate{
 			Script:              script,
-			IsMaster:            util.IsMaster(machine),
+			IsMaster:            util.IsControlPlaneMachine(machine),
 			CloudProviderConfig: config,
 			SSHPublicKey:        publicKey,
 		},
@@ -523,7 +523,7 @@ func (pv *Provisioner) getStartupScript(cluster *clusterv1.Cluster, machine *clu
 	}
 	preloaded := machineconfig.MachineSpec.Preloaded
 	var startupScript string
-	if util.IsMaster(machine) {
+	if util.IsControlPlaneMachine(machine) {
 		if machine.Spec.Versions.ControlPlane == "" {
 			return "", pv.HandleMachineError(machine, apierrors.InvalidMachineConfiguration(
 				"invalid master configuration: missing Machine.Spec.Versions.ControlPlane"), constants.CreateEventAction)
@@ -542,18 +542,18 @@ func (pv *Provisioner) getStartupScript(cluster *clusterv1.Cluster, machine *clu
 	} else {
 		clusterstatus, err := vsphereutils.GetClusterProviderStatus(cluster)
 		if err != nil {
-			glog.Infof("Error fetching cluster ProviderStatus field: %s", err)
+			klog.Infof("Error fetching cluster ProviderStatus field: %s", err)
 			return "", err
 		}
 		if clusterstatus.APIStatus != vsphereconfigv1.ApiReady {
 			duration := vsphereutils.GetNextBackOff()
-			glog.Infof("Waiting for Kubernetes API Status to be \"Ready\". Retrying in %s", duration)
+			klog.Infof("Waiting for Kubernetes API Status to be \"Ready\". Retrying in %s", duration)
 			return "", &clustererror.RequeueAfterError{RequeueAfter: duration}
 		}
 		kubeadmToken, err := pv.GetKubeadmToken(cluster)
 		if err != nil {
 			duration := vsphereutils.GetNextBackOff()
-			glog.Infof("Error generating kubeadm token, will retry in %s error: %s", duration, err.Error())
+			klog.Infof("Error generating kubeadm token, will retry in %s error: %s", duration, err.Error())
 			return "", &clustererror.RequeueAfterError{RequeueAfter: duration}
 		}
 		startupScript, err = vpshereprovisionercommon.GetNodeStartupScript(

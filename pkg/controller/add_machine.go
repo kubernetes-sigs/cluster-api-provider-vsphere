@@ -17,10 +17,9 @@ limitations under the License.
 package controller
 
 import (
-	"github.com/golang/glog"
-
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 	"sigs.k8s.io/cluster-api/pkg/controller/machine"
@@ -35,25 +34,25 @@ func init() {
 
 		client, err := clientset.NewForConfig(m.GetConfig())
 		if err != nil {
-			glog.Fatalf("Failed to create clientset: %v", err)
+			klog.Fatalf("Failed to create clientset: %v", err)
 		}
 
 		machineClientSet, err := kubernetes.NewForConfig(
 			rest.AddUserAgent(m.GetConfig(), "machine-controller-manager"),
 		)
 		if err != nil {
-			glog.Fatalf("Failed to create client: %v", err)
+			klog.Fatalf("Failed to create client: %v", err)
 		}
 
 		machineEventRecorder, err := createRecorder(machineClientSet, "machine-controller-manager")
 		if err != nil {
-			glog.Fatalf("Could not create vSphere event recorder: %v", err)
+			klog.Fatalf("Could not create vSphere event recorder: %v", err)
 		}
 
 		//TODO: remove need for client
 		actuator, err := vsphere.NewGovmomiMachineActuator(m, client.ClusterV1alpha1(), machineClientSet, informer, machineEventRecorder)
 		if err != nil {
-			glog.Fatalf("Could not create vSphere machine actuator: %v", err)
+			klog.Fatalf("Could not create vSphere machine actuator: %v", err)
 		}
 
 		return machine.AddWithActuator(m, actuator)

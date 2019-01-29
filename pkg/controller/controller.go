@@ -20,10 +20,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
-
 	corev1 "k8s.io/api/core/v1"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
@@ -44,7 +43,7 @@ var siStopper = make(chan struct{})
 func AddToManager(m manager.Manager) error {
 	for _, f := range AddToManagerFuncs {
 		if err := f(m); err != nil {
-			glog.Infof("Failed to add to manager:  %s", err.Error())
+			klog.Infof("Failed to add to manager:  %s", err.Error())
 			return err
 		}
 	}
@@ -77,7 +76,7 @@ func createRecorder(kubeClient *kubernetes.Clientset, source string) (record.Eve
 	// We also emit events for our own types.
 	clusterapiclientsetscheme.AddToScheme(eventsScheme)
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartLogging(glog.Infof)
+	eventBroadcaster.StartLogging(klog.Infof)
 	eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: v1core.New(kubeClient.CoreV1().RESTClient()).Events("")})
 	return eventBroadcaster.NewRecorder(eventsScheme, corev1.EventSource{Component: source}), nil
 }

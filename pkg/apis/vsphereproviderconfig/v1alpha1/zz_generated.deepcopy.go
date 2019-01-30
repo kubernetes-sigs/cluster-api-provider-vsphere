@@ -243,6 +243,11 @@ func (in *VsphereMachineSpec) DeepCopyInto(out *VsphereMachineSpec) {
 		*out = make([]DiskSpec, len(*in))
 		copy(*out, *in)
 	}
+	if in.TrustedCerts != nil {
+		in, out := &in.TrustedCerts, &out.TrustedCerts
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 

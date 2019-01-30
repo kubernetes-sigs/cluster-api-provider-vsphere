@@ -465,12 +465,17 @@ func (pv *Provisioner) getCloudInitUserData(cluster *clusterv1.Cluster, machine 
 	if err != nil {
 		return "", err
 	}
+	machineconfig, err := vsphereutils.GetMachineProviderSpec(machine.Spec.ProviderSpec)
+	if err != nil {
+		return "", err
+	}
 	userdata, err := vpshereprovisionercommon.GetCloudInitUserData(
 		vpshereprovisionercommon.CloudInitTemplate{
 			Script:              script,
 			IsMaster:            util.IsControlPlaneMachine(machine),
 			CloudProviderConfig: config,
 			SSHPublicKey:        publicKey,
+			TrustedCerts:        machineconfig.MachineSpec.TrustedCerts,
 		},
 	)
 	if err != nil {

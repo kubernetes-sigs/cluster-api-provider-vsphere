@@ -70,6 +70,7 @@ type VsphereMachineSpec struct {
 	Disks            []DiskSpec    `json:"disks"`
 	Preloaded        bool          `json:"preloaded,omitempty"`
 	VsphereCloudInit bool          `json:"vsphereCloudInit,omitempty"`
+	TrustedCerts     []string      `json:"trustedCerts,omitempty"`
 }
 
 type NetworkSpec struct {

@@ -319,6 +319,7 @@ func (c *createVM) Run(task *Task) (types.AnyType, types.BaseMethodFault) {
 
 	host := Map.Get(*vm.Runtime.Host).(*HostSystem)
 	Map.AppendReference(host, &host.Vm, vm.Self)
+	vm.EnvironmentBrowser = *hostParent(&host.HostSystem).EnvironmentBrowser
 
 	for i := range vm.Datastore {
 		ds := Map.Get(vm.Datastore[i]).(*Datastore)
@@ -354,6 +355,8 @@ func (c *createVM) Run(task *Task) (types.AnyType, types.BaseMethodFault) {
 			VmEvent: event,
 		},
 	)
+
+	vm.RefreshStorageInfo(c.ctx, nil)
 
 	return vm.Reference(), nil
 }

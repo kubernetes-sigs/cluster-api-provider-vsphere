@@ -23,6 +23,8 @@ import (
 	"strings"
 	"text/template"
 
+	"k8s.io/apimachinery/pkg/util/version"
+
 	corev1 "k8s.io/api/core/v1"
 	vsphereconfigv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
 	vsphereutils "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/utils"
@@ -30,11 +32,12 @@ import (
 )
 
 type TemplateParams struct {
-	Token        string
-	Cluster      *clusterv1.Cluster
-	Machine      *clusterv1.Machine
-	DockerImages []string
-	Preloaded    bool
+	Token             string
+	MajorMinorVersion string
+	Cluster           *clusterv1.Cluster
+	Machine           *clusterv1.Machine
+	DockerImages      []string
+	Preloaded         bool
 }
 
 // Returns the startup script for the nodes.
@@ -78,14 +81,19 @@ func PreloadNodeScript(version string, dockerImages []string) (string, error) {
 	return preloadScript(nodeStartupScriptTemplate, version, dockerImages)
 }
 
-func preloadScript(t *template.Template, version string, dockerImages []string) (string, error) {
+func preloadScript(t *template.Template, k8sVersion string, dockerImages []string) (string, error) {
 	var buf bytes.Buffer
-	params := TemplateParams{
-		Machine:      &clusterv1.Machine{},
-		DockerImages: dockerImages,
+	parsedVersion, err := version.ParseSemantic(k8sVersion)
+	if err != nil {
+		return buf.String(), err
 	}
-	params.Machine.Spec.Versions.Kubelet = version
-	err := t.ExecuteTemplate(&buf, "generatePreloadedImage", params)
+	params := TemplateParams{
+		MajorMinorVersion: fmt.Sprintf("%d.%d", parsedVersion.Major(), parsedVersion.Minor()),
+		Machine:           &clusterv1.Machine{},
+		DockerImages:      dockerImages,
+	}
+	params.Machine.Spec.Versions.Kubelet = k8sVersion
+	err = t.ExecuteTemplate(&buf, "generatePreloadedImage", params)
 	return buf.String(), err
 }
 
@@ -400,7 +408,7 @@ KUBECTL=$(getversion kubectl ${KUBELET_VERSION}-)
 # Explicit cni version is a temporary workaround till the right version can be automatically detected correctly
 apt-get install -y kubelet=${KUBELET} kubeadm=${KUBEADM} kubectl=${KUBECTL}
 
-{{- end }} {{/* end install */}}
+{{- end }}{{/* end install */}}
 
 {{ define "configure" -}}
 TOKEN={{ .Token }}
@@ -429,13 +437,13 @@ EOF
 echo > /etc/default/kubelet
 systemctl daemon-reload
 
-kubeadm join --token "${TOKEN}" "${MASTER}" --skip-preflight-checks --discovery-token-unsafe-skip-ca-verification
+kubeadm join --token "${TOKEN}" "${MASTER}" --ignore-preflight-errors=all --discovery-token-unsafe-skip-ca-verification
 
 for tries in $(seq 1 60); do
 	kubectl --kubeconfig /etc/kubernetes/kubelet.conf annotate --overwrite node $(hostname) machine=${MACHINE} && break
 	sleep 1
 done
-{{- end }} {{/* end configure */}}
+{{- end }}{{/* end configure */}}
 `
 
 const masterStartupScript = `
@@ -481,11 +489,11 @@ KUBEADM=$(getversion kubeadm ${KUBELET_VERSION}-)
 # Explicit cni version is a temporary workaround till the right version can be automatically detected correctly
 apt-get install -y \
     kubelet=${KUBELET} \
-    kubeadm=${KUBEADM} 
+    kubeadm=${KUBEADM}
 
 mv /usr/bin/kubeadm.dl /usr/bin/kubeadm
 chmod a+rx /usr/bin/kubeadm
-{{- end }} {{/* end install */}}
+{{- end }}{{/* end install */}}
 
 
 {{ define "configure" -}}
@@ -519,7 +527,10 @@ EOF
 echo > /etc/default/kubelet
 systemctl daemon-reload
 
+
 # Set up kubeadm config file to pass parameters to kubeadm init.
+
+{{ if (or (eq .MajorMinorVersion "1.11") (eq .MajorMinorVersion "1.12")) }}
 cat > /etc/kubernetes/kubeadm_config.yaml <<EOF
 apiVersion: kubeadm.k8s.io/v1alpha2
 kind: MasterConfiguration
@@ -560,6 +571,70 @@ nodeRegistration:
   - effect: NoSchedule
     key: node-role.kubernetes.io/master
 EOF
+
+{{- end }}{{/* end MajorMinorVersion 1.11 or 1.12 */}}
+
+{{ if eq .MajorMinorVersion "1.13" }}
+cat > /etc/kubernetes/kubeadm_config.yaml <<EOF
+apiVersion: kubeadm.k8s.io/v1beta1
+kind: InitConfiguration
+nodeRegistration:
+  criSocket: /var/run/dockershim.sock
+  taints:
+  - effect: NoSchedule
+    key: node-role.kubernetes.io/master
+  kubeletExtraArgs:
+    cgroup-driver: "cgroupfs"
+localAPIEndpoint:
+  advertiseAddress: ${PUBLICIP}
+  bindPort: ${PORT}
+---
+apiVersion: kubeadm.k8s.io/v1beta1
+kind: ClusterConfiguration
+etcd:
+  local:
+    imageRepository: "k8s.gcr.io"
+    imageTag: "3.2.24"
+    dataDir: "/var/lib/etcd"
+networking:
+  serviceSubnet: ${SERVICE_CIDR}
+  podSubnet: ${POD_CIDR}
+  dnsDomain: ${CLUSTER_DNS_DOMAIN}
+kubernetesVersion: v${CONTROL_PLANE_VERSION}
+apiServer:
+  certSANs:
+  - ${PUBLICIP}
+  - ${PRIVATEIP}
+  extraArgs:
+    authorization-mode: Node,RBAC
+    cloud-provider: vsphere
+    cloud-config: /etc/kubernetes/cloud-config/cloud-config.yaml
+  extraVolumes:
+  - name: cloud-config
+    hostPath: /etc/kubernetes/cloud-config
+    mountPath: /etc/kubernetes/cloud-config
+    readOnly: true
+controllerManager:
+  extraArgs:
+    cloud-provider: vsphere
+    cloud-config: /etc/kubernetes/cloud-config/cloud-config.yaml
+    address: 0.0.0.0
+  extraVolumes:
+  - name: cloud-config
+    hostPath: /etc/kubernetes/cloud-config
+    mountPath: /etc/kubernetes/cloud-config
+    readOnly: true
+scheduler:
+  extraArgs:
+    address: 0.0.0.0
+---
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+clusterDomain: ${CLUSTER_DNS_DOMAIN}
+EOF
+
+{{- end }}{{/* end MajorMinorVersion 1.13 */}}
+
 
 kubeadm init --config /etc/kubernetes/kubeadm_config.yaml
 
@@ -772,5 +847,5 @@ for tries in $(seq 1 60); do
 	sleep 1
 done
 
-{{- end }} {{/* end configure */}}
+{{- end }}{{/* end configure */}}
 `

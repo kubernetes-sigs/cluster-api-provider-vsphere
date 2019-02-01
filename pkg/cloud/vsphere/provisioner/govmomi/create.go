@@ -56,7 +56,7 @@ func (pv *Provisioner) Create(ctx context.Context, cluster *clusterv1.Cluster, m
 }
 
 func (pv *Provisioner) verifyAndUpdateTask(s *SessionContext, machine *clusterv1.Machine, taskmoref string) error {
-	glog.Infof("[DEBUG] Verifying and updating Tasks")
+	klog.V(4).Infof("[DEBUG] Verifying and updating Tasks")
 	ctx, cancel := context.WithCancel(*s.context)
 	defer cancel()
 	// If a task does exist on the
@@ -65,7 +65,7 @@ func (pv *Provisioner) verifyAndUpdateTask(s *SessionContext, machine *clusterv1
 		Type:  "Task",
 		Value: taskmoref,
 	}
-	glog.Infof("[DEBUG] Retrieving the Task")
+	klog.V(4).Infof("[DEBUG] Retrieving the Task")
 	err := s.session.RetrieveOne(ctx, taskref, []string{"info"}, &taskmo)
 	if err != nil {
 		//TODO: inspect the error and act appropriately.
@@ -79,23 +79,23 @@ func (pv *Provisioner) verifyAndUpdateTask(s *SessionContext, machine *clusterv1
 		return &clustererror.RequeueAfterError{RequeueAfter: time.Second * 5}
 	// Successful
 	case types.TaskInfoStateSuccess:
-		glog.Infof("[DEBUG] Task is a Success")
+		klog.V(4).Infof("[DEBUG] Task is a Success")
 		if taskmo.Info.DescriptionId == "Folder.createVm" {
-			glog.Infof("[DEBUG] Task is a CreateVM")
+			klog.V(4).Infof("[DEBUG] Task is a CreateVM")
 			vmref := taskmo.Info.Result.(types.ManagedObjectReference)
 			vm := object.NewVirtualMachine(s.session.Client, vmref)
-			glog.Infof("[DEBUG] Powering On the VM")
+			klog.V(4).Infof("[DEBUG] Powering On the VM")
 			task, err := vm.PowerOn(ctx)
 			if err != nil {
 				return err
 			}
-			glog.Infof("[DEBUG] Waiting for PowerOn to happen")
+			klog.V(4).Infof("[DEBUG] Waiting for PowerOn to happen")
 			_, err = task.WaitForResult(ctx, nil)
 			if err != nil {
 				return err
 			}
 
-			glog.Infof("[DEBUG] Recording the event")
+			klog.V(4).Infof("[DEBUG] Recording the event")
 			pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Created", "Created Machine %s(%s)", machine.Name, vmref.Value)
 			// Update the Machine object with the VM Reference annotation
 			updatedmachine, err := pv.updateVMReference(machine, vmref.Value)
@@ -139,7 +139,7 @@ func (pv *Provisioner) verifyAndUpdateTask(s *SessionContext, machine *clusterv1
 
 // CloneVirtualMachine clones the template to a virtual machine.
 func (pv *Provisioner) cloneVirtualMachineOnVCenter(s *SessionContext, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
-	glog.V(4).Infof("Starting the clone process on vCenter")
+	klog.V(4).Infof("Starting the clone process on vCenter")
 	// Fetch the user-data for the cloud-init first, so that we can fail fast before even trying to connect to pv
 	userData, err := pv.getCloudInitUserData(cluster, machine)
 	if err != nil {
@@ -364,7 +364,7 @@ func (pv *Provisioner) cloneVirtualMachineOnVCenter(s *SessionContext, cluster *
 
 // cloneVirtualMachineOnESX clones the template to a virtual machine.
 func (pv *Provisioner) cloneVirtualMachineOnESX(s *SessionContext, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
-	glog.V(4).Infof("Starting the clone process on standalone ESX")
+	klog.V(4).Infof("Starting the clone process on standalone ESX")
 	// Fetch the user-data for the cloud-init first, so that we can fail fast before even trying to connect to VC
 	userData, err := pv.getCloudInitUserData(cluster, machine)
 	if err != nil {
@@ -383,7 +383,7 @@ func (pv *Provisioner) cloneVirtualMachineOnESX(s *SessionContext, cluster *clus
 	if err != nil {
 		return err
 	}
-	glog.V(4).Infof("[cloneVirtualMachineOnESX]: Preparing clone spec for VM %s", machine.Name)
+	klog.V(4).Infof("[cloneVirtualMachineOnESX]: Preparing clone spec for VM %s", machine.Name)
 
 	dc, err := s.finder.DatacenterOrDefault(ctx, machineConfig.MachineSpec.Datacenter)
 	if err != nil {
@@ -549,7 +549,7 @@ func (pv *Provisioner) cloneVirtualMachineOnESX(s *SessionContext, cluster *clus
 		srcfile := srcdisk.Backing.(types.BaseVirtualDeviceFileBackingInfo)
 
 		// copy happens here
-		glog.Infof("[DEBUG] Cloning template disk to %s", dstdisk)
+		klog.V(4).Infof("[DEBUG] Cloning template disk to %s", dstdisk)
 		cp := m.Copy
 		if err := cp(ctx, srcfile.GetVirtualDeviceFileBackingInfo().FileName, dstdisk); err != nil {
 			return err

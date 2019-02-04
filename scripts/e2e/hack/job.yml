@@ -3,7 +3,7 @@ kind: Job
 metadata:
   name: cluster-api-provider-vsphere-ci
 spec:
-  backoffLimit: 4
+  backoffLimit: 1
   template:
     spec:
       tolerations:
@@ -62,6 +62,7 @@ spec:
             mountPath: /dev
         command:
         - "./scripts/e2e/e2e.sh"
+        - "ova"
       volumes:
       - name: host-dev
         hostPath:
@@ -83,4 +84,4 @@ spec:
           items:
           - key: bootstrapper-key
             path: bootstrapper-key
-      restartPolicy: Never
+      restartPolicy: OnFailure

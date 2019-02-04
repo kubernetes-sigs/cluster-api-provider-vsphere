@@ -57,6 +57,9 @@ revert_bootstrap_vm() {
    bootstrap_vm_ip=$(govc vm.ip "${bootstrap_vm}")
 }
 
+# params:
+#   bootstrap_ip
+#   command
 run_cmd_on_bootstrap() {
    ssh -o ProxyCommand="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i /root/ssh/.jumphost/jumphost-key -W %h:%p luoh@$JUMPHOST" root@"$1" \
        -i "/root/ssh/.bootstrapper/bootstrapper-key" \
@@ -141,12 +144,6 @@ start_docker() {
    done
 }
 
-clone_clusterapi_vsphere_repo() {
-   mkdir -p /go/src/sigs.k8s.io/cluster-api-provider-vsphere
-   git clone https://github.com/kubernetes-sigs/cluster-api-provider-vsphere.git \
-             /go/src/sigs.k8s.io/cluster-api-provider-vsphere/
-}
-
 install_govc() {
    govc_bin="/tmp/govc/bin"
    mkdir -p "${govc_bin}"
@@ -154,6 +151,34 @@ install_govc() {
    gunzip "${govc_bin}"/govc.gz
    chmod +x "${govc_bin}"/govc
    export PATH=${govc_bin}:$PATH
+}
+
+install_kustomize() {
+   go get sigs.k8s.io/kustomize
+}
+
+run_job_on_bootstrap() {
+   case $2 in
+        "clusterctl-machine" | "clusterctl-machineset")
+            run_cmd_on_bootstrap "$1" "cat > /tmp/$2".yaml < "$2".yaml
+            run_cmd_on_bootstrap "$1" "kubectl create -f /tmp/$2.yaml"
+            run_cmd_on_bootstrap "$1" 'bash -s' < "wait_for_pod.sh"
+            ;;
+        "clusterapi")
+            # TODO:
+            # deploy CRD
+            # validate bootstrap cluster
+            ;;
+        "machine" | "machineset")
+            # TODO:
+            # deploy
+            # validate target cluster
+            # cleanup target cluster
+            # collect logs
+            ;;
+        *)
+   esac
+   ret="$?"
 }
 
 build_upload_deploy_ovf() { 
@@ -226,6 +251,25 @@ build_upload_deploy_ovf() {
    done;
 }
 
+prepare_pod_spec() {
+   fill_file_with_value "./deployment/base/bootstrap_pod.template"
+
+   # clusterctl deploy CRD, target cluster, machine.
+   kustomize build deployment/clusterctl > clusterctl.yaml
+
+   # clusterctl-machineset deploy CRD, target cluster, machine. machineset
+   kustomize build deployment/clusterctl-machineset > clusterctl-machineset.yaml
+
+   # clusterapi deploy CRD only
+   kustomize build deployment/clusterapi > clusterapi.yaml
+
+   # deploy cluster, machine
+   kustomize build deployment/machine > machine.yaml
+
+   # deploy cluster, machine, machineset
+   kustomize build deployment/machineset > machineset.yaml
+}
+
 # the main loop
 vsphere_controller_version=""
 context=""
@@ -277,22 +321,20 @@ kubeconfig=$(run_cmd_on_bootstrap "${bootstrap_vm_ip}" "cat /etc/kubernetes/admi
 export BOOTSTRAP_KUBECONFIG="${kubeconfig}"
 apply_secret_to_bootstrap "${vsphere_controller_version}"
 
-# launch the job at bootstrap cluster
-fill_file_with_value "bootstrap_job.template"
-run_cmd_on_bootstrap "${bootstrap_vm_ip}" "cat > /tmp/bootstrap_job.yml" < bootstrap_job.yml
-run_cmd_on_bootstrap "${bootstrap_vm_ip}" "kubectl create -f /tmp/bootstrap_job.yml"
+prepare_pod_spec
 
-# wait for job to finish
-run_cmd_on_bootstrap "${bootstrap_vm_ip}" 'bash -s' < wait_for_job.sh
-ret="$?"
+run_job_on_bootstrap "${bootstrap_vm_ip}" "clusterctl" 
 
-# cleanup
+# cleanup bootstrap cluster
 if [ -z "$1" ]; then
    get_bootstrap_vm "$context"
 else
    echo "trying to delete bootstrap vm"
    delete_vm "$bootstrap_vm_name"
 fi
+
+
+# force cleanup target cluster (TODO: we don't need this if kubectl delete works fine)
 delete_vm "$target_vm_prefix"
 
 exit "${ret}"

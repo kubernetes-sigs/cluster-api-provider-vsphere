@@ -1,0 +1,8 @@
+bases:
+  - ../base
+
+nameSuffix: -clusterctl
+
+patchesStrategicMerge:
+- initcontainer.yaml
+- cmd.yaml

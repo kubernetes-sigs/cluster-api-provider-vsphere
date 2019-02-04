@@ -1,0 +1,84 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: cluster-api-provider-vsphere-ci
+spec:
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+      containers:
+      - name: cluster-api-provider-vsphere-ci
+        image: gcr.io/cnx-cluster-api/cluster-api-provider-vsphere-ci-debug:debug
+        imagePullPolicy: Never
+        securityContext:
+          privileged: true
+        env:
+          - name: JUMPHOST
+            valueFrom:
+              secretKeyRef:
+                name: clusterapi-provider-vsphere-ci-prow
+                key: jumphost
+          - name: GOVC_URL
+            valueFrom:
+              secretKeyRef:
+                name: clusterapi-provider-vsphere-ci-prow
+                key: vsphere-server
+          - name: GOVC_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: clusterapi-provider-vsphere-ci-prow
+                key: vsphere-username
+          - name: GOVC_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: clusterapi-provider-vsphere-ci-prow
+                key: vsphere-password
+          - name: TARGET_VM_SSH
+            valueFrom:
+              secretKeyRef:
+                name: clusterapi-provider-vsphere-ci-prow
+                key: target-vm-ssh
+          - name: TARGET_VM_SSH_PUB
+            valueFrom:
+              secretKeyRef:
+                name: clusterapi-provider-vsphere-ci-prow
+                key: target-vm-ssh-pub
+          - name: GCR_KEY_FILE
+            valueFrom:
+              secretKeyRef:
+                name: clusterapi-provider-vsphere-ci-prow
+                key: cluster-api-vsphere-gcr-service-account
+        volumeMounts:
+          - name: jumphost-key
+            mountPath: /root/ssh/.jumphost
+          - name: bootstrapper-key
+            mountPath: /root/ssh/.bootstrapper
+          - name: docker-socket
+            mountPath: /var/run/docker.sock
+          - name: host-dev
+            mountPath: /dev
+        command:
+        - "./scripts/e2e/e2e.sh"
+        - "ova"
+      volumes:
+      - name: host-dev
+        hostPath:
+          path: /dev
+      - name: docker-socket
+        hostPath:
+          path: /var/run/docker.sock
+      - name: jumphost-key
+        secret:
+          secretName: clusterapi-provider-vsphere-ci-prow
+          defaultMode: 256
+          items:
+          - key: jumphost-key
+            path: jumphost-key
+      - name: bootstrapper-key
+        secret:
+          secretName: clusterapi-provider-vsphere-ci-prow
+          defaultMode: 256
+          items:
+          - key: bootstrapper-key
+            path: bootstrapper-key
+      restartPolicy: Never

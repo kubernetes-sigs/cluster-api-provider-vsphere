@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: capv-ci
+spec:
+      initContainers:
+      - name: clusterctl-bin
+        image: gcr.io/cnx-cluster-api/clusterctl:${VERSION}
+        command: ['sh', '-c', 'cp /root/clusterctl /tmp/clusterctl/clusterctl && chmod +x /tmp/clusterctl/clusterctl']
+        volumeMounts:
+          - name: shared-data
+            mountPath: /tmp/clusterctl
+      containers:
+      - name: cluster-api-provider-vsphere-ci
+        volumeMounts:
+          - name: shared-data
+            mountPath: /tmp/clusterctl/
+      volumes:
+      - name: shared-data
+        emptyDir: {}

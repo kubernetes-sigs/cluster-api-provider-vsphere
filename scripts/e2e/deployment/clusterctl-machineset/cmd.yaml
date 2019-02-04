@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: capv-ci
+spec:
+      containers:
+      - name: cluster-api-provider-vsphere-ci
+        command:
+        - "./run.sh" cluster-machineset

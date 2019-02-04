@@ -1,0 +1,7 @@
+bases:
+  - ../base
+
+nameSuffix: -machineset 
+
+patchesStrategicMerge:
+- cmd.yaml

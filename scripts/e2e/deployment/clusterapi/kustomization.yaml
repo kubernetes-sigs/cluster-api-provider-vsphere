@@ -1,0 +1,8 @@
+bases:
+  - ../base
+
+nameSuffix: -clusterapi
+
+patchesStrategicMerge:
+- cmd.yaml
+

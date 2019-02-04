@@ -1,0 +1,73 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: capv-ci
+spec:
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+      initContainers:
+      - name: clusterctl-bin
+        image: gcr.io/cnx-cluster-api/clusterctl:${VERSION}
+        command: ['sh', '-c', 'cp /root/clusterctl /tmp/clusterctl/clusterctl && chmod +x /tmp/clusterctl/clusterctl']
+        volumeMounts:
+          - name: shared-data
+            mountPath: /tmp/clusterctl
+      containers:
+      - name: cluster-api-provider-vsphere-ci
+        image: gcr.io/cnx-cluster-api/cluster-api-provider-vsphere-ci:${VERSION}
+        env:
+          - name: TARGET_VM_PREFIX
+            valueFrom:
+              secretKeyRef:
+                name: clusterapi-provider-vsphere-ci-secret
+                key: target-vm-prefix
+          - name: TARGET_VM_SSH
+            valueFrom:
+              secretKeyRef:
+                name: clusterapi-provider-vsphere-ci-secret
+                key: target-vm-ssh
+          - name: TARGET_VM_SSH_PUB
+            valueFrom:
+              secretKeyRef:
+                name: clusterapi-provider-vsphere-ci-secret
+                key: target-vm-ssh-pub
+          - name: VSPHERE_CONTROLLER_VERSION
+            valueFrom:
+              secretKeyRef:
+                name: clusterapi-provider-vsphere-ci-secret
+                key: vsphere-controller-version
+          - name: PROVIDER_COMPONENT_SPEC
+            valueFrom:
+              secretKeyRef:
+                name: clusterapi-provider-vsphere-ci-secret
+                key: provider-component-spec
+          - name: VSPHERE_SERVER
+            valueFrom:
+              secretKeyRef:
+                name: clusterapi-provider-vsphere-ci-secret
+                key: vsphere-server
+          - name: VSPHERE_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: clusterapi-provider-vsphere-ci-secret
+                key: vsphere-username
+          - name: VSPHERE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: clusterapi-provider-vsphere-ci-secret
+                key: vsphere-password
+          - name: BOOTSTRAP_KUBECONFIG
+            valueFrom:
+              secretKeyRef:
+                name: clusterapi-provider-vsphere-ci-secret
+                key: bootstrap-kubeconfig
+        volumeMounts:
+          - name: shared-data
+            mountPath: /tmp/clusterctl/
+        command:
+        - "$(JOB_COMMAND)"
+      volumes:
+      - name: shared-data
+        emptyDir: {}
+      restartPolicy: Never

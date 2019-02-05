@@ -804,7 +804,7 @@
   version = "kubernetes-1.13.1"
 
 [[projects]]
-  digest = "1:cded8487c675439a87cc6a3462ec26d2dd78362a2d89c484f58b1d6c181fb877"
+  digest = "1:830b130b6ec3f342eedf93f83564fe5e0a5e55730ac02254f5628b54ef5843e8"
   name = "k8s.io/apimachinery"
   packages = [
     "pkg/api/errors",
@@ -845,6 +845,7 @@
     "pkg/util/uuid",
     "pkg/util/validation",
     "pkg/util/validation/field",
+    "pkg/util/version",
     "pkg/util/wait",
     "pkg/util/yaml",
     "pkg/version",
@@ -1145,6 +1146,7 @@
     "k8s.io/apimachinery/pkg/runtime/schema",
     "k8s.io/apimachinery/pkg/runtime/serializer/json",
     "k8s.io/apimachinery/pkg/types",
+    "k8s.io/apimachinery/pkg/util/version",
     "k8s.io/client-go/kubernetes",
     "k8s.io/client-go/kubernetes/scheme",
     "k8s.io/client-go/kubernetes/typed/core/v1",

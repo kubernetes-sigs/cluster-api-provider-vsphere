@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"reflect"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/klog"
 	vsphereconfigv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
@@ -495,10 +497,22 @@ func (pv *Provisioner) getCloudProviderConfig(cluster *clusterv1.Cluster, machin
 		return "", err
 	}
 
+	// cloud provider requires bare IP:port, so if it is parseable as a url with a scheme, then
+	// strip the scheme and path.  Otherwise continue.  TODO replace with better input validation.
+	var server string
+	serverURL, err := url.Parse(clusterConfig.VsphereServer)
+	if err == nil && serverURL.Host != "" {
+		server = serverURL.Host
+		klog.Infof("Extracted vSphere server url: %s", server)
+	} else {
+		server = clusterConfig.VsphereServer
+		klog.Infof("Using input vSphere server url: %s", server)
+	}
+
 	// TODO(ssurana): revisit once we solve https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/60
 	cpc := vpshereprovisionercommon.CloudProviderConfigTemplate{
 		Datacenter:   machineconfig.MachineSpec.Datacenter,
-		Server:       clusterConfig.VsphereServer,
+		Server:       server,
 		Insecure:     true, // TODO(ssurana): Needs to be a user input
 		UserName:     clusterConfig.VsphereUser,
 		Password:     clusterConfig.VspherePassword,
@@ -533,12 +547,17 @@ func (pv *Provisioner) getStartupScript(cluster *clusterv1.Cluster, machine *clu
 			return "", pv.HandleMachineError(machine, apierrors.InvalidMachineConfiguration(
 				"invalid master configuration: missing Machine.Spec.Versions.ControlPlane"), constants.CreateEventAction)
 		}
-		var err error
+		parsedVersion, err := version.ParseSemantic(machine.Spec.Versions.ControlPlane)
+		if err != nil {
+			return "", err
+		}
+
 		startupScript, err = vpshereprovisionercommon.GetMasterStartupScript(
 			vpshereprovisionercommon.TemplateParams{
-				Cluster:   cluster,
-				Machine:   machine,
-				Preloaded: preloaded,
+				MajorMinorVersion: fmt.Sprintf("%d.%d", parsedVersion.Major(), parsedVersion.Minor()),
+				Cluster:           cluster,
+				Machine:           machine,
+				Preloaded:         preloaded,
 			},
 		)
 		if err != nil {
@@ -561,12 +580,17 @@ func (pv *Provisioner) getStartupScript(cluster *clusterv1.Cluster, machine *clu
 			klog.Infof("Error generating kubeadm token, will retry in %s error: %s", duration, err.Error())
 			return "", &clustererror.RequeueAfterError{RequeueAfter: duration}
 		}
+		parsedVersion, err := version.ParseSemantic(machine.Spec.Versions.Kubelet)
+		if err != nil {
+			return "", err
+		}
 		startupScript, err = vpshereprovisionercommon.GetNodeStartupScript(
 			vpshereprovisionercommon.TemplateParams{
-				Token:     kubeadmToken,
-				Cluster:   cluster,
-				Machine:   machine,
-				Preloaded: preloaded,
+				Token:             kubeadmToken,
+				MajorMinorVersion: fmt.Sprintf("%d.%d", parsedVersion.Major(), parsedVersion.Minor()),
+				Cluster:           cluster,
+				Machine:           machine,
+				Preloaded:         preloaded,
 			},
 		)
 		if err != nil {

@@ -13,29 +13,31 @@ The following is a quick how-to-use guide on using the cluster api on a vCenter 
 
 **Be aware, the current repo supports deploying Kubernetes 1.11.x and above.  Older versions maybe supported in the future.**
 
+### Decide on whether to use minikube or kind as your bootstrapper
+
+In the self-service workflow, clusterctl will create a bootstrap cluster to kick off the process.  You have two options for bootstrappers: minikube or kind.  Kind is a relatively new project that starts a cluster within Docker on your local machine.  This removes the need to have a desktop hypervisor installed on your local machine.  If you intend to use the kind bootstrapper, you may skip the next section on Fusion and minikube. 
+
 ### Preparing Vmware Fusion/Workstation for minikube
 
-1. If https://github.com/kubernetes/minikube/pull/2606 has been merged, then clone the minikube repo and build.
-2. If the above is not true, do the following,
-    - **install minikube**, https://github.com/kubernetes/minikube
-    - install the PR 2606 and build (shown below)
-3. Install docker-machine driver for vmware (shown below)
+1. Download a release build from the [minikube release page](https://github.com/kubernetes/minikube/releases)
+2. Install docker-machine driver for vmware (shown below)
 ```
-$> git clone https://github.com/kubernetes/minikube $GOPATH/src/k8s.io/minikube
-$> cd $GOPATH/src/k8s.io/minikube
-$> git fetch origin pull/2606/head:minikube-vmware
-$> git checkout minikube-vmware
-$> make
-$> cd out
-$> sudo cp ./minikube /usr/local/bin  (on linux)
-   sudo cp ./minikube-darwin-amd64 /usr/local/bin/minikube (on Mac)
-
+$> curl -Lo minikube https://storage.googleapis.com/minikube/releases/v0.33.1/minikube-darwin-amd64 && chmod +x minikube && sudo cp minikube /usr/local/bin/ && rm minikube
 
 $> export LATEST_VERSION=$(curl -L -s -H 'Accept: application/json' https://github.com/machine-drivers/docker-machine-driver-vmware/releases/latest | sed -e 's/.*"tag_name":"\([^"]*\)".*/\1/') \
    && curl -L -o docker-machine-driver-vmware https://github.com/machine-drivers/docker-machine-driver-vmware/releases/download/$LATEST_VERSION/docker-machine-driver-vmware_darwin_amd64 \
    && chmod +x docker-machine-driver-vmware \
    && sudo mv docker-machine-driver-vmware /usr/local/bin/
 ```
+
+### Prepare kind
+
+To install kind, simply tell Go to download and build it.
+
+```
+$> go get sigs.k8s.io/kind
+```
+
 
 ### Building clusterctl
 
@@ -139,9 +141,17 @@ Note, the disk size above in this example needs to be 15GB or higher.
 
 The most basic workflow for creating a cluster using *clusterctl* actually ends up creating two clusters.  The first is called the **bootstrap** cluster.  This cluster is created using minikube.  The cluster api components are installed on this cluster.  *Clusterctl* then uses the cluster api server on the bootstrap cluster to create the **target** cluster.  Once the target cluster has been created, *clusterctl* will cleanup by deleting the bootstrap cluster.  There are other workflows to create the target cluster, but for this intro, the most basic workflow is used.  The command is shown below.  Once the CLI has finished, it will put the kubeconfig file for your target cluster in your current folder.  You can use that kubeconfig file to access your new cluster.
 
+Using minikube:
 ```
 $> clusterctl create cluster --provider vsphere --bootstrap-type minikube --bootstrap-flags "vm-driver=vmware" -c cluster.yaml -m machines.yaml -p provider-components.yaml
 $> kubectl --kubeconfig ./kubeconfig get no
+```
+
+Using KIND:
+```
+$> clusterctl create cluster --provider vsphere --bootstrap-type kind -c cluster.yaml -m machines.yaml -p provider-components.yaml
+$> kubectl --kubeconfig ./kubeconfig get no
+
 ```
 
 The above command has created a target cluster with just a master node.  Now, create the worker nodes for the cluster.  For this, you will use kubectl.

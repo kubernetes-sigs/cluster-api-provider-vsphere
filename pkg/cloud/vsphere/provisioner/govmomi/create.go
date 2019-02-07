@@ -59,9 +59,7 @@ func (pv *Provisioner) verifyAndUpdateTask(s *SessionContext, machine *clusterv1
 	}
 	err := s.session.RetrieveOne(ctx, taskref, []string{"info"}, &taskmo)
 	if err != nil {
-		//TODO: inspect the error and act appropriately.
-		// Naive assumption is that the task does not exist any more, thus clear that from the machine
-		return pv.setTaskRef(machine, "")
+		return err
 	}
 	switch taskmo.Info.State {
 	// Queued or Running
@@ -337,17 +335,6 @@ func Properties(vm *object.VirtualMachine) (*mo.VirtualMachine, error) {
 	return &props, nil
 }
 
-// Removes the current task reference from the Machine object
-func (pv *Provisioner) removeTaskRef(machine *clusterv1.Machine) error {
-	nmachine := machine.DeepCopy()
-	if nmachine.ObjectMeta.Annotations == nil {
-		return nil
-	}
-	delete(nmachine.ObjectMeta.Annotations, constants.VirtualMachineTaskRef)
-	_, err := pv.clusterV1alpha1.Machines(nmachine.Namespace).Update(nmachine)
-	return err
-}
-
 func (vc *Provisioner) updateVMReference(machine *clusterv1.Machine, vmref string) (*clusterv1.Machine, error) {
 	providerSpec, err := vsphereutils.GetMachineProviderSpec(machine.Spec.ProviderSpec)
 	if err != nil {
@@ -402,40 +389,6 @@ func (pv *Provisioner) setTaskRef(machine *clusterv1.Machine, taskref string) er
 	_, err = pv.clusterV1alpha1.Machines(newMachine.Namespace).UpdateStatus(newMachine)
 	if err != nil {
 		klog.Infof("Error in updating the machine ref: %s", err)
-		return err
-	}
-	return nil
-}
-
-// We are storing these as annotations and not in Machine Status because that's intended for
-// "Provider-specific status" that will usually be used to detect updates. Additionally,
-// Status requires yet another version API resource which is too heavy to store IP and TF state.
-func (pv *Provisioner) updateAnnotations(cluster *clusterv1.Cluster, machine *clusterv1.Machine, vmIP string, vm *object.VirtualMachine) error {
-	klog.Infof("Updating annotations for machine %s", machine.ObjectMeta.Name)
-	nmachine := machine.DeepCopy()
-	if nmachine.ObjectMeta.Annotations == nil {
-		nmachine.ObjectMeta.Annotations = make(map[string]string)
-	}
-	klog.V(4).Infof("updateAnnotations - IP = %s", vmIP)
-	nmachine.ObjectMeta.Annotations[constants.VmIpAnnotationKey] = vmIP
-	nmachine.ObjectMeta.Annotations[constants.ControlPlaneVersionAnnotationKey] = nmachine.Spec.Versions.ControlPlane
-	nmachine.ObjectMeta.Annotations[constants.KubeletVersionAnnotationKey] = nmachine.Spec.Versions.Kubelet
-
-	_, err := pv.clusterV1alpha1.Machines(nmachine.Namespace).Update(nmachine)
-	if err != nil {
-		return err
-	}
-	// Update the cluster status with updated time stamp for tracking purposes
-	ncluster := cluster.DeepCopy()
-	status := &vsphereconfigv1.VsphereClusterProviderStatus{LastUpdated: time.Now().UTC().String()}
-	out, err := json.Marshal(status)
-	if err != nil {
-		return err
-	}
-	ncluster.Status.ProviderStatus = &runtime.RawExtension{Raw: out}
-	_, err = pv.clusterV1alpha1.Clusters(ncluster.Namespace).UpdateStatus(ncluster)
-	if err != nil {
-		klog.Infof("Error in updating the status: %s", err)
 		return err
 	}
 	return nil

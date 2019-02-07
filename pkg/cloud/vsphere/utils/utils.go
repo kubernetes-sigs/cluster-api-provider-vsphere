@@ -108,7 +108,7 @@ func GetSubnet(netRange clusterv1.NetworkRanges) string {
 	return netRange.CIDRBlocks[0]
 }
 
-func GetVMId(machine *clusterv1.Machine) (string, error) {
+func GetMachineRef(machine *clusterv1.Machine) (string, error) {
 	pc, err := GetMachineProviderSpec(machine.Spec.ProviderSpec)
 	if err != nil {
 		return "", err

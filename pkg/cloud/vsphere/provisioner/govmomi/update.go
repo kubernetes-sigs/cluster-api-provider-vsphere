@@ -31,7 +31,7 @@ func (pv *Provisioner) Update(ctx context.Context, cluster *clusterv1.Cluster, m
 	updatectx, cancel := context.WithCancel(*s.context)
 	defer cancel()
 
-	moref, err := vsphereutils.GetVMId(machine)
+	moref, err := vsphereutils.GetMachineRef(machine)
 	if err != nil {
 		return err
 	}

@@ -19,11 +19,16 @@ func (pv *Provisioner) Exists(ctx context.Context, cluster *clusterv1.Cluster, m
 	existsctx, cancel := context.WithCancel(*s.context)
 	defer cancel()
 
-	moref, err := vsphereutils.GetVMId(machine)
+	moref, err := vsphereutils.GetMachineRef(machine)
 	if err != nil {
-		klog.V(4).Infof("Exists check, GetVMId failed: %s", err.Error())
+		klog.V(4).Infof("Exists check, GetMachineRef failed: %s", err.Error())
 		return false, err
 	}
+
+	if moref == "" {
+		return false, nil
+	}
+
 	var vm mo.VirtualMachine
 	vmref := types.ManagedObjectReference{
 		Type:  "VirtualMachine",

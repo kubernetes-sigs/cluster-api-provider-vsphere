@@ -24,7 +24,7 @@ func (pv *Provisioner) Delete(ctx context.Context, cluster *clusterv1.Cluster, m
 	defer cancel()
 
 	if exists, _ := pv.Exists(ctx, cluster, machine); exists {
-		moref, err := vsphereutils.GetVMId(machine)
+		moref, err := vsphereutils.GetMachineRef(machine)
 		if err != nil {
 			return err
 		}

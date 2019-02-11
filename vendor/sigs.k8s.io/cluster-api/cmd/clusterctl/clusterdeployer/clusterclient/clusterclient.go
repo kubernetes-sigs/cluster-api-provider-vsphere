@@ -18,8 +18,10 @@ package clusterclient
 
 import (
 	"io/ioutil"
+	"net"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -37,7 +39,7 @@ import (
 )
 
 const (
-	apiServerPort               = 443
+	defaultAPIServerPort        = "443"
 	retryIntervalKubectlApply   = 10 * time.Second
 	retryIntervalResourceReady  = 10 * time.Second
 	retryIntervalResourceDelete = 10 * time.Second
@@ -88,7 +90,7 @@ type client struct {
 
 // New creates and returns a Client, the kubeconfig argument is expected to be the string representation
 // of a valid kubeconfig.
-func New(kubeconfig string) (*client, error) {
+func New(kubeconfig string) (*client, error) { //nolint
 	f, err := createTempFile(kubeconfig)
 	if err != nil {
 		return nil, err
@@ -142,7 +144,7 @@ func (c *client) DeleteNamespace(namespaceName string) error {
 
 // NewFromDefaultSearchPath creates and returns a Client.  The kubeconfigFile argument is expected to be the path to a
 // valid kubeconfig file.
-func NewFromDefaultSearchPath(kubeconfigFile string, overrides tcmd.ConfigOverrides) (*client, error) {
+func NewFromDefaultSearchPath(kubeconfigFile string, overrides tcmd.ConfigOverrides) (*client, error) { //nolint
 	c, err := clientcmd.NewClusterAPIClientForDefaultSearchPath(kubeconfigFile, overrides)
 	if err != nil {
 		return nil, err
@@ -405,16 +407,29 @@ func newDeleteOptions() *metav1.DeleteOptions {
 	}
 }
 
+// UpdateClusterObjectEndpoint updates the status of a cluster API endpoint, clusterEndpoint
+// can be passed as hostname or hostname:port, if port is not present the default port 443 is applied.
 // TODO: Test this function
-func (c *client) UpdateClusterObjectEndpoint(controlPlaneIP, clusterName, namespace string) error {
+func (c *client) UpdateClusterObjectEndpoint(clusterEndpoint, clusterName, namespace string) error {
 	cluster, err := c.GetClusterObject(clusterName, namespace)
 	if err != nil {
 		return err
 	}
+	endpointHost, endpointPort, err := net.SplitHostPort(clusterEndpoint)
+	if err != nil {
+		// We rely on provider.GetControlPlaneEndpoint to provide a correct hostname/IP, no
+		// further validation is done.
+		endpointHost = clusterEndpoint
+		endpointPort = defaultAPIServerPort
+	}
+	endpointPortInt, err := strconv.Atoi(endpointPort)
+	if err != nil {
+		return errors.Wrapf(err, "error while converting cluster endpoint port %q", endpointPort)
+	}
 	cluster.Status.APIEndpoints = append(cluster.Status.APIEndpoints,
 		clusterv1.APIEndpoint{
-			Host: controlPlaneIP,
-			Port: apiServerPort,
+			Host: endpointHost,
+			Port: endpointPortInt,
 		})
 	_, err = c.clientSet.ClusterV1alpha1().Clusters(namespace).UpdateStatus(cluster)
 	return err
@@ -608,4 +623,40 @@ func ifErrRemove(pErr *error, path string) {
 			klog.Warningf("Error removing file '%s': %v", path, err)
 		}
 	}
+}
+
+func GetClusterAPIObject(client Client, clusterName, namespace string) (*clusterv1.Cluster, *clusterv1.Machine, []*clusterv1.Machine, error) {
+	machines, err := client.GetMachineObjectsInNamespace(namespace)
+	if err != nil {
+		return nil, nil, nil, errors.Wrap(err, "unable to fetch machines")
+	}
+	cluster, err := client.GetClusterObject(clusterName, namespace)
+	if err != nil {
+		return nil, nil, nil, errors.Wrapf(err, "unable to fetch cluster %s/%s", namespace, clusterName)
+	}
+
+	controlPlane, nodes, err := ExtractControlPlaneMachine(machines)
+	if err != nil {
+		return nil, nil, nil, errors.Wrapf(err, "unable to fetch control plane machine in cluster %s/%s", namespace, clusterName)
+	}
+	return cluster, controlPlane, nodes, nil
+}
+
+// ExtractControlPlaneMachine separates the machines running the control plane (singular) from the incoming machines.
+// This is currently done by looking at which machine specifies the control plane version.
+// TODO: Cleanup.
+func ExtractControlPlaneMachine(machines []*clusterv1.Machine) (*clusterv1.Machine, []*clusterv1.Machine, error) {
+	nodes := []*clusterv1.Machine{}
+	controlPlaneMachines := []*clusterv1.Machine{}
+	for _, machine := range machines {
+		if util.IsControlPlaneMachine(machine) {
+			controlPlaneMachines = append(controlPlaneMachines, machine)
+		} else {
+			nodes = append(nodes, machine)
+		}
+	}
+	if len(controlPlaneMachines) != 1 {
+		return nil, nil, errors.Errorf("expected one control plane machine, got: %v", len(controlPlaneMachines))
+	}
+	return controlPlaneMachines[0], nodes, nil
 }

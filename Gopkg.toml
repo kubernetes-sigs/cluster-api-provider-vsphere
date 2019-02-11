@@ -46,7 +46,7 @@ required = [
 
 [[constraint]]
   name = "sigs.k8s.io/cluster-api"
-  branch = "master"
+  revision = "0f315e945d5fabe0c805ccf30fa6cf02fac6c0b5"
 
 [[constraint]]
   name = "github.com/vmware/govmomi"

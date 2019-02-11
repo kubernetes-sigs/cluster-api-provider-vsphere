@@ -18,12 +18,10 @@ package machine
 
 import (
 	"context"
-	"errors"
 	"os"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -37,7 +35,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-const NodeNameEnvVar = "NODE_NAME"
+const (
+	NodeNameEnvVar          = "NODE_NAME"
+	MachineClusterLabelName = "cluster.k8s.io/cluster-name"
+)
 
 var DefaultActuator Actuator
 
@@ -117,8 +118,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 	// for machine management.
 	cluster, err := r.getCluster(ctx, m)
 	if err != nil {
-		// Just log the error here.
-		klog.V(4).Infof("Cluster not found, machine actuation might fail: %v", err)
+		return reconcile.Result{}, err
 	}
 	// If object hasn't been deleted and doesn't have a finalizer, add one
 	// Add a finalizer to newly created objects.
@@ -194,30 +194,22 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 }
 
 func (r *ReconcileMachine) getCluster(ctx context.Context, machine *clusterv1.Machine) (*clusterv1.Cluster, error) {
-	clusterList := clusterv1.ClusterList{}
-	listOptions := &client.ListOptions{
-		Namespace: machine.Namespace,
-		// This is set so the fake client can be used for unit test. See:
-		// https://github.com/kubernetes-sigs/controller-runtime/issues/168
-		Raw: &metav1.ListOptions{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: clusterv1.SchemeGroupVersion.String(),
-				Kind:       "Cluster",
-			},
-		},
+	if machine.Labels[MachineClusterLabelName] == "" {
+		klog.Infof("Machine %q in namespace %q doesn't specify %q label, assuming nil cluster", machine.Name, MachineClusterLabelName, machine.Namespace)
+		return nil, nil
 	}
-	if err := r.Client.List(ctx, listOptions, &clusterList); err != nil {
+
+	cluster := &clusterv1.Cluster{}
+	key := client.ObjectKey{
+		Namespace: machine.Namespace,
+		Name:      machine.Labels[MachineClusterLabelName],
+	}
+
+	if err := r.Client.Get(ctx, key, cluster); err != nil {
 		return nil, err
 	}
 
-	switch len(clusterList.Items) {
-	case 0:
-		return nil, errors.New("no clusters defined")
-	case 1:
-		return &clusterList.Items[0], nil
-	default:
-		return nil, errors.New("multiple clusters defined")
-	}
+	return cluster, nil
 }
 
 func (r *ReconcileMachine) isDeleteAllowed(machine *clusterv1.Machine) bool {

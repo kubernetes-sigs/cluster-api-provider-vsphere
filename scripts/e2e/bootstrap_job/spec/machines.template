@@ -7,6 +7,7 @@ items:
       generateName: clusterapi-$CONTEXT-
       labels:
         set: master
+        cluster.k8s.io/cluster-name: test1
     spec:
       providerSpec:
         value:

@@ -7,10 +7,12 @@ spec:
   selector:
     matchLabels:
       node-type: worker-node
+      cluster.k8s.io/cluster-name: test1
   template:
     metadata:
       labels:
         node-type: worker-node
+        cluster.k8s.io/cluster-name: test1
     spec:
       providerSpec:
         value:

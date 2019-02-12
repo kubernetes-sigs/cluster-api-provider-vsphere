@@ -15,7 +15,7 @@ The following is a quick how-to-use guide on using the cluster api on a vCenter 
 
 ### Decide on whether to use minikube or kind as your bootstrapper
 
-In the self-service workflow, clusterctl will create a bootstrap cluster to kick off the process.  You have two options for bootstrappers: minikube or kind.  Kind is a relatively new project that starts a cluster within Docker on your local machine.  This removes the need to have a desktop hypervisor installed on your local machine.  If you intend to use the kind bootstrapper, you may skip the next section on Fusion and minikube. 
+In the self-service workflow, clusterctl will create a bootstrap cluster to kick off the process.  You have two options for bootstrappers: minikube or kind.  Kind is a relatively new project that starts a cluster within Docker on your local machine.  This removes the need to have a desktop hypervisor installed on your local machine.  If you intend to use the kind bootstrapper, you may skip the next section on Fusion and minikube.
 
 ### Preparing Vmware Fusion/Workstation for minikube
 
@@ -98,6 +98,7 @@ items:
   metadata:
     generateName: vs-master-
     labels:
+      cluster.k8s.io/cluster-name: test1
       set: master
   spec:
       providerSpec:

@@ -48,6 +48,10 @@ do
       CI_ROOT_SSH_KEY="$2"
       shift 2 # past argument
       ;;
+    --build-ova-revision)
+      BUILD_OVA_REVISION="$2"
+      shift 2 # past argument
+      ;;
     *)
       # unknown
       break; break;
@@ -56,6 +60,7 @@ done
 
 # set Kubernetes Version
 setenv KUBERNETES_VERSION "$KUBERNETES_DEFAULT_VERSION"
+setenv BUILD_OVA_REVISION "$BUILD_OVA_REVISION"
 setenv CI_ROOT_PASSWORD ""
 setenv CI_ROOT_SSH_KEY ""
 
@@ -64,6 +69,7 @@ ENV_FILE="${CACHE}/installer.env"
 touch $ENV_FILE
 cat > $ENV_FILE <<EOF
 export KUBERNETES_VERSION=${KUBERNETES_VERSION:-}
+export BUILD_OVA_REVISION=${BUILD_OVA_REVISION:-}
 export CI_ROOT_PASSWORD=${CI_ROOT_PASSWORD:-}
 export CI_ROOT_SSH_KEY=${CI_ROOT_SSH_KEY:-}
 EOF

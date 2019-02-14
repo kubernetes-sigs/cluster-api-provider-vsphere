@@ -8,13 +8,24 @@
 # VSPHERE_USERNAME
 # VSPHERE_PASSWORD
 # VSPHERE_CONTROLLER_VERSION
+# TARGET_VM_PREFIX
 # TARGET_VM_SSH  (base64 encoded)
 # TARGET_VM_SSH_PUB (base64 encoded)
+# BOOTSTRAP_KUBECONFIG
+
+# clusterctl requires ssh key file and kubeconfig file
+mkdir -p ~/.ssh
+mkdir -p ~/.kube
+echo -n "${TARGET_VM_SSH}" > ~/.ssh/vsphere_tmp
+echo -n "${TARGET_VM_SSH_PUB}" > ~/.ssh/vsphere_tmp.pub
+echo "${BOOTSTRAP_KUBECONFIG}" > ~/.kube/config
+chmod 600 ~/.ssh/vsphere_tmp
 
 
 # base64 encode SSH keys (k8s secret automatically decode it)
 export TARGET_VM_SSH=$(echo -n "${TARGET_VM_SSH}" | base64 -w 0)
 export TARGET_VM_SSH_PUB=$(echo -n "${TARGET_VM_SSH_PUB}" | base64 -w 0)
+echo "${TARGET_VM_SSH_PUB}"
 
 for filename in spec/*.template; do
   newfilename="$(echo "$filename" | sed 's/template/yml/g')"
@@ -41,16 +52,23 @@ do
    fi
 done
 wget https://storage.googleapis.com/kubernetes-release/release/v1.10.2/bin/linux/amd64/kubectl \
-     -nv -O /usr/local/bin/kubectl
+     --no-verbose -O /usr/local/bin/kubectl
 chmod +x /usr/local/bin/kubectl
+
 
 # run clusterctl
 echo "test ${PROVIDER_COMPONENT_SPEC}"
 /tmp/clusterctl/clusterctl create cluster -e ~/.kube/config -c ./spec/cluster.yml \
     -m ./spec/machines.yml \
-    -p ./spec/${PROVIDER_COMPONENT_SPEC} \
+    -p ./spec/"${PROVIDER_COMPONENT_SPEC}" \
     --provider vsphere \
-    -v 6
+    -v 6 
+
+ret=$?
+if [ "$ret" != 0 ]; then
+   kubectl delete -f ./spec/"${PROVIDER_COMPONENT_SPEC}"
+   exit "$ret"
+fi
 
 # cleanup the cluster
 # TODO (clusterctl delete is not working)

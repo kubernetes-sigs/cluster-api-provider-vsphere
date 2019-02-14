@@ -1,7 +1,8 @@
 Test cluster-api-provider-vsphere
 
 **Prow**   
-note: the actual Prow job definition file is at [k8s.io/test-infra](test-infra/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere)    
+note: the actual Prow job definition file is at k8s.io/test-infra  
+test-infra/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere  
 
 ```
             +-----------------------------------------------------+

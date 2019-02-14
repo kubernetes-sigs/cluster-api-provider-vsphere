@@ -1,4 +1,4 @@
-FROM photon:2.0
+FROM photon:2.0 as ci
 
 ENV GOVERSION=1.10.5
 ENV PATH=$PATH:/usr/local/go/bin
@@ -15,3 +15,13 @@ RUN set -eux; \
     xz -d qemu-img.xz; \
     chmod +x qemu-img; \
     mv qemu-img /usr/bin/qemu-img;
+
+ADD installer /go/src/sigs.k8s.io/cluster-api-provider-vsphere/installer
+
+WORKDIR /go/src/sigs.k8s.io/cluster-api-provider-vsphere/installer
+ENTRYPOINT ["./build/build.sh"]
+
+FROM ci
+RUN rm -rf /go/src/sigs.k8s.io/cluster-api-provider-vsphere/installer
+WORKDIR /
+ENTRYPOINT ["/bin/bash"]

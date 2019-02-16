@@ -236,7 +236,13 @@ if [ -z "${PROW_JOB_ID}" ] ; then
       git describe --match=$(git rev-parse --short=8 HEAD) --always --dirty --abbrev=8)
 else
    context="prow"
-   vsphere_controller_version="${PULL_PULL_SHA}"
+   if [ -z "${PULL_PULL_SHA}" ] ; then
+      # for periodic job
+      vsphere_controller_version="${PULL_JOB_ID}"
+   else
+      # for presubmit job
+      vsphere_controller_version="${PULL_PULL_SHA}"
+   fi
 fi
 
 export VERSION="${vsphere_controller_version}"

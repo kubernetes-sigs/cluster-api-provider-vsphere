@@ -38,12 +38,12 @@ echo "all jobs finished";
 
 
 
-echo "--------- vsphere manager log begin ----------"
+echo "--------- vsphere-provider-controller-manager log begin ----------"
 manager_pod_name=$(kubectl get pods -a --no-headers -n vsphere-provider-system | grep vsphere | awk -F" " '{print $1}')
 kubectl logs "${manager_pod_name}" -n vsphere-provider-system
-echo "--------- vsphere manager log end ----------"
+echo "--------- vsphere-provider-controller-manager log end ----------"
 
-job_pod_names=$(kubectl get pods -a --no-headers | grep cluster-api-provider-vsphere-ci | awk -F" " '{print $1}' | tr "\\\n" "\n")
+job_pod_names=$(kubectl get pods -a --no-headers | grep cluster-api-provider-vsphere-ci | awk -F" " '{print $1}')
 for job_pod_name in ${job_pod_names}
 do
    echo "--------- ci job log begin ----------"

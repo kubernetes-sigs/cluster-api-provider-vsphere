@@ -3,6 +3,7 @@ package govmomi
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -19,6 +20,10 @@ import (
 )
 
 func (pv *Provisioner) Update(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+	if cluster == nil {
+		return errors.New(ClusterIsNullErr)
+	}
+
 	// Fetch any active task in vsphere if any
 	// If an active task is there,
 

@@ -12,3 +12,6 @@
 *.out
 
 minikube.kubeconfig
+
+# tmp files
+*.tmp

@@ -25,6 +25,10 @@ var (
 	DefaultSSHPublicKeyFile = "/root/.ssh/vsphere_tmp.pub"
 )
 
+const (
+	ClusterIsNullErr = "cluster is nil"
+)
+
 func (pv *Provisioner) GetKubeadmToken(cluster *clusterv1.Cluster) (string, error) {
 	var token string
 	if cluster.ObjectMeta.Annotations != nil {

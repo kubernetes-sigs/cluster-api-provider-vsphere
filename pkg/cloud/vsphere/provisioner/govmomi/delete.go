@@ -16,6 +16,10 @@ import (
 
 // Delete the machine
 func (pv *Provisioner) Delete(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+	if cluster == nil {
+		return errors.New(ClusterIsNullErr)
+	}
+
 	s, err := pv.sessionFromProviderConfig(cluster, machine)
 	if err != nil {
 		return err

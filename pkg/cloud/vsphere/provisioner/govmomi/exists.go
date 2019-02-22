@@ -2,6 +2,7 @@ package govmomi
 
 import (
 	"context"
+	"errors"
 
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
@@ -11,6 +12,10 @@ import (
 )
 
 func (pv *Provisioner) Exists(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
+	if cluster == nil {
+		return false, errors.New(ClusterIsNullErr)
+	}
+
 	s, err := pv.sessionFromProviderConfig(cluster, machine)
 	if err != nil {
 		klog.V(4).Infof("Exists check, session from provider config error: %s", err.Error())

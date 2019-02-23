@@ -26,7 +26,7 @@ var (
 )
 
 const (
-	ClusterIsNullErr = "cluster is nil"
+	ClusterIsNullErr = "cluster is nil, make sure machines have `clusters.k8s.io/cluster-name` label set and the name references a valid cluster name in the same namespace"
 )
 
 func (pv *Provisioner) GetKubeadmToken(cluster *clusterv1.Cluster) (string, error) {

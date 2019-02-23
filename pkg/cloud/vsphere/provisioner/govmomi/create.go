@@ -29,7 +29,7 @@ import (
 
 func (pv *Provisioner) Create(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	if cluster == nil {
-		return errors.New(ClusterIsNullErr)
+		return errors.New(constants.ClusterIsNullErr)
 	}
 
 	klog.V(4).Infof("govmomi.Actuator.Create %s", machine.Name)

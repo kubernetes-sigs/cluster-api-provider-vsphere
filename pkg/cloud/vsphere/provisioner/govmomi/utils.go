@@ -25,10 +25,6 @@ var (
 	DefaultSSHPublicKeyFile = "/root/.ssh/vsphere_tmp.pub"
 )
 
-const (
-	ClusterIsNullErr = "cluster is nil, make sure machines have `clusters.k8s.io/cluster-name` label set and the name references a valid cluster name in the same namespace"
-)
-
 func (pv *Provisioner) GetKubeadmToken(cluster *clusterv1.Cluster) (string, error) {
 	var token string
 	if cluster.ObjectMeta.Annotations != nil {

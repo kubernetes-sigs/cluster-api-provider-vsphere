@@ -21,7 +21,7 @@ import (
 
 func (pv *Provisioner) Update(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	if cluster == nil {
-		return errors.New(ClusterIsNullErr)
+		return errors.New(constants.ClusterIsNullErr)
 	}
 
 	// Fetch any active task in vsphere if any

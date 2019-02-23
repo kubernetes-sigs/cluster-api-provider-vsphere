@@ -10,6 +10,7 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
 	vsphereutils "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/utils"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
@@ -17,7 +18,7 @@ import (
 // Delete the machine
 func (pv *Provisioner) Delete(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	if cluster == nil {
-		return errors.New(ClusterIsNullErr)
+		return errors.New(constants.ClusterIsNullErr)
 	}
 
 	s, err := pv.sessionFromProviderConfig(cluster, machine)

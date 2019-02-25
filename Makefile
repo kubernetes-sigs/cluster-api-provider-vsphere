@@ -124,7 +124,7 @@ ci-image: generate fmt vet manifests
 	docker build . -t "$(CI_IMG):$(VERSION)"
 	docker build . -f cmd/clusterctl/Dockerfile -t "$(CLUSTERCTL_CI_IMG):$(VERSION)"
 	@echo "updating kustomize image patch file for manager resource"
-	sed -i'' -e 's@image: .*@image: '"$(CI_IMG):$(VERSION)"'@' ./config/default/vsphere_manager_image_patch.yaml
+	sed -i.tmp -e 's@image: .*@image: '"$(CI_IMG):$(VERSION)"'@' ./config/default/vsphere_manager_image_patch.yaml
 
 ci-push: ci-image
 # Log into the registry with a service account file.  In CI, GCR_KEY_FILE contains the content and not the file name.

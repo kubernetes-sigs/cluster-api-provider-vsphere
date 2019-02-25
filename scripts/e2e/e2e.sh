@@ -238,7 +238,7 @@ else
    context="prow"
    if [ -z "${PULL_PULL_SHA}" ] ; then
       # for periodic job
-      vsphere_controller_version="${PULL_JOB_ID}"
+      vsphere_controller_version="${PROW_JOB_ID}"
    else
       # for presubmit job
       vsphere_controller_version="${PULL_PULL_SHA}"

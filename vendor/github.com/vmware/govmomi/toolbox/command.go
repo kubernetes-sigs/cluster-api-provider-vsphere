@@ -442,7 +442,7 @@ func (c *CommandServer) MoveDirectory(header vix.CommandRequestHeader, data []by
 	}
 
 	if !r.Body.Overwrite {
-		info, err = os.Stat(r.NewPathName)
+		_, err = os.Stat(r.NewPathName)
 		if err == nil {
 			return nil, vix.Error(vix.FileAlreadyExists)
 		}
@@ -471,7 +471,7 @@ func (c *CommandServer) MoveFile(header vix.CommandRequestHeader, data []byte) (
 	}
 
 	if !r.Body.Overwrite {
-		info, err = os.Stat(r.NewPathName)
+		_, err = os.Stat(r.NewPathName)
 		if err == nil {
 			return nil, vix.Error(vix.FileAlreadyExists)
 		}
@@ -665,10 +665,8 @@ func (c *CommandServer) InitiateFileTransferToGuest(header vix.CommandRequestHea
 		if !r.Body.Overwrite {
 			return nil, vix.Error(vix.FileAlreadyExists)
 		}
-	} else {
-		if !os.IsNotExist(err) {
-			return nil, err
-		}
+	} else if !os.IsNotExist(err) {
+		return nil, err
 	}
 
 	return nil, nil

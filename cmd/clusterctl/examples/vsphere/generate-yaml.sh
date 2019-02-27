@@ -109,6 +109,11 @@ if [ ! -f $MACHINE_CONTROLLER_SSH_HOME$MACHINE_CONTROLLER_SSH_PRIVATE_FILE ]; th
   ssh-keygen -t rsa -f $MACHINE_CONTROLLER_SSH_HOME$MACHINE_CONTROLLER_SSH_PRIVATE_FILE  -N ""
 fi
 
+# With kustomize PR 700 merged, the resources in kustomization.yaml could only be scanned in the sub-folder
+# So putting vsphere_tmp and vsphere_tmp.pub in ../config/default folder
+cp $MACHINE_CONTROLLER_SSH_HOME$MACHINE_CONTROLLER_SSH_PUBLIC_FILE $VSPHERE_CLUSTER_API_CRD_PATH/default/$MACHINE_CONTROLLER_SSH_PUBLIC_FILE
+cp $MACHINE_CONTROLLER_SSH_HOME$MACHINE_CONTROLLER_SSH_PRIVATE_FILE $VSPHERE_CLUSTER_API_CRD_PATH/default/$MACHINE_CONTROLLER_SSH_PRIVATE_FILE
+
 # By default, linux wraps base64 output every 76 cols, so we use 'tr -d' to remove whitespaces.
 # Note 'base64 -w0' doesn't work on Mac OS X, which has different flags.
 MACHINE_CONTROLLER_SSH_PUBLIC=$(cat $MACHINE_CONTROLLER_SSH_HOME$MACHINE_CONTROLLER_SSH_PUBLIC_FILE | base64 | tr -d '\r\n')

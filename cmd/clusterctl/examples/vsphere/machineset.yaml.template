@@ -33,7 +33,10 @@ spec:
             - diskLabel: ""
               diskSizeGB: 20
             preloaded: false
+            trustedCerts:
+            - zzzz
+            - aaaa
       versions:
-        kubelet: 1.10.1
+        kubelet: 1.11.3
       roles:
       - Node

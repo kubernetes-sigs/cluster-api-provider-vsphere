@@ -8,7 +8,7 @@ The following is a quick how-to-use guide on using the cluster api on a vCenter 
 3. a type 2 desktop hypervisor (Vmware Fusion/Workstation or VirtualBox)
 4. GOPATH environment set
 5. dep installed (https://github.com/golang/dep)
-6. kustomize installed (https://github.com/kubernetes-sigs/kustomize/blob/master/docs/INSTALL.md)
+6. kustomize V2 installed (https://github.com/kubernetes-sigs/kustomize/blob/master/docs/INSTALL.md)
 7. kubebuilder installed (https://book.kubebuilder.io/quick_start.html)
 
 **Be aware, the current repo supports deploying Kubernetes 1.11.x and above.  Older versions maybe supported in the future.**

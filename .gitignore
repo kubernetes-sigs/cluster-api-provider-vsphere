@@ -12,6 +12,8 @@
 *.out
 
 minikube.kubeconfig
+config/default/vsphere_tmp.pub
+config/default/vsphere_tmp
 
 # tmp files
 *.tmp

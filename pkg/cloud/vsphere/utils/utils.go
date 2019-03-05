@@ -83,6 +83,10 @@ func GetClusterProviderStatus(cluster *clusterv1.Cluster) (*vsphereconfigv1.Vsph
 func GetMachineProviderSpec(providerSpec clusterv1.ProviderSpec) (*vsphereconfigv1.VsphereMachineProviderConfig, error) {
 	config := &vsphereconfigv1.VsphereMachineProviderConfig{}
 
+	if providerSpec.Value == nil {
+		return nil, fmt.Errorf("machine providerconfig is invalid (nil)")
+	}
+
 	err := yaml.Unmarshal(providerSpec.Value.Raw, config)
 	if err != nil {
 		return nil, fmt.Errorf("machine providerconfig unmarshalling failure: %s", err.Error())
@@ -92,6 +96,10 @@ func GetMachineProviderSpec(providerSpec clusterv1.ProviderSpec) (*vsphereconfig
 
 func GetClusterProviderSpec(providerSpec clusterv1.ProviderSpec) (*vsphereconfigv1.VsphereClusterProviderConfig, error) {
 	config := &vsphereconfigv1.VsphereClusterProviderConfig{}
+
+	if providerSpec.Value == nil {
+		return nil, fmt.Errorf("cluster providerconfig is invalid (nil)")
+	}
 
 	err := yaml.Unmarshal(providerSpec.Value.Raw, config)
 	if err != nil {

@@ -440,7 +440,7 @@ systemctl daemon-reload
 kubeadm join --token "${TOKEN}" "${MASTER}" --ignore-preflight-errors=all --discovery-token-unsafe-skip-ca-verification
 
 for tries in $(seq 1 60); do
-	kubectl --kubeconfig /etc/kubernetes/kubelet.conf annotate --overwrite node $(hostname) machine=${MACHINE} && break
+	kubectl --kubeconfig /etc/kubernetes/kubelet.conf annotate --overwrite node $(hostname) cluster.k8s.io/machine=${MACHINE} && break
 	sleep 1
 done
 {{- end }}{{/* end configure */}}
@@ -843,7 +843,7 @@ EOF
 kubectl apply --kubeconfig /etc/kubernetes/admin.conf -f /tmp/weave.yaml
 
 for tries in $(seq 1 60); do
-	kubectl --kubeconfig /etc/kubernetes/kubelet.conf annotate --overwrite node $(hostname) machine=${MACHINE} && break
+	kubectl --kubeconfig /etc/kubernetes/kubelet.conf annotate --overwrite node $(hostname) cluster.k8s.io/machine=${MACHINE} && break
 	sleep 1
 done
 

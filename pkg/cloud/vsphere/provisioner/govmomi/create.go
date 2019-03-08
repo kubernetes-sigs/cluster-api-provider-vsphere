@@ -162,7 +162,7 @@ func (pv *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 		spec.Config.MemoryMB = machineConfig.MachineSpec.MemoryMB
 	}
 	spec.Config.Annotation = fmt.Sprintf("Virtual Machine is part of the cluster %s managed by cluster-api", cluster.Name)
-	spec.Location.DiskMoveType = string(types.VirtualMachineRelocateDiskMoveOptionsMoveAllDiskBackingsAndAllowSharing)
+	spec.Location.DiskMoveType = string(types.VirtualMachineRelocateDiskMoveOptionsMoveAllDiskBackingsAndConsolidate)
 	var src *object.VirtualMachine
 	if vsphereutils.IsValidUUID(machineConfig.MachineSpec.VMTemplate) {
 		// If the passed VMTemplate is a valid UUID, then first try to find it treating that as InstanceUUID

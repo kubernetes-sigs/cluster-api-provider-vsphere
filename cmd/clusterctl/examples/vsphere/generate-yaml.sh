@@ -80,6 +80,12 @@ while test $# -gt 0; do
         esac
 done
 
+KUSTOMIZE_VERSION=$(kustomize version | awk '{ print $2 }' | awk -F ':' '{ print $2} ')
+if [[ $KUSTOMIZE_VERSION == *"v1"* || $KUSTOMIZE_VERSION == "unknown" ]]; then
+    echo "Please upgrade the kustomize version to v2 at least."
+    exit 1
+fi
+
 if [ $OVERWRITE -ne 1 ] && [ -f $MACHINE_GENERATED_FILE ]; then
   echo File $MACHINE_GENERATED_FILE already exists. Delete it manually before running this script.
   exit 1

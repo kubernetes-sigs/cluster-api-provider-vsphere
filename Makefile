@@ -22,6 +22,8 @@ DEV_IMG ?= # <== NOTE:  outside dev, change this!!!
 VERSION ?= $(shell git describe --exact-match 2> /dev/null || \
 	   git describe --match=$(git rev-parse --short=8 HEAD) --always --dirty --abbrev=8)
 
+KUSTOMIZE_VERSION := $(shell kustomize version | awk '{ print $$2 }' | awk -F':' '{ print $$2} ')
+
 all: test manager clusterctl
 
 # Run tests
@@ -72,9 +74,13 @@ generate:
 
 # Create YAML file for deployment
 dev-yaml:
+ifeq ($(KUSTOMIZE_VERSION),$(filter $(KUSTOMIZE_VERSION),unknown v1))
+	@echo "please upgrade kustomize version to v2 at least."
+else
 	@echo "updating kustomize image patch file for manager resource"
 	sed -i'' -e 's@image: .*@image: '"${DEV_IMG}"'@' ./config/default/vsphere_manager_image_patch.yaml
 	cmd/clusterctl/examples/vsphere/generate-yaml.sh
+endif
 
 # Build the docker image
 dev-build: test
@@ -93,9 +99,13 @@ dev-push:
 
 # Create YAML file for deployment
 prod-yaml:
+ifeq ($(KUSTOMIZE_VERSION),$(filter $(KUSTOMIZE_VERSION),unknown v1))
+	@echo "please upgrade kustomize version to v2 at least."
+else
 	@echo "updating kustomize image patch file for manager resource"
 	sed -i'' -e 's@image: .*@image: '"${PRODUCTION_IMG}"'@' ./config/default/vsphere_manager_image_patch.yaml
 	cmd/clusterctl/examples/vsphere/generate-yaml.sh
+endif
 
 # Build the docker image
 prod-build: test

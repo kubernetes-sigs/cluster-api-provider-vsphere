@@ -49,7 +49,36 @@ func (pv *Provisioner) Create(ctx context.Context, cluster *clusterv1.Cluster, m
 		// In case an active task is going on, wait for its completion
 		return pv.verifyAndUpdateTask(s, machine, task)
 	}
+	// Before going for cloning, check if we can locate a VM with the InstanceUUID
+	// as this Machine. If found, that VM is the right match for this machine
+	vmRef, err := pv.findVMByInstanceUUID(ctx, s, machine)
+	if err != nil {
+		return err
+	}
+	if vmRef != "" {
+		pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Created", "Created Machine %s(%s)", machine.Name, vmRef)
+		// Update the Machine object with the VM Reference annotation
+		_, err := pv.updateVMReference(machine, vmRef)
+		if err != nil {
+			return err
+		}
+	}
+
 	return pv.cloneVirtualMachine(s, cluster, machine)
+}
+
+func (pv *Provisioner) findVMByInstanceUUID(ctx context.Context, s *SessionContext, machine *clusterv1.Machine) (string, error) {
+	klog.V(4).Infof("Trying to check existence of the VM via InstanceUUID %s", machine.UID)
+	si := object.NewSearchIndex(s.session.Client)
+	instanceUUID := true
+	vmRef, err := si.FindByUuid(ctx, nil, string(machine.UID), true, &instanceUUID)
+	if err != nil {
+		return "", fmt.Errorf("error quering virtual machine or template using FindByUuid: %s", err)
+	}
+	if vmRef != nil {
+		return vmRef.Reference().Value, nil
+	}
+	return "", nil
 }
 
 func (pv *Provisioner) verifyAndUpdateTask(s *SessionContext, machine *clusterv1.Machine, taskmoref string) error {
@@ -63,7 +92,8 @@ func (pv *Provisioner) verifyAndUpdateTask(s *SessionContext, machine *clusterv1
 	}
 	err := s.session.RetrieveOne(ctx, taskref, []string{"info"}, &taskmo)
 	if err != nil {
-		return err
+		// The task does not exist any more, thus no point tracking it. Thus clear it from the machine
+		return pv.setTaskRef(machine, "")
 	}
 	switch taskmo.Info.State {
 	// Queued or Running
@@ -151,6 +181,8 @@ func (pv *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 	spec.PowerOn = true
 
 	spec.Config = &types.VirtualMachineConfigSpec{}
+	// Use the object UID as the instanceUUID for the VM
+	spec.Config.InstanceUuid = string(machine.UID)
 	diskUUIDEnabled := true
 	spec.Config.Flags = &types.VirtualMachineFlagInfo{
 		DiskUuidEnabled: &diskUUIDEnabled,

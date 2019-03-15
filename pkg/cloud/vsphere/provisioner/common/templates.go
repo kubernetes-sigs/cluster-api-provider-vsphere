@@ -379,7 +379,6 @@ deb [arch=amd64] https://apt.dockerproject.org/repo ubuntu-xenial main
 EOF
 
 apt-get update
-apt-get install -y docker.io
 
 curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
 
@@ -402,9 +401,11 @@ function getversion() {
 	echo $version
 }
 
+DOCKER_VER=$(getversion docker.io 18.06)
 KUBELET=$(getversion kubelet ${KUBELET_VERSION}-)
 KUBEADM=$(getversion kubeadm ${KUBELET_VERSION}-)
 KUBECTL=$(getversion kubectl ${KUBELET_VERSION}-)
+apt-get install -y docker.io=${DOCKER_VER}
 # Explicit cni version is a temporary workaround till the right version can be automatically detected correctly
 apt-get install -y kubelet=${KUBELET} kubeadm=${KUBEADM} kubectl=${KUBECTL}
 
@@ -460,7 +461,6 @@ apt-get update -y
 apt-get install -y \
     socat \
     ebtables \
-    docker.io \
     apt-transport-https \
     cloud-utils \
     prips
@@ -483,8 +483,11 @@ function getversion() {
 	echo $version
 }
 
+DOCKER_VER=$(getversion docker.io 18.06)
 KUBELET=$(getversion kubelet ${KUBELET_VERSION}-)
 KUBEADM=$(getversion kubeadm ${KUBELET_VERSION}-)
+
+apt-get install -y docker.io=${DOCKER_VER}
 
 # Explicit cni version is a temporary workaround till the right version can be automatically detected correctly
 apt-get install -y \

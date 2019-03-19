@@ -558,7 +558,7 @@ func (pv *Provisioner) getStartupScript(cluster *clusterv1.Cluster, machine *clu
 			klog.Infof("Error fetching cluster ProviderStatus field: %s", err)
 			return "", err
 		}
-		if clusterstatus.APIStatus != vsphereconfigv1.ApiReady {
+		if clusterstatus == nil || clusterstatus.APIStatus != vsphereconfigv1.ApiReady {
 			duration := vsphereutils.GetNextBackOff()
 			klog.Infof("Waiting for Kubernetes API Status to be \"Ready\". Retrying in %s", duration)
 			return "", &clustererror.RequeueAfterError{RequeueAfter: duration}

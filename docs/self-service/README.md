@@ -136,7 +136,7 @@ items:
     - Master
 ```
 
-Note, the disk size above in this example needs to be 15GB or higher.
+Note, the disk size above in this example needs to be 15GB or higher.  Also note, the machine yaml allow the network to be setup to use either DHCP or static IP.  However, for the machine to be created to use static IP, the VM template used must be derived from a custom cloud init image with the Guestinfo Datasource installed.  The instructions for creating such an image can be found [here](cloud_init_with_guestinfo_datasource.md).
 
 ### Create a *target cluster*
 

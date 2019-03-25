@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Image URL to use all building/pushing image targets
-PRODUCTION_IMG ?= gcr.io/cnx-cluster-api/vsphere-cluster-api-provider:latest
+PRODUCTION_IMG ?= gcr.io/cnx-cluster-api/vsphere-cluster-api-provider:0.2.0
 CI_IMG ?= gcr.io/cnx-cluster-api/vsphere-cluster-api-provider
 CLUSTERCTL_CI_IMG ?= gcr.io/cnx-cluster-api/clusterctl
 DEV_IMG ?= # <== NOTE:  outside dev, change this!!!

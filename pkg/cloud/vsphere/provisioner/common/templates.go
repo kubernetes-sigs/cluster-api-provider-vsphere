@@ -428,7 +428,7 @@ systemctl start docker || true
 sysctl net.bridge.bridge-nf-call-iptables=1
 
 ` +
-	"PUBLICIP=`ip route get 8.8.8.8 | awk '{printf \"%s\", $NF; exit}'`" + `
+	"PUBLICIP=`ip route get 8.8.8.8 | awk '{for(i=1; i<=NF; i++) if($i~/src/) print $(i+1)}'`" + `
 
 cat > /etc/systemd/system/kubelet.service.d/20-cloud.conf << EOF
 [Service]
@@ -517,10 +517,10 @@ systemctl enable docker
 systemctl start docker
 
 ` +
-	"PRIVATEIP=`ip route get 8.8.8.8 | awk '{printf \"%s\", $NF; exit}'`" + `
+	"PRIVATEIP=`ip route get 8.8.8.8 | awk '{for(i=1; i<=NF; i++) if($i~/src/) print $(i+1)}'`" + `
 echo $PRIVATEIP > /tmp/.ip
 ` +
-	"PUBLICIP=`ip route get 8.8.8.8 | awk '{printf \"%s\", $NF; exit}'`" + `
+	"PUBLICIP=`ip route get 8.8.8.8 | awk '{for(i=1; i<=NF; i++) if($i~/src/) print $(i+1)}'`" + `
 
 cat > /etc/systemd/system/kubelet.service.d/20-cloud.conf << EOF
 [Service]

@@ -406,7 +406,20 @@ KUBELET=$(getversion kubelet ${KUBELET_VERSION}-)
 KUBEADM=$(getversion kubeadm ${KUBELET_VERSION}-)
 KUBECTL=$(getversion kubectl ${KUBELET_VERSION}-)
 apt-get install -y docker.io=${DOCKER_VER}
-# Explicit cni version is a temporary workaround till the right version can be automatically detected correctly
+
+### TEMPORARY solution
+# https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/238
+# Currently, ubuntu packaging includes kubernetes-cni 0.7.5 when performing
+# apt-get install kubernetes-cni.  Older versions of k8s complains and this
+# script fails.  This will install 0.7.5 for k8s 1.14 and higher.  It will
+# fall back to 0.6.0 for older versions.
+
+if [[ "${KUBELET_VERSION}" -ge "1.14" ]]; then
+	apt-get install -y kubernetes-cni=0.7.*
+else
+	apt-get install -y kubernetes-cni=0.6.*
+fi
+
 apt-get install -y kubelet=${KUBELET} kubeadm=${KUBEADM} kubectl=${KUBECTL}
 
 {{- end }}{{/* end install */}}
@@ -489,10 +502,20 @@ KUBEADM=$(getversion kubeadm ${KUBELET_VERSION}-)
 
 apt-get install -y docker.io=${DOCKER_VER}
 
-# Explicit cni version is a temporary workaround till the right version can be automatically detected correctly
-apt-get install -y \
-    kubelet=${KUBELET} \
-    kubeadm=${KUBEADM}
+### TEMPORARY solution
+# https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/238
+# Currently, ubuntu packaging includes kubernetes-cni 0.7.5 when performing
+# apt-get install kubernetes-cni.  Older versions of k8s complains and this
+# script fails.  This will install 0.7.5 for k8s 1.14 and higher.  It will
+# fall back to 0.6.0 for older versions.
+
+if [[ "${KUBELET_VERSION}" -ge "1.14" ]]; then
+	apt-get install -y kubernetes-cni=0.7.*
+else
+	apt-get install -y kubernetes-cni=0.6.*
+fi
+
+apt-get install -y kubelet=${KUBELET} kubeadm=${KUBEADM}
 
 mv /usr/bin/kubeadm.dl /usr/bin/kubeadm
 chmod a+rx /usr/bin/kubeadm
@@ -577,7 +600,7 @@ EOF
 
 {{- end }}{{/* end MajorMinorVersion 1.11 or 1.12 */}}
 
-{{ if eq .MajorMinorVersion "1.13" }}
+{{ if ge .MajorMinorVersion "1.13" }}
 cat > /etc/kubernetes/kubeadm_config.yaml <<EOF
 apiVersion: kubeadm.k8s.io/v1beta1
 kind: InitConfiguration

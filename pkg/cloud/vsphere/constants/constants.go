@@ -20,5 +20,7 @@ const (
 	RequeueAfterSeconds              = 20 * time.Second
 	KubeConfigSecretName             = "%s-kubeconfig"
 	KubeConfigSecretData             = "admin-kubeconfig"
+	VsphereUserKey                   = "username"
+	VspherePasswordKey               = "password"
 	ClusterIsNullErr                 = "cluster is nil, make sure machines have `clusters.k8s.io/cluster-name` label set and the name references a valid cluster name in the same namespace"
 )

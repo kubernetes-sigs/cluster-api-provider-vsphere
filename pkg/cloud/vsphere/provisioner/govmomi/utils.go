@@ -190,3 +190,27 @@ func (pv *Provisioner) GetKubeConfig(cluster *clusterv1.Cluster) (string, error)
 	}
 	return string(secret.Data[constants.KubeConfigSecretData]), nil
 }
+
+func (pv *Provisioner) GetVsphereCredentials(cluster *clusterv1.Cluster) (string, string, error) {
+	vsphereConfig, err := vsphereutils.GetClusterProviderSpec(cluster.Spec.ProviderSpec)
+	if err != nil {
+		return "", "", err
+	}
+	// If the vsphereCredentialSecret is specified then read that secret to get the credentials
+	if vsphereConfig.VsphereCredentialSecret != "" {
+		klog.V(4).Infof("Fetching vsphere credentials from secret %s", vsphereConfig.VsphereCredentialSecret)
+		secret, err := pv.k8sClient.Core().Secrets(cluster.Namespace).Get(vsphereConfig.VsphereCredentialSecret, metav1.GetOptions{})
+		if err != nil {
+			klog.Warningf("Error reading secret %s", vsphereConfig.VsphereCredentialSecret)
+			return "", "", err
+		}
+		if username, ok := secret.Data[constants.VsphereUserKey]; ok {
+			if password, ok := secret.Data[constants.VspherePasswordKey]; ok {
+				return string(username), string(password), nil
+			}
+		}
+		return "", "", fmt.Errorf("Improper secret: Secret %s should have the keys `%s` and `%s` defined in it", vsphereConfig.VsphereCredentialSecret, constants.VsphereUserKey, constants.VspherePasswordKey)
+	}
+	return vsphereConfig.VsphereUser, vsphereConfig.VspherePassword, nil
+
+}

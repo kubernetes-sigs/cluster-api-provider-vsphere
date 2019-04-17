@@ -47,9 +47,10 @@ type VsphereClusterProviderConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	VsphereUser     string `json:"vsphereUser"`
-	VspherePassword string `json:"vspherePassword"`
-	VsphereServer   string `json:"vsphereServer"`
+	VsphereUser             string `json:"vsphereUser"`
+	VspherePassword         string `json:"vspherePassword"`
+	VsphereServer           string `json:"vsphereServer"`
+	VsphereCredentialSecret string `json:"vsphereCredentialSecret"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

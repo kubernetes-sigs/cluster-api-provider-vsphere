@@ -16,3 +16,4 @@ spec:
         vsphereUser: ""
         vspherePassword: ""
         vsphereServer: ""
+        vsphereCredentialSecret: ""

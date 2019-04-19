@@ -25,7 +25,11 @@ func (pv *Provisioner) sessionFromProviderConfig(cluster *clusterv1.Cluster, mac
 	if err != nil {
 		return nil, err
 	}
-	if ses, ok := pv.sessioncache[vsphereConfig.VsphereServer+vsphereConfig.VsphereUser]; ok {
+	username, password, err := pv.GetVsphereCredentials(cluster)
+	if err != nil {
+		return nil, err
+	}
+	if ses, ok := pv.sessioncache[vsphereConfig.VsphereServer+username]; ok {
 		s, ok := ses.(SessionContext)
 		if ok {
 			// Test if the session is valid and return
@@ -41,7 +45,7 @@ func (pv *Provisioner) sessionFromProviderConfig(cluster *clusterv1.Cluster, mac
 		return nil, fmt.Errorf("error parsing vSphere URL %s : [%s]", soapURL, err)
 	}
 	// Set the credentials
-	soapURL.User = url.UserPassword(vsphereConfig.VsphereUser, vsphereConfig.VspherePassword)
+	soapURL.User = url.UserPassword(username, password)
 	// Temporarily setting the insecure flag True
 	// TODO(ssurana): handle the certs better
 	sc.session, err = govmomi.NewClient(ctx, soapURL, true)
@@ -51,6 +55,6 @@ func (pv *Provisioner) sessionFromProviderConfig(cluster *clusterv1.Cluster, mac
 	sc.context = &ctx
 	finder := find.NewFinder(sc.session.Client, false)
 	sc.finder = finder
-	pv.sessioncache[vsphereConfig.VsphereServer+vsphereConfig.VsphereUser] = sc
+	pv.sessioncache[vsphereConfig.VsphereServer+username] = sc
 	return &sc, nil
 }

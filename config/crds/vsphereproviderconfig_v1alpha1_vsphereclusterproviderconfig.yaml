@@ -26,6 +26,8 @@ spec:
           type: string
         metadata:
           type: object
+        vsphereCredentialSecret:
+          type: string
         vspherePassword:
           type: string
         vsphereServer:
@@ -33,9 +35,8 @@ spec:
         vsphereUser:
           type: string
       required:
-      - vsphereUser
-      - vspherePassword
       - vsphereServer
+      type: object
   version: v1alpha1
 status:
   acceptedNames:

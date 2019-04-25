@@ -219,6 +219,7 @@ type CloudInitTemplate struct {
 	CloudProviderConfig string
 	SSHPublicKey        string
 	TrustedCerts        []string
+	NTPServers          []string
 }
 
 type CloudInitMetadataNetworkTemplate struct {
@@ -280,6 +281,14 @@ ca-certs:
   {{- range .TrustedCerts }}
   - |
 {{ indent 3 (base64Decode .) }}
+  {{- end }}
+{{- end }}
+{{- if .NTPServers }}
+ntp:
+  enabled: true
+  servers:
+  {{- range .NTPServers }}
+  - {{ . }}
   {{- end }}
 {{- end }}
 write_files:

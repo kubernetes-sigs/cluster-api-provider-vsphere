@@ -71,6 +71,10 @@ spec:
                 - networkName
                 type: object
               type: array
+            ntpServers:
+              items:
+                type: string
+              type: array
             numCPUs:
               format: int32
               type: integer
@@ -97,6 +101,7 @@ spec:
           type: object
         metadata:
           type: object
+      type: object
   version: v1alpha1
 status:
   acceptedNames:

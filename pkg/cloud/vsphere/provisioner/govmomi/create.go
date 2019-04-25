@@ -467,6 +467,7 @@ func (pv *Provisioner) getCloudInitUserData(cluster *clusterv1.Cluster, machine 
 			CloudProviderConfig: config,
 			SSHPublicKey:        publicKey,
 			TrustedCerts:        machineconfig.MachineSpec.TrustedCerts,
+			NTPServers:          machineconfig.MachineSpec.NTPServers,
 		},
 	)
 	if err != nil {

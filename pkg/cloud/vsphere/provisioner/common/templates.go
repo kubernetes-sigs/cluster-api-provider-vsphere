@@ -371,41 +371,30 @@ const nodeStartupScript = `
 {{ define "install" -}}
 
 apt-get update
-apt-get install -y apt-transport-https prips
-apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys F76221572C52609D
+apt-get install -y apt-transport-https prips software-properties-common
+curl -fsSL https://download.docker.com/linux/debian/gpg | sudo apt-key add -
 
-cat <<EOF > /etc/apt/sources.list.d/k8s.list
-deb [arch=amd64] https://apt.dockerproject.org/repo ubuntu-xenial main
-EOF
+sudo add-apt-repository \
+   "deb [arch=amd64] https://download.docker.com/linux/debian \
+   $(lsb_release -cs) \
+   stable"
 
 apt-get update
+apt-get install -y --allow-downgrades docker-ce=17.06.0~ce-0~debian
 
 curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
 
 cat <<EOF > /etc/apt/sources.list.d/kubernetes.list
-deb http://apt.kubernetes.io/ kubernetes-xenial main
+deb https://apt.kubernetes.io/ kubernetes-xenial main
 EOF
+
 apt-get update
 
-KUBELET_VERSION={{ .Machine.Spec.Versions.Kubelet }}
-# Our Debian packages have versions like "1.8.0-00" or "1.8.0-01". Do a prefix
-# search based on our SemVer to find the right (newest) package version.
-function getversion() {
-	name=$1
-	prefix=$2
-	version=$(apt-cache madison $name | awk '{ print $3 }' | grep ^$prefix | head -n1)
-	if [[ -z "$version" ]]; then
-		echo Can\'t find package $name with prefix $prefix
-		exit 1
-	fi
-	echo $version
-}
 
-DOCKER_VER=$(getversion docker.io 18.06)
-KUBELET=$(getversion kubelet ${KUBELET_VERSION}-)
-KUBEADM=$(getversion kubeadm ${KUBELET_VERSION}-)
-KUBECTL=$(getversion kubectl ${KUBELET_VERSION}-)
-apt-get install -y docker.io=${DOCKER_VER}
+#DOCKER_VER=$(getversion docker.io 18.06)
+KUBELET=${KUBELET_VERSION}-00
+KUBEADM=${KUBELET_VERSION}-00
+KUBECTL=${KUBELET_VERSION}-00
 
 ### TEMPORARY solution
 # https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/238
@@ -433,7 +422,6 @@ NODE_TAINTS_OPTION={{ if .Machine.Spec.Taints }}--register-with-taints={{ taintM
 
 # Disable swap otherwise kubelet won't run
 swapoff -a
-sed -i '/ swap / s/^/#/' /etc/fstab
 
 systemctl enable docker || true
 systemctl start docker || true
@@ -465,42 +453,41 @@ const masterStartupScript = `
 
 KUBELET_VERSION={{ .Machine.Spec.Versions.Kubelet }}
 
-curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
-touch /etc/apt/sources.list.d/kubernetes.list
-sh -c 'echo "deb http://apt.kubernetes.io/ kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list'
-
-apt-get update -y
+apt-get update
 
 apt-get install -y \
     socat \
     ebtables \
     apt-transport-https \
+    ca-certificates \
+    curl \
+    gnupg2 \
+    jq \
     cloud-utils \
-    prips
+    prips \
+    software-properties-common
 
-export VERSION=v${KUBELET_VERSION}
-export ARCH=amd64
-curl -sSL https://dl.k8s.io/release/${VERSION}/bin/linux/${ARCH}/kubeadm > /usr/bin/kubeadm.dl
-chmod a+rx /usr/bin/kubeadm.dl
+curl -fsSL https://download.docker.com/linux/debian/gpg | sudo apt-key add -
 
-# Our Debian packages have versions like "1.8.0-00" or "1.8.0-01". Do a prefix
-# search based on our SemVer to find the right (newest) package version.
-function getversion() {
-	name=$1
-	prefix=$2
-	version=$(apt-cache madison $name | awk '{ print $3 }' | grep ^$prefix | head -n1)
-	if [[ -z "$version" ]]; then
-		echo Can\'t find package $name with prefix $prefix
-		exit 1
-	fi
-	echo $version
-}
+sudo add-apt-repository \
+    "deb [arch=amd64] https://download.docker.com/linux/debian \
+    $(lsb_release -cs) \
+    stable"
 
-DOCKER_VER=$(getversion docker.io 18.06)
-KUBELET=$(getversion kubelet ${KUBELET_VERSION}-)
-KUBEADM=$(getversion kubeadm ${KUBELET_VERSION}-)
+apt-get update
 
-apt-get install -y docker.io=${DOCKER_VER}
+apt-get install -y --allow-downgrades docker-ce=17.06.0~ce-0~debian
+
+curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+
+cat <<EOF >/etc/apt/sources.list.d/kubernetes.list
+deb https://apt.kubernetes.io/ kubernetes-xenial main
+EOF
+
+swapoff -a
+
+apt-get update -y
+
 
 ### TEMPORARY solution
 # https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/238
@@ -515,10 +502,10 @@ else
 	apt-get install -y kubernetes-cni=0.6.*
 fi
 
-apt-get install -y kubelet=${KUBELET} kubeadm=${KUBEADM}
+apt-get install -y \
+    kubelet=${KUBELET_VERSION}-00 \
+    kubeadm=${KUBELET_VERSION}-00
 
-mv /usr/bin/kubeadm.dl /usr/bin/kubeadm
-chmod a+rx /usr/bin/kubeadm
 {{- end }}{{/* end install */}}
 
 

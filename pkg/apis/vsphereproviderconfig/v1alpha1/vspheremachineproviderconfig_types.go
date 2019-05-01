@@ -71,6 +71,7 @@ type VsphereMachineSpec struct {
 	Preloaded        bool          `json:"preloaded,omitempty"`
 	VsphereCloudInit bool          `json:"vsphereCloudInit,omitempty"`
 	TrustedCerts     []string      `json:"trustedCerts,omitempty"`
+	NTPServers       []string      `json:"ntpServers,omitempty"`
 }
 
 type NetworkSpec struct {

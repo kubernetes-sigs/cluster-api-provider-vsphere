@@ -248,6 +248,11 @@ func (in *VsphereMachineSpec) DeepCopyInto(out *VsphereMachineSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.NTPServers != nil {
+		in, out := &in.NTPServers, &out.NTPServers
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 

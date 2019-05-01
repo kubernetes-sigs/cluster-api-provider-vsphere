@@ -36,6 +36,9 @@ spec:
             trustedCerts:
             - zzzz
             - aaaa
+            ntpServers:
+            - 0.pool.ntp.org
+            - 1.pool.ntp.org
       versions:
         kubelet: 1.11.3
       roles:

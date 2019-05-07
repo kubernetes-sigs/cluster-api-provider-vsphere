@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
@@ -173,13 +174,6 @@ func (pv *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 	}
 	spec.Location.Datastore = types.NewReference(ds.Reference())
 
-	pool, err := s.finder.ResourcePoolOrDefault(ctx, machineConfig.MachineSpec.ResourcePool)
-	if err != nil {
-		return err
-	}
-	spec.Location.Pool = types.NewReference(pool.Reference())
-	spec.PowerOn = true
-
 	spec.Config = &types.VirtualMachineConfigSpec{}
 	// Use the object UID as the instanceUUID for the VM
 	spec.Config.InstanceUuid = string(machine.UID)
@@ -223,6 +217,46 @@ func (pv *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 	if err != nil {
 		return fmt.Errorf("error fetching virtual machine or template properties: %s", err)
 	}
+
+	host, err := src.HostSystem(ctx)
+	if err != nil {
+		klog.Errorf("HostSystem failed. err=%s", err)
+		return err
+	}
+
+	if len(machineConfig.MachineSpec.ResourcePool) > 0 {
+		pool, err := s.finder.ResourcePoolOrDefault(ctx, machineConfig.MachineSpec.ResourcePool)
+
+		if _, ok := err.(*find.NotFoundError); ok {
+			klog.Warningf("Failed to find ResourcePool=%s err=%s. Attempting to create it.", machineConfig.MachineSpec.ResourcePool, err)
+
+			poolRoot, errRoot := host.ResourcePool(ctx)
+			if errRoot != nil {
+				klog.Errorf("Failed to find root ResourcePool. err=%s", errRoot)
+				return errRoot
+			}
+
+			klog.Info("Creating ResourcePool using default values. These values can be modified after ResourcePool creation.")
+			pool, err = poolRoot.Create(ctx, machineConfig.MachineSpec.ResourcePool, types.DefaultResourceConfigSpec())
+			if err != nil {
+				klog.Errorf("Create ResourcePool failed. err=%s", err)
+				return err
+			}
+		}
+
+		spec.Location.Pool = types.NewReference(pool.Reference())
+	} else {
+		klog.Infof("Attempting to use Host ResourcePool")
+		pool, err := host.ResourcePool(ctx)
+
+		if err != nil {
+			klog.Errorf("Host ResourcePool failed. err=%s", err)
+			return err
+		}
+
+		spec.Location.Pool = types.NewReference(pool.Reference())
+	}
+	spec.PowerOn = true
 
 	if machineConfig.MachineSpec.VsphereCloudInit {
 		// In case of vsphere cloud-init datasource present, set the appropriate extraconfig options

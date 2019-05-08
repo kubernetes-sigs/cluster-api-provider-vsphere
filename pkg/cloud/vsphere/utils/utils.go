@@ -9,6 +9,7 @@ import (
 	"math"
 	"os"
 	"os/exec"
+	"os/user"
 	"strings"
 	"time"
 
@@ -168,14 +169,24 @@ func GetKubeConfig(cluster *clusterv1.Cluster, master *clusterv1.Machine) (strin
 		return "", err
 	}
 	klog.Infof("pulling kubeconfig (using ssh) from %s", ip)
+
+	usr, err := user.Current()
+	if err != nil {
+		klog.Infof("failed to get current user: %s", err.Error())
+		return "", err
+	}
+	sshDir := fmt.Sprintf("%s/.ssh/vsphere_tmp", usr.HomeDir)
+	klog.Infof("using ssh key in %s", sshDir)
+
 	var out bytes.Buffer
 	cmd := exec.Command(
-		"ssh", "-i", "~/.ssh/vsphere_tmp",
+		"ssh", "-i", sshDir,
 		"-q",
 		"-o", "StrictHostKeyChecking no",
 		"-o", "UserKnownHostsFile /dev/null",
 		fmt.Sprintf("ubuntu@%s", ip),
 		"sudo cat /etc/kubernetes/admin.conf")
+
 	cmd.Stdout = &out
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()

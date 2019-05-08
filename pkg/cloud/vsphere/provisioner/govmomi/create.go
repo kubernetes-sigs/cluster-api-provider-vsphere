@@ -135,8 +135,71 @@ func (pv *Provisioner) verifyAndUpdateTask(s *SessionContext, machine *clusterv1
 
 // CloneVirtualMachine clones the template to a virtual machine.
 func (pv *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+	ctx, cancel := context.WithCancel(*s.context)
+	defer cancel()
+
+	machineConfig, err := vsphereutils.GetMachineProviderSpec(machine.Spec.ProviderSpec)
+	if err != nil {
+		return err
+	}
+
+	dc, err := s.finder.DatacenterOrDefault(ctx, machineConfig.MachineSpec.Datacenter)
+	if err != nil {
+		return err
+	}
+	s.finder.SetDatacenter(dc)
+
+	// Let's check to make sure we can find the template earlier on... Plus, we need
+	// the cluster/host info with we do happen to want to deploy direct to the cluster/host.
+	var src *object.VirtualMachine
+	if vsphereutils.IsValidUUID(machineConfig.MachineSpec.VMTemplate) {
+		// If the passed VMTemplate is a valid UUID, then first try to find it treating that as InstanceUUID
+		// In case if are not able to locate a matching VM then fall back to searching using the VMTemplate
+		// as a name
+		klog.V(4).Infof("Trying to resolve the VMTemplate as InstanceUUID %s", machineConfig.MachineSpec.VMTemplate)
+		si := object.NewSearchIndex(s.session.Client)
+		instanceUUID := true
+		templateref, err := si.FindByUuid(ctx, dc, machineConfig.MachineSpec.VMTemplate, true, &instanceUUID)
+		if err != nil {
+			return fmt.Errorf("error quering virtual machine or template using FindByUuid: %s", err)
+		}
+		if templateref != nil {
+			src = object.NewVirtualMachine(s.session.Client, templateref.Reference())
+		}
+	}
+	if src == nil {
+		klog.V(4).Infof("Trying to resolve the VMTemplate as Name %s", machineConfig.MachineSpec.VMTemplate)
+		src, err = s.finder.VirtualMachine(ctx, machineConfig.MachineSpec.VMTemplate)
+		if err != nil {
+			klog.Errorf("VirtualMachine finder failed. err=%s", err)
+			return err
+		}
+	}
+
+	host, err := src.HostSystem(ctx)
+	if err != nil {
+		klog.Errorf("HostSystem failed. err=%s", err)
+		return err
+	}
+	hostProps, err := PropertiesHost(host)
+	if err != nil {
+		return fmt.Errorf("error fetching host properties: %s", err)
+	}
+
+	// Since it's assumed that the ResourcePool name has been provided in the config, if we
+	// want to deploy directly to the cluster/host, then we need to override the ResourcePool
+	// path before generating the Cloud Provider config. This is done below in:
+	// getCloudInitUserData()
+	// +--- getCloudProviderConfig()
+	resourcePoolPath := ""
+	if len(machineConfig.MachineSpec.ResourcePool) == 0 {
+
+		resourcePoolPath = fmt.Sprintf("/%s/host/%s/Resource", machineConfig.MachineSpec.Datacenter, hostProps.Name)
+		klog.Infof("Attempting to deploy directly to cluster/host RP: %s", resourcePoolPath)
+	}
+
 	// Fetch the user-data for the cloud-init first, so that we can fail fast before even trying to connect to pv
-	userData, err := pv.getCloudInitUserData(cluster, machine)
+	userData, err := pv.getCloudInitUserData(cluster, machine, resourcePoolPath)
 	if err != nil {
 		// err returned by the getCloudInitUserData would be of type RequeueAfterError in case kubeadm is not ready yet
 		return err
@@ -146,22 +209,9 @@ func (pv *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 		// err returned by the getCloudInitMetaData would be of type RequeueAfterError in case kubeadm is not ready yet
 		return err
 	}
-	ctx, cancel := context.WithCancel(*s.context)
-	defer cancel()
 
 	var spec types.VirtualMachineCloneSpec
-	machineConfig, err := vsphereutils.GetMachineProviderSpec(machine.Spec.ProviderSpec)
-	if err != nil {
-		return err
-	}
 	klog.V(4).Infof("[cloneVirtualMachine]: Preparing clone spec for VM %s", machine.Name)
-
-	dc, err := s.finder.DatacenterOrDefault(ctx, machineConfig.MachineSpec.Datacenter)
-	if err != nil {
-		return err
-	}
-	s.finder.SetDatacenter(dc)
-
 	klog.V(4).Infof("clone VM to folder %s", machineConfig.MachineSpec.VMFolder)
 	vmFolder, err := s.finder.FolderOrDefault(ctx, machineConfig.MachineSpec.VMFolder)
 	if err != nil {
@@ -189,39 +239,10 @@ func (pv *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 	}
 	spec.Config.Annotation = fmt.Sprintf("Virtual Machine is part of the cluster %s managed by cluster-api", cluster.Name)
 	spec.Location.DiskMoveType = string(types.VirtualMachineRelocateDiskMoveOptionsMoveAllDiskBackingsAndConsolidate)
-	var src *object.VirtualMachine
-	if vsphereutils.IsValidUUID(machineConfig.MachineSpec.VMTemplate) {
-		// If the passed VMTemplate is a valid UUID, then first try to find it treating that as InstanceUUID
-		// In case if are not able to locate a matching VM then fall back to searching using the VMTemplate
-		// as a name
-		klog.V(4).Infof("Trying to resolve the VMTemplate as InstanceUUID %s", machineConfig.MachineSpec.VMTemplate)
-		si := object.NewSearchIndex(s.session.Client)
-		instanceUUID := true
-		templateref, err := si.FindByUuid(ctx, dc, machineConfig.MachineSpec.VMTemplate, true, &instanceUUID)
-		if err != nil {
-			return fmt.Errorf("error quering virtual machine or template using FindByUuid: %s", err)
-		}
-		if templateref != nil {
-			src = object.NewVirtualMachine(s.session.Client, templateref.Reference())
-		}
-	}
-	if src == nil {
-		klog.V(4).Infof("Trying to resolve the VMTemplate as Name %s", machineConfig.MachineSpec.VMTemplate)
-		src, err = s.finder.VirtualMachine(ctx, machineConfig.MachineSpec.VMTemplate)
-		if err != nil {
-			return err
-		}
-	}
 
-	vmProps, err := Properties(src)
+	vmProps, err := PropertiesVM(src)
 	if err != nil {
-		return fmt.Errorf("error fetching virtual machine or template properties: %s", err)
-	}
-
-	host, err := src.HostSystem(ctx)
-	if err != nil {
-		klog.Errorf("HostSystem failed. err=%s", err)
-		return err
+		return fmt.Errorf("error fetching vm/template properties: %s", err)
 	}
 
 	if len(machineConfig.MachineSpec.ResourcePool) > 0 {
@@ -392,14 +413,27 @@ func (pv *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 	return pv.setTaskRef(machine, task.Reference().Value)
 }
 
-// Properties is a convenience method that wraps fetching the
+// PropertiesVM is a convenience method that wraps fetching the
 // VirtualMachine MO from its higher-level object.
-func Properties(vm *object.VirtualMachine) (*mo.VirtualMachine, error) {
+func PropertiesVM(vm *object.VirtualMachine) (*mo.VirtualMachine, error) {
 	klog.V(4).Infof("[DEBUG] Fetching properties for VM %q", vm.InventoryPath)
 	ctx, cancel := context.WithTimeout(context.Background(), constants.DefaultAPITimeout)
 	defer cancel()
 	var props mo.VirtualMachine
 	if err := vm.Properties(ctx, vm.Reference(), nil, &props); err != nil {
+		return nil, err
+	}
+	return &props, nil
+}
+
+// PropertiesHost is a convenience method that wraps fetching the
+// HostSystem MO from its higher-level object.
+func PropertiesHost(host *object.HostSystem) (*mo.HostSystem, error) {
+	klog.V(4).Infof("[DEBUG] Fetching properties for host %q", host.InventoryPath)
+	ctx, cancel := context.WithTimeout(context.Background(), constants.DefaultAPITimeout)
+	defer cancel()
+	var props mo.HostSystem
+	if err := host.Properties(ctx, host.Reference(), nil, &props); err != nil {
 		return nil, err
 	}
 	return &props, nil
@@ -477,12 +511,13 @@ func (pv *Provisioner) getCloudInitMetaData(cluster *clusterv1.Cluster, machine 
 	return metadata, nil
 }
 
-func (pv *Provisioner) getCloudInitUserData(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
+func (pv *Provisioner) getCloudInitUserData(cluster *clusterv1.Cluster, machine *clusterv1.Machine,
+	resourcePoolPath string) (string, error) {
 	script, err := pv.getStartupScript(cluster, machine)
 	if err != nil {
 		return "", err
 	}
-	config, err := pv.getCloudProviderConfig(cluster, machine)
+	config, err := pv.getCloudProviderConfig(cluster, machine, resourcePoolPath)
 	if err != nil {
 		return "", err
 	}
@@ -511,7 +546,8 @@ func (pv *Provisioner) getCloudInitUserData(cluster *clusterv1.Cluster, machine 
 	return userdata, nil
 }
 
-func (pv *Provisioner) getCloudProviderConfig(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
+func (pv *Provisioner) getCloudProviderConfig(cluster *clusterv1.Cluster, machine *clusterv1.Machine,
+	resourcePoolPath string) (string, error) {
 	clusterConfig, err := vsphereutils.GetClusterProviderSpec(cluster.Spec.ProviderSpec)
 	if err != nil {
 		return "", err
@@ -543,6 +579,9 @@ func (pv *Provisioner) getCloudProviderConfig(cluster *clusterv1.Cluster, machin
 		ResourcePool: machineconfig.MachineSpec.ResourcePool,
 		Datastore:    machineconfig.MachineSpec.Datastore,
 		Network:      "",
+	}
+	if len(resourcePoolPath) > 0 {
+		cpc.ResourcePool = resourcePoolPath
 	}
 	if len(machineconfig.MachineSpec.Networks) > 0 {
 		cpc.Network = machineconfig.MachineSpec.Networks[0].NetworkName

@@ -150,7 +150,7 @@ func (pv *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 	s.finder.SetDatacenter(dc)
 
 	// Let's check to make sure we can find the template earlier on... Plus, we need
-	// the cluster/host info with we do happen to want to deploy direct to the cluster/host.
+	// the cluster/host info if we want to deploy direct to the cluster/host.
 	var src *object.VirtualMachine
 	if vsphereutils.IsValidUUID(machineConfig.MachineSpec.VMTemplate) {
 		// If the passed VMTemplate is a valid UUID, then first try to find it treating that as InstanceUUID
@@ -161,7 +161,7 @@ func (pv *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 		instanceUUID := true
 		templateref, err := si.FindByUuid(ctx, dc, machineConfig.MachineSpec.VMTemplate, true, &instanceUUID)
 		if err != nil {
-			return fmt.Errorf("error quering virtual machine or template using FindByUuid: %s", err)
+			return fmt.Errorf("error querying virtual machine or template using FindByUuid: %s", err)
 		}
 		if templateref != nil {
 			src = object.NewVirtualMachine(s.session.Client, templateref.Reference())

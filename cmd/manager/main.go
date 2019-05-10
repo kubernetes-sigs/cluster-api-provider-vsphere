@@ -39,6 +39,8 @@ func main() {
 	klog.InitFlags(nil)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Set("logtostderr", "true")
+	watchNamespace := pflag.String("namespace", "",
+		"Namespace that the controller watches to reconcile cluster-api objects. If unspecified, the controller watches for cluster-api objects across all namespaces.")
 	pflag.Parse()
 
 	// Get a config to talk to the apiserver
@@ -46,9 +48,19 @@ func main() {
 	if err != nil {
 		klog.Fatalf("Failed to get config: %s", err.Error())
 	}
-	var syncPeriod = 120 * time.Second
+
+	syncPeriod := 120 * time.Second
+	opts := manager.Options{
+		SyncPeriod: &syncPeriod,
+	}
+
+	if *watchNamespace != "" {
+		opts.Namespace = *watchNamespace
+		klog.Infof("Watching cluster-api objects only in namespace %q for reconciliation.", opts.Namespace)
+	}
+
 	// Create a new Cmd to provide shared dependencies and start components
-	mgr, err := manager.New(cfg, manager.Options{SyncPeriod: &(syncPeriod)})
+	mgr, err := manager.New(cfg, opts)
 	if err != nil {
 		klog.Fatal(err)
 	}

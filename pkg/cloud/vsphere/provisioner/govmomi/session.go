@@ -6,7 +6,6 @@ import (
 	"net/url"
 
 	"github.com/vmware/govmomi"
-
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/vim25/soap"
 	vsphereutils "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/utils"
@@ -57,13 +56,6 @@ func (pv *Provisioner) sessionFromProviderConfig(cluster *clusterv1.Cluster, mac
 
 	// TODO(frapposelli): replace `dev` with version string
 	sc.session.Client.UserAgent = "kubernetes-cluster-api-provider-vsphere/dev"
-
-	// Set the credentials and login
-	// This is done as a separate step to inject the User Agent
-	soapURL.User = url.UserPassword(vsphereConfig.VsphereUser, vsphereConfig.VspherePassword)
-	if err := sc.session.Login(ctx, soapURL.User); err != nil {
-		return nil, fmt.Errorf("error logging into vSphere: %s", err)
-	}
 
 	sc.context = &ctx
 	finder := find.NewFinder(sc.session.Client, false)

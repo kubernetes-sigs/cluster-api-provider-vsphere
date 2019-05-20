@@ -89,4 +89,4 @@ $ govc vm.console cluster-api
 
 Once the cluster is in RUNNING state, you can use the `scp` command to retrieve the kubeconfig file from the Cluster API VM, this kubeconfig will be passed to clusterctl to launch the Cluster API provisioner.
 
-The Kubeconfid file inside the deployed VM lives at `/etc/kubernetes/admin.conf`.
+The Kubeconfig file inside the deployed VM lives at `/etc/kubernetes/admin.conf`.

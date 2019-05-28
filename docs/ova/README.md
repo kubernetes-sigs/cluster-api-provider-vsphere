@@ -13,7 +13,7 @@ where we provision a linux OS, install dependencies, and extract the filesystem 
 
 ## Usage
 
-The build process is controlled from a central script, `build.sh`. This script
+The build process is controlled from a central script, `build-ova.sh`. This script
 launches the build docker container and controls our provisioning and ova
 extraction through `make`.
 
@@ -30,21 +30,21 @@ The build machine must have `docker`.
 
 The build script pulls the desired versions of each included component into the build container.
 
-> *Note:* You must specify build step `ova-dev` when calling `build.sh` from a development machine.
+> *Note:* You must specify build step `ova-dev` when calling `build-ova.sh` from a development machine.
 
 If called without any values, `build.sh` will get Kubernetes version: `stable-1`
 ```
-./build/build.sh ova-dev
+./installer/build/build-ova.sh ova-dev
 ```
 
-If called with the values below, `build.sh` will include Kubernetes version v1.12.1
+If called with the values below, `build-ova.sh` will include Kubernetes version v1.12.1
 ```
-./build/build.sh ova-dev --kubernetes-version v1.12.1
+./installer/build/build-ova.sh ova-dev --kubernetes-version v1.12.1
 ```
 
-The `build.sh` script can also prefill default values for root password and root ssh key, this is used by our CI when deploying the OVA on VMC for testing
+The `build-ova.sh` script can also prefill default values for root password and root ssh key, this is used by our CI when deploying the OVA on VMC for testing
 ```
-./build/build.sh ova-dev --ci-root-password '<my password>' --ci-root-ssh-key 'ssh-rsa <my rsa key> <my comment>'
+./installer/build/build-ova.sh --ci-root-password '<my password>' --ci-root-ssh-key 'ssh-rsa <my rsa key> <my comment>'
 ```
 
 ## Deploy

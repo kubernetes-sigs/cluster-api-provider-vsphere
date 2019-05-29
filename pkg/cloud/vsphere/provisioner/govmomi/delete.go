@@ -3,9 +3,9 @@ package govmomi
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/vmware/govmomi/object"
-
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 	corev1 "k8s.io/api/core/v1"
@@ -22,8 +22,7 @@ func (pv *Provisioner) Delete(ctx context.Context, cluster *clusterv1.Cluster, m
 		return errors.New(constants.ClusterIsNullErr)
 	}
 	if exists, _ := pv.Exists(ctx, cluster, machine); exists {
-		err := pv.powerOffAndDestroy(ctx, cluster, machine)
-		if err != nil {
+		if err := pv.powerOffAndDestroy(ctx, cluster, machine); err != nil {
 			return err
 		}
 	}
@@ -35,7 +34,7 @@ func (pv *Provisioner) Delete(ctx context.Context, cluster *clusterv1.Cluster, m
 		if err != nil {
 			// Log the warning for unable to delete and that the user can delete the node manually. This error
 			// should not hold the Machine delete operation since the underlying VM is already deleted at this point
-			klog.Warningf("Could not remove the node %s bound to the machine automatically. Please manually remove the node if it is not already removed. Error encountered: %s", machine.Status.NodeRef.Name, err.Error())
+			klog.Warningf("Could not remove the node %q bound to the machine automatically. Please manually remove the node if it is not already removed. Error encountered: %s", machine.Status.NodeRef.Name, err.Error())
 		}
 	}
 	return nil
@@ -62,28 +61,28 @@ func (pv *Provisioner) powerOffAndDestroy(ctx context.Context, cluster *clusterv
 	if err != nil {
 		return err
 	}
-	pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Killing", "Killing machine %v", machine.Name)
+	pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Killing", "Killing machine %q", machine.Name)
 	vmo := object.NewVirtualMachine(s.session.Client, vmref)
 	if vm.Runtime.PowerState == types.VirtualMachinePowerStatePoweredOn {
 		task, err := vmo.PowerOff(deletectx)
 		if err != nil {
-			klog.Infof("Error trigerring power off operation on the Virtual Machine %s", vm.Name)
+			klog.Errorf("Error trigerring power off operation on the Virtual Machine %q", vm.Name)
 			return err
 		}
 		err = task.Wait(deletectx)
 		if err != nil {
-			klog.Infof("Error powering off the Virtual Machine %s", vm.Name)
+			klog.Errorf("Error powering off the Virtual Machine %q", vm.Name)
 			return err
 		}
 	}
 	task, err := vmo.Destroy(deletectx)
 	taskinfo, err := task.WaitForResult(deletectx, nil)
 	if taskinfo.State == types.TaskInfoStateSuccess {
-		klog.Infof("Virtual Machine %v deleted successfully", vm.Name)
-		pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Killed", "Machine %v deletion complete", machine.Name)
+		klog.Infof("Virtual Machine %q deleted successfully", vm.Name)
+		pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Killed", "Machine %q deletion complete", machine.Name)
 		return nil
 	}
-	pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Killed", "Machine %v deletion complete", machine.Name)
-	klog.Errorf("VM Deletion failed on pv with following reason %v", taskinfo.Reason)
-	return errors.New("VM Deletion failed")
+	pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Kill Failed", "Machine %q deletion failed", machine.Name)
+	klog.Errorf("VM Deletion failed with following reason %q", taskinfo.Reason)
+	return fmt.Errorf("Virtual Machine %q deletion failed", machine.Name)
 }

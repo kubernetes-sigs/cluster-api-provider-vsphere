@@ -90,16 +90,9 @@ Images may be downloaded via HTTP:
 
 ## Testing Images
 
-### Accessing a locked-down image
+### Accessing the images
 
-Cloud-init restricts access to the images upon boot. Only SSH access via public key is allowed. To gain access to an image, perform the following steps using either VMware Workstation or VMware Fusion:
-
-1. Create a virtual machine from the image
-2. Run `make -C cloudinit` to generate `cloudinit/cidata.iso`
-3. Connect `cloudinit/cidata.iso` to the virtual machine with the image being tested
-4. Boot the image
-5. Cloud-init will find the mounted ISO with user-data, and copy the provided SSH keys to the image's default user
-6. SSH into the image with `../../hack/image-ssh.sh BUILD_DIR`
+After the images are built, the VMs from they are built are prepped for local testing. Simply boot the VM locally with Fusion or Workstation and the machine will be initialized with cloud-init data. The VMs may be accessed via SSH by using the command `../../hack/image-ssh.sh BUILD_DIR`.
 
 ### Initialize a CNI
 

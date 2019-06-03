@@ -55,9 +55,10 @@ func TestCreate(t *testing.T) {
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "vsphereproviderconfig/v1alpha1",
 		},
-		VsphereUser:     s.URL.User.Username(),
-		VspherePassword: pass,
-		VsphereServer:   s.URL.Host,
+		VsphereUser:             s.URL.User.Username(),
+		VspherePassword:         pass,
+		VsphereServer:           s.URL.Host,
+		VsphereCredentialSecret: "",
 	}
 	clusterConfig.TypeMeta.Kind = reflect.TypeOf(clusterConfig).Name()
 

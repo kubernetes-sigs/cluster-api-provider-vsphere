@@ -6,7 +6,6 @@ import (
 	"net/url"
 
 	"github.com/vmware/govmomi"
-
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/vim25/soap"
 	vsphereutils "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/utils"
@@ -44,14 +43,20 @@ func (pv *Provisioner) sessionFromProviderConfig(cluster *clusterv1.Cluster, mac
 	if soapURL == nil || err != nil {
 		return nil, fmt.Errorf("error parsing vSphere URL %s : [%s]", soapURL, err)
 	}
+
 	// Set the credentials
 	soapURL.User = url.UserPassword(username, password)
+
 	// Temporarily setting the insecure flag True
 	// TODO(ssurana): handle the certs better
 	sc.session, err = govmomi.NewClient(ctx, soapURL, true)
 	if err != nil {
 		return nil, fmt.Errorf("error setting up new vSphere SOAP client: %s", err)
 	}
+
+	// TODO(frapposelli): replace `dev` with version string
+	sc.session.Client.UserAgent = "kubernetes-cluster-api-provider-vsphere/dev"
+
 	sc.context = &ctx
 	finder := find.NewFinder(sc.session.Client, false)
 	sc.finder = finder

@@ -12,7 +12,9 @@ import (
 
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
+	"github.com/vmware/govmomi/ovf"
 	"github.com/vmware/govmomi/vim25/mo"
+	"github.com/vmware/govmomi/vim25/soap"
 	"github.com/vmware/govmomi/vim25/types"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -65,7 +67,13 @@ func (pv *Provisioner) Create(ctx context.Context, cluster *clusterv1.Cluster, m
 		}
 	}
 
-	return pv.cloneVirtualMachine(s, cluster, machine)
+	// Use the appropriate path if we're connected to a vCenter
+	if s.session.IsVC() {
+		return pv.cloneVirtualMachineOnVCenter(s, cluster, machine)
+	}
+
+	// fallback in case we're connected to a standalone ESX host
+	return pv.cloneVirtualMachineOnESX(s, cluster, machine)
 }
 
 func (pv *Provisioner) findVMByInstanceUUID(ctx context.Context, s *SessionContext, machine *clusterv1.Machine) (string, error) {
@@ -83,6 +91,7 @@ func (pv *Provisioner) findVMByInstanceUUID(ctx context.Context, s *SessionConte
 }
 
 func (pv *Provisioner) verifyAndUpdateTask(s *SessionContext, machine *clusterv1.Machine, taskmoref string) error {
+	klog.V(4).Infof("[DEBUG] Verifying and updating Tasks")
 	ctx, cancel := context.WithCancel(*s.context)
 	defer cancel()
 	// If a task does exist on the
@@ -91,11 +100,14 @@ func (pv *Provisioner) verifyAndUpdateTask(s *SessionContext, machine *clusterv1
 		Type:  "Task",
 		Value: taskmoref,
 	}
+	klog.V(4).Infof("[DEBUG] Retrieving the Task")
 	err := s.session.RetrieveOne(ctx, taskref, []string{"info"}, &taskmo)
 	if err != nil {
+		klog.V(4).Infof("[DEBUG] task does not exist for moref %s", taskmoref)
 		// The task does not exist any more, thus no point tracking it. Thus clear it from the machine
 		return pv.setTaskRef(machine, "")
 	}
+	klog.V(4).Infof("[DEBUG] task state = %s", taskmo.Info.State)
 	switch taskmo.Info.State {
 	// Queued or Running
 	case types.TaskInfoStateQueued, types.TaskInfoStateRunning:
@@ -103,7 +115,35 @@ func (pv *Provisioner) verifyAndUpdateTask(s *SessionContext, machine *clusterv1
 		return &clustererror.RequeueAfterError{RequeueAfter: time.Second * 5}
 	// Successful
 	case types.TaskInfoStateSuccess:
-		if taskmo.Info.DescriptionId == "VirtualMachine.clone" {
+		klog.V(4).Infof("[DEBUG] Task is a Success")
+		if taskmo.Info.DescriptionId == "Folder.createVm" {
+			klog.V(4).Infof("[DEBUG] Task is a CreateVM")
+			vmref := taskmo.Info.Result.(types.ManagedObjectReference)
+			vm := object.NewVirtualMachine(s.session.Client, vmref)
+			klog.V(4).Infof("[DEBUG] Powering On the VM")
+			task, err := vm.PowerOn(ctx)
+			if err != nil {
+				return err
+			}
+			klog.V(4).Infof("[DEBUG] Waiting for PowerOn to happen")
+			_, err = task.WaitForResult(ctx, nil)
+			if err != nil {
+				return err
+			}
+
+			klog.V(4).Infof("[DEBUG] Recording the event")
+			pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Created", "Created Machine %s(%s)", machine.Name, vmref.Value)
+			// Update the Machine object with the VM Reference annotation
+			updatedmachine, err := pv.updateVMReference(machine, vmref.Value)
+			if err != nil {
+				return err
+			}
+			// This is needed otherwise the update status on the original machine object would fail as the resource has been updated by the previous call
+			// Note: We are not mutating the object retrieved from the informer ever. The updatedmachine is the updated resource generated using DeepCopy
+			// This would just update the reference to be the newer object so that the status update works
+			machine = updatedmachine
+			return pv.setTaskRef(machine, "")
+		} else if taskmo.Info.DescriptionId == "VirtualMachine.clone" {
 			vmref := taskmo.Info.Result.(types.ManagedObjectReference)
 			pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Created", "Created Machine %s(%s)", machine.Name, vmref.Value)
 			// Update the Machine object with the VM Reference annotation
@@ -121,7 +161,9 @@ func (pv *Provisioner) verifyAndUpdateTask(s *SessionContext, machine *clusterv1
 		}
 		return pv.setTaskRef(machine, "")
 	case types.TaskInfoStateError:
-		if taskmo.Info.DescriptionId == "VirtualMachine.clone" {
+		klog.Infof("[DEBUG] task error condition, description = %s", taskmo.Info.DescriptionId)
+		// If the machine was created via the ESXi "cloning", the description id will likely be "Folder.createVm"
+		if taskmo.Info.DescriptionId == "VirtualMachine.clone" || taskmo.Info.DescriptionId == "Folder.createVm" {
 			pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Failed", "Creation failed for Machine %v", machine.Name)
 			// Clear the reference to the failed task so that the next reconcile loop can re-create it
 			return pv.setTaskRef(machine, "")
@@ -134,7 +176,8 @@ func (pv *Provisioner) verifyAndUpdateTask(s *SessionContext, machine *clusterv1
 }
 
 // CloneVirtualMachine clones the template to a virtual machine.
-func (pv *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+func (pv *Provisioner) cloneVirtualMachineOnVCenter(s *SessionContext, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+	klog.V(4).Infof("Starting the clone process on vCenter")
 	ctx, cancel := context.WithCancel(*s.context)
 	defer cancel()
 
@@ -199,7 +242,7 @@ func (pv *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 	}
 
 	// Fetch the user-data for the cloud-init first, so that we can fail fast before even trying to connect to pv
-	userData, err := pv.getCloudInitUserData(cluster, machine, resourcePoolPath)
+	userData, err := pv.getCloudInitUserData(cluster, machine, resourcePoolPath, true)
 	if err != nil {
 		// err returned by the getCloudInitUserData would be of type RequeueAfterError in case kubeadm is not ready yet
 		return err
@@ -413,7 +456,324 @@ func (pv *Provisioner) cloneVirtualMachine(s *SessionContext, cluster *clusterv1
 	return pv.setTaskRef(machine, task.Reference().Value)
 }
 
-// PropertiesVM is a convenience method that wraps fetching the
+// cloneVirtualMachineOnESX clones the template to a virtual machine.
+func (pv *Provisioner) cloneVirtualMachineOnESX(s *SessionContext, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+	klog.V(4).Infof("Starting the clone process on standalone ESX")
+	ctx, cancel := context.WithCancel(*s.context)
+	defer cancel()
+
+	machineConfig, err := vsphereutils.GetMachineProviderSpec(machine.Spec.ProviderSpec)
+	if err != nil {
+		return err
+	}
+	klog.V(4).Infof("[cloneVirtualMachineOnESX]: Preparing clone spec for VM %s", machine.Name)
+
+	dc, err := s.finder.DefaultDatacenter(ctx)
+	//dc, err := s.finder.DatacenterOrDefault(ctx, machineConfig.MachineSpec.Datacenter)
+	if err != nil {
+		return err
+	}
+	s.finder.SetDatacenter(dc)
+
+	folders, err := dc.Folders(ctx)
+	if err != nil {
+		return err
+	}
+
+	pool, err := s.finder.ResourcePoolOrDefault(ctx, machineConfig.MachineSpec.ResourcePool)
+	if err != nil {
+		return err
+	}
+
+	// Fetch info from templateVM
+	src, err := s.finder.VirtualMachine(ctx, machineConfig.MachineSpec.VMTemplate)
+	if err != nil {
+		return err
+	}
+	vmProps, err := PropertiesVM(src)
+	if err != nil {
+		return fmt.Errorf("error fetching virtual machine or template properties: %s", err)
+	}
+
+	spec := &types.VirtualMachineConfigSpec{}
+	var devices object.VirtualDeviceList
+
+	if err := pv.addMachineBase(s, cluster, machine, machineConfig, spec, vmProps); err != nil {
+		return err
+	}
+
+	if devices, err = pv.copyDisks(ctx, s, machine, machineConfig, devices, vmProps); err != nil {
+		return err
+	}
+
+	if devices, err = pv.addNetworking(ctx, s, machineConfig, devices); err != nil {
+		return err
+	}
+
+	if devices, err = pv.addSerialPort(ctx, devices, vmProps); err != nil {
+		return err
+	}
+
+	deviceChange, err := devices.ConfigSpec(types.VirtualDeviceConfigSpecOperationAdd)
+	if err != nil {
+		return err
+	}
+
+	spec.DeviceChange = deviceChange
+
+	// get current hostsystem from source vm
+	ch, err := src.HostSystem(ctx)
+	if err != nil {
+		return err
+	}
+
+	pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Creating", "Creating Machine %v", machine.Name)
+
+	task, err := folders.VmFolder.CreateVM(ctx, *spec, pool, ch)
+	if err != nil {
+		klog.Infof("[DEBUG] VmFolder.CreateVM() FAILED: %s", err.Error())
+		return err
+	}
+
+	return pv.setTaskRef(machine, task.Reference().Value)
+
+}
+
+func (pv *Provisioner) addMachineBase(s *SessionContext, cluster *clusterv1.Cluster, machine *clusterv1.Machine, machineConfig *vsphereconfigv1.VsphereMachineProviderConfig, spec *types.VirtualMachineConfigSpec, vmProps *mo.VirtualMachine) error {
+	// Fetch the user-data for the cloud-init first, so that we can fail fast before even trying to connect to VC
+	userData, err := pv.getCloudInitUserData(cluster, machine, "", false)
+	if err != nil {
+		// err returned by the getCloudInitUserData would be of type RequeueAfterError in case kubeadm is not ready yet
+		return err
+	}
+	metaData, err := pv.getCloudInitMetaData(cluster, machine)
+	if err != nil {
+		// err returned by the getCloudInitUserData would be of type RequeueAfterError in case kubeadm is not ready yet
+		return err
+	}
+
+	diskUUIDEnabled := true
+	spec.Flags = &types.VirtualMachineFlagInfo{
+		DiskUuidEnabled: &diskUUIDEnabled,
+	}
+
+	spec.Name = machine.Name                      // set name from cluster configuration
+	spec.GuestId = vmProps.Config.GuestId         // set GuestId from template
+	spec.Firmware = vmProps.Config.Firmware       // set Firmware from template
+	spec.BootOptions = vmProps.Config.BootOptions // set BootOptions from Template
+
+	if machineConfig.MachineSpec.NumCPUs > 0 {
+		spec.NumCPUs = int32(machineConfig.MachineSpec.NumCPUs)
+	}
+	if machineConfig.MachineSpec.MemoryMB > 0 {
+		spec.MemoryMB = machineConfig.MachineSpec.MemoryMB
+	}
+
+	//spec.PowerOpInfo.
+	spec.Annotation = fmt.Sprintf("Virtual Machine is part of the cluster %s managed by cluster-api", cluster.Name)
+
+	// OVF Environment
+	// build up Environment in order to marshal to xml
+
+	var opts []types.BaseOptionValue
+
+	if machineConfig.MachineSpec.VsphereCloudInit {
+		// In case of vsphere cloud-init datasource present, set the appropriate extraconfig options
+		opts = append(opts, &types.OptionValue{Key: "guestinfo.metadata", Value: metaData})
+		opts = append(opts, &types.OptionValue{Key: "guestinfo.metadata.encoding", Value: "base64"})
+		opts = append(opts, &types.OptionValue{Key: "guestinfo.userdata", Value: userData})
+		opts = append(opts, &types.OptionValue{Key: "guestinfo.userdata.encoding", Value: "base64"})
+	} else {
+		// This case is to support backwards compatibility, where we are using the ubuntu cloud image ovf properties
+		// to drive the cloud-init workflow. Once the vsphere cloud-init datastore is merged as part of the official
+		// cloud-init, then we can potentially remove this flag from the spec as then all the native cloud images
+		// available for the different distros will include this new datasource.
+		// See (https://github.com/akutz/cloud-init-vmware-guestinfo/ - vmware cloud-init datasource) for details
+		var props []ovf.EnvProperty
+		sshKey, _ := pv.GetSSHPublicKey(cluster)
+		props = append(props, ovf.EnvProperty{
+			Key:   "user-data",
+			Value: userData,
+		},
+			ovf.EnvProperty{
+				Key:   "public-keys",
+				Value: sshKey,
+			},
+			ovf.EnvProperty{
+				Key:   "hostname",
+				Value: machine.Name,
+			})
+		a := s.session.ServiceContent.About
+		env := ovf.Env{
+			EsxID: vmProps.Reference().Value,
+			Platform: &ovf.PlatformSection{
+				Kind:    a.Name,
+				Version: a.Version,
+				Vendor:  a.Vendor,
+				Locale:  "US",
+			},
+			Property: &ovf.PropertySection{
+				Properties: props,
+			},
+		}
+
+		opts = append(opts, &types.OptionValue{
+			Key:   "guestinfo.ovfEnv",
+			Value: env.MarshalManual(),
+		})
+	}
+
+	spec.ExtraConfig = opts
+
+	spec.Files = &types.VirtualMachineFileInfo{
+		VmPathName: fmt.Sprintf("[%s]", machineConfig.MachineSpec.Datastore),
+	}
+
+	return nil
+}
+
+func (pv *Provisioner) copyDisks(ctx context.Context, s *SessionContext, machine *clusterv1.Machine, machineConfig *vsphereconfigv1.VsphereMachineProviderConfig, devices object.VirtualDeviceList, vmProps *mo.VirtualMachine) (object.VirtualDeviceList, error) {
+	ds, err := s.finder.DatastoreOrDefault(ctx, machineConfig.MachineSpec.Datastore)
+	if err != nil {
+		return devices, err
+	}
+	dc, err := s.finder.DefaultDatacenter(ctx)
+	if err != nil {
+		return devices, err
+	}
+	s.finder.SetDatacenter(dc)
+
+	// Create datastore directory for our VM
+	dstf := fmt.Sprintf("[%s] %s", machineConfig.MachineSpec.Datastore, machine.Name)
+	m := ds.NewFileManager(dc, false)
+	err = m.FileManager.MakeDirectory(ctx, dstf, dc, true)
+	if err != nil {
+		if soap.IsSoapFault(err) {
+			soapFault := soap.ToSoapFault(err)
+			// Exit with error only if it's not EEXIST
+			if _, ok := soapFault.VimFault().(types.FileAlreadyExists); !ok {
+				return devices, err
+			}
+		}
+	}
+
+	// Fetch disk info from Template VM
+	l := object.VirtualDeviceList(vmProps.Config.Hardware.Device)
+	disks := l.SelectByType((*types.VirtualDisk)(nil))
+
+	scsi, err := devices.CreateSCSIController("")
+	if err != nil {
+		return devices, err
+	}
+
+	devices = append(devices, scsi)
+	controller, err := devices.FindDiskController(devices.Name(scsi))
+	if err != nil {
+		return devices, err
+	}
+
+	var dstdisk string
+
+	// Iterate through the machine spec and then iterate over the VM's disks
+	for _, diskSpec := range machineConfig.MachineSpec.Disks {
+		for _, dev := range disks {
+			srcdisk := dev.(*types.VirtualDisk)
+
+			if srcdisk.DeviceInfo.GetDescription().Label == diskSpec.DiskLabel {
+				newSize := diskSpec.DiskSizeGB
+				if srcdisk.CapacityInBytes > vsphereutils.GiBToByte(newSize) {
+					return devices, errors.New("Disk size provided should be more than actual disk size of the template")
+				}
+				srcdisk.CapacityInBytes = vsphereutils.GiBToByte(newSize)
+			}
+
+			dstdisk = fmt.Sprintf("%s/%s-%s.vmdk", dstf, machine.Name, diskSpec.DiskLabel)
+			srcfile := srcdisk.Backing.(types.BaseVirtualDeviceFileBackingInfo)
+
+			// copy happens here
+			klog.V(4).Infof("[DEBUG] Cloning template disk to %s", dstdisk)
+			cp := m.Copy
+			if err := cp(ctx, srcfile.GetVirtualDeviceFileBackingInfo().FileName, dstdisk); err != nil {
+				klog.V(4).Infof("[DEBUG] Copying vmdk, src(%s), dst(%s)", srcfile.GetVirtualDeviceFileBackingInfo().FileName, dstdisk)
+				return devices, err
+			}
+
+			// attach disk to VM
+			disk := devices.CreateDisk(controller, ds.Reference(), ds.Path(fmt.Sprintf("%s/%s-%s.vmdk", machine.Name, machine.Name, diskSpec.DiskLabel)))
+			devices = append(devices, disk)
+		}
+	}
+
+	return devices, nil
+}
+
+func (pv *Provisioner) addNetworking(ctx context.Context, s *SessionContext, machineConfig *vsphereconfigv1.VsphereMachineProviderConfig, devices object.VirtualDeviceList) (object.VirtualDeviceList, error) {
+	klog.V(4).Infof("[DEBUG] Adding NICs")
+	for _, network := range machineConfig.MachineSpec.Networks {
+		netRef, err := s.finder.Network(ctx, network.NetworkName)
+		if err != nil {
+			return devices, err
+		}
+
+		backing, err := netRef.EthernetCardBackingInfo(ctx)
+		if err != nil {
+			return devices, err
+		}
+
+		netdev, err := object.EthernetCardTypes().CreateEthernetCard("vmxnet3", backing)
+		if err != nil {
+			return devices, err
+		}
+		devices = append(devices, netdev)
+	}
+
+	return devices, nil
+}
+
+func (pv *Provisioner) addSerialPort(ctx context.Context, devices object.VirtualDeviceList, vmProps *mo.VirtualMachine) (object.VirtualDeviceList, error) {
+	// Add SIO Controller
+	klog.V(4).Infof("[DEBUG] Adding SIO controller")
+	l := object.VirtualDeviceList(vmProps.Config.Hardware.Device)
+	controllers := l.SelectByType((*types.VirtualSIOController)(nil))
+
+	if len(controllers) == 0 {
+		// Add a serial port
+		klog.V(4).Infof("[DEBUG] Adding SIO controller")
+		c := &types.VirtualSIOController{}
+		c.Key = devices.NewKey()
+		devices = append(devices, c)
+	}
+
+	for _, d := range controllers {
+		c := d.(*types.VirtualSIOController)
+		c.Key = devices.NewKey()
+		devices = append(devices, c)
+	}
+
+	// Add serial port
+	ports := l.SelectByType((*types.VirtualSerialPort)(nil))
+
+	if len(ports) == 0 {
+		klog.V(4).Infof("[DEBUG] Adding serial port")
+		portSpec, err := devices.CreateSerialPort()
+		if err != nil {
+			klog.V(4).Infof("[DEBUG] Failed to add serial port: %s", err.Error())
+			return devices, err
+		}
+		portSpec.Key = devices.NewKey()
+		devices = append(devices, portSpec)
+	}
+
+	for _, d := range ports {
+		p := d.(*types.VirtualSerialPort)
+		p.Key = devices.NewKey()
+		devices = append(devices, p)
+	}
+
+	return devices, nil
+}
+
+// Properties is a convenience method that wraps fetching the
 // VirtualMachine MO from its higher-level object.
 func PropertiesVM(vm *object.VirtualMachine) (*mo.VirtualMachine, error) {
 	klog.V(4).Infof("[DEBUG] Fetching properties for VM %q", vm.InventoryPath)
@@ -512,12 +872,12 @@ func (pv *Provisioner) getCloudInitMetaData(cluster *clusterv1.Cluster, machine 
 }
 
 func (pv *Provisioner) getCloudInitUserData(cluster *clusterv1.Cluster, machine *clusterv1.Machine,
-	resourcePoolPath string) (string, error) {
-	script, err := pv.getStartupScript(cluster, machine)
+	resourcePoolPath string, deployOnVC bool) (string, error) {
+	script, err := pv.getStartupScript(cluster, machine, deployOnVC)
 	if err != nil {
 		return "", err
 	}
-	config, err := pv.getCloudProviderConfig(cluster, machine, resourcePoolPath)
+	config, err := pv.getCloudProviderConfig(cluster, machine, resourcePoolPath, deployOnVC)
 	if err != nil {
 		return "", err
 	}
@@ -538,6 +898,7 @@ func (pv *Provisioner) getCloudInitUserData(cluster *clusterv1.Cluster, machine 
 			TrustedCerts:        machineconfig.MachineSpec.TrustedCerts,
 			NTPServers:          machineconfig.MachineSpec.NTPServers,
 		},
+		deployOnVC,
 	)
 	if err != nil {
 		return "", err
@@ -547,7 +908,7 @@ func (pv *Provisioner) getCloudInitUserData(cluster *clusterv1.Cluster, machine 
 }
 
 func (pv *Provisioner) getCloudProviderConfig(cluster *clusterv1.Cluster, machine *clusterv1.Machine,
-	resourcePoolPath string) (string, error) {
+	resourcePoolPath string, deployOnVC bool) (string, error) {
 	clusterConfig, err := vsphereutils.GetClusterProviderSpec(cluster.Spec.ProviderSpec)
 	if err != nil {
 		return "", err
@@ -592,7 +953,7 @@ func (pv *Provisioner) getCloudProviderConfig(cluster *clusterv1.Cluster, machin
 		cpc.Network = machineconfig.MachineSpec.Networks[0].NetworkName
 	}
 
-	cloudProviderConfig, err := vpshereprovisionercommon.GetCloudProviderConfigConfig(cpc)
+	cloudProviderConfig, err := vpshereprovisionercommon.GetCloudProviderConfigConfig(cpc, deployOnVC)
 	if err != nil {
 		return "", err
 	}
@@ -602,7 +963,7 @@ func (pv *Provisioner) getCloudProviderConfig(cluster *clusterv1.Cluster, machin
 
 // Builds and returns the startup script for the passed machine and cluster.
 // Returns the full path of the saved startup script and possible error.
-func (pv *Provisioner) getStartupScript(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
+func (pv *Provisioner) getStartupScript(cluster *clusterv1.Cluster, machine *clusterv1.Machine, deployOnVC bool) (string, error) {
 	machineconfig, err := vsphereutils.GetMachineProviderSpec(machine.Spec.ProviderSpec)
 	if err != nil {
 		return "", pv.HandleMachineError(machine, apierrors.InvalidMachineConfiguration(
@@ -627,6 +988,7 @@ func (pv *Provisioner) getStartupScript(cluster *clusterv1.Cluster, machine *clu
 				Machine:           machine,
 				Preloaded:         preloaded,
 			},
+			deployOnVC,
 		)
 		if err != nil {
 			return "", err
@@ -660,6 +1022,7 @@ func (pv *Provisioner) getStartupScript(cluster *clusterv1.Cluster, machine *clu
 				Machine:           machine,
 				Preloaded:         preloaded,
 			},
+			deployOnVC,
 		)
 		if err != nil {
 			return "", err

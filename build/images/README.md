@@ -90,9 +90,15 @@ Images may be downloaded via HTTP:
 
 ## Testing Images
 
-### Accessing the images
+### Accessing the Images
 
-After the images are built, the VMs from they are built are prepped for local testing. Simply boot the VM locally with Fusion or Workstation and the machine will be initialized with cloud-init data. The VMs may be accessed via SSH by using the command `../../hack/image-ssh.sh BUILD_DIR`.
+#### Accessing Local VMs
+
+After the images are built, the VMs from they are built are prepped for local testing. Simply boot the VM locally with Fusion or Workstation and the machine will be initialized with cloud-init data from the `cloudinit` directory. The VMs may be accessed via SSH by using the command `../../hack/image-ssh.sh BUILD_DIR`.
+
+#### Accessing Remote VMs
+
+After deploying an image to vSphere, use `../../hack/image-govc-cloudinit.sh VM` to snapshot the image and update it with cloud-init data from the `cloudinit` directory. The VM may now be accessed with `ssh -i cloudinit/id_rsa.capi SSH_USER@VM_IP`.
 
 ### Initialize a CNI
 

@@ -6,6 +6,7 @@ CONFIG_DIR ?= $(abspath $(CONFIG_DIR))
 ifneq (,$(strip $(KUBERNETES_VERSION)))
 ISO ?= cidata-$(KUBERNETES_VERSION).iso
 endif
+ISO ?= cidata.iso
 ISO := $(abspath $(ISO))
 
 $(ISO):

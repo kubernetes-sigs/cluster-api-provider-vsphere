@@ -23,6 +23,16 @@ The `vmware-iso` builder supports building against a remote VMware ESX server, b
 
 The program `../../hack/image-tools.sh` can be used to download and install the goss plug-in.
 
+## The `cloudinit` Directory
+
+The `images` directory contains a child directory, `cloudinit`. The files in this directory:
+
+* **Are** example data used for testing
+* Are **not** included in any of the images
+* Should **not** be used in production systems
+
+For more information about how the files in the `cloudinit` directory are used, please refer to the section on [accessing the images](#accessing-the-images).
+
 ## Building Images
 
 ### Configuration

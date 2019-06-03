@@ -1,0 +1,4 @@
+instance-id: iid-capi
+local-hostname: capi.vm
+network: dmVyc2lvbjogMQpjb25maWc6Ci0gdHlwZTogcGh5c2ljYWwKICBuYW1lOiBldGgwCiAgc3VibmV0czoKICAtIHR5cGU6IGRoY3AK
+network.encoding: base64

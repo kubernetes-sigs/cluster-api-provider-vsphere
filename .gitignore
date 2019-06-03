@@ -17,3 +17,6 @@ config/default/vsphere_tmp
 
 # tmp files
 *.tmp
+
+*.bzl
+*.bazel

@@ -21,7 +21,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/installer/pkg/ip"
+	"sigs.k8s.io/cluster-api-provider-vsphere-installer/pkg/ip"
 )
 
 type NetworkStatus struct {

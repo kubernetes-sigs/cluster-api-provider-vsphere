@@ -18,8 +18,10 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-OUTPUT_DIR=out
-TEMPLATE_DIR=$GOPATH/src/sigs.k8s.io/cluster-api-provider-vsphere/cmd/clusterctl/examples/vsphere
+cd "$(dirname "${BASH_SOURCE[0]}")/../../../.."
+
+OUTPUT_DIR=./out
+TEMPLATE_DIR=./cmd/clusterctl/examples/vsphere
 
 MACHINE_TEMPLATE_FILE=${TEMPLATE_DIR}/machines.yaml.template
 MACHINE_GENERATED_FILE=${OUTPUT_DIR}/machines.yaml
@@ -38,8 +40,8 @@ MACHINE_CONTROLLER_SSH_PRIVATE_FILE=vsphere_tmp
 MACHINE_CONTROLLER_SSH_PRIVATE=
 MACHINE_CONTROLLER_SSH_HOME=~/.ssh/
 
-CLUSTER_API_CRD_PATH=$GOPATH/src/sigs.k8s.io/cluster-api-provider-vsphere/vendor/sigs.k8s.io/cluster-api/config
-VSPHERE_CLUSTER_API_CRD_PATH=$GOPATH/src/sigs.k8s.io/cluster-api-provider-vsphere/config
+CLUSTER_API_CRD_PATH=./vendor/sigs.k8s.io/cluster-api/config
+VSPHERE_CLUSTER_API_CRD_PATH=./config
 
 KUBECON_CONTROLLER='gcr.io/cnx-cluster-api/cluster-api-controller:kubecon2018'
 KUBECON_VSPHERE_PROVIDER='gcr.io/cnx-cluster-api/vsphere-cluster-api-provider:kubecon2018'
@@ -81,7 +83,7 @@ while test $# -gt 0; do
 done
 
 KUSTOMIZE_VERSION=$(kustomize version | awk '{ print $2 }' | awk -F ':' '{ print $2} ')
-if [[ $KUSTOMIZE_VERSION == *"v1"* || $KUSTOMIZE_VERSION == "unknown" ]]; then
+if [[ ! "${KUSTOMIZE_VERSION}" =~ unknown|v2 ]]; then
     echo "Please upgrade the kustomize version to v2 at least."
     exit 1
 fi

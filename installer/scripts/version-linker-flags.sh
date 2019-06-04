@@ -16,11 +16,11 @@
 set -e -o pipefail +h && [ -n "$DEBUG" ] && set -x
 
 echo "-s -w \
-    -X sigs.k8s.io/cluster-api-provider-vsphere/installer/pkg/version.Version=${TAG} \
-    -X sigs.k8s.io/cluster-api-provider-vsphere/installer/pkg/version.BuildNumber=\"${BUILD_NUMBER}\" \
-    -X sigs.k8s.io/cluster-api-provider-vsphere/installer/pkg/version.BuildDate=`date -u +%Y/%m/%d@%H:%M:%S` \
-    -X sigs.k8s.io/cluster-api-provider-vsphere/installer/pkg/version.GitCommit=`git rev-parse --short HEAD` \
-    -X sigs.k8s.io/cluster-api-provider-vsphere/installer/pkg/version.State=` \
+    -X sigs.k8s.io/cluster-api-provider-vsphere-installer/pkg/version.Version=${TAG} \
+    -X sigs.k8s.io/cluster-api-provider-vsphere-installer/pkg/version.BuildNumber=\"${BUILD_NUMBER}\" \
+    -X sigs.k8s.io/cluster-api-provider-vsphere-installer/pkg/version.BuildDate=`date -u +%Y/%m/%d@%H:%M:%S` \
+    -X sigs.k8s.io/cluster-api-provider-vsphere-installer/pkg/version.GitCommit=`git rev-parse --short HEAD` \
+    -X sigs.k8s.io/cluster-api-provider-vsphere-installer/pkg/version.State=` \
       if [[ -n $(git ls-files --others --exclude-standard) || \
             ! $(git diff-files --no-ext-diff --quiet) || \
             ! $(git diff-index --no-ext-diff --quiet --cached HEAD) \

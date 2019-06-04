@@ -283,36 +283,6 @@ func (d *faultDetail) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	return e.EncodeElement(d.Fault, start)
 }
 
-// response sets xml.Name.Space when encoding Body.
-// Note that namespace is intentionally omitted in the vim25/methods/methods.go Body.Res field tags.
-type response struct {
-	Namespace string
-	Body      soap.HasFault
-}
-
-func (r *response) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
-	val := reflect.ValueOf(r.Body).Elem().FieldByName("Res")
-	if !val.IsValid() {
-		return fmt.Errorf("%T: invalid response type (missing 'Res' field)", r.Body)
-	}
-	if val.IsNil() {
-		return fmt.Errorf("%T: invalid response (nil 'Res' field)", r.Body)
-	}
-	res := xml.StartElement{
-		Name: xml.Name{
-			Space: "urn:" + r.Namespace,
-			Local: val.Elem().Type().Name(),
-		},
-	}
-	if err := e.EncodeToken(start); err != nil {
-		return err
-	}
-	if err := e.EncodeElement(val.Interface(), res); err != nil {
-		return err
-	}
-	return e.EncodeToken(start.End())
-}
-
 // About generates some info about the simulator.
 func (s *Service) About(w http.ResponseWriter, r *http.Request) {
 	var about struct {
@@ -441,7 +411,7 @@ func (s *Service) ServeSDK(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w.WriteHeader(http.StatusOK)
 
-		soapBody = &response{ctx.Map.Namespace, res}
+		soapBody = res
 	}
 
 	var out bytes.Buffer
@@ -604,9 +574,6 @@ func (s *Service) NewServer() *Server {
 		Host:   net.JoinHostPort(defaultIP(addr), port),
 		Path:   Map.Path,
 	}
-	if s.TLS != nil {
-		u.Scheme += "s"
-	}
 
 	// Redirect clients to this http server, rather than HostSystem.Name
 	Map.SessionManager().ServiceHostName = u.Host
@@ -616,6 +583,18 @@ func (s *Service) NewServer() *Server {
 		_ = f.Value.Set("")
 	}
 
+	cert := ""
+	if s.TLS == nil {
+		ts.Start()
+	} else {
+		ts.TLS = s.TLS
+		ts.TLS.ClientAuth = tls.RequestClientCert // Used by SessionManager.LoginExtensionByCertificate
+		ts.StartTLS()
+		u.Scheme += "s"
+
+		cert = base64.StdEncoding.EncodeToString(ts.TLS.Certificates[0].Certificate[0])
+	}
+
 	// Add vcsim config to OptionManager for use by SDK handlers (see lookup/simulator for example)
 	m := Map.OptionManager()
 	m.Setting = append(m.Setting,
@@ -623,20 +602,13 @@ func (s *Service) NewServer() *Server {
 			Key:   "vcsim.server.url",
 			Value: u.String(),
 		},
+		&types.OptionValue{
+			Key:   "vcsim.server.cert",
+			Value: cert,
+		},
 	)
 
 	u.User = url.UserPassword("user", "pass")
-
-	if s.TLS != nil {
-		ts.TLS = s.TLS
-		ts.TLS.ClientAuth = tls.RequestClientCert // Used by SessionManager.LoginExtensionByCertificate
-		Map.SessionManager().TLSCert = func() string {
-			return base64.StdEncoding.EncodeToString(ts.TLS.Certificates[0].Certificate[0])
-		}
-		ts.StartTLS()
-	} else {
-		ts.Start()
-	}
 
 	return &Server{
 		Server: ts,

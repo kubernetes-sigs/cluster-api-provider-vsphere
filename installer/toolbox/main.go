@@ -22,13 +22,13 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/coreos/go-systemd/daemon"
 	"github.com/spf13/pflag"
 
 	"github.com/vmware/govmomi/toolbox"
 	"github.com/vmware/govmomi/toolbox/vix"
-	"sigs.k8s.io/cluster-api-provider-vsphere/installer/pkg/version"
+	"sigs.k8s.io/cluster-api-provider-vsphere-installer/pkg/version"
 )
 
 const (

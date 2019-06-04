@@ -83,8 +83,10 @@ func (d *debugRoundTrip) debugRequest(req *http.Request) {
 		return
 	}
 
+	var wc io.WriteCloser
+
 	// Capture headers
-	var wc io.WriteCloser = d.newFile("req.headers")
+	wc = d.newFile("req.headers")
 	b, _ := httputil.DumpRequest(req, false)
 	wc.Write(b)
 	wc.Close()
@@ -102,8 +104,10 @@ func (d *debugRoundTrip) debugResponse(res *http.Response) {
 		return
 	}
 
+	var wc io.WriteCloser
+
 	// Capture headers
-	var wc io.WriteCloser = d.newFile("res.headers")
+	wc = d.newFile("res.headers")
 	b, _ := httputil.DumpResponse(res, false)
 	wc.Write(b)
 	wc.Close()

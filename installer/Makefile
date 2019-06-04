@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-SHELL=/bin/bash
+SHELL := /bin/bash
+
+all: build
 
 GO ?= go
 SED ?= sed
@@ -24,7 +26,6 @@ BASE_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 BIN ?= bin
 
 export GOPATH ?= $(shell echo $(CURDIR) | sed -e 's,/src/.*,,')
-DEP ?= $(GOPATH)/bin/dep$(BIN_ARCH)
 GAS ?= $(GOPATH)/bin/gas$(BIN_ARCH)
 GOLINT ?= $(GOPATH)/bin/golint$(BIN_ARCH)
 
@@ -32,32 +33,26 @@ GOLINT ?= $(GOPATH)/bin/golint$(BIN_ARCH)
 
 LDFLAGS := $(shell BUILD_NUMBER=${BUILD_NUMBER} TAG=${TAG} $(BASE_DIR)/scripts/version-linker-flags.sh)
 
-ovfenv := $(BIN)/ovfenv
-ova-ui := $(BIN)/ova-ui
-toolbox := $(BIN)/toolbox
-rpctool := $(BIN)/rpctool
+OVFENV := $(BIN)/ovfenv
+OVAUI := $(BIN)/ova-ui
+TOOLBOX := $(BIN)/toolbox
+RPCTOOL := $(BIN)/rpctool
 gas: $(GAS)
-ovfenv: $(ovfenv)
-ova-ui: $(ova-ui)
-toolbox: $(toolbox)
-rpctool: $(rpctool)
-tools: $(DEP) $(GOLINT) $(GAS)
-all: golint gofmt govet gas $(ovfenv) $(ova-ui) $(toolbox) $(rpctool)
+ovfenv: $(OVFENV)
+ova-ui: $(OVAUI)
+toolbox: $(TOOLBOX)
+rpctool: $(RPCTOOL)
+tools: $(GOLINT) $(GAS)
 
-vendor: $(DEP)
-	@echo restoring vendor
-	$(DEP) ensure
+SRC_DIRS := lib ovatools pkg toolbox
 
 gas: $(GAS)
 	@echo running go AST tool
-	@$(GAS) -quiet lib/... ovatools/... pkg/... toolbox/... 2> /dev/null
+	@$< $(addsuffix /...,$(SRC_DIRS)) 2>/dev/null
 
 golint: $(GOLINT)
 	@echo checking go lint...
-	@$(call golintf,sigs.k8s.io/cluster-api-provider-vsphere/installer/lib/...)
-	@$(call golintf,sigs.k8s.io/cluster-api-provider-vsphere/installer/ovatools/...)
-	@$(call golintf,sigs.k8s.io/cluster-api-provider-vsphere/installer/pkg/...)
-	@$(call golintf,sigs.k8s.io/cluster-api-provider-vsphere/installer/toolbox/...)
+	$< ./lib/... ./ovatools/... ./pkg/... ./toolbox
 
 gofmt:
 	@echo checking gofmt...
@@ -65,52 +60,39 @@ gofmt:
 
 govet:
 	@echo checking go vet...
-	@$(GO) tool vet -all -lostcancel -tests $$(find . -mindepth 1 -maxdepth 1 -type d -not -name vendor)
-
-# Generate Go package dependency set, skipping if the only targets specified are clean and/or distclean
-# Caches dependencies to speed repeated calls
-define godeps
-	$(call assert,$(call gmsl_compatible,1 1 7), Wrong GMSL version) \
-	$(if $(filter-out clean distclean mrrobot mark sincemark .DEFAULT,$(MAKECMDGOALS)), \
-		$(if $(call defined,dep_cache,$(dir $1)),,$(info Generating dependency set for $(dir $1))) \
-		$(or \
-			$(if $(call defined,dep_cache,$(dir $1)), $(info Using cached Go dependencies) $(wildcard $1) $(call get,dep_cache,$(dir $1))),
-			$(call set,dep_cache,$(dir $1),$(shell $(BASE_DIR)scripts/go-deps.sh $(dir $1) $(MAKEFLAGS))),
-			$(info Cached Go dependency for $(dir $1): $(call get,dep_cache,$(dir $1))),
-			$(wildcard $1) $(call get,dep_cache,$(dir $1))
-		) \
-	)
-endef
+	@$(GO) vet -all -lostcancel -tests $$(find . -mindepth 1 -maxdepth 1 -type d -not -name vendor)
 
 clean:
 	@echo removing binaries
 	rm -rf $(BIN)
 
-$(ovfenv): $(call godeps,ovatools/ovfenv/*.go)
+$(OVFENV):
 	@echo building ovfenv linux...
-	@GOARCH=amd64 GOOS=linux $(TIME) $(GO) build $(RACE) -ldflags "$(LDFLAGS)" -o ./$@ ./$(dir $<)
+	GOARCH=amd64 GOOS=linux $(TIME) $(GO) build $(RACE) -ldflags "$(LDFLAGS)" -o ./$@ ./ovatools/ovfenv
+.PHONY: $(OVFENV)
 
-$(ova-ui): $(call godeps,ovatools/ova-ui/*.go)
+$(OVAUI):
 	@echo building ova-ui
-	@GOARCH=amd64 GOOS=linux $(TIME) $(GO) build $(RACE) -ldflags "$(LDFLAGS)" -o ./$@ ./$(dir $<)
+	GOARCH=amd64 GOOS=linux $(TIME) $(GO) build  $(RACE) -ldflags "$(LDFLAGS)" -o ./$@ ./ovatools/ova-ui
+.PHONY: $(OVAUI)
 
-$(toolbox): $(call godeps,toolbox/*.go)
+$(TOOLBOX):
 	@echo building toolbox
-	@GOARCH=amd64 GOOS=linux $(TIME) $(GO) build $(RACE) -ldflags "$(LDFLAGS)" -o ./$@ ./$(dir $<)
+	GOARCH=amd64 GOOS=linux $(TIME) $(GO) build $(RACE) -ldflags "$(LDFLAGS)" -o ./$@ ./toolbox
+.PHONY: $(TOOLBOX)
 
-$(rpctool): $(call godeps,ovatools/rpctool/*.go)
+$(RPCTOOL):
 	@echo building rpctool
-	@GOARCH=amd64 GOOS=linux $(TIME) $(GO) build $(RACE) -ldflags "$(LDFLAGS)" -o ./$@ ./$(dir $<)
+	GOARCH=amd64 GOOS=linux $(TIME) $(GO) build $(RACE) -ldflags "$(LDFLAGS)" -o ./$@ ./ovatools/rpctool
+.PHONY: $(RPCTOOL)
 
 # utility targets
-$(GAS): Gopkg.lock Gopkg.toml
+$(GAS):
 	@echo building $(GAS)...
 	@$(GO) build $(RACE) -o $(GAS) ./vendor/github.com/GoASTScanner/gas
 
-$(DEP): Gopkg.lock Gopkg.toml
-	@echo building $(DEP)...
-	@$(GO) build $(RACE) -o $(DEP) ./vendor/github.com/golang/dep/cmd/dep
-
-$(GOLINT): Gopkg.lock Gopkg.toml
+$(GOLINT):
 	@echo building $(GOLINT)...
-	@$(GO) build $(RACE) -o $(GOLINT) ./vendor/github.com/golang/lint/golint
+	@$(GO) build $(RACE) -o $(GOLINT) ./vendor/golang.org/x/lint/golint
+
+build: $(OVFENV) $(OVAUI) $(TOOLBOX) $(RPCTOOL)

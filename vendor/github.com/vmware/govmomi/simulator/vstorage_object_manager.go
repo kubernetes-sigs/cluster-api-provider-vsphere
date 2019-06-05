@@ -158,7 +158,7 @@ func (m *VcenterVStorageObjectManager) createObject(req *types.CreateDisk_Task, 
 	if !ok {
 		objects = make(map[types.ID]*VStorageObject)
 		m.objects[ds.Self] = objects
-		_ = os.Mkdir(filepath.Join(ds.Info.GetDatastoreInfo().Url, dir), 0750)
+		_ = os.Mkdir(filepath.Join(ds.Info.GetDatastoreInfo().Url, dir), 0755)
 	}
 
 	id := uuid.New().String()
@@ -191,7 +191,7 @@ func (m *VcenterVStorageObjectManager) createObject(req *types.CreateDisk_Task, 
 		path.Path = dir + "/" + id + ".vmdk"
 	}
 
-	if !register {
+	if register == false {
 		err := dm.createVirtualDisk(types.VirtualDeviceConfigSpecFileOperationCreate, &types.CreateVirtualDisk_Task{
 			Datacenter: &dc.Self,
 			Name:       path.String(),

@@ -137,7 +137,9 @@ func wrapValue(rval reflect.Value, rtype reflect.Type) interface{} {
 		default:
 			kind := rtype.Elem().Name()
 			// Remove govmomi interface prefix name
-			kind = strings.TrimPrefix(kind, "Base")
+			if strings.HasPrefix(kind, "Base") {
+				kind = kind[4:]
+			}
 			akind, _ := defaultMapType("ArrayOf" + kind)
 			a := reflect.New(akind)
 			a.Elem().FieldByName(kind).Set(rval)
@@ -229,7 +231,7 @@ func isTrue(v *bool) bool {
 }
 
 func isFalse(v *bool) bool {
-	return v == nil || !*v
+	return v == nil || *v == false
 }
 
 func lcFirst(s string) string {
@@ -697,7 +699,7 @@ func (pc *PropertyCollector) WaitForUpdatesEx(ctx *Context, r *types.WaitForUpda
 			pc.updates = nil // clear updates collected by the managed object CRUD listeners
 			pc.mu.Unlock()
 			if len(updates) == 0 {
-				if oneUpdate {
+				if oneUpdate == true {
 					body.Res.Returnval = nil
 					return body
 				}
@@ -745,7 +747,7 @@ func (pc *PropertyCollector) WaitForUpdatesEx(ctx *Context, r *types.WaitForUpda
 			if len(set.FilterSet) != 0 {
 				return body
 			}
-			if oneUpdate {
+			if oneUpdate == true {
 				body.Res.Returnval = nil
 				return body
 			}

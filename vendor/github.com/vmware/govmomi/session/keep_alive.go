@@ -40,8 +40,8 @@ type keepAlive struct {
 }
 
 func defaultKeepAlive(roundTripper soap.RoundTripper) error {
-	_, err := methods.GetCurrentTime(context.Background(), roundTripper)
-	return err
+	_, _ = methods.GetCurrentTime(context.Background(), roundTripper)
+	return nil
 }
 
 // KeepAlive wraps the specified soap.RoundTripper and executes a meaningless

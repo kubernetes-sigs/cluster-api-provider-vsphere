@@ -19,11 +19,11 @@ import (
 	"fmt"
 	"os"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/vmware/vmw-guestinfo/rpcvmx"
 	"github.com/vmware/vmw-guestinfo/vmcheck"
-	"sigs.k8s.io/cluster-api-provider-vsphere/installer/pkg/version"
+	"sigs.k8s.io/cluster-api-provider-vsphere-installer/pkg/version"
 )
 
 var (

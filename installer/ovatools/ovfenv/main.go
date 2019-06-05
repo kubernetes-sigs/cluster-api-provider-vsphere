@@ -25,7 +25,7 @@ import (
 
 	"github.com/vmware/govmomi/ovf"
 	"github.com/vmware/govmomi/vim25/xml"
-	"sigs.k8s.io/cluster-api-provider-vsphere/installer/pkg/version"
+	"sigs.k8s.io/cluster-api-provider-vsphere-installer/pkg/version"
 )
 
 func main() {

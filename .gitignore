@@ -20,3 +20,6 @@ config/default/vsphere_tmp
 
 *.bzl
 *.bazel
+
+# Ignore sed backup files
+*-e

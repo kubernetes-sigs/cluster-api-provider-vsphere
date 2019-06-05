@@ -36,9 +36,9 @@ import (
 	"github.com/dustin/go-humanize"
 
 	"github.com/vmware/vmw-guestinfo/vmcheck"
-	"sigs.k8s.io/cluster-api-provider-vsphere/installer/lib"
-	"sigs.k8s.io/cluster-api-provider-vsphere/installer/pkg/ip"
-	"sigs.k8s.io/cluster-api-provider-vsphere/installer/pkg/version"
+	"sigs.k8s.io/cluster-api-provider-vsphere-installer/lib"
+	"sigs.k8s.io/cluster-api-provider-vsphere-installer/pkg/ip"
+	"sigs.k8s.io/cluster-api-provider-vsphere-installer/pkg/version"
 )
 
 const (

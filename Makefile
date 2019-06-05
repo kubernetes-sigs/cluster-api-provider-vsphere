@@ -22,9 +22,15 @@ DEV_IMG ?= # <== NOTE:  outside dev, change this!!!
 VERSION ?= $(shell git describe --exact-match 2> /dev/null || \
 	   git describe --match=$(git rev-parse --short=8 HEAD) --always --dirty --abbrev=8)
 
-KUSTOMIZE_VERSION := $(shell kustomize version | awk '{ print $$2 }' | awk -F':' '{ print $$2} ')
+KUSTOMIZE := $(shell command -v kustomize 2>/dev/null)
+ifeq (,$(strip $(KUSTOMIZE)))
+$(KUSTOMIZE):
+	GO111MODULE=off go get sigs.k8s.io/kustomize
+endif
 
-all: test manager clusterctl
+all: build test
+
+build: clusterctl manager
 
 # Run tests
 test: generate fmt vet manifests
@@ -32,11 +38,11 @@ test: generate fmt vet manifests
 
 # Build manager binary
 manager: fmt vet
-	go build -o bin/manager sigs.k8s.io/cluster-api-provider-vsphere/cmd/manager
+	go build -o bin/manager ./cmd/manager
 
 # Build the clusterctl binary
 clusterctl: fmt vet
-	go build -o bin/clusterctl sigs.k8s.io/cluster-api-provider-vsphere/cmd/clusterctl
+	go build -o bin/clusterctl ./cmd/clusterctl
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
 run: generate fmt vet
@@ -53,7 +59,7 @@ deploy: manifests
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests:
-	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go all
+	go run ./vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go all
 
 # Run go fmt against code
 fmt:
@@ -67,23 +73,30 @@ vet:
 generate:
 	go generate ./pkg/... ./cmd/...
 
+CAPI_CONFIG_SRC=$(abspath $(shell go list -f '{{.Dir}}' sigs.k8s.io/cluster-api/cmd/clusterctl 2>/dev/null)/../../config)
+CAPI_CONFIG_DST=./vendor/sigs.k8s.io/cluster-api/
+
+vendor:
+	go mod tidy -v
+	go mod vendor -v
+	go mod verify
+	mkdir -p $(CAPI_CONFIG_DST)
+	cp -rf --no-preserve=mode $(CAPI_CONFIG_SRC) $(CAPI_CONFIG_DST)
+.PHONY: vendor
 
 ####################################
 # DEVELOPMENT Build and Push targets
 ####################################
 
 # Create YAML file for deployment
-dev-yaml:
-ifeq ($(KUSTOMIZE_VERSION),$(filter $(KUSTOMIZE_VERSION),unknown v1))
-	@echo "please upgrade kustomize version to v2 at least."
-else
+dev-yaml: | $(KUSTOMIZE)
+	@$(KUSTOMIZE) version 2>&1 | grep -q 'KustomizeVersion:\(unknown\|v2\)' || { echo "kustomize v2+ required" 1>&2; exit 1; }
 	@echo "updating kustomize image patch file for manager resource"
 	sed -i'' -e 's@image: .*@image: '"${DEV_IMG}"'@' ./config/default/vsphere_manager_image_patch.yaml
 	cmd/clusterctl/examples/vsphere/generate-yaml.sh
-endif
 
 # Build the docker image
-dev-build: test
+dev-build: #test
 	docker build . -t ${DEV_IMG}
 	@echo "updating kustomize image patch file for manager resource"
 	sed -i'' -e 's@image: .*@image: '"${DEV_IMG}"'@' ./config/default/vsphere_manager_image_patch.yaml
@@ -98,14 +111,11 @@ dev-push:
 ###################################
 
 # Create YAML file for deployment
-prod-yaml:
-ifeq ($(KUSTOMIZE_VERSION),$(filter $(KUSTOMIZE_VERSION),unknown v1))
-	@echo "please upgrade kustomize version to v2 at least."
-else
+prod-yaml: | $(KUSTOMIZE)
+	@$(KUSTOMIZE) version 2>&1 | grep -q 'KustomizeVersion:\(unknown\|v2\)' || { echo "kustomize v2+ required" 1>&2; exit 1; }
 	@echo "updating kustomize image patch file for manager resource"
 	sed -i'' -e 's@image: .*@image: '"${PRODUCTION_IMG}"'@' ./config/default/vsphere_manager_image_patch.yaml
 	cmd/clusterctl/examples/vsphere/generate-yaml.sh
-endif
 
 # Build the docker image
 prod-build: test
@@ -125,7 +135,7 @@ prod-push:
 ###################################
 
 # Create YAML file for deployment into CI
-ci-yaml:
+ci-yaml: | $(KUSTOMIZE)
 	@echo "updating kustomize image patch file for manager resource"
 	sed -i'' -e 's@image: .*@image: '"$(CI_IMG):$(VERSION)"'@' ./config/default/vsphere_manager_image_patch.yaml
 	cmd/clusterctl/examples/vsphere/generate-yaml.sh

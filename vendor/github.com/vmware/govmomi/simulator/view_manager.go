@@ -87,7 +87,7 @@ func (m *ViewManager) CreateContainerView(ctx *Context, req *types.CreateContain
 		return body
 	}
 
-	if !m.entities[root.Reference().Type] {
+	if m.entities[root.Reference().Type] != true {
 		body.Fault_ = Fault("", &types.InvalidArgument{InvalidProperty: "container"})
 		return body
 	}
@@ -182,7 +182,7 @@ func walk(root mo.Reference, f func(child types.ManagedObjectReference)) {
 func (v *ContainerView) add(root mo.Reference, seen map[types.ManagedObjectReference]bool) {
 	walk(root, func(child types.ManagedObjectReference) {
 		if v.include(child) {
-			if !seen[child] {
+			if seen[child] == false {
 				seen[child] = true
 				v.View = append(v.View, child)
 			}

@@ -724,8 +724,6 @@ func (vm *VirtualMachine) RefreshStorageInfo(ctx *Context, req *types.RefreshSto
 
 	vm.LayoutEx.Timestamp = time.Now()
 
-	body.Res = new(types.RefreshStorageInfoResponse)
-
 	return body
 }
 
@@ -760,7 +758,7 @@ func (vm *VirtualMachine) createFile(spec string, name string, register bool) (*
 	}
 
 	if register {
-		f, err := os.Open(filepath.Clean(file))
+		f, err := os.Open(file)
 		if err != nil {
 			log.Printf("register %s: %s", vm.Reference(), err)
 			if os.IsNotExist(err) {

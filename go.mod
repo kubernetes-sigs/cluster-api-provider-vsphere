@@ -2,18 +2,6 @@ module sigs.k8s.io/cluster-api-provider-vsphere
 
 go 1.12
 
-replace k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20181127025237-2b1284ed4c93
-
-replace k8s.io/client-go => k8s.io/client-go v0.0.0-20181213151034-8d9ed539ba31
-
-replace k8s.io/api => k8s.io/api v0.0.0-20181213150558-05914d821849
-
-replace k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.0.0-20181213153335-0fe22c71c476
-
-replace sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.0.0-20180825012133-999adc0c9bd4
-
-replace sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.1.10
-
 require (
 	github.com/Azure/go-autorest/autorest v0.2.0 // indirect
 	github.com/appscode/jsonpatch v0.0.0-20190108182946-7c0e3b262f30 // indirect
@@ -33,6 +21,7 @@ require (
 	github.com/imdario/mergo v0.3.7 // indirect
 	github.com/json-iterator/go v1.1.6 // indirect
 	github.com/markbates/inflect v1.0.4 // indirect
+	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/onsi/gomega v1.5.0
 	github.com/pborman/uuid v1.2.0 // indirect
@@ -52,18 +41,18 @@ require (
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.2.2
-	k8s.io/api v0.0.0-20190602125759-c1e9adbde704
-	k8s.io/apiextensions-apiserver v0.0.0-20190602131520-451a9c13a3c8 // indirect
-	k8s.io/apimachinery v0.0.0-20190602125621-c0632ccbde11
-	k8s.io/client-go v0.0.0-20190602130007-e65ca70987a6
-	k8s.io/cluster-bootstrap v0.0.0-20190531140748-ffdb6fd27ea4
-	k8s.io/code-generator v0.0.0-20190531131525-17d711082421
-	k8s.io/component-base v0.0.0-20190602130718-4ec519775454 // indirect
-	k8s.io/klog v0.3.2
-	k8s.io/kube-openapi v0.0.0-20190530181030-b52b5b0f5a7c // indirect
-	sigs.k8s.io/cluster-api v0.0.0-20190508175234-0f911c1f65a5
+	k8s.io/api v0.0.0-20181213150558-05914d821849
+	k8s.io/apiextensions-apiserver v0.0.0-20181213153335-0fe22c71c476 // indirect
+	k8s.io/apimachinery v0.0.0-20181127025237-2b1284ed4c93
+	k8s.io/client-go v0.0.0-20181213151034-8d9ed539ba31
+	k8s.io/cluster-bootstrap v0.0.0-20190307184522-e5eaaafa58b3
+	k8s.io/code-generator v0.0.0-20190308034351-e797d15e3d1a
+	k8s.io/gengo v0.0.0-20190308184658-b90029ef6cd8 // indirect
+	k8s.io/klog v0.2.0
+	k8s.io/kube-openapi v0.0.0-20190306001800-15615b16d372 // indirect
+	sigs.k8s.io/cluster-api v0.0.0-20190308220454-a2f5862d32c6
 	sigs.k8s.io/controller-runtime v0.1.10
-	sigs.k8s.io/controller-tools v0.1.10
+	sigs.k8s.io/controller-tools v0.0.0-20180825012133-999adc0c9bd4
 	sigs.k8s.io/testing_frameworks v0.1.1 // indirect
 	sigs.k8s.io/yaml v1.1.0
 )

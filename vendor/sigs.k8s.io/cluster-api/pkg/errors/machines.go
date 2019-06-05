@@ -53,13 +53,6 @@ func CreateMachine(msg string, args ...interface{}) *MachineError {
 	}
 }
 
-func UpdateMachine(msg string, args ...interface{}) *MachineError {
-	return &MachineError{
-		Reason:  commonerrors.UpdateMachineError,
-		Message: fmt.Sprintf(msg, args...),
-	}
-}
-
 func DeleteMachine(msg string, args ...interface{}) *MachineError {
 	return &MachineError{
 		Reason:  commonerrors.DeleteMachineError,

@@ -265,13 +265,14 @@ golang.org/x/text/runes
 golang.org/x/text/internal/tag
 # golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
 golang.org/x/time/rate
-# golang.org/x/tools v0.0.0-20190328211700-ab21143f2384
+# golang.org/x/tools v0.0.0-20190312170243-e65039ee4138
 golang.org/x/tools/imports
 golang.org/x/tools/go/ast/astutil
 golang.org/x/tools/go/packages
 golang.org/x/tools/internal/gopathwalk
 golang.org/x/tools/internal/module
 golang.org/x/tools/go/gcexportdata
+golang.org/x/tools/go/internal/cgo
 golang.org/x/tools/go/internal/packagesdriver
 golang.org/x/tools/internal/semver
 golang.org/x/tools/internal/fastwalk
@@ -333,14 +334,14 @@ gopkg.in/inf.v0
 gopkg.in/tomb.v1
 # gopkg.in/yaml.v2 v2.2.2
 gopkg.in/yaml.v2
-# k8s.io/api v0.0.0-20190602125759-c1e9adbde704 => k8s.io/api v0.0.0-20181213150558-05914d821849
+# k8s.io/api v0.0.0-20181213150558-05914d821849
 k8s.io/api/core/v1
 k8s.io/api/authentication/v1
 k8s.io/api/autoscaling/v1
 k8s.io/api/policy/v1beta1
-k8s.io/api/apps/v1
 k8s.io/api/admissionregistration/v1alpha1
 k8s.io/api/admissionregistration/v1beta1
+k8s.io/api/apps/v1
 k8s.io/api/apps/v1beta1
 k8s.io/api/apps/v1beta2
 k8s.io/api/auditregistration/v1alpha1
@@ -367,13 +368,13 @@ k8s.io/api/storage/v1
 k8s.io/api/storage/v1alpha1
 k8s.io/api/storage/v1beta1
 k8s.io/api/admission/v1beta1
-# k8s.io/apiextensions-apiserver v0.0.0-20190602131520-451a9c13a3c8 => k8s.io/apiextensions-apiserver v0.0.0-20181213153335-0fe22c71c476
+# k8s.io/apiextensions-apiserver v0.0.0-20181213153335-0fe22c71c476
 k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1
 k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset
 k8s.io/apiextensions-apiserver/pkg/apis/apiextensions
 k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1
 k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/scheme
-# k8s.io/apimachinery v0.0.0-20190602125621-c0632ccbde11 => k8s.io/apimachinery v0.0.0-20181127025237-2b1284ed4c93
+# k8s.io/apimachinery v0.0.0-20181127025237-2b1284ed4c93
 k8s.io/apimachinery/pkg/runtime
 k8s.io/apimachinery/pkg/apis/meta/v1
 k8s.io/apimachinery/pkg/runtime/schema
@@ -419,7 +420,7 @@ k8s.io/apimachinery/pkg/runtime/serializer/protobuf
 k8s.io/apimachinery/pkg/util/cache
 k8s.io/apimachinery/pkg/util/diff
 k8s.io/apimachinery/pkg/apis/meta/internalversion
-# k8s.io/client-go v0.0.0-20190602130007-e65ca70987a6 => k8s.io/client-go v0.0.0-20181213151034-8d9ed539ba31
+# k8s.io/client-go v0.0.0-20181213151034-8d9ed539ba31
 k8s.io/client-go/kubernetes
 k8s.io/client-go/tools/clientcmd
 k8s.io/client-go/tools/record
@@ -492,18 +493,16 @@ k8s.io/client-go/plugin/pkg/client/auth/oidc
 k8s.io/client-go/plugin/pkg/client/auth/openstack
 k8s.io/client-go/util/jsonpath
 k8s.io/client-go/third_party/forked/golang/template
-# k8s.io/cluster-bootstrap v0.0.0-20190531140748-ffdb6fd27ea4
+# k8s.io/cluster-bootstrap v0.0.0-20190307184522-e5eaaafa58b3
 k8s.io/cluster-bootstrap/token/api
 k8s.io/cluster-bootstrap/token/util
-# k8s.io/code-generator v0.0.0-20190531131525-17d711082421
+# k8s.io/code-generator v0.0.0-20190308034351-e797d15e3d1a
 k8s.io/code-generator/cmd/deepcopy-gen
 k8s.io/code-generator/cmd/defaulter-gen
 k8s.io/code-generator/cmd/deepcopy-gen/args
 k8s.io/code-generator/pkg/util
 k8s.io/code-generator/cmd/defaulter-gen/args
-# k8s.io/component-base v0.0.0-20190602130718-4ec519775454
-k8s.io/component-base/cli/flag
-# k8s.io/gengo v0.0.0-20190128074634-0689ccc1d7d6
+# k8s.io/gengo v0.0.0-20190308184658-b90029ef6cd8
 k8s.io/gengo/args
 k8s.io/gengo/examples/deepcopy-gen/generators
 k8s.io/gengo/examples/defaulter-gen/generators
@@ -512,11 +511,11 @@ k8s.io/gengo/namer
 k8s.io/gengo/parser
 k8s.io/gengo/types
 k8s.io/gengo/examples/set-gen/sets
-# k8s.io/klog v0.3.2
+# k8s.io/klog v0.2.0
 k8s.io/klog
-# k8s.io/kube-openapi v0.0.0-20190530181030-b52b5b0f5a7c
+# k8s.io/kube-openapi v0.0.0-20190306001800-15615b16d372
 k8s.io/kube-openapi/pkg/util/proto
-# sigs.k8s.io/cluster-api v0.0.0-20190508175234-0f911c1f65a5
+# sigs.k8s.io/cluster-api v0.0.0-20190308220454-a2f5862d32c6
 sigs.k8s.io/cluster-api/cmd/clusterctl/cmd
 sigs.k8s.io/cluster-api/pkg/apis
 sigs.k8s.io/cluster-api/pkg/apis/cluster/common
@@ -546,7 +545,7 @@ sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap/existing
 sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap/kind
 sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap/minikube
 sigs.k8s.io/cluster-api/pkg/controller/noderefutil
-# sigs.k8s.io/controller-runtime v0.1.10 => sigs.k8s.io/controller-runtime v0.1.10
+# sigs.k8s.io/controller-runtime v0.1.10
 sigs.k8s.io/controller-runtime/pkg/client/config
 sigs.k8s.io/controller-runtime/pkg/manager
 sigs.k8s.io/controller-runtime/pkg/runtime/signals
@@ -577,7 +576,7 @@ sigs.k8s.io/controller-runtime/pkg/predicate
 sigs.k8s.io/controller-runtime/pkg/event
 sigs.k8s.io/controller-runtime/pkg/source/internal
 sigs.k8s.io/controller-runtime/pkg/internal/controller/metrics
-# sigs.k8s.io/controller-tools v0.1.10 => sigs.k8s.io/controller-tools v0.0.0-20180825012133-999adc0c9bd4
+# sigs.k8s.io/controller-tools v0.0.0-20180825012133-999adc0c9bd4
 sigs.k8s.io/controller-tools/cmd/controller-gen
 sigs.k8s.io/controller-tools/pkg/crd/generator
 sigs.k8s.io/controller-tools/pkg/generate/rbac

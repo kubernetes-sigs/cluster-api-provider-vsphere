@@ -24,7 +24,7 @@ import (
 )
 
 func CreateBootstrapCluster(provisioner bootstrap.ClusterProvisioner, cleanupBootstrapCluster bool, clientFactory clusterclient.Factory) (clusterclient.Client, func(), error) {
-	klog.Info("Preparing bootstrap cluster")
+	klog.Info("Creating bootstrap cluster")
 
 	cleanupFn := func() {}
 	if err := provisioner.Create(); err != nil {

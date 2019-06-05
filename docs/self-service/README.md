@@ -1,6 +1,6 @@
 # Quickstart Intro
 
-The following is a quick how-to-use guide on using the cluster api on a vCenter infrastructure.  Before beginning, make sure you have the following requirements:
+The following is a quick how-to-use guide on using the cluster api on a vCenter infrastructure along with troubleshooting information to use if you get stuck.  Before beginning, make sure you have the following requirements:
 
 1. vCenter 6.5+ cluster or ESXi 6.5+
     - You will need to gather some information about the cluster, described below.
@@ -18,7 +18,7 @@ The following is a quick how-to-use guide on using the cluster api on a vCenter 
 
 In the self-service workflow, clusterctl will create a bootstrap cluster to kick off the process.  You have two options for bootstrappers: minikube or kind.  Kind is a relatively new project that starts a cluster within Docker on your local machine.  This removes the need to have a desktop hypervisor installed on your local machine.  If you intend to use the kind bootstrapper, you may skip the next section on Fusion and minikube.
 
-### Preparing Vmware Fusion/Workstation for minikube
+### Preparing VMware Fusion/Workstation for minikube
 
 1. Download a release build from the [minikube release page](https://github.com/kubernetes/minikube/releases)
 2. Install docker-machine driver for vmware (shown below)
@@ -223,3 +223,58 @@ DEV_IMG ?= # <== NOTE:  outside dev, change this!!!
 ```
 
 During the build targets, the necessary config file gets updated with this image name.  Then once the yaml targets are use, provider-components.yaml will contain the desired controller container image.
+
+## Troubleshooting Resources to Aid in Resolving Provisioning Failures
+
+1. Ensure `provider-components.yaml` specifies a container image for the `vsphere-provider-controller-manager` Statefulset which has ClusterAPI Provider vSphere v0.2.0. or later.  If one is not available then one can be created using the `make dev-build` process.
+2. After running `clusterctl create cluster...`, verify the two ClusterAPI Provider vSphere pods `vsphere-provider-controller-manager-0` and `cluster-api-controller-manager-0` are running in the bootstrap cluster:
+    ```shell
+    $> kubectl get pods --all-namespaces
+    NAMESPACE                 NAME                                         READY   STATUS    RESTARTS   AGE
+    cluster-api-system        cluster-api-controller-manager-0             1/1     Running   0          5d1h
+    kube-system               coredns-fb8b8dccf-bs2v9                      1/1     Running   0          5d1h
+    kube-system               coredns-fb8b8dccf-hhc4b                      1/1     Running   0          5d1h
+    kube-system               etcd-kind-control-plane                      1/1     Running   0          5d1h
+    kube-system               ip-masq-agent-m5jkt                          1/1     Running   0          5d1h
+    kube-system               kindnet-5s6tz                                1/1     Running   1          5d1h
+    kube-system               kube-apiserver-kind-control-plane            1/1     Running   0          5d1h
+    kube-system               kube-controller-manager-kind-control-plane   1/1     Running   0          5d1h
+    kube-system               kube-proxy-x57n5                             1/1     Running   0          5d1h
+    kube-system               kube-scheduler-kind-control-plane            1/1     Running   0          5d1h
+    vsphere-provider-system   vsphere-provider-controller-manager-0        1/1     Running   0          5d1h
+    ```
+2. If any are failing then view the pod logs to review errors: 
+    ```shell
+    $> kubectl logs <pod name> --namespace <pod namespace>
+    ```
+3. After the bootstrap pods have been created, vSphere will create one or more VMs in accordance to the machine yaml files specified with the `clusterctl create cluster` command.
+4. Should the `clusterctl create cluster` command fail to retrieve the `admin.conf` file the following steps can be used:
+	1. Connect to the manager pod in the bootstrap cluster: 
+    ```shell
+    $> kubectl exec vsphere-provider-controller-manager-0 -it /bin/bash --namespace vsphere-provider-system
+    ```
+	2. SSH on the provisioned master VM within vSphere from the manager pod: 
+    ```shell
+    $> ssh -i ~/.ssh/vsphere_tmp ubuntu@<vm ip address>
+    ```
+	3. Verify if the following file exists: `/etc/kuberenetes/admin.conf`.  Please note it may take a couple minutes for cloud-init to process and create these files.
+        ```shell
+        $> ls /etc/kubernetes/
+        admin.conf  cloud-config  controller-manager.conf  kubeadm_config.yaml  kubelet.conf  manifests  pki  scheduler.conf
+        ```
+	4. If either the file or folder do not exist then check the following log files for failed commands: `/var/log/cloud-init.log` and `/var/log/cloud-init-output.log`.
+	5. If the log files are still being appended to then cloud-init has not finished processing and may need more time to run.
+	6. An example failure which may be listed in `/var/log/cloud-init.log` is `2019-05-06 18:22:41,691 - util.py[WARNING]: Failed loading yaml blob. unacceptable character #xdccf: special characters are not allowed`.  This error indicates an incorrect entry in `machines.yaml` or `machineset.yaml` which was specified in the `clusterctl create cluster` command.  Commonly this could be leaving in the `- xxxx` values in the `machines.yaml` for sections such as `DNS` and `trustedCerts`.
+5. From the location of where the clusterctl command was run, once a kubeconfig file is generated, check the status of the nodes: 
+    ```shell
+    $> kubectl --kubeconfig kubeconfig get nodes
+    ```
+    1. If the master never enters ready state then check to see if any pods are failing: 
+    ```shell
+    $> kubectl --kubeconfig kubeconfig get pods --all-namespaces
+    ```
+    2. Use the logs command to check logs of a failing pod, example: 
+    ```shell
+    $> kubectl --kubeconfig kubeconfig logs weave-net-dl2bn -c weave --namespace kube-system
+    ```
+	3. If the `weave-net` pod is indeed failing then you may have specified a network range within `cluster.yaml` under the pods `cidrBlocks` which overlaps an existing network on the provisioned Kubernetes nodes.  For example if the VM IP addresses are within 192.168.0.0/16 then the default `cidrBlock` value will need to be changed.

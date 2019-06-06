@@ -285,8 +285,6 @@ run_cmd_on_bootstrap "${bootstrap_vm_ip}" "kubectl create -f /tmp/bootstrap_job.
 run_cmd_on_bootstrap "${bootstrap_vm_ip}" 'bash -s' < wait_for_job.sh
 ret="$?"
 
-exit "${ret}"
-
 # cleanup
 if [ -z "$1" ]; then
    get_bootstrap_vm "$context"

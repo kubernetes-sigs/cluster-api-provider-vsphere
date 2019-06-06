@@ -15,15 +15,139 @@ spec:
     openAPIV3Schema:
       properties:
         apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation
-            of an object. Servers should convert recognized schemas to the latest
-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
           type: string
         kind:
-          description: 'Kind is a string value representing the REST resource this
-            object represents. Servers may infer this from the endpoint the client
-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
           type: string
+        kubeadmConfiguration:
+          properties:
+            init:
+              properties:
+                apiVersion:
+                  type: string
+                bootstrapTokens:
+                  items:
+                    properties:
+                      description:
+                        type: string
+                      expires:
+                        format: date-time
+                        type: string
+                      groups:
+                        items:
+                          type: string
+                        type: array
+                      token:
+                        type: object
+                      ttl:
+                        type: object
+                      usages:
+                        items:
+                          type: string
+                        type: array
+                    required:
+                    - token
+                    type: object
+                  type: array
+                kind:
+                  type: string
+                localAPIEndpoint:
+                  properties:
+                    advertiseAddress:
+                      type: string
+                    bindPort:
+                      format: int32
+                      type: integer
+                  required:
+                  - advertiseAddress
+                  - bindPort
+                  type: object
+                nodeRegistration:
+                  properties:
+                    criSocket:
+                      type: string
+                    kubeletExtraArgs:
+                      type: object
+                    name:
+                      type: string
+                    taints:
+                      items:
+                        type: object
+                      type: array
+                  type: object
+              type: object
+            join:
+              properties:
+                apiVersion:
+                  type: string
+                caCertPath:
+                  type: string
+                controlPlane:
+                  properties:
+                    localAPIEndpoint:
+                      properties:
+                        advertiseAddress:
+                          type: string
+                        bindPort:
+                          format: int32
+                          type: integer
+                      required:
+                      - advertiseAddress
+                      - bindPort
+                      type: object
+                  type: object
+                discovery:
+                  properties:
+                    bootstrapToken:
+                      properties:
+                        apiServerEndpoint:
+                          type: string
+                        caCertHashes:
+                          items:
+                            type: string
+                          type: array
+                        token:
+                          type: string
+                        unsafeSkipCAVerification:
+                          type: boolean
+                      required:
+                      - token
+                      - unsafeSkipCAVerification
+                      type: object
+                    file:
+                      properties:
+                        kubeConfigPath:
+                          type: string
+                      required:
+                      - kubeConfigPath
+                      type: object
+                    timeout:
+                      type: object
+                    tlsBootstrapToken:
+                      type: string
+                  required:
+                  - tlsBootstrapToken
+                  type: object
+                kind:
+                  type: string
+                nodeRegistration:
+                  properties:
+                    criSocket:
+                      type: string
+                    kubeletExtraArgs:
+                      type: object
+                    name:
+                      type: string
+                    taints:
+                      items:
+                        type: object
+                      type: array
+                  type: object
+              required:
+              - nodeRegistration
+              - caCertPath
+              - discovery
+              type: object
+          type: object
         machineRef:
           type: string
         machineSpec:
@@ -106,5 +230,5 @@ status:
   acceptedNames:
     kind: ""
     plural: ""
-  conditions: []
-  storedVersions: []
+  conditions: null
+  storedVersions: null

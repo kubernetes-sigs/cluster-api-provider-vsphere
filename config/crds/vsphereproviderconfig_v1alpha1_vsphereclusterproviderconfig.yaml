@@ -15,17 +15,236 @@ spec:
     openAPIV3Schema:
       properties:
         apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation
-            of an object. Servers should convert recognized schemas to the latest
-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
           type: string
+        caKeyPair:
+          properties:
+            cert:
+              format: byte
+              type: string
+            key:
+              format: byte
+              type: string
+          required:
+          - cert
+          - key
+          type: object
+        clusterConfiguration:
+          properties:
+            apiServer:
+              properties:
+                certSANs:
+                  items:
+                    type: string
+                  type: array
+                extraArgs:
+                  type: object
+                extraVolumes:
+                  items:
+                    properties:
+                      hostPath:
+                        type: string
+                      mountPath:
+                        type: string
+                      name:
+                        type: string
+                      pathType:
+                        type: string
+                      readOnly:
+                        type: boolean
+                    required:
+                    - name
+                    - hostPath
+                    - mountPath
+                    type: object
+                  type: array
+                timeoutForControlPlane:
+                  type: object
+              type: object
+            apiVersion:
+              type: string
+            certificatesDir:
+              type: string
+            clusterName:
+              type: string
+            controlPlaneEndpoint:
+              type: string
+            controllerManager:
+              properties:
+                extraArgs:
+                  type: object
+                extraVolumes:
+                  items:
+                    properties:
+                      hostPath:
+                        type: string
+                      mountPath:
+                        type: string
+                      name:
+                        type: string
+                      pathType:
+                        type: string
+                      readOnly:
+                        type: boolean
+                    required:
+                    - name
+                    - hostPath
+                    - mountPath
+                    type: object
+                  type: array
+              type: object
+            dns:
+              properties:
+                imageRepository:
+                  type: string
+                imageTag:
+                  type: string
+                type:
+                  type: string
+              required:
+              - type
+              type: object
+            etcd:
+              properties:
+                external:
+                  properties:
+                    caFile:
+                      type: string
+                    certFile:
+                      type: string
+                    endpoints:
+                      items:
+                        type: string
+                      type: array
+                    keyFile:
+                      type: string
+                  required:
+                  - endpoints
+                  - caFile
+                  - certFile
+                  - keyFile
+                  type: object
+                local:
+                  properties:
+                    dataDir:
+                      type: string
+                    extraArgs:
+                      type: object
+                    imageRepository:
+                      type: string
+                    imageTag:
+                      type: string
+                    peerCertSANs:
+                      items:
+                        type: string
+                      type: array
+                    serverCertSANs:
+                      items:
+                        type: string
+                      type: array
+                  required:
+                  - dataDir
+                  type: object
+              type: object
+            featureGates:
+              type: object
+            imageRepository:
+              type: string
+            kind:
+              type: string
+            kubernetesVersion:
+              type: string
+            networking:
+              properties:
+                dnsDomain:
+                  type: string
+                podSubnet:
+                  type: string
+                serviceSubnet:
+                  type: string
+              required:
+              - serviceSubnet
+              - podSubnet
+              - dnsDomain
+              type: object
+            scheduler:
+              properties:
+                extraArgs:
+                  type: object
+                extraVolumes:
+                  items:
+                    properties:
+                      hostPath:
+                        type: string
+                      mountPath:
+                        type: string
+                      name:
+                        type: string
+                      pathType:
+                        type: string
+                      readOnly:
+                        type: boolean
+                    required:
+                    - name
+                    - hostPath
+                    - mountPath
+                    type: object
+                  type: array
+              type: object
+            useHyperKubeImage:
+              type: boolean
+          required:
+          - etcd
+          - networking
+          - kubernetesVersion
+          - controlPlaneEndpoint
+          - dns
+          - certificatesDir
+          - imageRepository
+          type: object
+        etcdCAKeyPair:
+          properties:
+            cert:
+              format: byte
+              type: string
+            key:
+              format: byte
+              type: string
+          required:
+          - cert
+          - key
+          type: object
+        frontProxyCAKeyPair:
+          properties:
+            cert:
+              format: byte
+              type: string
+            key:
+              format: byte
+              type: string
+          required:
+          - cert
+          - key
+          type: object
         kind:
-          description: 'Kind is a string value representing the REST resource this
-            object represents. Servers may infer this from the endpoint the client
-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
+        saKeyPair:
+          properties:
+            cert:
+              format: byte
+              type: string
+            key:
+              format: byte
+              type: string
+          required:
+          - cert
+          - key
+          type: object
+        sshAuthorizedKeys:
+          items:
+            type: string
+          type: array
         vsphereCredentialSecret:
           type: string
         vspherePassword:
@@ -41,5 +260,5 @@ status:
   acceptedNames:
     kind: ""
     plural: ""
-  conditions: []
-  storedVersions: []
+  conditions: null
+  storedVersions: null

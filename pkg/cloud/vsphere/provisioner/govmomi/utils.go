@@ -42,7 +42,7 @@ func (pv *Provisioner) GetKubeadmToken(cluster *clusterv1.Cluster) (string, erro
 	}
 
 	if len(controlPlaneMachines) == 0 {
-		return "", errors.New("No control plane nodes available")
+		return "", errors.New("No control plane node available")
 	}
 
 	kubeconfig, err := pv.GetKubeConfig(cluster)

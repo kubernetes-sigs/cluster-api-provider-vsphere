@@ -124,7 +124,7 @@ items:
                 - /home/weave/launch.sh
               env:
                 - name: IPALLOC_RANGE
-                  value: ${POD_CIDR}
+                  value: "100.96.0.0/11"
                 - name: HOSTNAME
                   valueFrom:
                     fieldRef:

@@ -35,14 +35,16 @@ func (pv *Provisioner) GetKubeadmToken(cluster *clusterv1.Cluster) (string, erro
 			}
 		}
 	}
-	// From the cluster locate the master node
-	master, err := vsphereutils.GetMasterForCluster(cluster, pv.lister)
+	// From the cluster locate the control plane node
+	controlPlaneMachines, err := vsphereutils.GetControlPlaneMachinesForCluster(cluster, pv.lister)
 	if err != nil {
 		return "", err
 	}
-	if len(master) == 0 {
-		return "", errors.New("No master available")
+
+	if len(controlPlaneMachines) == 0 {
+		return "", errors.New("No control plane nodes available")
 	}
+
 	kubeconfig, err := pv.GetKubeConfig(cluster)
 	if err != nil {
 		return "", err

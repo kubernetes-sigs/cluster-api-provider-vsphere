@@ -24,23 +24,27 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// GetMasterForCluster returns the master nodes for the given cluster
-func GetMasterForCluster(cluster *clusterv1.Cluster, lister v1alpha1.Interface) ([]*clusterv1.Machine, error) {
-	masters := make([]*clusterv1.Machine, 0)
-	machines, err := lister.Machines().Lister().Machines(cluster.Namespace).List(labels.Everything())
+// GetControlPlaneMachinesForCluster returns the master nodes for the given cluster
+func GetControlPlaneMachinesForCluster(cluster *clusterv1.Cluster, lister v1alpha1.Interface) ([]*clusterv1.Machine, error) {
+	labelSet := labels.Set(map[string]string{
+		clusterv1.MachineClusterLabelName: cluster.Name,
+	})
+
+	machines, err := lister.Machines().Lister().Machines(cluster.Namespace).List(labelSet.AsSelector())
 	if err != nil {
 		return nil, err
 	}
+
+	controlPlaneMachines := make([]*clusterv1.Machine, 0)
 	for _, machine := range machines {
-		if util.IsControlPlaneMachine(machine) {
-			masters = append(masters, machine)
-			// Return the first master for now. Need to handle the multi-master case better
+		if !util.IsControlPlaneMachine(machine) {
+			continue
 		}
+
+		controlPlaneMachines = append(controlPlaneMachines, machine)
 	}
-	if len(masters) == 0 {
-		klog.Infof("No master node found for the cluster %s", cluster.Name)
-	}
-	return masters, nil
+
+	return controlPlaneMachines, nil
 }
 
 func GetIP(_ *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {

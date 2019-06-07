@@ -138,16 +138,18 @@ func (ca *ClusterActuator) fetchKubeConfig(cluster *clusterv1.Cluster, masters [
 }
 
 func (ca *ClusterActuator) getClusterAPIStatus(cluster *clusterv1.Cluster) (vsphereconfigv1.APIStatus, error) {
-	masters, err := vsphereutils.GetMasterForCluster(cluster, ca.lister)
+	controlPlaneMachines, err := vsphereutils.GetControlPlaneMachinesForCluster(cluster, ca.lister)
 	if err != nil {
-		klog.Infof("Error retrieving master nodes for the cluster: %s", err)
+		klog.Infof("Error retrieving control plane nodes for the cluster: %s", err)
 		return vsphereconfigv1.ApiNotReady, err
 	}
-	if len(masters) == 0 {
-		klog.Infof("No masters for the cluster [%s] present", cluster.Name)
+
+	if len(controlPlaneMachines) == 0 {
+		klog.Warningf("No masters for the cluster [%s] present", cluster.Name)
 		return vsphereconfigv1.ApiNotReady, nil
 	}
-	kubeconfig, err := ca.fetchKubeConfig(cluster, masters)
+
+	kubeconfig, err := ca.fetchKubeConfig(cluster, controlPlaneMachines)
 	if err != nil {
 		return vsphereconfigv1.ApiNotReady, err
 	}
@@ -225,16 +227,16 @@ func (ca *ClusterActuator) ensureLoadBalancerMembers(cluster *clusterv1.Cluster)
 func (ca *ClusterActuator) setMasterNodeIPAsEndpoint(cluster *clusterv1.Cluster) error {
 	ncluster := cluster.DeepCopy()
 	if len(ncluster.Status.APIEndpoints) == 0 {
-		masters, err := vsphereutils.GetMasterForCluster(ncluster, ca.lister)
+		controlPlaneMachines, err := vsphereutils.GetControlPlaneMachinesForCluster(ncluster, ca.lister)
 		if err != nil {
-			klog.Infof("Error retrieving master nodes for the cluster: %s", err)
+			klog.Infof("Error retrieving control plane nodes for the cluster: %s", err)
 			return err
 		}
-		for _, master := range masters {
-			ip, err := vsphereutils.GetIP(ncluster, master)
+		for _, controlPlane := range controlPlaneMachines {
+			ip, err := vsphereutils.GetIP(ncluster, controlPlane)
 			if err != nil {
-				klog.Infof("Master node [%s] IP not ready yet: %s", master.Name, err)
-				// continue the loop to see if there are any other master available that has the
+				klog.Infof("Control plane node [%s] IP not ready yet: %s", controlPlane.Name, err)
+				// continue the loop to see if there are any other control plane available that has the
 				// IP already populated
 				continue
 			}

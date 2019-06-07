@@ -24,7 +24,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// GetControlPlaneMachinesForCluster returns the master nodes for the given cluster
+// GetControlPlaneMachinesForCluster returns the control plane nodes for the given cluster
 func GetControlPlaneMachinesForCluster(cluster *clusterv1.Cluster, lister v1alpha1.Interface) ([]*clusterv1.Machine, error) {
 	labelSet := labels.Set(map[string]string{
 		clusterv1.MachineClusterLabelName: cluster.Name,
@@ -165,8 +165,8 @@ func CreateTempFile(contents string) (string, error) {
 	return tmpFile.Name(), nil
 }
 
-func GetKubeConfig(cluster *clusterv1.Cluster, master *clusterv1.Machine) (string, error) {
-	ip, err := GetIP(cluster, master)
+func GetKubeConfig(cluster *clusterv1.Cluster, controlPlaneMachine *clusterv1.Machine) (string, error) {
+	ip, err := GetIP(cluster, controlPlaneMachine)
 	if err != nil {
 		klog.Info("cannot get kubeconfig because found no IP")
 		return "", err

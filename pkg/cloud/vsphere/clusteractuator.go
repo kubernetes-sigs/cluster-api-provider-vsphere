@@ -145,7 +145,7 @@ func (ca *ClusterActuator) getClusterAPIStatus(cluster *clusterv1.Cluster) (vsph
 	}
 
 	if len(controlPlaneMachines) == 0 {
-		klog.Warningf("No masters for the cluster [%s] present", cluster.Name)
+		klog.Warningf("No control plane nodes for the cluster [%s] present", cluster.Name)
 		return vsphereconfigv1.ApiNotReady, nil
 	}
 

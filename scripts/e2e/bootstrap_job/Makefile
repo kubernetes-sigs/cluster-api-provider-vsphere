@@ -7,8 +7,12 @@ REGISTRY ?=gcr.io/cnx-cluster-api/cluster-api-provider-vsphere-ci
 all: build push clean
 .PHONY : all
 
+.PHONY : copyspec
+copyspec:
+	cp ../../../cmd/clusterctl/examples/vsphere/addons.yaml.template ./spec/addons.template
+
 .PHONY : build
-build: 
+build: copyspec
 	docker build . --tag $(REGISTRY):$(VERSION)
         
 push: build
@@ -19,3 +23,4 @@ push: build
 
 clean:
 	docker image rm -f $(REGISTRY):$(VERSION)
+	rm ./spec/addons.template

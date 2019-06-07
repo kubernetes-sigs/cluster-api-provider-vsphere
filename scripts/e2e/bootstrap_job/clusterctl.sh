@@ -61,6 +61,7 @@ echo "test ${PROVIDER_COMPONENT_SPEC}"
 /tmp/clusterctl/clusterctl create cluster -e ~/.kube/config -c ./spec/cluster.yml \
     -m ./spec/machines.yml \
     -p ./spec/"${PROVIDER_COMPONENT_SPEC}" \
+    -a ./spec/addons.yml \
     --provider vsphere \
     -v 6 
 

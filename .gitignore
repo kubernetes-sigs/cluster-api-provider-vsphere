@@ -23,3 +23,6 @@ config/default/vsphere_tmp
 
 # Ignore sed backup files
 *-e
+
+# Tooling
+.bin/

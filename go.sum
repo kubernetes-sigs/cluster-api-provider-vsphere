@@ -306,8 +306,8 @@ sigs.k8s.io/cluster-api v0.0.0-20190308220454-a2f5862d32c6 h1:i6/D1mvXb/p/pCwsFB
 sigs.k8s.io/cluster-api v0.0.0-20190308220454-a2f5862d32c6/go.mod h1:aEXstFx3krpj6/AOcV/rOP2VLKdrtSNUMDR2Kmt6YSs=
 sigs.k8s.io/controller-runtime v0.1.10 h1:amLOmcekVdnsD1uIpmgRqfTbQWJ2qxvQkcdeFhcotn4=
 sigs.k8s.io/controller-runtime v0.1.10/go.mod h1:HFAYoOh6XMV+jKF1UjFwrknPbowfyHEHHRdJMf2jMX8=
-sigs.k8s.io/controller-tools v0.0.0-20180825012133-999adc0c9bd4 h1:xxemA6Gq6CNPe+g8PQrpEAvrcJkhU1nXDe9jQiKq+zg=
-sigs.k8s.io/controller-tools v0.0.0-20180825012133-999adc0c9bd4/go.mod h1:6g08p9m9G/So3sBc1AOQifHfhxH/mb6Sc4z0LMI8XMw=
+sigs.k8s.io/controller-tools v0.1.9 h1:1MLDl41OqveAqWA1urQ3KU58fM5NMZF1/NDdVyWRY5Q=
+sigs.k8s.io/controller-tools v0.1.9/go.mod h1:6g08p9m9G/So3sBc1AOQifHfhxH/mb6Sc4z0LMI8XMw=
 sigs.k8s.io/testing_frameworks v0.1.1 h1:cP2l8fkA3O9vekpy5Ks8mmA0NW/F7yBdXf8brkWhVrs=
 sigs.k8s.io/testing_frameworks v0.1.1/go.mod h1:VVBKrHmJ6Ekkfz284YKhQePcdycOzNH9qL6ht1zEr/U=
 sigs.k8s.io/yaml v1.1.0 h1:4A07+ZFc2wgJwo8YNlQpr1rVlgUDlxXHhPJciaPY5gs=

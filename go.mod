@@ -52,7 +52,7 @@ require (
 	k8s.io/kube-openapi v0.0.0-20190306001800-15615b16d372 // indirect
 	sigs.k8s.io/cluster-api v0.0.0-20190308220454-a2f5862d32c6
 	sigs.k8s.io/controller-runtime v0.1.10
-	sigs.k8s.io/controller-tools v0.0.0-20180825012133-999adc0c9bd4
+	sigs.k8s.io/controller-tools v0.1.9
 	sigs.k8s.io/testing_frameworks v0.1.1 // indirect
 	sigs.k8s.io/yaml v1.1.0
 )

@@ -26,8 +26,10 @@ KUBE_JSON ?= config/kubernetes.json
 
 # The flags to give to Packer.
 PACKER_VAR_FILES := $(KUBE_JSON)
+OLD_PACKER_FLAGS := $(PACKER_FLAGS)
 PACKER_FLAGS := -var="capv_version=$(shell git describe --dirty)"
 PACKER_FLAGS += $(foreach f,$(abspath $(PACKER_VAR_FILES)),-var-file="$(f)" )
+PACKER_FLAGS += $(OLD_PACKER_FLAGS)
 
 BUILD_TARGETS := $(addprefix build-,$(BUILD_NAMES))
 $(BUILD_TARGETS):

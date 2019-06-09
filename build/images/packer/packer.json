@@ -1,5 +1,6 @@
 {
   "variables": {
+    "boot_wait": "10s",
     "build_timestamp": "{{timestamp}}",
     "capi_version": "v1alpha1",
     "capv_version": "",
@@ -8,7 +9,10 @@
     "kubernetes_cni_version": "0.7.5-00",
     "kubernetes_semver": "v1.13.6",
     "kubernetes_source": "pkg",
-    "kubernetes_version": "1.13.6-00"
+    "kubernetes_version": "1.13.6-00",
+    "vnc_bind_address": "127.0.0.1",
+    "vnc_port_min": "5900",
+    "vnc_port_max": "6000"
   },
   "builders": [
     {
@@ -23,7 +27,7 @@
       "disk_size": 20480,
       "disk_type_id": 0,
       "disk_adapter_type": "scsi",
-      "boot_wait": "5s",
+      "boot_wait": "{{user `boot_wait`}}",
       "http_directory": "./linux/{{user `distro_name`}}/http/",
       "guest_os_type": "{{user `guest_os_type`}}",
       "headless": "{{user `headless`}}",
@@ -40,7 +44,10 @@
         "{{user `boot_command_suffix`}}"
       ],
       "shutdown_command": "echo '{{user `ssh_password`}}' | sudo -S -E {{user `shutdown_command`}}",
-      "skip_compaction": false
+      "skip_compaction": false,
+      "vnc_bind_address": "{{user `vnc_bind_address`}}",
+      "vnc_port_min": "{{user `vnc_port_min`}}",
+      "vnc_port_max": "{{user `vnc_port_max`}}"
     }
   ],
   "provisioners": [

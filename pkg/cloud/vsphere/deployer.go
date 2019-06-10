@@ -17,7 +17,7 @@ limitations under the License.
 package vsphere
 
 import (
-	vsphereutils "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/utils"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/provisioner/govmomi"
 	clustercommon "sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
@@ -38,9 +38,17 @@ func NewDeploymentClient() *DeploymentClient {
 }
 
 func (d *DeploymentClient) GetIP(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
-	return vsphereutils.GetIP(cluster, machine)
+	gomachine, err := govmomi.NewGovmomiMachine(cluster, machine, nil, nil, nil, nil)
+	if err != nil {
+		return "", err
+	}
+	return gomachine.GetIP()
 }
 
 func (d *DeploymentClient) GetKubeConfig(cluster *clusterv1.Cluster, master *clusterv1.Machine) (string, error) {
-	return vsphereutils.GetKubeConfig(cluster, master)
+	gomachine, err := govmomi.NewGovmomiMachine(cluster, master, nil, nil, nil, nil)
+	if err != nil {
+		return "", err
+	}
+	return gomachine.GetIP()
 }

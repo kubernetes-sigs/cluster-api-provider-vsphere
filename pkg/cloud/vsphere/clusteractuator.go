@@ -30,6 +30,7 @@ import (
 	"k8s.io/klog"
 	vsphereconfigv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/provisioner/govmomi"
 	vsphereutils "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/utils"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
@@ -113,7 +114,13 @@ func (ca *ClusterActuator) fetchKubeConfig(cluster *clusterv1.Cluster, masters [
 		// Once we start supporting multiple masters, the kubeconfig needs to
 		// be generated differently, with the URL from the LB endpoint
 		master := masters[0]
-		kubeconfig, err = vsphereutils.GetKubeConfig(cluster, master)
+
+		gomachine, err := govmomi.NewGovmomiMachine(cluster, master, nil, ca.eventRecorder, ca.k8sClient, ca.clusterV1alpha1)
+		if err != nil {
+			return "", err
+		}
+
+		kubeconfig, err = gomachine.GetKubeConfig()
 		if err != nil || kubeconfig == "" {
 			klog.Infof("[cluster-actuator] error retrieving kubeconfig for target cluster, will requeue")
 			return "", &clustererror.RequeueAfterError{RequeueAfter: constants.RequeueAfterSeconds}
@@ -231,7 +238,11 @@ func (ca *ClusterActuator) setMasterNodeIPAsEndpoint(cluster *clusterv1.Cluster)
 			return err
 		}
 		for _, master := range masters {
-			ip, err := vsphereutils.GetIP(ncluster, master)
+			gomachine, err := govmomi.NewGovmomiMachine(ncluster, master, nil, nil, nil, nil)
+			if err != nil {
+				return err
+			}
+			ip, err := gomachine.GetIP()
 			if err != nil {
 				klog.Infof("Master node [%s] IP not ready yet: %s", master.Name, err)
 				// continue the loop to see if there are any other master available that has the

@@ -1,15 +1,11 @@
 package utils
 
 import (
-	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"math"
 	"os"
-	"os/exec"
-	"strings"
 	"time"
 
 	"github.com/cenkalti/backoff"
@@ -43,29 +39,6 @@ func GetMasterForCluster(cluster *clusterv1.Cluster, lister v1alpha1.Interface) 
 	return masters, nil
 }
 
-func GetIP(_ *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
-	if machine.ObjectMeta.Annotations == nil {
-		return "", errors.New("could not get IP")
-	}
-	if ip, ok := machine.ObjectMeta.Annotations[constants.VmIpAnnotationKey]; ok {
-		return ip, nil
-	}
-	return "", errors.New("could not get IP")
-}
-
-func GetMachineProviderStatus(machine *clusterv1.Machine) (*vsphereconfigv1.VsphereMachineProviderStatus, error) {
-	if machine.Status.ProviderStatus == nil {
-		return nil, nil
-	}
-	status := &vsphereconfigv1.VsphereMachineProviderStatus{}
-	err := json.Unmarshal(machine.Status.ProviderStatus.Raw, status)
-	if err != nil {
-		klog.V(4).Infof("error unmarshaling machine provider status: %s", err.Error())
-		return nil, err
-	}
-	return status, nil
-}
-
 func GetClusterProviderStatus(cluster *clusterv1.Cluster) (*vsphereconfigv1.VsphereClusterProviderStatus, error) {
 	if cluster.Status.ProviderStatus == nil {
 		return nil, nil
@@ -78,20 +51,6 @@ func GetClusterProviderStatus(cluster *clusterv1.Cluster) (*vsphereconfigv1.Vsph
 		return nil, err
 	}
 	return status, nil
-}
-
-func GetMachineProviderSpec(providerSpec clusterv1.ProviderSpec) (*vsphereconfigv1.VsphereMachineProviderConfig, error) {
-	config := &vsphereconfigv1.VsphereMachineProviderConfig{}
-
-	if providerSpec.Value == nil {
-		return nil, fmt.Errorf("machine providerconfig is invalid (nil)")
-	}
-
-	err := yaml.Unmarshal(providerSpec.Value.Raw, config)
-	if err != nil {
-		return nil, fmt.Errorf("machine providerconfig unmarshalling failure: %s", err.Error())
-	}
-	return config, nil
 }
 
 func GetClusterProviderSpec(providerSpec clusterv1.ProviderSpec) (*vsphereconfigv1.VsphereClusterProviderConfig, error) {
@@ -114,22 +73,6 @@ func GetSubnet(netRange clusterv1.NetworkRanges) string {
 		return ""
 	}
 	return netRange.CIDRBlocks[0]
-}
-
-func GetMachineRef(machine *clusterv1.Machine) (string, error) {
-	pc, err := GetMachineProviderSpec(machine.Spec.ProviderSpec)
-	if err != nil {
-		return "", err
-	}
-	return pc.MachineRef, nil
-}
-
-func GetActiveTasks(machine *clusterv1.Machine) string {
-	ps, err := GetMachineProviderStatus(machine)
-	if err != nil || ps == nil {
-		return ""
-	}
-	return ps.TaskRef
 }
 
 func CreateTempFile(contents string) (string, error) {
@@ -159,34 +102,6 @@ func CreateTempFile(contents string) (string, error) {
 		return "", err
 	}
 	return tmpFile.Name(), nil
-}
-
-func GetKubeConfig(cluster *clusterv1.Cluster, master *clusterv1.Machine) (string, error) {
-	ip, err := GetIP(cluster, master)
-	if err != nil {
-		klog.Info("cannot get kubeconfig because found no IP")
-		return "", err
-	}
-	klog.Infof("pulling kubeconfig (using ssh) from %s", ip)
-	var out bytes.Buffer
-	cmd := exec.Command(
-		"ssh", "-i", "~/.ssh/vsphere_tmp",
-		"-q",
-		"-o", "StrictHostKeyChecking no",
-		"-o", "UserKnownHostsFile /dev/null",
-		fmt.Sprintf("ubuntu@%s", ip),
-		"sudo cat /etc/kubernetes/admin.conf")
-	cmd.Stdout = &out
-	cmd.Stderr = os.Stderr
-	err = cmd.Run()
-	if err != nil {
-		klog.Infof("ssh failed with error = %s", err.Error())
-	}
-	result := strings.TrimSpace(out.String())
-	if len(result) > 0 {
-		klog.Info("ssh pulled kubeconfig")
-	}
-	return result, err
 }
 
 // ByteToGiB returns n/1024^3. The input must be an integer that can be

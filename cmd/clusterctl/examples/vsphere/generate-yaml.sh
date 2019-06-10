@@ -58,7 +58,6 @@ while test $# -gt 0; do
             echo "options:"
             echo "-h, --help                show brief help"
             echo "-f, --force-overwrite     if file to be generated already exists, force script to overwrite it"
-            echo "--kubecon                 Use the containers from the kubecon demo"
             exit 0
             ;;
           -f)
@@ -67,10 +66,6 @@ while test $# -gt 0; do
             ;;
           --force-overwrite)
             OVERWRITE=1
-            shift
-            ;;
-          --kubecon)
-            USE_KUBECON=1
             shift
             ;;
           *)
@@ -162,14 +157,7 @@ kustomize build $VSPHERE_CLUSTER_API_CRD_PATH/default/ > $PROVIDERCOMPONENT_GENE
 echo "---" >> $PROVIDERCOMPONENT_GENERATED_FILE
 kustomize build $CLUSTER_API_CRD_PATH/default/ >> $PROVIDERCOMPONENT_GENERATED_FILE
 
-if [ $USE_KUBECON = 1 ]; then
-  echo "Updating generated provider-components.yaml file with containers from kubecon 2018..."
-  CONTROLLER_CONTAINER=$(grep "image:.*cluster-api-controller" ${PROVIDERCOMPONENT_GENERATED_FILE} | awk '{ print $2 }')
-  VSPHERE_PROVIDER_CONTAINER=$(grep "image:.*vsphere-cluster-api" ${PROVIDERCOMPONENT_GENERATED_FILE} | awk '{ print $2 }')
-
-  cat $PROVIDERCOMPONENT_GENERATED_FILE | \
-  	sed -e "s|$VSPHERE_PROVIDER_CONTAINER|$KUBECON_VSPHERE_PROVIDER|" \
-  	> $PROVIDERCOMPONENT_GENERATED_FILE.new
+echo "Done generating $PROVIDERCOMPONENT_GENERATED_FILE"
 
 echo
 echo "*** Finished creating initial example yamls in ./out"

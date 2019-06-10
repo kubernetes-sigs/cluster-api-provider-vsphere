@@ -104,7 +104,6 @@ vendor:
 
 # Create YAML file for deployment
 dev-yaml: | $(KUSTOMIZE)
-	@$(KUSTOMIZE) version 2>&1 | grep -q 'KustomizeVersion:v\{0,1\}[2-9][[:digit:]]\{0,\}' || { echo "kustomize v2+ required" 1>&2; exit 1; }
 	VSPHERE_MANAGER_IMG=${DEV_IMG} cmd/clusterctl/examples/vsphere/generate-yaml.sh
 
 # Build the docker image
@@ -122,7 +121,6 @@ dev-push:
 
 # Create YAML file for deployment
 prod-yaml: | $(KUSTOMIZE)
-	@$(KUSTOMIZE) version 2>&1 | grep -q 'KustomizeVersion:v\{0,1\}[2-9][[:digit:]]\{0,\}' || { echo "kustomize v2+ required" 1>&2; exit 1; }
 	VSPHERE_MANAGER_IMG=${PRODUCTION_IMG} cmd/clusterctl/examples/vsphere/generate-yaml.sh
 
 # Build the docker image

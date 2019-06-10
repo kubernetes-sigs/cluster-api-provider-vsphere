@@ -7,7 +7,7 @@ items:
       generateName: vs-master-
       labels:
         set: master
-        cluster.k8s.io/cluster-name: test1
+        cluster.k8s.io/cluster-name: ${CLUSTER_NAME}
     spec:
       providerSpec:
         value:
@@ -34,9 +34,6 @@ items:
             - diskLabel: ""
               diskSizeGB: 20
             preloaded: false
-            trustedCerts:
-            - zzzz
-            - aaaa
             ntpServers:
             - 0.pool.ntp.org
             - 1.pool.ntp.org

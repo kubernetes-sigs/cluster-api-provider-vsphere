@@ -1,18 +1,18 @@
 apiVersion: "cluster.k8s.io/v1alpha1"
 kind: MachineSet
 metadata:
-  name: test-machineset-1
+  name: ${CLUSTER_NAME}-machineset
 spec:
   replicas: 2
   selector:
     matchLabels:
       node-type: worker-node
-      cluster.k8s.io/cluster-name: test1
+      cluster.k8s.io/cluster-name: ${CLUSTER_NAME}
   template:
     metadata:
       labels:
         node-type: worker-node
-        cluster.k8s.io/cluster-name: test1
+        cluster.k8s.io/cluster-name: ${CLUSTER_NAME}
     spec:
       providerSpec:
         value:

@@ -32,21 +32,18 @@ CLUSTER_GENERATED_FILE=${OUTPUT_DIR}/cluster.yaml
 ADDON_TEMPLATE_FILE=${TEMPLATE_DIR}/addons.yaml.template
 ADDON_GENERATED_FILE=${OUTPUT_DIR}/addons.yaml
 
+CLUSTER_API_CRD_PATH=./vendor/sigs.k8s.io/cluster-api/config
+VSPHERE_CLUSTER_API_CRD_PATH=./config
+
 PROVIDERCOMPONENT_GENERATED_FILE=${OUTPUT_DIR}/provider-components.yaml
+VSPHERE_MANAGER_TEMPLATE_FILE=${TEMPLATE_DIR}/vsphere_manager_image_patch.yaml.template
+VSPHERE_MANAGER_GENERATED_FILE=$VSPHERE_CLUSTER_API_CRD_PATH/default/vsphere_manager_image_patch.yaml
 
 MACHINE_CONTROLLER_SSH_PUBLIC_FILE=vsphere_tmp.pub
 MACHINE_CONTROLLER_SSH_PUBLIC=
 MACHINE_CONTROLLER_SSH_PRIVATE_FILE=vsphere_tmp
 MACHINE_CONTROLLER_SSH_PRIVATE=
 MACHINE_CONTROLLER_SSH_HOME=~/.ssh/
-
-CLUSTER_API_CRD_PATH=./vendor/sigs.k8s.io/cluster-api/config
-VSPHERE_CLUSTER_API_CRD_PATH=./config
-
-KUBECON_CONTROLLER='gcr.io/cnx-cluster-api/cluster-api-controller:kubecon2018'
-KUBECON_VSPHERE_PROVIDER='gcr.io/cnx-cluster-api/vsphere-cluster-api-provider:kubecon2018'
-
-USE_KUBECON="${USE_KUBECON:-0}"
 
 OVERWRITE=0
 
@@ -82,12 +79,6 @@ while test $# -gt 0; do
         esac
 done
 
-KUSTOMIZE_VERSION=$(kustomize version | awk '{ print $2 }' | awk -F ':' '{ print $2} ')
-if [[ ! "${KUSTOMIZE_VERSION}" =~ unknown|v2 ]]; then
-    echo "Please upgrade the kustomize version to v2 at least."
-    exit 1
-fi
-
 if [ $OVERWRITE -ne 1 ] && [ -f $MACHINE_GENERATED_FILE ]; then
   echo File $MACHINE_GENERATED_FILE already exists. Delete it manually before running this script.
   exit 1
@@ -109,6 +100,46 @@ if [ $OVERWRITE -ne 1 ] && [ -f $PROVIDERCOMPONENT_GENERATED_FILE ]; then
 fi
 
 mkdir -p ${OUTPUT_DIR}
+
+# all variables used for yaml generation
+
+CLUSTER_NAME=${CLUSTER_NAME:-vsphere-cluster}
+SERVICE_CIDR=${SERVICE_CIDR:-100.64.0.0/13}
+CLUSTER_CIDR=${CLUSTER_CIDR:-100.96.0.0/11}
+
+VSPHERE_USER=${VSPHERE_USER:-}
+VSPHERE_PASSWORD=${VSPHERE_PASSWORD:-}
+VSPHERE_SERVER=${VSPHERE_SERVER:-}
+VSPHERE_MANAGER_IMG=${VSPHERE_MANAGER_IMG:-}
+
+# validate all required variables before generating any files
+
+if [ -z ${VSPHERE_USER} ]; then
+  echo "env var VSPHERE_USER is required"
+  exit 1
+fi
+
+if [ -z ${VSPHERE_PASSWORD} ]; then
+  echo "env var VSPHERE_PASSWORD is required"
+  exit 1
+fi
+
+if [ -z ${VSPHERE_SERVER} ]; then
+  echo "env var VSPHERE_SERVER is required"
+  exit 1
+fi
+
+if [ -z $VSPHERE_MANAGER_IMG ]; then
+  echo "env var VSPHERE_MANAGE_IMG is required"
+  exit 1
+fi
+
+envsubst < $MACHINE_TEMPLATE_FILE > "${MACHINE_GENERATED_FILE}"
+envsubst < $MACHINESET_TEMPLATE_FILE > "${MACHINESET_GENERATED_FILE}"
+envsubst < $CLUSTER_TEMPLATE_FILE > "${CLUSTER_GENERATED_FILE}"
+envsubst < $ADDON_TEMPLATE_FILE > "${ADDON_GENERATED_FILE}"
+
+envsubst < $VSPHERE_MANAGER_TEMPLATE_FILE > "${VSPHERE_MANAGER_GENERATED_FILE}"
 
 # Check if the ssh key already exists. If not, generate and copy to the .ssh dir.
 if [ ! -f $MACHINE_CONTROLLER_SSH_HOME$MACHINE_CONTROLLER_SSH_PRIVATE_FILE ]; then
@@ -139,27 +170,6 @@ if [ $USE_KUBECON = 1 ]; then
   cat $PROVIDERCOMPONENT_GENERATED_FILE | \
   	sed -e "s|$VSPHERE_PROVIDER_CONTAINER|$KUBECON_VSPHERE_PROVIDER|" \
   	> $PROVIDERCOMPONENT_GENERATED_FILE.new
-
-  cat $PROVIDERCOMPONENT_GENERATED_FILE.new | \
-  	sed -e "s|$CONTROLLER_CONTAINER|$KUBECON_CONTROLLER|" \
-  	> $PROVIDERCOMPONENT_GENERATED_FILE
-
-  rm $PROVIDERCOMPONENT_GENERATED_FILE.new
-fi
-
-echo "Done generating $PROVIDERCOMPONENT_GENERATED_FILE"
-
-cat $MACHINE_TEMPLATE_FILE \
-  > $MACHINE_GENERATED_FILE
-
-cat $MACHINESET_TEMPLATE_FILE \
-  > $MACHINESET_GENERATED_FILE
-
-cat $CLUSTER_TEMPLATE_FILE \
-  > $CLUSTER_GENERATED_FILE
-
-cat $ADDON_TEMPLATE_FILE \
-  > $ADDON_GENERATED_FILE
 
 echo
 echo "*** Finished creating initial example yamls in ./out"

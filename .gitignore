@@ -32,3 +32,6 @@ config/default/vsphere_tmp
 
 # Ignore the temporary .gopath directory
 .gopath/
+
+# ignore generated yaml in out/
+out/

@@ -104,16 +104,11 @@ vendor:
 
 # Create YAML file for deployment
 dev-yaml: | $(KUSTOMIZE)
-	@$(KUSTOMIZE) version 2>&1 | grep -q 'KustomizeVersion:v\{0,1\}[2-9][[:digit:]]\{0,\}' || { echo "kustomize v2+ required" 1>&2; exit 1; }
-	@echo "updating kustomize image patch file for manager resource"
-	sed -i'' -e 's@image: .*@image: '"${DEV_IMG}"'@' ./config/default/vsphere_manager_image_patch.yaml
-	cmd/clusterctl/examples/vsphere/generate-yaml.sh
+	VSPHERE_MANAGER_IMG=${DEV_IMG} cmd/clusterctl/examples/vsphere/generate-yaml.sh
 
 # Build the docker image
 dev-build: #test
 	docker build . -t ${DEV_IMG}
-	@echo "updating kustomize image patch file for manager resource"
-	sed -i'' -e 's@image: .*@image: '"${DEV_IMG}"'@' ./config/default/vsphere_manager_image_patch.yaml
 
 # Push the docker image
 dev-push:
@@ -126,16 +121,11 @@ dev-push:
 
 # Create YAML file for deployment
 prod-yaml: | $(KUSTOMIZE)
-	@$(KUSTOMIZE) version 2>&1 | grep -q 'KustomizeVersion:v\{0,1\}[2-9][[:digit:]]\{0,\}' || { echo "kustomize v2+ required" 1>&2; exit 1; }
-	@echo "updating kustomize image patch file for manager resource"
-	sed -i'' -e 's@image: .*@image: '"${PRODUCTION_IMG}"'@' ./config/default/vsphere_manager_image_patch.yaml
-	cmd/clusterctl/examples/vsphere/generate-yaml.sh
+	VSPHERE_MANAGER_IMG=${PRODUCTION_IMG} cmd/clusterctl/examples/vsphere/generate-yaml.sh
 
 # Build the docker image
 prod-build: test
 	docker build . -t ${PRODUCTION_IMG}
-	@echo "updating kustomize image patch file for manager resource"
-	sed -i'' -e 's@image: .*@image: '"${PRODUCTION_IMG}"'@' ./config/default/vsphere_manager_image_patch.yaml
 
 # Push the docker image
 prod-push:
@@ -150,15 +140,11 @@ prod-push:
 
 # Create YAML file for deployment into CI
 ci-yaml: | $(KUSTOMIZE)
-	@echo "updating kustomize image patch file for manager resource"
-	sed -i'' -e 's@image: .*@image: '"$(CI_IMG):$(VERSION)"'@' ./config/default/vsphere_manager_image_patch.yaml
-	cmd/clusterctl/examples/vsphere/generate-yaml.sh
+	VSPHERE_MANAGER_IMG=${CI_IMG}:${VERSION} cmd/clusterctl/examples/vsphere/generate-yaml.sh
 
 ci-image: generate fmt vet manifests
 	docker build . -t "$(CI_IMG):$(VERSION)"
 	docker build . -f cmd/clusterctl/Dockerfile -t "$(CLUSTERCTL_CI_IMG):$(VERSION)"
-	@echo "updating kustomize image patch file for manager resource"
-	sed -i.tmp -e 's@image: .*@image: '"$(CI_IMG):$(VERSION)"'@' ./config/default/vsphere_manager_image_patch.yaml
 
 ci-push: ci-image
 # Log into the registry with a service account file.  In CI, GCR_KEY_FILE contains the content and not the file name.

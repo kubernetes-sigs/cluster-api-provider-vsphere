@@ -53,4 +53,14 @@ ensure_kustomize() {
     chmod 0755 "${_lcl_bin}"
 }
 
+ensure_envsubst() {
+  echo "ensure-tools: envsubst"
+
+  if [ ! envsubst --help 2>/dev/null ]; then
+    echo "envsubst must be installed, see https://stackoverflow.com/a/23622446 for install steps"
+    exit 1
+  fi
+}
+
 ensure_kustomize
+ensure_envsubst

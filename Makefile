@@ -12,6 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+all: build test
+
+# Store the original working directory.
+CWD := $(abspath .)
+
+# Ensure that the Makefile targets execute from the GOPATH due to the K8s tools
+# failing if executed outside the GOPATH. This work-around:
+#   1. Creates a sub-directory named ".gopath" to act as a new GOPATH
+#   2. Symlinks the current directory into ".gopath/src/sigs.k8s.io/cluster-api-provider-vsphere"
+#   3. Sets the Makefile's SHELL variable to "hack/shell-with-gopath.sh" to
+#      cause all sub-shells opened by this Makefile to execute from inside the
+#      nested GOPATH.
+SHELL := hack/shell-with-gopath.sh
+
 # Image URL to use all building/pushing image targets
 PRODUCTION_IMG ?= gcr.io/cnx-cluster-api/vsphere-cluster-api-provider:0.2.0
 CI_IMG ?= gcr.io/cnx-cluster-api/vsphere-cluster-api-provider
@@ -27,8 +41,6 @@ ifeq (,$(strip $(KUSTOMIZE)))
 $(KUSTOMIZE):
 	GO111MODULE=off go get sigs.k8s.io/kustomize
 endif
-
-all: build test
 
 build: clusterctl manager
 
@@ -59,7 +71,7 @@ deploy: manifests
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests:
-	$(MAKE) -C config/crds
+	hack/update-generated.sh crd rbac
 
 # Run go fmt against code
 fmt:
@@ -71,17 +83,21 @@ vet:
 
 # Generate code
 generate:
-	go generate ./pkg/... ./cmd/...
+	hack/update-generated.sh codegen
 
-CAPI_CONFIG_SRC=$(abspath $(shell go list -f '{{.Dir}}' sigs.k8s.io/cluster-api/cmd/clusterctl 2>/dev/null)/../../config)
-CAPI_CONFIG_DST=./vendor/sigs.k8s.io/cluster-api/
-
+# Regenerating vendor cannot happen in a symlink due to the way certain Go
+# commands traverse the file structure. Fore more information please see
+# https://github.com/golang/go/issues/17451.
+vendor: export SHELL_WITH_GOPATH=0
+vendor: export GO111MODULE=on
 vendor:
 	go mod tidy -v
 	go mod vendor -v
 	go mod verify
-	mkdir -p $(CAPI_CONFIG_DST)
-	cp -rf --no-preserve=mode $(CAPI_CONFIG_SRC) $(CAPI_CONFIG_DST)
+	_src="$$(go list -f '{{.Dir}}' sigs.k8s.io/cluster-api/cmd/clusterctl 2>/dev/null)/../../config" && \
+	_dst=./vendor/sigs.k8s.io/cluster-api/ && \
+	mkdir -p "$${_dst}" && \
+	cp -rf --no-preserve=mode "$${_src}" "$${_dst}"
 .PHONY: vendor
 
 ####################################

@@ -26,3 +26,6 @@ config/default/vsphere_tmp
 
 # Tooling
 .bin/
+
+# Ignore the temporary .gopath directory
+.gopath/

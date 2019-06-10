@@ -36,17 +36,15 @@ DEV_IMG ?= # <== NOTE:  outside dev, change this!!!
 VERSION ?= $(shell git describe --exact-match 2> /dev/null || \
 	   git describe --match=$(git rev-parse --short=8 HEAD) --always --dirty --abbrev=8)
 
-KUSTOMIZE := $(shell command -v kustomize 2>/dev/null)
-ifeq (,$(strip $(KUSTOMIZE)))
-$(KUSTOMIZE):
-	GO111MODULE=off go get sigs.k8s.io/kustomize
-endif
-
-build: clusterctl manager
-
-# Run tests
-test: generate fmt vet manifests
-	go test ./pkg/... ./cmd/... -coverprofile cover.out
+# Ensure the tooling required by the build is present in hack/.bin and that
+# the tool directory is in the PATH
+TOOLS_BIN_DIR := $(abspath hack/.bin)
+export PATH := $(TOOLS_BIN_DIR):$(PATH)
+KUSTOMIZE := $(TOOLS_BIN_DIR)/kustomize
+TOOLS += $(KUSTOMIZE)
+tools $(TOOLS):
+	hack/ensure-tools.sh
+.PHONY: tools
 
 # Build manager binary
 manager: fmt vet
@@ -106,7 +104,7 @@ vendor:
 
 # Create YAML file for deployment
 dev-yaml: | $(KUSTOMIZE)
-	@$(KUSTOMIZE) version 2>&1 | grep -q 'KustomizeVersion:\(unknown\|v2\)' || { echo "kustomize v2+ required" 1>&2; exit 1; }
+	@$(KUSTOMIZE) version 2>&1 | grep -q 'KustomizeVersion:v\{0,1\}[2-9][[:digit:]]\{0,\}' || { echo "kustomize v2+ required" 1>&2; exit 1; }
 	@echo "updating kustomize image patch file for manager resource"
 	sed -i'' -e 's@image: .*@image: '"${DEV_IMG}"'@' ./config/default/vsphere_manager_image_patch.yaml
 	cmd/clusterctl/examples/vsphere/generate-yaml.sh
@@ -128,7 +126,7 @@ dev-push:
 
 # Create YAML file for deployment
 prod-yaml: | $(KUSTOMIZE)
-	@$(KUSTOMIZE) version 2>&1 | grep -q 'KustomizeVersion:\(unknown\|v2\)' || { echo "kustomize v2+ required" 1>&2; exit 1; }
+	@$(KUSTOMIZE) version 2>&1 | grep -q 'KustomizeVersion:v\{0,1\}[2-9][[:digit:]]\{0,\}' || { echo "kustomize v2+ required" 1>&2; exit 1; }
 	@echo "updating kustomize image patch file for manager resource"
 	sed -i'' -e 's@image: .*@image: '"${PRODUCTION_IMG}"'@' ./config/default/vsphere_manager_image_patch.yaml
 	cmd/clusterctl/examples/vsphere/generate-yaml.sh
@@ -169,3 +167,16 @@ ci-push: ci-image
 	docker push "$(CI_IMG):$(VERSION)"
 	docker push "$(CLUSTERCTL_CI_IMG):$(VERSION)"
 	@echo docker logout gcr.io
+
+################################################################################
+##                          The default targets                               ##
+################################################################################
+
+# The default build target
+build: clusterctl manager
+.PHONY: build
+
+# The default test target
+test: generate fmt vet manifests
+	go test ./pkg/... ./cmd/... -coverprofile cover.out
+.PHONY: test

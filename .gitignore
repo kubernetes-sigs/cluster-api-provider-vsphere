@@ -18,6 +18,9 @@ config/default/vsphere_tmp
 # tmp files
 *.tmp
 
+# Sed backup files
+*-e
+
 *.bzl
 *.bazel
 

@@ -69,9 +69,9 @@ else
   echo "image-post-create-config: insert cloud-init data"
   CIDATA_DIR="$(dirname "${BASH_SOURCE[0]}")/../build/images/cloudinit"
   cat <<EOF >>"${VMX_FILE}"
-guestinfo.userdata = "$(base64 -w0 <"${CIDATA_DIR}/user-data")"
+guestinfo.userdata = "$({ base64 -w0 || base64; } 2>/dev/null <"${CIDATA_DIR}/user-data")"
 guestinfo.userdata.encoding = "base64"
-guestinfo.metadata = "$(base64 -w0 <"${CIDATA_DIR}/meta-data")"
+guestinfo.metadata = "$({ base64 -w0 || base64; } 2>/dev/null <"${CIDATA_DIR}/meta-data")"
 guestinfo.metadata.encoding = "base64"
 EOF
   create_snapshot cloudinit

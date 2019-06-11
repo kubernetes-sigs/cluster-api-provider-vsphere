@@ -56,8 +56,11 @@ ensure_kustomize() {
 ensure_envsubst() {
   echo "ensure-tools: envsubst"
 
-  if [ ! envsubst --help 2>/dev/null ]; then
-    echo "envsubst must be installed, see https://stackoverflow.com/a/23622446 for install steps"
+  if ! envsubst --help 2>/dev/null; then
+    echo "envsubst must be installed, to install envsubst:"
+    echo "    on MacOS: $ brew install gettext"
+    echo "    on Linux, install the gettext rpm (i.e. $ apt-get install gettext)"
+    echo
     exit 1
   fi
 }

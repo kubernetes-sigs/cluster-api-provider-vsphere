@@ -35,7 +35,7 @@ bases:
 - ../manager/
 
 patches:
-- vsphere_manager_image_patch.yaml
+- capv_manager_image_patch.yaml
 
 secretGenerator:
 - name: machine-sshkeys

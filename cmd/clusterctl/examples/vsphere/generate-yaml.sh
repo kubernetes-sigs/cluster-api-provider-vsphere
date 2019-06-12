@@ -36,8 +36,8 @@ CLUSTER_API_CRD_PATH=./vendor/sigs.k8s.io/cluster-api/config
 VSPHERE_CLUSTER_API_CRD_PATH=./config
 
 PROVIDERCOMPONENT_GENERATED_FILE=${OUTPUT_DIR}/provider-components.yaml
-VSPHERE_MANAGER_TEMPLATE_FILE=${TEMPLATE_DIR}/vsphere_manager_image_patch.yaml.template
-VSPHERE_MANAGER_GENERATED_FILE=$VSPHERE_CLUSTER_API_CRD_PATH/default/vsphere_manager_image_patch.yaml
+CAPV_MANAGER_TEMPLATE_FILE=${TEMPLATE_DIR}/capv_manager_image_patch.yaml.template
+CAPV_MANAGER_GENERATED_FILE=$VSPHERE_CLUSTER_API_CRD_PATH/default/capv_manager_image_patch.yaml
 
 MACHINE_CONTROLLER_SSH_PUBLIC_FILE=vsphere_tmp.pub
 MACHINE_CONTROLLER_SSH_PUBLIC=
@@ -105,7 +105,7 @@ export CLUSTER_CIDR=${CLUSTER_CIDR:-100.96.0.0/11}
 export VSPHERE_USER=${VSPHERE_USER:-}
 export VSPHERE_PASSWORD=${VSPHERE_PASSWORD:-}
 export VSPHERE_SERVER=${VSPHERE_SERVER:-}
-export VSPHERE_MANAGER_IMG=${VSPHERE_MANAGER_IMG:-}
+export CAPV_MANAGER_IMAGE=${CAPV_MANAGER_IMAGE:-}
 export VSPHERE_DATACENTER=${VSPHERE_DATACENTER:-}
 export VSPHERE_DATASTORE=${VSPHERE_DATASTORE:-}
 export VSPHERE_NETWORK=${VSPHERE_NETWORK:-}
@@ -132,8 +132,8 @@ if [ -z ${VSPHERE_SERVER} ]; then
   exit 1
 fi
 
-if [ -z $VSPHERE_MANAGER_IMG ]; then
-  echo "env var VSPHERE_MANAGE_IMG is required"
+if [ -z $CAPV_MANAGER_IMAGE ]; then
+  echo "env var CAPV_MANAGER_IMAGE is required"
   exit 1
 fi
 
@@ -186,7 +186,7 @@ echo "Done generating $CLUSTER_GENERATED_FILE"
 envsubst < $ADDON_TEMPLATE_FILE > "${ADDON_GENERATED_FILE}"
 echo "Done generating $ADDON_GENERATED_FILE"
 
-envsubst < $VSPHERE_MANAGER_TEMPLATE_FILE > "${VSPHERE_MANAGER_GENERATED_FILE}"
+envsubst < $CAPV_MANAGER_TEMPLATE_FILE > "${CAPV_MANAGER_GENERATED_FILE}"
 
 # Check if the ssh key already exists. If not, generate and copy to the .ssh dir.
 if [ ! -f $MACHINE_CONTROLLER_SSH_HOME$MACHINE_CONTROLLER_SSH_PRIVATE_FILE ]; then

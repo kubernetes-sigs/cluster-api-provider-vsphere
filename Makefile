@@ -104,7 +104,7 @@ vendor:
 
 # Create YAML file for deployment
 dev-yaml: | $(KUSTOMIZE)
-	VSPHERE_MANAGER_IMG=${DEV_IMG} cmd/clusterctl/examples/vsphere/generate-yaml.sh
+	CAPV_MANAGER_IMAGE=${DEV_IMG} cmd/clusterctl/examples/vsphere/generate-yaml.sh
 
 # Build the docker image
 dev-build: #test
@@ -121,7 +121,7 @@ dev-push:
 
 # Create YAML file for deployment
 prod-yaml: | $(KUSTOMIZE)
-	VSPHERE_MANAGER_IMG=${PRODUCTION_IMG} cmd/clusterctl/examples/vsphere/generate-yaml.sh
+	CAPV_MANAGER_IMAGE=${PRODUCTION_IMG} cmd/clusterctl/examples/vsphere/generate-yaml.sh
 
 # Build the docker image
 prod-build: test
@@ -140,7 +140,7 @@ prod-push:
 
 # Create YAML file for deployment into CI
 ci-yaml: | $(KUSTOMIZE)
-	VSPHERE_MANAGER_IMG=${CI_IMG}:${VERSION} cmd/clusterctl/examples/vsphere/generate-yaml.sh
+	CAPV_MANAGER_IMAGE=${CI_IMG}:${VERSION} cmd/clusterctl/examples/vsphere/generate-yaml.sh
 
 ci-image: generate fmt vet manifests
 	docker build . -t "$(CI_IMG):$(VERSION)"

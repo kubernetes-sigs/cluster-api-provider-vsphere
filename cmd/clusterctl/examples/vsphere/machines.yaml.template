@@ -4,7 +4,7 @@ items:
   - apiVersion: "cluster.k8s.io/v1alpha1"
     kind: Machine
     metadata:
-      generateName: vs-master-
+      name: ${CLUSTER_NAME}-mgmt
       labels:
         set: master
         cluster.k8s.io/cluster-name: ${CLUSTER_NAME}
@@ -14,29 +14,21 @@ items:
           apiVersion: "vsphereproviderconfig/v1alpha1"
           kind: "VsphereMachineProviderConfig"
           machineSpec:
-            datacenter: ""
-            datastore: ""
-            resourcePool: ""
+            datacenter: "${VSPHERE_DATACENTER}"
+            datastore: "${VSPHERE_DATASTORE}"
+            resourcePool: "${VSPHERE_RESOURCE_POOL}"
+            vmFolder: "${VSPHERE_FOLDER}"
             networks:
-            - networkName: ""
+            - networkName: "${VSPHERE_NETWORK}"
               ipConfig:
-                networkType: static
-                ip: ""
-                netmask: ""
-                gateway: ""
-                dns:
-                - xxxx
-                - yyyy
+                networkType: "dhcp"
             numCPUs: 2
             memoryMB: 2048
-            template: ""
+            template: "${VSPHERE_TEMPLATE}"
             disks:
-            - diskLabel: ""
-              diskSizeGB: 20
+            - diskLabel: "${VSPHERE_DISK}"
+              diskSizeGB: ${VSPHERE_DISK_SIZE_GB}
             preloaded: false
-            ntpServers:
-            - 0.pool.ntp.org
-            - 1.pool.ntp.org
       versions:
         kubelet: 1.11.3
         controlPlane: 1.11.3

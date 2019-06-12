@@ -98,14 +98,22 @@ mkdir -p ${OUTPUT_DIR}
 
 # all variables used for yaml generation
 
-CLUSTER_NAME=${CLUSTER_NAME:-vsphere-cluster}
-SERVICE_CIDR=${SERVICE_CIDR:-100.64.0.0/13}
-CLUSTER_CIDR=${CLUSTER_CIDR:-100.96.0.0/11}
+export CLUSTER_NAME=${CLUSTER_NAME:-vsphere-cluster}
+export SERVICE_CIDR=${SERVICE_CIDR:-100.64.0.0/13}
+export CLUSTER_CIDR=${CLUSTER_CIDR:-100.96.0.0/11}
 
-VSPHERE_USER=${VSPHERE_USER:-}
-VSPHERE_PASSWORD=${VSPHERE_PASSWORD:-}
-VSPHERE_SERVER=${VSPHERE_SERVER:-}
-VSPHERE_MANAGER_IMG=${VSPHERE_MANAGER_IMG:-}
+export VSPHERE_USER=${VSPHERE_USER:-}
+export VSPHERE_PASSWORD=${VSPHERE_PASSWORD:-}
+export VSPHERE_SERVER=${VSPHERE_SERVER:-}
+export VSPHERE_MANAGER_IMG=${VSPHERE_MANAGER_IMG:-}
+export VSPHERE_DATACENTER=${VSPHERE_DATACENTER:-}
+export VSPHERE_DATASTORE=${VSPHERE_DATASTORE:-}
+export VSPHERE_NETWORK=${VSPHERE_NETWORK:-}
+export VSPHERE_RESOURCE_POOL=${VSPHERE_RESOURCE_POOL:-}
+export VSPHERE_FOLDER=${VSPHERE_FOLDER:-}
+export VSPHERE_TEMPLATE=${VSPHERE_TEMPLATE:-}
+export VSPHERE_DISK=${VSPHERE_DISK:-}
+export VSPHERE_DISK_SIZE_GB=${VSPHERE_DISK_SIZE_GB:-20}
 
 # validate all required variables before generating any files
 
@@ -126,6 +134,46 @@ fi
 
 if [ -z $VSPHERE_MANAGER_IMG ]; then
   echo "env var VSPHERE_MANAGE_IMG is required"
+  exit 1
+fi
+
+if [ -z $VSPHERE_DATACENTER ]; then
+  echo "env var VSPHERE_DATACENTER is required"
+  exit 1
+fi
+
+if [ -z $VSPHERE_DATASTORE ]; then
+  echo "env var VSPHERE_DATASTORE is required"
+  exit 1
+fi
+
+if [ -z $VSPHERE_NETWORK ]; then
+  echo "env var VSPHERE_NETWORK is required"
+  exit 1
+fi
+
+if [ -z $VSPHERE_RESOURCE_POOL ]; then
+  echo "env var VSPHERE_RESOURCE_POOL is required"
+  exit 1
+fi
+
+if [ -z $VSPHERE_FOLDER ]; then
+  echo "env var VSPHERE_FOLDER is required"
+  exit 1
+fi
+
+if [ -z $VSPHERE_TEMPLATE ]; then
+  echo "env var VSPHERE_TEMPLATE is required"
+  exit 1
+fi
+
+if [ -z $VSPHERE_DISK ]; then
+  echo "env var VSPHERE_DISK is required"
+  exit 1
+fi
+
+if [ ${VSPHERE_DISK_SIZE_GB} -lt 20 ]; then
+  echo "env var VSPHERE_DISK_SIZE_GB must be >= 20" 1>&2
   exit 1
 fi
 

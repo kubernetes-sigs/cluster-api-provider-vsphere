@@ -98,7 +98,7 @@ mkdir -p ${OUTPUT_DIR}
 
 # all variables used for yaml generation
 
-export CLUSTER_NAME=${CLUSTER_NAME:-vsphere-cluster}
+export CLUSTER_NAME=${CLUSTER_NAME:-capv-mgmt-example}
 export SERVICE_CIDR=${SERVICE_CIDR:-100.64.0.0/13}
 export CLUSTER_CIDR=${CLUSTER_CIDR:-100.96.0.0/11}
 

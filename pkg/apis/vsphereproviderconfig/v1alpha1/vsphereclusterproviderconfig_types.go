@@ -87,6 +87,11 @@ type KeyPair struct {
 	Key  []byte `json:"key"`
 }
 
+// HasCertAndKey returns whether a keypair contains cert and key of non-zero length.
+func (kp KeyPair) HasCertAndKey() bool {
+	return len(kp.Cert) > 0 && len(kp.Key) > 0
+}
+
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // VsphereClusterProviderConfigList contains a list of VsphereClusterProviderConfig

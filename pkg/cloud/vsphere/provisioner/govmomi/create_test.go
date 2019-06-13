@@ -30,10 +30,12 @@ import (
 	yaml "gopkg.in/yaml.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	vsphereconfigv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+
+	vsphereconfigv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/certificates"
 )
 
 func TestCreate(t *testing.T) {
@@ -62,6 +64,13 @@ func TestCreate(t *testing.T) {
 	}
 	clusterConfig.TypeMeta.Kind = reflect.TypeOf(clusterConfig).Name()
 
+	{
+		cluster := &clusterv1.Cluster{}
+		cluster.Name = "test-cluster"
+		cluster.Namespace = "test-namespace"
+		certificates.ReconcileCertificates(cluster, &clusterConfig)
+	}
+
 	raw, err := yaml.Marshal(clusterConfig)
 	if err != nil {
 		log.Fatal(err)
@@ -69,12 +78,22 @@ func TestCreate(t *testing.T) {
 
 	cluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-cluster",
+			Namespace: "test-namespace",
 			Annotations: map[string]string{
 				constants.KubeadmToken:           "__TODO__", // see govmomi.Provisioner.GetKubeadmToken
 				constants.KubeadmTokenExpiryTime: time.Now().Add(time.Hour).Format(time.RFC3339),
 			},
 		},
 		Spec: v1alpha1.ClusterSpec{
+			ClusterNetwork: clusterv1.ClusterNetworkingConfig{
+				Services: clusterv1.NetworkRanges{
+					CIDRBlocks: []string{"1.2.3.4"},
+				},
+				Pods: clusterv1.NetworkRanges{
+					CIDRBlocks: []string{"5.6.7.8"},
+				},
+			},
 			ProviderSpec: v1alpha1.ProviderSpec{
 				Value: &runtime.RawExtension{
 					Raw: raw,
@@ -138,6 +157,9 @@ func TestCreate(t *testing.T) {
 	machine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "machine1",
+			Labels: map[string]string{
+				"set": "controlplane",
+			},
 		},
 		Spec: v1alpha1.MachineSpec{
 			ProviderSpec: v1alpha1.ProviderSpec{
@@ -162,7 +184,7 @@ func TestCreate(t *testing.T) {
 
 	DefaultSSHPublicKeyFile = "create_test.go" // any file will avoid the k8s client path in GetSSHPublicKey()
 
-	err = p.Create(context.Background(), cluster, machine)
+	err = p.Create(context.Background(), cluster, machine, "")
 	if err != nil {
 		log.Fatal(err)
 	}

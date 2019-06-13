@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2015 VMware, Inc. All Rights Reserved.
+Copyright 2017 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,22 +14,25 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package ovf
+package util
 
 import (
-	"io"
+	"bytes"
+	"text/template"
 
-	"github.com/vmware/govmomi/vim25/xml"
+	"github.com/pkg/errors"
 )
 
-func Unmarshal(r io.Reader) (*Envelope, error) {
-	var e Envelope
-
-	dec := xml.NewDecoder(r)
-	err := dec.Decode(&e)
+// ParseTemplate validates and parses passed as argument template
+func ParseTemplate(strtmpl string, obj interface{}) ([]byte, error) {
+	var buf bytes.Buffer
+	tmpl, err := template.New("template").Parse(strtmpl)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "error when parsing template")
 	}
-
-	return &e, nil
+	err = tmpl.Execute(&buf, obj)
+	if err != nil {
+		return nil, errors.Wrap(err, "error when executing template")
+	}
+	return buf.Bytes(), nil
 }

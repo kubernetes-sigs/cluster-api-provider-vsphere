@@ -1,0 +1,27 @@
+@startuml machine-actuator-create-workflow
+
+start;
+
+:Create machine;
+
+if (Is the control plane ready) then (yes)
+  if (Machine has control plane label) then (yes)
+    #LightBlue:Join as control plane member;
+  else (no)
+    #LightBlue:Join as worker node;
+  endif
+else (no)
+  if (Machine has control plane label) then (yes)
+    if (Are there other control plane machines) then (yes)
+      #Pink:Return requeue error;
+    else (no)
+      #LightBlue:Create machine to init control plane;
+    endif
+  else (no)
+    #Pink:Return requeue error;
+  endif
+endif
+
+stop;
+
+@enduml

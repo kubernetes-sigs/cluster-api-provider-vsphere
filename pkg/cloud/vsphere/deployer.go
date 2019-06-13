@@ -37,10 +37,10 @@ func NewDeploymentClient() *DeploymentClient {
 	return &DeploymentClient{}
 }
 
-func (d *DeploymentClient) GetIP(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
-	return vsphereutils.GetIP(cluster, machine)
+func (d *DeploymentClient) GetIP(cluster *clusterv1.Cluster, _ *clusterv1.Machine) (string, error) {
+	return vsphereutils.GetIP(cluster, nil)
 }
 
-func (d *DeploymentClient) GetKubeConfig(cluster *clusterv1.Cluster, master *clusterv1.Machine) (string, error) {
-	return vsphereutils.GetKubeConfig(cluster, master)
+func (d *DeploymentClient) GetKubeConfig(cluster *clusterv1.Cluster, _ *clusterv1.Machine) (string, error) {
+	return vsphereutils.GetKubeConfig(cluster, nil)
 }

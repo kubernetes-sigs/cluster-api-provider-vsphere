@@ -19,8 +19,11 @@ package vsphere
 import (
 	"encoding/json"
 	"fmt"
+	"net"
+	"strconv"
 	"time"
 
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -104,18 +107,12 @@ func (ca *ClusterActuator) updateK8sAPIStatus(cluster *clusterv1.Cluster) error 
 func (ca *ClusterActuator) fetchKubeConfig(cluster *clusterv1.Cluster, masters []*clusterv1.Machine) (string, error) {
 	var kubeconfig string
 	klog.V(4).Infof("attempting to fetch kubeconfig")
-	secret, err := ca.k8sClient.Core().Secrets(cluster.Namespace).Get(fmt.Sprintf(constants.KubeConfigSecretName, cluster.UID), metav1.GetOptions{})
+	secret, err := ca.k8sClient.CoreV1().Secrets(cluster.Namespace).Get(fmt.Sprintf(constants.KubeConfigSecretName, cluster.UID), metav1.GetOptions{})
 	if err != nil {
 		klog.V(4).Info("could not pull secrets for kubeconfig")
-		// TODO: Check for the proper err type for *not present* case. rather than all other cases
-		// Fetch the kubeconfig and create the secret saving it
-		// Currently we support only a single master thus the below assumption
-		// Once we start supporting multiple masters, the kubeconfig needs to
-		// be generated differently, with the URL from the LB endpoint
-		master := masters[0]
-		kubeconfig, err = vsphereutils.GetKubeConfig(cluster, master)
-		if err != nil || kubeconfig == "" {
-			klog.Infof("[cluster-actuator] error retrieving kubeconfig for target cluster, will requeue")
+		kubeconfig, err := vsphereutils.GetKubeConfig(cluster, ca.lister)
+		if err != nil {
+			klog.Error(err)
 			return "", &clustererror.RequeueAfterError{RequeueAfter: constants.RequeueAfterSeconds}
 		}
 		configmap := make(map[string]string)
@@ -126,7 +123,7 @@ func (ca *ClusterActuator) fetchKubeConfig(cluster *clusterv1.Cluster, masters [
 			},
 			StringData: configmap,
 		}
-		secret, err = ca.k8sClient.Core().Secrets(cluster.Namespace).Create(secret)
+		secret, err = ca.k8sClient.CoreV1().Secrets(cluster.Namespace).Create(secret)
 		if err != nil {
 			klog.Warningf("Could not create the secret for the saving kubeconfig: err [%s]", err.Error())
 		}
@@ -167,7 +164,7 @@ func (ca *ClusterActuator) getClusterAPIStatus(cluster *clusterv1.Cluster) (vsph
 		klog.Infof("[cluster-actuator] error creating clientset for target cluster [%s], will requeue", err.Error())
 		return vsphereconfigv1.ApiNotReady, &clustererror.RequeueAfterError{RequeueAfter: constants.RequeueAfterSeconds}
 	}
-	_, err = clientSet.Core().Nodes().List(metav1.ListOptions{})
+	_, err = clientSet.CoreV1().Nodes().List(metav1.ListOptions{})
 	if err != nil {
 		klog.Infof("[cluster-actuator] target cluster API not yet ready [%s], will requeue", err.Error())
 		return vsphereconfigv1.ApiNotReady, &clustererror.RequeueAfterError{RequeueAfter: constants.RequeueAfterSeconds}
@@ -213,47 +210,76 @@ func (ca *ClusterActuator) provisionLoadBalancer(cluster *clusterv1.Cluster) err
 // ensureLoadBalancerMembers would be responsible for keeping the master API endpoints
 // synced with the lb members at all times.
 func (ca *ClusterActuator) ensureLoadBalancerMembers(cluster *clusterv1.Cluster) error {
-	// This is the temporary implementation until we do the proper LB implementation
-	err := ca.setMasterNodeIPAsEndpoint(cluster)
-	if err != nil {
-		klog.Infof("Error registering master node's IP as API Endpoint for the cluster: %s", err)
-		return err
-	}
-	return nil
+	return ca.addControlPlaneEndpointToAPIEndpoints(cluster)
 }
 
-// TODO(ssurana): Remove this method once we have the proper lb implementation
-// Temporary implementation: Simply use the first master IP that you can find
-func (ca *ClusterActuator) setMasterNodeIPAsEndpoint(cluster *clusterv1.Cluster) error {
-	ncluster := cluster.DeepCopy()
-	if len(ncluster.Status.APIEndpoints) == 0 {
-		controlPlaneMachines, err := vsphereutils.GetControlPlaneMachinesForCluster(ncluster, ca.lister)
-		if err != nil {
-			klog.Infof("Error retrieving control plane nodes for the cluster: %s", err)
+func (ca *ClusterActuator) addControlPlaneEndpointToAPIEndpoints(cluster *clusterv1.Cluster) error {
+	cluster = cluster.DeepCopy()
+
+	if len(cluster.Status.APIEndpoints) > 0 {
+		return nil
+	}
+
+	controlPlaneEndpoint, err := vsphereutils.GetControlPlaneEndpoint(cluster, ca.lister)
+	if err != nil {
+		klog.Error(err)
+		if err, ok := errors.Cause(err).(*clustererror.RequeueAfterError); ok {
 			return err
 		}
-		for _, controlPlane := range controlPlaneMachines {
-			ip, err := vsphereutils.GetIP(ncluster, controlPlane)
-			if err != nil {
-				klog.Infof("Control plane node [%s] IP not ready yet: %s", controlPlane.Name, err)
-				// continue the loop to see if there are any other control plane available that has the
-				// IP already populated
-				continue
-			}
-			ncluster.Status.APIEndpoints = []clusterv1.APIEndpoint{
-				clusterv1.APIEndpoint{
-					Host: ip,
-					Port: constants.ApiServerPort,
-				}}
-			_, err = ca.clusterV1alpha1.Clusters(ncluster.Namespace).UpdateStatus(ncluster)
-			if err != nil {
-				ca.eventRecorder.Eventf(ncluster, corev1.EventTypeWarning, "Failed Update", "Error in updating API Endpoint: %s", err)
-				klog.Infof("Error in updating the status: %s", err)
-				return err
-			}
-			ca.eventRecorder.Eventf(ncluster, corev1.EventTypeNormal, "Updated", "Updated API Endpoint to %v", ip)
-		}
+		return err
 	}
+
+	host, szPort, err := net.SplitHostPort(controlPlaneEndpoint)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"unable to get host/port for control plane endpoint "+
+				"%s=%s %s=%s %s=%s",
+			"control-plane-endpoint", controlPlaneEndpoint,
+			"cluster-namespace", cluster.Namespace,
+			"cluster-name", cluster.Name)
+	}
+
+	port, err := strconv.Atoi(szPort)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"unable to get parse port for control plane endpoint "+
+				"%s=%s %s=%s %s=%s %s=%s",
+			"host", host,
+			"port", szPort,
+			"cluster-namespace", cluster.Namespace,
+			"cluster-name", cluster.Name)
+	}
+
+	cluster.Status.APIEndpoints = []clusterv1.APIEndpoint{
+		clusterv1.APIEndpoint{
+			Host: host,
+			Port: port,
+		},
+	}
+
+	if _, err := ca.clusterV1alpha1.Clusters(cluster.Namespace).UpdateStatus(cluster); err != nil {
+		err = errors.Wrapf(err,
+			"unable to update cluster with API endpoint "+
+				"%s=%s %s=%s %s=%s",
+			"api-endpoint", controlPlaneEndpoint,
+			"cluster-namespace", cluster.Namespace,
+			"cluster-name", cluster.Name)
+
+		ca.eventRecorder.Eventf(cluster, corev1.EventTypeWarning, "Failed Update", err.Error())
+		klog.Error(err)
+		return err
+	}
+
+	ca.eventRecorder.Eventf(
+		cluster, corev1.EventTypeNormal,
+		"Updated", "updated cluster with API endpoint "+
+			"%s=%s %s=%s %s=%s",
+		"api-endpoint", controlPlaneEndpoint,
+		"cluster-namespace", cluster.Namespace,
+		"cluster-name", cluster.Name)
+
 	return nil
 }
 

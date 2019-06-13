@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2015 VMware, Inc. All Rights Reserved.
+Copyright 2017 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,12 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-/*
-Package ovf provides functionality to unmarshal and inspect the structure
-of an OVF file. It is not a complete implementation of the specification and
-is intended to be used to import virtual infrastructure into vSphere.
+package util
 
-For a complete specification of the OVF standard, refer to:
-https://www.dmtf.org/sites/default/files/standards/documents/DSP0243_2.1.0.pdf
-*/
-package ovf
+import (
+	"os/exec"
+)
+
+// CopyDir copies the content of a folder
+func CopyDir(src string, dst string) error {
+	cmd := exec.Command("cp", "-r", src, dst)
+	err := cmd.Run()
+	if err != nil {
+		return err
+	}
+	return nil
+}

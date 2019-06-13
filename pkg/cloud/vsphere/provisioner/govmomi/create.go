@@ -4,15 +4,15 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
+	"net"
 	"net/url"
 	"reflect"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
-	"github.com/vmware/govmomi/ovf"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/soap"
 	"github.com/vmware/govmomi/vim25/types"
@@ -20,33 +20,99 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/klog"
-	vsphereconfigv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
-	vpshereprovisionercommon "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/provisioner/common"
-	vsphereutils "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/utils"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clustererror "sigs.k8s.io/cluster-api/pkg/controller/error"
 	apierrors "sigs.k8s.io/cluster-api/pkg/errors"
 	"sigs.k8s.io/cluster-api/pkg/util"
+
+	vsphereconfigv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
+	vpshereprovisionercommon "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/provisioner/common"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/certificates"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/kubeadm"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/userdata"
+	vsphereutils "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/utils"
 )
 
-func (pv *Provisioner) Create(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+const (
+	// localIPV4lookup resolves via cloudinit and looks up the instance's IP through the provider's metadata service.
+	// See https://cloudinit.readthedocs.io/en/latest/topics/instancedata.html
+	localIPV4Lookup = "{{ ds.meta_data.local_ipv4 }}"
+
+	// hostnameLookup resolves via cloud init and uses cloud provider's metadata service to lookup its own hostname.
+	hostnameLookup = "{{ ds.meta_data.hostname }}"
+
+	// containerdSocket is the path to containerd socket.
+	containerdSocket = "/var/run/containerd/containerd.sock"
+
+	// nodeRole is the label assigned to every node in the cluster.
+	nodeRole = "node-role.kubernetes.io/node="
+)
+
+func (pv *Provisioner) Create(
+	ctx context.Context,
+	cluster *clusterv1.Cluster,
+	machine *clusterv1.Machine,
+	bootstrapToken string) error {
+
 	if cluster == nil {
 		return errors.New(constants.ClusterIsNullErr)
 	}
 
-	klog.V(4).Infof("govmomi.Actuator.Create %s", machine.Name)
+	machineRole := vsphereutils.GetMachineRole(machine)
+	if machineRole == "" {
+		return errors.Errorf(
+			"Unable to get machine role while creating machine with GoVmomi "+
+				"%s=%s %s=%s %s=%s %s=%s",
+			"cluster-namespace", cluster.Namespace,
+			"cluster-name", cluster.Namespace,
+			"machine-namespace", machine.Namespace,
+			"machine-name", machine.Name)
+	}
+
+	klog.V(4).Infof("Creating machine with GoVmomi %s=%s %s=%s %s=%s %s=%s %s=%s",
+		"cluster-namespace", cluster.Namespace,
+		"cluster-name", cluster.Namespace,
+		"machine-namespace", machine.Namespace,
+		"machine-name", machine.Name,
+		"machine-role", machineRole)
+
 	s, err := pv.sessionFromProviderConfig(cluster, machine)
 	if err != nil {
-		return err
+		return errors.Wrapf(
+			err,
+			"Unable to get session while creating machine with GoVmomi "+
+				"%s=%s %s=%s %s=%s %s=%s",
+			"cluster-namespace", cluster.Namespace,
+			"cluster-name", cluster.Namespace,
+			"machine-namespace", machine.Namespace,
+			"machine-name", machine.Name)
 	}
+
 	createctx, cancel := context.WithCancel(*s.context)
 	defer cancel()
-	usersession, err := s.session.SessionManager.UserSession(createctx)
+
+	userSession, err := s.session.SessionManager.UserSession(createctx)
 	if err != nil {
-		return err
+		return errors.Wrapf(
+			err,
+			"Unable to get user session while creating machine with GoVmomi "+
+				"%s=%s %s=%s %s=%s %s=%s",
+			"cluster-namespace", cluster.Namespace,
+			"cluster-name", cluster.Namespace,
+			"machine-namespace", machine.Namespace,
+			"machine-name", machine.Name)
 	}
-	klog.V(4).Infof("Using session %v", usersession)
+
+	klog.V(4).Infof("Got user session while creating machine with GoVmomi "+
+		"%s=%s %s=%s %s=%s %s=%s %s=%s %s=%v",
+		"cluster-namespace", cluster.Namespace,
+		"cluster-name", cluster.Namespace,
+		"machine-namespace", machine.Namespace,
+		"machine-name", machine.Name,
+		"machine-role", machineRole,
+		"user-session", userSession)
+
 	task := vsphereutils.GetActiveTasks(machine)
 	if task != "" {
 		// In case an active task is going on, wait for its completion
@@ -56,24 +122,245 @@ func (pv *Provisioner) Create(ctx context.Context, cluster *clusterv1.Cluster, m
 	// as this Machine. If found, that VM is the right match for this machine
 	vmRef, err := pv.findVMByInstanceUUID(ctx, s, machine)
 	if err != nil {
-		return err
+		return errors.Wrapf(
+			err,
+			"Unable to get find VM by instance UUID while creating machine with GoVmomi "+
+				"%s=%s %s=%s %s=%s %s=%s",
+			"cluster-namespace", cluster.Namespace,
+			"cluster-name", cluster.Namespace,
+			"machine-namespace", machine.Namespace,
+			"machine-name", machine.Name)
 	}
 	if vmRef != "" {
 		pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Created", "Created Machine %s(%s)", machine.Name, vmRef)
 		// Update the Machine object with the VM Reference annotation
-		_, err := pv.updateVMReference(machine, vmRef)
-		if err != nil {
-			return err
+		if _, err := pv.updateVMReference(machine, vmRef); err != nil {
+			return errors.Wrapf(
+				err,
+				"Unable to update VM reference while creating machine with GoVmomi "+
+					"%s=%s %s=%s %s=%s %s=%s",
+				"cluster-namespace", cluster.Namespace,
+				"cluster-name", cluster.Namespace,
+				"machine-namespace", machine.Namespace,
+				"machine-name", machine.Name)
 		}
 	}
 
+	clusterConfig, err := vsphereutils.GetClusterProviderSpec(cluster.Spec.ProviderSpec)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"unable to get cluster provider config while creating machine with GoVmomi "+
+				"%s=%s %s=%s %s=%s %s=%s",
+			"cluster-namespace", cluster.Namespace,
+			"cluster-name", cluster.Namespace,
+			"machine-namespace", machine.Namespace,
+			"machine-name", machine.Name)
+	}
+
+	machineConfig, err := vsphereutils.GetMachineProviderSpec(machine.Spec.ProviderSpec)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"unable to get machine provider config while creating machine with GoVmomi "+
+				"%s=%s %s=%s %s=%s %s=%s",
+			"cluster-namespace", cluster.Namespace,
+			"cluster-name", cluster.Namespace,
+			"machine-namespace", machine.Namespace,
+			"machine-name", machine.Name)
+	}
+
+	caCertHash, err := certificates.GenerateCertificateHash(clusterConfig.CAKeyPair.Cert)
+	if err != nil {
+		return err
+	}
+
+	var controlPlaneEndpoint string
+	if bootstrapToken != "" {
+		controlPlaneEndpoint, _ = vsphereutils.GetControlPlaneEndpoint(cluster, nil)
+	}
+
+	var userDataYAML string
+
+	// apply values based on the role of the machine
+	switch machineRole {
+	case "controlplane":
+
+		if bootstrapToken != "" {
+			klog.V(2).Infof("Allowing a machine to join the control plane "+
+				"%s=%s %s=%s %s=%s %s=%s",
+				"cluster-namespace", cluster.Namespace,
+				"cluster-name", cluster.Namespace,
+				"machine-namespace", machine.Namespace,
+				"machine-name", machine.Name)
+
+			bindPort := vsphereutils.GetAPIServerBindPort(machineConfig)
+
+			kubeadm.SetJoinConfigurationOptions(
+				&machineConfig.KubeadmConfiguration.Join,
+				kubeadm.WithBootstrapTokenDiscovery(
+					kubeadm.NewBootstrapTokenDiscovery(
+						kubeadm.WithAPIServerEndpoint(controlPlaneEndpoint),
+						kubeadm.WithToken(bootstrapToken),
+						kubeadm.WithCACertificateHash(caCertHash),
+					),
+				),
+				kubeadm.WithJoinNodeRegistrationOptions(
+					kubeadm.NewNodeRegistration(
+						kubeadm.WithTaints(machine.Spec.Taints),
+						kubeadm.WithNodeRegistrationName(hostnameLookup),
+						kubeadm.WithCRISocket(containerdSocket),
+						//kubeadm.WithKubeletExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
+					),
+				),
+				kubeadm.WithLocalAPIEndpointAndPort(localIPV4Lookup, int(bindPort)),
+			)
+			joinConfigurationYAML, err := kubeadm.ConfigurationToYAML(&machineConfig.KubeadmConfiguration.Join)
+			if err != nil {
+				return err
+			}
+
+			userData, err := userdata.JoinControlPlane(&userdata.ContolPlaneJoinInput{
+				CACert:            string(clusterConfig.CAKeyPair.Cert),
+				CAKey:             string(clusterConfig.CAKeyPair.Key),
+				EtcdCACert:        string(clusterConfig.EtcdCAKeyPair.Cert),
+				EtcdCAKey:         string(clusterConfig.EtcdCAKeyPair.Key),
+				FrontProxyCACert:  string(clusterConfig.FrontProxyCAKeyPair.Cert),
+				FrontProxyCAKey:   string(clusterConfig.FrontProxyCAKeyPair.Key),
+				SaCert:            string(clusterConfig.SAKeyPair.Cert),
+				SaKey:             string(clusterConfig.SAKeyPair.Key),
+				JoinConfiguration: joinConfigurationYAML,
+			})
+			if err != nil {
+				return err
+			}
+
+			userDataYAML = userData
+		} else {
+			klog.V(2).Infof("Initializing a new cluster with %s=%s %s=%s %s=%s %s=%s",
+				"cluster-namespace", cluster.Namespace,
+				"cluster-name", cluster.Namespace,
+				"machine-namespace", machine.Namespace,
+				"machine-name", machine.Name)
+
+			bindPort := machineConfig.KubeadmConfiguration.Init.LocalAPIEndpoint.BindPort
+			certSans := []string{"localIPV4Lookup"}
+			if v := clusterConfig.ClusterConfiguration.ControlPlaneEndpoint; v != "" {
+				host, _, err := net.SplitHostPort(v)
+				if err != nil {
+					return err
+				}
+				certSans = append(certSans, host)
+			}
+
+			klog.V(2).Info("Machine is the first control plane machine for the cluster")
+			if !clusterConfig.CAKeyPair.HasCertAndKey() {
+				return errors.New("failed to run controlplane, missing CAPrivateKey")
+			}
+
+			kubeadm.SetClusterConfigurationOptions(
+				&clusterConfig.ClusterConfiguration,
+				kubeadm.WithControlPlaneEndpoint(fmt.Sprintf("%s:%d", localIPV4Lookup, bindPort)),
+				kubeadm.WithAPIServerCertificateSANs(certSans...),
+				//kubeadm.WithAPIServerExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
+				//kubeadm.WithControllerManagerExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
+				kubeadm.WithClusterName(cluster.Name),
+				kubeadm.WithClusterNetworkFromClusterNetworkingConfig(cluster.Spec.ClusterNetwork),
+				kubeadm.WithKubernetesVersion(machine.Spec.Versions.ControlPlane),
+			)
+			clusterConfigYAML, err := kubeadm.ConfigurationToYAML(&clusterConfig.ClusterConfiguration)
+			if err != nil {
+				return err
+			}
+
+			kubeadm.SetInitConfigurationOptions(
+				&machineConfig.KubeadmConfiguration.Init,
+				kubeadm.WithNodeRegistrationOptions(
+					kubeadm.NewNodeRegistration(
+						kubeadm.WithTaints(machine.Spec.Taints),
+						kubeadm.WithNodeRegistrationName(hostnameLookup),
+						kubeadm.WithCRISocket(containerdSocket),
+						//kubeadm.WithKubeletExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
+					),
+				),
+			)
+			initConfigYAML, err := kubeadm.ConfigurationToYAML(&machineConfig.KubeadmConfiguration.Init)
+			if err != nil {
+				return err
+			}
+
+			userData, err := userdata.NewControlPlane(&userdata.ControlPlaneInput{
+				CACert:               string(clusterConfig.CAKeyPair.Cert),
+				CAKey:                string(clusterConfig.CAKeyPair.Key),
+				EtcdCACert:           string(clusterConfig.EtcdCAKeyPair.Cert),
+				EtcdCAKey:            string(clusterConfig.EtcdCAKeyPair.Key),
+				FrontProxyCACert:     string(clusterConfig.FrontProxyCAKeyPair.Cert),
+				FrontProxyCAKey:      string(clusterConfig.FrontProxyCAKeyPair.Key),
+				SaCert:               string(clusterConfig.SAKeyPair.Cert),
+				SaKey:                string(clusterConfig.SAKeyPair.Key),
+				ClusterConfiguration: clusterConfigYAML,
+				InitConfiguration:    initConfigYAML,
+			})
+			if err != nil {
+				return err
+			}
+
+			userDataYAML = userData
+		}
+	case "node":
+		klog.V(2).Infof("Joining a worker node to the cluster "+
+			"%s=%s %s=%s %s=%s %s=%s",
+			"cluster-namespace", cluster.Namespace,
+			"cluster-name", cluster.Namespace,
+			"machine-namespace", machine.Namespace,
+			"machine-name", machine.Name)
+
+		kubeadm.SetJoinConfigurationOptions(
+			&machineConfig.KubeadmConfiguration.Join,
+			kubeadm.WithBootstrapTokenDiscovery(
+				kubeadm.NewBootstrapTokenDiscovery(
+					kubeadm.WithAPIServerEndpoint(controlPlaneEndpoint),
+					kubeadm.WithToken(bootstrapToken),
+					kubeadm.WithCACertificateHash(caCertHash),
+				),
+			),
+			kubeadm.WithJoinNodeRegistrationOptions(
+				kubeadm.NewNodeRegistration(
+					kubeadm.WithNodeRegistrationName(hostnameLookup),
+					kubeadm.WithCRISocket(containerdSocket),
+					//kubeadm.WithKubeletExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
+					kubeadm.WithTaints(machine.Spec.Taints),
+					kubeadm.WithKubeletExtraArgs(map[string]string{"node-labels": nodeRole}),
+				),
+			),
+		)
+		joinConfigurationYAML, err := kubeadm.ConfigurationToYAML(&machineConfig.KubeadmConfiguration.Join)
+		if err != nil {
+			return err
+		}
+
+		userData, err := userdata.NewNode(&userdata.NodeInput{
+			JoinConfiguration: joinConfigurationYAML,
+		})
+		if err != nil {
+			return nil
+		}
+
+		userDataYAML = userData
+
+	default:
+		return errors.Errorf("Unknown node role %q", machineRole)
+	}
+
+	userData64 := base64.StdEncoding.EncodeToString([]byte(userDataYAML))
+
 	// Use the appropriate path if we're connected to a vCenter
 	if s.session.IsVC() {
-		return pv.cloneVirtualMachineOnVCenter(s, cluster, machine)
+		return pv.cloneVirtualMachineOnVCenter(s, cluster, machine, userData64)
 	}
 
 	// fallback in case we're connected to a standalone ESX host
-	return pv.cloneVirtualMachineOnESX(s, cluster, machine)
+	return pv.cloneVirtualMachineOnESX(s, cluster, machine, userData64)
 }
 
 func (pv *Provisioner) findVMByInstanceUUID(ctx context.Context, s *SessionContext, machine *clusterv1.Machine) (string, error) {
@@ -176,7 +463,7 @@ func (pv *Provisioner) verifyAndUpdateTask(s *SessionContext, machine *clusterv1
 }
 
 // CloneVirtualMachine clones the template to a virtual machine.
-func (pv *Provisioner) cloneVirtualMachineOnVCenter(s *SessionContext, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+func (pv *Provisioner) cloneVirtualMachineOnVCenter(s *SessionContext, cluster *clusterv1.Cluster, machine *clusterv1.Machine, userData string) error {
 	klog.V(4).Infof("Starting the clone process on vCenter")
 	ctx, cancel := context.WithCancel(*s.context)
 	defer cancel()
@@ -241,12 +528,6 @@ func (pv *Provisioner) cloneVirtualMachineOnVCenter(s *SessionContext, cluster *
 		klog.Infof("Attempting to deploy directly to cluster/host RP: %s", resourcePoolPath)
 	}
 
-	// Fetch the user-data for the cloud-init first, so that we can fail fast before even trying to connect to pv
-	userData, err := pv.getCloudInitUserData(cluster, machine, resourcePoolPath, true)
-	if err != nil {
-		// err returned by the getCloudInitUserData would be of type RequeueAfterError in case kubeadm is not ready yet
-		return err
-	}
 	metaData, err := pv.getCloudInitMetaData(cluster, machine)
 	if err != nil {
 		// err returned by the getCloudInitMetaData would be of type RequeueAfterError in case kubeadm is not ready yet
@@ -322,58 +603,12 @@ func (pv *Provisioner) cloneVirtualMachineOnVCenter(s *SessionContext, cluster *
 	}
 	spec.PowerOn = true
 
-	if machineConfig.MachineSpec.VsphereCloudInit {
-		// In case of vsphere cloud-init datasource present, set the appropriate extraconfig options
-		var extraconfigs []types.BaseOptionValue
-		extraconfigs = append(extraconfigs, &types.OptionValue{Key: "guestinfo.metadata", Value: metaData})
-		extraconfigs = append(extraconfigs, &types.OptionValue{Key: "guestinfo.metadata.encoding", Value: "base64"})
-		extraconfigs = append(extraconfigs, &types.OptionValue{Key: "guestinfo.userdata", Value: userData})
-		extraconfigs = append(extraconfigs, &types.OptionValue{Key: "guestinfo.userdata.encoding", Value: "base64"})
-		spec.Config.ExtraConfig = extraconfigs
-	} else {
-		// This case is to support backwords compatibility, where we are using the ubuntu cloud image ovf properties
-		// to drive the cloud-init workflow. Once the vsphere cloud-init datastore is merged as part of the official
-		// cloud-init, then we can potentially remove this flag from the spec as then all the native cloud images
-		// available for the different distros will include this new datasource.
-		// See (https://github.com/akutz/cloud-init-vmware-guestinfo/ - vmware cloud-init datasource) for details
-		if vmProps.Config.VAppConfig == nil {
-			return fmt.Errorf("this source VM lacks a vApp configuration and cannot have vApp properties set on it")
-		}
-		allProperties := vmProps.Config.VAppConfig.GetVmConfigInfo().Property
-		var props []types.VAppPropertySpec
-		for _, p := range allProperties {
-			defaultValue := " "
-			if p.DefaultValue != "" {
-				defaultValue = p.DefaultValue
-			}
-			prop := types.VAppPropertySpec{
-				ArrayUpdateSpec: types.ArrayUpdateSpec{
-					Operation: types.ArrayUpdateOperationEdit,
-				},
-				Info: &types.VAppPropertyInfo{
-					Key:   p.Key,
-					Id:    p.Id,
-					Value: defaultValue,
-				},
-			}
-			if p.Id == "user-data" {
-				prop.Info.Value = userData
-			}
-			if p.Id == "public-keys" {
-				prop.Info.Value, err = pv.GetSSHPublicKey(cluster)
-				if err != nil {
-					return err
-				}
-			}
-			if p.Id == "hostname" {
-				prop.Info.Value = machine.Name
-			}
-			props = append(props, prop)
-		}
-		spec.Config.VAppConfig = &types.VmConfigSpec{
-			Property: props,
-		}
-	}
+	var extraconfigs []types.BaseOptionValue
+	extraconfigs = append(extraconfigs, &types.OptionValue{Key: "guestinfo.metadata", Value: metaData})
+	extraconfigs = append(extraconfigs, &types.OptionValue{Key: "guestinfo.metadata.encoding", Value: "base64"})
+	extraconfigs = append(extraconfigs, &types.OptionValue{Key: "guestinfo.userdata", Value: userData})
+	extraconfigs = append(extraconfigs, &types.OptionValue{Key: "guestinfo.userdata.encoding", Value: "base64"})
+	spec.Config.ExtraConfig = extraconfigs
 
 	l := object.VirtualDeviceList(vmProps.Config.Hardware.Device)
 	deviceSpecs := []types.BaseVirtualDeviceConfigSpec{}
@@ -457,7 +692,7 @@ func (pv *Provisioner) cloneVirtualMachineOnVCenter(s *SessionContext, cluster *
 }
 
 // cloneVirtualMachineOnESX clones the template to a virtual machine.
-func (pv *Provisioner) cloneVirtualMachineOnESX(s *SessionContext, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+func (pv *Provisioner) cloneVirtualMachineOnESX(s *SessionContext, cluster *clusterv1.Cluster, machine *clusterv1.Machine, userData string) error {
 	klog.V(4).Infof("Starting the clone process on standalone ESX")
 	ctx, cancel := context.WithCancel(*s.context)
 	defer cancel()
@@ -498,7 +733,7 @@ func (pv *Provisioner) cloneVirtualMachineOnESX(s *SessionContext, cluster *clus
 	spec := &types.VirtualMachineConfigSpec{}
 	var devices object.VirtualDeviceList
 
-	if err := pv.addMachineBase(s, cluster, machine, machineConfig, spec, vmProps); err != nil {
+	if err := pv.addMachineBase(s, cluster, machine, machineConfig, spec, vmProps, userData); err != nil {
 		return err
 	}
 
@@ -539,13 +774,7 @@ func (pv *Provisioner) cloneVirtualMachineOnESX(s *SessionContext, cluster *clus
 
 }
 
-func (pv *Provisioner) addMachineBase(s *SessionContext, cluster *clusterv1.Cluster, machine *clusterv1.Machine, machineConfig *vsphereconfigv1.VsphereMachineProviderConfig, spec *types.VirtualMachineConfigSpec, vmProps *mo.VirtualMachine) error {
-	// Fetch the user-data for the cloud-init first, so that we can fail fast before even trying to connect to VC
-	userData, err := pv.getCloudInitUserData(cluster, machine, "", false)
-	if err != nil {
-		// err returned by the getCloudInitUserData would be of type RequeueAfterError in case kubeadm is not ready yet
-		return err
-	}
+func (pv *Provisioner) addMachineBase(s *SessionContext, cluster *clusterv1.Cluster, machine *clusterv1.Machine, machineConfig *vsphereconfigv1.VsphereMachineProviderConfig, spec *types.VirtualMachineConfigSpec, vmProps *mo.VirtualMachine, userData string) error {
 	metaData, err := pv.getCloudInitMetaData(cluster, machine)
 	if err != nil {
 		// err returned by the getCloudInitUserData would be of type RequeueAfterError in case kubeadm is not ready yet
@@ -576,53 +805,10 @@ func (pv *Provisioner) addMachineBase(s *SessionContext, cluster *clusterv1.Clus
 	// build up Environment in order to marshal to xml
 
 	var opts []types.BaseOptionValue
-
-	if machineConfig.MachineSpec.VsphereCloudInit {
-		// In case of vsphere cloud-init datasource present, set the appropriate extraconfig options
-		opts = append(opts, &types.OptionValue{Key: "guestinfo.metadata", Value: metaData})
-		opts = append(opts, &types.OptionValue{Key: "guestinfo.metadata.encoding", Value: "base64"})
-		opts = append(opts, &types.OptionValue{Key: "guestinfo.userdata", Value: userData})
-		opts = append(opts, &types.OptionValue{Key: "guestinfo.userdata.encoding", Value: "base64"})
-	} else {
-		// This case is to support backwards compatibility, where we are using the ubuntu cloud image ovf properties
-		// to drive the cloud-init workflow. Once the vsphere cloud-init datastore is merged as part of the official
-		// cloud-init, then we can potentially remove this flag from the spec as then all the native cloud images
-		// available for the different distros will include this new datasource.
-		// See (https://github.com/akutz/cloud-init-vmware-guestinfo/ - vmware cloud-init datasource) for details
-		var props []ovf.EnvProperty
-		sshKey, _ := pv.GetSSHPublicKey(cluster)
-		props = append(props, ovf.EnvProperty{
-			Key:   "user-data",
-			Value: userData,
-		},
-			ovf.EnvProperty{
-				Key:   "public-keys",
-				Value: sshKey,
-			},
-			ovf.EnvProperty{
-				Key:   "hostname",
-				Value: machine.Name,
-			})
-		a := s.session.ServiceContent.About
-		env := ovf.Env{
-			EsxID: vmProps.Reference().Value,
-			Platform: &ovf.PlatformSection{
-				Kind:    a.Name,
-				Version: a.Version,
-				Vendor:  a.Vendor,
-				Locale:  "US",
-			},
-			Property: &ovf.PropertySection{
-				Properties: props,
-			},
-		}
-
-		opts = append(opts, &types.OptionValue{
-			Key:   "guestinfo.ovfEnv",
-			Value: env.MarshalManual(),
-		})
-	}
-
+	opts = append(opts, &types.OptionValue{Key: "guestinfo.metadata", Value: metaData})
+	opts = append(opts, &types.OptionValue{Key: "guestinfo.metadata.encoding", Value: "base64"})
+	opts = append(opts, &types.OptionValue{Key: "guestinfo.userdata", Value: userData})
+	opts = append(opts, &types.OptionValue{Key: "guestinfo.userdata.encoding", Value: "base64"})
 	spec.ExtraConfig = opts
 
 	spec.Files = &types.VirtualMachineFileInfo{
@@ -869,42 +1055,6 @@ func (pv *Provisioner) getCloudInitMetaData(cluster *clusterv1.Cluster, machine 
 	}
 	metadata = base64.StdEncoding.EncodeToString([]byte(metadata))
 	return metadata, nil
-}
-
-func (pv *Provisioner) getCloudInitUserData(cluster *clusterv1.Cluster, machine *clusterv1.Machine,
-	resourcePoolPath string, deployOnVC bool) (string, error) {
-	script, err := pv.getStartupScript(cluster, machine, deployOnVC)
-	if err != nil {
-		return "", err
-	}
-	config, err := pv.getCloudProviderConfig(cluster, machine, resourcePoolPath, deployOnVC)
-	if err != nil {
-		return "", err
-	}
-	publicKey, err := pv.GetSSHPublicKey(cluster)
-	if err != nil {
-		return "", err
-	}
-	machineconfig, err := vsphereutils.GetMachineProviderSpec(machine.Spec.ProviderSpec)
-	if err != nil {
-		return "", err
-	}
-	userdata, err := vpshereprovisionercommon.GetCloudInitUserData(
-		vpshereprovisionercommon.CloudInitTemplate{
-			Script:              script,
-			IsMaster:            util.IsControlPlaneMachine(machine),
-			CloudProviderConfig: config,
-			SSHPublicKey:        publicKey,
-			TrustedCerts:        machineconfig.MachineSpec.TrustedCerts,
-			NTPServers:          machineconfig.MachineSpec.NTPServers,
-		},
-		deployOnVC,
-	)
-	if err != nil {
-		return "", err
-	}
-	userdata = base64.StdEncoding.EncodeToString([]byte(userdata))
-	return userdata, nil
 }
 
 func (pv *Provisioner) getCloudProviderConfig(cluster *clusterv1.Cluster, machine *clusterv1.Machine,

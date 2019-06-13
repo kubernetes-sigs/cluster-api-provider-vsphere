@@ -26,7 +26,7 @@ require (
 	github.com/onsi/gomega v1.5.0
 	github.com/pborman/uuid v1.2.0 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
-	github.com/pkg/errors v0.8.1 // indirect
+	github.com/pkg/errors v0.8.1
 	github.com/prometheus/client_golang v0.9.3 // indirect
 	github.com/spf13/cobra v0.0.4 // indirect
 	github.com/spf13/pflag v1.0.3
@@ -48,9 +48,10 @@ require (
 	k8s.io/cluster-bootstrap v0.0.0-20190307184522-e5eaaafa58b3
 	k8s.io/code-generator v0.0.0-20190308034351-e797d15e3d1a
 	k8s.io/gengo v0.0.0-20190308184658-b90029ef6cd8 // indirect
-	k8s.io/klog v0.2.0
+	k8s.io/klog v0.3.0
 	k8s.io/kube-openapi v0.0.0-20190306001800-15615b16d372 // indirect
 	k8s.io/kubernetes v1.13.3
+	k8s.io/utils v0.0.0-20190607212802-c55fbcfc754a // indirect
 	sigs.k8s.io/cluster-api v0.0.0-20190308220454-a2f5862d32c6
 	sigs.k8s.io/controller-runtime v0.1.10
 	sigs.k8s.io/controller-tools v0.1.9

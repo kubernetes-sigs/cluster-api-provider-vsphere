@@ -116,65 +116,66 @@ export VSPHERE_DISK=${VSPHERE_DISK:-}
 export VSPHERE_DISK_SIZE_GB=${VSPHERE_DISK_SIZE_GB:-20}
 
 # validate all required variables before generating any files
+if [ ! "${CAPV_YAML_VALIDATION:-1}" = "0" ]; then
+  if [ -z "${VSPHERE_USER}" ]; then
+    echo "env var VSPHERE_USER is required" 1>&2
+    exit 1
+  fi
 
-if [ -z "${VSPHERE_USER}" ]; then
-  echo "env var VSPHERE_USER is required" 1>&2
-  exit 1
-fi
+  if [ -z "${VSPHERE_PASSWORD}" ]; then
+    echo "env var VSPHERE_PASSWORD is required" 1>&2
+    exit 1
+  fi
 
-if [ -z "${VSPHERE_PASSWORD}" ]; then
-  echo "env var VSPHERE_PASSWORD is required" 1>&2
-  exit 1
-fi
+  if [ -z "${VSPHERE_SERVER}" ]; then
+    echo "env var VSPHERE_SERVER is required" 1>&2
+    exit 1
+  fi
 
-if [ -z "${VSPHERE_SERVER}" ]; then
-  echo "env var VSPHERE_SERVER is required" 1>&2
-  exit 1
-fi
+  if [ -z "${CAPV_MANAGER_IMAGE}" ]; then
+    echo "env var CAPV_MANAGER_IMAGE is required" 1>&2
+    exit 1
+  fi
 
-if [ -z "${CAPV_MANAGER_IMAGE}" ]; then
-  echo "env var CAPV_MANAGER_IMAGE is required" 1>&2
-  exit 1
-fi
+  if [ -z "${VSPHERE_DATACENTER}" ]; then
+    echo "env var VSPHERE_DATACENTER is required" 1>&2
+    exit 1
+  fi
 
-if [ -z "${VSPHERE_DATACENTER}" ]; then
-  echo "env var VSPHERE_DATACENTER is required" 1>&2
-  exit 1
-fi
+  if [ -z "${VSPHERE_DATASTORE}" ]; then
+    echo "env var VSPHERE_DATASTORE is required" 1>&2
+    exit 1
+  fi
 
-if [ -z "${VSPHERE_DATASTORE}" ]; then
-  echo "env var VSPHERE_DATASTORE is required" 1>&2
-  exit 1
-fi
+  if [ -z "${VSPHERE_NETWORK}" ]; then
+    echo "env var VSPHERE_NETWORK is required" 1>&2
+    exit 1
+  fi
 
-if [ -z "${VSPHERE_NETWORK}" ]; then
-  echo "env var VSPHERE_NETWORK is required" 1>&2
-  exit 1
-fi
+  if [ -z "${VSPHERE_RESOURCE_POOL}" ]; then
+    echo "env var VSPHERE_RESOURCE_POOL is required" 1>&2
+    exit 1
+  fi
 
-if [ -z "${VSPHERE_RESOURCE_POOL}" ]; then
-  echo "env var VSPHERE_RESOURCE_POOL is required" 1>&2
-  exit 1
-fi
+  if [ -z "${VSPHERE_FOLDER}" ]; then
+    echo "env var VSPHERE_FOLDER is required" 1>&2
+    exit 1
+  fi
 
-if [ -z "${VSPHERE_FOLDER}" ]; then
-  echo "env var VSPHERE_FOLDER is required" 1>&2
-  exit 1
-fi
+  if [ -z "${VSPHERE_TEMPLATE}" ]; then
+    echo "env var VSPHERE_TEMPLATE is required" 1>&2
+    exit 1
+  fi
 
-if [ -z "${VSPHERE_TEMPLATE}" ]; then
-  echo "env var VSPHERE_TEMPLATE is required" 1>&2
-  exit 1
-fi
+  if [ -z "${VSPHERE_DISK}" ]; then
+    echo "env var VSPHERE_DISK is required" 1>&2
+    exit 1
+  fi
 
-if [ -z "${VSPHERE_DISK}" ]; then
-  echo "env var VSPHERE_DISK is required" 1>&2
-  exit 1
-fi
-
-if [ ${VSPHERE_DISK_SIZE_GB} -lt 20 ]; then
-  echo "env var VSPHERE_DISK_SIZE_GB must be >= 20" 1>&2
-  exit 1
+  if [ "${VSPHERE_DISK_SIZE_GB}" -lt "20" ]; then
+    echo "env var VSPHERE_DISK_SIZE_GB must be >= 20" 1>&2
+    exit 1
+  fi
 fi
 
 envsubst < $MACHINE_TEMPLATE_FILE > "${MACHINE_GENERATED_FILE}"

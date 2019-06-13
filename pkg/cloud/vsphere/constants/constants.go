@@ -5,6 +5,7 @@ import (
 )
 
 const (
+	DefaultBindPort                  = 6443
 	ApiServerPort                    = 443
 	VmIpAnnotationKey                = "vm-ip-address"
 	ControlPlaneVersionAnnotationKey = "control-plane-version"

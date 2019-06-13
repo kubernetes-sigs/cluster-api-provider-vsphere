@@ -6,3 +6,5 @@
 resources:
 - vsphereproviderconfig_v1alpha1_vsphereclusterproviderconfig.yaml
 - vsphereproviderconfig_v1alpha1_vspheremachineproviderconfig.yaml
+- vsphereproviderconfig_v1alpha1_vsphereclusterproviderstatus.yaml
+- vsphereproviderconfig_v1alpha1_vspheremachineproviderstatus.yaml

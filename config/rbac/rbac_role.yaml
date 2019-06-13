@@ -21,6 +21,8 @@ rules:
   resources:
   - vsphereclusterproviderconfigs
   - vspheremachineproviderconfigs
+  - vsphereclusterproviderstatuses
+  - vspheremachineproviderstatuses
   verbs:
   - get
   - list

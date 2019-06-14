@@ -899,6 +899,8 @@ rules:
   resources:
   - vsphereclusterproviderconfigs
   - vspheremachineproviderconfigs
+  - vsphereclusterproviderstatuses
+  - vspheremachineproviderstatuses
   verbs:
   - get
   - list
@@ -1008,7 +1010,6 @@ spec:
       containers:
       - args:
         - --logtostderr
-        - --v=6
         command:
         - /root/manager
         env:
@@ -1088,6 +1089,8 @@ spec:
   names:
     kind: Cluster
     plural: clusters
+    shortNames:
+    - cl
   scope: Namespaced
   subresources:
     status: {}
@@ -1223,6 +1226,8 @@ spec:
   names:
     kind: MachineClass
     plural: machineclasses
+    shortNames:
+    - mc
   scope: Namespaced
   validation:
     openAPIV3Schema:
@@ -1264,6 +1269,8 @@ spec:
   names:
     kind: MachineDeployment
     plural: machinedeployments
+    shortNames:
+    - md
   scope: Namespaced
   subresources:
     scale:
@@ -1396,16 +1403,16 @@ spec:
                         ID as seen on the node object corresponding to this machine.
                         This field is required by higher level consumers of cluster-api.
                         Example use case is cluster autoscaler with cluster-api as
-                        provider. Clean-up login in the autoscaler compares machines
-                        v/s nodes to find out machines at provider which could not
+                        provider. Clean-up logic in the autoscaler compares machines
+                        to nodes to find out machines at provider which could not
                         get registered as Kubernetes nodes. With cluster-api as a
                         generic out-of-tree provider for autoscaler, this field is
                         required by autoscaler to be able to have a provider view
-                        of the list of machines. Another list of nodes is queries
-                        from the k8s apiserver and then comparison is done to find
+                        of the list of machines. Another list of nodes is queried
+                        from the k8s apiserver and then a comparison is done to find
                         out unregistered machines and are marked for delete. This
                         field will be set by the actuators and consumed by higher
-                        level entities like autoscaler  who will be interfacing with
+                        level entities like autoscaler that will be interfacing with
                         cluster-api as generic provider.
                       type: string
                     providerSpec:
@@ -1435,9 +1442,13 @@ spec:
                           type: object
                       type: object
                     taints:
-                      description: Taints is the full, authoritative list of taints
-                        to apply to the corresponding Node. This list will overwrite
-                        any modifications made to the Node on an ongoing basis.
+                      description: The list of the taints to be applied to the corresponding
+                        Node in additive manner. This list will not overwrite any
+                        other taints added to the Node on an ongoing basis by other
+                        entities. These taints should be actively reconciled e.g.
+                        if you ask the machine controller to apply a taint and then
+                        manually remove the taint the machine controller will put
+                        it back) but not have the machine controller remove any taints
                       items:
                         type: object
                       type: array
@@ -1520,10 +1531,26 @@ metadata:
     controller-tools.k8s.io: "1.0"
   name: machines.cluster.k8s.io
 spec:
+  additionalPrinterColumns:
+  - JSONPath: .spec.providerID
+    description: Provider ID
+    name: ProviderID
+    type: string
+  - JSONPath: .status.phase
+    description: Machine status such as Terminating/Pending/Running/Failed etc
+    name: Phase
+    type: string
+  - JSONPath: .status.nodeRef.name
+    description: Node name associated with this machine
+    name: NodeName
+    priority: 1
+    type: string
   group: cluster.k8s.io
   names:
     kind: Machine
     plural: machines
+    shortNames:
+    - ma
   scope: Namespaced
   subresources:
     status: {}
@@ -1561,16 +1588,16 @@ spec:
                 by the provider. This field must match the provider ID as seen on
                 the node object corresponding to this machine. This field is required
                 by higher level consumers of cluster-api. Example use case is cluster
-                autoscaler with cluster-api as provider. Clean-up login in the autoscaler
-                compares machines v/s nodes to find out machines at provider which
+                autoscaler with cluster-api as provider. Clean-up logic in the autoscaler
+                compares machines to nodes to find out machines at provider which
                 could not get registered as Kubernetes nodes. With cluster-api as
                 a generic out-of-tree provider for autoscaler, this field is required
                 by autoscaler to be able to have a provider view of the list of machines.
-                Another list of nodes is queries from the k8s apiserver and then comparison
-                is done to find out unregistered machines and are marked for delete.
-                This field will be set by the actuators and consumed by higher level
-                entities like autoscaler  who will be interfacing with cluster-api
-                as generic provider.
+                Another list of nodes is queried from the k8s apiserver and then a
+                comparison is done to find out unregistered machines and are marked
+                for delete. This field will be set by the actuators and consumed by
+                higher level entities like autoscaler that will be interfacing with
+                cluster-api as generic provider.
               type: string
             providerSpec:
               description: ProviderSpec details Provider-specific configuration to
@@ -1598,9 +1625,12 @@ spec:
                   type: object
               type: object
             taints:
-              description: Taints is the full, authoritative list of taints to apply
-                to the corresponding Node. This list will overwrite any modifications
-                made to the Node on an ongoing basis.
+              description: The list of the taints to be applied to the corresponding
+                Node in additive manner. This list will not overwrite any other taints
+                added to the Node on an ongoing basis by other entities. These taints
+                should be actively reconciled e.g. if you ask the machine controller
+                to apply a taint and then manually remove the taint the machine controller
+                will put it back) but not have the machine controller remove any taints
               items:
                 type: object
               type: array
@@ -1759,6 +1789,8 @@ spec:
   names:
     kind: MachineSet
     plural: machinesets
+    shortNames:
+    - ms
   scope: Namespaced
   subresources:
     scale:
@@ -1783,6 +1815,15 @@ spec:
           type: object
         spec:
           properties:
+            deletePolicy:
+              description: DeletePolicy defines the policy used to identify nodes
+                to delete when downscaling. Defaults to "Random".  Valid values are
+                "Random, "Newest", "Oldest"
+              enum:
+              - Random
+              - Newest
+              - Oldest
+              type: string
             minReadySeconds:
               description: MinReadySeconds is the minimum number of seconds for which
                 a newly created machine should be ready. Defaults to 0 (machine will
@@ -1831,16 +1872,16 @@ spec:
                         ID as seen on the node object corresponding to this machine.
                         This field is required by higher level consumers of cluster-api.
                         Example use case is cluster autoscaler with cluster-api as
-                        provider. Clean-up login in the autoscaler compares machines
-                        v/s nodes to find out machines at provider which could not
+                        provider. Clean-up logic in the autoscaler compares machines
+                        to nodes to find out machines at provider which could not
                         get registered as Kubernetes nodes. With cluster-api as a
                         generic out-of-tree provider for autoscaler, this field is
                         required by autoscaler to be able to have a provider view
-                        of the list of machines. Another list of nodes is queries
-                        from the k8s apiserver and then comparison is done to find
+                        of the list of machines. Another list of nodes is queried
+                        from the k8s apiserver and then a comparison is done to find
                         out unregistered machines and are marked for delete. This
                         field will be set by the actuators and consumed by higher
-                        level entities like autoscaler  who will be interfacing with
+                        level entities like autoscaler that will be interfacing with
                         cluster-api as generic provider.
                       type: string
                     providerSpec:
@@ -1870,9 +1911,13 @@ spec:
                           type: object
                       type: object
                     taints:
-                      description: Taints is the full, authoritative list of taints
-                        to apply to the corresponding Node. This list will overwrite
-                        any modifications made to the Node on an ongoing basis.
+                      description: The list of the taints to be applied to the corresponding
+                        Node in additive manner. This list will not overwrite any
+                        other taints added to the Node on an ongoing basis by other
+                        entities. These taints should be actively reconciled e.g.
+                        if you ask the machine controller to apply a taint and then
+                        manually remove the taint the machine controller will put
+                        it back) but not have the machine controller remove any taints
                       items:
                         type: object
                       type: array
@@ -1979,18 +2024,10 @@ rules:
   - patch
   - delete
 - apiGroups:
-  - ""
-  resources:
-  - events
-  verbs:
-  - get
-  - list
-  - watch
-  - create
-- apiGroups:
   - cluster.k8s.io
   resources:
   - machines
+  - machines/status
   verbs:
   - get
   - list
@@ -2003,6 +2040,7 @@ rules:
   - cluster.k8s.io
   resources:
   - machinedeployments
+  - machinedeployments/status
   verbs:
   - get
   - list
@@ -2015,6 +2053,7 @@ rules:
   - cluster.k8s.io
   resources:
   - machinesets
+  - machinesets/status
   verbs:
   - get
   - list
@@ -2051,7 +2090,6 @@ rules:
   - cluster.k8s.io
   resources:
   - machines
-  - machines/status
   verbs:
   - get
   - list
@@ -2060,6 +2098,15 @@ rules:
   - update
   - patch
   - delete
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - get
+  - list
+  - watch
+  - create
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -2113,7 +2160,7 @@ spec:
       containers:
       - command:
         - /manager
-        image: gcr.io/k8s-cluster-api/cluster-api-controller:latest
+        image: gcr.io/k8s-cluster-api/cluster-api-controller:0.1.2
         name: manager
         resources:
           limits:

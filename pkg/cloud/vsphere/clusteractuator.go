@@ -24,7 +24,8 @@ import (
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
+
+	// "k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
@@ -132,26 +133,21 @@ func (a *ClusterActuator) patchCluster(cluster, clusterCopy *clusterv1.Cluster) 
 		return errors.Wrap(err, "failed to create new JSONPatch")
 	}
 
-	klog.Infof(
-		"generated json patch for cluster %s=%s %s=%s %s=%v",
-		"cluster-namespace", cluster.Namespace,
-		"cluster-name", cluster.Name,
-		"json-patch", p)
-
 	// Do not update Machine if nothing has changed
 	if len(p) != 0 {
-
 		pb, err := json.MarshalIndent(p, "", "  ")
 		if err != nil {
 			return errors.Wrap(err, "failed to json marshal patch")
 		}
 
-		klog.V(1).Infof(
-			"patching cluster %s=%s %s=%s",
+		klog.Infof(
+			"generated json patch for cluster %s=%s %s=%s %s=%v",
 			"cluster-namespace", cluster.Namespace,
-			"cluster-name", cluster.Name)
+			"cluster-name", cluster.Name,
+			"json-patch", pb)
 
-		result, err := clusterClient.Patch(cluster.Name, types.JSONPatchType, pb)
+		//result, err := clusterClient.Patch(cluster.Name, types.JSONPatchType, pb)
+		result, err := clusterClient.Update(cluster)
 		if err != nil {
 			a.eventRecorder.Eventf(
 				cluster, corev1.EventTypeWarning,

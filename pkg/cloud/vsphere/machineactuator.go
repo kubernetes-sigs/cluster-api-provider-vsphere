@@ -26,8 +26,8 @@ import (
 	"github.com/pkg/errors"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
+	// "k8s.io/apimachinery/pkg/types"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
@@ -311,12 +311,14 @@ func (a *MachineActuator) patchMachine(
 			return errors.Wrap(err, "failed to json marshal patch")
 		}
 
-		klog.V(1).Infof(
-			"patching machine %s=%s %s=%s",
+		klog.Infof(
+			"generated json patch for machine %s=%s %s=%s %s=%v",
 			"machine-namespace", machine.Namespace,
-			"machine-name", machine.Name)
+			"machine-name", machine.Name,
+			"json-patch", pb)
 
-		result, err := machineClient.Patch(machine.Name, types.JSONPatchType, pb)
+		//result, err := machineClient.Patch(machine.Name, types.JSONPatchType, pb)
+		result, err := machineClient.Update(machine)
 		if err != nil {
 			a.eventRecorder.Eventf(
 				machine, corev1.EventTypeWarning,

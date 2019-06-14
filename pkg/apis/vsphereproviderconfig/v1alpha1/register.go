@@ -79,7 +79,6 @@ func ClusterConfigFromProviderSpec(in *clusterv1.ProviderSpec) (*VsphereClusterP
 		}
 	}
 
-	ext.Raw = nil
 	return &obj, nil
 }
 
@@ -103,7 +102,6 @@ func ClusterStatusFromProviderStatus(in *clusterv1.ClusterStatus) (*VsphereClust
 		}
 	}
 
-	ext.Raw = nil
 	return &obj, nil
 }
 
@@ -127,7 +125,6 @@ func MachineConfigFromProviderSpec(in *clusterv1.ProviderSpec) (*VsphereMachineP
 		}
 	}
 
-	ext.Raw = nil
 	return &obj, nil
 }
 
@@ -151,7 +148,6 @@ func MachineStatusFromProviderStatus(in *clusterv1.MachineStatus) (*VsphereMachi
 		}
 	}
 
-	ext.Raw = nil
 	return &obj, nil
 }
 
@@ -170,7 +166,8 @@ func EncodeMachineStatus(status *VsphereMachineProviderStatus) (*runtime.RawExte
 	}
 
 	return &runtime.RawExtension{
-		Raw: rawBytes,
+		Raw:    rawBytes,
+		Object: status,
 	}, nil
 }
 
@@ -189,7 +186,8 @@ func EncodeMachineSpec(spec *VsphereMachineProviderConfig) (*runtime.RawExtensio
 	}
 
 	return &runtime.RawExtension{
-		Raw: rawBytes,
+		Raw:    rawBytes,
+		Object: spec,
 	}, nil
 }
 
@@ -208,7 +206,8 @@ func EncodeClusterStatus(status *VsphereClusterProviderStatus) (*runtime.RawExte
 	}
 
 	return &runtime.RawExtension{
-		Raw: rawBytes,
+		Raw:    rawBytes,
+		Object: status,
 	}, nil
 }
 
@@ -227,6 +226,7 @@ func EncodeClusterSpec(spec *VsphereClusterProviderConfig) (*runtime.RawExtensio
 	}
 
 	return &runtime.RawExtension{
-		Raw: rawBytes,
+		Raw:    rawBytes,
+		Object: spec,
 	}, nil
 }

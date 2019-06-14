@@ -59,7 +59,7 @@ func (pv *Provisioner) Create(
 	machineRole := vsphereutils.GetMachineRole(machine)
 	if machineRole == "" {
 		return errors.Errorf(
-			"Unable to get machine role while creating machine with GoVmomi "+
+			"unable to get machine role while creating machine with GoVmomi "+
 				"%s=%s %s=%s %s=%s %s=%s",
 			"cluster-namespace", cluster.Namespace,
 			"cluster-name", cluster.Namespace,
@@ -67,7 +67,7 @@ func (pv *Provisioner) Create(
 			"machine-name", machine.Name)
 	}
 
-	klog.V(4).Infof("Creating machine with GoVmomi %s=%s %s=%s %s=%s %s=%s %s=%s",
+	klog.V(4).Infof("creating machine with GoVmomi %s=%s %s=%s %s=%s %s=%s %s=%s",
 		"cluster-namespace", cluster.Namespace,
 		"cluster-name", cluster.Namespace,
 		"machine-namespace", machine.Namespace,
@@ -78,7 +78,7 @@ func (pv *Provisioner) Create(
 	if err != nil {
 		return errors.Wrapf(
 			err,
-			"Unable to get session while creating machine with GoVmomi "+
+			"unable to get session while creating machine with GoVmomi "+
 				"%s=%s %s=%s %s=%s %s=%s",
 			"cluster-namespace", cluster.Namespace,
 			"cluster-name", cluster.Namespace,
@@ -93,7 +93,7 @@ func (pv *Provisioner) Create(
 	if err != nil {
 		return errors.Wrapf(
 			err,
-			"Unable to get user session while creating machine with GoVmomi "+
+			"unable to get user session while creating machine with GoVmomi "+
 				"%s=%s %s=%s %s=%s %s=%s",
 			"cluster-namespace", cluster.Namespace,
 			"cluster-name", cluster.Namespace,
@@ -101,7 +101,7 @@ func (pv *Provisioner) Create(
 			"machine-name", machine.Name)
 	}
 
-	klog.V(4).Infof("Got user session while creating machine with GoVmomi "+
+	klog.V(4).Infof("got user session while creating machine with GoVmomi "+
 		"%s=%s %s=%s %s=%s %s=%s %s=%s %s=%v",
 		"cluster-namespace", cluster.Namespace,
 		"cluster-name", cluster.Namespace,
@@ -121,7 +121,7 @@ func (pv *Provisioner) Create(
 	if err != nil {
 		return errors.Wrapf(
 			err,
-			"Unable to get find VM by instance UUID while creating machine with GoVmomi "+
+			"unable to get find VM by instance UUID while creating machine with GoVmomi "+
 				"%s=%s %s=%s %s=%s %s=%s",
 			"cluster-namespace", cluster.Namespace,
 			"cluster-name", cluster.Namespace,
@@ -129,12 +129,12 @@ func (pv *Provisioner) Create(
 			"machine-name", machine.Name)
 	}
 	if vmRef != "" {
-		pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Created", "Created Machine %s(%s)", machine.Name, vmRef)
+		pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "created", "created Machine %s(%s)", machine.Name, vmRef)
 		// Update the Machine object with the VM Reference annotation
 		if _, err := pv.updateVMReference(machine, vmRef); err != nil {
 			return errors.Wrapf(
 				err,
-				"Unable to update VM reference while creating machine with GoVmomi "+
+				"unable to update VM reference while creating machine with GoVmomi "+
 					"%s=%s %s=%s %s=%s %s=%s",
 				"cluster-namespace", cluster.Namespace,
 				"cluster-name", cluster.Namespace,
@@ -174,7 +174,17 @@ func (pv *Provisioner) Create(
 
 	var controlPlaneEndpoint string
 	if bootstrapToken != "" {
-		controlPlaneEndpoint, _ = vsphereutils.GetControlPlaneEndpoint(cluster, nil)
+		var err error
+		if controlPlaneEndpoint, err = vsphereutils.GetControlPlaneEndpoint(cluster, nil); err != nil {
+			return errors.Wrapf(
+				err,
+				"unable to get control plane endpoint while creating machine with GoVmomi "+
+					"%s=%s %s=%s %s=%s %s=%s",
+				"cluster-namespace", cluster.Namespace,
+				"cluster-name", cluster.Namespace,
+				"machine-namespace", machine.Namespace,
+				"machine-name", machine.Name)
+		}
 	}
 
 	var userDataYAML string
@@ -184,7 +194,7 @@ func (pv *Provisioner) Create(
 	case "controlplane":
 
 		if bootstrapToken != "" {
-			klog.V(2).Infof("Allowing a machine to join the control plane "+
+			klog.V(2).Infof("allowing a machine to join the control plane "+
 				"%s=%s %s=%s %s=%s %s=%s",
 				"cluster-namespace", cluster.Namespace,
 				"cluster-name", cluster.Namespace,
@@ -234,7 +244,7 @@ func (pv *Provisioner) Create(
 
 			userDataYAML = userData
 		} else {
-			klog.V(2).Infof("Initializing a new cluster with %s=%s %s=%s %s=%s %s=%s",
+			klog.V(2).Infof("initializing a new cluster with %s=%s %s=%s %s=%s %s=%s",
 				"cluster-namespace", cluster.Namespace,
 				"cluster-name", cluster.Namespace,
 				"machine-namespace", machine.Namespace,
@@ -250,7 +260,7 @@ func (pv *Provisioner) Create(
 				certSans = append(certSans, host)
 			}
 
-			klog.V(2).Info("Machine is the first control plane machine for the cluster")
+			klog.V(2).Info("machine is the first control plane machine for the cluster")
 			if !clusterConfig.CAKeyPair.HasCertAndKey() {
 				return errors.New("failed to run controlplane, missing CAPrivateKey")
 			}
@@ -305,7 +315,7 @@ func (pv *Provisioner) Create(
 			userDataYAML = userData
 		}
 	case "node":
-		klog.V(2).Infof("Joining a worker node to the cluster "+
+		klog.V(2).Infof("joining a worker node to the cluster "+
 			"%s=%s %s=%s %s=%s %s=%s",
 			"cluster-namespace", cluster.Namespace,
 			"cluster-name", cluster.Namespace,
@@ -346,7 +356,7 @@ func (pv *Provisioner) Create(
 		userDataYAML = userData
 
 	default:
-		return errors.Errorf("Unknown node role %q", machineRole)
+		return errors.Errorf("unknown node role %q", machineRole)
 	}
 
 	userData64 := base64.StdEncoding.EncodeToString([]byte(userDataYAML))
@@ -361,7 +371,7 @@ func (pv *Provisioner) Create(
 }
 
 func (pv *Provisioner) findVMByInstanceUUID(ctx context.Context, s *SessionContext, machine *clusterv1.Machine) (string, error) {
-	klog.V(4).Infof("Trying to check existence of the VM via InstanceUUID %s", machine.UID)
+	klog.V(4).Infof("trying to check existence of the VM via InstanceUUID %s", machine.UID)
 	si := object.NewSearchIndex(s.session.Client)
 	instanceUUID := true
 	vmRef, err := si.FindByUuid(ctx, nil, string(machine.UID), true, &instanceUUID)
@@ -381,7 +391,7 @@ func (pv *Provisioner) verifyAndUpdateTask(s *SessionContext, machine *clusterv1
 	// If a task does exist on the
 	var taskmo mo.Task
 	taskref := types.ManagedObjectReference{
-		Type:  "Task",
+		Type:  "task",
 		Value: taskmoref,
 	}
 	klog.V(4).Infof("[DEBUG] Retrieving the Task")
@@ -400,7 +410,7 @@ func (pv *Provisioner) verifyAndUpdateTask(s *SessionContext, machine *clusterv1
 	// Successful
 	case types.TaskInfoStateSuccess:
 		klog.V(4).Infof("[DEBUG] Task is a Success")
-		if taskmo.Info.DescriptionId == "Folder.createVm" {
+		if taskmo.Info.DescriptionId == "folder.createVm" {
 			klog.V(4).Infof("[DEBUG] Task is a CreateVM")
 			vmref := taskmo.Info.Result.(types.ManagedObjectReference)
 			vm := object.NewVirtualMachine(s.session.Client, vmref)
@@ -416,7 +426,7 @@ func (pv *Provisioner) verifyAndUpdateTask(s *SessionContext, machine *clusterv1
 			}
 
 			klog.V(4).Infof("[DEBUG] Recording the event")
-			pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Created", "Created Machine %s(%s)", machine.Name, vmref.Value)
+			pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "created", "created Machine %s(%s)", machine.Name, vmref.Value)
 			// Update the Machine object with the VM Reference annotation
 			updatedmachine, err := pv.updateVMReference(machine, vmref.Value)
 			if err != nil {
@@ -427,9 +437,9 @@ func (pv *Provisioner) verifyAndUpdateTask(s *SessionContext, machine *clusterv1
 			// This would just update the reference to be the newer object so that the status update works
 			machine = updatedmachine
 			return pv.setTaskRef(machine, "")
-		} else if taskmo.Info.DescriptionId == "VirtualMachine.clone" {
+		} else if taskmo.Info.DescriptionId == "virtualMachine.clone" {
 			vmref := taskmo.Info.Result.(types.ManagedObjectReference)
-			pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Created", "Created Machine %s(%s)", machine.Name, vmref.Value)
+			pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "created", "created Machine %s(%s)", machine.Name, vmref.Value)
 			// Update the Machine object with the VM Reference annotation
 			updatedmachine, err := pv.updateVMReference(machine, vmref.Value)
 			if err != nil {
@@ -440,28 +450,28 @@ func (pv *Provisioner) verifyAndUpdateTask(s *SessionContext, machine *clusterv1
 			// This would just update the reference to be the newer object so that the status update works
 			machine = updatedmachine
 			return pv.setTaskRef(machine, "")
-		} else if taskmo.Info.DescriptionId == "VirtualMachine.reconfigure" {
-			pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Reconfigured", "Reconfigured Machine %s", taskmo.Info.EntityName)
+		} else if taskmo.Info.DescriptionId == "virtualMachine.reconfigure" {
+			pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "reconfigured", "reconfigured Machine %s", taskmo.Info.EntityName)
 		}
 		return pv.setTaskRef(machine, "")
 	case types.TaskInfoStateError:
 		klog.Infof("[DEBUG] task error condition, description = %s", taskmo.Info.DescriptionId)
-		// If the machine was created via the ESXi "cloning", the description id will likely be "Folder.createVm"
-		if taskmo.Info.DescriptionId == "VirtualMachine.clone" || taskmo.Info.DescriptionId == "Folder.createVm" {
-			pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Failed", "Creation failed for Machine %v", machine.Name)
+		// If the machine was created via the ESXi "cloning", the description id will likely be "folder.createVm"
+		if taskmo.Info.DescriptionId == "virtualMachine.clone" || taskmo.Info.DescriptionId == "folder.createVm" {
+			pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "failed", "creation failed for Machine %v", machine.Name)
 			// Clear the reference to the failed task so that the next reconcile loop can re-create it
 			return pv.setTaskRef(machine, "")
 		}
 	default:
 		klog.Warningf("unknown state %s for task %s detected", taskmoref, taskmo.Info.State)
-		return fmt.Errorf("Unknown state %s for task %s detected", taskmoref, taskmo.Info.State)
+		return fmt.Errorf("unknown state %s for task %s detected", taskmoref, taskmo.Info.State)
 	}
 	return nil
 }
 
 // CloneVirtualMachine clones the template to a virtual machine.
 func (pv *Provisioner) cloneVirtualMachineOnVCenter(s *SessionContext, cluster *clusterv1.Cluster, machine *clusterv1.Machine, userData string) error {
-	klog.V(4).Infof("Starting the clone process on vCenter")
+	klog.V(4).Infof("starting the clone process on vCenter")
 	ctx, cancel := context.WithCancel(*s.context)
 	defer cancel()
 
@@ -483,7 +493,7 @@ func (pv *Provisioner) cloneVirtualMachineOnVCenter(s *SessionContext, cluster *
 		// If the passed VMTemplate is a valid UUID, then first try to find it treating that as InstanceUUID
 		// In case if are not able to locate a matching VM then fall back to searching using the VMTemplate
 		// as a name
-		klog.V(4).Infof("Trying to resolve the VMTemplate as InstanceUUID %s", machineConfig.MachineSpec.VMTemplate)
+		klog.V(4).Infof("trying to resolve the VMTemplate as InstanceUUID %s", machineConfig.MachineSpec.VMTemplate)
 		si := object.NewSearchIndex(s.session.Client)
 		instanceUUID := true
 		templateref, err := si.FindByUuid(ctx, dc, machineConfig.MachineSpec.VMTemplate, true, &instanceUUID)
@@ -495,17 +505,17 @@ func (pv *Provisioner) cloneVirtualMachineOnVCenter(s *SessionContext, cluster *
 		}
 	}
 	if src == nil {
-		klog.V(4).Infof("Trying to resolve the VMTemplate as Name %s", machineConfig.MachineSpec.VMTemplate)
+		klog.V(4).Infof("trying to resolve the VMTemplate as Name %s", machineConfig.MachineSpec.VMTemplate)
 		src, err = s.finder.VirtualMachine(ctx, machineConfig.MachineSpec.VMTemplate)
 		if err != nil {
-			klog.Errorf("VirtualMachine finder failed. err=%s", err)
+			klog.Errorf("virtualMachine finder failed. err=%s", err)
 			return err
 		}
 	}
 
 	host, err := src.HostSystem(ctx)
 	if err != nil {
-		klog.Errorf("HostSystem failed. err=%s", err)
+		klog.Errorf("hostSystem failed. err=%s", err)
 		return err
 	}
 	hostProps, err := PropertiesHost(host)
@@ -522,7 +532,7 @@ func (pv *Provisioner) cloneVirtualMachineOnVCenter(s *SessionContext, cluster *
 	if len(machineConfig.MachineSpec.ResourcePool) == 0 {
 
 		resourcePoolPath = fmt.Sprintf("/%s/host/%s/Resource", machineConfig.MachineSpec.Datacenter, hostProps.Name)
-		klog.Infof("Attempting to deploy directly to cluster/host RP: %s", resourcePoolPath)
+		klog.Infof("attempting to deploy directly to cluster/host RP: %s", resourcePoolPath)
 	}
 
 	metaData, err := pv.getCloudInitMetaData(cluster, machine)
@@ -558,7 +568,7 @@ func (pv *Provisioner) cloneVirtualMachineOnVCenter(s *SessionContext, cluster *
 	if machineConfig.MachineSpec.MemoryMB > 0 {
 		spec.Config.MemoryMB = machineConfig.MachineSpec.MemoryMB
 	}
-	spec.Config.Annotation = fmt.Sprintf("Virtual Machine is part of the cluster %s managed by cluster-api", cluster.Name)
+	spec.Config.Annotation = fmt.Sprintf("virtual Machine is part of the cluster %s managed by cluster-api", cluster.Name)
 	spec.Location.DiskMoveType = string(types.VirtualMachineRelocateDiskMoveOptionsMoveAllDiskBackingsAndConsolidate)
 
 	vmProps, err := PropertiesVM(src)
@@ -570,29 +580,29 @@ func (pv *Provisioner) cloneVirtualMachineOnVCenter(s *SessionContext, cluster *
 		pool, err := s.finder.ResourcePoolOrDefault(ctx, machineConfig.MachineSpec.ResourcePool)
 
 		if _, ok := err.(*find.NotFoundError); ok {
-			klog.Warningf("Failed to find ResourcePool=%s err=%s. Attempting to create it.", machineConfig.MachineSpec.ResourcePool, err)
+			klog.Warningf("failed to find ResourcePool=%s err=%s. Attempting to create it.", machineConfig.MachineSpec.ResourcePool, err)
 
 			poolRoot, errRoot := host.ResourcePool(ctx)
 			if errRoot != nil {
-				klog.Errorf("Failed to find root ResourcePool. err=%s", errRoot)
+				klog.Errorf("failed to find root ResourcePool. err=%s", errRoot)
 				return errRoot
 			}
 
-			klog.Info("Creating ResourcePool using default values. These values can be modified after ResourcePool creation.")
+			klog.Info("creating ResourcePool using default values. These values can be modified after ResourcePool creation.")
 			pool, err = poolRoot.Create(ctx, machineConfig.MachineSpec.ResourcePool, types.DefaultResourceConfigSpec())
 			if err != nil {
-				klog.Errorf("Create ResourcePool failed. err=%s", err)
+				klog.Errorf("create ResourcePool failed. err=%s", err)
 				return err
 			}
 		}
 
 		spec.Location.Pool = types.NewReference(pool.Reference())
 	} else {
-		klog.Infof("Attempting to use Host ResourcePool")
+		klog.Infof("attempting to use Host ResourcePool")
 		pool, err := host.ResourcePool(ctx)
 
 		if err != nil {
-			klog.Errorf("Host ResourcePool failed. err=%s", err)
+			klog.Errorf("host ResourcePool failed. err=%s", err)
 			return err
 		}
 
@@ -678,7 +688,7 @@ func (pv *Provisioner) cloneVirtualMachineOnVCenter(s *SessionContext, cluster *
 	}
 	spec.Config.DeviceChange = deviceSpecs
 	if pv.eventRecorder != nil { // TODO: currently supporting nil for testing
-		pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Creating", "Creating Machine %v", machine.Name)
+		pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "creating", "creating Machine %v", machine.Name)
 	}
 	task, err := src.Clone(ctx, vmFolder, machine.Name, spec)
 	klog.V(6).Infof("clone VM with spec %v", spec)
@@ -690,7 +700,7 @@ func (pv *Provisioner) cloneVirtualMachineOnVCenter(s *SessionContext, cluster *
 
 // cloneVirtualMachineOnESX clones the template to a virtual machine.
 func (pv *Provisioner) cloneVirtualMachineOnESX(s *SessionContext, cluster *clusterv1.Cluster, machine *clusterv1.Machine, userData string) error {
-	klog.V(4).Infof("Starting the clone process on standalone ESX")
+	klog.V(4).Infof("starting the clone process on standalone ESX")
 	ctx, cancel := context.WithCancel(*s.context)
 	defer cancel()
 
@@ -759,7 +769,7 @@ func (pv *Provisioner) cloneVirtualMachineOnESX(s *SessionContext, cluster *clus
 		return err
 	}
 
-	pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Creating", "Creating Machine %v", machine.Name)
+	pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "creating", "creating Machine %v", machine.Name)
 
 	task, err := folders.VmFolder.CreateVM(ctx, *spec, pool, ch)
 	if err != nil {
@@ -796,7 +806,7 @@ func (pv *Provisioner) addMachineBase(s *SessionContext, cluster *clusterv1.Clus
 	}
 
 	//spec.PowerOpInfo.
-	spec.Annotation = fmt.Sprintf("Virtual Machine is part of the cluster %s managed by cluster-api", cluster.Name)
+	spec.Annotation = fmt.Sprintf("virtual Machine is part of the cluster %s managed by cluster-api", cluster.Name)
 
 	// OVF Environment
 	// build up Environment in order to marshal to xml
@@ -865,7 +875,7 @@ func (pv *Provisioner) copyDisks(ctx context.Context, s *SessionContext, machine
 			if srcdisk.DeviceInfo.GetDescription().Label == diskSpec.DiskLabel {
 				newSize := diskSpec.DiskSizeGB
 				if srcdisk.CapacityInBytes > vsphereutils.GiBToByte(newSize) {
-					return devices, errors.New("Disk size provided should be more than actual disk size of the template")
+					return devices, errors.New("disk size provided should be more than actual disk size of the template")
 				}
 				srcdisk.CapacityInBytes = vsphereutils.GiBToByte(newSize)
 			}
@@ -985,7 +995,7 @@ func PropertiesHost(host *object.HostSystem) (*mo.HostSystem, error) {
 func (vc *Provisioner) updateVMReference(machine *clusterv1.Machine, vmref string) (*clusterv1.Machine, error) {
 	providerSpec, err := vsphereconfigv1.MachineConfigFromProviderSpec(&machine.Spec.ProviderSpec)
 	if err != nil {
-		klog.Infof("Error fetching MachineProviderConfig: %s", err)
+		klog.Infof("error fetching MachineProviderConfig: %s", err)
 		return machine, err
 	}
 	providerSpec.MachineRef = vmref
@@ -998,13 +1008,13 @@ func (vc *Provisioner) updateVMReference(machine *clusterv1.Machine, vmref strin
 	newMachine := machine.DeepCopy()
 	out, err := json.Marshal(providerSpec)
 	if err != nil {
-		klog.Infof("Error marshaling ProviderConfig: %s", err)
+		klog.Infof("error marshaling ProviderConfig: %s", err)
 		return machine, err
 	}
 	newMachine.Spec.ProviderSpec.Value = &runtime.RawExtension{Raw: out}
 	newMachine, err = vc.clusterV1alpha1.Machines(newMachine.Namespace).Update(newMachine)
 	if err != nil {
-		klog.Infof("Error in updating the machine ref: %s", err)
+		klog.Infof("error in updating the machine ref: %s", err)
 		return machine, err
 	}
 	return newMachine, nil
@@ -1049,10 +1059,10 @@ func (pv *Provisioner) getCloudProviderConfig(cluster *clusterv1.Cluster, machin
 	serverURL, err := url.Parse(clusterConfig.VsphereServer)
 	if err == nil && serverURL.Host != "" {
 		server = serverURL.Host
-		klog.Infof("Extracted vSphere server url: %s", server)
+		klog.Infof("extracted vSphere server url: %s", server)
 	} else {
 		server = clusterConfig.VsphereServer
-		klog.Infof("Using input vSphere server url: %s", server)
+		klog.Infof("using input vSphere server url: %s", server)
 	}
 
 	username, password, err := pv.GetVsphereCredentials(cluster)

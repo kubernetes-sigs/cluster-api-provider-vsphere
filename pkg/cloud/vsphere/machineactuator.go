@@ -98,7 +98,7 @@ func (a *MachineActuator) Create(
 	machineRole := vsphereutils.GetMachineRole(machine)
 	if machineRole == "" {
 		return errors.Errorf(
-			"Unable to get machine role while creating machine %s=%s %s=%s %s=%s %s=%s",
+			"unable to get machine role while creating machine %s=%s %s=%s %s=%s %s=%s",
 			"cluster-namespace", cluster.Namespace,
 			"cluster-name", cluster.Name,
 			"machine-namespace", machine.Namespace,
@@ -153,7 +153,7 @@ func (a *MachineActuator) Create(
 	}
 
 	// Init the control plane by creating this machine.
-	if machineRole == "controlplane" && len(controlPlaneMachines) <= 1 {
+	if machineRole == "controlplane" && len(controlPlaneMachines) == 1 {
 		if err := a.provisioner.Create(ctx, cluster, machine, ""); err != nil {
 			return errors.Wrapf(err,
 				"failed to create machine as initial member of the control plane %s=%s %s=%s %s=%s %s=%s",
@@ -174,6 +174,8 @@ func (a *MachineActuator) Create(
 			"machine-namespace", machine.Namespace,
 			"machine-name", machine.Name)
 		if err != nil {
+			// Log the error wrapped with the message since we don't return
+			// the full error, only the cause (which may be a Requeue error)
 			klog.V(2).Info(errors.Wrap(err, msg))
 			return errors.Cause(err)
 		}
@@ -259,11 +261,7 @@ func (a *MachineActuator) Update(ctx context.Context, cluster *clusterv1.Cluster
 }
 
 func (a *MachineActuator) Exists(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
-	if a.provisioner != nil {
-		return a.provisioner.Exists(ctx, cluster, machine)
-	}
-
-	return false, fmt.Errorf("No provisioner available")
+	return a.provisioner.Exists(ctx, cluster, machine)
 }
 
 func (a *MachineActuator) patchMachine(

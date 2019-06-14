@@ -44,6 +44,9 @@ func GetMachineRole(machine *clusterv1.Machine) string {
 		return "node"
 	}
 	nodeType := machine.Labels["node-type"]
+	if ok, _ := regexp.MatchString(`(?i)controlplane|master`, nodeType); ok {
+		return "controlplane"
+	}
 	if ok, _ := regexp.MatchString(`(?i)(?:worker-)?node`, nodeType); ok {
 		return "node"
 	}
@@ -239,7 +242,8 @@ func GetControlPlaneStatus(
 	cluster *clusterv1.Cluster,
 	client clientv1.Interface) (bool, string, error) {
 
-	if err := getControlPlaneStatus(cluster, client); err != nil {
+	controlPlaneEndpoint, err := getControlPlaneStatus(cluster, client)
+	if err != nil {
 		return false, "", errors.Wrapf(
 			&capierr.RequeueAfterError{RequeueAfter: constants.RequeueAfterSeconds},
 			"unable to get control plane status %s=%s %s=%s %s=%v",
@@ -247,24 +251,23 @@ func GetControlPlaneStatus(
 			"cluster-name", cluster.Name,
 			"error", err)
 	}
-	controlPlaneEndpoint, _ := GetControlPlaneEndpoint(cluster, client)
 	return true, controlPlaneEndpoint, nil
 }
 
 func getControlPlaneStatus(
 	cluster *clusterv1.Cluster,
-	client clientv1.Interface) error {
+	client clientv1.Interface) (string, error) {
 
 	clientSet, err := GetKubeClientForCluster(cluster, client)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	if _, err := clientSet.Nodes().List(metav1.ListOptions{}); err != nil {
-		return errors.Wrapf(err, "unable to list nodes")
+		return "", errors.Wrapf(err, "unable to list nodes")
 	}
 
-	return nil
+	return GetControlPlaneEndpoint(cluster, client)
 }
 
 // GetKubeClientForCluster returns a Kubernetes client for the given cluster.

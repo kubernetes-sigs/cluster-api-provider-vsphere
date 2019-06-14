@@ -293,6 +293,8 @@ func (a *MachineActuator) patchMachine(
 	if err != nil {
 		return errors.Wrap(err, "failed encoding machine status")
 	}
+	ext.Object = nil
+	newStatus.Object = nil
 
 	machine.Spec.ProviderSpec.Value = ext
 

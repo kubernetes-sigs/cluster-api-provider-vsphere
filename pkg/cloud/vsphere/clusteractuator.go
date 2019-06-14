@@ -121,6 +121,8 @@ func (a *ClusterActuator) patchCluster(cluster, clusterCopy *clusterv1.Cluster) 
 	if err != nil {
 		return errors.Wrap(err, "failed encoding cluster status")
 	}
+	ext.Object = nil
+	newStatus.Object = nil
 
 	cluster.Spec.ProviderSpec.Value = ext
 

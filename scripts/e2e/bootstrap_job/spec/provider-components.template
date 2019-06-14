@@ -1010,6 +1010,7 @@ spec:
       containers:
       - args:
         - --logtostderr
+        - -v=6
         command:
         - /root/manager
         env:
@@ -2158,7 +2159,10 @@ spec:
         controller-tools.k8s.io: "1.0"
     spec:
       containers:
-      - command:
+      - args:
+        - --logtostderr
+        - -v=6
+        command:
         - /manager
         image: gcr.io/k8s-cluster-api/cluster-api-controller:0.1.2
         name: manager

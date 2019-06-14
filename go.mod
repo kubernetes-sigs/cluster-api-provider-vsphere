@@ -2,6 +2,8 @@ module sigs.k8s.io/cluster-api-provider-vsphere
 
 go 1.12
 
+replace k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20181127025237-2b1284ed4c93
+
 require (
 	github.com/Azure/go-autorest/autorest v0.2.0 // indirect
 	github.com/appscode/jsonpatch v0.0.0-20190108182946-7c0e3b262f30 // indirect
@@ -43,16 +45,17 @@ require (
 	gopkg.in/yaml.v2 v2.2.2
 	k8s.io/api v0.0.0-20181213150558-05914d821849
 	k8s.io/apiextensions-apiserver v0.0.0-20181213153335-0fe22c71c476 // indirect
-	k8s.io/apimachinery v0.0.0-20181127025237-2b1284ed4c93
+	k8s.io/apimachinery v0.0.0-20190612125636-6a5db36e93ad
 	k8s.io/client-go v0.0.0-20181213151034-8d9ed539ba31
 	k8s.io/cluster-bootstrap v0.0.0-20190307184522-e5eaaafa58b3
 	k8s.io/code-generator v0.0.0-20190308034351-e797d15e3d1a
+	k8s.io/component-base v0.0.0-20190613150421-38b4fa3a8b0d // indirect
 	k8s.io/gengo v0.0.0-20190308184658-b90029ef6cd8 // indirect
-	k8s.io/klog v0.3.0
+	k8s.io/klog v0.3.1
 	k8s.io/kube-openapi v0.0.0-20190306001800-15615b16d372 // indirect
 	k8s.io/kubernetes v1.13.3
 	k8s.io/utils v0.0.0-20190607212802-c55fbcfc754a // indirect
-	sigs.k8s.io/cluster-api v0.0.0-20190308220454-a2f5862d32c6
+	sigs.k8s.io/cluster-api v0.0.0-20190607172558-95a2a8cf2c58
 	sigs.k8s.io/controller-runtime v0.1.10
 	sigs.k8s.io/controller-tools v0.1.9
 	sigs.k8s.io/testing_frameworks v0.1.1 // indirect

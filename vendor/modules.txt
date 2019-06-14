@@ -336,9 +336,9 @@ k8s.io/api/core/v1
 k8s.io/api/authentication/v1
 k8s.io/api/autoscaling/v1
 k8s.io/api/policy/v1beta1
+k8s.io/api/apps/v1
 k8s.io/api/admissionregistration/v1alpha1
 k8s.io/api/admissionregistration/v1beta1
-k8s.io/api/apps/v1
 k8s.io/api/apps/v1beta1
 k8s.io/api/apps/v1beta2
 k8s.io/api/auditregistration/v1alpha1
@@ -371,7 +371,7 @@ k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset
 k8s.io/apiextensions-apiserver/pkg/apis/apiextensions
 k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1
 k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/scheme
-# k8s.io/apimachinery v0.0.0-20181127025237-2b1284ed4c93
+# k8s.io/apimachinery v0.0.0-20190612125636-6a5db36e93ad => k8s.io/apimachinery v0.0.0-20181127025237-2b1284ed4c93
 k8s.io/apimachinery/pkg/runtime
 k8s.io/apimachinery/pkg/apis/meta/v1
 k8s.io/apimachinery/pkg/runtime/schema
@@ -500,6 +500,8 @@ k8s.io/code-generator/cmd/defaulter-gen
 k8s.io/code-generator/cmd/deepcopy-gen/args
 k8s.io/code-generator/pkg/util
 k8s.io/code-generator/cmd/defaulter-gen/args
+# k8s.io/component-base v0.0.0-20190613150421-38b4fa3a8b0d
+k8s.io/component-base/cli/flag
 # k8s.io/gengo v0.0.0-20190308184658-b90029ef6cd8
 k8s.io/gengo/args
 k8s.io/gengo/examples/deepcopy-gen/generators
@@ -509,7 +511,7 @@ k8s.io/gengo/namer
 k8s.io/gengo/parser
 k8s.io/gengo/types
 k8s.io/gengo/examples/set-gen/sets
-# k8s.io/klog v0.3.0
+# k8s.io/klog v0.3.1
 k8s.io/klog
 # k8s.io/kube-openapi v0.0.0-20190306001800-15615b16d372
 k8s.io/kube-openapi/pkg/util/proto
@@ -526,7 +528,7 @@ k8s.io/kubernetes/pkg/apis/core
 k8s.io/kubernetes/pkg/registry/core/service/allocator
 # k8s.io/utils v0.0.0-20190607212802-c55fbcfc754a
 k8s.io/utils/exec
-# sigs.k8s.io/cluster-api v0.0.0-20190308220454-a2f5862d32c6
+# sigs.k8s.io/cluster-api v0.0.0-20190607172558-95a2a8cf2c58
 sigs.k8s.io/cluster-api/cmd/clusterctl/cmd
 sigs.k8s.io/cluster-api/pkg/apis
 sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1

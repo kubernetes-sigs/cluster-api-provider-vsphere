@@ -90,7 +90,7 @@ type ReconcileMachine struct {
 
 // Reconcile reads that state of the cluster for a Machine object and makes changes based on the state read
 // and what is in the Machine.Spec
-// +kubebuilder:rbac:groups=cluster.k8s.io,resources=machines,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=cluster.k8s.io,resources=machines;machines/status,verbs=get;list;watch;create;update;patch;delete
 func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// TODO(mvladev): Can context be passed from Kubebuilder?
 	ctx := context.TODO()
@@ -151,7 +151,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 			}
 
 			// Since adding the finalizer updates the object return to avoid later update issues
-			return reconcile.Result{}, nil
+			return reconcile.Result{Requeue: true}, nil
 		}
 	}
 
@@ -163,7 +163,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 		}
 
 		if !r.isDeleteAllowed(m) {
-			klog.Infof("Skipping reconciling of machine %q", name)
+			klog.Infof("Deleting machine hosting this controller is not allowed. Skipping reconciliation of machine %q", name)
 			return reconcile.Result{}, nil
 		}
 
@@ -176,6 +176,14 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 
 			klog.Errorf("Failed to delete machine %q: %v", name, err)
 			return reconcile.Result{}, err
+		}
+
+		if m.Status.NodeRef != nil {
+			klog.Infof("Deleting node %q for machine %q", m.Status.NodeRef.Name, m.Name)
+			if err := r.deleteNode(ctx, m.Status.NodeRef.Name); err != nil {
+				klog.Errorf("Error deleting node %q for machine %q", name, err)
+				return reconcile.Result{}, err
+			}
 		}
 
 		// Remove finalizer on successful deletion.
@@ -203,6 +211,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 				return reconcile.Result{Requeue: true, RequeueAfter: requeueErr.RequeueAfter}, nil
 			}
 
+			klog.Errorf(`Error updating machine "%s/%s": %v`, m.Namespace, name, err)
 			return reconcile.Result{}, err
 		}
 
@@ -226,7 +235,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 
 func (r *ReconcileMachine) getCluster(ctx context.Context, machine *clusterv1.Machine) (*clusterv1.Cluster, error) {
 	if machine.Labels[clusterv1.MachineClusterLabelName] == "" {
-		klog.Infof("Machine %q in namespace %q doesn't specify %q label, assuming nil cluster", machine.Name, clusterv1.MachineClusterLabelName, machine.Namespace)
+		klog.Infof("Machine %q in namespace %q doesn't specify %q label, assuming nil cluster", machine.Name, machine.Namespace, clusterv1.MachineClusterLabelName)
 		return nil, nil
 	}
 
@@ -262,4 +271,17 @@ func (r *ReconcileMachine) isDeleteAllowed(machine *clusterv1.Machine) bool {
 	// delete the machine this machine-controller is running on. Return false to not allow machine controller to delete its
 	// own machine.
 	return node.UID != machine.Status.NodeRef.UID
+}
+
+func (r *ReconcileMachine) deleteNode(ctx context.Context, name string) error {
+	var node corev1.Node
+	if err := r.Client.Get(ctx, client.ObjectKey{Name: name}, &node); err != nil {
+		if apierrors.IsNotFound(err) {
+			klog.V(2).Infof("Node %q not found", name)
+			return nil
+		}
+		klog.Errorf("Failed to get node %q: %v", name, err)
+		return err
+	}
+	return r.Client.Delete(ctx, &node)
 }

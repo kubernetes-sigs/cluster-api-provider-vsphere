@@ -2,18 +2,14 @@ package govmomi
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog"
-	vsphereconfigv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
 	vsphereutils "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/utils"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -69,21 +65,16 @@ func (pv *Provisioner) Update(ctx context.Context, cluster *clusterv1.Cluster, m
 
 // Updates the detected IP for the machine and updates the cluster object signifying a change in the infrastructure
 func (pv *Provisioner) updateIP(cluster *clusterv1.Cluster, machine *clusterv1.Machine, vmIP string) error {
-	nmachine := machine.DeepCopy()
-	if nmachine.ObjectMeta.Annotations == nil {
-		nmachine.ObjectMeta.Annotations = make(map[string]string)
+	klog.V(4).Infof(
+		"updating machine IP address %s=%s %s=%s %s=%s %s=%s %s=%s",
+		"cluster-namespace", cluster.Namespace,
+		"cluster-name", cluster.Name,
+		"machine-namespace", machine.Namespace,
+		"machine-name", machine.Name,
+		"ip-addr", vmIP)
+	if machine.Annotations == nil {
+		machine.Annotations = map[string]string{}
 	}
-	klog.V(4).Infof("updateIP - IP = %s", vmIP)
-	nmachine.ObjectMeta.Annotations[constants.VmIpAnnotationKey] = vmIP
-	_, err := pv.clusterV1alpha1.Machines(nmachine.Namespace).Update(nmachine)
-	if err != nil {
-		return err
-	}
-	// Update the cluster status with updated time stamp for tracking purposes
-	status := &vsphereconfigv1.VsphereClusterProviderStatus{LastUpdated: time.Now().UTC().String()}
-	out, err := json.Marshal(status)
-	ncluster := cluster.DeepCopy()
-	ncluster.Status.ProviderStatus = &runtime.RawExtension{Raw: out}
-	_, err = pv.clusterV1alpha1.Clusters(ncluster.Namespace).UpdateStatus(ncluster)
-	return err
+	machine.Annotations[constants.VmIpAnnotationKey] = vmIP
+	return nil
 }

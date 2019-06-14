@@ -21,24 +21,6 @@ import (
 	kubeadmv1beta1 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
-type APIStatus string
-
-const (
-	ApiNotReady APIStatus = "NotReady"
-	ApiReady    APIStatus = "Ready"
-)
-
-// VsphereClusterProviderStatus defines the observed state of VsphereClusterProviderConfig
-type VsphereClusterProviderStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-	LastUpdated string    `json:"lastUpdated"`
-	APIStatus   APIStatus `json:"clusterApiStatus"`
-}
-
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 

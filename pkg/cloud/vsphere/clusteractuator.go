@@ -18,26 +18,24 @@ package vsphere
 
 import (
 	"encoding/json"
-	"fmt"
 	"net"
+	"reflect"
 	"strconv"
-	"time"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
-	vsphereconfigv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
-	vsphereutils "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/utils"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	v1alpha1 "sigs.k8s.io/cluster-api/pkg/client/informers_generated/externalversions/cluster/v1alpha1"
-	clustererror "sigs.k8s.io/cluster-api/pkg/controller/error"
+	"sigs.k8s.io/controller-runtime/pkg/patch"
+
+	vsphereconfigv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/certificates"
+	vsphereutils "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/utils"
 )
 
 // ClusterActuator represents the vsphere cluster actuator responsible for maintaining the cluster level objects
@@ -59,233 +57,168 @@ func NewClusterActuator(clusterV1alpha1 clusterv1alpha1.ClusterV1alpha1Interface
 }
 
 // Reconcile will create or update the cluster
-func (ca *ClusterActuator) Reconcile(cluster *clusterv1.Cluster) error {
-	klog.V(4).Infof("Attempting to reconcile cluster %s", cluster.ObjectMeta.Name)
-
-	// The generic workflow would be as follows:
-	// 1. If cluster.Status.APIEndpoints is not there, spawn a lb and generate an endpoint
-	// for the API endpoint and populate that endpoint in the status
-	// 2. If the cluster.Status.APIEndpoints is there, then ensure that the members of the lb
-	// match the list of master nodes for this cluster.
-	// In the absence of the lb creation, the logic would be to simply take the first master node
-	// and use that as the API endpoint for now.
-	if len(cluster.Status.APIEndpoints) == 0 {
-		err := ca.provisionLoadBalancer(cluster)
-		if err != nil {
-			klog.Infof("Error could not provision the Load Balancer for the cluster: %s", err)
-			return err
-		}
-		// uncomment the below return statement once we actually add the lb implementation
-		// since the provisionLoadBalancer would trigger another Reconcile loop as it updates the endpoints
-		//return nil
-	}
-	// At this stage we are expecting the lb endpoint to be present in the final lb implementation
-	err := ca.ensureLoadBalancerMembers(cluster)
-	if err != nil {
-		klog.Infof("Error setting the Load Balancer members for the cluster: %s", err)
-		return err
-	}
-	// Check if the target kubernetes is ready or not, and update the ProviderStatus if change is detected
-	err = ca.updateK8sAPIStatus(cluster)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (ca *ClusterActuator) updateK8sAPIStatus(cluster *clusterv1.Cluster) error {
-	currentClusterAPIStatus, err := ca.getClusterAPIStatus(cluster)
-	if err != nil {
-		klog.V(4).Infof("ClusterActuator failed to get cluster status: %s", err.Error())
-		return err
-	}
-	return ca.updateClusterAPIStatus(cluster, currentClusterAPIStatus)
-}
-
-// fetchKubeConfig returns the cached copy of the Kubeconfig in the secrets for the target cluster
-// In case the secret does not exist, then it fetches from the target master node and caches it for
-func (ca *ClusterActuator) fetchKubeConfig(cluster *clusterv1.Cluster, masters []*clusterv1.Machine) (string, error) {
-	var kubeconfig string
-	klog.V(4).Infof("attempting to fetch kubeconfig")
-	secret, err := ca.k8sClient.CoreV1().Secrets(cluster.Namespace).Get(fmt.Sprintf(constants.KubeConfigSecretName, cluster.UID), metav1.GetOptions{})
-	if err != nil {
-		klog.V(4).Info("could not pull secrets for kubeconfig")
-		kubeconfig, err := vsphereutils.GetKubeConfig(cluster, ca.lister)
-		if err != nil {
-			klog.Error(err)
-			return "", &clustererror.RequeueAfterError{RequeueAfter: constants.RequeueAfterSeconds}
-		}
-		configmap := make(map[string]string)
-		configmap[constants.KubeConfigSecretData] = kubeconfig
-		secret = &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: fmt.Sprintf(constants.KubeConfigSecretName, cluster.UID),
-			},
-			StringData: configmap,
-		}
-		secret, err = ca.k8sClient.CoreV1().Secrets(cluster.Namespace).Create(secret)
-		if err != nil {
-			klog.Warningf("Could not create the secret for the saving kubeconfig: err [%s]", err.Error())
-		}
-	} else {
-		klog.V(4).Info("found kubeconfig in secrets")
-		kubeconfig = string(secret.Data[constants.KubeConfigSecretData])
-	}
-	return kubeconfig, nil
-}
-
-func (ca *ClusterActuator) getClusterAPIStatus(cluster *clusterv1.Cluster) (vsphereconfigv1.APIStatus, error) {
-	controlPlaneMachines, err := vsphereutils.GetControlPlaneMachinesForCluster(cluster, ca.lister)
-	if err != nil {
-		klog.Infof("Error retrieving control plane nodes for the cluster: %s", err)
-		return vsphereconfigv1.ApiNotReady, err
-	}
-
-	if len(controlPlaneMachines) == 0 {
-		klog.Warningf("No control plane nodes for the cluster [%s] present", cluster.Name)
-		return vsphereconfigv1.ApiNotReady, nil
-	}
-
-	kubeconfig, err := ca.fetchKubeConfig(cluster, controlPlaneMachines)
-	if err != nil {
-		return vsphereconfigv1.ApiNotReady, err
-	}
-	kconfigFile, err := vsphereutils.CreateTempFile(kubeconfig)
-	if err != nil {
-		return vsphereconfigv1.ApiNotReady, err
-	}
-	clientConfig, err := clientcmd.BuildConfigFromFlags("", kconfigFile)
-	if err != nil {
-		klog.Infof("[cluster-actuator] error creating client config for target cluster [%s], will requeue", err.Error())
-		return vsphereconfigv1.ApiNotReady, &clustererror.RequeueAfterError{RequeueAfter: constants.RequeueAfterSeconds}
-	}
-	clientSet, err := kubernetes.NewForConfig(clientConfig)
-	if err != nil {
-		klog.Infof("[cluster-actuator] error creating clientset for target cluster [%s], will requeue", err.Error())
-		return vsphereconfigv1.ApiNotReady, &clustererror.RequeueAfterError{RequeueAfter: constants.RequeueAfterSeconds}
-	}
-	_, err = clientSet.CoreV1().Nodes().List(metav1.ListOptions{})
-	if err != nil {
-		klog.Infof("[cluster-actuator] target cluster API not yet ready [%s], will requeue", err.Error())
-		return vsphereconfigv1.ApiNotReady, &clustererror.RequeueAfterError{RequeueAfter: constants.RequeueAfterSeconds}
-	}
-	return vsphereconfigv1.ApiReady, nil
-}
-
-func (ca *ClusterActuator) updateClusterAPIStatus(cluster *clusterv1.Cluster, newStatus vsphereconfigv1.APIStatus) error {
-	oldProviderStatus, err := vsphereutils.GetClusterProviderStatus(cluster)
-	if err != nil {
-		return err
-	}
-	if oldProviderStatus != nil && oldProviderStatus.APIStatus == newStatus {
-		// Nothing to update
-		return nil
-	}
-	newProviderStatus := &vsphereconfigv1.VsphereClusterProviderStatus{}
-	// create a copy of the old status so that any other fields except the ones we want to change can be retained
-	if oldProviderStatus != nil {
-		newProviderStatus = oldProviderStatus.DeepCopy()
-	}
-	newProviderStatus.APIStatus = newStatus
-	newProviderStatus.LastUpdated = time.Now().UTC().String()
-	out, err := json.Marshal(newProviderStatus)
-	ncluster := cluster.DeepCopy()
-	ncluster.Status.ProviderStatus = &runtime.RawExtension{Raw: out}
-
-	_, err = ca.clusterV1alpha1.Clusters(ncluster.Namespace).UpdateStatus(ncluster)
-	if err != nil {
-		klog.V(4).Infof("ClusterActuator failed to update the cluster status: %s", err.Error())
-		return err
-	}
-	return nil
-}
-
-func (ca *ClusterActuator) provisionLoadBalancer(cluster *clusterv1.Cluster) error {
-	// TODO(ssurana):
-	// 1. implement the lb provisioning
-	// 2. update the lb public endpoint to the cluster endpoint
-	return nil
-}
-
-// ensureLoadBalancerMembers would be responsible for keeping the master API endpoints
-// synced with the lb members at all times.
-func (ca *ClusterActuator) ensureLoadBalancerMembers(cluster *clusterv1.Cluster) error {
-	return ca.addControlPlaneEndpointToAPIEndpoints(cluster)
-}
-
-func (ca *ClusterActuator) addControlPlaneEndpointToAPIEndpoints(cluster *clusterv1.Cluster) error {
-	cluster = cluster.DeepCopy()
-
-	if len(cluster.Status.APIEndpoints) > 0 {
-		return nil
-	}
-
-	controlPlaneEndpoint, err := vsphereutils.GetControlPlaneEndpoint(cluster, ca.lister)
-	if err != nil {
-		klog.Error(err)
-		if err, ok := errors.Cause(err).(*clustererror.RequeueAfterError); ok {
-			return err
-		}
-		return err
-	}
-
-	host, szPort, err := net.SplitHostPort(controlPlaneEndpoint)
-	if err != nil {
-		return errors.Wrapf(
-			err,
-			"unable to get host/port for control plane endpoint "+
-				"%s=%s %s=%s %s=%s",
-			"control-plane-endpoint", controlPlaneEndpoint,
-			"cluster-namespace", cluster.Namespace,
-			"cluster-name", cluster.Name)
-	}
-
-	port, err := strconv.Atoi(szPort)
-	if err != nil {
-		return errors.Wrapf(
-			err,
-			"unable to get parse port for control plane endpoint "+
-				"%s=%s %s=%s %s=%s %s=%s",
-			"host", host,
-			"port", szPort,
-			"cluster-namespace", cluster.Namespace,
-			"cluster-name", cluster.Name)
-	}
-
-	cluster.Status.APIEndpoints = []clusterv1.APIEndpoint{
-		clusterv1.APIEndpoint{
-			Host: host,
-			Port: port,
-		},
-	}
-
-	if _, err := ca.clusterV1alpha1.Clusters(cluster.Namespace).UpdateStatus(cluster); err != nil {
-		err = errors.Wrapf(err,
-			"unable to update cluster with API endpoint "+
-				"%s=%s %s=%s %s=%s",
-			"api-endpoint", controlPlaneEndpoint,
-			"cluster-namespace", cluster.Namespace,
-			"cluster-name", cluster.Name)
-
-		ca.eventRecorder.Eventf(cluster, corev1.EventTypeWarning, "Failed Update", err.Error())
-		klog.Error(err)
-		return err
-	}
-
-	ca.eventRecorder.Eventf(
-		cluster, corev1.EventTypeNormal,
-		"Updated", "updated cluster with API endpoint "+
-			"%s=%s %s=%s %s=%s",
-		"api-endpoint", controlPlaneEndpoint,
+func (a *ClusterActuator) Reconcile(cluster *clusterv1.Cluster) (result error) {
+	klog.V(4).Infof("reconciling cluster %s=%s %s=%s",
 		"cluster-namespace", cluster.Namespace,
 		"cluster-name", cluster.Name)
+
+	clusterCopy := cluster.DeepCopy()
+
+	defer func() {
+		if err := a.patchCluster(cluster, clusterCopy); err != nil {
+			if result == nil {
+				result = err
+			} else {
+				result = errors.Wrap(result, err.Error())
+			}
+		}
+	}()
+
+	// Ensure the PKI config is present or generated and then set the updated
+	// clusterConfig back onto the cluster.
+	if err := certificates.ReconcileCertificates(cluster); err != nil {
+		return errors.Wrapf(err,
+			"unable to reconcile certs while reconciling cluster %s=%s %s=%s",
+			"cluster-namespace", cluster.Namespace,
+			"cluster-name", cluster.Name)
+	}
 
 	return nil
 }
 
 // Delete will delete any cluster level resources for the cluster.
-func (ca *ClusterActuator) Delete(cluster *clusterv1.Cluster) error {
-	ca.eventRecorder.Eventf(cluster, corev1.EventTypeNormal, "Deleted", "Deleting cluster %s", cluster.Name)
+func (a *ClusterActuator) Delete(cluster *clusterv1.Cluster) error {
+	a.eventRecorder.Eventf(cluster, corev1.EventTypeNormal, "Deleted", "Deleting cluster %s", cluster.Name)
 	klog.Infof("Attempting to cleaning up resources of cluster %s", cluster.ObjectMeta.Name)
+	return nil
+}
+
+func (a *ClusterActuator) patchCluster(cluster, clusterCopy *clusterv1.Cluster) error {
+
+	clusterClient := a.clusterV1alpha1.Clusters(cluster.Namespace)
+
+	clusterConfig, err := vsphereconfigv1.ClusterConfigFromCluster(cluster)
+	if err != nil {
+		return errors.Wrapf(err,
+			"unable to get cluster provider spec for cluster while patching cluster %s=%s %s=%s",
+			"cluster-namespace", cluster.Namespace,
+			"cluster-name", cluster.Name)
+	}
+
+	clusterStatus, err := vsphereconfigv1.ClusterStatusFromCluster(cluster)
+	if err != nil {
+		return errors.Wrapf(err,
+			"unable to get cluster provider status for cluster while patching cluster %s=%s %s=%s",
+			"cluster-namespace", cluster.Namespace,
+			"cluster-name", cluster.Name)
+	}
+
+	ext, err := vsphereconfigv1.EncodeClusterSpec(clusterConfig)
+	if err != nil {
+		return errors.Wrap(err, "failed encoding cluster spec")
+	}
+	newStatus, err := vsphereconfigv1.EncodeClusterStatus(clusterStatus)
+	if err != nil {
+		return errors.Wrap(err, "failed encoding cluster status")
+	}
+
+	cluster.Spec.ProviderSpec.Value = ext
+
+	// Build a patch and marshal that patch to something the client will understand.
+	p, err := patch.NewJSONPatch(clusterCopy, cluster)
+	if err != nil {
+		return errors.Wrap(err, "failed to create new JSONPatch")
+	}
+
+	// Do not update Machine if nothing has changed
+	if len(p) != 0 {
+		pb, err := json.MarshalIndent(p, "", "  ")
+		if err != nil {
+			return errors.Wrap(err, "failed to json marshal patch")
+		}
+
+		klog.V(1).Infof(
+			"patching cluster %s=%s %s=%s",
+			"cluster-namespace", cluster.Namespace,
+			"cluster-name", cluster.Name)
+
+		result, err := clusterClient.Patch(cluster.Name, types.JSONPatchType, pb)
+		if err != nil {
+			a.eventRecorder.Eventf(
+				cluster, corev1.EventTypeWarning,
+				"UpdateFailure",
+				"failed to update cluster config %s=%s %s=%s %s=%v",
+				"cluster-namespace", cluster.Namespace,
+				"cluster-name", cluster.Name,
+				"error", err)
+			return errors.Wrap(err, "failed to patch cluster")
+		}
+
+		a.eventRecorder.Eventf(
+			cluster, corev1.EventTypeNormal,
+			"UpdateSuccess",
+			"updated cluster config %s=%s %s=%s",
+			"cluster-namespace", cluster.Namespace,
+			"cluster-name", cluster.Name)
+
+		// Keep the resource version updated so the status update can succeed
+		cluster.ResourceVersion = result.ResourceVersion
+	}
+
+	// If the cluster is online then update the cluster's APIEndpoints
+	// to include the control plane endpoint.
+	if ok, controlPlaneEndpoint, _ := vsphereutils.GetControlPlaneStatus(cluster, a.lister); ok {
+		host, szPort, err := net.SplitHostPort(controlPlaneEndpoint)
+		if err != nil {
+			return errors.Wrapf(err,
+				"unable to get host/port for control plane endpoint %s=%s %s=%s %s=%s",
+				"control-plane-endpoint", controlPlaneEndpoint,
+				"cluster-namespace", cluster.Namespace,
+				"cluster-name", cluster.Name)
+		}
+		port, err := strconv.Atoi(szPort)
+		if err != nil {
+			return errors.Wrapf(err,
+				"unable to get parse port for control plane endpoint %s=%s %s=%s %s=%s %s=%s",
+				"host", host,
+				"port", szPort,
+				"cluster-namespace", cluster.Namespace,
+				"cluster-name", cluster.Name)
+		}
+		if len(cluster.Status.APIEndpoints) == 0 || (cluster.Status.APIEndpoints[0].Host != host && cluster.Status.APIEndpoints[0].Port != port) {
+			cluster.Status.APIEndpoints = []clusterv1.APIEndpoint{
+				clusterv1.APIEndpoint{
+					Host: host,
+					Port: port,
+				},
+			}
+		}
+	}
+	cluster.Status.ProviderStatus = newStatus
+
+	if !reflect.DeepEqual(cluster.Status, clusterCopy.Status) {
+		klog.V(1).Infof(
+			"updating cluster status %s=%s %s=%s",
+			"cluster-namespace", cluster.Namespace,
+			"cluster-name", cluster.Name)
+		if _, err := clusterClient.UpdateStatus(cluster); err != nil {
+			a.eventRecorder.Eventf(
+				cluster, corev1.EventTypeWarning,
+				"UpdateFailure",
+				"failed to update cluster status %s=%s %s=%s %s=%v",
+				"cluster-namespace", cluster.Namespace,
+				"cluster-name", cluster.Name,
+				"error", err)
+			return errors.Wrap(err, "failed to update cluster status")
+		}
+	}
+
+	a.eventRecorder.Eventf(
+		cluster, corev1.EventTypeNormal,
+		"UpdateSuccess",
+		"updated cluster status %s=%s %s=%s",
+		"cluster-namespace", cluster.Namespace,
+		"cluster-name", cluster.Name)
+
 	return nil
 }

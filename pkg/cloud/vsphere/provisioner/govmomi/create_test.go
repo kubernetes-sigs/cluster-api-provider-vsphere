@@ -64,13 +64,6 @@ func TestCreate(t *testing.T) {
 	}
 	clusterConfig.TypeMeta.Kind = reflect.TypeOf(clusterConfig).Name()
 
-	{
-		cluster := &clusterv1.Cluster{}
-		cluster.Name = "test-cluster"
-		cluster.Namespace = "test-namespace"
-		certificates.ReconcileCertificates(cluster, &clusterConfig)
-	}
-
 	raw, err := yaml.Marshal(clusterConfig)
 	if err != nil {
 		log.Fatal(err)
@@ -111,6 +104,10 @@ func TestCreate(t *testing.T) {
 				},
 			},
 		},
+	}
+
+	if err := certificates.ReconcileCertificates(cluster); err != nil {
+		t.Fatal(err)
 	}
 
 	vm := simulator.Map.Any("VirtualMachine").(*simulator.VirtualMachine)

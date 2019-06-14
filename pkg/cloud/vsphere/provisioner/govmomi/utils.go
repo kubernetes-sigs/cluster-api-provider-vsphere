@@ -15,10 +15,12 @@ import (
 	tokenapi "k8s.io/cluster-bootstrap/token/api"
 	tokenutil "k8s.io/cluster-bootstrap/token/util"
 	"k8s.io/klog"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
-	vsphereutils "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/utils"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	apierrors "sigs.k8s.io/cluster-api/pkg/errors"
+
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
+	vsphereutils "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/utils"
 )
 
 var (
@@ -194,7 +196,7 @@ func (pv *Provisioner) GetKubeConfig(cluster *clusterv1.Cluster) (string, error)
 }
 
 func (pv *Provisioner) GetVsphereCredentials(cluster *clusterv1.Cluster) (string, string, error) {
-	vsphereConfig, err := vsphereutils.GetClusterProviderSpec(cluster.Spec.ProviderSpec)
+	vsphereConfig, err := v1alpha1.ClusterConfigFromCluster(cluster)
 	if err != nil {
 		return "", "", err
 	}

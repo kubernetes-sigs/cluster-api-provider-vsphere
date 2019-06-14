@@ -8,8 +8,9 @@ import (
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/vim25/soap"
-	vsphereutils "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/utils"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
 )
 
 type SessionContext struct {
@@ -20,7 +21,7 @@ type SessionContext struct {
 
 func (pv *Provisioner) sessionFromProviderConfig(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (*SessionContext, error) {
 	var sc SessionContext
-	vsphereConfig, err := vsphereutils.GetClusterProviderSpec(cluster.Spec.ProviderSpec)
+	clusterConfig, err := v1alpha1.ClusterConfigFromCluster(cluster)
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +29,7 @@ func (pv *Provisioner) sessionFromProviderConfig(cluster *clusterv1.Cluster, mac
 	if err != nil {
 		return nil, err
 	}
-	if ses, ok := pv.sessioncache[vsphereConfig.VsphereServer+username]; ok {
+	if ses, ok := pv.sessioncache[clusterConfig.VsphereServer+username]; ok {
 		s, ok := ses.(SessionContext)
 		if ok {
 			// Test if the session is valid and return
@@ -39,7 +40,7 @@ func (pv *Provisioner) sessionFromProviderConfig(cluster *clusterv1.Cluster, mac
 	}
 	ctx := context.Background()
 
-	soapURL, err := soap.ParseURL(vsphereConfig.VsphereServer)
+	soapURL, err := soap.ParseURL(clusterConfig.VsphereServer)
 	if soapURL == nil || err != nil {
 		return nil, fmt.Errorf("error parsing vSphere URL %s : [%s]", soapURL, err)
 	}
@@ -60,6 +61,6 @@ func (pv *Provisioner) sessionFromProviderConfig(cluster *clusterv1.Cluster, mac
 	sc.context = &ctx
 	finder := find.NewFinder(sc.session.Client, false)
 	sc.finder = finder
-	pv.sessioncache[vsphereConfig.VsphereServer+username] = sc
+	pv.sessioncache[clusterConfig.VsphereServer+username] = sc
 	return &sc, nil
 }

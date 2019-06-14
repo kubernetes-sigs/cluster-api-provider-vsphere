@@ -50,7 +50,7 @@ func init() {
 		}
 
 		//TODO: remove need for client
-		actuator, err := vsphere.NewGovmomiMachineActuator(m, client.ClusterV1alpha1(), machineClientSet, informer, machineEventRecorder)
+		actuator, err := vsphere.NewMachineActuator(m, client.ClusterV1alpha1(), machineClientSet, informer, machineEventRecorder)
 		if err != nil {
 			klog.Fatalf("Could not create vSphere machine actuator: %v", err)
 		}

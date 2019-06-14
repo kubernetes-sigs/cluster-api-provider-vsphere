@@ -70,12 +70,19 @@ type Config struct {
 }
 
 // ReconcileCertificates generate certificates if none exists.
-func ReconcileCertificates(
-	cluster *clusterv1.Cluster,
-	clusterConfig *v1alpha1.VsphereClusterProviderConfig) error {
+func ReconcileCertificates(cluster *clusterv1.Cluster) error {
+
+	clusterConfig, err := v1alpha1.ClusterConfigFromProviderSpec(&cluster.Spec.ProviderSpec)
+	if err != nil {
+		return errors.Wrapf(err,
+			"unable to get cluster provider spec for cluster while reconciling certificates %s=%s %s=%s",
+			"cluster-namespace", cluster.Namespace,
+			"cluster-name", cluster.Name)
+	}
 
 	klog.V(2).Infof("Reconciling certificates %s=%s %s=%s",
-		"cluster-name", cluster.Name, "cluster-namespace", cluster.Namespace)
+		"cluster-name", cluster.Name,
+		"cluster-namespace", cluster.Namespace)
 
 	if !clusterConfig.CAKeyPair.HasCertAndKey() {
 		klog.V(2).Infof("Generating keypair for %s=%s", "user", clusterCA)
@@ -111,6 +118,7 @@ func ReconcileCertificates(
 		}
 		clusterConfig.SAKeyPair = saKeyPair
 	}
+
 	return nil
 }
 

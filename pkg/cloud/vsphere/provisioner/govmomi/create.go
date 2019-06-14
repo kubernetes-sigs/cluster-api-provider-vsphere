@@ -18,12 +18,9 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clustererror "sigs.k8s.io/cluster-api/pkg/controller/error"
-	apierrors "sigs.k8s.io/cluster-api/pkg/errors"
-	"sigs.k8s.io/cluster-api/pkg/util"
 
 	vsphereconfigv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
@@ -146,7 +143,7 @@ func (pv *Provisioner) Create(
 		}
 	}
 
-	clusterConfig, err := vsphereutils.GetClusterProviderSpec(cluster.Spec.ProviderSpec)
+	clusterConfig, err := vsphereconfigv1.ClusterConfigFromProviderSpec(&cluster.Spec.ProviderSpec)
 	if err != nil {
 		return errors.Wrapf(
 			err,
@@ -158,7 +155,7 @@ func (pv *Provisioner) Create(
 			"machine-name", machine.Name)
 	}
 
-	machineConfig, err := vsphereutils.GetMachineProviderSpec(machine.Spec.ProviderSpec)
+	machineConfig, err := vsphereconfigv1.MachineConfigFromProviderSpec(&machine.Spec.ProviderSpec)
 	if err != nil {
 		return errors.Wrapf(
 			err,
@@ -468,7 +465,7 @@ func (pv *Provisioner) cloneVirtualMachineOnVCenter(s *SessionContext, cluster *
 	ctx, cancel := context.WithCancel(*s.context)
 	defer cancel()
 
-	machineConfig, err := vsphereutils.GetMachineProviderSpec(machine.Spec.ProviderSpec)
+	machineConfig, err := vsphereconfigv1.MachineConfigFromProviderSpec(&machine.Spec.ProviderSpec)
 	if err != nil {
 		return err
 	}
@@ -697,7 +694,7 @@ func (pv *Provisioner) cloneVirtualMachineOnESX(s *SessionContext, cluster *clus
 	ctx, cancel := context.WithCancel(*s.context)
 	defer cancel()
 
-	machineConfig, err := vsphereutils.GetMachineProviderSpec(machine.Spec.ProviderSpec)
+	machineConfig, err := vsphereconfigv1.MachineConfigFromProviderSpec(&machine.Spec.ProviderSpec)
 	if err != nil {
 		return err
 	}
@@ -986,7 +983,7 @@ func PropertiesHost(host *object.HostSystem) (*mo.HostSystem, error) {
 }
 
 func (vc *Provisioner) updateVMReference(machine *clusterv1.Machine, vmref string) (*clusterv1.Machine, error) {
-	providerSpec, err := vsphereutils.GetMachineProviderSpec(machine.Spec.ProviderSpec)
+	providerSpec, err := vsphereconfigv1.MachineConfigFromProviderSpec(&machine.Spec.ProviderSpec)
 	if err != nil {
 		klog.Infof("Error fetching MachineProviderConfig: %s", err)
 		return machine, err
@@ -1013,39 +1010,17 @@ func (vc *Provisioner) updateVMReference(machine *clusterv1.Machine, vmref strin
 	return newMachine, nil
 }
 
-func (pv *Provisioner) setTaskRef(machine *clusterv1.Machine, taskref string) error {
-	oldProviderStatus, err := vsphereutils.GetMachineProviderStatus(machine)
+func (pv *Provisioner) setTaskRef(machine *clusterv1.Machine, taskRef string) error {
+	machineStatus, err := vsphereconfigv1.MachineStatusFromProviderStatus(&machine.Status)
 	if err != nil {
 		return err
 	}
-
-	if oldProviderStatus != nil && oldProviderStatus.TaskRef == taskref {
-		// Nothing to update
-		return nil
-	}
-	newProviderStatus := &vsphereconfigv1.VsphereMachineProviderStatus{}
-	// create a copy of the old status so that any other fields except the ones we want to change can be retained
-	if oldProviderStatus != nil {
-		newProviderStatus = oldProviderStatus.DeepCopy()
-	}
-	newProviderStatus.TaskRef = taskref
-	newProviderStatus.LastUpdated = time.Now().UTC().String()
-	out, err := json.Marshal(newProviderStatus)
-	newMachine := machine.DeepCopy()
-	newMachine.Status.ProviderStatus = &runtime.RawExtension{Raw: out}
-	if pv.clusterV1alpha1 == nil { // TODO: currently supporting nil for testing
-		return nil
-	}
-	_, err = pv.clusterV1alpha1.Machines(newMachine.Namespace).UpdateStatus(newMachine)
-	if err != nil {
-		klog.Infof("Error in updating the machine ref: %s", err)
-		return err
-	}
+	machineStatus.TaskRef = taskRef
 	return nil
 }
 
 func (pv *Provisioner) getCloudInitMetaData(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
-	machineconfig, err := vsphereutils.GetMachineProviderSpec(machine.Spec.ProviderSpec)
+	machineconfig, err := vsphereconfigv1.MachineConfigFromProviderSpec(&machine.Spec.ProviderSpec)
 	if err != nil {
 		return "", err
 	}
@@ -1059,11 +1034,11 @@ func (pv *Provisioner) getCloudInitMetaData(cluster *clusterv1.Cluster, machine 
 
 func (pv *Provisioner) getCloudProviderConfig(cluster *clusterv1.Cluster, machine *clusterv1.Machine,
 	resourcePoolPath string, deployOnVC bool) (string, error) {
-	clusterConfig, err := vsphereutils.GetClusterProviderSpec(cluster.Spec.ProviderSpec)
+	clusterConfig, err := vsphereconfigv1.ClusterConfigFromProviderSpec(&cluster.Spec.ProviderSpec)
 	if err != nil {
 		return "", err
 	}
-	machineconfig, err := vsphereutils.GetMachineProviderSpec(machine.Spec.ProviderSpec)
+	machineconfig, err := vsphereconfigv1.MachineConfigFromProviderSpec(&machine.Spec.ProviderSpec)
 	if err != nil {
 		return "", err
 	}
@@ -1109,75 +1084,4 @@ func (pv *Provisioner) getCloudProviderConfig(cluster *clusterv1.Cluster, machin
 	}
 	cloudProviderConfig = base64.StdEncoding.EncodeToString([]byte(cloudProviderConfig))
 	return cloudProviderConfig, nil
-}
-
-// Builds and returns the startup script for the passed machine and cluster.
-// Returns the full path of the saved startup script and possible error.
-func (pv *Provisioner) getStartupScript(cluster *clusterv1.Cluster, machine *clusterv1.Machine, deployOnVC bool) (string, error) {
-	machineconfig, err := vsphereutils.GetMachineProviderSpec(machine.Spec.ProviderSpec)
-	if err != nil {
-		return "", pv.HandleMachineError(machine, apierrors.InvalidMachineConfiguration(
-			"Cannot unmarshal providerSpec field: %v", err), constants.CreateEventAction)
-	}
-	preloaded := machineconfig.MachineSpec.Preloaded
-	var startupScript string
-	if util.IsControlPlaneMachine(machine) {
-		if machine.Spec.Versions.ControlPlane == "" {
-			return "", pv.HandleMachineError(machine, apierrors.InvalidMachineConfiguration(
-				"invalid master configuration: missing Machine.Spec.Versions.ControlPlane"), constants.CreateEventAction)
-		}
-		parsedVersion, err := version.ParseSemantic(machine.Spec.Versions.ControlPlane)
-		if err != nil {
-			return "", err
-		}
-
-		startupScript, err = vpshereprovisionercommon.GetMasterStartupScript(
-			vpshereprovisionercommon.TemplateParams{
-				MajorMinorVersion: fmt.Sprintf("%d.%d", parsedVersion.Major(), parsedVersion.Minor()),
-				Cluster:           cluster,
-				Machine:           machine,
-				Preloaded:         preloaded,
-			},
-			deployOnVC,
-		)
-		if err != nil {
-			return "", err
-		}
-	} else {
-		clusterstatus, err := vsphereutils.GetClusterProviderStatus(cluster)
-		if err != nil {
-			klog.Infof("Error fetching cluster ProviderStatus field: %s", err)
-			return "", err
-		}
-		if clusterstatus == nil || clusterstatus.APIStatus != vsphereconfigv1.ApiReady {
-			duration := vsphereutils.GetNextBackOff()
-			klog.Infof("Waiting for Kubernetes API Status to be \"Ready\". Retrying in %s", duration)
-			return "", &clustererror.RequeueAfterError{RequeueAfter: duration}
-		}
-		kubeadmToken, err := pv.GetKubeadmToken(cluster)
-		if err != nil {
-			duration := vsphereutils.GetNextBackOff()
-			klog.Infof("Error generating kubeadm token, will retry in %s error: %s", duration, err.Error())
-			return "", &clustererror.RequeueAfterError{RequeueAfter: duration}
-		}
-		parsedVersion, err := version.ParseSemantic(machine.Spec.Versions.Kubelet)
-		if err != nil {
-			return "", err
-		}
-		startupScript, err = vpshereprovisionercommon.GetNodeStartupScript(
-			vpshereprovisionercommon.TemplateParams{
-				Token:             kubeadmToken,
-				MajorMinorVersion: fmt.Sprintf("%d.%d", parsedVersion.Major(), parsedVersion.Minor()),
-				Cluster:           cluster,
-				Machine:           machine,
-				Preloaded:         preloaded,
-			},
-			deployOnVC,
-		)
-		if err != nil {
-			return "", err
-		}
-	}
-	startupScript = base64.StdEncoding.EncodeToString([]byte(startupScript))
-	return startupScript, nil
 }

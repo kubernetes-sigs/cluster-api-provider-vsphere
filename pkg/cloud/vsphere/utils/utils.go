@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math"
@@ -24,7 +23,6 @@ import (
 	clientv1 "sigs.k8s.io/cluster-api/pkg/client/informers_generated/externalversions/cluster/v1alpha1"
 	capierr "sigs.k8s.io/cluster-api/pkg/controller/error"
 	"sigs.k8s.io/cluster-api/pkg/util"
-	"sigs.k8s.io/yaml"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
@@ -77,25 +75,25 @@ func GetControlPlaneEndpoint(
 		controlPlaneEndpoint := net.JoinHostPort(
 			cluster.Status.APIEndpoints[0].Host,
 			strconv.Itoa(cluster.Status.APIEndpoints[0].Port))
-		klog.V(2).Infof("got control plane endpoint from cluster APIEndpoints "+
-			" %s=%s %s=%s %s=%s",
+		klog.V(2).Infof(
+			"got control plane endpoint from cluster APIEndpoints %s=%s %s=%s %s=%s",
 			"control-plane-endpoint", controlPlaneEndpoint,
 			"cluster-namespace", cluster.Namespace,
 			"cluster-name", cluster.Name)
 		return controlPlaneEndpoint, nil
 	}
 
-	clusterProviderConfig, err := GetClusterProviderSpec(cluster.Spec.ProviderSpec)
+	clusterConfig, err := v1alpha1.ClusterConfigFromProviderSpec(&cluster.Spec.ProviderSpec)
 	if err != nil {
-		return "", errors.Wrapf(
-			err,
-			"unable to get cluster provider config while searching for "+
-				"control plane endpoint %s=%s %s=%s",
-			"cluster-name", cluster.Name,
-			"cluster-namespace", cluster.Namespace)
+		return "", errors.Wrapf(err,
+			"unable to get cluster provider spec for cluster while getting control plane endpoint %s=%s %s=%s",
+			"cluster-namespace", cluster.Namespace,
+			"cluster-name", cluster.Name)
 	}
-	if controlPlaneEndpoint := clusterProviderConfig.ClusterConfiguration.ControlPlaneEndpoint; controlPlaneEndpoint != "" {
-		klog.V(2).Infof("got control plane endpoint from cluster config %s=%s %s=%s %s=%s",
+
+	if controlPlaneEndpoint := clusterConfig.ClusterConfiguration.ControlPlaneEndpoint; controlPlaneEndpoint != "" {
+		klog.V(2).Infof(
+			"got control plane endpoint from cluster config %s=%s %s=%s %s=%s",
 			"control-plane-endpoint", controlPlaneEndpoint,
 			"cluster-namespace", cluster.Namespace,
 			"cluster-name", cluster.Name)
@@ -104,18 +102,15 @@ func GetControlPlaneEndpoint(
 
 	if client == nil {
 		return "", errors.Errorf(
-			"cluster client is nil while searching for "+
-				"control plane endpoint %s=%s %s=%s",
-			"cluster-name", cluster.Name,
-			"cluster-namespace", cluster.Namespace)
+			"cluster client is nil while searching for control plane endpoint %s=%s %s=%s",
+			"cluster-namespace", cluster.Namespace,
+			"cluster-name", cluster.Name)
 	}
 
 	controlPlaneMachines, err := GetControlPlaneMachinesForCluster(cluster, client)
 	if err != nil {
-		return "", errors.Wrapf(
-			err,
-			"unable to get control plane machines while searching for "+
-				"control plane endpoint %s=%s %s=%s",
+		return "", errors.Wrapf(err,
+			"unable to get control plane machines while searching for control plane endpoint %s=%s %s=%s",
 			"cluster-namespace", cluster.Namespace,
 			"cluster-name", cluster.Name)
 	}
@@ -123,8 +118,7 @@ func GetControlPlaneEndpoint(
 	if len(controlPlaneMachines) == 0 {
 		return "", errors.Wrapf(
 			&capierr.RequeueAfterError{RequeueAfter: constants.RequeueAfterSeconds},
-			"no control plane machines defined while searching for "+
-				"control plane endpoint %s=%s %s=%s",
+			"no control plane machines defined while searching for control plane endpoint %s=%s %s=%s",
 			"cluster-namespace", cluster.Namespace,
 			"cluster-name", cluster.Name)
 	}
@@ -139,21 +133,17 @@ func GetControlPlaneEndpoint(
 	if machineIPAddr == "" {
 		return "", errors.Wrapf(
 			&capierr.RequeueAfterError{RequeueAfter: constants.RequeueAfterSeconds},
-			"first control plane machine has not reported "+
-				"network address while searching for control plane endpoint "+
-				"%s=%s %s=%s %s=%s %s=%s",
+			"first control plane machine has not reported network address while searching for control plane endpoint %s=%s %s=%s %s=%s %s=%s",
 			"cluster-namespace", cluster.Namespace,
 			"cluster-name", cluster.Name,
 			"machine-namespace", machine.Namespace,
 			"machine-name", machine.Name)
 	}
 
-	machineProviderConfig, err := GetMachineProviderSpec(machine.Spec.ProviderSpec)
+	machineConfig, err := v1alpha1.MachineConfigFromProviderSpec(&machine.Spec.ProviderSpec)
 	if err != nil {
-		return "", errors.Wrapf(
-			err,
-			"unable to get machine provider config while searching for "+
-				"control plane endpoint %s=%s %s=%s %s=%s %s=%s",
+		return "", errors.Wrapf(err,
+			"unable to get machine provider config while searching for control plane endpoint %s=%s %s=%s %s=%s %s=%s",
 			"cluster-namespace", cluster.Namespace,
 			"cluster-name", cluster.Name,
 			"machine-namespace", machine.Namespace,
@@ -162,13 +152,13 @@ func GetControlPlaneEndpoint(
 
 	// Check both the Init and Join config for the bind port. If the Join config
 	// has a bind port that is different then use it.
-	bindPort := GetAPIServerBindPort(machineProviderConfig)
+	bindPort := GetAPIServerBindPort(machineConfig)
 
 	controlPlaneEndpoint := net.JoinHostPort(
 		machineIPAddr, strconv.Itoa(int(bindPort)))
 
-	klog.V(2).Infof("got control plane endpoint from machine config "+
-		"%s=%s %s=%s %s=%s %s=%s %s=%s",
+	klog.V(2).Infof(
+		"got control plane endpoint from machine config %s=%s %s=%s %s=%s %s=%s %s=%s",
 		"control-plane-endpoint", controlPlaneEndpoint,
 		"cluster-namespace", cluster.Namespace,
 		"cluster-name", cluster.Name,
@@ -199,24 +189,22 @@ func GetKubeConfig(
 	client clientv1.Interface) (string, error) {
 
 	// Load provider config.
-	config, err := GetClusterProviderSpec(cluster.Spec.ProviderSpec)
+	clusterConfig, err := v1alpha1.ClusterConfigFromProviderSpec(&cluster.Spec.ProviderSpec)
 	if err != nil {
-		return "", errors.Wrapf(
-			err,
-			"unable to get cluster provider spec for cluster "+
-				"while gettig kubeconfig %s=%s %s=%s",
+		return "", errors.Wrapf(err,
+			"unable to get cluster provider spec for cluster while getting kubeconfig %s=%s %s=%s",
 			"cluster-namespace", cluster.Namespace,
 			"cluster-name", cluster.Name)
 	}
 
-	cert, err := certificates.DecodeCertPEM(config.CAKeyPair.Cert)
+	cert, err := certificates.DecodeCertPEM(clusterConfig.CAKeyPair.Cert)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to decode CA Cert")
 	} else if cert == nil {
 		return "", errors.New("certificate not found in config")
 	}
 
-	key, err := certificates.DecodePrivateKeyPEM(config.CAKeyPair.Key)
+	key, err := certificates.DecodePrivateKeyPEM(clusterConfig.CAKeyPair.Key)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to decode private key")
 	} else if key == nil {
@@ -254,10 +242,10 @@ func GetControlPlaneStatus(
 	if err := getControlPlaneStatus(cluster, client); err != nil {
 		return false, "", errors.Wrapf(
 			&capierr.RequeueAfterError{RequeueAfter: constants.RequeueAfterSeconds},
-			"unable to get control plane status %s=%s %s=%s: %v",
+			"unable to get control plane status %s=%s %s=%s %s=%v",
 			"cluster-namespace", cluster.Namespace,
 			"cluster-name", cluster.Name,
-			err)
+			"error", err)
 	}
 	controlPlaneEndpoint, _ := GetControlPlaneEndpoint(cluster, client)
 	return true, controlPlaneEndpoint, nil
@@ -330,61 +318,6 @@ func GetIP(_ *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
 	return "", errors.New("could not get IP")
 }
 
-func GetMachineProviderStatus(machine *clusterv1.Machine) (*v1alpha1.VsphereMachineProviderStatus, error) {
-	if machine.Status.ProviderStatus == nil {
-		return nil, nil
-	}
-	status := &v1alpha1.VsphereMachineProviderStatus{}
-	err := json.Unmarshal(machine.Status.ProviderStatus.Raw, status)
-	if err != nil {
-		klog.V(4).Infof("error unmarshaling machine provider status: %s", err.Error())
-		return nil, err
-	}
-	return status, nil
-}
-
-func GetClusterProviderStatus(cluster *clusterv1.Cluster) (*v1alpha1.VsphereClusterProviderStatus, error) {
-	if cluster.Status.ProviderStatus == nil {
-		return nil, nil
-	}
-	status := &v1alpha1.VsphereClusterProviderStatus{}
-	err := json.Unmarshal(cluster.Status.ProviderStatus.Raw, status)
-	if err != nil {
-		klog.V(4).Infof("error unmarshaling cluster provider status: %s", err.Error())
-
-		return nil, err
-	}
-	return status, nil
-}
-
-func GetMachineProviderSpec(providerSpec clusterv1.ProviderSpec) (*v1alpha1.VsphereMachineProviderConfig, error) {
-	config := &v1alpha1.VsphereMachineProviderConfig{}
-
-	if providerSpec.Value == nil {
-		return nil, fmt.Errorf("machine providerconfig is invalid (nil)")
-	}
-
-	err := yaml.Unmarshal(providerSpec.Value.Raw, config)
-	if err != nil {
-		return nil, fmt.Errorf("machine providerconfig unmarshalling failure: %s", err.Error())
-	}
-	return config, nil
-}
-
-func GetClusterProviderSpec(providerSpec clusterv1.ProviderSpec) (*v1alpha1.VsphereClusterProviderConfig, error) {
-	config := &v1alpha1.VsphereClusterProviderConfig{}
-
-	if providerSpec.Value == nil {
-		return nil, fmt.Errorf("cluster providerconfig is invalid (nil)")
-	}
-
-	err := yaml.Unmarshal(providerSpec.Value.Raw, config)
-	if err != nil {
-		return nil, fmt.Errorf("cluster providerconfig unmarshalling failure: %s", err.Error())
-	}
-	return config, nil
-}
-
 // Just a temporary hack to grab a single range from the config.
 func GetSubnet(netRange clusterv1.NetworkRanges) string {
 	if len(netRange.CIDRBlocks) == 0 {
@@ -394,7 +327,7 @@ func GetSubnet(netRange clusterv1.NetworkRanges) string {
 }
 
 func GetMachineRef(machine *clusterv1.Machine) (string, error) {
-	pc, err := GetMachineProviderSpec(machine.Spec.ProviderSpec)
+	pc, err := v1alpha1.MachineConfigFromProviderSpec(&machine.Spec.ProviderSpec)
 	if err != nil {
 		return "", err
 	}
@@ -402,7 +335,7 @@ func GetMachineRef(machine *clusterv1.Machine) (string, error) {
 }
 
 func GetActiveTasks(machine *clusterv1.Machine) string {
-	ps, err := GetMachineProviderStatus(machine)
+	ps, err := v1alpha1.MachineStatusFromProviderStatus(&machine.Status)
 	if err != nil || ps == nil {
 		return ""
 	}

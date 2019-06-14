@@ -130,8 +130,15 @@ func (a *ClusterActuator) patchCluster(cluster, clusterCopy *clusterv1.Cluster) 
 		return errors.Wrap(err, "failed to create new JSONPatch")
 	}
 
+	klog.Infof(
+		"generated json patch for cluster %s=%s %s=%s %s=%v",
+		"cluster-namespace", cluster.Namespace,
+		"cluster-name", cluster.Name,
+		"json-patch", p)
+
 	// Do not update Machine if nothing has changed
 	if len(p) != 0 {
+
 		pb, err := json.MarshalIndent(p, "", "  ")
 		if err != nil {
 			return errors.Wrap(err, "failed to json marshal patch")

@@ -1008,6 +1008,7 @@ spec:
       containers:
       - args:
         - --logtostderr
+        - --v=6
         command:
         - /root/manager
         env:

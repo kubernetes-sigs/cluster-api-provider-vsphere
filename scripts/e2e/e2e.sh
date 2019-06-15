@@ -101,7 +101,7 @@ export_base64_value() {
 }
 
 apply_secret_to_bootstrap() {
-   provider_component=${PROVIDER_COMPONENT_SPEC:=provider-components-v2.0.yml}
+   provider_component=${PROVIDER_COMPONENT_SPEC:=provider-components.yml}
    export_base64_value "PROVIDER_COMPONENT_SPEC" "${provider_component}"
    echo "test ${provider_component}"
 

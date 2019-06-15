@@ -29,15 +29,8 @@ echo "${TARGET_VM_SSH_PUB}"
 
 for filename in spec/*.template; do
   newfilename="$(echo "$filename" | sed 's/template/yml/g')"
-  rm -f "$newfilename" temp.sh
-  ( echo "cat <<EOF >$newfilename";
-    cat "$filename";
-    echo "EOF";
-  ) >temp.sh
-  chmod +x temp.sh
-  ./temp.sh
+  envsubst < "$filename" > "$newfilename"
 done
-rm temp.sh
 
 # download kubectl binary
 retry=20

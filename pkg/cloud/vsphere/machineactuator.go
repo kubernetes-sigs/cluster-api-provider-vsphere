@@ -315,7 +315,7 @@ func (a *MachineActuator) patchMachine(
 			"generated json patch for machine %s=%s %s=%s %s=%v",
 			"machine-namespace", machine.Namespace,
 			"machine-name", machine.Name,
-			"json-patch", pb)
+			"json-patch", string(pb))
 
 		//result, err := machineClient.Patch(machine.Name, types.JSONPatchType, pb)
 		result, err := machineClient.Update(machine)

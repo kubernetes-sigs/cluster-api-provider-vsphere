@@ -144,7 +144,7 @@ func (a *ClusterActuator) patchCluster(cluster, clusterCopy *clusterv1.Cluster) 
 			"generated json patch for cluster %s=%s %s=%s %s=%v",
 			"cluster-namespace", cluster.Namespace,
 			"cluster-name", cluster.Name,
-			"json-patch", pb)
+			"json-patch", string(pb))
 
 		//result, err := clusterClient.Patch(cluster.Name, types.JSONPatchType, pb)
 		result, err := clusterClient.Update(cluster)
@@ -206,6 +206,7 @@ func (a *ClusterActuator) patchCluster(cluster, clusterCopy *clusterv1.Cluster) 
 			"updating cluster status %s=%s %s=%s",
 			"cluster-namespace", cluster.Namespace,
 			"cluster-name", cluster.Name)
+
 		if _, err := clusterClient.UpdateStatus(cluster); err != nil {
 			a.eventRecorder.Eventf(
 				cluster, corev1.EventTypeWarning,

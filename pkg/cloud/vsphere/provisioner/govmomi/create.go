@@ -3,11 +3,9 @@ package govmomi
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"net"
 	"net/url"
-	"reflect"
 	"time"
 
 	"github.com/pkg/errors"
@@ -17,7 +15,6 @@ import (
 	"github.com/vmware/govmomi/vim25/soap"
 	"github.com/vmware/govmomi/vim25/types"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clustererror "sigs.k8s.io/cluster-api/pkg/controller/error"
@@ -993,31 +990,13 @@ func PropertiesHost(host *object.HostSystem) (*mo.HostSystem, error) {
 }
 
 func (vc *Provisioner) updateVMReference(machine *clusterv1.Machine, vmref string) (*clusterv1.Machine, error) {
-	providerSpec, err := vsphereconfigv1.MachineConfigFromProviderSpec(&machine.Spec.ProviderSpec)
+	machineConfig, err := vsphereconfigv1.MachineConfigFromProviderSpec(&machine.Spec.ProviderSpec)
 	if err != nil {
 		klog.Infof("error fetching MachineProviderConfig: %s", err)
 		return machine, err
 	}
-	providerSpec.MachineRef = vmref
-	// Set the Kind and APIVersion again since they are not returned
-	// See the following Issues for details:
-	// https://github.com/kubernetes/client-go/issues/308
-	// https://github.com/kubernetes/kubernetes/issues/3030
-	providerSpec.Kind = reflect.TypeOf(*providerSpec).Name()
-	providerSpec.APIVersion = vsphereconfigv1.SchemeGroupVersion.String()
-	newMachine := machine.DeepCopy()
-	out, err := json.Marshal(providerSpec)
-	if err != nil {
-		klog.Infof("error marshaling ProviderConfig: %s", err)
-		return machine, err
-	}
-	newMachine.Spec.ProviderSpec.Value = &runtime.RawExtension{Raw: out}
-	newMachine, err = vc.clusterV1alpha1.Machines(newMachine.Namespace).Update(newMachine)
-	if err != nil {
-		klog.Infof("error in updating the machine ref: %s", err)
-		return machine, err
-	}
-	return newMachine, nil
+	machineConfig.MachineRef = vmref
+	return machine, nil
 }
 
 func (pv *Provisioner) setTaskRef(machine *clusterv1.Machine, taskRef string) error {

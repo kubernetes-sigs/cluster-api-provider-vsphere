@@ -138,6 +138,7 @@ func (pv *Provisioner) Create(
 				"machine-namespace", machine.Namespace,
 				"machine-name", machine.Name)
 		}
+		return nil
 	}
 
 	clusterConfig, err := vsphereconfigv1.ClusterConfigFromProviderSpec(&cluster.Spec.ProviderSpec)
@@ -555,6 +556,7 @@ func (pv *Provisioner) cloneVirtualMachineOnVCenter(s *SessionContext, cluster *
 	spec.Config = &types.VirtualMachineConfigSpec{}
 	// Use the object UID as the instanceUUID for the VM
 	spec.Config.InstanceUuid = string(machine.UID)
+	klog.V(4).Infof("assigned VM instanceUUID=%q", machine.UID)
 	diskUUIDEnabled := true
 	spec.Config.Flags = &types.VirtualMachineFlagInfo{
 		DiskUuidEnabled: &diskUUIDEnabled,

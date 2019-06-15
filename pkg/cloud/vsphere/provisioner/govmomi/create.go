@@ -126,7 +126,9 @@ func (pv *Provisioner) Create(
 			"machine-name", machine.Name)
 	}
 	if vmRef != "" {
-
+		if vmRef == "creating" {
+			return &clustererror.RequeueAfterError{RequeueAfter: constants.RequeueAfterSeconds}
+		}
 		pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "created", "created Machine %s(%s)", machine.Name, vmRef)
 		// Update the Machine object with the VM Reference annotation
 		if _, err := pv.updateVMReference(machine, vmRef); err != nil {
@@ -385,7 +387,11 @@ func (pv *Provisioner) findVMByInstanceUUID(ctx context.Context, s *SessionConte
 			refVal)
 		return refVal, nil
 	}
-	return "", nil
+	machineConfig, err := vsphereconfigv1.MachineConfigFromMachine(machine)
+	if err != nil {
+		return "", err
+	}
+	return machineConfig.MachineRef, nil
 }
 
 func (pv *Provisioner) verifyAndUpdateTask(s *SessionContext, machine *clusterv1.Machine, taskmoref string) error {
@@ -700,6 +706,8 @@ func (pv *Provisioner) cloneVirtualMachineOnVCenter(s *SessionContext, cluster *
 	if err != nil {
 		return err
 	}
+
+	pv.updateVMReference(machine, "creating")
 	return pv.setTaskRef(machine, task.Reference().Value)
 }
 
@@ -782,8 +790,8 @@ func (pv *Provisioner) cloneVirtualMachineOnESX(s *SessionContext, cluster *clus
 		return err
 	}
 
+	pv.updateVMReference(machine, "creating")
 	return pv.setTaskRef(machine, task.Reference().Value)
-
 }
 
 func (pv *Provisioner) addMachineBase(s *SessionContext, cluster *clusterv1.Cluster, machine *clusterv1.Machine, machineConfig *vsphereconfigv1.VsphereMachineProviderConfig, spec *types.VirtualMachineConfigSpec, vmProps *mo.VirtualMachine, userData string) error {

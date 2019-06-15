@@ -10,6 +10,10 @@
     "kubernetes_semver": "v1.13.6",
     "kubernetes_source": "pkg",
     "kubernetes_version": "1.13.6-00",
+    "kubernetes_rpm_repo": "https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64",
+    "kubernetes_rpm_gpg_key": "https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg",
+    "kubernetes_deb_repo": "http://apt.kubernetes.io/ kubernetes-xenial",
+    "kubernetes_deb_gpg_key": "https://packages.cloud.google.com/apt/doc/apt-key.gpg",
     "vnc_bind_address": "127.0.0.1",
     "vnc_port_min": "5900",
     "vnc_port_max": "6000"
@@ -60,7 +64,7 @@
       ],
       "extra_arguments": [
         "--extra-vars",
-        "kubernetes_cni_version={{user `kubernetes_cni_version`}} kubernetes_semver={{user `kubernetes_semver`}} kubernetes_source={{user `kubernetes_source`}} kubernetes_version={{user `kubernetes_version`}}"
+        "kubernetes_rpm_repo={{user `kubernetes_rpm_repo`}} kubernetes_rpm_gpg_key={{user `kubernetes_rpm_gpg_key`}} kubernetes_deb_repo={{user `kubernetes_deb_repo`}} kubernetes_deb_gpg_key={{user `kubernetes_deb_gpg_key`}} kubernetes_cni_version={{user `kubernetes_cni_version`}} kubernetes_semver={{user `kubernetes_semver`}} kubernetes_source={{user `kubernetes_source`}} kubernetes_version={{user `kubernetes_version`}}"
       ]
     }
   ],

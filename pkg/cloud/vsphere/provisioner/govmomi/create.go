@@ -126,6 +126,7 @@ func (pv *Provisioner) Create(
 			"machine-name", machine.Name)
 	}
 	if vmRef != "" {
+
 		pv.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "created", "created Machine %s(%s)", machine.Name, vmRef)
 		// Update the Machine object with the VM Reference annotation
 		if _, err := pv.updateVMReference(machine, vmRef); err != nil {
@@ -377,7 +378,12 @@ func (pv *Provisioner) findVMByInstanceUUID(ctx context.Context, s *SessionConte
 		return "", fmt.Errorf("error quering virtual machine or template using FindByUuid: %s", err)
 	}
 	if vmRef != nil {
-		return vmRef.Reference().Value, nil
+		refVal := vmRef.Reference().Value
+		klog.V(2).Infof(
+			"found existing VM InstanceUUID=%q MoRef=%q",
+			string(machine.UID),
+			refVal)
+		return refVal, nil
 	}
 	return "", nil
 }

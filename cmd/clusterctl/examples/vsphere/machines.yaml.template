@@ -30,7 +30,7 @@ items:
               diskSizeGB: ${VSPHERE_DISK_SIZE_GB}
             preloaded: false
       versions:
-        kubelet: 1.11.3
-        controlPlane: 1.11.3
+        kubelet: ${KUBERNETES_VERSION}
+        controlPlane: ${KUBERNETES_VERSION}
       roles:
       - Master

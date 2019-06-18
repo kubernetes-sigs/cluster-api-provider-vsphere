@@ -18,8 +18,11 @@ package main
 
 import (
 	"flag"
+	"net/http"
+	"net/http/pprof"
 	"time"
 
+	"github.com/pkg/errors"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/klog"
 	clusterapis "sigs.k8s.io/cluster-api/pkg/apis"
@@ -42,7 +45,13 @@ func main() {
 	flag.Set("logtostderr", "true")
 	watchNamespace := flag.String("namespace", "",
 		"Namespace that the controller watches to reconcile cluster-api objects. If unspecified, the controller watches for cluster-api objects across all namespaces.")
+	profilerAddr := flag.String("profiler-address", "", "the address to expose the pprof profiler")
+
 	flag.Parse()
+
+	if addr := *profilerAddr; addr != "" {
+		go runProfiler(addr)
+	}
 
 	cfg := config.GetConfigOrDie()
 
@@ -97,5 +106,18 @@ func main() {
 
 	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
 		klog.Fatalf("Failed to run manager: %v", err)
+	}
+}
+
+func runProfiler(addr string) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/debug/pprof/", pprof.Index)
+	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+
+	if err := http.ListenAndServe(addr, mux); err != nil {
+		klog.Error(errors.Wrap(err, "error running pprof"))
 	}
 }

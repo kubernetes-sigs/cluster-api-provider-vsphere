@@ -119,7 +119,7 @@ apply_secret_to_bootstrap() {
 
    fill_file_with_value "bootstrap_secret.template"
    run_cmd_on_bootstrap "${bootstrap_vm_ip}" "cat > /tmp/bootstrap_secret.yml" < bootstrap_secret.yml
-   run_cmd_on_bootstrap "${bootstrap_vm_ip}" "kubectl create -f /tmp/bootstrap_secret.yml"
+   run_cmd_on_bootstrap "${bootstrap_vm_ip}" "kubectl --kubeconfig ${kubeconfig_path} create -f /tmp/bootstrap_secret.yml"
 }
 
 start_docker() {
@@ -256,7 +256,7 @@ target_vm_prefix="clusterapi-""$random_str"
 export_base64_value "TARGET_VM_PREFIX" "$target_vm_prefix"
 
 # get bootstrap VM
-#install_govc
+# install_govc
 go get -u github.com/vmware/govmomi/govc
 if [ -z "$1" ]; then
    # use vm snapshot by default
@@ -271,15 +271,22 @@ else
    cd ../scripts/e2e || exit 1
 fi
 
-# apply secret at bootstrap cluster
-kubeconfig=$(run_cmd_on_bootstrap "${bootstrap_vm_ip}" "cat /etc/kubernetes/admin.conf")
+# bootstrap with kind
+export bootstrap_vm_ip="${bootstrap_vm_ip}"
+fill_file_with_value "kind_config.template"
+run_cmd_on_bootstrap "${bootstrap_vm_ip}" "cat > /tmp/kind_config.yml" < kind_config.yml
+
+run_cmd_on_bootstrap "${bootstrap_vm_ip}" 'bash -s' < create_kind_cluster.sh
+kubeconfig_path=$(run_cmd_on_bootstrap "${bootstrap_vm_ip}" "kind get kubeconfig-path")
+run_cmd_on_bootstrap "${bootstrap_vm_ip}" "sed -i s/localhost/${bootstrap_vm_ip}/g ${kubeconfig_path}"
+kubeconfig=$(run_cmd_on_bootstrap "${bootstrap_vm_ip}" "cat ${kubeconfig_path}")
 export BOOTSTRAP_KUBECONFIG="${kubeconfig}"
 apply_secret_to_bootstrap "${vsphere_controller_version}"
 
 # launch the job at bootstrap cluster
 fill_file_with_value "bootstrap_job.template"
 run_cmd_on_bootstrap "${bootstrap_vm_ip}" "cat > /tmp/bootstrap_job.yml" < bootstrap_job.yml
-run_cmd_on_bootstrap "${bootstrap_vm_ip}" "kubectl create -f /tmp/bootstrap_job.yml"
+run_cmd_on_bootstrap "${bootstrap_vm_ip}" "kubectl --kubeconfig ${kubeconfig_path} create -f /tmp/bootstrap_job.yml"
 
 # wait for job to finish
 run_cmd_on_bootstrap "${bootstrap_vm_ip}" 'bash -s' < wait_for_job.sh

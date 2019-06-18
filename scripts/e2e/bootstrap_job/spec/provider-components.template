@@ -1036,12 +1036,6 @@ spec:
           name: certs
         - mountPath: /tmp/cluster-api/machines
           name: machines-stage
-        - mountPath: /root/.ssh/vsphere_tmp
-          name: sshkeys
-          subPath: vsphere_tmp
-        - mountPath: /root/.ssh/vsphere_tmp.pub
-          name: sshkeys
-          subPath: vsphere_tmp.pub
         - mountPath: /usr/bin/kubeadm
           name: kubeadm
       terminationGracePeriodSeconds: 10
@@ -1065,10 +1059,6 @@ spec:
         name: certs
       - emptyDir: {}
         name: machines-stage
-      - name: sshkeys
-        secret:
-          defaultMode: 384
-          secretName: vsphere-machine-sshkeys-k578b7gfck
       - hostPath:
           path: /usr/bin/kubeadm
         name: kubeadm

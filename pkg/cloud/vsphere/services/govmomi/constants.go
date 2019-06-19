@@ -29,3 +29,18 @@ network:
       dhcp4: yes
       dhcp6: yes
 `
+
+const (
+	morefTypeTask = "Task"
+
+	taskFolderCreateVM = "Folder.createVm"
+	taskVMClone        = "VirtualMachine.clone"
+	taskVMReconfigure  = "VirtualMachine.reconfigure"
+)
+
+const (
+	guestInfoKeyMetadata    = "guestinfo.metadata"
+	guestInfoKeyMetadataEnc = "guestinfo.metadata.encoding"
+	guestInfoKeyUserdata    = "guestinfo.userdata"
+	guestInfoKeyUserdataEnc = "guestinfo.userdata.encoding"
+)

@@ -291,7 +291,7 @@ func verifyAndUpdateTask(ctx *context.MachineContext, taskRef string) error {
 
 	var obj mo.Task
 	moRef := types.ManagedObjectReference{
-		Type:  "task",
+		Type:  morefTypeTask,
 		Value: taskRef,
 	}
 
@@ -320,7 +320,7 @@ func verifyAndUpdateTask(ctx *context.MachineContext, taskRef string) error {
 
 		switch obj.Info.DescriptionId {
 
-		case "folder.createVm":
+		case taskFolderCreateVM:
 			logger.V(4).Info("task is a create op")
 			vmRef := obj.Info.Result.(types.ManagedObjectReference)
 			vm := object.NewVirtualMachine(ctx.Session.Client.Client, vmRef)
@@ -336,32 +336,35 @@ func verifyAndUpdateTask(ctx *context.MachineContext, taskRef string) error {
 			ctx.MachineConfig.MachineRef = vmRef.Value
 			ctx.MachineStatus.TaskRef = ""
 			record.Eventf(ctx.Machine, "CreateSuccess", "created machine %q", ctx)
-			return nil
 
-		case "virtualMachine.clone":
+		case taskVMClone:
 			logger.V(4).Info("task is a clone op")
 			vmRef := obj.Info.Result.(types.ManagedObjectReference)
 			ctx.MachineConfig.MachineRef = vmRef.Value
 			ctx.MachineStatus.TaskRef = ""
 			record.Eventf(ctx.Machine, "CloneSuccess", "cloned machine %q", ctx)
-			return nil
 
-		case "virtualMachine.reconfigure":
+		case taskVMReconfigure:
 			record.Eventf(ctx.Machine, "ReconfigSuccess", "reconfigured machine %q", ctx)
 			ctx.MachineStatus.TaskRef = ""
-			return nil
 		}
+
+		// The task on the VM completed successfully.
+		// Requeue the machine after one second so Exists==true and Update
+		// will be called, causing the VM's new state to be patched into
+		// the machine object.
+		return &clustererror.RequeueAfterError{RequeueAfter: time.Second * 1}
 
 	case types.TaskInfoStateError:
 		logger.V(2).Info("task failed", "description-id", obj.Info.DescriptionId)
 
 		switch obj.Info.DescriptionId {
 
-		case "virtualMachine.clone":
+		case taskVMClone:
 			record.Warnf(ctx.Machine, "CloneFailure", "clone machine failed %q", ctx)
 			ctx.MachineStatus.TaskRef = ""
 
-		case "folder.createVm":
+		case taskFolderCreateVM:
 			record.Warnf(ctx.Machine, "CreateFailure", "create machine failed %q", ctx)
 			ctx.MachineStatus.TaskRef = ""
 		}
@@ -498,10 +501,10 @@ func cloneVirtualMachineOnVCenter(ctx *context.MachineContext, userData string) 
 	spec.PowerOn = true
 
 	var extraconfigs []types.BaseOptionValue
-	extraconfigs = append(extraconfigs, &types.OptionValue{Key: "guestinfo.metadata", Value: metaData})
-	extraconfigs = append(extraconfigs, &types.OptionValue{Key: "guestinfo.metadata.encoding", Value: "base64"})
-	extraconfigs = append(extraconfigs, &types.OptionValue{Key: "guestinfo.userdata", Value: userData})
-	extraconfigs = append(extraconfigs, &types.OptionValue{Key: "guestinfo.userdata.encoding", Value: "base64"})
+	extraconfigs = append(extraconfigs, &types.OptionValue{Key: guestInfoKeyMetadata, Value: metaData})
+	extraconfigs = append(extraconfigs, &types.OptionValue{Key: guestInfoKeyMetadataEnc, Value: "base64"})
+	extraconfigs = append(extraconfigs, &types.OptionValue{Key: guestInfoKeyUserdata, Value: userData})
+	extraconfigs = append(extraconfigs, &types.OptionValue{Key: guestInfoKeyUserdataEnc, Value: "base64"})
 	spec.Config.ExtraConfig = extraconfigs
 
 	l := object.VirtualDeviceList(vmProps.Config.Hardware.Device)

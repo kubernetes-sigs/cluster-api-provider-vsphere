@@ -27,12 +27,13 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
-	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 	"k8s.io/klog"
 	clustererror "sigs.k8s.io/cluster-api/pkg/controller/error"
+
+	gocontext "context"
 
 	vsphereconfigv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
@@ -256,14 +257,69 @@ func Create(ctx *context.MachineContext, bootstrapToken string) error {
 	}
 
 	userData64 := base64.StdEncoding.EncodeToString([]byte(userDataYAML))
+	var task *object.Task
 
-	// Use the appropriate path if we're connected to a vCenter
-	if ctx.Session.IsVC() {
-		return cloneVirtualMachineOnVCenter(ctx, userData64)
+	builder, err := NewVmSpecBuilder(ctx)
+	if err != nil {
+		return err
 	}
 
-	// fallback in case we're connected to a standalone ESX host
-	return errors.New("temporarily disabled esx cloning")
+	if ctx.Session.IsVC() {
+		// Use the appropriate path if we're connected to a vCenter
+		spec, err := builder.BuildCloneSpec(userData64)
+		if err != nil {
+			return err
+		}
+		ctx.Logger.V(6).Info("vcenter cloning machine", "clone-spec", spec)
+		task, err = builder.Src.Clone(ctx, builder.Folder, ctx.Machine.Name, *spec)
+		if err != nil {
+			return errors.Wrapf(err, "error trigging clone op for machine %q", ctx)
+		}
+
+	} else {
+		// ESXi does not support cloning, we need to "ghetto" clone the VM
+		spec, err := builder.BuildCreateSpec(userData64)
+		if err != nil {
+			return err
+		}
+		ctx.Logger.V(6).Info("esxi cloning machine", "clone-spec", spec)
+
+		dc, err := ctx.Session.Finder.DefaultDatacenter(ctx.Context)
+		if err != nil {
+			return err
+		}
+		folders, err := dc.Folders(ctx)
+		if err != nil {
+			return err
+		}
+		task, err = folders.VmFolder.CreateVM(ctx, *spec, builder.Pool, builder.Host)
+		ctx.Logger.V(4).Info("Task submitted: " + task.Reference().Value)
+		if err != nil {
+			return errors.Wrapf(err, "Failed to submit createVM task")
+		}
+
+		// CreateVM does not take PowerOn param, so we need to power on only
+		// after the creation has completed, *but* we don't want to block
+		// on creation either
+		go func() {
+			result, err := task.WaitForResult(gocontext.TODO(), nil)
+			if err == nil {
+				return
+			}
+			vmRef := result.Result.(types.ManagedObjectReference)
+			vm := object.NewVirtualMachine(ctx.Session.Client.Client, vmRef)
+			ctx.Logger.V(4).Info("powering on VM")
+			_, err = vm.PowerOn(gocontext.TODO())
+			if err != nil {
+				ctx.Logger.V(1).Info("Failed to power-on", "err", err)
+			}
+		}()
+
+	}
+
+	ctx.MachineConfig.MachineRef = "creating"
+	ctx.MachineStatus.TaskRef = task.Reference().Value
+	return nil
 }
 
 func findVMByInstanceUUID(ctx *context.MachineContext) (string, error) {
@@ -370,239 +426,6 @@ func verifyAndUpdateTask(ctx *context.MachineContext, taskRef string) error {
 	}
 
 	return nil
-}
-
-func cloneVirtualMachineOnVCenter(ctx *context.MachineContext, userData string) error {
-	ctx.Logger.V(4).Info("starting the clone process on vCenter")
-
-	// Let's check to make sure we can find the template earlier on... Plus, we need
-	// the cluster/host info if we want to deploy direct to the cluster/host.
-	var src *object.VirtualMachine
-
-	if isValidUUID(ctx.MachineConfig.MachineSpec.VMTemplate) {
-		ctx.Logger.V(4).Info("trying to resolve the VMTemplate as InstanceUUID", "instance-uuid", ctx.MachineConfig.MachineSpec.VMTemplate)
-
-		tplRef, err := ctx.Session.FindByInstanceUUID(ctx, ctx.MachineConfig.MachineSpec.VMTemplate)
-		if err != nil {
-			return errors.Wrap(err, "error querying template by instance UUID")
-		}
-		if tplRef != nil {
-			src = object.NewVirtualMachine(ctx.Session.Client.Client, tplRef.Reference())
-		}
-	}
-
-	if src == nil {
-		ctx.Logger.V(4).Info("trying to resolve the VMTemplate as name", "name", ctx.MachineConfig.MachineSpec.VMTemplate)
-		tpl, err := ctx.Session.Finder.VirtualMachine(ctx, ctx.MachineConfig.MachineSpec.VMTemplate)
-		if err != nil {
-			return errors.Wrapf(err, "unable to find VMTemplate %q", ctx.MachineConfig.MachineSpec.VMTemplate)
-		}
-		src = tpl
-	}
-
-	host, err := src.HostSystem(ctx)
-	if err != nil {
-		return errors.Wrap(err, "hostSystem failed")
-	}
-	hostProps, err := PropertiesHost(ctx, host)
-	if err != nil {
-		return errors.Wrap(err, "unable to fetch host properties")
-	}
-
-	// Since it's assumed that the ResourcePool name has been provided in the config, if we
-	// want to deploy directly to the cluster/host, then we need to override the ResourcePool
-	// path before generating the Cloud Provider config. This is done below in:
-	// getCloudInitUserData()
-	// +--- getCloudProviderConfig()
-	resourcePoolPath := ""
-	if len(ctx.MachineConfig.MachineSpec.ResourcePool) == 0 {
-		resourcePoolPath = fmt.Sprintf("/%s/host/%s/Resource", ctx.MachineConfig.MachineSpec.Datacenter, hostProps.Name)
-		ctx.Logger.V(2).Info("attempting to deploy directly to cluster/host resource pool", "pool", resourcePoolPath)
-	}
-
-	metaData, err := getCloudInitMetaData(ctx)
-	if err != nil {
-		return errors.Wrapf(err, "unable to get cloud-init metadata for machine %q", ctx)
-	}
-
-	var spec types.VirtualMachineCloneSpec
-	ctx.Logger.V(4).Info("preparing clone spec", "folder", ctx.MachineConfig.MachineSpec.VMFolder)
-
-	vmFolder, err := ctx.Session.Finder.FolderOrDefault(ctx, ctx.MachineConfig.MachineSpec.VMFolder)
-	if err != nil {
-		return errors.Wrapf(err, "unable to get folder for machine %q", ctx)
-	}
-
-	datastore, err := ctx.Session.Finder.DatastoreOrDefault(ctx, ctx.MachineConfig.MachineSpec.Datastore)
-	if err != nil {
-		return errors.Wrapf(err, "unable to get folder for machine %q", ctx)
-	}
-	spec.Location.Datastore = types.NewReference(datastore.Reference())
-
-	diskUUIDEnabled := true
-
-	spec.Config = &types.VirtualMachineConfigSpec{
-		// Use the object UID as the instanceUUID for the VM
-		InstanceUuid: string(ctx.Machine.UID),
-		Flags: &types.VirtualMachineFlagInfo{
-			DiskUuidEnabled: &diskUUIDEnabled,
-		},
-	}
-
-	ctx.Logger.V(4).Info("assigned VM instance UUID from machine UID", "uid", string(ctx.Machine.UID))
-
-	if ctx.MachineConfig.MachineSpec.NumCPUs > 0 {
-		spec.Config.NumCPUs = int32(ctx.MachineConfig.MachineSpec.NumCPUs)
-	}
-	if ctx.MachineConfig.MachineSpec.MemoryMB > 0 {
-		spec.Config.MemoryMB = ctx.MachineConfig.MachineSpec.MemoryMB
-	}
-	spec.Config.Annotation = ctx.String()
-	spec.Location.DiskMoveType = string(types.VirtualMachineRelocateDiskMoveOptionsMoveAllDiskBackingsAndConsolidate)
-
-	vmProps, err := PropertiesVM(ctx, src)
-	if err != nil {
-		return errors.Wrapf(err, "error fetching vm/template properties while creating machine %q", ctx)
-	}
-
-	if len(ctx.MachineConfig.MachineSpec.ResourcePool) > 0 {
-		pool, err := ctx.Session.Finder.ResourcePoolOrDefault(ctx, ctx.MachineConfig.MachineSpec.ResourcePool)
-
-		if _, ok := err.(*find.NotFoundError); ok {
-			ctx.Logger.V(2).Info("failed to find resource pool, attempting to create it", "pool", ctx.MachineConfig.MachineSpec.ResourcePool)
-
-			poolRoot, err := host.ResourcePool(ctx)
-			if err != nil {
-				return errors.Wrap(err, "failed to find root resource pool")
-			}
-
-			ctx.Logger.V(4).Info("creating resource pool using default values")
-			pool2, err := poolRoot.Create(ctx, ctx.MachineConfig.MachineSpec.ResourcePool, types.DefaultResourceConfigSpec())
-			if err != nil {
-				return errors.Wrap(err, "failed to create resource pool")
-			}
-
-			pool = pool2
-		}
-
-		spec.Location.Pool = types.NewReference(pool.Reference())
-	} else {
-		ctx.Logger.V(2).Info("attempting to use host resource pool")
-		pool, err := host.ResourcePool(ctx)
-		if err != nil {
-			return errors.Wrap(err, "host resource pool failed")
-		}
-		spec.Location.Pool = types.NewReference(pool.Reference())
-	}
-	spec.PowerOn = true
-
-	var extraconfigs []types.BaseOptionValue
-	extraconfigs = append(extraconfigs, &types.OptionValue{Key: guestInfoKeyMetadata, Value: metaData})
-	extraconfigs = append(extraconfigs, &types.OptionValue{Key: guestInfoKeyMetadataEnc, Value: "base64"})
-	extraconfigs = append(extraconfigs, &types.OptionValue{Key: guestInfoKeyUserdata, Value: userData})
-	extraconfigs = append(extraconfigs, &types.OptionValue{Key: guestInfoKeyUserdataEnc, Value: "base64"})
-	spec.Config.ExtraConfig = extraconfigs
-
-	l := object.VirtualDeviceList(vmProps.Config.Hardware.Device)
-	deviceSpecs := []types.BaseVirtualDeviceConfigSpec{}
-	disks := l.SelectByType((*types.VirtualDisk)(nil))
-	// For the disks listed under the MachineSpec.Disks property, they are used
-	// only for resizing a maching disk on the template. Currently, no new disk
-	// is added. Only the matched disks via the DiskLabel are resized. If the
-	// MachineSpec.Disks is specified but none of the disks matched to the disks
-	// present in the VM Template then error is returned. This is to avoid the
-	// case when the user did want to resize but accidentally passed a wrong
-	// disk label. A 100% matching of disks in not enforced as the user might be
-	// interested in resizing only a subset of disks and thus we don't want to
-	// force the user to list all the disk and sizes if they don't want to change
-	// all.
-	diskMap := func(diskSpecs []vsphereconfigv1.DiskSpec) map[string]int64 {
-		diskMap := make(map[string]int64)
-		for _, s := range diskSpecs {
-			diskMap[s.DiskLabel] = s.DiskSizeGB
-		}
-		return diskMap
-	}(ctx.MachineConfig.MachineSpec.Disks)
-	diskChange := false
-	for _, dev := range disks {
-		disk := dev.(*types.VirtualDisk)
-		if newSize, ok := diskMap[disk.DeviceInfo.GetDescription().Label]; ok {
-			if disk.CapacityInBytes > giBToByte(newSize) {
-				return errors.New("disk size provided should be more than actual disk size of the template")
-			}
-			ctx.Logger.V(4).Info("resizing the disk", "disk-label", disk.DeviceInfo.GetDescription().Label, "new-size", newSize)
-			diskChange = true
-			disk.CapacityInBytes = giBToByte(newSize)
-			diskspec := &types.VirtualDeviceConfigSpec{}
-			diskspec.Operation = types.VirtualDeviceConfigSpecOperationEdit
-			diskspec.Device = disk
-			deviceSpecs = append(deviceSpecs, diskspec)
-		}
-	}
-	if !diskChange && len(ctx.MachineConfig.MachineSpec.Disks) > 0 {
-		return errors.New("invalid disk configuration")
-	}
-
-	nics := l.SelectByType((*types.VirtualEthernetCard)(nil))
-	// Remove any existing nics on the source vm
-	for _, dev := range nics {
-		nic := dev.(types.BaseVirtualEthernetCard).GetVirtualEthernetCard()
-		nicspec := &types.VirtualDeviceConfigSpec{}
-		nicspec.Operation = types.VirtualDeviceConfigSpecOperationRemove
-		nicspec.Device = nic
-		deviceSpecs = append(deviceSpecs, nicspec)
-	}
-	// Add new nics based on the user info
-	nicid := int32(-100)
-	for _, network := range ctx.MachineConfig.MachineSpec.Networks {
-		netRef, err := ctx.Session.Finder.Network(ctx, network.NetworkName)
-		if err != nil {
-			return err
-		}
-		nic := types.VirtualVmxnet3{}
-		nic.Key = nicid
-		nic.Backing, err = netRef.EthernetCardBackingInfo(ctx)
-		if err != nil {
-			return err
-		}
-		nicspec := &types.VirtualDeviceConfigSpec{}
-		nicspec.Operation = types.VirtualDeviceConfigSpecOperationAdd
-		nicspec.Device = &nic
-		deviceSpecs = append(deviceSpecs, nicspec)
-		nicid--
-	}
-	spec.Config.DeviceChange = deviceSpecs
-
-	ctx.Logger.V(6).Info("cloning machine", "clone-spec", spec)
-	task, err := src.Clone(ctx, vmFolder, ctx.Machine.Name, spec)
-	if err != nil {
-		return errors.Wrapf(err, "error trigging clone op for machine %q", ctx)
-	}
-
-	ctx.MachineConfig.MachineRef = "creating"
-	ctx.MachineStatus.TaskRef = task.Reference().Value
-
-	return nil
-}
-
-// PropertiesVM is a convenience method that wraps fetching the VirtualMachine
-// MO from its higher-level object.
-func PropertiesVM(ctx *context.MachineContext, vm *object.VirtualMachine) (*mo.VirtualMachine, error) {
-	var props mo.VirtualMachine
-	if err := vm.Properties(ctx, vm.Reference(), nil, &props); err != nil {
-		return nil, err
-	}
-	return &props, nil
-}
-
-// PropertiesHost is a convenience method that wraps fetching the
-// HostSystem MO from its higher-level object.
-func PropertiesHost(ctx *context.MachineContext, host *object.HostSystem) (*mo.HostSystem, error) {
-	var props mo.HostSystem
-	if err := host.Properties(ctx, host.Reference(), nil, &props); err != nil {
-		return nil, err
-	}
-	return &props, nil
 }
 
 func getCloudInitMetaData(ctx *context.MachineContext) (string, error) {

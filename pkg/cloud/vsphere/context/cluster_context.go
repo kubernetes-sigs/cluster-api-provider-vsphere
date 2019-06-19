@@ -71,6 +71,7 @@ type ClusterContext struct {
 	machineClient         client.MachineInterface
 	user                  string
 	pass                  string
+	server                string
 }
 
 // NewClusterContext returns a new ClusterContext.
@@ -137,6 +138,7 @@ func NewClusterContext(params *ClusterContextParams) (*ClusterContext, error) {
 		machineClient:         machineClient,
 		user:                  user,
 		pass:                  pass,
+		server:                clusterConfig.VsphereServer,
 	}, nil
 }
 
@@ -173,6 +175,20 @@ func (c *ClusterContext) User() string {
 // Pass returns the password used to access the vSphere endpoint.
 func (c *ClusterContext) Pass() string {
 	return c.pass
+}
+
+// Server returns the vCenter or ESXi server address
+func (c *ClusterContext) Server() string {
+	return c.server
+}
+
+func (c *ClusterContext) GetSSH() *SSH {
+	return &SSH{
+		Logger: c.Logger,
+		User:   c.user,
+		Pass:   c.pass,
+		Host:   c.server + ":22",
+	}
 }
 
 // CanLogin returns a flag indicating whether the cluster config has

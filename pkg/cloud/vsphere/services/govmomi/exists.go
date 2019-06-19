@@ -26,7 +26,7 @@ import (
 // Exists returns a flag indicating whether or not a machine exists.
 func Exists(ctx *context.MachineContext) (bool, error) {
 	if ctx.MachineConfig.MachineRef == "" {
-		ctx.Logger.V(4).Info("exists is false due to lack of machine ref")
+		ctx.Logger.V(6).Info("exists is false due to lack of machine ref")
 		return false, nil
 	}
 
@@ -37,7 +37,7 @@ func Exists(ctx *context.MachineContext) (bool, error) {
 
 	var obj mo.VirtualMachine
 	if err := ctx.Session.RetrieveOne(ctx, moRef, []string{"name"}, &obj); err != nil {
-		ctx.Logger.V(4).Info("exists is false due to lookup failure")
+		ctx.Logger.V(6).Info("exists is false due to lookup failure")
 		return false, nil
 	}
 

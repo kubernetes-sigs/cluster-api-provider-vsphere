@@ -102,7 +102,7 @@ func NewClusterContext(params *ClusterContextParams) (*ClusterContext, error) {
 	if logr == nil {
 		logr = klogr.New().WithName("default-logger")
 	}
-	logr = logr.WithName(params.Cluster.APIVersion).WithName(params.Cluster.Namespace).WithName(params.Cluster.Name)
+	logr = logr.WithName(params.Cluster.Name)
 
 	user := clusterConfig.VsphereUser
 	pass := clusterConfig.VspherePassword

@@ -267,7 +267,7 @@ func Create(ctx *context.MachineContext, bootstrapToken string) error {
 }
 
 func findVMByInstanceUUID(ctx *context.MachineContext) (string, error) {
-	ctx.Logger.V(4).Info("finding vm by instance UUID", "instance-uuid", ctx.Machine.UID)
+	ctx.Logger.V(6).Info("finding vm by instance UUID", "instance-uuid", ctx.Machine.UID)
 
 	vmRef, err := ctx.Session.FindByInstanceUUID(ctx, string(ctx.Machine.UID))
 	if err != nil {
@@ -275,7 +275,7 @@ func findVMByInstanceUUID(ctx *context.MachineContext) (string, error) {
 	}
 
 	if vmRef != nil {
-		ctx.Logger.V(2).Info("found machine by instance UUID", "vmRef", vmRef.Reference().Value, "instance-uuid", ctx.Machine.UID)
+		ctx.Logger.V(5).Info("found machine by instance UUID", "vmRef", vmRef.Reference().Value, "instance-uuid", ctx.Machine.UID)
 		return vmRef.Reference().Value, nil
 	}
 
@@ -283,7 +283,7 @@ func findVMByInstanceUUID(ctx *context.MachineContext) (string, error) {
 }
 
 func verifyAndUpdateTask(ctx *context.MachineContext, taskRef string) error {
-	ctx.Logger.V(4).Info("verifyig and updating tasks")
+	ctx.Logger.V(6).Info("verifying and updating tasks")
 
 	var obj mo.Task
 	moRef := types.ManagedObjectReference{

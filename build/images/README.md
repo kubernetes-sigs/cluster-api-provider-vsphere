@@ -70,13 +70,13 @@ The images are uploaded to the GCS bucket `capv-images`. The path to the image d
 
 | Build type | Upload location |
 |------------|-----------------|
-| CI | `gs://capv-images/ci/KUBERNETES_VERSION/BUILD_NAME+kube-KUBERNETES_VERSION.ova` |
-| Release | `gs://capv-images/release/KUBERNETES_VERSION/BUILD_NAME+kube-KUBERNETES_VERSION.ova` |
+| CI | `gs://capv-images/ci/KUBERNETES_VERSION/BUILD_NAME-kube-KUBERNETES_VERSION.ova` |
+| Release | `gs://capv-images/release/KUBERNETES_VERSION/BUILD_NAME-kube-KUBERNETES_VERSION.ova` |
 
 Uploading the images requires the `gcloud` and `gsutil` programs, an active Google Cloud account, or a service account with an associated key file. The latter may be specified via the environment variable `KEY_FILE`.
 
 ```shell
-$ ../../hack/image-upload.py --key-file KEY_FILE BUILD_DIR 
+$ ../../hack/image-upload.py --key-file KEY_FILE BUILD_DIR
 ```
 
 First the images are checksummed (SHA256). If a matching checksum already exists remotely then the image is not re-uploaded. Otherwise the images are uploaded to the GCS bucket.
@@ -95,8 +95,8 @@ Images may be downloaded via HTTP:
 
 | Build type | Download location |
 |------------|-----------------|
-| CI | `http://storage.googleapis.com/capv-images/ci/KUBERNETES_VERSION/BUILD_NAME+kube-KUBERNETES_VERSION.ova` |
-| Release | `http://storage.googleapis.com/capv-images/release/KUBERNETES_VERSION/BUILD_NAME+kube-KUBERNETES_VERSION.ova` |
+| CI | `http://storage.googleapis.com/capv-images/ci/KUBERNETES_VERSION/BUILD_NAME-kube-KUBERNETES_VERSION.ova` |
+| Release | `http://storage.googleapis.com/capv-images/release/KUBERNETES_VERSION/BUILD_NAME-kube-KUBERNETES_VERSION.ova` |
 
 ## Testing Images
 

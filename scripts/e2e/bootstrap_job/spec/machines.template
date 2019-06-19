@@ -24,12 +24,12 @@ items:
               networkType: dhcp
           numCPUs: 2
           memoryMB: 2048
-          template: "ubuntu-16.04-server-cloudimg-amd64"
+          template: "ubuntu-1804-kube-v1.13.6"
           disks:
           - diskLabel: "Hard disk 1"
-            diskSizeGB: 15
+            diskSizeGB: 50
     versions:
-      kubelet: 1.11.2
-      controlPlane: 1.11.2
+      kubelet: 1.13.6
+      controlPlane: 1.13.6
     roles:
     - Master

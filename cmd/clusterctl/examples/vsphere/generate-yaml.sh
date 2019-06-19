@@ -32,7 +32,7 @@ CLUSTER_GENERATED_FILE=${OUTPUT_DIR}/cluster.yaml
 ADDON_TEMPLATE_FILE=${TEMPLATE_DIR}/addons.yaml.template
 ADDON_GENERATED_FILE=${OUTPUT_DIR}/addons.yaml
 
-CLUSTER_API_CRD_PATH=./vendor/sigs.k8s.io/cluster-api/config
+CLUSTER_API_CRD_PATH=./config/cluster-api
 VSPHERE_CLUSTER_API_CRD_PATH=./config
 
 PROVIDERCOMPONENT_GENERATED_FILE=${OUTPUT_DIR}/provider-components.yaml
@@ -116,65 +116,66 @@ export VSPHERE_DISK=${VSPHERE_DISK:-}
 export VSPHERE_DISK_SIZE_GB=${VSPHERE_DISK_SIZE_GB:-20}
 
 # validate all required variables before generating any files
+if [ ! "${CAPV_YAML_VALIDATION:-1}" = "0" ]; then
+  if [ -z "${VSPHERE_USER}" ]; then
+    echo "env var VSPHERE_USER is required" 1>&2
+    exit 1
+  fi
 
-if [ -z "${VSPHERE_USER}" ]; then
-  echo "env var VSPHERE_USER is required" 1>&2
-  exit 1
-fi
+  if [ -z "${VSPHERE_PASSWORD}" ]; then
+    echo "env var VSPHERE_PASSWORD is required" 1>&2
+    exit 1
+  fi
 
-if [ -z "${VSPHERE_PASSWORD}" ]; then
-  echo "env var VSPHERE_PASSWORD is required" 1>&2
-  exit 1
-fi
+  if [ -z "${VSPHERE_SERVER}" ]; then
+    echo "env var VSPHERE_SERVER is required" 1>&2
+    exit 1
+  fi
 
-if [ -z "${VSPHERE_SERVER}" ]; then
-  echo "env var VSPHERE_SERVER is required" 1>&2
-  exit 1
-fi
+  if [ -z "${CAPV_MANAGER_IMAGE}" ]; then
+    echo "env var CAPV_MANAGER_IMAGE is required" 1>&2
+    exit 1
+  fi
 
-if [ -z "${CAPV_MANAGER_IMAGE}" ]; then
-  echo "env var CAPV_MANAGER_IMAGE is required" 1>&2
-  exit 1
-fi
+  if [ -z "${VSPHERE_DATACENTER}" ]; then
+    echo "env var VSPHERE_DATACENTER is required" 1>&2
+    exit 1
+  fi
 
-if [ -z "${VSPHERE_DATACENTER}" ]; then
-  echo "env var VSPHERE_DATACENTER is required" 1>&2
-  exit 1
-fi
+  if [ -z "${VSPHERE_DATASTORE}" ]; then
+    echo "env var VSPHERE_DATASTORE is required" 1>&2
+    exit 1
+  fi
 
-if [ -z "${VSPHERE_DATASTORE}" ]; then
-  echo "env var VSPHERE_DATASTORE is required" 1>&2
-  exit 1
-fi
+  if [ -z "${VSPHERE_NETWORK}" ]; then
+    echo "env var VSPHERE_NETWORK is required" 1>&2
+    exit 1
+  fi
 
-if [ -z "${VSPHERE_NETWORK}" ]; then
-  echo "env var VSPHERE_NETWORK is required" 1>&2
-  exit 1
-fi
+  if [ -z "${VSPHERE_RESOURCE_POOL}" ]; then
+    echo "env var VSPHERE_RESOURCE_POOL is required" 1>&2
+    exit 1
+  fi
 
-if [ -z "${VSPHERE_RESOURCE_POOL}" ]; then
-  echo "env var VSPHERE_RESOURCE_POOL is required" 1>&2
-  exit 1
-fi
+  if [ -z "${VSPHERE_FOLDER}" ]; then
+    echo "env var VSPHERE_FOLDER is required" 1>&2
+    exit 1
+  fi
 
-if [ -z "${VSPHERE_FOLDER}" ]; then
-  echo "env var VSPHERE_FOLDER is required" 1>&2
-  exit 1
-fi
+  if [ -z "${VSPHERE_TEMPLATE}" ]; then
+    echo "env var VSPHERE_TEMPLATE is required" 1>&2
+    exit 1
+  fi
 
-if [ -z "${VSPHERE_TEMPLATE}" ]; then
-  echo "env var VSPHERE_TEMPLATE is required" 1>&2
-  exit 1
-fi
+  if [ -z "${VSPHERE_DISK}" ]; then
+    echo "env var VSPHERE_DISK is required" 1>&2
+    exit 1
+  fi
 
-if [ -z "${VSPHERE_DISK}" ]; then
-  echo "env var VSPHERE_DISK is required" 1>&2
-  exit 1
-fi
-
-if [ ${VSPHERE_DISK_SIZE_GB} -lt 20 ]; then
-  echo "env var VSPHERE_DISK_SIZE_GB must be >= 20" 1>&2
-  exit 1
+  if [ "${VSPHERE_DISK_SIZE_GB}" -lt "20" ]; then
+    echo "env var VSPHERE_DISK_SIZE_GB must be >= 20" 1>&2
+    exit 1
+  fi
 fi
 
 envsubst < $MACHINE_TEMPLATE_FILE > "${MACHINE_GENERATED_FILE}"
@@ -207,7 +208,7 @@ MACHINE_CONTROLLER_SSH_PRIVATE=$(cat $MACHINE_CONTROLLER_SSH_HOME$MACHINE_CONTRO
 
 kustomize build $VSPHERE_CLUSTER_API_CRD_PATH/default/ > $PROVIDERCOMPONENT_GENERATED_FILE
 echo "---" >> $PROVIDERCOMPONENT_GENERATED_FILE
-kustomize build $CLUSTER_API_CRD_PATH/default/ >> $PROVIDERCOMPONENT_GENERATED_FILE
+kustomize build $CLUSTER_API_CRD_PATH/ >> $PROVIDERCOMPONENT_GENERATED_FILE
 
 echo "Done generating $PROVIDERCOMPONENT_GENERATED_FILE"
 

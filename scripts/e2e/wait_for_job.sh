@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+export KUBECONFIG=$(kind get kubeconfig-path)
 TOTAL=600
 INTERVAL=6
 retry=$((${TOTAL}/ INTERVAL))

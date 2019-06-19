@@ -40,6 +40,8 @@ spec:
         control-plane: vsphere-provider-controller-manager
         controller-tools.k8s.io: "1.0"
     spec:
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
       tolerations:
       - effect: NoSchedule
         key: node-role.kubernetes.io/master

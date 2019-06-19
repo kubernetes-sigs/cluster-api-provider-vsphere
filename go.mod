@@ -58,7 +58,7 @@ require (
 	k8s.io/kube-openapi v0.0.0-20190306001800-15615b16d372 // indirect
 	k8s.io/kubernetes v1.13.3
 	k8s.io/utils v0.0.0-20190607212802-c55fbcfc754a // indirect
-	sigs.k8s.io/cluster-api v0.0.0-20190607172558-95a2a8cf2c58
+	sigs.k8s.io/cluster-api v0.0.0-20190610203311-5ed76e24e031
 	sigs.k8s.io/controller-runtime v0.1.10
 	sigs.k8s.io/controller-tools v0.1.9
 	sigs.k8s.io/testing_frameworks v0.1.1 // indirect

@@ -115,6 +115,11 @@ export VSPHERE_TEMPLATE=${VSPHERE_TEMPLATE:-}
 export VSPHERE_DISK=${VSPHERE_DISK:-}
 export VSPHERE_DISK_SIZE_GB=${VSPHERE_DISK_SIZE_GB:-20}
 
+# TODO: check if KUBERNETES_VERSION has format "v1.13.6" and
+# trim the "v" from the version. Alternatively, have CAPV or CAPI
+# handle both 1.13.6 and v1.13.6
+export KUBERNETES_VERSION=${KUBERNETES_VERSION:-1.13.6}
+
 # validate all required variables before generating any files
 if [ ! "${CAPV_YAML_VALIDATION:-1}" = "0" ]; then
   if [ -z "${VSPHERE_USER}" ]; then

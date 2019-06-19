@@ -35,6 +35,6 @@ spec:
               diskSizeGB: ${VSPHERE_DISK_SIZE_GB}
             preloaded: false
       versions:
-        kubelet: 1.11.3
+        kubelet: ${KUBERNETES_VERSION}
       roles:
       - Node

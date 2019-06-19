@@ -34,6 +34,7 @@ import (
 	"k8s.io/klog/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
+	clusterUtilv1 "sigs.k8s.io/cluster-api/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/patch"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
@@ -195,13 +196,7 @@ func (c *ClusterContext) GetControlPlaneMachines() ([]*clusterv1.Machine, error)
 	if err != nil {
 		return nil, err
 	}
-	controlPlaneMachines := []*clusterv1.Machine{}
-	for _, machine := range machines {
-		if role := GetMachineRole(machine); role == ControlPlaneRole {
-			controlPlaneMachines = append(controlPlaneMachines, machine)
-		}
-	}
-	return controlPlaneMachines, nil
+	return clusterUtilv1.GetControlPlaneMachines(machines), nil
 }
 
 // byMachineCreatedTimestamp implements sort.Interface for []clusterv1.Machine

@@ -86,12 +86,7 @@ func (a *Actuator) Create(
 		}
 	}()
 
-	machineRole := ctx.Role()
-	if machineRole == "" {
-		return errors.Errorf("unable to get machine role while creating machine %q", ctx)
-	}
-
-	ctx.Logger.V(2).Info("creating machine", "role", machineRole)
+	ctx.Logger.V(2).Info("creating machine", "has-control-plane-role", ctx.HasControlPlaneRole())
 	defer ctx.Patch()
 
 	if !ctx.ClusterConfig.CAKeyPair.HasCertAndKey() {
@@ -99,13 +94,10 @@ func (a *Actuator) Create(
 		return &clustererr.RequeueAfterError{RequeueAfter: constants.RequeueAfterSeconds}
 	}
 
-	controlPlaneMachines, err := ctx.GetControlPlaneMachines()
-	if err != nil {
-		return errors.Wrapf(err, "unable to get control plane machines while creating machine %q", ctx)
-	}
-
 	// Init the control plane by creating this machine.
-	if machineRole == context.ControlPlaneRole && len(controlPlaneMachines) == 1 {
+	// TODO(akutz) Implement distributed locking to support multiple control
+	//             plane members.
+	if ctx.HasControlPlaneRole() {
 		if err := govmomi.Create(ctx, ""); err != nil {
 			return errors.Wrapf(err, "failed to create machine as initial member of the control plane %q", ctx)
 		}

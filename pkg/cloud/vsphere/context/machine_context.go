@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
+	clusterUtilv1 "sigs.k8s.io/cluster-api/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/patch"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
@@ -119,12 +120,13 @@ func (c *MachineContext) String() string {
 	return fmt.Sprintf("%s/%s/%s", c.Cluster.Namespace, c.Cluster.Name, c.Machine.Name)
 }
 
-// Role returns the machine's role.
-func (c *MachineContext) Role() MachineRole {
+// HasControlPlaneRole returns a flag indicating whether or not a machine has
+// the control plane role.
+func (c *MachineContext) HasControlPlaneRole() bool {
 	if c.Machine == nil {
-		return ""
+		return false
 	}
-	return GetMachineRole(c.Machine)
+	return clusterUtilv1.IsControlPlaneMachine(c.Machine)
 }
 
 // IPAddr returns the machine's IP address.
@@ -152,11 +154,6 @@ func (c *MachineContext) BindPort() int32 {
 	return bindPort
 }
 
-// IsControlPlaneMember indicates whether a machine has the ControlPlaneRole.
-func (c *MachineContext) IsControlPlaneMember() bool {
-	return c.Role() == ControlPlaneRole
-}
-
 // ControlPlaneEndpoint returns the control plane endpoint for the cluster.
 // This function first attempts to retrieve the control plane endpoint with
 // ClusterContext.ControlPlaneEndpoint.
@@ -170,7 +167,7 @@ func (c *MachineContext) ControlPlaneEndpoint() (string, error) {
 	}
 
 	ipAddr := c.IPAddr()
-	if ipAddr == "" || !c.IsControlPlaneMember() {
+	if ipAddr == "" || !c.HasControlPlaneRole() {
 		return "", errors.New("unable to get control plane endpoint")
 	}
 	controlPlaneEndpoint := net.JoinHostPort(ipAddr, strconv.Itoa(int(c.BindPort())))

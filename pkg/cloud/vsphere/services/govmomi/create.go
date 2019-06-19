@@ -96,8 +96,7 @@ func Create(ctx *context.MachineContext, bootstrapToken string) error {
 	var userDataYAML string
 
 	// apply values based on the role of the machine
-	switch ctx.Role() {
-	case context.ControlPlaneRole:
+	if ctx.HasControlPlaneRole() {
 
 		if bootstrapToken != "" {
 			ctx.Logger.V(2).Info("allowing a machine to join the control plane")
@@ -218,7 +217,7 @@ func Create(ctx *context.MachineContext, bootstrapToken string) error {
 			userDataYAML = userData
 		}
 
-	case context.NodeRole:
+	} else {
 		ctx.Logger.V(2).Info("joining a worker node")
 
 		kubeadm.SetJoinConfigurationOptions(
@@ -254,9 +253,6 @@ func Create(ctx *context.MachineContext, bootstrapToken string) error {
 		}
 
 		userDataYAML = userData
-
-	default:
-		return errors.Errorf("unknown role %q for machine %q", ctx.Role(), ctx)
 	}
 
 	userData64 := base64.StdEncoding.EncodeToString([]byte(userDataYAML))

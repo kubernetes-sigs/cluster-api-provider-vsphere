@@ -230,7 +230,7 @@ func (c *MachineContext) Patch() error {
 	c.Machine.Status.ProviderStatus = newStatus
 
 	if !reflect.DeepEqual(c.Machine.Status, c.MachineCopy.Status) {
-		c.Logger.V(1).Info("updating machine status")
+		c.Logger.V(2).Info("updating machine status", "task", c.MachineStatus.TaskRef)
 		if _, err := c.MachineClient.UpdateStatus(c.Machine); err != nil {
 			record.Warnf(c.Machine, updateFailure, "failed to update machine status for machine %q: %v", c, err)
 			return errors.Wrapf(err, "failed to update machine status for machine %q", c)

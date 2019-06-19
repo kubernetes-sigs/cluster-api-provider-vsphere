@@ -24,10 +24,10 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clientv1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/actuators"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/certificates"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/kubeclient"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 )
 
 // Actuator is responsible for maintaining the Cluster objects.
@@ -48,27 +48,23 @@ func NewActuator(
 }
 
 // Reconcile will create or update the cluster
-func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (result error) {
+func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (opErr error) {
 	ctx, err := context.NewClusterContext(&context.ClusterContextParams{
-		Cluster:    cluster,
-		Client:     a.client,
-		CoreClient: a.coreClient,
-		Logger:     klogr.New().WithName("[cluster-actuator]"),
+		Cluster:               cluster,
+		Client:                a.client,
+		CoreClient:            a.coreClient,
+		Logger:                klogr.New().WithName("[cluster-actuator]"),
+		GetControlPlaneStatus: kubeclient.GetControlPlaneStatus,
 	})
 	if err != nil {
 		return err
 	}
 
 	defer func() {
-		if result == nil {
-			record.Eventf(ctx.Cluster, "ReconcileSuccess", "reconciled cluster %q", ctx)
-		} else {
-			record.Warnf(ctx.Cluster, "ReconcileFailure", "failed to reconcile cluster %q: %v", ctx, result)
-		}
+		opErr = actuators.PatchAndHandleError(ctx, "Reconcile", opErr)
 	}()
 
 	ctx.Logger.V(2).Info("reconciling cluster")
-	defer ctx.Patch(kubeclient.GetControlPlaneStatus)
 
 	// Ensure the PKI config is present or generated and then set the updated
 	// clusterConfig back onto the cluster.
@@ -80,26 +76,22 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (result error) {
 }
 
 // Delete will delete any cluster level resources for the cluster.
-func (a *Actuator) Delete(cluster *clusterv1.Cluster) (result error) {
+func (a *Actuator) Delete(cluster *clusterv1.Cluster) (opErr error) {
 	ctx, err := context.NewClusterContext(&context.ClusterContextParams{
-		Cluster:    cluster,
-		Client:     a.client,
-		CoreClient: a.coreClient,
+		Cluster:               cluster,
+		Client:                a.client,
+		CoreClient:            a.coreClient,
+		GetControlPlaneStatus: kubeclient.GetControlPlaneStatus,
 	})
 	if err != nil {
 		return err
 	}
 
 	defer func() {
-		if result == nil {
-			record.Eventf(ctx.Cluster, "DeleteSuccess", "deleted cluster %q", ctx)
-		} else {
-			record.Warnf(ctx.Cluster, "DeleteFailure", "failed to delete cluster %q: %v", ctx, result)
-		}
+		opErr = actuators.PatchAndHandleError(ctx, "Delete", opErr)
 	}()
 
 	ctx.Logger.V(2).Info("deleting cluster")
-	defer ctx.Patch(nil)
 
 	return nil
 }

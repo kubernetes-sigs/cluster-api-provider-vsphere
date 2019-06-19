@@ -28,11 +28,11 @@ import (
 	clientv1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	clustererr "sigs.k8s.io/cluster-api/pkg/controller/error"
 
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/actuators"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/govmomi"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/kubeclient"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/tokens"
 )
 
@@ -61,7 +61,7 @@ func NewActuator(
 func (a *Actuator) Create(
 	parentCtx goctx.Context,
 	cluster *clusterv1.Cluster,
-	machine *clusterv1.Machine) (result error) {
+	machine *clusterv1.Machine) (opErr error) {
 
 	ctx, err := context.NewMachineContext(
 		&context.MachineContextParams{
@@ -79,15 +79,10 @@ func (a *Actuator) Create(
 	}
 
 	defer func() {
-		if result == nil {
-			record.Eventf(ctx.Machine, "CreateSuccess", "created machine %q", ctx)
-		} else {
-			record.Warnf(ctx.Machine, "CreateFailure", "failed to create machine %q: %v", ctx, result)
-		}
+		opErr = actuators.PatchAndHandleError(ctx, "Create", opErr)
 	}()
 
 	ctx.Logger.V(2).Info("creating machine", "has-control-plane-role", ctx.HasControlPlaneRole())
-	defer ctx.Patch()
 
 	if !ctx.ClusterConfig.CAKeyPair.HasCertAndKey() {
 		ctx.Logger.V(2).Info("cluster config is missing pki toolchain, requeue machine")
@@ -99,6 +94,9 @@ func (a *Actuator) Create(
 	//             plane members.
 	if ctx.HasControlPlaneRole() {
 		if err := govmomi.Create(ctx, ""); err != nil {
+			if _, ok := errors.Cause(err).(*clustererr.RequeueAfterError); ok {
+				return err
+			}
 			return errors.Wrapf(err, "failed to create machine as initial member of the control plane %q", ctx)
 		}
 		return nil
@@ -125,6 +123,9 @@ func (a *Actuator) Create(
 
 	// Create the machine and join it to the cluster.
 	if err := govmomi.Create(ctx, token); err != nil {
+		if _, ok := errors.Cause(err).(*clustererr.RequeueAfterError); ok {
+			return err
+		}
 		return errors.Wrapf(err, "failed to create machine and join it to the cluster %q", ctx)
 	}
 
@@ -135,7 +136,7 @@ func (a *Actuator) Create(
 func (a *Actuator) Delete(
 	parentCtx goctx.Context,
 	cluster *clusterv1.Cluster,
-	machine *clusterv1.Machine) (result error) {
+	machine *clusterv1.Machine) (opErr error) {
 
 	ctx, err := context.NewMachineContext(
 		&context.MachineContextParams{
@@ -152,15 +153,10 @@ func (a *Actuator) Delete(
 	}
 
 	defer func() {
-		if result == nil {
-			record.Eventf(ctx.Machine, "DeleteSuccess", "deleted machine %q", ctx)
-		} else {
-			record.Warnf(ctx.Machine, "DeleteFailure", "failed to delete machine %q: %v", ctx, result)
-		}
+		opErr = actuators.PatchAndHandleError(ctx, "Delete", opErr)
 	}()
 
 	ctx.Logger.V(2).Info("deleting machine")
-	defer ctx.Patch()
 
 	return govmomi.Delete(ctx)
 }
@@ -169,7 +165,7 @@ func (a *Actuator) Delete(
 func (a *Actuator) Update(
 	parentCtx goctx.Context,
 	cluster *clusterv1.Cluster,
-	machine *clusterv1.Machine) (result error) {
+	machine *clusterv1.Machine) (opErr error) {
 
 	ctx, err := context.NewMachineContext(
 		&context.MachineContextParams{
@@ -186,15 +182,10 @@ func (a *Actuator) Update(
 	}
 
 	defer func() {
-		if result == nil {
-			record.Eventf(ctx.Machine, "UpdateSuccess", "updated machine %q", ctx)
-		} else {
-			record.Warnf(ctx.Machine, "UpdateFailure", "failed to update machine %q: %v", ctx, result)
-		}
+		opErr = actuators.PatchAndHandleError(ctx, "Update", opErr)
 	}()
 
 	ctx.Logger.V(2).Info("updating machine")
-	defer ctx.Patch()
 
 	return govmomi.Update(ctx)
 }
@@ -203,7 +194,7 @@ func (a *Actuator) Update(
 func (a *Actuator) Exists(
 	parentCtx goctx.Context,
 	cluster *clusterv1.Cluster,
-	machine *clusterv1.Machine) (ok bool, result error) {
+	machine *clusterv1.Machine) (ok bool, opErr error) {
 
 	ctx, err := context.NewMachineContext(
 		&context.MachineContextParams{
@@ -218,6 +209,10 @@ func (a *Actuator) Exists(
 	if err != nil {
 		return false, err
 	}
+
+	defer func() {
+		opErr = actuators.PatchAndHandleError(ctx, "Exists", opErr)
+	}()
 
 	return govmomi.Exists(ctx)
 }

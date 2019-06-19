@@ -24,6 +24,7 @@ import (
 	"strconv"
 
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
@@ -118,6 +119,11 @@ func (c *MachineContext) String() string {
 		return c.ClusterContext.String()
 	}
 	return fmt.Sprintf("%s/%s/%s", c.Cluster.Namespace, c.Cluster.Name, c.Machine.Name)
+}
+
+// GetObject returns the Machine object.
+func (c *MachineContext) GetObject() runtime.Object {
+	return c.Machine
 }
 
 // HasControlPlaneRole returns a flag indicating whether or not a machine has

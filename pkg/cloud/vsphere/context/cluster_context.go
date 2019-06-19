@@ -29,6 +29,7 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/klog/klogr"
@@ -42,28 +43,34 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 )
 
+// GetControlPlaneStatusFunc returns a flag indicating whether the control plane
+// is online. If true, the control plane's endpoint will also be returned.
+type GetControlPlaneStatusFunc func(ctx KubeContext) (online bool, controlPlaneEndpoint string, err error)
+
 // ClusterContextParams are the parameters needed to create a ClusterContext.
 type ClusterContextParams struct {
-	Context    context.Context
-	Cluster    *clusterv1.Cluster
-	Client     client.ClusterV1alpha1Interface
-	CoreClient corev1.CoreV1Interface
-	Logger     logr.Logger
+	Context               context.Context
+	Cluster               *clusterv1.Cluster
+	Client                client.ClusterV1alpha1Interface
+	CoreClient            corev1.CoreV1Interface
+	Logger                logr.Logger
+	GetControlPlaneStatus GetControlPlaneStatusFunc
 }
 
 // ClusterContext is a Go context used with a CAPI cluster.
 type ClusterContext struct {
 	context.Context
-	Cluster       *clusterv1.Cluster
-	ClusterCopy   *clusterv1.Cluster
-	ClusterClient client.ClusterInterface
-	ClusterConfig *v1alpha1.VsphereClusterProviderConfig
-	ClusterStatus *v1alpha1.VsphereClusterProviderStatus
-	Logger        logr.Logger
-	client        client.ClusterV1alpha1Interface
-	machineClient client.MachineInterface
-	user          string
-	pass          string
+	Cluster               *clusterv1.Cluster
+	ClusterCopy           *clusterv1.Cluster
+	ClusterClient         client.ClusterInterface
+	ClusterConfig         *v1alpha1.VsphereClusterProviderConfig
+	ClusterStatus         *v1alpha1.VsphereClusterProviderStatus
+	Logger                logr.Logger
+	GetControlPlaneStatus GetControlPlaneStatusFunc
+	client                client.ClusterV1alpha1Interface
+	machineClient         client.MachineInterface
+	user                  string
+	pass                  string
 }
 
 // NewClusterContext returns a new ClusterContext.
@@ -118,23 +125,34 @@ func NewClusterContext(params *ClusterContextParams) (*ClusterContext, error) {
 	}
 
 	return &ClusterContext{
-		Context:       parentContext,
-		Cluster:       params.Cluster,
-		ClusterCopy:   params.Cluster.DeepCopy(),
-		ClusterClient: clusterClient,
-		ClusterConfig: clusterConfig,
-		ClusterStatus: clusterStatus,
-		Logger:        logr,
-		client:        params.Client,
-		machineClient: machineClient,
-		user:          user,
-		pass:          pass,
+		Context:               parentContext,
+		Cluster:               params.Cluster,
+		ClusterCopy:           params.Cluster.DeepCopy(),
+		ClusterClient:         clusterClient,
+		ClusterConfig:         clusterConfig,
+		ClusterStatus:         clusterStatus,
+		GetControlPlaneStatus: params.GetControlPlaneStatus,
+		Logger:                logr,
+		client:                params.Client,
+		machineClient:         machineClient,
+		user:                  user,
+		pass:                  pass,
 	}, nil
 }
 
 // Strings returns ClusterNamespace/ClusterName
 func (c *ClusterContext) String() string {
 	return fmt.Sprintf("%s/%s", c.Cluster.Namespace, c.Cluster.Name)
+}
+
+// GetObject returns the Cluster object.
+func (c *ClusterContext) GetObject() runtime.Object {
+	return c.Cluster
+}
+
+// GetLogger returns the Logger.
+func (c *ClusterContext) GetLogger() logr.Logger {
+	return c.Logger
 }
 
 // ClusterName returns the name of the cluster.
@@ -270,12 +288,8 @@ func (c *ClusterContext) ControlPlaneEndpoint() (string, error) {
 	return "", errors.New("unable to get control plane endpoint")
 }
 
-// GetControlPlaneStatusFunc returns a flag indicating whether the control plane
-// is online. If true, the control plane's endpoint will also be returned.
-type GetControlPlaneStatusFunc func(ctx KubeContext) (online bool, controlPlaneEndpoint string, err error)
-
 // Patch updates the cluster on the API server.
-func (c *ClusterContext) Patch(getControlPlaneStatus GetControlPlaneStatusFunc) error {
+func (c *ClusterContext) Patch() error {
 	ext, err := v1alpha1.EncodeClusterSpec(c.ClusterConfig)
 	if err != nil {
 		return errors.Wrapf(err, "failed encoding cluster spec for cluster %q", c)
@@ -319,6 +333,7 @@ func (c *ClusterContext) Patch(getControlPlaneStatus GetControlPlaneStatusFunc) 
 		c.Cluster.ResourceVersion = result.ResourceVersion
 	}
 
+	getControlPlaneStatus := c.GetControlPlaneStatus
 	if getControlPlaneStatus == nil {
 		getControlPlaneStatus = controlPlaneOffline
 	}

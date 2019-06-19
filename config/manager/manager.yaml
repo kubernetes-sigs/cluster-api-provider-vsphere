@@ -63,12 +63,6 @@ spec:
           mountPath: /etc/ssl/certs
         - name: machines-stage
           mountPath: /tmp/cluster-api/machines
-        - name: sshkeys
-          mountPath: /root/.ssh/vsphere_tmp
-          subPath: vsphere_tmp
-        - name: sshkeys
-          mountPath: /root/.ssh/vsphere_tmp.pub
-          subPath: vsphere_tmp.pub
         - name: kubeadm
           mountPath: /usr/bin/kubeadm
         env:
@@ -94,10 +88,6 @@ spec:
           path: /etc/ssl/certs
       - name: machines-stage
         emptyDir: {}
-      - name: sshkeys
-        secret:
-          defaultMode: 0600
-          secretName: machine-sshkeys
       - name: kubeadm
         hostPath:
           path: /usr/bin/kubeadm

@@ -36,10 +36,3 @@ bases:
 
 patches:
 - capv_manager_image_patch.yaml
-
-secretGenerator:
-- name: machine-sshkeys
-  files:
-    - vsphere_tmp
-    - vsphere_tmp.pub
-  type: Opaque

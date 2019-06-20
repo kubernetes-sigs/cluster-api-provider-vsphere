@@ -36,16 +36,6 @@ DEV_IMG ?= # <== NOTE:  outside dev, change this!!!
 VERSION ?= $(shell git describe --exact-match 2> /dev/null || \
 	   git describe --match=$(git rev-parse --short=8 HEAD) --always --dirty --abbrev=8)
 
-# Ensure the tooling required by the build is present in hack/.bin and that
-# the tool directory is in the PATH
-TOOLS_BIN_DIR := $(abspath hack/.bin)
-export PATH := $(TOOLS_BIN_DIR):$(PATH)
-KUSTOMIZE := $(TOOLS_BIN_DIR)/kustomize
-TOOLS += $(KUSTOMIZE)
-tools $(TOOLS):
-	hack/ensure-tools.sh
-.PHONY: tools
-
 # Build manager binary
 manager: fmt vet
 	go build -o bin/manager ./cmd/manager

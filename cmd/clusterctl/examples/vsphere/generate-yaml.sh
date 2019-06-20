@@ -96,7 +96,8 @@ fi
 
 mkdir -p ${OUTPUT_DIR}
 
-# all variables used for yaml generation
+# All variables used for yaml generation
+# Ensure all variables listed here are also listed under GENERATE_YAML_ENV_VARS in the root Makefile
 
 export CLUSTER_NAME=${CLUSTER_NAME:-capv-mgmt-example}
 export SERVICE_CIDR=${SERVICE_CIDR:-100.64.0.0/13}

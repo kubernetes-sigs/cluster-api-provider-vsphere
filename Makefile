@@ -54,6 +54,18 @@ manager: fmt vet
 clusterctl: fmt vet
 	go build -o bin/clusterctl ./cmd/clusterctl
 
+clusterctl-in-docker:
+	docker run -v $(CWD):/go/src/sigs.k8s.io/cluster-api-provider-vsphere \
+	  -w /go/src/sigs.k8s.io/cluster-api-provider-vsphere \
+	  -e GOOS -e GOHOSTOS golang:1.12 \
+	  bash -c "go build -o bin/clusterctl ./cmd/clusterctl"
+.PHONY: clusterctl-in-docker
+
+# Build the clusterctl-tools container used for generating example clusterctl yaml
+clusterctl-tools:
+	[ -n "$(shell docker images -q clusterctl-tools)" ] || docker build -t clusterctl-tools -f $(CWD)/cmd/clusterctl/examples/tools/Dockerfile .
+.PHONY: clusterctl-tools
+
 # Run against the configured Kubernetes cluster in ~/.kube/config
 run: generate fmt vet
 	go run ./cmd/manager/main.go
@@ -98,13 +110,25 @@ vendor:
 	cp -rf --no-preserve=mode "$${_src}" "$${_dst}"
 .PHONY: vendor
 
+# GENERATE_YAML_ENV_VARS is the list of all environment variables expected by generate-yaml.sh
+# to build example manifests for clusterctl. The list of environment variables here should contain
+# the environment variables expected in generate-yaml.sh
+GENERATE_YAML_ENV_VARS := -e CLUSTER_NAME -e SERVICE_CIDR -e CLUSTER_CIDR -e CAPV_YAML_VALIDATION \
+		      -e VSPHERE_USER -e VSPHERE_PASSWORD -e VSPHERE_SERVER -e VSPHERE_DATACENTER \
+		      -e VSPHERE_DATASTORE -e VSPHERE_NETWORK -e VSPHERE_RESOURCE_POOL -e VSPHERE_FOLDER \
+		      -e VSPHERE_TEMPLATE -e VSPHERE_DISK -e VSPHERE_DISK_SIZE_GB -e CAPV_MANAGER_IMAGE \
+		      -e KUBERNETES_VERSION
+
 ####################################
 # DEVELOPMENT Build and Push targets
 ####################################
 
 # Create YAML file for deployment
-dev-yaml: | $(KUSTOMIZE)
-	CAPV_MANAGER_IMAGE=${DEV_IMG} cmd/clusterctl/examples/vsphere/generate-yaml.sh
+dev-yaml: | clusterctl-tools
+	docker run -v $(CWD):/go/src/sigs.k8s.io/cluster-api-provider-vsphere \
+	  -w /go/src/sigs.k8s.io/cluster-api-provider-vsphere \
+	  $(GENERATE_YAML_ENV_VARS) clusterctl-tools \
+	  bash -c "CAPV_MANAGER_IMAGE=${DEV_IMG} cmd/clusterctl/examples/vsphere/generate-yaml.sh"
 
 # Build the docker image
 dev-build: #test
@@ -120,8 +144,11 @@ dev-push:
 ###################################
 
 # Create YAML file for deployment
-prod-yaml: | $(KUSTOMIZE)
-	CAPV_MANAGER_IMAGE=${PRODUCTION_IMG} cmd/clusterctl/examples/vsphere/generate-yaml.sh
+prod-yaml: | clusterctl-tools
+	docker run -v $(CWD):/go/src/sigs.k8s.io/cluster-api-provider-vsphere \
+	  -w /go/src/sigs.k8s.io/cluster-api-provider-vsphere \
+	  $(GENERATE_YAML_ENV_VARS) clusterctl-tools \
+	  bash -c "CAPV_MANAGER_IMAGE=${PRODUCTION_IMG} cmd/clusterctl/examples/vsphere/generate-yaml.sh"
 
 # Build the docker image
 prod-build: test
@@ -139,8 +166,11 @@ prod-push:
 ###################################
 
 # Create YAML file for deployment into CI
-ci-yaml: | $(KUSTOMIZE)
-	CAPV_MANAGER_IMAGE=${CI_IMG}:${VERSION} cmd/clusterctl/examples/vsphere/generate-yaml.sh
+ci-yaml: | clusterctl-tools
+	docker run -v $(CWD):/go/src/sigs.k8s.io/cluster-api-provider-vsphere \
+	  -w /go/src/sigs.k8s.io/cluster-api-provider-vsphere \
+	  $(GENERATE_YAML_ENV_VARS) clusterctl-tools \
+	  bash -c "CAPV_MANAGER_IMAGE=${CI_IMG}:${VERSION} cmd/clusterctl/examples/vsphere/generate-yaml.sh"
 
 ci-image: generate fmt vet manifests
 	docker build . -t "$(CI_IMG):$(VERSION)"

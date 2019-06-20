@@ -39,12 +39,6 @@ PROVIDERCOMPONENT_GENERATED_FILE=${OUTPUT_DIR}/provider-components.yaml
 CAPV_MANAGER_TEMPLATE_FILE=${TEMPLATE_DIR}/capv_manager_image_patch.yaml.template
 CAPV_MANAGER_GENERATED_FILE=$VSPHERE_CLUSTER_API_CRD_PATH/default/capv_manager_image_patch.yaml
 
-MACHINE_CONTROLLER_SSH_PUBLIC_FILE=vsphere_tmp.pub
-MACHINE_CONTROLLER_SSH_PUBLIC=
-MACHINE_CONTROLLER_SSH_PRIVATE_FILE=vsphere_tmp
-MACHINE_CONTROLLER_SSH_PRIVATE=
-MACHINE_CONTROLLER_SSH_HOME=~/.ssh/
-
 OVERWRITE=0
 
 SCRIPT=$(basename $0)
@@ -96,7 +90,8 @@ fi
 
 mkdir -p ${OUTPUT_DIR}
 
-# all variables used for yaml generation
+# All variables used for yaml generation
+# Ensure all variables listed here are also listed under GENERATE_YAML_ENV_VARS in the root Makefile
 
 export CLUSTER_NAME=${CLUSTER_NAME:-capv-mgmt-example}
 export SERVICE_CIDR=${SERVICE_CIDR:-100.64.0.0/13}
@@ -193,23 +188,6 @@ envsubst < $ADDON_TEMPLATE_FILE > "${ADDON_GENERATED_FILE}"
 echo "Done generating $ADDON_GENERATED_FILE"
 
 envsubst < $CAPV_MANAGER_TEMPLATE_FILE > "${CAPV_MANAGER_GENERATED_FILE}"
-
-# Check if the ssh key already exists. If not, generate and copy to the .ssh dir.
-if [ ! -f $MACHINE_CONTROLLER_SSH_HOME$MACHINE_CONTROLLER_SSH_PRIVATE_FILE ]; then
-  echo "Generating SSH key files for machine controller."
-  # This is needed because GetKubeConfig assumes the key in the home .ssh dir.
-  ssh-keygen -t rsa -f $MACHINE_CONTROLLER_SSH_HOME$MACHINE_CONTROLLER_SSH_PRIVATE_FILE  -N ""
-fi
-
-# With kustomize PR 700 merged, the resources in kustomization.yaml could only be scanned in the sub-folder
-# So putting vsphere_tmp and vsphere_tmp.pub in ../config/default folder
-cp $MACHINE_CONTROLLER_SSH_HOME$MACHINE_CONTROLLER_SSH_PUBLIC_FILE $VSPHERE_CLUSTER_API_CRD_PATH/default/$MACHINE_CONTROLLER_SSH_PUBLIC_FILE
-cp $MACHINE_CONTROLLER_SSH_HOME$MACHINE_CONTROLLER_SSH_PRIVATE_FILE $VSPHERE_CLUSTER_API_CRD_PATH/default/$MACHINE_CONTROLLER_SSH_PRIVATE_FILE
-
-# By default, linux wraps base64 output every 76 cols, so we use 'tr -d' to remove whitespaces.
-# Note 'base64 -w0' doesn't work on Mac OS X, which has different flags.
-MACHINE_CONTROLLER_SSH_PUBLIC=$(cat $MACHINE_CONTROLLER_SSH_HOME$MACHINE_CONTROLLER_SSH_PUBLIC_FILE | base64 | tr -d '\r\n')
-MACHINE_CONTROLLER_SSH_PRIVATE=$(cat $MACHINE_CONTROLLER_SSH_HOME$MACHINE_CONTROLLER_SSH_PRIVATE_FILE | base64 | tr -d '\r\n')
 
 kustomize build $VSPHERE_CLUSTER_API_CRD_PATH/default/ > $PROVIDERCOMPONENT_GENERATED_FILE
 echo "---" >> $PROVIDERCOMPONENT_GENERATED_FILE

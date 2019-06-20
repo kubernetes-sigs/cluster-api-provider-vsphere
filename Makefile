@@ -128,6 +128,7 @@ dev-build: #test
 dev-push:
 	docker push ${DEV_IMG}
 
+.PHONY: dev-yaml dev-build dev-push
 
 ###################################
 # PRODUCTION Build and Push targets
@@ -150,6 +151,7 @@ prod-push:
 	@docker login -u _json_key --password-stdin gcr.io <"$(GCR_KEY_FILE)"
 	docker push ${PRODUCTION_IMG}
 
+.PHONY: prod-yaml prod-build prod-push
 
 ###################################
 # CI Build and Push targets
@@ -173,6 +175,8 @@ ci-push: ci-image
 	docker push "$(CI_IMG):$(VERSION)"
 	docker push "$(CLUSTERCTL_CI_IMG):$(VERSION)"
 	@echo docker logout gcr.io
+
+.PHONY: ci-yaml ci-image ci-push
 
 ################################################################################
 ##                          The default targets                               ##

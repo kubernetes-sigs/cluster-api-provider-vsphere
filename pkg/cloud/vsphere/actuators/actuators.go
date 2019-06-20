@@ -17,6 +17,8 @@ limitations under the License.
 package actuators
 
 import (
+	"fmt"
+
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 
@@ -28,6 +30,7 @@ import (
 )
 
 type patchContext interface {
+	fmt.Stringer
 	GetObject() runtime.Object
 	GetLogger() logr.Logger
 	Patch() error
@@ -50,7 +53,11 @@ func PatchAndHandleError(ctx patchContext, opName string, opErr error) error {
 	// and log the op error if one is replaced with the requeue error.
 	requeueErr, isRequeueErr := errors.Cause(err).(*clustererr.RequeueAfterError)
 	if isRequeueErr {
-		ctx.GetLogger().Error(opErr, "op failed", "object", ctx.GetObject())
+		// If the requeue error is not the outer-most error then log the outer-most
+		// error since it will be dropped in favor of the requeue.
+		if requeueErr != err {
+			ctx.GetLogger().V(6).Info("requeue after error", "object", ctx.String(), "error", err)
+		}
 		err = requeueErr
 	}
 

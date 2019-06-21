@@ -158,8 +158,7 @@ if [ ! "${CAPV_YAML_VALIDATION:-1}" = "0" ]; then
   fi
 
   if [ -z "${VSPHERE_FOLDER}" ]; then
-    echo "env var VSPHERE_FOLDER is required" 1>&2
-    exit 1
+    echo "WARNING: VSPHERE_FOLDER is not set, defaulting to root folder"
   fi
 
   if [ -z "${VSPHERE_TEMPLATE}" ]; then

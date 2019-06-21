@@ -117,6 +117,7 @@ GENERATE_YAML_ENV_VARS := -e CLUSTER_NAME -e SERVICE_CIDR -e CLUSTER_CIDR -e CAP
 dev-yaml: | clusterctl-tools
 	docker run -v $(CWD):/go/src/sigs.k8s.io/cluster-api-provider-vsphere \
 	  -w /go/src/sigs.k8s.io/cluster-api-provider-vsphere \
+	  -u $$(id -u):$$(id -g) \
 	  $(GENERATE_YAML_ENV_VARS) clusterctl-tools \
 	  bash -c "CAPV_MANAGER_IMAGE=${DEV_IMG} cmd/clusterctl/examples/vsphere/generate-yaml.sh"
 
@@ -138,6 +139,7 @@ dev-push:
 prod-yaml: | clusterctl-tools
 	docker run -v $(CWD):/go/src/sigs.k8s.io/cluster-api-provider-vsphere \
 	  -w /go/src/sigs.k8s.io/cluster-api-provider-vsphere \
+	  -u $$(id -u):$$(id -g) \
 	  $(GENERATE_YAML_ENV_VARS) clusterctl-tools \
 	  bash -c "CAPV_MANAGER_IMAGE=${PRODUCTION_IMG} cmd/clusterctl/examples/vsphere/generate-yaml.sh"
 
@@ -161,6 +163,7 @@ prod-push:
 ci-yaml: | clusterctl-tools
 	docker run -v $(CWD):/go/src/sigs.k8s.io/cluster-api-provider-vsphere \
 	  -w /go/src/sigs.k8s.io/cluster-api-provider-vsphere \
+	  -u $$(id -u):$$(id -g) \
 	  $(GENERATE_YAML_ENV_VARS) clusterctl-tools \
 	  bash -c "CAPV_MANAGER_IMAGE=${CI_IMG}:${VERSION} cmd/clusterctl/examples/vsphere/generate-yaml.sh"
 

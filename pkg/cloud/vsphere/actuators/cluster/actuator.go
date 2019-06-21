@@ -17,10 +17,15 @@ limitations under the License.
 package cluster
 
 import (
+	"fmt"
 	"net"
 	"strconv"
 
 	"github.com/pkg/errors"
+
+	apiv1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/klog/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -77,6 +82,13 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (opErr error) {
 		return err
 	}
 
+	// reconcileKubeConfig can fail because control plane endpoints
+	// aren't ready so return requeue error
+	if err := a.reconcileKubeConfig(ctx); err != nil {
+		return errors.Wrapf(&clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue},
+			"error reconciling kubeconfig secret for cluster %q", ctx)
+	}
+
 	return nil
 }
 
@@ -96,6 +108,13 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster) (opErr error) {
 	}()
 
 	ctx.Logger.V(2).Info("deleting cluster")
+
+	// if deleteKubeconfig fails, return requeue error so kubeconfig
+	// secret is properly cleaned up
+	if err := a.deleteKubeConfig(ctx); err != nil {
+		return errors.Wrapf(&clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue},
+			"error deleting kubeconfig secret for cluster %q", ctx)
+	}
 
 	return nil
 }
@@ -128,10 +147,16 @@ func (a *Actuator) GetKubeConfig(cluster *clusterv1.Cluster, machine *clusterv1.
 	if err != nil {
 		return "", err
 	}
+
+	if machine == nil {
+		return kubeclient.GetKubeConfig(clusterContext)
+	}
+
 	machineContext, err := context.NewMachineContextFromClusterContext(clusterContext, machine)
 	if err != nil {
 		return "", err
 	}
+
 	return kubeclient.GetKubeConfig(machineContext)
 }
 
@@ -180,4 +205,36 @@ func (a *Actuator) reconcileReadyState(ctx *context.ClusterContext) error {
 	ctx.Logger.V(6).Info("cluster is ready")
 
 	return nil
+}
+
+// reconcileKubeConfig creates a Kubernetes Secret holding the kubeconfig
+// for a cluster if the secret does not already exist
+func (a *Actuator) reconcileKubeConfig(ctx *context.ClusterContext) error {
+	cluster := ctx.Cluster
+
+	kubeConfig, err := a.GetKubeConfig(cluster, nil)
+	if err != nil {
+		return errors.Wrap(err, "error generating kubeconfig")
+	}
+
+	secret := &apiv1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: fmt.Sprintf("%s-kubeconfig", cluster.Name),
+		},
+		StringData: map[string]string{
+			"value": kubeConfig,
+		},
+	}
+
+	if _, err := a.coreClient.Secrets(cluster.Namespace).Create(secret); err != nil &&
+		!apierrors.IsAlreadyExists(err) {
+		return errors.Wrap(err, "error creating kubeconfig secret")
+	}
+
+	return nil
+}
+
+func (a *Actuator) deleteKubeConfig(ctx *context.ClusterContext) error {
+	secretName := fmt.Sprintf("%s-kubeconfig", ctx.Cluster.Name)
+	return a.coreClient.Secrets(ctx.Cluster.Namespace).Delete(secretName, &metav1.DeleteOptions{})
 }

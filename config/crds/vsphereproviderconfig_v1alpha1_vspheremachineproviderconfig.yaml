@@ -311,6 +311,9 @@ spec:
               type: string
             datastore:
               type: string
+            diskGiB:
+              format: int32
+              type: integer
             disks:
               items:
                 properties:
@@ -324,32 +327,103 @@ spec:
             memoryMB:
               format: int64
               type: integer
-            networks:
-              items:
-                properties:
-                  ipConfig:
+            network:
+              properties:
+                devices:
+                  description: Devices is the list of network devices used by the
+                    virtual machine.
+                  items:
                     properties:
-                      dns:
+                      ipAddrs:
+                        description: IPAddrs is a list of one or more IPv4 and/or
+                          IPv6 addresses to assign to this device. Required when DHCP4
+                          and DHCP6 are both false.
                         items:
                           type: string
                         type: array
-                      gateway:
+                      macAddr:
+                        description: MACAddr is the MAC address used by this device.
+                          It is generally a good idea to omit this field and allow
+                          a MAC address to be generated. Please note that this value
+                          must use the VMware OUI to work with the in-tree vSphere
+                          cloud provider.
                         type: string
-                      ip:
+                      mtu:
+                        description: MTU is the device’s Maximum Transmission Unit
+                          size in bytes.
+                        format: int64
+                        type: integer
+                      nameservers:
+                        description: Nameservers is a list of IPv4 and/or IPv6 addresses
+                          used as DNS nameservers. Please note that Linux allows only
+                          three nameservers (https://linux.die.net/man/5/resolv.conf).
+                        items:
+                          type: string
+                        type: array
+                      networkName:
+                        description: NetworkName is the name of the vSphere network
+                          to which the device will be connected.
                         type: string
-                      netmask:
-                        type: string
-                      networkType:
+                      routes:
+                        description: Routes is a list of optional, static routes applied
+                          to the device.
+                        items:
+                          properties:
+                            metric:
+                              description: Metric is the weight/priority of the route.
+                              format: int32
+                              type: integer
+                            to:
+                              description: To is an IPv4 or IPv6 address.
+                              type: string
+                            via:
+                              description: Via is an IPv4 or IPv6 address.
+                              type: string
+                          required:
+                          - to
+                          - via
+                          - metric
+                          type: object
+                        type: array
+                      searchDomains:
+                        description: SearchDomains is a list of search domains used
+                          when resolving IP addresses with DNS.
+                        items:
+                          type: string
+                        type: array
+                      uuid:
+                        description: UUID is used to relate this network spec to the
+                          network device created from this spec. This value is set
+                          at runtime and should not be assigned manually.
                         type: string
                     required:
-                    - networkType
+                    - networkName
                     type: object
-                  networkName:
-                    type: string
-                required:
-                - networkName
-                type: object
-              type: array
+                  type: array
+                routes:
+                  description: Routes is a list of optional, static routes applied
+                    to the virtual machine.
+                  items:
+                    properties:
+                      metric:
+                        description: Metric is the weight/priority of the route.
+                        format: int32
+                        type: integer
+                      to:
+                        description: To is an IPv4 or IPv6 address.
+                        type: string
+                      via:
+                        description: Via is an IPv4 or IPv6 address.
+                        type: string
+                    required:
+                    - to
+                    - via
+                    - metric
+                    type: object
+                  type: array
+              required:
+              - devices
+              type: object
             ntpServers:
               items:
                 type: string
@@ -374,7 +448,7 @@ spec:
           required:
           - datacenter
           - datastore
-          - networks
+          - network
           - template
           - disks
           type: object

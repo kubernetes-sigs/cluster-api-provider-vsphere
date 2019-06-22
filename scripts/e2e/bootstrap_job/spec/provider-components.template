@@ -761,6 +761,9 @@ spec:
               type: string
             datastore:
               type: string
+            diskGiB:
+              format: int32
+              type: integer
             disks:
               items:
                 properties:
@@ -774,32 +777,103 @@ spec:
             memoryMB:
               format: int64
               type: integer
-            networks:
-              items:
-                properties:
-                  ipConfig:
+            network:
+              properties:
+                devices:
+                  description: Devices is the list of network devices used by the
+                    virtual machine.
+                  items:
                     properties:
-                      dns:
+                      ipAddrs:
+                        description: IPAddrs is a list of one or more IPv4 and/or
+                          IPv6 addresses to assign to this device. Required when DHCP4
+                          and DHCP6 are both false.
                         items:
                           type: string
                         type: array
-                      gateway:
+                      macAddr:
+                        description: MACAddr is the MAC address used by this device.
+                          It is generally a good idea to omit this field and allow
+                          a MAC address to be generated. Please note that this value
+                          must use the VMware OUI to work with the in-tree vSphere
+                          cloud provider.
                         type: string
-                      ip:
+                      mtu:
+                        description: MTU is the device’s Maximum Transmission Unit
+                          size in bytes.
+                        format: int64
+                        type: integer
+                      nameservers:
+                        description: Nameservers is a list of IPv4 and/or IPv6 addresses
+                          used as DNS nameservers. Please note that Linux allows only
+                          three nameservers (https://linux.die.net/man/5/resolv.conf).
+                        items:
+                          type: string
+                        type: array
+                      networkName:
+                        description: NetworkName is the name of the vSphere network
+                          to which the device will be connected.
                         type: string
-                      netmask:
-                        type: string
-                      networkType:
+                      routes:
+                        description: Routes is a list of optional, static routes applied
+                          to the device.
+                        items:
+                          properties:
+                            metric:
+                              description: Metric is the weight/priority of the route.
+                              format: int32
+                              type: integer
+                            to:
+                              description: To is an IPv4 or IPv6 address.
+                              type: string
+                            via:
+                              description: Via is an IPv4 or IPv6 address.
+                              type: string
+                          required:
+                          - to
+                          - via
+                          - metric
+                          type: object
+                        type: array
+                      searchDomains:
+                        description: SearchDomains is a list of search domains used
+                          when resolving IP addresses with DNS.
+                        items:
+                          type: string
+                        type: array
+                      uuid:
+                        description: UUID is used to relate this network spec to the
+                          network device created from this spec. This value is set
+                          at runtime and should not be assigned manually.
                         type: string
                     required:
-                    - networkType
+                    - networkName
                     type: object
-                  networkName:
-                    type: string
-                required:
-                - networkName
-                type: object
-              type: array
+                  type: array
+                routes:
+                  description: Routes is a list of optional, static routes applied
+                    to the virtual machine.
+                  items:
+                    properties:
+                      metric:
+                        description: Metric is the weight/priority of the route.
+                        format: int32
+                        type: integer
+                      to:
+                        description: To is an IPv4 or IPv6 address.
+                        type: string
+                      via:
+                        description: Via is an IPv4 or IPv6 address.
+                        type: string
+                    required:
+                    - to
+                    - via
+                    - metric
+                    type: object
+                  type: array
+              required:
+              - devices
+              type: object
             ntpServers:
               items:
                 type: string
@@ -824,7 +898,7 @@ spec:
           required:
           - datacenter
           - datastore
-          - networks
+          - network
           - template
           - disks
           type: object
@@ -866,10 +940,40 @@ spec:
           type: string
         metadata:
           type: object
+        networkStatus:
+          description: Network returns the network status for each of the machine's
+            configured network interfaces.
+          items:
+            properties:
+              connected:
+                description: Connected is a flag that indicates whether this network
+                  is currently connected to the VM.
+                type: boolean
+              ipAddrs:
+                description: IPAddrs is one or more IP addresses reported by vm-tools.
+                items:
+                  type: string
+                type: array
+              macAddr:
+                description: MACAddr is the MAC address of the network device.
+                type: string
+              networkName:
+                description: NetworkName is the name of the network.
+                type: string
+              uuid:
+                description: UUID is stored as DeviceInfo.Label on a network device
+                  and uniquely identifies the device as one that was created from
+                  a known network spec.
+                type: string
+            required:
+            - uuid
+            - macAddr
+            type: object
+          type: array
         taskRef:
+          description: TaskRef is a managed object reference to a Task related to
+            the machine.
           type: string
-      required:
-      - taskRef
   version: v1alpha1
 status:
   acceptedNames:
@@ -965,16 +1069,6 @@ subjects:
   namespace: vsphere-provider-system
 ---
 apiVersion: v1
-data:
-  vsphere_tmp: LS0tLS1CRUdJTiBPUEVOU1NIIFBSSVZBVEUgS0VZLS0tLS0KYjNCbGJuTnphQzFyWlhrdGRqRUFBQUFBQkc1dmJtVUFBQUFFYm05dVpRQUFBQUFBQUFBQkFBQUJGd0FBQUFkemMyZ3RjbgpOaEFBQUFBd0VBQVFBQUFRRUExQ2ZPTEJnMDFwTkRGYnZoWjU1amxLTlBsQ2duUlZzZSt1cUF2cVJYTUpSRlF3T0ZJYVZwCmtiOHVEVTV6ajFNZUFsNGJCa3FhbnExZ0lrNTlLTDVEb0UvZzYzWlFEcGQwMWU5czJ5RUdhVUFKR1FYQmhsM01nVmNLanAKbWFPQUF1SW4wRkRZTE5SMWdLanpSNm5BU3NIZ0dWQUNnYnpXeWFZTGlqSHdjYnRyMzdIQllCVjRFSTNUZ0dObDkzTjIydgpRS0xBYU80NDhMZmdzYlIya2tFaVlINWFQQ3VoYjB5ZkViVVFwUEk0U1JvdTVxRHNCVXhBdFlMa2ErZkVjZHZhNE1UUmFHCnVwY1ZSNEZSdXFwRXhUL0xVRFNhcGdlRUVtenc2Ym5qNWlhbk9FYVVkTkpZY0VUMFJMUTVsMFhUdUFGajNsbHZxUTd0WCsKUXFsbVVRUUt1d0FBQTlBKzI3M0VQdHU5eEFBQUFBZHpjMmd0Y25OaEFBQUJBUURVSjg0c0dEVFdrME1WdStGbm5tT1VvMAorVUtDZEZXeDc2Nm9DK3BGY3dsRVZEQTRVaHBXbVJ2eTROVG5PUFV4NENYaHNHU3BxZXJXQWlUbjBvdmtPZ1QrRHJkbEFPCmwzVFY3MnpiSVFacFFBa1pCY0dHWGN5QlZ3cU9tWm80QUM0aWZRVU5nczFIV0FxUE5IcWNCS3dlQVpVQUtCdk5iSnBndUsKTWZCeHUydmZzY0ZnRlhnUWpkT0FZMlgzYzNiYTlBb3NCbzdqand0K0N4dEhhU1FTSmdmbG84SzZGdlRKOFJ0UkNrOGpoSgpHaTdtb093RlRFQzFndVJyNThSeDI5cmd4TkZvYTZseFZIZ1ZHNnFrVEZQOHRRTkpxbUI0UVNiUERwdWVQbUpxYzRScFIwCjBsaHdSUFJFdERtWFJkTzRBV1BlV1crcER1MWY1Q3FXWlJCQXE3QUFBQUF3RUFBUUFBQVFBSTlEMGhZMHdubWtPRWtVOXMKSGlVNXlzSzdFQTdJUUpaSUpNbVdRajFqMFg0eTI5MHNsRnltU0JsYmVtb3FMR25oMDdMMFN3WEhtSzJzQlFBSFRqQndmYQo2U2dZWFRkOVQ0aW9oZm56ODBCZjNjVG4vaWVlYjl0bnk5bEFJTVJ3V3JjdmRab0tHbFZ6UHE0MTRoWTVrWUV4MEV5cXlSCnVQbXpCMWZySVZPc0hMallRS2dQT2lxbWZ2RkViOGI0dElRRERpK3lxYWR2NjZGMGhsV2ZYQXp0bTRaOXNoUjUydkZsR0oKN1IzKzVvcVlMN0wrVXluTkpidWVzTGE3cEt2Vk1ZbmZDVUlYb21TRWhYY0tQQkFuVDV4TEFyNFcrK3BUMHArQ2I5WUFRKwpWK1ZLNHNscHRLWmd4M2RHaUNLUVB5VWdEZjVVUkpucjlWc3V0dHcyWmFXeEFBQUFnR0dFZVFSL0NBTXdNcEQ5OTB0RGYvCkN3V1J1NzJUamhaUGgwcVJ2anViTExtUWxud1JYVkhHZHl0NE1NZGdJd2hrZVBpc2RPR0crQmZ2bDJXMUlITXdLMjZTdkIKU2lrbkJCRkVRN0Jyd1NOSmg2Q0tFa3BFeDF6d1lFbXVJcHlrSDZHV09ncXF6MlhzMzlrMk5ZMWt0WW5Rdms1MlgwS1RLZApNZG5uUlRxVGdrQUFBQWdRRDdMdU5tdXlSQnlKNEVvOWlSRkgyTEFBclFid3YwbXJRUmNXYW1ZOHZqWCt4VzNGM1p5QldnCjlmbk1TWVVGa0lSMXpGSU0rVUJYUXh2K2pmeW5lSDl0Mkh4dDRuTCtlSldpUjBhNEp2c2ZFamY2bk9VLzNabktnOHE4bTQKdlJxYWJoUnhqa0V1cGY1RmZaTGdLTDFqVGhaZndYZmp1ZFNQSUZyWHc2YjdMeGR3QUFBSUVBMkRsU2FjRCtBK3N0QUZXSAo0UmdRZC9XYmtkMUFxVUhzdXJDdW5BS2VVQkJESmo3OHg5Z2k0cldOWG1rOWFqS1RpT2tzbDExT1JsR2M0STljeTB5eGx0CjhYOXpyL3JRZXk3a04zdXA3Tk9uTEJ0cDdzWjMzZkdEK3FzMTZaKzFjWGRBdG44MHpxQWlJeEhVNTRvb1hCMGFxWnNjQmQKWWtuMTBoTUxOaUV3NGQwQUFBQWFZV3QxZEhwQVlXdDFkSG90WVRBeExuWnRkMkZ5WlM1amIyMEIKLS0tLS1FTkQgT1BFTlNTSCBQUklWQVRFIEtFWS0tLS0tCg==
-  vsphere_tmp.pub: c3NoLXJzYSBBQUFBQjNOemFDMXljMkVBQUFBREFRQUJBQUFCQVFEVUo4NHNHRFRXazBNVnUrRm5ubU9VbzArVUtDZEZXeDc2Nm9DK3BGY3dsRVZEQTRVaHBXbVJ2eTROVG5PUFV4NENYaHNHU3BxZXJXQWlUbjBvdmtPZ1QrRHJkbEFPbDNUVjcyemJJUVpwUUFrWkJjR0dYY3lCVndxT21abzRBQzRpZlFVTmdzMUhXQXFQTkhxY0JLd2VBWlVBS0J2TmJKcGd1S01mQnh1MnZmc2NGZ0ZYZ1FqZE9BWTJYM2MzYmE5QW9zQm83amp3dCtDeHRIYVNRU0pnZmxvOEs2RnZUSjhSdFJDazhqaEpHaTdtb093RlRFQzFndVJyNThSeDI5cmd4TkZvYTZseFZIZ1ZHNnFrVEZQOHRRTkpxbUI0UVNiUERwdWVQbUpxYzRScFIwMGxod1JQUkV0RG1YUmRPNEFXUGVXVytwRHUxZjVDcVdaUkJBcTcgYWt1dHpAYWt1dHotYTAxLnZtd2FyZS5jb20K
-kind: Secret
-metadata:
-  name: vsphere-machine-sshkeys-k578b7gfck
-  namespace: vsphere-provider-system
-type: Opaque
----
-apiVersion: v1
 kind: Service
 metadata:
   labels:
@@ -1038,6 +1132,8 @@ spec:
           name: machines-stage
         - mountPath: /usr/bin/kubeadm
           name: kubeadm
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
       terminationGracePeriodSeconds: 10
       tolerations:
       - effect: NoSchedule
@@ -2154,6 +2250,7 @@ spec:
       - command:
         - /manager
         args:
+        - --logtostderr
         - -v=6
         image: gcr.io/k8s-cluster-api/cluster-api-controller:0.1.3
         name: manager

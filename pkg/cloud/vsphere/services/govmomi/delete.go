@@ -18,53 +18,54 @@ package govmomi
 
 import (
 	"github.com/pkg/errors"
-	"github.com/vmware/govmomi/object"
-	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
+	clustererror "sigs.k8s.io/cluster-api/pkg/controller/error"
 )
 
 // Delete deletes the machine from the backend platform.
 func Delete(ctx *context.MachineContext) error {
-	if ctx.MachineConfig.MachineRef == "" {
-		return errors.Errorf("machine ref is empty while deleting machine %q", ctx)
+
+	// Check to see if the VM exists first since no error is returned if the VM
+	// does not exist, only when there's an error checking or when the op should
+	// be requeued, like when the VM has an in-flight task.
+	if _, err := Exists(ctx); err != nil {
+		return err
 	}
 
-	moRef := types.ManagedObjectReference{
-		Type:  "VirtualMachine",
-		Value: ctx.MachineConfig.MachineRef,
+	// Try to get the VM. If it does not exist, return success.
+	vm := getVM(ctx)
+	if vm == nil {
+		return nil
 	}
 
-	var obj mo.VirtualMachine
-	if err := ctx.Session.RetrieveOne(ctx, moRef, []string{"name", "runtime"}, &obj); err != nil {
-		return errors.Errorf("machine does not exist %q", ctx)
+	// If the VM is powered on then power it off, store the power off task's
+	// reference, and and requeue this operation.
+	powerState, err := vm.PowerState(ctx)
+	if err != nil {
+		return errors.Wrapf(err, "error determining power state when deleting %q", ctx)
 	}
-
-	vm := object.NewVirtualMachine(ctx.Session.Client.Client, moRef)
-	if obj.Runtime.PowerState == types.VirtualMachinePowerStatePoweredOn {
+	ctx.Logger.V(6).Info("powering off vm")
+	if powerState == types.VirtualMachinePowerStatePoweredOn {
 		task, err := vm.PowerOff(ctx)
 		if err != nil {
-			return errors.Wrapf(err, "error triggering power off op on machine %q", ctx)
+			return errors.Wrapf(err, "error triggering power off op for %q", ctx)
 		}
-		if err := task.Wait(ctx); err != nil {
-			return errors.Wrapf(err, "error powering off machine %q", ctx)
-		}
+		ctx.MachineStatus.TaskRef = task.Reference().Value
+		ctx.Logger.V(6).Info("reenqueue to wait for power off op")
+		return &clustererror.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
 	}
 
+	// At this point the VM is not powered on and can be destroyed. Store the
+	// destroy task's reference and return a requeue error.
+	ctx.Logger.V(6).Info("destroying vm")
 	task, err := vm.Destroy(ctx)
 	if err != nil {
-		return errors.Wrapf(err, "error triggering delete op on machine %q", ctx)
+		return errors.Wrapf(err, "error triggering destroy for %q", ctx)
 	}
-
-	taskInfo, err := task.WaitForResult(ctx, nil)
-	if err != nil {
-		return errors.Wrapf(err, "error deleting machine %q", ctx)
-	}
-
-	if taskInfo.State != types.TaskInfoStateSuccess {
-		return errors.Errorf("error deleting machine %q", ctx)
-	}
-
-	return nil
+	ctx.MachineStatus.TaskRef = task.Reference().Value
+	ctx.Logger.V(6).Info("reenqueue to wait for destroy op")
+	return &clustererror.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
 }

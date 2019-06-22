@@ -45,7 +45,7 @@ func PatchAndHandleError(ctx patchContext, opName string, opErr error) error {
 	// Attempt to patch the object. If it fails then requeue the operation.
 	if patchErr := ctx.Patch(); patchErr != nil {
 		err = errors.Wrapf(
-			&clustererr.RequeueAfterError{RequeueAfter: constants.RequeueAfterSeconds},
+			&clustererr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue},
 			"opErr=%q patchErr=%q", opErr, patchErr)
 	}
 

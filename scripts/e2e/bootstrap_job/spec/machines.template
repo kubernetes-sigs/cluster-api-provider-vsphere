@@ -18,10 +18,11 @@ items:
           datastore: "WorkloadDatastore"
           resourcePool: "clusterapi"
           vmFolder: "clusterapi"
-          networks:
-          - networkName: "sddc-cgw-network-3"
-            ipConfig:
-              networkType: dhcp
+          network:
+            devices:
+            - networkName: "sddc-cgw-network-3"
+              dhcp4: true
+              dhcp6: true
           numCPUs: 2
           memoryMB: 2048
           template: "ubuntu-1804-kube-v1.13.6"

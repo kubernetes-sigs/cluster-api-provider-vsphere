@@ -26,10 +26,40 @@ spec:
           type: string
         metadata:
           type: object
+        networkStatus:
+          description: Network returns the network status for each of the machine's
+            configured network interfaces.
+          items:
+            properties:
+              connected:
+                description: Connected is a flag that indicates whether this network
+                  is currently connected to the VM.
+                type: boolean
+              ipAddrs:
+                description: IPAddrs is one or more IP addresses reported by vm-tools.
+                items:
+                  type: string
+                type: array
+              macAddr:
+                description: MACAddr is the MAC address of the network device.
+                type: string
+              networkName:
+                description: NetworkName is the name of the network.
+                type: string
+              uuid:
+                description: UUID is stored as the ExternalID field on a network device
+                  and uniquely identifies the device as one that was created from
+                  a known network spec.
+                type: string
+            required:
+            - uuid
+            - macAddr
+            type: object
+          type: array
         taskRef:
+          description: TaskRef is a managed object reference to a Task related to
+            the machine.
           type: string
-      required:
-      - taskRef
   version: v1alpha1
 status:
   acceptedNames:

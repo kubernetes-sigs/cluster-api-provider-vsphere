@@ -131,11 +131,12 @@ func TestCreate(t *testing.T) {
 			Datastore:    "",
 			ResourcePool: "",
 			VMFolder:     "",
-			Networks: []vsphereconfigv1.NetworkSpec{
-				{
-					NetworkName: "VM Network",
-					IPConfig: vsphereconfigv1.IPConfig{
-						NetworkType: vsphereconfigv1.DHCP,
+			Network: vsphereconfigv1.NetworkSpec{
+				Devices: []vsphereconfigv1.NetworkDeviceSpec{
+					{
+						NetworkName: "VM Network",
+						DHCP4:       true,
+						DHCP6:       true,
 					},
 				},
 			},

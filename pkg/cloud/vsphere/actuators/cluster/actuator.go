@@ -64,7 +64,7 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (opErr error) {
 		opErr = actuators.PatchAndHandleError(ctx, "Reconcile", opErr)
 	}()
 
-	ctx.Logger.V(2).Info("reconciling cluster")
+	ctx.Logger.V(6).Info("reconciling cluster")
 
 	// Ensure the PKI config is present or generated and then set the updated
 	// clusterConfig back onto the cluster.

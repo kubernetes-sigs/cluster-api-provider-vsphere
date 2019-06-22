@@ -70,7 +70,7 @@ type Config struct {
 
 // ReconcileCertificates generate certificates if none exists.
 func ReconcileCertificates(ctx *context.ClusterContext) error {
-	ctx.Logger.V(2).Info("reconciling certificates")
+	ctx.Logger.V(6).Info("reconciling certificates")
 
 	if !ctx.ClusterConfig.CAKeyPair.HasCertAndKey() {
 		ctx.Logger.V(2).Info("Generating keypair for", "user", clusterCA)

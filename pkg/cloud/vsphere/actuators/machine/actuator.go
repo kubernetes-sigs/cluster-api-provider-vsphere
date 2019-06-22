@@ -82,51 +82,12 @@ func (a *Actuator) Create(
 		opErr = actuators.PatchAndHandleError(ctx, "Create", opErr)
 	}()
 
-	ctx.Logger.V(2).Info("creating machine", "has-control-plane-role", ctx.HasControlPlaneRole())
-
-	if !ctx.ClusterConfig.CAKeyPair.HasCertAndKey() {
-		ctx.Logger.V(2).Info("cluster config is missing pki toolchain, requeue machine")
-		return &clustererr.RequeueAfterError{RequeueAfter: constants.RequeueAfterSeconds}
+	if err := a.reconcilePKI(ctx); err != nil {
+		return err
 	}
 
-	// Init the control plane by creating this machine.
-	// TODO(akutz) Implement distributed locking to support multiple control
-	//             plane members.
-	if ctx.HasControlPlaneRole() {
-		if err := govmomi.Create(ctx, ""); err != nil {
-			if _, ok := errors.Cause(err).(*clustererr.RequeueAfterError); ok {
-				return err
-			}
-			return errors.Wrapf(err, "failed to create machine as initial member of the control plane %q", ctx)
-		}
-		return nil
-	}
-
-	// Join the existing cluster.
-	online, _, _ := kubeclient.GetControlPlaneStatus(ctx.ClusterContext)
-	if !online {
-		ctx.Logger.V(2).Info("unable to join machine to control plane until it is online")
-		return &clustererr.RequeueAfterError{RequeueAfter: time.Minute * 1}
-	}
-
-	// Get a Kubernetes client for the cluster.
-	kubeClient, err := kubeclient.GetKubeClientForCluster(ctx.ClusterContext)
-	if err != nil {
-		return errors.Wrapf(err, "failed to get kubeclient while creating machine %q", ctx)
-	}
-
-	// Get a new bootstrap token used to join this machine to the cluster.
-	token, err := tokens.NewBootstrap(kubeClient, defaultTokenTTL)
-	if err != nil {
-		return errors.Wrapf(err, "unable to generate boostrap token for joining machine to cluster %q", ctx)
-	}
-
-	// Create the machine and join it to the cluster.
-	if err := govmomi.Create(ctx, token); err != nil {
-		if _, ok := errors.Cause(err).(*clustererr.RequeueAfterError); ok {
-			return err
-		}
-		return errors.Wrapf(err, "failed to create machine and join it to the cluster %q", ctx)
+	if err := a.reconcileInitOrJoin(ctx); err != nil {
+		return err
 	}
 
 	return nil
@@ -185,7 +146,7 @@ func (a *Actuator) Update(
 		opErr = actuators.PatchAndHandleError(ctx, "Update", opErr)
 	}()
 
-	ctx.Logger.V(2).Info("updating machine")
+	ctx.Logger.V(4).Info("updating machine")
 
 	return govmomi.Update(ctx)
 }
@@ -215,4 +176,43 @@ func (a *Actuator) Exists(
 	}()
 
 	return govmomi.Exists(ctx)
+}
+
+func (a *Actuator) reconcilePKI(ctx *context.MachineContext) error {
+	if !ctx.ClusterConfig.CAKeyPair.HasCertAndKey() {
+		ctx.Logger.V(6).Info("cluster config is missing pki toolchain, requeue machine")
+		return &clustererr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+	}
+	return nil
+}
+
+// TODO(akutz) Implement distributed locking to support multiple control
+//             plane members.
+func (a *Actuator) reconcileInitOrJoin(ctx *context.MachineContext) error {
+
+	// If this is the control plane node then initialize the cluster.
+	if ctx.HasControlPlaneRole() {
+		return govmomi.Create(ctx, "")
+	}
+
+	// Otherwise wait for the cluster to come online.
+	if online, _, _ := kubeclient.GetControlPlaneStatus(ctx); !online {
+		ctx.Logger.V(6).Info("unable to join machine to control plane until it is online")
+		return &clustererr.RequeueAfterError{RequeueAfter: time.Minute * 1}
+	}
+
+	// Get a Kubernetes client for the cluster.
+	kubeClient, err := kubeclient.GetKubeClientForCluster(ctx.ClusterContext)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get kubeclient while creating machine %q", ctx)
+	}
+
+	// Get a new bootstrap token used to join this machine to the cluster.
+	token, err := tokens.NewBootstrap(kubeClient, defaultTokenTTL)
+	if err != nil {
+		return errors.Wrapf(err, "unable to generate boostrap token for joining machine to cluster %q", ctx)
+	}
+
+	// Create the machine and join it to the cluster.
+	return govmomi.Create(ctx, token)
 }

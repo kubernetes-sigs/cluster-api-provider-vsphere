@@ -140,6 +140,25 @@ func NewClusterContext(params *ClusterContextParams) (*ClusterContext, error) {
 	}, nil
 }
 
+// NewClusterLoggerContext creates a new ClusterContext with the given logger context.
+func NewClusterLoggerContext(parentContext *ClusterContext, loggerContext string) *ClusterContext {
+	ctx := &ClusterContext{
+		Context:               parentContext.Context,
+		Cluster:               parentContext.Cluster,
+		ClusterCopy:           parentContext.ClusterCopy,
+		ClusterClient:         parentContext.ClusterClient,
+		ClusterConfig:         parentContext.ClusterConfig,
+		ClusterStatus:         parentContext.ClusterStatus,
+		GetControlPlaneStatus: parentContext.GetControlPlaneStatus,
+		client:                parentContext.client,
+		machineClient:         parentContext.machineClient,
+		user:                  parentContext.user,
+		pass:                  parentContext.pass,
+	}
+	ctx.Logger = parentContext.Logger.WithName(loggerContext)
+	return ctx
+}
+
 // Strings returns ClusterNamespace/ClusterName
 func (c *ClusterContext) String() string {
 	return fmt.Sprintf("%s/%s", c.Cluster.Namespace, c.Cluster.Name)

@@ -14,20 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package govmomi
+package esxi
 
-const (
-	morefTypeTask = "Task"
+import (
+	"github.com/pkg/errors"
 
-	taskFolderCreateVM = "Folder.createVm"
-	taskVMClone        = "VirtualMachine.clone"
-	taskVMReconfigure  = "VirtualMachine.reconfigure"
-	taskVMDestroy      = "VirtualMachine.destroy"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
 )
 
-const (
-	guestInfoKeyMetadata    = "guestinfo.metadata"
-	guestInfoKeyMetadataEnc = "guestinfo.metadata.encoding"
-	guestInfoKeyUserdata    = "guestinfo.userdata"
-	guestInfoKeyUserdataEnc = "guestinfo.userdata.encoding"
-)
+// Clone kicks off a clone operation on ESXi to create a new virtual machine.
+func Clone(ctx *context.MachineContext, userData []byte) error {
+	return errors.New("temporarily disabled esxi support")
+}

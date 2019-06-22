@@ -23,10 +23,11 @@ spec:
             datastore: "${VSPHERE_DATASTORE}"
             resourcePool: "${VSPHERE_RESOURCE_POOL}"
             vmFolder: "${VSPHERE_FOLDER}"
-            networks:
-            - networkName: "${VSPHERE_NETWORK}"
-              ipConfig:
-                networkType: "dhcp"
+            network:
+              devices:
+              - networkName: "${VSPHERE_NETWORK}"
+                dhcp4: true
+                dhcp6: true
             numCPUs: 2
             memoryMB: 2048
             template: "${VSPHERE_TEMPLATE}"

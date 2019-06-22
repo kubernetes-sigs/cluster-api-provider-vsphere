@@ -54,7 +54,7 @@ func TestStorageVsphereMachineProviderConfig(t *testing.T) {
 			MemoryMB:   1000,
 			VMTemplate: "mytemplate",
 			Disks: []DiskSpec{
-				DiskSpec{
+				{
 					DiskSizeGB: 1,
 					DiskLabel:  "disk0",
 				},

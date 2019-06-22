@@ -17,14 +17,18 @@ limitations under the License.
 package cluster
 
 import (
-	"github.com/pkg/errors"
+	"net"
+	"strconv"
 
+	"github.com/pkg/errors"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/klog/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clientv1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
+	clusterErr "sigs.k8s.io/cluster-api/pkg/controller/error"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/actuators"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/certificates"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/kubeclient"
@@ -50,11 +54,10 @@ func NewActuator(
 // Reconcile will create or update the cluster
 func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (opErr error) {
 	ctx, err := context.NewClusterContext(&context.ClusterContextParams{
-		Cluster:               cluster,
-		Client:                a.client,
-		CoreClient:            a.coreClient,
-		Logger:                klogr.New().WithName("[cluster-actuator]"),
-		GetControlPlaneStatus: kubeclient.GetControlPlaneStatus,
+		Cluster:    cluster,
+		Client:     a.client,
+		CoreClient: a.coreClient,
+		Logger:     klogr.New().WithName("[cluster-actuator]"),
 	})
 	if err != nil {
 		return err
@@ -66,10 +69,12 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (opErr error) {
 
 	ctx.Logger.V(6).Info("reconciling cluster")
 
-	// Ensure the PKI config is present or generated and then set the updated
-	// clusterConfig back onto the cluster.
-	if err := certificates.ReconcileCertificates(ctx); err != nil {
-		return errors.Wrapf(err, "unable to reconcile certs while reconciling cluster %q", ctx)
+	if err := a.reconcilePKI(ctx); err != nil {
+		return err
+	}
+
+	if err := a.reconcileClusterStatus(ctx); err != nil {
+		return err
 	}
 
 	return nil
@@ -78,10 +83,9 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (opErr error) {
 // Delete will delete any cluster level resources for the cluster.
 func (a *Actuator) Delete(cluster *clusterv1.Cluster) (opErr error) {
 	ctx, err := context.NewClusterContext(&context.ClusterContextParams{
-		Cluster:               cluster,
-		Client:                a.client,
-		CoreClient:            a.coreClient,
-		GetControlPlaneStatus: kubeclient.GetControlPlaneStatus,
+		Cluster:    cluster,
+		Client:     a.client,
+		CoreClient: a.coreClient,
 	})
 	if err != nil {
 		return err
@@ -129,4 +133,41 @@ func (a *Actuator) GetKubeConfig(cluster *clusterv1.Cluster, machine *clusterv1.
 		return "", err
 	}
 	return kubeclient.GetKubeConfig(machineContext)
+}
+
+func (a *Actuator) reconcilePKI(ctx *context.ClusterContext) error {
+	if err := certificates.ReconcileCertificates(ctx); err != nil {
+		return errors.Wrapf(err, "unable to reconcile certs while reconciling cluster %q", ctx)
+	}
+	return nil
+}
+
+func (a *Actuator) reconcileClusterStatus(ctx *context.ClusterContext) error {
+	online, controlPlaneEndpoint, err := kubeclient.GetControlPlaneStatus(ctx)
+	if err != nil {
+		// This may or may not contain RequeueError. If it does then the deferred
+		// PathAndHandleError will take care of requeueing things.
+		return err
+	}
+	if !online {
+		return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+	}
+	host, szPort, err := net.SplitHostPort(controlPlaneEndpoint)
+	if err != nil {
+		return errors.Wrapf(err, "unable to get host/port for control plane endpoint %q for %q", controlPlaneEndpoint, ctx)
+	}
+	port, err := strconv.Atoi(szPort)
+	if err != nil {
+		return errors.Wrapf(err, "unable to get parse host and port for control plane endpoint %q for %q", controlPlaneEndpoint, ctx)
+	}
+	if len(ctx.Cluster.Status.APIEndpoints) == 0 || (ctx.Cluster.Status.APIEndpoints[0].Host != host && ctx.Cluster.Status.APIEndpoints[0].Port != port) {
+		ctx.Cluster.Status.APIEndpoints = []clusterv1.APIEndpoint{
+			{
+				Host: host,
+				Port: port,
+			},
+		}
+	}
+	ctx.ClusterStatus.Ready = true
+	return nil
 }

@@ -20,7 +20,6 @@ import (
 	"time"
 
 	"github.com/vmware/govmomi/vim25/types"
-
 	clustererror "sigs.k8s.io/cluster-api/pkg/controller/error"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"

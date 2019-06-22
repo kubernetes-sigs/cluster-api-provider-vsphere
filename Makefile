@@ -74,11 +74,15 @@ manifests:
 	hack/update-generated.sh crd rbac
 
 # Run go fmt against code
-fmt:
+fmt: | generate
+ifneq (,$(strip $(shell command -v goformat 2>/dev/null)))
+	goformat -s -w ./pkg ./cmd
+else
 	go fmt ./pkg/... ./cmd/...
+endif
 
 # Run go vet against code
-vet:
+vet: | generate
 	go vet ./pkg/... ./cmd/...
 
 # Generate code
@@ -186,10 +190,10 @@ ci-push: ci-image
 ################################################################################
 
 # The default build target
-build: clusterctl manager
+build: manager clusterctl
 .PHONY: build
 
 # The default test target
-test: generate fmt vet manifests
+test: build manifests
 	go test ./pkg/... ./cmd/... -coverprofile cover.out
 .PHONY: test

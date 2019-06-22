@@ -41,6 +41,9 @@ network:
       {{- if $net.Gateway6 }}
       gateway6: "{{ $net.Gateway6 }}"
       {{- end }}
+      {{- if .MTU }}
+      mtu: {{ .MTU }}
+      {{- end }}
       {{- if .Routes }}
       routes:
       {{- range .Routes }}

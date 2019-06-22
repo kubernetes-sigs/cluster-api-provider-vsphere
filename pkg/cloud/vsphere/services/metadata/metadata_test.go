@@ -162,6 +162,7 @@ func TestNew(t *testing.T) {
 									NetworkName: "network12",
 									MACAddr:     "00:00:00:00:01",
 									DHCP6:       true,
+									MTU:         mtu(100),
 								},
 							},
 						},
@@ -182,6 +183,7 @@ func TestNew(t *testing.T) {
 									MACAddr:       "00:00:00:00:00",
 									IPAddrs:       []string{"192.168.4.21"},
 									Gateway4:      "192.168.4.1",
+									MTU:           mtu(0),
 									Nameservers:   []string{"1.1.1.1"},
 									SearchDomains: []string{"vmware.ci"},
 								},
@@ -208,4 +210,11 @@ func TestNew(t *testing.T) {
 			t.Log(string(actVal))
 		})
 	}
+}
+
+func mtu(i int64) *int64 {
+	if i == 0 {
+		return nil
+	}
+	return &i
 }

@@ -78,6 +78,15 @@ func Clone(ctx *context.MachineContext, userData []byte) error {
 	deviceSpecs := []types.BaseVirtualDeviceConfigSpec{diskSpec}
 	deviceSpecs = append(deviceSpecs, networkSpecs...)
 
+	numCPUs := ctx.MachineConfig.MachineSpec.NumCPUs
+	if numCPUs < 2 {
+		numCPUs = 2
+	}
+	memMiB := ctx.MachineConfig.MachineSpec.MemoryMB
+	if memMiB == 0 {
+		memMiB = 2048
+	}
+
 	spec := types.VirtualMachineCloneSpec{
 		Config: &types.VirtualMachineConfigSpec{
 			Annotation: ctx.String(),
@@ -88,6 +97,8 @@ func Clone(ctx *context.MachineContext, userData []byte) error {
 			Flags:        newVMFlagInfo(),
 			DeviceChange: deviceSpecs,
 			ExtraConfig:  extraConfig,
+			NumCPUs:      numCPUs,
+			MemoryMB:     memMiB,
 		},
 		Location: types.VirtualMachineRelocateSpec{
 			Datastore:    types.NewReference(datastore.Reference()),
@@ -97,7 +108,8 @@ func Clone(ctx *context.MachineContext, userData []byte) error {
 		},
 		// This is implicit, but making it explicit as it is important to not
 		// power the VM on before its virtual hardware is created and the MAC
-		// address(es) used to build and inject the VM with cloud-init metadata.
+		// address(es) used to build and inject the VM with cloud-init metadata
+		// are generated.
 		PowerOn: false,
 	}
 

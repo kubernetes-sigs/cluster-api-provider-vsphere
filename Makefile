@@ -105,7 +105,7 @@ vendor:
 
 # Create YAML file for deployment
 dev-yaml:
-	CAPV_MANAGER_IMAGE=$(DEV_IMAGE) hack/generate-yaml.sh
+	CAPV_MANAGER_IMAGE=$(DEV_IMG) hack/generate-yaml.sh
 
 # Build the docker image
 dev-build: #test

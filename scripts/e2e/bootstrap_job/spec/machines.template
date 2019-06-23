@@ -26,11 +26,7 @@ items:
           numCPUs: 2
           memoryMB: 2048
           template: "ubuntu-1804-kube-v1.13.6"
-          disks:
-          - diskLabel: "Hard disk 1"
-            diskSizeGB: 50
+          diskGiB: 50
     versions:
       kubelet: 1.13.6
       controlPlane: 1.13.6
-    roles:
-    - Master

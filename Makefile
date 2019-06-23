@@ -45,7 +45,7 @@ clusterctl: fmt vet
 	go build -o bin/clusterctl ./cmd/clusterctl
 
 clusterctl-in-docker:
-	docker run -v $(CWD):/go/src/sigs.k8s.io/cluster-api-provider-vsphere \
+	docker run --rm -v $(CWD):/go/src/sigs.k8s.io/cluster-api-provider-vsphere \
 	  -w /go/src/sigs.k8s.io/cluster-api-provider-vsphere \
 	  -e GOOS -e GOHOSTOS golang:1.12 \
 	  bash -c "go build -o bin/clusterctl ./cmd/clusterctl"

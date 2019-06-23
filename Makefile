@@ -48,13 +48,8 @@ clusterctl-in-docker:
 	docker run --rm -v $(CWD):/go/src/sigs.k8s.io/cluster-api-provider-vsphere \
 	  -w /go/src/sigs.k8s.io/cluster-api-provider-vsphere \
 	  -e GOOS -e GOHOSTOS golang:1.12 \
-	  bash -c "go build -o bin/clusterctl ./cmd/clusterctl"
+	  make clusterctl
 .PHONY: clusterctl-in-docker
-
-# Build the clusterctl-tools container used for generating example clusterctl yaml
-clusterctl-tools:
-	[ -n "$(shell docker images -q clusterctl-tools)" ] || docker build -t clusterctl-tools -f $(CWD)/cmd/clusterctl/examples/tools/Dockerfile .
-.PHONY: clusterctl-tools
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
 run: generate fmt vet
@@ -104,34 +99,21 @@ vendor:
 	cp -rf --no-preserve=mode "$${_src}" "$${_dst}"
 .PHONY: vendor
 
-# GENERATE_YAML_ENV_VARS is the list of all environment variables expected by generate-yaml.sh
-# to build example manifests for clusterctl. The list of environment variables here should contain
-# the environment variables expected in generate-yaml.sh
-GENERATE_YAML_ENV_VARS := -e CLUSTER_NAME -e SERVICE_CIDR -e CLUSTER_CIDR -e CAPV_YAML_VALIDATION \
-		      -e VSPHERE_USER -e VSPHERE_PASSWORD -e VSPHERE_SERVER -e VSPHERE_DATACENTER \
-		      -e VSPHERE_DATASTORE -e VSPHERE_NETWORK -e VSPHERE_RESOURCE_POOL -e VSPHERE_FOLDER \
-		      -e VSPHERE_TEMPLATE -e VSPHERE_DISK -e VSPHERE_DISK_SIZE_GB -e CAPV_MANAGER_IMAGE \
-		      -e KUBERNETES_VERSION
-
 ####################################
 # DEVELOPMENT Build and Push targets
 ####################################
 
 # Create YAML file for deployment
-dev-yaml: | clusterctl-tools
-	docker run -v $(CWD):/go/src/sigs.k8s.io/cluster-api-provider-vsphere \
-	  -w /go/src/sigs.k8s.io/cluster-api-provider-vsphere \
-	  -u $$(id -u):$$(id -g) \
-	  $(GENERATE_YAML_ENV_VARS) clusterctl-tools \
-	  bash -c "CAPV_MANAGER_IMAGE=${DEV_IMG} cmd/clusterctl/examples/vsphere/generate-yaml.sh"
+dev-yaml:
+	CAPV_MANAGER_IMAGE=$(DEV_IMAGE) hack/generate-yaml.sh
 
 # Build the docker image
 dev-build: #test
-	docker build . -t ${DEV_IMG}
+	docker build . -t $(DEV_IMG)
 
 # Push the docker image
 dev-push:
-	docker push ${DEV_IMG}
+	docker push $(DEV_IMG)
 
 .PHONY: dev-yaml dev-build dev-push
 
@@ -140,22 +122,18 @@ dev-push:
 ###################################
 
 # Create YAML file for deployment
-prod-yaml: | clusterctl-tools
-	docker run -v $(CWD):/go/src/sigs.k8s.io/cluster-api-provider-vsphere \
-	  -w /go/src/sigs.k8s.io/cluster-api-provider-vsphere \
-	  -u $$(id -u):$$(id -g) \
-	  $(GENERATE_YAML_ENV_VARS) clusterctl-tools \
-	  bash -c "CAPV_MANAGER_IMAGE=${PRODUCTION_IMG} cmd/clusterctl/examples/vsphere/generate-yaml.sh"
+prod-yaml:
+	CAPV_MANAGER_IMAGE=$(PRODUCTION_IMG) hack/generate-yaml.sh
 
 # Build the docker image
 prod-build: test
-	docker build . -t ${PRODUCTION_IMG}
+	docker build . -t $(PRODUCTION_IMG)
 
 # Push the docker image
 prod-push:
 	@echo "logging into gcr.io registry with key file"
 	@docker login -u _json_key --password-stdin gcr.io <"$(GCR_KEY_FILE)"
-	docker push ${PRODUCTION_IMG}
+	docker push $(PRODUCTION_IMG)
 
 .PHONY: prod-yaml prod-build prod-push
 
@@ -164,12 +142,8 @@ prod-push:
 ###################################
 
 # Create YAML file for deployment into CI
-ci-yaml: | clusterctl-tools
-	docker run -v $(CWD):/go/src/sigs.k8s.io/cluster-api-provider-vsphere \
-	  -w /go/src/sigs.k8s.io/cluster-api-provider-vsphere \
-	  -u $$(id -u):$$(id -g) \
-	  $(GENERATE_YAML_ENV_VARS) clusterctl-tools \
-	  bash -c "CAPV_MANAGER_IMAGE=${CI_IMG}:${VERSION} cmd/clusterctl/examples/vsphere/generate-yaml.sh"
+ci-yaml:
+	CAPV_MANAGER_IMAGE=$(CI_IMG) hack/generate-yaml.sh
 
 ci-image: generate fmt vet manifests
 	docker build . -t "$(CI_IMG):$(VERSION)"

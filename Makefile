@@ -48,7 +48,7 @@ clusterctl-in-docker:
 	docker run --rm -v $(CWD):/go/src/sigs.k8s.io/cluster-api-provider-vsphere \
 	  -w /go/src/sigs.k8s.io/cluster-api-provider-vsphere \
 	  -e GOOS -e GOHOSTOS golang:1.12 \
-	  make clusterctl
+	  go build -o bin/clusterctl ./cmd/clusterctl
 .PHONY: clusterctl-in-docker
 
 # Run against the configured Kubernetes cluster in ~/.kube/config

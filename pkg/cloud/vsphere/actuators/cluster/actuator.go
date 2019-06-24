@@ -168,6 +168,10 @@ func (a *Actuator) reconcileReadyState(ctx *context.ClusterContext) error {
 			},
 		}
 	}
+	if ctx.ClusterConfig.ClusterConfiguration.ControlPlaneEndpoint == "" {
+		ctx.ClusterConfig.ClusterConfiguration.ControlPlaneEndpoint = controlPlaneEndpoint
+		ctx.Logger.V(6).Info("stored control plane endpoint in kubeadm cluster config", "control-plane-endpoint", controlPlaneEndpoint)
+	}
 	ctx.ClusterStatus.Ready = true
 	if ctx.Cluster.Annotations == nil {
 		ctx.Cluster.Annotations = map[string]string{}

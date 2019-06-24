@@ -223,21 +223,19 @@ func (c *MachineContext) ControlPlaneEndpoint() (string, error) {
 // Patch updates the machine on the API server.
 func (c *MachineContext) Patch() error {
 
-	ext, err := v1alpha1.EncodeMachineSpec(c.MachineConfig)
+	// Ensure the provider spec is encoded.
+	newProviderSpec, err := v1alpha1.EncodeMachineSpec(c.MachineConfig)
 	if err != nil {
 		return errors.Wrapf(err, "failed encoding machine spec for machine %q", c)
 	}
-	newStatus, err := v1alpha1.EncodeMachineStatus(c.MachineStatus)
-	if err != nil {
-		return errors.Wrapf(err, "failed encoding machine status for machine %q", c)
-	}
-	ext.Object = nil
-	newStatus.Object = nil
+	c.Machine.Spec.ProviderSpec.Value = newProviderSpec
 
-	c.Machine.Spec.ProviderSpec.Value = ext
+	// Make sure the status isn't part of the JSON patch.
+	newStatus := c.Machine.Status.DeepCopy()
+	c.Machine.Status = clusterv1.MachineStatus{}
+	c.MachineCopy.Status.DeepCopyInto(&c.Machine.Status)
 
-	// Build a patch and marshal that patch to something the client will
-	// understand.
+	// Build and marshal a patch for the machine object, minus the status.
 	p, err := patch.NewJSONPatch(c.MachineCopy, c.Machine)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create new JSONPatch for machine %q", c)
@@ -254,7 +252,6 @@ func (c *MachineContext) Patch() error {
 		c.Logger.V(6).Info("generated json patch for machine", "json-patch", string(pb))
 
 		result, err := c.MachineClient.Patch(c.Machine.Name, apitypes.JSONPatchType, pb)
-		//result, err := c.MachineClient.Update(c.Machine)
 		if err != nil {
 			record.Warnf(c.Machine, updateFailure, "failed to update machine config %q: %v", c, err)
 			return errors.Wrapf(err, "failed to patch machine %q", c)
@@ -266,7 +263,9 @@ func (c *MachineContext) Patch() error {
 		c.Machine.ResourceVersion = result.ResourceVersion
 	}
 
-	c.Machine.Status.ProviderStatus = newStatus
+	// Put the status back.
+	c.Machine.Status = clusterv1.MachineStatus{}
+	newStatus.DeepCopyInto(&c.Machine.Status)
 
 	if !reflect.DeepEqual(c.Machine.Status, c.MachineCopy.Status) {
 		c.Logger.V(1).Info("updating machine status")

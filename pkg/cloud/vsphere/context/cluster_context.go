@@ -301,21 +301,19 @@ func (c *ClusterContext) ControlPlaneEndpoint() (string, error) {
 
 // Patch updates the cluster on the API server.
 func (c *ClusterContext) Patch() error {
-	ext, err := v1alpha1.EncodeClusterSpec(c.ClusterConfig)
+	// Ensure the provider spec is encoded.
+	newProviderSpec, err := v1alpha1.EncodeClusterSpec(c.ClusterConfig)
 	if err != nil {
 		return errors.Wrapf(err, "failed encoding cluster spec for cluster %q", c)
 	}
-	newStatus, err := v1alpha1.EncodeClusterStatus(c.ClusterStatus)
-	if err != nil {
-		return errors.Wrapf(err, "failed encoding cluster status for cluster %q", c)
-	}
-	ext.Object = nil
-	newStatus.Object = nil
+	c.Cluster.Spec.ProviderSpec.Value = newProviderSpec
 
-	c.Cluster.Spec.ProviderSpec.Value = ext
+	// Make sure the status isn't part of the JSON patch.
+	newStatus := c.Cluster.Status.DeepCopy()
+	c.Cluster.Status = clusterv1.ClusterStatus{}
+	c.ClusterCopy.Status.DeepCopyInto(&c.Cluster.Status)
 
-	// Build a patch and marshal that patch to something the client will
-	// understand.
+	// Build and marshal a patch for the cluster object, minus the status.
 	p, err := patch.NewJSONPatch(c.ClusterCopy, c.Cluster)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create new JSONPatch for cluster %q", c)
@@ -332,7 +330,6 @@ func (c *ClusterContext) Patch() error {
 		c.Logger.V(6).Info("generated json patch for cluster", "json-patch", string(pb))
 
 		result, err := c.ClusterClient.Patch(c.Cluster.Name, types.JSONPatchType, pb)
-		//result, err := c.ClusterClient.Update(c.Cluster)
 		if err != nil {
 			record.Warnf(c.Cluster, updateFailure, "failed to update cluster config %q: %v", c, err)
 			return errors.Wrapf(err, "failed to patch cluster %q", c)
@@ -344,7 +341,10 @@ func (c *ClusterContext) Patch() error {
 		c.Cluster.ResourceVersion = result.ResourceVersion
 	}
 
-	c.Cluster.Status.ProviderStatus = newStatus
+	// Put the status back.
+	c.Cluster.Status = clusterv1.ClusterStatus{}
+	newStatus.DeepCopyInto(&c.Cluster.Status)
+
 	if !reflect.DeepEqual(c.Cluster.Status, c.ClusterCopy.Status) {
 		c.Logger.V(1).Info("updating cluster status")
 		if _, err := c.ClusterClient.UpdateStatus(c.Cluster); err != nil {

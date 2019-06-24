@@ -24,6 +24,28 @@ import (
 )
 
 const (
+	cloudConfig = `[Global]
+insecure-flag = "1" # set to 1 if the vCenter uses a self-signed cert
+datacenters = "{{ .Datacenter }}"
+
+[VirtualCenter "{{ .Server }}"]
+user = "{{ .User }}"
+password = "{{ .Password }}"
+
+[Workspace]
+server = "{{ .Server }}"
+datacenter = "{{ .Datacenter }}"
+folder = "{{ .ResourcePool }}"
+default-datastore = "{{ .Datastore }}"
+resourcepool-path = "{{ .ResourcePool }}"
+
+[Disk]
+scsicontrollertype = pvscsi
+
+[Network]
+public-network = "{{ .Network }}"
+`
+
 	controlPlaneCloudInit = `{{.Header}}
 {{if .SSHAuthorizedKeys}}ssh_authorized_keys:{{range .SSHAuthorizedKeys}}
 - "{{.}}"{{end}}{{end}}
@@ -84,6 +106,13 @@ write_files:
     permissions: '0600'
     content: |
       {{.SaKey | Base64Encode}}
+
+-   path: /etc/kubernetes/vsphere.conf
+    encoding: "base64"
+    owner: root:root
+    permissions: '0600'
+    content: |
+      {{.CloudConfig | Base64Encode}}
 
 -   path: /tmp/kubeadm.yaml
     owner: root:root
@@ -160,6 +189,13 @@ write_files:
     content: |
       {{.SaKey | Base64Encode}}
 
+-   path: /etc/kubernetes/vsphere.conf
+    encoding: "base64"
+    owner: root:root
+    permissions: '0600'
+    content: |
+      {{.CloudConfig | Base64Encode}}
+
 -   path: /tmp/kubeadm-controlplane-join-config.yaml
     owner: root:root
     permissions: '0640'
@@ -189,6 +225,7 @@ type ControlPlaneInput struct {
 	FrontProxyCAKey      string
 	SaCert               string
 	SaKey                string
+	CloudConfig          string
 	ClusterConfiguration string
 	InitConfiguration    string
 }
@@ -209,7 +246,20 @@ type ContolPlaneJoinInput struct {
 	SaKey             string
 	BootstrapToken    string
 	ELBAddress        string
+	CloudConfig       string
 	JoinConfiguration string
+}
+
+// CloudConfigInput defines parameters required to generate the
+// vSphere Cloud Provider cloud config file
+type CloudConfigInput struct {
+	User         string
+	Password     string
+	Server       string
+	Datacenter   string
+	ResourcePool string
+	Datastore    string
+	Network      string
 }
 
 func (cpi *ControlPlaneInput) validateCertificates() error {
@@ -290,6 +340,18 @@ func JoinControlPlane(input *ContolPlaneJoinInput) (string, error) {
 		return "", errors.Wrapf(err, "failed to generate user data for machine joining control plane")
 	}
 	return userData, err
+}
+
+// NewCloudConfig returns the string content for the vSphere Cloud Provider cloud config file
+func NewCloudConfig(input *CloudConfigInput) (string, error) {
+	fMap := map[string]interface{}{}
+
+	userData, err := generateWithFuncs("cloudprovider", cloudConfig, funcMap(fMap), input)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to generate user data for new control plane machine")
+	}
+
+	return userData, nil
 }
 
 func templateBase64Encode(s string) string {

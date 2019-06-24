@@ -21,3 +21,7 @@ IMAGE_TAG ?= $(IMAGE_NAME):$(KUSTOMIZE_VERSION)
 build:
 	docker build --build-arg KUSTOMIZE_VERSION=$(KUSTOMIZE_VERSION) -t $(IMAGE_TAG) .
 .PHONY: build
+
+push:
+	docker push $(IMAGE_TAG)
+.PHONY: push

@@ -24,8 +24,10 @@ import (
 	"strconv"
 
 	"github.com/pkg/errors"
+	"github.com/vmware/govmomi/vim25/types"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
+	apitypes "k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	clusterUtilv1 "sigs.k8s.io/cluster-api/pkg/util"
@@ -113,6 +115,21 @@ func NewMachineContext(params *MachineContextParams) (*MachineContext, error) {
 	return NewMachineContextFromClusterContext(ctx, params.Machine)
 }
 
+// NewMachineLoggerContext creates a new MachineContext with the given logger context.
+func NewMachineLoggerContext(parentContext *MachineContext, loggerContext string) *MachineContext {
+	ctx := &MachineContext{
+		ClusterContext: parentContext.ClusterContext,
+		Machine:        parentContext.Machine,
+		MachineCopy:    parentContext.MachineCopy,
+		MachineClient:  parentContext.MachineClient,
+		MachineConfig:  parentContext.MachineConfig,
+		MachineStatus:  parentContext.MachineStatus,
+		Session:        parentContext.Session,
+	}
+	ctx.Logger = parentContext.Logger.WithName(loggerContext)
+	return ctx
+}
+
 // Strings returns ClusterNamespace/ClusterName/MachineName
 func (c *MachineContext) String() string {
 	if c.Machine == nil {
@@ -121,9 +138,26 @@ func (c *MachineContext) String() string {
 	return fmt.Sprintf("%s/%s/%s", c.Cluster.Namespace, c.Cluster.Name, c.Machine.Name)
 }
 
+// GetMoRef returns a managed object reference for the VM associated with
+// the machine. A nil value is returned if the MachineRef is not yet set.
+func (c *MachineContext) GetMoRef() *types.ManagedObjectReference {
+	if c.MachineConfig.MachineRef == "" {
+		return nil
+	}
+	return &types.ManagedObjectReference{
+		Type:  "VirtualMachine",
+		Value: c.MachineConfig.MachineRef,
+	}
+}
+
 // GetObject returns the Machine object.
 func (c *MachineContext) GetObject() runtime.Object {
 	return c.Machine
+}
+
+// GetSession returns the login session for this context.
+func (c *MachineContext) GetSession() *Session {
+	return c.Session
 }
 
 // HasControlPlaneRole returns a flag indicating whether or not a machine has
@@ -135,12 +169,17 @@ func (c *MachineContext) HasControlPlaneRole() bool {
 	return clusterUtilv1.IsControlPlaneMachine(c.Machine)
 }
 
-// IPAddr returns the machine's IP address.
+// IPAddr returns the machine's first IP address.
 func (c *MachineContext) IPAddr() string {
 	if c.Machine == nil {
 		return ""
 	}
-	return c.Machine.Annotations[constants.VmIpAnnotationKey]
+	for _, nodeAddr := range c.Machine.Status.Addresses {
+		if nodeAddr.Type == corev1.NodeInternalIP {
+			return nodeAddr.Address
+		}
+	}
+	return ""
 }
 
 // BindPort returns the machine's API bind port.
@@ -214,7 +253,7 @@ func (c *MachineContext) Patch() error {
 		c.Logger.V(1).Info("patching machine")
 		c.Logger.V(6).Info("generated json patch for machine", "json-patch", string(pb))
 
-		result, err := c.MachineClient.Patch(c.Machine.Name, types.JSONPatchType, pb)
+		result, err := c.MachineClient.Patch(c.Machine.Name, apitypes.JSONPatchType, pb)
 		//result, err := c.MachineClient.Update(c.Machine)
 		if err != nil {
 			record.Warnf(c.Machine, updateFailure, "failed to update machine config %q: %v", c, err)

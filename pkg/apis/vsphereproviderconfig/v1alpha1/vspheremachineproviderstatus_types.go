@@ -29,7 +29,37 @@ type VsphereMachineProviderStatus struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	TaskRef string `json:"taskRef"`
+	// TaskRef is a managed object reference to a Task related to the machine.
+	// +optional
+	TaskRef string `json:"taskRef,omitempty"`
+
+	// Network returns the network status for each of the machine's configured
+	// network interfaces.
+	// +optional
+	Network []NetworkStatus `json:"networkStatus,omitempty"`
+}
+
+// NetworkStatus provides information about one of a VM's networks.
+type NetworkStatus struct {
+	// Connected is a flag that indicates whether this network is currently
+	// connected to the VM.
+	Connected bool `json:"connected,omitempty"`
+
+	// UUID is stored as the ExternalID field on a network device and uniquely
+	// identifies the device as one that was created from a known network
+	// spec.
+	UUID string `json:"uuid"`
+
+	// IPAddrs is one or more IP addresses reported by vm-tools.
+	// +optional
+	IPAddrs []string `json:"ipAddrs,omitempty"`
+
+	// MACAddr is the MAC address of the network device.
+	MACAddr string `json:"macAddr"`
+
+	// NetworkName is the name of the network.
+	// +optional
+	NetworkName string `json:"networkName,omitempty"`
 }
 
 func init() {

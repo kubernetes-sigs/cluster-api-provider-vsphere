@@ -3,17 +3,17 @@ kind: Cluster
 metadata:
   name: ${CLUSTER_NAME}
 spec:
-    clusterNetwork:
-        services:
-            cidrBlocks: ["${SERVICE_CIDR}"]
-        pods:
-            cidrBlocks: ["${CLUSTER_CIDR}"]
-        serviceDomain: "cluster.local"
-    providerSpec:
-      value:
-        apiVersion: "vsphereproviderconfig/v1alpha1"
-        kind: "VsphereClusterProviderConfig"
-        vsphereUser: "${VSPHERE_USER}"
-        vspherePassword: "${VSPHERE_PASSWORD}"
-        vsphereServer: "${VSPHERE_SERVER}"
-        vsphereCredentialSecret: ""
+  clusterNetwork:
+    services:
+      cidrBlocks: ["${SERVICE_CIDR}"]
+    pods:
+      cidrBlocks: ["${CLUSTER_CIDR}"]
+    serviceDomain: "cluster.local"
+  providerSpec:
+    value:
+      apiVersion: "vsphereproviderconfig/v1alpha1"
+      kind: "VsphereClusterProviderConfig"
+      vsphereUser: "${VSPHERE_USER}"
+      vspherePassword: "${VSPHERE_PASSWORD}"
+      vsphereServer: "${VSPHERE_SERVER}"
+      vsphereCredentialSecret: ""

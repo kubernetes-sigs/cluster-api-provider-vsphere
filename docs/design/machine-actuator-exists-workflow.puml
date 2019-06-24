@@ -1,0 +1,58 @@
+@startuml machine-actuator-exists-workflow
+
+start;
+
+:Machine controller;
+
+repeat
+  :Machine controller enqueues an Exists call;
+
+  if (Can find the VM by instance UUID) then (yes)
+    if (Can retrieve the VM by MoRef) then (yes)
+      if (Can retrieve the machine's name) then (yes)
+        #LightBlue:VM found;
+      endif
+    endif
+  endif
+  if (VM is found) then (yes)
+    #LightBlue:Return true;
+  elseif (Machine has TaskRef) then (yes)
+    if (Can find task with TaskRef) then (yes)
+      if (Task is running/pending) then (yes)
+        #LightGreen:Return RequeueError;
+      elseif (Task is success) then (yes)
+        if (Task's associated MoRef is VirtualMachine) then (yes)
+          #edf7de:Assign MoRef to Machine;
+          #edf7de:Remove TaskRef from Machine;
+          #LightGreen:Return RequeueError;
+        else (no)
+          #edf7de:Remove TaskRef from Machine;
+          #Pink:Return InvalidTaskError;
+        endif
+      elseif (Task is failed) then (yes)
+        #edf7de:Remove TaskRef from Machine;
+        #LightGreen:Return RequeueError;
+      elseif (Task is any other state) then (yes)
+        #edf7de:Remove TaskRef from Machine;
+        #Pink:Return InvalidTaskStateError;
+      endif
+    else (no)
+      #edf7de:Remove TaskRef from Machine;
+      #LightGreen:Return RequeueError;
+    endif
+  else (no)
+    #Pink:Return false;
+  endif
+  #edf7de:Machine state patched back to API server;
+repeat while (Exists returned RequeueError) is (yes)
+-> no;
+if (Exists returned error) then (yes)
+  #Pink:Error checking Machine existence;
+elseif (Exists returned true) then (yes)
+  #LightBlue:Machine exists;
+else (no)
+  #Pink:Machine does not exist;
+endif
+stop;
+
+@enduml

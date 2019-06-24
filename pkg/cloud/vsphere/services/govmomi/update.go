@@ -19,49 +19,159 @@ package govmomi
 import (
 	"github.com/pkg/errors"
 	"github.com/vmware/govmomi/object"
-	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
+
+	corev1 "k8s.io/api/core/v1"
+	clustererror "sigs.k8s.io/cluster-api/pkg/controller/error"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/govmomi/extra"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/metadata"
 )
 
 // Update updates the machine from the backend platform.
 func Update(ctx *context.MachineContext) error {
-	if ctx.MachineConfig.MachineRef == "" {
-		return errors.Errorf("machine ref is empty while updating machine %q", ctx)
+
+	// Check to see if the VM exists first since no error is returned if the VM
+	// does not exist, only when there's an error checking or when the op should
+	// be requeued, like when the VM has an in-flight task.
+	vm, err := findVM(ctx)
+	if err != nil {
+		return err
 	}
 
-	moRef := types.ManagedObjectReference{
-		Type:  "VirtualMachine",
-		Value: ctx.MachineConfig.MachineRef,
+	// A VM is supposed to exist by this point. Otherwise return an error.
+	if vm == nil {
+		return errors.Errorf("vm is supposed to exist %q", ctx)
 	}
 
-	var obj mo.VirtualMachine
-	if err := ctx.Session.RetrieveOne(ctx, moRef, []string{"name", "runtime"}, &obj); err != nil {
-		return errors.Errorf("machine does not exist %q", ctx)
+	if err := reconcileNetworkStatus(ctx, vm); err != nil {
+		return err
 	}
 
-	if obj.Runtime.PowerState != types.VirtualMachinePowerStatePoweredOn {
-		return errors.Errorf("machine is not running %q: %v", ctx, obj.Runtime.PowerState)
+	if err := reconcileMetadata(ctx, vm); err != nil {
+		return err
 	}
 
-	if ctx.IPAddr() != "" {
+	if err := reconcilePowerState(ctx, vm); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// reconcileMetadata updates the metadata on the VM if it is missing or different
+// than new metadata
+func reconcileMetadata(ctx *context.MachineContext, vm *object.VirtualMachine) error {
+	existingMetadata, err := getExistingMetadata(ctx)
+	if err != nil {
+		return err
+	}
+
+	newMetadata, err := metadata.New(ctx)
+	if err != nil {
+		return err
+	}
+
+	// If the metadata is the same then return early.
+	if string(newMetadata) == existingMetadata {
 		return nil
 	}
 
-	ctx.Logger.V(4).Info("waiting on machine's IP address")
-	vm := object.NewVirtualMachine(ctx.Session.Client.Client, moRef)
-	ipAddr, err := vm.WaitForIP(ctx)
+	// Update the VM's metadata, track the task, and reenqueue this op
+	ctx.Logger.V(4).Info("updating metadata")
+	var extraConfig extra.Config
+	extraConfig.SetCloudInitMetadata(newMetadata)
+	task, err := vm.Reconfigure(ctx, types.VirtualMachineConfigSpec{
+		ExtraConfig: extraConfig,
+	})
 	if err != nil {
-		return errors.Wrapf(err, "error waiting for machine's IP address %q", ctx)
+		return errors.Wrapf(err, "unable to set metadata on vm %q", ctx)
+	}
+	ctx.MachineStatus.TaskRef = task.Reference().Value
+	ctx.Logger.V(6).Info("reenqueue to track update metadata task")
+	return &clustererror.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+}
+
+// reconcileNetworkStatus updates the machine's network status from the VM
+func reconcileNetworkStatus(ctx *context.MachineContext, vm *object.VirtualMachine) error {
+
+	// Validate the number of reported networks match the number of configured
+	// networks.
+	allNetStatus, err := getNetworkStatus(ctx)
+	if err != nil {
+		return errors.Wrapf(err, "unable to get vm's network status %q", ctx)
+	}
+	expNetCount, actNetCount := len(ctx.MachineConfig.MachineSpec.Network.Devices), len(allNetStatus)
+	if expNetCount != actNetCount {
+		return errors.Errorf("invalid network count for %q: exp=%d act=%d", ctx, expNetCount, actNetCount)
 	}
 
-	if ctx.Machine.Annotations == nil {
-		ctx.Machine.Annotations = map[string]string{}
-	}
-	ctx.Machine.Annotations[constants.VmIpAnnotationKey] = ipAddr
-	ctx.Logger.V(2).Info("discovered machine's IP address", "ip-addr", ipAddr)
+	// Update the machine's network status.
+	ctx.Logger.V(4).Info("updating network status")
+	ctx.MachineStatus.Network = allNetStatus
 
+	// Update the MAC addresses in the machine's network config as well. This
+	// is required in order to generate the metadata.
+	for _, netStatus := range allNetStatus {
+		for i := range ctx.MachineConfig.MachineSpec.Network.Devices {
+			dev := &ctx.MachineConfig.MachineSpec.Network.Devices[i]
+			if netStatus.UUID == dev.UUID && netStatus.MACAddr != dev.MACAddr {
+				ctx.Logger.V(4).Info("updating MAC address for device", "device-uuid", dev.UUID, "network-name", dev.NetworkName, "old-mac-addr", dev.MACAddr, "new-mac-addr", netStatus.MACAddr)
+				dev.MACAddr = netStatus.MACAddr
+			}
+		}
+	}
+
+	// If the VM is powered on then issue requeues until all of the VM's
+	// networks have IP addresses.
+	var ipAddrs []corev1.NodeAddress
+	powerState, err := vm.PowerState(ctx)
+	if err != nil {
+		return errors.Wrapf(err, "unable to get vm's power state %q", ctx)
+	}
+	if powerState == types.VirtualMachinePowerStatePoweredOn {
+		for _, netStatus := range ctx.MachineStatus.Network {
+			if len(netStatus.IPAddrs) == 0 {
+				ctx.Logger.V(6).Info("reenqueue to wait on IP addresses")
+				return &clustererror.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+			}
+			for _, ip := range netStatus.IPAddrs {
+				ipAddrs = append(ipAddrs, corev1.NodeAddress{
+					Type:    corev1.NodeInternalIP,
+					Address: ip,
+				})
+			}
+		}
+	}
+
+	// Use the collected IP addresses to assign the Machine's addresses.
+	ctx.Machine.Status.Addresses = ipAddrs
+
+	return nil
+}
+
+// reconcilePowerState powers on the VM if it is powered off
+func reconcilePowerState(ctx *context.MachineContext, vm *object.VirtualMachine) error {
+	powerState, err := vm.PowerState(ctx)
+	if err != nil {
+		return errors.Wrapf(err, "unable to get vm's power state %q", ctx)
+	}
+	switch powerState {
+	case types.VirtualMachinePowerStatePoweredOff:
+		ctx.Logger.V(4).Info("powering on")
+		task, err := vm.PowerOn(ctx)
+		if err != nil {
+			return errors.Wrapf(err, "failed to trigger power on op for vm %q", ctx)
+		}
+		ctx.MachineStatus.TaskRef = task.Reference().Value
+		ctx.Logger.V(6).Info("reenqueue to wait for power on state")
+		return &clustererror.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+	case types.VirtualMachinePowerStatePoweredOn:
+		ctx.Logger.V(6).Info("powered on")
+	default:
+		return errors.Errorf("unexpected power state %q for vm %q", powerState, ctx)
+	}
 	return nil
 }

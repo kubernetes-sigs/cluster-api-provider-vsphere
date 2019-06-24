@@ -6,12 +6,12 @@ spec:
   replicas: 2
   selector:
     matchLabels:
-      node-type: worker-node
+      machineset-name: test1-clusterapi-machineset-1
       cluster.k8s.io/cluster-name: test1
   template:
     metadata:
       labels:
-        node-type: worker-node
+        machineset-name: test1-clusterapi-machineset-1
         cluster.k8s.io/cluster-name: test1
     spec:
       providerSpec:
@@ -23,17 +23,14 @@ spec:
             datastore: "WorkloadDatastore"
             resourcePool: "clusterapi"
             vmFolder: "clusterapi"
-            networks:
-            - networkName: "sddc-cgw-network-3"
-              ipConfig:
-                networkType: dhcp
+            network:
+              devices:
+              - networkName: "sddc-cgw-network-3"
+                dhcp4: true
+                dhcp6: true
             numCPUs: 2
             memoryMB: 2048
             template: "ubuntu-1804-kube-v1.13.6"
-            disks:
-            - diskLabel: "Hard disk 1"
-              diskSizeGB: 50
+            diskGiB: 50
       versions:
         kubelet: 1.13.6
-      roles:
-      - Node

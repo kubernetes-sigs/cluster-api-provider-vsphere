@@ -74,7 +74,7 @@ func GetControlPlaneStatus(ctx context.KubeContext) (bool, string, error) {
 	controlPlaneEndpoint, err := getControlPlaneStatus(ctx)
 	if err != nil {
 		return false, "", errors.Wrapf(
-			&capierr.RequeueAfterError{RequeueAfter: constants.RequeueAfterSeconds},
+			&capierr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue},
 			"unable to get control plane status for cluster %q: %v", ctx, err)
 	}
 	return true, controlPlaneEndpoint, nil

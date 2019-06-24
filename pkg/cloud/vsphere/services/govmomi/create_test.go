@@ -21,7 +21,6 @@ import (
 	"log"
 	"reflect"
 	"testing"
-	"time"
 
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/simulator"
@@ -33,7 +32,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 
 	vsphereconfigv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/certificates"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/govmomi"
@@ -74,10 +72,6 @@ func TestCreate(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-cluster",
 			Namespace: "test-namespace",
-			Annotations: map[string]string{
-				constants.KubeadmToken:           "__TODO__", // see govmomi.Provisioner.GetKubeadmToken
-				constants.KubeadmTokenExpiryTime: time.Now().Add(time.Hour).Format(time.RFC3339),
-			},
 		},
 		Spec: v1alpha1.ClusterSpec{
 			ClusterNetwork: clusterv1.ClusterNetworkingConfig{
@@ -131,11 +125,12 @@ func TestCreate(t *testing.T) {
 			Datastore:    "",
 			ResourcePool: "",
 			VMFolder:     "",
-			Networks: []vsphereconfigv1.NetworkSpec{
-				{
-					NetworkName: "VM Network",
-					IPConfig: vsphereconfigv1.IPConfig{
-						NetworkType: vsphereconfigv1.DHCP,
+			Network: vsphereconfigv1.NetworkSpec{
+				Devices: []vsphereconfigv1.NetworkDeviceSpec{
+					{
+						NetworkName: "VM Network",
+						DHCP4:       true,
+						DHCP6:       true,
 					},
 				},
 			},

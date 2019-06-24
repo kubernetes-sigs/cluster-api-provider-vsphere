@@ -92,15 +92,29 @@ func getOrCreateCachedSession(ctx *MachineContext) (*Session, error) {
 }
 
 // FindByInstanceUUID finds an object by its instance UUID.
-func (s *Session) FindByInstanceUUID(ctx context.Context, instanceUUID string) (object.Reference, error) {
+func (s *Session) FindByInstanceUUID(ctx context.Context, uuid string) (object.Reference, error) {
 	if s.Client == nil {
 		return nil, errors.New("vSphere client is not initialized")
 	}
 	si := object.NewSearchIndex(s.Client.Client)
 	findFlag := true
-	ref, err := si.FindByUuid(ctx, s.datacenter, instanceUUID, true, &findFlag)
+	ref, err := si.FindByUuid(ctx, s.datacenter, uuid, true, &findFlag)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error finding object by instance uuid %q", instanceUUID)
+		return nil, errors.Wrapf(err, "error finding object by instance uuid %q", uuid)
+	}
+	return ref, nil
+}
+
+// FindByUUID finds an object by its UUID.
+func (s *Session) FindByUUID(ctx context.Context, uuid string) (object.Reference, error) {
+	if s.Client == nil {
+		return nil, errors.New("vSphere client is not initialized")
+	}
+	si := object.NewSearchIndex(s.Client.Client)
+	findFlag := false
+	ref, err := si.FindByUuid(ctx, s.datacenter, uuid, true, &findFlag)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error finding object by uuid %q", uuid)
 	}
 	return ref, nil
 }

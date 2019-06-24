@@ -1,40 +1,36 @@
-apiVersion: "cluster.k8s.io/v1alpha1"
+apiVersion: cluster.k8s.io/v1alpha1
 kind: MachineSet
 metadata:
-  name: ${CLUSTER_NAME}-machineset
+  name: "${CLUSTER_NAME}-machineset-1"
 spec:
   replicas: 2
   selector:
     matchLabels:
-      node-type: worker-node
-      cluster.k8s.io/cluster-name: ${CLUSTER_NAME}
+      machineset-name: "${CLUSTER_NAME}-machineset-1"
+      cluster.k8s.io/cluster-name: "${CLUSTER_NAME}"
   template:
     metadata:
       labels:
-        node-type: worker-node
-        cluster.k8s.io/cluster-name: ${CLUSTER_NAME}
+        machineset-name: "${CLUSTER_NAME}-machineset-1"
+        cluster.k8s.io/cluster-name: "${CLUSTER_NAME}"
     spec:
       providerSpec:
         value:
-          apiVersion: "vsphereproviderconfig/v1alpha1"
-          kind: "VsphereMachineProviderConfig"
+          apiVersion: vsphereproviderconfig/v1alpha1
+          kind: VsphereMachineProviderConfig
           machineSpec:
             datacenter: "${VSPHERE_DATACENTER}"
             datastore: "${VSPHERE_DATASTORE}"
             resourcePool: "${VSPHERE_RESOURCE_POOL}"
             vmFolder: "${VSPHERE_FOLDER}"
-            networks:
-            - networkName: "${VSPHERE_NETWORK}"
-              ipConfig:
-                networkType: "dhcp"
-            numCPUs: 2
-            memoryMB: 2048
+            network:
+              devices:
+              - networkName: "${VSPHERE_NETWORK}"
+                dhcp4: true
+                dhcp6: true
+            numCPUs: ${VSPHERE_NUM_CPUS}
+            memoryMB: ${VSPHERE_MEM_MIB}
+            diskGiB: ${VSPHERE_DISK_GIB}
             template: "${VSPHERE_TEMPLATE}"
-            disks:
-            - diskLabel: "${VSPHERE_DISK}"
-              diskSizeGB: ${VSPHERE_DISK_SIZE_GB}
-            preloaded: false
       versions:
-        kubelet: ${KUBERNETES_VERSION}
-      roles:
-      - Node
+        kubelet: "${KUBERNETES_VERSION}"

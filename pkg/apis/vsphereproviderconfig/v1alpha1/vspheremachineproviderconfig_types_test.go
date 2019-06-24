@@ -40,22 +40,21 @@ func TestStorageVsphereMachineProviderConfig(t *testing.T) {
 			Datacenter:   "dc1",
 			Datastore:    "ds1",
 			ResourcePool: "rp1",
-			Networks: []NetworkSpec{
-				NetworkSpec{
-					NetworkName: "net1",
-					IPConfig: IPConfig{
-						NetworkType: "dhcp",
-						IP:          "1.2.3.4",
-						Netmask:     "255.255.255.0",
-						Gateway:     "1.2.3.1",
-						Dns:         []string{"1.2.3.10"},
+			Network: NetworkSpec{
+				Devices: []NetworkDeviceSpec{
+					{
+						NetworkName: "net1",
+						IPAddrs:     []string{"1.2.3.4"},
+						Gateway4:    "1.2.3.1",
+						Nameservers: []string{"1.2.3.10"},
 					},
-				}},
+				},
+			},
 			NumCPUs:    10,
 			MemoryMB:   1000,
 			VMTemplate: "mytemplate",
 			Disks: []DiskSpec{
-				DiskSpec{
+				{
 					DiskSizeGB: 1,
 					DiskLabel:  "disk0",
 				},

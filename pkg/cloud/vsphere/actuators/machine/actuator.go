@@ -148,7 +148,15 @@ func (a *Actuator) Update(
 
 	ctx.Logger.V(4).Info("updating machine")
 
-	return govmomi.Update(ctx)
+	if err := govmomi.Update(ctx); err != nil {
+		return err
+	}
+
+	if err := a.reconcileReadyState(ctx); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Exists returns a flag indicating whether or not a machine exists.
@@ -215,4 +223,19 @@ func (a *Actuator) reconcileInitOrJoin(ctx *context.MachineContext) error {
 
 	// Create the machine and join it to the cluster.
 	return govmomi.Create(ctx, token)
+}
+
+// reconcileReadyState sets an annotation on the machine, marking it as ready,
+// once the machine has IP addresses.
+func (a *Actuator) reconcileReadyState(ctx *context.MachineContext) error {
+	if len(ctx.Machine.Status.Addresses) > 0 {
+		if ctx.Machine.Annotations[constants.ReadyAnnotationLabel] == "" {
+			if ctx.Machine.Annotations == nil {
+				ctx.Machine.Annotations = map[string]string{}
+			}
+			ctx.Machine.Annotations[constants.ReadyAnnotationLabel] = "true"
+			ctx.Logger.V(6).Info("machine is ready")
+		}
+	}
+	return nil
 }

@@ -36,4 +36,8 @@ const (
 	// VspherePasswordKey is the key used to store/retrieve the vSphere
 	// password from a Kubernetes secret.
 	VspherePasswordKey = "password"
+
+	// ReadyAnnotationLabel is the annotation used to indicate a machine and/or
+	// cluster are ready.
+	ReadyAnnotationLabel = "capv.sigs.k8s.io/ready"
 )

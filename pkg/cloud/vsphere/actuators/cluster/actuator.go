@@ -73,7 +73,7 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (opErr error) {
 		return err
 	}
 
-	if err := a.reconcileClusterStatus(ctx); err != nil {
+	if err := a.reconcileReadyState(ctx); err != nil {
 		return err
 	}
 
@@ -142,7 +142,7 @@ func (a *Actuator) reconcilePKI(ctx *context.ClusterContext) error {
 	return nil
 }
 
-func (a *Actuator) reconcileClusterStatus(ctx *context.ClusterContext) error {
+func (a *Actuator) reconcileReadyState(ctx *context.ClusterContext) error {
 	online, controlPlaneEndpoint, err := kubeclient.GetControlPlaneStatus(ctx)
 	if err != nil {
 		// This may or may not contain RequeueError. If it does then the deferred
@@ -169,5 +169,11 @@ func (a *Actuator) reconcileClusterStatus(ctx *context.ClusterContext) error {
 		}
 	}
 	ctx.ClusterStatus.Ready = true
+	if ctx.Cluster.Annotations == nil {
+		ctx.Cluster.Annotations = map[string]string{}
+	}
+	ctx.Cluster.Annotations[constants.ReadyAnnotationLabel] = "true"
+	ctx.Logger.V(6).Info("cluster is ready")
+
 	return nil
 }

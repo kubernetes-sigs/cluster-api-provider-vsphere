@@ -28,9 +28,9 @@ spec:
               - networkName: "${VSPHERE_NETWORK}"
                 dhcp4: true
                 dhcp6: true
-            numCPUs: "${VSPHERE_NUM_CPUS}"
-            memoryMB: "${VSPHERE_MEM_MIB}"
-            diskGiB: "${VSPHERE_DISK_GIB}"
+            numCPUs: ${VSPHERE_NUM_CPUS}
+            memoryMB: ${VSPHERE_MEM_MIB}
+            diskGiB: ${VSPHERE_DISK_GIB}
             template: "${VSPHERE_TEMPLATE}"
       versions:
         kubelet: "${KUBERNETES_VERSION}"

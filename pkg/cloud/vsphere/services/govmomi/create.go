@@ -44,6 +44,12 @@ const (
 
 	// nodeRole is the label assigned to every node in the cluster.
 	nodeRole = "node-role.kubernetes.io/node="
+
+	// the Kubernetes cloud provider to use
+	cloudProvider = "vsphere"
+
+	// the cloud config path read by the cloud provider
+	cloudConfigPath = "/etc/kubernetes/vsphere.conf"
 )
 
 // Create creates a new machine.
@@ -91,6 +97,19 @@ func generateUserData(ctx *context.MachineContext, bootstrapToken string) ([]byt
 
 	// apply values based on the role of the machine
 	if ctx.HasControlPlaneRole() {
+		cloudConfig, err := userdata.NewCloudConfig(&userdata.CloudConfigInput{
+			User:         ctx.ClusterConfig.VsphereUser,
+			Password:     ctx.ClusterConfig.VspherePassword,
+			Server:       ctx.ClusterConfig.VsphereServer,
+			Datacenter:   ctx.MachineConfig.MachineSpec.Datacenter,
+			ResourcePool: ctx.MachineConfig.MachineSpec.ResourcePool,
+			Datastore:    ctx.MachineConfig.MachineSpec.Datastore,
+			// assume the first VM network found for the vSphere cloud provider
+			Network: ctx.MachineConfig.MachineSpec.Network.Devices[0].NetworkName,
+		})
+		if err != nil {
+			return nil, err
+		}
 
 		if bootstrapToken != "" {
 			ctx.Logger.V(2).Info("allowing a machine to join the control plane")
@@ -111,7 +130,7 @@ func generateUserData(ctx *context.MachineContext, bootstrapToken string) ([]byt
 						kubeadm.WithTaints(ctx.Machine.Spec.Taints),
 						kubeadm.WithNodeRegistrationName(hostnameLookup),
 						kubeadm.WithCRISocket(containerdSocket),
-						//kubeadm.WithKubeletExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
+						kubeadm.WithKubeletExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
 					),
 				),
 				kubeadm.WithLocalAPIEndpointAndPort(localIPV4Lookup, int(bindPort)),
@@ -131,6 +150,7 @@ func generateUserData(ctx *context.MachineContext, bootstrapToken string) ([]byt
 				FrontProxyCAKey:   string(ctx.ClusterConfig.FrontProxyCAKeyPair.Key),
 				SaCert:            string(ctx.ClusterConfig.SAKeyPair.Cert),
 				SaKey:             string(ctx.ClusterConfig.SAKeyPair.Key),
+				CloudConfig:       cloudConfig,
 				JoinConfiguration: joinConfigurationYAML,
 			})
 			if err != nil {
@@ -163,8 +183,16 @@ func generateUserData(ctx *context.MachineContext, bootstrapToken string) ([]byt
 				&ctx.ClusterConfig.ClusterConfiguration,
 				kubeadm.WithControlPlaneEndpoint(fmt.Sprintf("%s:%d", localIPV4Lookup, bindPort)),
 				kubeadm.WithAPIServerCertificateSANs(certSans...),
-				//kubeadm.WithAPIServerExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
-				//kubeadm.WithControllerManagerExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
+				kubeadm.WithAPIServerExtraArgs(map[string]string{
+					"cloud-provider": cloudProvider,
+					"cloud-config":   cloudConfigPath,
+				}),
+				kubeadm.WithControllerManagerExtraArgs(map[string]string{
+					"cloud-provider": cloudProvider,
+					"cloud-config":   cloudConfigPath,
+				}),
+				kubeadm.WithAPIServerExtraVolumes("cloud-config", cloudConfigPath, cloudConfigPath),
+				kubeadm.WithControllerManagerExtraVolumes("cloud-config", cloudConfigPath, cloudConfigPath),
 				kubeadm.WithClusterName(ctx.Cluster.Name),
 				kubeadm.WithClusterNetworkFromClusterNetworkingConfig(ctx.Cluster.Spec.ClusterNetwork),
 				kubeadm.WithKubernetesVersion(ctx.Machine.Spec.Versions.ControlPlane),
@@ -181,7 +209,7 @@ func generateUserData(ctx *context.MachineContext, bootstrapToken string) ([]byt
 						kubeadm.WithTaints(ctx.Machine.Spec.Taints),
 						kubeadm.WithNodeRegistrationName(hostnameLookup),
 						kubeadm.WithCRISocket(containerdSocket),
-						//kubeadm.WithKubeletExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
+						kubeadm.WithKubeletExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
 					),
 				),
 				kubeadm.WithInitLocalAPIEndpointAndPort(localIPV4Lookup, int(bindPort)),
@@ -201,6 +229,7 @@ func generateUserData(ctx *context.MachineContext, bootstrapToken string) ([]byt
 				FrontProxyCAKey:      string(ctx.ClusterConfig.FrontProxyCAKeyPair.Key),
 				SaCert:               string(ctx.ClusterConfig.SAKeyPair.Cert),
 				SaKey:                string(ctx.ClusterConfig.SAKeyPair.Key),
+				CloudConfig:          cloudConfig,
 				ClusterConfiguration: clusterConfigYAML,
 				InitConfiguration:    initConfigYAML,
 			})
@@ -227,7 +256,9 @@ func generateUserData(ctx *context.MachineContext, bootstrapToken string) ([]byt
 				kubeadm.NewNodeRegistration(
 					kubeadm.WithNodeRegistrationName(hostnameLookup),
 					kubeadm.WithCRISocket(containerdSocket),
-					//kubeadm.WithKubeletExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
+					kubeadm.WithKubeletExtraArgs(map[string]string{
+						"cloud-provider": cloudProvider,
+					}),
 					kubeadm.WithTaints(ctx.Machine.Spec.Taints),
 					kubeadm.WithKubeletExtraArgs(map[string]string{"node-labels": nodeRole}),
 				),

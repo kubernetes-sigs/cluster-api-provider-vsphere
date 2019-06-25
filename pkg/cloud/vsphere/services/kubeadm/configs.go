@@ -84,6 +84,24 @@ func WithAPIServerExtraArgs(args map[string]string) ClusterConfigurationOption {
 	}
 }
 
+// WithAPIServerExtraVolumes sets extra volume mounts required for the API server
+func WithAPIServerExtraVolumes(name, hostPath, mountPath string) ClusterConfigurationOption {
+	return func(c *kubeadmv1beta1.ClusterConfiguration) {
+		if c.APIServer.ControlPlaneComponent.ExtraVolumes == nil {
+			c.APIServer.ControlPlaneComponent.ExtraVolumes = []kubeadmv1beta1.HostPathMount{}
+		}
+
+		hostPathMount := kubeadmv1beta1.HostPathMount{
+			Name:      name,
+			HostPath:  hostPath,
+			MountPath: mountPath,
+		}
+
+		c.APIServer.ControlPlaneComponent.ExtraVolumes = append(
+			c.APIServer.ControlPlaneComponent.ExtraVolumes, hostPathMount)
+	}
+}
+
 // WithControllerManagerExtraArgs sets the controller manager's extra arguments in the ClusterConfiguration.
 func WithControllerManagerExtraArgs(args map[string]string) ClusterConfigurationOption {
 	return func(c *kubeadmv1beta1.ClusterConfiguration) {
@@ -93,6 +111,23 @@ func WithControllerManagerExtraArgs(args map[string]string) ClusterConfiguration
 		for key, value := range args {
 			c.ControllerManager.ExtraArgs[key] = value
 		}
+	}
+}
+
+func WithControllerManagerExtraVolumes(name, hostPath, mountPath string) ClusterConfigurationOption {
+	return func(c *kubeadmv1beta1.ClusterConfiguration) {
+		if c.ControllerManager.ExtraVolumes == nil {
+			c.ControllerManager.ExtraVolumes = []kubeadmv1beta1.HostPathMount{}
+		}
+
+		hostPathMount := kubeadmv1beta1.HostPathMount{
+			Name:      name,
+			HostPath:  hostPath,
+			MountPath: mountPath,
+		}
+
+		c.ControllerManager.ExtraVolumes = append(
+			c.ControllerManager.ExtraVolumes, hostPathMount)
 	}
 }
 

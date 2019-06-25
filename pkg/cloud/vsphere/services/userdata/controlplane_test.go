@@ -49,3 +49,61 @@ func TestTemplateYAMLIndent(t *testing.T) {
 	}
 
 }
+
+func Test_CloudConfig(t *testing.T) {
+	testcases := []struct {
+		name     string
+		input    *CloudConfigInput
+		userdata string
+		err      error
+	}{
+		{
+			name: "standard cloud config",
+			input: &CloudConfigInput{
+				User:         "admin",
+				Password:     "so_secure",
+				Server:       "10.0.0.1",
+				Datacenter:   "myprivatecloud",
+				ResourcePool: "deadpool",
+				Datastore:    "infinite-data",
+				Network:      "connected",
+			},
+			userdata: `[Global]
+insecure-flag = "1" # set to 1 if the vCenter uses a self-signed cert
+datacenters = "myprivatecloud"
+
+[VirtualCenter "10.0.0.1"]
+user = "admin"
+password = "so_secure"
+
+[Workspace]
+server = "10.0.0.1"
+datacenter = "myprivatecloud"
+folder = "deadpool"
+default-datastore = "infinite-data"
+resourcepool-path = "deadpool"
+
+[Disk]
+scsicontrollertype = pvscsi
+
+[Network]
+public-network = "connected"
+`,
+		},
+	}
+
+	for _, testcase := range testcases {
+		t.Run(testcase.name, func(t *testing.T) {
+			userdata, err := NewCloudConfig(testcase.input)
+			if err != nil {
+				t.Fatalf("error getting cloud config user data: %q", err)
+			}
+
+			if userdata != testcase.userdata {
+				t.Logf("actual user data: %q", userdata)
+				t.Logf("expected user data: %q", testcase.userdata)
+				t.Error("unexpected user data")
+			}
+		})
+	}
+}

@@ -141,8 +141,7 @@ context=""
 if [ -z "${PROW_JOB_ID}" ] ; then
    context="debug"
    start_docker
-   vsphere_controller_version=$(shell git describe --exact-match 2> /dev/null || \
-      git describe --match=$(git rev-parse --short=8 HEAD) --always --dirty --abbrev=8)
+   vsphere_controller_version=$(shell git describe --always --dirty --abbrev=8)
 else
    context="prow"
    if [ -z "${PULL_PULL_SHA}" ] ; then
@@ -155,7 +154,7 @@ else
 fi
 
 export VERSION="${vsphere_controller_version}"
-make ci-push
+make push-images
 cd ./scripts/e2e/bootstrap_job && make && cd .. || exit 1
 echo "build vSphere controller version: ${vsphere_controller_version}"
 

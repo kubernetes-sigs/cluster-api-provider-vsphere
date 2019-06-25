@@ -203,12 +203,9 @@ The makefile in the repo contains a few useful targets described below.
 | --- | --- |
 | make manager | builds the controller binary in cmd/manager.  This target is useful to test building the controller code without the lengthy build process to create the container version. |
 | make clusterctl | builds the clusterctl binary cmd/clusterctl.  Like the above, this is useful to test building the code but does not install the binary. |
-| make prod-build | builds the container version of the controller.  This target really isn't meant for users or devs who do not have access to the production container's registry. |
-| make prod-push | pushes the container version of the container to the production registry. |
 | make prod-yaml | creates the base yaml files. |
-| make ci-build | used in CI to build the container version of the controller.  This target isn't meant for users.  It is used only by the CI system. |
-| make ci-push | used in CI to push the container version of the controller to a registry that the CI uses for testing. |
-| make ci-yaml | creates the base yaml files. |
+| make build-images | used to build container images of the controller and clusterctl. This target isn't meant for users. It is used only by the CI system. |
+| make push-images | used in CI to push the container images of the controller and clusterctl to a registry. |
 | make dev-build | *used by developers to create their own container version of the controller. |
 | make dev-push | *used by developers to push their own container version of the controller. |
 | make dev-yaml | *creates the base yaml files. |
@@ -217,8 +214,6 @@ Note, for developers who want to test their changes, use the dev targets.  Use t
 
 ```
 # Image URL to use all building/pushing image targets
-PRODUCTION_IMG ?= gcr.io/cnx-cluster-api/vsphere-cluster-api-provider:latest
-CI_IMG ?= gcr.io/cnx-cluster-api/vsphere-cluster-api-provider
 DEV_IMG ?= # <== NOTE:  outside dev, change this!!!
 ```
 
@@ -243,17 +238,17 @@ During the build targets, the necessary config file gets updated with this image
     kube-system               kube-scheduler-kind-control-plane            1/1     Running   0          5d1h
     vsphere-provider-system   vsphere-provider-controller-manager-0        1/1     Running   0          5d1h
     ```
-2. If any are failing then view the pod logs to review errors: 
+2. If any are failing then view the pod logs to review errors:
     ```shell
     $> kubectl logs <pod name> --namespace <pod namespace>
     ```
 3. After the bootstrap pods have been created, vSphere will create one or more VMs in accordance to the machine yaml files specified with the `clusterctl create cluster` command.
 4. Should the `clusterctl create cluster` command fail to retrieve the `admin.conf` file the following steps can be used:
-	1. Connect to the manager pod in the bootstrap cluster: 
+	1. Connect to the manager pod in the bootstrap cluster:
     ```shell
     $> kubectl exec vsphere-provider-controller-manager-0 -it /bin/bash --namespace vsphere-provider-system
     ```
-	2. SSH on the provisioned master VM within vSphere from the manager pod: 
+	2. SSH on the provisioned master VM within vSphere from the manager pod:
     ```shell
     $> ssh -i ~/.ssh/vsphere_tmp ubuntu@<vm ip address>
     ```
@@ -265,15 +260,15 @@ During the build targets, the necessary config file gets updated with this image
 	4. If either the file or folder do not exist then check the following log files for failed commands: `/var/log/cloud-init.log` and `/var/log/cloud-init-output.log`.
 	5. If the log files are still being appended to then cloud-init has not finished processing and may need more time to run.
 	6. An example failure which may be listed in `/var/log/cloud-init.log` is `2019-05-06 18:22:41,691 - util.py[WARNING]: Failed loading yaml blob. unacceptable character #xdccf: special characters are not allowed`.  This error indicates an incorrect entry in `machines.yaml` or `machineset.yaml` which was specified in the `clusterctl create cluster` command.  Commonly this could be leaving in the `- xxxx` values in the `machines.yaml` for sections such as `DNS` and `trustedCerts`.
-5. From the location of where the clusterctl command was run, once a kubeconfig file is generated, check the status of the nodes: 
+5. From the location of where the clusterctl command was run, once a kubeconfig file is generated, check the status of the nodes:
     ```shell
     $> kubectl --kubeconfig kubeconfig get nodes
     ```
-    1. If the master never enters ready state then check to see if any pods are failing: 
+    1. If the master never enters ready state then check to see if any pods are failing:
     ```shell
     $> kubectl --kubeconfig kubeconfig get pods --all-namespaces
     ```
-    2. Use the logs command to check logs of a failing pod, example: 
+    2. Use the logs command to check logs of a failing pod, example:
     ```shell
     $> kubectl --kubeconfig kubeconfig logs weave-net-dl2bn -c weave --namespace kube-system
     ```

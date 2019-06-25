@@ -21,7 +21,7 @@ items:
             devices:
             - networkName: "${VSPHERE_NETWORK}"
               dhcp4: true
-              dhcp6: true
+              dhcp6: false
           numCPUs: ${VSPHERE_NUM_CPUS}
           memoryMB: ${VSPHERE_MEM_MIB}
           diskGiB: ${VSPHERE_DISK_GIB}

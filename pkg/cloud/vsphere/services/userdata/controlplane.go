@@ -35,7 +35,7 @@ password = "{{ .Password }}"
 [Workspace]
 server = "{{ .Server }}"
 datacenter = "{{ .Datacenter }}"
-folder = "{{ .ResourcePool }}"
+folder = "{{ .Folder }}"
 default-datastore = "{{ .Datastore }}"
 resourcepool-path = "{{ .ResourcePool }}"
 
@@ -258,6 +258,7 @@ type CloudConfigInput struct {
 	Server       string
 	Datacenter   string
 	ResourcePool string
+	Folder       string
 	Datastore    string
 	Network      string
 }

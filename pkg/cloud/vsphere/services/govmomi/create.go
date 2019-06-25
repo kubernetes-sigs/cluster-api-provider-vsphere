@@ -103,6 +103,7 @@ func generateUserData(ctx *context.MachineContext, bootstrapToken string) ([]byt
 			Server:       ctx.ClusterConfig.VsphereServer,
 			Datacenter:   ctx.MachineConfig.MachineSpec.Datacenter,
 			ResourcePool: ctx.MachineConfig.MachineSpec.ResourcePool,
+			Folder:       ctx.MachineConfig.MachineSpec.VMFolder,
 			Datastore:    ctx.MachineConfig.MachineSpec.Datastore,
 			// assume the first VM network found for the vSphere cloud provider
 			Network: ctx.MachineConfig.MachineSpec.Network.Devices[0].NetworkName,

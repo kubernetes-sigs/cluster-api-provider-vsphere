@@ -56,7 +56,7 @@ KUSTOMIZE="$(command -v kustomize 2>/dev/null || echo "docker")"
 PYTHON="$(command -v python 2>/dev/null || command -v python3 2>/dev/null || echo "docker")"
 
 usage() {
-  cat <<EOF 
+  cat <<EOF
 usage: ${0} [FLAGS]
   Generates input manifests for the Cluster API Provider for vSphere (CAPV)
 
@@ -149,6 +149,7 @@ record_and_export VSPHERE_NETWORK       ':?required'
 record_and_export VSPHERE_RESOURCE_POOL ':-'
 record_and_export VSPHERE_FOLDER        ':-'
 record_and_export VSPHERE_TEMPLATE      ':-'
+record_and_export SSH_AUTHORIZED_KEY    ':-'
 
 verify_cpu_mem_dsk() {
   eval "[[ \${${1}-} =~ [[:digit:]]+ ]] || ${1}=\"${2}\"; \

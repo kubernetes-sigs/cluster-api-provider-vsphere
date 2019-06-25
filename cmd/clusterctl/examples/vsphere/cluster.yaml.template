@@ -17,3 +17,5 @@ spec:
       vspherePassword: "${VSPHERE_PASSWORD}"
       vsphereServer: "${VSPHERE_SERVER}"
       vsphereCredentialSecret: ""
+      sshAuthorizedKeys:
+      - "${SSH_AUTHORIZED_KEY}"

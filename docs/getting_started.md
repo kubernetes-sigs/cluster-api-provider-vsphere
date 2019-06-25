@@ -23,10 +23,10 @@ Table of Contents
 
 ## Bootstrapping a Management Cluster with clusterctl
 
-`clusterctl` is a command line tool used for [bootstrapping](https://github.com/kubernetes-sigs/cluster-api/blob/master/docs/book/GLOSSARY.md#bootstrap) your [Mangement Cluster](https://github.com/kubernetes-sigs/cluster-api/blob/master/docs/book/GLOSSARY.md#management-cluster).
-Your management cluster stores resources such as `clusters` and `machines` using the Kubernetes API. This is the cluster you use to provision and manange multiple clusters going forward.
+`clusterctl` is a command line tool used for [bootstrapping](https://github.com/kubernetes-sigs/cluster-api/blob/master/docs/book/GLOSSARY.md#bootstrap) your [Management Cluster](https://github.com/kubernetes-sigs/cluster-api/blob/master/docs/book/GLOSSARY.md#management-cluster).
+Your management cluster stores resources such as `clusters` and `machines` using the Kubernetes API. This is the cluster you use to provision and manage multiple clusters going forward.
 Before diving into the bootstrap process, it's worth noting that a Management Cluster is just another Kubernetes cluster with special addons and CRDs. You are not required to use `clusterctl` to
-provision your management cluster, however, this guide will be focused on using `clusterctl` to boostrap your management cluster using [Kind](https://github.com/kubernetes-sigs/kind).
+provision your management cluster, however, this guide will be focused on using `clusterctl` to bootstrap your management cluster using [Kind](https://github.com/kubernetes-sigs/kind).
 
 ### Install Requirements
 
@@ -60,7 +60,7 @@ $ GO111MODULE="on" go get -mod readonly sigs.k8s.io/kind@v0.3.0
 
 #### clusterctl
 
-A version of `clusterctl` that is built from **this** respository must be installed. You can build `clusterctl` with docker using
+A version of `clusterctl` that is built from **this** repository must be installed. You can build `clusterctl` with docker using
 the `clusterctl-in-docker` make target:
 
 ```
@@ -102,7 +102,7 @@ The bootstrapping process in `clusterctl` requires a few configuration files:
 * **provider-components.yaml**: a yaml file which adds all the Cluster API and CAPV-specific resources to your management cluster
 * **addons.yaml**: a yaml file indicating any additional addons you want on your management cluster (e.g. CNI plugin)
 
-The project Makefile provides a convience make target to generate the yaml files. Before attempting to generate the above yaml file,
+The project Makefile provides a convenient make target to generate the yaml files. Before attempting to generate the above yaml file,
 the following environment variables should be set based on your vSphere environment:
 
 ```bash
@@ -125,7 +125,7 @@ export SSH_AUTHORIZED_KEY="ssh-rsa AAAAB3N..."      # (optional) The public ssh 
 
 # Kubernetes configs
 export KUBERNETES_VERSION=1.13.6       # (optional) The Kubernetes version to use, defaults to 1.13.6
-export CLUSTER_NAME="my-cluster"       # (optional) The name for the mangament cluster, defaults to "capv-mgmt-example"
+export CLUSTER_NAME="my-cluster"       # (optional) The name for the management cluster, defaults to "capv-mgmt-example"
 export SERVICE_CIDR="100.64.0.0/13"    # (optional) The service CIDR of the management cluster, defaults to "100.64.0.0/13"
 export CLUSTER_CIDR="100.96.0.0/11"    # (optional) The cluster CIDR of the management cluster, defaults to "100.96.0.0/11"
 ```

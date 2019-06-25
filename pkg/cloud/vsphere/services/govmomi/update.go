@@ -107,6 +107,7 @@ func reconcileNetwork(ctx *context.MachineContext, vm *object.VirtualMachine) er
 	if expNetCount != actNetCount {
 		return errors.Errorf("invalid network count for %q: exp=%d act=%d", ctx, expNetCount, actNetCount)
 	}
+	ctx.MachineStatus.Network = allNetStatus
 
 	// Update the MAC addresses in the machine's network config as well. This
 	// is required in order to generate the metadata.

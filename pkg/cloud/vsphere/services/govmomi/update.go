@@ -46,7 +46,7 @@ func Update(ctx *context.MachineContext) error {
 		return errors.Errorf("vm is supposed to exist %q", ctx)
 	}
 
-	if err := reconcileNetworkStatus(ctx, vm); err != nil {
+	if err := reconcileNetwork(ctx, vm); err != nil {
 		return err
 	}
 
@@ -94,8 +94,8 @@ func reconcileMetadata(ctx *context.MachineContext, vm *object.VirtualMachine) e
 	return &clustererror.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
 }
 
-// reconcileNetworkStatus updates the machine's network status from the VM
-func reconcileNetworkStatus(ctx *context.MachineContext, vm *object.VirtualMachine) error {
+// reconcileNetwork updates the machine's network spec and status
+func reconcileNetwork(ctx *context.MachineContext, vm *object.VirtualMachine) error {
 
 	// Validate the number of reported networks match the number of configured
 	// networks.
@@ -108,19 +108,14 @@ func reconcileNetworkStatus(ctx *context.MachineContext, vm *object.VirtualMachi
 		return errors.Errorf("invalid network count for %q: exp=%d act=%d", ctx, expNetCount, actNetCount)
 	}
 
-	// Update the machine's network status.
-	ctx.Logger.V(4).Info("updating network status")
-	ctx.MachineStatus.Network = allNetStatus
-
 	// Update the MAC addresses in the machine's network config as well. This
 	// is required in order to generate the metadata.
-	for _, netStatus := range allNetStatus {
-		for i := range ctx.MachineConfig.MachineSpec.Network.Devices {
-			dev := &ctx.MachineConfig.MachineSpec.Network.Devices[i]
-			if netStatus.UUID == dev.UUID && netStatus.MACAddr != dev.MACAddr {
-				ctx.Logger.V(4).Info("updating MAC address for device", "device-uuid", dev.UUID, "network-name", dev.NetworkName, "old-mac-addr", dev.MACAddr, "new-mac-addr", netStatus.MACAddr)
-				dev.MACAddr = netStatus.MACAddr
-			}
+	for i := range ctx.MachineConfig.MachineSpec.Network.Devices {
+		devSpec := &ctx.MachineConfig.MachineSpec.Network.Devices[i]
+		oldMac, newMac := devSpec.MACAddr, allNetStatus[i].MACAddr
+		if oldMac != newMac {
+			devSpec.MACAddr = newMac
+			ctx.Logger.V(6).Info("updating MAC address for device", "network-name", devSpec.NetworkName, "old-mac-addr", oldMac, "new-mac-addr", newMac)
 		}
 	}
 

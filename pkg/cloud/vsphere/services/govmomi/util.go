@@ -95,18 +95,13 @@ func getNetworkStatus(ctx *context.MachineContext) ([]v1alpha1.NetworkStatus, er
 	}
 	ctx.Logger.V(6).Info("got allNetStatus", "status", allNetStatus)
 	apiNetStatus := []v1alpha1.NetworkStatus{}
-	for _, netDevSpec := range ctx.MachineConfig.MachineSpec.Network.Devices {
-		for _, netStatus := range allNetStatus {
-			if netDevSpec.UUID == netStatus.UUID {
-				apiNetStatus = append(apiNetStatus, v1alpha1.NetworkStatus{
-					Connected:   netStatus.Connected,
-					UUID:        netStatus.UUID,
-					IPAddrs:     netStatus.IPAddrs,
-					MACAddr:     netStatus.MACAddr,
-					NetworkName: netStatus.NetworkName,
-				})
-			}
-		}
+	for _, s := range allNetStatus {
+		apiNetStatus = append(apiNetStatus, v1alpha1.NetworkStatus{
+			Connected:   s.Connected,
+			IPAddrs:     s.IPAddrs,
+			MACAddr:     s.MACAddr,
+			NetworkName: s.NetworkName,
+		})
 	}
 	return apiNetStatus, nil
 }

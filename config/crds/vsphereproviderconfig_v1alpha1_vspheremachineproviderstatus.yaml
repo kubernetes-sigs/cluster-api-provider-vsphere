@@ -46,13 +46,7 @@ spec:
               networkName:
                 description: NetworkName is the name of the network.
                 type: string
-              uuid:
-                description: UUID is stored as the ExternalID field on a network device
-                  and uniquely identifies the device as one that was created from
-                  a known network spec.
-                type: string
             required:
-            - uuid
             - macAddr
             type: object
           type: array

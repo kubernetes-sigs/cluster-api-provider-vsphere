@@ -17,7 +17,6 @@ limitations under the License.
 package vcenter
 
 import (
-	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
@@ -187,15 +186,15 @@ func getNetworkSpecs(
 		// "types.BaseVirtualEthernetCard" as a "types.BaseVirtualDevice".
 		nic := dev.(types.BaseVirtualEthernetCard).GetVirtualEthernetCard()
 
+		if netSpec.MACAddr != "" {
+			nic.MacAddress = netSpec.MACAddr
+			nic.AddressType = "Manual"
+			ctx.Logger.V(6).Info("configured manual mac address", "mac-addr", nic.MacAddress)
+		}
+
 		// Assign a temporary device key to ensure that a unique one will be
 		// generated when the device is created.
 		nic.Key = key
-
-		// Create the device with a unique ID that is also stored on the machine's
-		// network device spec. This allows deterministic lookup of MAC/Device
-		// later in the workflow, once the VM is created.
-		netSpec.UUID = uuid.New().String()
-		nic.ExternalId = netSpec.UUID
 
 		deviceSpecs = append(deviceSpecs, &types.VirtualDeviceConfigSpec{
 			Device:    dev,

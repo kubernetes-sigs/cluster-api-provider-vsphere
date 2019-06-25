@@ -33,11 +33,6 @@ type NetworkStatus struct {
 	// connected to the VM.
 	Connected bool `json:"connected,omitempty"`
 
-	// UUID is stored as the ExternalID field on a network device and uniquely
-	// identifies the device as one that was created from a known network
-	// spec.
-	UUID string `json:"uuid"`
-
 	// IPAddrs is one or more IP addresses reported by vm-tools.
 	// +optional
 	IPAddrs []string `json:"ipAddrs,omitempty"`
@@ -80,7 +75,6 @@ func GetNetworkStatus(
 			nic := dev.GetVirtualEthernetCard()
 			netStatus := NetworkStatus{
 				MACAddr: nic.MacAddress,
-				UUID:    nic.ExternalId,
 			}
 			if obj.Guest != nil {
 				for _, i := range obj.Guest.Net {

@@ -22,7 +22,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/govmomi/net"
 )
 
-func TestIsExternalIPAddr(t *testing.T) {
+func TestErrOnLocalOnlyIPAddr(t *testing.T) {
 	testCases := []struct {
 		name      string
 		ipAddr    string
@@ -66,7 +66,7 @@ func TestIsExternalIPAddr(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			if err := net.IsExternalIPAddr(tc.ipAddr); err != nil {
+			if err := net.ErrOnLocalOnlyIPAddr(tc.ipAddr); err != nil {
 				t.Log(err)
 				if !tc.expectErr {
 					t.Fatal(err)

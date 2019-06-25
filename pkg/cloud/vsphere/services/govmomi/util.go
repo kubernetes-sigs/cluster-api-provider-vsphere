@@ -111,11 +111,11 @@ func sanitizeIPAddrs(ctx *context.MachineContext, ipAddrs []string) []string {
 		return nil
 	}
 	newIPAddrs := []string{}
-	for _, i := range ipAddrs {
-		if err := net.IsExternalIPAddr(i); err != nil {
+	for _, addr := range ipAddrs {
+		if err := net.ErrOnLocalOnlyIPAddr(addr); err != nil {
 			ctx.Logger.V(8).Info("ignoring IP address", "reason", err)
 		} else {
-			newIPAddrs = append(newIPAddrs, i)
+			newIPAddrs = append(newIPAddrs, addr)
 		}
 	}
 	return newIPAddrs

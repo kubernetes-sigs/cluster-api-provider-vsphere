@@ -93,9 +93,9 @@ func GetNetworkStatus(
 	return allNetStatus, nil
 }
 
-// IsExternalIPAddr returns a nil error if the provided IP address is valid and
-// can be used externally to the VM.
-func IsExternalIPAddr(addr string) error {
+// ErrOnLocalOnlyIPAddr returns an error if the provided IP address is
+// accessible only on the VM's guest OS.
+func ErrOnLocalOnlyIPAddr(addr string) error {
 	var reason string
 	a := net.ParseIP(addr)
 	if a == nil {

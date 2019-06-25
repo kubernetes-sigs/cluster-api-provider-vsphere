@@ -188,6 +188,8 @@ func getNetworkSpecs(
 
 		if netSpec.MACAddr != "" {
 			nic.MacAddress = netSpec.MACAddr
+			// Please see https://www.vmware.com/support/developer/converter-sdk/conv60_apireference/vim.vm.device.VirtualEthernetCard.html#addressType
+			// for the valid values for this field.
 			nic.AddressType = "Manual"
 			ctx.Logger.V(6).Info("configured manual mac address", "mac-addr", nic.MacAddress)
 		}

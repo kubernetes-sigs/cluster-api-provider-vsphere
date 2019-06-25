@@ -98,12 +98,27 @@ func getNetworkStatus(ctx *context.MachineContext) ([]v1alpha1.NetworkStatus, er
 	for _, s := range allNetStatus {
 		apiNetStatus = append(apiNetStatus, v1alpha1.NetworkStatus{
 			Connected:   s.Connected,
-			IPAddrs:     s.IPAddrs,
+			IPAddrs:     sanitizeIPAddrs(ctx, s.IPAddrs),
 			MACAddr:     s.MACAddr,
 			NetworkName: s.NetworkName,
 		})
 	}
 	return apiNetStatus, nil
+}
+
+func sanitizeIPAddrs(ctx *context.MachineContext, ipAddrs []string) []string {
+	if len(ipAddrs) == 0 {
+		return nil
+	}
+	newIPAddrs := []string{}
+	for _, i := range ipAddrs {
+		if err := net.IsExternalIPAddr(i); err != nil {
+			ctx.Logger.V(8).Info("ignoring IP address", "reason", err)
+		} else {
+			newIPAddrs = append(newIPAddrs, i)
+		}
+	}
+	return newIPAddrs
 }
 
 func getExistingMetadata(ctx *context.MachineContext) (string, error) {

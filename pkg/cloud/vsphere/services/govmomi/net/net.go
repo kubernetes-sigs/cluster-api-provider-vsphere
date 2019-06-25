@@ -18,6 +18,7 @@ package net
 
 import (
 	"context"
+	"net"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -90,4 +91,26 @@ func GetNetworkStatus(
 	}
 
 	return allNetStatus, nil
+}
+
+// IsExternalIPAddr returns a nil error if the provided IP address is valid and
+// can be used externally to the VM.
+func IsExternalIPAddr(addr string) error {
+	var reason string
+	a := net.ParseIP(addr)
+	if a == nil {
+		reason = "invalid"
+	} else if a.IsUnspecified() {
+		reason = "unspecified"
+	} else if a.IsLinkLocalMulticast() {
+		reason = "link-local-mutlicast"
+	} else if a.IsLinkLocalUnicast() {
+		reason = "link-local-unicast"
+	} else if a.IsLoopback() {
+		reason = "loopback"
+	}
+	if reason != "" {
+		return errors.Errorf("failed to validate ip addr=%v: %s", addr, reason)
+	}
+	return nil
 }

@@ -121,6 +121,7 @@ export VSPHERE_TEMPLATE="ubuntu-1804-kube-v1.13.6"  # (required) The VM template
 export VSPHERE_DISK_GIB="50"                        # (optional) The VM Disk size in GB, defaults to 20 if not set
 export VSPHERE_NUM_CPUS="2"                         # (optional) The # of CPUs for control plane nodes in your management cluster, defaults to 2 if not set
 export VSPHERE_MEM_MIB="2048"                       # (optional) The memory (in MiB) for control plane nodes in your management cluster, defaults to 208 if not set
+export SSH_AUTHORIZED_KEY="ssh-rsa AAAAB3N..."      # (optional) The public ssh authorized key on all machines in this cluster
 
 # Kubernetes configs
 export KUBERNETES_VERSION=1.13.6       # (optional) The Kubernetes version to use, defaults to 1.13.6

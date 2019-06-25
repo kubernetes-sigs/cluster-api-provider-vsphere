@@ -25,31 +25,8 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 OUT_DIR=./out
 TPL_DIR=./cmd/clusterctl/examples/vsphere
 
-# shellcheck disable=SC2034
-ADDON_TPL_FILE="${TPL_DIR}"/addons.yaml.template
-# shellcheck disable=SC2034
-ADDON_OUT_FILE="${OUT_DIR}"/addons.yaml
-# shellcheck disable=SC2034
-CLUSTER_TPL_FILE="${TPL_DIR}"/cluster.yaml.template
-CLUSTER_OUT_FILE="${OUT_DIR}"/cluster.yaml
-# shellcheck disable=SC2034
-MACHINES_TPL_FILE="${TPL_DIR}"/machines.yaml.template
-MACHINES_OUT_FILE="${OUT_DIR}"/machines.yaml
-# shellcheck disable=SC2034
-MACHINESET_TPL_FILE="${TPL_DIR}"/machineset.yaml.template
-# shellcheck disable=SC2034
-MACHINESET_OUT_FILE="${OUT_DIR}"/machineset.yaml
-
-CAPI_CRD_DIR=./vendor/sigs.k8s.io/cluster-api/config
-CAPV_CRD_DIR=./config
-
-COMP_OUT_FILE="${OUT_DIR}"/provider-components.yaml
-# shellcheck disable=SC2034
-CAPV_MANAGER_TPL_FILE="${TPL_DIR}"/capv_manager_image_patch.yaml.template
-# shellcheck disable=SC2034
-CAPV_MANAGER_OUT_FILE="${CAPV_CRD_DIR}"/default/capv_manager_image_patch.yaml
-
 OVERWRITE=
+ENV_VAR_REQ=':?required'
 
 # Initialize the paths for Kustomize and Python
 KUSTOMIZE="$(command -v kustomize 2>/dev/null || echo "docker")"
@@ -61,6 +38,7 @@ usage: ${0} [FLAGS]
   Generates input manifests for the Cluster API Provider for vSphere (CAPV)
 
 FLAGS
+  -d    disables required environment variables
   -k    path to kustomize or "docker" to use image (default "${KUSTOMIZE}")
   -p    path to python or "docker" to use image (default "${PYTHON}")
   -i    input directory (default ${TPL_DIR})
@@ -70,8 +48,11 @@ FLAGS
 EOF
 }
 
-while getopts ':fhi:o:k:p:' opt; do
+while getopts ':dfhi:o:k:p:' opt; do
   case "${opt}" in
+  d)
+    ENV_VAR_REQ=':-'
+    ;;
   f)
     OVERWRITE=1
     ;;
@@ -100,8 +81,33 @@ while getopts ':fhi:o:k:p:' opt; do
     ;;
   esac
 done
+shift $((OPTIND-1))
 
 mkdir -p "${OUT_DIR}"
+
+# shellcheck disable=SC2034
+ADDON_TPL_FILE="${TPL_DIR}"/addons.yaml.template
+# shellcheck disable=SC2034
+ADDON_OUT_FILE="${OUT_DIR}"/addons.yaml
+# shellcheck disable=SC2034
+CLUSTER_TPL_FILE="${TPL_DIR}"/cluster.yaml.template
+CLUSTER_OUT_FILE="${OUT_DIR}"/cluster.yaml
+# shellcheck disable=SC2034
+MACHINES_TPL_FILE="${TPL_DIR}"/machines.yaml.template
+MACHINES_OUT_FILE="${OUT_DIR}"/machines.yaml
+# shellcheck disable=SC2034
+MACHINESET_TPL_FILE="${TPL_DIR}"/machineset.yaml.template
+# shellcheck disable=SC2034
+MACHINESET_OUT_FILE="${OUT_DIR}"/machineset.yaml
+
+CAPI_CRD_DIR=./vendor/sigs.k8s.io/cluster-api/config
+CAPV_CRD_DIR=./config
+
+COMP_OUT_FILE="${OUT_DIR}"/provider-components.yaml
+# shellcheck disable=SC2034
+CAPV_MANAGER_TPL_FILE="${TPL_DIR}"/capv_manager_image_patch.yaml.template
+# shellcheck disable=SC2034
+CAPV_MANAGER_OUT_FILE="${CAPV_CRD_DIR}"/default/capv_manager_image_patch.yaml
 
 ok_file() {
   [ -f "${1}" ] || { echo "${1} is missing" 1>&2; exit 1; }
@@ -118,7 +124,7 @@ done
 
 require_if_defined() {
   while [ "${#}" -gt "0" ]; do
-    eval "[ ! \"\${${1}+x}\" ] || ${1}=\"\${${1}:?required if defined}\""
+    eval "[ ! \"\${${1}+x}\" ] || ${1}=\"\${${1}${ENV_VAR_REQ}}\""
     shift
   done
 }
@@ -140,12 +146,12 @@ record_and_export CLUSTER_NAME          ':-capv-mgmt-example'
 record_and_export SERVICE_CIDR          ':-100.64.0.0/13'
 record_and_export CLUSTER_CIDR          ':-100.96.0.0/11'
 record_and_export CAPV_MANAGER_IMAGE    ':-'
-record_and_export VSPHERE_USER          ':?required'
-record_and_export VSPHERE_PASSWORD      ':?required'
-record_and_export VSPHERE_SERVER        ':?required'
+record_and_export VSPHERE_USER          "${ENV_VAR_REQ}"
+record_and_export VSPHERE_PASSWORD      "${ENV_VAR_REQ}"
+record_and_export VSPHERE_SERVER        "${ENV_VAR_REQ}"
 record_and_export VSPHERE_DATACENTER    ':-'
 record_and_export VSPHERE_DATASTORE     ':-'
-record_and_export VSPHERE_NETWORK       ':?required'
+record_and_export VSPHERE_NETWORK       "${ENV_VAR_REQ}"
 record_and_export VSPHERE_RESOURCE_POOL ':-'
 record_and_export VSPHERE_FOLDER        ':-'
 record_and_export VSPHERE_TEMPLATE      ':-'

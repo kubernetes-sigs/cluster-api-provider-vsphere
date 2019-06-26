@@ -22,8 +22,8 @@ local-hostname: "{{ .Hostname }}"
 network:
   version: 2
   ethernets:
-    {{- range $net := .Devices }}
-    "{{ $net.NetworkName }}":
+    {{- range $i, $net := .Devices }}
+    id{{ $i }}:
       match:
         macaddress: "{{ $net.MACAddr }}"
       wakeonlan: true

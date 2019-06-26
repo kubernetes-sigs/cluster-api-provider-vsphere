@@ -79,8 +79,8 @@ func (a *Actuator) Create(
 	}
 
 	if _, ok := machine.Annotations[constants.MaintenanceAnnotationLabel]; ok {
-		return errors.Wrapf(&clustererr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue},
-			"detected `capv.sigs.k8s.io/maintenance` annotation on the machine, skipping all operations for machine %q", ctx)
+		ctx.Logger.V(4).Info("skipping operations on machine", "reason", "annotation", "annotation-key", constants.MaintenanceAnnotationLabel)
+		return &clustererr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
 	}
 
 	defer func() {
@@ -119,8 +119,8 @@ func (a *Actuator) Delete(
 	}
 
 	if _, ok := machine.Annotations[constants.MaintenanceAnnotationLabel]; ok {
-		return errors.Wrapf(&clustererr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue},
-			"detected `capv.sigs.k8s.io/maintenance` annotation on the machine, skipping all operations for machine %q", ctx)
+		ctx.Logger.V(4).Info("skipping operations on machine", "reason", "annotation", "annotation-key", constants.MaintenanceAnnotationLabel)
+		return &clustererr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
 	}
 
 	defer func() {
@@ -190,8 +190,8 @@ func (a *Actuator) Exists(
 	}
 
 	if _, ok := machine.Annotations[constants.MaintenanceAnnotationLabel]; ok {
-		return false, errors.Wrapf(&clustererr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue},
-			"detected `capv.sigs.k8s.io/maintenance` annotation on the machine, skipping all operations for machine %q", ctx)
+		ctx.Logger.V(4).Info("skipping operations on machine", "reason", "annotation", "annotation-key", constants.MaintenanceAnnotationLabel)
+		return false, &clustererr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
 	}
 
 	defer func() {

@@ -89,6 +89,11 @@ type NetworkSpec struct {
 	// machine.
 	// +optional
 	Routes []NetworkRouteSpec `json:"routes,omitempty"`
+
+	// PreferredAPIServeCIDR is the preferred CIDR for the Kubernetes API
+	// server endpoint on this machine
+	// +optional
+	PreferredAPIServerCIDR string `json:"preferredAPIServerCidr,omitempty"`
 }
 
 // NetworkDeviceSpec defines the network configuration for a virtual machine's

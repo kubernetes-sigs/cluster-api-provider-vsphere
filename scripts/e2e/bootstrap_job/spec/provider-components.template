@@ -845,6 +845,10 @@ spec:
                     - networkName
                     type: object
                   type: array
+                preferredAPIServerCidr:
+                  description: PreferredAPIServeCIDR is the preferred CIDR for the
+                    Kubernetes API server endpoint on this machine
+                  type: string
                 routes:
                   description: Routes is a list of optional, static routes applied
                     to the virtual machine.

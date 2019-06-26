@@ -36,14 +36,12 @@ func Update(ctx *context.MachineContext) error {
 	// Check to see if the VM exists first since no error is returned if the VM
 	// does not exist, only when there's an error checking or when the op should
 	// be requeued, like when the VM has an in-flight task.
-	vm, err := findVM(ctx)
+	vm, err := lookupVM(ctx)
 	if err != nil {
 		return err
 	}
-
-	// A VM is supposed to exist by this point. Otherwise return an error.
 	if vm == nil {
-		return errors.Errorf("vm is supposed to exist %q", ctx)
+		return errors.Errorf("vm should already exist for %q", ctx)
 	}
 
 	if err := reconcileNetwork(ctx, vm); err != nil {

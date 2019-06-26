@@ -20,7 +20,7 @@ items:
           vmFolder: "clusterapi"
           network:
             devices:
-            - networkName: "sddc-cgw-network-3"
+            - networkName: "sddc-cgw-network-5"
               dhcp4: true
               dhcp6: false
           numCPUs: 2

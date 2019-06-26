@@ -98,7 +98,7 @@ machine image is available at https://storage.googleapis.com/capv-images/release
 
 The bootstrapping process in `clusterctl` requires a few configuration files:
 * **cluster.yaml**: a yaml file defining the cluster resource for your management cluster
-* **machine.yaml**: a yaml file defining the machine resource for the initial control plane node of your management cluster
+* **machines.yaml**: a yaml file defining the machine resource for the initial control plane node of your management cluster
 * **provider-components.yaml**: a yaml file which adds all the Cluster API and CAPV-specific resources to your management cluster
 * **addons.yaml**: a yaml file indicating any additional addons you want on your management cluster (e.g. CNI plugin)
 
@@ -274,9 +274,15 @@ Clusters that are provisioned by the management cluster that run your applicatio
 
 The `kubeconfig` file to access workload clusters should be accessible as a Kubernetes Secret on the management cluster. As of today, the
 Secret resource is named `<cluster-name>-kubeconfig` in the same namespace as the cluster to which the Secret belongs. For the example above,
-you can fetch the kubeconfig by finding the Secret `prod-workload-kubeconfig` like so:
-```
-$ kubectl -n default get secrets prod-workload-kubeconfig -o yaml
+you can list all the kubeconfig files and then retrive the corresponding kubeconfig like so:
+
+```bash
+$ kubectl get secrets
+NAME                     TYPE                                  DATA   AGE
+my-cluster-kubeconfig   Opaque                                1      18h
+prod-workload-kubeconfig   Opaque                                1      17h
+
+$ kubectl get secret prod-workload-kubeconfig -o=jsonpath='{.data.value}' | base64 -d > prod-workload-kubeconfig # Darwin users will want to use the -D flag for base64
 ```
 
 Now that you have the `kubeconfig` for your Workload Cluster, you can start deploying your applications there.

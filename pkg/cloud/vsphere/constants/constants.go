@@ -40,4 +40,8 @@ const (
 	// ReadyAnnotationLabel is the annotation used to indicate a machine and/or
 	// cluster are ready.
 	ReadyAnnotationLabel = "capv.sigs.k8s.io/ready"
+
+	// MaintenanceAnnotationLabel is the annotation used to indicate a machine and/or
+	// cluster are in maintenance mode.
+	MaintenanceAnnotationLabel = "capv.sigs.k8s.io/maintenance"
 )

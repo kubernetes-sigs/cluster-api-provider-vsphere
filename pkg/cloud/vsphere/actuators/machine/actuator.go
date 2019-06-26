@@ -78,6 +78,11 @@ func (a *Actuator) Create(
 		return err
 	}
 
+	if _, ok := machine.Annotations[constants.MaintenanceAnnotationLabel]; ok {
+		return errors.Wrapf(&clustererr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue},
+			"detected `capv.sigs.k8s.io/maintenance` annotation on the machine, skipping all operations for machine %q", ctx)
+	}
+
 	defer func() {
 		opErr = actuators.PatchAndHandleError(ctx, "Create", opErr)
 	}()
@@ -111,6 +116,11 @@ func (a *Actuator) Delete(
 		})
 	if err != nil {
 		return err
+	}
+
+	if _, ok := machine.Annotations[constants.MaintenanceAnnotationLabel]; ok {
+		return errors.Wrapf(&clustererr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue},
+			"detected `capv.sigs.k8s.io/maintenance` annotation on the machine, skipping all operations for machine %q", ctx)
 	}
 
 	defer func() {
@@ -177,6 +187,11 @@ func (a *Actuator) Exists(
 		})
 	if err != nil {
 		return false, err
+	}
+
+	if _, ok := machine.Annotations[constants.MaintenanceAnnotationLabel]; ok {
+		return false, errors.Wrapf(&clustererr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue},
+			"detected `capv.sigs.k8s.io/maintenance` annotation on the machine, skipping all operations for machine %q", ctx)
 	}
 
 	defer func() {

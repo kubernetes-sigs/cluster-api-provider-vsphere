@@ -22,11 +22,13 @@ set -o pipefail
 # script is located.
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
-OUT_DIR=./out
+OUT_DIR=
 TPL_DIR=./cmd/clusterctl/examples/vsphere
 
 OVERWRITE=
+CLUSTER_NAME='capv-mgmt-example'
 ENV_VAR_REQ=':?required'
+CAPV_MANAGER_IMAGE="${CAPV_MANAGER_IMAGE:-gcr.io/cnx-cluster-api/vsphere-cluster-api-provider:latest}"
 
 # Initialize the paths for Kustomize and Python
 KUSTOMIZE="$(command -v kustomize 2>/dev/null || echo "docker")"
@@ -38,18 +40,23 @@ usage: ${0} [FLAGS]
   Generates input manifests for the Cluster API Provider for vSphere (CAPV)
 
 FLAGS
+  -c    cluster name (default "${CLUSTER_NAME}")
   -d    disables required environment variables
-  -k    path to kustomize or "docker" to use image (default "${KUSTOMIZE}")
-  -p    path to python or "docker" to use image (default "${PYTHON}")
-  -i    input directory (default ${TPL_DIR})
-  -o    output directory (default ${OUT_DIR})
   -f    force overwrite of existing files
   -h    prints this help screen
+  -i    input directory (default ${TPL_DIR})
+  -k    path to kustomize or "docker" to use image (default "${KUSTOMIZE}")
+  -m    manager image (default "${CAPV_MANAGER_IMAGE}")
+  -o    output directory (default ${OUT_DIR})
+  -p    path to python or "docker" to use image (default "${PYTHON}")
 EOF
 }
 
-while getopts ':dfhi:o:k:p:' opt; do
+while getopts ':c:dfhi:k:m:o:p:' opt; do
   case "${opt}" in
+  c)
+    CLUSTER_NAME="${OPTARG}"
+    ;;
   d)
     ENV_VAR_REQ=':-'
     ;;
@@ -59,15 +66,18 @@ while getopts ':dfhi:o:k:p:' opt; do
   h)
     usage 1>&2; exit 1
     ;;
-  o)
-    OUT_DIR="${OPTARG}"
-    ;;
   i)
     TPL_DIR="${OPTARG}"
     ;;
   k)
     KUSTOMIZE="${OPTARG}"
     [ "${KUSTOMIZE}" = "docker" ] || [ -f "${KUSTOMIZE}" ] || { echo "${KUSTOMIZE} does not exist" 1>&2; exit 1; }
+    ;;
+  m)
+    CAPV_MANAGER_IMAGE="${OPTARG}"
+    ;;
+  o)
+    OUT_DIR="${OPTARG}"
     ;;
   p)
     PYTHON="${OPTARG}"
@@ -83,6 +93,7 @@ while getopts ':dfhi:o:k:p:' opt; do
 done
 shift $((OPTIND-1))
 
+[ -n "${OUT_DIR}" ] || OUT_DIR="./out/${CLUSTER_NAME}"
 mkdir -p "${OUT_DIR}"
 
 # shellcheck disable=SC2034

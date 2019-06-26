@@ -31,12 +31,10 @@ func Delete(ctx *context.MachineContext) error {
 	// Check to see if the VM exists first since no error is returned if the VM
 	// does not exist, only when there's an error checking or when the op should
 	// be requeued, like when the VM has an in-flight task.
-	if _, err := Exists(ctx); err != nil {
+	vm, err := lookupVM(ctx)
+	if err != nil {
 		return err
 	}
-
-	// Try to get the VM. If it does not exist, return success.
-	vm := getVM(ctx)
 	if vm == nil {
 		return nil
 	}

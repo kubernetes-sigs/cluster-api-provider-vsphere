@@ -54,18 +54,15 @@ const (
 
 // Create creates a new machine.
 func Create(ctx *context.MachineContext, bootstrapToken string) error {
-
 	// Check to see if the VM exists first since no error is returned if the VM
 	// does not exist, only when there's an error checking or when the op should
 	// be requeued, like when the VM has an in-flight task.
-	vm, err := findVM(ctx)
+	vm, err := lookupVM(ctx)
 	if err != nil {
 		return err
 	}
-
-	// If the VM already exists then do nothing.
 	if vm != nil {
-		return nil
+		return errors.Errorf("vm already exists for %q", ctx)
 	}
 
 	userData, err := generateUserData(ctx, bootstrapToken)

@@ -26,8 +26,10 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/govmomi/net"
+	clustererror "sigs.k8s.io/cluster-api/pkg/controller/error"
 )
 
 func findVM(ctx *context.MachineContext) (*object.VirtualMachine, error) {
@@ -164,4 +166,68 @@ func getExistingMetadata(ctx *context.MachineContext) (string, error) {
 	}
 
 	return string(metadataBuf), nil
+}
+
+// lookupVM returns the VM, an RequeueError because the VM has an in-flight,
+// or an unexpected error.
+func lookupVM(ctx *context.MachineContext) (*object.VirtualMachine, error) {
+
+	// Check to see if there is an in-flight task.
+	if task := getTask(ctx); task == nil {
+		ctx.MachineStatus.TaskRef = ""
+	} else {
+		ctx := context.NewMachineLoggerContext(ctx, task.Reference().Value)
+
+		// Since a task was discovered, let's find out if it indicates a VM is
+		// being, or has been, created/cloned.
+		ctx.Logger.V(4).Info("task found", "state", task.Info.State, "description-id", task.Info.DescriptionId)
+		switch task.Info.State {
+		case types.TaskInfoStateQueued:
+			ctx.Logger.V(4).Info("task is still pending", "description-id", task.Info.DescriptionId)
+			return nil, &clustererror.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+		case types.TaskInfoStateRunning:
+			ctx.Logger.V(4).Info("task is still running", "description-id", task.Info.DescriptionId)
+			return nil, &clustererror.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+		case types.TaskInfoStateSuccess:
+			ctx.Logger.V(4).Info("task is a success", "description-id", task.Info.DescriptionId)
+			ctx.MachineStatus.TaskRef = ""
+		case types.TaskInfoStateError:
+			ctx.Logger.V(2).Info("task failed", "description-id", task.Info.DescriptionId)
+			ctx.MachineStatus.TaskRef = ""
+		default:
+			return nil, errors.Errorf("unknown task state %q for %q", task.Info.State, ctx)
+		}
+	}
+
+	// Otherwise look up the VM's MoRef by its instance UUID.
+	if ctx.MachineConfig.MachineRef == "" {
+		moRefID, err := findVMByInstanceUUID(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if moRefID != "" {
+			ctx.MachineConfig.MachineRef = moRefID
+			ctx.Logger.V(6).Info("discovered moref id", "moref-id", ctx.MachineConfig.MachineRef)
+		}
+	}
+
+	// If no MoRef is found, then the VM does not exist.
+	if ctx.MachineConfig.MachineRef == "" {
+		return nil, nil
+	}
+
+	// Otherwise verify that the MoRef may be used to return the name of the VM.
+	moRef := types.ManagedObjectReference{
+		Type:  "VirtualMachine",
+		Value: ctx.MachineConfig.MachineRef,
+	}
+	var obj mo.VirtualMachine
+	if err := ctx.Session.RetrieveOne(ctx, moRef, []string{"name"}, &obj); err != nil {
+		// The name lookup fails, therefore the VM does not exist.
+		ctx.MachineConfig.MachineRef = ""
+		return nil, nil
+	}
+
+	// The name lookup succeeds, therefore the VM exists.
+	return object.NewVirtualMachine(ctx.Session.Client.Client, moRef), nil
 }

@@ -18,6 +18,7 @@ package net
 
 import (
 	"context"
+	"net"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -32,11 +33,6 @@ type NetworkStatus struct {
 	// Connected is a flag that indicates whether this network is currently
 	// connected to the VM.
 	Connected bool `json:"connected,omitempty"`
-
-	// UUID is stored as the ExternalID field on a network device and uniquely
-	// identifies the device as one that was created from a known network
-	// spec.
-	UUID string `json:"uuid"`
 
 	// IPAddrs is one or more IP addresses reported by vm-tools.
 	// +optional
@@ -80,7 +76,6 @@ func GetNetworkStatus(
 			nic := dev.GetVirtualEthernetCard()
 			netStatus := NetworkStatus{
 				MACAddr: nic.MacAddress,
-				UUID:    nic.ExternalId,
 			}
 			if obj.Guest != nil {
 				for _, i := range obj.Guest.Net {
@@ -96,4 +91,26 @@ func GetNetworkStatus(
 	}
 
 	return allNetStatus, nil
+}
+
+// ErrOnLocalOnlyIPAddr returns an error if the provided IP address is
+// accessible only on the VM's guest OS.
+func ErrOnLocalOnlyIPAddr(addr string) error {
+	var reason string
+	a := net.ParseIP(addr)
+	if a == nil {
+		reason = "invalid"
+	} else if a.IsUnspecified() {
+		reason = "unspecified"
+	} else if a.IsLinkLocalMulticast() {
+		reason = "link-local-mutlicast"
+	} else if a.IsLinkLocalUnicast() {
+		reason = "link-local-unicast"
+	} else if a.IsLoopback() {
+		reason = "loopback"
+	}
+	if reason != "" {
+		return errors.Errorf("failed to validate ip addr=%v: %s", addr, reason)
+	}
+	return nil
 }

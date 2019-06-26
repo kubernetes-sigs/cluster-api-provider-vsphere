@@ -98,12 +98,6 @@ type NetworkDeviceSpec struct {
 	// will be connected.
 	NetworkName string `json:"networkName"`
 
-	// UUID is used to relate this network spec to the network device created
-	// from this spec. This value is set at runtime and should not be assigned
-	// manually.
-	// +optional
-	UUID string `json:"uuid,omitempty"`
-
 	// DHCP4 is a flag that indicates whether or not to use DHCP for IPv4
 	// on this device.
 	// If true then IPAddrs should not contain any IPv4 addresses.

@@ -841,11 +841,6 @@ spec:
                         items:
                           type: string
                         type: array
-                      uuid:
-                        description: UUID is used to relate this network spec to the
-                          network device created from this spec. This value is set
-                          at runtime and should not be assigned manually.
-                        type: string
                     required:
                     - networkName
                     type: object
@@ -960,13 +955,7 @@ spec:
               networkName:
                 description: NetworkName is the name of the network.
                 type: string
-              uuid:
-                description: UUID is stored as DeviceInfo.Label on a network device
-                  and uniquely identifies the device as one that was created from
-                  a known network spec.
-                type: string
             required:
-            - uuid
             - macAddr
             type: object
           type: array

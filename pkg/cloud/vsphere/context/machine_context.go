@@ -174,11 +174,33 @@ func (c *MachineContext) IPAddr() string {
 	if c.Machine == nil {
 		return ""
 	}
+
+	var err error
+	var preferredAPIServerCIDR *net.IPNet
+	if c.MachineConfig.MachineSpec.Network.PreferredAPIServerCIDR != "" {
+		_, preferredAPIServerCIDR, err = net.ParseCIDR(c.MachineConfig.MachineSpec.Network.PreferredAPIServerCIDR)
+		if err != nil {
+			c.Logger.Error(err, "error parsing preferred apiserver CIDR")
+			return ""
+		}
+
+		c.Logger.V(4).Info("detected preferred apiserver CIDR", "preferredAPIServerCIDR", preferredAPIServerCIDR)
+	}
+
 	for _, nodeAddr := range c.Machine.Status.Addresses {
-		if nodeAddr.Type == corev1.NodeInternalIP {
+		if nodeAddr.Type != corev1.NodeInternalIP {
+			continue
+		}
+
+		if preferredAPIServerCIDR == nil {
+			return nodeAddr.Address
+		}
+
+		if preferredAPIServerCIDR.Contains(net.ParseIP(nodeAddr.Address)) {
 			return nodeAddr.Address
 		}
 	}
+
 	return ""
 }
 

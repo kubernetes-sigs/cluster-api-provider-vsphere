@@ -65,6 +65,7 @@ func Test_CloudConfig(t *testing.T) {
 				Server:       "10.0.0.1",
 				Datacenter:   "myprivatecloud",
 				ResourcePool: "deadpool",
+				Folder:       "vms",
 				Datastore:    "infinite-data",
 				Network:      "connected",
 			},
@@ -79,7 +80,7 @@ password = "so_secure"
 [Workspace]
 server = "10.0.0.1"
 datacenter = "myprivatecloud"
-folder = "deadpool"
+folder = "vms"
 default-datastore = "infinite-data"
 resourcepool-path = "deadpool"
 

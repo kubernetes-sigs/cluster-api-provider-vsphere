@@ -78,6 +78,11 @@ func (a *Actuator) Create(
 		return err
 	}
 
+	if _, ok := machine.Annotations[constants.MaintenanceAnnotationLabel]; ok {
+		ctx.Logger.V(4).Info("skipping operations on machine", "reason", "annotation", "annotation-key", constants.MaintenanceAnnotationLabel)
+		return &clustererr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+	}
+
 	defer func() {
 		opErr = actuators.PatchAndHandleError(ctx, "Create", opErr)
 	}()
@@ -111,6 +116,11 @@ func (a *Actuator) Delete(
 		})
 	if err != nil {
 		return err
+	}
+
+	if _, ok := machine.Annotations[constants.MaintenanceAnnotationLabel]; ok {
+		ctx.Logger.V(4).Info("skipping operations on machine", "reason", "annotation", "annotation-key", constants.MaintenanceAnnotationLabel)
+		return &clustererr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
 	}
 
 	defer func() {
@@ -177,6 +187,11 @@ func (a *Actuator) Exists(
 		})
 	if err != nil {
 		return false, err
+	}
+
+	if _, ok := machine.Annotations[constants.MaintenanceAnnotationLabel]; ok {
+		ctx.Logger.V(4).Info("skipping operations on machine", "reason", "annotation", "annotation-key", constants.MaintenanceAnnotationLabel)
+		return false, &clustererr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
 	}
 
 	defer func() {

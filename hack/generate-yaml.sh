@@ -26,7 +26,7 @@ OUT_DIR=
 TPL_DIR=./cmd/clusterctl/examples/vsphere
 
 OVERWRITE=
-CLUSTER_NAME='capv-mgmt-example'
+CLUSTER_NAME="${CLUSTER_NAME:-capv-mgmt-example}"
 ENV_VAR_REQ=':?required'
 CAPV_MANAGER_IMAGE="${CAPV_MANAGER_IMAGE:-gcr.io/cnx-cluster-api/vsphere-cluster-api-provider:latest}"
 

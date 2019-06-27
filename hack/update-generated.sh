@@ -58,17 +58,22 @@ deepcopy-v1alpha1() {
   gen-deepcopy ./pkg/apis/vsphereproviderconfig/v1alpha1
 }
 
+gen-provider-base() {
+  kustomize build ./config/default >./config/default/provider-components-base.yaml
+}
+
 deepcopy() { deepcopy-v1alpha1; }
 codegen()  { deepcopy; }
 crd()      { gen-crds ./config/crds; }
 rbac()     { gen-rbac ./config/rbac; }
-all()      { codegen && crd && rbac; }
+provider() { gen-provider-base; }
+all()      { codegen && crd && rbac && provider; }
 
 [ "${#}" -eq "0" ] && all
 
 while [ "${#}" -gt "0" ]; do
   case "${1}" in
-  all|codegen|deepcopy|crd|rbac)
+  all|codegen|deepcopy|crd|rbac|provider)
     eval "${1}"
     shift
     ;;

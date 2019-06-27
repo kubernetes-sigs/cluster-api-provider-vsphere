@@ -12,14 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-namespace: vsphere-provider-system
-namePrefix: vsphere-provider-
-
-bases:
-- ../crds/
-- ../rbac/
-- ../manager/
-
-patches:
-- manager_image_patch.yaml
-- rbac_role_binding_patch.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: manager-rolebinding
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: vsphere-provider-system

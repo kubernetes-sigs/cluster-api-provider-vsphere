@@ -38,6 +38,11 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/certificates"
 )
 
+//+kubebuilder:rbac:groups=vsphereproviderconfig.sigs.k8s.io,resources=vsphereclusterproviderconfigs;vsphereclusterproviderstatuses,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=cluster.k8s.io,resources=clusters;clusters/status,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=,resources=secrets,verbs=create;get
+//+kubebuilder:rbac:groups="",resources=nodes;events;configmaps,verbs=get;list;watch;create;update;patch;delete
+
 // Actuator is responsible for maintaining the Cluster objects.
 type Actuator struct {
 	client           clientv1.ClusterV1alpha1Interface

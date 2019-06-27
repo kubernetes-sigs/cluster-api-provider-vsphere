@@ -308,3 +308,7 @@ $ kubectl get secret prod-workload-kubeconfig -o=jsonpath='{.data.value}' | base
 ```
 
 Now that you have the `kubeconfig` for your Workload Cluster, you can start deploying your applications there.
+
+**NOTE**: workload clusters do not have any addons applied aside from those added by kubeadm. Nodes in your workload clusters
+will be in the `NotReady` state until you apply a CNI addon. The `addons.yaml` file generated from `make prod-yaml` has a default calico
+addon which you can use, otherwise apply custom addons based on your use-case.

@@ -217,7 +217,7 @@ spec:
           devices:
           - networkName: "vm-network-1"
             dhcp4: true
-            dhcp6: true
+            dhcp6: false
         numCPUs: 2
         memoryMB: 2048
         diskGiB: 20
@@ -259,7 +259,7 @@ spec:
               devices:
               - networkName: "vm-network-1"
                 dhcp4: true
-                dhcp6: true
+                dhcp6: false
             numCPUs: 2
             memoryMB: 2048
             diskGiB: 20

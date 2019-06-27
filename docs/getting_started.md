@@ -20,6 +20,7 @@ Table of Contents
          * [Generating YAML for the Bootstrap Cluster](#generating-yaml-for-the-bootstrap-cluster)
          * [Using clusterctl](#using-clusterctl)
       * [Managing Workload Clusters using the Management Cluster](#managing-workload-clusters-using-the-management-cluster)
+      * [Creating Workload Clusters with Custom Kubeadm Configurations](#creating-workload-clusters-with-custom-kubeadm-configurations)
 
 ## Bootstrapping a Management Cluster with clusterctl
 
@@ -312,3 +313,112 @@ Now that you have the `kubeconfig` for your Workload Cluster, you can start depl
 **NOTE**: workload clusters do not have any addons applied aside from those added by kubeadm. Nodes in your workload clusters
 will be in the `NotReady` state until you apply a CNI addon. The `addons.yaml` file generated from `make prod-yaml` has a default calico
 addon which you can use, otherwise apply custom addons based on your use-case.
+
+## Creating Workload Clusters with Custom Kubeadm Configurations
+
+When provisioning new workload clusters, users may wish to customize aspects of their cluster with kubeadm.  The following 
+fields can be modified to apply custom Kubeadm settings:
+* Cluster Configuration: `cluster.spec.providerSpec.value.clusterConfiguration`
+* Init Configuration: `machine.spec.providerSpec.value.kubeadmConfiguration.init`
+* Join Configuration: `machine.spec.providerSpec.value.kubeadmConfiguration.join`
+
+The following example shows how to customize the Kudeadm Cluster Configuration to specify the policy `AlwaysPullImages` 
+for admission controllers.  Additionally, with the Kubeadm Init configuration we'll add a node label as part of 
+the Kubelet extra arguments field. Please note, some Kubeadm configuration fields are overridden by the vSphere 
+provider, such as: `cluster.spec.providerSpec.value.clusterConfiguration.networking`.
+
+```yaml
+apiVersion: "cluster.k8s.io/v1alpha1"
+kind: Cluster
+metadata:
+  name: custom-kubeadm-cluster
+spec:
+  clusterNetwork:
+    services:
+      cidrBlocks: ["100.64.0.0/13"]
+    pods:
+      cidrBlocks: ["100.96.0.0/11"]
+    serviceDomain: "cluster.local"
+  providerSpec:
+    value:
+      apiVersion: "vsphereproviderconfig/v1alpha1"
+      kind: "VsphereClusterProviderConfig"
+      vsphereUser: "<REDACTED>"
+      vspherePassword: "<REDACTED>"
+      vsphereServer: "<REDACTED>"
+      vsphereCredentialSecret: ""
+      clusterConfiguration:
+        apiServer:
+          certSANs: 
+          extraArgs:
+            enable-admission-plugins: "NodeRestriction,AlwaysPullImages" # The custom configuration we want to apply
+          authorization-mode: Node,RBAC
+          timeoutForControlPlane: 4m0s
+        certificatesDir: /etc/kubernetes/pki
+        clusterName: # Overridden by cluster.spec.clusterName
+        controlPlaneEndpoint: # Overridden by IPv4 Lookup and bindPort
+        controllerManager: {}
+        dns:
+          type: CoreDNS
+        etcd:
+          local:
+            dataDir: /var/lib/etcd
+        imageRepository: k8s.gcr.io
+        kubernetesVersion: # Overridden by machine.spec.versions.controlPlane
+        networking: # Overridden by cluster.spec.clusterNetwork
+        scheduler: {}
+---
+apiVersion: cluster.k8s.io/v1alpha1
+kind: Machine
+metadata:
+  name: "custom-kubeadm-cluster-controlplane-1"
+  labels:
+    cluster.k8s.io/cluster-name: "custom-kubeadm-cluster"
+spec:
+  providerSpec:
+    value:
+      apiVersion: vsphereproviderconfig/v1alpha1
+      kind: VsphereMachineProviderConfig
+      machineSpec:
+        datacenter: "SDDC-Datacenter"
+        datastore: "DefaultDatastore"
+        resourcePool: "*/CAPV"
+        vmFolder: "Workloads"
+        network:
+          devices:
+          - networkName: "vm-network-1"
+            dhcp4: true
+            dhcp6: false
+        numCPUs: 2
+        memoryMB: 2048
+        diskGiB: 20
+        template: "ubuntu-1804-kube-v1.13.6"
+      kubeadmConfiguration:
+        init:
+          localAPIEndpoint:  # Overridden by IPv4 Lookup and bindPort
+          nodeRegistration:
+            criSocket: # Overridden by containerdSocket
+            name: # Overridden by hostname lookup
+            KubeletExtraArgs:
+              node-labels: "custom-kubeadm=true"  # The custom configuration we want to apply
+        join:
+          caCertPath: ""
+          discovery:
+            tlsBootstrapToken: ""
+          nodeRegistration: 
+            name: # Overridden by hostname lookup
+            criSocket: # Overridden by containerdSocket
+  versions:
+    kubelet: "1.13.6"
+    controlPlane: "1.13.6"
+```
+
+Once deployed we can retrieve the workload cluster kubeconfig and run the following commands to verify our settings:
+
+```bash
+$ kubectl get secret custom-kubeadm-cluster-kubeconfig -o=jsonpath='{.data.value}' | base64 -d > custom-kubeadm-kubeconfig # Darwin users will want to use the -D flag for base64
+$ kubectl --kubeconfig custom-kubeadm-kubeconfig get pod kube-apiserver-custom-kubeadm-cluster-controlplane-1 -n kube-system -o yaml | grep enable-admission-plugins
+    - --enable-admission-plugins=NodeRestriction,AlwaysPullImages
+$ kubectl --kubeconfig custom-kubeadm-kubeconfig get node custom-kubeadm-controlplane-1 -o yaml | grep custom-kubeadm:
+    custom-kubeadm: "true"
+```

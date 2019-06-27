@@ -42,13 +42,19 @@ manager: fmt vet
 
 # Build the clusterctl binary
 clusterctl: fmt vet
-	go build -o bin/clusterctl ./cmd/clusterctl
+	CGO_ENABLED=0 go build -ldflags '-extldflags "-static" -w -s' \
+	-o bin/clusterctl."$${GOOS:-$$(go env GOHOSTOS)}"_"$${GOARCH:-$$(go env GOHOSTARCH)}" \
+	./cmd/clusterctl
+	@cp -f bin/clusterctl."$${GOOS:-$$(go env GOHOSTOS)}"_"$${GOARCH:-$$(go env GOHOSTARCH)}" bin/clusterctl
 
 clusterctl-in-docker:
 	docker run --rm -v $(CWD):/go/src/sigs.k8s.io/cluster-api-provider-vsphere \
 	  -w /go/src/sigs.k8s.io/cluster-api-provider-vsphere \
-	  -e GOOS -e GOHOSTOS golang:1.12 \
-	  go build -o bin/clusterctl ./cmd/clusterctl
+	  -e CGO_ENABLED=0 -e GOOS="$${GOOS:-linux}" -e GOARCH="$${GOARCH:-amd64}" \
+	  golang:1.12 \
+	  go build -ldflags '-extldflags "-static" -w -s' \
+	  -o bin/clusterctl."$${GOOS:-linux}"_"$${GOARCH:-amd64}" ./cmd/clusterctl
+	  @cp -f bin/clusterctl."$${GOOS:-linux}"_"$${GOARCH:-amd64}" bin/clusterctl
 .PHONY: clusterctl-in-docker
 
 # Run against the configured Kubernetes cluster in ~/.kube/config

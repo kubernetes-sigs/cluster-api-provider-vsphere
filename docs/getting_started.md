@@ -134,16 +134,16 @@ With the above environment variables set, you can now run the generate yaml make
 ```
 $ make prod-yaml
 
-done generating ./out/addons.yaml
+done generating ./out/my-cluster/addons.yaml
 done generating ./config/default/capv_manager_image_patch.yaml
-done generating ./out/cluster.yaml
-done generating ./out/machines.yaml
-done generating ./out/machineset.yaml
-Done generating ./out/provider-components.yaml
+done generating ./out/my-cluster/cluster.yaml
+done generating ./out/my-cluster/machines.yaml
+done generating ./out/my-cluster/machineset.yaml
+Done generating ./out/my-cluster/provider-components.yaml
 
-*** Finished creating initial example yamls in ./out
+*** Finished creating initial example yamls in ./out/my-cluster
 
-    The files ./out/cluster.yaml and ./out/machines.yaml need to be updated
+    The files ./out/my-cluster/cluster.yaml and ./out/my-cluster/machines.yaml need to be updated
     with information about the desired Kubernetes cluster and vSphere environment
     on which the Kubernetes cluster will be created.
 
@@ -157,7 +157,7 @@ should be in the `out/` directory. Go to the `out` directory and run the followi
 your management cluster
 
 ```bash
-$ cd out
+$ cd out/my-cluster
 $ clusterctl create cluster --provider vsphere --bootstrap-type kind -c cluster.yaml -m machines.yaml -p provider-components.yaml --addon-components addons.yaml
 ```
 

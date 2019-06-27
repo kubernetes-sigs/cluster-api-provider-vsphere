@@ -27,7 +27,7 @@ CWD := $(abspath .)
 SHELL := hack/shell-with-gopath.sh
 
 # Image URL to use all building/pushing image targets
-PRODUCTION_IMG ?= gcr.io/cnx-cluster-api/vsphere-cluster-api-provider:0.3.0-alpha.1
+PRODUCTION_IMG ?= gcr.io/cnx-cluster-api/vsphere-cluster-api-provider:0.3.0-beta.0
 CI_IMG ?= gcr.io/cnx-cluster-api/vsphere-cluster-api-provider
 CLUSTERCTL_CI_IMG ?= gcr.io/cnx-cluster-api/clusterctl
 DEV_IMG ?= # <== NOTE:  outside dev, change this!!!

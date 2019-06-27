@@ -166,14 +166,26 @@ path that it ran (i.e. `out/kubeconfig`). This is the **admin** kubeconfig file 
 going forward to spin up multiple clusters using Cluster API, however, it is recommended that you create dedicated roles
 with limited access before doing so.
 
+Note that from this point forward, you no longer need to use `clusterctl` to provision clusters since your management cluster
+(the cluster used to manage workload clusters) has been created. Workload clusters should be provisioned by applying Cluster API resources
+directly on the management cluster using `kubectl`. More on this below.
+
 ## Managing Workload Clusters using the Management Cluster
 
 With your management cluster bootstrapped, it's time to reap the benefits of Cluster API. From this point forward,
 clusters and machines (belonging to a cluster) are simply provisioned by creating `cluster`, `machine` and `machineset` resources.
 
-Taking the generated `out/cluster.yaml` and `out/machine.yaml` file from earlier as a reference, you can create a cluster with the
-initial control plane node by just editing the name of the cluster and machine resource. For example, the following cluster and
-machine resource will provision a cluster named "prod-workload" with 1 initial control plane node:
+Using the same `prod-yaml` make target, generate Cluster API resources for a new cluster, this time with a different name:
+```
+$ CLUSTER_NAME=prod-workload make prod-yaml
+```
+
+**NOTE**: The `make prod-yaml` target is not required to manage your Cluster API resources at this point but is used to simplify this guide.
+You should manage your Cluster API resources in the same way you would manage your application yaml files for Kubernetes. Use the
+generated yaml files from `make prod-yaml` as a reference.
+
+The Cluster and Machine resource in `out/prod-workload/cluster.yaml` and `out/prod-workload/machines.yaml` defines your workload
+cluster with the initial control plane.
 
 ```yaml
 ---
@@ -227,7 +239,7 @@ spec:
     controlPlane: "1.13.6"
 ```
 
-To add 3 additional worker nodes to your cluster, create a machineset like the following:
+To add 3 additional worker nodes to your cluster, see the generated machineset file `out/prod-workload/machineset.yaml`:
 
 ```yaml
 apiVersion: "cluster.k8s.io/v1alpha1"
@@ -269,7 +281,17 @@ spec:
         controlPlane: "1.13.6"
 ```
 
-Run `kubectl apply -f` to apply the above files on your management cluster and it should start provisioning the new cluster.
+Run `kubectl apply -f` to apply the above files on your management cluster and it should start provisioning the new cluster:
+```bash
+$ cd out/prod-workload
+$ kubectl apply -f cluster.yaml
+cluster.cluster.k8s.io/prod-workload created
+$ kubectl apply -f machines.yaml
+machine.cluster.k8s.io/prod-workload-controlplane-1 created
+$ kubectl apply -f machineset.yaml
+machineset.cluster.k8s.io/prod-workload-machineset-1 created
+```
+
 Clusters that are provisioned by the management cluster that run your application workloads are called [Workload Clusters](https://github.com/kubernetes-sigs/cluster-api/blob/master/docs/book/GLOSSARY.md#workload-cluster).
 
 The `kubeconfig` file to access workload clusters should be accessible as a Kubernetes Secret on the management cluster. As of today, the
@@ -286,3 +308,7 @@ $ kubectl get secret prod-workload-kubeconfig -o=jsonpath='{.data.value}' | base
 ```
 
 Now that you have the `kubeconfig` for your Workload Cluster, you can start deploying your applications there.
+
+**NOTE**: workload clusters do not have any addons applied aside from those added by kubeadm. Nodes in your workload clusters
+will be in the `NotReady` state until you apply a CNI addon. The `addons.yaml` file generated from `make prod-yaml` has a default calico
+addon which you can use, otherwise apply custom addons based on your use-case.

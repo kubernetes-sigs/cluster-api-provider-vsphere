@@ -156,7 +156,7 @@ fi
 
 export VERSION="${vsphere_controller_version}"
 make ci-push
-cd ./scripts/e2e/bootstrap_job && make && cd .. || exit 1
+cd ./scripts/e2e/bootstrap_job && make push && cd .. || exit 1
 echo "build vSphere controller version: ${vsphere_controller_version}"
 
 # set target cluster vm name prefix

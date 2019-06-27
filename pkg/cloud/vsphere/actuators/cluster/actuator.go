@@ -236,5 +236,11 @@ func (a *Actuator) reconcileKubeConfig(ctx *context.ClusterContext) error {
 
 func (a *Actuator) deleteKubeConfig(ctx *context.ClusterContext) error {
 	secretName := fmt.Sprintf("%s-kubeconfig", ctx.Cluster.Name)
-	return a.coreClient.Secrets(ctx.Cluster.Namespace).Delete(secretName, &metav1.DeleteOptions{})
+
+	err := a.coreClient.Secrets(ctx.Cluster.Namespace).Delete(secretName, &metav1.DeleteOptions{})
+	if apierrors.IsNotFound(err) {
+		return nil
+	}
+
+	return err
 }

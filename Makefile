@@ -51,7 +51,7 @@ clusterctl-in-docker:
 	docker run --rm -v $(CWD):/go/src/sigs.k8s.io/cluster-api-provider-vsphere \
 	  -w /go/src/sigs.k8s.io/cluster-api-provider-vsphere \
 	  -e CGO_ENABLED=0 -e GOOS="$${GOOS:-linux}" -e GOARCH="$${GOARCH:-amd64}" \
-	  golang:1.12 sh -c "\
+	  golang:1.12.6 sh -c "\
 	  go build -ldflags '-extldflags \"-static\" -w -s' \
 	  -o bin/clusterctl.\"$${GOOS:-linux}\"_\"$${GOARCH:-amd64}\" ./cmd/clusterctl && \
 	  cp -f bin/clusterctl.\"$${GOOS:-linux}\"_\"$${GOARCH:-amd64}\" bin/clusterctl"

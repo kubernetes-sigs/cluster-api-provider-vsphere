@@ -124,7 +124,8 @@ func generateUserData(ctx *context.MachineContext, bootstrapToken string) ([]byt
 					),
 				),
 				kubeadm.WithJoinNodeRegistrationOptions(
-					kubeadm.NewNodeRegistration(
+					kubeadm.SetNodeRegistration(
+						&ctx.MachineConfig.KubeadmConfiguration.Join.NodeRegistration,
 						kubeadm.WithTaints(ctx.Machine.Spec.Taints),
 						kubeadm.WithNodeRegistrationName(hostnameLookup),
 						kubeadm.WithCRISocket(containerdSocket),
@@ -203,7 +204,8 @@ func generateUserData(ctx *context.MachineContext, bootstrapToken string) ([]byt
 			kubeadm.SetInitConfigurationOptions(
 				&ctx.MachineConfig.KubeadmConfiguration.Init,
 				kubeadm.WithNodeRegistrationOptions(
-					kubeadm.NewNodeRegistration(
+					kubeadm.SetNodeRegistration(
+						&ctx.MachineConfig.KubeadmConfiguration.Init.NodeRegistration,
 						kubeadm.WithTaints(ctx.Machine.Spec.Taints),
 						kubeadm.WithNodeRegistrationName(hostnameLookup),
 						kubeadm.WithCRISocket(containerdSocket),
@@ -251,7 +253,8 @@ func generateUserData(ctx *context.MachineContext, bootstrapToken string) ([]byt
 				),
 			),
 			kubeadm.WithJoinNodeRegistrationOptions(
-				kubeadm.NewNodeRegistration(
+				kubeadm.SetNodeRegistration(
+					&ctx.MachineConfig.KubeadmConfiguration.Join.NodeRegistration,
 					kubeadm.WithNodeRegistrationName(hostnameLookup),
 					kubeadm.WithCRISocket(containerdSocket),
 					kubeadm.WithKubeletExtraArgs(map[string]string{

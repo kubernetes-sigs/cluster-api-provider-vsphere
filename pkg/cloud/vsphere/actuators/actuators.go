@@ -56,7 +56,7 @@ func PatchAndHandleError(ctx patchContext, opName string, opErr error) error {
 		// If the requeue error is not the outer-most error then log the outer-most
 		// error since it will be dropped in favor of the requeue.
 		if requeueErr != err {
-			ctx.GetLogger().V(6).Info("requeue after error", "object", ctx.String(), "error", err)
+			ctx.GetLogger().V(6).Info("requeue after error", "object", ctx.String(), "error", err.Error())
 		}
 		err = requeueErr
 	}

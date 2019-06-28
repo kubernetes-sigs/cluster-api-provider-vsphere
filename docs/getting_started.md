@@ -34,12 +34,12 @@ You can install Kind with the following:
 
 ```bash
 # Linux
-$ curl -Lo ./kind-linux-amd64 https://github.com/kubernetes-sigs/kind/releases/download/v0.3.0/kind-linux-amd64
+$ curl -Lo ./kind-linux-amd64 https://github.com/kubernetes-sigs/kind/releases/download/v0.4.0/kind-linux-amd64
 $ chmod +x ./kind-linux-amd64
 $ mv ./kind-linux-amd64 /usr/local/bin/kind
 
 # Darwin
-$ curl -Lo ./kind-darwin-amd64 https://github.com/kubernetes-sigs/kind/releases/download/v0.3.0/kind-darwin-amd64
+$ curl -Lo ./kind-darwin-amd64 https://github.com/kubernetes-sigs/kind/releases/download/v0.4.0/kind-darwin-amd64
 $ chmod +x ./kind-darwin-amd64
 $ mv ./kind-darwin-amd64 /usr/local/bin/kind
 ```
@@ -47,7 +47,7 @@ $ mv ./kind-darwin-amd64 /usr/local/bin/kind
 If you have a Go installed on your machine, you can install Kind with the following:
 
 ```bash
-GO111MODULE="on" go get -mod readonly sigs.k8s.io/kind@v0.3.0
+GO111MODULE="on" go get -mod readonly sigs.k8s.io/kind@v0.4.0
 ```
 
 #### clusterctl

@@ -29,6 +29,10 @@ const (
 	// requeueing a CAPI operation.
 	DefaultRequeue = 20 * time.Second
 
+	// WaitRequeue is the time for how long to wait when
+	// requeueing a CAPI operation due an operation in progress
+	WaitRequeue = 3 * time.Second
+
 	// VsphereUserKey is the key used to store/retrieve the vSphere user
 	// name from a Kubernetes secret.
 	VsphereUserKey = "username"

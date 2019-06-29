@@ -53,7 +53,7 @@ func Delete(ctx *context.MachineContext) error {
 		}
 		ctx.MachineStatus.TaskRef = task.Reference().Value
 		ctx.Logger.V(6).Info("reenqueue to wait for power off op")
-		return &clustererror.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+		return &clustererror.RequeueAfterError{RequeueAfter: constants.WaitRequeue}
 	}
 
 	// At this point the VM is not powered on and can be destroyed. Store the
@@ -65,5 +65,5 @@ func Delete(ctx *context.MachineContext) error {
 	}
 	ctx.MachineStatus.TaskRef = task.Reference().Value
 	ctx.Logger.V(6).Info("reenqueue to wait for destroy op")
-	return &clustererror.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+	return &clustererror.RequeueAfterError{RequeueAfter: constants.WaitRequeue}
 }

@@ -204,7 +204,7 @@ func (a *Actuator) Exists(
 func (a *Actuator) reconcilePKI(ctx *context.MachineContext) error {
 	if !ctx.ClusterConfig.CAKeyPair.HasCertAndKey() {
 		ctx.Logger.V(6).Info("cluster config is missing pki toolchain, requeue machine")
-		return &clustererr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+		return &clustererr.RequeueAfterError{RequeueAfter: constants.WaitRequeue}
 	}
 	return nil
 }

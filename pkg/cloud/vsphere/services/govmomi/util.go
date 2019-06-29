@@ -184,10 +184,10 @@ func lookupVM(ctx *context.MachineContext) (*object.VirtualMachine, error) {
 		switch task.Info.State {
 		case types.TaskInfoStateQueued:
 			ctx.Logger.V(4).Info("task is still pending", "description-id", task.Info.DescriptionId)
-			return nil, &clustererror.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+			return nil, &clustererror.RequeueAfterError{RequeueAfter: constants.WaitRequeue}
 		case types.TaskInfoStateRunning:
 			ctx.Logger.V(4).Info("task is still running", "description-id", task.Info.DescriptionId)
-			return nil, &clustererror.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+			return nil, &clustererror.RequeueAfterError{RequeueAfter: constants.WaitRequeue}
 		case types.TaskInfoStateSuccess:
 			ctx.Logger.V(4).Info("task is a success", "description-id", task.Info.DescriptionId)
 			ctx.MachineStatus.TaskRef = ""

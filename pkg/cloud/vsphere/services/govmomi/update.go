@@ -89,7 +89,7 @@ func reconcileMetadata(ctx *context.MachineContext, vm *object.VirtualMachine) e
 	}
 	ctx.MachineStatus.TaskRef = task.Reference().Value
 	ctx.Logger.V(6).Info("reenqueue to track update metadata task")
-	return &clustererror.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+	return &clustererror.RequeueAfterError{RequeueAfter: constants.WaitRequeue}
 }
 
 // reconcileNetwork updates the machine's network spec and status
@@ -129,7 +129,7 @@ func reconcileNetwork(ctx *context.MachineContext, vm *object.VirtualMachine) er
 		for _, netStatus := range ctx.MachineStatus.Network {
 			if len(netStatus.IPAddrs) == 0 {
 				ctx.Logger.V(6).Info("reenqueue to wait on IP addresses")
-				return &clustererror.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+				return &clustererror.RequeueAfterError{RequeueAfter: constants.WaitRequeue}
 			}
 			for _, ip := range netStatus.IPAddrs {
 				ipAddrs = append(ipAddrs, corev1.NodeAddress{

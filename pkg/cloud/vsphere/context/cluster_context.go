@@ -30,7 +30,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
+	apitypes "k8s.io/apimachinery/pkg/types"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/klog/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -299,60 +299,64 @@ func (c *ClusterContext) ControlPlaneEndpoint() (string, error) {
 	return "", errors.New("unable to get control plane endpoint")
 }
 
-// Patch updates the cluster on the API server.
-func (c *ClusterContext) Patch() error {
-	// Ensure the provider spec is encoded.
-	newProviderSpec, err := v1alpha1.EncodeClusterSpec(c.ClusterConfig)
-	if err != nil {
-		return errors.Wrapf(err, "failed encoding cluster spec for cluster %q", c)
-	}
-	c.Cluster.Spec.ProviderSpec.Value = newProviderSpec
+// Patch updates the object and its status on the API server.
+func (c *ClusterContext) Patch() {
 
-	// Make sure the status isn't part of the JSON patch.
-	newStatus := c.Cluster.Status.DeepCopy()
+	// Make sure the local status isn't part of the JSON patch.
+	localStatus := c.Cluster.Status.DeepCopy()
 	c.Cluster.Status = clusterv1.ClusterStatus{}
 	c.ClusterCopy.Status.DeepCopyInto(&c.Cluster.Status)
 
-	// Build and marshal a patch for the cluster object, minus the status.
+	// Patch the object, minus the status.
+	localProviderSpec, err := v1alpha1.EncodeClusterSpec(c.ClusterConfig)
+	if err != nil {
+		c.Logger.Error(err, "failed to encode provider spec")
+		return
+	}
+	c.Cluster.Spec.ProviderSpec.Value = localProviderSpec
 	p, err := patch.NewJSONPatch(c.ClusterCopy, c.Cluster)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create new JSONPatch for cluster %q", c)
+		c.Logger.Error(err, "failed to create new JSONPatch for object")
+		return
 	}
-
-	// Do not update Cluster if nothing has changed
 	if len(p) != 0 {
 		pb, err := json.MarshalIndent(p, "", "  ")
 		if err != nil {
-			return errors.Wrapf(err, "failed to json marshal patch for cluster %q", c)
+			c.Logger.Error(err, "failed to to marshal object patch")
+			return
 		}
-
-		c.Logger.V(1).Info("patching cluster")
-		c.Logger.V(6).Info("generated json patch for cluster", "json-patch", string(pb))
-
-		result, err := c.ClusterClient.Patch(c.Cluster.Name, types.JSONPatchType, pb)
+		c.Logger.V(6).Info("generated json patch for object", "json-patch", string(pb))
+		result, err := c.ClusterClient.Patch(c.Cluster.Name, apitypes.JSONPatchType, pb)
 		if err != nil {
-			record.Warnf(c.Cluster, updateFailure, "failed to update cluster config %q: %v", c, err)
-			return errors.Wrapf(err, "failed to patch cluster %q", c)
+			record.Warnf(c.Cluster, updateFailure, "patch object failed: %v", err)
+			c.Logger.Error(err, "patch object failed")
+			return
 		}
-
-		record.Eventf(c.Cluster, updateSuccess, "updated cluster config %q", c)
-
-		// Keep the resource version updated so the status update can succeed
+		c.Logger.V(6).Info("patch object success")
+		record.Event(c.Cluster, updateSuccess, "patch object success")
 		c.Cluster.ResourceVersion = result.ResourceVersion
 	}
 
-	// Put the status back.
+	// Put the original status back.
 	c.Cluster.Status = clusterv1.ClusterStatus{}
-	newStatus.DeepCopyInto(&c.Cluster.Status)
+	localStatus.DeepCopyInto(&c.Cluster.Status)
 
-	if !reflect.DeepEqual(c.Cluster.Status, c.ClusterCopy.Status) {
-		c.Logger.V(1).Info("updating cluster status")
-		if _, err := c.ClusterClient.UpdateStatus(c.Cluster); err != nil {
-			record.Warnf(c.Cluster, updateFailure, "failed to update cluster status for cluster %q: %v", c, err)
-			return errors.Wrapf(err, "failed to update cluster status for cluster %q", c)
-		}
-		record.Eventf(c.Cluster, updateSuccess, "updated cluster status for cluster %q", c)
+	// Patch the status only.
+	localProviderStatus, err := v1alpha1.EncodeClusterStatus(c.ClusterStatus)
+	if err != nil {
+		c.Logger.Error(err, "failed to encode provider status")
+		return
 	}
-
-	return nil
+	c.Cluster.Status.ProviderStatus = localProviderStatus
+	if !reflect.DeepEqual(c.Cluster.Status, c.ClusterCopy.Status) {
+		result, err := c.ClusterClient.UpdateStatus(c.Cluster)
+		if err != nil {
+			record.Warnf(c.Cluster, updateFailure, "patch status failed: %v", err)
+			c.Logger.Error(err, "patch status failed")
+			return
+		}
+		c.Logger.V(6).Info("patch status success")
+		record.Event(c.Cluster, updateSuccess, "patch status success")
+		c.Cluster.ResourceVersion = result.ResourceVersion
+	}
 }

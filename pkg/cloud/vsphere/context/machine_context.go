@@ -242,60 +242,64 @@ func (c *MachineContext) ControlPlaneEndpoint() (string, error) {
 	return controlPlaneEndpoint, nil
 }
 
-// Patch updates the machine on the API server.
-func (c *MachineContext) Patch() error {
+// Patch updates the object and its status on the API server.
+func (c *MachineContext) Patch() {
 
-	// Ensure the provider spec is encoded.
-	newProviderSpec, err := v1alpha1.EncodeMachineSpec(c.MachineConfig)
-	if err != nil {
-		return errors.Wrapf(err, "failed encoding machine spec for machine %q", c)
-	}
-	c.Machine.Spec.ProviderSpec.Value = newProviderSpec
-
-	// Make sure the status isn't part of the JSON patch.
-	newStatus := c.Machine.Status.DeepCopy()
+	// Make sure the local status isn't part of the JSON patch.
+	localStatus := c.Machine.Status.DeepCopy()
 	c.Machine.Status = clusterv1.MachineStatus{}
 	c.MachineCopy.Status.DeepCopyInto(&c.Machine.Status)
 
-	// Build and marshal a patch for the machine object, minus the status.
+	// Patch the object, minus the status.
+	localProviderSpec, err := v1alpha1.EncodeMachineSpec(c.MachineConfig)
+	if err != nil {
+		c.Logger.Error(err, "failed to encode provider spec")
+		return
+	}
+	c.Machine.Spec.ProviderSpec.Value = localProviderSpec
 	p, err := patch.NewJSONPatch(c.MachineCopy, c.Machine)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create new JSONPatch for machine %q", c)
+		c.Logger.Error(err, "failed to create new JSONPatch for object")
+		return
 	}
-
-	// Do not update Machine if nothing has changed
 	if len(p) != 0 {
 		pb, err := json.MarshalIndent(p, "", "  ")
 		if err != nil {
-			return errors.Wrapf(err, "failed to json marshal patch for machine %q", c)
+			c.Logger.Error(err, "failed to to marshal object patch")
+			return
 		}
-
-		c.Logger.V(1).Info("patching machine")
-		c.Logger.V(6).Info("generated json patch for machine", "json-patch", string(pb))
-
+		c.Logger.V(6).Info("generated json patch for object", "json-patch", string(pb))
 		result, err := c.MachineClient.Patch(c.Machine.Name, apitypes.JSONPatchType, pb)
 		if err != nil {
-			record.Warnf(c.Machine, updateFailure, "failed to update machine config %q: %v", c, err)
-			return errors.Wrapf(err, "failed to patch machine %q", c)
+			record.Warnf(c.Machine, updateFailure, "patch object failed: %v", err)
+			c.Logger.Error(err, "patch object failed")
+			return
 		}
-
-		record.Eventf(c.Machine, updateSuccess, "updated machine config %q", c)
-
-		// Keep the resource version updated so the status update can succeed
+		c.Logger.V(6).Info("patch object success")
+		record.Event(c.Machine, updateSuccess, "patch object success")
 		c.Machine.ResourceVersion = result.ResourceVersion
 	}
 
-	// Put the status back.
+	// Put the original status back.
 	c.Machine.Status = clusterv1.MachineStatus{}
-	newStatus.DeepCopyInto(&c.Machine.Status)
+	localStatus.DeepCopyInto(&c.Machine.Status)
 
-	if !reflect.DeepEqual(c.Machine.Status, c.MachineCopy.Status) {
-		c.Logger.V(1).Info("updating machine status")
-		if _, err := c.MachineClient.UpdateStatus(c.Machine); err != nil {
-			record.Warnf(c.Machine, updateFailure, "failed to update machine status for machine %q: %v", c, err)
-			return errors.Wrapf(err, "failed to update machine status for machine %q", c)
-		}
-		record.Eventf(c.Machine, updateSuccess, "updated machine status for machine %q", c)
+	// Patch the status only.
+	localProviderStatus, err := v1alpha1.EncodeMachineStatus(c.MachineStatus)
+	if err != nil {
+		c.Logger.Error(err, "failed to encode provider status")
+		return
 	}
-	return nil
+	c.Machine.Status.ProviderStatus = localProviderStatus
+	if !reflect.DeepEqual(c.Machine.Status, c.MachineCopy.Status) {
+		result, err := c.MachineClient.UpdateStatus(c.Machine)
+		if err != nil {
+			record.Warnf(c.Machine, updateFailure, "patch status failed: %v", err)
+			c.Logger.Error(err, "patch status failed")
+			return
+		}
+		c.Logger.V(6).Info("patch status success")
+		record.Event(c.Machine, updateSuccess, "patch status success")
+		c.Machine.ResourceVersion = result.ResourceVersion
+	}
 }

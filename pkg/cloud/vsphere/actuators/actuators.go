@@ -25,7 +25,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clustererr "sigs.k8s.io/cluster-api/pkg/controller/error"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 )
 
@@ -33,21 +32,17 @@ type patchContext interface {
 	fmt.Stringer
 	GetObject() runtime.Object
 	GetLogger() logr.Logger
-	Patch() error
+	Patch()
 }
 
 // PatchAndHandleError is used by actuators to patch objects and handle any
 // errors that may occur.
 func PatchAndHandleError(ctx patchContext, opName string, opErr error) error {
 
-	err := opErr
+	// Patch the object.
+	ctx.Patch()
 
-	// Attempt to patch the object. If it fails then requeue the operation.
-	if patchErr := ctx.Patch(); patchErr != nil {
-		err = errors.Wrapf(
-			&clustererr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue},
-			"opErr=%q patchErr=%q", opErr, patchErr)
-	}
+	err := opErr
 
 	// Always make sure an underlying requeue error is returned if one is present
 	// and log the op error if one is replaced with the requeue error.

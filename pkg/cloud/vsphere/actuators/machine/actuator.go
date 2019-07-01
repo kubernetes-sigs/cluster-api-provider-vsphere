@@ -104,11 +104,7 @@ func (a *Actuator) Create(
 		return err
 	}
 
-	if err := a.reconcileInitOrJoin(ctx); err != nil {
-		return err
-	}
-
-	return nil
+	return a.doInitOrJoin(ctx)
 }
 
 // Delete removes a machine.
@@ -226,34 +222,42 @@ func (a *Actuator) reconcilePKI(ctx *context.MachineContext) error {
 	return nil
 }
 
-// TODO(akutz) Implement distributed locking to support multiple control
-//             plane members.
-func (a *Actuator) reconcileInitOrJoin(ctx *context.MachineContext) error {
+func (a *Actuator) doInitOrJoin(ctx *context.MachineContext) error {
 
-	// If this is the control plane node then initialize the cluster.
-	if ctx.HasControlPlaneRole() {
+	// Determine whether or not to initialize the control plane, join an
+	// existing control plane, or join the cluster as a worker node.
+	initControlPlane, err := a.shouldInitControlPlane(ctx)
+	if err != nil {
+		return err
+	}
+	if initControlPlane {
+		ctx.Logger.V(6).Info("initializing control plane")
 		return govmomi.Create(ctx, "")
 	}
 
-	// Otherwise wait for the cluster to come online.
-	if online, _, _ := kubeclient.GetControlPlaneStatus(ctx); !online {
-		ctx.Logger.V(6).Info("unable to join machine to control plane until it is online")
+	client, err := remotev1.NewClusterClient(a.controllerClient, ctx.Cluster)
+	if err != nil {
+		ctx.Logger.V(6).Info("unable to get client for target cluster", "reason", err.Error())
+		return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+	}
+	coreClient, err := client.CoreV1()
+	if err != nil {
+		ctx.Logger.V(6).Info("unable to get core client for target cluster", "reason", err.Error())
 		return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
 	}
 
-	// Get a Kubernetes client for the cluster.
-	kubeClient, err := kubeclient.GetKubeClientForCluster(ctx.ClusterContext)
-	if err != nil {
-		return errors.Wrapf(err, "failed to get kubeclient while creating machine %q", ctx)
-	}
-
 	// Get a new bootstrap token used to join this machine to the cluster.
-	token, err := tokens.NewBootstrap(kubeClient, defaultTokenTTL)
+	token, err := tokens.NewBootstrap(coreClient, defaultTokenTTL)
 	if err != nil {
 		return errors.Wrapf(err, "unable to generate boostrap token for joining machine to cluster %q", ctx)
 	}
 
 	// Create the machine and join it to the cluster.
+	if ctx.HasControlPlaneRole() {
+		ctx.Logger.V(6).Info("joining control plane")
+	} else {
+		ctx.Logger.V(6).Info("joining cluster")
+	}
 	return govmomi.Create(ctx, token)
 }
 
@@ -290,7 +294,8 @@ func (a *Actuator) reconcileKubeConfig(ctx *context.MachineContext) error {
 	// Create the kubeconfig secret.
 	if _, err := a.coreClient.Secrets(ctx.Cluster.Namespace).Create(secret); err != nil {
 		if !apierrors.IsAlreadyExists(err) {
-			return errors.Wrapf(err, "error creating kubeconfig secret for %q", ctx)
+			ctx.Logger.Error(err, "error creating kubeconfig secret")
+			return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
 		}
 		ctx.Logger.V(6).Info("kubeconfig secret already exists")
 	} else {
@@ -308,4 +313,65 @@ func (a *Actuator) reconcileReadyState(ctx *context.MachineContext) error {
 		return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
 	}
 	return nil
+}
+
+// shouldInitControlPlane returns a flag indicating whether or not this machine
+// should initialize the control plane. If false is returned then this machine
+// should join the existing cluster.
+func (a *Actuator) shouldInitControlPlane(ctx *context.MachineContext) (bool, error) {
+
+	// Check to see if the control plane is already initialized.
+	if client, err := remotev1.NewClusterClient(a.controllerClient, ctx.Cluster); err == nil {
+		if coreClient, err := client.CoreV1(); err == nil {
+			if _, err := coreClient.Nodes().List(metav1.ListOptions{}); err == nil {
+				return false, nil
+			}
+		}
+	}
+
+	// If the control plane is *not* ready, then can this machine initialize
+	// the control plane? First, does it even have the control plane role?
+	// If not then all this worker node can do is requeue until the control
+	// plane is ready.
+	if !ctx.HasControlPlaneRole() {
+		ctx.Logger.V(6).Info("machine is worker; requeue until control plane is ready")
+		return false, &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+	}
+
+	// The machine has the control plane role, but can it acquire the config
+	// map that gates access to initializing the control plane?
+	controlPlaneConfigMap := &apiv1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ctx.Cluster.Namespace,
+			Name:      actuators.GetNameOfControlPlaneConfigMap(ctx.Cluster.UID),
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: ctx.Cluster.APIVersion,
+					Kind:       ctx.Cluster.Kind,
+					Name:       ctx.Cluster.Name,
+					UID:        ctx.Cluster.UID,
+				},
+			},
+		},
+		Data: map[string]string{
+			"firstMachine": ctx.Machine.Name,
+		},
+	}
+
+	// Create the control plane config map. If this fails because such a config
+	// map already exists, then it's because the control plane is currently
+	// being initialized by another control plane machine, and this machine
+	// should requeue until the control plane is ready. If successful, then it
+	// means this is the first control plane machine.
+	if _, err := ctx.CoreClient.ConfigMaps(ctx.Cluster.Namespace).Create(controlPlaneConfigMap); err != nil {
+		if apierrors.IsAlreadyExists(err) {
+			ctx.Logger.V(6).Info("control plane is already being initialized; requeue until ready")
+		} else {
+			ctx.Logger.Error(err, "error creating control plane config map")
+		}
+		return false, &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+	}
+
+	// The control plane is not ready, and this machine should initialize it.
+	return true, nil
 }

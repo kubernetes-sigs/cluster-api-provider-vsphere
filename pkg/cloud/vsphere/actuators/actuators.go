@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	apitypes "k8s.io/apimachinery/pkg/types"
 	clustererr "sigs.k8s.io/cluster-api/pkg/controller/error"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
@@ -65,4 +66,10 @@ func PatchAndHandleError(ctx patchContext, opName string, opErr error) error {
 	}
 
 	return err
+}
+
+// GetNameOfControlPlaneConfigMap returns the name of the control plane
+// config map.
+func GetNameOfControlPlaneConfigMap(clusterUID apitypes.UID) string {
+	return fmt.Sprintf("%s-controlplane", clusterUID)
 }

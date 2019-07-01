@@ -29,6 +29,28 @@ import (
 // New returns the cloud-init metadata as a base-64 encoded string for a given
 // machine context.
 func New(ctx *context.MachineContext) ([]byte, error) {
+	net := ctx.MachineConfig.MachineSpec.Network
+
+	var format string
+
+	// skip network customization for basic DHCP networks reducing the risk of
+	// interfaces not coming up.
+	// 1) ubuntu 18.04 uses netplan which does not have a fail-safe mode,
+	//    if there are any errors configuring the interface, it will stay down
+	// 2) ESXi only generates MAC addresses on power on, leaving the configuration
+	//    invalid with an empty match MAC Address
+	if len(net.Devices) == 1 &&
+		len(net.Routes) == 0 &&
+		len(net.Devices[0].Nameservers) == 0 &&
+		len(net.Devices[0].Routes) == 0 &&
+		len(net.Devices[0].SearchDomains) == 0 &&
+		len(net.Devices[0].IPAddrs) == 0 {
+		format = basic
+	} else if ctx.GetSession() != nil && !ctx.GetSession().IsVC() {
+		return nil, errors.New("ESXi only supports basic DHCP network configuration")
+	} else {
+		format = netplan
+	}
 	buf := &bytes.Buffer{}
 	tpl := template.Must(template.New("t").Funcs(
 		template.FuncMap{
@@ -42,8 +64,8 @@ func New(ctx *context.MachineContext) ([]byte, error) {
 		Routes   []v1alpha1.NetworkRouteSpec
 	}{
 		Hostname: ctx.Machine.Name,
-		Devices:  ctx.MachineConfig.MachineSpec.Network.Devices,
-		Routes:   ctx.MachineConfig.MachineSpec.Network.Routes,
+		Devices:  net.Devices,
+		Routes:   net.Routes,
 	}); err != nil {
 		return nil, errors.Wrapf(err, "error getting cloud init metadata for machine %q", ctx)
 	}

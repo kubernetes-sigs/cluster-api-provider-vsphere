@@ -17,15 +17,20 @@ limitations under the License.
 package net
 
 import (
-	"context"
+	goctx "context"
 	"net"
 	"strings"
 
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/property"
 	"github.com/vmware/govmomi/vim25"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
+
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
 )
 
 // NetworkStatus provides information about one of a VM's networks.
@@ -48,7 +53,7 @@ type NetworkStatus struct {
 
 // GetNetworkStatus returns the network information for the specified VM.
 func GetNetworkStatus(
-	ctx context.Context,
+	ctx goctx.Context,
 	client *vim25.Client,
 	moRef types.ManagedObjectReference) ([]NetworkStatus, error) {
 
@@ -113,4 +118,73 @@ func ErrOnLocalOnlyIPAddr(addr string) error {
 		return errors.Errorf("failed to validate ip addr=%v: %s", addr, reason)
 	}
 	return nil
+}
+
+const ethCardType = "vmxnet3"
+
+type netContext interface {
+	goctx.Context
+	GetLogger() logr.Logger
+	GetSession() *context.Session
+	GetMachineConfig() *v1alpha1.VsphereMachineProviderConfig
+}
+
+func GetNetworkSpecs(
+	ctx netContext,
+	devices object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error) {
+
+	deviceSpecs := []types.BaseVirtualDeviceConfigSpec{}
+
+	// Remove any existing NICs
+	for _, dev := range devices.SelectByType((*types.VirtualEthernetCard)(nil)) {
+		deviceSpecs = append(deviceSpecs, &types.VirtualDeviceConfigSpec{
+			Device:    dev,
+			Operation: types.VirtualDeviceConfigSpecOperationRemove,
+		})
+	}
+
+	// Add new NICs based on the machine config.
+	key := int32(-100)
+	for i := range ctx.GetMachineConfig().MachineSpec.Network.Devices {
+		netSpec := &ctx.GetMachineConfig().MachineSpec.Network.Devices[i]
+		ref, err := ctx.GetSession().Finder.Network(ctx, netSpec.NetworkName)
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to find network %q", netSpec.NetworkName)
+		}
+		backing, err := ref.EthernetCardBackingInfo(ctx)
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to create new ethernet card backing info for network %q on %q", netSpec.NetworkName, ctx)
+		}
+		dev, err := object.EthernetCardTypes().CreateEthernetCard(ethCardType, backing)
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to create new ethernet card %q for network %q on %q", ethCardType, netSpec.NetworkName, ctx)
+		}
+
+		// Get the actual NIC object. This is safe to assert without a check
+		// because "object.EthernetCardTypes().CreateEthernetCard" returns a
+		// "types.BaseVirtualEthernetCard" as a "types.BaseVirtualDevice".
+		nic := dev.(types.BaseVirtualEthernetCard).GetVirtualEthernetCard()
+
+		if netSpec.MACAddr != "" {
+			nic.MacAddress = netSpec.MACAddr
+			// Please see https://www.vmware.com/support/developer/converter-sdk/conv60_apireference/vim.vm.device.VirtualEthernetCard.html#addressType
+			// for the valid values for this field.
+			nic.AddressType = "Manual"
+			ctx.GetLogger().V(6).Info("configured manual mac address", "mac-addr", nic.MacAddress)
+		} else if ctx.GetSession().IsVC() {
+			nic.AddressType = "Automatic"
+		}
+
+		// Assign a temporary device key to ensure that a unique one will be
+		// generated when the device is created.
+		nic.Key = key
+
+		deviceSpecs = append(deviceSpecs, &types.VirtualDeviceConfigSpec{
+			Device:    dev,
+			Operation: types.VirtualDeviceConfigSpecOperationAdd,
+		})
+		ctx.GetLogger().V(6).Info("created network device", "eth-card-type", ethCardType, "network-spec", netSpec)
+		key--
+	}
+	return deviceSpecs, nil
 }

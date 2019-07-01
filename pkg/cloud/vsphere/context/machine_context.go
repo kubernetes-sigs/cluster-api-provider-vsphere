@@ -150,6 +150,11 @@ func (c *MachineContext) GetMoRef() *types.ManagedObjectReference {
 	}
 }
 
+// GetObject returns the MachineConfig
+func (c *MachineContext) GetMachineConfig() *v1alpha1.VsphereMachineProviderConfig {
+	return c.MachineConfig
+}
+
 // GetObject returns the Machine object.
 func (c *MachineContext) GetObject() runtime.Object {
 	return c.Machine

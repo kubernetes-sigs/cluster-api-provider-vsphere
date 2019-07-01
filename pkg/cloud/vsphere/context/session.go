@@ -45,7 +45,7 @@ func getOrCreateCachedSession(ctx *MachineContext) (*Session, error) {
 	datacenter := ctx.MachineConfig.MachineSpec.Datacenter
 	sessionKey := ctx.ClusterConfig.VsphereServer + ctx.User() + datacenter
 
-	if session, ok := sessionCache[sessionKey]; ok {
+	if session, ok := sessionCache[sessionKey]; ok && session.IsVC() {
 		if ok, _ := session.SessionManager.SessionIsActive(ctx); ok {
 			return &session, nil
 		}

@@ -16,7 +16,11 @@ limitations under the License.
 
 package metadata
 
-const format = `
+const basic = `
+instance-id: "{{ .Hostname }}"
+local-hostname: "{{ .Hostname }}"
+`
+const netplan = `
 instance-id: "{{ .Hostname }}"
 local-hostname: "{{ .Hostname }}"
 network:

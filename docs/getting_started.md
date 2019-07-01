@@ -60,18 +60,18 @@ $ GO111MODULE="on" go get -mod readonly sigs.k8s.io/kind@v0.3.0
 
 #### clusterctl
 
-A version of `clusterctl` that is built from **this** repository must be installed. You can build `clusterctl` with docker using
-the `clusterctl-in-docker` make target:
+Install the official release binary of `clusterctl` for CAPV with the following:
 
 ```
-# set GOOS based on your environment (linux, darwin, windows, etc)
-$ GOOS=linux make clusterctl-in-docker
-```
+# Linux
+$ curl -Lo ./clusterctl.linux_amd64 https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/download/v0.3.0/clusterctl.linux_amd64
+$ chmod +x ./clusterctl.linux_amd64
+$ sudo mv ./clusterctl.linux_amd64 /usr/local/bin/clusterctl
 
-The `clusterctl-in-docker` make target installs `clusterctl` in `bin/clusterctl`. Temporarily add this folder to your PATH to use it
-for the rest of this guide:
-```
-$ export PATH="$PATH:$(pwd)/bin"
+# Darwin
+$ curl -Lo ./clusterctl.darwin_amd64 https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/download/v0.3.0/clusterctl.darwin_amd64
+$ chmod +x ./clusterctl.darwin_amd64
+$ sudo mv ./clusterctl.darwin_amd64 /usr/local/bin/clusterctl
 ```
 
 #### kubectl

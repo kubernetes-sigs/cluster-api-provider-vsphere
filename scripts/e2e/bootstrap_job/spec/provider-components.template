@@ -1101,7 +1101,7 @@ spec:
         - --logtostderr
         - -v=6
         command:
-        - /root/manager
+        - /manager
         env:
         - name: NODE_NAME
           valueFrom:

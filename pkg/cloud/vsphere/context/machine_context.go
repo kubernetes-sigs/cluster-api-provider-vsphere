@@ -228,7 +228,6 @@ func (c *MachineContext) BindPort() int32 {
 // control plane endpoint if the machine is a control plane node.
 // Otherwise an error is returned.
 func (c *MachineContext) ControlPlaneEndpoint() (string, error) {
-
 	if controlPlaneEndpoint, _ := c.ClusterContext.ControlPlaneEndpoint(); controlPlaneEndpoint != "" {
 		return controlPlaneEndpoint, nil
 	}

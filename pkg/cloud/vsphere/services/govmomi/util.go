@@ -180,19 +180,26 @@ func lookupVM(ctx *context.MachineContext) (*object.VirtualMachine, error) {
 
 		// Since a task was discovered, let's find out if it indicates a VM is
 		// being, or has been, created/cloned.
-		ctx.Logger.V(4).Info("task found", "state", task.Info.State, "description-id", task.Info.DescriptionId)
+		args := []interface{}{"state", task.Info.State, "description-id", task.Info.DescriptionId}
+		ctx.Logger.V(4).Info("task found", args...)
 		switch task.Info.State {
 		case types.TaskInfoStateQueued:
-			ctx.Logger.V(4).Info("task is still pending", "description-id", task.Info.DescriptionId)
+			ctx.Logger.V(4).Info("task is still pending", args...)
 			return nil, &clustererror.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
 		case types.TaskInfoStateRunning:
-			ctx.Logger.V(4).Info("task is still running", "description-id", task.Info.DescriptionId)
+			ctx.Logger.V(4).Info("task is still running", args...)
 			return nil, &clustererror.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
 		case types.TaskInfoStateSuccess:
-			ctx.Logger.V(4).Info("task is a success", "description-id", task.Info.DescriptionId)
+			ctx.Logger.V(4).Info("task is a success", args...)
 			ctx.MachineStatus.TaskRef = ""
 		case types.TaskInfoStateError:
-			ctx.Logger.V(2).Info("task failed", "description-id", task.Info.DescriptionId)
+			if task.Info.Error != nil {
+				args = append(args, "error", task.Info.Error.LocalizedMessage)
+			}
+			if task.Info.Reason != nil {
+				args = append(args, "reason", task.Info.Reason)
+			}
+			ctx.Logger.V(2).Info("task failed", args...)
 			ctx.MachineStatus.TaskRef = ""
 		default:
 			return nil, errors.Errorf("unknown task state %q for %q", task.Info.State, ctx)

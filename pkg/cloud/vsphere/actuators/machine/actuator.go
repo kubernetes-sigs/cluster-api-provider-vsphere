@@ -321,9 +321,10 @@ func (a *Actuator) reconcileReadyState(ctx *context.MachineContext) error {
 func (a *Actuator) shouldInitControlPlane(ctx *context.MachineContext) (bool, error) {
 
 	// Check to see if the control plane is already initialized.
-	if client, err := remotev1.NewClusterClient(a.controllerClient, ctx.Cluster); err == nil {
-		if coreClient, err := client.CoreV1(); err == nil {
-			if _, err := coreClient.Nodes().List(metav1.ListOptions{}); err == nil {
+	if machines, err := ctx.GetMachines(); err == nil {
+		for _, m := range machines {
+			if m.Status.NodeRef != nil {
+				ctx.Logger.V(6).Info("control plane is already initialized")
 				return false, nil
 			}
 		}

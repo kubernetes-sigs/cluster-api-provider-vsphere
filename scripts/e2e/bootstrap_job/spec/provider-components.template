@@ -1420,6 +1420,9 @@ spec:
                     = RollingUpdate.
                   properties:
                     maxSurge:
+                      anyOf:
+                      - type: string
+                      - type: integer
                       description: 'The maximum number of machines that can be scheduled
                         above the desired number of machines. Value can be an absolute
                         number (ex: 5) or a percentage of desired machines (ex: 10%).
@@ -1432,10 +1435,10 @@ spec:
                         new MachineSet can be scaled up further, ensuring that total
                         number of machines running at any time during the update is
                         at most 130% of desired machines.'
-                      oneOf:
+                    maxUnavailable:
+                      anyOf:
                       - type: string
                       - type: integer
-                    maxUnavailable:
                       description: 'The maximum number of machines that can be unavailable
                         during the update. Value can be an absolute number (ex: 5)
                         or a percentage of desired machines (ex: 10%). Absolute number
@@ -1447,9 +1450,6 @@ spec:
                         down further, followed by scaling up the new MachineSet, ensuring
                         that the total number of machines available at all times during
                         the update is at least 70% of desired machines.'
-                      oneOf:
-                      - type: string
-                      - type: integer
                   type: object
                 type:
                   description: Type of deployment. Currently the only supported strategy
@@ -2106,6 +2106,16 @@ rules:
   - patch
   - delete
 - apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - patch
+- apiGroups:
   - cluster.k8s.io
   resources:
   - machines
@@ -2183,12 +2193,11 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - events
+  - secrets
   verbs:
   - get
   - list
   - watch
-  - create
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -2245,7 +2254,7 @@ spec:
         args:
         - --logtostderr
         - -v=6
-        image: gcr.io/k8s-cluster-api/cluster-api-controller:0.1.3
+        image: gcr.io/k8s-cluster-api/cluster-api-controller:v0.1.4
         name: manager
         resources:
           limits:

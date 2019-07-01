@@ -312,6 +312,17 @@ func (a *Actuator) reconcileReadyState(ctx *context.MachineContext) error {
 		ctx.Logger.V(6).Info("requeuing until noderef is set")
 		return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
 	}
+	// A machine being ready also needs to assign itself an annotation in order
+	// to survive the pivot. Otherwise a race condition exists where the NodeRef
+	// on machines aren't yet set post-pivot, and a new machine may try to
+	// initialize the cluster rather than join it.
+	if ctx.Machine.Annotations == nil {
+		ctx.Machine.Annotations = map[string]string{}
+	}
+	if _, ok := ctx.Machine.Annotations[constants.ReadyAnnotationLabel]; !ok {
+		ctx.Machine.Annotations[constants.ReadyAnnotationLabel] = ""
+		ctx.Logger.V(6).Info("machine is ready")
+	}
 	return nil
 }
 
@@ -324,7 +335,11 @@ func (a *Actuator) shouldInitControlPlane(ctx *context.MachineContext) (bool, er
 	if machines, err := ctx.GetMachines(); err == nil {
 		for _, m := range machines {
 			if m.Status.NodeRef != nil {
-				ctx.Logger.V(6).Info("control plane is already initialized")
+				ctx.Logger.V(6).Info("control plane is already initialized: noderef exists")
+				return false, nil
+			}
+			if _, ok := ctx.Machine.Annotations[constants.ReadyAnnotationLabel]; ok {
+				ctx.Logger.V(6).Info("control plane is already initialized: ready annotation")
 				return false, nil
 			}
 		}

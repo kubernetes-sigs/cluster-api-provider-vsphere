@@ -171,8 +171,6 @@ func GetNetworkSpecs(
 			// for the valid values for this field.
 			nic.AddressType = "Manual"
 			ctx.GetLogger().V(6).Info("configured manual mac address", "mac-addr", nic.MacAddress)
-		} else if ctx.GetSession().IsVC() {
-			nic.AddressType = "Automatic"
 		}
 
 		// Assign a temporary device key to ensure that a unique one will be

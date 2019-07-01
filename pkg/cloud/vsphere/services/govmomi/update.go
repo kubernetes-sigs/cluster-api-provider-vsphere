@@ -17,6 +17,8 @@ limitations under the License.
 package govmomi
 
 import (
+	"fmt"
+
 	"github.com/pkg/errors"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
@@ -56,6 +58,25 @@ func Update(ctx *context.MachineContext) error {
 		return err
 	}
 
+	if err := reconcileProviderID(ctx, vm); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// reconcileProviderID updates the machine's ProviderID using the VM's BIOS UUID.
+func reconcileProviderID(ctx *context.MachineContext, vm *object.VirtualMachine) error {
+	biosUUID := vm.UUID(ctx)
+	if biosUUID == "" {
+		ctx.Logger.V(6).Info("requeuing until BIOS UUID is no longer empty")
+		return &clustererror.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+	}
+	providerID := fmt.Sprintf("vsphere://%s", biosUUID)
+	if ctx.Machine.Spec.ProviderID == nil || *ctx.Machine.Spec.ProviderID != providerID {
+		ctx.Machine.Spec.ProviderID = &providerID
+		ctx.Logger.V(6).Info("updated provider ID", "provider-id", providerID)
+	}
 	return nil
 }
 

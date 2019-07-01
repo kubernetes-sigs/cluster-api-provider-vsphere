@@ -22,11 +22,16 @@ import (
 
 	"github.com/pkg/errors"
 
+	apiv1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/klog/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clientv1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
-	clustererr "sigs.k8s.io/cluster-api/pkg/controller/error"
+	clusterErr "sigs.k8s.io/cluster-api/pkg/controller/error"
+	remotev1 "sigs.k8s.io/cluster-api/pkg/controller/remote"
+	controllerClient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/actuators"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
@@ -42,18 +47,21 @@ const (
 
 // Actuator is responsible for maintaining the Machine objects.
 type Actuator struct {
-	client     clientv1.ClusterV1alpha1Interface
-	coreClient corev1.CoreV1Interface
+	client           clientv1.ClusterV1alpha1Interface
+	coreClient       corev1.CoreV1Interface
+	controllerClient controllerClient.Client
 }
 
 // NewActuator returns a new instance of Actuator.
 func NewActuator(
 	client clientv1.ClusterV1alpha1Interface,
-	coreClient corev1.CoreV1Interface) *Actuator {
+	coreClient corev1.CoreV1Interface,
+	controllerClient controllerClient.Client) *Actuator {
 
 	return &Actuator{
-		client:     client,
-		coreClient: coreClient,
+		client:           client,
+		coreClient:       coreClient,
+		controllerClient: controllerClient,
 	}
 }
 
@@ -80,7 +88,7 @@ func (a *Actuator) Create(
 
 	if _, ok := machine.Annotations[constants.MaintenanceAnnotationLabel]; ok {
 		ctx.Logger.V(4).Info("skipping operations on machine", "reason", "annotation", "annotation-key", constants.MaintenanceAnnotationLabel)
-		return &clustererr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+		return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
 	}
 
 	defer func() {
@@ -120,7 +128,7 @@ func (a *Actuator) Delete(
 
 	if _, ok := machine.Annotations[constants.MaintenanceAnnotationLabel]; ok {
 		ctx.Logger.V(4).Info("skipping operations on machine", "reason", "annotation", "annotation-key", constants.MaintenanceAnnotationLabel)
-		return &clustererr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+		return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
 	}
 
 	defer func() {
@@ -156,9 +164,13 @@ func (a *Actuator) Update(
 		opErr = actuators.PatchAndHandleError(ctx, "Update", opErr)
 	}()
 
-	ctx.Logger.V(4).Info("updating machine")
+	ctx.Logger.V(6).Info("updating machine")
 
 	if err := govmomi.Update(ctx); err != nil {
+		return err
+	}
+
+	if err := a.reconcileKubeConfig(ctx); err != nil {
 		return err
 	}
 
@@ -191,7 +203,7 @@ func (a *Actuator) Exists(
 
 	if _, ok := machine.Annotations[constants.MaintenanceAnnotationLabel]; ok {
 		ctx.Logger.V(4).Info("skipping operations on machine", "reason", "annotation", "annotation-key", constants.MaintenanceAnnotationLabel)
-		return false, &clustererr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+		return false, &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
 	}
 
 	defer func() {
@@ -204,7 +216,7 @@ func (a *Actuator) Exists(
 func (a *Actuator) reconcilePKI(ctx *context.MachineContext) error {
 	if !ctx.ClusterConfig.CAKeyPair.HasCertAndKey() {
 		ctx.Logger.V(6).Info("cluster config is missing pki toolchain, requeue machine")
-		return &clustererr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+		return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
 	}
 	return nil
 }
@@ -221,7 +233,7 @@ func (a *Actuator) reconcileInitOrJoin(ctx *context.MachineContext) error {
 	// Otherwise wait for the cluster to come online.
 	if online, _, _ := kubeclient.GetControlPlaneStatus(ctx); !online {
 		ctx.Logger.V(6).Info("unable to join machine to control plane until it is online")
-		return &clustererr.RequeueAfterError{RequeueAfter: time.Minute * 1}
+		return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
 	}
 
 	// Get a Kubernetes client for the cluster.
@@ -240,17 +252,55 @@ func (a *Actuator) reconcileInitOrJoin(ctx *context.MachineContext) error {
 	return govmomi.Create(ctx, token)
 }
 
-// reconcileReadyState sets an annotation on the machine, marking it as ready,
-// once the machine has IP addresses.
-func (a *Actuator) reconcileReadyState(ctx *context.MachineContext) error {
-	if len(ctx.Machine.Status.Addresses) > 0 {
-		if ctx.Machine.Annotations[constants.ReadyAnnotationLabel] == "" {
-			if ctx.Machine.Annotations == nil {
-				ctx.Machine.Annotations = map[string]string{}
-			}
-			ctx.Machine.Annotations[constants.ReadyAnnotationLabel] = "true"
-			ctx.Logger.V(6).Info("machine is ready")
+// reconcileKubeConfig creates a secret on the management cluster with
+// the kubeconfig for target cluster.
+func (a *Actuator) reconcileKubeConfig(ctx *context.MachineContext) error {
+	if !ctx.HasControlPlaneRole() {
+		return nil
+	}
+	if ctx.IPAddr() == "" {
+		ctx.Logger.V(6).Info("requeueing reconcileKubeConfig until IP addr is present")
+		return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+	}
+
+	// Get the name of the secret that stores the kubeconfig.
+	secretName := remotev1.KubeConfigSecretName(ctx.Cluster.Name)
+
+	// Create a new kubeconfig for the target cluster.
+	ctx.Logger.V(6).Info("generating kubeconfig secret")
+	kubeConfig, err := kubeclient.GetKubeConfig(ctx)
+	if err != nil {
+		return errors.Wrapf(err, "error generating kubeconfig for %q", ctx)
+	}
+
+	secret := &apiv1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: secretName,
+		},
+		StringData: map[string]string{
+			"value": kubeConfig,
+		},
+	}
+
+	// Create the kubeconfig secret.
+	if _, err := a.coreClient.Secrets(ctx.Cluster.Namespace).Create(secret); err != nil {
+		if !apierrors.IsAlreadyExists(err) {
+			return errors.Wrapf(err, "error creating kubeconfig secret for %q", ctx)
 		}
+		ctx.Logger.V(6).Info("kubeconfig secret already exists")
+	} else {
+		ctx.Logger.V(4).Info("created kubeconfig secret")
+	}
+
+	return nil
+}
+
+// reconcileReadyState returns a requeue error until the machine appears
+// in the target cluster's list of nodes.
+func (a *Actuator) reconcileReadyState(ctx *context.MachineContext) error {
+	if ctx.Machine.Status.NodeRef == nil {
+		ctx.Logger.V(6).Info("requeuing until noderef is set")
+		return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
 	}
 	return nil
 }

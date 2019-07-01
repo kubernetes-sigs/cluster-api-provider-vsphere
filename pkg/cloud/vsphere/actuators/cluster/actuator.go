@@ -17,13 +17,11 @@ limitations under the License.
 package cluster
 
 import (
-	"fmt"
-	"net"
+	"net/url"
 	"strconv"
 
 	"github.com/pkg/errors"
 
-	apiv1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -31,6 +29,8 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clientv1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	clusterErr "sigs.k8s.io/cluster-api/pkg/controller/error"
+	remotev1 "sigs.k8s.io/cluster-api/pkg/controller/remote"
+	controllerClient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/actuators"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
@@ -41,18 +41,21 @@ import (
 
 // Actuator is responsible for maintaining the Cluster objects.
 type Actuator struct {
-	client     clientv1.ClusterV1alpha1Interface
-	coreClient corev1.CoreV1Interface
+	client           clientv1.ClusterV1alpha1Interface
+	coreClient       corev1.CoreV1Interface
+	controllerClient controllerClient.Client
 }
 
 // NewActuator returns a new instance of Actuator.
 func NewActuator(
 	client clientv1.ClusterV1alpha1Interface,
-	coreClient corev1.CoreV1Interface) *Actuator {
+	coreClient corev1.CoreV1Interface,
+	controllerClient controllerClient.Client) *Actuator {
 
 	return &Actuator{
-		client:     client,
-		coreClient: coreClient,
+		client:           client,
+		coreClient:       coreClient,
+		controllerClient: controllerClient,
 	}
 }
 
@@ -80,13 +83,6 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (opErr error) {
 
 	if err := a.reconcileReadyState(ctx); err != nil {
 		return err
-	}
-
-	// reconcileKubeConfig can fail because control plane endpoints
-	// aren't ready so return requeue error
-	if err := a.reconcileKubeConfig(ctx); err != nil {
-		return errors.Wrapf(&clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue},
-			"error reconciling kubeconfig secret for cluster %q", ctx)
 	}
 
 	return nil
@@ -168,79 +164,88 @@ func (a *Actuator) reconcilePKI(ctx *context.ClusterContext) error {
 }
 
 func (a *Actuator) reconcileReadyState(ctx *context.ClusterContext) error {
-	online, controlPlaneEndpoint, err := kubeclient.GetControlPlaneStatus(ctx)
+
+	// Always remove the ready annotation. Ready state is determined
+	// every time during reconciliation.
+	delete(ctx.Cluster.Annotations, constants.ReadyAnnotationLabel)
+
+	// Always recalculate the API Endpoints.
+	ctx.Cluster.Status.APIEndpoints = []clusterv1.APIEndpoint{}
+
+	// Reset the cluster's ready status
+	ctx.ClusterStatus.Ready = false
+
+	// List the target cluster's nodes to verify the target cluster is online.
+	client, err := remotev1.NewClusterClient(a.controllerClient, ctx.Cluster)
 	if err != nil {
-		// This may or may not contain RequeueError. If it does then the deferred
-		// PathAndHandleError will take care of requeueing things.
-		return err
-	}
-	if !online {
+		ctx.Logger.V(6).Info("unable to get client for target cluster", "reason", err.Error())
 		return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
 	}
-	host, szPort, err := net.SplitHostPort(controlPlaneEndpoint)
+	coreClient, err := client.CoreV1()
 	if err != nil {
-		return errors.Wrapf(err, "unable to get host/port for control plane endpoint %q for %q", controlPlaneEndpoint, ctx)
+		ctx.Logger.V(6).Info("unable to get core client for target cluster", "reason", err.Error())
+		return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
 	}
-	port, err := strconv.Atoi(szPort)
+	if _, err := coreClient.Nodes().List(metav1.ListOptions{}); err != nil {
+		ctx.Logger.V(6).Info("unable to list nodes for target cluster", "reason", err.Error())
+		return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+	}
+
+	restConfig := client.RESTConfig()
+	if restConfig == nil {
+		ctx.Logger.V(6).Info("unable to get rest config target cluster", "reason", err.Error())
+		return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+	}
+
+	// Calculate the API endpoint for the cluster.
+	controlPlaneEndpointURL, err := url.Parse(restConfig.Host)
 	if err != nil {
-		return errors.Wrapf(err, "unable to get parse host and port for control plane endpoint %q for %q", controlPlaneEndpoint, ctx)
+		return errors.Wrapf(err, "unable to parse cluster's restConifg host value: %v", restConfig.Host)
 	}
-	if len(ctx.Cluster.Status.APIEndpoints) == 0 || (ctx.Cluster.Status.APIEndpoints[0].Host != host && ctx.Cluster.Status.APIEndpoints[0].Port != port) {
-		ctx.Cluster.Status.APIEndpoints = []clusterv1.APIEndpoint{
-			{
-				Host: host,
-				Port: port,
-			},
+
+	// The API endpoint may just have a host.
+	apiEndpoint := clusterv1.APIEndpoint{
+		Host: controlPlaneEndpointURL.Hostname(),
+	}
+
+	// Check to see if there is also a port.
+	if szPort := controlPlaneEndpointURL.Port(); szPort != "" {
+		port, err := strconv.Atoi(szPort)
+		if err != nil {
+			return errors.Wrapf(err, "unable to get parse host and port for control plane endpoint %q for %q", controlPlaneEndpointURL.Host, ctx)
 		}
+		apiEndpoint.Port = port
 	}
-	if ctx.ClusterConfig.ClusterConfiguration.ControlPlaneEndpoint == "" {
-		ctx.ClusterConfig.ClusterConfiguration.ControlPlaneEndpoint = controlPlaneEndpoint
-		ctx.Logger.V(6).Info("stored control plane endpoint in kubeadm cluster config", "control-plane-endpoint", controlPlaneEndpoint)
+
+	// Update the API endpoints.
+	ctx.Cluster.Status.APIEndpoints = []clusterv1.APIEndpoint{apiEndpoint}
+	ctx.Logger.V(6).Info("calculated API endpoint for target cluster", "api-endpoint-host", apiEndpoint.Host, "api-endpoint-port", apiEndpoint.Port)
+
+	// Update the kubeadm control plane endpoint with the one from the kubeconfig.
+	if ctx.ClusterConfig.ClusterConfiguration.ControlPlaneEndpoint != controlPlaneEndpointURL.Host {
+		ctx.ClusterConfig.ClusterConfiguration.ControlPlaneEndpoint = controlPlaneEndpointURL.Host
+		ctx.Logger.V(6).Info("stored control plane endpoint in kubeadm cluster config", "control-plane-endpoint", controlPlaneEndpointURL.Host)
 	}
+
+	// Update the ready status.
 	ctx.ClusterStatus.Ready = true
+
+	// Update the ready annotation.
 	if ctx.Cluster.Annotations == nil {
 		ctx.Cluster.Annotations = map[string]string{}
 	}
-	ctx.Cluster.Annotations[constants.ReadyAnnotationLabel] = "true"
+	ctx.Cluster.Annotations[constants.ReadyAnnotationLabel] = ""
+
 	ctx.Logger.V(6).Info("cluster is ready")
-
-	return nil
-}
-
-// reconcileKubeConfig creates a Kubernetes Secret holding the kubeconfig
-// for a cluster if the secret does not already exist
-func (a *Actuator) reconcileKubeConfig(ctx *context.ClusterContext) error {
-	cluster := ctx.Cluster
-
-	kubeConfig, err := a.GetKubeConfig(cluster, nil)
-	if err != nil {
-		return errors.Wrap(err, "error generating kubeconfig")
-	}
-
-	secret := &apiv1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("%s-kubeconfig", cluster.Name),
-		},
-		StringData: map[string]string{
-			"value": kubeConfig,
-		},
-	}
-
-	if _, err := a.coreClient.Secrets(cluster.Namespace).Create(secret); err != nil &&
-		!apierrors.IsAlreadyExists(err) {
-		return errors.Wrap(err, "error creating kubeconfig secret")
-	}
-
 	return nil
 }
 
 func (a *Actuator) deleteKubeConfig(ctx *context.ClusterContext) error {
-	secretName := fmt.Sprintf("%s-kubeconfig", ctx.Cluster.Name)
-
-	err := a.coreClient.Secrets(ctx.Cluster.Namespace).Delete(secretName, &metav1.DeleteOptions{})
-	if apierrors.IsNotFound(err) {
-		return nil
+	secretName := remotev1.KubeConfigSecretName(ctx.Cluster.Name)
+	if err := a.coreClient.Secrets(ctx.Cluster.Namespace).Delete(secretName, &metav1.DeleteOptions{}); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return errors.Wrapf(err, "error deleting kubeconfig secret for %q", ctx)
+		}
 	}
-
-	return err
+	return nil
 }

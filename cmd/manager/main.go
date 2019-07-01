@@ -85,10 +85,10 @@ func main() {
 	record.InitFromRecorder(mgr.GetRecorder("vsphere-controller"))
 
 	// Initialize cluster actuator.
-	clusterActuator := cluster.NewActuator(cs.ClusterV1alpha1(), coreClient)
+	clusterActuator := cluster.NewActuator(cs.ClusterV1alpha1(), coreClient, mgr.GetClient())
 
 	// Initialize machine actuator.
-	machineActuator := machine.NewActuator(cs.ClusterV1alpha1(), coreClient)
+	machineActuator := machine.NewActuator(cs.ClusterV1alpha1(), coreClient, mgr.GetClient())
 
 	// Register the cluster actuator as the deployer.
 	common.RegisterClusterProvisioner("vsphere", clusterActuator)

@@ -38,7 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/govmomi"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/kubeclient"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/kubeconfig"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/tokens"
 )
 
@@ -268,24 +268,34 @@ func (a *Actuator) reconcileKubeConfig(ctx *context.MachineContext) error {
 	if !ctx.HasControlPlaneRole() {
 		return nil
 	}
-	if ctx.IPAddr() == "" {
-		ctx.Logger.V(6).Info("requeueing reconcileKubeConfig until IP addr is present")
+
+	// Get the control plane endpoint.
+	controlPlaneEndpoint, err := ctx.ControlPlaneEndpoint()
+	if err != nil {
+		ctx.Logger.Error(err, "requeueing until control plane endpoint is available")
 		return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
 	}
 
-	// Get the name of the secret that stores the kubeconfig.
-	secretName := remotev1.KubeConfigSecretName(ctx.Cluster.Name)
-
 	// Create a new kubeconfig for the target cluster.
 	ctx.Logger.V(6).Info("generating kubeconfig secret")
-	kubeConfig, err := kubeclient.GetKubeConfig(ctx)
+	kubeConfig, err := kubeconfig.New(ctx.Cluster.Name, controlPlaneEndpoint, ctx.ClusterConfig.CAKeyPair)
 	if err != nil {
 		return errors.Wrapf(err, "error generating kubeconfig for %q", ctx)
 	}
 
+	// Define the kubeconfig secret for the target cluster.
 	secret := &apiv1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: secretName,
+			Namespace: ctx.Cluster.Namespace,
+			Name:      remotev1.KubeConfigSecretName(ctx.Cluster.Name),
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: ctx.Cluster.APIVersion,
+					Kind:       ctx.Cluster.Kind,
+					Name:       ctx.Cluster.Name,
+					UID:        ctx.Cluster.UID,
+				},
+			},
 		},
 		StringData: map[string]string{
 			"value": kubeConfig,

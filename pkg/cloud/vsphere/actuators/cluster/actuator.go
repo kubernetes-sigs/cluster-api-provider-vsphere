@@ -153,14 +153,6 @@ func (a *Actuator) reconcileReadyState(ctx *context.ClusterContext) error {
 		return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
 	}
 
-	// Delete the control plane config map.
-	if err := ctx.CoreClient.ConfigMaps(ctx.Cluster.Namespace).Delete(actuators.GetNameOfControlPlaneConfigMap(ctx.Cluster.UID), &metav1.DeleteOptions{}); err != nil {
-		if !apierrors.IsGone(err) && !apierrors.IsNotFound(err) {
-			ctx.Logger.Error(err, "error deleting the control plane config map")
-			return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
-		}
-	}
-
 	// Get the RESTConfig in order to parse its Host to use as the control plane
 	// endpoint to add to the Cluster's API endpoints.
 	restConfig := client.RESTConfig()

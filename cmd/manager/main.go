@@ -37,6 +37,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/actuators/cluster"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/actuators/machine"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/deployer"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 )
 
@@ -84,14 +85,14 @@ func main() {
 	// Initialize event recorder.
 	record.InitFromRecorder(mgr.GetRecorder("vsphere-controller"))
 
+	// Register the deployer.
+	common.RegisterClusterProvisioner("vsphere", deployer.Deployer{})
+
 	// Initialize cluster actuator.
 	clusterActuator := cluster.NewActuator(cs.ClusterV1alpha1(), coreClient, mgr.GetClient())
 
 	// Initialize machine actuator.
 	machineActuator := machine.NewActuator(cs.ClusterV1alpha1(), coreClient, mgr.GetClient())
-
-	// Register the cluster actuator as the deployer.
-	common.RegisterClusterProvisioner("vsphere", clusterActuator)
 
 	if err := apis.AddToScheme(mgr.GetScheme()); err != nil {
 		klog.Fatal(err)

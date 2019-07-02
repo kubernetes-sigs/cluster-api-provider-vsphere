@@ -36,7 +36,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/certificates"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/kubeclient"
 )
 
 // Actuator is responsible for maintaining the Cluster objects.
@@ -113,47 +112,6 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster) (opErr error) {
 	}
 
 	return nil
-}
-
-// GetIP returns the control plane endpoint for the cluster.
-func (a *Actuator) GetIP(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
-	clusterContext, err := context.NewClusterContext(&context.ClusterContextParams{
-		Cluster:    cluster,
-		Client:     a.client,
-		CoreClient: a.coreClient,
-	})
-	if err != nil {
-		return "", err
-	}
-	machineContext, err := context.NewMachineContextFromClusterContext(clusterContext, machine)
-	if err != nil {
-		return "", err
-	}
-	return machineContext.ControlPlaneEndpoint()
-}
-
-// GetKubeConfig returns the contents of a Kubernetes configuration file that
-// may be used to access the cluster.
-func (a *Actuator) GetKubeConfig(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
-	clusterContext, err := context.NewClusterContext(&context.ClusterContextParams{
-		Cluster:    cluster,
-		Client:     a.client,
-		CoreClient: a.coreClient,
-	})
-	if err != nil {
-		return "", err
-	}
-
-	if machine == nil {
-		return kubeclient.GetKubeConfig(clusterContext)
-	}
-
-	machineContext, err := context.NewMachineContextFromClusterContext(clusterContext, machine)
-	if err != nil {
-		return "", err
-	}
-
-	return kubeclient.GetKubeConfig(machineContext)
 }
 
 func (a *Actuator) reconcilePKI(ctx *context.ClusterContext) error {

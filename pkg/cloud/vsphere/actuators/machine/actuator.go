@@ -18,6 +18,7 @@ package machine
 
 import (
 	goctx "context"
+	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
@@ -308,21 +309,27 @@ func (a *Actuator) reconcileKubeConfig(ctx *context.MachineContext) error {
 // reconcileReadyState returns a requeue error until the machine appears
 // in the target cluster's list of nodes.
 func (a *Actuator) reconcileReadyState(ctx *context.MachineContext) error {
+
+	// Normally the following code would delete the ready annotation to
+	// allow it to be recalculated. However, because a machine's annotations
+	// are the only thing guaranteed to survive the pivot (from a set that
+	// also includes the cluster annotations and the machine's NodeRef), this
+	// annotation cannot be deleted. Else this would create a race condition
+	// where, post-pivot, a second machine may attempt to initialize the
+	// control plane.
+	//delete(ctx.Machine.Annotations, constants.MachineReadyAnnotationLabel)
+
 	if ctx.Machine.Status.NodeRef == nil {
 		ctx.Logger.V(6).Info("requeuing until noderef is set")
 		return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
 	}
-	// A machine being ready also needs to assign itself an annotation in order
-	// to survive the pivot. Otherwise a race condition exists where the NodeRef
-	// on machines aren't yet set post-pivot, and a new machine may try to
-	// initialize the cluster rather than join it.
+
 	if ctx.Machine.Annotations == nil {
 		ctx.Machine.Annotations = map[string]string{}
 	}
-	if _, ok := ctx.Machine.Annotations[constants.ReadyAnnotationLabel]; !ok {
-		ctx.Machine.Annotations[constants.ReadyAnnotationLabel] = ""
-		ctx.Logger.V(6).Info("machine is ready")
-	}
+	ctx.Machine.Annotations[constants.MachineReadyAnnotationLabel] = ""
+	ctx.Logger.V(6).Info("machine is ready")
+
 	return nil
 }
 
@@ -335,11 +342,11 @@ func (a *Actuator) shouldInitControlPlane(ctx *context.MachineContext) (bool, er
 	if machines, err := ctx.GetMachines(); err == nil {
 		for _, m := range machines {
 			if m.Status.NodeRef != nil {
-				ctx.Logger.V(6).Info("control plane is already initialized: noderef exists")
+				ctx.Logger.V(6).Info("control plane is already initialized: noderef exists", "node-ref", m.Status.NodeRef.String())
 				return false, nil
 			}
-			if _, ok := ctx.Machine.Annotations[constants.ReadyAnnotationLabel]; ok {
-				ctx.Logger.V(6).Info("control plane is already initialized: ready annotation")
+			if _, ok := m.Annotations[constants.MachineReadyAnnotationLabel]; ok {
+				ctx.Logger.V(6).Info("control plane is already initialized: ready annotation", "machine", fmt.Sprintf("%s/%s", m.Namespace, m.Name))
 				return false, nil
 			}
 		}

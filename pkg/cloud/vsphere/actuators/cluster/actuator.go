@@ -109,19 +109,14 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster) (opErr error) {
 
 	ctx.Logger.V(2).Info("deleting cluster")
 
-	// if deleteKubeconfig fails, return requeue error so kubeconfig
-	// secret is properly cleaned up
-	if err := a.deleteKubeConfig(ctx); err != nil {
-		return errors.Wrapf(&clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue},
-			"error deleting kubeconfig secret for cluster %q", ctx)
+	// Delete the kubeconfig secret for the target cluster.
+	if err := a.deleteKubeConfigSecret(ctx); err != nil {
+		return err
 	}
 
-	// Delete the control plane config map.
-	controlPlaneConfigMapName := actuators.GetNameOfControlPlaneConfigMap(ctx.Cluster.UID)
-	if err := ctx.CoreClient.ConfigMaps(ctx.Cluster.Namespace).Delete(controlPlaneConfigMapName, &metav1.DeleteOptions{}); err != nil {
-		if !apierrors.IsGone(err) && !apierrors.IsNotFound(err) {
-			return errors.Wrapf(err, "error deleting control plane config map %q for %q", controlPlaneConfigMapName, ctx)
-		}
+	// Delete the control plane config map for the target cluster.
+	if err := a.deleteControlPlaneConfigMap(ctx); err != nil {
+		return err
 	}
 
 	return nil
@@ -135,10 +130,6 @@ func (a *Actuator) reconcilePKI(ctx *context.ClusterContext) error {
 }
 
 func (a *Actuator) reconcileReadyState(ctx *context.ClusterContext) error {
-
-	// Always remove the ready annotation. Ready state is determined
-	// every time during reconciliation.
-	delete(ctx.Cluster.Annotations, constants.ReadyAnnotationLabel)
 
 	// Always recalculate the API Endpoints.
 	ctx.Cluster.Status.APIEndpoints = []clusterv1.APIEndpoint{}
@@ -174,13 +165,8 @@ func (a *Actuator) reconcileReadyState(ctx *context.ClusterContext) error {
 	// endpoint to add to the Cluster's API endpoints.
 	restConfig := client.RESTConfig()
 	if restConfig == nil {
-		ctx.Logger.Info("unable to get rest config target cluster")
+		ctx.Logger.Error(errors.New("restConfig == nil"), "error getting RESTConfig for kube client")
 		return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
-	}
-
-	ctx.ClusterStatus.Ready = true
-	if ctx.Cluster.Annotations == nil {
-		ctx.Cluster.Annotations = map[string]string{}
 	}
 
 	// Calculate the API endpoint for the cluster.
@@ -216,21 +202,24 @@ func (a *Actuator) reconcileReadyState(ctx *context.ClusterContext) error {
 	// Update the ready status.
 	ctx.ClusterStatus.Ready = true
 
-	// Update the ready annotation.
-	if ctx.Cluster.Annotations == nil {
-		ctx.Cluster.Annotations = map[string]string{}
-	}
-	ctx.Cluster.Annotations[constants.ReadyAnnotationLabel] = ""
-
 	ctx.Logger.V(6).Info("cluster is ready")
 	return nil
 }
 
-func (a *Actuator) deleteKubeConfig(ctx *context.ClusterContext) error {
+func (a *Actuator) deleteKubeConfigSecret(ctx *context.ClusterContext) error {
 	if err := a.coreClient.Secrets(ctx.Cluster.Namespace).Delete(remotev1.KubeConfigSecretName(ctx.Cluster.Name), &metav1.DeleteOptions{}); err != nil {
 		if !apierrors.IsGone(err) && !apierrors.IsNotFound(err) {
-			ctx.Logger.Error(err, "error deleting kubeconfig secret for target cluster")
-			return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+			return errors.Wrapf(err, "error deleting kubeconfig secret for target cluster %q", ctx)
+		}
+	}
+	return nil
+}
+
+func (a *Actuator) deleteControlPlaneConfigMap(ctx *context.ClusterContext) error {
+	controlPlaneConfigMapName := actuators.GetNameOfControlPlaneConfigMap(ctx.Cluster.UID)
+	if err := ctx.CoreClient.ConfigMaps(ctx.Cluster.Namespace).Delete(controlPlaneConfigMapName, &metav1.DeleteOptions{}); err != nil {
+		if !apierrors.IsGone(err) && !apierrors.IsNotFound(err) {
+			return errors.Wrapf(err, "error deleting control plane config map %q for target cluster %q", controlPlaneConfigMapName, ctx)
 		}
 	}
 	return nil

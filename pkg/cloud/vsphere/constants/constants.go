@@ -37,11 +37,11 @@ const (
 	// password from a Kubernetes secret.
 	VspherePasswordKey = "password"
 
-	// ReadyAnnotationLabel is the annotation used to indicate a machine and/or
-	// cluster are ready.
-	ReadyAnnotationLabel = "capv.sigs.k8s.io/ready"
+	// MachineReadyAnnotationLabel is the annotation used to indicate that a
+	// machine is ready.
+	MachineReadyAnnotationLabel = "vsphere.cluster.sigs.k8s.io/machine-ready"
 
 	// MaintenanceAnnotationLabel is the annotation used to indicate a machine and/or
 	// cluster are in maintenance mode.
-	MaintenanceAnnotationLabel = "capv.sigs.k8s.io/maintenance"
+	MaintenanceAnnotationLabel = "vsphere.cluster.sigs.k8s.io/maintenance"
 )

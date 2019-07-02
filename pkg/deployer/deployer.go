@@ -19,8 +19,9 @@ package deployer
 import (
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/kubeclient"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/kubeconfig"
 )
 
 var d Deployer
@@ -58,16 +59,13 @@ func (d Deployer) GetIP(cluster *clusterv1.Cluster, machine *clusterv1.Machine) 
 // GetKubeConfig returns the contents of a Kubernetes configuration file that
 // may be used to access the cluster.
 func (d Deployer) GetKubeConfig(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
-	clusterContext, err := context.NewClusterContext(&context.ClusterContextParams{Cluster: cluster})
+	controlPlaneEndpoint, err := d.GetIP(cluster, machine)
 	if err != nil {
 		return "", err
 	}
-	if machine == nil {
-		return kubeclient.GetKubeConfig(clusterContext)
-	}
-	machineContext, err := context.NewMachineContextFromClusterContext(clusterContext, machine)
+	clusterConfig, err := v1alpha1.ClusterConfigFromCluster(cluster)
 	if err != nil {
 		return "", err
 	}
-	return kubeclient.GetKubeConfig(machineContext)
+	return kubeconfig.New(cluster.Name, controlPlaneEndpoint, clusterConfig.CAKeyPair)
 }

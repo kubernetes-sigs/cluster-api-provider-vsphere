@@ -982,24 +982,10 @@ metadata:
   name: vsphere-provider-manager-role
 rules:
 - apiGroups:
-  - apps
-  resources:
-  - deployments
-  verbs:
-  - get
-  - list
-  - watch
-  - create
-  - update
-  - patch
-  - delete
-- apiGroups:
   - vsphereproviderconfig.sigs.k8s.io
   resources:
   - vsphereclusterproviderconfigs
-  - vspheremachineproviderconfigs
   - vsphereclusterproviderstatuses
-  - vspheremachineproviderstatuses
   verbs:
   - get
   - list
@@ -1013,10 +999,6 @@ rules:
   resources:
   - clusters
   - clusters/status
-  - machines
-  - machines/status
-  - machinesets
-  - machinedeployments
   verbs:
   - get
   - list
@@ -1029,7 +1011,17 @@ rules:
   - ""
   resources:
   - secrets
+  verbs:
+  - create
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - nodes
   - events
+  - configmaps
   verbs:
   - get
   - list
@@ -1039,13 +1031,58 @@ rules:
   - patch
   - delete
 - apiGroups:
+  - vsphereproviderconfig.sigs.k8s.io
+  resources:
+  - vspheremachineproviderconfigs
+  - vspheremachineproviderstatuses
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - cluster.k8s.io
+  resources:
+  - machines
+  - machines/status
+  - machinedeployments
+  - machinedeployments/status
+  - machinesets
+  - machinesets/status
+  - machineclasses
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - cluster.k8s.io
+  resources:
+  - clusters
+  - clusters/status
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - ""
   resources:
   - nodes
+  - events
+  - configmaps
   verbs:
-  - list
   - get
+  - list
   - watch
+  - create
+  - update
+  - patch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -1065,7 +1102,7 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    control-plane: vsphere-provider-controller-manager
+    control-plane: controller-manager
     controller-tools.k8s.io: "1.0"
   name: vsphere-provider-controller-manager-service
   namespace: vsphere-provider-system
@@ -1073,27 +1110,27 @@ spec:
   ports:
   - port: 443
   selector:
-    control-plane: vsphere-provider-controller-manager
+    control-plane: controller-manager
     controller-tools.k8s.io: "1.0"
 ---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   labels:
-    control-plane: vsphere-provider-controller-manager
+    control-plane: controller-manager
     controller-tools.k8s.io: "1.0"
   name: vsphere-provider-controller-manager
   namespace: vsphere-provider-system
 spec:
   selector:
     matchLabels:
-      control-plane: vsphere-provider-controller-manager
+      control-plane: controller-manager
       controller-tools.k8s.io: "1.0"
   serviceName: vsphere-provider-controller-manager-service
   template:
     metadata:
       labels:
-        control-plane: vsphere-provider-controller-manager
+        control-plane: controller-manager
         controller-tools.k8s.io: "1.0"
     spec:
       containers:

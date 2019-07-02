@@ -3,19 +3,19 @@ kind: Namespace
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
-  name: provider-system
+  name: system
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: provider-controller-manager-service
+  name: controller-manager-service
   namespace: system
   labels:
-    control-plane: vsphere-provider-controller-manager
+    control-plane: controller-manager
     controller-tools.k8s.io: "1.0"
 spec:
   selector:
-    control-plane: vsphere-provider-controller-manager
+    control-plane: controller-manager
     controller-tools.k8s.io: "1.0"
   ports:
   - port: 443
@@ -23,21 +23,21 @@ spec:
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: provider-controller-manager
+  name: controller-manager
   namespace: system
   labels:
-    control-plane: vsphere-provider-controller-manager
+    control-plane: controller-manager
     controller-tools.k8s.io: "1.0"
 spec:
   selector:
     matchLabels:
-      control-plane: vsphere-provider-controller-manager
+      control-plane: controller-manager
       controller-tools.k8s.io: "1.0"
-  serviceName: provider-controller-manager-service
+  serviceName: controller-manager-service
   template:
     metadata:
       labels:
-        control-plane: vsphere-provider-controller-manager
+        control-plane: controller-manager
         controller-tools.k8s.io: "1.0"
     spec:
       nodeSelector:

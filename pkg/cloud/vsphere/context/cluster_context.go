@@ -60,6 +60,7 @@ type ClusterContext struct {
 	ClusterClient client.ClusterInterface
 	ClusterConfig *v1alpha1.VsphereClusterProviderConfig
 	ClusterStatus *v1alpha1.VsphereClusterProviderStatus
+	CoreClient    corev1.CoreV1Interface
 	Logger        logr.Logger
 	client        client.ClusterV1alpha1Interface
 	machineClient client.MachineInterface
@@ -125,6 +126,7 @@ func NewClusterContext(params *ClusterContextParams) (*ClusterContext, error) {
 		ClusterClient: clusterClient,
 		ClusterConfig: clusterConfig,
 		ClusterStatus: clusterStatus,
+		CoreClient:    params.CoreClient,
 		Logger:        logr,
 		client:        params.Client,
 		machineClient: machineClient,
@@ -142,6 +144,7 @@ func NewClusterLoggerContext(parentContext *ClusterContext, loggerContext string
 		ClusterClient: parentContext.ClusterClient,
 		ClusterConfig: parentContext.ClusterConfig,
 		ClusterStatus: parentContext.ClusterStatus,
+		CoreClient:    parentContext.CoreClient,
 		client:        parentContext.client,
 		machineClient: parentContext.machineClient,
 		user:          parentContext.user,

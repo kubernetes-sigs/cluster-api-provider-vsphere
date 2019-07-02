@@ -93,6 +93,8 @@ while getopts ':c:dfhi:k:m:o:p:' opt; do
 done
 shift $((OPTIND-1))
 
+export MANAGER_IMAGE="${CAPV_MANAGER_IMAGE}"
+
 [ -n "${OUT_DIR}" ] || OUT_DIR="./out/${CLUSTER_NAME}"
 mkdir -p "${OUT_DIR}"
 
@@ -111,14 +113,14 @@ MACHINESET_TPL_FILE="${TPL_DIR}"/machineset.yaml.template
 # shellcheck disable=SC2034
 MACHINESET_OUT_FILE="${OUT_DIR}"/machineset.yaml
 
-CAPI_CRD_DIR=./vendor/sigs.k8s.io/cluster-api/config
-CAPV_CRD_DIR=./config
+CAPI_CFG_DIR=./vendor/sigs.k8s.io/cluster-api/config
+CAPV_CFG_DIR=./config
 
 COMP_OUT_FILE="${OUT_DIR}"/provider-components.yaml
 # shellcheck disable=SC2034
-CAPV_MANAGER_TPL_FILE="${TPL_DIR}"/capv_manager_image_patch.yaml.template
+CAPV_MANAGER_TPL_FILE="${CAPV_CFG_DIR}"/default/manager_image_patch.yaml.template
 # shellcheck disable=SC2034
-CAPV_MANAGER_OUT_FILE="${CAPV_CRD_DIR}"/default/capv_manager_image_patch.yaml
+CAPV_MANAGER_OUT_FILE="${CAPV_CFG_DIR}"/default/manager_image_patch.yaml
 
 ok_file() {
   [ -f "${1}" ] || { echo "${1} is missing" 1>&2; exit 1; }
@@ -210,9 +212,9 @@ do_kustomize() {
 }
 
 # Run kustomize either with a local binary or a Docker image.
-{ do_kustomize build "${CAPV_CRD_DIR}"/default/ && \
+{ do_kustomize build "${CAPV_CFG_DIR}"/default/ && \
   echo "---" && \
-  do_kustomize build "${CAPI_CRD_DIR}"/default/; } >"${COMP_OUT_FILE}"
+  do_kustomize build "${CAPI_CFG_DIR}"/default/; } >"${COMP_OUT_FILE}"
 
 cat <<EOF
 Done generating ${COMP_OUT_FILE}

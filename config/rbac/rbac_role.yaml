@@ -2,27 +2,13 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   creationTimestamp: null
-  name: provider-manager-role
+  name: manager-role
 rules:
-- apiGroups:
-  - apps
-  resources:
-  - deployments
-  verbs:
-  - get
-  - list
-  - watch
-  - create
-  - update
-  - patch
-  - delete
 - apiGroups:
   - vsphereproviderconfig.sigs.k8s.io
   resources:
   - vsphereclusterproviderconfigs
-  - vspheremachineproviderconfigs
   - vsphereclusterproviderstatuses
-  - vspheremachineproviderstatuses
   verbs:
   - get
   - list
@@ -36,10 +22,6 @@ rules:
   resources:
   - clusters
   - clusters/status
-  - machines
-  - machines/status
-  - machinesets
-  - machinedeployments
   verbs:
   - get
   - list
@@ -52,7 +34,17 @@ rules:
   - ""
   resources:
   - secrets
+  verbs:
+  - create
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - nodes
   - events
+  - configmaps
   verbs:
   - get
   - list
@@ -62,10 +54,55 @@ rules:
   - patch
   - delete
 - apiGroups:
+  - vsphereproviderconfig.sigs.k8s.io
+  resources:
+  - vspheremachineproviderconfigs
+  - vspheremachineproviderstatuses
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - cluster.k8s.io
+  resources:
+  - machines
+  - machines/status
+  - machinedeployments
+  - machinedeployments/status
+  - machinesets
+  - machinesets/status
+  - machineclasses
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - cluster.k8s.io
+  resources:
+  - clusters
+  - clusters/status
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - ""
   resources:
   - nodes
+  - events
+  - configmaps
   verbs:
-  - list
   - get
+  - list
   - watch
+  - create
+  - update
+  - patch

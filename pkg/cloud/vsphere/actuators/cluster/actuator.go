@@ -38,6 +38,11 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/certificates"
 )
 
+//+kubebuilder:rbac:groups=vsphereproviderconfig.sigs.k8s.io,resources=vsphereclusterproviderconfigs;vsphereclusterproviderstatuses,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=cluster.k8s.io,resources=clusters;clusters/status,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=,resources=secrets,verbs=create;get;list;watch
+//+kubebuilder:rbac:groups="",resources=nodes;events;configmaps,verbs=get;list;watch;create;update;patch;delete
+
 // Actuator is responsible for maintaining the Cluster objects.
 type Actuator struct {
 	client           clientv1.ClusterV1alpha1Interface
@@ -104,11 +109,14 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster) (opErr error) {
 
 	ctx.Logger.V(2).Info("deleting cluster")
 
-	// if deleteKubeconfig fails, return requeue error so kubeconfig
-	// secret is properly cleaned up
-	if err := a.deleteKubeConfig(ctx); err != nil {
-		return errors.Wrapf(&clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue},
-			"error deleting kubeconfig secret for cluster %q", ctx)
+	// Delete the kubeconfig secret for the target cluster.
+	if err := a.deleteKubeConfigSecret(ctx); err != nil {
+		return err
+	}
+
+	// Delete the control plane config map for the target cluster.
+	if err := a.deleteControlPlaneConfigMap(ctx); err != nil {
+		return err
 	}
 
 	return nil
@@ -123,10 +131,6 @@ func (a *Actuator) reconcilePKI(ctx *context.ClusterContext) error {
 
 func (a *Actuator) reconcileReadyState(ctx *context.ClusterContext) error {
 
-	// Always remove the ready annotation. Ready state is determined
-	// every time during reconciliation.
-	delete(ctx.Cluster.Annotations, constants.ReadyAnnotationLabel)
-
 	// Always recalculate the API Endpoints.
 	ctx.Cluster.Status.APIEndpoints = []clusterv1.APIEndpoint{}
 
@@ -136,22 +140,24 @@ func (a *Actuator) reconcileReadyState(ctx *context.ClusterContext) error {
 	// List the target cluster's nodes to verify the target cluster is online.
 	client, err := remotev1.NewClusterClient(a.controllerClient, ctx.Cluster)
 	if err != nil {
-		ctx.Logger.V(6).Info("unable to get client for target cluster", "reason", err.Error())
+		ctx.Logger.Error(err, "unable to get client for target cluster")
 		return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
 	}
 	coreClient, err := client.CoreV1()
 	if err != nil {
-		ctx.Logger.V(6).Info("unable to get core client for target cluster", "reason", err.Error())
+		ctx.Logger.Error(err, "unable to get core client for target cluster")
 		return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
 	}
 	if _, err := coreClient.Nodes().List(metav1.ListOptions{}); err != nil {
-		ctx.Logger.V(6).Info("unable to list nodes for target cluster", "reason", err.Error())
+		ctx.Logger.Error(err, "unable to list nodes for target cluster")
 		return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
 	}
 
+	// Get the RESTConfig in order to parse its Host to use as the control plane
+	// endpoint to add to the Cluster's API endpoints.
 	restConfig := client.RESTConfig()
 	if restConfig == nil {
-		ctx.Logger.V(6).Info("unable to get rest config target cluster", "reason", err.Error())
+		ctx.Logger.Error(errors.New("restConfig == nil"), "error getting RESTConfig for kube client")
 		return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
 	}
 
@@ -188,21 +194,24 @@ func (a *Actuator) reconcileReadyState(ctx *context.ClusterContext) error {
 	// Update the ready status.
 	ctx.ClusterStatus.Ready = true
 
-	// Update the ready annotation.
-	if ctx.Cluster.Annotations == nil {
-		ctx.Cluster.Annotations = map[string]string{}
-	}
-	ctx.Cluster.Annotations[constants.ReadyAnnotationLabel] = ""
-
 	ctx.Logger.V(6).Info("cluster is ready")
 	return nil
 }
 
-func (a *Actuator) deleteKubeConfig(ctx *context.ClusterContext) error {
-	secretName := remotev1.KubeConfigSecretName(ctx.Cluster.Name)
-	if err := a.coreClient.Secrets(ctx.Cluster.Namespace).Delete(secretName, &metav1.DeleteOptions{}); err != nil {
-		if !apierrors.IsNotFound(err) {
-			return errors.Wrapf(err, "error deleting kubeconfig secret for %q", ctx)
+func (a *Actuator) deleteKubeConfigSecret(ctx *context.ClusterContext) error {
+	if err := a.coreClient.Secrets(ctx.Cluster.Namespace).Delete(remotev1.KubeConfigSecretName(ctx.Cluster.Name), &metav1.DeleteOptions{}); err != nil {
+		if !apierrors.IsGone(err) && !apierrors.IsNotFound(err) {
+			return errors.Wrapf(err, "error deleting kubeconfig secret for target cluster %q", ctx)
+		}
+	}
+	return nil
+}
+
+func (a *Actuator) deleteControlPlaneConfigMap(ctx *context.ClusterContext) error {
+	controlPlaneConfigMapName := actuators.GetNameOfControlPlaneConfigMap(ctx.Cluster.UID)
+	if err := ctx.CoreClient.ConfigMaps(ctx.Cluster.Namespace).Delete(controlPlaneConfigMapName, &metav1.DeleteOptions{}); err != nil {
+		if !apierrors.IsGone(err) && !apierrors.IsNotFound(err) {
+			return errors.Wrapf(err, "error deleting control plane config map %q for target cluster %q", controlPlaneConfigMapName, ctx)
 		}
 	}
 	return nil

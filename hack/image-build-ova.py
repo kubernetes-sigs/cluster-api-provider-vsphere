@@ -68,6 +68,7 @@ def main():
     create_ovf(ovf, {
         'BUILD_DATE': build_data['build_date'],
         'BUILD_NAME': build['name'],
+        'ARTIFACT_ID': build['artifact_id'],
         'BUILD_TIMESTAMP': build_data['build_timestamp'],
         'CAPI_VERSION': build_data['capi_version'],
         'CAPV_VERSION': build_data['capv_version'],
@@ -175,12 +176,12 @@ _OVF_TEMPLATE = '''<?xml version='1.0' encoding='UTF-8'?>
     <Info>Storage policy for group of disks</Info>
     <vmw:Description>The vSAN Default Storage Policy storage policy group</vmw:Description>
   </vmw:StorageGroupSection>
-  <VirtualSystem ovf:id="${BUILD_NAME}+kubernetes">
+  <VirtualSystem ovf:id="${ARTIFACT_ID}">
     <Info>A Virtual system</Info>
-    <Name>${OS_NAME} + Kubernetes</Name>
+    <Name>${ARTIFACT_ID}</Name>
     <AnnotationSection>
       <Info>A human-readable annotation</Info>
-      <Annotation>${OS_NAME} + Kubernetes</Annotation>
+      <Annotation>Cluster API vSphere image - ${OS_NAME} and Kubernetes ${KUBERNETES_SEMVER} - https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/tree/master/build/images</Annotation>
     </AnnotationSection>
     <OperatingSystemSection ovf:id="101" vmw:osType="other3xLinux64Guest">
       <Info>The operating system installed</Info>
@@ -535,10 +536,10 @@ EVALUATION LICENSE.  If You are licensing the Software for evaluation purposes, 
     </EulaSection>
     <ProductSection>
       <Info>Information about the installed software</Info>
-      <Product>${OS_NAME} + Kubernetes</Product>
+      <Product>${OS_NAME} and Kubernetes ${KUBERNETES_SEMVER}</Product>
       <Vendor>VMware Inc.</Vendor>
-      <Version>${KUBERNETES_SEMVER}</Version>
-      <FullVersion>${KUBERNETES_SEMVER}</FullVersion>
+      <Version>${CAPV_VERSION}+kube-${KUBERNETES_SEMVER}</Version>
+      <FullVersion>${CAPV_VERSION}+kube-${KUBERNETES_SEMVER}</FullVersion>
       <ProductUrl>https://github.com/kubernetes-sigs/cluster-api-provider-vsphere</ProductUrl>
       <VendorUrl>https://vmware.com</VendorUrl>
       <Category>Cluster API Provider (CAPI)</Category>

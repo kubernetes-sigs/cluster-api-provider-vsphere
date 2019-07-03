@@ -94,13 +94,21 @@ func generateUserData(ctx *context.MachineContext, bootstrapToken string) ([]byt
 
 	// apply values based on the role of the machine
 	if ctx.HasControlPlaneRole() {
+
+		// Cloud init needs the a valid vmfolder in cloudconfig
+		// Check the vmfolder and replace with default if not present
+		folder, err := ctx.Session.Finder.FolderOrDefault(ctx, ctx.MachineConfig.MachineSpec.VMFolder)
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to get folder for %q", ctx)
+		}
+
 		cloudConfig, err := userdata.NewCloudConfig(&userdata.CloudConfigInput{
 			User:         ctx.ClusterConfig.VsphereUser,
 			Password:     ctx.ClusterConfig.VspherePassword,
 			Server:       ctx.ClusterConfig.VsphereServer,
 			Datacenter:   ctx.MachineConfig.MachineSpec.Datacenter,
 			ResourcePool: ctx.MachineConfig.MachineSpec.ResourcePool,
-			Folder:       ctx.MachineConfig.MachineSpec.VMFolder,
+			Folder:       folder.Name(),
 			Datastore:    ctx.MachineConfig.MachineSpec.Datastore,
 			// assume the first VM network found for the vSphere cloud provider
 			Network: ctx.MachineConfig.MachineSpec.Network.Devices[0].NetworkName,

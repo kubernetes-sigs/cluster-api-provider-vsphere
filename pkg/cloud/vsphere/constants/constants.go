@@ -18,6 +18,8 @@ package constants
 
 import (
 	"time"
+
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphere"
 )
 
 const (
@@ -29,19 +31,19 @@ const (
 	// requeueing a CAPI operation.
 	DefaultRequeue = 20 * time.Second
 
-	// VsphereUserKey is the key used to store/retrieve the vSphere user
-	// name from a Kubernetes secret.
-	VsphereUserKey = "username"
+	// VSphereCredentialSecretUserKey is the key used to store/retrieve the
+	// vSphere username from a Kubernetes secret.
+	VSphereCredentialSecretUserKey = "username"
 
-	// VspherePasswordKey is the key used to store/retrieve the vSphere
-	// password from a Kubernetes secret.
-	VspherePasswordKey = "password"
+	// VSphereCredentialSecretPassKey is the key used to store/retrieve the
+	// vSphere password from a Kubernetes secret.
+	VSphereCredentialSecretPassKey = "password"
 
 	// MachineReadyAnnotationLabel is the annotation used to indicate that a
 	// machine is ready.
-	MachineReadyAnnotationLabel = "vsphere.cluster.sigs.k8s.io/machine-ready"
+	MachineReadyAnnotationLabel = vsphere.GroupName + "/machine-ready"
 
 	// MaintenanceAnnotationLabel is the annotation used to indicate a machine and/or
 	// cluster are in maintenance mode.
-	MaintenanceAnnotationLabel = "vsphere.cluster.sigs.k8s.io/maintenance"
+	MaintenanceAnnotationLabel = vsphere.GroupName + "/maintenance"
 )

@@ -4,12 +4,12 @@ metadata:
   creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: vspheremachineproviderconfigs.vsphereproviderconfig.sigs.k8s.io
+  name: vspheremachineproviderspecs.vsphere.cluster.k8s.io
 spec:
-  group: vsphereproviderconfig.sigs.k8s.io
+  group: vsphere.cluster.k8s.io
   names:
-    kind: VsphereMachineProviderConfig
-    plural: vspheremachineproviderconfigs
+    kind: VsphereMachineProviderSpec
+    plural: vspheremachineproviderspecs
   scope: Namespaced
   validation:
     openAPIV3Schema:
@@ -18,6 +18,28 @@ spec:
           description: 'APIVersion defines the versioned schema of this representation
             of an object. Servers should convert recognized schemas to the latest
             internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+          type: string
+        datacenter:
+          description: Datacenter is the name or inventory path of the datacenter
+            where this machine's VM is created/located.
+          type: string
+        datastore:
+          description: Datastore is the name or inventory path of the datastore where
+            this machine's VM is created/located. When omitted, GoVmomi's DatastoreOrDefault
+            method is used to determine the default datastore. It is recommended to
+            explicitly set this value.
+          type: string
+        diskGiB:
+          description: DiskGiB is the size of a virtual machine's disk, in GiB. Defaults
+            to the analogue property value in the template from which this machine
+            is cloned.
+          format: int32
+          type: integer
+        folder:
+          description: Folder is the name or inventory path of the folder where this
+            machine's VM is created/located. When omitted, GoVmomi's FolderOrDefault
+            method is used to determine the default folder. It is recommended to explicitly
+            set this value.
           type: string
         kind:
           description: 'Kind is a string value representing the REST resource this
@@ -304,155 +326,152 @@ spec:
               type: object
           type: object
         machineRef:
+          description: This value is set automatically at runtime and should not be
+            set or modified by users. MachineRef is used to lookup the VM.
           type: string
-        machineSpec:
-          properties:
-            datacenter:
-              type: string
-            datastore:
-              type: string
-            diskGiB:
-              format: int32
-              type: integer
-            disks:
-              items:
-                properties:
-                  diskLabel:
-                    type: string
-                  diskSizeGB:
-                    format: int64
-                    type: integer
-                type: object
-              type: array
-            memoryMB:
-              format: int64
-              type: integer
-            network:
-              properties:
-                devices:
-                  description: Devices is the list of network devices used by the
-                    virtual machine.
-                  items:
-                    properties:
-                      ipAddrs:
-                        description: IPAddrs is a list of one or more IPv4 and/or
-                          IPv6 addresses to assign to this device. Required when DHCP4
-                          and DHCP6 are both false.
-                        items:
-                          type: string
-                        type: array
-                      macAddr:
-                        description: MACAddr is the MAC address used by this device.
-                          It is generally a good idea to omit this field and allow
-                          a MAC address to be generated. Please note that this value
-                          must use the VMware OUI to work with the in-tree vSphere
-                          cloud provider.
-                        type: string
-                      mtu:
-                        description: MTU is the device’s Maximum Transmission Unit
-                          size in bytes.
-                        format: int64
-                        type: integer
-                      nameservers:
-                        description: Nameservers is a list of IPv4 and/or IPv6 addresses
-                          used as DNS nameservers. Please note that Linux allows only
-                          three nameservers (https://linux.die.net/man/5/resolv.conf).
-                        items:
-                          type: string
-                        type: array
-                      networkName:
-                        description: NetworkName is the name of the vSphere network
-                          to which the device will be connected.
-                        type: string
-                      routes:
-                        description: Routes is a list of optional, static routes applied
-                          to the device.
-                        items:
-                          properties:
-                            metric:
-                              description: Metric is the weight/priority of the route.
-                              format: int32
-                              type: integer
-                            to:
-                              description: To is an IPv4 or IPv6 address.
-                              type: string
-                            via:
-                              description: Via is an IPv4 or IPv6 address.
-                              type: string
-                          required:
-                          - to
-                          - via
-                          - metric
-                          type: object
-                        type: array
-                      searchDomains:
-                        description: SearchDomains is a list of search domains used
-                          when resolving IP addresses with DNS.
-                        items:
-                          type: string
-                        type: array
-                    required:
-                    - networkName
-                    type: object
-                  type: array
-                preferredAPIServerCidr:
-                  description: PreferredAPIServeCIDR is the preferred CIDR for the
-                    Kubernetes API server endpoint on this machine
-                  type: string
-                routes:
-                  description: Routes is a list of optional, static routes applied
-                    to the virtual machine.
-                  items:
-                    properties:
-                      metric:
-                        description: Metric is the weight/priority of the route.
-                        format: int32
-                        type: integer
-                      to:
-                        description: To is an IPv4 or IPv6 address.
-                        type: string
-                      via:
-                        description: Via is an IPv4 or IPv6 address.
-                        type: string
-                    required:
-                    - to
-                    - via
-                    - metric
-                    type: object
-                  type: array
-              required:
-              - devices
-              type: object
-            ntpServers:
-              items:
-                type: string
-              type: array
-            numCPUs:
-              format: int32
-              type: integer
-            preloaded:
-              type: boolean
-            resourcePool:
-              type: string
-            template:
-              type: string
-            trustedCerts:
-              items:
-                type: string
-              type: array
-            vmFolder:
-              type: string
-            vsphereCloudInit:
-              type: boolean
-          required:
-          - datacenter
-          - datastore
-          - network
-          - template
-          - disks
-          type: object
+        memoryMiB:
+          description: MemoryMiB is the size of a virtual machine's memory, in MiB.
+            Defaults to the analogue property value in the template from which this
+            machine is cloned.
+          format: int64
+          type: integer
         metadata:
           type: object
+        network:
+          description: Network is the network configuration for this machine's VM.
+          properties:
+            devices:
+              description: Devices is the list of network devices used by the virtual
+                machine.
+              items:
+                properties:
+                  ipAddrs:
+                    description: IPAddrs is a list of one or more IPv4 and/or IPv6
+                      addresses to assign to this device. Required when DHCP4 and
+                      DHCP6 are both false.
+                    items:
+                      type: string
+                    type: array
+                  macAddr:
+                    description: MACAddr is the MAC address used by this device. It
+                      is generally a good idea to omit this field and allow a MAC
+                      address to be generated. Please note that this value must use
+                      the VMware OUI to work with the in-tree vSphere cloud provider.
+                    type: string
+                  mtu:
+                    description: MTU is the device’s Maximum Transmission Unit size
+                      in bytes.
+                    format: int64
+                    type: integer
+                  nameservers:
+                    description: Nameservers is a list of IPv4 and/or IPv6 addresses
+                      used as DNS nameservers. Please note that Linux allows only
+                      three nameservers (https://linux.die.net/man/5/resolv.conf).
+                    items:
+                      type: string
+                    type: array
+                  networkName:
+                    description: NetworkName is the name of the vSphere network to
+                      which the device will be connected.
+                    type: string
+                  routes:
+                    description: Routes is a list of optional, static routes applied
+                      to the device.
+                    items:
+                      properties:
+                        metric:
+                          description: Metric is the weight/priority of the route.
+                          format: int32
+                          type: integer
+                        to:
+                          description: To is an IPv4 or IPv6 address.
+                          type: string
+                        via:
+                          description: Via is an IPv4 or IPv6 address.
+                          type: string
+                      required:
+                      - to
+                      - via
+                      - metric
+                      type: object
+                    type: array
+                  searchDomains:
+                    description: SearchDomains is a list of search domains used when
+                      resolving IP addresses with DNS.
+                    items:
+                      type: string
+                    type: array
+                required:
+                - networkName
+                type: object
+              type: array
+            preferredAPIServerCidr:
+              description: PreferredAPIServeCIDR is the preferred CIDR for the Kubernetes
+                API server endpoint on this machine
+              type: string
+            routes:
+              description: Routes is a list of optional, static routes applied to
+                the virtual machine.
+              items:
+                properties:
+                  metric:
+                    description: Metric is the weight/priority of the route.
+                    format: int32
+                    type: integer
+                  to:
+                    description: To is an IPv4 or IPv6 address.
+                    type: string
+                  via:
+                    description: Via is an IPv4 or IPv6 address.
+                    type: string
+                required:
+                - to
+                - via
+                - metric
+                type: object
+              type: array
+          required:
+          - devices
+          type: object
+        ntpServers:
+          description: NTPServers is a list of NTP servers to use instead of the machine
+            image's default NTP server list.
+          items:
+            type: string
+          type: array
+        numCPUs:
+          description: NumCPUs is the number of virtual processors in a virtual machine.
+            Defaults to the analogue property value in the template from which this
+            machine is cloned.
+          format: int32
+          type: integer
+        numCoresPerSocket:
+          description: NumCPUs is the number of cores among which to distribute CPUs
+            in this virtual machine. Defaults to the analogue property value in the
+            template from which this machine is cloned.
+          format: int32
+          type: integer
+        resourcePool:
+          description: ResourcePool is the name or inventory path of the resource
+            pool where this machine's VM is created/located. When omitted, GoVmomi's
+            ResourcePoolOrDefault method is used to determine the default resource
+            pool. It is recommended to explicitly set this value.
+          type: string
+        template:
+          description: Template is the name, inventory path, or instance UUID of the
+            template used to clone new machines.
+          type: string
+        trustedCerts:
+          description: TrustedCerts is a list of trusted certificates to add to the
+            machine's VM.
+          items:
+            format: byte
+            type: string
+          type: array
+      required:
+      - template
+      - datacenter
+      - network
   version: v1alpha1
 status:
   acceptedNames:

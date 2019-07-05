@@ -26,6 +26,8 @@ import (
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/soap"
+
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphere/v1alpha1"
 )
 
 var sessionCache = map[string]Session{}
@@ -42,8 +44,8 @@ func getOrCreateCachedSession(ctx *MachineContext) (*Session, error) {
 	sessionMU.Lock()
 	defer sessionMU.Unlock()
 
-	datacenter := ctx.MachineConfig.MachineSpec.Datacenter
-	sessionKey := ctx.ClusterConfig.VsphereServer + ctx.User() + datacenter
+	datacenter := ctx.MachineConfig.Datacenter
+	sessionKey := ctx.ClusterConfig.Server + ctx.User() + datacenter
 
 	if session, ok := sessionCache[sessionKey]; ok {
 		if ok, _ := session.SessionManager.SessionIsActive(ctx); ok {
@@ -51,12 +53,12 @@ func getOrCreateCachedSession(ctx *MachineContext) (*Session, error) {
 		}
 	}
 
-	soapURL, err := soap.ParseURL(ctx.ClusterConfig.VsphereServer)
+	soapURL, err := soap.ParseURL(ctx.ClusterConfig.Server)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error parsing vSphere URL %q", ctx.ClusterConfig.VsphereServer)
+		return nil, errors.Wrapf(err, "error parsing vSphere URL %q", ctx.ClusterConfig.Server)
 	}
 	if soapURL == nil {
-		return nil, errors.Errorf("error parsing vSphere URL %q", ctx.ClusterConfig.VsphereServer)
+		return nil, errors.Errorf("error parsing vSphere URL %q", ctx.ClusterConfig.Server)
 	}
 
 	soapURL.User = url.UserPassword(ctx.User(), ctx.Pass())
@@ -70,8 +72,7 @@ func getOrCreateCachedSession(ctx *MachineContext) (*Session, error) {
 
 	session := Session{Client: client}
 
-	// TODO(frapposelli): replace `dev` with version string
-	session.UserAgent = "kubernetes-cluster-api-provider-vsphere/dev"
+	session.UserAgent = v1alpha1.SchemeGroupVersion.String()
 
 	// Assign the finder to the session.
 	session.Finder = find.NewFinder(session.Client.Client, false)
@@ -86,7 +87,7 @@ func getOrCreateCachedSession(ctx *MachineContext) (*Session, error) {
 
 	// Cache the session.
 	sessionCache[sessionKey] = session
-	ctx.Logger.V(2).Info("cached vSphere client session", "server", ctx.ClusterConfig.VsphereServer, "datacenter", datacenter)
+	ctx.Logger.V(2).Info("cached vSphere client session", "server", ctx.ClusterConfig.Server, "datacenter", datacenter)
 
 	return &session, nil
 }

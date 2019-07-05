@@ -23,13 +23,15 @@ import (
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// VsphereMachineProviderStatus defines the observed state of VsphereMachineProviderConfig
+// VsphereMachineProviderStatus is the schema for the vspheremachineproviderstatus API
 // +k8s:openapi-gen=true
 type VsphereMachineProviderStatus struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// TaskRef is a managed object reference to a Task related to the machine.
+	// This value is set automatically at runtime and should not be set or
+	// modified by users.
 	// +optional
 	TaskRef string `json:"taskRef,omitempty"`
 

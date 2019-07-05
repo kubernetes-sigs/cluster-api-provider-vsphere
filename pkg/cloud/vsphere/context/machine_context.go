@@ -33,7 +33,7 @@ import (
 	clusterUtilv1 "sigs.k8s.io/cluster-api/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/patch"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphere/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 )
@@ -50,7 +50,7 @@ type MachineContext struct {
 	Machine       *clusterv1.Machine
 	MachineCopy   *clusterv1.Machine
 	MachineClient client.MachineInterface
-	MachineConfig *v1alpha1.VsphereMachineProviderConfig
+	MachineConfig *v1alpha1.VsphereMachineProviderSpec
 	MachineStatus *v1alpha1.VsphereMachineProviderStatus
 	Session       *Session
 }
@@ -65,7 +65,7 @@ func NewMachineContextFromClusterContext(
 		machineClient = clusterCtx.client.Machines(machine.Namespace)
 	}
 
-	machineConfig, err := v1alpha1.MachineConfigFromMachine(machine)
+	machineConfig, err := v1alpha1.GetMachineProviderSpec(machine)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load machine provider config")
 	}
@@ -79,7 +79,7 @@ func NewMachineContextFromClusterContext(
 		}
 	}
 
-	machineStatus, err := v1alpha1.MachineStatusFromMachine(machine)
+	machineStatus, err := v1alpha1.GetMachineProviderStatus(machine)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load machine provider status")
 	}
@@ -177,8 +177,8 @@ func (c *MachineContext) IPAddr() string {
 
 	var err error
 	var preferredAPIServerCIDR *net.IPNet
-	if c.MachineConfig.MachineSpec.Network.PreferredAPIServerCIDR != "" {
-		_, preferredAPIServerCIDR, err = net.ParseCIDR(c.MachineConfig.MachineSpec.Network.PreferredAPIServerCIDR)
+	if c.MachineConfig.Network.PreferredAPIServerCIDR != "" {
+		_, preferredAPIServerCIDR, err = net.ParseCIDR(c.MachineConfig.Network.PreferredAPIServerCIDR)
 		if err != nil {
 			c.Logger.Error(err, "error parsing preferred apiserver CIDR")
 			return ""
@@ -250,7 +250,7 @@ func (c *MachineContext) Patch() {
 	c.MachineCopy.Status.DeepCopyInto(&c.Machine.Status)
 
 	// Patch the object, minus the status.
-	localProviderSpec, err := v1alpha1.EncodeMachineSpec(c.MachineConfig)
+	localProviderSpec, err := EncodeAsRawExtension(c.MachineConfig)
 	if err != nil {
 		c.Logger.Error(err, "failed to encode provider spec")
 		return
@@ -284,7 +284,7 @@ func (c *MachineContext) Patch() {
 	localStatus.DeepCopyInto(&c.Machine.Status)
 
 	// Patch the status only.
-	localProviderStatus, err := v1alpha1.EncodeMachineStatus(c.MachineStatus)
+	localProviderStatus, err := EncodeAsRawExtension(c.MachineStatus)
 	if err != nil {
 		c.Logger.Error(err, "failed to encode provider status")
 		return

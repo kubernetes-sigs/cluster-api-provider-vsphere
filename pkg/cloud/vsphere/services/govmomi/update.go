@@ -122,7 +122,7 @@ func reconcileNetwork(ctx *context.MachineContext, vm *object.VirtualMachine) er
 	if err != nil {
 		return errors.Wrapf(err, "unable to get vm's network status %q", ctx)
 	}
-	expNetCount, actNetCount := len(ctx.MachineConfig.MachineSpec.Network.Devices), len(allNetStatus)
+	expNetCount, actNetCount := len(ctx.MachineConfig.Network.Devices), len(allNetStatus)
 	if expNetCount != actNetCount {
 		return errors.Errorf("invalid network count for %q: exp=%d act=%d", ctx, expNetCount, actNetCount)
 	}
@@ -130,8 +130,8 @@ func reconcileNetwork(ctx *context.MachineContext, vm *object.VirtualMachine) er
 
 	// Update the MAC addresses in the machine's network config as well. This
 	// is required in order to generate the metadata.
-	for i := range ctx.MachineConfig.MachineSpec.Network.Devices {
-		devSpec := &ctx.MachineConfig.MachineSpec.Network.Devices[i]
+	for i := range ctx.MachineConfig.Network.Devices {
+		devSpec := &ctx.MachineConfig.Network.Devices[i]
 		oldMac, newMac := devSpec.MACAddr, allNetStatus[i].MACAddr
 		if oldMac != newMac {
 			devSpec.MACAddr = newMac

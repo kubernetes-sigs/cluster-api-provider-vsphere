@@ -6,11 +6,10 @@ Provide the list of ntp servers accessible in your environment via the `ntpServe
 ```
 providerSpec:
   value:
-    apiVersion: "vsphereproviderconfig/v1alpha1"
-    kind: "VsphereMachineProviderConfig"
-    machineSpec:
-      ...
-      ntpServers:
-      - 0.pool.ntp.org
-      - 1.pool.ntp.org
+    apiVersion: "vsphere.cluster.k8s.io/v1alpha1"
+    kind: "VsphereMachineProviderSpec"
+    ...
+    ntpServers:
+    - 0.pool.ntp.org
+    - 1.pool.ntp.org
 ```

@@ -46,7 +46,7 @@ const (
 	defaultTokenTTL = 10 * time.Minute
 )
 
-//+kubebuilder:rbac:groups=vsphereproviderconfig.sigs.k8s.io,resources=vspheremachineproviderconfigs;vspheremachineproviderstatuses,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=vsphere.cluster.k8s.io,resources=vspheremachineproviderspecs;vspheremachineproviderstatuses,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=cluster.k8s.io,resources=machines;machines/status;machinedeployments;machinedeployments/status;machinesets;machinesets/status;machineclasses,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=cluster.k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
 //+kubebuilder:rbac:groups="",resources=nodes;events;configmaps,verbs=get;list;watch;create;update;patch

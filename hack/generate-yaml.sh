@@ -22,7 +22,7 @@ set -o pipefail
 # script is located.
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
-OUT_DIR=
+OUT_DIR="${OUT_DIR:-}"
 TPL_DIR=./cmd/clusterctl/examples/vsphere
 
 OVERWRITE=
@@ -97,6 +97,10 @@ export MANAGER_IMAGE="${CAPV_MANAGER_IMAGE}"
 
 [ -n "${OUT_DIR}" ] || OUT_DIR="./out/${CLUSTER_NAME}"
 mkdir -p "${OUT_DIR}"
+
+# Load an envvars.txt file if one is found.
+# shellcheck disable=SC1090
+[ -e "${OUT_DIR}/envvars.txt" ] && source "${OUT_DIR}/envvars.txt"
 
 # shellcheck disable=SC2034
 ADDON_TPL_FILE="${TPL_DIR}"/addons.yaml.template

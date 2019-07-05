@@ -28,10 +28,9 @@ import (
 	yaml "gopkg.in/yaml.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 
-	vsphereconfigv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphere/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/certificates"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/govmomi"
@@ -52,14 +51,13 @@ func TestCreate(t *testing.T) {
 	defer s.Close()
 
 	pass, _ := s.URL.User.Password()
-	clusterConfig := vsphereconfigv1.VsphereClusterProviderConfig{
+	clusterConfig := v1alpha1.VsphereClusterProviderSpec{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "vsphereproviderconfig/v1alpha1",
+			APIVersion: v1alpha1.SchemeGroupVersion.String(),
 		},
-		VsphereUser:             s.URL.User.Username(),
-		VspherePassword:         pass,
-		VsphereServer:           s.URL.Host,
-		VsphereCredentialSecret: "",
+		Username: s.URL.User.Username(),
+		Password: pass,
+		Server:   s.URL.Host,
 	}
 	clusterConfig.TypeMeta.Kind = reflect.TypeOf(clusterConfig).Name()
 
@@ -73,7 +71,7 @@ func TestCreate(t *testing.T) {
 			Name:      "test-cluster",
 			Namespace: "test-namespace",
 		},
-		Spec: v1alpha1.ClusterSpec{
+		Spec: clusterv1.ClusterSpec{
 			ClusterNetwork: clusterv1.ClusterNetworkingConfig{
 				Services: clusterv1.NetworkRanges{
 					CIDRBlocks: []string{"1.2.3.4"},
@@ -82,17 +80,17 @@ func TestCreate(t *testing.T) {
 					CIDRBlocks: []string{"5.6.7.8"},
 				},
 			},
-			ProviderSpec: v1alpha1.ProviderSpec{
+			ProviderSpec: clusterv1.ProviderSpec{
 				Value: &runtime.RawExtension{
 					Raw: raw,
 				},
 			},
 		},
-		Status: v1alpha1.ClusterStatus{
+		Status: clusterv1.ClusterStatus{
 			ProviderStatus: &runtime.RawExtension{
 				Raw: []byte(`{"clusterApiStatus": "Ready"}`),
 			},
-			APIEndpoints: []v1alpha1.APIEndpoint{
+			APIEndpoints: []clusterv1.APIEndpoint{
 				{
 					Host: "127.0.0.1",
 					Port: 0, // TODO
@@ -116,36 +114,26 @@ func TestCreate(t *testing.T) {
 	disk := object.VirtualDeviceList(vm.Config.Hardware.Device).SelectByType((*types.VirtualDisk)(nil))[0].(*types.VirtualDisk)
 	disk.CapacityInKB = 20 * 1024 * 1024 // bump since default disk size is < 1GB
 
-	machineConfig := vsphereconfigv1.VsphereMachineProviderConfig{
+	machineConfig := v1alpha1.VsphereMachineProviderSpec{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "vsphereproviderconfig/v1alpha1",
 		},
-		MachineSpec: vsphereconfigv1.VsphereMachineSpec{
-			Datacenter:   "",
-			Datastore:    "",
-			ResourcePool: "",
-			VMFolder:     "",
-			Network: vsphereconfigv1.NetworkSpec{
-				Devices: []vsphereconfigv1.NetworkDeviceSpec{
-					{
-						NetworkName: "VM Network",
-						DHCP4:       true,
-						DHCP6:       true,
-					},
-				},
-			},
-			NumCPUs:    2,
-			MemoryMB:   2048,
-			VMTemplate: vm.Name,
-			Disks: []vsphereconfigv1.DiskSpec{
+		Datacenter:   "",
+		Datastore:    "",
+		ResourcePool: "",
+		Folder:       "",
+		Network: v1alpha1.NetworkSpec{
+			Devices: []v1alpha1.NetworkDeviceSpec{
 				{
-					DiskSizeGB: disk.CapacityInKB / 1024 / 1024,
-					DiskLabel:  disk.DeviceInfo.GetDescription().Label,
+					NetworkName: "VM Network",
+					DHCP4:       true,
+					DHCP6:       true,
 				},
 			},
-			Preloaded:        false,
-			VsphereCloudInit: true,
 		},
+		NumCPUs:   2,
+		MemoryMiB: 2048,
+		Template:  vm.Name,
 	}
 	machineConfig.TypeMeta.Kind = reflect.TypeOf(machineConfig).Name()
 
@@ -161,13 +149,13 @@ func TestCreate(t *testing.T) {
 				"set": "controlplane",
 			},
 		},
-		Spec: v1alpha1.MachineSpec{
-			ProviderSpec: v1alpha1.ProviderSpec{
+		Spec: clusterv1.MachineSpec{
+			ProviderSpec: clusterv1.ProviderSpec{
 				Value: &runtime.RawExtension{
 					Raw: raw,
 				},
 			},
-			Versions: v1alpha1.MachineVersionInfo{
+			Versions: clusterv1.MachineVersionInfo{
 				ControlPlane: "1.12.3",
 				Kubelet:      "1.12.3",
 			},

@@ -24,13 +24,77 @@ import (
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// VsphereMachineProviderConfig is the Schema for the vspheremachineproviderconfigs API
+// VsphereMachineProviderSpec is the schema for the vspheremachineproviderspec API
 // +k8s:openapi-gen=true
-type VsphereMachineProviderConfig struct {
+type VsphereMachineProviderSpec struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	MachineRef        string             `json:"machineRef,omitempty"`
-	MachineSpec       VsphereMachineSpec `json:"machineSpec,omitempty"`
+
+	// This value is set automatically at runtime and should not be set or
+	// modified by users.
+	// MachineRef is used to lookup the VM.
+	// +optional
+	MachineRef string `json:"machineRef,omitempty"`
+
+	// Template is the name, inventory path, or instance UUID of the template
+	// used to clone new machines.
+	Template string `json:"template"`
+
+	// Datacenter is the name or inventory path of the datacenter where this
+	// machine's VM is created/located.
+	Datacenter string `json:"datacenter"`
+	// Datastore is the name or inventory path of the datastore where this
+	// machine's VM is created/located.
+	// When omitted, GoVmomi's DatastoreOrDefault method is used to determine
+	// the default datastore. It is recommended to explicitly set this value.
+	// +optional
+	Datastore string `json:"datastore,omitempty"`
+	// ResourcePool is the name or inventory path of the resource pool where this
+	// machine's VM is created/located.
+	// When omitted, GoVmomi's ResourcePoolOrDefault method is used to determine
+	// the default resource pool. It is recommended to explicitly set this value.
+	// +optional
+	ResourcePool string `json:"resourcePool,omitempty"`
+	// Folder is the name or inventory path of the folder where this
+	// machine's VM is created/located.
+	// When omitted, GoVmomi's FolderOrDefault method is used to determine
+	// the default folder. It is recommended to explicitly set this value.
+	// +optional
+	Folder string `json:"folder,omitempty"`
+
+	// Network is the network configuration for this machine's VM.
+	Network NetworkSpec `json:"network"`
+
+	// NumCPUs is the number of virtual processors in a virtual machine.
+	// Defaults to the analogue property value in the template from which this
+	// machine is cloned.
+	// +optional
+	NumCPUs int32 `json:"numCPUs,omitempty"`
+	// NumCPUs is the number of cores among which to distribute CPUs in this
+	// virtual machine.
+	// Defaults to the analogue property value in the template from which this
+	// machine is cloned.
+	// +optional
+	NumCoresPerSocket int32 `json:"numCoresPerSocket,omitempty"`
+	// MemoryMiB is the size of a virtual machine's memory, in MiB.
+	// Defaults to the analogue property value in the template from which this
+	// machine is cloned.
+	// +optional
+	MemoryMiB int64 `json:"memoryMiB,omitempty"`
+	// DiskGiB is the size of a virtual machine's disk, in GiB.
+	// Defaults to the analogue property value in the template from which this
+	// machine is cloned.
+	// +optional
+	DiskGiB int32 `json:"diskGiB,omitempty"`
+
+	// TrustedCerts is a list of trusted certificates to add to the machine's VM.
+	// +optional
+	TrustedCerts [][]byte `json:"trustedCerts,omitempty"`
+
+	// NTPServers is a list of NTP servers to use instead of the machine image's
+	// default NTP server list.
+	// +optional
+	NTPServers []string `json:"ntpServers,omitempty"`
 
 	// KubeadmConfiguration holds the kubeadm configuration options
 	// +optional
@@ -46,38 +110,6 @@ type KubeadmConfiguration struct {
 	// InitConfiguration is used to customize any kubeadm init configuration
 	// parameters.
 	Init kubeadmv1beta1.InitConfiguration `json:"init,omitempty"`
-}
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// VsphereMachineProviderConfigList contains a list of VsphereMachineProviderConfig
-type VsphereMachineProviderConfigList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []VsphereMachineProviderConfig `json:"items"`
-}
-
-func init() {
-	SchemeBuilder.Register(&VsphereMachineProviderConfig{}, &VsphereMachineProviderConfigList{})
-}
-
-//**** New extensions
-
-type VsphereMachineSpec struct {
-	Datacenter       string      `json:"datacenter"`
-	Datastore        string      `json:"datastore"`
-	ResourcePool     string      `json:"resourcePool,omitempty"`
-	VMFolder         string      `json:"vmFolder,omitempty"`
-	Network          NetworkSpec `json:"network"`
-	NumCPUs          int32       `json:"numCPUs,omitempty"`
-	MemoryMB         int64       `json:"memoryMB,omitempty"`
-	VMTemplate       string      `json:"template" yaml:"template"`
-	Disks            []DiskSpec  `json:"disks"`
-	DiskGiB          int32       `json:"diskGiB,omitempty"`
-	Preloaded        bool        `json:"preloaded,omitempty"`
-	VsphereCloudInit bool        `json:"vsphereCloudInit,omitempty"`
-	TrustedCerts     []string    `json:"trustedCerts,omitempty"`
-	NTPServers       []string    `json:"ntpServers,omitempty"`
 }
 
 // NetworkSpec defines the virtual machine's network configuration.
@@ -169,7 +201,6 @@ type NetworkRouteSpec struct {
 	Metric int32 `json:"metric"`
 }
 
-type DiskSpec struct {
-	DiskSizeGB int64  `json:"diskSizeGB,omitempty"`
-	DiskLabel  string `json:"diskLabel,omitempty"`
+func init() {
+	SchemeBuilder.Register(&VsphereMachineProviderSpec{})
 }

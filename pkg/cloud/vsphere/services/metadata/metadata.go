@@ -22,7 +22,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphere/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
 )
 
@@ -42,8 +42,8 @@ func New(ctx *context.MachineContext) ([]byte, error) {
 		Routes   []v1alpha1.NetworkRouteSpec
 	}{
 		Hostname: ctx.Machine.Name,
-		Devices:  ctx.MachineConfig.MachineSpec.Network.Devices,
-		Routes:   ctx.MachineConfig.MachineSpec.Network.Routes,
+		Devices:  ctx.MachineConfig.Network.Devices,
+		Routes:   ctx.MachineConfig.Network.Routes,
 	}); err != nil {
 		return nil, errors.Wrapf(err, "error getting cloud init metadata for machine %q", ctx)
 	}

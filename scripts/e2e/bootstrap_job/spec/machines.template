@@ -11,22 +11,21 @@ items:
   spec:
     providerSpec:
       value:
-        apiVersion: "vsphereproviderconfig/v1alpha1"
-        kind: "VsphereMachineProviderConfig"
-        machineSpec:
-          datacenter: "SDDC-Datacenter"
-          datastore: "WorkloadDatastore"
-          resourcePool: "clusterapi"
-          vmFolder: "clusterapi"
-          network:
-            devices:
-            - networkName: "sddc-cgw-network-5"
-              dhcp4: true
-              dhcp6: false
-          numCPUs: 2
-          memoryMB: 2048
-          template: "ubuntu-1804-kube-v1.13.6"
-          diskGiB: 50
+        apiVersion: "vsphere.cluster.k8s.io/v1alpha1"
+        kind: "VsphereMachineProviderSpec"
+        datacenter: "SDDC-Datacenter"
+        datastore: "WorkloadDatastore"
+        resourcePool: "clusterapi"
+        folder: "clusterapi"
+        network:
+          devices:
+          - networkName: "sddc-cgw-network-5"
+            dhcp4: true
+            dhcp6: false
+        numCPUs: 2
+        memoryMiB: 2048
+        template: "ubuntu-1804-kube-v1.13.6"
+        diskGiB: 50
     versions:
       kubelet: 1.13.6
       controlPlane: 1.13.6

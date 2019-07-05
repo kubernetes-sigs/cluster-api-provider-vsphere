@@ -194,20 +194,19 @@ kind: Cluster
 metadata:
   name: prod-workload
 spec:
-    clusterNetwork:
-        services:
-            cidrBlocks: ["100.64.0.0/13"]
-        pods:
-            cidrBlocks: ["100.96.0.0/11"]
-        serviceDomain: "cluster.local"
-    providerSpec:
-      value:
-        apiVersion: "vsphereproviderconfig/v1alpha1"
-        kind: "VsphereClusterProviderConfig"
-        vsphereUser: "<REDACTED>"
-        vspherePassword: "<REDACTED>"
-        vsphereServer: "<REDACTED>"
-        vsphereCredentialSecret: ""
+  clusterNetwork:
+    services:
+      cidrBlocks: ["100.64.0.0/13"]
+    pods:
+      cidrBlocks: ["100.96.0.0/11"]
+    serviceDomain: "cluster.local"
+  providerSpec:
+    value:
+      apiVersion: "vsphere.cluster.k8s.io/v1alpha1"
+      kind: "VsphereClusterProviderSpec"
+      server: "<REDACTED>"
+      username: "<REDACTED>"
+      password: "<REDACTED>"
 ---
 apiVersion: cluster.k8s.io/v1alpha1
 kind: Machine
@@ -218,22 +217,21 @@ metadata:
 spec:
   providerSpec:
     value:
-      apiVersion: vsphereproviderconfig/v1alpha1
-      kind: VsphereMachineProviderConfig
-      machineSpec:
-        datacenter: "SDDC-Datacenter"
-        datastore: "DefaultDatastore"
-        resourcePool: "*/CAPV"
-        vmFolder: "Workloads"
-        network:
-          devices:
-          - networkName: "vm-network-1"
-            dhcp4: true
-            dhcp6: false
-        numCPUs: 2
-        memoryMB: 2048
-        diskGiB: 20
-        template: "ubuntu-1804-kube-v1.13.6"
+      apiVersion: vsphere.cluster.k8s.io/v1alpha1
+      kind: VsphereMachineProviderSpec
+      datacenter: "SDDC-Datacenter"
+      datastore: "DefaultDatastore"
+      resourcePool: "Resources"
+      folder: "vm"
+      network:
+        devices:
+        - networkName: "vm-network-1"
+          dhcp4: true
+          dhcp6: false
+      numCPUs: 2
+      memoryMiB: 2048
+      diskGiB: 20
+      template: "ubuntu-1804-kube-v1.13.6"
   versions:
     kubelet: "1.13.6"
     controlPlane: "1.13.6"
@@ -250,32 +248,31 @@ spec:
   replicas: 3
   selector:
     matchLabels:
-      node-type: worker-node
+      machineset-name: prod-workload-machineset
       cluster.k8s.io/cluster-name: prod-workload
   template:
     metadata:
       labels:
-        node-type: worker-node
+        machineset-name: prod-workload-machineset
         cluster.k8s.io/cluster-name: prod-workload
     spec:
       providerSpec:
         value:
-          apiVersion: vsphereproviderconfig/v1alpha1
-          kind: VsphereMachineProviderConfig
-          machineSpec:
-            datacenter: "SDDC-Datacenter"
-            datastore: "DefaultDatastore"
-            resourcePool: "*/CAPV"
-            vmFolder: "Workloads"
-            network:
-              devices:
-              - networkName: "vm-network-1"
-                dhcp4: true
-                dhcp6: false
-            numCPUs: 2
-            memoryMB: 2048
-            diskGiB: 20
-            template: "ubuntu-1804-kube-v1.13.6"
+          apiVersion: vsphere.cluster.k8s.io/v1alpha1
+          kind: VsphereMachineProviderSpec
+          datacenter: "SDDC-Datacenter"
+          datastore: "DefaultDatastore"
+          resourcePool: "Resources"
+          folder: "vm"
+          network:
+            devices:
+            - networkName: "vm-network-1"
+              dhcp4: true
+              dhcp6: false
+          numCPUs: 2
+          memoryMiB: 2048
+          diskGiB: 20
+          template: "ubuntu-1804-kube-v1.13.6"
       versions:
         kubelet: "1.13.6"
         controlPlane: "1.13.6"

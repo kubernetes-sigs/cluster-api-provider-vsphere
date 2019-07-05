@@ -4,12 +4,12 @@ metadata:
   creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: vsphereclusterproviderconfigs.vsphereproviderconfig.sigs.k8s.io
+  name: vsphereclusterproviderspecs.vsphere.cluster.k8s.io
 spec:
-  group: vsphereproviderconfig.sigs.k8s.io
+  group: vsphere.cluster.k8s.io
   names:
-    kind: VsphereClusterProviderConfig
-    plural: vsphereclusterproviderconfigs
+    kind: VsphereClusterProviderSpec
+    plural: vsphereclusterproviderspecs
   scope: Namespaced
   validation:
     openAPIV3Schema:
@@ -356,6 +356,10 @@ spec:
           - cert
           - key
           type: object
+        insecure:
+          description: Insecure is a flag that controls whether or not to validate
+            the vSphere server's certificate.
+          type: boolean
         kind:
           description: 'Kind is a string value representing the REST resource this
             object represents. Servers may infer this from the endpoint the client
@@ -363,6 +367,11 @@ spec:
           type: string
         metadata:
           type: object
+        password:
+          description: Password is the password used to log into the vSphere server.  This
+            value is optional unless using clusterctl to bootstrap the initial management
+            cluster.
+          type: string
         saKeyPair:
           description: SAKeyPair is the service account key pair.
           properties:
@@ -377,6 +386,9 @@ spec:
           - cert
           - key
           type: object
+        server:
+          description: Server is the address of the vSphere endpoint.
+          type: string
         sshAuthorizedKeys:
           description: SSHAuthorizedKeys is a list of SSH public keys authorized to
             access deployed machines.  These keys are added to the default user as
@@ -385,16 +397,11 @@ spec:
           items:
             type: string
           type: array
-        vsphereCredentialSecret:
+        username:
+          description: Username is the name used to log into the vSphere server.  This
+            value is optional unless using clusterctl to bootstrap the initial management
+            cluster.
           type: string
-        vspherePassword:
-          type: string
-        vsphereServer:
-          type: string
-        vsphereUser:
-          type: string
-      required:
-      - vsphereServer
   version: v1alpha1
 status:
   acceptedNames:

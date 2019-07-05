@@ -38,7 +38,7 @@ import (
 	clusterUtilv1 "sigs.k8s.io/cluster-api/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/patch"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphere/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 )
@@ -58,7 +58,7 @@ type ClusterContext struct {
 	Cluster       *clusterv1.Cluster
 	ClusterCopy   *clusterv1.Cluster
 	ClusterClient client.ClusterInterface
-	ClusterConfig *v1alpha1.VsphereClusterProviderConfig
+	ClusterConfig *v1alpha1.VsphereClusterProviderSpec
 	ClusterStatus *v1alpha1.VsphereClusterProviderStatus
 	CoreClient    corev1.CoreV1Interface
 	Logger        logr.Logger
@@ -83,12 +83,12 @@ func NewClusterContext(params *ClusterContextParams) (*ClusterContext, error) {
 		machineClient = params.Client.Machines(params.Cluster.Namespace)
 	}
 
-	clusterConfig, err := v1alpha1.ClusterConfigFromCluster(params.Cluster)
+	clusterConfig, err := v1alpha1.GetClusterProviderSpec(params.Cluster)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load cluster provider config")
 	}
 
-	clusterStatus, err := v1alpha1.ClusterStatusFromCluster(params.Cluster)
+	clusterStatus, err := v1alpha1.GetClusterProviderStatus(params.Cluster)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load cluster provider status")
 	}
@@ -99,9 +99,11 @@ func NewClusterContext(params *ClusterContextParams) (*ClusterContext, error) {
 	}
 	logr = logr.WithName(params.Cluster.APIVersion).WithName(params.Cluster.Namespace).WithName(params.Cluster.Name)
 
-	user := clusterConfig.VsphereUser
-	pass := clusterConfig.VspherePassword
-	if secretName := clusterConfig.VsphereCredentialSecret; secretName != "" {
+	const todoSecretName = ""
+
+	user := clusterConfig.Username
+	pass := clusterConfig.Password
+	if secretName := todoSecretName; secretName != "" {
 		if params.CoreClient == nil {
 			return nil, errors.Errorf("credential secret %q specified without core client", secretName)
 		}
@@ -110,8 +112,8 @@ func NewClusterContext(params *ClusterContextParams) (*ClusterContext, error) {
 		if err != nil {
 			return nil, errors.Wrapf(err, "error reading secret %q for cluster %s/%s", secretName, params.Cluster.Namespace, params.Cluster.Name)
 		}
-		userBuf, userOk := secret.Data[constants.VsphereUserKey]
-		passBuf, passOk := secret.Data[constants.VspherePasswordKey]
+		userBuf, userOk := secret.Data[constants.VSphereCredentialSecretUserKey]
+		passBuf, passOk := secret.Data[constants.VSphereCredentialSecretPassKey]
 		if !userOk || !passOk {
 			return nil, errors.Wrapf(err, "improperly formatted secret %q for cluster %s/%s", secretName, params.Cluster.Namespace, params.Cluster.Name)
 		}
@@ -174,8 +176,8 @@ func (c *ClusterContext) ClusterName() string {
 	return c.Cluster.Name
 }
 
-// ClusterProviderConfig returns the cluster provider config.
-func (c *ClusterContext) ClusterProviderConfig() *v1alpha1.VsphereClusterProviderConfig {
+// ClusterProviderSpec returns the cluster provider spec.
+func (c *ClusterContext) GetClusterProviderSpec() *v1alpha1.VsphereClusterProviderSpec {
 	return c.ClusterConfig
 }
 
@@ -192,7 +194,7 @@ func (c *ClusterContext) Pass() string {
 // CanLogin returns a flag indicating whether the cluster config has
 // enough information to login to the vSphere endpoint.
 func (c *ClusterContext) CanLogin() bool {
-	return c.ClusterConfig.VsphereServer != "" && c.user != ""
+	return c.ClusterConfig.Server != "" && c.user != ""
 }
 
 // GetMachineClient returns a new Machine client for this cluster.
@@ -311,7 +313,7 @@ func (c *ClusterContext) Patch() {
 	c.ClusterCopy.Status.DeepCopyInto(&c.Cluster.Status)
 
 	// Patch the object, minus the status.
-	localProviderSpec, err := v1alpha1.EncodeClusterSpec(c.ClusterConfig)
+	localProviderSpec, err := EncodeAsRawExtension(c.ClusterConfig)
 	if err != nil {
 		c.Logger.Error(err, "failed to encode provider spec")
 		return
@@ -345,7 +347,7 @@ func (c *ClusterContext) Patch() {
 	localStatus.DeepCopyInto(&c.Cluster.Status)
 
 	// Patch the status only.
-	localProviderStatus, err := v1alpha1.EncodeClusterStatus(c.ClusterStatus)
+	localProviderStatus, err := EncodeAsRawExtension(c.ClusterStatus)
 	if err != nil {
 		c.Logger.Error(err, "failed to encode provider status")
 		return

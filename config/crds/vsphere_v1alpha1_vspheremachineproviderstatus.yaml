@@ -4,9 +4,9 @@ metadata:
   creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: vspheremachineproviderstatuses.vsphereproviderconfig.sigs.k8s.io
+  name: vspheremachineproviderstatuses.vsphere.cluster.k8s.io
 spec:
-  group: vsphereproviderconfig.sigs.k8s.io
+  group: vsphere.cluster.k8s.io
   names:
     kind: VsphereMachineProviderStatus
     plural: vspheremachineproviderstatuses
@@ -52,7 +52,8 @@ spec:
           type: array
         taskRef:
           description: TaskRef is a managed object reference to a Task related to
-            the machine.
+            the machine. This value is set automatically at runtime and should not
+            be set or modified by users.
           type: string
   version: v1alpha1
 status:

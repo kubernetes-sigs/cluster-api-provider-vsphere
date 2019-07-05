@@ -22,7 +22,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphere/v1alpha1"
 )
 
 func TestGenerateCACert(t *testing.T) {

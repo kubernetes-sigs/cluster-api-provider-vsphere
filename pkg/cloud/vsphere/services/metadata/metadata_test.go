@@ -21,7 +21,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphere/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/metadata"
 )
@@ -35,15 +35,13 @@ func TestNew(t *testing.T) {
 			name: "dhcp4",
 			ctx: &context.MachineContext{
 				Machine: &clusterv1.Machine{},
-				MachineConfig: &v1alpha1.VsphereMachineProviderConfig{
-					MachineSpec: v1alpha1.VsphereMachineSpec{
-						Network: v1alpha1.NetworkSpec{
-							Devices: []v1alpha1.NetworkDeviceSpec{
-								{
-									NetworkName: "network1",
-									MACAddr:     "00:00:00:00:00",
-									DHCP4:       true,
-								},
+				MachineConfig: &v1alpha1.VsphereMachineProviderSpec{
+					Network: v1alpha1.NetworkSpec{
+						Devices: []v1alpha1.NetworkDeviceSpec{
+							{
+								NetworkName: "network1",
+								MACAddr:     "00:00:00:00:00",
+								DHCP4:       true,
 							},
 						},
 					},
@@ -54,15 +52,13 @@ func TestNew(t *testing.T) {
 			name: "dhcp6",
 			ctx: &context.MachineContext{
 				Machine: &clusterv1.Machine{},
-				MachineConfig: &v1alpha1.VsphereMachineProviderConfig{
-					MachineSpec: v1alpha1.VsphereMachineSpec{
-						Network: v1alpha1.NetworkSpec{
-							Devices: []v1alpha1.NetworkDeviceSpec{
-								{
-									NetworkName: "network1",
-									MACAddr:     "00:00:00:00:00",
-									DHCP6:       true,
-								},
+				MachineConfig: &v1alpha1.VsphereMachineProviderSpec{
+					Network: v1alpha1.NetworkSpec{
+						Devices: []v1alpha1.NetworkDeviceSpec{
+							{
+								NetworkName: "network1",
+								MACAddr:     "00:00:00:00:00",
+								DHCP6:       true,
 							},
 						},
 					},
@@ -73,16 +69,14 @@ func TestNew(t *testing.T) {
 			name: "dhcp4+dhcp6",
 			ctx: &context.MachineContext{
 				Machine: &clusterv1.Machine{},
-				MachineConfig: &v1alpha1.VsphereMachineProviderConfig{
-					MachineSpec: v1alpha1.VsphereMachineSpec{
-						Network: v1alpha1.NetworkSpec{
-							Devices: []v1alpha1.NetworkDeviceSpec{
-								{
-									NetworkName: "network1",
-									MACAddr:     "00:00:00:00:00",
-									DHCP4:       true,
-									DHCP6:       true,
-								},
+				MachineConfig: &v1alpha1.VsphereMachineProviderSpec{
+					Network: v1alpha1.NetworkSpec{
+						Devices: []v1alpha1.NetworkDeviceSpec{
+							{
+								NetworkName: "network1",
+								MACAddr:     "00:00:00:00:00",
+								DHCP4:       true,
+								DHCP6:       true,
 							},
 						},
 					},
@@ -93,17 +87,15 @@ func TestNew(t *testing.T) {
 			name: "static4+dhcp6",
 			ctx: &context.MachineContext{
 				Machine: &clusterv1.Machine{},
-				MachineConfig: &v1alpha1.VsphereMachineProviderConfig{
-					MachineSpec: v1alpha1.VsphereMachineSpec{
-						Network: v1alpha1.NetworkSpec{
-							Devices: []v1alpha1.NetworkDeviceSpec{
-								{
-									NetworkName: "network1",
-									MACAddr:     "00:00:00:00:00",
-									DHCP6:       true,
-									IPAddrs:     []string{"192.168.4.21"},
-									Gateway4:    "192.168.4.1",
-								},
+				MachineConfig: &v1alpha1.VsphereMachineProviderSpec{
+					Network: v1alpha1.NetworkSpec{
+						Devices: []v1alpha1.NetworkDeviceSpec{
+							{
+								NetworkName: "network1",
+								MACAddr:     "00:00:00:00:00",
+								DHCP6:       true,
+								IPAddrs:     []string{"192.168.4.21"},
+								Gateway4:    "192.168.4.1",
 							},
 						},
 					},
@@ -114,24 +106,22 @@ func TestNew(t *testing.T) {
 			name: "static4+dhcp6+static-routes",
 			ctx: &context.MachineContext{
 				Machine: &clusterv1.Machine{},
-				MachineConfig: &v1alpha1.VsphereMachineProviderConfig{
-					MachineSpec: v1alpha1.VsphereMachineSpec{
-						Network: v1alpha1.NetworkSpec{
-							Devices: []v1alpha1.NetworkDeviceSpec{
-								{
-									NetworkName: "network1",
-									MACAddr:     "00:00:00:00:00",
-									DHCP6:       true,
-									IPAddrs:     []string{"192.168.4.21"},
-									Gateway4:    "192.168.4.1",
-								},
+				MachineConfig: &v1alpha1.VsphereMachineProviderSpec{
+					Network: v1alpha1.NetworkSpec{
+						Devices: []v1alpha1.NetworkDeviceSpec{
+							{
+								NetworkName: "network1",
+								MACAddr:     "00:00:00:00:00",
+								DHCP6:       true,
+								IPAddrs:     []string{"192.168.4.21"},
+								Gateway4:    "192.168.4.1",
 							},
-							Routes: []v1alpha1.NetworkRouteSpec{
-								{
-									To:     "192.168.5.1/24",
-									Via:    "192.168.4.254",
-									Metric: 3,
-								},
+						},
+						Routes: []v1alpha1.NetworkRouteSpec{
+							{
+								To:     "192.168.5.1/24",
+								Via:    "192.168.4.254",
+								Metric: 3,
 							},
 						},
 					},
@@ -142,28 +132,26 @@ func TestNew(t *testing.T) {
 			name: "2nets",
 			ctx: &context.MachineContext{
 				Machine: &clusterv1.Machine{},
-				MachineConfig: &v1alpha1.VsphereMachineProviderConfig{
-					MachineSpec: v1alpha1.VsphereMachineSpec{
-						Network: v1alpha1.NetworkSpec{
-							Devices: []v1alpha1.NetworkDeviceSpec{
-								{
-									NetworkName: "network1",
-									MACAddr:     "00:00:00:00:00",
-									DHCP4:       true,
-									Routes: []v1alpha1.NetworkRouteSpec{
-										{
-											To:     "192.168.5.1/24",
-											Via:    "192.168.4.254",
-											Metric: 3,
-										},
+				MachineConfig: &v1alpha1.VsphereMachineProviderSpec{
+					Network: v1alpha1.NetworkSpec{
+						Devices: []v1alpha1.NetworkDeviceSpec{
+							{
+								NetworkName: "network1",
+								MACAddr:     "00:00:00:00:00",
+								DHCP4:       true,
+								Routes: []v1alpha1.NetworkRouteSpec{
+									{
+										To:     "192.168.5.1/24",
+										Via:    "192.168.4.254",
+										Metric: 3,
 									},
 								},
-								{
-									NetworkName: "network12",
-									MACAddr:     "00:00:00:00:01",
-									DHCP6:       true,
-									MTU:         mtu(100),
-								},
+							},
+							{
+								NetworkName: "network12",
+								MACAddr:     "00:00:00:00:01",
+								DHCP6:       true,
+								MTU:         mtu(100),
 							},
 						},
 					},
@@ -174,25 +162,23 @@ func TestNew(t *testing.T) {
 			name: "2nets-static+dhcp",
 			ctx: &context.MachineContext{
 				Machine: &clusterv1.Machine{},
-				MachineConfig: &v1alpha1.VsphereMachineProviderConfig{
-					MachineSpec: v1alpha1.VsphereMachineSpec{
-						Network: v1alpha1.NetworkSpec{
-							Devices: []v1alpha1.NetworkDeviceSpec{
-								{
-									NetworkName:   "network1",
-									MACAddr:       "00:00:00:00:00",
-									IPAddrs:       []string{"192.168.4.21"},
-									Gateway4:      "192.168.4.1",
-									MTU:           mtu(0),
-									Nameservers:   []string{"1.1.1.1"},
-									SearchDomains: []string{"vmware.ci"},
-								},
-								{
-									NetworkName:   "network12",
-									MACAddr:       "00:00:00:00:01",
-									DHCP6:         true,
-									SearchDomains: []string{"vmware6.ci"},
-								},
+				MachineConfig: &v1alpha1.VsphereMachineProviderSpec{
+					Network: v1alpha1.NetworkSpec{
+						Devices: []v1alpha1.NetworkDeviceSpec{
+							{
+								NetworkName:   "network1",
+								MACAddr:       "00:00:00:00:00",
+								IPAddrs:       []string{"192.168.4.21"},
+								Gateway4:      "192.168.4.1",
+								MTU:           mtu(0),
+								Nameservers:   []string{"1.1.1.1"},
+								SearchDomains: []string{"vmware.ci"},
+							},
+							{
+								NetworkName:   "network12",
+								MACAddr:       "00:00:00:00:01",
+								DHCP6:         true,
+								SearchDomains: []string{"vmware6.ci"},
 							},
 						},
 					},

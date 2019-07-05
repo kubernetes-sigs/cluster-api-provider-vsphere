@@ -11,8 +11,8 @@ spec:
     serviceDomain: "cluster.local"
   providerSpec:
     value:
-      apiVersion: "vsphereproviderconfig/v1alpha1"
-      kind: "VsphereClusterProviderConfig"
-      vsphereUser: "$VSPHERE_USERNAME"
-      vspherePassword: "$VSPHERE_PASSWORD"
-      vsphereServer: "$VSPHERE_SERVER"
+      apiVersion: "vsphere.cluster.k8s.io/v1alpha1"
+      kind: "VsphereClusterProviderSpec"
+      server: "$VSPHERE_SERVER"
+      username: "$VSPHERE_USERNAME"
+      password: "$VSPHERE_PASSWORD"

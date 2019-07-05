@@ -5,9 +5,9 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
-  - vsphereproviderconfig.sigs.k8s.io
+  - vsphere.cluster.k8s.io
   resources:
-  - vsphereclusterproviderconfigs
+  - vsphereclusterproviderspecs
   - vsphereclusterproviderstatuses
   verbs:
   - get
@@ -54,9 +54,9 @@ rules:
   - patch
   - delete
 - apiGroups:
-  - vsphereproviderconfig.sigs.k8s.io
+  - vsphere.cluster.k8s.io
   resources:
-  - vspheremachineproviderconfigs
+  - vspheremachineproviderspecs
   - vspheremachineproviderstatuses
   verbs:
   - get

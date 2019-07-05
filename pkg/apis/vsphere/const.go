@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2018 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,21 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package context
-
-import (
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphere/v1alpha1"
-)
+package vsphere
 
 const (
-	updateSuccess = "UpdateSuccess"
-	updateFailure = "UpdateFailure"
+	// GroupName is the name of the API group to which the objects are registered.
+	GroupName = "vsphere.cluster.k8s.io"
 )
-
-// KubeContext has the information needed to get a connection to a
-// Kubernetes cluster.
-type KubeContext interface {
-	ClusterName() string
-	GetClusterProviderSpec() *v1alpha1.VsphereClusterProviderSpec
-	ControlPlaneEndpoint() (string, error)
-}

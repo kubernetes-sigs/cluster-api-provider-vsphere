@@ -12,12 +12,11 @@ Use the output of the above command in the list of `trustedCerts` like below
 ```
 providerSpec:
   value:
-    apiVersion: "vsphereproviderconfig/v1alpha1"
-    kind: "VsphereMachineProviderConfig"
-    machineSpec:
-      datacenter: "datacenter"
-      ...
-      trustedCerts:
-      - <Base64 encoded certificate 1>
-      - <Base64 encoded certificate 2>
+    apiVersion: "vsphere.cluster.k8s.io/v1alpha1"
+    kind: "VsphereMachineProviderSpec"
+    datacenter: "datacenter"
+    ...
+    trustedCerts:
+    - <Base64 encoded certificate 1>
+    - <Base64 encoded certificate 2>
 ```

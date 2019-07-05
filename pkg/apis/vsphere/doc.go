@@ -14,21 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package context
-
-import (
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphere/v1alpha1"
-)
-
-const (
-	updateSuccess = "UpdateSuccess"
-	updateFailure = "UpdateFailure"
-)
-
-// KubeContext has the information needed to get a connection to a
-// Kubernetes cluster.
-type KubeContext interface {
-	ClusterName() string
-	GetClusterProviderSpec() *v1alpha1.VsphereClusterProviderSpec
-	ControlPlaneEndpoint() (string, error)
-}
+// Package vsphere contains API types for the Cluster API (CAPI) Provider for
+// vSphere (CAPV).
+package vsphere

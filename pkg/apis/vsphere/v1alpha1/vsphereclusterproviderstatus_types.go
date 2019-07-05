@@ -23,7 +23,7 @@ import (
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// VsphereClusterProviderStatus defines the observed state of VsphereClusterProviderConfig
+// VsphereClusterProviderStatus is the schema for the vsphereclusterproviderstatus API
 // +k8s:openapi-gen=true
 type VsphereClusterProviderStatus struct {
 	metav1.TypeMeta   `json:",inline"`

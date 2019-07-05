@@ -38,22 +38,22 @@ func Clone(ctx *context.MachineContext, userData []byte) error {
 	var extraConfig extra.Config
 	extraConfig.SetCloudInitUserData(userData)
 
-	tpl, err := template.FindTemplate(ctx, ctx.MachineConfig.MachineSpec.VMTemplate)
+	tpl, err := template.FindTemplate(ctx, ctx.MachineConfig.Template)
 	if err != nil {
 		return err
 	}
 
-	folder, err := ctx.Session.Finder.FolderOrDefault(ctx, ctx.MachineConfig.MachineSpec.VMFolder)
+	folder, err := ctx.Session.Finder.FolderOrDefault(ctx, ctx.MachineConfig.Folder)
 	if err != nil {
 		return errors.Wrapf(err, "unable to get folder for %q", ctx)
 	}
 
-	datastore, err := ctx.Session.Finder.DatastoreOrDefault(ctx, ctx.MachineConfig.MachineSpec.Datastore)
+	datastore, err := ctx.Session.Finder.DatastoreOrDefault(ctx, ctx.MachineConfig.Datastore)
 	if err != nil {
 		return errors.Wrapf(err, "unable to get datastore for %q", ctx)
 	}
 
-	pool, err := ctx.Session.Finder.ResourcePoolOrDefault(ctx, ctx.MachineConfig.MachineSpec.ResourcePool)
+	pool, err := ctx.Session.Finder.ResourcePoolOrDefault(ctx, ctx.MachineConfig.ResourcePool)
 	if err != nil {
 		return errors.Wrapf(err, "unable to get resource pool for %q", ctx)
 	}
@@ -77,11 +77,15 @@ func Clone(ctx *context.MachineContext, userData []byte) error {
 	deviceSpecs := []types.BaseVirtualDeviceConfigSpec{diskSpec}
 	deviceSpecs = append(deviceSpecs, networkSpecs...)
 
-	numCPUs := ctx.MachineConfig.MachineSpec.NumCPUs
+	numCPUs := ctx.MachineConfig.NumCPUs
 	if numCPUs < 2 {
 		numCPUs = 2
 	}
-	memMiB := ctx.MachineConfig.MachineSpec.MemoryMB
+	numCoresPerSocket := ctx.MachineConfig.NumCoresPerSocket
+	if numCoresPerSocket == 0 {
+		numCoresPerSocket = numCPUs
+	}
+	memMiB := ctx.MachineConfig.MemoryMiB
 	if memMiB == 0 {
 		memMiB = 2048
 	}
@@ -92,12 +96,13 @@ func Clone(ctx *context.MachineContext, userData []byte) error {
 			// Assign the clone's InstanceUUID the value of the Kubernetes Machine
 			// object's UID. This allows lookup of the cloned VM prior to knowing
 			// the VM's UUID.
-			InstanceUuid: string(ctx.Machine.UID),
-			Flags:        newVMFlagInfo(),
-			DeviceChange: deviceSpecs,
-			ExtraConfig:  extraConfig,
-			NumCPUs:      numCPUs,
-			MemoryMB:     memMiB,
+			InstanceUuid:      string(ctx.Machine.UID),
+			Flags:             newVMFlagInfo(),
+			DeviceChange:      deviceSpecs,
+			ExtraConfig:       extraConfig,
+			NumCPUs:           numCPUs,
+			NumCoresPerSocket: numCoresPerSocket,
+			MemoryMB:          memMiB,
 		},
 		Location: types.VirtualMachineRelocateSpec{
 			Datastore:    types.NewReference(datastore.Reference()),
@@ -140,7 +145,7 @@ func getDiskSpec(
 	}
 
 	disk := disks[0].(*types.VirtualDisk)
-	disk.CapacityInKB = int64(ctx.MachineConfig.MachineSpec.DiskGiB) * 1024 * 1024
+	disk.CapacityInKB = int64(ctx.MachineConfig.DiskGiB) * 1024 * 1024
 
 	return &types.VirtualDeviceConfigSpec{
 		Operation: types.VirtualDeviceConfigSpecOperationEdit,
@@ -166,8 +171,8 @@ func getNetworkSpecs(
 
 	// Add new NICs based on the machine config.
 	key := int32(-100)
-	for i := range ctx.MachineConfig.MachineSpec.Network.Devices {
-		netSpec := &ctx.MachineConfig.MachineSpec.Network.Devices[i]
+	for i := range ctx.MachineConfig.Network.Devices {
+		netSpec := &ctx.MachineConfig.Network.Devices[i]
 		ref, err := ctx.Session.Finder.Network(ctx, netSpec.NetworkName)
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to find network %q", netSpec.NetworkName)

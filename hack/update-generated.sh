@@ -55,7 +55,7 @@ gen-rbac() {
 }
 
 deepcopy-v1alpha1() {
-  gen-deepcopy ./pkg/apis/vsphereproviderconfig/v1alpha1
+  gen-deepcopy ./pkg/apis/vsphere/v1alpha1
 }
 
 deepcopy() { deepcopy-v1alpha1; }

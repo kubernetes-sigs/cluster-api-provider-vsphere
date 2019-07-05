@@ -4,9 +4,9 @@ metadata:
   creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: vsphereclusterproviderstatuses.vsphereproviderconfig.sigs.k8s.io
+  name: vsphereclusterproviderstatuses.vsphere.cluster.k8s.io
 spec:
-  group: vsphereproviderconfig.sigs.k8s.io
+  group: vsphere.cluster.k8s.io
   names:
     kind: VsphereClusterProviderStatus
     plural: vsphereclusterproviderstatuses

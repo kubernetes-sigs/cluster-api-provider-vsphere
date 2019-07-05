@@ -95,15 +95,15 @@ func generateUserData(ctx *context.MachineContext, bootstrapToken string) ([]byt
 	// apply values based on the role of the machine
 	if ctx.HasControlPlaneRole() {
 		cloudConfig, err := userdata.NewCloudConfig(&userdata.CloudConfigInput{
-			User:         ctx.ClusterConfig.VsphereUser,
-			Password:     ctx.ClusterConfig.VspherePassword,
-			Server:       ctx.ClusterConfig.VsphereServer,
-			Datacenter:   ctx.MachineConfig.MachineSpec.Datacenter,
-			ResourcePool: ctx.MachineConfig.MachineSpec.ResourcePool,
-			Folder:       ctx.MachineConfig.MachineSpec.VMFolder,
-			Datastore:    ctx.MachineConfig.MachineSpec.Datastore,
+			User:         ctx.ClusterConfig.Username,
+			Password:     ctx.ClusterConfig.Password,
+			Server:       ctx.ClusterConfig.Server,
+			Datacenter:   ctx.MachineConfig.Datacenter,
+			ResourcePool: ctx.MachineConfig.ResourcePool,
+			Folder:       ctx.MachineConfig.Folder,
+			Datastore:    ctx.MachineConfig.Datastore,
 			// assume the first VM network found for the vSphere cloud provider
-			Network: ctx.MachineConfig.MachineSpec.Network.Devices[0].NetworkName,
+			Network: ctx.MachineConfig.Network.Devices[0].NetworkName,
 		})
 		if err != nil {
 			return nil, err

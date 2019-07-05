@@ -42,8 +42,8 @@ For the cluster-api vsphere provider to work, the users need to provide the vsph
           value:
             ...
             # Credentials provided as plain text
-            vsphereUser: "administrator@vsphere.local"
-            vspherePassword: "sample"
+            username: "administrator@vsphere.local"
+            password: "sample"
     ```
 
-__Note:__ If `vsphereCredentialSecret` field is set to a non empty string then the controller will ignore the `vsphereUser` and `vspherePassword` fields even if they are set.
+__Note:__ If `vsphereCredentialSecret` field is set to a non empty string then the controller will ignore the `username` and `password` fields even if they are set.

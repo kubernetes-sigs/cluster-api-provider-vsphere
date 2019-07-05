@@ -24,16 +24,33 @@ import (
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// VsphereClusterProviderConfig is the Schema for the vsphereclusterproviderconfigs API
+// VsphereClusterProviderSpec is the schema for the vsphereclusterproviderspec API
 // +k8s:openapi-gen=true
-type VsphereClusterProviderConfig struct {
+type VsphereClusterProviderSpec struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	VsphereUser             string `json:"vsphereUser,omitempty"`
-	VspherePassword         string `json:"vspherePassword,omitempty"`
-	VsphereServer           string `json:"vsphereServer"`
-	VsphereCredentialSecret string `json:"vsphereCredentialSecret,omitempty"`
+	// Server is the address of the vSphere endpoint.
+	Server string `json:"server,omitempty"`
+
+	// Username is the name used to log into the vSphere server.
+	//
+	// This value is optional unless using clusterctl to bootstrap the initial
+	// management cluster.
+	// +optional
+	Username string `json:"username,omitempty"`
+
+	// Password is the password used to log into the vSphere server.
+	//
+	// This value is optional unless using clusterctl to bootstrap the initial
+	// management cluster.
+	// +optional
+	Password string `json:"password,omitempty"`
+
+	// Insecure is a flag that controls whether or not to validate the
+	// vSphere server's certificate.
+	// +optional
+	Insecure *bool `json:"insecure,omitempty"`
 
 	// SSHAuthorizedKeys is a list of SSH public keys authorized to access
 	// deployed machines.
@@ -74,15 +91,6 @@ func (kp KeyPair) HasCertAndKey() bool {
 	return len(kp.Cert) > 0 && len(kp.Key) > 0
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// VsphereClusterProviderConfigList contains a list of VsphereClusterProviderConfig
-type VsphereClusterProviderConfigList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []VsphereClusterProviderConfig `json:"items"`
-}
-
 func init() {
-	SchemeBuilder.Register(&VsphereClusterProviderConfig{}, &VsphereClusterProviderConfigList{})
+	SchemeBuilder.Register(&VsphereClusterProviderSpec{})
 }

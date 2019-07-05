@@ -22,7 +22,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/klogr"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphere/v1alpha1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
@@ -35,10 +35,8 @@ func Test_MachineContextIPAddr(t *testing.T) {
 		{
 			name: "single IPv4 address, no preferred CIDR",
 			ctx: &MachineContext{
-				MachineConfig: &v1alpha1.VsphereMachineProviderConfig{
-					MachineSpec: v1alpha1.VsphereMachineSpec{
-						Network: v1alpha1.NetworkSpec{},
-					},
+				MachineConfig: &v1alpha1.VsphereMachineProviderSpec{
+					Network: v1alpha1.NetworkSpec{},
 				},
 				Machine: &clusterv1.Machine{
 					Status: clusterv1.MachineStatus{
@@ -56,10 +54,8 @@ func Test_MachineContextIPAddr(t *testing.T) {
 		{
 			name: "single IPv6 address, no preferred CIDR",
 			ctx: &MachineContext{
-				MachineConfig: &v1alpha1.VsphereMachineProviderConfig{
-					MachineSpec: v1alpha1.VsphereMachineSpec{
-						Network: v1alpha1.NetworkSpec{},
-					},
+				MachineConfig: &v1alpha1.VsphereMachineProviderSpec{
+					Network: v1alpha1.NetworkSpec{},
 				},
 				Machine: &clusterv1.Machine{
 					Status: clusterv1.MachineStatus{
@@ -77,10 +73,8 @@ func Test_MachineContextIPAddr(t *testing.T) {
 		{
 			name: "multiple IPv4 addresses, only 1 internal, no preferred CIDR",
 			ctx: &MachineContext{
-				MachineConfig: &v1alpha1.VsphereMachineProviderConfig{
-					MachineSpec: v1alpha1.VsphereMachineSpec{
-						Network: v1alpha1.NetworkSpec{},
-					},
+				MachineConfig: &v1alpha1.VsphereMachineProviderSpec{
+					Network: v1alpha1.NetworkSpec{},
 				},
 				Machine: &clusterv1.Machine{
 					Status: clusterv1.MachineStatus{
@@ -109,11 +103,9 @@ func Test_MachineContextIPAddr(t *testing.T) {
 				ClusterContext: &ClusterContext{
 					Logger: klogr.New(),
 				},
-				MachineConfig: &v1alpha1.VsphereMachineProviderConfig{
-					MachineSpec: v1alpha1.VsphereMachineSpec{
-						Network: v1alpha1.NetworkSpec{
-							PreferredAPIServerCIDR: "192.168.0.0/16",
-						},
+				MachineConfig: &v1alpha1.VsphereMachineProviderSpec{
+					Network: v1alpha1.NetworkSpec{
+						PreferredAPIServerCIDR: "192.168.0.0/16",
 					},
 				},
 				Machine: &clusterv1.Machine{
@@ -139,11 +131,9 @@ func Test_MachineContextIPAddr(t *testing.T) {
 				ClusterContext: &ClusterContext{
 					Logger: klogr.New(),
 				},
-				MachineConfig: &v1alpha1.VsphereMachineProviderConfig{
-					MachineSpec: v1alpha1.VsphereMachineSpec{
-						Network: v1alpha1.NetworkSpec{
-							PreferredAPIServerCIDR: "192.168.0.0/16",
-						},
+				MachineConfig: &v1alpha1.VsphereMachineProviderSpec{
+					Network: v1alpha1.NetworkSpec{
+						PreferredAPIServerCIDR: "192.168.0.0/16",
 					},
 				},
 				Machine: &clusterv1.Machine{
@@ -169,11 +159,9 @@ func Test_MachineContextIPAddr(t *testing.T) {
 				ClusterContext: &ClusterContext{
 					Logger: klogr.New(),
 				},
-				MachineConfig: &v1alpha1.VsphereMachineProviderConfig{
-					MachineSpec: v1alpha1.VsphereMachineSpec{
-						Network: v1alpha1.NetworkSpec{
-							PreferredAPIServerCIDR: "fdf3:35b5:9dad:6e09::/64",
-						},
+				MachineConfig: &v1alpha1.VsphereMachineProviderSpec{
+					Network: v1alpha1.NetworkSpec{
+						PreferredAPIServerCIDR: "fdf3:35b5:9dad:6e09::/64",
 					},
 				},
 				Machine: &clusterv1.Machine{

@@ -19,7 +19,7 @@ package deployer
 import (
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphere/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/kubeconfig"
 )
@@ -63,7 +63,7 @@ func (d Deployer) GetKubeConfig(cluster *clusterv1.Cluster, machine *clusterv1.M
 	if err != nil {
 		return "", err
 	}
-	clusterConfig, err := v1alpha1.ClusterConfigFromCluster(cluster)
+	clusterConfig, err := v1alpha1.GetClusterProviderSpec(cluster)
 	if err != nil {
 		return "", err
 	}

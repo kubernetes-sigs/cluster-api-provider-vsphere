@@ -25,29 +25,38 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func TestStorageVsphereClusterProviderConfig(t *testing.T) {
+func TestStorageVsphereMachineProviderSpec(t *testing.T) {
 	key := types.NamespacedName{
 		Name:      "foo",
 		Namespace: "default",
 	}
-	keyPair := KeyPair{
-		Cert: []byte("public"),
-		Key:  []byte("private"),
-	}
-	created := &VsphereClusterProviderConfig{
+	created := &VsphereMachineProviderSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "default",
 		},
-		CAKeyPair:           keyPair,
-		EtcdCAKeyPair:       keyPair,
-		FrontProxyCAKeyPair: keyPair,
-		SAKeyPair:           keyPair,
+		MachineRef:   "ref123",
+		Datacenter:   "dc1",
+		Datastore:    "ds1",
+		ResourcePool: "rp1",
+		Network: NetworkSpec{
+			Devices: []NetworkDeviceSpec{
+				{
+					NetworkName: "net1",
+					IPAddrs:     []string{"1.2.3.4"},
+					Gateway4:    "1.2.3.1",
+					Nameservers: []string{"1.2.3.10"},
+				},
+			},
+		},
+		NumCPUs:   10,
+		MemoryMiB: 1000,
+		Template:  "mytemplate",
 	}
 	g := gomega.NewGomegaWithT(t)
 
 	// Test Create
-	fetched := &VsphereClusterProviderConfig{}
+	fetched := &VsphereMachineProviderSpec{}
 	g.Expect(c.Create(context.TODO(), created)).NotTo(gomega.HaveOccurred())
 
 	g.Expect(c.Get(context.TODO(), key, fetched)).NotTo(gomega.HaveOccurred())

@@ -25,7 +25,7 @@ import (
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphereproviderconfig/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphere/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/govmomi/net"
@@ -89,7 +89,7 @@ func getTask(ctx *context.MachineContext) *mo.Task {
 }
 
 // getNetworkStatus returns the network status for a machine. The order matches
-// the order of MachineConfig.MachineSpec.Network.Devices.
+// the order of MachineConfig.Network.Devices.
 func getNetworkStatus(ctx *context.MachineContext) ([]v1alpha1.NetworkStatus, error) {
 	allNetStatus, err := net.GetNetworkStatus(ctx, ctx.Session.Client.Client, *(ctx.GetMoRef()))
 	if err != nil {

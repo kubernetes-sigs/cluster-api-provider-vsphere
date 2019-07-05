@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The Kubernetes Authors.
+Copyright 2019 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,5 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package vsphereproviderconfig contains vsphereproviderconfig API versions
-package vsphereproviderconfig
+package context
+
+import (
+	"k8s.io/apimachinery/pkg/runtime"
+)
+
+// EncodeAsRawExtension encodes a runtime.Object as a *runtime.RawExtension.
+func EncodeAsRawExtension(in runtime.Object) (*runtime.RawExtension, error) {
+	out := &runtime.RawExtension{}
+	return out, runtime.Convert_runtime_Object_To_runtime_RawExtension(&in, out, nil)
+}

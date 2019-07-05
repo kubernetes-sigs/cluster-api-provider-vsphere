@@ -42,8 +42,14 @@ func Update(ctx *context.MachineContext) error {
 	if err != nil {
 		return err
 	}
+
+	// If no VM was found then it means the machine has a MachineRef that refers
+	// to a VM that no longer exists. Clear the existing MachineRef and requeue
+	// this machine so that a new VM is created.
 	if vm == nil {
-		return errors.Errorf("vm should already exist for %q", ctx)
+		ctx.Logger.V(2).Info("vm should exist but cannot be found, recreating", "machine-ref", ctx.MachineConfig.MachineRef)
+		ctx.MachineConfig.MachineRef = ""
+		return &clustererror.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
 	}
 
 	if err := reconcileNetwork(ctx, vm); err != nil {

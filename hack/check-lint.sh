@@ -23,6 +23,6 @@ set -o pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 # Install the golint tool if it is missing.
-command -v golint >/dev/null 2>&1 || go get github.com/golang/lint/golint
+command -v golint >/dev/null 2>&1 || (cd / && GOPATH="${OLD_GOPATH:-${GOPATH}}" go get golang.org/x/lint/golint)
 
 golint -set_exit_status ./pkg/... ./cmd/...

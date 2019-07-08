@@ -23,10 +23,10 @@ set -o pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 # Install the goformat tool if it is missing.
-command -v goformat >/dev/null 2>&1 || go get github.com/mbenkmann/goformat/goformat
+command -v goformat >/dev/null 2>&1 || (cd / && GOPATH="${OLD_GOPATH:-${GOPATH}}" go get github.com/mbenkmann/goformat/goformat)
 
 # Install the goimports tool if it is missing.
-command -v goimports >/dev/null 2>&1 || go get golang.org/x/tools/cmd/goimports
+command -v goimports >/dev/null 2>&1 || (cd / && GOPATH="${OLD_GOPATH:-${GOPATH}}" go get golang.org/x/tools/cmd/goimports)
 
 # Ensure the temp out file is removed when this program exits.
 out="$(mktemp)"

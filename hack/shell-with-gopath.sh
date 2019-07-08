@@ -17,6 +17,7 @@
 # If SHELL_WITH_GOPATH is 0 then do not change directories.
 [ "${SHELL_WITH_GOPATH}" = "0" ] && exec /bin/sh "${@}"
 
+export OLD_GOPATH="${GOPATH}"
 export GOPATH="${PWD}/.gopath"
 
 REPO_ORG=sigs.k8s.io

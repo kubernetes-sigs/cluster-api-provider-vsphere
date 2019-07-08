@@ -36,6 +36,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	clusterUtilv1 "sigs.k8s.io/cluster-api/pkg/util"
+	controllerClient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/patch"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphere/v1alpha1"
@@ -45,27 +46,29 @@ import (
 
 // ClusterContextParams are the parameters needed to create a ClusterContext.
 type ClusterContextParams struct {
-	Context    context.Context
-	Cluster    *clusterv1.Cluster
-	Client     client.ClusterV1alpha1Interface
-	CoreClient corev1.CoreV1Interface
-	Logger     logr.Logger
+	Context          context.Context
+	Cluster          *clusterv1.Cluster
+	Client           client.ClusterV1alpha1Interface
+	CoreClient       corev1.CoreV1Interface
+	ControllerClient controllerClient.Client
+	Logger           logr.Logger
 }
 
 // ClusterContext is a Go context used with a CAPI cluster.
 type ClusterContext struct {
 	context.Context
-	Cluster       *clusterv1.Cluster
-	ClusterCopy   *clusterv1.Cluster
-	ClusterClient client.ClusterInterface
-	ClusterConfig *v1alpha1.VsphereClusterProviderSpec
-	ClusterStatus *v1alpha1.VsphereClusterProviderStatus
-	CoreClient    corev1.CoreV1Interface
-	Logger        logr.Logger
-	client        client.ClusterV1alpha1Interface
-	machineClient client.MachineInterface
-	user          string
-	pass          string
+	Cluster          *clusterv1.Cluster
+	ClusterCopy      *clusterv1.Cluster
+	ClusterClient    client.ClusterInterface
+	ClusterConfig    *v1alpha1.VsphereClusterProviderSpec
+	ClusterStatus    *v1alpha1.VsphereClusterProviderStatus
+	CoreClient       corev1.CoreV1Interface
+	ControllerClient controllerClient.Client
+	Logger           logr.Logger
+	client           client.ClusterV1alpha1Interface
+	machineClient    client.MachineInterface
+	user             string
+	pass             string
 }
 
 // NewClusterContext returns a new ClusterContext.
@@ -122,18 +125,19 @@ func NewClusterContext(params *ClusterContextParams) (*ClusterContext, error) {
 	}
 
 	return &ClusterContext{
-		Context:       parentContext,
-		Cluster:       params.Cluster,
-		ClusterCopy:   params.Cluster.DeepCopy(),
-		ClusterClient: clusterClient,
-		ClusterConfig: clusterConfig,
-		ClusterStatus: clusterStatus,
-		CoreClient:    params.CoreClient,
-		Logger:        logr,
-		client:        params.Client,
-		machineClient: machineClient,
-		user:          user,
-		pass:          pass,
+		Context:          parentContext,
+		Cluster:          params.Cluster,
+		ClusterCopy:      params.Cluster.DeepCopy(),
+		ClusterClient:    clusterClient,
+		ClusterConfig:    clusterConfig,
+		ClusterStatus:    clusterStatus,
+		CoreClient:       params.CoreClient,
+		ControllerClient: params.ControllerClient,
+		Logger:           logr,
+		client:           params.Client,
+		machineClient:    machineClient,
+		user:             user,
+		pass:             pass,
 	}, nil
 }
 
@@ -161,6 +165,16 @@ func (c *ClusterContext) String() string {
 	return fmt.Sprintf("%s/%s", c.Cluster.Namespace, c.Cluster.Name)
 }
 
+// GetCluster returns the Cluster object.
+func (c *ClusterContext) GetCluster() *clusterv1.Cluster {
+	return c.Cluster
+}
+
+// GetControllerClient returns the ControllerClient.
+func (c *ClusterContext) GetControllerClient() controllerClient.Client {
+	return c.ControllerClient
+}
+
 // GetObject returns the Cluster object.
 func (c *ClusterContext) GetObject() runtime.Object {
 	return c.Cluster
@@ -176,7 +190,7 @@ func (c *ClusterContext) ClusterName() string {
 	return c.Cluster.Name
 }
 
-// ClusterProviderSpec returns the cluster provider spec.
+// GetClusterProviderSpec returns the cluster provider spec.
 func (c *ClusterContext) GetClusterProviderSpec() *v1alpha1.VsphereClusterProviderSpec {
 	return c.ClusterConfig
 }

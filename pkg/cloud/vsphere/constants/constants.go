@@ -23,6 +23,14 @@ import (
 )
 
 const (
+	// CloudProviderSecretName is the name of the Secret that stores the
+	// cloud provider credentials.
+	CloudProviderSecretName = "cloud-provider-vsphere-credentials"
+
+	// CloudProviderSecretNamespace is the namespace in which the cloud provider
+	// credentials secret is located.
+	CloudProviderSecretNamespace = "kube-system"
+
 	// DefaultBindPort is the default API port used to generate the kubeadm
 	// configurations.
 	DefaultBindPort = 6443

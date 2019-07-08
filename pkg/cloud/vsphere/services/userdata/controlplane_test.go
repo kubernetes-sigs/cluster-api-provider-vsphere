@@ -16,7 +16,11 @@ limitations under the License.
 
 package userdata
 
-import "testing"
+import (
+	"testing"
+
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
+)
 
 func TestTemplateYAMLIndent(t *testing.T) {
 	testcases := []struct {
@@ -60,22 +64,22 @@ func Test_CloudConfig(t *testing.T) {
 		{
 			name: "standard cloud config",
 			input: &CloudConfigInput{
-				User:         "admin",
-				Password:     "so_secure",
-				Server:       "10.0.0.1",
-				Datacenter:   "myprivatecloud",
-				ResourcePool: "deadpool",
-				Folder:       "vms",
-				Datastore:    "infinite-data",
-				Network:      "connected",
+				SecretName:      constants.CloudProviderSecretName,
+				SecretNamespace: constants.CloudProviderSecretNamespace,
+				Server:          "10.0.0.1",
+				Datacenter:      "myprivatecloud",
+				ResourcePool:    "deadpool",
+				Folder:          "vms",
+				Datastore:       "infinite-data",
+				Network:         "connected",
 			},
 			userdata: `[Global]
+secret-name = "` + constants.CloudProviderSecretName + `"
+secret-namespace = "` + constants.CloudProviderSecretNamespace + `"
 insecure-flag = "1" # set to 1 if the vCenter uses a self-signed cert
 datacenters = "myprivatecloud"
 
 [VirtualCenter "10.0.0.1"]
-user = "admin"
-password = "so_secure"
 
 [Workspace]
 server = "10.0.0.1"

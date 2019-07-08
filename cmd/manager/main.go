@@ -20,6 +20,7 @@ import (
 	"flag"
 	"net/http"
 	"net/http/pprof"
+	"os"
 	"time"
 
 	"github.com/pkg/errors"
@@ -41,26 +42,46 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 )
 
+const (
+	profilerAddrEnvVar = "PROFILER_ADDR"
+	syncPeriodEnvVar   = "SYNC_PERIOD"
+)
+
+var (
+	defaultProfilerAddr = os.Getenv(profilerAddrEnvVar)
+	defaultSyncPeriod   = 10 * time.Minute
+)
+
+func init() {
+	if sp, err := time.ParseDuration(os.Getenv(syncPeriodEnvVar)); err == nil {
+		defaultSyncPeriod = sp
+	}
+}
+
 func main() {
 	klog.InitFlags(nil)
 	flag.Set("logtostderr", "true")
 	watchNamespace := flag.String("namespace", "",
 		"Namespace that the controller watches to reconcile cluster-api objects. If unspecified, the controller watches for cluster-api objects across all namespaces.")
-	profilerAddr := flag.String("profiler-address", "", "the address to expose the pprof profiler")
+	profilerAddr := flag.String("profiler-address", defaultProfilerAddr,
+		"The address to expose the pprof profiler")
+	syncPeriod := flag.Duration("sync-period", defaultSyncPeriod,
+		"The interval at which cluster-api objects are synchronized")
 
 	flag.Parse()
 
 	if addr := *profilerAddr; addr != "" {
+		klog.Infof("Starting pprof at %s", *profilerAddr)
 		go runProfiler(addr)
 	}
 
 	cfg := config.GetConfigOrDie()
 
 	// Setup a Manager
-	syncPeriod := 10 * time.Minute
 	opts := manager.Options{
-		SyncPeriod: &syncPeriod,
+		SyncPeriod: syncPeriod,
 	}
+	klog.Infof("Cluster-api objects are synchronized every %s", *syncPeriod)
 
 	if *watchNamespace != "" {
 		opts.Namespace = *watchNamespace

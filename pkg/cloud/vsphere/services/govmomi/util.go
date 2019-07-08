@@ -26,7 +26,7 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphere/v1alpha1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/config"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/govmomi/net"
 	clustererror "sigs.k8s.io/cluster-api/pkg/controller/error"
@@ -184,10 +184,10 @@ func lookupVM(ctx *context.MachineContext) (*object.VirtualMachine, error) {
 		switch task.Info.State {
 		case types.TaskInfoStateQueued:
 			ctx.Logger.V(4).Info("task is still pending", "description-id", task.Info.DescriptionId)
-			return nil, &clustererror.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+			return nil, &clustererror.RequeueAfterError{RequeueAfter: config.DefaultRequeue}
 		case types.TaskInfoStateRunning:
 			ctx.Logger.V(4).Info("task is still running", "description-id", task.Info.DescriptionId)
-			return nil, &clustererror.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+			return nil, &clustererror.RequeueAfterError{RequeueAfter: config.DefaultRequeue}
 		case types.TaskInfoStateSuccess:
 			ctx.Logger.V(4).Info("task is a success", "description-id", task.Info.DescriptionId)
 			ctx.MachineStatus.TaskRef = ""

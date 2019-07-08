@@ -35,6 +35,7 @@ import (
 	controllerClient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/actuators"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/config"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/govmomi"
@@ -96,7 +97,7 @@ func (a *Actuator) Create(
 
 	if _, ok := machine.Annotations[constants.MaintenanceAnnotationLabel]; ok {
 		ctx.Logger.V(4).Info("skipping operations on machine", "reason", "annotation", "annotation-key", constants.MaintenanceAnnotationLabel)
-		return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+		return &clusterErr.RequeueAfterError{RequeueAfter: config.DefaultRequeue}
 	}
 
 	defer func() {
@@ -133,7 +134,7 @@ func (a *Actuator) Delete(
 
 	if _, ok := machine.Annotations[constants.MaintenanceAnnotationLabel]; ok {
 		ctx.Logger.V(4).Info("skipping operations on machine", "reason", "annotation", "annotation-key", constants.MaintenanceAnnotationLabel)
-		return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+		return &clusterErr.RequeueAfterError{RequeueAfter: config.DefaultRequeue}
 	}
 
 	defer func() {
@@ -210,7 +211,7 @@ func (a *Actuator) Exists(
 
 	if _, ok := machine.Annotations[constants.MaintenanceAnnotationLabel]; ok {
 		ctx.Logger.V(4).Info("skipping operations on machine", "reason", "annotation", "annotation-key", constants.MaintenanceAnnotationLabel)
-		return false, &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+		return false, &clusterErr.RequeueAfterError{RequeueAfter: config.DefaultRequeue}
 	}
 
 	defer func() {
@@ -223,7 +224,7 @@ func (a *Actuator) Exists(
 func (a *Actuator) reconcilePKI(ctx *context.MachineContext) error {
 	if !ctx.ClusterConfig.CAKeyPair.HasCertAndKey() {
 		ctx.Logger.V(6).Info("cluster config is missing pki toolchain, requeue machine")
-		return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+		return &clusterErr.RequeueAfterError{RequeueAfter: config.DefaultRequeue}
 	}
 	return nil
 }
@@ -245,7 +246,7 @@ func (a *Actuator) doInitOrJoin(ctx *context.MachineContext) error {
 	client, err := kubeclient.New(ctx)
 	if err != nil {
 		ctx.Logger.Error(err, "target cluster is not ready")
-		return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+		return &clusterErr.RequeueAfterError{RequeueAfter: config.DefaultRequeue}
 	}
 
 	// Get a new bootstrap token used to join this machine to the cluster.
@@ -274,7 +275,7 @@ func (a *Actuator) reconcileKubeConfig(ctx *context.MachineContext) error {
 	controlPlaneEndpoint, err := ctx.ControlPlaneEndpoint()
 	if err != nil {
 		ctx.Logger.Error(err, "requeueing until control plane endpoint is available")
-		return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+		return &clusterErr.RequeueAfterError{RequeueAfter: config.DefaultRequeue}
 	}
 
 	// Create a new kubeconfig for the target cluster.
@@ -307,7 +308,7 @@ func (a *Actuator) reconcileKubeConfig(ctx *context.MachineContext) error {
 	if _, err := a.coreClient.Secrets(ctx.Cluster.Namespace).Create(secret); err != nil {
 		if !apierrors.IsAlreadyExists(err) {
 			ctx.Logger.Error(err, "error creating kubeconfig secret")
-			return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+			return &clusterErr.RequeueAfterError{RequeueAfter: config.DefaultRequeue}
 		}
 		ctx.Logger.V(6).Info("kubeconfig secret already exists")
 	} else {
@@ -332,7 +333,7 @@ func (a *Actuator) reconcileReadyState(ctx *context.MachineContext) error {
 
 	if ctx.Machine.Status.NodeRef == nil {
 		ctx.Logger.V(6).Info("requeuing until noderef is set")
-		return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+		return &clusterErr.RequeueAfterError{RequeueAfter: config.DefaultRequeue}
 	}
 
 	if ctx.Machine.Annotations == nil {
@@ -370,7 +371,7 @@ func (a *Actuator) shouldInitControlPlane(ctx *context.MachineContext) (bool, er
 	// plane is ready.
 	if !ctx.HasControlPlaneRole() {
 		ctx.Logger.V(6).Info("machine is worker; requeue until control plane is ready")
-		return false, &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+		return false, &clusterErr.RequeueAfterError{RequeueAfter: config.DefaultRequeue}
 	}
 
 	// The machine has the control plane role, but can it acquire the config
@@ -404,7 +405,7 @@ func (a *Actuator) shouldInitControlPlane(ctx *context.MachineContext) (bool, er
 		} else {
 			ctx.Logger.Error(err, "error creating control plane config map")
 		}
-		return false, &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+		return false, &clusterErr.RequeueAfterError{RequeueAfter: config.DefaultRequeue}
 	}
 
 	// The control plane is not ready, and this machine should initialize it.

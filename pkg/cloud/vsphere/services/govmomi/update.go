@@ -26,7 +26,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	clustererror "sigs.k8s.io/cluster-api/pkg/controller/error"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/config"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/govmomi/extra"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/metadata"
@@ -49,7 +49,7 @@ func Update(ctx *context.MachineContext) error {
 	if vm == nil {
 		ctx.Logger.V(2).Info("vm should exist but cannot be found, recreating", "machine-ref", ctx.MachineConfig.MachineRef)
 		ctx.MachineConfig.MachineRef = ""
-		return &clustererror.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+		return &clustererror.RequeueAfterError{RequeueAfter: config.DefaultRequeue}
 	}
 
 	if err := reconcileNetwork(ctx, vm); err != nil {
@@ -76,7 +76,7 @@ func reconcileProviderID(ctx *context.MachineContext, vm *object.VirtualMachine)
 	biosUUID := vm.UUID(ctx)
 	if biosUUID == "" {
 		ctx.Logger.V(6).Info("requeuing until BIOS UUID is no longer empty")
-		return &clustererror.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+		return &clustererror.RequeueAfterError{RequeueAfter: config.DefaultRequeue}
 	}
 	providerID := fmt.Sprintf("vsphere://%s", biosUUID)
 	if ctx.Machine.Spec.ProviderID == nil || *ctx.Machine.Spec.ProviderID != providerID {
@@ -116,7 +116,7 @@ func reconcileMetadata(ctx *context.MachineContext, vm *object.VirtualMachine) e
 	}
 	ctx.MachineStatus.TaskRef = task.Reference().Value
 	ctx.Logger.V(6).Info("reenqueue to track update metadata task")
-	return &clustererror.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+	return &clustererror.RequeueAfterError{RequeueAfter: config.DefaultRequeue}
 }
 
 // reconcileNetwork updates the machine's network spec and status
@@ -156,7 +156,7 @@ func reconcileNetwork(ctx *context.MachineContext, vm *object.VirtualMachine) er
 		for _, netStatus := range ctx.MachineStatus.Network {
 			if len(netStatus.IPAddrs) == 0 {
 				ctx.Logger.V(6).Info("reenqueue to wait on IP addresses")
-				return &clustererror.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+				return &clustererror.RequeueAfterError{RequeueAfter: config.DefaultRequeue}
 			}
 			for _, ip := range netStatus.IPAddrs {
 				ipAddrs = append(ipAddrs, corev1.NodeAddress{
@@ -188,7 +188,7 @@ func reconcilePowerState(ctx *context.MachineContext, vm *object.VirtualMachine)
 		}
 		ctx.MachineStatus.TaskRef = task.Reference().Value
 		ctx.Logger.V(6).Info("reenqueue to wait for power on state")
-		return &clustererror.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+		return &clustererror.RequeueAfterError{RequeueAfter: config.DefaultRequeue}
 	case types.VirtualMachinePowerStatePoweredOn:
 		ctx.Logger.V(6).Info("powered on")
 	default:

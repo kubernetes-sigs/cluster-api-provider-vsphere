@@ -31,30 +31,36 @@ import (
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 	capicluster "sigs.k8s.io/cluster-api/pkg/controller/cluster"
 	capimachine "sigs.k8s.io/cluster-api/pkg/controller/machine"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	configv1 "sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/actuators/cluster"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/actuators/machine"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/config"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/deployer"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 )
 
 const (
-	profilerAddrEnvVar = "PROFILER_ADDR"
-	syncPeriodEnvVar   = "SYNC_PERIOD"
+	profilerAddrEnvVar  = "PROFILER_ADDR"
+	syncPeriodEnvVar    = "SYNC_PERIOD"
+	requeuePeriodEnvVar = "REQUEUE_PERIOD"
 )
 
 var (
-	defaultProfilerAddr = os.Getenv(profilerAddrEnvVar)
-	defaultSyncPeriod   = 10 * time.Minute
+	defaultProfilerAddr  = os.Getenv(profilerAddrEnvVar)
+	defaultSyncPeriod    = 10 * time.Minute
+	defaultRequeuePeriod = 20 * time.Second
 )
 
 func init() {
-	if sp, err := time.ParseDuration(os.Getenv(syncPeriodEnvVar)); err == nil {
-		defaultSyncPeriod = sp
+	if v, err := time.ParseDuration(os.Getenv(syncPeriodEnvVar)); err == nil {
+		defaultSyncPeriod = v
+	}
+	if v, err := time.ParseDuration(os.Getenv(requeuePeriodEnvVar)); err == nil {
+		defaultRequeuePeriod = v
 	}
 }
 
@@ -67,6 +73,8 @@ func main() {
 		"The address to expose the pprof profiler")
 	syncPeriod := flag.Duration("sync-period", defaultSyncPeriod,
 		"The interval at which cluster-api objects are synchronized")
+	flag.DurationVar(&config.DefaultRequeue, "requeue-period", defaultRequeuePeriod,
+		"The default amount of time to wait before an operation is requeued.")
 
 	flag.Parse()
 
@@ -75,13 +83,14 @@ func main() {
 		go runProfiler(addr)
 	}
 
-	cfg := config.GetConfigOrDie()
+	cfg := configv1.GetConfigOrDie()
 
 	// Setup a Manager
 	opts := manager.Options{
 		SyncPeriod: syncPeriod,
 	}
 	klog.Infof("Cluster-api objects are synchronized every %s", *syncPeriod)
+	klog.Infof("The default requeue period is %s", config.DefaultRequeue)
 
 	if *watchNamespace != "" {
 		opts.Namespace = *watchNamespace

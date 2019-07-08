@@ -36,6 +36,7 @@ import (
 	controllerClient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/actuators"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/config"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/certificates"
@@ -151,16 +152,16 @@ func (a *Actuator) reconcileReadyState(ctx *context.ClusterContext) error {
 	client, err := remotev1.NewClusterClient(a.controllerClient, ctx.Cluster)
 	if err != nil {
 		ctx.Logger.Error(err, "unable to get client for target cluster")
-		return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+		return &clusterErr.RequeueAfterError{RequeueAfter: config.DefaultRequeue}
 	}
 	coreClient, err := client.CoreV1()
 	if err != nil {
 		ctx.Logger.Error(err, "unable to get core client for target cluster")
-		return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+		return &clusterErr.RequeueAfterError{RequeueAfter: config.DefaultRequeue}
 	}
 	if _, err := coreClient.Nodes().List(metav1.ListOptions{}); err != nil {
 		ctx.Logger.Error(err, "unable to list nodes for target cluster")
-		return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+		return &clusterErr.RequeueAfterError{RequeueAfter: config.DefaultRequeue}
 	}
 
 	// Get the RESTConfig in order to parse its Host to use as the control plane
@@ -168,7 +169,7 @@ func (a *Actuator) reconcileReadyState(ctx *context.ClusterContext) error {
 	restConfig := client.RESTConfig()
 	if restConfig == nil {
 		ctx.Logger.Error(errors.New("restConfig == nil"), "error getting RESTConfig for kube client")
-		return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+		return &clusterErr.RequeueAfterError{RequeueAfter: config.DefaultRequeue}
 	}
 
 	// Calculate the API endpoint for the cluster.
@@ -214,7 +215,7 @@ func (a *Actuator) reconcileCloudConfigSecret(ctx *context.ClusterContext) error
 	client, err := kubeclient.New(ctx)
 	if err != nil {
 		ctx.Logger.Error(err, "target cluster is not ready")
-		return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+		return &clusterErr.RequeueAfterError{RequeueAfter: config.DefaultRequeue}
 	}
 	// Define the kubeconfig secret for the target cluster.
 	secret := &apiv1.Secret{
@@ -233,7 +234,7 @@ func (a *Actuator) reconcileCloudConfigSecret(ctx *context.ClusterContext) error
 			return nil
 		}
 		ctx.Logger.Error(err, "unable to create cloud provider secret")
-		return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+		return &clusterErr.RequeueAfterError{RequeueAfter: config.DefaultRequeue}
 	}
 
 	ctx.Logger.V(6).Info("created cloud provider credential secret",

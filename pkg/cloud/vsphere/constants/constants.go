@@ -17,8 +17,6 @@ limitations under the License.
 package constants
 
 import (
-	"time"
-
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphere"
 )
 
@@ -34,10 +32,6 @@ const (
 	// DefaultBindPort is the default API port used to generate the kubeadm
 	// configurations.
 	DefaultBindPort = 6443
-
-	// DefaultRequeue is the default time for how long to wait when
-	// requeueing a CAPI operation.
-	DefaultRequeue = 20 * time.Second
 
 	// VSphereCredentialSecretUserKey is the key used to store/retrieve the
 	// vSphere username from a Kubernetes secret.

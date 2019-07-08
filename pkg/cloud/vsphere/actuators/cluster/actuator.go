@@ -17,11 +17,14 @@ limitations under the License.
 package cluster
 
 import (
+	"encoding/base64"
+	"fmt"
 	"net/url"
 	"strconv"
 
 	"github.com/pkg/errors"
 
+	apiv1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -36,6 +39,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/certificates"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/kubeclient"
 )
 
 //+kubebuilder:rbac:groups=vsphere.cluster.k8s.io,resources=vsphereclusterproviderspecs;vsphereclusterproviderstatuses,verbs=get;list;watch;create;update;patch;delete
@@ -66,10 +70,11 @@ func NewActuator(
 // Reconcile will create or update the cluster
 func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (opErr error) {
 	ctx, err := context.NewClusterContext(&context.ClusterContextParams{
-		Cluster:    cluster,
-		Client:     a.client,
-		CoreClient: a.coreClient,
-		Logger:     klogr.New().WithName("[cluster-actuator]"),
+		Cluster:          cluster,
+		Client:           a.client,
+		CoreClient:       a.coreClient,
+		ControllerClient: a.controllerClient,
+		Logger:           klogr.New().WithName("[cluster-actuator]"),
 	})
 	if err != nil {
 		return err
@@ -85,6 +90,10 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (opErr error) {
 		return err
 	}
 
+	if err := a.reconcileCloudConfigSecret(ctx); err != nil {
+		return err
+	}
+
 	if err := a.reconcileReadyState(ctx); err != nil {
 		return err
 	}
@@ -95,9 +104,10 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (opErr error) {
 // Delete will delete any cluster level resources for the cluster.
 func (a *Actuator) Delete(cluster *clusterv1.Cluster) (opErr error) {
 	ctx, err := context.NewClusterContext(&context.ClusterContextParams{
-		Cluster:    cluster,
-		Client:     a.client,
-		CoreClient: a.coreClient,
+		Cluster:          cluster,
+		Client:           a.client,
+		CoreClient:       a.coreClient,
+		ControllerClient: a.controllerClient,
 	})
 	if err != nil {
 		return err
@@ -195,6 +205,41 @@ func (a *Actuator) reconcileReadyState(ctx *context.ClusterContext) error {
 	ctx.ClusterStatus.Ready = true
 
 	ctx.Logger.V(6).Info("cluster is ready")
+	return nil
+}
+
+// reconcileCloudConfigSecret ensures the cloud config secret is present in the
+// target cluster.
+func (a *Actuator) reconcileCloudConfigSecret(ctx *context.ClusterContext) error {
+	client, err := kubeclient.New(ctx)
+	if err != nil {
+		ctx.Logger.Error(err, "target cluster is not ready")
+		return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+	}
+	// Define the kubeconfig secret for the target cluster.
+	secret := &apiv1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.CloudProviderSecretNamespace,
+			Name:      constants.CloudProviderSecretName,
+		},
+		Type: apiv1.SecretTypeOpaque,
+		StringData: map[string]string{
+			fmt.Sprintf("%s.username", ctx.ClusterConfig.Server): base64.StdEncoding.EncodeToString([]byte(ctx.User())),
+			fmt.Sprintf("%s.password", ctx.ClusterConfig.Server): base64.StdEncoding.EncodeToString([]byte(ctx.Pass())),
+		},
+	}
+	if _, err := client.Secrets(constants.CloudProviderSecretNamespace).Create(secret); err != nil {
+		if apierrors.IsAlreadyExists(err) {
+			return nil
+		}
+		ctx.Logger.Error(err, "unable to create cloud provider secret")
+		return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
+	}
+
+	ctx.Logger.V(6).Info("created cloud provider credential secret",
+		"secret-name", constants.CloudProviderSecretName,
+		"secret-namespace", constants.CloudProviderSecretNamespace)
+
 	return nil
 }
 

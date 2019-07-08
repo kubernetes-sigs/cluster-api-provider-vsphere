@@ -25,12 +25,12 @@ import (
 
 const (
 	cloudConfig = `[Global]
+secret-name = "{{ .SecretName }}"
+secret-namespace = "{{ .SecretNamespace }}"
 insecure-flag = "1" # set to 1 if the vCenter uses a self-signed cert
 datacenters = "{{ .Datacenter }}"
 
 [VirtualCenter "{{ .Server }}"]
-user = "{{ .User }}"
-password = "{{ .Password }}"
 
 [Workspace]
 server = "{{ .Server }}"
@@ -253,14 +253,14 @@ type ContolPlaneJoinInput struct {
 // CloudConfigInput defines parameters required to generate the
 // vSphere Cloud Provider cloud config file
 type CloudConfigInput struct {
-	User         string
-	Password     string
-	Server       string
-	Datacenter   string
-	ResourcePool string
-	Folder       string
-	Datastore    string
-	Network      string
+	SecretName      string
+	SecretNamespace string
+	Server          string
+	Datacenter      string
+	ResourcePool    string
+	Folder          string
+	Datastore       string
+	Network         string
 }
 
 func (cpi *ControlPlaneInput) validateCertificates() error {

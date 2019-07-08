@@ -38,6 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/govmomi"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/kubeclient"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/kubeconfig"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/tokens"
 )
@@ -80,11 +81,12 @@ func (a *Actuator) Create(
 	ctx, err := context.NewMachineContext(
 		&context.MachineContextParams{
 			ClusterContextParams: context.ClusterContextParams{
-				Context:    parentCtx,
-				Cluster:    cluster,
-				Client:     a.client,
-				CoreClient: a.coreClient,
-				Logger:     klogr.New().WithName("[machine-actuator]"),
+				Context:          parentCtx,
+				Cluster:          cluster,
+				Client:           a.client,
+				CoreClient:       a.coreClient,
+				ControllerClient: a.controllerClient,
+				Logger:           klogr.New().WithName("[machine-actuator]"),
 			},
 			Machine: machine,
 		})
@@ -117,10 +119,11 @@ func (a *Actuator) Delete(
 	ctx, err := context.NewMachineContext(
 		&context.MachineContextParams{
 			ClusterContextParams: context.ClusterContextParams{
-				Context:    parentCtx,
-				Cluster:    cluster,
-				Client:     a.client,
-				CoreClient: a.coreClient,
+				Context:          parentCtx,
+				Cluster:          cluster,
+				Client:           a.client,
+				CoreClient:       a.coreClient,
+				ControllerClient: a.controllerClient,
 			},
 			Machine: machine,
 		})
@@ -151,10 +154,11 @@ func (a *Actuator) Update(
 	ctx, err := context.NewMachineContext(
 		&context.MachineContextParams{
 			ClusterContextParams: context.ClusterContextParams{
-				Context:    parentCtx,
-				Cluster:    cluster,
-				Client:     a.client,
-				CoreClient: a.coreClient,
+				Context:          parentCtx,
+				Cluster:          cluster,
+				Client:           a.client,
+				CoreClient:       a.coreClient,
+				ControllerClient: a.controllerClient,
 			},
 			Machine: machine,
 		})
@@ -192,10 +196,11 @@ func (a *Actuator) Exists(
 	ctx, err := context.NewMachineContext(
 		&context.MachineContextParams{
 			ClusterContextParams: context.ClusterContextParams{
-				Context:    parentCtx,
-				Cluster:    cluster,
-				Client:     a.client,
-				CoreClient: a.coreClient,
+				Context:          parentCtx,
+				Cluster:          cluster,
+				Client:           a.client,
+				CoreClient:       a.coreClient,
+				ControllerClient: a.controllerClient,
 			},
 			Machine: machine,
 		})
@@ -236,19 +241,15 @@ func (a *Actuator) doInitOrJoin(ctx *context.MachineContext) error {
 		return govmomi.Create(ctx, "")
 	}
 
-	client, err := remotev1.NewClusterClient(a.controllerClient, ctx.Cluster)
+	// Get a client for the target cluster.
+	client, err := kubeclient.New(ctx)
 	if err != nil {
-		ctx.Logger.V(6).Info("unable to get client for target cluster", "reason", err.Error())
-		return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
-	}
-	coreClient, err := client.CoreV1()
-	if err != nil {
-		ctx.Logger.V(6).Info("unable to get core client for target cluster", "reason", err.Error())
+		ctx.Logger.Error(err, "target cluster is not ready")
 		return &clusterErr.RequeueAfterError{RequeueAfter: constants.DefaultRequeue}
 	}
 
 	// Get a new bootstrap token used to join this machine to the cluster.
-	token, err := tokens.NewBootstrap(coreClient, defaultTokenTTL)
+	token, err := tokens.NewBootstrap(client, defaultTokenTTL)
 	if err != nil {
 		return errors.Wrapf(err, "unable to generate boostrap token for joining machine to cluster %q", ctx)
 	}
@@ -337,6 +338,7 @@ func (a *Actuator) reconcileReadyState(ctx *context.MachineContext) error {
 	if ctx.Machine.Annotations == nil {
 		ctx.Machine.Annotations = map[string]string{}
 	}
+
 	ctx.Machine.Annotations[constants.MachineReadyAnnotationLabel] = ""
 	ctx.Logger.V(6).Info("machine is ready")
 

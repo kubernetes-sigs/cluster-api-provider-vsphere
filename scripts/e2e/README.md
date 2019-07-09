@@ -1,10 +1,11 @@
-Test cluster-api-provider-vsphere
+# Test cluster-api-provider-vsphere
 
-**Prow**   
+## Prow
+
 note: the actual Prow job definition file is at k8s.io/test-infra  
 test-infra/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere  
 
-```
+```ascii
             +-----------------------------------------------------+
             |                                                     |
             |                                                     |
@@ -38,11 +39,11 @@ test-infra/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere
            |        BOOTSTRAP CLUSTER (on VMC)                     |
            |                                                       |
            +-------------------------------------------------------+
-``` 
- 
-   
-**Architecture**    
 ```
+
+## Architecture
+
+```ascii
 
                                              +-----------------------------------+
       +----------------------+               |          VMC Infra                |
@@ -62,27 +63,29 @@ test-infra/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere
       |                      |               ||    | |                          ||
       |                      |               |+----+ +--------------------------+|
       +----------------------+               +-----------------------------------+
-                                             
 ```
-      
-**Containers**    
-the vsphere-machine-controller containers for CI purpose are hosted at   
-`gcr.io/cnx-cluster-api/vsphere-cluster-api-provider`   
-the cluster-api-provider-vsphere-ci hosted at   
-`gcr/cnx-cluster-api/cluster-api-provider-vsphere-ci` 
 
+## Containers
 
-**Test CI locally (non-Prow)**   
-****Prerequisite**** 
-1) A local cluster (prefer minikube)   
-2) Apply the secret (based on secret.template) to local cluster   
- 
-**Steps with minikube**   
-`cd ./scripts/e2e/hack && make build`   
-this will build ci container that contains cluster-api-provider-vsphere code from your working directory.    
+The CAPV manager images are hosted at [`gcr.io/cnx-cluster-api/vsphere-cluster-api-provider`](gcr.io/cnx-cluster-api/vsphere-cluster-api-provider). The images for CI are hosted at [`gcr/cnx-cluster-api/cluster-api-provider-vsphere-ci`](gcr/cnx-cluster-api/cluster-api-provider-vsphere-ci).
 
-this is only necessary when we want minikube to pull image from local docker images   
-`eval $(minikube docker-env)`   
+## Test CI locally
 
-`kubectl create -f job.yml`   
-and monitor the job status   
+### Prerequisites
+
+1. A local cluster
+2. Apply the secret (based on secret.template) to local cluster
+
+### Steps
+
+1. Build the CI container
+
+    ```shell
+    cd ./scripts/e2e/hack && make build
+    ```
+
+2. Create the job
+
+    ```shell
+    kubectl create -f job.yml
+    ```

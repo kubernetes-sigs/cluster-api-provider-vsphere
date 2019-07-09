@@ -6,7 +6,7 @@ Clusters provisioned by Cluster API provider for vSphere _must_ be provisioned u
 
 ## Ubuntu 18.04
 
-```
+```shell
 # kubernetes v1.13.6
 https://storage.googleapis.com/capv-images/release/v1.13.6/ubuntu-1804-kube-v1.13.6.ova
 
@@ -28,7 +28,7 @@ https://storage.googleapis.com/capv-images/release/v1.14.3/ubuntu-1804-kube-v1.1
 
 ## CentOS 7
 
-```
+```shell
 # kubernetes v1.13.6
 https://storage.googleapis.com/capv-images/release/v1.13.6/centos-7-kube-v1.13.6.ova
 

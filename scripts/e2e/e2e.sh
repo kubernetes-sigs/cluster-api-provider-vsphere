@@ -90,7 +90,7 @@ get_bootstrap_vm() {
 }
 
 export_base64_value() {
-   base64_value=$(echo -n "$2" | base64 -w 0)
+   base64_value=$(printf '%s' "${2}" | { base64 -w0 || base64; } 2>/dev/null)
    export "$1"="$base64_value"
 }
 
@@ -142,7 +142,7 @@ if [ -z "${PROW_JOB_ID}" ] ; then
    context="debug"
    start_docker
    vsphere_controller_version=$(shell git describe --exact-match 2> /dev/null || \
-      git describe --match=$(git rev-parse --short=8 HEAD) --always --dirty --abbrev=8)
+      git describe --match="$(git rev-parse --short=8 HEAD)" --always --dirty --abbrev=8)
 else
    context="prow"
    if [ -z "${PULL_PULL_SHA}" ] ; then

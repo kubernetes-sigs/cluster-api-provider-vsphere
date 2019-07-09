@@ -22,12 +22,6 @@ set -o pipefail
 # script is located.
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
-# Install the goformat tool if it is missing.
-command -v goformat >/dev/null 2>&1 || (cd / && GOPATH="${OLD_GOPATH:-${GOPATH}}" go get github.com/mbenkmann/goformat/goformat)
-
-# Install the goimports tool if it is missing.
-command -v goimports >/dev/null 2>&1 || (cd / && GOPATH="${OLD_GOPATH:-${GOPATH}}" go get golang.org/x/tools/cmd/goimports)
-
 # Ensure the temp out file is removed when this program exits.
 out="$(mktemp)"
 on_exit() {
@@ -38,7 +32,7 @@ trap on_exit EXIT
 # Run goformat on all the sources.
 flags="-e -s -w"
 [ -z "${PROW_JOB_ID-}" ] || flags="-d ${flags}"
-eval "goformat ${flags} ./cmd/ ./pkg/" | tee "${out}"
+eval "go run ./vendor/github.com/mbenkmann/goformat/goformat ${flags} ./cmd/ ./pkg/" | tee "${out}"
 
 # Check to see if there any suggestions.
 goformat_exit_code=0; test -z "$(head -n 1 "${out}")" || goformat_exit_code=1
@@ -49,7 +43,7 @@ rm -f "${out}" && touch "${out}"
 # Run goimports on all the sources.
 flags="-e -w"
 [ -z "${PROW_JOB_ID-}" ] || flags="-d ${flags}"
-eval "goimports ${flags} ./cmd/ ./pkg/" | tee "${out}"
+eval "go run ./vendor/golang.org/x/tools/cmd/goimports ${flags} ./cmd/ ./pkg/" | tee "${out}"
 
 # Check to see if there any suggestions.
 goimports_exit_code=0; test -z "$(head -n 1 "${out}")" || goimports_exit_code=1

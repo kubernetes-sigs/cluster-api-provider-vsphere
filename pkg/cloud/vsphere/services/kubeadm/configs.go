@@ -114,6 +114,7 @@ func WithControllerManagerExtraArgs(args map[string]string) ClusterConfiguration
 	}
 }
 
+// WithControllerManagerExtraVolumes sets the controller manager's extra volumes arguments in the ClusterConfiguration.
 func WithControllerManagerExtraVolumes(name, hostPath, mountPath string) ClusterConfigurationOption {
 	return func(c *kubeadmv1beta1.ClusterConfiguration) {
 		if c.ControllerManager.ExtraVolumes == nil {

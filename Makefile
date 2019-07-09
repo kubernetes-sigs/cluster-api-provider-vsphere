@@ -37,11 +37,11 @@ VERSION ?= $(shell git describe --exact-match 2> /dev/null || \
 	   git describe --match=$(git rev-parse --short=8 HEAD) --always --dirty --abbrev=8)
 
 # Build manager binary
-manager: fmt vet
+manager: check
 	go build -o bin/manager ./cmd/manager
 
 # Build the clusterctl binary
-clusterctl: fmt vet
+clusterctl: check
 	CGO_ENABLED=0 go build -ldflags '-extldflags "-static" -w -s' \
 	-o bin/clusterctl."$${GOOS:-$$(go env GOHOSTOS)}"_"$${GOARCH:-$$(go env GOHOSTARCH)}" \
 	./cmd/clusterctl
@@ -63,15 +63,15 @@ manifests:
 
 # Run go fmt against code
 fmt: | generate
-ifneq (,$(strip $(shell command -v goformat 2>/dev/null)))
-	goformat -s -w ./pkg ./cmd
-else
-	go fmt ./pkg/... ./cmd/...
-endif
+	hack/check-format.sh
 
 # Run go vet against code
 vet: | generate
-	go vet ./pkg/... ./cmd/...
+	hack/check-vet.sh
+
+# Run go lint against code
+lint: | generate
+	hack/check-lint.sh
 
 # Generate code
 generate:
@@ -159,6 +159,10 @@ ci-push: ci-image
 # The default build target
 build: manager clusterctl
 .PHONY: build
+
+# Check all the sources.
+check: fmt lint vet
+.PHONY: check
 
 # The default test target
 test: build manifests

@@ -100,6 +100,8 @@ github.com/json-iterator/go
 github.com/markbates/inflect
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
 github.com/matttproud/golang_protobuf_extensions/pbutil
+# github.com/mbenkmann/goformat v0.0.0-20180512004123-256ef38c4271
+github.com/mbenkmann/goformat/goformat
 # github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
 github.com/modern-go/concurrent
 # github.com/modern-go/reflect2 v1.0.1
@@ -216,6 +218,9 @@ go.uber.org/zap/internal/color
 go.uber.org/zap/internal/exit
 # golang.org/x/crypto v0.0.0-20190530122614-20be4c3c3ed5
 golang.org/x/crypto/ssh/terminal
+# golang.org/x/lint v0.0.0-20190301231843-5614ed5bae6f
+golang.org/x/lint/golint
+golang.org/x/lint
 # golang.org/x/net v0.0.0-20190603091049-60506f45cf65
 golang.org/x/net/context
 golang.org/x/net/http2
@@ -261,17 +266,18 @@ golang.org/x/text/internal/tag
 # golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
 golang.org/x/time/rate
 # golang.org/x/tools v0.0.0-20190312170243-e65039ee4138
+golang.org/x/tools/cmd/goimports
 golang.org/x/tools/imports
 golang.org/x/tools/go/ast/astutil
+golang.org/x/tools/go/gcexportdata
 golang.org/x/tools/go/packages
 golang.org/x/tools/internal/gopathwalk
 golang.org/x/tools/internal/module
-golang.org/x/tools/go/gcexportdata
+golang.org/x/tools/go/internal/gcimporter
 golang.org/x/tools/go/internal/cgo
 golang.org/x/tools/go/internal/packagesdriver
 golang.org/x/tools/internal/semver
 golang.org/x/tools/internal/fastwalk
-golang.org/x/tools/go/internal/gcimporter
 # google.golang.org/api v0.3.1
 google.golang.org/api/support/bundler
 # google.golang.org/appengine v1.4.0
@@ -373,7 +379,6 @@ k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/scheme
 k8s.io/apimachinery/pkg/runtime
 k8s.io/apimachinery/pkg/apis/meta/v1
 k8s.io/apimachinery/pkg/runtime/schema
-k8s.io/apimachinery/pkg/util/json
 k8s.io/apimachinery/pkg/types
 k8s.io/apimachinery/pkg/api/errors
 k8s.io/apimachinery/pkg/labels
@@ -386,6 +391,7 @@ k8s.io/apimachinery/pkg/api/meta
 k8s.io/apimachinery/pkg/conversion
 k8s.io/apimachinery/pkg/conversion/queryparams
 k8s.io/apimachinery/pkg/util/errors
+k8s.io/apimachinery/pkg/util/json
 k8s.io/apimachinery/pkg/util/naming
 k8s.io/apimachinery/pkg/util/runtime
 k8s.io/apimachinery/pkg/util/sets
@@ -605,3 +611,6 @@ sigs.k8s.io/testing_frameworks/integration/addr
 sigs.k8s.io/testing_frameworks/integration/internal
 # sigs.k8s.io/yaml v1.1.0
 sigs.k8s.io/yaml
+# winterdrache.de/goformat v0.0.0-20180512004123-256ef38c4271
+winterdrache.de/goformat/printer
+winterdrache.de/goformat/tabwriter

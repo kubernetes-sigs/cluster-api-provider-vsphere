@@ -18,6 +18,9 @@ package tools
 
 import (
 	// Import the following to ensure they're vendored.
+	_ "github.com/mbenkmann/goformat/goformat"
+	_ "golang.org/x/lint/golint"
+	_ "golang.org/x/tools/cmd/goimports"
 	_ "k8s.io/code-generator/cmd/deepcopy-gen"
 	_ "k8s.io/code-generator/cmd/defaulter-gen"
 	_ "sigs.k8s.io/controller-tools/cmd/controller-gen"

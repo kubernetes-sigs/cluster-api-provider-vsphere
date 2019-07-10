@@ -27,9 +27,9 @@ The program `../../hack/image-tools.sh` can be used to download and install the 
 
 The `images` directory contains a child directory, `cloudinit`. The files in this directory:
 
-* **Are** example data used for testing
-* Are **not** included in any of the images
-* Should **not** be used in production systems
+- **Are** example data used for testing
+- Are **not** included in any of the images
+- Should **not** be used in production systems
 
 For more information about how the files in the `cloudinit` directory are used, please refer to the section on [accessing the images](#accessing-the-images).
 
@@ -59,7 +59,7 @@ build              build-centos-7     build-ubuntu-1804
 To build the Ubuntu and CentOS images:
 
 ```shell
-$ make
+make
 ```
 
 The images are built and located in `packer/output/BUILD_NAME+kube-KUBERNETES_VERSION`
@@ -76,7 +76,7 @@ The images are uploaded to the GCS bucket `capv-images`. The path to the image d
 Uploading the images requires the `gcloud` and `gsutil` programs, an active Google Cloud account, or a service account with an associated key file. The latter may be specified via the environment variable `KEY_FILE`.
 
 ```shell
-$ ../../hack/image-upload.py --key-file KEY_FILE BUILD_DIR
+../../hack/image-upload.py --key-file KEY_FILE BUILD_DIR
 ```
 
 First the images are checksummed (SHA256). If a matching checksum already exists remotely then the image is not re-uploaded. Otherwise the images are uploaded to the GCS bucket.
@@ -86,7 +86,7 @@ First the images are checksummed (SHA256). If a matching checksum already exists
 Once uploaded the available images may be listed using the `gsutil` program, for example:
 
 ```shell
-$ gsutil ls gs://capv-images/release
+gsutil ls gs://capv-images/release
 ```
 
 ### Downloading Images

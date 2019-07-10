@@ -1,32 +1,24 @@
 # Getting Started
 
-This is a guide on how to get started with CAPV (Cluster API Provider vSphere).
-To learn more about cluster API in more depth, check out the the [cluster api docs page](https://cluster-api.sigs.k8s.io/).
+This is a guide on how to get started with CAPV (Cluster API Provider vSphere). To learn more about cluster API in more depth, check out the the [cluster api docs page](https://cluster-api.sigs.k8s.io/).
 
-Table of Contents
-=================
-
-   * [Getting Started](#getting-started)
-   * [Table of Contents](#table-of-contents)
-      * [Bootstrapping a Management Cluster with clusterctl](#bootstrapping-a-management-cluster-with-clusterctl)
-         * [Install Requirements](#install-requirements)
-            * [Docker](#docker)
-            * [Kind](#kind)
-            * [clusterctl](#clusterctl)
-            * [kubectl](#kubectl)
-         * [vSphere Requirements](#vsphere-requirements)
-            * [vCenter Credentials](#vcenter-credentials)
-            * [Uploading the CAPV Machine Image](#uploading-the-capv-machine-image)
-         * [Generating YAML for the Bootstrap Cluster](#generating-yaml-for-the-bootstrap-cluster)
-         * [Using clusterctl](#using-clusterctl)
-      * [Managing Workload Clusters using the Management Cluster](#managing-workload-clusters-using-the-management-cluster)
+* [Getting Started](#Getting-Started)
+  * [Bootstrapping a Management Cluster with clusterctl](#Bootstrapping-a-Management-Cluster-with-clusterctl)
+    * [Install Requirements](#Install-Requirements)
+      * [Docker](#Docker)
+      * [Kind](#Kind)
+      * [clusterctl](#clusterctl)
+      * [kubectl](#kubectl)
+    * [vSphere Requirements](#vSphere-Requirements)
+      * [vCenter Credentials](#vCenter-Credentials)
+      * [Uploading the CAPV Machine Image](#Uploading-the-CAPV-Machine-Image)
+    * [Generating YAML for the Bootstrap Cluster](#Generating-YAML-for-the-Bootstrap-Cluster)
+    * [Using clusterctl](#Using-clusterctl)
+  * [Managing Workload Clusters using the Management Cluster](#Managing-Workload-Clusters-using-the-Management-Cluster)
 
 ## Bootstrapping a Management Cluster with clusterctl
 
-`clusterctl` is a command line tool used for [bootstrapping](https://github.com/kubernetes-sigs/cluster-api/blob/master/docs/book/GLOSSARY.md#bootstrap) your [Management Cluster](https://github.com/kubernetes-sigs/cluster-api/blob/master/docs/book/GLOSSARY.md#management-cluster).
-Your management cluster stores resources such as `clusters` and `machines` using the Kubernetes API. This is the cluster you use to provision and manage multiple clusters going forward.
-Before diving into the bootstrap process, it's worth noting that a Management Cluster is just another Kubernetes cluster with special addons and CRDs. You are not required to use `clusterctl` to
-provision your management cluster, however, this guide will be focused on using `clusterctl` to bootstrap your management cluster using [Kind](https://github.com/kubernetes-sigs/kind).
+`clusterctl` is a command line tool used for [bootstrapping](https://github.com/kubernetes-sigs/cluster-api/blob/master/docs/book/GLOSSARY.md#bootstrap) your [Management Cluster](https://github.com/kubernetes-sigs/cluster-api/blob/master/docs/book/GLOSSARY.md#management-cluster). Your management cluster stores resources such as `clusters` and `machines` using the Kubernetes API. This is the cluster you use to provision and manage multiple clusters going forward. Before diving into the bootstrap process, it's worth noting that a Management Cluster is just another Kubernetes cluster with special addons and CRDs. You are not required to use `clusterctl` to provision your management cluster, however, this guide will be focused on using `clusterctl` to bootstrap your management cluster using [Kind](https://github.com/kubernetes-sigs/kind).
 
 ### Install Requirements
 
@@ -55,14 +47,14 @@ $ mv ./kind-darwin-amd64 /usr/local/bin/kind
 If you have a Go installed on your machine, you can install Kind with the following:
 
 ```bash
-$ GO111MODULE="on" go get -mod readonly sigs.k8s.io/kind@v0.3.0
+GO111MODULE="on" go get -mod readonly sigs.k8s.io/kind@v0.3.0
 ```
 
 #### clusterctl
 
 Install the official release binary of `clusterctl` for CAPV with the following:
 
-```
+```shell
 # Linux
 $ curl -Lo ./clusterctl.linux_amd64 https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/download/v0.3.0/clusterctl.linux_amd64
 $ chmod +x ./clusterctl.linux_amd64
@@ -82,28 +74,24 @@ $ sudo mv ./clusterctl.darwin_amd64 /usr/local/bin/clusterctl
 
 #### vCenter Credentials
 
-In order for `clusterctl` to bootstrap a management cluster on vSphere, it must be able to connect and authenticate to vCenter.
-Ensure you have credentials to your vCenter server (user, password and server URL).
+In order for `clusterctl` to bootstrap a management cluster on vSphere, it must be able to connect and authenticate to vCenter. Ensure you have credentials to your vCenter server (user, password and server URL).
 
 #### Uploading the CAPV Machine Image
 
-It is required that machines provisioned by CAPV use one of the official CAPV machine images as a VM template. The machine images are retrievable from
-public URLs. CAPV currently supports machine images based on Ubuntu 18.04 and CentOS 7. You can find the full list of available
-machine images on the [Machine Images](./machine_images.md) page. For this guide we'll be deploying Kubernetes v1.13.6 on Ubuntu 18.04, the
-machine image is available at https://storage.googleapis.com/capv-images/release/v1.13.6/ubuntu-1804-kube-v1.13.6.ova
+It is required that machines provisioned by CAPV use one of the official CAPV machine images as a VM template. The machine images are retrievable from public URLs. CAPV currently supports machine images based on Ubuntu 18.04 and CentOS 7. You can find the full list of available machine images on the [Machine Images](./machine_images.md) page. For this guide we'll be deploying Kubernetes v1.13.6 on Ubuntu 18.04 (link to [machine image](https://storage.googleapis.com/capv-images/release/v1.13.6/ubuntu-1804-kube-v1.13.6.ova)).
 
 [Create a VM template](https://docs.vmware.com/en/VMware-vSphere/6.7/com.vmware.vsphere.vm_admin.doc/GUID-17BEDA21-43F6-41F4-8FB2-E01D275FE9B4.html) using the downloadable OVA URL above. The rest of the guide will assume you named the VM template `ubuntu-1804-kube-v1.13.6`.
 
 ### Generating YAML for the Bootstrap Cluster
 
 The bootstrapping process in `clusterctl` requires a few configuration files:
+
 * **cluster.yaml**: a yaml file defining the cluster resource for your management cluster
 * **machines.yaml**: a yaml file defining the machine resource for the initial control plane node of your management cluster
 * **provider-components.yaml**: a yaml file which adds all the Cluster API and CAPV-specific resources to your management cluster
 * **addons.yaml**: a yaml file indicating any additional addons you want on your management cluster (e.g. CNI plugin)
 
-The project Makefile provides a convenient make target to generate the yaml files. Before attempting to generate the above yaml file,
-the following environment variables should be set based on your vSphere environment:
+The project Makefile provides a convenient make target to generate the yaml files. Before attempting to generate the above yaml file, the following environment variables should be set based on your vSphere environment:
 
 ```bash
 # vCenter config/credentials
@@ -131,7 +119,8 @@ export CLUSTER_CIDR="100.96.0.0/11"    # (optional) The cluster CIDR of the mana
 ```
 
 With the above environment variables set, you can now run the generate yaml make target in the root directory of this project:
-```
+
+```shell
 $ make prod-yaml
 
 done generating ./out/my-cluster/addons.yaml
@@ -152,13 +141,10 @@ Enjoy!
 
 ### Using clusterctl
 
-Once `make prod-yaml` has succeeded, all the necessary yaml files required for the bootstrapping process
-should be in the `out/` directory. Go to the `out` directory and run the following `clusterctl` command to bootstrap
-your management cluster
+Once `make prod-yaml` has succeeded, all the necessary yaml files required for the bootstrapping process should be in the `out/` directory. Go to the `out` directory and run the following `clusterctl` command to bootstrap your management cluster
 
-```bash
-$ cd out/my-cluster
-$ clusterctl create cluster --provider vsphere --bootstrap-type kind -c cluster.yaml -m machines.yaml -p provider-components.yaml --addon-components addons.yaml
+```shell
+cd out/my-cluster && clusterctl create cluster --provider vsphere --bootstrap-type kind -c cluster.yaml -m machines.yaml -p provider-components.yaml --addon-components addons.yaml
 ```
 
 Once `clusterctl` has successfully bootstrapped your management cluster, it should have left a `kubeconfig` file in the same
@@ -176,8 +162,9 @@ With your management cluster bootstrapped, it's time to reap the benefits of Clu
 clusters and machines (belonging to a cluster) are simply provisioned by creating `cluster`, `machine` and `machineset` resources.
 
 Using the same `prod-yaml` make target, generate Cluster API resources for a new cluster, this time with a different name:
-```
-$ CLUSTER_NAME=prod-workload make prod-yaml
+
+```shell
+CLUSTER_NAME=prod-workload make prod-yaml
 ```
 
 **NOTE**: The `make prod-yaml` target is not required to manage your Cluster API resources at this point but is used to simplify this guide.
@@ -279,7 +266,8 @@ spec:
 ```
 
 Run `kubectl apply -f` to apply the above files on your management cluster and it should start provisioning the new cluster:
-```bash
+
+```shell
 $ cd out/prod-workload
 $ kubectl apply -f cluster.yaml
 cluster.cluster.k8s.io/prod-workload created

@@ -2,7 +2,7 @@
 
 ## Sign the CLA
 
-Kubernetes projects require that you sign a Contributor License Agreement (CLA) before we can accept your pull requests.  Please see https://git.k8s.io/community/CLA.md for more info
+Kubernetes projects require that you sign a Contributor License Agreement (CLA) before we can accept your pull requests.  Please see the CLA [guidelines](https://git.k8s.io/community/CLA.md) for more info
 
 ### Contributing A Patch
 

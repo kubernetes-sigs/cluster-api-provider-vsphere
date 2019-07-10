@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Copyright 2018 The Kubernetes Authors.
 #
@@ -25,16 +25,31 @@
 # /root/ssh/.jumphost/jumphost-key
 # /root/ssh/.bootstrapper/bootstrapper-key
 
-# the first argument can be empty or string:"ovf"
+set -o errexit   # exits immediately on any unexpected error (does not bypass traps)
+set -o nounset   # will error if variables are used without first being defined
+set -o pipefail  # any non-zero exit code in a piped command causes the pipeline to fail with that code
+
+# VM_CREATED is set to "1" when the VM has been successfully created.
+VM_CREATED=
+
+# CONTEXT is set to "prow" when the env var PROW_JOB_ID is set, otherwise set
+# to "debug"
+CONTEXT=
+
+# TARGET_VM_PRE contains a string to uniquely indentify the newly created VM(s)
+TARGET_VM_PRE=
+
+# RANDOM_STR holds a random string
+RANDOM_STR=""
 
 get_random_str() {
-   if [ -z "$random_str" ]; then
-      random_str=$(tr -dc 'a-z0-9' < /dev/urandom | fold -w 8 | head -n 1)
+   if [ -z "${RANDOM_STR}" ]; then
+      RANDOM_STR=$(date | { md5sum || md5; } 2>/dev/null | cut -c 1-8)
    fi
 }
 
 fill_file_with_value() {
-  newfilename="$(echo "$1" | sed 's/template/yml/g')"
+  newfilename="${1//template/yml}"
   rm -f "$newfilename" temp.sh
   ( echo "cat <<EOF >$newfilename";
     cat "$1";
@@ -63,8 +78,8 @@ delete_vm() {
    if [ "$vm" = "" ]; then
       vm=$(govc find / -type m -name "$1")
    fi
-   govc vm.power -off "${vm}"
    govc vm.destroy "${vm}"
+   unset VM_CREATED
 }
 
 get_bootstrap_vm() {
@@ -86,6 +101,7 @@ get_bootstrap_vm() {
       echo "bootstrap vm ip is empty"
       exit 1
    fi
+   VM_CREATED=1
    echo "bootstrapper VM ip: ${bootstrap_vm_ip}"
 }
 
@@ -135,16 +151,22 @@ start_docker() {
    done
 }
 
+on_exit() {
+  [ "${VM_CREATED}" ] || return 0
+  get_bootstrap_vm "${CONTEXT}"
+  delete_vm "${TARGET_VM_PRE}"
+}
+
 # the main loop
+trap on_exit EXIT
 vsphere_controller_version=""
-context=""
 if [ -z "${PROW_JOB_ID}" ] ; then
-   context="debug"
+   CONTEXT="debug"
    start_docker
    vsphere_controller_version=$(shell git describe --exact-match 2> /dev/null || \
       git describe --match="$(git rev-parse --short=8 HEAD)" --always --dirty --abbrev=8)
 else
-   context="prow"
+   CONTEXT="prow"
    if [ -z "${PULL_PULL_SHA}" ] ; then
       # for periodic job
       vsphere_controller_version="${PROW_JOB_ID}"
@@ -155,20 +177,22 @@ else
 fi
 
 export VERSION="${vsphere_controller_version}"
-make ci-push
-cd ./scripts/e2e/bootstrap_job && make push && cd .. || exit 1
 echo "build vSphere controller version: ${vsphere_controller_version}"
 
 # set target cluster vm name prefix
 get_random_str
-target_vm_prefix="clusterapi-""$random_str"
-export_base64_value "TARGET_VM_PREFIX" "$target_vm_prefix"
+TARGET_VM_PRE="clusterapi-""${RANDOM_STR}"
+export_base64_value "TARGET_VM_PREFIX" "${TARGET_VM_PRE}"
 
 # install_govc
 go get -u github.com/vmware/govmomi/govc
 
+# Push new container images
+make ci-push
+cd ./scripts/e2e/bootstrap_job && make push && cd .. || exit 1
+
 # get bootstrap VM
-get_bootstrap_vm "$context"
+get_bootstrap_vm "${CONTEXT}"
 
 # bootstrap with kind
 export bootstrap_vm_ip="${bootstrap_vm_ip}"
@@ -191,8 +215,6 @@ run_cmd_on_bootstrap "${bootstrap_vm_ip}" "kubectl --kubeconfig ${kubeconfig_pat
 run_cmd_on_bootstrap "${bootstrap_vm_ip}" 'bash -s' < wait_for_job.sh
 ret="$?"
 
-# cleanup
-get_bootstrap_vm "$context"
-delete_vm "$target_vm_prefix"
+# cleanup done automatically by trap
 
 exit "${ret}"

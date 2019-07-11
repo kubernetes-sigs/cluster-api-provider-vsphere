@@ -18,14 +18,15 @@
 FROM node:12.6.0-slim as build
 ARG MDLINT_CLI_VERSION=0.17.0
 ENV MDLINT_CLI_VERSION=${MDLINT_CLI_VERSION}
-RUN npm install -g --prefix=/mdlint markdownlint-cli@${MDLINT_CLI_VERSION} && \
-    ln -s /mdlint/lib/node_modules/markdownlint-cli/markdownlint.js /mdlint/lint
+RUN npm install -g --prefix=/md markdownlint-cli@${MDLINT_CLI_VERSION} && \
+    ln -s /md/lib/node_modules/markdownlint-cli/markdownlint.js /md/lint
 
 ################################################################################
 ##                               RUN MDLINT                                   ##
 ################################################################################
 FROM gcr.io/distroless/nodejs:latest
 LABEL "maintainer" "Andrew Kutz <akutz@vmware.com>"
-COPY --from=build /mdlint/ /mdlint/
+COPY --from=build /md/ /md/
 WORKDIR /build
-CMD [ "/mdlint/lint", "-i", "vendor", "." ]
+CMD [ "/md/lint", "-i", "vendor", "." ]
+ENTRYPOINT [ "/nodejs/bin/node" ]

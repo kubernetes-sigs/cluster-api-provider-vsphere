@@ -1,0 +1,76 @@
+@startuml machine-controller-reconcile
+
+start;
+
+:Machine controller;
+
+repeat
+  :Reconcile;
+
+  if (Machine has a TaskRef) then (yes)
+    if (Task exists) then (yes)
+      if (Task is running/pending) then (yes)
+        #LightGreen:Requeue;
+      elseif (Task is success/failed) then (yes)
+        #edf7de:Remove TaskRef from Machine;
+      endif
+    else (no)
+      #edf7de:Remove TaskRef from Machine;
+      #LightGreen:Requeue;
+    endif
+  endif
+  if (Is requeued or in error) then (no)
+    if (Machine has a MachineRef) then (no)
+      if (Can find VM by InstanceUUID) then (yes)
+        #edf7de:Assign MachineRef to Machine;
+      endif
+    endif
+    if (Machine has a MachineRef) then (no)
+      if (Can find VM by MachineRef) then (no)
+        #edf7de:Remove MachineRef from Machine;
+      endif
+    endif
+    if (Machine has DeletionTimestamp) then (yes)
+      if (Machine has a MachineRef) then (yes)
+        #edf7de:Delete VM;
+        #edf7de:Assign delete TaskRef to Machine;
+        #LightGreen:Requeue;
+      endif
+    else (no)
+      if (Machine has a MachineRef) then (yes)
+        if (VM metadata matches calculated metadata) then (no)
+          #edf7de:Reconfigure VM with calculated metadata;
+          #edf7de:Assign reconfigure TaskRef to Machine;
+          #LightGreen:Requeue;
+        else (yes)
+          #edf7de:Update Machine status with MAC addresses from VM;
+          if (VM powered on) then (no)
+            #edf7de:Power on VM;
+            #edf7de:Assign power TaskRef to Machine;
+            #LightGreen:Requeue;
+          else (yes)
+            if (VM has IP addresses) then (yes)
+              #edf7de:Update Machine status with IP addresses from VM;
+            else (no)
+              #LightGreen:Requeue;
+            endif
+          endif
+        endif
+      else (no)
+        #edf7de:Clone template to create new VM;
+        #edf7de:Assign clone TaskRef to Machine;
+        #LightGreen:Requeue;
+      endif
+    endif
+  endif
+  #edf7de:Machine state patched back to API server;
+repeat while (Reconcile is requeued) is (yes)
+-> no;
+if (Error occurred) then (yes)
+  #Pink:Reconcile failed;
+else (no)
+  #LightBlue:Reconcile success;
+endif
+stop;
+
+@enduml

@@ -18,8 +18,12 @@ package userdata
 
 const (
 	nodeCloudInit = `{{.Header}}
-{{if .SSHAuthorizedKeys}}ssh_authorized_keys:{{range .SSHAuthorizedKeys}}
-- "{{.}}"{{end}}{{end}}
+{{- if .SSHAuthorizedKeys }}
+ssh_authorized_keys:
+{{- range .SSHAuthorizedKeys }}
+- "{{.}}"
+{{- end }}
+{{- end }}
 
 write_files:
 -   path: /tmp/kubeadm-node.yaml

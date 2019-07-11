@@ -41,6 +41,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/certificates"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/kubeclient"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/ssh"
 )
 
 //+kubebuilder:rbac:groups=vsphere.cluster.k8s.io,resources=vsphereclusterproviderspecs;vsphereclusterproviderstatuses,verbs=get;list;watch;create;update;patch;delete
@@ -91,6 +92,10 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (opErr error) {
 		return err
 	}
 
+	if err := a.reconcileSSH(ctx); err != nil {
+		return err
+	}
+
 	if err := a.reconcileCloudConfigSecret(ctx); err != nil {
 		return err
 	}
@@ -136,6 +141,13 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster) (opErr error) {
 func (a *Actuator) reconcilePKI(ctx *context.ClusterContext) error {
 	if err := certificates.ReconcileCertificates(ctx); err != nil {
 		return errors.Wrapf(err, "unable to reconcile certs while reconciling cluster %q", ctx)
+	}
+	return nil
+}
+
+func (a *Actuator) reconcileSSH(ctx *context.ClusterContext) error {
+	if err := ssh.Reconcile(ctx); err != nil {
+		return errors.Wrapf(err, "unable to reconcile ssh while reconciling cluster %q", ctx)
 	}
 	return nil
 }

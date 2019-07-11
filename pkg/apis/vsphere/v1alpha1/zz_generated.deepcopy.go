@@ -188,6 +188,7 @@ func (in *VsphereClusterProviderSpec) DeepCopyInto(out *VsphereClusterProviderSp
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	in.SSHKeyPair.DeepCopyInto(&out.SSHKeyPair)
 	in.CAKeyPair.DeepCopyInto(&out.CAKeyPair)
 	in.EtcdCAKeyPair.DeepCopyInto(&out.EtcdCAKeyPair)
 	in.FrontProxyCAKeyPair.DeepCopyInto(&out.FrontProxyCAKeyPair)

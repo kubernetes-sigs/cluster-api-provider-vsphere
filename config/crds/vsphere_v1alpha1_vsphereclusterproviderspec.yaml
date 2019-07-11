@@ -23,15 +23,13 @@ spec:
           description: CAKeyPair is the key pair for ca certs.
           properties:
             cert:
-              description: base64 encoded cert and key
+              description: Cert is the base64-encoded, public side of the key pair.
               format: byte
               type: string
             key:
+              description: Key is the base64-encoded, private side of the key pair.
               format: byte
               type: string
-          required:
-          - cert
-          - key
           type: object
         clusterConfiguration:
           description: ClusterConfiguration holds the cluster-wide information used
@@ -332,29 +330,25 @@ spec:
           description: EtcdCAKeyPair is the key pair for etcd.
           properties:
             cert:
-              description: base64 encoded cert and key
+              description: Cert is the base64-encoded, public side of the key pair.
               format: byte
               type: string
             key:
+              description: Key is the base64-encoded, private side of the key pair.
               format: byte
               type: string
-          required:
-          - cert
-          - key
           type: object
         frontProxyCAKeyPair:
           description: FrontProxyCAKeyPair is the key pair for FrontProxyKeyPair.
           properties:
             cert:
-              description: base64 encoded cert and key
+              description: Cert is the base64-encoded, public side of the key pair.
               format: byte
               type: string
             key:
+              description: Key is the base64-encoded, private side of the key pair.
               format: byte
               type: string
-          required:
-          - cert
-          - key
           type: object
         insecure:
           description: Insecure is a flag that controls whether or not to validate
@@ -376,15 +370,13 @@ spec:
           description: SAKeyPair is the service account key pair.
           properties:
             cert:
-              description: base64 encoded cert and key
+              description: Cert is the base64-encoded, public side of the key pair.
               format: byte
               type: string
             key:
+              description: Key is the base64-encoded, private side of the key pair.
               format: byte
               type: string
-          required:
-          - cert
-          - key
           type: object
         server:
           description: Server is the address of the vSphere endpoint.
@@ -397,6 +389,21 @@ spec:
           items:
             type: string
           type: array
+        sshKeyPair:
+          description: SSHKeyPair is the SSH key pair for accessing provisioned machines.
+            This field is set at runtime and should not be assigned by an operator.
+            Providing access to existing SSH keys is handled by SSHAuthorizedKeys.
+            Please see SSHAuthorizedKeys for information on accessing the machines.
+          properties:
+            cert:
+              description: Cert is the base64-encoded, public side of the key pair.
+              format: byte
+              type: string
+            key:
+              description: Key is the base64-encoded, private side of the key pair.
+              format: byte
+              type: string
+          type: object
         username:
           description: Username is the name used to log into the vSphere server.  This
             value is optional unless using clusterctl to bootstrap the initial management

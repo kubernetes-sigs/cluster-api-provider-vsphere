@@ -60,18 +60,30 @@ type VsphereClusterProviderSpec struct {
 	//
 	// The default user for CentOS is "centos".
 	// The default user for Ubuntu is "ubuntu".
+	// +optional
 	SSHAuthorizedKeys []string `json:"sshAuthorizedKeys,omitempty"`
 
+	// SSHKeyPair is the SSH key pair for accessing provisioned machines.
+	// This field is set at runtime and should not be assigned by an operator.
+	// Providing access to existing SSH keys is handled by SSHAuthorizedKeys.
+	// Please see SSHAuthorizedKeys for information on accessing the machines.
+	// +optional
+	SSHKeyPair KeyPair `json:"sshKeyPair,omitempty"`
+
 	// CAKeyPair is the key pair for ca certs.
+	// +optional
 	CAKeyPair KeyPair `json:"caKeyPair,omitempty"`
 
 	//EtcdCAKeyPair is the key pair for etcd.
+	// +optional
 	EtcdCAKeyPair KeyPair `json:"etcdCAKeyPair,omitempty"`
 
 	// FrontProxyCAKeyPair is the key pair for FrontProxyKeyPair.
+	// +optional
 	FrontProxyCAKeyPair KeyPair `json:"frontProxyCAKeyPair,omitempty"`
 
 	// SAKeyPair is the service account key pair.
+	// +optional
 	SAKeyPair KeyPair `json:"saKeyPair,omitempty"`
 
 	// ClusterConfiguration holds the cluster-wide information used during a
@@ -79,18 +91,37 @@ type VsphereClusterProviderSpec struct {
 	ClusterConfiguration kubeadmv1beta1.ClusterConfiguration `json:"clusterConfiguration,omitempty"`
 }
 
+// GetSSHAuthorizedKeys returns a list of all of the public keys authorized to
+// access machines via SSH.
+// Please note the keys are returned as plain-text.
+func (c VsphereClusterProviderSpec) GetSSHAuthorizedKeys() []string {
+	keys := []string{}
+	for _, k := range c.SSHAuthorizedKeys {
+		if len(k) > 0 {
+			keys = append(keys, k)
+		}
+	}
+	if len(c.SSHKeyPair.Cert) > 0 {
+		keys = append(keys, string(c.SSHKeyPair.Cert))
+	}
+	return keys
+}
+
 // KeyPair is how operators can supply custom keypairs for kubeadm to use.
 type KeyPair struct {
-	// base64 encoded cert and key
-	Cert []byte `json:"cert"`
-	Key  []byte `json:"key"`
+	// Cert is the base64-encoded, public side of the key pair.
+	// +optional
+	Cert []byte `json:"cert,omitempty"`
+
+	// Key is the base64-encoded, private side of the key pair.
+	// +optional
+	Key []byte `json:"key,omitempty"`
 }
 
 // HasCertAndKey returns whether a keypair contains cert and key of non-zero length.
 func (kp KeyPair) HasCertAndKey() bool {
 	return len(kp.Cert) > 0 && len(kp.Key) > 0
 }
-
 func init() {
 	SchemeBuilder.Register(&VsphereClusterProviderSpec{})
 }

@@ -30,19 +30,11 @@ func TestStorageVsphereClusterProviderSpec(t *testing.T) {
 		Name:      "foo",
 		Namespace: "default",
 	}
-	keyPair := KeyPair{
-		Cert: []byte("public"),
-		Key:  []byte("private"),
-	}
 	created := &VsphereClusterProviderSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "default",
 		},
-		CAKeyPair:           keyPair,
-		EtcdCAKeyPair:       keyPair,
-		FrontProxyCAKeyPair: keyPair,
-		SAKeyPair:           keyPair,
 	}
 	g := gomega.NewGomegaWithT(t)
 

@@ -47,8 +47,12 @@ public-network = "{{ .Network }}"
 `
 
 	controlPlaneCloudInit = `{{.Header}}
-{{if .SSHAuthorizedKeys}}ssh_authorized_keys:{{range .SSHAuthorizedKeys}}
-- "{{.}}"{{end}}{{end}}
+{{- if .SSHAuthorizedKeys }}
+ssh_authorized_keys:
+{{- range .SSHAuthorizedKeys }}
+- "{{.}}"
+{{- end }}
+{{- end }}
 
 write_files:
 -   path: /etc/kubernetes/pki/ca.crt
@@ -129,8 +133,12 @@ kubeadm:
 `
 
 	controlPlaneJoinCloudInit = `{{.Header}}
-{{if .SSHAuthorizedKeys}}ssh_authorized_keys:{{range .SSHAuthorizedKeys}}
-- "{{.}}"{{end}}{{end}}
+{{- if .SSHAuthorizedKeys }}
+ssh_authorized_keys:
+{{- range .SSHAuthorizedKeys }}
+- "{{.}}"
+{{- end }}
+{{- end }}
 
 write_files:
 -   path: /etc/kubernetes/pki/ca.crt
@@ -269,15 +277,15 @@ func (cpi *ControlPlaneInput) validateCertificates() error {
 	}
 
 	if !isKeyPairValid(cpi.EtcdCACert, cpi.EtcdCAKey) {
-		return errors.New("ETCD CA cert material in the ControlPlaneInput is  missing cert/key")
+		return errors.New("ETCD CA cert material in the ControlPlaneInput is missing cert/key")
 	}
 
 	if !isKeyPairValid(cpi.FrontProxyCACert, cpi.FrontProxyCAKey) {
-		return errors.New("FrontProxy CA cert material in ControlPlaneInput is  missing cert/key")
+		return errors.New("FrontProxy CA cert material in ControlPlaneInput is missing cert/key")
 	}
 
 	if !isKeyPairValid(cpi.SaCert, cpi.SaKey) {
-		return errors.New("ServiceAccount cert material in ControlPlaneInput is  missing cert/key")
+		return errors.New("ServiceAccount cert material in ControlPlaneInput is missing cert/key")
 	}
 
 	return nil
@@ -285,19 +293,19 @@ func (cpi *ControlPlaneInput) validateCertificates() error {
 
 func (cpi *ContolPlaneJoinInput) validateCertificates() error {
 	if !isKeyPairValid(cpi.CACert, cpi.CAKey) {
-		return errors.New("CA cert material in the ContolPlaneJoinInput is  missing cert/key")
+		return errors.New("CA cert material in the ContolPlaneJoinInput is missing cert/key")
 	}
 
 	if !isKeyPairValid(cpi.EtcdCACert, cpi.EtcdCAKey) {
-		return errors.New("ETCD cert material in the ContolPlaneJoinInput is  missing cert/key")
+		return errors.New("ETCD cert material in the ContolPlaneJoinInput is missing cert/key")
 	}
 
 	if !isKeyPairValid(cpi.FrontProxyCACert, cpi.FrontProxyCAKey) {
-		return errors.New("FrontProxy cert material in ContolPlaneJoinInput is  missing cert/key")
+		return errors.New("FrontProxy cert material in ContolPlaneJoinInput is missing cert/key")
 	}
 
 	if !isKeyPairValid(cpi.SaCert, cpi.SaKey) {
-		return errors.New("ServiceAccount cert material in ContolPlaneJoinInput is  missing cert/key")
+		return errors.New("ServiceAccount cert material in ContolPlaneJoinInput is missing cert/key")
 	}
 
 	return nil

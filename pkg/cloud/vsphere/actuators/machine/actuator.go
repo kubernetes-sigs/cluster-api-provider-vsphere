@@ -108,6 +108,10 @@ func (a *Actuator) Create(
 		return err
 	}
 
+	if err := a.reconcileSSH(ctx); err != nil {
+		return err
+	}
+
 	return a.doInitOrJoin(ctx)
 }
 
@@ -224,6 +228,14 @@ func (a *Actuator) Exists(
 func (a *Actuator) reconcilePKI(ctx *context.MachineContext) error {
 	if !ctx.ClusterConfig.CAKeyPair.HasCertAndKey() {
 		ctx.Logger.V(6).Info("cluster config is missing pki toolchain, requeue machine")
+		return &clusterErr.RequeueAfterError{RequeueAfter: config.DefaultRequeue}
+	}
+	return nil
+}
+
+func (a *Actuator) reconcileSSH(ctx *context.MachineContext) error {
+	if !ctx.ClusterConfig.SSHKeyPair.HasCertAndKey() {
+		ctx.Logger.V(6).Info("cluster config is missing ssh key, requeue machine")
 		return &clusterErr.RequeueAfterError{RequeueAfter: config.DefaultRequeue}
 	}
 	return nil

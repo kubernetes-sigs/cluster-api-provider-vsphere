@@ -19,7 +19,7 @@ set -o nounset
 set -o pipefail
 set -o xtrace
 
-KIND_VERSION="v0.3.0"
+KIND_VERSION="v0.4.0"
 
 install_kind() {
    wget "https://github.com/kubernetes-sigs/kind/releases/download/${KIND_VERSION}/kind-linux-amd64" \

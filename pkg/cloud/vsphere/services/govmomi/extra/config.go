@@ -27,7 +27,7 @@ type Config []types.BaseOptionValue
 
 // SetCloudInitUserData sets the cloud init user data at the key
 // "guestinfo.userdata" as a base64-encoded string.
-func (e *Config) SetCloudInitUserData(data []byte) error {
+func (e *Config) SetCloudInitUserData(data []byte) {
 	*e = append(*e,
 		&types.OptionValue{
 			Key:   "guestinfo.userdata",
@@ -38,13 +38,11 @@ func (e *Config) SetCloudInitUserData(data []byte) error {
 			Value: "base64",
 		},
 	)
-
-	return nil
 }
 
 // SetCloudInitMetadata sets the cloud init user data at the key
 // "guestinfo.metadata" as a base64-encoded string.
-func (e *Config) SetCloudInitMetadata(data []byte) error {
+func (e *Config) SetCloudInitMetadata(data []byte) {
 	*e = append(*e,
 		&types.OptionValue{
 			Key:   "guestinfo.metadata",
@@ -55,6 +53,4 @@ func (e *Config) SetCloudInitMetadata(data []byte) error {
 			Value: "base64",
 		},
 	)
-
-	return nil
 }

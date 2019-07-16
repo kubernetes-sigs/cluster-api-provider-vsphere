@@ -35,7 +35,7 @@ usage: ${0} [FLAGS]
   Builds the CAPV container images.
 
 FLAGS
-  -g    generate yaml image name (default "${CAPV_MANIFESTS_IMAGE_NAME}")
+  -g    manifests image name (default "${CAPV_MANIFESTS_IMAGE_NAME}")
   -h    prints this help screen
   -m    manager image name (default "${CAPV_MANAGER_IMAGE_NAME}")
   -v    version (default "${VERSION}")

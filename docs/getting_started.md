@@ -67,7 +67,7 @@ Before attempting to generate the above manifests, the following environment var
 $ cat <<EOF >envvars.txt
 # vCenter config/credentials
 export VSPHERE_SERVER='10.0.0.1'                # (required) The vCenter server IP or UR
-export VSPHERE_USERNAME='viadmin@vmware.local'      # (required) The vCenter user to login with
+export VSPHERE_USERNAME='viadmin@vmware.local'  # (required) The vCenter user to login with
 export VSPHERE_PASSWORD='some-secure-password'  # (required) The vCenter password to login with
 
 # vSphere deployment configs
@@ -83,7 +83,7 @@ export VSPHERE_MEM_MIB='2048'                       # (optional) The memory (in 
 export SSH_AUTHORIZED_KEY='ssh-rsa AAAAB3N...'      # (optional) The public ssh authorized key on all machines in this cluster
 
 # Kubernetes configs
-export KUBERNETES_VERSION='1.13.6'       # (optional) The Kubernetes version to use, defaults to 1.13.6
+export KUBERNETES_VERSION='1.13.6'     # (optional) The Kubernetes version to use, defaults to 1.13.6
 export CLUSTER_NAME='my-cluster'       # (optional) The name for the management cluster, defaults to "capv-mgmt-example"
 export SERVICE_CIDR='100.64.0.0/13'    # (optional) The service CIDR of the management cluster, defaults to "100.64.0.0/13"
 export CLUSTER_CIDR='100.96.0.0/11'    # (optional) The cluster CIDR of the management cluster, defaults to "100.96.0.0/11"

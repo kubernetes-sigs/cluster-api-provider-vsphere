@@ -45,14 +45,12 @@ FLAGS
   -f    force overwrite of existing files
   -h    prints this help screen
   -i    input directory (default ${TPL_DIR})
-  -k    path to kustomize or "docker" to use image (default "${KUSTOMIZE}")
   -m    manager image (default "${CAPV_MANAGER_IMAGE}")
   -o    output directory (default ${OUT_DIR})
-  -p    path to python or "docker" to use image (default "${PYTHON}")
 EOF
 }
 
-while getopts ':c:dfhi:k:m:o:p:' opt; do
+while getopts ':c:dfhi:m:o:' opt; do
   case "${opt}" in
   c)
     CLUSTER_NAME="${OPTARG}"
@@ -69,19 +67,11 @@ while getopts ':c:dfhi:k:m:o:p:' opt; do
   i)
     TPL_DIR="${OPTARG}"
     ;;
-  k)
-    KUSTOMIZE="${OPTARG}"
-    [ "${KUSTOMIZE}" = "docker" ] || [ -f "${KUSTOMIZE}" ] || { echo "${KUSTOMIZE} does not exist" 1>&2; exit 1; }
-    ;;
   m)
     CAPV_MANAGER_IMAGE="${OPTARG}"
     ;;
   o)
     OUT_DIR="${OPTARG}"
-    ;;
-  p)
-    PYTHON="${OPTARG}"
-    [ "${PYTHON}" = "docker" ] || [ -f "${PYTHON}" ] || { echo "${PYTHON} does not exist" 1>&2; exit 1; }
     ;;
   \?)
     { echo "invalid option: -${OPTARG}"; usage; } 1>&2; exit 1
@@ -189,16 +179,8 @@ verify_cpu_mem_dsk VSPHERE_DISK_GIB 20
 [[ ${KUBERNETES_VERSION-} =~ ^v?[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+([\+\.\-](.+))?$ ]] || KUBERNETES_VERSION="1.13.6"
 record_and_export KUBERNETES_VERSION ":-${KUBERNETES_VERSION}"
 
-do_python() {
-  if [ "${PYTHON}" = "docker" ]; then
-    docker run --rm -iv "$(pwd)":/build ${EXPORTED_ENV_VARS} -w /build gcr.io/distroless/python2.7:latest "${@}"
-  else
-    "${PYTHON}" "${@}"
-  fi
-}
-
 do_envsubst() {
-  do_python hack/envsubst.py >"${2}" <"${1}"
+  python hack/envsubst.py >"${2}" <"${1}"
   echo "done generating ${2}"
 }
 
@@ -207,18 +189,10 @@ for f in ADDON CAPV_MANAGER CLUSTER MACHINES MACHINESET; do
   eval "do_envsubst \"\${${f}_TPL_FILE}\" \"\${${f}_OUT_FILE}\""
 done
 
-do_kustomize() {
-  if [ "${KUSTOMIZE}" = "docker" ]; then
-    docker run --rm -v "$(pwd)":/build -w /build akutz/kustomize:2.0.0 "${@}"
-  else
-    "${KUSTOMIZE}" "${@}"
-  fi
-}
-
-# Run kustomize either with a local binary or a Docker image.
-{ do_kustomize build "${CAPV_CFG_DIR}"/default/ && \
+# Run kustomize on the patches.
+{ kustomize build "${CAPV_CFG_DIR}"/default/ && \
   echo "---" && \
-  do_kustomize build "${CAPI_CFG_DIR}"/default/; } >"${COMP_OUT_FILE}"
+  kustomize build "${CAPI_CFG_DIR}"/default/; } >"${COMP_OUT_FILE}"
 
 cat <<EOF
 Done generating ${COMP_OUT_FILE}

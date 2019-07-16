@@ -51,8 +51,8 @@ COPY ./cmd/clusterctl/examples/vsphere/*.template ./cmd/clusterctl/examples/vsph
 
 # This build arg specifies the value of the -m flag for generate-yaml.sh, the
 # CAPV manager image inserted into the generated provider components.
-ARG CAPV_MANAGER_IMAGE
-ENV CAPV_MANAGER_IMAGE gcr.io/cnx-cluster-api/vsphere-cluster-api-provider:latest
+ARG CAPV_MANAGER_IMAGE=gcr.io/cnx-cluster-api/vsphere-cluster-api-provider:latest
+ENV CAPV_MANAGER_IMAGE=${CAPV_MANAGER_IMAGE}
 
 # The YAML is always written to the /out directory. Mount the volumes there.
 ENV OUT_DIR /out

@@ -83,10 +83,10 @@ export VSPHERE_MEM_MIB='2048'                       # (optional) The memory (in 
 export SSH_AUTHORIZED_KEY='ssh-rsa AAAAB3N...'      # (optional) The public ssh authorized key on all machines in this cluster
 
 # Kubernetes configs
-export KUBERNETES_VERSION='1.13.6'     # (optional) The Kubernetes version to use, defaults to 1.13.6
-export CLUSTER_NAME='my-cluster'       # (optional) The name for the management cluster, defaults to "capv-mgmt-example"
-export SERVICE_CIDR='100.64.0.0/13'    # (optional) The service CIDR of the management cluster, defaults to "100.64.0.0/13"
-export CLUSTER_CIDR='100.96.0.0/11'    # (optional) The cluster CIDR of the management cluster, defaults to "100.96.0.0/11"
+export KUBERNETES_VERSION='1.13.6'        # (optional) The Kubernetes version to use, defaults to 1.13.6
+export CLUSTER_NAME='management-cluster'  # (optional) The name for the management cluster, defaults to "capv-mgmt-example"
+export SERVICE_CIDR='100.64.0.0/13'       # (optional) The service CIDR of the management cluster, defaults to "100.64.0.0/13"
+export CLUSTER_CIDR='100.96.0.0/11'       # (optional) The cluster CIDR of the management cluster, defaults to "100.96.0.0/11"
 EOF
 ```
 
@@ -94,10 +94,10 @@ With the above environment variable file it is now possible to generate the mani
 
 ```shell
 $ docker run --rm \
-  -v "$(pwd)/my-cluster":/out \
+  -v "$(pwd)/management-cluster":/out \
   -v "$(pwd)/envvars.txt":/out/envvars.txt:ro \
   gcr.io/cluster-api-provider-vsphere/release/manifests:latest \
-  -c my-cluster
+  -c management-cluster
 
 done generating ./out/addons.yaml
 done generating ./config/default/manager_image_patch.yaml
@@ -117,29 +117,22 @@ Enjoy!
 
 ### Using clusterctl
 
-Once the manifests are generated, please go to the `out/my-cluster` directory and run the following `clusterctl` command to bootstrap your management cluster:
+Once the manifests are generated, `clusterctl` may be used to create the management cluster:
 
-1. Change to the manifest directory:
+```shell
+clusterctl create cluster \
+  --provider vsphere \
+  --bootstrap-type kind \
+  --cluster management-cluster/cluster.yaml \
+  --machines management-cluster/machines.yaml \
+  --provider-components management-cluster/provider-components.yaml \
+  --addon-components management-cluster/addons.yaml \
+  --kubeconfig-out management-cluster/kubeconfig
+```
 
-    ```shell
-    cd out/my-cluster
-    ```
+Once `clusterctl` has completed successfully, the file `management-cluster/kubeconfig` may be used to access the new management cluster. This is the **admin** `kubeconfig` for the management cluster, and it may be used to spin up additional clusters with Cluster API. However, the creation of roles with limited access, is recommended before creating additional clusters.
 
-2. Creat the management cluster with `clusterctl`:
-
-    ```shell
-    clusterctl create cluster \
-      --provider vsphere \
-      --bootstrap-type kind \
-      --cluster cluster.yaml \
-      --machines machines.yaml \
-      --provider-components provider-components.yaml \
-      --addon-components addons.yaml
-    ```
-
-Once `clusterctl` has successfully bootstrapped your management cluster, it should have left a `kubeconfig` file in the same path that it ran (i.e. `out/kubeconfig`). This is the **admin** kubeconfig file for your management cluster, you can use it going forward to spin up multiple clusters using Cluster API, however, it is recommended that you create dedicated roles with limited access before doing so.
-
-Note that from this point forward, you no longer need to use `clusterctl` to provision clusters since your management cluster (the cluster used to manage workload clusters) has been created. Workload clusters should be provisioned by applying Cluster API resources directly on the management cluster using `kubectl`. More on this below.
+**NOTE**: From this point forward `clusterctl` is no longer required to provision new clusters. Workload clusters should be provisioned by applying Cluster API resources directly on the management cluster using `kubectl`.
 
 ## Managing Workload Clusters using the Management Cluster
 
@@ -149,22 +142,22 @@ Using the same Docker command as above, generate resources for a new cluster, th
 
 ```shell
 docker run --rm \
-  -v "$(pwd)/prod-workload":/out \
+  -v "$(pwd)/workload-cluster-1":/out \
   -v "$(pwd)/envvars.txt":/out/envvars.txt:ro \
   gcr.io/cluster-api-provider-vsphere/release/manifests:latest \
-  -c prod-workload
+  -c workload-cluster-1
 ```
 
-**NOTE**: The above step is not required to manage your Cluster API resources at this point but is used to simplify this guide. You should manage your Cluster API resources in the same way you would manage your Kubernetes application manifests. Use the generated manifests as a reference.
+**NOTE**: The above step is not required to manage your Cluster API resources at this point but is used to simplify this guide. You should manage your Cluster API resources in the same way you would manage your Kubernetes application manifests. Please use the generated manifests only as a reference.
 
-The Cluster and Machine resource in `out/prod-workload/cluster.yaml` and `out/prod-workload/machines.yaml` defines your workload cluster with the initial control plane.
+The Cluster and Machine resource in `workload-cluster-1/cluster.yaml` and `workload-cluster-1/machines.yaml` defines the workload cluster with the initial control plane node:
 
 ```yaml
 ---
 apiVersion: "cluster.k8s.io/v1alpha1"
 kind: Cluster
 metadata:
-  name: prod-workload
+  name: workload-cluster-1
 spec:
   clusterNetwork:
     services:
@@ -183,9 +176,9 @@ spec:
 apiVersion: cluster.k8s.io/v1alpha1
 kind: Machine
 metadata:
-  name: "prod-workload-controlplane-1"
+  name: "workload-cluster-1-controlplane-1"
   labels:
-    cluster.k8s.io/cluster-name: "prod-workload"
+    cluster.k8s.io/cluster-name: "workload-cluster-1"
 spec:
   providerSpec:
     value:
@@ -209,24 +202,24 @@ spec:
     controlPlane: "1.13.6"
 ```
 
-To add 3 additional worker nodes to your cluster, see the generated machineset file `out/prod-workload/machineset.yaml`:
+To add 3 additional worker nodes to your cluster, see the generated machineset file `workload-cluster-1/machineset.yaml`:
 
 ```yaml
 apiVersion: "cluster.k8s.io/v1alpha1"
 kind: MachineSet
 metadata:
-  name: prod-workload-machineset
+  name: workload-cluster-1-machineset
 spec:
   replicas: 3
   selector:
     matchLabels:
-      machineset-name: prod-workload-machineset
-      cluster.k8s.io/cluster-name: prod-workload
+      machineset-name: workload-cluster-1-machineset
+      cluster.k8s.io/cluster-name: workload-cluster-1
   template:
     metadata:
       labels:
-        machineset-name: prod-workload-machineset
-        cluster.k8s.io/cluster-name: prod-workload
+        machineset-name: workload-cluster-1-machineset
+        cluster.k8s.io/cluster-name: workload-cluster-1
     spec:
       providerSpec:
         value:
@@ -250,33 +243,33 @@ spec:
         controlPlane: "1.13.6"
 ```
 
-Run `kubectl apply -f` to apply the above files on your management cluster and it should start provisioning the new workload cluster:
+Use `kubectl` with the `kubeconfig` for the management cluster to provision the new workload cluster:
 
-1. Change to the manifest directory:
+1. Export the management cluster's `kubeconfig` file:
 
     ```shell
-    cd out/prod-workload
+    export KUBECONFIG="$(pwd)/management-cluster/kubeconfig"
     ```
 
 2. Create the workload cluster by applying the cluster manifest:
 
     ```shell
-    $ kubectl apply -f cluster.yaml
-    cluster.cluster.k8s.io/prod-workload created
+    $ kubectl apply -f workload-cluster-1/cluster.yaml
+    cluster.cluster.k8s.io/workload-cluster-1 created
     ```
 
 3. Create the control plane nodes for the workload cluster by applying the machines manifest:
 
     ```shell
-    $ kubectl apply -f machines.yaml
-    machine.cluster.k8s.io/prod-workload-controlplane-1 created
+    $ kubectl apply -f workload-cluster-1/machines.yaml
+    machine.cluster.k8s.io/workload-cluster-1-controlplane-1 created
     ```
 
 4. Create the worker nodes for the workload cluster by applying the machineset manifest:
 
     ```shell
-    $ kubectl apply -f machineset.yaml
-    machineset.cluster.k8s.io/prod-workload-machineset-1 created
+    $ kubectl apply -f workload-cluster-1/machineset.yaml
+    machineset.cluster.k8s.io/workload-cluster-1-machineset-1 created
     ```
 
 Clusters that are provisioned by the management cluster that run your application workloads are called [Workload Clusters](https://github.com/kubernetes-sigs/cluster-api/blob/master/docs/book/GLOSSARY.md#workload-cluster).
@@ -287,18 +280,18 @@ The `kubeconfig` file to access workload clusters should be accessible as a Kube
 
     ```shell
     $ kubectl get secrets
-    NAME                     TYPE                                  DATA   AGE
-    my-cluster-kubeconfig   Opaque                                1      18h
-    prod-workload-kubeconfig   Opaque                                1      17h
+    NAME                            TYPE                                  DATA   AGE
+    management-cluster-kubeconfig   Opaque                                1      18h
+    workload-cluster-1-kubeconfig   Opaque                                1      17h
     ```
 
-2. Get the KubeConfig secret for the `prod-workload` cluster and decode it from base64:
+2. Get the KubeConfig secret for the `workload-cluster-1` cluster and decode it from base64:
 
     ```shell
-    kubectl get secret prod-workload-kubeconfig -o=jsonpath='{.data.value}' | \
-    { base64 -d 2>/dev/null || base64 -D; } >prod-workload-kubeconfig
+    kubectl get secret workload-cluster-1-kubeconfig -o=jsonpath='{.data.value}' | \
+    { base64 -d 2>/dev/null || base64 -D; } >workload-cluster-1/kubeconfig
     ```
 
-The new `kubeconfig` file may now be used to access the workload cluster.
+The new `workload-cluster-1/kubeconfig` file may now be used to access the workload cluster.
 
-**NOTE**: workload clusters do not have any addons applied aside from those added by kubeadm. Nodes in your workload clusters will be in the `NotReady` state until you apply a CNI addon. The `addons.yaml` file generated above has a default Calico addon which you can use, otherwise apply custom addons based on your use-case.
+**NOTE**: Workload clusters do not have any addons applied aside from those added by kubeadm. Nodes in your workload clusters will be in the `NotReady` state until you apply a CNI addon. The `addons.yaml` files generated above have a default Calico addon which you can use, otherwise apply custom addons based on your use-case.

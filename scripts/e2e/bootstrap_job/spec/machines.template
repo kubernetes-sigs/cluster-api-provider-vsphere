@@ -6,7 +6,6 @@ items:
   metadata:
     generateName: ${TARGET_VM_PREFIX}-
     labels:
-      set: master
       cluster.k8s.io/cluster-name: test1
   spec:
     providerSpec:

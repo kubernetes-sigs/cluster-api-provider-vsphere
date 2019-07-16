@@ -18,6 +18,7 @@ package stats
 import (
 	"context"
 
+	"go.opencensus.io/exemplar"
 	"go.opencensus.io/stats/internal"
 	"go.opencensus.io/tag"
 )
@@ -42,7 +43,7 @@ func Record(ctx context.Context, ms ...Measurement) {
 	}
 	record := false
 	for _, m := range ms {
-		if m.desc.subscribed() {
+		if m.m.subscribed() {
 			record = true
 			break
 		}
@@ -50,8 +51,7 @@ func Record(ctx context.Context, ms ...Measurement) {
 	if !record {
 		return
 	}
-	// TODO(songy23): fix attachments.
-	recorder(tag.FromContext(ctx), ms, map[string]interface{}{})
+	recorder(tag.FromContext(ctx), ms, exemplar.AttachmentsFromContext(ctx))
 }
 
 // RecordWithTags records one or multiple measurements at once.

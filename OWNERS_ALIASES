@@ -12,9 +12,6 @@ aliases:
     - luxas
     - roberthbailey
     - kris-nova
-  sig-vmware-leads:
-    - frapposelli
-    - cantbewong
   cluster-api-vsphere-maintainers:
     - frapposelli
     - sflxn

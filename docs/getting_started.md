@@ -61,7 +61,7 @@ The bootstrapping process in `clusterctl` requires a few manifest files:
 | `provider-components.yaml` | The CAPI and CAPV reources for the target cluster |
 | `addons.yaml` | Additional add-ons to apply to the management cluster (ex. CNI) |
 
-The project Makefile provides a convenient make target to generate the manifests. Before attempting to generate the above manifests, the following environment variables should be set based on your vSphere environment:
+Before attempting to generate the above manifests, the following environment variables should be set based on your vSphere environment:
 
 ```shell
 $ cat <<EOF >envvars.txt
@@ -96,7 +96,7 @@ With the above environment variable file it is now possible to generate the mani
 $ docker run --rm \
   -v "$(pwd)/my-cluster":/out \
   -v "$(pwd)/envvars.txt":/out/envvars.txt:ro \
-  gcr.io/cnx-cluster-api/generate-yaml:latest \
+  gcr.io/cluster-api-provider-vsphere/release/manifests:latest \
   -c my-cluster
 
 done generating ./out/addons.yaml
@@ -151,7 +151,7 @@ Using the same Docker command as above, generate resources for a new cluster, th
 docker run --rm \
   -v "$(pwd)/prod-workload":/out \
   -v "$(pwd)/envvars.txt":/out/envvars.txt:ro \
-  gcr.io/cnx-cluster-api/generate-yaml:latest \
+  gcr.io/cluster-api-provider-vsphere/release/manifests:latest \
   -c prod-workload
 ```
 

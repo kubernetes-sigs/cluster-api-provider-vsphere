@@ -26,8 +26,8 @@ set -o pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 VERSION="${VERSION:-$(git describe --dirty)}"
-CAPV_MANAGER_IMAGE_NAME="${CAPV_MANAGER_IMAGE_NAME:-gcr.io/cnx-cluster-api/vsphere-cluster-api-provider}"
-CAPV_GENERATE_YAML_IMAGE_NAME="${CAPV_GENERATE_YAML_IMAGE_NAME:-gcr.io/cnx-cluster-api/generate-yaml}"
+CAPV_MANAGER_IMAGE_NAME="${CAPV_MANAGER_IMAGE_NAME:-gcr.io/cluster-api-provider-vsphere/release/manager}"
+CAPV_MANIFESTS_IMAGE_NAME="${CAPV_MANIFESTS_IMAGE_NAME:-gcr.io/cluster-api-provider-vsphere/release/manifests}"
 
 usage() {
   cat <<EOF
@@ -35,7 +35,7 @@ usage: ${0} [FLAGS]
   Builds the CAPV container images.
 
 FLAGS
-  -g    generate yaml image name (default "${CAPV_GENERATE_YAML_IMAGE_NAME}")
+  -g    generate yaml image name (default "${CAPV_MANIFESTS_IMAGE_NAME}")
   -h    prints this help screen
   -m    manager image name (default "${CAPV_MANAGER_IMAGE_NAME}")
   -v    version (default "${VERSION}")
@@ -45,7 +45,7 @@ EOF
 while getopts ':g:hm:v:' opt; do
   case "${opt}" in
   g)
-    CAPV_GENERATE_YAML_IMAGE_NAME="${OPTARG}"
+    CAPV_MANIFESTS_IMAGE_NAME="${OPTARG}"
     ;;
   h)
     usage 1>&2; exit 1
@@ -67,7 +67,7 @@ done
 shift $((OPTIND-1))
 
 CAPV_MANAGER_IMAGE="${CAPV_MANAGER_IMAGE_NAME}:${VERSION}"
-CAPV_GENERATE_YAML_IMAGE="${CAPV_GENERATE_YAML_IMAGE_NAME}:${VERSION}"
+CAPV_MANIFESTS_IMAGE="${CAPV_MANIFESTS_IMAGE_NAME}:${VERSION}"
 
 build_capv_manager_image() {
   echo "building capv manager image"
@@ -78,10 +78,10 @@ build_capv_manager_image() {
 }
 
 build_capv_generate_yaml_image() {
-  echo "building capv generate yaml image"
+  echo "building capv manifests image"
   docker build \
     -f hack/tools/generate-yaml/Dockerfile \
-    -t "${CAPV_GENERATE_YAML_IMAGE}" \
+    -t "${CAPV_MANIFESTS_IMAGE}" \
     --build-arg "CAPV_MANAGER_IMAGE=${CAPV_MANAGER_IMAGE}" \
     .
 }

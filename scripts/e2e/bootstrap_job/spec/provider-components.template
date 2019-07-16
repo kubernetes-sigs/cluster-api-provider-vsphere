@@ -90,7 +90,7 @@ spec:
                 timeoutForControlPlane:
                   description: TimeoutForControlPlane controls the timeout that we
                     use for API server to appear
-                  type: object
+                  type: string
               type: object
             apiVersion:
               description: 'APIVersion defines the versioned schema of this representation
@@ -548,7 +548,7 @@ spec:
                       ttl:
                         description: TTL defines the time to live for this token.
                           Defaults to 24h. Expires and TTL are mutually exclusive.
-                        type: object
+                        type: string
                       usages:
                         description: Usages describes the ways in which this token
                           can be used. Can by default be used for establishing bidirectional
@@ -723,7 +723,7 @@ spec:
                       type: object
                     timeout:
                       description: Timeout modifies the discovery timeout
-                      type: object
+                      type: string
                     tlsBootstrapToken:
                       description: TLSBootstrapToken is a token used for TLS bootstrapping.
                         If .BootstrapToken is set, this field is defaulted to .BootstrapToken.Token,
@@ -802,6 +802,24 @@ spec:
                 machine.
               items:
                 properties:
+                  dhcp4:
+                    description: DHCP4 is a flag that indicates whether or not to
+                      use DHCP for IPv4 on this device. If true then IPAddrs should
+                      not contain any IPv4 addresses.
+                    type: boolean
+                  dhcp6:
+                    description: DHCP6 is a flag that indicates whether or not to
+                      use DHCP for IPv6 on this device. If true then IPAddrs should
+                      not contain any IPv6 addresses.
+                    type: boolean
+                  gateway4:
+                    description: Gateway4 is the IPv4 gateway used by this device.
+                      Required when DHCP4 is false.
+                    type: string
+                  gateway6:
+                    description: Gateway4 is the IPv4 gateway used by this device.
+                      Required when DHCP6 is false.
+                    type: string
                   ipAddrs:
                     description: IPAddrs is a list of one or more IPv4 and/or IPv6
                       addresses to assign to this device. Required when DHCP4 and
@@ -2315,10 +2333,7 @@ spec:
       containers:
       - command:
         - /manager
-        args:
-        - --logtostderr
-        - -v=6
-        image: gcr.io/k8s-cluster-api/cluster-api-controller:v0.1.4
+        image: us.gcr.io/k8s-artifacts-prod/cluster-api/cluster-api-controller:v0.1.6
         name: manager
         resources:
           limits:

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Copyright 2019 The Kubernetes Authors.
 #
@@ -37,13 +37,13 @@ chmod 600 ~/.ssh/vsphere_tmp
 
 
 # base64 encode SSH keys (k8s secret automatically decode it)
-export TARGET_VM_SSH=$(echo -n "${TARGET_VM_SSH}" | base64 -w 0)
-export TARGET_VM_SSH_PUB=$(echo -n "${TARGET_VM_SSH_PUB}" | base64 -w 0)
+TARGET_VM_SSH=$(echo -n "${TARGET_VM_SSH}" | base64 -w 0)
+TARGET_VM_SSH_PUB=$(echo -n "${TARGET_VM_SSH_PUB}" | base64 -w 0)
+export TARGET_VM_SSH TARGET_VM_SSH_PUB
 echo "${TARGET_VM_SSH_PUB}"
 
 for filename in spec/*.template; do
-  newfilename="$(echo "$filename" | sed 's/template/yml/g')"
-  envsubst < "$filename" > "$newfilename"
+  envsubst >"${filename//template/yml}" <"$filename"
 done
 
 # download kubectl binary

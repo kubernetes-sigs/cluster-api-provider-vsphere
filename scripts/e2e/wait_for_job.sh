@@ -14,10 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-export KUBECONFIG=$(kind get kubeconfig-path)
+KUBECONFIG=$(kind get kubeconfig-path)
+export KUBECONFIG
 TOTAL=600
 INTERVAL=6
-retry=$((${TOTAL}/ INTERVAL))
+retry=$((TOTAL/INTERVAL))
 ret=0
 until kubectl get jobs --no-headers | awk -F" " '{print $2}' | awk -F"/" '{s+=($1!=$2)} END {exit s}';
 do

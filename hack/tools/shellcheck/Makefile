@@ -1,5 +1,3 @@
-#!/bin/bash
-
 # Copyright 2019 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,18 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -o errexit
-set -o nounset
-set -o pipefail
-set -o xtrace
+all: build
 
-KIND_VERSION="v0.4.0"
+IMAGE_VERSION ?= v0.6.0
+IMAGE_NAME ?= gcr.io/cluster-api-provider-vsphere/extra/shellcheck
+IMAGE_TAG ?= $(IMAGE_NAME):$(IMAGE_VERSION)
 
-install_kind() {
-   wget "https://github.com/kubernetes-sigs/kind/releases/download/${KIND_VERSION}/kind-linux-amd64" \
-     --no-verbose -O /usr/local/bin/kind
-   chmod +x /usr/local/bin/kind
-}
+build:
+	docker build --build-arg SHELLCHECK_VERSION=$(IMAGE_VERSION) -t $(IMAGE_TAG) .
+.PHONY: build
 
-install_kind
-kind create cluster --config /tmp/kind_config.yml
+push:
+	docker push $(IMAGE_TAG)
+.PHONY: push

@@ -30,10 +30,6 @@ CLUSTER_NAME="${CLUSTER_NAME:-capv-mgmt-example}"
 ENV_VAR_REQ=':?required'
 CAPV_MANAGER_IMAGE="${CAPV_MANAGER_IMAGE:-gcr.io/cnx-cluster-api/vsphere-cluster-api-provider:latest}"
 
-# Initialize the paths for Kustomize and Python
-KUSTOMIZE="$(command -v kustomize 2>/dev/null || echo "docker")"
-PYTHON="$(command -v python 2>/dev/null || command -v python3 2>/dev/null || echo "docker")"
-
 usage() {
   cat <<EOF
 usage: ${0} [FLAGS]

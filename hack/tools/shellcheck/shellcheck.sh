@@ -17,15 +17,5 @@
 set -o errexit
 set -o nounset
 set -o pipefail
-set -o xtrace
 
-KIND_VERSION="v0.4.0"
-
-install_kind() {
-   wget "https://github.com/kubernetes-sigs/kind/releases/download/${KIND_VERSION}/kind-linux-amd64" \
-     --no-verbose -O /usr/local/bin/kind
-   chmod +x /usr/local/bin/kind
-}
-
-install_kind
-kind create cluster --config /tmp/kind_config.yml
+find . -path ./vendor -prune -o -name "*.*sh" -type f -print0 | xargs -0 shellcheck "${@}"

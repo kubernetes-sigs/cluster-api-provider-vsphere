@@ -18,10 +18,12 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-REPO_ROOT=$(dirname "${BASH_SOURCE}")/..
+# Change directories to the parent directory of the one in which this
+# script is located.
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
-cd $REPO_ROOT && \
-	source ./scripts/fetch_ext_bins.sh && \
-	fetch_tools && \
-	setup_envs && \
-	KUBEBUILDER_CONTROLPLANE_START_TIMEOUT=30s make test
+# shellcheck disable=1091
+source ./scripts/fetch_ext_bins.sh
+fetch_tools
+setup_envs
+KUBEBUILDER_CONTROLPLANE_START_TIMEOUT=30s make test

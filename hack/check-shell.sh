@@ -51,16 +51,8 @@ while getopts ':dh' opt; do
 done
 shift $((OPTIND-1))
 
-do_shellcheck() {
-  if [ ! "${DO_DOCKER-}" ] && command -v shellcheck >/dev/null 2>&1; then
-    xargs -0 shellcheck
-  else
-    xargs -0 docker run -t --rm -v "$(pwd)":/- -w /- koalaman/shellcheck
-  fi
-}
-
-find_sh() {
-  find . -path ./vendor -prune -o -name "*.*sh" -type f -print0
-}
-
-find_sh | do_shellcheck
+if [ ! "${DO_DOCKER-}" ] && command -v shellcheck >/dev/null 2>&1; then
+  find . -path ./vendor -prune -o -name "*.*sh" -type f -print0 | xargs -0 shellcheck
+else
+  docker run --rm -t -v "$(pwd)":/build:ro gcr.io/cluster-api-provider-vsphere/extra/shellcheck
+fi

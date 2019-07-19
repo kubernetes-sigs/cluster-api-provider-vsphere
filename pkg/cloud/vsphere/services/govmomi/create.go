@@ -39,8 +39,8 @@ const (
 	// hostnameLookup resolves via cloud init and uses cloud provider's metadata service to lookup its own hostname.
 	hostnameLookup = "{{ ds.meta_data.hostname }}"
 
-	// containerdSocket is the path to containerd socket.
-	containerdSocket = "/var/run/containerd/containerd.sock"
+	// criSocket is the path to the CRI socket to connect. If empty kubeadm will try to auto-detect this value.
+	criSocket = ""
 
 	// nodeRole is the label assigned to every node in the cluster.
 	nodeRole = "node-role.kubernetes.io/node="
@@ -131,7 +131,7 @@ func generateUserData(ctx *context.MachineContext, bootstrapToken string) ([]byt
 						&ctx.MachineConfig.KubeadmConfiguration.Join.NodeRegistration,
 						kubeadm.WithTaints(ctx.Machine.Spec.Taints),
 						kubeadm.WithNodeRegistrationName(hostnameLookup),
-						kubeadm.WithCRISocket(containerdSocket),
+						kubeadm.WithCRISocket(criSocket),
 						kubeadm.WithKubeletExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
 					),
 				),
@@ -211,7 +211,7 @@ func generateUserData(ctx *context.MachineContext, bootstrapToken string) ([]byt
 						&ctx.MachineConfig.KubeadmConfiguration.Init.NodeRegistration,
 						kubeadm.WithTaints(ctx.Machine.Spec.Taints),
 						kubeadm.WithNodeRegistrationName(hostnameLookup),
-						kubeadm.WithCRISocket(containerdSocket),
+						kubeadm.WithCRISocket(criSocket),
 						kubeadm.WithKubeletExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
 					),
 				),
@@ -259,7 +259,7 @@ func generateUserData(ctx *context.MachineContext, bootstrapToken string) ([]byt
 				kubeadm.SetNodeRegistration(
 					&ctx.MachineConfig.KubeadmConfiguration.Join.NodeRegistration,
 					kubeadm.WithNodeRegistrationName(hostnameLookup),
-					kubeadm.WithCRISocket(containerdSocket),
+					kubeadm.WithCRISocket(criSocket),
 					kubeadm.WithKubeletExtraArgs(map[string]string{
 						"cloud-provider": cloudProvider,
 					}),

@@ -42,6 +42,9 @@ TARGET_VM_PRE=
 # RANDOM_STR holds a random string
 RANDOM_STR=""
 
+PROW_JOB_ID=${PROW_JOB_ID:-}
+PULL_PULL_SHA=${PULL_PULL_SHA:-}
+
 get_random_str() {
    if [ -z "${RANDOM_STR}" ]; then
       RANDOM_STR=$(date | { md5sum || md5; } 2>/dev/null | cut -c 1-8)

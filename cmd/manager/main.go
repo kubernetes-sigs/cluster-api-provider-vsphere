@@ -49,6 +49,8 @@ func main() {
 
 	flag.Parse()
 
+	klog.Info("Starting the vSphere cluster api provider manager")
+
 	if addr := *profilerAddr; addr != "" {
 		go runProfiler(addr)
 	}

@@ -86,11 +86,11 @@
     },
     {
       "type": "shell-local",
-      "command": "../../../hack/image-build-ova.py ./output/{{build_name}}+kube-{{user `kubernetes_semver`}}"
+      "command": "../hack/image-build-ova.py ./output/{{build_name}}+kube-{{user `kubernetes_semver`}}"
     },
     {
       "type": "shell-local",
-      "command": "../../../hack/image-post-create-config.sh ./output/{{build_name}}+kube-{{user `kubernetes_semver`}}"
+      "command": "../hack/image-post-create-config.sh ./output/{{build_name}}+kube-{{user `kubernetes_semver`}}"
     }
   ]
 }

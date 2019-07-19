@@ -67,7 +67,7 @@ if grep -q 'guestinfo.userdata' "${VMX_FILE}"; then
   echo "image-post-create-config: skipping cloud-init data; already exists"
 else
   echo "image-post-create-config: insert cloud-init data"
-  CIDATA_DIR="$(dirname "${BASH_SOURCE[0]}")/../build/images/cloudinit"
+  CIDATA_DIR="$(dirname "${BASH_SOURCE[0]}")/../cloudinit"
   cat <<EOF >>"${VMX_FILE}"
 guestinfo.userdata = "$({ base64 -w0 || base64; } 2>/dev/null <"${CIDATA_DIR}/user-data")"
 guestinfo.userdata.encoding = "base64"

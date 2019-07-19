@@ -21,11 +21,11 @@ The `vmware-iso` builder supports building against a remote VMware ESX server, b
 - [Ansible](http://docs.ansible.com/ansible/latest/intro_installation.html) version >= 2.8.0
 - [goss](https://github.com/YaleUniversity/packer-provisioner-goss)
 
-The program `../../hack/image-tools.sh` can be used to download and install the goss plug-in.
+The program `hack/image-tools.sh` can be used to download and install the goss plug-in.
 
 ## The `cloudinit` Directory
 
-The `images` directory contains a child directory, `cloudinit`. The files in this directory:
+The `cloudinit` contains files that:
 
 - **Are** example data used for testing
 - Are **not** included in any of the images
@@ -76,7 +76,7 @@ The images are uploaded to the GCS bucket `capv-images`. The path to the image d
 Uploading the images requires the `gcloud` and `gsutil` programs, an active Google Cloud account, or a service account with an associated key file. The latter may be specified via the environment variable `KEY_FILE`.
 
 ```shell
-../../hack/image-upload.py --key-file KEY_FILE BUILD_DIR
+hack/image-upload.py --key-file KEY_FILE BUILD_DIR
 ```
 
 First the images are checksummed (SHA256). If a matching checksum already exists remotely then the image is not re-uploaded. Otherwise the images are uploaded to the GCS bucket.
@@ -104,11 +104,11 @@ Images may be downloaded via HTTP:
 
 #### Accessing Local VMs
 
-After the images are built, the VMs from they are built are prepped for local testing. Simply boot the VM locally with Fusion or Workstation and the machine will be initialized with cloud-init data from the `cloudinit` directory. The VMs may be accessed via SSH by using the command `../../hack/image-ssh.sh BUILD_DIR`.
+After the images are built, the VMs from they are built are prepped for local testing. Simply boot the VM locally with Fusion or Workstation and the machine will be initialized with cloud-init data from the `cloudinit` directory. The VMs may be accessed via SSH by using the command `hack/image-ssh.sh BUILD_DIR`.
 
 #### Accessing Remote VMs
 
-After deploying an image to vSphere, use `../../hack/image-govc-cloudinit.sh VM` to snapshot the image and update it with cloud-init data from the `cloudinit` directory. The VM may now be accessed with `ssh -i cloudinit/id_rsa.capi SSH_USER@VM_IP`.
+After deploying an image to vSphere, use `hack/image-govc-cloudinit.sh VM` to snapshot the image and update it with cloud-init data from the `cloudinit` directory. The VM may now be accessed with `ssh -i cloudinit/id_rsa.capi SSH_USER@VM_IP`.
 
 ### Initialize a CNI
 

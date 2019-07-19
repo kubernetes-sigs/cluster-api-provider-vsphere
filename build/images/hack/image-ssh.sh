@@ -58,6 +58,6 @@ fi
 IP_ADDR="$(vmrun getGuestIPAddress "${VMX_FILE}")"
 
 # SSH into the VM with the provided user.
-SSH_KEY="$(dirname "${BASH_SOURCE[0]}")/../build/images/cloudinit/id_rsa.capi"
+SSH_KEY="$(dirname "${BASH_SOURCE[0]}")/../cloudinit/id_rsa.capi"
 echo "image-ssh: ssh -i ${SSH_KEY} ${SSH_USER}@${IP_ADDR}"
 exec ssh -o UserKnownHostsFile=/dev/null -i "${SSH_KEY}" "${SSH_USER}"@"${IP_ADDR}"

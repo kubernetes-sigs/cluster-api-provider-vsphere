@@ -45,7 +45,7 @@ import (
 
 //+kubebuilder:rbac:groups=vsphere.cluster.k8s.io,resources=vsphereclusterproviderspecs;vsphereclusterproviderstatuses,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=cluster.k8s.io,resources=clusters;clusters/status,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=,resources=secrets,verbs=create;get;list;watch
+//+kubebuilder:rbac:groups=,resources=secrets,verbs=create;get;list;watch;delete
 //+kubebuilder:rbac:groups="",resources=nodes;events;configmaps,verbs=get;list;watch;create;update;patch;delete
 
 // Actuator is responsible for maintaining the Cluster objects.

@@ -9,6 +9,10 @@ github.com/Azure/go-autorest/autorest/azure
 github.com/Azure/go-autorest/logger
 github.com/Azure/go-autorest/tracing
 github.com/Azure/go-autorest/autorest/date
+# github.com/PuerkitoBio/purell v1.1.0
+github.com/PuerkitoBio/purell
+# github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578
+github.com/PuerkitoBio/urlesc
 # github.com/appscode/jsonpatch v0.0.0-20190108182946-7c0e3b262f30
 github.com/appscode/jsonpatch
 # github.com/beorn7/perks v1.0.0
@@ -22,12 +26,25 @@ github.com/census-instrumentation/opencensus-proto/gen-go/resource/v1
 github.com/davecgh/go-spew/spew
 # github.com/dgrijalva/jwt-go v3.2.0+incompatible
 github.com/dgrijalva/jwt-go
+# github.com/emicklei/go-restful v2.9.3+incompatible
+github.com/emicklei/go-restful
+github.com/emicklei/go-restful/log
+# github.com/evanphx/json-patch v4.2.0+incompatible
+github.com/evanphx/json-patch
 # github.com/ghodss/yaml v1.0.0
 github.com/ghodss/yaml
 # github.com/go-logr/logr v0.1.0
 github.com/go-logr/logr
 # github.com/go-logr/zapr v0.1.0
 github.com/go-logr/zapr
+# github.com/go-openapi/jsonpointer v0.0.0-20180322222829-3a0015ad55fa
+github.com/go-openapi/jsonpointer
+# github.com/go-openapi/jsonreference v0.0.0-20180322222742-3fb327e6747d
+github.com/go-openapi/jsonreference
+# github.com/go-openapi/spec v0.0.0-20180415031709-bcff419492ee
+github.com/go-openapi/spec
+# github.com/go-openapi/swag v0.0.0-20180405201759-811b1089cde9
+github.com/go-openapi/swag
 # github.com/gobuffalo/envy v1.6.12
 github.com/gobuffalo/envy
 # github.com/gogo/protobuf v1.2.1
@@ -80,6 +97,10 @@ github.com/inconshreveable/mousetrap
 github.com/joho/godotenv
 # github.com/json-iterator/go v1.1.6
 github.com/json-iterator/go
+# github.com/mailru/easyjson v0.0.0-20180606163543-3fdea8d05856
+github.com/mailru/easyjson/jlexer
+github.com/mailru/easyjson/jwriter
+github.com/mailru/easyjson/buffer
 # github.com/markbates/inflect v1.0.4
 github.com/markbates/inflect
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
@@ -224,7 +245,7 @@ golang.org/x/oauth2/internal
 golang.org/x/oauth2/google
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
-# golang.org/x/sync v0.0.0-20181221193216-37e7f081c4d4
+# golang.org/x/sync v0.0.0-20190423024810-112230192c58
 golang.org/x/sync/semaphore
 # golang.org/x/sys v0.0.0-20190616124812-15dcb6c0061f
 golang.org/x/sys/unix
@@ -237,6 +258,7 @@ golang.org/x/text/unicode/bidi
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
 golang.org/x/text/encoding/htmlindex
+golang.org/x/text/width
 golang.org/x/text/encoding/internal/identifier
 golang.org/x/text/encoding/internal
 golang.org/x/text/encoding/japanese
@@ -252,19 +274,19 @@ golang.org/x/text/internal/language/compact
 golang.org/x/text/internal/tag
 # golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
 golang.org/x/time/rate
-# golang.org/x/tools v0.0.0-20190312170243-e65039ee4138
+# golang.org/x/tools v0.0.0-20190608022120-eacb66d2a7c3
 golang.org/x/tools/cmd/goimports
-golang.org/x/tools/imports
+golang.org/x/tools/internal/imports
 golang.org/x/tools/go/ast/astutil
 golang.org/x/tools/go/gcexportdata
 golang.org/x/tools/go/packages
 golang.org/x/tools/internal/gopathwalk
 golang.org/x/tools/internal/module
 golang.org/x/tools/go/internal/gcimporter
-golang.org/x/tools/go/internal/cgo
 golang.org/x/tools/go/internal/packagesdriver
 golang.org/x/tools/internal/semver
 golang.org/x/tools/internal/fastwalk
+golang.org/x/tools/imports
 # google.golang.org/api v0.1.0
 google.golang.org/api/support/bundler
 # google.golang.org/appengine v1.4.0
@@ -361,8 +383,8 @@ k8s.io/apiextensions-apiserver/pkg/apis/apiextensions
 k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1
 k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/scheme
 # k8s.io/apimachinery v0.0.0-20190703205208-4cfb76a8bf76 => k8s.io/apimachinery v0.0.0-20181127025237-2b1284ed4c93
-k8s.io/apimachinery/pkg/runtime
 k8s.io/apimachinery/pkg/apis/meta/v1
+k8s.io/apimachinery/pkg/runtime
 k8s.io/apimachinery/pkg/runtime/schema
 k8s.io/apimachinery/pkg/types
 k8s.io/apimachinery/pkg/api/errors
@@ -373,21 +395,22 @@ k8s.io/apimachinery/pkg/fields
 k8s.io/apimachinery/pkg/util/net
 k8s.io/apimachinery/pkg/watch
 k8s.io/apimachinery/pkg/api/meta
+k8s.io/apimachinery/pkg/api/resource
 k8s.io/apimachinery/pkg/conversion
+k8s.io/apimachinery/pkg/selection
+k8s.io/apimachinery/pkg/util/intstr
+k8s.io/apimachinery/pkg/util/runtime
 k8s.io/apimachinery/pkg/conversion/queryparams
 k8s.io/apimachinery/pkg/util/errors
 k8s.io/apimachinery/pkg/util/json
 k8s.io/apimachinery/pkg/util/naming
-k8s.io/apimachinery/pkg/util/runtime
 k8s.io/apimachinery/pkg/util/sets
-k8s.io/apimachinery/pkg/api/resource
-k8s.io/apimachinery/pkg/selection
-k8s.io/apimachinery/pkg/util/intstr
 k8s.io/apimachinery/pkg/apis/meta/v1/validation
 k8s.io/apimachinery/pkg/util/validation/field
 k8s.io/apimachinery/pkg/apis/meta/v1/unstructured
-k8s.io/apimachinery/pkg/util/validation
 k8s.io/apimachinery/pkg/util/yaml
+k8s.io/apimachinery/pkg/api/validation
+k8s.io/apimachinery/pkg/util/validation
 k8s.io/apimachinery/pkg/runtime/serializer/json
 k8s.io/apimachinery/pkg/runtime/serializer/protobuf
 k8s.io/apimachinery/pkg/runtime/serializer/recognizer
@@ -400,8 +423,9 @@ k8s.io/apimachinery/pkg/version
 k8s.io/apimachinery/pkg/apis/meta/v1beta1
 k8s.io/apimachinery/pkg/util/uuid
 k8s.io/apimachinery/third_party/forked/golang/reflect
-k8s.io/apimachinery/pkg/util/framer
 k8s.io/apimachinery/pkg/util/mergepatch
+k8s.io/apimachinery/pkg/api/equality
+k8s.io/apimachinery/pkg/util/framer
 k8s.io/apimachinery/third_party/forked/golang/json
 k8s.io/apimachinery/pkg/util/cache
 k8s.io/apimachinery/pkg/util/diff
@@ -504,6 +528,7 @@ k8s.io/gengo/examples/set-gen/sets
 k8s.io/klog
 k8s.io/klog/klogr
 # k8s.io/kube-openapi v0.0.0-20190306001800-15615b16d372
+k8s.io/kube-openapi/pkg/common
 k8s.io/kube-openapi/pkg/util/proto
 # k8s.io/kubernetes v1.13.3
 k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1
@@ -585,6 +610,36 @@ sigs.k8s.io/controller-tools/pkg/internal/codegen
 sigs.k8s.io/controller-tools/pkg/internal/codegen/parse
 sigs.k8s.io/controller-tools/pkg/util
 sigs.k8s.io/controller-tools/pkg/internal/general
+# sigs.k8s.io/kustomize v0.0.0-20190618214009-af67c893d87c
+sigs.k8s.io/kustomize/k8sdeps/kunstruct
+sigs.k8s.io/kustomize/k8sdeps/transformer
+sigs.k8s.io/kustomize/k8sdeps/validator
+sigs.k8s.io/kustomize/pkg/fs
+sigs.k8s.io/kustomize/pkg/ifc
+sigs.k8s.io/kustomize/pkg/loader
+sigs.k8s.io/kustomize/pkg/plugins
+sigs.k8s.io/kustomize/pkg/resmap
+sigs.k8s.io/kustomize/pkg/resource
+sigs.k8s.io/kustomize/pkg/target
+sigs.k8s.io/kustomize/pkg/types
+sigs.k8s.io/kustomize/plugin/builtin
+sigs.k8s.io/kustomize/k8sdeps/configmapandsecret
+sigs.k8s.io/kustomize/pkg/gvk
+sigs.k8s.io/kustomize/pkg/hasher
+sigs.k8s.io/kustomize/k8sdeps/transformer/patch
+sigs.k8s.io/kustomize/pkg/transformers
+sigs.k8s.io/kustomize/pkg/pgmconfig
+sigs.k8s.io/kustomize/pkg/git
+sigs.k8s.io/kustomize/pkg/resid
+sigs.k8s.io/kustomize/internal/kusterr
+sigs.k8s.io/kustomize/pkg/accumulator
+sigs.k8s.io/kustomize/pkg/ifc/transformer
+sigs.k8s.io/kustomize/pkg/image
+sigs.k8s.io/kustomize/pkg/transformers/config
+sigs.k8s.io/kustomize/pkg/inventory
+sigs.k8s.io/kustomize/pkg/patch/transformer
+sigs.k8s.io/kustomize/pkg/expansion
+sigs.k8s.io/kustomize/pkg/transformers/config/defaultconfig
 # sigs.k8s.io/testing_frameworks v0.1.1
 sigs.k8s.io/testing_frameworks/integration
 sigs.k8s.io/testing_frameworks/integration/addr

@@ -22,4 +22,5 @@ bases:
 
 patches:
 - manager_image_patch.yaml
+- manager_log_level_patch.yaml
 - rbac_role_binding_patch.yaml

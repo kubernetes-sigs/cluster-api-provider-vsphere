@@ -7,5 +7,5 @@ spec:
   template:
     spec:
       containers:
-      - image: "${MANAGER_IMAGE}"
+      - image: "{{ .ManagerImage }}"
         name: manager

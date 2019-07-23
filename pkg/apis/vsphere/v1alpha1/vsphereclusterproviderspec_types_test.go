@@ -23,6 +23,8 @@ import (
 	"golang.org/x/net/context"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/yaml"
 )
 
 func TestStorageVsphereClusterProviderSpec(t *testing.T) {
@@ -65,3 +67,44 @@ func TestStorageVsphereClusterProviderSpec(t *testing.T) {
 	g.Expect(c.Delete(context.TODO(), fetched)).NotTo(gomega.HaveOccurred())
 	g.Expect(c.Get(context.TODO(), key, fetched)).To(gomega.HaveOccurred())
 }
+
+func TestDecodeClusterWithSSHPubKeyWithExtraWhitespace(t *testing.T) {
+	g := gomega.NewGomegaWithT(t)
+	cluster := &clusterv1.Cluster{}
+
+	err := yaml.Unmarshal([]byte(clusterYAMLWithAkutzSSHPubKeyWithExtraWhitespace), cluster)
+	g.Expect(err).NotTo(gomega.HaveOccurred(), "error unmarshalling cluster manifest")
+
+	clusterProviderSpec, err := GetClusterProviderSpec(cluster)
+	g.Expect(err).NotTo(gomega.HaveOccurred(), "error unmarshalling cluster provider spec")
+
+	g.Expect(clusterProviderSpec.SSHAuthorizedKeys).Should(gomega.HaveLen(1))
+	g.Expect(clusterProviderSpec.SSHAuthorizedKeys[0]).Should(gomega.Equal(sshPubKeyWithNoExtraWhitespace))
+}
+
+const sshPubKeyWithNoExtraWhitespace = `ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDE0c5FczvcGSh/tG4iw+Fhfi/O5/EvUM/96js65tly4++YTXK1d9jcznPS5ruDlbIZ30oveCBd3kT8LLVFwzh6hepYTf0YmCTpF4eDunyqmpCXDvVscQYRXyasEm5olGmVe05RrCJSeSShAeptv4ueIn40kZKOghinGWLDSZG4+FFfgrmcMCpx5YSCtX2gvnEYZJr0czt4rxOZuuP7PkJKgC/mt2PcPjooeX00vAj81jjU2f3XKrjjz2u2+KIt9eba+vOQ6HiC8c2IzRkUAJ5i1atLy8RIbejo23+0P4N2jjk17QySFOVHwPBDTYb0/0M/4ideeU74EN/CgVsvO6JrLsPBR4dojkV5qNbMNxIVv5cUwIy2ThlLgqpNCeFIDLCWNZEFKlEuNeSQ2mPtIO7ETxEL2Cz5y/7AIuildzYMc6wi2bofRC8HmQ7rMXRWdwLKWsR0L7SKjHblIwarxOGqLnUI+k2E71YoP7SZSlxaKi17pqkr0OMCF+kKqvcvHAQuwGqyumTEWOlH6TCx1dSPrW+pVCZSHSJtSTfDW2uzL6y8k10MT06+pVunSrWo5LHAXcS91htHV1M1UrH/tZKSpjYtjMb5+RonfhaFRNzvj7cCE1f3Kp8UVqAdcGBTtReoE8eRUT63qIxjw03a7VwAyB2w+9cu1R9/vAo8SBeRqw== sakutz@gmail.com`
+const clusterYAMLWithAkutzSSHPubKeyWithExtraWhitespace = `
+apiVersion: cluster.k8s.io/v1alpha1
+kind: Cluster
+metadata:
+  name: capv-management-example
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks:
+      - 100.96.0.0/11
+    serviceDomain: cluster.local
+    services:
+      cidrBlocks:
+      - 100.64.0.0/13
+  providerSpec:
+    value:
+      apiVersion: vsphere.cluster.k8s.io/v1alpha1
+      kind: VsphereClusterProviderSpec
+      password: pass
+      server: vcenter
+      sshAuthorizedKeys:
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDE0c5FczvcGSh/tG4iw+Fhfi/O5/EvUM/96js65tly4++YTXK1d9jcznPS5ruDlbIZ30oveCBd3kT8LLVFwzh6hepYTf0YmCTpF4eDunyqmpCXDvVscQYRXyasEm5olGmVe05RrCJSeSShAeptv4ueIn40kZKOghinGWLDSZG4+FFfgrmcMCpx5YSCtX2gvnEYZJr0czt4rxOZuuP7PkJKgC/mt2PcPjooeX00vAj81jjU2f3XKrjjz2u2+KIt9eba+vOQ6HiC8c2IzRkUAJ5i1atLy8RIbejo23+0P4N2jjk17QySFOVHwPBDTYb0/0M/4ideeU74EN/CgVsvO6JrLsPBR4dojkV5qNbMNxIVv5cUwIy2ThlLgqpNCeFIDLCWNZEFKlEuNeSQ2mPtIO7ETxEL2Cz5y/7AIuildzYMc6wi2bofRC8HmQ7rMXRWdwLKWsR0L7SKjHblIwarxOGqLnUI+k2E71YoP7SZSlxaKi17pqkr0OMCF+kKqvcvHAQuwGqyumTEWOlH6TCx1dSPrW+pVCZSHSJtSTfDW2uzL6y8k10MT06+pVunSrWo5LHAXcS91htHV1M1UrH/tZKSpjYtjMb5+RonfhaFRNzvj7cCE1f3Kp8UVqAdcGBTtReoE8eRUT63qIxjw03a7VwAyB2w+9cu1R9/vAo8SBeRqw==
+        sakutz@gmail.com
+      username: user
+`

@@ -16,7 +16,7 @@ FROM ${BASE_IMAGE}
 LABEL maintainer="Hui Luo <luoh@vmware.com>"
 
 COPY *.sh /clusterapi/
-COPY spec /clusterapi/spec
+COPY out/e2e-cluster /clusterapi/spec
 
 WORKDIR /clusterapi/
 CMD ["shell"]

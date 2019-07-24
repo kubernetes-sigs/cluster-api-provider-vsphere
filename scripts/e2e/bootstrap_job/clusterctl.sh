@@ -18,11 +18,6 @@
 # bootstrap need be created beforehand.
 
 # specs requires following enviroments variables:
-# VSPHERE_SERVER
-# VSPHERE_USERNAME
-# VSPHERE_PASSWORD
-# VSPHERE_CONTROLLER_VERSION
-# TARGET_VM_PREFIX
 # TARGET_VM_SSH  (base64 encoded)
 # TARGET_VM_SSH_PUB (base64 encoded)
 # BOOTSTRAP_KUBECONFIG
@@ -42,9 +37,6 @@ TARGET_VM_SSH_PUB=$(echo -n "${TARGET_VM_SSH_PUB}" | base64 -w 0)
 export TARGET_VM_SSH TARGET_VM_SSH_PUB
 echo "${TARGET_VM_SSH_PUB}"
 
-for filename in spec/*.template; do
-  envsubst >"${filename//template/yml}" <"$filename"
-done
 
 # download kubectl binary
 retry=20
@@ -69,10 +61,10 @@ chmod +x /usr/local/bin/clusterctl
 
 # run clusterctl
 echo "test ${PROVIDER_COMPONENT_SPEC}"
-clusterctl create cluster -e ~/.kube/config -c ./spec/cluster.yml \
-    -m ./spec/machines.yml \
+clusterctl create cluster -e ~/.kube/config -c ./spec/cluster.yaml \
+    -m ./spec/machines.yaml \
     -p ./spec/"${PROVIDER_COMPONENT_SPEC}" \
-    -a ./spec/addons.yml \
+    -a ./spec/addons.yaml \
     --provider vsphere \
     -v 6
 

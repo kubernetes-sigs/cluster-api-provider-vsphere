@@ -28,7 +28,7 @@ TPL_DIR=./cmd/clusterctl/examples/vsphere
 OVERWRITE=
 CLUSTER_NAME="${CLUSTER_NAME:-capv-mgmt-example}"
 ENV_VAR_REQ=':?required'
-CAPV_MANAGER_IMAGE="${CAPV_MANAGER_IMAGE:-gcr.io/cnx-cluster-api/vsphere-cluster-api-provider:latest}"
+CAPV_MANAGER_IMAGE="${CAPV_MANAGER_IMAGE:-gcr.io/cluster-api-provider-vsphere/ci/manager:latest}"
 
 usage() {
   cat <<EOF

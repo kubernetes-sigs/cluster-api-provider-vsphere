@@ -27,14 +27,11 @@ CWD := $(abspath .)
 SHELL := hack/shell-with-gopath.sh
 
 # Image URL to use all building/pushing image targets
-PRODUCTION_IMG ?= gcr.io/cnx-cluster-api/vsphere-cluster-api-provider:0.3.0
 CI_IMG ?= gcr.io/cnx-cluster-api/vsphere-cluster-api-provider
 CLUSTERCTL_CI_IMG ?= gcr.io/cnx-cluster-api/clusterctl
-DEV_IMG ?= # <== NOTE:  outside dev, change this!!!
 
 # Retrieves the git hash
-VERSION ?= $(shell git describe --exact-match 2> /dev/null || \
-	   git describe --match=$(git rev-parse --short=8 HEAD) --always --dirty --abbrev=8)
+VERSION ?= $(shell git describe --always --dirty)
 
 # Build manager binary
 manager: check
@@ -92,51 +89,9 @@ vendor:
 	cp -rf --no-preserve=mode "$${_src}" "$${_dst}"
 .PHONY: vendor
 
-####################################
-# DEVELOPMENT Build and Push targets
-####################################
-
-# Create YAML file for deployment
-dev-yaml:
-	CAPV_MANAGER_IMAGE=$(DEV_IMG) hack/generate-yaml.sh
-
-# Build the docker image
-dev-build: #test
-	docker build . -t $(DEV_IMG)
-
-# Push the docker image
-dev-push:
-	docker push $(DEV_IMG)
-
-.PHONY: dev-yaml dev-build dev-push
-
-###################################
-# PRODUCTION Build and Push targets
-###################################
-
-# Create YAML file for deployment
-prod-yaml:
-	CAPV_MANAGER_IMAGE=$(PRODUCTION_IMG) hack/generate-yaml.sh
-
-# Build the docker image
-prod-build: test
-	docker build . -t $(PRODUCTION_IMG)
-
-# Push the docker image
-prod-push:
-	@echo "logging into gcr.io registry with key file"
-	@docker login -u _json_key --password-stdin gcr.io <"$(GCR_KEY_FILE)"
-	docker push $(PRODUCTION_IMG)
-
-.PHONY: prod-yaml prod-build prod-push
-
 ###################################
 # CI Build and Push targets
 ###################################
-
-# Create YAML file for deployment into CI
-ci-yaml:
-	CAPV_MANAGER_IMAGE=$(CI_IMG) hack/generate-yaml.sh
 
 ci-image: generate fmt vet manifests
 	docker build . -t "$(CI_IMG):$(VERSION)"

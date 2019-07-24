@@ -166,8 +166,7 @@ vsphere_controller_version=""
 if [ -z "${PROW_JOB_ID}" ] ; then
    CONTEXT="debug"
    start_docker
-   vsphere_controller_version=$(shell git describe --exact-match 2> /dev/null || \
-      git describe --match="$(git rev-parse --short=8 HEAD)" --always --dirty --abbrev=8)
+   vsphere_controller_version=$(shell git describe --always --dirty)
 else
    CONTEXT="prow"
    if [ -z "${PULL_PULL_SHA}" ] ; then

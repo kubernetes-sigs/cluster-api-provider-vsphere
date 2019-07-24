@@ -94,6 +94,7 @@ With the above environment variable file it is now possible to generate the mani
 
 ```shell
 $ docker run --rm \
+  --user "$(id -u):$(id -g)" \
   -v "$(pwd)/management-cluster":/out \
   -v "$(pwd)/envvars.txt":/out/envvars.txt:ro \
   gcr.io/cluster-api-provider-vsphere/release/manifests:latest \
@@ -142,6 +143,7 @@ Using the same Docker command as above, generate resources for a new cluster, th
 
 ```shell
 docker run --rm \
+  --user "$(id -u):$(id -g)" \
   -v "$(pwd)/workload-cluster-1":/out \
   -v "$(pwd)/envvars.txt":/out/envvars.txt:ro \
   gcr.io/cluster-api-provider-vsphere/release/manifests:latest \

@@ -49,6 +49,9 @@ COPY ./vendor/sigs.k8s.io/cluster-api/config ./vendor/sigs.k8s.io/cluster-api/co
 # Copy in the examples directory.
 COPY ./cmd/clusterctl/examples/vsphere/*.template ./cmd/clusterctl/examples/vsphere/
 
+# Ensure all the directories in the /build directory are writeable.
+RUN find . -type d -exec chmod 0777 \{\} \;
+
 # This build arg specifies the value of the -m flag for generate-yaml.sh, the
 # CAPV manager image inserted into the generated provider components.
 ARG CAPV_MANAGER_IMAGE=gcr.io/cnx-cluster-api/vsphere-cluster-api-provider:latest

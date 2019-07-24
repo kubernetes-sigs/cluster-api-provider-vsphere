@@ -9,17 +9,12 @@ spec:
       tolerations:
       - effect: NoSchedule
         key: node-role.kubernetes.io/master
-      initContainers:
-      - name: clusterctl-bin
-        image: gcr.io/cnx-cluster-api/clusterctl:${VERSION}
-        command: ['sh', '-c', 'cp /root/clusterctl /tmp/clusterctl/clusterctl && chmod +x /tmp/clusterctl/clusterctl']
-        volumeMounts:
-          - name: shared-data
-            mountPath: /tmp/clusterctl
       containers:
       - name: cluster-api-provider-vsphere-ci
-        image: gcr.io/cnx-cluster-api/cluster-api-provider-vsphere-ci:${VERSION}
+        image: gcr.io/cluster-api-provider-vsphere/pr/ci:${VERSION}
         env:
+          - name: CLUSTERCTL_VERSION
+            value: ${VERSION}
           - name: TARGET_VM_PREFIX
             valueFrom:
               secretKeyRef:
@@ -65,12 +60,6 @@ spec:
               secretKeyRef:
                 name: clusterapi-provider-vsphere-ci-secret
                 key: bootstrap-kubeconfig
-        volumeMounts:
-          - name: shared-data
-            mountPath: /tmp/clusterctl/
         command:
         - "./clusterctl.sh"
-      volumes:
-      - name: shared-data
-        emptyDir: {}
       restartPolicy: Never

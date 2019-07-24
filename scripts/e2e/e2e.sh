@@ -119,7 +119,7 @@ apply_secret_to_bootstrap() {
    echo "test ${provider_component}"
 
    echo "test controller version $1"
-   vsphere_controller_version="gcr.io/cnx-cluster-api/vsphere-cluster-api-provider:$1"
+   local vsphere_controller_version="gcr.io/cluster-api-provider-vsphere/pr/manager:$1"
    export_base64_value "VSPHERE_CONTROLLER_VERSION" "${vsphere_controller_version}"
    echo "test ${vsphere_controller_version}"
 
@@ -162,24 +162,16 @@ on_exit() {
 
 # the main loop
 trap on_exit EXIT
-vsphere_controller_version=""
 if [ -z "${PROW_JOB_ID}" ] ; then
    CONTEXT="debug"
    start_docker
-   vsphere_controller_version=$(shell git describe --always --dirty)
 else
    CONTEXT="prow"
-   if [ -z "${PULL_PULL_SHA}" ] ; then
-      # for periodic job
-      vsphere_controller_version="${PROW_JOB_ID}"
-   else
-      # for presubmit job
-      vsphere_controller_version="${PULL_PULL_SHA}"
-   fi
 fi
 
-export VERSION="${vsphere_controller_version}"
-echo "build vSphere controller version: ${vsphere_controller_version}"
+VERSION=$(git describe --dirty --always 2>/dev/null)
+export VERSION
+echo "build vSphere controller version: ${VERSION}"
 
 # set target cluster vm name prefix
 get_random_str
@@ -190,7 +182,8 @@ export_base64_value "TARGET_VM_PREFIX" "${TARGET_VM_PRE}"
 go get -u github.com/vmware/govmomi/govc
 
 # Push new container images
-make ci-push
+# TODO the `-k` flag here is a workaround until we can set GCR_KEY_FILE properly
+hack/release.sh -t pr -p -k /root/.capv/keyfile.json
 cd ./scripts/e2e/bootstrap_job && make push && cd .. || exit 1
 
 # get bootstrap VM
@@ -206,7 +199,7 @@ kubeconfig_path=$(run_cmd_on_bootstrap "${bootstrap_vm_ip}" "kind get kubeconfig
 run_cmd_on_bootstrap "${bootstrap_vm_ip}" "sed -i s/localhost/${bootstrap_vm_ip}/g ${kubeconfig_path}"
 kubeconfig=$(run_cmd_on_bootstrap "${bootstrap_vm_ip}" "cat ${kubeconfig_path}")
 export BOOTSTRAP_KUBECONFIG="${kubeconfig}"
-apply_secret_to_bootstrap "${vsphere_controller_version}"
+apply_secret_to_bootstrap "${VERSION}"
 
 # launch the job at bootstrap cluster
 fill_file_with_value "bootstrap_job.template"

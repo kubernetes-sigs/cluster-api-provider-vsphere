@@ -67,7 +67,7 @@ test-infra/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere
 
 ## Containers
 
-The CAPV manager images are hosted at [`gcr.io/cnx-cluster-api/vsphere-cluster-api-provider`](gcr.io/cnx-cluster-api/vsphere-cluster-api-provider). The images for CI are hosted at [`gcr/cnx-cluster-api/cluster-api-provider-vsphere-ci`](gcr/cnx-cluster-api/cluster-api-provider-vsphere-ci).
+The CAPV manager images are hosted at [`gcr.io/cluster-api-provider-vsphere`](gcr.io/cluster-api-provider-vsphere).
 
 ## Test CI locally
 

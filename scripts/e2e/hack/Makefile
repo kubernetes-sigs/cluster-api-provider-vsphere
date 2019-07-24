@@ -1,7 +1,7 @@
 # Makefile
 
 VERSION ?= $(shell git describe --always --dirty)
-REGISTRY ?=gcr.io/cnx-cluster-api/cluster-api-provider-vsphere-ci-debug
+REGISTRY ?=gcr.io/cluster-api-provider-vsphere/pr/ci-debug
 
 all: build push clean
 .PHONY : all

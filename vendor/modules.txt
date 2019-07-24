@@ -417,6 +417,7 @@ k8s.io/client-go/rest
 k8s.io/client-go/tools/reference
 k8s.io/client-go/discovery
 k8s.io/client-go/util/flowcontrol
+k8s.io/client-go/util/retry
 k8s.io/client-go/tools/leaderelection
 k8s.io/client-go/tools/leaderelection/resourcelock
 k8s.io/client-go/dynamic
@@ -477,7 +478,6 @@ k8s.io/client-go/pkg/apis/clientauthentication/v1beta1
 k8s.io/client-go/util/connrotation
 k8s.io/client-go/tools/pager
 k8s.io/client-go/util/buffer
-k8s.io/client-go/util/retry
 k8s.io/client-go/util/jsonpath
 k8s.io/client-go/third_party/forked/golang/template
 # k8s.io/cluster-bootstrap v0.0.0-20190307184522-e5eaaafa58b3
@@ -518,7 +518,7 @@ k8s.io/kubernetes/pkg/apis/core
 k8s.io/kubernetes/pkg/registry/core/service/allocator
 # k8s.io/utils v0.0.0-20190607212802-c55fbcfc754a
 k8s.io/utils/exec
-# sigs.k8s.io/cluster-api v0.1.7
+# sigs.k8s.io/cluster-api v0.1.8
 sigs.k8s.io/cluster-api/cmd/clusterctl/cmd
 sigs.k8s.io/cluster-api/pkg/apis/cluster/common
 sigs.k8s.io/cluster-api/pkg/apis

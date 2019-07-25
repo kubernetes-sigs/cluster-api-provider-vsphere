@@ -20,6 +20,7 @@ FROM ${BASE_IMAGE}
 LABEL "maintainer" "Andrew Kutz <akutz@vmware.com>"
 
 # Run things out of the /build directory.
+ENV BUILDDIR /build
 WORKDIR /build
 
 # Copy in the hack tooling.
@@ -40,7 +41,11 @@ RUN find . -type d -exec chmod 0777 \{\} \;
 ARG CAPV_MANAGER_IMAGE=gcr.io/cluster-api-provider-vsphere/ci/manager:latest
 ENV CAPV_MANAGER_IMAGE=${CAPV_MANAGER_IMAGE}
 
-# The YAML is always written to the /out directory. Mount the volumes there.
-ENV OUT_DIR /out
+# Change the working directory to /.
+ENV WORKDIR /out
+WORKDIR /out
 
-ENTRYPOINT [ "./hack/generate-yaml.sh" ]
+# Indicate that this is being execute in a container.
+ENV DOCKER_ENABLED 1
+
+ENTRYPOINT [ "/build/hack/generate-yaml.sh" ]

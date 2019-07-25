@@ -20,10 +20,11 @@ set -o pipefail
 
 # Change directories to the parent directory of the one in which this
 # script is located.
-cd "$(dirname "${BASH_SOURCE[0]}")/.."
+cd "${WORKDIR:-$(dirname "${BASH_SOURCE[0]}")/..}"
+BUILDDIR="${BUILDDIR:-.}"
 
 OUT_DIR="${OUT_DIR:-}"
-TPL_DIR=./cmd/clusterctl/examples/vsphere
+TPL_DIR="${BUILDDIR}"/cmd/clusterctl/examples/vsphere
 
 OVERWRITE=
 CLUSTER_NAME="${CLUSTER_NAME:-capv-mgmt-example}"
@@ -85,8 +86,8 @@ export MANAGER_IMAGE="${CAPV_MANAGER_IMAGE}"
 mkdir -p "${OUT_DIR}"
 
 # Load an envvars.txt file if one is found.
-# shellcheck disable=SC1090
-[ -e "${OUT_DIR}/envvars.txt" ] && source "${OUT_DIR}/envvars.txt"
+# shellcheck disable=SC1091
+[ "${DOCKER_ENABLED-}" ] && [ -e "/envvars.txt" ] && source "/envvars.txt"
 
 # shellcheck disable=SC2034
 ADDON_TPL_FILE="${TPL_DIR}"/addons.yaml.template
@@ -103,8 +104,8 @@ MACHINESET_TPL_FILE="${TPL_DIR}"/machineset.yaml.template
 # shellcheck disable=SC2034
 MACHINESET_OUT_FILE="${OUT_DIR}"/machineset.yaml
 
-CAPI_CFG_DIR=./vendor/sigs.k8s.io/cluster-api/config
-CAPV_CFG_DIR=./config
+CAPI_CFG_DIR="${BUILDDIR}"/vendor/sigs.k8s.io/cluster-api/config
+CAPV_CFG_DIR="${BUILDDIR}"/config
 
 COMP_OUT_FILE="${OUT_DIR}"/provider-components.yaml
 # shellcheck disable=SC2034
@@ -176,8 +177,12 @@ verify_cpu_mem_dsk VSPHERE_DISK_GIB 20
 record_and_export KUBERNETES_VERSION ":-${KUBERNETES_VERSION}"
 
 do_envsubst() {
-  python hack/envsubst.py >"${2}" <"${1}"
-  echo "done generating ${2}"
+  python "${BUILDDIR}/hack/envsubst.py" >"${2}" <"${1}"
+  if [ "${DOCKER_ENABLED-}" ]; then
+    echo "done generating ${2/\/build/.}"
+  else
+    echo "done generating ${2}"
+  fi
 }
 
 # Create the output files by substituting the templates with envrionment vars.
@@ -191,7 +196,7 @@ done
   kustomize build "${CAPI_CFG_DIR}"/default/; } >"${COMP_OUT_FILE}"
 
 cat <<EOF
-Done generating ${COMP_OUT_FILE}
+done generating ${COMP_OUT_FILE}
 
 *** Finished creating initial example yamls in ${OUT_DIR}
 
@@ -201,3 +206,7 @@ Done generating ${COMP_OUT_FILE}
 
 Enjoy!
 EOF
+
+# If running in Docker then ensure the contents of the OUT_DIR have the
+# the same owner as the volume mounted to the /out directory.
+[ "${DOCKER_ENABLED}" ] && chown -R "$(stat -c '%u:%g' /out)" "${OUT_DIR}"

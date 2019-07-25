@@ -93,6 +93,10 @@ EOF
 With the above environment variable file it is now possible to generate the manifests needed to bootstrap the management cluster. The following command uses Docker to run an image that has all of the necessary templates and tools to generate the YAML manifests. Please note that the example mounts the current directory as the location where the YAML will be generated. Additionally, the `envvars.txt` file created above is mounted inside the the image in order to provide the generation routine with its default values:
 
 ```shell
+# create the output directory for the management cluster manifests,
+# only required for Linux to work around permissions issues on volume mounts
+$ mkdir -p management-cluster
+
 $ docker run --rm \
   --user "$(id -u):$(id -g)" \
   -v "$(pwd)/management-cluster":/out \
@@ -142,12 +146,16 @@ With your management cluster bootstrapped, it's time to reap the benefits of Clu
 Using the same Docker command as above, generate resources for a new cluster, this time with a different name:
 
 ```shell
-docker run --rm \
-  --user "$(id -u):$(id -g)" \
-  -v "$(pwd)/workload-cluster-1":/out \
-  -v "$(pwd)/envvars.txt":/out/envvars.txt:ro \
-  gcr.io/cluster-api-provider-vsphere/release/manifests:latest \
-  -c workload-cluster-1
+# create the output directory for the workload cluster manifests,
+# only required for Linux to work around permissions issues on volume mounts
+$ mkdir -p workload-cluster-1
+
+$ docker run --rm \
+    --user "$(id -u):$(id -g)" \
+    -v "$(pwd)/workload-cluster-1":/out \
+    -v "$(pwd)/envvars.txt":/out/envvars.txt:ro \
+    gcr.io/cluster-api-provider-vsphere/release/manifests:latest \
+    -c workload-cluster-1
 ```
 
 **NOTE**: The above step is not required to manage your Cluster API resources at this point but is used to simplify this guide. You should manage your Cluster API resources in the same way you would manage your Kubernetes application manifests. Please use the generated manifests only as a reference.

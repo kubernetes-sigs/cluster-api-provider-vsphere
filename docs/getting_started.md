@@ -90,30 +90,25 @@ export CLUSTER_CIDR='100.96.0.0/11'       # (optional) The cluster CIDR of the m
 EOF
 ```
 
-With the above environment variable file it is now possible to generate the manifests needed to bootstrap the management cluster. The following command uses Docker to run an image that has all of the necessary templates and tools to generate the YAML manifests. Please note that the example mounts the current directory as the location where the YAML will be generated. Additionally, the `envvars.txt` file created above is mounted inside the the image in order to provide the generation routine with its default values:
+With the above environment variable file it is now possible to generate the manifests needed to bootstrap the management cluster. The following command uses Docker to run an image that has all of the necessary templates and tools to generate the YAML manifests. Additionally, the `envvars.txt` file created above is mounted inside the the image in order to provide the generation routine with its default values:
 
 ```shell
-# create the output directory for the management cluster manifests,
-# only required for Linux to work around permissions issues on volume mounts
-$ mkdir -p management-cluster
-
 $ docker run --rm \
-  --user "$(id -u):$(id -g)" \
-  -v "$(pwd)/management-cluster":/out \
-  -v "$(pwd)/envvars.txt":/out/envvars.txt:ro \
+  -v "$(pwd)":/out \
+  -v "$(pwd)/envvars.txt":/envvars.txt:ro \
   gcr.io/cluster-api-provider-vsphere/release/manifests:latest \
   -c management-cluster
 
-done generating ./out/addons.yaml
+done generating ./out/management-cluster/addons.yaml
 done generating ./config/default/manager_image_patch.yaml
-done generating ./out/cluster.yaml
-done generating ./out/machines.yaml
-done generating ./out/machineset.yaml
-done generating ./out/provider-components.yaml
+done generating ./out/management-cluster/cluster.yaml
+done generating ./out/management-cluster/machines.yaml
+done generating ./out/management-cluster/machineset.yaml
+done generating ./out/management-cluster/provider-components.yaml
 
 *** Finished creating initial example yamls in ./out
 
-    The files ./out/cluster.yaml and ./out/machines.yaml need to be updated
+    The files ./out/management-cluster/cluster.yaml and ./out/management-cluster/machines.yaml need to be updated
     with information about the desired Kubernetes cluster and vSphere environment
     on which the Kubernetes cluster will be created.
 
@@ -128,14 +123,14 @@ Once the manifests are generated, `clusterctl` may be used to create the managem
 clusterctl create cluster \
   --provider vsphere \
   --bootstrap-type kind \
-  --cluster management-cluster/cluster.yaml \
-  --machines management-cluster/machines.yaml \
-  --provider-components management-cluster/provider-components.yaml \
-  --addon-components management-cluster/addons.yaml \
-  --kubeconfig-out management-cluster/kubeconfig
+  --cluster ./out/management-cluster/cluster.yaml \
+  --machines ./out/management-cluster/machines.yaml \
+  --provider-components ./out/management-cluster/provider-components.yaml \
+  --addon-components ./out/management-cluster/addons.yaml \
+  --kubeconfig-out ./out/management-cluster/kubeconfig
 ```
 
-Once `clusterctl` has completed successfully, the file `management-cluster/kubeconfig` may be used to access the new management cluster. This is the **admin** `kubeconfig` for the management cluster, and it may be used to spin up additional clusters with Cluster API. However, the creation of roles with limited access, is recommended before creating additional clusters.
+Once `clusterctl` has completed successfully, the file `./out/management-cluster/kubeconfig` may be used to access the new management cluster. This is the **admin** `kubeconfig` for the management cluster, and it may be used to spin up additional clusters with Cluster API. However, the creation of roles with limited access, is recommended before creating additional clusters.
 
 **NOTE**: From this point forward `clusterctl` is no longer required to provision new clusters. Workload clusters should be provisioned by applying Cluster API resources directly on the management cluster using `kubectl`.
 
@@ -146,21 +141,16 @@ With your management cluster bootstrapped, it's time to reap the benefits of Clu
 Using the same Docker command as above, generate resources for a new cluster, this time with a different name:
 
 ```shell
-# create the output directory for the workload cluster manifests,
-# only required for Linux to work around permissions issues on volume mounts
-$ mkdir -p workload-cluster-1
-
 $ docker run --rm \
-    --user "$(id -u):$(id -g)" \
-    -v "$(pwd)/workload-cluster-1":/out \
-    -v "$(pwd)/envvars.txt":/out/envvars.txt:ro \
-    gcr.io/cluster-api-provider-vsphere/release/manifests:latest \
-    -c workload-cluster-1
+  -v "$(pwd)":/out \
+  -v "$(pwd)/envvars.txt":/envvars.txt:ro \
+  gcr.io/cluster-api-provider-vsphere/release/manifests:latest \
+  -c workload-cluster-1
 ```
 
 **NOTE**: The above step is not required to manage your Cluster API resources at this point but is used to simplify this guide. You should manage your Cluster API resources in the same way you would manage your Kubernetes application manifests. Please use the generated manifests only as a reference.
 
-The Cluster and Machine resource in `workload-cluster-1/cluster.yaml` and `workload-cluster-1/machines.yaml` defines the workload cluster with the initial control plane node:
+The Cluster and Machine resource in `./out/workload-cluster-1/cluster.yaml` and `./out/workload-cluster-1/machines.yaml` defines the workload cluster with the initial control plane node:
 
 ```yaml
 ---
@@ -212,7 +202,7 @@ spec:
     controlPlane: "1.13.6"
 ```
 
-To add 3 additional worker nodes to your cluster, see the generated machineset file `workload-cluster-1/machineset.yaml`:
+To add 3 additional worker nodes to your cluster, see the generated machineset file `./out/workload-cluster-1/machineset.yaml`:
 
 ```yaml
 apiVersion: "cluster.k8s.io/v1alpha1"
@@ -258,27 +248,27 @@ Use `kubectl` with the `kubeconfig` for the management cluster to provision the 
 1. Export the management cluster's `kubeconfig` file:
 
     ```shell
-    export KUBECONFIG="$(pwd)/management-cluster/kubeconfig"
+    export KUBECONFIG="$(pwd)/out/management-cluster/kubeconfig"
     ```
 
 2. Create the workload cluster by applying the cluster manifest:
 
     ```shell
-    $ kubectl apply -f workload-cluster-1/cluster.yaml
+    $ kubectl apply -f ./out/workload-cluster-1/cluster.yaml
     cluster.cluster.k8s.io/workload-cluster-1 created
     ```
 
 3. Create the control plane nodes for the workload cluster by applying the machines manifest:
 
     ```shell
-    $ kubectl apply -f workload-cluster-1/machines.yaml
+    $ kubectl apply -f ./out/workload-cluster-1/machines.yaml
     machine.cluster.k8s.io/workload-cluster-1-controlplane-1 created
     ```
 
 4. Create the worker nodes for the workload cluster by applying the machineset manifest:
 
     ```shell
-    $ kubectl apply -f workload-cluster-1/machineset.yaml
+    $ kubectl apply -f ./out/workload-cluster-1/machineset.yaml
     machineset.cluster.k8s.io/workload-cluster-1-machineset-1 created
     ```
 
@@ -299,9 +289,9 @@ The `kubeconfig` file to access workload clusters should be accessible as a Kube
 
     ```shell
     kubectl get secret workload-cluster-1-kubeconfig -o=jsonpath='{.data.value}' | \
-    { base64 -d 2>/dev/null || base64 -D; } >workload-cluster-1/kubeconfig
+    { base64 -d 2>/dev/null || base64 -D; } >./out/workload-cluster-1/kubeconfig
     ```
 
-The new `workload-cluster-1/kubeconfig` file may now be used to access the workload cluster.
+The new `./out/workload-cluster-1/kubeconfig` file may now be used to access the workload cluster.
 
 **NOTE**: Workload clusters do not have any addons applied aside from those added by kubeadm. Nodes in your workload clusters will be in the `NotReady` state until you apply a CNI addon. The `addons.yaml` files generated above have a default Calico addon which you can use, otherwise apply custom addons based on your use-case.

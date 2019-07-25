@@ -11,7 +11,7 @@ spec:
         key: node-role.kubernetes.io/master
       containers:
       - name: cluster-api-provider-vsphere-ci
-        image: gcr.io/cnx-cluster-api/cluster-api-provider-vsphere-ci-debug:debug
+        image: gcr.io/cluster-api-provider-vsphere/pr/ci-debug:debug
         imagePullPolicy: Never
         securityContext:
           privileged: true

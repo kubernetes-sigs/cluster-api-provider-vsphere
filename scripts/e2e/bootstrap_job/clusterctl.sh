@@ -59,18 +59,22 @@ do
    fi
 done
 wget https://storage.googleapis.com/kubernetes-release/release/v1.14.2/bin/linux/amd64/kubectl \
-     --no-verbose -O /usr/local/bin/kubectl
+    --no-verbose -O /usr/local/bin/kubectl
 chmod +x /usr/local/bin/kubectl
 
+# download clusterctl binary
+wget https://storage.googleapis.com/capv-pr/"${CLUSTERCTL_VERSION}"/bin/linux/amd64/clusterctl \
+    --no-verbose -O /usr/local/bin/clusterctl
+chmod +x /usr/local/bin/clusterctl
 
 # run clusterctl
 echo "test ${PROVIDER_COMPONENT_SPEC}"
-/tmp/clusterctl/clusterctl create cluster -e ~/.kube/config -c ./spec/cluster.yml \
+clusterctl create cluster -e ~/.kube/config -c ./spec/cluster.yml \
     -m ./spec/machines.yml \
     -p ./spec/"${PROVIDER_COMPONENT_SPEC}" \
     -a ./spec/addons.yml \
     --provider vsphere \
-    -v 6 
+    -v 6
 
 ret=$?
 if [ "$ret" != 0 ]; then

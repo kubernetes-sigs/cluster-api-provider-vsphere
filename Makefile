@@ -26,10 +26,6 @@ CWD := $(abspath .)
 #      nested GOPATH.
 SHELL := hack/shell-with-gopath.sh
 
-# Image URL to use all building/pushing image targets
-CI_IMG ?= gcr.io/cnx-cluster-api/vsphere-cluster-api-provider
-CLUSTERCTL_CI_IMG ?= gcr.io/cnx-cluster-api/clusterctl
-
 # Retrieves the git hash
 VERSION ?= $(shell git describe --always --dirty)
 
@@ -88,24 +84,6 @@ vendor:
 	mkdir -p "$${_dst}" && \
 	cp -rf --no-preserve=mode "$${_src}" "$${_dst}"
 .PHONY: vendor
-
-###################################
-# CI Build and Push targets
-###################################
-
-ci-image: generate fmt vet manifests
-	docker build . -t "$(CI_IMG):$(VERSION)"
-	docker build . -f cmd/clusterctl/Dockerfile -t "$(CLUSTERCTL_CI_IMG):$(VERSION)"
-
-ci-push: ci-image
-# Log into the registry with a service account file.  In CI, GCR_KEY_FILE contains the content and not the file name.
-	@echo "logging into gcr.io registry with key file"
-	@echo $$GCR_KEY_FILE | docker login -u _json_key --password-stdin gcr.io
-	docker push "$(CI_IMG):$(VERSION)"
-	docker push "$(CLUSTERCTL_CI_IMG):$(VERSION)"
-	@echo docker logout gcr.io
-
-.PHONY: ci-yaml ci-image ci-push
 
 ################################################################################
 ##                          The default targets                               ##

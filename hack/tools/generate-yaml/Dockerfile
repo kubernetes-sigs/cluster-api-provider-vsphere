@@ -13,28 +13,11 @@
 # limitations under the License.
 
 ################################################################################
-##                            DOWNLOAD KUSTOMIZE                              ##
-################################################################################
-FROM debian:stretch-slim as kustomize
-RUN apt-get --assume-no update && apt-get -y install curl
-ARG KUSTOMIZE_VERSION
-ENV KUSTOMIZE_VERSION 2.0.0
-RUN curl -Lo /kustomize \
-    "https://github.com/kubernetes-sigs/kustomize/releases/download/v${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_linux_amd64" && \
-    chmod 0755 /kustomize
-
-
-################################################################################
 ##                                MAIN STAGE                                  ##
 ################################################################################
-FROM debian:stretch-slim
+ARG BASE_IMAGE=gcr.io/cluster-api-provider-vsphere/extra/manifests-base:v0.4.0-beta.1-6-g9e51ae05
+FROM ${BASE_IMAGE}
 LABEL "maintainer" "Andrew Kutz <akutz@vmware.com>"
-
-# Install python
-RUN apt-get --assume-no update && apt-get -y install curl python
-
-# Copy kustomize from the kustomize build stage.
-COPY --from=kustomize /kustomize /usr/local/bin/kustomize
 
 # Run things out of the /build directory.
 WORKDIR /build

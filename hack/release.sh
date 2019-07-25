@@ -139,7 +139,9 @@ function login() {
   # If GCR_KEY_FILE is set, use that service account to login
   if [ "${GCR_KEY_FILE}" ]; then
     trap logout EXIT
+    gcloud auth configure-docker --quiet || fatal "unable to add docker auth helper"
     gcloud auth activate-service-account --key-file "${GCR_KEY_FILE}" || fatal "unable to login"
+    docker login -u _json_key --password-stdin https://gcr.io <"${GCR_KEY_FILE}"
     AUTH=1
   fi
 }

@@ -22,3 +22,7 @@ Participation in the Kubernetes community is governed by the [Kubernetes Code of
 ### Getting Started
 
 See the [Getting Started](docs/getting_started.md) guide to get up and going with Cluster API for vSphere.
+
+### Troubleshooting
+
+Please see the [Troubleshooting](docs/troubleshooting.md) guide if having problems using Cluster API for vSphere.

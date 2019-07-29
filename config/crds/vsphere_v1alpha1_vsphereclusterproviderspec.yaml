@@ -134,7 +134,7 @@ spec:
                 datacenter:
                   description: Datacenter is the datacenter in which VMs are created/located.
                   type: string
-                defaultDatastore:
+                datastore:
                   description: Datastore is the datastore in which VMs are created/located.
                   type: string
                 folder:

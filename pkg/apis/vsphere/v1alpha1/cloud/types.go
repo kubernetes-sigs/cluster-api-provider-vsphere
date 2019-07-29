@@ -179,7 +179,7 @@ type WorkspaceConfig struct {
 
 	// Datastore is the datastore in which VMs are created/located.
 	// +optional
-	Datastore string `gcfg:"default-datastore,omitempty" json:"defaultDatastore,omitempty"`
+	Datastore string `gcfg:"default-datastore,omitempty" json:"datastore,omitempty"`
 
 	// ResourcePool is the resource pool in which VMs are created/located.
 	// +optional

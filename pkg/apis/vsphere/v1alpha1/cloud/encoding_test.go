@@ -54,6 +54,7 @@ var twoWayCodecTestCases = []codecTestCase{
 		server = 0.0.0.0
 		datacenter = us-west
 		folder = kubernetes
+		default-datastore = default
 		`,
 		configObj: cloud.Config{
 			Global: cloud.GlobalConfig{
@@ -68,6 +69,7 @@ var twoWayCodecTestCases = []codecTestCase{
 				Server:     "0.0.0.0",
 				Datacenter: "us-west",
 				Folder:     "kubernetes",
+				Datastore:  "default",
 			},
 		},
 	},

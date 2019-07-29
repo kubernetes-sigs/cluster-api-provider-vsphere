@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"strings"
 
 	"github.com/pkg/errors"
 	gcfg "gopkg.in/gcfg.v1"
@@ -41,31 +42,29 @@ func (c *Config) MarshalINI() ([]byte, error) {
 	configValue := reflect.ValueOf(*c)
 	configType := reflect.TypeOf(*c)
 
-	for fieldIndex := 0; fieldIndex < configValue.NumField(); fieldIndex++ {
-		fieldValue := configValue.Field(fieldIndex)
-		fieldType := configType.Field(fieldIndex)
+	for sectionIndex := 0; sectionIndex < configValue.NumField(); sectionIndex++ {
+		sectionType := configType.Field(sectionIndex)
+		sectionValue := configValue.Field(sectionIndex)
 
-		// Do not proceed if the field is empty.
-		if isEmpty(fieldValue) {
+		// Get the value of the gcfg tag to help determine the section
+		// name and whether to omit an empty value.
+		sectionName, omitEmpty := parseGcfgTag(sectionType)
+
+		// Do not marshal a section if it is empty.
+		if omitEmpty && isEmpty(sectionValue) {
 			continue
 		}
 
-		// Get the name of the section by inspecting the field's gcfg tag.
-		sectionName, sectionNameOk := fieldType.Tag.Lookup(gcfgTag)
-		if !sectionNameOk {
-			return nil, errors.Errorf("field %q is missing tag %q", fieldType.Name, gcfgTag)
-		}
-
-		switch fieldValue.Kind() {
+		switch sectionValue.Kind() {
 		case reflect.Map:
-			iter := fieldValue.MapRange()
+			iter := sectionValue.MapRange()
 			for iter.Next() {
-				mapKey, mapVal := iter.Key(), iter.Value()
-				sectionName := fmt.Sprintf(`%s "%v"`, sectionName, mapKey.String())
-				c.marshalINISectionProperties(buf, mapVal, sectionName)
+				sectionNameKey, sectionValue := iter.Key(), iter.Value()
+				sectionName := fmt.Sprintf(`%s "%v"`, sectionName, sectionNameKey.String())
+				c.marshalINISectionProperties(buf, sectionValue, sectionName)
 			}
 		default:
-			c.marshalINISectionProperties(buf, fieldValue, sectionName)
+			c.marshalINISectionProperties(buf, sectionValue, sectionName)
 		}
 	}
 
@@ -77,54 +76,80 @@ func (c *Config) marshalINISectionProperties(
 	sectionValue reflect.Value,
 	sectionName string) error {
 
-	sectionKind := sectionValue.Kind()
-	if sectionKind == reflect.Interface || sectionKind == reflect.Ptr {
+	switch sectionValue.Kind() {
+	case reflect.Interface, reflect.Ptr:
 		return c.marshalINISectionProperties(out, sectionValue.Elem(), sectionName)
 	}
 
 	fmt.Fprintf(out, "[%s]\n", sectionName)
 
 	sectionType := sectionValue.Type()
-	for fieldIndex := 0; fieldIndex < sectionType.NumField(); fieldIndex++ {
-		fieldType := sectionType.Field(fieldIndex)
-		propertyName, propertyNameOk := fieldType.Tag.Lookup(gcfgTag)
-		if !propertyNameOk {
-			return errors.Errorf("field %q is missing tag %q", fieldType.Name, gcfgTag)
-		}
-		propertyValue := sectionValue.Field(fieldIndex)
-		if isEmpty(propertyValue) {
+	for propertyIndex := 0; propertyIndex < sectionType.NumField(); propertyIndex++ {
+		propertyType := sectionType.Field(propertyIndex)
+		propertyValue := sectionValue.Field(propertyIndex)
+
+		// Get the value of the gcfg tag to help determine the property
+		// name and whether to omit an empty value.
+		propertyName, omitEmpty := parseGcfgTag(propertyType)
+
+		// Do not marshal a property if it is empty.
+		if omitEmpty && isEmpty(propertyValue) {
 			continue
 		}
-		propertyKind := propertyValue.Kind()
-		if propertyKind == reflect.Interface || propertyKind == reflect.Ptr {
+
+		switch propertyValue.Kind() {
+		case reflect.Interface, reflect.Ptr:
 			propertyValue = propertyValue.Elem()
 		}
-		fmt.Fprintf(out, "%s = %v\n", propertyName, propertyValue.Interface())
+
+		fmt.Fprintf(out, "%s", propertyName)
+		if propertyValue.IsValid() {
+			fmt.Fprintf(out, " = %v\n", propertyValue.Interface())
+		}
 	}
 	return nil
 }
 
-// UnmarshalOptions defines the options used to influence how INI data is
+func parseGcfgTag(field reflect.StructField) (string, bool) {
+	name := field.Name
+	omitEmpty := false
+	if tagVal, ok := field.Tag.Lookup(gcfgTag); ok {
+		tagParts := strings.Split(tagVal, ",")
+		lenTagParts := len(tagParts)
+		if lenTagParts > 0 {
+			tagName := tagParts[0]
+			if len(tagName) > 0 && tagName != "-" {
+				name = tagName
+			}
+		}
+		if lenTagParts > 1 {
+			omitEmpty = tagParts[1] == "omitempty"
+		}
+	}
+	return name, omitEmpty
+}
+
+// UnmarshalINIOptions defines the options used to influence how INI data is
 // unmarshalled.
-type UnmarshalOptions struct {
+type UnmarshalINIOptions struct {
 	// WarnAsFatal indicates that warnings that occur when unmarshalling INI
 	// data should be treated as fatal errors.
 	WarnAsFatal bool
 }
 
-// UnmarshalOptionFunc is used to set unmarshal options.
-type UnmarshalOptionFunc func(*UnmarshalOptions)
+// UnmarshalINIOptionFunc is used to set unmarshal options.
+type UnmarshalINIOptionFunc func(*UnmarshalINIOptions)
 
 // WarnAsFatal sets the option to treat warnings as fatal errors when
 // unmarshalling INI data.
-func WarnAsFatal(opts *UnmarshalOptions) {
+func WarnAsFatal(opts *UnmarshalINIOptions) {
 	opts.WarnAsFatal = true
 }
 
 // UnmarshalINI unmarshals the cloud provider configuration from INI-style
 // configuration data.
-func (c *Config) UnmarshalINI(data []byte, optFuncs ...UnmarshalOptionFunc) error {
-	opts := &UnmarshalOptions{}
+func (c *Config) UnmarshalINI(data []byte, optFuncs ...UnmarshalINIOptionFunc) error {
+	opts := &UnmarshalINIOptions{}
 	for _, setOpts := range optFuncs {
 		setOpts(opts)
 	}

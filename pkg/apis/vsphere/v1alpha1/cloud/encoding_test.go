@@ -25,7 +25,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphere/v1alpha1/cloud"
 )
 
-var unmarshalWarnAsFatal = []cloud.UnmarshalOptionFunc{cloud.WarnAsFatal}
+var unmarshalWarnAsFatal = []cloud.UnmarshalINIOptionFunc{cloud.WarnAsFatal}
 
 func errDeprecated(section, key string) error {
 	return errors.Errorf("warning:\ncan't store data at section \"%s\", variable \"%s\"\n", section, key)
@@ -36,7 +36,7 @@ type codecTestCase struct {
 	iniString        string
 	configObj        cloud.Config
 	expectedError    error
-	unmarshalOptions []cloud.UnmarshalOptionFunc
+	unmarshalOptions []cloud.UnmarshalINIOptionFunc
 }
 
 var twoWayCodecTestCases = []codecTestCase{

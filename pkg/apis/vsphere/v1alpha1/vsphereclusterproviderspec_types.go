@@ -19,6 +19,8 @@ package v1alpha1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeadmv1beta1 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
+
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphere/v1alpha1/cloud"
 )
 
 // +genclient
@@ -77,6 +79,10 @@ type VsphereClusterProviderSpec struct {
 	// ClusterConfiguration holds the cluster-wide information used during a
 	// kubeadm init call.
 	ClusterConfiguration kubeadmv1beta1.ClusterConfiguration `json:"clusterConfiguration,omitempty"`
+
+	// CloudProviderConfiguration holds the cluster-wide configuration for the
+	// vSphere cloud provider.
+	CloudProviderConfiguration cloud.Config `json:"cloudProviderConfiguration,omitempty"`
 }
 
 // KeyPair is how operators can supply custom keypairs for kubeadm to use.

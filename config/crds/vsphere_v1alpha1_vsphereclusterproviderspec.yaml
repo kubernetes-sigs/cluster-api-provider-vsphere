@@ -33,6 +33,122 @@ spec:
           - cert
           - key
           type: object
+        cloudProviderConfiguration:
+          description: CloudProviderConfiguration holds the cluster-wide configuration
+            for the vSphere cloud provider.
+          properties:
+            disk:
+              description: Disk is the vSphere cloud provider's disk configuration.
+              properties:
+                scsiControllerType:
+                  description: SCSIControllerType defines SCSI controller to be used.
+                  type: string
+              type: object
+            global:
+              description: Global is the vSphere cloud provider's global configuration.
+              properties:
+                apiBindPort:
+                  description: APIBindPort configures the vSphere cloud controller
+                    manager API port. Defaults to 43001.
+                  type: string
+                apiDisable:
+                  description: APIDisable disables the vSphere cloud controller manager
+                    API. Defaults to true.
+                  type: boolean
+                caFile:
+                  description: CAFile Specifies the path to a CA certificate in PEM
+                    format. If not configured, the system's CA certificates will be
+                    used.
+                  type: string
+                datacenters:
+                  description: Datacenters is a CSV string of the datacenters in which
+                    VMs are located.
+                  type: string
+                insecure:
+                  description: Insecure is a flag that disables TLS peer verification.
+                  type: boolean
+                password:
+                  description: Password is the password used to access a vSphere endpoint.
+                  type: string
+                port:
+                  description: Port is the port on which the vSphere endpoint is listening.
+                    Defaults to 443.
+                  type: string
+                roundTripperCount:
+                  description: RoundTripperCount specifies the SOAP round tripper
+                    count (retries = RoundTripper - 1)
+                  format: int32
+                  type: integer
+                secretName:
+                  description: SecretName is the name of the Kubernetes secret in
+                    which the vSphere credentials are located.
+                  type: string
+                secretNamespace:
+                  description: SecretNamespace is the namespace for SecretName.
+                  type: string
+                secretsDirectory:
+                  description: 'SecretsDirectory is a directory in which secrets may
+                    be found. This may used in the event that: 1. It is not desirable
+                    to use the K8s API to watch changes to secrets 2. The cloud controller
+                    manager is not running in a K8s environment,    such as DC/OS.
+                    For example, the container storage interface (CSI) is    container
+                    orcehstrator (CO) agnostic, and should support non-K8s COs. Defaults
+                    to /etc/cloud/credentials.'
+                  type: string
+                serviceAccount:
+                  description: ServiceAccount is the Kubernetes service account used
+                    to launch the cloud controller manager. Defaults to cloud-controller-manager.
+                  type: string
+                thumbprint:
+                  description: Thumbprint is the cryptographic thumbprint of the vSphere
+                    endpoint's certificate.
+                  type: string
+                username:
+                  description: Username is the username used to access a vSphere endpoint.
+                  type: string
+              type: object
+            labels:
+              description: Labels is the vSphere cloud provider's zone and region
+                configuration.
+              properties:
+                region:
+                  description: Region is the region in which VMs are created/located.
+                  type: string
+                zone:
+                  description: Zone is the zone in which VMs are created/located.
+                  type: string
+              type: object
+            network:
+              description: Network is the vSphere cloud provider's network configuration.
+              properties:
+                name:
+                  description: Name is the name of the network to which VMs are connected.
+                  type: string
+              type: object
+            virtualCenter:
+              description: VCenter is a list of vCenter configurations.
+              type: object
+            workspace:
+              description: Workspace is the vSphere cloud provider's workspace configuration.
+              properties:
+                datacenter:
+                  description: Datacenter is the datacenter in which VMs are created/located.
+                  type: string
+                defaultDatastore:
+                  description: Datastore is the datastore in which VMs are created/located.
+                  type: string
+                folder:
+                  description: Folder is the folder in which VMs are created/located.
+                  type: string
+                resourcePool:
+                  description: ResourcePool is the resource pool in which VMs are
+                    created/located.
+                  type: string
+                server:
+                  description: Server is the IP address or FQDN of the vSphere endpoint.
+                  type: string
+              type: object
+          type: object
         clusterConfiguration:
           description: ClusterConfiguration holds the cluster-wide information used
             during a kubeadm init call.

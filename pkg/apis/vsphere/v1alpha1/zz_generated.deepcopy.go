@@ -193,6 +193,7 @@ func (in *VsphereClusterProviderSpec) DeepCopyInto(out *VsphereClusterProviderSp
 	in.FrontProxyCAKeyPair.DeepCopyInto(&out.FrontProxyCAKeyPair)
 	in.SAKeyPair.DeepCopyInto(&out.SAKeyPair)
 	in.ClusterConfiguration.DeepCopyInto(&out.ClusterConfiguration)
+	in.CloudProviderConfiguration.DeepCopyInto(&out.CloudProviderConfiguration)
 	return
 }
 

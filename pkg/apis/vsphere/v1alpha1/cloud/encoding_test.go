@@ -263,17 +263,29 @@ func TestMarshalINI(t *testing.T) {
 		t.Run(tc.testName, func(t *testing.T) {
 			buf, err := tc.configObj.MarshalINI()
 			if err != nil {
-				g.Expect(err.Error()).Should(
-					gomega.Equal(tc.expectedError.Error()),
-					"unexpected error when marshalling data")
+				if tc.expectedError == nil {
+					g.Expect(err).ShouldNot(
+						gomega.HaveOccurred(),
+						"unexpected error when marshalling data")
+				} else {
+					g.Expect(err.Error()).Should(
+						gomega.Equal(tc.expectedError.Error()),
+						"unexpected error when marshalling data")
+				}
 			}
 
 			var actualConfig cloud.Config
 			if err := actualConfig.UnmarshalINI(
 				buf, tc.unmarshalOptions...); err != nil {
-				g.Expect(err.Error()).Should(
-					gomega.Equal(tc.expectedError.Error()),
-					"unexpected error when unmarshalling data")
+				if tc.expectedError == nil {
+					g.Expect(err).ShouldNot(
+						gomega.HaveOccurred(),
+						"unexpected error when unmarshalling data")
+				} else {
+					g.Expect(err.Error()).Should(
+						gomega.Equal(tc.expectedError.Error()),
+						"unexpected error when unmarshalling data")
+				}
 			}
 
 			g.Expect(actualConfig).Should(
@@ -357,9 +369,15 @@ func TestUnmarshalINI(t *testing.T) {
 				[]byte(tc.iniString),
 				tc.unmarshalOptions...); err != nil {
 
-				g.Expect(err.Error()).Should(
-					gomega.Equal(tc.expectedError.Error()),
-					"unexpected error when unmarshalling data")
+				if tc.expectedError == nil {
+					g.Expect(err).ShouldNot(
+						gomega.HaveOccurred(),
+						"unexpected error when unmarshalling data")
+				} else {
+					g.Expect(err.Error()).Should(
+						gomega.Equal(tc.expectedError.Error()),
+						"unexpected error when unmarshalling data")
+				}
 			}
 
 			g.Expect(actualConfig).Should(

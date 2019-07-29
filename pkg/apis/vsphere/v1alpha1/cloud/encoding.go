@@ -18,27 +18,90 @@ package cloud
 
 import (
 	"bytes"
+	"fmt"
+	"io"
 	"reflect"
-	"text/template"
 
 	"github.com/pkg/errors"
 	gcfg "gopkg.in/gcfg.v1"
 )
 
+const gcfgTag = "gcfg"
+
 // MarshalINI marshals the cloud provider configuration to INI-style
 // configuration data.
 func (c *Config) MarshalINI() ([]byte, error) {
-	t, err := template.New("t").Funcs(template.FuncMap{
-		"IsNotEmpty": IsNotEmpty,
-	}).Parse(configFormat)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse config template")
+	if c == nil {
+		return nil, errors.New("config is nil")
 	}
+
 	buf := &bytes.Buffer{}
-	if err := t.Execute(buf, c); err != nil {
-		return nil, errors.Wrap(err, "failed to execute config template")
+
+	// Get the reflected type and value of the Config object.
+	configValue := reflect.ValueOf(*c)
+	configType := reflect.TypeOf(*c)
+
+	for fieldIndex := 0; fieldIndex < configValue.NumField(); fieldIndex++ {
+		fieldValue := configValue.Field(fieldIndex)
+		fieldType := configType.Field(fieldIndex)
+
+		// Do not proceed if the field is empty.
+		if isEmpty(fieldValue) {
+			continue
+		}
+
+		// Get the name of the section by inspecting the field's gcfg tag.
+		sectionName, sectionNameOk := fieldType.Tag.Lookup(gcfgTag)
+		if !sectionNameOk {
+			return nil, errors.Errorf("field %q is missing tag %q", fieldType.Name, gcfgTag)
+		}
+
+		switch fieldValue.Kind() {
+		case reflect.Map:
+			iter := fieldValue.MapRange()
+			for iter.Next() {
+				mapKey, mapVal := iter.Key(), iter.Value()
+				sectionName := fmt.Sprintf(`%s "%v"`, sectionName, mapKey.String())
+				c.marshalINISectionProperties(buf, mapVal, sectionName)
+			}
+		default:
+			c.marshalINISectionProperties(buf, fieldValue, sectionName)
+		}
 	}
+
 	return buf.Bytes(), nil
+}
+
+func (c *Config) marshalINISectionProperties(
+	out io.Writer,
+	sectionValue reflect.Value,
+	sectionName string) error {
+
+	sectionKind := sectionValue.Kind()
+	if sectionKind == reflect.Interface || sectionKind == reflect.Ptr {
+		return c.marshalINISectionProperties(out, sectionValue.Elem(), sectionName)
+	}
+
+	fmt.Fprintf(out, "[%s]\n", sectionName)
+
+	sectionType := sectionValue.Type()
+	for fieldIndex := 0; fieldIndex < sectionType.NumField(); fieldIndex++ {
+		fieldType := sectionType.Field(fieldIndex)
+		propertyName, propertyNameOk := fieldType.Tag.Lookup(gcfgTag)
+		if !propertyNameOk {
+			return errors.Errorf("field %q is missing tag %q", fieldType.Name, gcfgTag)
+		}
+		propertyValue := sectionValue.Field(fieldIndex)
+		if isEmpty(propertyValue) {
+			continue
+		}
+		propertyKind := propertyValue.Kind()
+		if propertyKind == reflect.Interface || propertyKind == reflect.Ptr {
+			propertyValue = propertyValue.Elem()
+		}
+		fmt.Fprintf(out, "%s = %v\n", propertyName, propertyValue.Interface())
+	}
+	return nil
 }
 
 // UnmarshalOptions defines the options used to influence how INI data is
@@ -122,22 +185,3 @@ func isEmpty(val reflect.Value) bool {
 		panic(errors.Errorf("invalid kind: %s", val.Kind()))
 	}
 }
-
-/*
-Please see the package documentation for why the MarshalINI function that
-uses the "gopkg.in/go-ini/ini.v1" package is commented out.
-
-// MarshalINI marshals the cloud provider configuration as an INI-style
-// configuration.
-func (c *Config) MarshalINI() ([]byte, error) {
-	cfg := ini.Empty()
-	if err := ini.ReflectFrom(cfg, c); err != nil {
-		return nil, errors.Wrap(err, "failed to marshal cloud provider config to ini")
-	}
-	buf := &bytes.Buffer{}
-	if _, err := cfg.WriteTo(buf); err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
-}
-*/

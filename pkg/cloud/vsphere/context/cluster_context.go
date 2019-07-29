@@ -309,13 +309,14 @@ func (c *ClusterContext) ControlPlaneEndpoint() (string, error) {
 		return "", errors.Wrap(err, "error creating machine context while searching for control plane endpoint")
 	}
 
-	if ipAddr := machineCtx.IPAddr(); ipAddr != "" {
-		controlPlaneEndpoint := net.JoinHostPort(ipAddr, strconv.Itoa(int(machineCtx.BindPort())))
-		machineCtx.Logger.V(2).Info("got control plane endpoint from machine", "control-plane-endpoint", controlPlaneEndpoint)
-		return controlPlaneEndpoint, nil
+	ipAddr, err := machineCtx.IPAddr()
+	if err != nil {
+		return "", errors.Wrap(err, "error getting first IP address for machine")
 	}
 
-	return "", errors.New("unable to get control plane endpoint")
+	controlPlaneEndpoint := net.JoinHostPort(ipAddr, strconv.Itoa(int(machineCtx.BindPort())))
+	machineCtx.Logger.V(2).Info("got control plane endpoint from machine", "control-plane-endpoint", controlPlaneEndpoint)
+	return controlPlaneEndpoint, nil
 }
 
 // Patch updates the object and its status on the API server.

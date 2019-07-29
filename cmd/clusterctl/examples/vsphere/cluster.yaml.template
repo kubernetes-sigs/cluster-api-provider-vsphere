@@ -18,3 +18,17 @@ spec:
       password: "${VSPHERE_PASSWORD}"
       sshAuthorizedKeys:
       - "${SSH_AUTHORIZED_KEY}"
+      cloudProviderConfiguration:
+        global:
+          secretName: "cloud-provider-vsphere-credentials"
+          secretNamespace: "kube-system"
+        virtualCenter:
+          "${VSPHERE_SERVER}":
+        network:
+          name: "${VSPHERE_NETWORK}"
+        workspace:
+          server: "${VSPHERE_SERVER}"
+          datacenter: "${VSPHERE_DATACENTER}"
+          datastore: "${VSPHERE_DATASTORE}"
+          resourcePool: "${VSPHERE_RESOURCE_POOL}"
+          folder: "${VSPHERE_FOLDER}"

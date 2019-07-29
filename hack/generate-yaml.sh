@@ -209,4 +209,4 @@ EOF
 
 # If running in Docker then ensure the contents of the OUT_DIR have the
 # the same owner as the volume mounted to the /out directory.
-[ "${DOCKER_ENABLED}" ] && chown -R "$(stat -c '%u:%g' /out)" "${OUT_DIR}"
+[ "${DOCKER_ENABLED-}" ] && chown -R "$(stat -c '%u:%g' /out)" "${OUT_DIR}"

@@ -94,25 +94,20 @@ func generateUserData(ctx *context.MachineContext, bootstrapToken string) ([]byt
 
 	// apply values based on the role of the machine
 	if ctx.HasControlPlaneRole() {
+		// Get the cloud provider configuration.
+		cloudConfig := ctx.ClusterConfig.CloudProviderConfiguration.DeepCopy()
 
-		// Cloud init needs the a valid vmfolder in cloudconfig
-		// Check the vmfolder and replace with default if not present
-		folder, err := ctx.Session.Finder.FolderOrDefault(ctx, ctx.MachineConfig.Folder)
-		if err != nil {
-			return nil, errors.Wrapf(err, "unable to get folder for %q", ctx)
+		// Cloud init needs the a valid folder in the cloud provider config.
+		// Replace the folder with the default folder if the former does not exit.
+		if cloudConfig.Workspace.Folder != "" {
+			folder, err := ctx.Session.Finder.FolderOrDefault(ctx, cloudConfig.Workspace.Folder)
+			if err != nil {
+				return nil, errors.Wrapf(err, "unable to get folder for %q", ctx)
+			}
+			cloudConfig.Workspace.Folder = folder.Name()
 		}
 
-		cloudConfig, err := userdata.NewCloudConfig(&userdata.CloudConfigInput{
-			SecretName:      constants.CloudProviderSecretName,
-			SecretNamespace: constants.CloudProviderSecretNamespace,
-			Server:          ctx.ClusterConfig.Server,
-			Datacenter:      ctx.MachineConfig.Datacenter,
-			ResourcePool:    ctx.MachineConfig.ResourcePool,
-			Folder:          folder.Name(),
-			Datastore:       ctx.MachineConfig.Datastore,
-			// assume the first VM network found for the vSphere cloud provider
-			Network: ctx.MachineConfig.Network.Devices[0].NetworkName,
-		})
+		cloudConfigINI, err := cloudConfig.MarshalINI()
 		if err != nil {
 			return nil, err
 		}
@@ -157,7 +152,7 @@ func generateUserData(ctx *context.MachineContext, bootstrapToken string) ([]byt
 				FrontProxyCAKey:   string(ctx.ClusterConfig.FrontProxyCAKeyPair.Key),
 				SaCert:            string(ctx.ClusterConfig.SAKeyPair.Cert),
 				SaKey:             string(ctx.ClusterConfig.SAKeyPair.Key),
-				CloudConfig:       cloudConfig,
+				CloudConfig:       string(cloudConfigINI),
 				JoinConfiguration: joinConfigurationYAML,
 			})
 			if err != nil {
@@ -237,7 +232,7 @@ func generateUserData(ctx *context.MachineContext, bootstrapToken string) ([]byt
 				FrontProxyCAKey:      string(ctx.ClusterConfig.FrontProxyCAKeyPair.Key),
 				SaCert:               string(ctx.ClusterConfig.SAKeyPair.Cert),
 				SaKey:                string(ctx.ClusterConfig.SAKeyPair.Key),
-				CloudConfig:          cloudConfig,
+				CloudConfig:          string(cloudConfigINI),
 				ClusterConfiguration: clusterConfigYAML,
 				InitConfiguration:    initConfigYAML,
 			})

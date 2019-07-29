@@ -36,7 +36,6 @@ import (
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/actuators"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/config"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/certificates"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/kubeclient"
@@ -216,19 +215,24 @@ func (a *Actuator) reconcileCloudConfigSecret(ctx *context.ClusterContext) error
 		ctx.Logger.Error(err, "target cluster is not ready")
 		return &clusterErr.RequeueAfterError{RequeueAfter: config.DefaultRequeue}
 	}
-	// Define the cloud provider credentials secret for the target cluster.
+	if len(ctx.ClusterConfig.CloudProviderConfiguration.VCenter) == 0 {
+		return errors.New("cloud provider configuration does not define any vCenters")
+	}
+	credentials := map[string]string{}
+	for server := range ctx.ClusterConfig.CloudProviderConfiguration.VCenter {
+		credentials[fmt.Sprintf("%s.username", server)] = ctx.User()
+		credentials[fmt.Sprintf("%s.password", server)] = ctx.Pass()
+	}
+	// Define the kubeconfig secret for the target cluster.
 	secret := &apiv1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: constants.CloudProviderSecretNamespace,
-			Name:      constants.CloudProviderSecretName,
+			Namespace: ctx.ClusterConfig.CloudProviderConfiguration.Global.SecretNamespace,
+			Name:      ctx.ClusterConfig.CloudProviderConfiguration.Global.SecretName,
 		},
-		Type: apiv1.SecretTypeOpaque,
-		StringData: map[string]string{
-			fmt.Sprintf("%s.username", ctx.ClusterConfig.Server): ctx.User(),
-			fmt.Sprintf("%s.password", ctx.ClusterConfig.Server): ctx.Pass(),
-		},
+		Type:       apiv1.SecretTypeOpaque,
+		StringData: credentials,
 	}
-	if _, err := client.Secrets(constants.CloudProviderSecretNamespace).Create(secret); err != nil {
+	if _, err := client.Secrets(secret.Namespace).Create(secret); err != nil {
 		if apierrors.IsAlreadyExists(err) {
 			return nil
 		}
@@ -237,8 +241,8 @@ func (a *Actuator) reconcileCloudConfigSecret(ctx *context.ClusterContext) error
 	}
 
 	ctx.Logger.V(6).Info("created cloud provider credential secret",
-		"secret-name", constants.CloudProviderSecretName,
-		"secret-namespace", constants.CloudProviderSecretNamespace)
+		"secret-name", secret.Name,
+		"secret-namespace", secret.Namespace)
 
 	return nil
 }

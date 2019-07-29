@@ -21,7 +21,24 @@ const (
 {{if .SSHAuthorizedKeys}}ssh_authorized_keys:{{range .SSHAuthorizedKeys}}
 - "{{.}}"{{end}}{{end}}
 
+runcmd:
+-   [hostname, {{HostNameLookup}}]
+
 write_files:
+-   path: /etc/hostname
+    owner: root:root
+    permissions: 0644
+    content: |
+      {{ HostNameLookup }}
+
+-   path: /etc/hosts
+    owner: root:root
+    permissions: 0644
+    content: |
+      ::1         ipv6-localhost ipv6-loopback
+      127.0.0.1   localhost
+      127.0.0.1   {{HostNameLookup}}
+
 -   path: /tmp/kubeadm-node.yaml
     owner: root:root
     permissions: '0640'
@@ -45,8 +62,5 @@ type NodeInput struct {
 // NewNode returns the user data string to be used on a node instance.
 func NewNode(input *NodeInput) (string, error) {
 	input.Header = cloudConfigHeader
-	fMap := map[string]interface{}{
-		"Indent": templateYAMLIndent,
-	}
-	return generateWithFuncs("node", nodeCloudInit, fMap, input)
+	return generateWithFuncs("node", nodeCloudInit, defaultFuncMap(), input)
 }

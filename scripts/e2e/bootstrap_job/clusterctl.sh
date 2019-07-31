@@ -83,4 +83,7 @@ if [ "$ret" != 0 ]; then
 fi
 
 # cleanup the cluster
-# TODO (clusterctl delete is not working)
+clusterctl delete cluster -e ~/.kube/config \
+    --cluster test1 \
+    -p ./spec/"${PROVIDER_COMPONENT_SPEC}" \
+    -v 6

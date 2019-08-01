@@ -17,7 +17,6 @@ limitations under the License.
 package cluster
 
 import (
-	"encoding/base64"
 	"fmt"
 	"net/url"
 	"strconv"
@@ -217,7 +216,7 @@ func (a *Actuator) reconcileCloudConfigSecret(ctx *context.ClusterContext) error
 		ctx.Logger.Error(err, "target cluster is not ready")
 		return &clusterErr.RequeueAfterError{RequeueAfter: config.DefaultRequeue}
 	}
-	// Define the kubeconfig secret for the target cluster.
+	// Define the cloud provider credentials secret for the target cluster.
 	secret := &apiv1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: constants.CloudProviderSecretNamespace,
@@ -225,8 +224,8 @@ func (a *Actuator) reconcileCloudConfigSecret(ctx *context.ClusterContext) error
 		},
 		Type: apiv1.SecretTypeOpaque,
 		StringData: map[string]string{
-			fmt.Sprintf("%s.username", ctx.ClusterConfig.Server): base64.StdEncoding.EncodeToString([]byte(ctx.User())),
-			fmt.Sprintf("%s.password", ctx.ClusterConfig.Server): base64.StdEncoding.EncodeToString([]byte(ctx.Pass())),
+			fmt.Sprintf("%s.username", ctx.ClusterConfig.Server): ctx.User(),
+			fmt.Sprintf("%s.password", ctx.ClusterConfig.Server): ctx.Pass(),
 		},
 	}
 	if _, err := client.Secrets(constants.CloudProviderSecretNamespace).Create(secret); err != nil {

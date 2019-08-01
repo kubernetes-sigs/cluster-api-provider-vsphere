@@ -38,6 +38,9 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 )
 
+// ErrNoMachineIPAddr indicates that no valid IP addresses were found in a machine context
+var ErrNoMachineIPAddr = errors.New("no IP addresses found for machine")
+
 // MachineContextParams are the parameters needed to create a MachineContext.
 type MachineContextParams struct {
 	ClusterContextParams
@@ -170,9 +173,9 @@ func (c *MachineContext) HasControlPlaneRole() bool {
 }
 
 // IPAddr returns the machine's first IP address.
-func (c *MachineContext) IPAddr() string {
+func (c *MachineContext) IPAddr() (string, error) {
 	if c.Machine == nil {
-		return ""
+		return "", errors.New("machine in context is nil")
 	}
 
 	var err error
@@ -180,8 +183,7 @@ func (c *MachineContext) IPAddr() string {
 	if c.MachineConfig.Network.PreferredAPIServerCIDR != "" {
 		_, preferredAPIServerCIDR, err = net.ParseCIDR(c.MachineConfig.Network.PreferredAPIServerCIDR)
 		if err != nil {
-			c.Logger.Error(err, "error parsing preferred apiserver CIDR")
-			return ""
+			return "", errors.New("error parsing preferred apiserver CIDR")
 		}
 
 		c.Logger.V(4).Info("detected preferred apiserver CIDR", "preferredAPIServerCIDR", preferredAPIServerCIDR)
@@ -193,15 +195,15 @@ func (c *MachineContext) IPAddr() string {
 		}
 
 		if preferredAPIServerCIDR == nil {
-			return nodeAddr.Address
+			return nodeAddr.Address, nil
 		}
 
 		if preferredAPIServerCIDR.Contains(net.ParseIP(nodeAddr.Address)) {
-			return nodeAddr.Address
+			return nodeAddr.Address, nil
 		}
 	}
 
-	return ""
+	return "", ErrNoMachineIPAddr
 }
 
 // BindPort returns the machine's API bind port.
@@ -232,10 +234,15 @@ func (c *MachineContext) ControlPlaneEndpoint() (string, error) {
 		return controlPlaneEndpoint, nil
 	}
 
-	ipAddr := c.IPAddr()
-	if ipAddr == "" || !c.HasControlPlaneRole() {
-		return "", errors.New("unable to get control plane endpoint")
+	if !c.HasControlPlaneRole() {
+		return "", errors.New("machine is not a control plane node")
 	}
+
+	ipAddr, err := c.IPAddr()
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to get first IP address for machine %q", c)
+	}
+
 	controlPlaneEndpoint := net.JoinHostPort(ipAddr, strconv.Itoa(int(c.BindPort())))
 	c.Logger.V(2).Info("got control plane endpoint from machine", "control-plane-endpoint", controlPlaneEndpoint)
 	return controlPlaneEndpoint, nil

@@ -55,7 +55,7 @@ The following steps may be used to adjust the CAPI manager's log level:
       - args:
         - --logtostderr
         - -v=6
-      - command:
+        command:
         - /manager
         image: us.gcr.io/k8s-artifacts-prod/cluster-api/cluster-api-controller:v0.1.7
         name: manager

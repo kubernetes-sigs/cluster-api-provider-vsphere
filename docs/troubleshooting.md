@@ -2,32 +2,32 @@
 
 This is a guide on how to troubleshoot issues related to the Cluster API provider for vSphere (CAPV).
 
-* [Troubleshooting](#troubleshooting)
-  * [Debugging issues](#debugging-issues)
-    * [Bootstrapping with logging](#bootstrapping-with-logging)
-      * [Adjusting log levels](#adjusting-log-levels)
-        * [Adjusting the CAPI manager log level](#adjusting-the-capi-manager-log-level)
-        * [Adjusting the CAPV manager log level](#adjusting-the-capv-manager-log-level)
-        * [Adjusting the `clusterctl` log level](#adjusting-the-clusterctl-log-level)
-      * [Accessing the logs in the bootstrap cluster](#accessing-the-logs-in-the-bootstrap-cluster)
-        * [Exporting the kubeconfig](#exporting-the-kubeconfig)
-        * [Following the CAPI manager logs](#following-the-capi-manager-logs)
-        * [Following the CAPV manager logs](#following-the-capv-manager-logs)
-        * [Following Kubernetes core component logs](#following-kubernetes-core-component-logs)
-          * [The API server](#the-api-server)
-          * [The controller manager](#the-controller-manager)
-          * [The scheduler](#the-scheduler)
-  * [Common issues](#common-issues)
-    * [Ensure prerequisites are up to date](#ensure-prerequisites-are-up-to-date)
-    * [`envvars.txt` is a directory](#envvarstxt-is-a-directory)
-    * [Failed to retrieve kubeconfig secret](#failed-to-retrieve-kubeconfig-secret)
-    * [Timed out while failing to retrieve kubeconfig secret](#timed-out-while-failing-to-retrieve-kubeconfig-secret)
-      * [Cannot access the vSphere endpoint](#cannot-access-the-vsphere-endpoint)
-      * [A VM with the same name already exists](#a-vm-with-the-same-name-already-exists)
-      * [A static IP address must include the segment length](#a-static-ip-address-must-include-the-segment-length)
-      * [Multiple networks](#multiple-networks)
-        * [Multiple default routes](#multiple-default-routes)
-        * [Preferring an IP address](#preferring-an-ip-address)
+- [Troubleshooting](#troubleshooting)
+  - [Debugging issues](#debugging-issues)
+    - [Bootstrapping with logging](#bootstrapping-with-logging)
+      - [Adjusting log levels](#adjusting-log-levels)
+        - [Adjusting the CAPI manager log level](#adjusting-the-capi-manager-log-level)
+        - [Adjusting the CAPV manager log level](#adjusting-the-capv-manager-log-level)
+        - [Adjusting the `clusterctl` log level](#adjusting-the-clusterctl-log-level)
+      - [Accessing the logs in the bootstrap cluster](#accessing-the-logs-in-the-bootstrap-cluster)
+        - [Exporting the kubeconfig](#exporting-the-kubeconfig)
+        - [Following the CAPI manager logs](#following-the-capi-manager-logs)
+        - [Following the CAPV manager logs](#following-the-capv-manager-logs)
+        - [Following Kubernetes core component logs](#following-kubernetes-core-component-logs)
+          - [The API server](#the-api-server)
+          - [The controller manager](#the-controller-manager)
+          - [The scheduler](#the-scheduler)
+  - [Common issues](#common-issues)
+    - [Ensure prerequisites are up to date](#ensure-prerequisites-are-up-to-date)
+    - [`envvars.txt` is a directory](#envvarstxt-is-a-directory)
+    - [Failed to retrieve kubeconfig secret](#failed-to-retrieve-kubeconfig-secret)
+    - [Timed out while failing to retrieve kubeconfig secret](#timed-out-while-failing-to-retrieve-kubeconfig-secret)
+      - [Cannot access the vSphere endpoint](#cannot-access-the-vsphere-endpoint)
+      - [A VM with the same name already exists](#a-vm-with-the-same-name-already-exists)
+      - [A static IP address must include the segment length](#a-static-ip-address-must-include-the-segment-length)
+      - [Multiple networks](#multiple-networks)
+        - [Multiple default routes](#multiple-default-routes)
+        - [Preferring an IP address](#preferring-an-ip-address)
 
 ## Debugging issues
 
@@ -55,7 +55,7 @@ The following steps may be used to adjust the CAPI manager's log level:
       - args:
         - --logtostderr
         - -v=6
-      - command:
+        command:
         - /manager
         image: us.gcr.io/k8s-artifacts-prod/cluster-api/cluster-api-controller:v0.1.7
         name: manager
@@ -210,7 +210,7 @@ Make sure the path to the `envvars.txt` file is correct before using it to gener
 When bootstrapping the management cluster, the vSphere manager log may emit errors similar to the following:
 
 ```shell
-E0726 17:12:54.812485       1 actuator.go:217] [cluster-actuator]/cluster.k8s.io/v1alpha1/default/v0.4.0-beta.2 "msg"="target cluster is not ready" "error"="unable to get client for target cluster: failed to retrieve kubeconfig secret for Cluster \"management-cluster\" in namespace \"default\": secret not found"  
+E0726 17:12:54.812485       1 actuator.go:217] [cluster-actuator]/cluster.k8s.io/v1alpha1/default/v0.4.0-beta.2 "msg"="target cluster is not ready" "error"="unable to get client for target cluster: failed to retrieve kubeconfig secret for Cluster \"management-cluster\" in namespace \"default\": secret not found"
 ```
 
 The above error does not mean there is a problem. Kubernetes components operate in a reconciliation model -- a message loops attempts to reconcile the desired state over and over until it is achieved or a timeout occurs.

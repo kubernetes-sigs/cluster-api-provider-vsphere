@@ -182,8 +182,7 @@ export_base64_value "TARGET_VM_PREFIX" "${TARGET_VM_PRE}"
 go get -u github.com/vmware/govmomi/govc
 
 # Push new container images
-# TODO the `-k` flag here is a workaround until we can set GCR_KEY_FILE properly
-hack/release.sh -t pr -p -k /root/.capv/keyfile.json
+hack/release.sh -t pr -p
 cd ./scripts/e2e/bootstrap_job && make push && cd .. || exit 1
 
 # get bootstrap VM

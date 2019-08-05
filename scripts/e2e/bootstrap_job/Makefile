@@ -17,8 +17,8 @@ build: copyspec
 push: build
 	@echo "logging into gcr.io registry with key file"
 	# TODO hardcoded key file location is a temp workaround
-	gcloud auth activate-service-account --key-file /root/.capv/keyfile.json
-	docker login -u _json_key --password-stdin gcr.io </root/.capv/keyfile.json
+	gcloud auth activate-service-account --key-file $(GCR_KEY_FILE)
+	docker login -u _json_key --password-stdin gcr.io <"$(GCR_KEY_FILE)"
 	docker push $(REGISTRY):$(VERSION)
 	@echo docker logout gcr.io
 	gcloud auth revoke

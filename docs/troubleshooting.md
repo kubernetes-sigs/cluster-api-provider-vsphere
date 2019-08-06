@@ -319,8 +319,8 @@ Another reason a machine with two networks can lead to failure is because the or
 
 ```yaml
 network:
-  devices:
   preferredAPIServerCidr: "192.168.5.0/24"
+  devices:
   - networkName: "sddc-cgw-network-6"
     ipAddrs:
     - 192.168.6.20/24

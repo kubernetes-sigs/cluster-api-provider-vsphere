@@ -44,6 +44,7 @@ MANAGER_IMAGE_NAME=
 MANIFESTS_IMAGE_NAME=
 VERSION=$(git describe --dirty --always 2>/dev/null)
 GCR_KEY_FILE="${GCR_KEY_FILE:-}"
+PROW_JOB_ID="${PROW_JOB_ID:-}"
 
 BUILD_RELEASE_TYPE="${BUILD_RELEASE_TYPE-}"
 
@@ -105,10 +106,17 @@ function build_images() {
       ;;
   esac
 
+  # If we are running in Prow, use the Google-hosted goproxy
+  local goproxy="direct"
+  if [ "${PROW_JOB_ID}" ]; then
+    goproxy="https://proxy.golang.org"
+  fi
+
   # Manager image
   echo "building ${MANAGER_IMAGE_NAME}:${VERSION}"
   docker build \
     -f Dockerfile \
+    -e GOPROXY="${goproxy}" \
     -t "${MANAGER_IMAGE_NAME}":"${VERSION}" \
     .
   if [ "${LATEST}" ]; then

@@ -29,6 +29,12 @@ SHELL := hack/shell-with-gopath.sh
 # Retrieves the git hash
 VERSION ?= $(shell git describe --always --dirty)
 
+# Set the goproxy for docker-in-docker if on Prow
+_goproxy="direct"
+ifneq (,$(PROW_JOB_ID))
+_goproxy="https://proxy.golang.org"
+endif
+
 # Build manager binary
 manager: check
 	go build -o bin/manager ./cmd/manager
@@ -44,6 +50,7 @@ clusterctl-in-docker:
 	docker run --rm -v $(CWD):/go/src/sigs.k8s.io/cluster-api-provider-vsphere \
 	  -w /go/src/sigs.k8s.io/cluster-api-provider-vsphere \
 	  -e CGO_ENABLED=0 -e GOOS="$${GOOS:-linux}" -e GOARCH="$${GOARCH:-amd64}" \
+	  -e GOPROXY=$(_goproxy) \
 	  golang:1.12.6 sh -c "\
 	  go build -ldflags '-extldflags \"-static\" -w -s' \
 	  -o bin/clusterctl.\"$${GOOS:-linux}\"_\"$${GOARCH:-amd64}\" ./cmd/clusterctl && \

@@ -172,7 +172,12 @@ func generateUserData(ctx *context.MachineContext, bootstrapToken string) ([]byt
 			if bindPort == 0 {
 				bindPort = constants.DefaultBindPort
 			}
-			certSans := []string{localIPV4Lookup}
+			localAPIEndPointIP := ctx.MachineConfig.KubeadmConfiguration.Init.LocalAPIEndpoint.AdvertiseAddress
+			if localAPIEndPointIP == "" {
+				localAPIEndPointIP = localIPV4Lookup
+			}
+
+			certSans := []string{localAPIEndPointIP}
 			if v := ctx.ClusterConfig.ClusterConfiguration.ControlPlaneEndpoint; v != "" {
 				host, _, err := net.SplitHostPort(v)
 				if err != nil {
@@ -188,7 +193,7 @@ func generateUserData(ctx *context.MachineContext, bootstrapToken string) ([]byt
 
 			kubeadm.SetClusterConfigurationOptions(
 				&ctx.ClusterConfig.ClusterConfiguration,
-				kubeadm.WithControlPlaneEndpoint(fmt.Sprintf("%s:%d", localIPV4Lookup, bindPort)),
+				kubeadm.WithControlPlaneEndpoint(fmt.Sprintf("%s:%d", localAPIEndPointIP, bindPort)),
 				kubeadm.WithAPIServerCertificateSANs(certSans...),
 				kubeadm.WithAPIServerExtraArgs(map[string]string{
 					"cloud-provider": cloudProvider,
@@ -220,7 +225,7 @@ func generateUserData(ctx *context.MachineContext, bootstrapToken string) ([]byt
 						kubeadm.WithKubeletExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
 					),
 				),
-				kubeadm.WithInitLocalAPIEndpointAndPort(localIPV4Lookup, int(bindPort)),
+				kubeadm.WithInitLocalAPIEndpointAndPort(localAPIEndPointIP, int(bindPort)),
 			)
 			initConfigYAML, err := kubeadm.ConfigurationToYAML(&ctx.MachineConfig.KubeadmConfiguration.Init)
 			if err != nil {

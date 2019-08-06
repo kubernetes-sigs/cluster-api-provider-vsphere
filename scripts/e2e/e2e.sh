@@ -19,7 +19,6 @@
 # GOVC_URL
 # GOVC_USERNAME
 # GOVC_PASSWORD
-# VSPHERE_CONTROLLER_VERSION
 
 # and it requires container has volumes
 # /root/ssh/.jumphost/jumphost-key
@@ -36,20 +35,12 @@ VM_CREATED=
 # to "debug"
 CONTEXT=
 
-# TARGET_VM_PRE contains a string to uniquely indentify the newly created VM(s)
-TARGET_VM_PRE=
-
-# RANDOM_STR holds a random string
-RANDOM_STR=""
+# CLUSTER_NAME is the name of the cluster creted during the e2e process.
+# it will also be the common prefix for all the VMs created
+export CLUSTER_NAME="e2e-cluster"
 
 PROW_JOB_ID=${PROW_JOB_ID:-}
 PULL_PULL_SHA=${PULL_PULL_SHA:-}
-
-get_random_str() {
-   if [ -z "${RANDOM_STR}" ]; then
-      RANDOM_STR=$(date | { md5sum || md5; } 2>/dev/null | cut -c 1-8)
-   fi
-}
 
 fill_file_with_value() {
   newfilename="${1//template/yml}"
@@ -114,18 +105,10 @@ export_base64_value() {
 }
 
 apply_secret_to_bootstrap() {
-   provider_component=${PROVIDER_COMPONENT_SPEC:=provider-components.yml}
+   provider_component=${PROVIDER_COMPONENT_SPEC:=provider-components.yaml}
    export_base64_value "PROVIDER_COMPONENT_SPEC" "${provider_component}"
    echo "test ${provider_component}"
 
-   echo "test controller version $1"
-   local vsphere_controller_version="gcr.io/cluster-api-provider-vsphere/pr/manager:$1"
-   export_base64_value "VSPHERE_CONTROLLER_VERSION" "${vsphere_controller_version}"
-   echo "test ${vsphere_controller_version}"
-
-   export_base64_value "VSPHERE_SERVER" "${GOVC_URL}"
-   export_base64_value "VSPHERE_USERNAME" "${GOVC_USERNAME}"
-   export_base64_value "VSPHERE_PASSWORD" "${GOVC_PASSWORD}"
    export_base64_value "TARGET_VM_SSH" "${TARGET_VM_SSH}"
    export_base64_value "TARGET_VM_SSH_PUB" "${TARGET_VM_SSH_PUB}"
    export_base64_value "BOOTSTRAP_KUBECONFIG" "${BOOTSTRAP_KUBECONFIG}"
@@ -157,7 +140,7 @@ start_docker() {
 on_exit() {
   [ "${VM_CREATED}" ] || return 0
   get_bootstrap_vm "${CONTEXT}"
-  delete_vm "${TARGET_VM_PRE}"
+  delete_vm "${CLUSTER_NAME}"
 }
 
 # the main loop
@@ -173,16 +156,18 @@ VERSION=$(git describe --dirty --always 2>/dev/null)
 export VERSION
 echo "build vSphere controller version: ${VERSION}"
 
-# set target cluster vm name prefix
-get_random_str
-TARGET_VM_PRE="clusterapi-""${RANDOM_STR}"
-export_base64_value "TARGET_VM_PREFIX" "${TARGET_VM_PRE}"
-
 # install_govc
 go get -u github.com/vmware/govmomi/govc
 
 # Push new container images
+# TODO the `-k` flag here is a workaround until we can set GCR_KEY_FILE properly
 hack/release.sh -t pr -p
+
+# export variables needed to generate spec files
+vsphere_controller_version="gcr.io/cluster-api-provider-vsphere/pr/manager:${VERSION}"
+export VSPHERE_CONTROLLER_VERSION="${vsphere_controller_version}"
+echo "test controller version: ${VSPHERE_CONTROLLER_VERSION}"
+
 cd ./scripts/e2e/bootstrap_job && make push && cd .. || exit 1
 
 # get bootstrap VM

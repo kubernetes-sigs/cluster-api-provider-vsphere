@@ -15,11 +15,6 @@ spec:
         env:
           - name: CLUSTERCTL_VERSION
             value: ${VERSION}
-          - name: TARGET_VM_PREFIX
-            valueFrom:
-              secretKeyRef:
-                name: clusterapi-provider-vsphere-ci-secret
-                key: target-vm-prefix
           - name: TARGET_VM_SSH
             valueFrom:
               secretKeyRef:
@@ -30,31 +25,11 @@ spec:
               secretKeyRef:
                 name: clusterapi-provider-vsphere-ci-secret
                 key: target-vm-ssh-pub
-          - name: VSPHERE_CONTROLLER_VERSION
-            valueFrom:
-              secretKeyRef:
-                name: clusterapi-provider-vsphere-ci-secret
-                key: vsphere-controller-version
           - name: PROVIDER_COMPONENT_SPEC
             valueFrom:
               secretKeyRef:
                 name: clusterapi-provider-vsphere-ci-secret
                 key: provider-component-spec
-          - name: VSPHERE_SERVER
-            valueFrom:
-              secretKeyRef:
-                name: clusterapi-provider-vsphere-ci-secret
-                key: vsphere-server
-          - name: VSPHERE_USERNAME
-            valueFrom:
-              secretKeyRef:
-                name: clusterapi-provider-vsphere-ci-secret
-                key: vsphere-username
-          - name: VSPHERE_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                name: clusterapi-provider-vsphere-ci-secret
-                key: vsphere-password
           - name: BOOTSTRAP_KUBECONFIG
             valueFrom:
               secretKeyRef:

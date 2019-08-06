@@ -6,12 +6,12 @@ REGISTRY ?=gcr.io/cluster-api-provider-vsphere/pr/ci
 all: build
 .PHONY : all
 
-.PHONY : copyspec
-copyspec:
-	cp ../../../cmd/clusterctl/examples/vsphere/addons.yaml.template ./spec/addons.template
+.PHONY: genspec
+genspec:
+	../generate-e2e-spec.sh
 
 .PHONY : build
-build: copyspec
+build: genspec
 	docker build . --tag $(REGISTRY):$(VERSION)
 
 push: build

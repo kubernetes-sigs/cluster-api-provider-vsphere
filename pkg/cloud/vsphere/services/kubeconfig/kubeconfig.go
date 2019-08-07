@@ -43,11 +43,10 @@ func New(clusterName, controlPlaneEndpoint string, caKeyPair v1alpha1.KeyPair) (
 		return "", errors.New("key not found in status")
 	}
 
-	controlPlaneEndpointURL, err := url.Parse(controlPlaneEndpoint)
+	// we need to the scheme otherwise dns names without scheme lead to unexpected behaviours
+	controlPlaneEndpointURL, err := url.Parse("https://" + controlPlaneEndpoint)
 	if err != nil {
-		if controlPlaneEndpointURL, err = url.Parse("https://" + controlPlaneEndpoint); err != nil {
-			return "", errors.Wrapf(err, "error parsing control plane endpoint: %s", controlPlaneEndpoint)
-		}
+		return "", errors.Wrapf(err, "error parsing control plane endpoint: %s", controlPlaneEndpoint)
 	}
 
 	var server string

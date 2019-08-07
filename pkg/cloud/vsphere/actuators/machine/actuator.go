@@ -31,7 +31,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clientv1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	clusterErr "sigs.k8s.io/cluster-api/pkg/controller/error"
-	remotev1 "sigs.k8s.io/cluster-api/pkg/controller/remote"
 	controllerClient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/actuators"
@@ -40,7 +39,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/govmomi"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/kubeclient"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/kubeconfig"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/tokens"
 )
 
@@ -107,8 +105,8 @@ func (a *Actuator) Create(
 	if err := a.reconcilePKI(ctx); err != nil {
 		return err
 	}
-
-	return a.doInitOrJoin(ctx)
+	dependsOnEndpoint := ctx.ClusterConfig.VmwareCloud != nil
+	return a.doInitOrJoin(ctx, dependsOnEndpoint)
 }
 
 // Delete removes a machine.
@@ -177,10 +175,6 @@ func (a *Actuator) Update(
 		return err
 	}
 
-	if err := a.reconcileKubeConfig(ctx); err != nil {
-		return err
-	}
-
 	if err := a.reconcileReadyState(ctx); err != nil {
 		return err
 	}
@@ -229,7 +223,14 @@ func (a *Actuator) reconcilePKI(ctx *context.MachineContext) error {
 	return nil
 }
 
-func (a *Actuator) doInitOrJoin(ctx *context.MachineContext) error {
+func (a *Actuator) doInitOrJoin(ctx *context.MachineContext, dependsOnEndpoint bool) error {
+	if dependsOnEndpoint {
+		_, err := ctx.ControlPlaneEndpoint()
+		if err != nil {
+			ctx.Logger.Error(err, "control plane endpoint not set")
+			return &clusterErr.RequeueAfterError{RequeueAfter: config.DefaultRequeue}
+		}
+	}
 
 	// Determine whether or not to initialize the control plane, join an
 	// existing control plane, or join the cluster as a worker node.
@@ -262,60 +263,6 @@ func (a *Actuator) doInitOrJoin(ctx *context.MachineContext) error {
 		ctx.Logger.V(6).Info("joining cluster")
 	}
 	return govmomi.Create(ctx, token)
-}
-
-// reconcileKubeConfig creates a secret on the management cluster with
-// the kubeconfig for target cluster.
-func (a *Actuator) reconcileKubeConfig(ctx *context.MachineContext) error {
-	if !ctx.HasControlPlaneRole() {
-		return nil
-	}
-
-	// Get the control plane endpoint.
-	controlPlaneEndpoint, err := ctx.ControlPlaneEndpoint()
-	if err != nil {
-		ctx.Logger.Error(err, "requeueing until control plane endpoint is available")
-		return &clusterErr.RequeueAfterError{RequeueAfter: config.DefaultRequeue}
-	}
-
-	// Create a new kubeconfig for the target cluster.
-	ctx.Logger.V(6).Info("generating kubeconfig secret")
-	kubeConfig, err := kubeconfig.New(ctx.Cluster.Name, controlPlaneEndpoint, ctx.ClusterConfig.CAKeyPair)
-	if err != nil {
-		return errors.Wrapf(err, "error generating kubeconfig for %q", ctx)
-	}
-
-	// Define the kubeconfig secret for the target cluster.
-	secret := &apiv1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ctx.Cluster.Namespace,
-			Name:      remotev1.KubeConfigSecretName(ctx.Cluster.Name),
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion: ctx.Cluster.APIVersion,
-					Kind:       ctx.Cluster.Kind,
-					Name:       ctx.Cluster.Name,
-					UID:        ctx.Cluster.UID,
-				},
-			},
-		},
-		StringData: map[string]string{
-			"value": kubeConfig,
-		},
-	}
-
-	// Create the kubeconfig secret.
-	if _, err := a.coreClient.Secrets(ctx.Cluster.Namespace).Create(secret); err != nil {
-		if !apierrors.IsAlreadyExists(err) {
-			ctx.Logger.Error(err, "error creating kubeconfig secret")
-			return &clusterErr.RequeueAfterError{RequeueAfter: config.DefaultRequeue}
-		}
-		ctx.Logger.V(6).Info("kubeconfig secret already exists")
-	} else {
-		ctx.Logger.V(4).Info("created kubeconfig secret")
-	}
-
-	return nil
 }
 
 // reconcileReadyState returns a requeue error until the machine appears

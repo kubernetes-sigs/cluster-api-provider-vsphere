@@ -239,7 +239,6 @@ spec:
           template: "ubuntu-1804-kube-v1.13.6"
       versions:
         kubelet: "1.13.6"
-        controlPlane: "1.13.6"
 ```
 
 Use `kubectl` with the `kubeconfig` for the management cluster to provision the new workload cluster:

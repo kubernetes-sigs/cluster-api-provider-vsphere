@@ -518,6 +518,33 @@ spec:
             value is optional unless using clusterctl to bootstrap the initial management
             cluster.
           type: string
+        vmwareCloud:
+          description: VmwareCloud describes the supported cloud providers to run
+            VMC
+          properties:
+            awsProviderSpec:
+              description: AwsProvider specifies the information needed to run VMC
+                on AWS
+              properties:
+                region:
+                  description: Region is the region used for the loadbalancers
+                  type: string
+                subnets:
+                  description: Subnets is the list of subnets where
+                  items:
+                    type: string
+                  type: array
+                vpcID:
+                  description: VpcID is the id of the VPC used to create loadBalancers
+                  type: string
+              required:
+              - vpcID
+              - subnets
+              - region
+              type: object
+          required:
+          - awsProviderSpec
+          type: object
   version: v1alpha1
 status:
   acceptedNames:

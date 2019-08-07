@@ -23,6 +23,7 @@ import (
 	"golang.org/x/net/context"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphere/v1alpha1/cloud/vmc/aws"
 )
 
 func TestStorageVsphereClusterProviderSpec(t *testing.T) {
@@ -43,6 +44,13 @@ func TestStorageVsphereClusterProviderSpec(t *testing.T) {
 		EtcdCAKeyPair:       keyPair,
 		FrontProxyCAKeyPair: keyPair,
 		SAKeyPair:           keyPair,
+		VmwareCloud: &aws.VmwareCloudSpec{
+			AwsProvider: &aws.ProviderSpec{
+				Region:  "region-1",
+				VpcID:   "vpc-az-1",
+				Subnets: []string{"subnet"},
+			},
+		},
 	}
 	g := gomega.NewGomegaWithT(t)
 

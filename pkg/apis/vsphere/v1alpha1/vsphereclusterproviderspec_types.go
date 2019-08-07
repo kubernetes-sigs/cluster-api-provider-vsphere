@@ -21,6 +21,7 @@ import (
 	kubeadmv1beta1 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphere/v1alpha1/cloud"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphere/v1alpha1/cloud/vmc/aws"
 )
 
 // +genclient
@@ -83,6 +84,9 @@ type VsphereClusterProviderSpec struct {
 	// CloudProviderConfiguration holds the cluster-wide configuration for the
 	// vSphere cloud provider.
 	CloudProviderConfiguration cloud.Config `json:"cloudProviderConfiguration,omitempty"`
+
+	// VmwareCloud describes the supported cloud providers to run VMC
+	VmwareCloud *aws.VmwareCloudSpec `json:"vmwareCloud,omitempty"`
 }
 
 // KeyPair is how operators can supply custom keypairs for kubeadm to use.

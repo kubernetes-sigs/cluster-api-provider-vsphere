@@ -24,6 +24,7 @@ spec:
           secretNamespace: "kube-system"
         virtualCenter:
           "${VSPHERE_SERVER}":
+            datacenters: "${VSPHERE_DATACENTER}"
         network:
           name: "${VSPHERE_NETWORK}"
         workspace:

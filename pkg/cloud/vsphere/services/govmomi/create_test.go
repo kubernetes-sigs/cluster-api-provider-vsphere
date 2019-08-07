@@ -118,10 +118,7 @@ func TestCreate(t *testing.T) {
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "vsphereproviderconfig/v1alpha1",
 		},
-		Datacenter:   "",
-		Datastore:    "",
-		ResourcePool: "",
-		Folder:       "",
+		Datacenter: "",
 		Network: v1alpha1.NetworkSpec{
 			Devices: []v1alpha1.NetworkDeviceSpec{
 				{

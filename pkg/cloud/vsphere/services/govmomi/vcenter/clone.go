@@ -43,17 +43,17 @@ func Clone(ctx *context.MachineContext, userData []byte) error {
 		return err
 	}
 
-	folder, err := ctx.Session.Finder.FolderOrDefault(ctx, ctx.MachineConfig.Folder)
+	folder, err := ctx.Session.Finder.FolderOrDefault(ctx, ctx.ClusterConfig.CloudProviderConfiguration.Workspace.Folder)
 	if err != nil {
 		return errors.Wrapf(err, "unable to get folder for %q", ctx)
 	}
 
-	datastore, err := ctx.Session.Finder.DatastoreOrDefault(ctx, ctx.MachineConfig.Datastore)
+	datastore, err := ctx.Session.Finder.DatastoreOrDefault(ctx, ctx.ClusterConfig.CloudProviderConfiguration.Workspace.Datastore)
 	if err != nil {
 		return errors.Wrapf(err, "unable to get datastore for %q", ctx)
 	}
 
-	pool, err := ctx.Session.Finder.ResourcePoolOrDefault(ctx, ctx.MachineConfig.ResourcePool)
+	pool, err := ctx.Session.Finder.ResourcePoolOrDefault(ctx, ctx.ClusterConfig.CloudProviderConfiguration.Workspace.ResourcePool)
 	if err != nil {
 		return errors.Wrapf(err, "unable to get resource pool for %q", ctx)
 	}

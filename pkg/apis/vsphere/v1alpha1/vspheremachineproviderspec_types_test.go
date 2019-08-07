@@ -35,10 +35,8 @@ func TestStorageVsphereMachineProviderSpec(t *testing.T) {
 			Name:      "foo",
 			Namespace: "default",
 		},
-		MachineRef:   "ref123",
-		Datacenter:   "dc1",
-		Datastore:    "ds1",
-		ResourcePool: "rp1",
+		MachineRef: "ref123",
+		Datacenter: "dc1",
 		Network: NetworkSpec{
 			Devices: []NetworkDeviceSpec{
 				{

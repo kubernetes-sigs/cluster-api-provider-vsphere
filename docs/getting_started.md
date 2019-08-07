@@ -182,7 +182,7 @@ spec:
         workspace:
           server: "<REDACTED>"
           datacenter: "SDDC-Datacenter"
-          datastore: "WorkloadDatastore"
+          datastore: "DefaultDatastore"
           resourcePool: "Resources"
           folder: "vm"
 ---
@@ -198,9 +198,6 @@ spec:
       apiVersion: vsphere.cluster.k8s.io/v1alpha1
       kind: VsphereMachineProviderSpec
       datacenter: "SDDC-Datacenter"
-      datastore: "DefaultDatastore"
-      resourcePool: "Resources"
-      folder: "vm"
       network:
         devices:
         - networkName: "vm-network-1"
@@ -239,9 +236,6 @@ spec:
           apiVersion: vsphere.cluster.k8s.io/v1alpha1
           kind: VsphereMachineProviderSpec
           datacenter: "SDDC-Datacenter"
-          datastore: "DefaultDatastore"
-          resourcePool: "Resources"
-          folder: "vm"
           network:
             devices:
             - networkName: "vm-network-1"

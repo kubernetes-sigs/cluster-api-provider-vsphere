@@ -29,7 +29,7 @@ type Config struct {
 
 	// Network is the vSphere cloud provider's network configuration.
 	// +optional
-	Network NetworConfig `gcfg:"Network,omitempty" json:"network,omitempty"`
+	Network NetworkConfig `gcfg:"Network,omitempty" json:"network,omitempty"`
 
 	// Disk is the vSphere cloud provider's disk configuration.
 	// +optional
@@ -148,8 +148,8 @@ type VCenterConfig struct {
 	Thumbprint string `gcfg:"thumbprint,omitempty" json:"thumbprint,omitempty"`
 }
 
-// NetworConfig is the network configuration for the vSphere cloud provider.
-type NetworConfig struct {
+// NetworkConfig is the network configuration for the vSphere cloud provider.
+type NetworkConfig struct {
 	// Name is the name of the network to which VMs are connected.
 	// +optional
 	Name string `gcfg:"public-network,omitempty" json:"name,omitempty"`

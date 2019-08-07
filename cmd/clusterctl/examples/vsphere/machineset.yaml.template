@@ -22,9 +22,6 @@ spec:
           apiVersion: vsphere.cluster.k8s.io/v1alpha1
           kind: VsphereMachineProviderSpec
           datacenter: "${VSPHERE_DATACENTER}"
-          datastore: "${VSPHERE_DATASTORE}"
-          resourcePool: "${VSPHERE_RESOURCE_POOL}"
-          folder: "${VSPHERE_FOLDER}"
           network:
             devices:
             - networkName: "${VSPHERE_NETWORK}"

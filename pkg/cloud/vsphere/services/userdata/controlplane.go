@@ -24,28 +24,6 @@ import (
 )
 
 const (
-	cloudConfig = `[Global]
-secret-name = "{{ .SecretName }}"
-secret-namespace = "{{ .SecretNamespace }}"
-insecure-flag = "1" # set to 1 if the vCenter uses a self-signed cert
-datacenters = "{{ .Datacenter }}"
-
-[VirtualCenter "{{ .Server }}"]
-
-[Workspace]
-server = "{{ .Server }}"
-datacenter = "{{ .Datacenter }}"
-folder = "{{ .Folder }}"
-default-datastore = "{{ .Datastore }}"
-resourcepool-path = "{{ .ResourcePool }}"
-
-[Disk]
-scsicontrollertype = pvscsi
-
-[Network]
-public-network = "{{ .Network }}"
-`
-
 	controlPlaneCloudInit = `{{.Header}}
 {{if .SSHAuthorizedKeys}}ssh_authorized_keys:{{range .SSHAuthorizedKeys}}
 - "{{.}}"{{end}}{{end}}
@@ -250,19 +228,6 @@ type ContolPlaneJoinInput struct {
 	JoinConfiguration string
 }
 
-// CloudConfigInput defines parameters required to generate the
-// vSphere Cloud Provider cloud config file
-type CloudConfigInput struct {
-	SecretName      string
-	SecretNamespace string
-	Server          string
-	Datacenter      string
-	ResourcePool    string
-	Folder          string
-	Datastore       string
-	Network         string
-}
-
 func (cpi *ControlPlaneInput) validateCertificates() error {
 	if !isKeyPairValid(cpi.CACert, cpi.CAKey) {
 		return errors.New("CA cert material in the ControlPlaneInput is missing cert/key")
@@ -341,18 +306,6 @@ func JoinControlPlane(input *ContolPlaneJoinInput) (string, error) {
 		return "", errors.Wrapf(err, "failed to generate user data for machine joining control plane")
 	}
 	return userData, err
-}
-
-// NewCloudConfig returns the string content for the vSphere Cloud Provider cloud config file
-func NewCloudConfig(input *CloudConfigInput) (string, error) {
-	fMap := map[string]interface{}{}
-
-	userData, err := generateWithFuncs("cloudprovider", cloudConfig, funcMap(fMap), input)
-	if err != nil {
-		return "", errors.Wrapf(err, "failed to generate user data for new control plane machine")
-	}
-
-	return userData, nil
 }
 
 func templateBase64Encode(s string) string {

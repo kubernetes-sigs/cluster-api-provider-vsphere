@@ -43,24 +43,6 @@ type VsphereMachineProviderSpec struct {
 	// Datacenter is the name or inventory path of the datacenter where this
 	// machine's VM is created/located.
 	Datacenter string `json:"datacenter"`
-	// Datastore is the name or inventory path of the datastore where this
-	// machine's VM is created/located.
-	// When omitted, GoVmomi's DatastoreOrDefault method is used to determine
-	// the default datastore. It is recommended to explicitly set this value.
-	// +optional
-	Datastore string `json:"datastore,omitempty"`
-	// ResourcePool is the name or inventory path of the resource pool where this
-	// machine's VM is created/located.
-	// When omitted, GoVmomi's ResourcePoolOrDefault method is used to determine
-	// the default resource pool. It is recommended to explicitly set this value.
-	// +optional
-	ResourcePool string `json:"resourcePool,omitempty"`
-	// Folder is the name or inventory path of the folder where this
-	// machine's VM is created/located.
-	// When omitted, GoVmomi's FolderOrDefault method is used to determine
-	// the default folder. It is recommended to explicitly set this value.
-	// +optional
-	Folder string `json:"folder,omitempty"`
 
 	// Network is the network configuration for this machine's VM.
 	Network NetworkSpec `json:"network"`
@@ -115,6 +97,8 @@ type KubeadmConfiguration struct {
 // NetworkSpec defines the virtual machine's network configuration.
 type NetworkSpec struct {
 	// Devices is the list of network devices used by the virtual machine.
+	// TODO(akutz) Make sure at least one network matches the
+	//             ClusterSpec.CloudProviderConfiguration.Network.Name
 	Devices []NetworkDeviceSpec `json:"devices"`
 
 	// Routes is a list of optional, static routes applied to the virtual

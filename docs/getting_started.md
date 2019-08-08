@@ -2,19 +2,19 @@
 
 This is a guide on how to get started with CAPV (Cluster API Provider vSphere). To learn more about cluster API in more depth, check out the the [cluster api docs page](https://cluster-api.sigs.k8s.io/).
 
-* [Getting Started](#Getting-Started)
-  * [Bootstrapping a Management Cluster with clusterctl](#Bootstrapping-a-Management-Cluster-with-clusterctl)
-    * [Install Requirements](#Install-Requirements)
+* [Getting Started](#getting-started)
+  * [Bootstrapping a Management Cluster with clusterctl](#bootstrapping-a-management-cluster-with-clusterctl)
+    * [Install Requirements](#install-requirements)
       * [clusterctl](#clusterctl)
-      * [Docker](#Docker)
-      * [Kind](#Kind)
+      * [Docker](#docker)
+      * [Kind](#kind)
       * [kubectl](#kubectl)
-    * [vSphere Requirements](#vSphere-Requirements)
-      * [vCenter Credentials](#vCenter-Credentials)
-      * [Uploading the CAPV Machine Image](#Uploading-the-CAPV-Machine-Image)
-    * [Generating YAML for the Bootstrap Cluster](#Generating-YAML-for-the-Bootstrap-Cluster)
-    * [Using clusterctl](#Using-clusterctl)
-  * [Managing Workload Clusters using the Management Cluster](#Managing-Workload-Clusters-using-the-Management-Cluster)
+    * [vSphere Requirements](#vsphere-requirements)
+      * [vCenter Credentials](#vcenter-credentials)
+      * [Uploading the CAPV Machine Image](#uploading-the-capv-machine-image)
+    * [Generating YAML for the Bootstrap Cluster](#generating-yaml-for-the-bootstrap-cluster)
+    * [Using clusterctl](#using-clusterctl)
+  * [Managing Workload Clusters using the Management Cluster](#managing-workload-clusters-using-the-management-cluster)
 
 ## Bootstrapping a Management Cluster with clusterctl
 
@@ -171,6 +171,20 @@ spec:
       server: "<REDACTED>"
       username: "<REDACTED>"
       password: "<REDACTED>"
+      cloudProviderConfiguration:
+        global:
+          secretName: "cloud-provider-vsphere-credentials"
+          secretNamespace: "kube-system"
+        virtualCenter:
+          "<REDACTED>":
+        network:
+          name: "vm-network-1"
+        workspace:
+          server: "<REDACTED>"
+          datacenter: "SDDC-Datacenter"
+          datastore: "DefaultDatastore"
+          resourcePool: "Resources"
+          folder: "vm"
 ---
 apiVersion: cluster.k8s.io/v1alpha1
 kind: Machine
@@ -184,9 +198,6 @@ spec:
       apiVersion: vsphere.cluster.k8s.io/v1alpha1
       kind: VsphereMachineProviderSpec
       datacenter: "SDDC-Datacenter"
-      datastore: "DefaultDatastore"
-      resourcePool: "Resources"
-      folder: "vm"
       network:
         devices:
         - networkName: "vm-network-1"
@@ -225,9 +236,6 @@ spec:
           apiVersion: vsphere.cluster.k8s.io/v1alpha1
           kind: VsphereMachineProviderSpec
           datacenter: "SDDC-Datacenter"
-          datastore: "DefaultDatastore"
-          resourcePool: "Resources"
-          folder: "vm"
           network:
             devices:
             - networkName: "vm-network-1"

@@ -90,3 +90,11 @@ func funcMap(funcs map[string]interface{}) template.FuncMap {
 
 	return funcMap
 }
+
+func defaultFuncMap() template.FuncMap {
+	return template.FuncMap{
+		"Base64Encode":   templateBase64Encode,
+		"Indent":         templateYAMLIndent,
+		"HostNameLookup": func() string { return "{{ ds.meta_data.hostname }}" },
+	}
+}

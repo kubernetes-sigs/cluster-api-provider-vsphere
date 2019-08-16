@@ -18,43 +18,87 @@ package kubeconfig_test
 
 import (
 	"encoding/base64"
+	"fmt"
 	"testing"
 
+	"gopkg.in/yaml.v2"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphere/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/kubeconfig"
 )
+
+type Cluster struct {
+	Server string `yaml:"server"`
+}
+type ClusterItem struct {
+	Name    string  `yaml:"name"`
+	Cluster Cluster `yaml:"cluster"`
+}
+
+type Kubeconfig struct {
+	Clusters []ClusterItem `yaml:"clusters"`
+}
 
 func TestNew(t *testing.T) {
 	testcases := []struct {
 		name                 string
 		controlPlaneEndpoint string
+		expected             string
 	}{
 		{
 			name:                 "host:port",
 			controlPlaneEndpoint: "192.168.0.2:6443",
+			expected:             "192.168.0.2:6443",
+		},
+		{
+			name:                 "host:port/path",
+			controlPlaneEndpoint: "192.168.0.2:6443/proxy",
+			expected:             "192.168.0.2:6443",
+		},
+		{
+			name:                 "host:port/path/path",
+			controlPlaneEndpoint: "192.168.0.2:6443/proxy/path",
+			expected:             "192.168.0.2:6443",
 		},
 		{
 			name:                 "https://host:port",
 			controlPlaneEndpoint: "https://192.168.0.2:6443",
+			expected:             "https://192.168.0.2:6443",
 		},
 		{
 			name:                 "https://host",
 			controlPlaneEndpoint: "https://192.168.0.2",
+			expected:             "https://192.168.0.2",
 		},
 		{
 			name:                 "https://host:port/path",
 			controlPlaneEndpoint: "https://192.168.0.2:6443/proxy",
+			expected:             "https://192.168.0.2:6443",
+		},
+		{
+			name:                 "https://host:port/path/path",
+			controlPlaneEndpoint: "https://192.168.0.2:6443/proxy/path",
+			expected:             "https://192.168.0.2:6443",
 		},
 	}
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			yaml, err := kubeconfig.New("kubernetes", tc.controlPlaneEndpoint, caKeyPair)
+			y, err := kubeconfig.New("kubernetes", tc.controlPlaneEndpoint, caKeyPair)
 			if err != nil {
 				t.Fatal(err)
 				return
 			}
-			t.Log(yaml)
+			k := Kubeconfig{}
+			err = yaml.Unmarshal([]byte(y), &k)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if k.Clusters[0].Cluster.Server != tc.expected {
+				t.Fatal(fmt.Errorf("Expected kubeconfig cluster server to be %s. Got, %s", tc.expected, k.Clusters[0].Cluster.Server))
+			}
+
+			t.Log(y)
 		})
 	}
 }

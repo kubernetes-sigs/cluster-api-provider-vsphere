@@ -19,10 +19,10 @@ package kubeconfig
 import (
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/pkg/errors"
 	"k8s.io/client-go/tools/clientcmd"
-
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphere/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/certificates"
 )
@@ -43,18 +43,21 @@ func New(clusterName, controlPlaneEndpoint string, caKeyPair v1alpha1.KeyPair) (
 		return "", errors.New("key not found in status")
 	}
 
-	controlPlaneEndpointURL, err := url.Parse(controlPlaneEndpoint)
-	if err != nil {
-		if controlPlaneEndpointURL, err = url.Parse("https://" + controlPlaneEndpoint); err != nil {
+	var server string
+	// https://github.com/golang/go/blob/master/src/net/url/url.go#L469
+	if !strings.Contains(controlPlaneEndpoint, "://") {
+		server = strings.SplitN(controlPlaneEndpoint, "/", 2)[0]
+	} else {
+		controlPlaneEndpointURL, err := url.Parse(controlPlaneEndpoint)
+		if err != nil {
 			return "", errors.Wrapf(err, "error parsing control plane endpoint: %s", controlPlaneEndpoint)
 		}
-	}
 
-	var server string
-	if controlPlaneEndpointURL.Path != "" {
-		server = controlPlaneEndpointURL.String()
-	} else {
-		server = fmt.Sprintf("https://%s", controlPlaneEndpointURL.Host)
+		if controlPlaneEndpointURL.Path != "" {
+			server = fmt.Sprintf("https://%s", controlPlaneEndpointURL.Host)
+		} else {
+			server = controlPlaneEndpointURL.String()
+		}
 	}
 
 	cfg, err := certificates.NewKubeconfig(clusterName, server, cert, key)

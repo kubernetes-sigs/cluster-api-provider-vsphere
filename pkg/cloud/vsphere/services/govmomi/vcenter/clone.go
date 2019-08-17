@@ -20,7 +20,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
-
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/govmomi/extra"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/govmomi/template"
@@ -122,7 +121,10 @@ func Clone(ctx *context.MachineContext, userData []byte) error {
 	if err != nil {
 		return errors.Wrapf(err, "error trigging clone op for machine %q", ctx)
 	}
-
+	_, err = task.WaitForResult(ctx, nil)
+	if err != nil {
+		return err
+	}
 	ctx.MachineStatus.TaskRef = task.Reference().Value
 
 	return nil

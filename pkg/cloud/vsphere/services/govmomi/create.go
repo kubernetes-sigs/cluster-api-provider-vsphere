@@ -21,7 +21,6 @@ import (
 	"net"
 
 	"github.com/pkg/errors"
-
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/certificates"
@@ -58,6 +57,7 @@ func Create(ctx *context.MachineContext, bootstrapToken string) error {
 	// does not exist, only when there's an error checking or when the op should
 	// be requeued, like when the VM has an in-flight task.
 	vm, err := lookupVM(ctx)
+
 	if err != nil {
 		return err
 	}

@@ -24,7 +24,6 @@ import (
 	"github.com/vmware/govmomi/property"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
-
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphere/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/config"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"

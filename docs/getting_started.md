@@ -66,7 +66,7 @@ Before attempting to generate the above manifests, the following environment var
 ```shell
 $ cat <<EOF >envvars.txt
 # vCenter config/credentials
-export VSPHERE_SERVER='10.0.0.1'                # (required) The vCenter server IP or UR
+export VSPHERE_SERVER='10.0.0.1'                # (required) The vCenter server IP or URL
 export VSPHERE_USERNAME='viadmin@vmware.local'  # (required) The vCenter user to login with
 export VSPHERE_PASSWORD='some-secure-password'  # (required) The vCenter password to login with
 

@@ -18,18 +18,22 @@ package machine
 
 import (
 	"context"
-	"os"
+	"path"
+	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-	controllerError "sigs.k8s.io/cluster-api/pkg/controller/error"
+	"sigs.k8s.io/cluster-api/api/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
+	"sigs.k8s.io/cluster-api/pkg/controller/external"
 	"sigs.k8s.io/cluster-api/pkg/controller/remote"
+	capierrors "sigs.k8s.io/cluster-api/pkg/errors"
 	"sigs.k8s.io/cluster-api/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -39,63 +43,58 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-const (
-	NodeNameEnvVar = "NODE_NAME"
-)
+const controllerName = "machine-controller"
 
-var DefaultActuator Actuator
-
-func AddWithActuator(mgr manager.Manager, actuator Actuator) error {
-	return add(mgr, newReconciler(mgr, actuator))
+// Add creates a new Machine Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
+// and Start it when the Manager is Started.
+func Add(mgr manager.Manager) error {
+	r := newReconciler(mgr)
+	c, err := addController(mgr, r)
+	r.controller = c
+	return err
 }
 
 // newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager, actuator Actuator) reconcile.Reconciler {
-	r := &ReconcileMachine{
+func newReconciler(mgr manager.Manager) *ReconcileMachine {
+	return &ReconcileMachine{
 		Client:   mgr.GetClient(),
 		scheme:   mgr.GetScheme(),
-		nodeName: os.Getenv(NodeNameEnvVar),
-		actuator: actuator,
+		recorder: mgr.GetEventRecorderFor(controllerName),
 	}
-
-	if r.nodeName == "" {
-		klog.Warningf("Environment variable %q is not set, this controller will not protect against deleting its own machine", NodeNameEnvVar)
-	}
-
-	return r
 }
 
-// add adds a new Controller to mgr with r as the reconcile.Reconciler
-func add(mgr manager.Manager, r reconcile.Reconciler) error {
+// addController adds a new Controller to mgr with r as the reconcile.Reconciler
+func addController(mgr manager.Manager, r reconcile.Reconciler) (controller.Controller, error) {
 	// Create a new controller
-	c, err := controller.New("machine-controller", mgr, controller.Options{Reconciler: r})
+	c, err := controller.New(controllerName, mgr, controller.Options{Reconciler: r})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Watch for changes to Machine
-	return c.Watch(
+	err = c.Watch(
 		&source.Kind{Type: &clusterv1.Machine{}},
 		&handler.EnqueueRequestForObject{},
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	return c, nil
 }
 
 // ReconcileMachine reconciles a Machine object
 type ReconcileMachine struct {
 	client.Client
-	scheme *runtime.Scheme
-
-	actuator Actuator
-
-	// nodeName is the name of the node on which the machine controller is running, if not present, it is loaded from NODE_NAME.
-	nodeName string
+	scheme           *runtime.Scheme
+	controller       controller.Controller
+	recorder         record.EventRecorder
+	externalWatchers sync.Map
 }
 
 // Reconcile reads that state of the cluster for a Machine object and makes changes based on the state read
 // and what is in the Machine.Spec
-// +kubebuilder:rbac:groups=cluster.k8s.io,resources=machines;machines/status,verbs=get;list;watch;create;update;patch;delete
-func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	// TODO(mvladev): Can context be passed from Kubebuilder?
+func (r *ReconcileMachine) Reconcile(request reconcile.Request) (_ reconcile.Result, reterr error) {
 	ctx := context.TODO()
 
 	// Fetch the Machine instance
@@ -111,62 +110,72 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, err
 	}
 
-	// Implement controller logic here
-	name := m.Name
-	klog.Infof("Reconciling Machine %q", name)
+	// Store Machine early state to allow patching.
+	patchMachine := client.MergeFrom(m.DeepCopy())
+
+	// Always issue a Patch for the Machine object and its status after each reconciliation.
+	// TODO(vincepri): Figure out if we should bubble up the errors from Patch to the controller.
+	defer func() {
+		gvk := m.GroupVersionKind()
+		if err := r.Client.Patch(ctx, m, patchMachine); err != nil {
+			klog.Errorf("Error Patching Machine %q in namespace %q: %v", m.Name, m.Namespace, err)
+			if reterr == nil {
+				reterr = err
+			}
+			return
+		}
+		// TODO(vincepri): This is a hack because after a Patch, the object loses TypeMeta information.
+		// Remove when https://github.com/kubernetes-sigs/controller-runtime/issues/526 is fixed.
+		m.SetGroupVersionKind(gvk)
+		if err := r.Client.Status().Patch(ctx, m, patchMachine); err != nil {
+			klog.Errorf("Error Patching Machine status %q in namespace %q: %v", m.Name, m.Namespace, err)
+			if reterr == nil {
+				reterr = err
+			}
+		}
+	}()
 
 	// Cluster might be nil as some providers might not require a cluster object
 	// for machine management.
-	cluster, err := r.getCluster(ctx, m)
-	if err != nil {
-		return reconcile.Result{}, err
+	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, m.ObjectMeta)
+	if errors.Cause(err) == util.ErrNoCluster {
+		klog.Infof("Machine %q in namespace %q doesn't specify %q label, assuming nil cluster",
+			m.Name, m.Namespace, clusterv1.MachineClusterLabelName)
+	} else if err != nil {
+		return reconcile.Result{}, errors.Wrapf(err, "failed to get cluster %q for machine %q in namespace %q",
+			m.Labels[clusterv1.MachineClusterLabelName], m.Name, m.Namespace)
 	}
 
-	// Set the ownerRef with foreground deletion if there is a linked cluster.
 	if cluster != nil && shouldAdopt(m) {
-		klog.Infof("Cluster %s/%s is adopting Machine %s", cluster.Namespace, cluster.Name, m.Name)
-		blockOwnerDeletion := true
-		m.OwnerReferences = append(m.OwnerReferences, metav1.OwnerReference{
-			APIVersion:         cluster.APIVersion,
-			Kind:               cluster.Kind,
-			Name:               cluster.Name,
-			UID:                cluster.UID,
-			BlockOwnerDeletion: &blockOwnerDeletion,
+		m.OwnerReferences = util.EnsureOwnerRef(m.OwnerReferences, metav1.OwnerReference{
+			APIVersion: cluster.APIVersion,
+			Kind:       cluster.Kind,
+			Name:       cluster.Name,
+			UID:        cluster.UID,
 		})
 	}
 
-	if reconcileFinalizers(m, cluster) {
-		if err := r.Client.Update(ctx, m); err != nil {
-			klog.Infof("Failed to add finalizers to machine %q: %v", name, err)
-			return reconcile.Result{}, err
+	// If the Machine hasn't been deleted and doesn't have a finalizer, add one.
+	if m.ObjectMeta.DeletionTimestamp.IsZero() {
+		if !util.Contains(m.Finalizers, clusterv1.MachineFinalizer) {
+			m.Finalizers = append(m.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
+			if err := r.Client.Patch(ctx, m, patchMachine); err != nil {
+				return reconcile.Result{}, errors.Wrapf(err, "failed to add finalizer to Machine %q in namespace %q", m.Name, m.Namespace)
+			}
+			// Since adding the finalizer updates the object return to avoid later update issues
+			return reconcile.Result{Requeue: true}, nil
 		}
-		// Since adding the finalizer updates the object return to avoid later update issues
-		return reconcile.Result{Requeue: true}, nil
+	}
+
+	if err := r.reconcile(ctx, cluster, m); err != nil {
+		if requeueErr, ok := errors.Cause(err).(capierrors.HasRequeueAfterError); ok {
+			klog.Infof("Reconciliation for Machine %q in namespace %q asked to requeue: %v", m.Name, m.Namespace, err)
+			return reconcile.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
+		}
+		return reconcile.Result{}, err
 	}
 
 	if !m.ObjectMeta.DeletionTimestamp.IsZero() {
-		// no-op if finalizer has been removed.
-		if !util.Contains(m.ObjectMeta.Finalizers, clusterv1.MachineFinalizer) {
-			klog.Infof("Reconciling machine %q causes a no-op as there is no finalizer", name)
-			return reconcile.Result{}, nil
-		}
-
-		if !r.isDeleteAllowed(m) {
-			klog.Infof("Deleting machine hosting this controller is not allowed. Skipping reconciliation of machine %q", name)
-			return reconcile.Result{}, nil
-		}
-
-		klog.Infof("Reconciling machine %q triggers delete", name)
-		if err := r.actuator.Delete(ctx, cluster, m); err != nil {
-			if requeueErr, ok := errors.Cause(err).(controllerError.HasRequeueAfterError); ok {
-				klog.Infof("Actuator returned requeue-after error: %v", requeueErr)
-				return reconcile.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
-			}
-
-			klog.Errorf("Failed to delete machine %q: %v", name, err)
-			return reconcile.Result{}, err
-		}
-
 		if err := r.isDeleteNodeAllowed(context.Background(), m); err != nil {
 			switch err {
 			case errNilNodeRef:
@@ -174,128 +183,29 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 			case errNoControlPlaneNodes, errLastControlPlaneNode:
 				klog.V(2).Infof("Deleting node %q is not allowed for machine %q: %v", m.Status.NodeRef.Name, m.Name, err)
 			default:
-				klog.Errorf("IsDeleteNodeAllowed check failed for machine %q: %v", name, err)
+				klog.Errorf("IsDeleteNodeAllowed check failed for machine %q: %v", m.Name, err)
 				return reconcile.Result{}, err
 			}
 		} else {
 			klog.Infof("Deleting node %q for machine %q", m.Status.NodeRef.Name, m.Name)
 			if err := r.deleteNode(ctx, cluster, m.Status.NodeRef.Name); err != nil && !apierrors.IsNotFound(err) {
-				klog.Errorf("Error deleting node %q for machine %q: %v", m.Status.NodeRef.Name, name, err)
+				klog.Errorf("Error deleting node %q for machine %q: %v", m.Status.NodeRef.Name, m.Name, err)
 				return reconcile.Result{}, err
 			}
 		}
 
-		// Remove finalizer on successful deletion.
-		m.ObjectMeta.Finalizers = util.Filter(m.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
-		if err := r.Client.Update(context.Background(), m); err != nil {
-			klog.Errorf("Failed to remove finalizer from machine %q: %v", name, err)
-			return reconcile.Result{}, err
-		}
-
-		klog.Infof("Machine %q deletion successful", name)
-		return reconcile.Result{}, nil
-	}
-
-	exist, err := r.actuator.Exists(ctx, cluster, m)
-	if err != nil {
-		klog.Errorf("Failed to check if machine %q exists: %v", name, err)
-		return reconcile.Result{}, err
-	}
-
-	if exist {
-		klog.Infof("Reconciling machine %q triggers idempotent update", name)
-		if err := r.actuator.Update(ctx, cluster, m); err != nil {
-			if requeueErr, ok := errors.Cause(err).(controllerError.HasRequeueAfterError); ok {
-				klog.Infof("Actuator returned requeue-after error: %v", requeueErr)
+		if err := r.isDeleteReady(ctx, m); err != nil {
+			if requeueErr, ok := errors.Cause(err).(capierrors.HasRequeueAfterError); ok {
+				klog.Infof("Reconciliation for Machine %q in namespace %q asked to requeue: %v", m.Name, m.Namespace, err)
 				return reconcile.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
 			}
-
-			klog.Errorf(`Error updating machine "%s/%s": %v`, m.Namespace, name, err)
 			return reconcile.Result{}, err
 		}
 
-		return reconcile.Result{}, nil
-	}
-
-	// Machine resource created. Machine does not yet exist.
-	klog.Infof("Reconciling machine object %v triggers idempotent create.", m.ObjectMeta.Name)
-	if err := r.actuator.Create(ctx, cluster, m); err != nil {
-		if requeueErr, ok := errors.Cause(err).(controllerError.HasRequeueAfterError); ok {
-			klog.Infof("Actuator returned requeue-after error: %v", requeueErr)
-			return reconcile.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
-		}
-
-		klog.Warningf("Failed to create machine %q: %v", name, err)
-		return reconcile.Result{}, err
+		m.ObjectMeta.Finalizers = util.Filter(m.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
 	}
 
 	return reconcile.Result{}, nil
-}
-
-// reconcileFinalizers appends any missing finalizers to the machine
-// and returns true if the api server needs to be updated.
-func reconcileFinalizers(m *clusterv1.Machine, cluster *clusterv1.Cluster) bool {
-	// If object hasn't been deleted and doesn't have a finalizer, add one
-	// Add a finalizer to newly created objects.
-	if m.ObjectMeta.DeletionTimestamp.IsZero() {
-		finalizerCount := len(m.Finalizers)
-
-		if cluster != nil && !util.Contains(m.Finalizers, metav1.FinalizerDeleteDependents) {
-			m.Finalizers = append(m.ObjectMeta.Finalizers, metav1.FinalizerDeleteDependents)
-		}
-
-		if !util.Contains(m.Finalizers, clusterv1.MachineFinalizer) {
-			m.Finalizers = append(m.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
-		}
-
-		if len(m.Finalizers) > finalizerCount {
-			return true
-		}
-	}
-	return false
-}
-
-func (r *ReconcileMachine) getCluster(ctx context.Context, machine *clusterv1.Machine) (*clusterv1.Cluster, error) {
-	if machine.Labels[clusterv1.MachineClusterLabelName] == "" {
-		klog.Infof("Machine %q in namespace %q doesn't specify %q label, assuming nil cluster", machine.Name, machine.Namespace, clusterv1.MachineClusterLabelName)
-		return nil, nil
-	}
-
-	cluster := &clusterv1.Cluster{}
-	key := client.ObjectKey{
-		Namespace: machine.Namespace,
-		Name:      machine.Labels[clusterv1.MachineClusterLabelName],
-	}
-
-	if err := r.Client.Get(ctx, key, cluster); err != nil {
-		return nil, err
-	}
-
-	return cluster, nil
-}
-
-// isDeletedAllowed returns false if the Machine we're trying to delete is the
-// Machine hosting this controller. This method is meant to be functional
-// only when the controllers are running in the workload cluster.
-func (r *ReconcileMachine) isDeleteAllowed(machine *clusterv1.Machine) bool {
-	if r.nodeName == "" || machine.Status.NodeRef == nil {
-		return true
-	}
-
-	if machine.Status.NodeRef.Name != r.nodeName {
-		return true
-	}
-
-	node := &corev1.Node{}
-	if err := r.Client.Get(context.Background(), client.ObjectKey{Name: r.nodeName}, node); err != nil {
-		klog.Infof("Failed to determine if controller's node %q is associated with machine %q: %v", r.nodeName, machine.Name, err)
-		return true
-	}
-
-	// When the UID of the machine's node reference and this controller's actual node match then then the request is to
-	// delete the machine this machine-controller is running on. Return false to not allow machine controller to delete its
-	// own machine.
-	return node.UID != machine.Status.NodeRef.UID
 }
 
 var (
@@ -373,9 +283,8 @@ func (r *ReconcileMachine) getMachinesInCluster(ctx context.Context, namespace, 
 
 	machineList := &clusterv1.MachineList{}
 	labels := map[string]string{clusterv1.MachineClusterLabelName: name}
-	listOptions := client.InNamespace(namespace).MatchingLabels(labels)
 
-	if err := r.Client.List(ctx, listOptions, machineList); err != nil {
+	if err := r.Client.List(ctx, machineList, client.InNamespace(namespace), client.MatchingLabels(labels)); err != nil {
 		return nil, errors.Wrap(err, "failed to list machines")
 	}
 
@@ -387,6 +296,32 @@ func (r *ReconcileMachine) getMachinesInCluster(ctx context.Context, namespace, 
 	return machines, nil
 }
 
-func shouldAdopt(m *v1alpha1.Machine) bool {
-	return !util.HasOwner(m.OwnerReferences, v1alpha1.SchemeGroupVersion.String(), []string{"MachineSet", "MachineDeployment", "Cluster"})
+// isDeleteReady returns an error if any of Boostrap.ConfigRef or InfrastructureRef referenced objects still exists.
+func (r *ReconcileMachine) isDeleteReady(ctx context.Context, m *v1alpha2.Machine) error {
+	if m.Spec.Bootstrap.ConfigRef != nil {
+		_, err := external.Get(r.Client, m.Spec.Bootstrap.ConfigRef, m.Namespace)
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+		if err != nil {
+			return errors.Wrapf(err, "failed to get %s %q for Machine %q in namespace %q",
+				path.Join(m.Spec.Bootstrap.ConfigRef.APIVersion, m.Spec.Bootstrap.ConfigRef.Kind),
+				m.Spec.Bootstrap.ConfigRef.Name, m.Name, m.Namespace)
+		}
+		return &capierrors.RequeueAfterError{RequeueAfter: 10 * time.Second}
+	}
+
+	if _, err := external.Get(r.Client, &m.Spec.InfrastructureRef, m.Namespace); err != nil && !apierrors.IsNotFound(err) {
+		return errors.Wrapf(err, "failed to get %s %q for Machine %q in namespace %q",
+			path.Join(m.Spec.InfrastructureRef.APIVersion, m.Spec.InfrastructureRef.Kind),
+			m.Spec.InfrastructureRef.Name, m.Name, m.Namespace)
+	} else if err == nil {
+		return &capierrors.RequeueAfterError{RequeueAfter: 10 * time.Second}
+	}
+
+	return nil
+}
+
+func shouldAdopt(m *v1alpha2.Machine) bool {
+	return !util.HasOwner(m.OwnerReferences, v1alpha2.GroupVersion.String(), []string{"MachineSet", "Cluster"})
 }

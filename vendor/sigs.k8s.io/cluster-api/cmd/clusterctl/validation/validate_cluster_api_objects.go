@@ -24,10 +24,9 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/controller/noderefutil"
+	capierrors "sigs.k8s.io/cluster-api/pkg/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -42,23 +41,23 @@ func ValidateClusterAPIObjects(ctx context.Context, w io.Writer, c client.Client
 		return err
 	}
 
-	machines := &clusterv1alpha1.MachineList{}
-	if err := c.List(ctx, client.InNamespace(namespace), machines); err != nil {
+	machines := &v1alpha2.MachineList{}
+	if err := c.List(ctx, machines, client.InNamespace(namespace)); err != nil {
 		return errors.Wrapf(err, "failed to get the machines from the apiserver in namespace %q", namespace)
 	}
 
 	return validateMachineObjects(ctx, w, machines, c)
 }
 
-func getClusterObject(ctx context.Context, c client.Reader, clusterName string, namespace string) (*v1alpha1.Cluster, error) {
+func getClusterObject(ctx context.Context, c client.Reader, clusterName string, namespace string) (*v1alpha2.Cluster, error) {
 	if clusterName != "" {
-		cluster := &clusterv1alpha1.Cluster{}
+		cluster := &v1alpha2.Cluster{}
 		err := c.Get(ctx, types.NamespacedName{Name: clusterName, Namespace: namespace}, cluster)
 		return cluster, err
 	}
 
-	clusters := &clusterv1alpha1.ClusterList{}
-	if err := c.List(ctx, &client.ListOptions{Namespace: namespace}, clusters); err != nil {
+	clusters := &v1alpha2.ClusterList{}
+	if err := c.List(ctx, clusters, client.InNamespace(namespace)); err != nil {
 		return nil, errors.Wrapf(err, "failed to get the clusters from the apiserver in namespace %q", namespace)
 	}
 
@@ -67,21 +66,30 @@ func getClusterObject(ctx context.Context, c client.Reader, clusterName string, 
 	} else if numOfClusters > 1 {
 		return nil, errors.Errorf("fail: There is more than one cluster in namespace %q. Please specify --cluster-name", namespace)
 	}
+
 	return &clusters.Items[0], nil
 }
 
-func validateClusterObject(w io.Writer, cluster *v1alpha1.Cluster) error {
+func validateClusterObject(w io.Writer, cluster *v1alpha2.Cluster) error {
 	fmt.Fprintf(w, "Checking cluster object %q... ", cluster.Name)
-	if cluster.Status.ErrorReason != "" || cluster.Status.ErrorMessage != "" {
+	if cluster.Status.ErrorReason != nil || cluster.Status.ErrorMessage != nil {
+		var reason capierrors.ClusterStatusError
+		if cluster.Status.ErrorReason != nil {
+			reason = *cluster.Status.ErrorReason
+		}
+		var message string
+		if cluster.Status.ErrorMessage != nil {
+			message = *cluster.Status.ErrorMessage
+		}
 		fmt.Fprintf(w, "FAIL\n")
-		fmt.Fprintf(w, "\t[%v]: %s\n", cluster.Status.ErrorReason, cluster.Status.ErrorMessage)
+		fmt.Fprintf(w, "\t[%v]: %s\n", reason, message)
 		return errors.Errorf("cluster %q failed the validation", cluster.Name)
 	}
 	fmt.Fprintf(w, "PASS\n")
 	return nil
 }
 
-func validateMachineObjects(ctx context.Context, w io.Writer, machines *v1alpha1.MachineList, client client.Client) error {
+func validateMachineObjects(ctx context.Context, w io.Writer, machines *v1alpha2.MachineList, client client.Client) error {
 	pass := true
 	for _, machine := range machines.Items {
 		if !validateMachineObject(ctx, w, machine, client) {
@@ -94,10 +102,10 @@ func validateMachineObjects(ctx context.Context, w io.Writer, machines *v1alpha1
 	return nil
 }
 
-func validateMachineObject(ctx context.Context, w io.Writer, machine v1alpha1.Machine, client client.Client) bool {
+func validateMachineObject(ctx context.Context, w io.Writer, machine v1alpha2.Machine, client client.Client) bool {
 	fmt.Fprintf(w, "Checking machine object %q... ", machine.Name)
 	if machine.Status.ErrorReason != nil || machine.Status.ErrorMessage != nil {
-		var reason common.MachineStatusError
+		var reason capierrors.MachineStatusError
 		if machine.Status.ErrorReason != nil {
 			reason = *machine.Status.ErrorReason
 		}

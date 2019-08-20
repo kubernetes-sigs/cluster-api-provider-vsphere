@@ -33,7 +33,6 @@ import (
 
 	"github.com/pkg/errors"
 	"k8s.io/client-go/tools/clientcmd/api"
-
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphere/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
 )
@@ -212,7 +211,7 @@ func NewSelfSignedCACert(key *rsa.PrivateKey) (*x509.Certificate, error) {
 			CommonName:   cfg.CommonName,
 			Organization: cfg.Organization,
 		},
-		NotBefore:             now,
+		NotBefore:             now.Add(time.Minute * -5),
 		NotAfter:              now.Add(duration365d * 10),
 		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
 		MaxPathLenZero:        true,

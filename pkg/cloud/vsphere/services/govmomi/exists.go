@@ -22,5 +22,5 @@ import (
 
 // Exists returns a flag indicating whether or not a machine exists.
 func Exists(ctx *context.MachineContext) (bool, error) {
-	return ctx.MachineConfig.MachineRef != "" || ctx.MachineStatus.TaskRef != "", nil
+	return ctx.VSphereMachine.Spec.MachineRef != "" || ctx.VSphereMachine.Status.TaskRef != "", nil
 }

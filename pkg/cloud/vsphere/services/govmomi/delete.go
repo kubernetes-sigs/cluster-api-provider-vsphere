@@ -22,7 +22,7 @@ import (
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/config"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
-	clustererror "sigs.k8s.io/cluster-api/pkg/controller/error"
+	clustererror "sigs.k8s.io/cluster-api/pkg/errors"
 )
 
 // Delete deletes the machine from the backend platform.
@@ -51,7 +51,7 @@ func Delete(ctx *context.MachineContext) error {
 		if err != nil {
 			return errors.Wrapf(err, "error triggering power off op for %q", ctx)
 		}
-		ctx.MachineStatus.TaskRef = task.Reference().Value
+		ctx.VSphereMachine.Status.TaskRef = task.Reference().Value
 		ctx.Logger.V(6).Info("reenqueue to wait for power off op")
 		return &clustererror.RequeueAfterError{RequeueAfter: config.DefaultRequeue}
 	}
@@ -63,7 +63,7 @@ func Delete(ctx *context.MachineContext) error {
 	if err != nil {
 		return errors.Wrapf(err, "error triggering destroy for %q", ctx)
 	}
-	ctx.MachineStatus.TaskRef = task.Reference().Value
+	ctx.VSphereMachine.Status.TaskRef = task.Reference().Value
 	ctx.Logger.V(6).Info("reenqueue to wait for destroy op")
 	return &clustererror.RequeueAfterError{RequeueAfter: config.DefaultRequeue}
 }

@@ -18,7 +18,7 @@ all: build test
 VERSION ?= $(shell git describe --always --dirty)
 
 # The Go packages
-PKGS := ./api/... ./controllers/... ./pkg/cloud/vsphere/util/... .
+PKGS := ./api/... ./controllers/... ./pkg/... .
 
 # Build manager binary
 .PHONY: manager

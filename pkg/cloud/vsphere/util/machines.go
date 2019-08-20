@@ -113,14 +113,11 @@ func GetOldestControlPlaneMachine(
 
 // GetMachineManagedObjectReference returns the managed object reference
 // for a VSphereMachine resource.
-func GetMachineManagedObjectReference(machine *v1alpha2.VSphereMachine) (*vim25types.ManagedObjectReference, error) {
-	if machine.Spec.MachineRef == "" {
-		return nil, nil
-	}
-	return &vim25types.ManagedObjectReference{
+func GetMachineManagedObjectReference(machine *v1alpha2.VSphereMachine) vim25types.ManagedObjectReference {
+	return vim25types.ManagedObjectReference{
 		Type:  "VirtualMachine",
 		Value: machine.Spec.MachineRef,
-	}, nil
+	}
 }
 
 // ErrNoMachineIPAddr indicates that no valid IP addresses were found in a machine context

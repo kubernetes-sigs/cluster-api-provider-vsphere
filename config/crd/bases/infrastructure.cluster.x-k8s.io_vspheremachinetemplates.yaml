@@ -311,6 +311,10 @@ spec:
                         value in the template from which this machine is cloned.
                       format: int32
                       type: integer
+                    providerID:
+                      description: ProviderID is the virtual machine's BIOS UUID formated
+                        as vsphere://12345678-1234-1234-1234-123456789abc
+                      type: string
                     template:
                       description: Template is the name, inventory path, or instance
                         UUID of the template used to clone new machines.

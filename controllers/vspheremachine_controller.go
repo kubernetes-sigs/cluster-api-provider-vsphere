@@ -23,6 +23,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/record"
@@ -38,11 +39,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/config"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services"
-
-	// Load the govmomi service to ensure it is compiling correctly.
-	// TODO(akutz) Write a util function that selects the correct service
-	//             impl based on the version of vSphere
-	_ "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/govmomi"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/govmomi"
 )
 
 const waitForClusterInfrastructureReadyDuration = 15 * time.Second //nolint
@@ -166,23 +163,22 @@ func (r *VSphereMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *VSphereMachineReconciler) reconcileDelete(ctx *context.MachineContext) (reconcile.Result, error) {
 	ctx.Logger.Info("Handling deleted VSphereMachine")
 
-	// The VM is deleted so remove the finalizer.
-	ctx.VSphereMachine.Finalizers = clusterutilv1.Filter(ctx.VSphereMachine.Finalizers, infrav1.MachineFinalizer)
-
 	// TODO(akutz) Implement selection of VM service based on vSphere version
-	var vmService services.VirtualMachineService
+	var vmService services.VirtualMachineService = &govmomi.VMService{}
 
-	// TODO(akutz) Implement vmService.DestroyVM
 	vm, err := vmService.DestroyVM(ctx)
 	if err != nil {
 		return reconcile.Result{}, errors.Wrapf(err, "failed to destroy VM")
 	}
 
 	// Requeue the operation until the VM is "notfound".
-	if vmState := vm.State; vmState != infrav1.VirtualMachineStateNotFound {
-		ctx.Logger.V(6).Info("requeuing operation until vm state is 'notfound'", "state", vmState)
+	if vm.State != infrav1.VirtualMachineStateNotFound {
+		ctx.Logger.V(6).Info("requeuing operation until vm state is reconciled", "expected-vm-state", infrav1.VirtualMachineStateNotFound, "actual-vm-state", vm.State)
 		return reconcile.Result{RequeueAfter: config.DefaultRequeue}, nil
 	}
+
+	// The VM is deleted so remove the finalizer.
+	ctx.VSphereMachine.Finalizers = clusterutilv1.Filter(ctx.VSphereMachine.Finalizers, infrav1.MachineFinalizer)
 
 	return reconcile.Result{}, nil
 }
@@ -211,19 +207,70 @@ func (r *VSphereMachineReconciler) reconcileNormal(ctx *context.MachineContext) 
 	}
 
 	// TODO(akutz) Implement selection of VM service based on vSphere version
-	var vmService services.VirtualMachineService
+	var vmService services.VirtualMachineService = &govmomi.VMService{}
 
-	// TODO(akutz) Implement vmService.ReconcileVM
+	// Get or create the VM.
 	vm, err := vmService.ReconcileVM(ctx)
 	if err != nil {
 		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile VM")
 	}
 
-	// Requeue the operation until the VM is "running".
-	if vmState := vm.State; vmState != infrav1.VirtualMachineStateRunning {
-		ctx.Logger.V(6).Info("requeuing operation until vm state is 'running'", "state", vmState)
+	if vm.State != infrav1.VirtualMachineStateReady {
+		ctx.Logger.V(6).Info("requeuing operation until vm state is reconciled", "expected-vm-state", infrav1.VirtualMachineStateReady, "actual-vm-state", vm.State)
 		return reconcile.Result{RequeueAfter: config.DefaultRequeue}, nil
 	}
 
+	if ok, err := r.reconcileNetwork(ctx, vm, vmService); !ok {
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		ctx.Logger.V(6).Info("requeuing operation until vm network is reconciled")
+		return reconcile.Result{RequeueAfter: config.DefaultRequeue}, nil
+	}
+
+	if err := r.reconcileProviderID(ctx, vm, vmService); err != nil {
+		return reconcile.Result{}, err
+	}
+
 	return reconcile.Result{}, nil
+}
+
+func (r *VSphereMachineReconciler) reconcileNetwork(ctx *context.MachineContext, vm infrav1.VirtualMachine, vmService services.VirtualMachineService) (bool, error) {
+	expNetCount, actNetCount := len(ctx.VSphereMachine.Spec.Network.Devices), len(vm.Network)
+	if expNetCount != actNetCount {
+		return false, errors.Errorf("invalid network count for %q: exp=%d act=%d", ctx, expNetCount, actNetCount)
+	}
+	ctx.VSphereMachine.Status.Network = vm.Network
+
+	// If the VM is powered on then issue requeues until all of the VM's
+	// networks have IP addresses.
+	var ipAddrs []corev1.NodeAddress
+
+	for _, netStatus := range ctx.VSphereMachine.Status.Network {
+		for _, ip := range netStatus.IPAddrs {
+			ipAddrs = append(ipAddrs, corev1.NodeAddress{
+				Type:    corev1.NodeInternalIP,
+				Address: ip,
+			})
+		}
+	}
+
+	if len(ipAddrs) == 0 {
+		ctx.Logger.V(6).Info("requeuing to wait on IP addresses")
+		return false, nil
+	}
+
+	// Use the collected IP addresses to assign the Machine's addresses.
+	ctx.VSphereMachine.Status.Addresses = ipAddrs
+
+	return true, nil
+}
+
+func (r *VSphereMachineReconciler) reconcileProviderID(ctx *context.MachineContext, vm infrav1.VirtualMachine, vmService services.VirtualMachineService) error {
+	providerID := fmt.Sprintf("vsphere://%s", vm.BiosUUID)
+	if ctx.VSphereMachine.Spec.ProviderID == nil || *ctx.VSphereMachine.Spec.ProviderID != providerID {
+		ctx.VSphereMachine.Spec.ProviderID = &providerID
+		ctx.Logger.V(6).Info("updated provider ID", "provider-id", providerID)
+	}
+	return nil
 }

@@ -17,8 +17,6 @@ limitations under the License.
 package govmomi
 
 import (
-	"github.com/pkg/errors"
-
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/govmomi/esxi"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/govmomi/vcenter"
@@ -35,19 +33,7 @@ const (
 	cloudConfigPath = "/etc/kubernetes/vsphere.conf"
 )
 
-// Create creates a new machine.
-func Create(ctx *context.MachineContext, bootstrapData []byte) error {
-	// Check to see if the VM exists first since no error is returned if the VM
-	// does not exist, only when there's an error checking or when the op should
-	// be requeued, like when the VM has an in-flight task.
-	vm, err := lookupVM(ctx)
-	if err != nil {
-		return err
-	}
-	if vm != nil {
-		return errors.Errorf("vm already exists for %q", ctx)
-	}
-
+func createVM(ctx *context.MachineContext, bootstrapData []byte) error {
 	if ctx.Session.IsVC() {
 		return vcenter.Clone(ctx, bootstrapData)
 	}

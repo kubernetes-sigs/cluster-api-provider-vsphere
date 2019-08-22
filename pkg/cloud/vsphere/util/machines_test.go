@@ -370,7 +370,7 @@ func Test_GetMachineMetadata(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			tc.machine.Name = tc.name
-			actVal, err := util.GetMachineMetadata(tc.machine)
+			actVal, err := util.GetMachineMetadata(*tc.machine)
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -97,7 +97,7 @@ func (c *MachineContext) String() string {
 	if c.Machine == nil {
 		return c.ClusterContext.String()
 	}
-	return fmt.Sprintf("%s/%s", c.Cluster.Namespace, c.Cluster.Name, c.Machine.Name)
+	return fmt.Sprintf("%s/%s/%s", c.Cluster.Namespace, c.Cluster.Name, c.Machine.Name)
 }
 
 // GetObject returns the Machine object.

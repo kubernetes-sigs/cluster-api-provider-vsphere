@@ -39,13 +39,15 @@ import (
 	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clientcmd"
-	"sigs.k8s.io/cluster-api/pkg/util"
+	"sigs.k8s.io/cluster-api/util"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
+	retryAcquireClient         = 10 * time.Second
 	retryIntervalKubectlApply  = 10 * time.Second
 	retryIntervalResourceReady = 10 * time.Second
+	timeoutAcquireClient       = 10 * time.Minute
 	timeoutKubectlApply        = 15 * time.Minute
 	timeoutResourceReady       = 15 * time.Minute
 	timeoutMachineReady        = 30 * time.Minute
@@ -217,6 +219,18 @@ func (c *client) DeleteNamespace(namespaceName string) error {
 // NewFromDefaultSearchPath creates and returns a Client.  The kubeconfigFile argument is expected to be the path to a
 // valid kubeconfig file.
 func NewFromDefaultSearchPath(kubeconfigFile string, overrides tcmd.ConfigOverrides) (*client, error) { //nolint
+	var c ctrlclient.Client
+	if err := util.PollImmediate(retryAcquireClient, timeoutAcquireClient, func() (_ bool, err error) {
+		c, err = clientcmd.NewControllerRuntimeClient(kubeconfigFile, overrides)
+		if err != nil {
+			klog.V(2).Infof("Waiting to acquire client...")
+			return false, err
+		}
+		return true, nil
+	}); err != nil {
+		return nil, errors.Wrapf(err, "failed to acquire new client")
+	}
+
 	c, err := clientcmd.NewControllerRuntimeClient(kubeconfigFile, overrides)
 	if err != nil {
 		return nil, err

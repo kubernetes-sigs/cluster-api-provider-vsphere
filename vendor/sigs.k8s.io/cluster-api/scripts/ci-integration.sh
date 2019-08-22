@@ -19,8 +19,9 @@ set -o nounset
 set -o pipefail
 
 MAKE="make"
-KIND_VERSION="v0.4.0"
-KUBECTL_VERSION="v1.15.0"
+KIND_VERSION="v0.5.0"
+KUBECTL_VERSION="v1.15.3"
+KUSTOMIZE_VERSION="3.1.0"
 CRD_YAML="crd.yaml"
 BOOTSTRAP_CLUSTER_NAME="clusterapi-bootstrap"
 CONTROLLER_REPO="controller-ci" # use arbitrary repo name since we don't need to publish it
@@ -42,6 +43,12 @@ install_kubectl() {
    chmod +x /usr/local/bin/kubectl
 }
 
+install_kustomize() {
+  wget https://github.com/kubernetes-sigs/kustomize/releases/download/v${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_${GOOS}_${GOARCH} \
+    --no-verbose -O /usr/local/bin/kustomize
+    chmod +x /usr/local/bin/kustomize
+}
+
 build_containers() {
    VERSION="$(git describe --exact-match 2> /dev/null || git describe --match="$(git rev-parse --short=8 HEAD)" --always --dirty --abbrev=8)"
    export CONTROLLER_IMG="${CONTROLLER_REPO}"
@@ -53,9 +60,9 @@ build_containers() {
 
 prepare_crd_yaml() {
    CLUSTER_API_CONFIG_PATH="./config"
-   kubectl kustomize "${CLUSTER_API_CONFIG_PATH}/default/" > "${CRD_YAML}"
+   kustomize build "${CLUSTER_API_CONFIG_PATH}/default/" > "${CRD_YAML}"
    echo "---" >> "${CRD_YAML}"
-   kubectl kustomize "${CLUSTER_API_CONFIG_PATH}/ci/" >> "${CRD_YAML}"
+   kustomize build "${CLUSTER_API_CONFIG_PATH}/ci/" >> "${CRD_YAML}"
 }
 
 create_bootstrap() {
@@ -69,6 +76,21 @@ create_bootstrap() {
 
 delete_bootstrap() {
    kind delete cluster --name "${BOOTSTRAP_CLUSTER_NAME}"
+}
+
+wait_deployment_available() {
+   retry=30
+   INTERVAL=6
+   until kubectl describe deployment "$1" -n "$2" | grep "1 available"
+   do
+      sleep ${INTERVAL};
+      retry=$((retry - 1))
+      if [[ $retry -lt 0 ]];
+      then
+         kubectl describe deployment "$1" -n "$2"
+         exit 1
+      fi;
+   done;
 }
 
 wait_pod_running() {
@@ -102,18 +124,19 @@ main() {
 
    install_kubectl
    install_kind
+   install_kustomize
    prepare_crd_yaml
    create_bootstrap
 
    kubectl create -f "${CRD_YAML}"
 
    set +e
-   wait_pod_running "cluster-api-controller-manager-0" "cluster-api-system"
-   wait_pod_running "provider-controller-manager-0" "provider-system"
+   wait_deployment_available "cluster-api-controller-manager" "cluster-api-system"
+   wait_deployment_available "provider-controller-manager" "provider-system"
    set -e
 
    if [[ -d "${INTEGRATION_TEST_DIR}" ]] ; then
-      go test -v "${INTEGRATION_TEST_DIR}"/...
+      go test -v -tags=integration "${INTEGRATION_TEST_DIR}"/...
    fi
 
    delete_bootstrap

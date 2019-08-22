@@ -19,7 +19,7 @@ package v1alpha2
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	capierrors "sigs.k8s.io/cluster-api/pkg/errors"
+	capierrors "sigs.k8s.io/cluster-api/errors"
 )
 
 const (
@@ -190,7 +190,7 @@ type Bootstrap struct {
 /// [Bootstrap]
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:path=machines,shortName=ma,scope=Namespaced
+// +kubebuilder:resource:path=machines,shortName=ma,scope=Namespaced,categories=cluster-api
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
 // +kubebuilder:printcolumn:name="ProviderID",type="string",JSONPath=".spec.providerID",description="Provider ID"

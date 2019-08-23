@@ -19,7 +19,7 @@ set -o nounset
 set -o pipefail
 
 # MIN_GO_VERSION is the minimum, supported Go version.
-MIN_GO_VERSION="go${MIN_GO_VERSION:-1.12.6}"
+MIN_GO_VERSION="go${MIN_GO_VERSION:-1.12.1}"
 
 # Ensure the go tool exists and is a viable version.
 verify_go_version() {

@@ -70,6 +70,7 @@ generate-manifests:
 .PHONY: generate-kubebuilder-code
 generate-kubebuilder-code:
 	hack/update-generated.sh kubebuilder
+	@PROW_JOB_ID= hack/check-format.sh >/dev/null 2>&1
 
 .PHONY: vendor
 vendor:

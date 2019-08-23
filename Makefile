@@ -20,9 +20,11 @@ VERSION ?= $(shell git describe --always --dirty)
 # The Go packages
 PKGS := ./api/... ./controllers/... ./pkg/... .
 
-export CGO_ENABLED ?= 0 
-export GO111MODULE ?= on 
+export CGO_ENABLED ?= 0
+ifeq (,$(strip $(PROW_JOB_ID)))
+export GO111MODULE ?= on
 export GOFLAGS ?= -mod=vendor
+endif
 
 # Build manager binary
 .PHONY: manager

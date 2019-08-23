@@ -31,10 +31,6 @@ endif
 manager: check
 	go build -ldflags '-extldflags "-static" -w -s' -o bin/manager
 
-clusterctl: bin/clusterctl
-bin/clusterctl: go.sum
-	go build -ldflags '-extldflags "-static" -w -s' -o bin/clusterctl ./vendor/sigs.k8s.io/cluster-api/cmd/clusterctl
-
 # Run go fmt against code
 .PHONY: fmt
 fmt: | generate-kubebuilder-code
@@ -82,7 +78,7 @@ vendor:
 
 # The default build target
 .PHONY: build
-build: clusterctl manager
+build: manager
 
 # Check all the sources.
 .PHONY: check

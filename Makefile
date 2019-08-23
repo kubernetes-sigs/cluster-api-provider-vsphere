@@ -20,14 +20,18 @@ VERSION ?= $(shell git describe --always --dirty)
 # The Go packages
 PKGS := ./api/... ./controllers/... ./pkg/... .
 
+export CGO_ENABLED ?= 0 
+export GO111MODULE ?= on 
+export GOFLAGS ?= -mod=vendor
+
 # Build manager binary
 .PHONY: manager
 manager: check
-	CGO_ENABLED=0 go build -ldflags '-extldflags "-static" -w -s' -o bin/manager
+	go build -ldflags '-extldflags "-static" -w -s' -o bin/manager
 
-.PHONY: clusterctl
-clusterctl:
-	CGO_ENABLED=0 go build -ldflags '-extldflags "-static" -w -s' -o bin/clusterctl ./vendor/sigs.k8s.io/cluster-api/cmd/clusterctl
+clusterctl: bin/clusterctl
+bin/clusterctl: go.sum
+	go build -ldflags '-extldflags "-static" -w -s' -o bin/clusterctl ./vendor/sigs.k8s.io/cluster-api/cmd/clusterctl
 
 # Run go fmt against code
 .PHONY: fmt

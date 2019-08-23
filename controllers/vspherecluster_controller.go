@@ -23,15 +23,18 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	apiv1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
-	"sigs.k8s.io/cluster-api/pkg/util"
+	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
+	infrautilv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/util"
 )
 
 const (
@@ -70,7 +73,7 @@ func (r *VSphereClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, r
 	logger = logger.WithName(vsphereCluster.APIVersion)
 
 	// Fetch the Cluster.
-	cluster, err := util.GetOwnerCluster(parentContext, r.Client, vsphereCluster.ObjectMeta)
+	cluster, err := clusterutilv1.GetOwnerCluster(parentContext, r.Client, vsphereCluster.ObjectMeta)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -90,7 +93,7 @@ func (r *VSphereClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, r
 		Logger:         logger,
 	})
 	if err != nil {
-		return reconcile.Result{}, errors.Errorf("failed to create context: %+v", err)
+		return reconcile.Result{}, errors.Errorf("failed to create cluster context: %+v", err)
 	}
 
 	// Always close the context when exiting this function so we can persist any VSphereCluster changes.
@@ -102,44 +105,154 @@ func (r *VSphereClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, r
 
 	// Handle deleted clusters
 	if !vsphereCluster.DeletionTimestamp.IsZero() {
-		return reconcileDelete(ctx)
+		return r.reconcileDelete(ctx)
 	}
 
 	// Handle non-deleted clusters
-	return reconcileNormal(ctx)
+	return r.reconcileNormal(ctx)
 }
 
-func reconcileDelete(ctx *context.ClusterContext) (reconcile.Result, error) {
+func (r *VSphereClusterReconciler) reconcileDelete(ctx *context.ClusterContext) (reconcile.Result, error) {
 	ctx.Logger.Info("Reconciling VSphereCluster delete")
 
 	// Cluster is deleted so remove the finalizer.
-	ctx.VSphereCluster.Finalizers = util.Filter(ctx.VSphereCluster.Finalizers, infrav1.ClusterFinalizer)
+	ctx.VSphereCluster.Finalizers = clusterutilv1.Filter(ctx.VSphereCluster.Finalizers, infrav1.ClusterFinalizer)
 
 	return reconcile.Result{}, nil
 }
 
-func reconcileNormal(ctx *context.ClusterContext) (reconcile.Result, error) {
+func (r *VSphereClusterReconciler) reconcileNormal(ctx *context.ClusterContext) (reconcile.Result, error) {
 	ctx.Logger.Info("Reconciling VSphereCluster")
 
-	vsphereCluster := ctx.VSphereCluster
-
 	// If the VSphereCluster doesn't have our finalizer, add it.
-	if !util.Contains(vsphereCluster.Finalizers, infrav1.ClusterFinalizer) {
-		vsphereCluster.Finalizers = append(vsphereCluster.Finalizers, infrav1.ClusterFinalizer)
+	if !clusterutilv1.Contains(ctx.VSphereCluster.Finalizers, infrav1.ClusterFinalizer) {
+		ctx.VSphereCluster.Finalizers = append(ctx.VSphereCluster.Finalizers, infrav1.ClusterFinalizer)
+		ctx.Logger.V(6).Info(
+			"adding finalizer for VSphereCluster",
+			"cluster-namespace", ctx.VSphereCluster.Namespace,
+			"cluster-name", ctx.VSphereCluster.Name)
 	}
 
-	// Set APIEndpoints so the Cluster API Cluster Controller can pull them
-	vsphereCluster.Status.APIEndpoints = []infrav1.APIEndpoint{
-		{
-			Host: "", // vsphereCluster.Status.Network.APIServerELB.DNSName,
-			Port: 0,
-		},
+	// Update the VSphereCluster resource with its API enpoints.
+	if err := r.reconcileAPIEndpoints(ctx); err != nil {
+		return reconcile.Result{}, errors.Wrapf(err,
+			"failed to reconcile API endpoints for VSphereCluster %s/%s",
+			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
+	}
+
+	// If the VSphereCluster resource has no API endpoints set then requeue
+	// until an API endpoint for the cluster resource can be found.
+	if len(ctx.VSphereCluster.Status.APIEndpoints) == 0 {
+		return reconcile.Result{}, errors.Errorf(
+			"no API endpoints found for VSphereCluster %s/%s",
+			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
+	}
+
+	// Create the cloud config secret for the target cluster.
+	if err := r.reconcileCloudConfigSecret(ctx); err != nil {
+		return reconcile.Result{}, errors.Wrapf(err,
+			"failed to reconcile cloud config secret for VSphereCluster %s/%s",
+			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
 	}
 
 	// No errors, so mark us ready so the Cluster API Cluster Controller can pull it
-	vsphereCluster.Status.Ready = true
+	ctx.VSphereCluster.Status.Ready = true
+	ctx.Logger.V(4).Info("VSphereCluster is ready")
 
 	return reconcile.Result{}, nil
+}
+
+func (r *VSphereClusterReconciler) reconcileAPIEndpoints(ctx *context.ClusterContext) error {
+	// If the cluster already has API endpoints set then there is nothing to do.
+	if len(ctx.VSphereCluster.Status.APIEndpoints) > 0 {
+		ctx.Logger.V(6).Info("API endpoints already exist")
+		return nil
+	}
+
+	// Get the oldest control plane machine in the cluster.
+	machine, err := infrautilv1.GetOldestControlPlaneMachine(
+		ctx, ctx.Client, ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
+	if err != nil {
+		return errors.Wrapf(err,
+			"failed to get oldest control plane machine for VSphereCluster %s/%s",
+			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
+	}
+
+	// Get the oldest control plane machine's VSphereMachine resource.
+	vsphereMachine, err := infrautilv1.GetVSphereMachine(
+		ctx, ctx.Client, ctx.VSphereCluster.Namespace, machine.Name)
+	if err != nil {
+		return errors.Wrapf(err,
+			"failed to get VSphereMachine for Machine %s/%s/%s",
+			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name, machine.Name)
+	}
+
+	// Get the machine's preferred IP address.
+	ipAddr, err := infrautilv1.GetMachinePreferredIPAddress(vsphereMachine)
+	if err != nil {
+		return errors.Wrapf(err,
+			"failed to get preferred IP address for VSphereMachine %s/%s/%s",
+			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name, vsphereMachine.Name)
+	}
+
+	// Set APIEndpoints so the Cluster API Cluster Controller can pull them
+	ctx.VSphereCluster.Status.APIEndpoints = []infrav1.APIEndpoint{
+		{
+			Host: ipAddr,
+			Port: apiEndpointPort,
+		},
+	}
+
+	return nil
+}
+
+// reconcileCloudConfigSecret ensures the cloud config secret is present in the
+// target cluster
+func (r *VSphereClusterReconciler) reconcileCloudConfigSecret(ctx *context.ClusterContext) error {
+	if len(ctx.VSphereCluster.Spec.CloudProviderConfiguration.VCenter) == 0 {
+		return errors.Errorf(
+			"no vCenters defined for VSphereCluster %s/%s",
+			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
+	}
+
+	targetClusterClient, err := infrautilv1.NewKubeClient(ctx, ctx.Client, ctx.Cluster)
+	if err != nil {
+		return errors.Wrapf(err,
+			"failed to get client for Cluster %s/%s",
+			ctx.Cluster.Namespace, ctx.Cluster.Name)
+	}
+
+	credentials := map[string]string{}
+	for server := range ctx.VSphereCluster.Spec.CloudProviderConfiguration.VCenter {
+		credentials[fmt.Sprintf("%s.username", server)] = ctx.User()
+		credentials[fmt.Sprintf("%s.password", server)] = ctx.Pass()
+	}
+	// Define the kubeconfig secret for the target cluster.
+	secret := &apiv1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ctx.VSphereCluster.Spec.CloudProviderConfiguration.Global.SecretNamespace,
+			Name:      ctx.VSphereCluster.Spec.CloudProviderConfiguration.Global.SecretName,
+		},
+		Type:       apiv1.SecretTypeOpaque,
+		StringData: credentials,
+	}
+	if _, err := targetClusterClient.Secrets(secret.Namespace).Create(secret); err != nil {
+		if apierrors.IsAlreadyExists(err) {
+			return nil
+		}
+		return errors.Wrapf(
+			err,
+			"failed to create cloud provider secret for Cluster %s/%s",
+			ctx.Cluster.Namespace, ctx.Cluster.Name)
+	}
+
+	ctx.Logger.V(6).Info("created cloud provider credential secret",
+		"cluster-namespace", ctx.Cluster.Namespace,
+		"cluster-name", ctx.Cluster.Name,
+		"secret-name", secret.Name,
+		"secret-namespace", secret.Namespace)
+
+	return nil
 }
 
 // SetupWithManager adds this controller to the provided manager.

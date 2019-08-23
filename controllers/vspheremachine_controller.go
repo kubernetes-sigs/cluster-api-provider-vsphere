@@ -27,7 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
-	"sigs.k8s.io/cluster-api/pkg/util"
+	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -61,8 +61,7 @@ func (r *VSphereMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, r
 
 	// Fetch the VSphereMachine instance.
 	vsphereMachine := &infrav1.VSphereMachine{}
-	err := r.Get(parentContext, req.NamespacedName, vsphereMachine)
-	if err != nil {
+	if err := r.Get(parentContext, req.NamespacedName, vsphereMachine); err != nil {
 		if apierrors.IsNotFound(err) {
 			return reconcile.Result{}, nil
 		}
@@ -72,7 +71,7 @@ func (r *VSphereMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, r
 	logger = logger.WithName(vsphereMachine.APIVersion)
 
 	// Fetch the Machine.
-	machine, err := util.GetOwnerMachine(parentContext, r.Client, vsphereMachine.ObjectMeta)
+	machine, err := clusterutilv1.GetOwnerMachine(parentContext, r.Client, vsphereMachine.ObjectMeta)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -84,7 +83,7 @@ func (r *VSphereMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, r
 	logger = logger.WithName(fmt.Sprintf("machine=%s", machine.Name))
 
 	// Fetch the Cluster.
-	cluster, err := util.GetClusterFromMetadata(parentContext, r.Client, machine.ObjectMeta)
+	cluster, err := clusterutilv1.GetClusterFromMetadata(parentContext, r.Client, machine.ObjectMeta)
 	if err != nil {
 		logger.Info("Machine is missing cluster label or cluster does not exist")
 		return reconcile.Result{}, nil
@@ -114,7 +113,7 @@ func (r *VSphereMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, r
 		Logger:         logger,
 	})
 	if err != nil {
-		return reconcile.Result{}, errors.Errorf("failed to create context: %+v", err)
+		return reconcile.Result{}, errors.Errorf("failed to create cluster context: %+v", err)
 	}
 
 	// Create the machine context
@@ -148,7 +147,7 @@ func (r *VSphereMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&infrav1.VSphereMachine{}).Watches(
 		&source.Kind{Type: &clusterv1.Machine{}},
 		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: util.MachineToInfrastructureMapFunc(schema.GroupVersionKind{
+			ToRequests: clusterutilv1.MachineToInfrastructureMapFunc(schema.GroupVersionKind{
 				Group:   infrav1.SchemeBuilder.GroupVersion.Group,
 				Version: infrav1.SchemeBuilder.GroupVersion.Version,
 				Kind:    "VSphereMachine",
@@ -161,7 +160,7 @@ func (r *VSphereMachineReconciler) reconcileDelete(ctx *context.MachineContext) 
 	ctx.Logger.Info("Handling deleted VSphereMachine")
 
 	// The VM is deleted so remove the finalizer.
-	ctx.VSphereMachine.Finalizers = util.Filter(ctx.VSphereMachine.Finalizers, infrav1.MachineFinalizer)
+	ctx.VSphereMachine.Finalizers = clusterutilv1.Filter(ctx.VSphereMachine.Finalizers, infrav1.MachineFinalizer)
 
 	return reconcile.Result{}, nil
 }
@@ -174,7 +173,7 @@ func (r *VSphereMachineReconciler) reconcileNormal(ctx *context.MachineContext) 
 	}
 
 	// If the VSphereMachine doesn't have our finalizer, add it.
-	if !util.Contains(ctx.VSphereMachine.Finalizers, infrav1.MachineFinalizer) {
+	if !clusterutilv1.Contains(ctx.VSphereMachine.Finalizers, infrav1.MachineFinalizer) {
 		ctx.VSphereMachine.Finalizers = append(ctx.VSphereMachine.Finalizers, infrav1.MachineFinalizer)
 	}
 

@@ -28,14 +28,13 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apitypes "k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
-	"sigs.k8s.io/cluster-api/pkg/util"
-	clusterUtilv1 "sigs.k8s.io/cluster-api/pkg/util"
+	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2"
 )
 
-// GetMachinesInCluster gets a cluster's machine resources.
+// GetMachinesInCluster gets a cluster's Machine resources.
 func GetMachinesInCluster(
 	ctx context.Context,
 	controllerClient client.Client,
@@ -48,10 +47,36 @@ func GetMachinesInCluster(
 		ctx, machineList,
 		client.InNamespace(namespace),
 		client.MatchingLabels(labels)); err != nil {
-		return nil, err
+		return nil, errors.Wrapf(
+			err, "error getting machines in cluster %s/%s",
+			namespace, clusterName)
 	}
 
 	machines := make([]*clusterv1.Machine, len(machineList.Items))
+	for i := range machineList.Items {
+		machines[i] = &machineList.Items[i]
+	}
+
+	return machines, nil
+}
+
+// GetVSphereMachinesInCluster gets a cluster's VSphereMachine resources.
+func GetVSphereMachinesInCluster(
+	ctx context.Context,
+	controllerClient client.Client,
+	namespace, clusterName string) ([]*infrav1.VSphereMachine, error) {
+
+	labels := map[string]string{clusterv1.MachineClusterLabelName: clusterName}
+	machineList := &infrav1.VSphereMachineList{}
+
+	if err := controllerClient.List(
+		ctx, machineList,
+		client.InNamespace(namespace),
+		client.MatchingLabels(labels)); err != nil {
+		return nil, err
+	}
+
+	machines := make([]*infrav1.VSphereMachine, len(machineList.Items))
 	for i := range machineList.Items {
 		machines[i] = &machineList.Items[i]
 	}
@@ -63,9 +88,9 @@ func GetMachinesInCluster(
 func GetVSphereMachine(
 	ctx context.Context,
 	controllerClient client.Client,
-	namespace, machineName string) (*v1alpha2.VSphereMachine, error) {
+	namespace, machineName string) (*infrav1.VSphereMachine, error) {
 
-	machine := &v1alpha2.VSphereMachine{}
+	machine := &infrav1.VSphereMachine{}
 	namespacedName := apitypes.NamespacedName{
 		Namespace: namespace,
 		Name:      machineName,
@@ -98,9 +123,11 @@ func GetOldestControlPlaneMachine(
 		return nil, err
 	}
 
-	controlPlaneMachines := util.GetControlPlaneMachines(machines)
+	controlPlaneMachines := clusterutilv1.GetControlPlaneMachines(machines)
 	if len(controlPlaneMachines) == 0 {
-		return nil, nil
+		return nil, errors.Errorf(
+			"no control plane machines found in cluster %s/%s",
+			namespace, clusterName)
 	}
 
 	// Sort the control plane machines so the first one created is always the
@@ -113,7 +140,7 @@ func GetOldestControlPlaneMachine(
 
 // GetMachineManagedObjectReference returns the managed object reference
 // for a VSphereMachine resource.
-func GetMachineManagedObjectReference(machine *v1alpha2.VSphereMachine) vim25types.ManagedObjectReference {
+func GetMachineManagedObjectReference(machine *infrav1.VSphereMachine) vim25types.ManagedObjectReference {
 	return vim25types.ManagedObjectReference{
 		Type:  "VirtualMachine",
 		Value: machine.Spec.MachineRef,
@@ -125,7 +152,7 @@ var ErrNoMachineIPAddr = errors.New("no IP addresses found for machine")
 
 // GetMachinePreferredIPAddress returns the preferred IP address for a
 // VSphereMachine resource.
-func GetMachinePreferredIPAddress(machine *v1alpha2.VSphereMachine) (string, error) {
+func GetMachinePreferredIPAddress(machine *infrav1.VSphereMachine) (string, error) {
 	var cidr *net.IPNet
 	if cidrString := machine.Spec.Network.PreferredAPIServerCIDR; cidrString != "" {
 		var err error
@@ -152,23 +179,23 @@ func GetMachinePreferredIPAddress(machine *v1alpha2.VSphereMachine) (string, err
 // IsControlPlaneMachine returns a flag indicating whether or not a machine has
 // the control plane role.
 func IsControlPlaneMachine(machine *clusterv1.Machine) bool {
-	return clusterUtilv1.IsControlPlaneMachine(machine)
+	return clusterutilv1.IsControlPlaneMachine(machine)
 }
 
 // GetMachineMetadata returns the cloud-init metadata as a base-64 encoded
 // string for a given VSphereMachine.
-func GetMachineMetadata(machine *v1alpha2.VSphereMachine) ([]byte, error) {
+func GetMachineMetadata(machine *infrav1.VSphereMachine) ([]byte, error) {
 	buf := &bytes.Buffer{}
 	tpl := template.Must(template.New("t").Funcs(
 		template.FuncMap{
-			"nameservers": func(spec v1alpha2.NetworkDeviceSpec) bool {
+			"nameservers": func(spec infrav1.NetworkDeviceSpec) bool {
 				return len(spec.Nameservers) > 0 || len(spec.SearchDomains) > 0
 			},
 		}).Parse(metadataFormat))
 	if err := tpl.Execute(buf, struct {
 		Hostname string
-		Devices  []v1alpha2.NetworkDeviceSpec
-		Routes   []v1alpha2.NetworkRouteSpec
+		Devices  []infrav1.NetworkDeviceSpec
+		Routes   []infrav1.NetworkRouteSpec
 	}{
 		Hostname: machine.Name,
 		Devices:  machine.Spec.Network.Devices,

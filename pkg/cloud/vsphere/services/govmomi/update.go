@@ -24,7 +24,7 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
-	clustererror "sigs.k8s.io/cluster-api/pkg/errors"
+	clustererror "sigs.k8s.io/cluster-api/errors"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/config"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"

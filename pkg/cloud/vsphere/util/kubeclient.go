@@ -20,10 +20,9 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/types"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
-	remotev1 "sigs.k8s.io/cluster-api/pkg/controller/remote"
+	remotev1 "sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -32,16 +31,7 @@ import (
 func NewKubeClient(
 	ctx context.Context,
 	controllerClient client.Client,
-	namespace, clusterName string) (corev1.CoreV1Interface, error) {
-
-	cluster := &clusterv1.Cluster{}
-	namespacedName := types.NamespacedName{
-		Namespace: namespace,
-		Name:      clusterName,
-	}
-	if err := controllerClient.Get(ctx, namespacedName, cluster); err != nil {
-		return nil, errors.Wrap(err, "unable to get target cluster resource")
-	}
+	cluster *clusterv1.Cluster) (corev1.CoreV1Interface, error) {
 
 	clusterClient, err := remotev1.NewClusterClient(controllerClient, cluster)
 	if err != nil {

@@ -22,7 +22,7 @@ import (
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/config"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
-	clustererror "sigs.k8s.io/cluster-api/pkg/errors"
+	clustererror "sigs.k8s.io/cluster-api/errors"
 )
 
 // Delete deletes the machine from the backend platform.

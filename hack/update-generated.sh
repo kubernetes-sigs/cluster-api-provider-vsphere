@@ -57,7 +57,7 @@ gen-kubebuilder() {
 kubebuilder() { gen-kubebuilder; }
 crd()         { gen-crds ./config; }
 rbac()        { gen-rbac ./config; }
-all()         { codegen && crd && rbac; }
+all()         { kubebuilder && crd && rbac; }
 
 [ "${#}" -eq "0" ] && all
 

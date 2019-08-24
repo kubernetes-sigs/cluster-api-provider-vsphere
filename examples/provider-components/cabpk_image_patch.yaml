@@ -1,11 +1,11 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: controller-manager
-  namespace: system
+  name: cabpk-controller-manager
+  namespace: cabpk-system
 spec:
   template:
     spec:
       containers:
-      - image: ${CAPV_MANAGER_IMAGE}
+      - image: ${CABPK_MANAGER_IMAGE}
         name: manager

@@ -17,7 +17,7 @@ all: build
 VERSION ?= $(shell git describe --always --dirty)
 IMAGE_NAME ?= gcr.io/cluster-api-provider-vsphere/extra/manifests-base
 IMAGE_TAG ?= $(IMAGE_NAME):$(VERSION)
-KUSTOMIZE_VERSION ?= 2.0.0
+KUSTOMIZE_VERSION ?= 3.1.0
 
 build:
 	docker build --build-arg KUSTOMIZE_VERSION=$(KUSTOMIZE_VERSION) -t $(IMAGE_TAG) .

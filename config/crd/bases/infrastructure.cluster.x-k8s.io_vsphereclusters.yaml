@@ -188,11 +188,6 @@ spec:
               description: Insecure is a flag that controls whether or not to validate
                 the vSphere server's certificate.
               type: boolean
-            password:
-              description: "Password is the password used to log into the vSphere
-                server. \n This value is optional unless using clusterctl to bootstrap
-                the initial management cluster."
-              type: string
             server:
               description: Server is the address of the vSphere endpoint.
               type: string
@@ -205,11 +200,6 @@ spec:
               items:
                 type: string
               type: array
-            username:
-              description: "Username is the name used to log into the vSphere server.
-                \n This value is optional unless using clusterctl to bootstrap the
-                initial management cluster."
-              type: string
           type: object
         status:
           description: VSphereClusterStatus defines the observed state of VSphereClusterSpec

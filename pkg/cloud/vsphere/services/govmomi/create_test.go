@@ -19,6 +19,7 @@ package govmomi_test
 import (
 	"crypto/tls"
 	"log"
+	"os"
 	"testing"
 
 	"github.com/vmware/govmomi/object"
@@ -31,6 +32,11 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/govmomi"
 )
+
+func init() {
+	os.Unsetenv("VSPHERE_USERNAME")
+	os.Unsetenv("VSPHERE_PASSWORD")
+}
 
 func TestCreate(t *testing.T) {
 	model := simulator.VPX()
@@ -46,6 +52,8 @@ func TestCreate(t *testing.T) {
 	s := model.Service.NewServer()
 	defer s.Close()
 	pass, _ := s.URL.User.Password()
+	os.Setenv("VSPHERE_USERNAME", s.URL.User.Username())
+	os.Setenv("VSPHERE_PASSWORD", pass)
 
 	cluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -67,9 +75,7 @@ func TestCreate(t *testing.T) {
 			Kind:       "VSphereCluster",
 		},
 		Spec: infrav1.VSphereClusterSpec{
-			Server:   s.URL.Host,
-			Username: s.URL.User.Username(),
-			Password: pass,
+			Server: s.URL.Host,
 		},
 	}
 

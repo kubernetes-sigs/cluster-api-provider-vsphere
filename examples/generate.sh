@@ -24,12 +24,14 @@ cd "${WORKDIR:-$(dirname "${BASH_SOURCE[0]}")/..}"
 BUILDDIR="${BUILDDIR:-.}"
 
 OUT_DIR="${OUT_DIR:-}"
-TPL_DIR="${BUILDDIR}"/cmd/clusterctl/examples/vsphere
+SRC_DIR="${BUILDDIR}"/examples
 
 OVERWRITE=
 CLUSTER_NAME="${CLUSTER_NAME:-capv-mgmt-example}"
 ENV_VAR_REQ=':?required'
 CAPV_MANAGER_IMAGE="${CAPV_MANAGER_IMAGE:-gcr.io/cluster-api-provider-vsphere/ci/manager:latest}"
+CABPK_MANAGER_IMAGE="${CABPK_MANAGER_IMAGE:-gcr.io/kubernetes1-226021/cluster-api-bootstrap-provider-kubeadm:dev}"
+export CAPV_MANAGER_IMAGE CABPK_MANAGER_IMAGE
 
 usage() {
   cat <<EOF
@@ -37,18 +39,22 @@ usage: ${0} [FLAGS]
   Generates input manifests for the Cluster API Provider for vSphere (CAPV)
 
 FLAGS
+  -b    bootstrapper image (default "${CABPK_MANAGER_IMAGE}")
   -c    cluster name (default "${CLUSTER_NAME}")
   -d    disables required environment variables
   -f    force overwrite of existing files
   -h    prints this help screen
-  -i    input directory (default ${TPL_DIR})
+  -i    input directory (default ${SRC_DIR})
   -m    manager image (default "${CAPV_MANAGER_IMAGE}")
   -o    output directory (default ${OUT_DIR})
 EOF
 }
 
-while getopts ':c:dfhi:m:o:' opt; do
+while getopts ':b:c:dfhi:m:o:' opt; do
   case "${opt}" in
+  b)
+    CABPK_MANAGER_IMAGE="${OPTARG}"
+    ;;
   c)
     CLUSTER_NAME="${OPTARG}"
     ;;
@@ -62,7 +68,7 @@ while getopts ':c:dfhi:m:o:' opt; do
     usage 1>&2; exit 1
     ;;
   i)
-    TPL_DIR="${OPTARG}"
+    SRC_DIR="${OPTARG}"
     ;;
   m)
     CAPV_MANAGER_IMAGE="${OPTARG}"
@@ -80,8 +86,6 @@ while getopts ':c:dfhi:m:o:' opt; do
 done
 shift $((OPTIND-1))
 
-export MANAGER_IMAGE="${CAPV_MANAGER_IMAGE}"
-
 [ -n "${OUT_DIR}" ] || OUT_DIR="./out/${CLUSTER_NAME}"
 mkdir -p "${OUT_DIR}"
 
@@ -89,29 +93,15 @@ mkdir -p "${OUT_DIR}"
 # shellcheck disable=SC1091
 [ "${DOCKER_ENABLED-}" ] && [ -e "/envvars.txt" ] && source "/envvars.txt"
 
-# shellcheck disable=SC2034
-ADDON_TPL_FILE="${TPL_DIR}"/addons.yaml.template
-# shellcheck disable=SC2034
-ADDON_OUT_FILE="${OUT_DIR}"/addons.yaml
-# shellcheck disable=SC2034
-CLUSTER_TPL_FILE="${TPL_DIR}"/cluster.yaml.template
-CLUSTER_OUT_FILE="${OUT_DIR}"/cluster.yaml
-# shellcheck disable=SC2034
-MACHINES_TPL_FILE="${TPL_DIR}"/machines.yaml.template
-MACHINES_OUT_FILE="${OUT_DIR}"/machines.yaml
-# shellcheck disable=SC2034
-MACHINESET_TPL_FILE="${TPL_DIR}"/machineset.yaml.template
-# shellcheck disable=SC2034
-MACHINESET_OUT_FILE="${OUT_DIR}"/machineset.yaml
+# Outputs
+COMPONENTS_CLUSTER_API_GENERATED_FILE=${SRC_DIR}/provider-components/provider-components-cluster-api.yaml
+COMPONENTS_KUBEADM_GENERATED_FILE=${SRC_DIR}/provider-components/provider-components-kubeadm.yaml
+COMPONENTS_VSPHERE_GENERATED_FILE=${SRC_DIR}/provider-components/provider-components-vsphere.yaml
 
-CAPI_CFG_DIR="${BUILDDIR}"/vendor/sigs.k8s.io/cluster-api/config
-CAPV_CFG_DIR="${BUILDDIR}"/config
-
-COMP_OUT_FILE="${OUT_DIR}"/provider-components.yaml
-# shellcheck disable=SC2034
-CAPV_MANAGER_TPL_FILE="${CAPV_CFG_DIR}"/default/manager_image_patch.yaml.template
-# shellcheck disable=SC2034
-CAPV_MANAGER_OUT_FILE="${CAPV_CFG_DIR}"/default/manager_image_patch.yaml
+PROVIDER_COMPONENTS_GENERATED_FILE=${OUT_DIR}/provider-components.yaml
+CLUSTER_GENERATED_FILE=${OUT_DIR}/cluster.yaml
+CONTROLPLANE_GENERATED_FILE=${OUT_DIR}/controlplane.yaml
+MACHINEDEPLOYMENT_GENERATED_FILE=${OUT_DIR}/machinedeployment.yaml
 
 ok_file() {
   [ -f "${1}" ] || { echo "${1} is missing" 1>&2; exit 1; }
@@ -121,9 +111,14 @@ no_file() {
   [ ! -f "${1}" ] || { echo "${1} already exists, overwrite with -f" 1>&2; exit 1; }
 }
 
-for f in ADDON CLUSTER MACHINES MACHINESET; do
-  eval "ok_file \"\${${f}_TPL_FILE}\""
-  [ -n "${OVERWRITE}" ] || eval "no_file \"\${${f}_OUT_FILE}\""
+# Remove the temporary provider components files.
+for f in COMPONENTS_CLUSTER_API COMPONENTS_KUBEADM COMPONENTS_VSPHERE; do \
+  eval "rm -f \"\${${f}_GENERATED_FILE}\""
+done
+
+# Ensure that the actual outputs are only overwritten if the flag is provided.
+for f in PROVIDER_COMPONENTS CLUSTER CONTROLPLANE MACHINEDEPLOYMENT; do
+  [ -n "${OVERWRITE}" ] || eval "no_file \"\${${f}_GENERATED_FILE}\""
 done
 
 require_if_defined() {
@@ -133,7 +128,8 @@ require_if_defined() {
   done
 }
 
-require_if_defined CAPV_MANAGER_IMAGE \
+require_if_defined CABPK_MANAGER_IMAGE \
+                   CAPV_MANAGER_IMAGE \
                    VSPHERE_DATACENTER \
                    VSPHERE_DATASTORE \
                    VSPHERE_RESOURCE_POOL \
@@ -149,6 +145,7 @@ record_and_export() {
 record_and_export CLUSTER_NAME          ':-capv-mgmt-example'
 record_and_export SERVICE_CIDR          ':-100.64.0.0/13'
 record_and_export CLUSTER_CIDR          ':-100.96.0.0/11'
+record_and_export CABPK_MANAGER_IMAGE   ':-'
 record_and_export CAPV_MANAGER_IMAGE    ':-'
 record_and_export VSPHERE_USERNAME      "${ENV_VAR_REQ}"
 record_and_export VSPHERE_PASSWORD      "${ENV_VAR_REQ}"
@@ -170,42 +167,50 @@ verify_cpu_mem_dsk VSPHERE_NUM_CPUS 2
 verify_cpu_mem_dsk VSPHERE_MEM_MIB  2048
 verify_cpu_mem_dsk VSPHERE_DISK_GIB 20
 
-# TODO: check if KUBERNETES_VERSION has format "v1.13.6" and
+# TODO: check if KUBERNETES_VERSION has format "v1.14.4" and
 # trim the "v" from the version. Alternatively, have CAPV or CAPI
-# handle both 1.13.6 and v1.13.6
-[[ ${KUBERNETES_VERSION-} =~ ^v?[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+([\+\.\-](.+))?$ ]] || KUBERNETES_VERSION="1.13.6"
+# handle both 1.14.4 and v1.14.4
+[[ ${KUBERNETES_VERSION-} =~ ^v?[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+([\+\.\-](.+))?$ ]] || KUBERNETES_VERSION="1.14.4"
 record_and_export KUBERNETES_VERSION ":-${KUBERNETES_VERSION}"
 
-do_envsubst() {
-  python "${BUILDDIR}/hack/envsubst.py" >"${2}" <"${1}"
-  if [ "${DOCKER_ENABLED-}" ]; then
-    echo "done generating ${2/\/build/.}"
-  else
-    echo "done generating ${2}"
-  fi
+# Base64 encode the credentials and unset the plain-text values.
+VSPHERE_B64ENCODED_USERNAME="$(printf '%s' "${VSPHERE_USERNAME}" | base64)"
+VSPHERE_B64ENCODED_PASSWORD="$(printf '%s' "${VSPHERE_PASSWORD}" | base64)"
+export VSPHERE_B64ENCODED_USERNAME VSPHERE_B64ENCODED_PASSWORD
+unset VSPHERE_USERNAME VSPHERE_PASSWORD
+
+envsubst() {
+  python -c 'import os,sys;[sys.stdout.write(os.path.expandvars(l)) for l in sys.stdin]'
 }
 
-# Create the output files by substituting the templates with envrionment vars.
-for f in ADDON CAPV_MANAGER CLUSTER MACHINES MACHINESET; do
-  eval "do_envsubst \"\${${f}_TPL_FILE}\" \"\${${f}_OUT_FILE}\""
-done
+# Generate cluster resources.
+kustomize build "${SRC_DIR}/cluster" | envsubst >"${CLUSTER_GENERATED_FILE}"
+echo "Generated ${CLUSTER_GENERATED_FILE}"
 
-# Run kustomize on the patches.
-{ kustomize build "${CAPV_CFG_DIR}"/default/ && \
-  echo "---" && \
-  kustomize build "${CAPI_CFG_DIR}"/default/; } >"${COMP_OUT_FILE}"
+# Generate controlplane resources.
+kustomize build "${SRC_DIR}/controlplane" | envsubst >"${CONTROLPLANE_GENERATED_FILE}"
+echo "Generated ${CONTROLPLANE_GENERATED_FILE}"
 
-cat <<EOF
-done generating ${COMP_OUT_FILE}
+# Generate machinedeployment resources.
+kustomize build "${SRC_DIR}/machinedeployment" | envsubst >"${MACHINEDEPLOYMENT_GENERATED_FILE}"
+echo "Generated ${MACHINEDEPLOYMENT_GENERATED_FILE}"
 
-*** Finished creating initial example yamls in ${OUT_DIR}
+# Generate Cluster API provider components file.
+kustomize build "github.com/kubernetes-sigs/cluster-api/config/default/?ref=master" >"${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
+echo "Generated ${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
 
-    The files ${CLUSTER_OUT_FILE} and ${MACHINES_OUT_FILE} need to be updated
-    with information about the desired Kubernetes cluster and vSphere environment
-    on which the Kubernetes cluster will be created.
+# Generate Kubeadm Bootstrap Provider components file.
+kustomize build "github.com/kubernetes-sigs/cluster-api-bootstrap-provider-kubeadm/config/default/?ref=master" >"${COMPONENTS_KUBEADM_GENERATED_FILE}"
+echo "Generated ${COMPONENTS_KUBEADM_GENERATED_FILE}"
 
-Enjoy!
-EOF
+# Generate VSphere Infrastructure Provider components file.
+kustomize build "${SRC_DIR}/../config/default" | envsubst >"${COMPONENTS_VSPHERE_GENERATED_FILE}"
+echo "Generated ${COMPONENTS_VSPHERE_GENERATED_FILE}"
+
+# Generate a single provider components file.
+kustomize build "${SRC_DIR}/provider-components" | envsubst >"${PROVIDER_COMPONENTS_GENERATED_FILE}"
+echo "Generated ${PROVIDER_COMPONENTS_GENERATED_FILE}"
+echo "WARNING: ${PROVIDER_COMPONENTS_GENERATED_FILE} includes vSphere credentials"
 
 # If running in Docker then ensure the contents of the OUT_DIR have the
 # the same owner as the volume mounted to the /out directory.

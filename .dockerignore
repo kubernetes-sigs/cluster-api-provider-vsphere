@@ -3,3 +3,4 @@
 /out/
 /*.test
 /cluster-api-provider-vsphere
+/examples/provider-components/provider-components*.yaml

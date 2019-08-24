@@ -34,20 +34,6 @@ type VSphereClusterSpec struct {
 	// Server is the address of the vSphere endpoint.
 	Server string `json:"server,omitempty"`
 
-	// Username is the name used to log into the vSphere server.
-	//
-	// This value is optional unless using clusterctl to bootstrap the initial
-	// management cluster.
-	// +optional
-	Username string `json:"username,omitempty"`
-
-	// Password is the password used to log into the vSphere server.
-	//
-	// This value is optional unless using clusterctl to bootstrap the initial
-	// management cluster.
-	// +optional
-	Password string `json:"password,omitempty"`
-
 	// Insecure is a flag that controls whether or not to validate the
 	// vSphere server's certificate.
 	// +optional

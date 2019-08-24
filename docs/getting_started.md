@@ -24,7 +24,7 @@ This is a guide on how to get started with CAPV (Cluster API Provider vSphere). 
 
 #### clusterctl
 
-Please download `clusterctl` from the GitHub [releases page](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases).
+Please download `clusterctl` from the Cluster API, GitHub [releases page](https://github.com/kubernetes-sigs/cluster-api/releases).
 
 #### Docker
 
@@ -57,7 +57,8 @@ The bootstrapping process in `clusterctl` requires a few manifest files:
 | Name | Description |
 |------|-------------|
 | `cluster.yaml` | The cluster resource for the target cluster |
-| `machines.yaml` | The machine resource for the initial control plane node for the target cluster |
+| `controlplane.yaml` | The machine resource for target cluster's control plane nodes |
+| `machinedeployment.yaml` | The machine resource for target cluster's worker nodes |
 | `provider-components.yaml` | The CAPI and CAPV reources for the target cluster |
 | `addons.yaml` | Additional add-ons to apply to the management cluster (ex. CNI) |
 
@@ -66,9 +67,9 @@ Before attempting to generate the above manifests, the following environment var
 ```shell
 $ cat <<EOF >envvars.txt
 # vCenter config/credentials
-export VSPHERE_SERVER='10.0.0.1'                # (required) The vCenter server IP or UR
-export VSPHERE_USERNAME='viadmin@vmware.local'  # (required) The vCenter user to login with
-export VSPHERE_PASSWORD='some-secure-password'  # (required) The vCenter password to login with
+export VSPHERE_SERVER='10.0.0.1'                # (required) The vCenter server IP or FQDN
+export VSPHERE_USERNAME='viadmin@vmware.local'  # (required) The username used to access the remote vSphere endpoint
+export VSPHERE_PASSWORD='some-secure-password'  # (required) The password used to access the remote vSphere endpoint
 
 # vSphere deployment configs
 export VSPHERE_DATACENTER='SDDC-Datacenter'         # (required) The vSphere datacenter to deploy the management cluster on
@@ -98,20 +99,14 @@ $ docker run --rm \
   gcr.io/cluster-api-provider-vsphere/release/manifests:latest \
   -c management-cluster
 
-done generating ./out/management-cluster/addons.yaml
-done generating ./config/default/manager_image_patch.yaml
-done generating ./out/management-cluster/cluster.yaml
-done generating ./out/management-cluster/machines.yaml
-done generating ./out/management-cluster/machineset.yaml
-done generating ./out/management-cluster/provider-components.yaml
-
-*** Finished creating initial example yamls in ./out
-
-    The files ./out/management-cluster/cluster.yaml and ./out/management-cluster/machines.yaml need to be updated
-    with information about the desired Kubernetes cluster and vSphere environment
-    on which the Kubernetes cluster will be created.
-
-Enjoy!
+Generated ./out/management-cluster/cluster.yaml
+Generated ./out/management-cluster/controlplane.yaml
+Generated ./out/management-cluster/machinedeployment.yaml
+Generated /build/examples/provider-components/provider-components-cluster-api.yaml
+Generated /build/examples/provider-components/provider-components-kubeadm.yaml
+Generated /build/examples/provider-components/provider-components-vsphere.yaml
+Generated ./out/management-cluster/provider-components.yaml
+WARNING: ./out/management-cluster/provider-components.yaml includes vSphere credentials
 ```
 
 ### Using clusterctl
@@ -120,10 +115,9 @@ Once the manifests are generated, `clusterctl` may be used to create the managem
 
 ```shell
 clusterctl create cluster \
-  --provider vsphere \
   --bootstrap-type kind \
   --cluster ./out/management-cluster/cluster.yaml \
-  --machines ./out/management-cluster/machines.yaml \
+  --machines ./out/management-cluster/controlplane.yaml \
   --provider-components ./out/management-cluster/provider-components.yaml \
   --addon-components ./out/management-cluster/addons.yaml \
   --kubeconfig-out ./out/management-cluster/kubeconfig
@@ -135,7 +129,7 @@ Once `clusterctl` has completed successfully, the file `./out/management-cluster
 
 ## Managing Workload Clusters using the Management Cluster
 
-With your management cluster bootstrapped, it's time to reap the benefits of Cluster API. From this point forward, clusters and machines (belonging to a cluster) are simply provisioned by creating `cluster`, `machine` and `machineset` resources.
+With your management cluster bootstrapped, it's time to reap the benefits of Cluster API. From this point forward, clusters and machines (belonging to a cluster) are simply provisioned by creating `Cluster`, `Machine` and `MachineDeployment`, and `KubeadmConfig` resources.
 
 Using the same Docker command as above, generate resources for a new cluster, this time with a different name:
 
@@ -149,105 +143,183 @@ $ docker run --rm \
 
 **NOTE**: The above step is not required to manage your Cluster API resources at this point but is used to simplify this guide. You should manage your Cluster API resources in the same way you would manage your Kubernetes application manifests. Please use the generated manifests only as a reference.
 
-The Cluster and Machine resource in `./out/workload-cluster-1/cluster.yaml` and `./out/workload-cluster-1/machines.yaml` defines the workload cluster with the initial control plane node:
+The Cluster and Machine resource in `./out/workload-cluster-1/cluster.yaml` and `./out/workload-cluster-1/controlplane.yaml` defines the workload cluster with the initial control plane node:
+
+**`./out/workload-cluster-1/cluster.yaml`**
 
 ```yaml
----
-apiVersion: "cluster.k8s.io/v1alpha1"
+apiVersion: cluster.x-k8s.io/v1alpha2
 kind: Cluster
 metadata:
   name: workload-cluster-1
+  namespace: default
 spec:
   clusterNetwork:
-    services:
-      cidrBlocks: ["100.64.0.0/13"]
     pods:
-      cidrBlocks: ["100.96.0.0/11"]
-    serviceDomain: "cluster.local"
-  providerSpec:
-    value:
-      apiVersion: "vsphere.cluster.k8s.io/v1alpha1"
-      kind: "VsphereClusterProviderSpec"
-      server: "<REDACTED>"
-      username: "<REDACTED>"
-      password: "<REDACTED>"
-      cloudProviderConfiguration:
-        global:
-          secretName: "cloud-provider-vsphere-credentials"
-          secretNamespace: "kube-system"
-        virtualCenter:
-          "<REDACTED>":
-        network:
-          name: "vm-network-1"
-        workspace:
-          server: "<REDACTED>"
-          datacenter: "SDDC-Datacenter"
-          datastore: "DefaultDatastore"
-          resourcePool: "Resources"
-          folder: "vm"
+      cidrBlocks:
+      - 100.96.0.0/11
+    services:
+      cidrBlocks:
+      - 100.64.0.0/13
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    kind: VSphereCluster
+    name: workload-cluster-1
+    namespace: default
 ---
-apiVersion: cluster.k8s.io/v1alpha1
-kind: Machine
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+kind: VSphereCluster
 metadata:
-  name: "workload-cluster-1-controlplane-1"
-  labels:
-    cluster.k8s.io/cluster-name: "workload-cluster-1"
+  name: workload-cluster-1
+  namespace: default
 spec:
-  providerSpec:
-    value:
-      apiVersion: vsphere.cluster.k8s.io/v1alpha1
-      kind: VsphereMachineProviderSpec
-      datacenter: "SDDC-Datacenter"
-      network:
-        devices:
-        - networkName: "vm-network-1"
-          dhcp4: true
-          dhcp6: false
-      numCPUs: 2
-      memoryMiB: 2048
-      diskGiB: 20
-      template: "ubuntu-1804-kube-v1.13.6"
-  versions:
-    kubelet: "1.13.6"
-    controlPlane: "1.13.6"
+  cloudProviderConfiguration:
+    global:
+      secretName: cloud-provider-vsphere-credentials
+      secretNamespace: kube-system
+    network:
+      name: vm-network-1
+    virtualCenter:
+      vcenter.sddc-54-70-161-229.vmc.vmware.com:
+        datacenters: SDDC-Datacenter
+    workspace:
+      datacenter: SDDC-Datacenter
+      datastore: DefaultDatastore
+      folder: vm
+      resourcePool: Resources
+      server: 10.0.0.1
+  server: 10.0.0.1
 ```
 
-To add 3 additional worker nodes to your cluster, see the generated machineset file `./out/workload-cluster-1/machineset.yaml`:
+**`./out/workload-cluster-1/controlplane.yaml`**
 
 ```yaml
-apiVersion: "cluster.k8s.io/v1alpha1"
-kind: MachineSet
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+kind: KubeadmConfig
 metadata:
-  name: workload-cluster-1-machineset
+  name: workload-cluster-1-controlplane-0
+  namespace: default
 spec:
-  replicas: 3
+  clusterConfiguration:
+    apiServer:
+      extraArgs:
+        cloud-provider: vsphere
+    controllerManager:
+      extraArgs:
+        cloud-provider: vsphere
+  initConfiguration:
+    nodeRegistration:
+      kubeletExtraArgs:
+        cloud-provider: vsphere
+      name: '{{ ds.meta_data.hostname }}'
+---
+apiVersion: cluster.x-k8s.io/v1alpha2
+kind: Machine
+metadata:
+  labels:
+    cluster.x-k8s.io/cluster-name: workload-cluster-1
+    cluster.x-k8s.io/control-plane: "true"
+  name: workload-cluster-1-controlplane-0
+  namespace: default
+spec:
+  bootstrap:
+    configRef:
+      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+      kind: KubeadmConfig
+      name: workload-cluster-1-controlplane-0
+      namespace: default
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    kind: VSphereMachine
+    name: workload-cluster-1-controlplane-0
+    namespace: default
+  version: 1.13.6
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+kind: VSphereMachine
+metadata:
+  name: workload-cluster-1-controlplane-0
+  namespace: default
+spec:
+  datacenter: SDDC-Datacenter
+  diskGiB: 50
+  memoryMiB: 2048
+  network:
+    devices:
+    - dhcp4: true
+      dhcp6: false
+      networkName: vm-network-1
+  numCPUs: 2
+  template: ubuntu-1804-kube-v1.13.6
+```
+
+To add an additional worker node to your cluster, please see the generated machineset file `./out/workload-cluster-1/machinedeployment.yaml`:
+
+```yaml
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+kind: KubeadmConfigTemplate
+metadata:
+  name: workload-cluster-1-md-0
+  namespace: default
+spec:
+  joinConfiguration:
+    nodeRegistration:
+      kubeletExtraArgs:
+        cloud-provider: vsphere
+      name: '{{ ds.meta_data.hostname }}'
+---
+apiVersion: cluster.x-k8s.io/v1alpha2
+kind: MachineDeployment
+metadata:
+  labels:
+    cluster.x-k8s.io/cluster-name: workload-cluster-1
+  name: workload-cluster-1-md-0
+  namespace: default
+spec:
+  replicas: 1
   selector:
     matchLabels:
-      machineset-name: workload-cluster-1-machineset
-      cluster.k8s.io/cluster-name: workload-cluster-1
+      cluster.x-k8s.io/cluster-name: workload-cluster-1
   template:
     metadata:
       labels:
-        machineset-name: workload-cluster-1-machineset
-        cluster.k8s.io/cluster-name: workload-cluster-1
+        cluster.x-k8s.io/cluster-name: workload-cluster-1
     spec:
-      providerSpec:
-        value:
-          apiVersion: vsphere.cluster.k8s.io/v1alpha1
-          kind: VsphereMachineProviderSpec
-          datacenter: "SDDC-Datacenter"
-          network:
-            devices:
-            - networkName: "vm-network-1"
-              dhcp4: true
-              dhcp6: false
-          numCPUs: 2
-          memoryMiB: 2048
-          diskGiB: 20
-          template: "ubuntu-1804-kube-v1.13.6"
-      versions:
-        kubelet: "1.13.6"
+      bootstrap:
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+          kind: KubeadmConfigTemplate
+          name: workload-cluster-1-md-0
+          namespace: default
+      infrastructureRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+        kind: VSphereMachineTemplate
+        name: workload-cluster-1-md-0
+        namespace: default
+      version: 1.13.6
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+kind: VSphereMachineTemplate
+metadata:
+  name: workload-cluster-1-md-0
+  namespace: default
+spec:
+  datacenter: SDDC-Datacenter
+  diskGiB: 50
+  memoryMiB: 2048
+  network:
+    devices:
+    - dhcp4: true
+      dhcp6: false
+      networkName: vm-network-1
+  numCPUs: 2
+  template: ubuntu-1804-kube-v1.13.6
 ```
+
+<!--
+TODO(akutz) Add the output of the kubectl commands back once it's possible
+            to execute the commands and copy the output.
+-->
 
 Use `kubectl` with the `kubeconfig` for the management cluster to provision the new workload cluster:
 
@@ -260,27 +332,30 @@ Use `kubectl` with the `kubeconfig` for the management cluster to provision the 
 2. Create the workload cluster by applying the cluster manifest:
 
     ```shell
-    $ kubectl apply -f ./out/workload-cluster-1/cluster.yaml
-    cluster.cluster.k8s.io/workload-cluster-1 created
+    kubectl apply -f ./out/workload-cluster-1/cluster.yaml
     ```
 
 3. Create the control plane nodes for the workload cluster by applying the machines manifest:
 
     ```shell
-    $ kubectl apply -f ./out/workload-cluster-1/machines.yaml
-    machine.cluster.k8s.io/workload-cluster-1-controlplane-1 created
+    kubectl apply -f ./out/workload-cluster-1/controlplane.yaml
     ```
 
 4. Create the worker nodes for the workload cluster by applying the machineset manifest:
 
     ```shell
-    $ kubectl apply -f ./out/workload-cluster-1/machineset.yaml
-    machineset.cluster.k8s.io/workload-cluster-1-machineset-1 created
+    kubectl apply -f ./out/workload-cluster-1/machinedeployment.yaml
     ```
 
 Clusters that are provisioned by the management cluster that run your application workloads are called [Workload Clusters](https://github.com/kubernetes-sigs/cluster-api/blob/master/docs/book/GLOSSARY.md#workload-cluster).
 
 The `kubeconfig` file to access workload clusters should be accessible as a Kubernetes Secret on the management cluster. As of today, the Secret resource is named `<cluster-name>-kubeconfig` in the same namespace as the cluster to which the Secret belongs. For the example above, you can list all the kubeconfig files and then retrive the corresponding kubeconfig like so:
+
+<!--
+TODO(akutz) The name of the kubeconfig secret may have changed. Please
+            check to make sure it's not using the cluster's UUID instead
+            of the cluster's name.
+-->
 
 1. Retrieve a list of the secrets stored in the management cluster:
 

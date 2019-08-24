@@ -19,18 +19,16 @@ package context
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/klog/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
 )
 
 // ClusterContextParams are the parameters needed to create a ClusterContext.
@@ -39,7 +37,6 @@ type ClusterContextParams struct {
 	Cluster        *clusterv1.Cluster
 	VSphereCluster *v1alpha2.VSphereCluster
 	Client         client.Client
-	CoreClient     corev1.CoreV1Interface
 	Logger         logr.Logger
 }
 
@@ -49,7 +46,6 @@ type ClusterContext struct {
 	Cluster        *clusterv1.Cluster
 	VSphereCluster *v1alpha2.VSphereCluster
 	Client         client.Client
-	CoreClient     corev1.CoreV1Interface
 	Logger         logr.Logger
 
 	user                string
@@ -70,37 +66,12 @@ func NewClusterContext(params *ClusterContextParams) (*ClusterContext, error) {
 	}
 	logr = logr.WithName(params.Cluster.APIVersion).WithName(params.Cluster.Namespace).WithName(params.Cluster.Name)
 
-	const todoSecretName = ""
-
-	user := params.VSphereCluster.Spec.Username
-	pass := params.VSphereCluster.Spec.Password
-	if secretName := todoSecretName; secretName != "" {
-		if params.CoreClient == nil {
-			return nil, errors.Errorf("credential secret %q specified without core client", secretName)
-		}
-		logr.V(4).Info("fetching vsphere credentials", "secret-name", secretName)
-		secret, err := params.CoreClient.Secrets(params.Cluster.Namespace).Get(secretName, metav1.GetOptions{})
-		if err != nil {
-			return nil, errors.Wrapf(err, "error reading secret %q for cluster %s/%s", secretName, params.Cluster.Namespace, params.Cluster.Name)
-		}
-		userBuf, userOk := secret.Data[constants.VSphereCredentialSecretUserKey]
-		passBuf, passOk := secret.Data[constants.VSphereCredentialSecretPassKey]
-		if !userOk || !passOk {
-			return nil, errors.Wrapf(err, "improperly formatted secret %q for cluster %s/%s", secretName, params.Cluster.Namespace, params.Cluster.Name)
-		}
-		user, pass = string(userBuf), string(passBuf)
-		logr.V(2).Info("found vSphere credentials")
-	}
-
 	return &ClusterContext{
 		Context:             parentContext,
 		Cluster:             params.Cluster,
 		VSphereCluster:      params.VSphereCluster,
 		Client:              params.Client,
-		CoreClient:          params.CoreClient,
 		Logger:              logr,
-		user:                user,
-		pass:                pass,
 		vsphereClusterPatch: client.MergeFrom(params.VSphereCluster.DeepCopyObject()),
 	}, nil
 }
@@ -112,9 +83,6 @@ func NewClusterLoggerContext(parentContext *ClusterContext, loggerContext string
 		Cluster:             parentContext.Cluster,
 		VSphereCluster:      parentContext.VSphereCluster,
 		Client:              parentContext.Client,
-		CoreClient:          parentContext.CoreClient,
-		user:                parentContext.user,
-		pass:                parentContext.pass,
 		vsphereClusterPatch: parentContext.vsphereClusterPatch,
 	}
 	ctx.Logger = parentContext.Logger.WithName(loggerContext)
@@ -153,18 +121,18 @@ func (c *ClusterContext) ClusterName() string {
 
 // User returns the username used to access the vSphere endpoint.
 func (c *ClusterContext) User() string {
-	return c.user
+	return os.Getenv("VSPHERE_USERNAME")
 }
 
 // Pass returns the password used to access the vSphere endpoint.
 func (c *ClusterContext) Pass() string {
-	return c.pass
+	return os.Getenv("VSPHERE_PASSWORD")
 }
 
 // CanLogin returns a flag indicating whether the cluster config has
 // enough information to login to the vSphere endpoint.
 func (c *ClusterContext) CanLogin() bool {
-	return c.VSphereCluster.Spec.Server != "" && c.user != ""
+	return c.VSphereCluster.Spec.Server != "" && c.User() != ""
 }
 
 // Patch updates the object and its status on the API server.

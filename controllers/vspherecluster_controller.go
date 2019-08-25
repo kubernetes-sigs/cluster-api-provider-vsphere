@@ -19,7 +19,6 @@ package controllers
 import (
 	goctx "context"
 	"fmt"
-	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -33,6 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/config"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
 	infrautilv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/util"
 )
@@ -79,7 +79,7 @@ func (r *VSphereClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, r
 	}
 	if cluster == nil {
 		logger.Info("Waiting for Cluster Controller to set OwnerRef on VSphereCluster")
-		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
+		return reconcile.Result{RequeueAfter: config.DefaultRequeue}, nil
 	}
 
 	logger = logger.WithName(fmt.Sprintf("cluster=%s", cluster.Name))

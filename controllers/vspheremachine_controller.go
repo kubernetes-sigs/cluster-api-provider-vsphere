@@ -35,7 +35,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/config"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services"
+
+	// Load the govmomi service to ensure it is compiling correctly.
+	// TODO(akutz) Write a util function that selects the correct service
+	//             impl based on the version of vSphere
+	_ "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/govmomi"
 )
 
 const waitForClusterInfrastructureReadyDuration = 15 * time.Second //nolint
@@ -113,7 +120,7 @@ func (r *VSphereMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, r
 		Logger:         logger,
 	})
 	if err != nil {
-		return reconcile.Result{}, errors.Errorf("failed to create cluster context: %+v", err)
+		return reconcile.Result{}, errors.Wrapf(err, "failed to create cluster context")
 	}
 
 	// Create the machine context
@@ -122,7 +129,7 @@ func (r *VSphereMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, r
 		machine,
 		vsphereMachine)
 	if err != nil {
-		return reconcile.Result{}, errors.Errorf("failed to create machine context: %+v", err)
+		return reconcile.Result{}, errors.Wrapf(err, "failed to create machine context")
 	}
 
 	// Always close the context when exiting this function so we can persist any VSphereMachine changes.
@@ -162,6 +169,21 @@ func (r *VSphereMachineReconciler) reconcileDelete(ctx *context.MachineContext) 
 	// The VM is deleted so remove the finalizer.
 	ctx.VSphereMachine.Finalizers = clusterutilv1.Filter(ctx.VSphereMachine.Finalizers, infrav1.MachineFinalizer)
 
+	// TODO(akutz) Implement selection of VM service based on vSphere version
+	var vmService services.VirtualMachineService
+
+	// TODO(akutz) Implement vmService.DestroyVM
+	vm, err := vmService.DestroyVM(ctx)
+	if err != nil {
+		return reconcile.Result{}, errors.Wrapf(err, "failed to destroy VM")
+	}
+
+	// Requeue the operation until the VM is "notfound".
+	if vmState := vm.State; vmState != infrav1.VirtualMachineStateNotFound {
+		ctx.Logger.V(6).Info("requeuing operation until vm state is 'notfound'", "state", vmState)
+		return reconcile.Result{RequeueAfter: config.DefaultRequeue}, nil
+	}
+
 	return reconcile.Result{}, nil
 }
 
@@ -186,6 +208,21 @@ func (r *VSphereMachineReconciler) reconcileNormal(ctx *context.MachineContext) 
 	if ctx.Machine.Spec.Bootstrap.Data == nil {
 		ctx.Logger.Info("Waiting for bootstrap data to be available")
 		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
+	}
+
+	// TODO(akutz) Implement selection of VM service based on vSphere version
+	var vmService services.VirtualMachineService
+
+	// TODO(akutz) Implement vmService.ReconcileVM
+	vm, err := vmService.ReconcileVM(ctx)
+	if err != nil {
+		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile VM")
+	}
+
+	// Requeue the operation until the VM is "running".
+	if vmState := vm.State; vmState != infrav1.VirtualMachineStateRunning {
+		ctx.Logger.V(6).Info("requeuing operation until vm state is 'running'", "state", vmState)
+		return reconcile.Result{RequeueAfter: config.DefaultRequeue}, nil
 	}
 
 	return reconcile.Result{}, nil

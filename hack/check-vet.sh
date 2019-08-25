@@ -23,5 +23,4 @@ set -o pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 # TODO(akutz) Change back once the GoVmomi service is updated to v1a2
-#go vet ./api/... ./controllers/... ./pkg/... .
-go vet ./api/... ./controllers/... .
+go vet ./api/... ./controllers/... ./pkg/... .

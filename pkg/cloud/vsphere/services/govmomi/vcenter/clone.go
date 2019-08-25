@@ -31,29 +31,29 @@ const (
 )
 
 // Clone kicks off a clone operation on vCenter to create a new virtual machine.
-func Clone(ctx *context.MachineContext, userData []byte) error {
+func Clone(ctx *context.MachineContext, bootstrapData []byte) error {
 	ctx = context.NewMachineLoggerContext(ctx, "vcenter")
 	ctx.Logger.V(6).Info("starting clone process")
 
 	var extraConfig extra.Config
-	extraConfig.SetCloudInitUserData(userData)
+	extraConfig.SetCloudInitUserData(bootstrapData)
 
-	tpl, err := template.FindTemplate(ctx, ctx.MachineConfig.Template)
+	tpl, err := template.FindTemplate(ctx, ctx.VSphereMachine.Spec.Template)
 	if err != nil {
 		return err
 	}
 
-	folder, err := ctx.Session.Finder.FolderOrDefault(ctx, ctx.ClusterConfig.CloudProviderConfiguration.Workspace.Folder)
+	folder, err := ctx.Session.Finder.FolderOrDefault(ctx, ctx.VSphereCluster.Spec.CloudProviderConfiguration.Workspace.Folder)
 	if err != nil {
 		return errors.Wrapf(err, "unable to get folder for %q", ctx)
 	}
 
-	datastore, err := ctx.Session.Finder.DatastoreOrDefault(ctx, ctx.ClusterConfig.CloudProviderConfiguration.Workspace.Datastore)
+	datastore, err := ctx.Session.Finder.DatastoreOrDefault(ctx, ctx.VSphereCluster.Spec.CloudProviderConfiguration.Workspace.Datastore)
 	if err != nil {
 		return errors.Wrapf(err, "unable to get datastore for %q", ctx)
 	}
 
-	pool, err := ctx.Session.Finder.ResourcePoolOrDefault(ctx, ctx.ClusterConfig.CloudProviderConfiguration.Workspace.ResourcePool)
+	pool, err := ctx.Session.Finder.ResourcePoolOrDefault(ctx, ctx.VSphereCluster.Spec.CloudProviderConfiguration.Workspace.ResourcePool)
 	if err != nil {
 		return errors.Wrapf(err, "unable to get resource pool for %q", ctx)
 	}
@@ -77,15 +77,15 @@ func Clone(ctx *context.MachineContext, userData []byte) error {
 	deviceSpecs := []types.BaseVirtualDeviceConfigSpec{diskSpec}
 	deviceSpecs = append(deviceSpecs, networkSpecs...)
 
-	numCPUs := ctx.MachineConfig.NumCPUs
+	numCPUs := ctx.VSphereMachine.Spec.NumCPUs
 	if numCPUs < 2 {
 		numCPUs = 2
 	}
-	numCoresPerSocket := ctx.MachineConfig.NumCoresPerSocket
+	numCoresPerSocket := ctx.VSphereMachine.Spec.NumCoresPerSocket
 	if numCoresPerSocket == 0 {
 		numCoresPerSocket = numCPUs
 	}
-	memMiB := ctx.MachineConfig.MemoryMiB
+	memMiB := ctx.VSphereMachine.Spec.MemoryMiB
 	if memMiB == 0 {
 		memMiB = 2048
 	}
@@ -123,7 +123,7 @@ func Clone(ctx *context.MachineContext, userData []byte) error {
 		return errors.Wrapf(err, "error trigging clone op for machine %q", ctx)
 	}
 
-	ctx.MachineStatus.TaskRef = task.Reference().Value
+	ctx.VSphereMachine.Status.TaskRef = task.Reference().Value
 
 	return nil
 }
@@ -145,7 +145,7 @@ func getDiskSpec(
 	}
 
 	disk := disks[0].(*types.VirtualDisk)
-	disk.CapacityInKB = int64(ctx.MachineConfig.DiskGiB) * 1024 * 1024
+	disk.CapacityInKB = int64(ctx.VSphereMachine.Spec.DiskGiB) * 1024 * 1024
 
 	return &types.VirtualDeviceConfigSpec{
 		Operation: types.VirtualDeviceConfigSpecOperationEdit,
@@ -171,8 +171,8 @@ func getNetworkSpecs(
 
 	// Add new NICs based on the machine config.
 	key := int32(-100)
-	for i := range ctx.MachineConfig.Network.Devices {
-		netSpec := &ctx.MachineConfig.Network.Devices[i]
+	for i := range ctx.VSphereMachine.Spec.Network.Devices {
+		netSpec := &ctx.VSphereMachine.Spec.Network.Devices[i]
 		ref, err := ctx.Session.Finder.Network(ctx, netSpec.NetworkName)
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to find network %q", netSpec.NetworkName)

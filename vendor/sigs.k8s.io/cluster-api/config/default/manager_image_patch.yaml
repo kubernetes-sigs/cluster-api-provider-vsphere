@@ -1,5 +1,5 @@
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
   name: controller-manager
   namespace: system
@@ -7,5 +7,5 @@ spec:
   template:
     spec:
       containers:
-      - image: us.gcr.io/k8s-artifacts-prod/cluster-api/cluster-api-controller:v0.1.9
+      - image: gcr.io/k8s-staging-cluster-api/cluster-api-controller:latest
         name: manager

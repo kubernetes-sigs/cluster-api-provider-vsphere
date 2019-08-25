@@ -19,22 +19,24 @@ package govmomi_test
 import (
 	"crypto/tls"
 	"log"
-	"reflect"
+	"os"
 	"testing"
 
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/simulator"
 	"github.com/vmware/govmomi/vim25/types"
-	yaml "gopkg.in/yaml.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphere/v1alpha1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/certificates"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/govmomi"
 )
+
+func init() {
+	os.Unsetenv("VSPHERE_USERNAME")
+	os.Unsetenv("VSPHERE_PASSWORD")
+}
 
 func TestCreate(t *testing.T) {
 	model := simulator.VPX()
@@ -49,64 +51,39 @@ func TestCreate(t *testing.T) {
 
 	s := model.Service.NewServer()
 	defer s.Close()
-
 	pass, _ := s.URL.User.Password()
-	clusterConfig := v1alpha1.VsphereClusterProviderSpec{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: v1alpha1.SchemeGroupVersion.String(),
-		},
-		Username: s.URL.User.Username(),
-		Password: pass,
-		Server:   s.URL.Host,
-	}
-	clusterConfig.TypeMeta.Kind = reflect.TypeOf(clusterConfig).Name()
-
-	raw, err := yaml.Marshal(clusterConfig)
-	if err != nil {
-		log.Fatal(err)
-	}
+	os.Setenv("VSPHERE_USERNAME", s.URL.User.Username())
+	os.Setenv("VSPHERE_PASSWORD", pass)
 
 	cluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-cluster",
 			Namespace: "test-namespace",
 		},
-		Spec: clusterv1.ClusterSpec{
-			ClusterNetwork: clusterv1.ClusterNetworkingConfig{
-				Services: clusterv1.NetworkRanges{
-					CIDRBlocks: []string{"1.2.3.4"},
-				},
-				Pods: clusterv1.NetworkRanges{
-					CIDRBlocks: []string{"5.6.7.8"},
-				},
-			},
-			ProviderSpec: clusterv1.ProviderSpec{
-				Value: &runtime.RawExtension{
-					Raw: raw,
-				},
-			},
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       "Cluster",
 		},
-		Status: clusterv1.ClusterStatus{
-			ProviderStatus: &runtime.RawExtension{
-				Raw: []byte(`{"clusterApiStatus": "Ready"}`),
-			},
-			APIEndpoints: []clusterv1.APIEndpoint{
-				{
-					Host: "127.0.0.1",
-					Port: 0, // TODO
-				},
-			},
+	}
+	vsphereCluster := &infrav1.VSphereCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-cluster",
+			Namespace: "test-namespace",
+		},
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: infrav1.GroupVersion.String(),
+			Kind:       "VSphereCluster",
+		},
+		Spec: infrav1.VSphereClusterSpec{
+			Server: s.URL.Host,
 		},
 	}
 
 	clusterContext, err := context.NewClusterContext(&context.ClusterContextParams{
-		Cluster: cluster,
+		Cluster:        cluster,
+		VSphereCluster: vsphereCluster,
 	})
 	if err != nil {
-		t.Fatal(err)
-	}
-
-	if err := certificates.ReconcileCertificates(clusterContext); err != nil {
 		t.Fatal(err)
 	}
 
@@ -114,57 +91,49 @@ func TestCreate(t *testing.T) {
 	disk := object.VirtualDeviceList(vm.Config.Hardware.Device).SelectByType((*types.VirtualDisk)(nil))[0].(*types.VirtualDisk)
 	disk.CapacityInKB = 20 * 1024 * 1024 // bump since default disk size is < 1GB
 
-	machineConfig := v1alpha1.VsphereMachineProviderSpec{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "vsphereproviderconfig/v1alpha1",
-		},
-		Datacenter: "",
-		Network: v1alpha1.NetworkSpec{
-			Devices: []v1alpha1.NetworkDeviceSpec{
-				{
-					NetworkName: "VM Network",
-					DHCP4:       true,
-					DHCP6:       true,
-				},
-			},
-		},
-		NumCPUs:   2,
-		MemoryMiB: 2048,
-		Template:  vm.Name,
-	}
-	machineConfig.TypeMeta.Kind = reflect.TypeOf(machineConfig).Name()
-
-	raw, err = yaml.Marshal(machineConfig)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	machine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "machine1",
-			Labels: map[string]string{
-				"set": "controlplane",
-			},
+			Name:      "test-machine",
+			Namespace: "test-namespace",
 		},
-		Spec: clusterv1.MachineSpec{
-			ProviderSpec: clusterv1.ProviderSpec{
-				Value: &runtime.RawExtension{
-					Raw: raw,
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       "Machine",
+		},
+	}
+	vsphereMachine := &infrav1.VSphereMachine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-machine",
+			Namespace: "test-namespace",
+		},
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: infrav1.GroupVersion.String(),
+			Kind:       "VSphereMachine",
+		},
+		Spec: infrav1.VSphereMachineSpec{
+			Datacenter: "",
+			Network: infrav1.NetworkSpec{
+				Devices: []infrav1.NetworkDeviceSpec{
+					{
+						NetworkName: "VM Network",
+						DHCP4:       true,
+						DHCP6:       true,
+					},
 				},
 			},
-			Versions: clusterv1.MachineVersionInfo{
-				ControlPlane: "1.12.3",
-				Kubelet:      "1.12.3",
-			},
+			NumCPUs:   2,
+			MemoryMiB: 2048,
+			Template:  vm.Name,
 		},
 	}
 
-	machineContext, err := context.NewMachineContextFromClusterContext(clusterContext, machine)
+	machineContext, err := context.NewMachineContextFromClusterContext(
+		clusterContext, machine, vsphereMachine)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if err := govmomi.Create(machineContext, ""); err != nil {
+	if err := govmomi.Create(machineContext, []byte("")); err != nil {
 		log.Fatal(err)
 	}
 

@@ -1,3 +1,13 @@
-version: "1"
-domain: cluster.k8s.io
+version: "2"
+domain: cluster.x-k8s.io
 repo: sigs.k8s.io/cluster-api-provider-vsphere
+resources:
+- group: infrastructure
+  version: v1alpha2
+  kind: VSphereCluster
+- group: infrastructure
+  version: v1alpha2
+  kind: VSphereMachine
+- group: infrastructure
+  version: v1alpha2
+  kind: VSphereMachineTemplate

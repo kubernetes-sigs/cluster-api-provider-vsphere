@@ -31,15 +31,16 @@ _diff_log="$(mktemp)"
 _output_dir="$(mktemp -d)"
 
 echo "verify-crds: generating crds"
-  go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go \
-    crd \
-    --output-dir "${_output_dir}"
+go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go \
+    paths=./api/... \
+    crd:trivialVersions=true \
+    output:crd:dir="${_output_dir}"
 
 _exit_code=0
 echo "verify-crds: comparing crds"
-echo
 for f in $(/bin/ls "${_output_dir}"); do
-  diff "${_output_dir}/${f}" "./config/crds/${f}" >"${_diff_log}" || _exit_code="${?}"
+  echo "  ${f}"
+  diff "${_output_dir}/${f}" "./config/crd/bases/${f}" >"${_diff_log}" || _exit_code="${?}"
   if [ "${_exit_code}" -ne "0" ]; then
     echo "${f}" 1>&2
     cat "${_diff_log}" 1>&2

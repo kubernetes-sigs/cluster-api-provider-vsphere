@@ -22,8 +22,24 @@ set -o pipefail
 # script is located.
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
-# shellcheck disable=1091
-source ./scripts/fetch_ext_bins.sh
-fetch_tools
-setup_envs
-KUBEBUILDER_CONTROLPLANE_START_TIMEOUT=30s make test
+GOHOSTOS="${GOHOSTOS:-$(go env GOHOSTOS)}"
+GOHOSTARCH="${GOHOSTARCH:-$(go env GOHOSTARCH)}"
+KUBEBUILDER_VERSION="${KUBEBUILDER_VERSION:-2.0.0}"
+KUBEBUILDER_HOME="/tmp/kubebuilder_${KUBEBUILDER_VERSION}_${GOHOSTOS}_${GOHOSTARCH}" 
+KUBEBUILDER_URL="https://go.kubebuilder.io/dl/${KUBEBUILDER_VERSION}/${GOHOSTOS}/${GOHOSTARCH}"
+
+# Download kubebuilder and extract it to tmp.
+echo "downloading ${KUBEBUILDER_URL} to ${KUBEBUILDER_HOME} ..."
+curl -sSL "${KUBEBUILDER_URL}" | tar -xz -C /tmp/
+
+# Export the env vars for kubebuilder.
+echo "exporting kubebuilder environment ..."
+export PATH="${PATH}:${KUBEBUILDER_HOME}/bin"
+export TEST_ASSET_KUBECTL="${KUBEBUILDER_HOME}/bin/kubectl"
+export TEST_ASSET_KUBE_APISERVER="${KUBEBUILDER_HOME}/bin/kube-apiserver"
+export TEST_ASSET_ETCD="${KUBEBUILDER_HOME}/bin/etcd"
+export KUBEBUILDER_CONTROLPLANE_START_TIMEOUT=30s
+
+# Run the tests.
+echo "running tests ..."
+make test

@@ -15,7 +15,7 @@
 ################################################################################
 ##                                MAIN STAGE                                  ##
 ################################################################################
-ARG BASE_IMAGE=gcr.io/cluster-api-provider-vsphere/extra/manifests-base:v0.4.0-beta.1-6-g9e51ae05
+ARG BASE_IMAGE=gcr.io/cluster-api-provider-vsphere/extra/manifests-base:v0.4.2-beta.0-15-g5b0bb299
 FROM ${BASE_IMAGE}
 LABEL "maintainer" "Andrew Kutz <akutz@vmware.com>"
 
@@ -23,15 +23,12 @@ LABEL "maintainer" "Andrew Kutz <akutz@vmware.com>"
 ENV BUILDDIR /build
 WORKDIR /build
 
-# Copy in the hack tooling.
-COPY ./hack/envsubst.py ./hack/generate-yaml.sh ./hack/
-
 # Copy in the CAPV and CAPI config directories.
 COPY ./config ./config
 COPY ./vendor/sigs.k8s.io/cluster-api/config ./vendor/sigs.k8s.io/cluster-api/config
 
 # Copy in the examples directory.
-COPY ./cmd/clusterctl/examples/vsphere/*.template ./cmd/clusterctl/examples/vsphere/
+COPY ./examples ./examples
 
 # Ensure all the directories in the /build directory are writeable.
 RUN find . -type d -exec chmod 0777 \{\} \;
@@ -48,4 +45,4 @@ WORKDIR /out
 # Indicate that this is being execute in a container.
 ENV DOCKER_ENABLED 1
 
-ENTRYPOINT [ "/build/hack/generate-yaml.sh" ]
+ENTRYPOINT [ "/build/examples/generate.sh" ]

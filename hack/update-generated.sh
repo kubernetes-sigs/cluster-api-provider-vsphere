@@ -28,48 +28,42 @@ set -o pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 gen-crds() {
-  local out="${1-./config/crds}"
-  echo "update-generated: gen-crds out=${out}"
+  local out="${1-./config}"
+  echo "update-generated: gen-crds out=${out}/crd/bases, ${out}/webhook"
   go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go \
-    crd \
-    --output-dir "${out}"
-}
-
-gen-deepcopy() {
-  local pkg="${1-}"
-  echo "update-generated: deepcopy pkg=${pkg}"
-  go run vendor/k8s.io/code-generator/cmd/deepcopy-gen/main.go \
-    --go-header-file   hack/boilerplate.go.txt \
-    --input-dirs       "${pkg}" \
-    --output-file-base zz_generated.deepcopy \
-    --bounding-dirs    "${pkg}" \
-    -v "${DEEPCOPY_LOG_LEVEL:-1}"
+    paths=./api/... \
+    crd:trivialVersions=true \
+    output:crd:dir="${out}/crd/bases" \
+    output:webhook:dir="${out}/webhook" \
+    webhook
 }
 
 gen-rbac() {
-  local out="${1-./config/rbac}"
-  echo "update-generated: gen-rbac out=${out}"
+  local out="${1-./config}"
+  echo "update-generated: gen-rbac out=${out}/rbac"
   go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go \
-    rbac \
-    --output-dir "${out}"
+    paths=./controllers/... \
+    output:rbac:dir="${out}/rbac" \
+    rbac:roleName=manager-role
 }
 
-deepcopy-v1alpha1() {
-  gen-deepcopy ./pkg/apis/vsphere/v1alpha1/cloud
-  gen-deepcopy ./pkg/apis/vsphere/v1alpha1
+gen-kubebuilder() {
+  echo "update-generated: kubebuilder"
+  go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go \
+    paths=./api/... \
+    object:headerFile=hack/boilerplate/boilerplate.generatego.txt
 }
 
-deepcopy() { deepcopy-v1alpha1; }
-codegen()  { deepcopy; }
-crd()      { gen-crds ./config/crds; }
-rbac()     { gen-rbac ./config/rbac; }
-all()      { codegen && crd && rbac; }
+kubebuilder() { gen-kubebuilder; }
+crd()         { gen-crds ./config; }
+rbac()        { gen-rbac ./config; }
+all()         { kubebuilder && crd && rbac; }
 
 [ "${#}" -eq "0" ] && all
 
 while [ "${#}" -gt "0" ]; do
   case "${1}" in
-  all|codegen|deepcopy|crd|rbac)
+  all|kubebuilder|crd|rbac)
     eval "${1}"
     shift
     ;;

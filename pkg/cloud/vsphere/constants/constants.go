@@ -17,7 +17,7 @@ limitations under the License.
 package constants
 
 import (
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphere"
+	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2"
 )
 
 const (
@@ -43,9 +43,9 @@ const (
 
 	// MachineReadyAnnotationLabel is the annotation used to indicate that a
 	// machine is ready.
-	MachineReadyAnnotationLabel = vsphere.GroupName + "/machine-ready"
+	MachineReadyAnnotationLabel = "capv." + v1alpha2.GroupName + "/machine-ready"
 
 	// MaintenanceAnnotationLabel is the annotation used to indicate a machine and/or
 	// cluster are in maintenance mode.
-	MaintenanceAnnotationLabel = vsphere.GroupName + "/maintenance"
+	MaintenanceAnnotationLabel = "capv." + v1alpha2.GroupName + "/maintenance"
 )

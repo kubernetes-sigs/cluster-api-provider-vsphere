@@ -14,9 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This script is used build new container images of the CAPV manager and
-# clusterctl. When invoked without arguments, the default behavior is to build
-# new ci images
+# This script is used build CAPV's container images.
+# When invoked without arguments, the default behavior is to build new
+# CI images.
 
 set -o errexit
 set -o nounset
@@ -169,45 +169,8 @@ function push_images() {
   fi
 }
 
-function build_clusterctl() {
-  for os in linux darwin; do
-    # Don't build Darwin for PRs
-    if [ "${BUILD_RELEASE_TYPE}" = "pr" ] && [ "${os}" == "darwin" ]; then
-      continue
-    fi
-    echo "building clusterctl for ${os}"
-    GOOS="${os}" GOARCH=amd64 make clusterctl-in-docker
-  done
-}
-
 function sha_sum() {
   { sha256sum "${1}" || shasum -a 256 "${1}"; } 2>/dev/null > "${1}.sha256"
-}
-
-function push_clusterctl() {
-  local bucket
-  case "${BUILD_RELEASE_TYPE}" in
-    ci)
-      bucket="capv-ci"
-      ;;
-    pr)
-      bucket="capv-pr"
-      ;;
-    release)
-      bucket="capv-release"
-      ;;
-  esac
-
-  for os in linux darwin; do
-    # Don't build Darwin for PRs
-    if [ "${BUILD_RELEASE_TYPE}" = "pr" ] && [ "${os}" == "darwin" ]; then
-      continue
-    fi
-    sha_sum "bin/clusterctl.${os}_amd64"
-    echo "copying clusterctl version ${VERSION} for ${os} to ${bucket}"
-    gsutil cp "bin/clusterctl.${os}_amd64" "gs://${bucket}/${VERSION}/bin/${os}/amd64/clusterctl"
-    gsutil cp "bin/clusterctl.${os}_amd64.sha256" "gs://${bucket}/${VERSION}/bin/${os}/amd64/clusterctl.sha256"
-  done
 }
 
 # Start of main script
@@ -259,11 +222,7 @@ docker ps >/dev/null 2>&1 || fatal "Docker not available"
 # build container images
 build_images
 
-# build clusterctl
-build_clusterctl
-
 # Optionally push artifacts
 if [ "${PUSH}" ]; then
   push_images
-  push_clusterctl
 fi

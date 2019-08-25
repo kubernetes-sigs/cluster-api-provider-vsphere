@@ -31,7 +31,6 @@ type AlphaPhaseGetKubeconfigOptions struct {
 	Kubeconfig       string
 	KubeconfigOutput string
 	Namespace        string
-	Provider         string
 }
 
 var pgko = &AlphaPhaseGetKubeconfigOptions{}
@@ -43,10 +42,6 @@ var alphaPhaseGetKubeconfigCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		if pgko.Kubeconfig == "" {
 			exitWithHelp(cmd, "Please provide a kubeconfig file.")
-		}
-
-		if pgko.Provider == "" {
-			exitWithHelp(cmd, "Please specify a provider.")
 		}
 
 		if pgko.ClusterName == "" {
@@ -71,12 +66,7 @@ func RunAlphaPhaseGetKubeconfig(pgko *AlphaPhaseGetKubeconfigOptions) error {
 		return fmt.Errorf("unable to create cluster client: %v", err)
 	}
 
-	provider, err := getProvider(pgko.Provider)
-	if err != nil {
-		return err
-	}
-
-	if _, err := phases.GetKubeconfig(client, provider, pgko.KubeconfigOutput, pgko.ClusterName, pgko.Namespace); err != nil {
+	if _, err := phases.GetKubeconfig(client, pgko.KubeconfigOutput, pgko.ClusterName, pgko.Namespace); err != nil {
 		return fmt.Errorf("unable to get kubeconfig: %v", err)
 	}
 
@@ -87,8 +77,6 @@ func init() {
 	// Required flags
 	alphaPhaseGetKubeconfigCmd.Flags().StringVarP(&pgko.Kubeconfig, "kubeconfig", "", "", "Path for the kubeconfig file to use")
 	alphaPhaseGetKubeconfigCmd.Flags().StringVarP(&pgko.ClusterName, "cluster-name", "", "", "Cluster Name")
-	// TODO: Remove as soon as code allows https://github.com/kubernetes-sigs/cluster-api/issues/157
-	alphaPhaseGetKubeconfigCmd.Flags().StringVarP(&pgko.Provider, "provider", "", "", "Which provider deployment logic to use")
 
 	// Optional flags
 	alphaPhaseGetKubeconfigCmd.Flags().StringVarP(&pgko.KubeconfigOutput, "kubeconfig-out", "", "kubeconfig", "Where to output the kubeconfig for the provisioned cluster")

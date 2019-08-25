@@ -21,13 +21,14 @@ LABEL "maintainer" "Travis Rhoden <trhoden@vmware.com>"
 RUN apt-get --assume-no update && apt-get -y install \
     curl \
     python \
+    git \
  && rm -rf /var/lib/apt/lists/*
 
 ################################################################################
 ##                            DOWNLOAD KUSTOMIZE                              ##
 ################################################################################
 ARG KUSTOMIZE_VERSION
-ENV KUSTOMIZE_VERSION 2.0.0
+ENV KUSTOMIZE_VERSION 3.1.0
 RUN curl -Lo /usr/local/bin/kustomize \
     "https://github.com/kubernetes-sigs/kustomize/releases/download/v${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_linux_amd64" && \
     chmod 0755 /usr/local/bin/kustomize

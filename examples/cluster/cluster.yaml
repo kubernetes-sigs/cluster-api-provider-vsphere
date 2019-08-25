@@ -1,0 +1,39 @@
+---
+apiVersion: cluster.x-k8s.io/v1alpha2
+kind: Cluster
+metadata:
+  name: ${CLUSTER_NAME}
+spec:
+  clusterNetwork:
+    services:
+      cidrBlocks: ["${SERVICE_CIDR}"]
+    pods:
+      cidrBlocks: ["${CLUSTER_CIDR}"]
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    kind: VSphereCluster
+    name: ${CLUSTER_NAME}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+kind: VSphereCluster
+metadata:
+  name: ${CLUSTER_NAME}
+spec:
+  server: "${VSPHERE_SERVER}"
+  sshAuthorizedKeys:
+  - "${SSH_AUTHORIZED_KEY}"
+  cloudProviderConfiguration:
+    global:
+      secretName: "cloud-provider-vsphere-credentials"
+      secretNamespace: "kube-system"
+    virtualCenter:
+      "${VSPHERE_SERVER}":
+        datacenters: "${VSPHERE_DATACENTER}"
+    network:
+      name: "${VSPHERE_NETWORK}"
+    workspace:
+      server: "${VSPHERE_SERVER}"
+      datacenter: "${VSPHERE_DATACENTER}"
+      datastore: "${VSPHERE_DATASTORE}"
+      resourcePool: "${VSPHERE_RESOURCE_POOL}"
+      folder: "${VSPHERE_FOLDER}"

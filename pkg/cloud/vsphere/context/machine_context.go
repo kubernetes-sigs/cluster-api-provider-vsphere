@@ -17,85 +17,47 @@ limitations under the License.
 package context
 
 import (
-	"encoding/json"
 	"fmt"
-	"net"
-	"reflect"
-	"strconv"
 
 	"github.com/pkg/errors"
-	"github.com/vmware/govmomi/vim25/types"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	apitypes "k8s.io/apimachinery/pkg/types"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
-	clusterUtilv1 "sigs.k8s.io/cluster-api/pkg/util"
-	"sigs.k8s.io/controller-runtime/pkg/patch"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/apis/vsphere/v1alpha1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
+	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2"
 )
-
-// ErrNoMachineIPAddr indicates that no valid IP addresses were found in a machine context
-var ErrNoMachineIPAddr = errors.New("no IP addresses found for machine")
 
 // MachineContextParams are the parameters needed to create a MachineContext.
 type MachineContextParams struct {
 	ClusterContextParams
-	Machine *clusterv1.Machine
+	Machine        *clusterv1.Machine
+	VSphereMachine *v1alpha2.VSphereMachine
 }
 
 // MachineContext is a Go context used with a CAPI cluster.
 type MachineContext struct {
 	*ClusterContext
-	Machine       *clusterv1.Machine
-	MachineCopy   *clusterv1.Machine
-	MachineClient client.MachineInterface
-	MachineConfig *v1alpha1.VsphereMachineProviderSpec
-	MachineStatus *v1alpha1.VsphereMachineProviderStatus
-	Session       *Session
+	Machine        *clusterv1.Machine
+	VSphereMachine *v1alpha2.VSphereMachine
+	Session        *Session
+
+	vsphereMachinePatch client.Patch
 }
 
 // NewMachineContextFromClusterContext creates a new MachineContext using an
 // existing CluserContext.
 func NewMachineContextFromClusterContext(
-	clusterCtx *ClusterContext, machine *clusterv1.Machine) (*MachineContext, error) {
-
-	var machineClient client.MachineInterface
-	if clusterCtx.client != nil {
-		machineClient = clusterCtx.client.Machines(machine.Namespace)
-	}
-
-	machineConfig, err := v1alpha1.GetMachineProviderSpec(machine)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to load machine provider config")
-	}
-
-	if machineConfig.KubeadmConfiguration.Init.LocalAPIEndpoint.BindPort == 0 {
-		machineConfig.KubeadmConfiguration.Init.LocalAPIEndpoint.BindPort = constants.DefaultBindPort
-	}
-	if cp := machineConfig.KubeadmConfiguration.Join.ControlPlane; cp != nil {
-		if cp.LocalAPIEndpoint.BindPort == 0 {
-			cp.LocalAPIEndpoint.BindPort = constants.DefaultBindPort
-		}
-	}
-
-	machineStatus, err := v1alpha1.GetMachineProviderStatus(machine)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to load machine provider status")
-	}
+	clusterCtx *ClusterContext,
+	machine *clusterv1.Machine,
+	vsphereMachine *v1alpha2.VSphereMachine) (*MachineContext, error) {
 
 	clusterCtx.Logger = clusterCtx.Logger.WithName(machine.Name)
 
 	machineCtx := &MachineContext{
-		ClusterContext: clusterCtx,
-		Machine:        machine,
-		MachineCopy:    machine.DeepCopy(),
-		MachineClient:  machineClient,
-		MachineConfig:  machineConfig,
-		MachineStatus:  machineStatus,
+		ClusterContext:      clusterCtx,
+		Machine:             machine,
+		VSphereMachine:      vsphereMachine,
+		vsphereMachinePatch: client.MergeFrom(vsphereMachine.DeepCopyObject()),
 	}
 
 	if machineCtx.CanLogin() {
@@ -115,7 +77,7 @@ func NewMachineContext(params *MachineContextParams) (*MachineContext, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewMachineContextFromClusterContext(ctx, params.Machine)
+	return NewMachineContextFromClusterContext(ctx, params.Machine, params.VSphereMachine)
 }
 
 // NewMachineLoggerContext creates a new MachineContext with the given logger context.
@@ -123,10 +85,7 @@ func NewMachineLoggerContext(parentContext *MachineContext, loggerContext string
 	ctx := &MachineContext{
 		ClusterContext: parentContext.ClusterContext,
 		Machine:        parentContext.Machine,
-		MachineCopy:    parentContext.MachineCopy,
-		MachineClient:  parentContext.MachineClient,
-		MachineConfig:  parentContext.MachineConfig,
-		MachineStatus:  parentContext.MachineStatus,
+		VSphereMachine: parentContext.VSphereMachine,
 		Session:        parentContext.Session,
 	}
 	ctx.Logger = parentContext.Logger.WithName(loggerContext)
@@ -141,18 +100,6 @@ func (c *MachineContext) String() string {
 	return fmt.Sprintf("%s/%s/%s", c.Cluster.Namespace, c.Cluster.Name, c.Machine.Name)
 }
 
-// GetMoRef returns a managed object reference for the VM associated with
-// the machine. A nil value is returned if the MachineRef is not yet set.
-func (c *MachineContext) GetMoRef() *types.ManagedObjectReference {
-	if c.MachineConfig.MachineRef == "" {
-		return nil
-	}
-	return &types.ManagedObjectReference{
-		Type:  "VirtualMachine",
-		Value: c.MachineConfig.MachineRef,
-	}
-}
-
 // GetObject returns the Machine object.
 func (c *MachineContext) GetObject() runtime.Object {
 	return c.Machine
@@ -163,149 +110,18 @@ func (c *MachineContext) GetSession() *Session {
 	return c.Session
 }
 
-// HasControlPlaneRole returns a flag indicating whether or not a machine has
-// the control plane role.
-func (c *MachineContext) HasControlPlaneRole() bool {
-	if c.Machine == nil {
-		return false
-	}
-	return clusterUtilv1.IsControlPlaneMachine(c.Machine)
-}
-
-// IPAddr returns the machine's first IP address.
-func (c *MachineContext) IPAddr() (string, error) {
-	if c.Machine == nil {
-		return "", errors.New("machine in context is nil")
-	}
-
-	var err error
-	var preferredAPIServerCIDR *net.IPNet
-	if c.MachineConfig.Network.PreferredAPIServerCIDR != "" {
-		_, preferredAPIServerCIDR, err = net.ParseCIDR(c.MachineConfig.Network.PreferredAPIServerCIDR)
-		if err != nil {
-			return "", errors.New("error parsing preferred apiserver CIDR")
-		}
-
-		c.Logger.V(4).Info("detected preferred apiserver CIDR", "preferredAPIServerCIDR", preferredAPIServerCIDR)
-	}
-
-	for _, nodeAddr := range c.Machine.Status.Addresses {
-		if nodeAddr.Type != corev1.NodeInternalIP {
-			continue
-		}
-
-		if preferredAPIServerCIDR == nil {
-			return nodeAddr.Address, nil
-		}
-
-		if preferredAPIServerCIDR.Contains(net.ParseIP(nodeAddr.Address)) {
-			return nodeAddr.Address, nil
-		}
-	}
-
-	return "", ErrNoMachineIPAddr
-}
-
-// BindPort returns the machine's API bind port.
-func (c *MachineContext) BindPort() int32 {
-	if c.Machine == nil {
-		return constants.DefaultBindPort
-	}
-	bindPort := c.MachineConfig.KubeadmConfiguration.Init.LocalAPIEndpoint.BindPort
-	if cp := c.MachineConfig.KubeadmConfiguration.Join.ControlPlane; cp != nil {
-		if jbp := cp.LocalAPIEndpoint.BindPort; jbp != bindPort {
-			bindPort = jbp
-		}
-	}
-	if bindPort == 0 {
-		bindPort = constants.DefaultBindPort
-	}
-	return bindPort
-}
-
-// ControlPlaneEndpoint returns the control plane endpoint for the cluster.
-// This function first attempts to retrieve the control plane endpoint with
-// ClusterContext.ControlPlaneEndpoint.
-// If no endpoint is returned then this machine's IP address is used as the
-// control plane endpoint if the machine is a control plane node.
-// Otherwise an error is returned.
-func (c *MachineContext) ControlPlaneEndpoint() (string, error) {
-	if controlPlaneEndpoint, _ := c.ClusterContext.ControlPlaneEndpoint(); controlPlaneEndpoint != "" {
-		return controlPlaneEndpoint, nil
-	}
-
-	if !c.HasControlPlaneRole() {
-		return "", errors.New("machine is not a control plane node")
-	}
-
-	ipAddr, err := c.IPAddr()
-	if err != nil {
-		return "", errors.Wrapf(err, "failed to get first IP address for machine %q", c)
-	}
-
-	controlPlaneEndpoint := net.JoinHostPort(ipAddr, strconv.Itoa(int(c.BindPort())))
-	c.Logger.V(2).Info("got control plane endpoint from machine", "control-plane-endpoint", controlPlaneEndpoint)
-	return controlPlaneEndpoint, nil
-}
-
 // Patch updates the object and its status on the API server.
-func (c *MachineContext) Patch() {
+func (c *MachineContext) Patch() error {
 
-	// Make sure the local status isn't part of the JSON patch.
-	localStatus := c.Machine.Status.DeepCopy()
-	c.Machine.Status = clusterv1.MachineStatus{}
-	c.MachineCopy.Status.DeepCopyInto(&c.Machine.Status)
-
-	// Patch the object, minus the status.
-	localProviderSpec, err := EncodeAsRawExtension(c.MachineConfig)
-	if err != nil {
-		c.Logger.Error(err, "failed to encode provider spec")
-		return
-	}
-	c.Machine.Spec.ProviderSpec.Value = localProviderSpec
-	p, err := patch.NewJSONPatch(c.MachineCopy, c.Machine)
-	if err != nil {
-		c.Logger.Error(err, "failed to create new JSONPatch for object")
-		return
-	}
-	if len(p) != 0 {
-		pb, err := json.MarshalIndent(p, "", "  ")
-		if err != nil {
-			c.Logger.Error(err, "failed to to marshal object patch")
-			return
-		}
-		c.Logger.V(6).Info("generated json patch for object", "json-patch", string(pb))
-		result, err := c.MachineClient.Patch(c.Machine.Name, apitypes.JSONPatchType, pb)
-		if err != nil {
-			record.Warnf(c.Machine, updateFailure, "patch object failed: %v", err)
-			c.Logger.Error(err, "patch object failed")
-			return
-		}
-		c.Logger.V(6).Info("patch object success")
-		record.Event(c.Machine, updateSuccess, "patch object success")
-		c.Machine.ResourceVersion = result.ResourceVersion
+	// Patch Machine object.
+	if err := c.Client.Patch(c, c.VSphereMachine, c.vsphereMachinePatch); err != nil {
+		return errors.Wrapf(err, "error patching VSphereMachine %s/%s", c.Machine.Namespace, c.Machine.Name)
 	}
 
-	// Put the original status back.
-	c.Machine.Status = clusterv1.MachineStatus{}
-	localStatus.DeepCopyInto(&c.Machine.Status)
+	// Patch Machine status.
+	if err := c.Client.Status().Patch(c, c.VSphereMachine, c.vsphereMachinePatch); err != nil {
+		return errors.Wrapf(err, "error patching VSphereMachine %s/%s status", c.Machine.Namespace, c.Machine.Name)
+	}
 
-	// Patch the status only.
-	localProviderStatus, err := EncodeAsRawExtension(c.MachineStatus)
-	if err != nil {
-		c.Logger.Error(err, "failed to encode provider status")
-		return
-	}
-	c.Machine.Status.ProviderStatus = localProviderStatus
-	if !reflect.DeepEqual(c.Machine.Status, c.MachineCopy.Status) {
-		result, err := c.MachineClient.UpdateStatus(c.Machine)
-		if err != nil {
-			record.Warnf(c.Machine, updateFailure, "patch status failed: %v", err)
-			c.Logger.Error(err, "patch status failed")
-			return
-		}
-		c.Logger.V(6).Info("patch status success")
-		record.Event(c.Machine, updateSuccess, "patch status success")
-		c.Machine.ResourceVersion = result.ResourceVersion
-	}
+	return nil
 }

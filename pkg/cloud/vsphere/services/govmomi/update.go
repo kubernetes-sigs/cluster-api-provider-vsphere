@@ -23,13 +23,13 @@ import (
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
 
-	corev1 "k8s.io/api/core/v1"
-	clustererror "sigs.k8s.io/cluster-api/pkg/controller/error"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
+	clustererror "sigs.k8s.io/cluster-api/errors"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/config"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/govmomi/extra"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/metadata"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/util"
 )
 
 // Update updates the machine from the backend platform.
@@ -47,8 +47,8 @@ func Update(ctx *context.MachineContext) error {
 	// to a VM that no longer exists. Clear the existing MachineRef and requeue
 	// this machine so that a new VM is created.
 	if vm == nil {
-		ctx.Logger.V(2).Info("vm should exist but cannot be found, recreating", "machine-ref", ctx.MachineConfig.MachineRef)
-		ctx.MachineConfig.MachineRef = ""
+		ctx.Logger.V(2).Info("vm should exist but cannot be found, recreating", "machine-ref", ctx.VSphereMachine.Spec.MachineRef)
+		ctx.VSphereMachine.Spec.MachineRef = ""
 		return &clustererror.RequeueAfterError{RequeueAfter: config.DefaultRequeue}
 	}
 
@@ -94,7 +94,7 @@ func reconcileMetadata(ctx *context.MachineContext, vm *object.VirtualMachine) e
 		return err
 	}
 
-	newMetadata, err := metadata.New(ctx)
+	newMetadata, err := util.GetMachineMetadata(ctx.VSphereMachine)
 	if err != nil {
 		return err
 	}
@@ -114,7 +114,7 @@ func reconcileMetadata(ctx *context.MachineContext, vm *object.VirtualMachine) e
 	if err != nil {
 		return errors.Wrapf(err, "unable to set metadata on vm %q", ctx)
 	}
-	ctx.MachineStatus.TaskRef = task.Reference().Value
+	ctx.VSphereMachine.Status.TaskRef = task.Reference().Value
 	ctx.Logger.V(6).Info("reenqueue to track update metadata task")
 	return &clustererror.RequeueAfterError{RequeueAfter: config.DefaultRequeue}
 }
@@ -128,16 +128,16 @@ func reconcileNetwork(ctx *context.MachineContext, vm *object.VirtualMachine) er
 	if err != nil {
 		return errors.Wrapf(err, "unable to get vm's network status %q", ctx)
 	}
-	expNetCount, actNetCount := len(ctx.MachineConfig.Network.Devices), len(allNetStatus)
+	expNetCount, actNetCount := len(ctx.VSphereMachine.Spec.Network.Devices), len(allNetStatus)
 	if expNetCount != actNetCount {
 		return errors.Errorf("invalid network count for %q: exp=%d act=%d", ctx, expNetCount, actNetCount)
 	}
-	ctx.MachineStatus.Network = allNetStatus
+	ctx.VSphereMachine.Status.Network = allNetStatus
 
 	// Update the MAC addresses in the machine's network config as well. This
 	// is required in order to generate the metadata.
-	for i := range ctx.MachineConfig.Network.Devices {
-		devSpec := &ctx.MachineConfig.Network.Devices[i]
+	for i := range ctx.VSphereMachine.Spec.Network.Devices {
+		devSpec := &ctx.VSphereMachine.Spec.Network.Devices[i]
 		oldMac, newMac := devSpec.MACAddr, allNetStatus[i].MACAddr
 		if oldMac != newMac {
 			devSpec.MACAddr = newMac
@@ -147,16 +147,16 @@ func reconcileNetwork(ctx *context.MachineContext, vm *object.VirtualMachine) er
 
 	// If the VM is powered on then issue requeues until all of the VM's
 	// networks have IP addresses.
-	var ipAddrs []corev1.NodeAddress
+	var ipAddrs clusterv1.MachineAddresses
 	powerState, err := vm.PowerState(ctx)
 	if err != nil {
 		return errors.Wrapf(err, "unable to get vm's power state %q", ctx)
 	}
 	if powerState == types.VirtualMachinePowerStatePoweredOn {
-		for _, netStatus := range ctx.MachineStatus.Network {
+		for _, netStatus := range ctx.VSphereMachine.Status.Network {
 			for _, ip := range netStatus.IPAddrs {
-				ipAddrs = append(ipAddrs, corev1.NodeAddress{
-					Type:    corev1.NodeInternalIP,
+				ipAddrs = append(ipAddrs, clusterv1.MachineAddress{
+					Type:    clusterv1.MachineInternalIP,
 					Address: ip,
 				})
 			}
@@ -188,7 +188,7 @@ func reconcilePowerState(ctx *context.MachineContext, vm *object.VirtualMachine)
 		if err != nil {
 			return errors.Wrapf(err, "failed to trigger power on op for vm %q", ctx)
 		}
-		ctx.MachineStatus.TaskRef = task.Reference().Value
+		ctx.VSphereMachine.Status.TaskRef = task.Reference().Value
 		ctx.Logger.V(6).Info("reenqueue to wait for power on state")
 		return &clustererror.RequeueAfterError{RequeueAfter: config.DefaultRequeue}
 	case types.VirtualMachinePowerStatePoweredOn:

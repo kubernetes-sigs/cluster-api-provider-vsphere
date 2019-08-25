@@ -22,4 +22,4 @@ set -o pipefail
 # script is located.
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
-go run ./vendor/golang.org/x/lint/golint -set_exit_status ./pkg/... ./cmd/...
+go run ./vendor/golang.org/x/lint/golint -set_exit_status ./api/... ./controllers/... ./pkg/... .

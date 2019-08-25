@@ -21,12 +21,13 @@ ARG DISTROLESS_IMAGE=gcr.io/distroless/static@sha256:48e0d165f07d499c02732d924e8
 # distroless container image.
 FROM ${GOLANG_IMAGE} as builder
 WORKDIR /build
-COPY go.mod go.sum ./
-COPY pkg/    pkg/
-COPY cmd/    cmd/
-COPY vendor/ vendor/
+COPY go.mod go.sum main.go ./
+COPY api/         api/
+COPY controllers/ controllers/
+COPY pkg/         pkg/
+COPY vendor/      vendor/
 ENV CGO_ENABLED=0
-RUN go build -mod=vendor -a -ldflags='-w -s -extldflags="static"' -o manager ./cmd/manager
+RUN go build -mod=vendor -a -ldflags='-w -s -extldflags="static"' -o manager .
 
 ################################################################################
 ##                               MAIN STAGE                                   ##

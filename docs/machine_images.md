@@ -24,6 +24,27 @@ https://storage.googleapis.com/capv-images/release/v1.14.2/ubuntu-1804-kube-v1.1
 
 # kubernetes v1.14.3
 https://storage.googleapis.com/capv-images/release/v1.14.3/ubuntu-1804-kube-v1.14.3.ova
+
+# kubernetes v1.14.4
+http://storage.googleapis.com/capv-images/release/v1.14.4/ubuntu-1804-kube-v1.14.4.ova
+
+# kubernetes v1.14.5
+http://storage.googleapis.com/capv-images/release/v1.14.5/ubuntu-1804-kube-v1.14.5.ova
+
+# kubernetes v1.14.6
+http://storage.googleapis.com/capv-images/release/v1.14.6/ubuntu-1804-kube-v1.14.6.ova
+
+# kubernetes v1.15.0
+http://storage.googleapis.com/capv-images/release/v1.15.0/ubuntu-1804-kube-v1.15.0.ova
+
+# kubernetes v1.15.1
+http://storage.googleapis.com/capv-images/release/v1.15.1/ubuntu-1804-kube-v1.15.1.ova
+
+# kubernetes v1.15.2
+http://storage.googleapis.com/capv-images/release/v1.15.2/ubuntu-1804-kube-v1.15.2.ova
+
+# kubernetes v1.15.3
+http://storage.googleapis.com/capv-images/release/v1.15.3/ubuntu-1804-kube-v1.15.3.ova
 ```
 
 ## CentOS 7
@@ -46,4 +67,25 @@ https://storage.googleapis.com/capv-images/release/v1.14.2/centos-7-kube-v1.14.2
 
 # kubernetes v1.14.3
 https://storage.googleapis.com/capv-images/release/v1.14.3/centos-7-kube-v1.14.3.ova
+
+# kubernetes v1.14.4
+http://storage.googleapis.com/capv-images/release/v1.14.4/centos-7-kube-v1.14.4.ova
+
+# kubernetes v1.14.5
+http://storage.googleapis.com/capv-images/release/v1.14.5/centos-7-kube-v1.14.5.ova
+
+# kubernetes v1.14.6
+http://storage.googleapis.com/capv-images/release/v1.14.6/centos-7-kube-v1.14.6.ova
+
+# kubernetes v1.15.0
+http://storage.googleapis.com/capv-images/release/v1.15.0/centos-7-kube-v1.15.0.ova
+
+# kubernetes v1.15.1
+http://storage.googleapis.com/capv-images/release/v1.15.1/centos-7-kube-v1.15.1.ova
+
+# kubernetes v1.15.2
+http://storage.googleapis.com/capv-images/release/v1.15.2/centos-7-kube-v1.15.2.ova
+
+# kubernetes v1.15.3
+http://storage.googleapis.com/capv-images/release/v1.15.3/centos-7-kube-v1.15.3.ova
 ```

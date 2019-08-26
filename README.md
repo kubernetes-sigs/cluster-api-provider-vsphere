@@ -41,13 +41,13 @@ This provider's versions are compatible with the following versions of Cluster A
 |-|-|-|
 | CAPV v1alpha1 (v0.3)|✓|☓|
 | CAPV v1alpha1 (v0.4)|✓|☓|
-| CAPV v1alpha1 (master)|☓|✓|
+| CAPV v1alpha2 (master)|☓|✓|
 
 ||Kubernetes 1.13|Kubernetes 1.14|Kubernetes 1.15|
 |-|-|-|-|
 | CAPV v1alpha1 (v0.3)|✓|✓|✓|
 | CAPV v1alpha1 (v0.4)|✓|✓|✓|
-| CAPV v1alpha1 (master)|✓|✓|✓|
+| CAPV v1alpha2 (master)|✓|✓|✓|
 
 **NOTE:** As the versioning for this project is tied to the versioning of Cluster API, future modifications to this policy may be made to more closely align with other providers in the Cluster API ecosystem.
 

@@ -20,7 +20,7 @@ The API itself is shared across multiple cloud providers allowing for true vSphe
 
 ## Launching a Kubernetes cluster on vSphere
 
-Check out the [getting started guide](docs/getting-started.md) for launching a cluster on vSphere.
+Check out the [getting started guide](./docs/getting_started.md) for launching a cluster on vSphere.
 
 ## Features
 
@@ -101,16 +101,16 @@ This repository uses the Kubernetes bots.  See a full list of the commands [here
 
 ## Code of conduct
 
-Participating in the project is governed by the Kubernetes code of conduct. Please take some time to read the [code of conduct document](code_of_conduct).
+Participating in the project is governed by the Kubernetes code of conduct. Please take some time to read the [code of conduct document][code_of_conduct].
 
 ### Implementer office hours
 
-- Bi-weekly on Mondays @ 1:00 PT on [Zoom](zoom_meeting) starting on 8/13
-- Previous meetings: \[ [notes](meeting_notes) \]
+- Bi-weekly on Mondays @ 1:00 PT on [Zoom][zoom_meeting] starting on 8/13
+- Previous meetings: \[ [notes][meeting_notes] \]
 
 ### Other ways to communicate with the contributors
 
-Please check in with us in the [#cluster-api-vsphere][slack] channel on Slack or email us at our [mailing list](mailing_list)
+Please check in with us in the [#cluster-api-vsphere][slack] channel on Slack or email us at our [mailing list][mailing_list]
 
 ## Github issues
 
@@ -120,7 +120,7 @@ If you think you have found a bug please follow the instructions below.
 
 - Please spend a small amount of time giving due diligence to the issue tracker. Your issue might be a duplicate.
 - Get the logs from the cluster controllers. Please paste this into your issue.
-- Follow the helpful tips provided in the [troubleshooting document](troubleshooting) as needed.
+- Follow the helpful tips provided in the [troubleshooting document][troubleshooting] as needed.
 - Open a [new issue][new_issue].
 - Remember that users might be searching for your issue in the future, so please give it a meaningful title to help others.
 - Feel free to reach out to the cluster-api community on the [kubernetes slack][slack_info].
@@ -147,5 +147,5 @@ We also use the issue tracker to track features. If you have an idea for a featu
 [prow]: https://go.k8s.io/bot-commands
 [slack]: https://kubernetes.slack.com/messages/CKFGK3SSD
 [slack_info]: https://github.com/kubernetes/community/tree/master/communication#communication
-[troubleshooting]: docs/troubleshooting.md
+[troubleshooting]: ./docs/troubleshooting.md
 [zoom_meeting]: https://zoom.us/j/875399243

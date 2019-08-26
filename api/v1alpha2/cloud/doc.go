@@ -19,7 +19,7 @@ limitations under the License.
 // The configuration may be unmarshalled from an INI-style configuration using
 // the "gopkg.in/gcfg.v1" package.
 //
-// The configuration may be marshalled to an INI-style configuraton using a Go
+// The configuration may be marshalled to an INI-style configuration using a Go
 // template.
 //
 // The "gopkg.in/go-ini/ini.v1" package was investigated, but it does not

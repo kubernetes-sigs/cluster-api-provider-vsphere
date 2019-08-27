@@ -2,16 +2,13 @@
 
 aliases:
   sig-cluster-lifecycle-leads:
-    - lukemarsden
+    - justinsb
     - luxas
-    - roberthbailey
     - timothysc
   cluster-api-admins:
+    - davidewatson
+    - detiber
     - justinsb
-    - krousey
-    - luxas
-    - roberthbailey
-    - kris-nova
   cluster-api-vsphere-maintainers:
     - frapposelli
     - sflxn

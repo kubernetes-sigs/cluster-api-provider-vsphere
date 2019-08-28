@@ -30,7 +30,27 @@ This is a guide on how to get started with CAPV (Cluster API Provider vSphere). 
 
 #### clusterctl
 
-Please download `clusterctl` from the Cluster API, GitHub [releases page](https://github.com/kubernetes-sigs/cluster-api/releases).
+Please download `clusterctl` from the Cluster API (CAPI), GitHub [releases page](https://github.com/kubernetes-sigs/cluster-api/releases).
+
+------
+
+**Note**: CAPI v1alpha2 may not yet have published a `clusterctl` binary. Docker may be used to build `clusterctl` from source using the `master` branch of the CAPI repository:
+
+```shell
+docker run --rm \
+  -v "$(pwd)":/out \
+  -e CGO_ENABLED=0 \
+  -e GOOS="$(uname -s | tr '[:upper:]' '[:lower:]')" \
+  -e GOARCH=amd64 \
+  -e GOFLAGS="-ldflags=-extldflags=-static" \
+  -e GOPROXY="https://proxy.golang.org" \
+  -w /build \
+  golang:1.12 \
+  /bin/bash -c 'git clone https://github.com/kubernetes-sigs/cluster-api.git . && \
+                go build -o /out/clusterctl.${GOOS}_${GOARCH} ./cmd/clusterctl'
+```
+
+------
 
 #### Docker
 
@@ -102,7 +122,7 @@ With the above environment variable file it is now possible to generate the mani
 $ docker run --rm \
   -v "$(pwd)":/out \
   -v "$(pwd)/envvars.txt":/envvars.txt:ro \
-  gcr.io/cluster-api-provider-vsphere/release/manifests:latest \
+  gcr.io/cluster-api-provider-vsphere/ci/manifests:latest \
   -c management-cluster
 
 Generated ./out/management-cluster/cluster.yaml
@@ -143,7 +163,7 @@ Using the same Docker command as above, generate resources for a new cluster, th
 $ docker run --rm \
   -v "$(pwd)":/out \
   -v "$(pwd)/envvars.txt":/envvars.txt:ro \
-  gcr.io/cluster-api-provider-vsphere/release/manifests:latest \
+  gcr.io/cluster-api-provider-vsphere/ci/manifests:latest \
   -c workload-cluster-1
 ```
 

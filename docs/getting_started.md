@@ -2,6 +2,12 @@
 
 This is a guide on how to get started with CAPV (Cluster API Provider vSphere). To learn more about cluster API in more depth, check out the the [cluster api docs page](https://cluster-api.sigs.k8s.io/).
 
+------
+
+**Note**: The project's `master` branch has been updated to Cluster API v1alpha2 and is not stable. Please use the [`release-0.4`](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/tree/release-0.4) branch for the stable, v1alpha1 release.
+
+------
+
 * [Getting Started](#getting-started)
   * [Bootstrapping a Management Cluster with clusterctl](#bootstrapping-a-management-cluster-with-clusterctl)
     * [Install Requirements](#install-requirements)

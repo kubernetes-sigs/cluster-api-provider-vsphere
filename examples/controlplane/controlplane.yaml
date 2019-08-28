@@ -50,3 +50,18 @@ spec:
     controllerManager:
       extraArgs:
         cloud-provider: vsphere
+  files:
+    - path: /etc/hostname
+      owner: root:root
+      permissions: "0644"
+      content: |
+       {{ ds.meta_data.hostname }}
+    - path: /etc/hosts
+      owner: root:root
+      permissions: "0644"
+      content: |
+        ::1         ipv6-localhost ipv6-loopback
+        127.0.0.1   localhost
+        127.0.0.1   {{ ds.meta_data.hostname }}
+  preKubeadmCommands:
+    - "[hostname, {{ ds.meta_data.hostname }}]"

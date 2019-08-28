@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package govmomi_test
+package govmomi
 
 import (
 	"crypto/tls"
@@ -30,7 +30,6 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/govmomi"
 )
 
 func init() {
@@ -133,7 +132,7 @@ func TestCreate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := govmomi.Create(machineContext, []byte("")); err != nil {
+	if err := createVM(machineContext, []byte("")); err != nil {
 		log.Fatal(err)
 	}
 

@@ -184,7 +184,16 @@ func IsControlPlaneMachine(machine *clusterv1.Machine) bool {
 
 // GetMachineMetadata returns the cloud-init metadata as a base-64 encoded
 // string for a given VSphereMachine.
-func GetMachineMetadata(machine *infrav1.VSphereMachine) ([]byte, error) {
+func GetMachineMetadata(machine infrav1.VSphereMachine, networkStatus ...infrav1.NetworkStatus) ([]byte, error) {
+	// Create a copy of the devices and add their MAC addresses from a network status.
+	devices := make([]infrav1.NetworkDeviceSpec, len(machine.Spec.Network.Devices))
+	for i := range machine.Spec.Network.Devices {
+		machine.Spec.Network.Devices[i].DeepCopyInto(&devices[i])
+		if len(networkStatus) > 0 {
+			devices[i].MACAddr = networkStatus[i].MACAddr
+		}
+	}
+
 	buf := &bytes.Buffer{}
 	tpl := template.Must(template.New("t").Funcs(
 		template.FuncMap{
@@ -198,7 +207,7 @@ func GetMachineMetadata(machine *infrav1.VSphereMachine) ([]byte, error) {
 		Routes   []infrav1.NetworkRouteSpec
 	}{
 		Hostname: machine.Name,
-		Devices:  machine.Spec.Network.Devices,
+		Devices:  devices,
 		Routes:   machine.Spec.Network.Routes,
 	}); err != nil {
 		return nil, errors.Wrapf(

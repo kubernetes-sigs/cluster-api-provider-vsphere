@@ -31,6 +31,11 @@ const (
 
 // VSphereMachineSpec defines the desired state of VSphereMachine
 type VSphereMachineSpec struct {
+	// ProviderID is the virtual machine's BIOS UUID formated as
+	// vsphere://12345678-1234-1234-1234-123456789abc
+	// +optional
+	ProviderID *string `json:"providerID,omitempty"`
+
 	// This value is set automatically at runtime and should not be set or
 	// modified by users.
 	// MachineRef is used to lookup the VM.

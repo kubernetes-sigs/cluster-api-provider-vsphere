@@ -184,14 +184,22 @@ const (
 	// VirtualMachineStatePending is the string representing a VM with an in-flight task.
 	VirtualMachineStatePending = "pending"
 
-	// VirtualMachineStateRunning is the string representing a powered-on VM.
-	VirtualMachineStateRunning = "running"
+	// VirtualMachineStateReady is the string representing a powered-on VM with reported IP addresses.
+	VirtualMachineStateReady = "ready"
+)
 
-	// VirtualMachineStateStopped is the string representing a powered-off VM.
-	VirtualMachineStateStopped = "stopped"
+// VirtualMachinePowerState describe the power state of a VM
+type VirtualMachinePowerState string
 
-	// VirtualMachineStateSuspended is the string representing a suspended VM.
-	VirtualMachineStateSuspended = "suspended"
+const (
+	// VirtualMachinePowerStatePoweredOn is the string representing a VM in powered on state
+	VirtualMachinePowerStatePoweredOn VirtualMachinePowerState = "poweredOn"
+
+	// VirtualMachinePowerStatePoweredOff is the string representing a VM in powered off state
+	VirtualMachinePowerStatePoweredOff = "poweredOff"
+
+	// VirtualMachinePowerStateSuspended is the string representing a VM in suspended state
+	VirtualMachinePowerStateSuspended = "suspended"
 )
 
 // VirtualMachine represents data about a vSphere virtual machine object.

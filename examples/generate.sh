@@ -98,6 +98,7 @@ COMPONENTS_CLUSTER_API_GENERATED_FILE=${SRC_DIR}/provider-components/provider-co
 COMPONENTS_KUBEADM_GENERATED_FILE=${SRC_DIR}/provider-components/provider-components-kubeadm.yaml
 COMPONENTS_VSPHERE_GENERATED_FILE=${SRC_DIR}/provider-components/provider-components-vsphere.yaml
 
+ADDONS_GENERATED_FILE=${OUT_DIR}/addons.yaml
 PROVIDER_COMPONENTS_GENERATED_FILE=${OUT_DIR}/provider-components.yaml
 CLUSTER_GENERATED_FILE=${OUT_DIR}/cluster.yaml
 CONTROLPLANE_GENERATED_FILE=${OUT_DIR}/controlplane.yaml
@@ -117,7 +118,7 @@ for f in COMPONENTS_CLUSTER_API COMPONENTS_KUBEADM COMPONENTS_VSPHERE; do \
 done
 
 # Ensure that the actual outputs are only overwritten if the flag is provided.
-for f in PROVIDER_COMPONENTS CLUSTER CONTROLPLANE MACHINEDEPLOYMENT; do
+for f in ADDONS PROVIDER_COMPONENTS CLUSTER CONTROLPLANE MACHINEDEPLOYMENT; do
   [ -n "${OVERWRITE}" ] || eval "no_file \"\${${f}_GENERATED_FILE}\""
 done
 
@@ -182,6 +183,10 @@ unset VSPHERE_USERNAME VSPHERE_PASSWORD
 envsubst() {
   python -c 'import os,sys;[sys.stdout.write(os.path.expandvars(l)) for l in sys.stdin]'
 }
+
+# Generate the addons file.
+envsubst >"${ADDONS_GENERATED_FILE}" <"${SRC_DIR}/addons.yaml"
+echo "Generated ${ADDONS_GENERATED_FILE}"
 
 # Generate cluster resources.
 kustomize build "${SRC_DIR}/cluster" | envsubst >"${CLUSTER_GENERATED_FILE}"

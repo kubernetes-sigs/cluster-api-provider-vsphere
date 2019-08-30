@@ -125,6 +125,8 @@ func (r *VSphereClusterReconciler) reconcileDelete(ctx *context.ClusterContext) 
 func (r *VSphereClusterReconciler) reconcileNormal(ctx *context.ClusterContext) (reconcile.Result, error) {
 	ctx.Logger.Info("Reconciling VSphereCluster")
 
+	ctx.VSphereCluster.Status.Ready = true
+
 	// If the VSphereCluster doesn't have our finalizer, add it.
 	if !clusterutilv1.Contains(ctx.VSphereCluster.Finalizers, infrav1.ClusterFinalizer) {
 		ctx.VSphereCluster.Finalizers = append(ctx.VSphereCluster.Finalizers, infrav1.ClusterFinalizer)
@@ -157,7 +159,6 @@ func (r *VSphereClusterReconciler) reconcileNormal(ctx *context.ClusterContext) 
 	}
 
 	// No errors, so mark us ready so the Cluster API Cluster Controller can pull it
-	ctx.VSphereCluster.Status.Ready = true
 	ctx.Logger.V(4).Info("VSphereCluster is ready")
 
 	return reconcile.Result{}, nil

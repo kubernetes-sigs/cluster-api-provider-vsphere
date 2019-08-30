@@ -64,7 +64,7 @@ type VSphereClusterStatus struct {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:path=vsphereclusters,scope=Namespaced
+// +kubebuilder:resource:path=vsphereclusters,scope=Namespaced,categories=cluster-api
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 

@@ -218,7 +218,9 @@ func (vms *VMService) reconcilePowerState(ctx *context.MachineContext) (bool, er
 }
 
 func (vms *VMService) reconcileUUIUDs(ctx *context.MachineContext, vm *infrav1.VirtualMachine, obj mo.VirtualMachine) error {
-	vm.InstanceUUID = obj.Config.InstanceUuid
+	// Temporarily removing this. It is calling a panic (nil pointer reference).
+	// we dont use this anywhere so ti should be fine.
+	// vm.InstanceUUID = obj.Config.InstanceUuid
 
 	biosUUID, err := vms.getBiosUUID(ctx)
 	if err != nil {

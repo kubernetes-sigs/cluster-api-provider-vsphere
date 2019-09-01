@@ -126,6 +126,11 @@ func (r *VSphereClusterReconciler) reconcileDelete(ctx *context.ClusterContext) 
 func (r *VSphereClusterReconciler) reconcileNormal(ctx *context.ClusterContext) (reconcile.Result, error) {
 	ctx.Logger.Info("Reconciling VSphereCluster")
 
+	// TODO(akutz) Update this logic to include infrastructure prep such as:
+	//   * Downloading OVAs into the content library for any machines that
+	//     use them.
+	//   * Create any load balancers for VMC on AWS, etc.
+	ctx.Logger.V(6).Info("VSphereCluster is infrastructure-ready")
 	ctx.VSphereCluster.Status.Ready = true
 
 	// If the VSphereCluster doesn't have our finalizer, add it.
@@ -158,9 +163,6 @@ func (r *VSphereClusterReconciler) reconcileNormal(ctx *context.ClusterContext) 
 			"failed to reconcile cloud config secret for VSphereCluster %s/%s",
 			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
 	}
-
-	// No errors, so mark us ready so the Cluster API Cluster Controller can pull it
-	ctx.Logger.V(4).Info("VSphereCluster is ready")
 
 	return reconcile.Result{}, nil
 }

@@ -337,16 +337,18 @@ metadata:
   name: workload-cluster-1-md-0
   namespace: default
 spec:
-  datacenter: SDDC-Datacenter
-  diskGiB: 50
-  memoryMiB: 2048
-  network:
-    devices:
-    - dhcp4: true
-      dhcp6: false
-      networkName: vm-network-1
-  numCPUs: 2
-  template: ubuntu-1804-kube-v1.13.6
+  template:
+    spec:
+      datacenter: SDDC-Datacenter
+      diskGiB: 50
+      memoryMiB: 2048
+      network:
+        devices:
+        - dhcp4: true
+          dhcp6: false
+          networkName: vm-network-1
+      numCPUs: 2
+      template: ubuntu-1804-kube-v1.13.6
 ```
 
 <!--

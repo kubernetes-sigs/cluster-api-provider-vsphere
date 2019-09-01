@@ -1,0 +1,145 @@
+@startuml cloud-ini-networking
+
+start;
+
+partition "Generator stage" {
+  :Disable cloud-init;
+  if (File exists /etc/cloud/cloud-init.disabled) then (no)
+    if (File /proc/cmdline contains "cloud-init=disabled") then (no)
+      if (A datasource is found) then (yes)
+        :Enable cloud-init;
+      endif
+    endif
+  endif
+}
+
+partition "Local stage" {
+  :Start ""cloud-init-local.service"";
+  note right
+    This stage blocks as much of boot as possible and **must** bring
+    the network up.
+
+    The service unit includes:
+
+      ""Before: network-pre.target""
+      ""Wants: network-pre.target""
+
+    Please note that the ""openvswitch-switch.service"" is configured
+    to start **after** ""network.target"". This creates an ordering
+    issue since including any OVS operations or dependencies in this
+    stage would depend on a service that won't start until **after**
+    this stage.
+  end note
+
+  :Initialize the datasource;
+
+  partition "Cloud-init datasource for VMware GuestInfo" {
+    :Read ""guestinfo.metadata"";
+    :Read ""guestinfo.userdata"";
+    :Read ""guestinfo.vendordata"";
+    if (Metadata contains network config) then (yes)
+      :Read network config from metadata;
+    else (no)
+      :Generate fallback network config;
+    endif
+  }
+
+  :Persist metadata into file ""/var/run/cloud-init/instance-data.json"";
+  note right
+    This is the file that cloud-init's templating engine (JINJA)
+    is able to query in order to process user and vendor data.
+    For example, ""{{ ds.meta_data.local_ipv4 }}""
+    returns the local IPv4 address.
+  end note
+
+  :Retrieve network config from datasource's ""network_config"" property;
+  :Call distribution provider's ""apply_network"" function;
+
+  partition "Distribution provider" {
+    :Render network config;
+    :Apply network config;
+  }
+  note right
+    All the data source does is supply the network config. It is up to
+    the distribution provider to pick a renderer and then apply the
+    networking config. For OVS to work, it would need to be integrated
+    into a distribution's provider source, and the cloud-init network
+    config schema would possibly need to be augmented as well.
+  end note
+
+  :Call datasources ""setup"" function;
+  note right
+    At this point cloud-init asserts the network must be online.
+    This is absolutely necessary because of what comes next.
+  end note
+
+  partition "Cloud-init datasource for VMware GuestInfo" {
+    :Get host information, including network information;
+    :Update metadata with host information;
+    :Persist metadata into file ""/var/run/cloud-init/instance-data.json"";
+    note right
+      If the metadata is incomplete because the network is not online,
+      then later attempts to read the metadata with the cloud-init
+      templating engine results in JINJA errors in the cloud-init
+      logs. Both CAPV's user data and the kubeadm config data are
+      rendered with the templating engine and depend on the networking
+      information being available.
+    end note
+  }
+}
+
+partition "Network (init) stage" {
+  :Start ""cloud-init.service"";
+  note right
+    This stage requires all configured networking to be online,
+    as it will fully process any user-data that is found.
+
+    The file ""/var/run/cloud-init/instance-data.json"" should
+    be available for parsing by cloud-init's templating engine.
+
+    The service unit includes:
+
+    ""After: cloud-init-local.service""
+    ""After: systemd-networkd-wait-online.service""
+    ""Wants: cloud-init-local.service""
+  end note
+
+  :Write-files;
+}
+
+partition "Config stage" {
+  :Start ""cloud-config.service"";
+  note right
+    This stage runs config modules only. Modules that do not
+    really have an effect on other stages of boot are run here.
+
+    The file ""/var/run/cloud-init/instance-data.json"" should
+    be available for parsing by cloud-init's templating engine.
+
+    The service unit includes:
+
+    ""After: network-online.target cloud-config.target""
+    ""Wants: network-online.target cloud-config.target""
+  end note
+}
+
+partition "Final stage" {
+  :Start ""cloud-final.service"";
+  note right
+    This stage runs as late in boot as possible.
+
+    The file ""/var/run/cloud-init/instance-data.json"" should
+    be available for parsing by cloud-init's templating engine.
+
+    The service unit includes:
+
+    ""After: multi-user.target""
+    ""Wants=network-online.target cloud-config.service""
+  end note
+
+  :Kubeadm;
+}
+
+stop;
+
+@enduml

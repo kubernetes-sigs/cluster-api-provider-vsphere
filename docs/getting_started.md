@@ -8,6 +8,12 @@ This is a guide on how to get started with CAPV (Cluster API Provider vSphere). 
 
 ------
 
+------
+
+**Note**: This branch uses images with the prefix `gcr.io/cluster-api-provider-vsphere/dev/v1alpha2`, a staging area for the work-in-progress, v1alpha2 releases of CAPV and its dependencies. The image paths will be reset once v1alpha2 is released.
+
+------
+
 * [Getting Started](#getting-started)
   * [Bootstrapping a Management Cluster with clusterctl](#bootstrapping-a-management-cluster-with-clusterctl)
     * [Install Requirements](#install-requirements)
@@ -122,7 +128,7 @@ With the above environment variable file it is now possible to generate the mani
 $ docker run --rm \
   -v "$(pwd)":/out \
   -v "$(pwd)/envvars.txt":/envvars.txt:ro \
-  gcr.io/cluster-api-provider-vsphere/ci/manifests:latest \
+  gcr.io/cluster-api-provider-vsphere/dev/v1alpha2/capv-manifests:latest \
   -c management-cluster
 
 Generated ./out/management-cluster/cluster.yaml
@@ -142,6 +148,7 @@ Once the manifests are generated, `clusterctl` may be used to create the managem
 ```shell
 clusterctl create cluster \
   --bootstrap-type kind \
+  --bootstrap-flags name=management-cluster \
   --cluster ./out/management-cluster/cluster.yaml \
   --machines ./out/management-cluster/controlplane.yaml \
   --provider-components ./out/management-cluster/provider-components.yaml \
@@ -163,7 +170,7 @@ Using the same Docker command as above, generate resources for a new cluster, th
 $ docker run --rm \
   -v "$(pwd)":/out \
   -v "$(pwd)/envvars.txt":/envvars.txt:ro \
-  gcr.io/cluster-api-provider-vsphere/ci/manifests:latest \
+  gcr.io/cluster-api-provider-vsphere/dev/v1alpha2/capv-manager:latest \
   -c workload-cluster-1
 ```
 

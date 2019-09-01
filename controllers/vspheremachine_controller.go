@@ -19,7 +19,6 @@ package controllers
 import (
 	goctx "context"
 	"fmt"
-	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -41,8 +40,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/govmomi"
 )
-
-const waitForClusterInfrastructureReadyDuration = 15 * time.Second //nolint
 
 // VSphereMachineReconciler reconciles a VSphereMachine object
 type VSphereMachineReconciler struct {
@@ -83,7 +80,7 @@ func (r *VSphereMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, r
 	}
 	if machine == nil {
 		logger.Info("Waiting for Machine Controller to set OwnerRef on VSphereMachine")
-		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
+		return reconcile.Result{RequeueAfter: config.DefaultRequeue}, nil
 	}
 
 	logger = logger.WithName(fmt.Sprintf("machine=%s", machine.Name))
@@ -105,7 +102,7 @@ func (r *VSphereMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, r
 	}
 	if err := r.Client.Get(parentContext, vsphereClusterName, vsphereCluster); err != nil {
 		logger.Info("Waiting for VSphereCluster")
-		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
+		return reconcile.Result{RequeueAfter: config.DefaultRequeue}, nil
 	}
 
 	logger = logger.WithName(fmt.Sprintf("vsphereCluster=%s", vsphereCluster.Name))
@@ -199,13 +196,13 @@ func (r *VSphereMachineReconciler) reconcileNormal(ctx *context.MachineContext) 
 
 	if !ctx.Cluster.Status.InfrastructureReady {
 		ctx.Logger.Info("Cluster infrastructure is not ready yet, requeuing machine")
-		return reconcile.Result{RequeueAfter: waitForClusterInfrastructureReadyDuration}, nil
+		return reconcile.Result{RequeueAfter: config.DefaultRequeue}, nil
 	}
 
 	// Make sure bootstrap data is available and populated.
 	if ctx.Machine.Spec.Bootstrap.Data == nil {
 		ctx.Logger.Info("Waiting for bootstrap data to be available")
-		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
+		return reconcile.Result{RequeueAfter: config.DefaultRequeue}, nil
 	}
 
 	// TODO(akutz) Implement selection of VM service based on vSphere version

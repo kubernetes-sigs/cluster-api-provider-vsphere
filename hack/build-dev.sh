@@ -53,11 +53,14 @@ docker push "${CAPV_MANIFEST_IMAGE}"
 cd "$(mktemp -d)"
 
 # Clone the CAPI and CABPK repositories.
-git clone https://github.com/kubernetes-sigs/cluster-api.git capi
-git clone https://github.com/kubernetes-sigs/cluster-api-bootstrap-provider-kubeadm cabpk
+git clone "${CAPI_REPO:-https://github.com/kubernetes-sigs/cluster-api.git}" capi
+git clone "${CABPK_REPO:-https://github.com/kubernetes-sigs/cluster-api-bootstrap-provider-kubeadm}" cabpk
 
 # Switch to the CAPI repo.
 pushd capi
+
+# Checkout the CAPI ref if one is set.
+[ -n "${CAPI_REF-}" ] && git checkout -b "${CAPI_REF}" "${CAPI_REF}"
 
 # Build clusterctl
 go build -o "${CLUSTERCTL_OUT}" ./cmd/clusterctl
@@ -68,6 +71,9 @@ docker push "${CAPI_MANAGER_IMAGE}"
 
 # Switch to the CABPK repo.
 popd && pushd cabpk
+
+# Checkout the CABPK ref if one is set.
+[ -n "${CABPK_REF-}" ] && git checkout -b "${CABPK_REF}" "${CABPK_REF}"
 
 # Build the CABPK manager image.
 docker build -t "${CABPK_MANAGER_IMAGE}" .

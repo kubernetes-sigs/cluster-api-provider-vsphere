@@ -37,6 +37,7 @@ func Clone(ctx *context.MachineContext, bootstrapData []byte) error {
 
 	var extraConfig extra.Config
 	extraConfig.SetCloudInitUserData(bootstrapData)
+	ctx.Logger.V(6).Info("set cloud init user data", "user-data", string(bootstrapData))
 
 	tpl, err := template.FindTemplate(ctx, ctx.VSphereMachine.Spec.Template)
 	if err != nil {

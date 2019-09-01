@@ -31,7 +31,7 @@ func (e *Config) SetCloudInitUserData(data []byte) error {
 	*e = append(*e,
 		&types.OptionValue{
 			Key:   "guestinfo.userdata",
-			Value: base64.StdEncoding.EncodeToString(data),
+			Value: data,
 		},
 		&types.OptionValue{
 			Key:   "guestinfo.userdata.encoding",

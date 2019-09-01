@@ -50,11 +50,11 @@ spec:
     controllerManager:
       extraArgs:
         cloud-provider: vsphere
+  users:
+  - name: vsphere
+    sshAuthorizedKeys:
+    - "${SSH_AUTHORIZED_KEY}"
   files:
-  - path: /home/ubuntu/.ssh/authorized_keys
-    owner: ubuntu:ubuntu
-    permissions: "0400"
-    content: "${SSH_AUTHORIZED_KEY}"
   - path: /etc/hostname
     owner: root:root
     permissions: "0644"

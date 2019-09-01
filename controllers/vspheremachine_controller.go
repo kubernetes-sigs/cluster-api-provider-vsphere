@@ -234,6 +234,10 @@ func (r *VSphereMachineReconciler) reconcileNormal(ctx *context.MachineContext) 
 		return reconcile.Result{}, err
 	}
 
+	// Once the provider ID is set then the VSphereMachine is InfrastructureReady
+	ctx.VSphereMachine.Status.Ready = true
+	ctx.Logger.V(6).Info("VSphereMachine is infrastructure-ready")
+
 	return reconcile.Result{}, nil
 }
 

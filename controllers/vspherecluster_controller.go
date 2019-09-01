@@ -130,8 +130,8 @@ func (r *VSphereClusterReconciler) reconcileNormal(ctx *context.ClusterContext) 
 	//   * Downloading OVAs into the content library for any machines that
 	//     use them.
 	//   * Create any load balancers for VMC on AWS, etc.
-	ctx.Logger.V(6).Info("VSphereCluster is infrastructure-ready")
 	ctx.VSphereCluster.Status.Ready = true
+	ctx.Logger.V(6).Info("VSphereCluster is infrastructure-ready")
 
 	// If the VSphereCluster doesn't have our finalizer, add it.
 	if !clusterutilv1.Contains(ctx.VSphereCluster.Finalizers, infrav1.ClusterFinalizer) {

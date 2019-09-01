@@ -29,9 +29,16 @@ SRC_DIR="${BUILDDIR}"/examples
 OVERWRITE=
 CLUSTER_NAME="${CLUSTER_NAME:-capv-mgmt-example}"
 ENV_VAR_REQ=':?required'
-CAPV_MANAGER_IMAGE="${CAPV_MANAGER_IMAGE:-gcr.io/cluster-api-provider-vsphere/ci/manager:latest}"
-CABPK_MANAGER_IMAGE="${CABPK_MANAGER_IMAGE:-gcr.io/kubernetes1-226021/cluster-api-bootstrap-provider-kubeadm:dev}"
-export CAPV_MANAGER_IMAGE CABPK_MANAGER_IMAGE
+
+# TODO(akutz) Replace with actual CAPBPK and CAPI images once v1a2 is released.
+CABPK_MANAGER_IMAGE="${CABPK_MANAGER_IMAGE:-gcr.io/cluster-api-provider-vsphere/dev/v1alpha2/cabpk-manager:latest}"
+CAPI_MANAGER_IMAGE="${CAPI_MANAGER_IMAGE:-gcr.io/cluster-api-provider-vsphere/dev/v1alpha2/capi-manager:latest}"
+CAPV_MANAGER_IMAGE="${CAPV_MANAGER_IMAGE:-gcr.io/cluster-api-provider-vsphere/dev/v1alpha2/capv-manager:latest}"
+
+# Set the default log levels for the manager containers.
+CABPK_MANAGER_LOG_LEVEL="${CABPK_MANAGER_LOG_LEVEL:-4}"
+CAPI_MANAGER_LOG_LEVEL="${CAPI_MANAGER_LOG_LEVEL:-4}"
+CAPV_MANAGER_LOG_LEVEL="${CAPV_MANAGER_LOG_LEVEL:-4}"
 
 usage() {
   cat <<EOF
@@ -39,21 +46,28 @@ usage: ${0} [FLAGS]
   Generates input manifests for the Cluster API Provider for vSphere (CAPV)
 
 FLAGS
-  -b    bootstrapper image (default "${CABPK_MANAGER_IMAGE}")
+  -b    bootstrapper manager image (default "${CABPK_MANAGER_IMAGE}")
+  -B    bootstrapper manager log level (default "${CABPK_MANAGER_LOG_LEVEL}")
   -c    cluster name (default "${CLUSTER_NAME}")
   -d    disables required environment variables
   -f    force overwrite of existing files
   -h    prints this help screen
   -i    input directory (default ${SRC_DIR})
-  -m    manager image (default "${CAPV_MANAGER_IMAGE}")
+  -m    capv manager image (default "${CAPV_MANAGER_LOG_LEVEL}")
+  -M    capv manager log level (default "${CABPK_MANAGER_LOG_LEVEL}")
   -o    output directory (default ${OUT_DIR})
+  -p    capi manager image (default "${CAPI_MANAGER_IMAGE}")
+  -P    capi manager log level (default "${CAPI_MANAGER_LOG_LEVEL}")
 EOF
 }
 
-while getopts ':b:c:dfhi:m:o:' opt; do
+while getopts ':b:B:c:dfhi:m:M:o:p:P:' opt; do
   case "${opt}" in
   b)
     CABPK_MANAGER_IMAGE="${OPTARG}"
+    ;;
+  B)
+    CABPK_MANAGER_LOG_LEVEL="${OPTARG}"
     ;;
   c)
     CLUSTER_NAME="${OPTARG}"
@@ -73,8 +87,17 @@ while getopts ':b:c:dfhi:m:o:' opt; do
   m)
     CAPV_MANAGER_IMAGE="${OPTARG}"
     ;;
+  M)
+    CAPV_MANAGER_LOG_LEVEL="${OPTARG}"
+    ;;
   o)
     OUT_DIR="${OPTARG}"
+    ;;
+  p)
+    CAPI_MANAGER_IMAGE="${OPTARG}"
+    ;;
+  P)
+    CAPI_MANAGER_LOG_LEVEL="${OPTARG}"
     ;;
   \?)
     { echo "invalid option: -${OPTARG}"; usage; } 1>&2; exit 1
@@ -92,6 +115,11 @@ mkdir -p "${OUT_DIR}"
 # Load an envvars.txt file if one is found.
 # shellcheck disable=SC1091
 [ "${DOCKER_ENABLED-}" ] && [ -e "/envvars.txt" ] && source "/envvars.txt"
+
+# Export the manager images and log levels for the different providers.
+export CABPK_MANAGER_IMAGE CABPK_MANAGER_LOG_LEVEL
+export CAPI_MANAGER_IMAGE CAPI_MANAGER_LOG_LEVEL
+export CAPV_MANAGER_IMAGE CAPV_MANAGER_LOG_LEVEL
 
 # Outputs
 COMPONENTS_CLUSTER_API_GENERATED_FILE=${SRC_DIR}/provider-components/provider-components-cluster-api.yaml

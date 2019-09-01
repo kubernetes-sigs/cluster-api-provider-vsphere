@@ -5,5 +5,7 @@ resources:
 - provider-components-cluster-api.yaml
 - provider-components-vsphere.yaml
 patchesStrategicMerge:
-- cabpk_image_patch.yaml
+- cabpk_manager_patches.yaml
+- capi_manager_patches.yaml
+- capv_manager_patches.yaml
 - manager_tolerations_patch.yaml

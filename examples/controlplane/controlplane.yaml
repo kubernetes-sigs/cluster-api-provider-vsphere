@@ -51,6 +51,10 @@ spec:
       extraArgs:
         cloud-provider: vsphere
   files:
+    - path: /home/ubuntu/.ssh/authorized_keys
+      owner: ubuntu:ubuntu
+      permissions: "0400"
+      content: "${SSH_AUTHORIZED_KEY}"
     - path: /etc/hostname
       owner: root:root
       permissions: "0644"

@@ -46,6 +46,11 @@ kind: KubeadmConfigTemplate
 metadata:
   name: ${CLUSTER_NAME}-md-0
 spec:
+  files:
+  - path: /home/ubuntu/.ssh/authorized_keys
+    owner: ubuntu:ubuntu
+    permissions: "0400"
+    content: "${SSH_AUTHORIZED_KEY}"
   joinConfiguration:
     nodeRegistration:
       name: "{{ ds.meta_data.hostname }}"

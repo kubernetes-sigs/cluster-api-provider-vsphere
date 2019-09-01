@@ -48,13 +48,27 @@ kind: KubeadmConfigTemplate
 metadata:
   name: ${CLUSTER_NAME}-md-0
 spec:
-  files:
-  - path: /home/ubuntu/.ssh/authorized_keys
-    owner: ubuntu:ubuntu
-    permissions: "0400"
-    content: "${SSH_AUTHORIZED_KEY}"
   joinConfiguration:
     nodeRegistration:
       name: "{{ ds.meta_data.hostname }}"
       kubeletExtraArgs:
         cloud-provider: vsphere
+  files:
+  - path: /home/ubuntu/.ssh/authorized_keys
+    owner: ubuntu:ubuntu
+    permissions: "0400"
+    content: "${SSH_AUTHORIZED_KEY}"
+  - path: /etc/hostname
+    owner: root:root
+    permissions: "0644"
+    content: |
+      {{ ds.meta_data.hostname }}
+  - path: /etc/hosts
+    owner: root:root
+    permissions: "0644"
+    content: |
+      ::1         ipv6-localhost ipv6-loopback
+      127.0.0.1   localhost
+      127.0.0.1   {{ ds.meta_data.hostname }}
+  preKubeadmCommands:
+  - "[hostname, {{ ds.meta_data.hostname }}]"

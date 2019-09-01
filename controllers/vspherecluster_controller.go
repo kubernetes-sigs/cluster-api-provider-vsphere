@@ -149,14 +149,6 @@ func (r *VSphereClusterReconciler) reconcileNormal(ctx *context.ClusterContext) 
 			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
 	}
 
-	// If the VSphereCluster resource has no API endpoints set then requeue
-	// until an API endpoint for the cluster resource can be found.
-	if len(ctx.VSphereCluster.Status.APIEndpoints) == 0 {
-		return reconcile.Result{}, errors.Errorf(
-			"no API endpoints found for VSphereCluster %s/%s",
-			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
-	}
-
 	// Create the cloud config secret for the target cluster.
 	if err := r.reconcileCloudConfigSecret(ctx); err != nil {
 		return reconcile.Result{}, errors.Wrapf(err,

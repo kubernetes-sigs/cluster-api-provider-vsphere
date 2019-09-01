@@ -52,6 +52,7 @@ spec:
         cloud-provider: vsphere
   users:
   - name: vsphere
+    sudo: "ALL=(ALL) NOPASSWD:ALL"
     sshAuthorizedKeys:
     - "${SSH_AUTHORIZED_KEY}"
   files:

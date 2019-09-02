@@ -62,6 +62,9 @@ func (e *Config) SetCloudInitMetadata(data []byte) error {
 // to ensure it is plain-text before returning the result as a base64
 // encoded string
 func (e *Config) encode(data []byte) string {
+	if len(data) == 0 {
+		return ""
+	}
 	for {
 		decoded, err := base64.StdEncoding.DecodeString(string(data))
 		if err != nil {

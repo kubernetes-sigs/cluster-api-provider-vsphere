@@ -59,14 +59,7 @@ spec:
     sudo: "ALL=(ALL) NOPASSWD:ALL"
     sshAuthorizedKeys:
     - "${SSH_AUTHORIZED_KEY}"
-  files:
-  - path: /home/ubuntu/.ssh/authorized_keys
-    owner: ubuntu:ubuntu
-    permissions: "0400"
-    content: |
-      ${SSH_AUTHORIZED_KEY}
   preKubeadmCommands:
-  - chown -R ubuntu:ubuntu /home/ubuntu
   - hostname "{{ ds.meta_data.hostname }}"
   - echo "::1         ipv6-localhost ipv6-loopback" >/etc/hosts
   - echo "127.0.0.1   localhost {{ ds.meta_data.hostname }}" >>/etc/hosts

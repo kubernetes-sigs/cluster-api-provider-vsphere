@@ -213,7 +213,7 @@ spec:
     network:
       name: vm-network-1
     virtualCenter:
-      vcenter.sddc-54-70-161-229.vmc.vmware.com:
+      10.0.0.1:
         datacenters: SDDC-Datacenter
     workspace:
       datacenter: SDDC-Datacenter
@@ -242,9 +242,20 @@ spec:
         cloud-provider: vsphere
   initConfiguration:
     nodeRegistration:
+      criSocket: /var/run/containerd/containerd.sock
       kubeletExtraArgs:
         cloud-provider: vsphere
       name: '{{ ds.meta_data.hostname }}'
+  preKubeadmCommands:
+  - hostname "{{ ds.meta_data.hostname }}"
+  - echo "::1         ipv6-localhost ipv6-loopback" >/etc/hosts
+  - echo "127.0.0.1   localhost {{ ds.meta_data.hostname }}" >>/etc/hosts
+  - echo "{{ ds.meta_data.hostname }}" >/etc/hostname
+  users:
+  - name: vsphere
+    sshAuthorizedKeys:
+    - "The public side of an SSH key pair."
+    sudo: ALL=(ALL) NOPASSWD:ALL
 ---
 apiVersion: cluster.x-k8s.io/v1alpha2
 kind: Machine
@@ -280,7 +291,6 @@ spec:
   network:
     devices:
     - dhcp4: true
-      dhcp6: false
       networkName: vm-network-1
   numCPUs: 2
   template: ubuntu-1804-kube-v1.13.6
@@ -297,9 +307,20 @@ metadata:
 spec:
   joinConfiguration:
     nodeRegistration:
+      criSocket: /var/run/containerd/containerd.sock
       kubeletExtraArgs:
         cloud-provider: vsphere
       name: '{{ ds.meta_data.hostname }}'
+  preKubeadmCommands:
+  - hostname "{{ ds.meta_data.hostname }}"
+  - echo "::1         ipv6-localhost ipv6-loopback" >/etc/hosts
+  - echo "127.0.0.1   localhost {{ ds.meta_data.hostname }}" >>/etc/hosts
+  - echo "{{ ds.meta_data.hostname }}" >/etc/hostname
+  users:
+  - name: vsphere
+    sshAuthorizedKeys:
+    - "The public side of an SSH key pair."
+    sudo: ALL=(ALL) NOPASSWD:ALL
 ---
 apiVersion: cluster.x-k8s.io/v1alpha2
 kind: MachineDeployment
@@ -345,7 +366,6 @@ spec:
       network:
         devices:
         - dhcp4: true
-          dhcp6: false
           networkName: vm-network-1
       numCPUs: 2
       template: ubuntu-1804-kube-v1.13.6
@@ -397,8 +417,17 @@ TODO(akutz) The name of the kubeconfig secret may have changed. Please
     ```shell
     $ kubectl get secrets
     NAME                            TYPE                                  DATA   AGE
-    management-cluster-kubeconfig   Opaque                                1      18h
-    workload-cluster-1-kubeconfig   Opaque                                1      17h
+    default-token-zs9tb             kubernetes.io/service-account-token   3      13m
+    management-cluster-ca           Opaque                                2      15m
+    management-cluster-etcd         Opaque                                2      15m
+    management-cluster-kubeconfig   Opaque                                1      15m
+    management-cluster-proxy        Opaque                                2      15m
+    management-cluster-sa           Opaque                                2      15m
+    workload-cluster-1-ca           Opaque                                2      7m
+    workload-cluster-1-etcd         Opaque                                2      7m
+    workload-cluster-1-kubeconfig   Opaque                                1      7m
+    workload-cluster-1-proxy        Opaque                                2      7m
+    workload-cluster-1-sa           Opaque                                2      7m
     ```
 
 2. Get the KubeConfig secret for the `workload-cluster-1` cluster and decode it from base64:

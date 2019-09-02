@@ -51,6 +51,7 @@ spec:
   joinConfiguration:
     nodeRegistration:
       name: "{{ ds.meta_data.hostname }}"
+      criSocket: "/var/run/containerd/containerd.sock"
       kubeletExtraArgs:
         cloud-provider: vsphere
   users:
@@ -59,17 +60,13 @@ spec:
     sshAuthorizedKeys:
     - "${SSH_AUTHORIZED_KEY}"
   files:
-  - path: /etc/hostname
-    owner: root:root
-    permissions: "0644"
+  - path: /home/ubuntu/.ssh/authorized_keys
+    owner: ubuntu:ubuntu
+    permissions: "0400"
     content: |
-      {{ ds.meta_data.hostname }}
-  - path: /etc/hosts
-    owner: root:root
-    permissions: "0644"
-    content: |
-      ::1         ipv6-localhost ipv6-loopback
-      127.0.0.1   localhost
-      127.0.0.1   {{ ds.meta_data.hostname }}
+      ${SSH_AUTHORIZED_KEY}
   preKubeadmCommands:
-  - "[hostname, {{ ds.meta_data.hostname }}]"
+  - chown -R ubuntu:ubuntu /home/ubuntu/.ssh
+  - hostname '{{ ds.meta_data.hostname }}'
+  - printf '::1         ipv6-localhost ipv6-loopback\n127.0.0.1   localhost {{ ds.meta_data.hostname }}\n' >/etc/hosts
+  - printf '{{ ds.meta_data.hostname }}\n' >/etc/hostname

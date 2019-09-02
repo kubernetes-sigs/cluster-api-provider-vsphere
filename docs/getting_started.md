@@ -252,7 +252,7 @@ spec:
   - echo "127.0.0.1   localhost {{ ds.meta_data.hostname }}" >>/etc/hosts
   - echo "{{ ds.meta_data.hostname }}" >/etc/hostname
   users:
-  - name: vsphere
+  - name: capv
     sshAuthorizedKeys:
     - "The public side of an SSH key pair."
     sudo: ALL=(ALL) NOPASSWD:ALL
@@ -317,7 +317,7 @@ spec:
   - echo "127.0.0.1   localhost {{ ds.meta_data.hostname }}" >>/etc/hosts
   - echo "{{ ds.meta_data.hostname }}" >/etc/hostname
   users:
-  - name: vsphere
+  - name: capv
     sshAuthorizedKeys:
     - "The public side of an SSH key pair."
     sudo: ALL=(ALL) NOPASSWD:ALL

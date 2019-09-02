@@ -52,7 +52,7 @@ spec:
       extraArgs:
         cloud-provider: vsphere
   users:
-  - name: vsphere
+  - name: capv
     sudo: "ALL=(ALL) NOPASSWD:ALL"
     sshAuthorizedKeys:
     - "${SSH_AUTHORIZED_KEY}"

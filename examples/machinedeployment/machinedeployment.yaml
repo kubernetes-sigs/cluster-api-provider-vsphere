@@ -48,19 +48,21 @@ kind: KubeadmConfigTemplate
 metadata:
   name: ${CLUSTER_NAME}-md-0
 spec:
-  joinConfiguration:
-    nodeRegistration:
-      name: "{{ ds.meta_data.hostname }}"
-      criSocket: "/var/run/containerd/containerd.sock"
-      kubeletExtraArgs:
-        cloud-provider: vsphere
-  users:
-  - name: capv
-    sudo: "ALL=(ALL) NOPASSWD:ALL"
-    sshAuthorizedKeys:
-    - "${SSH_AUTHORIZED_KEY}"
-  preKubeadmCommands:
-  - hostname "{{ ds.meta_data.hostname }}"
-  - echo "::1         ipv6-localhost ipv6-loopback" >/etc/hosts
-  - echo "127.0.0.1   localhost {{ ds.meta_data.hostname }}" >>/etc/hosts
-  - echo "{{ ds.meta_data.hostname }}" >/etc/hostname
+  template:
+    spec:
+      joinConfiguration:
+        nodeRegistration:
+          name: "{{ ds.meta_data.hostname }}"
+          criSocket: "/var/run/containerd/containerd.sock"
+          kubeletExtraArgs:
+            cloud-provider: vsphere
+      users:
+      - name: capv
+        sudo: "ALL=(ALL) NOPASSWD:ALL"
+        sshAuthorizedKeys:
+        - "${SSH_AUTHORIZED_KEY}"
+      preKubeadmCommands:
+      - hostname "{{ ds.meta_data.hostname }}"
+      - echo "::1         ipv6-localhost ipv6-loopback" >/etc/hosts
+      - echo "127.0.0.1   localhost {{ ds.meta_data.hostname }}" >>/etc/hosts
+      - echo "{{ ds.meta_data.hostname }}" >/etc/hostname

@@ -305,22 +305,24 @@ metadata:
   name: workload-cluster-1-md-0
   namespace: default
 spec:
-  joinConfiguration:
-    nodeRegistration:
-      criSocket: /var/run/containerd/containerd.sock
-      kubeletExtraArgs:
-        cloud-provider: vsphere
-      name: '{{ ds.meta_data.hostname }}'
-  preKubeadmCommands:
-  - hostname "{{ ds.meta_data.hostname }}"
-  - echo "::1         ipv6-localhost ipv6-loopback" >/etc/hosts
-  - echo "127.0.0.1   localhost {{ ds.meta_data.hostname }}" >>/etc/hosts
-  - echo "{{ ds.meta_data.hostname }}" >/etc/hostname
-  users:
-  - name: capv
-    sshAuthorizedKeys:
-    - "The public side of an SSH key pair."
-    sudo: ALL=(ALL) NOPASSWD:ALL
+  template:
+    spec:
+      joinConfiguration:
+        nodeRegistration:
+          criSocket: /var/run/containerd/containerd.sock
+          kubeletExtraArgs:
+            cloud-provider: vsphere
+          name: '{{ ds.meta_data.hostname }}'
+      preKubeadmCommands:
+      - hostname "{{ ds.meta_data.hostname }}"
+      - echo "::1         ipv6-localhost ipv6-loopback" >/etc/hosts
+      - echo "127.0.0.1   localhost {{ ds.meta_data.hostname }}" >>/etc/hosts
+      - echo "{{ ds.meta_data.hostname }}" >/etc/hostname
+      users:
+      - name: capv
+        sshAuthorizedKeys:
+        - "The public side of an SSH key pair."
+        sudo: ALL=(ALL) NOPASSWD:ALL
 ---
 apiVersion: cluster.x-k8s.io/v1alpha2
 kind: MachineDeployment

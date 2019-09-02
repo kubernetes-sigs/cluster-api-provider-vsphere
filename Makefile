@@ -33,17 +33,17 @@ manager: check
 
 # Run go fmt against code
 .PHONY: fmt
-fmt: | generate-kubebuilder-code
+fmt: | generate
 	hack/check-format.sh
 
 # Run go vet against code
 .PHONY: vet
-vet: | generate-kubebuilder-code
+vet: | generate
 	hack/check-vet.sh
 
 # Run go lint against code
 .PHONY: lint
-lint: | generate-kubebuilder-code
+lint: | generate
 	hack/check-lint.sh
 
 # Generate assets

@@ -193,15 +193,6 @@ spec:
             server:
               description: Server is the address of the vSphere endpoint.
               type: string
-            sshAuthorizedKeys:
-              description: "SSHAuthorizedKeys is a list of SSH public keys authorized
-                to access deployed machines. \n These keys are added to the default
-                user as determined by cloud-init in the images from which the machines
-                are deployed. \n The default user for CentOS is \"centos\". The default
-                user for Ubuntu is \"ubuntu\"."
-              items:
-                type: string
-              type: array
           type: object
         status:
           description: VSphereClusterStatus defines the observed state of VSphereClusterSpec

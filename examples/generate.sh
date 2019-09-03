@@ -208,6 +208,32 @@ VSPHERE_B64ENCODED_PASSWORD="$(printf '%s' "${VSPHERE_PASSWORD}" | base64)"
 export VSPHERE_B64ENCODED_USERNAME VSPHERE_B64ENCODED_PASSWORD
 unset VSPHERE_USERNAME VSPHERE_PASSWORD
 
+# Encode the cloud provider configuration.
+CLOUD_CONFIG_B64ENCODED=$(cat <<EOF | { base64 -w0 2>/dev/null || base64; }
+[Global]
+secret-name = "cloud-provider-vsphere-credentials"
+secret-namespace = "kube-system"
+datacenters = "${VSPHERE_DATACENTER}"
+insecure-flag = "1"
+
+[VirtualCenter "${VSPHERE_SERVER}"]
+
+[Workspace]
+server = "${VSPHERE_SERVER}"
+datacenter = "${VSPHERE_DATACENTER}"
+folder = "${VSPHERE_FOLDER}"
+default-datastore = "${VSPHERE_DATASTORE}"
+resourcepool-path = "${VSPHERE_RESOURCE_POOL}"
+
+[Disk]
+scsicontrollertype = pvscsi
+
+[Network]
+public-network = "${VSPHERE_NETWORK}"
+EOF
+)
+export CLOUD_CONFIG_B64ENCODED
+
 envsubst() {
   python -c 'import os,sys;[sys.stdout.write(os.path.expandvars(l)) for l in sys.stdin]'
 }

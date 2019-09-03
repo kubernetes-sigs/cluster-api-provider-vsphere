@@ -20,31 +20,70 @@ import (
 	"strings"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/cluster-api/api/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
+	"sigs.k8s.io/cluster-api/util/secret"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 var (
-	clusterWithValidKubeConfig = &v1alpha2.Cluster{
+	clusterWithValidKubeConfig = &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test1",
 			Namespace: "test",
 		},
 	}
 
-	clusterWithInvalidKubeConfig = &v1alpha2.Cluster{
+	clusterWithInvalidKubeConfig = &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test2",
 			Namespace: "test",
 		},
 	}
 
-	clusterWithNoKubeConfig = &v1alpha2.Cluster{
+	clusterWithNoKubeConfig = &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test3",
 			Namespace: "test",
+		},
+	}
+
+	validKubeConfig = `
+clusters:
+- cluster:
+    server: https://test-cluster-api:6443
+  name: test-cluster-api
+contexts:
+- context:
+    cluster: test-cluster-api
+    user: kubernetes-admin
+  name: kubernetes-admin@test-cluster-api
+current-context: kubernetes-admin@test-cluster-api
+kind: Config
+preferences: {}
+users:
+- name: kubernetes-admin
+`
+
+	validSecret = &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test1-kubeconfig",
+			Namespace: "test",
+		},
+		Data: map[string][]byte{
+			secret.KubeconfigDataName: []byte(validKubeConfig),
+		},
+	}
+
+	invalidSecret = &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test2-kubeconfig",
+			Namespace: "test",
+		},
+		Data: map[string][]byte{
+			secret.KubeconfigDataName: []byte("Not valid!!1"),
 		},
 	}
 )
@@ -70,7 +109,7 @@ func TestNewClusterClient(t *testing.T) {
 	t.Run("cluster with no kubeconfig", func(t *testing.T) {
 		client := fake.NewFakeClient()
 		_, err := NewClusterClient(client, clusterWithNoKubeConfig)
-		if !strings.Contains(err.Error(), "secret not found") {
+		if !strings.Contains(err.Error(), "not found") {
 			t.Fatalf("Expected not found error, got %v", err)
 		}
 	})

@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The Kubernetes Authors.
+Copyright 2019 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,8 +14,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package clusterclient
-
-// TODO: Test clusterclient. To do this properly, etcd and kubectl need to be on the box running the test.
-// Placeholder till the presubmit images have the needed binaries.
-// https://github.com/kubernetes-sigs/cluster-api/issues/254
+// +k8s:conversion-gen=sigs.k8s.io/cluster-api/pkg/apis/deprecated/v1alpha1
+package v1alpha2

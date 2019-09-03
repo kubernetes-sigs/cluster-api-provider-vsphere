@@ -15,13 +15,21 @@
 # Build the manager binary
 FROM golang:1.12.9 as builder
 
-ARG ARCH
+ENV GOPROXY=https://proxy.golang.org
+WORKDIR /workspace
 
-# Copy in the go src
-WORKDIR $GOPATH/src/sigs.k8s.io/cluster-api
+# Copy the Go Modules manifests
+COPY go.mod go.mod
+COPY go.sum go.sum
+# Cache deps before building and copying source so that we don't need to re-download as much
+# and so that source changes don't invalidate our downloaded layer
+RUN go mod download
+
+# Copy the sources
 COPY ./ ./
 
 # Build
+ARG ARCH=amd64
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} \
     go build -a -ldflags '-extldflags "-static"' \
     -o manager sigs.k8s.io/cluster-api/cmd/example-provider
@@ -29,5 +37,5 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} \
 # Copy the controller-manager into a thin image
 FROM gcr.io/distroless/static:latest
 WORKDIR /
-COPY --from=builder /go/src/sigs.k8s.io/cluster-api/manager .
+COPY --from=builder /workspace/manager .
 ENTRYPOINT ["/manager"]

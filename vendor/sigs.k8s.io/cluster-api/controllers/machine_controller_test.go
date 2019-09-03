@@ -24,10 +24,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/pointer"
-	"sigs.k8s.io/cluster-api/api/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -64,67 +65,67 @@ func TestReconcileRequest(t *testing.T) {
 			},
 		},
 	}
-	machine1 := v1alpha2.Machine{
+	machine1 := clusterv1.Machine{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "Machine",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "create",
 			Namespace:  "default",
-			Finalizers: []string{v1alpha2.MachineFinalizer, metav1.FinalizerDeleteDependents},
+			Finalizers: []string{clusterv1.MachineFinalizer, metav1.FinalizerDeleteDependents},
 		},
-		Spec: v1alpha2.MachineSpec{
+		Spec: clusterv1.MachineSpec{
 			InfrastructureRef: corev1.ObjectReference{
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
 				Kind:       "InfrastructureConfig",
 				Name:       "infra-config1",
 			},
-			Bootstrap: v1alpha2.Bootstrap{Data: pointer.StringPtr("data")},
+			Bootstrap: clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
 		},
 	}
-	machine2 := v1alpha2.Machine{
+	machine2 := clusterv1.Machine{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "Machine",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "update",
 			Namespace:  "default",
-			Finalizers: []string{v1alpha2.MachineFinalizer, metav1.FinalizerDeleteDependents},
+			Finalizers: []string{clusterv1.MachineFinalizer, metav1.FinalizerDeleteDependents},
 		},
-		Spec: v1alpha2.MachineSpec{
+		Spec: clusterv1.MachineSpec{
 			InfrastructureRef: corev1.ObjectReference{
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
 				Kind:       "InfrastructureConfig",
 				Name:       "infra-config1",
 			},
-			Bootstrap: v1alpha2.Bootstrap{Data: pointer.StringPtr("data")},
+			Bootstrap: clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
 		},
 	}
 	time := metav1.Now()
-	machine3 := v1alpha2.Machine{
+	machine3 := clusterv1.Machine{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "Machine",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "delete",
 			Namespace:         "default",
-			Finalizers:        []string{v1alpha2.MachineFinalizer, metav1.FinalizerDeleteDependents},
+			Finalizers:        []string{clusterv1.MachineFinalizer, metav1.FinalizerDeleteDependents},
 			DeletionTimestamp: &time,
 		},
-		Spec: v1alpha2.MachineSpec{
+		Spec: clusterv1.MachineSpec{
 			InfrastructureRef: corev1.ObjectReference{
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
 				Kind:       "InfrastructureConfig",
 				Name:       "infra-config1",
 			},
-			Bootstrap: v1alpha2.Bootstrap{Data: pointer.StringPtr("data")},
+			Bootstrap: clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
 		},
 	}
-	clusterList := v1alpha2.ClusterList{
+	clusterList := clusterv1.ClusterList{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "ClusterList",
 		},
-		Items: []v1alpha2.Cluster{
+		Items: []clusterv1.Cluster{
 			{
 				TypeMeta: metav1.TypeMeta{
 					Kind: "Cluster",
@@ -182,7 +183,7 @@ func TestReconcileRequest(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		v1alpha2.AddToScheme(scheme.Scheme)
+		clusterv1.AddToScheme(scheme.Scheme)
 		r := &MachineReconciler{
 			Client: fake.NewFakeClient(&clusterList, &machine1, &machine2, &machine3, &infraConfig),
 			Log:    log.Log,
@@ -196,5 +197,105 @@ func TestReconcileRequest(t *testing.T) {
 		}
 
 		Expect(result).To(Equal(tc.expected.result))
+	}
+}
+
+func TestIsDeletionReady(t *testing.T) {
+	RegisterTestingT(t)
+
+	bootstrapConfig := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"kind":       "BootstrapConfig",
+			"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha2",
+			"metadata": map[string]interface{}{
+				"name":      "delete-bootstrap",
+				"namespace": "default",
+			},
+		},
+	}
+
+	infraConfig := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"kind":       "InfrastructureConfig",
+			"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha2",
+			"metadata": map[string]interface{}{
+				"name":      "delete-infra",
+				"namespace": "default",
+			},
+		},
+	}
+
+	machine := clusterv1.Machine{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "Machine",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "delete",
+			Namespace: "default",
+		},
+		Spec: clusterv1.MachineSpec{
+			InfrastructureRef: corev1.ObjectReference{
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
+				Kind:       "InfrastructureConfig",
+				Name:       "delete-infra",
+			},
+			Bootstrap: clusterv1.Bootstrap{
+				ConfigRef: &corev1.ObjectReference{
+					APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha2",
+					Kind:       "BootstrapConfig",
+					Name:       "delete-bootstrap",
+				},
+			},
+		},
+	}
+
+	testCases := []struct {
+		bootstrapExists bool
+		infraExists     bool
+		expected        bool
+	}{
+		{
+			bootstrapExists: true,
+			infraExists:     true,
+			expected:        false,
+		},
+		{
+			bootstrapExists: false,
+			infraExists:     true,
+			expected:        false,
+		},
+		{
+			bootstrapExists: true,
+			infraExists:     false,
+			expected:        false,
+		},
+		{
+			bootstrapExists: false,
+			infraExists:     false,
+			expected:        true,
+		},
+	}
+
+	for _, tc := range testCases {
+		myscheme := runtime.NewScheme()
+		clusterv1.AddToScheme(myscheme)
+
+		objs := []runtime.Object{&machine}
+
+		if tc.bootstrapExists {
+			objs = append(objs, bootstrapConfig)
+		}
+
+		if tc.infraExists {
+			objs = append(objs, infraConfig)
+		}
+
+		r := &MachineReconciler{
+			Client: fake.NewFakeClientWithScheme(myscheme, objs...),
+			Log:    log.Log,
+		}
+
+		ok, _ := r.reconcileDeleteExternal(ctx, &machine)
+		Expect(ok).To(Equal(tc.expected))
 	}
 }

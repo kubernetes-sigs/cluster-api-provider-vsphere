@@ -18,15 +18,15 @@ package controllers
 
 import (
 	"context"
-	"path"
 	"sync"
-	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
@@ -62,9 +62,10 @@ type MachineReconciler struct {
 	externalWatchers sync.Map
 }
 
-func (r *MachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *MachineReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.Machine{}).
+		WithOptions(options).
 		Build(r)
 
 	r.controller = c
@@ -94,8 +95,12 @@ func (r *MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	// Always attempt to Patch the Machine object and status after each reconciliation.
+
 	defer func() {
+		// Always reconcile the Status.Phase field.
+		r.reconcilePhase(ctx, m)
+
+		// Always attempt to Patch the Machine object and status after each reconciliation.
 		if err := patchHelper.Patch(ctx, m); err != nil {
 			if reterr == nil {
 				reterr = err
@@ -114,6 +119,17 @@ func (r *MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 			m.Labels[clusterv1.MachineClusterLabelName], m.Name, m.Namespace)
 	}
 
+	// Handle deletion reconciliation loop.
+	if !m.ObjectMeta.DeletionTimestamp.IsZero() {
+		return r.reconcileDelete(ctx, cluster, m)
+	}
+
+	// Handle normal reconciliation loop.
+	return r.reconcile(ctx, cluster, m)
+}
+
+func (r *MachineReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
+	// If the Machine belongs to a cluster, add an owner reference.
 	if cluster != nil && r.shouldAdopt(m) {
 		m.OwnerReferences = util.EnsureOwnerRef(m.OwnerReferences, metav1.OwnerReference{
 			APIVersion: cluster.APIVersion,
@@ -123,51 +139,64 @@ func (r *MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 		})
 	}
 
-	// If the Machine hasn't been deleted and doesn't have a finalizer, add one.
-	if m.ObjectMeta.DeletionTimestamp.IsZero() {
-		if !util.Contains(m.Finalizers, clusterv1.MachineFinalizer) {
-			m.Finalizers = append(m.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
+	// If the Machine doesn't have a finalizer, add one.
+	if !util.Contains(m.Finalizers, clusterv1.MachineFinalizer) {
+		m.Finalizers = append(m.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
+	}
+
+	// Call the inner reconciliation methods.
+	reconciliationErrors := []error{
+		r.reconcileBootstrap(ctx, m),
+		r.reconcileInfrastructure(ctx, m),
+		r.reconcileNodeRef(ctx, cluster, m),
+		r.reconcileClusterStatus(ctx, cluster, m),
+	}
+
+	// Parse the errors, making sure we record if there is a RequeueAfterError.
+	res := ctrl.Result{}
+	errs := []error{}
+	for _, err := range reconciliationErrors {
+		if requeueErr, ok := errors.Cause(err).(capierrors.HasRequeueAfterError); ok {
+			// Only record and log the first RequeueAfterError.
+			if !res.Requeue {
+				res.Requeue = true
+				res.RequeueAfter = requeueErr.GetRequeueAfter()
+				klog.Infof("Reconciliation for Machine %q in namespace %q asked to requeue: %v", m.Name, m.Namespace, err)
+			}
+			continue
+		}
+
+		errs = append(errs, err)
+	}
+	return res, kerrors.NewAggregate(errs)
+}
+
+func (r *MachineReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
+	if err := r.isDeleteNodeAllowed(ctx, m); err != nil {
+		switch err {
+		case errNilNodeRef:
+			klog.V(2).Infof("Deleting node is not allowed for machine %q: %v", m.Name, err)
+		case errNoControlPlaneNodes, errLastControlPlaneNode:
+			klog.V(2).Infof("Deleting node %q is not allowed for machine %q: %v", m.Status.NodeRef.Name, m.Name, err)
+		default:
+			klog.Errorf("IsDeleteNodeAllowed check failed for machine %q: %v", m.Name, err)
+			return ctrl.Result{}, err
+		}
+	} else {
+		klog.Infof("Deleting node %q for machine %q", m.Status.NodeRef.Name, m.Name)
+		if err := r.deleteNode(ctx, cluster, m.Status.NodeRef.Name); err != nil && !apierrors.IsNotFound(err) {
+			klog.Errorf("Error deleting node %q for machine %q: %v", m.Status.NodeRef.Name, m.Name, err)
+			return ctrl.Result{}, err
 		}
 	}
 
-	if err := r.reconcile(ctx, cluster, m); err != nil {
-		if requeueErr, ok := errors.Cause(err).(capierrors.HasRequeueAfterError); ok {
-			klog.Infof("Reconciliation for Machine %q in namespace %q asked to requeue: %v", m.Name, m.Namespace, err)
-			return ctrl.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
-		}
+	if ok, err := r.reconcileDeleteExternal(ctx, m); !ok || err != nil {
+		// Return early and don't remove the finalizer if we got an error or
+		// the external reconciliation deletion isn't ready.
 		return ctrl.Result{}, err
 	}
 
-	if !m.ObjectMeta.DeletionTimestamp.IsZero() {
-		if err := r.isDeleteNodeAllowed(context.Background(), m); err != nil {
-			switch err {
-			case errNilNodeRef:
-				klog.V(2).Infof("Deleting node is not allowed for machine %q: %v", m.Name, err)
-			case errNoControlPlaneNodes, errLastControlPlaneNode:
-				klog.V(2).Infof("Deleting node %q is not allowed for machine %q: %v", m.Status.NodeRef.Name, m.Name, err)
-			default:
-				klog.Errorf("IsDeleteNodeAllowed check failed for machine %q: %v", m.Name, err)
-				return ctrl.Result{}, err
-			}
-		} else {
-			klog.Infof("Deleting node %q for machine %q", m.Status.NodeRef.Name, m.Name)
-			if err := r.deleteNode(ctx, cluster, m.Status.NodeRef.Name); err != nil && !apierrors.IsNotFound(err) {
-				klog.Errorf("Error deleting node %q for machine %q: %v", m.Status.NodeRef.Name, m.Name, err)
-				return ctrl.Result{}, err
-			}
-		}
-
-		if err := r.isDeleteReady(ctx, m); err != nil {
-			if requeueErr, ok := errors.Cause(err).(capierrors.HasRequeueAfterError); ok {
-				klog.Infof("Reconciliation for Machine %q in namespace %q asked to requeue: %v", m.Name, m.Namespace, err)
-				return ctrl.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
-			}
-			return ctrl.Result{}, err
-		}
-
-		m.ObjectMeta.Finalizers = util.Filter(m.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
-	}
-
+	m.ObjectMeta.Finalizers = util.Filter(m.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
 	return ctrl.Result{}, nil
 }
 
@@ -245,40 +274,51 @@ func (r *MachineReconciler) getMachinesInCluster(ctx context.Context, namespace,
 		return nil, errors.Wrap(err, "failed to list machines")
 	}
 
-	machines := make([]*clusterv1.Machine, len(machineList.Items))
+	machines := []*clusterv1.Machine{}
 	for i := range machineList.Items {
-		machines[i] = &machineList.Items[i]
+		m := &machineList.Items[i]
+		if m.DeletionTimestamp.IsZero() {
+			machines = append(machines, m)
+		}
 	}
-
 	return machines, nil
 }
 
-// isDeleteReady returns an error if any of Boostrap.ConfigRef or InfrastructureRef referenced objects still exist.
-func (r *MachineReconciler) isDeleteReady(ctx context.Context, m *clusterv1.Machine) error {
-	if m.Spec.Bootstrap.ConfigRef != nil {
-		_, err := external.Get(r.Client, m.Spec.Bootstrap.ConfigRef, m.Namespace)
-		if apierrors.IsNotFound(err) {
-			return nil
-		}
-		if err != nil {
-			return errors.Wrapf(err, "failed to get %s %q for Machine %q in namespace %q",
-				path.Join(m.Spec.Bootstrap.ConfigRef.APIVersion, m.Spec.Bootstrap.ConfigRef.Kind),
-				m.Spec.Bootstrap.ConfigRef.Name, m.Name, m.Namespace)
-		}
-		return errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: 10 * time.Second},
-			"delete is not ready, Bootstrap configuration still exists")
+// reconcileDeleteExternal tries to delete external references, returning true if it cannot find any.
+func (r *MachineReconciler) reconcileDeleteExternal(ctx context.Context, m *clusterv1.Machine) (bool, error) {
+	objects := []*unstructured.Unstructured{}
+	references := []*corev1.ObjectReference{
+		m.Spec.Bootstrap.ConfigRef,
+		&m.Spec.InfrastructureRef,
 	}
 
-	if _, err := external.Get(r.Client, &m.Spec.InfrastructureRef, m.Namespace); err != nil && !apierrors.IsNotFound(err) {
-		return errors.Wrapf(err, "failed to get %s %q for Machine %q in namespace %q",
-			path.Join(m.Spec.InfrastructureRef.APIVersion, m.Spec.InfrastructureRef.Kind),
-			m.Spec.InfrastructureRef.Name, m.Name, m.Namespace)
-	} else if err == nil {
-		return errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: 10 * time.Second},
-			"delete is not ready, Infrastructure configuration still exists")
+	// Loop over the references and try to retrieve it with the client.
+	for _, ref := range references {
+		if ref == nil {
+			continue
+		}
+
+		obj, err := external.Get(r.Client, ref, m.Namespace)
+		if err != nil && !apierrors.IsNotFound(err) {
+			return false, errors.Wrapf(err, "failed to get %s %q for Machine %q in namespace %q",
+				ref.GroupVersionKind(), ref.Name, m.Name, m.Namespace)
+		}
+		if obj != nil {
+			objects = append(objects, obj)
+		}
 	}
 
-	return nil
+	// Issue a delete request for any object that has been found.
+	for _, obj := range objects {
+		if err := r.Delete(ctx, obj); err != nil && !apierrors.IsNotFound(err) {
+			return false, errors.Wrapf(err,
+				"failed to delete %v %q for Machine %q in namespace %q",
+				obj.GroupVersionKind(), obj.GetName(), m.Name, m.Namespace)
+		}
+	}
+
+	// Return true if there are no more external objects.
+	return len(objects) == 0, nil
 }
 
 func (r *MachineReconciler) shouldAdopt(m *clusterv1.Machine) bool {

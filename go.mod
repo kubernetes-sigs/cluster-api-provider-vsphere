@@ -22,13 +22,13 @@ require (
 	k8s.io/gengo v0.0.0-20190813173942-955ffa8fcfc9 // indirect
 	k8s.io/klog v0.4.0
 	sigs.k8s.io/cluster-api v0.0.0-20190822050630-23ef7a8a48c2
-	sigs.k8s.io/controller-runtime v0.2.0-rc.0
-	sigs.k8s.io/controller-tools v0.2.0-rc.0
+	sigs.k8s.io/controller-runtime v0.2.0
+	sigs.k8s.io/controller-tools v0.2.0
 	winterdrache.de/goformat v0.0.0-20180512004123-256ef38c4271 // indirect
 )
 
 replace (
 	k8s.io/api => k8s.io/api v0.0.0-20190704095032-f4ca3d3bdf1d
 	k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20190704094733-8f6ac2502e51
-	sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v0.0.0-20190822050630-23ef7a8a48c2
+	sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v0.2.0
 )

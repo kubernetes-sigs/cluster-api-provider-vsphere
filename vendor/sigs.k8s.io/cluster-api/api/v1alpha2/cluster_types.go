@@ -23,8 +23,7 @@ import (
 )
 
 const (
-	ClusterFinalizer                   = "cluster.cluster.x-k8s.io"
-	ClusterAnnotationControlPlaneReady = "cluster.x-k8s.io/control-plane-ready"
+	ClusterFinalizer = "cluster.cluster.x-k8s.io"
 )
 
 /// [ClusterSpec]
@@ -32,7 +31,7 @@ const (
 type ClusterSpec struct {
 	// Cluster network configuration
 	// +optional
-	ClusterNetwork *ClusterNetworkingConfig `json:"clusterNetwork,omitempty"`
+	ClusterNetwork *ClusterNetwork `json:"clusterNetwork,omitempty"`
 
 	// InfrastructureRef is a reference to a provider-specific resource that holds the details
 	// for provisioning infrastructure for a cluster in said provider.
@@ -42,21 +41,29 @@ type ClusterSpec struct {
 
 /// [ClusterSpec]
 
-/// [ClusterNetworkingConfig]
-// ClusterNetworkingConfig specifies the different networking
+/// [ClusterNetwork]
+// ClusterNetwork specifies the different networking
 // parameters for a cluster.
-type ClusterNetworkingConfig struct {
+type ClusterNetwork struct {
+	// APIServerPort specifies the port the API Server should bind to.
+	// Defaults to 6443.
+	// +optional
+	APIServerPort *int32 `json:"apiServerPort,omitempty"`
+
 	// The network ranges from which service VIPs are allocated.
-	Services NetworkRanges `json:"services"`
+	// +optional
+	Services *NetworkRanges `json:"services,omitempty"`
 
 	// The network ranges from which Pod networks are allocated.
-	Pods NetworkRanges `json:"pods"`
+	// +optional
+	Pods *NetworkRanges `json:"pods,omitempty"`
 
 	// Domain name for services.
-	ServiceDomain string `json:"serviceDomain"`
+	// +optional
+	ServiceDomain string `json:"serviceDomain,omitempty"`
 }
 
-/// [ClusterNetworkingConfig]
+/// [ClusterNetwork]
 
 /// [NetworkRanges]
 // NetworkRanges represents ranges of network addresses.
@@ -92,6 +99,10 @@ type ClusterStatus struct {
 	// InfrastructureReady is the state of the infrastructure provider.
 	// +optional
 	InfrastructureReady bool `json:"infrastructureReady"`
+
+	// ControlPlaneInitialized defines if the control plane has been initialized.
+	// +optional
+	ControlPlaneInitialized bool `json:"controlPlaneInitialized"`
 }
 
 // SetTypedPhase sets the Phase field to the string representation of ClusterPhase.

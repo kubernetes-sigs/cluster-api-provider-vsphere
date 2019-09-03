@@ -17,6 +17,16 @@
 
 .DEFAULT_GOAL:=help
 
+# Use GOPROXY environment variable if set
+GOPROXY := $(shell go env GOPROXY)
+ifeq ($(GOPROXY),)
+GOPROXY := https://proxy.golang.org
+endif
+export GOPROXY
+
+# Active module mode, as we use go modules to manage dependencies
+export GO111MODULE=on
+
 # Default timeout for starting/stopping the Kubebuilder test control plane
 export KUBEBUILDER_CONTROLPLANE_START_TIMEOUT ?=60s
 export KUBEBUILDER_CONTROLPLANE_STOP_TIMEOUT ?=60s
@@ -24,15 +34,22 @@ export KUBEBUILDER_CONTROLPLANE_STOP_TIMEOUT ?=60s
 # This option is for running docker manifest command
 export DOCKER_CLI_EXPERIMENTAL := enabled
 
-# Image URL to use all building/pushing image targets
+# Directories.
+TOOLS_DIR := hack/tools
+TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
+BIN_DIR := bin
+
+# Binaries.
+CONTROLLER_GEN := $(TOOLS_BIN_DIR)/controller-gen
+GOLANGCI_LINT := $(TOOLS_BIN_DIR)/golangci-lint
+CONVERSION_GEN := $(TOOLS_BIN_DIR)/conversion-gen
+
+# Define Docker related variables. Releases should modify and double check these vars.
 REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
 CONTROLLER_IMG ?= $(REGISTRY)/cluster-api-controller
-EXAMPLE_PROVIDER_IMG ?= $(REGISTRY)/example-provider-controller
 TAG ?= dev
-
-ARCH?=amd64
+ARCH ?= amd64
 ALL_ARCH = amd64 arm arm64 ppc64le s390x
-GOOS?=linux
 
 all: test manager clusterctl
 
@@ -45,11 +62,11 @@ help:  ## Display this help
 
 .PHONY: test
 test: generate lint ## Run tests
-	$(MAKE) test-go
-
-.PHONY: test-go
-test-go: ## Run tests
 	go test -v ./...
+
+.PHONY: test-integration
+test-integration: ## Run integration tests
+	go test -v -tags=integration ./test/integration/...
 
 ## --------------------------------------
 ## Binaries
@@ -57,56 +74,54 @@ test-go: ## Run tests
 
 .PHONY: manager
 manager: lint-full ## Build manager binary
-	go build -o bin/manager sigs.k8s.io/cluster-api
-
-.PHONY: docker-build-manager
-docker-build-manager: lint-full ## Build manager binary in docker
-	docker run --rm \
-	-v "${PWD}:/go/src/sigs.k8s.io/cluster-api" \
-	-v "${PWD}/bin:/go/bin" \
-	-w "/go/src/sigs.k8s.io/cluster-api" \
-	-e CGO_ENABLED=0 -e GOOS=${GOOS} -e GOARCH=${ARCH} -e GO111MODULE=on -e GOFLAGS="-mod=vendor" \
-	golang:1.12.6 \
-	go build -a -ldflags '-extldflags "-static"' -o /go/bin/manager sigs.k8s.io/cluster-api
+	go build -o $(BIN_DIR)/manager sigs.k8s.io/cluster-api
 
 .PHONY: clusterctl
 clusterctl: lint-full ## Build clusterctl binary
 	go build -o bin/clusterctl sigs.k8s.io/cluster-api/cmd/clusterctl
 
-.PHONY: run
-run: lint ## Run against the configured Kubernetes cluster in ~/.kube/config
-	go run ./main.go
+$(CONTROLLER_GEN): $(TOOLS_DIR)/go.mod # Build controller-gen from tools folder.
+	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/controller-gen sigs.k8s.io/controller-tools/cmd/controller-gen
+
+$(GOLANGCI_LINT): $(TOOLS_DIR)/go.mod # Build golangci-lint from tools folder.
+	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/golangci-lint github.com/golangci/golangci-lint/cmd/golangci-lint
+
+$(CONVERSION_GEN): $(TOOLS_DIR)/go.mod
+	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/conversion-gen k8s.io/code-generator/cmd/conversion-gen
 
 ## --------------------------------------
 ## Linting
 ## --------------------------------------
 
 .PHONY: lint
-lint: ## Lint codebase
-	bazel run //:lint $(BAZEL_ARGS)
+lint: $(GOLANGCI_LINT) ## Lint codebase
+	$(GOLANGCI_LINT) run -v
 
-lint-full: ## Run slower linters to detect possible issues
-	bazel run //:lint-full $(BAZEL_ARGS)
+lint-full: $(GOLANGCI_LINT) ## Run slower linters to detect possible issues
+	$(GOLANGCI_LINT) run -v --fast=false
 
 ## --------------------------------------
 ## Generate / Manifests
 ## --------------------------------------
 
 .PHONY: generate
-generate: ## Generate code
+generate: $(CONTROLLER_GEN) ## Generate code
 	$(MAKE) generate-manifests
-	$(MAKE) generate-deepcopy
-	$(MAKE) gazelle
+	$(MAKE) generate-go
 
-.PHONY: generate-deepcopy
-generate-deepcopy: ## Runs controller-gen to generate deepcopy files
-	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go \
+.PHONY: generate-go
+generate-go: $(CONTROLLER_GEN) $(CONVERSION_GEN) ## Runs Go related generate targets
+	$(CONTROLLER_GEN) \
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
 		paths=./api/...
+	$(CONVERSION_GEN) \
+    --input-dirs=./api/v1alpha2 \
+    --output-file-base=zz_generated.conversion \
+    --go-header-file=./hack/boilerplate/boilerplate.generatego.txt
 
 .PHONY: generate-manifests
-generate-manifests: ## Generate manifests e.g. CRD, RBAC etc.
-	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go \
+generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
+	$(CONTROLLER_GEN) \
 		paths=./api/... \
 		paths=./controllers/... \
 		crd:trivialVersions=true \
@@ -116,62 +131,87 @@ generate-manifests: ## Generate manifests e.g. CRD, RBAC etc.
 	cp -f ./config/rbac/*.yaml ./config/ci/rbac/
 	cp -f ./config/manager/manager*.yaml ./config/ci/manager/
 
-.PHONY: gazelle
-gazelle: ## Run Bazel Gazelle
-	(which bazel && ./hack/update-bazel.sh) || true
-
-.PHONY: vendor
-vendor: ## Runs go mod to ensure proper vendoring.
-	./hack/update-vendor.sh
-	$(MAKE) gazelle
+.PHONY: modules
+modules: ## Runs go mod to ensure modules are up to date.
+	go mod tidy
+	cd $(TOOLS_DIR); go mod tidy
 
 ## --------------------------------------
 ## Docker
 ## --------------------------------------
 
 .PHONY: docker-build
-docker-build: generate lint-full ## Build the docker image for controller-manager
+docker-build: ## Build the docker image for controller-manager
 	docker build --pull --build-arg ARCH=$(ARCH) . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG)
-	@echo "updating kustomize image patch file for manager resource"
-	hack/sed.sh -i.tmp -e 's@image: .*@image: '"${CONTROLLER_IMG}-$(ARCH):$(TAG)"'@' ./config/default/manager_image_patch.yaml
+	MANIFEST_IMG=$(CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) $(MAKE) set-manifest-image
 
 .PHONY: docker-push
-docker-push: docker-build ## Push the docker image
+docker-push: ## Push the docker image
 	docker push $(CONTROLLER_IMG)-$(ARCH):$(TAG)
 
-.PHONY: all-docker-build
-all-docker-build: $(addprefix sub-docker-build-,$(ALL_ARCH))
-	@echo "updating kustomize image patch file for manager resource"
-	hack/sed.sh -i.tmp -e 's@image: .*@image: '"$(CONTROLLER_IMG):$(TAG)"'@' ./config/default/manager_image_patch.yaml
+## --------------------------------------
+## Docker — All ARCH
+## --------------------------------------
 
-sub-docker-build-%:
+.PHONY: docker-build-all ## Build all the architecture docker images
+docker-build-all: $(addprefix docker-build-,$(ALL_ARCH))
+
+docker-build-%:
 	$(MAKE) ARCH=$* docker-build
 
-.PHONY:all-push ## Push all the architecture docker images and fat manifest docker image
-all-push: all-docker-push docker-push-manifest
+.PHONY: docker-push-all ## Push all the architecture docker images
+docker-push-all: $(addprefix docker-push-,$(ALL_ARCH))
+	$(MAKE) docker-push-manifest
 
-.PHONY:all-docker-push ## Push all the architecture docker images
-all-docker-push: $(addprefix sub-docker-push-,$(ALL_ARCH))
-
-sub-docker-push-%:
+docker-push-%:
 	$(MAKE) ARCH=$* docker-push
 
-.PHONY: docker-build-ci
-docker-build-ci: generate lint-full ## Build the docker image for example provider
-	docker build --pull --build-arg ARCH=$(ARCH) . -f ./cmd/example-provider/Dockerfile -t $(EXAMPLE_PROVIDER_IMG)-$(ARCH):$(TAG)
-	@echo "updating kustomize image patch file for ci"
-	hack/sed.sh -i.tmp -e 's@image: .*@image: '"${EXAMPLE_PROVIDER_IMG}-$(ARCH):$(TAG)"'@' ./config/ci/manager_image_patch.yaml
-
-.PHONY: docker-push-ci
-docker-push-ci: docker-build-ci  ## Build the docker image for ci
-	docker push "$(EXAMPLE_PROVIDER_IMG)-$(ARCH):$(TAG)"
-
 .PHONY: docker-push-manifest
-docker-push-manifest: ## Push the fat manifest docker image. TODO: Update bazel build to push manifest once https://github.com/bazelbuild/rules_docker/issues/300 get merged
-	## Minimum docker version 18.06.0 is required for creating and pushing manifest images
+docker-push-manifest: ## Push the fat manifest docker image.
+	## Minimum docker version 18.06.0 is required for creating and pushing manifest images.
 	docker manifest create --amend $(CONTROLLER_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(CONTROLLER_IMG)\-&:$(TAG)~g")
 	@for arch in $(ALL_ARCH); do docker manifest annotate --arch $${arch} ${CONTROLLER_IMG}:${TAG} ${CONTROLLER_IMG}-$${arch}:${TAG}; done
-	docker manifest push --purge ${CONTROLLER_IMG}:${TAG}
+	MANIFEST_IMG=$(CONTROLLER_IMG) MANIFEST_TAG=$(TAG) $(MAKE) set-manifest-image
+
+.PHONY: set-manifest-image
+set-manifest-image:
+	$(info Updating kustomize image patch file for manager resource)
+	sed -i'' -e 's@image: .*@image: '"${MANIFEST_IMG}:$(MANIFEST_TAG)"'@' ./config/default/manager_image_patch.yaml
+
+## --------------------------------------
+## Release
+## --------------------------------------
+
+RELEASE_TAG := $(shell git describe --abbrev=0 2>/dev/null)
+
+.PHONY: release
+release:  ## Builds and push container images using the latest git tag for the commit.
+	@if [ -z "${RELEASE_TAG}" ]; then echo "RELEASE_TAG is not set"; exit 1; fi
+	# Push the release image to the staging bucket first.
+	REGISTRY=gcr.io/k8s-staging-cluster-api TAG=$(RELEASE_TAG) \
+		$(MAKE) docker-build-all docker-push-all
+	# Set the manifest image to the production bucket.
+	REGISTRY=us.gcr.io/k8s-artifacts-prod/cluster-api TAG=$(RELEASE_TAG) \
+		set-manifest-image
+	# Generate release artifacts.
+	mkdir out/
+	kustomize build config/default > out/cluster-api-components.yaml
+
+.PHONY: release-staging-latest
+release-staging-latest: ## Builds and push container images to the staging bucket using "latest" tag.
+	REGISTRY=gcr.io/k8s-staging-cluster-api TAG=latest \
+		$(MAKE) docker-build-all docker-push-all
+
+## --------------------------------------
+## Docker - Example Provider
+## --------------------------------------
+
+EXAMPLE_PROVIDER_IMG ?= $(REGISTRY)/example-provider-controller
+
+.PHONY: docker-build-example-provider
+docker-build-example-provider: generate lint-full ## Build the docker image for example provider
+	docker build --pull --build-arg ARCH=$(ARCH) . -f ./cmd/example-provider/Dockerfile -t $(EXAMPLE_PROVIDER_IMG)-$(ARCH):$(TAG)
+	sed -i'' -e 's@image: .*@image: '"${EXAMPLE_PROVIDER_IMG}-$(ARCH):$(TAG)"'@' ./config/ci/manager_image_patch.yaml
 
 ## --------------------------------------
 ## Cleanup / Verification
@@ -179,17 +219,13 @@ docker-push-manifest: ## Push the fat manifest docker image. TODO: Update bazel 
 
 .PHONY: clean
 clean: ## Remove all generated files
-	$(MAKE) clean-bazel
 	$(MAKE) clean-bin
 	$(MAKE) clean-book
-
-.PHONY: clean-bazel
-clean-bazel: ## Remove all generated bazel symlinks
-	bazel clean
 
 .PHONY: clean-bin
 clean-bin: ## Remove all generated binaries
 	rm -rf bin
+	rm -rf hack/tools/bin
 
 .PHONY: clean-clientset
 clean-clientset: ## Remove all generated clientset files
@@ -198,7 +234,6 @@ clean-clientset: ## Remove all generated clientset files
 .PHONY: verify
 verify:
 	./hack/verify-boilerplate.sh
-	./hack/verify-bazel.sh
 	./hack/verify-doctoc.sh
 	./hack/verify-generated-files.sh
 

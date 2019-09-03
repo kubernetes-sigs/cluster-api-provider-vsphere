@@ -48,9 +48,30 @@ spec:
     apiServer:
       extraArgs:
         cloud-provider: vsphere
+        cloud-config: /etc/kubernetes/vsphere.conf
+      extraVolumes:
+      - name: "cloud-config"
+        hostPath: /etc/kubernetes/vsphere.conf
+        mountPath: /etc/kubernetes/vsphere.conf
+        readOnly: true
+        pathType: File
     controllerManager:
       extraArgs:
         cloud-provider: vsphere
+        cloud-config: /etc/kubernetes/vsphere.conf
+      extraVolumes:
+      - name: "cloud-config"
+        hostPath: /etc/kubernetes/vsphere.conf
+        mountPath: /etc/kubernetes/vsphere.conf
+        readOnly: true
+        pathType: File
+  files:
+  - path: /etc/kubernetes/vsphere.conf
+    owner: root:root
+    permissions: "0600"
+    encoding: base64
+    content: |
+      ${CLOUD_CONFIG_B64ENCODED}
   users:
   - name: capv
     sudo: "ALL=(ALL) NOPASSWD:ALL"

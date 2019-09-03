@@ -30,6 +30,7 @@ const (
 
 runcmd:
 -   [hostname, {{HostNameLookup}}]
+-   [kubeadm, init, --config, /tmp/kubeadm.yaml]
 
 write_files:
 -   path: /etc/hostname
@@ -117,9 +118,6 @@ write_files:
 {{.ClusterConfiguration | Indent 6}}
       ---
 {{.InitConfiguration | Indent 6}}
-kubeadm:
-  operation: init
-  config: /tmp/kubeadm.yaml
 
 `
 
@@ -129,6 +127,7 @@ kubeadm:
 
 runcmd:
 -   [hostname, {{HostNameLookup}}]
+-   [kubeadm, join, --config, /tmp/kubeadm-controlplane-join-config.yaml]
 
 write_files:
 -   path: /etc/hostname
@@ -213,9 +212,6 @@ write_files:
     permissions: '0640'
     content: |
 {{.JoinConfiguration | Indent 6}}
-kubeadm:
-  operation: join
-  config: /tmp/kubeadm-controlplane-join-config.yaml
 `
 )
 

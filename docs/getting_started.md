@@ -128,7 +128,7 @@ With the above environment variable file it is now possible to generate the mani
 $ docker run --rm \
   -v "$(pwd)":/out \
   -v "$(pwd)/envvars.txt":/envvars.txt:ro \
-  gcr.io/cluster-api-provider-vsphere/dev/v1alpha2/capv-manifests:latest \
+  gcr.io/cluster-api-provider-vsphere/release/manifests:latest \
   -c management-cluster
 
 Generated ./out/management-cluster/cluster.yaml
@@ -170,7 +170,7 @@ Using the same Docker command as above, generate resources for a new cluster, th
 $ docker run --rm \
   -v "$(pwd)":/out \
   -v "$(pwd)/envvars.txt":/envvars.txt:ro \
-  gcr.io/cluster-api-provider-vsphere/dev/v1alpha2/capv-manager:latest \
+  gcr.io/cluster-api-provider-vsphere/release/manifests:latest \
   -c workload-cluster-1
 ```
 

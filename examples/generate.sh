@@ -53,8 +53,8 @@ FLAGS
   -f    force overwrite of existing files
   -h    prints this help screen
   -i    input directory (default ${SRC_DIR})
-  -m    capv manager image (default "${CAPV_MANAGER_LOG_LEVEL}")
-  -M    capv manager log level (default "${CABPK_MANAGER_LOG_LEVEL}")
+  -m    capv manager image (default "${CAPV_MANAGER_IMAGE}")
+  -M    capv manager log level (default "${CAPV_MANAGER_LOG_LEVEL}")
   -o    output directory (default ${OUT_DIR})
   -p    capi manager image (default "${CAPI_MANAGER_IMAGE}")
   -P    capi manager log level (default "${CAPI_MANAGER_LOG_LEVEL}")

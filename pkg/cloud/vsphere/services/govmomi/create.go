@@ -39,9 +39,6 @@ const (
 	// hostnameLookup resolves via cloud init and uses cloud provider's metadata service to lookup its own hostname.
 	hostnameLookup = "{{ ds.meta_data.hostname }}"
 
-	// criSocket is the path to the CRI socket to connect. If empty kubeadm will try to auto-detect this value.
-	criSocket = ""
-
 	// nodeRole is the label assigned to every node in the cluster.
 	nodeRole = "node-role.kubernetes.io/node="
 
@@ -50,6 +47,9 @@ const (
 
 	// the cloud config path read by the cloud provider
 	cloudConfigPath = "/etc/kubernetes/vsphere.conf"
+
+	// containerdSocket is the path to containerd socket.
+	containerdSocket = "/var/run/containerd/containerd.sock"
 )
 
 // Create creates a new machine.
@@ -131,7 +131,7 @@ func generateUserData(ctx *context.MachineContext, bootstrapToken string) ([]byt
 						&ctx.MachineConfig.KubeadmConfiguration.Join.NodeRegistration,
 						kubeadm.WithTaints(ctx.Machine.Spec.Taints),
 						kubeadm.WithNodeRegistrationName(hostnameLookup),
-						kubeadm.WithCRISocket(criSocket),
+						kubeadm.WithCRISocket(getCRISocketPath(ctx.MachineConfig.KubeadmConfiguration.Init.NodeRegistration.CRISocket)),
 						kubeadm.WithKubeletExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
 					),
 				),
@@ -211,7 +211,7 @@ func generateUserData(ctx *context.MachineContext, bootstrapToken string) ([]byt
 						&ctx.MachineConfig.KubeadmConfiguration.Init.NodeRegistration,
 						kubeadm.WithTaints(ctx.Machine.Spec.Taints),
 						kubeadm.WithNodeRegistrationName(hostnameLookup),
-						kubeadm.WithCRISocket(criSocket),
+						kubeadm.WithCRISocket(getCRISocketPath(ctx.MachineConfig.KubeadmConfiguration.Init.NodeRegistration.CRISocket)),
 						kubeadm.WithKubeletExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
 					),
 				),
@@ -259,7 +259,7 @@ func generateUserData(ctx *context.MachineContext, bootstrapToken string) ([]byt
 				kubeadm.SetNodeRegistration(
 					&ctx.MachineConfig.KubeadmConfiguration.Join.NodeRegistration,
 					kubeadm.WithNodeRegistrationName(hostnameLookup),
-					kubeadm.WithCRISocket(criSocket),
+					kubeadm.WithCRISocket(getCRISocketPath(ctx.MachineConfig.KubeadmConfiguration.Init.NodeRegistration.CRISocket)),
 					kubeadm.WithKubeletExtraArgs(map[string]string{
 						"cloud-provider": cloudProvider,
 					}),
@@ -285,4 +285,11 @@ func generateUserData(ctx *context.MachineContext, bootstrapToken string) ([]byt
 	}
 
 	return []byte(userDataYAML), nil
+}
+
+func getCRISocketPath(configVal string) string {
+	if configVal != "" {
+		return configVal
+	}
+	return containerdSocket
 }

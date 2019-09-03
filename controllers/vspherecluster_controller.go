@@ -169,7 +169,7 @@ func (r *VSphereClusterReconciler) reconcileAPIEndpoints(ctx *context.ClusterCon
 	// Get the CAPI Machine resources for the cluster.
 	machines, err := infrautilv1.GetMachinesInCluster(ctx, ctx.Client, ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
 	if err != nil {
-		errors.Wrapf(err,
+		return errors.Wrapf(err,
 			"failed to get Machinces for Cluster %s/%s",
 			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
 	}

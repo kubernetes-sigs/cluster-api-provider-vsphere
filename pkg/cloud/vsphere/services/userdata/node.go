@@ -23,6 +23,7 @@ const (
 
 runcmd:
 -   [hostname, {{HostNameLookup}}]
+-   [kubeadm, join, --config, /tmp/kubeadm-node.yaml]
 
 write_files:
 -   path: /etc/hostname
@@ -45,9 +46,6 @@ write_files:
     content: |
       ---
 {{.JoinConfiguration | Indent 6}}
-kubeadm:
-  operation: join
-  config: /tmp/kubeadm-node.yaml
 `
 )
 

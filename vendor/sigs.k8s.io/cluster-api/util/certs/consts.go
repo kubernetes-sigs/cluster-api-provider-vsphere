@@ -1,5 +1,3 @@
-// +build tools
-
 /*
 Copyright 2019 The Kubernetes Authors.
 
@@ -16,10 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// This package imports things required by build scripts, to force `go mod` to see them as dependencies
-package tools
+package certs
 
-import (
-	_ "sigs.k8s.io/controller-tools/cmd/controller-gen"
-	_ "sigs.k8s.io/testing_frameworks/integration"
+import "time"
+
+const (
+	// DefaultRSAKeySize is the default key size used when created RSA keys.
+	DefaultRSAKeySize = 2048
+
+	// DefaultCertDuration is the default lifespan used when creating certificates.
+	DefaultCertDuration = time.Hour * 24 * 365
 )

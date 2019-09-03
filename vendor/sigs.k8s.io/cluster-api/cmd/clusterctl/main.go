@@ -18,11 +18,14 @@ package main
 
 import (
 	"k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/cluster-api/api/v1alpha2"
+	"k8s.io/klog/klogr"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func main() {
-	v1alpha2.AddToScheme(scheme.Scheme)
+	log.SetLogger(klogr.New())
+	clusterv1.AddToScheme(scheme.Scheme)
 	cmd.Execute()
 }

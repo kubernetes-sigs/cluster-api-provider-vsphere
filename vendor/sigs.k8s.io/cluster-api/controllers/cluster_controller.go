@@ -48,7 +48,7 @@ const (
 )
 
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
-// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
+// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;patch
 // +kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io;bootstrap.cluster.x-k8s.io,resources=*,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch;create;update;patch;delete
@@ -63,9 +63,10 @@ type ClusterReconciler struct {
 	externalWatchers sync.Map
 }
 
-func (r *ClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *ClusterReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.Cluster{}).
+		WithOptions(options).
 		Build(r)
 
 	r.controller = c
@@ -79,8 +80,7 @@ func (r *ClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 
 	// Fetch the Cluster instance.
 	cluster := &clusterv1.Cluster{}
-	err := r.Get(ctx, req.NamespacedName, cluster)
-	if err != nil {
+	if err := r.Get(ctx, req.NamespacedName, cluster); err != nil {
 		if apierrors.IsNotFound(err) {
 			// Object not found, return.  Created objects are automatically garbage collected.
 			// For additional cleanup logic use finalizers.
@@ -91,13 +91,17 @@ func (r *ClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 		return ctrl.Result{}, err
 	}
 
-	// Initialize the patch helper
+	// Initialize the patch helper.
 	patchHelper, err := patch.NewHelper(cluster, r)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	// Always attempt to Patch the Cluster object and status after each reconciliation.
+
 	defer func() {
+		// Always reconcile the Status.Phase field.
+		r.reconcilePhase(ctx, cluster)
+
+		// Always attempt to Patch the Cluster object and status after each reconciliation.
 		if err := patchHelper.Patch(ctx, cluster); err != nil {
 			if reterr == nil {
 				reterr = err
@@ -105,30 +109,48 @@ func (r *ClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 		}
 	}()
 
-	// If object hasn't been deleted and doesn't have a finalizer, add one.
-	if cluster.ObjectMeta.DeletionTimestamp.IsZero() {
-		if !util.Contains(cluster.Finalizers, clusterv1.ClusterFinalizer) {
-			cluster.Finalizers = append(cluster.ObjectMeta.Finalizers, clusterv1.ClusterFinalizer)
-		}
-	}
-
-	if err := r.reconcile(ctx, cluster); err != nil {
-		if requeueErr, ok := errors.Cause(err).(capierrors.HasRequeueAfterError); ok {
-			klog.Infof("Reconciliation for Cluster %q in namespace %q asked to requeue: %v", cluster.Name, cluster.Namespace, err)
-			return ctrl.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
-		}
-		return ctrl.Result{}, err
-	}
-
+	// Handle deletion reconciliation loop.
 	if !cluster.ObjectMeta.DeletionTimestamp.IsZero() {
 		return r.reconcileDelete(ctx, cluster)
 	}
 
-	return ctrl.Result{}, nil
+	// Handle normal reconciliation loop.
+	return r.reconcile(ctx, cluster)
+}
+
+// reconcile handles cluster reconciliation.
+func (r *ClusterReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
+	// If object doesn't have a finalizer, add one.
+	if !util.Contains(cluster.Finalizers, clusterv1.ClusterFinalizer) {
+		cluster.Finalizers = append(cluster.ObjectMeta.Finalizers, clusterv1.ClusterFinalizer)
+	}
+
+	// Call the inner reconciliation methods.
+	reconciliationErrors := []error{
+		r.reconcileInfrastructure(ctx, cluster),
+		r.reconcileKubeconfig(ctx, cluster),
+	}
+
+	// Parse the errors, making sure we record if there is a RequeueAfterError.
+	res := ctrl.Result{}
+	errs := []error{}
+	for _, err := range reconciliationErrors {
+		if requeueErr, ok := errors.Cause(err).(capierrors.HasRequeueAfterError); ok {
+			// Only record and log the first RequeueAfterError.
+			if !res.Requeue {
+				res.Requeue = true
+				res.RequeueAfter = requeueErr.GetRequeueAfter()
+				klog.Infof("Reconciliation for Cluster %q in namespace %q asked to requeue: %v", cluster.Name, cluster.Namespace, err)
+			}
+			continue
+		}
+
+		errs = append(errs, err)
+	}
+	return res, kerrors.NewAggregate(errs)
 }
 
 // reconcileDelete handles cluster deletion.
-// TODO(ncdc): consolidate all deletion logic in here.
 func (r *ClusterReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster) (reconcile.Result, error) {
 	children, err := r.listChildren(ctx, cluster)
 	if err != nil {
@@ -172,7 +194,7 @@ func (r *ClusterReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 	}
 
 	if cluster.Spec.InfrastructureRef != nil {
-		_, err := external.Get(r.Client, cluster.Spec.InfrastructureRef, cluster.Namespace)
+		obj, err := external.Get(r.Client, cluster.Spec.InfrastructureRef, cluster.Namespace)
 		switch {
 		case apierrors.IsNotFound(err):
 			// All good - the infra resource has been deleted
@@ -181,14 +203,20 @@ func (r *ClusterReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 				path.Join(cluster.Spec.InfrastructureRef.APIVersion, cluster.Spec.InfrastructureRef.Kind),
 				cluster.Spec.InfrastructureRef.Name, cluster.Namespace, cluster.Name)
 		default:
-			// The infra resource still exists. Once it's been deleted, the cluster will get processed again.
+			// Issue a deletion request for the infrastructure object.
+			// Once it's been deleted, the cluster will get processed again.
+			if err := r.Delete(ctx, obj); err != nil {
+				return ctrl.Result{}, errors.Wrapf(err,
+					"failed to delete %v %q for Cluster %q in namespace %q",
+					obj.GroupVersionKind(), obj.GetName(), cluster.Name, cluster.Namespace)
+			}
+
 			// Return here so we don't remove the finalizer yet.
 			return ctrl.Result{}, nil
 		}
 	}
 
 	cluster.Finalizers = util.Filter(cluster.Finalizers, clusterv1.ClusterFinalizer)
-
 	return ctrl.Result{}, nil
 }
 
@@ -209,10 +237,11 @@ func (r *ClusterReconciler) listChildren(ctx context.Context, cluster *clusterv1
 		return nil, errors.Wrapf(err, "failed to list MachineSets for cluster %s/%s", cluster.Namespace, cluster.Name)
 	}
 
-	machines := &clusterv1.MachineList{}
-	if err := r.Client.List(ctx, machines, listOptions...); err != nil {
+	allMachines := &clusterv1.MachineList{}
+	if err := r.Client.List(ctx, allMachines, listOptions...); err != nil {
 		return nil, errors.Wrapf(err, "failed to list Machines for cluster %s/%s", cluster.Namespace, cluster.Name)
 	}
+	controlPlaneMachines, machines := splitMachineList(allMachines)
 
 	var children []runtime.Object
 	eachFunc := func(o runtime.Object) error {
@@ -229,16 +258,32 @@ func (r *ClusterReconciler) listChildren(ctx context.Context, cluster *clusterv1
 		return nil
 	}
 
-	lists := map[string]runtime.Object{
-		"MachineDeployment": machineDeployments,
-		"MachineSet":        machineSets,
-		"Machine":           machines,
+	lists := []runtime.Object{
+		machineDeployments,
+		machineSets,
+		machines,
+		controlPlaneMachines,
 	}
-	for name, list := range lists {
+	for _, list := range lists {
 		if err := meta.EachListItem(list, eachFunc); err != nil {
-			return nil, errors.Wrapf(err, "error finding %s children of cluster %s/%s", name, cluster.Namespace, cluster.Name)
+			return nil, errors.Wrapf(err, "error finding children of cluster %s/%s", cluster.Namespace, cluster.Name)
 		}
 	}
 
 	return children, nil
+}
+
+// splitMachineList separates the machines running the control plane from other worker nodes.
+func splitMachineList(list *clusterv1.MachineList) (*clusterv1.MachineList, *clusterv1.MachineList) {
+	nodes := &clusterv1.MachineList{}
+	controlplanes := &clusterv1.MachineList{}
+	for i := range list.Items {
+		machine := &list.Items[i]
+		if util.IsControlPlaneMachine(machine) {
+			controlplanes.Items = append(controlplanes.Items, *machine)
+		} else {
+			nodes.Items = append(nodes.Items, *machine)
+		}
+	}
+	return controlplanes, nodes
 }

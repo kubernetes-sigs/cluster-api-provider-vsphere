@@ -24,16 +24,16 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
 	"k8s.io/klog/klogr"
-	clusterv1alpha2 "sigs.k8s.io/cluster-api/api/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -86,7 +86,7 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(cfg).ToNot(BeNil())
 
-	err = clusterv1alpha2.AddToScheme(scheme.Scheme)
+	err = clusterv1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:scheme
@@ -108,22 +108,22 @@ var _ = BeforeSuite(func(done Done) {
 		Log:      log.Log,
 		recorder: mgr.GetEventRecorderFor("cluster-controller"),
 	}
-	Expect(clusterReconciler.SetupWithManager(mgr)).NotTo(HaveOccurred())
+	Expect(clusterReconciler.SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: 1})).NotTo(HaveOccurred())
 	Expect((&MachineReconciler{
 		Client:   k8sClient,
 		Log:      log.Log,
 		recorder: mgr.GetEventRecorderFor("machine-controller"),
-	}).SetupWithManager(mgr)).NotTo(HaveOccurred())
+	}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: 1})).NotTo(HaveOccurred())
 	Expect((&MachineSetReconciler{
 		Client:   k8sClient,
 		Log:      log.Log,
 		recorder: mgr.GetEventRecorderFor("machineset-controller"),
-	}).SetupWithManager(mgr)).NotTo(HaveOccurred())
+	}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: 1})).NotTo(HaveOccurred())
 	Expect((&MachineDeploymentReconciler{
 		Client:   k8sClient,
 		Log:      log.Log,
 		recorder: mgr.GetEventRecorderFor("machinedeployment-controller"),
-	}).SetupWithManager(mgr)).NotTo(HaveOccurred())
+	}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: 1})).NotTo(HaveOccurred())
 
 	By("starting the manager")
 	go func() {

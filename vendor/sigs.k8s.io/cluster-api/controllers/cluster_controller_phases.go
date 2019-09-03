@@ -27,70 +27,49 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/klog"
 	"k8s.io/utils/pointer"
-	"sigs.k8s.io/cluster-api/api/v1alpha2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/kubeconfig"
+	"sigs.k8s.io/cluster-api/util/secret"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-func (r *ClusterReconciler) reconcile(ctx context.Context, cluster *v1alpha2.Cluster) (err error) {
-	// TODO(vincepri): These can be generalized with an interface and possibly a for loop.
-	errors := []error{}
-	errors = append(errors, r.reconcileInfrastructure(ctx, cluster))
-	errors = append(errors, r.reconcilePhase(ctx, cluster))
-
-	// Determine the return error, giving precedence to the first non-nil and non-requeueAfter errors.
-	for _, e := range errors {
-		if e == nil {
-			continue
-		}
-		if err == nil || capierrors.IsRequeueAfter(err) {
-			err = e
-		}
-	}
-	return err
-}
-
-func (r *ClusterReconciler) reconcilePhase(ctx context.Context, cluster *v1alpha2.Cluster) error {
+func (r *ClusterReconciler) reconcilePhase(ctx context.Context, cluster *clusterv1.Cluster) {
 	// Set the phase to "pending" if nil.
 	if cluster.Status.Phase == "" {
-		cluster.Status.SetTypedPhase(v1alpha2.ClusterPhasePending)
+		cluster.Status.SetTypedPhase(clusterv1.ClusterPhasePending)
 	}
 
 	// Set the phase to "provisioning" if the Cluster has an InfrastructureRef object associated.
 	if cluster.Spec.InfrastructureRef != nil {
-		cluster.Status.SetTypedPhase(v1alpha2.ClusterPhaseProvisioning)
+		cluster.Status.SetTypedPhase(clusterv1.ClusterPhaseProvisioning)
 	}
 
 	// Set the phase to "provisioned" if the infrastructure is ready.
 	if cluster.Status.InfrastructureReady {
-		cluster.Status.SetTypedPhase(v1alpha2.ClusterPhaseProvisioned)
+		cluster.Status.SetTypedPhase(clusterv1.ClusterPhaseProvisioned)
 	}
 
 	// Set the phase to "failed" if any of Status.ErrorReason or Status.ErrorMessage is not-nil.
 	if cluster.Status.ErrorReason != nil || cluster.Status.ErrorMessage != nil {
-		cluster.Status.SetTypedPhase(v1alpha2.ClusterPhaseFailed)
+		cluster.Status.SetTypedPhase(clusterv1.ClusterPhaseFailed)
 	}
 
 	// Set the phase to "deleting" if the deletion timestamp is set.
 	if !cluster.DeletionTimestamp.IsZero() {
-		cluster.Status.SetTypedPhase(v1alpha2.ClusterPhaseDeleting)
+		cluster.Status.SetTypedPhase(clusterv1.ClusterPhaseDeleting)
 	}
-
-	return nil
 }
 
 // reconcileExternal handles generic unstructured objects referenced by a Cluster.
-func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *v1alpha2.Cluster, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
+func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
 	obj, err := external.Get(r.Client, ref, cluster.Namespace)
 	if err != nil {
-		if apierrors.IsNotFound(err) && !cluster.DeletionTimestamp.IsZero() {
-			return nil, nil
-		} else if apierrors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			return nil, errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: 30 * time.Second},
 				"could not find %v %q for Cluster %q in namespace %q, requeuing",
 				ref.GroupVersionKind(), ref.Name, cluster.Name, cluster.Namespace)
@@ -99,16 +78,6 @@ func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *v1al
 	}
 
 	objPatch := client.MergeFrom(obj.DeepCopy())
-
-	// Delete the external object if the Cluster is being deleted.
-	if !cluster.DeletionTimestamp.IsZero() {
-		if err := r.Delete(ctx, obj); err != nil {
-			return nil, errors.Wrapf(err,
-				"failed to delete %v %q for Cluster %q in namespace %q",
-				obj.GroupVersionKind(), ref.Name, cluster.Name, cluster.Namespace)
-		}
-		return obj, nil
-	}
 
 	// Set external object OwnerReference to the Cluster.
 	ownerRef := metav1.OwnerReference{
@@ -158,41 +127,59 @@ func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *v1al
 }
 
 // reconcileInfrastructure reconciles the Spec.InfrastructureRef object on a Cluster.
-func (r *ClusterReconciler) reconcileInfrastructure(ctx context.Context, cluster *v1alpha2.Cluster) error {
+func (r *ClusterReconciler) reconcileInfrastructure(ctx context.Context, cluster *clusterv1.Cluster) error {
 	if cluster.Spec.InfrastructureRef == nil {
 		return nil
 	}
 
 	// Call generic external reconciler.
 	infraConfig, err := r.reconcileExternal(ctx, cluster, cluster.Spec.InfrastructureRef)
-	if infraConfig == nil && err == nil {
-		return nil
-	} else if err != nil {
+	if err != nil {
 		return err
 	}
 
-	if cluster.Status.InfrastructureReady || !infraConfig.GetDeletionTimestamp().IsZero() {
+	// There's no need to go any further if the Cluster is marked for deletion.
+	if !infraConfig.GetDeletionTimestamp().IsZero() {
 		return nil
 	}
 
 	// Determine if the infrastructure provider is ready.
-	ready, err := external.IsReady(infraConfig)
-	if err != nil {
-		return err
-	} else if !ready {
-		klog.V(3).Infof("Infrastructure provider for Cluster %q in namespace %q is not ready yet", cluster.Name, cluster.Namespace)
-		return nil
+	if !cluster.Status.InfrastructureReady {
+		ready, err := external.IsReady(infraConfig)
+		if err != nil {
+			return err
+		} else if !ready {
+			klog.V(3).Infof("Infrastructure provider for Cluster %q in namespace %q is not ready yet", cluster.Name, cluster.Namespace)
+			return nil
+		}
+		cluster.Status.InfrastructureReady = true
 	}
 
 	// Get and parse Status.APIEndpoint field from the infrastructure provider.
-	if err := util.UnstructuredUnmarshalField(infraConfig, &cluster.Status.APIEndpoints, "status", "apiEndpoints"); err != nil {
-		return errors.Wrapf(err, "failed to retrieve Status.APIEndpoints from infrastructure provider for Cluster %q in namespace %q",
-			cluster.Name, cluster.Namespace)
-	} else if len(cluster.Status.APIEndpoints) == 0 {
-		return errors.Wrapf(err, "retrieved empty Status.APIEndpoints from infrastructure provider for Cluster %q in namespace %q",
-			cluster.Name, cluster.Namespace)
+	if len(cluster.Status.APIEndpoints) == 0 {
+		if err := util.UnstructuredUnmarshalField(infraConfig, &cluster.Status.APIEndpoints, "status", "apiEndpoints"); err != nil {
+			return errors.Wrapf(err, "failed to retrieve Status.APIEndpoints from infrastructure provider for Cluster %q in namespace %q",
+				cluster.Name, cluster.Namespace)
+		} else if len(cluster.Status.APIEndpoints) == 0 {
+			return errors.Wrapf(err, "retrieved empty Status.APIEndpoints from infrastructure provider for Cluster %q in namespace %q",
+				cluster.Name, cluster.Namespace)
+		}
 	}
 
-	cluster.Status.InfrastructureReady = true
+	return nil
+}
+
+func (r *ClusterReconciler) reconcileKubeconfig(ctx context.Context, cluster *clusterv1.Cluster) error {
+	if len(cluster.Status.APIEndpoints) == 0 {
+		return nil
+	}
+
+	_, err := secret.Get(r.Client, cluster, secret.Kubeconfig)
+	switch {
+	case apierrors.IsNotFound(err):
+		return kubeconfig.CreateSecret(ctx, r.Client, cluster)
+	case err != nil:
+		return errors.Wrapf(err, "failed to retrieve Kubeconfig Secret for Cluster %q in namespace %q", cluster.Name, cluster.Namespace)
+	}
 	return nil
 }

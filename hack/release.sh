@@ -46,6 +46,9 @@ VERSION=$(git describe --dirty --always 2>/dev/null)
 GCR_KEY_FILE="${GCR_KEY_FILE:-}"
 
 BUILD_RELEASE_TYPE="${BUILD_RELEASE_TYPE-}"
+readonly ORIGIN_REPO="https://github.com/kubernetes-sigs/cluster-api-provider-vsphere.git"
+ORIGIN_REPO_REMOTE_NAME="${ORIGIN_REPO_REMOTE_NAME:-capv-origin}"
+GIT_BRANCH_FOR_LATEST="${GIT_BRANCH_FOR_LATEST:-master}"
 
 # If BUILD_RELEASE_TYPE is not set then check to see if this is a PR
 # or release build. This may still be overridden below with the "-t" flag.
@@ -62,6 +65,9 @@ usage: ${0} [FLAGS]
   Builds and optionally pushes new images for Cluster API Provider vSphere (CAPV)
 
 FLAGS
+  -b    Used in conjunction with \"-l\", specifies the name of the branch that
+        must contain the current commit in order to tag images as \"latest\".
+        (defaults to: ${GIT_BRANCH_FOR_LATEST})
   -h    show this help and exit
   -k    path to GCR key file. Used to login to registry if specified
         (defaults to: ${GCR_KEY_FILE})
@@ -84,6 +90,19 @@ function error() {
 
 function fatal() {
   error "${@}" || exit 1
+}
+
+function check_branch_okay {
+  if ! [ "${GIT_BRANCH_FOR_LATEST}" ]; then
+    return 0
+  fi
+  git remote add "${ORIGIN_REPO_REMOTE_NAME}" "${ORIGIN_REPO}"
+  git fetch "${ORIGIN_REPO_REMOTE_NAME}"
+
+  (git branch -r --contains "${VERSION}" 2>/dev/null | grep -w "${ORIGIN_REPO_REMOTE_NAME}/${GIT_BRANCH_FOR_LATEST}")
+  local rc=$?
+  git remote remove "${ORIGIN_REPO_REMOTE_NAME}"
+  return "${rc}"
 }
 
 function build_images() {
@@ -111,9 +130,15 @@ function build_images() {
     -f Dockerfile \
     -t "${MANAGER_IMAGE_NAME}":"${VERSION}" \
     .
+  local tag_latest=
+  if check_branch_okay; then
+    tag_latest=1
+  fi
   if [ "${LATEST}" ]; then
-    echo "tagging image ${MANAGER_IMAGE_NAME}:${VERSION} as latest"
-    docker tag "${MANAGER_IMAGE_NAME}":"${VERSION}" "${MANAGER_IMAGE_NAME}":latest
+    if [ "${tag_latest}" ]; then
+      echo "tagging image ${MANAGER_IMAGE_NAME}:${VERSION} as latest"
+      docker tag "${MANAGER_IMAGE_NAME}":"${VERSION}" "${MANAGER_IMAGE_NAME}":latest
+    fi
   fi
 
   # Manifests image
@@ -124,8 +149,10 @@ function build_images() {
     --build-arg "CAPV_MANAGER_IMAGE=${MANAGER_IMAGE_NAME}:${VERSION}" \
     .
   if [ "${LATEST}" ]; then
-    echo "tagging image ${MANIFESTS_IMAGE_NAME}:${VERSION} as latest"
-    docker tag "${MANIFESTS_IMAGE_NAME}":"${VERSION}" "${MANIFESTS_IMAGE_NAME}":latest
+    if [ "${tag_latest}" ]; then
+      echo "tagging image ${MANIFESTS_IMAGE_NAME}:${VERSION} as latest"
+      docker tag "${MANIFESTS_IMAGE_NAME}":"${VERSION}" "${MANIFESTS_IMAGE_NAME}":latest
+    fi
   fi
 }
 
@@ -211,8 +238,11 @@ function push_clusterctl() {
 }
 
 # Start of main script
-while getopts ":hk:lpt:" opt; do
+while getopts ":b:hk:lpt:" opt; do
   case ${opt} in
+    b)
+      GIT_BRANCH_FOR_LATEST="${OPTARG}"
+      ;;
     h)
       error "${USAGE}" && exit 1
       ;;

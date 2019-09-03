@@ -1,3 +1,10 @@
+# Do not commit any JSON keys at the project's root.
+/gcs*.json
+
+# Do not commit any of the binaries that may be generated at the root.
+/clusterctl*
+/cluster-api-provider-vsphere*
+
 # Generated files
 /cluster-api-provider-vsphere
 /examples/provider-components/provider-components*.yaml

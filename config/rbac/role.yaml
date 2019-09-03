@@ -36,6 +36,16 @@ rules:
   - list
   - watch
 - apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - watch
+- apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
   - vsphereclusters

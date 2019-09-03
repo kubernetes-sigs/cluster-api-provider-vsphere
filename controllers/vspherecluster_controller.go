@@ -49,6 +49,7 @@ type VSphereClusterReconciler struct {
 	Log      logr.Logger
 }
 
+// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;patch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=vsphereclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=vsphereclusters/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
@@ -125,6 +126,13 @@ func (r *VSphereClusterReconciler) reconcileDelete(ctx *context.ClusterContext) 
 func (r *VSphereClusterReconciler) reconcileNormal(ctx *context.ClusterContext) (reconcile.Result, error) {
 	ctx.Logger.Info("Reconciling VSphereCluster")
 
+	// TODO(akutz) Update this logic to include infrastructure prep such as:
+	//   * Downloading OVAs into the content library for any machines that
+	//     use them.
+	//   * Create any load balancers for VMC on AWS, etc.
+	ctx.VSphereCluster.Status.Ready = true
+	ctx.Logger.V(6).Info("VSphereCluster is infrastructure-ready")
+
 	// If the VSphereCluster doesn't have our finalizer, add it.
 	if !clusterutilv1.Contains(ctx.VSphereCluster.Finalizers, infrav1.ClusterFinalizer) {
 		ctx.VSphereCluster.Finalizers = append(ctx.VSphereCluster.Finalizers, infrav1.ClusterFinalizer)
@@ -141,24 +149,12 @@ func (r *VSphereClusterReconciler) reconcileNormal(ctx *context.ClusterContext) 
 			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
 	}
 
-	// If the VSphereCluster resource has no API endpoints set then requeue
-	// until an API endpoint for the cluster resource can be found.
-	if len(ctx.VSphereCluster.Status.APIEndpoints) == 0 {
-		return reconcile.Result{}, errors.Errorf(
-			"no API endpoints found for VSphereCluster %s/%s",
-			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
-	}
-
 	// Create the cloud config secret for the target cluster.
 	if err := r.reconcileCloudConfigSecret(ctx); err != nil {
 		return reconcile.Result{}, errors.Wrapf(err,
 			"failed to reconcile cloud config secret for VSphereCluster %s/%s",
 			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
 	}
-
-	// No errors, so mark us ready so the Cluster API Cluster Controller can pull it
-	ctx.VSphereCluster.Status.Ready = true
-	ctx.Logger.V(4).Info("VSphereCluster is ready")
 
 	return reconcile.Result{}, nil
 }
@@ -170,41 +166,62 @@ func (r *VSphereClusterReconciler) reconcileAPIEndpoints(ctx *context.ClusterCon
 		return nil
 	}
 
-	// Get the oldest control plane machine in the cluster.
-	machine, err := infrautilv1.GetOldestControlPlaneMachine(
-		ctx, ctx.Client, ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
+	// Get the CAPI Machine resources for the cluster.
+	machines, err := infrautilv1.GetMachinesInCluster(ctx, ctx.Client, ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
 	if err != nil {
 		return errors.Wrapf(err,
-			"failed to get oldest control plane machine for VSphereCluster %s/%s",
+			"failed to get Machinces for Cluster %s/%s",
 			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
 	}
 
-	// Get the oldest control plane machine's VSphereMachine resource.
-	vsphereMachine, err := infrautilv1.GetVSphereMachine(
-		ctx, ctx.Client, ctx.VSphereCluster.Namespace, machine.Name)
-	if err != nil {
-		return errors.Wrapf(err,
-			"failed to get VSphereMachine for Machine %s/%s/%s",
-			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name, machine.Name)
+	// Iterate over the cluster's control plane CAPI machines.
+	for _, machine := range clusterutilv1.GetControlPlaneMachines(machines) {
+
+		// Only machines with bootstrap data will have an IP address.
+		if machine.Spec.Bootstrap.Data == nil {
+			ctx.Logger.V(6).Info(
+				"skipping machine while looking for IP address",
+				"machine-name", machine.Name,
+				"skip-reason", "nilBootstrapData")
+			continue
+		}
+
+		// Get the VSphereMachine for the CAPI Machine resource.
+		vsphereMachine, err := infrautilv1.GetVSphereMachine(ctx, ctx.Client, machine.Namespace, machine.Name)
+		if err != nil {
+			return errors.Wrapf(err,
+				"failed to get VSphereMachine for Machine %s/%s/%s",
+				ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name, machine.Name)
+		}
+
+		// Get the VSphereMachine's preferred IP address.
+		ipAddr, err := infrautilv1.GetMachinePreferredIPAddress(vsphereMachine)
+		if err != nil {
+			if err == infrautilv1.ErrNoMachineIPAddr {
+				continue
+			}
+			return errors.Wrapf(err,
+				"failed to get preferred IP address for VSphereMachine %s/%s/%s",
+				ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name, vsphereMachine.Name)
+		}
+
+		// Set APIEndpoints so the CAPI controller can read the API endpoints
+		// for this VSphereCluster into the analogous CAPI Cluster using an
+		// UnstructuredReader.
+		ctx.VSphereCluster.Status.APIEndpoints = []infrav1.APIEndpoint{
+			{
+				Host: ipAddr,
+				Port: apiEndpointPort,
+			},
+		}
+
+		ctx.Logger.V(6).Info(
+			"found API endpoint via control plane machine",
+			"ip-addr", ipAddr, "port", apiEndpointPort)
+		return nil
 	}
 
-	// Get the machine's preferred IP address.
-	ipAddr, err := infrautilv1.GetMachinePreferredIPAddress(vsphereMachine)
-	if err != nil {
-		return errors.Wrapf(err,
-			"failed to get preferred IP address for VSphereMachine %s/%s/%s",
-			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name, vsphereMachine.Name)
-	}
-
-	// Set APIEndpoints so the Cluster API Cluster Controller can pull them
-	ctx.VSphereCluster.Status.APIEndpoints = []infrav1.APIEndpoint{
-		{
-			Host: ipAddr,
-			Port: apiEndpointPort,
-		},
-	}
-
-	return nil
+	return infrautilv1.ErrNoMachineIPAddr
 }
 
 // reconcileCloudConfigSecret ensures the cloud config secret is present in the

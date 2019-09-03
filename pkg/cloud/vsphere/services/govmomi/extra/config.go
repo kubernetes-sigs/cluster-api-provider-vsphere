@@ -31,14 +31,13 @@ func (e *Config) SetCloudInitUserData(data []byte) error {
 	*e = append(*e,
 		&types.OptionValue{
 			Key:   "guestinfo.userdata",
-			Value: base64.StdEncoding.EncodeToString(data),
+			Value: e.encode(data),
 		},
 		&types.OptionValue{
 			Key:   "guestinfo.userdata.encoding",
 			Value: "base64",
 		},
 	)
-
 	return nil
 }
 
@@ -48,7 +47,7 @@ func (e *Config) SetCloudInitMetadata(data []byte) error {
 	*e = append(*e,
 		&types.OptionValue{
 			Key:   "guestinfo.metadata",
-			Value: base64.StdEncoding.EncodeToString(data),
+			Value: e.encode(data),
 		},
 		&types.OptionValue{
 			Key:   "guestinfo.metadata.encoding",
@@ -57,4 +56,21 @@ func (e *Config) SetCloudInitMetadata(data []byte) error {
 	)
 
 	return nil
+}
+
+// encode first attempts to decode the data as many times as necessary
+// to ensure it is plain-text before returning the result as a base64
+// encoded string
+func (e *Config) encode(data []byte) string {
+	if len(data) == 0 {
+		return ""
+	}
+	for {
+		decoded, err := base64.StdEncoding.DecodeString(string(data))
+		if err != nil {
+			break
+		}
+		data = decoded
+	}
+	return base64.StdEncoding.EncodeToString(data)
 }

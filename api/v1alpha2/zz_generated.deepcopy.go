@@ -210,11 +210,6 @@ func (in *VSphereClusterSpec) DeepCopyInto(out *VSphereClusterSpec) {
 		*out = new(bool)
 		**out = **in
 	}
-	if in.SSHAuthorizedKeys != nil {
-		in, out := &in.SSHAuthorizedKeys, &out.SSHAuthorizedKeys
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	}
 	in.CloudProviderConfiguration.DeepCopyInto(&out.CloudProviderConfiguration)
 }
 

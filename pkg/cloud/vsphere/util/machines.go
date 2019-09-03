@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"context"
 	"net"
-	"sort"
 	"text/template"
 
 	"github.com/pkg/errors"
@@ -99,43 +98,6 @@ func GetVSphereMachine(
 		return nil, err
 	}
 	return machine, nil
-}
-
-// byMachineCreatedTimestamp implements sort.Interface for []clusterv1.Machine
-// based on the machine's creation timestamp.
-type byMachineCreatedTimestamp []*clusterv1.Machine
-
-func (a byMachineCreatedTimestamp) Len() int      { return len(a) }
-func (a byMachineCreatedTimestamp) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
-func (a byMachineCreatedTimestamp) Less(i, j int) bool {
-	return a[i].CreationTimestamp.Before(&a[j].CreationTimestamp)
-}
-
-// GetOldestControlPlaneMachine returns the oldest control plane machine in
-// the cluster.
-func GetOldestControlPlaneMachine(
-	ctx context.Context,
-	controllerClient client.Client,
-	namespace, clusterName string) (*clusterv1.Machine, error) {
-
-	machines, err := GetMachinesInCluster(ctx, controllerClient, namespace, clusterName)
-	if err != nil {
-		return nil, err
-	}
-
-	controlPlaneMachines := clusterutilv1.GetControlPlaneMachines(machines)
-	if len(controlPlaneMachines) == 0 {
-		return nil, errors.Errorf(
-			"no control plane machines found in cluster %s/%s",
-			namespace, clusterName)
-	}
-
-	// Sort the control plane machines so the first one created is always the
-	// one used to provide the address for the control plane endpoint.
-	sortedControlPlaneMachines := byMachineCreatedTimestamp(controlPlaneMachines)
-	sort.Sort(sortedControlPlaneMachines)
-
-	return sortedControlPlaneMachines[0], nil
 }
 
 // GetMachineManagedObjectReference returns the managed object reference

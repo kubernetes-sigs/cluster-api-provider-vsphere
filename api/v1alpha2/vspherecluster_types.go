@@ -39,16 +39,6 @@ type VSphereClusterSpec struct {
 	// +optional
 	Insecure *bool `json:"insecure,omitempty"`
 
-	// SSHAuthorizedKeys is a list of SSH public keys authorized to access
-	// deployed machines.
-	//
-	// These keys are added to the default user as determined by cloud-init
-	// in the images from which the machines are deployed.
-	//
-	// The default user for CentOS is "centos".
-	// The default user for Ubuntu is "ubuntu".
-	SSHAuthorizedKeys []string `json:"sshAuthorizedKeys,omitempty"`
-
 	// CloudProviderConfiguration holds the cluster-wide configuration for the
 	// vSphere cloud provider.
 	CloudProviderConfiguration cloud.Config `json:"cloudProviderConfiguration,omitempty"`

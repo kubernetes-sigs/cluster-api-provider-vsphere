@@ -8,6 +8,12 @@ This is a guide on how to get started with CAPV (Cluster API Provider vSphere). 
 
 ------
 
+------
+
+**Note**: This branch uses images with the prefix `gcr.io/cluster-api-provider-vsphere/dev/v1alpha2`, a staging area for the work-in-progress, v1alpha2 releases of CAPV and its dependencies. The image paths will be reset once v1alpha2 is released.
+
+------
+
 * [Getting Started](#getting-started)
   * [Bootstrapping a Management Cluster with clusterctl](#bootstrapping-a-management-cluster-with-clusterctl)
     * [Install Requirements](#install-requirements)
@@ -122,7 +128,7 @@ With the above environment variable file it is now possible to generate the mani
 $ docker run --rm \
   -v "$(pwd)":/out \
   -v "$(pwd)/envvars.txt":/envvars.txt:ro \
-  gcr.io/cluster-api-provider-vsphere/ci/manifests:latest \
+  gcr.io/cluster-api-provider-vsphere/dev/v1alpha2/capv-manifests:latest \
   -c management-cluster
 
 Generated ./out/management-cluster/cluster.yaml
@@ -142,6 +148,7 @@ Once the manifests are generated, `clusterctl` may be used to create the managem
 ```shell
 clusterctl create cluster \
   --bootstrap-type kind \
+  --bootstrap-flags name=management-cluster \
   --cluster ./out/management-cluster/cluster.yaml \
   --machines ./out/management-cluster/controlplane.yaml \
   --provider-components ./out/management-cluster/provider-components.yaml \
@@ -163,7 +170,7 @@ Using the same Docker command as above, generate resources for a new cluster, th
 $ docker run --rm \
   -v "$(pwd)":/out \
   -v "$(pwd)/envvars.txt":/envvars.txt:ro \
-  gcr.io/cluster-api-provider-vsphere/ci/manifests:latest \
+  gcr.io/cluster-api-provider-vsphere/dev/v1alpha2/capv-manager:latest \
   -c workload-cluster-1
 ```
 
@@ -206,7 +213,7 @@ spec:
     network:
       name: vm-network-1
     virtualCenter:
-      vcenter.sddc-54-70-161-229.vmc.vmware.com:
+      10.0.0.1:
         datacenters: SDDC-Datacenter
     workspace:
       datacenter: SDDC-Datacenter
@@ -235,9 +242,20 @@ spec:
         cloud-provider: vsphere
   initConfiguration:
     nodeRegistration:
+      criSocket: /var/run/containerd/containerd.sock
       kubeletExtraArgs:
         cloud-provider: vsphere
       name: '{{ ds.meta_data.hostname }}'
+  preKubeadmCommands:
+  - hostname "{{ ds.meta_data.hostname }}"
+  - echo "::1         ipv6-localhost ipv6-loopback" >/etc/hosts
+  - echo "127.0.0.1   localhost {{ ds.meta_data.hostname }}" >>/etc/hosts
+  - echo "{{ ds.meta_data.hostname }}" >/etc/hostname
+  users:
+  - name: capv
+    sshAuthorizedKeys:
+    - "The public side of an SSH key pair."
+    sudo: ALL=(ALL) NOPASSWD:ALL
 ---
 apiVersion: cluster.x-k8s.io/v1alpha2
 kind: Machine
@@ -273,7 +291,6 @@ spec:
   network:
     devices:
     - dhcp4: true
-      dhcp6: false
       networkName: vm-network-1
   numCPUs: 2
   template: ubuntu-1804-kube-v1.13.6
@@ -288,11 +305,24 @@ metadata:
   name: workload-cluster-1-md-0
   namespace: default
 spec:
-  joinConfiguration:
-    nodeRegistration:
-      kubeletExtraArgs:
-        cloud-provider: vsphere
-      name: '{{ ds.meta_data.hostname }}'
+  template:
+    spec:
+      joinConfiguration:
+        nodeRegistration:
+          criSocket: /var/run/containerd/containerd.sock
+          kubeletExtraArgs:
+            cloud-provider: vsphere
+          name: '{{ ds.meta_data.hostname }}'
+      preKubeadmCommands:
+      - hostname "{{ ds.meta_data.hostname }}"
+      - echo "::1         ipv6-localhost ipv6-loopback" >/etc/hosts
+      - echo "127.0.0.1   localhost {{ ds.meta_data.hostname }}" >>/etc/hosts
+      - echo "{{ ds.meta_data.hostname }}" >/etc/hostname
+      users:
+      - name: capv
+        sshAuthorizedKeys:
+        - "The public side of an SSH key pair."
+        sudo: ALL=(ALL) NOPASSWD:ALL
 ---
 apiVersion: cluster.x-k8s.io/v1alpha2
 kind: MachineDeployment
@@ -330,16 +360,17 @@ metadata:
   name: workload-cluster-1-md-0
   namespace: default
 spec:
-  datacenter: SDDC-Datacenter
-  diskGiB: 50
-  memoryMiB: 2048
-  network:
-    devices:
-    - dhcp4: true
-      dhcp6: false
-      networkName: vm-network-1
-  numCPUs: 2
-  template: ubuntu-1804-kube-v1.13.6
+  template:
+    spec:
+      datacenter: SDDC-Datacenter
+      diskGiB: 50
+      memoryMiB: 2048
+      network:
+        devices:
+        - dhcp4: true
+          networkName: vm-network-1
+      numCPUs: 2
+      template: ubuntu-1804-kube-v1.13.6
 ```
 
 <!--
@@ -388,8 +419,17 @@ TODO(akutz) The name of the kubeconfig secret may have changed. Please
     ```shell
     $ kubectl get secrets
     NAME                            TYPE                                  DATA   AGE
-    management-cluster-kubeconfig   Opaque                                1      18h
-    workload-cluster-1-kubeconfig   Opaque                                1      17h
+    default-token-zs9tb             kubernetes.io/service-account-token   3      13m
+    management-cluster-ca           Opaque                                2      15m
+    management-cluster-etcd         Opaque                                2      15m
+    management-cluster-kubeconfig   Opaque                                1      15m
+    management-cluster-proxy        Opaque                                2      15m
+    management-cluster-sa           Opaque                                2      15m
+    workload-cluster-1-ca           Opaque                                2      7m
+    workload-cluster-1-etcd         Opaque                                2      7m
+    workload-cluster-1-kubeconfig   Opaque                                1      7m
+    workload-cluster-1-proxy        Opaque                                2      7m
+    workload-cluster-1-sa           Opaque                                2      7m
     ```
 
 2. Get the KubeConfig secret for the `workload-cluster-1` cluster and decode it from base64:

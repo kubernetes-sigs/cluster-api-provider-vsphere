@@ -59,8 +59,8 @@ func (r *VSphereClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, r
 	parentContext := goctx.Background()
 
 	logger := r.Log.WithName(controllerName).
-		WithName(fmt.Sprintf("namespace=%s", req.Namespace)).
-		WithName(fmt.Sprintf("vsphereCluster=%s", req.Name))
+		WithValues("namespace", req.Namespace).
+		WithValues("vSphereCluster", req.Name)
 
 	// Fetch the VSphereCluster instance
 	vsphereCluster := &infrav1.VSphereCluster{}
@@ -84,7 +84,7 @@ func (r *VSphereClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, r
 		return reconcile.Result{RequeueAfter: config.DefaultRequeue}, nil
 	}
 
-	logger = logger.WithName(fmt.Sprintf("cluster=%s", cluster.Name))
+	logger = logger.WithValues("cluster", cluster.Name)
 
 	// Create the context.
 	ctx, err := context.NewClusterContext(&context.ClusterContextParams{

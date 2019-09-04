@@ -59,8 +59,8 @@ func (r *VSphereMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, r
 
 	logger := r.Log.
 		WithName(controllerName).
-		WithName(fmt.Sprintf("namespace=%s", req.Namespace)).
-		WithName(fmt.Sprintf("vsphereMachine=%s", req.Name))
+		WithValues("namespace", req.Namespace).
+		WithValues("vSphereMachine", req.Name)
 
 	// Fetch the VSphereMachine instance.
 	vsphereMachine := &infrav1.VSphereMachine{}
@@ -83,7 +83,7 @@ func (r *VSphereMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, r
 		return reconcile.Result{RequeueAfter: config.DefaultRequeue}, nil
 	}
 
-	logger = logger.WithName(fmt.Sprintf("machine=%s", machine.Name))
+	logger = logger.WithValues("machine", machine.Name)
 
 	// Fetch the Cluster.
 	cluster, err := clusterutilv1.GetClusterFromMetadata(parentContext, r.Client, machine.ObjectMeta)
@@ -92,7 +92,7 @@ func (r *VSphereMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, r
 		return reconcile.Result{}, nil
 	}
 
-	logger = logger.WithName(fmt.Sprintf("cluster=%s", cluster.Name))
+	logger = logger.WithValues("cluster", cluster.Name)
 
 	vsphereCluster := &infrav1.VSphereCluster{}
 
@@ -105,7 +105,7 @@ func (r *VSphereMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, r
 		return reconcile.Result{RequeueAfter: config.DefaultRequeue}, nil
 	}
 
-	logger = logger.WithName(fmt.Sprintf("vsphereCluster=%s", vsphereCluster.Name))
+	logger = logger.WithValues("vSphereCluster", vsphereCluster.Name)
 
 	// Create the cluster context.
 	clusterContext, err := context.NewClusterContext(&context.ClusterContextParams{

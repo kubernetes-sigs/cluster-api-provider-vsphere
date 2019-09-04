@@ -131,7 +131,7 @@ func generateUserData(ctx *context.MachineContext, bootstrapToken string) ([]byt
 						&ctx.MachineConfig.KubeadmConfiguration.Join.NodeRegistration,
 						kubeadm.WithTaints(ctx.Machine.Spec.Taints),
 						kubeadm.WithNodeRegistrationName(hostnameLookup),
-						kubeadm.WithCRISocket(getCRISocketPath(ctx.MachineConfig.KubeadmConfiguration.Init.NodeRegistration.CRISocket)),
+						kubeadm.WithCRISocket(getCRISocketPath(ctx.MachineConfig.KubeadmConfiguration.Join.NodeRegistration.CRISocket)),
 						kubeadm.WithKubeletExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
 					),
 				),
@@ -259,7 +259,7 @@ func generateUserData(ctx *context.MachineContext, bootstrapToken string) ([]byt
 				kubeadm.SetNodeRegistration(
 					&ctx.MachineConfig.KubeadmConfiguration.Join.NodeRegistration,
 					kubeadm.WithNodeRegistrationName(hostnameLookup),
-					kubeadm.WithCRISocket(getCRISocketPath(ctx.MachineConfig.KubeadmConfiguration.Init.NodeRegistration.CRISocket)),
+					kubeadm.WithCRISocket(getCRISocketPath(ctx.MachineConfig.KubeadmConfiguration.Join.NodeRegistration.CRISocket)),
 					kubeadm.WithKubeletExtraArgs(map[string]string{
 						"cloud-provider": cloudProvider,
 					}),

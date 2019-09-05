@@ -124,6 +124,22 @@ func (vms *VMService) DestroyVM(ctx *context.MachineContext) (infrav1.VirtualMac
 		return vm, err
 	}
 
+	// check if VM actually exists
+	if ctx.VSphereMachine.Spec.MachineRef != "" {
+		moRefID, err := findVMByInstanceUUID(ctx)
+		if err != nil {
+			return vm, err
+		}
+		if moRefID == "" {
+			// No vm exists
+			// remove the MachineRef and set the vm state to notfound
+			ctx.VSphereMachine.Spec.MachineRef = ""
+			vm.State = infrav1.VirtualMachineStateNotFound
+			return vm, nil
+		}
+	}
+
+	// VM actually exists
 	// Power off the VM if needed
 	powerState, err := vms.getPowerState(ctx)
 	if err != nil {

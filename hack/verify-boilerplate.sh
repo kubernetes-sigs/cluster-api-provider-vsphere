@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# Copyright 2019 The Kubernetes Authors.
+# Copyright 2014 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,8 +18,21 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-# Change directories to the parent directory of the one in which this
-# script is located.
-cd "$(dirname "${BASH_SOURCE[0]}")/.."
+KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 
-make lint
+boilerDir="${KUBE_ROOT}/hack/boilerplate"
+boiler="${boilerDir}/boilerplate.py"
+
+files_need_boilerplate=()
+while IFS=$'\n' read -r line; do
+  files_need_boilerplate+=( "$line" )
+done < <("${boiler}" "$@")
+
+# Run boilerplate check
+if [[ ${#files_need_boilerplate[@]} -gt 0 ]]; then
+  for file in "${files_need_boilerplate[@]}"; do
+    echo "Boilerplate header is wrong for: ${file}" >&2
+  done
+
+  exit 1
+fi

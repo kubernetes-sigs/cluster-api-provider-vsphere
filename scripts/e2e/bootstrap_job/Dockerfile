@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 ARG BASE_IMAGE=gcr.io/cluster-api-provider-vsphere/extra/bootstrap-base:v0.4.0-beta.1-6-g9e51ae05
 FROM ${BASE_IMAGE}
 LABEL maintainer="Hui Luo <luoh@vmware.com>"

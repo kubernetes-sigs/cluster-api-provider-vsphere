@@ -58,6 +58,15 @@ type unmarshallableConfig struct {
 
 // GlobalConfig is the vSphere cloud provider's global configuration.
 type GlobalConfig struct {
+	// Insecure is a flag that disables TLS peer verification.
+	// +optional
+	Insecure bool `gcfg:"insecure-flag,omitempty" json:"insecure,omitempty"`
+
+	// RoundTripperCount specifies the SOAP round tripper count
+	// (retries = RoundTripper - 1)
+	// +optional
+	RoundTripperCount int32 `gcfg:"soap-roundtrip-count,omitempty" json:"roundTripperCount,omitempty"`
+
 	// Username is the username used to access a vSphere endpoint.
 	// +optional
 	Username string `gcfg:"user,omitempty" json:"username,omitempty"`
@@ -80,10 +89,6 @@ type GlobalConfig struct {
 	// +optional
 	Port string `gcfg:"port,omitempty" json:"port,omitempty"`
 
-	// Insecure is a flag that disables TLS peer verification.
-	// +optional
-	Insecure bool `gcfg:"insecure-flag,omitempty" json:"insecure,omitempty"`
-
 	// CAFile Specifies the path to a CA certificate in PEM format.
 	// If not configured, the system's CA certificates will be used.
 	// +optional
@@ -97,11 +102,6 @@ type GlobalConfig struct {
 	// Datacenters is a CSV string of the datacenters in which VMs are located.
 	// +optional
 	Datacenters string `gcfg:"datacenters,omitempty" json:"datacenters,omitempty"`
-
-	// RoundTripperCount specifies the SOAP round tripper count
-	// (retries = RoundTripper - 1)
-	// +optional
-	RoundTripperCount int32 `gcfg:"soap-roundtrip-count,omitempty" json:"roundTripperCount,omitempty"`
 
 	// ServiceAccount is the Kubernetes service account used to launch the cloud
 	// controller manager.

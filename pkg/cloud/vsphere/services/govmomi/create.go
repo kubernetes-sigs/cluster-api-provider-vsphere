@@ -22,17 +22,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/govmomi/vcenter"
 )
 
-const (
-	// nodeRole is the label assigned to every node in the cluster.
-	nodeRole = "node-role.kubernetes.io/node="
-
-	// the Kubernetes cloud provider to use
-	cloudProvider = "vsphere"
-
-	// the cloud config path read by the cloud provider
-	cloudConfigPath = "/etc/kubernetes/vsphere.conf"
-)
-
 func createVM(ctx *context.MachineContext, bootstrapData []byte) error {
 	if ctx.Session.IsVC() {
 		return vcenter.Clone(ctx, bootstrapData)

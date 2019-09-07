@@ -22,5 +22,4 @@ set -o pipefail
 # script is located.
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
-# TODO(akutz) Change back once the GoVmomi service is updated to v1a2
-go vet ./api/... ./controllers/... ./pkg/... .
+make lint

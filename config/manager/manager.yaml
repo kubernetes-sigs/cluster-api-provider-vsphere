@@ -25,7 +25,7 @@ spec:
       containers:
       - args:
         - --enable-leader-election
-        image: controller:latest
+        image: gcr.io/cluster-api-provider-vsphere/release/manager:latest
         imagePullPolicy: Always
         name: manager
       terminationGracePeriodSeconds: 10

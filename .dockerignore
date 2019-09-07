@@ -1,6 +1,13 @@
-/bin/
-/build/
-/out/
+.git
+.github
+.vscode
+bin/
+build/
+out/
+docs/
+examples/
+scripts/
+**/.md
 /*.test
 /cluster-api-provider-vsphere
 /examples/provider-components/provider-components*.yaml

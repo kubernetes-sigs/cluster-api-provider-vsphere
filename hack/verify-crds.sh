@@ -31,21 +31,19 @@ _diff_log="$(mktemp)"
 _output_dir="$(mktemp -d)"
 
 echo "verify-crds: generating crds"
-go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go \
-    paths=./api/... \
-    crd:trivialVersions=true \
-    output:crd:dir="${_output_dir}"
+MANIFEST_ROOT="${_output_dir}" make generate-manifests
 
 _exit_code=0
 echo "verify-crds: comparing crds"
-for f in $(/bin/ls "${_output_dir}"); do
-  echo "  ${f}"
-  diff "${_output_dir}/${f}" "./config/crd/bases/${f}" >"${_diff_log}" || _exit_code="${?}"
+while IFS= read -r -d '' dst_file; do
+  src_file="${dst_file#"${_output_dir}/"}"
+  echo "  config/${src_file}"
+  diff "${dst_file}" "./config/${src_file}" >"${_diff_log}" || _exit_code="${?}"
   if [ "${_exit_code}" -ne "0" ]; then
-    echo "${f}" 1>&2
+    echo "config/${src_file}" 1>&2
     cat "${_diff_log}" 1>&2
     echo 1>&2
   fi
-done
+done < <(find "${_output_dir}" -type f -print0)
 
 exit "${_exit_code}"

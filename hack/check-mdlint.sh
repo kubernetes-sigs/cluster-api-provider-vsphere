@@ -22,5 +22,4 @@ set -o pipefail
 # script is located.
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
-docker run --rm -v "$(pwd)":/build \
-  gcr.io/cluster-api-provider-vsphere/extra/mdlint:0.17.0
+make lint-markdown

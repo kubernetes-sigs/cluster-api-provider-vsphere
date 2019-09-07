@@ -48,8 +48,6 @@ type ClusterContext struct {
 	Client         client.Client
 	Logger         logr.Logger
 
-	user                string
-	pass                string
 	vsphereClusterPatch client.Patch
 }
 

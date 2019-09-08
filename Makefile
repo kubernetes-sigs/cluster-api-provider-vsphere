@@ -30,19 +30,19 @@ export GOPROXY
 # Active module mode, as we use go modules to manage dependencies
 export GO111MODULE := on
 
-# Directories.
+# Directories
+BIN_DIR := bin
 TOOLS_DIR := hack/tools
 TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
-BIN_DIR := bin
 
-# Binaries.
+# Binaries
 MANAGER := $(BIN_DIR)/manager
 CLUSTERCTL := $(BIN_DIR)/clusterctl
+
+# Tooling binaries
 CONTROLLER_GEN := $(TOOLS_BIN_DIR)/controller-gen
 GOLANGCI_LINT := $(TOOLS_BIN_DIR)/golangci-lint
-GOFORMAT := $(TOOLS_BIN_DIR)/goformat
-GOLINT := $(TOOLS_BIN_DIR)/golint
-GOIMPORTS := $(TOOLS_BIN_DIR)/goimports
+KUSTOMIZE := $(TOOLS_BIN_DIR)/kustomize
 
 # Allow overriding manifest generation destination directory
 MANIFEST_ROOT ?= config
@@ -69,45 +69,44 @@ test: generate lint ## Run tests
 ## Binaries
 ## --------------------------------------
 
-.PHONY: binaries
-binaries: $(MANAGER) ## Builds all binaries
-build: binaries ## Builds all binaries
-
 .PHONY: $(MANAGER)
 manager: $(MANAGER) ## Build manager binary
 $(MANAGER): generate
 	go build -o $@ -ldflags '-extldflags "-static" -w -s'
 
+.PHONY: $(CLUSTERCTL)
+clusterctl: $(CLUSTERCTL) ## Build clusterctl binary
+$(CLUSTERCTL): go.mod
+	go build -o $@ sigs.k8s.io/cluster-api/cmd/clusterctl
+
 ## --------------------------------------
 ## Tooling Binaries
 ## --------------------------------------
 
-.PHONY: $(CLUSTERCTL)
-clusterctl: $(CLUSTERCTL) ## Build clusterctl
-$(CLUSTERCTL): go.mod
-	go build -o $@ sigs.k8s.io/cluster-api/cmd/clusterctl
-
-.PHONY: $(CONTROLLER_GEN)
-controller-gen: $(CONTROLLER_GEN) ## Build controller-gen from tools folder
-$(CONTROLLER_GEN): $(TOOLS_DIR)/go.mod
-	cd $(^D); go build -tags=tools -o $(notdir $(@D))/$(@F) sigs.k8s.io/controller-tools/cmd/controller-gen
-
-.PHONY: $(GOLANGCI_LINT)
-golangci-lint: $(GOLANGCI_LINT) ## Build golangci-lint from tools folder
-$(GOLANGCI_LINT): $(TOOLS_DIR)/go.mod
-	cd $(^D); go build -tags=tools -o $(notdir $(@D))/$(@F) github.com/golangci/golangci-lint/cmd/golangci-lint
+TOOLING_BINARIES := $(CONTROLLER_GEN) $(GOLANGCI_LINT) $(KUSTOMIZE)
+tools: $(TOOLING_BINARIES) ## Build tooling binaries
+.PHONY: $(TOOLING_BINARIES)
+$(TOOLING_BINARIES):
+	make -C $(TOOLS_DIR) $(@F)
 
 ## --------------------------------------
-## Linting
+## Linting and fixing linter errors
 ## --------------------------------------
 
 .PHONY: lint
-lint: $(GOLANGCI_LINT) ## Lint codebase
-	$(GOLANGCI_LINT) run -v --fast=true
+lint: ## Run all the lint targets
+	$(MAKE) lint-go-full
+	$(MAKE) lint-markdown
+	$(MAKE) lint-shell
 
-.PHONY: lint-full
-lint-full: $(GOLANGCI_LINT) ## Run slower linters to detect possible issues
-	$(GOLANGCI_LINT) run -v --fast=false
+GOLANGCI_LINT_FLAGS ?= --fast=true
+.PHONY: lint-go
+lint-go: $(GOLANGCI_LINT) ## Lint codebase
+	$(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_FLAGS)
+
+.PHONY: lint-go-full
+lint-go-full: GOLANGCI_LINT_FLAGS = --fast=false
+lint-go-full: lint-go ## Run slower linters to detect possible issues
 
 .PHONY: lint-markdown
 lint-markdown: ## Lint the project's markdown
@@ -117,15 +116,9 @@ lint-markdown: ## Lint the project's markdown
 lint-shell: ## Lint the project's shell scripts
 	docker run --rm -t -v "$$(pwd)":/build:ro gcr.io/cluster-api-provider-vsphere/extra/shellcheck
 
-.PHONY: lint-all
-lint-all: ## Run all the litners
-	$(MAKE) lint-full
-	$(MAKE) lint-markdown
-	$(MAKE) lint-shell
-
 .PHONY: fix
-fix: $(GOLANGCI_LINT) ## Tries to fix errors reported by lint-full target
-	$(GOLANGCI_LINT) run -v --fix --fast=false
+fix: GOLANGCI_LINT_FLAGS = --fast=false --fix
+fix: lint-go ## Tries to fix errors reported by lint-go-full target
 
 ## --------------------------------------
 ## Generate
@@ -168,21 +161,23 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 .PHONY: release-manifests
 release-manifests: ## Builds the manifests to publish with a release
 	@mkdir -p out
-	kustomize build config/default >out/infrastructure-components.yaml
+	$(KUSTOMIZE) build config/default >out/infrastructure-components.yaml
 
 ## --------------------------------------
 ## Cleanup / Verification
 ## --------------------------------------
 
 .PHONY: clean
-clean: ## Remove all generated files
+clean: ## Run all the clean targets
 	$(MAKE) clean-bin
 	$(MAKE) clean-temporary
+	$(MAKE) clean-release
+	$(MAKE) clean-examples
 
 .PHONY: clean-bin
 clean-bin: ## Remove all generated binaries
 	rm -rf bin
-	rm -rf hack/tools/bin
+	$(MAKE) -C $(TOOLS_DIR) clean
 
 .PHONY: clean-temporary
 clean-temporary: ## Remove all temporary files and folders
@@ -199,7 +194,13 @@ clean-examples: ## Remove all the temporary files generated in the examples fold
 	rm -f examples/provider-components/provider-components-*.yaml
 
 .PHONY: verify
-verify: ## Runs verification scripts to ensure correct execution
+verify: ## Runs all the verify targets
+	$(MAKE) verify-install
+	$(MAKE) verify-boilerplate
+	$(MAKE) verify-crds
+
+.PHONY: verify-boilerplate
+verify-boilerplate: ## Verifies all sources have appropriate boilerplate
 	./hack/verify-boilerplate.sh
 
 .PHONY: verify-crds
@@ -209,3 +210,12 @@ verify-crds: ## Verifies the committed CRDs are up-to-date
 .PHONY: verify-install
 verify-install: ## Checks that you've installed this repository correctly
 	./hack/verify-install.sh
+
+## --------------------------------------
+## Check
+## --------------------------------------
+
+.PHONY: check
+check: ## Verify and lint the project
+	$(MAKE) verify
+	$(MAKE) lint

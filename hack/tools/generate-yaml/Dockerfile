@@ -23,9 +23,8 @@ LABEL "maintainer" "Andrew Kutz <akutz@vmware.com>"
 ENV BUILDDIR /build
 WORKDIR /build
 
-# Copy in the CAPV and CAPI config directories.
+# Copy in the CAPV config directory.
 COPY ./config ./config
-COPY ./vendor/sigs.k8s.io/cluster-api/config ./vendor/sigs.k8s.io/cluster-api/config
 
 # Copy in the examples directory.
 COPY ./examples ./examples

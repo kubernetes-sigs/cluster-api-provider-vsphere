@@ -2,12 +2,6 @@
 
 This is a guide on how to get started with CAPV (Cluster API Provider vSphere). To learn more about cluster API in more depth, check out the the [cluster api docs page](https://cluster-api.sigs.k8s.io/).
 
-------
-
-**Note**: The project's `master` branch has been updated to Cluster API v1alpha2 and is not stable. Please use the [`release-0.4`](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/tree/release-0.4) branch for the stable, v1alpha1 release.
-
-------
-
 * [Getting Started](#getting-started)
   * [Bootstrapping a Management Cluster with clusterctl](#bootstrapping-a-management-cluster-with-clusterctl)
     * [Install Requirements](#install-requirements)
@@ -230,10 +224,31 @@ spec:
   clusterConfiguration:
     apiServer:
       extraArgs:
+        cloud-config: /etc/kubernetes/vsphere.conf
         cloud-provider: vsphere
+      extraVolumes:
+      - hostPath: /etc/kubernetes/vsphere.conf
+        mountPath: /etc/kubernetes/vsphere.conf
+        name: cloud-config
+        pathType: File
+        readOnly: true
     controllerManager:
       extraArgs:
+        cloud-config: /etc/kubernetes/vsphere.conf
         cloud-provider: vsphere
+      extraVolumes:
+      - hostPath: /etc/kubernetes/vsphere.conf
+        mountPath: /etc/kubernetes/vsphere.conf
+        name: cloud-config
+        pathType: File
+        readOnly: true
+  files:
+  - content: |
+      W0dsb2JhbF0Kc2VjcmV0LW5hbWUgPSAiY2xvdWQtcHJvdmlkZXItdnNwaGVyZS1jcmVkZW50aWFscyIKc2VjcmV0LW5hbWVzcGFjZSA9ICJrdWJlLXN5c3RlbSIKZGF0YWNlbnRlcnMgPSAiU0REQy1EYXRhY2VudGVyIgppbnNlY3VyZS1mbGFnID0gIjEiCgpbVmlydHVhbENlbnRlciAiMTAuMC4wLjFdCgpbV29ya3NwYWNlXQpzZXJ2ZXIgPSAiMTAuMC4wLjEiCmRhdGFjZW50ZXIgPSAiU0REQy1EYXRhY2VudGVyIgpmb2xkZXIgPSAidm0iCmRlZmF1bHQtZGF0YXN0b3JlID0gIkRlZmF1bHREYXRhc3RvcmUiCnJlc291cmNlcG9vbC1wYXRoID0gIlJlc291cmNlcyIKCltEaXNrXQpzY3NpY29udHJvbGxlcnR5cGUgPSBwdnNjc2kKCltOZXR3b3JrXQpwdWJsaWMtbmV0d29yayA9ICJ2bS1uZXR3b3JrLTEiCg==
+    encoding: base64
+    owner: root:root
+    path: /etc/kubernetes/vsphere.conf
+    permissions: "0600"
   initConfiguration:
     nodeRegistration:
       criSocket: /var/run/containerd/containerd.sock
@@ -285,6 +300,7 @@ spec:
   network:
     devices:
     - dhcp4: true
+      dhcp6: false
       networkName: vm-network-1
   numCPUs: 2
   template: ubuntu-1804-kube-v1.13.6

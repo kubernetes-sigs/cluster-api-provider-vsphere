@@ -62,7 +62,7 @@ help: ## Display this help
 ## --------------------------------------
 
 .PHONY: test
-test: generate lint ## Run tests
+test: generate lint-go ## Run tests
 	go test -v ./...
 
 ## --------------------------------------

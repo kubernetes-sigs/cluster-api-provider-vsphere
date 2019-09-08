@@ -4,12 +4,6 @@
 
 <img src="https://github.com/kubernetes/kubernetes/raw/master/logo/logo.png" width="100" height="100" /><a href="https://www.vmware.com/products/vsphere.html"><img height="100" hspace="90px" src="https://i.imgur.com/Wd24COX.png" alt="Powered by VMware vSphere" /></a>
 
-------
-
-**Note**: The project's `master` branch has been updated to Cluster API v1alpha2 and is not stable. Please use the [`release-0.4`](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/tree/release-0.4) branch for the stable, v1alpha1 release.
-
-------
-
 Kubernetes-native declarative infrastructure for vSphere.
 
 ## What is the Cluster API Provider vSphere
@@ -37,17 +31,17 @@ Check out the [getting started guide](./docs/getting_started.md) for launching a
 
 This provider's versions are compatible with the following versions of Cluster API:
 
-||Cluster API v1alpha1 (v0.1)|Cluster API v1alpha2 (unreleased)|
-|-|-|-|
+||Cluster API v1alpha1 (v0.1)|Cluster API v1alpha2 (v0.2)|
+|---|:---:|:---:|
 | CAPV v1alpha1 (v0.3)|✓|☓|
 | CAPV v1alpha1 (v0.4)|✓|☓|
-| CAPV v1alpha2 (master)|☓|✓|
+| CAPV v1alpha2 (v0.5, master)|☓|✓|
 
 ||Kubernetes 1.13|Kubernetes 1.14|Kubernetes 1.15|
-|-|-|-|-|
+|-|:---:|:---:|:---:|
 | CAPV v1alpha1 (v0.3)|✓|✓|✓|
 | CAPV v1alpha1 (v0.4)|✓|✓|✓|
-| CAPV v1alpha2 (master)|✓|✓|✓|
+| CAPV v1alpha2 (v0.5, master)|✓|✓|✓|
 
 **NOTE:** As the versioning for this project is tied to the versioning of Cluster API, future modifications to this policy may be made to more closely align with other providers in the Cluster API ecosystem.
 

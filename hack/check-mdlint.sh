@@ -22,5 +22,7 @@ set -o pipefail
 # script is located.
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
-docker run --rm -v "$(pwd)":/build \
-  gcr.io/cluster-api-provider-vsphere/extra/mdlint:0.17.0
+# This file has been deprecated in favor of the Makefile target "lint-markdown".
+# This file remains as a backwards-compatible stub for the CI tests since
+# older release branches still expect this file to exist.
+make lint-markdown

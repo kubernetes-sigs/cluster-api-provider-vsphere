@@ -22,34 +22,7 @@ set -o pipefail
 # script is located.
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
-# Ensure the temp out file is removed when this program exits.
-out="$(mktemp)"
-on_exit() {
-  [ -z "${out}" ] || [ ! -e "${out}" ] || rm -f "${out}"
-}
-trap on_exit EXIT
-
-# Run goformat on all the sources.
-flags="-e -s -w"
-[ -z "${PROW_JOB_ID-}" ] || flags="-d ${flags}"
-eval "go run ./vendor/github.com/mbenkmann/goformat/goformat ${flags} ./api/ ./controllers/ ./pkg/ main.go" | tee "${out}"
-
-# Check to see if there any suggestions.
-goformat_exit_code=0; test -z "$(head -n 1 "${out}")" || goformat_exit_code=1
-
-# Truncate the out file.
-rm -f "${out}" && touch "${out}"
-
-# Run goimports on all the sources.
-flags="-e -w"
-[ -z "${PROW_JOB_ID-}" ] || flags="-d ${flags}"
-eval "go run ./vendor/golang.org/x/tools/cmd/goimports ${flags} ./api/ ./controllers/ ./pkg/ main.go" | tee "${out}"
-
-# Check to see if there any suggestions.
-goimports_exit_code=0; test -z "$(head -n 1 "${out}")" || goimports_exit_code=1
-
-# If running on Prow, exit with a non-zero code if either of the tests failed.
-if [ -n "${PROW_JOB_ID-}" ]; then
-  [ "${goformat_exit_code}" -eq "0" ] ||  exit "${goformat_exit_code}"
-  [ "${goimports_exit_code}" -eq "0" ] || exit "${goimports_exit_code}"
-fi
+# This file has been deprecated in favor of the Makefile target "lint-go".
+# This file remains as a backwards-compatible stub for the CI tests since
+# older release branches still expect this file to exist.
+make lint-go

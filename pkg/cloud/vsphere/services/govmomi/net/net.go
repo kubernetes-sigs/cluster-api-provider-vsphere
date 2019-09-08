@@ -98,15 +98,16 @@ func GetNetworkStatus(
 func ErrOnLocalOnlyIPAddr(addr string) error {
 	var reason string
 	a := net.ParseIP(addr)
-	if a == nil {
+	switch {
+	case len(a) == 0:
 		reason = "invalid"
-	} else if a.IsUnspecified() {
+	case a.IsUnspecified():
 		reason = "unspecified"
-	} else if a.IsLinkLocalMulticast() {
+	case a.IsLinkLocalMulticast():
 		reason = "link-local-mutlicast"
-	} else if a.IsLinkLocalUnicast() {
+	case a.IsLinkLocalUnicast():
 		reason = "link-local-unicast"
-	} else if a.IsLoopback() {
+	case a.IsLoopback():
 		reason = "loopback"
 	}
 	if reason != "" {

@@ -18,13 +18,9 @@ package govmomi
 
 const (
 	morefTypeTask = "Task"
-
-	taskFolderCreateVM = "Folder.createVm"
-	taskVMClone        = "VirtualMachine.clone"
-	taskVMReconfigure  = "VirtualMachine.reconfigure"
-	taskVMDestroy      = "VirtualMachine.destroy"
 )
 
+// nolint
 const (
 	guestInfoKeyMetadata    = "guestinfo.metadata"
 	guestInfoKeyMetadataEnc = "guestinfo.metadata.encoding"

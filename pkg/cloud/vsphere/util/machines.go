@@ -33,13 +33,12 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2"
 )
 
-// GetMachinesInCluster gets a cluster's Machine resources.
-func GetMachinesInCluster(
+// GetMachinesWithSelector gets Machine using a selector.
+func GetMachinesWithSelector(
 	ctx context.Context,
 	controllerClient client.Client,
-	namespace, clusterName string) ([]*clusterv1.Machine, error) {
+	namespace string, labels map[string]string) ([]*clusterv1.Machine, error) {
 
-	labels := map[string]string{clusterv1.MachineClusterLabelName: clusterName}
 	machineList := &clusterv1.MachineList{}
 
 	if err := controllerClient.List(
@@ -47,8 +46,8 @@ func GetMachinesInCluster(
 		client.InNamespace(namespace),
 		client.MatchingLabels(labels)); err != nil {
 		return nil, errors.Wrapf(
-			err, "error getting machines in cluster %s/%s",
-			namespace, clusterName)
+			err, "error getting machines using namespace %s and selector %v",
+			namespace, labels)
 	}
 
 	machines := make([]*clusterv1.Machine, len(machineList.Items))
@@ -59,13 +58,12 @@ func GetMachinesInCluster(
 	return machines, nil
 }
 
-// GetVSphereMachinesInCluster gets a cluster's VSphereMachine resources.
-func GetVSphereMachinesInCluster(
+// GetVSphereMachinesWithSelector gets a cluster's VSphereMachine resources.
+func GetVSphereMachinesWithSelector(
 	ctx context.Context,
 	controllerClient client.Client,
-	namespace, clusterName string) ([]*infrav1.VSphereMachine, error) {
+	namespace string, labels map[string]string) (map[string]*infrav1.VSphereMachine, error) {
 
-	labels := map[string]string{clusterv1.MachineClusterLabelName: clusterName}
 	machineList := &infrav1.VSphereMachineList{}
 
 	if err := controllerClient.List(
@@ -75,9 +73,10 @@ func GetVSphereMachinesInCluster(
 		return nil, err
 	}
 
-	machines := make([]*infrav1.VSphereMachine, len(machineList.Items))
+	machines := map[string]*infrav1.VSphereMachine{}
 	for i := range machineList.Items {
-		machines[i] = &machineList.Items[i]
+		machineName := machineList.Items[i].Name
+		machines[machineName] = &machineList.Items[i]
 	}
 
 	return machines, nil
@@ -111,6 +110,9 @@ func GetMachineManagedObjectReference(machine *infrav1.VSphereMachine) vim25type
 
 // ErrNoMachineIPAddr indicates that no valid IP addresses were found in a machine context
 var ErrNoMachineIPAddr = errors.New("no IP addresses found for machine")
+
+// ErrParseCIDR indicates that we cannot parse the API server CIDR
+var ErrParseCIDR = errors.New("error parsing preferred API server CIDR")
 
 // GetMachinePreferredIPAddress returns the preferred IP address for a
 // VSphereMachine resource.

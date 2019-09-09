@@ -57,6 +57,50 @@ rules:
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
+  - awsloadbalancerconfigs
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - awsloadbalancerconfigs/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - loadbalancers
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - loadbalancers
+  - loadbalancers/status
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - machines
+  - machines/status
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
   - vsphereclusters
   verbs:
   - create

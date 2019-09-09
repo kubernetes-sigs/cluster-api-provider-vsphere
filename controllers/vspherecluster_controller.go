@@ -17,7 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	goctx "context"
 	"fmt"
 
 	"github.com/go-logr/logr"
@@ -26,13 +25,13 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/config"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/cloudprovider"
 	infrautilv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/util"
@@ -55,51 +54,20 @@ type VSphereClusterReconciler struct {
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=vsphereclusters/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups=bootstrap.cluster.x-k8s.io,resources=kubeadmconfigs;kubeadmconfigs/status,verbs=get;list;watch
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=loadbalancers;loadbalancers/status,verbs=get;list;watch;
 
 // Reconcile ensures the back-end state reflects the Kubernetes resource state intent.
 func (r *VSphereClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) {
-	parentContext := goctx.Background()
+	logger := r.Log.WithName(controllerName)
 
-	logger := r.Log.WithName(controllerName).
-		WithName(fmt.Sprintf("namespace=%s", req.Namespace)).
-		WithName(fmt.Sprintf("vsphereCluster=%s", req.Name))
-
-	// Fetch the VSphereCluster instance
-	vsphereCluster := &infrav1.VSphereCluster{}
-	err := r.Get(parentContext, req.NamespacedName, vsphereCluster)
+	ctx, result, err := GetClusterContext(req, logger, r)
 	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return reconcile.Result{}, nil
+		if err == ErrNoOwnerCluster || err == ErrVsphereClusterNotFound {
+			return result, nil
 		}
-		return reconcile.Result{}, err
+		return result, err
 	}
-
-	logger = logger.WithName(vsphereCluster.APIVersion)
-
-	// Fetch the Cluster.
-	cluster, err := clusterutilv1.GetOwnerCluster(parentContext, r.Client, vsphereCluster.ObjectMeta)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-	if cluster == nil {
-		logger.Info("Waiting for Cluster Controller to set OwnerRef on VSphereCluster")
-		return reconcile.Result{RequeueAfter: config.DefaultRequeue}, nil
-	}
-
-	logger = logger.WithName(fmt.Sprintf("cluster=%s", cluster.Name))
-
-	// Create the context.
-	ctx, err := context.NewClusterContext(&context.ClusterContextParams{
-		Context:        parentContext,
-		Cluster:        cluster,
-		VSphereCluster: vsphereCluster,
-		Client:         r.Client,
-		Logger:         logger,
-	})
-	if err != nil {
-		return reconcile.Result{}, errors.Errorf("failed to create cluster context: %+v", err)
-	}
-
+	vsphereCluster := ctx.VSphereCluster
 	// Always close the context when exiting this function so we can persist any VSphereCluster changes.
 	defer func() {
 		if err := ctx.Patch(); err != nil && reterr == nil {
@@ -132,7 +100,21 @@ func (r *VSphereClusterReconciler) reconcileNormal(ctx *context.ClusterContext) 
 	//   * Downloading OVAs into the content library for any machines that
 	//     use them.
 	//   * Create any load balancers for VMC on AWS, etc.
-	ctx.VSphereCluster.Status.Ready = true
+	loadBalancers, err := infrautilv1.GetClusterLoadBalancer(ctx, r.Client, ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	ctx.VSphereCluster.Status.Ready = len(loadBalancers) == 0
+
+	// If there was no APIEndpoint set append the loadbalancer endpoints
+	if len(ctx.VSphereCluster.Status.APIEndpoints) == 0 {
+		for _, loadBalancer := range loadBalancers {
+			if loadBalancer.Status.APIEndpoint != (infrav1.APIEndpoint{}) {
+				ctx.VSphereCluster.Status.Ready = true
+				ctx.VSphereCluster.Status.APIEndpoints = append(ctx.VSphereCluster.Status.APIEndpoints, loadBalancer.Status.APIEndpoint)
+			}
+		}
+	}
 	ctx.Logger.V(6).Info("VSphereCluster is infrastructure-ready")
 
 	// If the VSphereCluster doesn't have our finalizer, add it.
@@ -143,12 +125,13 @@ func (r *VSphereClusterReconciler) reconcileNormal(ctx *context.ClusterContext) 
 			"cluster-namespace", ctx.VSphereCluster.Namespace,
 			"cluster-name", ctx.VSphereCluster.Name)
 	}
-
-	// Update the VSphereCluster resource with its API enpoints.
-	if err := r.reconcileAPIEndpoints(ctx); err != nil {
-		return reconcile.Result{}, errors.Wrapf(err,
-			"failed to reconcile API endpoints for VSphereCluster %s/%s",
-			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
+	if len(loadBalancers) == 0 {
+		// Update the VSphereCluster resource with its API enpoints.
+		if err := r.reconcileAPIEndpoints(ctx); err != nil {
+			return reconcile.Result{}, errors.Wrapf(err,
+				"failed to reconcile API endpoints for VSphereCluster %s/%s",
+				ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
+		}
 	}
 
 	// Create the cloud config secret for the target cluster.
@@ -183,7 +166,8 @@ func (r *VSphereClusterReconciler) reconcileAPIEndpoints(ctx *context.ClusterCon
 	}
 
 	// Get the CAPI Machine resources for the cluster.
-	machines, err := infrautilv1.GetMachinesInCluster(ctx, ctx.Client, ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
+	labels := map[string]string{clusterv1.MachineClusterLabelName: ctx.VSphereCluster.Name}
+	machines, err := infrautilv1.GetMachinesWithSelector(ctx, ctx.Client, ctx.VSphereCluster.Namespace, labels)
 	if err != nil {
 		return errors.Wrapf(err,
 			"failed to get Machinces for Cluster %s/%s",

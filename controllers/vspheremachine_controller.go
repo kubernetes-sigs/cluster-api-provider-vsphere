@@ -196,7 +196,7 @@ func (r *VSphereMachineReconciler) reconcileNormal(ctx *context.MachineContext) 
 
 	if !ctx.Cluster.Status.InfrastructureReady {
 		ctx.Logger.Info("Cluster infrastructure is not ready yet, requeuing machine")
-		return reconcile.Result{RequeueAfter: config.DefaultRequeue}, nil
+		return reconcile.Result{}, nil
 	}
 
 	// Make sure bootstrap data is available and populated.

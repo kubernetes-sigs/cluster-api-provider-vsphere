@@ -35,6 +35,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-vsphere/controllers"
+	"sigs.k8s.io/cluster-api-provider-vsphere/controllers/loadbalancer"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/config"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 )
@@ -129,6 +130,14 @@ func main() {
 		Recorder: mgr.GetEventRecorderFor("vspherecluster-controller"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "VSphereCluster")
+		os.Exit(1)
+	}
+	if err = (&loadbalancer.Reconciler{
+		Client:   mgr.GetClient(),
+		Log:      ctrl.Log.WithName("controllers").WithName("loadBalancer"),
+		Recorder: mgr.GetEventRecorderFor("loadBalancer-controller"),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "loadBalancer")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

@@ -9,6 +9,7 @@ spec:
       cidrBlocks: ["${SERVICE_CIDR}"]
     pods:
       cidrBlocks: ["${CLUSTER_CIDR}"]
+    serviceDomain: ${DNS_DOMAIN}
   infrastructureRef:
     apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
     kind: VSphereCluster

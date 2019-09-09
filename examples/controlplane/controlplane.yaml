@@ -46,35 +46,14 @@ spec:
       name: "{{ ds.meta_data.hostname }}"
       criSocket: "/var/run/containerd/containerd.sock"
       kubeletExtraArgs:
-        cloud-provider: vsphere
+        cloud-provider: external
   clusterConfiguration:
     apiServer:
       extraArgs:
-        cloud-provider: vsphere
-        cloud-config: /etc/kubernetes/vsphere.conf
-      extraVolumes:
-      - name: "cloud-config"
-        hostPath: /etc/kubernetes/vsphere.conf
-        mountPath: /etc/kubernetes/vsphere.conf
-        readOnly: true
-        pathType: File
+        cloud-provider: external
     controllerManager:
       extraArgs:
-        cloud-provider: vsphere
-        cloud-config: /etc/kubernetes/vsphere.conf
-      extraVolumes:
-      - name: "cloud-config"
-        hostPath: /etc/kubernetes/vsphere.conf
-        mountPath: /etc/kubernetes/vsphere.conf
-        readOnly: true
-        pathType: File
-  files:
-  - path: /etc/kubernetes/vsphere.conf
-    owner: root:root
-    permissions: "0600"
-    encoding: base64
-    content: |
-      ${CLOUD_CONFIG_B64ENCODED}
+        cloud-provider: external
   users:
   - name: capv
     sudo: "ALL=(ALL) NOPASSWD:ALL"

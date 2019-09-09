@@ -34,6 +34,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/config"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/cloudprovider"
 	infrautilv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/util"
 )
 
@@ -156,6 +157,13 @@ func (r *VSphereClusterReconciler) reconcileNormal(ctx *context.ClusterContext) 
 			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
 	}
 
+	// Create the external cloud provider addons
+	if err := r.reconcileCloudProvider(ctx); err != nil {
+		return reconcile.Result{}, errors.Wrapf(err,
+			"failed to reconcile cloud cloud provider for VSphereCluster %s/%s",
+			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
+	}
+
 	return reconcile.Result{}, nil
 }
 
@@ -220,8 +228,58 @@ func (r *VSphereClusterReconciler) reconcileAPIEndpoints(ctx *context.ClusterCon
 			"ip-addr", ipAddr, "port", apiEndpointPort)
 		return nil
 	}
-
 	return infrautilv1.ErrNoMachineIPAddr
+}
+
+func (r *VSphereClusterReconciler) reconcileCloudProvider(ctx *context.ClusterContext) error {
+	targetClusterClient, err := infrautilv1.NewKubeClient(ctx, ctx.Client, ctx.Cluster)
+	if err != nil {
+		return errors.Wrapf(err,
+			"failed to get client for Cluster %s/%s",
+			ctx.Cluster.Namespace, ctx.Cluster.Name)
+	}
+
+	serviceAccount := cloudprovider.CloudControllerManagerServiceAccount()
+	if _, err := targetClusterClient.CoreV1().ServiceAccounts(serviceAccount.Namespace).Create(serviceAccount); err != nil && !apierrors.IsAlreadyExists(err) {
+		return err
+	}
+
+	cloudConfigData, err := ctx.VSphereCluster.Spec.CloudProviderConfiguration.MarshalINI()
+	if err != nil {
+		return err
+	}
+
+	cloudConfigMap := cloudprovider.CloudControllerManagerConfigMap(string(cloudConfigData))
+	if _, err := targetClusterClient.CoreV1().ConfigMaps(cloudConfigMap.Namespace).Create(cloudConfigMap); err != nil && !apierrors.IsAlreadyExists(err) {
+		return err
+	}
+
+	daemonSet := cloudprovider.CloudControllerManagerDaemonSet()
+	if _, err := targetClusterClient.AppsV1().DaemonSets(daemonSet.Namespace).Create(daemonSet); err != nil && !apierrors.IsAlreadyExists(err) {
+		return err
+	}
+
+	service := cloudprovider.CloudControllerManagerService()
+	if _, err := targetClusterClient.CoreV1().Services(daemonSet.Namespace).Create(service); err != nil && !apierrors.IsAlreadyExists(err) {
+		return err
+	}
+
+	clusterRole := cloudprovider.CloudControllerManagerClusterRole()
+	if _, err := targetClusterClient.RbacV1().ClusterRoles().Create(clusterRole); err != nil && !apierrors.IsAlreadyExists(err) {
+		return err
+	}
+
+	clusterRoleBinding := cloudprovider.CloudControllerManagerClusterRoleBinding()
+	if _, err := targetClusterClient.RbacV1().ClusterRoleBindings().Create(clusterRoleBinding); err != nil && !apierrors.IsAlreadyExists(err) {
+		return err
+	}
+
+	roleBinding := cloudprovider.CloudControllerManagerRoleBinding()
+	if _, err := targetClusterClient.RbacV1().RoleBindings(roleBinding.Namespace).Create(roleBinding); err != nil && !apierrors.IsAlreadyExists(err) {
+		return err
+	}
+
+	return nil
 }
 
 // reconcileCloudConfigSecret ensures the cloud config secret is present in the
@@ -254,7 +312,7 @@ func (r *VSphereClusterReconciler) reconcileCloudConfigSecret(ctx *context.Clust
 		Type:       apiv1.SecretTypeOpaque,
 		StringData: credentials,
 	}
-	if _, err := targetClusterClient.Secrets(secret.Namespace).Create(secret); err != nil {
+	if _, err := targetClusterClient.CoreV1().Secrets(secret.Namespace).Create(secret); err != nil {
 		if apierrors.IsAlreadyExists(err) {
 			return nil
 		}

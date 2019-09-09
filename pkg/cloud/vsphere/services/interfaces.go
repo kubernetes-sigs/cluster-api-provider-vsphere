@@ -17,6 +17,8 @@ limitations under the License.
 package services
 
 import (
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
+
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
 )
@@ -29,4 +31,15 @@ type VirtualMachineService interface {
 
 	// DestroyVM powers off and removes a VM from the inventory.
 	DestroyVM(ctx *context.MachineContext) (infrav1.VirtualMachine, error)
+}
+
+// LoadBalancerService is service that reconciliate load balancers
+type LoadBalancerService interface {
+
+	// Reconcile reconciles loadBalancer for the cluster using machineIPs
+	// to serve as endpoints
+	Reconcile(loadBalancer *infrav1.LoadBalancer, machineIPs []string) (clusterv1.APIEndpoint, error)
+
+	// Delete deletes loadBalancer
+	Delete(loadBalancer *infrav1.LoadBalancer) error
 }

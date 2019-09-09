@@ -173,6 +173,7 @@ record_and_export() {
 record_and_export CLUSTER_NAME          ':-capv-mgmt-example'
 record_and_export SERVICE_CIDR          ':-100.64.0.0/13'
 record_and_export CLUSTER_CIDR          ':-100.96.0.0/11'
+record_and_export SERVICE_DOMAIN        ':-cluster.local'
 record_and_export CABPK_MANAGER_IMAGE   ':-'
 record_and_export CAPV_MANAGER_IMAGE    ':-'
 record_and_export VSPHERE_USERNAME      "${ENV_VAR_REQ}"

@@ -1,0 +1,143 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  name: loadbalancers.infrastructure.cluster.x-k8s.io
+spec:
+  group: infrastructure.cluster.x-k8s.io
+  names:
+    categories:
+    - cluster-api
+    kind: LoadBalancer
+    plural: loadbalancers
+  scope: Namespaced
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      description: LoadBalancer is the schema for the Load balancer API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: LoadBalancerSpec defines the desired state of the load balancer
+          properties:
+            configRef:
+              description: ConfigRef holds a reference to a provider-specific configuration
+              properties:
+                apiVersion:
+                  description: API version of the referent.
+                  type: string
+                fieldPath:
+                  description: 'If referring to a piece of an object instead of an
+                    entire object, this string should contain a valid JSON/Go field
+                    access statement, such as desiredState.manifest.containers[2].
+                    For example, if the object reference is to a container within
+                    a pod, this would take on a value like: "spec.containers{name}"
+                    (where "name" refers to the name of the container that triggered
+                    the event) or if no container name is specified "spec.containers[2]"
+                    (container with index 2 in this pod). This syntax is chosen only
+                    to have some well-defined way of referencing a part of an object.
+                    TODO: this design is not final and this field is subject to change
+                    in the future.'
+                  type: string
+                kind:
+                  description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+                  type: string
+                name:
+                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                  type: string
+                namespace:
+                  description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                  type: string
+                resourceVersion:
+                  description: 'Specific resourceVersion to which this reference is
+                    made, if any. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#concurrency-control-and-consistency'
+                  type: string
+                uid:
+                  description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                  type: string
+              type: object
+            ports:
+              description: Ports ports that should be used in this load balancer
+              items:
+                description: LoadBalancerPort describes the desired state of load
+                  balancer ports
+                properties:
+                  name:
+                    description: Name is the name of this port. This is used by the
+                      provider to guarantee uniquness of the <Protocol, Port, TargetPort>
+                      association
+                    type: string
+                  port:
+                    description: The port that will be exposed by this load balancer.
+                    format: int32
+                    type: integer
+                  protocol:
+                    description: The IP protocol for this port. Supports "TCP" for
+                      now. Default is TCP.
+                    type: string
+                  targetPort:
+                    description: TargetPort is the port of the machines the load balancer
+                      should send traffic to
+                    format: int32
+                    type: integer
+                required:
+                - name
+                - port
+                type: object
+              type: array
+            selector:
+              additionalProperties:
+                type: string
+              description: Selector selects the machines to add to the load balancing
+                pool
+              type: object
+          required:
+          - configRef
+          - ports
+          - selector
+          type: object
+        status:
+          description: LoadBalancerStatus defines the observed state of the AWS load
+            balancer
+          properties:
+            apiEndpoint:
+              description: APIEndpoint represents the endpoint to communicate with
+                the load balancer.
+              properties:
+                host:
+                  description: The hostname on which the API server is serving.
+                  type: string
+                port:
+                  description: The port on which the API server is serving.
+                  type: integer
+              required:
+              - host
+              - port
+              type: object
+          type: object
+      type: object
+  version: v1alpha2
+  versions:
+  - name: v1alpha2
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

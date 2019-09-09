@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha2
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2/cloudprovider"
@@ -27,6 +28,11 @@ const (
 	// resources associated with VSphereCluster before removing it from the
 	// API server.
 	ClusterFinalizer = "vspherecluster.infrastructure.cluster.x-k8s.io"
+
+	// LoadBalancerFinalizer allows to clean up the load balancer
+	// associated with VSphereCluster before removing it from the
+	// API server.
+	LoadBalancerFinalizer = "loadbalancer.infrastructure.cluster.x-k8s.io"
 )
 
 // VSphereClusterSpec defines the desired state of VSphereCluster
@@ -42,6 +48,11 @@ type VSphereClusterSpec struct {
 	// CloudProviderConfiguration holds the cluster-wide configuration for the
 	// vSphere cloud provider.
 	CloudProviderConfiguration cloudprovider.Config `json:"cloudProviderConfiguration,omitempty"`
+
+	// LoadBalancerRef holds a reference to a provider-specific load balancer
+	// resource
+	// +optional
+	LoadBalancerRef *corev1.ObjectReference `json:"loadBalancerRef,omitempty"`
 }
 
 // VSphereClusterStatus defines the observed state of VSphereClusterSpec

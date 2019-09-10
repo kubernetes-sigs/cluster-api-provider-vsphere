@@ -9,6 +9,9 @@
 /cluster-api-provider-vsphere
 /examples/provider-components/provider-components*.yaml
 
+# env vars file used in getting-started.md and manifests generation
+envvars.txt
+
 # Binaries for programs and plugins
 *.exe
 *.exe~

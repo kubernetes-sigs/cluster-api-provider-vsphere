@@ -154,7 +154,9 @@ fi
 
 VERSION=$(git describe --dirty --always 2>/dev/null)
 export VERSION
+export CAPI_VERSION=v0.2.1
 echo "build vSphere controller version: ${VERSION}"
+echo "using clusterctl version: ${CAPI_VERSION}"
 
 # install_govc
 go get -u github.com/vmware/govmomi/govc

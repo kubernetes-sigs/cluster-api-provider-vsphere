@@ -36,6 +36,7 @@ docker run --rm \
     -e VSPHERE_RESOURCE_POOL="clusterapi" \
     -e VSPHERE_FOLDER="clusterapi" \
     -e VSPHERE_TEMPLATE="ubuntu-1804-kube-v1.13.6" \
+    -e SSH_AUTHORIZED_KEY="N/A" \
     "${MANIFESTS_IMAGE}" \
     -c "${CLUSTER_NAME}" \
     -m "${VSPHERE_CONTROLLER_VERSION}" \

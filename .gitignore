@@ -44,6 +44,7 @@ config/default/vsphere_tmp
 # Tooling
 .bin/
 bin/
+vendor/
 
 # Ignore the temporary .gopath directory
 .gopath/

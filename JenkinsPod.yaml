@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: cluster-api-provider-vsphere
+spec:
+  containers:
+    - name: builder-base
+      image: jenkinsxio/builder-base:0.1.215
+      tty: true
+      securityContext:
+        privileged: true
+      command:
+        - cat
+      volumeMounts:
+        - name: socket
+          mountPath: /var/run/docker.sock
+    - name: golang
+      image: golang:1.12
+      tty: true
+      command:
+        - cat
+    - name: golangci
+      image: golangci/golangci-lint:v1.16
+      tty: true
+      command:
+        - cat
+  volumes:
+    - name: socket
+      hostPath:
+        path: /var/run/docker.sock

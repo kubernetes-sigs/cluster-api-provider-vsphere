@@ -54,6 +54,7 @@ type VSphereClusterReconciler struct {
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=vsphereclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=vsphereclusters/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
+// +kubebuilder:rbac:groups=bootstrap.cluster.x-k8s.io,resources=kubeadmconfigs;kubeadmconfigs/status,verbs=get;list;watch
 
 // Reconcile ensures the back-end state reflects the Kubernetes resource state intent.
 func (r *VSphereClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) {
@@ -185,47 +186,71 @@ func (r *VSphereClusterReconciler) reconcileAPIEndpoints(ctx *context.ClusterCon
 	// Iterate over the cluster's control plane CAPI machines.
 	for _, machine := range clusterutilv1.GetControlPlaneMachines(machines) {
 
-		// Only machines with bootstrap data will have an IP address.
-		if machine.Spec.Bootstrap.Data == nil {
+		// Get the machine's associated KubeadmConfig resource to check if
+		// there is a ControlPlaneEndpoint value assigned to the Init/Join
+		// configuration.
+		//
+		// TODO(akutz) Assuming the Config type violates the separation model
+		//             in CAPI v1a2. Please see https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/555#issuecomment-529237211
+		//             for more information.
+		kubeadmConfig, err := infrautilv1.GetKubeadmConfigForMachine(ctx, ctx.Client, machine)
+		if err != nil {
+			return err
+		}
+
+		var apiEndpoint infrav1.APIEndpoint
+
+		// If there is a ControlPlaneEndpoint set then use it.
+		if cpe := kubeadmConfig.Spec.ClusterConfiguration.ControlPlaneEndpoint; cpe != "" {
+			parsedAPIEndpoint, err := infrautilv1.GetAPIEndpointForControlPlaneEndpoint(cpe)
+			if err != nil {
+				return err
+			}
+			apiEndpoint = *parsedAPIEndpoint
 			ctx.Logger.V(6).Info(
-				"skipping machine while looking for IP address",
-				"machine-name", machine.Name,
-				"skip-reason", "nilBootstrapData")
-			continue
-		}
-
-		// Get the VSphereMachine for the CAPI Machine resource.
-		vsphereMachine, err := infrautilv1.GetVSphereMachine(ctx, ctx.Client, machine.Namespace, machine.Name)
-		if err != nil {
-			return errors.Wrapf(err,
-				"failed to get VSphereMachine for Machine %s/%s/%s",
-				ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name, machine.Name)
-		}
-
-		// Get the VSphereMachine's preferred IP address.
-		ipAddr, err := infrautilv1.GetMachinePreferredIPAddress(vsphereMachine)
-		if err != nil {
-			if err == infrautilv1.ErrNoMachineIPAddr {
+				"found API endpoint via KubeadmConfig",
+				"host", apiEndpoint.Host, "port", apiEndpoint.Port)
+		} else {
+			// Only machines with bootstrap data will have an IP address.
+			if machine.Spec.Bootstrap.Data == nil {
+				ctx.Logger.V(6).Info(
+					"skipping machine while looking for IP address",
+					"machine-name", machine.Name,
+					"skip-reason", "nilBootstrapData")
 				continue
 			}
-			return errors.Wrapf(err,
-				"failed to get preferred IP address for VSphereMachine %s/%s/%s",
-				ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name, vsphereMachine.Name)
+
+			// Get the VSphereMachine for the CAPI Machine resource.
+			vsphereMachine, err := infrautilv1.GetVSphereMachine(ctx, ctx.Client, machine.Namespace, machine.Name)
+			if err != nil {
+				return errors.Wrapf(err,
+					"failed to get VSphereMachine for Machine %s/%s/%s",
+					machine.Namespace, ctx.VSphereCluster.Name, machine.Name)
+			}
+
+			// Get the VSphereMachine's preferred IP address.
+			ipAddr, err := infrautilv1.GetMachinePreferredIPAddress(vsphereMachine)
+			if err != nil {
+				if err == infrautilv1.ErrNoMachineIPAddr {
+					continue
+				}
+				return errors.Wrapf(err,
+					"failed to get preferred IP address for VSphereMachine %s/%s/%s",
+					machine.Namespace, ctx.VSphereCluster.Name, vsphereMachine.Name)
+			}
+
+			apiEndpoint.Host = ipAddr
+			apiEndpoint.Port = apiEndpointPort
+
+			ctx.Logger.V(6).Info(
+				"found API endpoint via control plane machine",
+				"host", apiEndpoint.Host, "port", apiEndpoint.Port)
 		}
 
 		// Set APIEndpoints so the CAPI controller can read the API endpoints
 		// for this VSphereCluster into the analogous CAPI Cluster using an
 		// UnstructuredReader.
-		ctx.VSphereCluster.Status.APIEndpoints = []infrav1.APIEndpoint{
-			{
-				Host: ipAddr,
-				Port: apiEndpointPort,
-			},
-		}
-
-		ctx.Logger.V(6).Info(
-			"found API endpoint via control plane machine",
-			"ip-addr", ipAddr, "port", apiEndpointPort)
+		ctx.VSphereCluster.Status.APIEndpoints = []infrav1.APIEndpoint{apiEndpoint}
 		return nil
 	}
 	return infrautilv1.ErrNoMachineIPAddr

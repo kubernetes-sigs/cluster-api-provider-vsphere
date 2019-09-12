@@ -17,6 +17,7 @@ require (
 	k8s.io/cluster-bootstrap v0.0.0-20190711112844-b7409fb13d1b
 	k8s.io/klog v0.4.0
 	sigs.k8s.io/cluster-api v0.2.1
+	sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm v0.1.0
 	sigs.k8s.io/controller-runtime v0.2.0
 )
 

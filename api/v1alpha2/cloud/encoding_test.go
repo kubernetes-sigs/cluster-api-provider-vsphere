@@ -39,10 +39,13 @@ type codecTestCase struct {
 	unmarshalOptions []cloud.UnmarshalINIOptionFunc
 }
 
-var twoWayCodecTestCases = []codecTestCase{
-	{
-		testName: "Username and password in global section",
-		iniString: `
+func TestMarshalINI(t *testing.T) {
+	g := gomega.NewGomegaWithT(t)
+
+	testcases := []codecTestCase{
+		{
+			testName: "Username and password in global section",
+			iniString: `
 		[Global]
 		user = user
 		password = password
@@ -56,26 +59,26 @@ var twoWayCodecTestCases = []codecTestCase{
 		folder = kubernetes
 		default-datastore = default
 		`,
-		configObj: cloud.Config{
-			Global: cloud.GlobalConfig{
-				Username:    "user",
-				Password:    "password",
-				Datacenters: "us-west",
-			},
-			VCenter: map[string]cloud.VCenterConfig{
-				"0.0.0.0": {},
-			},
-			Workspace: cloud.WorkspaceConfig{
-				Server:     "0.0.0.0",
-				Datacenter: "us-west",
-				Folder:     "kubernetes",
-				Datastore:  "default",
+			configObj: cloud.Config{
+				Global: cloud.GlobalConfig{
+					Username:    "user",
+					Password:    "password",
+					Datacenters: "us-west",
+				},
+				VCenter: map[string]cloud.VCenterConfig{
+					"0.0.0.0": {},
+				},
+				Workspace: cloud.WorkspaceConfig{
+					Server:     "0.0.0.0",
+					Datacenter: "us-west",
+					Folder:     "kubernetes",
+					Datastore:  "default",
+				},
 			},
 		},
-	},
-	{
-		testName: "Username and password in vCenter section",
-		iniString: `
+		{
+			testName: "Username and password in vCenter section",
+			iniString: `
 		[Global]
 		port = 443
 		insecure-flag = true
@@ -90,28 +93,28 @@ var twoWayCodecTestCases = []codecTestCase{
 		datacenter = us-west
 		folder = kubernetes
 		`,
-		configObj: cloud.Config{
-			Global: cloud.GlobalConfig{
-				Port:        "443",
-				Insecure:    true,
-				Datacenters: "us-west",
-			},
-			VCenter: map[string]cloud.VCenterConfig{
-				"0.0.0.0": {
-					Username: "user",
-					Password: "password",
+			configObj: cloud.Config{
+				Global: cloud.GlobalConfig{
+					Port:        "443",
+					Insecure:    true,
+					Datacenters: "us-west",
+				},
+				VCenter: map[string]cloud.VCenterConfig{
+					"0.0.0.0": {
+						Username: "user",
+						Password: "password",
+					},
+				},
+				Workspace: cloud.WorkspaceConfig{
+					Server:     "0.0.0.0",
+					Datacenter: "us-west",
+					Folder:     "kubernetes",
 				},
 			},
-			Workspace: cloud.WorkspaceConfig{
-				Server:     "0.0.0.0",
-				Datacenter: "us-west",
-				Folder:     "kubernetes",
-			},
 		},
-	},
-	{
-		testName: "SecretName and SecretNamespace",
-		iniString: `
+		{
+			testName: "SecretName and SecretNamespace",
+			iniString: `
 		[Global]
 		secret-name = "vccreds"
 		secret-namespace = "kube-system"
@@ -124,25 +127,25 @@ var twoWayCodecTestCases = []codecTestCase{
 		datacenter = us-west
 		folder = kubernetes
 		`,
-		configObj: cloud.Config{
-			Global: cloud.GlobalConfig{
-				SecretName:      "vccreds",
-				SecretNamespace: "kube-system",
-				Datacenters:     "us-west",
-			},
-			VCenter: map[string]cloud.VCenterConfig{
-				"0.0.0.0": {},
-			},
-			Workspace: cloud.WorkspaceConfig{
-				Server:     "0.0.0.0",
-				Datacenter: "us-west",
-				Folder:     "kubernetes",
+			configObj: cloud.Config{
+				Global: cloud.GlobalConfig{
+					SecretName:      "vccreds",
+					SecretNamespace: "kube-system",
+					Datacenters:     "us-west",
+				},
+				VCenter: map[string]cloud.VCenterConfig{
+					"0.0.0.0": {},
+				},
+				Workspace: cloud.WorkspaceConfig{
+					Server:     "0.0.0.0",
+					Datacenter: "us-west",
+					Folder:     "kubernetes",
+				},
 			},
 		},
-	},
-	{
-		testName: "SecretName and SecretNamespace with Username missing",
-		iniString: `
+		{
+			testName: "SecretName and SecretNamespace with Username missing",
+			iniString: `
 		[Global]
 		port = 443
 		insecure-flag = true
@@ -158,29 +161,29 @@ var twoWayCodecTestCases = []codecTestCase{
 		datacenter = us-west
 		folder = kubernetes
 		`,
-		configObj: cloud.Config{
-			Global: cloud.GlobalConfig{
-				Port:            "443",
-				Insecure:        true,
-				SecretName:      "vccreds",
-				SecretNamespace: "kube-system",
-				Datacenters:     "us-west",
-			},
-			VCenter: map[string]cloud.VCenterConfig{
-				"0.0.0.0": {
-					Password: "password",
+			configObj: cloud.Config{
+				Global: cloud.GlobalConfig{
+					Port:            "443",
+					Insecure:        true,
+					SecretName:      "vccreds",
+					SecretNamespace: "kube-system",
+					Datacenters:     "us-west",
+				},
+				VCenter: map[string]cloud.VCenterConfig{
+					"0.0.0.0": {
+						Password: "password",
+					},
+				},
+				Workspace: cloud.WorkspaceConfig{
+					Server:     "0.0.0.0",
+					Datacenter: "us-west",
+					Folder:     "kubernetes",
 				},
 			},
-			Workspace: cloud.WorkspaceConfig{
-				Server:     "0.0.0.0",
-				Datacenter: "us-west",
-				Folder:     "kubernetes",
-			},
 		},
-	},
-	{
-		testName: "Multiple virtual centers with different thumbprints",
-		iniString: `
+		{
+			testName: "Multiple virtual centers with different thumbprints",
+			iniString: `
 		[Global]
 		user = user
 		password = password
@@ -199,31 +202,31 @@ var twoWayCodecTestCases = []codecTestCase{
 		datacenter = us-west
 		folder = kubernetes
 		`,
-		configObj: cloud.Config{
-			Global: cloud.GlobalConfig{
-				Username:    "user",
-				Password:    "password",
-				Datacenters: "us-west",
-			},
-			VCenter: map[string]cloud.VCenterConfig{
-				"0.0.0.0": {
-					Thumbprint: "thumbprint:0",
+			configObj: cloud.Config{
+				Global: cloud.GlobalConfig{
+					Username:    "user",
+					Password:    "password",
+					Datacenters: "us-west",
 				},
-				"no_thumbprint": {},
-				"1.1.1.1": {
-					Thumbprint: "thumbprint:1",
+				VCenter: map[string]cloud.VCenterConfig{
+					"0.0.0.0": {
+						Thumbprint: "thumbprint:0",
+					},
+					"no_thumbprint": {},
+					"1.1.1.1": {
+						Thumbprint: "thumbprint:1",
+					},
 				},
-			},
-			Workspace: cloud.WorkspaceConfig{
-				Server:     "0.0.0.0",
-				Datacenter: "us-west",
-				Folder:     "kubernetes",
+				Workspace: cloud.WorkspaceConfig{
+					Server:     "0.0.0.0",
+					Datacenter: "us-west",
+					Folder:     "kubernetes",
+				},
 			},
 		},
-	},
-	{
-		testName: "Multiple vCenters using global CA cert",
-		iniString: `
+		{
+			testName: "Multiple vCenters using global CA cert",
+			iniString: `
 		[Global]
 		datacenters = "us-west"
 		secret-name = "vccreds"
@@ -238,30 +241,30 @@ var twoWayCodecTestCases = []codecTestCase{
 		datacenter = us-west
 		folder = kubernetes
 		`,
-		configObj: cloud.Config{
-			Global: cloud.GlobalConfig{
-				Datacenters:     "us-west",
-				SecretName:      "vccreds",
-				SecretNamespace: "kube-system",
-				CAFile:          "/some/path/to/my/trusted/ca.pem",
-			},
-			VCenter: map[string]cloud.VCenterConfig{
-				"0.0.0.0": {},
-				"1.1.1.1": {},
-			},
-			Workspace: cloud.WorkspaceConfig{
-				Server:     "0.0.0.0",
-				Datacenter: "us-west",
-				Folder:     "kubernetes",
+			configObj: cloud.Config{
+				Global: cloud.GlobalConfig{
+					Datacenters:     "us-west",
+					SecretName:      "vccreds",
+					SecretNamespace: "kube-system",
+					CAFile:          "/some/path/to/my/trusted/ca.pem",
+				},
+				VCenter: map[string]cloud.VCenterConfig{
+					"0.0.0.0": {},
+					"1.1.1.1": {},
+				},
+				Workspace: cloud.WorkspaceConfig{
+					Server:     "0.0.0.0",
+					Datacenter: "us-west",
+					Folder:     "kubernetes",
+				},
+				ProviderConfig: cloud.ProviderConfig{
+					Image: "test",
+				},
 			},
 		},
-	},
-}
+	}
 
-func TestMarshalINI(t *testing.T) {
-	g := gomega.NewGomegaWithT(t)
-
-	for _, tc := range twoWayCodecTestCases {
+	for _, tc := range testcases {
 		t.Run(tc.testName, func(t *testing.T) {
 			buf, err := tc.configObj.MarshalINI()
 			if err != nil {
@@ -276,23 +279,8 @@ func TestMarshalINI(t *testing.T) {
 				}
 			}
 
-			var actualConfig cloud.Config
-			if err := actualConfig.UnmarshalINI(
-				buf, tc.unmarshalOptions...); err != nil {
-				if tc.expectedError == nil {
-					g.Expect(err).ShouldNot(
-						gomega.HaveOccurred(),
-						"unexpected error when unmarshalling data")
-				} else {
-					g.Expect(err.Error()).Should(
-						gomega.Equal(tc.expectedError.Error()),
-						"unexpected error when unmarshalling data")
-				}
-			}
-
-			g.Expect(actualConfig).Should(
-				gomega.Equal(tc.configObj),
-				"actual config does not match expected config")
+			g.Expect(string(buf), tc.iniString,
+				"marshalled config does not match")
 		})
 	}
 }
@@ -358,8 +346,227 @@ func TestUnmarshalINI(t *testing.T) {
 		},
 	}
 
+	testcases := []codecTestCase{
+		{
+			testName: "Username and password in global section",
+			iniString: `
+		[Global]
+		user = user
+		password = password
+		datacenters = us-west
+
+		[VirtualCenter "0.0.0.0"]
+
+		[Workspace]
+		server = 0.0.0.0
+		datacenter = us-west
+		folder = kubernetes
+		default-datastore = default
+		`,
+			configObj: cloud.Config{
+				Global: cloud.GlobalConfig{
+					Username:    "user",
+					Password:    "password",
+					Datacenters: "us-west",
+				},
+				VCenter: map[string]cloud.VCenterConfig{
+					"0.0.0.0": {},
+				},
+				Workspace: cloud.WorkspaceConfig{
+					Server:     "0.0.0.0",
+					Datacenter: "us-west",
+					Folder:     "kubernetes",
+					Datastore:  "default",
+				},
+			},
+		},
+		{
+			testName: "Username and password in vCenter section",
+			iniString: `
+		[Global]
+		port = 443
+		insecure-flag = true
+		datacenters = us-west
+
+		[VirtualCenter "0.0.0.0"]
+		user = user
+		password = password
+
+		[Workspace]
+		server = 0.0.0.0
+		datacenter = us-west
+		folder = kubernetes
+		`,
+			configObj: cloud.Config{
+				Global: cloud.GlobalConfig{
+					Port:        "443",
+					Insecure:    true,
+					Datacenters: "us-west",
+				},
+				VCenter: map[string]cloud.VCenterConfig{
+					"0.0.0.0": {
+						Username: "user",
+						Password: "password",
+					},
+				},
+				Workspace: cloud.WorkspaceConfig{
+					Server:     "0.0.0.0",
+					Datacenter: "us-west",
+					Folder:     "kubernetes",
+				},
+			},
+		},
+		{
+			testName: "SecretName and SecretNamespace",
+			iniString: `
+		[Global]
+		secret-name = "vccreds"
+		secret-namespace = "kube-system"
+		datacenters = us-west
+
+		[VirtualCenter "0.0.0.0"]
+
+		[Workspace]
+		server = 0.0.0.0
+		datacenter = us-west
+		folder = kubernetes
+		`,
+			configObj: cloud.Config{
+				Global: cloud.GlobalConfig{
+					SecretName:      "vccreds",
+					SecretNamespace: "kube-system",
+					Datacenters:     "us-west",
+				},
+				VCenter: map[string]cloud.VCenterConfig{
+					"0.0.0.0": {},
+				},
+				Workspace: cloud.WorkspaceConfig{
+					Server:     "0.0.0.0",
+					Datacenter: "us-west",
+					Folder:     "kubernetes",
+				},
+			},
+		},
+		{
+			testName: "SecretName and SecretNamespace with Username missing",
+			iniString: `
+		[Global]
+		port = 443
+		insecure-flag = true
+		datacenters = us-west
+		secret-name = "vccreds"
+		secret-namespace = "kube-system"
+
+		[VirtualCenter "0.0.0.0"]
+		password = password
+
+		[Workspace]
+		server = 0.0.0.0
+		datacenter = us-west
+		folder = kubernetes
+		`,
+			configObj: cloud.Config{
+				Global: cloud.GlobalConfig{
+					Port:            "443",
+					Insecure:        true,
+					SecretName:      "vccreds",
+					SecretNamespace: "kube-system",
+					Datacenters:     "us-west",
+				},
+				VCenter: map[string]cloud.VCenterConfig{
+					"0.0.0.0": {
+						Password: "password",
+					},
+				},
+				Workspace: cloud.WorkspaceConfig{
+					Server:     "0.0.0.0",
+					Datacenter: "us-west",
+					Folder:     "kubernetes",
+				},
+			},
+		},
+		{
+			testName: "Multiple virtual centers with different thumbprints",
+			iniString: `
+		[Global]
+		user = user
+		password = password
+		datacenters = us-west
+
+		[VirtualCenter "0.0.0.0"]
+		thumbprint = thumbprint:0
+
+		[VirtualCenter "no_thumbprint"]
+
+		[VirtualCenter "1.1.1.1"]
+		thumbprint = thumbprint:1
+
+		[Workspace]
+		server = 0.0.0.0
+		datacenter = us-west
+		folder = kubernetes
+		`,
+			configObj: cloud.Config{
+				Global: cloud.GlobalConfig{
+					Username:    "user",
+					Password:    "password",
+					Datacenters: "us-west",
+				},
+				VCenter: map[string]cloud.VCenterConfig{
+					"0.0.0.0": {
+						Thumbprint: "thumbprint:0",
+					},
+					"no_thumbprint": {},
+					"1.1.1.1": {
+						Thumbprint: "thumbprint:1",
+					},
+				},
+				Workspace: cloud.WorkspaceConfig{
+					Server:     "0.0.0.0",
+					Datacenter: "us-west",
+					Folder:     "kubernetes",
+				},
+			},
+		},
+		{
+			testName: "Multiple vCenters using global CA cert",
+			iniString: `
+		[Global]
+		datacenters = "us-west"
+		secret-name = "vccreds"
+		secret-namespace = "kube-system"
+		ca-file = /some/path/to/my/trusted/ca.pem
+
+		[VirtualCenter "0.0.0.0"]
+		[VirtualCenter "1.1.1.1"]
+
+		[Workspace]
+		server = 0.0.0.0
+		datacenter = us-west
+		folder = kubernetes
+		`,
+			configObj: cloud.Config{
+				Global: cloud.GlobalConfig{
+					Datacenters:     "us-west",
+					SecretName:      "vccreds",
+					SecretNamespace: "kube-system",
+					CAFile:          "/some/path/to/my/trusted/ca.pem",
+				},
+				VCenter: map[string]cloud.VCenterConfig{
+					"0.0.0.0": {},
+					"1.1.1.1": {},
+				},
+				Workspace: cloud.WorkspaceConfig{
+					Server:     "0.0.0.0",
+					Datacenter: "us-west",
+					Folder:     "kubernetes",
+				},
+			},
+		},
+	}
+
 	testCases := append(
-		twoWayCodecTestCases,
+		testcases,
 		deprecatedTestCases...,
 	)
 

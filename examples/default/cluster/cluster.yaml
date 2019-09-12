@@ -36,3 +36,5 @@ spec:
       datastore: "${VSPHERE_DATASTORE}"
       resourcePool: "${VSPHERE_RESOURCE_POOL}"
       folder: "${VSPHERE_FOLDER}"
+    providerConfig:
+      image: "gcr.io/cloud-provider-vsphere/cpi/release/manager:v1.0.0"

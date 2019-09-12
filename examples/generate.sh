@@ -24,7 +24,7 @@ cd "${WORKDIR:-$(dirname "${BASH_SOURCE[0]}")/..}"
 BUILDDIR="${BUILDDIR:-.}"
 
 OUT_DIR="${OUT_DIR:-}"
-SRC_DIR="${BUILDDIR}"/examples
+SRC_DIR="${BUILDDIR}"/examples/default
 
 OVERWRITE=
 CLUSTER_NAME="${CLUSTER_NAME:-capv-mgmt-example}"
@@ -38,6 +38,8 @@ CAPV_MANAGER_IMAGE="${CAPV_MANAGER_IMAGE:-gcr.io/cluster-api-provider-vsphere/re
 CABPK_MANAGER_LOG_LEVEL="${CABPK_MANAGER_LOG_LEVEL:-4}"
 CAPI_MANAGER_LOG_LEVEL="${CAPI_MANAGER_LOG_LEVEL:-4}"
 CAPV_MANAGER_LOG_LEVEL="${CAPV_MANAGER_LOG_LEVEL:-4}"
+
+VSPHERE_PRE_67u3_SUPPORT=
 
 usage() {
   cat <<EOF
@@ -57,10 +59,11 @@ FLAGS
   -o    output directory (default ${OUT_DIR})
   -p    capi manager image (default "${CAPI_MANAGER_IMAGE}")
   -P    capi manager log level (default "${CAPI_MANAGER_LOG_LEVEL}")
+  -u    enable support for vSphere versions < 6.7u3
 EOF
 }
 
-while getopts ':b:B:c:dfhi:m:M:o:p:P:' opt; do
+while getopts ':b:B:c:dfhi:m:M:o:p:P:u' opt; do
   case "${opt}" in
   b)
     CABPK_MANAGER_IMAGE="${OPTARG}"
@@ -98,6 +101,9 @@ while getopts ':b:B:c:dfhi:m:M:o:p:P:' opt; do
   P)
     CAPI_MANAGER_LOG_LEVEL="${OPTARG}"
     ;;
+  u)
+    VSPHERE_PRE_67u3_SUPPORT=1
+    ;;
   \?)
     { echo "invalid option: -${OPTARG}"; usage; } 1>&2; exit 1
     ;;
@@ -107,6 +113,12 @@ while getopts ':b:B:c:dfhi:m:M:o:p:P:' opt; do
   esac
 done
 shift $((OPTIND-1))
+
+# set the src dir to examples/pre-67u3 if -u flag is set
+if [ -n "${VSPHERE_PRE_67u3_SUPPORT}" ]; then
+  echo "Detected support for vSphere versions <6.7u3"
+  SRC_DIR="${BUILDDIR}"/examples/pre-67u3
+fi
 
 [ -n "${OUT_DIR}" ] || OUT_DIR="./out/${CLUSTER_NAME}"
 mkdir -p "${OUT_DIR}"
@@ -208,8 +220,9 @@ VSPHERE_B64ENCODED_PASSWORD="$(printf '%s' "${VSPHERE_PASSWORD}" | base64)"
 export VSPHERE_B64ENCODED_USERNAME VSPHERE_B64ENCODED_PASSWORD
 unset VSPHERE_USERNAME VSPHERE_PASSWORD
 
-# Encode the cloud provider configuration.
-CLOUD_CONFIG_B64ENCODED=$(cat <<EOF | { base64 -w0 2>/dev/null || base64; }
+if [ -n "${VSPHERE_PRE_67u3_SUPPORT}" ]; then
+  # Encode the cloud provider configuration.
+  CLOUD_CONFIG_B64ENCODED=$(cat <<EOF | { base64 -w0 2>/dev/null || base64; }
 [Global]
 secret-name = "cloud-provider-vsphere-credentials"
 secret-namespace = "kube-system"
@@ -231,8 +244,9 @@ scsicontrollertype = pvscsi
 [Network]
 public-network = "${VSPHERE_NETWORK}"
 EOF
-)
-export CLOUD_CONFIG_B64ENCODED
+  )
+  export CLOUD_CONFIG_B64ENCODED
+fi
 
 envsubst() {
   python -c 'import os,sys;[sys.stdout.write(os.path.expandvars(l)) for l in sys.stdin]'
@@ -263,7 +277,7 @@ kustomize build "github.com/kubernetes-sigs/cluster-api-bootstrap-provider-kubea
 echo "Generated ${COMPONENTS_KUBEADM_GENERATED_FILE}"
 
 # Generate VSphere Infrastructure Provider components file.
-kustomize build "${SRC_DIR}/../config/default" | envsubst >"${COMPONENTS_VSPHERE_GENERATED_FILE}"
+kustomize build "${SRC_DIR}/../../config/default" | envsubst >"${COMPONENTS_VSPHERE_GENERATED_FILE}"
 echo "Generated ${COMPONENTS_VSPHERE_GENERATED_FILE}"
 
 # Generate a single provider components file.

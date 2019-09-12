@@ -42,6 +42,16 @@ type Config struct {
 	// Labels is the vSphere cloud provider's zone and region configuration.
 	// +optional
 	Labels LabelConfig `gcfg:"Labels,omitempty" json:"labels,omitempty"`
+
+	// ProviderConfig contains extra information used to configure the
+	// vSphere cloud provider.
+	ProviderConfig ProviderConfig `json:"providerConfig,omitempty"`
+}
+
+// ProviderConfig defines any extra information used to configure
+// the vSphere external cloud provider
+type ProviderConfig struct {
+	Image string `json:"image,omitempty"`
 }
 
 // unmarshallableConfig is used to unmarshal the INI data using the gcfg

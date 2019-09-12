@@ -1,0 +1,16 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cabpk-controller-manager
+  namespace: cabpk-system
+spec:
+  template:
+    spec:
+      containers:
+      - name: manager
+        image: ${CABPK_MANAGER_IMAGE}
+        args:
+        - --metrics-addr=127.0.0.1:8080
+        - --logtostderr
+        - --enable-leader-election
+        - --v=${CABPK_MANAGER_LOG_LEVEL}

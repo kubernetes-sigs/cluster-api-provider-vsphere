@@ -1,3 +1,5 @@
+# Intended for use with vSphere >=6.7u3
+---
 apiVersion: cluster.x-k8s.io/v1alpha2
 kind: Machine
 metadata:

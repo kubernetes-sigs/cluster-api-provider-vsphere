@@ -22,10 +22,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-const (
-	cloudProviderImage = "gcr.io/cloud-provider-vsphere/cpi/release/manager:v1.0.0"
-)
-
 // CloudControllerManagerServiceAccount returns the ServiceAccount used for the cloud-controller-manager
 func CloudControllerManagerServiceAccount() *corev1.ServiceAccount {
 	return &corev1.ServiceAccount{
@@ -76,7 +72,7 @@ func CloudControllerManagerConfigMap(cloudConfig string) *corev1.ConfigMap {
 }
 
 // CloudControllerManagerDaemonSet returns the DaemonSet which runs the cloud-controller-manager
-func CloudControllerManagerDaemonSet() *appsv1.DaemonSet {
+func CloudControllerManagerDaemonSet(image string) *appsv1.DaemonSet {
 	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "vsphere-cloud-controller-manager",
@@ -126,7 +122,7 @@ func CloudControllerManagerDaemonSet() *appsv1.DaemonSet {
 					Containers: []corev1.Container{
 						{
 							Name:  "vsphere-cloud-controller-manager",
-							Image: cloudProviderImage,
+							Image: image,
 							Args: []string{
 								"--v=2",
 								"--cloud-provider=vsphere",

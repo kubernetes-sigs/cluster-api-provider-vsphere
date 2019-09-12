@@ -232,6 +232,12 @@ func (r *VSphereClusterReconciler) reconcileAPIEndpoints(ctx *context.ClusterCon
 }
 
 func (r *VSphereClusterReconciler) reconcileCloudProvider(ctx *context.ClusterContext) error {
+	// if the cloud provider image is not specified, then we do nothing
+	providerImage := ctx.VSphereCluster.Spec.CloudProviderConfiguration.ProviderConfig.Image
+	if providerImage == "" {
+		return nil
+	}
+
 	targetClusterClient, err := infrautilv1.NewKubeClient(ctx, ctx.Client, ctx.Cluster)
 	if err != nil {
 		return errors.Wrapf(err,
@@ -254,7 +260,7 @@ func (r *VSphereClusterReconciler) reconcileCloudProvider(ctx *context.ClusterCo
 		return err
 	}
 
-	daemonSet := cloudprovider.CloudControllerManagerDaemonSet()
+	daemonSet := cloudprovider.CloudControllerManagerDaemonSet(providerImage)
 	if _, err := targetClusterClient.AppsV1().DaemonSets(daemonSet.Namespace).Create(daemonSet); err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}

@@ -130,6 +130,13 @@ spec:
                         connected.
                       type: string
                   type: object
+                providerConfig:
+                  description: ProviderConfig contains extra information used to configure
+                    the vSphere cloud provider.
+                  properties:
+                    image:
+                      type: string
+                  type: object
                 virtualCenter:
                   additionalProperties:
                     description: VCenterConfig is a vSphere cloud provider's vCenter

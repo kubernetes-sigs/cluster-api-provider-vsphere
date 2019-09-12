@@ -61,6 +61,12 @@ func GetAPIEndpointForControlPlaneEndpoint(controlPlaneEndpoint string) (*infrav
 
 	// If the control plane endpoint doesn't start with "http" then prefix
 	// it with "http".
+	//
+	// This is because a controlPlaneEndpoint can technically be a properly
+	// formed URL as found in kubeconfig files. This approach ensures a single
+	// method of parsing the controlPlaneEndpoint for its host:port information
+	// can be used. The "http://" prefix is thus used to satisfy the "url.Parse"
+	// function below.
 	if !strings.HasPrefix(controlPlaneEndpoint, "http") {
 		controlPlaneEndpoint = "http://" + controlPlaneEndpoint
 	}

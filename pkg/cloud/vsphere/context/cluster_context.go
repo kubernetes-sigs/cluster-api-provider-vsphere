@@ -19,10 +19,11 @@ package context
 import (
 	"context"
 	"fmt"
-	"os"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
@@ -47,6 +48,8 @@ type ClusterContext struct {
 	VSphereCluster *v1alpha2.VSphereCluster
 	Client         client.Client
 	Logger         logr.Logger
+	Username string // NetApp
+	Password string // NetApp
 
 	vsphereClusterPatch client.Patch
 }
@@ -64,6 +67,12 @@ func NewClusterContext(params *ClusterContextParams) (*ClusterContext, error) {
 	}
 	logr = logr.WithName(params.Cluster.APIVersion).WithName(params.Cluster.Namespace).WithName(params.Cluster.Name)
 
+	// NetApp - get credentials from secret
+	username, password, err := getVSphereCredentials(logr, params.Client, params.Cluster)
+	if err != nil {
+		return nil, errors.Wrapf(err, "could not get vsphere credentials for cluster %s", params.Cluster.Name)
+	}
+
 	return &ClusterContext{
 		Context:             parentContext,
 		Cluster:             params.Cluster,
@@ -71,6 +80,8 @@ func NewClusterContext(params *ClusterContextParams) (*ClusterContext, error) {
 		Client:              params.Client,
 		Logger:              logr,
 		vsphereClusterPatch: client.MergeFrom(params.VSphereCluster.DeepCopyObject()),
+		Username: username, // Netapp
+		Password: password, // NetApp
 	}, nil
 }
 
@@ -119,12 +130,12 @@ func (c *ClusterContext) ClusterName() string {
 
 // User returns the username used to access the vSphere endpoint.
 func (c *ClusterContext) User() string {
-	return os.Getenv("VSPHERE_USERNAME")
+	return c.Username
 }
 
 // Pass returns the password used to access the vSphere endpoint.
 func (c *ClusterContext) Pass() string {
-	return os.Getenv("VSPHERE_PASSWORD")
+	return c.Password
 }
 
 // CanLogin returns a flag indicating whether the cluster config has
@@ -147,4 +158,41 @@ func (c *ClusterContext) Patch() error {
 	}
 
 	return nil
+}
+
+// NetApp
+func getVSphereCredentials(logger logr.Logger, c client.Client, cluster *clusterv1.Cluster) (string, string, error) {
+
+	const credentialSecretNameAnnotationKey = "cluster-api-vsphere-credentials-secret-name"
+	secretName, ok := cluster.Annotations[credentialSecretNameAnnotationKey]
+	if !ok {
+		return "", "", fmt.Errorf("vSphere credential secret name annotation missing")
+	}
+	if secretName == "" {
+		return "", "", fmt.Errorf("vSphere credential secret name missing")
+	}
+
+	secretNamespace := cluster.ObjectMeta.Namespace
+
+	logger.V(4).Info("Fetching vSphere credentials from secret", "secret-namespace", secretNamespace, "secret-name", secretName)
+
+	credentialSecret := &apiv1.Secret{}
+	credentialSecretKey := client.ObjectKey{
+		Namespace: secretNamespace,
+		Name:      secretName,
+	}
+	if err := c.Get(context.TODO(), credentialSecretKey, credentialSecret); err != nil {
+		return "", "", errors.Wrapf(err, "error getting credentials secret %s in namespace %s", secretName, secretNamespace)
+	}
+
+	userBuf, userOk := credentialSecret.Data[constants.VSphereCredentialSecretUserKey]
+	passBuf, passOk := credentialSecret.Data[constants.VSphereCredentialSecretPassKey]
+	if !userOk || !passOk {
+		return "", "", fmt.Errorf("improperly formatted credentials secret %q in namespace %s", secretName, secretNamespace)
+	}
+	username, password := string(userBuf), string(passBuf)
+
+	logger.V(4).Info("Found vSphere credentials in secret", "secret-namespace", secretNamespace, "secret-name", secretName)
+
+	return username, password, nil
 }

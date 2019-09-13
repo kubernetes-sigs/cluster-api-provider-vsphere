@@ -98,6 +98,7 @@ lint: ## Run all the lint targets
 	$(MAKE) lint-go-full
 	$(MAKE) lint-markdown
 	$(MAKE) lint-shell
+	$(MAKE) lint-static
 
 GOLANGCI_LINT_FLAGS ?= --fast=true
 .PHONY: lint-go
@@ -115,6 +116,10 @@ lint-markdown: ## Lint the project's markdown
 .PHONY: lint-shell
 lint-shell: ## Lint the project's shell scripts
 	docker run --rm -t -v "$$(pwd)":/build:ro gcr.io/cluster-api-provider-vsphere/extra/shellcheck
+
+.PHONY: lint-static
+lint-static: ## Static check codebase
+	hack/check-staticcheck.sh
 
 .PHONY: fix
 fix: GOLANGCI_LINT_FLAGS = --fast=false --fix

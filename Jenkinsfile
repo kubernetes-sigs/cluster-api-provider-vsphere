@@ -13,7 +13,7 @@ pipeline {
     APP_NAME   = 'cluster-api-provider-vsphere'
     REPOSITORY = "${ORG}/${APP_NAME}"
     GO111MODULE = 'off'
-    GOPATH = '/home/jenkins/go'
+    GOPATH = "${WORKSPACE}/go"
   }
 
   stages {
@@ -21,7 +21,7 @@ pipeline {
     stage('generate'){
       steps {
         container('golang') {
-          dir('/home/jenkins/go/src/github.com/NetApp/cluster-api-provider-vsphere') {
+          dir("${GOPATH}/src/github.com/NetApp/cluster-api-provider-vsphere") {
             checkout scm
             sh('go generate ./...')
           }

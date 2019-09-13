@@ -193,6 +193,7 @@ spec:
     services:
       cidrBlocks:
       - 100.64.0.0/13
+    serviceDomain: cluster.local            
   infrastructureRef:
     apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
     kind: VSphereCluster

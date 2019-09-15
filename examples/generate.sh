@@ -208,10 +208,10 @@ verify_cpu_mem_dsk VSPHERE_NUM_CPUS 2
 verify_cpu_mem_dsk VSPHERE_MEM_MIB  2048
 verify_cpu_mem_dsk VSPHERE_DISK_GIB 20
 
-# TODO: check if KUBERNETES_VERSION has format "v1.14.4" and
+# TODO: check if KUBERNETES_VERSION has format "v1.15.3" and
 # trim the "v" from the version. Alternatively, have CAPV or CAPI
-# handle both 1.14.4 and v1.14.4
-[[ ${KUBERNETES_VERSION-} =~ ^v?[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+([\+\.\-](.+))?$ ]] || KUBERNETES_VERSION="1.14.4"
+# handle both 1.15.3 and v1.15.3
+[[ ${KUBERNETES_VERSION-} =~ ^v?[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+([\+\.\-](.+))?$ ]] || KUBERNETES_VERSION="1.15.3"
 record_and_export KUBERNETES_VERSION ":-${KUBERNETES_VERSION}"
 
 # Base64 encode the credentials and unset the plain-text values.

@@ -66,9 +66,9 @@ In order for `clusterctl` to bootstrap a management cluster on vSphere, it must 
 
 #### Uploading the CAPV Machine Image
 
-It is required that machines provisioned by CAPV use one of the official CAPV machine images as a VM template. The machine images are retrievable from public URLs. CAPV currently supports machine images based on Ubuntu 18.04 and CentOS 7. A list of published machine images is available [here](../README.md#kubernetes-versions-with-published-ovas). For this guide we'll be deploying Kubernetes v1.13.6 on Ubuntu 18.04 (link to [machine image](https://storage.googleapis.com/capv-images/release/v1.13.6/ubuntu-1804-kube-v1.13.6.ova)).
+It is required that machines provisioned by CAPV use one of the official CAPV machine images as a VM template. The machine images are retrievable from public URLs. CAPV currently supports machine images based on Ubuntu 18.04 and CentOS 7. A list of published machine images is available [here](../README.md#kubernetes-versions-with-published-ovas). For this guide we'll be deploying Kubernetes v1.15.3 on Ubuntu 18.04 (link to [machine image](https://storage.googleapis.com/capv-images/release/v1.15.3/ubuntu-1804-kube-v1.15.3.ova)).
 
-[Create a VM template](https://docs.vmware.com/en/VMware-vSphere/6.7/com.vmware.vsphere.vm_admin.doc/GUID-17BEDA21-43F6-41F4-8FB2-E01D275FE9B4.html) using the OVA URL above. The rest of the guide will assume you named the VM template `ubuntu-1804-kube-v1.13.6`.
+[Create a VM template](https://docs.vmware.com/en/VMware-vSphere/6.7/com.vmware.vsphere.vm_admin.doc/GUID-17BEDA21-43F6-41F4-8FB2-E01D275FE9B4.html) using the OVA URL above. The rest of the guide will assume you named the VM template `ubuntu-1804-kube-v1.15.3`.
 
 ### Generating YAML for the Bootstrap Cluster
 
@@ -97,14 +97,14 @@ export VSPHERE_DATASTORE='DefaultDatastore'         # (required) The vSphere dat
 export VSPHERE_NETWORK='vm-network-1'               # (required) The VM network to deploy the management cluster on
 export VSPHERE_RESOURCE_POOL='Resources'            # (required) The vSphere resource pool for your VMs
 export VSPHERE_FOLDER='vm'                          # (optional) The VM folder for your VMs, defaults to the root vSphere folder if not set.
-export VSPHERE_TEMPLATE='ubuntu-1804-kube-v1.13.6'  # (required) The VM template to use for your management cluster.
+export VSPHERE_TEMPLATE='ubuntu-1804-kube-v1.15.3'  # (required) The VM template to use for your management cluster.
 export VSPHERE_DISK_GIB='50'                        # (optional) The VM Disk size in GB, defaults to 20 if not set
 export VSPHERE_NUM_CPUS='2'                         # (optional) The # of CPUs for control plane nodes in your management cluster, defaults to 2 if not set
 export VSPHERE_MEM_MIB='2048'                       # (optional) The memory (in MiB) for control plane nodes in your management cluster, defaults to 2048 if not set
 export SSH_AUTHORIZED_KEY='ssh-rsa AAAAB3N...'      # (optional) The public ssh authorized key on all machines in this cluster
 
 # Kubernetes configs
-export KUBERNETES_VERSION='1.13.6'        # (optional) The Kubernetes version to use, defaults to 1.13.6
+export KUBERNETES_VERSION='1.15.3'        # (optional) The Kubernetes version to use, defaults to 1.15.3
 export SERVICE_CIDR='100.64.0.0/13'       # (optional) The service CIDR of the management cluster, defaults to "100.64.0.0/13"
 export CLUSTER_CIDR='100.96.0.0/11'       # (optional) The cluster CIDR of the management cluster, defaults to "100.96.0.0/11"
 export SERVICE_DOMAIN='cluster.local'     # (optional) The k8s service domain of the management cluster, defaults to "cluster.local"
@@ -298,7 +298,7 @@ spec:
     kind: VSphereMachine
     name: workload-cluster-1-controlplane-0
     namespace: default
-  version: 1.13.6
+  version: 1.15.3
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: VSphereMachine
@@ -315,7 +315,7 @@ spec:
       dhcp6: false
       networkName: vm-network-1
   numCPUs: 2
-  template: ubuntu-1804-kube-v1.13.6
+  template: ubuntu-1804-kube-v1.15.3
 ```
 
 To add an additional worker node to your cluster, please see the generated machineset file `./out/workload-cluster-1/machinedeployment.yaml`:
@@ -374,7 +374,7 @@ spec:
         kind: VSphereMachineTemplate
         name: workload-cluster-1-md-0
         namespace: default
-      version: 1.13.6
+      version: 1.15.3
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: VSphereMachineTemplate
@@ -392,7 +392,7 @@ spec:
         - dhcp4: true
           networkName: vm-network-1
       numCPUs: 2
-      template: ubuntu-1804-kube-v1.13.6
+      template: ubuntu-1804-kube-v1.15.3
 ```
 
 <!--

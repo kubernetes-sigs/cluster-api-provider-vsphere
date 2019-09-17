@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: capv-controller-manager
+  namespace: capv-system
+spec:
+  template:
+    spec:
+      containers:
+      - name: manager
+        env:
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              key: access-id
+              name: manager-bootstrap-credentials
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              key: secret-id
+              name: manager-bootstrap-credentials

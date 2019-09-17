@@ -35,6 +35,11 @@ CAPI_MANAGER_IMAGE="${CAPI_MANAGER_IMAGE:-us.gcr.io/k8s-artifacts-prod/cluster-a
 CAPV_MANAGER_IMAGE="${CAPV_MANAGER_IMAGE:-gcr.io/cluster-api-provider-vsphere/release/manager:latest}"
 K8S_IMAGE_REPOSITORY="${K8S_IMAGE_REPOSITORY:-k8s.gcr.io}"
 
+KUSTOMIZE_OVERLAY='base'
+AWS_VPC="${AWS_VPC:-}"
+AWS_REGION="${AWS_REGION:-}"
+AWS_SUBNET="${AWS_SUBNET:-}"
+
 # Set the default log levels for the manager containers.
 CABPK_MANAGER_LOG_LEVEL="${CABPK_MANAGER_LOG_LEVEL:-4}"
 CAPI_MANAGER_LOG_LEVEL="${CAPI_MANAGER_LOG_LEVEL:-4}"
@@ -55,6 +60,7 @@ FLAGS
   -f    force overwrite of existing files
   -h    prints this help screen
   -i    input directory (default ${SRC_DIR})
+  -l    enables load balancer 
   -m    capv manager image (default "${CAPV_MANAGER_IMAGE}")
   -M    capv manager log level (default "${CAPV_MANAGER_LOG_LEVEL}")
   -r    kubernetes container image repository (default "${K8S_IMAGE_REPOSITORY}")
@@ -65,7 +71,7 @@ FLAGS
 EOF
 }
 
-while getopts ':b:B:c:dfhi:m:M:r:o:p:P:u' opt; do
+while getopts ':b:B:c:dfhi:lm:M:r:o:p:P:u' opt; do
   case "${opt}" in
   b)
     CABPK_MANAGER_IMAGE="${OPTARG}"
@@ -88,6 +94,9 @@ while getopts ':b:B:c:dfhi:m:M:r:o:p:P:u' opt; do
   i)
     SRC_DIR="${OPTARG}"
     ;;
+  l)
+   KUSTOMIZE_OVERLAY='loadbalancer'
+   ;;
   m)
     CAPV_MANAGER_IMAGE="${OPTARG}"
     ;;
@@ -138,9 +147,10 @@ export CAPI_MANAGER_IMAGE CAPI_MANAGER_LOG_LEVEL
 export CAPV_MANAGER_IMAGE CAPV_MANAGER_LOG_LEVEL
 
 # Outputs
-COMPONENTS_CLUSTER_API_GENERATED_FILE=${SRC_DIR}/provider-components/provider-components-cluster-api.yaml
-COMPONENTS_KUBEADM_GENERATED_FILE=${SRC_DIR}/provider-components/provider-components-kubeadm.yaml
-COMPONENTS_VSPHERE_GENERATED_FILE=${SRC_DIR}/provider-components/provider-components-vsphere.yaml
+COMPONENTS_CLUSTER_API_GENERATED_FILE=${SRC_DIR}/provider-components/base/provider-components-cluster-api.yaml
+COMPONENTS_KUBEADM_GENERATED_FILE=${SRC_DIR}/provider-components/base/provider-components-kubeadm.yaml
+COMPONENTS_VSPHERE_GENERATED_FILE=${SRC_DIR}/provider-components/base/provider-components-vsphere.yaml
+CREDENTIALS_GENERATED_FILE=${SRC_DIR}/provider-components/loadbalancer/credentials
 
 ADDONS_GENERATED_FILE=${OUT_DIR}/addons.yaml
 PROVIDER_COMPONENTS_GENERATED_FILE=${OUT_DIR}/provider-components.yaml
@@ -157,7 +167,7 @@ no_file() {
 }
 
 # Remove the temporary provider components files.
-for f in COMPONENTS_CLUSTER_API COMPONENTS_KUBEADM COMPONENTS_VSPHERE; do \
+for f in CREDENTIALS COMPONENTS_CLUSTER_API COMPONENTS_KUBEADM COMPONENTS_VSPHERE; do \
   eval "rm -f \"\${${f}_GENERATED_FILE}\""
 done
 
@@ -208,6 +218,9 @@ record_and_export SSH_AUTHORIZED_KEY    ":-''"
 # single quote string variables that can start with special characters like "*"
 # otherwise invalid yaml will be generated
 export VSPHERE_RESOURCE_POOL="'${VSPHERE_RESOURCE_POOL}'"
+record_and_export AWS_VPC               ':-'
+record_and_export AWS_SUBNET            ':-'
+record_and_export AWS_REGION            ':-'
 
 verify_cpu_mem_dsk() {
   eval "[[ \${${1}-} =~ [[:digit:]]+ ]] || ${1}=\"${2}\"; \
@@ -267,7 +280,7 @@ envsubst >"${ADDONS_GENERATED_FILE}" <"${SRC_DIR}/addons.yaml"
 echo "Generated ${ADDONS_GENERATED_FILE}"
 
 # Generate cluster resources.
-kustomize build "${SRC_DIR}/cluster" | envsubst >"${CLUSTER_GENERATED_FILE}"
+kustomize build "${SRC_DIR}/cluster/" | envsubst >"${CLUSTER_GENERATED_FILE}"
 echo "Generated ${CLUSTER_GENERATED_FILE}"
 
 # Generate controlplane resources.
@@ -290,11 +303,23 @@ echo "Generated ${COMPONENTS_KUBEADM_GENERATED_FILE}"
 kustomize build "${SRC_DIR}/../../config/default" | envsubst >"${COMPONENTS_VSPHERE_GENERATED_FILE}"
 echo "Generated ${COMPONENTS_VSPHERE_GENERATED_FILE}"
 
+# Generate a loadbalancer
+if [ "$KUSTOMIZE_OVERLAY" == 'loadbalancer' ]
+then
+  envsubst >"${CREDENTIALS_GENERATED_FILE}" <"${SRC_DIR}/provider-components/${KUSTOMIZE_OVERLAY}/credentials.template"
+fi
+
 # Generate a single provider components file.
-kustomize build "${SRC_DIR}/provider-components" | envsubst >"${PROVIDER_COMPONENTS_GENERATED_FILE}"
+kustomize build "${SRC_DIR}/provider-components/${KUSTOMIZE_OVERLAY}" | envsubst >"${PROVIDER_COMPONENTS_GENERATED_FILE}"
 echo "Generated ${PROVIDER_COMPONENTS_GENERATED_FILE}"
 echo "WARNING: ${PROVIDER_COMPONENTS_GENERATED_FILE} includes vSphere credentials"
 
+# Generate a loadbalancer
+if [ "$KUSTOMIZE_OVERLAY" == 'loadbalancer' ]
+then
+  envsubst >>"${PROVIDER_COMPONENTS_GENERATED_FILE}" <"${SRC_DIR}/../loadbalancer.yaml"
+  echo "Generated loadbalancer resource in ${PROVIDER_COMPONENTS_GENERATED_FILE}"
+fi
 # If running in Docker then ensure the contents of the OUT_DIR have the
 # the same owner as the volume mounted to the /out directory.
 [ "${DOCKER_ENABLED-}" ] && chown -R "$(stat -c '%u:%g' /out)" "${OUT_DIR}"

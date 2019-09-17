@@ -1,0 +1,32 @@
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+kind: AWSLoadBalancerConfig
+metadata:
+  name: ${CLUSTER_NAME}
+  namespace: default
+spec:
+  vpcId: "${AWS_VPC}"
+  subnetIds:
+  - "${AWS_SUBNET}"
+  region: "${AWS_REGION}"
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+kind: LoadBalancer
+metadata:
+  name: ${CLUSTER_NAME}
+  namespace: default
+  labels:
+    cluster.x-k8s.io/cluster-name: "${CLUSTER_NAME}"
+spec:
+ selector:
+   cluster.x-k8s.io/control-plane: "true"
+   cluster.x-k8s.io/cluster-name: "${CLUSTER_NAME}"
+ ports:
+ - name: "secure"
+   port: 6443
+ configRef:
+   apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+   kind: ${PROVIDER_KIND}
+   name: ${CLUSTER_NAME}
+   namespace: default
+    

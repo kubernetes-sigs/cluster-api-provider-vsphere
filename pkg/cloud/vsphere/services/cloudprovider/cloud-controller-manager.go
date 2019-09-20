@@ -22,6 +22,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
+// NOTE: the contents of this file are derived from https://github.com/kubernetes/cloud-provider-vsphere/tree/master/manifests/controller-manager
+
 // CloudControllerManagerServiceAccount returns the ServiceAccount used for the cloud-controller-manager
 func CloudControllerManagerServiceAccount() *corev1.ServiceAccount {
 	return &corev1.ServiceAccount{

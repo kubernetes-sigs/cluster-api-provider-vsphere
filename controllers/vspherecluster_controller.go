@@ -161,7 +161,14 @@ func (r *VSphereClusterReconciler) reconcileNormal(ctx *context.ClusterContext) 
 	// Create the external cloud provider addons
 	if err := r.reconcileCloudProvider(ctx); err != nil {
 		return reconcile.Result{}, errors.Wrapf(err,
-			"failed to reconcile cloud cloud provider for VSphereCluster %s/%s",
+			"failed to reconcile cloud provider for VSphereCluster %s/%s",
+			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
+	}
+
+	// Create the vSphere CSI Driver addons
+	if err := r.reconcileCSIDriver(ctx); err != nil {
+		return reconcile.Result{}, errors.Wrapf(err,
+			"failed to reconcile CSI Driver for VSphereCluster %s/%s",
 			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
 	}
 
@@ -307,6 +314,47 @@ func (r *VSphereClusterReconciler) reconcileCloudProvider(ctx *context.ClusterCo
 
 	roleBinding := cloudprovider.CloudControllerManagerRoleBinding()
 	if _, err := targetClusterClient.RbacV1().RoleBindings(roleBinding.Namespace).Create(roleBinding); err != nil && !apierrors.IsAlreadyExists(err) {
+		return err
+	}
+
+	return nil
+}
+
+func (r *VSphereClusterReconciler) reconcileCSIDriver(ctx *context.ClusterContext) error {
+	targetClusterClient, err := infrautilv1.NewKubeClient(ctx, ctx.Client, ctx.Cluster)
+	if err != nil {
+		return errors.Wrapf(err,
+			"failed to get client for Cluster %s/%s",
+			ctx.Cluster.Namespace, ctx.Cluster.Name)
+	}
+
+	serviceAccount := cloudprovider.CSIControllerServiceAccount()
+	if _, err := targetClusterClient.CoreV1().ServiceAccounts(serviceAccount.Namespace).Create(serviceAccount); err != nil && !apierrors.IsAlreadyExists(err) {
+		return err
+	}
+
+	clusterRole := cloudprovider.CSIControllerClusterRole()
+	if _, err := targetClusterClient.RbacV1().ClusterRoles().Create(clusterRole); err != nil && !apierrors.IsAlreadyExists(err) {
+		return err
+	}
+
+	clusterRoleBinding := cloudprovider.CSIControllerClusterRoleBinding()
+	if _, err := targetClusterClient.RbacV1().ClusterRoleBindings().Create(clusterRoleBinding); err != nil && !apierrors.IsAlreadyExists(err) {
+		return err
+	}
+
+	csiDriver := cloudprovider.CSIDriver()
+	if _, err := targetClusterClient.StorageV1beta1().CSIDrivers().Create(csiDriver); err != nil && !apierrors.IsAlreadyExists(err) {
+		return err
+	}
+
+	daemonSet := cloudprovider.VSphereCSINodeDaemonSet()
+	if _, err := targetClusterClient.AppsV1().DaemonSets(daemonSet.Namespace).Create(daemonSet); err != nil && !apierrors.IsAlreadyExists(err) {
+		return err
+	}
+
+	statefulSet := cloudprovider.CSIControllerStatefulSet()
+	if _, err := targetClusterClient.AppsV1().StatefulSets(statefulSet.Namespace).Create(statefulSet); err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}
 

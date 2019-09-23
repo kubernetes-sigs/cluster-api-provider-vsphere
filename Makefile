@@ -200,7 +200,6 @@ clean-examples: ## Remove all the temporary files generated in the examples fold
 
 .PHONY: verify
 verify: ## Runs all the verify targets
-	$(MAKE) verify-install
 	$(MAKE) verify-boilerplate
 	$(MAKE) verify-crds
 
@@ -211,10 +210,6 @@ verify-boilerplate: ## Verifies all sources have appropriate boilerplate
 .PHONY: verify-crds
 verify-crds: ## Verifies the committed CRDs are up-to-date
 	./hack/verify-crds.sh
-
-.PHONY: verify-install
-verify-install: ## Checks that you've installed this repository correctly
-	./hack/verify-install.sh
 
 ## --------------------------------------
 ## Check

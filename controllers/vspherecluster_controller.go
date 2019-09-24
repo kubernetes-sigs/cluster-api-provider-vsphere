@@ -343,6 +343,18 @@ func (r *VSphereClusterReconciler) reconcileCSIDriver(ctx *context.ClusterContex
 		return err
 	}
 
+	// we have to marshal a separate INI file for CSI since it does not
+	// support Secrets for vCenter credentials yet.
+	cloudConfig, err := cloudprovider.ConfigForCSI(ctx).MarshalINI()
+	if err != nil {
+		return err
+	}
+
+	cloudConfigSecret := cloudprovider.CSICloudConfigSecret(string(cloudConfig))
+	if _, err := targetClusterClient.CoreV1().Secrets(cloudConfigSecret.Namespace).Create(cloudConfigSecret); err != nil && !apierrors.IsAlreadyExists(err) {
+		return err
+	}
+
 	csiDriver := cloudprovider.CSIDriver()
 	if _, err := targetClusterClient.StorageV1beta1().CSIDrivers().Create(csiDriver); err != nil && !apierrors.IsAlreadyExists(err) {
 		return err

@@ -19,6 +19,8 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	storagev1beta1 "k8s.io/api/storage/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2/cloud"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
 )
 
 // NOTE: the contents of this file are derived from https://github.com/kubernetes-sigs/vsphere-csi-driver/tree/master/manifests/1.14
@@ -160,17 +162,21 @@ func VSphereCSINodeDaemonSet() *appsv1.DaemonSet {
 					HostNetwork: true,
 					Containers: []corev1.Container{
 						NodeDriverRegistrarContainer(),
-						VSphereCSINodeContainer(),
+						VSphereCSINodeContainer(cnsConfig.NodeImage),
 						LivenessProbeForNodeContainer(),
+					},
+					Tolerations: []corev1.Toleration{
+						{
+							Key:    "node-role.kubernetes.io/master",
+							Effect: corev1.TaintEffectNoSchedule,
+						},
 					},
 					Volumes: []corev1.Volume{
 						{
 							Name: "vsphere-config-volume",
 							VolumeSource: corev1.VolumeSource{
-								ConfigMap: &corev1.ConfigMapVolumeSource{
-									LocalObjectReference: corev1.LocalObjectReference{
-										Name: "vsphere-cloud-config",
-									},
+								Secret: &corev1.SecretVolumeSource{
+									SecretName: "csi-vsphere-config",
 								},
 							},
 						},
@@ -187,7 +193,7 @@ func VSphereCSINodeDaemonSet() *appsv1.DaemonSet {
 							Name: "plugin-dir",
 							VolumeSource: corev1.VolumeSource{
 								HostPath: &corev1.HostPathVolumeSource{
-									Path: " /var/lib/kubelet/plugins_registry/csi.vsphere.vmware.com",
+									Path: "/var/lib/kubelet/plugins_registry/csi.vsphere.vmware.com",
 									Type: newHostPathType(string(corev1.HostPathDirectoryOrCreate)),
 								},
 							},
@@ -282,7 +288,7 @@ func VSphereCSINodeContainer() corev1.Container {
 			},
 			{
 				Name:  "X_CSI_VSPHERE_CLOUD_CONFIG",
-				Value: "/etc/cloud/vsphere.conf",
+				Value: "/etc/cloud/csi-vsphere.conf",
 			},
 		},
 		Args: []string{"--v=4"},
@@ -384,10 +390,8 @@ func CSIControllerStatefulSet() *appsv1.StatefulSet {
 						{
 							Name: "vsphere-config-volume",
 							VolumeSource: corev1.VolumeSource{
-								ConfigMap: &corev1.ConfigMapVolumeSource{
-									LocalObjectReference: corev1.LocalObjectReference{
-										Name: "vsphere-cloud-config",
-									},
+								Secret: &corev1.SecretVolumeSource{
+									SecretName: "csi-vsphere-config",
 								},
 							},
 						},
@@ -451,7 +455,7 @@ func VSphereCSIControllerContainer() corev1.Container {
 			},
 			{
 				Name:  "X_CSI_VSPHERE_CLOUD_CONFIG",
-				Value: "/etc/cloud/vsphere.conf",
+				Value: "/etc/cloud/csi-vsphere.conf",
 			},
 		},
 		VolumeMounts: []corev1.VolumeMount{
@@ -501,7 +505,7 @@ func VSphereSyncerContainer() corev1.Container {
 			},
 			{
 				Name:  "X_CSI_VSPHERE_CLOUD_CONFIG",
-				Value: "/etc/cloud/vsphere.conf",
+				Value: "/etc/cloud/csi-vsphere.conf",
 			},
 		},
 		VolumeMounts: []corev1.VolumeMount{
@@ -538,6 +542,39 @@ func CSIProvisionerContainer() corev1.Container {
 			},
 		},
 	}
+}
+
+func CSICloudConfigSecret(data string) *corev1.Secret {
+	return &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "csi-vsphere-config",
+			Namespace: "kube-system",
+		},
+		Type: corev1.SecretTypeOpaque,
+		StringData: map[string]string{
+			"csi-vsphere.conf": data,
+		},
+	}
+}
+
+// ConfigForCSI returns a cloud.Config specific to the vSphere CSI driver until
+// it supports using Secrets for vCenter credentials
+func ConfigForCSI(ctx *context.ClusterContext) *cloud.Config {
+	config := &cloud.Config{}
+
+	config.Global.Insecure = false
+	config.Network.Name = ctx.VSphereCluster.Spec.CloudProviderConfiguration.Network.Name
+
+	config.VCenter = map[string]cloud.VCenterConfig{}
+	for name, vcenter := range ctx.VSphereCluster.Spec.CloudProviderConfiguration.VCenter {
+		config.VCenter[name] = cloud.VCenterConfig{
+			Username:    ctx.User(),
+			Password:    ctx.Pass(),
+			Datacenters: vcenter.Datacenters,
+		}
+	}
+
+	return config
 }
 
 func boolPtr(b bool) *bool {

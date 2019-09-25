@@ -136,7 +136,7 @@ func CSIDriver() *storagev1beta1.CSIDriver {
 	}
 }
 
-func VSphereCSINodeDaemonSet(cnsConfig cloud.CNSConfig) *appsv1.DaemonSet {
+func VSphereCSINodeDaemonSet(storageConfig cloud.StorageConfig) *appsv1.DaemonSet {
 	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "vsphere-csi-node",
@@ -162,7 +162,7 @@ func VSphereCSINodeDaemonSet(cnsConfig cloud.CNSConfig) *appsv1.DaemonSet {
 					HostNetwork: true,
 					Containers: []corev1.Container{
 						NodeDriverRegistrarContainer(),
-						VSphereCSINodeContainer(cnsConfig.NodeDriverImage),
+						VSphereCSINodeContainer(storageConfig.NodeDriverImage),
 						LivenessProbeForNodeContainer(),
 					},
 					Tolerations: []corev1.Toleration{
@@ -341,7 +341,7 @@ func LivenessProbeForNodeContainer() corev1.Container {
 	}
 }
 
-func CSIControllerStatefulSet(cnsConfig cloud.CNSConfig) *appsv1.StatefulSet {
+func CSIControllerStatefulSet(storageConfig cloud.StorageConfig) *appsv1.StatefulSet {
 	return &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "vsphere-csi-controller",
@@ -380,11 +380,11 @@ func CSIControllerStatefulSet(cnsConfig cloud.CNSConfig) *appsv1.StatefulSet {
 					},
 					HostNetwork: true,
 					Containers: []corev1.Container{
-						CSIAttacherContainer(cnsConfig.AttacherImage),
-						VSphereCSIControllerContainer(cnsConfig.ControllerImage),
+						CSIAttacherContainer(storageConfig.AttacherImage),
+						VSphereCSIControllerContainer(storageConfig.ControllerImage),
 						LivenessProbeForCSIControllerContainer(),
-						VSphereSyncerContainer(cnsConfig.MetadataSyncerImage),
-						CSIProvisionerContainer(cnsConfig.ProvisionerImage),
+						VSphereSyncerContainer(storageConfig.MetadataSyncerImage),
+						CSIProvisionerContainer(storageConfig.ProvisionerImage),
 					},
 					Volumes: []corev1.Volume{
 						{

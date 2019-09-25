@@ -134,12 +134,12 @@ spec:
                   description: ProviderConfig contains extra information used to configure
                     the vSphere cloud provider.
                   properties:
-                    ccmConfig:
+                    cloud:
                       properties:
-                        image:
+                        controllerImage:
                           type: string
                       type: object
-                    cnsConfig:
+                    storage:
                       properties:
                         attacherImage:
                           type: string

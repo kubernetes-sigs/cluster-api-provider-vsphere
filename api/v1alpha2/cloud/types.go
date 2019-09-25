@@ -51,15 +51,15 @@ type Config struct {
 // ProviderConfig defines any extra information used to configure
 // the vSphere external cloud provider
 type ProviderConfig struct {
-	CCM CCMConfig `json:"ccmConfig,omitempty"`
-	CNS CNSConfig `json:"cnsConfig,omitempty"`
+	Cloud   CloudConfig   `json:"cloud,omitempty"`
+	Storage StorageConfig `json:"storage,omitempty"`
 }
 
-type CCMConfig struct {
-	Image string `json:"image,omitempty"`
+type CloudConfig struct {
+	ControllerImage string `json:"controllerImage,omitempty"`
 }
 
-type CNSConfig struct {
+type StorageConfig struct {
 	ControllerImage     string `json:"controllerImage,omitempty"`
 	NodeDriverImage     string `json:"nodeDriverImage,omitempty"`
 	AttacherImage       string `json:"attacherImage,omitempty"`

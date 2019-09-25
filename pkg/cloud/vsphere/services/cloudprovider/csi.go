@@ -136,7 +136,7 @@ func CSIDriver() *storagev1beta1.CSIDriver {
 	}
 }
 
-func VSphereCSINodeDaemonSet() *appsv1.DaemonSet {
+func VSphereCSINodeDaemonSet(cnsConfig cloud.CNSConfig) *appsv1.DaemonSet {
 	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "vsphere-csi-node",
@@ -162,7 +162,7 @@ func VSphereCSINodeDaemonSet() *appsv1.DaemonSet {
 					HostNetwork: true,
 					Containers: []corev1.Container{
 						NodeDriverRegistrarContainer(),
-						VSphereCSINodeContainer(cnsConfig.NodeImage),
+						VSphereCSINodeContainer(cnsConfig.NodeDriverImage),
 						LivenessProbeForNodeContainer(),
 					},
 					Tolerations: []corev1.Toleration{
@@ -268,10 +268,10 @@ func NodeDriverRegistrarContainer() corev1.Container {
 	}
 }
 
-func VSphereCSINodeContainer() corev1.Container {
+func VSphereCSINodeContainer(image string) corev1.Container {
 	return corev1.Container{
 		Name:            "vsphere-csi-node",
-		Image:           "cloudnativestorage/vsphere-block-csi-driver:latest",
+		Image:           image,
 		ImagePullPolicy: corev1.PullAlways,
 		Env: []corev1.EnvVar{
 			{
@@ -341,7 +341,7 @@ func LivenessProbeForNodeContainer() corev1.Container {
 	}
 }
 
-func CSIControllerStatefulSet() *appsv1.StatefulSet {
+func CSIControllerStatefulSet(cnsConfig cloud.CNSConfig) *appsv1.StatefulSet {
 	return &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "vsphere-csi-controller",
@@ -380,11 +380,11 @@ func CSIControllerStatefulSet() *appsv1.StatefulSet {
 					},
 					HostNetwork: true,
 					Containers: []corev1.Container{
-						CSIAttacherContainer(),
-						VSphereCSIControllerContainer(),
+						CSIAttacherContainer(cnsConfig.AttacherImage),
+						VSphereCSIControllerContainer(cnsConfig.ControllerImage),
 						LivenessProbeForCSIControllerContainer(),
-						VSphereSyncerContainer(),
-						CSIProvisionerContainer(),
+						VSphereSyncerContainer(cnsConfig.MetadataSyncerImage),
+						CSIProvisionerContainer(cnsConfig.ProvisionerImage),
 					},
 					Volumes: []corev1.Volume{
 						{
@@ -411,10 +411,10 @@ func CSIControllerStatefulSet() *appsv1.StatefulSet {
 	}
 }
 
-func CSIAttacherContainer() corev1.Container {
+func CSIAttacherContainer(image string) corev1.Container {
 	return corev1.Container{
 		Name:  "csi-attacher",
-		Image: "quay.io/k8scsi/csi-attacher:v1.1.1",
+		Image: image,
 		Args:  []string{"--v=4", "--timeout=60s", "--csi-address=$(ADDRESS)"},
 		Env: []corev1.EnvVar{
 			{
@@ -431,10 +431,10 @@ func CSIAttacherContainer() corev1.Container {
 	}
 }
 
-func VSphereCSIControllerContainer() corev1.Container {
+func VSphereCSIControllerContainer(image string) corev1.Container {
 	return corev1.Container{
 		Name:  "vsphere-csi-controller",
-		Image: "cloudnativestorage/vsphere-block-csi-driver:latest",
+		Image: image,
 		Lifecycle: &corev1.Lifecycle{
 			PreStop: &corev1.Handler{
 				Exec: &corev1.ExecAction{
@@ -492,10 +492,10 @@ func LivenessProbeForCSIControllerContainer() corev1.Container {
 	}
 }
 
-func VSphereSyncerContainer() corev1.Container {
+func VSphereSyncerContainer(image string) corev1.Container {
 	return corev1.Container{
 		Name:            "vsphere-syncer",
-		Image:           "cloudnativestorage/volume-metadata-syncer:latest",
+		Image:           image,
 		Args:            []string{"--v=4"},
 		ImagePullPolicy: corev1.PullAlways,
 		Env: []corev1.EnvVar{
@@ -518,10 +518,10 @@ func VSphereSyncerContainer() corev1.Container {
 	}
 }
 
-func CSIProvisionerContainer() corev1.Container {
+func CSIProvisionerContainer(image string) corev1.Container {
 	return corev1.Container{
 		Name:  "csi-provisioner",
-		Image: "quay.io/k8scsi/csi-provisioner:v1.2.1",
+		Image: image,
 		Args: []string{
 			"--v=4",
 			"--timeout=60s",

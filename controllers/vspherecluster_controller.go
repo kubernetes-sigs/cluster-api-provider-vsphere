@@ -265,7 +265,7 @@ func (r *VSphereClusterReconciler) reconcileAPIEndpoints(ctx *context.ClusterCon
 
 func (r *VSphereClusterReconciler) reconcileCloudProvider(ctx *context.ClusterContext) error {
 	// if the cloud provider image is not specified, then we do nothing
-	providerImage := ctx.VSphereCluster.Spec.CloudProviderConfiguration.ProviderConfig.Image
+	providerImage := ctx.VSphereCluster.Spec.CloudProviderConfiguration.ProviderConfig.CCM.Image
 	if providerImage == "" {
 		return nil
 	}
@@ -360,12 +360,12 @@ func (r *VSphereClusterReconciler) reconcileCSIDriver(ctx *context.ClusterContex
 		return err
 	}
 
-	daemonSet := cloudprovider.VSphereCSINodeDaemonSet()
+	daemonSet := cloudprovider.VSphereCSINodeDaemonSet(ctx.VSphereCluster.Spec.CloudProviderConfiguration.ProviderConfig.CNS)
 	if _, err := targetClusterClient.AppsV1().DaemonSets(daemonSet.Namespace).Create(daemonSet); err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}
 
-	statefulSet := cloudprovider.CSIControllerStatefulSet()
+	statefulSet := cloudprovider.CSIControllerStatefulSet(ctx.VSphereCluster.Spec.CloudProviderConfiguration.ProviderConfig.CNS)
 	if _, err := targetClusterClient.AppsV1().StatefulSets(statefulSet.Namespace).Create(statefulSet); err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}

@@ -51,7 +51,20 @@ type Config struct {
 // ProviderConfig defines any extra information used to configure
 // the vSphere external cloud provider
 type ProviderConfig struct {
+	CCM CCMConfig `json:"ccmConfig,omitempty"`
+	CNS CNSConfig `json:"cnsConfig,omitempty"`
+}
+
+type CCMConfig struct {
 	Image string `json:"image,omitempty"`
+}
+
+type CNSConfig struct {
+	ControllerImage     string `json:"controllerImage,omitempty"`
+	NodeDriverImage     string `json:"nodeDriverImage,omitempty"`
+	AttacherImage       string `json:"attacherImage,omitempty"`
+	ProvisionerImage    string `json:"provisionerImage,omitempty"`
+	MetadataSyncerImage string `json:"metadataSyncerImage,omitempty"`
 }
 
 // unmarshallableConfig is used to unmarshal the INI data using the gcfg

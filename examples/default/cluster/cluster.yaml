@@ -38,4 +38,11 @@ spec:
       resourcePool: "${VSPHERE_RESOURCE_POOL}"
       folder: "${VSPHERE_FOLDER}"
     providerConfig:
-      image: "gcr.io/cloud-provider-vsphere/cpi/release/manager:v1.0.0"
+      ccmConfig:
+        image: "gcr.io/cloud-provider-vsphere/cpi/release/manager:v1.0.0"
+      cnsConfig:
+        controllerImage: "cloudnativestorage/vsphere-block-csi-driver:latest"
+        nodeDriverImage: "cloudnativestorage/vsphere-block-csi-driver:latest"
+        attacherImage: "quay.io/k8scsi/csi-attacher:v1.1.1"
+        provisionerImage: "quay.io/k8scsi/csi-provisioner:v1.2.1"
+        metadataSyncerImage: "cloudnativestorage/volume-metadata-syncer:latest"

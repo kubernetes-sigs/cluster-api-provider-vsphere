@@ -258,7 +258,9 @@ func TestMarshalINI(t *testing.T) {
 					Folder:     "kubernetes",
 				},
 				ProviderConfig: cloud.ProviderConfig{
-					Image: "test",
+					CCM: cloud.CCMConfig{
+						Image: "test",
+					},
 				},
 			},
 		},

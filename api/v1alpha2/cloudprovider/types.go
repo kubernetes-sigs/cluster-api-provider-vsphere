@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package cloud contains API types for the vSphere cloud provider.
-package cloud
+// Package cloudprovider contains API types for the vSphere cloud provider.
+package cloudprovider
 
 // Config is the vSphere cloud provider's configuration.
 type Config struct {

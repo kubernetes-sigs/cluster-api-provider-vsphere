@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package cloud contains API types for the vSphere cloud provider.
+// Package cloudprovider contains API types for the vSphere cloud provider.
 //
 // The configuration may be unmarshalled from an INI-style configuration using
 // the "gopkg.in/gcfg.v1" package.
@@ -26,4 +26,4 @@ limitations under the License.
 // support reflecting a struct with a field of type "map[string]TYPE" to INI.
 //
 // +kubebuilder:object:generate=true
-package cloud
+package cloudprovider

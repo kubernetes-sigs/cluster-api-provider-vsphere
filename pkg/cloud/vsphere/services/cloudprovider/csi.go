@@ -19,7 +19,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	storagev1beta1 "k8s.io/api/storage/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2/cloud"
+	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2/cloudprovider"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
 )
 
@@ -136,7 +136,7 @@ func CSIDriver() *storagev1beta1.CSIDriver {
 	}
 }
 
-func VSphereCSINodeDaemonSet(storageConfig cloud.StorageConfig) *appsv1.DaemonSet {
+func VSphereCSINodeDaemonSet(storageConfig cloudprovider.StorageConfig) *appsv1.DaemonSet {
 	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "vsphere-csi-node",
@@ -341,7 +341,7 @@ func LivenessProbeForNodeContainer() corev1.Container {
 	}
 }
 
-func CSIControllerStatefulSet(storageConfig cloud.StorageConfig) *appsv1.StatefulSet {
+func CSIControllerStatefulSet(storageConfig cloudprovider.StorageConfig) *appsv1.StatefulSet {
 	return &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "vsphere-csi-controller",
@@ -557,17 +557,17 @@ func CSICloudConfigSecret(data string) *corev1.Secret {
 	}
 }
 
-// ConfigForCSI returns a cloud.Config specific to the vSphere CSI driver until
+// ConfigForCSI returns a cloudprovider.Config specific to the vSphere CSI driver until
 // it supports using Secrets for vCenter credentials
-func ConfigForCSI(ctx *context.ClusterContext) *cloud.Config {
-	config := &cloud.Config{}
+func ConfigForCSI(ctx *context.ClusterContext) *cloudprovider.Config {
+	config := &cloudprovider.Config{}
 
 	config.Global.Insecure = false
 	config.Network.Name = ctx.VSphereCluster.Spec.CloudProviderConfiguration.Network.Name
 
-	config.VCenter = map[string]cloud.VCenterConfig{}
+	config.VCenter = map[string]cloudprovider.VCenterConfig{}
 	for name, vcenter := range ctx.VSphereCluster.Spec.CloudProviderConfiguration.VCenter {
-		config.VCenter[name] = cloud.VCenterConfig{
+		config.VCenter[name] = cloudprovider.VCenterConfig{
 			Username:    ctx.User(),
 			Password:    ctx.Pass(),
 			Datacenters: vcenter.Datacenters,

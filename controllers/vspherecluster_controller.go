@@ -161,7 +161,14 @@ func (r *VSphereClusterReconciler) reconcileNormal(ctx *context.ClusterContext) 
 	// Create the external cloud provider addons
 	if err := r.reconcileCloudProvider(ctx); err != nil {
 		return reconcile.Result{}, errors.Wrapf(err,
-			"failed to reconcile cloud cloud provider for VSphereCluster %s/%s",
+			"failed to reconcile cloud provider for VSphereCluster %s/%s",
+			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
+	}
+
+	// Create the vSphere CSI Driver addons
+	if err := r.reconcileStorageProvider(ctx); err != nil {
+		return reconcile.Result{}, errors.Wrapf(err,
+			"failed to reconcile CSI Driver for VSphereCluster %s/%s",
 			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
 	}
 
@@ -258,8 +265,8 @@ func (r *VSphereClusterReconciler) reconcileAPIEndpoints(ctx *context.ClusterCon
 
 func (r *VSphereClusterReconciler) reconcileCloudProvider(ctx *context.ClusterContext) error {
 	// if the cloud provider image is not specified, then we do nothing
-	providerImage := ctx.VSphereCluster.Spec.CloudProviderConfiguration.ProviderConfig.Image
-	if providerImage == "" {
+	controllerImage := ctx.VSphereCluster.Spec.CloudProviderConfiguration.ProviderConfig.Cloud.ControllerImage
+	if controllerImage == "" {
 		return nil
 	}
 
@@ -285,7 +292,7 @@ func (r *VSphereClusterReconciler) reconcileCloudProvider(ctx *context.ClusterCo
 		return err
 	}
 
-	daemonSet := cloudprovider.CloudControllerManagerDaemonSet(providerImage)
+	daemonSet := cloudprovider.CloudControllerManagerDaemonSet(controllerImage)
 	if _, err := targetClusterClient.AppsV1().DaemonSets(daemonSet.Namespace).Create(daemonSet); err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}
@@ -307,6 +314,59 @@ func (r *VSphereClusterReconciler) reconcileCloudProvider(ctx *context.ClusterCo
 
 	roleBinding := cloudprovider.CloudControllerManagerRoleBinding()
 	if _, err := targetClusterClient.RbacV1().RoleBindings(roleBinding.Namespace).Create(roleBinding); err != nil && !apierrors.IsAlreadyExists(err) {
+		return err
+	}
+
+	return nil
+}
+
+func (r *VSphereClusterReconciler) reconcileStorageProvider(ctx *context.ClusterContext) error {
+	targetClusterClient, err := infrautilv1.NewKubeClient(ctx, ctx.Client, ctx.Cluster)
+	if err != nil {
+		return errors.Wrapf(err,
+			"failed to get client for Cluster %s/%s",
+			ctx.Cluster.Namespace, ctx.Cluster.Name)
+	}
+
+	serviceAccount := cloudprovider.CSIControllerServiceAccount()
+	if _, err := targetClusterClient.CoreV1().ServiceAccounts(serviceAccount.Namespace).Create(serviceAccount); err != nil && !apierrors.IsAlreadyExists(err) {
+		return err
+	}
+
+	clusterRole := cloudprovider.CSIControllerClusterRole()
+	if _, err := targetClusterClient.RbacV1().ClusterRoles().Create(clusterRole); err != nil && !apierrors.IsAlreadyExists(err) {
+		return err
+	}
+
+	clusterRoleBinding := cloudprovider.CSIControllerClusterRoleBinding()
+	if _, err := targetClusterClient.RbacV1().ClusterRoleBindings().Create(clusterRoleBinding); err != nil && !apierrors.IsAlreadyExists(err) {
+		return err
+	}
+
+	// we have to marshal a separate INI file for CSI since it does not
+	// support Secrets for vCenter credentials yet.
+	cloudConfig, err := cloudprovider.ConfigForCSI(ctx).MarshalINI()
+	if err != nil {
+		return err
+	}
+
+	cloudConfigSecret := cloudprovider.CSICloudConfigSecret(string(cloudConfig))
+	if _, err := targetClusterClient.CoreV1().Secrets(cloudConfigSecret.Namespace).Create(cloudConfigSecret); err != nil && !apierrors.IsAlreadyExists(err) {
+		return err
+	}
+
+	csiDriver := cloudprovider.CSIDriver()
+	if _, err := targetClusterClient.StorageV1beta1().CSIDrivers().Create(csiDriver); err != nil && !apierrors.IsAlreadyExists(err) {
+		return err
+	}
+
+	daemonSet := cloudprovider.VSphereCSINodeDaemonSet(ctx.VSphereCluster.Spec.CloudProviderConfiguration.ProviderConfig.Storage)
+	if _, err := targetClusterClient.AppsV1().DaemonSets(daemonSet.Namespace).Create(daemonSet); err != nil && !apierrors.IsAlreadyExists(err) {
+		return err
+	}
+
+	statefulSet := cloudprovider.CSIControllerStatefulSet(ctx.VSphereCluster.Spec.CloudProviderConfiguration.ProviderConfig.Storage)
+	if _, err := targetClusterClient.AppsV1().StatefulSets(statefulSet.Namespace).Create(statefulSet); err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}
 

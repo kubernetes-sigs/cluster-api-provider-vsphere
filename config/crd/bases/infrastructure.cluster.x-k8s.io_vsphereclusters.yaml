@@ -134,8 +134,24 @@ spec:
                   description: ProviderConfig contains extra information used to configure
                     the vSphere cloud provider.
                   properties:
-                    image:
-                      type: string
+                    cloud:
+                      properties:
+                        controllerImage:
+                          type: string
+                      type: object
+                    storage:
+                      properties:
+                        attacherImage:
+                          type: string
+                        controllerImage:
+                          type: string
+                        metadataSyncerImage:
+                          type: string
+                        nodeDriverImage:
+                          type: string
+                        provisionerImage:
+                          type: string
+                      type: object
                   type: object
                 virtualCenter:
                   additionalProperties:

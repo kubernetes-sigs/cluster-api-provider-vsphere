@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package cloud contains API types for the vSphere cloud provider.
-package cloud
+// Package cloudprovider contains API types for the vSphere cloud provider.
+package cloudprovider
 
 // Config is the vSphere cloud provider's configuration.
 type Config struct {
@@ -51,7 +51,20 @@ type Config struct {
 // ProviderConfig defines any extra information used to configure
 // the vSphere external cloud provider
 type ProviderConfig struct {
-	Image string `json:"image,omitempty"`
+	Cloud   CloudConfig   `json:"cloud,omitempty"`
+	Storage StorageConfig `json:"storage,omitempty"`
+}
+
+type CloudConfig struct {
+	ControllerImage string `json:"controllerImage,omitempty"`
+}
+
+type StorageConfig struct {
+	ControllerImage     string `json:"controllerImage,omitempty"`
+	NodeDriverImage     string `json:"nodeDriverImage,omitempty"`
+	AttacherImage       string `json:"attacherImage,omitempty"`
+	ProvisionerImage    string `json:"provisionerImage,omitempty"`
+	MetadataSyncerImage string `json:"metadataSyncerImage,omitempty"`
 }
 
 // unmarshallableConfig is used to unmarshal the INI data using the gcfg

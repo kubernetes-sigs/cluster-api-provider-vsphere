@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cloud_test
+package cloudprovider_test
 
 import (
 	"testing"
@@ -22,10 +22,10 @@ import (
 	"github.com/onsi/gomega"
 	"github.com/pkg/errors"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2/cloud"
+	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2/cloudprovider"
 )
 
-var unmarshalWarnAsFatal = []cloud.UnmarshalINIOptionFunc{cloud.WarnAsFatal}
+var unmarshalWarnAsFatal = []cloudprovider.UnmarshalINIOptionFunc{cloudprovider.WarnAsFatal}
 
 func errDeprecated(section, key string) error {
 	return errors.Errorf("warning:\ncan't store data at section \"%s\", variable \"%s\"\n", section, key)
@@ -34,9 +34,9 @@ func errDeprecated(section, key string) error {
 type codecTestCase struct {
 	testName         string
 	iniString        string
-	configObj        cloud.Config
+	configObj        cloudprovider.Config
 	expectedError    error
-	unmarshalOptions []cloud.UnmarshalINIOptionFunc
+	unmarshalOptions []cloudprovider.UnmarshalINIOptionFunc
 }
 
 func TestMarshalINI(t *testing.T) {
@@ -59,16 +59,16 @@ func TestMarshalINI(t *testing.T) {
 		folder = kubernetes
 		default-datastore = default
 		`,
-			configObj: cloud.Config{
-				Global: cloud.GlobalConfig{
+			configObj: cloudprovider.Config{
+				Global: cloudprovider.GlobalConfig{
 					Username:    "user",
 					Password:    "password",
 					Datacenters: "us-west",
 				},
-				VCenter: map[string]cloud.VCenterConfig{
+				VCenter: map[string]cloudprovider.VCenterConfig{
 					"0.0.0.0": {},
 				},
-				Workspace: cloud.WorkspaceConfig{
+				Workspace: cloudprovider.WorkspaceConfig{
 					Server:     "0.0.0.0",
 					Datacenter: "us-west",
 					Folder:     "kubernetes",
@@ -93,19 +93,19 @@ func TestMarshalINI(t *testing.T) {
 		datacenter = us-west
 		folder = kubernetes
 		`,
-			configObj: cloud.Config{
-				Global: cloud.GlobalConfig{
+			configObj: cloudprovider.Config{
+				Global: cloudprovider.GlobalConfig{
 					Port:        "443",
 					Insecure:    true,
 					Datacenters: "us-west",
 				},
-				VCenter: map[string]cloud.VCenterConfig{
+				VCenter: map[string]cloudprovider.VCenterConfig{
 					"0.0.0.0": {
 						Username: "user",
 						Password: "password",
 					},
 				},
-				Workspace: cloud.WorkspaceConfig{
+				Workspace: cloudprovider.WorkspaceConfig{
 					Server:     "0.0.0.0",
 					Datacenter: "us-west",
 					Folder:     "kubernetes",
@@ -127,16 +127,16 @@ func TestMarshalINI(t *testing.T) {
 		datacenter = us-west
 		folder = kubernetes
 		`,
-			configObj: cloud.Config{
-				Global: cloud.GlobalConfig{
+			configObj: cloudprovider.Config{
+				Global: cloudprovider.GlobalConfig{
 					SecretName:      "vccreds",
 					SecretNamespace: "kube-system",
 					Datacenters:     "us-west",
 				},
-				VCenter: map[string]cloud.VCenterConfig{
+				VCenter: map[string]cloudprovider.VCenterConfig{
 					"0.0.0.0": {},
 				},
-				Workspace: cloud.WorkspaceConfig{
+				Workspace: cloudprovider.WorkspaceConfig{
 					Server:     "0.0.0.0",
 					Datacenter: "us-west",
 					Folder:     "kubernetes",
@@ -161,20 +161,20 @@ func TestMarshalINI(t *testing.T) {
 		datacenter = us-west
 		folder = kubernetes
 		`,
-			configObj: cloud.Config{
-				Global: cloud.GlobalConfig{
+			configObj: cloudprovider.Config{
+				Global: cloudprovider.GlobalConfig{
 					Port:            "443",
 					Insecure:        true,
 					SecretName:      "vccreds",
 					SecretNamespace: "kube-system",
 					Datacenters:     "us-west",
 				},
-				VCenter: map[string]cloud.VCenterConfig{
+				VCenter: map[string]cloudprovider.VCenterConfig{
 					"0.0.0.0": {
 						Password: "password",
 					},
 				},
-				Workspace: cloud.WorkspaceConfig{
+				Workspace: cloudprovider.WorkspaceConfig{
 					Server:     "0.0.0.0",
 					Datacenter: "us-west",
 					Folder:     "kubernetes",
@@ -202,13 +202,13 @@ func TestMarshalINI(t *testing.T) {
 		datacenter = us-west
 		folder = kubernetes
 		`,
-			configObj: cloud.Config{
-				Global: cloud.GlobalConfig{
+			configObj: cloudprovider.Config{
+				Global: cloudprovider.GlobalConfig{
 					Username:    "user",
 					Password:    "password",
 					Datacenters: "us-west",
 				},
-				VCenter: map[string]cloud.VCenterConfig{
+				VCenter: map[string]cloudprovider.VCenterConfig{
 					"0.0.0.0": {
 						Thumbprint: "thumbprint:0",
 					},
@@ -217,7 +217,7 @@ func TestMarshalINI(t *testing.T) {
 						Thumbprint: "thumbprint:1",
 					},
 				},
-				Workspace: cloud.WorkspaceConfig{
+				Workspace: cloudprovider.WorkspaceConfig{
 					Server:     "0.0.0.0",
 					Datacenter: "us-west",
 					Folder:     "kubernetes",
@@ -241,24 +241,26 @@ func TestMarshalINI(t *testing.T) {
 		datacenter = us-west
 		folder = kubernetes
 		`,
-			configObj: cloud.Config{
-				Global: cloud.GlobalConfig{
+			configObj: cloudprovider.Config{
+				Global: cloudprovider.GlobalConfig{
 					Datacenters:     "us-west",
 					SecretName:      "vccreds",
 					SecretNamespace: "kube-system",
 					CAFile:          "/some/path/to/my/trusted/ca.pem",
 				},
-				VCenter: map[string]cloud.VCenterConfig{
+				VCenter: map[string]cloudprovider.VCenterConfig{
 					"0.0.0.0": {},
 					"1.1.1.1": {},
 				},
-				Workspace: cloud.WorkspaceConfig{
+				Workspace: cloudprovider.WorkspaceConfig{
 					Server:     "0.0.0.0",
 					Datacenter: "us-west",
 					Folder:     "kubernetes",
 				},
-				ProviderConfig: cloud.ProviderConfig{
-					Image: "test",
+				ProviderConfig: cloudprovider.ProviderConfig{
+					Cloud: cloudprovider.CloudConfig{
+						ControllerImage: "test",
+					},
 				},
 			},
 		},
@@ -363,16 +365,16 @@ func TestUnmarshalINI(t *testing.T) {
 		folder = kubernetes
 		default-datastore = default
 		`,
-			configObj: cloud.Config{
-				Global: cloud.GlobalConfig{
+			configObj: cloudprovider.Config{
+				Global: cloudprovider.GlobalConfig{
 					Username:    "user",
 					Password:    "password",
 					Datacenters: "us-west",
 				},
-				VCenter: map[string]cloud.VCenterConfig{
+				VCenter: map[string]cloudprovider.VCenterConfig{
 					"0.0.0.0": {},
 				},
-				Workspace: cloud.WorkspaceConfig{
+				Workspace: cloudprovider.WorkspaceConfig{
 					Server:     "0.0.0.0",
 					Datacenter: "us-west",
 					Folder:     "kubernetes",
@@ -397,19 +399,19 @@ func TestUnmarshalINI(t *testing.T) {
 		datacenter = us-west
 		folder = kubernetes
 		`,
-			configObj: cloud.Config{
-				Global: cloud.GlobalConfig{
+			configObj: cloudprovider.Config{
+				Global: cloudprovider.GlobalConfig{
 					Port:        "443",
 					Insecure:    true,
 					Datacenters: "us-west",
 				},
-				VCenter: map[string]cloud.VCenterConfig{
+				VCenter: map[string]cloudprovider.VCenterConfig{
 					"0.0.0.0": {
 						Username: "user",
 						Password: "password",
 					},
 				},
-				Workspace: cloud.WorkspaceConfig{
+				Workspace: cloudprovider.WorkspaceConfig{
 					Server:     "0.0.0.0",
 					Datacenter: "us-west",
 					Folder:     "kubernetes",
@@ -431,16 +433,16 @@ func TestUnmarshalINI(t *testing.T) {
 		datacenter = us-west
 		folder = kubernetes
 		`,
-			configObj: cloud.Config{
-				Global: cloud.GlobalConfig{
+			configObj: cloudprovider.Config{
+				Global: cloudprovider.GlobalConfig{
 					SecretName:      "vccreds",
 					SecretNamespace: "kube-system",
 					Datacenters:     "us-west",
 				},
-				VCenter: map[string]cloud.VCenterConfig{
+				VCenter: map[string]cloudprovider.VCenterConfig{
 					"0.0.0.0": {},
 				},
-				Workspace: cloud.WorkspaceConfig{
+				Workspace: cloudprovider.WorkspaceConfig{
 					Server:     "0.0.0.0",
 					Datacenter: "us-west",
 					Folder:     "kubernetes",
@@ -465,20 +467,20 @@ func TestUnmarshalINI(t *testing.T) {
 		datacenter = us-west
 		folder = kubernetes
 		`,
-			configObj: cloud.Config{
-				Global: cloud.GlobalConfig{
+			configObj: cloudprovider.Config{
+				Global: cloudprovider.GlobalConfig{
 					Port:            "443",
 					Insecure:        true,
 					SecretName:      "vccreds",
 					SecretNamespace: "kube-system",
 					Datacenters:     "us-west",
 				},
-				VCenter: map[string]cloud.VCenterConfig{
+				VCenter: map[string]cloudprovider.VCenterConfig{
 					"0.0.0.0": {
 						Password: "password",
 					},
 				},
-				Workspace: cloud.WorkspaceConfig{
+				Workspace: cloudprovider.WorkspaceConfig{
 					Server:     "0.0.0.0",
 					Datacenter: "us-west",
 					Folder:     "kubernetes",
@@ -506,13 +508,13 @@ func TestUnmarshalINI(t *testing.T) {
 		datacenter = us-west
 		folder = kubernetes
 		`,
-			configObj: cloud.Config{
-				Global: cloud.GlobalConfig{
+			configObj: cloudprovider.Config{
+				Global: cloudprovider.GlobalConfig{
 					Username:    "user",
 					Password:    "password",
 					Datacenters: "us-west",
 				},
-				VCenter: map[string]cloud.VCenterConfig{
+				VCenter: map[string]cloudprovider.VCenterConfig{
 					"0.0.0.0": {
 						Thumbprint: "thumbprint:0",
 					},
@@ -521,7 +523,7 @@ func TestUnmarshalINI(t *testing.T) {
 						Thumbprint: "thumbprint:1",
 					},
 				},
-				Workspace: cloud.WorkspaceConfig{
+				Workspace: cloudprovider.WorkspaceConfig{
 					Server:     "0.0.0.0",
 					Datacenter: "us-west",
 					Folder:     "kubernetes",
@@ -545,18 +547,18 @@ func TestUnmarshalINI(t *testing.T) {
 		datacenter = us-west
 		folder = kubernetes
 		`,
-			configObj: cloud.Config{
-				Global: cloud.GlobalConfig{
+			configObj: cloudprovider.Config{
+				Global: cloudprovider.GlobalConfig{
 					Datacenters:     "us-west",
 					SecretName:      "vccreds",
 					SecretNamespace: "kube-system",
 					CAFile:          "/some/path/to/my/trusted/ca.pem",
 				},
-				VCenter: map[string]cloud.VCenterConfig{
+				VCenter: map[string]cloudprovider.VCenterConfig{
 					"0.0.0.0": {},
 					"1.1.1.1": {},
 				},
-				Workspace: cloud.WorkspaceConfig{
+				Workspace: cloudprovider.WorkspaceConfig{
 					Server:     "0.0.0.0",
 					Datacenter: "us-west",
 					Folder:     "kubernetes",
@@ -572,7 +574,7 @@ func TestUnmarshalINI(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.testName, func(t *testing.T) {
-			var actualConfig cloud.Config
+			var actualConfig cloudprovider.Config
 
 			if err := actualConfig.UnmarshalINI(
 				[]byte(tc.iniString),

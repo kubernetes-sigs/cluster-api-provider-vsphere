@@ -50,6 +50,7 @@ spec:
       kubeletExtraArgs:
         cloud-provider: external
   clusterConfiguration:
+    imageRepository: ${K8S_IMAGE_REPOSITORY}
     apiServer:
       extraArgs:
         cloud-provider: external

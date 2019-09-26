@@ -33,6 +33,7 @@ ENV_VAR_REQ=':?required'
 CABPK_MANAGER_IMAGE="${CABPK_MANAGER_IMAGE:-us.gcr.io/k8s-artifacts-prod/capi-kubeadm/cluster-api-kubeadm-controller:v0.1.0}"
 CAPI_MANAGER_IMAGE="${CAPI_MANAGER_IMAGE:-us.gcr.io/k8s-artifacts-prod/cluster-api/cluster-api-controller:v0.2.1}"
 CAPV_MANAGER_IMAGE="${CAPV_MANAGER_IMAGE:-gcr.io/cluster-api-provider-vsphere/release/manager:latest}"
+K8S_IMAGE_REPOSITORY="${K8S_IMAGE_REPOSITORY:-k8s.gcr.io}"
 
 # Set the default log levels for the manager containers.
 CABPK_MANAGER_LOG_LEVEL="${CABPK_MANAGER_LOG_LEVEL:-4}"
@@ -56,6 +57,7 @@ FLAGS
   -i    input directory (default ${SRC_DIR})
   -m    capv manager image (default "${CAPV_MANAGER_IMAGE}")
   -M    capv manager log level (default "${CAPV_MANAGER_LOG_LEVEL}")
+  -r    kubernetes container image repository (default "${K8S_IMAGE_REPOSITORY}")
   -o    output directory (default ${OUT_DIR})
   -p    capi manager image (default "${CAPI_MANAGER_IMAGE}")
   -P    capi manager log level (default "${CAPI_MANAGER_LOG_LEVEL}")
@@ -63,7 +65,7 @@ FLAGS
 EOF
 }
 
-while getopts ':b:B:c:dfhi:m:M:o:p:P:u' opt; do
+while getopts ':b:B:c:dfhi:m:M:r:o:p:P:u' opt; do
   case "${opt}" in
   b)
     CABPK_MANAGER_IMAGE="${OPTARG}"
@@ -91,6 +93,9 @@ while getopts ':b:B:c:dfhi:m:M:o:p:P:u' opt; do
     ;;
   M)
     CAPV_MANAGER_LOG_LEVEL="${OPTARG}"
+    ;;
+  r)
+    K8S_IMAGE_REPOSITORY="${OPTARG}"
     ;;
   o)
     OUT_DIR="${OPTARG}"
@@ -188,6 +193,7 @@ record_and_export CLUSTER_CIDR          ':-100.96.0.0/11'
 record_and_export SERVICE_DOMAIN        ':-cluster.local'
 record_and_export CABPK_MANAGER_IMAGE   ':-'
 record_and_export CAPV_MANAGER_IMAGE    ':-'
+record_and_export K8S_IMAGE_REPOSITORY  ':-'
 record_and_export VSPHERE_USERNAME      "${ENV_VAR_REQ}"
 record_and_export VSPHERE_PASSWORD      "${ENV_VAR_REQ}"
 record_and_export VSPHERE_SERVER        "${ENV_VAR_REQ}"

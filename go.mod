@@ -18,7 +18,7 @@ require (
 	k8s.io/klog v0.4.0
 	sigs.k8s.io/cluster-api v0.2.2
 	sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm v0.1.0
-	sigs.k8s.io/controller-runtime v0.2.0
+	sigs.k8s.io/controller-runtime v0.2.2
 )
 
 replace (

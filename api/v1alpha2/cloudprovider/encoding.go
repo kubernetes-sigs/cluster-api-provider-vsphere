@@ -113,6 +113,9 @@ func (c *Config) marshalINISectionProperties(
 			fmt.Fprintf(out, " = %v\n", propertyValue.Interface())
 		}
 	}
+
+	fmt.Fprintf(out, "\n")
+
 	return nil
 }
 

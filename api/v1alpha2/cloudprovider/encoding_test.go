@@ -49,6 +49,7 @@ func TestMarshalINI(t *testing.T) {
 user = user
 password = password
 datacenters = us-west
+cluster-id = cluster-namespace/cluster-name
 
 [VirtualCenter "0.0.0.0"]
 
@@ -64,6 +65,7 @@ default-datastore = default
 					Username:    "user",
 					Password:    "password",
 					Datacenters: "us-west",
+					ClusterID:   "cluster-namespace/cluster-name",
 				},
 				VCenter: map[string]cloudprovider.VCenterConfig{
 					"0.0.0.0": {},
@@ -357,6 +359,7 @@ func TestUnmarshalINI(t *testing.T) {
 		user = user
 		password = password
 		datacenters = us-west
+		cluster-id = cluster-namespace/cluster-name
 
 		[VirtualCenter "0.0.0.0"]
 
@@ -371,6 +374,7 @@ func TestUnmarshalINI(t *testing.T) {
 					Username:    "user",
 					Password:    "password",
 					Datacenters: "us-west",
+					ClusterID:   "cluster-namespace/cluster-name",
 				},
 				VCenter: map[string]cloudprovider.VCenterConfig{
 					"0.0.0.0": {},

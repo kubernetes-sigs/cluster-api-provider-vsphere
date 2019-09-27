@@ -191,10 +191,10 @@ datacenters = us-west
 [VirtualCenter "0.0.0.0"]
 thumbprint = thumbprint:0
 
-[VirtualCenter "no_thumbprint"]
-
 [VirtualCenter "1.1.1.1"]
 thumbprint = thumbprint:1
+
+[VirtualCenter "no_thumbprint"]
 
 [Workspace]
 server = 0.0.0.0

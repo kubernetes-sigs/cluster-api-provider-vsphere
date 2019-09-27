@@ -151,6 +151,10 @@ type GlobalConfig struct {
 	// Defaults to 43001.
 	// +optional
 	APIBindPort string `gcfg:"api-binding,omitempty" json:"apiBindPort,omitempty"`
+
+	// ClusterID is a unique identifier for a cluster used by the vSphere CSI driver (CNS)
+	// NOTE: This field is set internally by CAPV and should not be set by any other consumer of this API
+	ClusterID string `gcfg:"cluster-id,omitempty" json:"-"`
 }
 
 // VCenterConfig is a vSphere cloud provider's vCenter configuration.

@@ -45,20 +45,20 @@ func TestMarshalINI(t *testing.T) {
 	testcases := []codecTestCase{
 		{
 			testName: "Username and password in global section",
-			iniString: `
-		[Global]
-		user = user
-		password = password
-		datacenters = us-west
+			iniString: `[Global]
+user = user
+password = password
+datacenters = us-west
 
-		[VirtualCenter "0.0.0.0"]
+[VirtualCenter "0.0.0.0"]
 
-		[Workspace]
-		server = 0.0.0.0
-		datacenter = us-west
-		folder = kubernetes
-		default-datastore = default
-		`,
+[Workspace]
+server = 0.0.0.0
+datacenter = us-west
+folder = kubernetes
+default-datastore = default
+
+`,
 			configObj: cloudprovider.Config{
 				Global: cloudprovider.GlobalConfig{
 					Username:    "user",
@@ -78,21 +78,21 @@ func TestMarshalINI(t *testing.T) {
 		},
 		{
 			testName: "Username and password in vCenter section",
-			iniString: `
-		[Global]
-		port = 443
-		insecure-flag = true
-		datacenters = us-west
+			iniString: `[Global]
+insecure-flag = true
+port = 443
+datacenters = us-west
 
-		[VirtualCenter "0.0.0.0"]
-		user = user
-		password = password
+[VirtualCenter "0.0.0.0"]
+user = user
+password = password
 
-		[Workspace]
-		server = 0.0.0.0
-		datacenter = us-west
-		folder = kubernetes
-		`,
+[Workspace]
+server = 0.0.0.0
+datacenter = us-west
+folder = kubernetes
+
+`,
 			configObj: cloudprovider.Config{
 				Global: cloudprovider.GlobalConfig{
 					Port:        "443",
@@ -114,19 +114,19 @@ func TestMarshalINI(t *testing.T) {
 		},
 		{
 			testName: "SecretName and SecretNamespace",
-			iniString: `
-		[Global]
-		secret-name = "vccreds"
-		secret-namespace = "kube-system"
-		datacenters = us-west
+			iniString: `[Global]
+secret-name = vccreds
+secret-namespace = kube-system
+datacenters = us-west
 
-		[VirtualCenter "0.0.0.0"]
+[VirtualCenter "0.0.0.0"]
 
-		[Workspace]
-		server = 0.0.0.0
-		datacenter = us-west
-		folder = kubernetes
-		`,
+[Workspace]
+server = 0.0.0.0
+datacenter = us-west
+folder = kubernetes
+
+`,
 			configObj: cloudprovider.Config{
 				Global: cloudprovider.GlobalConfig{
 					SecretName:      "vccreds",
@@ -145,22 +145,22 @@ func TestMarshalINI(t *testing.T) {
 		},
 		{
 			testName: "SecretName and SecretNamespace with Username missing",
-			iniString: `
-		[Global]
-		port = 443
-		insecure-flag = true
-		datacenters = us-west
-		secret-name = "vccreds"
-		secret-namespace = "kube-system"
+			iniString: `[Global]
+insecure-flag = true
+secret-name = vccreds
+secret-namespace = kube-system
+port = 443
+datacenters = us-west
 
-		[VirtualCenter "0.0.0.0"]
-		password = password
+[VirtualCenter "0.0.0.0"]
+password = password
 
-		[Workspace]
-		server = 0.0.0.0
-		datacenter = us-west
-		folder = kubernetes
-		`,
+[Workspace]
+server = 0.0.0.0
+datacenter = us-west
+folder = kubernetes
+
+`,
 			configObj: cloudprovider.Config{
 				Global: cloudprovider.GlobalConfig{
 					Port:            "443",
@@ -183,25 +183,25 @@ func TestMarshalINI(t *testing.T) {
 		},
 		{
 			testName: "Multiple virtual centers with different thumbprints",
-			iniString: `
-		[Global]
-		user = user
-		password = password
-		datacenters = us-west
+			iniString: `[Global]
+user = user
+password = password
+datacenters = us-west
 
-		[VirtualCenter "0.0.0.0"]
-		thumbprint = thumbprint:0
+[VirtualCenter "0.0.0.0"]
+thumbprint = thumbprint:0
 
-		[VirtualCenter "no_thumbprint"]
+[VirtualCenter "1.1.1.1"]
+thumbprint = thumbprint:1
 
-		[VirtualCenter "1.1.1.1"]
-		thumbprint = thumbprint:1
+[VirtualCenter "no_thumbprint"]
 
-		[Workspace]
-		server = 0.0.0.0
-		datacenter = us-west
-		folder = kubernetes
-		`,
+[Workspace]
+server = 0.0.0.0
+datacenter = us-west
+folder = kubernetes
+
+`,
 			configObj: cloudprovider.Config{
 				Global: cloudprovider.GlobalConfig{
 					Username:    "user",
@@ -226,21 +226,22 @@ func TestMarshalINI(t *testing.T) {
 		},
 		{
 			testName: "Multiple vCenters using global CA cert",
-			iniString: `
-		[Global]
-		datacenters = "us-west"
-		secret-name = "vccreds"
-		secret-namespace = "kube-system"
-		ca-file = /some/path/to/my/trusted/ca.pem
+			iniString: `[Global]
+secret-name = vccreds
+secret-namespace = kube-system
+ca-file = /some/path/to/my/trusted/ca.pem
+datacenters = us-west
 
-		[VirtualCenter "0.0.0.0"]
-		[VirtualCenter "1.1.1.1"]
+[VirtualCenter "0.0.0.0"]
 
-		[Workspace]
-		server = 0.0.0.0
-		datacenter = us-west
-		folder = kubernetes
-		`,
+[VirtualCenter "1.1.1.1"]
+
+[Workspace]
+server = 0.0.0.0
+datacenter = us-west
+folder = kubernetes
+
+`,
 			configObj: cloudprovider.Config{
 				Global: cloudprovider.GlobalConfig{
 					Datacenters:     "us-west",
@@ -281,7 +282,7 @@ func TestMarshalINI(t *testing.T) {
 				}
 			}
 
-			g.Expect(string(buf), tc.iniString,
+			g.Expect(string(buf)).To(gomega.Equal(tc.iniString),
 				"marshalled config does not match")
 		})
 	}

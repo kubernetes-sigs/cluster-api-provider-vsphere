@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"sort"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -60,9 +61,13 @@ func (c *Config) MarshalINI() ([]byte, error) {
 
 		switch sectionValue.Kind() {
 		case reflect.Map:
-			iter := sectionValue.MapRange()
-			for iter.Next() {
-				sectionNameKey, sectionValue := iter.Key(), iter.Value()
+			keys := sectionValue.MapKeys()
+			sort.Slice(keys, func(i, j int) bool {
+				return keys[i].String() < keys[j].String()
+			})
+
+			for _, key := range keys {
+				sectionNameKey, sectionValue := key, sectionValue.MapIndex(key)
 				sectionName := fmt.Sprintf(`%s "%v"`, sectionName, sectionNameKey.String())
 				c.marshalINISectionProperties(buf, sectionValue, sectionName)
 			}
@@ -113,6 +118,9 @@ func (c *Config) marshalINISectionProperties(
 			fmt.Fprintf(out, " = %v\n", propertyValue.Interface())
 		}
 	}
+
+	fmt.Fprintf(out, "\n")
+
 	return nil
 }
 

@@ -203,7 +203,7 @@ record_and_export VSPHERE_NETWORK       "${ENV_VAR_REQ}"
 record_and_export VSPHERE_RESOURCE_POOL ':-'
 record_and_export VSPHERE_FOLDER        ':-'
 record_and_export VSPHERE_TEMPLATE      ':-'
-record_and_export SSH_AUTHORIZED_KEY    ':-'
+record_and_export SSH_AUTHORIZED_KEY    ":-''"
 
 verify_cpu_mem_dsk() {
   eval "[[ \${${1}-} =~ [[:digit:]]+ ]] || ${1}=\"${2}\"; \

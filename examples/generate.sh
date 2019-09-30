@@ -205,6 +205,10 @@ record_and_export VSPHERE_FOLDER        ':-'
 record_and_export VSPHERE_TEMPLATE      ':-'
 record_and_export SSH_AUTHORIZED_KEY    ":-''"
 
+# single quote string variables that can start with special characters like "*"
+# otherwise invalid yaml will be generated
+export VSPHERE_RESOURCE_POOL="'${VSPHERE_RESOURCE_POOL}'"
+
 verify_cpu_mem_dsk() {
   eval "[[ \${${1}-} =~ [[:digit:]]+ ]] || ${1}=\"${2}\"; \
         [ \"\${${1}}\" -ge \"${2}\" ] || { echo \"${1} must be >= ${2}\" 1>&2; exit 1; }; \

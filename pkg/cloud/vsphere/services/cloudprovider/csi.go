@@ -327,7 +327,7 @@ func LivenessProbeForNodeContainer() corev1.Container {
 	return corev1.Container{
 		Name:  "liveness-probe",
 		Image: "quay.io/k8scsi/livenessprobe:v1.1.0",
-		Args:  []string{"--csi-address=$(ADDRESS)"},
+		Args:  []string{"--csi-address=$(ADDRESS)", "--health-port=9808"},
 		Env: []corev1.EnvVar{
 			{
 				Name:  "ADDRESS",
@@ -478,7 +478,7 @@ func LivenessProbeForCSIControllerContainer() corev1.Container {
 	return corev1.Container{
 		Name:  "liveness-probe",
 		Image: "quay.io/k8scsi/livenessprobe:v1.1.0",
-		Args:  []string{"--csi-address=$(ADDRESS)"},
+		Args:  []string{"--csi-address=$(ADDRESS)", "--health-port=9809"},
 		Env: []corev1.EnvVar{
 			{
 				Name:  "ADDRESS",

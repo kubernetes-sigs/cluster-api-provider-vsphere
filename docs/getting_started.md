@@ -95,7 +95,7 @@ export VSPHERE_PASSWORD='some-secure-password'  # (required) The password used t
 export VSPHERE_DATACENTER='SDDC-Datacenter'         # (required) The vSphere datacenter to deploy the management cluster on
 export VSPHERE_DATASTORE='DefaultDatastore'         # (required) The vSphere datastore to deploy the management cluster on
 export VSPHERE_NETWORK='vm-network-1'               # (required) The VM network to deploy the management cluster on
-export VSPHERE_RESOURCE_POOL='Resources'            # (required) The vSphere resource pool for your VMs
+export VSPHERE_RESOURCE_POOL='*/Resources'            # (required) The vSphere resource pool for your VMs
 export VSPHERE_FOLDER='vm'                          # (optional) The VM folder for your VMs, defaults to the root vSphere folder if not set.
 export VSPHERE_TEMPLATE='ubuntu-1804-kube-v1.15.3'  # (required) The VM template to use for your management cluster.
 export VSPHERE_DISK_GIB='50'                        # (optional) The VM Disk size in GB, defaults to 20 if not set
@@ -228,7 +228,7 @@ spec:
       datacenter: SDDC-Datacenter
       datastore: DefaultDatastore
       folder: vm
-      resourcePool: 'Resources'
+      resourcePool: '*/Resources'
       server: 10.0.0.1
   server: 10.0.0.1
 ```

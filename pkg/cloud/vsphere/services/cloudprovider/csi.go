@@ -565,7 +565,7 @@ func ConfigForCSI(ctx *context.ClusterContext) *cloudprovider.Config {
 	config := &cloudprovider.Config{}
 
 	config.Global.ClusterID = fmt.Sprintf("%s/%s", ctx.Cluster.Namespace, ctx.Cluster.Name)
-	config.Global.Insecure = false
+	config.Global.Insecure = ctx.VSphereCluster.Spec.CloudProviderConfiguration.Global.Insecure
 	config.Network.Name = ctx.VSphereCluster.Spec.CloudProviderConfiguration.Network.Name
 
 	config.VCenter = map[string]cloudprovider.VCenterConfig{}

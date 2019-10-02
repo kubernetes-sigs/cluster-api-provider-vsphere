@@ -217,9 +217,9 @@ spec:
         controllerImage: gcr.io/cloud-provider-vsphere/cpi/release/manager:v1.0.0
       storage:
         attacherImage: quay.io/k8scsi/csi-attacher:v1.1.1
-        controllerImage: cloudnativestorage/vsphere-block-csi-driver:latest
-        metadataSyncerImage: cloudnativestorage/volume-metadata-syncer:latest
-        nodeDriverImage: cloudnativestorage/vsphere-block-csi-driver:latest
+        controllerImage: vmware/vsphere-block-csi-driver:v1.0.0
+        metadataSyncerImage: vmware/volume-metadata-syncer:v1.0.0
+        nodeDriverImage: vmware/vsphere-block-csi-driver:v1.0.0
         provisionerImage: quay.io/k8scsi/csi-provisioner:v1.2.1
     virtualCenter:
       10.0.0.1:

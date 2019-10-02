@@ -26,6 +26,7 @@ spec:
     global:
       secretName: "cloud-provider-vsphere-credentials"
       secretNamespace: "kube-system"
+      insecure: true
     virtualCenter:
       "${VSPHERE_SERVER}":
         datacenters: "${VSPHERE_DATACENTER}"

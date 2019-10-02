@@ -95,7 +95,7 @@ export VSPHERE_PASSWORD='some-secure-password'  # (required) The password used t
 export VSPHERE_DATACENTER='SDDC-Datacenter'         # (required) The vSphere datacenter to deploy the management cluster on
 export VSPHERE_DATASTORE='DefaultDatastore'         # (required) The vSphere datastore to deploy the management cluster on
 export VSPHERE_NETWORK='vm-network-1'               # (required) The VM network to deploy the management cluster on
-export VSPHERE_RESOURCE_POOL='Resources'            # (required) The vSphere resource pool for your VMs
+export VSPHERE_RESOURCE_POOL='*/Resources'            # (required) The vSphere resource pool for your VMs
 export VSPHERE_FOLDER='vm'                          # (optional) The VM folder for your VMs, defaults to the root vSphere folder if not set.
 export VSPHERE_TEMPLATE='ubuntu-1804-kube-v1.15.3'  # (required) The VM template to use for your management cluster.
 export VSPHERE_DISK_GIB='50'                        # (optional) The VM Disk size in GB, defaults to 20 if not set
@@ -228,7 +228,7 @@ spec:
       datacenter: SDDC-Datacenter
       datastore: DefaultDatastore
       folder: vm
-      resourcePool: Resources
+      resourcePool: '*/Resources'
       server: 10.0.0.1
   server: 10.0.0.1
 ```
@@ -245,36 +245,16 @@ spec:
   clusterConfiguration:
     apiServer:
       extraArgs:
-        cloud-config: /etc/kubernetes/vsphere.conf
-        cloud-provider: vsphere
-      extraVolumes:
-      - hostPath: /etc/kubernetes/vsphere.conf
-        mountPath: /etc/kubernetes/vsphere.conf
-        name: cloud-config
-        pathType: File
-        readOnly: true
+        cloud-provider: external
     controllerManager:
       extraArgs:
-        cloud-config: /etc/kubernetes/vsphere.conf
-        cloud-provider: vsphere
-      extraVolumes:
-      - hostPath: /etc/kubernetes/vsphere.conf
-        mountPath: /etc/kubernetes/vsphere.conf
-        name: cloud-config
-        pathType: File
-        readOnly: true
-  files:
-  - content: |
-      W0dsb2JhbF0Kc2VjcmV0LW5hbWUgPSAiY2xvdWQtcHJvdmlkZXItdnNwaGVyZS1jcmVkZW50aWFscyIKc2VjcmV0LW5hbWVzcGFjZSA9ICJrdWJlLXN5c3RlbSIKZGF0YWNlbnRlcnMgPSAiU0REQy1EYXRhY2VudGVyIgppbnNlY3VyZS1mbGFnID0gIjEiCgpbVmlydHVhbENlbnRlciAiMTAuMC4wLjFdCgpbV29ya3NwYWNlXQpzZXJ2ZXIgPSAiMTAuMC4wLjEiCmRhdGFjZW50ZXIgPSAiU0REQy1EYXRhY2VudGVyIgpmb2xkZXIgPSAidm0iCmRlZmF1bHQtZGF0YXN0b3JlID0gIkRlZmF1bHREYXRhc3RvcmUiCnJlc291cmNlcG9vbC1wYXRoID0gIlJlc291cmNlcyIKCltEaXNrXQpzY3NpY29udHJvbGxlcnR5cGUgPSBwdnNjc2kKCltOZXR3b3JrXQpwdWJsaWMtbmV0d29yayA9ICJ2bS1uZXR3b3JrLTEiCg==
-    encoding: base64
-    owner: root:root
-    path: /etc/kubernetes/vsphere.conf
-    permissions: "0600"
+        cloud-provider: external
+    imageRepository: k8s.gcr.io
   initConfiguration:
     nodeRegistration:
       criSocket: /var/run/containerd/containerd.sock
       kubeletExtraArgs:
-        cloud-provider: vsphere
+        cloud-provider: external
       name: '{{ ds.meta_data.hostname }}'
   preKubeadmCommands:
   - hostname "{{ ds.meta_data.hostname }}"
@@ -312,6 +292,9 @@ spec:
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: VSphereMachine
 metadata:
+  labels:
+    cluster.x-k8s.io/cluster-name: workload-cluster-1
+    cluster.x-k8s.io/control-plane: "true"
   name: workload-cluster-1-controlplane-0
   namespace: default
 spec:
@@ -342,7 +325,7 @@ spec:
         nodeRegistration:
           criSocket: /var/run/containerd/containerd.sock
           kubeletExtraArgs:
-            cloud-provider: vsphere
+            cloud-provider: external
           name: '{{ ds.meta_data.hostname }}'
       preKubeadmCommands:
       - hostname "{{ ds.meta_data.hostname }}"

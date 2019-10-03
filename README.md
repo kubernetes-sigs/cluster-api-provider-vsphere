@@ -85,7 +85,7 @@ Further documentation is available in the `/docs` directory.
 
 Are you interested in contributing to cluster-api-provider-vsphere? We, the maintainers and community, would love your suggestions, contributions, and help! Also, the maintainers can be contacted at any time to learn more about how to get involved.
 
-In the interest of getting more new people involved we to tag issues with [`good first issue`][good_first_issue]. These are typically issues that have smaller scope but are good ways to start to get acquainted with the codebase.
+In the interest of getting more new people involved we tag issues with [`good first issue`][good_first_issue]. These are typically issues that have smaller scope but are good ways to start to get acquainted with the codebase.
 
 We also encourage ALL active community participants to act as if they are maintainers, even if you don't have "official" write permissions. This is a community effort, we are here to serve the Kubernetes community. If you have an active interest and you want to get involved, you have real power! Don't assume that the only people who can get things done around here are the "maintainers".
 

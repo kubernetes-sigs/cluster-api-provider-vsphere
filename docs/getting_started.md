@@ -111,7 +111,7 @@ export SERVICE_DOMAIN='cluster.local'     # (optional) The k8s service domain of
 EOF
 ```
 
-With the above environment variable file it is now possible to generate the manifests needed to bootstrap the management cluster. The following command uses Docker to run an image that has all of the necessary templates and tools to generate the YAML manifests. Additionally, the `envvars.txt` file created above is mounted inside the the image in order to provide the generation routine with its default values. 
+With the above environment variable file it is now possible to generate the manifests needed to bootstrap the management cluster. The following command uses Docker to run an image that has all of the necessary templates and tools to generate the YAML manifests. Additionally, the `envvars.txt` file created above is mounted inside the the image in order to provide the generation routine with its default values.
 
 **Note** It's important to ensure you are leveraging an up to date version of the manifests image below. This is most commonly a problem on machines that you have tested an earlier version of CAPV on. You can either delete the existing image using ```docker rmi gcr.io/cluster-api-provider-vsphere/release/manifests``` or change the below command to explicitly apply a machine image (i.e. release/manifests:0.5.2-alpha.1)
 

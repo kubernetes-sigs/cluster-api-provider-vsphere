@@ -201,7 +201,7 @@ $ docker run --rm \
 >   -c management-cluster
 ```
 
-This will ensure that the desired image is being used. 
+This will ensure that the desired image is being used.
 
 ### `envvars.txt` is a directory
 

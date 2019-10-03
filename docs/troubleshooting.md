@@ -19,6 +19,7 @@ This is a guide on how to troubleshoot issues related to the Cluster API provide
           - [The scheduler](#the-scheduler)
   - [Common issues](#common-issues)
     - [Ensure prerequisites are up to date](#ensure-prerequisites-are-up-to-date)
+    - [Missing manifest files during bootstrap phase](#missing-manifest-files-during-bootstrap-phase)
     - [`envvars.txt` is a directory](#envvarstxt-is-a-directory)
     - [Failed to retrieve kubeconfig secret](#failed-to-retrieve-kubeconfig-secret)
     - [Timed out while failing to retrieve kubeconfig secret](#timed-out-while-failing-to-retrieve-kubeconfig-secret)
@@ -187,6 +188,20 @@ This section contains issues commonly encountered by people using CAPV.
 ### Ensure prerequisites are up to date
 
 The [Getting Started](getting_started.md) guide lists the prerequisites for deploying clusters with CAPV. Make sure those prerequisites, such as `clusterctl`, `kubectl`, `kind`, etc. are up to date.
+
+### Missing manifest files during bootstrap phase
+
+If you are using CAPV from a previously tested CAPV on, you may be using an out of date manifest docker image. You can remedy this by removing your existing CAPV manifest image by using ```docker rmi gcr.io/cluster-api-provider-vsphere/release/manifests:latest``` or by updating the command to specify a specific manifest image, for example:
+
+```shell
+$ docker run --rm \
+>   -v "$(pwd)":/out \
+>   -v "$(pwd)/envvars.txt":/envvars.txt:ro \
+>   gcr.io/cluster-api-provider-vsphere/release/manifests:0.5.2-alpha.1 \
+>   -c management-cluster
+```
+
+This will ensure that the desired image is being used.
 
 ### `envvars.txt` is a directory
 

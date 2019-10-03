@@ -203,6 +203,7 @@ $ docker run --rm \
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 This will ensure that the desired image is being used.
 =======
 This will ensure that the desired image is being used. 
@@ -210,6 +211,9 @@ This will ensure that the desired image is being used.
 =======
 This will ensure that the desired image is being used.
 >>>>>>> 98510860... removing extra whitespace
+=======
+This will ensure that the desired image is being used.
+>>>>>>> 18acf172b622e6b3877fabb691c37c287bd1982a
 
 ### `envvars.txt` is a directory
 

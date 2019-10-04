@@ -77,3 +77,37 @@ network:
   {{- end }}
   {{- end }}
 `
+
+// NetApp
+// TODO(thorsteinnth) Handle more networking configuration options
+const metadataFormatV1 = `
+instance-id: "{{ .Hostname }}"
+local-hostname: "{{ .Hostname }}"
+network:
+  version: 1
+  config:
+    {{- range $i, $net := .Devices }}
+    - type: physical
+      name: id{{ $i }}
+      mac_address: "{{ $net.MACAddr }}" 
+      subnets:
+	  {{- if $net.DHCP4 }}
+        - type: dhcp4
+      {{- end }}
+      {{- if $net.IPAddrs }}
+      {{- range $net.IPAddrs }}
+        - type: static
+          address: "{{ . }}"
+          {{- if $net.Gateway4 }}
+          gateway: "{{ $net.Gateway4 }}"
+          {{- end }}
+          {{- if nameservers $net }}
+          dns_nameservers:
+            {{- range $net.Nameservers }}
+              - "{{ . }}"
+            {{- end }}
+          {{- end }}
+      {{- end }}
+      {{- end }}
+    {{- end }}
+`

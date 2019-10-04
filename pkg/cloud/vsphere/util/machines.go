@@ -156,13 +156,16 @@ func GetMachineMetadata(machine infrav1.VSphereMachine, networkStatus ...infrav1
 		}
 	}
 
+	// NetApp
+	metadataTemplate := getVersionedMetadataTemplate(machine)
+
 	buf := &bytes.Buffer{}
 	tpl := template.Must(template.New("t").Funcs(
 		template.FuncMap{
 			"nameservers": func(spec infrav1.NetworkDeviceSpec) bool {
 				return len(spec.Nameservers) > 0 || len(spec.SearchDomains) > 0
 			},
-		}).Parse(metadataFormat))
+		}).Parse(metadataTemplate)) // NetApp
 	if err := tpl.Execute(buf, struct {
 		Hostname string
 		Devices  []infrav1.NetworkDeviceSpec
@@ -178,4 +181,18 @@ func GetMachineMetadata(machine infrav1.VSphereMachine, networkStatus ...infrav1
 			machine.Namespace, machine.ClusterName, machine.Name)
 	}
 	return buf.Bytes(), nil
+}
+
+// NetApp
+func getVersionedMetadataTemplate(machine infrav1.VSphereMachine) string {
+	const networkConfigVersionAnnotationKey = "network-config-version"
+	networkConfigVersion, ok := machine.Annotations[networkConfigVersionAnnotationKey]
+	if ok && networkConfigVersion == "v1" {
+		return metadataFormatV1
+	}
+	if ok && networkConfigVersion == "v2" {
+		return metadataFormat
+	}
+	// Default to v1
+	return metadataFormatV1
 }

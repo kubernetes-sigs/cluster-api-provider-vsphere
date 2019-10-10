@@ -47,3 +47,5 @@ spec:
         attacherImage: "quay.io/k8scsi/csi-attacher:v1.1.1"
         provisionerImage: "quay.io/k8scsi/csi-provisioner:v1.2.1"
         metadataSyncerImage: "vmware/volume-metadata-syncer:v1.0.0"
+        livenessProbeImage: "quay.io/k8scsi/livenessprobe:v1.1.0"
+        registrarImage: "quay.io/k8scsi/csi-node-driver-registrar:v1.1.0"

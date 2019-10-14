@@ -36,6 +36,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/config"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/constants"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/govmomi"
@@ -126,6 +127,11 @@ func (r *VSphereMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, r
 		vsphereMachine)
 	if err != nil {
 		return reconcile.Result{}, errors.Wrapf(err, "failed to create machine context")
+	}
+
+	if _, ok := vsphereMachine.Annotations[constants.MaintenanceAnnotationLabel]; ok {
+		machineContext.Logger.Info("skipping operations on vsphere machine", "reason", "annotation", "annotation-key", constants.MaintenanceAnnotationLabel)
+		return reconcile.Result{RequeueAfter: config.DefaultRequeue}, nil
 	}
 
 	// Always close the context when exiting this function so we can persist any VSphereMachine changes.

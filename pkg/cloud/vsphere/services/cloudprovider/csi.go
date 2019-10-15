@@ -163,9 +163,9 @@ func VSphereCSINodeDaemonSet(storageConfig cloudprovider.StorageConfig) *appsv1.
 				Spec: corev1.PodSpec{
 					HostNetwork: true,
 					Containers: []corev1.Container{
-						NodeDriverRegistrarContainer(),
+						NodeDriverRegistrarContainer(storageConfig.RegistrarImage),
 						VSphereCSINodeContainer(storageConfig.NodeDriverImage),
-						LivenessProbeForNodeContainer(),
+						LivenessProbeForNodeContainer(storageConfig.LivenessProbeImage),
 					},
 					Tolerations: []corev1.Toleration{
 						{
@@ -224,10 +224,10 @@ func VSphereCSINodeDaemonSet(storageConfig cloudprovider.StorageConfig) *appsv1.
 	}
 }
 
-func NodeDriverRegistrarContainer() corev1.Container {
+func NodeDriverRegistrarContainer(image string) corev1.Container {
 	return corev1.Container{
 		Name:  "node-driver-registrar",
-		Image: "quay.io/k8scsi/csi-node-driver-registrar:v1.1.0",
+		Image: image,
 		Lifecycle: &corev1.Lifecycle{
 			PreStop: &corev1.Handler{
 				Exec: &corev1.ExecAction{
@@ -323,10 +323,10 @@ func VSphereCSINodeContainer(image string) corev1.Container {
 	}
 }
 
-func LivenessProbeForNodeContainer() corev1.Container {
+func LivenessProbeForNodeContainer(image string) corev1.Container {
 	return corev1.Container{
 		Name:  "liveness-probe",
-		Image: "quay.io/k8scsi/livenessprobe:v1.1.0",
+		Image: image,
 		Args:  []string{"--csi-address=$(ADDRESS)", "--health-port=9808"},
 		Env: []corev1.EnvVar{
 			{
@@ -384,7 +384,7 @@ func CSIControllerStatefulSet(storageConfig cloudprovider.StorageConfig) *appsv1
 					Containers: []corev1.Container{
 						CSIAttacherContainer(storageConfig.AttacherImage),
 						VSphereCSIControllerContainer(storageConfig.ControllerImage),
-						LivenessProbeForCSIControllerContainer(),
+						LivenessProbeForCSIControllerContainer(storageConfig.LivenessProbeImage),
 						VSphereSyncerContainer(storageConfig.MetadataSyncerImage),
 						CSIProvisionerContainer(storageConfig.ProvisionerImage),
 					},
@@ -474,10 +474,10 @@ func VSphereCSIControllerContainer(image string) corev1.Container {
 	}
 }
 
-func LivenessProbeForCSIControllerContainer() corev1.Container {
+func LivenessProbeForCSIControllerContainer(image string) corev1.Container {
 	return corev1.Container{
 		Name:  "liveness-probe",
-		Image: "quay.io/k8scsi/livenessprobe:v1.1.0",
+		Image: image,
 		Args:  []string{"--csi-address=$(ADDRESS)", "--health-port=9809"},
 		Env: []corev1.EnvVar{
 			{

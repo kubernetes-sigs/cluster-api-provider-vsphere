@@ -145,11 +145,15 @@ spec:
                           type: string
                         controllerImage:
                           type: string
+                        livenessProbeImage:
+                          type: string
                         metadataSyncerImage:
                           type: string
                         nodeDriverImage:
                           type: string
                         provisionerImage:
+                          type: string
+                        registrarImage:
                           type: string
                       type: object
                   type: object

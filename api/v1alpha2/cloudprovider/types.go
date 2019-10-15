@@ -65,6 +65,8 @@ type StorageConfig struct {
 	AttacherImage       string `json:"attacherImage,omitempty"`
 	ProvisionerImage    string `json:"provisionerImage,omitempty"`
 	MetadataSyncerImage string `json:"metadataSyncerImage,omitempty"`
+	LivenessProbeImage  string `json:"livenessProbeImage,omitempty"`
+	RegistrarImage      string `json:"registrarImage,omitempty"`
 }
 
 // unmarshallableConfig is used to unmarshal the INI data using the gcfg

@@ -146,7 +146,7 @@ func IsControlPlaneMachine(machine *clusterv1.Machine) bool {
 
 // GetMachineMetadata returns the cloud-init metadata as a base-64 encoded
 // string for a given VSphereMachine.
-func GetMachineMetadata(machine infrav1.VSphereMachine, networkStatus ...infrav1.NetworkStatus) ([]byte, error) {
+func GetMachineMetadata(hostname string, machine infrav1.VSphereMachine, networkStatus ...infrav1.NetworkStatus) ([]byte, error) {
 	// Create a copy of the devices and add their MAC addresses from a network status.
 	devices := make([]infrav1.NetworkDeviceSpec, len(machine.Spec.Network.Devices))
 	for i := range machine.Spec.Network.Devices {
@@ -168,7 +168,7 @@ func GetMachineMetadata(machine infrav1.VSphereMachine, networkStatus ...infrav1
 		Devices  []infrav1.NetworkDeviceSpec
 		Routes   []infrav1.NetworkRouteSpec
 	}{
-		Hostname: machine.Name,
+		Hostname: hostname, // note that hostname determines the Kubernetes node name
 		Devices:  devices,
 		Routes:   machine.Spec.Network.Routes,
 	}); err != nil {

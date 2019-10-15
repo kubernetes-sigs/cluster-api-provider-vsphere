@@ -44,7 +44,7 @@ func (vms *VMService) ReconcileVM(ctx *context.MachineContext) (infrav1.VirtualM
 
 	// Create a VM object
 	vm := infrav1.VirtualMachine{
-		Name:  ctx.VSphereMachine.Name,
+		Name:  ctx.Machine.Name,
 		State: infrav1.VirtualMachineStatePending,
 	}
 
@@ -56,7 +56,7 @@ func (vms *VMService) ReconcileVM(ctx *context.MachineContext) (infrav1.VirtualM
 		}
 
 		if ref != "" {
-			return vm, errors.Errorf("vm with the same Instance UUID already exists %q", ctx.VSphereMachine.Name)
+			return vm, errors.Errorf("vm with the same Instance UUID already exists %q", ctx.Machine.Name)
 		}
 
 		// no VM exits, goahead and create a VM
@@ -120,7 +120,7 @@ func (vms *VMService) ReconcileVM(ctx *context.MachineContext) (infrav1.VirtualM
 func (vms *VMService) DestroyVM(ctx *context.MachineContext) (infrav1.VirtualMachine, error) {
 
 	vm := infrav1.VirtualMachine{
-		Name:  ctx.VSphereMachine.Name,
+		Name:  ctx.Machine.Name,
 		State: infrav1.VirtualMachineStatePending,
 	}
 
@@ -197,7 +197,7 @@ func (vms *VMService) reconcileMetadata(ctx *context.MachineContext, vm infrav1.
 		return false, err
 	}
 
-	newMetadata, err := util.GetMachineMetadata(*ctx.VSphereMachine, vm.Network...)
+	newMetadata, err := util.GetMachineMetadata(ctx.Machine.Name, *ctx.VSphereMachine, vm.Network...)
 	if err != nil {
 		return false, err
 	}

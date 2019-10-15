@@ -51,8 +51,8 @@ type Config struct {
 // ProviderConfig defines any extra information used to configure
 // the vSphere external cloud provider
 type ProviderConfig struct {
-	Cloud   CloudConfig   `json:"cloud,omitempty"`
-	Storage StorageConfig `json:"storage,omitempty"`
+	Cloud   *CloudConfig   `json:"cloud,omitempty"`
+	Storage *StorageConfig `json:"storage,omitempty"`
 }
 
 type CloudConfig struct {

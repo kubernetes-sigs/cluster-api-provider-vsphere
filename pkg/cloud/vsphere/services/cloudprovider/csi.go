@@ -27,6 +27,16 @@ import (
 
 // NOTE: the contents of this file are derived from https://github.com/kubernetes-sigs/vsphere-csi-driver/tree/master/manifests/1.14
 
+const (
+	DefaultCSIControllerImage     = "vmware/vsphere-block-csi-driver:v1.0.0"
+	DefaultCSINodeDriverImage     = "vmware/vsphere-block-csi-driver:v1.0.0"
+	DefaultCSIAttacherImage       = "quay.io/k8scsi/csi-attacher:v1.1.1"
+	DefaultCSIProvisionerImage    = "quay.io/k8scsi/csi-provisioner:v1.2.1"
+	DefaultCSIMetadataSyncerImage = "vmware/volume-metadata-syncer:v1.0.0"
+	DefaultCSILivenessProbeImage  = "quay.io/k8scsi/livenessprobe:v1.1.0"
+	DefaultCSIRegistrarImage      = "quay.io/k8scsi/csi-node-driver-registrar:v1.1.0"
+)
+
 func CSIControllerServiceAccount() *corev1.ServiceAccount {
 	return &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
@@ -138,7 +148,7 @@ func CSIDriver() *storagev1beta1.CSIDriver {
 	}
 }
 
-func VSphereCSINodeDaemonSet(storageConfig cloudprovider.StorageConfig) *appsv1.DaemonSet {
+func VSphereCSINodeDaemonSet(storageConfig *cloudprovider.StorageConfig) *appsv1.DaemonSet {
 	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "vsphere-csi-node",
@@ -343,7 +353,7 @@ func LivenessProbeForNodeContainer(image string) corev1.Container {
 	}
 }
 
-func CSIControllerStatefulSet(storageConfig cloudprovider.StorageConfig) *appsv1.StatefulSet {
+func CSIControllerStatefulSet(storageConfig *cloudprovider.StorageConfig) *appsv1.StatefulSet {
 	return &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "vsphere-csi-controller",

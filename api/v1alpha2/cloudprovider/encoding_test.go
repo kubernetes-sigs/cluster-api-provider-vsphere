@@ -261,7 +261,7 @@ folder = kubernetes
 					Folder:     "kubernetes",
 				},
 				ProviderConfig: cloudprovider.ProviderConfig{
-					Cloud: cloudprovider.CloudConfig{
+					Cloud: &cloudprovider.CloudConfig{
 						ControllerImage: "test",
 					},
 				},

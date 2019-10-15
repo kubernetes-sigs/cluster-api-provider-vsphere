@@ -265,10 +265,21 @@ func (r *VSphereClusterReconciler) reconcileAPIEndpoints(ctx *context.ClusterCon
 
 func (r *VSphereClusterReconciler) reconcileCloudProvider(ctx *context.ClusterContext) error {
 	// if the cloud provider image is not specified, then we do nothing
-	controllerImage := ctx.VSphereCluster.Spec.CloudProviderConfiguration.ProviderConfig.Cloud.ControllerImage
-	if controllerImage == "" {
+	cloudproviderConfig := ctx.VSphereCluster.Spec.CloudProviderConfiguration.ProviderConfig.Cloud
+	if cloudproviderConfig == nil {
+		ctx.Logger.V(2).Info(
+			"cloud provider config was not specified in VSphereCluster, skipping reconciliation of the cloud provider integration",
+		)
+
 		return nil
 	}
+
+	if cloudproviderConfig.ControllerImage == "" {
+		cloudproviderConfig.ControllerImage = cloudprovider.DefaultCPIControllerImage
+	}
+
+	ctx.VSphereCluster.Spec.CloudProviderConfiguration.ProviderConfig.Cloud = cloudproviderConfig
+	controllerImage := cloudproviderConfig.ControllerImage
 
 	targetClusterClient, err := infrautilv1.NewKubeClient(ctx, ctx.Client, ctx.Cluster)
 	if err != nil {
@@ -321,6 +332,48 @@ func (r *VSphereClusterReconciler) reconcileCloudProvider(ctx *context.ClusterCo
 }
 
 func (r *VSphereClusterReconciler) reconcileStorageProvider(ctx *context.ClusterContext) error {
+	// if storage config is not defined, assume we don't want CSI installed
+	storageConfig := ctx.VSphereCluster.Spec.CloudProviderConfiguration.ProviderConfig.Storage
+	if storageConfig == nil {
+		ctx.Logger.V(2).Info(
+			"storage config was not specified in VSphereCluster, skipping reconciliation of the CSI driver",
+		)
+
+		return nil
+	}
+
+	// if at least 1 field in the storage config is defined, assume CNS should be installed
+	// and use default images when not defined
+	if storageConfig.ControllerImage == "" {
+		storageConfig.ControllerImage = cloudprovider.DefaultCSIControllerImage
+	}
+
+	if storageConfig.NodeDriverImage == "" {
+		storageConfig.NodeDriverImage = cloudprovider.DefaultCSINodeDriverImage
+	}
+
+	if storageConfig.AttacherImage == "" {
+		storageConfig.AttacherImage = cloudprovider.DefaultCSIAttacherImage
+	}
+
+	if storageConfig.ProvisionerImage == "" {
+		storageConfig.ProvisionerImage = cloudprovider.DefaultCSIProvisionerImage
+	}
+
+	if storageConfig.MetadataSyncerImage == "" {
+		storageConfig.MetadataSyncerImage = cloudprovider.DefaultCSIMetadataSyncerImage
+	}
+
+	if storageConfig.LivenessProbeImage == "" {
+		storageConfig.LivenessProbeImage = cloudprovider.DefaultCSILivenessProbeImage
+	}
+
+	if storageConfig.RegistrarImage == "" {
+		storageConfig.RegistrarImage = cloudprovider.DefaultCSIRegistrarImage
+	}
+
+	ctx.VSphereCluster.Spec.CloudProviderConfiguration.ProviderConfig.Storage = storageConfig
+
 	targetClusterClient, err := infrautilv1.NewKubeClient(ctx, ctx.Client, ctx.Cluster)
 	if err != nil {
 		return errors.Wrapf(err,

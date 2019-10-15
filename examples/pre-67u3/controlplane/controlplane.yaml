@@ -1,3 +1,5 @@
+# Intended for use with vSphere <6.7u3
+---
 apiVersion: cluster.x-k8s.io/v1alpha2
 kind: Machine
 metadata:
@@ -21,6 +23,9 @@ apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: VSphereMachine
 metadata:
   name: ${CLUSTER_NAME}-controlplane-0
+  labels:
+    cluster.x-k8s.io/control-plane: "true"
+    cluster.x-k8s.io/cluster-name: "${CLUSTER_NAME}"
 spec:
   datacenter: "${VSPHERE_DATACENTER}"
   network:
@@ -45,6 +50,7 @@ spec:
       kubeletExtraArgs:
         cloud-provider: vsphere
   clusterConfiguration:
+    imageRepository: ${K8S_IMAGE_REPOSITORY}
     apiServer:
       extraArgs:
         cloud-provider: vsphere

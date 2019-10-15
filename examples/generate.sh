@@ -24,20 +24,23 @@ cd "${WORKDIR:-$(dirname "${BASH_SOURCE[0]}")/..}"
 BUILDDIR="${BUILDDIR:-.}"
 
 OUT_DIR="${OUT_DIR:-}"
-SRC_DIR="${BUILDDIR}"/examples
+SRC_DIR="${BUILDDIR}"/examples/default
 
 OVERWRITE=
 CLUSTER_NAME="${CLUSTER_NAME:-capv-mgmt-example}"
 ENV_VAR_REQ=':?required'
 
 CABPK_MANAGER_IMAGE="${CABPK_MANAGER_IMAGE:-us.gcr.io/k8s-artifacts-prod/capi-kubeadm/cluster-api-kubeadm-controller:v0.1.0}"
-CAPI_MANAGER_IMAGE="${CAPI_MANAGER_IMAGE:-us.gcr.io/k8s-artifacts-prod/cluster-api/cluster-api-controller:v0.2.1}"
+CAPI_MANAGER_IMAGE="${CAPI_MANAGER_IMAGE:-us.gcr.io/k8s-artifacts-prod/cluster-api/cluster-api-controller:v0.2.3}"
 CAPV_MANAGER_IMAGE="${CAPV_MANAGER_IMAGE:-gcr.io/cluster-api-provider-vsphere/release/manager:latest}"
+K8S_IMAGE_REPOSITORY="${K8S_IMAGE_REPOSITORY:-k8s.gcr.io}"
 
 # Set the default log levels for the manager containers.
 CABPK_MANAGER_LOG_LEVEL="${CABPK_MANAGER_LOG_LEVEL:-4}"
 CAPI_MANAGER_LOG_LEVEL="${CAPI_MANAGER_LOG_LEVEL:-4}"
 CAPV_MANAGER_LOG_LEVEL="${CAPV_MANAGER_LOG_LEVEL:-4}"
+
+VSPHERE_PRE_67u3_SUPPORT=
 
 usage() {
   cat <<EOF
@@ -54,13 +57,15 @@ FLAGS
   -i    input directory (default ${SRC_DIR})
   -m    capv manager image (default "${CAPV_MANAGER_IMAGE}")
   -M    capv manager log level (default "${CAPV_MANAGER_LOG_LEVEL}")
+  -r    kubernetes container image repository (default "${K8S_IMAGE_REPOSITORY}")
   -o    output directory (default ${OUT_DIR})
   -p    capi manager image (default "${CAPI_MANAGER_IMAGE}")
   -P    capi manager log level (default "${CAPI_MANAGER_LOG_LEVEL}")
+  -u    enable support for vSphere versions < 6.7u3
 EOF
 }
 
-while getopts ':b:B:c:dfhi:m:M:o:p:P:' opt; do
+while getopts ':b:B:c:dfhi:m:M:r:o:p:P:u' opt; do
   case "${opt}" in
   b)
     CABPK_MANAGER_IMAGE="${OPTARG}"
@@ -89,6 +94,9 @@ while getopts ':b:B:c:dfhi:m:M:o:p:P:' opt; do
   M)
     CAPV_MANAGER_LOG_LEVEL="${OPTARG}"
     ;;
+  r)
+    K8S_IMAGE_REPOSITORY="${OPTARG}"
+    ;;
   o)
     OUT_DIR="${OPTARG}"
     ;;
@@ -97,6 +105,9 @@ while getopts ':b:B:c:dfhi:m:M:o:p:P:' opt; do
     ;;
   P)
     CAPI_MANAGER_LOG_LEVEL="${OPTARG}"
+    ;;
+  u)
+    VSPHERE_PRE_67u3_SUPPORT=1
     ;;
   \?)
     { echo "invalid option: -${OPTARG}"; usage; } 1>&2; exit 1
@@ -107,6 +118,12 @@ while getopts ':b:B:c:dfhi:m:M:o:p:P:' opt; do
   esac
 done
 shift $((OPTIND-1))
+
+# set the src dir to examples/pre-67u3 if -u flag is set
+if [ -n "${VSPHERE_PRE_67u3_SUPPORT}" ]; then
+  echo "Detected support for vSphere versions <6.7u3"
+  SRC_DIR="${BUILDDIR}"/examples/pre-67u3
+fi
 
 [ -n "${OUT_DIR}" ] || OUT_DIR="./out/${CLUSTER_NAME}"
 mkdir -p "${OUT_DIR}"
@@ -173,8 +190,10 @@ record_and_export() {
 record_and_export CLUSTER_NAME          ':-capv-mgmt-example'
 record_and_export SERVICE_CIDR          ':-100.64.0.0/13'
 record_and_export CLUSTER_CIDR          ':-100.96.0.0/11'
+record_and_export SERVICE_DOMAIN        ':-cluster.local'
 record_and_export CABPK_MANAGER_IMAGE   ':-'
 record_and_export CAPV_MANAGER_IMAGE    ':-'
+record_and_export K8S_IMAGE_REPOSITORY  ':-'
 record_and_export VSPHERE_USERNAME      "${ENV_VAR_REQ}"
 record_and_export VSPHERE_PASSWORD      "${ENV_VAR_REQ}"
 record_and_export VSPHERE_SERVER        "${ENV_VAR_REQ}"
@@ -184,7 +203,11 @@ record_and_export VSPHERE_NETWORK       "${ENV_VAR_REQ}"
 record_and_export VSPHERE_RESOURCE_POOL ':-'
 record_and_export VSPHERE_FOLDER        ':-'
 record_and_export VSPHERE_TEMPLATE      ':-'
-record_and_export SSH_AUTHORIZED_KEY    ':-'
+record_and_export SSH_AUTHORIZED_KEY    ":-''"
+
+# single quote string variables that can start with special characters like "*"
+# otherwise invalid yaml will be generated
+export VSPHERE_RESOURCE_POOL="'${VSPHERE_RESOURCE_POOL}'"
 
 verify_cpu_mem_dsk() {
   eval "[[ \${${1}-} =~ [[:digit:]]+ ]] || ${1}=\"${2}\"; \
@@ -195,10 +218,10 @@ verify_cpu_mem_dsk VSPHERE_NUM_CPUS 2
 verify_cpu_mem_dsk VSPHERE_MEM_MIB  2048
 verify_cpu_mem_dsk VSPHERE_DISK_GIB 20
 
-# TODO: check if KUBERNETES_VERSION has format "v1.14.4" and
+# TODO: check if KUBERNETES_VERSION has format "v1.15.3" and
 # trim the "v" from the version. Alternatively, have CAPV or CAPI
-# handle both 1.14.4 and v1.14.4
-[[ ${KUBERNETES_VERSION-} =~ ^v?[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+([\+\.\-](.+))?$ ]] || KUBERNETES_VERSION="1.14.4"
+# handle both 1.15.3 and v1.15.3
+[[ ${KUBERNETES_VERSION-} =~ ^v?[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+([\+\.\-](.+))?$ ]] || KUBERNETES_VERSION="1.15.3"
 record_and_export KUBERNETES_VERSION ":-${KUBERNETES_VERSION}"
 
 # Base64 encode the credentials and unset the plain-text values.
@@ -207,8 +230,9 @@ VSPHERE_B64ENCODED_PASSWORD="$(printf '%s' "${VSPHERE_PASSWORD}" | base64)"
 export VSPHERE_B64ENCODED_USERNAME VSPHERE_B64ENCODED_PASSWORD
 unset VSPHERE_USERNAME VSPHERE_PASSWORD
 
-# Encode the cloud provider configuration.
-CLOUD_CONFIG_B64ENCODED=$(cat <<EOF | { base64 -w0 2>/dev/null || base64; }
+if [ -n "${VSPHERE_PRE_67u3_SUPPORT}" ]; then
+  # Encode the cloud provider configuration.
+  CLOUD_CONFIG_B64ENCODED=$(cat <<EOF | { base64 -w0 2>/dev/null || base64; }
 [Global]
 secret-name = "cloud-provider-vsphere-credentials"
 secret-namespace = "kube-system"
@@ -230,8 +254,9 @@ scsicontrollertype = pvscsi
 [Network]
 public-network = "${VSPHERE_NETWORK}"
 EOF
-)
-export CLOUD_CONFIG_B64ENCODED
+  )
+  export CLOUD_CONFIG_B64ENCODED
+fi
 
 envsubst() {
   python -c 'import os,sys;[sys.stdout.write(os.path.expandvars(l)) for l in sys.stdin]'
@@ -254,7 +279,7 @@ kustomize build "${SRC_DIR}/machinedeployment" | envsubst >"${MACHINEDEPLOYMENT_
 echo "Generated ${MACHINEDEPLOYMENT_GENERATED_FILE}"
 
 # Generate Cluster API provider components file.
-kustomize build "github.com/kubernetes-sigs/cluster-api/config/default/?ref=v0.2.1" >"${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
+kustomize build "github.com/kubernetes-sigs/cluster-api/config/default/?ref=v0.2.3" >"${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
 echo "Generated ${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
 
 # Generate Kubeadm Bootstrap Provider components file.
@@ -262,7 +287,7 @@ kustomize build "github.com/kubernetes-sigs/cluster-api-bootstrap-provider-kubea
 echo "Generated ${COMPONENTS_KUBEADM_GENERATED_FILE}"
 
 # Generate VSphere Infrastructure Provider components file.
-kustomize build "${SRC_DIR}/../config/default" | envsubst >"${COMPONENTS_VSPHERE_GENERATED_FILE}"
+kustomize build "${SRC_DIR}/../../config/default" | envsubst >"${COMPONENTS_VSPHERE_GENERATED_FILE}"
 echo "Generated ${COMPONENTS_VSPHERE_GENERATED_FILE}"
 
 # Generate a single provider components file.

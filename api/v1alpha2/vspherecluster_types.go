@@ -19,7 +19,7 @@ package v1alpha2
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2/cloud"
+	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2/cloudprovider"
 )
 
 const (
@@ -41,7 +41,7 @@ type VSphereClusterSpec struct {
 
 	// CloudProviderConfiguration holds the cluster-wide configuration for the
 	// vSphere cloud provider.
-	CloudProviderConfiguration cloud.Config `json:"cloudProviderConfiguration,omitempty"`
+	CloudProviderConfiguration cloudprovider.Config `json:"cloudProviderConfiguration,omitempty"`
 }
 
 // VSphereClusterStatus defines the observed state of VSphereClusterSpec

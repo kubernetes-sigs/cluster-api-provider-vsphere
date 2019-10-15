@@ -20,9 +20,10 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
-	remotev1 "sigs.k8s.io/cluster-api/controllers/remote"
+	kcfg "sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -31,17 +32,19 @@ import (
 func NewKubeClient(
 	ctx context.Context,
 	controllerClient client.Client,
-	cluster *clusterv1.Cluster) (corev1.CoreV1Interface, error) {
+	cluster *clusterv1.Cluster) (kubernetes.Interface, error) {
 
-	clusterClient, err := remotev1.NewClusterClient(controllerClient, cluster)
+	kubeconfig, err := kcfg.FromSecret(controllerClient, cluster)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to get client for target cluster")
+		return nil, errors.Wrapf(err, "failed to retrieve kubeconfig secret for Cluster %q in namespace %q",
+			cluster.Name, cluster.Namespace)
 	}
 
-	coreClient, err := clusterClient.CoreV1()
+	restConfig, err := clientcmd.RESTConfigFromKubeConfig(kubeconfig)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to get core client for target cluster")
+		return nil, errors.Wrapf(err, "failed to create client configuration for Cluster %q in namespace %q",
+			cluster.Name, cluster.Namespace)
 	}
 
-	return coreClient, nil
+	return kubernetes.NewForConfig(restConfig)
 }

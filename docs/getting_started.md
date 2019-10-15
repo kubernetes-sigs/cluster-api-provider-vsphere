@@ -66,9 +66,9 @@ In order for `clusterctl` to bootstrap a management cluster on vSphere, it must 
 
 #### Uploading the CAPV Machine Image
 
-It is required that machines provisioned by CAPV use one of the official CAPV machine images as a VM template. The machine images are retrievable from public URLs. CAPV currently supports machine images based on Ubuntu 18.04 and CentOS 7. A list of published machine images is available [here](../README.md#kubernetes-versions-with-published-ovas). For this guide we'll be deploying Kubernetes v1.13.6 on Ubuntu 18.04 (link to [machine image](https://storage.googleapis.com/capv-images/release/v1.13.6/ubuntu-1804-kube-v1.13.6.ova)).
+It is required that machines provisioned by CAPV use one of the official CAPV machine images as a VM template. The machine images are retrievable from public URLs. CAPV currently supports machine images based on Ubuntu 18.04 and CentOS 7. A list of published machine images is available [here](../README.md#kubernetes-versions-with-published-ovas). For this guide we'll be deploying Kubernetes v1.15.3 on Ubuntu 18.04 (link to [machine image](https://storage.googleapis.com/capv-images/release/v1.15.3/ubuntu-1804-kube-v1.15.3.ova)).
 
-[Create a VM template](https://docs.vmware.com/en/VMware-vSphere/6.7/com.vmware.vsphere.vm_admin.doc/GUID-17BEDA21-43F6-41F4-8FB2-E01D275FE9B4.html) using the OVA URL above. The rest of the guide will assume you named the VM template `ubuntu-1804-kube-v1.13.6`.
+[Create a VM template](https://docs.vmware.com/en/VMware-vSphere/6.7/com.vmware.vsphere.vm_admin.doc/GUID-17BEDA21-43F6-41F4-8FB2-E01D275FE9B4.html) using the OVA URL above. The rest of the guide will assume you named the VM template `ubuntu-1804-kube-v1.15.3`.
 
 ### Generating YAML for the Bootstrap Cluster
 
@@ -95,18 +95,19 @@ export VSPHERE_PASSWORD='some-secure-password'  # (required) The password used t
 export VSPHERE_DATACENTER='SDDC-Datacenter'         # (required) The vSphere datacenter to deploy the management cluster on
 export VSPHERE_DATASTORE='DefaultDatastore'         # (required) The vSphere datastore to deploy the management cluster on
 export VSPHERE_NETWORK='vm-network-1'               # (required) The VM network to deploy the management cluster on
-export VSPHERE_RESOURCE_POOL='Resources'            # (required) The vSphere resource pool for your VMs
+export VSPHERE_RESOURCE_POOL='*/Resources'            # (required) The vSphere resource pool for your VMs
 export VSPHERE_FOLDER='vm'                          # (optional) The VM folder for your VMs, defaults to the root vSphere folder if not set.
-export VSPHERE_TEMPLATE='ubuntu-1804-kube-v1.13.6'  # (required) The VM template to use for your management cluster.
+export VSPHERE_TEMPLATE='ubuntu-1804-kube-v1.15.3'  # (required) The VM template to use for your management cluster.
 export VSPHERE_DISK_GIB='50'                        # (optional) The VM Disk size in GB, defaults to 20 if not set
 export VSPHERE_NUM_CPUS='2'                         # (optional) The # of CPUs for control plane nodes in your management cluster, defaults to 2 if not set
 export VSPHERE_MEM_MIB='2048'                       # (optional) The memory (in MiB) for control plane nodes in your management cluster, defaults to 2048 if not set
 export SSH_AUTHORIZED_KEY='ssh-rsa AAAAB3N...'      # (optional) The public ssh authorized key on all machines in this cluster
 
 # Kubernetes configs
-export KUBERNETES_VERSION='1.13.6'        # (optional) The Kubernetes version to use, defaults to 1.13.6
+export KUBERNETES_VERSION='1.15.3'        # (optional) The Kubernetes version to use, defaults to 1.15.3
 export SERVICE_CIDR='100.64.0.0/13'       # (optional) The service CIDR of the management cluster, defaults to "100.64.0.0/13"
 export CLUSTER_CIDR='100.96.0.0/11'       # (optional) The cluster CIDR of the management cluster, defaults to "100.96.0.0/11"
+export SERVICE_DOMAIN='cluster.local'     # (optional) The k8s service domain of the management cluster, defaults to "cluster.local"
 EOF
 ```
 
@@ -127,6 +128,16 @@ Generated /build/examples/provider-components/provider-components-kubeadm.yaml
 Generated /build/examples/provider-components/provider-components-vsphere.yaml
 Generated ./out/management-cluster/provider-components.yaml
 WARNING: ./out/management-cluster/provider-components.yaml includes vSphere credentials
+```
+
+If you are on **vSphere < 6.7u3**, set the **-u** flag in the manifests image:
+
+```shell
+$ docker run --rm \
+  -v "$(pwd)":/out \
+  -v "$(pwd)/envvars.txt":/envvars.txt:ro \
+  gcr.io/cluster-api-provider-vsphere/release/manifests:latest \
+  -c management-cluster -u
 ```
 
 ### Using clusterctl
@@ -182,6 +193,7 @@ spec:
     services:
       cidrBlocks:
       - 100.64.0.0/13
+    serviceDomain: cluster.local
   infrastructureRef:
     apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
     kind: VSphereCluster
@@ -200,6 +212,15 @@ spec:
       secretNamespace: kube-system
     network:
       name: vm-network-1
+    providerConfig:
+      cloud:
+        controllerImage: gcr.io/cloud-provider-vsphere/cpi/release/manager:v1.0.0
+      storage:
+        attacherImage: quay.io/k8scsi/csi-attacher:v1.1.1
+        controllerImage: vmware/vsphere-block-csi-driver:v1.0.0
+        metadataSyncerImage: vmware/volume-metadata-syncer:v1.0.0
+        nodeDriverImage: vmware/vsphere-block-csi-driver:v1.0.0
+        provisionerImage: quay.io/k8scsi/csi-provisioner:v1.2.1
     virtualCenter:
       10.0.0.1:
         datacenters: SDDC-Datacenter
@@ -207,7 +228,7 @@ spec:
       datacenter: SDDC-Datacenter
       datastore: DefaultDatastore
       folder: vm
-      resourcePool: Resources
+      resourcePool: '*/Resources'
       server: 10.0.0.1
   server: 10.0.0.1
 ```
@@ -224,36 +245,16 @@ spec:
   clusterConfiguration:
     apiServer:
       extraArgs:
-        cloud-config: /etc/kubernetes/vsphere.conf
-        cloud-provider: vsphere
-      extraVolumes:
-      - hostPath: /etc/kubernetes/vsphere.conf
-        mountPath: /etc/kubernetes/vsphere.conf
-        name: cloud-config
-        pathType: File
-        readOnly: true
+        cloud-provider: external
     controllerManager:
       extraArgs:
-        cloud-config: /etc/kubernetes/vsphere.conf
-        cloud-provider: vsphere
-      extraVolumes:
-      - hostPath: /etc/kubernetes/vsphere.conf
-        mountPath: /etc/kubernetes/vsphere.conf
-        name: cloud-config
-        pathType: File
-        readOnly: true
-  files:
-  - content: |
-      W0dsb2JhbF0Kc2VjcmV0LW5hbWUgPSAiY2xvdWQtcHJvdmlkZXItdnNwaGVyZS1jcmVkZW50aWFscyIKc2VjcmV0LW5hbWVzcGFjZSA9ICJrdWJlLXN5c3RlbSIKZGF0YWNlbnRlcnMgPSAiU0REQy1EYXRhY2VudGVyIgppbnNlY3VyZS1mbGFnID0gIjEiCgpbVmlydHVhbENlbnRlciAiMTAuMC4wLjFdCgpbV29ya3NwYWNlXQpzZXJ2ZXIgPSAiMTAuMC4wLjEiCmRhdGFjZW50ZXIgPSAiU0REQy1EYXRhY2VudGVyIgpmb2xkZXIgPSAidm0iCmRlZmF1bHQtZGF0YXN0b3JlID0gIkRlZmF1bHREYXRhc3RvcmUiCnJlc291cmNlcG9vbC1wYXRoID0gIlJlc291cmNlcyIKCltEaXNrXQpzY3NpY29udHJvbGxlcnR5cGUgPSBwdnNjc2kKCltOZXR3b3JrXQpwdWJsaWMtbmV0d29yayA9ICJ2bS1uZXR3b3JrLTEiCg==
-    encoding: base64
-    owner: root:root
-    path: /etc/kubernetes/vsphere.conf
-    permissions: "0600"
+        cloud-provider: external
+    imageRepository: k8s.gcr.io
   initConfiguration:
     nodeRegistration:
       criSocket: /var/run/containerd/containerd.sock
       kubeletExtraArgs:
-        cloud-provider: vsphere
+        cloud-provider: external
       name: '{{ ds.meta_data.hostname }}'
   preKubeadmCommands:
   - hostname "{{ ds.meta_data.hostname }}"
@@ -286,11 +287,14 @@ spec:
     kind: VSphereMachine
     name: workload-cluster-1-controlplane-0
     namespace: default
-  version: 1.13.6
+  version: 1.15.3
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: VSphereMachine
 metadata:
+  labels:
+    cluster.x-k8s.io/cluster-name: workload-cluster-1
+    cluster.x-k8s.io/control-plane: "true"
   name: workload-cluster-1-controlplane-0
   namespace: default
 spec:
@@ -303,7 +307,7 @@ spec:
       dhcp6: false
       networkName: vm-network-1
   numCPUs: 2
-  template: ubuntu-1804-kube-v1.13.6
+  template: ubuntu-1804-kube-v1.15.3
 ```
 
 To add an additional worker node to your cluster, please see the generated machineset file `./out/workload-cluster-1/machinedeployment.yaml`:
@@ -321,7 +325,7 @@ spec:
         nodeRegistration:
           criSocket: /var/run/containerd/containerd.sock
           kubeletExtraArgs:
-            cloud-provider: vsphere
+            cloud-provider: external
           name: '{{ ds.meta_data.hostname }}'
       preKubeadmCommands:
       - hostname "{{ ds.meta_data.hostname }}"
@@ -362,7 +366,7 @@ spec:
         kind: VSphereMachineTemplate
         name: workload-cluster-1-md-0
         namespace: default
-      version: 1.13.6
+      version: 1.15.3
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: VSphereMachineTemplate
@@ -380,7 +384,7 @@ spec:
         - dhcp4: true
           networkName: vm-network-1
       numCPUs: 2
-      template: ubuntu-1804-kube-v1.13.6
+      template: ubuntu-1804-kube-v1.15.3
 ```
 
 <!--

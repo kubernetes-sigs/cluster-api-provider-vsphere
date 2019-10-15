@@ -14,7 +14,7 @@ spec:
         image: gcr.io/cluster-api-provider-vsphere/pr/ci:${VERSION}
         env:
           - name: CLUSTERCTL_VERSION
-            value: ${VERSION}
+            value: ${CAPI_VERSION}
           - name: TARGET_VM_SSH
             valueFrom:
               secretKeyRef:

@@ -1,0 +1,15 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: capi-controller-manager
+  namespace: capi-system
+spec:
+  template:
+    spec:
+      containers:
+      - name: manager
+        image: ${CAPI_MANAGER_IMAGE}
+        args:
+        - --enable-leader-election
+        - --logtostderr
+        - --v=${CAPI_MANAGER_LOG_LEVEL}

@@ -98,6 +98,7 @@ lint: ## Run all the lint targets
 	$(MAKE) lint-go-full
 	$(MAKE) lint-markdown
 	$(MAKE) lint-shell
+	$(MAKE) lint-static
 
 GOLANGCI_LINT_FLAGS ?= --fast=true
 .PHONY: lint-go
@@ -115,6 +116,10 @@ lint-markdown: ## Lint the project's markdown
 .PHONY: lint-shell
 lint-shell: ## Lint the project's shell scripts
 	docker run --rm -t -v "$$(pwd)":/build:ro gcr.io/cluster-api-provider-vsphere/extra/shellcheck
+
+.PHONY: lint-static
+lint-static: ## Static check codebase
+	hack/check-staticcheck.sh
 
 .PHONY: fix
 fix: GOLANGCI_LINT_FLAGS = --fast=false --fix
@@ -195,7 +200,6 @@ clean-examples: ## Remove all the temporary files generated in the examples fold
 
 .PHONY: verify
 verify: ## Runs all the verify targets
-	$(MAKE) verify-install
 	$(MAKE) verify-boilerplate
 	$(MAKE) verify-crds
 
@@ -206,10 +210,6 @@ verify-boilerplate: ## Verifies all sources have appropriate boilerplate
 .PHONY: verify-crds
 verify-crds: ## Verifies the committed CRDs are up-to-date
 	./hack/verify-crds.sh
-
-.PHONY: verify-install
-verify-install: ## Checks that you've installed this repository correctly
-	./hack/verify-install.sh
 
 ## --------------------------------------
 ## Check

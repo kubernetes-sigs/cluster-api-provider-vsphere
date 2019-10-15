@@ -55,17 +55,16 @@ wget https://storage.googleapis.com/kubernetes-release/release/v1.14.2/bin/linux
 chmod +x /usr/local/bin/kubectl
 
 # download clusterctl binary
-wget https://storage.googleapis.com/capv-pr/"${CLUSTERCTL_VERSION}"/bin/linux/amd64/clusterctl \
+wget https://github.com/kubernetes-sigs/cluster-api/releases/download/"${CLUSTERCTL_VERSION}"/clusterctl-linux-amd64 \
     --no-verbose -O /usr/local/bin/clusterctl
 chmod +x /usr/local/bin/clusterctl
 
 # run clusterctl
 echo "test ${PROVIDER_COMPONENT_SPEC}"
 clusterctl create cluster -e ~/.kube/config -c ./spec/cluster.yaml \
-    -m ./spec/machines.yaml \
+    -m ./spec/controlplane.yaml \
     -p ./spec/"${PROVIDER_COMPONENT_SPEC}" \
     -a ./spec/addons.yaml \
-    --provider vsphere \
     -v 6
 
 ret=$?

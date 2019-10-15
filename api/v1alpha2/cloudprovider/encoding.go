@@ -14,13 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cloud
+package cloudprovider
 
 import (
 	"bytes"
 	"fmt"
 	"io"
 	"reflect"
+	"sort"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -47,8 +48,11 @@ func (c *Config) MarshalINI() ([]byte, error) {
 		sectionValue := configValue.Field(sectionIndex)
 
 		// Get the value of the gcfg tag to help determine the section
-		// name and whether to omit an empty value.
-		sectionName, omitEmpty := parseGcfgTag(sectionType)
+		// name and whether to omit an empty value. Also ignore fields without the gcfg tag
+		sectionName, omitEmpty, hasTag := parseGcfgTag(sectionType)
+		if !hasTag {
+			continue
+		}
 
 		// Do not marshal a section if it is empty.
 		if omitEmpty && isEmpty(sectionValue) {
@@ -57,9 +61,13 @@ func (c *Config) MarshalINI() ([]byte, error) {
 
 		switch sectionValue.Kind() {
 		case reflect.Map:
-			iter := sectionValue.MapRange()
-			for iter.Next() {
-				sectionNameKey, sectionValue := iter.Key(), iter.Value()
+			keys := sectionValue.MapKeys()
+			sort.Slice(keys, func(i, j int) bool {
+				return keys[i].String() < keys[j].String()
+			})
+
+			for _, key := range keys {
+				sectionNameKey, sectionValue := key, sectionValue.MapIndex(key)
 				sectionName := fmt.Sprintf(`%s "%v"`, sectionName, sectionNameKey.String())
 				c.marshalINISectionProperties(buf, sectionValue, sectionName)
 			}
@@ -90,7 +98,10 @@ func (c *Config) marshalINISectionProperties(
 
 		// Get the value of the gcfg tag to help determine the property
 		// name and whether to omit an empty value.
-		propertyName, omitEmpty := parseGcfgTag(propertyType)
+		propertyName, omitEmpty, hasTag := parseGcfgTag(propertyType)
+		if !hasTag {
+			continue
+		}
 
 		// Do not marshal a property if it is empty.
 		if omitEmpty && isEmpty(propertyValue) {
@@ -107,13 +118,19 @@ func (c *Config) marshalINISectionProperties(
 			fmt.Fprintf(out, " = %v\n", propertyValue.Interface())
 		}
 	}
+
+	fmt.Fprintf(out, "\n")
+
 	return nil
 }
 
-func parseGcfgTag(field reflect.StructField) (string, bool) {
+func parseGcfgTag(field reflect.StructField) (string, bool, bool) {
 	name := field.Name
 	omitEmpty := false
+	hasTag := false
+
 	if tagVal, ok := field.Tag.Lookup(gcfgTag); ok {
+		hasTag = true
 		tagParts := strings.Split(tagVal, ",")
 		lenTagParts := len(tagParts)
 		if lenTagParts > 0 {
@@ -126,7 +143,8 @@ func parseGcfgTag(field reflect.StructField) (string, bool) {
 			omitEmpty = tagParts[1] == "omitempty"
 		}
 	}
-	return name, omitEmpty
+
+	return name, omitEmpty, hasTag
 }
 
 // UnmarshalINIOptions defines the options used to influence how INI data is

@@ -1,0 +1,49 @@
+# Intended for use with vSphere >=6.7u3
+---
+apiVersion: cluster.x-k8s.io/v1alpha2
+kind: Cluster
+metadata:
+  name: ${CLUSTER_NAME}
+spec:
+  clusterNetwork:
+    services:
+      cidrBlocks: ["${SERVICE_CIDR}"]
+    pods:
+      cidrBlocks: ["${CLUSTER_CIDR}"]
+    serviceDomain: ${SERVICE_DOMAIN}
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    kind: VSphereCluster
+    name: ${CLUSTER_NAME}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+kind: VSphereCluster
+metadata:
+  name: ${CLUSTER_NAME}
+spec:
+  server: "${VSPHERE_SERVER}"
+  cloudProviderConfiguration:
+    global:
+      secretName: "cloud-provider-vsphere-credentials"
+      secretNamespace: "kube-system"
+      insecure: true
+    virtualCenter:
+      "${VSPHERE_SERVER}":
+        datacenters: "${VSPHERE_DATACENTER}"
+    network:
+      name: "${VSPHERE_NETWORK}"
+    workspace:
+      server: "${VSPHERE_SERVER}"
+      datacenter: "${VSPHERE_DATACENTER}"
+      datastore: "${VSPHERE_DATASTORE}"
+      resourcePool: "${VSPHERE_RESOURCE_POOL}"
+      folder: "${VSPHERE_FOLDER}"
+    providerConfig:
+      cloud:
+        controllerImage: "gcr.io/cloud-provider-vsphere/cpi/release/manager:v1.0.0"
+      storage:
+        controllerImage: "vmware/vsphere-block-csi-driver:v1.0.0"
+        nodeDriverImage: "vmware/vsphere-block-csi-driver:v1.0.0"
+        attacherImage: "quay.io/k8scsi/csi-attacher:v1.1.1"
+        provisionerImage: "quay.io/k8scsi/csi-provisioner:v1.2.1"
+        metadataSyncerImage: "vmware/volume-metadata-syncer:v1.0.0"

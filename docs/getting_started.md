@@ -120,16 +120,6 @@ Generated ./out/management-cluster/provider-components.yaml
 WARNING: ./out/management-cluster/provider-components.yaml includes vSphere credentials
 ```
 
-If you are on **vSphere < 6.7U3**, set the **-u** flag in the manifests image:
-
-```shell
-$ docker run --rm \
-  -v "$(pwd)":/out \
-  -v "$(pwd)/envvars.txt":/envvars.txt:ro \
-  gcr.io/cluster-api-provider-vsphere/release/manifests:latest \
-  -c management-cluster -u
-```
-
 ### Using clusterctl
 
 Once the manifests are generated, `clusterctl` may be used to create the management cluster:

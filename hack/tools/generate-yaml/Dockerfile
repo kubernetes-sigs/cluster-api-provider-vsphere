@@ -19,6 +19,9 @@ ARG BASE_IMAGE=gcr.io/cluster-api-provider-vsphere/extra/manifests-base:v0.4.2-b
 FROM ${BASE_IMAGE}
 LABEL "maintainer" "Andrew Kutz <akutz@vmware.com>"
 
+# install govc, used to check vSphere version
+RUN curl -L https://github.com/vmware/govmomi/releases/download/v0.21.0/govc_linux_amd64.gz | gunzip > /usr/local/bin/govc && chmod +x /usr/local/bin/govc
+
 # Run things out of the /build directory.
 ENV BUILDDIR /build
 WORKDIR /build

@@ -1,13 +1,3 @@
-kind: StorageClass
-apiVersion: storage.k8s.io/v1
-metadata:
-  name: standard
-  annotations:
-    storageclass.kubernetes.io/is-default-class: "true"
-provisioner: kubernetes.io/vsphere-volume
-parameters:
-  datastore: ""
-
 # Calico Version v3.6
 # https://docs.projectcalico.org/v3.6/release-notes/
 ---

@@ -165,9 +165,12 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 
 .PHONY: release-manifests
 release-manifests: ## Builds the manifests to publish with a release
+ifndef VERSION
+	$(error VERSION is undefined)
+endif
 	@mkdir -p out
-	$(KUSTOMIZE) build config/default >out/infrastructure-components.yaml
-
+	cd config/manager/; ../../"$(KUSTOMIZE)" edit set image gcr.io/cluster-api-provider-vsphere/release/manager:"$(VERSION)"
+	"$(KUSTOMIZE)" build config/default > out/infrastructure-components.yaml
 ## --------------------------------------
 ## Cleanup / Verification
 ## --------------------------------------

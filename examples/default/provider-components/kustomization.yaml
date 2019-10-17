@@ -4,6 +4,7 @@ resources:
 - provider-components-kubeadm.yaml
 - provider-components-cluster-api.yaml
 - provider-components-vsphere.yaml
+- capv_manager_bootstrap_credentials.yaml
 patchesStrategicMerge:
 - cabpk_manager_patches.yaml
 - capi_manager_patches.yaml

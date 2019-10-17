@@ -216,8 +216,9 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 
 func Test_GetMachineMetadata(t *testing.T) {
 	testCases := []struct {
-		name    string
-		machine *v1alpha2.VSphereMachine
+		name     string
+		machine  *v1alpha2.VSphereMachine
+		expected string
 	}{
 		{
 			name: "dhcp4",
@@ -234,6 +235,19 @@ func Test_GetMachineMetadata(t *testing.T) {
 					},
 				},
 			},
+			expected: `
+instance-id: "test-vm"
+local-hostname: "test-vm"
+network:
+  version: 2
+  ethernets:
+    id0:
+      match:
+        macaddress: "00:00:00:00:00"
+      wakeonlan: true
+      dhcp4: true
+      dhcp6: false
+`,
 		},
 		{
 			name: "dhcp6",
@@ -250,6 +264,19 @@ func Test_GetMachineMetadata(t *testing.T) {
 					},
 				},
 			},
+			expected: `
+instance-id: "test-vm"
+local-hostname: "test-vm"
+network:
+  version: 2
+  ethernets:
+    id0:
+      match:
+        macaddress: "00:00:00:00:00"
+      wakeonlan: true
+      dhcp4: false
+      dhcp6: true
+`,
 		},
 		{
 			name: "dhcp4+dhcp6",
@@ -267,6 +294,19 @@ func Test_GetMachineMetadata(t *testing.T) {
 					},
 				},
 			},
+			expected: `
+instance-id: "test-vm"
+local-hostname: "test-vm"
+network:
+  version: 2
+  ethernets:
+    id0:
+      match:
+        macaddress: "00:00:00:00:00"
+      wakeonlan: true
+      dhcp4: true
+      dhcp6: true
+`,
 		},
 		{
 			name: "static4+dhcp6",
@@ -285,6 +325,22 @@ func Test_GetMachineMetadata(t *testing.T) {
 					},
 				},
 			},
+			expected: `
+instance-id: "test-vm"
+local-hostname: "test-vm"
+network:
+  version: 2
+  ethernets:
+    id0:
+      match:
+        macaddress: "00:00:00:00:00"
+      wakeonlan: true
+      dhcp4: false
+      dhcp6: true
+      addresses:
+      - "192.168.4.21"
+      gateway4: "192.168.4.1"
+`,
 		},
 		{
 			name: "static4+dhcp6+static-routes",
@@ -310,6 +366,26 @@ func Test_GetMachineMetadata(t *testing.T) {
 					},
 				},
 			},
+			expected: `
+instance-id: "test-vm"
+local-hostname: "test-vm"
+network:
+  version: 2
+  ethernets:
+    id0:
+      match:
+        macaddress: "00:00:00:00:00"
+      wakeonlan: true
+      dhcp4: false
+      dhcp6: true
+      addresses:
+      - "192.168.4.21"
+      gateway4: "192.168.4.1"
+  routes:
+  - to: "192.168.5.1/24"
+    via: "192.168.4.254"
+    metric: 3
+`,
 		},
 		{
 			name: "2nets",
@@ -339,6 +415,30 @@ func Test_GetMachineMetadata(t *testing.T) {
 					},
 				},
 			},
+			expected: `
+instance-id: "test-vm"
+local-hostname: "test-vm"
+network:
+  version: 2
+  ethernets:
+    id0:
+      match:
+        macaddress: "00:00:00:00:00"
+      wakeonlan: true
+      dhcp4: true
+      dhcp6: false
+      routes:
+      - to: "192.168.5.1/24"
+        via: "192.168.4.254"
+        metric: 3
+    id1:
+      match:
+        macaddress: "00:00:00:00:01"
+      wakeonlan: true
+      dhcp4: false
+      dhcp6: true
+      mtu: 100
+`,
 		},
 		{
 			name: "2nets-static+dhcp",
@@ -365,16 +465,51 @@ func Test_GetMachineMetadata(t *testing.T) {
 					},
 				},
 			},
+			expected: `
+instance-id: "test-vm"
+local-hostname: "test-vm"
+network:
+  version: 2
+  ethernets:
+    id0:
+      match:
+        macaddress: "00:00:00:00:00"
+      wakeonlan: true
+      dhcp4: false
+      dhcp6: false
+      addresses:
+      - "192.168.4.21"
+      gateway4: "192.168.4.1"
+      nameservers:
+        addresses:
+        - "1.1.1.1"
+        search:
+        - "vmware.ci"
+    id1:
+      match:
+        macaddress: "00:00:00:00:01"
+      wakeonlan: true
+      dhcp4: false
+      dhcp6: true
+      nameservers:
+        search:
+        - "vmware6.ci"
+`,
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			tc.machine.Name = tc.name
-			actVal, err := util.GetMachineMetadata(*tc.machine)
+			actVal, err := util.GetMachineMetadata("test-vm", *tc.machine)
 			if err != nil {
 				t.Fatal(err)
 			}
-			t.Log(string(actVal))
+
+			if string(actVal) != tc.expected {
+				t.Logf("actual metadata value: %s", actVal)
+				t.Logf("expected metadata value: %s", tc.expected)
+				t.Error("unexpected metadata value")
+			}
 		})
 	}
 }

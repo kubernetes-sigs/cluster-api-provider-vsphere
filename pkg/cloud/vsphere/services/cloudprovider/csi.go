@@ -21,6 +21,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	storagev1beta1 "k8s.io/api/storage/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2/cloudprovider"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
 )
@@ -312,6 +313,25 @@ func VSphereCSINodeContainer(image string) corev1.Container {
 			},
 		},
 		Args: []string{"--v=4"},
+		Ports: []corev1.ContainerPort{
+			{
+				Name:          "healthz",
+				ContainerPort: 9808,
+				Protocol:      corev1.ProtocolTCP,
+			},
+		},
+		LivenessProbe: &corev1.Probe{
+			Handler: corev1.Handler{
+				HTTPGet: &corev1.HTTPGetAction{
+					Path: "/healthz",
+					Port: intstr.Parse("healthz"),
+				},
+			},
+			InitialDelaySeconds: 10,
+			TimeoutSeconds:      3,
+			PeriodSeconds:       5,
+			FailureThreshold:    3,
+		},
 		SecurityContext: &corev1.SecurityContext{
 			Privileged: boolPtr(true),
 			Capabilities: &corev1.Capabilities{
@@ -464,6 +484,25 @@ func VSphereCSIControllerContainer(image string) corev1.Container {
 		},
 		Args:            []string{"--v=4"},
 		ImagePullPolicy: corev1.PullAlways,
+		Ports: []corev1.ContainerPort{
+			{
+				Name:          "healthz",
+				ContainerPort: 9808,
+				Protocol:      corev1.ProtocolTCP,
+			},
+		},
+		LivenessProbe: &corev1.Probe{
+			Handler: corev1.Handler{
+				HTTPGet: &corev1.HTTPGetAction{
+					Path: "/healthz",
+					Port: intstr.Parse("healthz"),
+				},
+			},
+			InitialDelaySeconds: 10,
+			TimeoutSeconds:      3,
+			PeriodSeconds:       5,
+			FailureThreshold:    3,
+		},
 		Env: []corev1.EnvVar{
 			{
 				Name:  "CSI_ENDPOINT",

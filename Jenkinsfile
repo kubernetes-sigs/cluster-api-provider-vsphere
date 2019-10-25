@@ -14,6 +14,7 @@ pipeline {
     REPOSITORY = "${ORG}/${APP_NAME}"
     GO111MODULE = 'off'
     GOPATH = "${WORKSPACE}/go"
+    GITHUB_TOKEN = credentials('github-token-jenkins')
   }
 
   stages {
@@ -32,8 +33,9 @@ pipeline {
     stage('build') {
       steps {
         container('builder-base') {
+          // We need to provide a personal access token to fetch private dependencies
           script {
-            image = docker.build("${REPOSITORY}")
+            image = docker.build("${REPOSITORY}", "--build-arg GITHUB_TOKEN=${GITHUB_TOKEN} .")
           }
         }
       }

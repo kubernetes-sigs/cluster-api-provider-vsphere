@@ -16,9 +16,12 @@
 FROM golang:1.12.9 as builder
 WORKDIR /workspace
 
+ARG GITHUB_TOKEN
+RUN git config --global url."https://oauth2:${GITHUB_TOKEN}@github.com".insteadOf "https://github.com"
+
 # Run this with docker build --build_arg $(go env GOPROXY) to override the goproxy
-ARG goproxy=https://proxy.golang.org
-ENV GOPROXY=$goproxy
+#ARG goproxy=https://proxy.golang.org
+#ENV GOPROXY=$goproxy
 
 # Copy the Go Modules manifests
 COPY go.mod go.mod

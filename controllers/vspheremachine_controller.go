@@ -19,13 +19,13 @@ package controllers
 import (
 	goctx "context"
 	"fmt"
-
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/record"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/ipam"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -176,6 +176,12 @@ func (r *VSphereMachineReconciler) reconcileDelete(ctx *context.MachineContext) 
 		return reconcile.Result{RequeueAfter: config.DefaultRequeue}, nil
 	}
 
+	// NetApp
+	var ipamService = &ipam.IPAMService{}
+	if err := ipamService.ReleaseIPAM(ctx); err != nil {
+		return reconcile.Result{}, err
+	}
+
 	// The VM is deleted so remove the finalizer.
 	ctx.VSphereMachine.Finalizers = clusterutilv1.Filter(ctx.VSphereMachine.Finalizers, infrav1.MachineFinalizer)
 
@@ -203,6 +209,12 @@ func (r *VSphereMachineReconciler) reconcileNormal(ctx *context.MachineContext) 
 	if ctx.Machine.Spec.Bootstrap.Data == nil {
 		ctx.Logger.Info("Waiting for bootstrap data to be available")
 		return reconcile.Result{RequeueAfter: config.DefaultRequeue}, nil
+	}
+
+	// NetApp
+	var ipamService = &ipam.IPAMService{}
+	if err := ipamService.ReconcileIPAM(ctx); err != nil {
+		return reconcile.Result{}, err
 	}
 
 	// TODO(akutz) Implement selection of VM service based on vSphere version

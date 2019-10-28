@@ -59,7 +59,6 @@ FLAGS
   -o    output directory (default ${OUT_DIR})
   -p    capi manager image (default "${CAPI_MANAGER_IMAGE}")
   -P    capi manager log level (default "${CAPI_MANAGER_LOG_LEVEL}")
-  -u    enable support for vSphere versions < 6.7u3
 EOF
 }
 

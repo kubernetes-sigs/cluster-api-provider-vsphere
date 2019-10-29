@@ -47,6 +47,8 @@ This provider's versions are compatible with the following versions of Cluster A
 
 ## Kubernetes versions with published OVAs
 
+Note: These OVAs are not updated for security fixes and it is recommended to always use the latest patch version for the Kubernetes version you wish to run. For production-like environments, it is highly recommended to build and use your own custom images.
+
 | Kubernetes | CentOS 7 | Ubuntu 18.04 |
 |:-:|:-:|:-:|
 | v1.14.8 | [ova](http://storage.googleapis.com/capv-images/release/v1.14.8/centos-7-kube-v1.14.8.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.14.8/centos-7-kube-v1.14.8.ova.sha256) | [ova](http://storage.googleapis.com/capv-images/release/v1.14.8/ubuntu-1804-kube-v1.14.8.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.14.8/ubuntu-1804-kube-v1.14.8.ova.sha256) |

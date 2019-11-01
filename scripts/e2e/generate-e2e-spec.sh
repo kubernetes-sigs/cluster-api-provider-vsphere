@@ -35,7 +35,7 @@ docker run --rm \
     -e VSPHERE_NETWORK="sddc-cgw-network-5" \
     -e VSPHERE_RESOURCE_POOL="clusterapi" \
     -e VSPHERE_FOLDER="clusterapi" \
-    -e VSPHERE_TEMPLATE="ubuntu-1804-kube-v1.13.6" \
+    -e VSPHERE_TEMPLATE="ubuntu-1804-kube-v1.14.8" \
     -e SSH_AUTHORIZED_KEY="N/A" \
     "${MANIFESTS_IMAGE}" \
     -c "${CLUSTER_NAME}" \

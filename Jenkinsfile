@@ -9,7 +9,7 @@ pipeline {
 
   environment {
     DOCKER_REGISTRY = 'gcr.io'
-    ORG        = 'stackpoint-public'
+    ORG        = 'nks-images'
     APP_NAME   = 'cluster-api-provider-vsphere'
     REPOSITORY = "${ORG}/${APP_NAME}"
     GO111MODULE = 'off'

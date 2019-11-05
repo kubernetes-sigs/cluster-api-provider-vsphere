@@ -344,3 +344,22 @@ network:
 ```
 
 The above network definition specifies the CIDR to which the IP address belongs that is bound to the Kubernetes API server on the guest.
+
+#### Network Time Protocol (NTP) related problems causing Kubernetes CA related problems
+
+During the bootstrapping process a CA certificate is transferred to the new VM.  This CA has a "not valid until" date associated with it.  If the ESXI host does not have NTP properly configured there is a chance you will get an error during the kubeadm bootstrapping process which will output an error similar to this in the `/var/log/cloud-init-output.log` log on the VM:
+
+```shell
+[certs] Using certificateDir folder "/etc/kubernetes/pki"
+error execution phase certs/ca: failure loading ca certificate: failed to load certificate: the certificate is not valid yet
+```
+
+The solution for this is to either properly configure NTP in vCenter [Configuring Network Time Protocol (NTP) on an ESXi host using the vSphere Web Client (57147)](https://kb.vmware.com/s/article/57147) or add a NTP server block to the `KubeadmConfig`:
+
+```yaml
+spec:
+  ntp:
+    enabled: true
+    servers:
+      - 192.168.2.1
+```

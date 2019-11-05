@@ -349,7 +349,7 @@ The above network definition specifies the CIDR to which the IP address belongs 
 
 During the bootstrapping process a CA certificate is transferred to the new VM.  This CA has a "not valid until" date associated with it.  If the ESXI host does not have NTP properly configured there is a chance you will get an error during the kubeadm bootstrapping process which will output an error similar to this in the `/var/log/cloud-init-output.log` log on the VM:
 
-```
+```shell
 [certs] Using certificateDir folder "/etc/kubernetes/pki"
 error execution phase certs/ca: failure loading ca certificate: failed to load certificate: the certificate is not valid yet
 ```

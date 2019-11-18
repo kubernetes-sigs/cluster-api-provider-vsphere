@@ -22,7 +22,7 @@ const (
 func TagNKSMachine(ctx *context.MachineContext, vm *object.VirtualMachine) error {
 
 	tagManager := tags.NewManager(ctx.RestSession.Client)
-	clusterID, workspaceID, isServiceCluster := ctx.GetNKSClusterInfo()
+	clusterID, workspaceID, _, isServiceCluster := ctx.GetNKSClusterInfo()
 
 	ctx.Logger.V(4).Info("tagging VM with cluster information")
 	if err := tagWithClusterInfo(ctx, tagManager, vm.Reference(), workspaceID, clusterID, ctx.Cluster.Name); err != nil {
@@ -44,7 +44,7 @@ func TagNKSMachine(ctx *context.MachineContext, vm *object.VirtualMachine) error
 func CleanupNKSTags(ctx *context.MachineContext) error {
 
 	tagManager := tags.NewManager(ctx.RestSession.Client)
-	clusterID, workspaceID, isServiceCluster := ctx.GetNKSClusterInfo()
+	clusterID, workspaceID, _, isServiceCluster := ctx.GetNKSClusterInfo()
 
 	ctx.Logger.V(4).Info("cleaning up cluster information tag and category", "cluster", ctx.Cluster.Name)
 	if err := deleteClusterInfoTagAndCategory(ctx, tagManager, workspaceID, clusterID, ctx.Cluster.Name); err != nil {

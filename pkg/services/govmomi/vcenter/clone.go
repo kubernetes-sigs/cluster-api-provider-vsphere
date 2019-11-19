@@ -21,9 +21,9 @@ import (
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/govmomi/extra"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/govmomi/template"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/extra"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/template"
 )
 
 const (

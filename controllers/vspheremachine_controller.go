@@ -35,10 +35,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/config"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/govmomi"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/config"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi"
 )
 
 // VSphereMachineReconciler reconciles a VSphereMachine object

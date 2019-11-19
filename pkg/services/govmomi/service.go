@@ -26,10 +26,10 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/govmomi/extra"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/govmomi/net"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/util"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/extra"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/net"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
 // VMService provdes API to interact with the VMs using govmomi

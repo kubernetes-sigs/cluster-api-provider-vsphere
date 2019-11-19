@@ -18,7 +18,7 @@ package services
 
 import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 )
 
 // VirtualMachineService is a service for creating/updating/deleting virtual

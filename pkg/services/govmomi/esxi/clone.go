@@ -19,7 +19,7 @@ package esxi
 import (
 	"github.com/pkg/errors"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 )
 
 // Clone kicks off a clone operation on ESXi to create a new virtual machine.

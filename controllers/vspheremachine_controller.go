@@ -259,7 +259,7 @@ func (r machineReconciler) reconcileNormal(ctx *context.MachineContext) (reconci
 		return reconcile.Result{RequeueAfter: config.DefaultRequeue}, nil
 	}
 
-	if err := r.reconcileProviderID(ctx, vm, vmService); err != nil {
+	if err := r.reconcileProviderID(ctx, vm); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -301,7 +301,7 @@ func (r machineReconciler) reconcileNetwork(ctx *context.MachineContext, vm infr
 	return true, nil
 }
 
-func (r machineReconciler) reconcileProviderID(ctx *context.MachineContext, vm infrav1.VirtualMachine, vmService services.VirtualMachineService) error {
+func (r machineReconciler) reconcileProviderID(ctx *context.MachineContext, vm infrav1.VirtualMachine) error {
 	providerID := infrautilv1.ConvertUUIDToProviderID(vm.BiosUUID)
 	if providerID == "" {
 		return errors.Errorf("invalid BIOS UUID %s for %s", vm.BiosUUID, ctx)

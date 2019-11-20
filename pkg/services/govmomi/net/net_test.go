@@ -19,7 +19,7 @@ package net_test
 import (
 	"testing"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/govmomi/net"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/net"
 )
 
 func TestErrOnLocalOnlyIPAddr(t *testing.T) {

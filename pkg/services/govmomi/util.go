@@ -22,8 +22,8 @@ import (
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/govmomi/net"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/net"
 )
 
 func sanitizeIPAddrs(ctx *context.MachineContext, ipAddrs []string) []string {

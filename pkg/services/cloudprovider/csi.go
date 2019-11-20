@@ -23,7 +23,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2/cloudprovider"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 )
 
 // NOTE: the contents of this file are derived from https://github.com/kubernetes-sigs/vsphere-csi-driver/tree/master/manifests/1.14

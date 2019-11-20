@@ -17,9 +17,9 @@ limitations under the License.
 package govmomi
 
 import (
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/govmomi/esxi"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/services/govmomi/vcenter"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/esxi"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/vcenter"
 )
 
 func createVM(ctx *context.MachineContext, bootstrapData []byte) error {

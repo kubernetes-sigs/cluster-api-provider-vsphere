@@ -24,7 +24,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/vmware/govmomi/object"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/context"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 )
 
 type tplContext interface {

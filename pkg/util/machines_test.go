@@ -22,7 +22,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/cloud/vsphere/util"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
 func Test_GetMachinePreferredIPAddress(t *testing.T) {

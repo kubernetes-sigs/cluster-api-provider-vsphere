@@ -295,12 +295,6 @@ spec:
                       required:
                       - devices
                       type: object
-                    ntpServers:
-                      description: NTPServers is a list of NTP servers to use instead
-                        of the machine image's default NTP server list.
-                      items:
-                        type: string
-                      type: array
                     numCPUs:
                       description: NumCPUs is the number of virtual processors in
                         a virtual machine. Defaults to the analogue property value
@@ -321,13 +315,6 @@ spec:
                       description: Template is the name, inventory path, or instance
                         UUID of the template used to clone new machines.
                       type: string
-                    trustedCerts:
-                      description: TrustedCerts is a list of trusted certificates
-                        to add to the machine's VM.
-                      items:
-                        format: byte
-                        type: string
-                      type: array
                   required:
                   - datacenter
                   - network

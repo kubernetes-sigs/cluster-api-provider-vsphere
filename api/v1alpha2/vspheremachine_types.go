@@ -74,15 +74,6 @@ type VSphereMachineSpec struct {
 	// machine is cloned.
 	// +optional
 	DiskGiB int32 `json:"diskGiB,omitempty"`
-
-	// TrustedCerts is a list of trusted certificates to add to the machine's VM.
-	// +optional
-	TrustedCerts [][]byte `json:"trustedCerts,omitempty"`
-
-	// NTPServers is a list of NTP servers to use instead of the machine image's
-	// default NTP server list.
-	// +optional
-	NTPServers []string `json:"ntpServers,omitempty"`
 }
 
 // VSphereMachineStatus defines the observed state of VSphereMachine

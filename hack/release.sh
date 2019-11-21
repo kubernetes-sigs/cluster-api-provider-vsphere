@@ -103,6 +103,10 @@ function build_images() {
       MANAGER_IMAGE_NAME=${CAPV_MANAGER_IMAGE_RELEASE}
       MANIFESTS_IMAGE_NAME=${CAPV_MANIFESTS_IMAGE_RELEASE}
       ;;
+    *)
+      # A local dev build
+      MANAGER_IMAGE_NAME="${BUILD_RELEASE_TYPE}-manager"
+      MANIFESTS_IMAGE_NAME="${BUILD_RELEASE_TYPE}-manifests"
   esac
 
   # Manager image
@@ -212,7 +216,7 @@ case "${BUILD_RELEASE_TYPE}" in
     # do nothing
     ;;
   *)
-    fatal "invalid BUILD_RELEASE_TYPE: ${BUILD_RELEASE_TYPE}"
+    echo "custom BUILD_RELEASE_TYPE: ${BUILD_RELEASE_TYPE}"
     ;;
 esac
 

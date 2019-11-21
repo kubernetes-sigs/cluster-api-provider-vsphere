@@ -7,37 +7,31 @@ start;
 repeat
   :Reconcile;
 
-  if (Machine has a TaskRef) then (yes)
-    if (Task exists) then (yes)
-      if (Task is running/pending) then (yes)
-        #LightGreen:Requeue;
-      elseif (Task is success/failed) then (yes)
-        #edf7de:Remove TaskRef from Machine;
-      endif
-    else (no)
-      #edf7de:Remove TaskRef from Machine;
+  if (Machine has DeletionTimestamp) then (yes)
+    if (Machine has in-flight task) then (yes)
       #LightGreen:Requeue;
-    endif
-  endif
-  if (Is requeued or in error) then (no)
-    if (Machine has a MachineRef) then (no)
-      if (Can find VM by InstanceUUID) then (yes)
-        #edf7de:Assign MachineRef to Machine;
+    else (no)
+      if (Machine has a ProviderID) then (yes)
+        #edf7de:Find VM by BIOS UUID;
+      else (no)
+        #edf7de:Find VM by instance UUID;
       endif
-    endif
-    if (Machine has a MachineRef) then (no)
-      if (Can find VM by MachineRef) then (no)
-        #edf7de:Remove MachineRef from Machine;
-      endif
-    endif
-    if (Machine has DeletionTimestamp) then (yes)
-      if (Machine has a MachineRef) then (yes)
+      if (VM exists) then (yes)
         #edf7de:Delete VM;
         #edf7de:Assign delete TaskRef to Machine;
         #LightGreen:Requeue;
       endif
+    endif
+  else (no)
+    if (Machine has in-flight task) then (yes)
+      #LightGreen:Requeue;
     else (no)
-      if (Machine has a MachineRef) then (yes)
+      if (Machine has a ProviderID) then (yes)
+        #edf7de:Find VM by BIOS UUID;
+      else (no)
+        #edf7de:Find VM by instance UUID;
+      endif
+      if (VM exists) then (yes)
         if (VM metadata matches calculated metadata) then (no)
           #edf7de:Reconfigure VM with calculated metadata;
           #edf7de:Assign reconfigure TaskRef to Machine;

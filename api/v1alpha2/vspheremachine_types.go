@@ -36,12 +36,6 @@ type VSphereMachineSpec struct {
 	// +optional
 	ProviderID *string `json:"providerID,omitempty"`
 
-	// This value is set automatically at runtime and should not be set or
-	// modified by users.
-	// MachineRef is used to lookup the VM.
-	// +optional
-	MachineRef string `json:"machineRef,omitempty"`
-
 	// Template is the name, inventory path, or instance UUID of the template
 	// used to clone new machines.
 	Template string `json:"template"`

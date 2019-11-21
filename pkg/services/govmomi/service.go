@@ -21,6 +21,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/property"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
@@ -48,67 +49,48 @@ func (vms *VMService) ReconcileVM(ctx *context.MachineContext) (infrav1.VirtualM
 		State: infrav1.VirtualMachineStatePending,
 	}
 
-	// If there is no pending task or no machine ref then no VM exits, create one
-	if ctx.VSphereMachine.Status.TaskRef == "" && ctx.VSphereMachine.Spec.MachineRef == "" {
-		ref, err := findVMByInstanceUUID(ctx)
-		if err != nil {
-			return vm, err
-		}
-
-		if ref != "" {
-			return vm, errors.Errorf("vm with the same Instance UUID already exists %q", ctx.Machine.Name)
-		}
-
-		// no VM exits, goahead and create a VM
-		if err := createVM(ctx, []byte(*ctx.Machine.Spec.Bootstrap.Data)); err != nil {
-			return vm, err
-		}
-
-		return vm, nil
-	}
-
-	// The VM exists at this point, so let's address steps two through four
-	// from this function's documented workflow (please see the function's
-	// GoDoc comments for more information)
-
-	// Check for in-flight tasks
-	if inflight, err := hasInFlightTask(ctx); err != nil || inflight {
+	// If there is an in-flight task associated with this VM then do not
+	// reconcile the VM until the task is completed.
+	if inFlight, err := reconcileInFlightTask(ctx); err != nil || inFlight {
 		return vm, err
 	}
 
-	// Update the MachineRef if not already present
-	if ctx.VSphereMachine.Spec.MachineRef == "" {
-		moRefID, err := findVMByInstanceUUID(ctx)
-		if err != nil {
-			return vm, err
-		}
-		if moRefID != "" {
-			ctx.VSphereMachine.Spec.MachineRef = moRefID
-			ctx.Logger.V(6).Info("discovered moref id", "moref-id", ctx.VSphereMachine.Spec.MachineRef)
-		}
-	}
-
-	// Verify if the VM exists
-	obj, err := getVMObject(ctx)
+	// Before going further, we need the VM's managed object reference.
+	vmRef, err := findVM(ctx)
 	if err != nil {
-		// The name lookup fails, therefore the VM does not exist.
-		ctx.VSphereMachine.Spec.MachineRef = ""
+		if !isNotFound(err) {
+			return vm, err
+		}
+		// If VM's MoRef could not be found then the VM does not exist,
+		// and the VM should be created.
+		return vm, createVM(ctx, []byte(*ctx.Machine.Spec.Bootstrap.Data))
+	}
+
+	//
+	// At this point we know the VM exists, so it needs to be updated.
+	//
+
+	// Create a new virtualMachineContext to reconcile the VM.
+	vmCtx := &virtualMachineContext{
+		MachineContext: *ctx,
+		Obj:            object.NewVirtualMachine(ctx.Session.Client.Client, vmRef),
+		Ref:            vmRef,
+		State:          &vm,
+	}
+
+	if err := vms.reconcileUUID(vmCtx); err != nil {
 		return vm, err
 	}
 
-	if err := vms.reconcileNetworkStatus(ctx, &vm); err != nil {
+	if err := vms.reconcileNetworkStatus(vmCtx); err != nil {
 		return vm, nil
 	}
 
-	if ok, err := vms.reconcileMetadata(ctx, vm); err != nil || !ok {
+	if ok, err := vms.reconcileMetadata(vmCtx); err != nil || !ok {
 		return vm, err
 	}
 
-	if ok, err := vms.reconcilePowerState(ctx); err != nil || !ok {
-		return vm, err
-	}
-
-	if err := vms.reconcileUUIUDs(ctx, &vm, obj); err != nil {
+	if ok, err := vms.reconcilePowerState(vmCtx); err != nil || !ok {
 		return vm, err
 	}
 
@@ -124,43 +106,47 @@ func (vms *VMService) DestroyVM(ctx *context.MachineContext) (infrav1.VirtualMac
 		State: infrav1.VirtualMachineStatePending,
 	}
 
-	if ctx.VSphereMachine.Spec.MachineRef == "" && ctx.VSphereMachine.Status.TaskRef == "" {
-		// vm already deleted
-		vm.State = infrav1.VirtualMachineStateNotFound
-		return vm, nil
-	}
-
-	// check for in-flight tasks
-	if inflight, err := hasInFlightTask(ctx); err != nil || inflight {
+	// If there is an in-flight task associated with this VM then do not
+	// reconcile the VM until the task is completed.
+	if inFlight, err := reconcileInFlightTask(ctx); err != nil || inFlight {
 		return vm, err
 	}
 
-	// check if the vm existts
-	moRefID, err := findVMByInstanceUUID(ctx)
+	// Before going further, we need the VM's managed object reference.
+	vmRef, err := findVM(ctx)
 	if err != nil {
+		// If the VM's MoRef could not be found then the VM no longer exists. This
+		// is the desired state.
+		if isNotFound(err) {
+			vm.State = infrav1.VirtualMachineStateNotFound
+			return vm, nil
+		}
 		return vm, err
 	}
-	if moRefID == "" {
-		// No vm exists
-		// remove the MachineRef and set the vm state to notfound
-		ctx.VSphereMachine.Spec.MachineRef = ""
-		vm.State = infrav1.VirtualMachineStateNotFound
-		return vm, nil
+
+	//
+	// At this point we know the VM exists, so it needs to be destroyed.
+	//
+
+	// Create a new virtualMachineContext to reconcile the VM.
+	vmCtx := &virtualMachineContext{
+		MachineContext: *ctx,
+		Obj:            object.NewVirtualMachine(ctx.Session.Client.Client, vmRef),
+		Ref:            vmRef,
+		State:          &vm,
 	}
 
-	// VM actually exists
-	// Power off the VM if needed
-	powerState, err := vms.getPowerState(ctx)
+	// Power off the VM.
+	powerState, err := vms.getPowerState(vmCtx)
 	if err != nil {
 		return vm, err
 	}
 	if powerState == infrav1.VirtualMachinePowerStatePoweredOn {
-		task, err := vms.powerOffVM(ctx)
+		taskRef, err := vms.powerOffVM(vmCtx)
 		if err != nil {
 			return vm, err
 		}
-		ctx.VSphereMachine.Status.TaskRef = task
-		// requeue for VM to be powered off
+		ctx.VSphereMachine.Status.TaskRef = taskRef
 		ctx.Logger.V(6).Info("reenqueue to wait for power off op")
 		return vm, nil
 	}
@@ -168,34 +154,31 @@ func (vms *VMService) DestroyVM(ctx *context.MachineContext) (infrav1.VirtualMac
 	// At this point the VM is not powered on and can be destroyed. Store the
 	// destroy task's reference and return a requeue error.
 	ctx.Logger.V(6).Info("destroying vm")
-	task, err := vms.destroyVM(ctx)
+	taskRef, err := vms.destroyVM(vmCtx)
 	if err != nil {
 		return vm, err
 	}
-	ctx.VSphereMachine.Status.TaskRef = task
-
-	// Requeue
+	ctx.VSphereMachine.Status.TaskRef = taskRef
 	ctx.Logger.V(6).Info("reenqueue to wait for destroy op")
 	return vm, nil
 }
 
-func (vms *VMService) reconcileNetworkStatus(ctx *context.MachineContext, vm *infrav1.VirtualMachine) error {
+func (vms *VMService) reconcileNetworkStatus(ctx *virtualMachineContext) error {
 	netStatus, err := vms.getNetworkStatus(ctx)
 	if err != nil {
 		return err
 	}
-
-	vm.Network = netStatus
+	ctx.State.Network = netStatus
 	return nil
 }
 
-func (vms *VMService) reconcileMetadata(ctx *context.MachineContext, vm infrav1.VirtualMachine) (bool, error) {
+func (vms *VMService) reconcileMetadata(ctx *virtualMachineContext) (bool, error) {
 	existingMetadata, err := vms.getMetadata(ctx)
 	if err != nil {
 		return false, err
 	}
 
-	newMetadata, err := util.GetMachineMetadata(ctx.Machine.Name, *ctx.VSphereMachine, vm.Network...)
+	newMetadata, err := util.GetMachineMetadata(ctx.Machine.Name, *ctx.VSphereMachine, ctx.State.Network...)
 	if err != nil {
 		return false, err
 	}
@@ -206,18 +189,17 @@ func (vms *VMService) reconcileMetadata(ctx *context.MachineContext, vm infrav1.
 	}
 
 	ctx.Logger.V(4).Info("updating metadata")
-	task, err := vms.setMetadata(ctx, newMetadata)
+	taskRef, err := vms.setMetadata(ctx, newMetadata)
 	if err != nil {
 		return false, errors.Wrapf(err, "unable to set metadata on vm %q", ctx)
 	}
 
-	// update taskref
-	ctx.VSphereMachine.Status.TaskRef = task
+	ctx.VSphereMachine.Status.TaskRef = taskRef
 	ctx.Logger.V(6).Info("reenqueue to track update metadata task")
 	return false, nil
 }
 
-func (vms *VMService) reconcilePowerState(ctx *context.MachineContext) (bool, error) {
+func (vms *VMService) reconcilePowerState(ctx *virtualMachineContext) (bool, error) {
 	powerState, err := vms.getPowerState(ctx)
 	if err != nil {
 		return false, err
@@ -225,12 +207,12 @@ func (vms *VMService) reconcilePowerState(ctx *context.MachineContext) (bool, er
 	switch powerState {
 	case infrav1.VirtualMachinePowerStatePoweredOff:
 		ctx.Logger.V(4).Info("powering on")
-		task, err := vms.powerOnVM(ctx)
+		taskRef, err := vms.powerOnVM(ctx)
 		if err != nil {
 			return false, errors.Wrapf(err, "failed to trigger power on op for vm %q", ctx)
 		}
 		// update the tak ref to track
-		ctx.VSphereMachine.Status.TaskRef = task
+		ctx.VSphereMachine.Status.TaskRef = taskRef
 		ctx.Logger.V(6).Info("reenqueue to wait for power on state")
 		return false, nil
 	case infrav1.VirtualMachinePowerStatePoweredOn:
@@ -242,32 +224,18 @@ func (vms *VMService) reconcilePowerState(ctx *context.MachineContext) (bool, er
 	return true, nil
 }
 
-func (vms *VMService) reconcileUUIUDs(ctx *context.MachineContext, vm *infrav1.VirtualMachine, obj mo.VirtualMachine) error {
-	// Temporarily removing this. It is calling a panic (nil pointer reference).
-	// we dont use this anywhere so ti should be fine.
-	// vm.InstanceUUID = obj.Config.InstanceUuid
-
-	biosUUID, err := vms.getBiosUUID(ctx)
-	if err != nil {
-		return err
-	}
-	vm.BiosUUID = biosUUID
+func (vms *VMService) reconcileUUID(ctx *virtualMachineContext) error {
+	ctx.State.BiosUUID = ctx.Obj.UUID(ctx)
 	return nil
 }
 
-func (vms *VMService) getPowerState(ctx *context.MachineContext) (infrav1.VirtualMachinePowerState, error) {
-
-	vm, err := getVMfromMachineRef(ctx)
+func (vms *VMService) getPowerState(ctx *virtualMachineContext) (infrav1.VirtualMachinePowerState, error) {
+	powerState, err := ctx.Obj.PowerState(ctx)
 	if err != nil {
 		return "", err
 	}
 
-	pState, err := vm.PowerState(ctx)
-	if err != nil {
-		return "", err
-	}
-
-	switch pState {
+	switch powerState {
 	case types.VirtualMachinePowerStatePoweredOn:
 		return infrav1.VirtualMachinePowerStatePoweredOn, nil
 	case types.VirtualMachinePowerStatePoweredOff:
@@ -275,28 +243,26 @@ func (vms *VMService) getPowerState(ctx *context.MachineContext) (infrav1.Virtua
 	case types.VirtualMachinePowerStateSuspended:
 		return infrav1.VirtualMachinePowerStateSuspended, nil
 	default:
-		return "", errors.Errorf("unexpected power state %q for vm %q", pState, ctx)
+		return "", errors.Errorf("unexpected power state %q for vm %q", powerState, ctx)
 	}
 }
 
-func (vms *VMService) getMetadata(ctx *context.MachineContext) (string, error) {
+func (vms *VMService) getMetadata(ctx *virtualMachineContext) (string, error) {
 	var (
 		obj mo.VirtualMachine
 
-		moRef = *(getMoRef(ctx))
 		pc    = property.DefaultCollector(ctx.Session.Client.Client)
 		props = []string{"config.extraConfig"}
 	)
 
-	if err := pc.RetrieveOne(ctx, moRef, props, &obj); err != nil {
-		return "", errors.Wrapf(err, "unable to fetch props %v for vm %v", props, moRef)
+	if err := pc.RetrieveOne(ctx, ctx.Ref, props, &obj); err != nil {
+		return "", errors.Wrapf(err, "unable to fetch props %v for vm %v", props, ctx.Ref)
 	}
 	if obj.Config == nil {
 		return "", nil
 	}
 
 	var metadataBase64 string
-
 	for _, ec := range obj.Config.ExtraConfig {
 		if optVal := ec.GetOptionValue(); optVal != nil {
 			// TODO(akutz) Using a switch instead of if in case we ever
@@ -325,16 +291,11 @@ func (vms *VMService) getMetadata(ctx *context.MachineContext) (string, error) {
 	return string(metadataBuf), nil
 }
 
-func (vms *VMService) setMetadata(ctx *context.MachineContext, metadata []byte) (string, error) {
+func (vms *VMService) setMetadata(ctx *virtualMachineContext, metadata []byte) (string, error) {
 	var extraConfig extra.Config
 	extraConfig.SetCloudInitMetadata(metadata)
 
-	vm, err := getVMfromMachineRef(ctx)
-	if err != nil {
-		return "", err
-	}
-
-	task, err := vm.Reconfigure(ctx, types.VirtualMachineConfigSpec{
+	task, err := ctx.Obj.Reconfigure(ctx, types.VirtualMachineConfigSpec{
 		ExtraConfig: extraConfig,
 	})
 	if err != nil {
@@ -344,8 +305,8 @@ func (vms *VMService) setMetadata(ctx *context.MachineContext, metadata []byte) 
 	return task.Reference().Value, nil
 }
 
-func (vms *VMService) getNetworkStatus(ctx *context.MachineContext) ([]infrav1.NetworkStatus, error) {
-	allNetStatus, err := net.GetNetworkStatus(ctx, ctx.Session.Client.Client, *(getMoRef(ctx)))
+func (vms *VMService) getNetworkStatus(ctx *virtualMachineContext) ([]infrav1.NetworkStatus, error) {
+	allNetStatus, err := net.GetNetworkStatus(ctx, ctx.Session.Client.Client, ctx.Ref)
 	if err != nil {
 		return nil, err
 	}
@@ -354,7 +315,7 @@ func (vms *VMService) getNetworkStatus(ctx *context.MachineContext) ([]infrav1.N
 	for _, s := range allNetStatus {
 		apiNetStatus = append(apiNetStatus, infrav1.NetworkStatus{
 			Connected:   s.Connected,
-			IPAddrs:     sanitizeIPAddrs(ctx, s.IPAddrs),
+			IPAddrs:     sanitizeIPAddrs(&ctx.MachineContext, s.IPAddrs),
 			MACAddr:     s.MACAddr,
 			NetworkName: s.NetworkName,
 		})
@@ -362,53 +323,26 @@ func (vms *VMService) getNetworkStatus(ctx *context.MachineContext) ([]infrav1.N
 	return apiNetStatus, nil
 }
 
-func (vms *VMService) getBiosUUID(ctx *context.MachineContext) (string, error) {
-	vm, err := getVMfromMachineRef(ctx)
+func (vms *VMService) powerOnVM(ctx *virtualMachineContext) (string, error) {
+	task, err := ctx.Obj.PowerOn(ctx)
 	if err != nil {
 		return "", err
 	}
-
-	return vm.UUID(ctx), nil
-}
-
-func (vms *VMService) powerOnVM(ctx *context.MachineContext) (string, error) {
-	vm, err := getVMfromMachineRef(ctx)
-	if err != nil {
-		return "", err
-	}
-
-	task, err := vm.PowerOn(ctx)
-	if err != nil {
-		return "", err
-	}
-
 	return task.Reference().Value, nil
 }
 
-func (vms *VMService) powerOffVM(ctx *context.MachineContext) (string, error) {
-	vm, err := getVMfromMachineRef(ctx)
+func (vms *VMService) powerOffVM(ctx *virtualMachineContext) (string, error) {
+	task, err := ctx.Obj.PowerOff(ctx)
 	if err != nil {
 		return "", err
 	}
-
-	task, err := vm.PowerOff(ctx)
-	if err != nil {
-		return "", err
-	}
-
 	return task.Reference().Value, nil
 }
 
-func (vms *VMService) destroyVM(ctx *context.MachineContext) (string, error) {
-	vm, err := getVMfromMachineRef(ctx)
+func (vms *VMService) destroyVM(ctx *virtualMachineContext) (string, error) {
+	task, err := ctx.Obj.Destroy(ctx)
 	if err != nil {
 		return "", err
 	}
-
-	task, err := vm.Destroy(ctx)
-	if err != nil {
-		return "", err
-	}
-
 	return task.Reference().Value, nil
 }

@@ -159,11 +159,6 @@ spec:
                         from which this machine is cloned.
                       format: int32
                       type: integer
-                    machineRef:
-                      description: This value is set automatically at runtime and
-                        should not be set or modified by users. MachineRef is used
-                        to lookup the VM.
-                      type: string
                     memoryMiB:
                       description: MemoryMiB is the size of a virtual machine's memory,
                         in MiB. Defaults to the analogue property value in the template

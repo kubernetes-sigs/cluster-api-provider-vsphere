@@ -39,6 +39,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi"
+	infrautilv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
 // VSphereMachineReconciler reconciles a VSphereMachine object
@@ -270,7 +271,10 @@ func (r *VSphereMachineReconciler) reconcileNetwork(ctx *context.MachineContext,
 }
 
 func (r *VSphereMachineReconciler) reconcileProviderID(ctx *context.MachineContext, vm infrav1.VirtualMachine, vmService services.VirtualMachineService) error {
-	providerID := fmt.Sprintf("vsphere://%s", vm.BiosUUID)
+	providerID := infrautilv1.ConvertUUIDToProviderID(vm.BiosUUID)
+	if providerID == "" {
+		return errors.Errorf("invalid BIOS UUID %s for %s", vm.BiosUUID, ctx)
+	}
 	if ctx.VSphereMachine.Spec.ProviderID == nil || *ctx.VSphereMachine.Spec.ProviderID != providerID {
 		ctx.VSphereMachine.Spec.ProviderID = &providerID
 		ctx.Logger.V(6).Info("updated provider ID", "provider-id", providerID)

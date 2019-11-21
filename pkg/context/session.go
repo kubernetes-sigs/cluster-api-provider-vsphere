@@ -93,28 +93,26 @@ func getOrCreateCachedSession(ctx *MachineContext) (*Session, error) {
 	return &session, nil
 }
 
-// FindByInstanceUUID finds an object by its instance UUID.
-func (s *Session) FindByInstanceUUID(ctx context.Context, uuid string) (object.Reference, error) {
-	if s.Client == nil {
-		return nil, errors.New("vSphere client is not initialized")
-	}
-	si := object.NewSearchIndex(s.Client.Client)
-	findFlag := true
-	ref, err := si.FindByUuid(ctx, s.datacenter, uuid, true, &findFlag)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error finding object by instance uuid %q", uuid)
-	}
-	return ref, nil
+// FindByBIOSUUID finds an object by its BIOS UUID.
+//
+// To avoid comments about this function's name, please see the Golang
+// WIKI https://github.com/golang/go/wiki/CodeReviewComments#initialisms.
+// This function is named in accordance with the example "XMLHTTP".
+func (s *Session) FindByBIOSUUID(ctx context.Context, uuid string) (object.Reference, error) {
+	return s.findByUUID(ctx, uuid, false)
 }
 
-// FindByUUID finds an object by its UUID.
-func (s *Session) FindByUUID(ctx context.Context, uuid string) (object.Reference, error) {
+// FindByInstanceUUID finds an object by its instance UUID.
+func (s *Session) FindByInstanceUUID(ctx context.Context, uuid string) (object.Reference, error) {
+	return s.findByUUID(ctx, uuid, true)
+}
+
+func (s *Session) findByUUID(ctx context.Context, uuid string, findByInstanceUUID bool) (object.Reference, error) {
 	if s.Client == nil {
 		return nil, errors.New("vSphere client is not initialized")
 	}
 	si := object.NewSearchIndex(s.Client.Client)
-	findFlag := false
-	ref, err := si.FindByUuid(ctx, s.datacenter, uuid, true, &findFlag)
+	ref, err := si.FindByUuid(ctx, s.datacenter, uuid, true, &findByInstanceUUID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error finding object by uuid %q", uuid)
 	}

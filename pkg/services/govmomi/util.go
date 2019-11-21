@@ -18,12 +18,12 @@ package govmomi
 
 import (
 	"github.com/pkg/errors"
-	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/net"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
 func sanitizeIPAddrs(ctx *context.MachineContext, ipAddrs []string) []string {
@@ -41,17 +41,36 @@ func sanitizeIPAddrs(ctx *context.MachineContext, ipAddrs []string) []string {
 	return newIPAddrs
 }
 
-func findVMByInstanceUUID(ctx *context.MachineContext) (string, error) {
-	ctx.Logger.V(6).Info("finding vm by instance UUID", "instance-uuid", ctx.Machine.UID)
-	ref, err := ctx.Session.FindByInstanceUUID(ctx, string(ctx.Machine.UID))
+// findVM searches for a VM in one of two ways:
+//   1. If the ProviderID is available, then the VM is queried by its
+//      BIOS UUID.
+//   2. Lacking the ProviderID, the VM is queried by its instance UUID,
+//      which was assigned the value of the Machine resource's UID string.
+func findVM(ctx *context.MachineContext) (types.ManagedObjectReference, error) {
+	if providerID := ctx.VSphereMachine.Spec.ProviderID; providerID != nil && *providerID != "" {
+		uuid := util.ConvertProviderIDToUUID(providerID)
+		if uuid == "" {
+			return types.ManagedObjectReference{}, errors.Errorf("invalid providerID %s", *providerID)
+		}
+		objRef, err := ctx.Session.FindByBIOSUUID(ctx, uuid)
+		if err != nil {
+			return types.ManagedObjectReference{}, err
+		}
+		if objRef == nil {
+			return types.ManagedObjectReference{}, errNotFound{uuid: uuid}
+		}
+		return objRef.Reference(), nil
+	}
+
+	uuid := string(ctx.Machine.UID)
+	objRef, err := ctx.Session.FindByInstanceUUID(ctx, uuid)
 	if err != nil {
-		return "", err
+		return types.ManagedObjectReference{}, err
 	}
-	if ref != nil {
-		ctx.Logger.V(6).Info("found vm by instance UUID", "instance-uuid", ctx.Machine.UID)
-		return ref.Reference().Value, nil
+	if objRef == nil {
+		return types.ManagedObjectReference{}, errNotFound{instanceUUID: true, uuid: uuid}
 	}
-	return "", nil
+	return objRef.Reference(), nil
 }
 
 func getTask(ctx *context.MachineContext) *mo.Task {
@@ -66,67 +85,36 @@ func getTask(ctx *context.MachineContext) *mo.Task {
 	return &obj
 }
 
-func hasInFlightTask(ctx *context.MachineContext) (bool, error) {
+func reconcileInFlightTask(ctx *context.MachineContext) (bool, error) {
 	// Check to see if there is an in-flight task.
-	if task := getTask(ctx); task == nil {
-		// no task associated
+	task := getTask(ctx)
+
+	// If no task was found then make sure to clear the VSphereMachine
+	// resource's Status.TaskRef field.
+	if task == nil {
 		ctx.VSphereMachine.Status.TaskRef = ""
-	} else {
-		// check if the status of task is in a favourable state
-		// If task is in completed or error state we can process further.
-		// if task is in other states requeue
-		ctx := context.NewMachineLoggerContext(ctx, task.Reference().Value)
-
-		ctx.Logger.V(4).Info("task found", "state", task.Info.State, "description-id", task.Info.DescriptionId)
-		switch task.Info.State {
-		case types.TaskInfoStateQueued:
-			ctx.Logger.V(4).Info("task is still pending", "description-id", task.Info.DescriptionId)
-			return true, nil
-		case types.TaskInfoStateRunning:
-			ctx.Logger.V(4).Info("task is still running", "description-id", task.Info.DescriptionId)
-			return true, nil
-		case types.TaskInfoStateSuccess:
-			ctx.Logger.V(4).Info("task is a success", "description-id", task.Info.DescriptionId)
-			ctx.VSphereMachine.Status.TaskRef = ""
-			return false, nil
-		case types.TaskInfoStateError:
-			ctx.Logger.V(2).Info("task failed", "description-id", task.Info.DescriptionId)
-			ctx.VSphereMachine.Status.TaskRef = ""
-			return false, nil
-		default:
-			return false, errors.Errorf("unknown task state %q for %q", task.Info.State, ctx)
-		}
+		return false, nil
 	}
 
-	return false, nil
-}
-
-func getMoRef(ctx *context.MachineContext) *types.ManagedObjectReference {
-	if ctx.VSphereMachine.Spec.MachineRef != "" {
-		return &types.ManagedObjectReference{
-			Type:  "VirtualMachine",
-			Value: ctx.VSphereMachine.Spec.MachineRef,
-		}
+	// Otherwise the course of action is determined by the state of the task.
+	ctx = context.NewMachineLoggerContext(ctx, task.Reference().Value)
+	ctx.Logger.V(4).Info("task found", "state", task.Info.State, "description-id", task.Info.DescriptionId)
+	switch task.Info.State {
+	case types.TaskInfoStateQueued:
+		ctx.Logger.V(4).Info("task is still pending", "description-id", task.Info.DescriptionId)
+		return true, nil
+	case types.TaskInfoStateRunning:
+		ctx.Logger.V(4).Info("task is still running", "description-id", task.Info.DescriptionId)
+		return true, nil
+	case types.TaskInfoStateSuccess:
+		ctx.Logger.V(4).Info("task is a success", "description-id", task.Info.DescriptionId)
+		ctx.VSphereMachine.Status.TaskRef = ""
+		return false, nil
+	case types.TaskInfoStateError:
+		ctx.Logger.V(2).Info("task failed", "description-id", task.Info.DescriptionId)
+		ctx.VSphereMachine.Status.TaskRef = ""
+		return false, nil
+	default:
+		return false, errors.Errorf("unknown task state %q for %q", task.Info.State, ctx)
 	}
-
-	return nil
-}
-
-func getVMfromMachineRef(ctx *context.MachineContext) (*object.VirtualMachine, error) {
-	ref := getMoRef(ctx)
-	if ref == nil {
-		return nil, errors.Errorf("machine ref not set")
-	}
-
-	return object.NewVirtualMachine(ctx.Session.Client.Client, *ref), nil
-}
-
-func getVMObject(ctx *context.MachineContext) (mo.VirtualMachine, error) {
-	moRef := types.ManagedObjectReference{
-		Type:  "VirtualMachine",
-		Value: ctx.VSphereMachine.Spec.MachineRef,
-	}
-	var obj mo.VirtualMachine
-	err := ctx.Session.RetrieveOne(ctx, moRef, []string{"name"}, &obj)
-	return obj, err
 }

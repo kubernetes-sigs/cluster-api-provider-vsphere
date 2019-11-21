@@ -210,9 +210,6 @@ type VirtualMachine struct {
 	// BiosUUID is the VM's BIOS UUID.
 	BiosUUID string `json:"biosUUID"`
 
-	// InstanceUUID is the VM's instance UUID.
-	InstanceUUID string `json:"instanceUUID"`
-
 	// State is the VM's state.
 	State VirtualMachineState `json:"state"`
 

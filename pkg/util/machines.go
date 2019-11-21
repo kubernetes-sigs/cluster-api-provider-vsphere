@@ -20,10 +20,10 @@ import (
 	"bytes"
 	"context"
 	"net"
+	"regexp"
 	"text/template"
 
 	"github.com/pkg/errors"
-	vim25types "github.com/vmware/govmomi/vim25/types"
 	corev1 "k8s.io/api/core/v1"
 	apitypes "k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
@@ -100,15 +100,6 @@ func GetVSphereMachine(
 	return machine, nil
 }
 
-// GetMachineManagedObjectReference returns the managed object reference
-// for a VSphereMachine resource.
-func GetMachineManagedObjectReference(machine *infrav1.VSphereMachine) vim25types.ManagedObjectReference {
-	return vim25types.ManagedObjectReference{
-		Type:  "VirtualMachine",
-		Value: machine.Spec.MachineRef,
-	}
-}
-
 // ErrNoMachineIPAddr indicates that no valid IP addresses were found in a machine context
 var ErrNoMachineIPAddr = errors.New("no IP addresses found for machine")
 
@@ -178,4 +169,48 @@ func GetMachineMetadata(hostname string, machine infrav1.VSphereMachine, network
 			machine.Namespace, machine.ClusterName, machine.Name)
 	}
 	return buf.Bytes(), nil
+}
+
+const (
+	// ProviderIDPrefix is the string data prefixed to a BIOS UUID in order
+	// to build a provider ID.
+	ProviderIDPrefix = "vsphere://"
+
+	// ProviderIDPattern is a regex pattern and is used by ConvertProviderIDToUUID
+	// to convert a providerID into a UUID string.
+	ProviderIDPattern = `(?i)^` + ProviderIDPrefix + `([a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12})$`
+
+	// UUIDPattern is a regex pattern and is used by ConvertUUIDToProviderID
+	// to convert a UUID into a providerID string.
+	UUIDPattern = `(?i)^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$`
+)
+
+// ConvertProviderIDToUUID transforms a provider ID into a UUID string.
+// If providerID is nil, empty, or invalid, then an empty string is returned.
+// A valid providerID should adhere to the format specified by
+// ProviderIDPattern.
+func ConvertProviderIDToUUID(providerID *string) string {
+	if providerID == nil || *providerID == "" {
+		return ""
+	}
+	pattern := regexp.MustCompile(ProviderIDPattern)
+	matches := pattern.FindStringSubmatch(*providerID)
+	if len(matches) < 2 {
+		return ""
+	}
+	return matches[1]
+}
+
+// ConvertUUIDToProviderID transforms a UUID string into a provider ID.
+// If the supplied UUID is empty or invalid then an empty string is returned.
+// A valid UUID should adhere to the format specified by UUIDPattern.
+func ConvertUUIDToProviderID(uuid string) string {
+	if uuid == "" {
+		return ""
+	}
+	pattern := regexp.MustCompile(UUIDPattern)
+	if !pattern.MatchString(uuid) {
+		return ""
+	}
+	return ProviderIDPrefix + uuid
 }

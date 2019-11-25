@@ -19,109 +19,40 @@ package context
 import (
 	"fmt"
 
-	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/runtime"
+	"github.com/go-logr/logr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/cluster-api/util/patch"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 )
-
-// MachineContextParams are the parameters needed to create a MachineContext.
-type MachineContextParams struct {
-	ClusterContextParams
-	Machine        *clusterv1.Machine
-	VSphereMachine *v1alpha2.VSphereMachine
-}
 
 // MachineContext is a Go context used with a CAPI cluster.
 type MachineContext struct {
 	*ClusterContext
 	Machine        *clusterv1.Machine
-	VSphereMachine *v1alpha2.VSphereMachine
-	Session        *Session
-
-	vsphereMachinePatch client.Patch
+	VSphereMachine *infrav1.VSphereMachine
+	Session        *session.Session
+	Logger         logr.Logger
+	PatchHelper    *patch.Helper
 }
 
-// NewMachineContextFromClusterContext creates a new MachineContext using an
-// existing CluserContext.
-func NewMachineContextFromClusterContext(
-	clusterCtx *ClusterContext,
-	machine *clusterv1.Machine,
-	vsphereMachine *v1alpha2.VSphereMachine) (*MachineContext, error) {
-
-	clusterCtx.Logger = clusterCtx.Logger.WithName(machine.Name)
-
-	machineCtx := &MachineContext{
-		ClusterContext:      clusterCtx,
-		Machine:             machine,
-		VSphereMachine:      vsphereMachine,
-		vsphereMachinePatch: client.MergeFrom(vsphereMachine.DeepCopyObject()),
-	}
-
-	if machineCtx.CanLogin() {
-		session, err := getOrCreateCachedSession(machineCtx)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to create vSphere session for machine %q", machineCtx)
-		}
-		machineCtx.Session = session
-	}
-
-	return machineCtx, nil
-}
-
-// NewMachineContext returns a new MachineContext.
-func NewMachineContext(params *MachineContextParams) (*MachineContext, error) {
-	ctx, err := NewClusterContext(&params.ClusterContextParams)
-	if err != nil {
-		return nil, err
-	}
-	return NewMachineContextFromClusterContext(ctx, params.Machine, params.VSphereMachine)
-}
-
-// NewMachineLoggerContext creates a new MachineContext with the given logger context.
-func NewMachineLoggerContext(parentContext *MachineContext, loggerContext string) *MachineContext {
-	ctx := &MachineContext{
-		ClusterContext: parentContext.ClusterContext,
-		Machine:        parentContext.Machine,
-		VSphereMachine: parentContext.VSphereMachine,
-		Session:        parentContext.Session,
-	}
-	ctx.Logger = parentContext.Logger.WithName(loggerContext)
-	return ctx
-}
-
-// Strings returns ClusterNamespace/ClusterName/MachineName
+// String returns ControllerManagerName/ControllerName/ClusterAPIVersion/ClusterNamespace/ClusterName/MachineName.
 func (c *MachineContext) String() string {
-	if c.Machine == nil {
-		return c.ClusterContext.String()
-	}
-	return fmt.Sprintf("%s/%s/%s", c.Cluster.Namespace, c.Cluster.Name, c.Machine.Name)
-}
-
-// GetObject returns the Machine object.
-func (c *MachineContext) GetObject() runtime.Object {
-	return c.Machine
-}
-
-// GetSession returns the login session for this context.
-func (c *MachineContext) GetSession() *Session {
-	return c.Session
+	return fmt.Sprintf("%s/%s", c.ClusterContext.String(), c.VSphereMachine.Name)
 }
 
 // Patch updates the object and its status on the API server.
 func (c *MachineContext) Patch() error {
+	return c.PatchHelper.Patch(c, c.VSphereMachine)
+}
 
-	// Patch Machine object.
-	if err := c.Client.Patch(c, c.VSphereMachine, c.vsphereMachinePatch); err != nil {
-		return errors.Wrapf(err, "error patching VSphereMachine %s/%s", c.Machine.Namespace, c.Machine.Name)
-	}
+// GetLogger returns this context's logger.
+func (c *MachineContext) GetLogger() logr.Logger {
+	return c.Logger
+}
 
-	// Patch Machine status.
-	if err := c.Client.Status().Patch(c, c.VSphereMachine, c.vsphereMachinePatch); err != nil {
-		return errors.Wrapf(err, "error patching VSphereMachine %s/%s status", c.Machine.Namespace, c.Machine.Name)
-	}
-
-	return nil
+// GetSession returns this context's session.
+func (c *MachineContext) GetSession() *session.Session {
+	return c.Session
 }

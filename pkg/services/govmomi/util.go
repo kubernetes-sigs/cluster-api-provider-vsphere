@@ -97,21 +97,21 @@ func reconcileInFlightTask(ctx *context.MachineContext) (bool, error) {
 	}
 
 	// Otherwise the course of action is determined by the state of the task.
-	ctx = context.NewMachineLoggerContext(ctx, task.Reference().Value)
-	ctx.Logger.V(4).Info("task found", "state", task.Info.State, "description-id", task.Info.DescriptionId)
+	logger := ctx.Logger.WithName(task.Reference().Value)
+	logger.V(4).Info("task found", "state", task.Info.State, "description-id", task.Info.DescriptionId)
 	switch task.Info.State {
 	case types.TaskInfoStateQueued:
-		ctx.Logger.V(4).Info("task is still pending", "description-id", task.Info.DescriptionId)
+		logger.V(4).Info("task is still pending", "description-id", task.Info.DescriptionId)
 		return true, nil
 	case types.TaskInfoStateRunning:
-		ctx.Logger.V(4).Info("task is still running", "description-id", task.Info.DescriptionId)
+		logger.V(4).Info("task is still running", "description-id", task.Info.DescriptionId)
 		return true, nil
 	case types.TaskInfoStateSuccess:
-		ctx.Logger.V(4).Info("task is a success", "description-id", task.Info.DescriptionId)
+		logger.V(4).Info("task is a success", "description-id", task.Info.DescriptionId)
 		ctx.VSphereMachine.Status.TaskRef = ""
 		return false, nil
 	case types.TaskInfoStateError:
-		ctx.Logger.V(2).Info("task failed", "description-id", task.Info.DescriptionId)
+		logger.V(2).Info("task failed", "description-id", task.Info.DescriptionId)
 		ctx.VSphereMachine.Status.TaskRef = ""
 		return false, nil
 	default:

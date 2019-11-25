@@ -17,20 +17,20 @@ limitations under the License.
 package template
 
 import (
-	goctx "context"
+	"context"
 
 	"github.com/go-logr/logr"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/vmware/govmomi/object"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 )
 
 type tplContext interface {
-	goctx.Context
+	context.Context
 	GetLogger() logr.Logger
-	GetSession() *context.Session
+	GetSession() *session.Session
 }
 
 // FindTemplate finds a template based either on a UUID or name.

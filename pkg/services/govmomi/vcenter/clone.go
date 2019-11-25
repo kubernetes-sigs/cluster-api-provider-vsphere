@@ -32,7 +32,14 @@ const (
 
 // Clone kicks off a clone operation on vCenter to create a new virtual machine.
 func Clone(ctx *context.MachineContext, bootstrapData []byte) error {
-	ctx = context.NewMachineLoggerContext(ctx, "vcenter")
+	ctx = &context.MachineContext{
+		ClusterContext: ctx.ClusterContext,
+		Machine:        ctx.Machine,
+		VSphereMachine: ctx.VSphereMachine,
+		Session:        ctx.Session,
+		Logger:         ctx.Logger.WithName("vcenter"),
+		PatchHelper:    ctx.PatchHelper,
+	}
 	ctx.Logger.V(6).Info("starting clone process")
 
 	var extraConfig extra.Config

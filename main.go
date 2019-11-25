@@ -21,122 +21,144 @@ import (
 	"net/http"
 	"net/http/pprof"
 	"os"
+	"strconv"
 	"time"
 
-	"k8s.io/apimachinery/pkg/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog"
 	"k8s.io/klog/klogr"
-	bootstrapv1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
-	ctrl "sigs.k8s.io/controller-runtime"
+	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
+	ctrllog "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	ctrlsig "sigs.k8s.io/controller-runtime/pkg/runtime/signals"
 
-	// +kubebuilder:scaffold:imports
-
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-vsphere/controllers"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/config"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
-)
-
-const (
-	profilerAddrEnvVar  = "PROFILER_ADDR"
-	syncPeriodEnvVar    = "SYNC_PERIOD"
-	requeuePeriodEnvVar = "REQUEUE_PERIOD"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
 )
 
 var (
-	defaultProfilerAddr  = os.Getenv(profilerAddrEnvVar)
-	defaultSyncPeriod    = 10 * time.Minute
-	defaultRequeuePeriod = 20 * time.Second
-
-	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
+	managerOpts                    manager.Options
+	defaultProfilerAddr            = os.Getenv("PROFILER_ADDR")
+	defaultSyncPeriod              = manager.DefaultSyncPeriod
+	defaultMaxConcurrentReconciles = manager.DefaultMaxConcurrentReconciles
+	defaultLeaderElectionID        = manager.DefaultLeaderElectionID
+	defaultPodNamespace            = manager.DefaultPodNamespace
+	defaultPodName                 = manager.DefaultPodName
+	defaultWatchNamespace          = manager.DefaultWatchNamespace
 )
 
 func init() {
-	_ = clientgoscheme.AddToScheme(scheme)
-	_ = infrav1.AddToScheme(scheme)
-	_ = clusterv1.AddToScheme(scheme)
-	_ = bootstrapv1.AddToScheme(scheme)
-	// +kubebuilder:scaffold:scheme
-
-	if v, err := time.ParseDuration(os.Getenv(syncPeriodEnvVar)); err == nil {
+	if v, err := time.ParseDuration(os.Getenv("SYNC_PERIOD")); err == nil {
 		defaultSyncPeriod = v
 	}
-	if v, err := time.ParseDuration(os.Getenv(requeuePeriodEnvVar)); err == nil {
-		defaultRequeuePeriod = v
+	if v, err := strconv.Atoi(os.Getenv("MAX_CONCURRENT_RECONCILES")); err == nil {
+		defaultMaxConcurrentReconciles = v
+	}
+	if v := os.Getenv("LEADER_ELECTION_ID"); v != "" {
+		defaultLeaderElectionID = v
+	}
+	if v := os.Getenv("POD_NAMESPACE"); v != "" {
+		defaultPodNamespace = v
+	}
+	if v := os.Getenv("POD_NAME"); v != "" {
+		defaultPodName = v
+	}
+	if v := os.Getenv("WATCH_NAMESPACE"); v != "" {
+		defaultWatchNamespace = v
 	}
 }
 
 func main() {
 	klog.InitFlags(nil)
+	ctrllog.SetLogger(klogr.New())
+	setupLog := ctrllog.Log.WithName("entrypoint")
+	if err := flag.Set("v", "2"); err != nil {
+		klog.Fatalf("failed to set log level: %v", err)
+	}
 
-	var metricsAddr string
-	var enableLeaderElection bool
-
-	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
-	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
+	flag.StringVar(
+		&managerOpts.MetricsAddr,
+		"metrics-addr",
+		":8084",
+		"The address the metric endpoint binds to.")
+	flag.BoolVar(
+		&managerOpts.LeaderElectionEnabled,
+		"enable-leader-election",
+		true,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
-	watchNamespace := flag.String("namespace", "",
+	flag.StringVar(
+		&managerOpts.LeaderElectionID,
+		"leader-election-id",
+		defaultLeaderElectionID,
+		"Name of the config map to use as the locking resource when configuring leader election.")
+	flag.StringVar(
+		&managerOpts.WatchNamespace,
+		"watch-namespace",
+		defaultWatchNamespace,
 		"Namespace that the controller watches to reconcile cluster-api objects. If unspecified, the controller watches for cluster-api objects across all namespaces.")
 	profilerAddress := flag.String(
-		"profiler-address", defaultProfilerAddr,
+		"profiler-address",
+		defaultProfilerAddr,
 		"Bind address to expose the pprof profiler")
-	syncPeriod := flag.Duration("sync-period", defaultSyncPeriod,
+	flag.DurationVar(
+		&managerOpts.SyncPeriod,
+		"sync-period",
+		defaultSyncPeriod,
 		"The interval at which cluster-api objects are synchronized")
-	flag.DurationVar(&config.DefaultRequeue, "requeue-period", defaultRequeuePeriod,
-		"The default amount of time to wait before an operation is requeued.")
+	flag.IntVar(
+		&managerOpts.MaxConcurrentReconciles,
+		"max-concurrent-reconciles",
+		defaultMaxConcurrentReconciles,
+		"The maximum number of allowed, concurrent reconciles.")
+	flag.StringVar(
+		&managerOpts.PodNamespace,
+		"pod-namespace",
+		defaultPodNamespace,
+		"The namespace in which the pod running the controller manager is located.")
+	flag.StringVar(
+		&managerOpts.PodName,
+		"pod-name",
+		defaultPodName,
+		"The name of the pod running the controller manager.")
+
 	flag.Parse()
 
-	if *watchNamespace != "" {
-		setupLog.Info("Watching cluster-api objects only in namespace for reconciliation", "namespace", *watchNamespace)
+	if managerOpts.WatchNamespace != "" {
+		setupLog.Info(
+			"Watching objects only in namespace for reconciliation",
+			"namespace", managerOpts.WatchNamespace)
 	}
 
 	if *profilerAddress != "" {
-		setupLog.Info("Profiler listening for requests", "profiler-address", *profilerAddress)
+		setupLog.Info(
+			"Profiler listening for requests",
+			"profiler-address", *profilerAddress)
 		go runProfiler(*profilerAddress)
 	}
 
-	ctrl.SetLogger(klogr.New())
+	// Create a function that adds all of the controllers and webhooks to the
+	// manager.
+	addToManager := func(ctx *context.ControllerManagerContext, mgr ctrlmgr.Manager) error {
+		if err := controllers.AddClusterControllerToManager(ctx, mgr); err != nil {
+			return err
+		}
+		if err := controllers.AddMachineControllerToManager(ctx, mgr); err != nil {
+			return err
+		}
+		return nil
+	}
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:             scheme,
-		MetricsBindAddress: metricsAddr,
-		LeaderElection:     enableLeaderElection,
-		LeaderElectionID:   "controller-leader-election-capv",
-		SyncPeriod:         syncPeriod,
-		Namespace:          *watchNamespace,
-	})
+	setupLog.Info("creating controller manager")
+	managerOpts.AddToManager = addToManager
+	mgr, err := manager.New(managerOpts)
 	if err != nil {
-		setupLog.Error(err, "unable to start manager")
+		setupLog.Error(err, "problem creating controller manager")
 		os.Exit(1)
 	}
 
-	// Initialize event recorder.
-	record.InitFromRecorder(mgr.GetEventRecorderFor("vsphere-controller"))
-
-	if err = (&controllers.VSphereMachineReconciler{
-		Client:   mgr.GetClient(),
-		Log:      ctrl.Log.WithName("controllers").WithName("VSphereMachine"),
-		Recorder: mgr.GetEventRecorderFor("vspheremachine-controller"),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "VSphereMachine")
-		os.Exit(1)
-	}
-	if err = (&controllers.VSphereClusterReconciler{
-		Client:   mgr.GetClient(),
-		Log:      ctrl.Log.WithName("controllers").WithName("VSphereCluster"),
-		Recorder: mgr.GetEventRecorderFor("vspherecluster-controller"),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "VSphereCluster")
-		os.Exit(1)
-	}
-	// +kubebuilder:scaffold:builder
-
-	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		setupLog.Error(err, "problem running manager")
+	sigHandler := ctrlsig.SetupSignalHandler()
+	setupLog.Info("starting controller manager")
+	if err := mgr.Start(sigHandler); err != nil {
+		setupLog.Error(err, "problem running controller manager")
 		os.Exit(1)
 	}
 }
@@ -148,5 +170,5 @@ func runProfiler(addr string) {
 	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
 	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
-	http.ListenAndServe(addr, mux)
+	_ = http.ListenAndServe(addr, mux)
 }

@@ -17,38 +17,34 @@ limitations under the License.
 package controllers
 
 import (
-	goctx "context"
 	"fmt"
+	"reflect"
 
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	apiv1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/config"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/cloudprovider"
 	infrautilv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
 const (
-	controllerName  = "vspherecluster-controller"
-	apiEndpointPort = 6443
+	clusterControllerName = "vspherecluster-controller"
+	apiEndpointPort       = 6443
 )
-
-// VSphereClusterReconciler reconciles a VSphereCluster object
-type VSphereClusterReconciler struct {
-	client.Client
-	Recorder record.EventRecorder
-	Log      logr.Logger
-}
 
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;patch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=vsphereclusters,verbs=get;list;watch;create;update;patch;delete
@@ -56,67 +52,109 @@ type VSphereClusterReconciler struct {
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups=bootstrap.cluster.x-k8s.io,resources=kubeadmconfigs;kubeadmconfigs/status,verbs=get;list;watch
 
+// AddClusterControllerToManager adds the cluster controller to the provided
+// manager.
+func AddClusterControllerToManager(ctx *context.ControllerManagerContext, mgr manager.Manager) error {
+
+	var (
+		controllerNameShort = clusterControllerName
+		controllerNameLong  = fmt.Sprintf("%s/%s/%s", ctx.Namespace, ctx.Name, controllerNameShort)
+	)
+
+	// Build the controller context.
+	controllerContext := &context.ControllerContext{
+		ControllerManagerContext: ctx,
+		Name:                     controllerNameShort,
+		Recorder:                 record.New(mgr.GetEventRecorderFor(controllerNameLong)),
+		Logger:                   ctx.Logger.WithName(controllerNameShort),
+	}
+
+	controlledType := &infrav1.VSphereCluster{}
+	controlledTypeName := reflect.TypeOf(controlledType).Elem().Name()
+
+	return ctrl.NewControllerManagedBy(mgr).
+		For(controlledType).
+		Watches(
+			&source.Kind{Type: &clusterv1.Cluster{}},
+			&handler.EnqueueRequestsFromMapFunc{
+				ToRequests: clusterutilv1.MachineToInfrastructureMapFunc(schema.GroupVersionKind{
+					Group:   infrav1.SchemeBuilder.GroupVersion.Group,
+					Version: infrav1.SchemeBuilder.GroupVersion.Version,
+					Kind:    controlledTypeName,
+				}),
+			}).
+		Complete(clusterReconciler{ControllerContext: controllerContext})
+}
+
+type clusterReconciler struct {
+	*context.ControllerContext
+}
+
 // Reconcile ensures the back-end state reflects the Kubernetes resource state intent.
-func (r *VSphereClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) {
-	parentContext := goctx.Background()
+func (r clusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) {
 
-	logger := r.Log.WithName(controllerName).
-		WithName(fmt.Sprintf("namespace=%s", req.Namespace)).
-		WithName(fmt.Sprintf("vsphereCluster=%s", req.Name))
-
-	// Fetch the VSphereCluster instance
+	// Get the VSphereCluster resource for this request.
 	vsphereCluster := &infrav1.VSphereCluster{}
-	err := r.Get(parentContext, req.NamespacedName, vsphereCluster)
-	if err != nil {
+	if err := r.Client.Get(r, req.NamespacedName, vsphereCluster); err != nil {
 		if apierrors.IsNotFound(err) {
+			r.Logger.V(4).Info("VSphereCluster not found, won't reconcile", "key", req.NamespacedName)
 			return reconcile.Result{}, nil
 		}
 		return reconcile.Result{}, err
 	}
 
-	logger = logger.WithName(vsphereCluster.APIVersion)
-
-	// Fetch the Cluster.
-	cluster, err := clusterutilv1.GetOwnerCluster(parentContext, r.Client, vsphereCluster.ObjectMeta)
+	// Fetch the CAPI Cluster.
+	cluster, err := clusterutilv1.GetOwnerCluster(r, r.Client, vsphereCluster.ObjectMeta)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
 	if cluster == nil {
-		logger.Info("Waiting for Cluster Controller to set OwnerRef on VSphereCluster")
-		return reconcile.Result{RequeueAfter: config.DefaultRequeue}, nil
+		r.Logger.Info("Waiting for Cluster Controller to set OwnerRef on VSphereCluster")
+		return reconcile.Result{}, nil
 	}
 
-	logger = logger.WithName(fmt.Sprintf("cluster=%s", cluster.Name))
-
-	// Create the context.
-	ctx, err := context.NewClusterContext(&context.ClusterContextParams{
-		Context:        parentContext,
-		Cluster:        cluster,
-		VSphereCluster: vsphereCluster,
-		Client:         r.Client,
-		Logger:         logger,
-	})
+	// Create the patch helper.
+	patchHelper, err := patch.NewHelper(vsphereCluster, r.Client)
 	if err != nil {
-		return reconcile.Result{}, errors.Errorf("failed to create cluster context: %+v", err)
+		return reconcile.Result{}, errors.Wrapf(
+			err,
+			"failed to init patch helper for %s %s/%s",
+			vsphereCluster.GroupVersionKind(),
+			vsphereCluster.Namespace,
+			vsphereCluster.Name)
 	}
 
-	// Always close the context when exiting this function so we can persist any VSphereCluster changes.
+	// Create the cluster context for this request.
+	clusterContext := &context.ClusterContext{
+		ControllerContext: r.ControllerContext,
+		Cluster:           cluster,
+		VSphereCluster:    vsphereCluster,
+		Logger:            r.Logger.WithName(req.Namespace).WithName(req.Name),
+		PatchHelper:       patchHelper,
+	}
+
+	// Always issue a patch when exiting this function so changes to the
+	// resource are patched back to the API server.
 	defer func() {
-		if err := ctx.Patch(); err != nil && reterr == nil {
-			reterr = err
+		if err := clusterContext.Patch(); err != nil {
+			if reterr == nil {
+				reterr = err
+			} else {
+				clusterContext.Logger.Error(err, "patch failed", "cluster", clusterContext.String())
+			}
 		}
 	}()
 
 	// Handle deleted clusters
 	if !vsphereCluster.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx)
+		return r.reconcileDelete(clusterContext)
 	}
 
 	// Handle non-deleted clusters
-	return r.reconcileNormal(ctx)
+	return r.reconcileNormal(clusterContext)
 }
 
-func (r *VSphereClusterReconciler) reconcileDelete(ctx *context.ClusterContext) (reconcile.Result, error) {
+func (r clusterReconciler) reconcileDelete(ctx *context.ClusterContext) (reconcile.Result, error) {
 	ctx.Logger.Info("Reconciling VSphereCluster delete")
 
 	// Cluster is deleted so remove the finalizer.
@@ -125,7 +163,7 @@ func (r *VSphereClusterReconciler) reconcileDelete(ctx *context.ClusterContext) 
 	return reconcile.Result{}, nil
 }
 
-func (r *VSphereClusterReconciler) reconcileNormal(ctx *context.ClusterContext) (reconcile.Result, error) {
+func (r clusterReconciler) reconcileNormal(ctx *context.ClusterContext) (reconcile.Result, error) {
 	ctx.Logger.Info("Reconciling VSphereCluster")
 
 	// TODO(akutz) Update this logic to include infrastructure prep such as:
@@ -175,7 +213,7 @@ func (r *VSphereClusterReconciler) reconcileNormal(ctx *context.ClusterContext) 
 	return reconcile.Result{}, nil
 }
 
-func (r *VSphereClusterReconciler) reconcileAPIEndpoints(ctx *context.ClusterContext) error {
+func (r clusterReconciler) reconcileAPIEndpoints(ctx *context.ClusterContext) error {
 	// If the cluster already has API endpoints set then there is nothing to do.
 	if len(ctx.VSphereCluster.Status.APIEndpoints) > 0 {
 		ctx.Logger.V(6).Info("API endpoints already exist")
@@ -263,7 +301,7 @@ func (r *VSphereClusterReconciler) reconcileAPIEndpoints(ctx *context.ClusterCon
 	return infrautilv1.ErrNoMachineIPAddr
 }
 
-func (r *VSphereClusterReconciler) reconcileCloudProvider(ctx *context.ClusterContext) error {
+func (r clusterReconciler) reconcileCloudProvider(ctx *context.ClusterContext) error {
 	// if the cloud provider image is not specified, then we do nothing
 	cloudproviderConfig := ctx.VSphereCluster.Spec.CloudProviderConfiguration.ProviderConfig.Cloud
 	if cloudproviderConfig == nil {
@@ -331,7 +369,7 @@ func (r *VSphereClusterReconciler) reconcileCloudProvider(ctx *context.ClusterCo
 	return nil
 }
 
-func (r *VSphereClusterReconciler) reconcileStorageProvider(ctx *context.ClusterContext) error {
+func (r clusterReconciler) reconcileStorageProvider(ctx *context.ClusterContext) error {
 	// if storage config is not defined, assume we don't want CSI installed
 	storageConfig := ctx.VSphereCluster.Spec.CloudProviderConfiguration.ProviderConfig.Storage
 	if storageConfig == nil {
@@ -428,7 +466,7 @@ func (r *VSphereClusterReconciler) reconcileStorageProvider(ctx *context.Cluster
 
 // reconcileCloudConfigSecret ensures the cloud config secret is present in the
 // target cluster
-func (r *VSphereClusterReconciler) reconcileCloudConfigSecret(ctx *context.ClusterContext) error {
+func (r clusterReconciler) reconcileCloudConfigSecret(ctx *context.ClusterContext) error {
 	if len(ctx.VSphereCluster.Spec.CloudProviderConfiguration.VCenter) == 0 {
 		return errors.Errorf(
 			"no vCenters defined for VSphereCluster %s/%s",
@@ -444,8 +482,8 @@ func (r *VSphereClusterReconciler) reconcileCloudConfigSecret(ctx *context.Clust
 
 	credentials := map[string]string{}
 	for server := range ctx.VSphereCluster.Spec.CloudProviderConfiguration.VCenter {
-		credentials[fmt.Sprintf("%s.username", server)] = ctx.User()
-		credentials[fmt.Sprintf("%s.password", server)] = ctx.Pass()
+		credentials[fmt.Sprintf("%s.username", server)] = ctx.Username
+		credentials[fmt.Sprintf("%s.password", server)] = ctx.Password
 	}
 	// Define the kubeconfig secret for the target cluster.
 	secret := &apiv1.Secret{
@@ -473,11 +511,4 @@ func (r *VSphereClusterReconciler) reconcileCloudConfigSecret(ctx *context.Clust
 		"secret-namespace", secret.Namespace)
 
 	return nil
-}
-
-// SetupWithManager adds this controller to the provided manager.
-func (r *VSphereClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&infrav1.VSphereCluster{}).
-		Complete(r)
 }

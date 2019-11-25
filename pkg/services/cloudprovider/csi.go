@@ -628,8 +628,8 @@ func ConfigForCSI(ctx *context.ClusterContext) *cloudprovider.Config {
 	config.VCenter = map[string]cloudprovider.VCenterConfig{}
 	for name, vcenter := range ctx.VSphereCluster.Spec.CloudProviderConfiguration.VCenter {
 		config.VCenter[name] = cloudprovider.VCenterConfig{
-			Username:    ctx.User(),
-			Password:    ctx.Pass(),
+			Username:    ctx.Username,
+			Password:    ctx.Password,
 			Datacenters: vcenter.Datacenters,
 		}
 	}

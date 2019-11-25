@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package context
+package session
 
 import (
 	"context"
@@ -40,14 +40,16 @@ type Session struct {
 	datacenter *object.Datacenter
 }
 
-func getOrCreateCachedSession(ctx *MachineContext) (*Session, error) {
+// GetOrCreate gets a cached session or creates a new one if one does not
+// already exist.
+func GetOrCreate(
+	ctx context.Context,
+	server, datacenter, username, password string) (*Session, error) {
+
 	sessionMU.Lock()
 	defer sessionMU.Unlock()
 
-	server := ctx.VSphereCluster.Spec.Server
-	datacenter := ctx.VSphereMachine.Spec.Datacenter
-	sessionKey := server + ctx.User() + datacenter
-
+	sessionKey := server + username + datacenter
 	if session, ok := sessionCache[sessionKey]; ok {
 		if ok, _ := session.SessionManager.SessionIsActive(ctx); ok {
 			return &session, nil
@@ -62,7 +64,7 @@ func getOrCreateCachedSession(ctx *MachineContext) (*Session, error) {
 		return nil, errors.Errorf("error parsing vSphere URL %q", server)
 	}
 
-	soapURL.User = url.UserPassword(ctx.User(), ctx.Pass())
+	soapURL.User = url.UserPassword(username, password)
 
 	// Temporarily setting the insecure flag True
 	// TODO(ssurana): handle the certs better
@@ -72,7 +74,6 @@ func getOrCreateCachedSession(ctx *MachineContext) (*Session, error) {
 	}
 
 	session := Session{Client: client}
-
 	session.UserAgent = v1alpha2.GroupVersion.String()
 
 	// Assign the finder to the session.
@@ -88,7 +89,9 @@ func getOrCreateCachedSession(ctx *MachineContext) (*Session, error) {
 
 	// Cache the session.
 	sessionCache[sessionKey] = session
-	ctx.Logger.V(2).Info("cached vSphere client session", "server", server, "datacenter", datacenter)
+
+	// TODO(akutz) Reintroduce the logger.
+	//ctx.Logger.V(2).Info("cached vSphere client session", "server", server, "datacenter", datacenter)
 
 	return &session, nil
 }

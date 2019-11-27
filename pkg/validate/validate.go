@@ -47,21 +47,31 @@ func CheckVSphereMachineSpec(acluster *v1alpha2.VSphereClusterSpec, amachine *v1
 	client, vcstatus, _ := VcValidate(ctx, acluster.CloudProviderConfiguration.Global.Username, acluster.CloudProviderConfiguration.Global.Password, acluster.Server)
 	VSphereMachineStatus["VCenter"] = vcstatus
 
-	// Instantiate a finder object for the client
-	f := find.NewFinder(client.Client, true)
+	// If vcstatus was OK then continue & Instantiate a finder object for the client
+	if client != nil {
 
-	dcObject, dcvalidate, _ := DatacenterValidate(ctx, f, amachine.Datacenter)
-	VSphereMachineStatus["Datacenter"] = dcvalidate
+		// Instantiate a finder object for the client
+		f := find.NewFinder(client.Client, true)
 
-	// Now that DC is verified set the DC for finder object for all further object searches
-	f.SetDatacenter(dcObject)
+		dcObject, dcvalidate, _ := DatacenterValidate(ctx, f, amachine.Datacenter)
+		VSphereMachineStatus["Datacenter"] = dcvalidate
 
-	netstatus, _ := NetworkValidate(ctx, f, amachine.Network.Devices[0].NetworkName)
-	VSphereMachineStatus["Network"] = netstatus
+		// Now that DC is verified set the DC for finder object for all further object searches
+		f.SetDatacenter(dcObject)
 
-	templatestatus, _ := TemplateValidate(ctx, f, amachine.Template)
-	VSphereMachineStatus["Template"] = templatestatus
+		netstatus, _ := NetworkValidate(ctx, f, amachine.Network.Devices[0].NetworkName)
+		VSphereMachineStatus["Network"] = netstatus
 
+		templatestatus, _ := TemplateValidate(ctx, f, amachine.Template)
+		VSphereMachineStatus["Template"] = templatestatus
+
+		return VSphereMachineStatus
+	}
+	// If you cant connect to VC then all objects should return FailureMessage
+	VSphereMachineStatus["VCenter"] = FailureMessage
+	VSphereMachineStatus["Datacenter"] = FailureMessage
+	VSphereMachineStatus["Network"] = FailureMessage
+	VSphereMachineStatus["Template"] = FailureMessage
 	return VSphereMachineStatus
 }
 
@@ -78,24 +88,34 @@ func CheckVSphereClusterSpec(acluster v1alpha2.VSphereClusterSpec) map[string]st
 	client, vcstatus, _ := VcValidate(ctx, acluster.CloudProviderConfiguration.Global.Username, acluster.CloudProviderConfiguration.Global.Password, acluster.Server)
 	VSphereClusterStatus["VCenter"] = vcstatus
 
-	// Instantiate a finder object for the client
-	f := find.NewFinder(client.Client, true)
+	if client != nil {
 
-	dcObject, dcvalidate, _ := DatacenterValidate(ctx, f, acluster.CloudProviderConfiguration.Workspace.Datacenter)
-	VSphereClusterStatus["Datacenter"] = dcvalidate
+		// Instantiate a finder object for the client
+		f := find.NewFinder(client.Client, true)
 
-	// Now that DC is verified set the DC for finder object for all further object searches
-	f.SetDatacenter(dcObject)
+		dcObject, dcvalidate, _ := DatacenterValidate(ctx, f, acluster.CloudProviderConfiguration.Workspace.Datacenter)
+		VSphereClusterStatus["Datacenter"] = dcvalidate
 
-	datastorestatus, _ := DatastoreValidate(ctx, f, acluster.CloudProviderConfiguration.Workspace.Datastore)
-	VSphereClusterStatus["Datastore"] = datastorestatus
+		// Now that DC is verified set the DC for finder object for all further object searches
+		f.SetDatacenter(dcObject)
 
-	rpstatus, _ := ResourcePoolValidate(ctx, f, acluster.CloudProviderConfiguration.Workspace.ResourcePool)
-	VSphereClusterStatus["ResourcePool"] = rpstatus
+		datastorestatus, _ := DatastoreValidate(ctx, f, acluster.CloudProviderConfiguration.Workspace.Datastore)
+		VSphereClusterStatus["Datastore"] = datastorestatus
 
-	folderstatus, _ := FolderValidate(ctx, f, acluster.CloudProviderConfiguration.Workspace.Folder)
-	VSphereClusterStatus["VMFolder"] = folderstatus
+		rpstatus, _ := ResourcePoolValidate(ctx, f, acluster.CloudProviderConfiguration.Workspace.ResourcePool)
+		VSphereClusterStatus["ResourcePool"] = rpstatus
 
+		folderstatus, _ := FolderValidate(ctx, f, acluster.CloudProviderConfiguration.Workspace.Folder)
+		VSphereClusterStatus["VMFolder"] = folderstatus
+
+		return VSphereClusterStatus
+	}
+	// If you cant connect to VC then all VsphereCluster objects should return FailureMessage
+	VSphereClusterStatus["VCenter"] = FailureMessage
+	VSphereClusterStatus["Datacenter"] = FailureMessage
+	VSphereClusterStatus["Datastore"] = FailureMessage
+	VSphereClusterStatus["ResourcePool"] = FailureMessage
+	VSphereClusterStatus["VMFolder"] = FailureMessage
 	return VSphereClusterStatus
 }
 
@@ -113,7 +133,7 @@ func VcValidate(ctx context.Context, user string, pass string, vcenter string) (
 	// Client Connection to vCenter
 	client, err := govmomi.NewClient(ctx, url, true)
 	if err != nil {
-		return client, FailureMessage, err
+		return nil, FailureMessage, err
 	}
 	info := client.ServiceContent.About
 	fmt.Printf("Connected to vCenter version %s\n", info.Version)

@@ -18,6 +18,7 @@ package validate
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2"
@@ -26,15 +27,12 @@ import (
 
 // Temporary Test Settings for vSphere object Validation
 const (
-	vsphereURL          = "192.168.56.7"
-	vsphereUsername     = "administrator@vsphere.local"
-	vspherePassword     = "PASSWORD"
-	vsphereDatacenter   = "Datacenter"
-	vsphereDatastore    = "ISCSI-DATASTORE"
-	vsphereNetwork      = "VLAN 182"
-	vsphereResourcePool = "High-CAPV" // Can use Full Path or just object name and will search recursively for object
-	vsphereFolder       = "/Datacenter/vm/capv_vms"
-	vsphereTemplate     = "ubuntu-1804-capv"
+	vsphereDatacenter   = "SDDC-Datacenter"
+	vsphereDatastore    = "WorkloadDatastore"
+	vsphereNetwork      = "sddc-cgw-network-5"
+	vsphereResourcePool = "clusterapi" // Can use Full Path or just object name and will search recursively for object
+	vsphereFolder       = "/SDDC-Datacenter/vm/clusterapi"
+	vsphereTemplate     = "ubuntu-1804-kube-v1.14.8"
 )
 
 // Build & Validate Test VsphereMachineSpec object
@@ -54,12 +52,12 @@ func TestVSphereMachineSpec(t *testing.T) {
 		},
 	}
 	createdclusterSpec := &v1alpha2.VSphereClusterSpec{
-		Server: vsphereURL,
+		Server: os.Getenv("GOVC_URL"),
 		//Insecure: *true,
 		CloudProviderConfiguration: cloudprovider.Config{
 			Global: cloudprovider.GlobalConfig{
-				Username:    vsphereUsername,
-				Password:    vspherePassword,
+				Username:    os.Getenv("GOVC_USERNAME"),
+				Password:    os.Getenv("GOVC_PASSWORD"),
 				Insecure:    true,
 				Datacenters: "dc1,dc2",
 			},
@@ -78,8 +76,8 @@ func TestVSphereMachineSpec(t *testing.T) {
 	// Test Create
 	for k, v := range VSphereMachineStatus {
 		fmt.Println(k, "\t", v)
-		if v != "Success" {
-			t.Error("Expected Success, got ", v)
+		if v == "" {
+			t.Error("Expected Success or Fail, got ", v)
 		}
 	}
 }
@@ -87,12 +85,12 @@ func TestVSphereMachineSpec(t *testing.T) {
 // Build & Validate VSphereClusterSpec object
 func TestVSphereClusterSpec(t *testing.T) {
 	createdclusterSpec := &v1alpha2.VSphereClusterSpec{
-		Server: vsphereURL,
+		Server: os.Getenv("GOVC_URL"),
 		//Insecure: *true,
 		CloudProviderConfiguration: cloudprovider.Config{
 			Global: cloudprovider.GlobalConfig{
-				Username:    vsphereUsername,
-				Password:    vspherePassword,
+				Username:    os.Getenv("GOVC_USERNAME"),
+				Password:    os.Getenv("GOVC_PASSWORD"),
 				Insecure:    true,
 				Datacenters: "dc1,dc2",
 			},
@@ -122,8 +120,8 @@ func TestVSphereClusterSpec(t *testing.T) {
 	// Test Create
 	for k, v := range VSphereClusterStatus {
 		fmt.Println(k, "\t", v)
-		if v != "Success" {
-			t.Error("Expected Success, got ", v)
+		if v == "" {
+			t.Error("Expected Success or Fail, got ", v)
 		}
 	}
 }

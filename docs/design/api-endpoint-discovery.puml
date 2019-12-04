@@ -1,0 +1,103 @@
+@startuml api-endpoint-discovery
+
+
+start;
+
+fork
+  #LightGreen:CAPI ""Cluster"" controller;
+  :""Cluster"" controller enqueues a Reconcile call;
+  repeat
+    if (Is the infrastructure cluster [[https://github.com/kubernetes-sigs/cluster-api/blob/81cb54579d7d4848d715d0dbeb122c7501026687/controllers/cluster_controller_phases.go#L153-L163 ready?]]) then (yes)
+      #LightBlue:Set ""Cluster.Status.InfrastructureReady"" to ""true"";
+    endif
+    if (Does the infrastructure cluster have [[https://github.com/kubernetes-sigs/cluster-api/blob/81cb54579d7d4848d715d0dbeb122c7501026687/controllers/cluster_controller_phases.go#L165-L174 API endpoints?]]) then (yes)
+      #LightBlue:Copy the infrastructure cluster resource's ""status.apiEndpoints"" value to ""Cluster.Status.APIEndpoints"";
+    endif
+  repeat while (Reconcile returned RequeueError) is (yes)
+  -> no;
+  if (Reconcile returned error) then (yes)
+    #Pink:Error reconciling ""Cluster"";
+  else (no)
+    #LightBlue:""Cluster"" is ready;
+  endif
+fork again
+  #LightGreen:CABPK ""KubeadmConfig"" controller;
+  :""KubeadmConfig"" controller enqueues a Reconcile call;
+  repeat
+    if (Is the ""Cluster""'s [[https://github.com/kubernetes-sigs/cluster-api/blob/81cb54579d7d4848d715d0dbeb122c7501026687/controllers/cluster_controller_phases.go#L153-L163 infrastructure ready?]]) then (yes)
+      if (Is the control plane initialized?) then (no)
+        if (Is the ""Machine"" a control plane node?) then (yes)
+          if (Is there a defined control plane endpoint?) then (no)
+            if (The ""Cluster"" resource has one or more API endpoints?) then (yes)
+              #LightBlue:[[https://github.com/kubernetes-sigs/cluster-api-bootstrap-provider-kubeadm/blob/af8eedbeeb919e87799e9600a06a90a60172b9ae/controllers/kubeadmconfig_controller.go#L519-L525 Copy the first API endpoint]] from the ""Cluster"" to the ""KubeadmConfig"" resource's ""Spec.ClusterConfiguration.ControlPlaneEndpoint"" field;
+            endif
+          endif
+        endif
+      endif
+    endif
+  repeat while (Reconcile returned RequeueError) is (yes)
+  -> no;
+  if (Reconcile returned error) then (yes)
+    #Pink:Error reconciling ""KubeadmConfig"";
+  else (no)
+    #LightBlue:""KubeadmConfig"" is ready;
+  endif
+fork again
+  #LightGreen:CAPV ""VSphereCluster"" controller;
+  :""VSphereCluster"" controller enqueues a Reconcile call;
+  repeat
+    #LightBlue:Set ""VSphereCluster.Status.Ready"" to ""true"";
+    note right
+      The VSphereCluster controller does not currently deploy any
+      infrastructure, so its ""Status.Ready"" value is always ""true"".
+
+      This also ensures that the CABPK controller [[https://github.com/kubernetes-sigs/cluster-api-bootstrap-provider-kubeadm/blob/af8eedbeeb919e87799e9600a06a90a60172b9ae/controllers/kubeadmconfig_controller.go#L133 is not blocked]] from
+      generating the bootstrap data necessary to unblock the deployment
+      of the initial control plane node for a CAPV cluster.
+    end note
+    if (""VSphereCluster.Status.APIEndpoints"" is empty) then (yes)
+      :Define ""APIEndpoint"" as a variable;
+      :Get ""VSphereMachine"" control plane resources for cluster;
+      repeat
+        :Get next available ""VSphereMachine"" resource;
+        :Get ""VSphereMachine"" resource's associated ""KubeadmConfig"" resource;
+        note right
+          We do **not** like inspecting the ""KubeadmConfig"" resource, but we
+          were left with no choice ([[https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/555 #555]]).
+
+          In fact, the linked issue is where we proposed explicitly defining the
+          ""ControlPlaneEndpoint"" as part of the CAPI ""Cluster"" spec.
+        end note
+        if (""KubeadmConfig.Spec.ClusterConfiguration.ControlPlaneEndpoint"" is set) then (yes)
+          #LightBlue:Set ""APIEndpoint"" to value of ""KubeadmConfig.Spec.ClusterConfiguration.ControlPlaneEndpoint"";
+        else if (""VSphereMachine"" has a [[https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/blob/1e0cac1efef081fd8e4c9fd050a9a5b2ba9ba9eb/api/v1alpha2/types.go#L79-L82 preferred IP address]]) then (yes)
+          note right
+            The concept of a //preferred// IP address is more in-depth than
+            can be explained here, but it boils down to specifying the CIDR
+            of the network segment from which a DHCP server is expected to
+            provide an IP address for the VM.
+
+            This allows the specification of multiple network devices and still
+            enables the client-side selection of the IP address that was decided
+            as [[https://github.com/vmware/cloud-init-vmware-guestinfo/blob/cb9e8e4790acacb06b1f473565535f6c6f4a595c/DataSourceVMwareGuestInfo.py#L342-L413 the local IP address]] by the vSphere GuestInfo cloud-init
+            datasource.
+          end note
+          #LightBlue:Set ""APIEndpoint"" to value of ""VSphereMachine""'s preferred IP address;
+        endif
+      repeat while (""APIEndpoint"" is empty and there is another control plane machine?) is (yes)
+      ->no;
+      if (""APIEndpoint"" is set) then (yes)
+        #LightBlue:Set ""VSphereCluster.Status.APIEndpoints"" to value of ""APIEndpoint"";
+      endif
+    endif
+  repeat while (Reconcile returned RequeueError) is (yes)
+  -> no;
+  if (Reconcile returned error) then (yes)
+    #Pink:Error reconciling ""VSphereCluster"";
+  else (no)
+    #LightBlue:""VSphereCluster"" is ready;
+  endif
+end fork
+stop;
+
+@enduml

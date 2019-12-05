@@ -62,7 +62,7 @@ FLAGS
 EOF
 }
 
-while getopts ':b:B:c:dfhi:m:M:r:o:p:P' opt; do
+while getopts ':b:B:c:dfhi:m:M:r:o:p:P:' opt; do
   case "${opt}" in
   b)
     CABPK_MANAGER_IMAGE="${OPTARG}"

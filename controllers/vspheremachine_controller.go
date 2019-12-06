@@ -182,12 +182,12 @@ func (r machineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr er
 		}
 	}()
 
-	// Handle deleted clusters
-	if !vsphereCluster.DeletionTimestamp.IsZero() {
+	// Handle deleted machines
+	if !vsphereMachine.ObjectMeta.DeletionTimestamp.IsZero() {
 		return r.reconcileDelete(machineContext)
 	}
 
-	// Handle non-deleted clusters
+	// Handle non-deleted machines
 	return r.reconcileNormal(machineContext)
 }
 

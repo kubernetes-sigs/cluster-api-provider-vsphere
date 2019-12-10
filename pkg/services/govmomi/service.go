@@ -41,10 +41,10 @@ type VMService struct{}
 //   2. Updating the VM with the bootstrap data, such as the cloud-init meta and user data, before...
 //   3. Powering on the VM, and finally...
 //   4. Returning the real-time state of the VM to the caller
-func (vms *VMService) ReconcileVM(ctx *context.MachineContext) (infrav1.VirtualMachine, error) {
+func (vms *VMService) ReconcileVM(ctx *context.MachineContext) (vm infrav1.VirtualMachine, _ error) {
 
-	// Create a VM object
-	vm := infrav1.VirtualMachine{
+	// Initialize the result.
+	vm = infrav1.VirtualMachine{
 		Name:  ctx.Machine.Name,
 		State: infrav1.VirtualMachineStatePending,
 	}
@@ -54,6 +54,12 @@ func (vms *VMService) ReconcileVM(ctx *context.MachineContext) (infrav1.VirtualM
 	if inFlight, err := reconcileInFlightTask(ctx); err != nil || inFlight {
 		return vm, err
 	}
+
+	// This deferred function will trigger a reconcile event for the
+	// VSphereMachine resource once its associated task completes. If
+	// there is no task for the VSphereMachine resource then no reconcile
+	// event is triggered.
+	defer reconcileVSphereMachineOnTaskCompletion(ctx)
 
 	// Before going further, we need the VM's managed object reference.
 	vmRef, err := findVM(ctx)
@@ -112,6 +118,12 @@ func (vms *VMService) DestroyVM(ctx *context.MachineContext) (infrav1.VirtualMac
 		return vm, err
 	}
 
+	// This deferred function will trigger a reconcile event for the
+	// VSphereMachine resource once its associated task completes. If
+	// there is no task for the VSphereMachine resource then no reconcile
+	// event is triggered.
+	defer reconcileVSphereMachineOnTaskCompletion(ctx)
+
 	// Before going further, we need the VM's managed object reference.
 	vmRef, err := findVM(ctx)
 	if err != nil {
@@ -142,24 +154,24 @@ func (vms *VMService) DestroyVM(ctx *context.MachineContext) (infrav1.VirtualMac
 		return vm, err
 	}
 	if powerState == infrav1.VirtualMachinePowerStatePoweredOn {
-		taskRef, err := vms.powerOffVM(vmCtx)
+		task, err := vmCtx.Obj.PowerOff(ctx)
 		if err != nil {
 			return vm, err
 		}
-		ctx.VSphereMachine.Status.TaskRef = taskRef
-		ctx.Logger.V(6).Info("reenqueue to wait for power off op")
+		ctx.VSphereMachine.Status.TaskRef = task.Reference().Value
+		ctx.Logger.Info("wait for VM to be powered off")
 		return vm, nil
 	}
 
 	// At this point the VM is not powered on and can be destroyed. Store the
 	// destroy task's reference and return a requeue error.
-	ctx.Logger.V(6).Info("destroying vm")
-	taskRef, err := vms.destroyVM(vmCtx)
+	ctx.Logger.Info("destroying vm")
+	task, err := vmCtx.Obj.Destroy(ctx)
 	if err != nil {
 		return vm, err
 	}
-	ctx.VSphereMachine.Status.TaskRef = taskRef
-	ctx.Logger.V(6).Info("reenqueue to wait for destroy op")
+	ctx.VSphereMachine.Status.TaskRef = task.Reference().Value
+	ctx.Logger.Info("wait for VM to be destroyed")
 	return vm, nil
 }
 
@@ -188,14 +200,14 @@ func (vms *VMService) reconcileMetadata(ctx *virtualMachineContext) (bool, error
 		return true, nil
 	}
 
-	ctx.Logger.V(4).Info("updating metadata")
+	ctx.Logger.Info("updating metadata")
 	taskRef, err := vms.setMetadata(ctx, newMetadata)
 	if err != nil {
-		return false, errors.Wrapf(err, "unable to set metadata on vm %q", ctx)
+		return false, errors.Wrapf(err, "unable to set metadata on vm %s", ctx)
 	}
 
 	ctx.VSphereMachine.Status.TaskRef = taskRef
-	ctx.Logger.V(6).Info("reenqueue to track update metadata task")
+	ctx.Logger.Info("wait for VM metadata to be updated")
 	return false, nil
 }
 
@@ -206,22 +218,27 @@ func (vms *VMService) reconcilePowerState(ctx *virtualMachineContext) (bool, err
 	}
 	switch powerState {
 	case infrav1.VirtualMachinePowerStatePoweredOff:
-		ctx.Logger.V(4).Info("powering on")
-		taskRef, err := vms.powerOnVM(ctx)
+		ctx.Logger.Info("powering on")
+		task, err := ctx.Obj.PowerOn(ctx)
 		if err != nil {
-			return false, errors.Wrapf(err, "failed to trigger power on op for vm %q", ctx)
+			return false, errors.Wrapf(err, "failed to trigger power on op for vm %s", ctx)
 		}
-		// update the tak ref to track
-		ctx.VSphereMachine.Status.TaskRef = taskRef
-		ctx.Logger.V(6).Info("reenqueue to wait for power on state")
+
+		// Update the VSphereMachine.Status.TaskRef to track the power-on task.
+		ctx.VSphereMachine.Status.TaskRef = task.Reference().Value
+
+		// Once the VM is successfully powered on, a reconcile request should be
+		// triggered once the VM reports IP addresses are available.
+		reconcileVSphereMachineWhenNetworkIsReady(ctx, task)
+
+		ctx.Logger.Info("wait for VM to be powered on")
 		return false, nil
 	case infrav1.VirtualMachinePowerStatePoweredOn:
-		ctx.Logger.V(6).Info("powered on")
+		ctx.Logger.Info("powered on")
+		return true, nil
 	default:
-		return false, errors.Errorf("unexpected power state %q for vm %q", powerState, ctx)
+		return false, errors.Errorf("unexpected power state %q for vm %s", powerState, ctx)
 	}
-
-	return true, nil
 }
 
 func (vms *VMService) reconcileUUID(ctx *virtualMachineContext) error {
@@ -243,7 +260,7 @@ func (vms *VMService) getPowerState(ctx *virtualMachineContext) (infrav1.Virtual
 	case types.VirtualMachinePowerStateSuspended:
 		return infrav1.VirtualMachinePowerStateSuspended, nil
 	default:
-		return "", errors.Errorf("unexpected power state %q for vm %q", powerState, ctx)
+		return "", errors.Errorf("unexpected power state %q for vm %s", powerState, ctx)
 	}
 }
 
@@ -256,7 +273,7 @@ func (vms *VMService) getMetadata(ctx *virtualMachineContext) (string, error) {
 	)
 
 	if err := pc.RetrieveOne(ctx, ctx.Ref, props, &obj); err != nil {
-		return "", errors.Wrapf(err, "unable to fetch props %v for vm %v", props, ctx.Ref)
+		return "", errors.Wrapf(err, "unable to fetch props %v for vm %s", props, ctx)
 	}
 	if obj.Config == nil {
 		return "", nil
@@ -285,7 +302,7 @@ func (vms *VMService) getMetadata(ctx *virtualMachineContext) (string, error) {
 
 	metadataBuf, err := base64.StdEncoding.DecodeString(metadataBase64)
 	if err != nil {
-		return "", errors.Wrapf(err, "unable to decode metadata for %q", ctx)
+		return "", errors.Wrapf(err, "unable to decode metadata for %s", ctx)
 	}
 
 	return string(metadataBuf), nil
@@ -299,7 +316,7 @@ func (vms *VMService) setMetadata(ctx *virtualMachineContext, metadata []byte) (
 		ExtraConfig: extraConfig,
 	})
 	if err != nil {
-		return "", errors.Wrapf(err, "unable to set metadata on vm %q", ctx)
+		return "", errors.Wrapf(err, "unable to set metadata on vm %s", ctx)
 	}
 
 	return task.Reference().Value, nil
@@ -310,7 +327,7 @@ func (vms *VMService) getNetworkStatus(ctx *virtualMachineContext) ([]infrav1.Ne
 	if err != nil {
 		return nil, err
 	}
-	ctx.Logger.V(6).Info("got allNetStatus", "status", allNetStatus)
+	ctx.Logger.V(4).Info("got allNetStatus", "status", allNetStatus)
 	apiNetStatus := []infrav1.NetworkStatus{}
 	for _, s := range allNetStatus {
 		apiNetStatus = append(apiNetStatus, infrav1.NetworkStatus{
@@ -321,28 +338,4 @@ func (vms *VMService) getNetworkStatus(ctx *virtualMachineContext) ([]infrav1.Ne
 		})
 	}
 	return apiNetStatus, nil
-}
-
-func (vms *VMService) powerOnVM(ctx *virtualMachineContext) (string, error) {
-	task, err := ctx.Obj.PowerOn(ctx)
-	if err != nil {
-		return "", err
-	}
-	return task.Reference().Value, nil
-}
-
-func (vms *VMService) powerOffVM(ctx *virtualMachineContext) (string, error) {
-	task, err := ctx.Obj.PowerOff(ctx)
-	if err != nil {
-		return "", err
-	}
-	return task.Reference().Value, nil
-}
-
-func (vms *VMService) destroyVM(ctx *virtualMachineContext) (string, error) {
-	task, err := ctx.Obj.Destroy(ctx)
-	if err != nil {
-		return "", err
-	}
-	return task.Reference().Value, nil
 }

@@ -40,7 +40,7 @@ func Clone(ctx *context.MachineContext, bootstrapData []byte) error {
 		Logger:         ctx.Logger.WithName("vcenter"),
 		PatchHelper:    ctx.PatchHelper,
 	}
-	ctx.Logger.V(6).Info("starting clone process")
+	ctx.Logger.V(4).Info("starting clone process")
 
 	var extraConfig extra.Config
 	extraConfig.SetCloudInitUserData(bootstrapData)
@@ -124,7 +124,7 @@ func Clone(ctx *context.MachineContext, bootstrapData []byte) error {
 		PowerOn: false,
 	}
 
-	ctx.Logger.V(6).Info("cloning machine", "clone-spec", spec)
+	ctx.Logger.Info("cloning machine", "clone-spec", spec)
 	task, err := tpl.Clone(ctx, folder, ctx.Machine.Name, spec)
 	if err != nil {
 		return errors.Wrapf(err, "error trigging clone op for machine %q", ctx)
@@ -203,7 +203,7 @@ func getNetworkSpecs(
 			// Please see https://www.vmware.com/support/developer/converter-sdk/conv60_apireference/vim.vm.device.VirtualEthernetCard.html#addressType
 			// for the valid values for this field.
 			nic.AddressType = string(types.VirtualEthernetCardMacTypeManual)
-			ctx.Logger.V(6).Info("configured manual mac address", "mac-addr", nic.MacAddress)
+			ctx.Logger.V(4).Info("configured manual mac address", "mac-addr", nic.MacAddress)
 		}
 
 		// Assign a temporary device key to ensure that a unique one will be
@@ -214,7 +214,7 @@ func getNetworkSpecs(
 			Device:    dev,
 			Operation: types.VirtualDeviceConfigSpecOperationAdd,
 		})
-		ctx.Logger.V(6).Info("created network device", "eth-card-type", ethCardType, "network-spec", netSpec)
+		ctx.Logger.V(4).Info("created network device", "eth-card-type", ethCardType, "network-spec", netSpec)
 		key--
 	}
 

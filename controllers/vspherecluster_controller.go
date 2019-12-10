@@ -19,16 +19,21 @@ package controllers
 import (
 	"fmt"
 	"reflect"
+	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	apiv1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -42,8 +47,7 @@ import (
 )
 
 const (
-	clusterControllerName = "vspherecluster-controller"
-	apiEndpointPort       = 6443
+	apiEndpointPort = 6443
 )
 
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;patch
@@ -57,7 +61,11 @@ const (
 func AddClusterControllerToManager(ctx *context.ControllerManagerContext, mgr manager.Manager) error {
 
 	var (
-		controllerNameShort = clusterControllerName
+		controlledType     = &infrav1.VSphereCluster{}
+		controlledTypeName = reflect.TypeOf(controlledType).Elem().Name()
+		controlledTypeGVK  = infrav1.GroupVersion.WithKind(controlledTypeName)
+
+		controllerNameShort = fmt.Sprintf("%s-controller", strings.ToLower(controlledTypeName))
 		controllerNameLong  = fmt.Sprintf("%s/%s/%s", ctx.Namespace, ctx.Name, controllerNameShort)
 	)
 
@@ -69,21 +77,37 @@ func AddClusterControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 		Logger:                   ctx.Logger.WithName(controllerNameShort),
 	}
 
-	controlledType := &infrav1.VSphereCluster{}
-	controlledTypeName := reflect.TypeOf(controlledType).Elem().Name()
+	reconciler := clusterReconciler{ControllerContext: controllerContext}
 
 	return ctrl.NewControllerManagedBy(mgr).
+		// Watch the controlled, infrastructure resource.
 		For(controlledType).
+		// Watch the CAPI resource that owns this infrastructure resource.
 		Watches(
 			&source.Kind{Type: &clusterv1.Cluster{}},
 			&handler.EnqueueRequestsFromMapFunc{
-				ToRequests: clusterutilv1.MachineToInfrastructureMapFunc(schema.GroupVersionKind{
-					Group:   infrav1.SchemeBuilder.GroupVersion.Group,
-					Version: infrav1.SchemeBuilder.GroupVersion.Version,
-					Kind:    controlledTypeName,
-				}),
-			}).
-		Complete(clusterReconciler{ControllerContext: controllerContext})
+				ToRequests: clusterutilv1.ClusterToInfrastructureMapFunc(controlledTypeGVK),
+			},
+		).
+		// Watch the infrastructure machine resources that belong to the control
+		// plane. This controller needs to reconcile the infrastructure cluster
+		// once a control plane machine has an IP address.
+		Watches(
+			&source.Kind{Type: &infrav1.VSphereMachine{}},
+			&handler.EnqueueRequestsFromMapFunc{
+				ToRequests: handler.ToRequestsFunc(reconciler.controlPlaneMachineToCluster),
+			},
+		).
+		// Watch a GenericEvent channel for the controlled resource.
+		//
+		// This is useful when there are events outside of Kubernetes that
+		// should cause a resource to be synchronized, such as a goroutine
+		// waiting on some asynchronous, external task to complete.
+		Watches(
+			&source.Channel{Source: ctx.GetGenericEventChannelFor(controlledTypeGVK)},
+			&handler.EnqueueRequestForObject{},
+		).
+		Complete(reconciler)
 }
 
 type clusterReconciler struct {
@@ -184,9 +208,18 @@ func (r clusterReconciler) reconcileNormal(ctx *context.ClusterContext) (reconci
 
 	// Update the VSphereCluster resource with its API enpoints.
 	if err := r.reconcileAPIEndpoints(ctx); err != nil {
+		if err == infrautilv1.ErrNoMachineIPAddr {
+			ctx.Logger.Info("Waiting on an API endpoint")
+			return reconcile.Result{}, nil
+		}
 		return reconcile.Result{}, errors.Wrapf(err,
 			"failed to reconcile API endpoints for VSphereCluster %s/%s",
 			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
+	}
+
+	// Wait until the API server is online and accessible.
+	if !r.isAPIServerOnline(ctx) {
+		return reconcile.Result{}, nil
 	}
 
 	// Create the cloud config secret for the target cluster.
@@ -296,9 +329,33 @@ func (r clusterReconciler) reconcileAPIEndpoints(ctx *context.ClusterContext) er
 		// for this VSphereCluster into the analogous CAPI Cluster using an
 		// UnstructuredReader.
 		ctx.VSphereCluster.Status.APIEndpoints = []infrav1.APIEndpoint{apiEndpoint}
+		vsphereCluster := ctx.VSphereCluster.DeepCopy()
+
+		// Enqueue a reconcile request for the cluster when the target API
+		// server is online.
+		go func() {
+			// Block until the target API server is online.
+			wait.PollImmediateInfinite(time.Second*1, func() (bool, error) { return r.isAPIServerOnline(ctx), nil })
+			ctx.Logger.Info("triggering GenericEvent", "reason", "api-server-online")
+			eventChannel := ctx.GetGenericEventChannelFor(vsphereCluster.GetObjectKind().GroupVersionKind())
+			eventChannel <- event.GenericEvent{
+				Meta:   vsphereCluster,
+				Object: vsphereCluster,
+			}
+		}()
+
 		return nil
 	}
 	return infrautilv1.ErrNoMachineIPAddr
+}
+
+func (r clusterReconciler) isAPIServerOnline(ctx *context.ClusterContext) bool {
+	if client, err := infrautilv1.NewKubeClient(ctx, ctx.Client, ctx.Cluster); err == nil {
+		if _, err := client.CoreV1().Nodes().List(metav1.ListOptions{}); err == nil {
+			return true
+		}
+	}
+	return false
 }
 
 func (r clusterReconciler) reconcileCloudProvider(ctx *context.ClusterContext) error {
@@ -511,4 +568,65 @@ func (r clusterReconciler) reconcileCloudConfigSecret(ctx *context.ClusterContex
 		"secret-namespace", secret.Namespace)
 
 	return nil
+}
+
+// controlPlaneMachineToCluster is a handler.ToRequestsFunc to be used
+// to enqueue requests for reconciliation for VSphereCluster to update
+// its status.apiEndpoints field.
+func (r clusterReconciler) controlPlaneMachineToCluster(o handler.MapObject) []ctrl.Request {
+	vsphereMachine, ok := o.Object.(*infrav1.VSphereMachine)
+	if !ok {
+		r.Logger.Error(nil, fmt.Sprintf("expected a VSphereMachine but got a %T", o.Object))
+		return nil
+	}
+	if !infrautilv1.IsControlPlaneMachine(vsphereMachine) {
+		return nil
+	}
+	if len(vsphereMachine.Status.Network) == 0 {
+		return nil
+	}
+	// Get the VSphereMachine's preferred IP address.
+	if _, err := infrautilv1.GetMachinePreferredIPAddress(vsphereMachine); err != nil {
+		if err == infrautilv1.ErrNoMachineIPAddr {
+			return nil
+		}
+		r.Logger.Error(err, "failed to get preferred IP address for VSphereMachine",
+			"namespace", vsphereMachine.Namespace, "name", vsphereMachine.Name)
+		return nil
+	}
+
+	// Fetch the CAPI Cluster.
+	cluster, err := clusterutilv1.GetClusterFromMetadata(r, r.Client, vsphereMachine.ObjectMeta)
+	if err != nil {
+		r.Logger.Error(err, "VSphereMachine is missing cluster label or cluster does not exist",
+			"namespace", vsphereMachine.Namespace, "name", vsphereMachine.Name)
+		return nil
+	}
+
+	if cluster.Status.ControlPlaneInitialized {
+		return nil
+	}
+
+	// Fetch the VSphereCluster
+	vsphereCluster := &infrav1.VSphereCluster{}
+	vsphereClusterKey := client.ObjectKey{
+		Namespace: vsphereMachine.Namespace,
+		Name:      cluster.Spec.InfrastructureRef.Name,
+	}
+	if err := r.Client.Get(r, vsphereClusterKey, vsphereCluster); err != nil {
+		r.Logger.Error(err, "failed to get VSphereCluster",
+			"namespace", vsphereClusterKey.Namespace, "name", vsphereClusterKey.Name)
+		return nil
+	}
+
+	if len(vsphereCluster.Status.APIEndpoints) > 0 {
+		return nil
+	}
+
+	return []ctrl.Request{{
+		NamespacedName: types.NamespacedName{
+			Namespace: vsphereClusterKey.Namespace,
+			Name:      vsphereClusterKey.Name,
+		},
+	}}
 }

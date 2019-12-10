@@ -245,7 +245,7 @@ func (r machineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr er
 			// If the resources are the same resource version, then a previous
 			// patch may not have resulted in any changes. Check to see if the
 			// remote status is the same as the local status.
-			if cmp.Diff(localObj, remoteObj) == "" {
+			if cmp.Equal(localObj.Status, remoteObj.Status) {
 				machineContext.Logger.Info(
 					"resource patch was not required",
 					"local-resource-version", localObj.ResourceVersion,

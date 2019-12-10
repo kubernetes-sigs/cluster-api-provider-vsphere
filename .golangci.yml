@@ -20,6 +20,9 @@ linters:
   disable-all: true
   # Run with --fast=false for more extensive checks
   fast: true
+run:
+  skip-files:
+  - ".*zz_generated.*\\.go"
 issue:
   max-same-issues: 0
   max-per-linter: 0

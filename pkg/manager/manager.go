@@ -22,8 +22,11 @@ import (
 
 	"github.com/pkg/errors"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	bootstrapv1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2"
@@ -61,6 +64,7 @@ func New(opts Options) (Manager, error) {
 		SyncPeriod:              &opts.SyncPeriod,
 		Namespace:               opts.WatchNamespace,
 		NewCache:                opts.NewCache,
+		NewClient:               newClientFunc,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create manager")
@@ -102,4 +106,21 @@ type manager struct {
 
 func (m *manager) GetContext() *context.ControllerManagerContext {
 	return m.ctx
+}
+
+// newClientFunc returns a client reads from cache and write directly to the server
+// this avoid get unstructured object directly from the server
+// see issue: https://github.com/kubernetes-sigs/cluster-api/issues/1663
+func newClientFunc(cache cache.Cache, config *rest.Config, options client.Options) (client.Client, error) {
+	// Create the Client for Write operations.
+	c, err := client.New(config, options)
+	if err != nil {
+		return nil, err
+	}
+
+	return &client.DelegatingClient{
+		Reader:       cache,
+		Writer:       c,
+		StatusClient: c,
+	}, nil
 }

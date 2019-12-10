@@ -30,3 +30,7 @@ type virtualMachineContext struct {
 	Obj   *object.VirtualMachine
 	State *infrav1.VirtualMachine
 }
+
+func (c *virtualMachineContext) String() string {
+	return c.MachineContext.String()
+}

@@ -25,9 +25,9 @@ import (
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apitypes "k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
-	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2"
@@ -129,10 +129,10 @@ func GetMachinePreferredIPAddress(machine *infrav1.VSphereMachine) (string, erro
 	return "", ErrNoMachineIPAddr
 }
 
-// IsControlPlaneMachine returns a flag indicating whether or not a machine has
-// the control plane role.
-func IsControlPlaneMachine(machine *clusterv1.Machine) bool {
-	return clusterutilv1.IsControlPlaneMachine(machine)
+// IsControlPlaneMachine returns true if the provided resource is
+// a member of the control plane.
+func IsControlPlaneMachine(machine metav1.Object) bool {
+	return machine.GetLabels()[clusterv1.MachineControlPlaneLabelName] != ""
 }
 
 // GetMachineMetadata returns the cloud-init metadata as a base-64 encoded

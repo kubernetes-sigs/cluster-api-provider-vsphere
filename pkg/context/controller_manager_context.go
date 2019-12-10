@@ -18,10 +18,13 @@ package context
 
 import (
 	"context"
+	"sync"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 )
@@ -73,9 +76,21 @@ type ControllerManagerContext struct {
 	// Password is the password for the account used to access remote vSphere
 	// endpoints.
 	Password string
+
+	genericEventCache sync.Map
 }
 
 // String returns ControllerManagerName.
 func (c *ControllerManagerContext) String() string {
 	return c.Name
+}
+
+// GetGenericEventChannelFor returns a generic event channel for a resource
+// specified by the provided GroupVersionKind.
+func (c *ControllerManagerContext) GetGenericEventChannelFor(gvk schema.GroupVersionKind) chan event.GenericEvent {
+	if val, ok := c.genericEventCache.Load(gvk); ok {
+		return val.(chan event.GenericEvent)
+	}
+	val, _ := c.genericEventCache.LoadOrStore(gvk, make(chan event.GenericEvent))
+	return val.(chan event.GenericEvent)
 }

@@ -23,6 +23,7 @@ linters:
 run:
   skip-files:
   - ".*zz_generated.*\\.go"
+  timeout: 5m
 issue:
   max-same-issues: 0
   max-per-linter: 0

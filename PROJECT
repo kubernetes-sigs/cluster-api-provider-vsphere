@@ -11,3 +11,13 @@ resources:
 - group: infrastructure
   version: v1alpha2
   kind: VSphereMachineTemplate
+- group: infrastructure
+  version: v1alpha3
+  kind: VSphereCluster
+- group: infrastructure
+  version: v1alpha3
+  kind: VSphereMachine
+- group: infrastructure
+  version: v1alpha3
+  kind: VSphereMachineTemplate
+

@@ -1,6 +1,6 @@
 # Intended for use with vSphere >=6.7u3
 ---
-apiVersion: cluster.x-k8s.io/v1alpha2
+apiVersion: cluster.x-k8s.io/v1alpha3
 kind: Machine
 metadata:
   name: ${CLUSTER_NAME}-controlplane-0
@@ -11,15 +11,15 @@ spec:
   version: ${KUBERNETES_VERSION}
   bootstrap:
     configRef:
-      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
       kind: KubeadmConfig
       name: ${CLUSTER_NAME}-controlplane-0
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
     kind: VSphereMachine
     name: ${CLUSTER_NAME}-controlplane-0
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: VSphereMachine
 metadata:
   name: ${CLUSTER_NAME}-controlplane-0
@@ -38,7 +38,7 @@ spec:
   diskGiB: ${VSPHERE_DISK_GIB}
   template: "${VSPHERE_TEMPLATE}"
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 kind: KubeadmConfig
 metadata:
   name: ${CLUSTER_NAME}-controlplane-0

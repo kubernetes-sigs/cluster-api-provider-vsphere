@@ -38,16 +38,16 @@ const (
 	// Namespace is the fake namespace.
 	Namespace = "default"
 
-	// Clusterv1a2Name is the name of the fake CAPI v1alpha2 Cluster resource.
+	// Clusterv1a2Name is the name of the fake CAPI v1alpha3 Cluster resource.
 	Clusterv1a2Name = "fake-cluster"
 
-	// Clusterv1a2UUID is the UID of the fake CAPI v1alpha2 Cluster resource.
+	// Clusterv1a2UUID is the UID of the fake CAPI v1alpha3 Cluster resource.
 	Clusterv1a2UUID = "00000000-0000-0000-0000-000000000000"
 
-	// Machinev1a2Name is the name of the fake CAPI v1alpha2 Machine resource.
+	// Machinev1a2Name is the name of the fake CAPI v1alpha3 Machine resource.
 	Machinev1a2Name = "fake-machine"
 
-	// Machinev1a2UUID is the UID of the fake CAPI v1alpha2 Machine resource.
+	// Machinev1a2UUID is the UID of the fake CAPI v1alpha3 Machine resource.
 	Machinev1a2UUID = "00000000-0000-0000-0000-000000000001"
 
 	// VSphereClusterUUID is the UID of the fake VSphereCluster resource.

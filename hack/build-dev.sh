@@ -31,10 +31,10 @@ export GOFLAGS="-ldflags=-extldflags=-static"
 export GOPROXY="${GOPROXY:-https://proxy.golang.org}"
 
 CLUSTERCTL_OUT="${CLUSTERCTL_OUT:-$(pwd)/clusterctl}"
-CAPV_MANAGER_IMAGE="${CAPV_MANAGER_IMAGE:-gcr.io/cluster-api-provider-vsphere/dev/v1alpha2/capv-manager:latest}"
-CAPV_MANIFEST_IMAGE="${CAPV_MANIFEST_IMAGE:-gcr.io/cluster-api-provider-vsphere/dev/v1alpha2/capv-manifests:latest}"
-CAPI_MANAGER_IMAGE="${CAPI_MANAGER_IMAGE:-gcr.io/cluster-api-provider-vsphere/dev/v1alpha2/capi-manager:latest}"
-CABPK_MANAGER_IMAGE="${CABPK_MANAGER_IMAGE:-gcr.io/cluster-api-provider-vsphere/dev/v1alpha2/cabpk-manager:latest}"
+CAPV_MANAGER_IMAGE="${CAPV_MANAGER_IMAGE:-gcr.io/cluster-api-provider-vsphere/dev/v1alpha3/capv-manager:latest}"
+CAPV_MANIFEST_IMAGE="${CAPV_MANIFEST_IMAGE:-gcr.io/cluster-api-provider-vsphere/dev/v1alpha3/capv-manifests:latest}"
+CAPI_MANAGER_IMAGE="${CAPI_MANAGER_IMAGE:-gcr.io/cluster-api-provider-vsphere/dev/v1alpha3/capi-manager:latest}"
+CABPK_MANAGER_IMAGE="${CABPK_MANAGER_IMAGE:-gcr.io/cluster-api-provider-vsphere/dev/v1alpha3/cabpk-manager:latest}"
 
 # Build the CAPV manager image.
 docker build -t "${CAPV_MANAGER_IMAGE}" .

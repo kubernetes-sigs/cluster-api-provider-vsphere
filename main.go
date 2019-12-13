@@ -26,9 +26,9 @@ import (
 
 	"k8s.io/klog"
 	"k8s.io/klog/klogr"
+	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
-	ctrllog "sigs.k8s.io/controller-runtime/pkg/runtime/log"
-	ctrlsig "sigs.k8s.io/controller-runtime/pkg/runtime/signals"
+	ctrlsig "sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/controllers"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"

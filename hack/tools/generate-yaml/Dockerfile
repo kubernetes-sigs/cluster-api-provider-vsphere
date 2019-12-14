@@ -15,7 +15,7 @@
 ################################################################################
 ##                                MAIN STAGE                                  ##
 ################################################################################
-ARG BASE_IMAGE=gcr.io/cluster-api-provider-vsphere/extra/manifests-base:v0.4.2-beta.0-15-g5b0bb299
+ARG BASE_IMAGE=gcr.io/cluster-api-provider-vsphere/extra/manifests-base:v0.5.3-31-ga70a2a5d
 FROM ${BASE_IMAGE}
 LABEL "maintainer" "Andrew Kutz <akutz@vmware.com>"
 

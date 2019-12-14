@@ -18,17 +18,18 @@
 FROM debian:stretch-slim as kustomize
 LABEL "maintainer" "Travis Rhoden <trhoden@vmware.com>"
 
-RUN apt-get --assume-no update && apt-get -y install \
-    curl \
-    python \
-    git \
- && rm -rf /var/lib/apt/lists/*
+RUN echo "deb http://deb.debian.org/debian stretch-backports main" \
+         >/etc/apt/sources.list.d/stretch-backports.list && \
+    apt-get --assume-no  update && \
+    apt-get --assume-yes install curl python && \
+    apt-get --assume-yes --target-release stretch-backports install git && \
+    rm -fr /var/lib/apt/lists/*
 
 ################################################################################
 ##                            DOWNLOAD KUSTOMIZE                              ##
 ################################################################################
 ARG KUSTOMIZE_VERSION
-ENV KUSTOMIZE_VERSION 3.1.0
-RUN curl -Lo /usr/local/bin/kustomize \
-    "https://github.com/kubernetes-sigs/kustomize/releases/download/v${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_linux_amd64" && \
-    chmod 0755 /usr/local/bin/kustomize
+ENV KUSTOMIZE_VERSION 3.5.1
+RUN curl -L \
+    "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${KUSTOMIZE_VERSION}/kustomize_v${KUSTOMIZE_VERSION}_linux_amd64.tar.gz" | \
+    tar xz -C /usr/local/bin

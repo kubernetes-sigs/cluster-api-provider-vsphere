@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -245,7 +246,7 @@ func (r machineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr er
 			// If the resources are the same resource version, then a previous
 			// patch may not have resulted in any changes. Check to see if the
 			// remote status is the same as the local status.
-			if cmp.Equal(localObj.Status, remoteObj.Status) {
+			if cmp.Equal(localObj.Status, remoteObj.Status, cmpopts.EquateEmpty()) {
 				machineContext.Logger.Info(
 					"resource patch was not required",
 					"local-resource-version", localObj.ResourceVersion,

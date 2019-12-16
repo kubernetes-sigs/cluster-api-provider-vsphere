@@ -1,5 +1,3 @@
-// +build tools
-
 /*
 Copyright 2019 The Kubernetes Authors.
 
@@ -16,12 +14,27 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// This package imports things required by build scripts, to force `go mod` to see them as dependencies
-package tools
+package docker
 
 import (
-	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
-	_ "sigs.k8s.io/controller-tools/cmd/controller-gen"
-	_ "sigs.k8s.io/kustomize/kustomize/v3"
-	_ "sigs.k8s.io/testing_frameworks/integration"
+	"context"
+	"fmt"
+
+	"sigs.k8s.io/cluster-api/test/framework/exec"
 )
+
+// Pull pulls a container image.
+func Pull(ctx context.Context, imageName string) error {
+	pullCmd := exec.NewCommand(
+		exec.WithCommand("docker"),
+		exec.WithArgs("pull", imageName),
+	)
+	stdout, stderr, err := pullCmd.Run(ctx)
+	if err != nil {
+		fmt.Println(string(stdout))
+		fmt.Println(string(stderr))
+		return err
+	}
+	fmt.Println(string(stdout))
+	return nil
+}

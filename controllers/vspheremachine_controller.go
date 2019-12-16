@@ -313,7 +313,8 @@ func (r machineReconciler) reconcileNormal(ctx *context.MachineContext) (reconci
 	}
 
 	// Make sure bootstrap data is available and populated.
-	if ctx.Machine.Spec.Bootstrap.Data == nil {
+	// Make sure bootstrap data is available and populated.
+	if ctx.Machine.Spec.Bootstrap.DataSecretName == nil {
 		ctx.Logger.Info("Waiting for bootstrap data to be available")
 		return reconcile.Result{}, nil
 	}

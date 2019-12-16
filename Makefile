@@ -55,7 +55,7 @@ RBAC_ROOT ?= $(MANIFEST_ROOT)/rbac
 ## --------------------------------------
 
 help: ## Display this help
-	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z0-9_-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
 ## --------------------------------------
 ## Testing
@@ -63,7 +63,16 @@ help: ## Display this help
 
 .PHONY: test
 test: generate lint-go ## Run tests
-	go test -v ./...
+	go test -v ./api/... ./controllers/... ./pkg/...
+
+.PHONY: e2e-image
+e2e-image: ## Build the e2e manager image
+	docker build --tag="capv-manager:e2e" .
+
+.PHONY: e2e
+e2e: e2e-image
+e2e: ## Run e2e tests
+	time ginkgo -v ./test/e2e -- --e2e.infraImage="capv-manager:e2e"
 
 ## --------------------------------------
 ## Binaries
@@ -150,7 +159,7 @@ generate-go: $(CONTROLLER_GEN) ## Runs Go related generate targets
 generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 	$(CONTROLLER_GEN) \
 		paths=./api/... \
-		crd:trivialVersions=true \
+		crd:preserveUnknownFields=true \
 		output:crd:dir=$(CRD_ROOT) \
 		output:webhook:dir=$(WEBHOOK_ROOT) \
 		webhook

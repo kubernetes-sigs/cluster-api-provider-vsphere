@@ -6,8 +6,8 @@ require (
 	github.com/go-logr/logr v0.1.0
 	github.com/google/go-cmp v0.3.1
 	github.com/google/uuid v1.1.1
-	github.com/onsi/ginkgo v1.10.1
-	github.com/onsi/gomega v1.7.0
+	github.com/onsi/ginkgo v1.10.3
+	github.com/onsi/gomega v1.7.1
 	github.com/pkg/errors v0.8.1
 	github.com/vmware/govmomi v0.21.0
 	gopkg.in/gcfg.v1 v1.2.3
@@ -17,5 +17,8 @@ require (
 	k8s.io/client-go v0.0.0-20190918160344-1fbdaa4c8d90
 	k8s.io/klog v1.0.0
 	sigs.k8s.io/cluster-api v0.2.6-0.20191213221537-1bb8132e8c03
+	sigs.k8s.io/cluster-api/test/framework v0.0.0-20191213221537-1bb8132e8c03
 	sigs.k8s.io/controller-runtime v0.4.0
 )
+
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v0.2.6-0.20191213221537-1bb8132e8c03

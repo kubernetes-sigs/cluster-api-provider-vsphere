@@ -32,7 +32,7 @@ RUN go mod download
 COPY ./ ./
 
 # Build
-ARG ARCH
+ARG ARCH=amd64
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} \
     go build -a -ldflags '-extldflags "-static"' \
     -o manager .

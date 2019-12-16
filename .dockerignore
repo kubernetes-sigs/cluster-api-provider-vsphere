@@ -1,6 +1,11 @@
 .git
 .github
 .vscode
+.dockerignore
+.gitignore
+.golangci.yml
+.markdownlintrc
+*.out
 bin/
 build/
 out/
@@ -10,3 +15,4 @@ scripts/
 /*.test
 /cluster-api-provider-vsphere
 /examples/provider-components/provider-components*.yaml
+test/

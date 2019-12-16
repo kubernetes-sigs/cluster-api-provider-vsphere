@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha3
 
 import (
+	"fmt"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
@@ -62,6 +64,16 @@ type APIEndpoint struct {
 
 	// The port on which the API server is serving.
 	Port int `json:"port"`
+}
+
+// IsZero returns true if either the host or the port are zero values.
+func (v APIEndpoint) IsZero() bool {
+	return v.Host == "" || v.Port == 0
+}
+
+// String returns a formatted version HOST:PORT of this APIEndpoint.
+func (v APIEndpoint) String() string {
+	return fmt.Sprintf("%s:%d", v.Host, v.Port)
 }
 
 // NetworkSpec defines the virtual machine's network configuration.

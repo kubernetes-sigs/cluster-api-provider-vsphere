@@ -163,9 +163,8 @@ func (r clusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr er
 		if err := clusterContext.Patch(); err != nil {
 			if reterr == nil {
 				reterr = err
-			} else {
-				clusterContext.Logger.Error(err, "patch failed", "cluster", clusterContext.String())
 			}
+			clusterContext.Logger.Error(err, "patch failed", "cluster", clusterContext.String())
 		}
 	}()
 
@@ -206,15 +205,14 @@ func (r clusterReconciler) reconcileNormal(ctx *context.ClusterContext) (reconci
 			"cluster-name", ctx.VSphereCluster.Name)
 	}
 
-	// Update the VSphereCluster resource with its API enpoints.
-	if err := r.reconcileAPIEndpoints(ctx); err != nil {
+	// Update the VSphereCluster resource with a control plane endpoint.
+	if err := r.reconcileControlPlaneEndpoint(ctx); err != nil {
 		if err == infrautilv1.ErrNoMachineIPAddr {
-			ctx.Logger.Info("Waiting on an API endpoint")
+			ctx.Logger.Info("Waiting on an control plane endpoint")
 			return reconcile.Result{}, nil
 		}
 		return reconcile.Result{}, errors.Wrapf(err,
-			"failed to reconcile API endpoints for VSphereCluster %s/%s",
-			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
+			"failed to reconcile control plane endpoint for %s", ctx)
 	}
 
 	// Wait until the API server is online and accessible.
@@ -246,10 +244,15 @@ func (r clusterReconciler) reconcileNormal(ctx *context.ClusterContext) (reconci
 	return reconcile.Result{}, nil
 }
 
-func (r clusterReconciler) reconcileAPIEndpoints(ctx *context.ClusterContext) error {
-	// If the cluster already has API endpoints set then there is nothing to do.
-	if ctx.VSphereCluster.Spec.ControlPlaneEndpoint != (infrav1.APIEndpoint{}) {
-		ctx.Logger.V(6).Info("API endpoints already exist")
+func (r clusterReconciler) reconcileControlPlaneEndpoint(ctx *context.ClusterContext) error {
+	// If the cluster already has a control plane endpoint set then there
+	// is nothing to do.
+	if !ctx.Cluster.Spec.ControlPlaneEndpoint.IsZero() {
+		ctx.Logger.V(4).Info("ControlPlaneEndpoint already set on Cluster")
+		return nil
+	}
+	if !ctx.VSphereCluster.Spec.ControlPlaneEndpoint.IsZero() {
+		ctx.Logger.V(4).Info("ControlPlaneEndpoint already set on VSphereCluster")
 		return nil
 	}
 
@@ -264,72 +267,38 @@ func (r clusterReconciler) reconcileAPIEndpoints(ctx *context.ClusterContext) er
 	// Iterate over the cluster's control plane CAPI machines.
 	for _, machine := range clusterutilv1.GetControlPlaneMachines(machines) {
 
-		// Get the machine's associated KubeadmConfig resource to check if
-		// there is a ControlPlaneEndpoint value assigned to the Init/Join
-		// configuration.
-		//
-		// TODO(akutz) Assuming the Config type violates the separation model
-		//             in CAPI v1a2. Please see https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/555#issuecomment-529237211
-		//             for more information.
-		kubeadmConfig, err := infrautilv1.GetKubeadmConfigForMachine(ctx, ctx.Client, machine)
-		if err != nil {
-			return err
+		// Only machines with bootstrap data will have an IP address.
+		if machine.Spec.Bootstrap.DataSecretName == nil {
+			ctx.Logger.V(4).Info(
+				"skipping machine while looking for IP address",
+				"machine-name", machine.Name,
+				"skip-reason", "nilBootstrapData")
+			continue
 		}
 
-		var apiEndpoint infrav1.APIEndpoint
+		// Get the VSphereMachine for the CAPI Machine resource.
+		vsphereMachine, err := infrautilv1.GetVSphereMachine(ctx, ctx.Client, machine.Namespace, machine.Name)
+		if err != nil {
+			return errors.Wrapf(err,
+				"failed to get VSphereMachine for Machine %s/%s/%s",
+				machine.Namespace, ctx.VSphereCluster.Name, machine.Name)
+		}
 
-		// If there is a ControlPlaneEndpoint set then use it.
-		if cpe := kubeadmConfig.Spec.ClusterConfiguration.ControlPlaneEndpoint; cpe != "" {
-			parsedAPIEndpoint, err := infrautilv1.GetAPIEndpointForControlPlaneEndpoint(cpe)
-			if err != nil {
-				return err
-			}
-			apiEndpoint = *parsedAPIEndpoint
-			ctx.Logger.V(6).Info(
-				"found API endpoint via KubeadmConfig",
-				"host", apiEndpoint.Host, "port", apiEndpoint.Port)
-		} else {
-			// Only machines with bootstrap data will have an IP address.
-			if machine.Spec.Bootstrap.Data == nil {
-				ctx.Logger.V(6).Info(
-					"skipping machine while looking for IP address",
-					"machine-name", machine.Name,
-					"skip-reason", "nilBootstrapData")
+		// Get the VSphereMachine's preferred IP address.
+		ipAddr, err := infrautilv1.GetMachinePreferredIPAddress(vsphereMachine)
+		if err != nil {
+			if err == infrautilv1.ErrNoMachineIPAddr {
 				continue
 			}
-
-			// Get the VSphereMachine for the CAPI Machine resource.
-			vsphereMachine, err := infrautilv1.GetVSphereMachine(ctx, ctx.Client, machine.Namespace, machine.Name)
-			if err != nil {
-				return errors.Wrapf(err,
-					"failed to get VSphereMachine for Machine %s/%s/%s",
-					machine.Namespace, ctx.VSphereCluster.Name, machine.Name)
-			}
-
-			// Get the VSphereMachine's preferred IP address.
-			ipAddr, err := infrautilv1.GetMachinePreferredIPAddress(vsphereMachine)
-			if err != nil {
-				if err == infrautilv1.ErrNoMachineIPAddr {
-					continue
-				}
-				return errors.Wrapf(err,
-					"failed to get preferred IP address for VSphereMachine %s/%s/%s",
-					machine.Namespace, ctx.VSphereCluster.Name, vsphereMachine.Name)
-			}
-
-			apiEndpoint.Host = ipAddr
-			apiEndpoint.Port = apiEndpointPort
-
-			ctx.Logger.V(6).Info(
-				"found API endpoint via control plane machine",
-				"host", apiEndpoint.Host, "port", apiEndpoint.Port)
+			return errors.Wrapf(err,
+				"failed to get preferred IP address for VSphereMachine %s/%s/%s",
+				machine.Namespace, ctx.VSphereCluster.Name, vsphereMachine.Name)
 		}
 
-		// Set APIEndpoints so the CAPI controller can read the API endpoints
-		// for this VSphereCluster into the analogous CAPI Cluster using an
-		// UnstructuredReader.
-		ctx.VSphereCluster.Spec.ControlPlaneEndpoint = apiEndpoint
-		vsphereCluster := ctx.VSphereCluster.DeepCopy()
+		// Set the ControlPlaneEndpoint so the CAPI controller can read the
+		// value into the analogous CAPI Cluster using an UnstructuredReader.
+		ctx.VSphereCluster.Spec.ControlPlaneEndpoint.Host = ipAddr
+		ctx.VSphereCluster.Spec.ControlPlaneEndpoint.Port = apiEndpointPort
 
 		// Enqueue a reconcile request for the cluster when the target API
 		// server is online.
@@ -337,12 +306,17 @@ func (r clusterReconciler) reconcileAPIEndpoints(ctx *context.ClusterContext) er
 			// Block until the target API server is online.
 			wait.PollImmediateInfinite(time.Second*1, func() (bool, error) { return r.isAPIServerOnline(ctx), nil })
 			ctx.Logger.Info("triggering GenericEvent", "reason", "api-server-online")
-			eventChannel := ctx.GetGenericEventChannelFor(vsphereCluster.GetObjectKind().GroupVersionKind())
+			eventChannel := ctx.GetGenericEventChannelFor(ctx.VSphereCluster.GetObjectKind().GroupVersionKind())
 			eventChannel <- event.GenericEvent{
-				Meta:   vsphereCluster,
-				Object: vsphereCluster,
+				Meta:   ctx.VSphereCluster,
+				Object: ctx.VSphereCluster,
 			}
 		}()
+
+		ctx.Logger.V(4).Info(
+			"found API endpoint via control plane machine",
+			"host", ctx.VSphereCluster.Spec.ControlPlaneEndpoint.Host,
+			"port", ctx.VSphereCluster.Spec.ControlPlaneEndpoint.Port)
 
 		return nil
 	}
@@ -607,6 +581,10 @@ func (r clusterReconciler) controlPlaneMachineToCluster(o handler.MapObject) []c
 		return nil
 	}
 
+	if !cluster.Spec.ControlPlaneEndpoint.IsZero() {
+		return nil
+	}
+
 	// Fetch the VSphereCluster
 	vsphereCluster := &infrav1.VSphereCluster{}
 	vsphereClusterKey := client.ObjectKey{
@@ -619,7 +597,7 @@ func (r clusterReconciler) controlPlaneMachineToCluster(o handler.MapObject) []c
 		return nil
 	}
 
-	if vsphereCluster.Spec.ControlPlaneEndpoint != (infrav1.APIEndpoint{}) {
+	if !vsphereCluster.Spec.ControlPlaneEndpoint.IsZero() {
 		return nil
 	}
 

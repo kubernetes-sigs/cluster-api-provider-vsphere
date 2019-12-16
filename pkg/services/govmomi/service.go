@@ -25,6 +25,8 @@ import (
 	"github.com/vmware/govmomi/property"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
+	corev1 "k8s.io/api/core/v1"
+	apitypes "k8s.io/apimachinery/pkg/types"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
@@ -69,7 +71,15 @@ func (vms *VMService) ReconcileVM(ctx *context.MachineContext) (vm infrav1.Virtu
 		}
 		// If VM's MoRef could not be found then the VM does not exist,
 		// and the VM should be created.
-		return vm, createVM(ctx, []byte(*ctx.Machine.Spec.Bootstrap.Data))
+
+		// Get the bootstrap data.
+		bootstrapData, err := vms.getBootstrapData(ctx)
+		if err != nil {
+			return vm, err
+		}
+
+		// Create the VM.
+		return vm, createVM(ctx, bootstrapData)
 	}
 
 	//
@@ -338,4 +348,26 @@ func (vms *VMService) getNetworkStatus(ctx *virtualMachineContext) ([]infrav1.Ne
 		})
 	}
 	return apiNetStatus, nil
+}
+
+func (vms *VMService) getBootstrapData(ctx *context.MachineContext) ([]byte, error) {
+	if ctx.Machine.Spec.Bootstrap.DataSecretName == nil {
+		return nil, errors.New("error retrieving bootstrap data: linked Machine's bootstrap.dataSecretName is nil")
+	}
+
+	secret := &corev1.Secret{}
+	secretKey := apitypes.NamespacedName{
+		Namespace: ctx.Machine.GetNamespace(),
+		Name:      *ctx.Machine.Spec.Bootstrap.DataSecretName,
+	}
+	if err := ctx.Client.Get(ctx, secretKey, secret); err != nil {
+		return nil, errors.Wrapf(err, "failed to retrieve bootstrap data secret for %s", ctx)
+	}
+
+	value, ok := secret.Data["value"]
+	if !ok {
+		return nil, errors.New("error retrieving bootstrap data: secret value key is missing")
+	}
+
+	return value, nil
 }

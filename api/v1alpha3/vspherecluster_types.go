@@ -42,15 +42,15 @@ type VSphereClusterSpec struct {
 	// CloudProviderConfiguration holds the cluster-wide configuration for the
 	// vSphere cloud provider.
 	CloudProviderConfiguration cloudprovider.Config `json:"cloudProviderConfiguration,omitempty"`
+
+	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
+	// +optional
+	ControlPlaneEndpoint APIEndpoint `json:"controlPlaneEndpoint"`
 }
 
 // VSphereClusterStatus defines the observed state of VSphereClusterSpec
 type VSphereClusterStatus struct {
 	Ready bool `json:"ready"`
-	// APIEndpoints represents the endpoints to communicate with the control
-	// plane.
-	// +optional
-	APIEndpoints []APIEndpoint `json:"apiEndpoints,omitempty"`
 }
 
 // +kubebuilder:object:root=true

@@ -28,7 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -39,7 +39,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/cloudprovider"
@@ -248,7 +248,7 @@ func (r clusterReconciler) reconcileNormal(ctx *context.ClusterContext) (reconci
 
 func (r clusterReconciler) reconcileAPIEndpoints(ctx *context.ClusterContext) error {
 	// If the cluster already has API endpoints set then there is nothing to do.
-	if len(ctx.VSphereCluster.Status.APIEndpoints) > 0 {
+	if ctx.VSphereCluster.Spec.ControlPlaneEndpoint != (infrav1.APIEndpoint{}) {
 		ctx.Logger.V(6).Info("API endpoints already exist")
 		return nil
 	}
@@ -328,7 +328,7 @@ func (r clusterReconciler) reconcileAPIEndpoints(ctx *context.ClusterContext) er
 		// Set APIEndpoints so the CAPI controller can read the API endpoints
 		// for this VSphereCluster into the analogous CAPI Cluster using an
 		// UnstructuredReader.
-		ctx.VSphereCluster.Status.APIEndpoints = []infrav1.APIEndpoint{apiEndpoint}
+		ctx.VSphereCluster.Spec.ControlPlaneEndpoint = apiEndpoint
 		vsphereCluster := ctx.VSphereCluster.DeepCopy()
 
 		// Enqueue a reconcile request for the cluster when the target API
@@ -619,7 +619,7 @@ func (r clusterReconciler) controlPlaneMachineToCluster(o handler.MapObject) []c
 		return nil
 	}
 
-	if len(vsphereCluster.Status.APIEndpoints) > 0 {
+	if vsphereCluster.Spec.ControlPlaneEndpoint != (infrav1.APIEndpoint{}) {
 		return nil
 	}
 

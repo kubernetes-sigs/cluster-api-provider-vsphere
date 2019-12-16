@@ -22,21 +22,21 @@ import (
 	"github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2"
+	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
 func Test_GetMachinePreferredIPAddress(t *testing.T) {
 	testCases := []struct {
 		name        string
-		machine     *v1alpha2.VSphereMachine
+		machine     *v1alpha3.VSphereMachine
 		ipAddr      string
 		expectedErr error
 	}{
 		{
 			name: "single IPv4 address, no preferred CIDR",
-			machine: &v1alpha2.VSphereMachine{
-				Status: v1alpha2.VSphereMachineStatus{
+			machine: &v1alpha3.VSphereMachine{
+				Status: v1alpha3.VSphereMachineStatus{
 					Addresses: []corev1.NodeAddress{
 						{
 							Type:    corev1.NodeInternalIP,
@@ -50,8 +50,8 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 		},
 		{
 			name: "single IPv6 address, no preferred CIDR",
-			machine: &v1alpha2.VSphereMachine{
-				Status: v1alpha2.VSphereMachineStatus{
+			machine: &v1alpha3.VSphereMachine{
+				Status: v1alpha3.VSphereMachineStatus{
 					Addresses: []corev1.NodeAddress{
 						{
 							Type:    corev1.NodeInternalIP,
@@ -65,8 +65,8 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 		},
 		{
 			name: "multiple IPv4 addresses, only 1 internal, no preferred CIDR",
-			machine: &v1alpha2.VSphereMachine{
-				Status: v1alpha2.VSphereMachineStatus{
+			machine: &v1alpha3.VSphereMachine{
+				Status: v1alpha3.VSphereMachineStatus{
 					Addresses: []corev1.NodeAddress{
 						{
 							Type:    corev1.NodeInternalIP,
@@ -88,13 +88,13 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 		},
 		{
 			name: "multiple IPv4 addresses, preferred CIDR set to v4",
-			machine: &v1alpha2.VSphereMachine{
-				Spec: v1alpha2.VSphereMachineSpec{
-					Network: v1alpha2.NetworkSpec{
+			machine: &v1alpha3.VSphereMachine{
+				Spec: v1alpha3.VSphereMachineSpec{
+					Network: v1alpha3.NetworkSpec{
 						PreferredAPIServerCIDR: "192.168.0.0/16",
 					},
 				},
-				Status: v1alpha2.VSphereMachineStatus{
+				Status: v1alpha3.VSphereMachineStatus{
 					Addresses: []corev1.NodeAddress{
 						{
 							Type:    corev1.NodeInternalIP,
@@ -112,13 +112,13 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 		},
 		{
 			name: "multiple IPv4 and IPv6 addresses, preferred CIDR set to v4",
-			machine: &v1alpha2.VSphereMachine{
-				Spec: v1alpha2.VSphereMachineSpec{
-					Network: v1alpha2.NetworkSpec{
+			machine: &v1alpha3.VSphereMachine{
+				Spec: v1alpha3.VSphereMachineSpec{
+					Network: v1alpha3.NetworkSpec{
 						PreferredAPIServerCIDR: "192.168.0.0/16",
 					},
 				},
-				Status: v1alpha2.VSphereMachineStatus{
+				Status: v1alpha3.VSphereMachineStatus{
 					Addresses: []corev1.NodeAddress{
 						{
 							Type:    corev1.NodeInternalIP,
@@ -136,13 +136,13 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 		},
 		{
 			name: "multiple IPv4 and IPv6 addresses, preferred CIDR set to v6",
-			machine: &v1alpha2.VSphereMachine{
-				Spec: v1alpha2.VSphereMachineSpec{
-					Network: v1alpha2.NetworkSpec{
+			machine: &v1alpha3.VSphereMachine{
+				Spec: v1alpha3.VSphereMachineSpec{
+					Network: v1alpha3.NetworkSpec{
 						PreferredAPIServerCIDR: "fdf3:35b5:9dad:6e09::/64",
 					},
 				},
-				Status: v1alpha2.VSphereMachineStatus{
+				Status: v1alpha3.VSphereMachineStatus{
 
 					Addresses: []corev1.NodeAddress{
 						{
@@ -161,13 +161,13 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 		},
 		{
 			name: "no addresses found",
-			machine: &v1alpha2.VSphereMachine{
-				Spec: v1alpha2.VSphereMachineSpec{
-					Network: v1alpha2.NetworkSpec{
+			machine: &v1alpha3.VSphereMachine{
+				Spec: v1alpha3.VSphereMachineSpec{
+					Network: v1alpha3.NetworkSpec{
 						PreferredAPIServerCIDR: "fdf3:35b5:9dad:6e09::/64",
 					},
 				},
-				Status: v1alpha2.VSphereMachineStatus{
+				Status: v1alpha3.VSphereMachineStatus{
 					Addresses: []corev1.NodeAddress{},
 				},
 			},
@@ -176,13 +176,13 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 		},
 		{
 			name: "no addresses found with preferred CIDR",
-			machine: &v1alpha2.VSphereMachine{
-				Spec: v1alpha2.VSphereMachineSpec{
-					Network: v1alpha2.NetworkSpec{
+			machine: &v1alpha3.VSphereMachine{
+				Spec: v1alpha3.VSphereMachineSpec{
+					Network: v1alpha3.NetworkSpec{
 						PreferredAPIServerCIDR: "192.168.0.0/16",
 					},
 				},
-				Status: v1alpha2.VSphereMachineStatus{
+				Status: v1alpha3.VSphereMachineStatus{
 
 					Addresses: []corev1.NodeAddress{
 						{
@@ -218,15 +218,15 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 func Test_GetMachineMetadata(t *testing.T) {
 	testCases := []struct {
 		name     string
-		machine  *v1alpha2.VSphereMachine
+		machine  *v1alpha3.VSphereMachine
 		expected string
 	}{
 		{
 			name: "dhcp4",
-			machine: &v1alpha2.VSphereMachine{
-				Spec: v1alpha2.VSphereMachineSpec{
-					Network: v1alpha2.NetworkSpec{
-						Devices: []v1alpha2.NetworkDeviceSpec{
+			machine: &v1alpha3.VSphereMachine{
+				Spec: v1alpha3.VSphereMachineSpec{
+					Network: v1alpha3.NetworkSpec{
+						Devices: []v1alpha3.NetworkDeviceSpec{
 							{
 								NetworkName: "network1",
 								MACAddr:     "00:00:00:00:00",
@@ -252,10 +252,10 @@ network:
 		},
 		{
 			name: "dhcp6",
-			machine: &v1alpha2.VSphereMachine{
-				Spec: v1alpha2.VSphereMachineSpec{
-					Network: v1alpha2.NetworkSpec{
-						Devices: []v1alpha2.NetworkDeviceSpec{
+			machine: &v1alpha3.VSphereMachine{
+				Spec: v1alpha3.VSphereMachineSpec{
+					Network: v1alpha3.NetworkSpec{
+						Devices: []v1alpha3.NetworkDeviceSpec{
 							{
 								NetworkName: "network1",
 								MACAddr:     "00:00:00:00:00",
@@ -281,10 +281,10 @@ network:
 		},
 		{
 			name: "dhcp4+dhcp6",
-			machine: &v1alpha2.VSphereMachine{
-				Spec: v1alpha2.VSphereMachineSpec{
-					Network: v1alpha2.NetworkSpec{
-						Devices: []v1alpha2.NetworkDeviceSpec{
+			machine: &v1alpha3.VSphereMachine{
+				Spec: v1alpha3.VSphereMachineSpec{
+					Network: v1alpha3.NetworkSpec{
+						Devices: []v1alpha3.NetworkDeviceSpec{
 							{
 								NetworkName: "network1",
 								MACAddr:     "00:00:00:00:00",
@@ -311,10 +311,10 @@ network:
 		},
 		{
 			name: "static4+dhcp6",
-			machine: &v1alpha2.VSphereMachine{
-				Spec: v1alpha2.VSphereMachineSpec{
-					Network: v1alpha2.NetworkSpec{
-						Devices: []v1alpha2.NetworkDeviceSpec{
+			machine: &v1alpha3.VSphereMachine{
+				Spec: v1alpha3.VSphereMachineSpec{
+					Network: v1alpha3.NetworkSpec{
+						Devices: []v1alpha3.NetworkDeviceSpec{
 							{
 								NetworkName: "network1",
 								MACAddr:     "00:00:00:00:00",
@@ -345,10 +345,10 @@ network:
 		},
 		{
 			name: "static4+dhcp6+static-routes",
-			machine: &v1alpha2.VSphereMachine{
-				Spec: v1alpha2.VSphereMachineSpec{
-					Network: v1alpha2.NetworkSpec{
-						Devices: []v1alpha2.NetworkDeviceSpec{
+			machine: &v1alpha3.VSphereMachine{
+				Spec: v1alpha3.VSphereMachineSpec{
+					Network: v1alpha3.NetworkSpec{
+						Devices: []v1alpha3.NetworkDeviceSpec{
 							{
 								NetworkName: "network1",
 								MACAddr:     "00:00:00:00:00",
@@ -357,7 +357,7 @@ network:
 								Gateway4:    "192.168.4.1",
 							},
 						},
-						Routes: []v1alpha2.NetworkRouteSpec{
+						Routes: []v1alpha3.NetworkRouteSpec{
 							{
 								To:     "192.168.5.1/24",
 								Via:    "192.168.4.254",
@@ -390,15 +390,15 @@ network:
 		},
 		{
 			name: "2nets",
-			machine: &v1alpha2.VSphereMachine{
-				Spec: v1alpha2.VSphereMachineSpec{
-					Network: v1alpha2.NetworkSpec{
-						Devices: []v1alpha2.NetworkDeviceSpec{
+			machine: &v1alpha3.VSphereMachine{
+				Spec: v1alpha3.VSphereMachineSpec{
+					Network: v1alpha3.NetworkSpec{
+						Devices: []v1alpha3.NetworkDeviceSpec{
 							{
 								NetworkName: "network1",
 								MACAddr:     "00:00:00:00:00",
 								DHCP4:       true,
-								Routes: []v1alpha2.NetworkRouteSpec{
+								Routes: []v1alpha3.NetworkRouteSpec{
 									{
 										To:     "192.168.5.1/24",
 										Via:    "192.168.4.254",
@@ -443,10 +443,10 @@ network:
 		},
 		{
 			name: "2nets-static+dhcp",
-			machine: &v1alpha2.VSphereMachine{
-				Spec: v1alpha2.VSphereMachineSpec{
-					Network: v1alpha2.NetworkSpec{
-						Devices: []v1alpha2.NetworkDeviceSpec{
+			machine: &v1alpha3.VSphereMachine{
+				Spec: v1alpha3.VSphereMachineSpec{
+					Network: v1alpha3.NetworkSpec{
+						Devices: []v1alpha3.NetworkDeviceSpec{
 							{
 								NetworkName:   "network1",
 								MACAddr:       "00:00:00:00:00",

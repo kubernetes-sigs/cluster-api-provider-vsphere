@@ -25,8 +25,8 @@ import (
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
-	ctrllog "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 
 	// +kubebuilder:scaffold:imports
 

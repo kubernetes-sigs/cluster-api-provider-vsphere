@@ -30,7 +30,6 @@ OVERWRITE=
 CLUSTER_NAME="${CLUSTER_NAME:-capv-mgmt-example}"
 ENV_VAR_REQ=':?required'
 
-CABPK_MANAGER_IMAGE="${CABPK_MANAGER_IMAGE:-us.gcr.io/k8s-artifacts-prod/capi-kubeadm/cluster-api-kubeadm-controller:v0.1.5}"
 CAPI_MANAGER_IMAGE="${CAPI_MANAGER_IMAGE:-us.gcr.io/k8s-artifacts-prod/cluster-api/cluster-api-controller:v0.2.7}"
 CAPV_MANAGER_IMAGE="${CAPV_MANAGER_IMAGE:-gcr.io/cluster-api-provider-vsphere/release/manager:latest}"
 K8S_IMAGE_REPOSITORY="${K8S_IMAGE_REPOSITORY:-k8s.gcr.io}"
@@ -46,8 +45,6 @@ usage: ${0} [FLAGS]
   Generates input manifests for the Cluster API Provider for vSphere (CAPV)
 
 FLAGS
-  -b    bootstrapper manager image (default "${CABPK_MANAGER_IMAGE}")
-  -B    bootstrapper manager log level (default "${CABPK_MANAGER_LOG_LEVEL}")
   -c    cluster name (default "${CLUSTER_NAME}")
   -d    disables required environment variables
   -f    force overwrite of existing files
@@ -62,14 +59,8 @@ FLAGS
 EOF
 }
 
-while getopts ':b:B:c:dfhi:m:M:r:o:p:P:' opt; do
+while getopts ':c:dfhi:m:M:r:o:p:P:' opt; do
   case "${opt}" in
-  b)
-    CABPK_MANAGER_IMAGE="${OPTARG}"
-    ;;
-  B)
-    CABPK_MANAGER_LOG_LEVEL="${OPTARG}"
-    ;;
   c)
     CLUSTER_NAME="${OPTARG}"
     ;;
@@ -181,13 +172,11 @@ if [ -n "${VSPHERE_PRE_67u3_SUPPORT}" ]; then
 fi
 
 # Export the manager images and log levels for the different providers.
-export CABPK_MANAGER_IMAGE CABPK_MANAGER_LOG_LEVEL
 export CAPI_MANAGER_IMAGE CAPI_MANAGER_LOG_LEVEL
 export CAPV_MANAGER_IMAGE CAPV_MANAGER_LOG_LEVEL
 
 # Outputs
 COMPONENTS_CLUSTER_API_GENERATED_FILE=${SRC_DIR}/provider-components/provider-components-cluster-api.yaml
-COMPONENTS_KUBEADM_GENERATED_FILE=${SRC_DIR}/provider-components/provider-components-kubeadm.yaml
 COMPONENTS_VSPHERE_GENERATED_FILE=${SRC_DIR}/provider-components/provider-components-vsphere.yaml
 
 ADDONS_GENERATED_FILE=${OUT_DIR}/addons.yaml
@@ -205,7 +194,7 @@ no_file() {
 }
 
 # Remove the temporary provider components files.
-for f in COMPONENTS_CLUSTER_API COMPONENTS_KUBEADM COMPONENTS_VSPHERE; do \
+for f in COMPONENTS_CLUSTER_API COMPONENTS_VSPHERE; do \
   eval "rm -f \"\${${f}_GENERATED_FILE}\""
 done
 
@@ -221,8 +210,7 @@ require_if_defined() {
   done
 }
 
-require_if_defined CABPK_MANAGER_IMAGE \
-                   CAPV_MANAGER_IMAGE \
+require_if_defined CAPV_MANAGER_IMAGE \
                    VSPHERE_DATACENTER \
                    VSPHERE_DATASTORE \
                    VSPHERE_RESOURCE_POOL \
@@ -239,7 +227,6 @@ record_and_export CLUSTER_NAME          ':-capv-mgmt-example'
 record_and_export SERVICE_CIDR          ':-100.64.0.0/13'
 record_and_export CLUSTER_CIDR          ':-100.96.0.0/11'
 record_and_export SERVICE_DOMAIN        ':-cluster.local'
-record_and_export CABPK_MANAGER_IMAGE   ':-'
 record_and_export CAPV_MANAGER_IMAGE    ':-'
 record_and_export K8S_IMAGE_REPOSITORY  ':-'
 record_and_export VSPHERE_USERNAME      "${ENV_VAR_REQ}"
@@ -327,12 +314,8 @@ kustomize build "${SRC_DIR}/machinedeployment" | envsubst >"${MACHINEDEPLOYMENT_
 echo "Generated ${MACHINEDEPLOYMENT_GENERATED_FILE}"
 
 # Generate Cluster API provider components file.
-kustomize build "github.com/kubernetes-sigs/cluster-api/config/default/?ref=v0.2.7" >"${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
+kustomize build "github.com/kubernetes-sigs/cluster-api/config/default/?ref=1bb8132e8c034d0d24346e3138747e94a90f6d18" >"${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
 echo "Generated ${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
-
-# Generate Kubeadm Bootstrap Provider components file.
-kustomize build "github.com/kubernetes-sigs/cluster-api-bootstrap-provider-kubeadm/config/default/?ref=v0.1.5" >"${COMPONENTS_KUBEADM_GENERATED_FILE}"
-echo "Generated ${COMPONENTS_KUBEADM_GENERATED_FILE}"
 
 # Generate VSphere Infrastructure Provider components file.
 kustomize build "${SRC_DIR}/../../config/default" | envsubst >"${COMPONENTS_VSPHERE_GENERATED_FILE}"

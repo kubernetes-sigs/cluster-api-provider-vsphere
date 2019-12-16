@@ -22,11 +22,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	clientrecord "k8s.io/client-go/tools/record"
-	clusterv1a2 "sigs.k8s.io/cluster-api/api/v1alpha2"
+	clusterv1a2 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	ctrllog "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 )

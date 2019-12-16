@@ -27,10 +27,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apitypes "k8s.io/apimachinery/pkg/types"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
 )
 
 // GetMachinesInCluster gets a cluster's Machine resources.
@@ -39,7 +39,7 @@ func GetMachinesInCluster(
 	controllerClient client.Client,
 	namespace, clusterName string) ([]*clusterv1.Machine, error) {
 
-	labels := map[string]string{clusterv1.MachineClusterLabelName: clusterName}
+	labels := map[string]string{clusterv1.ClusterLabelName: clusterName}
 	machineList := &clusterv1.MachineList{}
 
 	if err := controllerClient.List(
@@ -65,7 +65,7 @@ func GetVSphereMachinesInCluster(
 	controllerClient client.Client,
 	namespace, clusterName string) ([]*infrav1.VSphereMachine, error) {
 
-	labels := map[string]string{clusterv1.MachineClusterLabelName: clusterName}
+	labels := map[string]string{clusterv1.ClusterLabelName: clusterName}
 	machineList := &infrav1.VSphereMachineList{}
 
 	if err := controllerClient.List(

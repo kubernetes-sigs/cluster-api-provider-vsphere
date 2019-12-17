@@ -50,7 +50,7 @@ It is required that machines provisioned by CAPV use one of the official CAPV ma
 
 [Create a VM template](https://docs.vmware.com/en/VMware-vSphere/6.7/com.vmware.vsphere.vm_admin.doc/GUID-17BEDA21-43F6-41F4-8FB2-E01D275FE9B4.html) using the OVA URL above. The rest of the guide will assume you named the VM template `ubuntu-1804-kube-v1.15.4`.
 
-**Note:** When creating OVA template via vSphere using URL method, make sure VM template name is same as value specified for environment variable VSPHERE_TEMPLATE in envvars.txt file, taking care of .ova suffix for the template name.
+**Note:** When creating the OVA template via vSphere using the URL method, please make sure the VM template name is the same as the value specified by the environment variable `VSPHERE_TEMPLATE` in the `envvars.txt` file, taking care of the `.ova` suffix for the template name.
 
 **Note:** If you are planning to use CNS/CSI then you will need to ensure that the template is at least at VM Hardware Version 13, This is done out-of-the-box for images of K8s version `v1.15.4` and above. For versions lower than this you will need to upgrade the VMHW either [in the UI](https://kb.vmware.com/s/article/1010675) or with [`govc`](https://github.com/vmware/govmomi/tree/master/govc) as such:
 

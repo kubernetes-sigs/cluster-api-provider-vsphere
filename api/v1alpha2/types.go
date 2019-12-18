@@ -26,6 +26,11 @@ const (
 	// infrastructure sources are ready and machines may be created.
 	AnnotationClusterInfrastructureReady = "vsphere.infrastructure.cluster.x-k8s.io/infrastructure-ready"
 
+	// AnnotationControlPlaneEndpoint is used only in v1alpha2 by other
+	// bootstrap providers to specify the control plane endpoint prior to
+	// the creation of the cluster.
+	AnnotationControlPlaneEndpoint = "capv.infrastructure.cluster.x-k8s.io/control-plane-endpoint"
+
 	// AnnotationControlPlaneReady indicates the cluster's control plane is
 	// ready.
 	AnnotationControlPlaneReady = "vsphere.infrastructure.cluster.x-k8s.io/control-plane-ready"

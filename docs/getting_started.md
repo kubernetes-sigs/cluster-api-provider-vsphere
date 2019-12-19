@@ -2,19 +2,19 @@
 
 This is a guide on how to get started with CAPV (Cluster API Provider vSphere). To learn more about cluster API in more depth, check out the the [cluster api docs page](https://cluster-api.sigs.k8s.io/).
 
-- [Getting Started](#getting-started)
-  - [Bootstrapping a Management Cluster with clusterctl](#bootstrapping-a-management-cluster-with-clusterctl)
-    - [Install Requirements](#install-requirements)
-      - [clusterctl](#clusterctl)
-      - [Docker](#docker)
-      - [Kind](#kind)
-      - [kubectl](#kubectl)
-    - [vSphere Requirements](#vsphere-requirements)
-      - [vCenter Credentials](#vcenter-credentials)
-      - [Uploading the CAPV Machine Image](#uploading-the-capv-machine-image)
-    - [Generating YAML for the Bootstrap Cluster](#generating-yaml-for-the-bootstrap-cluster)
-    - [Using clusterctl](#using-clusterctl)
-  - [Managing Workload Clusters using the Management Cluster](#managing-workload-clusters-using-the-management-cluster)
+* [Getting Started](#getting-started)
+  * [Bootstrapping a Management Cluster with clusterctl](#bootstrapping-a-management-cluster-with-clusterctl)
+    * [Install Requirements](#install-requirements)
+      * [clusterctl](#clusterctl)
+      * [Docker](#docker)
+      * [Kind](#kind)
+      * [kubectl](#kubectl)
+    * [vSphere Requirements](#vsphere-requirements)
+      * [vCenter Credentials](#vcenter-credentials)
+      * [Uploading the CAPV Machine Image](#uploading-the-capv-machine-image)
+    * [Generating YAML for the Bootstrap Cluster](#generating-yaml-for-the-bootstrap-cluster)
+    * [Using clusterctl](#using-clusterctl)
+  * [Managing Workload Clusters using the Management Cluster](#managing-workload-clusters-using-the-management-cluster)
 
 ## Bootstrapping a Management Cluster with clusterctl
 
@@ -99,7 +99,7 @@ EOF
 
 With the above environment variable file it is now possible to generate the manifests needed to bootstrap the management cluster. The following command uses Docker to run an image that has all of the necessary templates and tools to generate the YAML manifests. Additionally, the `envvars.txt` file created above is mounted inside the the image in order to provide the generation routine with its default values.
 
-**Note** It's important to ensure you are leveraging an up to date version of the manifests container image below. Problems with this typically manifest themselves on workstations that have tested previous versions of CAPV. You can delete your existing manifest image by using ```docker rmi gcr.io/cluster-api-provider-vsphere/release/manifests``` or change the below command to use a specific manifest image version (i.e. `release/manifests:0.5.2-beta.0`)
+**Note** It's important to ensure you are leveraging an up to date version of the manifests container image below. Problems with this typically manifest themselves on workstations that have tested previous versions of CAPV. You can delete your existing manifest image by using ```docker rmi gcr.io/cluster-api-provider-vsphere/release/manifests``` or change the below command to use a specific manifest image version (i.e. `release/manifests:v0.5.4`)
 
 You can issue the below command to generate the required manifest files.
 
@@ -107,7 +107,7 @@ You can issue the below command to generate the required manifest files.
 $ docker run --rm \
   -v "$(pwd)":/out \
   -v "$(pwd)/envvars.txt":/envvars.txt:ro \
-  gcr.io/cluster-api-provider-vsphere/release/manifests:latest \
+  gcr.io/cluster-api-provider-vsphere/release/manifests:v0.5.4 \
   -c management-cluster
 
 Generated ./out/management-cluster/cluster.yaml
@@ -149,7 +149,7 @@ Using the same Docker command as above, generate resources for a new cluster, th
 $ docker run --rm \
   -v "$(pwd)":/out \
   -v "$(pwd)/envvars.txt":/envvars.txt:ro \
-  gcr.io/cluster-api-provider-vsphere/release/manifests:latest \
+  gcr.io/cluster-api-provider-vsphere/release/manifests:v0.5.4 \
   -c workload-cluster-1
 ```
 

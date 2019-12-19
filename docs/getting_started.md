@@ -194,7 +194,7 @@ spec:
       name: vm-network-1
     providerConfig:
       cloud:
-        controllerImage: gcr.io/cloud-provider-vsphere/cpi/release/manager:v1.0.0
+        controllerImage: gcr.io/cloud-provider-vsphere/cpi/release/manager:v1.1.0
       storage:
         attacherImage: quay.io/k8scsi/csi-attacher:v1.1.1
         controllerImage: gcr.io/cloud-provider-vsphere/csi/release/driver:v1.0.1

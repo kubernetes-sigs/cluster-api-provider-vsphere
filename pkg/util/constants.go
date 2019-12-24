@@ -26,8 +26,8 @@ network:
     id{{ $i }}:
       match:
         macaddress: "{{ $net.MACAddr }}"
-      {{- if $net.SetName }}
-      set-name: "{{ $net.SetName }}"
+      {{- if $net.DeviceName }}
+      set-name: "{{ $net.DeviceName }}"
       {{- else }}
       set-name: "eth{{ $i }}"
       {{- end }}

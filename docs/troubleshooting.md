@@ -330,16 +330,16 @@ The above network configuratoin from a machine definition includes two network d
 
 #### Specifying the ethernet interface device names
 
-A bug with Cloud-Init Networking Config Version 2 prevents the use of Predicatable Device Names in CentOS and Photon [`583`](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/583). For this reason CAPV sets devices name to eth*. Should one wish to use alternate interface device names, use the setName parameter. For example:
+A bug with Cloud-Init Networking Config Version 2 prevents the use of Predicatable Device Names in CentOS and Photon [`583`](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/583). For this reason CAPV sets devices name to eth*. Should one wish to use alternate interface device names, use the deviceName parameter. For example:
 
 ```yaml
 network:
   devices:
   - networkName: "sddc-cgw-network-5"
-    setName: "ens192"
+    deviceName: "ens192"
     dhcp4: true
   - networkName: "sddc-cgw-network-6"
-    setName: "ens193"
+    deviceName: "ens193"
     dhcp4: true
 ```
 

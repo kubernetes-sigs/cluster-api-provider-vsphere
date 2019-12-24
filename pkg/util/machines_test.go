@@ -252,7 +252,7 @@ network:
 `,
 		},
 		{
-			name: "dhcp4+setName",
+			name: "dhcp4+deviceName",
 			machine: &v1alpha2.VSphereMachine{
 				Spec: v1alpha2.VSphereMachineSpec{
 					Network: v1alpha2.NetworkSpec{
@@ -261,7 +261,7 @@ network:
 								NetworkName: "network1",
 								MACAddr:     "00:00:00:00:00",
 								DHCP4:       true,
-								SetName:     "ens192",
+								DeviceName:  "ens192",
 							},
 						},
 					},

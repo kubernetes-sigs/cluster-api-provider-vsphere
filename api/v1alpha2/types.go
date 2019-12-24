@@ -94,10 +94,10 @@ type NetworkDeviceSpec struct {
 	// will be connected.
 	NetworkName string `json:"networkName"`
 
-	// setName can be used to give the device a more specific/desirable/nicer
-	// name than the default from udev’s ifnames
+	// DeviceName may be used to explicitly assign a name to the network device
+	// as it exists in the guest operating system.
 	// +optional
-	SetName string `json:"setName,omitempty"`
+	DeviceName string `json:"deviceName,omitempty"`
 
 	// DHCP4 is a flag that indicates whether or not to use DHCP for IPv4
 	// on this device.

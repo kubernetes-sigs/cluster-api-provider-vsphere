@@ -139,9 +139,8 @@ spec:
                           type: string
                         type: array
                       deviceName:
-                        description: deviceName can be used to give the device a more
-                          specific/desirable/nicer name than the default from udev’s
-                          ifnames
+                        description: DeviceName may be used to explicitly assign a name
+                          to the network device as it exists in the guest operating system.
                         type: string
                     required:
                     - networkName

@@ -94,6 +94,11 @@ type NetworkDeviceSpec struct {
 	// will be connected.
 	NetworkName string `json:"networkName"`
 
+	// setName can be used to give the device a more specific/desirable/nicer
+	// name than the default from udev’s ifnames
+	// +optional
+	SetName string `json:"setName,omitempty"`
+
 	// DHCP4 is a flag that indicates whether or not to use DHCP for IPv4
 	// on this device.
 	// If true then IPAddrs should not contain any IPv4 addresses.

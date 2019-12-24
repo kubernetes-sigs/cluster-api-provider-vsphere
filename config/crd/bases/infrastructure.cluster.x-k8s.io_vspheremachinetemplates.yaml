@@ -255,6 +255,11 @@ spec:
                                 items:
                                   type: string
                                 type: array
+                              setName:
+                                description: setName can be used to give the device
+                                  a more specific/desirable/nicer name than the default
+                                  from udev’s ifnames
+                                type: string
                             required:
                             - networkName
                             type: object

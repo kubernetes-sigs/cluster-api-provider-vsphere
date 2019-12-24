@@ -23,6 +23,6 @@ import (
 )
 
 // Clone kicks off a clone operation on ESXi to create a new virtual machine.
-func Clone(ctx *context.MachineContext, bootstrapData []byte) error {
+func Clone(ctx *context.VMContext, bootstrapData []byte) error {
 	return errors.New("temporarily disabled esxi support")
 }

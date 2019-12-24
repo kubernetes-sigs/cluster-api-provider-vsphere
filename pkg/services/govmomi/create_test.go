@@ -43,26 +43,25 @@ func TestCreate(t *testing.T) {
 	defer s.Close()
 	pass, _ := s.URL.User.Password()
 
-	clusterContext := fake.NewClusterContext(fake.NewControllerContext(fake.NewControllerManagerContext()))
-	clusterContext.VSphereCluster.Spec.Server = s.URL.Host
-	machineContext := fake.NewMachineContext(clusterContext)
+	vmContext := fake.NewVMContext(fake.NewControllerContext(fake.NewControllerManagerContext()))
+	vmContext.VSphereVM.Spec.Server = s.URL.Host
 
 	authSession, err := session.GetOrCreate(
-		machineContext,
-		clusterContext.VSphereCluster.Spec.Server, "",
+		vmContext,
+		vmContext.VSphereVM.Spec.Server, "",
 		s.URL.User.Username(), pass)
 	if err != nil {
 		t.Fatal(err)
 	}
-	machineContext.Session = authSession
+	vmContext.Session = authSession
 
 	vm := simulator.Map.Any("VirtualMachine").(*simulator.VirtualMachine)
-	machineContext.VSphereMachine.Spec.Template = vm.Name
+	vmContext.VSphereVM.Spec.Template = vm.Name
 
 	disk := object.VirtualDeviceList(vm.Config.Hardware.Device).SelectByType((*types.VirtualDisk)(nil))[0].(*types.VirtualDisk)
-	disk.CapacityInKB = int64(machineContext.VSphereMachine.Spec.DiskGiB) * 1024 * 1024
+	disk.CapacityInKB = int64(vmContext.VSphereVM.Spec.DiskGiB) * 1024 * 1024
 
-	if err := createVM(machineContext, []byte("")); err != nil {
+	if err := createVM(vmContext, []byte("")); err != nil {
 		t.Fatal(err)
 	}
 

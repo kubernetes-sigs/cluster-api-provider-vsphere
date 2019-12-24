@@ -56,6 +56,12 @@ const (
 	// VSphereMachineUUID is the UID of the fake VSphereMachine resource.
 	VSphereMachineUUID = "10000000-0000-0000-0000-000000000001"
 
+	// VSphereVMName is the name of the fake VSphereVM resource.
+	VSphereVMName = "fake-vm"
+
+	// VSphereVMUUID is the UID of the fake VSphereVMUUID resource.
+	VSphereVMUUID = "20000000-0000-0000-0000-000000000002"
+
 	// PodCIDR is the CIDR for the pod network.
 	PodCIDR = "1.0.0.0/16"
 

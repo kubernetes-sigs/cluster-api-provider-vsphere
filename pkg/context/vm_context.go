@@ -20,32 +20,37 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util/patch"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
+	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 )
 
-// MachineContext is a Go context used with a CAPI cluster.
-type MachineContext struct {
-	*ClusterContext
-	Machine        *clusterv1.Machine
-	VSphereMachine *infrav1.VSphereMachine
-	Logger         logr.Logger
-	PatchHelper    *patch.Helper
+// VMContext is a Go context used with a VSphereVM.
+type VMContext struct {
+	*ControllerContext
+	VSphereVM   *v1alpha3.VSphereVM
+	PatchHelper *patch.Helper
+	Logger      logr.Logger
+	Session     *session.Session
 }
 
-// String returns ControllerManagerName/ControllerName/ClusterAPIVersion/ClusterNamespace/ClusterName/MachineName.
-func (c *MachineContext) String() string {
-	return fmt.Sprintf("%s/%s", c.ClusterContext.String(), c.VSphereMachine.Name)
+// String returns VSphereVMGroupVersionKind VSphereVMNamespace/VSphereVMName.
+func (c *VMContext) String() string {
+	return fmt.Sprintf("%s %s/%s", c.VSphereVM.GroupVersionKind(), c.VSphereVM.Namespace, c.VSphereVM.Name)
 }
 
 // Patch updates the object and its status on the API server.
-func (c *MachineContext) Patch() error {
-	return c.PatchHelper.Patch(c, c.VSphereMachine)
+func (c *VMContext) Patch() error {
+	return c.PatchHelper.Patch(c, c.VSphereVM)
 }
 
 // GetLogger returns this context's logger.
-func (c *MachineContext) GetLogger() logr.Logger {
+func (c *VMContext) GetLogger() logr.Logger {
 	return c.Logger
+}
+
+// GetSession returns this context's session.
+func (c *VMContext) GetSession() *session.Session {
+	return c.Session
 }

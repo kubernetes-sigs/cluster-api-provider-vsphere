@@ -20,4 +20,6 @@ resources:
 - group: infrastructure
   version: v1alpha3
   kind: VSphereMachineTemplate
-
+- group: infrastructure
+  version: v1alpha3
+  kind: VSphereVM

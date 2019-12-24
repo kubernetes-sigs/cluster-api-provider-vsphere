@@ -137,7 +137,7 @@ func IsControlPlaneMachine(machine metav1.Object) bool {
 
 // GetMachineMetadata returns the cloud-init metadata as a base-64 encoded
 // string for a given VSphereMachine.
-func GetMachineMetadata(hostname string, machine infrav1.VSphereMachine, networkStatus ...infrav1.NetworkStatus) ([]byte, error) {
+func GetMachineMetadata(hostname string, machine infrav1.VSphereVM, networkStatus ...infrav1.NetworkStatus) ([]byte, error) {
 	// Create a copy of the devices and add their MAC addresses from a network status.
 	devices := make([]infrav1.NetworkDeviceSpec, len(machine.Spec.Network.Devices))
 	for i := range machine.Spec.Network.Devices {

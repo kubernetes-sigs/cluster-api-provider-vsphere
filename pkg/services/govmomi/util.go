@@ -25,10 +25,9 @@ import (
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/net"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
-func sanitizeIPAddrs(ctx *context.MachineContext, ipAddrs []string) []string {
+func sanitizeIPAddrs(ctx *context.VMContext, ipAddrs []string) []string {
 	if len(ipAddrs) == 0 {
 		return nil
 	}
@@ -48,41 +47,37 @@ func sanitizeIPAddrs(ctx *context.MachineContext, ipAddrs []string) []string {
 //      BIOS UUID.
 //   2. Lacking the ProviderID, the VM is queried by its instance UUID,
 //      which was assigned the value of the Machine resource's UID string.
-func findVM(ctx *context.MachineContext) (types.ManagedObjectReference, error) {
-	if providerID := ctx.VSphereMachine.Spec.ProviderID; providerID != nil && *providerID != "" {
-		uuid := util.ConvertProviderIDToUUID(providerID)
-		if uuid == "" {
-			return types.ManagedObjectReference{}, errors.Errorf("invalid providerID %s", *providerID)
-		}
-		objRef, err := ctx.Session.FindByBIOSUUID(ctx, uuid)
+func findVM(ctx *context.VMContext) (types.ManagedObjectReference, error) {
+	if biosUUID := ctx.VSphereVM.Spec.BiosUUID; biosUUID != "" {
+		objRef, err := ctx.Session.FindByBIOSUUID(ctx, biosUUID)
 		if err != nil {
 			return types.ManagedObjectReference{}, err
 		}
 		if objRef == nil {
-			return types.ManagedObjectReference{}, errNotFound{uuid: uuid}
+			return types.ManagedObjectReference{}, errNotFound{uuid: biosUUID}
 		}
 		return objRef.Reference(), nil
 	}
 
-	uuid := string(ctx.Machine.UID)
-	objRef, err := ctx.Session.FindByInstanceUUID(ctx, uuid)
+	instanceUUID := string(ctx.VSphereVM.UID)
+	objRef, err := ctx.Session.FindByInstanceUUID(ctx, instanceUUID)
 	if err != nil {
 		return types.ManagedObjectReference{}, err
 	}
 	if objRef == nil {
-		return types.ManagedObjectReference{}, errNotFound{instanceUUID: true, uuid: uuid}
+		return types.ManagedObjectReference{}, errNotFound{instanceUUID: true, uuid: instanceUUID}
 	}
 	return objRef.Reference(), nil
 }
 
-func getTask(ctx *context.MachineContext) *mo.Task {
-	if ctx.VSphereMachine.Status.TaskRef == "" {
+func getTask(ctx *context.VMContext) *mo.Task {
+	if ctx.VSphereVM.Status.TaskRef == "" {
 		return nil
 	}
 	var obj mo.Task
 	moRef := types.ManagedObjectReference{
 		Type:  morefTypeTask,
-		Value: ctx.VSphereMachine.Status.TaskRef,
+		Value: ctx.VSphereVM.Status.TaskRef,
 	}
 	if err := ctx.Session.RetrieveOne(ctx, moRef, []string{"info"}, &obj); err != nil {
 		return nil
@@ -90,14 +85,14 @@ func getTask(ctx *context.MachineContext) *mo.Task {
 	return &obj
 }
 
-func reconcileInFlightTask(ctx *context.MachineContext) (bool, error) {
+func reconcileInFlightTask(ctx *context.VMContext) (bool, error) {
 	// Check to see if there is an in-flight task.
 	task := getTask(ctx)
 
-	// If no task was found then make sure to clear the VSphereMachine
+	// If no task was found then make sure to clear the VSphereVM
 	// resource's Status.TaskRef field.
 	if task == nil {
-		ctx.VSphereMachine.Status.TaskRef = ""
+		ctx.VSphereVM.Status.TaskRef = ""
 		return false, nil
 	}
 
@@ -113,23 +108,23 @@ func reconcileInFlightTask(ctx *context.MachineContext) (bool, error) {
 		return true, nil
 	case types.TaskInfoStateSuccess:
 		logger.Info("task is a success", "description-id", task.Info.DescriptionId)
-		ctx.VSphereMachine.Status.TaskRef = ""
+		ctx.VSphereVM.Status.TaskRef = ""
 		return false, nil
 	case types.TaskInfoStateError:
 		logger.Info("task failed", "description-id", task.Info.DescriptionId)
-		ctx.VSphereMachine.Status.TaskRef = ""
+		ctx.VSphereVM.Status.TaskRef = ""
 		return false, nil
 	default:
 		return false, errors.Errorf("unknown task state %q for %q", task.Info.State, ctx)
 	}
 }
 
-func reconcileVSphereMachineWhenNetworkIsReady(
+func reconcileVSphereVMWhenNetworkIsReady(
 	ctx *virtualMachineContext,
 	powerOnTask *object.Task) {
 
-	reconcileVSphereMachineOnFuncCompletion(
-		&ctx.MachineContext,
+	reconcileVSphereVMOnFuncCompletion(
+		&ctx.VMContext,
 		func() ([]interface{}, error) {
 			taskInfo, err := powerOnTask.WaitForResult(ctx)
 			if err != nil && taskInfo == nil {
@@ -153,11 +148,11 @@ func reconcileVSphereMachineWhenNetworkIsReady(
 		})
 }
 
-func reconcileVSphereMachineOnTaskCompletion(ctx *context.MachineContext) {
+func reconcileVSphereVMOnTaskCompletion(ctx *context.VMContext) {
 	task := getTask(ctx)
 	if task == nil {
 		ctx.Logger.V(4).Info(
-			"skipping reconcile VSphereMachine on task completion",
+			"skipping reconcile VSphereVM on task completion",
 			"reason", "no-task")
 		return
 	}
@@ -171,7 +166,7 @@ func reconcileVSphereMachineOnTaskCompletion(ctx *context.MachineContext) {
 		"task-entity-name", task.Info.EntityName,
 		"task-description-id", task.Info.DescriptionId)
 
-	reconcileVSphereMachineOnFuncCompletion(ctx, func() ([]interface{}, error) {
+	reconcileVSphereVMOnFuncCompletion(ctx, func() ([]interface{}, error) {
 		taskInfo, err := taskHelper.WaitForResult(ctx)
 
 		// An error is only returned if the process of waiting for the result
@@ -191,11 +186,11 @@ func reconcileVSphereMachineOnTaskCompletion(ctx *context.MachineContext) {
 	})
 }
 
-func reconcileVSphereMachineOnFuncCompletion(
-	ctx *context.MachineContext,
+func reconcileVSphereVMOnFuncCompletion(
+	ctx *context.VMContext,
 	waitFn func() (loggerKeysAndValues []interface{}, _ error)) {
 
-	obj := ctx.VSphereMachine.DeepCopy()
+	obj := ctx.VSphereVM.DeepCopy()
 	gvk := obj.GetObjectKind().GroupVersionKind()
 
 	// Wait on the function to complete in a background goroutine.

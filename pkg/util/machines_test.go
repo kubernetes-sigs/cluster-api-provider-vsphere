@@ -218,13 +218,13 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 func Test_GetMachineMetadata(t *testing.T) {
 	testCases := []struct {
 		name     string
-		machine  *v1alpha3.VSphereMachine
+		machine  *v1alpha3.VSphereVM
 		expected string
 	}{
 		{
 			name: "dhcp4",
-			machine: &v1alpha3.VSphereMachine{
-				Spec: v1alpha3.VSphereMachineSpec{
+			machine: &v1alpha3.VSphereVM{
+				Spec: v1alpha3.VSphereVMSpec{
 					Network: v1alpha3.NetworkSpec{
 						Devices: []v1alpha3.NetworkDeviceSpec{
 							{
@@ -252,8 +252,8 @@ network:
 		},
 		{
 			name: "dhcp6",
-			machine: &v1alpha3.VSphereMachine{
-				Spec: v1alpha3.VSphereMachineSpec{
+			machine: &v1alpha3.VSphereVM{
+				Spec: v1alpha3.VSphereVMSpec{
 					Network: v1alpha3.NetworkSpec{
 						Devices: []v1alpha3.NetworkDeviceSpec{
 							{
@@ -281,8 +281,8 @@ network:
 		},
 		{
 			name: "dhcp4+dhcp6",
-			machine: &v1alpha3.VSphereMachine{
-				Spec: v1alpha3.VSphereMachineSpec{
+			machine: &v1alpha3.VSphereVM{
+				Spec: v1alpha3.VSphereVMSpec{
 					Network: v1alpha3.NetworkSpec{
 						Devices: []v1alpha3.NetworkDeviceSpec{
 							{
@@ -311,8 +311,8 @@ network:
 		},
 		{
 			name: "static4+dhcp6",
-			machine: &v1alpha3.VSphereMachine{
-				Spec: v1alpha3.VSphereMachineSpec{
+			machine: &v1alpha3.VSphereVM{
+				Spec: v1alpha3.VSphereVMSpec{
 					Network: v1alpha3.NetworkSpec{
 						Devices: []v1alpha3.NetworkDeviceSpec{
 							{
@@ -345,8 +345,8 @@ network:
 		},
 		{
 			name: "static4+dhcp6+static-routes",
-			machine: &v1alpha3.VSphereMachine{
-				Spec: v1alpha3.VSphereMachineSpec{
+			machine: &v1alpha3.VSphereVM{
+				Spec: v1alpha3.VSphereVMSpec{
 					Network: v1alpha3.NetworkSpec{
 						Devices: []v1alpha3.NetworkDeviceSpec{
 							{
@@ -390,8 +390,8 @@ network:
 		},
 		{
 			name: "2nets",
-			machine: &v1alpha3.VSphereMachine{
-				Spec: v1alpha3.VSphereMachineSpec{
+			machine: &v1alpha3.VSphereVM{
+				Spec: v1alpha3.VSphereVMSpec{
 					Network: v1alpha3.NetworkSpec{
 						Devices: []v1alpha3.NetworkDeviceSpec{
 							{
@@ -443,8 +443,8 @@ network:
 		},
 		{
 			name: "2nets-static+dhcp",
-			machine: &v1alpha3.VSphereMachine{
-				Spec: v1alpha3.VSphereMachineSpec{
+			machine: &v1alpha3.VSphereVM{
+				Spec: v1alpha3.VSphereVMSpec{
 					Network: v1alpha3.NetworkSpec{
 						Devices: []v1alpha3.NetworkDeviceSpec{
 							{

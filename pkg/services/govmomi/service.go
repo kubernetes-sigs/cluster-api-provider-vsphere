@@ -43,11 +43,11 @@ type VMService struct{}
 //   2. Updating the VM with the bootstrap data, such as the cloud-init meta and user data, before...
 //   3. Powering on the VM, and finally...
 //   4. Returning the real-time state of the VM to the caller
-func (vms *VMService) ReconcileVM(ctx *context.MachineContext) (vm infrav1.VirtualMachine, _ error) {
+func (vms *VMService) ReconcileVM(ctx *context.VMContext) (vm infrav1.VirtualMachine, _ error) {
 
 	// Initialize the result.
 	vm = infrav1.VirtualMachine{
-		Name:  ctx.Machine.Name,
+		Name:  ctx.VSphereVM.Name,
 		State: infrav1.VirtualMachineStatePending,
 	}
 
@@ -58,10 +58,10 @@ func (vms *VMService) ReconcileVM(ctx *context.MachineContext) (vm infrav1.Virtu
 	}
 
 	// This deferred function will trigger a reconcile event for the
-	// VSphereMachine resource once its associated task completes. If
-	// there is no task for the VSphereMachine resource then no reconcile
+	// VSphereVM resource once its associated task completes. If
+	// there is no task for the VSphereVM resource then no reconcile
 	// event is triggered.
-	defer reconcileVSphereMachineOnTaskCompletion(ctx)
+	defer reconcileVSphereVMOnTaskCompletion(ctx)
 
 	// Before going further, we need the VM's managed object reference.
 	vmRef, err := findVM(ctx)
@@ -88,10 +88,10 @@ func (vms *VMService) ReconcileVM(ctx *context.MachineContext) (vm infrav1.Virtu
 
 	// Create a new virtualMachineContext to reconcile the VM.
 	vmCtx := &virtualMachineContext{
-		MachineContext: *ctx,
-		Obj:            object.NewVirtualMachine(ctx.Session.Client.Client, vmRef),
-		Ref:            vmRef,
-		State:          &vm,
+		VMContext: *ctx,
+		Obj:       object.NewVirtualMachine(ctx.Session.Client.Client, vmRef),
+		Ref:       vmRef,
+		State:     &vm,
 	}
 
 	if err := vms.reconcileUUID(vmCtx); err != nil {
@@ -115,10 +115,10 @@ func (vms *VMService) ReconcileVM(ctx *context.MachineContext) (vm infrav1.Virtu
 }
 
 // DestroyVM powers off and destroys a virtual machine.
-func (vms *VMService) DestroyVM(ctx *context.MachineContext) (infrav1.VirtualMachine, error) {
+func (vms *VMService) DestroyVM(ctx *context.VMContext) (infrav1.VirtualMachine, error) {
 
 	vm := infrav1.VirtualMachine{
-		Name:  ctx.Machine.Name,
+		Name:  ctx.VSphereVM.Name,
 		State: infrav1.VirtualMachineStatePending,
 	}
 
@@ -129,10 +129,10 @@ func (vms *VMService) DestroyVM(ctx *context.MachineContext) (infrav1.VirtualMac
 	}
 
 	// This deferred function will trigger a reconcile event for the
-	// VSphereMachine resource once its associated task completes. If
-	// there is no task for the VSphereMachine resource then no reconcile
+	// VSphereVM resource once its associated task completes. If
+	// there is no task for the VSphereVM resource then no reconcile
 	// event is triggered.
-	defer reconcileVSphereMachineOnTaskCompletion(ctx)
+	defer reconcileVSphereVMOnTaskCompletion(ctx)
 
 	// Before going further, we need the VM's managed object reference.
 	vmRef, err := findVM(ctx)
@@ -152,10 +152,10 @@ func (vms *VMService) DestroyVM(ctx *context.MachineContext) (infrav1.VirtualMac
 
 	// Create a new virtualMachineContext to reconcile the VM.
 	vmCtx := &virtualMachineContext{
-		MachineContext: *ctx,
-		Obj:            object.NewVirtualMachine(ctx.Session.Client.Client, vmRef),
-		Ref:            vmRef,
-		State:          &vm,
+		VMContext: *ctx,
+		Obj:       object.NewVirtualMachine(ctx.Session.Client.Client, vmRef),
+		Ref:       vmRef,
+		State:     &vm,
 	}
 
 	// Power off the VM.
@@ -168,7 +168,7 @@ func (vms *VMService) DestroyVM(ctx *context.MachineContext) (infrav1.VirtualMac
 		if err != nil {
 			return vm, err
 		}
-		ctx.VSphereMachine.Status.TaskRef = task.Reference().Value
+		ctx.VSphereVM.Status.TaskRef = task.Reference().Value
 		ctx.Logger.Info("wait for VM to be powered off")
 		return vm, nil
 	}
@@ -180,7 +180,7 @@ func (vms *VMService) DestroyVM(ctx *context.MachineContext) (infrav1.VirtualMac
 	if err != nil {
 		return vm, err
 	}
-	ctx.VSphereMachine.Status.TaskRef = task.Reference().Value
+	ctx.VSphereVM.Status.TaskRef = task.Reference().Value
 	ctx.Logger.Info("wait for VM to be destroyed")
 	return vm, nil
 }
@@ -200,7 +200,7 @@ func (vms *VMService) reconcileMetadata(ctx *virtualMachineContext) (bool, error
 		return false, err
 	}
 
-	newMetadata, err := util.GetMachineMetadata(ctx.Machine.Name, *ctx.VSphereMachine, ctx.State.Network...)
+	newMetadata, err := util.GetMachineMetadata(ctx.VSphereVM.Name, *ctx.VSphereVM, ctx.State.Network...)
 	if err != nil {
 		return false, err
 	}
@@ -216,7 +216,7 @@ func (vms *VMService) reconcileMetadata(ctx *virtualMachineContext) (bool, error
 		return false, errors.Wrapf(err, "unable to set metadata on vm %s", ctx)
 	}
 
-	ctx.VSphereMachine.Status.TaskRef = taskRef
+	ctx.VSphereVM.Status.TaskRef = taskRef
 	ctx.Logger.Info("wait for VM metadata to be updated")
 	return false, nil
 }
@@ -234,12 +234,12 @@ func (vms *VMService) reconcilePowerState(ctx *virtualMachineContext) (bool, err
 			return false, errors.Wrapf(err, "failed to trigger power on op for vm %s", ctx)
 		}
 
-		// Update the VSphereMachine.Status.TaskRef to track the power-on task.
-		ctx.VSphereMachine.Status.TaskRef = task.Reference().Value
+		// Update the VSphereVM.Status.TaskRef to track the power-on task.
+		ctx.VSphereVM.Status.TaskRef = task.Reference().Value
 
 		// Once the VM is successfully powered on, a reconcile request should be
 		// triggered once the VM reports IP addresses are available.
-		reconcileVSphereMachineWhenNetworkIsReady(ctx, task)
+		reconcileVSphereVMWhenNetworkIsReady(ctx, task)
 
 		ctx.Logger.Info("wait for VM to be powered on")
 		return false, nil
@@ -342,7 +342,7 @@ func (vms *VMService) getNetworkStatus(ctx *virtualMachineContext) ([]infrav1.Ne
 	for _, s := range allNetStatus {
 		apiNetStatus = append(apiNetStatus, infrav1.NetworkStatus{
 			Connected:   s.Connected,
-			IPAddrs:     sanitizeIPAddrs(&ctx.MachineContext, s.IPAddrs),
+			IPAddrs:     sanitizeIPAddrs(&ctx.VMContext, s.IPAddrs),
 			MACAddr:     s.MACAddr,
 			NetworkName: s.NetworkName,
 		})
@@ -350,15 +350,15 @@ func (vms *VMService) getNetworkStatus(ctx *virtualMachineContext) ([]infrav1.Ne
 	return apiNetStatus, nil
 }
 
-func (vms *VMService) getBootstrapData(ctx *context.MachineContext) ([]byte, error) {
-	if ctx.Machine.Spec.Bootstrap.DataSecretName == nil {
-		return nil, errors.New("error retrieving bootstrap data: linked Machine's bootstrap.dataSecretName is nil")
+func (vms *VMService) getBootstrapData(ctx *context.VMContext) ([]byte, error) {
+	if ctx.VSphereVM.Spec.BootstrapRef == nil {
+		return nil, errors.New("error retrieving bootstrap data: VSphereVM's BootstrapRef is nil")
 	}
 
 	secret := &corev1.Secret{}
 	secretKey := apitypes.NamespacedName{
-		Namespace: ctx.Machine.GetNamespace(),
-		Name:      *ctx.Machine.Spec.Bootstrap.DataSecretName,
+		Namespace: ctx.VSphereVM.Spec.BootstrapRef.Namespace,
+		Name:      ctx.VSphereVM.Spec.BootstrapRef.Name,
 	}
 	if err := ctx.Client.Get(ctx, secretKey, secret); err != nil {
 		return nil, errors.Wrapf(err, "failed to retrieve bootstrap data secret for %s", ctx)

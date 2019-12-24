@@ -328,6 +328,21 @@ network:
 
 The above network configuratoin from a machine definition includes two network devices, both using DHCP. This likely causes two default routes to be defined on the guest, meaning it's not possible to determine the default IPv4 address that should be used by Kubernetes.
 
+#### Specifying the ethernet interface device names
+
+A bug with Cloud-Init Networking Config Version 2 prevents the use of Predicatable Device Names in CentOS and Photon [`583`](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/583). For this reason CAPV sets devices name to eth*. Should one wish to use alternate interface device names, use the deviceName parameter. For example:
+
+```yaml
+network:
+  devices:
+  - networkName: "sddc-cgw-network-5"
+    deviceName: "ens192"
+    dhcp4: true
+  - networkName: "sddc-cgw-network-6"
+    deviceName: "ens193"
+    dhcp4: true
+```
+
 ##### Preferring an IP address
 
 Another reason a machine with two networks can lead to failure is because the order in which IP addresses are returned externally from a VM is not guaranteed to be the same order as they are when inspected inside the guest. The solution for this is to define a preferred CIDR -- the network segment that contains the IP that the `kubeadm` bootstrap process selected for the API server. For example:

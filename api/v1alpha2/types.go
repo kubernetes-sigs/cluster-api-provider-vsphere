@@ -94,6 +94,11 @@ type NetworkDeviceSpec struct {
 	// will be connected.
 	NetworkName string `json:"networkName"`
 
+	// DeviceName may be used to explicitly assign a name to the network device
+	// as it exists in the guest operating system.
+	// +optional
+	DeviceName string `json:"deviceName,omitempty"`
+
 	// DHCP4 is a flag that indicates whether or not to use DHCP for IPv4
 	// on this device.
 	// If true then IPAddrs should not contain any IPv4 addresses.

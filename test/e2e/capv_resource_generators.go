@@ -144,19 +144,21 @@ func (n *NodeGenerator) Generate(clusterNamespace, clusterName string) framework
 			},
 		},
 		Spec: infrav1.VSphereMachineSpec{
-			Datacenter: vsphereDatacenter,
-			DiskGiB:    50,
-			MemoryMiB:  2048,
-			Network: infrav1.NetworkSpec{
-				Devices: []infrav1.NetworkDeviceSpec{
-					{
-						NetworkName: vsphereNetwork,
-						DHCP4:       true,
+			VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
+				Datacenter: vsphereDatacenter,
+				DiskGiB:    50,
+				MemoryMiB:  2048,
+				Network: infrav1.NetworkSpec{
+					Devices: []infrav1.NetworkDeviceSpec{
+						{
+							NetworkName: vsphereNetwork,
+							DHCP4:       true,
+						},
 					},
 				},
+				NumCPUs:  2,
+				Template: vsphereTemplate,
 			},
-			NumCPUs:  2,
-			Template: vsphereTemplate,
 		},
 	}
 
@@ -264,19 +266,21 @@ func (n *MachineDeploymentGenerator) Generate(clusterNamespace, clusterName stri
 		Spec: infrav1.VSphereMachineTemplateSpec{
 			Template: infrav1.VSphereMachineTemplateResource{
 				Spec: infrav1.VSphereMachineSpec{
-					Datacenter: vsphereDatacenter,
-					DiskGiB:    50,
-					MemoryMiB:  2048,
-					Network: infrav1.NetworkSpec{
-						Devices: []infrav1.NetworkDeviceSpec{
-							{
-								NetworkName: vsphereNetwork,
-								DHCP4:       true,
+					VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
+						Datacenter: vsphereDatacenter,
+						DiskGiB:    50,
+						MemoryMiB:  2048,
+						Network: infrav1.NetworkSpec{
+							Devices: []infrav1.NetworkDeviceSpec{
+								{
+									NetworkName: vsphereNetwork,
+									DHCP4:       true,
+								},
 							},
 						},
+						NumCPUs:  2,
+						Template: vsphereTemplate,
 					},
-					NumCPUs:  2,
-					Template: vsphereTemplate,
 				},
 			},
 		},

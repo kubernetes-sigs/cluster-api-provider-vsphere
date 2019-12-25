@@ -85,7 +85,7 @@ func GetAPIEndpointForControlPlaneEndpoint(controlPlaneEndpoint string) (*infrav
 	}
 
 	if szPort := u.Port(); szPort != "" {
-		port, err := strconv.Atoi(szPort)
+		port, err := strconv.ParseInt(szPort, 10, 32)
 		if err != nil {
 			return nil, errors.Wrapf(
 				err,
@@ -93,7 +93,7 @@ func GetAPIEndpointForControlPlaneEndpoint(controlPlaneEndpoint string) (*infrav
 				szPort,
 				controlPlaneEndpoint)
 		}
-		apiEndpoint.Port = port
+		apiEndpoint.Port = int32(port)
 	}
 
 	return apiEndpoint, nil

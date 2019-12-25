@@ -90,8 +90,10 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 			name: "multiple IPv4 addresses, preferred CIDR set to v4",
 			machine: &v1alpha3.VSphereMachine{
 				Spec: v1alpha3.VSphereMachineSpec{
-					Network: v1alpha3.NetworkSpec{
-						PreferredAPIServerCIDR: "192.168.0.0/16",
+					VirtualMachineCloneSpec: v1alpha3.VirtualMachineCloneSpec{
+						Network: v1alpha3.NetworkSpec{
+							PreferredAPIServerCIDR: "192.168.0.0/16",
+						},
 					},
 				},
 				Status: v1alpha3.VSphereMachineStatus{
@@ -114,8 +116,10 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 			name: "multiple IPv4 and IPv6 addresses, preferred CIDR set to v4",
 			machine: &v1alpha3.VSphereMachine{
 				Spec: v1alpha3.VSphereMachineSpec{
-					Network: v1alpha3.NetworkSpec{
-						PreferredAPIServerCIDR: "192.168.0.0/16",
+					VirtualMachineCloneSpec: v1alpha3.VirtualMachineCloneSpec{
+						Network: v1alpha3.NetworkSpec{
+							PreferredAPIServerCIDR: "192.168.0.0/16",
+						},
 					},
 				},
 				Status: v1alpha3.VSphereMachineStatus{
@@ -138,8 +142,10 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 			name: "multiple IPv4 and IPv6 addresses, preferred CIDR set to v6",
 			machine: &v1alpha3.VSphereMachine{
 				Spec: v1alpha3.VSphereMachineSpec{
-					Network: v1alpha3.NetworkSpec{
-						PreferredAPIServerCIDR: "fdf3:35b5:9dad:6e09::/64",
+					VirtualMachineCloneSpec: v1alpha3.VirtualMachineCloneSpec{
+						Network: v1alpha3.NetworkSpec{
+							PreferredAPIServerCIDR: "fdf3:35b5:9dad:6e09::/64",
+						},
 					},
 				},
 				Status: v1alpha3.VSphereMachineStatus{
@@ -163,8 +169,10 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 			name: "no addresses found",
 			machine: &v1alpha3.VSphereMachine{
 				Spec: v1alpha3.VSphereMachineSpec{
-					Network: v1alpha3.NetworkSpec{
-						PreferredAPIServerCIDR: "fdf3:35b5:9dad:6e09::/64",
+					VirtualMachineCloneSpec: v1alpha3.VirtualMachineCloneSpec{
+						Network: v1alpha3.NetworkSpec{
+							PreferredAPIServerCIDR: "fdf3:35b5:9dad:6e09::/64",
+						},
 					},
 				},
 				Status: v1alpha3.VSphereMachineStatus{
@@ -178,8 +186,10 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 			name: "no addresses found with preferred CIDR",
 			machine: &v1alpha3.VSphereMachine{
 				Spec: v1alpha3.VSphereMachineSpec{
-					Network: v1alpha3.NetworkSpec{
-						PreferredAPIServerCIDR: "192.168.0.0/16",
+					VirtualMachineCloneSpec: v1alpha3.VirtualMachineCloneSpec{
+						Network: v1alpha3.NetworkSpec{
+							PreferredAPIServerCIDR: "192.168.0.0/16",
+						},
 					},
 				},
 				Status: v1alpha3.VSphereMachineStatus{
@@ -225,12 +235,14 @@ func Test_GetMachineMetadata(t *testing.T) {
 			name: "dhcp4",
 			machine: &v1alpha3.VSphereVM{
 				Spec: v1alpha3.VSphereVMSpec{
-					Network: v1alpha3.NetworkSpec{
-						Devices: []v1alpha3.NetworkDeviceSpec{
-							{
-								NetworkName: "network1",
-								MACAddr:     "00:00:00:00:00",
-								DHCP4:       true,
+					VirtualMachineCloneSpec: v1alpha3.VirtualMachineCloneSpec{
+						Network: v1alpha3.NetworkSpec{
+							Devices: []v1alpha3.NetworkDeviceSpec{
+								{
+									NetworkName: "network1",
+									MACAddr:     "00:00:00:00:00",
+									DHCP4:       true,
+								},
 							},
 						},
 					},
@@ -254,12 +266,14 @@ network:
 			name: "dhcp6",
 			machine: &v1alpha3.VSphereVM{
 				Spec: v1alpha3.VSphereVMSpec{
-					Network: v1alpha3.NetworkSpec{
-						Devices: []v1alpha3.NetworkDeviceSpec{
-							{
-								NetworkName: "network1",
-								MACAddr:     "00:00:00:00:00",
-								DHCP6:       true,
+					VirtualMachineCloneSpec: v1alpha3.VirtualMachineCloneSpec{
+						Network: v1alpha3.NetworkSpec{
+							Devices: []v1alpha3.NetworkDeviceSpec{
+								{
+									NetworkName: "network1",
+									MACAddr:     "00:00:00:00:00",
+									DHCP6:       true,
+								},
 							},
 						},
 					},
@@ -283,13 +297,15 @@ network:
 			name: "dhcp4+dhcp6",
 			machine: &v1alpha3.VSphereVM{
 				Spec: v1alpha3.VSphereVMSpec{
-					Network: v1alpha3.NetworkSpec{
-						Devices: []v1alpha3.NetworkDeviceSpec{
-							{
-								NetworkName: "network1",
-								MACAddr:     "00:00:00:00:00",
-								DHCP4:       true,
-								DHCP6:       true,
+					VirtualMachineCloneSpec: v1alpha3.VirtualMachineCloneSpec{
+						Network: v1alpha3.NetworkSpec{
+							Devices: []v1alpha3.NetworkDeviceSpec{
+								{
+									NetworkName: "network1",
+									MACAddr:     "00:00:00:00:00",
+									DHCP4:       true,
+									DHCP6:       true,
+								},
 							},
 						},
 					},
@@ -313,14 +329,16 @@ network:
 			name: "static4+dhcp6",
 			machine: &v1alpha3.VSphereVM{
 				Spec: v1alpha3.VSphereVMSpec{
-					Network: v1alpha3.NetworkSpec{
-						Devices: []v1alpha3.NetworkDeviceSpec{
-							{
-								NetworkName: "network1",
-								MACAddr:     "00:00:00:00:00",
-								DHCP6:       true,
-								IPAddrs:     []string{"192.168.4.21"},
-								Gateway4:    "192.168.4.1",
+					VirtualMachineCloneSpec: v1alpha3.VirtualMachineCloneSpec{
+						Network: v1alpha3.NetworkSpec{
+							Devices: []v1alpha3.NetworkDeviceSpec{
+								{
+									NetworkName: "network1",
+									MACAddr:     "00:00:00:00:00",
+									DHCP6:       true,
+									IPAddrs:     []string{"192.168.4.21"},
+									Gateway4:    "192.168.4.1",
+								},
 							},
 						},
 					},
@@ -347,21 +365,23 @@ network:
 			name: "static4+dhcp6+static-routes",
 			machine: &v1alpha3.VSphereVM{
 				Spec: v1alpha3.VSphereVMSpec{
-					Network: v1alpha3.NetworkSpec{
-						Devices: []v1alpha3.NetworkDeviceSpec{
-							{
-								NetworkName: "network1",
-								MACAddr:     "00:00:00:00:00",
-								DHCP6:       true,
-								IPAddrs:     []string{"192.168.4.21"},
-								Gateway4:    "192.168.4.1",
+					VirtualMachineCloneSpec: v1alpha3.VirtualMachineCloneSpec{
+						Network: v1alpha3.NetworkSpec{
+							Devices: []v1alpha3.NetworkDeviceSpec{
+								{
+									NetworkName: "network1",
+									MACAddr:     "00:00:00:00:00",
+									DHCP6:       true,
+									IPAddrs:     []string{"192.168.4.21"},
+									Gateway4:    "192.168.4.1",
+								},
 							},
-						},
-						Routes: []v1alpha3.NetworkRouteSpec{
-							{
-								To:     "192.168.5.1/24",
-								Via:    "192.168.4.254",
-								Metric: 3,
+							Routes: []v1alpha3.NetworkRouteSpec{
+								{
+									To:     "192.168.5.1/24",
+									Via:    "192.168.4.254",
+									Metric: 3,
+								},
 							},
 						},
 					},
@@ -392,25 +412,27 @@ network:
 			name: "2nets",
 			machine: &v1alpha3.VSphereVM{
 				Spec: v1alpha3.VSphereVMSpec{
-					Network: v1alpha3.NetworkSpec{
-						Devices: []v1alpha3.NetworkDeviceSpec{
-							{
-								NetworkName: "network1",
-								MACAddr:     "00:00:00:00:00",
-								DHCP4:       true,
-								Routes: []v1alpha3.NetworkRouteSpec{
-									{
-										To:     "192.168.5.1/24",
-										Via:    "192.168.4.254",
-										Metric: 3,
+					VirtualMachineCloneSpec: v1alpha3.VirtualMachineCloneSpec{
+						Network: v1alpha3.NetworkSpec{
+							Devices: []v1alpha3.NetworkDeviceSpec{
+								{
+									NetworkName: "network1",
+									MACAddr:     "00:00:00:00:00",
+									DHCP4:       true,
+									Routes: []v1alpha3.NetworkRouteSpec{
+										{
+											To:     "192.168.5.1/24",
+											Via:    "192.168.4.254",
+											Metric: 3,
+										},
 									},
 								},
-							},
-							{
-								NetworkName: "network12",
-								MACAddr:     "00:00:00:00:01",
-								DHCP6:       true,
-								MTU:         mtu(100),
+								{
+									NetworkName: "network12",
+									MACAddr:     "00:00:00:00:01",
+									DHCP6:       true,
+									MTU:         mtu(100),
+								},
 							},
 						},
 					},
@@ -445,22 +467,24 @@ network:
 			name: "2nets-static+dhcp",
 			machine: &v1alpha3.VSphereVM{
 				Spec: v1alpha3.VSphereVMSpec{
-					Network: v1alpha3.NetworkSpec{
-						Devices: []v1alpha3.NetworkDeviceSpec{
-							{
-								NetworkName:   "network1",
-								MACAddr:       "00:00:00:00:00",
-								IPAddrs:       []string{"192.168.4.21"},
-								Gateway4:      "192.168.4.1",
-								MTU:           mtu(0),
-								Nameservers:   []string{"1.1.1.1"},
-								SearchDomains: []string{"vmware.ci"},
-							},
-							{
-								NetworkName:   "network12",
-								MACAddr:       "00:00:00:00:01",
-								DHCP6:         true,
-								SearchDomains: []string{"vmware6.ci"},
+					VirtualMachineCloneSpec: v1alpha3.VirtualMachineCloneSpec{
+						Network: v1alpha3.NetworkSpec{
+							Devices: []v1alpha3.NetworkDeviceSpec{
+								{
+									NetworkName:   "network1",
+									MACAddr:       "00:00:00:00:00",
+									IPAddrs:       []string{"192.168.4.21"},
+									Gateway4:      "192.168.4.1",
+									MTU:           mtu(0),
+									Nameservers:   []string{"1.1.1.1"},
+									SearchDomains: []string{"vmware.ci"},
+								},
+								{
+									NetworkName:   "network12",
+									MACAddr:       "00:00:00:00:01",
+									DHCP6:         true,
+									SearchDomains: []string{"vmware6.ci"},
+								},
 							},
 						},
 					},

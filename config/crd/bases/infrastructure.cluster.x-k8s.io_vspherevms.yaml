@@ -80,30 +80,31 @@ spec:
               type: object
             datacenter:
               description: Datacenter is the name or inventory path of the datacenter
-                where this VM is created/located.
+                in which the virtual machine is created/located.
               type: string
             datastore:
-              description: Datastore is the name of inventory path of the datastore
-                where this VM is located/created.
+              description: Datastore is the name or inventory path of the datastore
+                in which the virtual machine is created/located.
               type: string
             diskGiB:
               description: DiskGiB is the size of a virtual machine's disk, in GiB.
-                Defaults to the analogue property value in the template from which
-                this VM is cloned.
+                Defaults to the eponymous property value in the template from which
+                the virtual machine is cloned.
               format: int32
               type: integer
             folder:
-              description: Folder is the name of inventory path of the folder where
-                this VM is located/created.
+              description: Folder is the name or inventory path of the folder in which
+                the virtual machine is created/located.
               type: string
             memoryMiB:
               description: MemoryMiB is the size of a virtual machine's memory, in
-                MiB. Defaults to the analogue property value in the template from
-                which this VM is cloned.
+                MiB. Defaults to the eponymous property value in the template from
+                which the virtual machine is cloned.
               format: int64
               type: integer
             network:
-              description: Network is the network configuration for this VM.
+              description: Network is the network configuration for this machine's
+                VM.
               properties:
                 devices:
                   description: Devices is the list of network devices used by the
@@ -224,35 +225,30 @@ spec:
               type: object
             numCPUs:
               description: NumCPUs is the number of virtual processors in a virtual
-                machine. Defaults to the analogue property value in the template from
-                which this VM is cloned.
+                machine. Defaults to the eponymous property value in the template
+                from which the virtual machine is cloned.
               format: int32
               type: integer
             numCoresPerSocket:
-              description: NumCoresPerSocket is the number of cores among which to
-                distribute CPUs in this virtual machine. Defaults to the analogue
-                property value in the template from which this VM is cloned.
+              description: NumCPUs is the number of cores among which to distribute
+                CPUs in this virtual machine. Defaults to the eponymous property value
+                in the template from which the virtual machine is cloned.
               format: int32
               type: integer
             resourcePool:
-              description: ResourcePool is the name of inventory path of the resource
-                pool where this VM is located/created.
+              description: ResourcePool is the name or inventory path of the resource
+                pool in which the virtual machine is created/located.
               type: string
             server:
-              description: Server is the name of the vSphere server on which this
-                VM is created/located.
+              description: Server is the IP address or FQDN of the vSphere server
+                on which the virtual machine is created/located.
               type: string
             template:
-              description: Template is the name, inventory path, or instance UUID
-                of the template used to clone new VMs.
+              description: Template is the name or inventory path of the template
+                used to clone the virtual machine.
               type: string
           required:
-          - datacenter
-          - datastore
-          - folder
           - network
-          - resourcePool
-          - server
           - template
           type: object
         status:

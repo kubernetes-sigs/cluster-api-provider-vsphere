@@ -1,0 +1,396 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.2.4
+  creationTimestamp: null
+  name: haproxyloadbalancers.infrastructure.cluster.x-k8s.io
+spec:
+  group: infrastructure.cluster.x-k8s.io
+  names:
+    kind: HAProxyLoadBalancer
+    listKind: HAProxyLoadBalancerList
+    plural: haproxyloadbalancers
+    singular: haproxyloadbalancer
+  scope: Namespaced
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      description: HAProxyLoadBalancer is the Schema for the haproxyloadbalancers
+        API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: HAProxyLoadBalancerSpec defines the desired state of HAProxyLoadBalancer.
+          properties:
+            apiEndpoint:
+              description: APIEndpoint is the address and port with which the load
+                balancer API service may be accessed. If omitted then the VirtualMachineConfiguration
+                field is required in order to deploy a new load balancer.
+              properties:
+                host:
+                  description: The hostname on which the API server is serving.
+                  type: string
+                port:
+                  description: The port on which the API server is serving.
+                  format: int32
+                  type: integer
+              required:
+              - host
+              - port
+              type: object
+            caCertificateRef:
+              description: "CACertificateRef is a reference to a Secret resource that
+                contains the following keys:   * ca.crt - The PEM-encoded, public
+                key for a CA certificate   * ca.key - The PEM-encoded, private key
+                for a CA certificate \n If unspecified, the Secret's Namespace defaults
+                to HAProxyLoadBalancer.Namespace. \n If unspecified, the Secret's
+                Name defaults to HAProxyLoadBalancer.Name+\"-ca\". \n When using an
+                existing load balancer only the public key is required, however, if
+                the private key is present as well and the ClientCertificateRef does
+                not exist or contain a valid client certificate, then the public and
+                private key in this Secret will be used to generate a valid, client
+                certifiate for an existing load balancer. \n When provisioning a new
+                load balancer this Secret must contain both a public *and* private
+                key. If the Secret does not exist then a new Secret will be generated
+                with a new CA key pair. If the Secret exists but does not contain
+                a valid CA key pair then a new key pair will be generated and the
+                Secret will be updated. \n If an existing load balancer is used then
+                the Secret need only to contain the CA's public key."
+              properties:
+                name:
+                  description: Name is unique within a namespace to reference a secret
+                    resource.
+                  type: string
+                namespace:
+                  description: Namespace defines the space within which the secret
+                    name must be unique.
+                  type: string
+              type: object
+            clientCredentialsRef:
+              description: "ClientCredentialsRef is a reference to a Secret resource
+                that contains the following keys:   * client.crt - A PEM-encoded,
+                public key for a client certificate                  used to access
+                the load balancer's API server   * client.key - A PEM-encoded, private
+                key for a client certificate                  used to access the load
+                balancer's API server   * username   - The username used to access
+                the load balancer's API                  server   * password   - The
+                password used to access the load balancer's API                  server
+                \n If unspecified, the Secret's Namespace defaults to HAProxyLoadBalancer.Namespace.
+                \n If unspecified, the Secret's Name defaults to HAProxyLoadBalancer.Name+\"-client\".
+                \n This Secret must contain both a public *and* private key. If the
+                Secret does not exist then a new Secret will be generated with a new
+                client certificate key pair using the CA from CACertificateRef. \n
+                If the Secret exists but does not contain a valid client certificate
+                key pair, then a new client certificate key pair will be generated
+                using the CA from CACertificateRef. \n When the username or password
+                fields are empty, they both default to \"guest\". The HAProxy load
+                balancer OVA built from the CAPV repository uses mutual certificate
+                validation (client certificates) to control access to the load balancer's
+                API server. However, a username and password are still required, even
+                though they provide no actual access control."
+              properties:
+                name:
+                  description: Name is unique within a namespace to reference a secret
+                    resource.
+                  type: string
+                namespace:
+                  description: Namespace defines the space within which the secret
+                    name must be unique.
+                  type: string
+              type: object
+            ports:
+              description: Ports is a list of one or more pairs of ports on which
+                the load balancer listens for incoming traffic and the ports on the
+                backend to which the traffic is transmitted.
+              items:
+                description: LoadBalancerPort defines the pair of frontend and backend
+                  ports used by the load balancer.
+                properties:
+                  egress:
+                    description: Egress is the port to which a load balancer transmits
+                      traffic to backend servers.
+                    format: int32
+                    type: integer
+                  ingress:
+                    description: Ingress is the port on which a load balancer listens
+                      for incoming traffic.
+                    format: int32
+                    type: integer
+                required:
+                - egress
+                - ingress
+                type: object
+              type: array
+            selector:
+              description: Selector is used to identify the control-plane Machine
+                resources that will be the backend servers for this load balancer.
+              properties:
+                matchExpressions:
+                  description: matchExpressions is a list of label selector requirements.
+                    The requirements are ANDed.
+                  items:
+                    description: A label selector requirement is a selector that contains
+                      values, a key, and an operator that relates the key and values.
+                    properties:
+                      key:
+                        description: key is the label key that the selector applies
+                          to.
+                        type: string
+                      operator:
+                        description: operator represents a key's relationship to a
+                          set of values. Valid operators are In, NotIn, Exists and
+                          DoesNotExist.
+                        type: string
+                      values:
+                        description: values is an array of string values. If the operator
+                          is In or NotIn, the values array must be non-empty. If the
+                          operator is Exists or DoesNotExist, the values array must
+                          be empty. This array is replaced during a strategic merge
+                          patch.
+                        items:
+                          type: string
+                        type: array
+                    required:
+                    - key
+                    - operator
+                    type: object
+                  type: array
+                matchLabels:
+                  additionalProperties:
+                    type: string
+                  description: matchLabels is a map of {key,value} pairs. A single
+                    {key,value} in the matchLabels map is equivalent to an element
+                    of matchExpressions, whose key field is "key", the operator is
+                    "In", and the values array contains only "value". The requirements
+                    are ANDed.
+                  type: object
+              type: object
+            virtualMachineConfiguration:
+              description: VirtualMachineConfiguration is optional information used
+                to deploy a new load VM. If omitted then the APIEndpoint field is
+                required to point to an existing load balancer.
+              properties:
+                datacenter:
+                  description: Datacenter is the name or inventory path of the datacenter
+                    in which the virtual machine is created/located.
+                  type: string
+                datastore:
+                  description: Datastore is the name or inventory path of the datastore
+                    in which the virtual machine is created/located.
+                  type: string
+                diskGiB:
+                  description: DiskGiB is the size of a virtual machine's disk, in
+                    GiB. Defaults to the eponymous property value in the template
+                    from which the virtual machine is cloned.
+                  format: int32
+                  type: integer
+                folder:
+                  description: Folder is the name or inventory path of the folder
+                    in which the virtual machine is created/located.
+                  type: string
+                memoryMiB:
+                  description: MemoryMiB is the size of a virtual machine's memory,
+                    in MiB. Defaults to the eponymous property value in the template
+                    from which the virtual machine is cloned.
+                  format: int64
+                  type: integer
+                network:
+                  description: Network is the network configuration for this machine's
+                    VM.
+                  properties:
+                    devices:
+                      description: Devices is the list of network devices used by
+                        the virtual machine. TODO(akutz) Make sure at least one network
+                        matches the             ClusterSpec.CloudProviderConfiguration.Network.Name
+                      items:
+                        description: NetworkDeviceSpec defines the network configuration
+                          for a virtual machine's network device.
+                        properties:
+                          dhcp4:
+                            description: DHCP4 is a flag that indicates whether or
+                              not to use DHCP for IPv4 on this device. If true then
+                              IPAddrs should not contain any IPv4 addresses.
+                            type: boolean
+                          dhcp6:
+                            description: DHCP6 is a flag that indicates whether or
+                              not to use DHCP for IPv6 on this device. If true then
+                              IPAddrs should not contain any IPv6 addresses.
+                            type: boolean
+                          gateway4:
+                            description: Gateway4 is the IPv4 gateway used by this
+                              device. Required when DHCP4 is false.
+                            type: string
+                          gateway6:
+                            description: Gateway4 is the IPv4 gateway used by this
+                              device. Required when DHCP6 is false.
+                            type: string
+                          ipAddrs:
+                            description: IPAddrs is a list of one or more IPv4 and/or
+                              IPv6 addresses to assign to this device. Required when
+                              DHCP4 and DHCP6 are both false.
+                            items:
+                              type: string
+                            type: array
+                          macAddr:
+                            description: MACAddr is the MAC address used by this device.
+                              It is generally a good idea to omit this field and allow
+                              a MAC address to be generated. Please note that this
+                              value must use the VMware OUI to work with the in-tree
+                              vSphere cloud provider.
+                            type: string
+                          mtu:
+                            description: MTU is the device’s Maximum Transmission
+                              Unit size in bytes.
+                            format: int64
+                            type: integer
+                          nameservers:
+                            description: Nameservers is a list of IPv4 and/or IPv6
+                              addresses used as DNS nameservers. Please note that
+                              Linux allows only three nameservers (https://linux.die.net/man/5/resolv.conf).
+                            items:
+                              type: string
+                            type: array
+                          networkName:
+                            description: NetworkName is the name of the vSphere network
+                              to which the device will be connected.
+                            type: string
+                          routes:
+                            description: Routes is a list of optional, static routes
+                              applied to the device.
+                            items:
+                              description: NetworkRouteSpec defines a static network
+                                route.
+                              properties:
+                                metric:
+                                  description: Metric is the weight/priority of the
+                                    route.
+                                  format: int32
+                                  type: integer
+                                to:
+                                  description: To is an IPv4 or IPv6 address.
+                                  type: string
+                                via:
+                                  description: Via is an IPv4 or IPv6 address.
+                                  type: string
+                              required:
+                              - metric
+                              - to
+                              - via
+                              type: object
+                            type: array
+                          searchDomains:
+                            description: SearchDomains is a list of search domains
+                              used when resolving IP addresses with DNS.
+                            items:
+                              type: string
+                            type: array
+                        required:
+                        - networkName
+                        type: object
+                      type: array
+                    preferredAPIServerCidr:
+                      description: PreferredAPIServeCIDR is the preferred CIDR for
+                        the Kubernetes API server endpoint on this machine
+                      type: string
+                    routes:
+                      description: Routes is a list of optional, static routes applied
+                        to the virtual machine.
+                      items:
+                        description: NetworkRouteSpec defines a static network route.
+                        properties:
+                          metric:
+                            description: Metric is the weight/priority of the route.
+                            format: int32
+                            type: integer
+                          to:
+                            description: To is an IPv4 or IPv6 address.
+                            type: string
+                          via:
+                            description: Via is an IPv4 or IPv6 address.
+                            type: string
+                        required:
+                        - metric
+                        - to
+                        - via
+                        type: object
+                      type: array
+                  required:
+                  - devices
+                  type: object
+                numCPUs:
+                  description: NumCPUs is the number of virtual processors in a virtual
+                    machine. Defaults to the eponymous property value in the template
+                    from which the virtual machine is cloned.
+                  format: int32
+                  type: integer
+                numCoresPerSocket:
+                  description: NumCPUs is the number of cores among which to distribute
+                    CPUs in this virtual machine. Defaults to the eponymous property
+                    value in the template from which the virtual machine is cloned.
+                  format: int32
+                  type: integer
+                resourcePool:
+                  description: ResourcePool is the name or inventory path of the resource
+                    pool in which the virtual machine is created/located.
+                  type: string
+                server:
+                  description: Server is the IP address or FQDN of the vSphere server
+                    on which the virtual machine is created/located.
+                  type: string
+                template:
+                  description: Template is the name or inventory path of the template
+                    used to clone the virtual machine.
+                  type: string
+              required:
+              - network
+              - template
+              type: object
+          required:
+          - caCertificateRef
+          - clientCredentialsRef
+          - ports
+          - selector
+          type: object
+        status:
+          description: HAProxyLoadBalancerStatus defines the observed state of HAProxyLoadBalancer.
+          properties:
+            address:
+              description: "Address is the IP address or DNS name of the load balancer.
+                \n This field is required as part of the Portable Load Balancer model
+                and is inspected via an unstructured reader by other controllers to
+                determine the status of the load balancer."
+              type: string
+            ready:
+              description: "Ready indicates whether or not the load balancer is ready.
+                \n This field is required as part of the Portable Load Balancer model
+                and is inspected via an unstructured reader by other controllers to
+                determine the status of the load balancer."
+              type: boolean
+          type: object
+      type: object
+  version: v1alpha3
+  versions:
+  - name: v1alpha3
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

@@ -51,20 +51,22 @@ func newVSphereVM() infrav1.VSphereVM {
 			UID:       types.UID(VSphereVMUUID),
 		},
 		Spec: infrav1.VSphereVMSpec{
-			Server:     "10.10.10.10",
-			Datacenter: "dc0",
-			Network: infrav1.NetworkSpec{
-				Devices: []infrav1.NetworkDeviceSpec{
-					{
-						NetworkName: "VM Network",
-						DHCP4:       true,
-						DHCP6:       true,
+			VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
+				Server:     "10.10.10.10",
+				Datacenter: "dc0",
+				Network: infrav1.NetworkSpec{
+					Devices: []infrav1.NetworkDeviceSpec{
+						{
+							NetworkName: "VM Network",
+							DHCP4:       true,
+							DHCP6:       true,
+						},
 					},
 				},
+				NumCPUs:   2,
+				MemoryMiB: 2048,
+				DiskGiB:   20,
 			},
-			NumCPUs:   2,
-			MemoryMiB: 2048,
-			DiskGiB:   20,
 		},
 	}
 }

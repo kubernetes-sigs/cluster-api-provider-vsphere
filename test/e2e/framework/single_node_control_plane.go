@@ -107,6 +107,7 @@ func SingleNodeControlPlane(input *SingleNodeControlPlaneInput) {
 	}
 
 	// Wait for the CAPI Cluster resource to enter the Provisioned phase.
+	By("waiting for cluster resources to enter the provisioned phase")
 	Eventually(func() (string, error) {
 		cluster := &clusterv1.Cluster{}
 		key := client.ObjectKey{

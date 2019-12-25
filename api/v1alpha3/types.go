@@ -36,6 +36,63 @@ const (
 	ValueReady = "true"
 )
 
+// VirtualMachineCloneSpec is information used to clone a virtual machine.
+type VirtualMachineCloneSpec struct {
+	// Template is the name or inventory path of the template used to clone
+	// the virtual machine.
+	Template string `json:"template"`
+
+	// Server is the IP address or FQDN of the vSphere server on which
+	// the virtual machine is created/located.
+	// +optional
+	Server string `json:"server,omitempty"`
+
+	// Datacenter is the name or inventory path of the datacenter in which the
+	// virtual machine is created/located.
+	// +optional
+	Datacenter string `json:"datacenter,omitempty"`
+
+	// Folder is the name or inventory path of the folder in which the
+	// virtual machine is created/located.
+	// +optional
+	Folder string `json:"folder,omitempty"`
+
+	// Datastore is the name or inventory path of the datastore in which the
+	// virtual machine is created/located.
+	// +optional
+	Datastore string `json:"datastore,omitempty"`
+
+	// ResourcePool is the name or inventory path of the resource pool in which
+	// the virtual machine is created/located.
+	// +optional
+	ResourcePool string `json:"resourcePool,omitempty"`
+
+	// Network is the network configuration for this machine's VM.
+	Network NetworkSpec `json:"network"`
+
+	// NumCPUs is the number of virtual processors in a virtual machine.
+	// Defaults to the eponymous property value in the template from which the
+	// virtual machine is cloned.
+	// +optional
+	NumCPUs int32 `json:"numCPUs,omitempty"`
+	// NumCPUs is the number of cores among which to distribute CPUs in this
+	// virtual machine.
+	// Defaults to the eponymous property value in the template from which the
+	// virtual machine is cloned.
+	// +optional
+	NumCoresPerSocket int32 `json:"numCoresPerSocket,omitempty"`
+	// MemoryMiB is the size of a virtual machine's memory, in MiB.
+	// Defaults to the eponymous property value in the template from which the
+	// virtual machine is cloned.
+	// +optional
+	MemoryMiB int64 `json:"memoryMiB,omitempty"`
+	// DiskGiB is the size of a virtual machine's disk, in GiB.
+	// Defaults to the eponymous property value in the template from which the
+	// virtual machine is cloned.
+	// +optional
+	DiskGiB int32 `json:"diskGiB,omitempty"`
+}
+
 // VSphereMachineTemplateResource describes the data needed to create a VSphereMachine from a template
 type VSphereMachineTemplateResource struct {
 	metav1.TypeMeta `json:",inline"`
@@ -63,7 +120,7 @@ type APIEndpoint struct {
 	Host string `json:"host"`
 
 	// The port on which the API server is serving.
-	Port int `json:"port"`
+	Port int32 `json:"port"`
 }
 
 // IsZero returns true if either the host or the port are zero values.
@@ -227,4 +284,16 @@ type VirtualMachine struct {
 
 	// Network is the status of the VM's network devices.
 	Network []NetworkStatus `json:"network"`
+}
+
+// LoadBalancerPort defines the pair of frontend and backend ports used by
+// the load balancer.
+type LoadBalancerPort struct {
+	// Ingress is the port on which a load balancer listens for incoming
+	// traffic.
+	Ingress int32 `json:"ingress"`
+
+	// Egress is the port to which a load balancer transmits traffic to
+	// backend servers.
+	Egress int32 `json:"egress"`
 }

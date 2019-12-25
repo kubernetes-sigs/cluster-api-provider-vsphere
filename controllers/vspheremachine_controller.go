@@ -254,17 +254,41 @@ func (r machineReconciler) reconcileNormal(ctx *context.MachineContext) (reconci
 				vm.Namespace, vm.Name)
 		}
 		vm.Spec.BootstrapRef = ctx.Machine.Spec.Bootstrap.ConfigRef
-		vm.Spec.Server = ctx.VSphereCluster.Spec.Server
-		vm.Spec.Datacenter = ctx.VSphereMachine.Spec.Datacenter
-		vm.Spec.Datastore = ctx.VSphereCluster.Spec.CloudProviderConfiguration.Workspace.Datastore
-		vm.Spec.Folder = ctx.VSphereCluster.Spec.CloudProviderConfiguration.Workspace.Folder
-		vm.Spec.ResourcePool = ctx.VSphereCluster.Spec.CloudProviderConfiguration.Workspace.ResourcePool
+
+		// Several of the VSphereVM's clone spec properties can be derived
+		// from multiple places. The order is:
+		//
+		//   1. From the VSphereMachine.Spec
+		//   2. From the VSphereCluster.Spec.CloudProviderConfiguration.Workspace
+		//   3. From the VSphereCluster.Spec
+		vsphereMachineSpec := ctx.VSphereMachine.Spec
+		vsphereClusterSpec := ctx.VSphereCluster.Spec
+		vsphereCloudConfig := ctx.VSphereCluster.Spec.CloudProviderConfiguration.Workspace
+		if vm.Spec.Server = vsphereMachineSpec.Server; vm.Spec.Server == "" {
+			if vm.Spec.Server = vsphereCloudConfig.Server; vm.Spec.Server == "" {
+				vm.Spec.Server = vsphereClusterSpec.Server
+			}
+		}
+		if vm.Spec.Datacenter = vsphereMachineSpec.Datacenter; vm.Spec.Datacenter == "" {
+			vm.Spec.Datacenter = vsphereCloudConfig.Datacenter
+		}
+		if vm.Spec.Datastore = vsphereMachineSpec.Datastore; vm.Spec.Datastore == "" {
+			vm.Spec.Datastore = vsphereCloudConfig.Datastore
+		}
+		if vm.Spec.Folder = vsphereMachineSpec.Folder; vm.Spec.Folder == "" {
+			vm.Spec.Folder = vsphereCloudConfig.Folder
+		}
+		if vm.Spec.ResourcePool = vsphereMachineSpec.ResourcePool; vm.Spec.ResourcePool == "" {
+			vm.Spec.ResourcePool = vsphereCloudConfig.ResourcePool
+		}
+
 		vm.Spec.Network = ctx.VSphereMachine.Spec.Network
 		vm.Spec.NumCPUs = ctx.VSphereMachine.Spec.NumCPUs
 		vm.Spec.NumCoresPerSocket = ctx.VSphereMachine.Spec.NumCoresPerSocket
 		vm.Spec.MemoryMiB = ctx.VSphereMachine.Spec.MemoryMiB
 		vm.Spec.DiskGiB = ctx.VSphereMachine.Spec.DiskGiB
 		vm.Spec.Template = ctx.VSphereMachine.Spec.Template
+
 		return nil
 	}
 	if _, err := ctrlutil.CreateOrUpdate(ctx, ctx.Client, vm, mutateFn); err != nil {
@@ -306,13 +330,11 @@ func (r machineReconciler) reconcileNetwork(ctx *context.MachineContext, vm *inf
 	if expNetCount != actNetCount {
 		return false, errors.Errorf("invalid network count for %q: exp=%d act=%d", ctx, expNetCount, actNetCount)
 	}
-	ctx.VSphereMachine.Status.Network = vm.Status.Network
 
-	// If the VM is powered on then issue requeues until all of the VM's
-	// networks have IP addresses.
+	// Translate the VSphereVM.Status.Network field into a list of NodeAddress
+	// resources and store them in the VSphereMachine.Status.Addresses field.
 	var ipAddrs []corev1.NodeAddress
-
-	for _, netStatus := range ctx.VSphereMachine.Status.Network {
+	for _, netStatus := range vm.Status.Network {
 		for _, ip := range netStatus.IPAddrs {
 			ipAddrs = append(ipAddrs, corev1.NodeAddress{
 				Type:    corev1.NodeInternalIP,
@@ -326,7 +348,7 @@ func (r machineReconciler) reconcileNetwork(ctx *context.MachineContext, vm *inf
 		return false, nil
 	}
 
-	// Use the collected IP addresses to assign the Machine's addresses.
+	// Use the collected IP addresses to assign the VSphereMachine's addresses.
 	ctx.VSphereMachine.Status.Addresses = ipAddrs
 
 	return true, nil

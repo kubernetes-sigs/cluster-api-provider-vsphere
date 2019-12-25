@@ -29,6 +29,8 @@ const (
 
 // VSphereVMSpec defines the desired state of VSphereVM.
 type VSphereVMSpec struct {
+	VirtualMachineCloneSpec `json:",inline"`
+
 	// BootstrapRef is a reference to a bootstrap provider-specific resource
 	// that holds configuration details.
 	// This field is optional in case no bootstrap data is required to create
@@ -40,55 +42,6 @@ type VSphereVMSpec struct {
 	// the VM has been created.
 	// +optional
 	BiosUUID string `json:"biosUUID,omitempty"`
-
-	// Template is the name, inventory path, or instance UUID of the template
-	// used to clone new VMs.
-	Template string `json:"template"`
-
-	// Server is the name of the vSphere server on which this VM is
-	// created/located.
-	Server string `json:"server"`
-
-	// Datacenter is the name or inventory path of the datacenter where this
-	// VM is created/located.
-	Datacenter string `json:"datacenter"`
-
-	// Folder is the name of inventory path of the folder where this VM is
-	// located/created.
-	Folder string `json:"folder"`
-
-	// Datastore is the name of inventory path of the datastore where this VM is
-	// located/created.
-	Datastore string `json:"datastore"`
-
-	// ResourcePool is the name of inventory path of the resource pool where
-	// this VM is located/created.
-	ResourcePool string `json:"resourcePool"`
-
-	// Network is the network configuration for this VM.
-	Network NetworkSpec `json:"network"`
-
-	// NumCPUs is the number of virtual processors in a virtual machine.
-	// Defaults to the analogue property value in the template from which this
-	// VM is cloned.
-	// +optional
-	NumCPUs int32 `json:"numCPUs,omitempty"`
-	// NumCoresPerSocket is the number of cores among which to distribute CPUs
-	// in this virtual machine.
-	// Defaults to the analogue property value in the template from which this
-	// VM is cloned.
-	// +optional
-	NumCoresPerSocket int32 `json:"numCoresPerSocket,omitempty"`
-	// MemoryMiB is the size of a virtual machine's memory, in MiB.
-	// Defaults to the analogue property value in the template from which this
-	// VM is cloned.
-	// +optional
-	MemoryMiB int64 `json:"memoryMiB,omitempty"`
-	// DiskGiB is the size of a virtual machine's disk, in GiB.
-	// Defaults to the analogue property value in the template from which this
-	// VM is cloned.
-	// +optional
-	DiskGiB int32 `json:"diskGiB,omitempty"`
 }
 
 // VSphereVMStatus defines the observed state of VSphereVM

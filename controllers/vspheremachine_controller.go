@@ -25,6 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	apitypes "k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
@@ -186,6 +187,18 @@ func (r machineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr er
 func (r machineReconciler) reconcileDelete(ctx *context.MachineContext) (reconcile.Result, error) {
 	ctx.Logger.Info("Handling deleted VSphereMachine")
 
+	// TODO(akutz) Determine the version of vSphere.
+	if err := r.reconcileDeletePre7(ctx); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	// The VM is deleted so remove the finalizer.
+	ctrlutil.RemoveFinalizer(ctx.VSphereMachine, infrav1.MachineFinalizer)
+
+	return reconcile.Result{}, nil
+}
+
+func (r machineReconciler) reconcileDeletePre7(ctx *context.MachineContext) error {
 	// Get ready to find the associated VSphereVM resource.
 	vm := &infrav1.VSphereVM{}
 	vmKey := apitypes.NamespacedName{
@@ -199,24 +212,21 @@ func (r machineReconciler) reconcileDelete(ctx *context.MachineContext) (reconci
 		// IsNotFound, then return the error. Otherwise it means the VSphereVM
 		// is already deleted, and that's okay.
 		if !apierrors.IsNotFound(err) {
-			return reconcile.Result{}, errors.Wrapf(err, "failed to get VSphereVM %s", vmKey)
+			return errors.Wrapf(err, "failed to get VSphereVM %s", vmKey)
 		}
 	} else if vm.GetDeletionTimestamp().IsZero() {
 		// If the VSphereVM was found and it's not already enqueued for
 		// deletion, go ahead and attempt to delete it.
 		if err := ctx.Client.Delete(ctx, vm); err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to delete VSphereVM %v", vmKey)
+			return errors.Wrapf(err, "failed to delete VSphereVM %v", vmKey)
 		}
 
 		// Go ahead and return here since the deletion of the VSphereVM resource
 		// will trigger a new reconcile for this VSphereMachine resource.
-		return reconcile.Result{}, nil
+		return nil
 	}
 
-	// The VM is deleted so remove the finalizer.
-	ctrlutil.RemoveFinalizer(ctx.VSphereMachine, infrav1.MachineFinalizer)
-
-	return reconcile.Result{}, nil
+	return nil
 }
 
 func (r machineReconciler) reconcileNormal(ctx *context.MachineContext) (reconcile.Result, error) {
@@ -240,6 +250,68 @@ func (r machineReconciler) reconcileNormal(ctx *context.MachineContext) (reconci
 		return reconcile.Result{}, nil
 	}
 
+	// TODO(akutz) Determine the version of vSphere.
+	vm, err := r.reconcileNormalPre7(ctx)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	// Convert the VM resource to unstructured data.
+	vmData, err := runtime.DefaultUnstructuredConverter.ToUnstructured(vm)
+	if err != nil {
+		return reconcile.Result{}, errors.Wrapf(err,
+			"failed to convert %s to unstructured data",
+			vm.GetObjectKind().GroupVersionKind().String())
+	}
+
+	// Get the VM's spec.
+	vmSpec := vmData["spec"].(map[string]interface{})
+	if vmSpec == nil {
+		return reconcile.Result{}, errors.Wrapf(err,
+			"vm resource %s has no spec",
+			vm.GetObjectKind().GroupVersionKind().String())
+	}
+
+	// Reconcile the VSphereMachine's provider ID using the VM's BIOS UUID.
+	if ok, err := r.reconcileProviderID(ctx, vmSpec); !ok {
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		ctx.Logger.Info("Waiting on VM BIOS UUID")
+		return reconcile.Result{}, nil
+	}
+
+	// Get the VM's status.
+	vmStatus := vmData["status"].(map[string]interface{})
+	if vmStatus == nil {
+		return reconcile.Result{}, errors.Wrapf(err,
+			"vm resource %s has no status",
+			vm.GetObjectKind().GroupVersionKind().String())
+	}
+
+	// Reconcile the VSphereMachine's node addresses from the VM's IP addresses.
+	if ok, err := r.reconcileNetwork(ctx, vmStatus); !ok {
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		ctx.Logger.Info("Waiting on VM networking")
+		return reconcile.Result{}, nil
+	}
+
+	// Check to see if the VM is ready.
+	if ready, ok := vmStatus["ready"]; ok && ready.(bool) {
+		ctx.Logger.Info("VM is not ready yet; status.ready is false")
+		return reconcile.Result{}, nil
+	}
+
+	// The VSphereMachine is finally ready.
+	ctx.VSphereMachine.Status.Ready = true
+	ctx.Logger.Info("VSphereMachine is infrastructure-ready")
+
+	return reconcile.Result{}, nil
+}
+
+func (r machineReconciler) reconcileNormalPre7(ctx *context.MachineContext) (runtime.Object, error) {
 	// Create or update the VSphereVM resource.
 	vm := &infrav1.VSphereVM{
 		ObjectMeta: metav1.ObjectMeta{
@@ -248,115 +320,117 @@ func (r machineReconciler) reconcileNormal(ctx *context.MachineContext) (reconci
 		},
 	}
 	mutateFn := func() error {
+		// Ensure this VSphereMachine is marked as the ControllerOwner of the
+		// VSphereVM resource.
 		if err := ctrlutil.SetControllerReference(ctx.VSphereMachine, vm, ctx.Scheme); err != nil {
 			return errors.Wrapf(err,
 				"failed to set %s as owner of VSphereVM %s/%s", ctx,
 				vm.Namespace, vm.Name)
 		}
+
+		// Instruct the VSphereVM to use the CAPI bootstrap data resource.
 		vm.Spec.BootstrapRef = ctx.Machine.Spec.Bootstrap.ConfigRef
+
+		// Initialize the VSphereVM's labels map if it is nil.
+		if vm.Labels == nil {
+			vm.Labels = map[string]string{}
+
+			// If the labels map was nil upon entering this function and there
+			// are not any labels upon exiting this function, then remove the
+			// labels map to prevent an unnecessary change.
+			defer func() {
+				if len(vm.Labels) == 0 {
+					vm.Labels = nil
+				}
+			}()
+		}
+
+		// Ensure the VSphereVM has a label that can be used when searching for
+		// resources associated with the target cluster.
+		vm.Labels[clusterv1.ClusterLabelName] = ctx.Machine.Labels[clusterv1.ClusterLabelName]
+
+		// For convenience, add a label that makes it easy to figure out if the
+		// VSphereVM resource is part of some control plane.
+		if val, ok := ctx.Machine.Labels[clusterv1.MachineControlPlaneLabelName]; ok {
+			vm.Labels[clusterv1.MachineControlPlaneLabelName] = val
+		}
+
+		// Copy the VSphereMachine's VM clone spec into the VSphereVM's
+		// clone spec.
+		ctx.VSphereMachine.Spec.VirtualMachineCloneSpec.DeepCopyInto(&vm.Spec.VirtualMachineCloneSpec)
 
 		// Several of the VSphereVM's clone spec properties can be derived
 		// from multiple places. The order is:
 		//
-		//   1. From the VSphereMachine.Spec
+		//   1. From the VSphereMachine.Spec (the DeepCopyInto above)
 		//   2. From the VSphereCluster.Spec.CloudProviderConfiguration.Workspace
 		//   3. From the VSphereCluster.Spec
-		vsphereMachineSpec := ctx.VSphereMachine.Spec
-		vsphereClusterSpec := ctx.VSphereCluster.Spec
 		vsphereCloudConfig := ctx.VSphereCluster.Spec.CloudProviderConfiguration.Workspace
-		if vm.Spec.Server = vsphereMachineSpec.Server; vm.Spec.Server == "" {
+		if vm.Spec.Server == "" {
 			if vm.Spec.Server = vsphereCloudConfig.Server; vm.Spec.Server == "" {
-				vm.Spec.Server = vsphereClusterSpec.Server
+				vm.Spec.Server = ctx.VSphereCluster.Spec.Server
 			}
 		}
-		if vm.Spec.Datacenter = vsphereMachineSpec.Datacenter; vm.Spec.Datacenter == "" {
+		if vm.Spec.Datacenter == "" {
 			vm.Spec.Datacenter = vsphereCloudConfig.Datacenter
 		}
-		if vm.Spec.Datastore = vsphereMachineSpec.Datastore; vm.Spec.Datastore == "" {
+		if vm.Spec.Datastore == "" {
 			vm.Spec.Datastore = vsphereCloudConfig.Datastore
 		}
-		if vm.Spec.Folder = vsphereMachineSpec.Folder; vm.Spec.Folder == "" {
+		if vm.Spec.Folder == "" {
 			vm.Spec.Folder = vsphereCloudConfig.Folder
 		}
-		if vm.Spec.ResourcePool = vsphereMachineSpec.ResourcePool; vm.Spec.ResourcePool == "" {
+		if vm.Spec.ResourcePool == "" {
 			vm.Spec.ResourcePool = vsphereCloudConfig.ResourcePool
 		}
-
-		vm.Spec.Network = ctx.VSphereMachine.Spec.Network
-		vm.Spec.NumCPUs = ctx.VSphereMachine.Spec.NumCPUs
-		vm.Spec.NumCoresPerSocket = ctx.VSphereMachine.Spec.NumCoresPerSocket
-		vm.Spec.MemoryMiB = ctx.VSphereMachine.Spec.MemoryMiB
-		vm.Spec.DiskGiB = ctx.VSphereMachine.Spec.DiskGiB
-		vm.Spec.Template = ctx.VSphereMachine.Spec.Template
-
 		return nil
 	}
 	if _, err := ctrlutil.CreateOrUpdate(ctx, ctx.Client, vm, mutateFn); err != nil {
-		return reconcile.Result{}, errors.Wrapf(err,
-			"failed to CreateOrUpdate VSphereVM %s/%s",
-			vm.Namespace, vm.Name)
+		return nil, errors.Wrapf(err, "failed to CreateOrUpdate VSphereVM %s/%s", vm.Namespace, vm.Name)
 	}
 
-	if !vm.Status.Ready {
-		ctx.Logger.Info("VSphereVM is not ready")
-		return reconcile.Result{}, nil
-	}
-
-	if ok, err := r.reconcileProviderID(ctx, vm); !ok {
-		if err != nil {
-			return reconcile.Result{}, err
-		}
-		ctx.Logger.Info("waiting on vm bios uuid")
-		return reconcile.Result{}, nil
-	}
-
-	if ok, err := r.reconcileNetwork(ctx, vm); !ok {
-		if err != nil {
-			return reconcile.Result{}, err
-		}
-		ctx.Logger.Info("waiting on vm networking")
-		return reconcile.Result{}, nil
-	}
-
-	// Once the provider ID is set then the VSphereMachine is InfrastructureReady
-	ctx.VSphereMachine.Status.Ready = true
-	ctx.Logger.Info("VSphereMachine is infrastructure-ready")
-
-	return reconcile.Result{}, nil
+	return vm, nil
 }
 
-func (r machineReconciler) reconcileNetwork(ctx *context.MachineContext, vm *infrav1.VSphereVM) (bool, error) {
-	expNetCount, actNetCount := len(ctx.VSphereMachine.Spec.Network.Devices), len(vm.Status.Network)
-	if expNetCount != actNetCount {
-		return false, errors.Errorf("invalid network count for %q: exp=%d act=%d", ctx, expNetCount, actNetCount)
-	}
-
-	// Translate the VSphereVM.Status.Network field into a list of NodeAddress
-	// resources and store them in the VSphereMachine.Status.Addresses field.
-	var ipAddrs []corev1.NodeAddress
-	for _, netStatus := range vm.Status.Network {
-		for _, ip := range netStatus.IPAddrs {
-			ipAddrs = append(ipAddrs, corev1.NodeAddress{
-				Type:    corev1.NodeInternalIP,
-				Address: ip,
-			})
-		}
-	}
-
-	if len(ipAddrs) == 0 {
-		ctx.Logger.Info("waiting on IP addresses")
+func (r machineReconciler) reconcileNetwork(ctx *context.MachineContext, data map[string]interface{}) (bool, error) {
+	untypedVal, untypedValOk := data["addresses"]
+	if !untypedValOk {
 		return false, nil
 	}
-
-	// Use the collected IP addresses to assign the VSphereMachine's addresses.
-	ctx.VSphereMachine.Status.Addresses = ipAddrs
-
+	ipAddresses, ipAddressesOk := untypedVal.([]interface{})
+	if !ipAddressesOk {
+		return false, errors.Errorf("invalid addresses %T for %s", untypedVal, ctx)
+	}
+	if len(ipAddresses) == 0 {
+		ctx.Logger.Info("Waiting on IP addresses")
+		return false, nil
+	}
+	var nodeIPAddrs []corev1.NodeAddress
+	for i, untypedIPVal := range ipAddresses {
+		ip, ipOk := untypedIPVal.(string)
+		if !ipOk {
+			return false, errors.Errorf("invalid addresses[%d] %T for %s", i, untypedIPVal, ctx)
+		}
+		nodeIPAddrs = append(nodeIPAddrs, corev1.NodeAddress{
+			Type:    corev1.NodeInternalIP,
+			Address: ip,
+		})
+	}
+	ctx.VSphereMachine.Status.Addresses = nodeIPAddrs
 	return true, nil
 }
 
-func (r machineReconciler) reconcileProviderID(ctx *context.MachineContext, vm *infrav1.VSphereVM) (bool, error) {
-	biosUUID := vm.Spec.BiosUUID
+func (r machineReconciler) reconcileProviderID(ctx *context.MachineContext, data map[string]interface{}) (bool, error) {
+	untypedVal, untypedValOk := data["biosUUID"]
+	if !untypedValOk {
+		return false, nil
+	}
+	biosUUID, biosUUIDOk := untypedVal.(string)
+	if !biosUUIDOk {
+		return false, errors.Errorf("invalid BIOS UUID %T for %s", untypedVal, ctx)
+	}
 	if biosUUID == "" {
+		ctx.Logger.Info("Waiting on BIOS UUID")
 		return false, nil
 	}
 	providerID := infrautilv1.ConvertUUIDToProviderID(biosUUID)

@@ -282,11 +282,21 @@ func (r vmReconciler) reconcileNormal(ctx *context.VMContext) (reconcile.Result,
 	}
 
 	// Update the VSphereVM's network status.
-	ctx.VSphereVM.Status.Network = vm.Network
+	r.reconcileNetwork(ctx, vm)
 
 	// Once the network is online the VM is considered ready.
 	ctx.VSphereVM.Status.Ready = true
 	ctx.Logger.Info("VSphereVM is ready")
 
 	return reconcile.Result{}, nil
+}
+
+func (r vmReconciler) reconcileNetwork(ctx *context.VMContext, vm infrav1.VirtualMachine) {
+	var ipAddrs []string
+	for _, netStatus := range vm.Network {
+		for _, ip := range netStatus.IPAddrs {
+			ipAddrs = append(ipAddrs, ip)
+		}
+	}
+	ctx.VSphereVM.Status.Addresses = ipAddrs
 }

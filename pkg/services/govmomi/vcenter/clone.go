@@ -19,15 +19,18 @@ package vcenter
 import (
 	"github.com/pkg/errors"
 	"github.com/vmware/govmomi/object"
+	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/extra"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/template"
 )
 
 const (
-	diskMoveType = string(types.VirtualMachineRelocateDiskMoveOptionsMoveAllDiskBackingsAndConsolidate)
+	fullCloneDiskMoveType = types.VirtualMachineRelocateDiskMoveOptionsMoveAllDiskBackingsAndConsolidate
+	linkCloneDiskMoveType = types.VirtualMachineRelocateDiskMoveOptionsCreateNewChildDiskBacking
 )
 
 // Clone kicks off a clone operation on vCenter to create a new virtual machine.
@@ -39,7 +42,7 @@ func Clone(ctx *context.VMContext, bootstrapData []byte) error {
 		Logger:            ctx.Logger.WithName("vcenter"),
 		PatchHelper:       ctx.PatchHelper,
 	}
-	ctx.Logger.V(4).Info("starting clone process")
+	ctx.Logger.Info("starting clone process")
 
 	var extraConfig extra.Config
 	extraConfig.SetCloudInitUserData(bootstrapData)
@@ -47,6 +50,44 @@ func Clone(ctx *context.VMContext, bootstrapData []byte) error {
 	tpl, err := template.FindTemplate(ctx, ctx.VSphereVM.Spec.Template)
 	if err != nil {
 		return err
+	}
+
+	// If a linked clone is requested then a MoRef for a snapshot must be
+	// found with which to perform the linked clone.
+	var snapshotRef *types.ManagedObjectReference
+	if ctx.VSphereVM.Spec.CloneMode == "" || ctx.VSphereVM.Spec.CloneMode == infrav1.LinkedClone {
+		ctx.Logger.Info("linked clone requested")
+		// If the name of a snapshot was not provided then find the template's
+		// current snapshot.
+		if snapshotName := ctx.VSphereVM.Spec.Snapshot; snapshotName == "" {
+			ctx.Logger.Info("searching for current snapshot")
+			var vm mo.VirtualMachine
+			if err := tpl.Properties(ctx, tpl.Reference(), []string{"snapshot"}, &vm); err != nil {
+				return errors.Wrapf(err, "error getting snapshot information for template %s", ctx.VSphereVM.Spec.Template)
+			}
+			if vm.Snapshot != nil {
+				snapshotRef = vm.Snapshot.CurrentSnapshot
+			}
+		} else {
+			ctx.Logger.Info("searching for snapshot by name", "snapshotName", snapshotName)
+			var err error
+			snapshotRef, err = tpl.FindSnapshot(ctx, snapshotName)
+			if err != nil {
+				ctx.Logger.Info("failed to find snapshot", "snapshotName", snapshotName)
+			}
+		}
+	}
+
+	// The type of clone operation depends on whether or not there is a snapshot
+	// from which to do a linked clone.
+	diskMoveType := fullCloneDiskMoveType
+	ctx.VSphereVM.Status.CloneMode = infrav1.FullClone
+	if snapshotRef != nil {
+		// Record the actual type of clone mode used as well as the name of
+		// the snapshot (if not the current snapshot).
+		ctx.VSphereVM.Status.CloneMode = infrav1.LinkedClone
+		ctx.VSphereVM.Status.Snapshot = snapshotRef.Value
+		diskMoveType = linkCloneDiskMoveType
 	}
 
 	folder, err := ctx.Session.Finder.FolderOrDefault(ctx, ctx.VSphereVM.Spec.Folder)
@@ -65,22 +106,26 @@ func Clone(ctx *context.VMContext, bootstrapData []byte) error {
 	}
 
 	devices, err := tpl.Device(ctx)
-
 	if err != nil {
 		return errors.Wrapf(err, "error getting devices for %q", ctx)
 	}
 
-	diskSpec, err := getDiskSpec(ctx, devices)
-	if err != nil {
-		return errors.Wrapf(err, "error getting disk spec for %q", ctx)
+	// Create a new list of device specs for cloning the VM.
+	deviceSpecs := []types.BaseVirtualDeviceConfigSpec{}
+
+	// Only non-linked clones may expand the size of the template's disk.
+	if snapshotRef == nil {
+		diskSpec, err := getDiskSpec(ctx, devices)
+		if err != nil {
+			return errors.Wrapf(err, "error getting disk spec for %q", ctx)
+		}
+		deviceSpecs = append(deviceSpecs, diskSpec)
 	}
 
 	networkSpecs, err := getNetworkSpecs(ctx, devices)
 	if err != nil {
 		return errors.Wrapf(err, "error getting network specs for %q", ctx)
 	}
-
-	deviceSpecs := []types.BaseVirtualDeviceConfigSpec{diskSpec}
 	deviceSpecs = append(deviceSpecs, networkSpecs...)
 
 	numCPUs := ctx.VSphereVM.Spec.NumCPUs
@@ -112,7 +157,7 @@ func Clone(ctx *context.VMContext, bootstrapData []byte) error {
 		},
 		Location: types.VirtualMachineRelocateSpec{
 			Datastore:    types.NewReference(datastore.Reference()),
-			DiskMoveType: diskMoveType,
+			DiskMoveType: string(diskMoveType),
 			Folder:       types.NewReference(folder.Reference()),
 			Pool:         types.NewReference(pool.Reference()),
 		},
@@ -120,13 +165,14 @@ func Clone(ctx *context.VMContext, bootstrapData []byte) error {
 		// power the VM on before its virtual hardware is created and the MAC
 		// address(es) used to build and inject the VM with cloud-init metadata
 		// are generated.
-		PowerOn: false,
+		PowerOn:  false,
+		Snapshot: snapshotRef,
 	}
 
-	ctx.Logger.Info("cloning machine", "clone-spec", spec)
+	ctx.Logger.Info("cloning machine", "cloneType", ctx.VSphereVM.Status.CloneMode, "cloneSpec", spec)
 	task, err := tpl.Clone(ctx, folder, ctx.VSphereVM.Name, spec)
 	if err != nil {
-		return errors.Wrapf(err, "error trigging clone op for machine %q", ctx)
+		return errors.Wrapf(err, "error trigging clone op for machine %s", ctx)
 	}
 
 	ctx.VSphereVM.Status.TaskRef = task.Reference().Value

@@ -36,11 +36,44 @@ const (
 	ValueReady = "true"
 )
 
+// CloneMode is the type of clone operation used to clone a VM from a template.
+type CloneMode string
+
+const (
+	// FullClone indicates a VM will have no relationship to the source of the
+	// clone operation once the operation is complete. This is the safest clone
+	// mode, but it is also the fastest.
+	FullClone CloneMode = "fullClone"
+
+	// LinkedClone means resulting VMs will be dependent upon the snapshot of
+	// the source VM/template from which the VM was cloned. This is the fastest
+	// clone mode, but it also prevents expanding a VMs disk beyond the size of
+	// the source VM/template.
+	LinkedClone CloneMode = "linkedClone"
+)
+
 // VirtualMachineCloneSpec is information used to clone a virtual machine.
 type VirtualMachineCloneSpec struct {
 	// Template is the name or inventory path of the template used to clone
 	// the virtual machine.
 	Template string `json:"template"`
+
+	// CloneMode specifies the type of clone operation.
+	// The LinkedClone mode is only support for templates that have at least
+	// one snapshot. If the template has no snapshots, then CloneMode defaults
+	// to FullClone.
+	// When LinkedClone mode is enabled the DiskGiB field is ignored as it is
+	// not possible to expand disks of linked clones.
+	// Defaults to LinkedClone, but fails gracefully to FullClone if the source
+	// of the clone operation has no snapshots.
+	// +optional
+	CloneMode CloneMode `json:"cloneMode,omitempty"`
+
+	// Snapshot is the name of the snapshot from which to create a linked clone.
+	// This field is ignored if LinkedClone is not enabled.
+	// Defaults to the source's current snapshot.
+	// +optional
+	Snapshot string `json:"snapshot,omitempty"`
 
 	// Server is the IP address or FQDN of the vSphere server on which
 	// the virtual machine is created/located.

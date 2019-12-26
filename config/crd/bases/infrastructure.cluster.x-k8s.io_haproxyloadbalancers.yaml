@@ -185,6 +185,15 @@ spec:
                 to deploy a new load VM. If omitted then the APIEndpoint field is
                 required to point to an existing load balancer.
               properties:
+                cloneMode:
+                  description: CloneMode specifies the type of clone operation. The
+                    LinkedClone mode is only support for templates that have at least
+                    one snapshot. If the template has no snapshots, then CloneMode
+                    defaults to FullClone. When LinkedClone mode is enabled the DiskGiB
+                    field is ignored as it is not possible to expand disks of linked
+                    clones. Defaults to LinkedClone, but fails gracefully to FullClone
+                    if the source of the clone operation has no snapshots.
+                  type: string
                 datacenter:
                   description: Datacenter is the name or inventory path of the datacenter
                     in which the virtual machine is created/located.
@@ -351,6 +360,11 @@ spec:
                 server:
                   description: Server is the IP address or FQDN of the vSphere server
                     on which the virtual machine is created/located.
+                  type: string
+                snapshot:
+                  description: Snapshot is the name of the snapshot from which to
+                    create a linked clone. This field is ignored if LinkedClone is
+                    not enabled. Defaults to the source's current snapshot.
                   type: string
                 template:
                   description: Template is the name or inventory path of the template

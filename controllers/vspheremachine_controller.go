@@ -303,7 +303,7 @@ func (r machineReconciler) reconcileNormal(ctx *context.MachineContext) (reconci
 	}
 
 	// Check to see if the VM is ready.
-	if ready, ok := vmStatus["ready"]; ok && ready.(bool) {
+	if ready, ok := vmStatus["ready"]; !ok || !ready.(bool) {
 		ctx.Logger.Info("VM is not ready yet; status.ready is false")
 		return reconcile.Result{}, nil
 	}

@@ -43,10 +43,9 @@ func sanitizeIPAddrs(ctx *context.VMContext, ipAddrs []string) []string {
 }
 
 // findVM searches for a VM in one of two ways:
-//   1. If the ProviderID is available, then the VM is queried by its
-//      BIOS UUID.
-//   2. Lacking the ProviderID, the VM is queried by its instance UUID,
-//      which was assigned the value of the Machine resource's UID string.
+//   1. If the BIOS UUID is available, then it is used to find the VM.
+//   2. Lacking the BIOS UUID, the VM is queried by its instance UUID,
+//      which was assigned the value of the VSphereVM resource's UID string.
 func findVM(ctx *context.VMContext) (types.ManagedObjectReference, error) {
 	if biosUUID := ctx.VSphereVM.Spec.BiosUUID; biosUUID != "" {
 		objRef, err := ctx.Session.FindByBIOSUUID(ctx, biosUUID)
@@ -98,13 +97,13 @@ func reconcileInFlightTask(ctx *context.VMContext) (bool, error) {
 
 	// Otherwise the course of action is determined by the state of the task.
 	logger := ctx.Logger.WithName(task.Reference().Value)
-	logger.V(4).Info("task found", "state", task.Info.State, "description-id", task.Info.DescriptionId)
+	logger.Info("task found", "state", task.Info.State, "description-id", task.Info.DescriptionId)
 	switch task.Info.State {
 	case types.TaskInfoStateQueued:
-		logger.V(4).Info("task is still pending", "description-id", task.Info.DescriptionId)
+		logger.Info("task is still pending", "description-id", task.Info.DescriptionId)
 		return true, nil
 	case types.TaskInfoStateRunning:
-		logger.V(4).Info("task is still running", "description-id", task.Info.DescriptionId)
+		logger.Info("task is still running", "description-id", task.Info.DescriptionId)
 		return true, nil
 	case types.TaskInfoStateSuccess:
 		logger.Info("task is a success", "description-id", task.Info.DescriptionId)

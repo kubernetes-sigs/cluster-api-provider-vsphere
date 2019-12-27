@@ -45,7 +45,10 @@ func Clone(ctx *context.VMContext, bootstrapData []byte) error {
 	ctx.Logger.Info("starting clone process")
 
 	var extraConfig extra.Config
-	extraConfig.SetCloudInitUserData(bootstrapData)
+	if len(bootstrapData) > 0 {
+		ctx.Logger.Info("applied bootstrap data to VM clone spec")
+		extraConfig.SetCloudInitUserData(bootstrapData)
+	}
 
 	tpl, err := template.FindTemplate(ctx, ctx.VSphereVM.Spec.Template)
 	if err != nil {

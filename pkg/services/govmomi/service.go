@@ -352,7 +352,8 @@ func (vms *VMService) getNetworkStatus(ctx *virtualMachineContext) ([]infrav1.Ne
 
 func (vms *VMService) getBootstrapData(ctx *context.VMContext) ([]byte, error) {
 	if ctx.VSphereVM.Spec.BootstrapRef == nil {
-		return nil, errors.New("error retrieving bootstrap data: VSphereVM's BootstrapRef is nil")
+		ctx.Logger.Info("VM has no bootstrap data")
+		return nil, nil
 	}
 
 	secret := &corev1.Secret{}

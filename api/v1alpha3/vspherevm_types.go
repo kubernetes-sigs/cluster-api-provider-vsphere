@@ -36,7 +36,7 @@ type VSphereVMSpec struct {
 	// This field is optional in case no bootstrap data is required to create
 	// a VM.
 	// +optional
-	BootstrapRef *corev1.ObjectReference `json:"bootstrapRef"`
+	BootstrapRef *corev1.ObjectReference `json:"bootstrapRef,omitempty"`
 
 	// BiosUUID is the the VM's BIOS UUID that is assigned at runtime after
 	// the VM has been created.

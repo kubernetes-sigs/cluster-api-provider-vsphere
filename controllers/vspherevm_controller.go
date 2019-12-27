@@ -254,12 +254,6 @@ func (r vmReconciler) reconcileNormal(ctx *context.VMContext) (reconcile.Result,
 	// If the VSphereVM doesn't have our finalizer, add it.
 	ctrlutil.AddFinalizer(ctx.VSphereVM, infrav1.VMFinalizer)
 
-	// Make sure bootstrap data is available and populated.
-	if ctx.VSphereVM.Spec.BootstrapRef == nil {
-		ctx.Logger.Info("Waiting for bootstrap data to be available")
-		return reconcile.Result{}, nil
-	}
-
 	// TODO(akutz) Implement selection of VM service based on vSphere version
 	var vmService services.VirtualMachineService = &govmomi.VMService{}
 

@@ -81,7 +81,7 @@ type VSphereVMStatus struct {
 	// Network returns the network status for each of the machine's configured
 	// network interfaces.
 	// +optional
-	Network []NetworkStatus `json:"networkStatus,omitempty"`
+	Network []NetworkStatus `json:"network,omitempty"`
 }
 
 // +kubebuilder:object:root=true

@@ -286,8 +286,9 @@ func (r vmReconciler) reconcileNormal(ctx *context.VMContext) (reconcile.Result,
 }
 
 func (r vmReconciler) reconcileNetwork(ctx *context.VMContext, vm infrav1.VirtualMachine) {
+	ctx.VSphereVM.Status.Network = vm.Network
 	var ipAddrs []string
-	for _, netStatus := range vm.Network {
+	for _, netStatus := range ctx.VSphereVM.Status.Network {
 		for _, ip := range netStatus.IPAddrs {
 			ipAddrs = append(ipAddrs, ip)
 		}

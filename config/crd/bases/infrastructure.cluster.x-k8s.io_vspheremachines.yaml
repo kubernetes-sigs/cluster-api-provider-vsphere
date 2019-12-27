@@ -557,6 +557,33 @@ spec:
                   during the reconciliation of Machines can be added as events to
                   the Machine object and/or logged in the controller's output."
                 type: string
+              network:
+                description: Network returns the network status for each of the machine's
+                  configured network interfaces.
+                items:
+                  description: NetworkStatus provides information about one of a VM's
+                    networks.
+                  properties:
+                    connected:
+                      description: Connected is a flag that indicates whether this
+                        network is currently connected to the VM.
+                      type: boolean
+                    ipAddrs:
+                      description: IPAddrs is one or more IP addresses reported by
+                        vm-tools.
+                      items:
+                        type: string
+                      type: array
+                    macAddr:
+                      description: MACAddr is the MAC address of the network device.
+                      type: string
+                    networkName:
+                      description: NetworkName is the name of the network.
+                      type: string
+                  required:
+                  - macAddr
+                  type: object
+                type: array
               ready:
                 description: Ready is true when the provider resource is ready.
                 type: boolean

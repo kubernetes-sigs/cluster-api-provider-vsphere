@@ -48,6 +48,11 @@ type VSphereMachineStatus struct {
 	// Addresses contains the VSphere instance associated addresses.
 	Addresses []v1.NodeAddress `json:"addresses,omitempty"`
 
+	// Network returns the network status for each of the machine's configured
+	// network interfaces.
+	// +optional
+	Network []NetworkStatus `json:"network,omitempty"`
+
 	// ErrorReason will be set in the event that there is a terminal problem
 	// reconciling the Machine and will contain a succinct value suitable
 	// for machine interpretation.

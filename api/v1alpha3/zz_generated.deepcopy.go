@@ -450,6 +450,13 @@ func (in *VSphereMachineStatus) DeepCopyInto(out *VSphereMachineStatus) {
 		*out = make([]v1.NodeAddress, len(*in))
 		copy(*out, *in)
 	}
+	if in.Network != nil {
+		in, out := &in.Network, &out.Network
+		*out = make([]NetworkStatus, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	if in.ErrorReason != nil {
 		in, out := &in.ErrorReason, &out.ErrorReason
 		*out = new(errors.MachineStatusError)

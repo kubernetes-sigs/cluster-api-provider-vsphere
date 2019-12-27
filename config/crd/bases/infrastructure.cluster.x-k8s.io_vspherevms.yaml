@@ -282,7 +282,7 @@ spec:
                 source of the clone has no snapshots, this field may be used to determine
                 the actual type of clone operation used to create this VM.
               type: string
-            networkStatus:
+            network:
               description: Network returns the network status for each of the machine's
                 configured network interfaces.
               items:

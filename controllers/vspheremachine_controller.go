@@ -17,6 +17,7 @@ limitations under the License.
 package controllers
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
@@ -253,6 +254,9 @@ func (r machineReconciler) reconcileNormal(ctx *context.MachineContext) (reconci
 	// TODO(akutz) Determine the version of vSphere.
 	vm, err := r.reconcileNormalPre7(ctx)
 	if err != nil {
+		if apierrors.IsAlreadyExists(err) {
+			return reconcile.Result{}, nil
+		}
 		return reconcile.Result{}, err
 	}
 
@@ -319,10 +323,10 @@ func (r machineReconciler) reconcileNormalPre7(ctx *context.MachineContext) (run
 			Name:      ctx.Machine.Name,
 		},
 	}
-	mutateFn := func() error {
+	mutateFn := func() (err error) {
 		// Ensure this VSphereMachine is marked as the ControllerOwner of the
 		// VSphereVM resource.
-		if err := ctrlutil.SetControllerReference(ctx.VSphereMachine, vm, ctx.Scheme); err != nil {
+		if err = ctrlutil.SetControllerReference(ctx.VSphereMachine, vm, ctx.Scheme); err != nil {
 			return errors.Wrapf(err,
 				"failed to set %s as owner of VSphereVM %s/%s", ctx,
 				vm.Namespace, vm.Name)
@@ -339,7 +343,7 @@ func (r machineReconciler) reconcileNormalPre7(ctx *context.MachineContext) (run
 			// are not any labels upon exiting this function, then remove the
 			// labels map to prevent an unnecessary change.
 			defer func() {
-				if len(vm.Labels) == 0 {
+				if err == nil && len(vm.Labels) == 0 {
 					vm.Labels = nil
 				}
 			}()
@@ -386,37 +390,69 @@ func (r machineReconciler) reconcileNormalPre7(ctx *context.MachineContext) (run
 		return nil
 	}
 	if _, err := ctrlutil.CreateOrUpdate(ctx, ctx.Client, vm, mutateFn); err != nil {
-		return nil, errors.Wrapf(err, "failed to CreateOrUpdate VSphereVM %s/%s", vm.Namespace, vm.Name)
+		if apierrors.IsAlreadyExists(err) {
+			ctx.Logger.Info("VSphereVM already exists")
+			return nil, err
+		}
+		ctx.Logger.Error(err, "failed to CreateOrUpdate VSphereVM",
+			"namespace", vm.Namespace, "name", vm.Name)
+		return nil, err
 	}
 
 	return vm, nil
 }
 
 func (r machineReconciler) reconcileNetwork(ctx *context.MachineContext, data map[string]interface{}) (bool, error) {
-	untypedVal, untypedValOk := data["addresses"]
-	if !untypedValOk {
-		return false, nil
+	// Check to see if the data has a network status.
+	if networkStatusIface, ok := data["network"]; ok {
+		if networkStatusListOfIfaces, ok := networkStatusIface.([]interface{}); ok {
+			networkStatusList := []infrav1.NetworkStatus{}
+			for i, networkStatusListMemberIface := range networkStatusListOfIfaces {
+				if buf, err := json.Marshal(networkStatusListMemberIface); err != nil {
+					ctx.Logger.Error(err,
+						"unsupported data for member of status.network list",
+						"index", i)
+				} else {
+					var networkStatus infrav1.NetworkStatus
+					err := json.Unmarshal(buf, &networkStatus)
+					if err == nil && networkStatus.MACAddr == "" {
+						err = errors.New("macAddr is required")
+					}
+					if err != nil {
+						ctx.Logger.Error(err,
+							"unsupported data for member of status.network list",
+							"index", i, "data", string(buf))
+					} else {
+						networkStatusList = append(networkStatusList, networkStatus)
+					}
+				}
+			}
+			ctx.VSphereMachine.Status.Network = networkStatusList
+		}
 	}
-	ipAddresses, ipAddressesOk := untypedVal.([]interface{})
-	if !ipAddressesOk {
-		return false, errors.Errorf("invalid addresses %T for %s", untypedVal, ctx)
+	// Check to see if the data has a list of IP addresses.
+	if addressesIface, ok := data["addresses"]; ok {
+		if addressesListOfIfaces, ok := addressesIface.([]interface{}); ok {
+			var nodeAddresses []corev1.NodeAddress
+			for i, addressesListMemberIface := range addressesListOfIfaces {
+				address, ok := addressesListMemberIface.(string)
+				if !ok {
+					return false, errors.Errorf("invalid status.addresses[%d] %T for %s", i, addressesListMemberIface, ctx)
+				}
+				nodeAddresses = append(nodeAddresses, corev1.NodeAddress{
+					Type:    corev1.NodeInternalIP,
+					Address: address,
+				})
+			}
+			ctx.VSphereMachine.Status.Addresses = nodeAddresses
+		}
 	}
-	if len(ipAddresses) == 0 {
+
+	if len(ctx.VSphereMachine.Status.Addresses) == 0 {
 		ctx.Logger.Info("Waiting on IP addresses")
 		return false, nil
 	}
-	var nodeIPAddrs []corev1.NodeAddress
-	for i, untypedIPVal := range ipAddresses {
-		ip, ipOk := untypedIPVal.(string)
-		if !ipOk {
-			return false, errors.Errorf("invalid addresses[%d] %T for %s", i, untypedIPVal, ctx)
-		}
-		nodeIPAddrs = append(nodeIPAddrs, corev1.NodeAddress{
-			Type:    corev1.NodeInternalIP,
-			Address: ip,
-		})
-	}
-	ctx.VSphereMachine.Status.Addresses = nodeIPAddrs
+
 	return true, nil
 }
 

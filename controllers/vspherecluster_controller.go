@@ -620,7 +620,7 @@ func (r clusterReconciler) reconcileCloudConfigSecret(ctx *context.ClusterContex
 			ctx.Cluster.Namespace, ctx.Cluster.Name)
 	}
 
-	ctx.Logger.V(6).Info("created cloud provider credential secret",
+	ctx.Logger.Info("created cloud provider credential secret",
 		"cluster-namespace", ctx.Cluster.Namespace,
 		"cluster-name", ctx.Cluster.Name,
 		"secret-name", secret.Name,

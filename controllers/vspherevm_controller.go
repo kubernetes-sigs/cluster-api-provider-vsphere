@@ -269,9 +269,6 @@ func (r vmReconciler) reconcileNormal(ctx *context.VMContext) (reconcile.Result,
 		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile VM")
 	}
 
-	// Update the VSphereVM's BIOS UUID.
-	ctx.VSphereVM.Spec.BiosUUID = vm.BiosUUID
-
 	// Do not proceed until the backend VM is marked ready.
 	if vm.State != infrav1.VirtualMachineStateReady {
 		ctx.Logger.Info(
@@ -280,6 +277,9 @@ func (r vmReconciler) reconcileNormal(ctx *context.VMContext) (reconcile.Result,
 			"actual-vm-state", vm.State)
 		return reconcile.Result{}, nil
 	}
+
+	// Update the VSphereVM's BIOS UUID.
+	ctx.VSphereVM.Spec.BiosUUID = vm.BiosUUID
 
 	// Update the VSphereVM's network status.
 	r.reconcileNetwork(ctx, vm)

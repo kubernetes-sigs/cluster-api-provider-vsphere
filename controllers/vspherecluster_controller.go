@@ -398,7 +398,6 @@ func (r clusterReconciler) reconcileControlPlaneEndpoint(ctx *context.ClusterCon
 		// value into the analogous CAPI Cluster using an UnstructuredReader.
 		ctx.VSphereCluster.Spec.ControlPlaneEndpoint.Host = ipAddr
 		ctx.VSphereCluster.Spec.ControlPlaneEndpoint.Port = apiEndpointPort
-
 		ctx.Logger.Info(
 			"ControlPlaneEndpoin discovered via control plane machine",
 			"host", ctx.VSphereCluster.Spec.ControlPlaneEndpoint.Host,
@@ -411,6 +410,9 @@ func (r clusterReconciler) reconcileControlPlaneEndpoint(ctx *context.ClusterCon
 func (r clusterReconciler) isAPIServerOnline(ctx *context.ClusterContext) bool {
 	if client, err := infrautilv1.NewKubeClient(ctx, ctx.Client, ctx.Cluster); err == nil {
 		if _, err := client.CoreV1().Nodes().List(metav1.ListOptions{}); err == nil {
+			ctx.Logger.Info(
+				"API server is online",
+				"controlPlaneEndpoint", ctx.Cluster.Spec.ControlPlaneEndpoint.String())
 			return true
 		}
 	}
@@ -424,7 +426,6 @@ func (r clusterReconciler) reconcileCloudProvider(ctx *context.ClusterContext) e
 		ctx.Logger.V(2).Info(
 			"cloud provider config was not specified in VSphereCluster, skipping reconciliation of the cloud provider integration",
 		)
-
 		return nil
 	}
 

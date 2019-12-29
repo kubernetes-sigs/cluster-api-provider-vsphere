@@ -26,7 +26,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
 )
 
-// MachineContext is a Go context used with a CAPI cluster.
+// MachineContext is a Go context used with a VSphereMachine.
 type MachineContext struct {
 	*ClusterContext
 	Machine        *clusterv1.Machine

@@ -17,8 +17,11 @@ limitations under the License.
 package govmomi
 
 import (
+	gonet "net"
+
 	"github.com/pkg/errors"
 	"github.com/vmware/govmomi/object"
+	"github.com/vmware/govmomi/property"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -122,28 +125,53 @@ func reconcileVSphereVMWhenNetworkIsReady(
 	ctx *virtualMachineContext,
 	powerOnTask *object.Task) {
 
-	reconcileVSphereVMOnFuncCompletion(
+	reconcileVSphereVMOnChannel(
 		&ctx.VMContext,
-		func() ([]interface{}, error) {
-			taskInfo, err := powerOnTask.WaitForResult(ctx)
-			if err != nil && taskInfo == nil {
-				return nil, errors.Wrapf(err, "failed to wait for power on op for vm %s", ctx)
+		func() (<-chan []interface{}, <-chan error, error) {
+
+			// Wait for the VM to be powered on.
+			powerOnTaskInfo, err := powerOnTask.WaitForResult(ctx)
+			if err != nil && powerOnTaskInfo == nil {
+				return nil, nil, errors.Wrapf(err, "failed to wait for power on op for vm %s", ctx)
 			}
 			powerState, err := ctx.Obj.PowerState(ctx)
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to get power state for vm %s", ctx)
+				return nil, nil, errors.Wrapf(err, "failed to get power state for vm %s", ctx)
 			}
 			if powerState != types.VirtualMachinePowerStatePoweredOn {
-				return nil, errors.Errorf(
+				return nil, nil, errors.Errorf(
 					"unexpected power state %v for vm %s",
 					powerState, ctx)
 			}
-			if _, err := ctx.Obj.WaitForNetIP(ctx, false); err != nil {
-				return nil, errors.Wrapf(err, "failed to wait for networking for vm %s", ctx)
+
+			// Wait for all NICs to have valid MAC addresses.
+			if err := waitForMacAddresses(ctx); err != nil {
+				return nil, nil, errors.Wrapf(err, "failed to wait for mac addresses for vm %s", ctx)
 			}
-			return []interface{}{
-				"reason", "network",
-			}, nil
+
+			// Get all the MAC addresses. This is done separately from waiting
+			// for all NICs to have MAC addresses in order to ensure the order
+			// of the retrieved MAC addresses matches the order of the device
+			// specs, and not the propery change order.
+			_, macToDeviceIndex, deviceToMacIndex, err := getMacAddresses(ctx)
+			if err != nil {
+				return nil, nil, errors.Wrapf(err, "failed to get mac addresses for vm %s", ctx)
+			}
+
+			// Wait for the IP addresses to show up for the VM.
+			chanIPAddresses, chanErrs := waitForIPAddresses(ctx, macToDeviceIndex, deviceToMacIndex)
+
+			// Trigger a reconcile every time a new IP is discovered.
+			chanOfLoggerKeysAndValues := make(chan []interface{})
+			go func() {
+				for ip := range chanIPAddresses {
+					chanOfLoggerKeysAndValues <- []interface{}{
+						"reason", "network",
+						"ipAddress", ip,
+					}
+				}
+			}()
+			return chanOfLoggerKeysAndValues, chanErrs, nil
 		})
 }
 
@@ -210,4 +238,293 @@ func reconcileVSphereVMOnFuncCompletion(
 			Object: obj,
 		}
 	}()
+}
+
+func reconcileVSphereVMOnChannel(
+	ctx *context.VMContext,
+	waitFn func() (<-chan []interface{}, <-chan error, error)) {
+
+	obj := ctx.VSphereVM.DeepCopy()
+	gvk := obj.GetObjectKind().GroupVersionKind()
+
+	// Send a generic event for every set of logger keys/values received
+	// on the channel.
+	go func() {
+		chanOfLoggerKeysAndValues, chanErrs, err := waitFn()
+		if err != nil {
+			ctx.Logger.Error(err, "failed to wait on func")
+			return
+		}
+		for {
+			select {
+			case loggerKeysAndValues := <-chanOfLoggerKeysAndValues:
+				if loggerKeysAndValues == nil {
+					return
+				}
+				go func() {
+					// Trigger a reconcile event for the associated resource by
+					// sending a GenericEvent into the event channel for the resource
+					// type.
+					ctx.Logger.Info("triggering GenericEvent", loggerKeysAndValues...)
+					eventChannel := ctx.GetGenericEventChannelFor(gvk)
+					eventChannel <- event.GenericEvent{
+						Meta:   obj,
+						Object: obj,
+					}
+				}()
+			case err := <-chanErrs:
+				if err != nil {
+					ctx.Logger.Error(err, "error occurred while waiting to trigger a generic event")
+				}
+				return
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+}
+
+// waitForMacAddresses waits for all configured network devices to have
+// valid MAC addresses.
+func waitForMacAddresses(ctx *virtualMachineContext) error {
+	return property.Wait(
+		ctx, property.DefaultCollector(ctx.Session.Client.Client),
+		ctx.Obj.Reference(), []string{"config.hardware.device"},
+		func(propertyChanges []types.PropertyChange) bool {
+			for _, propChange := range propertyChanges {
+				if propChange.Op != types.PropertyChangeOpAssign {
+					continue
+				}
+				deviceList := object.VirtualDeviceList(propChange.Val.(types.ArrayOfVirtualDevice).VirtualDevice)
+				for _, dev := range deviceList {
+					if nic, ok := dev.(types.BaseVirtualEthernetCard); ok {
+						mac := nic.GetVirtualEthernetCard().MacAddress
+						if mac == "" {
+							return false
+						}
+					}
+				}
+			}
+			return true
+		})
+}
+
+// getMacAddresses gets the MAC addresses for all network devices.
+// This happens separately from waitForMacAddresses to ensure returned order of
+// devices matches the spec and not order in which the propery changes were
+// noticed.
+func getMacAddresses(ctx *virtualMachineContext) ([]string, map[string]int, map[int]string, error) {
+	var (
+		vm                   mo.VirtualMachine
+		macAddresses         []string
+		macToDeviceSpecIndex = map[string]int{}
+		deviceSpecIndexToMac = map[int]string{}
+	)
+	if err := ctx.Obj.Properties(ctx, ctx.Obj.Reference(), []string{"config.hardware.device"}, &vm); err != nil {
+		return nil, nil, nil, err
+	}
+	i := 0
+	for _, device := range vm.Config.Hardware.Device {
+		if nic, ok := device.(types.BaseVirtualEthernetCard); ok {
+			mac := nic.GetVirtualEthernetCard().MacAddress
+			macAddresses = append(macAddresses, mac)
+			macToDeviceSpecIndex[mac] = i
+			deviceSpecIndexToMac[i] = mac
+			i++
+		}
+	}
+	return macAddresses, macToDeviceSpecIndex, deviceSpecIndexToMac, nil
+}
+
+// waitForIPAddresses waits for all network devices that should be getting an
+// IP address to have an IP address. This is any network device that specifies a
+// network name and DHCP for v4 or v6 or one or more static IP addresses.
+// The gocyclo detector is disabled for this function as it is difficult to
+// rewrite muchs simpler due to the maps used to track state and the lambdas
+// that use the maps.
+// nolint:gocyclo
+func waitForIPAddresses(
+	ctx *virtualMachineContext,
+	macToDeviceIndex map[string]int,
+	deviceToMacIndex map[int]string) (<-chan string, <-chan error) {
+
+	var (
+		chanErrs          = make(chan error)
+		chanIPAddresses   = make(chan string)
+		macToHasIPv4Lease = map[string]struct{}{}
+		macToHasIPv6Lease = map[string]struct{}{}
+		macToSkipped      = map[string]map[string]struct{}{}
+		macToHasStaticIP  = map[string]map[string]struct{}{}
+		propCollector     = property.DefaultCollector(ctx.Session.Client.Client)
+	)
+
+	// Initialize the nested maps early.
+	for mac := range macToDeviceIndex {
+		macToSkipped[mac] = map[string]struct{}{}
+		macToHasStaticIP[mac] = map[string]struct{}{}
+	}
+
+	onPropertyChange := func(propertyChanges []types.PropertyChange) bool {
+		for _, propChange := range propertyChanges {
+			if propChange.Op != types.PropertyChangeOpAssign {
+				continue
+			}
+			nics := propChange.Val.(types.ArrayOfGuestNicInfo).GuestNicInfo
+			for _, nic := range nics {
+				mac := nic.MacAddress
+				if mac == "" || nic.IpConfig == nil {
+					continue
+				}
+				// Ignore any that don't correspond to a network
+				// device spec.
+				deviceSpecIndex, ok := macToDeviceIndex[mac]
+				if !ok {
+					chanErrs <- errors.Errorf("unknown device spec index for mac %s while waiting for ip addresses for vm %s", mac, ctx)
+					// Return true to stop the property collector from waiting
+					// on any more changes.
+					return true
+				}
+				if deviceSpecIndex < 0 || deviceSpecIndex >= len(ctx.VSphereVM.Spec.Network.Devices) {
+					chanErrs <- errors.Errorf("invalid device spec index %d for mac %s while waiting for ip addresses for vm %s", deviceSpecIndex, mac, ctx)
+					// Return true to stop the property collector from waiting
+					// on any more changes.
+					return true
+				}
+
+				// Get the network device spec that corresponds to the MAC.
+				deviceSpec := ctx.VSphereVM.Spec.Network.Devices[deviceSpecIndex]
+
+				// Look at each IP and determine whether or not a reconcile has
+				// been triggered for the IP.
+				for _, discoveredIPInfo := range nic.IpConfig.IpAddress {
+					discoveredIP := discoveredIPInfo.IpAddress
+
+					// Ignore link-local addresses.
+					if err := net.ErrOnLocalOnlyIPAddr(discoveredIP); err != nil {
+						if _, ok := macToSkipped[mac][discoveredIP]; !ok {
+							ctx.Logger.Info("ignoring IP address", "reason", err.Error())
+							macToSkipped[mac][discoveredIP] = struct{}{}
+						}
+						continue
+					}
+
+					// Check to see if the IP is in the list of the device
+					// spec's static IP addresses.
+					isStatic := false
+					for _, specIP := range deviceSpec.IPAddrs {
+						if discoveredIP == specIP {
+							isStatic = true
+							break
+						}
+					}
+
+					// If it's a static IP then check to see if the IP has
+					// triggered a reconcile yet.
+					switch {
+					case isStatic:
+						if _, ok := macToHasStaticIP[mac][discoveredIP]; !ok {
+							// No reconcile yet. Record the IP send it to the
+							// channel.
+							ctx.Logger.Info(
+								"discovered IP address",
+								"addressType", "static",
+								"addressValue", discoveredIP)
+							macToHasStaticIP[mac][discoveredIP] = struct{}{}
+							chanIPAddresses <- discoveredIP
+						}
+					case gonet.ParseIP(discoveredIP).To4() != nil:
+						// An IPv4 address...
+						if deviceSpec.DHCP4 {
+							// Has an IPv4 lease been discovered yet?
+							if _, ok := macToHasIPv4Lease[mac]; !ok {
+								ctx.Logger.Info(
+									"discovered IP address",
+									"addressType", "dhcp4",
+									"addressValue", discoveredIP)
+								macToHasIPv4Lease[mac] = struct{}{}
+								chanIPAddresses <- discoveredIP
+							}
+						}
+					default:
+						// An IPv6 address..
+						if deviceSpec.DHCP6 {
+							// Has an IPv6 lease been discovered yet?
+							if _, ok := macToHasIPv6Lease[mac]; !ok {
+								ctx.Logger.Info(
+									"discovered IP address",
+									"addressType", "dhcp6",
+									"addressValue", discoveredIP)
+								macToHasIPv6Lease[mac] = struct{}{}
+								chanIPAddresses <- discoveredIP
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// Determine whether or not the wait operation is over by whether
+		// or not the VM has all of the requested IP addresses.
+		for i, deviceSpec := range ctx.VSphereVM.Spec.Network.Devices {
+			mac, ok := deviceToMacIndex[i]
+			if !ok {
+				chanErrs <- errors.Errorf("invalid mac index %d waiting for ip addresses for vm %s", i, ctx)
+
+				// Return true to stop the property collector from waiting
+				// on any more changes.
+				return true
+			}
+			// If the device spec requires DHCP4 then the Wait is not
+			// over if there is no IPv4 lease.
+			if deviceSpec.DHCP4 {
+				if _, ok := macToHasIPv4Lease[mac]; !ok {
+					ctx.Logger.Info(
+						"the VM is missing the requested IP address",
+						"addressType", "dhcp4")
+					return false
+				}
+			}
+			// If the device spec requires DHCP6 then the Wait is not
+			// over if there is no IPv4 lease.
+			if deviceSpec.DHCP6 {
+				if _, ok := macToHasIPv6Lease[mac]; !ok {
+					ctx.Logger.Info(
+						"the VM is missing the requested IP address",
+						"addressType", "dhcp6")
+					return false
+				}
+			}
+			// If the device spec requires static IP addresses, the wait
+			// is not over if the device lacks one of those addresses.
+			for _, specIP := range deviceSpec.IPAddrs {
+				if _, ok := macToHasStaticIP[mac][specIP]; !ok {
+					ctx.Logger.Info(
+						"the VM is missing the requested IP address",
+						"addressType", "static",
+						"addressValue", specIP)
+					return false
+				}
+			}
+		}
+
+		ctx.Logger.Info("the VM has all of the requested IP addresses")
+		return true
+	}
+
+	// The wait function will not return true until all the VM's
+	// network devices have IP assignments that match the requested
+	// network devie specs. However, every time a new IP is discovered,
+	// a reconcile request will be triggered for the VSphereVM.
+	go func() {
+		if err := property.Wait(
+			ctx, propCollector, ctx.Obj.Reference(),
+			[]string{"guest.net"}, onPropertyChange); err != nil {
+
+			chanErrs <- errors.Wrapf(err, "failed to wait for ip addresses for vm %s", ctx)
+		}
+		close(chanIPAddresses)
+		close(chanErrs)
+	}()
+
+	return chanIPAddresses, chanErrs
 }

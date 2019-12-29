@@ -22,9 +22,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo" //nolint:golint
+	. "github.com/onsi/gomega" //nolint:golint
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/framework"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
 	frameworkx "sigs.k8s.io/cluster-api-provider-vsphere/test/e2e/framework"
@@ -43,6 +45,46 @@ var _ = Describe("CAPV", func() {
 			randomUUID := uuid.New()
 			hash7 := fmt.Sprintf("%x", sha1.Sum(randomUUID[:]))[:7] //nolint:gosec
 			clusterName = fmt.Sprintf("test-%s", hash7)
+		})
+
+		AfterEach(func() {
+
+			// This label selector may be used to list resources related to
+			// the current Clsuter.
+			clusterLabelSelector := client.MatchingLabels{clusterv1.ClusterLabelName: clusterName}
+
+			// The amount of time to wait when verify that eventually some
+			// resource no longer exists.
+			timeout := 10 * time.Minute
+
+			By("asserting all VSphereVM resources related to this test are eventually removed")
+			Eventually(func() ([]infrav1.VSphereVM, error) {
+				list := &infrav1.VSphereVMList{}
+				if err := mgmt.Client.List(ctx, list, clusterLabelSelector); err != nil {
+					return nil, err
+				}
+				return list.Items, nil
+			}, timeout, 10*time.Second).Should(HaveLen(0))
+
+			By("asserting all VSphereMachine resources related to this test are eventually removed")
+			Eventually(func() ([]infrav1.VSphereMachine, error) {
+				list := &infrav1.VSphereMachineList{}
+				if err := mgmt.Client.List(ctx, list, clusterLabelSelector); err != nil {
+					return nil, err
+				}
+				return list.Items, nil
+			}, timeout, 10*time.Second).Should(HaveLen(0))
+
+			By("asserting all VSphereCluster resources related to this test are eventually removed")
+			Eventually(func() ([]infrav1.VSphereCluster, error) {
+				list := &infrav1.VSphereClusterList{}
+				if err := mgmt.Client.List(ctx, list, clusterLabelSelector); err != nil {
+					return nil, err
+				}
+				return list.Items, nil
+			}, timeout, 10*time.Second).Should(HaveLen(0))
+
+			destroyVMsWithPrefix(clusterName)
 		})
 
 		Context("Single-node control plane with one worker nodes", func() {
@@ -70,11 +112,10 @@ var _ = Describe("CAPV", func() {
 
 			AfterEach(func() {
 				By("cleaning up e2e resources")
-				framework.CleanUp(&framework.CleanUpInput{
+				frameworkx.CleanUpX(&framework.CleanUpInput{
 					Management: mgmt,
 					Cluster:    cluster,
 				})
-				destroyVMsWithPrefix(cluster.Name)
 			})
 
 			It("should create a single-node control plane with one worker nodes", func() {

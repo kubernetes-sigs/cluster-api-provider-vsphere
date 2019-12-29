@@ -153,15 +153,13 @@ func (r machineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr er
 
 	// Create the machine context for this request.
 	machineContext := &context.MachineContext{
-		ClusterContext: &context.ClusterContext{
-			ControllerContext: r.ControllerContext,
-			Cluster:           cluster,
-			VSphereCluster:    vsphereCluster,
-		},
-		Machine:        machine,
-		VSphereMachine: vsphereMachine,
-		Logger:         r.Logger.WithName(req.Namespace).WithName(req.Name),
-		PatchHelper:    patchHelper,
+		ControllerContext: r.ControllerContext,
+		Cluster:           cluster,
+		VSphereCluster:    vsphereCluster,
+		Machine:           machine,
+		VSphereMachine:    vsphereMachine,
+		Logger:            r.Logger.WithName(req.Namespace).WithName(req.Name),
+		PatchHelper:       patchHelper,
 	}
 
 	// Always issue a patch when exiting this function so changes to the

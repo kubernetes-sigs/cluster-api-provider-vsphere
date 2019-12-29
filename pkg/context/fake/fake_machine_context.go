@@ -42,10 +42,12 @@ func NewMachineContext(ctx *context.ClusterContext) *context.MachineContext {
 	}
 
 	return &context.MachineContext{
-		ClusterContext: ctx,
-		Machine:        &machine,
-		VSphereMachine: &vsphereMachine,
-		Logger:         ctx.Logger.WithName(vsphereMachine.Name),
+		ControllerContext: ctx.ControllerContext,
+		Cluster:           ctx.Cluster,
+		VSphereCluster:    ctx.VSphereCluster,
+		Machine:           &machine,
+		VSphereMachine:    &vsphereMachine,
+		Logger:            ctx.Logger.WithName(vsphereMachine.Name),
 	}
 }
 

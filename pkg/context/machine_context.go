@@ -28,16 +28,18 @@ import (
 
 // MachineContext is a Go context used with a VSphereMachine.
 type MachineContext struct {
-	*ClusterContext
+	*ControllerContext
+	Cluster        *clusterv1.Cluster
 	Machine        *clusterv1.Machine
+	VSphereCluster *infrav1.VSphereCluster
 	VSphereMachine *infrav1.VSphereMachine
 	Logger         logr.Logger
 	PatchHelper    *patch.Helper
 }
 
-// String returns ControllerManagerName/ControllerName/ClusterAPIVersion/ClusterNamespace/ClusterName/MachineName.
+// String returns VSphereMachineGroupVersionKind VSphereMachineNamespace/VSphereMachineName.
 func (c *MachineContext) String() string {
-	return fmt.Sprintf("%s/%s", c.ClusterContext.String(), c.VSphereMachine.Name)
+	return fmt.Sprintf("%s %s/%s", c.VSphereMachine.GroupVersionKind(), c.VSphereMachine.Namespace, c.VSphereMachine.Name)
 }
 
 // Patch updates the object and its status on the API server.

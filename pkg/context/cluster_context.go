@@ -35,7 +35,7 @@ type ClusterContext struct {
 	Logger         logr.Logger
 }
 
-// String returns ClusterGroupVersionKind ClusterNamespace/ClusterName.
+// String returns VSphereClusterGroupVersionKind VSphereClusterNamespace/VSphereClusterName.
 func (c *ClusterContext) String() string {
 	return fmt.Sprintf("%s %s/%s", c.VSphereCluster.GroupVersionKind(), c.VSphereCluster.Namespace, c.VSphereCluster.Name)
 }

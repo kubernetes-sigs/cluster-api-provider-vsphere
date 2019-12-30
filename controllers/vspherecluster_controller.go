@@ -101,6 +101,16 @@ func AddClusterControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 				ToRequests: handler.ToRequestsFunc(reconciler.controlPlaneMachineToCluster),
 			},
 		).
+		// Watch the load balancer resource that may be used to provide HA to
+		// the VSphereCluster control plane.
+		// TODO(akutz) Figure out how to watch LB resources without requiring
+		//             their types ahead of time.
+		Watches(
+			&source.Kind{Type: &infrav1.HAProxyLoadBalancer{}},
+			&handler.EnqueueRequestsFromMapFunc{
+				ToRequests: handler.ToRequestsFunc(reconciler.haproxyLoadBalancerToCluster),
+			},
+		).
 		// Watch a GenericEvent channel for the controlled resource.
 		//
 		// This is useful when there are events outside of Kubernetes that
@@ -291,23 +301,32 @@ func (r clusterReconciler) reconcileLoadBalancer(ctx *context.ClusterContext) er
 	}
 
 	// Make the CAPI Cluster as the owner of the load balancer.
-	if err := ctrlutil.SetControllerReference(ctx.Cluster, loadBalancer, ctx.Scheme); err != nil {
-		return errors.Wrapf(err, "failed to set owner %s %s/%s for load balancer %s %s/%s",
-			ctx.Cluster.GroupVersionKind().String(),
-			ctx.Cluster.Namespace,
-			ctx.Cluster.Name,
-			loadBalancer.GroupVersionKind().String(),
-			loadBalancer.GetNamespace(),
-			loadBalancer.GetName())
+	isAlreadyOwnedByCluster := false
+	for _, ownerRef := range loadBalancer.GetOwnerReferences() {
+		if ownerRef.APIVersion == ctx.Cluster.APIVersion &&
+			ownerRef.Kind == ctx.Cluster.Kind &&
+			ownerRef.Name == ctx.Cluster.Name {
+			isAlreadyOwnedByCluster = true
+			break
+		}
 	}
-	if err := ctx.Client.Update(ctx, loadBalancer); err != nil {
-		return errors.Wrapf(err, "failed to apply owner %s %s/%s to load balancer %s %s/%s",
-			ctx.Cluster.GroupVersionKind().String(),
-			ctx.Cluster.Namespace,
-			ctx.Cluster.Name,
-			loadBalancer.GroupVersionKind().String(),
-			loadBalancer.GetNamespace(),
-			loadBalancer.GetName())
+	if !isAlreadyOwnedByCluster {
+		ownerRefs := loadBalancer.GetOwnerReferences()
+		ownerRefs = append(ownerRefs, metav1.OwnerReference{
+			APIVersion: ctx.Cluster.APIVersion,
+			Kind:       ctx.Cluster.Kind,
+			Name:       ctx.Cluster.Name,
+		})
+		loadBalancer.SetOwnerReferences(ownerRefs)
+		if err := ctx.Client.Update(ctx, loadBalancer); err != nil {
+			return errors.Wrapf(err, "failed to apply owner %s %s/%s to load balancer %s %s/%s",
+				ctx.Cluster.GroupVersionKind().String(),
+				ctx.Cluster.Namespace,
+				ctx.Cluster.Name,
+				loadBalancer.GroupVersionKind().String(),
+				loadBalancer.GetNamespace(),
+				loadBalancer.GetName())
+		}
 	}
 
 	loadBalancerStatus, _ := loadBalancer.Object["status"].(map[string]interface{})
@@ -779,6 +798,69 @@ func (r clusterReconciler) controlPlaneMachineToCluster(o handler.MapObject) []c
 		NamespacedName: types.NamespacedName{
 			Namespace: vsphereClusterKey.Namespace,
 			Name:      vsphereClusterKey.Name,
+		},
+	}}
+}
+
+// haproxyLoadBalancerToCluster is a handler.ToRequestsFunc that triggers
+// reconcile events for a VSphereCluster resource when an HAProxyLoadBalancer
+// resource is reconciled.
+func (r clusterReconciler) haproxyLoadBalancerToCluster(o handler.MapObject) []ctrl.Request {
+	haproxylb, ok := o.Object.(*infrav1.HAProxyLoadBalancer)
+	if !ok {
+		r.Logger.Error(nil, fmt.Sprintf("expected an HAProxyLoadBalancer but got a %T", o.Object))
+		return nil
+	}
+
+	var clusterRef *metav1.OwnerReference
+	for _, ownerRef := range haproxylb.OwnerReferences {
+		if ownerRef.APIVersion == clusterv1.GroupVersion.String() &&
+			ownerRef.Kind == "Cluster" {
+			clusterRef = &ownerRef
+		}
+	}
+	if clusterRef == nil {
+		return nil
+	}
+
+	cluster := &clusterv1.Cluster{}
+	clusterKey := client.ObjectKey{
+		Namespace: haproxylb.Namespace,
+		Name:      clusterRef.Name,
+	}
+	if err := r.Client.Get(r, clusterKey, cluster); err != nil {
+		if !apierrors.IsNotFound(err) {
+			r.Logger.Error(nil, "failed to fetch Cluster %s while mapping HAProxyLoadBalancer to VSphereCluster", clusterKey)
+		}
+		return nil
+	}
+
+	infraRef := cluster.Spec.InfrastructureRef
+	if infraRef == nil {
+		return nil
+	}
+
+	if infraRef.APIVersion != infrav1.GroupVersion.String() ||
+		infraRef.Kind != "VSphereCluster" {
+		return nil
+	}
+
+	infraCluster := &infrav1.VSphereCluster{}
+	infraClusterKey := client.ObjectKey{
+		Namespace: infraRef.Namespace,
+		Name:      infraRef.Name,
+	}
+	if err := r.Client.Get(r, infraClusterKey, infraCluster); err != nil {
+		if !apierrors.IsNotFound(err) {
+			r.Logger.Error(nil, "failed to fetch VSphereCluster %s while mapping HAProxyLoadBalancer to VSphereCluster", infraClusterKey)
+		}
+		return nil
+	}
+
+	return []ctrl.Request{{
+		NamespacedName: types.NamespacedName{
+			Namespace: infraCluster.Namespace,
+			Name:      infraCluster.Name,
 		},
 	}}
 }

@@ -124,7 +124,7 @@ func (r haproxylbReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr 
 		return reconcile.Result{}, err
 	}
 	if cluster == nil {
-		r.Logger.Info("Waiting for controller to set OwnerRef on HAProxyLoadBalancer")
+		r.Logger.Info("Waiting for VSphereCluster Controller to set OwnerRef on HAProxyLoadBalancer")
 		return reconcile.Result{}, nil
 	}
 

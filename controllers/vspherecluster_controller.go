@@ -273,6 +273,8 @@ func (r clusterReconciler) reconcileLoadBalancer(ctx *context.ClusterContext) er
 
 	loadBalancerRef := ctx.VSphereCluster.Spec.LoadBalancerRef
 	loadBalancer := &unstructured.Unstructured{}
+	loadBalancer.SetKind(loadBalancerRef.Kind)
+	loadBalancer.SetAPIVersion(loadBalancerRef.APIVersion)
 	loadBalancerKey := types.NamespacedName{
 		Namespace: loadBalancerRef.Namespace,
 		Name:      loadBalancerRef.Name,
@@ -280,7 +282,7 @@ func (r clusterReconciler) reconcileLoadBalancer(ctx *context.ClusterContext) er
 	if err := ctx.Client.Get(ctx, loadBalancerKey, loadBalancer); err != nil {
 		if apierrors.IsNotFound(err) {
 			ctx.Logger.Info("Resource specified by LoadBalancerRef not found",
-				"load-balancer-gvk", loadBalancerRef.GroupVersionKind().String(),
+				"load-balancer-gvk", loadBalancerRef.APIVersion,
 				"load-balancer-namespace", loadBalancerRef.Namespace,
 				"load-balancer-name", loadBalancerRef.Name)
 			return errNotReady
@@ -288,28 +290,49 @@ func (r clusterReconciler) reconcileLoadBalancer(ctx *context.ClusterContext) er
 		return err
 	}
 
+	// Make the CAPI Cluster as the owner of the load balancer.
+	if err := ctrlutil.SetControllerReference(ctx.Cluster, loadBalancer, ctx.Scheme); err != nil {
+		return errors.Wrapf(err, "failed to set owner %s %s/%s for load balancer %s %s/%s",
+			ctx.Cluster.GroupVersionKind().String(),
+			ctx.Cluster.Namespace,
+			ctx.Cluster.Name,
+			loadBalancer.GroupVersionKind().String(),
+			loadBalancer.GetNamespace(),
+			loadBalancer.GetName())
+	}
+	if err := ctx.Client.Update(ctx, loadBalancer); err != nil {
+		return errors.Wrapf(err, "failed to apply owner %s %s/%s to load balancer %s %s/%s",
+			ctx.Cluster.GroupVersionKind().String(),
+			ctx.Cluster.Namespace,
+			ctx.Cluster.Name,
+			loadBalancer.GroupVersionKind().String(),
+			loadBalancer.GetNamespace(),
+			loadBalancer.GetName())
+	}
+
 	loadBalancerStatus, _ := loadBalancer.Object["status"].(map[string]interface{})
 	if loadBalancerStatus == nil {
-		return errors.Errorf("load balancer status is nil %s %s/%s",
-			loadBalancerRef.GroupVersionKind().String(),
-			loadBalancerRef.Namespace,
-			loadBalancerRef.Name)
+		ctx.Logger.Info("LoadBalancerRef.Status is nil",
+			"load-balancer-gvk", loadBalancer.GroupVersionKind().String(),
+			"load-balancer-namespace", loadBalancer.GetNamespace(),
+			"load-balancer-name", loadBalancer.GetName())
+		return errNotReady
 	}
 
 	if ready, _ := loadBalancerStatus["ready"].(bool); !ready {
 		ctx.Logger.Info("LoadBalancerRef.Status.Ready is false",
-			"load-balancer-gvk", loadBalancerRef.GroupVersionKind().String(),
-			"load-balancer-namespace", loadBalancerRef.Namespace,
-			"load-balancer-name", loadBalancerRef.Name)
+			"load-balancer-gvk", loadBalancer.GroupVersionKind().String(),
+			"load-balancer-namespace", loadBalancer.GetNamespace(),
+			"load-balancer-name", loadBalancer.GetName())
 		return errNotReady
 	}
 
 	address := loadBalancerStatus["address"].(string)
 	if address == "" {
 		ctx.Logger.Info("LoadBalancerRef.Status.Address is empty",
-			"load-balancer-gvk", loadBalancerRef.GroupVersionKind().String(),
-			"load-balancer-namespace", loadBalancerRef.Namespace,
-			"load-balancer-name", loadBalancerRef.Name)
+			"load-balancer-gvk", loadBalancer.GroupVersionKind().String(),
+			"load-balancer-namespace", loadBalancer.GetNamespace(),
+			"load-balancer-name", loadBalancer.GetName())
 		return errNotReady
 	}
 

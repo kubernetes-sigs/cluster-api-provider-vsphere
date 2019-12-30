@@ -322,11 +322,32 @@ type VirtualMachine struct {
 // LoadBalancerPort defines the pair of frontend and backend ports used by
 // the load balancer.
 type LoadBalancerPort struct {
-	// Ingress is the port on which a load balancer listens for incoming
+	// Frontend is the port on which a load balancer listens for incoming
 	// traffic.
-	Ingress int32 `json:"ingress"`
+	Frontend int32 `json:"frontend"`
 
-	// Egress is the port to which a load balancer transmits traffic to
-	// backend servers.
-	Egress int32 `json:"egress"`
+	// Backend is a list of the backend servers and ports to which the load
+	// balancer transmits traffic from the frontend port.
+	// +optional
+	Backend []LoadBalancerBackendPort `json:"backend,omitempty"`
+}
+
+// LoadBalancerBackendPort represents a reachable backend resource for
+// a load balancer.
+type LoadBalancerBackendPort struct {
+	// The hostname on which the backend server is serving.
+	Host string `json:"host"`
+
+	// The port on which the backend server is serving.
+	Port int32 `json:"port"`
+}
+
+// IsZero returns true if either the host or the port are zero values.
+func (v LoadBalancerBackendPort) IsZero() bool {
+	return v.Host == "" || v.Port == 0
+}
+
+// String returns a formatted version HOST:PORT of this LoadBalancerBackendPort.
+func (v LoadBalancerBackendPort) String() string {
+	return fmt.Sprintf("%s:%d", v.Host, v.Port)
 }

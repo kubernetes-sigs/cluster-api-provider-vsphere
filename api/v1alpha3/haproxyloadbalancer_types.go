@@ -40,11 +40,8 @@ type HAProxyLoadBalancerSpec struct {
 	// Ports is a list of one or more pairs of ports on which the load balancer
 	// listens for incoming traffic and the ports on the backend to which the
 	// traffic is transmitted.
-	Ports []LoadBalancerPort `json:"ports"`
-
-	// Selector is used to identify the control-plane Machine resources that
-	// will be the backend servers for this load balancer.
-	Selector metav1.LabelSelector `json:"selector"`
+	// +optional
+	Ports []LoadBalancerPort `json:"ports,omitempty"`
 
 	// CACertificateRef is a reference to a Secret resource that contains the
 	// following keys:
@@ -71,7 +68,9 @@ type HAProxyLoadBalancerSpec struct {
 	//
 	// If an existing load balancer is used then the Secret need only to contain
 	// the CA's public key.
-	CACertificateRef corev1.SecretReference `json:"caCertificateRef"`
+	//
+	// +optional
+	CACertificateRef corev1.SecretReference `json:"caCertificateRef,omitempty"`
 
 	// ClientCredentialsRef is a reference to a Secret resource that contains
 	// the following keys:
@@ -104,13 +103,16 @@ type HAProxyLoadBalancerSpec struct {
 	// access to the load balancer's API server. However, a username and
 	// password are still required, even though they provide no actual access
 	// control.
-	ClientCredentialsRef corev1.SecretReference `json:"clientCredentialsRef"`
+	//
+	// +optional
+	ClientCredentialsRef corev1.SecretReference `json:"clientCredentialsRef,omitempty"`
 
 	// VirtualMachineConfiguration is optional information used to deploy a new
 	// load VM.
 	// If omitted then the APIEndpoint field is required to point to an existing
 	// load balancer.
-	// +omitempty
+	//
+	// +optional
 	VirtualMachineConfiguration *VirtualMachineCloneSpec `json:"virtualMachineConfiguration,omitempty"`
 }
 

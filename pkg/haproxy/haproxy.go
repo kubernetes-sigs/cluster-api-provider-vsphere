@@ -29,100 +29,22 @@ import (
 	"github.com/pkg/errors"
 	"sigs.k8s.io/yaml"
 
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
 	hapi "sigs.k8s.io/cluster-api-provider-vsphere/contrib/haproxy/openapi"
 )
 
-// Config contains the information required to communicate with an HAProxy
-// dataplane API server.
-type Config struct {
-	// Debug raises the logging emitted from the generated OpenAPI client
-	// bindings.
-	// +optional
-	Debug bool `json:"debug,omitempty"`
-
-	// InsecureSkipTLSVerify skips the validity check for the server's
-	// certificate. This will make your HTTPS connections insecure.
-	// +optional
-	InsecureSkipTLSVerify bool `json:"insecureSkipTLSVerify,omitempty"`
-
-	// Server is the address of the HAProxy dataplane API server. This value
-	// should include the scheme, host, port, and API version, ex.:
-	// https://hostname:port/v1.
-	Server string `json:"server"`
-
-	// ServerName is used to verify the hostname on the returned
-	// certificates unless InsecureSkipTLSVerify is given. It is also included
-	// in the client's handshake to support virtual hosting unless it is
-	// an IP address.
-	// Defaults to the host part parsed from Server.
-	// +optional
-	ServerName string `json:"serverName,omitempty"`
-
-	// Username is the username for basic authentication.
-	// Defaults to "client"
-	// +optional
-	Username string `json:"username,omitempty"`
-
-	// Password is the password for basic authentication.
-	// Defaults to "cert"
-	// +optional
-	Password string `json:"password,omitempty"`
-
-	// Timeout is the amount of time before a client request times out.
-	// Values should be parseable by time.ParseDuration.
-	// Defaults to 10s.
-	// +optional
-	Timeout string `json:"timeout,omitempty"`
-
-	// CertificateAuthorityData contains PEM-encoded certificate authority
-	// certificates.
-	// +optional
-	CertificateAuthorityData []byte `json:"certificateAuthorityData,omitempty"`
-
-	// ClientCertificateData contains PEM-encoded data from a client cert file
-	// for TLS.
-	// +optional
-	ClientCertificateData []byte `json:"clientCertificateData,omitempty"`
-
-	// ClientKeyData contains PEM-encoded data from a client key file for TLS.
-	// +optional
-	ClientKeyData []byte `json:"clientKeyData,omitempty"`
-
-	// SigningKeyData contains a PEM-encoded certificate used to sign new
-	// client certificates.
-	// +optional
-	SigningKeyData []byte `json:"signingKeyData,omitempty"`
-
-	// SigningCertificateData contains PEM-encoded data from the key file used
-	// to sign new client certificates.
-	// +optional
-	SigningCertificateData []byte `json:"signingCertificateData,omitempty"`
-}
-
-// HAPIClientFromConfig returns an HAProxy dataplane API client from
-// the provided configuration object.
-func HAPIClientFromConfig(config *hapi.Configuration) (*hapi.APIClient, error) {
-	return hapi.NewAPIClient(config), nil
-}
-
-// HAPIClientFromConfigData returns an HAProxy dataplane API client from
-// the provided, raw configuration YAML/JSON.
-func HAPIClientFromConfigData(data []byte) (*hapi.APIClient, error) {
-	config, err := LoadConfig(data)
+// ClientFromHAPIConfigData returns the API client config from some HAPI config
+// data.
+func ClientFromHAPIConfigData(data []byte) (*hapi.APIClient, error) {
+	hapiConfig, err := LoadConfig(data)
 	if err != nil {
 		return nil, err
 	}
-	return HAPIClientFromConfig(config)
+	return ClientFromHAPIConfig(hapiConfig)
 }
 
-// LoadConfig returns the configuration for an HAProxy dataplane API client
-// from the provided, raw configuration YAML.
-func LoadConfig(data []byte) (*hapi.Configuration, error) {
-	config := &Config{}
-	if err := yaml.Unmarshal(data, config); err != nil {
-		return nil, errors.Wrap(err, "failed to unmarshal HAProxy API config")
-	}
-
+// ClientFromHAPIConfig returns the API client from a HAPI config object.
+func ClientFromHAPIConfig(config infrav1.HAProxyAPIConfig) (*hapi.APIClient, error) {
 	// Load the CA certs.
 	var trustedRoots *x509.CertPool
 	if len(config.CertificateAuthorityData) > 0 {
@@ -175,7 +97,7 @@ func LoadConfig(data []byte) (*hapi.Configuration, error) {
 		"Authorization": fmt.Sprintf("Basic %s", credentials64),
 	}
 
-	return &hapi.Configuration{
+	return hapi.NewAPIClient(&hapi.Configuration{
 		BasePath:      serverURL.String(),
 		DefaultHeader: headers,
 		UserAgent:     "CAPV HAProxy Load Balancer Client",
@@ -195,5 +117,15 @@ func LoadConfig(data []byte) (*hapi.Configuration, error) {
 				},
 			},
 		},
-	}, nil
+	}), nil
+}
+
+// LoadConfig returns the configuration for an HAProxy dataplane API client
+// from the provided, raw configuration YAML.
+func LoadConfig(data []byte) (infrav1.HAProxyAPIConfig, error) {
+	config := infrav1.HAProxyAPIConfig{}
+	if err := yaml.Unmarshal(data, &config); err != nil {
+		return config, errors.Wrap(err, "failed to unmarshal HAProxy API config")
+	}
+	return config, nil
 }

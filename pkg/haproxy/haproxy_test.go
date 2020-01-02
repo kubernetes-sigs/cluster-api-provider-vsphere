@@ -85,7 +85,7 @@ func TestCreateLoadBalancer(t *testing.T) {
 	ctx := context.Background()
 
 	testHAPIConfig := fmt.Sprintf(testHAPIConfigFormat, testing.Verbose(), apiPort)
-	client, err := haproxy.HAPIClientFromConfigData([]byte(testHAPIConfig))
+	client, err := haproxy.ClientFromHAPIConfigData([]byte(testHAPIConfig))
 	g.Expect(err).ToNot(gomega.HaveOccurred(), "failed create HAPI client from config data")
 
 	// Start a transaction.

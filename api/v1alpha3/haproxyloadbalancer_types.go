@@ -39,7 +39,6 @@ type HAProxyLoadBalancerSpec struct {
 	// load balancer VM.
 	// If omitted then the HAProxy API configuration must point to an existing
 	// load balancer.
-	//
 	// +optional
 	VirtualMachineConfiguration *VirtualMachineCloneSpec `json:"virtualMachineConfiguration,omitempty"`
 }

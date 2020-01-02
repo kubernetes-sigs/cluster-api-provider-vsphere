@@ -17,8 +17,8 @@ limitations under the License.
 package controllers
 
 import (
-	"encoding/json"
 	"fmt"
+	"net/url"
 	"reflect"
 	"strings"
 
@@ -47,6 +47,11 @@ import (
 	infrautilv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
+var (
+	controlledType     = &infrav1.HAProxyLoadBalancer{}
+	controlledTypeName = reflect.TypeOf(controlledType).Elem().Name()
+)
+
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=haproxyloadbalancers,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=haproxyloadbalancers/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
@@ -58,10 +63,7 @@ import (
 func AddHAProxyLoadBalancerControllerToManager(ctx *context.ControllerManagerContext, mgr manager.Manager) error {
 
 	var (
-		controlledType     = &infrav1.HAProxyLoadBalancer{}
-		controlledTypeName = reflect.TypeOf(controlledType).Elem().Name()
-		controlledTypeGVK  = infrav1.GroupVersion.WithKind(controlledTypeName)
-
+		controlledTypeGVK   = infrav1.GroupVersion.WithKind(controlledTypeName)
 		controllerNameShort = fmt.Sprintf("%s-controller", strings.ToLower(controlledTypeName))
 		controllerNameLong  = fmt.Sprintf("%s/%s/%s", ctx.Namespace, ctx.Name, controllerNameShort)
 	)
@@ -118,6 +120,42 @@ func (r haproxylbReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr 
 		return reconcile.Result{}, err
 	}
 
+	// Create the patch helper.
+	patchHelper, err := patch.NewHelper(haproxylb, r.Client)
+	if err != nil {
+		return reconcile.Result{}, errors.Wrapf(
+			err,
+			"failed to init patch helper for %s %s/%s",
+			haproxylb.GroupVersionKind(),
+			haproxylb.Namespace,
+			haproxylb.Name)
+	}
+
+	// Create the HAProxyLoadBalancer context for this request.
+	ctx := &context.HAProxyLoadBalancerContext{
+		ControllerContext:   r.ControllerContext,
+		HAProxyLoadBalancer: haproxylb,
+		Logger:              r.Logger.WithName(req.Namespace).WithName(req.Name),
+		PatchHelper:         patchHelper,
+	}
+
+	// Always issue a patch when exiting this function so changes to the
+	// resource are patched back to the API server.
+	defer func() {
+		// Patch the HAProxyLoadBalancer resource.
+		if err := ctx.Patch(); err != nil {
+			if reterr == nil {
+				reterr = err
+			}
+			ctx.Logger.Error(err, "patch failed", "resource", ctx.String())
+		}
+	}()
+
+	// Handle deleted haproxyloadbalancers
+	if !haproxylb.ObjectMeta.DeletionTimestamp.IsZero() {
+		return r.reconcileDelete(ctx)
+	}
+
 	// Fetch the CAPI Cluster.
 	cluster, err := clusterutilv1.GetOwnerCluster(r, r.Client, haproxylb.ObjectMeta)
 	if err != nil {
@@ -127,6 +165,7 @@ func (r haproxylbReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr 
 		r.Logger.Info("Waiting for VSphereCluster Controller to set OwnerRef on HAProxyLoadBalancer")
 		return reconcile.Result{}, nil
 	}
+	ctx.Cluster = cluster
 
 	// Fetch the VSphereCluster
 	vsphereCluster := &infrav1.VSphereCluster{}
@@ -141,47 +180,10 @@ func (r haproxylbReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr 
 		r.Logger.Info("Waiting for VSphereCluster")
 		return reconcile.Result{}, nil
 	}
-
-	// Create the patch helper.
-	patchHelper, err := patch.NewHelper(haproxylb, r.Client)
-	if err != nil {
-		return reconcile.Result{}, errors.Wrapf(
-			err,
-			"failed to init patch helper for %s %s/%s",
-			haproxylb.GroupVersionKind(),
-			haproxylb.Namespace,
-			haproxylb.Name)
-	}
-
-	// Create the HAProxyLoadBalancer context for this request.
-	haproxylbContext := &context.HAProxyLoadBalancerContext{
-		ControllerContext:   r.ControllerContext,
-		Cluster:             cluster,
-		VSphereCluster:      vsphereCluster,
-		HAProxyLoadBalancer: haproxylb,
-		Logger:              r.Logger.WithName(req.Namespace).WithName(req.Name),
-		PatchHelper:         patchHelper,
-	}
-
-	// Always issue a patch when exiting this function so changes to the
-	// resource are patched back to the API server.
-	defer func() {
-		// Patch the HAProxyLoadBalancer resource.
-		if err := haproxylbContext.Patch(); err != nil {
-			if reterr == nil {
-				reterr = err
-			}
-			haproxylbContext.Logger.Error(err, "patch failed", "haproxylb", haproxylbContext.String())
-		}
-	}()
-
-	// Handle deleted haproxyloadbalancers
-	if !haproxylb.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(haproxylbContext)
-	}
+	ctx.VSphereCluster = vsphereCluster
 
 	// Handle non-deleted haproxyloadbalancers
-	return r.reconcileNormal(haproxylbContext)
+	return r.reconcileNormal(ctx)
 }
 
 func (r haproxylbReconciler) reconcileDelete(ctx *context.HAProxyLoadBalancerContext) (reconcile.Result, error) {
@@ -247,48 +249,37 @@ func (r haproxylbReconciler) reconcileNormal(ctx *context.HAProxyLoadBalancerCon
 		return reconcile.Result{}, err
 	}
 
-	// Convert the VM resource to unstructured data.
-	vmData, err := runtime.DefaultUnstructuredConverter.ToUnstructured(vm)
-	if err != nil {
-		return reconcile.Result{}, errors.Wrapf(err,
-			"failed to convert %s to unstructured data",
-			vm.GetObjectKind().GroupVersionKind().String())
-	}
-
-	// Get the VM's spec.
-	vmSpec := vmData["spec"].(map[string]interface{})
-	if vmSpec == nil {
-		return reconcile.Result{}, errors.Wrapf(err,
-			"vm resource %s has no spec",
-			vm.GetObjectKind().GroupVersionKind().String())
-	}
-
-	// Get the VM's status.
-	vmStatus := vmData["status"].(map[string]interface{})
-	if vmStatus == nil {
-		return reconcile.Result{}, errors.Wrapf(err,
-			"vm resource %s has no status",
-			vm.GetObjectKind().GroupVersionKind().String())
-	}
-
-	// Reconcile the HAProxyLoadBalancer's address from the VM's IP addresses.
-	if ok, err := r.reconcileNetwork(ctx, vmStatus); !ok {
+	var vmObj *unstructured.Unstructured
+	if vm != nil {
+		// Convert the VM resource to unstructured data.
+		vmData, err := runtime.DefaultUnstructuredConverter.ToUnstructured(vm)
 		if err != nil {
-			return reconcile.Result{}, err
+			return reconcile.Result{}, errors.Wrapf(err,
+				"failed to convert %s to unstructured data",
+				vm.GetObjectKind().GroupVersionKind())
 		}
-		ctx.Logger.Info("Waiting on VM networking")
+		vmObj = &unstructured.Unstructured{Object: vmData}
+	}
+
+	// Reconcile the HAProxyLoadBalancer's address.
+	if ok, err := r.reconcileNetwork(ctx, vmObj); !ok {
+		if err != nil {
+			return reconcile.Result{}, errors.Wrapf(err,
+				"unexpected error while reconciling network for %s", ctx)
+		}
+		ctx.Logger.Info("network is not reconciled")
 		return reconcile.Result{}, nil
 	}
 
-	// Check to see if the VM is ready.
-	if ready, ok := vmStatus["ready"]; !ok || !ready.(bool) {
-		ctx.Logger.Info("VM is not ready yet; status.ready is false")
+	// Reconcile the HAProxyLoadBalancer's ready state.
+	if ok, err := r.reconcileReady(ctx, vmObj); !ok {
+		if err != nil {
+			return reconcile.Result{}, errors.Wrapf(err,
+				"unexpected error while reconciling ready state for %s", ctx)
+		}
+		ctx.Logger.Info("ready state is not reconciled")
 		return reconcile.Result{}, nil
 	}
-
-	// The HAProxyLoadBalancer is finally ready.
-	ctx.HAProxyLoadBalancer.Status.Ready = true
-	ctx.Logger.Info("HAProxyLoadBalancer is infrastructure-ready")
 
 	return reconcile.Result{}, nil
 }
@@ -378,27 +369,105 @@ func (r haproxylbReconciler) reconcileNormalPre7(ctx *context.HAProxyLoadBalance
 	return vm, nil
 }
 
-func (r haproxylbReconciler) reconcileNetwork(ctx *context.HAProxyLoadBalancerContext, data map[string]interface{}) (bool, error) {
-	// Check to see if the data has a list of IP addresses.
-	if addressesIface, ok := data["addresses"]; ok {
-		if addressesListOfIfaces, ok := addressesIface.([]interface{}); ok {
-			for i, addressesListMemberIface := range addressesListOfIfaces {
-				address, ok := addressesListMemberIface.(string)
-				if !ok {
-					return false, errors.Errorf("invalid status.addresses[%d] %T for %s", i, addressesListMemberIface, ctx)
-				}
-				ctx.HAProxyLoadBalancer.Status.Address = address
-				ctx.Logger.Info(
-					"discovered IP address",
-					"addressValue", ctx.HAProxyLoadBalancer.Status.Address)
-				break
-			}
+func (r haproxylbReconciler) reconcileReady(ctx *context.HAProxyLoadBalancerContext, vm *unstructured.Unstructured) (bool, error) {
+	if vm != nil {
+		ready, ok, err := unstructured.NestedBool(vm.Object, "status", "ready")
+		switch {
+		case err != nil:
+			return false, errors.Wrapf(err,
+				"unexpected error getting status.ready from VM %s %s/%s for %s",
+				vm.GroupVersionKind(),
+				vm.GetNamespace(),
+				vm.GetName(),
+				ctx)
+		case !ok:
+			ctx.Logger.Info(
+				"waiting on vm to report ready state",
+				"vmAPIVersion", vm.GetAPIVersion(),
+				"vmKind", vm.GetKind(),
+				"vmNamespace", vm.GetNamespace(),
+				"vmName", vm.GetName())
+		case !ready:
+			ctx.Logger.Info(
+				"waiting on vm to be ready",
+				"vmAPIVersion", vm.GetAPIVersion(),
+				"vmKind", vm.GetKind(),
+				"vmNamespace", vm.GetNamespace(),
+				"vmName", vm.GetName())
 		}
 	}
 
-	if ctx.HAProxyLoadBalancer.Status.Address == "" {
-		ctx.Logger.Info("Waiting on IP address")
+	// The HAProxyLoadBalancer is finally ready.
+	ctx.HAProxyLoadBalancer.Status.Ready = true
+	ctx.Logger.Info("HAProxyLoadBalancer is ready")
+	return true, nil
+}
+
+func (r haproxylbReconciler) reconcileNetwork(ctx *context.HAProxyLoadBalancerContext, vm *unstructured.Unstructured) (bool, error) {
+	var (
+		newAddr string
+		oldAddr = ctx.HAProxyLoadBalancer.Status.Address
+	)
+
+	// If there is no VM then parse the network information from the HAProxy
+	// API config.
+	if vm == nil {
+		serverURL, err := url.Parse(ctx.HAProxyAPIConfig.Server)
+		if err != nil {
+			return false, errors.Wrapf(err,
+				"unexpected error parsing HAProxyAPIConfig.Server=%q for %s",
+				ctx.HAProxyAPIConfig.Server, ctx)
+		}
+		newAddr = serverURL.Hostname()
+		if newAddr == "" {
+			return false, errors.Errorf("HAProxyAPIConfig.Server=%q is invalid for %s", newAddr, ctx)
+		}
+		ctx.Logger.Info("discovered IP address from HAPI config", "addressValue", newAddr)
+	} else {
+		// Otherwise the IP for the load balancer is obtained from the VM's
+		// status.addresses field.
+		addresses, ok, err := unstructured.NestedStringSlice(vm.Object, "status", "addresses")
+		if !ok {
+			if err != nil {
+				return false, errors.Wrapf(err,
+					"unexpected error getting status.addresses from VM %s %s/%s for %s",
+					vm.GroupVersionKind(),
+					vm.GetNamespace(),
+					vm.GetName(),
+					ctx)
+			}
+			ctx.Logger.Info("waiting on vm for ip address",
+				"vmAPIVersion", vm.GetAPIVersion(),
+				"vmKind", vm.GetKind(),
+				"vmNamespace", vm.GetNamespace(),
+				"vmName", vm.GetName())
+			return false, nil
+		}
+		for _, addr := range addresses {
+			if addr == "" {
+				continue
+			}
+			newAddr = addr
+			ctx.Logger.Info("discovered IP address from VM",
+				"addressValue", newAddr,
+				"vmAPIVersion", vm.GetAPIVersion(),
+				"vmKind", vm.GetKind(),
+				"vmNamespace", vm.GetNamespace(),
+				"vmName", vm.GetName())
+			break
+		}
+	}
+
+	switch {
+	case newAddr == "":
+		ctx.Logger.Info("waiting on IP address")
 		return false, nil
+	case ctx.HAProxyLoadBalancer.Status.Address == "":
+		ctx.HAProxyLoadBalancer.Status.Address = newAddr
+		ctx.Logger.Info("initialized IP address", newAddr)
+	default:
+		ctx.HAProxyLoadBalancer.Status.Address = newAddr
+		ctx.Logger.Info("updated IP address", "newAddressValue", newAddr, "oldAddressValue", oldAddr)
 	}
 
 	return true, nil
@@ -411,7 +480,10 @@ func (r haproxylbReconciler) reconcileNetwork(ctx *context.HAProxyLoadBalancerCo
 func (r haproxylbReconciler) controlPlaneMachineToHAProxyLoadBalancer(o handler.MapObject) []ctrl.Request {
 	machine, ok := o.Object.(*clusterv1.Machine)
 	if !ok {
-		r.Logger.Error(nil, fmt.Sprintf("expected a Machine but got a %T", o.Object))
+		r.Logger.Error(errors.New("invalid type"),
+			"Expected to receive a CAPI Machine resource",
+			"expectedType", "Machine",
+			"actualType", fmt.Sprintf("%T", o.Object))
 		return nil
 	}
 	if !infrautilv1.IsControlPlaneMachine(machine) {
@@ -423,8 +495,12 @@ func (r haproxylbReconciler) controlPlaneMachineToHAProxyLoadBalancer(o handler.
 
 	cluster, err := clusterutilv1.GetClusterFromMetadata(r, r.Client, machine.ObjectMeta)
 	if err != nil {
-		r.Logger.Error(err, "Machine is missing cluster label or cluster does not exist",
-			"namespace", machine.Namespace, "name", machine.Name)
+		r.Logger.Error(err,
+			"Machine is missing cluster label or cluster does not exist",
+			"machineAPIVersion", machine.APIVersion,
+			"machineKind", machine.Kind,
+			"machineNamespace", machine.Namespace,
+			"machineName", machine.Name)
 		return nil
 	}
 
@@ -432,67 +508,78 @@ func (r haproxylbReconciler) controlPlaneMachineToHAProxyLoadBalancer(o handler.
 		return nil
 	}
 
+	// The infraClusterRef may not specify the namespace as it's assumed to be
+	// in the same namespace as the Cluster. When the namespace is empty, set it
+	// to the same namespace as the Cluster.
+	infraClusterRef := cluster.Spec.InfrastructureRef
+	if infraClusterRef.Namespace == "" {
+		infraClusterRef.Namespace = cluster.Namespace
+	}
+
 	infraClusterKey := client.ObjectKey{
-		Namespace: cluster.Spec.InfrastructureRef.Namespace,
-		Name:      cluster.Spec.InfrastructureRef.Name,
+		Namespace: infraClusterRef.Namespace,
+		Name:      infraClusterRef.Name,
 	}
 	infraCluster := &unstructured.Unstructured{Object: map[string]interface{}{}}
+	infraCluster.SetAPIVersion(infraClusterRef.APIVersion)
+	infraCluster.SetKind(infraClusterRef.Kind)
 	if err := r.Client.Get(r, infraClusterKey, infraCluster); err != nil {
 		if apierrors.IsNotFound(err) {
-			r.Logger.Error(err, "Waiting on infrastructure cluster",
-				"namespace", infraClusterKey.Namespace,
-				"name", infraClusterKey.Name)
+			r.Logger.Error(err,
+				"Waiting on infrastructure cluster",
+				"infraClusterAPIVersion", infraClusterRef.APIVersion,
+				"infraClusterKind", infraClusterRef.Kind,
+				"infraClusterNamespace", infraClusterRef.Namespace,
+				"infraClusterName", infraClusterRef.Name)
 			return nil
 		}
-		r.Logger.Error(err, "Unexpected error while waiting on infrastructure cluster",
-			"namespace", infraClusterKey.Namespace,
-			"name", infraClusterKey.Name)
-		return nil
-	}
-
-	infraClusterSpec := infraCluster.Object["spec"].(map[string]interface{})
-	if infraClusterSpec == nil {
-		r.Logger.Error(errors.New("missing spec"),
-			"Invalid infrastructure cluster resource",
-			"namespace", infraClusterKey.Namespace,
-			"name", infraClusterKey.Name)
-		return nil
-	}
-
-	loadBalancerRefIface, ok := infraClusterSpec["loadBalancerRef"]
-	if !ok {
-		return nil
-	}
-
-	loadBalancerRefBuf, err := json.Marshal(loadBalancerRefIface)
-	if err != nil {
-		r.Logger.Error(err, "Failed to marshal LoadBalancerRef to JSON",
-			"namespace", infraClusterKey.Namespace,
-			"name", infraClusterKey.Name)
+		r.Logger.Error(err,
+			"Unexpected error while waiting on infrastructure cluster",
+			"infraClusterAPIVersion", infraClusterRef.APIVersion,
+			"infraClusterKind", infraClusterRef.Kind,
+			"infraClusterNamespace", infraClusterRef.Namespace,
+			"infraClusterName", infraClusterRef.Name)
 		return nil
 	}
 
 	loadBalancerRef := &corev1.ObjectReference{}
-	if err := json.Unmarshal(loadBalancerRefBuf, loadBalancerRef); err != nil {
-		r.Logger.Error(err, "Failed to unmarshal LoadBalancerRef from JSON",
-			"namespace", infraClusterKey.Namespace,
-			"name", infraClusterKey.Name)
+	if err := clusterutilv1.UnstructuredUnmarshalField(infraCluster, loadBalancerRef, "spec", "loadBalancerRef"); err != nil {
+		if err != clusterutilv1.ErrUnstructuredFieldNotFound {
+			r.Logger.Error(err,
+				"Unexpected error getting infrastructure cluster's spec.loadBalancerRef",
+				"infraClusterAPIVersion", infraCluster.GetAPIVersion(),
+				"infraClusterKind", infraCluster.GetKind(),
+				"infraClusterNamespace", infraCluster.GetNamespace(),
+				"infraClusterName", infraCluster.GetName())
+		}
 		return nil
 	}
 
+	// The loadBalancerRef may not specify the namespace as it's assumed to be
+	// in the same namespace as the Cluster. When the namespace is empty, set it
+	// to the same namespace as the Cluster.
 	if loadBalancerRef.Namespace == "" {
-		r.Logger.Error(errors.New("missing Namespace"),
-			"Invalid loadBalancerRef",
-			"namespace", infraClusterKey.Namespace,
-			"name", infraClusterKey.Name)
-		return nil
+		loadBalancerRef.Namespace = cluster.Namespace
 	}
 
 	if loadBalancerRef.Name == "" {
-		r.Logger.Error(errors.New("missing Name"),
-			"Invalid loadBalancerRef",
-			"namespace", infraClusterKey.Namespace,
-			"name", infraClusterKey.Name)
+		r.Logger.Error(err, "Infrastructure cluster's spec.loadBalancerRef.Name is empty",
+			"infraClusterAPIVersion", infraCluster.GetAPIVersion(),
+			"infraClusterKind", infraCluster.GetKind(),
+			"infraClusterNamespace", infraCluster.GetNamespace(),
+			"infraClusterName", infraCluster.GetName(),
+			"loadBalancerRefAPIVersion", loadBalancerRef.APIVersion,
+			"loadBalancerRefKind", loadBalancerRef.Kind,
+			"loadBalancerRefNamespace", loadBalancerRef.Namespace,
+			"loadBalancerRefName", loadBalancerRef.Name)
+		return nil
+	}
+
+	if loadBalancerRef.Kind != controlledTypeName {
+		return nil
+	}
+
+	if loadBalancerRef.APIVersion != infrav1.GroupVersion.String() {
 		return nil
 	}
 

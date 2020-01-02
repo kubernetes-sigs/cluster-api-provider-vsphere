@@ -67,7 +67,7 @@ runcmd:
 - "echo \"127.0.0.1   localhost {{ ds.meta_data.hostname }}\" >>/etc/hosts"
 - "echo \"127.0.0.1   {{ ds.meta_data.hostname }}\" >>/etc/hosts"
 - "echo \"{{ ds.meta_data.hostname }}\" >/etc/hostname"
-- "new-cert.sh -1 /etc/haproxy/ca.crt -2 /etc/haproxy/ca.key -3 \"127.0.0.1,{{ ds.meta_data.local-ipv4 }}\" -4 \"localhost\" \"{{ ds.meta_data.hostname }}\" /etc/haproxy"
+- "new-cert.sh -1 /etc/haproxy/ca.crt -2 /etc/haproxy/ca.key -3 \"127.0.0.1,{{ ds.meta_data.local_ipv4 }}\" -4 \"localhost\" \"{{ ds.meta_data.hostname }}\" /etc/haproxy"
 
 users:
 - name: capv

@@ -32,6 +32,7 @@ type HAProxyLoadBalancerContext struct {
 	Cluster             *clusterv1.Cluster
 	VSphereCluster      *infrav1.VSphereCluster
 	HAProxyLoadBalancer *infrav1.HAProxyLoadBalancer
+	HAProxyAPIConfig    *infrav1.HAProxyAPIConfig
 	Logger              logr.Logger
 	PatchHelper         *patch.Helper
 }

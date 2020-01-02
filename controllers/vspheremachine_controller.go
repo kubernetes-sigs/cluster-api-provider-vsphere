@@ -26,6 +26,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	apitypes "k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -265,50 +266,37 @@ func (r machineReconciler) reconcileNormal(ctx *context.MachineContext) (reconci
 			"failed to convert %s to unstructured data",
 			vm.GetObjectKind().GroupVersionKind().String())
 	}
-
-	// Get the VM's spec.
-	vmSpec := vmData["spec"].(map[string]interface{})
-	if vmSpec == nil {
-		return reconcile.Result{}, errors.Wrapf(err,
-			"vm resource %s has no spec",
-			vm.GetObjectKind().GroupVersionKind().String())
-	}
+	vmObj := &unstructured.Unstructured{Object: vmData}
 
 	// Reconcile the VSphereMachine's provider ID using the VM's BIOS UUID.
-	if ok, err := r.reconcileProviderID(ctx, vmSpec); !ok {
+	if ok, err := r.reconcileProviderID(ctx, vmObj); !ok {
 		if err != nil {
-			return reconcile.Result{}, err
+			return reconcile.Result{}, errors.Wrapf(err,
+				"unexpected error while reconciling provider ID for %s", ctx)
 		}
-		ctx.Logger.Info("Waiting on VM BIOS UUID")
+		ctx.Logger.Info("provider ID is not reconciled")
 		return reconcile.Result{}, nil
-	}
-
-	// Get the VM's status.
-	vmStatus := vmData["status"].(map[string]interface{})
-	if vmStatus == nil {
-		return reconcile.Result{}, errors.Wrapf(err,
-			"vm resource %s has no status",
-			vm.GetObjectKind().GroupVersionKind().String())
 	}
 
 	// Reconcile the VSphereMachine's node addresses from the VM's IP addresses.
-	if ok, err := r.reconcileNetwork(ctx, vmStatus); !ok {
+	if ok, err := r.reconcileNetwork(ctx, vmObj); !ok {
 		if err != nil {
-			return reconcile.Result{}, err
+			return reconcile.Result{}, errors.Wrapf(err,
+				"unexpected error while reconciling network for %s", ctx)
 		}
-		ctx.Logger.Info("Waiting on VM networking")
+		ctx.Logger.Info("network is not reconciled")
 		return reconcile.Result{}, nil
 	}
 
-	// Check to see if the VM is ready.
-	if ready, ok := vmStatus["ready"]; !ok || !ready.(bool) {
-		ctx.Logger.Info("VM is not ready yet; status.ready is false")
+	// Reconcile the VSphereMachine's ready state from the VM's ready state.
+	if ok, err := r.reconcileReadyState(ctx, vmObj); !ok {
+		if err != nil {
+			return reconcile.Result{}, errors.Wrapf(err,
+				"unexpected error while reconciling ready state for %s", ctx)
+		}
+		ctx.Logger.Info("ready state is not reconciled")
 		return reconcile.Result{}, nil
 	}
-
-	// The VSphereMachine is finally ready.
-	ctx.VSphereMachine.Status.Ready = true
-	ctx.Logger.Info("VSphereMachine is infrastructure-ready")
 
 	return reconcile.Result{}, nil
 }
@@ -400,80 +388,118 @@ func (r machineReconciler) reconcileNormalPre7(ctx *context.MachineContext) (run
 	return vm, nil
 }
 
-func (r machineReconciler) reconcileNetwork(ctx *context.MachineContext, data map[string]interface{}) (bool, error) {
-	// Check to see if the data has a network status.
-	if networkStatusIface, ok := data["network"]; ok {
-		if networkStatusListOfIfaces, ok := networkStatusIface.([]interface{}); ok {
-			networkStatusList := []infrav1.NetworkStatus{}
-			for i, networkStatusListMemberIface := range networkStatusListOfIfaces {
-				if buf, err := json.Marshal(networkStatusListMemberIface); err != nil {
+func (r machineReconciler) reconcileNetwork(ctx *context.MachineContext, vm *unstructured.Unstructured) (bool, error) {
+	if networkStatusListOfIfaces, ok, _ := unstructured.NestedSlice(vm.Object, "status", "network"); ok {
+		networkStatusList := []infrav1.NetworkStatus{}
+		for i, networkStatusListMemberIface := range networkStatusListOfIfaces {
+			if buf, err := json.Marshal(networkStatusListMemberIface); err != nil {
+				ctx.Logger.Error(err,
+					"unsupported data for member of status.network list",
+					"index", i)
+			} else {
+				var networkStatus infrav1.NetworkStatus
+				err := json.Unmarshal(buf, &networkStatus)
+				if err == nil && networkStatus.MACAddr == "" {
+					err = errors.New("macAddr is required")
+				}
+				if err != nil {
 					ctx.Logger.Error(err,
 						"unsupported data for member of status.network list",
-						"index", i)
+						"index", i, "data", string(buf))
 				} else {
-					var networkStatus infrav1.NetworkStatus
-					err := json.Unmarshal(buf, &networkStatus)
-					if err == nil && networkStatus.MACAddr == "" {
-						err = errors.New("macAddr is required")
-					}
-					if err != nil {
-						ctx.Logger.Error(err,
-							"unsupported data for member of status.network list",
-							"index", i, "data", string(buf))
-					} else {
-						networkStatusList = append(networkStatusList, networkStatus)
-					}
+					networkStatusList = append(networkStatusList, networkStatus)
 				}
 			}
-			ctx.VSphereMachine.Status.Network = networkStatusList
 		}
+		ctx.VSphereMachine.Status.Network = networkStatusList
 	}
-	// Check to see if the data has a list of IP addresses.
-	if addressesIface, ok := data["addresses"]; ok {
-		if addressesListOfIfaces, ok := addressesIface.([]interface{}); ok {
-			var nodeAddresses []corev1.NodeAddress
-			for i, addressesListMemberIface := range addressesListOfIfaces {
-				address, ok := addressesListMemberIface.(string)
-				if !ok {
-					return false, errors.Errorf("invalid status.addresses[%d] %T for %s", i, addressesListMemberIface, ctx)
-				}
-				nodeAddresses = append(nodeAddresses, corev1.NodeAddress{
-					Type:    corev1.NodeInternalIP,
-					Address: address,
-				})
-			}
-			ctx.VSphereMachine.Status.Addresses = nodeAddresses
+
+	if addresses, ok, _ := unstructured.NestedStringSlice(vm.Object, "status", "addresses"); ok {
+		var nodeAddresses []corev1.NodeAddress
+		for _, addr := range addresses {
+			nodeAddresses = append(nodeAddresses, corev1.NodeAddress{
+				Type:    corev1.NodeInternalIP,
+				Address: addr,
+			})
 		}
+		ctx.VSphereMachine.Status.Addresses = nodeAddresses
 	}
 
 	if len(ctx.VSphereMachine.Status.Addresses) == 0 {
-		ctx.Logger.Info("Waiting on IP addresses")
+		ctx.Logger.Info("waiting on IP addresses")
 		return false, nil
 	}
 
 	return true, nil
 }
 
-func (r machineReconciler) reconcileProviderID(ctx *context.MachineContext, data map[string]interface{}) (bool, error) {
-	untypedVal, untypedValOk := data["biosUUID"]
-	if !untypedValOk {
+func (r machineReconciler) reconcileProviderID(ctx *context.MachineContext, vm *unstructured.Unstructured) (bool, error) {
+	biosUUID, ok, err := unstructured.NestedString(vm.Object, "spec", "biosUUID")
+	if !ok {
+		if err != nil {
+			return false, errors.Wrapf(err,
+				"unexpected error when getting spec.biosUUID from %s %s/%s for %s",
+				vm.GroupVersionKind(),
+				vm.GetNamespace(),
+				vm.GetName(),
+				ctx)
+		}
+		ctx.Logger.Info("spec.biosUUID not found",
+			"vmGVK", vm.GroupVersionKind().String(),
+			"vmNamespace", vm.GetNamespace(),
+			"vmName", vm.GetName())
 		return false, nil
-	}
-	biosUUID, biosUUIDOk := untypedVal.(string)
-	if !biosUUIDOk {
-		return false, errors.Errorf("invalid BIOS UUID %T for %s", untypedVal, ctx)
 	}
 	if biosUUID == "" {
-		ctx.Logger.Info("Waiting on BIOS UUID")
+		ctx.Logger.Info("spec.biosUUID is empty",
+			"vmGVK", vm.GroupVersionKind().String(),
+			"vmNamespace", vm.GetNamespace(),
+			"vmName", vm.GetName())
 		return false, nil
 	}
+
 	providerID := infrautilv1.ConvertUUIDToProviderID(biosUUID)
 	if providerID == "" {
-		return false, errors.Errorf("invalid BIOS UUID %s for %s", biosUUID, ctx)
+		return false, errors.Errorf("invalid BIOS UUID %s from %s %s/%s for %s",
+			biosUUID,
+			vm.GroupVersionKind(),
+			vm.GetNamespace(),
+			vm.GetName(),
+			ctx)
 	}
 	if ctx.VSphereMachine.Spec.ProviderID == nil || *ctx.VSphereMachine.Spec.ProviderID != providerID {
 		ctx.VSphereMachine.Spec.ProviderID = &providerID
 		ctx.Logger.Info("updated provider ID", "provider-id", providerID)
 	}
+
+	return true, nil
+}
+
+func (r machineReconciler) reconcileReadyState(ctx *context.MachineContext, vm *unstructured.Unstructured) (bool, error) {
+	ready, ok, err := unstructured.NestedBool(vm.Object, "status", "ready")
+	if !ok {
+		if err != nil {
+			return false, errors.Wrapf(err,
+				"unexpected error when getting status.ready from %s %s/%s for %s",
+				vm.GroupVersionKind(),
+				vm.GetNamespace(),
+				vm.GetName(),
+				ctx)
+		}
+		ctx.Logger.Info("status.ready not found",
+			"vmGVK", vm.GroupVersionKind().String(),
+			"vmNamespace", vm.GetNamespace(),
+			"vmName", vm.GetName())
+		return false, nil
+	}
+	if !ready {
+		ctx.Logger.Info("status.ready is false",
+			"vmGVK", vm.GroupVersionKind().String(),
+			"vmNamespace", vm.GetNamespace(),
+			"vmName", vm.GetName())
+		return false, nil
+	}
+
+	ctx.VSphereMachine.Status.Ready = true
 	return true, nil
 }

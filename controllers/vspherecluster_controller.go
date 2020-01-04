@@ -105,10 +105,12 @@ func AddClusterControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 		// the VSphereCluster control plane.
 		// TODO(akutz) Figure out how to watch LB resources without requiring
 		//             their types ahead of time.
+		//             Please see https://github.com/kubernetes-sigs/cluster-api/blob/84cd362e493f5edb7b16219d8134a008efb01dac/controllers/cluster_controller_phases.go#L107-L119
+		//             for an example of external watchers.
 		Watches(
 			&source.Kind{Type: &infrav1.HAProxyLoadBalancer{}},
 			&handler.EnqueueRequestsFromMapFunc{
-				ToRequests: handler.ToRequestsFunc(reconciler.haproxyLoadBalancerToCluster),
+				ToRequests: handler.ToRequestsFunc(reconciler.loadBalancerToCluster),
 			},
 		).
 		// Watch a GenericEvent channel for the controlled resource.
@@ -830,18 +832,18 @@ func (r clusterReconciler) controlPlaneMachineToCluster(o handler.MapObject) []c
 	}}
 }
 
-// haproxyLoadBalancerToCluster is a handler.ToRequestsFunc that triggers
-// reconcile events for a VSphereCluster resource when an HAProxyLoadBalancer
+// loadBalancerToCluster is a handler.ToRequestsFunc that triggers
+// reconcile events for a VSphereCluster resource when a load balancer
 // resource is reconciled.
-func (r clusterReconciler) haproxyLoadBalancerToCluster(o handler.MapObject) []ctrl.Request {
-	haproxylb, ok := o.Object.(*infrav1.HAProxyLoadBalancer)
+func (r clusterReconciler) loadBalancerToCluster(o handler.MapObject) []ctrl.Request {
+	obj, ok := o.Object.(metav1.Object)
 	if !ok {
-		r.Logger.Error(nil, fmt.Sprintf("expected an HAProxyLoadBalancer but got a %T", o.Object))
+		r.Logger.Error(nil, fmt.Sprintf("expected an metav1.Object but got a %T", o.Object))
 		return nil
 	}
 
 	var clusterRef *metav1.OwnerReference
-	for _, ownerRef := range haproxylb.OwnerReferences {
+	for _, ownerRef := range obj.GetOwnerReferences() {
 		if ownerRef.APIVersion == clusterv1.GroupVersion.String() &&
 			ownerRef.Kind == "Cluster" {
 			clusterRef = &ownerRef
@@ -853,7 +855,7 @@ func (r clusterReconciler) haproxyLoadBalancerToCluster(o handler.MapObject) []c
 
 	cluster := &clusterv1.Cluster{}
 	clusterKey := client.ObjectKey{
-		Namespace: haproxylb.Namespace,
+		Namespace: obj.GetNamespace(),
 		Name:      clusterRef.Name,
 	}
 	if err := r.Client.Get(r, clusterKey, cluster); err != nil {

@@ -194,3 +194,17 @@ make build-fg
 ```
 
 Once the OVA is built, it should be located at `./output/capv-haproxy.ova` and be around `240MiB`.
+
+### Downloading the OVA
+
+A full list of the published HAProxy load balancer images for CAPV may be obtained with the following command:
+
+```shell
+gsutil ls gs://capv-images/extra/haproxy/release/*
+```
+
+Or, to produce a list of URLs for the same image files (and their checksums), the following command may be used:
+
+```shell
+gsutil ls gs://capv-images/extra/haproxy/release/*/*.{ova,sha256} | sed 's~^gs://~http://storage.googleapis.com/~'
+```

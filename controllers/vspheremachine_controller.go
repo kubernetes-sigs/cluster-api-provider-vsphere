@@ -324,15 +324,6 @@ func (r machineReconciler) reconcileNormalPre7(ctx *context.MachineContext) (run
 		// Initialize the VSphereVM's labels map if it is nil.
 		if vm.Labels == nil {
 			vm.Labels = map[string]string{}
-
-			// If the labels map was nil upon entering this function and there
-			// are not any labels upon exiting this function, then remove the
-			// labels map to prevent an unnecessary change.
-			defer func() {
-				if err == nil && len(vm.Labels) == 0 {
-					vm.Labels = nil
-				}
-			}()
 		}
 
 		// Ensure the VSphereVM has a label that can be used when searching for

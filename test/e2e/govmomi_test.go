@@ -38,13 +38,14 @@ var (
 	vsphereUsername = os.Getenv("VSPHERE_USERNAME")
 	vspherePassword = os.Getenv("VSPHERE_PASSWORD")
 
-	vsphereServer     string
-	vsphereDatacenter string
-	vsphereFolder     string
-	vspherePool       string
-	vsphereDatastore  string
-	vsphereNetwork    string
-	vsphereTemplate   string
+	vsphereServer          string
+	vsphereDatacenter      string
+	vsphereFolder          string
+	vspherePool            string
+	vsphereDatastore       string
+	vsphereNetwork         string
+	vsphereMachineTemplate string
+	vsphereHAProxyTemplate string
 )
 
 func init() {
@@ -54,7 +55,8 @@ func init() {
 	flag.StringVar(&vspherePool, "e2e.vspherePool", os.Getenv("VSPHERE_RESOURCE_POOL"), "the inventory path of the vSphere resource pool in which VMs are created")
 	flag.StringVar(&vsphereDatastore, "e2e.vsphereDatastore", os.Getenv("VSPHERE_DATASTORE"), "the name of the vSphere datastore in which VMs are created")
 	flag.StringVar(&vsphereNetwork, "e2e.vsphereNetwork", os.Getenv("VSPHERE_NETWORK"), "the name of the vSphere network to which VMs are connected")
-	flag.StringVar(&vsphereTemplate, "e2e.vsphereTemplate", os.Getenv("VSPHERE_TEMPLATE"), "the template from which the VMs are cloned")
+	flag.StringVar(&vsphereMachineTemplate, "e2e.vsphereMachineTemplate", os.Getenv("VSPHERE_MACHINE_TEMPLATE"), "the template from which the Kubernetes VMs are cloned")
+	flag.StringVar(&vsphereHAProxyTemplate, "e2e.vsphereHAProxyTemplate", os.Getenv("VSPHERE_HAPROXY_TEMPLATE"), "the template from which the HAProxy load balancer VM is cloned")
 }
 
 func initVSphereSession() {

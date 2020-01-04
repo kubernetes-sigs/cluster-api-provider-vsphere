@@ -32,31 +32,33 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// SingleNodeControlPlaneInput defines the necessary dependencies to run a
-// single-node control plane.
-type SingleNodeControlPlaneInput struct {
-	Management        ManagementCluster
-	Cluster           *clusterv1.Cluster
-	InfraCluster      runtime.Object
-	ControlPlaneNode  Node
-	MachineDeployment MachineDeployment
-	RelatedResources  []runtime.Object
-	CreateTimeout     time.Duration
+// MultiNodeControlPlaneInput defines the necessary dependencies to run a
+// multi-node control plane.
+type MultiNodeControlPlaneInput struct {
+	Management                  ManagementCluster
+	Cluster                     *clusterv1.Cluster
+	InfraCluster                runtime.Object
+	PrimaryControlPlaneNode     Node
+	AdditionalControlPlaneNodes []Node
+	MachineDeployment           MachineDeployment
+	RelatedResources            []runtime.Object
+	CreateTimeout               time.Duration
 }
 
 // SetDefaults defaults the struct fields if necessary.
-func (m *SingleNodeControlPlaneInput) SetDefaults() {
+func (m *MultiNodeControlPlaneInput) SetDefaults() {
 	if m.CreateTimeout == 0 {
 		m.CreateTimeout = 10 * time.Minute
 	}
 }
 
-// SingleNodeControlPlane create a cluster with a single control plane node
+// MultiNodeControlPlane create a cluster with a one or more control plane node
 // and with n worker nodes.
 // Assertions:
 //  * The number of nodes in the created cluster will equal the number
-//    of machines in the machine deployment plus the control plane node.
-func SingleNodeControlPlane(input *SingleNodeControlPlaneInput) {
+//    of machines in the machine deployment plus the number of control
+//    plane nodes.
+func MultiNodeControlPlane(input *MultiNodeControlPlaneInput) {
 	Expect(input).ToNot(BeNil())
 	input.SetDefaults()
 	Expect(input.Management).ToNot(BeNil())
@@ -92,14 +94,14 @@ func SingleNodeControlPlane(input *SingleNodeControlPlaneInput) {
 	expectedNumberOfNodes := 1
 
 	// Create the control plane machine.
-	By("creating an InfrastructureMachine resource")
-	Expect(mgmtClient.Create(ctx, input.ControlPlaneNode.InfraMachine)).To(Succeed())
+	By("creating the primary InfrastructureMachine resource")
+	Expect(mgmtClient.Create(ctx, input.PrimaryControlPlaneNode.InfraMachine)).To(Succeed())
 
-	By("creating a BootstrapConfig resource")
-	Expect(mgmtClient.Create(ctx, input.ControlPlaneNode.BootstrapConfig)).To(Succeed())
+	By("creating the primary BootstrapConfig resource")
+	Expect(mgmtClient.Create(ctx, input.PrimaryControlPlaneNode.BootstrapConfig)).To(Succeed())
 
-	By("creating a core Machine resource with a linked InfrastructureMachine and BootstrapConfig")
-	Expect(mgmtClient.Create(ctx, input.ControlPlaneNode.Machine)).To(Succeed())
+	By("creating the primary core Machine resource with a linked InfrastructureMachine and BootstrapConfig")
+	Expect(mgmtClient.Create(ctx, input.PrimaryControlPlaneNode.Machine)).To(Succeed())
 
 	// Wait for the target cluster's control plane to be initialized.
 	By("waiting for cluster's control plane to be initialized")
@@ -114,6 +116,19 @@ func SingleNodeControlPlane(input *SingleNodeControlPlaneInput) {
 		}
 		return cluster.Status.ControlPlaneInitialized, nil
 	}, input.CreateTimeout, 10*time.Second).Should(BeTrue())
+
+	for _, node := range input.AdditionalControlPlaneNodes {
+		expectedNumberOfNodes++
+
+		By("creating additional InfrastructureMachine resource")
+		Expect(mgmtClient.Create(ctx, node.InfraMachine)).To(Succeed())
+
+		By("creating additional BootstrapConfig resource")
+		Expect(mgmtClient.Create(ctx, node.BootstrapConfig)).To(Succeed())
+
+		By("creating additional Machine resource with a linked InfrastructureMachine and BootstrapConfig")
+		Expect(mgmtClient.Create(ctx, node.Machine)).To(Succeed())
+	}
 
 	// Create the machine deployment if the replica count >0.
 	if machineDeployment := input.MachineDeployment.MachineDeployment; machineDeployment != nil {

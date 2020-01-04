@@ -24,6 +24,8 @@ import (
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo" //nolint:golint
 	. "github.com/onsi/gomega" //nolint:golint
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -36,27 +38,23 @@ var _ = Describe("CAPV", func() {
 	Describe("Cluster Creation", func() {
 		var (
 			clusterName          string
-			clusterGen           = ClusterGenerator{}
+			clusterLabelSelector client.MatchingLabels
+			clusterGen           ClusterGenerator
+			haproxyGen           HAProxyLoadBalancerGenerator
 			nodeGen              = &NodeGenerator{}
 			machineDeploymentGen = &MachineDeploymentGenerator{}
+			pollTimeout          = 10 * time.Minute
+			pollInterval         = 10 * time.Second
 		)
 
 		BeforeEach(func() {
 			randomUUID := uuid.New()
 			hash7 := fmt.Sprintf("%x", sha1.Sum(randomUUID[:]))[:7] //nolint:gosec
 			clusterName = fmt.Sprintf("test-%s", hash7)
+			clusterLabelSelector = client.MatchingLabels{clusterv1.ClusterLabelName: clusterName}
 		})
 
 		AfterEach(func() {
-
-			// This label selector may be used to list resources related to
-			// the current Clsuter.
-			clusterLabelSelector := client.MatchingLabels{clusterv1.ClusterLabelName: clusterName}
-
-			// The amount of time to wait when verify that eventually some
-			// resource no longer exists.
-			timeout := 10 * time.Minute
-
 			By("asserting all VSphereVM resources related to this test are eventually removed")
 			Eventually(func() ([]infrav1.VSphereVM, error) {
 				list := &infrav1.VSphereVMList{}
@@ -64,7 +62,7 @@ var _ = Describe("CAPV", func() {
 					return nil, err
 				}
 				return list.Items, nil
-			}, timeout, 10*time.Second).Should(HaveLen(0))
+			}, pollTimeout, pollInterval).Should(HaveLen(0))
 
 			By("asserting all VSphereMachine resources related to this test are eventually removed")
 			Eventually(func() ([]infrav1.VSphereMachine, error) {
@@ -73,7 +71,7 @@ var _ = Describe("CAPV", func() {
 					return nil, err
 				}
 				return list.Items, nil
-			}, timeout, 10*time.Second).Should(HaveLen(0))
+			}, pollTimeout, pollInterval).Should(HaveLen(0))
 
 			By("asserting all VSphereCluster resources related to this test are eventually removed")
 			Eventually(func() ([]infrav1.VSphereCluster, error) {
@@ -82,12 +80,21 @@ var _ = Describe("CAPV", func() {
 					return nil, err
 				}
 				return list.Items, nil
-			}, timeout, 10*time.Second).Should(HaveLen(0))
+			}, pollTimeout, pollInterval).Should(HaveLen(0))
+
+			By("asserting all HAProxyLoadBalancer resources related to this test are eventually removed")
+			Eventually(func() ([]infrav1.HAProxyLoadBalancer, error) {
+				list := &infrav1.HAProxyLoadBalancerList{}
+				if err := mgmt.Client.List(ctx, list, clusterLabelSelector); err != nil {
+					return nil, err
+				}
+				return list.Items, nil
+			}, pollTimeout, pollInterval).Should(HaveLen(0))
 
 			destroyVMsWithPrefix(clusterName)
 		})
 
-		Context("Single-node control plane with one worker nodes", func() {
+		Context("Single-node control plane with one worker node", func() {
 			var (
 				cluster           *clusterv1.Cluster
 				infraCluster      *infrav1.VSphereCluster
@@ -118,8 +125,58 @@ var _ = Describe("CAPV", func() {
 				})
 			})
 
-			It("should create a single-node control plane with one worker nodes", func() {
+			It("should create a single-node control plane with one worker node", func() {
 				frameworkx.SingleNodeControlPlane(input)
+			})
+		})
+
+		Context("Two-node control plane with one worker node", func() {
+			var (
+				cluster                     *clusterv1.Cluster
+				infraCluster                *infrav1.VSphereCluster
+				haproxyLB                   *infrav1.HAProxyLoadBalancer
+				primaryControlPlaneNode     framework.Node
+				additionalControlPlaneNodes []framework.Node
+				machineDeployment           frameworkx.MachineDeployment
+				input                       *frameworkx.MultiNodeControlPlaneInput
+			)
+
+			BeforeEach(func() {
+				cluster, infraCluster = clusterGen.Generate("default", clusterName)
+				haproxyLB = haproxyGen.Generate(cluster.Namespace, cluster.Name)
+				infraCluster.Spec.LoadBalancerRef = &corev1.ObjectReference{
+					APIVersion: infrav1.GroupVersion.String(),
+					Kind:       framework.TypeToKind(haproxyLB),
+					Namespace:  haproxyLB.GetNamespace(),
+					Name:       haproxyLB.GetName(),
+				}
+				primaryControlPlaneNode = nodeGen.Generate(cluster.Namespace, cluster.Name)
+				additionalControlPlaneNodes = []framework.Node{
+					nodeGen.Generate(cluster.Namespace, cluster.Name),
+				}
+				machineDeployment = machineDeploymentGen.Generate(cluster.Namespace, cluster.Name, 1)
+				input = &frameworkx.MultiNodeControlPlaneInput{
+					Management:                  mgmt,
+					Cluster:                     cluster,
+					InfraCluster:                infraCluster,
+					PrimaryControlPlaneNode:     primaryControlPlaneNode,
+					AdditionalControlPlaneNodes: additionalControlPlaneNodes,
+					MachineDeployment:           machineDeployment,
+					RelatedResources:            []runtime.Object{haproxyLB},
+					CreateTimeout:               10 * time.Minute,
+				}
+			})
+
+			AfterEach(func() {
+				By("cleaning up e2e resources")
+				frameworkx.CleanUpX(&framework.CleanUpInput{
+					Management: mgmt,
+					Cluster:    cluster,
+				})
+			})
+
+			It("should create a two-node control plane with one worker node", func() {
+				frameworkx.MultiNodeControlPlane(input)
 			})
 		})
 	})

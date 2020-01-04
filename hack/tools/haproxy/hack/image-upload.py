@@ -61,30 +61,30 @@ def main():
     # Get the first build.
     build = data['builds'][0]
     build_data = build['custom_data']
-    print("image-upload-ova: loaded %s-kube-%s" % (build['name'],
-                                                   build_data['kubernetes_semver']))
+    print("image-upload-ova: loaded %s-%s" % (build['name'],
+                                              build_data['version']))
 
     # Get the OVA and its checksum.
     ova = "%s.ova" % build['name']
     ova_sum = "%s.sha256" % ova
 
     # Get the name of the remote OVA and its checksum.
-    rem_ova = "%s-kube-%s.ova" % (build['name'],
-                                  build_data['kubernetes_semver'])
+    rem_ova = "%s-%s.ova" % (build['name'],
+                             build_data['version'])
 
     # Determine whether or not this is a release or CI image.
     upload_dir = 'ci'
-    if re.match(r'^v?\d+\.\d+\.\d(-\d+)?$', build_data['kubernetes_semver']):
+    if re.match(r'^v?\d+\.\d+\.\d(-\d+)?$', build_data['version']):
         upload_dir = 'release'
 
     # Get the path to the GCS OVA and its checksum.
-    gcs_ova = "gs://capv-images/%s/%s/%s" % (
-        upload_dir, build_data['kubernetes_semver'], rem_ova)
+    gcs_ova = "gs://capv-images/extra/haproxy/%s/%s/%s" % (
+        upload_dir, build_data['version'], rem_ova)
     gcs_ova_sum = "%s.sha256" % gcs_ova
 
     # Get the URL of the OVA and its checksum.
-    url_ova = "http://storage.googleapis.com/capv-images/%s/%s/%s" % (
-        upload_dir, build_data['kubernetes_semver'], rem_ova)
+    url_ova = "http://storage.googleapis.com/capv-images/extra/haproxy/%s/%s/%s" % (
+        upload_dir, build_data['version'], rem_ova)
     url_ova_sum = "%s.sha256" % url_ova
 
     # Compare the remote checksum with the local checksum.

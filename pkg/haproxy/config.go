@@ -14,11 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha3
+package haproxy
 
-// HAProxyAPIConfig contains the information required to communicate with an
+import (
+	"github.com/pkg/errors"
+	"sigs.k8s.io/yaml"
+)
+
+// Config contains the information required to communicate with an
 // HAProxy dataplane API server.
-type HAProxyAPIConfig struct {
+type Config struct {
 	// Debug raises the logging emitted from the generated OpenAPI client
 	// bindings.
 	// +optional
@@ -68,14 +73,14 @@ type HAProxyAPIConfig struct {
 
 	// ClientKeyData contains PEM-encoded data from a client key file for TLS.
 	ClientKeyData []byte `json:"clientKeyData,omitempty"`
+}
 
-	// SigningKeyData contains a PEM-encoded certificate used to sign new
-	// client certificates.
-	// +optional
-	SigningKeyData []byte `json:"signingKeyData,omitempty"`
-
-	// SigningCertificateData contains PEM-encoded data from the key file used
-	// to sign new client certificates.
-	// +optional
-	SigningCertificateData []byte `json:"signingCertificateData,omitempty"`
+// LoadConfig returns the configuration for an HAProxy dataplane API client
+// from the provided, raw configuration YAML.
+func LoadConfig(data []byte) (Config, error) {
+	var config Config
+	if err := yaml.Unmarshal(data, &config); err != nil {
+		return config, errors.Wrap(err, "failed to unmarshal HAProxy API config")
+	}
+	return config, nil
 }

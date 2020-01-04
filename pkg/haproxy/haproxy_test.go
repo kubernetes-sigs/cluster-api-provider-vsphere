@@ -88,10 +88,20 @@ func TestCreateLoadBalancer(t *testing.T) {
 	client, err := haproxy.ClientFromHAPIConfigData([]byte(testHAPIConfig))
 	g.Expect(err).ToNot(gomega.HaveOccurred(), "failed create HAPI client from config data")
 
+	// Get the current configuration version.
+	var version int32
+	g.Eventually(func() error {
+		global, _, err := client.GlobalApi.GetGlobal(ctx, nil)
+		if err == nil {
+			version = global.Version
+		}
+		return err
+	}).ShouldNot(gomega.HaveOccurred(), "failed to get global HAPI config")
+
 	// Start a transaction.
 	var transactionID optional.String
 	g.Eventually(func() error {
-		txn, _, err := client.TransactionsApi.StartTransaction(ctx, 1)
+		txn, _, err := client.TransactionsApi.StartTransaction(ctx, version)
 		if err != nil {
 			return err
 		}
@@ -99,14 +109,18 @@ func TestCreateLoadBalancer(t *testing.T) {
 		return nil
 	}).ShouldNot(gomega.HaveOccurred(), "failed to start a transaction")
 
+	// Get a backend that does not exist.
+	_, _, err = client.BackendApi.GetBackend(ctx, "does-not-exist", nil)
+	g.Expect(haproxy.IsNotFound(err)).To(gomega.BeTrue())
+
 	// Create a backend.
 	backend, _, err := client.BackendApi.CreateBackend(ctx, hapi.Backend{
 		Name: "lb-backend",
-		Mode: "tcp",
+		Mode: haproxy.ModeTCP,
 		Balance: hapi.Balance{
-			Algorithm: "roundrobin",
+			Algorithm: haproxy.RoundRobin,
 		},
-		AdvCheck: "tcp-check",
+		AdvCheck: haproxy.AdvCheckTCP,
 	}, &hapi.CreateBackendOpts{
 		TransactionId: transactionID,
 	})
@@ -115,7 +129,7 @@ func TestCreateLoadBalancer(t *testing.T) {
 	// Create a frontend.
 	frontend, _, err := client.FrontendApi.CreateFrontend(ctx, hapi.Frontend{
 		Name:           "lb-frontend",
-		Mode:           "tcp",
+		Mode:           haproxy.ModeTCP,
 		DefaultBackend: backend.Name,
 	}, &hapi.CreateFrontendOpts{
 		TransactionId: transactionID,
@@ -129,7 +143,7 @@ func TestCreateLoadBalancer(t *testing.T) {
 		hapi.Bind{
 			Name:    "lb-bind",
 			Address: "*",
-			Port:    ptrInt32(8085),
+			Port:    haproxy.AddrOfInt32(8085),
 		}, &hapi.CreateBindOpts{
 			TransactionId: transactionID,
 		})
@@ -166,10 +180,9 @@ func TestCreateLoadBalancer(t *testing.T) {
 		hapi.Server{
 			Name:    "lb-backend-server-1",
 			Address: http1Addr,
-			Port:    ptrInt32(80),
-			Check:   "enabled",
-			Maxconn: ptrInt32(30),
-			Weight:  ptrInt32(100),
+			Port:    haproxy.AddrOfInt32(80),
+			Check:   haproxy.Enabled,
+			Weight:  haproxy.AddrOfInt32(haproxy.DefaultWeight),
 		}, &hapi.CreateServerOpts{
 			TransactionId: transactionID,
 		})
@@ -182,10 +195,9 @@ func TestCreateLoadBalancer(t *testing.T) {
 		hapi.Server{
 			Name:    "lb-backend-server-2",
 			Address: http2Addr,
-			Port:    ptrInt32(80),
-			Check:   "enabled",
-			Maxconn: ptrInt32(30),
-			Weight:  ptrInt32(100),
+			Port:    haproxy.AddrOfInt32(80),
+			Check:   haproxy.Enabled,
+			Weight:  haproxy.AddrOfInt32(haproxy.DefaultWeight),
 		}, &hapi.CreateServerOpts{
 			TransactionId: transactionID,
 		})
@@ -199,6 +211,33 @@ func TestCreateLoadBalancer(t *testing.T) {
 			ForceReload: optional.NewBool(true),
 		})
 	g.Expect(err).ToNot(gomega.HaveOccurred(), "failed to commit the transaction")
+
+	// Get the current configurationv ersion.
+	global, _, err := client.GlobalApi.GetGlobal(ctx, nil)
+	g.Expect(err).ToNot(gomega.HaveOccurred(), "failed get HAPI global config")
+
+	// Start a second transaction.
+	txn, _, err := client.TransactionsApi.StartTransaction(ctx, global.Version)
+	g.Expect(err).ToNot(gomega.HaveOccurred(), "failed to start second transaction")
+	transactionID = optional.NewString(txn.Id)
+
+	// Create a duplicate backend.
+	_, _, err = client.BackendApi.CreateBackend(ctx, hapi.Backend{
+		Name: "lb-backend",
+		Mode: haproxy.ModeTCP,
+		Balance: hapi.Balance{
+			Algorithm: haproxy.RoundRobin,
+		},
+		AdvCheck: haproxy.AdvCheckTCP,
+	}, &hapi.CreateBackendOpts{
+		TransactionId: transactionID,
+	})
+	g.Expect(err).To(gomega.HaveOccurred())
+	g.Expect(haproxy.IsConflict(err)).To(gomega.BeTrue())
+
+	// Abandon the second transaction.
+	_, err = client.TransactionsApi.DeleteTransaction(ctx, transactionID.Value())
+	g.Expect(err).ToNot(gomega.HaveOccurred())
 
 	lbEndpoint := fmt.Sprintf("http://localhost:%d", lbPort)
 
@@ -239,10 +278,6 @@ func TestCreateLoadBalancer(t *testing.T) {
 			g.Expect(host).To(gomega.Equal(http1Addr), "http1Addr not equal")
 		}
 	}
-}
-
-func ptrInt32(i int32) *int32 {
-	return &i
 }
 
 func run(name string, arg ...string) error {
@@ -300,7 +335,7 @@ func IsTCPPortAvailable(port int) bool {
 	if port < minTCPPort || port > maxTCPPort {
 		return false
 	}
-	conn, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+	conn, err := net.Listen(haproxy.ModeTCP, fmt.Sprintf("127.0.0.1:%d", port))
 	if err != nil {
 		return false
 	}

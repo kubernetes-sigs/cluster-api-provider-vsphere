@@ -319,35 +319,10 @@ type VirtualMachine struct {
 	Network []NetworkStatus `json:"network"`
 }
 
-// LoadBalancerPort defines the pair of frontend and backend ports used by
-// the load balancer.
-type LoadBalancerPort struct {
-	// Frontend is the port on which a load balancer listens for incoming
-	// traffic.
-	Frontend int32 `json:"frontend"`
-
-	// Backend is a list of the backend servers and ports to which the load
-	// balancer transmits traffic from the frontend port.
-	// +optional
-	Backend []LoadBalancerBackendPort `json:"backend,omitempty"`
-}
-
-// LoadBalancerBackendPort represents a reachable backend resource for
-// a load balancer.
-type LoadBalancerBackendPort struct {
-	// The hostname on which the backend server is serving.
-	Host string `json:"host"`
-
-	// The port on which the backend server is serving.
-	Port int32 `json:"port"`
-}
-
-// IsZero returns true if either the host or the port are zero values.
-func (v LoadBalancerBackendPort) IsZero() bool {
-	return v.Host == "" || v.Port == 0
-}
-
-// String returns a formatted version HOST:PORT of this LoadBalancerBackendPort.
-func (v LoadBalancerBackendPort) String() string {
-	return fmt.Sprintf("%s:%d", v.Host, v.Port)
+// SSHUser is granted remote access to a system.
+type SSHUser struct {
+	// Name is the name of the SSH user.
+	Name string `json:"name"`
+	// AuthorizedKeys is one or more public SSH keys that grant remote access.
+	AuthorizedKeys []string `json:"authorizedKeys"`
 }

@@ -24,7 +24,6 @@ import (
 	"text/template"
 
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apitypes "k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -114,15 +113,15 @@ func GetMachinePreferredIPAddress(machine *infrav1.VSphereMachine) (string, erro
 		}
 	}
 
-	for _, nodeAddr := range machine.Status.Addresses {
-		if nodeAddr.Type != corev1.NodeInternalIP {
+	for _, machineAddr := range machine.Status.Addresses {
+		if machineAddr.Type != clusterv1.MachineExternalIP {
 			continue
 		}
 		if cidr == nil {
-			return nodeAddr.Address, nil
+			return machineAddr.Address, nil
 		}
-		if cidr.Contains(net.ParseIP(nodeAddr.Address)) {
-			return nodeAddr.Address, nil
+		if cidr.Contains(net.ParseIP(machineAddr.Address)) {
+			return machineAddr.Address, nil
 		}
 	}
 

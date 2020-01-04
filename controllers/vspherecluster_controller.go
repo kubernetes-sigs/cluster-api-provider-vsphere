@@ -49,15 +49,14 @@ import (
 	infrautilv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
-const (
-	apiEndpointPort = 6443
+var (
+	defaultAPIEndpointPort = int32(6443)
 )
 
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;patch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=vsphereclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=vsphereclusters/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
-// +kubebuilder:rbac:groups=bootstrap.cluster.x-k8s.io,resources=kubeadmconfigs;kubeadmconfigs/status,verbs=get;list;watch
 
 // AddClusterControllerToManager adds the cluster controller to the provided
 // manager.
@@ -305,11 +304,10 @@ func (r clusterReconciler) reconcileLoadBalancer(ctx *context.ClusterContext) (b
 		APIVersion: ctx.Cluster.APIVersion,
 		Kind:       ctx.Cluster.Kind,
 		Name:       ctx.Cluster.Name,
+		UID:        ctx.Cluster.UID,
 	}
 	loadBalancerOwnerRefs := loadBalancer.GetOwnerReferences()
 	if !clusterutilv1.HasOwnerRef(loadBalancerOwnerRefs, clusterOwnerRef) {
-		loadBalancer.SetOwnerReferences(clusterutilv1.EnsureOwnerRef(
-			loadBalancerOwnerRefs, clusterOwnerRef))
 		loadBalancerPatchHelper, err := patch.NewHelper(loadBalancer, ctx.Client)
 		if err != nil {
 			return false, errors.Wrapf(err,
@@ -318,6 +316,8 @@ func (r clusterReconciler) reconcileLoadBalancer(ctx *context.ClusterContext) (b
 				loadBalancer.GetNamespace(),
 				loadBalancer.GetName())
 		}
+		loadBalancer.SetOwnerReferences(clusterutilv1.EnsureOwnerRef(
+			loadBalancerOwnerRefs, clusterOwnerRef))
 		if err := loadBalancerPatchHelper.Patch(ctx, loadBalancer); err != nil {
 			return false, errors.Wrapf(err,
 				"failed to patch owner references for load balancer %s %s/%s",
@@ -387,7 +387,7 @@ func (r clusterReconciler) reconcileLoadBalancer(ctx *context.ClusterContext) (b
 	// or the default port is used.
 	ctx.VSphereCluster.Spec.ControlPlaneEndpoint.Host = address
 	if ctx.VSphereCluster.Spec.ControlPlaneEndpoint.Port == 0 {
-		ctx.VSphereCluster.Spec.ControlPlaneEndpoint.Port = apiEndpointPort
+		ctx.VSphereCluster.Spec.ControlPlaneEndpoint.Port = defaultAPIEndpointPort
 	}
 	ctx.Logger.Info("ControlPlaneEndpoint discovered via load balancer",
 		"controlPlaneEndpoint", ctx.VSphereCluster.Spec.ControlPlaneEndpoint.String())
@@ -465,7 +465,7 @@ func (r clusterReconciler) reconcileControlPlaneEndpoint(ctx *context.ClusterCon
 		// Set the ControlPlaneEndpoint so the CAPI controller can read the
 		// value into the analogous CAPI Cluster using an UnstructuredReader.
 		ctx.VSphereCluster.Spec.ControlPlaneEndpoint.Host = ipAddr
-		ctx.VSphereCluster.Spec.ControlPlaneEndpoint.Port = apiEndpointPort
+		ctx.VSphereCluster.Spec.ControlPlaneEndpoint.Port = defaultAPIEndpointPort
 		ctx.Logger.Info(
 			"ControlPlaneEndpoin discovered via control plane machine",
 			"controlPlaneEndpoint", ctx.VSphereCluster.Spec.ControlPlaneEndpoint)
@@ -550,8 +550,12 @@ func (r clusterReconciler) isControlPlaneInitialized(ctx *context.ClusterContext
 	cluster := &clusterv1.Cluster{}
 	clusterKey := client.ObjectKey{Namespace: ctx.Cluster.Namespace, Name: ctx.Cluster.Name}
 	if err := ctx.Client.Get(ctx, clusterKey, cluster); err != nil {
-		ctx.Logger.Error(err, "failed to get updated cluster object while checking if control plane is initialized")
-		return false
+		if !apierrors.IsNotFound(err) {
+			ctx.Logger.Error(err, "failed to get updated cluster object while checking if control plane is initialized")
+			return false
+		}
+		ctx.Logger.Info("exiting early because cluster no longer exists")
+		return true
 	}
 	return cluster.Status.ControlPlaneInitialized
 }
@@ -859,9 +863,6 @@ func (r clusterReconciler) loadBalancerToCluster(o handler.MapObject) []ctrl.Req
 		Name:      clusterRef.Name,
 	}
 	if err := r.Client.Get(r, clusterKey, cluster); err != nil {
-		if !apierrors.IsNotFound(err) {
-			r.Logger.Error(nil, "failed to fetch Cluster %s while mapping HAProxyLoadBalancer to VSphereCluster", clusterKey)
-		}
 		return nil
 	}
 
@@ -875,22 +876,10 @@ func (r clusterReconciler) loadBalancerToCluster(o handler.MapObject) []ctrl.Req
 		return nil
 	}
 
-	infraCluster := &infrav1.VSphereCluster{}
-	infraClusterKey := client.ObjectKey{
-		Namespace: infraRef.Namespace,
-		Name:      infraRef.Name,
-	}
-	if err := r.Client.Get(r, infraClusterKey, infraCluster); err != nil {
-		if !apierrors.IsNotFound(err) {
-			r.Logger.Error(nil, "failed to fetch VSphereCluster %s while mapping HAProxyLoadBalancer to VSphereCluster", infraClusterKey)
-		}
-		return nil
-	}
-
 	return []ctrl.Request{{
 		NamespacedName: types.NamespacedName{
-			Namespace: infraCluster.Namespace,
-			Name:      infraCluster.Name,
+			Namespace: infraRef.Namespace,
+			Name:      infraRef.Name,
 		},
 	}}
 }

@@ -18,10 +18,10 @@ package controllers
 
 import (
 	"fmt"
-	"net/url"
 	"reflect"
 	"strings"
 
+	"github.com/antihax/optional"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -35,6 +35,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -42,7 +43,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
+	hapi "sigs.k8s.io/cluster-api-provider-vsphere/contrib/haproxy/openapi"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/haproxy"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 	infrautilv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
@@ -57,6 +60,7 @@ var (
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
+// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;patch;delete
 
 // AddHAProxyLoadBalancerControllerToManager adds the HAProxy load balancer
 // controller to the provided manager.
@@ -82,7 +86,10 @@ func AddHAProxyLoadBalancerControllerToManager(ctx *context.ControllerManagerCon
 		// Watch the controlled, infrastructure resource.
 		For(controlledType).
 		// Watch any VSphereVM resources owned by the controlled type.
-		Owns(&infrav1.VSphereVM{}).
+		Watches(
+			&source.Kind{Type: &infrav1.VSphereVM{}},
+			&handler.EnqueueRequestForOwner{OwnerType: controlledType, IsController: false},
+		).
 		// Watch the CAPI machines that are members of the control plane which
 		// this HAProxyLoadBalancer servies.
 		Watches(
@@ -167,21 +174,6 @@ func (r haproxylbReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr 
 	}
 	ctx.Cluster = cluster
 
-	// Fetch the VSphereCluster
-	vsphereCluster := &infrav1.VSphereCluster{}
-	vsphereClusterKey := client.ObjectKey{
-		Namespace: cluster.Spec.InfrastructureRef.Namespace,
-		Name:      cluster.Spec.InfrastructureRef.Name,
-	}
-	if vsphereClusterKey.Namespace == "" {
-		vsphereClusterKey.Namespace = haproxylb.Namespace
-	}
-	if err := r.Client.Get(r, vsphereClusterKey, vsphereCluster); err != nil {
-		r.Logger.Info("Waiting for VSphereCluster")
-		return reconcile.Result{}, nil
-	}
-	ctx.VSphereCluster = vsphereCluster
-
 	// Handle non-deleted haproxyloadbalancers
 	return r.reconcileNormal(ctx)
 }
@@ -189,8 +181,11 @@ func (r haproxylbReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr 
 func (r haproxylbReconciler) reconcileDelete(ctx *context.HAProxyLoadBalancerContext) (reconcile.Result, error) {
 	ctx.Logger.Info("Handling deleted HAProxyLoadBalancer")
 
-	// TODO(akutz) Determine the version of vSphere.
-	if err := r.reconcileDeletePre7(ctx); err != nil {
+	if err := r.reconcileDeleteVM(ctx); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	if err := r.reconcileDeleteSecrets(ctx); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -200,17 +195,30 @@ func (r haproxylbReconciler) reconcileDelete(ctx *context.HAProxyLoadBalancerCon
 	return reconcile.Result{}, nil
 }
 
-func (r haproxylbReconciler) reconcileDeletePre7(ctx *context.HAProxyLoadBalancerContext) error {
-	if ctx.HAProxyLoadBalancer.Spec.VirtualMachineConfiguration == nil {
-		ctx.Logger.Info("skipping deletion of VSphereVM since this HAProxyLoadBalancer doesn't have a VirtualMachineConfiguration")
-		return nil
+func (r haproxylbReconciler) reconcileDeleteSecrets(ctx *context.HAProxyLoadBalancerContext) error {
+	if err := haproxy.DeleteCASecret(ctx, ctx.Client, ctx.HAProxyLoadBalancer.Namespace, ctx.HAProxyLoadBalancer.Name); err != nil {
+		return err
 	}
+	if err := haproxy.DeleteBootstrapSecret(ctx, ctx.Client, ctx.HAProxyLoadBalancer.Namespace, ctx.HAProxyLoadBalancer.Name); err != nil {
+		return err
+	}
+	if err := haproxy.DeleteConfigSecret(ctx, ctx.Client, ctx.HAProxyLoadBalancer.Namespace, ctx.HAProxyLoadBalancer.Name); err != nil {
+		return err
+	}
+	return nil
+}
 
+func (r haproxylbReconciler) reconcileDeleteVM(ctx *context.HAProxyLoadBalancerContext) error {
+	// TODO(akutz) Determine the version of vSphere.
+	return r.reconcileDeleteVMPre7(ctx)
+}
+
+func (r haproxylbReconciler) reconcileDeleteVMPre7(ctx *context.HAProxyLoadBalancerContext) error {
 	// Get ready to find the associated VSphereVM resource.
 	vm := &infrav1.VSphereVM{}
 	vmKey := apitypes.NamespacedName{
 		Namespace: ctx.HAProxyLoadBalancer.Namespace,
-		Name:      ctx.HAProxyLoadBalancer.Name,
+		Name:      ctx.HAProxyLoadBalancer.Name + "-lb",
 	}
 
 	// Attempt to find the associated VSphereVM resource.
@@ -219,13 +227,15 @@ func (r haproxylbReconciler) reconcileDeletePre7(ctx *context.HAProxyLoadBalance
 		// IsNotFound, then return the error. Otherwise it means the VSphereVM
 		// is already deleted, and that's okay.
 		if !apierrors.IsNotFound(err) {
-			return errors.Wrapf(err, "failed to get VSphereVM %s for %s", vmKey, ctx)
+			return errors.Wrapf(err, "failed to get VSphereVM %s", vmKey)
 		}
 	} else if vm.GetDeletionTimestamp().IsZero() {
 		// If the VSphereVM was found and it's not already enqueued for
 		// deletion, go ahead and attempt to delete it.
 		if err := ctx.Client.Delete(ctx, vm); err != nil {
-			return errors.Wrapf(err, "failed to delete VSphereVM %v for %s", vmKey, ctx)
+			if !apierrors.IsNotFound(err) {
+				return errors.Wrapf(err, "failed to delete VSphereVM %v", vmKey)
+			}
 		}
 
 		// Go ahead and return here since the deletion of the VSphereVM resource
@@ -240,120 +250,348 @@ func (r haproxylbReconciler) reconcileNormal(ctx *context.HAProxyLoadBalancerCon
 	// If the HAProxyLoadBalancer doesn't have our finalizer, add it.
 	ctrlutil.AddFinalizer(ctx.HAProxyLoadBalancer, infrav1.HAProxyLoadBalancerFinalizer)
 
-	// TODO(akutz) Determine the version of vSphere.
-	vm, err := r.reconcileNormalPre7(ctx)
+	if !ctx.HAProxyLoadBalancer.Status.Ready {
+		// Create the HAProxyLoadBalancer's signing certificate/key pair secret.
+		if err := haproxy.CreateCASecret(ctx, ctx.Client, ctx.Cluster, ctx.HAProxyLoadBalancer); err != nil {
+			if !apierrors.IsAlreadyExists(err) {
+				return reconcile.Result{}, errors.Wrapf(
+					err, "failed to create signing certificate/key pair secret for %s", ctx)
+			}
+		}
+		// Create the HAProxyLoadBalancer's bootstrap data secret.
+		if err := haproxy.CreateBootstrapSecret(ctx, ctx.Client, ctx.Cluster, ctx.HAProxyLoadBalancer); err != nil {
+			if !apierrors.IsAlreadyExists(err) {
+				return reconcile.Result{}, errors.Wrapf(
+					err, "failed to create bootstrap secret for %s", ctx)
+			}
+		}
+	}
+
+	// Reconcile the load balancer VM.
+	vm, err := r.reconcileVM(ctx)
 	if err != nil {
-		if apierrors.IsAlreadyExists(err) {
+		return reconcile.Result{}, errors.Wrapf(err,
+			"unexpected error while reconciling vm for %s", ctx)
+	}
+
+	if !ctx.HAProxyLoadBalancer.Status.Ready {
+		// Reconcile the HAProxyLoadBalancer's address.
+		if ok, err := r.reconcileNetwork(ctx, vm); !ok {
+			if err != nil {
+				return reconcile.Result{}, errors.Wrapf(err,
+					"unexpected error while reconciling network for %s", ctx)
+			}
+			ctx.Logger.Info("network is not reconciled")
 			return reconcile.Result{}, nil
 		}
-		return reconcile.Result{}, err
+
+		// Create the HAProxyLoadBalancer's API config secret.
+		if err := haproxy.CreateConfigSecret(ctx, ctx.Client, ctx.Cluster, ctx.HAProxyLoadBalancer); err != nil {
+			if !apierrors.IsAlreadyExists(err) {
+				return reconcile.Result{}, errors.Wrapf(
+					err, "failed to create API config secret for %s", ctx)
+			}
+		}
+
+		// Reconcile the HAProxyLoadBalancer's load balancer configuration.
+		if err := r.reconcileLoadBalancerConfig(ctx); err != nil {
+			return reconcile.Result{}, errors.Wrapf(err,
+				"unexpected error while reconciling load balancer config for %s", ctx)
+		}
+
+		// Mark the load balancer as ready.
+		ctx.HAProxyLoadBalancer.Status.Ready = true
+		ctx.Logger.Info("HAProxyLoadBalancer is ready")
 	}
 
-	var vmObj *unstructured.Unstructured
-	if vm != nil {
-		// Convert the VM resource to unstructured data.
-		vmData, err := runtime.DefaultUnstructuredConverter.ToUnstructured(vm)
-		if err != nil {
-			return reconcile.Result{}, errors.Wrapf(err,
-				"failed to convert %s to unstructured data",
-				vm.GetObjectKind().GroupVersionKind())
-		}
-		vmObj = &unstructured.Unstructured{Object: vmData}
-	}
-
-	// Reconcile the HAProxyLoadBalancer's address.
-	if ok, err := r.reconcileNetwork(ctx, vmObj); !ok {
-		if err != nil {
-			return reconcile.Result{}, errors.Wrapf(err,
-				"unexpected error while reconciling network for %s", ctx)
-		}
-		ctx.Logger.Info("network is not reconciled")
-		return reconcile.Result{}, nil
-	}
-
-	// Reconcile the HAProxyLoadBalancer's ready state.
-	if ok, err := r.reconcileReady(ctx, vmObj); !ok {
-		if err != nil {
-			return reconcile.Result{}, errors.Wrapf(err,
-				"unexpected error while reconciling ready state for %s", ctx)
-		}
-		ctx.Logger.Info("ready state is not reconciled")
-		return reconcile.Result{}, nil
+	// Reconcile the HAProxyLoadBalancer's backend servers.
+	if err := r.reconcileBackendServers(ctx); err != nil {
+		return reconcile.Result{}, errors.Wrapf(err,
+			"unexpected error while reconciling backend servers for %s", ctx)
 	}
 
 	return reconcile.Result{}, nil
 }
 
-func (r haproxylbReconciler) reconcileNormalPre7(ctx *context.HAProxyLoadBalancerContext) (runtime.Object, error) {
-	if ctx.HAProxyLoadBalancer.Spec.VirtualMachineConfiguration == nil {
-		ctx.Logger.Info("skipping creation of VSphereVM since this HAProxyLoadBalancer doesn't have a VirtualMachineConfiguration")
-		return nil, nil
+func (r haproxylbReconciler) reconcileLoadBalancerConfig(ctx *context.HAProxyLoadBalancerContext) error {
+
+	// Get the Secret with the HAPI config.
+	secret, err := haproxy.GetConfigSecret(
+		ctx, ctx.Client, ctx.HAProxyLoadBalancer.Namespace, ctx.HAProxyLoadBalancer.Name)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get config secret for %s", ctx)
 	}
 
+	// Create a HAPI client.
+	client, err := haproxy.ClientFromHAPIConfigData(secret.Data[haproxy.SecretDataKey])
+	if err != nil {
+		return errors.Wrapf(err, "failed to get hapi client for %s", ctx)
+	}
+
+	// Get the current configuration version.
+	global, _, err := client.GlobalApi.GetGlobal(ctx, nil)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get hapi global config for %s", ctx)
+	}
+
+	// Start the transaction.
+	hasChanges := false
+	transaction, _, err := client.TransactionsApi.StartTransaction(ctx, global.Version)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create hapi transaction for %s", ctx)
+	}
+	transactionID := optional.NewString(transaction.Id)
+
+	// Create the backend configuration.
+	if _, _, err := client.BackendApi.CreateBackend(ctx, hapi.Backend{
+		Name: ctx.HAProxyLoadBalancer.Name,
+		Mode: haproxy.ModeTCP,
+		Balance: hapi.Balance{
+			Algorithm: haproxy.RoundRobin,
+		},
+		AdvCheck: haproxy.AdvCheckTCP,
+	}, &hapi.CreateBackendOpts{
+		TransactionId: transactionID,
+	}); err != nil {
+		if !haproxy.IsConflict(err) {
+			return errors.Wrapf(err, "failed to create hapi backend for %s", ctx)
+		}
+		ctx.Logger.Info("hapi backend already exists")
+	} else {
+		ctx.Logger.Info("hapi backend created")
+		hasChanges = true
+	}
+
+	// Create the frontend configuration.
+	if _, _, err := client.FrontendApi.CreateFrontend(ctx, hapi.Frontend{
+		Name:           ctx.HAProxyLoadBalancer.Name,
+		Mode:           haproxy.ModeTCP,
+		DefaultBackend: ctx.HAProxyLoadBalancer.Name,
+	}, &hapi.CreateFrontendOpts{
+		TransactionId: transactionID,
+	}); err != nil {
+		if !haproxy.IsConflict(err) {
+			return errors.Wrapf(err, "failed to create hapi frontend for %s", ctx)
+		}
+		ctx.Logger.Info("hapi frontend already exists")
+	} else {
+		ctx.Logger.Info("hapi frontend created")
+		hasChanges = true
+	}
+
+	// Bind the frontend.
+	if _, _, err := client.BindApi.CreateBind(
+		ctx,
+		ctx.HAProxyLoadBalancer.Name,
+		hapi.Bind{
+			Name:    ctx.HAProxyLoadBalancer.Name,
+			Address: "*",
+			Port:    &defaultAPIEndpointPort,
+		}, &hapi.CreateBindOpts{
+			TransactionId: transactionID,
+		}); err != nil {
+		if !haproxy.IsConflict(err) {
+			return errors.Wrapf(err, "failed to bind hapi frontend for %s", ctx)
+		}
+		ctx.Logger.Info("hapi frontend was already bound")
+	} else {
+		ctx.Logger.Info("hapi frontend bound to port",
+			"port", defaultAPIEndpointPort)
+		hasChanges = true
+	}
+
+	// Commit the transaction if there are changes; otherwise delete the
+	// transaction.
+	if hasChanges {
+		if _, _, err := client.TransactionsApi.CommitTransaction(
+			ctx,
+			transactionID.Value(),
+			&hapi.CommitTransactionOpts{
+				ForceReload: optional.NewBool(true),
+			}); err != nil {
+			return errors.Wrapf(err,
+				"failed to commit hapi transaction that reconciles the load balancer configuration for %s", ctx)
+		}
+	} else if _, err := client.TransactionsApi.DeleteTransaction(ctx, transactionID.Value()); err != nil {
+		return errors.Wrapf(err,
+			"failed to delete hapi transaction that reconciles the load balancer configuration for %s", ctx)
+	}
+
+	ctx.Logger.Info("reconciled load balancer configuration")
+	return nil
+}
+
+func (r haproxylbReconciler) reconcileBackendServers(ctx *context.HAProxyLoadBalancerContext) error {
+
+	// Get the CAPI Machine resources for the cluster.
+	machineList := &clusterv1.MachineList{}
+	if err := ctx.Client.List(
+		ctx, machineList,
+		ctrlclient.InNamespace(ctx.Cluster.Namespace),
+		ctrlclient.MatchingLabels(
+			map[string]string{
+				clusterv1.ClusterLabelName: ctx.Cluster.Name,
+			},
+		)); err != nil {
+		return errors.Wrapf(
+			err, "failed to get machines for Cluster %s %s/%s for %s",
+			ctx.Cluster.GroupVersionKind(),
+			ctx.Cluster.Namespace,
+			ctx.Cluster.Name,
+			ctx)
+	}
+
+	// Get the control plane machines.
+	controlPlaneMachines := clusterutilv1.GetControlPlaneMachinesFromList(machineList)
+
+	// Get the Secret with the HAPI config.
+	secret, err := haproxy.GetConfigSecret(
+		ctx, ctx.Client, ctx.HAProxyLoadBalancer.Namespace, ctx.HAProxyLoadBalancer.Name)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get config secret for %s", ctx)
+	}
+
+	// Create a HAPI client.
+	client, err := haproxy.ClientFromHAPIConfigData(secret.Data[haproxy.SecretDataKey])
+	if err != nil {
+		return errors.Wrapf(err, "failed to get hapi client for %s", ctx)
+	}
+
+	// Get the current configuration version.
+	global, _, err := client.GlobalApi.GetGlobal(ctx, nil)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get hapi global config for %s", ctx)
+	}
+
+	// Start the transaction.
+	hasChanges := false
+	transaction, _, err := client.TransactionsApi.StartTransaction(ctx, global.Version)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create hapi transaction for %s", ctx)
+	}
+	transactionID := optional.NewString(transaction.Id)
+
+	// For each control plane machine with a reported, external IP, attempt to
+	// create a backend server config in the load balancer.
+	for _, machine := range controlPlaneMachines {
+		for _, addr := range machine.Status.Addresses {
+			if addr.Type != clusterv1.MachineExternalIP {
+				continue
+			}
+			// Create a backend server.
+			if _, _, err := client.ServerApi.CreateServer(
+				ctx,
+				ctx.HAProxyLoadBalancer.Name,
+				hapi.Server{
+					Name:    machine.Name,
+					Address: addr.Address,
+					Port:    &defaultAPIEndpointPort,
+					Check:   haproxy.Enabled,
+					Weight:  haproxy.AddrOfInt32(haproxy.DefaultWeight),
+				}, &hapi.CreateServerOpts{
+					TransactionId: transactionID,
+				}); err != nil {
+				if !haproxy.IsConflict(err) {
+					return errors.Wrapf(err, "failed to bind hapi frontend for %s", ctx)
+				}
+				ctx.Logger.Info("hapi frontend was already bound")
+			} else {
+				ctx.Logger.Info("hapi frontend bound to backend server",
+					"machineName", machine.Name,
+					"machineAddress", addr.Address)
+				hasChanges = true
+			}
+
+			// Only create the backend server for the first reported, external
+			// IP address for a Machine.
+			continue
+		}
+	}
+
+	// Commit the transaction if there are changes; otherwise delete the
+	// transaction.
+	if hasChanges {
+		if _, _, err := client.TransactionsApi.CommitTransaction(
+			ctx,
+			transactionID.Value(),
+			&hapi.CommitTransactionOpts{
+				ForceReload: optional.NewBool(true),
+			}); err != nil {
+			return errors.Wrapf(err,
+				"failed to commit hapi transaction that reconciles the load balancer backend servers for %s", ctx)
+		}
+	} else if _, err := client.TransactionsApi.DeleteTransaction(ctx, transactionID.Value()); err != nil {
+		return errors.Wrapf(err,
+			"failed to delete hapi transaction that reconciles the load balancer backend servers for %s", ctx)
+	}
+
+	ctx.Logger.Info("reconciled load balancer backend servers")
+	return nil
+}
+
+func (r haproxylbReconciler) reconcileVM(ctx *context.HAProxyLoadBalancerContext) (*unstructured.Unstructured, error) {
+	// TODO(akutz) Determine the version of vSphere.
+	vm, err := r.reconcileVMPre7(ctx)
+	if err != nil {
+		if !apierrors.IsAlreadyExists(err) {
+			return nil, err
+		}
+	}
+
+	// Convert the VM resource to unstructured data.
+	vmData, err := runtime.DefaultUnstructuredConverter.ToUnstructured(vm)
+	if err != nil {
+		return nil, errors.Wrapf(err,
+			"failed to convert %s to unstructured data",
+			vm.GetObjectKind().GroupVersionKind())
+	}
+
+	vmObj := &unstructured.Unstructured{Object: vmData}
+	vmObj.SetGroupVersionKind(vm.GetObjectKind().GroupVersionKind())
+	vmObj.SetAPIVersion(vm.GetObjectKind().GroupVersionKind().GroupVersion().String())
+	vmObj.SetKind(vm.GetObjectKind().GroupVersionKind().Kind)
+	return vmObj, nil
+}
+
+func (r haproxylbReconciler) reconcileVMPre7(ctx *context.HAProxyLoadBalancerContext) (runtime.Object, error) {
 	// Create or update the VSphereVM resource.
 	vm := &infrav1.VSphereVM{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ctx.HAProxyLoadBalancer.Namespace,
-			Name:      ctx.HAProxyLoadBalancer.Name,
+			Name:      ctx.HAProxyLoadBalancer.Name + "-lb",
 		},
 	}
 	mutateFn := func() (err error) {
-		// Ensure this HAProxyLoadBalancer is marked as the ControllerOwner of the
-		// VSphereVM resource.
-		if err = ctrlutil.SetControllerReference(ctx.HAProxyLoadBalancer, vm, ctx.Scheme); err != nil {
-			return errors.Wrapf(err,
-				"failed to set %s as owner of VSphereVM %s/%s", ctx,
-				vm.Namespace, vm.Name)
-		}
-
-		// TODO(akutz) Create the HAProxyLoadBalancer VM's bootstrap data.
+		// Ensure the HAProxyLoadBalancer is marked as an owner of the VSphereVM.
+		vm.SetOwnerReferences(clusterutilv1.EnsureOwnerRef(
+			vm.OwnerReferences,
+			metav1.OwnerReference{
+				APIVersion: ctx.HAProxyLoadBalancer.APIVersion,
+				Kind:       ctx.HAProxyLoadBalancer.Kind,
+				Name:       ctx.HAProxyLoadBalancer.Name,
+				UID:        ctx.HAProxyLoadBalancer.UID,
+			}))
 
 		// Initialize the VSphereVM's labels map if it is nil.
 		if vm.Labels == nil {
 			vm.Labels = map[string]string{}
-
-			// If the labels map was nil upon entering this function and there
-			// are not any labels upon exiting this function, then remove the
-			// labels map to prevent an unnecessary change.
-			defer func() {
-				if err == nil && len(vm.Labels) == 0 {
-					vm.Labels = nil
-				}
-			}()
 		}
 
 		// Ensure the VSphereVM has a label that can be used when searching for
 		// resources associated with the target cluster.
 		vm.Labels[clusterv1.ClusterLabelName] = ctx.Cluster.Name
 
+		// Indicate where the VSphereVM should find its bootstrap data.
+		vm.Spec.BootstrapRef = &corev1.ObjectReference{
+			APIVersion: "v1",
+			Kind:       "Secret",
+			Namespace:  ctx.HAProxyLoadBalancer.Namespace,
+			Name:       haproxy.NameForBootstrapSecret(ctx.HAProxyLoadBalancer.Name),
+		}
+
 		// Copy the HAProxyLoadBalancer's VM clone spec into the VSphereVM's
 		// clone spec.
 		ctx.HAProxyLoadBalancer.Spec.VirtualMachineConfiguration.DeepCopyInto(&vm.Spec.VirtualMachineCloneSpec)
-
-		// Several of the VSphereVM's clone spec properties can be derived
-		// from multiple places. The order is:
-		//
-		//   1. From the HAProxyLoadBalancer.Spec (the DeepCopyInto above)
-		//   2. From the VSphereCluster.Spec.CloudProviderConfiguration.Workspace
-		//   3. From the VSphereCluster.Spec
-		vsphereCloudConfig := ctx.VSphereCluster.Spec.CloudProviderConfiguration.Workspace
-		if vm.Spec.Server == "" {
-			if vm.Spec.Server = vsphereCloudConfig.Server; vm.Spec.Server == "" {
-				vm.Spec.Server = ctx.VSphereCluster.Spec.Server
-			}
-		}
-		if vm.Spec.Datacenter == "" {
-			vm.Spec.Datacenter = vsphereCloudConfig.Datacenter
-		}
-		if vm.Spec.Datastore == "" {
-			vm.Spec.Datastore = vsphereCloudConfig.Datastore
-		}
-		if vm.Spec.Folder == "" {
-			vm.Spec.Folder = vsphereCloudConfig.Folder
-		}
-		if vm.Spec.ResourcePool == "" {
-			vm.Spec.ResourcePool = vsphereCloudConfig.ResourcePool
-		}
 		return nil
 	}
 	if _, err := ctrlutil.CreateOrUpdate(ctx, ctx.Client, vm, mutateFn); err != nil {
@@ -369,93 +607,43 @@ func (r haproxylbReconciler) reconcileNormalPre7(ctx *context.HAProxyLoadBalance
 	return vm, nil
 }
 
-func (r haproxylbReconciler) reconcileReady(ctx *context.HAProxyLoadBalancerContext, vm *unstructured.Unstructured) (bool, error) {
-	if vm != nil {
-		ready, ok, err := unstructured.NestedBool(vm.Object, "status", "ready")
-		switch {
-		case err != nil:
-			return false, errors.Wrapf(err,
-				"unexpected error getting status.ready from VM %s %s/%s for %s",
-				vm.GroupVersionKind(),
-				vm.GetNamespace(),
-				vm.GetName(),
-				ctx)
-		case !ok:
-			ctx.Logger.Info(
-				"waiting on vm to report ready state",
-				"vmAPIVersion", vm.GetAPIVersion(),
-				"vmKind", vm.GetKind(),
-				"vmNamespace", vm.GetNamespace(),
-				"vmName", vm.GetName())
-		case !ready:
-			ctx.Logger.Info(
-				"waiting on vm to be ready",
-				"vmAPIVersion", vm.GetAPIVersion(),
-				"vmKind", vm.GetKind(),
-				"vmNamespace", vm.GetNamespace(),
-				"vmName", vm.GetName())
-		}
-	}
-
-	// The HAProxyLoadBalancer is finally ready.
-	ctx.HAProxyLoadBalancer.Status.Ready = true
-	ctx.Logger.Info("HAProxyLoadBalancer is ready")
-	return true, nil
-}
-
 func (r haproxylbReconciler) reconcileNetwork(ctx *context.HAProxyLoadBalancerContext, vm *unstructured.Unstructured) (bool, error) {
 	var (
 		newAddr string
 		oldAddr = ctx.HAProxyLoadBalancer.Status.Address
 	)
 
-	// If there is no VM then parse the network information from the HAProxy
-	// API config.
-	if vm == nil {
-		serverURL, err := url.Parse(ctx.HAProxyAPIConfig.Server)
+	// Otherwise the IP for the load balancer is obtained from the VM's
+	// status.addresses field.
+	addresses, ok, err := unstructured.NestedStringSlice(vm.Object, "status", "addresses")
+	if !ok {
 		if err != nil {
 			return false, errors.Wrapf(err,
-				"unexpected error parsing HAProxyAPIConfig.Server=%q for %s",
-				ctx.HAProxyAPIConfig.Server, ctx)
+				"unexpected error getting status.addresses from VM %s %s/%s for %s",
+				vm.GroupVersionKind(),
+				vm.GetNamespace(),
+				vm.GetName(),
+				ctx)
 		}
-		newAddr = serverURL.Hostname()
-		if newAddr == "" {
-			return false, errors.Errorf("HAProxyAPIConfig.Server=%q is invalid for %s", newAddr, ctx)
+		ctx.Logger.Info("waiting on vm for ip address",
+			"vmAPIVersion", vm.GetAPIVersion(),
+			"vmKind", vm.GetKind(),
+			"vmNamespace", vm.GetNamespace(),
+			"vmName", vm.GetName())
+		return false, nil
+	}
+	for _, addr := range addresses {
+		if addr == "" {
+			continue
 		}
-		ctx.Logger.Info("discovered IP address from HAPI config", "addressValue", newAddr)
-	} else {
-		// Otherwise the IP for the load balancer is obtained from the VM's
-		// status.addresses field.
-		addresses, ok, err := unstructured.NestedStringSlice(vm.Object, "status", "addresses")
-		if !ok {
-			if err != nil {
-				return false, errors.Wrapf(err,
-					"unexpected error getting status.addresses from VM %s %s/%s for %s",
-					vm.GroupVersionKind(),
-					vm.GetNamespace(),
-					vm.GetName(),
-					ctx)
-			}
-			ctx.Logger.Info("waiting on vm for ip address",
-				"vmAPIVersion", vm.GetAPIVersion(),
-				"vmKind", vm.GetKind(),
-				"vmNamespace", vm.GetNamespace(),
-				"vmName", vm.GetName())
-			return false, nil
-		}
-		for _, addr := range addresses {
-			if addr == "" {
-				continue
-			}
-			newAddr = addr
-			ctx.Logger.Info("discovered IP address from VM",
-				"addressValue", newAddr,
-				"vmAPIVersion", vm.GetAPIVersion(),
-				"vmKind", vm.GetKind(),
-				"vmNamespace", vm.GetNamespace(),
-				"vmName", vm.GetName())
-			break
-		}
+		newAddr = addr
+		ctx.Logger.Info("discovered IP address from VM",
+			"addressValue", newAddr,
+			"vmAPIVersion", vm.GetAPIVersion(),
+			"vmKind", vm.GetKind(),
+			"vmNamespace", vm.GetNamespace(),
+			"vmName", vm.GetName())
+		break
 	}
 
 	switch {
@@ -465,7 +653,7 @@ func (r haproxylbReconciler) reconcileNetwork(ctx *context.HAProxyLoadBalancerCo
 	case ctx.HAProxyLoadBalancer.Status.Address == "":
 		ctx.HAProxyLoadBalancer.Status.Address = newAddr
 		ctx.Logger.Info("initialized IP address", newAddr)
-	default:
+	case newAddr != ctx.HAProxyLoadBalancer.Status.Address:
 		ctx.HAProxyLoadBalancer.Status.Address = newAddr
 		ctx.Logger.Info("updated IP address", "newAddressValue", newAddr, "oldAddressValue", oldAddr)
 	}

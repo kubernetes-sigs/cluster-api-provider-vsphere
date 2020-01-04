@@ -27,10 +27,21 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"sigs.k8s.io/yaml"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
 	hapi "sigs.k8s.io/cluster-api-provider-vsphere/contrib/haproxy/openapi"
+)
+
+const (
+	// ModeTCP is a TCP load balancer.
+	ModeTCP = "tcp"
+	// RoundRobin is a load balancer algorithm.
+	RoundRobin = "roundrobin"
+	// AdvCheckTCP is a method of verifying if a backend server is online.
+	AdvCheckTCP = "tcp-check"
+	// Enabled is the string value for enabled.
+	Enabled = "enabled"
+	// DefaultWeight is the default weight for round-robin load balancers.
+	DefaultWeight = 100
 )
 
 // ClientFromHAPIConfigData returns the API client config from some HAPI config
@@ -44,7 +55,7 @@ func ClientFromHAPIConfigData(data []byte) (*hapi.APIClient, error) {
 }
 
 // ClientFromHAPIConfig returns the API client from a HAPI config object.
-func ClientFromHAPIConfig(config infrav1.HAProxyAPIConfig) (*hapi.APIClient, error) {
+func ClientFromHAPIConfig(config Config) (*hapi.APIClient, error) {
 	// Load the CA certs.
 	var trustedRoots *x509.CertPool
 	if len(config.CertificateAuthorityData) > 0 {
@@ -118,14 +129,4 @@ func ClientFromHAPIConfig(config infrav1.HAProxyAPIConfig) (*hapi.APIClient, err
 			},
 		},
 	}), nil
-}
-
-// LoadConfig returns the configuration for an HAProxy dataplane API client
-// from the provided, raw configuration YAML.
-func LoadConfig(data []byte) (infrav1.HAProxyAPIConfig, error) {
-	config := infrav1.HAProxyAPIConfig{}
-	if err := yaml.Unmarshal(data, &config); err != nil {
-		return config, errors.Wrap(err, "failed to unmarshal HAProxy API config")
-	}
-	return config, nil
 }

@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	"github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
@@ -37,9 +37,9 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 			name: "single IPv4 address, no preferred CIDR",
 			machine: &v1alpha3.VSphereMachine{
 				Status: v1alpha3.VSphereMachineStatus{
-					Addresses: []corev1.NodeAddress{
+					Addresses: []clusterv1.MachineAddress{
 						{
-							Type:    corev1.NodeInternalIP,
+							Type:    clusterv1.MachineExternalIP,
 							Address: "192.168.0.1",
 						},
 					},
@@ -52,9 +52,9 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 			name: "single IPv6 address, no preferred CIDR",
 			machine: &v1alpha3.VSphereMachine{
 				Status: v1alpha3.VSphereMachineStatus{
-					Addresses: []corev1.NodeAddress{
+					Addresses: []clusterv1.MachineAddress{
 						{
-							Type:    corev1.NodeInternalIP,
+							Type:    clusterv1.MachineExternalIP,
 							Address: "fdf3:35b5:9dad:6e09::0001",
 						},
 					},
@@ -67,17 +67,17 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 			name: "multiple IPv4 addresses, only 1 internal, no preferred CIDR",
 			machine: &v1alpha3.VSphereMachine{
 				Status: v1alpha3.VSphereMachineStatus{
-					Addresses: []corev1.NodeAddress{
+					Addresses: []clusterv1.MachineAddress{
 						{
-							Type:    corev1.NodeInternalIP,
+							Type:    clusterv1.MachineExternalIP,
 							Address: "192.168.0.1",
 						},
 						{
-							Type:    corev1.NodeExternalIP,
+							Type:    clusterv1.MachineExternalIP,
 							Address: "1.1.1.1",
 						},
 						{
-							Type:    corev1.NodeExternalIP,
+							Type:    clusterv1.MachineExternalIP,
 							Address: "2.2.2.2",
 						},
 					},
@@ -97,13 +97,13 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 					},
 				},
 				Status: v1alpha3.VSphereMachineStatus{
-					Addresses: []corev1.NodeAddress{
+					Addresses: []clusterv1.MachineAddress{
 						{
-							Type:    corev1.NodeInternalIP,
+							Type:    clusterv1.MachineExternalIP,
 							Address: "192.168.0.1",
 						},
 						{
-							Type:    corev1.NodeInternalIP,
+							Type:    clusterv1.MachineExternalIP,
 							Address: "172.17.0.1",
 						},
 					},
@@ -123,13 +123,13 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 					},
 				},
 				Status: v1alpha3.VSphereMachineStatus{
-					Addresses: []corev1.NodeAddress{
+					Addresses: []clusterv1.MachineAddress{
 						{
-							Type:    corev1.NodeInternalIP,
+							Type:    clusterv1.MachineExternalIP,
 							Address: "192.168.0.1",
 						},
 						{
-							Type:    corev1.NodeInternalIP,
+							Type:    clusterv1.MachineExternalIP,
 							Address: "fdf3:35b5:9dad:6e09::0001",
 						},
 					},
@@ -150,13 +150,13 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 				},
 				Status: v1alpha3.VSphereMachineStatus{
 
-					Addresses: []corev1.NodeAddress{
+					Addresses: []clusterv1.MachineAddress{
 						{
-							Type:    corev1.NodeInternalIP,
+							Type:    clusterv1.MachineExternalIP,
 							Address: "192.168.0.1",
 						},
 						{
-							Type:    corev1.NodeInternalIP,
+							Type:    clusterv1.MachineExternalIP,
 							Address: "fdf3:35b5:9dad:6e09::0001",
 						},
 					},
@@ -176,7 +176,7 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 					},
 				},
 				Status: v1alpha3.VSphereMachineStatus{
-					Addresses: []corev1.NodeAddress{},
+					Addresses: []clusterv1.MachineAddress{},
 				},
 			},
 			ipAddr:      "",
@@ -194,9 +194,9 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 				},
 				Status: v1alpha3.VSphereMachineStatus{
 
-					Addresses: []corev1.NodeAddress{
+					Addresses: []clusterv1.MachineAddress{
 						{
-							Type:    corev1.NodeInternalIP,
+							Type:    clusterv1.MachineExternalIP,
 							Address: "10.0.0.1",
 						},
 					},

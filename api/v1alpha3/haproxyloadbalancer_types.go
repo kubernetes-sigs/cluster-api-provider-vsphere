@@ -29,18 +29,14 @@ const (
 
 // HAProxyLoadBalancerSpec defines the desired state of HAProxyLoadBalancer.
 type HAProxyLoadBalancerSpec struct {
-	// Ports is a list of one or more pairs of ports on which the load balancer
-	// listens for incoming traffic and the ports on the backend to which the
-	// traffic is transmitted.
-	// +optional
-	Ports []LoadBalancerPort `json:"ports,omitempty"`
+	// VirtualMachineConfiguration is information used to deploy a load balancer
+	// VM.
+	VirtualMachineConfiguration VirtualMachineCloneSpec `json:"virtualMachineConfiguration"`
 
-	// VirtualMachineConfiguration is optional information used to deploy a new
-	// load balancer VM.
-	// If omitted then the HAProxy API configuration must point to an existing
-	// load balancer.
+	// SSHUser specifies the name of a user that is granted remote access to the
+	// deployed VM.
 	// +optional
-	VirtualMachineConfiguration *VirtualMachineCloneSpec `json:"virtualMachineConfiguration,omitempty"`
+	User *SSHUser `json:"user,omitempty"`
 }
 
 // HAProxyLoadBalancerStatus defines the observed state of HAProxyLoadBalancer.

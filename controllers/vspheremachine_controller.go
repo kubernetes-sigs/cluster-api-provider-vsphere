@@ -23,7 +23,6 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -76,7 +75,10 @@ func AddMachineControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 		// Watch the controlled, infrastructure resource.
 		For(controlledType).
 		// Watch any VSphereVM resources owned by the controlled type.
-		Owns(&infrav1.VSphereVM{}).
+		Watches(
+			&source.Kind{Type: &infrav1.VSphereVM{}},
+			&handler.EnqueueRequestForOwner{OwnerType: controlledType, IsController: false},
+		).
 		// Watch the CAPI resource that owns this infrastructure resource.
 		Watches(
 			&source.Kind{Type: &clusterv1.Machine{}},
@@ -187,8 +189,7 @@ func (r machineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr er
 func (r machineReconciler) reconcileDelete(ctx *context.MachineContext) (reconcile.Result, error) {
 	ctx.Logger.Info("Handling deleted VSphereMachine")
 
-	// TODO(akutz) Determine the version of vSphere.
-	if err := r.reconcileDeletePre7(ctx); err != nil {
+	if err := r.reconcileDeleteVM(ctx); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -198,7 +199,12 @@ func (r machineReconciler) reconcileDelete(ctx *context.MachineContext) (reconci
 	return reconcile.Result{}, nil
 }
 
-func (r machineReconciler) reconcileDeletePre7(ctx *context.MachineContext) error {
+func (r machineReconciler) reconcileDeleteVM(ctx *context.MachineContext) error {
+	// TODO(akutz) Determine the version of vSphere.
+	return r.reconcileDeleteVMPre7(ctx)
+}
+
+func (r machineReconciler) reconcileDeleteVMPre7(ctx *context.MachineContext) error {
 	// Get ready to find the associated VSphereVM resource.
 	vm := &infrav1.VSphereVM{}
 	vmKey := apitypes.NamespacedName{
@@ -218,7 +224,9 @@ func (r machineReconciler) reconcileDeletePre7(ctx *context.MachineContext) erro
 		// If the VSphereVM was found and it's not already enqueued for
 		// deletion, go ahead and attempt to delete it.
 		if err := ctx.Client.Delete(ctx, vm); err != nil {
-			return errors.Wrapf(err, "failed to delete VSphereVM %v", vmKey)
+			if !apierrors.IsNotFound(err) {
+				return errors.Wrapf(err, "failed to delete VSphereVM %v", vmKey)
+			}
 		}
 
 		// Go ahead and return here since the deletion of the VSphereVM resource
@@ -267,6 +275,9 @@ func (r machineReconciler) reconcileNormal(ctx *context.MachineContext) (reconci
 			vm.GetObjectKind().GroupVersionKind().String())
 	}
 	vmObj := &unstructured.Unstructured{Object: vmData}
+	vmObj.SetGroupVersionKind(vm.GetObjectKind().GroupVersionKind())
+	vmObj.SetAPIVersion(vm.GetObjectKind().GroupVersionKind().GroupVersion().String())
+	vmObj.SetKind(vm.GetObjectKind().GroupVersionKind().Kind)
 
 	// Reconcile the VSphereMachine's provider ID using the VM's BIOS UUID.
 	if ok, err := r.reconcileProviderID(ctx, vmObj); !ok {
@@ -310,13 +321,15 @@ func (r machineReconciler) reconcileNormalPre7(ctx *context.MachineContext) (run
 		},
 	}
 	mutateFn := func() (err error) {
-		// Ensure this VSphereMachine is marked as the ControllerOwner of the
-		// VSphereVM resource.
-		if err = ctrlutil.SetControllerReference(ctx.VSphereMachine, vm, ctx.Scheme); err != nil {
-			return errors.Wrapf(err,
-				"failed to set %s as owner of VSphereVM %s/%s", ctx,
-				vm.Namespace, vm.Name)
-		}
+		// Ensure the VSphereMachine is marked as an owner of the VSphereVM.
+		vm.SetOwnerReferences(clusterutilv1.EnsureOwnerRef(
+			vm.OwnerReferences,
+			metav1.OwnerReference{
+				APIVersion: ctx.VSphereMachine.APIVersion,
+				Kind:       ctx.VSphereMachine.Kind,
+				Name:       ctx.VSphereMachine.Name,
+				UID:        ctx.VSphereMachine.UID,
+			}))
 
 		// Instruct the VSphereVM to use the CAPI bootstrap data resource.
 		vm.Spec.BootstrapRef = ctx.Machine.Spec.Bootstrap.ConfigRef
@@ -406,14 +419,14 @@ func (r machineReconciler) reconcileNetwork(ctx *context.MachineContext, vm *uns
 	}
 
 	if addresses, ok, _ := unstructured.NestedStringSlice(vm.Object, "status", "addresses"); ok {
-		var nodeAddresses []corev1.NodeAddress
+		var machineAddresses []clusterv1.MachineAddress
 		for _, addr := range addresses {
-			nodeAddresses = append(nodeAddresses, corev1.NodeAddress{
-				Type:    corev1.NodeInternalIP,
+			machineAddresses = append(machineAddresses, clusterv1.MachineAddress{
+				Type:    clusterv1.MachineExternalIP,
 				Address: addr,
 			})
 		}
-		ctx.VSphereMachine.Status.Addresses = nodeAddresses
+		ctx.VSphereMachine.Status.Addresses = machineAddresses
 	}
 
 	if len(ctx.VSphereMachine.Status.Addresses) == 0 {

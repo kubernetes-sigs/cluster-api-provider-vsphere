@@ -251,6 +251,8 @@ record_and_export VSPHERE_NETWORK       "${ENV_VAR_REQ}"
 record_and_export VSPHERE_RESOURCE_POOL ':-'
 record_and_export VSPHERE_FOLDER        ':-'
 record_and_export VSPHERE_TEMPLATE      ':-'
+record_and_export VSPHERE_REGION_TAG    ':-'
+record_and_export VSPHERE_ZONE_TAG      ':-'
 record_and_export SSH_AUTHORIZED_KEY    ":-''"
 
 # single quote string variables that can start with special characters like "*"
@@ -301,6 +303,10 @@ scsicontrollertype = pvscsi
 
 [Network]
 public-network = "${VSPHERE_NETWORK}"
+
+[Labels]
+region = "${VSPHERE_REGION_TAG}"
+zone = "${VSPHERE_ZONE_TAG}"
 EOF
   )
   export CLOUD_CONFIG_B64ENCODED

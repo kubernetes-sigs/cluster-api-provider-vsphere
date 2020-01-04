@@ -81,8 +81,10 @@ export VSPHERE_PASSWORD='some-secure-password'  # (required) The password used t
 export VSPHERE_DATACENTER='SDDC-Datacenter'         # (required) The vSphere datacenter to deploy the management cluster on
 export VSPHERE_DATASTORE='DefaultDatastore'         # (required) The vSphere datastore to deploy the management cluster on
 export VSPHERE_NETWORK='vm-network-1'               # (required) The VM network to deploy the management cluster on
-export VSPHERE_RESOURCE_POOL='*/Resources'            # (required) The vSphere resource pool for your VMs
+export VSPHERE_RESOURCE_POOL='*/Resources'          # (required) The vSphere resource pool for your VMs
 export VSPHERE_FOLDER='vm'                          # (optional) The VM folder for your VMs, defaults to the root vSphere folder if not set.
+export VSPHERE_REGION_TAG='k8s-region'              # (optional) The vSphere Tag category for vSphere CPI & CSI Regions, defaults to '' if not set.
+export VSPHERE_ZONE_TAG='k8s-zone'                  # (optional) The vSphere Tag category for vSphere CPI & CSI Zones, defaults to '' if not set.
 export VSPHERE_TEMPLATE='ubuntu-1804-kube-v1.15.4'  # (required) The VM template to use for your management cluster.
 export VSPHERE_DISK_GIB='50'                        # (optional) The VM Disk size in GB, defaults to 20 if not set
 export VSPHERE_NUM_CPUS='2'                         # (optional) The # of CPUs for control plane nodes in your management cluster, defaults to 2 if not set
@@ -210,6 +212,9 @@ spec:
       folder: vm
       resourcePool: '*/Resources'
       server: 10.0.0.1
+    labels:
+      region: "k8s-region"
+      zone: "k8s-zone"
   server: 10.0.0.1
 ```
 

@@ -38,6 +38,9 @@ spec:
       datastore: "${VSPHERE_DATASTORE}"
       resourcePool: "${VSPHERE_RESOURCE_POOL}"
       folder: "${VSPHERE_FOLDER}"
+    labels:
+      region: "${VSPHERE_REGION_TAG}"
+      zone: "${VSPHERE_ZONE_TAG}"
     providerConfig:
       cloud:
         controllerImage: "gcr.io/cloud-provider-vsphere/cpi/release/manager:v1.1.0"

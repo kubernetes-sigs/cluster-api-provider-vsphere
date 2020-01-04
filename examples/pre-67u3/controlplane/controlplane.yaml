@@ -49,6 +49,7 @@ spec:
       criSocket: "/var/run/containerd/containerd.sock"
       kubeletExtraArgs:
         cloud-provider: vsphere
+        cloud-config: /etc/kubernetes/vsphere.conf
   clusterConfiguration:
     imageRepository: ${K8S_IMAGE_REPOSITORY}
     apiServer:

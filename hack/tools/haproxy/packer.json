@@ -49,7 +49,7 @@
         "ks=http://{{ .HTTPIP }}:{{ .HTTPPort }}/kickstart.json ",
         "photon.media=cdrom<enter>"
       ],
-      "shutdown_command": "echo '{{user `ssh_password`}}' | sudo -S -E sh -c 'usermod -L {{user `ssh_username`}} && shutdown now'",
+      "shutdown_command": "echo '{{user `ssh_password`}}' | sudo -S -E sh -c 'usermod -L root && usermod -L {{user `ssh_username`}} && shutdown now'",
       "skip_compaction": "{{user `skip_compaction`}}",
       "vnc_bind_address": "{{user `vnc_bind_address`}}",
       "vnc_port_min": "{{user `vnc_port_min`}}",

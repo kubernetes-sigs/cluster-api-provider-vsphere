@@ -24,7 +24,6 @@ import (
 	"text/template"
 
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apitypes "k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -114,15 +113,15 @@ func GetMachinePreferredIPAddress(machine *infrav1.VSphereMachine) (string, erro
 		}
 	}
 
-	for _, nodeAddr := range machine.Status.Addresses {
-		if nodeAddr.Type != corev1.NodeInternalIP {
+	for _, machineAddr := range machine.Status.Addresses {
+		if machineAddr.Type != clusterv1.MachineExternalIP {
 			continue
 		}
 		if cidr == nil {
-			return nodeAddr.Address, nil
+			return machineAddr.Address, nil
 		}
-		if cidr.Contains(net.ParseIP(nodeAddr.Address)) {
-			return nodeAddr.Address, nil
+		if cidr.Contains(net.ParseIP(machineAddr.Address)) {
+			return machineAddr.Address, nil
 		}
 	}
 
@@ -137,7 +136,7 @@ func IsControlPlaneMachine(machine metav1.Object) bool {
 
 // GetMachineMetadata returns the cloud-init metadata as a base-64 encoded
 // string for a given VSphereMachine.
-func GetMachineMetadata(hostname string, machine infrav1.VSphereMachine, networkStatus ...infrav1.NetworkStatus) ([]byte, error) {
+func GetMachineMetadata(hostname string, machine infrav1.VSphereVM, networkStatus ...infrav1.NetworkStatus) ([]byte, error) {
 	// Create a copy of the devices and add their MAC addresses from a network status.
 	devices := make([]infrav1.NetworkDeviceSpec, len(machine.Spec.Network.Devices))
 	for i := range machine.Spec.Network.Devices {

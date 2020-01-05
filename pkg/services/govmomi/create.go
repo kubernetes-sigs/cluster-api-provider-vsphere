@@ -22,7 +22,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/vcenter"
 )
 
-func createVM(ctx *context.MachineContext, bootstrapData []byte) error {
+func createVM(ctx *context.VMContext, bootstrapData []byte) error {
 	if ctx.Session.IsVC() {
 		return vcenter.Clone(ctx, bootstrapData)
 	}

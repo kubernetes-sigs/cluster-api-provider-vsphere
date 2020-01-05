@@ -18,6 +18,7 @@ package framework
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo" //nolint:golint
@@ -39,6 +40,7 @@ type SingleNodeControlPlaneInput struct {
 	InfraCluster      runtime.Object
 	ControlPlaneNode  Node
 	MachineDeployment MachineDeployment
+	RelatedResources  []runtime.Object
 	CreateTimeout     time.Duration
 }
 
@@ -63,6 +65,16 @@ func SingleNodeControlPlane(input *SingleNodeControlPlaneInput) {
 	Expect(err).ToNot(HaveOccurred(), "stack: %+v", err)
 
 	ctx := context.Background()
+
+	// Create the related resources.
+	By("creating related resources")
+	for _, obj := range input.RelatedResources {
+		By(fmt.Sprintf("creating a/an %s resource", obj.GetObjectKind().GroupVersionKind()))
+		Eventually(func() error {
+			return mgmtClient.Create(ctx, obj)
+		}, input.CreateTimeout, 10*time.Second).Should(BeNil())
+	}
+
 	By("creating an InfrastructureCluster resource")
 	Expect(mgmtClient.Create(ctx, input.InfraCluster)).To(Succeed())
 
@@ -89,6 +101,20 @@ func SingleNodeControlPlane(input *SingleNodeControlPlaneInput) {
 	By("creating a core Machine resource with a linked InfrastructureMachine and BootstrapConfig")
 	Expect(mgmtClient.Create(ctx, input.ControlPlaneNode.Machine)).To(Succeed())
 
+	// Wait for the target cluster's control plane to be initialized.
+	By("waiting for cluster's control plane to be initialized")
+	Eventually(func() (bool, error) {
+		cluster := &clusterv1.Cluster{}
+		key := client.ObjectKey{
+			Namespace: input.Cluster.GetNamespace(),
+			Name:      input.Cluster.GetName(),
+		}
+		if err := mgmtClient.Get(ctx, key, cluster); err != nil {
+			return false, err
+		}
+		return cluster.Status.ControlPlaneInitialized, nil
+	}, input.CreateTimeout, 10*time.Second).Should(BeTrue())
+
 	// Create the machine deployment if the replica count >0.
 	if machineDeployment := input.MachineDeployment.MachineDeployment; machineDeployment != nil {
 		if replicas := machineDeployment.Spec.Replicas; replicas != nil && *replicas > 0 {
@@ -105,19 +131,6 @@ func SingleNodeControlPlane(input *SingleNodeControlPlaneInput) {
 			Expect(mgmtClient.Create(ctx, input.MachineDeployment.InfraMachineTemplate)).To(Succeed())
 		}
 	}
-
-	// Wait for the CAPI Cluster resource to enter the Provisioned phase.
-	Eventually(func() (string, error) {
-		cluster := &clusterv1.Cluster{}
-		key := client.ObjectKey{
-			Namespace: input.Cluster.GetNamespace(),
-			Name:      input.Cluster.GetName(),
-		}
-		if err := mgmtClient.Get(ctx, key, cluster); err != nil {
-			return "", err
-		}
-		return cluster.Status.Phase, nil
-	}, input.CreateTimeout, 10*time.Second).Should(Equal(string(clusterv1.ClusterPhaseProvisioned)))
 
 	By("waiting for the workload nodes to exist")
 	Eventually(func() ([]v1.Node, error) {

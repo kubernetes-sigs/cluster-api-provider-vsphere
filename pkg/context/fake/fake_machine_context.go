@@ -42,10 +42,12 @@ func NewMachineContext(ctx *context.ClusterContext) *context.MachineContext {
 	}
 
 	return &context.MachineContext{
-		ClusterContext: ctx,
-		Machine:        &machine,
-		VSphereMachine: &vsphereMachine,
-		Logger:         ctx.Logger.WithName(vsphereMachine.Name),
+		ControllerContext: ctx.ControllerContext,
+		Cluster:           ctx.Cluster,
+		VSphereCluster:    ctx.VSphereCluster,
+		Machine:           &machine,
+		VSphereMachine:    &vsphereMachine,
+		Logger:            ctx.Logger.WithName(vsphereMachine.Name),
 	}
 }
 
@@ -78,19 +80,21 @@ func newVSphereMachine(owner clusterv1a2.Machine) infrav1.VSphereMachine {
 			},
 		},
 		Spec: infrav1.VSphereMachineSpec{
-			Datacenter: "dc0",
-			Network: infrav1.NetworkSpec{
-				Devices: []infrav1.NetworkDeviceSpec{
-					{
-						NetworkName: "VM Network",
-						DHCP4:       true,
-						DHCP6:       true,
+			VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
+				Datacenter: "dc0",
+				Network: infrav1.NetworkSpec{
+					Devices: []infrav1.NetworkDeviceSpec{
+						{
+							NetworkName: "VM Network",
+							DHCP4:       true,
+							DHCP6:       true,
+						},
 					},
 				},
+				NumCPUs:   2,
+				MemoryMiB: 2048,
+				DiskGiB:   20,
 			},
-			NumCPUs:   2,
-			MemoryMiB: 2048,
-			DiskGiB:   20,
 		},
 	}
 }

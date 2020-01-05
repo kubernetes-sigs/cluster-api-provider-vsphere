@@ -24,22 +24,22 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 )
 
-// MachineContext is a Go context used with a CAPI cluster.
+// MachineContext is a Go context used with a VSphereMachine.
 type MachineContext struct {
-	*ClusterContext
+	*ControllerContext
+	Cluster        *clusterv1.Cluster
 	Machine        *clusterv1.Machine
+	VSphereCluster *infrav1.VSphereCluster
 	VSphereMachine *infrav1.VSphereMachine
-	Session        *session.Session
 	Logger         logr.Logger
 	PatchHelper    *patch.Helper
 }
 
-// String returns ControllerManagerName/ControllerName/ClusterAPIVersion/ClusterNamespace/ClusterName/MachineName.
+// String returns VSphereMachineGroupVersionKind VSphereMachineNamespace/VSphereMachineName.
 func (c *MachineContext) String() string {
-	return fmt.Sprintf("%s/%s", c.ClusterContext.String(), c.VSphereMachine.Name)
+	return fmt.Sprintf("%s %s/%s", c.VSphereMachine.GroupVersionKind(), c.VSphereMachine.Namespace, c.VSphereMachine.Name)
 }
 
 // Patch updates the object and its status on the API server.
@@ -50,9 +50,4 @@ func (c *MachineContext) Patch() error {
 // GetLogger returns this context's logger.
 func (c *MachineContext) GetLogger() logr.Logger {
 	return c.Logger
-}
-
-// GetSession returns this context's session.
-func (c *MachineContext) GetSession() *session.Session {
-	return c.Session
 }

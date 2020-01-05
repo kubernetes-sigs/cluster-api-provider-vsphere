@@ -17,8 +17,8 @@ limitations under the License.
 package v1alpha3
 
 import (
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/errors"
 )
 
@@ -31,43 +31,12 @@ const (
 
 // VSphereMachineSpec defines the desired state of VSphereMachine
 type VSphereMachineSpec struct {
+	VirtualMachineCloneSpec `json:",inline"`
+
 	// ProviderID is the virtual machine's BIOS UUID formated as
 	// vsphere://12345678-1234-1234-1234-123456789abc
 	// +optional
 	ProviderID *string `json:"providerID,omitempty"`
-
-	// Template is the name, inventory path, or instance UUID of the template
-	// used to clone new machines.
-	Template string `json:"template"`
-
-	// Datacenter is the name or inventory path of the datacenter where this
-	// machine's VM is created/located.
-	Datacenter string `json:"datacenter"`
-
-	// Network is the network configuration for this machine's VM.
-	Network NetworkSpec `json:"network"`
-
-	// NumCPUs is the number of virtual processors in a virtual machine.
-	// Defaults to the analogue property value in the template from which this
-	// machine is cloned.
-	// +optional
-	NumCPUs int32 `json:"numCPUs,omitempty"`
-	// NumCPUs is the number of cores among which to distribute CPUs in this
-	// virtual machine.
-	// Defaults to the analogue property value in the template from which this
-	// machine is cloned.
-	// +optional
-	NumCoresPerSocket int32 `json:"numCoresPerSocket,omitempty"`
-	// MemoryMiB is the size of a virtual machine's memory, in MiB.
-	// Defaults to the analogue property value in the template from which this
-	// machine is cloned.
-	// +optional
-	MemoryMiB int64 `json:"memoryMiB,omitempty"`
-	// DiskGiB is the size of a virtual machine's disk, in GiB.
-	// Defaults to the analogue property value in the template from which this
-	// machine is cloned.
-	// +optional
-	DiskGiB int32 `json:"diskGiB,omitempty"`
 }
 
 // VSphereMachineStatus defines the observed state of VSphereMachine
@@ -77,18 +46,12 @@ type VSphereMachineStatus struct {
 	Ready bool `json:"ready"`
 
 	// Addresses contains the VSphere instance associated addresses.
-	Addresses []v1.NodeAddress `json:"addresses,omitempty"`
-
-	// TaskRef is a managed object reference to a Task related to the machine.
-	// This value is set automatically at runtime and should not be set or
-	// modified by users.
-	// +optional
-	TaskRef string `json:"taskRef,omitempty"`
+	Addresses []clusterv1.MachineAddress `json:"addresses,omitempty"`
 
 	// Network returns the network status for each of the machine's configured
 	// network interfaces.
 	// +optional
-	Network []NetworkStatus `json:"networkStatus,omitempty"`
+	Network []NetworkStatus `json:"network,omitempty"`
 
 	// ErrorReason will be set in the event that there is a terminal problem
 	// reconciling the Machine and will contain a succinct value suitable

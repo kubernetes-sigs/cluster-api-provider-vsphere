@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha3
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3/cloudprovider"
@@ -46,6 +47,14 @@ type VSphereClusterSpec struct {
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
 	ControlPlaneEndpoint APIEndpoint `json:"controlPlaneEndpoint"`
+
+	// LoadBalancerRef may be used to enable a control plane load balancer
+	// for this cluster.
+	// When a LoadBalancerRef is provided, the VSphereCluster.Status.Ready field
+	// will not be true until the referenced resource is Status.Ready and has a
+	// non-empty Status.Address value.
+	// +optional
+	LoadBalancerRef *corev1.ObjectReference `json:"loadBalancerRef,omitempty"`
 }
 
 // VSphereClusterStatus defines the observed state of VSphereClusterSpec

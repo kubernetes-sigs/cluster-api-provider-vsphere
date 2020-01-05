@@ -144,6 +144,12 @@ func main() {
 		if err := controllers.AddMachineControllerToManager(ctx, mgr); err != nil {
 			return err
 		}
+		if err := controllers.AddVMControllerToManager(ctx, mgr); err != nil {
+			return err
+		}
+		if err := controllers.AddHAProxyLoadBalancerControllerToManager(ctx, mgr); err != nil {
+			return err
+		}
 		return nil
 	}
 

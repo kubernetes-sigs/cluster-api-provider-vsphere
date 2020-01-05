@@ -17,22 +17,23 @@ limitations under the License.
 package controllers
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
-	"time"
 
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/util/wait"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	apitypes "k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -41,9 +42,6 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 	infrautilv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
@@ -76,6 +74,11 @@ func AddMachineControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 	return ctrl.NewControllerManagedBy(mgr).
 		// Watch the controlled, infrastructure resource.
 		For(controlledType).
+		// Watch any VSphereVM resources owned by the controlled type.
+		Watches(
+			&source.Kind{Type: &infrav1.VSphereVM{}},
+			&handler.EnqueueRequestForOwner{OwnerType: controlledType, IsController: false},
+		).
 		// Watch the CAPI resource that owns this infrastructure resource.
 		Watches(
 			&source.Kind{Type: &clusterv1.Machine{}},
@@ -140,14 +143,6 @@ func (r machineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr er
 		return reconcile.Result{}, nil
 	}
 
-	// Get or create an authenticated session to the vSphere endpoint.
-	authSession, err := session.GetOrCreate(r.Context,
-		vsphereCluster.Spec.Server, vsphereMachine.Spec.Datacenter,
-		r.ControllerManagerContext.Username, r.ControllerManagerContext.Password)
-	if err != nil {
-		return reconcile.Result{}, errors.Wrap(err, "failed to create vSphere session")
-	}
-
 	// Create the patch helper.
 	patchHelper, err := patch.NewHelper(vsphereMachine, r.Client)
 	if err != nil {
@@ -161,27 +156,14 @@ func (r machineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr er
 
 	// Create the machine context for this request.
 	machineContext := &context.MachineContext{
-		ClusterContext: &context.ClusterContext{
-			ControllerContext: r.ControllerContext,
-			Cluster:           cluster,
-			VSphereCluster:    vsphereCluster,
-		},
-		Machine:        machine,
-		VSphereMachine: vsphereMachine,
-		Session:        authSession,
-		Logger:         r.Logger.WithName(req.Namespace).WithName(req.Name),
-		PatchHelper:    patchHelper,
+		ControllerContext: r.ControllerContext,
+		Cluster:           cluster,
+		VSphereCluster:    vsphereCluster,
+		Machine:           machine,
+		VSphereMachine:    vsphereMachine,
+		Logger:            r.Logger.WithName(req.Namespace).WithName(req.Name),
+		PatchHelper:       patchHelper,
 	}
-
-	// Print the task-ref upon entry and upon exit.
-	machineContext.Logger.V(4).Info(
-		"VSphereMachine.Status.TaskRef OnEntry",
-		"task-ref", machineContext.VSphereMachine.Status.TaskRef)
-	defer func() {
-		machineContext.Logger.V(4).Info(
-			"VSphereMachine.Status.TaskRef OnExit",
-			"task-ref", machineContext.VSphereMachine.Status.TaskRef)
-	}()
 
 	// Always issue a patch when exiting this function so changes to the
 	// resource are patched back to the API server.
@@ -193,75 +175,6 @@ func (r machineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr er
 			}
 			machineContext.Logger.Error(err, "patch failed", "machine", machineContext.String())
 		}
-
-		// localObj is a deep copy of the VSphereMachine resource that was
-		// fetched at the top of this Reconcile function.
-		localObj := machineContext.VSphereMachine.DeepCopy()
-
-		// Fetch the up-to-date VSphereMachine resource into remoteObj until the
-		// fetched resource has a a different ResourceVersion than the local
-		// object.
-		//
-		// FYI - resource versions are opaque, numeric strings and should not
-		// be compared with < or >, only for equality -
-		// https://kubernetes.io/docs/reference/using-api/api-concepts/#resource-versions.
-		//
-		// Since CAPV is currently deployed with a single replica, and this
-		// controller has a max concurrency of one, the only agent updating the
-		// VSphereMachine resource should be this controller.
-		//
-		// So if the remote resource's ResourceVersion is different than the
-		// ResourceVersion of the resource fetched at the beginning of this
-		// reconcile request, then that means the remote resource should be
-		// newer than the local resource.
-		wait.PollImmediateInfinite(time.Second*1, func() (bool, error) {
-			// remoteObj refererences the same VSphereMachine resource as it exists
-			// on the API server post the patch operation above. In a perfect world,
-			// the Status for localObj and remoteObj should be the same.
-			remoteObj := &infrav1.VSphereMachine{}
-			if err := machineContext.Client.Get(machineContext, req.NamespacedName, remoteObj); err != nil {
-				if apierrors.IsNotFound(err) {
-					// It's possible that the remote resource cannot be found
-					// because it has been removed. Do not error, just exit.
-					return true, nil
-				}
-
-				// There was an issue getting the remote resource. Sleep for a
-				// second and try again.
-				machineContext.Logger.Error(err, "failed to get VSphereMachine while exiting reconcile")
-				return false, nil
-			}
-
-			// If the remote resource version is not the same as the local
-			// resource version, then it means we were able to get a resource
-			// newer than the one we already had.
-			if localObj.ResourceVersion != remoteObj.ResourceVersion {
-				machineContext.Logger.Info(
-					"resource is patched",
-					"local-resource-version", localObj.ResourceVersion,
-					"remote-resource-version", remoteObj.ResourceVersion)
-				return true, nil
-			}
-
-			// If the resources are the same resource version, then a previous
-			// patch may not have resulted in any changes. Check to see if the
-			// remote status is the same as the local status.
-			if cmp.Equal(localObj.Status, remoteObj.Status, cmpopts.EquateEmpty()) {
-				machineContext.Logger.Info(
-					"resource patch was not required",
-					"local-resource-version", localObj.ResourceVersion,
-					"remote-resource-version", remoteObj.ResourceVersion)
-				return true, nil
-			}
-
-			// The remote resource version is the same as the local resource
-			// version, which means the local cache is not yet up-to-date.
-			machineContext.Logger.Info(
-				"resource is not patched",
-				"local-resource-version", localObj.ResourceVersion,
-				"remote-resource-version", remoteObj.ResourceVersion)
-			return false, nil
-		})
 	}()
 
 	// Handle deleted machines
@@ -276,24 +189,52 @@ func (r machineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr er
 func (r machineReconciler) reconcileDelete(ctx *context.MachineContext) (reconcile.Result, error) {
 	ctx.Logger.Info("Handling deleted VSphereMachine")
 
-	// TODO(akutz) Implement selection of VM service based on vSphere version
-	var vmService services.VirtualMachineService = &govmomi.VMService{}
-
-	vm, err := vmService.DestroyVM(ctx)
-	if err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to destroy VM")
-	}
-
-	// Requeue the operation until the VM is "notfound".
-	if vm.State != infrav1.VirtualMachineStateNotFound {
-		ctx.Logger.Info("vm state is not reconciled", "expected-vm-state", infrav1.VirtualMachineStateNotFound, "actual-vm-state", vm.State)
-		return reconcile.Result{}, nil
+	if err := r.reconcileDeleteVM(ctx); err != nil {
+		return reconcile.Result{}, err
 	}
 
 	// The VM is deleted so remove the finalizer.
-	ctx.VSphereMachine.Finalizers = clusterutilv1.Filter(ctx.VSphereMachine.Finalizers, infrav1.MachineFinalizer)
+	ctrlutil.RemoveFinalizer(ctx.VSphereMachine, infrav1.MachineFinalizer)
 
 	return reconcile.Result{}, nil
+}
+
+func (r machineReconciler) reconcileDeleteVM(ctx *context.MachineContext) error {
+	// TODO(akutz) Determine the version of vSphere.
+	return r.reconcileDeleteVMPre7(ctx)
+}
+
+func (r machineReconciler) reconcileDeleteVMPre7(ctx *context.MachineContext) error {
+	// Get ready to find the associated VSphereVM resource.
+	vm := &infrav1.VSphereVM{}
+	vmKey := apitypes.NamespacedName{
+		Namespace: ctx.VSphereMachine.Namespace,
+		Name:      ctx.Machine.Name,
+	}
+
+	// Attempt to find the associated VSphereVM resource.
+	if err := ctx.Client.Get(ctx, vmKey, vm); err != nil {
+		// If an error occurs finding the VSphereVM resource other than
+		// IsNotFound, then return the error. Otherwise it means the VSphereVM
+		// is already deleted, and that's okay.
+		if !apierrors.IsNotFound(err) {
+			return errors.Wrapf(err, "failed to get VSphereVM %s", vmKey)
+		}
+	} else if vm.GetDeletionTimestamp().IsZero() {
+		// If the VSphereVM was found and it's not already enqueued for
+		// deletion, go ahead and attempt to delete it.
+		if err := ctx.Client.Delete(ctx, vm); err != nil {
+			if !apierrors.IsNotFound(err) {
+				return errors.Wrapf(err, "failed to delete VSphereVM %v", vmKey)
+			}
+		}
+
+		// Go ahead and return here since the deletion of the VSphereVM resource
+		// will trigger a new reconcile for this VSphereMachine resource.
+		return nil
+	}
+
+	return nil
 }
 
 func (r machineReconciler) reconcileNormal(ctx *context.MachineContext) (reconcile.Result, error) {
@@ -304,9 +245,7 @@ func (r machineReconciler) reconcileNormal(ctx *context.MachineContext) (reconci
 	}
 
 	// If the VSphereMachine doesn't have our finalizer, add it.
-	if !clusterutilv1.Contains(ctx.VSphereMachine.Finalizers, infrav1.MachineFinalizer) {
-		ctx.VSphereMachine.Finalizers = append(ctx.VSphereMachine.Finalizers, infrav1.MachineFinalizer)
-	}
+	ctrlutil.AddFinalizer(ctx.VSphereMachine, infrav1.MachineFinalizer)
 
 	if !ctx.Cluster.Status.InfrastructureReady {
 		ctx.Logger.Info("Cluster infrastructure is not ready yet")
@@ -314,84 +253,257 @@ func (r machineReconciler) reconcileNormal(ctx *context.MachineContext) (reconci
 	}
 
 	// Make sure bootstrap data is available and populated.
-	// Make sure bootstrap data is available and populated.
 	if ctx.Machine.Spec.Bootstrap.DataSecretName == nil {
 		ctx.Logger.Info("Waiting for bootstrap data to be available")
 		return reconcile.Result{}, nil
 	}
 
-	// TODO(akutz) Implement selection of VM service based on vSphere version
-	var vmService services.VirtualMachineService = &govmomi.VMService{}
-
-	// Get or create the VM.
-	vm, err := vmService.ReconcileVM(ctx)
+	// TODO(akutz) Determine the version of vSphere.
+	vm, err := r.reconcileNormalPre7(ctx)
 	if err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile VM")
-	}
-
-	if vm.State != infrav1.VirtualMachineStateReady {
-		ctx.Logger.Info("vm state is not reconciled", "expected-vm-state", infrav1.VirtualMachineStateReady, "actual-vm-state", vm.State)
-		return reconcile.Result{}, nil
-	}
-
-	if ok, err := r.reconcileNetwork(ctx, vm, vmService); !ok {
-		if err != nil {
-			return reconcile.Result{}, err
+		if apierrors.IsAlreadyExists(err) {
+			return reconcile.Result{}, nil
 		}
-		ctx.Logger.Info("waiting on vm networking")
-		return reconcile.Result{}, nil
-	}
-
-	if err := r.reconcileProviderID(ctx, vm, vmService); err != nil {
 		return reconcile.Result{}, err
 	}
 
-	// Once the provider ID is set then the VSphereMachine is InfrastructureReady
-	ctx.VSphereMachine.Status.Ready = true
-	ctx.Logger.Info("VSphereMachine is infrastructure-ready")
+	// Convert the VM resource to unstructured data.
+	vmData, err := runtime.DefaultUnstructuredConverter.ToUnstructured(vm)
+	if err != nil {
+		return reconcile.Result{}, errors.Wrapf(err,
+			"failed to convert %s to unstructured data",
+			vm.GetObjectKind().GroupVersionKind().String())
+	}
+	vmObj := &unstructured.Unstructured{Object: vmData}
+	vmObj.SetGroupVersionKind(vm.GetObjectKind().GroupVersionKind())
+	vmObj.SetAPIVersion(vm.GetObjectKind().GroupVersionKind().GroupVersion().String())
+	vmObj.SetKind(vm.GetObjectKind().GroupVersionKind().Kind)
+
+	// Reconcile the VSphereMachine's provider ID using the VM's BIOS UUID.
+	if ok, err := r.reconcileProviderID(ctx, vmObj); !ok {
+		if err != nil {
+			return reconcile.Result{}, errors.Wrapf(err,
+				"unexpected error while reconciling provider ID for %s", ctx)
+		}
+		ctx.Logger.Info("provider ID is not reconciled")
+		return reconcile.Result{}, nil
+	}
+
+	// Reconcile the VSphereMachine's node addresses from the VM's IP addresses.
+	if ok, err := r.reconcileNetwork(ctx, vmObj); !ok {
+		if err != nil {
+			return reconcile.Result{}, errors.Wrapf(err,
+				"unexpected error while reconciling network for %s", ctx)
+		}
+		ctx.Logger.Info("network is not reconciled")
+		return reconcile.Result{}, nil
+	}
+
+	// Reconcile the VSphereMachine's ready state from the VM's ready state.
+	if ok, err := r.reconcileReadyState(ctx, vmObj); !ok {
+		if err != nil {
+			return reconcile.Result{}, errors.Wrapf(err,
+				"unexpected error while reconciling ready state for %s", ctx)
+		}
+		ctx.Logger.Info("ready state is not reconciled")
+		return reconcile.Result{}, nil
+	}
 
 	return reconcile.Result{}, nil
 }
 
-func (r machineReconciler) reconcileNetwork(ctx *context.MachineContext, vm infrav1.VirtualMachine, vmService services.VirtualMachineService) (bool, error) {
-	expNetCount, actNetCount := len(ctx.VSphereMachine.Spec.Network.Devices), len(vm.Network)
-	if expNetCount != actNetCount {
-		return false, errors.Errorf("invalid network count for %q: exp=%d act=%d", ctx, expNetCount, actNetCount)
+func (r machineReconciler) reconcileNormalPre7(ctx *context.MachineContext) (runtime.Object, error) {
+	// Create or update the VSphereVM resource.
+	vm := &infrav1.VSphereVM{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ctx.VSphereMachine.Namespace,
+			Name:      ctx.Machine.Name,
+		},
 	}
-	ctx.VSphereMachine.Status.Network = vm.Network
+	mutateFn := func() (err error) {
+		// Ensure the VSphereMachine is marked as an owner of the VSphereVM.
+		vm.SetOwnerReferences(clusterutilv1.EnsureOwnerRef(
+			vm.OwnerReferences,
+			metav1.OwnerReference{
+				APIVersion: ctx.VSphereMachine.APIVersion,
+				Kind:       ctx.VSphereMachine.Kind,
+				Name:       ctx.VSphereMachine.Name,
+				UID:        ctx.VSphereMachine.UID,
+			}))
 
-	// If the VM is powered on then issue requeues until all of the VM's
-	// networks have IP addresses.
-	var ipAddrs []corev1.NodeAddress
+		// Instruct the VSphereVM to use the CAPI bootstrap data resource.
+		vm.Spec.BootstrapRef = ctx.Machine.Spec.Bootstrap.ConfigRef
 
-	for _, netStatus := range ctx.VSphereMachine.Status.Network {
-		for _, ip := range netStatus.IPAddrs {
-			ipAddrs = append(ipAddrs, corev1.NodeAddress{
-				Type:    corev1.NodeInternalIP,
-				Address: ip,
+		// Initialize the VSphereVM's labels map if it is nil.
+		if vm.Labels == nil {
+			vm.Labels = map[string]string{}
+		}
+
+		// Ensure the VSphereVM has a label that can be used when searching for
+		// resources associated with the target cluster.
+		vm.Labels[clusterv1.ClusterLabelName] = ctx.Machine.Labels[clusterv1.ClusterLabelName]
+
+		// For convenience, add a label that makes it easy to figure out if the
+		// VSphereVM resource is part of some control plane.
+		if val, ok := ctx.Machine.Labels[clusterv1.MachineControlPlaneLabelName]; ok {
+			vm.Labels[clusterv1.MachineControlPlaneLabelName] = val
+		}
+
+		// Copy the VSphereMachine's VM clone spec into the VSphereVM's
+		// clone spec.
+		ctx.VSphereMachine.Spec.VirtualMachineCloneSpec.DeepCopyInto(&vm.Spec.VirtualMachineCloneSpec)
+
+		// Several of the VSphereVM's clone spec properties can be derived
+		// from multiple places. The order is:
+		//
+		//   1. From the VSphereMachine.Spec (the DeepCopyInto above)
+		//   2. From the VSphereCluster.Spec.CloudProviderConfiguration.Workspace
+		//   3. From the VSphereCluster.Spec
+		vsphereCloudConfig := ctx.VSphereCluster.Spec.CloudProviderConfiguration.Workspace
+		if vm.Spec.Server == "" {
+			if vm.Spec.Server = vsphereCloudConfig.Server; vm.Spec.Server == "" {
+				vm.Spec.Server = ctx.VSphereCluster.Spec.Server
+			}
+		}
+		if vm.Spec.Datacenter == "" {
+			vm.Spec.Datacenter = vsphereCloudConfig.Datacenter
+		}
+		if vm.Spec.Datastore == "" {
+			vm.Spec.Datastore = vsphereCloudConfig.Datastore
+		}
+		if vm.Spec.Folder == "" {
+			vm.Spec.Folder = vsphereCloudConfig.Folder
+		}
+		if vm.Spec.ResourcePool == "" {
+			vm.Spec.ResourcePool = vsphereCloudConfig.ResourcePool
+		}
+		return nil
+	}
+	if _, err := ctrlutil.CreateOrUpdate(ctx, ctx.Client, vm, mutateFn); err != nil {
+		if apierrors.IsAlreadyExists(err) {
+			ctx.Logger.Info("VSphereVM already exists")
+			return nil, err
+		}
+		ctx.Logger.Error(err, "failed to CreateOrUpdate VSphereVM",
+			"namespace", vm.Namespace, "name", vm.Name)
+		return nil, err
+	}
+
+	return vm, nil
+}
+
+func (r machineReconciler) reconcileNetwork(ctx *context.MachineContext, vm *unstructured.Unstructured) (bool, error) {
+	if networkStatusListOfIfaces, ok, _ := unstructured.NestedSlice(vm.Object, "status", "network"); ok {
+		networkStatusList := []infrav1.NetworkStatus{}
+		for i, networkStatusListMemberIface := range networkStatusListOfIfaces {
+			if buf, err := json.Marshal(networkStatusListMemberIface); err != nil {
+				ctx.Logger.Error(err,
+					"unsupported data for member of status.network list",
+					"index", i)
+			} else {
+				var networkStatus infrav1.NetworkStatus
+				err := json.Unmarshal(buf, &networkStatus)
+				if err == nil && networkStatus.MACAddr == "" {
+					err = errors.New("macAddr is required")
+				}
+				if err != nil {
+					ctx.Logger.Error(err,
+						"unsupported data for member of status.network list",
+						"index", i, "data", string(buf))
+				} else {
+					networkStatusList = append(networkStatusList, networkStatus)
+				}
+			}
+		}
+		ctx.VSphereMachine.Status.Network = networkStatusList
+	}
+
+	if addresses, ok, _ := unstructured.NestedStringSlice(vm.Object, "status", "addresses"); ok {
+		var machineAddresses []clusterv1.MachineAddress
+		for _, addr := range addresses {
+			machineAddresses = append(machineAddresses, clusterv1.MachineAddress{
+				Type:    clusterv1.MachineExternalIP,
+				Address: addr,
 			})
 		}
+		ctx.VSphereMachine.Status.Addresses = machineAddresses
 	}
 
-	if len(ipAddrs) == 0 {
+	if len(ctx.VSphereMachine.Status.Addresses) == 0 {
 		ctx.Logger.Info("waiting on IP addresses")
 		return false, nil
 	}
 
-	// Use the collected IP addresses to assign the Machine's addresses.
-	ctx.VSphereMachine.Status.Addresses = ipAddrs
-
 	return true, nil
 }
 
-func (r machineReconciler) reconcileProviderID(ctx *context.MachineContext, vm infrav1.VirtualMachine, vmService services.VirtualMachineService) error {
-	providerID := infrautilv1.ConvertUUIDToProviderID(vm.BiosUUID)
+func (r machineReconciler) reconcileProviderID(ctx *context.MachineContext, vm *unstructured.Unstructured) (bool, error) {
+	biosUUID, ok, err := unstructured.NestedString(vm.Object, "spec", "biosUUID")
+	if !ok {
+		if err != nil {
+			return false, errors.Wrapf(err,
+				"unexpected error when getting spec.biosUUID from %s %s/%s for %s",
+				vm.GroupVersionKind(),
+				vm.GetNamespace(),
+				vm.GetName(),
+				ctx)
+		}
+		ctx.Logger.Info("spec.biosUUID not found",
+			"vmGVK", vm.GroupVersionKind().String(),
+			"vmNamespace", vm.GetNamespace(),
+			"vmName", vm.GetName())
+		return false, nil
+	}
+	if biosUUID == "" {
+		ctx.Logger.Info("spec.biosUUID is empty",
+			"vmGVK", vm.GroupVersionKind().String(),
+			"vmNamespace", vm.GetNamespace(),
+			"vmName", vm.GetName())
+		return false, nil
+	}
+
+	providerID := infrautilv1.ConvertUUIDToProviderID(biosUUID)
 	if providerID == "" {
-		return errors.Errorf("invalid BIOS UUID %s for %s", vm.BiosUUID, ctx)
+		return false, errors.Errorf("invalid BIOS UUID %s from %s %s/%s for %s",
+			biosUUID,
+			vm.GroupVersionKind(),
+			vm.GetNamespace(),
+			vm.GetName(),
+			ctx)
 	}
 	if ctx.VSphereMachine.Spec.ProviderID == nil || *ctx.VSphereMachine.Spec.ProviderID != providerID {
 		ctx.VSphereMachine.Spec.ProviderID = &providerID
 		ctx.Logger.Info("updated provider ID", "provider-id", providerID)
 	}
-	return nil
+
+	return true, nil
+}
+
+func (r machineReconciler) reconcileReadyState(ctx *context.MachineContext, vm *unstructured.Unstructured) (bool, error) {
+	ready, ok, err := unstructured.NestedBool(vm.Object, "status", "ready")
+	if !ok {
+		if err != nil {
+			return false, errors.Wrapf(err,
+				"unexpected error when getting status.ready from %s %s/%s for %s",
+				vm.GroupVersionKind(),
+				vm.GetNamespace(),
+				vm.GetName(),
+				ctx)
+		}
+		ctx.Logger.Info("status.ready not found",
+			"vmGVK", vm.GroupVersionKind().String(),
+			"vmNamespace", vm.GetNamespace(),
+			"vmName", vm.GetName())
+		return false, nil
+	}
+	if !ready {
+		ctx.Logger.Info("status.ready is false",
+			"vmGVK", vm.GroupVersionKind().String(),
+			"vmNamespace", vm.GetNamespace(),
+			"vmName", vm.GetName())
+		return false, nil
+	}
+
+	ctx.VSphereMachine.Status.Ready = true
+	return true, nil
 }

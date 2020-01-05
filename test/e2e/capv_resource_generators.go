@@ -88,7 +88,7 @@ func (c ClusterGenerator) Generate(clusterNamespace, clusterName string) (*clust
 					Datacenter:   vsphereDatacenter,
 					Datastore:    vsphereDatastore,
 					Folder:       vsphereFolder,
-					ResourcePool: vsphereFolder,
+					ResourcePool: vspherePool,
 					Server:       vsphereServer,
 				},
 			},
@@ -144,19 +144,21 @@ func (n *NodeGenerator) Generate(clusterNamespace, clusterName string) framework
 			},
 		},
 		Spec: infrav1.VSphereMachineSpec{
-			Datacenter: vsphereDatacenter,
-			DiskGiB:    50,
-			MemoryMiB:  2048,
-			Network: infrav1.NetworkSpec{
-				Devices: []infrav1.NetworkDeviceSpec{
-					{
-						NetworkName: vsphereNetwork,
-						DHCP4:       true,
+			VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
+				Datacenter: vsphereDatacenter,
+				DiskGiB:    50,
+				MemoryMiB:  2048,
+				Network: infrav1.NetworkSpec{
+					Devices: []infrav1.NetworkDeviceSpec{
+						{
+							NetworkName: vsphereNetwork,
+							DHCP4:       true,
+						},
 					},
 				},
+				NumCPUs:  2,
+				Template: vsphereMachineTemplate,
 			},
-			NumCPUs:  2,
-			Template: vsphereTemplate,
 		},
 	}
 
@@ -190,7 +192,15 @@ func (n *NodeGenerator) Generate(clusterNamespace, clusterName string) framework
 					Name: "{{ ds.meta_data.hostname }}",
 				},
 			},
-			JoinConfiguration: &v1beta1.JoinConfiguration{},
+			JoinConfiguration: &v1beta1.JoinConfiguration{
+				NodeRegistration: v1beta1.NodeRegistrationOptions{
+					CRISocket: "/var/run/containerd/containerd.sock",
+					KubeletExtraArgs: map[string]string{
+						"cloud-provider": "external",
+					},
+					Name: "{{ ds.meta_data.hostname }}",
+				},
+			},
 			PreKubeadmCommands: []string{
 				`hostname "{{ ds.meta_data.hostname }}"`,
 				`echo "::1        ipv6-localhost ipv6-loopback" >/etc/hosts`,
@@ -264,19 +274,21 @@ func (n *MachineDeploymentGenerator) Generate(clusterNamespace, clusterName stri
 		Spec: infrav1.VSphereMachineTemplateSpec{
 			Template: infrav1.VSphereMachineTemplateResource{
 				Spec: infrav1.VSphereMachineSpec{
-					Datacenter: vsphereDatacenter,
-					DiskGiB:    50,
-					MemoryMiB:  2048,
-					Network: infrav1.NetworkSpec{
-						Devices: []infrav1.NetworkDeviceSpec{
-							{
-								NetworkName: vsphereNetwork,
-								DHCP4:       true,
+					VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
+						Datacenter: vsphereDatacenter,
+						DiskGiB:    50,
+						MemoryMiB:  2048,
+						Network: infrav1.NetworkSpec{
+							Devices: []infrav1.NetworkDeviceSpec{
+								{
+									NetworkName: vsphereNetwork,
+									DHCP4:       true,
+								},
 							},
 						},
+						NumCPUs:  2,
+						Template: vsphereMachineTemplate,
 					},
-					NumCPUs:  2,
-					Template: vsphereTemplate,
 				},
 			},
 		},
@@ -368,5 +380,53 @@ func (n *MachineDeploymentGenerator) Generate(clusterNamespace, clusterName stri
 		MachineDeployment:       machineDeployment,
 		BootstrapConfigTemplate: bootstrapConfigTemplate,
 		InfraMachineTemplate:    infraMachineTemplate,
+	}
+}
+
+// HAProxyLoadBalancerGenerator may be used to generate a new load balancer
+// resource for testing.
+type HAProxyLoadBalancerGenerator struct{}
+
+// Generate returns the resources required to create a load balancer.
+func (n HAProxyLoadBalancerGenerator) Generate(clusterNamespace, clusterName string) *infrav1.HAProxyLoadBalancer {
+	return &infrav1.HAProxyLoadBalancer{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       framework.TypeToKind(&infrav1.HAProxyLoadBalancer{}),
+			APIVersion: infrav1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: clusterNamespace,
+			Name:      clusterName,
+			Labels: map[string]string{
+				clusterv1.ClusterLabelName: clusterName,
+			},
+		},
+		Spec: infrav1.HAProxyLoadBalancerSpec{
+			VirtualMachineConfiguration: infrav1.VirtualMachineCloneSpec{
+				Datacenter:   vsphereDatacenter,
+				Datastore:    vsphereDatastore,
+				Folder:       vsphereFolder,
+				ResourcePool: vspherePool,
+				Server:       vsphereServer,
+				DiskGiB:      50,
+				MemoryMiB:    2048,
+				Network: infrav1.NetworkSpec{
+					Devices: []infrav1.NetworkDeviceSpec{
+						{
+							NetworkName: vsphereNetwork,
+							DHCP4:       true,
+						},
+					},
+				},
+				NumCPUs:  2,
+				Template: vsphereHAProxyTemplate,
+			},
+			User: &infrav1.SSHUser{
+				Name: "capv",
+				AuthorizedKeys: []string{
+					sshAuthKey,
+				},
+			},
+		},
 	}
 }

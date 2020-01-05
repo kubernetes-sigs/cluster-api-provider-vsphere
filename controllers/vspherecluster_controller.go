@@ -20,12 +20,14 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/pkg/errors"
 	apiv1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -33,6 +35,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -46,15 +49,14 @@ import (
 	infrautilv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
-const (
-	apiEndpointPort = 6443
+var (
+	defaultAPIEndpointPort = int32(6443)
 )
 
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;patch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=vsphereclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=vsphereclusters/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
-// +kubebuilder:rbac:groups=bootstrap.cluster.x-k8s.io,resources=kubeadmconfigs;kubeadmconfigs/status,verbs=get;list;watch
 
 // AddClusterControllerToManager adds the cluster controller to the provided
 // manager.
@@ -96,6 +98,18 @@ func AddClusterControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 			&source.Kind{Type: &infrav1.VSphereMachine{}},
 			&handler.EnqueueRequestsFromMapFunc{
 				ToRequests: handler.ToRequestsFunc(reconciler.controlPlaneMachineToCluster),
+			},
+		).
+		// Watch the load balancer resource that may be used to provide HA to
+		// the VSphereCluster control plane.
+		// TODO(akutz) Figure out how to watch LB resources without requiring
+		//             their types ahead of time.
+		//             Please see https://github.com/kubernetes-sigs/cluster-api/blob/84cd362e493f5edb7b16219d8134a008efb01dac/controllers/cluster_controller_phases.go#L107-L119
+		//             for an example of external watchers.
+		Watches(
+			&source.Kind{Type: &infrav1.HAProxyLoadBalancer{}},
+			&handler.EnqueueRequestsFromMapFunc{
+				ToRequests: handler.ToRequestsFunc(reconciler.loadBalancerToCluster),
 			},
 		).
 		// Watch a GenericEvent channel for the controlled resource.
@@ -181,7 +195,7 @@ func (r clusterReconciler) reconcileDelete(ctx *context.ClusterContext) (reconci
 	ctx.Logger.Info("Reconciling VSphereCluster delete")
 
 	// Cluster is deleted so remove the finalizer.
-	ctx.VSphereCluster.Finalizers = clusterutilv1.Filter(ctx.VSphereCluster.Finalizers, infrav1.ClusterFinalizer)
+	ctrlutil.RemoveFinalizer(ctx.VSphereCluster, infrav1.ClusterFinalizer)
 
 	return reconcile.Result{}, nil
 }
@@ -189,30 +203,30 @@ func (r clusterReconciler) reconcileDelete(ctx *context.ClusterContext) (reconci
 func (r clusterReconciler) reconcileNormal(ctx *context.ClusterContext) (reconcile.Result, error) {
 	ctx.Logger.Info("Reconciling VSphereCluster")
 
-	// TODO(akutz) Update this logic to include infrastructure prep such as:
-	//   * Downloading OVAs into the content library for any machines that
-	//     use them.
-	//   * Create any load balancers for VMC on AWS, etc.
-	ctx.VSphereCluster.Status.Ready = true
-	ctx.Logger.V(6).Info("VSphereCluster is infrastructure-ready")
-
 	// If the VSphereCluster doesn't have our finalizer, add it.
-	if !clusterutilv1.Contains(ctx.VSphereCluster.Finalizers, infrav1.ClusterFinalizer) {
-		ctx.VSphereCluster.Finalizers = append(ctx.VSphereCluster.Finalizers, infrav1.ClusterFinalizer)
-		ctx.Logger.V(6).Info(
-			"adding finalizer for VSphereCluster",
-			"cluster-namespace", ctx.VSphereCluster.Namespace,
-			"cluster-name", ctx.VSphereCluster.Name)
+	ctrlutil.AddFinalizer(ctx.VSphereCluster, infrav1.ClusterFinalizer)
+
+	// Reconcile the VSphereCluster's load balancer.
+	if ok, err := r.reconcileLoadBalancer(ctx); !ok {
+		if err != nil {
+			return reconcile.Result{}, errors.Wrapf(err,
+				"unexpected error while reconciling load balancer for %s", ctx)
+		}
+		ctx.Logger.Info("load balancer is not reconciled")
+		return reconcile.Result{}, nil
 	}
 
-	// Update the VSphereCluster resource with a control plane endpoint.
-	if err := r.reconcileControlPlaneEndpoint(ctx); err != nil {
-		if err == infrautilv1.ErrNoMachineIPAddr {
-			ctx.Logger.Info("Waiting on an control plane endpoint")
-			return reconcile.Result{}, nil
+	// Reconcile the VSphereCluster resource's ready state.
+	ctx.VSphereCluster.Status.Ready = true
+
+	// Reconcile the VSphereCluster resource's control plane endpoint.
+	if ok, err := r.reconcileControlPlaneEndpoint(ctx); !ok {
+		if err != nil {
+			return reconcile.Result{}, errors.Wrapf(err,
+				"unexpected error while reconciling control plane endpoint for %s", ctx)
 		}
-		return reconcile.Result{}, errors.Wrapf(err,
-			"failed to reconcile control plane endpoint for %s", ctx)
+		ctx.Logger.Info("control plane endpoint is not reconciled")
+		return reconcile.Result{}, nil
 	}
 
 	// Wait until the API server is online and accessible.
@@ -244,22 +258,171 @@ func (r clusterReconciler) reconcileNormal(ctx *context.ClusterContext) (reconci
 	return reconcile.Result{}, nil
 }
 
-func (r clusterReconciler) reconcileControlPlaneEndpoint(ctx *context.ClusterContext) error {
+func (r clusterReconciler) reconcileLoadBalancer(ctx *context.ClusterContext) (bool, error) {
+
+	if ctx.VSphereCluster.Spec.LoadBalancerRef == nil {
+		ctx.Logger.Info("skipping load balancer reconciliation",
+			"reason", "VSphereCluster.Spec.LoadBalancerRef is nil")
+		return true, nil
+	}
+
+	if !ctx.Cluster.Spec.ControlPlaneEndpoint.IsZero() {
+		ctx.Logger.Info("skipping load balancer reconciliation",
+			"reason", "Cluster.Spec.ControlPlaneEndpoint is already set",
+			"controlPlaneEndpoint", ctx.Cluster.Spec.ControlPlaneEndpoint.String())
+		return true, nil
+	}
+
+	if !ctx.VSphereCluster.Spec.ControlPlaneEndpoint.IsZero() {
+		ctx.Logger.Info("skipping load balancer reconciliation",
+			"reason", "VSphereCluster.Spec.ControlPlaneEndpoint is already set",
+			"controlPlaneEndpoint", ctx.VSphereCluster.Spec.ControlPlaneEndpoint.String())
+		return true, nil
+	}
+
+	loadBalancerRef := ctx.VSphereCluster.Spec.LoadBalancerRef
+	loadBalancer := &unstructured.Unstructured{}
+	loadBalancer.SetKind(loadBalancerRef.Kind)
+	loadBalancer.SetAPIVersion(loadBalancerRef.APIVersion)
+	loadBalancerKey := types.NamespacedName{
+		Namespace: loadBalancerRef.Namespace,
+		Name:      loadBalancerRef.Name,
+	}
+	if err := ctx.Client.Get(ctx, loadBalancerKey, loadBalancer); err != nil {
+		if apierrors.IsNotFound(err) {
+			ctx.Logger.Info("resource specified by LoadBalancerRef not found",
+				"load-balancer-gvk", loadBalancerRef.APIVersion,
+				"load-balancer-namespace", loadBalancerRef.Namespace,
+				"load-balancer-name", loadBalancerRef.Name)
+			return false, nil
+		}
+		return false, err
+	}
+
+	// Ensure the CAPI Cluster is an owner of the load balancer.
+	clusterOwnerRef := metav1.OwnerReference{
+		APIVersion: ctx.Cluster.APIVersion,
+		Kind:       ctx.Cluster.Kind,
+		Name:       ctx.Cluster.Name,
+		UID:        ctx.Cluster.UID,
+	}
+	loadBalancerOwnerRefs := loadBalancer.GetOwnerReferences()
+	if !clusterutilv1.HasOwnerRef(loadBalancerOwnerRefs, clusterOwnerRef) {
+		loadBalancerPatchHelper, err := patch.NewHelper(loadBalancer, ctx.Client)
+		if err != nil {
+			return false, errors.Wrapf(err,
+				"failed to create patch helper for load balancer %s %s/%s",
+				loadBalancer.GroupVersionKind(),
+				loadBalancer.GetNamespace(),
+				loadBalancer.GetName())
+		}
+		loadBalancer.SetOwnerReferences(clusterutilv1.EnsureOwnerRef(
+			loadBalancerOwnerRefs, clusterOwnerRef))
+		if err := loadBalancerPatchHelper.Patch(ctx, loadBalancer); err != nil {
+			return false, errors.Wrapf(err,
+				"failed to patch owner references for load balancer %s %s/%s",
+				loadBalancer.GroupVersionKind(),
+				loadBalancer.GetNamespace(),
+				loadBalancer.GetName())
+		}
+		ctx.Logger.Info("the load balancer is now owned by the cluster",
+			"load-balancer-gvk", loadBalancer.GroupVersionKind().String(),
+			"load-balancer-namespace", loadBalancer.GetNamespace(),
+			"load-balancer-name", loadBalancer.GetName(),
+			"cluster-gvk", ctx.Cluster.GroupVersionKind().String(),
+			"cluster-namespace", ctx.Cluster.GetNamespace(),
+			"cluster-name", ctx.Cluster.GetName())
+	}
+
+	ready, ok, err := unstructured.NestedBool(loadBalancer.Object, "status", "ready")
+	if !ok {
+		if err != nil {
+			return false, errors.Wrapf(err,
+				"unexpected error when getting status.ready for load balancer %s %s/%s",
+				loadBalancer.GroupVersionKind(),
+				loadBalancer.GetNamespace(),
+				loadBalancer.GetName())
+		}
+		ctx.Logger.Info("status.ready not found for load balancer",
+			"load-balancer-gvk", loadBalancer.GroupVersionKind().String(),
+			"load-balancer-namespace", loadBalancer.GetNamespace(),
+			"load-balancer-name", loadBalancer.GetName())
+		return false, nil
+	}
+	if !ready {
+		ctx.Logger.Info("load balancer is not ready",
+			"load-balancer-gvk", loadBalancer.GroupVersionKind().String(),
+			"load-balancer-namespace", loadBalancer.GetNamespace(),
+			"load-balancer-name", loadBalancer.GetName())
+		return false, nil
+	}
+
+	address, ok, err := unstructured.NestedString(loadBalancer.Object, "status", "address")
+	if !ok {
+		if err != nil {
+			return false, errors.Wrapf(err,
+				"unexpected error when getting status.address for load balancer %s %s/%s",
+				loadBalancer.GroupVersionKind(),
+				loadBalancer.GetNamespace(),
+				loadBalancer.GetName())
+		}
+		ctx.Logger.Info("status.address not found for load balancer",
+			"load-balancer-gvk", loadBalancer.GroupVersionKind().String(),
+			"load-balancer-namespace", loadBalancer.GetNamespace(),
+			"load-balancer-name", loadBalancer.GetName())
+		return false, nil
+	}
+	if address == "" {
+		ctx.Logger.Info("load balancer address is empty",
+			"load-balancer-gvk", loadBalancer.GroupVersionKind().String(),
+			"load-balancer-namespace", loadBalancer.GetNamespace(),
+			"load-balancer-name", loadBalancer.GetName())
+		return false, nil
+	}
+
+	// Update the VSphereCluster.Spec.ControlPlaneEndpoint with the address
+	// from the load balancer.
+	// The control plane endpoint also requires a port, which is obtained
+	// either from the VSphereCluster.Spec.ControlPlaneEndpoint.Port
+	// or the default port is used.
+	ctx.VSphereCluster.Spec.ControlPlaneEndpoint.Host = address
+	if ctx.VSphereCluster.Spec.ControlPlaneEndpoint.Port == 0 {
+		ctx.VSphereCluster.Spec.ControlPlaneEndpoint.Port = defaultAPIEndpointPort
+	}
+	ctx.Logger.Info("ControlPlaneEndpoint discovered via load balancer",
+		"controlPlaneEndpoint", ctx.VSphereCluster.Spec.ControlPlaneEndpoint.String())
+
+	return true, nil
+}
+
+func (r clusterReconciler) reconcileControlPlaneEndpoint(ctx *context.ClusterContext) (bool, error) {
+	// Ensure the VSphereCluster is reconciled when the API server first comes online.
+	// A reconcile event will only be triggered if the Cluster is not marked as
+	// ControlPlaneInitialized.
+	defer r.reconcileVSphereClusterWhenAPIServerIsOnline(ctx)
+
 	// If the cluster already has a control plane endpoint set then there
 	// is nothing to do.
 	if !ctx.Cluster.Spec.ControlPlaneEndpoint.IsZero() {
-		ctx.Logger.V(4).Info("ControlPlaneEndpoint already set on Cluster")
-		return nil
+		ctx.VSphereCluster.Spec.ControlPlaneEndpoint.Host = ctx.Cluster.Spec.ControlPlaneEndpoint.Host
+		ctx.VSphereCluster.Spec.ControlPlaneEndpoint.Port = ctx.Cluster.Spec.ControlPlaneEndpoint.Port
+		ctx.Logger.Info("skipping control plane endpoint reconciliation",
+			"reason", "ControlPlaneEndpoint already set on Cluster",
+			"controlPlaneEndpoint", ctx.Cluster.Spec.ControlPlaneEndpoint.String())
+		return true, nil
 	}
+
 	if !ctx.VSphereCluster.Spec.ControlPlaneEndpoint.IsZero() {
-		ctx.Logger.V(4).Info("ControlPlaneEndpoint already set on VSphereCluster")
-		return nil
+		ctx.Logger.Info("skipping control plane endpoint reconciliation",
+			"reason", "ControlPlaneEndpoint already set on VSphereCluster",
+			"controlPlaneEndpoint", ctx.VSphereCluster.Spec.ControlPlaneEndpoint.String())
+		return true, nil
 	}
 
 	// Get the CAPI Machine resources for the cluster.
 	machines, err := infrautilv1.GetMachinesInCluster(ctx, ctx.Client, ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
 	if err != nil {
-		return errors.Wrapf(err,
+		return false, errors.Wrapf(err,
 			"failed to get Machinces for Cluster %s/%s",
 			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
 	}
@@ -279,9 +442,11 @@ func (r clusterReconciler) reconcileControlPlaneEndpoint(ctx *context.ClusterCon
 		// Get the VSphereMachine for the CAPI Machine resource.
 		vsphereMachine, err := infrautilv1.GetVSphereMachine(ctx, ctx.Client, machine.Namespace, machine.Name)
 		if err != nil {
-			return errors.Wrapf(err,
+			return false, errors.Wrapf(err,
 				"failed to get VSphereMachine for Machine %s/%s/%s",
-				machine.Namespace, ctx.VSphereCluster.Name, machine.Name)
+				machine.GroupVersionKind(),
+				machine.Namespace,
+				machine.Name)
 		}
 
 		// Get the VSphereMachine's preferred IP address.
@@ -290,46 +455,109 @@ func (r clusterReconciler) reconcileControlPlaneEndpoint(ctx *context.ClusterCon
 			if err == infrautilv1.ErrNoMachineIPAddr {
 				continue
 			}
-			return errors.Wrapf(err,
-				"failed to get preferred IP address for VSphereMachine %s/%s/%s",
-				machine.Namespace, ctx.VSphereCluster.Name, vsphereMachine.Name)
+			return false, errors.Wrapf(err,
+				"failed to get preferred IP address for VSphereMachine %s %s/%s",
+				vsphereMachine.GroupVersionKind(),
+				vsphereMachine.Namespace,
+				vsphereMachine.Name)
 		}
 
 		// Set the ControlPlaneEndpoint so the CAPI controller can read the
 		// value into the analogous CAPI Cluster using an UnstructuredReader.
 		ctx.VSphereCluster.Spec.ControlPlaneEndpoint.Host = ipAddr
-		ctx.VSphereCluster.Spec.ControlPlaneEndpoint.Port = apiEndpointPort
-
-		// Enqueue a reconcile request for the cluster when the target API
-		// server is online.
-		go func() {
-			// Block until the target API server is online.
-			wait.PollImmediateInfinite(time.Second*1, func() (bool, error) { return r.isAPIServerOnline(ctx), nil })
-			ctx.Logger.Info("triggering GenericEvent", "reason", "api-server-online")
-			eventChannel := ctx.GetGenericEventChannelFor(ctx.VSphereCluster.GetObjectKind().GroupVersionKind())
-			eventChannel <- event.GenericEvent{
-				Meta:   ctx.VSphereCluster,
-				Object: ctx.VSphereCluster,
-			}
-		}()
-
-		ctx.Logger.V(4).Info(
-			"found API endpoint via control plane machine",
-			"host", ctx.VSphereCluster.Spec.ControlPlaneEndpoint.Host,
-			"port", ctx.VSphereCluster.Spec.ControlPlaneEndpoint.Port)
-
-		return nil
+		ctx.VSphereCluster.Spec.ControlPlaneEndpoint.Port = defaultAPIEndpointPort
+		ctx.Logger.Info(
+			"ControlPlaneEndpoin discovered via control plane machine",
+			"controlPlaneEndpoint", ctx.VSphereCluster.Spec.ControlPlaneEndpoint)
+		return true, nil
 	}
-	return infrautilv1.ErrNoMachineIPAddr
+
+	return false, errors.Errorf("unable to determine control plane endpoint for %s", ctx)
+}
+
+var (
+	// apiServerTriggers is used to prevent multiple goroutines for a single
+	// Cluster that poll to see if the target API server is online.
+	apiServerTriggers   = map[types.UID]struct{}{}
+	apiServerTriggersMu sync.Mutex
+)
+
+func (r clusterReconciler) reconcileVSphereClusterWhenAPIServerIsOnline(ctx *context.ClusterContext) {
+	if ctx.Cluster.Status.ControlPlaneInitialized {
+		ctx.Logger.Info("skipping reconcile when API server is online",
+			"reason", "controlPlaneInitialized")
+		return
+	}
+	apiServerTriggersMu.Lock()
+	defer apiServerTriggersMu.Unlock()
+	if _, ok := apiServerTriggers[ctx.Cluster.UID]; ok {
+		ctx.Logger.Info("skipping reconcile when API server is online",
+			"reason", "alreadyPolling")
+		return
+	}
+	apiServerTriggers[ctx.Cluster.UID] = struct{}{}
+	go func() {
+		// Block until the target API server is online.
+		ctx.Logger.Info("start polling API server for online check")
+		wait.PollImmediateInfinite(time.Second*1, func() (bool, error) { return r.isAPIServerOnline(ctx), nil })
+		ctx.Logger.Info("stop polling API server for online check")
+		ctx.Logger.Info("triggering GenericEvent", "reason", "api-server-online")
+		eventChannel := ctx.GetGenericEventChannelFor(ctx.VSphereCluster.GetObjectKind().GroupVersionKind())
+		eventChannel <- event.GenericEvent{
+			Meta:   ctx.VSphereCluster,
+			Object: ctx.VSphereCluster,
+		}
+
+		// Once the control plane has been marked as initialized it is safe to
+		// remove the key from the map that prevents multiple goroutines from
+		// polling the API server to see if it is online.
+		ctx.Logger.Info("start polling for control plane initialized")
+		wait.PollImmediateInfinite(time.Second*1, func() (bool, error) { return r.isControlPlaneInitialized(ctx), nil })
+		ctx.Logger.Info("stop polling for control plane initialized")
+		apiServerTriggersMu.Lock()
+		delete(apiServerTriggers, ctx.Cluster.UID)
+		apiServerTriggersMu.Unlock()
+	}()
 }
 
 func (r clusterReconciler) isAPIServerOnline(ctx *context.ClusterContext) bool {
-	if client, err := infrautilv1.NewKubeClient(ctx, ctx.Client, ctx.Cluster); err == nil {
-		if _, err := client.CoreV1().Nodes().List(metav1.ListOptions{}); err == nil {
+	if kubeClient, err := infrautilv1.NewKubeClient(ctx, ctx.Client, ctx.Cluster); err == nil {
+		if _, err := kubeClient.CoreV1().Nodes().List(metav1.ListOptions{}); err == nil {
+			// The target cluster is online. To make sure the correct control
+			// plane endpoint information is logged, it is necessary to fetch
+			// an up-to-date Cluster resource. If this fails, then set the
+			// control plane endpoint information to the values from the
+			// VSphereCluster resource, as it must have the correct information
+			// if the API server is online.
+			cluster := &clusterv1.Cluster{}
+			clusterKey := client.ObjectKey{Namespace: ctx.Cluster.Namespace, Name: ctx.Cluster.Name}
+			if err := ctx.Client.Get(ctx, clusterKey, cluster); err != nil {
+				cluster = ctx.Cluster.DeepCopy()
+				cluster.Spec.ControlPlaneEndpoint.Host = ctx.VSphereCluster.Spec.ControlPlaneEndpoint.Host
+				cluster.Spec.ControlPlaneEndpoint.Port = ctx.VSphereCluster.Spec.ControlPlaneEndpoint.Port
+				ctx.Logger.Error(err, "failed to get updated cluster object while checking if API server is online")
+			}
+			ctx.Logger.Info(
+				"API server is online",
+				"controlPlaneEndpoint", cluster.Spec.ControlPlaneEndpoint.String())
 			return true
 		}
 	}
 	return false
+}
+
+func (r clusterReconciler) isControlPlaneInitialized(ctx *context.ClusterContext) bool {
+	cluster := &clusterv1.Cluster{}
+	clusterKey := client.ObjectKey{Namespace: ctx.Cluster.Namespace, Name: ctx.Cluster.Name}
+	if err := ctx.Client.Get(ctx, clusterKey, cluster); err != nil {
+		if !apierrors.IsNotFound(err) {
+			ctx.Logger.Error(err, "failed to get updated cluster object while checking if control plane is initialized")
+			return false
+		}
+		ctx.Logger.Info("exiting early because cluster no longer exists")
+		return true
+	}
+	return cluster.Status.ControlPlaneInitialized
 }
 
 func (r clusterReconciler) reconcileCloudProvider(ctx *context.ClusterContext) error {
@@ -339,7 +567,6 @@ func (r clusterReconciler) reconcileCloudProvider(ctx *context.ClusterContext) e
 		ctx.Logger.V(2).Info(
 			"cloud provider config was not specified in VSphereCluster, skipping reconciliation of the cloud provider integration",
 		)
-
 		return nil
 	}
 
@@ -535,7 +762,7 @@ func (r clusterReconciler) reconcileCloudConfigSecret(ctx *context.ClusterContex
 			ctx.Cluster.Namespace, ctx.Cluster.Name)
 	}
 
-	ctx.Logger.V(6).Info("created cloud provider credential secret",
+	ctx.Logger.Info("created cloud provider credential secret",
 		"cluster-namespace", ctx.Cluster.Namespace,
 		"cluster-name", ctx.Cluster.Name,
 		"secret-name", secret.Name,
@@ -556,7 +783,7 @@ func (r clusterReconciler) controlPlaneMachineToCluster(o handler.MapObject) []c
 	if !infrautilv1.IsControlPlaneMachine(vsphereMachine) {
 		return nil
 	}
-	if len(vsphereMachine.Status.Network) == 0 {
+	if len(vsphereMachine.Status.Addresses) == 0 {
 		return nil
 	}
 	// Get the VSphereMachine's preferred IP address.
@@ -605,6 +832,54 @@ func (r clusterReconciler) controlPlaneMachineToCluster(o handler.MapObject) []c
 		NamespacedName: types.NamespacedName{
 			Namespace: vsphereClusterKey.Namespace,
 			Name:      vsphereClusterKey.Name,
+		},
+	}}
+}
+
+// loadBalancerToCluster is a handler.ToRequestsFunc that triggers
+// reconcile events for a VSphereCluster resource when a load balancer
+// resource is reconciled.
+func (r clusterReconciler) loadBalancerToCluster(o handler.MapObject) []ctrl.Request {
+	obj, ok := o.Object.(metav1.Object)
+	if !ok {
+		r.Logger.Error(nil, fmt.Sprintf("expected an metav1.Object but got a %T", o.Object))
+		return nil
+	}
+
+	var clusterRef *metav1.OwnerReference
+	for _, ownerRef := range obj.GetOwnerReferences() {
+		if ownerRef.APIVersion == clusterv1.GroupVersion.String() &&
+			ownerRef.Kind == "Cluster" {
+			clusterRef = &ownerRef
+		}
+	}
+	if clusterRef == nil {
+		return nil
+	}
+
+	cluster := &clusterv1.Cluster{}
+	clusterKey := client.ObjectKey{
+		Namespace: obj.GetNamespace(),
+		Name:      clusterRef.Name,
+	}
+	if err := r.Client.Get(r, clusterKey, cluster); err != nil {
+		return nil
+	}
+
+	infraRef := cluster.Spec.InfrastructureRef
+	if infraRef == nil {
+		return nil
+	}
+
+	if infraRef.APIVersion != infrav1.GroupVersion.String() ||
+		infraRef.Kind != "VSphereCluster" {
+		return nil
+	}
+
+	return []ctrl.Request{{
+		NamespacedName: types.NamespacedName{
+			Namespace: infraRef.Namespace,
+			Name:      infraRef.Name,
 		},
 	}}
 }

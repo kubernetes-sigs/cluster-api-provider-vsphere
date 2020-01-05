@@ -1,0 +1,97 @@
+{
+  "variables": {
+    "build_timestamp": "{{timestamp}}",
+    "version": "v1alpha3",
+    "dataplaneapi_version": "1.2.4",
+    "disk_type_id": "0",
+    "existing_ansible_ssh_args": "{{env `ANSIBLE_SSH_ARGS`}}",
+    "guestinfo_datasource_slug": "https://raw.githubusercontent.com/vmware/cloud-init-vmware-guestinfo",
+    "guestinfo_datasource_ref": "master",
+    "headless": "true",
+    "iso_url": "http://dl.bintray.com/vmware/photon/3.0/Rev2/iso/photon-3.0-58f9c74.iso",
+    "iso_checksum": "545a9d0d53cb2109381bd9ae9eb837579f2ef1ee",
+    "iso_checksum_type": "sha1",
+    "skip_compaction": "false",
+    "ssh_username": "photon",
+    "ssh_password": "photon",
+    "vmx_version": "13",
+    "vnc_bind_address": "127.0.0.1",
+    "vnc_disable_password": "false",
+    "vnc_port_min": "5900",
+    "vnc_port_max": "6000"
+  },
+  "builders": [
+    {
+      "name": "capv-haproxy",
+      "vm_name": "capv-haproxy",
+      "vmdk_name": "capv-haproxy",
+      "output_directory": "./output",
+      "type": "vmware-iso",
+      "version": "{{user `vmx_version`}}",
+      "cpus": 1,
+      "cores": 1,
+      "memory": 2048,
+      "disk_size": 20480,
+      "disk_type_id": "0",
+      "boot_wait": "5s",
+      "http_directory": "{{pwd}}",
+      "guest_os_type": "other3xlinux-64",
+      "headless": "{{user `headless`}}",
+      "iso_url": "{{user `iso_url`}}",
+      "iso_checksum": "{{user `iso_checksum`}}",
+      "iso_checksum_type": "{{user `iso_checksum_type`}}",
+      "ssh_username": "{{user `ssh_username`}}",
+      "ssh_password": "{{user `ssh_password`}}",
+      "ssh_wait_timeout": "60m",
+      "boot_command": [
+        "<esc><wait>",
+        "vmlinuz initrd=initrd.img root=/dev/ram0 loglevel=3 ",
+        "ks=http://{{ .HTTPIP }}:{{ .HTTPPort }}/kickstart.json ",
+        "photon.media=cdrom<enter>"
+      ],
+      "shutdown_command": "echo '{{user `ssh_password`}}' | sudo -S -E sh -c 'usermod -L root && usermod -L {{user `ssh_username`}} && shutdown now'",
+      "skip_compaction": "{{user `skip_compaction`}}",
+      "vnc_bind_address": "{{user `vnc_bind_address`}}",
+      "vnc_port_min": "{{user `vnc_port_min`}}",
+      "vnc_port_max": "{{user `vnc_port_max`}}",
+      "vnc_disable_password": "{{user `vnc_disable_password`}}"
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "ansible",
+      "playbook_file": "./ansible/playbook.yml",
+      "ansible_env_vars": [
+        "ANSIBLE_SSH_ARGS='{{user `existing_ansible_ssh_args`}} -o IdentitiesOnly=yes'",
+        "ANSIBLE_REMOTE_TEMP='/tmp/.ansible/'"
+      ],
+      "extra_arguments": [
+        "--extra-vars",
+        "dataplaneapi_version={{user `dataplaneapi_version`}} guestinfo_datasource_slug={{user `guestinfo_datasource_slug`}} guestinfo_datasource_ref={{user `guestinfo_datasource_ref`}}"
+      ]
+    }
+  ],
+  "post-processors": [
+    {
+      "type": "manifest",
+      "output": "./output/packer-manifest.json",
+      "strip_path": true,
+      "custom_data": {
+        "build_timestamp": "{{user `build_timestamp`}}",
+        "build_date": "{{isotime}}",
+        "version": "{{user `version`}}",
+        "iso_checksum": "{{user `iso_checksum`}}",
+        "iso_checksum_type": "{{user `iso_checksum_type`}}",
+        "iso_url": "{{user `iso_url`}}"
+      }
+    },
+    {
+      "type": "shell-local",
+      "command": "./hack/image-build-ova.py --vmx {{user `vmx_version`}} ./output"
+    },
+    {
+      "type": "shell-local",
+      "command": "./hack/image-post-create-config.sh ./output"
+    }
+  ]
+}

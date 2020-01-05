@@ -18,15 +18,6 @@ rules:
   - update
   - watch
 - apiGroups:
-  - bootstrap.cluster.x-k8s.io
-  resources:
-  - kubeadmconfigs
-  - kubeadmconfigs/status
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
   - cluster.x-k8s.io
   resources:
   - clusters
@@ -50,10 +41,31 @@ rules:
   - secrets
   verbs:
   - create
+  - delete
   - get
   - list
   - patch
   - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - haproxyloadbalancers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - haproxyloadbalancers/status
+  verbs:
+  - get
+  - patch
+  - update
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
@@ -90,6 +102,26 @@ rules:
   - infrastructure.cluster.x-k8s.io
   resources:
   - vspheremachines/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - vspherevms
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - vspherevms/status
   verbs:
   - get
   - patch

@@ -1,0 +1,76 @@
+## template: jinja
+#cloud-config
+
+write_files:
+- path: /etc/haproxy/ca.crt
+  owner: haproxy:haproxy
+  permissions: "0640"
+  content: |
+    -----BEGIN CERTIFICATE-----
+    MIIDjzCCAnegAwIBAgIJAPuZr7nL/tRlMA0GCSqGSIb3DQEBBQUAMGUxCzAJBgNV
+    BAYTAlVTMRMwEQYDVQQIDApDYWxpZm9ybmlhMRIwEAYDVQQHDAlQYWxvIEFsdG8x
+    DzANBgNVBAoMBlZNd2FyZTENMAsGA1UECwwEQ0FQVjENMAsGA1UEAwwEY2FwdjAe
+    Fw0xOTEyMjMxODQzMzdaFw0yOTEyMjAxODQzMzdaMGUxCzAJBgNVBAYTAlVTMRMw
+    EQYDVQQIDApDYWxpZm9ybmlhMRIwEAYDVQQHDAlQYWxvIEFsdG8xDzANBgNVBAoM
+    BlZNd2FyZTENMAsGA1UECwwEQ0FQVjENMAsGA1UEAwwEY2FwdjCCASIwDQYJKoZI
+    hvcNAQEBBQADggEPADCCAQoCggEBANfNCeDtgvR5LukAmIR7FSw+vk9D9EagLoJz
+    p/PbCsOzB4HK2kPMPa3co+PRAUP0hZZzyKhhK8FZEUwm8Zy6a7SI9pGCyzi2JKo6
+    fIzWXGRqKshkwJSWFkboAMwHQNpL78blplM4RRUZHsoXvslwStkohB2/b2qcK9+X
+    N3zjccffECBNmQXuVST7dnINYl1c4VDYUwHPMwVNleeNIDXSYuUs2zlKpcIjSeLq
+    5KKAed7iew75Gs+vvBbjeMqVJNFZVBUE/VUo5Ah2BLMsnp0Ho8kZGJIAW+QYLY4c
+    wbrYBpnjIVFv07eia60OwhjWvGlopINfuPHhWVkreUNkyvDuV60CAwEAAaNCMEAw
+    DwYDVR0TAQH/BAUwAwEB/zAOBgNVHQ8BAf8EBAMCAYYwHQYDVR0OBBYEFA8Q016e
+    3JD5NZGyQqU54xDV2uPLMA0GCSqGSIb3DQEBBQUAA4IBAQDMHxLDpfBEQTr8mpCI
+    MrSU7lsoOCjrJplDOscM94xa8GTwW9Qw8nLBW8fTs7jxoUVfOrfGKXVHI1K+cH2d
+    9hfZrcpFb7irjyMpzst16tQdPR2WBOb8FBa2NeUlpK8Ij3WsJydSD8wAD0uIj/l2
+    NCkwLmH4LL04fhZxC5Gk+haNf6mXhqmX9/S9Eddm1P7gfkEvaP8mQR6INIpg2ahN
+    FO7c6GMD86bZqrcnggT4onWwD7zYFQ21x545XcpoYGyI4rRRTmUeX/AMrx6m3oM2
+    jAfels+RGMoo+WgNTzFBZztoY4ZFLH8FeQlWPgD4ZwAT/3L7gMl6M9QJ30rVX52J
+    4a2Y
+    -----END CERTIFICATE-----
+- path: /etc/haproxy/ca.key
+  owner: haproxy:haproxy
+  permissions: "0440"
+  content: |
+    -----BEGIN RSA PRIVATE KEY-----
+    MIIEowIBAAKCAQEA180J4O2C9Hku6QCYhHsVLD6+T0P0RqAugnOn89sKw7MHgcra
+    Q8w9rdyj49EBQ/SFlnPIqGErwVkRTCbxnLprtIj2kYLLOLYkqjp8jNZcZGoqyGTA
+    lJYWRugAzAdA2kvvxuWmUzhFFRkeyhe+yXBK2SiEHb9vapwr35c3fONxx98QIE2Z
+    Be5VJPt2cg1iXVzhUNhTAc8zBU2V540gNdJi5SzbOUqlwiNJ4urkooB53uJ7Dvka
+    z6+8FuN4ypUk0VlUFQT9VSjkCHYEsyyenQejyRkYkgBb5BgtjhzButgGmeMhUW/T
+    t6JrrQ7CGNa8aWikg1+48eFZWSt5Q2TK8O5XrQIDAQABAoIBACOjWdlKgBDtnmCe
+    V5GxXerDpdwjRckQFP44KWltKBbvjvLRVEBUD2+R+4LY9lOJozIYhu+/tGEm22Nv
+    HwGaC8VxxP580iDYe6+dHwqHMBTpL42Ojfs72gv1roQDQqOKXNvE+zXNGiOE1X/c
+    cgaEQ+ge98qN3dGGXvx61ZALY7P1BcHzEhZl21sGBi7/qCcPAFRIFAEvLUdZbAcN
+    PAE3FDAdFeRjqGywWrdYVpzR0FE2+xITUj73+jOKkn03diZVxB0hJ1EugWHnGc7X
+    c10zUwpM2VoBrmr5R/fhcgpRfET8vA0EJkWmAgxmtwY64dU/TBB2PhHLS2noD8Q/
+    X0XVYYECgYEA+sxAVVkoVB/d6HGHH7kKifnc0qXmiC8RVLcrXTTLsJE7L1gOBMfM
+    J2z7EEps0lRAvdzruZefqoVpd8Mh44zekBCy1JNMzl5y4OwrLLXxlySXMnLfETvA
+    MW9fGnyAIPG4/a633zG2WGAm3EFgVoxTTSKok3y7lmOGgPDpH8mqzOECgYEA3Ebz
+    sbkG9jyk/R/2qEl3LxM6ynt7VKfDfteOs6Rx7mce01KF9WNv9gXv4LYEiWgRNd+c
+    c38EeXcPqG3AhY853721nGP1zl0CXbSrDt/bB1RZUWqhdYB+tOtzXCxm1QR1te/3
+    MoX2fXJm5/jEwojHofxxEpTVmHMjQ0vDIvntuE0CgYBXlZL1+1/pGQPfFB6TRoTW
+    sIqcidFbR8yuoBUlxLVJoT5hB0hGBRxXvGhlRQiB32iIpakwtDHPVC4D5AJmvCBR
+    gXNiZ1qQS02lHPTq9VM8bEvdE16xXwN8gB9fWZFJcAEhnq2Z5Xt/m3yWuMITF4hT
+    zMHAV/QOzgz/5KIVNtFOIQKBgQCjDr6cQ4wcwL2dRojvABsCtOhjNM8R1nIHtgdD
+    gap4wMr3wXG6OVaKttBf9j0bffane5SzhkXIqFLl6gCGnYRI1ITYdMJjdUQoG3I4
+    u4rGPTE07IsCkRC6WkR16cRhUUDVYgIJ21KggAwfEW6NVnT4uwb0q0oF5M0opq+X
+    d4z6TQKBgBXSWaR2zk12Z7wxFy4W04nrZlyr3eMX8xnyhlpmaYbkF17R26cAY5Gs
+    x6DRp6vI4VvtQdh0FVVBtwoUVsudOHQCFaASLaIHb5S7p6WorTnGpI0szo6RCAqN
+    yFMRD/+V5NxtoYaHKR/Poqdj3f22Oko8rKYxpU0j/mGET+tPaF5s
+    -----END RSA PRIVATE KEY-----
+
+runcmd:
+- "hostname \"{{ ds.meta_data.hostname }}\""
+- "hostnamectl set-hostname \"{{ ds.meta_data.hostname }}\""
+- "echo \"::1         ipv6-localhost ipv6-loopback\" >/etc/hosts"
+- "echo \"127.0.0.1   localhost {{ ds.meta_data.hostname }}\" >>/etc/hosts"
+- "echo \"127.0.0.1   {{ ds.meta_data.hostname }}\" >>/etc/hosts"
+- "echo \"{{ ds.meta_data.hostname }}\" >/etc/hostname"
+- "new-cert.sh -1 /etc/haproxy/ca.crt -2 /etc/haproxy/ca.key -3 \"127.0.0.1,{{ ds.meta_data.local_ipv4 }}\" -4 \"localhost\" \"{{ ds.meta_data.hostname }}\" /etc/haproxy"
+
+users:
+- name: capv
+  sudo: ALL=(ALL) NOPASSWD:ALL
+  ssh_authorized_keys:
+    - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDFIKszT265HYuhwWJ3CwozCKXI3y94bQoocQf1/ERq7XkWJ57W3rkbpMXtM0l1IKfhjnkRzFkXDa5WgRYFvAosh68LeKmYhoJYOKnyvx/nYBT/aYWdLu/edgv8T8GYKG1MiU6RdNvsGsXIAKhknBtcsmTcR2niEwOmXQ5M/P3oMswWk+4WIcWyJU6BWAQbK/alVn5kIRQFas47k6Pkm1Tg7TKv+MOX6JPzv8gOqxvqcXFKoEcTthC2JsKvmRwAOtLrBHh5BMzOKV9G+CnmgzmM/p6qU1nfebvDNuBtzThURP0lTcJGmf+g5WtbJ8vdUd+MAFZGpvoARl1v1s4Ubked capi

@@ -1,5 +1,5 @@
-.git
-.github
+.git/
+.github/
 .vscode
 .dockerignore
 .gitignore
@@ -7,12 +7,14 @@
 .markdownlintrc
 *.out
 bin/
-build/
+hack/.bin/
+hack/tools/bin/
+hack/tools/haproxy/
 out/
 docs/
 scripts/
 **/.md
-/*.test
-/cluster-api-provider-vsphere
-/examples/provider-components/provider-components*.yaml
+*.test
+cluster-api-provider-vsphere
+examples/provider-components/provider-components*.yaml
 test/

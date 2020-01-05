@@ -1,0 +1,12 @@
+cleanup-guestinfo:
+- userdata
+instance-id: haproxy-lb
+local-hostname: haproxy-lb.vm
+network:
+  version: 2
+  ethernets:
+    nics:
+      match:
+        name: ens*
+      dhcp4: yes
+      dhcp6: yes

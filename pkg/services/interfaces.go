@@ -25,8 +25,8 @@ import (
 // machines on vSphere.
 type VirtualMachineService interface {
 	// ReconcileVM reconciles a VM with the intended state.
-	ReconcileVM(ctx *context.MachineContext) (infrav1.VirtualMachine, error)
+	ReconcileVM(ctx *context.VMContext) (infrav1.VirtualMachine, error)
 
 	// DestroyVM powers off and removes a VM from the inventory.
-	DestroyVM(ctx *context.MachineContext) (infrav1.VirtualMachine, error)
+	DestroyVM(ctx *context.VMContext) (infrav1.VirtualMachine, error)
 }

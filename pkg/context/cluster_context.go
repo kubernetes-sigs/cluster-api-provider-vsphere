@@ -26,7 +26,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
 )
 
-// ClusterContext is a Go context used with a CAPI cluster.
+// ClusterContext is a Go context used with a VSphereCluster.
 type ClusterContext struct {
 	*ControllerContext
 	Cluster        *clusterv1.Cluster
@@ -35,7 +35,7 @@ type ClusterContext struct {
 	Logger         logr.Logger
 }
 
-// String returns ClusterGroupVersionKind ClusterNamespace/ClusterName.
+// String returns VSphereClusterGroupVersionKind VSphereClusterNamespace/VSphereClusterName.
 func (c *ClusterContext) String() string {
 	return fmt.Sprintf("%s %s/%s", c.VSphereCluster.GroupVersionKind(), c.VSphereCluster.Namespace, c.VSphereCluster.Name)
 }

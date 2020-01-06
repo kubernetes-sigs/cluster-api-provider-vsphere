@@ -17,6 +17,7 @@ limitations under the License.
 package framework
 
 import (
+	"bytes"
 	"context"
 
 	. "github.com/onsi/ginkgo" //nolint:golint
@@ -117,7 +118,8 @@ func InitManagementCluster(ctx context.Context, input *InitManagementClusterInpu
 	Expect(docker.Pull(ctx, input.CapiImage)).To(Succeed())
 
 	// Set up the provider component generators based on master
-	coreComponents := &generators.ClusterAPI{GitRef: input.CapiGitRef}
+	coreComponents := &componentGeneratorWrapper{parent: &generators.ClusterAPI{GitRef: input.CapiGitRef}}
+	coreComponents.Manifests(ctx)
 
 	// Set up the certificate manager.
 	certComponents := &generators.CertManager{ReleaseVersion: input.CertGitRef}
@@ -157,4 +159,20 @@ func InitManagementCluster(ctx context.Context, input *InitManagementClusterInpu
 	WaitForPodsReadyInNamespace(ctx, managementCluster, input.InfraNamespace)
 
 	return managementCluster
+}
+
+type componentGeneratorWrapper struct {
+	parent ComponentGenerator
+}
+
+func (g *componentGeneratorWrapper) GetName() string {
+	return g.parent.GetName()
+}
+
+func (g *componentGeneratorWrapper) Manifests(ctx context.Context) ([]byte, error) {
+	buf, err := g.parent.Manifests(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return bytes.Replace(buf, []byte("gcr.io/k8s-staging-cluster-api/cluster-api-controller:master"), []byte(Flags.CapiImage), -1), nil
 }

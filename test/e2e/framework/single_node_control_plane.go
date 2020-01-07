@@ -101,19 +101,18 @@ func SingleNodeControlPlane(input *SingleNodeControlPlaneInput) {
 	By("creating a core Machine resource with a linked InfrastructureMachine and BootstrapConfig")
 	Expect(mgmtClient.Create(ctx, input.ControlPlaneNode.Machine)).To(Succeed())
 
-	// Wait for the target cluster's control plane to be initialized.
-	By("waiting for cluster's control plane to be initialized")
-	Eventually(func() (bool, error) {
+	By("waiting for cluster to enter the provisioned phase")
+	Eventually(func() (string, error) {
 		cluster := &clusterv1.Cluster{}
 		key := client.ObjectKey{
 			Namespace: input.Cluster.GetNamespace(),
 			Name:      input.Cluster.GetName(),
 		}
 		if err := mgmtClient.Get(ctx, key, cluster); err != nil {
-			return false, err
+			return "", err
 		}
-		return cluster.Status.ControlPlaneInitialized, nil
-	}, input.CreateTimeout, 10*time.Second).Should(BeTrue())
+		return cluster.Status.Phase, nil
+	}, input.CreateTimeout, 10*time.Second).Should(Equal(string(clusterv1.ClusterPhaseProvisioned)))
 
 	// Create the machine deployment if the replica count >0.
 	if machineDeployment := input.MachineDeployment.MachineDeployment; machineDeployment != nil {

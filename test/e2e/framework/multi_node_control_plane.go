@@ -103,20 +103,6 @@ func MultiNodeControlPlane(input *MultiNodeControlPlaneInput) {
 	By("creating the primary core Machine resource with a linked InfrastructureMachine and BootstrapConfig")
 	Expect(mgmtClient.Create(ctx, input.PrimaryControlPlaneNode.Machine)).To(Succeed())
 
-	// Wait for the target cluster's control plane to be initialized.
-	By("waiting for cluster's control plane to be initialized")
-	Eventually(func() (bool, error) {
-		cluster := &clusterv1.Cluster{}
-		key := client.ObjectKey{
-			Namespace: input.Cluster.GetNamespace(),
-			Name:      input.Cluster.GetName(),
-		}
-		if err := mgmtClient.Get(ctx, key, cluster); err != nil {
-			return false, err
-		}
-		return cluster.Status.ControlPlaneInitialized, nil
-	}, input.CreateTimeout, 10*time.Second).Should(BeTrue())
-
 	for _, node := range input.AdditionalControlPlaneNodes {
 		expectedNumberOfNodes++
 
@@ -146,6 +132,19 @@ func MultiNodeControlPlane(input *MultiNodeControlPlaneInput) {
 			Expect(mgmtClient.Create(ctx, input.MachineDeployment.InfraMachineTemplate)).To(Succeed())
 		}
 	}
+
+	By("waiting for cluster to enter the provisioned phase")
+	Eventually(func() (string, error) {
+		cluster := &clusterv1.Cluster{}
+		key := client.ObjectKey{
+			Namespace: input.Cluster.GetNamespace(),
+			Name:      input.Cluster.GetName(),
+		}
+		if err := mgmtClient.Get(ctx, key, cluster); err != nil {
+			return "", err
+		}
+		return cluster.Status.Phase, nil
+	}, input.CreateTimeout, 10*time.Second).Should(Equal(string(clusterv1.ClusterPhaseProvisioned)))
 
 	By("waiting for the workload nodes to exist")
 	Eventually(func() ([]v1.Node, error) {

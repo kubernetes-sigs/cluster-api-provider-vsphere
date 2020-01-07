@@ -18,6 +18,7 @@ package util
 
 import (
 	"context"
+	"time"
 
 	"github.com/pkg/errors"
 	"k8s.io/client-go/kubernetes"
@@ -45,6 +46,8 @@ func NewKubeClient(
 		return nil, errors.Wrapf(err, "failed to create client configuration for Cluster %q in namespace %q",
 			cluster.Name, cluster.Namespace)
 	}
+	// sets the timeout, otherwise this will default to 0 (i.e. no timeout) which might cause tests to hang
+	restConfig.Timeout = 10 * time.Second
 
 	return kubernetes.NewForConfig(restConfig)
 }

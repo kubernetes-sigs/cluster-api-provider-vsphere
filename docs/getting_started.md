@@ -24,17 +24,17 @@ This is a guide on how to get started with CAPV (Cluster API Provider vSphere). 
 
 #### clusterctl
 
-Please download the latest `clusterctl` from the Cluster API (CAPI), GitHub [releases page](https://github.com/kubernetes-sigs/cluster-api/releases).
+Download the latest `clusterctl` from the Cluster API (CAPI), GitHub [releases page](https://github.com/kubernetes-sigs/cluster-api/releases).
 
-#### Docker
+##### Docker
 
 Docker is required for the bootstrap cluster using `clusterctl`. See the [docker documentation](https://docs.docker.com/glossary/?term=install) for install instructions.
 
-#### Kind
+##### Kind
 
 `clusterctl` uses [Kind](https://github.com/kubernetes-sigs/kind) to provision the bootstrap cluster. Please see the [kind documentation](https://kind.sigs.k8s.io) for install instructions.
 
-#### kubectl
+##### kubectl
 
 `kubectl` is required to use `clusterctl`. See [Install and Set Up kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) for install instructions.
 
@@ -46,9 +46,21 @@ In order for `clusterctl` to bootstrap a management cluster on vSphere, it must 
 
 #### Uploading the CAPV Machine Image
 
-It is required that machines provisioned by CAPV use one of the official CAPV machine images as a VM template. The machine images are retrievable from public URLs. CAPV currently supports machine images based on Ubuntu 18.04 and CentOS 7. A list of published machine images is available [here](../README.md#kubernetes-versions-with-published-ovas). For this guide we'll be deploying Kubernetes v1.16.2 on Ubuntu 18.04 (link to [machine image](https://storage.googleapis.com/capv-images/release/v1.16.2/ubuntu-1804-kube-v1.16.2.ova)).
+It is required that machines provisioned by CAPV use one of the official CAPV machine images as a VM template. The machine images are retrievable from public URLs. CAPV currently supports machine images based on Ubuntu 18.04 and CentOS 7. 
+- A list of published machine images is available [here](../README.md#kubernetes-versions-with-published-ovas) you can pick one. For this guide we'll be deploying Kubernetes v1.16.2 on Ubuntu 18.04 (link to [machine image](https://storage.googleapis.com/capv-images/release/v1.16.2/ubuntu-1804-kube-v1.16.2.ova)).
 
 [Create a VM template](https://docs.vmware.com/en/VMware-vSphere/6.7/com.vmware.vsphere.vm_admin.doc/GUID-17BEDA21-43F6-41F4-8FB2-E01D275FE9B4.html) using the OVA URL above. The rest of the guide will assume you named the VM template `ubuntu-1804-kube-v1.15.4`.
+
+##### Quick Example for Ubuntu which enables Linked clones
+
+There are many ways to do this, but here is an example workflow for Ubuntu18 which should just work for your first time installation: 
+
+- click on your ESXI parent, and click "Deploy OVF Template"
+- Enter http://storage.googleapis.com/capv-images/release/v1.16.3/ubuntu-1804-kube-v1.16.3.ova as the value of the URL for this template.
+- Wait for the template to import (it might take a few minutes to download and deploy)
+- Click on the deployed VM, and then convert it to a template.
+
+You now have an immutable and easily cloned base OS for CAPV to use when creating clusters.
 
 **Note:** If you are planning to use CNS/CSI then you will need to ensure that the template is at least at VM Hardware Version 13, This is done out-of-the-box for images of K8s version `v1.15.4` and above. For versions lower than this you will need to upgrade the VMHW either [in the UI](https://kb.vmware.com/s/article/1010675) or with [`govc`](https://github.com/vmware/govmomi/tree/master/govc) as such:
 

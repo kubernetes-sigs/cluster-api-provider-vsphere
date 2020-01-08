@@ -400,7 +400,7 @@ Use `kubectl` with the `kubeconfig` for the management cluster to provision the 
     kubectl apply -f ./out/workload-cluster-1/machinedeployment.yaml
     ```
 
-Clusters that are provisioned by the management cluster that run your application workloads are called [Workload Clusters](https://github.com/kubernetes-sigs/cluster-api/blob/master/docs/book/GLOSSARY.md#workload-cluster).
+Clusters that are provisioned by the management cluster that run your application workloads are called [Workload clusters] (https://github.com/kubernetes-sigs/cluster-api/blob/master/docs/book/src/reference/glossary.md).
 
 The `kubeconfig` file to access workload clusters should be accessible as a Kubernetes Secret on the management cluster. As of today, the Secret resource is named `<cluster-name>-kubeconfig` in the same namespace as the cluster to which the Secret belongs. For the example above, you can list all the kubeconfig files and then retrive the corresponding kubeconfig like so:
 

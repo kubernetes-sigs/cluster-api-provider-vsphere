@@ -141,7 +141,8 @@ Once `clusterctl` has completed successfully, the file `./out/management-cluster
 
 **NOTE**: From this point forward `clusterctl` is no longer required to provision new clusters. Workload clusters should be provisioned by applying Cluster API resources directly on the management cluster using `kubectl`.
 
-## Managing Workload Clusters using the Management Cluster
+## Managing f
+Clusters using the Management Cluster
 
 With your management cluster bootstrapped, it's time to reap the benefits of Cluster API. From this point forward, clusters and machines (belonging to a cluster) are simply provisioned by creating `Cluster`, `Machine` and `MachineDeployment`, and `KubeadmConfig` resources.
 
@@ -400,7 +401,7 @@ Use `kubectl` with the `kubeconfig` for the management cluster to provision the 
     kubectl apply -f ./out/workload-cluster-1/machinedeployment.yaml
     ```
 
-Clusters that are provisioned by the management cluster that run your application workloads are called [Workload clusters] (https://github.com/kubernetes-sigs/cluster-api/blob/master/docs/book/src/reference/glossary.md).
+Clusters that are provisioned by the management cluster that run your application workloads are called [Workload clusters](https://github.com/kubernetes-sigs/cluster-api/blob/master/docs/book/src/reference/glossary.md).
 
 The `kubeconfig` file to access workload clusters should be accessible as a Kubernetes Secret on the management cluster. As of today, the Secret resource is named `<cluster-name>-kubeconfig` in the same namespace as the cluster to which the Secret belongs. For the example above, you can list all the kubeconfig files and then retrive the corresponding kubeconfig like so:
 

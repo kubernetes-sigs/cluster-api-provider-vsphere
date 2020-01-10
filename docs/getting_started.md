@@ -26,15 +26,15 @@ This is a guide on how to get started with CAPV (Cluster API Provider vSphere). 
 
 Download the latest `clusterctl` from the Cluster API (CAPI), GitHub [releases page](https://github.com/kubernetes-sigs/cluster-api/releases).
 
-##### Docker
-
-Docker is required for the bootstrap cluster using `clusterctl`. See the [docker documentation](https://docs.docker.com/glossary/?term=install) for install instructions.
-
 ##### Kind
 
 `clusterctl` uses [Kind](https://github.com/kubernetes-sigs/kind) to provision the bootstrap cluster. Please see the [kind documentation](https://kind.sigs.k8s.io) for install instructions.
 
-##### kubectl
+#### Docker
+
+Docker is required for the bootstrap cluster using `clusterctl`. See the [docker documentation](https://docs.docker.com/glossary/?term=install) for install instructions.
+
+#### kubectl
 
 `kubectl` is required to use `clusterctl`. See [Install and Set Up kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) for install instructions.
 
@@ -53,10 +53,10 @@ It is required that machines provisioned by CAPV use one of the official CAPV ma
 
 ##### Quick Example for Ubuntu which enables Linked clones
 
-There are many ways to do this, but here is an example workflow for Ubuntu18 which should just work for your first time installation: 
+There are many ways to do this, but here is an example workflow for Ubuntu18.04 which should just work for your first time installation: 
 
 - click on your ESXI parent, and click "Deploy OVF Template"
-- Enter http://storage.googleapis.com/capv-images/release/v1.16.3/ubuntu-1804-kube-v1.16.3.ova as the value of the URL for this template.
+- Enter http://storage.googleapis.com/capv-images/release/v1.16.3/ubuntu-1804-kube-v1.16.2.ova as the value of the URL for this template.
 - Wait for the template to import (it might take a few minutes to download and deploy)
 - Click on the deployed VM, and then convert it to a template.
 

@@ -56,7 +56,7 @@ It is required that machines provisioned by CAPV use one of the official CAPV ma
 There are many ways to do this, but here is an example workflow for Ubuntu18.04 which should just work for your first time installation: 
 
 - click on your ESXI parent, and click "Deploy OVF Template"
-- Enter http://storage.googleapis.com/capv-images/release/v1.16.3/ubuntu-1804-kube-v1.16.2.ova as the value of the URL for this template.
+- Enter http://storage.googleapis.com/capv-images/release/v1.16.3/ubuntu-1804-kube-v1.16.3.ova as the value of the URL for this template.
 - Wait for the template to import (it might take a few minutes to download and deploy)
 - Click on the deployed VM, and then convert it to a template.
 

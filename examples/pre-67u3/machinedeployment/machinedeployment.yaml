@@ -56,7 +56,6 @@ spec:
           criSocket: "/var/run/containerd/containerd.sock"
           kubeletExtraArgs:
             cloud-provider: vsphere
-            cloud-config: /etc/kubernetes/vsphere.conf
       users:
       - name: capv
         sudo: "ALL=(ALL) NOPASSWD:ALL"

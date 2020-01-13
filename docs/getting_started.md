@@ -47,7 +47,7 @@ In order for `clusterctl` to bootstrap a management cluster on vSphere, it must 
 #### Uploading the CAPV Machine Image
 
 It is required that machines provisioned by CAPV use one of the official CAPV machine images as a VM template. The machine images are retrievable from public URLs. CAPV currently supports machine images based on Ubuntu 18.04 and CentOS 7. 
-- A list of published machine images is available [here](../README.md#kubernetes-versions-with-published-ovas) you can pick one. For this guide we'll be deploying Kubernetes v1.16.3 on Ubuntu 18.04 (link to [machine image](http://storage.googleapis.com/capv-images/release/v1.16.3/ubuntu-1804-kube-v1.16.3.ova)).
+- A list of published machine images is available [here](../README.md#kubernetes-versions-with-published-ovas) you can pick one. For this guide we'll be deploying Kubernetes v1.16.3 on Ubuntu 18.04 (link to [machine image](https://storage.googleapis.com/capv-images/release/v1.16.3/ubuntu-1804-kube-v1.16.3.ova)).
 
 [Create a VM template](https://docs.vmware.com/en/VMware-vSphere/6.7/com.vmware.vsphere.vm_admin.doc/GUID-17BEDA21-43F6-41F4-8FB2-E01D275FE9B4.html) using the OVA URL above. The rest of the guide will assume you named the VM template `ubuntu-1804-kube-v1.15.4`.
 

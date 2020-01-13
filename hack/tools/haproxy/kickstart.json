@@ -5,7 +5,6 @@
     "text": "photon"
   },
   "disk": "/dev/sda",
-  "install_linux_esx": true,
   "packages": [
     "initramfs",
     "linux",

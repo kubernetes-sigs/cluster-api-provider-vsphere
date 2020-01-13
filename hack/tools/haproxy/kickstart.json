@@ -22,6 +22,7 @@
     "ntp",
     "openssh-server",
     "open-vm-tools",
+    "psmisc",
     "sed",
     "shadow",
     "sudo",
@@ -30,7 +31,7 @@
   ],
   "postinstall": [
     "#!/bin/bash",
-    "tdnf install -y bash ca-certificates curl gzip haproxy jq lsof lvm2 ntp openssh-server open-vm-tools sed shadow sudo tar vim",
+    "tdnf install -y bash ca-certificates curl gzip haproxy jq lsof lvm2 ntp openssh-server open-vm-tools psmisc sed shadow sudo tar vim",
     "useradd --create-home --home-dir=/home/photon --groups=wheel --user-group photon",
     "echo 'photon:photon' | chpasswd",
     "echo 'photon ALL=(ALL) NOPASSWD: ALL' >/etc/sudoers.d/photon",

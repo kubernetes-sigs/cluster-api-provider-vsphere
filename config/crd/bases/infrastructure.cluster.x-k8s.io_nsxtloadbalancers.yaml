@@ -1,0 +1,85 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.2.4
+  creationTimestamp: null
+  name: nsxtloadbalancers.infrastructure.cluster.x-k8s.io
+spec:
+  group: infrastructure.cluster.x-k8s.io
+  names:
+    kind: NSXTLoadBalancer
+    listKind: NSXTLoadBalancerList
+    plural: nsxtloadbalancers
+    singular: nsxtloadbalancer
+  scope: Namespaced
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      description: NSXTLoadBalancer is the Schema for the nsxtLoadBalancerStatus API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: NSXTLoadBalancerSpec defines the desired state of HAProxyLoadBalancer.
+          properties:
+            insecure:
+              description: Insecure is a flag that controls whether or not to validate
+                the NSX-T endpoint's certificate.
+              type: boolean
+            loadBalancerServiceID:
+              description: lbServiceID is the ID of the NSX-T LoadBalancer Service
+                where virtual servers for Service Type=LoadBalancer are created
+              type: string
+            server:
+              description: Server is the address of the NSX-T endpoint
+              type: string
+            virtualIPPoolID:
+              description: vipPoolID is the ID of the IP Pool where VIPs will be allocated
+              type: string
+          required:
+          - loadBalancerServiceID
+          - server
+          - virtualIPPoolID
+          type: object
+        status:
+          description: NSXTLoadBalancerStatus defines the observed state of NSXTLoadBalancer.
+          properties:
+            address:
+              description: "Address is the IP address or DNS name of the load balancer.
+                \n This field is required as part of the Portable Load Balancer model
+                and is inspected via an unstructured reader by other controllers to
+                determine the status of the load balancer."
+              type: string
+            ready:
+              description: "Ready indicates whether or not the load balancer is ready.
+                \n This field is required as part of the Portable Load Balancer model
+                and is inspected via an unstructured reader by other controllers to
+                determine the status of the load balancer."
+              type: boolean
+          type: object
+      type: object
+  version: v1alpha3
+  versions:
+  - name: v1alpha3
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

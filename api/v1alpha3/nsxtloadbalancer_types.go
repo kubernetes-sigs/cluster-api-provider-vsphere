@@ -26,10 +26,10 @@ const (
 	// NSXTLoadBalancerFinalizer allows a reconciler to clean up
 	// resources associated with an NSXTLoadBalancer before removing
 	// it from the API server.
-	NSXTLoadBalancerFinalizer = "haproxyloadbalancer.infrastructure.cluster.x-k8s.io"
+	NSXTLoadBalancerFinalizer = "nsxtloadbalancer.infrastructure.cluster.x-k8s.io"
 )
 
-// NSXTLoadBalancerSpec defines the desired state of HAProxyLoadBalancer.
+// NSXTLoadBalancerSpec defines the desired state of NSXTLoadBalancer.
 type NSXTLoadBalancerSpec struct {
 	// lbServiceID is the ID of the NSX-T LoadBalancer Service where virtual servers
 	// for Service Type=LoadBalancer are created
@@ -89,9 +89,9 @@ type NSXTLoadBalancer struct {
 type NSXTLoadBalancerList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []HAProxyLoadBalancer `json:"items"`
+	Items           []NSXTLoadBalancer `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&HAProxyLoadBalancer{}, &HAProxyLoadBalancerList{})
+	SchemeBuilder.Register(&NSXTLoadBalancer{}, &NSXTLoadBalancerList{})
 }

@@ -34,7 +34,7 @@ spec:
         metadata:
           type: object
         spec:
-          description: NSXTLoadBalancerSpec defines the desired state of HAProxyLoadBalancer.
+          description: NSXTLoadBalancerSpec defines the desired state of NSXTLoadBalancer.
           properties:
             insecure:
               description: Insecure is a flag that controls whether or not to validate

@@ -171,7 +171,7 @@ func (in *NSXTLoadBalancerList) DeepCopyInto(out *NSXTLoadBalancerList) {
 	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
-		*out = make([]HAProxyLoadBalancer, len(*in))
+		*out = make([]NSXTLoadBalancer, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}

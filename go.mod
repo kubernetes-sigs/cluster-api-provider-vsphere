@@ -10,6 +10,7 @@ require (
 	github.com/onsi/ginkgo v1.10.3
 	github.com/onsi/gomega v1.7.1
 	github.com/pkg/errors v0.8.1
+	github.com/vmware/go-vmware-nsxt v0.0.0-20191219213550-f4221331f638
 	github.com/vmware/govmomi v0.21.0
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	gopkg.in/gcfg.v1 v1.2.3

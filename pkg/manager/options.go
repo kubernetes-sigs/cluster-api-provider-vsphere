@@ -85,6 +85,14 @@ type Options struct {
 	// endpoints.
 	Password string
 
+	// NSXTUsername is the username for the account used to access remote vSphere
+	// endpoints.
+	NSXTUsername string
+
+	// NSXTPassword is the username for the account used to access remote vSphere
+	// endpoints.
+	NSXTPassword string
+
 	Logger     logr.Logger
 	KubeConfig *rest.Config
 	Scheme     *runtime.Scheme
@@ -135,5 +143,13 @@ func (o *Options) defaults() {
 
 	if o.Password == "" {
 		o.Password = os.Getenv("VSPHERE_PASSWORD")
+	}
+
+	if o.NSXTUsername == "" {
+		o.Username = os.Getenv("NSXT_USERNAME")
+	}
+
+	if o.NSXTPassword == "" {
+		o.Password = os.Getenv("NSXT_PASSWORD")
 	}
 }

@@ -20,9 +20,6 @@ SHELL := /usr/bin/env bash
 
 .DEFAULT_GOAL := help
 
-VERSION ?= $(shell git describe --always --dirty)
-PACKER_FLAGS += -var 'version=$(VERSION)'
-
 ## --------------------------------------
 ## Help
 ## --------------------------------------
@@ -31,27 +28,50 @@ help: ## Display this help
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z0-9_-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
 ## --------------------------------------
+## Variables
+## --------------------------------------
+
+# Initialize the version with the Git version.
+VERSION ?= $(shell git describe --always --dirty)
+
+## --------------------------------------
+## Packer flags
+## --------------------------------------
+PACKER_FLAGS += -var='version=$(VERSION)'
+
+# If FOREGROUND=1 then Packer will set headless to false, causing local builds
+# to build in the foreground, with a UI. This is very useful when debugging new
+# platforms or issues with existing ones.
+ifeq (1,$(strip $(FOREGROUND)))
+PACKER_FLAGS += -var="headless=false"
+endif
+
+# A list of variable files given to Packer.
+PACKER_VAR_FILES := $(strip $(foreach f,$(abspath $(PACKER_VAR_FILES)),-var-file="$(f)" ))
+
+# Initialize a list of flags to pass to Packer. This includes any existing flags
+# specified by PACKER_FLAGS, as well as prefixing the list with the variable
+# files from PACKER_VAR_FILES, with each file prefixed by -var-file=.
+#
+# Any existing values from PACKER_FLAGS take precendence over variable files.
+PACKER_FLAGS := $(PACKER_VAR_FILES) $(PACKER_FLAGS)
+
+## --------------------------------------
 ## OVA
 ## --------------------------------------
 
 .PHONY: build
-build: ## Builds the haproxy OVA
+build: ## Builds the HAProxy load balancer OVA
 	packer build $(PACKER_FLAGS) packer.json
 
-.PHONY: build-fg
-build-fg: PACKER_FLAGS += -var 'headless=false'
-build-fg: build
-build-fg: ## Builds the haproxy OVA in the foreground
-
-.PHONY: verify-packer
-verify-packer: ## Verifies the packer config
+.PHONY: verify
+verify: ## Verifies the packer config
 	packer validate $(PACKER_FLAGS) packer.json
 
 ## --------------------------------------
 ## Clean
 ## --------------------------------------
-
 .PHONY: clean
-clean: ## Cleans the build directory
+clean: ## Cleans all local image caches
 	rm -fr ./output
 

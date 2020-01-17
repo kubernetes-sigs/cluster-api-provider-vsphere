@@ -12,8 +12,8 @@ namespace: capv-system
 namePrefix: capv-
 
 # Labels to add to all resources and selectors.
-#commonLabels:
-#  someName: someValue
+commonLabels:
+  cluster.x-k8s.io/provider: "infrastructure-vsphere"
 
 resources:
 - ../crd

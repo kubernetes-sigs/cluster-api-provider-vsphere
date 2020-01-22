@@ -19,7 +19,7 @@ set -o errexit   # exits immediately on any unexpected error (does not bypass tr
 set -o nounset   # will error if variables are used without first being defined
 set -o pipefail  # any non-zero exit code in a piped command causes the pipeline to fail with that code
 
-KIND_VERSION="v0.5.1"
+KIND_VERSION="v0.7.0"
 
 install_govc() {
    GOVC_VERSION=v0.21.0

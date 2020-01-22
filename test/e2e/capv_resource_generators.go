@@ -23,6 +23,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
@@ -30,7 +31,6 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
 	cloudv1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3/cloudprovider"
-	frameworkx "sigs.k8s.io/cluster-api-provider-vsphere/test/e2e/framework"
 )
 
 var (
@@ -43,8 +43,7 @@ func init() {
 
 // ClusterGenerator may be used to generate a new CAPI and infrastructure
 // resource for testing.
-type ClusterGenerator struct {
-}
+type ClusterGenerator struct{}
 
 // Generate returns a new CAPI and infrastructure resource.
 func (c ClusterGenerator) Generate(clusterNamespace, clusterName string) (*clusterv1.Cluster, *infrav1.VSphereCluster) {
@@ -122,18 +121,13 @@ var (
 	lockPasswd = true
 )
 
-// NodeGenerator may be used to generate the resources required to create
-// machine resources for testing.
-type NodeGenerator struct {
-	counter int
-}
+// ControlPlaneNodeGenerator may be used to generate control plane nodes.
+type ControlPlaneNodeGenerator struct{}
 
 // Generate returns the resources required to create a machine.
-func (n *NodeGenerator) Generate(clusterNamespace, clusterName string) framework.Node {
+func (n ControlPlaneNodeGenerator) Generate(clusterNamespace, clusterName string) framework.Node {
+	generatedName := fmt.Sprintf("%s-%s", clusterName, Hash7())
 
-	generatedName := fmt.Sprintf("%s-%d", clusterName, n.counter)
-
-	n.counter++
 	infraMachine := &infrav1.VSphereMachine{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: clusterNamespace,
@@ -244,7 +238,7 @@ func (n *NodeGenerator) Generate(clusterNamespace, clusterName string) framework
 				Namespace:  infraMachine.GetNamespace(),
 				Name:       infraMachine.GetName(),
 			},
-			Version:     &frameworkx.Flags.KubernetesVersion,
+			Version:     &config.KubernetesVersion,
 			ClusterName: clusterName,
 		},
 	}
@@ -257,14 +251,14 @@ func (n *NodeGenerator) Generate(clusterNamespace, clusterName string) framework
 
 // MachineDeploymentGenerator may be used to generate the resources
 // required to create a machine deployment for testing.
-type MachineDeploymentGenerator struct {
-	counter int
-}
+type MachineDeploymentGenerator struct{}
 
 // Generate returns the resources required to create a machine deployment.
-func (n *MachineDeploymentGenerator) Generate(clusterNamespace, clusterName string, replicas int32) frameworkx.MachineDeployment {
-
-	generatedName := fmt.Sprintf("%s-%d", clusterName, n.counter)
+func (n MachineDeploymentGenerator) Generate(clusterNamespace, clusterName string, replicas int32) framework.MachineDeployment {
+	if replicas == 0 {
+		return framework.MachineDeployment{}
+	}
+	generatedName := clusterName
 
 	infraMachineTemplate := &infrav1.VSphereMachineTemplate{
 		ObjectMeta: metav1.ObjectMeta{
@@ -370,17 +364,23 @@ func (n *MachineDeploymentGenerator) Generate(clusterNamespace, clusterName stri
 						Namespace:  infraMachineTemplate.GetNamespace(),
 						Name:       infraMachineTemplate.GetName(),
 					},
-					Version: &frameworkx.Flags.KubernetesVersion,
+					Version: &config.KubernetesVersion,
 				},
 			},
 		},
 	}
 
-	return frameworkx.MachineDeployment{
+	return framework.MachineDeployment{
 		MachineDeployment:       machineDeployment,
 		BootstrapConfigTemplate: bootstrapConfigTemplate,
 		InfraMachineTemplate:    infraMachineTemplate,
 	}
+}
+
+// LoadBalancerGenerator generates a load balancer resource.
+type LoadBalancerGenerator interface {
+	// Generate returns a load balancer resource.
+	Generate(clusterNamespace, clusterName string) runtime.Object
 }
 
 // HAProxyLoadBalancerGenerator may be used to generate a new load balancer
@@ -388,7 +388,7 @@ func (n *MachineDeploymentGenerator) Generate(clusterNamespace, clusterName stri
 type HAProxyLoadBalancerGenerator struct{}
 
 // Generate returns the resources required to create a load balancer.
-func (n HAProxyLoadBalancerGenerator) Generate(clusterNamespace, clusterName string) *infrav1.HAProxyLoadBalancer {
+func (n HAProxyLoadBalancerGenerator) Generate(clusterNamespace, clusterName string) runtime.Object {
 	return &infrav1.HAProxyLoadBalancer{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       framework.TypeToKind(&infrav1.HAProxyLoadBalancer{}),

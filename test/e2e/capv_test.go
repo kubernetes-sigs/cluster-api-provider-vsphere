@@ -17,14 +17,13 @@ limitations under the License.
 package e2e
 
 import (
-	"crypto/sha1" //nolint:gosec
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo" //nolint:golint
 	. "github.com/onsi/gomega" //nolint:golint
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/framework"
@@ -38,23 +37,64 @@ var _ = Describe("CAPV", func() {
 	Describe("Cluster Creation", func() {
 		var (
 			clusterName          string
-			clusterLabelSelector client.MatchingLabels
 			clusterGen           ClusterGenerator
-			haproxyGen           HAProxyLoadBalancerGenerator
-			nodeGen              = &NodeGenerator{}
-			machineDeploymentGen = &MachineDeploymentGenerator{}
+			loadBalancerGen      LoadBalancerGenerator
+			machineDeploymentGen MachineDeploymentGenerator
+			controlPlaneNodeGen  ControlPlaneNodeGenerator
 			pollTimeout          = 10 * time.Minute
 			pollInterval         = 10 * time.Second
+
+			numControlPlaneMachines int32
+			numWorkerMachines       int32
+			input                   *framework.ControlplaneClusterInput
 		)
 
-		BeforeEach(func() {
-			randomUUID := uuid.New()
-			hash7 := fmt.Sprintf("%x", sha1.Sum(randomUUID[:]))[:7] //nolint:gosec
-			clusterName = fmt.Sprintf("test-%s", hash7)
-			clusterLabelSelector = client.MatchingLabels{clusterv1.ClusterLabelName: clusterName}
+		JustBeforeEach(func() {
+			clusterName = fmt.Sprintf("test-%s", Hash7())
+
+			cluster, infraCluster := clusterGen.Generate("default", clusterName)
+			controlPlaneNodes := make([]framework.Node, numControlPlaneMachines)
+			for i := range controlPlaneNodes {
+				controlPlaneNodes[i] = controlPlaneNodeGen.Generate(cluster.Namespace, cluster.Name)
+			}
+			machineDeployment := machineDeploymentGen.Generate(cluster.Namespace, cluster.Name, numWorkerMachines)
+			relatedResources := []runtime.Object{}
+
+			if loadBalancerGen != nil {
+				By("generating load balancer")
+				loadBalancer := loadBalancerGen.Generate(cluster.Namespace, cluster.Name)
+				loadBalancerObj, ok := loadBalancer.(metav1.Object)
+				Expect(ok).To(BeTrue())
+				Expect(loadBalancerObj).ToNot(BeNil())
+				loadBalancerGVK := loadBalancer.GetObjectKind().GroupVersionKind()
+				By(fmt.Sprintf("generated %s", loadBalancerGVK))
+				infraCluster.Spec.LoadBalancerRef = &corev1.ObjectReference{
+					APIVersion: loadBalancerGVK.GroupVersion().String(),
+					Kind:       loadBalancerGVK.Kind,
+					Namespace:  loadBalancerObj.GetNamespace(),
+					Name:       loadBalancerObj.GetName(),
+				}
+				relatedResources = append(relatedResources, loadBalancer)
+			}
+
+			input = &framework.ControlplaneClusterInput{
+				Management:        mgmt,
+				Cluster:           cluster,
+				InfraCluster:      infraCluster,
+				Nodes:             controlPlaneNodes,
+				MachineDeployment: machineDeployment,
+				RelatedResources:  relatedResources,
+				CreateTimeout:     pollTimeout,
+				DeleteTimeout:     pollTimeout,
+			}
 		})
 
 		AfterEach(func() {
+			By("cleaning up e2e resources")
+			input.CleanUpCoreArtifacts()
+
+			clusterLabelSelector := client.MatchingLabels{clusterv1.ClusterLabelName: clusterName}
+
 			By("asserting all VSphereVM resources related to this test are eventually removed")
 			Eventually(func() ([]infrav1.VSphereVM, error) {
 				list := &infrav1.VSphereVMList{}
@@ -92,91 +132,29 @@ var _ = Describe("CAPV", func() {
 			}, pollTimeout, pollInterval).Should(HaveLen(0))
 
 			destroyVMsWithPrefix(clusterName)
+			loadBalancerGen = nil
+			numControlPlaneMachines = 0
+			numWorkerMachines = 0
 		})
 
 		Context("Single-node control plane with one worker node", func() {
-			var (
-				cluster           *clusterv1.Cluster
-				infraCluster      *infrav1.VSphereCluster
-				controlPlaneNode  framework.Node
-				machineDeployment frameworkx.MachineDeployment
-				input             *frameworkx.SingleNodeControlPlaneInput
-			)
-
 			BeforeEach(func() {
-				cluster, infraCluster = clusterGen.Generate("default", clusterName)
-				controlPlaneNode = nodeGen.Generate(cluster.Namespace, cluster.Name)
-				machineDeployment = machineDeploymentGen.Generate(cluster.Namespace, cluster.Name, 1)
-				input = &frameworkx.SingleNodeControlPlaneInput{
-					Management:        mgmt,
-					Cluster:           cluster,
-					InfraCluster:      infraCluster,
-					ControlPlaneNode:  controlPlaneNode,
-					MachineDeployment: machineDeployment,
-					CreateTimeout:     10 * time.Minute,
-				}
+				numControlPlaneMachines = 1
+				numWorkerMachines = 1
 			})
-
-			AfterEach(func() {
-				By("cleaning up e2e resources")
-				frameworkx.CleanUpX(&framework.CleanUpInput{
-					Management: mgmt,
-					Cluster:    cluster,
-				})
-			})
-
 			It("should create a single-node control plane with one worker node", func() {
-				frameworkx.SingleNodeControlPlane(input)
+				frameworkx.ControlPlaneCluster(input)
 			})
 		})
 
 		Context("Two-node control plane with one worker node", func() {
-			var (
-				cluster                     *clusterv1.Cluster
-				infraCluster                *infrav1.VSphereCluster
-				haproxyLB                   *infrav1.HAProxyLoadBalancer
-				primaryControlPlaneNode     framework.Node
-				additionalControlPlaneNodes []framework.Node
-				machineDeployment           frameworkx.MachineDeployment
-				input                       *frameworkx.MultiNodeControlPlaneInput
-			)
-
 			BeforeEach(func() {
-				cluster, infraCluster = clusterGen.Generate("default", clusterName)
-				haproxyLB = haproxyGen.Generate(cluster.Namespace, cluster.Name)
-				infraCluster.Spec.LoadBalancerRef = &corev1.ObjectReference{
-					APIVersion: infrav1.GroupVersion.String(),
-					Kind:       framework.TypeToKind(haproxyLB),
-					Namespace:  haproxyLB.GetNamespace(),
-					Name:       haproxyLB.GetName(),
-				}
-				primaryControlPlaneNode = nodeGen.Generate(cluster.Namespace, cluster.Name)
-				additionalControlPlaneNodes = []framework.Node{
-					nodeGen.Generate(cluster.Namespace, cluster.Name),
-				}
-				machineDeployment = machineDeploymentGen.Generate(cluster.Namespace, cluster.Name, 1)
-				input = &frameworkx.MultiNodeControlPlaneInput{
-					Management:                  mgmt,
-					Cluster:                     cluster,
-					InfraCluster:                infraCluster,
-					PrimaryControlPlaneNode:     primaryControlPlaneNode,
-					AdditionalControlPlaneNodes: additionalControlPlaneNodes,
-					MachineDeployment:           machineDeployment,
-					RelatedResources:            []runtime.Object{haproxyLB},
-					CreateTimeout:               10 * time.Minute,
-				}
+				loadBalancerGen = HAProxyLoadBalancerGenerator{}
+				numControlPlaneMachines = 2
+				numWorkerMachines = 1
 			})
-
-			AfterEach(func() {
-				By("cleaning up e2e resources")
-				frameworkx.CleanUpX(&framework.CleanUpInput{
-					Management: mgmt,
-					Cluster:    cluster,
-				})
-			})
-
 			It("should create a two-node control plane with one worker node", func() {
-				frameworkx.MultiNodeControlPlane(input)
+				frameworkx.ControlPlaneCluster(input)
 			})
 		})
 	})

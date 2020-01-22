@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2020 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,54 +26,30 @@ import (
 	"github.com/pkg/errors"
 
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	. "sigs.k8s.io/cluster-api/test/framework" //nolint:golint
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// SingleNodeControlPlaneInput defines the necessary dependencies to run a
-// single-node control plane.
-type SingleNodeControlPlaneInput struct {
-	Management        ManagementCluster
-	Cluster           *clusterv1.Cluster
-	InfraCluster      runtime.Object
-	ControlPlaneNode  Node
-	MachineDeployment MachineDeployment
-	RelatedResources  []runtime.Object
-	CreateTimeout     time.Duration
-}
+const (
+	eventuallyInterval = 10 * time.Second
+)
 
-// SetDefaults defaults the struct fields if necessary.
-func (m *SingleNodeControlPlaneInput) SetDefaults() {
-	if m.CreateTimeout == 0 {
-		m.CreateTimeout = 10 * time.Minute
-	}
-}
-
-// SingleNodeControlPlane create a cluster with a single control plane node
+// ControlPlaneCluster create a cluster with a one or more control plane node
 // and with n worker nodes.
 // Assertions:
 //  * The number of nodes in the created cluster will equal the number
-//    of machines in the machine deployment plus the control plane node.
-func SingleNodeControlPlane(input *SingleNodeControlPlaneInput) {
+//    of machines in the machine deployment plus the number of control
+//    plane nodes.
+func ControlPlaneCluster(input *ControlplaneClusterInput) {
 	Expect(input).ToNot(BeNil())
 	input.SetDefaults()
 	Expect(input.Management).ToNot(BeNil())
+	Expect(len(input.Nodes)).To(BeNumerically(">=", 1), "one or more control plane nodes is required")
 
 	mgmtClient, err := input.Management.GetClient()
-	Expect(err).ToNot(HaveOccurred(), "stack: %+v", err)
-
+	Expect(err).ToNot(HaveOccurred())
 	ctx := context.Background()
-
-	// Create the related resources.
-	By("creating related resources")
-	for _, obj := range input.RelatedResources {
-		By(fmt.Sprintf("creating a/an %s resource", obj.GetObjectKind().GroupVersionKind()))
-		Eventually(func() error {
-			return mgmtClient.Create(ctx, obj)
-		}, input.CreateTimeout, 10*time.Second).Should(BeNil())
-	}
 
 	By("creating an InfrastructureCluster resource")
 	Expect(mgmtClient.Create(ctx, input.InfraCluster)).To(Succeed())
@@ -84,40 +60,60 @@ func SingleNodeControlPlane(input *SingleNodeControlPlaneInput) {
 	By("creating a Cluster resource linked to the InfrastructureCluster resource")
 	Eventually(func() error {
 		return mgmtClient.Create(ctx, input.Cluster)
-	}, input.CreateTimeout, 10*time.Second).Should(BeNil())
+	}, input.CreateTimeout, eventuallyInterval).Should(Succeed())
+
+	// Create the related resources.
+	By("creating related resources")
+	for _, obj := range input.RelatedResources {
+		By(fmt.Sprintf("creating a/an %s resource", obj.GetObjectKind().GroupVersionKind()))
+		Eventually(func() error {
+			return mgmtClient.Create(ctx, obj)
+		}, input.CreateTimeout, eventuallyInterval).Should(Succeed())
+	}
 
 	// expectedNumberOfNodes is the number of nodes that should be deployed to
-	// the cluster. This is the control plane node and the number of replicas
-	// defined for a possible MachineDeployment.
-	expectedNumberOfNodes := 1
+	// the cluster. This is the number of control plane nodes and the number of
+	// replicas defined for a possible MachineDeployment.
+	expectedNumberOfNodes := len(input.Nodes)
 
-	// Create the control plane machine.
-	By("creating an InfrastructureMachine resource")
-	Expect(mgmtClient.Create(ctx, input.ControlPlaneNode.InfraMachine)).To(Succeed())
+	// Create the control plane machines.
+	for i, node := range input.Nodes {
+		By(fmt.Sprintf("creating control plane resource %d: InfrastructureMachine", i+1))
+		Expect(mgmtClient.Create(ctx, node.InfraMachine)).To(Succeed())
 
-	By("creating a BootstrapConfig resource")
-	Expect(mgmtClient.Create(ctx, input.ControlPlaneNode.BootstrapConfig)).To(Succeed())
+		By(fmt.Sprintf("creating control plane resource %d: BootstrapConfig", i+1))
+		Expect(mgmtClient.Create(ctx, node.BootstrapConfig)).To(Succeed())
 
-	By("creating a core Machine resource with a linked InfrastructureMachine and BootstrapConfig")
-	Expect(mgmtClient.Create(ctx, input.ControlPlaneNode.Machine)).To(Succeed())
+		By(fmt.Sprintf("creating control plane resource %d: Machine", i+1))
+		Expect(mgmtClient.Create(ctx, node.Machine)).To(Succeed())
 
-	By("waiting for cluster to enter the provisioned phase")
-	Eventually(func() (string, error) {
-		cluster := &clusterv1.Cluster{}
-		key := client.ObjectKey{
-			Namespace: input.Cluster.GetNamespace(),
-			Name:      input.Cluster.GetName(),
+		// If this is the first node then block until the control plane is
+		// initialized.
+		//
+		// While it's possible to store cluster.Status.ControlPlaneInitialized
+		// and check that instead of the index (i == 0), the current design is
+		// intentional. We are asserting that the *first* node in the list
+		// *must* initialize the control plane. If it does not, then we *must*
+		// fail.
+		if i == 0 {
+			By("waiting for the control plane to be initialized")
+			clusterKey := client.ObjectKey{
+				Namespace: input.Cluster.GetNamespace(),
+				Name:      input.Cluster.GetName(),
+			}
+			Eventually(func() (bool, error) {
+				cluster := &clusterv1.Cluster{}
+				if err := mgmtClient.Get(ctx, clusterKey, cluster); err != nil {
+					return false, err
+				}
+				return cluster.Status.ControlPlaneInitialized, nil
+			}, input.CreateTimeout, eventuallyInterval).Should(BeTrue())
 		}
-		if err := mgmtClient.Get(ctx, key, cluster); err != nil {
-			return "", err
-		}
-		return cluster.Status.Phase, nil
-	}, input.CreateTimeout, 10*time.Second).Should(Equal(string(clusterv1.ClusterPhaseProvisioned)))
+	}
 
 	// Create the machine deployment if the replica count >0.
 	if machineDeployment := input.MachineDeployment.MachineDeployment; machineDeployment != nil {
 		if replicas := machineDeployment.Spec.Replicas; replicas != nil && *replicas > 0 {
-
 			expectedNumberOfNodes += int(*replicas)
 
 			By("creating a core MachineDeployment resource")
@@ -142,5 +138,5 @@ func SingleNodeControlPlane(input *SingleNodeControlPlaneInput) {
 			return nil, err
 		}
 		return nodeList.Items, nil
-	}, input.CreateTimeout, 10*time.Second).Should(HaveLen(expectedNumberOfNodes))
+	}, input.CreateTimeout, eventuallyInterval).Should(HaveLen(expectedNumberOfNodes))
 }

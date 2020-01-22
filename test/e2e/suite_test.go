@@ -18,6 +18,8 @@ package e2e
 
 import (
 	"context"
+	"flag"
+	"io/ioutil"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
@@ -33,9 +35,15 @@ import (
 )
 
 var (
-	mgmt *kind.Cluster
-	ctx  = context.Background()
+	mgmt       *kind.Cluster
+	configPath string
+	config     *frameworkx.Config
+	ctx        = context.Background()
 )
+
+func init() {
+	flag.StringVar(&configPath, "e2e.config", "e2e.conf", "path to the e2e config file")
+}
 
 func TestCAPV(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -43,8 +51,15 @@ func TestCAPV(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
+	By("loading e2e config")
+	data, err := ioutil.ReadFile(configPath)
+	Expect(err).ShouldNot(HaveOccurred())
+	config, err = frameworkx.LoadConfig(data)
+	Expect(err).ShouldNot(HaveOccurred())
+	Expect(config).ShouldNot(BeNil())
+
 	By("cleaning up previous kind cluster")
-	kindx.TeardownIfExists(ctx, frameworkx.Flags.ManagementClusterName)
+	kindx.TeardownIfExists(ctx, config.ManagementClusterName)
 
 	By("initializing the vSphere session", initVSphereSession)
 
@@ -53,16 +68,13 @@ var _ = BeforeSuite(func() {
 	Expect(infrav1.AddToScheme(scheme)).To(Succeed())
 
 	mgmt = frameworkx.InitManagementCluster(ctx, &frameworkx.InitManagementClusterInput{
-		InfraNamespace: "capv-system",
-		InfraComponentGenerators: []framework.ComponentGenerator{
-			providerGenerator{},
-			credentialsGenerator{},
-		},
-		Scheme: scheme,
+		ComponentGenerators: []framework.ComponentGenerator{credentialsGenerator{}},
+		Config:              *config,
+		Scheme:              scheme,
 	})
 })
 
 var _ = AfterSuite(func() {
 	By("tearing down the management cluster")
-	Expect(mgmt.Teardown(ctx)).To(Succeed())
+	mgmt.Teardown(ctx)
 })

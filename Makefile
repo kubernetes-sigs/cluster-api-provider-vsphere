@@ -72,7 +72,7 @@ e2e-image: ## Build the e2e manager image
 .PHONY: e2e
 e2e: e2e-image
 e2e: ## Run e2e tests
-	time ginkgo -v ./test/e2e -- --e2e.infraImage="capv-manager:e2e"
+	time ginkgo -v ./test/e2e -- --e2e.config="$(abspath test/e2e/e2e.conf)"
 
 ## --------------------------------------
 ## Binaries

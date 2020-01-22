@@ -16,12 +16,15 @@ require (
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	k8s.io/api v0.0.0-20191121015604-11707872ac1c
 	k8s.io/apimachinery v0.0.0-20191121015412-41065c7a8c2a
-	k8s.io/client-go v0.0.0-20190918160344-1fbdaa4c8d90
+	k8s.io/client-go v11.0.0+incompatible
 	k8s.io/klog v1.0.0
-	sigs.k8s.io/cluster-api v0.2.6-0.20191213221537-1bb8132e8c03
-	sigs.k8s.io/cluster-api/test/framework v0.0.0-20191213221537-1bb8132e8c03
+	sigs.k8s.io/cluster-api v0.2.6-0.20200119160935-412f6b3f1339
+	sigs.k8s.io/cluster-api/test/framework v0.0.0-20200119160935-412f6b3f1339
 	sigs.k8s.io/controller-runtime v0.4.0
 	sigs.k8s.io/yaml v1.1.0
 )
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v0.2.6-0.20191213221537-1bb8132e8c03
+replace (
+	k8s.io/client-go => k8s.io/client-go v0.0.0-20190918160344-1fbdaa4c8d90
+	sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v0.2.6-0.20200119160935-412f6b3f1339
+)

@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2020 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,18 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package framework
+package e2e
 
 import (
-	"k8s.io/apimachinery/pkg/runtime"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"crypto/sha1" //nolint:gosec
+	"fmt"
+
+	"github.com/google/uuid"
 )
 
-// MachineDeployment contains the objects needed to create a
-// CAPI MachineDeployment resource and its associated template
-// resources.
-type MachineDeployment struct {
-	MachineDeployment       *clusterv1.MachineDeployment
-	BootstrapConfigTemplate runtime.Object
-	InfraMachineTemplate    runtime.Object
+// Hash7 returns a random, seven character string.
+func Hash7() string {
+	randomUUID := uuid.New()
+	return fmt.Sprintf("%x", sha1.Sum(randomUUID[:]))[:7] //nolint:gosec
 }

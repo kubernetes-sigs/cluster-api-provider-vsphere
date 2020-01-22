@@ -14,7 +14,7 @@ In order to run the e2e tests the following requirements must be met:
 * The testing must occur on a host that can access the VMs deployed to vSphere via the network
 * Ginkgo ([download](https://onsi.github.io/ginkgo/#getting-ginkgo))
 * Docker ([download](https://www.docker.com/get-started))
-* Kind ([download](https://kind.sigs.k8s.io))
+* Kind v0.7.0+ ([download](https://kind.sigs.k8s.io))
 
 ### Environment variables
 

@@ -131,7 +131,8 @@ func GetMachinePreferredIPAddress(machine *infrav1.VSphereMachine) (string, erro
 // IsControlPlaneMachine returns true if the provided resource is
 // a member of the control plane.
 func IsControlPlaneMachine(machine metav1.Object) bool {
-	return machine.GetLabels()[clusterv1.MachineControlPlaneLabelName] != ""
+	_, ok := machine.GetLabels()[clusterv1.MachineControlPlaneLabelName]
+	return ok
 }
 
 // GetMachineMetadata returns the cloud-init metadata as a base-64 encoded

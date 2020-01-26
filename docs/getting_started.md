@@ -48,7 +48,7 @@ In order for `clusterctl` to bootstrap a management cluster on vSphere, it must 
 
 It is required that machines provisioned by CAPV use one of the official CAPV machine images as a VM template. The machine images are retrievable from public URLs. CAPV currently supports machine images based on Ubuntu 18.04 and CentOS 7. A list of published machine images is available [here](../README.md#kubernetes-versions-with-published-ovas). For this guide we'll be deploying Kubernetes v1.16.2 on Ubuntu 18.04 (link to [machine image](https://storage.googleapis.com/capv-images/release/v1.16.2/ubuntu-1804-kube-v1.16.2.ova)).
 
-[Create a VM template](https://docs.vmware.com/en/VMware-vSphere/6.7/com.vmware.vsphere.vm_admin.doc/GUID-17BEDA21-43F6-41F4-8FB2-E01D275FE9B4.html) using the OVA URL above. The rest of the guide will assume you named the VM template `ubuntu-1804-kube-v1.15.4`.
+[Create a VM template](https://docs.vmware.com/en/VMware-vSphere/6.7/com.vmware.vsphere.vm_admin.doc/GUID-17BEDA21-43F6-41F4-8FB2-E01D275FE9B4.html) using the OVA URL above. The rest of the guide will assume you named the VM template `ubuntu-1804-kube-v1.16.2`.
 
 **Note:** When creating the OVA template via vSphere using the URL method, please make sure the VM template name is the same as the value specified by the environment variable `VSPHERE_TEMPLATE` in the `envvars.txt` file, taking care of the `.ova` suffix for the template name.
 
@@ -85,7 +85,7 @@ export VSPHERE_DATASTORE='DefaultDatastore'         # (required) The vSphere dat
 export VSPHERE_NETWORK='vm-network-1'               # (required) The VM network to deploy the management cluster on
 export VSPHERE_RESOURCE_POOL='*/Resources'            # (required) The vSphere resource pool for your VMs
 export VSPHERE_FOLDER='vm'                          # (optional) The VM folder for your VMs, defaults to the root vSphere folder if not set.
-export VSPHERE_TEMPLATE='ubuntu-1804-kube-v1.15.4'  # (required) The VM template to use for your management cluster.
+export VSPHERE_TEMPLATE='ubuntu-1804-kube-v1.16.2'  # (required) The VM template to use for your management cluster.
 export VSPHERE_DISK_GIB='50'                        # (optional) The VM Disk size in GB, defaults to 20 if not set
 export VSPHERE_NUM_CPUS='2'                         # (optional) The # of CPUs for control plane nodes in your management cluster, defaults to 2 if not set
 export VSPHERE_MEM_MIB='2048'                       # (optional) The memory (in MiB) for control plane nodes in your management cluster, defaults to 2048 if not set

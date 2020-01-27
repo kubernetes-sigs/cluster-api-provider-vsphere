@@ -24,20 +24,20 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"k8s.io/apimachinery/pkg/runtime"
 
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/cluster-api/test/framework"
-	"sigs.k8s.io/cluster-api/test/framework/management/kind"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
-	frameworkx "sigs.k8s.io/cluster-api-provider-vsphere/test/e2e/framework"
 	kindx "sigs.k8s.io/cluster-api-provider-vsphere/test/e2e/kind"
 )
 
 var (
-	mgmt       *kind.Cluster
+	mgmt       framework.ManagementCluster
+	mgmtClient client.Client
 	configPath string
-	config     *frameworkx.Config
+	config     *framework.Config
 	ctx        = context.Background()
 )
 
@@ -54,7 +54,7 @@ var _ = BeforeSuite(func() {
 	By("loading e2e config")
 	data, err := ioutil.ReadFile(configPath)
 	Expect(err).ShouldNot(HaveOccurred())
-	config, err = frameworkx.LoadConfig(data)
+	config, err = framework.LoadConfig(data)
 	Expect(err).ShouldNot(HaveOccurred())
 	Expect(config).ShouldNot(BeNil())
 
@@ -67,11 +67,15 @@ var _ = BeforeSuite(func() {
 	scheme := runtime.NewScheme()
 	Expect(infrav1.AddToScheme(scheme)).To(Succeed())
 
-	mgmt = frameworkx.InitManagementCluster(ctx, &frameworkx.InitManagementClusterInput{
+	mgmt = framework.InitManagementCluster(ctx, &framework.InitManagementClusterInput{
 		ComponentGenerators: []framework.ComponentGenerator{credentialsGenerator{}},
 		Config:              *config,
 		Scheme:              scheme,
 	})
+
+	mgmtClient, err = mgmt.GetClient()
+	Expect(err).ShouldNot(HaveOccurred())
+	Expect(mgmtClient).ShouldNot(BeNil())
 })
 
 var _ = AfterSuite(func() {

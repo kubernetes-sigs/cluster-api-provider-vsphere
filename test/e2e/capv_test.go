@@ -98,7 +98,7 @@ var _ = Describe("CAPV", func() {
 			By("asserting all VSphereVM resources related to this test are eventually removed")
 			Eventually(func() ([]infrav1.VSphereVM, error) {
 				list := &infrav1.VSphereVMList{}
-				if err := mgmt.Client.List(ctx, list, clusterLabelSelector); err != nil {
+				if err := mgmtClient.List(ctx, list, clusterLabelSelector); err != nil {
 					return nil, err
 				}
 				return list.Items, nil
@@ -107,7 +107,7 @@ var _ = Describe("CAPV", func() {
 			By("asserting all VSphereMachine resources related to this test are eventually removed")
 			Eventually(func() ([]infrav1.VSphereMachine, error) {
 				list := &infrav1.VSphereMachineList{}
-				if err := mgmt.Client.List(ctx, list, clusterLabelSelector); err != nil {
+				if err := mgmtClient.List(ctx, list, clusterLabelSelector); err != nil {
 					return nil, err
 				}
 				return list.Items, nil
@@ -116,7 +116,7 @@ var _ = Describe("CAPV", func() {
 			By("asserting all VSphereCluster resources related to this test are eventually removed")
 			Eventually(func() ([]infrav1.VSphereCluster, error) {
 				list := &infrav1.VSphereClusterList{}
-				if err := mgmt.Client.List(ctx, list, clusterLabelSelector); err != nil {
+				if err := mgmtClient.List(ctx, list, clusterLabelSelector); err != nil {
 					return nil, err
 				}
 				return list.Items, nil
@@ -125,7 +125,7 @@ var _ = Describe("CAPV", func() {
 			By("asserting all HAProxyLoadBalancer resources related to this test are eventually removed")
 			Eventually(func() ([]infrav1.HAProxyLoadBalancer, error) {
 				list := &infrav1.HAProxyLoadBalancerList{}
-				if err := mgmt.Client.List(ctx, list, clusterLabelSelector); err != nil {
+				if err := mgmtClient.List(ctx, list, clusterLabelSelector); err != nil {
 					return nil, err
 				}
 				return list.Items, nil

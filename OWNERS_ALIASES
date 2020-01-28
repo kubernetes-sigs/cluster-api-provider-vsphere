@@ -9,6 +9,12 @@ aliases:
     - davidewatson
     - detiber
     - justinsb
+  cluster-api-maintainers:
+    - justinsb
+    - detiber
+    - ncdc
+    - vincepri
+    - chuckha
   cluster-api-vsphere-maintainers:
     - frapposelli
     - sflxn

@@ -26,6 +26,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
+
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 
@@ -49,6 +51,10 @@ type ClusterGenerator struct{}
 func (c ClusterGenerator) Generate(clusterNamespace, clusterName string) (*clusterv1.Cluster, *infrav1.VSphereCluster) {
 
 	infraCluster := &infrav1.VSphereCluster{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       framework.TypeToKind(&infrav1.VSphereCluster{}),
+			APIVersion: infrav1.GroupVersion.String(),
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: clusterNamespace,
 			Name:      clusterName,
@@ -95,6 +101,10 @@ func (c ClusterGenerator) Generate(clusterNamespace, clusterName string) (*clust
 	}
 
 	cluster := &clusterv1.Cluster{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       framework.TypeToKind(&clusterv1.Cluster{}),
+			APIVersion: clusterv1.GroupVersion.String(),
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: clusterNamespace,
 			Name:      clusterName,
@@ -129,6 +139,10 @@ func (n ControlPlaneNodeGenerator) Generate(clusterNamespace, clusterName string
 	generatedName := fmt.Sprintf("%s-%s", clusterName, Hash7())
 
 	infraMachine := &infrav1.VSphereMachine{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       framework.TypeToKind(&infrav1.VSphereMachine{}),
+			APIVersion: infrav1.GroupVersion.String(),
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: clusterNamespace,
 			Name:      generatedName,
@@ -157,6 +171,10 @@ func (n ControlPlaneNodeGenerator) Generate(clusterNamespace, clusterName string
 	}
 
 	bootstrapConfig := &bootstrapv1.KubeadmConfig{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       framework.TypeToKind(&bootstrapv1.KubeadmConfig{}),
+			APIVersion: bootstrapv1.GroupVersion.String(),
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: clusterNamespace,
 			Name:      generatedName,
@@ -175,7 +193,6 @@ func (n ControlPlaneNodeGenerator) Generate(clusterNamespace, clusterName string
 						"cloud-provider": "external",
 					},
 				},
-				ImageRepository: "k8s.gcr.io",
 			},
 			InitConfiguration: &v1beta1.InitConfiguration{
 				NodeRegistration: v1beta1.NodeRegistrationOptions{
@@ -215,6 +232,10 @@ func (n ControlPlaneNodeGenerator) Generate(clusterNamespace, clusterName string
 	}
 
 	machine := &clusterv1.Machine{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       framework.TypeToKind(&clusterv1.Machine{}),
+			APIVersion: clusterv1.GroupVersion.String(),
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: clusterNamespace,
 			Name:      generatedName,
@@ -249,6 +270,120 @@ func (n ControlPlaneNodeGenerator) Generate(clusterNamespace, clusterName string
 	}
 }
 
+// KubeadmControlPlaneGenerator may be used to generate the resources for a
+// kubeadm-based control plane.
+type KubeadmControlPlaneGenerator struct{}
+
+// Generate returns the resources required to create a kubeadm control plane.
+func (g KubeadmControlPlaneGenerator) Generate(clusterNamespace, clusterName string, replicas int32) (*controlplanev1.KubeadmControlPlane, *infrav1.VSphereMachineTemplate) {
+	generatedName := fmt.Sprintf("%s-%s", clusterName, Hash7())
+
+	infraMachineTemplate := &infrav1.VSphereMachineTemplate{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       framework.TypeToKind(&infrav1.VSphereMachineTemplate{}),
+			APIVersion: infrav1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: clusterNamespace,
+			Name:      generatedName,
+		},
+		Spec: infrav1.VSphereMachineTemplateSpec{
+			Template: infrav1.VSphereMachineTemplateResource{
+				Spec: infrav1.VSphereMachineSpec{
+					VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
+						Datacenter: vsphereDatacenter,
+						DiskGiB:    50,
+						MemoryMiB:  2048,
+						Network: infrav1.NetworkSpec{
+							Devices: []infrav1.NetworkDeviceSpec{
+								{
+									NetworkName: vsphereNetwork,
+									DHCP4:       true,
+								},
+							},
+						},
+						NumCPUs:  2,
+						Template: vsphereMachineTemplate,
+					},
+				},
+			},
+		},
+	}
+
+	kubeadmControlPlane := &controlplanev1.KubeadmControlPlane{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       framework.TypeToKind(&controlplanev1.KubeadmControlPlane{}),
+			APIVersion: controlplanev1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: clusterNamespace,
+			Name:      fmt.Sprintf("%s-kcp", clusterName),
+		},
+		Spec: controlplanev1.KubeadmControlPlaneSpec{
+			Replicas: &replicas,
+			Version:  config.KubernetesVersion,
+			InfrastructureTemplate: corev1.ObjectReference{
+				APIVersion: infrav1.GroupVersion.String(),
+				Kind:       framework.TypeToKind(infraMachineTemplate),
+				Namespace:  infraMachineTemplate.GetNamespace(),
+				Name:       infraMachineTemplate.GetName(),
+			},
+			KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+				ClusterConfiguration: &v1beta1.ClusterConfiguration{
+					APIServer: v1beta1.APIServer{
+						ControlPlaneComponent: v1beta1.ControlPlaneComponent{
+							ExtraArgs: map[string]string{
+								"cloud-provider": "external",
+							},
+						},
+					},
+					ControllerManager: v1beta1.ControlPlaneComponent{
+						ExtraArgs: map[string]string{
+							"cloud-provider": "external",
+						},
+					},
+				},
+				InitConfiguration: &v1beta1.InitConfiguration{
+					NodeRegistration: v1beta1.NodeRegistrationOptions{
+						CRISocket: "/var/run/containerd/containerd.sock",
+						KubeletExtraArgs: map[string]string{
+							"cloud-provider": "external",
+						},
+						Name: "{{ ds.meta_data.hostname }}",
+					},
+				},
+				JoinConfiguration: &v1beta1.JoinConfiguration{
+					NodeRegistration: v1beta1.NodeRegistrationOptions{
+						CRISocket: "/var/run/containerd/containerd.sock",
+						KubeletExtraArgs: map[string]string{
+							"cloud-provider": "external",
+						},
+						Name: "{{ ds.meta_data.hostname }}",
+					},
+				},
+				PreKubeadmCommands: []string{
+					`hostname "{{ ds.meta_data.hostname }}"`,
+					`echo "::1        ipv6-localhost ipv6-loopback" >/etc/hosts`,
+					`echo "127.0.0.1  localhost" >>/etc/hosts`,
+					`echo "127.0.0.1  {{ ds.meta_data.hostname }}" >>/etc/hosts`,
+					`echo "{{ ds.meta_data.hostname }}" >/etc/hostname`,
+				},
+				Users: []bootstrapv1.User{
+					{
+						Name:              "capv",
+						SSHAuthorizedKeys: []string{sshAuthKey},
+						Sudo:              &sudoAll,
+						Passwd:            &passwd,
+						LockPassword:      &lockPasswd,
+					},
+				},
+			},
+		},
+	}
+
+	return kubeadmControlPlane, infraMachineTemplate
+}
+
 // MachineDeploymentGenerator may be used to generate the resources
 // required to create a machine deployment for testing.
 type MachineDeploymentGenerator struct{}
@@ -261,6 +396,10 @@ func (n MachineDeploymentGenerator) Generate(clusterNamespace, clusterName strin
 	generatedName := clusterName
 
 	infraMachineTemplate := &infrav1.VSphereMachineTemplate{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       framework.TypeToKind(&infrav1.VSphereMachineTemplate{}),
+			APIVersion: infrav1.GroupVersion.String(),
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: clusterNamespace,
 			Name:      generatedName,
@@ -289,6 +428,10 @@ func (n MachineDeploymentGenerator) Generate(clusterNamespace, clusterName strin
 	}
 
 	bootstrapConfigTemplate := &bootstrapv1.KubeadmConfigTemplate{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       framework.TypeToKind(&bootstrapv1.KubeadmConfigTemplate{}),
+			APIVersion: bootstrapv1.GroupVersion.String(),
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: clusterNamespace,
 			Name:      generatedName,
@@ -327,6 +470,10 @@ func (n MachineDeploymentGenerator) Generate(clusterNamespace, clusterName strin
 	}
 
 	machineDeployment := &clusterv1.MachineDeployment{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       framework.TypeToKind(&clusterv1.MachineDeployment{}),
+			APIVersion: clusterv1.GroupVersion.String(),
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: clusterNamespace,
 			Name:      generatedName,

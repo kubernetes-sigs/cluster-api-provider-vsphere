@@ -24,8 +24,9 @@ import (
 	. "github.com/onsi/ginkgo" //nolint:golint
 	. "github.com/onsi/gomega" //nolint:golint
 	"github.com/pkg/errors"
-
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	. "sigs.k8s.io/cluster-api/test/framework" //nolint:golint
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -45,84 +46,94 @@ func ControlPlaneCluster(input *ControlplaneClusterInput) {
 	Expect(input).ToNot(BeNil())
 	input.SetDefaults()
 	Expect(input.Management).ToNot(BeNil())
-	Expect(len(input.Nodes)).To(BeNumerically(">=", 1), "one or more control plane nodes is required")
+	// expectedNumberOfNodes is the number of nodes that should be deployed to
+	// the cluster. This is the number of control plane
+	// nodes (either through input.Nodes or kubeadmControlPlane) and the number of
+	// replicas defined for a possible MachineDeployment.
+	expectedNumberOfNodes := len(input.Nodes)
+
+	if input.ControlPlane != nil {
+		expectedNumberOfNodes = int(*input.ControlPlane.Spec.Replicas)
+	}
+	Expect(expectedNumberOfNodes).To(BeNumerically(">=", 1), "one or more control plane nodes is required")
 
 	mgmtClient, err := input.Management.GetClient()
 	Expect(err).ToNot(HaveOccurred())
+	Expect(mgmtClient).ToNot(BeNil())
 	ctx := context.Background()
 
-	By("creating an InfrastructureCluster resource")
+	By(logCreatingBy(input.InfraCluster))
 	Expect(mgmtClient.Create(ctx, input.InfraCluster)).To(Succeed())
 
 	// This call happens in an eventually because of a race condition with the
 	// webhook server. If the latter isn't fully online then this call will
 	// fail.
-	By("creating a Cluster resource linked to the InfrastructureCluster resource")
+	By(logCreatingBy(input.Cluster))
 	Eventually(func() error {
 		return mgmtClient.Create(ctx, input.Cluster)
 	}, input.CreateTimeout, eventuallyInterval).Should(Succeed())
 
 	// Create the related resources.
-	By("creating related resources")
-	for _, obj := range input.RelatedResources {
-		By(fmt.Sprintf("creating a/an %s resource", obj.GetObjectKind().GroupVersionKind()))
-		Eventually(func() error {
-			return mgmtClient.Create(ctx, obj)
-		}, input.CreateTimeout, eventuallyInterval).Should(Succeed())
+	if len(input.RelatedResources) > 0 {
+		By("creating related resources")
+		for _, obj := range input.RelatedResources {
+			By(logCreatingBy(obj))
+			Eventually(func() error {
+				return mgmtClient.Create(ctx, obj)
+			}, input.CreateTimeout, eventuallyInterval).Should(Succeed())
+		}
 	}
 
-	// expectedNumberOfNodes is the number of nodes that should be deployed to
-	// the cluster. This is the number of control plane nodes and the number of
-	// replicas defined for a possible MachineDeployment.
-	expectedNumberOfNodes := len(input.Nodes)
+	if input.ControlPlane != nil {
+		By("creating kubeadm control plane resources")
+		Expect(input.MachineTemplate).ToNot(BeNil(), "input.ControlPlane is not-nil")
 
-	// Create the control plane machines.
-	for i, node := range input.Nodes {
-		By(fmt.Sprintf("creating control plane resource %d: InfrastructureMachine", i+1))
-		Expect(mgmtClient.Create(ctx, node.InfraMachine)).To(Succeed())
+		By(logCreatingBy(input.MachineTemplate))
+		Expect(mgmtClient.Create(ctx, input.MachineTemplate)).To(Succeed())
 
-		By(fmt.Sprintf("creating control plane resource %d: BootstrapConfig", i+1))
-		Expect(mgmtClient.Create(ctx, node.BootstrapConfig)).To(Succeed())
+		By(logCreatingBy(input.ControlPlane))
+		Expect(mgmtClient.Create(ctx, input.ControlPlane)).To(Succeed())
 
-		By(fmt.Sprintf("creating control plane resource %d: Machine", i+1))
-		Expect(mgmtClient.Create(ctx, node.Machine)).To(Succeed())
+		waitForControlPlaneInitialized(ctx, input, mgmtClient)
+	} else {
+		By("creating control plane resources")
+		for i, node := range input.Nodes {
+			By(logCreatingWithIndex(node.InfraMachine, i))
+			Expect(mgmtClient.Create(ctx, node.InfraMachine)).To(Succeed())
 
-		// If this is the first node then block until the control plane is
-		// initialized.
-		//
-		// While it's possible to store cluster.Status.ControlPlaneInitialized
-		// and check that instead of the index (i == 0), the current design is
-		// intentional. We are asserting that the *first* node in the list
-		// *must* initialize the control plane. If it does not, then we *must*
-		// fail.
-		if i == 0 {
-			By("waiting for the control plane to be initialized")
-			clusterKey := client.ObjectKey{
-				Namespace: input.Cluster.GetNamespace(),
-				Name:      input.Cluster.GetName(),
+			By(logCreatingWithIndex(node.BootstrapConfig, i))
+			Expect(mgmtClient.Create(ctx, node.BootstrapConfig)).To(Succeed())
+
+			By(logCreatingWithIndex(node.Machine, i))
+			Expect(mgmtClient.Create(ctx, node.Machine)).To(Succeed())
+
+			// If this is the first node then block until the control plane is
+			// initialized.
+			//
+			// While it's possible to store cluster.Status.ControlPlaneInitialized
+			// and check that instead of the index (i == 0), the current design is
+			// intentional. We are asserting that the *first* node in the list
+			// *must* initialize the control plane. If it does not, then we *must*
+			// fail.
+			if i == 0 {
+				waitForControlPlaneInitialized(ctx, input, mgmtClient)
 			}
-			Eventually(func() (bool, error) {
-				cluster := &clusterv1.Cluster{}
-				if err := mgmtClient.Get(ctx, clusterKey, cluster); err != nil {
-					return false, err
-				}
-				return cluster.Status.ControlPlaneInitialized, nil
-			}, input.CreateTimeout, eventuallyInterval).Should(BeTrue())
 		}
 	}
 
 	// Create the machine deployment if the replica count >0.
 	if machineDeployment := input.MachineDeployment.MachineDeployment; machineDeployment != nil {
 		if replicas := machineDeployment.Spec.Replicas; replicas != nil && *replicas > 0 {
+			By("creating machine deployment resources")
 			expectedNumberOfNodes += int(*replicas)
 
-			By("creating a core MachineDeployment resource")
+			By(logCreatingBy(machineDeployment))
 			Expect(mgmtClient.Create(ctx, machineDeployment)).To(Succeed())
 
-			By("creating a BootstrapConfigTemplate resource")
+			By(logCreatingBy(input.MachineDeployment.BootstrapConfigTemplate))
 			Expect(mgmtClient.Create(ctx, input.MachineDeployment.BootstrapConfigTemplate)).To(Succeed())
 
-			By("creating an InfrastructureMachineTemplate resource")
+			By(logCreatingBy(input.MachineDeployment.InfraMachineTemplate))
 			Expect(mgmtClient.Create(ctx, input.MachineDeployment.InfraMachineTemplate)).To(Succeed())
 		}
 	}
@@ -139,4 +150,33 @@ func ControlPlaneCluster(input *ControlplaneClusterInput) {
 		}
 		return nodeList.Items, nil
 	}, input.CreateTimeout, eventuallyInterval).Should(HaveLen(expectedNumberOfNodes))
+}
+
+func waitForControlPlaneInitialized(ctx context.Context, input *ControlplaneClusterInput, mgmtClient client.Client) {
+	By("waiting for the control plane to be initialized")
+	clusterKey := client.ObjectKey{
+		Namespace: input.Cluster.GetNamespace(),
+		Name:      input.Cluster.GetName(),
+	}
+	Eventually(func() (bool, error) {
+		cluster := &clusterv1.Cluster{}
+		if err := mgmtClient.Get(ctx, clusterKey, cluster); err != nil {
+			return false, err
+		}
+		return cluster.Status.ControlPlaneInitialized, nil
+	}, input.CreateTimeout, eventuallyInterval).Should(BeTrue())
+}
+
+func logCreatingBy(obj runtime.Object) string {
+	return logCreatingWithIndex(obj, -1)
+}
+
+func logCreatingWithIndex(obj runtime.Object, index int) string {
+	Expect(obj).ToNot(BeNil())
+	metaObj, ok := obj.(metav1.Object)
+	Expect(ok).To(BeTrue(), "obj must implement metav1.Object")
+	if index >= 0 {
+		return fmt.Sprintf("creating [%d] %s %s/%s", index, obj.GetObjectKind().GroupVersionKind(), metaObj.GetNamespace(), metaObj.GetName())
+	}
+	return fmt.Sprintf("creating %s %s/%s", obj.GetObjectKind().GroupVersionKind(), metaObj.GetNamespace(), metaObj.GetName())
 }

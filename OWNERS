@@ -4,6 +4,8 @@ approvers:
   - sig-cluster-lifecycle-leads
   - cluster-api-admins
   - cluster-api-vsphere-maintainers
+  - cluster-api-maintainers
 
 reviewers:
   - cluster-api-vsphere-maintainers
+  - cluster-api-maintainers

@@ -34,15 +34,17 @@ import (
 )
 
 var (
-	mgmt       framework.ManagementCluster
-	mgmtClient client.Client
-	configPath string
-	config     *framework.Config
-	ctx        = context.Background()
+	mgmt         framework.ManagementCluster
+	mgmtClient   client.Client
+	configPath   string
+	teardownKind bool
+	config       *framework.Config
+	ctx          = context.Background()
 )
 
 func init() {
 	flag.StringVar(&configPath, "e2e.config", "e2e.conf", "path to the e2e config file")
+	flag.BoolVar(&teardownKind, "e2e.teardownKind", true, "should we teardown the kind cluster or not")
 }
 
 func TestCAPV(t *testing.T) {
@@ -82,6 +84,8 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
-	By("tearing down the management cluster")
-	mgmt.Teardown(ctx)
+	if teardownKind {
+		By("tearing down the management cluster")
+		mgmt.Teardown(ctx)
+	}
 })

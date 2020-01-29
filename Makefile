@@ -49,6 +49,7 @@ MANIFEST_ROOT ?= config
 CRD_ROOT ?= $(MANIFEST_ROOT)/crd/bases
 WEBHOOK_ROOT ?= $(MANIFEST_ROOT)/webhook
 RBAC_ROOT ?= $(MANIFEST_ROOT)/rbac
+GC_KIND ?= true
 
 ## --------------------------------------
 ## Help
@@ -72,7 +73,7 @@ e2e-image: ## Build the e2e manager image
 .PHONY: e2e
 e2e: e2e-image
 e2e: ## Run e2e tests
-	time ginkgo -v ./test/e2e -- --e2e.config="$(abspath test/e2e/e2e.conf)"
+	time ginkgo -v ./test/e2e -- --e2e.config="$(abspath test/e2e/e2e.conf)" --e2e.teardownKind=$(GC_KIND)
 
 ## --------------------------------------
 ## Binaries

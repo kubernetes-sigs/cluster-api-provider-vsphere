@@ -158,13 +158,13 @@ func waitForControlPlaneInitialized(ctx context.Context, input *ControlplaneClus
 		Namespace: input.Cluster.GetNamespace(),
 		Name:      input.Cluster.GetName(),
 	}
-	Eventually(func() (bool, error) {
+	Eventually(func() (string, error) {
 		cluster := &clusterv1.Cluster{}
 		if err := mgmtClient.Get(ctx, clusterKey, cluster); err != nil {
-			return false, err
+			return "", err
 		}
-		return cluster.Status.ControlPlaneInitialized, nil
-	}, input.CreateTimeout, eventuallyInterval).Should(BeTrue())
+		return cluster.Status.Phase, nil
+	}, input.CreateTimeout, eventuallyInterval).Should(Equal(string(clusterv1.ClusterPhaseProvisioned)))
 }
 
 func logCreatingBy(obj runtime.Object) string {

@@ -181,7 +181,7 @@ var _ = Describe("CAPV", func() {
 				kubeadmControlPlaneGen = &KubeadmControlPlaneGenerator{}
 			})
 			It("should create a single-node kubeadm control plane with one worker node", func() {
-				frameworkx.ControlPlaneCluster(input)
+				input.ControlPlaneCluster()
 			})
 		})
 	})

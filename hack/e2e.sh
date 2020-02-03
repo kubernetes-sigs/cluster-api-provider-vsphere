@@ -113,7 +113,7 @@ export VSPHERE_FOLDER="clusterapi"
 export VSPHERE_RESOURCE_POOL="clusterapi"
 export VSPHERE_DATASTORE="WorkloadDatastore"
 export VSPHERE_NETWORK="sddc-cgw-network-5"
-export VSPHERE_MACHINE_TEMPLATE="ubuntu-1804-kube-v1.16.2"
+export VSPHERE_MACHINE_TEMPLATE="centos-7-kube-v1.16.2"
 export VSPHERE_HAPROXY_TEMPLATE="capv-haproxy-v0.5.3-77-g224e0ef6"
 
 export CAPI_IMAGE="gcr.io/k8s-staging-cluster-api/cluster-api-controller:v20200103-v0.2.5-497-gdbe789259"

@@ -19,13 +19,14 @@ package cloudprovider
 import (
 	"fmt"
 
+	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
+
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	storagev1beta1 "k8s.io/api/storage/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3/cloudprovider"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 )
 
@@ -152,7 +153,7 @@ func CSIDriver() *storagev1beta1.CSIDriver {
 	}
 }
 
-func VSphereCSINodeDaemonSet(storageConfig *cloudprovider.StorageConfig) *appsv1.DaemonSet {
+func VSphereCSINodeDaemonSet(storageConfig *v1alpha3.CPIStorageConfig) *appsv1.DaemonSet {
 	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "vsphere-csi-node",
@@ -384,7 +385,7 @@ func LivenessProbeForNodeContainer(image string) corev1.Container {
 	}
 }
 
-func CSIControllerStatefulSet(storageConfig *cloudprovider.StorageConfig) *appsv1.StatefulSet {
+func CSIControllerStatefulSet(storageConfig *v1alpha3.CPIStorageConfig) *appsv1.StatefulSet {
 	return &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "vsphere-csi-controller",
@@ -619,18 +620,18 @@ func CSICloudConfigSecret(data string) *corev1.Secret {
 	}
 }
 
-// ConfigForCSI returns a cloudprovider.Config specific to the vSphere CSI driver until
+// ConfigForCSI returns a cloudprovider.CPIConfig specific to the vSphere CSI driver until
 // it supports using Secrets for vCenter credentials
-func ConfigForCSI(ctx *context.ClusterContext) *cloudprovider.Config {
-	config := &cloudprovider.Config{}
+func ConfigForCSI(ctx *context.ClusterContext) *v1alpha3.CPIConfig {
+	config := &v1alpha3.CPIConfig{}
 
 	config.Global.ClusterID = fmt.Sprintf("%s/%s", ctx.Cluster.Namespace, ctx.Cluster.Name)
 	config.Global.Insecure = ctx.VSphereCluster.Spec.CloudProviderConfiguration.Global.Insecure
 	config.Network.Name = ctx.VSphereCluster.Spec.CloudProviderConfiguration.Network.Name
 
-	config.VCenter = map[string]cloudprovider.VCenterConfig{}
+	config.VCenter = map[string]v1alpha3.CPIVCenterConfig{}
 	for name, vcenter := range ctx.VSphereCluster.Spec.CloudProviderConfiguration.VCenter {
-		config.VCenter[name] = cloudprovider.VCenterConfig{
+		config.VCenter[name] = v1alpha3.CPIVCenterConfig{
 			Username:    ctx.Username,
 			Password:    ctx.Password,
 			Datacenters: vcenter.Datacenters,

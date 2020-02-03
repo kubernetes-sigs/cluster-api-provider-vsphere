@@ -18,9 +18,6 @@ package v1alpha3
 
 import (
 	"fmt"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
 const (
@@ -128,11 +125,6 @@ type VirtualMachineCloneSpec struct {
 
 // VSphereMachineTemplateResource describes the data needed to create a VSphereMachine from a template
 type VSphereMachineTemplateResource struct {
-	metav1.TypeMeta `json:",inline"`
-
-	// Standard object's metadata.
-	clusterv1.ObjectMeta `json:"metadata,omitempty"`
-
 	// Spec is the specification of the desired behavior of the machine.
 	Spec VSphereMachineSpec `json:"spec"`
 }

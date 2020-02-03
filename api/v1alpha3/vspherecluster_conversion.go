@@ -1,5 +1,3 @@
-// +build tools
-
 /*
 Copyright 2019 The Kubernetes Authors.
 
@@ -16,13 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// This package imports things required by build scripts, to force `go mod` to see them as dependencies
-package tools
+package v1alpha3
 
-import (
-	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
-	_ "sigs.k8s.io/controller-tools/cmd/controller-gen"
-	_ "sigs.k8s.io/kustomize/kustomize/v3"
-	_ "sigs.k8s.io/testing_frameworks/integration"
-	_ "k8s.io/code-generator/cmd/conversion-gen"
-)
+// Hub marks VSphereCluster as a conversion hub.
+func (*VSphereCluster) Hub() {}
+
+// Hub marks VSphereClusterList as a conversion hub.
+func (*VSphereClusterList) Hub() {}

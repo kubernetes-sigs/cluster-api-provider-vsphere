@@ -19,8 +19,6 @@ package v1alpha3
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3/cloudprovider"
 )
 
 const (
@@ -42,7 +40,7 @@ type VSphereClusterSpec struct {
 
 	// CloudProviderConfiguration holds the cluster-wide configuration for the
 	// vSphere cloud provider.
-	CloudProviderConfiguration cloudprovider.Config `json:"cloudProviderConfiguration,omitempty"`
+	CloudProviderConfiguration CPIConfig `json:"cloudProviderConfiguration,omitempty"`
 
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional

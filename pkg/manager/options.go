@@ -85,6 +85,9 @@ type Options struct {
 	// endpoints.
 	Password string
 
+	// WebhookPort is the port that the webhook server serves at.
+	WebhookPort int
+
 	Logger     logr.Logger
 	KubeConfig *rest.Config
 	Scheme     *runtime.Scheme

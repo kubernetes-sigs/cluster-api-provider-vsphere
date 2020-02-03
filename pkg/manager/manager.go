@@ -65,6 +65,7 @@ func New(opts Options) (Manager, error) {
 		Namespace:               opts.WatchNamespace,
 		NewCache:                opts.NewCache,
 		NewClient:               newClientFunc,
+		Port:                    opts.WebhookPort,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create manager")

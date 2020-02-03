@@ -37,6 +37,7 @@ BIN_DIR := bin
 CONTROLLER_GEN := $(BIN_DIR)/controller-gen
 GOLANGCI_LINT := $(BIN_DIR)/golangci-lint
 KUSTOMIZE := $(BIN_DIR)/kustomize
+CONVERSION_GEN := $(BIN_DIR)/conversion-gen
 
 ## --------------------------------------
 ## Help
@@ -63,6 +64,11 @@ $(GOLANGCI_LINT): go.mod
 kustomize: $(KUSTOMIZE) ## Build kustomize
 $(KUSTOMIZE): go.mod
 	go build -tags=tools -o $@ sigs.k8s.io/kustomize/v3/cmd/kustomize
+
+.PHONY: $(CONVERSION_GEN)
+conversion-gen: $(CONVERSION_GEN) ## Build conversion-gen
+$(CONVERSION_GEN): go.mod
+	go build -tags=tools -o $@ k8s.io/code-generator/cmd/conversion-gen
 
 ## --------------------------------------
 ## Generate

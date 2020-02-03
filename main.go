@@ -24,6 +24,8 @@ import (
 	"strconv"
 	"time"
 
+	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
+
 	"k8s.io/klog"
 	"k8s.io/klog/klogr"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
@@ -44,6 +46,7 @@ var (
 	defaultPodNamespace            = manager.DefaultPodNamespace
 	defaultPodName                 = manager.DefaultPodName
 	defaultWatchNamespace          = manager.DefaultWatchNamespace
+	defaultWebhookPort             = manager.DefaultWebhookServiceContainerPort
 )
 
 func init() {
@@ -119,6 +122,11 @@ func main() {
 		"pod-name",
 		defaultPodName,
 		"The name of the pod running the controller manager.")
+	flag.IntVar(
+		&managerOpts.WebhookPort,
+		"webhook-port",
+		defaultWebhookPort,
+		"Webhook Server port (set to 0 to disable)")
 
 	flag.Parse()
 
@@ -150,6 +158,44 @@ func main() {
 		if err := controllers.AddHAProxyLoadBalancerControllerToManager(ctx, mgr); err != nil {
 			return err
 		}
+
+		if managerOpts.WebhookPort != 0 {
+			if err := (&v1alpha3.VSphereCluster{}).SetupWebhookWithManager(mgr); err != nil {
+				return err
+			}
+			if err := (&v1alpha3.VSphereClusterList{}).SetupWebhookWithManager(mgr); err != nil {
+				return err
+			}
+
+			if err := (&v1alpha3.VSphereMachine{}).SetupWebhookWithManager(mgr); err != nil {
+				return err
+			}
+			if err := (&v1alpha3.VSphereMachineList{}).SetupWebhookWithManager(mgr); err != nil {
+				return err
+			}
+
+			if err := (&v1alpha3.VSphereMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+				return err
+			}
+			if err := (&v1alpha3.VSphereMachineTemplateList{}).SetupWebhookWithManager(mgr); err != nil {
+				return err
+			}
+
+			if err := (&v1alpha3.VSphereVM{}).SetupWebhookWithManager(mgr); err != nil {
+				return err
+			}
+			if err := (&v1alpha3.VSphereVMList{}).SetupWebhookWithManager(mgr); err != nil {
+				return err
+			}
+
+			if err := (&v1alpha3.HAProxyLoadBalancer{}).SetupWebhookWithManager(mgr); err != nil {
+				return err
+			}
+			if err := (&v1alpha3.HAProxyLoadBalancerList{}).SetupWebhookWithManager(mgr); err != nil {
+				return err
+			}
+		}
+
 		return nil
 	}
 

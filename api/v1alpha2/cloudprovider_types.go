@@ -12,54 +12,62 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+
 */
+// cloudprovider_types contains API types for the vSphere cloud provider.
+// The configuration may be unmarshalled from an INI-style configuration using
+// the "gopkg.in/gcfg.v1" package.
+//
+// The configuration may be marshalled to an INI-style configuration using a Go
+// template.
+//
+// The "gopkg.in/go-ini/ini.v1" package was investigated, but it does not
+// support reflecting a struct with a field of type "map[string]TYPE" to INI.
+package v1alpha2
 
-// Package cloudprovider contains API types for the vSphere cloud provider.
-package cloudprovider
-
-// Config is the vSphere cloud provider's configuration.
-type Config struct {
+// CPIConfig is the vSphere cloud provider's configuration.
+type CPIConfig struct {
 	// Global is the vSphere cloud provider's global configuration.
 	// +optional
-	Global GlobalConfig `gcfg:"Global,omitempty" json:"global,omitempty"`
+	Global CPIGlobalConfig `gcfg:"Global,omitempty" json:"global,omitempty"`
 
 	// VCenter is a list of vCenter configurations.
 	// +optional
-	VCenter map[string]VCenterConfig `gcfg:"VirtualCenter,omitempty" json:"virtualCenter,omitempty"`
+	VCenter map[string]CPIVCenterConfig `gcfg:"VirtualCenter,omitempty" json:"virtualCenter,omitempty"`
 
 	// Network is the vSphere cloud provider's network configuration.
 	// +optional
-	Network NetworkConfig `gcfg:"Network,omitempty" json:"network,omitempty"`
+	Network CPINetworkConfig `gcfg:"Network,omitempty" json:"network,omitempty"`
 
 	// Disk is the vSphere cloud provider's disk configuration.
 	// +optional
-	Disk DiskConfig `gcfg:"Disk,omitempty" json:"disk,omitempty"`
+	Disk CPIDiskConfig `gcfg:"Disk,omitempty" json:"disk,omitempty"`
 
 	// Workspace is the vSphere cloud provider's workspace configuration.
 	// +optional
-	Workspace WorkspaceConfig `gcfg:"Workspace,omitempty" json:"workspace,omitempty"`
+	Workspace CPIWorkspaceConfig `gcfg:"Workspace,omitempty" json:"workspace,omitempty"`
 
 	// Labels is the vSphere cloud provider's zone and region configuration.
 	// +optional
-	Labels LabelConfig `gcfg:"Labels,omitempty" json:"labels,omitempty"`
+	Labels CPILabelConfig `gcfg:"Labels,omitempty" json:"labels,omitempty"`
 
-	// ProviderConfig contains extra information used to configure the
+	// CPIProviderConfig contains extra information used to configure the
 	// vSphere cloud provider.
-	ProviderConfig ProviderConfig `json:"providerConfig,omitempty"`
+	ProviderConfig CPIProviderConfig `json:"providerConfig,omitempty"`
 }
 
-// ProviderConfig defines any extra information used to configure
+// CPIProviderConfig defines any extra information used to configure
 // the vSphere external cloud provider
-type ProviderConfig struct {
-	Cloud   *CloudConfig   `json:"cloud,omitempty"`
-	Storage *StorageConfig `json:"storage,omitempty"`
+type CPIProviderConfig struct {
+	Cloud   *CPICloudConfig   `json:"cloud,omitempty"`
+	Storage *CPIStorageConfig `json:"storage,omitempty"`
 }
 
-type CloudConfig struct {
+type CPICloudConfig struct {
 	ControllerImage string `json:"controllerImage,omitempty"`
 }
 
-type StorageConfig struct {
+type CPIStorageConfig struct {
 	ControllerImage     string `json:"controllerImage,omitempty"`
 	NodeDriverImage     string `json:"nodeDriverImage,omitempty"`
 	AttacherImage       string `json:"attacherImage,omitempty"`
@@ -73,16 +81,16 @@ type StorageConfig struct {
 // package. The package requires fields with map types use *Values. However,
 // kubebuilder v2 won't generate CRDs for map types with *Values.
 type unmarshallableConfig struct {
-	Global    GlobalConfig              `gcfg:"Global,omitempty"`
-	VCenter   map[string]*VCenterConfig `gcfg:"VirtualCenter,omitempty"`
-	Network   NetworkConfig             `gcfg:"Network,omitempty"`
-	Disk      DiskConfig                `gcfg:"Disk,omitempty"`
-	Workspace WorkspaceConfig           `gcfg:"Workspace,omitempty"`
-	Labels    LabelConfig               `gcfg:"Labels,omitempty"`
+	Global    CPIGlobalConfig              `gcfg:"Global,omitempty"`
+	VCenter   map[string]*CPIVCenterConfig `gcfg:"VirtualCenter,omitempty"`
+	Network   CPINetworkConfig             `gcfg:"Network,omitempty"`
+	Disk      CPIDiskConfig                `gcfg:"Disk,omitempty"`
+	Workspace CPIWorkspaceConfig           `gcfg:"Workspace,omitempty"`
+	Labels    CPILabelConfig               `gcfg:"Labels,omitempty"`
 }
 
-// GlobalConfig is the vSphere cloud provider's global configuration.
-type GlobalConfig struct {
+// CPIGlobalConfig is the vSphere cloud provider's global configuration.
+type CPIGlobalConfig struct {
 	// Insecure is a flag that disables TLS peer verification.
 	// +optional
 	Insecure bool `gcfg:"insecure-flag,omitempty" json:"insecure,omitempty"`
@@ -159,8 +167,8 @@ type GlobalConfig struct {
 	ClusterID string `gcfg:"cluster-id,omitempty" json:"-"`
 }
 
-// VCenterConfig is a vSphere cloud provider's vCenter configuration.
-type VCenterConfig struct {
+// CPIVCenterConfig is a vSphere cloud provider's vCenter configuration.
+type CPIVCenterConfig struct {
 	// Username is the username used to access a vSphere endpoint.
 	// +optional
 	Username string `gcfg:"user,omitempty" json:"username,omitempty"`
@@ -189,23 +197,23 @@ type VCenterConfig struct {
 	Thumbprint string `gcfg:"thumbprint,omitempty" json:"thumbprint,omitempty"`
 }
 
-// NetworkConfig is the network configuration for the vSphere cloud provider.
-type NetworkConfig struct {
+// CPINetworkConfig is the network configuration for the vSphere cloud provider.
+type CPINetworkConfig struct {
 	// Name is the name of the network to which VMs are connected.
 	// +optional
 	Name string `gcfg:"public-network,omitempty" json:"name,omitempty"`
 }
 
-// DiskConfig defines the disk configuration for the vSphere cloud provider.
-type DiskConfig struct {
+// CPIDiskConfig defines the disk configuration for the vSphere cloud provider.
+type CPIDiskConfig struct {
 	// SCSIControllerType defines SCSI controller to be used.
 	// +optional
 	SCSIControllerType string `gcfg:"scsicontrollertype,omitempty" json:"scsiControllerType,omitempty"`
 }
 
-// WorkspaceConfig defines a workspace configuration for the vSphere cloud
+// CPIWorkspaceConfig defines a workspace configuration for the vSphere cloud
 // provider.
-type WorkspaceConfig struct {
+type CPIWorkspaceConfig struct {
 	// Server is the IP address or FQDN of the vSphere endpoint.
 	// +optional
 	Server string `gcfg:"server,omitempty" json:"server,omitempty"`
@@ -227,9 +235,9 @@ type WorkspaceConfig struct {
 	ResourcePool string `gcfg:"resourcepool-path,omitempty" json:"resourcePool,omitempty"`
 }
 
-// LabelConfig defines the categories and tags which correspond to built-in
+// CPILabelConfig defines the categories and tags which correspond to built-in
 // node labels, zone and region.
-type LabelConfig struct {
+type CPILabelConfig struct {
 	// Zone is the zone in which VMs are created/located.
 	// +optional
 	Zone string `gcfg:"zone,omitempty" json:"zone,omitempty"`

@@ -236,14 +236,14 @@ func (r clusterReconciler) reconcileNormal(ctx *context.ClusterContext) (reconci
 
 	// Create the cloud config secret for the target cluster.
 	if err := r.reconcileCloudConfigSecret(ctx); err != nil {
-		return reconcile.Result{}, errors.Wrapf(err,
+		return reconcile.Result{RequeueAfter: 15 * time.Second}, errors.Wrapf(err,
 			"failed to reconcile cloud config secret for VSphereCluster %s/%s",
 			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
 	}
 
 	// Create the external cloud provider addons
 	if err := r.reconcileCloudProvider(ctx); err != nil {
-		return reconcile.Result{}, errors.Wrapf(err,
+		return reconcile.Result{RequeueAfter: 15 * time.Second}, errors.Wrapf(err,
 			"failed to reconcile cloud provider for VSphereCluster %s/%s",
 			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
 	}

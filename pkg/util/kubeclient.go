@@ -47,7 +47,7 @@ func NewKubeClient(
 			cluster.Name, cluster.Namespace)
 	}
 	// sets the timeout, otherwise this will default to 0 (i.e. no timeout) which might cause tests to hang
-	restConfig.Timeout = 10 * time.Second
+	restConfig.Timeout = 32 * time.Second
 
 	return kubernetes.NewForConfig(restConfig)
 }

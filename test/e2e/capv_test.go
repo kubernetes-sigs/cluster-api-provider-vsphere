@@ -55,7 +55,7 @@ var _ = Describe("CAPV", func() {
 			// The default number of control plane and worker nodes for each
 			// test is one. Tests may override these values.
 			numControlPlaneMachines = 1
-			numWorkerMachines = 1
+			numWorkerMachines = 0
 		})
 
 		JustBeforeEach(func() {

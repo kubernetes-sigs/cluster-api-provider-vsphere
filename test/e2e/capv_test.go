@@ -43,7 +43,7 @@ var _ = Describe("CAPV", func() {
 			machineDeploymentGen   MachineDeploymentGenerator
 			controlPlaneNodeGen    ControlPlaneNodeGenerator
 			kubeadmControlPlaneGen *KubeadmControlPlaneGenerator
-			pollTimeout            = 15 * time.Minute
+			pollTimeout            = 25 * time.Minute
 			pollInterval           = 10 * time.Second
 
 			numControlPlaneMachines int32

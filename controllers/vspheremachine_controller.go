@@ -239,7 +239,7 @@ func (r machineReconciler) reconcileDeleteVMPre7(ctx *context.MachineContext) er
 
 func (r machineReconciler) reconcileNormal(ctx *context.MachineContext) (reconcile.Result, error) {
 	// If the VSphereMachine is in an error state, return early.
-	if ctx.VSphereMachine.Status.ErrorReason != nil || ctx.VSphereMachine.Status.ErrorMessage != nil {
+	if ctx.VSphereMachine.Status.FailureReason != nil || ctx.VSphereMachine.Status.FailureMessage != nil {
 		ctx.Logger.Info("Error state detected, skipping reconciliation")
 		return reconcile.Result{}, nil
 	}

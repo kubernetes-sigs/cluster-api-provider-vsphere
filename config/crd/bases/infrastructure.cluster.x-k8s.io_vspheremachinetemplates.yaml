@@ -502,6 +502,11 @@ spec:
                           template from which the virtual machine is cloned.
                         format: int32
                         type: integer
+                      failureDomain:
+                        description: FailureDomain is the failure domain the machine
+                          will be created in. Must match a key in the FailureDomains
+                          map stored on the cluster object.
+                        type: string
                       folder:
                         description: Folder is the name or inventory path of the folder
                           in which the virtual machine is created/located.

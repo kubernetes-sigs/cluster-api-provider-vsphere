@@ -37,6 +37,11 @@ type VSphereMachineSpec struct {
 	// vsphere://12345678-1234-1234-1234-123456789abc
 	// +optional
 	ProviderID *string `json:"providerID,omitempty"`
+
+	// FailureDomain is the failure domain the machine will be created in.
+	// Must match a key in the FailureDomains map stored on the cluster object.
+	// +optional
+	FailureDomain *string `json:"failureDomain,omitempty"`
 }
 
 // VSphereMachineStatus defines the observed state of VSphereMachine

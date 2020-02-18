@@ -55,7 +55,6 @@ type VSphereClusterStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=vsphereclusters,scope=Namespaced,categories=cluster-api
-// +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 
 // VSphereCluster is the Schema for the vsphereclusters API

@@ -27,7 +27,6 @@ type VSphereMachineTemplateSpec struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=vspheremachinetemplates,scope=Namespaced,categories=cluster-api
-// +kubebuilder:storageversion
 
 // VSphereMachineTemplate is the Schema for the vspheremachinetemplates API
 type VSphereMachineTemplate struct {

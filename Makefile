@@ -40,12 +40,12 @@ MANAGER := $(BIN_DIR)/manager
 CLUSTERCTL := $(BIN_DIR)/clusterctl
 
 # Tooling binaries
-CONTROLLER_GEN := $(TOOLS_BIN_DIR)/controller-gen
+CONTROLLER_GEN := $(abspath $(TOOLS_BIN_DIR)/controller-gen)
 GOLANGCI_LINT := $(TOOLS_BIN_DIR)/golangci-lint
 KUSTOMIZE := $(TOOLS_BIN_DIR)/kustomize
 
 # Allow overriding manifest generation destination directory
-MANIFEST_ROOT ?= config
+MANIFEST_ROOT ?= ./config
 CRD_ROOT ?= $(MANIFEST_ROOT)/crd/bases
 WEBHOOK_ROOT ?= $(MANIFEST_ROOT)/webhook
 RBAC_ROOT ?= $(MANIFEST_ROOT)/rbac
@@ -160,7 +160,7 @@ generate-go: $(CONTROLLER_GEN) ## Runs Go related generate targets
 generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 	$(CONTROLLER_GEN) \
 		paths=./api/... \
-		crd:preserveUnknownFields=true \
+		crd:crdVersions=v1 \
 		output:crd:dir=$(CRD_ROOT) \
 		output:webhook:dir=$(WEBHOOK_ROOT) \
 		webhook

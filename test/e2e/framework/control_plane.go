@@ -28,7 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	. "sigs.k8s.io/cluster-api/test/framework" //nolint:golint
+	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -42,7 +42,7 @@ const (
 //  * The number of nodes in the created cluster will equal the number
 //    of machines in the machine deployment plus the number of control
 //    plane nodes.
-func ControlPlaneCluster(input *ControlplaneClusterInput) {
+func ControlPlaneCluster(input *framework.ControlplaneClusterInput) {
 	Expect(input).ToNot(BeNil())
 	input.SetDefaults()
 	Expect(input.Management).ToNot(BeNil())
@@ -152,7 +152,7 @@ func ControlPlaneCluster(input *ControlplaneClusterInput) {
 	}, input.CreateTimeout, eventuallyInterval).Should(HaveLen(expectedNumberOfNodes))
 }
 
-func waitForControlPlaneInitialized(ctx context.Context, input *ControlplaneClusterInput, mgmtClient client.Client) {
+func waitForControlPlaneInitialized(ctx context.Context, input *framework.ControlplaneClusterInput, mgmtClient framework.Getter) {
 	By("waiting for the control plane to be initialized")
 	clusterKey := client.ObjectKey{
 		Namespace: input.Cluster.GetNamespace(),

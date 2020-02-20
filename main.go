@@ -21,8 +21,6 @@ import (
 	"net/http"
 	"net/http/pprof"
 	"os"
-	"strconv"
-	"time"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
 
@@ -43,32 +41,9 @@ var (
 	defaultSyncPeriod              = manager.DefaultSyncPeriod
 	defaultMaxConcurrentReconciles = manager.DefaultMaxConcurrentReconciles
 	defaultLeaderElectionID        = manager.DefaultLeaderElectionID
-	defaultPodNamespace            = manager.DefaultPodNamespace
 	defaultPodName                 = manager.DefaultPodName
-	defaultWatchNamespace          = manager.DefaultWatchNamespace
 	defaultWebhookPort             = manager.DefaultWebhookServiceContainerPort
 )
-
-func init() {
-	if v, err := time.ParseDuration(os.Getenv("SYNC_PERIOD")); err == nil {
-		defaultSyncPeriod = v
-	}
-	if v, err := strconv.Atoi(os.Getenv("MAX_CONCURRENT_RECONCILES")); err == nil {
-		defaultMaxConcurrentReconciles = v
-	}
-	if v := os.Getenv("LEADER_ELECTION_ID"); v != "" {
-		defaultLeaderElectionID = v
-	}
-	if v := os.Getenv("POD_NAMESPACE"); v != "" {
-		defaultPodNamespace = v
-	}
-	if v := os.Getenv("POD_NAME"); v != "" {
-		defaultPodName = v
-	}
-	if v := os.Getenv("WATCH_NAMESPACE"); v != "" {
-		defaultWatchNamespace = v
-	}
-}
 
 func main() {
 	klog.InitFlags(nil)
@@ -81,7 +56,7 @@ func main() {
 	flag.StringVar(
 		&managerOpts.MetricsAddr,
 		"metrics-addr",
-		":8084",
+		":8080",
 		"The address the metric endpoint binds to.")
 	flag.BoolVar(
 		&managerOpts.LeaderElectionEnabled,
@@ -95,13 +70,13 @@ func main() {
 		"Name of the config map to use as the locking resource when configuring leader election.")
 	flag.StringVar(
 		&managerOpts.WatchNamespace,
-		"watch-namespace",
-		defaultWatchNamespace,
+		"namespace",
+		"",
 		"Namespace that the controller watches to reconcile cluster-api objects. If unspecified, the controller watches for cluster-api objects across all namespaces.")
 	profilerAddress := flag.String(
 		"profiler-address",
 		defaultProfilerAddr,
-		"Bind address to expose the pprof profiler")
+		"Bind address to expose the pprof profiler (e.g. localhost:6060)")
 	flag.DurationVar(
 		&managerOpts.SyncPeriod,
 		"sync-period",
@@ -113,11 +88,6 @@ func main() {
 		defaultMaxConcurrentReconciles,
 		"The maximum number of allowed, concurrent reconciles.")
 	flag.StringVar(
-		&managerOpts.PodNamespace,
-		"pod-namespace",
-		defaultPodNamespace,
-		"The namespace in which the pod running the controller manager is located.")
-	flag.StringVar(
 		&managerOpts.PodName,
 		"pod-name",
 		defaultPodName,
@@ -127,6 +97,12 @@ func main() {
 		"webhook-port",
 		defaultWebhookPort,
 		"Webhook Server port (set to 0 to disable)")
+	flag.StringVar(
+		&managerOpts.HealthAddr,
+		"health-addr",
+		":9440",
+		"The address the health endpoint binds to.",
+	)
 
 	flag.Parse()
 
@@ -146,19 +122,6 @@ func main() {
 	// Create a function that adds all of the controllers and webhooks to the
 	// manager.
 	addToManager := func(ctx *context.ControllerManagerContext, mgr ctrlmgr.Manager) error {
-		if err := controllers.AddClusterControllerToManager(ctx, mgr); err != nil {
-			return err
-		}
-		if err := controllers.AddMachineControllerToManager(ctx, mgr); err != nil {
-			return err
-		}
-		if err := controllers.AddVMControllerToManager(ctx, mgr); err != nil {
-			return err
-		}
-		if err := controllers.AddHAProxyLoadBalancerControllerToManager(ctx, mgr); err != nil {
-			return err
-		}
-
 		if managerOpts.WebhookPort != 0 {
 			if err := (&v1alpha3.VSphereCluster{}).SetupWebhookWithManager(mgr); err != nil {
 				return err
@@ -192,6 +155,19 @@ func main() {
 				return err
 			}
 			if err := (&v1alpha3.HAProxyLoadBalancerList{}).SetupWebhookWithManager(mgr); err != nil {
+				return err
+			}
+		} else {
+			if err := controllers.AddClusterControllerToManager(ctx, mgr); err != nil {
+				return err
+			}
+			if err := controllers.AddMachineControllerToManager(ctx, mgr); err != nil {
+				return err
+			}
+			if err := controllers.AddVMControllerToManager(ctx, mgr); err != nil {
+				return err
+			}
+			if err := controllers.AddHAProxyLoadBalancerControllerToManager(ctx, mgr); err != nil {
 				return err
 			}
 		}

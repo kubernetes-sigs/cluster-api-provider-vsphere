@@ -7,9 +7,10 @@ require (
 	github.com/go-logr/logr v0.1.0
 	github.com/google/go-cmp v0.3.1
 	github.com/google/uuid v1.1.1
-	github.com/onsi/ginkgo v1.11.0
+	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.8.1
 	github.com/pkg/errors v0.9.0
+	github.com/spf13/cobra v0.0.5
 	github.com/vmware/govmomi v0.21.0
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	gopkg.in/gcfg.v1 v1.2.3
@@ -18,6 +19,7 @@ require (
 	k8s.io/apimachinery v0.17.2
 	k8s.io/client-go v0.17.2
 	k8s.io/klog v1.0.0
+	k8s.io/utils v0.0.0-20191114184206-e782cd3c129f
 	sigs.k8s.io/cluster-api v0.3.0-rc.2
 	sigs.k8s.io/cluster-api/test/framework v0.0.0-20200226193920-f0bc1035b469
 	sigs.k8s.io/controller-runtime v0.5.0

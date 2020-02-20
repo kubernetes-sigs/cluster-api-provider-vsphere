@@ -31,17 +31,17 @@ Check out the [getting started guide](./docs/getting_started.md) for launching a
 
 This provider's versions are compatible with the following versions of Cluster API:
 
-||Cluster API v1alpha1 (v0.1)|Cluster API v1alpha2 (v0.2)|
-|---|:---:|:---:|
-| CAPV v1alpha1 (v0.3)|✓|☓|
-| CAPV v1alpha1 (v0.4)|✓|☓|
-| CAPV v1alpha2 (v0.5, master)|☓|✓|
+|                              | Cluster API v1alpha1 (v0.1) | Cluster API v1alpha2 (v0.2) |
+| ---------------------------- | :-------------------------: | :-------------------------: |
+| CAPV v1alpha1 (v0.3)         |              ✓              |              ☓              |
+| CAPV v1alpha1 (v0.4)         |              ✓              |              ☓              |
+| CAPV v1alpha2 (v0.5, master) |              ☓              |              ✓              |
 
-||Kubernetes 1.13|Kubernetes 1.14|Kubernetes 1.15|
-|-|:---:|:---:|:---:|
-| CAPV v1alpha1 (v0.3)|✓|✓|✓|
-| CAPV v1alpha1 (v0.4)|✓|✓|✓|
-| CAPV v1alpha2 (v0.5, master)|✓|✓|✓|
+|                              | Kubernetes 1.13 | Kubernetes 1.14 | Kubernetes 1.15 |
+| ---------------------------- | :-------------: | :-------------: | :-------------: |
+| CAPV v1alpha1 (v0.3)         |        ✓        |        ✓        |        ✓        |
+| CAPV v1alpha1 (v0.4)         |        ✓        |        ✓        |        ✓        |
+| CAPV v1alpha2 (v0.5, master) |        ✓        |        ✓        |        ✓        |
 
 **NOTE:** As the versioning for this project is tied to the versioning of Cluster API, future modifications to this policy may be made to more closely align with other providers in the Cluster API ecosystem.
 
@@ -49,11 +49,11 @@ This provider's versions are compatible with the following versions of Cluster A
 
 Note: These OVAs are not updated for security fixes and it is recommended to always use the latest patch version for the Kubernetes version you wish to run. For production-like environments, it is highly recommended to build and use your own custom images.
 
-| Kubernetes | CentOS 7 | Ubuntu 18.04 | Photon 3 |
-|:-:|:-:|:-:|:-:|
-| v1.15.10 | [ova](http://storage.googleapis.com/capv-images/release/v1.15.10/centos-7-kube-v1.15.10.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.15.10/centos-7-kube-v1.15.10.ova.sha256) | [ova](http://storage.googleapis.com/capv-images/release/v1.15.10/ubuntu-1804-kube-v1.15.10.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.15.10/ubuntu-1804-kube-v1.15.10.ova.sha256) | [ova](http://storage.googleapis.com/capv-images/release/v1.15.10/photon-3-kube-v1.15.10.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.15.10/photon-3-kube-v1.15.10.ova.sha256) |
-| v1.16.7 | [ova](http://storage.googleapis.com/capv-images/release/v1.16.7/centos-7-kube-v1.16.7.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.16.7/centos-7-kube-v1.16.7.ova.sha256) | [ova](http://storage.googleapis.com/capv-images/release/v1.16.7/ubuntu-1804-kube-v1.16.7.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.16.7/ubuntu-1804-kube-v1.16.7.ova.sha256) | [ova](http://storage.googleapis.com/capv-images/release/v1.16.7/photon-3-kube-v1.16.7.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.16.7/photon-3-kube-v1.16.7.ova.sha256) |
-| v1.17.4 | [ova](http://storage.googleapis.com/capv-images/release/v1.17.4/centos-7-kube-v1.17.4.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.17.4/centos-7-kube-v1.17.4.ova.sha256) | [ova](http://storage.googleapis.com/capv-images/release/v1.17.4/ubuntu-1804-kube-v1.17.4.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.17.4/ubuntu-1804-kube-v1.17.4.ova.sha256) | [ova](http://storage.googleapis.com/capv-images/release/v1.17.4/photon-3-kube-v1.17.4.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.17.4/photon-3-1804-kube-v1.17.4.ova.sha256) |
+| Kubernetes |                                                                                               CentOS 7                                                                                               |                                                                                                Ubuntu 18.04                                                                                                |                                                                                               Photon 3                                                                                                |
+| :--------: | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
+|  v1.15.10  | [ova](http://storage.googleapis.com/capv-images/release/v1.15.10/centos-7-kube-v1.15.10.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.15.10/centos-7-kube-v1.15.10.ova.sha256) | [ova](http://storage.googleapis.com/capv-images/release/v1.15.10/ubuntu-1804-kube-v1.15.10.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.15.10/ubuntu-1804-kube-v1.15.10.ova.sha256) | [ova](http://storage.googleapis.com/capv-images/release/v1.15.10/photon-3-kube-v1.15.10.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.15.10/photon-3-kube-v1.15.10.ova.sha256)  |
+|  v1.16.7   |   [ova](http://storage.googleapis.com/capv-images/release/v1.16.7/centos-7-kube-v1.16.7.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.16.7/centos-7-kube-v1.16.7.ova.sha256)   |   [ova](http://storage.googleapis.com/capv-images/release/v1.16.7/ubuntu-1804-kube-v1.16.7.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.16.7/ubuntu-1804-kube-v1.16.7.ova.sha256)   |   [ova](http://storage.googleapis.com/capv-images/release/v1.16.7/photon-3-kube-v1.16.7.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.16.7/photon-3-kube-v1.16.7.ova.sha256)    |
+|  v1.17.3   |   [ova](http://storage.googleapis.com/capv-images/release/v1.17.3/centos-7-kube-v1.17.3.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.17.3/centos-7-kube-v1.17.3.ova.sha256)   |   [ova](http://storage.googleapis.com/capv-images/release/v1.17.3/ubuntu-1804-kube-v1.17.3.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.17.3/ubuntu-1804-kube-v1.17.3.ova.sha256)   | [ova](http://storage.googleapis.com/capv-images/release/v1.17.3/photon-3-kube-v1.17.3.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.17.3/photon-3-1804-kube-v1.17.3.ova.sha256) |
 
 A full list of the published machine images for CAPV may be obtained with the following command:
 

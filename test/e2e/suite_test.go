@@ -63,6 +63,28 @@ var _ = BeforeSuite(func() {
 	By("applying e2e config defaults")
 	config.Defaults()
 
+	By("inserting dynamic string replacements")
+	for k, c := range config.Components {
+		c := c
+		if c.Name != "capv" {
+			continue
+		}
+		for ck, sources := range c.Sources {
+			c.Sources[ck].Replacements = append(
+				sources.Replacements,
+				framework.ComponentReplacement{
+					Old: "\\${VSPHERE_USERNAME}",
+					New: vsphereUsername,
+				},
+				framework.ComponentReplacement{
+					Old: "\\${VSPHERE_PASSWORD}",
+					New: vspherePassword,
+				},
+			)
+		}
+		config.Components[k] = c
+	}
+
 	By("cleaning up previous kind cluster")
 	kindx.TeardownIfExists(ctx, config.ManagementClusterName)
 
@@ -73,7 +95,7 @@ var _ = BeforeSuite(func() {
 	Expect(infrav1.AddToScheme(scheme)).To(Succeed())
 
 	mgmt = framework.InitManagementCluster(ctx, &framework.InitManagementClusterInput{
-		ComponentGenerators: []framework.ComponentGenerator{credentialsGenerator{}},
+		ComponentGenerators: nil,
 		Config:              *config,
 		Scheme:              scheme,
 	})

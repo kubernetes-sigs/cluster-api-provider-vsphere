@@ -295,14 +295,14 @@ func (r clusterReconciler) reconcileLoadBalancer(ctx *context.ClusterContext) (b
 	loadBalancer.SetKind(loadBalancerRef.Kind)
 	loadBalancer.SetAPIVersion(loadBalancerRef.APIVersion)
 	loadBalancerKey := types.NamespacedName{
-		Namespace: loadBalancerRef.Namespace,
+		Namespace: ctx.VSphereCluster.GetNamespace(),
 		Name:      loadBalancerRef.Name,
 	}
 	if err := ctx.Client.Get(ctx, loadBalancerKey, loadBalancer); err != nil {
 		if apierrors.IsNotFound(err) {
 			ctx.Logger.Info("resource specified by LoadBalancerRef not found",
 				"load-balancer-gvk", loadBalancerRef.APIVersion,
-				"load-balancer-namespace", loadBalancerRef.Namespace,
+				"load-balancer-namespace", ctx.VSphereCluster.GetNamespace(),
 				"load-balancer-name", loadBalancerRef.Name)
 			return false, nil
 		}

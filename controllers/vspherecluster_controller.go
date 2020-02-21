@@ -181,6 +181,16 @@ func (r clusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr er
 func (r clusterReconciler) reconcileDelete(ctx *context.ClusterContext) (reconcile.Result, error) {
 	ctx.Logger.Info("Reconciling VSphereCluster delete")
 
+	vsphereMachines, err := infrautilv1.GetVSphereMachinesInCluster(ctx, ctx.Client, ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
+	if err != nil {
+		return reconcile.Result{}, errors.Wrapf(err,
+			"unable to list VSphereMachines part of VSphereCluster %s/%s", ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
+	}
+
+	if len(vsphereMachines) > 0 {
+		return reconcile.Result{}, errors.Errorf("unable to delete VSphereCluster %s/%s: %v VSphereMachines left", ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name, len(vsphereMachines))
+	}
+
 	// Cluster is deleted so remove the finalizer.
 	ctx.VSphereCluster.Finalizers = clusterutilv1.Filter(ctx.VSphereCluster.Finalizers, infrav1.ClusterFinalizer)
 

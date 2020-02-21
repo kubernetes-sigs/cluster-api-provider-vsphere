@@ -349,10 +349,10 @@ modernc.org/mathutil v1.0.0/go.mod h1:wU0vUrJsVWBZ4P6e7xtFJEhFSNsfRLJ8H458uRjg03
 modernc.org/strutil v1.0.0/go.mod h1:lstksw84oURvj9y3tn8lGvRxyRC1S2+g5uuIzNfIOBs=
 modernc.org/xc v1.0.0/go.mod h1:mRNCo0bvLjGhHO9WsyuKVU4q0ceiDDDoEeWDJHrNx8I=
 sigs.k8s.io/cluster-api v0.2.5/go.mod h1:Agc72Ra5LMOkQQ2v/Ywv1KUemaYAwvkQ+G59Ym5H8e4=
-sigs.k8s.io/cluster-api v0.2.8 h1:sDxjJaRbdaqs8ELyswkvyyJ0RLvMMDwfAJ9Jsumy3Dc=
-sigs.k8s.io/cluster-api v0.2.8/go.mod h1:Agc72Ra5LMOkQQ2v/Ywv1KUemaYAwvkQ+G59Ym5H8e4=
-sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm v0.1.5 h1:NC5z0GfiarpEiOwLp+kgpTiUHG9Hp422YklHDPnzYds=
-sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm v0.1.5/go.mod h1:916zreHrHzA66A3yzL0M0HCW8JeddmJa6Nzjnrfop4U=
+sigs.k8s.io/cluster-api v0.2.10 h1:0vhn1Uy6/j98TM+ihmWRb+lenkmd2VvdbHzrttsClIk=
+sigs.k8s.io/cluster-api v0.2.10/go.mod h1:BCw+Pqy1sc8mQ/3d2NZM/f5BApKFCMPsnGvKolvDcA0=
+sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm v0.1.6 h1:VSbJstRYt/CU2e0BXkOcE/Ux5a4TnbuO2x7Ln2AynmQ=
+sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm v0.1.6/go.mod h1:916zreHrHzA66A3yzL0M0HCW8JeddmJa6Nzjnrfop4U=
 sigs.k8s.io/controller-runtime v0.3.0 h1:ZtdgqJXVHsIytjdmDuk0QjagnzyLq9FjojXRqIp+dU4=
 sigs.k8s.io/controller-runtime v0.3.0/go.mod h1:Cw6PkEg0Sa7dAYovGT4R0tRkGhHXpYijwNxYhAnAZZk=
 sigs.k8s.io/structured-merge-diff v0.0.0-20190302045857-e85c7b244fd2/go.mod h1:wWxsB5ozmmv/SG7nM11ayaAW51xMvak/t1r0CSlcokI=

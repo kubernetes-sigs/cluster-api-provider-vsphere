@@ -29,6 +29,8 @@ This is a guide on how to troubleshoot issues related to the Cluster API provide
       - [Multiple networks](#multiple-networks)
         - [Multiple default routes](#multiple-default-routes)
         - [Preferring an IP address](#preferring-an-ip-address)
+    - [Machine object stuck in a provisioning state](#machine-object-stuck-in-a-provisioning-state)
+      - [VM folder does not exist](#vm-folder-does-not-exist)
 
 ## Debugging issues
 
@@ -363,3 +365,28 @@ spec:
     servers:
       - 192.168.2.1
 ```
+
+### Machine object stuck in a provisioning state
+
+This section discusses issues that can cause a Machine object to be stuck in a provisioning state.
+
+```shell
+kubectl get machine
+NAME                             PROVIDERID   PHASE
+capi-quickstart-controlplane-0                provisioning
+```
+
+To troubleshoot these type of scenarios `capv-controller-manager` logs are a good starting point. These logs can be retrived using `kubectl logs capv-controller-manager-88f646758-nj8fs -n capv-system`
+
+#### VM folder does not exist
+
+One of the scenarios where a machine object fails to provision successfully and is stuck in a provisioning state is when the VM folder specified in the manifest does not exist. Below error messages can be seen in the `capv-controller-manager` logs:
+
+```shell
+kubectl logs capv-controller-manager-88f646758-nj8fs -n capv-system
+
+I0219 15:15:28.802698       1 vspheremachine_controller.go:249] capv-controller-manager/vspheremachine-controller/default/capi-quickstart-controlplane-0 "level"=0 "msg"="resource patch was not required"  "local-resource-version"="63276" "remote-resource-version"="63276"
+E0219 15:15:28.802789       1 controller.go:218] controller-runtime/controller "msg"="Reconciler error" "error"="failed to reconcile VM: unable to get folder for \"infrastructure.cluster.x-k8s.io/v1alpha2, Kind=VSphereCluster default/capi-quickstart/capi-quickstart-controlplane-0\": folder 'clusterapiVM' not found"  "controller"="vspheremachine" "request"={"Namespace":"default","Name":"capi-quickstart-controlplane-0"}
+```
+
+To resolve this error create a VM folder with the name as specified in the manifest. This can be done using the vCenter UI or `govc`. For example in case of this error, `govc folder.create /Datacenter/vm/clusterapiVM`, resolves the issue.

@@ -6,6 +6,7 @@ namespace: capv-system
 
 resources:
   - namespace.yaml
+  - credentials.yaml
 # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix including the one in crd/kustomization.yaml
 #- ../webhook
 # [CERTMANAGER] To enable cert-manager, uncomment next line. 'WEBHOOK' components are required.

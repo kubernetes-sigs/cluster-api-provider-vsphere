@@ -186,7 +186,7 @@ ifndef VERSION
 endif
 	@mkdir -p out
 	cd config/manager/; ../../"$(KUSTOMIZE)" edit set image gcr.io/cluster-api-provider-vsphere/release/manager:"$(VERSION)"
-	"$(KUSTOMIZE)" build config/default > out/infrastructure-components.yaml
+	"$(KUSTOMIZE)" build config > out/infrastructure-components.yaml
 ## --------------------------------------
 ## Cleanup / Verification
 ## --------------------------------------

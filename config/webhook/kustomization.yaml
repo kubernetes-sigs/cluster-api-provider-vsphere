@@ -37,4 +37,3 @@ vars:
     kind: Service
     version: v1
     name: webhook-service
-  

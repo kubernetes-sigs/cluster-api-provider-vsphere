@@ -32,7 +32,6 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
-	cloudv1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3/cloudprovider"
 )
 
 var (
@@ -61,20 +60,20 @@ func (c ClusterGenerator) Generate(clusterNamespace, clusterName string) (*clust
 		},
 		Spec: infrav1.VSphereClusterSpec{
 			Server: vsphereServer,
-			CloudProviderConfiguration: cloudv1.Config{
-				Global: cloudv1.GlobalConfig{
+			CloudProviderConfiguration: infrav1.CPIConfig{
+				Global: infrav1.CPIGlobalConfig{
 					Insecure:        true,
 					SecretName:      "cloud-provider-vsphere-credentials",
 					SecretNamespace: "kube-system",
 				},
-				Network: cloudv1.NetworkConfig{
+				Network: infrav1.CPINetworkConfig{
 					Name: vsphereNetwork,
 				},
-				ProviderConfig: cloudv1.ProviderConfig{
-					Cloud: &cloudv1.CloudConfig{
+				ProviderConfig: infrav1.CPIProviderConfig{
+					Cloud: &infrav1.CPICloudConfig{
 						ControllerImage: "gcr.io/cloud-provider-vsphere/cpi/release/manager:v1.0.0",
 					},
-					Storage: &cloudv1.StorageConfig{
+					Storage: &infrav1.CPIStorageConfig{
 						AttacherImage:       "quay.io/k8scsi/csi-attacher:v1.1.1",
 						ControllerImage:     "gcr.io/cloud-provider-vsphere/csi/release/driver:v1.0.1",
 						LivenessProbeImage:  "quay.io/k8scsi/livenessprobe:v1.1.0",
@@ -84,12 +83,12 @@ func (c ClusterGenerator) Generate(clusterNamespace, clusterName string) (*clust
 						RegistrarImage:      "quay.io/k8scsi/csi-node-driver-registrar:v1.1.0",
 					},
 				},
-				VCenter: map[string]cloudv1.VCenterConfig{
+				VCenter: map[string]infrav1.CPIVCenterConfig{
 					vsphereServer: {
 						Datacenters: vsphereDatacenter,
 					},
 				},
-				Workspace: cloudv1.WorkspaceConfig{
+				Workspace: infrav1.CPIWorkspaceConfig{
 					Datacenter:   vsphereDatacenter,
 					Datastore:    vsphereDatastore,
 					Folder:       vsphereFolder,

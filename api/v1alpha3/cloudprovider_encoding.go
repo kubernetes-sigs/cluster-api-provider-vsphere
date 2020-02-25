@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cloudprovider
+package v1alpha3
 
 import (
 	"bytes"
@@ -32,14 +32,14 @@ const gcfgTag = "gcfg"
 
 // MarshalINI marshals the cloud provider configuration to INI-style
 // configuration data.
-func (c *Config) MarshalINI() ([]byte, error) {
+func (c *CPIConfig) MarshalINI() ([]byte, error) {
 	if c == nil {
 		return nil, errors.New("config is nil")
 	}
 
 	buf := &bytes.Buffer{}
 
-	// Get the reflected type and value of the Config object.
+	// Get the reflected type and value of the CPIConfig object.
 	configValue := reflect.ValueOf(*c)
 	configType := reflect.TypeOf(*c)
 
@@ -79,7 +79,7 @@ func (c *Config) MarshalINI() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (c *Config) marshalINISectionProperties(
+func (c *CPIConfig) marshalINISectionProperties(
 	out io.Writer,
 	sectionValue reflect.Value,
 	sectionName string) error {
@@ -170,7 +170,7 @@ func WarnAsFatal(opts *UnmarshalINIOptions) {
 
 // UnmarshalINI unmarshals the cloud provider configuration from INI-style
 // configuration data.
-func (c *Config) UnmarshalINI(data []byte, optFuncs ...UnmarshalINIOptionFunc) error {
+func (c *CPIConfig) UnmarshalINI(data []byte, optFuncs ...UnmarshalINIOptionFunc) error {
 	opts := &UnmarshalINIOptions{}
 	for _, setOpts := range optFuncs {
 		setOpts(opts)
@@ -189,7 +189,7 @@ func (c *Config) UnmarshalINI(data []byte, optFuncs ...UnmarshalINIOptionFunc) e
 	c.Disk = config.Disk
 	c.Workspace = config.Workspace
 	c.Labels = config.Labels
-	c.VCenter = map[string]VCenterConfig{}
+	c.VCenter = map[string]CPIVCenterConfig{}
 	for k, v := range config.VCenter {
 		c.VCenter[k] = *v
 	}

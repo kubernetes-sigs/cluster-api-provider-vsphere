@@ -5,26 +5,26 @@ kind: Kustomization
 namespace: capv-system
 
 resources:
-- namespace.yaml
+  - namespace.yaml
 # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix including the one in crd/kustomization.yaml
 #- ../webhook
 # [CERTMANAGER] To enable cert-manager, uncomment next line. 'WEBHOOK' components are required.
 #- ../certmanager
 
 bases:
-- ../rbac
-- ../manager
+  - ../rbac
+  - ../manager
 
 patchesStrategicMerge:
-- manager_credentials_patch.yaml
-  # Protect the /metrics endpoint by putting it behind auth.
-  # Only one of manager_auth_proxy_patch.yaml and
-  # manager_prometheus_metrics_patch.yaml should be enabled.
-# - manager_auth_proxy_patch.yaml
-  # If you want your controller-manager to expose the /metrics
-  # endpoint w/o any authn/z, uncomment the following line and
-  # comment manager_auth_proxy_patch.yaml.
-  # Only one of manager_auth_proxy_patch.yaml and
+  - manager_credentials_patch.yaml
+    # Protect the /metrics endpoint by putting it behind auth.
+    # Only one of manager_auth_proxy_patch.yaml and
+    # manager_prometheus_metrics_patch.yaml should be enabled.
+    # - manager_auth_proxy_patch.yaml
+    # If you want your controller-manager to expose the /metrics
+    # endpoint w/o any authn/z, uncomment the following line and
+    # comment manager_auth_proxy_patch.yaml.
+    # Only one of manager_auth_proxy_patch.yaml and
   # manager_prometheus_metrics_patch.yaml should be enabled.
 #- manager_prometheus_metrics_patch.yaml
 

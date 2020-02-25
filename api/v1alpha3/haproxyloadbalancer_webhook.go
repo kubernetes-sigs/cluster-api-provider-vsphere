@@ -14,16 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package cloudprovider contains API types for the vSphere cloud provider.
-//
-// The configuration may be unmarshalled from an INI-style configuration using
-// the "gopkg.in/gcfg.v1" package.
-//
-// The configuration may be marshalled to an INI-style configuration using a Go
-// template.
-//
-// The "gopkg.in/go-ini/ini.v1" package was investigated, but it does not
-// support reflecting a struct with a field of type "map[string]TYPE" to INI.
-//
-// +kubebuilder:object:generate=true
-package cloudprovider
+package v1alpha3
+
+import (
+	ctrl "sigs.k8s.io/controller-runtime"
+)
+
+func (r *HAProxyLoadBalancer) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewWebhookManagedBy(mgr).
+		For(r).
+		Complete()
+}

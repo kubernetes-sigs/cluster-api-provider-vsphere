@@ -43,6 +43,7 @@ CLUSTERCTL := $(BIN_DIR)/clusterctl
 CONTROLLER_GEN := $(abspath $(TOOLS_BIN_DIR)/controller-gen)
 GOLANGCI_LINT := $(TOOLS_BIN_DIR)/golangci-lint
 KUSTOMIZE := $(TOOLS_BIN_DIR)/kustomize
+CONVERSION_GEN := $(TOOLS_BIN_DIR)/conversion-gen
 
 # Allow overriding manifest generation destination directory
 MANIFEST_ROOT ?= ./config
@@ -93,7 +94,7 @@ $(CLUSTERCTL): go.mod
 ## Tooling Binaries
 ## --------------------------------------
 
-TOOLING_BINARIES := $(CONTROLLER_GEN) $(GOLANGCI_LINT) $(KUSTOMIZE)
+TOOLING_BINARIES := $(CONTROLLER_GEN) $(GOLANGCI_LINT) $(KUSTOMIZE) $(CONVERSION_GEN)
 tools: $(TOOLING_BINARIES) ## Build tooling binaries
 .PHONY: $(TOOLING_BINARIES)
 $(TOOLING_BINARIES):
@@ -150,11 +151,16 @@ generate: ## Generate code
 	$(MAKE) generate-manifests
 
 .PHONY: generate-go
-generate-go: $(CONTROLLER_GEN) ## Runs Go related generate targets
+generate-go: $(CONTROLLER_GEN) $(CONVERSION_GEN) ## Runs Go related generate targets
 	go generate ./...
 	$(CONTROLLER_GEN) \
 		paths=./api/... \
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt
+
+	$(CONVERSION_GEN) \
+		--input-dirs=./api/v1alpha2 \
+		--output-file-base=zz_generated.conversion \
+		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
 
 .PHONY: generate-manifests
 generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.

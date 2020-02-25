@@ -136,8 +136,8 @@ spec:
                         type: string
                     type: object
                   providerConfig:
-                    description: ProviderConfig contains extra information used to
-                      configure the vSphere cloud provider.
+                    description: CPIProviderConfig contains extra information used
+                      to configure the vSphere cloud provider.
                     properties:
                       cloud:
                         properties:
@@ -164,8 +164,8 @@ spec:
                     type: object
                   virtualCenter:
                     additionalProperties:
-                      description: VCenterConfig is a vSphere cloud provider's vCenter
-                        configuration.
+                      description: CPIVCenterConfig is a vSphere cloud provider's
+                        vCenter configuration.
                       properties:
                         datacenters:
                           description: Datacenters is a CSV string of the datacenters
@@ -375,8 +375,8 @@ spec:
                         type: string
                     type: object
                   providerConfig:
-                    description: ProviderConfig contains extra information used to
-                      configure the vSphere cloud provider.
+                    description: CPIProviderConfig contains extra information used
+                      to configure the vSphere cloud provider.
                     properties:
                       cloud:
                         properties:
@@ -403,8 +403,8 @@ spec:
                     type: object
                   virtualCenter:
                     additionalProperties:
-                      description: VCenterConfig is a vSphere cloud provider's vCenter
-                        configuration.
+                      description: CPIVCenterConfig is a vSphere cloud provider's
+                        vCenter configuration.
                       properties:
                         datacenters:
                           description: Datacenters is a CSV string of the datacenters

@@ -535,10 +535,17 @@ modernc.org/mathutil v1.0.0/go.mod h1:wU0vUrJsVWBZ4P6e7xtFJEhFSNsfRLJ8H458uRjg03
 modernc.org/strutil v1.0.0/go.mod h1:lstksw84oURvj9y3tn8lGvRxyRC1S2+g5uuIzNfIOBs=
 modernc.org/xc v1.0.0/go.mod h1:mRNCo0bvLjGhHO9WsyuKVU4q0ceiDDDoEeWDJHrNx8I=
 sigs.k8s.io/cluster-api v0.2.6-0.20200213153035-a0cdb3b05cda/go.mod h1:OCxI4X95BA8R+NL71nRDKYm6Uu87iT9KrCi+OZVb+kE=
+sigs.k8s.io/cluster-api v0.2.10 h1:0vhn1Uy6/j98TM+ihmWRb+lenkmd2VvdbHzrttsClIk=
 sigs.k8s.io/cluster-api v0.3.0-rc.0 h1:HPXAdqVgG2/9rX+aup1LViq8YLBcTYT+OTu49GDRRqU=
 sigs.k8s.io/cluster-api v0.3.0-rc.0/go.mod h1:adKR0yDa0/3iadC5Iy2Ig0I9EHAtUsBctBW7e6gVJJg=
+sigs.k8s.io/cluster-api v0.3.0-rc.1 h1:8o7b6uv0uhbwzlmfnFaJVO1K6fL7fMU+RgLtK7Pcg50=
+sigs.k8s.io/cluster-api v0.3.0-rc.1/go.mod h1:ZyskGS0oI3urNhGYwaiAKYYOBqPyClc/kdBPmpCkhfw=
 sigs.k8s.io/cluster-api/test/framework v0.0.0-20200214233328-4fd4c7f2c7cd h1:4/3czZP1PTAixICmxKiQsf9ixiz8oH5Kb7Q3PzUxuVc=
 sigs.k8s.io/cluster-api/test/framework v0.0.0-20200214233328-4fd4c7f2c7cd/go.mod h1:YJPZhZQqLi9N+h2oI6NgERE+p+YZ4oXUg6jafMxpbtE=
+sigs.k8s.io/cluster-api/test/framework v0.0.0-20200220011703-13d26a587559 h1:RA3wdkRPOh8S3d98/S1Zs7JIeHX83XtLNROl9OTfOfQ=
+sigs.k8s.io/cluster-api/test/framework v0.0.0-20200220011703-13d26a587559/go.mod h1:YJPZhZQqLi9N+h2oI6NgERE+p+YZ4oXUg6jafMxpbtE=
+sigs.k8s.io/cluster-api/test/framework v0.0.0-20200225145248-b814473efb54 h1:eqD3k6CdxI6kz+psqpJYCAbBOe+KiKaq2DPWs3mXpnw=
+sigs.k8s.io/cluster-api/test/framework v0.0.0-20200225145248-b814473efb54/go.mod h1:YJPZhZQqLi9N+h2oI6NgERE+p+YZ4oXUg6jafMxpbtE=
 sigs.k8s.io/controller-runtime v0.4.0/go.mod h1:ApC79lpY3PHW9xj/w9pj+lYkLgwAAUZwfXkME1Lajns=
 sigs.k8s.io/controller-runtime v0.5.0 h1:CbqIy5fbUX+4E9bpnBFd204YAzRYlM9SWW77BbrcDQo=
 sigs.k8s.io/controller-runtime v0.5.0/go.mod h1:REiJzC7Y00U+2YkMbT8wxgrsX5USpXKGhb2sCtAXiT8=

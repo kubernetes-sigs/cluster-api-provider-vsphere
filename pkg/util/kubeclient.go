@@ -34,8 +34,8 @@ func NewKubeClient(
 	ctx context.Context,
 	controllerClient client.Client,
 	cluster *clusterv1.Cluster) (kubernetes.Interface, error) {
-
-	kubeconfig, err := kcfg.FromSecret(ctx, controllerClient, cluster)
+	clusterKey := client.ObjectKey{Namespace: cluster.Namespace, Name: cluster.Name}
+	kubeconfig, err := kcfg.FromSecret(ctx, controllerClient, clusterKey)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to retrieve kubeconfig secret for Cluster %q in namespace %q",
 			cluster.Name, cluster.Namespace)

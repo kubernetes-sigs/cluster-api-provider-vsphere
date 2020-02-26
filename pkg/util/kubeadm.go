@@ -40,7 +40,7 @@ func GetKubeadmConfigForMachine(
 	kubeadmConfig := &bootstrapv1.KubeadmConfig{}
 	kubeadmConfigKey := client.ObjectKey{
 		Name:      machine.Spec.Bootstrap.ConfigRef.Name,
-		Namespace: machine.Spec.Bootstrap.ConfigRef.Namespace,
+		Namespace: machine.Namespace,
 	}
 	if err := controllerClient.Get(ctx, kubeadmConfigKey, kubeadmConfig); err != nil {
 		return nil, errors.Wrapf(err,

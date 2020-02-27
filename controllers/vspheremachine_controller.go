@@ -131,6 +131,11 @@ func (r machineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr er
 		r.Logger.Info("Machine is missing cluster label or cluster does not exist")
 		return reconcile.Result{}, nil
 	}
+	if clusterutilv1.IsPaused(cluster, vsphereMachine) {
+		r.Logger.V(4).Info("VSphereMachine %s/%s linked to a cluster that is paused",
+			vsphereMachine.Namespace, vsphereMachine.Name)
+		return reconcile.Result{}, nil
+	}
 
 	// Fetch the VSphereCluster
 	vsphereCluster := &infrav1.VSphereCluster{}

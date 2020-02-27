@@ -150,6 +150,11 @@ func (r clusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr er
 		r.Logger.Info("Waiting for Cluster Controller to set OwnerRef on VSphereCluster")
 		return reconcile.Result{}, nil
 	}
+	if clusterutilv1.IsPaused(cluster, vsphereCluster) {
+		r.Logger.V(4).Info("VSphereCluster %s/%s linked to a cluster that is paused",
+			vsphereCluster.Namespace, vsphereCluster.Name)
+		return reconcile.Result{}, nil
+	}
 
 	// Create the patch helper.
 	patchHelper, err := patch.NewHelper(vsphereCluster, r.Client)

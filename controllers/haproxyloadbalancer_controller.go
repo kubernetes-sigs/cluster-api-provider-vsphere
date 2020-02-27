@@ -127,6 +127,20 @@ func (r haproxylbReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr 
 		return reconcile.Result{}, err
 	}
 
+	cluster, err := clusterutilv1.GetClusterFromMetadata(r.Context, r.Client, haproxylb.ObjectMeta)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	if cluster == nil {
+		r.Logger.Info("Waiting for VSphereCluster Controller to set OwnerRef on HAProxyLoadBalancer")
+		return reconcile.Result{}, nil
+	}
+	if clusterutilv1.IsPaused(cluster, haproxylb) {
+		r.Logger.V(4).Info("HAProxyLoadBalancer %s/%s linked to a cluster that is paused, won't reconcile",
+			haproxylb.Namespace, haproxylb.Name)
+		return reconcile.Result{}, nil
+	}
+
 	// Create the patch helper.
 	patchHelper, err := patch.NewHelper(haproxylb, r.Client)
 	if err != nil {
@@ -163,15 +177,6 @@ func (r haproxylbReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr 
 		return r.reconcileDelete(ctx)
 	}
 
-	// Fetch the CAPI Cluster.
-	cluster, err := clusterutilv1.GetOwnerCluster(r, r.Client, haproxylb.ObjectMeta)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-	if cluster == nil {
-		r.Logger.Info("Waiting for VSphereCluster Controller to set OwnerRef on HAProxyLoadBalancer")
-		return reconcile.Result{}, nil
-	}
 	ctx.Cluster = cluster
 
 	// Handle non-deleted haproxyloadbalancers

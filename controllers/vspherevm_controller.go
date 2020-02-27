@@ -27,6 +27,7 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
+	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -97,6 +98,16 @@ func (r vmReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) 
 			return reconcile.Result{}, nil
 		}
 		return reconcile.Result{}, err
+	}
+
+	cluster, err := clusterutilv1.GetClusterFromMetadata(r.ControllerContext, r.Client, vsphereVM.ObjectMeta)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	if clusterutilv1.IsPaused(cluster, vsphereVM) {
+		r.Logger.V(4).Info("VSphereVM %s/%s linked to a cluster that is paused",
+			vsphereVM.Namespace, vsphereVM.Name)
+		return reconcile.Result{}, nil
 	}
 
 	// Get or create an authenticated session to the vSphere endpoint.

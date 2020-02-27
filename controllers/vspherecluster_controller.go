@@ -342,10 +342,11 @@ func (r clusterReconciler) reconcileLoadBalancer(ctx *context.ClusterContext) (b
 			"load-balancer-gvk", loadBalancer.GroupVersionKind().String(),
 			"load-balancer-namespace", loadBalancer.GetNamespace(),
 			"load-balancer-name", loadBalancer.GetName(),
-			"cluster-gvk", ctx.Cluster.GroupVersionKind().String(),
-			"cluster-namespace", ctx.Cluster.GetNamespace(),
-			"cluster-name", ctx.Cluster.GetName())
+			"vspherecluster-gvk", ctx.VSphereCluster.GroupVersionKind().String(),
+			"vspherecluster-namespace", ctx.VSphereCluster.GetNamespace(),
+			"vspherecluster-name", ctx.VSphereCluster.GetName())
 	}
+
 	ready, ok, err := unstructured.NestedBool(loadBalancer.Object, "status", "ready")
 	if !ok {
 		if err != nil {

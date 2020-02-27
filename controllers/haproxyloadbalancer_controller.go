@@ -17,6 +17,7 @@ limitations under the License.
 package controllers
 
 import (
+	goctx "context"
 	"fmt"
 	"reflect"
 	"strings"
@@ -37,8 +38,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
@@ -82,7 +85,7 @@ func AddHAProxyLoadBalancerControllerToManager(ctx *context.ControllerManagerCon
 
 	reconciler := haproxylbReconciler{ControllerContext: controllerContext}
 
-	return ctrl.NewControllerManagedBy(mgr).
+	controller, err := ctrl.NewControllerManagedBy(mgr).
 		// Watch the controlled, infrastructure resource.
 		For(controlledType).
 		// Watch any VSphereVM resources owned by the controlled type.
@@ -107,7 +110,32 @@ func AddHAProxyLoadBalancerControllerToManager(ctx *context.ControllerManagerCon
 			&source.Channel{Source: ctx.GetGenericEventChannelFor(controlledTypeGVK)},
 			&handler.EnqueueRequestForObject{},
 		).
-		Complete(reconciler)
+		Build(reconciler)
+	if err != nil {
+		return err
+	}
+	err = controller.Watch(
+		&source.Kind{Type: &clusterv1.Cluster{}},
+		&handler.EnqueueRequestsFromMapFunc{
+			ToRequests: handler.ToRequestsFunc(reconciler.reconcileRequests),
+		},
+		predicate.Funcs{
+			UpdateFunc: func(e event.UpdateEvent) bool {
+				oldCluster := e.ObjectOld.(*clusterv1.Cluster)
+				newCluster := e.ObjectNew.(*clusterv1.Cluster)
+				return oldCluster.Spec.Paused && !newCluster.Spec.Paused
+			},
+			CreateFunc: func(e event.CreateEvent) bool {
+				if _, ok := e.Meta.GetAnnotations()[clusterv1.PausedAnnotation]; !ok {
+					return false
+				}
+				return true
+			},
+		})
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 type haproxylbReconciler struct {
@@ -775,4 +803,30 @@ func (r haproxylbReconciler) controlPlaneMachineToHAProxyLoadBalancer(o handler.
 			Name:      loadBalancerRef.Name,
 		},
 	}}
+}
+
+func (r *haproxylbReconciler) reconcileRequests(a handler.MapObject) []reconcile.Request {
+	requests := []reconcile.Request{}
+	lbs := &infrav1.HAProxyLoadBalancerList{}
+	err := r.Client.List(goctx.Background(),
+		lbs,
+		ctrlclient.InNamespace(a.Meta.GetNamespace()),
+		ctrlclient.MatchingLabels(
+			map[string]string{
+				clusterv1.ClusterLabelName: a.Meta.GetName(),
+			},
+		))
+	if err != nil {
+		return requests
+	}
+	for _, lb := range lbs.Items {
+		r := reconcile.Request{
+			NamespacedName: apitypes.NamespacedName{
+				Name:      lb.Name,
+				Namespace: lb.Namespace,
+			},
+		}
+		requests = append(requests, r)
+	}
+	return requests
 }

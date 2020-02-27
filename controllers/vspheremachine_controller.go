@@ -17,6 +17,7 @@ limitations under the License.
 package controllers
 
 import (
+	goctx "context"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -34,8 +35,10 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
@@ -71,7 +74,9 @@ func AddMachineControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 		Logger:                   ctx.Logger.WithName(controllerNameShort),
 	}
 
-	return ctrl.NewControllerManagedBy(mgr).
+	r := machineReconciler{ControllerContext: controllerContext}
+
+	controller, err := ctrl.NewControllerManagedBy(mgr).
 		// Watch the controlled, infrastructure resource.
 		For(controlledType).
 		// Watch any VSphereVM resources owned by the controlled type.
@@ -95,7 +100,33 @@ func AddMachineControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 			&source.Channel{Source: ctx.GetGenericEventChannelFor(controlledTypeGVK)},
 			&handler.EnqueueRequestForObject{},
 		).
-		Complete(machineReconciler{ControllerContext: controllerContext})
+		Build(r)
+	if err != nil {
+		return err
+	}
+
+	err = controller.Watch(
+		&source.Kind{Type: &clusterv1.Cluster{}},
+		&handler.EnqueueRequestsFromMapFunc{
+			ToRequests: handler.ToRequestsFunc(r.reconcileRequests),
+		},
+		predicate.Funcs{
+			UpdateFunc: func(e event.UpdateEvent) bool {
+				oldCluster := e.ObjectOld.(*clusterv1.Cluster)
+				newCluster := e.ObjectNew.(*clusterv1.Cluster)
+				return oldCluster.Spec.Paused && !newCluster.Spec.Paused
+			},
+			CreateFunc: func(e event.CreateEvent) bool {
+				if _, ok := e.Meta.GetAnnotations()[clusterv1.PausedAnnotation]; !ok {
+					return false
+				}
+				return true
+			},
+		})
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 type machineReconciler struct {
@@ -511,4 +542,22 @@ func (r machineReconciler) reconcileReadyState(ctx *context.MachineContext, vm *
 
 	ctx.VSphereMachine.Status.Ready = true
 	return true, nil
+}
+
+func (r *machineReconciler) reconcileRequests(a handler.MapObject) []reconcile.Request {
+	requests := []reconcile.Request{}
+	machines, err := infrautilv1.GetMachinesInCluster(goctx.Background(), r.Client, a.Meta.GetNamespace(), a.Meta.GetName())
+	if err != nil {
+		return requests
+	}
+	for _, m := range machines {
+		r := reconcile.Request{
+			NamespacedName: apitypes.NamespacedName{
+				Name:      m.Name,
+				Namespace: m.Namespace,
+			},
+		}
+		requests = append(requests, r)
+	}
+	return requests
 }

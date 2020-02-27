@@ -568,14 +568,7 @@ func (r haproxylbReconciler) reconcileVMPre7(ctx *context.HAProxyLoadBalancerCon
 	}
 	mutateFn := func() (err error) {
 		// Ensure the HAProxyLoadBalancer is marked as an owner of the VSphereVM.
-		vm.SetOwnerReferences(clusterutilv1.EnsureOwnerRef(
-			vm.OwnerReferences,
-			metav1.OwnerReference{
-				APIVersion: ctx.HAProxyLoadBalancer.APIVersion,
-				Kind:       ctx.HAProxyLoadBalancer.Kind,
-				Name:       ctx.HAProxyLoadBalancer.Name,
-				UID:        ctx.HAProxyLoadBalancer.UID,
-			}))
+		ctrlutil.SetControllerReference(ctx.HAProxyLoadBalancer, vm, r.Scheme)
 
 		// Initialize the VSphereVM's labels map if it is nil.
 		if vm.Labels == nil {

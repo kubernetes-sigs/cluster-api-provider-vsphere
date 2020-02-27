@@ -17,7 +17,7 @@ limitations under the License.
 package e2e
 
 import (
-	"crypto/sha1" //nolint:gosec
+	"crypto/sha256"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -26,5 +26,5 @@ import (
 // Hash7 returns a random, seven character string.
 func Hash7() string {
 	randomUUID := uuid.New()
-	return fmt.Sprintf("%x", sha1.Sum(randomUUID[:]))[:7] //nolint:gosec
+	return fmt.Sprintf("%x", sha256.Sum256(randomUUID[:]))[:7]
 }

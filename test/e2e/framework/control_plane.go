@@ -21,8 +21,8 @@ import (
 	"fmt"
 	"time"
 
-	. "github.com/onsi/ginkgo" //nolint:golint
-	. "github.com/onsi/gomega" //nolint:golint
+	. "github.com/onsi/ginkgo" // nolint:golint,stylecheck
+	. "github.com/onsi/gomega" // nolint:golint,stylecheck
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -77,6 +77,7 @@ func ControlPlaneCluster(input *framework.ControlplaneClusterInput) {
 	if len(input.RelatedResources) > 0 {
 		By("creating related resources")
 		for _, obj := range input.RelatedResources {
+			obj := obj
 			By(logCreatingBy(obj))
 			Eventually(func() error {
 				return mgmtClient.Create(ctx, obj)

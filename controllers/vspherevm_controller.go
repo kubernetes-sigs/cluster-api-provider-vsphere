@@ -169,6 +169,7 @@ func (r vmReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) 
 		// ResourceVersion of the resource fetched at the beginning of this
 		// reconcile request, then that means the remote resource should be
 		// newer than the local resource.
+		// nolint:errcheck
 		wait.PollImmediateInfinite(time.Second*1, func() (bool, error) {
 			// remoteObj refererences the same VSphereVM resource as it exists
 			// on the API server post the patch operation above. In a perfect world,
@@ -297,11 +298,9 @@ func (r vmReconciler) reconcileNormal(ctx *context.VMContext) (reconcile.Result,
 
 func (r vmReconciler) reconcileNetwork(ctx *context.VMContext, vm infrav1.VirtualMachine) {
 	ctx.VSphereVM.Status.Network = vm.Network
-	var ipAddrs []string
+	ipAddrs := make([]string, 0, len(vm.Network))
 	for _, netStatus := range ctx.VSphereVM.Status.Network {
-		for _, ip := range netStatus.IPAddrs {
-			ipAddrs = append(ipAddrs, ip)
-		}
+		ipAddrs = append(ipAddrs, netStatus.IPAddrs...)
 	}
 	ctx.VSphereVM.Status.Addresses = ipAddrs
 }

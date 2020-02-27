@@ -32,6 +32,7 @@ export GO111MODULE := on
 
 # Directories.
 BIN_DIR := bin
+SRCS := go.mod go.sum
 
 # Binaries.
 CONTROLLER_GEN := $(BIN_DIR)/controller-gen
@@ -50,23 +51,19 @@ help: ## Display this help
 ## Binaries
 ## --------------------------------------
 
-.PHONY: $(CONTROLLER_GEN)
-controller-gen: $(CONTROLLER_GEN) ## Build controller-gen
+controller-gen: $(CONTROLLER_GEN) $(SRCS) ## Build controller-gen
 $(CONTROLLER_GEN): go.mod
 	go build -tags=tools -o $@ sigs.k8s.io/controller-tools/cmd/controller-gen
 
-.PHONY: $(GOLANGCI_LINT)
-golangci-lint: $(GOLANGCI_LINT) ## Build golangci-lint
+golangci-lint: $(GOLANGCI_LINT) $(SRCS) ## Build golangci-lint
 $(GOLANGCI_LINT): go.mod
 	go build -tags=tools -o $@ github.com/golangci/golangci-lint/cmd/golangci-lint
 
-.PHONY: $(KUSTOMIZE)
-kustomize: $(KUSTOMIZE) ## Build kustomize
+kustomize: $(KUSTOMIZE) $(SRCS) ## Build kustomize
 $(KUSTOMIZE): go.mod
 	go build -tags=tools -o $@ sigs.k8s.io/kustomize/kustomize/v3
 
-.PHONY: $(CONVERSION_GEN)
-conversion-gen: $(CONVERSION_GEN) ## Build conversion-gen
+conversion-gen: $(CONVERSION_GEN) $(SRCS) ## Build conversion-gen
 $(CONVERSION_GEN): go.mod
 	go build -tags=tools -o $@ k8s.io/code-generator/cmd/conversion-gen
 

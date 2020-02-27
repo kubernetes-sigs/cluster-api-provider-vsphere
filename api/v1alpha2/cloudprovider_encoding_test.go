@@ -270,6 +270,7 @@ folder = kubernetes
 	}
 
 	for _, tc := range testcases {
+		tc := tc
 		t.Run(tc.testName, func(t *testing.T) {
 			buf, err := tc.configObj.MarshalINI()
 			if err != nil {
@@ -578,6 +579,7 @@ func TestUnmarshalINI(t *testing.T) {
 	)
 
 	for _, tc := range testCases {
+		tc := tc
 		t.Run(tc.testName, func(t *testing.T) {
 			var actualConfig v1alpha2.CPIConfig
 

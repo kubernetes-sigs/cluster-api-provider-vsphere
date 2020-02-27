@@ -42,6 +42,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
@@ -429,6 +430,7 @@ func (r machineReconciler) reconcileNormalPre7(ctx *context.MachineContext) (run
 }
 
 func (r machineReconciler) reconcileNetwork(ctx *context.MachineContext, vm *unstructured.Unstructured) (bool, error) {
+	var errs []error
 	if networkStatusListOfIfaces, ok, _ := unstructured.NestedSlice(vm.Object, "status", "network"); ok {
 		networkStatusList := []infrav1.NetworkStatus{}
 		for i, networkStatusListMemberIface := range networkStatusListOfIfaces {
@@ -436,16 +438,19 @@ func (r machineReconciler) reconcileNetwork(ctx *context.MachineContext, vm *uns
 				ctx.Logger.Error(err,
 					"unsupported data for member of status.network list",
 					"index", i)
+				errs = append(errs, err)
 			} else {
 				var networkStatus infrav1.NetworkStatus
 				err := json.Unmarshal(buf, &networkStatus)
 				if err == nil && networkStatus.MACAddr == "" {
 					err = errors.New("macAddr is required")
+					errs = append(errs, err)
 				}
 				if err != nil {
 					ctx.Logger.Error(err,
 						"unsupported data for member of status.network list",
 						"index", i, "data", string(buf))
+					errs = append(errs, err)
 				} else {
 					networkStatusList = append(networkStatusList, networkStatus)
 				}
@@ -467,7 +472,7 @@ func (r machineReconciler) reconcileNetwork(ctx *context.MachineContext, vm *uns
 
 	if len(ctx.VSphereMachine.Status.Addresses) == 0 {
 		ctx.Logger.Info("waiting on IP addresses")
-		return false, nil
+		return false, kerrors.NewAggregate(errs)
 	}
 
 	return true, nil

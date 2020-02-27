@@ -51,7 +51,9 @@ var flagRunCreateLoadBalancer = flag.Bool("hapi.createLoadBalancer", false, "act
 func TestMain(m *testing.M) {
 	exitCode := m.Run()
 	if *flagRunCreateLoadBalancer {
-		run("docker", "kill", "haproxy", "http1", "http2")
+		if err := runDocker("kill", "haproxy", "http1", "http2"); err != nil {
+			fmt.Println("unable to initialize load balancer")
+		}
 	}
 	os.Exit(exitCode)
 }
@@ -66,7 +68,7 @@ func TestCreateLoadBalancer(t *testing.T) {
 
 	// Build the HAProxy LB image. This can be built from the root of this
 	// project in the hack/tools/haproxy directory.
-	g.Expect(run("docker", "build", "-t", "haproxy", "../../hack/tools/haproxy")).To(
+	g.Expect(runDocker("build", "-t", "haproxy", "../../hack/tools/haproxy")).To(
 		gomega.Succeed(), "failed to build the haproxy load balancer image")
 
 	// Get random ports for the HAProxy dataplane API server and the LB
@@ -75,7 +77,7 @@ func TestCreateLoadBalancer(t *testing.T) {
 	lbPort := int32(RandomTCPPort())
 
 	// Start the HAProxy load balaner image.
-	g.Expect(run("docker",
+	g.Expect(runDocker(
 		"run", "--name", "haproxy", "-d", "--rm",
 		"-p", fmt.Sprintf("%d:5556", apiPort),
 		"-p", fmt.Sprintf("%d:8085", lbPort),
@@ -91,8 +93,9 @@ func TestCreateLoadBalancer(t *testing.T) {
 	// Get the current configuration version.
 	var version int32
 	g.Eventually(func() error {
-		global, _, err := client.GlobalApi.GetGlobal(ctx, nil)
+		global, resp, err := client.GlobalApi.GetGlobal(ctx, nil)
 		if err == nil {
+			g.Expect(resp.Body.Close()).To(gomega.Succeed())
 			version = global.Version
 		}
 		return err
@@ -101,20 +104,22 @@ func TestCreateLoadBalancer(t *testing.T) {
 	// Start a transaction.
 	var transactionID optional.String
 	g.Eventually(func() error {
-		txn, _, err := client.TransactionsApi.StartTransaction(ctx, version)
+		txn, resp, err := client.TransactionsApi.StartTransaction(ctx, version)
 		if err != nil {
 			return err
 		}
+		g.Expect(resp.Body.Close()).To(gomega.Succeed())
 		transactionID = optional.NewString(txn.Id)
 		return nil
 	}).ShouldNot(gomega.HaveOccurred(), "failed to start a transaction")
 
 	// Get a backend that does not exist.
-	_, _, err = client.BackendApi.GetBackend(ctx, "does-not-exist", nil)
+	_, resp, err := client.BackendApi.GetBackend(ctx, "does-not-exist", nil)
+	g.Expect(resp.Body.Close()).To(gomega.Succeed())
 	g.Expect(haproxy.IsNotFound(err)).To(gomega.BeTrue())
 
 	// Create a backend.
-	backend, _, err := client.BackendApi.CreateBackend(ctx, hapi.Backend{
+	backend, resp, err := client.BackendApi.CreateBackend(ctx, hapi.Backend{
 		Name: "lb-backend",
 		Mode: haproxy.ModeTCP,
 		Balance: hapi.Balance{
@@ -124,10 +129,11 @@ func TestCreateLoadBalancer(t *testing.T) {
 	}, &hapi.CreateBackendOpts{
 		TransactionId: transactionID,
 	})
+	g.Expect(resp.Body.Close()).To(gomega.Succeed())
 	g.Expect(err).ToNot(gomega.HaveOccurred(), "failed to create backend")
 
 	// Create a frontend.
-	frontend, _, err := client.FrontendApi.CreateFrontend(ctx, hapi.Frontend{
+	frontend, resp, err := client.FrontendApi.CreateFrontend(ctx, hapi.Frontend{
 		Name:           "lb-frontend",
 		Mode:           haproxy.ModeTCP,
 		DefaultBackend: backend.Name,
@@ -135,9 +141,10 @@ func TestCreateLoadBalancer(t *testing.T) {
 		TransactionId: transactionID,
 	})
 	g.Expect(err).ToNot(gomega.HaveOccurred(), "failed to create frontend")
+	g.Expect(resp.Body.Close()).To(gomega.Succeed())
 
 	// Bind the frontend.
-	_, _, err = client.BindApi.CreateBind(
+	_, resp, err = client.BindApi.CreateBind(
 		ctx,
 		frontend.Name,
 		hapi.Bind{
@@ -148,13 +155,14 @@ func TestCreateLoadBalancer(t *testing.T) {
 			TransactionId: transactionID,
 		})
 	g.Expect(err).ToNot(gomega.HaveOccurred(), "failed to bind frontend")
+	g.Expect(resp.Body.Close()).To(gomega.Succeed())
 
 	// Start two web servers.
-	g.Expect(run("docker",
+	g.Expect(runDocker(
 		"run", "--name", "http1", "-d", "--rm",
 		"nginxdemos/hello:plain-text")).To(
 		gomega.Succeed(), "failed to start first web server")
-	g.Expect(run("docker",
+	g.Expect(runDocker(
 		"run", "--name", "http2", "-d", "--rm",
 		"nginxdemos/hello:plain-text")).To(
 		gomega.Succeed(), "failed to start second web server")
@@ -174,7 +182,7 @@ func TestCreateLoadBalancer(t *testing.T) {
 	http2Addr := strings.Replace(stdout, "'", "", -1)
 
 	// Add the first web server to the backend.
-	_, _, err = client.ServerApi.CreateServer(
+	_, resp, err = client.ServerApi.CreateServer(
 		ctx,
 		backend.Name,
 		hapi.Server{
@@ -187,9 +195,10 @@ func TestCreateLoadBalancer(t *testing.T) {
 			TransactionId: transactionID,
 		})
 	g.Expect(err).ToNot(gomega.HaveOccurred(), "failed to bind create first backend server")
+	g.Expect(resp.Body.Close()).To(gomega.Succeed())
 
 	// Add the second web server to the backend.
-	_, _, err = client.ServerApi.CreateServer(
+	_, resp, err = client.ServerApi.CreateServer(
 		ctx,
 		backend.Name,
 		hapi.Server{
@@ -202,27 +211,31 @@ func TestCreateLoadBalancer(t *testing.T) {
 			TransactionId: transactionID,
 		})
 	g.Expect(err).ToNot(gomega.HaveOccurred(), "failed to bind create second backend server")
+	g.Expect(resp.Body.Close()).To(gomega.Succeed())
 
 	// Commit the transaction.
-	_, _, err = client.TransactionsApi.CommitTransaction(
+	_, resp, err = client.TransactionsApi.CommitTransaction(
 		ctx,
 		transactionID.Value(),
 		&hapi.CommitTransactionOpts{
 			ForceReload: optional.NewBool(true),
 		})
 	g.Expect(err).ToNot(gomega.HaveOccurred(), "failed to commit the transaction")
+	g.Expect(resp.Body.Close()).To(gomega.Succeed())
 
 	// Get the current configurationv ersion.
-	global, _, err := client.GlobalApi.GetGlobal(ctx, nil)
+	global, resp, err := client.GlobalApi.GetGlobal(ctx, nil)
 	g.Expect(err).ToNot(gomega.HaveOccurred(), "failed get HAPI global config")
+	g.Expect(resp.Body.Close()).To(gomega.Succeed())
 
 	// Start a second transaction.
-	txn, _, err := client.TransactionsApi.StartTransaction(ctx, global.Version)
+	txn, resp, err := client.TransactionsApi.StartTransaction(ctx, global.Version)
 	g.Expect(err).ToNot(gomega.HaveOccurred(), "failed to start second transaction")
+	g.Expect(resp.Body.Close()).To(gomega.Succeed())
 	transactionID = optional.NewString(txn.Id)
 
 	// Create a duplicate backend.
-	_, _, err = client.BackendApi.CreateBackend(ctx, hapi.Backend{
+	_, resp, err = client.BackendApi.CreateBackend(ctx, hapi.Backend{
 		Name: "lb-backend",
 		Mode: haproxy.ModeTCP,
 		Balance: hapi.Balance{
@@ -233,11 +246,13 @@ func TestCreateLoadBalancer(t *testing.T) {
 		TransactionId: transactionID,
 	})
 	g.Expect(err).To(gomega.HaveOccurred())
+	g.Expect(resp.Body.Close()).To(gomega.Succeed())
 	g.Expect(haproxy.IsConflict(err)).To(gomega.BeTrue())
 
 	// Abandon the second transaction.
-	_, err = client.TransactionsApi.DeleteTransaction(ctx, transactionID.Value())
+	resp, err = client.TransactionsApi.DeleteTransaction(ctx, transactionID.Value())
 	g.Expect(err).ToNot(gomega.HaveOccurred())
+	g.Expect(resp.Body.Close()).To(gomega.Succeed())
 
 	lbEndpoint := fmt.Sprintf("http://localhost:%d", lbPort)
 
@@ -247,8 +262,12 @@ func TestCreateLoadBalancer(t *testing.T) {
 			Timeout:   time.Second * 1,
 			Transport: &http.Transport{},
 		}
-		_, err := client.Get(lbEndpoint)
-		return err
+		resp, err := client.Get(lbEndpoint)
+		if err != nil {
+			return err
+		}
+		g.Expect(resp.Body.Close()).To(gomega.Succeed())
+		return nil
 	}).ShouldNot(gomega.HaveOccurred(), "failed while waiting for the LB endpoint to come online")
 
 	// Get the LB endpoint four times, asserting each time that it's flipped
@@ -280,15 +299,17 @@ func TestCreateLoadBalancer(t *testing.T) {
 	}
 }
 
-func run(name string, arg ...string) error {
-	_, _, err := runWithOpts(name, runOptions{
+func runDocker(arg ...string) error {
+	_, _, err := runWithOpts("docker", runOptions{
 		printStdout: true,
 		printStderr: true,
 	}, arg...)
 	return err
 }
 
+// nolint:unparam
 func runWithOpts(name string, opts runOptions, arg ...string) (string, string, error) {
+	fmt.Printf("Running %s with '%s'\n", name, strings.Join(arg, " "))
 	if resolvedName, _ := exec.LookPath(name); resolvedName != "" {
 		name = resolvedName
 	}

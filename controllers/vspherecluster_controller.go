@@ -330,7 +330,14 @@ func (r clusterReconciler) reconcileLoadBalancer(ctx *context.ClusterContext) (b
 				loadBalancer.GetNamespace(),
 				loadBalancer.GetName())
 		}
-		ctrlutil.SetControllerReference(ctx.VSphereCluster, loadBalancer, r.Scheme)
+		if err := ctrlutil.SetControllerReference(ctx.VSphereCluster, loadBalancer, r.Scheme); err != nil {
+			return false, errors.Wrapf(
+				err,
+				"failed to set controller reference on vSphereCluster %s %s/%s",
+				ctx.VSphereCluster.GroupVersionKind(),
+				ctx.VSphereCluster.GetNamespace(),
+				ctx.VSphereCluster.GetName())
+		}
 		if err := loadBalancerPatchHelper.Patch(ctx, loadBalancer); err != nil {
 			return false, errors.Wrapf(err,
 				"failed to patch owner references for load balancer %s %s/%s",
@@ -512,7 +519,7 @@ func (r clusterReconciler) reconcileVSphereClusterWhenAPIServerIsOnline(ctx *con
 	go func() {
 		// Block until the target API server is online.
 		ctx.Logger.Info("start polling API server for online check")
-		wait.PollImmediateInfinite(time.Second*1, func() (bool, error) { return r.isAPIServerOnline(ctx), nil })
+		wait.PollImmediateInfinite(time.Second*1, func() (bool, error) { return r.isAPIServerOnline(ctx), nil }) // nolint:errcheck
 		ctx.Logger.Info("stop polling API server for online check")
 		ctx.Logger.Info("triggering GenericEvent", "reason", "api-server-online")
 		eventChannel := ctx.GetGenericEventChannelFor(ctx.VSphereCluster.GetObjectKind().GroupVersionKind())
@@ -525,7 +532,7 @@ func (r clusterReconciler) reconcileVSphereClusterWhenAPIServerIsOnline(ctx *con
 		// remove the key from the map that prevents multiple goroutines from
 		// polling the API server to see if it is online.
 		ctx.Logger.Info("start polling for control plane initialized")
-		wait.PollImmediateInfinite(time.Second*1, func() (bool, error) { return r.isControlPlaneInitialized(ctx), nil })
+		wait.PollImmediateInfinite(time.Second*1, func() (bool, error) { return r.isControlPlaneInitialized(ctx), nil }) // nolint:errcheck
 		ctx.Logger.Info("stop polling for control plane initialized")
 		apiServerTriggersMu.Lock()
 		delete(apiServerTriggers, ctx.Cluster.UID)
@@ -640,6 +647,7 @@ func (r clusterReconciler) reconcileCloudProvider(ctx *context.ClusterContext) e
 	return nil
 }
 
+// nolint:gocognit
 func (r clusterReconciler) reconcileStorageProvider(ctx *context.ClusterContext) error {
 	// if storage config is not defined, assume we don't want CSI installed
 	storageConfig := ctx.VSphereCluster.Spec.CloudProviderConfiguration.ProviderConfig.Storage
@@ -861,6 +869,7 @@ func (r clusterReconciler) loadBalancerToCluster(o handler.MapObject) []ctrl.Req
 
 	var vsphereClusterRef *metav1.OwnerReference
 	for _, ownerRef := range obj.GetOwnerReferences() {
+		ownerRef := ownerRef
 		if ownerRef.APIVersion == infrav1.GroupVersion.String() &&
 			ownerRef.Kind == "VSphereCluster" {
 			vsphereClusterRef = &ownerRef

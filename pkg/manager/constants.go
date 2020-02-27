@@ -23,7 +23,7 @@ const (
 
 	// DefaultWebhookServiceContainerPort is the default value for the eponymous
 	// manager option.
-	DefaultWebhookServiceContainerPort = 9443
+	DefaultWebhookServiceContainerPort = 0
 
 	// DefaultSyncPeriod is the default value for the eponymous
 	// manager option.
@@ -33,17 +33,11 @@ const (
 	// manager option.
 	DefaultMaxConcurrentReconciles = 1
 
-	// DefaultPodNamespace is the default value for the eponymous manager
-	// option.
-	DefaultPodNamespace = defaultPrefix + "system"
-
 	// DefaultPodName is the default value for the eponymous manager option.
 	DefaultPodName = defaultPrefix + "controller-manager"
 
+	DefaultPodNamespace = defaultPrefix + "system"
+
 	// DefaultLeaderElectionID is the default value for the eponymous manager option.
 	DefaultLeaderElectionID = DefaultPodName + "-runtime"
-
-	// DefaultWatchNamespace is the default value for the eponymous manager
-	// option.
-	DefaultWatchNamespace = ""
 )

@@ -19,12 +19,14 @@ package manager
 import (
 	goctx "context"
 	"fmt"
+	"os"
 
 	"github.com/pkg/errors"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
@@ -54,13 +56,18 @@ func New(opts Options) (Manager, error) {
 	_ = bootstrapv1.AddToScheme(opts.Scheme)
 	// +kubebuilder:scaffold:scheme
 
+	podName, err := os.Hostname()
+	if err != nil {
+		podName = DefaultPodName
+	}
+
 	// Build the controller manager.
-	mgr, err := ctrlmgr.New(opts.KubeConfig, ctrlmgr.Options{
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                  opts.Scheme,
 		MetricsBindAddress:      opts.MetricsAddr,
 		LeaderElection:          opts.LeaderElectionEnabled,
 		LeaderElectionID:        opts.LeaderElectionID,
-		LeaderElectionNamespace: opts.PodNamespace,
+		LeaderElectionNamespace: opts.LeaderElectionNamespace,
 		SyncPeriod:              &opts.SyncPeriod,
 		Namespace:               opts.WatchNamespace,
 		NewCache:                opts.NewCache,
@@ -74,14 +81,14 @@ func New(opts Options) (Manager, error) {
 	// Build the controller manager context.
 	controllerManagerContext := &context.ControllerManagerContext{
 		Context:                 goctx.Background(),
-		Namespace:               opts.PodNamespace,
+		Namespace:               opts.WatchNamespace,
 		Name:                    opts.PodName,
 		LeaderElectionID:        opts.LeaderElectionID,
-		LeaderElectionNamespace: opts.PodNamespace,
+		LeaderElectionNamespace: opts.LeaderElectionNamespace,
 		MaxConcurrentReconciles: opts.MaxConcurrentReconciles,
 		Client:                  mgr.GetClient(),
 		Logger:                  opts.Logger.WithName(opts.PodName),
-		Recorder:                record.New(mgr.GetEventRecorderFor(fmt.Sprintf("%s/%s", opts.PodNamespace, opts.PodName))),
+		Recorder:                record.New(mgr.GetEventRecorderFor(fmt.Sprintf("%s/%s", opts.PodNamespace, podName))),
 		Scheme:                  opts.Scheme,
 		Username:                opts.Username,
 		Password:                opts.Password,

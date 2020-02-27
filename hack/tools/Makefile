@@ -63,7 +63,7 @@ $(GOLANGCI_LINT): go.mod
 .PHONY: $(KUSTOMIZE)
 kustomize: $(KUSTOMIZE) ## Build kustomize
 $(KUSTOMIZE): go.mod
-	go build -tags=tools -o $@ sigs.k8s.io/kustomize/v3/cmd/kustomize
+	go build -tags=tools -o $@ sigs.k8s.io/kustomize/kustomize/v3
 
 .PHONY: $(CONVERSION_GEN)
 conversion-gen: $(CONVERSION_GEN) ## Build conversion-gen

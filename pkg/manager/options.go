@@ -17,7 +17,9 @@ limitations under the License.
 package manager
 
 import (
+	"io/ioutil"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -60,8 +62,17 @@ type Options struct {
 	// MetricsAddr is the net.Addr string for the metrics server.
 	MetricsAddr string
 
-	// PodNamespace is the namespace in which the pod running the controller
-	// manager is located.
+	// HealthAddr is the net.Addr string for the healthcheck server
+	HealthAddr string
+
+	// LeaderElectionNamespace is the namespace in which the pod running the
+	// controller maintains a leader election lock
+	//
+	// Defaults to ""
+	LeaderElectionNamespace string
+
+	// LeaderElectionNamespace is the namespace in which the pod running the
+	// controller maintains a leader election lock
 	//
 	// Defaults to the eponymous constant in this package.
 	PodNamespace string
@@ -104,10 +115,6 @@ func (o *Options) defaults() {
 		o.Logger = ctrllog.Log
 	}
 
-	if o.PodNamespace == "" {
-		o.PodNamespace = DefaultPodNamespace
-	}
-
 	if o.PodName == "" {
 		o.PodName = DefaultPodName
 	}
@@ -124,10 +131,6 @@ func (o *Options) defaults() {
 		o.Scheme = runtime.NewScheme()
 	}
 
-	if o.WatchNamespace == "" {
-		o.WatchNamespace = DefaultWatchNamespace
-	}
-
 	if o.MaxConcurrentReconciles == 0 {
 		o.MaxConcurrentReconciles = DefaultMaxConcurrentReconciles
 	}
@@ -138,5 +141,14 @@ func (o *Options) defaults() {
 
 	if o.Password == "" {
 		o.Password = os.Getenv("VSPHERE_PASSWORD")
+	}
+	if ns, ok := os.LookupEnv("POD_NAMESPACE"); ok {
+		o.PodNamespace = ns
+	} else if data, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace"); err == nil {
+		if ns := strings.TrimSpace(string(data)); len(ns) > 0 {
+			o.PodNamespace = ns
+		}
+	} else {
+		o.PodNamespace = DefaultPodNamespace
 	}
 }

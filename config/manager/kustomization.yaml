@@ -5,3 +5,5 @@ resources:
 
 patchesStrategicMerge:
 - manager_auth_proxy_patch.yaml
+- manager_image_patch.yaml
+- manager_pull_policy.yaml

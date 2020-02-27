@@ -20,6 +20,8 @@ SHELL := /usr/bin/env bash
 
 .DEFAULT_GOAL := help
 
+VERSION ?= $(shell cat clusterctl-settings.json | jq .config.nextVersion -r)
+
 # Use GOPROXY environment variable if set
 GOPROXY := $(shell go env GOPROXY)
 ifeq (,$(strip $(GOPROXY)))
@@ -31,8 +33,9 @@ export GOPROXY
 export GO111MODULE := on
 
 # Directories
-BIN_DIR := bin
-TOOLS_DIR := hack/tools
+ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+BIN_DIR := $(ROOT_DIR)/bin
+TOOLS_DIR := $(ROOT_DIR)/hack/tools
 TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 
 # Binaries
@@ -51,6 +54,35 @@ CRD_ROOT ?= $(MANIFEST_ROOT)/crd/bases
 WEBHOOK_ROOT ?= $(MANIFEST_ROOT)/webhook
 RBAC_ROOT ?= $(MANIFEST_ROOT)/rbac
 GC_KIND ?= true
+RELEASE_DIR := out
+BUILD_DIR := .build
+OVERRIDES_DIR := $(HOME)/.cluster-api/overrides/infrastructure-vsphere/$(VERSION)
+
+# Architecture variables
+ARCH ?= amd64
+ALL_ARCH = amd64 arm arm64 ppc64le s390x
+
+# Common docker variables
+IMAGE_NAME ?= manager
+PULL_POLICY ?= Always
+# Hosts running SELinux need :z added to volume mounts
+SELINUX_ENABLED := $(shell cat /sys/fs/selinux/enforce 2> /dev/null || echo 0)
+
+ifeq ($(SELINUX_ENABLED),1)
+  DOCKER_VOL_OPTS?=:z
+endif
+
+
+# Release docker variables
+RELEASE_REGISTRY := gcr.io/cluster-api-provider-vsphere/release
+RELEASE_CONTROLLER_IMG := $(RELEASE_REGISTRY)/$(IMAGE_NAME)
+
+# Development Docker variables
+DEV_REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
+DEV_CONTROLLER_IMG ?= $(DEV_REGISTRY)/vsphere-$(IMAGE_NAME)
+DEV_TAG ?= dev
+DEV_MANIFEST_IMG := $(DEV_CONTROLLER_IMG)-$(ARCH)
+
 
 ## --------------------------------------
 ## Help
@@ -74,7 +106,7 @@ e2e-image: ## Build the e2e manager image
 .PHONY: e2e
 e2e: e2e-image
 e2e: ## Run e2e tests
-	time ginkgo -v ./test/e2e -- --e2e.config="$(abspath test/e2e/e2e.conf)" --e2e.teardownKind=$(GC_KIND)
+	time ginkgo -v ./test/e2e -- --e2e.config="$(abspath test/e2e/e2e.conf)" --e2e.teardownKind=$(GC_KIND) $(E2E_ARGS)
 
 ## --------------------------------------
 ## Binaries
@@ -122,7 +154,7 @@ lint-go-full: lint-go ## Run slower linters to detect possible issues
 
 .PHONY: lint-markdown
 lint-markdown: ## Lint the project's markdown
-	docker run --rm -v "$$(pwd)":/build gcr.io/cluster-api-provider-vsphere/extra/mdlint:0.17.0 -- /md/lint -i vendor -i contrib/haproxy/openapi .
+	docker run --rm -v "$$(pwd)":/build$(DOCKER_VOL_OPTS) gcr.io/cluster-api-provider-vsphere/extra/mdlint:0.17.0 -- /md/lint -i vendor -i contrib/haproxy/openapi .
 
 .PHONY: lint-shell
 lint-shell: ## Lint the project's shell scripts
@@ -179,17 +211,67 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 ## Release
 ## --------------------------------------
 
-.PHONY: release-manifests
-release-manifests: ## Builds the manifests to publish with a release
+$(RELEASE_DIR):
+	@mkdir -p $(RELEASE_DIR)
+
+
+$(BUILD_DIR):
+	@mkdir -p $(BUILD_DIR)
+
+$(OVERRIDES_DIR):
+	@mkdir -p $(OVERRIDES_DIR)
+
+.PHONY: dev-version-check
+dev-version-check:
 ifndef VERSION
-	$(error VERSION is undefined)
+	$(error VERSION must be set)
 endif
-	@mkdir -p out
-	cd config/manager/; ../../"$(KUSTOMIZE)" edit set image gcr.io/cluster-api-provider-vsphere/release/manager:"$(VERSION)"
-	"$(KUSTOMIZE)" build config/default > out/infrastructure-components.yaml
+
+.PHONY: release-version-check
+release-version-check:
+ifeq ($(VERSION), 0.0.0)
+	$(error VERSION must be >0.0.0 for release)
+endif
+
+.PHONY: release-manifests
+release-manifests:
+	$(MAKE) manifests STAGE=release MANIFEST_DIR=$(RELEASE_DIR) PULL_POLICY=IfNotPresent IMAGE=$(RELEASE_CONTROLLER_IMG):$(VERSION)
+
+.PHONY: release-overrides
+release-overrides:
+	$(MAKE) manifests STAGE=release MANIFEST_DIR=$(OVERRIDES_DIR) PULL_POLICY=IfNotPresent IMAGE=$(RELEASE_CONTROLLER_IMG):$(VERSION)
+
+.PHONY: dev-manifests
+dev-manifests:
+	$(MAKE) manifests STAGE=dev MANIFEST_DIR=$(OVERRIDES_DIR) PULL_POLICY=Always IMAGE=$(DEV_CONTROLLER_IMG):$(DEV_TAG)
+
+.PHONY: manifests
+manifests:  $(STAGE)-version-check $(STAGE)-flavors $(MANIFEST_DIR) $(BUILD_DIR) $(KUSTOMIZE)
+	rm -rf $(BUILD_DIR)/config
+	cp -R config $(BUILD_DIR)
+	sed -i'' -e 's@imagePullPolicy: .*@imagePullPolicy: '"$(PULL_POLICY)"'@' $(BUILD_DIR)/config/manager/manager_pull_policy.yaml
+	sed -i'' -e 's@image: .*@image: '"$(IMAGE)"'@' $(BUILD_DIR)/config/manager/manager_image_patch.yaml
+	"$(KUSTOMIZE)" build $(BUILD_DIR)/config > $(MANIFEST_DIR)/infrastructure-components.yaml
+
 ## --------------------------------------
 ## Cleanup / Verification
 ## --------------------------------------
+
+.PHONY: flavors
+flavors: $(FLAVOR_DIR)
+	go run ./packaging/flavorgen -f multi-host > $(FLAVOR_DIR)/cluster-template.yaml
+
+.PHONY: release-flavors ## Create release flavor manifests
+release-flavors: release-version-check
+	$(MAKE) flavors FLAVOR_DIR=$(RELEASE_DIR)
+
+.PHONY: dev-flavors ## Create release flavor manifests
+dev-flavors:
+	$(MAKE) flavors FLAVOR_DIR=$(OVERRIDES_DIR)
+
+.PHONY: overrides ## Generates flavors as clusterctl overrides
+overrides: version-check $(OVERRIDES_DIR)
+	go run ./packaging/flavorgen -f multi-host > $(OVERRIDES_DIR)/cluster-template.yaml
 
 .PHONY: clean
 clean: ## Run all the clean targets
@@ -197,6 +279,11 @@ clean: ## Run all the clean targets
 	$(MAKE) clean-temporary
 	$(MAKE) clean-release
 	$(MAKE) clean-examples
+	$(MAKE) clean-build
+
+.PHONY: clean-build
+clean-build:
+	rm -rf $(BUILD_DIR)
 
 .PHONY: clean-bin
 clean-bin: ## Remove all generated binaries
@@ -238,3 +325,15 @@ verify-crds: ## Verifies the committed CRDs are up-to-date
 check: ## Verify and lint the project
 	$(MAKE) verify
 	$(MAKE) lint
+
+## --------------------------------------
+## Docker
+## --------------------------------------
+
+.PHONY: docker-build
+docker-build: ## Build the docker image for controller-manager
+	docker build --pull --build-arg ARCH=$(ARCH)  . -t $(DEV_CONTROLLER_IMG):$(DEV_TAG)
+
+.PHONY: docker-push
+docker-push: ## Push the docker image
+	docker push $(DEV_CONTROLLER_IMG):$(DEV_TAG)

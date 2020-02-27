@@ -18,6 +18,14 @@
 # Ensure Make is run with bash shell as some syntax below is bash-specific
 SHELL := /usr/bin/env bash
 
+# Hosts running SELinux need :z added to volume mounts
+SELINUX_ENABLED := $(shell cat /sys/fs/selinux/enforce 2> /dev/null || echo 0)
+
+ifeq ($(SELINUX_ENABLED),1)
+  DOCKER_VOL_OPTS?=:z
+endif
+
+
 .DEFAULT_GOAL := help
 
 # Tooling
@@ -35,6 +43,7 @@ SWAGGER_JSON ?= haproxy-dataplaneapi-1.2.json
 
 # The directory in which the client bindings are generated
 OUTPUT_DIR ?= ./openapi
+TEMPLATE_DIR ?= ./generator-template
 
 # These files will be removed from the OUTPUT_DIR after the client bindings
 # are generated.
@@ -73,7 +82,7 @@ build: ## Builds the HAProxy dataplane API client bindings
 generate-with-binary: $(SWAGGER_JSON)
 generate-with-binary: ## Generates the HAProxy dataplane API client bindings (binary)
 	@$(MAKE) --no-print-directory verify-openapi-generator-binary
-	$(OPENAPI_GENERATOR_BIN) generate --input-spec $< --generator-name go --output $(OUTPUT_DIR)
+	$(OPENAPI_GENERATOR_BIN) generate --input-spec $< --generator-name go -t $(TEMPLATE_DIR) --output $(OUTPUT_DIR)
 	@rm -fr $(addprefix $(OUTPUT_DIR)/,$(FILES_TO_DELETE_POST_GEN))
 
 .PHONY: generate-with-docker
@@ -82,9 +91,10 @@ generate-with-docker: ## Generates the HAProxy dataplane API client bindings (do
 	@mkdir -p $(OUTPUT_DIR)
 	docker run --rm \
 	  -v $(abspath $<):/openapi/swagger.json:ro \
-	  -v $(abspath $(OUTPUT_DIR)):/openapi/output \
+	  -v $(abspath $(OUTPUT_DIR)):/openapi/output$(DOCKER_VOL_OPTS) \
+		-v $(abspath $(TEMPLATE_DIR)):/openapi/generator-template$(DOCKER_VOL_OPTS) \
 	  $(OPENAPI_GENERATOR_IMG) \
-	  generate --input-spec /openapi/swagger.json --generator-name go --output /openapi/output
+	  generate --input-spec /openapi/swagger.json --generator-name go -t /openapi/generator-template --output /openapi/output
 	@rm -fr $(addprefix $(OUTPUT_DIR)/,$(FILES_TO_DELETE_POST_GEN))
 
 .PHONY: generate

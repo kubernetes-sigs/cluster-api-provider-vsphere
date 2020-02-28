@@ -150,6 +150,11 @@ func (r clusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr er
 		r.Logger.Info("Waiting for Cluster Controller to set OwnerRef on VSphereCluster")
 		return reconcile.Result{}, nil
 	}
+	if clusterutilv1.IsPaused(cluster, vsphereCluster) {
+		r.Logger.V(4).Info("VSphereCluster %s/%s linked to a cluster that is paused",
+			vsphereCluster.Namespace, vsphereCluster.Name)
+		return reconcile.Result{}, nil
+	}
 
 	// Create the patch helper.
 	patchHelper, err := patch.NewHelper(vsphereCluster, r.Client)
@@ -309,15 +314,14 @@ func (r clusterReconciler) reconcileLoadBalancer(ctx *context.ClusterContext) (b
 		return false, err
 	}
 
-	// Ensure the CAPI Cluster is an owner of the load balancer.
-	clusterOwnerRef := metav1.OwnerReference{
-		APIVersion: ctx.Cluster.APIVersion,
-		Kind:       ctx.Cluster.Kind,
-		Name:       ctx.Cluster.Name,
-		UID:        ctx.Cluster.UID,
+	vsphereClusterOwnerRef := metav1.OwnerReference{
+		APIVersion: ctx.VSphereCluster.APIVersion,
+		Kind:       ctx.VSphereCluster.Kind,
+		Name:       ctx.VSphereCluster.Name,
+		UID:        ctx.VSphereCluster.UID,
 	}
 	loadBalancerOwnerRefs := loadBalancer.GetOwnerReferences()
-	if !clusterutilv1.HasOwnerRef(loadBalancerOwnerRefs, clusterOwnerRef) {
+	if !clusterutilv1.HasOwnerRef(loadBalancerOwnerRefs, vsphereClusterOwnerRef) {
 		loadBalancerPatchHelper, err := patch.NewHelper(loadBalancer, ctx.Client)
 		if err != nil {
 			return false, errors.Wrapf(err,
@@ -326,8 +330,7 @@ func (r clusterReconciler) reconcileLoadBalancer(ctx *context.ClusterContext) (b
 				loadBalancer.GetNamespace(),
 				loadBalancer.GetName())
 		}
-		loadBalancer.SetOwnerReferences(clusterutilv1.EnsureOwnerRef(
-			loadBalancerOwnerRefs, clusterOwnerRef))
+		ctrlutil.SetControllerReference(ctx.VSphereCluster, loadBalancer, r.Scheme)
 		if err := loadBalancerPatchHelper.Patch(ctx, loadBalancer); err != nil {
 			return false, errors.Wrapf(err,
 				"failed to patch owner references for load balancer %s %s/%s",
@@ -339,9 +342,9 @@ func (r clusterReconciler) reconcileLoadBalancer(ctx *context.ClusterContext) (b
 			"load-balancer-gvk", loadBalancer.GroupVersionKind().String(),
 			"load-balancer-namespace", loadBalancer.GetNamespace(),
 			"load-balancer-name", loadBalancer.GetName(),
-			"cluster-gvk", ctx.Cluster.GroupVersionKind().String(),
-			"cluster-namespace", ctx.Cluster.GetNamespace(),
-			"cluster-name", ctx.Cluster.GetName())
+			"vspherecluster-gvk", ctx.VSphereCluster.GroupVersionKind().String(),
+			"vspherecluster-namespace", ctx.VSphereCluster.GetNamespace(),
+			"vspherecluster-name", ctx.VSphereCluster.GetName())
 	}
 
 	ready, ok, err := unstructured.NestedBool(loadBalancer.Object, "status", "ready")
@@ -856,40 +859,21 @@ func (r clusterReconciler) loadBalancerToCluster(o handler.MapObject) []ctrl.Req
 		return nil
 	}
 
-	var clusterRef *metav1.OwnerReference
+	var vsphereClusterRef *metav1.OwnerReference
 	for _, ownerRef := range obj.GetOwnerReferences() {
-		if ownerRef.APIVersion == clusterv1.GroupVersion.String() &&
-			ownerRef.Kind == "Cluster" {
-			clusterRef = &ownerRef
+		if ownerRef.APIVersion == infrav1.GroupVersion.String() &&
+			ownerRef.Kind == "VSphereCluster" {
+			vsphereClusterRef = &ownerRef
 		}
 	}
-	if clusterRef == nil {
-		return nil
-	}
-
-	cluster := &clusterv1.Cluster{}
-	clusterKey := client.ObjectKey{
-		Namespace: obj.GetNamespace(),
-		Name:      clusterRef.Name,
-	}
-	if err := r.Client.Get(r, clusterKey, cluster); err != nil {
-		return nil
-	}
-
-	infraRef := cluster.Spec.InfrastructureRef
-	if infraRef == nil {
-		return nil
-	}
-
-	if infraRef.APIVersion != infrav1.GroupVersion.String() ||
-		infraRef.Kind != "VSphereCluster" {
+	if vsphereClusterRef == nil {
 		return nil
 	}
 
 	return []ctrl.Request{{
 		NamespacedName: types.NamespacedName{
-			Namespace: infraRef.Namespace,
-			Name:      infraRef.Name,
+			Namespace: obj.GetNamespace(),
+			Name:      vsphereClusterRef.Name,
 		},
 	}}
 }

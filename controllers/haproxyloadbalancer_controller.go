@@ -186,20 +186,24 @@ func (r haproxylbReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr 
 		}
 	}()
 
+	cluster, err := clusterutilv1.GetClusterFromMetadata(r.Context, r.Client, haproxylb.ObjectMeta)
+	if err == nil {
+		if clusterutilv1.IsPaused(cluster, haproxylb) {
+			r.Logger.V(4).Info("HAProxyLoadBalancer %s/%s linked to a cluster that is paused, won't reconcile",
+				haproxylb.Namespace, haproxylb.Name)
+			return reconcile.Result{}, nil
+		}
+		ctx.Cluster = cluster
+	}
 	// Handle deleted haproxyloadbalancers
 	if !haproxylb.ObjectMeta.DeletionTimestamp.IsZero() {
 		return r.reconcileDelete(ctx)
 	}
-	cluster, err := clusterutilv1.GetClusterFromMetadata(r.Context, r.Client, haproxylb.ObjectMeta)
+
+	// check if we got the cluster as it is needed for reconcileNormal
 	if err != nil {
 		return reconcile.Result{}, err
 	}
-	if clusterutilv1.IsPaused(cluster, haproxylb) {
-		r.Logger.V(4).Info("HAProxyLoadBalancer %s/%s linked to a cluster that is paused, won't reconcile",
-			haproxylb.Namespace, haproxylb.Name)
-		return reconcile.Result{}, nil
-	}
-	ctx.Cluster = cluster
 
 	// Handle non-deleted haproxyloadbalancers
 	return r.reconcileNormal(ctx)

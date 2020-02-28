@@ -201,7 +201,7 @@ func (r haproxylbReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr 
 	}
 
 	// check if we got the cluster as it is needed for reconcileNormal
-	if err != nil {
+	if ctx.Cluster == nil {
 		return reconcile.Result{}, err
 	}
 

@@ -164,6 +164,6 @@ vsphere-quickstart-9qtfd                                      Ready      master 
 [kubectl]: https://kubernetes.io/docs/tasks/tools/install-kubectl/
 [ovas]: ../README.md#kubernetes-versions-with-published-ovas
 [default-machine-image]: https://storage.googleapis.com/capv-images/release/v1.17.3/ubuntu-1804-kube-v1.17.3.ova
-[haproxy-machine-image]: https://storage.googleapis.com/capv-images/extra/haproxy/release/v0.5.3-77-g224e0ef6/capv-haproxy-v0.5.3-77-g224e0ef6.ova
+[haproxy-machine-image]: https://storage.googleapis.com/capv-images/extra/haproxy/release/v0.6.0-rc.1/capv-haproxy.ova
 [image-builder]: https://github.com/kubernetes-sigs/image-builder
 [govc]: https://github.com/vmware/govmomi/tree/master/govc

@@ -108,7 +108,7 @@ func AddMachineControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 	err = controller.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
 		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: handler.ToRequestsFunc(r.reconcileRequests),
+			ToRequests: handler.ToRequestsFunc(r.clusterToVSphereMachines),
 		},
 		predicate.Funcs{
 			UpdateFunc: func(e event.UpdateEvent) bool {
@@ -544,7 +544,7 @@ func (r machineReconciler) reconcileReadyState(ctx *context.MachineContext, vm *
 	return true, nil
 }
 
-func (r *machineReconciler) reconcileRequests(a handler.MapObject) []reconcile.Request {
+func (r *machineReconciler) clusterToVSphereMachines(a handler.MapObject) []reconcile.Request {
 	requests := []reconcile.Request{}
 	machines, err := infrautilv1.GetMachinesInCluster(goctx.Background(), r.Client, a.Meta.GetNamespace(), a.Meta.GetName())
 	if err != nil {

@@ -117,7 +117,7 @@ func AddHAProxyLoadBalancerControllerToManager(ctx *context.ControllerManagerCon
 	err = controller.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
 		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: handler.ToRequestsFunc(reconciler.reconcileRequests),
+			ToRequests: handler.ToRequestsFunc(reconciler.reconcileClusterToHAProxyLoadBalancers),
 		},
 		predicate.Funcs{
 			UpdateFunc: func(e event.UpdateEvent) bool {
@@ -155,20 +155,6 @@ func (r haproxylbReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr 
 		return reconcile.Result{}, err
 	}
 
-	cluster, err := clusterutilv1.GetClusterFromMetadata(r.Context, r.Client, haproxylb.ObjectMeta)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-	if cluster == nil {
-		r.Logger.Info("Waiting for VSphereCluster Controller to set OwnerRef on HAProxyLoadBalancer")
-		return reconcile.Result{}, nil
-	}
-	if clusterutilv1.IsPaused(cluster, haproxylb) {
-		r.Logger.V(4).Info("HAProxyLoadBalancer %s/%s linked to a cluster that is paused, won't reconcile",
-			haproxylb.Namespace, haproxylb.Name)
-		return reconcile.Result{}, nil
-	}
-
 	// Create the patch helper.
 	patchHelper, err := patch.NewHelper(haproxylb, r.Client)
 	if err != nil {
@@ -204,7 +190,15 @@ func (r haproxylbReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr 
 	if !haproxylb.ObjectMeta.DeletionTimestamp.IsZero() {
 		return r.reconcileDelete(ctx)
 	}
-
+	cluster, err := clusterutilv1.GetClusterFromMetadata(r.Context, r.Client, haproxylb.ObjectMeta)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	if clusterutilv1.IsPaused(cluster, haproxylb) {
+		r.Logger.V(4).Info("HAProxyLoadBalancer %s/%s linked to a cluster that is paused, won't reconcile",
+			haproxylb.Namespace, haproxylb.Name)
+		return reconcile.Result{}, nil
+	}
 	ctx.Cluster = cluster
 
 	// Handle non-deleted haproxyloadbalancers
@@ -805,7 +799,7 @@ func (r haproxylbReconciler) controlPlaneMachineToHAProxyLoadBalancer(o handler.
 	}}
 }
 
-func (r *haproxylbReconciler) reconcileRequests(a handler.MapObject) []reconcile.Request {
+func (r *haproxylbReconciler) reconcileClusterToHAProxyLoadBalancers(a handler.MapObject) []reconcile.Request {
 	requests := []reconcile.Request{}
 	lbs := &infrav1.HAProxyLoadBalancerList{}
 	err := r.Client.List(goctx.Background(),

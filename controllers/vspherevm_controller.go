@@ -100,16 +100,6 @@ func (r vmReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) 
 		return reconcile.Result{}, err
 	}
 
-	cluster, err := clusterutilv1.GetClusterFromMetadata(r.ControllerContext, r.Client, vsphereVM.ObjectMeta)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-	if clusterutilv1.IsPaused(cluster, vsphereVM) {
-		r.Logger.V(4).Info("VSphereVM %s/%s linked to a cluster that is paused",
-			vsphereVM.Namespace, vsphereVM.Name)
-		return reconcile.Result{}, nil
-	}
-
 	// Get or create an authenticated session to the vSphere endpoint.
 	authSession, err := session.GetOrCreate(r.Context,
 		vsphereVM.Spec.Server, vsphereVM.Spec.Datacenter,
@@ -232,6 +222,16 @@ func (r vmReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) 
 	// Handle deleted machines
 	if !vsphereVM.ObjectMeta.DeletionTimestamp.IsZero() {
 		return r.reconcileDelete(vmContext)
+	}
+
+	cluster, err := clusterutilv1.GetClusterFromMetadata(r.ControllerContext, r.Client, vsphereVM.ObjectMeta)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	if clusterutilv1.IsPaused(cluster, vsphereVM) {
+		r.Logger.V(4).Info("VSphereVM %s/%s linked to a cluster that is paused",
+			vsphereVM.Namespace, vsphereVM.Name)
+		return reconcile.Result{}, nil
 	}
 
 	// Handle non-deleted machines

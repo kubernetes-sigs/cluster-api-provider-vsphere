@@ -30,25 +30,25 @@ import (
 
 const (
 	clusterNameVar              = "${ CLUSTER_NAME }"
-	namespaceVar                = "${ NAMESPACE }"
-	defaultNumCPUs              = 2
-	defaultCloudProviderImage   = "gcr.io/cloud-provider-vsphere/cpi/release/manager:v1.0.0"
-	kubernetesVersionVar        = "${ KUBERNETES_VERSION }"
-	workerMachineCountVar       = "${ WORKER_MACHINE_COUNT }"
 	controlPlaneMachineCountVar = "${ CONTROL_PLANE_MACHINE_COUNT }"
-	folderVar                   = "${ VSPHERE_FOLDER }"
-	machineDeploymentNameSuffix = "-md-0"
-	resourcePoolVar             = "${ VSPHERE_RESOURCE_POOL }"
-	sshAuthorizedKeysVar        = "${ VSPHERE_SSH_AUTHORIZED_KEY }"
-	vSphereDataCenterVar        = "${ VSPHERE_DATACENTER }"
-	vSphereDatastoreVar         = "${ VSPHERE_DATASTORE }"
-	vSphereNetworkVar           = "${ VSPHERE_NETWORK }"
-	vSphereServerVar            = "${ VSPHERE_SERVER }"
-	vSphereTemplateVar          = "${ VSPHERE_TEMPLATE }"
-	haproxyTemplateVar          = "${ VSPHERE_HAPROXY_TEMPLATE }"
+	defaultCloudProviderImage   = "gcr.io/cloud-provider-vsphere/cpi/release/manager:v1.0.0"
 	defaultClusterCIDR          = "192.168.0.0/16"
 	defaultDiskGiB              = 25
 	defaultMemoryMiB            = 8192
+	defaultNumCPUs              = 2
+	kubernetesVersionVar        = "${ KUBERNETES_VERSION }"
+	machineDeploymentNameSuffix = "-md-0"
+	namespaceVar                = "${ NAMESPACE }"
+	vSphereDataCenterVar        = "${ VSPHERE_DATACENTER }"
+	vSphereDatastoreVar         = "${ VSPHERE_DATASTORE }"
+	vSphereFolderVar            = "${ VSPHERE_FOLDER }"
+	vSphereHaproxyTemplateVar   = "${ VSPHERE_HAPROXY_TEMPLATE }"
+	vSphereNetworkVar           = "${ VSPHERE_NETWORK }"
+	vSphereResourcePoolVar      = "${ VSPHERE_RESOURCE_POOL }"
+	vSphereServerVar            = "${ VSPHERE_SERVER }"
+	vSphereSSHAuthorizedKeysVar = "${ VSPHERE_SSH_AUTHORIZED_KEY }"
+	vSphereTemplateVar          = "${ VSPHERE_TEMPLATE }"
+	workerMachineCountVar       = "${ WORKER_MACHINE_COUNT }"
 )
 
 type replacement struct {
@@ -58,19 +58,42 @@ type replacement struct {
 	fieldPath []string
 }
 
-var replacements = []replacement{
-	{
-		kind:      "KubeadmControlPlane",
-		name:      "${ CLUSTER_NAME }",
-		value:     controlPlaneMachineCountVar,
-		fieldPath: []string{"spec", "replicas"},
-	},
-	{
-		kind:      "MachineDeployment",
-		name:      "${ CLUSTER_NAME }-md-0",
-		value:     workerMachineCountVar,
-		fieldPath: []string{"spec", "replicas"},
-	},
+var (
+	replacements = []replacement{
+		{
+			kind:      "KubeadmControlPlane",
+			name:      "${ CLUSTER_NAME }",
+			value:     controlPlaneMachineCountVar,
+			fieldPath: []string{"spec", "replicas"},
+		},
+		{
+			kind:      "MachineDeployment",
+			name:      "${ CLUSTER_NAME }-md-0",
+			value:     workerMachineCountVar,
+			fieldPath: []string{"spec", "replicas"},
+		},
+	}
+
+	stringVars = []string{
+		regexVar(clusterNameVar),
+		regexVar(clusterNameVar + machineDeploymentNameSuffix),
+		regexVar(namespaceVar),
+		regexVar(kubernetesVersionVar),
+		regexVar(vSphereFolderVar),
+		regexVar(vSphereHaproxyTemplateVar),
+		regexVar(vSphereResourcePoolVar),
+		regexVar(vSphereSSHAuthorizedKeysVar),
+		regexVar(vSphereDataCenterVar),
+		regexVar(vSphereDatastoreVar),
+		regexVar(vSphereNetworkVar),
+		regexVar(vSphereServerVar),
+		regexVar(vSphereTemplateVar),
+		regexVar(vSphereHaproxyTemplateVar),
+	}
+)
+
+func regexVar(str string) string {
+	return "((?m:\\" + str + "$))"
 }
 
 func newVSphereCluster(lb *infrav1.HAProxyLoadBalancer) infrav1.VSphereCluster {
@@ -101,8 +124,8 @@ func newVSphereCluster(lb *infrav1.HAProxyLoadBalancer) infrav1.VSphereCluster {
 					Server:       vSphereServerVar,
 					Datacenter:   vSphereDataCenterVar,
 					Datastore:    vSphereDatastoreVar,
-					ResourcePool: resourcePoolVar,
-					Folder:       folderVar,
+					ResourcePool: vSphereResourcePoolVar,
+					Folder:       vSphereFolderVar,
 				},
 				ProviderConfig: infrav1.CPIProviderConfig{
 					Cloud: &infrav1.CPICloudConfig{
@@ -210,9 +233,9 @@ func defaultVirtualMachineCloneSpec() infrav1.VirtualMachineCloneSpec {
 		MemoryMiB:    defaultMemoryMiB,
 		Template:     vSphereTemplateVar,
 		Server:       vSphereServerVar,
-		ResourcePool: resourcePoolVar,
+		ResourcePool: vSphereResourcePoolVar,
 		Datastore:    vSphereDatastoreVar,
-		Folder:       folderVar,
+		Folder:       vSphereFolderVar,
 	}
 }
 
@@ -273,7 +296,7 @@ func defaultUsers() []bootstrapv1.User {
 			Name: "capv",
 			Sudo: pointer.StringPtr("ALL=(ALL) NOPASSWD:ALL"),
 			SSHAuthorizedKeys: []string{
-				sshAuthorizedKeysVar,
+				vSphereSSHAuthorizedKeysVar,
 			},
 		},
 	}
@@ -345,7 +368,7 @@ func newMachineDeployment(cluster clusterv1.Cluster, machineTemplate infrav1.VSp
 
 func newHAProxyLoadBalancer() infrav1.HAProxyLoadBalancer {
 	cloneSpec := defaultVirtualMachineCloneSpec()
-	cloneSpec.Template = haproxyTemplateVar
+	cloneSpec.Template = vSphereHaproxyTemplateVar
 	return infrav1.HAProxyLoadBalancer{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: infrav1.GroupVersion.String(),
@@ -361,7 +384,7 @@ func newHAProxyLoadBalancer() infrav1.HAProxyLoadBalancer {
 			User: &infrav1.SSHUser{
 				Name: "capv",
 				AuthorizedKeys: []string{
-					sshAuthorizedKeysVar,
+					vSphereSSHAuthorizedKeysVar,
 				},
 			},
 		},

@@ -73,6 +73,7 @@ func New(opts Options) (Manager, error) {
 		NewCache:                opts.NewCache,
 		NewClient:               newClientFunc,
 		Port:                    opts.WebhookPort,
+		HealthProbeBindAddress:  opts.HealthAddr,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create manager")

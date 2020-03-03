@@ -19,6 +19,7 @@ package flavors
 import (
 	"fmt"
 	"reflect"
+	"regexp"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -96,6 +97,16 @@ func printObject(obj runtime.Object, replacements []replacement) {
 	}
 
 	str := string(bytes)
+
+	for _, s := range stringVars {
+		s := s
+		regex := regexp.MustCompile(s)
+		if err != nil {
+			panic(err)
+		}
+		str = regex.ReplaceAllString(str, "'$1'")
+	}
+
 	fmt.Printf("---\n%s", str)
 }
 

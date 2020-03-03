@@ -45,6 +45,7 @@ var (
 	defaultWebhookPort             = manager.DefaultWebhookServiceContainerPort
 )
 
+// nolint:gocognit
 func main() {
 	klog.InitFlags(nil)
 	ctrllog.SetLogger(klogr.New())

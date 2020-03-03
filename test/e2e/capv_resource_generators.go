@@ -17,25 +17,48 @@ limitations under the License.
 package e2e
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
 
+	"github.com/vmware/govmomi"
+	"github.com/vmware/govmomi/find"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
-
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/framework"
+	clrclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
 )
 
 var (
-	sshAuthKey string
+	sshAuthKey    string
+	mgmt          framework.ManagementCluster
+	mgmtClient    clrclient.Client
+	configPath    string
+	teardownKind  bool
+	config        *framework.Config
+	ctx           = context.Background()
+	vsphereClient *govmomi.Client
+	vsphereFinder *find.Finder
+
+	vsphereUsername = os.Getenv("VSPHERE_USERNAME")
+	vspherePassword = os.Getenv("VSPHERE_PASSWORD")
+
+	vsphereServer          string
+	vsphereDatacenter      string
+	vsphereFolder          string
+	vspherePool            string
+	vsphereDatastore       string
+	vsphereNetwork         string
+	vsphereMachineTemplate string
+	vsphereHAProxyTemplate string
 )
 
 func init() {

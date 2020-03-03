@@ -76,12 +76,16 @@ func printObject(obj runtime.Object, replacements []replacement) {
 	}
 
 	data := unstructured.Unstructured{}
-	data.UnmarshalJSON(json)
+	if err := data.UnmarshalJSON(json); err != nil {
+		panic(err)
+	}
 
 	for _, v := range replacements {
 		v := v
 		if v.name == data.GetName() && v.kind == data.GetKind() {
-			unstructured.SetNestedField(data.Object, v.value, v.fieldPath...)
+			if err := unstructured.SetNestedField(data.Object, v.value, v.fieldPath...); err != nil {
+				panic(err)
+			}
 		}
 	}
 

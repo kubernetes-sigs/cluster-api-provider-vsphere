@@ -308,7 +308,7 @@ func objectMetaForSecret(
 			clusterv1.ClusterLabelName: cluster.Name,
 		},
 		OwnerReferences: []metav1.OwnerReference{
-			metav1.OwnerReference{
+			{
 				APIVersion: loadBalancer.APIVersion,
 				Kind:       loadBalancer.Kind,
 				Name:       loadBalancer.Name,

@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"time"
 
-	. "github.com/onsi/ginkgo" //nolint:golint
-	. "github.com/onsi/gomega" //nolint:golint
+	. "github.com/onsi/ginkgo" // nolint:golint
+	. "github.com/onsi/gomega" // nolint:golint
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"

@@ -69,10 +69,14 @@ func (c *CPIConfig) MarshalINI() ([]byte, error) {
 			for _, key := range keys {
 				sectionNameKey, sectionValue := key, sectionValue.MapIndex(key)
 				sectionName := fmt.Sprintf(`%s "%v"`, sectionName, sectionNameKey.String())
-				c.marshalINISectionProperties(buf, sectionValue, sectionName)
+				if err := c.marshalINISectionProperties(buf, sectionValue, sectionName); err != nil {
+					return nil, err
+				}
 			}
 		default:
-			c.marshalINISectionProperties(buf, sectionValue, sectionName)
+			if err := c.marshalINISectionProperties(buf, sectionValue, sectionName); err != nil {
+				return nil, err
+			}
 		}
 	}
 

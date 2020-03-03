@@ -342,7 +342,7 @@ func getMacAddresses(ctx *virtualMachineContext) ([]string, map[string]int, map[
 // The gocyclo detector is disabled for this function as it is difficult to
 // rewrite muchs simpler due to the maps used to track state and the lambdas
 // that use the maps.
-// nolint:gocyclo
+// nolint:gocyclo,gocognit
 func waitForIPAddresses(
 	ctx *virtualMachineContext,
 	macToDeviceIndex map[string]int,

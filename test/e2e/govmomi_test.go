@@ -18,6 +18,7 @@ package e2e
 
 import (
 	"flag"
+	"fmt"
 	"net/url"
 	"os"
 	"strings"
@@ -29,23 +30,6 @@ import (
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/soap"
-)
-
-var (
-	vsphereClient *govmomi.Client
-	vsphereFinder *find.Finder
-
-	vsphereUsername = os.Getenv("VSPHERE_USERNAME")
-	vspherePassword = os.Getenv("VSPHERE_PASSWORD")
-
-	vsphereServer          string
-	vsphereDatacenter      string
-	vsphereFolder          string
-	vspherePool            string
-	vsphereDatastore       string
-	vsphereNetwork         string
-	vsphereMachineTemplate string
-	vsphereHAProxyTemplate string
 )
 
 func init() {
@@ -89,23 +73,15 @@ func destroyVMsWithPrefix(prefix string) {
 	}
 }
 
-// nolint:deadcode
-func findAndDestroyVM(name string) {
-	if vm, _ := vsphereFinder.VirtualMachine(ctx, name); vm != nil {
-		if task, _ := vm.PowerOff(ctx); task != nil {
-			task.Wait(ctx)
-		}
-		if task, _ := vm.Destroy(ctx); task != nil {
-			task.Wait(ctx)
-		}
-	}
-}
-
 func destroyVM(vm *object.VirtualMachine) {
 	if task, _ := vm.PowerOff(ctx); task != nil {
-		task.Wait(ctx)
+		if err := task.Wait(ctx); err != nil {
+			fmt.Printf("error powering off %s machine: %s\n", vm.Name(), err)
+		}
 	}
 	if task, _ := vm.Destroy(ctx); task != nil {
-		task.Wait(ctx)
+		if err := task.Wait(ctx); err != nil {
+			fmt.Printf("error destroying  %s machine: %s\n", vm.Name(), err)
+		}
 	}
 }

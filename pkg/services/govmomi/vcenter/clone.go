@@ -34,6 +34,7 @@ const (
 )
 
 // Clone kicks off a clone operation on vCenter to create a new virtual machine.
+// nolint:gocognit
 func Clone(ctx *context.VMContext, bootstrapData []byte) error {
 	ctx = &context.VMContext{
 		ControllerContext: ctx.ControllerContext,
@@ -47,7 +48,9 @@ func Clone(ctx *context.VMContext, bootstrapData []byte) error {
 	var extraConfig extra.Config
 	if len(bootstrapData) > 0 {
 		ctx.Logger.Info("applied bootstrap data to VM clone spec")
-		extraConfig.SetCloudInitUserData(bootstrapData)
+		if err := extraConfig.SetCloudInitUserData(bootstrapData); err != nil {
+			return err
+		}
 	}
 
 	tpl, err := template.FindTemplate(ctx, ctx.VSphereVM.Spec.Template)

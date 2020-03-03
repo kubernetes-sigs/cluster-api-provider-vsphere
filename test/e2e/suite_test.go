@@ -17,7 +17,6 @@ limitations under the License.
 package e2e
 
 import (
-	"context"
 	"flag"
 	"io/ioutil"
 	"testing"
@@ -27,19 +26,9 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/cluster-api/test/framework"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
 	kindx "sigs.k8s.io/cluster-api-provider-vsphere/test/e2e/kind"
-)
-
-var (
-	mgmt         framework.ManagementCluster
-	mgmtClient   client.Client
-	configPath   string
-	teardownKind bool
-	config       *framework.Config
-	ctx          = context.Background()
 )
 
 func init() {
@@ -86,7 +75,7 @@ var _ = BeforeSuite(func() {
 	}
 
 	By("cleaning up previous kind cluster")
-	kindx.TeardownIfExists(ctx, config.ManagementClusterName)
+	Expect(kindx.TeardownIfExists(ctx, config.ManagementClusterName)).To(Succeed())
 
 	By("initializing the vSphere session", initVSphereSession)
 

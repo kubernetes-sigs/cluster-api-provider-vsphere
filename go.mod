@@ -12,7 +12,9 @@ require (
 	github.com/pkg/errors v0.9.0
 	github.com/spf13/cobra v0.0.5
 	github.com/vmware/govmomi v0.21.0
+	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550 // indirect
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
+	golang.org/x/xerrors v0.0.0-20191011141410-1b5146add898 // indirect
 	gopkg.in/gcfg.v1 v1.2.3
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	k8s.io/api v0.17.2

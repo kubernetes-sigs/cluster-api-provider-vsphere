@@ -208,6 +208,7 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			ipAddr, err := util.GetMachinePreferredIPAddress(tc.machine)
 			if err != tc.expectedErr {
@@ -523,6 +524,7 @@ network:
 		},
 	}
 	for _, tc := range testCases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			tc.machine.Name = tc.name
 			actVal, err := util.GetMachineMetadata("test-vm", *tc.machine)
@@ -584,6 +586,7 @@ func TestConvertProviderIDToUUID(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			actualUUID := util.ConvertProviderIDToUUID(tc.providerID)
 			g.Expect(actualUUID).To(gomega.Equal(tc.expectedUUID))
@@ -626,6 +629,7 @@ func TestConvertUUIDtoProviderID(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			actualProviderID := util.ConvertUUIDToProviderID(tc.uuid)
 			g.Expect(actualProviderID).To(gomega.Equal(tc.expectedProviderID))

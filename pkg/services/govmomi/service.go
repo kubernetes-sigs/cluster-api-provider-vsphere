@@ -94,9 +94,7 @@ func (vms *VMService) ReconcileVM(ctx *context.VMContext) (vm infrav1.VirtualMac
 		State:     &vm,
 	}
 
-	if err := vms.reconcileUUID(vmCtx); err != nil {
-		return vm, err
-	}
+	vms.reconcileUUID(vmCtx)
 
 	if err := vms.reconcileNetworkStatus(vmCtx); err != nil {
 		return vm, nil
@@ -251,9 +249,8 @@ func (vms *VMService) reconcilePowerState(ctx *virtualMachineContext) (bool, err
 	}
 }
 
-func (vms *VMService) reconcileUUID(ctx *virtualMachineContext) error {
+func (vms *VMService) reconcileUUID(ctx *virtualMachineContext) {
 	ctx.State.BiosUUID = ctx.Obj.UUID(ctx)
-	return nil
 }
 
 func (vms *VMService) getPowerState(ctx *virtualMachineContext) (infrav1.VirtualMachinePowerState, error) {
@@ -320,7 +317,9 @@ func (vms *VMService) getMetadata(ctx *virtualMachineContext) (string, error) {
 
 func (vms *VMService) setMetadata(ctx *virtualMachineContext, metadata []byte) (string, error) {
 	var extraConfig extra.Config
-	extraConfig.SetCloudInitMetadata(metadata)
+	if err := extraConfig.SetCloudInitMetadata(metadata); err != nil {
+		return "", errors.Wrapf(err, "unable to set metadata on vm %s", ctx)
+	}
 
 	task, err := ctx.Obj.Reconfigure(ctx, types.VirtualMachineConfigSpec{
 		ExtraConfig: extraConfig,

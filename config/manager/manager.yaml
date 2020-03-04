@@ -23,6 +23,18 @@ spec:
         image: gcr.io/cluster-api-provider-vsphere/release/manager:latest
         imagePullPolicy: IfNotPresent
         name: manager
+        ports:
+        - containerPort: 9440
+          name: healthz
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: healthz
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: healthz
       terminationGracePeriodSeconds: 10
       tolerations:
         - effect: NoSchedule

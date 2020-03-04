@@ -26,6 +26,7 @@ import (
 
 	"k8s.io/klog"
 	"k8s.io/klog/klogr"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
 	ctrlsig "sigs.k8s.io/controller-runtime/pkg/manager/signals"
@@ -36,6 +37,8 @@ import (
 )
 
 var (
+	setupLog = ctrllog.Log.WithName("entrypoint")
+
 	managerOpts                    manager.Options
 	defaultProfilerAddr            = os.Getenv("PROFILER_ADDR")
 	defaultSyncPeriod              = manager.DefaultSyncPeriod
@@ -49,7 +52,6 @@ var (
 func main() {
 	klog.InitFlags(nil)
 	ctrllog.SetLogger(klogr.New())
-	setupLog := ctrllog.Log.WithName("entrypoint")
 	if err := flag.Set("v", "2"); err != nil {
 		klog.Fatalf("failed to set log level: %v", err)
 	}
@@ -184,10 +186,24 @@ func main() {
 		os.Exit(1)
 	}
 
+	setupChecks(mgr)
+
 	sigHandler := ctrlsig.SetupSignalHandler()
 	setupLog.Info("starting controller manager")
 	if err := mgr.Start(sigHandler); err != nil {
 		setupLog.Error(err, "problem running controller manager")
+		os.Exit(1)
+	}
+}
+
+func setupChecks(mgr ctrlmgr.Manager) {
+	if err := mgr.AddReadyzCheck("ping", healthz.Ping); err != nil {
+		setupLog.Error(err, "unable to create ready check")
+		os.Exit(1)
+	}
+
+	if err := mgr.AddHealthzCheck("ping", healthz.Ping); err != nil {
+		setupLog.Error(err, "unable to create health check")
 		os.Exit(1)
 	}
 }

@@ -108,9 +108,9 @@ Once you have access to a management cluster, you can instantiate Cluster API wi
 
 ```shell
 $ clusterctl init \
-  --core cluster-api:v0.3.0-rc.2 \
-  --bootstrap kubeadm:v0.3.0-rc.2 \
-  --control-plane kubeadm:v0.3.0-rc.2 \
+  --core cluster-api:v0.3.0-rc.3 \
+  --bootstrap kubeadm:v0.3.0-rc.3 \
+  --control-plane kubeadm:v0.3.0-rc.3 \
   --infrastructure vsphere:v0.6.0-rc.1
 ```
 

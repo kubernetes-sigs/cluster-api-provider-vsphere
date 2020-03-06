@@ -53,6 +53,22 @@ named the VM template `ubuntu-1804-kube-v1.17.3`.
 
 Repeat again for the [HAProxy template image][haproxy-machine-image].
 
+to enable faster clone operation, linked clone mode is the default `cloneMode` for `vsphereMachines` and is highly recommended. To be able to use it, you will need to do the following for your VM template:
+
+```shell
+govc vm.markasvm -pool Compute-ResourcePool ubuntu-1804-kube-v1.17.3
+govc snapshot.create -vm ubuntu-1804-kube-v1.17.3 root
+govc vm.markastemplate ubuntu-1804-kube-v1.17.3
+```
+
+for the HAProxy VM template:
+
+```shell
+govc vm.markasvm -pool Compute-ResourcePool capv-haproxy-v0.6.0-rc.2.ova
+govc snapshot.create -vm capv-haproxy-v0.6.0-rc.2.ova root
+govc vm.markastemplate capv-haproxy-v0.6.0-rc.2.ova
+```
+
 **Note:** When creating the OVA template via vSphere using the URL method, please make sure the VM template name is the
 same as the value specified by the `VSPHERE_TEMPLATE` and `VSPHERE_HAPROXY_TEMPLATE` environment variables in the
 `envvars.txt` file, taking care of the `.ova` suffix for the template name.
@@ -144,7 +160,13 @@ kubectl get secret/vsphere-quickstart-kubeconfig -o json \
   > ./vsphere-quickstart.kubeconfig
 ```
 
-The kubeconfig can then be used to access the cluster:
+The kubeconfig can then be used to apply addons:
+
+```shell
+KUBECONFIG=vsphere-quickstart.kubeconfig kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-vsphere/v0.6.0-rc.2/examples/default/addons.yaml
+```
+
+after that you should see your nodes turn into ready:
 
 ```shell
 $ KUBECONFIG=vsphere-quickstart.kubeconfig kubectl get nodes
@@ -164,6 +186,6 @@ vsphere-quickstart-9qtfd                                      Ready      master 
 [kubectl]: https://kubernetes.io/docs/tasks/tools/install-kubectl/
 [ovas]: ../README.md#kubernetes-versions-with-published-ovas
 [default-machine-image]: https://storage.googleapis.com/capv-images/release/v1.17.3/ubuntu-1804-kube-v1.17.3.ova
-[haproxy-machine-image]: https://storage.googleapis.com/capv-images/extra/haproxy/release/v0.6.0-rc.1/capv-haproxy.ova
+[haproxy-machine-image]: https://storage.googleapis.com/capv-images/extra/haproxy/release/v0.6.0-rc.2/capv-haproxy-v0.6.0-rc.2.ova
 [image-builder]: https://github.com/kubernetes-sigs/image-builder
 [govc]: https://github.com/vmware/govmomi/tree/master/govc

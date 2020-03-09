@@ -33,7 +33,7 @@ import (
 // NOTE: the contents of this file are derived from https://github.com/kubernetes-sigs/vsphere-csi-driver/tree/master/manifests/1.14
 
 const (
-	DefaultCSIControllerImage     = "gcr.io/cloud-provider-vsphere/csi/release/syncer:v1.0.2"
+	DefaultCSIControllerImage     = "gcr.io/cloud-provider-vsphere/csi/release/driver:v1.0.2"
 	DefaultCSINodeDriverImage     = "gcr.io/cloud-provider-vsphere/csi/release/driver:v1.0.2"
 	DefaultCSIAttacherImage       = "quay.io/k8scsi/csi-attacher:v1.1.1"
 	DefaultCSIProvisionerImage    = "quay.io/k8scsi/csi-provisioner:v1.2.1"

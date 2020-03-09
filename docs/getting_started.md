@@ -22,12 +22,13 @@ depth, check out the the [Cluster API book][cluster-api-book].
 
 ### vSphere Requirements
 
-Your vSphere environment should be configured with a DHCP service in the primary VM Network for your workload Kubernetes clusters.
+Your vSphere environment should be configured with a **DHCP service** in the primary VM Network for your workload Kubernetes clusters.
 You will also need to configure one resource pool across the hosts onto which the workload clusters will be provisioned. Every host
 in the resource pool will need access to shared storage, such as VSAN in order to be able to make use of MachineDeployments and
 high-availability control planes.
 
-To use PVs, your cluster needs support for Cloud Native Storage (CNS), which is available in vSphere 6.7 Update 3 and later. CNS relies on a shared datastore, such as VSAN.
+To use PVs, your cluster needs support for Cloud Native Storage (CNS), which is available in **vSphere 6.7 Update 3** and later.
+CNS relies on a shared datastore, such as VSAN.
 
 In addition, to use clusterctl, you should have a SSH public key that will be inserted into the node VMs for
 administrative access, and a VM folder configured in vCenter.
@@ -60,19 +61,27 @@ govc vm.markastemplate ubuntu-1804-kube-v1.17.3
 
 Repeat again for the [HAProxy template image][haproxy-machine-image].
 
-to enable faster clone operation, linked clone mode is the default `cloneMode` for `vsphereMachines` and is highly recommended. To be able to use it, you will need to do the following for your VM template:
+To reduce the time it takes to provisiong machines, linked clone mode is the default `cloneMode` for `vsphereMachines` and is highly
+ recommended. To be able to use it, your VM templates require snapshots, for which we illustrate the process using the [govc][govc]
+command line tool, but can also be done via vCenter, PowerCLI or other tooling:
 
 ```shell
+# Re-mark the template as a VM
 govc vm.markasvm -pool Compute-ResourcePool ubuntu-1804-kube-v1.17.3
+# Take a snapshot of the VM
 govc snapshot.create -vm ubuntu-1804-kube-v1.17.3 root
+# Re-mark the VM as a template
 govc vm.markastemplate ubuntu-1804-kube-v1.17.3
 ```
 
 for the HAProxy VM template:
 
 ```shell
+# Re-mark the template as a VM
 govc vm.markasvm -pool Compute-ResourcePool capv-haproxy-v0.6.0-rc.2.ova
+# Take a snapshot of the VM
 govc snapshot.create -vm capv-haproxy-v0.6.0-rc.2.ova root
+# Re-mark the VM as a template
 govc vm.markastemplate capv-haproxy-v0.6.0-rc.2.ova
 ```
 
@@ -130,11 +139,7 @@ running `clusterctl config`.
 Once you have access to a management cluster, you can instantiate Cluster API with the following:
 
 ```shell
-$ clusterctl init \
-  --core cluster-api:v0.3.0-rc.3 \
-  --bootstrap kubeadm:v0.3.0-rc.3 \
-  --control-plane kubeadm:v0.3.0-rc.3 \
-  --infrastructure vsphere:v0.6.0-rc.1
+clusterctl init --infrastructure vsphere
 ```
 
 ## Creating a vSphere-based workload cluster
@@ -143,7 +148,7 @@ The following command
 
 ```shell
 $ clusterctl config cluster vsphere-quickstart \
-    --infrastructure vsphere:v0.6.0-rc.1 \
+    --infrastructure vsphere \
     --kubernetes-version v1.17.3 \
     --control-plane-machine-count 1 \
     --worker-machine-count 3 > cluster.yaml
@@ -161,16 +166,16 @@ The kubeconfig for the workload cluster will be stored in a secret, which can
 be retrieved using:
 
 ``` shell
-kubectl get secret/vsphere-quickstart-kubeconfig -o json \
+$ kubectl get secret/vsphere-quickstart-kubeconfig -o json \
   | jq -r .data.value \
   | base64 --decode \
   > ./vsphere-quickstart.kubeconfig
 ```
 
-The kubeconfig can then be used to apply addons:
+The kubeconfig can then be used to apply a CNI for networking, for example, Calico:
 
 ```shell
-KUBECONFIG=vsphere-quickstart.kubeconfig kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-vsphere/v0.6.0-rc.2/examples/default/addons.yaml
+KUBECONFIG=vsphere-quickstart.kubeconfig kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
 ```
 
 after that you should see your nodes turn into ready:

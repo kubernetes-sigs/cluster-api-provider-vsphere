@@ -3,22 +3,22 @@
 This is a guide on how to get started with Cluster API Provider vSphere. To learn more about cluster API in more
 depth, check out the the [Cluster API book][cluster-api-book].
 
-- [Getting Started](#getting-started)
-  - [Install Requirements](#install-requirements)
-    - [vSphere Requirements](#vsphere-requirements)
-      - [vCenter Credentials](#vcenter-credentials)
-      - [Uploading the machine images](#uploading-the-machine-images)
-  - [Creating a test management cluster](#creating-a-test-management-cluster)
-  - [Configuring and installing Cluster API Provider vSphere in a management cluster](#configuring-and-installing-cluster-api-provider-vsphere-in-a-management-cluster)
-  - [Creating a vSphere-based workload cluster](#creating-a-vsphere-based-workload-cluster)
-  - [Accessing the workload cluster](#accessing-the-workload-cluster)
+* [Getting Started](#getting-started)
+  * [Install Requirements](#install-requirements)
+    * [vSphere Requirements](#vsphere-requirements)
+      * [vCenter Credentials](#vcenter-credentials)
+      * [Uploading the machine images](#uploading-the-machine-images)
+  * [Creating a test management cluster](#creating-a-test-management-cluster)
+  * [Configuring and installing Cluster API Provider vSphere in a management cluster](#configuring-and-installing-cluster-api-provider-vsphere-in-a-management-cluster)
+  * [Creating a vSphere-based workload cluster](#creating-a-vsphere-based-workload-cluster)
+  * [Accessing the workload cluster](#accessing-the-workload-cluster)
 
 ## Install Requirements
 
-- clusterctl, which can downloaded the latest [release][releases] of Cluster API (CAPI) on GitHub.
-- [Docker][docker] is required for the bootstrap cluster using `clusterctl`.
-- [Kind][kind] can be used  to provide an initial management cluster for testing.
-- [kubectl][kubectl] is required to access your workload clusters.
+* clusterctl, which can downloaded the latest [release][releases] of Cluster API (CAPI) on GitHub.
+* [Docker][docker] is required for the bootstrap cluster using `clusterctl`.
+* [Kind][kind] can be used  to provide an initial management cluster for testing.
+* [kubectl][kubectl] is required to access your workload clusters.
 
 ### vSphere Requirements
 
@@ -48,8 +48,15 @@ v1.16.2 on Ubuntu 18.04 (link to [machine image][default-machine-image]).
 
 If you want to build your own image, take a look at the [image-builder][image-builder] project.
 
-[Create a VM template][vm-template] using the [OVA URL][default-machine-image]. The rest of the guide will assume you
-named the VM template `ubuntu-1804-kube-v1.17.3`.
+[Deploy a VM from an OVA][vm-template] using the [OVA URL][default-machine-image].
+
+**NOTE:** The rest of the guide will assume you named the VM `ubuntu-1804-kube-v1.17.3`.
+
+After deploying it from the OVA, please ensure the VM `ubuntu-1804-kube-v1.17.3` is marked as an immutable template with the following command:
+
+```shell
+govc vm.markastemplate ubuntu-1804-kube-v1.17.3
+```
 
 Repeat again for the [HAProxy template image][haproxy-machine-image].
 

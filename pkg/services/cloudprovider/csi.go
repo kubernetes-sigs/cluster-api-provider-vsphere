@@ -304,7 +304,7 @@ func VSphereCSINodeContainer(image string) corev1.Container {
 				Value: "false",
 			},
 			{
-				Name:  "X_CSI_VSPHERE_CLOUD_CONFIG",
+				Name:  "VSPHERE_CSI_CONFIG",
 				Value: "/etc/cloud/csi-vsphere.conf",
 			},
 			{
@@ -517,7 +517,7 @@ func VSphereCSIControllerContainer(image string) corev1.Container {
 				Value: "controller",
 			},
 			{
-				Name:  "X_CSI_VSPHERE_CLOUD_CONFIG",
+				Name:  "VSPHERE_CSI_CONFIG",
 				Value: "/etc/cloud/csi-vsphere.conf",
 			},
 		},
@@ -567,7 +567,7 @@ func VSphereSyncerContainer(image string) corev1.Container {
 				Value: "30",
 			},
 			{
-				Name:  "X_CSI_VSPHERE_CLOUD_CONFIG",
+				Name:  "VSPHERE_CSI_CONFIG",
 				Value: "/etc/cloud/csi-vsphere.conf",
 			},
 		},

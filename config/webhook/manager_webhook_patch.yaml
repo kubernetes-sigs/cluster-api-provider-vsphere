@@ -13,7 +13,7 @@ spec:
         - "--webhook-port=9443"
         - "--enable-leader-election=false"
         ports:
-        - containerPort: 443
+        - containerPort: 9443
           name: webhook-server
           protocol: TCP
         volumeMounts:

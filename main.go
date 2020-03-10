@@ -22,6 +22,7 @@ import (
 	"net/http/pprof"
 	"os"
 
+	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
 
 	"k8s.io/klog"
@@ -158,6 +159,15 @@ func main() {
 				return err
 			}
 			if err := (&v1alpha3.HAProxyLoadBalancerList{}).SetupWebhookWithManager(mgr); err != nil {
+				return err
+			}
+			if err := (&v1alpha2.VSphereCluster{}).SetupWebhookWithManager(mgr); err != nil {
+				return err
+			}
+			if err := (&v1alpha2.VSphereMachine{}).SetupWebhookWithManager(mgr); err != nil {
+				return err
+			}
+			if err := (&v1alpha2.VSphereMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 				return err
 			}
 		} else {

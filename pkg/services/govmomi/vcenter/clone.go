@@ -149,7 +149,6 @@ func Clone(ctx *context.VMContext, bootstrapData []byte) error {
 
 	spec := types.VirtualMachineCloneSpec{
 		Config: &types.VirtualMachineConfigSpec{
-			Annotation: ctx.String(),
 			// Assign the clone's InstanceUUID the value of the Kubernetes Machine
 			// object's UID. This allows lookup of the cloned VM prior to knowing
 			// the VM's UUID.

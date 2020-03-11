@@ -234,12 +234,16 @@ func CreateBootstrapSecret(
 		return err
 	}
 
-	bootstrapData, err := BootstrapDataForLoadBalancer(
-		*loadBalancer,
-		caSecret.Data[SecretDataKeyUsername],
-		caSecret.Data[SecretDataKeyPassword],
-		caSecret.Data[SecretDataKeyCACert],
-		caSecret.Data[SecretDataKeyCAKey])
+	renderConfig := NewRenderConfiguration().
+		WithBootstrapInfo(
+			*loadBalancer,
+			string(caSecret.Data[SecretDataKeyUsername]),
+			string(caSecret.Data[SecretDataKeyPassword]),
+			caSecret.Data[SecretDataKeyCACert],
+			caSecret.Data[SecretDataKeyCAKey],
+		)
+
+	bootstrapData, err := renderConfig.BootstrapDataForLoadBalancer()
 	if err != nil {
 		return err
 	}
@@ -274,7 +278,7 @@ func CreateConfigSecret(
 		return err
 	}
 
-	config := &Config{
+	config := &DataplaneConfig{
 		CertificateAuthorityData: caSecret.Data[SecretDataKeyCACert],
 		ClientCertificateData:    clientCertPEM,
 		ClientKeyData:            clientKeyPEM,

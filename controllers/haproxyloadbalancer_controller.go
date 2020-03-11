@@ -31,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	apitypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -324,19 +325,13 @@ func (r haproxylbReconciler) reconcileNormal(ctx *context.HAProxyLoadBalancerCon
 			}
 		}
 
-		// Reconcile the HAProxyLoadBalancer's load balancer configuration.
-		if err := r.reconcileLoadBalancerConfig(ctx); err != nil {
-			return reconcile.Result{}, errors.Wrapf(err,
-				"unexpected error while reconciling load balancer config for %s", ctx)
-		}
-
 		// Mark the load balancer as ready.
 		ctx.HAProxyLoadBalancer.Status.Ready = true
 		ctx.Logger.Info("HAProxyLoadBalancer is ready")
 	}
 
 	// Reconcile the HAProxyLoadBalancer's backend servers.
-	if err := r.reconcileBackendServers(ctx); err != nil {
+	if err := r.reconcileLoadBalancerConfiguration(ctx); err != nil {
 		return reconcile.Result{}, errors.Wrapf(err,
 			"unexpected error while reconciling backend servers for %s", ctx)
 	}
@@ -344,116 +339,7 @@ func (r haproxylbReconciler) reconcileNormal(ctx *context.HAProxyLoadBalancerCon
 	return reconcile.Result{}, nil
 }
 
-func (r haproxylbReconciler) reconcileLoadBalancerConfig(ctx *context.HAProxyLoadBalancerContext) error {
-
-	// Get the Secret with the HAPI config.
-	secret, err := haproxy.GetConfigSecret(
-		ctx, ctx.Client, ctx.HAProxyLoadBalancer.Namespace, ctx.HAProxyLoadBalancer.Name)
-	if err != nil {
-		return errors.Wrapf(err, "failed to get config secret for %s", ctx)
-	}
-
-	// Create a HAPI client.
-	client, err := haproxy.ClientFromHAPIConfigData(secret.Data[haproxy.SecretDataKey])
-	if err != nil {
-		return errors.Wrapf(err, "failed to get hapi client for %s", ctx)
-	}
-
-	// Get the current configuration version.
-	global, _, err := client.GlobalApi.GetGlobal(ctx, nil)
-	if err != nil {
-		return errors.Wrapf(err, "failed to get hapi global config for %s", ctx)
-	}
-
-	// Start the transaction.
-	hasChanges := false
-	transaction, _, err := client.TransactionsApi.StartTransaction(ctx, global.Version)
-	if err != nil {
-		return errors.Wrapf(err, "failed to create hapi transaction for %s", ctx)
-	}
-	transactionID := optional.NewString(transaction.Id)
-
-	// Create the backend configuration.
-	if _, _, err := client.BackendApi.CreateBackend(ctx, hapi.Backend{
-		Name: ctx.HAProxyLoadBalancer.Name,
-		Mode: haproxy.ModeTCP,
-		Balance: hapi.Balance{
-			Algorithm: haproxy.RoundRobin,
-		},
-		AdvCheck: haproxy.AdvCheckTCP,
-	}, &hapi.CreateBackendOpts{
-		TransactionId: transactionID,
-	}); err != nil {
-		if !haproxy.IsConflict(err) {
-			return errors.Wrapf(err, "failed to create hapi backend for %s", ctx)
-		}
-		ctx.Logger.Info("hapi backend already exists")
-	} else {
-		ctx.Logger.Info("hapi backend created")
-		hasChanges = true
-	}
-
-	// Create the frontend configuration.
-	if _, _, err := client.FrontendApi.CreateFrontend(ctx, hapi.Frontend{
-		Name:           ctx.HAProxyLoadBalancer.Name,
-		Mode:           haproxy.ModeTCP,
-		DefaultBackend: ctx.HAProxyLoadBalancer.Name,
-	}, &hapi.CreateFrontendOpts{
-		TransactionId: transactionID,
-	}); err != nil {
-		if !haproxy.IsConflict(err) {
-			return errors.Wrapf(err, "failed to create hapi frontend for %s", ctx)
-		}
-		ctx.Logger.Info("hapi frontend already exists")
-	} else {
-		ctx.Logger.Info("hapi frontend created")
-		hasChanges = true
-	}
-
-	// Bind the frontend.
-	if _, _, err := client.BindApi.CreateBind(
-		ctx,
-		ctx.HAProxyLoadBalancer.Name,
-		hapi.Bind{
-			Name:    ctx.HAProxyLoadBalancer.Name,
-			Address: "*",
-			Port:    &defaultAPIEndpointPort,
-		}, &hapi.CreateBindOpts{
-			TransactionId: transactionID,
-		}); err != nil {
-		if !haproxy.IsConflict(err) {
-			return errors.Wrapf(err, "failed to bind hapi frontend for %s", ctx)
-		}
-		ctx.Logger.Info("hapi frontend was already bound")
-	} else {
-		ctx.Logger.Info("hapi frontend bound to port",
-			"port", defaultAPIEndpointPort)
-		hasChanges = true
-	}
-
-	// Commit the transaction if there are changes; otherwise delete the
-	// transaction.
-	if hasChanges {
-		if _, _, err := client.TransactionsApi.CommitTransaction(
-			ctx,
-			transactionID.Value(),
-			&hapi.CommitTransactionOpts{
-				ForceReload: optional.NewBool(true),
-			}); err != nil {
-			return errors.Wrapf(err,
-				"failed to commit hapi transaction that reconciles the load balancer configuration for %s", ctx)
-		}
-	} else if _, err := client.TransactionsApi.DeleteTransaction(ctx, transactionID.Value()); err != nil {
-		return errors.Wrapf(err,
-			"failed to delete hapi transaction that reconciles the load balancer configuration for %s", ctx)
-	}
-
-	ctx.Logger.Info("reconciled load balancer configuration")
-	return nil
-}
-
-func (r haproxylbReconciler) reconcileBackendServers(ctx *context.HAProxyLoadBalancerContext) error {
-
+func (r haproxylbReconciler) BackEndointsForCluster(ctx *context.HAProxyLoadBalancerContext) ([]corev1.EndpointAddress, error) {
 	// Get the CAPI Machine resources for the cluster.
 	machineList := &clusterv1.MachineList{}
 	if err := ctx.Client.List(
@@ -464,16 +350,29 @@ func (r haproxylbReconciler) reconcileBackendServers(ctx *context.HAProxyLoadBal
 				clusterv1.ClusterLabelName: ctx.Cluster.Name,
 			},
 		)); err != nil {
-		return errors.Wrapf(
-			err, "failed to get machines for Cluster %s %s/%s for %s",
-			ctx.Cluster.GroupVersionKind(),
-			ctx.Cluster.Namespace,
-			ctx.Cluster.Name,
-			ctx)
+		return nil, errors.Wrap(err, "failed to get machines for cluster")
 	}
 
 	// Get the control plane machines.
 	controlPlaneMachines := clusterutilv1.GetControlPlaneMachinesFromList(machineList)
+	endpoints := make([]corev1.EndpointAddress, 0)
+	for _, machine := range controlPlaneMachines {
+		machineEndpoints := make([]corev1.EndpointAddress, 0)
+		for i, addr := range machine.Status.Addresses {
+			if addr.Type == clusterv1.MachineExternalIP {
+				endpoint := corev1.EndpointAddress{
+					NodeName: pointer.StringPtr(fmt.Sprintf("%s-%d", machine.Name, i)),
+					IP:       addr.Address,
+				}
+				machineEndpoints = append(machineEndpoints, endpoint)
+			}
+		}
+		endpoints = append(endpoints, machineEndpoints...)
+	}
+	return endpoints, nil
+}
+
+func (r haproxylbReconciler) reconcileLoadBalancerConfiguration(ctx *context.HAProxyLoadBalancerContext) error {
 
 	// Get the Secret with the HAPI config.
 	secret, err := haproxy.GetConfigSecret(
@@ -482,8 +381,13 @@ func (r haproxylbReconciler) reconcileBackendServers(ctx *context.HAProxyLoadBal
 		return errors.Wrapf(err, "failed to get config secret for %s", ctx)
 	}
 
+	dataplaneConfig, err := haproxy.LoadDataplaneConfig(secret.Data[haproxy.SecretDataKey])
+	if err != nil {
+		return errors.Wrapf(err, "failed to rehydrate dataplane client config %s", ctx)
+	}
+
 	// Create a HAPI client.
-	client, err := haproxy.ClientFromHAPIConfigData(secret.Data[haproxy.SecretDataKey])
+	client, err := haproxy.ClientFromHAPIConfig(dataplaneConfig)
 	if err != nil {
 		return errors.Wrapf(err, "failed to get hapi client for %s", ctx)
 	}
@@ -494,66 +398,44 @@ func (r haproxylbReconciler) reconcileBackendServers(ctx *context.HAProxyLoadBal
 		return errors.Wrapf(err, "failed to get hapi global config for %s", ctx)
 	}
 
-	// Start the transaction.
-	hasChanges := false
 	transaction, _, err := client.TransactionsApi.StartTransaction(ctx, global.Version)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create hapi transaction for %s", ctx)
 	}
 	transactionID := optional.NewString(transaction.Id)
 
-	// For each control plane machine with a reported, external IP, attempt to
-	// create a backend server config in the load balancer.
-	for _, machine := range controlPlaneMachines {
-		for _, addr := range machine.Status.Addresses {
-			if addr.Type != clusterv1.MachineExternalIP {
-				continue
-			}
-			// Create a backend server.
-			if _, _, err := client.ServerApi.CreateServer(
-				ctx,
-				ctx.HAProxyLoadBalancer.Name,
-				hapi.Server{
-					Name:    machine.Name,
-					Address: addr.Address,
-					Port:    &defaultAPIEndpointPort,
-					Check:   haproxy.Enabled,
-					Weight:  haproxy.AddrOfInt32(haproxy.DefaultWeight),
-				}, &hapi.CreateServerOpts{
-					TransactionId: transactionID,
-				}); err != nil {
-				if !haproxy.IsConflict(err) {
-					return errors.Wrapf(err, "failed to bind hapi frontend for %s", ctx)
-				}
-				ctx.Logger.Info("hapi frontend was already bound")
-			} else {
-				ctx.Logger.Info("hapi frontend bound to backend server",
-					"machineName", machine.Name,
-					"machineAddress", addr.Address)
-				hasChanges = true
-			}
-
-			// Only create the backend server for the first reported, external
-			// IP address for a Machine.
-			continue
-		}
+	backends, err := r.BackEndointsForCluster(ctx)
+	if err != nil {
+		return errors.Wrapf(err, "couldn't fetch endpoints for cluster")
 	}
 
-	// Commit the transaction if there are changes; otherwise delete the
-	// transaction.
-	if hasChanges {
-		if _, _, err := client.TransactionsApi.CommitTransaction(
-			ctx,
-			transactionID.Value(),
-			&hapi.CommitTransactionOpts{
-				ForceReload: optional.NewBool(true),
-			}); err != nil {
-			return errors.Wrapf(err,
-				"failed to commit hapi transaction that reconciles the load balancer backend servers for %s", ctx)
+	renderConfig := haproxy.NewRenderConfiguration().
+		WithDataPlaneConfig(dataplaneConfig).
+		WithAddresses(backends)
+	haProxyConfig, err := renderConfig.RenderHAProxyConfiguration()
+
+	if err != nil {
+		return errors.Wrapf(err, "unable to render new configuration")
+	}
+
+	resp, _, err := client.ConfigurationApi.GetHAProxyConfiguration(ctx, &hapi.GetHAProxyConfigurationOpts{
+		TransactionId: transactionID,
+	})
+
+	if err != nil {
+		return errors.Wrapf(err, "failed to get haproxy configuration for %s", ctx)
+	}
+
+	originalConfig := resp.Data
+
+	// commit new configuration, ending the transaction
+	if originalConfig != haProxyConfig {
+		_, _, err := client.ConfigurationApi.PostHAProxyConfiguration(ctx, haProxyConfig, &hapi.PostHAProxyConfigurationOpts{
+			Version: optional.NewInt32(transaction.Version),
+		})
+		if err != nil {
+			return errors.Wrapf(err, "unable to post new configuration for %s", ctx)
 		}
-	} else if _, err := client.TransactionsApi.DeleteTransaction(ctx, transactionID.Value()); err != nil {
-		return errors.Wrapf(err,
-			"failed to delete hapi transaction that reconciles the load balancer backend servers for %s", ctx)
 	}
 
 	ctx.Logger.Info("reconciled load balancer backend servers")

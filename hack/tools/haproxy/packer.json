@@ -3,10 +3,12 @@
     "build_timestamp": "{{timestamp}}",
     "version": "v1alpha3",
     "dataplaneapi_version": "1.2.4",
+    "dataplane_url": "https://github.com/haproxytech/dataplaneapi/releases/download/v{{user `dataplaneapi_version`}}/dataplaneapi",
     "disk_type_id": "0",
     "existing_ansible_ssh_args": "{{env `ANSIBLE_SSH_ARGS`}}",
     "guestinfo_datasource_slug": "https://raw.githubusercontent.com/vmware/cloud-init-vmware-guestinfo",
     "guestinfo_datasource_ref": "master",
+    "guestinfo_datasource_script": "{{user `guestinfo_datasource_slug`}}/{{user `guestinfo_datasource_ref`}}/install.sh",
     "headless": "true",
     "iso_url": "http://dl.bintray.com/vmware/photon/3.0/Rev2/iso/photon-minimal-3.0-58f9c74.iso",
     "iso_checksum": "ae28558e57f5d8aefb8b479c9fac7473079156e1",
@@ -67,7 +69,7 @@
       ],
       "extra_arguments": [
         "--extra-vars",
-        "dataplaneapi_version={{user `dataplaneapi_version`}} guestinfo_datasource_slug={{user `guestinfo_datasource_slug`}} guestinfo_datasource_ref={{user `guestinfo_datasource_ref`}}"
+        "guestinfo_datasource_slug={{user `guestinfo_datasource_slug`}} guestinfo_datasource_ref={{user `guestinfo_datasource_ref`}} guestinfo_datasource_script={{user `guestinfo_datasource_script`}} dataplane_url={{user `dataplane_url`}}"
       ]
     }
   ],

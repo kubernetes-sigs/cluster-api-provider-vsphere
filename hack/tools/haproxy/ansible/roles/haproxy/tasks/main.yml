@@ -14,7 +14,7 @@
 ---
 - name: Download dataplaneapi
   get_url:
-    url: https://github.com/haproxytech/dataplaneapi/releases/download/v{{ dataplaneapi_version }}/dataplaneapi
+    url: '{{ dataplane_url }}'
     dest: /usr/local/bin/dataplaneapi
     mode: 0755
 

@@ -31,23 +31,10 @@ import (
 	hapi "sigs.k8s.io/cluster-api-provider-vsphere/contrib/haproxy/openapi"
 )
 
-const (
-	// ModeTCP is a TCP load balancer.
-	ModeTCP = "tcp"
-	// RoundRobin is a load balancer algorithm.
-	RoundRobin = "roundrobin"
-	// AdvCheckTCP is a method of verifying if a backend server is online.
-	AdvCheckTCP = "tcp-check"
-	// Enabled is the string value for enabled.
-	Enabled = "enabled"
-	// DefaultWeight is the default weight for round-robin load balancers.
-	DefaultWeight = 100
-)
-
 // ClientFromHAPIConfigData returns the API client config from some HAPI config
 // data.
 func ClientFromHAPIConfigData(data []byte) (*hapi.APIClient, error) {
-	hapiConfig, err := LoadConfig(data)
+	hapiConfig, err := LoadDataplaneConfig(data)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +42,7 @@ func ClientFromHAPIConfigData(data []byte) (*hapi.APIClient, error) {
 }
 
 // ClientFromHAPIConfig returns the API client from a HAPI config object.
-func ClientFromHAPIConfig(config Config) (*hapi.APIClient, error) {
+func ClientFromHAPIConfig(config DataplaneConfig) (*hapi.APIClient, error) {
 	// Load the CA certs.
 	var trustedRoots *x509.CertPool
 	if len(config.CertificateAuthorityData) > 0 {

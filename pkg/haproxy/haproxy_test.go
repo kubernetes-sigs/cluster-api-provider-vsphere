@@ -17,7 +17,6 @@ limitations under the License.
 package haproxy_test
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"flag"
@@ -25,7 +24,6 @@ import (
 	"io"
 	"math/rand"
 	"net"
-	"net/http"
 	"os"
 	"os/exec"
 	"strings"
@@ -34,6 +32,9 @@ import (
 
 	"github.com/antihax/optional"
 	"github.com/onsi/gomega"
+
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/utils/pointer"
 
 	hapi "sigs.k8s.io/cluster-api-provider-vsphere/contrib/haproxy/openapi"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/haproxy"
@@ -87,8 +88,10 @@ func TestCreateLoadBalancer(t *testing.T) {
 	ctx := context.Background()
 
 	testHAPIConfig := fmt.Sprintf(testHAPIConfigFormat, testing.Verbose(), apiPort)
-	client, err := haproxy.ClientFromHAPIConfigData([]byte(testHAPIConfig))
-	g.Expect(err).ToNot(gomega.HaveOccurred(), "failed create HAPI client from config data")
+	config, err := haproxy.LoadDataplaneConfig([]byte(testHAPIConfig))
+	g.Expect(err).ToNot(gomega.HaveOccurred(), "failed create HAPI config from bytes")
+	client, err := haproxy.ClientFromHAPIConfig(config)
+	g.Expect(err).ToNot(gomega.HaveOccurred(), "failed create HAPI client from config")
 
 	// Get the current configuration version.
 	var version int32
@@ -102,60 +105,16 @@ func TestCreateLoadBalancer(t *testing.T) {
 	}).ShouldNot(gomega.HaveOccurred(), "failed to get global HAPI config")
 
 	// Start a transaction.
-	var transactionID optional.String
+	var nextVersion optional.Int32
 	g.Eventually(func() error {
 		txn, resp, err := client.TransactionsApi.StartTransaction(ctx, version)
 		if err != nil {
 			return err
 		}
 		g.Expect(resp.Body.Close()).To(gomega.Succeed())
-		transactionID = optional.NewString(txn.Id)
+		nextVersion = optional.NewInt32(txn.Version)
 		return nil
 	}).ShouldNot(gomega.HaveOccurred(), "failed to start a transaction")
-
-	// Get a backend that does not exist.
-	_, resp, err := client.BackendApi.GetBackend(ctx, "does-not-exist", nil)
-	g.Expect(resp.Body.Close()).To(gomega.Succeed())
-	g.Expect(haproxy.IsNotFound(err)).To(gomega.BeTrue())
-
-	// Create a backend.
-	backend, resp, err := client.BackendApi.CreateBackend(ctx, hapi.Backend{
-		Name: "lb-backend",
-		Mode: haproxy.ModeTCP,
-		Balance: hapi.Balance{
-			Algorithm: haproxy.RoundRobin,
-		},
-		AdvCheck: haproxy.AdvCheckTCP,
-	}, &hapi.CreateBackendOpts{
-		TransactionId: transactionID,
-	})
-	g.Expect(resp.Body.Close()).To(gomega.Succeed())
-	g.Expect(err).ToNot(gomega.HaveOccurred(), "failed to create backend")
-
-	// Create a frontend.
-	frontend, resp, err := client.FrontendApi.CreateFrontend(ctx, hapi.Frontend{
-		Name:           "lb-frontend",
-		Mode:           haproxy.ModeTCP,
-		DefaultBackend: backend.Name,
-	}, &hapi.CreateFrontendOpts{
-		TransactionId: transactionID,
-	})
-	g.Expect(err).ToNot(gomega.HaveOccurred(), "failed to create frontend")
-	g.Expect(resp.Body.Close()).To(gomega.Succeed())
-
-	// Bind the frontend.
-	_, resp, err = client.BindApi.CreateBind(
-		ctx,
-		frontend.Name,
-		hapi.Bind{
-			Name:    "lb-bind",
-			Address: "*",
-			Port:    haproxy.AddrOfInt32(8085),
-		}, &hapi.CreateBindOpts{
-			TransactionId: transactionID,
-		})
-	g.Expect(err).ToNot(gomega.HaveOccurred(), "failed to bind frontend")
-	g.Expect(resp.Body.Close()).To(gomega.Succeed())
 
 	// Start two web servers.
 	g.Expect(runDocker(
@@ -181,122 +140,29 @@ func TestCreateLoadBalancer(t *testing.T) {
 	g.Expect(err).ToNot(gomega.HaveOccurred(), "failed to get IP address of second web server")
 	http2Addr := strings.Replace(stdout, "'", "", -1)
 
-	// Add the first web server to the backend.
-	_, resp, err = client.ServerApi.CreateServer(
-		ctx,
-		backend.Name,
-		hapi.Server{
-			Name:    "lb-backend-server-1",
-			Address: http1Addr,
-			Port:    haproxy.AddrOfInt32(80),
-			Check:   haproxy.Enabled,
-			Weight:  haproxy.AddrOfInt32(haproxy.DefaultWeight),
-		}, &hapi.CreateServerOpts{
-			TransactionId: transactionID,
+	renderConfig := haproxy.NewRenderConfiguration().
+		WithDataPlaneConfig(config).
+		WithAddresses([]corev1.EndpointAddress{
+			{
+				IP:       http1Addr,
+				NodeName: pointer.StringPtr("http1"),
+			},
+			{
+				IP:       http2Addr,
+				NodeName: pointer.StringPtr("http2"),
+			},
 		})
-	g.Expect(err).ToNot(gomega.HaveOccurred(), "failed to bind create first backend server")
-	g.Expect(resp.Body.Close()).To(gomega.Succeed())
 
-	// Add the second web server to the backend.
-	_, resp, err = client.ServerApi.CreateServer(
-		ctx,
-		backend.Name,
-		hapi.Server{
-			Name:    "lb-backend-server-2",
-			Address: http2Addr,
-			Port:    haproxy.AddrOfInt32(80),
-			Check:   haproxy.Enabled,
-			Weight:  haproxy.AddrOfInt32(haproxy.DefaultWeight),
-		}, &hapi.CreateServerOpts{
-			TransactionId: transactionID,
-		})
-	g.Expect(err).ToNot(gomega.HaveOccurred(), "failed to bind create second backend server")
-	g.Expect(resp.Body.Close()).To(gomega.Succeed())
+	haproxyCfg, err := renderConfig.RenderHAProxyConfiguration()
+	g.Expect(err).ToNot(gomega.HaveOccurred(), "failed to render new configuration")
 
-	// Commit the transaction.
-	_, resp, err = client.TransactionsApi.CommitTransaction(
-		ctx,
-		transactionID.Value(),
-		&hapi.CommitTransactionOpts{
-			ForceReload: optional.NewBool(true),
-		})
-	g.Expect(err).ToNot(gomega.HaveOccurred(), "failed to commit the transaction")
-	g.Expect(resp.Body.Close()).To(gomega.Succeed())
-
-	// Get the current configurationv ersion.
-	global, resp, err := client.GlobalApi.GetGlobal(ctx, nil)
-	g.Expect(err).ToNot(gomega.HaveOccurred(), "failed get HAPI global config")
-	g.Expect(resp.Body.Close()).To(gomega.Succeed())
-
-	// Start a second transaction.
-	txn, resp, err := client.TransactionsApi.StartTransaction(ctx, global.Version)
-	g.Expect(err).ToNot(gomega.HaveOccurred(), "failed to start second transaction")
-	g.Expect(resp.Body.Close()).To(gomega.Succeed())
-	transactionID = optional.NewString(txn.Id)
-
-	// Create a duplicate backend.
-	_, resp, err = client.BackendApi.CreateBackend(ctx, hapi.Backend{
-		Name: "lb-backend",
-		Mode: haproxy.ModeTCP,
-		Balance: hapi.Balance{
-			Algorithm: haproxy.RoundRobin,
-		},
-		AdvCheck: haproxy.AdvCheckTCP,
-	}, &hapi.CreateBackendOpts{
-		TransactionId: transactionID,
+	_, resp, err := client.ConfigurationApi.PostHAProxyConfiguration(ctx, haproxyCfg, &hapi.PostHAProxyConfigurationOpts{
+		Version: nextVersion,
 	})
-	g.Expect(err).To(gomega.HaveOccurred())
-	g.Expect(resp.Body.Close()).To(gomega.Succeed())
-	g.Expect(haproxy.IsConflict(err)).To(gomega.BeTrue())
-
-	// Abandon the second transaction.
-	resp, err = client.TransactionsApi.DeleteTransaction(ctx, transactionID.Value())
-	g.Expect(err).ToNot(gomega.HaveOccurred())
+	g.Expect(err).ToNot(gomega.HaveOccurred(), "failed to post new configuration")
 	g.Expect(resp.Body.Close()).To(gomega.Succeed())
 
-	lbEndpoint := fmt.Sprintf("http://localhost:%d", lbPort)
-
-	// Wait for the LB to come online.
-	g.Eventually(func() error {
-		client := http.Client{
-			Timeout:   time.Second * 1,
-			Transport: &http.Transport{},
-		}
-		resp, err := client.Get(lbEndpoint)
-		if err != nil {
-			return err
-		}
-		g.Expect(resp.Body.Close()).To(gomega.Succeed())
-		return nil
-	}).ShouldNot(gomega.HaveOccurred(), "failed while waiting for the LB endpoint to come online")
-
-	// Get the LB endpoint four times, asserting each time that it's flipped
-	// to the other backend server. Keep in mind that the LB will direct the
-	// first GET to the second backend server since a GET was used above to
-	// wait for the LB to come online.
-	for i := 0; i < 4; i++ {
-		// Create a new HTTP client each time to prevent the LB from applying
-		// any stickiness to the client.
-		client := http.Client{
-			Transport: &http.Transport{},
-		}
-		resp, err := client.Get(lbEndpoint)
-		g.Expect(err).ToNot(gomega.HaveOccurred(), "failed to HTTP GET the LB endpoint")
-
-		defer resp.Body.Close()
-		scan := bufio.NewScanner(resp.Body)
-		if !scan.Scan() {
-			g.Expect(scan.Err()).ToNot(gomega.HaveOccurred(), "failed to read the LB endpoint's response")
-		}
-		hostPort := strings.Split(scan.Text(), " ")[2]
-		host := strings.Split(hostPort, ":")[0]
-		switch i {
-		case 0, 2:
-			g.Expect(host).To(gomega.Equal(http2Addr), "http2Addr not equal")
-		case 1, 3:
-			g.Expect(host).To(gomega.Equal(http1Addr), "http1Addr not equal")
-		}
-	}
+	// TODO: Add docker tests that can work with a HTTPS check on 6443
 }
 
 func runDocker(arg ...string) error {
@@ -356,7 +222,7 @@ func IsTCPPortAvailable(port int) bool {
 	if port < minTCPPort || port > maxTCPPort {
 		return false
 	}
-	conn, err := net.Listen(haproxy.ModeTCP, fmt.Sprintf("127.0.0.1:%d", port))
+	conn, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
 	if err != nil {
 		return false
 	}

@@ -107,6 +107,12 @@ func main() {
 		":9440",
 		"The address the health endpoint binds to.",
 	)
+	flag.StringVar(
+		&managerOpts.CredentialsFile,
+		"credentials-file",
+		"/etc/capv/credentials.yaml",
+		"path to CAPV's credentials file",
+	)
 
 	flag.Parse()
 

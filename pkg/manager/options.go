@@ -22,6 +22,8 @@ import (
 	"strings"
 	"time"
 
+	"sigs.k8s.io/yaml"
+
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
@@ -99,6 +101,9 @@ type Options struct {
 	// WebhookPort is the port that the webhook server serves at.
 	WebhookPort int
 
+	// CredentialsFile is the file that contains credentials of CAPV
+	CredentialsFile string
+
 	Logger     logr.Logger
 	KubeConfig *rest.Config
 	Scheme     *runtime.Scheme
@@ -110,7 +115,7 @@ type Options struct {
 	AddToManager AddToManagerFunc
 }
 
-func (o *Options) defaults() {
+func (o *Options) defaults() error {
 	if o.Logger == nil {
 		o.Logger = ctrllog.Log
 	}
@@ -135,13 +140,15 @@ func (o *Options) defaults() {
 		o.MaxConcurrentReconciles = DefaultMaxConcurrentReconciles
 	}
 
-	if o.Username == "" {
-		o.Username = os.Getenv("VSPHERE_USERNAME")
+	if o.Username == "" || o.Password == "" {
+		credentials, err := o.getCredentials()
+		if err != nil {
+			return err
+		}
+		o.Username = credentials["username"]
+		o.Password = credentials["password"]
 	}
 
-	if o.Password == "" {
-		o.Password = os.Getenv("VSPHERE_PASSWORD")
-	}
 	if ns, ok := os.LookupEnv("POD_NAMESPACE"); ok {
 		o.PodNamespace = ns
 	} else if data, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace"); err == nil {
@@ -151,4 +158,19 @@ func (o *Options) defaults() {
 	} else {
 		o.PodNamespace = DefaultPodNamespace
 	}
+	return nil
+}
+
+func (o *Options) getCredentials() (map[string]string, error) {
+	file, err := ioutil.ReadFile(o.CredentialsFile)
+	if err != nil {
+		o.Logger.Error(err, "error opening credentials file")
+		return map[string]string{}, err
+	}
+	credentials := map[string]string{}
+	if err := yaml.Unmarshal(file, credentials); err != nil {
+		o.Logger.Error(err, "error unmarshaling credentials file")
+		return map[string]string{}, err
+	}
+	return credentials, nil
 }

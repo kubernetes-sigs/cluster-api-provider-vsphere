@@ -18,6 +18,7 @@ package govmomi
 
 import (
 	"encoding/base64"
+	"fmt"
 
 	"github.com/pkg/errors"
 
@@ -27,6 +28,8 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 	corev1 "k8s.io/api/core/v1"
 	apitypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/pointer"
+	capierrors "sigs.k8s.io/cluster-api/errors"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
@@ -69,8 +72,15 @@ func (vms *VMService) ReconcileVM(ctx *context.VMContext) (vm infrav1.VirtualMac
 		if !isNotFound(err) {
 			return vm, err
 		}
-		// If VM's MoRef could not be found then the VM does not exist,
-		// and the VM should be created.
+
+		// If the machine was not found by BIOS UUID it means that it got deleted from vcenter directly
+		if wasNotFoundByBIOSUUID(err) {
+			ctx.VSphereVM.Status.FailureReason = capierrors.MachineStatusErrorPtr(capierrors.UpdateMachineError)
+			ctx.VSphereVM.Status.FailureMessage = pointer.StringPtr(fmt.Sprintf("Unable to find VM by BIOS UUID %s. The vm was removed from infra", ctx.VSphereVM.Spec.BiosUUID))
+			return vm, err
+		}
+
+		// Otherwise, this is a new machine and the  the VM should be created.
 
 		// Get the bootstrap data.
 		bootstrapData, err := vms.getBootstrapData(ctx)

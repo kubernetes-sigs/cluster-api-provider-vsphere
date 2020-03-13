@@ -49,9 +49,7 @@ type Manager interface {
 func New(opts Options) (Manager, error) {
 
 	// Ensure the default options are set.
-	if err := opts.defaults(); err != nil {
-		return nil, err
-	}
+	opts.defaults()
 
 	_ = clientgoscheme.AddToScheme(opts.Scheme)
 	_ = clusterv1.AddToScheme(opts.Scheme)

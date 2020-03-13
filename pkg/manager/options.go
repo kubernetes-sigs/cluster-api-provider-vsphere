@@ -115,7 +115,7 @@ type Options struct {
 	AddToManager AddToManagerFunc
 }
 
-func (o *Options) defaults() error {
+func (o *Options) defaults() {
 	if o.Logger == nil {
 		o.Logger = ctrllog.Log
 	}
@@ -141,10 +141,7 @@ func (o *Options) defaults() error {
 	}
 
 	if o.Username == "" || o.Password == "" {
-		credentials, err := o.getCredentials()
-		if err != nil {
-			return err
-		}
+		credentials := o.getCredentials()
 		o.Username = credentials["username"]
 		o.Password = credentials["password"]
 	}
@@ -158,19 +155,20 @@ func (o *Options) defaults() error {
 	} else {
 		o.PodNamespace = DefaultPodNamespace
 	}
-	return nil
 }
 
-func (o *Options) getCredentials() (map[string]string, error) {
+func (o *Options) getCredentials() map[string]string {
 	file, err := ioutil.ReadFile(o.CredentialsFile)
 	if err != nil {
 		o.Logger.Error(err, "error opening credentials file")
-		return map[string]string{}, err
+		return map[string]string{}
 	}
+
 	credentials := map[string]string{}
-	if err := yaml.Unmarshal(file, credentials); err != nil {
-		o.Logger.Error(err, "error unmarshaling credentials file")
-		return map[string]string{}, err
+	if err := yaml.Unmarshal(file, &credentials); err != nil {
+		o.Logger.Error(err, "error unmarshaling credentials to yaml")
+		return map[string]string{}
 	}
-	return credentials, nil
+
+	return credentials
 }

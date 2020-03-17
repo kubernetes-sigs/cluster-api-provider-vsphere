@@ -286,6 +286,28 @@ spec:
                   to determine the actual type of clone operation used to create this
                   VM.
                 type: string
+              failureMessage:
+                description: "FailureMessage will be set in the event that there is
+                  a terminal problem reconciling the vspherevm and will contain a
+                  more verbose string suitable for logging and human consumption.
+                  \n This field should not be set for transitive errors that a controller
+                  faces that are expected to be fixed automatically over time (like
+                  service outages), but instead indicate that something is fundamentally
+                  wrong with the vm. \n Any transient errors that occur during the
+                  reconciliation of vspherevms can be added as events to the vspherevm
+                  object and/or logged in the controller's output."
+                type: string
+              failureReason:
+                description: "FailureReason will be set in the event that there is
+                  a terminal problem reconciling the vspherevm and will contain a
+                  succinct value suitable for vm interpretation. \n This field should
+                  not be set for transitive errors that a controller faces that are
+                  expected to be fixed automatically over time (like service outages),
+                  but instead indicate that something is fundamentally wrong with
+                  the vm. \n Any transient errors that occur during the reconciliation
+                  of vspherevms can be added as events to the vspherevm object and/or
+                  logged in the controller's output."
+                type: string
               network:
                 description: Network returns the network status for each of the machine's
                   configured network interfaces.

@@ -88,8 +88,8 @@ type vmReconciler struct {
 }
 
 // Reconcile ensures the back-end state reflects the Kubernetes resource state intent.
+// nolint:gocognit
 func (r vmReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) {
-
 	// Get the VSphereVM resource for this request.
 	vsphereVM := &infrav1.VSphereVM{}
 	if err := r.Client.Get(r, req.NamespacedName, vsphereVM); err != nil {
@@ -262,6 +262,11 @@ func (r vmReconciler) reconcileDelete(ctx *context.VMContext) (reconcile.Result,
 }
 
 func (r vmReconciler) reconcileNormal(ctx *context.VMContext) (reconcile.Result, error) {
+
+	if ctx.VSphereVM.Status.FailureReason != nil || ctx.VSphereVM.Status.FailureMessage != nil {
+		r.Logger.Info("VM is failed, won't reconcile", "namespace", ctx.VSphereVM.Namespace, "name", ctx.VSphereVM.Name)
+		return reconcile.Result{}, nil
+	}
 	// If the VSphereVM doesn't have our finalizer, add it.
 	ctrlutil.AddFinalizer(ctx.VSphereVM, infrav1.VMFinalizer)
 

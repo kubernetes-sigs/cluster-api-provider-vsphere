@@ -39,3 +39,15 @@ func isNotFound(err error) bool {
 		return false
 	}
 }
+
+func wasNotFoundByBIOSUUID(err error) bool {
+	switch err.(type) {
+	case errNotFound, *errNotFound:
+		if err.(errNotFound).uuid != "" && !err.(errNotFound).instanceUUID {
+			return true
+		}
+		return false
+	default:
+		return false
+	}
+}

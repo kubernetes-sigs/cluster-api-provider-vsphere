@@ -243,21 +243,16 @@ func (r machineReconciler) reconcileDeleteVM(ctx *context.MachineContext) error 
 
 func (r machineReconciler) reconcileDeleteVMPre7(ctx *context.MachineContext) error {
 	// Get ready to find the associated VSphereVM resource.
-	vm := &infrav1.VSphereVM{}
 	vmKey := apitypes.NamespacedName{
 		Namespace: ctx.VSphereMachine.Namespace,
 		Name:      ctx.Machine.Name,
 	}
-
+	vm, err := r.findVMPre7(ctx)
 	// Attempt to find the associated VSphereVM resource.
-	if err := ctx.Client.Get(ctx, vmKey, vm); err != nil {
-		// If an error occurs finding the VSphereVM resource other than
-		// IsNotFound, then return the error. Otherwise it means the VSphereVM
-		// is already deleted, and that's okay.
-		if !apierrors.IsNotFound(err) {
-			return errors.Wrapf(err, "failed to get VSphereVM %s", vmKey)
-		}
-	} else if vm.GetDeletionTimestamp().IsZero() {
+	if err != nil {
+		return err
+	}
+	if vm.GetDeletionTimestamp().IsZero() {
 		// If the VSphereVM was found and it's not already enqueued for
 		// deletion, go ahead and attempt to delete it.
 		if err := ctx.Client.Delete(ctx, vm); err != nil {
@@ -274,7 +269,33 @@ func (r machineReconciler) reconcileDeleteVMPre7(ctx *context.MachineContext) er
 	return nil
 }
 
+func (r machineReconciler) findVMPre7(ctx *context.MachineContext) (*infrav1.VSphereVM, error) {
+	// Get ready to find the associated VSphereVM resource.
+	vm := &infrav1.VSphereVM{}
+	vmKey := apitypes.NamespacedName{
+		Namespace: ctx.VSphereMachine.Namespace,
+		Name:      ctx.Machine.Name,
+	}
+	// Attempt to find the associated VSphereVM resource.
+	if err := ctx.Client.Get(ctx, vmKey, vm); err != nil {
+		return nil, err
+	}
+	return vm, nil
+}
+
 func (r machineReconciler) reconcileNormal(ctx *context.MachineContext) (reconcile.Result, error) {
+	vsphereVM, err := r.findVMPre7(ctx)
+	if err != nil {
+		if !apierrors.IsNotFound(err) {
+			return reconcile.Result{}, err
+		}
+	}
+	if vsphereVM != nil {
+		// Reconcile VSphereMachine's failures
+		ctx.VSphereMachine.Status.FailureReason = vsphereVM.Status.FailureReason
+		ctx.VSphereMachine.Status.FailureMessage = vsphereVM.Status.FailureMessage
+	}
+
 	// If the VSphereMachine is in an error state, return early.
 	if ctx.VSphereMachine.Status.FailureReason != nil || ctx.VSphereMachine.Status.FailureMessage != nil {
 		ctx.Logger.Info("Error state detected, skipping reconciliation")

@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/antihax/optional"
 	"github.com/pkg/errors"
@@ -151,15 +152,15 @@ func (r haproxylbReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr 
 	if err := r.Client.Get(r, req.NamespacedName, haproxylb); err != nil {
 		if apierrors.IsNotFound(err) {
 			r.Logger.Info("HAProxyLoadBalancer not found, won't reconcile", "key", req.NamespacedName)
-			return reconcile.Result{}, nil
+			return ctrl.Result{}, nil
 		}
-		return reconcile.Result{}, err
+		return ctrl.Result{}, err
 	}
 
 	// Create the patch helper.
 	patchHelper, err := patch.NewHelper(haproxylb, r.Client)
 	if err != nil {
-		return reconcile.Result{}, errors.Wrapf(
+		return ctrl.Result{}, errors.Wrapf(
 			err,
 			"failed to init patch helper for %s %s/%s",
 			haproxylb.GroupVersionKind(),
@@ -192,7 +193,7 @@ func (r haproxylbReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr 
 		if clusterutilv1.IsPaused(cluster, haproxylb) {
 			r.Logger.V(4).Info("HAProxyLoadBalancer %s/%s linked to a cluster that is paused, won't reconcile",
 				haproxylb.Namespace, haproxylb.Name)
-			return reconcile.Result{}, nil
+			return ctrl.Result{}, nil
 		}
 		ctx.Cluster = cluster
 	}
@@ -203,28 +204,28 @@ func (r haproxylbReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr 
 
 	// check if we got the cluster as it is needed for reconcileNormal
 	if ctx.Cluster == nil {
-		return reconcile.Result{}, err
+		return ctrl.Result{}, err
 	}
 
 	// Handle non-deleted haproxyloadbalancers
 	return r.reconcileNormal(ctx)
 }
 
-func (r haproxylbReconciler) reconcileDelete(ctx *context.HAProxyLoadBalancerContext) (reconcile.Result, error) {
+func (r haproxylbReconciler) reconcileDelete(ctx *context.HAProxyLoadBalancerContext) (ctrl.Result, error) {
 	ctx.Logger.Info("Handling deleted HAProxyLoadBalancer")
 
 	if err := r.reconcileDeleteVM(ctx); err != nil {
-		return reconcile.Result{}, err
+		return ctrl.Result{}, err
 	}
 
 	if err := r.reconcileDeleteSecrets(ctx); err != nil {
-		return reconcile.Result{}, err
+		return ctrl.Result{}, err
 	}
 
 	// The VM is deleted so remove the finalizer.
 	ctrlutil.RemoveFinalizer(ctx.HAProxyLoadBalancer, infrav1.HAProxyLoadBalancerFinalizer)
 
-	return reconcile.Result{}, nil
+	return ctrl.Result{}, nil
 }
 
 func (r haproxylbReconciler) reconcileDeleteSecrets(ctx *context.HAProxyLoadBalancerContext) error {
@@ -278,7 +279,7 @@ func (r haproxylbReconciler) reconcileDeleteVMPre7(ctx *context.HAProxyLoadBalan
 	return nil
 }
 
-func (r haproxylbReconciler) reconcileNormal(ctx *context.HAProxyLoadBalancerContext) (reconcile.Result, error) {
+func (r haproxylbReconciler) reconcileNormal(ctx *context.HAProxyLoadBalancerContext) (ctrl.Result, error) {
 	// If the HAProxyLoadBalancer doesn't have our finalizer, add it.
 	ctrlutil.AddFinalizer(ctx.HAProxyLoadBalancer, infrav1.HAProxyLoadBalancerFinalizer)
 
@@ -286,14 +287,14 @@ func (r haproxylbReconciler) reconcileNormal(ctx *context.HAProxyLoadBalancerCon
 		// Create the HAProxyLoadBalancer's signing certificate/key pair secret.
 		if err := haproxy.CreateCASecret(ctx, ctx.Client, ctx.Cluster, ctx.HAProxyLoadBalancer); err != nil {
 			if !apierrors.IsAlreadyExists(err) {
-				return reconcile.Result{}, errors.Wrapf(
+				return ctrl.Result{}, errors.Wrapf(
 					err, "failed to create signing certificate/key pair secret for %s", ctx)
 			}
 		}
 		// Create the HAProxyLoadBalancer's bootstrap data secret.
 		if err := haproxy.CreateBootstrapSecret(ctx, ctx.Client, ctx.Cluster, ctx.HAProxyLoadBalancer); err != nil {
 			if !apierrors.IsAlreadyExists(err) {
-				return reconcile.Result{}, errors.Wrapf(
+				return ctrl.Result{}, errors.Wrapf(
 					err, "failed to create bootstrap secret for %s", ctx)
 			}
 		}
@@ -302,7 +303,7 @@ func (r haproxylbReconciler) reconcileNormal(ctx *context.HAProxyLoadBalancerCon
 	// Reconcile the load balancer VM.
 	vm, err := r.reconcileVM(ctx)
 	if err != nil {
-		return reconcile.Result{}, errors.Wrapf(err,
+		return ctrl.Result{}, errors.Wrapf(err,
 			"unexpected error while reconciling vm for %s", ctx)
 	}
 
@@ -310,17 +311,17 @@ func (r haproxylbReconciler) reconcileNormal(ctx *context.HAProxyLoadBalancerCon
 		// Reconcile the HAProxyLoadBalancer's address.
 		if ok, err := r.reconcileNetwork(ctx, vm); !ok {
 			if err != nil {
-				return reconcile.Result{}, errors.Wrapf(err,
+				return ctrl.Result{}, errors.Wrapf(err,
 					"unexpected error while reconciling network for %s", ctx)
 			}
 			ctx.Logger.Info("network is not reconciled")
-			return reconcile.Result{}, nil
+			return ctrl.Result{}, nil
 		}
 
 		// Create the HAProxyLoadBalancer's API config secret.
 		if err := haproxy.CreateConfigSecret(ctx, ctx.Client, ctx.Cluster, ctx.HAProxyLoadBalancer); err != nil {
 			if !apierrors.IsAlreadyExists(err) {
-				return reconcile.Result{}, errors.Wrapf(
+				return ctrl.Result{}, errors.Wrapf(
 					err, "failed to create API config secret for %s", ctx)
 			}
 		}
@@ -332,11 +333,11 @@ func (r haproxylbReconciler) reconcileNormal(ctx *context.HAProxyLoadBalancerCon
 
 	// Reconcile the HAProxyLoadBalancer's backend servers.
 	if err := r.reconcileLoadBalancerConfiguration(ctx); err != nil {
-		return reconcile.Result{}, errors.Wrapf(err,
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, errors.Wrapf(err,
 			"unexpected error while reconciling backend servers for %s", ctx)
 	}
 
-	return reconcile.Result{}, nil
+	return ctrl.Result{}, nil
 }
 
 func (r haproxylbReconciler) BackEndointsForCluster(ctx *context.HAProxyLoadBalancerContext) ([]corev1.EndpointAddress, error) {

@@ -72,6 +72,10 @@ const (
 	// SecretDataKeyPassword is the key used by the Secret resource for the
 	// signing certificate/key pair that references the password.
 	SecretDataKeyPassword = "password"
+
+	// DefaultNegativeTimeSkew is the time by which a certificate's validity should be set in the past to
+	// account for clock skew
+	DefaultNegativeTimeSkew = -10 * time.Minute
 )
 
 // NameForCASecret returns the name of the Secret for the signing
@@ -196,6 +200,10 @@ func deleteSecret(
 	return nil
 }
 
+func newDefaultCertificateValidity() time.Time {
+	return time.Now().UTC().Add(DefaultNegativeTimeSkew).AddDate(10, 0, 0)
+}
+
 // CreateCASecret creates the Secret resource that contains the signing
 // certificate and key used to generate bootstrap data and sign client
 // certificates.
@@ -205,7 +213,7 @@ func CreateCASecret(
 	cluster *clusterv1.Cluster,
 	loadBalancer *infrav1.HAProxyLoadBalancer) error {
 
-	crt, key, err := generateSigningCertificateKeyPair(time.Now().AddDate(10, 0, 0))
+	crt, key, err := generateSigningCertificateKeyPair(newDefaultCertificateValidity())
 	if err != nil {
 		return err
 	}
@@ -272,7 +280,7 @@ func CreateConfigSecret(
 	clientCertPEM, clientKeyPEM, err := generateAndSignClientCertificateKeyPair(
 		caSecret.Data[SecretDataKeyCACert],
 		caSecret.Data[SecretDataKeyCAKey],
-		time.Now().AddDate(10, 0, 0),
+		newDefaultCertificateValidity(),
 		loadBalancer.Status.Address)
 	if err != nil {
 		return err

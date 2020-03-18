@@ -315,7 +315,7 @@ func (r haproxylbReconciler) reconcileNormal(ctx *context.HAProxyLoadBalancerCon
 					"unexpected error while reconciling network for %s", ctx)
 			}
 			ctx.Logger.Info("network is not reconciled")
-			return ctrl.Result{}, nil
+			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 		}
 
 		// Create the HAProxyLoadBalancer's API config secret.

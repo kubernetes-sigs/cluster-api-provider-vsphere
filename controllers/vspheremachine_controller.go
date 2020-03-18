@@ -250,9 +250,11 @@ func (r machineReconciler) reconcileDeleteVMPre7(ctx *context.MachineContext) er
 	vm, err := r.findVMPre7(ctx)
 	// Attempt to find the associated VSphereVM resource.
 	if err != nil {
-		return err
+		if !apierrors.IsNotFound(err) {
+			return err
+		}
 	}
-	if vm.GetDeletionTimestamp().IsZero() {
+	if vm != nil && vm.GetDeletionTimestamp().IsZero() {
 		// If the VSphereVM was found and it's not already enqueued for
 		// deletion, go ahead and attempt to delete it.
 		if err := ctx.Client.Delete(ctx, vm); err != nil {

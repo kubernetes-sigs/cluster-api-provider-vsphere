@@ -18,6 +18,7 @@ package v1alpha2
 
 import (
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
+	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
 	infrav1alpha3 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
@@ -41,6 +42,11 @@ func (src *VSphereCluster) ConvertTo(dstRaw conversion.Hub) error { // nolint
 	restored := &infrav1alpha3.VSphereCluster{}
 	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
 		return err
+	}
+
+	// prefer a current CPI configuration, but otherwise restore extraArgs
+	if dst.Spec.CloudProviderConfiguration.ProviderConfig.Cloud != nil {
+		dst.Spec.CloudProviderConfiguration.ProviderConfig.Cloud.ExtraArgs = restored.Spec.CloudProviderConfiguration.ProviderConfig.Cloud.ExtraArgs
 	}
 
 	if restored.Spec.LoadBalancerRef != nil {
@@ -107,4 +113,18 @@ func Convert_v1alpha3_VSphereClusterSpec_To_v1alpha2_VSphereClusterSpec(in *infr
 // Convert_v1alpha2_VSphereClusterStatus_To_v1alpha3_VSphereClusterStatus converts VSphereCluster.Status from v1alpha2 to v1alpha3.
 func Convert_v1alpha2_VSphereClusterStatus_To_v1alpha3_VSphereClusterStatus(in *VSphereClusterStatus, out *infrav1alpha3.VSphereClusterStatus, s apiconversion.Scope) error { // nolint
 	return autoConvert_v1alpha2_VSphereClusterStatus_To_v1alpha3_VSphereClusterStatus(in, out, s)
+}
+
+// Convert_v1alpha2_CPICloudConfig_To_v1alpha3_CPICloudConfig converts VSphereCluster.Spec.CloudProviderConfiguration.ProviderConfig.Cloud from v1alpha2 to v1alpha3.
+func Convert_v1alpha2_CPICloudConfig_To_v1alpha3_CPICloudConfig(in *CPICloudConfig, out *v1alpha3.CPICloudConfig, s apiconversion.Scope) error { // nolint
+	// extraArgs is handled through the annotation marshalling
+	out.ControllerImage = in.ControllerImage
+	return nil
+}
+
+// Convert_v1alpha3_CPICloudConfig_To_v1alpha2_CPICloudConfig converts VSphereCluster.Spec.CloudProviderConfiguration.ProviderConfig.Cloud from v1alpha3 to v1alpha2.
+func Convert_v1alpha3_CPICloudConfig_To_v1alpha2_CPICloudConfig(in *v1alpha3.CPICloudConfig, out *CPICloudConfig, s apiconversion.Scope) error { // nolint
+	// extraArgs is handled through the annotation marshalling
+	out.ControllerImage = in.ControllerImage
+	return nil
 }

@@ -382,6 +382,13 @@ spec:
                         properties:
                           controllerImage:
                             type: string
+                          extraArgs:
+                            additionalProperties:
+                              type: string
+                            description: ExtraArgs passes through extra arguments
+                              to the cloud provider. The arguments here are passed
+                              to the cloud provider daemonset specification
+                            type: object
                         type: object
                       storage:
                         properties:

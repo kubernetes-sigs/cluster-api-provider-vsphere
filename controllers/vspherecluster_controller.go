@@ -619,7 +619,7 @@ func (r clusterReconciler) reconcileCloudProvider(ctx *context.ClusterContext) e
 		return err
 	}
 
-	daemonSet := cloudprovider.CloudControllerManagerDaemonSet(controllerImage)
+	daemonSet := cloudprovider.CloudControllerManagerDaemonSet(controllerImage, ctx.VSphereCluster.Spec.CloudProviderConfiguration.MarshalCloudProviderArgs())
 	if _, err := targetClusterClient.AppsV1().DaemonSets(daemonSet.Namespace).Create(daemonSet); err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}

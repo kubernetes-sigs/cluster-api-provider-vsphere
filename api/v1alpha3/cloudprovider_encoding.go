@@ -246,3 +246,21 @@ func isEmpty(val reflect.Value) bool {
 		panic(errors.Errorf("invalid kind: %s", val.Kind()))
 	}
 }
+
+// MarshalCloudProviderArgs marshals the cloud provider arguments for passing
+// into a pod spec
+func (c *CPIConfig) MarshalCloudProviderArgs() []string {
+	args := c.ProviderConfig.Cloud.ExtraArgs
+	args["v"] = "2"
+	args["cloud-provider"] = "vsphere"
+	args["cloud-config"] = "/etc/cloud/vsphere.conf"
+	marshalledArgs := make([]string, len(args))
+
+	idx := 0
+	for k, v := range args {
+		marshalledArgs[idx] = fmt.Sprintf("%s=%s", k, v)
+		idx++
+	}
+
+	return marshalledArgs
+}

@@ -257,7 +257,7 @@ network:
   ethernets:
     id0:
       match:
-				macaddress: "00:00:00:00:00"
+        macaddress: "00:00:00:00:00"
       set-name: "eth0"
       wakeonlan: true
       dhcp4: true
@@ -322,8 +322,8 @@ network:
   ethernets:
     id0:
       match:
-				macaddress: "00:00:00:00:00"
-			set-name: "eth0"
+        macaddress: "00:00:00:00:00"
+      set-name: "eth0"
       wakeonlan: true
       dhcp4: false
       dhcp6: true
@@ -355,8 +355,8 @@ network:
   ethernets:
     id0:
       match:
-				macaddress: "00:00:00:00:00"
-			set-name: "eth0"
+        macaddress: "00:00:00:00:00"
+      set-name: "eth0"
       wakeonlan: true
       dhcp4: true
       dhcp6: true
@@ -390,7 +390,7 @@ network:
     id0:
       match:
         macaddress: "00:00:00:00:00"
-			set-name: "eth0"
+      set-name: "eth0"
       wakeonlan: true
       dhcp4: false
       dhcp6: true
@@ -434,7 +434,7 @@ network:
     id0:
       match:
         macaddress: "00:00:00:00:00"
-			set-name: "eth0"
+      set-name: "eth0"
       wakeonlan: true
       dhcp4: false
       dhcp6: true
@@ -486,7 +486,7 @@ network:
     id0:
       match:
         macaddress: "00:00:00:00:00"
-			set-name: "eth0"
+      set-name: "eth0"
       wakeonlan: true
       dhcp4: true
       dhcp6: false
@@ -497,7 +497,7 @@ network:
     id1:
       match:
         macaddress: "00:00:00:00:01"
-			set-name: "eth1"
+      set-name: "eth1"
       wakeonlan: true
       dhcp4: false
       dhcp6: true
@@ -540,7 +540,7 @@ network:
     id0:
       match:
         macaddress: "00:00:00:00:00"
-			set-name: "eth0"
+      set-name: "eth0"
       wakeonlan: true
       dhcp4: false
       dhcp6: false
@@ -555,7 +555,7 @@ network:
     id1:
       match:
         macaddress: "00:00:00:00:01"
-			set-name: "eth1"
+      set-name: "eth1"
       wakeonlan: true
       dhcp4: false
       dhcp6: true

@@ -39,7 +39,7 @@ type CloneMode string
 const (
 	// FullClone indicates a VM will have no relationship to the source of the
 	// clone operation once the operation is complete. This is the safest clone
-	// mode, but it is also the fastest.
+	// mode, but it is not the fastest.
 	FullClone CloneMode = "fullClone"
 
 	// LinkedClone means resulting VMs will be dependent upon the snapshot of

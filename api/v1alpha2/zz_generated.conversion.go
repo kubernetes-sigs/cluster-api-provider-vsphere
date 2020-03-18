@@ -652,6 +652,7 @@ func Convert_v1alpha3_CPIWorkspaceConfig_To_v1alpha2_CPIWorkspaceConfig(in *v1al
 
 func autoConvert_v1alpha2_NetworkDeviceSpec_To_v1alpha3_NetworkDeviceSpec(in *NetworkDeviceSpec, out *v1alpha3.NetworkDeviceSpec, s conversion.Scope) error {
 	out.NetworkName = in.NetworkName
+	out.DeviceName = in.DeviceName
 	out.DHCP4 = in.DHCP4
 	out.DHCP6 = in.DHCP6
 	out.Gateway4 = in.Gateway4
@@ -672,7 +673,7 @@ func Convert_v1alpha2_NetworkDeviceSpec_To_v1alpha3_NetworkDeviceSpec(in *Networ
 
 func autoConvert_v1alpha3_NetworkDeviceSpec_To_v1alpha2_NetworkDeviceSpec(in *v1alpha3.NetworkDeviceSpec, out *NetworkDeviceSpec, s conversion.Scope) error {
 	out.NetworkName = in.NetworkName
-	// WARNING: in.DeviceName requires manual conversion: does not exist in peer-type
+	out.DeviceName = in.DeviceName
 	out.DHCP4 = in.DHCP4
 	out.DHCP6 = in.DHCP6
 	out.Gateway4 = in.Gateway4
@@ -716,17 +717,7 @@ func Convert_v1alpha3_NetworkRouteSpec_To_v1alpha2_NetworkRouteSpec(in *v1alpha3
 }
 
 func autoConvert_v1alpha2_NetworkSpec_To_v1alpha3_NetworkSpec(in *NetworkSpec, out *v1alpha3.NetworkSpec, s conversion.Scope) error {
-	if in.Devices != nil {
-		in, out := &in.Devices, &out.Devices
-		*out = make([]v1alpha3.NetworkDeviceSpec, len(*in))
-		for i := range *in {
-			if err := Convert_v1alpha2_NetworkDeviceSpec_To_v1alpha3_NetworkDeviceSpec(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Devices = nil
-	}
+	out.Devices = *(*[]v1alpha3.NetworkDeviceSpec)(unsafe.Pointer(&in.Devices))
 	out.Routes = *(*[]v1alpha3.NetworkRouteSpec)(unsafe.Pointer(&in.Routes))
 	out.PreferredAPIServerCIDR = in.PreferredAPIServerCIDR
 	return nil
@@ -738,17 +729,7 @@ func Convert_v1alpha2_NetworkSpec_To_v1alpha3_NetworkSpec(in *NetworkSpec, out *
 }
 
 func autoConvert_v1alpha3_NetworkSpec_To_v1alpha2_NetworkSpec(in *v1alpha3.NetworkSpec, out *NetworkSpec, s conversion.Scope) error {
-	if in.Devices != nil {
-		in, out := &in.Devices, &out.Devices
-		*out = make([]NetworkDeviceSpec, len(*in))
-		for i := range *in {
-			if err := Convert_v1alpha3_NetworkDeviceSpec_To_v1alpha2_NetworkDeviceSpec(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Devices = nil
-	}
+	out.Devices = *(*[]NetworkDeviceSpec)(unsafe.Pointer(&in.Devices))
 	out.Routes = *(*[]NetworkRouteSpec)(unsafe.Pointer(&in.Routes))
 	out.PreferredAPIServerCIDR = in.PreferredAPIServerCIDR
 	return nil

@@ -186,6 +186,11 @@ spec:
                               description: NetworkDeviceSpec defines the network configuration
                                 for a virtual machine's network device.
                               properties:
+                                deviceName:
+                                  description: DeviceName may be used to explicitly
+                                    assign a name to the network device as it exists
+                                    in the guest operating system.
+                                  type: string
                                 dhcp4:
                                   description: DHCP4 is a flag that indicates whether
                                     or not to use DHCP for IPv4 on this device. If

@@ -228,7 +228,7 @@ func (r clusterReconciler) reconcileNormal(ctx *context.ClusterContext) (reconci
 				"unexpected error while reconciling load balancer for %s", ctx)
 		}
 		ctx.Logger.Info("load balancer is not reconciled")
-		return reconcile.Result{}, nil
+		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
 	// Reconcile the VSphereCluster resource's ready state.

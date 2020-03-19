@@ -250,10 +250,11 @@ func isEmpty(val reflect.Value) bool {
 // MarshalCloudProviderArgs marshals the cloud provider arguments for passing
 // into a pod spec
 func (c *CPIConfig) MarshalCloudProviderArgs() []string {
+	c.ProviderConfig.Cloud.ExtraArgs = map[string]string{}
 	args := c.ProviderConfig.Cloud.ExtraArgs
-	args["v"] = "2"
-	args["cloud-provider"] = "vsphere"
-	args["cloud-config"] = "/etc/cloud/vsphere.conf"
+	args["--v"] = "2"
+	args["--cloud-provider"] = "vsphere"
+	args["--cloud-config"] = "/etc/cloud/vsphere.conf"
 	marshalledArgs := make([]string, len(args))
 
 	idx := 0

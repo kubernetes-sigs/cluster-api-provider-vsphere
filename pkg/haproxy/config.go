@@ -39,7 +39,7 @@ const (
     stats                    timeout 30s
     user                     haproxy
     group                    haproxy
-    stats                    socket /run/haproxy.sock user haproxy group haproxy mode 660 level admin
+    stats                    socket /run/haproxy.sock user haproxy group haproxy mode 660 expose-fd listeners level admin
     master-worker
     maxconn                  4000
     ca-base /etc/ssl/certs

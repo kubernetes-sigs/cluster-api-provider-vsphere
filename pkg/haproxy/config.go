@@ -85,7 +85,7 @@ frontend kube_api_frontend
 backend kube_api_backend
   mode tcp
   balance leastconn
-  default-server inter 15s downinter 15s rise 2 fall 2 slowstart 60s maxconn 1000 maxqueue 256 weight 100
+  default-server inter 10s downinter 10s rise 5 fall 3 slowstart 120s maxconn 1000 maxqueue 256 weight 100
   option httpchk GET /healthz
   http-check expect status 200
   {{range .Addresses}}

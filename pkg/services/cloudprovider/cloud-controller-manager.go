@@ -81,7 +81,7 @@ func CloudControllerManagerConfigMap(cloudConfig string) *corev1.ConfigMap {
 }
 
 // CloudControllerManagerDaemonSet returns the DaemonSet which runs the cloud-controller-manager
-func CloudControllerManagerDaemonSet(image string) *appsv1.DaemonSet {
+func CloudControllerManagerDaemonSet(image string, args []string) *appsv1.DaemonSet {
 	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "vsphere-cloud-controller-manager",
@@ -132,11 +132,7 @@ func CloudControllerManagerDaemonSet(image string) *appsv1.DaemonSet {
 						{
 							Name:  "vsphere-cloud-controller-manager",
 							Image: image,
-							Args: []string{
-								"--v=2",
-								"--cloud-provider=vsphere",
-								"--cloud-config=/etc/cloud/vsphere.conf",
-							},
+							Args:  args,
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "vsphere-config-volume",

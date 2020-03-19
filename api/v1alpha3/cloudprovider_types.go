@@ -65,6 +65,10 @@ type CPIProviderConfig struct {
 
 type CPICloudConfig struct {
 	ControllerImage string `json:"controllerImage,omitempty"`
+	// ExtraArgs passes through extra arguments to the cloud provider.
+	// The arguments here are passed to the cloud provider daemonset specification
+	// +optional
+	ExtraArgs map[string]string `json:"extraArgs,omitempty"`
 }
 
 type CPIStorageConfig struct {

@@ -258,6 +258,40 @@ network:
     id0:
       match:
         macaddress: "00:00:00:00:00"
+      set-name: "eth0"
+      wakeonlan: true
+      dhcp4: true
+      dhcp6: false
+`,
+		},
+		{
+			name: "dhcp4+deviceName",
+			machine: &v1alpha3.VSphereVM{
+				Spec: v1alpha3.VSphereVMSpec{
+					VirtualMachineCloneSpec: v1alpha3.VirtualMachineCloneSpec{
+						Network: v1alpha3.NetworkSpec{
+							Devices: []v1alpha3.NetworkDeviceSpec{
+								{
+									NetworkName: "network1",
+									MACAddr:     "00:00:00:00:00",
+									DHCP4:       true,
+									DeviceName:  "ens192",
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: `
+instance-id: "test-vm"
+local-hostname: "test-vm"
+network:
+  version: 2
+  ethernets:
+    id0:
+      match:
+        macaddress: "00:00:00:00:00"
+      set-name: "ens192"
       wakeonlan: true
       dhcp4: true
       dhcp6: false
@@ -289,6 +323,7 @@ network:
     id0:
       match:
         macaddress: "00:00:00:00:00"
+      set-name: "eth0"
       wakeonlan: true
       dhcp4: false
       dhcp6: true
@@ -321,6 +356,7 @@ network:
     id0:
       match:
         macaddress: "00:00:00:00:00"
+      set-name: "eth0"
       wakeonlan: true
       dhcp4: true
       dhcp6: true
@@ -354,6 +390,7 @@ network:
     id0:
       match:
         macaddress: "00:00:00:00:00"
+      set-name: "eth0"
       wakeonlan: true
       dhcp4: false
       dhcp6: true
@@ -397,6 +434,7 @@ network:
     id0:
       match:
         macaddress: "00:00:00:00:00"
+      set-name: "eth0"
       wakeonlan: true
       dhcp4: false
       dhcp6: true
@@ -448,6 +486,7 @@ network:
     id0:
       match:
         macaddress: "00:00:00:00:00"
+      set-name: "eth0"
       wakeonlan: true
       dhcp4: true
       dhcp6: false
@@ -458,6 +497,7 @@ network:
     id1:
       match:
         macaddress: "00:00:00:00:01"
+      set-name: "eth1"
       wakeonlan: true
       dhcp4: false
       dhcp6: true
@@ -500,6 +540,7 @@ network:
     id0:
       match:
         macaddress: "00:00:00:00:00"
+      set-name: "eth0"
       wakeonlan: true
       dhcp4: false
       dhcp6: false
@@ -514,6 +555,7 @@ network:
     id1:
       match:
         macaddress: "00:00:00:00:01"
+      set-name: "eth1"
       wakeonlan: true
       dhcp4: false
       dhcp6: true

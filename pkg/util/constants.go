@@ -26,6 +26,11 @@ network:
     id{{ $i }}:
       match:
         macaddress: "{{ $net.MACAddr }}"
+      {{- if $net.DeviceName }}
+      set-name: "{{ $net.DeviceName }}"
+      {{- else }}
+      set-name: "eth{{ $i }}"
+      {{- end }}
       wakeonlan: true
       dhcp4: {{ $net.DHCP4 }}
       dhcp6: {{ $net.DHCP6 }}

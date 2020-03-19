@@ -73,7 +73,15 @@ func Convert_v1alpha2_VSphereMachineSpec_To_v1alpha3_VSphereMachineSpec(in *VSph
 	if err := autoConvert_v1alpha2_VSphereMachineSpec_To_v1alpha3_VSphereMachineSpec(in, out, s); err != nil {
 		return err
 	}
-
+	out.Template = in.Template
+	out.Datacenter = in.Datacenter
+	if err := autoConvert_v1alpha2_NetworkSpec_To_v1alpha3_NetworkSpec(&in.Network, &out.Network, s); err != nil {
+		return err
+	}
+	out.NumCPUs = in.NumCPUs
+	out.NumCoresPerSocket = in.NumCoresPerSocket
+	out.MemoryMiB = in.MemoryMiB
+	out.DiskGiB = in.DiskGiB
 	return nil
 }
 
@@ -82,7 +90,15 @@ func Convert_v1alpha3_VSphereMachineSpec_To_v1alpha2_VSphereMachineSpec(in *infr
 	if err := autoConvert_v1alpha3_VSphereMachineSpec_To_v1alpha2_VSphereMachineSpec(in, out, s); err != nil {
 		return err
 	}
-
+	out.Template = in.Template
+	out.Datacenter = in.Datacenter
+	if err := autoConvert_v1alpha3_NetworkSpec_To_v1alpha2_NetworkSpec(&in.Network, &out.Network, s); err != nil {
+		return err
+	}
+	out.NumCPUs = in.NumCPUs
+	out.NumCoresPerSocket = in.NumCoresPerSocket
+	out.MemoryMiB = in.MemoryMiB
+	out.DiskGiB = in.DiskGiB
 	return nil
 }
 

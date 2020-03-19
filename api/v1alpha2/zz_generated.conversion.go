@@ -659,6 +659,7 @@ func Convert_v1alpha3_CPIWorkspaceConfig_To_v1alpha2_CPIWorkspaceConfig(in *v1al
 
 func autoConvert_v1alpha2_NetworkDeviceSpec_To_v1alpha3_NetworkDeviceSpec(in *NetworkDeviceSpec, out *v1alpha3.NetworkDeviceSpec, s conversion.Scope) error {
 	out.NetworkName = in.NetworkName
+	out.DeviceName = in.DeviceName
 	out.DHCP4 = in.DHCP4
 	out.DHCP6 = in.DHCP6
 	out.Gateway4 = in.Gateway4
@@ -679,6 +680,7 @@ func Convert_v1alpha2_NetworkDeviceSpec_To_v1alpha3_NetworkDeviceSpec(in *Networ
 
 func autoConvert_v1alpha3_NetworkDeviceSpec_To_v1alpha2_NetworkDeviceSpec(in *v1alpha3.NetworkDeviceSpec, out *NetworkDeviceSpec, s conversion.Scope) error {
 	out.NetworkName = in.NetworkName
+	out.DeviceName = in.DeviceName
 	out.DHCP4 = in.DHCP4
 	out.DHCP6 = in.DHCP6
 	out.Gateway4 = in.Gateway4

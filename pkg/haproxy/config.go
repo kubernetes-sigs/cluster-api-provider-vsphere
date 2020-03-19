@@ -33,68 +33,70 @@ const (
 
 	// This template is based upon
 	// https://github.com/kubernetes-sigs/kubespray/blob/7f74906d332942093ddbc1596497e9e2dd8eb7c2/roles/kubernetes/node/templates/loadbalancer/haproxy.cfg.j2
-	haproxyConfigurationTemplate = `global
-    log                      stdout format raw local0 info
-    chroot                   /var/lib/haproxy
-    stats                    timeout 30s
-    user                     haproxy
-    group                    haproxy
-    stats                    socket /run/haproxy.sock user haproxy group haproxy mode 660 expose-fd listeners level admin
-    master-worker
-    maxconn                  4000
-    ca-base /etc/ssl/certs
-    crt-base /etc/ssl/private
-
-    ssl-default-bind-ciphers ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:RSA+AESGCM:RSA+AES:!aNULL:!MD5:!DSS
-    ssl-default-bind-options no-sslv3
+	// NOTE: The configuration is order-dependent.
+	haproxyConfigurationTemplate = `
+global
+  master-worker
+  maxconn 4000
+  stats socket /run/haproxy.sock user haproxy group haproxy mode 660 level admin expose-fd listeners
+  stats timeout 30s
+  ssl-default-bind-options no-sslv3
+  ssl-default-bind-ciphers ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:RSA+AESGCM:RSA+AES:!aNULL:!MD5:!DSS
+  log stdout format raw local0 info
+  chroot /var/lib/haproxy
+  user haproxy
+  group haproxy
+  ca-base /etc/ssl/certs
+  crt-base /etc/ssl/private
 
 defaults
-    mode                     http
-    log                      global
-    option                   tcplog
-    option                   dontlognull
-    option                   http-server-close
-    option                   redispatch
-    retries                  5
-    timeout http-request     5m
-    timeout queue            5m
-    timeout connect          30s
-    timeout client           1m
-    timeout server           1m
-    timeout tunnel           1h
-    timeout http-keep-alive  30s
-    timeout check            30s
-    maxconn                  4000
-
+  mode http
+  maxconn 4000
+  log global
+  option tcplog
+  option dontlognull
+  timeout check 5s
+  timeout connect 9s
+  timeout client 10s
+  timeout queue 5m
+  timeout server 10s
+  timeout tunnel 1h
+  option tcp-smart-accept
+  timeout client-fin 10s
 
 userlist controller
-user {{.DPConfig.Username}} insecure-password {{.DPConfig.Password}}
+  user {{.DPConfig.Username}} insecure-password {{.DPConfig.Password}}
 
 frontend healthz
-  bind *:8081
   mode http
+  bind *:8081
   monitor-uri /healthz
 
 frontend kube_api_frontend
-  bind *:{{.Port | printf "%d"}} name lb
   mode tcp
+  bind *:{{.Port | printf "%d"}} name lb
   option tcplog
   default_backend kube_api_backend
 
-  {{ $port := .Port | printf "%d" }}
+frontend stats
+  bind *:8404
+  stats enable
+  stats uri /stats
+  stats refresh 500ms
+  stats hide-version
+  stats show-legends
+{{ $port := .Port | printf "%d" }}
 backend kube_api_backend
   mode tcp
-  balance leastconn
-  default-server inter 10s downinter 10s rise 5 fall 3 slowstart 120s maxconn 1000 maxqueue 256 weight 100
-  option httpchk GET /healthz
+  balance first
+  option httpchk GET /readyz
+  default-server inter 10s downinter 10s rise 5 fall 3 slowstart 120s maxconn 1000 maxqueue 256 weight 100{{range .Addresses}}
+  server {{ .NodeName }} {{ .IP }}:{{ $port }} check check-ssl verify none{{end}}
   http-check expect status 200
-  {{range .Addresses}}
-  server {{ .NodeName }} {{ .IP }}:{{ $port }} check check-ssl verify none
-  {{end}}
 
 program api
-command dataplaneapi --scheme=https --haproxy-bin=/usr/sbin/haproxy --config-file=/etc/haproxy/haproxy.cfg --reload-cmd="/usr/bin/systemctl restart haproxy" --reload-delay=5 --tls-host=0.0.0.0 --tls-port=5556 --tls-ca=/etc/haproxy/ca.crt --tls-certificate=/etc/haproxy/server.crt --tls-key=/etc/haproxy/server.key --userlist=controller
-no option start-on-reload
+  command dataplaneapi --scheme=https --haproxy-bin=/usr/sbin/haproxy --config-file=/etc/haproxy/haproxy.cfg --reload-cmd="/usr/bin/systemctl reload haproxy" --reload-delay=5 --tls-host=0.0.0.0 --tls-port=5556 --tls-ca=/etc/haproxy/ca.crt --tls-certificate=/etc/haproxy/server.crt --tls-key=/etc/haproxy/server.key --userlist=controller
+  no option start-on-reload
 `
 )
 

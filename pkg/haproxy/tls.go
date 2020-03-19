@@ -40,22 +40,21 @@ const (
 	pemTypeRSAPrivateKey = "RSA PRIVATE KEY"
 )
 
-func generateSigningCertificateKeyPair(notAfter time.Time) (publicKeyPEM []byte, privateKeyPEM []byte, _ error) {
-	notBefore := time.Now()
+func generateSigningCertificateKeyPair(notBefore, notAfter time.Time) (publicKeyPEM []byte, privateKeyPEM []byte, _ error) {
 
 	caPrivateKey, err := rsa.GenerateKey(rand.Reader, rsaKeySize)
 	if err != nil {
 		return nil, nil, err
 	}
-	caSerial := newSerial(time.Now())
+	caSerial := newSerial(notBefore)
 	caTemplate := &x509.Certificate{
 		SerialNumber: caSerial,
 		Subject: pkix.Name{
 			CommonName:   "self-signed CA",
 			SerialNumber: caSerial.String(),
 		},
-		NotBefore:             notBefore.UTC(),
-		NotAfter:              notAfter.UTC(),
+		NotBefore:             notBefore,
+		NotAfter:              notAfter,
 		SubjectKeyId:          bigIntHash(caPrivateKey.N),
 		IsCA:                  true,
 		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
@@ -83,10 +82,9 @@ func generateSigningCertificateKeyPair(notAfter time.Time) (publicKeyPEM []byte,
 func generateAndSignClientCertificateKeyPair(
 	signingCertificatePEM []byte,
 	signingKeyPEM []byte,
+	notBefore time.Time,
 	notAfter time.Time,
 	serverIPAddr string) (publicKeyPEM []byte, privateKeyPEM []byte, _ error) {
-
-	notBefore := time.Now()
 
 	signingCertificatePEMBlock, _ := pem.Decode(signingCertificatePEM)
 	signingCertificate, err := x509.ParseCertificate(signingCertificatePEMBlock.Bytes)
@@ -100,7 +98,7 @@ func generateAndSignClientCertificateKeyPair(
 		return nil, nil, err
 	}
 
-	certSerial := newSerial(time.Now())
+	certSerial := newSerial(notBefore)
 	certPrivateKey, err := rsa.GenerateKey(rand.Reader, rsaKeySize)
 	if err != nil {
 		return nil, nil, err
@@ -109,8 +107,8 @@ func generateAndSignClientCertificateKeyPair(
 		SerialNumber: certSerial,
 		Subject:      pkix.Name{CommonName: serverIPAddr},
 		IPAddresses:  []net.IP{net.ParseIP(serverIPAddr)},
-		NotBefore:    notBefore.UTC(),
-		NotAfter:     notAfter.UTC(),
+		NotBefore:    notBefore,
+		NotAfter:     notAfter,
 		SubjectKeyId: bigIntHash(certPrivateKey.N),
 		KeyUsage: x509.KeyUsageDigitalSignature |
 			x509.KeyUsageDataEncipherment |

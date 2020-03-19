@@ -200,8 +200,10 @@ func deleteSecret(
 	return nil
 }
 
-func newDefaultCertificateValidity() time.Time {
-	return time.Now().UTC().Add(DefaultNegativeTimeSkew).AddDate(10, 0, 0)
+func newDefaultCertificateValidity() (time.Time, time.Time) {
+	notBefore := time.Now().UTC().Add(DefaultNegativeTimeSkew)
+	notAfter := time.Now().UTC().Add(DefaultNegativeTimeSkew).AddDate(10, 0, 0)
+	return notBefore, notAfter
 }
 
 // CreateCASecret creates the Secret resource that contains the signing
@@ -277,10 +279,13 @@ func CreateConfigSecret(
 		return err
 	}
 
+	notBefore, notAfter := newDefaultCertificateValidity()
+
 	clientCertPEM, clientKeyPEM, err := generateAndSignClientCertificateKeyPair(
 		caSecret.Data[SecretDataKeyCACert],
 		caSecret.Data[SecretDataKeyCAKey],
-		newDefaultCertificateValidity(),
+		notBefore,
+		notAfter,
 		loadBalancer.Status.Address)
 	if err != nil {
 		return err

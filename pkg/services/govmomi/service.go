@@ -107,7 +107,7 @@ func (vms *VMService) ReconcileVM(ctx *context.VMContext) (vm infrav1.VirtualMac
 	vms.reconcileUUID(vmCtx)
 
 	if err := vms.reconcileNetworkStatus(vmCtx); err != nil {
-		return vm, nil
+		return vm, err
 	}
 
 	if ok, err := vms.reconcileMetadata(vmCtx); err != nil || !ok {

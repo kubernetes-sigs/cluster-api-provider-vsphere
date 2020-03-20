@@ -228,14 +228,14 @@ func (r machineReconciler) reconcileDelete(ctx *context.MachineContext) (reconci
 	ctx.Logger.Info("Handling deleted VSphereMachine")
 
 	if err := r.reconcileDeleteVM(ctx); err != nil {
-		if !apierrors.IsNotFound(err) {
-			return reconcile.Result{}, err
+		if apierrors.IsNotFound(err) {
+			// The VM is deleted so remove the finalizer.
+			ctrlutil.RemoveFinalizer(ctx.VSphereMachine, infrav1.MachineFinalizer)
+			return reconcile.Result{}, nil
 		}
-		// The VM is deleted so remove the finalizer.
-		ctrlutil.RemoveFinalizer(ctx.VSphereMachine, infrav1.MachineFinalizer)
-
-		return reconcile.Result{}, nil
+		return reconcile.Result{}, err
 	}
+	ctx.Logger.Info("Waiting for VSphereVM to be deleted")
 	return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
 }
 

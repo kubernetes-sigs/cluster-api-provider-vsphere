@@ -205,6 +205,20 @@ func (r clusterReconciler) reconcileDelete(ctx *context.ClusterContext) (reconci
 			"unable to list VSphereMachines part of VSphereCluster %s/%s", ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
 	}
 
+	haproxyLoadbalancers := infrav1.HAProxyLoadBalancerList{}
+
+	err = r.Client.List(ctx, &haproxyLoadbalancers, client.MatchingLabels(
+		map[string]string{
+			clusterv1.ClusterLabelName: ctx.Cluster.Name,
+		},
+	))
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	if len(haproxyLoadbalancers.Items) > 0 {
+		return reconcile.Result{}, errors.Errorf("unable to delete VSphereCluster %s/%s: %v HAProxyLoadbalancer left", ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name, len(haproxyLoadbalancers.Items))
+	}
+
 	if len(vsphereMachines) > 0 {
 		return reconcile.Result{}, errors.Errorf("unable to delete VSphereCluster %s/%s: %v VSphereMachines left", ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name, len(vsphereMachines))
 	}

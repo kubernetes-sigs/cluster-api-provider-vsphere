@@ -216,6 +216,12 @@ func (r clusterReconciler) reconcileDelete(ctx *context.ClusterContext) (reconci
 		return reconcile.Result{}, err
 	}
 	if len(haproxyLoadbalancers.Items) > 0 {
+		for _, lb := range haproxyLoadbalancers.Items {
+			if err := r.Client.Delete(ctx, lb.DeepCopy()); err != nil && !apierrors.IsNotFound(err) {
+				return reconcile.Result{}, err
+			}
+		}
+
 		ctx.Logger.Info("Waiting for HAProxyLoadBalancer to be deleted", "count", len(haproxyLoadbalancers.Items))
 		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
 	}

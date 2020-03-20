@@ -278,6 +278,20 @@ func (r machineReconciler) findVMPre7(ctx *context.MachineContext) (*infrav1.VSp
 	}
 	return vm, nil
 }
+func convertToUnstructured(vm runtime.Object) (*unstructured.Unstructured, error) {
+	// Convert the VM resource to unstructured data.
+	vmData, err := runtime.DefaultUnstructuredConverter.ToUnstructured(vm)
+	if err != nil {
+		return nil, errors.Wrapf(err,
+			"failed to convert %s to unstructured data",
+			vm.GetObjectKind().GroupVersionKind().String())
+	}
+	vmObj := &unstructured.Unstructured{Object: vmData}
+	vmObj.SetGroupVersionKind(vm.GetObjectKind().GroupVersionKind())
+	vmObj.SetAPIVersion(vm.GetObjectKind().GroupVersionKind().GroupVersion().String())
+	vmObj.SetKind(vm.GetObjectKind().GroupVersionKind().Kind)
+	return vmObj, nil
+}
 
 func (r machineReconciler) reconcileNormal(ctx *context.MachineContext) (reconcile.Result, error) {
 	vsphereVM, err := r.findVMPre7(ctx)
@@ -315,23 +329,23 @@ func (r machineReconciler) reconcileNormal(ctx *context.MachineContext) (reconci
 	// TODO(akutz) Determine the version of vSphere.
 	vm, err := r.reconcileNormalPre7(ctx)
 	if err != nil {
-		if apierrors.IsAlreadyExists(err) {
-			return reconcile.Result{}, nil
+		if !apierrors.IsAlreadyExists(err) {
+			return reconcile.Result{}, err
 		}
-		return reconcile.Result{}, err
 	}
 
-	// Convert the VM resource to unstructured data.
-	vmData, err := runtime.DefaultUnstructuredConverter.ToUnstructured(vm)
-	if err != nil {
-		return reconcile.Result{}, errors.Wrapf(err,
-			"failed to convert %s to unstructured data",
-			vm.GetObjectKind().GroupVersionKind().String())
+	var vmObj *unstructured.Unstructured
+	if vm != nil {
+		vmObj, err = convertToUnstructured(vm)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+	} else {
+		vmObj, err = convertToUnstructured(vsphereVM)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
 	}
-	vmObj := &unstructured.Unstructured{Object: vmData}
-	vmObj.SetGroupVersionKind(vm.GetObjectKind().GroupVersionKind())
-	vmObj.SetAPIVersion(vm.GetObjectKind().GroupVersionKind().GroupVersion().String())
-	vmObj.SetKind(vm.GetObjectKind().GroupVersionKind().Kind)
 
 	// Reconcile the VSphereMachine's provider ID using the VM's BIOS UUID.
 	if ok, err := r.reconcileProviderID(ctx, vmObj); !ok {
@@ -340,7 +354,7 @@ func (r machineReconciler) reconcileNormal(ctx *context.MachineContext) (reconci
 				"unexpected error while reconciling provider ID for %s", ctx)
 		}
 		ctx.Logger.Info("provider ID is not reconciled")
-		return reconcile.Result{}, nil
+		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
 	// Reconcile the VSphereMachine's node addresses from the VM's IP addresses.
@@ -350,7 +364,7 @@ func (r machineReconciler) reconcileNormal(ctx *context.MachineContext) (reconci
 				"unexpected error while reconciling network for %s", ctx)
 		}
 		ctx.Logger.Info("network is not reconciled")
-		return reconcile.Result{}, nil
+		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
 	// Reconcile the VSphereMachine's ready state from the VM's ready state.
@@ -360,7 +374,7 @@ func (r machineReconciler) reconcileNormal(ctx *context.MachineContext) (reconci
 				"unexpected error while reconciling ready state for %s", ctx)
 		}
 		ctx.Logger.Info("ready state is not reconciled")
-		return reconcile.Result{}, nil
+		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
 	return reconcile.Result{}, nil

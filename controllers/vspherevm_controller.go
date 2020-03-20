@@ -17,6 +17,7 @@ limitations under the License.
 package controllers
 
 import (
+	goctx "context"
 	"fmt"
 	"reflect"
 	"strings"
@@ -26,13 +27,18 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	apitypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
@@ -67,8 +73,8 @@ func AddVMControllerToManager(ctx *context.ControllerManagerContext, mgr manager
 		Recorder:                 record.New(mgr.GetEventRecorderFor(controllerNameLong)),
 		Logger:                   ctx.Logger.WithName(controllerNameShort),
 	}
-
-	return ctrl.NewControllerManagedBy(mgr).
+	r := vmReconciler{ControllerContext: controllerContext}
+	controller, err := ctrl.NewControllerManagedBy(mgr).
 		// Watch the controlled, infrastructure resource.
 		For(controlledType).
 		// Watch a GenericEvent channel for the controlled resource.
@@ -80,7 +86,34 @@ func AddVMControllerToManager(ctx *context.ControllerManagerContext, mgr manager
 			&source.Channel{Source: ctx.GetGenericEventChannelFor(controlledTypeGVK)},
 			&handler.EnqueueRequestForObject{},
 		).
-		Complete(vmReconciler{ControllerContext: controllerContext})
+		Build(r)
+
+	if err != nil {
+		return err
+	}
+
+	err = controller.Watch(
+		&source.Kind{Type: &clusterv1.Cluster{}},
+		&handler.EnqueueRequestsFromMapFunc{
+			ToRequests: handler.ToRequestsFunc(r.clusterToVSphereVMs),
+		},
+		predicate.Funcs{
+			UpdateFunc: func(e event.UpdateEvent) bool {
+				oldCluster := e.ObjectOld.(*clusterv1.Cluster)
+				newCluster := e.ObjectNew.(*clusterv1.Cluster)
+				return oldCluster.Spec.Paused && !newCluster.Spec.Paused
+			},
+			CreateFunc: func(e event.CreateEvent) bool {
+				if _, ok := e.Meta.GetAnnotations()[clusterv1.PausedAnnotation]; !ok {
+					return false
+				}
+				return true
+			},
+		})
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 type vmReconciler struct {
@@ -308,4 +341,27 @@ func (r vmReconciler) reconcileNetwork(ctx *context.VMContext, vm infrav1.Virtua
 		ipAddrs = append(ipAddrs, netStatus.IPAddrs...)
 	}
 	ctx.VSphereVM.Status.Addresses = ipAddrs
+}
+
+func (r *vmReconciler) clusterToVSphereVMs(a handler.MapObject) []reconcile.Request {
+	requests := []reconcile.Request{}
+	vms := &infrav1.VSphereVMList{}
+	err := r.Client.List(goctx.Background(), vms, ctrlclient.MatchingLabels(
+		map[string]string{
+			clusterv1.ClusterLabelName: a.Meta.GetName(),
+		},
+	))
+	if err != nil {
+		return requests
+	}
+	for _, vm := range vms.Items {
+		r := reconcile.Request{
+			NamespacedName: apitypes.NamespacedName{
+				Name:      vm.Name,
+				Namespace: vm.Namespace,
+			},
+		}
+		requests = append(requests, r)
+	}
+	return requests
 }

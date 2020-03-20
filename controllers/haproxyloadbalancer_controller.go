@@ -215,17 +215,19 @@ func (r haproxylbReconciler) reconcileDelete(ctx *context.HAProxyLoadBalancerCon
 	ctx.Logger.Info("Handling deleted HAProxyLoadBalancer")
 
 	if err := r.reconcileDeleteVM(ctx); err != nil {
+		if apierrors.IsNotFound(err) {
+			if err := r.reconcileDeleteSecrets(ctx); err != nil {
+				return ctrl.Result{}, err
+			}
+
+			// The VM is deleted so remove the finalizer.
+			ctrlutil.RemoveFinalizer(ctx.HAProxyLoadBalancer, infrav1.HAProxyLoadBalancerFinalizer)
+		}
 		return ctrl.Result{}, err
 	}
 
-	if err := r.reconcileDeleteSecrets(ctx); err != nil {
-		return ctrl.Result{}, err
-	}
-
-	// The VM is deleted so remove the finalizer.
-	ctrlutil.RemoveFinalizer(ctx.HAProxyLoadBalancer, infrav1.HAProxyLoadBalancerFinalizer)
-
-	return ctrl.Result{}, nil
+	ctx.Logger.Info("waiting for VSphereVM to be deleted")
+	return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 }
 
 func (r haproxylbReconciler) reconcileDeleteSecrets(ctx *context.HAProxyLoadBalancerContext) error {
@@ -256,19 +258,12 @@ func (r haproxylbReconciler) reconcileDeleteVMPre7(ctx *context.HAProxyLoadBalan
 
 	// Attempt to find the associated VSphereVM resource.
 	if err := ctx.Client.Get(ctx, vmKey, vm); err != nil {
-		// If an error occurs finding the VSphereVM resource other than
-		// IsNotFound, then return the error. Otherwise it means the VSphereVM
-		// is already deleted, and that's okay.
-		if !apierrors.IsNotFound(err) {
-			return errors.Wrapf(err, "failed to get VSphereVM %s", vmKey)
-		}
+		return err
 	} else if vm.GetDeletionTimestamp().IsZero() {
 		// If the VSphereVM was found and it's not already enqueued for
 		// deletion, go ahead and attempt to delete it.
 		if err := ctx.Client.Delete(ctx, vm); err != nil {
-			if !apierrors.IsNotFound(err) {
-				return errors.Wrapf(err, "failed to delete VSphereVM %v", vmKey)
-			}
+			return err
 		}
 
 		// Go ahead and return here since the deletion of the VSphereVM resource

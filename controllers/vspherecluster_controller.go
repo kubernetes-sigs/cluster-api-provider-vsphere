@@ -205,8 +205,30 @@ func (r clusterReconciler) reconcileDelete(ctx *context.ClusterContext) (reconci
 			"unable to list VSphereMachines part of VSphereCluster %s/%s", ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
 	}
 
+	haproxyLoadbalancers := infrav1.HAProxyLoadBalancerList{}
+
+	err = r.Client.List(ctx, &haproxyLoadbalancers, client.MatchingLabels(
+		map[string]string{
+			clusterv1.ClusterLabelName: ctx.Cluster.Name,
+		},
+	))
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	if len(haproxyLoadbalancers.Items) > 0 {
+		for _, lb := range haproxyLoadbalancers.Items {
+			if err := r.Client.Delete(ctx, lb.DeepCopy()); err != nil && !apierrors.IsNotFound(err) {
+				return reconcile.Result{}, err
+			}
+		}
+
+		ctx.Logger.Info("Waiting for HAProxyLoadBalancer to be deleted", "count", len(haproxyLoadbalancers.Items))
+		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
+	}
+
 	if len(vsphereMachines) > 0 {
-		return reconcile.Result{}, errors.Errorf("unable to delete VSphereCluster %s/%s: %v VSphereMachines left", ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name, len(vsphereMachines))
+		ctx.Logger.Info("Waiting for VSphereMachines to be deleted", "count", len(vsphereMachines))
+		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
 	// Cluster is deleted so remove the finalizer.

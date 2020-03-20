@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -227,13 +228,15 @@ func (r machineReconciler) reconcileDelete(ctx *context.MachineContext) (reconci
 	ctx.Logger.Info("Handling deleted VSphereMachine")
 
 	if err := r.reconcileDeleteVM(ctx); err != nil {
-		return reconcile.Result{}, err
+		if !apierrors.IsNotFound(err) {
+			return reconcile.Result{}, err
+		}
+		// The VM is deleted so remove the finalizer.
+		ctrlutil.RemoveFinalizer(ctx.VSphereMachine, infrav1.MachineFinalizer)
+
+		return reconcile.Result{}, nil
 	}
-
-	// The VM is deleted so remove the finalizer.
-	ctrlutil.RemoveFinalizer(ctx.VSphereMachine, infrav1.MachineFinalizer)
-
-	return reconcile.Result{}, nil
+	return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
 }
 
 func (r machineReconciler) reconcileDeleteVM(ctx *context.MachineContext) error {
@@ -242,25 +245,16 @@ func (r machineReconciler) reconcileDeleteVM(ctx *context.MachineContext) error 
 }
 
 func (r machineReconciler) reconcileDeleteVMPre7(ctx *context.MachineContext) error {
-	// Get ready to find the associated VSphereVM resource.
-	vmKey := apitypes.NamespacedName{
-		Namespace: ctx.VSphereMachine.Namespace,
-		Name:      ctx.Machine.Name,
-	}
 	vm, err := r.findVMPre7(ctx)
 	// Attempt to find the associated VSphereVM resource.
 	if err != nil {
-		if !apierrors.IsNotFound(err) {
-			return err
-		}
+		return err
 	}
 	if vm != nil && vm.GetDeletionTimestamp().IsZero() {
 		// If the VSphereVM was found and it's not already enqueued for
 		// deletion, go ahead and attempt to delete it.
 		if err := ctx.Client.Delete(ctx, vm); err != nil {
-			if !apierrors.IsNotFound(err) {
-				return errors.Wrapf(err, "failed to delete VSphereVM %v", vmKey)
-			}
+			return err
 		}
 
 		// Go ahead and return here since the deletion of the VSphereVM resource

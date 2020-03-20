@@ -216,11 +216,13 @@ func (r clusterReconciler) reconcileDelete(ctx *context.ClusterContext) (reconci
 		return reconcile.Result{}, err
 	}
 	if len(haproxyLoadbalancers.Items) > 0 {
-		return reconcile.Result{}, errors.Errorf("unable to delete VSphereCluster %s/%s: %v HAProxyLoadbalancer left", ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name, len(haproxyLoadbalancers.Items))
+		ctx.Logger.Info("Waiting for HAProxyLoadBalancer to be deleted", "count", len(haproxyLoadbalancers.Items))
+		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
 	if len(vsphereMachines) > 0 {
-		return reconcile.Result{}, errors.Errorf("unable to delete VSphereCluster %s/%s: %v VSphereMachines left", ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name, len(vsphereMachines))
+		ctx.Logger.Info("Waiting for VSphereMachines to be deleted", "count", len(vsphereMachines))
+		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
 	// Cluster is deleted so remove the finalizer.

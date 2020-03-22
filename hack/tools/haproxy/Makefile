@@ -70,7 +70,7 @@ verify: ## Verifies the packer config
 
 .PHONY: build-template
 build-template: ## Builds the HAProxy load balancer OVA
-	packer build $(PACKER_FLAGS) packer-api.json
+	packer build $(PACKER_FLAGS) packer-template.json
 
 .PHONY: verify-template
 verify-template: ## Verifies the packer config

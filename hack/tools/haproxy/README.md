@@ -209,6 +209,7 @@ Or, to produce a list of URLs for the same image files (and their checksums), th
 ```shell
 gsutil ls gs://capv-images/extra/haproxy/release/*/*.{ova,sha256} | sed 's~^gs://~http://storage.googleapis.com/~'
 ```
+
 ## Template
 
 In production the haproxy loadbalancer is deployed as an template.
@@ -224,7 +225,8 @@ Building the template requires:
 ### Building the template
 
 To build the template please create a configuration file with the following format (`cluster` can be replace by `host`):
-```
+
+```json
 {
     "kubernetes_semver":"v1.17.3",
     "vcenter_server":"FQDN of vcenter",

@@ -8,6 +8,7 @@ This document provides:
 
 * [A quick and easy demonstration of HAProxy as a load-balancer using containers](#quickstart)
 * [Instructions for building a light-weight, HAProxy load-balancer OVA](#ova)
+* [Instructions for building a light-weight, HAProxy load-balancer Template](#template)
 
 ## Quickstart
 
@@ -208,3 +209,38 @@ Or, to produce a list of URLs for the same image files (and their checksums), th
 ```shell
 gsutil ls gs://capv-images/extra/haproxy/release/*/*.{ova,sha256} | sed 's~^gs://~http://storage.googleapis.com/~'
 ```
+## Template
+
+In production the haproxy loadbalancer is deployed as an template.
+
+### Template Requirements
+
+Building the template requires:
+
+* VMware vSphere >= 6.5
+* Packer 1.5.4
+* Ansible 2.8+
+
+### Building the template
+
+To build the template please create a configuration file with the following format (`cluster` can be replace by `host`):
+```
+{
+    "kubernetes_semver":"v1.17.3",
+    "vcenter_server":"FQDN of vcenter",
+    "username":"vcenter_username",
+    "password":"vcenter_password",
+    "datastore":"template_datastore",
+    "folder": "template_folder_on_vcenter",
+    "cluster": "esxi_cluster_used_for_template_creation",
+    "network": "network_attached_to_template"
+}
+```
+
+Set the the path to this configuration file in the environment variable `PACKER_VAR_FILE` and run the following the command:
+
+```shell
+make build-template
+```
+
+Once the template is built, it should be located on the vSphere folder provided in variables and be around `240MiB`.

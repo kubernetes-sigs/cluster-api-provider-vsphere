@@ -1,0 +1,81 @@
+{
+  "variables": {
+    "build_timestamp": "{{timestamp}}",
+    "version": "v1alpha3",
+    "dataplaneapi_version": "1.2.4",
+    "dataplane_url": "https://github.com/haproxytech/dataplaneapi/releases/download/v{{user `dataplaneapi_version`}}/dataplaneapi",
+    "cluster": "",
+    "datastore": "",
+    "disk_controller_type": "pvscsi",
+    "disk_thin_provisioned": "true",
+    "existing_ansible_ssh_args": "{{env `ANSIBLE_SSH_ARGS`}}",
+    "folder": "",
+    "guestinfo_datasource_slug": "https://raw.githubusercontent.com/vmware/cloud-init-vmware-guestinfo",
+    "guestinfo_datasource_ref": "master",
+    "guestinfo_datasource_script": "{{user `guestinfo_datasource_slug`}}/{{user `guestinfo_datasource_ref`}}/install.sh",
+    "host": "",
+    "insecure_connection": "false",
+    "iso_url": "http://dl.bintray.com/vmware/photon/3.0/Rev2/iso/photon-minimal-3.0-58f9c74.iso",
+    "iso_checksum": "ae28558e57f5d8aefb8b479c9fac7473079156e1",
+    "iso_checksum_type": "sha1",
+    "network": "",
+    "network_card": "vmxnet3",
+    "ssh_username": "photon",
+    "ssh_password": "photon",
+    "vcenter_server": "",
+    "vmx_version": "13"
+  },
+  "builders": [
+    {
+      "vm_name": "capv-haproxy",
+      "type": "vsphere-iso",
+      "vcenter_server":      "{{user `vcenter_server`}}",
+      "username":            "{{user `username`}}",
+      "password":            "{{user `password`}}",
+      "insecure_connection": "{{user `insecure_connection`}}",
+      "datastore": "{{user `datastore`}}",
+      "folder": "{{user `folder`}}",
+      "host":     "{{user `host`}}",
+      "convert_to_template": "true",
+      "cluster": "{{user `cluster`}}",
+      "network": "{{user `network`}}",
+      "vm_version": "{{user `vmx_version`}}",
+      "CPUs": 1,
+      "cpu_cores": 1,
+      "RAM": 2048,
+      "disk_size": 20480,
+      "disk_controller_type": "{{user `disk_controller_type`}}",
+      "disk_thin_provisioned": "{{user `disk_thin_provisioned`}}",
+      "network_card": "{{user `network_card`}}",
+      "boot_wait": "5s",
+      "http_directory": "{{pwd}}",
+      "guest_os_type": "vmwarePhoton64Guest",
+      "iso_urls": "{{user `iso_url`}}",
+      "iso_checksum": "{{user `iso_checksum`}}",
+      "iso_checksum_type": "{{user `iso_checksum_type`}}",
+      "ssh_username": "{{user `ssh_username`}}",
+      "ssh_password": "{{user `ssh_password`}}",
+      "boot_command": [
+        "<esc><wait>",
+        "vmlinuz initrd=initrd.img root=/dev/ram0 loglevel=3 ",
+        "ks=http://{{ .HTTPIP }}:{{ .HTTPPort }}/kickstart.json ",
+        "photon.media=cdrom<enter>"
+      ],
+      "shutdown_command": "echo '{{user `ssh_password`}}' | sudo -S -E sh -c 'usermod -L root && usermod -L {{user `ssh_username`}} && shutdown now'"
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "ansible",
+      "playbook_file": "./ansible/playbook.yml",
+      "ansible_env_vars": [
+        "ANSIBLE_SSH_ARGS='{{user `existing_ansible_ssh_args`}} -o IdentitiesOnly=yes'",
+        "ANSIBLE_REMOTE_TEMP='/tmp/.ansible/'"
+      ],
+      "extra_arguments": [
+        "--extra-vars",
+        "guestinfo_datasource_slug={{user `guestinfo_datasource_slug`}} guestinfo_datasource_ref={{user `guestinfo_datasource_ref`}} guestinfo_datasource_script={{user `guestinfo_datasource_script`}} dataplane_url={{user `dataplane_url`}}"
+      ]
+    }
+  ]
+}

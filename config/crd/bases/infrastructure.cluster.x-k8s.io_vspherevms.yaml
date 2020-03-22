@@ -151,7 +151,7 @@ spec:
                         ipAddrs:
                           description: IPAddrs is a list of one or more IPv4 and/or
                             IPv6 addresses to assign to this device. Required when
-                            DHCP4 and DHCP6 are both false.
+                            DHCP4 and DHCP6 are both false. Written in CIDR notation.
                           items:
                             type: string
                           type: array

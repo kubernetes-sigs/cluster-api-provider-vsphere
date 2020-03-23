@@ -252,6 +252,9 @@ func Test_GetMachineMetadata(t *testing.T) {
 			expected: `
 instance-id: "test-vm"
 local-hostname: "test-vm"
+wait-on-network:
+  ipv4: true
+  ipv6: false
 network:
   version: 2
   ethernets:
@@ -285,6 +288,9 @@ network:
 			expected: `
 instance-id: "test-vm"
 local-hostname: "test-vm"
+wait-on-network:
+  ipv4: true
+  ipv6: false
 network:
   version: 2
   ethernets:
@@ -317,6 +323,9 @@ network:
 			expected: `
 instance-id: "test-vm"
 local-hostname: "test-vm"
+wait-on-network:
+  ipv4: false
+  ipv6: true
 network:
   version: 2
   ethernets:
@@ -350,6 +359,9 @@ network:
 			expected: `
 instance-id: "test-vm"
 local-hostname: "test-vm"
+wait-on-network:
+  ipv4: true
+  ipv6: true
 network:
   version: 2
   ethernets:
@@ -384,6 +396,9 @@ network:
 			expected: `
 instance-id: "test-vm"
 local-hostname: "test-vm"
+wait-on-network:
+  ipv4: true
+  ipv6: true
 network:
   version: 2
   ethernets:
@@ -428,6 +443,9 @@ network:
 			expected: `
 instance-id: "test-vm"
 local-hostname: "test-vm"
+wait-on-network:
+  ipv4: true
+  ipv6: true
 network:
   version: 2
   ethernets:
@@ -480,6 +498,9 @@ network:
 			expected: `
 instance-id: "test-vm"
 local-hostname: "test-vm"
+wait-on-network:
+  ipv4: true
+  ipv6: true
 network:
   version: 2
   ethernets:
@@ -534,6 +555,9 @@ network:
 			expected: `
 instance-id: "test-vm"
 local-hostname: "test-vm"
+wait-on-network:
+  ipv4: true
+  ipv6: true
 network:
   version: 2
   ethernets:

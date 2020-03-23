@@ -17,6 +17,11 @@
     last_log_mode:   "0644"
     machine_id_mode: "0444"
 
+- name: Set LinkLocalAddressing to no
+  lineinfile:
+    path: /etc/systemd/network/99-dhcp-en.network
+    line: LinkLocalAddressing=no
+
 - name: Set hostname
   command: hostnamectl set-hostname localhost.local
 

@@ -357,6 +357,16 @@ func (r haproxylbReconciler) BackEndpointsForCluster(ctx *context.HAProxyLoadBal
 	controlPlaneMachines := clusterutilv1.GetControlPlaneMachinesFromList(machineList)
 	endpoints := make([]corev1.EndpointAddress, 0)
 	for _, machine := range controlPlaneMachines {
+
+		// check if machine has joined the cluster before adding it to the list of backends
+		if ctx.Cluster.Status.ControlPlaneInitialized {
+			if machine.Status.NodeRef == nil ||
+				machine.Status.FailureReason != nil ||
+				machine.Status.FailureMessage != nil {
+				continue
+			}
+		}
+
 		machineEndpoints := make([]corev1.EndpointAddress, 0)
 		for i, addr := range machine.Status.Addresses {
 			if addr.Type == clusterv1.MachineExternalIP {

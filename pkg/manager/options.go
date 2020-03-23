@@ -136,10 +136,6 @@ func (o *Options) defaults() {
 		o.Scheme = runtime.NewScheme()
 	}
 
-	if o.MaxConcurrentReconciles == 0 {
-		o.MaxConcurrentReconciles = DefaultMaxConcurrentReconciles
-	}
-
 	if o.Username == "" || o.Password == "" {
 		credentials := o.getCredentials()
 		o.Username = credentials["username"]

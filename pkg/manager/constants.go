@@ -29,10 +29,6 @@ const (
 	// manager option.
 	DefaultSyncPeriod = time.Minute * 10
 
-	// DefaultMaxConcurrentReconciles is the default value for the eponymous
-	// manager option.
-	DefaultMaxConcurrentReconciles = 1
-
 	// DefaultPodName is the default value for the eponymous manager option.
 	DefaultPodName = defaultPrefix + "controller-manager"
 

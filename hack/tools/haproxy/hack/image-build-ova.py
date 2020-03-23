@@ -75,9 +75,6 @@ def main():
         'ARTIFACT_ID': build['artifact_id'],
         'BUILD_TIMESTAMP': build_data['build_timestamp'],
         'VERSION': build_data['version'],
-        'ISO_CHECKSUM': build_data['iso_checksum'],
-        'ISO_CHECKSUM_TYPE': build_data['iso_checksum_type'],
-        'ISO_URL': build_data['iso_url'],
         'POPULATED_DISK_SIZE': vmdk['size'],
         'STREAM_DISK_SIZE': vmdk['stream_size'],
         'VMX_VERSION': args.vmx_version,
@@ -544,9 +541,6 @@ EVALUATION LICENSE.  If You are licensing the Software for evaluation purposes, 
       <Category>Cluster API Provider (CAPI)</Category>
       <Property ovf:userConfigurable="false" ovf:value="${BUILD_TIMESTAMP}" ovf:type="string" ovf:key="BUILD_TIMESTAMP"></Property>
       <Property ovf:userConfigurable="false" ovf:value="${BUILD_DATE}" ovf:type="string" ovf:key="BUILD_DATE"></Property>
-      <Property ovf:userConfigurable="false" ovf:value="${ISO_URL}" ovf:type="string" ovf:key="ISO_URL"></Property>
-      <Property ovf:userConfigurable="false" ovf:value="${ISO_CHECKSUM}" ovf:type="string" ovf:key="ISO_CHECKSUM"></Property>
-      <Property ovf:userConfigurable="false" ovf:value="${ISO_CHECKSUM_TYPE}" ovf:type="string" ovf:key="ISO_CHECKSUM_TYPE"></Property>
     </ProductSection>
   </VirtualSystem>
 </Envelope>

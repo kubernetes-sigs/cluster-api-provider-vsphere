@@ -3,12 +3,13 @@
 aliases:
   sig-cluster-lifecycle-leads:
     - justinsb
-    - luxas
+    - neolit123
     - timothysc
   cluster-api-admins:
-    - davidewatson
     - detiber
     - justinsb
+    - davidewatson
+    - vincepri
   cluster-api-maintainers:
     - justinsb
     - detiber
@@ -17,9 +18,11 @@ aliases:
     - chuckha
   cluster-api-vsphere-maintainers:
     - frapposelli
+    - yastij
+    - randomvariable
+  cluster-api-vsphere-emeritus-maintainers:
     - sflxn
     - sidharthsurana
     - figo
     - akutz
     - andrewsykim
-    - yastij

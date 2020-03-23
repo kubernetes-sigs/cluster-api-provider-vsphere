@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -86,7 +87,8 @@ func AddVMControllerToManager(ctx *context.ControllerManagerContext, mgr manager
 			&source.Channel{Source: ctx.GetGenericEventChannelFor(controlledTypeGVK)},
 			&handler.EnqueueRequestForObject{},
 		).
-		Build(r)
+		WithOptions(controller.Options{MaxConcurrentReconciles: ctx.MaxConcurrentReconciles})
+	Build(r)
 
 	if err != nil {
 		return err

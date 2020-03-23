@@ -35,6 +35,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -121,7 +122,8 @@ func AddClusterControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 			&source.Channel{Source: ctx.GetGenericEventChannelFor(controlledTypeGVK)},
 			&handler.EnqueueRequestForObject{},
 		).
-		Complete(reconciler)
+		WithOptions(controller.Options{MaxConcurrentReconciles: ctx.MaxConcurrentReconciles})
+	Complete(reconciler)
 }
 
 type clusterReconciler struct {

@@ -89,7 +89,7 @@ func main() {
 	flag.IntVar(
 		&managerOpts.MaxConcurrentReconciles,
 		"max-concurrent-reconciles",
-		defaultMaxConcurrentReconciles,
+		10,
 		"The maximum number of allowed, concurrent reconciles.")
 	flag.StringVar(
 		&managerOpts.PodName,

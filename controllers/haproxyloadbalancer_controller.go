@@ -116,8 +116,8 @@ func AddHAProxyLoadBalancerControllerToManager(ctx *context.ControllerManagerCon
 			&source.Channel{Source: ctx.GetGenericEventChannelFor(controlledTypeGVK)},
 			&handler.EnqueueRequestForObject{},
 		).
-		WithOptions(controller.Options{MaxConcurrentReconciles: ctx.MaxConcurrentReconciles})
-	Build(reconciler)
+		WithOptions(controller.Options{MaxConcurrentReconciles: ctx.MaxConcurrentReconciles}).
+		Build(reconciler)
 	if err != nil {
 		return err
 	}

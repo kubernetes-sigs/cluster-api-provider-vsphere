@@ -40,13 +40,12 @@ import (
 var (
 	setupLog = ctrllog.Log.WithName("entrypoint")
 
-	managerOpts                    manager.Options
-	defaultProfilerAddr            = os.Getenv("PROFILER_ADDR")
-	defaultSyncPeriod              = manager.DefaultSyncPeriod
-	defaultMaxConcurrentReconciles = manager.DefaultMaxConcurrentReconciles
-	defaultLeaderElectionID        = manager.DefaultLeaderElectionID
-	defaultPodName                 = manager.DefaultPodName
-	defaultWebhookPort             = manager.DefaultWebhookServiceContainerPort
+	managerOpts             manager.Options
+	defaultProfilerAddr     = os.Getenv("PROFILER_ADDR")
+	defaultSyncPeriod       = manager.DefaultSyncPeriod
+	defaultLeaderElectionID = manager.DefaultLeaderElectionID
+	defaultPodName          = manager.DefaultPodName
+	defaultWebhookPort      = manager.DefaultWebhookServiceContainerPort
 )
 
 // nolint:gocognit

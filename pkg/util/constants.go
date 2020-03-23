@@ -19,6 +19,9 @@ package util
 const metadataFormat = `
 instance-id: "{{ .Hostname }}"
 local-hostname: "{{ .Hostname }}"
+wait-on-network:
+  ipv4: {{ .WaitForIPv4 }}
+  ipv6: {{ .WaitForIPv6 }}
 network:
   version: 2
   ethernets:

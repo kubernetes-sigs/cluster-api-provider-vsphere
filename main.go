@@ -18,9 +18,11 @@ package main
 
 import (
 	"flag"
+	"math/rand"
 	"net/http"
 	"net/http/pprof"
 	"os"
+	"time"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
@@ -50,6 +52,8 @@ var (
 
 // nolint:gocognit
 func main() {
+	rand.Seed(time.Now().UnixNano())
+
 	klog.InitFlags(nil)
 	ctrllog.SetLogger(klogr.New())
 	if err := flag.Set("v", "2"); err != nil {

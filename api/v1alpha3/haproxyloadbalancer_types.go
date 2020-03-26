@@ -37,6 +37,10 @@ type HAProxyLoadBalancerSpec struct {
 	// deployed VM.
 	// +optional
 	User *SSHUser `json:"user,omitempty"`
+
+	// NTP specifies NTP configuration
+	// +optional
+	NTP *NTP `json:"ntp,omitempty"`
 }
 
 // HAProxyLoadBalancerStatus defines the observed state of HAProxyLoadBalancer.

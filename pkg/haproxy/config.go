@@ -140,6 +140,16 @@ users:
   {{- end }}
   {{- end }}
 {{- end }}
+
+{{- if .NTP }}
+ntp:
+  {{ if .Enabled -}}
+  enabled: true
+  {{ end -}}
+  servers:{{ range .Servers }}
+    - {{ . }}
+  {{- end -}}
+{{- end -}}
 `
 
 // DataplaneConfig contains the information required to communicate with an
@@ -208,6 +218,9 @@ type RenderConfiguration struct {
 	// SSHUser is for breakglass access
 	SSHUser *infrav1.SSHUser
 
+	// NTP is time configuration
+	NTP *infrav1.NTP
+
 	// Hostname is the hostname of the load balancer
 	Hostname string
 
@@ -239,6 +252,7 @@ func (c RenderConfiguration) WithBootstrapInfo(haProxyLoadBalancer infrav1.HAPro
 		Password:                 password,
 	}
 	c.SSHUser = haProxyLoadBalancer.Spec.User
+	c.NTP = haProxyLoadBalancer.Spec.NTP
 	c.Hostname = "{{ ds.meta_data.hostname }}"
 	c.IPv4Address = "{{ ds.meta_data.local_ipv4 }}"
 	c.CertificateAuthorityKey = signingCertificateKey

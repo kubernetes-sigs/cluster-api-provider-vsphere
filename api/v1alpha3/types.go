@@ -323,3 +323,14 @@ type SSHUser struct {
 	// AuthorizedKeys is one or more public SSH keys that grant remote access.
 	AuthorizedKeys []string `json:"authorizedKeys"`
 }
+
+// NTP defines input for generated ntp in cloud-init
+type NTP struct {
+	// Servers specifies which NTP servers to use
+	// +optional
+	Servers []string `json:"servers,omitempty"`
+
+	// Enabled specifies whether NTP should be enabled
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+}

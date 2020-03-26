@@ -290,6 +290,7 @@ func (r haproxylbReconciler) reconcileNormal(ctx *context.HAProxyLoadBalancerCon
 				ctx.Logger.Error(err, "Failed to create signing certificate/key pair secret")
 				return ctrl.Result{}, err
 			}
+			ctx.Logger.Info("New certificate generated")
 			// Create the HAProxyLoadBalancer's bootstrap data secret.
 			if err := haproxy.CreateBootstrapSecret(ctx, ctx.Client, ctx.Cluster, ctx.HAProxyLoadBalancer); err != nil {
 				if !apierrors.IsAlreadyExists(err) {

@@ -182,6 +182,12 @@ func Clone(ctx *context.VMContext, bootstrapData []byte) error {
 
 	ctx.VSphereVM.Status.TaskRef = task.Reference().Value
 
+	// patch the vsphereVM here to ensure that the task is
+	// reflected in the status right away, this avoid situations
+	// of concurrent clones
+	if err := ctx.Patch(); err != nil {
+		ctx.Logger.Error(err, "patch failed", "vspherevm", ctx.VSphereVM)
+	}
 	return nil
 }
 

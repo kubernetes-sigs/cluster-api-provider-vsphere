@@ -22,6 +22,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 // NewVMContext returns a fake VMContext for unit testing
@@ -36,10 +37,16 @@ func NewVMContext(ctx *context.ControllerContext) *context.VMContext {
 		panic(err)
 	}
 
+	helper, err := patch.NewHelper(&vsphereVM, ctx.Client)
+	if err != nil {
+		panic(err)
+	}
+
 	return &context.VMContext{
 		ControllerContext: ctx,
 		VSphereVM:         &vsphereVM,
 		Logger:            ctx.Logger.WithName(vsphereVM.Name),
+		PatchHelper:       helper,
 	}
 }
 

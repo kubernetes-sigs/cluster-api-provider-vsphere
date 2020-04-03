@@ -17,7 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	goctx "context"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -43,11 +42,8 @@ import (
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
@@ -121,25 +117,12 @@ func AddHAProxyLoadBalancerControllerToManager(ctx *context.ControllerManagerCon
 	if err != nil {
 		return err
 	}
-	err = controller.Watch(
-		&source.Kind{Type: &clusterv1.Cluster{}},
-		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: handler.ToRequestsFunc(reconciler.reconcileClusterToHAProxyLoadBalancers),
-		},
-		predicate.Funcs{
-			UpdateFunc: func(e event.UpdateEvent) bool {
-				oldCluster := e.ObjectOld.(*clusterv1.Cluster)
-				newCluster := e.ObjectNew.(*clusterv1.Cluster)
-				return oldCluster.Spec.Paused && !newCluster.Spec.Paused
-			},
-			CreateFunc: func(e event.CreateEvent) bool {
-				if _, ok := e.Meta.GetAnnotations()[clusterv1.PausedAnnotation]; !ok {
-					return false
-				}
-				return true
-			},
-		})
+	// Add a watch on clusterv1.Cluster object for paused notifications.
+	clusterToHAProxyLoadBalancers, err := clusterutilv1.ClusterToObjectsMapper(mgr.GetClient(), &infrav1.HAProxyLoadBalancerList{}, mgr.GetScheme())
 	if err != nil {
+		return err
+	}
+	if err := clusterutilv1.WatchOnClusterPaused(controller, clusterToHAProxyLoadBalancers); err != nil {
 		return err
 	}
 	return nil
@@ -694,30 +677,4 @@ func (r haproxylbReconciler) controlPlaneMachineToHAProxyLoadBalancer(o handler.
 			Name:      loadBalancerRef.Name,
 		},
 	}}
-}
-
-func (r *haproxylbReconciler) reconcileClusterToHAProxyLoadBalancers(a handler.MapObject) []reconcile.Request {
-	requests := []reconcile.Request{}
-	lbs := &infrav1.HAProxyLoadBalancerList{}
-	err := r.Client.List(goctx.Background(),
-		lbs,
-		ctrlclient.InNamespace(a.Meta.GetNamespace()),
-		ctrlclient.MatchingLabels(
-			map[string]string{
-				clusterv1.ClusterLabelName: a.Meta.GetName(),
-			},
-		))
-	if err != nil {
-		return requests
-	}
-	for _, lb := range lbs.Items {
-		r := reconcile.Request{
-			NamespacedName: apitypes.NamespacedName{
-				Name:      lb.Name,
-				Namespace: lb.Namespace,
-			},
-		}
-		requests = append(requests, r)
-	}
-	return requests
 }

@@ -17,7 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	goctx "context"
 	"fmt"
 	"reflect"
 	"strings"
@@ -27,19 +26,14 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	apitypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
-	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
@@ -93,26 +87,12 @@ func AddVMControllerToManager(ctx *context.ControllerManagerContext, mgr manager
 	if err != nil {
 		return err
 	}
-
-	err = controller.Watch(
-		&source.Kind{Type: &clusterv1.Cluster{}},
-		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: handler.ToRequestsFunc(r.clusterToVSphereVMs),
-		},
-		predicate.Funcs{
-			UpdateFunc: func(e event.UpdateEvent) bool {
-				oldCluster := e.ObjectOld.(*clusterv1.Cluster)
-				newCluster := e.ObjectNew.(*clusterv1.Cluster)
-				return oldCluster.Spec.Paused && !newCluster.Spec.Paused
-			},
-			CreateFunc: func(e event.CreateEvent) bool {
-				if _, ok := e.Meta.GetAnnotations()[clusterv1.PausedAnnotation]; !ok {
-					return false
-				}
-				return true
-			},
-		})
+	// Add a watch on clusterv1.Cluster object for paused notifications.
+	clusterToVsphereVMs, err := clusterutilv1.ClusterToObjectsMapper(mgr.GetClient(), &infrav1.VSphereVMList{}, mgr.GetScheme())
 	if err != nil {
+		return err
+	}
+	if err := clusterutilv1.WatchOnClusterPaused(controller, clusterToVsphereVMs); err != nil {
 		return err
 	}
 	return nil
@@ -343,27 +323,4 @@ func (r vmReconciler) reconcileNetwork(ctx *context.VMContext, vm infrav1.Virtua
 		ipAddrs = append(ipAddrs, netStatus.IPAddrs...)
 	}
 	ctx.VSphereVM.Status.Addresses = ipAddrs
-}
-
-func (r *vmReconciler) clusterToVSphereVMs(a handler.MapObject) []reconcile.Request {
-	requests := []reconcile.Request{}
-	vms := &infrav1.VSphereVMList{}
-	err := r.Client.List(goctx.Background(), vms, ctrlclient.MatchingLabels(
-		map[string]string{
-			clusterv1.ClusterLabelName: a.Meta.GetName(),
-		},
-	))
-	if err != nil {
-		return requests
-	}
-	for _, vm := range vms.Items {
-		r := reconcile.Request{
-			NamespacedName: apitypes.NamespacedName{
-				Name:      vm.Name,
-				Namespace: vm.Namespace,
-			},
-		}
-		requests = append(requests, r)
-	}
-	return requests
 }

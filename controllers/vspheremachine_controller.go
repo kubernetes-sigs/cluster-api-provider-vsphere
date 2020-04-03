@@ -17,7 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	goctx "context"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -37,10 +36,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
@@ -109,25 +106,12 @@ func AddMachineControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 		return err
 	}
 
-	err = controller.Watch(
-		&source.Kind{Type: &clusterv1.Cluster{}},
-		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: handler.ToRequestsFunc(r.clusterToVSphereMachines),
-		},
-		predicate.Funcs{
-			UpdateFunc: func(e event.UpdateEvent) bool {
-				oldCluster := e.ObjectOld.(*clusterv1.Cluster)
-				newCluster := e.ObjectNew.(*clusterv1.Cluster)
-				return oldCluster.Spec.Paused && !newCluster.Spec.Paused
-			},
-			CreateFunc: func(e event.CreateEvent) bool {
-				if _, ok := e.Meta.GetAnnotations()[clusterv1.PausedAnnotation]; !ok {
-					return false
-				}
-				return true
-			},
-		})
+	// Add a watch on clusterv1.Cluster object for paused notifications.
+	clusterToVsphereMachines, err := clusterutilv1.ClusterToObjectsMapper(mgr.GetClient(), &infrav1.VSphereMachineList{}, mgr.GetScheme())
 	if err != nil {
+		return err
+	}
+	if err := clusterutilv1.WatchOnClusterPaused(controller, clusterToVsphereMachines); err != nil {
 		return err
 	}
 	return nil
@@ -566,22 +550,4 @@ func (r machineReconciler) reconcileReadyState(ctx *context.MachineContext, vm *
 
 	ctx.VSphereMachine.Status.Ready = true
 	return true, nil
-}
-
-func (r *machineReconciler) clusterToVSphereMachines(a handler.MapObject) []reconcile.Request {
-	requests := []reconcile.Request{}
-	machines, err := infrautilv1.GetMachinesInCluster(goctx.Background(), r.Client, a.Meta.GetNamespace(), a.Meta.GetName())
-	if err != nil {
-		return requests
-	}
-	for _, m := range machines {
-		r := reconcile.Request{
-			NamespacedName: apitypes.NamespacedName{
-				Name:      m.Name,
-				Namespace: m.Namespace,
-			},
-		}
-		requests = append(requests, r)
-	}
-	return requests
 }

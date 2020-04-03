@@ -37,7 +37,7 @@ install_kind() {
 }
 
 install_ginkgo() {
-   GO111MODULE="on" go get github.com/onsi/ginkgo/ginkgo@v1.11.0
+   GO111MODULE="on" go get github.com/onsi/ginkgo/ginkgo@v1.12.0
 }
 
 install_kustomize() {
@@ -116,11 +116,7 @@ export VSPHERE_NETWORK="sddc-cgw-network-5"
 export VSPHERE_MACHINE_TEMPLATE="centos-7-kube-v1.16.2"
 export VSPHERE_HAPROXY_TEMPLATE="capv-haproxy-v0.5.3-77-g224e0ef6"
 
-export CAPI_IMAGE="gcr.io/k8s-staging-cluster-api/cluster-api-controller:v20200103-v0.2.5-497-gdbe789259"
-export CAPI_GIT_REF="09949bd397eecbfeac4e011b0d2c29fdbf2ac1ef"
-
 export GC_KIND="false"
-
 # Run the vpn client in container
 docker run --rm -d --name vpn  -v "${HOME}/.openvpn/:${HOME}/.openvpn/" \
  -w "${HOME}/.openvpn/" --cap-add=NET_ADMIN --net=host --device=/dev/net/tun  \

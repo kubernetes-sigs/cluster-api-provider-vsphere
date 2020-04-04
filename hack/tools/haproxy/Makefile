@@ -69,11 +69,11 @@ verify: ## Verifies the packer config
 	packer validate $(PACKER_FLAGS) packer.json
 
 .PHONY: vsphere-build-template
-build-template: ## Builds the HAProxy load balancer template
+vsphere-uild-template: ## Builds the HAProxy load balancer template
 	packer build $(PACKER_FLAGS) packer-template.json
 
-.PHONY: verify-template
-verify-template: ## Verifies the packer config
+.PHONY: vsphere-verify-template
+vsphere-verify-template: ## Verifies the packer config
 	packer validate $(PACKER_FLAGS) packer-api.json
 
 ## --------------------------------------

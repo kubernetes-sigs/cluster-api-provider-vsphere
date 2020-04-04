@@ -68,8 +68,8 @@ build: ## Builds the HAProxy load balancer OVA
 verify: ## Verifies the packer config
 	packer validate $(PACKER_FLAGS) packer.json
 
-.PHONY: build-template
-build-template: ## Builds the HAProxy load balancer OVA
+.PHONY: vsphere-build-template
+build-template: ## Builds the HAProxy load balancer template
 	packer build $(PACKER_FLAGS) packer-template.json
 
 .PHONY: verify-template

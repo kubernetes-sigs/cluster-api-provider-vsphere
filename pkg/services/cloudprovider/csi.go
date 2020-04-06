@@ -287,9 +287,8 @@ func NodeDriverRegistrarContainer(image string) corev1.Container {
 
 func VSphereCSINodeContainer(image string) corev1.Container {
 	return corev1.Container{
-		Name:            "vsphere-csi-node",
-		Image:           image,
-		ImagePullPolicy: corev1.PullAlways,
+		Name:  "vsphere-csi-node",
+		Image: image,
 		Env: []corev1.EnvVar{
 			{
 				Name:  "CSI_ENDPOINT",
@@ -486,8 +485,7 @@ func VSphereCSIControllerContainer(image string) corev1.Container {
 				},
 			},
 		},
-		Args:            []string{"--v=4"},
-		ImagePullPolicy: corev1.PullAlways,
+		Args: []string{"--v=4"},
 		Ports: []corev1.ContainerPort{
 			{
 				Name:          "healthz",
@@ -557,10 +555,9 @@ func LivenessProbeForCSIControllerContainer(image string) corev1.Container {
 
 func VSphereSyncerContainer(image string) corev1.Container {
 	return corev1.Container{
-		Name:            "vsphere-syncer",
-		Image:           image,
-		Args:            []string{"--v=4"},
-		ImagePullPolicy: corev1.PullAlways,
+		Name:  "vsphere-syncer",
+		Image: image,
+		Args:  []string{"--v=4"},
 		Env: []corev1.EnvVar{
 			{
 				Name:  "X_CSI_FULL_SYNC_INTERVAL_MINUTES",

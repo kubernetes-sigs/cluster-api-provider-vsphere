@@ -37,6 +37,75 @@ spec:
           spec:
             description: HAProxyLoadBalancerSpec defines the desired state of HAProxyLoadBalancer.
             properties:
+              extraServices:
+                description: ExtraServices is additional services that will proxied
+                  to.
+                items:
+                  description: ExtraServices defines additional services that will
+                    be proxied by HAProxyLoadBalancer.
+                  properties:
+                    healthCheck:
+                      description: HealthCheck options
+                      properties:
+                        httpCheck:
+                          description: HTTP health check option
+                          properties:
+                            method:
+                              type: string
+                            response:
+                              description: HTTP check expected response
+                              properties:
+                                status:
+                                  description: HTTP status code response expected
+                                  type: string
+                              type: object
+                            scheme:
+                              description: HTTP scheme to use (HTTP or HTTPS)
+                              type: string
+                            uri:
+                              type: string
+                            verify:
+                              description: Flag to indicate if certificate needs to
+                                be verified
+                              type: boolean
+                            version:
+                              type: string
+                          type: object
+                      type: object
+                    machineSelector:
+                      additionalProperties:
+                        type: string
+                      description: Label selector for backend servers. Machines matching
+                        the labels will be selected as targets for the backend servers
+                      type: object
+                    name:
+                      description: The name of this service
+                      type: string
+                    ports:
+                      description: The list of ports that are exposed by this service.
+                      items:
+                        description: ExtraServicePort defines the frontend and backend
+                          ports used by HAProxyLoadBalancer
+                        properties:
+                          port:
+                            description: Port is the haproxy port that will bind to
+                              the service
+                            format: int32
+                            type: integer
+                          targetPort:
+                            description: TargetPort is the port that the service is
+                              listening on. If not specified use Port.
+                            format: int32
+                            type: integer
+                        required:
+                        - port
+                        type: object
+                      type: array
+                  required:
+                  - name
+                  - ports
+                  type: object
+                type: array
               user:
                 description: SSHUser specifies the name of a user that is granted
                   remote access to the deployed VM.

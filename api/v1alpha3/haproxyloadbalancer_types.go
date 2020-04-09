@@ -17,7 +17,9 @@ limitations under the License.
 package v1alpha3
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/contrib/haproxy/openapi"
 )
 
 const (
@@ -37,6 +39,83 @@ type HAProxyLoadBalancerSpec struct {
 	// deployed VM.
 	// +optional
 	User *SSHUser `json:"user,omitempty"`
+
+	// ExtraServices is additional services that will proxied to.
+	// +optional
+	ExtraServices []ExtraService `json:"extraServices,omitempty"`
+}
+
+// ExtraServices defines additional services that will be proxied by HAProxyLoadBalancer.
+type ExtraService struct {
+	// The name of this service
+	Name string `json:"name"`
+
+	// The list of ports that are exposed by this service.
+	Ports []ExtraServicePort `json:"ports"`
+
+	// Label selector for backend servers. Machines matching
+	// the labels will be selected as targets for the backend servers
+	// If this is empty, then all the machines are selected by default
+	// +optional
+	MachineSelector map[string]string `json:"machineSelector,omitempty"`
+
+	// HealthCheck options
+	// +optional
+	HealthCheck *HealthCheck `json:"healthCheck,omitempty"`
+}
+
+// ExtraServicePort defines the frontend and backend ports used by HAProxyLoadBalancer
+type ExtraServicePort struct {
+	// Port is the haproxy port that will bind to the service
+	Port uint32 `json:"port"`
+
+	// TargetPort is the port that the service is listening on. If not specified use Port.
+	// +optional
+	TargetPort uint32 `json:"targetPort,omitempty"`
+}
+
+// HealthCheck defines the health check
+type HealthCheck struct {
+	// HealthCheckOption used to perform health check
+	HealthCheckOption `json:",inline"`
+}
+
+// HealthCheckOption defines the different health checking options available
+type HealthCheckOption struct {
+	// HTTP health check option
+	// +optional
+	HTTPCheck *HTTPCheck `json:"httpCheck,omitempty"`
+}
+
+// HTTPCheck defines HTTP health check
+type HTTPCheck struct {
+	// HTTP check object from HAProxy
+	// +optional
+	openapi.Httpchk `json:",inline"`
+
+	// HTTP scheme to use (HTTP or HTTPS)
+	// +optional
+	Scheme corev1.URIScheme `json:"scheme,omitempty"`
+
+	// Flag to indicate if certificate needs to be verified
+	// +optional
+	Verify bool `json:"verify,omitempty"`
+
+	// HTTP check expected response
+	// +optional
+	Response *HTTPCheckResponse `json:"response,omitempty"`
+}
+
+// HTTPCheckResponse defines the different HTTP check output responses
+type HTTPCheckResponse struct {
+	HTTPCheckResponseOption `json:",inline"`
+}
+
+// HTTPCheckResponseOption defines the HTTP check output response options
+type HTTPCheckResponseOption struct {
+	// HTTP status code response expected
+	// +optional
+	Status string `json:"status,omitempty"`
 }
 
 // HAProxyLoadBalancerStatus defines the observed state of HAProxyLoadBalancer.

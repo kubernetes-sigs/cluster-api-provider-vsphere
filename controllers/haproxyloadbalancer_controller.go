@@ -55,7 +55,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/haproxy"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
-	infrautilv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
 var (
@@ -369,23 +368,91 @@ func (r haproxylbReconciler) BackEndpointsForCluster(ctx *context.HAProxyLoadBal
 			}
 		}
 
-		machineEndpoints := make([]corev1.EndpointAddress, 0)
-		for i, addr := range machine.Status.Addresses {
-			if addr.Type == clusterv1.MachineExternalIP {
-				// TODO(frapposelli): Remove this check once HAproxy fully supports IPv6 - issue #859
-				if utilnet.IsIPv6String(addr.Address) {
-					continue
-				}
-				endpoint := corev1.EndpointAddress{
-					NodeName: pointer.StringPtr(fmt.Sprintf("%s-%d", machine.Name, i)),
-					IP:       addr.Address,
-				}
-				machineEndpoints = append(machineEndpoints, endpoint)
-			}
-		}
+		machineEndpoints := getMachineEndpoints(*machine)
 		endpoints = append(endpoints, machineEndpoints...)
 	}
 	return endpoints, nil
+}
+
+// getMachineEndpoints gets the endpoints from machines
+func getMachineEndpoints(machine clusterv1.Machine) (machineEndpoints []corev1.EndpointAddress) {
+	for i, addr := range machine.Status.Addresses {
+		if addr.Type == clusterv1.MachineExternalIP {
+			// TODO(frapposelli): Remove this check once HAproxy fully supports IPv6 - issue #859
+			if utilnet.IsIPv6String(addr.Address) {
+				continue
+			}
+			endpoint := corev1.EndpointAddress{
+				NodeName: pointer.StringPtr(fmt.Sprintf("%s-%d", machine.Name, i)),
+				IP:       addr.Address,
+			}
+			machineEndpoints = append(machineEndpoints, endpoint)
+		}
+	}
+	return machineEndpoints
+}
+
+// extraServicesForCluster returns the extra services that the loadbalancer proxies to
+func (r haproxylbReconciler) extraServicesForCluster(ctx *context.HAProxyLoadBalancerContext) ([]haproxy.Service, error) {
+	services := make([]haproxy.Service, 0)
+
+	for _, extraService := range ctx.HAProxyLoadBalancer.Spec.ExtraServices {
+		// Get the CAPI Machine resources for the cluster.
+		machineList := &clusterv1.MachineList{}
+		if err := ctx.Client.List(
+			ctx, machineList,
+			ctrlclient.InNamespace(ctx.Cluster.Namespace),
+			ctrlclient.MatchingLabels(extraService.MachineSelector),
+		); err != nil {
+			return nil, errors.Wrapf(err, "Failed to get machines for cluster matching "+
+				"in namespace %s with labels %v", ctx.Cluster.Namespace, extraService.MachineSelector)
+		}
+
+		endpoints := make([]corev1.EndpointAddress, 0)
+		for i := 0; i < len(machineList.Items); i++ {
+			machine := machineList.Items[i]
+			machineEndpoints := getMachineEndpoints(machine)
+			endpoints = append(endpoints, machineEndpoints...)
+		}
+
+		if len(endpoints) == 0 {
+			return nil, nil
+		}
+
+		for _, extraServicePort := range extraService.Ports {
+			if extraServicePort.TargetPort == 0 {
+				extraServicePort.TargetPort = extraServicePort.Port
+			}
+			service := haproxy.Service{
+				Frontend: &haproxy.Frontend{
+					Name: fmt.Sprintf("%s-%d", extraService.Name, extraServicePort.Port),
+					Port: extraServicePort.Port,
+				},
+				Backend: &haproxy.Backend{
+					Port:              extraServicePort.TargetPort,
+					Addresses:         endpoints,
+					HealthCheckConfig: r.extraServicesHealthCheckConfiguration(extraService),
+				},
+			}
+			services = append(services, service)
+		}
+	}
+
+	return services, nil
+}
+
+// extraServicesHealthCheckConfiguration gets the extra service health check configurations
+func (r haproxylbReconciler) extraServicesHealthCheckConfiguration(extraService infrav1.ExtraService) *haproxy.BackendHealthCheckConfig {
+
+	if extraService.HealthCheck == nil {
+		return nil
+	}
+
+	backendHealthCheckConfig := &haproxy.BackendHealthCheckConfig{
+		HealthCheck: *extraService.HealthCheck,
+	}
+
+	return backendHealthCheckConfig
 }
 
 func (r haproxylbReconciler) reconcileLoadBalancerConfiguration(ctx *context.HAProxyLoadBalancerContext) error {
@@ -429,9 +496,15 @@ func (r haproxylbReconciler) reconcileLoadBalancerConfiguration(ctx *context.HAP
 		return errors.Wrap(err, "No backends found, skipping reconfiguration")
 	}
 
+	extraServices, err := r.extraServicesForCluster(ctx)
+	if err != nil {
+		return errors.Wrap(err, "Couldn't fetch extra services for cluster")
+	}
+
 	renderConfig := haproxy.NewRenderConfiguration().
 		WithDataPlaneConfig(dataplaneConfig).
-		WithAddresses(backends)
+		WithAddresses(backends).
+		WithExtraServices(extraServices)
 	haProxyConfig, err := renderConfig.RenderHAProxyConfiguration()
 
 	if err != nil {
@@ -598,9 +671,6 @@ func (r haproxylbReconciler) controlPlaneMachineToHAProxyLoadBalancer(o handler.
 			"Expected to receive a CAPI Machine resource",
 			"expected-type", "Machine",
 			"actual-type", fmt.Sprintf("%T", o.Object))
-		return nil
-	}
-	if !infrautilv1.IsControlPlaneMachine(machine) {
 		return nil
 	}
 	if len(machine.Status.Addresses) == 0 {

@@ -85,7 +85,14 @@ frontend stats
   stats refresh 500ms
   stats hide-version
   stats show-legends
-{{ $port := .Port | printf "%d" }}
+{{range .ExtraServices}}
+frontend svc_{{.Frontend.Name}}
+  mode tcp
+  bind *:{{.Frontend.Port | printf "%d"}} name lb
+  option tcplog
+  default_backend svc_{{.Frontend.Name}}
+{{end}}
+{{- $port := .Port | printf "%d" }}
 backend kube_api_backend
   mode tcp
   balance first
@@ -93,7 +100,23 @@ backend kube_api_backend
   default-server inter 10s downinter 10s rise 5 fall 3 slowstart 120s maxconn 1000 maxqueue 256 weight 100{{range .Addresses}}
   server {{ .NodeName }} {{ .IP }}:{{ $port }} check check-ssl verify none{{end}}
   http-check expect status 200
-
+{{range .ExtraServices}}
+{{- $backendPort := .Backend.Port | printf "%d" }}
+{{- $backendHealthCheckConfig := .Backend.HealthCheckConfig }}
+backend svc_{{.Frontend.Name}}
+  mode tcp
+  balance roundrobin
+  {{- if $backendHealthCheckConfig.Option }}
+  option {{$backendHealthCheckConfig.Option}}
+  {{- end }}
+  default-server inter 10s downinter 10s rise 5 fall 3 slowstart 120s maxconn 1000 maxqueue 256 weight 100
+  {{- range .Backend.Addresses}}
+  server {{ .NodeName }} {{ .IP }}:{{ $backendPort }}{{if $backendHealthCheckConfig.Config}} {{$backendHealthCheckConfig.Config}}{{end}}
+  {{- end }}
+  {{- range $backendHealthCheckConfig.ExtraConfigs }}
+  {{.}}
+  {{- end }}
+{{end}}
 program api
   command dataplaneapi --scheme=https --haproxy-bin=/usr/sbin/haproxy --config-file=/etc/haproxy/haproxy.cfg --reload-cmd="/usr/bin/systemctl reload haproxy" --reload-delay=5 --tls-host=0.0.0.0 --tls-port=5556 --tls-ca=/etc/haproxy/ca.crt --tls-certificate=/etc/haproxy/server.crt --tls-key=/etc/haproxy/server.key --userlist=controller
   no option start-on-reload
@@ -222,6 +245,56 @@ type RenderConfiguration struct {
 
 	// The load balancer port. Is not currently configurable.
 	Port uint32
+
+	// ExtraServices is the additional services that loadbalancer proxies to
+	ExtraServices []Service
+}
+
+// Service represents haproxy load balancing service
+type Service struct {
+	// frontend for the service
+	Frontend *Frontend
+
+	// backend for the serivce
+	Backend *Backend
+}
+
+// Frontend represent the loadbalancer endpoint that will  loadbalance the request to the backend servers
+type Frontend struct {
+	// Frontend Name
+	Name string
+
+	// load balancer port
+	Port uint32
+}
+
+// Backend represent the backend servers that host a service
+type Backend struct {
+	// backend port
+	Port uint32
+
+	// Addresses of the machines for this backend
+	Addresses []corev1.EndpointAddress
+
+	// HealthCheckConfig for this backend
+	HealthCheckConfig *BackendHealthCheckConfig
+}
+
+// BackendHealthCheckConfig represents the health check configuration for a backend
+type BackendHealthCheckConfig struct {
+	// Option defines the health check option configuration
+	// e.g. httpchk GET /readyz
+	Option string
+
+	// config defines the health check configuration in server/default-server
+	// e.g. check check-ssl verify none
+	Config string
+
+	// extraConfigs defines the extra health check configurations
+	// e.g. http-check expect status 200
+	ExtraConfigs []string
+
+	infrav1.HealthCheck
 }
 
 // NewRenderConfiguration returns a new RenderConfiguration
@@ -253,6 +326,12 @@ func (c RenderConfiguration) WithDataPlaneConfig(dpConfig DataplaneConfig) Rende
 // WithAddresses adds API server endpoints to the RenderConfiguration
 func (c RenderConfiguration) WithAddresses(addr []corev1.EndpointAddress) RenderConfiguration {
 	c.Addresses = addr
+	return c
+}
+
+// WithExtraServices add extra frontends with backends to the RenderConfiguration
+func (c RenderConfiguration) WithExtraServices(extraServices []Service) RenderConfiguration {
+	c.ExtraServices = extraServices
 	return c
 }
 
@@ -296,6 +375,8 @@ func (c *RenderConfiguration) BootstrapDataForLoadBalancer() ([]byte, error) {
 
 // RenderHAProxyConfiguration generates a haproxy.cfg file
 func (c *RenderConfiguration) RenderHAProxyConfiguration() (string, error) {
+	c.preRenderHAProxyConfiguration()
+
 	tpl := template.Must(
 		template.
 			New("haproxyTemplate").
@@ -310,6 +391,62 @@ func (c *RenderConfiguration) RenderHAProxyConfiguration() (string, error) {
 	}
 
 	return buf.String(), nil
+}
+
+// preRenderHAProxyConfiguration massages the configuration in order for it to be rendered
+func (c *RenderConfiguration) preRenderHAProxyConfiguration() {
+	if len(c.ExtraServices) == 0 {
+		return
+	}
+
+	for _, extraService := range c.ExtraServices {
+		backend := extraService.Backend
+
+		if backend != nil && backend.HealthCheckConfig != nil && backend.HealthCheckConfig.HTTPCheck != nil {
+			httpCheckConfig := backend.HealthCheckConfig.HTTPCheck
+			option, config, extraConfigs := getBackendHTTPCheckConfig(httpCheckConfig)
+			backend.HealthCheckConfig.Option = option
+			backend.HealthCheckConfig.Config = config
+			backend.HealthCheckConfig.ExtraConfigs = extraConfigs
+		}
+
+		// Set HealthCheckConfig to empty values to avoid if checks in go template
+		if backend != nil && (backend.HealthCheckConfig == nil || backend.HealthCheckConfig.HTTPCheck == nil) {
+			backend.HealthCheckConfig = &BackendHealthCheckConfig{}
+		}
+	}
+}
+
+// getBackendHTTPCheckConfig gets the option, config and extraConfigs required to be used in the template
+func getBackendHTTPCheckConfig(httpCheckConfig *infrav1.HTTPCheck) (string, string, []string) {
+	var extraConfigs []string
+
+	option := "httpchk"
+	config := "check"
+
+	if httpCheckConfig.Method != "" {
+		option = option + " " + httpCheckConfig.Method
+	}
+	if httpCheckConfig.Uri != "" {
+		option = option + " " + httpCheckConfig.Uri
+	}
+	if httpCheckConfig.Version != "" {
+		option = option + " " + httpCheckConfig.Version
+	}
+	if httpCheckConfig.Scheme == corev1.URISchemeHTTPS {
+		config += " check-ssl"
+	}
+	if httpCheckConfig.Verify {
+		config += " verify required"
+	} else {
+		config += " verify none"
+	}
+	if httpCheckConfig.Response != nil && httpCheckConfig.Response.Status != "" {
+		extraConfig := "http-check expect status " + httpCheckConfig.Response.Status
+		extraConfigs = append(extraConfigs, extraConfig)
+	}
+
+	return option, config, extraConfigs
 }
 
 func templateStringLinesIndent(i int, input string) string {

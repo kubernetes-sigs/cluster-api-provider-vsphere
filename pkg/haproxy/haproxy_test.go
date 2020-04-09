@@ -30,6 +30,8 @@ import (
 	"testing"
 	"time"
 
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
+
 	"github.com/antihax/optional"
 	"github.com/onsi/gomega"
 
@@ -45,6 +47,100 @@ server: https://localhost:%d/v1
 certificateAuthorityData: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURqekNDQW5lZ0F3SUJBZ0lKQVB1WnI3bkwvdFJsTUEwR0NTcUdTSWIzRFFFQkJRVUFNR1V4Q3pBSkJnTlYKQkFZVEFsVlRNUk13RVFZRFZRUUlEQXBEWVd4cFptOXlibWxoTVJJd0VBWURWUVFIREFsUVlXeHZJRUZzZEc4eApEekFOQmdOVkJBb01CbFpOZDJGeVpURU5NQXNHQTFVRUN3d0VRMEZRVmpFTk1Bc0dBMVVFQXd3RVkyRndkakFlCkZ3MHhPVEV5TWpNeE9EUXpNemRhRncweU9URXlNakF4T0RRek16ZGFNR1V4Q3pBSkJnTlZCQVlUQWxWVE1STXcKRVFZRFZRUUlEQXBEWVd4cFptOXlibWxoTVJJd0VBWURWUVFIREFsUVlXeHZJRUZzZEc4eER6QU5CZ05WQkFvTQpCbFpOZDJGeVpURU5NQXNHQTFVRUN3d0VRMEZRVmpFTk1Bc0dBMVVFQXd3RVkyRndkakNDQVNJd0RRWUpLb1pJCmh2Y05BUUVCQlFBRGdnRVBBRENDQVFvQ2dnRUJBTmZOQ2VEdGd2UjVMdWtBbUlSN0ZTdyt2azlEOUVhZ0xvSnoKcC9QYkNzT3pCNEhLMmtQTVBhM2NvK1BSQVVQMGhaWnp5S2hoSzhGWkVVd204Wnk2YTdTSTlwR0N5emkySktvNgpmSXpXWEdScUtzaGt3SlNXRmtib0FNd0hRTnBMNzhibHBsTTRSUlVaSHNvWHZzbHdTdGtvaEIyL2IycWNLOStYCk4zempjY2ZmRUNCTm1RWHVWU1Q3ZG5JTllsMWM0VkRZVXdIUE13Vk5sZWVOSURYU1l1VXMyemxLcGNJalNlTHEKNUtLQWVkN2lldzc1R3MrdnZCYmplTXFWSk5GWlZCVUUvVlVvNUFoMkJMTXNucDBIbzhrWkdKSUFXK1FZTFk0Ywp3YnJZQnBuaklWRnYwN2VpYTYwT3doald2R2xvcElOZnVQSGhXVmtyZVVOa3l2RHVWNjBDQXdFQUFhTkNNRUF3CkR3WURWUjBUQVFIL0JBVXdBd0VCL3pBT0JnTlZIUThCQWY4RUJBTUNBWVl3SFFZRFZSME9CQllFRkE4UTAxNmUKM0pENU5aR3lRcVU1NHhEVjJ1UExNQTBHQ1NxR1NJYjNEUUVCQlFVQUE0SUJBUURNSHhMRHBmQkVRVHI4bXBDSQpNclNVN2xzb09DanJKcGxET3NjTTk0eGE4R1R3VzlRdzhuTEJXOGZUczdqeG9VVmZPcmZHS1hWSEkxSytjSDJkCjloZlpyY3BGYjdpcmp5TXB6c3QxNnRRZFBSMldCT2I4RkJhMk5lVWxwSzhJajNXc0p5ZFNEOHdBRDB1SWovbDIKTkNrd0xtSDRMTDA0ZmhaeEM1R2sraGFOZjZtWGhxbVg5L1M5RWRkbTFQN2dma0V2YVA4bVFSNklOSXBnMmFoTgpGTzdjNkdNRDg2YlpxcmNuZ2dUNG9uV3dEN3pZRlEyMXg1NDVYY3BvWUd5STRyUlJUbVVlWC9BTXJ4Nm0zb00yCmpBZmVscytSR01vbytXZ05UekZCWnp0b1k0WkZMSDhGZVFsV1BnRDRad0FULzNMN2dNbDZNOVFKMzByVlg1MkoKNGEyWQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
 clientCertificateData: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURwVENDQW8yZ0F3SUJBZ0lKQU1YQ2ozRW1CeXVMTUEwR0NTcUdTSWIzRFFFQkJRVUFNR1V4Q3pBSkJnTlYKQkFZVEFsVlRNUk13RVFZRFZRUUlEQXBEWVd4cFptOXlibWxoTVJJd0VBWURWUVFIREFsUVlXeHZJRUZzZEc4eApEekFOQmdOVkJBb01CbFpOZDJGeVpURU5NQXNHQTFVRUN3d0VRMEZRVmpFTk1Bc0dBMVVFQXd3RVkyRndkakFlCkZ3MHhPVEV5TWpNeU1qQTBNRFphRncweU9URXlNakF5TWpBME1EWmFNR1V4Q3pBSkJnTlZCQVlUQWxWVE1STXcKRVFZRFZRUUlEQXBEWVd4cFptOXlibWxoTVJJd0VBWURWUVFIREFsUVlXeHZJRUZzZEc4eER6QU5CZ05WQkFvTQpCbFpOZDJGeVpURU5NQXNHQTFVRUN3d0VRMEZRVmpFTk1Bc0dBMVVFQXd3RVkyRndkakNDQVNJd0RRWUpLb1pJCmh2Y05BUUVCQlFBRGdnRVBBRENDQVFvQ2dnRUJBT0lXZmU5TDduT01jQk5kbVdXdnR5VkIvbktyVnVqVlA5eU8KYWhzOWRHNWF2V3JTS3A2VFpxUXFIeVF1bnoyUDFqLzNlVU5CVnNCN3EyaWFjN2x2RWFzOGk4Z3ZNNmNuWmpDeQpzUHVuT3BjSFR0bVo3Y2tsVzJ4SmsvNjdnN0NkZXJNSFVGbEVLWjJHZzBkS3kxR0hUMEs2MHhCcGJiY3I3VUxICmJBc1NXZnBRcXIzSW9MSlZJejBWSWt5Wm9GRGM4TXE4eVdGeFRGcGRNNTN0SVE1dFJKYkZwWFZxMUZLUjBRbk0KZlNncGwzQlhIZjlocW9pRXd0dDBOTGFUYThvajMzZ2ZBZDlKZGtKeVFHTXhpblJGTkdJVGxTNjNJM3JkQXIyRQpiVFo2cFYxWG5HYk93ZlFqRE1QQjRlUjdMSDk3SUYrbnJwUHlwK0lkejB3aEdNckZBVFVDQXdFQUFhTllNRll3CkNRWURWUjBUQkFJd0FEQUxCZ05WSFE4RUJBTUNCYUF3SFFZRFZSMGxCQll3RkFZSUt3WUJCUVVIQXdJR0NDc0cKQVFVRkJ3TUJNQjBHQTFVZERnUVdCQlJQZ3NIWU13a2tVdGJJM2VtTmxBOE0vR0o2VlRBTkJna3Foa2lHOXcwQgpBUVVGQUFPQ0FRRUFiZnlSRHRoWGlMRUNtQ0k5Y1FlNlE5d01TU3VwcXd1UmZZWmpNUGNXZktpcVRTbHp1ZzJ6Cks1aTBEYWtzWmN6a1NhYlpRWTRDMkRoYzRJWTJXdkRaRTZDRXJNbU12V2diQzY4VXkzZkppeXl4WVpzbEE3OVIKN3RCcU55alovdUQvM2hseEMrdGo2VzZLMDFnOHBabmZ0SkxxbTFQYm9iUFRPem40T09iUGZiOHJVcldVdk4rTgptSUNlcU56bDlOYU95bEtvNkt0cFpyZDZ3MCtBRUJoTjBPNy8zVkIyc211L2l3Q3Z1c1NBWDBrcWlLNXIwbTZmCk0xSDNrc0k2anp1SGJsNER6aGlPR3lVcFBLY3pIc0c5S1dpZDU4WjMvSldsODZKNGpFMXl0OHpkQVA3ZmsrZE8KNE9FVDE5cE1tTUhZZzlOS1JXMUhwUWhVYngzb09oRXYxZz09Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
 clientKeyData: LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlFcEFJQkFBS0NBUUVBNGhaOTcwdnVjNHh3RTEyWlphKzNKVUgrY3F0VzZOVS8zSTVxR3oxMGJscTlhdElxCm5wTm1wQ29mSkM2ZlBZL1dQL2Q1UTBGV3dIdXJhSnB6dVc4UnF6eUx5Qzh6cHlkbU1MS3crNmM2bHdkTzJabnQKeVNWYmJFbVQvcnVEc0oxNnN3ZFFXVVFwbllhRFIwckxVWWRQUXJyVEVHbHR0eXZ0UXNkc0N4SlorbENxdmNpZwpzbFVqUFJVaVRKbWdVTnp3eXJ6SllYRk1XbDB6bmUwaERtMUVsc1dsZFdyVVVwSFJDY3g5S0NtWGNGY2QvMkdxCmlJVEMyM1EwdHBOcnlpUGZlQjhCMzBsMlFuSkFZekdLZEVVMFloT1ZMcmNqZXQwQ3ZZUnRObnFsWFZlY1pzN0IKOUNNTXc4SGg1SHNzZjNzZ1g2ZXVrL0tuNGgzUFRDRVl5c1VCTlFJREFRQUJBb0lCQVFDTnRiZGQ1R1Fqdk9VSwozbUlsNEl1VktOWktIYWN0N1d4SDNHUVppdDJOeGdad0RDZDJtY0YrS0lDNGR4aU14N2x0QXJyWk12MGpUT0RWCmdlb0RVdURxU2RyN3NNcFpmVktLTjViRFJjQnRwY0VBbDRENTBSYUt1MXV1RU82c0p5a2ZTZmhNMjNLU01CdmMKOWI2VzdZNzZyb3RaQUJ3cThiZVhZZFFRNUlITmFORFR2TnZybXRPcFZuekhqd2N3MFpXTUxxd2lwY211aExvdAp2bTlScmlPY0lKcUFUMTNMQWtwNCsyOWZwUDVSTVRtTnNlVFlacnlOOVVLZzFCVG9lUDhqVkFMeGd4NDh5eExFCnRZVkhOM1RJcTVwTms3RDFDSi9IQWNNaHhFTDNENVN0MFJHQ3Y3R3pHV0M1K1drNDg2Vi90bmhwdktJSlBJKzUKblNoQnN1eEJBb0dCQVBYRFA5LzhxRFZPRnVod2RvOWErVDNyT0NOMmlYTmxBbmRKZ0NMZHY4S2YxdTkybzhodQptS0xHdm5TYm50Njd6VldJWldTU21zdENuOHpTWU5qOTZCa0NtSGlJWHJoQWVlQlFQSnNmNjBrTUJucllncy9aCmdPcXpIOUpPdzFOY25Ja3loWlZTaklubjM5cldGaUtUV0k3Q1J5ZVJkQzRJTXhRVS92UUx3K0pOQW9HQkFPdUIKYjEyVWNRdEY1RXpLNW54d2VBNTVJd0NmZjVWVGl3Um9IWDJGeVRVU2FobjlLNlM4UC9GTitWUU11NWZzYXVlawo2MGdISGZMdVhBWWlqUTFLbTRiZGdaeUpoVkxOK1d6TkhtREpHUXN1WFBSSitpZEhUeTBSMzlNQ1N4Y05Tb25RCitUaXNNeWczRUVJS1ZKMjRKNE9sZ1B1c0g3TlB2NnlobTg1dFMzNkpBb0dCQU9MYjZRcUozM3ZWS2JCR29DcVUKZjU1NGtzbXBraGZERmhPbTlYRTU0TmwzVXFDWmszWmhJT1NoTVEzUzJVUWhkOW1Nbm92SUNMdTROR3FOaUhqRgphSW90cXpFWU1OZEVMVHl5MUQ4ZHA4TTJKb1VmZHlFR1ZjcFFydjhqVllxTjRyR0N3V3lsVnJXMkpSMk1vY0lvCjRZWm1MK2lHakFneDZYU1FMUWg2RThmQkFvR0FiUVcvaTEvRHNVZEt0KzRhSXpOaHNMbU5aYVZ3eDYwa0p3Y1gKMTlzT1dWNUw5Zm9Jc1R0Z2twSFpRWHFmZ1dZMTIwU3lrdWFRaTd5aXAwaHBhZVRHK1Bra0hsWmZmUVRUV2ZYZgpBVWszS2NEdDBUMUo2OU1NS1Q0a0VxZjJJUmJMRWQvRzcrQnYwa2NqWko4cHF0WHNuUG9LS3ZmMHVPckxQZHlXCnAwcGJiNWtDZ1lCVHMrL1JicWRlVHBia0tYQmNhWVljSXByOStIT2lhR0xsMUxIaHVPUHpVOEFxVjVtT1hnNGQKamlkdEx3bE9rbHY2d1V2TVZKTWNoVWpKSkhwWTlrbjZFKyszUXZCMjlCY2ZLODVmUDlvS2YwV0IwTHAwejEzRwp0K2QzWStUQWNvNmx6Z28xbElVbi9MeHhQb2RlTGlDTjA0c2FMeTdqR2xVbVdRRjUzbFNOMlE9PQotLS0tLUVORCBSU0EgUFJJVkFURSBLRVktLS0tLQo=
+`
+
+const expectedConfig = `
+global
+  master-worker
+  maxconn 4000
+  stats socket /run/haproxy.sock user haproxy group haproxy mode 660 level admin expose-fd listeners
+  stats timeout 30s
+  ssl-default-bind-options no-sslv3
+  ssl-default-bind-ciphers ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:RSA+AESGCM:RSA+AES:!aNULL:!MD5:!DSS
+  log stdout format raw local0 info
+  chroot /var/lib/haproxy
+  user haproxy
+  group haproxy
+  ca-base /etc/ssl/certs
+  crt-base /etc/ssl/private
+
+defaults
+  mode http
+  maxconn 4000
+  log global
+  option tcplog
+  option dontlognull
+  timeout check 5s
+  timeout connect 9s
+  timeout client 10s
+  timeout queue 5m
+  timeout server 10s
+  timeout tunnel 1h
+  option tcp-smart-accept
+  timeout client-fin 10s
+
+userlist controller
+  user  insecure-password 
+
+frontend healthz
+  mode http
+  bind *:8081
+  monitor-uri /healthz
+
+frontend kube_api_frontend
+  mode tcp
+  bind *:6443 name lb
+  option tcplog
+  default_backend kube_api_backend
+
+frontend stats
+  bind *:8404
+  stats enable
+  stats uri /stats
+  stats refresh 500ms
+  stats hide-version
+  stats show-legends
+
+frontend svc_test-extra-service-1
+  mode tcp
+  bind *:35000 name lb
+  option tcplog
+  default_backend svc_test-extra-service-1
+
+frontend svc_test-extra-service-2
+  mode tcp
+  bind *:36000 name lb
+  option tcplog
+  default_backend svc_test-extra-service-2
+
+backend kube_api_backend
+  mode tcp
+  balance first
+  option httpchk GET /readyz
+  default-server inter 10s downinter 10s rise 5 fall 3 slowstart 120s maxconn 1000 maxqueue 256 weight 100
+  server http1 172.17.0.3:6443 check check-ssl verify none
+  server http2 172.17.0.4:6443 check check-ssl verify none
+  http-check expect status 200
+
+backend svc_test-extra-service-1
+  mode tcp
+  balance roundrobin
+  option httpchk GET /readyz
+  default-server inter 10s downinter 10s rise 5 fall 3 slowstart 120s maxconn 1000 maxqueue 256 weight 100
+  server http1-extra-service-1 172.17.0.3:45000 check check-ssl verify none
+  server http2-extra-service-1 172.17.0.4:45000 check check-ssl verify none
+  http-check expect status 200
+
+backend svc_test-extra-service-2
+  mode tcp
+  balance roundrobin
+  default-server inter 10s downinter 10s rise 5 fall 3 slowstart 120s maxconn 1000 maxqueue 256 weight 100
+  server http1-extra-service-2 172.17.0.3:46000
+  server http2-extra-service-2 172.17.0.4:46000
+
+program api
+  command dataplaneapi --scheme=https --haproxy-bin=/usr/sbin/haproxy --config-file=/etc/haproxy/haproxy.cfg --reload-cmd="/usr/bin/systemctl reload haproxy" --reload-delay=5 --tls-host=0.0.0.0 --tls-port=5556 --tls-ca=/etc/haproxy/ca.crt --tls-certificate=/etc/haproxy/server.crt --tls-key=/etc/haproxy/server.key --userlist=controller
+  no option start-on-reload
 `
 
 var flagRunCreateLoadBalancer = flag.Bool("hapi.createLoadBalancer", false, "activates test for creating a load balancer; requires docker")
@@ -151,10 +247,69 @@ func TestCreateLoadBalancer(t *testing.T) {
 				IP:       http2Addr,
 				NodeName: pointer.StringPtr("http2"),
 			},
+		}).
+		WithExtraServices([]haproxy.Service{
+			{
+				Frontend: &haproxy.Frontend{
+					Name: "test-extra-service-1",
+					Port: 35000,
+				},
+				Backend: &haproxy.Backend{
+					Port: 45000,
+					Addresses: []corev1.EndpointAddress{
+						{
+							IP:       http1Addr,
+							NodeName: pointer.StringPtr("http1-extra-service-1"),
+						},
+						{
+							IP:       http2Addr,
+							NodeName: pointer.StringPtr("http2-extra-service-1"),
+						},
+					},
+					HealthCheckConfig: &haproxy.BackendHealthCheckConfig{
+						HealthCheck: infrav1.HealthCheck{
+							HealthCheckOption: infrav1.HealthCheckOption{
+								HTTPCheck: &infrav1.HTTPCheck{
+									Httpchk: hapi.Httpchk{
+										Method: "GET",
+										Uri:    "/readyz",
+									},
+									Scheme: "HTTPS",
+									Response: &infrav1.HTTPCheckResponse{
+										HTTPCheckResponseOption: infrav1.HTTPCheckResponseOption{
+											Status: "200",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			{
+				Frontend: &haproxy.Frontend{
+					Name: "test-extra-service-2",
+					Port: 36000,
+				},
+				Backend: &haproxy.Backend{
+					Port: 46000,
+					Addresses: []corev1.EndpointAddress{
+						{
+							IP:       http1Addr,
+							NodeName: pointer.StringPtr("http1-extra-service-2"),
+						},
+						{
+							IP:       http2Addr,
+							NodeName: pointer.StringPtr("http2-extra-service-2"),
+						},
+					},
+				},
+			},
 		})
 
 	haproxyCfg, err := renderConfig.RenderHAProxyConfiguration()
 	g.Expect(err).ToNot(gomega.HaveOccurred(), "failed to render new configuration")
+	g.Expect(haproxyCfg).To(gomega.BeEquivalentTo(expectedConfig))
 
 	_, resp, err := client.ConfigurationApi.PostHAProxyConfiguration(ctx, haproxyCfg, &hapi.PostHAProxyConfigurationOpts{
 		Version: nextVersion,

@@ -37,6 +37,7 @@ ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 BIN_DIR := $(ROOT_DIR)/bin
 TOOLS_DIR := $(ROOT_DIR)/hack/tools
 TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
+export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
 
 # Binaries
 MANAGER := $(BIN_DIR)/manager
@@ -44,9 +45,13 @@ CLUSTERCTL := $(BIN_DIR)/clusterctl
 
 # Tooling binaries
 CONTROLLER_GEN := $(abspath $(TOOLS_BIN_DIR)/controller-gen)
-GOLANGCI_LINT := $(TOOLS_BIN_DIR)/golangci-lint
-KUSTOMIZE := $(TOOLS_BIN_DIR)/kustomize
 CONVERSION_GEN := $(TOOLS_BIN_DIR)/conversion-gen
+GINKGO := $(TOOLS_BIN_DIR)/ginkgo
+GOLANGCI_LINT := $(TOOLS_BIN_DIR)/golangci-lint
+GOVC := $(TOOLS_BIN_DIR)/govc
+KIND := $(TOOLS_BIN_DIR)/kind
+KUSTOMIZE := $(TOOLS_BIN_DIR)/kustomize
+TOOLING_BINARIES := $(CONTROLLER_GEN) $(CONVERSION_GEN) $(GINKGO) $(GOLANGCI_LINT) $(GOVC) $(KIND) $(KUSTOMIZE)
 
 # Allow overriding manifest generation destination directory
 MANIFEST_ROOT ?= ./config
@@ -106,8 +111,13 @@ e2e-image: ## Build the e2e manager image
 
 .PHONY: e2e
 e2e: e2e-image
-e2e: ## Run e2e tests
-	time ginkgo -v ./test/e2e -- --e2e.config="$(abspath test/e2e/e2e.conf)" --e2e.teardownKind=$(GC_KIND) $(E2E_ARGS)
+e2e: $(GINKGO) $(KUSTOMIZE) $(KIND) $(GOVC) ## Run e2e tests
+	@echo PATH=$(PATH)
+	@echo
+	@echo Contents of $(TOOLS_BIN_DIR):
+	@ls $(TOOLS_BIN_DIR)
+	@echo
+	time $(GINKGO) -v ./test/e2e -- --e2e.config="$(abspath test/e2e/e2e.conf)" --e2e.teardownKind=$(GC_KIND) $(E2E_ARGS)
 
 ## --------------------------------------
 ## Binaries
@@ -126,8 +136,6 @@ $(CLUSTERCTL): go.mod
 ## --------------------------------------
 ## Tooling Binaries
 ## --------------------------------------
-
-TOOLING_BINARIES := $(CONTROLLER_GEN) $(GOLANGCI_LINT) $(KUSTOMIZE) $(CONVERSION_GEN)
 tools: $(TOOLING_BINARIES) ## Build tooling binaries
 .PHONY: $(TOOLING_BINARIES)
 $(TOOLING_BINARIES):

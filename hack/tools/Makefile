@@ -39,6 +39,9 @@ CONTROLLER_GEN := $(BIN_DIR)/controller-gen
 GOLANGCI_LINT := $(BIN_DIR)/golangci-lint
 KUSTOMIZE := $(BIN_DIR)/kustomize
 CONVERSION_GEN := $(BIN_DIR)/conversion-gen
+KIND := $(BIN_DIR)/kind
+GOVC := $(BIN_DIR)/govc
+GINKGO := $(BIN_DIR)/ginkgo
 
 ## --------------------------------------
 ## Help
@@ -55,17 +58,29 @@ controller-gen: $(CONTROLLER_GEN) $(SRCS) ## Build controller-gen
 $(CONTROLLER_GEN): go.mod
 	go build -tags=tools -o $@ sigs.k8s.io/controller-tools/cmd/controller-gen
 
+conversion-gen: $(CONVERSION_GEN) $(SRCS) ## Build conversion-gen
+$(CONVERSION_GEN): go.mod
+	go build -tags=tools -o $@ k8s.io/code-generator/cmd/conversion-gen
+
+ginkgo: $(GINKGO) $(SRCS)
+$(GINKGO): go.mod
+	go build -tags=tools -o $@ github.com/onsi/ginkgo/ginkgo
+
 golangci-lint: $(GOLANGCI_LINT) $(SRCS) ## Build golangci-lint
 $(GOLANGCI_LINT): go.mod
 	go build -tags=tools -o $@ github.com/golangci/golangci-lint/cmd/golangci-lint
 
+govc: $(GOVC) $(SRCS)
+$(GOVC): go.mod
+	go build -tags=tools -o $@ github.com/vmware/govmomi/govc
+
+kind: $(KIND) $(SRCS)
+$(KIND): go.mod
+	go build -tags=tools -o $@ sigs.k8s.io/kind
+
 kustomize: $(KUSTOMIZE) $(SRCS) ## Build kustomize
 $(KUSTOMIZE): go.mod
 	go build -tags=tools -o $@ sigs.k8s.io/kustomize/kustomize/v3
-
-conversion-gen: $(CONVERSION_GEN) $(SRCS) ## Build conversion-gen
-$(CONVERSION_GEN): go.mod
-	go build -tags=tools -o $@ k8s.io/code-generator/cmd/conversion-gen
 
 ## --------------------------------------
 ## Generate

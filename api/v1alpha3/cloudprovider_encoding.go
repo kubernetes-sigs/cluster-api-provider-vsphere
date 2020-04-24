@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -29,6 +30,8 @@ import (
 )
 
 const gcfgTag = "gcfg"
+
+var iniEscapeChars = regexp.MustCompile(`([\\"])`)
 
 // MarshalINI marshals the cloud provider configuration to INI-style
 // configuration data.
@@ -119,7 +122,13 @@ func (c *CPIConfig) marshalINISectionProperties(
 
 		fmt.Fprintf(out, "%s", propertyName)
 		if propertyValue.IsValid() {
-			fmt.Fprintf(out, " = %v\n", propertyValue.Interface())
+			rawVal := fmt.Sprintf("%v", propertyValue.Interface())
+			val := iniEscapeChars.ReplaceAllString(rawVal, "\\$1")
+			val = strings.ReplaceAll(val, "\t", "\\t")
+			if propertyValue.Kind() == reflect.String {
+				val = "\"" + val + "\""
+			}
+			fmt.Fprintf(out, " = %s\n", val)
 		}
 	}
 

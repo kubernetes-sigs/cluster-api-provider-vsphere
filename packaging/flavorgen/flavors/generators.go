@@ -253,8 +253,9 @@ func defaultKubeadmInitSpec() bootstrapv1.KubeadmConfigSpec {
 			},
 			ControllerManager: defaultControlPlaneComponent(),
 		},
-		Users:              defaultUsers(),
-		PreKubeadmCommands: defaultPreKubeadmCommands(),
+		Users:                    defaultUsers(),
+		PreKubeadmCommands:       defaultPreKubeadmCommands(),
+		UseExperimentalRetryJoin: true,
 	}
 }
 

@@ -338,9 +338,6 @@ func newMachineDeployment(cluster clusterv1.Cluster, machineTemplate infrav1.VSp
 		Spec: clusterv1.MachineDeploymentSpec{
 			ClusterName: clusterNameVar,
 			Replicas:    pointer.Int32Ptr(int32(555)),
-			Selector: metav1.LabelSelector{
-				MatchLabels: clusterLabels(),
-			},
 			Template: clusterv1.MachineTemplateSpec{
 				ObjectMeta: clusterv1.ObjectMeta{
 					Labels: clusterLabels(),

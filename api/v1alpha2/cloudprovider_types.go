@@ -77,18 +77,6 @@ type CPIStorageConfig struct {
 	RegistrarImage      string `json:"registrarImage,omitempty"`
 }
 
-// unmarshallableConfig is used to unmarshal the INI data using the gcfg
-// package. The package requires fields with map types use *Values. However,
-// kubebuilder v2 won't generate CRDs for map types with *Values.
-type unmarshallableConfig struct {
-	Global    CPIGlobalConfig              `gcfg:"Global,omitempty"`
-	VCenter   map[string]*CPIVCenterConfig `gcfg:"VirtualCenter,omitempty"`
-	Network   CPINetworkConfig             `gcfg:"Network,omitempty"`
-	Disk      CPIDiskConfig                `gcfg:"Disk,omitempty"`
-	Workspace CPIWorkspaceConfig           `gcfg:"Workspace,omitempty"`
-	Labels    CPILabelConfig               `gcfg:"Labels,omitempty"`
-}
-
 // CPIGlobalConfig is the vSphere cloud provider's global configuration.
 type CPIGlobalConfig struct {
 	// Insecure is a flag that disables TLS peer verification.

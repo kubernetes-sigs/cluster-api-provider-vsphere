@@ -78,11 +78,11 @@ for the HAProxy VM template:
 
 ```shell
 # Re-mark the template as a VM
-govc vm.markasvm -pool Compute-ResourcePool capv-haproxy-v0.6.3
+govc vm.markasvm -pool Compute-ResourcePool capv-haproxy-v0.6.4
 # Take a snapshot of the VM
-govc snapshot.create -vm capv-haproxy-v0.6.3 root
+govc snapshot.create -vm capv-haproxy-v0.6.4 root
 # Re-mark the VM as a template
-govc vm.markastemplate capv-haproxy-v0.6.3
+govc vm.markastemplate capv-haproxy-v0.6.4
 ```
 
 **Note:** When creating the OVA template via vSphere using the URL method, please make sure the VM template name is the
@@ -125,7 +125,7 @@ VSPHERE_NETWORK: "VM Network"                                 # The VM network t
 VSPHERE_RESOURCE_POOL: "*/Resources"                          # The vSphere resource pool for your VMs
 VSPHERE_FOLDER: "vm"                                          # The VM folder for your VMs. Set to "" to use the root vSphere folder
 VSPHERE_TEMPLATE: "ubuntu-1804-kube-v1.17.3"                  # The VM template to use for your management cluster.
-VSPHERE_HAPROXY_TEMPLATE: "capv-haproxy-v0.6.3"  # The VM template to use for the HAProxy load balancer
+VSPHERE_HAPROXY_TEMPLATE: "capv-haproxy-v0.6.4"  # The VM template to use for the HAProxy load balancer
 VSPHERE_SSH_AUTHORIZED_KEY: "ssh-rsa AAAAB3N..."              # The public ssh authorized key on all machines
                                                               #   in this cluster.
                                                               #   Set to "" if you don't want to enable SSH,
@@ -198,6 +198,6 @@ vsphere-quickstart-9qtfd                                      Ready      master 
 [kubectl]: https://kubernetes.io/docs/tasks/tools/install-kubectl/
 [ovas]: ../README.md#kubernetes-versions-with-published-ovas
 [default-machine-image]: https://storage.googleapis.com/capv-images/release/v1.17.3/ubuntu-1804-kube-v1.17.3.ova
-[haproxy-machine-image]: https://storage.googleapis.com/capv-images/extra/haproxy/release/v0.6.3/capv-haproxy-v0.6.3.ova
+[haproxy-machine-image]: https://storage.googleapis.com/capv-images/extra/haproxy/release/v0.6.4/capv-haproxy-v0.6.4.ova
 [image-builder]: https://github.com/kubernetes-sigs/image-builder
 [govc]: https://github.com/vmware/govmomi/tree/master/govc

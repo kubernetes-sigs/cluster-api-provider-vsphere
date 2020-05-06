@@ -1,5 +1,2 @@
 .dockerignore
 .gitignore
-output/
-packer_cache/
-hack/

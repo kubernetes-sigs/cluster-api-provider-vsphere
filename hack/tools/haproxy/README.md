@@ -171,29 +171,7 @@ Illustrating the utility of haproxy as a load-balancer is best accomplished usin
 
 In production the haproxy loadbalancer is deployed as an OVA.
 
-### OVA Requirements
-
-Building the OVA requires:
-
-* VMware Fusion or Workstation
-* Packer 1.4.1
-* Ansible 2.8+
-
-### Building the OVA
-
-To build the OVA please run the following the command:
-
-```shell
-make build
-```
-
-The above command build the OVA with Packer in _headless_ mode, meaning that VMware Fusion/Workstation will not display the virtual machine (VM) as it is being built. If the build process fails or times out, please use the following command to build the OVA in the foreground:
-
-```shell
-make build-fg
-```
-
-Once the OVA is built, it should be located at `./output/capv-haproxy.ova` and be around `240MiB`.
+The HAProxy OVA is built using the `image-builder` [project](https://github.com/kubernetes-sigs/image-builder/tree/master/images/capi).
 
 ### Downloading the OVA
 

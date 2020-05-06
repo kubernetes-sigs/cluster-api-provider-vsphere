@@ -27,9 +27,8 @@ RUN yum update --assumeno && \
     mkdir -p /var/lib/haproxy && \
     chown -R haproxy:haproxy /var/lib/haproxy
 
-COPY ansible/roles/haproxy/files/etc/haproxy/haproxy.cfg \
-     example/ca.crt example/server.crt example/server.key \
-     /etc/haproxy/
+COPY example/haproxy.cfg example/ca.crt example/server.crt \
+     example/server.key /etc/haproxy/
 RUN chmod 0640 /etc/haproxy/haproxy.cfg /etc/haproxy/*.crt && \
     chmod 0440 /etc/haproxy/*.key
 

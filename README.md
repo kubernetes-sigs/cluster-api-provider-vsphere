@@ -51,10 +51,9 @@ Note: These OVAs are not updated for security fixes and it is recommended to alw
 
 | Kubernetes |                                                                                               CentOS 7                                                                                               |                                                                                                Ubuntu 18.04                                                                                                |                                                                                               Photon 3                                                                                                |
 | :--------: | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-|  v1.15.10  | [ova](http://storage.googleapis.com/capv-images/release/v1.15.10/centos-7-kube-v1.15.10.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.15.10/centos-7-kube-v1.15.10.ova.sha256) | [ova](http://storage.googleapis.com/capv-images/release/v1.15.10/ubuntu-1804-kube-v1.15.10.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.15.10/ubuntu-1804-kube-v1.15.10.ova.sha256) | [ova](http://storage.googleapis.com/capv-images/release/v1.15.10/photon-3-kube-v1.15.10.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.15.10/photon-3-kube-v1.15.10.ova.sha256)  |
-|  v1.16.7   |   [ova](http://storage.googleapis.com/capv-images/release/v1.16.7/centos-7-kube-v1.16.7.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.16.7/centos-7-kube-v1.16.7.ova.sha256)   |   [ova](http://storage.googleapis.com/capv-images/release/v1.16.7/ubuntu-1804-kube-v1.16.7.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.16.7/ubuntu-1804-kube-v1.16.7.ova.sha256)   |   [ova](http://storage.googleapis.com/capv-images/release/v1.16.7/photon-3-kube-v1.16.7.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.16.7/photon-3-kube-v1.16.7.ova.sha256)    |
-|  v1.17.3   |   [ova](http://storage.googleapis.com/capv-images/release/v1.17.3/centos-7-kube-v1.17.3.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.17.3/centos-7-kube-v1.17.3.ova.sha256)   |   [ova](http://storage.googleapis.com/capv-images/release/v1.17.3/ubuntu-1804-kube-v1.17.3.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.17.3/ubuntu-1804-kube-v1.17.3.ova.sha256)   | [ova](http://storage.googleapis.com/capv-images/release/v1.17.3/photon-3-kube-v1.17.3.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.17.3/photon-3-1804-kube-v1.17.3.ova.sha256) |
-
+|  v1.16.9   |   [ova](http://storage.googleapis.com/capv-images/release/v1.16.9/centos-7-kube-v1.16.9.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.16.9/centos-7-kube-v1.16.9.ova.sha256)   |   [ova](http://storage.googleapis.com/capv-images/release/v1.16.9/ubuntu-1804-kube-v1.16.9.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.16.9/ubuntu-1804-kube-v1.16.9.ova.sha256)   |   [ova](http://storage.googleapis.com/capv-images/release/v1.16.9/photon-3-kube-v1.16.9.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.16.9/photon-3-kube-v1.16.9.ova.sha256)    |
+|  v1.17.5   |   [ova](http://storage.googleapis.com/capv-images/release/v1.17.5/centos-7-kube-v1.17.5.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.17.5/centos-7-kube-v1.17.5.ova.sha256)   |   [ova](http://storage.googleapis.com/capv-images/release/v1.17.5/ubuntu-1804-kube-v1.17.5.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.17.5/ubuntu-1804-kube-v1.17.5.ova.sha256)   | [ova](http://storage.googleapis.com/capv-images/release/v1.17.5/photon-3-kube-v1.17.5.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.17.5/photon-3-1804-kube-v1.17.5.ova.sha256) |
+|  v1.18.2  | [ova](http://storage.googleapis.com/capv-images/release/v1.18.2/centos-7-kube-v1.18.2.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.18.2/centos-7-kube-v1.18.2.ova.sha256) | [ova](http://storage.googleapis.com/capv-images/release/v1.18.2/ubuntu-1804-kube-v1.18.2.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.18.2/ubuntu-1804-kube-v1.18.2.ova.sha256) | [ova](http://storage.googleapis.com/capv-images/release/v1.18.2/photon-3-kube-v1.18.2.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.18.2/photon-3-kube-v1.18.2.ova.sha256)  |
 A full list of the published machine images for CAPV may be obtained with the following command:
 
 ```shell
@@ -65,6 +64,26 @@ Or, to produce a list of URLs for the same image files (and their checksums), th
 
 ```shell
 gsutil ls gs://capv-images/release/*/*.{ova,sha256} | sed 's~^gs://~http://storage.googleapis.com/~'
+```
+
+## HAProxy published OVAs
+
+Note: These OVAs are not updated for security fixes and it is recommended to always use the latest patch version for the version you wish to run. For production-like environments, it is highly recommended to build and use your own custom images.
+
+| HAProxy Dataplane API | Photon 3 |
+|:--------------------: | :------: |
+|  v1.2.4  |  [ova](http://storage.googleapis.com/capv-images/extra/haproxy/release/v1.2.4/photon-3-haproxy-v1.2.4.ova), [sha256](http://storage.googleapis.com/capv-images/extra/haproxy/release/v1.2.4/photon-3-haproxy-v1.2.4.ova.sha256)  |
+
+A full list of the published HAProxy images for CAPV may be obtained with the following command:
+
+```shell
+gsutil ls gs://capv-images/extra/haproxy/release/*
+```
+
+Or, to produce a list of URLs for the same image files (and their checksums), the following command may be used:
+
+```shell
+gsutil ls gs://capv-images/extra/haproxy/release/*/*.{ova,sha256} | sed 's~^gs://~http://storage.googleapis.com/~'
 ```
 
 ## Documentation

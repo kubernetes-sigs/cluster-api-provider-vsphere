@@ -72,6 +72,12 @@ var (
 			value:     workerMachineCountVar,
 			fieldPath: []string{"spec", "replicas"},
 		},
+		{
+			kind:      "MachineDeployment",
+			name:      "${ CLUSTER_NAME }-md-0",
+			value:     map[string]interface{}{},
+			fieldPath: []string{"spec", "selector", "matchLabels"},
+		},
 	}
 
 	stringVars = []string{

@@ -80,6 +80,7 @@ func printObject(obj runtime.Object, replacements []replacement) {
 	if err := data.UnmarshalJSON(json); err != nil {
 		panic(err)
 	}
+	data.Object = deleteZeroValues(data.Object)
 
 	for _, v := range replacements {
 		v := v
@@ -90,7 +91,6 @@ func printObject(obj runtime.Object, replacements []replacement) {
 		}
 	}
 
-	data.Object = deleteZeroValues(data.Object)
 	bytes, err = yaml.Marshal(data.Object)
 	if err != nil {
 		panic(err)

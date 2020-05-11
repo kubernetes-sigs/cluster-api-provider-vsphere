@@ -414,11 +414,27 @@ func (r haproxylbReconciler) reconcileLoadBalancerConfiguration(ctx *context.HAP
 		return errors.Wrap(err, "Failed to get HAProxy dataplane global config")
 	}
 
+	// Attempt to close existing transactions in case controller had previously crashed
+	// TODO: When migrating to Dataplane APIv2 and no longer string templating,
+	// this should switch to tracking the existing transaction ID in the spec or status
+	// for re-entrancy, allowing other dataplane users to do configuration changes.
+	if err := r.closeAllTransactions(ctx, client); err != nil {
+		// only log error when closing existing transactions
+		ctx.Logger.Error(err, "error closing transactions")
+	}
+
 	transaction, _, err := client.TransactionsApi.StartTransaction(ctx, global.Version)
+
 	if err != nil {
 		return errors.Wrap(err, "Failed to create HAProxy dataplane transaction")
 	}
 	transactionID := optional.NewString(transaction.Id)
+
+	defer func() {
+		if _, _, err := client.TransactionsApi.CommitTransaction(ctx, transaction.Id, nil); err != nil {
+			ctx.Logger.Error(err, "Failed to commit HAProxy dataplane transaction")
+		}
+	}()
 
 	backends, err := r.BackEndpointsForCluster(ctx)
 	if err != nil {
@@ -463,6 +479,20 @@ func (r haproxylbReconciler) reconcileLoadBalancerConfiguration(ctx *context.HAP
 	}
 
 	ctx.Logger.Info("Reconciled load balancer backend servers")
+	return nil
+}
+
+func (r haproxylbReconciler) closeAllTransactions(ctx *context.HAProxyLoadBalancerContext, client *hapi.APIClient) error {
+	transactions, _, err := client.TransactionsApi.GetTransactions(ctx, nil)
+	if err != nil {
+		return err
+	}
+	for _, t := range transactions {
+		if _, _, err := client.TransactionsApi.CommitTransaction(ctx, t.Id, nil); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

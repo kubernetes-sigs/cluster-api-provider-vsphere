@@ -40,13 +40,15 @@ const (
 	DefaultCSIMetadataSyncerImage = "gcr.io/cloud-provider-vsphere/csi/release/syncer:v1.0.2"
 	DefaultCSILivenessProbeImage  = "quay.io/k8scsi/livenessprobe:v1.1.0"
 	DefaultCSIRegistrarImage      = "quay.io/k8scsi/csi-node-driver-registrar:v1.1.0"
+	CSINamespace                  = metav1.NamespaceSystem
+	CSIControllerName             = "vsphere-csi-controller"
 )
 
 func CSIControllerServiceAccount() *corev1.ServiceAccount {
 	return &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "vsphere-csi-controller",
-			Namespace: "kube-system",
+			Name:      CSIControllerName,
+			Namespace: CSINamespace,
 		},
 	}
 }
@@ -58,34 +60,24 @@ func CSIControllerClusterRole() *rbacv1.ClusterRole {
 		},
 		Rules: []rbacv1.PolicyRule{
 			{
-				APIGroups: []string{""},
-				Resources: []string{"secrets"},
-				Verbs:     []string{"get", "list", "watch"},
-			},
-			{
 				APIGroups: []string{"storage.k8s.io"},
 				Resources: []string{"csidrivers"},
 				Verbs:     []string{"create", "delete"},
 			},
 			{
 				APIGroups: []string{""},
-				Resources: []string{"nodes"},
+				Resources: []string{"nodes", "pods", "secrets"},
 				Verbs:     []string{"get", "list", "watch"},
 			},
 			{
 				APIGroups: []string{""},
 				Resources: []string{"persistentvolumes"},
-				Verbs:     []string{"get", "list", "watch", "update", "create", "delete"},
-			},
-			{
-				APIGroups: []string{"storage.k8s.io"},
-				Resources: []string{"csinodes"},
-				Verbs:     []string{"get", "list", "watch"},
+				Verbs:     []string{"get", "list", "watch", "update", "create", "delete", "patch"},
 			},
 			{
 				APIGroups: []string{"storage.k8s.io"},
 				Resources: []string{"volumeattachments"},
-				Verbs:     []string{"get", "list", "watch", "update"},
+				Verbs:     []string{"get", "list", "watch", "update", "patch"},
 			},
 			{
 				APIGroups: []string{""},
@@ -94,13 +86,18 @@ func CSIControllerClusterRole() *rbacv1.ClusterRole {
 			},
 			{
 				APIGroups: []string{"storage.k8s.io"},
-				Resources: []string{"storageclasses"},
+				Resources: []string{"storageclasses", "csinodes"},
 				Verbs:     []string{"get", "list", "watch"},
 			},
 			{
 				APIGroups: []string{""},
 				Resources: []string{"events"},
 				Verbs:     []string{"list", "watch", "create", "update", "patch"},
+			},
+			{
+				APIGroups: []string{"coordination.k8s.io"},
+				Resources: []string{"leases"},
+				Verbs:     []string{"get", "watch", "list", "delete", "update", "create"},
 			},
 			{
 				APIGroups: []string{"snapshot.storage.k8s.io"},
@@ -111,11 +108,6 @@ func CSIControllerClusterRole() *rbacv1.ClusterRole {
 				APIGroups: []string{"snapshot.storage.k8s.io"},
 				Resources: []string{"volumesnapshotcontents"},
 				Verbs:     []string{"get", "list"},
-			},
-			{
-				APIGroups: []string{""},
-				Resources: []string{"pods"},
-				Verbs:     []string{"get", "list", "watch"},
 			},
 		},
 	}
@@ -129,8 +121,8 @@ func CSIControllerClusterRoleBinding() *rbacv1.ClusterRoleBinding {
 		Subjects: []rbacv1.Subject{
 			{
 				Kind:      "ServiceAccount",
-				Name:      "vsphere-csi-controller",
-				Namespace: "kube-system",
+				Name:      CSIControllerName,
+				Namespace: CSINamespace,
 			},
 		},
 		RoleRef: rbacv1.RoleRef{
@@ -157,7 +149,7 @@ func VSphereCSINodeDaemonSet(storageConfig *v1alpha3.CPIStorageConfig) *appsv1.D
 	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "vsphere-csi-node",
-			Namespace: "kube-system",
+			Namespace: CSINamespace,
 		},
 		Spec: appsv1.DaemonSetSpec{
 			Selector: &metav1.LabelSelector{
@@ -184,8 +176,12 @@ func VSphereCSINodeDaemonSet(storageConfig *v1alpha3.CPIStorageConfig) *appsv1.D
 					},
 					Tolerations: []corev1.Toleration{
 						{
-							Key:    "node-role.kubernetes.io/master",
-							Effect: corev1.TaintEffectNoSchedule,
+							Effect:   corev1.TaintEffectNoSchedule,
+							Operator: corev1.TolerationOpExists,
+						},
+						{
+							Effect:   corev1.TaintEffectNoExecute,
+							Operator: corev1.TolerationOpExists,
 						},
 					},
 					Volumes: []corev1.Volume{
@@ -255,7 +251,7 @@ func NodeDriverRegistrarContainer(image string) corev1.Container {
 			},
 		},
 		Args: []string{
-			"--v=4",
+			"--v=5",
 			"--csi-address=$(ADDRESS)",
 			"--kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)",
 		},
@@ -307,6 +303,14 @@ func VSphereCSINodeContainer(image string) corev1.Container {
 				Value: "/etc/cloud/csi-vsphere.conf",
 			},
 			{
+				Name:  "LOGGER_LEVEL",
+				Value: "PRODUCTION",
+			},
+			{
+				Name:  "X_CSI_LOG_LEVEL",
+				Value: "INFO",
+			},
+			{
 				Name: "NODE_NAME",
 				ValueFrom: &corev1.EnvVarSource{
 					FieldRef: &corev1.ObjectFieldSelector{
@@ -315,7 +319,6 @@ func VSphereCSINodeContainer(image string) corev1.Container {
 				},
 			},
 		},
-		Args: []string{"--v=4"},
 		Ports: []corev1.ContainerPort{
 			{
 				Name:          "healthz",
@@ -384,32 +387,31 @@ func LivenessProbeForNodeContainer(image string) corev1.Container {
 	}
 }
 
-func CSIControllerStatefulSet(storageConfig *v1alpha3.CPIStorageConfig) *appsv1.StatefulSet {
-	return &appsv1.StatefulSet{
+func CSIControllerDeployment(storageConfig *v1alpha3.CPIStorageConfig) *appsv1.Deployment {
+	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "vsphere-csi-controller",
-			Namespace: "kube-system",
+			Name:      CSIControllerName,
+			Namespace: CSINamespace,
 		},
-		Spec: appsv1.StatefulSetSpec{
-			ServiceName: "vsphere-csi-controller",
-			Replicas:    boolInt32(1),
-			UpdateStrategy: appsv1.StatefulSetUpdateStrategy{
-				Type: appsv1.RollingUpdateStatefulSetStrategyType,
+		Spec: appsv1.DeploymentSpec{
+			Strategy: appsv1.DeploymentStrategy{
+				Type: appsv1.RollingUpdateDeploymentStrategyType,
 			},
+			Replicas: boolInt32(1),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					"app": "vsphere-csi-controller",
+					"app": CSIControllerName,
 				},
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"app":  "vsphere-csi-controller",
+						"app":  CSIControllerName,
 						"role": "vsphere-csi",
 					},
 				},
 				Spec: corev1.PodSpec{
-					ServiceAccountName: "vsphere-csi-controller",
+					ServiceAccountName: CSIControllerName,
 					NodeSelector: map[string]string{
 						"node-role.kubernetes.io/master": "",
 					},
@@ -476,7 +478,7 @@ func CSIAttacherContainer(image string) corev1.Container {
 
 func VSphereCSIControllerContainer(image string) corev1.Container {
 	return corev1.Container{
-		Name:  "vsphere-csi-controller",
+		Name:  CSIControllerName,
 		Image: image,
 		Lifecycle: &corev1.Lifecycle{
 			PreStop: &corev1.Handler{
@@ -485,7 +487,6 @@ func VSphereCSIControllerContainer(image string) corev1.Container {
 				},
 			},
 		},
-		Args: []string{"--v=4"},
 		Ports: []corev1.ContainerPort{
 			{
 				Name:          "healthz",
@@ -517,6 +518,14 @@ func VSphereCSIControllerContainer(image string) corev1.Container {
 			{
 				Name:  "VSPHERE_CSI_CONFIG",
 				Value: "/etc/cloud/csi-vsphere.conf",
+			},
+			{
+				Name:  "LOGGER_LEVEL",
+				Value: "PRODUCTION",
+			},
+			{
+				Name:  "X_CSI_LOG_LEVEL",
+				Value: "INFO",
 			},
 		},
 		VolumeMounts: []corev1.VolumeMount{
@@ -608,7 +617,7 @@ func CSICloudConfigSecret(data string) *corev1.Secret {
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "csi-vsphere-config",
-			Namespace: "kube-system",
+			Namespace: CSINamespace,
 		},
 		Type: corev1.SecretTypeOpaque,
 		StringData: map[string]string{

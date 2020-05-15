@@ -759,9 +759,19 @@ func (r clusterReconciler) reconcileStorageProvider(ctx *context.ClusterContext)
 		return err
 	}
 
-	statefulSet := cloudprovider.CSIControllerStatefulSet(ctx.VSphereCluster.Spec.CloudProviderConfiguration.ProviderConfig.Storage)
-	if _, err := targetClusterClient.AppsV1().StatefulSets(statefulSet.Namespace).Create(statefulSet); err != nil && !apierrors.IsAlreadyExists(err) {
-		return err
+	// check if CSI is already deployed
+	_, err = targetClusterClient.AppsV1().StatefulSets(cloudprovider.CSINamespace).Get(cloudprovider.CSIControllerName, metav1.GetOptions{})
+	if err != nil {
+		if !apierrors.IsNotFound(err) {
+			return err
+		}
+	}
+	// this is a new cluster deploy the latest csi
+	if apierrors.IsNotFound(err) {
+		deployment := cloudprovider.CSIControllerDeployment(ctx.VSphereCluster.Spec.CloudProviderConfiguration.ProviderConfig.Storage)
+		if _, err := targetClusterClient.AppsV1().Deployments(deployment.Namespace).Create(deployment); err != nil && !apierrors.IsAlreadyExists(err) {
+			return err
+		}
 	}
 
 	return nil

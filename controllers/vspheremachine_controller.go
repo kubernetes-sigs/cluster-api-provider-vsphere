@@ -459,6 +459,13 @@ func (r machineReconciler) reconcileNormalPre7(ctx *context.MachineContext, vsph
 		if vsphereVM != nil {
 			vm.Spec.BiosUUID = vsphereVM.Spec.BiosUUID
 		}
+
+		if ctx.VSphereCluster != nil {
+			vm.Spec.Insecure = ctx.VSphereCluster.Spec.CloudProviderConfiguration.Global.Insecure
+		} else {
+			vm.Spec.Insecure = true
+		}
+
 		return nil
 	}
 	if _, err := ctrlutil.CreateOrUpdate(ctx, ctx.Client, vm, mutateFn); err != nil {

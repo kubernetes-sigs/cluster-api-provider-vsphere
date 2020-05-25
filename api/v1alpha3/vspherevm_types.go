@@ -46,6 +46,9 @@ type VSphereVMSpec struct {
 	// this CRD as unstructured data.
 	// +optional
 	BiosUUID string `json:"biosUUID,omitempty"`
+
+	// Insecure is a flag that disables TLS peer verification.
+	Insecure bool `json:"insecure,omitempty"`
 }
 
 // VSphereVMStatus defines the observed state of VSphereVM

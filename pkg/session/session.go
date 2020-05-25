@@ -44,7 +44,7 @@ type Session struct {
 // already exist.
 func GetOrCreate(
 	ctx context.Context,
-	server, datacenter, username, password string) (*Session, error) {
+	server, datacenter, username, password string, insecure bool) (*Session, error) {
 
 	sessionMU.Lock()
 	defer sessionMU.Unlock()
@@ -68,7 +68,7 @@ func GetOrCreate(
 
 	// Temporarily setting the insecure flag True
 	// TODO(ssurana): handle the certs better
-	client, err := govmomi.NewClient(ctx, soapURL, true)
+	client, err := govmomi.NewClient(ctx, soapURL, insecure)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error setting up new vSphere SOAP client")
 	}

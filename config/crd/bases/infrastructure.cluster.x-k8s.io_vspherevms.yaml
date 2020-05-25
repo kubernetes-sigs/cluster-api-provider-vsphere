@@ -107,6 +107,9 @@ spec:
                 description: Folder is the name or inventory path of the folder in
                   which the virtual machine is created/located.
                 type: string
+              insecure:
+                description: Insecure is a flag that disables TLS peer verification.
+                type: boolean
               memoryMiB:
                 description: MemoryMiB is the size of a virtual machine's memory,
                   in MiB. Defaults to the eponymous property value in the template

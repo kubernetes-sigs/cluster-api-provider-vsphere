@@ -14,18 +14,26 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package e2e_new
+package e2enew
 
 import (
-	"fmt"
+	"context"
+
 	. "github.com/onsi/ginkgo"
+
+	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 )
 
-// Test suite constants for e2e config variables
-const (
-	KubernetesVersion            = "KUBERNETES_VERSION"
-)
+var _ = Describe("Cluster Creation using Cluster API quick-start test", func() {
 
-func Byf(format string, a ...interface{}) {
-	By(fmt.Sprintf(format, a...))
-}
+	Byf("Creating single-node control plane with one worker node")
+	capi_e2e.QuickStartSpec(context.TODO(), func() capi_e2e.QuickStartSpecInput {
+		return capi_e2e.QuickStartSpecInput{
+			E2EConfig:             e2eConfig,
+			ClusterctlConfigPath:  clusterctlConfigPath,
+			BootstrapClusterProxy: bootstrapClusterProxy,
+			ArtifactFolder:        artifactFolder,
+			SkipCleanup:           skipCleanup,
+		}
+	})
+})

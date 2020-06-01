@@ -13,6 +13,7 @@ require (
 	github.com/spf13/cobra v0.0.6
 	github.com/vmware/govmomi v0.23.1
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
+	golang.org/x/time v0.0.0-20191024005414-555d28b269f0 // indirect
 	gopkg.in/gcfg.v1 v1.2.3
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	k8s.io/api v0.17.8

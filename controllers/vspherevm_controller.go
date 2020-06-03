@@ -222,7 +222,6 @@ func (r vmReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) 
 				vmContext.Logger.Error(err, "failed to get VSphereVM while exiting reconcile")
 				return false, nil
 			}
-
 			// If the remote resource version is not the same as the local
 			// resource version, then it means we were able to get a resource
 			// newer than the one we already had.
@@ -324,7 +323,21 @@ func (r vmReconciler) reconcileNormal(ctx *context.VMContext) (reconcile.Result,
 	}
 
 	// Update the VSphereVM's BIOS UUID.
-	ctx.VSphereVM.Spec.BiosUUID = vm.BiosUUID
+	ctx.Logger.Info("vm bios-uuid", "biosuuid", vm.BiosUUID)
+
+	// defensive check to ensure we are not removing the biosUUID
+	if vm.BiosUUID != "" {
+		ctx.VSphereVM.Spec.BiosUUID = vm.BiosUUID
+	} else {
+		return reconcile.Result{}, errors.Errorf("bios uuid is empty while VM is ready")
+	}
+
+	// patch the vsphereVM early to ensure that the task is
+	// reflected in the status right away, this avoid situations
+	// of concurrent clones
+	if err := ctx.Patch(); err != nil {
+		ctx.Logger.Error(err, "patch failed", "vspherevm", ctx.VSphereVM)
+	}
 
 	// Update the VSphereVM's network status.
 	r.reconcileNetwork(ctx, vm)

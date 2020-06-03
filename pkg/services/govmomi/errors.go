@@ -16,17 +16,21 @@ limitations under the License.
 
 package govmomi
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/vmware/govmomi/find"
+)
 
 // errNotFound is returned by the findVM function when a VM is not found.
 type errNotFound struct {
-	instanceUUID bool
-	uuid         string
+	uuid            string
+	byInventoryPath string
 }
 
 func (e errNotFound) Error() string {
-	if e.instanceUUID {
-		return fmt.Sprintf("vm with instance uuid %s not found", e.uuid)
+	if e.byInventoryPath != "" {
+		return fmt.Sprintf("vm with inventory path %s not found", e.byInventoryPath)
 	}
 	return fmt.Sprintf("vm with bios uuid %s not found", e.uuid)
 }
@@ -40,10 +44,19 @@ func isNotFound(err error) bool {
 	}
 }
 
+func isVirtualMachineNotFound(err error) bool {
+	switch err.(type) {
+	case *find.NotFoundError:
+		return true
+	default:
+		return false
+	}
+}
+
 func wasNotFoundByBIOSUUID(err error) bool {
 	switch err.(type) {
 	case errNotFound, *errNotFound:
-		if err.(errNotFound).uuid != "" && !err.(errNotFound).instanceUUID {
+		if err.(errNotFound).uuid != "" && err.(errNotFound).byInventoryPath == "" {
 			return true
 		}
 		return false

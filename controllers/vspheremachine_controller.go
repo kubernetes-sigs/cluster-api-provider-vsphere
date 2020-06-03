@@ -315,7 +315,7 @@ func (r machineReconciler) reconcileNormal(ctx *context.MachineContext) (reconci
 	}
 
 	// TODO(akutz) Determine the version of vSphere.
-	vm, err := r.reconcileNormalPre7(ctx)
+	vm, err := r.reconcileNormalPre7(ctx, vsphereVM)
 	if err != nil {
 		if apierrors.IsAlreadyExists(err) {
 			return reconcile.Result{}, nil
@@ -368,7 +368,7 @@ func (r machineReconciler) reconcileNormal(ctx *context.MachineContext) (reconci
 	return reconcile.Result{}, nil
 }
 
-func (r machineReconciler) reconcileNormalPre7(ctx *context.MachineContext) (runtime.Object, error) {
+func (r machineReconciler) reconcileNormalPre7(ctx *context.MachineContext, vsphereVM *infrav1.VSphereVM) (runtime.Object, error) {
 	// Create or update the VSphereVM resource.
 	vm := &infrav1.VSphereVM{
 		ObjectMeta: metav1.ObjectMeta{
@@ -432,6 +432,9 @@ func (r machineReconciler) reconcileNormalPre7(ctx *context.MachineContext) (run
 		}
 		if vm.Spec.ResourcePool == "" {
 			vm.Spec.ResourcePool = vsphereCloudConfig.ResourcePool
+		}
+		if vsphereVM != nil {
+			vm.Spec.BiosUUID = vsphereVM.Spec.BiosUUID
 		}
 		return nil
 	}

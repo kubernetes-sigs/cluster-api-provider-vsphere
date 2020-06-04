@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -389,8 +390,10 @@ func (r machineReconciler) reconcileNormalPre7(ctx *context.MachineContext, vsph
 
 		// Instruct the VSphereVM to use the CAPI bootstrap data resource.
 		// TODO: BootstrapRef field should be replaced with BootstrapSecret of type string
-		vm.Spec.BootstrapRef = ctx.Machine.Spec.Bootstrap.ConfigRef
-		vm.Spec.BootstrapRef.Name = *ctx.Machine.Spec.Bootstrap.DataSecretName
+		vm.Spec.BootstrapRef = &corev1.ObjectReference{
+			Name:      *ctx.Machine.Spec.Bootstrap.DataSecretName,
+			Namespace: ctx.Machine.ObjectMeta.Namespace,
+		}
 
 		// Initialize the VSphereVM's labels map if it is nil.
 		if vm.Labels == nil {

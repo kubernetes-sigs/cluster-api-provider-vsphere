@@ -555,6 +555,19 @@ func (r haproxylbReconciler) reconcileVMPre7(ctx *context.HAProxyLoadBalancerCon
 		// Copy the HAProxyLoadBalancer's VM clone spec into the VSphereVM's
 		// clone spec.
 		ctx.HAProxyLoadBalancer.Spec.VirtualMachineConfiguration.DeepCopyInto(&vm.Spec.VirtualMachineCloneSpec)
+
+		objectKey, err := ctrlclient.ObjectKeyFromObject(vm)
+		if err != nil {
+			return err
+		}
+		existingVM := &infrav1.VSphereVM{}
+		if err := r.Client.Get(ctx, objectKey, existingVM); err != nil {
+			if apierrors.IsNotFound(err) {
+				return nil
+			}
+			return err
+		}
+		vm.Spec.BiosUUID = existingVM.Spec.BiosUUID
 		return nil
 	}
 	if _, err := ctrlutil.CreateOrUpdate(ctx, ctx.Client, vm, mutateFn); err != nil {

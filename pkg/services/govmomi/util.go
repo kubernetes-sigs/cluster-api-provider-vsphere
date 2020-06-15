@@ -18,6 +18,7 @@ package govmomi
 
 import (
 	gonet "net"
+	"path"
 
 	"github.com/pkg/errors"
 	"github.com/vmware/govmomi/object"
@@ -49,6 +50,8 @@ func sanitizeIPAddrs(ctx *context.VMContext, ipAddrs []string) []string {
 //   1. If the BIOS UUID is available, then it is used to find the VM.
 //   2. Lacking the BIOS UUID, the VM is queried by its instance UUID,
 //      which was assigned the value of the VSphereVM resource's UID string.
+//   3. If it is not found by instance UUID, fallback to an inventory path search
+//      using the vm folder path and the VSphereVM name
 func findVM(ctx *context.VMContext) (types.ManagedObjectReference, error) {
 	if biosUUID := ctx.VSphereVM.Spec.BiosUUID; biosUUID != "" {
 		objRef, err := ctx.Session.FindByBIOSUUID(ctx, biosUUID)
@@ -56,8 +59,10 @@ func findVM(ctx *context.VMContext) (types.ManagedObjectReference, error) {
 			return types.ManagedObjectReference{}, err
 		}
 		if objRef == nil {
+			ctx.Logger.Info("vm not found by bios uuid", "biosuuid", biosUUID)
 			return types.ManagedObjectReference{}, errNotFound{uuid: biosUUID}
 		}
+		ctx.Logger.Info("vm found by bios uuid", "vmref", objRef.Reference())
 		return objRef.Reference(), nil
 	}
 
@@ -67,8 +72,24 @@ func findVM(ctx *context.VMContext) (types.ManagedObjectReference, error) {
 		return types.ManagedObjectReference{}, err
 	}
 	if objRef == nil {
-		return types.ManagedObjectReference{}, errNotFound{instanceUUID: true, uuid: instanceUUID}
+		// fallback to use inventory paths
+		folder, err := ctx.Session.Finder.FolderOrDefault(ctx, ctx.VSphereVM.Spec.Folder)
+		if err != nil {
+			return types.ManagedObjectReference{}, errors.Wrapf(err, "unable to get folder for %s/%s", ctx.VSphereVM.Namespace, ctx.VSphereVM.Name)
+		}
+		inventoryPath := path.Join(folder.InventoryPath, ctx.VSphereVM.Name)
+		ctx.Logger.Info("using inventory path to find vm", "path", inventoryPath)
+		vm, err := ctx.Session.Finder.VirtualMachine(ctx, inventoryPath)
+		if err != nil {
+			if isVirtualMachineNotFound(err) {
+				return types.ManagedObjectReference{}, errNotFound{byInventoryPath: inventoryPath}
+			}
+			return types.ManagedObjectReference{}, err
+		}
+		ctx.Logger.Info("vm found by name", "vmref", vm.Reference())
+		return vm.Reference(), nil
 	}
+	ctx.Logger.Info("vm found by instance uuid", "vmref", objRef.Reference())
 	return objRef.Reference(), nil
 }
 

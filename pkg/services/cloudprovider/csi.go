@@ -33,13 +33,13 @@ import (
 // NOTE: the contents of this file are derived from https://github.com/kubernetes-sigs/vsphere-csi-driver/tree/master/manifests/1.14
 
 const (
-	DefaultCSIControllerImage     = "gcr.io/cloud-provider-vsphere/csi/release/driver:v1.0.2"
-	DefaultCSINodeDriverImage     = "gcr.io/cloud-provider-vsphere/csi/release/driver:v1.0.2"
-	DefaultCSIAttacherImage       = "quay.io/k8scsi/csi-attacher:v1.1.1"
-	DefaultCSIProvisionerImage    = "quay.io/k8scsi/csi-provisioner:v1.2.1"
-	DefaultCSIMetadataSyncerImage = "gcr.io/cloud-provider-vsphere/csi/release/syncer:v1.0.2"
+	DefaultCSIControllerImage     = "gcr.io/cloud-provider-vsphere/csi/release/driver:v2.0.0"
+	DefaultCSINodeDriverImage     = "gcr.io/cloud-provider-vsphere/csi/release/driver:v2.0.0"
+	DefaultCSIAttacherImage       = "quay.io/k8scsi/csi-attacher:v2.0.0"
+	DefaultCSIProvisionerImage    = "quay.io/k8scsi/csi-provisioner:v1.4.0"
+	DefaultCSIMetadataSyncerImage = "gcr.io/cloud-provider-vsphere/csi/release/syncer:v2.0.0"
 	DefaultCSILivenessProbeImage  = "quay.io/k8scsi/livenessprobe:v1.1.0"
-	DefaultCSIRegistrarImage      = "quay.io/k8scsi/csi-node-driver-registrar:v1.1.0"
+	DefaultCSIRegistrarImage      = "quay.io/k8scsi/csi-node-driver-registrar:v1.2.0"
 	CSINamespace                  = metav1.NamespaceSystem
 	CSIControllerName             = "vsphere-csi-controller"
 )
@@ -198,7 +198,7 @@ func VSphereCSINodeDaemonSet(storageConfig *v1alpha3.CPIStorageConfig) *appsv1.D
 							VolumeSource: corev1.VolumeSource{
 								HostPath: &corev1.HostPathVolumeSource{
 									Path: "/var/lib/kubelet/plugins_registry",
-									Type: newHostPathType(string(corev1.HostPathDirectoryOrCreate)),
+									Type: newHostPathType(string(corev1.HostPathDirectory)),
 								},
 							},
 						},
@@ -206,7 +206,7 @@ func VSphereCSINodeDaemonSet(storageConfig *v1alpha3.CPIStorageConfig) *appsv1.D
 							Name: "plugin-dir",
 							VolumeSource: corev1.VolumeSource{
 								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/var/lib/kubelet/plugins_registry/csi.vsphere.vmware.com",
+									Path: "/var/lib/kubelet/plugins/csi.vsphere.vmware.com/",
 									Type: newHostPathType(string(corev1.HostPathDirectoryOrCreate)),
 								},
 							},
@@ -245,7 +245,7 @@ func NodeDriverRegistrarContainer(image string) corev1.Container {
 					Command: []string{
 						"/bin/sh",
 						"-c",
-						"rm -rf /registration/csi.vsphere.vmware.com /var/lib/kubelet/plugins_registry/csi.vsphere.vmware.com /var/lib/kubelet/plugins_registry/csi.vsphere.vmware.com-reg.sock",
+						"rm -rf /registration/csi.vsphere.vmware.com-reg.sock /csi/csi.sock",
 					},
 				},
 			},
@@ -262,7 +262,7 @@ func NodeDriverRegistrarContainer(image string) corev1.Container {
 			},
 			{
 				Name:  "DRIVER_REG_SOCK_PATH",
-				Value: "/var/lib/kubelet/plugins_registry/csi.vsphere.vmware.com/csi.sock",
+				Value: "/var/lib/kubelet/plugins/csi.vsphere.vmware.com/csi.sock",
 			},
 		},
 		SecurityContext: &corev1.SecurityContext{
@@ -371,13 +371,7 @@ func LivenessProbeForNodeContainer(image string) corev1.Container {
 	return corev1.Container{
 		Name:  "liveness-probe",
 		Image: image,
-		Args:  []string{"--csi-address=$(ADDRESS)"},
-		Env: []corev1.EnvVar{
-			{
-				Name:  "ADDRESS",
-				Value: "/csi/csi.sock",
-			},
-		},
+		Args:  []string{"--csi-address=/csi/csi.sock"},
 		VolumeMounts: []corev1.VolumeMount{
 			{
 				Name:      "plugin-dir",
@@ -460,7 +454,7 @@ func CSIAttacherContainer(image string) corev1.Container {
 	return corev1.Container{
 		Name:  "csi-attacher",
 		Image: image,
-		Args:  []string{"--v=4", "--timeout=60s", "--csi-address=$(ADDRESS)"},
+		Args:  []string{"--v=4", "--timeout=300s", "--csi-address=$(ADDRESS)", "--leader-election"},
 		Env: []corev1.EnvVar{
 			{
 				Name:  "ADDRESS",
@@ -566,11 +560,15 @@ func VSphereSyncerContainer(image string) corev1.Container {
 	return corev1.Container{
 		Name:  "vsphere-syncer",
 		Image: image,
-		Args:  []string{"--v=4"},
+		Args:  []string{"--leader-election"},
 		Env: []corev1.EnvVar{
 			{
 				Name:  "X_CSI_FULL_SYNC_INTERVAL_MINUTES",
 				Value: "30",
+			},
+			{
+				Name:  "LOGGER_LEVEL",
+				Value: "PRODUCTION",
 			},
 			{
 				Name:  "VSPHERE_CSI_CONFIG",
@@ -593,10 +591,12 @@ func CSIProvisionerContainer(image string) corev1.Container {
 		Image: image,
 		Args: []string{
 			"--v=4",
-			"--timeout=60s",
+			"--timeout=300s",
 			"--csi-address=$(ADDRESS)",
 			"--feature-gates=Topology=true",
 			"--strict-topology",
+			"--enable-leader-election",
+			"--leader-election-type=leases",
 		},
 		Env: []corev1.EnvVar{
 			{

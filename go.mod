@@ -5,7 +5,7 @@ go 1.12
 require (
 	github.com/antihax/optional v1.0.0
 	github.com/go-logr/logr v0.1.0
-	github.com/google/go-cmp v0.4.0
+	github.com/google/go-cmp v0.4.1
 	github.com/google/uuid v1.1.1
 	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.9.0
@@ -20,7 +20,7 @@ require (
 	k8s.io/client-go v0.17.2
 	k8s.io/klog v1.0.0
 	k8s.io/utils v0.0.0-20200229041039-0a110f9eb7ab
-	sigs.k8s.io/cluster-api v0.3.3
-	sigs.k8s.io/controller-runtime v0.5.2
+	sigs.k8s.io/cluster-api v0.3.7-0.20200611213857-c97bdd7317cb
+	sigs.k8s.io/controller-runtime v0.5.5
 	sigs.k8s.io/yaml v1.2.0
 )

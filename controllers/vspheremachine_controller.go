@@ -391,8 +391,10 @@ func (r machineReconciler) reconcileNormalPre7(ctx *context.MachineContext) (run
 		// Instruct the VSphereVM to use the CAPI bootstrap data resource.
 		// TODO: BootstrapRef field should be replaced with BootstrapSecret of type string
 		vm.Spec.BootstrapRef = &corev1.ObjectReference{
-			Name:      *ctx.Machine.Spec.Bootstrap.DataSecretName,
-			Namespace: ctx.Machine.ObjectMeta.Namespace,
+			APIVersion: "v1",
+			Kind:       "Secret",
+			Name:       *ctx.Machine.Spec.Bootstrap.DataSecretName,
+			Namespace:  ctx.Machine.ObjectMeta.Namespace,
 		}
 
 		// Initialize the VSphereVM's labels map if it is nil.

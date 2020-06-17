@@ -59,6 +59,8 @@ func (src *VSphereCluster) ConvertTo(dstRaw conversion.Hub) error { // nolint
 		dst.Spec.ControlPlaneEndpoint.Port = restored.Spec.ControlPlaneEndpoint.Port
 	}
 
+	dst.Status.Conditions = restored.Status.Conditions
+
 	return nil
 }
 
@@ -126,5 +128,13 @@ func Convert_v1alpha2_CPICloudConfig_To_v1alpha3_CPICloudConfig(in *CPICloudConf
 func Convert_v1alpha3_CPICloudConfig_To_v1alpha2_CPICloudConfig(in *v1alpha3.CPICloudConfig, out *CPICloudConfig, s apiconversion.Scope) error { // nolint
 	// extraArgs is handled through the annotation marshalling
 	out.ControllerImage = in.ControllerImage
+	return nil
+}
+
+// Convert_v1alpha3_VSphereClusterStatus_To_v1alpha2_VSphereClusterStatus converts VSphereCluster.Status from v1alpha3 to v1alpha2.
+// Requires manual conversion as infrav1alpha3.VSphereClusterStatus.Conditions does not exist in VSphereClusterSpec.
+func Convert_v1alpha3_VSphereClusterStatus_To_v1alpha2_VSphereClusterStatus(in *v1alpha3.VSphereClusterStatus, out *VSphereClusterStatus, s apiconversion.Scope) error { // nolint
+	// Conditions is handled through the annotation marshalling
+	out.Ready = in.Ready
 	return nil
 }

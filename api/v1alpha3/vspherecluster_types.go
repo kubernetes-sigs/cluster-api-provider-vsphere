@@ -19,6 +19,7 @@ package v1alpha3
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
 const (
@@ -57,7 +58,12 @@ type VSphereClusterSpec struct {
 
 // VSphereClusterStatus defines the observed state of VSphereClusterSpec
 type VSphereClusterStatus struct {
-	Ready bool `json:"ready"`
+	// +optional
+	Ready bool `json:"ready,omitempty"`
+
+	// Conditions defines current service state of the VSphereCluster.
+	// +optional
+	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -72,6 +78,14 @@ type VSphereCluster struct {
 
 	Spec   VSphereClusterSpec   `json:"spec,omitempty"`
 	Status VSphereClusterStatus `json:"status,omitempty"`
+}
+
+func (m *VSphereCluster) GetConditions() clusterv1.Conditions {
+	return m.Status.Conditions
+}
+
+func (m *VSphereCluster) SetConditions(conditions clusterv1.Conditions) {
+	m.Status.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true

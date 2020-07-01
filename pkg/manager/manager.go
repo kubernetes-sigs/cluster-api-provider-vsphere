@@ -26,6 +26,7 @@ import (
 	"k8s.io/client-go/rest"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -56,6 +57,7 @@ func New(opts Options) (Manager, error) {
 	_ = infrav1.AddToScheme(opts.Scheme)
 	_ = v1alpha2.AddToScheme(opts.Scheme)
 	_ = bootstrapv1.AddToScheme(opts.Scheme)
+	_ = controlplanev1.AddToScheme(opts.Scheme)
 	// +kubebuilder:scaffold:scheme
 
 	podName, err := os.Hostname()

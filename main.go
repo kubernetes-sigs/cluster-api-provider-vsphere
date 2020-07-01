@@ -29,14 +29,15 @@ import (
 
 	"k8s.io/klog"
 	"k8s.io/klog/klogr"
+	"sigs.k8s.io/cluster-api-provider-vsphere/controllers"
+	vip "sigs.k8s.io/cluster-api-provider-vsphere/kube-vip/kubeadmconfig"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
 	ctrlsig "sigs.k8s.io/controller-runtime/pkg/manager/signals"
-
-	"sigs.k8s.io/cluster-api-provider-vsphere/controllers"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
 var (
@@ -179,6 +180,8 @@ func main() {
 			if err := (&v1alpha2.VSphereMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 				return err
 			}
+			// add the mutating webhook for the VIP support
+			mgr.GetWebhookServer().Register(vip.AdmissionPath, &webhook.Admission{Handler: &vip.Webhook{Logger: setupLog.WithName("vip-webhook")}})
 		} else {
 			if err := controllers.AddClusterControllerToManager(ctx, mgr); err != nil {
 				return err

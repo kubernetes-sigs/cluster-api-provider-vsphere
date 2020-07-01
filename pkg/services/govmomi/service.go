@@ -29,7 +29,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apitypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capierrors "sigs.k8s.io/cluster-api/errors"
+	"sigs.k8s.io/cluster-api/util/conditions"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
@@ -81,15 +83,25 @@ func (vms *VMService) ReconcileVM(ctx *context.VMContext) (vm infrav1.VirtualMac
 		}
 
 		// Otherwise, this is a new machine and the  the VM should be created.
+		// NOTE: We are setting this condition only in case it does not exists so we avoid to get flickering LastConditionTime
+		// in case of cloning errors or powering on errors.
+		if !conditions.Has(ctx.VSphereVM, infrav1.VMProvisionedCondition) {
+			conditions.MarkFalse(ctx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.CloningReason, clusterv1.ConditionSeverityInfo, "")
+		}
 
 		// Get the bootstrap data.
 		bootstrapData, err := vms.getBootstrapData(ctx)
 		if err != nil {
+			conditions.MarkFalse(ctx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.CloningFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 			return vm, err
 		}
 
 		// Create the VM.
-		return vm, createVM(ctx, bootstrapData)
+		err = createVM(ctx, bootstrapData)
+		if err != nil {
+			conditions.MarkFalse(ctx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.CloningFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+		}
+		return vm, nil
 	}
 
 	//
@@ -239,8 +251,10 @@ func (vms *VMService) reconcilePowerState(ctx *virtualMachineContext) (bool, err
 		ctx.Logger.Info("powering on")
 		task, err := ctx.Obj.PowerOn(ctx)
 		if err != nil {
+			conditions.MarkFalse(ctx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.PoweringOnFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 			return false, errors.Wrapf(err, "failed to trigger power on op for vm %s", ctx)
 		}
+		conditions.MarkFalse(ctx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.PoweringOnReason, clusterv1.ConditionSeverityInfo, "")
 
 		// Update the VSphereVM.Status.TaskRef to track the power-on task.
 		ctx.VSphereVM.Status.TaskRef = task.Reference().Value

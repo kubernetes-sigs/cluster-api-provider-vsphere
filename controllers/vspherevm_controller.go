@@ -31,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -176,6 +177,13 @@ func (r vmReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) 
 	// Always issue a patch when exiting this function so changes to the
 	// resource are patched back to the API server.
 	defer func() {
+		// always update the readyCondition.
+		conditions.SetSummary(vmContext.VSphereVM,
+			conditions.WithConditions(
+				infrav1.VMProvisionedCondition,
+			),
+		)
+
 		// Patch the VSphereVM resource.
 		if err := vmContext.Patch(); err != nil {
 			if reterr == nil {
@@ -337,6 +345,7 @@ func (r vmReconciler) reconcileNormal(ctx *context.VMContext) (reconcile.Result,
 
 	// Once the network is online the VM is considered ready.
 	ctx.VSphereVM.Status.Ready = true
+	conditions.MarkTrue(ctx.VSphereVM, infrav1.VMProvisionedCondition)
 	ctx.Logger.Info("VSphereVM is ready")
 
 	return reconcile.Result{}, nil

@@ -48,3 +48,31 @@ const (
 	// the operation is automatically re-tried by the controller.
 	CSIProvisioningFailedReason = "CSIProvisioningFailed"
 )
+
+// Conditions and condition Reasons for the VSphereVM object
+
+const (
+
+	// VMProvisionedCondition documents the status of the provisioning of a VSphereVM.
+	VMProvisionedCondition clusterv1.ConditionType = "VMProvisioned"
+
+	// CloningReason documents (Severity=Info) a VSphereVM currently executing the clone operation.
+	CloningReason = "Cloning"
+
+	// CloningFailedReason (Severity=Warning) documents a VSphereVM controller detecting
+	// an error while provisioning; the reconcile loop will automatically retry the operation,
+	// but a user intervention might be required to fix the problem.
+	CloningFailedReason = "CloningFailed"
+
+	// PoweringOnReason documents (Severity=Info) a VSphereVM currently executing the power on sequence.
+	PoweringOnReason = "PoweringOn"
+
+	// PoweringOnFailedReason (Severity=Warning) documents a VSphereVM controller detecting
+	// an error while powering on; the reconcile loop will automatically retry the operation,
+	// but a user intervention might be required to fix the problem.
+	PoweringOnFailedReason = "PoweringOnFailed"
+
+	// TaskFailure (Severity=Warning) documents a VSphere task failure; the reconcile loop will automatically
+	// retry the operation, but a user intervention might be required to fix the problem.
+	TaskFailure = "TaskFailure"
+)

@@ -32,6 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -181,6 +182,18 @@ func (r clusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr er
 	// Always issue a patch when exiting this function so changes to the
 	// resource are patched back to the API server.
 	defer func() {
+		// always update the readyCondition.
+		conditions.SetSummary(clusterContext.VSphereCluster,
+			conditions.WithConditions(
+				infrav1.LoadBalancerAvailableCondition,
+				infrav1.CCMAvailableCondition,
+				infrav1.CSIAvailableCondition,
+			),
+			conditions.WithStepCounterIfOnly(
+				infrav1.LoadBalancerAvailableCondition,
+			),
+		)
+
 		if err := clusterContext.Patch(); err != nil {
 			if reterr == nil {
 				reterr = err
@@ -248,14 +261,17 @@ func (r clusterReconciler) reconcileNormal(ctx *context.ClusterContext) (reconci
 	// Reconcile the VSphereCluster's load balancer.
 	if ok, err := r.reconcileLoadBalancer(ctx); !ok {
 		if err != nil {
+			conditions.MarkFalse(ctx.VSphereCluster, infrav1.LoadBalancerAvailableCondition, infrav1.LoadBalancerProvisioningFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 			return reconcile.Result{}, errors.Wrapf(err,
 				"unexpected error while reconciling load balancer for %s", ctx)
 		}
 		ctx.Logger.Info("load balancer is not reconciled")
+		conditions.MarkFalse(ctx.VSphereCluster, infrav1.LoadBalancerAvailableCondition, infrav1.LoadBalancerProvisioningReason, clusterv1.ConditionSeverityInfo, "")
 		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
 	// Reconcile the VSphereCluster resource's ready state.
+	conditions.MarkTrue(ctx.VSphereCluster, infrav1.LoadBalancerAvailableCondition)
 	ctx.VSphereCluster.Status.Ready = true
 
 	// Reconcile the VSphereCluster resource's control plane endpoint.
@@ -275,6 +291,7 @@ func (r clusterReconciler) reconcileNormal(ctx *context.ClusterContext) (reconci
 
 	// Create the cloud config secret for the target cluster.
 	if err := r.reconcileCloudConfigSecret(ctx); err != nil {
+		conditions.MarkFalse(ctx.VSphereCluster, infrav1.CCMAvailableCondition, infrav1.CCMProvisioningFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 		return reconcile.Result{}, errors.Wrapf(err,
 			"failed to reconcile cloud config secret for VSphereCluster %s/%s",
 			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
@@ -282,17 +299,23 @@ func (r clusterReconciler) reconcileNormal(ctx *context.ClusterContext) (reconci
 
 	// Create the external cloud provider addons
 	if err := r.reconcileCloudProvider(ctx); err != nil {
+		conditions.MarkFalse(ctx.VSphereCluster, infrav1.CCMAvailableCondition, infrav1.CCMProvisioningFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 		return reconcile.Result{}, errors.Wrapf(err,
 			"failed to reconcile cloud provider for VSphereCluster %s/%s",
 			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
 	}
 
+	conditions.MarkTrue(ctx.VSphereCluster, infrav1.CCMAvailableCondition)
+
 	// Create the vSphere CSI Driver addons
 	if err := r.reconcileStorageProvider(ctx); err != nil {
+		conditions.MarkFalse(ctx.VSphereCluster, infrav1.CSIAvailableCondition, infrav1.CSIProvisioningFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 		return reconcile.Result{}, errors.Wrapf(err,
 			"failed to reconcile CSI Driver for VSphereCluster %s/%s",
 			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
 	}
+
+	conditions.MarkTrue(ctx.VSphereCluster, infrav1.CSIAvailableCondition)
 
 	return reconcile.Result{}, nil
 }

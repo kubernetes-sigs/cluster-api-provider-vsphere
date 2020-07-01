@@ -49,30 +49,50 @@ const (
 	CSIProvisioningFailedReason = "CSIProvisioningFailed"
 )
 
-// Conditions and condition Reasons for the VSphereVM object
+// Conditions and condition Reasons for the VSphereMachine and the VSphereVM object.
+//
+// NOTE: VSphereMachine wraps a VMSphereVM, some we are using a unique set of conditions and reasons in order
+// to ensure a consistent UX; differences between the two objects will be highlighted in the comments.
 
 const (
-
-	// VMProvisionedCondition documents the status of the provisioning of a VSphereVM.
+	// VMProvisionedCondition documents the status of the provisioning of a VSphereMachine and its underlying VSphereVM.
 	VMProvisionedCondition clusterv1.ConditionType = "VMProvisioned"
 
-	// CloningReason documents (Severity=Info) a VSphereVM currently executing the clone operation.
+	// WaitingForClusterInfrastructureReason (Severity=Info) documents a VSphereMachine waiting for the cluster
+	// infrastructure to be ready before starting the provisioning process.
+	//
+	// NOTE: This reason does not apply to VSphereVM (this state happens before the VSphereVM is actually created).
+	WaitingForClusterInfrastructureReason = "WaitingForClusterInfrastructure"
+
+	// WaitingForBootstrapDataReason (Severity=Info) documents a VSphereMachine waiting for the bootstrap
+	// script to be ready before starting the provisioning process.
+	//
+	// NOTE: This reason does not apply to VSphereVM (this state happens before the VSphereVM is actually created).
+	WaitingForBootstrapDataReason = "WaitingForBootstrapData"
+
+	// CloningReason documents (Severity=Info) a VSphereMachine/VSphereVM currently executing the clone operation.
 	CloningReason = "Cloning"
 
-	// CloningFailedReason (Severity=Warning) documents a VSphereVM controller detecting
-	// an error while provisioning; the reconcile loop will automatically retry the operation,
-	// but a user intervention might be required to fix the problem.
+	// CloningFailedReason (Severity=Warning) documents a VSphereMachine/VSphereVM controller detecting
+	// an error while provisioning; those kind of errors are usually transient and failed provisioning
+	// are automatically re-tried by the controller.
 	CloningFailedReason = "CloningFailed"
 
-	// PoweringOnReason documents (Severity=Info) a VSphereVM currently executing the power on sequence.
+	// PoweringOnReason documents (Severity=Info) a VSphereMachine/VSphereVM currently executing the power on sequence.
 	PoweringOnReason = "PoweringOn"
 
-	// PoweringOnFailedReason (Severity=Warning) documents a VSphereVM controller detecting
-	// an error while powering on; the reconcile loop will automatically retry the operation,
-	// but a user intervention might be required to fix the problem.
+	// PoweringOnFailedReason (Severity=Warning) documents a VSphereMachine/VSphereVM controller detecting
+	// an error while powering on; those kind of errors are usually transient and failed provisioning
+	// are automatically re-tried by the controller.
 	PoweringOnFailedReason = "PoweringOnFailed"
 
-	// TaskFailure (Severity=Warning) documents a VSphere task failure; the reconcile loop will automatically
+	// TaskFailure (Severity=Warning) documents a VSphereMachine/VSphere task failure; the reconcile look will automatically
 	// retry the operation, but a user intervention might be required to fix the problem.
 	TaskFailure = "TaskFailure"
+
+	// WaitingForNetworkAddressesReason (Severity=Info) documents a VSphereMachine waiting for the the machine network
+	// settings to be reported after machine being powered on.
+	//
+	// NOTE: This reason does not apply to VSphereVM (this state happens after the VSphereVM is in ready state).
+	WaitingForNetworkAddressesReason = "WaitingForNetworkAddresses"
 )

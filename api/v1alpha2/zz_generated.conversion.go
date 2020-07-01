@@ -982,6 +982,7 @@ func autoConvert_v1alpha3_VSphereMachineStatus_To_v1alpha2_VSphereMachineStatus(
 	out.Network = *(*[]NetworkStatus)(unsafe.Pointer(&in.Network))
 	// WARNING: in.FailureReason requires manual conversion: does not exist in peer-type
 	// WARNING: in.FailureMessage requires manual conversion: does not exist in peer-type
+	// WARNING: in.Conditions requires manual conversion: does not exist in peer-type
 	return nil
 }
 

@@ -33,6 +33,7 @@ import (
 	apitypes "k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -209,6 +210,13 @@ func (r machineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr er
 	// Always issue a patch when exiting this function so changes to the
 	// resource are patched back to the API server.
 	defer func() {
+		// always update the readyCondition.
+		conditions.SetSummary(machineContext.VSphereMachine,
+			conditions.WithConditions(
+				infrav1.VMProvisionedCondition,
+			),
+		)
+
 		// Patch the VSphereMachine resource.
 		if err := machineContext.Patch(); err != nil {
 			if reterr == nil {
@@ -306,12 +314,14 @@ func (r machineReconciler) reconcileNormal(ctx *context.MachineContext) (reconci
 
 	if !ctx.Cluster.Status.InfrastructureReady {
 		ctx.Logger.Info("Cluster infrastructure is not ready yet")
+		conditions.MarkFalse(ctx.VSphereMachine, infrav1.VMProvisionedCondition, infrav1.WaitingForClusterInfrastructureReason, clusterv1.ConditionSeverityInfo, "")
 		return reconcile.Result{}, nil
 	}
 
 	// Make sure bootstrap data is available and populated.
 	if ctx.Machine.Spec.Bootstrap.DataSecretName == nil {
 		ctx.Logger.Info("Waiting for bootstrap data to be available")
+		conditions.MarkFalse(ctx.VSphereMachine, infrav1.VMProvisionedCondition, infrav1.WaitingForBootstrapDataReason, clusterv1.ConditionSeverityInfo, "")
 		return reconcile.Result{}, nil
 	}
 
@@ -336,6 +346,19 @@ func (r machineReconciler) reconcileNormal(ctx *context.MachineContext) (reconci
 	vmObj.SetAPIVersion(vm.GetObjectKind().GroupVersionKind().GroupVersion().String())
 	vmObj.SetKind(vm.GetObjectKind().GroupVersionKind().Kind)
 
+	// Waits the VM's ready state.
+	if ok, err := r.waitReadyState(ctx, vmObj); !ok {
+		if err != nil {
+			return reconcile.Result{}, errors.Wrapf(err,
+				"unexpected error while reconciling ready state for %s", ctx)
+		}
+		ctx.Logger.Info("waiting for ready state")
+		// VSphereMachine wraps a VMSphereVM, so we are mirroring status from the underlying VMSphereVM
+		// in order to provide evidences about machine provisioning while provisioning is actually happening.
+		conditions.SetMirror(ctx.VSphereMachine, infrav1.VMProvisionedCondition, conditions.UnstructuredGetter(vmObj))
+		return reconcile.Result{}, nil
+	}
+
 	// Reconcile the VSphereMachine's provider ID using the VM's BIOS UUID.
 	if ok, err := r.reconcileProviderID(ctx, vmObj); !ok {
 		if err != nil {
@@ -353,19 +376,12 @@ func (r machineReconciler) reconcileNormal(ctx *context.MachineContext) (reconci
 				"unexpected error while reconciling network for %s", ctx)
 		}
 		ctx.Logger.Info("network is not reconciled")
+		conditions.MarkFalse(ctx.VSphereMachine, infrav1.VMProvisionedCondition, infrav1.WaitingForNetworkAddressesReason, clusterv1.ConditionSeverityInfo, "")
 		return reconcile.Result{}, nil
 	}
 
-	// Reconcile the VSphereMachine's ready state from the VM's ready state.
-	if ok, err := r.reconcileReadyState(ctx, vmObj); !ok {
-		if err != nil {
-			return reconcile.Result{}, errors.Wrapf(err,
-				"unexpected error while reconciling ready state for %s", ctx)
-		}
-		ctx.Logger.Info("ready state is not reconciled")
-		return reconcile.Result{}, nil
-	}
-
+	ctx.VSphereMachine.Status.Ready = true
+	conditions.MarkTrue(ctx.VSphereMachine, infrav1.VMProvisionedCondition)
 	return reconcile.Result{}, nil
 }
 
@@ -549,7 +565,7 @@ func (r machineReconciler) reconcileProviderID(ctx *context.MachineContext, vm *
 	return true, nil
 }
 
-func (r machineReconciler) reconcileReadyState(ctx *context.MachineContext, vm *unstructured.Unstructured) (bool, error) {
+func (r machineReconciler) waitReadyState(ctx *context.MachineContext, vm *unstructured.Unstructured) (bool, error) {
 	ready, ok, err := unstructured.NestedBool(vm.Object, "status", "ready")
 	if !ok {
 		if err != nil {
@@ -574,7 +590,6 @@ func (r machineReconciler) reconcileReadyState(ctx *context.MachineContext, vm *
 		return false, nil
 	}
 
-	ctx.VSphereMachine.Status.Ready = true
 	return true, nil
 }
 

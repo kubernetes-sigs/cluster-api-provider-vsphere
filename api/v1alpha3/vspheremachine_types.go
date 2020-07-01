@@ -90,6 +90,10 @@ type VSphereMachineStatus struct {
 	// controller's output.
 	// +optional
 	FailureMessage *string `json:"failureMessage,omitempty"`
+
+	// Conditions defines current service state of the VSphereMachine.
+	// +optional
+	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -104,6 +108,14 @@ type VSphereMachine struct {
 
 	Spec   VSphereMachineSpec   `json:"spec,omitempty"`
 	Status VSphereMachineStatus `json:"status,omitempty"`
+}
+
+func (m *VSphereMachine) GetConditions() clusterv1.Conditions {
+	return m.Status.Conditions
+}
+
+func (m *VSphereMachine) SetConditions(conditions clusterv1.Conditions) {
+	m.Status.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true

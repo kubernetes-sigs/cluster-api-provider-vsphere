@@ -25,6 +25,9 @@ import (
 	"github.com/vmware/govmomi/property"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
@@ -135,6 +138,10 @@ func reconcileInFlightTask(ctx *context.VMContext) (bool, error) {
 		return false, nil
 	case types.TaskInfoStateError:
 		logger.Info("task failed", "description-id", task.Info.DescriptionId)
+
+		// NOTE: When a task fails there is not simple way to understand which operation is failing (e.g. cloning or powering on)
+		// so we are reporting failures using a dedicated reason until we find a better solution.
+		conditions.MarkFalse(ctx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.TaskFailure, clusterv1.ConditionSeverityInfo, task.Info.Description.Message)
 		ctx.VSphereVM.Status.TaskRef = ""
 		return false, nil
 	default:

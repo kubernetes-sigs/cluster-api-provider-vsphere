@@ -59,10 +59,10 @@ import (
 )
 
 var (
-	controlledType     = &infrav1.HAProxyLoadBalancer{}
-	controlledTypeName = reflect.TypeOf(controlledType).Elem().Name()
-	controlledTypeGVK  = infrav1.GroupVersion.WithKind(controlledTypeName)
-	trimmer            = regexp.MustCompile(`(?m)[\t ]?(.*)[\t ]$`)
+	haproxyControlledType     = &infrav1.HAProxyLoadBalancer{}
+	haproxyControlledTypeName = reflect.TypeOf(haproxyControlledType).Elem().Name()
+	haproxyControlledTypeGVK  = infrav1.GroupVersion.WithKind(haproxyControlledTypeName)
+	trimmer                   = regexp.MustCompile(`(?m)[\t ]?(.*)[\t ]$`)
 )
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=haproxyloadbalancers,verbs=get;list;watch;create;update;patch;delete
@@ -77,7 +77,7 @@ var (
 func AddHAProxyLoadBalancerControllerToManager(ctx *context.ControllerManagerContext, mgr manager.Manager) error {
 
 	var (
-		controllerNameShort = fmt.Sprintf("%s-controller", strings.ToLower(controlledTypeName))
+		controllerNameShort = fmt.Sprintf("%s-controller", strings.ToLower(haproxyControlledTypeName))
 		controllerNameLong  = fmt.Sprintf("%s/%s/%s", ctx.Namespace, ctx.Name, controllerNameShort)
 	)
 
@@ -93,11 +93,11 @@ func AddHAProxyLoadBalancerControllerToManager(ctx *context.ControllerManagerCon
 
 	controller, err := ctrl.NewControllerManagedBy(mgr).
 		// Watch the controlled, infrastructure resource.
-		For(controlledType).
+		For(haproxyControlledType).
 		// Watch any VSphereVM resources owned by the controlled type.
 		Watches(
 			&source.Kind{Type: &infrav1.VSphereVM{}},
-			&handler.EnqueueRequestForOwner{OwnerType: controlledType, IsController: false},
+			&handler.EnqueueRequestForOwner{OwnerType: haproxyControlledType, IsController: false},
 		).
 		// Watch the CAPI machines that are members of the control plane which
 		// this HAProxyLoadBalancer servies.
@@ -113,7 +113,7 @@ func AddHAProxyLoadBalancerControllerToManager(ctx *context.ControllerManagerCon
 		// should cause a resource to be synchronized, such as a goroutine
 		// waiting on some asynchronous, external task to complete.
 		Watches(
-			&source.Channel{Source: ctx.GetGenericEventChannelFor(controlledTypeGVK)},
+			&source.Channel{Source: ctx.GetGenericEventChannelFor(haproxyControlledTypeGVK)},
 			&handler.EnqueueRequestForObject{},
 		).
 		WithOptions(controller.Options{MaxConcurrentReconciles: ctx.MaxConcurrentReconciles}).
@@ -176,7 +176,7 @@ func (r haproxylbReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr 
 	ctx := &context.HAProxyLoadBalancerContext{
 		ControllerContext:   r.ControllerContext,
 		HAProxyLoadBalancer: haproxylb,
-		Logger:              logger.WithValues("kind", controlledTypeGVK.Kind, "api-version", controlledTypeGVK.Version),
+		Logger:              logger.WithValues("kind", haproxyControlledTypeGVK.Kind, "api-version", haproxyControlledTypeGVK.Version),
 		PatchHelper:         patchHelper,
 	}
 
@@ -670,6 +670,12 @@ func (r haproxylbReconciler) controlPlaneMachineToHAProxyLoadBalancer(o handler.
 	// in the same namespace as the Cluster. When the namespace is empty, set it
 	// to the same namespace as the Cluster.
 	infraClusterRef := cluster.Spec.InfrastructureRef
+
+	// Since HAProxyLoadBalancer is now deprecated, only reconcile for vSphereClusters
+	if infraClusterRef.Kind != clusterControlledTypeName {
+		return nil
+	}
+
 	if infraClusterRef.Namespace == "" {
 		infraClusterRef.Namespace = cluster.Namespace
 	}
@@ -723,7 +729,7 @@ func (r haproxylbReconciler) controlPlaneMachineToHAProxyLoadBalancer(o handler.
 		return nil
 	}
 
-	if loadBalancerRef.Kind != controlledTypeName {
+	if loadBalancerRef.Kind != haproxyControlledTypeName {
 		return nil
 	}
 

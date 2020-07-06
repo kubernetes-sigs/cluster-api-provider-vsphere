@@ -51,7 +51,10 @@ import (
 )
 
 var (
-	defaultAPIEndpointPort = int32(6443)
+	defaultAPIEndpointPort    = int32(6443)
+	clusterControlledType     = &infrav1.VSphereCluster{}
+	clusterControlledTypeName = reflect.TypeOf(clusterControlledType).Elem().Name()
+	clusterControlledTypeGVK  = infrav1.GroupVersion.WithKind(clusterControlledTypeName)
 )
 
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;patch
@@ -64,11 +67,7 @@ var (
 func AddClusterControllerToManager(ctx *context.ControllerManagerContext, mgr manager.Manager) error {
 
 	var (
-		controlledType     = &infrav1.VSphereCluster{}
-		controlledTypeName = reflect.TypeOf(controlledType).Elem().Name()
-		controlledTypeGVK  = infrav1.GroupVersion.WithKind(controlledTypeName)
-
-		controllerNameShort = fmt.Sprintf("%s-controller", strings.ToLower(controlledTypeName))
+		controllerNameShort = fmt.Sprintf("%s-controller", strings.ToLower(clusterControlledTypeName))
 		controllerNameLong  = fmt.Sprintf("%s/%s/%s", ctx.Namespace, ctx.Name, controllerNameShort)
 	)
 
@@ -84,12 +83,12 @@ func AddClusterControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 
 	return ctrl.NewControllerManagedBy(mgr).
 		// Watch the controlled, infrastructure resource.
-		For(controlledType).
+		For(clusterControlledType).
 		// Watch the CAPI resource that owns this infrastructure resource.
 		Watches(
 			&source.Kind{Type: &clusterv1.Cluster{}},
 			&handler.EnqueueRequestsFromMapFunc{
-				ToRequests: clusterutilv1.ClusterToInfrastructureMapFunc(controlledTypeGVK),
+				ToRequests: clusterutilv1.ClusterToInfrastructureMapFunc(clusterControlledTypeGVK),
 			},
 		).
 		// Watch the infrastructure machine resources that belong to the control
@@ -119,7 +118,7 @@ func AddClusterControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 		// should cause a resource to be synchronized, such as a goroutine
 		// waiting on some asynchronous, external task to complete.
 		Watches(
-			&source.Channel{Source: ctx.GetGenericEventChannelFor(controlledTypeGVK)},
+			&source.Channel{Source: ctx.GetGenericEventChannelFor(clusterControlledTypeGVK)},
 			&handler.EnqueueRequestForObject{},
 		).
 		WithOptions(controller.Options{MaxConcurrentReconciles: ctx.MaxConcurrentReconciles}).

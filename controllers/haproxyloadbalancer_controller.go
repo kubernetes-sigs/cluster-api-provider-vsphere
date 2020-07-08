@@ -594,6 +594,7 @@ func (r haproxylbReconciler) reconcileNetwork(ctx *context.HAProxyLoadBalancerCo
 	// status.addresses field.
 	addresses, ok, err := unstructured.NestedStringSlice(vm.Object, "status", "addresses")
 	if !ok {
+		ctx.Logger.Info("VM ( %v ) not ready", unstructured.NestedMap(vm.Object,"spec"))
 		if err != nil {
 			return false, errors.Wrapf(err,
 				"Unexpected error getting status.addresses from VM %s %s/%s for %s",

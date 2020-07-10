@@ -94,7 +94,7 @@ func (c ClusterGenerator) Generate(clusterNamespace, clusterName string) (*clust
 				},
 				ProviderConfig: infrav1.CPIProviderConfig{
 					Cloud: &infrav1.CPICloudConfig{
-						ControllerImage: "gcr.io/cloud-provider-vsphere/cpi/release/manager:v1.0.0",
+						ControllerImage: "gcr.io/cloud-provider-vsphere/cpi/release/manager:v1.1.0",
 					},
 					Storage: &infrav1.CPIStorageConfig{
 						AttacherImage:       "quay.io/k8scsi/csi-attacher:v1.1.1",

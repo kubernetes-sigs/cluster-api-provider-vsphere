@@ -38,3 +38,20 @@ func MultiNodeTemplateWithHAProxy() []runtime.Object {
 		&machineDeployment,
 	}
 }
+
+func MultiNodeTemplateWithKubeVIP() []runtime.Object {
+	vsphereCluster := newVSphereCluster(nil)
+	machineTemplate := newVSphereMachineTemplate()
+	controlPlane := newKubeadmControlplane(444, machineTemplate)
+	kubeadmJoinTemplate := newKubeadmConfigTemplate()
+	cluster := newCluster(vsphereCluster, &controlPlane)
+	machineDeployment := newMachineDeployment(cluster, machineTemplate, kubeadmJoinTemplate)
+	return []runtime.Object{
+		&cluster,
+		&vsphereCluster,
+		&machineTemplate,
+		&controlPlane,
+		&kubeadmJoinTemplate,
+		&machineDeployment,
+	}
+}

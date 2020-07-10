@@ -2,11 +2,11 @@
 images:
 - name: capv-manager:e2e
   loadBehavior: mustLoad
-- name: gcr.io/k8s-staging-cluster-api/cluster-api-controller:master
+- name: gcr.io/k8s-staging-cluster-api/cluster-api-controller:v0.3.7-rc.1
   loadBehavior: tryLoad
-- name: gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller:master
+- name: gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller:v0.3.7-rc.1
   loadBehavior: tryLoad
-- name: gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller:master
+- name: gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller:v0.3.7-rc.1
   loadBehavior: tryLoad
 
 kubernetesVersion: v1.18.2
@@ -27,7 +27,7 @@ components:
 # Load CAPI core and wait for its pods to become available.
 - name:    capi
   sources:
-  - value: https://github.com/kubernetes-sigs/cluster-api//config?ref=master
+  - value: https://github.com/kubernetes-sigs/cluster-api//config?ref=v0.3.7-rc.1
     replacements:
     - old: "imagePullPolicy: Always"
       new: "imagePullPolicy: IfNotPresent"
@@ -37,7 +37,7 @@ components:
 # Load the CAPI kubeadm bootstrapper and wait for its pods to become available.
 - name:    capi-kubeadm-bootstrap
   sources:
-  - value: https://github.com/kubernetes-sigs/cluster-api//bootstrap/kubeadm/config?ref=master
+  - value: https://github.com/kubernetes-sigs/cluster-api//bootstrap/kubeadm/config?ref=v0.3.7-rc.1
     replacements:
     - old: "imagePullPolicy: Always"
       new: "imagePullPolicy: IfNotPresent"
@@ -47,7 +47,7 @@ components:
 # Load the CAPI kubeadm control plane and wait for its pods to become available.
 - name:    capi-kubeadm-control-plane
   sources:
-  - value: https://github.com/kubernetes-sigs/cluster-api//controlplane/kubeadm/config?ref=master
+  - value: https://github.com/kubernetes-sigs/cluster-api//controlplane/kubeadm/config?ref=v0.3.7-rc.1
     replacements:
     - old: "imagePullPolicy: Always"
       new: "imagePullPolicy: IfNotPresent"

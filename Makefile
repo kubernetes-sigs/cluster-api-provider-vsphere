@@ -117,7 +117,7 @@ e2e: $(GINKGO) $(KUSTOMIZE) $(KIND) $(GOVC) ## Run e2e tests
 	@echo Contents of $(TOOLS_BIN_DIR):
 	@ls $(TOOLS_BIN_DIR)
 	@echo
-	time $(GINKGO) -v ./test/e2e -- --e2e.config="$(abspath test/e2e/e2e.conf)" --e2e.teardownKind=$(GC_KIND) $(E2E_ARGS)
+	time $(GINKGO) -v ./test/e2e -- --e2e.config="$(abspath test/e2e/e2e_conf.yaml)" --e2e.teardownKind=$(GC_KIND) $(E2E_ARGS)
 
 ## --------------------------------------
 ## Binaries
@@ -263,7 +263,9 @@ manifests:  $(STAGE)-version-check $(STAGE)-flavors $(MANIFEST_DIR) $(BUILD_DIR)
 
 .PHONY: flavors
 flavors: $(FLAVOR_DIR)
-	go run ./packaging/flavorgen -f multi-host > $(FLAVOR_DIR)/cluster-template.yaml
+	go run ./packaging/flavorgen -f multi-host > $(FLAVOR_DIR)/cluster-template-haproxy.yaml
+	go run ./packaging/flavorgen -f vip > $(FLAVOR_DIR)/cluster-template.yaml
+
 
 .PHONY: release-flavors ## Create release flavor manifests
 release-flavors: release-version-check

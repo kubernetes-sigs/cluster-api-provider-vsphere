@@ -53,6 +53,8 @@ func RunRoot(command *cobra.Command) error {
 	switch flavor {
 	case "multi-host":
 		flavors.PrintObjects(flavors.MultiNodeTemplateWithHAProxy())
+	case "vip":
+		flavors.PrintObjects(flavors.MultiNodeTemplateWithKubeVIP())
 	default:
 		return errors.Errorf("invalid flavor")
 	}

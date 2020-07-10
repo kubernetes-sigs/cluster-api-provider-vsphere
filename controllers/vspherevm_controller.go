@@ -332,13 +332,6 @@ func (r vmReconciler) reconcileNormal(ctx *context.VMContext) (reconcile.Result,
 		return reconcile.Result{}, errors.Errorf("bios uuid is empty while VM is ready")
 	}
 
-	// patch the vsphereVM early to ensure that the task is
-	// reflected in the status right away, this avoid situations
-	// of concurrent clones
-	if err := ctx.Patch(); err != nil {
-		ctx.Logger.Error(err, "patch failed", "vspherevm", ctx.VSphereVM)
-	}
-
 	// Update the VSphereVM's network status.
 	r.reconcileNetwork(ctx, vm)
 

@@ -571,6 +571,7 @@ spec:
                       template:
                         description: Template is the name or inventory path of the
                           template used to clone the virtual machine.
+                        minLength: 1
                         type: string
                     required:
                     - network

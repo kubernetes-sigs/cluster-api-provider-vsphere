@@ -2,12 +2,13 @@ namespace: capi-webhook-system
 
 resources:
 - service.yaml
+- manifests.yaml
 - ../certmanager
 - ../manager
 
 patchesStrategicMerge:
 - manager_webhook_patch.yaml
-#- webhookcainjection_patch.yaml # Disable this value if you don't have any defaulting or validation webhook. If you don't know, you can check if the manifests.yaml file in the same directory has any contents.
+- webhookcainjection_patch.yaml # Disable this value if you don't have any defaulting or validation webhook. If you don't know, you can check if the manifests.yaml file in the same directory has any contents.
 
 vars:
 - name: CERTIFICATE_NAMESPACE # namespace of the certificate CR

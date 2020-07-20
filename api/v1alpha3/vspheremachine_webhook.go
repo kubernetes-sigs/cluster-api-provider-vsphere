@@ -17,6 +17,13 @@ limitations under the License.
 package v1alpha3
 
 import (
+	"net"
+	"reflect"
+
+	"github.com/pkg/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -24,4 +31,61 @@ func (r *VSphereMachine) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
 		Complete()
+}
+
+// +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1alpha3-vspheremachine,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=vspheremachines,versions=v1alpha3,name=validation.vspheremachine.infrastructure.x-k8s.io,sideEffects=None
+
+// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
+func (r *VSphereMachine) ValidateCreate() error {
+	var allErrs field.ErrorList
+	spec := r.Spec
+
+	if spec.Network.PreferredAPIServerCIDR != "" {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "PreferredAPIServerCIDR"), spec.Network.PreferredAPIServerCIDR, "cannot be set, as it will be removed and is no longer used"))
+	}
+
+	if spec.ProviderID != nil {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "providerID"), "cannot be set on creation"))
+	}
+
+	for _, device := range spec.Network.Devices {
+		for _, ip := range device.IPAddrs {
+			if _, _, err := net.ParseCIDR(ip); err != nil {
+				allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "network", "devices", "ipAddrs"), ip, "ip addresses should be in the CIDR format"))
+			}
+		}
+	}
+	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
+}
+
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
+func (r *VSphereMachine) ValidateUpdate(old runtime.Object) error { //nolint
+	newVSphereMachine, err := runtime.DefaultUnstructuredConverter.ToUnstructured(r)
+	if err != nil {
+		return apierrors.NewInternalError(errors.Wrap(err, "failed to convert new VSphereMachine to unstructured object"))
+	}
+	oldVSphereMachine, err := runtime.DefaultUnstructuredConverter.ToUnstructured(old)
+	if err != nil {
+		return apierrors.NewInternalError(errors.Wrap(err, "failed to convert old VSphereMachine to unstructured object"))
+	}
+
+	var allErrs field.ErrorList
+
+	newVSphereMachineSpec := newVSphereMachine["spec"].(map[string]interface{})
+	oldVSphereMachineSpec := oldVSphereMachine["spec"].(map[string]interface{})
+
+	// allow changes to providerID
+	delete(oldVSphereMachineSpec, "providerID")
+	delete(newVSphereMachineSpec, "providerID")
+
+	if !reflect.DeepEqual(oldVSphereMachineSpec, newVSphereMachineSpec) {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec"), "cannot be modified"))
+	}
+
+	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
+}
+
+// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
+func (r *VSphereMachine) ValidateDelete() error {
+	return nil
 }

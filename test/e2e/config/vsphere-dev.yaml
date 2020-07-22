@@ -6,18 +6,18 @@
 # - vsphere
 
 # For creating local dev images built from the source tree;
-# - from the CAPI repository root, `make docker-build REGISTRY=gcr.io/k8s-staging-cluster-api` to build the cluster-api, bootstrap kubeadm, control-plane kubeadm provider images.
-# - from the CAPV repository root, `make docker-build DEV_REGISTRY=gcr.io/k8s-staging-cluster-api` to build the vsphere provider image.
+# - from the CAPI repository root, `make docker-build REGISTRY=gcr.io/k8s-staging-cluster-api` to build the cluster-api,
+#  bootstrap kubeadm, control-plane kubeadm provider images. This step can be skipped to use upstream images.
+# - from the CAPV repository root, `make e2e` to build the vsphere provider image and run e2e tests.
 
 images:
-  # Use local dev images built source tree;
-  - name: gcr.io/k8s-staging-cluster-api/cluster-api-controller-amd64:v0.3.6
+  - name: gcr.io/k8s-staging-cluster-api/cluster-api-controller-amd64:v0.3.7
     loadBehavior: tryLoad
-  - name: gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller-amd64:v0.3.6
+  - name: gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller-amd64:v0.3.7
     loadBehavior: tryLoad
-  - name: gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller-amd64:v0.3.6
+  - name: gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller-amd64:v0.3.7
     loadBehavior: tryLoad
-  - name: gcr.io/k8s-staging-cluster-api/vsphere-manager:dev
+  - name: capv-manager:e2e
     loadBehavior: mustLoad
   - name: quay.io/jetstack/cert-manager-cainjector:v0.11.0
     loadBehavior: tryLoad
@@ -31,9 +31,9 @@ providers:
   - name: cluster-api
     type: CoreProvider
     versions:
-      - name: v0.3.6
+      - name: v0.3.7
         # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.6/core-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.7/core-components.yaml"
         type: "url"
         replacements:
           - old: "imagePullPolicy: Always"
@@ -44,9 +44,9 @@ providers:
   - name: kubeadm
     type: BootstrapProvider
     versions:
-      - name: v0.3.6
+      - name: v0.3.7
         # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.6/bootstrap-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.7/bootstrap-components.yaml"
         type: "url"
         replacements:
           - old: "imagePullPolicy: Always"
@@ -57,9 +57,9 @@ providers:
   - name: kubeadm
     type: ControlPlaneProvider
     versions:
-      - name: v0.3.6
+      - name: v0.3.7
         # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.6/control-plane-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.7/control-plane-components.yaml"
         type: "url"
         replacements:
           - old: "imagePullPolicy: Always"
@@ -72,18 +72,22 @@ providers:
     versions:
       - name: v0.6.0
         # Use manifest from source files
-        value: ../../../../cluster-api-provider-vsphere/.build/config
+        value: ../../../../cluster-api-provider-vsphere/config
         replacements:
+          - old: gcr.io/cluster-api-provider-vsphere/release/manager:latest
+            new: capv-manager:e2e
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
 
     files:
       # Add a cluster template
-      - sourcePath: "../../../test/e2e_new/data/infrastructure-vsphere/cluster-template.yaml"
+      - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template.yaml"
 
 variables:
-  KUBERNETES_VERSION: "v1.17.3"
+  KUBERNETES_VERSION: "v1.18.2"
   CNI: "./data/cni/calico/calico.yaml"
+  #CNI: "./data/cni/kindnet/kindnet.yaml"
+  EXP_CLUSTER_RESOURSE_SET: "true"
   CONTROL_PLANE_MACHINE_COUNT: 1
   WORKER_MACHINE_COUNT: 1
   # Following CAPV variables should be set before testing
@@ -94,16 +98,16 @@ variables:
   VSPHERE_HAPROXY_TEMPLATE: "capv-haproxy-v0.6.3"
   VSPHERE_NETWORK: "network-1"
   VSPHERE_RESOURCE_POOL: "ResourcePool"
-  VSPHERE_TEMPLATE: "ubuntu-1804-kube-v1.17.3"
+  VSPHERE_TEMPLATE: "ubuntu-1804-kube-v1.18.2"
   # Also following variables are required but it is recommended to use env variables to avoid disclosure of sensitive data
   # VSPHERE_SSH_AUTHORIZED_KEY:
   # VSPHERE_PASSWORD:
   # VSPHERE_USERNAME:
 
 intervals:
-  default/wait-controllers: ["3m", "10s"]
-  default/wait-cluster: ["3m", "10s"]
+  default/wait-controllers: ["5m", "10s"]
+  default/wait-cluster: ["5m", "10s"]
   default/wait-control-plane: ["5m", "10s"]
-  default/wait-worker-nodes: ["3m", "10s"]
-  default/wait-delete-cluster: ["3m", "10s"]
+  default/wait-worker-nodes: ["5m", "10s"]
+  default/wait-delete-cluster: ["5m", "10s"]
   default/wait-machine-upgrade: ["15m", "1m"]

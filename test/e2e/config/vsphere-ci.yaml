@@ -1,0 +1,105 @@
+---
+# E2E test scenario using local dev images and manifests built from the source tree for following providers:
+# - cluster-api
+# - bootstrap kubeadm
+# - control-plane kubeadm
+# - vsphere
+
+# For creating local images, run ./hack/e2e.sh
+
+images:
+  - name: gcr.io/k8s-staging-cluster-api/cluster-api-controller-amd64:v0.3.7
+    loadBehavior: tryLoad
+  - name: gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller-amd64:v0.3.7
+    loadBehavior: tryLoad
+  - name: gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller-amd64:v0.3.7
+    loadBehavior: tryLoad
+  - name: capv-manager:e2e
+    loadBehavior: mustLoad
+  - name: quay.io/jetstack/cert-manager-cainjector:v0.11.0
+    loadBehavior: tryLoad
+  - name: quay.io/jetstack/cert-manager-webhook:v0.11.0
+    loadBehavior: tryLoad
+  - name: quay.io/jetstack/cert-manager-controller:v0.11.0
+    loadBehavior: tryLoad
+
+providers:
+
+  - name: cluster-api
+    type: CoreProvider
+    versions:
+      - name: v0.3.7
+        # Use manifest from source files
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.7/core-components.yaml"
+        type: "url"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+          - old: "--enable-leader-election"
+            new: "--enable-leader-election=false"
+
+  - name: kubeadm
+    type: BootstrapProvider
+    versions:
+      - name: v0.3.7
+        # Use manifest from source files
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.7/bootstrap-components.yaml"
+        type: "url"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+          - old: "--enable-leader-election"
+            new: "--enable-leader-election=false"
+
+  - name: kubeadm
+    type: ControlPlaneProvider
+    versions:
+      - name: v0.3.7
+        # Use manifest from source files
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.7/control-plane-components.yaml"
+        type: "url"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+          - old: "--enable-leader-election"
+            new: "--enable-leader-election=false"
+
+  - name: vsphere
+    type: InfrastructureProvider
+    versions:
+      - name: v0.6.0
+        # Use manifest from source files
+        value: ../../../../cluster-api-provider-vsphere/config
+        replacements:
+          - old: gcr.io/cluster-api-provider-vsphere/release/manager:latest
+            new: capv-manager:e2e
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+
+    files:
+      # Add a cluster template
+      - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template.yaml"
+
+variables:
+  KUBERNETES_VERSION: "v1.18.2"
+  CNI: "./data/cni/calico/calico.yaml"
+  EXP_CLUSTER_RESOURSE_SET: "true"
+  CONTROL_PLANE_MACHINE_COUNT: 1
+  WORKER_MACHINE_COUNT: 1
+  VSPHERE_DATACENTER:  "SDDC-Datacenter"
+  VSPHERE_FOLDER: "clusterapi"
+  VSPHERE_RESOURCE_POOL: "clusterapi"
+  VSPHERE_DATASTORE: "WorkloadDatastore"
+  VSPHERE_NETWORK: "sddc-cgw-network-8"
+  VSPHERE_MACHINE_TEMPLATE: "ubuntu-1804-kube-v1.18.2"
+  VSPHERE_HAPROXY_TEMPLATE: "capv-haproxy-v0.6.3"
+  VSPHERE_TEMPLATE: "ubuntu-1804-kube-v1.18.2"
+  VSPHERE_SSH_AUTHORIZED_KEY: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDCbQg7ywSD1oJAwAHhQuemrL6C9wvOIgE7wfZ0PfqolcTEQbLbv7Zxe1/TRzr4B20pb6GMryJ7O3SH9kuCubDYQ4Atw9MF/iAtsg0s3Xs4a3RAqoeaTHA0u401Um27ANDVqLswdTZ0J0Ev+XqRCEgPX+IpGgiNOyiHxfIgwdev/fG1MmMEyCKj8JNlRghFnleBcE+N3Mu0rKb88ascch2mKLY5fGDwbnC3V7d6LE6jWVT5HV391N4IWmjoBjlBt3mfzNslWqJUS+PxRbYR3i7vyVrpb/mkw1YG1jeomTAmkx4kwiV7hSzNVF6pKNIOoB1mpwULJ0VL+UkM8IPEfVJb root@9ae81f510a14"
+
+intervals:
+  default/wait-controllers: ["5m", "10s"]
+  default/wait-cluster: ["5m", "10s"]
+  default/wait-control-plane: ["5m", "10s"]
+  default/wait-worker-nodes: ["5m", "10s"]
+  default/wait-delete-cluster: ["5m", "10s"]
+  default/wait-machine-upgrade: ["15m", "1m"]

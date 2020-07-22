@@ -39,6 +39,7 @@ TOOLS_DIR := $(ROOT_DIR)/hack/tools
 TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
 
+E2E_CONF_FILE  ?= "$(abspath test/e2e/config/vsphere-dev.conf)"
 # Binaries
 MANAGER := $(BIN_DIR)/manager
 CLUSTERCTL := $(BIN_DIR)/clusterctl
@@ -62,7 +63,6 @@ GC_KIND ?= true
 RELEASE_DIR := out
 BUILD_DIR := .build
 OVERRIDES_DIR := $(HOME)/.cluster-api/overrides/infrastructure-vsphere/$(VERSION)
-E2E_ARGS := --e2e.sshAuthKey="ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDCbQg7ywSD1oJAwAHhQuemrL6C9wvOIgE7wfZ0PfqolcTEQbLbv7Zxe1/TRzr4B20pb6GMryJ7O3SH9kuCubDYQ4Atw9MF/iAtsg0s3Xs4a3RAqoeaTHA0u401Um27ANDVqLswdTZ0J0Ev+XqRCEgPX+IpGgiNOyiHxfIgwdev/fG1MmMEyCKj8JNlRghFnleBcE+N3Mu0rKb88ascch2mKLY5fGDwbnC3V7d6LE6jWVT5HV391N4IWmjoBjlBt3mfzNslWqJUS+PxRbYR3i7vyVrpb/mkw1YG1jeomTAmkx4kwiV7hSzNVF6pKNIOoB1mpwULJ0VL+UkM8IPEfVJb root@9ae81f510a14"
 
 # Architecture variables
 ARCH ?= amd64
@@ -117,7 +117,8 @@ e2e: $(GINKGO) $(KUSTOMIZE) $(KIND) $(GOVC) ## Run e2e tests
 	@echo Contents of $(TOOLS_BIN_DIR):
 	@ls $(TOOLS_BIN_DIR)
 	@echo
-	time $(GINKGO) -v ./test/e2e -- --e2e.config="$(abspath test/e2e/e2e.conf)" --e2e.teardownKind=$(GC_KIND) $(E2E_ARGS)
+
+	time $(GINKGO) -v ./test/e2e -- --e2e.config="$(E2E_CONF_FILE)"
 
 ## --------------------------------------
 ## Binaries

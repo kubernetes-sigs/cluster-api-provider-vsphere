@@ -63,13 +63,13 @@ spec:
       cloud:
         controllerImage: gcr.io/cloud-provider-vsphere/cpi/release/manager:v1.0.0
       storage:
-        attacherImage: quay.io/k8scsi/csi-attacher:v1.1.1
-        controllerImage: gcr.io/cloud-provider-vsphere/csi/release/driver:v1.0.2
+        attacherImage: quay.io/k8scsi/csi-attacher:v2.0.0
+        controllerImage: gcr.io/cloud-provider-vsphere/csi/release/driver:v2.0.0
         livenessProbeImage: quay.io/k8scsi/livenessprobe:v1.1.0
-        metadataSyncerImage: gcr.io/cloud-provider-vsphere/csi/release/syncer:v1.0.2
-        nodeDriverImage: gcr.io/cloud-provider-vsphere/csi/release/driver:v1.0.2
-        provisionerImage: quay.io/k8scsi/csi-provisioner:v1.2.1
-        registrarImage: quay.io/k8scsi/csi-node-driver-registrar:v1.1.0
+        metadataSyncerImage: gcr.io/cloud-provider-vsphere/csi/release/syncer:v2.0.0
+        nodeDriverImage: gcr.io/cloud-provider-vsphere/csi/release/driver:v2.0.0
+        provisionerImage: quay.io/k8scsi/csi-provisioner:v1.4.0
+        registrarImage: quay.io/k8scsi/csi-node-driver-registrar:v1.2.0
     virtualCenter:
       ${ VSPHERE_SERVER }:
         datacenters: '${ VSPHERE_DATACENTER }'

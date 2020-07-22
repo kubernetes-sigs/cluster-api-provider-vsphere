@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package e2enew
+package e2e
 
 import (
 	"context"
@@ -101,6 +101,8 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	Byf("Loading the e2e test configuration from %q", configPath)
 	e2eConfig = loadE2EConfig(configPath)
+
+	By("Initializing the vSphere session to ensure credentials are working", initVSphereSession)
 
 	Byf("Creating a clusterctl local repository into %q", artifactFolder)
 	clusterctlConfigPath = createClusterctlLocalRepository(e2eConfig, filepath.Join(artifactFolder, "repository"))

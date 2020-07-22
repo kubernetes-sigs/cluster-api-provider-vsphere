@@ -40,6 +40,8 @@ TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
 
 E2E_CONF_FILE  ?= "$(abspath test/e2e/config/vsphere-dev.conf)"
+E2E_TEMPLATE_DIR := "$(abspath test/e2e/data/infrastructure-vsphere/)"
+
 # Binaries
 MANAGER := $(BIN_DIR)/manager
 CLUSTERCTL := $(BIN_DIR)/clusterctl
@@ -112,6 +114,9 @@ e2e-image: ## Build the e2e manager image
 .PHONY: e2e
 e2e: e2e-image
 e2e: $(GINKGO) $(KUSTOMIZE) $(KIND) $(GOVC) ## Run e2e tests
+	$(MAKE) release-manifests
+	@mkdir -p $(E2E_TEMPLATE_DIR)
+	cp $(RELEASE_DIR)/cluster-template.yaml $(E2E_TEMPLATE_DIR)
 	@echo PATH=$(PATH)
 	@echo
 	@echo Contents of $(TOOLS_BIN_DIR):

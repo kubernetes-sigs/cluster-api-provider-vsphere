@@ -38,11 +38,6 @@ func TestVSphereMachine_ValidateCreate(t *testing.T) {
 			wantErr:        true,
 		},
 		{
-			name:           "ProviderID set on creation",
-			vsphereMachine: createVSphereMachine("foo.com", &someProviderID, "", []string{}),
-			wantErr:        true,
-		},
-		{
 			name:           "IPs are not in CIDR format",
 			vsphereMachine: createVSphereMachine("foo.com", nil, "", []string{"192.168.0.1/32", "192.168.0.3"}),
 			wantErr:        true,

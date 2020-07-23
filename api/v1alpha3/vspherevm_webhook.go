@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha3
 
 import (
+	"fmt"
 	"net"
 	"reflect"
 
@@ -44,13 +45,10 @@ func (r *VSphereVM) ValidateCreate() error {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "PreferredAPIServerCIDR"), spec.Network.PreferredAPIServerCIDR, "cannot be set, as it will be removed and is no longer used"))
 	}
 
-	if spec.BiosUUID != "" {
-		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "biosUUID"), "cannot be set on creation"))
-	}
-	for _, device := range spec.Network.Devices {
-		for _, ip := range device.IPAddrs {
+	for i, device := range spec.Network.Devices {
+		for j, ip := range device.IPAddrs {
 			if _, _, err := net.ParseCIDR(ip); err != nil {
-				allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "network", "devices", "ipAddrs"), ip, "ip addresses should be in the CIDR format"))
+				allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "network", fmt.Sprintf("devices[%d]", i), fmt.Sprintf("ipAddrs[%d]", j)), ip, "ip addresses should be in the CIDR format"))
 			}
 		}
 	}

@@ -53,6 +53,7 @@ const (
 type VirtualMachineCloneSpec struct {
 	// Template is the name or inventory path of the template used to clone
 	// the virtual machine.
+	// +kubebuilder:validation:MinLength=1
 	Template string `json:"template"`
 
 	// CloneMode specifies the type of clone operation.

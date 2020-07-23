@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2020 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,27 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package docker
+package e2e
 
 import (
-	"context"
 	"fmt"
 
-	"sigs.k8s.io/cluster-api/test/framework/exec"
+	. "github.com/onsi/ginkgo" // // nolint:golint,stylecheck
 )
 
-// Pull pulls a container image.
-func Pull(ctx context.Context, imageName string) error {
-	pullCmd := exec.NewCommand(
-		exec.WithCommand("docker"),
-		exec.WithArgs("pull", imageName),
-	)
-	stdout, stderr, err := pullCmd.Run(ctx)
-	if err != nil {
-		fmt.Println(string(stdout))
-		fmt.Println(string(stderr))
-		return err
-	}
-	fmt.Println(string(stdout))
-	return nil
+func Byf(format string, a ...interface{}) {
+	By(fmt.Sprintf(format, a...))
 }

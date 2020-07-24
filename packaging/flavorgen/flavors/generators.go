@@ -398,7 +398,7 @@ func kubeVIPPod() string {
 						},
 						{
 							Name:  "lb_name",
-							Value: "kcpEdnpoint",
+							Value: "kcpEndpoint",
 						},
 						{
 							Name:  "lb_bindtovip",
@@ -407,10 +407,6 @@ func kubeVIPPod() string {
 						{
 							Name:  "vip_interface",
 							Value: vipNetworkInterfaceVar,
-						},
-						{
-							Name:  "lb_type",
-							Value: "tcp",
 						},
 						{
 							Name:  "lb_type",

@@ -116,7 +116,7 @@ e2e: e2e-image
 e2e: $(GINKGO) $(KUSTOMIZE) $(KIND) $(GOVC) ## Run e2e tests
 	$(MAKE) release-manifests
 	@mkdir -p $(E2E_TEMPLATE_DIR)
-	cp $(RELEASE_DIR)/cluster-template.yaml $(E2E_TEMPLATE_DIR)
+	cp $(RELEASE_DIR)/cluster-template-haproxy.yaml $(E2E_TEMPLATE_DIR)
 	@echo PATH=$(PATH)
 	@echo
 	@echo Contents of $(TOOLS_BIN_DIR):

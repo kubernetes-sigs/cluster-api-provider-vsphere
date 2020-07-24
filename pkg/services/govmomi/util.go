@@ -440,7 +440,9 @@ func waitForIPAddresses(
 					// spec's static IP addresses.
 					isStatic := false
 					for _, specIP := range deviceSpec.IPAddrs {
-						if discoveredIP == specIP {
+						// The static IP assigned to the VM is required in the CIDR format
+						ip, _, _ := gonet.ParseCIDR(specIP)
+						if discoveredIP == ip.String() {
 							isStatic = true
 							break
 						}
@@ -525,7 +527,8 @@ func waitForIPAddresses(
 			// If the device spec requires static IP addresses, the wait
 			// is not over if the device lacks one of those addresses.
 			for _, specIP := range deviceSpec.IPAddrs {
-				if _, ok := macToHasStaticIP[mac][specIP]; !ok {
+				ip, _, _ := gonet.ParseCIDR(specIP)
+				if _, ok := macToHasStaticIP[mac][ip.String()]; !ok {
 					ctx.Logger.Info(
 						"the VM is missing the requested IP address",
 						"addressType", "static",

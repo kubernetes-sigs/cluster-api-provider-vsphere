@@ -18,19 +18,37 @@ package flavors
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 )
 
 func MultiNodeTemplateWithHAProxy() []runtime.Object {
 	lb := newHAProxyLoadBalancer()
 	vsphereCluster := newVSphereCluster(&lb)
 	machineTemplate := newVSphereMachineTemplate()
-	controlPlane := newKubeadmControlplane(444, machineTemplate)
+	controlPlane := newKubeadmControlplane(444, machineTemplate, []bootstrapv1.File{})
 	kubeadmJoinTemplate := newKubeadmConfigTemplate()
 	cluster := newCluster(vsphereCluster, &controlPlane)
 	machineDeployment := newMachineDeployment(cluster, machineTemplate, kubeadmJoinTemplate)
 	return []runtime.Object{
 		&cluster,
 		&lb,
+		&vsphereCluster,
+		&machineTemplate,
+		&controlPlane,
+		&kubeadmJoinTemplate,
+		&machineDeployment,
+	}
+}
+
+func MultiNodeTemplateWithKubeVIP() []runtime.Object {
+	vsphereCluster := newVSphereCluster(nil)
+	machineTemplate := newVSphereMachineTemplate()
+	controlPlane := newKubeadmControlplane(444, machineTemplate, newKubeVIPFiles())
+	kubeadmJoinTemplate := newKubeadmConfigTemplate()
+	cluster := newCluster(vsphereCluster, &controlPlane)
+	machineDeployment := newMachineDeployment(cluster, machineTemplate, kubeadmJoinTemplate)
+	return []runtime.Object{
+		&cluster,
 		&vsphereCluster,
 		&machineTemplate,
 		&controlPlane,

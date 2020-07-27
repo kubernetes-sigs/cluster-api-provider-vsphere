@@ -18,6 +18,7 @@ package flavors
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
@@ -26,6 +27,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
+	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -49,6 +51,8 @@ const (
 	vSphereSSHAuthorizedKeysVar = "${ VSPHERE_SSH_AUTHORIZED_KEY }"
 	vSphereTemplateVar          = "${ VSPHERE_TEMPLATE }"
 	workerMachineCountVar       = "${ WORKER_MACHINE_COUNT }"
+	controlPlaneEndpointVar     = "${ CONTROL_PLANE_ENDPOINT_IP }"
+	vipNetworkInterfaceVar      = "${ VIP_NETWORK_INTERFACE }"
 )
 
 type replacement struct {
@@ -156,6 +160,11 @@ func newVSphereCluster(lb *infrav1.HAProxyLoadBalancer) infrav1.VSphereCluster {
 			Kind:       lb.Kind,
 			Name:       lb.Name,
 		}
+	} else {
+		vsphereCluster.Spec.ControlPlaneEndpoint = infrav1.APIEndpoint{
+			Host: controlPlaneEndpointVar,
+			Port: 6443,
+		}
 	}
 	return vsphereCluster
 }
@@ -245,7 +254,7 @@ func defaultVirtualMachineCloneSpec() infrav1.VirtualMachineCloneSpec {
 	}
 }
 
-func defaultKubeadmInitSpec() bootstrapv1.KubeadmConfigSpec {
+func defaultKubeadmInitSpec(files []bootstrapv1.File) bootstrapv1.KubeadmConfigSpec {
 	return bootstrapv1.KubeadmConfigSpec{
 		InitConfiguration: &kubeadmv1beta1.InitConfiguration{
 			NodeRegistration: defaultNodeRegistrationOptions(),
@@ -262,6 +271,7 @@ func defaultKubeadmInitSpec() bootstrapv1.KubeadmConfigSpec {
 		Users:                    defaultUsers(),
 		PreKubeadmCommands:       defaultPreKubeadmCommands(),
 		UseExperimentalRetryJoin: true,
+		Files:                    files,
 	}
 }
 
@@ -331,6 +341,101 @@ func defaultPreKubeadmCommands() []string {
 	}
 }
 
+func kubeVIPPod() string {
+	hostPathType := v1.HostPathFileOrCreate
+	pod := &v1.Pod{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "v1",
+			Kind:       typeToKind(&v1.Pod{}),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "kube-vip",
+			Namespace: "kube-system",
+		},
+		Spec: v1.PodSpec{
+			Containers: []v1.Container{
+				{
+					Name:  "kube-vip",
+					Image: "plndr/kube-vip:0.1.6",
+					Args: []string{
+						"start",
+					},
+					ImagePullPolicy: v1.PullIfNotPresent,
+					SecurityContext: &v1.SecurityContext{
+						Capabilities: &v1.Capabilities{
+							Add: []v1.Capability{
+								"NET_ADMIN",
+								"SYS_TIME",
+							},
+						},
+					},
+					VolumeMounts: []v1.VolumeMount{
+						{
+							MountPath: "/etc/kubernetes/admin.conf",
+							Name:      "kubeconfig",
+						},
+					},
+					Env: []v1.EnvVar{
+						{
+							Name:  "vip_arp",
+							Value: "true",
+						},
+						{
+							Name:  "vip_leaderelection",
+							Value: "true",
+						},
+						{
+							Name:  "vip_address",
+							Value: controlPlaneEndpointVar,
+						},
+						{
+							Name:  "lb_backendport",
+							Value: "6443",
+						},
+						{
+							Name:  "vip_addpeerstolb",
+							Value: "true",
+						},
+						{
+							Name:  "lb_name",
+							Value: "kcpEndpoint",
+						},
+						{
+							Name:  "lb_bindtovip",
+							Value: "true",
+						},
+						{
+							Name:  "vip_interface",
+							Value: vipNetworkInterfaceVar,
+						},
+						{
+							Name:  "lb_type",
+							Value: "tcp",
+						},
+					},
+				},
+			},
+			HostNetwork: true,
+			Volumes: []v1.Volume{
+				{
+					Name: "kubeconfig",
+					VolumeSource: v1.VolumeSource{
+						HostPath: &v1.HostPathVolumeSource{
+							Path: "/etc/kubernetes/admin.conf",
+							Type: &hostPathType,
+						},
+					},
+				},
+			},
+		},
+	}
+	podBytes, err := yaml.Marshal(pod)
+	if err != nil {
+		panic(err)
+	}
+	return string(podBytes)
+}
+
 func newMachineDeployment(cluster clusterv1.Cluster, machineTemplate infrav1.VSphereMachineTemplate, bootstrapTemplate bootstrapv1.KubeadmConfigTemplate) clusterv1.MachineDeployment {
 	return clusterv1.MachineDeployment{
 		TypeMeta: metav1.TypeMeta{
@@ -395,7 +500,18 @@ func newHAProxyLoadBalancer() infrav1.HAProxyLoadBalancer {
 	}
 }
 
-func newKubeadmControlplane(replicas int, infraTemplate infrav1.VSphereMachineTemplate) controlplanev1.KubeadmControlPlane {
+func newKubeVIPFiles() []bootstrapv1.File {
+	return []bootstrapv1.File{
+		{
+			Owner:   "root:root",
+			Path:    "/etc/kubernetes/manifests/kube-vip.yaml",
+			Content: kubeVIPPod(),
+		},
+	}
+
+}
+
+func newKubeadmControlplane(replicas int, infraTemplate infrav1.VSphereMachineTemplate, files []bootstrapv1.File) controlplanev1.KubeadmControlPlane {
 	return controlplanev1.KubeadmControlPlane{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: controlplanev1.GroupVersion.String(),
@@ -413,7 +529,7 @@ func newKubeadmControlplane(replicas int, infraTemplate infrav1.VSphereMachineTe
 				Kind:       infraTemplate.Kind,
 				Name:       infraTemplate.Name,
 			},
-			KubeadmConfigSpec: defaultKubeadmInitSpec(),
+			KubeadmConfigSpec: defaultKubeadmInitSpec(files),
 		},
 	}
 }

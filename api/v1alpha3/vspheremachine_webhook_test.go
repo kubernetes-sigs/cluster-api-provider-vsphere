@@ -81,10 +81,10 @@ func TestVSphereMachine_ValidateUpdate(t *testing.T) {
 			wantErr:           false,
 		},
 		{
-			name:              "updating ips cannot be done",
+			name:              "updating ips can be done",
 			oldVSphereMachine: createVSphereMachine("foo.com", nil, "", []string{"192.168.0.1/32"}),
 			vsphereMachine:    createVSphereMachine("foo.com", &someProviderID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}),
-			wantErr:           true,
+			wantErr:           false,
 		},
 		{
 			name:              "updating server cannot be done",

@@ -81,10 +81,10 @@ func TestVSphereVM_ValidateUpdate(t *testing.T) {
 			wantErr:      false,
 		},
 		{
-			name:         "updating ips cannot be done",
+			name:         "updating ips can be done",
 			oldVSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32"}),
 			vSphereVM:    createVSphereVM("foo.com", biosUUID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}),
-			wantErr:      true,
+			wantErr:      false,
 		},
 		{
 			name:         "updating server cannot be done",

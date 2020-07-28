@@ -75,6 +75,13 @@ func (r *VSphereVM) ValidateUpdate(old runtime.Object) error { //nolint
 	delete(oldVSphereVMSpec, "biosUUID")
 	delete(newVSphereVMSpec, "biosUUID")
 
+	newVSphereVMNetwork := newVSphereVMSpec["network"].(map[string]interface{})
+	oldVSphereVMNetwork := oldVSphereVMSpec["network"].(map[string]interface{})
+
+	// allow changes to the network devices
+	delete(oldVSphereVMNetwork, "devices")
+	delete(newVSphereVMNetwork, "devices")
+
 	if !reflect.DeepEqual(oldVSphereVMSpec, newVSphereVMSpec) {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec"), "cannot be modified"))
 	}

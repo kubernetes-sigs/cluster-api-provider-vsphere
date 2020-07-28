@@ -75,6 +75,13 @@ func (r *VSphereMachine) ValidateUpdate(old runtime.Object) error {
 	delete(oldVSphereMachineSpec, "providerID")
 	delete(newVSphereMachineSpec, "providerID")
 
+	newVSphereMachineNetwork := newVSphereMachineSpec["network"].(map[string]interface{})
+	oldVSphereMachineNetwork := oldVSphereMachineSpec["network"].(map[string]interface{})
+
+	// allow changes to the devices
+	delete(oldVSphereMachineNetwork, "devices")
+	delete(newVSphereMachineNetwork, "devices")
+
 	if !reflect.DeepEqual(oldVSphereMachineSpec, newVSphereMachineSpec) {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec"), "cannot be modified"))
 	}

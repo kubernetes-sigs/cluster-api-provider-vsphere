@@ -250,35 +250,35 @@ spec:
     resources:
     - applied: false
       kind: Secret
-      lastAppliedTime: "2020-07-27T14:22:16Z"
+      lastAppliedTime: "2020-07-29T09:01:34Z"
       name: vsphere-csi-controller
   - clusterResourceSetName: ${ CLUSTER_NAME }-crs-0
     resources:
     - applied: false
       kind: Secret
-      lastAppliedTime: "2020-07-27T14:22:16Z"
+      lastAppliedTime: "2020-07-29T09:01:34Z"
       name: vsphere-csi-controller-role
   - clusterResourceSetName: ${ CLUSTER_NAME }-crs-0
     resources:
     - applied: false
       kind: Secret
-      lastAppliedTime: "2020-07-27T14:22:16Z"
+      lastAppliedTime: "2020-07-29T09:01:34Z"
       name: vsphere-csi-controller-binding
   - clusterResourceSetName: ${ CLUSTER_NAME }-crs-0
     resources:
     - applied: false
       kind: Secret
-      lastAppliedTime: "2020-07-27T14:22:16Z"
+      lastAppliedTime: "2020-07-29T09:01:34Z"
       name: csi.vsphere.vmware.com
   - clusterResourceSetName: ${ CLUSTER_NAME }-crs-0
     resources:
     - applied: false
       kind: Secret
-      lastAppliedTime: "2020-07-27T14:22:16Z"
+      lastAppliedTime: "2020-07-29T09:01:34Z"
       name: vsphere-csi-node
   - clusterResourceSetName: ${ CLUSTER_NAME }-crs-0
     resources:
     - applied: false
       kind: Secret
-      lastAppliedTime: "2020-07-27T14:22:16Z"
+      lastAppliedTime: "2020-07-29T09:01:34Z"
       name: vsphere-csi-controller

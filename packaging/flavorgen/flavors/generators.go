@@ -17,42 +17,45 @@ limitations under the License.
 package flavors
 
 import (
+	"time"
+
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
-	cloudprovidersvc "sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/cloudprovider"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
+	addonsv1alpha3 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha3"
 	"sigs.k8s.io/yaml"
 )
 
 const (
-	clusterNameVar              = "${ CLUSTER_NAME }"
-	controlPlaneMachineCountVar = "${ CONTROL_PLANE_MACHINE_COUNT }"
-	defaultCloudProviderImage   = "gcr.io/cloud-provider-vsphere/cpi/release/manager:v1.1.0"
-	defaultClusterCIDR          = "192.168.0.0/16"
-	defaultDiskGiB              = 25
-	defaultMemoryMiB            = 8192
-	defaultNumCPUs              = 2
-	kubernetesVersionVar        = "${ KUBERNETES_VERSION }"
-	machineDeploymentNameSuffix = "-md-0"
-	namespaceVar                = "${ NAMESPACE }"
-	vSphereDataCenterVar        = "${ VSPHERE_DATACENTER }"
-	vSphereDatastoreVar         = "${ VSPHERE_DATASTORE }"
-	vSphereFolderVar            = "${ VSPHERE_FOLDER }"
-	vSphereHaproxyTemplateVar   = "${ VSPHERE_HAPROXY_TEMPLATE }"
-	vSphereNetworkVar           = "${ VSPHERE_NETWORK }"
-	vSphereResourcePoolVar      = "${ VSPHERE_RESOURCE_POOL }"
-	vSphereServerVar            = "${ VSPHERE_SERVER }"
-	vSphereSSHAuthorizedKeysVar = "${ VSPHERE_SSH_AUTHORIZED_KEY }"
-	vSphereTemplateVar          = "${ VSPHERE_TEMPLATE }"
-	workerMachineCountVar       = "${ WORKER_MACHINE_COUNT }"
-	controlPlaneEndpointVar     = "${ CONTROL_PLANE_ENDPOINT_IP }"
-	vipNetworkInterfaceVar      = "${ VIP_NETWORK_INTERFACE }"
+	clusterNameVar               = "${ CLUSTER_NAME }"
+	controlPlaneMachineCountVar  = "${ CONTROL_PLANE_MACHINE_COUNT }"
+	defaultCloudProviderImage    = "gcr.io/cloud-provider-vsphere/cpi/release/manager:v1.0.0"
+	defaultClusterCIDR           = "192.168.0.0/16"
+	defaultDiskGiB               = 25
+	defaultMemoryMiB             = 8192
+	defaultNumCPUs               = 2
+	kubernetesVersionVar         = "${ KUBERNETES_VERSION }"
+	machineDeploymentNameSuffix  = "-md-0"
+	namespaceVar                 = "${ NAMESPACE }"
+	vSphereDataCenterVar         = "${ VSPHERE_DATACENTER }"
+	vSphereDatastoreVar          = "${ VSPHERE_DATASTORE }"
+	vSphereFolderVar             = "${ VSPHERE_FOLDER }"
+	vSphereHaproxyTemplateVar    = "${ VSPHERE_HAPROXY_TEMPLATE }"
+	vSphereNetworkVar            = "${ VSPHERE_NETWORK }"
+	vSphereResourcePoolVar       = "${ VSPHERE_RESOURCE_POOL }"
+	vSphereServerVar             = "${ VSPHERE_SERVER }"
+	vSphereSSHAuthorizedKeysVar  = "${ VSPHERE_SSH_AUTHORIZED_KEY }"
+	vSphereTemplateVar           = "${ VSPHERE_TEMPLATE }"
+	workerMachineCountVar        = "${ WORKER_MACHINE_COUNT }"
+	controlPlaneEndpointVar      = "${ CONTROL_PLANE_ENDPOINT_IP }"
+	vipNetworkInterfaceVar       = "${ VIP_NETWORK_INTERFACE }"
+	clusterResourceSetNameSuffix = "-crs-0"
 )
 
 type replacement struct {
@@ -140,15 +143,6 @@ func newVSphereCluster(lb *infrav1.HAProxyLoadBalancer) infrav1.VSphereCluster {
 				ProviderConfig: infrav1.CPIProviderConfig{
 					Cloud: &infrav1.CPICloudConfig{
 						ControllerImage: defaultCloudProviderImage,
-					},
-					Storage: &infrav1.CPIStorageConfig{
-						ControllerImage:     cloudprovidersvc.DefaultCSIControllerImage,
-						NodeDriverImage:     cloudprovidersvc.DefaultCSINodeDriverImage,
-						AttacherImage:       cloudprovidersvc.DefaultCSIAttacherImage,
-						ProvisionerImage:    cloudprovidersvc.DefaultCSIProvisionerImage,
-						MetadataSyncerImage: cloudprovidersvc.DefaultCSIMetadataSyncerImage,
-						LivenessProbeImage:  cloudprovidersvc.DefaultCSILivenessProbeImage,
-						RegistrarImage:      cloudprovidersvc.DefaultCSIRegistrarImage,
 					},
 				},
 			},
@@ -434,6 +428,107 @@ func kubeVIPPod() string {
 		panic(err)
 	}
 	return string(podBytes)
+}
+func newClusterResourceSet(cluster clusterv1.Cluster, cloudConfigSecret *v1.Secret) addonsv1alpha3.ClusterResourceSet {
+
+	crs := addonsv1alpha3.ClusterResourceSet{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       typeToKind(&addonsv1alpha3.ClusterResourceSet{}),
+			APIVersion: addonsv1alpha3.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      cluster.Name + clusterResourceSetNameSuffix,
+			Labels:    clusterLabels(),
+			Namespace: cluster.Namespace,
+		},
+		Spec: addonsv1alpha3.ClusterResourceSetSpec{
+			Resources: []addonsv1alpha3.ResourceRef{},
+		},
+	}
+	crs.Spec.Resources = append(crs.Spec.Resources, addonsv1alpha3.ResourceRef{
+		Name: cloudConfigSecret.Name,
+		Kind: "Secret",
+	})
+
+	return crs
+}
+func appendResourceSecretToCRS(crs *addonsv1alpha3.ClusterResourceSet, generatedSecret *v1.Secret) {
+
+	crs.Spec.Resources = append(crs.Spec.Resources, addonsv1alpha3.ResourceRef{
+		Name: generatedSecret.Name,
+		Kind: "Secret",
+	})
+}
+
+func newClusterResourceSetBinding(cluster *clusterv1.Cluster, cloudConfigSecret *v1.Secret, crs *addonsv1alpha3.ClusterResourceSet) addonsv1alpha3.ClusterResourceSetBinding {
+
+	binding := addonsv1alpha3.ClusterResourceSetBinding{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ClusterResourceSetBinding",
+			APIVersion: addonsv1alpha3.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              cluster.Name,
+			Namespace:         cluster.Namespace,
+			Generation:        cluster.Generation,
+			CreationTimestamp: cluster.CreationTimestamp,
+			OwnerReferences:   cluster.OwnerReferences,
+		},
+	}
+
+	binding.SetOwnerReferences([]metav1.OwnerReference{
+		// binding are owned by the ClusterResourceSet / ownership set by the ClusterResourceSet controller
+		{
+			APIVersion: crs.APIVersion,
+			Kind:       crs.Kind,
+			Name:       crs.Name,
+			UID:        crs.UID,
+		},
+	})
+	// binding are owned by the Cluster / ownership set by the ClusterResourceSet controller
+	binding.SetOwnerReferences(append(binding.OwnerReferences, metav1.OwnerReference{
+		APIVersion: cluster.APIVersion,
+		Kind:       cluster.Kind,
+		Name:       cluster.Name,
+		UID:        cluster.UID,
+	}))
+	resourceSetBinding := addonsv1alpha3.ResourceSetBinding{
+		ClusterResourceSetName: crs.Name,
+		Resources:              []addonsv1alpha3.ResourceBinding{},
+	}
+	resourceSetBinding.Resources = append(resourceSetBinding.Resources, addonsv1alpha3.ResourceBinding{
+		ResourceRef: addonsv1alpha3.ResourceRef{
+			Name: cloudConfigSecret.Name,
+			Kind: cloudConfigSecret.Kind,
+		},
+		LastAppliedTime: &cloudConfigSecret.CreationTimestamp,
+	})
+	binding.SetCreationTimestamp(cloudConfigSecret.CreationTimestamp)
+	binding.SetGenerateName(cloudConfigSecret.GetGenerateName())
+	binding.SetName(cloudConfigSecret.GetName())
+	binding.SetNamespace(cloudConfigSecret.GetNamespace())
+
+	binding.Spec.Bindings = append(binding.Spec.Bindings, &resourceSetBinding)
+
+	return binding
+
+}
+
+func appendResourceSetToBinding(binding *addonsv1alpha3.ClusterResourceSetBinding, resourceSetSecret *v1.Secret, crs *addonsv1alpha3.ClusterResourceSet) {
+
+	resourceSetBinding := addonsv1alpha3.ResourceSetBinding{
+		ClusterResourceSetName: crs.Name,
+		Resources:              []addonsv1alpha3.ResourceBinding{},
+	}
+	resourceSetBinding.Resources = append(resourceSetBinding.Resources, addonsv1alpha3.ResourceBinding{
+		ResourceRef: addonsv1alpha3.ResourceRef{
+			Name: resourceSetSecret.Name,
+			Kind: "Secret",
+		},
+		LastAppliedTime: &metav1.Time{Time: time.Now().UTC()}, // useless
+	})
+	binding.Spec.Bindings = append(binding.Spec.Bindings, &resourceSetBinding)
+
 }
 
 func newMachineDeployment(cluster clusterv1.Cluster, machineTemplate infrav1.VSphereMachineTemplate, bootstrapTemplate bootstrapv1.KubeadmConfigTemplate) clusterv1.MachineDeployment {

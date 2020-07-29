@@ -37,6 +37,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/controllers"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/version"
 )
 
 var (
@@ -197,7 +198,7 @@ func main() {
 		return nil
 	}
 
-	setupLog.Info("creating controller manager")
+	setupLog.Info("creating controller manager", "version", version.Get().String())
 	managerOpts.AddToManager = addToManager
 	mgr, err := manager.New(managerOpts)
 	if err != nil {

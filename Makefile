@@ -91,6 +91,8 @@ DEV_CONTROLLER_IMG ?= $(DEV_REGISTRY)/vsphere-$(IMAGE_NAME)
 DEV_TAG ?= dev
 DEV_MANIFEST_IMG := $(DEV_CONTROLLER_IMG)-$(ARCH)
 
+# Set build time variables including git version details
+LDFLAGS := $(shell hack/version.sh)
 
 ## --------------------------------------
 ## Help
@@ -109,7 +111,7 @@ test: generate lint-go ## Run tests
 
 .PHONY: e2e-image
 e2e-image: ## Build the e2e manager image
-	docker build --tag="capv-manager:e2e" .
+	docker build --build-arg ldflags="$(LDFLAGS)" --tag="capv-manager:e2e" .
 
 .PHONY: e2e
 e2e: e2e-image
@@ -132,7 +134,7 @@ e2e: $(GINKGO) $(KUSTOMIZE) $(KIND) $(GOVC) ## Run e2e tests
 .PHONY: $(MANAGER)
 manager: $(MANAGER) ## Build manager binary
 $(MANAGER): generate
-	go build -o $@ -ldflags '-extldflags "-static" -w -s'
+	go build -o $@ -ldflags "$(LDFLAGS) -extldflags '-static' -w -s"
 
 .PHONY: $(CLUSTERCTL)
 clusterctl: $(CLUSTERCTL) ## Build clusterctl binary
@@ -344,7 +346,7 @@ check: ## Verify and lint the project
 
 .PHONY: docker-build
 docker-build: ## Build the docker image for controller-manager
-	docker build --pull --build-arg ARCH=$(ARCH)  . -t $(DEV_CONTROLLER_IMG):$(DEV_TAG)
+	docker build --pull --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)"  . -t $(DEV_CONTROLLER_IMG):$(DEV_TAG)
 
 .PHONY: docker-push
 docker-push: ## Push the docker image

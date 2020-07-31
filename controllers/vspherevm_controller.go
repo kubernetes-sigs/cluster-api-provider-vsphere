@@ -348,6 +348,11 @@ func (r vmReconciler) reconcileNormal(ctx *context.VMContext) (reconcile.Result,
 	// Update the VSphereVM's network status.
 	r.reconcileNetwork(ctx, vm)
 
+	// we didn't get any addresses, requeue
+	if len(ctx.VSphereVM.Status.Addresses) == 0 {
+		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
+	}
+
 	// Once the network is online the VM is considered ready.
 	ctx.VSphereVM.Status.Ready = true
 	conditions.MarkTrue(ctx.VSphereVM, infrav1.VMProvisionedCondition)

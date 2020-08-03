@@ -56,3 +56,20 @@ func MultiNodeTemplateWithKubeVIP() []runtime.Object {
 		&machineDeployment,
 	}
 }
+
+func MultiNodeTemplateWithExternalLoadBalancer() []runtime.Object {
+	vsphereCluster := newVSphereCluster(nil)
+	machineTemplate := newVSphereMachineTemplate()
+	controlPlane := newKubeadmControlplane(444, machineTemplate, nil)
+	kubeadmJoinTemplate := newKubeadmConfigTemplate()
+	cluster := newCluster(vsphereCluster, &controlPlane)
+	machineDeployment := newMachineDeployment(cluster, machineTemplate, kubeadmJoinTemplate)
+	return []runtime.Object{
+		&cluster,
+		&vsphereCluster,
+		&machineTemplate,
+		&controlPlane,
+		&kubeadmJoinTemplate,
+		&machineDeployment,
+	}
+}

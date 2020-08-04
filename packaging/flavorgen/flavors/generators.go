@@ -356,7 +356,7 @@ func kubeVIPPod() string {
 			Containers: []v1.Container{
 				{
 					Name:  "kube-vip",
-					Image: "plndr/kube-vip:0.1.6",
+					Image: "plndr/kube-vip:0.1.7",
 					Args: []string{
 						"start",
 					},
@@ -389,28 +389,8 @@ func kubeVIPPod() string {
 							Value: controlPlaneEndpointVar,
 						},
 						{
-							Name:  "lb_backendport",
-							Value: "6443",
-						},
-						{
-							Name:  "vip_addpeerstolb",
-							Value: "true",
-						},
-						{
-							Name:  "lb_name",
-							Value: "kcpEndpoint",
-						},
-						{
-							Name:  "lb_bindtovip",
-							Value: "true",
-						},
-						{
 							Name:  "vip_interface",
 							Value: vipNetworkInterfaceVar,
-						},
-						{
-							Name:  "lb_type",
-							Value: "tcp",
 						},
 					},
 				},

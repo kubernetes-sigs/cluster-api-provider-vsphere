@@ -61,7 +61,15 @@ spec:
       name: '${ VSPHERE_NETWORK }'
     providerConfig:
       cloud:
-        controllerImage: gcr.io/cloud-provider-vsphere/cpi/release/manager:v1.0.0
+        controllerImage: gcr.io/cloud-provider-vsphere/cpi/release/manager:v1.1.0
+      storage:
+        attacherImage: quay.io/k8scsi/csi-attacher:v2.0.0
+        controllerImage: gcr.io/cloud-provider-vsphere/csi/release/driver:v2.0.0
+        livenessProbeImage: quay.io/k8scsi/livenessprobe:v1.1.0
+        metadataSyncerImage: gcr.io/cloud-provider-vsphere/csi/release/syncer:v2.0.0
+        nodeDriverImage: gcr.io/cloud-provider-vsphere/csi/release/driver:v2.0.0
+        provisionerImage: quay.io/k8scsi/csi-provisioner:v1.4.0
+        registrarImage: quay.io/k8scsi/csi-node-driver-registrar:v1.2.0
     virtualCenter:
       ${ VSPHERE_SERVER }:
         datacenters: '${ VSPHERE_DATACENTER }'
@@ -199,86 +207,3 @@ spec:
         kind: VSphereMachineTemplate
         name: '${ CLUSTER_NAME }'
       version: '${ KUBERNETES_VERSION }'
----
-apiVersion: addons.cluster.x-k8s.io/v1alpha3
-kind: ClusterResourceSet
-metadata:
-  labels:
-    cluster.x-k8s.io/cluster-name: '${ CLUSTER_NAME }'
-  name: ${ CLUSTER_NAME }-crs-0
-  namespace: '${ NAMESPACE }'
-spec:
-  resources:
-  - kind: Secret
-    name: csi-vsphere-config
-  - kind: Secret
-    name: vsphere-csi-controller
-  - kind: Secret
-    name: vsphere-csi-controller-role
-  - kind: Secret
-    name: vsphere-csi-controller-binding
-  - kind: Secret
-    name: csi.vsphere.vmware.com
-  - kind: Secret
-    name: vsphere-csi-node
-  - kind: Secret
-    name: vsphere-csi-controller
----
-apiVersion: addons.cluster.x-k8s.io/v1alpha3
-kind: ClusterResourceSetBinding
-metadata:
-  name: csi-vsphere-config
-  namespace: kube-system
-  ownerReferences:
-  - apiVersion: addons.cluster.x-k8s.io/v1alpha3
-    kind: ClusterResourceSet
-    name: ${ CLUSTER_NAME }-crs-0
-    uid: ""
-  - apiVersion: cluster.x-k8s.io/v1alpha3
-    kind: Cluster
-    name: '${ CLUSTER_NAME }'
-    uid: ""
-spec:
-  bindings:
-  - clusterResourceSetName: ${ CLUSTER_NAME }-crs-0
-    resources:
-    - applied: false
-      kind: ""
-      lastAppliedTime: null
-      name: csi-vsphere-config
-  - clusterResourceSetName: ${ CLUSTER_NAME }-crs-0
-    resources:
-    - applied: false
-      kind: Secret
-      lastAppliedTime: "2020-07-27T14:22:16Z"
-      name: vsphere-csi-controller
-  - clusterResourceSetName: ${ CLUSTER_NAME }-crs-0
-    resources:
-    - applied: false
-      kind: Secret
-      lastAppliedTime: "2020-07-27T14:22:16Z"
-      name: vsphere-csi-controller-role
-  - clusterResourceSetName: ${ CLUSTER_NAME }-crs-0
-    resources:
-    - applied: false
-      kind: Secret
-      lastAppliedTime: "2020-07-27T14:22:16Z"
-      name: vsphere-csi-controller-binding
-  - clusterResourceSetName: ${ CLUSTER_NAME }-crs-0
-    resources:
-    - applied: false
-      kind: Secret
-      lastAppliedTime: "2020-07-27T14:22:16Z"
-      name: csi.vsphere.vmware.com
-  - clusterResourceSetName: ${ CLUSTER_NAME }-crs-0
-    resources:
-    - applied: false
-      kind: Secret
-      lastAppliedTime: "2020-07-27T14:22:16Z"
-      name: vsphere-csi-node
-  - clusterResourceSetName: ${ CLUSTER_NAME }-crs-0
-    resources:
-    - applied: false
-      kind: Secret
-      lastAppliedTime: "2020-07-27T14:22:16Z"
-      name: vsphere-csi-controller

@@ -18,10 +18,16 @@ package flavors
 
 import (
 	"github.com/pkg/errors"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	rbac "k8s.io/api/rbac/v1"
+	storagev1 "k8s.io/api/storage/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/cloudprovider"
 	cloudprovidersvc "sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/cloudprovider"
+	"sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	addonsv1alpha3 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha3"
 )
@@ -38,77 +44,7 @@ func createStorageConfig() *infrav1.CPIStorageConfig {
 		RegistrarImage:      cloudprovidersvc.DefaultCSIRegistrarImage,
 	}
 }
-func addGeneratedSecretToCRS(clusterresourceSet *addonsv1alpha3.ClusterResourceSet, clusterResourceSetBinding *addonsv1alpha3.ClusterResourceSetBinding) {
-	serviceAccount := cloudprovidersvc.CSIControllerServiceAccount()
-	serviceAccountMarshalled, err := serviceAccount.Marshal()
-	if err != nil {
-		panic(errors.Errorf("invalid serviceAccount"))
-	}
-	// generate secret for above types
-
-	serviceAccountSecret := cloudprovidersvc.CSIComponentConfigSecret(serviceAccount.Name, string(serviceAccountMarshalled))
-	//serviceAccountSecret.SetGroupVersionKind("Secret")
-	appendResourceSecretToCRS(clusterresourceSet, serviceAccountSecret)
-	// add to binding
-	appendResourceSetToBinding(clusterResourceSetBinding, serviceAccountSecret, clusterresourceSet)
-
-	clusterRole := cloudprovidersvc.CSIControllerClusterRole()
-	clusterRoleMarshalled, err := clusterRole.Marshal()
-
-	if err != nil {
-		panic(errors.Errorf("invalid clusterRole"))
-	}
-	clusterRoleSecret := cloudprovidersvc.CSIComponentConfigSecret(clusterRole.Name, string(clusterRoleMarshalled))
-	appendResourceSecretToCRS(clusterresourceSet, clusterRoleSecret)
-	// add to bining
-	appendResourceSetToBinding(clusterResourceSetBinding, clusterRoleSecret, clusterresourceSet)
-
-	clusterRoleBinding := cloudprovidersvc.CSIControllerClusterRoleBinding()
-	clusterRoleBindingMarshalled, err := clusterRoleBinding.Marshal()
-	if err != nil {
-		panic(errors.Errorf("invalid clusterRoleBinding"))
-	}
-	clusterRoleBindingSecret := cloudprovidersvc.CSIComponentConfigSecret(clusterRoleBinding.Name, string(clusterRoleBindingMarshalled))
-	appendResourceSecretToCRS(clusterresourceSet, clusterRoleBindingSecret)
-	// add to bining
-	appendResourceSetToBinding(clusterResourceSetBinding, clusterRoleBindingSecret, clusterresourceSet)
-
-	csiDriver := cloudprovidersvc.CSIDriver()
-	csiDriverMarshalled, err := csiDriver.Marshal()
-	if err != nil {
-		panic(errors.Errorf("invalid csiDriver"))
-	}
-	csiDriverSecret := cloudprovidersvc.CSIComponentConfigSecret(csiDriver.Name, string(csiDriverMarshalled))
-	appendResourceSecretToCRS(clusterresourceSet, csiDriverSecret)
-	// add to bining
-	appendResourceSetToBinding(clusterResourceSetBinding, csiDriverSecret, clusterresourceSet)
-
-	storageConfig := createStorageConfig()
-	daemonSet := cloudprovidersvc.VSphereCSINodeDaemonSet(storageConfig)
-	daemonSetMarshalled, err := cloudprovidersvc.VSphereCSINodeDaemonSet(storageConfig).Marshal()
-	if err != nil {
-		panic(errors.Errorf("invalid daemonSet"))
-	}
-	daemonSetSecret := cloudprovidersvc.CSIComponentConfigSecret(daemonSet.Name, string(daemonSetMarshalled))
-	appendResourceSecretToCRS(clusterresourceSet, daemonSetSecret)
-	// add to bining
-	appendResourceSetToBinding(clusterResourceSetBinding, daemonSetSecret, clusterresourceSet)
-
-	deployment := cloudprovider.CSIControllerDeployment(storageConfig)
-	deploymentMarshalled, err := deployment.Marshal()
-	if err != nil {
-		panic(errors.Errorf("invalid deployment"))
-	}
-	deploymentSecret := cloudprovider.CSIComponentConfigSecret(deployment.Name, string(deploymentMarshalled))
-	appendResourceSecretToCRS(clusterresourceSet, deploymentSecret)
-	// add to bining
-	appendResourceSetToBinding(clusterResourceSetBinding, deploymentSecret, clusterresourceSet)
-
-}
 func MultiNodeTemplateWithHAProxy() []runtime.Object {
-
-	var MultiNodeTemplate []runtime.Object
-
 	lb := newHAProxyLoadBalancer()
 	vsphereCluster := newVSphereCluster(&lb)
 	machineTemplate := newVSphereMachineTemplate()
@@ -116,20 +52,7 @@ func MultiNodeTemplateWithHAProxy() []runtime.Object {
 	kubeadmJoinTemplate := newKubeadmConfigTemplate()
 	cluster := newCluster(vsphereCluster, &controlPlane)
 	machineDeployment := newMachineDeployment(cluster, machineTemplate, kubeadmJoinTemplate)
-
-	cloudConfig, err := cloudprovidersvc.ConfigForCSI(vsphereCluster, cluster).MarshalINI()
-	if err != nil {
-		panic(errors.Errorf("invalid cloudConfig"))
-	}
-	cloudConfigSecret := cloudprovidersvc.CSICloudConfigSecret(string(cloudConfig))
-
-	// create ClusterResouceSet that contains cloudConfigSecret
-	clusterresourceSet := newClusterResourceSet(cluster, cloudConfigSecret)
-	clusterResourceSetBinding := newClusterResourceSetBinding(&cluster, cloudConfigSecret, &clusterresourceSet)
-	// add geenrated secret, and cloudConfigSecret to the crs and CRSBinding
-	addGeneratedSecretToCRS(&clusterresourceSet, &clusterResourceSetBinding)
-
-	MultiNodeTemplate = []runtime.Object{
+	return []runtime.Object{
 		&cluster,
 		&lb,
 		&vsphereCluster,
@@ -137,11 +60,7 @@ func MultiNodeTemplateWithHAProxy() []runtime.Object {
 		&controlPlane,
 		&kubeadmJoinTemplate,
 		&machineDeployment,
-		&clusterresourceSet,
-		&clusterResourceSetBinding,
 	}
-	return MultiNodeTemplate
-
 }
 
 func MultiNodeTemplateWithKubeVIP() []runtime.Object {
@@ -151,12 +70,92 @@ func MultiNodeTemplateWithKubeVIP() []runtime.Object {
 	kubeadmJoinTemplate := newKubeadmConfigTemplate()
 	cluster := newCluster(vsphereCluster, &controlPlane)
 	machineDeployment := newMachineDeployment(cluster, machineTemplate, kubeadmJoinTemplate)
-	return []runtime.Object{
+	clusterResourceSet := newClusterResourceSet(cluster)
+	crsResources := createCrsResourceObjects(&clusterResourceSet, vsphereCluster, cluster)
+
+	MultiNodeTemplate := []runtime.Object{
 		&cluster,
 		&vsphereCluster,
 		&machineTemplate,
 		&controlPlane,
 		&kubeadmJoinTemplate,
 		&machineDeployment,
+		&clusterResourceSet,
+	}
+	return append(MultiNodeTemplate, crsResources...)
+}
+
+// createCrsResourceObjects creates the api objects necessary for CSI to function. Also appends the resources to the CRS
+func createCrsResourceObjects(crs *addonsv1alpha3.ClusterResourceSet, vsphereCluster infrav1.VSphereCluster, cluster v1alpha3.Cluster) []runtime.Object {
+	serviceAccount := cloudprovidersvc.CSIControllerServiceAccount()
+	serviceAccount.TypeMeta = v1.TypeMeta{
+		Kind:       "ServiceAccount",
+		APIVersion: corev1.SchemeGroupVersion.String(),
+	}
+	serviceAccountSecret := newSecret(serviceAccount.Name, serviceAccount)
+	appendSecretToCrsResource(crs, serviceAccountSecret)
+
+	clusterRole := cloudprovider.CSIControllerClusterRole()
+	clusterRole.TypeMeta = v1.TypeMeta{
+		Kind:       "ClusterRole",
+		APIVersion: rbac.SchemeGroupVersion.String(),
+	}
+	clusterRoleConfigMap := newConfigMap(clusterRole.Name, clusterRole)
+	appendConfigMapToCrsResource(crs, clusterRoleConfigMap)
+
+	clusterRoleBinding := cloudprovider.CSIControllerClusterRoleBinding()
+	clusterRoleBinding.TypeMeta = v1.TypeMeta{
+		Kind:       "ClusterRoleBinding",
+		APIVersion: rbac.SchemeGroupVersion.String(),
+	}
+	clusterRoleBindingConfigMap := newConfigMap(clusterRoleBinding.Name, clusterRoleBinding)
+	appendConfigMapToCrsResource(crs, clusterRoleBindingConfigMap)
+
+	cloudConfig, err := cloudprovidersvc.ConfigForCSI(vsphereCluster, cluster, vSphereUsername, vSpherePassword).MarshalINI()
+	if err != nil {
+		panic(errors.Errorf("invalid cloudConfig"))
+	}
+	// cloud config secret is wrapped in another secret so it could be injected via CRS
+	cloudConfigSecret := cloudprovidersvc.CSICloudConfigSecret(string(cloudConfig))
+	cloudConfigSecret.TypeMeta = v1.TypeMeta{
+		Kind:       "Secret",
+		APIVersion: corev1.SchemeGroupVersion.String(),
+	}
+	cloudConfigSecretWrapper := newSecret(cloudConfigSecret.Name, cloudConfigSecret)
+	appendSecretToCrsResource(crs, cloudConfigSecretWrapper)
+
+	csiDriver := cloudprovider.CSIDriver()
+	csiDriver.TypeMeta = v1.TypeMeta{
+		Kind:       "CSIDriver",
+		APIVersion: storagev1.SchemeGroupVersion.String(),
+	}
+	csiDriverConfigMap := newConfigMap(csiDriver.Name, csiDriver)
+	appendConfigMapToCrsResource(crs, csiDriverConfigMap)
+
+	storageConfig := createStorageConfig()
+	daemonSet := cloudprovidersvc.VSphereCSINodeDaemonSet(storageConfig)
+	daemonSet.TypeMeta = v1.TypeMeta{
+		Kind:       "DaemonSet",
+		APIVersion: appsv1.SchemeGroupVersion.String(),
+	}
+	daemonSetConfigMap := newConfigMap(daemonSet.Name, daemonSet)
+	appendConfigMapToCrsResource(crs, daemonSetConfigMap)
+
+	deployment := cloudprovider.CSIControllerDeployment(storageConfig)
+	deployment.TypeMeta = v1.TypeMeta{
+		Kind:       "Deployment",
+		APIVersion: appsv1.SchemeGroupVersion.String(),
+	}
+	deploymentConfigMap := newConfigMap(deployment.Name, deployment)
+	appendConfigMapToCrsResource(crs, deploymentConfigMap)
+
+	return []runtime.Object{
+		serviceAccountSecret,
+		clusterRoleConfigMap,
+		clusterRoleBindingConfigMap,
+		cloudConfigSecretWrapper,
+		csiDriverConfigMap,
+		daemonSetConfigMap,
+		deploymentConfigMap,
 	}
 }

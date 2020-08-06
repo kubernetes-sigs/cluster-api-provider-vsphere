@@ -641,7 +641,7 @@ func CSIComponentConfigSecret(secretName string, data string) *corev1.Secret {
 
 // ConfigForCSI returns a cloudprovider.CPIConfig specific to the vSphere CSI driver until
 // it supports using Secrets for vCenter credentials
-func ConfigForCSI(vsphereCluster v1alpha3.VSphereCluster, cluster clusterv1.Cluster) *v1alpha3.CPIConfig {
+func ConfigForCSI(vsphereCluster v1alpha3.VSphereCluster, cluster clusterv1.Cluster, username string, password string) *v1alpha3.CPIConfig {
 	config := &v1alpha3.CPIConfig{}
 
 	config.Global.ClusterID = fmt.Sprintf("%s/%s", cluster.Namespace, cluster.Name)
@@ -651,8 +651,8 @@ func ConfigForCSI(vsphereCluster v1alpha3.VSphereCluster, cluster clusterv1.Clus
 	config.VCenter = map[string]v1alpha3.CPIVCenterConfig{}
 	for name, vcenter := range vsphereCluster.Spec.CloudProviderConfiguration.VCenter {
 		config.VCenter[name] = v1alpha3.CPIVCenterConfig{
-			//Username:    ctx.Username,
-			//Password:    ctx.Password,
+			Username:    username,
+			Password:    password,
 			Datacenters: vcenter.Datacenters,
 		}
 	}

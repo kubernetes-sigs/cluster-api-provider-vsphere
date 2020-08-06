@@ -17,11 +17,10 @@ limitations under the License.
 package flavors
 
 import (
-	"time"
-
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -55,6 +54,8 @@ const (
 	workerMachineCountVar        = "${ WORKER_MACHINE_COUNT }"
 	controlPlaneEndpointVar      = "${ CONTROL_PLANE_ENDPOINT_IP }"
 	vipNetworkInterfaceVar       = "${ VIP_NETWORK_INTERFACE }"
+	vSphereUsername              = "${ VSPHERE_USERNAME }"
+	vSpherePassword              = "${ VSPHERE_PASSWORD }" /* #nosec */
 	clusterResourceSetNameSuffix = "-crs-0"
 )
 
@@ -172,6 +173,7 @@ func newCluster(vsphereCluster infrav1.VSphereCluster, controlPlane *controlplan
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      clusterNameVar,
 			Namespace: namespaceVar,
+			Labels:    clusterLabels(),
 		},
 		Spec: clusterv1.ClusterSpec{
 			ClusterNetwork: &clusterv1.ClusterNetwork{
@@ -429,8 +431,7 @@ func kubeVIPPod() string {
 	}
 	return string(podBytes)
 }
-func newClusterResourceSet(cluster clusterv1.Cluster, cloudConfigSecret *v1.Secret) addonsv1alpha3.ClusterResourceSet {
-
+func newClusterResourceSet(cluster clusterv1.Cluster) addonsv1alpha3.ClusterResourceSet {
 	crs := addonsv1alpha3.ClusterResourceSet{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       typeToKind(&addonsv1alpha3.ClusterResourceSet{}),
@@ -442,93 +443,25 @@ func newClusterResourceSet(cluster clusterv1.Cluster, cloudConfigSecret *v1.Secr
 			Namespace: cluster.Namespace,
 		},
 		Spec: addonsv1alpha3.ClusterResourceSetSpec{
-			Resources: []addonsv1alpha3.ResourceRef{},
+			ClusterSelector: metav1.LabelSelector{MatchLabels: clusterLabels()},
+			Resources:       []addonsv1alpha3.ResourceRef{},
 		},
 	}
-	crs.Spec.Resources = append(crs.Spec.Resources, addonsv1alpha3.ResourceRef{
-		Name: cloudConfigSecret.Name,
-		Kind: "Secret",
-	})
 
 	return crs
 }
-func appendResourceSecretToCRS(crs *addonsv1alpha3.ClusterResourceSet, generatedSecret *v1.Secret) {
-
+func appendSecretToCrsResource(crs *addonsv1alpha3.ClusterResourceSet, generatedSecret *v1.Secret) {
 	crs.Spec.Resources = append(crs.Spec.Resources, addonsv1alpha3.ResourceRef{
 		Name: generatedSecret.Name,
 		Kind: "Secret",
 	})
 }
 
-func newClusterResourceSetBinding(cluster *clusterv1.Cluster, cloudConfigSecret *v1.Secret, crs *addonsv1alpha3.ClusterResourceSet) addonsv1alpha3.ClusterResourceSetBinding {
-
-	binding := addonsv1alpha3.ClusterResourceSetBinding{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ClusterResourceSetBinding",
-			APIVersion: addonsv1alpha3.GroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:              cluster.Name,
-			Namespace:         cluster.Namespace,
-			Generation:        cluster.Generation,
-			CreationTimestamp: cluster.CreationTimestamp,
-			OwnerReferences:   cluster.OwnerReferences,
-		},
-	}
-
-	binding.SetOwnerReferences([]metav1.OwnerReference{
-		// binding are owned by the ClusterResourceSet / ownership set by the ClusterResourceSet controller
-		{
-			APIVersion: crs.APIVersion,
-			Kind:       crs.Kind,
-			Name:       crs.Name,
-			UID:        crs.UID,
-		},
+func appendConfigMapToCrsResource(crs *addonsv1alpha3.ClusterResourceSet, generatedConfigMap *v1.ConfigMap) {
+	crs.Spec.Resources = append(crs.Spec.Resources, addonsv1alpha3.ResourceRef{
+		Name: generatedConfigMap.Name,
+		Kind: "ConfigMap",
 	})
-	// binding are owned by the Cluster / ownership set by the ClusterResourceSet controller
-	binding.SetOwnerReferences(append(binding.OwnerReferences, metav1.OwnerReference{
-		APIVersion: cluster.APIVersion,
-		Kind:       cluster.Kind,
-		Name:       cluster.Name,
-		UID:        cluster.UID,
-	}))
-	resourceSetBinding := addonsv1alpha3.ResourceSetBinding{
-		ClusterResourceSetName: crs.Name,
-		Resources:              []addonsv1alpha3.ResourceBinding{},
-	}
-	resourceSetBinding.Resources = append(resourceSetBinding.Resources, addonsv1alpha3.ResourceBinding{
-		ResourceRef: addonsv1alpha3.ResourceRef{
-			Name: cloudConfigSecret.Name,
-			Kind: cloudConfigSecret.Kind,
-		},
-		LastAppliedTime: &cloudConfigSecret.CreationTimestamp,
-	})
-	binding.SetCreationTimestamp(cloudConfigSecret.CreationTimestamp)
-	binding.SetGenerateName(cloudConfigSecret.GetGenerateName())
-	binding.SetName(cloudConfigSecret.GetName())
-	binding.SetNamespace(cloudConfigSecret.GetNamespace())
-
-	binding.Spec.Bindings = append(binding.Spec.Bindings, &resourceSetBinding)
-
-	return binding
-
-}
-
-func appendResourceSetToBinding(binding *addonsv1alpha3.ClusterResourceSetBinding, resourceSetSecret *v1.Secret, crs *addonsv1alpha3.ClusterResourceSet) {
-
-	resourceSetBinding := addonsv1alpha3.ResourceSetBinding{
-		ClusterResourceSetName: crs.Name,
-		Resources:              []addonsv1alpha3.ResourceBinding{},
-	}
-	resourceSetBinding.Resources = append(resourceSetBinding.Resources, addonsv1alpha3.ResourceBinding{
-		ResourceRef: addonsv1alpha3.ResourceRef{
-			Name: resourceSetSecret.Name,
-			Kind: "Secret",
-		},
-		LastAppliedTime: &metav1.Time{Time: time.Now().UTC()}, // useless
-	})
-	binding.Spec.Bindings = append(binding.Spec.Bindings, &resourceSetBinding)
-
 }
 
 func newMachineDeployment(cluster clusterv1.Cluster, machineTemplate infrav1.VSphereMachineTemplate, bootstrapTemplate bootstrapv1.KubeadmConfigTemplate) clusterv1.MachineDeployment {
@@ -626,5 +559,38 @@ func newKubeadmControlplane(replicas int, infraTemplate infrav1.VSphereMachineTe
 			},
 			KubeadmConfigSpec: defaultKubeadmInitSpec(files),
 		},
+	}
+}
+
+func newConfigMap(name string, o runtime.Object) *v1.ConfigMap {
+	return &v1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: v1.SchemeGroupVersion.String(),
+			Kind:       "ConfigMap",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespaceVar,
+		},
+		Data: map[string]string{
+			"data": generateObjectYAML(o, []replacement{}),
+		},
+	}
+}
+
+func newSecret(name string, o runtime.Object) *v1.Secret {
+	return &v1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: v1.SchemeGroupVersion.String(),
+			Kind:       "Secret",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespaceVar,
+		},
+		StringData: map[string]string{
+			"data": generateObjectYAML(o, []replacement{}),
+		},
+		Type: addonsv1alpha3.ClusterResourceSetSecretType,
 	}
 }

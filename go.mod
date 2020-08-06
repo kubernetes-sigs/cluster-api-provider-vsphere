@@ -5,7 +5,6 @@ go 1.12
 require (
 	github.com/antihax/optional v1.0.0
 	github.com/go-logr/logr v0.1.0
-	github.com/go-yaml/yaml v2.1.0+incompatible // indirect
 	github.com/google/go-cmp v0.4.1
 	github.com/google/uuid v1.1.1
 	github.com/onsi/ginkgo v1.12.1

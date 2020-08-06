@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-  <testsuite name="capv-e2e" tests="1" failures="1" errors="0" time="0.001">
-      <testcase name="BeforeSuite" classname="capv-e2e" time="0.000960256">
-          <failure type="Failure">/Users/bdab/Documents/tkg-CAPI-team/capv_issues/cluster-api-provider-vsphere/test/e2e/e2e_suite_test.go:93&#xA;Invalid test suite argument. e2e.config should be an existing file.&#xA;Expected&#xA;    &lt;string&gt;: /Users/bdab/Documents/tkg-CAPI-team/capv_issues/cluster-api-provider-vsphere/test/e2e/config/vsphere-dev.conf&#xA;to exist&#xA;/Users/bdab/Documents/tkg-CAPI-team/capv_issues/cluster-api-provider-vsphere/test/e2e/e2e_suite_test.go:96</failure>
-      </testcase>
-  </testsuite>

@@ -8,19 +8,19 @@
 # For creating local images, run ./hack/e2e.sh
 
 images:
-  - name: gcr.io/k8s-staging-cluster-api/cluster-api-controller-amd64:v0.3.7
+  - name: gcr.io/k8s-staging-cluster-api/cluster-api-controller-amd64:v0.3.9
     loadBehavior: tryLoad
-  - name: gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller-amd64:v0.3.7
+  - name: gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller-amd64:v0.3.9
     loadBehavior: tryLoad
-  - name: gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller-amd64:v0.3.7
+  - name: gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller-amd64:v0.3.9
     loadBehavior: tryLoad
-  - name: capv-manager:e2e
+  - name: gcr.io/k8s-staging-cluster-api/capv-manager:e2e
     loadBehavior: mustLoad
-  - name: quay.io/jetstack/cert-manager-cainjector:v0.11.0
+  - name: quay.io/jetstack/cert-manager-cainjector:v0.16.1
     loadBehavior: tryLoad
-  - name: quay.io/jetstack/cert-manager-webhook:v0.11.0
+  - name: quay.io/jetstack/cert-manager-webhook:v0.16.1
     loadBehavior: tryLoad
-  - name: quay.io/jetstack/cert-manager-controller:v0.11.0
+  - name: quay.io/jetstack/cert-manager-controller:v0.16.1
     loadBehavior: tryLoad
 
 providers:
@@ -28,9 +28,9 @@ providers:
   - name: cluster-api
     type: CoreProvider
     versions:
-      - name: v0.3.7
+      - name: v0.3.9
         # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.7/core-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.9/core-components.yaml"
         type: "url"
         replacements:
           - old: "imagePullPolicy: Always"
@@ -41,9 +41,9 @@ providers:
   - name: kubeadm
     type: BootstrapProvider
     versions:
-      - name: v0.3.7
+      - name: v0.3.9
         # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.7/bootstrap-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.9/bootstrap-components.yaml"
         type: "url"
         replacements:
           - old: "imagePullPolicy: Always"
@@ -54,9 +54,9 @@ providers:
   - name: kubeadm
     type: ControlPlaneProvider
     versions:
-      - name: v0.3.7
+      - name: v0.3.9
         # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.7/control-plane-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.9/control-plane-components.yaml"
         type: "url"
         replacements:
           - old: "imagePullPolicy: Always"
@@ -72,7 +72,7 @@ providers:
         value: ../../../../cluster-api-provider-vsphere/config
         replacements:
           - old: gcr.io/cluster-api-provider-vsphere/release/manager:latest
-            new: capv-manager:e2e
+            new: gcr.io/k8s-staging-cluster-api/capv-manager:e2e
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
 
@@ -83,7 +83,7 @@ providers:
 variables:
   KUBERNETES_VERSION: "v1.18.2"
   CNI: "./data/cni/calico/calico.yaml"
-  EXP_CLUSTER_RESOURSE_SET: "true"
+  EXP_CLUSTER_RESOURCE_SET: "true"
   CONTROL_PLANE_MACHINE_COUNT: 1
   WORKER_MACHINE_COUNT: 1
   VSPHERE_DATACENTER:  "SDDC-Datacenter"

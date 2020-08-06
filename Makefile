@@ -39,7 +39,7 @@ TOOLS_DIR := $(ROOT_DIR)/hack/tools
 TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
 
-E2E_CONF_FILE  ?= "$(abspath test/e2e/config/vsphere-dev.conf)"
+E2E_CONF_FILE  ?= "$(abspath test/e2e/config/vsphere-dev.yaml)"
 E2E_TEMPLATE_DIR := "$(abspath test/e2e/data/infrastructure-vsphere/)"
 
 # Binaries
@@ -111,14 +111,14 @@ test: generate lint-go ## Run tests
 
 .PHONY: e2e-image
 e2e-image: ## Build the e2e manager image
-	docker build --build-arg ldflags="$(LDFLAGS)" --tag="capv-manager:e2e" .
+	docker build --build-arg ldflags="$(LDFLAGS)" --tag="gcr.io/k8s-staging-cluster-api/capv-manager:e2e" .
 
 .PHONY: e2e
 e2e: e2e-image
 e2e: $(GINKGO) $(KUSTOMIZE) $(KIND) $(GOVC) ## Run e2e tests
 	$(MAKE) release-manifests
-	@mkdir -p $(E2E_TEMPLATE_DIR)
-	cp $(RELEASE_DIR)/cluster-template-haproxy.yaml $(E2E_TEMPLATE_DIR)
+	cp $(RELEASE_DIR)/cluster-template-haproxy.yaml $(E2E_TEMPLATE_DIR)/kustomization/cluster-template.yaml
+	"$(KUSTOMIZE)" build $(E2E_TEMPLATE_DIR)/kustomization > $(E2E_TEMPLATE_DIR)/cluster-template.yaml
 	@echo PATH=$(PATH)
 	@echo
 	@echo Contents of $(TOOLS_BIN_DIR):

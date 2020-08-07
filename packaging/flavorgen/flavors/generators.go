@@ -53,7 +53,6 @@ const (
 	vSphereTemplateVar           = "${ VSPHERE_TEMPLATE }"
 	workerMachineCountVar        = "${ WORKER_MACHINE_COUNT }"
 	controlPlaneEndpointVar      = "${ CONTROL_PLANE_ENDPOINT_IP }"
-	vipNetworkInterfaceVar       = "${ VIP_NETWORK_INTERFACE }"
 	vSphereUsername              = "${ VSPHERE_USERNAME }"
 	vSpherePassword              = "${ VSPHERE_PASSWORD }" /* #nosec */
 	clusterResourceSetNameSuffix = "-crs-0"
@@ -385,8 +384,9 @@ func kubeVIPPod() string {
 							Value: controlPlaneEndpointVar,
 						},
 						{
+							// this is hardcoded since we use eth0 as a network interface for all of our machines in this template
 							Name:  "vip_interface",
-							Value: vipNetworkInterfaceVar,
+							Value: "eth0",
 						},
 					},
 				},

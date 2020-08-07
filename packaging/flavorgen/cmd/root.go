@@ -55,6 +55,8 @@ func RunRoot(command *cobra.Command) error {
 		flavors.PrintObjects(flavors.MultiNodeTemplateWithHAProxy())
 	case "vip":
 		flavors.PrintObjects(flavors.MultiNodeTemplateWithKubeVIP())
+	case "external-loadbalancer":
+		flavors.PrintObjects(flavors.MultiNodeTemplateWithExternalLoadBalancer())
 	default:
 		return errors.Errorf("invalid flavor")
 	}

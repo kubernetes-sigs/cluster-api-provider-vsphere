@@ -159,3 +159,20 @@ func createCrsResourceObjects(crs *addonsv1alpha3.ClusterResourceSet, vsphereClu
 		deploymentConfigMap,
 	}
 }
+
+func MultiNodeTemplateWithExternalLoadBalancer() []runtime.Object {
+	vsphereCluster := newVSphereCluster(nil)
+	machineTemplate := newVSphereMachineTemplate()
+	controlPlane := newKubeadmControlplane(444, machineTemplate, nil)
+	kubeadmJoinTemplate := newKubeadmConfigTemplate()
+	cluster := newCluster(vsphereCluster, &controlPlane)
+	machineDeployment := newMachineDeployment(cluster, machineTemplate, kubeadmJoinTemplate)
+	return []runtime.Object{
+		&cluster,
+		&vsphereCluster,
+		&machineTemplate,
+		&controlPlane,
+		&kubeadmJoinTemplate,
+		&machineDeployment,
+	}
+}

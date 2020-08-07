@@ -65,7 +65,7 @@ func deleteZeroValues(o map[string]interface{}) map[string]interface{} {
 	return o
 }
 
-func printObject(obj runtime.Object, replacements []replacement) {
+func generateObjectYAML(obj runtime.Object, replacements []replacement) string {
 
 	bytes, err := yaml.Marshal(obj)
 	if err != nil {
@@ -107,13 +107,13 @@ func printObject(obj runtime.Object, replacements []replacement) {
 		str = regex.ReplaceAllString(str, "'$1'")
 	}
 
-	fmt.Printf("---\n%s", str)
+	return str
 }
 
 func PrintObjects(objs []runtime.Object) {
 	for _, o := range objs {
 		o := o
-		printObject(o, replacements)
+		fmt.Printf("---\n%s", generateObjectYAML(o, replacements))
 	}
 }
 

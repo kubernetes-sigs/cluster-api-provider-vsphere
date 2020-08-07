@@ -27,7 +27,7 @@ import (
 	storagev1beta1 "k8s.io/api/storage/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
 // NOTE: the contents of this file are derived from https://github.com/kubernetes-sigs/vsphere-csi-driver/tree/master/manifests/1.14
@@ -626,20 +626,33 @@ func CSICloudConfigSecret(data string) *corev1.Secret {
 	}
 }
 
+func CSIComponentConfigSecret(secretName string, data string) *corev1.Secret {
+	return &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secretName,
+			Namespace: CSINamespace,
+		},
+		Type: corev1.SecretTypeOpaque,
+		StringData: map[string]string{
+			"csi-vsphere.conf": data,
+		},
+	}
+}
+
 // ConfigForCSI returns a cloudprovider.CPIConfig specific to the vSphere CSI driver until
 // it supports using Secrets for vCenter credentials
-func ConfigForCSI(ctx *context.ClusterContext) *v1alpha3.CPIConfig {
+func ConfigForCSI(vsphereCluster v1alpha3.VSphereCluster, cluster clusterv1.Cluster, username string, password string) *v1alpha3.CPIConfig {
 	config := &v1alpha3.CPIConfig{}
 
-	config.Global.ClusterID = fmt.Sprintf("%s/%s", ctx.Cluster.Namespace, ctx.Cluster.Name)
-	config.Global.Insecure = ctx.VSphereCluster.Spec.CloudProviderConfiguration.Global.Insecure
-	config.Network.Name = ctx.VSphereCluster.Spec.CloudProviderConfiguration.Network.Name
+	config.Global.ClusterID = fmt.Sprintf("%s/%s", cluster.Namespace, cluster.Name)
+	config.Global.Insecure = vsphereCluster.Spec.CloudProviderConfiguration.Global.Insecure
+	config.Network.Name = vsphereCluster.Spec.CloudProviderConfiguration.Network.Name
 
 	config.VCenter = map[string]v1alpha3.CPIVCenterConfig{}
-	for name, vcenter := range ctx.VSphereCluster.Spec.CloudProviderConfiguration.VCenter {
+	for name, vcenter := range vsphereCluster.Spec.CloudProviderConfiguration.VCenter {
 		config.VCenter[name] = v1alpha3.CPIVCenterConfig{
-			Username:    ctx.Username,
-			Password:    ctx.Password,
+			Username:    username,
+			Password:    password,
 			Datacenters: vcenter.Datacenters,
 		}
 	}

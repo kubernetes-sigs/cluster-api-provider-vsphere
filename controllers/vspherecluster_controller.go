@@ -761,7 +761,7 @@ func (r clusterReconciler) reconcileStorageProvider(ctx *context.ClusterContext)
 
 	// we have to marshal a separate INI file for CSI since it does not
 	// support Secrets for vCenter credentials yet.
-	cloudConfig, err := cloudprovider.ConfigForCSI(ctx).MarshalINI()
+	cloudConfig, err := cloudprovider.ConfigForCSI(*ctx.VSphereCluster, *ctx.Cluster, ctx.Username, ctx.Password).MarshalINI()
 	if err != nil {
 		return err
 	}

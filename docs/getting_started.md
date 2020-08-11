@@ -59,8 +59,6 @@ After deploying it from the OVA, please ensure the VM `ubuntu-1804-kube-v1.17.3`
 govc vm.markastemplate ubuntu-1804-kube-v1.17.3
 ```
 
-Repeat again for the [HAProxy template image][haproxy-machine-image].
-
 To reduce the time it takes to provisiong machines, linked clone mode is the default `cloneMode` for `vsphereMachines` and is highly
  recommended. To be able to use it, your VM templates require snapshots, for which we illustrate the process using the [govc][govc]
 command line tool, but can also be done via vCenter, PowerCLI or other tooling:
@@ -74,20 +72,9 @@ govc snapshot.create -vm ubuntu-1804-kube-v1.17.3 root
 govc vm.markastemplate ubuntu-1804-kube-v1.17.3
 ```
 
-for the HAProxy VM template:
-
-```shell
-# Re-mark the template as a VM
-govc vm.markasvm -pool Compute-ResourcePool capv-haproxy-v0.6.4
-# Take a snapshot of the VM
-govc snapshot.create -vm capv-haproxy-v0.6.4 root
-# Re-mark the VM as a template
-govc vm.markastemplate capv-haproxy-v0.6.4
-```
-
 **Note:** When creating the OVA template via vSphere using the URL method, please make sure the VM template name is the
-same as the value specified by the `VSPHERE_TEMPLATE` and `VSPHERE_HAPROXY_TEMPLATE` environment variables in the
-`envvars.txt` file, taking care of the `.ova` suffix for the template name.
+same as the value specified by the `VSPHERE_TEMPLATE` environment variable in the
+`~/.cluster-api/clusterctl.yaml` file, taking care of the `.ova` suffix for the template name.
 
 **Note:** If you are planning to use CNS/CSI then you will need to ensure that the template is at least at VM Hardware
 Version 13, This is done out-of-the-box for images of K8s version `v1.15.4` and above. For versions lower than this you
@@ -125,16 +112,29 @@ VSPHERE_NETWORK: "VM Network"                                 # The VM network t
 VSPHERE_RESOURCE_POOL: "*/Resources"                          # The vSphere resource pool for your VMs
 VSPHERE_FOLDER: "vm"                                          # The VM folder for your VMs. Set to "" to use the root vSphere folder
 VSPHERE_TEMPLATE: "ubuntu-1804-kube-v1.17.3"                  # The VM template to use for your management cluster.
-VSPHERE_HAPROXY_TEMPLATE: "capv-haproxy-v0.6.4"  # The VM template to use for the HAProxy load balancer
+CONTROL_PLANE_ENDPOINT_IP: "192.168.9.230"                    # the IP that kube-vip is going to use as a control plane endpoint
+EXP_CLUSTER_RESOURCE_SET: "true"                              # This enables the ClusterResourceSet feature that we are using to deploy CSI
 VSPHERE_SSH_AUTHORIZED_KEY: "ssh-rsa AAAAB3N..."              # The public ssh authorized key on all machines
                                                               #   in this cluster.
                                                               #   Set to "" if you don't want to enable SSH,
                                                               #   or are using another solution.
 ```
 
+If you are using the **DEPRECATED** `haproxy` flavour you will need to add the following variable to your `clusterctl.yaml`:
+
+```yaml
+VSPHERE_HAPROXY_TEMPLATE: "capv-haproxy-v0.6.4"               # The VM template to use for the HAProxy load balancer
+```
+
 **NOTE**: Technically, SSH keys and vSphere folders are optional, but optional template variables are not currently
 supported by clusterctl. If you need to not set the vSphere folder or SSH keys, then remove the appropriate fields after
 running `clusterctl config`.
+
+the `CONTROL_PLANE_ENDPOINT_IP` is an IP that must be an IP on the same subnet as the control plane machines, it should be also an IP that is not part of your DHCP range
+
+`CONTROL_PLANE_ENDPOINT_IP` is mandatory when you are using the default and the `external-loadbalancer` flavour
+
+the `EXP_CLUSTER_RESOURCE_SET` is required if you want to deploy CSI using cluster resource sets (mandatory in the default flavor).
 
 Once you have access to a management cluster, you can instantiate Cluster API with the following:
 
@@ -159,6 +159,11 @@ $ vi edit cluster.yaml
 # Create the workload cluster in the current namespace on the management cluster
 $ kubectl apply -f cluster.yaml
 ```
+
+aside of the default flavour, CAPV has the following:
+
+- an `external-loadbalancer` flavour that enables you to to specify a pre-existing endpoint
+- **DEPRECATED** an `haproxy` flavour to use HAProxy as a control plane endpoint
 
 ## Accessing the workload cluster
 
@@ -185,6 +190,19 @@ $ KUBECONFIG=vsphere-quickstart.kubeconfig kubectl get nodes
 NAME                                                          STATUS     ROLES    AGE   VERSION
 vsphere-quickstart-9qtfd                                      Ready      master   47m   v1.17.3
 
+```
+
+## custom cluster templates
+
+the provided cluster templates are quickstarts. If you need anything specific that requires a more complex setup, we recommand to use custom templates:
+
+```shell
+$ clusterctl config custom-cluster vsphere-quickstart \
+    --infrastructure vsphere \
+    --kubernetes-version v1.17.3 \
+    --control-plane-machine-count 1 \
+    --worker-machine-count 3 \
+    --from ~/workspace/custom-cluster-template.yaml > custom-cluster.yaml
 ```
 
 <!-- References -->

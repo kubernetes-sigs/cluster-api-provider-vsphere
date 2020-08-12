@@ -14,7 +14,7 @@
 
 all: build
 
-MDLINT_CLI_VERSION ?= 0.17.0
+MDLINT_CLI_VERSION ?= 0.23.2
 IMAGE_NAME ?= gcr.io/cluster-api-provider-vsphere/extra/mdlint
 IMAGE_TAG ?= $(IMAGE_NAME):$(MDLINT_CLI_VERSION)
 

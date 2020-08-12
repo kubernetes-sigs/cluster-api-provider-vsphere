@@ -170,7 +170,7 @@ lint-go-full: lint-go ## Run slower linters to detect possible issues
 
 .PHONY: lint-markdown
 lint-markdown: ## Lint the project's markdown
-	docker run --rm -v "$$(pwd)":/build$(DOCKER_VOL_OPTS) gcr.io/cluster-api-provider-vsphere/extra/mdlint:0.17.0 -- /md/lint -i vendor -i contrib/haproxy/openapi .
+	docker run --rm -v "$$(pwd)":/build$(DOCKER_VOL_OPTS) gcr.io/cluster-api-provider-vsphere/extra/mdlint:0.23.2 -- /md/lint -i vendor -i contrib/haproxy/openapi .
 
 .PHONY: lint-shell
 lint-shell: ## Lint the project's shell scripts

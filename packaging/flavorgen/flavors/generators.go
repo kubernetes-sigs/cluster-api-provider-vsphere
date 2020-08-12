@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
+	cloudprovidersvc "sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/cloudprovider"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
@@ -143,6 +144,15 @@ func newVSphereCluster(lb *infrav1.HAProxyLoadBalancer) infrav1.VSphereCluster {
 				ProviderConfig: infrav1.CPIProviderConfig{
 					Cloud: &infrav1.CPICloudConfig{
 						ControllerImage: defaultCloudProviderImage,
+					},
+					Storage: &infrav1.CPIStorageConfig{
+						ControllerImage:     cloudprovidersvc.DefaultCSIControllerImage,
+						NodeDriverImage:     cloudprovidersvc.DefaultCSINodeDriverImage,
+						AttacherImage:       cloudprovidersvc.DefaultCSIAttacherImage,
+						ProvisionerImage:    cloudprovidersvc.DefaultCSIProvisionerImage,
+						MetadataSyncerImage: cloudprovidersvc.DefaultCSIMetadataSyncerImage,
+						LivenessProbeImage:  cloudprovidersvc.DefaultCSILivenessProbeImage,
+						RegistrarImage:      cloudprovidersvc.DefaultCSIRegistrarImage,
 					},
 				},
 			},

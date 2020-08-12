@@ -73,6 +73,9 @@ func MultiNodeTemplateWithKubeVIP() []runtime.Object {
 	clusterResourceSet := newClusterResourceSet(cluster)
 	crsResources := createCrsResourceObjects(&clusterResourceSet, vsphereCluster, cluster)
 
+	// removing Storage config so the cluster controller is not going not install CSI (it is installed by the clusterResourceSet)
+	vsphereCluster.Spec.CloudProviderConfiguration.ProviderConfig.Storage = nil
+
 	MultiNodeTemplate := []runtime.Object{
 		&cluster,
 		&vsphereCluster,

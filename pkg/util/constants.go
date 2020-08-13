@@ -35,8 +35,10 @@ network:
       set-name: "eth{{ $i }}"
       {{- end }}
       wakeonlan: true
+      {{- if or $net.DHCP4 $net.DHCP6 }}
       dhcp4: {{ $net.DHCP4 }}
       dhcp6: {{ $net.DHCP6 }}
+      {{- end }}
       {{- if $net.IPAddrs }}
       addresses:
       {{- range $net.IPAddrs }}

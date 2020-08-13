@@ -27,7 +27,7 @@ You will also need to configure one resource pool across the hosts onto which th
 in the resource pool will need access to shared storage, such as VSAN in order to be able to make use of MachineDeployments and
 high-availability control planes.
 
-To use PVs, your cluster needs support for Cloud Native Storage (CNS), which is available in **vSphere 6.7 Update 3** and later.
+To use PersistentVolumes (PV), your cluster needs support for Cloud Native Storage (CNS), which is available in **vSphere 6.7 Update 3** and later.
 CNS relies on a shared datastore, such as VSAN.
 
 In addition, to use clusterctl, you should have a SSH public key that will be inserted into the node VMs for
@@ -59,9 +59,10 @@ After deploying it from the OVA, please ensure the VM `ubuntu-1804-kube-v1.17.3`
 govc vm.markastemplate ubuntu-1804-kube-v1.17.3
 ```
 
-To reduce the time it takes to provisiong machines, linked clone mode is the default `cloneMode` for `vsphereMachines` and is highly
+To reduce the time it takes to provisioning machines, linked clone mode is the default `cloneMode` for `vsphereMachines` and is highly
  recommended. To be able to use it, your VM templates require snapshots, for which we illustrate the process using the [govc][govc]
-command line tool, but can also be done via vCenter, PowerCLI or other tooling:
+command line tool, but can also be done via vCenter, PowerCLI or other tooling.
+For more info about [govc][govc] see [installation](https://github.com/vmware/govmomi/tree/master/govc#installation) and [usage](https://github.com/vmware/govmomi/tree/master/govc#usage) docs:
 
 ```shell
 # Re-mark the template as a VM

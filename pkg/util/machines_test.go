@@ -566,8 +566,6 @@ network:
         macaddress: "00:00:00:00:00"
       set-name: "eth0"
       wakeonlan: true
-      dhcp4: false
-      dhcp6: false
       addresses:
       - "192.168.4.21"
       gateway4: "192.168.4.1"

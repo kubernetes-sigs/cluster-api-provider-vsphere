@@ -44,6 +44,15 @@ func isNotFound(err error) bool {
 	}
 }
 
+func isFolderNotFound(err error) bool {
+	switch err.(type) {
+	case *find.NotFoundError:
+		return true
+	default:
+		return false
+	}
+}
+
 func isVirtualMachineNotFound(err error) bool {
 	switch err.(type) {
 	case *find.NotFoundError:

@@ -159,7 +159,7 @@ func (vms *VMService) DestroyVM(ctx *context.VMContext) (infrav1.VirtualMachine,
 	if err != nil {
 		// If the VM's MoRef could not be found then the VM no longer exists. This
 		// is the desired state.
-		if isNotFound(err) {
+		if isNotFound(err) || isFolderNotFound(err) {
 			vm.State = infrav1.VirtualMachineStateNotFound
 			return vm, nil
 		}

@@ -40,7 +40,7 @@ spec:
       folder: "${VSPHERE_FOLDER}"
     providerConfig:
       cloud:
-        controllerImage: "gcr.io/cloud-provider-vsphere/cpi/release/manager:v1.1.0"
+        controllerImage: "gcr.io/cloud-provider-vsphere/cpi/release/manager:v1.2.0"
       storage:
         controllerImage: "gcr.io/cloud-provider-vsphere/csi/release/driver:v1.0.2"
         nodeDriverImage: "gcr.io/cloud-provider-vsphere/csi/release/driver:v1.0.2"

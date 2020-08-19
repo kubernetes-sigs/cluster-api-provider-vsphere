@@ -78,7 +78,7 @@ func findVM(ctx *context.VMContext) (types.ManagedObjectReference, error) {
 		// fallback to use inventory paths
 		folder, err := ctx.Session.Finder.FolderOrDefault(ctx, ctx.VSphereVM.Spec.Folder)
 		if err != nil {
-			return types.ManagedObjectReference{}, errors.Wrapf(err, "unable to get folder for %s/%s", ctx.VSphereVM.Namespace, ctx.VSphereVM.Name)
+			return types.ManagedObjectReference{}, err
 		}
 		inventoryPath := path.Join(folder.InventoryPath, ctx.VSphereVM.Name)
 		ctx.Logger.Info("using inventory path to find vm", "path", inventoryPath)

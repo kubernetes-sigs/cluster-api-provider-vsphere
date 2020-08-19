@@ -141,7 +141,12 @@ func reconcileInFlightTask(ctx *context.VMContext) (bool, error) {
 
 		// NOTE: When a task fails there is not simple way to understand which operation is failing (e.g. cloning or powering on)
 		// so we are reporting failures using a dedicated reason until we find a better solution.
-		conditions.MarkFalse(ctx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.TaskFailure, clusterv1.ConditionSeverityInfo, task.Info.Description.Message)
+		var description string
+
+		if task.Info.Description != nil {
+			description = task.Info.Description.Message
+		}
+		conditions.MarkFalse(ctx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.TaskFailure, clusterv1.ConditionSeverityInfo, description)
 		ctx.VSphereVM.Status.TaskRef = ""
 		return false, nil
 	default:

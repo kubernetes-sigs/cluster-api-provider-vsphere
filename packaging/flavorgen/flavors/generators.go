@@ -35,7 +35,7 @@ import (
 const (
 	clusterNameVar               = "${ CLUSTER_NAME }"
 	controlPlaneMachineCountVar  = "${ CONTROL_PLANE_MACHINE_COUNT }"
-	defaultCloudProviderImage    = "gcr.io/cloud-provider-vsphere/cpi/release/manager:v1.0.0"
+	defaultCloudProviderImage    = "gcr.io/cloud-provider-vsphere/cpi/release/manager:v1.2.0"
 	defaultClusterCIDR           = "192.168.0.0/16"
 	defaultDiskGiB               = 25
 	defaultMemoryMiB             = 8192

@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 )
 
 var (
@@ -37,17 +38,17 @@ func TestVSphereVM_ValidateCreate(t *testing.T) {
 	}{
 		{
 			name:      "preferredAPIServerCIDR set on creation ",
-			vSphereVM: createVSphereVM("foo.com", "", "192.168.0.1/32", []string{}),
+			vSphereVM: createVSphereVM("foo.com", "", "192.168.0.1/32", []string{}, nil),
 			wantErr:   true,
 		},
 		{
 			name:      "IPs are not in CIDR format",
-			vSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3"}),
+			vSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3"}, nil),
 			wantErr:   true,
 		},
 		{
 			name:      "successful VSphereVM creation",
-			vSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}),
+			vSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, nil),
 			wantErr:   false,
 		},
 	}
@@ -76,20 +77,26 @@ func TestVSphereVM_ValidateUpdate(t *testing.T) {
 	}{
 		{
 			name:         "ProviderID can be updated",
-			oldVSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32"}),
-			vSphereVM:    createVSphereVM("foo.com", biosUUID, "", []string{"192.168.0.1/32"}),
+			oldVSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32"}, nil),
+			vSphereVM:    createVSphereVM("foo.com", biosUUID, "", []string{"192.168.0.1/32"}, nil),
 			wantErr:      false,
 		},
 		{
 			name:         "updating ips can be done",
-			oldVSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32"}),
-			vSphereVM:    createVSphereVM("foo.com", biosUUID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}),
+			oldVSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32"}, nil),
+			vSphereVM:    createVSphereVM("foo.com", biosUUID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}, nil),
+			wantErr:      false,
+		},
+		{
+			name:         "updating bootstrapRef can be done",
+			oldVSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32"}, nil),
+			vSphereVM:    createVSphereVM("foo.com", biosUUID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}, &corev1.ObjectReference{}),
 			wantErr:      false,
 		},
 		{
 			name:         "updating server cannot be done",
-			oldVSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32"}),
-			vSphereVM:    createVSphereVM("bar.com", biosUUID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}),
+			oldVSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32"}, nil),
+			vSphereVM:    createVSphereVM("bar.com", biosUUID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}, nil),
 			wantErr:      true,
 		},
 	}
@@ -105,10 +112,11 @@ func TestVSphereVM_ValidateUpdate(t *testing.T) {
 	}
 }
 
-func createVSphereVM(server string, biosUUID string, preferredAPIServerCIDR string, ips []string) *VSphereVM {
+func createVSphereVM(server string, biosUUID string, preferredAPIServerCIDR string, ips []string, bootstrapRef *corev1.ObjectReference) *VSphereVM {
 	VSphereVM := &VSphereVM{
 		Spec: VSphereVMSpec{
-			BiosUUID: biosUUID,
+			BiosUUID:     biosUUID,
+			BootstrapRef: bootstrapRef,
 			VirtualMachineCloneSpec: VirtualMachineCloneSpec{
 				Server: server,
 				Network: NetworkSpec{

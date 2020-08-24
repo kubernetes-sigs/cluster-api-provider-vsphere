@@ -20,7 +20,7 @@ Check out the [getting started guide](./docs/getting_started.md) for launching a
 
 - Native Kubernetes manifests and API
 - Manages the bootstrapping of VMs on cluster.
-- Choice of Linux distribution between Ubuntu 18.04 and CentOS 7 using VM Templates based on [OVA images](docs/machine_images.md).
+- Choice of Linux distribution between Ubuntu 18.04 and CentOS 7 using VM Templates based on [OVA images](#Kubernetes-versions-with-published-OVAs).
 - Deploys Kubernetes control planes into provided clusters on vSphere.
 - Doesn't use SSH for bootstrapping nodes.
 - Installs only the minimal components to bootstrap a control plane and workers.

@@ -75,6 +75,10 @@ func (r *VSphereVM) ValidateUpdate(old runtime.Object) error { //nolint
 	delete(oldVSphereVMSpec, "biosUUID")
 	delete(newVSphereVMSpec, "biosUUID")
 
+	// allow changes to bootstrapRef
+	delete(oldVSphereVMSpec, "bootstrapRef")
+	delete(newVSphereVMSpec, "bootstrapRef")
+
 	newVSphereVMNetwork := newVSphereVMSpec["network"].(map[string]interface{})
 	oldVSphereVMNetwork := oldVSphereVMSpec["network"].(map[string]interface{})
 

@@ -20,7 +20,7 @@ Check out the [getting started guide](./docs/getting_started.md) for launching a
 
 - Native Kubernetes manifests and API
 - Manages the bootstrapping of VMs on cluster.
-- Choice of Linux distribution between Ubuntu 18.04 and CentOS 7 using VM Templates based on [OVA images](docs/machine_images.md).
+- Choice of Linux distribution between Ubuntu 18.04 and CentOS 7 using VM Templates based on [OVA images](#Kubernetes-versions-with-published-OVAs).
 - Deploys Kubernetes control planes into provided clusters on vSphere.
 - Doesn't use SSH for bootstrapping nodes.
 - Installs only the minimal components to bootstrap a control plane and workers.
@@ -55,6 +55,7 @@ Note: These OVAs are not updated for security fixes and it is recommended to alw
 |  v1.16.9   |   [ova](http://storage.googleapis.com/capv-images/release/v1.16.9/centos-7-kube-v1.16.9.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.16.9/centos-7-kube-v1.16.9.ova.sha256)   |   [ova](http://storage.googleapis.com/capv-images/release/v1.16.9/ubuntu-1804-kube-v1.16.9.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.16.9/ubuntu-1804-kube-v1.16.9.ova.sha256)   |   [ova](http://storage.googleapis.com/capv-images/release/v1.16.9/photon-3-kube-v1.16.9.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.16.9/photon-3-kube-v1.16.9.ova.sha256)    |
 |  v1.17.5   |   [ova](http://storage.googleapis.com/capv-images/release/v1.17.5/centos-7-kube-v1.17.5.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.17.5/centos-7-kube-v1.17.5.ova.sha256)   |   [ova](http://storage.googleapis.com/capv-images/release/v1.17.5/ubuntu-1804-kube-v1.17.5.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.17.5/ubuntu-1804-kube-v1.17.5.ova.sha256)   | [ova](http://storage.googleapis.com/capv-images/release/v1.17.5/photon-3-kube-v1.17.5.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.17.5/photon-3-1804-kube-v1.17.5.ova.sha256) |
 |  v1.18.2  | [ova](http://storage.googleapis.com/capv-images/release/v1.18.2/centos-7-kube-v1.18.2.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.18.2/centos-7-kube-v1.18.2.ova.sha256) | [ova](http://storage.googleapis.com/capv-images/release/v1.18.2/ubuntu-1804-kube-v1.18.2.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.18.2/ubuntu-1804-kube-v1.18.2.ova.sha256) | [ova](http://storage.googleapis.com/capv-images/release/v1.18.2/photon-3-kube-v1.18.2.ova), [sha256](http://storage.googleapis.com/capv-images/release/v1.18.2/photon-3-kube-v1.18.2.ova.sha256)  |
+
 A full list of the published machine images for CAPV may be obtained with the following command:
 
 ```shell

@@ -29,7 +29,7 @@ import (
 // NOTE: the contents of this file are derived from https://github.com/kubernetes/cloud-provider-vsphere/tree/master/manifests/controller-manager
 
 const (
-	DefaultCPIControllerImage = "gcr.io/cloud-provider-vsphere/cpi/release/manager:v1.2.0"
+	DefaultCPIControllerImage = "gcr.io/cloud-provider-vsphere/cpi/release/manager:v1.2.1"
 )
 
 // CloudControllerManagerServiceAccount returns the ServiceAccount used for the cloud-controller-manager

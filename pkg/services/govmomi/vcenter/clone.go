@@ -52,6 +52,12 @@ func Clone(ctx *context.VMContext, bootstrapData []byte) error {
 			return err
 		}
 	}
+	if ctx.VSphereVM.Spec.CustomVMXKeys != nil {
+		ctx.Logger.Info("applied custom vmx keys o VM clone spec")
+		if err := extraConfig.SetCustomVMXKeys(ctx.VSphereVM.Spec.CustomVMXKeys); err != nil {
+			return err
+		}
+	}
 
 	tpl, err := template.FindTemplate(ctx, ctx.VSphereVM.Spec.Template)
 	if err != nil {

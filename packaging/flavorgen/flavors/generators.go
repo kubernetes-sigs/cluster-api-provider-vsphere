@@ -247,15 +247,16 @@ func defaultVirtualMachineCloneSpec() infrav1.VirtualMachineCloneSpec {
 				},
 			},
 		},
-		CloneMode:    infrav1.LinkedClone,
-		NumCPUs:      defaultNumCPUs,
-		DiskGiB:      defaultDiskGiB,
-		MemoryMiB:    defaultMemoryMiB,
-		Template:     vSphereTemplateVar,
-		Server:       vSphereServerVar,
-		ResourcePool: vSphereResourcePoolVar,
-		Datastore:    vSphereDatastoreVar,
-		Folder:       vSphereFolderVar,
+		CustomVMXKeys: defaultCustomVMXKeys(),
+		CloneMode:     infrav1.LinkedClone,
+		NumCPUs:       defaultNumCPUs,
+		DiskGiB:       defaultDiskGiB,
+		MemoryMiB:     defaultMemoryMiB,
+		Template:      vSphereTemplateVar,
+		Server:        vSphereServerVar,
+		ResourcePool:  vSphereResourcePoolVar,
+		Datastore:     vSphereDatastoreVar,
+		Folder:        vSphereFolderVar,
 	}
 }
 
@@ -328,6 +329,10 @@ func defaultControlPlaneComponent() kubeadmv1beta1.ControlPlaneComponent {
 	return kubeadmv1beta1.ControlPlaneComponent{
 		ExtraArgs: defaultExtraArgs(),
 	}
+}
+
+func defaultCustomVMXKeys() map[string]string {
+	return map[string]string{}
 }
 
 func defaultExtraArgs() map[string]string {

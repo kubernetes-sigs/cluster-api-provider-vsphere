@@ -122,6 +122,10 @@ type VirtualMachineCloneSpec struct {
 	// virtual machine is cloned.
 	// +optional
 	DiskGiB int32 `json:"diskGiB,omitempty"`
+	// CustomVMXKeys is a dictionary of advanced VMX options that can be set on VM
+	// Defaults to empty map
+	// +optional
+	CustomVMXKeys map[string]string `json:"customVMXKeys,omitempty"`
 }
 
 // VSphereMachineTemplateResource describes the data needed to create a VSphereMachine from a template

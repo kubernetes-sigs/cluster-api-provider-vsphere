@@ -86,6 +86,11 @@ const (
 	// are automatically re-tried by the controller.
 	PoweringOnFailedReason = "PoweringOnFailed"
 
+	// HardwareUpgradeFailedReason (Severity=Warning) documents a VSphereMachine/VSphereVM controller detecting
+	// an error while trying to upgrade virtual hardware of a VM. The reconcile look will automatically
+	// retry the operation, but a user intervention might be required to fix the problem.
+	HardwareUpgradeFailedReason = "HardwareUpgradeFailed"
+
 	// TaskFailure (Severity=Warning) documents a VSphereMachine/VSphere task failure; the reconcile look will automatically
 	// retry the operation, but a user intervention might be required to fix the problem.
 	TaskFailure = "TaskFailure"

@@ -122,6 +122,11 @@ type VirtualMachineCloneSpec struct {
 	// virtual machine is cloned.
 	// +optional
 	DiskGiB int32 `json:"diskGiB,omitempty"`
+
+	// UpgardeHardwareVersion option toggles support for v
+	// Virtual hardware upgrade before VM is powered on.
+	// +optional
+	UpgardeHardwareVersion bool `json:"upgradehardwareversion"`
 }
 
 // VSphereMachineTemplateResource describes the data needed to create a VSphereMachine from a template

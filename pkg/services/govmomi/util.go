@@ -100,10 +100,14 @@ func getTask(ctx *context.VMContext) *mo.Task {
 	if ctx.VSphereVM.Status.TaskRef == "" {
 		return nil
 	}
+	return getTaskFromRef(ctx, ctx.VSphereVM.Status.TaskRef)
+}
+
+func getTaskFromRef(ctx *context.VMContext, taskRef string) *mo.Task {
 	var obj mo.Task
 	moRef := types.ManagedObjectReference{
 		Type:  morefTypeTask,
-		Value: ctx.VSphereVM.Status.TaskRef,
+		Value: taskRef,
 	}
 	if err := ctx.Session.RetrieveOne(ctx, moRef, []string{"info"}, &obj); err != nil {
 		return nil

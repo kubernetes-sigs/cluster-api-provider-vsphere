@@ -126,6 +126,11 @@ func (vms *VMService) ReconcileVM(ctx *context.VMContext) (vm infrav1.VirtualMac
 		return vm, err
 	}
 
+	// Need to happen before power On otherwise it will error
+	if ok, err := vms.reconcileHardwareVersion(vmCtx); err != nil || !ok {
+		return vm, err
+	}
+
 	if ok, err := vms.reconcilePowerState(vmCtx); err != nil || !ok {
 		return vm, err
 	}
@@ -203,6 +208,58 @@ func (vms *VMService) DestroyVM(ctx *context.VMContext) (infrav1.VirtualMachine,
 	ctx.VSphereVM.Status.TaskRef = task.Reference().Value
 	ctx.Logger.Info("wait for VM to be destroyed")
 	return vm, nil
+}
+
+func (vms *VMService) reconcileHardwareVersion(ctx *virtualMachineContext) (bool, error) {
+	// Do not upgrade machine if Upgrade flag not set
+	if !ctx.VSphereVM.Spec.UpgardeHardwareVersion {
+		ctx.VSphereVM.Status.HardwareUpgradeState = infrav1.HardwareUpgradeDisabled
+		return true, nil
+	}
+	// Do not upgrade if already upgraded
+	if ctx.VSphereVM.Status.HardwareUpgradeState == infrav1.HardwareUpgraded {
+		return true, nil
+	}
+	// Can only be upgraded if machine is off
+	powerState, err := vms.getPowerState(ctx)
+	if err != nil {
+		return false, err
+	}
+	switch powerState {
+	case infrav1.VirtualMachinePowerStatePoweredOff:
+		ctx.Logger.Info("upgrading hardware")
+		ctx.VSphereVM.Status.HardwareUpgradeState = infrav1.HardwareUpgradePending
+
+		task, err := ctx.Obj.UpgradeVM(ctx, "")
+		if err != nil {
+			conditions.MarkFalse(ctx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.HardwareUpgradeFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+			return false, errors.Wrapf(err, "failed to upgrade virtual hardware version for vm %s", ctx)
+		}
+
+		// Have to wait as before this op VM cannot be powered ON and nothing else will proceed
+		err = task.Wait(ctx)
+
+		// Not able to upgrade
+		if err != nil {
+			// Retrieve Task mob to check if error is due
+			// to Machine being already at latest version
+			taskMob := getTaskFromRef(&ctx.VMContext, task.Reference().Value)
+			if _, isAlreadyUpgraded := (taskMob.Info.Error.Fault).(*types.AlreadyUpgraded); isAlreadyUpgraded {
+				ctx.Logger.Info("Machine already at latest hardware version")
+			} else {
+				conditions.MarkFalse(ctx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.HardwareUpgradeFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+				return false, errors.Wrapf(err, "failed to upgrade virtual hardware version for vm %s", ctx)
+			}
+		}
+		ctx.Logger.Info("hardware upgraded")
+		ctx.VSphereVM.Status.HardwareUpgradeState = infrav1.HardwareUpgraded
+		return true, nil
+	case infrav1.VirtualMachinePowerStatePoweredOn:
+		ctx.Logger.Info("Cannot upgrade, machine is powered On")
+		return false, errors.Wrapf(err, "Impossible State: Check order of calling for reconcileHardwareVersion and reconcilePowerState for vm %s", ctx)
+	default:
+		return false, errors.Errorf("unexpected power state %q for vm %s encountered while trying to upgrade hardware", powerState, ctx)
+	}
 }
 
 func (vms *VMService) reconcileNetworkStatus(ctx *virtualMachineContext) error {

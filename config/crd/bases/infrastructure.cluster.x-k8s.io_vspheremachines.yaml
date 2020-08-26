@@ -513,6 +513,10 @@ spec:
                   used to clone the virtual machine.
                 minLength: 1
                 type: string
+              upgradehardwareversion:
+                description: UpgardeHardwareVersion option toggles support for v Virtual
+                  hardware upgrade before VM is powered on.
+                type: boolean
             required:
             - network
             - template

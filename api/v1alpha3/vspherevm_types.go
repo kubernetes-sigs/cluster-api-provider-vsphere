@@ -29,6 +29,20 @@ const (
 	VMFinalizer = "vspherevm.infrastructure.cluster.x-k8s.io"
 )
 
+// VirtualMachineHardwareUpgradeState describes whether VM's hardware has been upgraded or not
+type VirtualMachineHardwareUpgradeState string
+
+const (
+	// Virtual Machine's hardware has been upgraded
+	HardwareUpgraded VirtualMachineHardwareUpgradeState = "upgraded"
+
+	// Virtual Machine's hardware upgrade  is disabled
+	HardwareUpgradeDisabled = "upgrade disabled"
+
+	// Virtual Machine's hardware has not been upgraded
+	HardwareUpgradePending = "upgrade pending"
+)
+
 // VSphereVMSpec defines the desired state of VSphereVM.
 type VSphereVMSpec struct {
 	VirtualMachineCloneSpec `json:",inline"`
@@ -68,6 +82,10 @@ type VSphereVMStatus struct {
 	// type of clone operation used to create this VM.
 	// +optional
 	CloneMode CloneMode `json:"cloneMode,omitempty"`
+
+	// HardwareUpgraded holds the state of virtual hardware upgrade for VM
+	// +optional
+	HardwareUpgradeState VirtualMachineHardwareUpgradeState `json:"hardware"`
 
 	// Snapshot is the name of the snapshot from which the VM was cloned if
 	// LinkedMode is enabled.

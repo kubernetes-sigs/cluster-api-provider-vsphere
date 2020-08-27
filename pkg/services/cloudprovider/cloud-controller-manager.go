@@ -19,7 +19,6 @@ package cloudprovider
 import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,7 +28,7 @@ import (
 // NOTE: the contents of this file are derived from https://github.com/kubernetes/cloud-provider-vsphere/tree/master/manifests/controller-manager
 
 const (
-	DefaultCPIControllerImage = "gcr.io/cloud-provider-vsphere/cpi/release/manager:v1.2.0"
+	DefaultCPIControllerImage = "gcr.io/cloud-provider-vsphere/cpi/release/manager:v1.2.1"
 )
 
 // CloudControllerManagerServiceAccount returns the ServiceAccount used for the cloud-controller-manager
@@ -134,13 +133,6 @@ func CloudControllerManagerDaemonSet(image string, args []string) *appsv1.Daemon
 							Name:  "vsphere-cloud-controller-manager",
 							Image: image,
 							Args:  args,
-							Env: []v1.EnvVar{
-								{
-									// skips node deletion, remove when kubernetes/cloud-provider-vsphere#381 is resolved
-									Name:  "SKIP_NODE_DELETION",
-									Value: "true",
-								},
-							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "vsphere-config-volume",

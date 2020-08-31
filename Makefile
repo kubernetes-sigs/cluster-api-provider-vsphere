@@ -248,6 +248,7 @@ endif
 .PHONY: release-manifests
 release-manifests:
 	$(MAKE) manifests STAGE=release MANIFEST_DIR=$(RELEASE_DIR) PULL_POLICY=IfNotPresent IMAGE=$(RELEASE_CONTROLLER_IMG):$(VERSION)
+	cp metadata.yaml $(RELEASE_DIR)/metadata.yaml
 
 .PHONY: release-overrides
 release-overrides:

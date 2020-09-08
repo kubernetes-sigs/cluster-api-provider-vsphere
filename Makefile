@@ -111,7 +111,7 @@ test: generate lint-go ## Run tests
 
 .PHONY: e2e-image
 e2e-image: ## Build the e2e manager image
-	docker build --build-arg ldflags="$(LDFLAGS)" --tag="capv-manager:e2e" .
+	docker build --build-arg ldflags="$(LDFLAGS)" --tag="gcr.io/k8s-staging-cluster-api/capv-manager:e2e" .
 
 .PHONY: e2e
 e2e: e2e-image

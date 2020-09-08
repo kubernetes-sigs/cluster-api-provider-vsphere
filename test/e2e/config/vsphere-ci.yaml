@@ -14,7 +14,7 @@ images:
     loadBehavior: tryLoad
   - name: gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller-amd64:v0.3.7
     loadBehavior: tryLoad
-  - name: capv-manager:e2e
+  - name: gcr.io/k8s-staging-cluster-api/capv-manager:e2e
     loadBehavior: mustLoad
   - name: quay.io/jetstack/cert-manager-cainjector:v0.11.0
     loadBehavior: tryLoad
@@ -72,7 +72,7 @@ providers:
         value: ../../../../cluster-api-provider-vsphere/config
         replacements:
           - old: gcr.io/cluster-api-provider-vsphere/release/manager:latest
-            new: capv-manager:e2e
+            new: gcr.io/k8s-staging-cluster-api/capv-manager:e2e
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
 

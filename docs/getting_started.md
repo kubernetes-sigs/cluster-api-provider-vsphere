@@ -155,7 +155,7 @@ $ clusterctl config cluster vsphere-quickstart \
     --worker-machine-count 3 > cluster.yaml
 
 # Inspect and make any changes
-$ vi edit cluster.yaml
+$ vi cluster.yaml
 
 # Create the workload cluster in the current namespace on the management cluster
 $ kubectl apply -f cluster.yaml

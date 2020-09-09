@@ -22,6 +22,11 @@ import (
 	. "github.com/onsi/ginkgo" // // nolint:golint,stylecheck
 )
 
+var (
+	CNIPath      = "CNI"
+	CNIResources = "CNI_RESOURCES"
+)
+
 func Byf(format string, a ...interface{}) {
 	By(fmt.Sprintf(format, a...))
 }

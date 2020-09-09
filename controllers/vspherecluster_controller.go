@@ -273,12 +273,11 @@ func (r clusterReconciler) reconcileNormal(ctx *context.ClusterContext) (reconci
 	conditions.MarkTrue(ctx.VSphereCluster, infrav1.LoadBalancerAvailableCondition)
 	ctx.VSphereCluster.Status.Ready = true
 
-	// Reconcile the VSphereCluster resource's control plane endpoint.
-	if ok, err := r.reconcileControlPlaneEndpoint(ctx); !ok {
-		if err != nil {
-			return reconcile.Result{}, errors.Wrapf(err,
-				"unexpected error while reconciling control plane endpoint for %s", ctx)
-		}
+	// Ensure the VSphereCluster is reconciled when the API server first comes online.
+	// A reconcile event will only be triggered if the Cluster is not marked as
+	// ControlPlaneInitialized.
+	r.reconcileVSphereClusterWhenAPIServerIsOnline(ctx)
+	if ctx.VSphereCluster.Spec.ControlPlaneEndpoint.IsZero() {
 		ctx.Logger.Info("control plane endpoint is not reconciled")
 		return reconcile.Result{}, nil
 	}
@@ -459,86 +458,6 @@ func (r clusterReconciler) reconcileLoadBalancer(ctx *context.ClusterContext) (b
 		"controlPlaneEndpoint", ctx.VSphereCluster.Spec.ControlPlaneEndpoint.String())
 
 	return true, nil
-}
-
-func (r clusterReconciler) reconcileControlPlaneEndpoint(ctx *context.ClusterContext) (bool, error) {
-	// Ensure the VSphereCluster is reconciled when the API server first comes online.
-	// A reconcile event will only be triggered if the Cluster is not marked as
-	// ControlPlaneInitialized.
-	defer r.reconcileVSphereClusterWhenAPIServerIsOnline(ctx)
-
-	// If the cluster already has a control plane endpoint set then there
-	// is nothing to do.
-	if !ctx.Cluster.Spec.ControlPlaneEndpoint.IsZero() {
-		ctx.VSphereCluster.Spec.ControlPlaneEndpoint.Host = ctx.Cluster.Spec.ControlPlaneEndpoint.Host
-		ctx.VSphereCluster.Spec.ControlPlaneEndpoint.Port = ctx.Cluster.Spec.ControlPlaneEndpoint.Port
-		ctx.Logger.Info("skipping control plane endpoint reconciliation",
-			"reason", "ControlPlaneEndpoint already set on Cluster",
-			"controlPlaneEndpoint", ctx.Cluster.Spec.ControlPlaneEndpoint.String())
-		return true, nil
-	}
-
-	if !ctx.VSphereCluster.Spec.ControlPlaneEndpoint.IsZero() {
-		ctx.Logger.Info("skipping control plane endpoint reconciliation",
-			"reason", "ControlPlaneEndpoint already set on VSphereCluster",
-			"controlPlaneEndpoint", ctx.VSphereCluster.Spec.ControlPlaneEndpoint.String())
-		return true, nil
-	}
-
-	// Get the CAPI Machine resources for the cluster.
-	machines, err := infrautilv1.GetMachinesInCluster(ctx, ctx.Client, ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
-	if err != nil {
-		return false, errors.Wrapf(err,
-			"failed to get Machinces for Cluster %s/%s",
-			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
-	}
-
-	// Iterate over the cluster's control plane CAPI machines.
-	for _, machine := range clusterutilv1.GetControlPlaneMachines(machines) {
-
-		// Only machines with bootstrap data will have an IP address.
-		if machine.Spec.Bootstrap.DataSecretName == nil {
-			ctx.Logger.V(4).Info(
-				"skipping machine while looking for IP address",
-				"machine-name", machine.Name,
-				"skip-reason", "nilBootstrapData")
-			continue
-		}
-
-		// Get the VSphereMachine for the CAPI Machine resource.
-		vsphereMachine, err := infrautilv1.GetVSphereMachine(ctx, ctx.Client, machine.Namespace, machine.Name)
-		if err != nil {
-			return false, errors.Wrapf(err,
-				"failed to get VSphereMachine for Machine %s/%s/%s",
-				machine.GroupVersionKind(),
-				machine.Namespace,
-				machine.Name)
-		}
-
-		// Get the VSphereMachine's preferred IP address.
-		ipAddr, err := infrautilv1.GetMachinePreferredIPAddress(vsphereMachine)
-		if err != nil {
-			if err == infrautilv1.ErrNoMachineIPAddr {
-				continue
-			}
-			return false, errors.Wrapf(err,
-				"failed to get preferred IP address for VSphereMachine %s %s/%s",
-				vsphereMachine.GroupVersionKind(),
-				vsphereMachine.Namespace,
-				vsphereMachine.Name)
-		}
-
-		// Set the ControlPlaneEndpoint so the CAPI controller can read the
-		// value into the analogous CAPI Cluster using an UnstructuredReader.
-		ctx.VSphereCluster.Spec.ControlPlaneEndpoint.Host = ipAddr
-		ctx.VSphereCluster.Spec.ControlPlaneEndpoint.Port = defaultAPIEndpointPort
-		ctx.Logger.Info(
-			"ControlPlaneEndpoin discovered via control plane machine",
-			"controlPlaneEndpoint", ctx.VSphereCluster.Spec.ControlPlaneEndpoint)
-		return true, nil
-	}
-
-	return false, errors.Errorf("unable to determine control plane endpoint for %s", ctx)
 }
 
 var (

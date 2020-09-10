@@ -33,29 +33,29 @@ import (
 )
 
 const (
-	clusterNameVar               = "${ CLUSTER_NAME }"
-	controlPlaneMachineCountVar  = "${ CONTROL_PLANE_MACHINE_COUNT }"
+	clusterNameVar               = "${CLUSTER_NAME}"
+	controlPlaneMachineCountVar  = "${CONTROL_PLANE_MACHINE_COUNT}"
 	defaultCloudProviderImage    = "gcr.io/cloud-provider-vsphere/cpi/release/manager:v1.2.1"
 	defaultClusterCIDR           = "192.168.0.0/16"
 	defaultDiskGiB               = 25
 	defaultMemoryMiB             = 8192
 	defaultNumCPUs               = 2
-	kubernetesVersionVar         = "${ KUBERNETES_VERSION }"
+	kubernetesVersionVar         = "${KUBERNETES_VERSION}"
 	machineDeploymentNameSuffix  = "-md-0"
-	namespaceVar                 = "${ NAMESPACE }"
-	vSphereDataCenterVar         = "${ VSPHERE_DATACENTER }"
-	vSphereDatastoreVar          = "${ VSPHERE_DATASTORE }"
-	vSphereFolderVar             = "${ VSPHERE_FOLDER }"
-	vSphereHaproxyTemplateVar    = "${ VSPHERE_HAPROXY_TEMPLATE }"
-	vSphereNetworkVar            = "${ VSPHERE_NETWORK }"
-	vSphereResourcePoolVar       = "${ VSPHERE_RESOURCE_POOL }"
-	vSphereServerVar             = "${ VSPHERE_SERVER }"
-	vSphereSSHAuthorizedKeysVar  = "${ VSPHERE_SSH_AUTHORIZED_KEY }"
-	vSphereTemplateVar           = "${ VSPHERE_TEMPLATE }"
-	workerMachineCountVar        = "${ WORKER_MACHINE_COUNT }"
-	controlPlaneEndpointVar      = "${ CONTROL_PLANE_ENDPOINT_IP }"
-	vSphereUsername              = "${ VSPHERE_USERNAME }"
-	vSpherePassword              = "${ VSPHERE_PASSWORD }" /* #nosec */
+	namespaceVar                 = "${NAMESPACE}"
+	vSphereDataCenterVar         = "${VSPHERE_DATACENTER}"
+	vSphereDatastoreVar          = "${VSPHERE_DATASTORE}"
+	vSphereFolderVar             = "${VSPHERE_FOLDER}"
+	vSphereHaproxyTemplateVar    = "${VSPHERE_HAPROXY_TEMPLATE}"
+	vSphereNetworkVar            = "${VSPHERE_NETWORK}"
+	vSphereResourcePoolVar       = "${VSPHERE_RESOURCE_POOL}"
+	vSphereServerVar             = "${VSPHERE_SERVER}"
+	vSphereSSHAuthorizedKeysVar  = "${VSPHERE_SSH_AUTHORIZED_KEY}"
+	vSphereTemplateVar           = "${VSPHERE_TEMPLATE}"
+	workerMachineCountVar        = "${WORKER_MACHINE_COUNT}"
+	controlPlaneEndpointVar      = "${CONTROL_PLANE_ENDPOINT_IP}"
+	vSphereUsername              = "${VSPHERE_USERNAME}"
+	vSpherePassword              = "${VSPHERE_PASSWORD}" /* #nosec */
 	clusterResourceSetNameSuffix = "-crs-0"
 )
 
@@ -70,19 +70,19 @@ var (
 	replacements = []replacement{
 		{
 			kind:      "KubeadmControlPlane",
-			name:      "${ CLUSTER_NAME }",
+			name:      "${CLUSTER_NAME}",
 			value:     controlPlaneMachineCountVar,
 			fieldPath: []string{"spec", "replicas"},
 		},
 		{
 			kind:      "MachineDeployment",
-			name:      "${ CLUSTER_NAME }-md-0",
+			name:      "${CLUSTER_NAME}-md-0",
 			value:     workerMachineCountVar,
 			fieldPath: []string{"spec", "replicas"},
 		},
 		{
 			kind:      "MachineDeployment",
-			name:      "${ CLUSTER_NAME }-md-0",
+			name:      "${CLUSTER_NAME}-md-0",
 			value:     map[string]interface{}{},
 			fieldPath: []string{"spec", "selector", "matchLabels"},
 		},

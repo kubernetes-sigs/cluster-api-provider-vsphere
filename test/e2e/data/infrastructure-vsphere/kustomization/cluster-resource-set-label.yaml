@@ -1,7 +1,7 @@
 apiVersion: cluster.x-k8s.io/v1alpha3
 kind: Cluster
 metadata:
-  name: '${ CLUSTER_NAME }'
-  namespace: '${ NAMESPACE }'
+  name: '${CLUSTER_NAME}'
+  namespace: '${NAMESPACE}'
   labels:
-    cni: "${ CLUSTER_NAME }-crs-0"
+    cni: "${CLUSTER_NAME}-crs-0"

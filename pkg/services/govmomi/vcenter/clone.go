@@ -208,7 +208,13 @@ func getDiskSpec(
 	}
 
 	disk := disks[0].(*types.VirtualDisk)
-	disk.CapacityInKB = int64(ctx.VSphereVM.Spec.DiskGiB) * 1024 * 1024
+	cloneCapacityKB := int64(ctx.VSphereVM.Spec.DiskGiB) * 1024 * 1024
+	if disk.CapacityInKB > cloneCapacityKB {
+		return nil, errors.Errorf(
+			"can't resize template disk down, initial capacity is larger: %dKiB > %dKiB",
+			disk.CapacityInKB, cloneCapacityKB)
+	}
+	disk.CapacityInKB = cloneCapacityKB
 
 	return &types.VirtualDeviceConfigSpec{
 		Operation: types.VirtualDeviceConfigSpecOperationEdit,

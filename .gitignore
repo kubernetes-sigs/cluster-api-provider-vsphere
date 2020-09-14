@@ -8,6 +8,7 @@
 # Generated files
 /cluster-api-provider-vsphere
 /examples/provider-components/provider-components*.yaml
+test/e2e/data/infrastructure-vsphere/cluster-template.yaml
 
 # env vars file used in getting-started.md and manifests generation
 envvars.txt

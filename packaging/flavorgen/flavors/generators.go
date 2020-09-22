@@ -361,7 +361,7 @@ func kubeVIPPod() string {
 			Containers: []v1.Container{
 				{
 					Name:  "kube-vip",
-					Image: "plndr/kube-vip:0.1.7",
+					Image: "plndr/kube-vip:0.1.8",
 					Args: []string{
 						"start",
 					},
@@ -397,6 +397,18 @@ func kubeVIPPod() string {
 							// this is hardcoded since we use eth0 as a network interface for all of our machines in this template
 							Name:  "vip_interface",
 							Value: "eth0",
+						},
+						{
+							Name:  "vip_leaseduration",
+							Value: "15",
+						},
+						{
+							Name:  "vip_renewdeadline",
+							Value: "10",
+						},
+						{
+							Name:  "vip_retryperiod",
+							Value: "2",
 						},
 					},
 				},

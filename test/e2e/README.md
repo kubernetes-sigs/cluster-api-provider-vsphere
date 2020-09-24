@@ -30,7 +30,6 @@ The first step to running the e2e tests is setting up the required environment v
 | `VSPHERE_RESOURCE_POOL`    | The unique name or inventory path of the resource pool in which VMs will be created                   | `my-resource-pool` or `/my-datacenter/host/Cluster-1/Resources/my-resource-pool` |
 | `VSPHERE_DATASTORE`        | The unique name or inventory path of the datastore in which VMs will be created                       | `my-datastore` or `/my-datacenter/datstore/my-datastore`                         |
 | `VSPHERE_NETWORK`          | The unique name or inventory path of the network to which VMs will be connected                       | `my-network` or `/my-datacenter/network/my-network`                              |
-| `VSPHERE_MACHINE_TEMPLATE` | The unique name or inventory path of the template from which VMs are cloned                           | `my-machine-template` or `/my-datacenter/vm/my-machine-template`                 |
 | `VSPHERE_HAPROXY_TEMPLATE` | The unique name or inventory path of the template from which the HAProxy load balancer VMs are cloned | `my-haproxy-template` or `/my-datacenter/vm/my-haproxy-template`                 |
 
 ### Running the e2e tests

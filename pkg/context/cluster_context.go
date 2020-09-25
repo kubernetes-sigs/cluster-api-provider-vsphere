@@ -20,10 +20,11 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	"sigs.k8s.io/cluster-api/util/patch"
-
 	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 // ClusterContext is a Go context used with a VSphereCluster.
@@ -42,5 +43,20 @@ func (c *ClusterContext) String() string {
 
 // Patch updates the object and its status on the API server.
 func (c *ClusterContext) Patch() error {
+	// always update the readyCondition.
+	// A step counter is added to represent progress during the provisioning process (instead we are hiding it
+	// after provisioning - e.g. when a CCM/CSI condition exists - or during the deletion process).
+	conditions.SetSummary(c.VSphereCluster,
+		conditions.WithConditions(
+			infrav1.LoadBalancerAvailableCondition,
+			infrav1.CCMAvailableCondition,
+			infrav1.CSIAvailableCondition,
+		),
+		conditions.WithStepCounterIf(c.VSphereCluster.ObjectMeta.DeletionTimestamp.IsZero()),
+		conditions.WithStepCounterIfOnly(
+			infrav1.LoadBalancerAvailableCondition,
+		),
+	)
+
 	return c.PatchHelper.Patch(c, c.VSphereCluster)
 }

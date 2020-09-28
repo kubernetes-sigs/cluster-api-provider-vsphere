@@ -61,3 +61,8 @@ out/
 
 .build
 .tiltbuild
+
+# Common editor / temporary files
+*~
+*.tmp
+.DS_Store

@@ -273,6 +273,10 @@ func (r machineReconciler) reconcileDeleteVMPre7(ctx *context.MachineContext) er
 		return nil
 	}
 
+	// VSphereMachine wraps a VMSphereVM, so we are mirroring status from the underlying VMSphereVM
+	// in order to provide evidences about machine deletion.
+	conditions.SetMirror(ctx.VSphereMachine, infrav1.VMProvisionedCondition, vm)
+
 	return nil
 }
 

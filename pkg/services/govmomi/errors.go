@@ -32,4 +32,3 @@ func (e errNotFound) Error() string {
 	}
 	return fmt.Sprintf("vm with bios uuid %s not found", e.uuid)
 }
-

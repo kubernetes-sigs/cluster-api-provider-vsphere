@@ -17,11 +17,11 @@ limitations under the License.
 package govmomi
 
 import (
-	"github.com/vmware/govmomi/find"
 	gonet "net"
 	"path"
 
 	"github.com/pkg/errors"
+	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/property"
 	"github.com/vmware/govmomi/vim25/mo"
@@ -85,7 +85,7 @@ func findVM(ctx *context.VMContext) (types.ManagedObjectReference, error) {
 		ctx.Logger.Info("using inventory path to find vm", "path", inventoryPath)
 		vm, err := ctx.Session.Finder.VirtualMachine(ctx, inventoryPath)
 		if err != nil {
-			if errors.As(err,find.NotFoundError{}) {
+			if errors.As(err, find.NotFoundError{}) {
 				return types.ManagedObjectReference{}, errNotFound{byInventoryPath: inventoryPath}
 			}
 			return types.ManagedObjectReference{}, err

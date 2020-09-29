@@ -19,6 +19,7 @@ package govmomi
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/vmware/govmomi/find"
 
 	"github.com/pkg/errors"
 
@@ -71,15 +72,17 @@ func (vms *VMService) ReconcileVM(ctx *context.VMContext) (vm infrav1.VirtualMac
 	// Before going further, we need the VM's managed object reference.
 	vmRef, err := findVM(ctx)
 	if err != nil {
-		if !isNotFound(err) {
+		if !errors.As(err,find.NotFoundError{}) {
 			return vm, err
 		}
 
 		// If the machine was not found by BIOS UUID it means that it got deleted from vcenter directly
-		if wasNotFoundByBIOSUUID(err) {
-			ctx.VSphereVM.Status.FailureReason = capierrors.MachineStatusErrorPtr(capierrors.UpdateMachineError)
-			ctx.VSphereVM.Status.FailureMessage = pointer.StringPtr(fmt.Sprintf("Unable to find VM by BIOS UUID %s. The vm was removed from infra", ctx.VSphereVM.Spec.BiosUUID))
-			return vm, err
+		if errors.As(err,find.NotFoundError{}) {
+			if err.(errNotFound).uuid != "" && err.(errNotFound).byInventoryPath == "" {
+				ctx.VSphereVM.Status.FailureReason = capierrors.MachineStatusErrorPtr(capierrors.UpdateMachineError)
+				ctx.VSphereVM.Status.FailureMessage = pointer.StringPtr(fmt.Sprintf("Unable to find VM by BIOS UUID %s. The vm was removed from infra", ctx.VSphereVM.Spec.BiosUUID))
+				return vm, err
+			}
 		}
 
 		// Otherwise, this is a new machine and the  the VM should be created.
@@ -159,7 +162,7 @@ func (vms *VMService) DestroyVM(ctx *context.VMContext) (infrav1.VirtualMachine,
 	if err != nil {
 		// If the VM's MoRef could not be found then the VM no longer exists. This
 		// is the desired state.
-		if isNotFound(err) || isFolderNotFound(err) {
+		if errors.As(err,find.NotFoundError{}) || errors.As(err,find.NotFoundError{}) {
 			vm.State = infrav1.VirtualMachineStateNotFound
 			return vm, nil
 		}

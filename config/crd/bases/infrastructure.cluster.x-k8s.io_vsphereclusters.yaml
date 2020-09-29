@@ -257,7 +257,25 @@ spec:
     storage: false
     subresources:
       status: {}
-  - name: v1alpha3
+  - additionalPrinterColumns:
+    - description: Cluster to which this VSphereCluster belongs
+      jsonPath: .metadata.labels.cluster\.x-k8s\.io/cluster-name
+      name: Cluster
+      type: string
+    - description: Cluster infrastructure is ready for VSphereMachine
+      jsonPath: .status.ready
+      name: Ready
+      type: string
+    - description: Server is the address of the vSphere endpoint.
+      jsonPath: .spec.server
+      name: Server
+      type: string
+    - description: API Endpoint
+      jsonPath: .status.controlPlaneEndpoint[0]
+      name: ControlPlaneEndpoint
+      priority: 1
+      type: string
+    name: v1alpha3
     schema:
       openAPIV3Schema:
         description: VSphereCluster is the Schema for the vsphereclusters API

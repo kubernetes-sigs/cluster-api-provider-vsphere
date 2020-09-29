@@ -72,12 +72,12 @@ func (vms *VMService) ReconcileVM(ctx *context.VMContext) (vm infrav1.VirtualMac
 	// Before going further, we need the VM's managed object reference.
 	vmRef, err := findVM(ctx)
 	if err != nil {
-		if !errors.As(err, find.NotFoundError{}) {
+		if !errors.As(err, errNotFound{}) {
 			return vm, err
 		}
 
 		// If the machine was not found by BIOS UUID it means that it got deleted from vcenter directly
-		if errors.As(err, find.NotFoundError{}) {
+		if !errors.As(err, find.NotFoundError{}) {
 			ctx.VSphereVM.Status.FailureReason = capierrors.MachineStatusErrorPtr(capierrors.UpdateMachineError)
 			ctx.VSphereVM.Status.FailureMessage = pointer.StringPtr(fmt.Sprintf("Unable to find VM by BIOS UUID %s. The vm was removed from infra", ctx.VSphereVM.Spec.BiosUUID))
 			return vm, err

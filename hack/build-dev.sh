@@ -32,21 +32,12 @@ export GOPROXY="${GOPROXY:-https://proxy.golang.org}"
 
 CLUSTERCTL_OUT="${CLUSTERCTL_OUT:-$(pwd)/clusterctl}"
 CAPV_MANAGER_IMAGE="${CAPV_MANAGER_IMAGE:-gcr.io/cluster-api-provider-vsphere/dev/v1alpha3/capv-manager:latest}"
-CAPV_MANIFEST_IMAGE="${CAPV_MANIFEST_IMAGE:-gcr.io/cluster-api-provider-vsphere/dev/v1alpha3/capv-manifests:latest}"
 CAPI_MANAGER_IMAGE="${CAPI_MANAGER_IMAGE:-gcr.io/cluster-api-provider-vsphere/dev/v1alpha3/capi-manager:latest}"
 CABPK_MANAGER_IMAGE="${CABPK_MANAGER_IMAGE:-gcr.io/cluster-api-provider-vsphere/dev/v1alpha3/cabpk-manager:latest}"
 
 # Build the CAPV manager image.
 docker build -t "${CAPV_MANAGER_IMAGE}" .
 docker push "${CAPV_MANAGER_IMAGE}"
-
-# Build the CAPV manifest image.
-docker build \
-  --build-arg "CAPV_MANAGER_IMAGE=${CAPV_MANAGER_IMAGE}" \
-  -t "${CAPV_MANIFEST_IMAGE}" \
-  -f hack/tools/generate-yaml/Dockerfile \
-  .
-docker push "${CAPV_MANIFEST_IMAGE}"
 
 # Create a temporary directory into which the CAPI and CABPK repos can
 # be cloned.
@@ -85,5 +76,4 @@ clusterctl     ${CLUSTERCTL_OUT}
 capi_manager   ${CAPI_MANAGER_IMAGE}
 cabpk_manager  ${CABPK_MANAGER_IMAGE}
 capv_manager   ${CAPV_MANAGER_IMAGE}
-capv_manifests ${CAPV_MANIFEST_IMAGE}
 EOF

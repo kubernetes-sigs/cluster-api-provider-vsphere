@@ -47,11 +47,11 @@ func createStorageConfig() *infrav1.CPIStorageConfig {
 func MultiNodeTemplateWithHAProxy() []runtime.Object {
 	lb := newHAProxyLoadBalancer()
 	vsphereCluster := newVSphereCluster(&lb)
-	machineTemplate := newVSphereMachineTemplate()
+	machineTemplate := newVSphereLinuxMachineTemplate()
 	controlPlane := newKubeadmControlplane(444, machineTemplate, []bootstrapv1.File{})
-	kubeadmJoinTemplate := newKubeadmConfigTemplate()
+	kubeadmJoinTemplate := newLinuxKubeadmConfigTemplate()
 	cluster := newCluster(vsphereCluster, &controlPlane)
-	machineDeployment := newMachineDeployment(cluster, machineTemplate, kubeadmJoinTemplate)
+	machineDeployment := newLinuxMachineDeployment(cluster, machineTemplate, kubeadmJoinTemplate)
 	return []runtime.Object{
 		&cluster,
 		&lb,
@@ -65,11 +65,11 @@ func MultiNodeTemplateWithHAProxy() []runtime.Object {
 
 func MultiNodeTemplateWithKubeVIP() []runtime.Object {
 	vsphereCluster := newVSphereCluster(nil)
-	machineTemplate := newVSphereMachineTemplate()
+	machineTemplate := newVSphereLinuxMachineTemplate()
 	controlPlane := newKubeadmControlplane(444, machineTemplate, newKubeVIPFiles())
-	kubeadmJoinTemplate := newKubeadmConfigTemplate()
+	kubeadmJoinTemplate := newLinuxKubeadmConfigTemplate()
 	cluster := newCluster(vsphereCluster, &controlPlane)
-	machineDeployment := newMachineDeployment(cluster, machineTemplate, kubeadmJoinTemplate)
+	machineDeployment := newLinuxMachineDeployment(cluster, machineTemplate, kubeadmJoinTemplate)
 	clusterResourceSet := newClusterResourceSet(cluster)
 	crsResources := createCrsResourceObjects(&clusterResourceSet, vsphereCluster, cluster)
 
@@ -83,6 +83,39 @@ func MultiNodeTemplateWithKubeVIP() []runtime.Object {
 		&controlPlane,
 		&kubeadmJoinTemplate,
 		&machineDeployment,
+		&clusterResourceSet,
+	}
+	return append(MultiNodeTemplate, crsResources...)
+}
+
+// MultiNodeTemplateWithWindows generates templates for a hybrid cluster with Linux and Windows worker nodes
+func MultiNodeTemplateWithWindows() []runtime.Object {
+	vsphereCluster := newVSphereCluster(nil)
+	linuxMachineTemplate := newVSphereLinuxMachineTemplate()
+	controlPlane := newKubeadmControlplane(445, linuxMachineTemplate, newKubeVIPFiles())
+	linuxKubeadmJoinTemplate := newLinuxKubeadmConfigTemplate()
+	cluster := newCluster(vsphereCluster, &controlPlane)
+	linuxMachineDeployment := newLinuxMachineDeployment(cluster, linuxMachineTemplate, linuxKubeadmJoinTemplate)
+	windowsMachineTemplate := newVSphereWindowsMachineTemplate()
+	windowsKubeadmJoinTemplate := newWindowsKubeadmConfigTemplate()
+	windowsMachineDeployment := newWindowsMachineDeployment(cluster, windowsMachineTemplate, windowsKubeadmJoinTemplate)
+
+	clusterResourceSet := newClusterResourceSet(cluster)
+	crsResources := createCrsResourceObjects(&clusterResourceSet, vsphereCluster, cluster)
+
+	// removing Storage config so the cluster controller is not going not install CSI (it is installed by the clusterResourceSet)
+	vsphereCluster.Spec.CloudProviderConfiguration.ProviderConfig.Storage = nil
+
+	MultiNodeTemplate := []runtime.Object{
+		&cluster,
+		&vsphereCluster,
+		&linuxMachineTemplate,
+		&controlPlane,
+		&linuxKubeadmJoinTemplate,
+		&linuxMachineDeployment,
+		&windowsMachineDeployment,
+		&windowsMachineTemplate,
+		&windowsKubeadmJoinTemplate,
 		&clusterResourceSet,
 	}
 	return append(MultiNodeTemplate, crsResources...)
@@ -165,11 +198,11 @@ func createCrsResourceObjects(crs *addonsv1alpha3.ClusterResourceSet, vsphereClu
 
 func MultiNodeTemplateWithExternalLoadBalancer() []runtime.Object {
 	vsphereCluster := newVSphereCluster(nil)
-	machineTemplate := newVSphereMachineTemplate()
+	machineTemplate := newVSphereLinuxMachineTemplate()
 	controlPlane := newKubeadmControlplane(444, machineTemplate, nil)
-	kubeadmJoinTemplate := newKubeadmConfigTemplate()
+	kubeadmJoinTemplate := newLinuxKubeadmConfigTemplate()
 	cluster := newCluster(vsphereCluster, &controlPlane)
-	machineDeployment := newMachineDeployment(cluster, machineTemplate, kubeadmJoinTemplate)
+	machineDeployment := newLinuxMachineDeployment(cluster, machineTemplate, kubeadmJoinTemplate)
 	return []runtime.Object{
 		&cluster,
 		&vsphereCluster,

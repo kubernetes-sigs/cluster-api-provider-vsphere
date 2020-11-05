@@ -391,10 +391,21 @@ func (r machineReconciler) reconcileNormal(ctx *context.MachineContext) (reconci
 
 func (r machineReconciler) reconcileNormalPre7(ctx *context.MachineContext, vsphereVM *infrav1.VSphereVM) (runtime.Object, error) {
 	// Create or update the VSphereVM resource.
+	vsphereVMName := ctx.VSphereMachine.Name
+	// Windows hostnames must be < 16 characters in length
+	if ctx.VSphereMachine.Spec.OS == infrav1.Windows && len(vsphereVMName) > 15 {
+		var err error
+		vsphereVMName, err = infrautilv1.Base36TruncatedHash(vsphereVMName, 15)
+		if err != nil {
+			ctx.Logger.Error(err, "unable to generate hostname for vSphereVM", "vm", ctx.VSphereMachine.Name)
+			return nil, err
+		}
+	}
+
 	vm := &infrav1.VSphereVM{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ctx.VSphereMachine.Namespace,
-			Name:      ctx.Machine.Name,
+			Name:      vsphereVMName,
 		},
 	}
 	mutateFn := func() (err error) {

@@ -854,6 +854,7 @@ func Convert_v1alpha2_VSphereClusterSpec_To_v1alpha3_VSphereClusterSpec(in *VSph
 func autoConvert_v1alpha3_VSphereClusterSpec_To_v1alpha2_VSphereClusterSpec(in *v1alpha3.VSphereClusterSpec, out *VSphereClusterSpec, s conversion.Scope) error {
 	out.Server = in.Server
 	out.Insecure = (*bool)(unsafe.Pointer(in.Insecure))
+	// WARNING: in.Thumbprint requires manual conversion: does not exist in peer-type
 	if err := Convert_v1alpha3_CPIConfig_To_v1alpha2_CPIConfig(&in.CloudProviderConfiguration, &out.CloudProviderConfiguration, s); err != nil {
 		return err
 	}

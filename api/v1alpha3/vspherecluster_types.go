@@ -39,6 +39,11 @@ type VSphereClusterSpec struct {
 	// +optional
 	Insecure *bool `json:"insecure,omitempty"`
 
+	// Thumbprint is the colon-separated SHA-1 checksum of the given vCenter server's host certificate
+	// When provided, Insecure should not be set to true
+	// +optional
+	Thumbprint string `json:"thumbprint,omitempty"`
+
 	// CloudProviderConfiguration holds the cluster-wide configuration for the
 	// vSphere cloud provider.
 	CloudProviderConfiguration CPIConfig `json:"cloudProviderConfiguration,omitempty"`

@@ -58,6 +58,9 @@ func (src *VSphereCluster) ConvertTo(dstRaw conversion.Hub) error { // nolint
 	if restored.Spec.ControlPlaneEndpoint.Port != 0 {
 		dst.Spec.ControlPlaneEndpoint.Port = restored.Spec.ControlPlaneEndpoint.Port
 	}
+	if restored.Spec.Thumbprint != "" {
+		dst.Spec.Thumbprint = restored.Spec.Thumbprint
+	}
 
 	dst.Status.Conditions = restored.Status.Conditions
 

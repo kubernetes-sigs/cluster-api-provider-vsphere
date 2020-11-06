@@ -25,6 +25,8 @@ import (
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
+	"github.com/vmware/govmomi/session"
+	"github.com/vmware/govmomi/vim25"
 	"github.com/vmware/govmomi/vim25/soap"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
@@ -44,7 +46,7 @@ type Session struct {
 // already exist.
 func GetOrCreate(
 	ctx context.Context,
-	server, datacenter, username, password string) (*Session, error) {
+	server, datacenter, username, password string, thumbprint string) (*Session, error) {
 
 	sessionMU.Lock()
 	defer sessionMU.Unlock()
@@ -65,12 +67,9 @@ func GetOrCreate(
 	}
 
 	soapURL.User = url.UserPassword(username, password)
-
-	// Temporarily setting the insecure flag True
-	// TODO(ssurana): handle the certs better
-	client, err := govmomi.NewClient(ctx, soapURL, true)
+	client, err := newClient(ctx, soapURL, thumbprint)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error setting up new vSphere SOAP client")
+		return nil, err
 	}
 
 	session := Session{Client: client}
@@ -94,6 +93,28 @@ func GetOrCreate(
 	//ctx.Logger.V(2).Info("cached vSphere client session", "server", server, "datacenter", datacenter)
 
 	return &session, nil
+}
+
+func newClient(ctx context.Context, url *url.URL, thumprint string) (*govmomi.Client, error) {
+	insecure := thumprint == ""
+	soapClient := soap.NewClient(url, insecure)
+	if !insecure {
+		soapClient.SetThumbprint(url.Host, thumprint)
+	}
+
+	vimClient, err := vim25.NewClient(ctx, soapClient)
+	if err != nil {
+		return nil, err
+	}
+	c := &govmomi.Client{
+		Client:         vimClient,
+		SessionManager: session.NewManager(vimClient),
+	}
+	if err := c.Login(ctx, url.User); err != nil {
+		return nil, err
+	}
+
+	return c, nil
 }
 
 // FindByBIOSUUID finds an object by its BIOS UUID.

@@ -389,6 +389,7 @@ func windowsNodeRegistrationOptions() kubeadmv1beta1.NodeRegistrationOptions {
 	return kubeadmv1beta1.NodeRegistrationOptions{
 		Name:             "{{ ds.meta_data.hostname }}",
 		KubeletExtraArgs: defaultExtraArgs(),
+		Taints: []v1.Taint{{Key: "windows", Value: "2019", Effect: v1.TaintEffectNoSchedule}},
 	}
 }
 

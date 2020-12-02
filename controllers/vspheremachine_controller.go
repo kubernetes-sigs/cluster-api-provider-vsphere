@@ -448,6 +448,9 @@ func (r machineReconciler) reconcileNormalPre7(ctx *context.MachineContext, vsph
 				vm.Spec.Server = ctx.VSphereCluster.Spec.Server
 			}
 		}
+		if vm.Spec.Thumbprint == "" {
+			vm.Spec.Thumbprint = ctx.VSphereCluster.Spec.Thumbprint
+		}
 		if vm.Spec.Datacenter == "" {
 			vm.Spec.Datacenter = vsphereCloudConfig.Datacenter
 		}

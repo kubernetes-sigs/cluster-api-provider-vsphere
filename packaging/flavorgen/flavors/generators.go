@@ -44,6 +44,7 @@ const (
 	machineDeploymentNameSuffix  = "-md-0"
 	namespaceVar                 = "${NAMESPACE}"
 	vSphereDataCenterVar         = "${VSPHERE_DATACENTER}"
+	vSphereThumbprint            = "${VSPHERE_TLS_THUMBPRINT}"
 	vSphereDatastoreVar          = "${VSPHERE_DATASTORE}"
 	vSphereFolderVar             = "${VSPHERE_FOLDER}"
 	vSphereHaproxyTemplateVar    = "${VSPHERE_HAPROXY_TEMPLATE}"
@@ -121,15 +122,19 @@ func newVSphereCluster(lb *infrav1.HAProxyLoadBalancer) infrav1.VSphereCluster {
 			Namespace: namespaceVar,
 		},
 		Spec: infrav1.VSphereClusterSpec{
-			Server: vSphereServerVar,
+			Server:     vSphereServerVar,
+			Thumbprint: vSphereThumbprint,
 			CloudProviderConfiguration: infrav1.CPIConfig{
 				Global: infrav1.CPIGlobalConfig{
 					SecretName:      "cloud-provider-vsphere-credentials",
 					SecretNamespace: metav1.NamespaceSystem,
-					Insecure:        true,
+					Thumbprint:      vSphereThumbprint,
 				},
 				VCenter: map[string]infrav1.CPIVCenterConfig{
-					vSphereServerVar: {Datacenters: vSphereDataCenterVar},
+					vSphereServerVar: {
+						Datacenters: vSphereDataCenterVar,
+						Thumbprint:  vSphereThumbprint,
+					},
 				},
 				Network: infrav1.CPINetworkConfig{
 					Name: vSphereNetworkVar,
@@ -254,6 +259,7 @@ func defaultVirtualMachineCloneSpec() infrav1.VirtualMachineCloneSpec {
 		MemoryMiB:     defaultMemoryMiB,
 		Template:      vSphereTemplateVar,
 		Server:        vSphereServerVar,
+		Thumbprint:    vSphereThumbprint,
 		ResourcePool:  vSphereResourcePoolVar,
 		Datastore:     vSphereDatastoreVar,
 		Folder:        vSphereFolderVar,

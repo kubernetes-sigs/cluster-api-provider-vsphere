@@ -144,7 +144,7 @@ func initSimulator(t *testing.T) (*simulator.Model, *session.Session, *simulator
 	authSession, err := session.GetOrCreate(
 		ctx.TODO(),
 		server.URL.Host, "",
-		server.URL.User.Username(), pass)
+		server.URL.User.Username(), pass, "")
 	if err != nil {
 		t.Fatal(err)
 	}

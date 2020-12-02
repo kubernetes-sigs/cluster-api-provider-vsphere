@@ -519,6 +519,13 @@ spec:
                   used to clone the virtual machine.
                 minLength: 1
                 type: string
+              thumbprint:
+                description: Thumbprint is the colon-separated SHA-1 checksum of the
+                  given vCenter server's host certificate When this is set to empty,
+                  this VirtualMachine would be created without TLS certificate validation
+                  of the communication between Cluster API Provider vSphere and the
+                  VMware vCenter server.
+                type: string
             required:
             - network
             - template

@@ -78,6 +78,13 @@ type VirtualMachineCloneSpec struct {
 	// +optional
 	Server string `json:"server,omitempty"`
 
+	// Thumbprint is the colon-separated SHA-1 checksum of the given vCenter server's host certificate
+	// When this is set to empty, this VirtualMachine would be created
+	// without TLS certificate validation of the communication between Cluster API Provider vSphere
+	// and the VMware vCenter server.
+	// +optional
+	Thumbprint string `json:"thumbprint,omitempty"`
+
 	// Datacenter is the name or inventory path of the datacenter in which the
 	// virtual machine is created/located.
 	// +optional

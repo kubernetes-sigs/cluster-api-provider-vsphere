@@ -527,6 +527,11 @@ spec:
               server:
                 description: Server is the address of the vSphere endpoint.
                 type: string
+              thumbprint:
+                description: Thumbprint is the colon-separated SHA-1 checksum of the
+                  given vCenter server's host certificate When provided, Insecure
+                  should not be set to true
+                type: string
             type: object
           status:
             description: VSphereClusterStatus defines the observed state of VSphereClusterSpec

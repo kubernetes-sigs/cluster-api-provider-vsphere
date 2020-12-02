@@ -25,6 +25,18 @@ import (
 // Config is data used with a VM's guestInfo RPC interface.
 type Config []types.BaseOptionValue
 
+// SetCustomVMXKeys sets the custom VMX keys as
+// OptionValues in extraConfig
+func (e *Config) SetCustomVMXKeys(customKeys map[string]string) error {
+	for k, v := range customKeys {
+		*e = append(*e, &types.OptionValue{
+			Key:   k,
+			Value: v,
+		})
+	}
+	return nil
+}
+
 // SetCloudInitUserData sets the cloud init user data at the key
 // "guestinfo.userdata" as a base64-encoded string.
 func (e *Config) SetCloudInitUserData(data []byte) error {

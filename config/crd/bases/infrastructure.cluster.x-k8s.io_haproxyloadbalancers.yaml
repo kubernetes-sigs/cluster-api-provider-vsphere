@@ -67,6 +67,12 @@ spec:
                       disks of linked clones. Defaults to LinkedClone, but fails gracefully
                       to FullClone if the source of the clone operation has no snapshots.
                     type: string
+                  customVMXKeys:
+                    additionalProperties:
+                      type: string
+                    description: CustomVMXKeys is a dictionary of advanced VMX options
+                      that can be set on VM Defaults to empty map
+                    type: object
                   datacenter:
                     description: Datacenter is the name or inventory path of the datacenter
                       in which the virtual machine is created/located.

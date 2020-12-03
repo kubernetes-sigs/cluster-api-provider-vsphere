@@ -557,10 +557,6 @@ spec:
                           virtual machine is cloned.
                         format: int32
                         type: integer
-                      os:
-                        description: OS is the Operating System of the virtual machine
-                          Defaults to Linux
-                        type: string
                       providerID:
                         description: ProviderID is the virtual machine's BIOS UUID
                           formated as vsphere://12345678-1234-1234-1234-123456789abc

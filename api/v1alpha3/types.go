@@ -49,17 +49,6 @@ const (
 	LinkedClone CloneMode = "linkedClone"
 )
 
-// OS is the type of Operating System the virtual machine uses
-type OS string
-
-const (
-	// Linux indicates the VM uses a Linux Operating System
-	Linux OS = "Linux"
-
-	// Windows indicates the VM uses Windows Server 2019 as the OS
-	Windows OS = "Windows"
-)
-
 // VirtualMachineCloneSpec is information used to clone a virtual machine.
 type VirtualMachineCloneSpec struct {
 	// Template is the name or inventory path of the template used to clone
@@ -149,10 +138,6 @@ type VirtualMachineCloneSpec struct {
 	// Defaults to empty map
 	// +optional
 	CustomVMXKeys map[string]string `json:"customVMXKeys,omitempty"`
-	// OS is the Operating System of the virtual machine
-	// Defaults to Linux
-	// +optional
-	OS OS `json:"os,omitempty"`
 }
 
 // VSphereMachineTemplateResource describes the data needed to create a VSphereMachine from a template

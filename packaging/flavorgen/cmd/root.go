@@ -22,6 +22,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors"
+	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/util"
 )
 
 const flavorFlag = "flavor"
@@ -52,11 +53,11 @@ func RunRoot(command *cobra.Command) error {
 	}
 	switch flavor {
 	case "multi-host":
-		flavors.PrintObjects(flavors.MultiNodeTemplateWithHAProxy())
+		util.PrintObjects(flavors.MultiNodeTemplateWithHAProxy())
 	case "vip":
-		flavors.PrintObjects(flavors.MultiNodeTemplateWithKubeVIP())
+		util.PrintObjects(flavors.MultiNodeTemplateWithKubeVIP())
 	case "external-loadbalancer":
-		flavors.PrintObjects(flavors.MultiNodeTemplateWithExternalLoadBalancer())
+		util.PrintObjects(flavors.MultiNodeTemplateWithExternalLoadBalancer())
 	default:
 		return errors.Errorf("invalid flavor")
 	}

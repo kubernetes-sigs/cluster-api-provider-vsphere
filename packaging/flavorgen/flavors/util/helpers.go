@@ -14,17 +14,70 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package flavors
+package util
 
 import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/env"
 	"sigs.k8s.io/yaml"
 )
+
+type Replacement struct {
+	Kind      string
+	Name      string
+	Value     interface{}
+	FieldPath []string
+}
+
+var (
+	replacements = []Replacement{
+		{
+			Kind:      "KubeadmControlPlane",
+			Name:      "${CLUSTER_NAME}",
+			Value:     env.ControlPlaneMachineCountVar,
+			FieldPath: []string{"spec", "replicas"},
+		},
+		{
+			Kind:      "MachineDeployment",
+			Name:      "${CLUSTER_NAME}-md-0",
+			Value:     env.WorkerMachineCountVar,
+			FieldPath: []string{"spec", "replicas"},
+		},
+		{
+			Kind:      "MachineDeployment",
+			Name:      "${CLUSTER_NAME}-md-0",
+			Value:     map[string]interface{}{},
+			FieldPath: []string{"spec", "selector", "matchLabels"},
+		},
+	}
+
+	stringVars = []string{
+		regexVar(env.ClusterNameVar),
+		regexVar(env.ClusterNameVar + env.MachineDeploymentNameSuffix),
+		regexVar(env.NamespaceVar),
+		regexVar(env.KubernetesVersionVar),
+		regexVar(env.VSphereFolderVar),
+		regexVar(env.VSphereHaproxyTemplateVar),
+		regexVar(env.VSphereResourcePoolVar),
+		regexVar(env.VSphereSSHAuthorizedKeysVar),
+		regexVar(env.VSphereDataCenterVar),
+		regexVar(env.VSphereDatastoreVar),
+		regexVar(env.VSphereNetworkVar),
+		regexVar(env.VSphereServerVar),
+		regexVar(env.VSphereTemplateVar),
+		regexVar(env.VSphereHaproxyTemplateVar),
+	}
+)
+
+func regexVar(str string) string {
+	return "((?m:\\" + str + "$))"
+}
 
 func isZeroValue(v reflect.Value) bool {
 	switch v.Kind() {
@@ -65,7 +118,7 @@ func deleteZeroValues(o map[string]interface{}) map[string]interface{} {
 	return o
 }
 
-func generateObjectYAML(obj runtime.Object, replacements []replacement) string {
+func GenerateObjectYAML(obj runtime.Object, replacements []Replacement) string {
 
 	bytes, err := yaml.Marshal(obj)
 	if err != nil {
@@ -84,8 +137,8 @@ func generateObjectYAML(obj runtime.Object, replacements []replacement) string {
 
 	for _, v := range replacements {
 		v := v
-		if v.name == data.GetName() && v.kind == data.GetKind() {
-			if err := unstructured.SetNestedField(data.Object, v.value, v.fieldPath...); err != nil {
+		if v.Name == data.GetName() && v.Kind == data.GetKind() {
+			if err := unstructured.SetNestedField(data.Object, v.Value, v.FieldPath...); err != nil {
 				panic(err)
 			}
 		}
@@ -110,13 +163,24 @@ func generateObjectYAML(obj runtime.Object, replacements []replacement) string {
 	return str
 }
 
+func GenerateManifestYaml(objs []runtime.Object) string {
+	var sb strings.Builder
+
+	for _, o := range objs {
+		sb.WriteString("---\n")
+		sb.WriteString(GenerateObjectYAML(o, replacements))
+	}
+
+	return sb.String()
+}
+
 func PrintObjects(objs []runtime.Object) {
 	for _, o := range objs {
 		o := o
-		fmt.Printf("---\n%s", generateObjectYAML(o, replacements))
+		fmt.Printf("---\n%s", GenerateObjectYAML(o, replacements))
 	}
 }
 
-func typeToKind(i interface{}) string {
+func TypeToKind(i interface{}) string {
 	return reflect.ValueOf(i).Elem().Type().Name()
 }

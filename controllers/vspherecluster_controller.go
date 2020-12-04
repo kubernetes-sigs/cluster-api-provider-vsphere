@@ -55,6 +55,9 @@ var (
 	clusterControlledType     = &infrav1.VSphereCluster{}
 	clusterControlledTypeName = reflect.TypeOf(clusterControlledType).Elem().Name()
 	clusterControlledTypeGVK  = infrav1.GroupVersion.WithKind(clusterControlledTypeName)
+	k8sVersionToCPIVersion = map[string]string{
+		"v1.18.6":"gcr.io/cloud-provider-vsphere/cpi/release/manager:v1.2.1",
+	}
 )
 
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;patch
@@ -557,7 +560,10 @@ func (r clusterReconciler) reconcileCloudProvider(ctx *context.ClusterContext) e
 	}
 
 	if cloudproviderConfig.ControllerImage == "" {
-		cloudproviderConfig.ControllerImage = cloudprovider.DefaultCPIControllerImage
+		// get k8s version info
+		k8sVersion := ctx.Cluster.ObjectMeta.ResourceVersion
+		//deploy the right CPI version
+		cloudproviderConfig.ControllerImage = k8sVersionToCPIVersion[k8sVersion]
 	}
 
 	ctx.VSphereCluster.Spec.CloudProviderConfiguration.ProviderConfig.Cloud = cloudproviderConfig

@@ -54,6 +54,8 @@ type CPIConfig struct {
 	// CPIProviderConfig contains extra information used to configure the
 	// vSphere cloud provider.
 	ProviderConfig CPIProviderConfig `json:"providerConfig,omitempty"`
+
+	// Maybe add a k8s version to pass down the info to VSphere Cluster
 }
 
 // CPIProviderConfig defines any extra information used to configure

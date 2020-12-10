@@ -26,6 +26,7 @@ limitations under the License.
 package v1alpha3
 
 // CPIConfig is the vSphere cloud provider's configuration.
+// DEPRECATED: will be removed in v1alpha4
 type CPIConfig struct {
 	// Global is the vSphere cloud provider's global configuration.
 	// +optional

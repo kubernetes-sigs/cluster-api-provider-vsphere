@@ -9,3 +9,6 @@ approvers:
 reviewers:
   - cluster-api-vsphere-maintainers
   - cluster-api-maintainers
+
+emeritus_maintainers:
+  - ncdc

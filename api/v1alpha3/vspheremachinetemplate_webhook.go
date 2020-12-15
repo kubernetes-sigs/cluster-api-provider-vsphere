@@ -53,6 +53,10 @@ func (r *VSphereMachineTemplate) ValidateCreate() error {
 			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "template", "spec", "network", "devices", "ipAddrs"), "cannot be set in templates"))
 		}
 	}
+
+	if spec.Datastore != "" && spec.StoragePolicyName != "" {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "Datastore"), spec.Datastore, "cannot be set when spec.StoragePolicyName is also set"))
+	}
 	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
 

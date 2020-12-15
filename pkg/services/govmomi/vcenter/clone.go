@@ -163,7 +163,6 @@ func Clone(ctx *context.VMContext, bootstrapData []byte) error {
 			MemoryMB:          memMiB,
 		},
 		Location: types.VirtualMachineRelocateSpec{
-			//	Datastore:    types.NewReference(datastore.Reference()),
 			DiskMoveType: string(diskMoveType),
 			Folder:       types.NewReference(folder.Reference()),
 			Pool:         types.NewReference(pool.Reference()),
@@ -202,6 +201,7 @@ func Clone(ctx *context.VMContext, bootstrapData []byte) error {
 	if err != nil {
 		return errors.Wrapf(err, "error trigging clone op for machine %s", ctx)
 	}
+
 	ctx.VSphereVM.Status.TaskRef = task.Reference().Value
 
 	// patch the vsphereVM early to ensure that the task is

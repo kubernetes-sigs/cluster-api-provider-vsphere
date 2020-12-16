@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/cloudprovider"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 	infrautilv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
@@ -251,6 +252,13 @@ func (r clusterReconciler) reconcileNormal(ctx *context.ClusterContext) (reconci
 	// If the VSphereCluster doesn't have our finalizer, add it.
 	ctrlutil.AddFinalizer(ctx.VSphereCluster, infrav1.ClusterFinalizer)
 
+	if err := r.reconcileVCenterConnectivity(ctx); err != nil {
+		conditions.MarkFalse(ctx.VSphereCluster, infrav1.VCenterAvailableCondition, infrav1.VCenterUnreachableReason, clusterv1.ConditionSeverityError, err.Error())
+		return reconcile.Result{}, errors.Wrapf(err,
+			"unexpected error while probing vcenter for %s", ctx)
+	}
+	conditions.MarkTrue(ctx.VSphereCluster, infrav1.VCenterAvailableCondition)
+
 	// Reconcile the VSphereCluster's load balancer.
 	if ok, err := r.reconcileLoadBalancer(ctx); !ok {
 		if err != nil {
@@ -317,6 +325,12 @@ func (r clusterReconciler) reconcileNormal(ctx *context.ClusterContext) (reconci
 	conditions.MarkTrue(ctx.VSphereCluster, infrav1.CSIAvailableCondition)
 
 	return reconcile.Result{}, nil
+}
+
+func (r clusterReconciler) reconcileVCenterConnectivity(ctx *context.ClusterContext) error {
+	_, err := session.GetOrCreate(ctx, ctx.VSphereCluster.Spec.Server,
+		ctx.VSphereCluster.Spec.CloudProviderConfiguration.Workspace.Datacenter, ctx.Username, ctx.Password, ctx.VSphereCluster.Spec.Thumbprint)
+	return err
 }
 
 func (r clusterReconciler) reconcileLoadBalancer(ctx *context.ClusterContext) (bool, error) {

@@ -47,6 +47,14 @@ const (
 	// while installing the container storage interface  addon; those kind of errors are usually transient
 	// the operation is automatically re-tried by the controller.
 	CSIProvisioningFailedReason = "CSIProvisioningFailed"
+
+	// VCenterAvailableCondition documents the connectivity with vcenter
+	// for a given VSphereCluster
+	VCenterAvailableCondition clusterv1.ConditionType = "VCenterAvailable"
+
+	// VCenterUnreachableReason (Severity=Error) documents a VSphereCluster controller detecting
+	// issues with VCenter reachability;
+	VCenterUnreachableReason = "VCenterUnreachable"
 )
 
 // Conditions and condition Reasons for the VSphereMachine and the VSphereVM object.

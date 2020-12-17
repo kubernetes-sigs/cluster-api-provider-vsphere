@@ -58,6 +58,8 @@ const (
 	vSphereUsername              = "${VSPHERE_USERNAME}"
 	vSpherePassword              = "${VSPHERE_PASSWORD}" /* #nosec */
 	clusterResourceSetNameSuffix = "-crs-0"
+	nsxtHost                     = "${NSXT_HOST}"
+	nsxtRouterPath               = "${NSXT_ROUTER_PATH}"
 )
 
 type replacement struct {
@@ -159,6 +161,14 @@ func newVSphereCluster(lb *infrav1.HAProxyLoadBalancer) infrav1.VSphereCluster {
 						LivenessProbeImage:  cloudprovidersvc.DefaultCSILivenessProbeImage,
 						RegistrarImage:      cloudprovidersvc.DefaultCSIRegistrarImage,
 					},
+				},
+				Route: infrav1.CPIRouteConfig{
+					RouterPath: nsxtRouterPath,
+				},
+				NSXT: infrav1.CPINSXTConfig{
+					SecretName:      "cloud-provider-vsphere-credentials",
+					SecretNamespace: metav1.NamespaceSystem,
+					Host:            nsxtHost,
 				},
 			},
 		},

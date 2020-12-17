@@ -202,6 +202,8 @@ func (c *CPIConfig) UnmarshalINI(data []byte, optFuncs ...UnmarshalINIOptionFunc
 	c.Disk = config.Disk
 	c.Workspace = config.Workspace
 	c.Labels = config.Labels
+	c.Route = config.Route
+	c.NSXT = config.NSXT
 	c.VCenter = map[string]CPIVCenterConfig{}
 	for k, v := range config.VCenter {
 		c.VCenter[k] = *v

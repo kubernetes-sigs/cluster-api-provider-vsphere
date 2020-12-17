@@ -98,6 +98,12 @@ type Options struct {
 	// endpoints.
 	Password string
 
+	// NSXTUsername is the username for the account used to access NSX-T.
+	NSXTUsername string
+
+	// NSXTPassword is the password for the account used to access NSX-T.
+	NSXTPassword string
+
 	// WebhookPort is the port that the webhook server serves at.
 	WebhookPort int
 
@@ -140,6 +146,12 @@ func (o *Options) defaults() {
 		credentials := o.getCredentials()
 		o.Username = credentials["username"]
 		o.Password = credentials["password"]
+	}
+
+	if o.NSXTUsername == "" || o.NSXTPassword == "" {
+		credentials := o.getCredentials()
+		o.NSXTUsername = credentials["nsxt-username"]
+		o.NSXTPassword = credentials["nsxt-password"]
 	}
 
 	if ns, ok := os.LookupEnv("POD_NAMESPACE"); ok {

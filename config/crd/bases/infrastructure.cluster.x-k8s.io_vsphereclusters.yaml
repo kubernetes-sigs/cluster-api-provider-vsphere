@@ -135,6 +135,54 @@ spec:
                           are connected.
                         type: string
                     type: object
+                  nsxt:
+                    description: NSXT is the vSphere cloud provider's NSX-T configuration.
+                    properties:
+                      caFile:
+                        description: CAFile is the certificate authority for the server
+                          certificate for locally signed certificates.
+                        type: string
+                      clientAuthCertFile:
+                        description: ClientAuthCertFile is the client certificate
+                          for the certificate based authorization.
+                        type: string
+                      clientAuthKeyFile:
+                        description: ClientAuthKeyFile is the private key for the
+                          client certificate.
+                        type: string
+                      host:
+                        description: Host is the NSX-T server.
+                        type: string
+                      insecureFlag:
+                        description: InsecureFlag is to be set to true if NSX-T uses
+                          self-signed cert.
+                        type: boolean
+                      password:
+                        description: Password is the password used to access NSX-T.
+                        type: string
+                      remoteAuth:
+                        description: RemoteAuth is to be set to true if NSX-T uses
+                          remote authentication (authentication done through the vIDM).
+                        type: boolean
+                      secretName:
+                        description: SecretName is the name of the Kubernetes secret
+                          in which the NSX-T credentials are located.
+                        type: string
+                      secretNamespace:
+                        description: SecretNamespace is the namespace for SecretName.
+                        type: string
+                      username:
+                        description: Username is the username used to access NSX-T.
+                        type: string
+                      vmcAccessToken:
+                        description: VMCAccessToken is VMC access token for token
+                          based authentification.
+                        type: string
+                      vmcAuthHost:
+                        description: VMCAuthHost is VMC verification host for token
+                          based authentification.
+                        type: string
+                    type: object
                   providerConfig:
                     description: CPIProviderConfig contains extra information used
                       to configure the vSphere cloud provider.
@@ -161,6 +209,13 @@ spec:
                           registrarImage:
                             type: string
                         type: object
+                    type: object
+                  route:
+                    description: Route is the vSphere cloud provider's route configuration.
+                    properties:
+                      routerPath:
+                        description: RouterPath is NSX-T T0/T1 logical router path.
+                        type: string
                     type: object
                   virtualCenter:
                     additionalProperties:
@@ -374,6 +429,54 @@ spec:
                           are connected.
                         type: string
                     type: object
+                  nsxt:
+                    description: NSXT is the vSphere cloud provider's NSX-T configuration.
+                    properties:
+                      caFile:
+                        description: CAFile is the certificate authority for the server
+                          certificate for locally signed certificates.
+                        type: string
+                      clientAuthCertFile:
+                        description: ClientAuthCertFile is the client certificate
+                          for the certificate based authorization.
+                        type: string
+                      clientAuthKeyFile:
+                        description: ClientAuthKeyFile is the private key for the
+                          client certificate.
+                        type: string
+                      host:
+                        description: Host is the NSX-T server.
+                        type: string
+                      insecureFlag:
+                        description: InsecureFlag is to be set to true if NSX-T uses
+                          self-signed cert.
+                        type: boolean
+                      password:
+                        description: Password is the password used to access NSX-T.
+                        type: string
+                      remoteAuth:
+                        description: RemoteAuth is to be set to true if NSX-T uses
+                          remote authentication (authentication done through the vIDM).
+                        type: boolean
+                      secretName:
+                        description: SecretName is the name of the Kubernetes secret
+                          in which the NSX-T credentials are located.
+                        type: string
+                      secretNamespace:
+                        description: SecretNamespace is the namespace for SecretName.
+                        type: string
+                      username:
+                        description: Username is the username used to access NSX-T.
+                        type: string
+                      vmcAccessToken:
+                        description: VMCAccessToken is VMC access token for token
+                          based authentification.
+                        type: string
+                      vmcAuthHost:
+                        description: VMCAuthHost is VMC verification host for token
+                          based authentification.
+                        type: string
+                    type: object
                   providerConfig:
                     description: CPIProviderConfig contains extra information used
                       to configure the vSphere cloud provider.
@@ -407,6 +510,13 @@ spec:
                           registrarImage:
                             type: string
                         type: object
+                    type: object
+                  route:
+                    description: Route is the vSphere cloud provider's route configuration.
+                    properties:
+                      routerPath:
+                        description: RouterPath is NSX-T T0/T1 logical router path.
+                        type: string
                     type: object
                   virtualCenter:
                     additionalProperties:

@@ -54,6 +54,14 @@ type CPIConfig struct {
 	// CPIProviderConfig contains extra information used to configure the
 	// vSphere cloud provider.
 	ProviderConfig CPIProviderConfig `json:"providerConfig,omitempty"`
+
+	// Route is the vSphere cloud provider's route configuration.
+	// +optional
+	Route CPIRouteConfig `gcfg:"Route,omitempty" json:"route,omitempty"`
+
+	// NSXT is the vSphere cloud provider's NSX-T configuration.
+	// +optional
+	NSXT CPINSXTConfig `gcfg:"NSXT,omitempty" json:"nsxt,omitempty"`
 }
 
 // CPIProviderConfig defines any extra information used to configure
@@ -233,4 +241,63 @@ type CPILabelConfig struct {
 	// Region is the region in which VMs are created/located.
 	// +optional
 	Region string `gcfg:"region,omitempty" json:"region,omitempty"`
+}
+
+// CPIRouteConfig is the vSphere cloud provider's route configuration.
+type CPIRouteConfig struct {
+	// RouterPath is NSX-T T0/T1 logical router path.
+	// +optional
+	RouterPath string `gcfg:"router-path,omitempty" json:"routerPath,omitempty"`
+}
+
+// CPINSXTConfig is the vSphere cloud provider's NSX-T configuration.
+type CPINSXTConfig struct {
+	// Username is the username used to access NSX-T.
+	// +optional
+	Username string `gcfg:"user,omitempty" json:"username,omitempty"`
+
+	// Password is the password used to access NSX-T.
+	// +optional
+	Password string `gcfg:"password,omitempty" json:"password,omitempty"`
+
+	// SecretName is the name of the Kubernetes secret in which the NSX-T
+	// credentials are located.
+	// +optional
+	SecretName string `gcfg:"secret-name,omitempty" json:"secretName,omitempty"`
+
+	// SecretNamespace is the namespace for SecretName.
+	// +optional
+	SecretNamespace string `gcfg:"secret-namespace,omitempty" json:"secretNamespace,omitempty"`
+
+	// Host is the NSX-T server.
+	// +optional
+	Host string `gcfg:"host,omitempty" json:"host,omitempty"`
+
+	// InsecureFlag is to be set to true if NSX-T uses self-signed cert.
+	// +optional
+	InsecureFlag bool `gcfg:"insecure-flag,omitempty" json:"insecureFlag,omitempty"`
+
+	// RemoteAuth is to be set to true if NSX-T uses remote authentication (authentication done through the vIDM).
+	// +optional
+	RemoteAuth bool `gcfg:"remote-auth,omitempty" json:"remoteAuth,omitempty"`
+
+	// VMCAccessToken is VMC access token for token based authentification.
+	// +optional
+	VMCAccessToken string `gcfg:"vmc-access-token,omitempty" json:"vmcAccessToken,omitempty"`
+
+	// VMCAuthHost is VMC verification host for token based authentification.
+	// +optional
+	VMCAuthHost string `gcfg:"vmc-auth-host,omitempty" json:"vmcAuthHost,omitempty"`
+
+	// ClientAuthCertFile is the client certificate for the certificate based authorization.
+	// +optional
+	ClientAuthCertFile string `gcfg:"client-auth-cert-file,omitempty" json:"clientAuthCertFile,omitempty"`
+
+	// ClientAuthKeyFile is the private key for the client certificate.
+	// +optional
+	ClientAuthKeyFile string `gcfg:"client-auth-key-file,omitempty" json:"clientAuthKeyFile,omitempty"`
+
+	// CAFile is the certificate authority for the server certificate for locally signed certificates.
+	// +optional
+	CAFile string `gcfg:"ca-file,omitempty" json:"caFile,omitempty"`
 }

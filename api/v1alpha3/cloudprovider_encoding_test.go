@@ -60,6 +60,14 @@ datacenter = "us-west"
 folder = "kubernetes"
 default-datastore = "default"
 
+[Route]
+router-path = "/infra/tier-1s/test-router"
+
+[NSXT]
+user = "user"
+password = "password"
+host = "127.0.0.0"
+
 `,
 			configObj: v1alpha3.CPIConfig{
 				Global: v1alpha3.CPIGlobalConfig{
@@ -76,6 +84,14 @@ default-datastore = "default"
 					Datacenter: "us-west",
 					Folder:     "kubernetes",
 					Datastore:  "default",
+				},
+				Route: v1alpha3.CPIRouteConfig{
+					RouterPath: "/infra/tier-1s/test-router",
+				},
+				NSXT: v1alpha3.CPINSXTConfig{
+					Username: "user",
+					Password: "password",
+					Host:     "127.0.0.0",
 				},
 			},
 		},
@@ -95,6 +111,14 @@ server = "0.0.0.0"
 datacenter = "us-west"
 folder = "kubernetes"
 
+[Route]
+router-path = "/infra/tier-1s/test-router"
+
+[NSXT]
+secret-name = "nsxtcreds"
+secret-namespace = "kube-system"
+host = "127.0.0.0"
+
 `,
 			configObj: v1alpha3.CPIConfig{
 				Global: v1alpha3.CPIGlobalConfig{
@@ -113,6 +137,14 @@ folder = "kubernetes"
 					Datacenter: "us-west",
 					Folder:     "kubernetes",
 				},
+				Route: v1alpha3.CPIRouteConfig{
+					RouterPath: "/infra/tier-1s/test-router",
+				},
+				NSXT: v1alpha3.CPINSXTConfig{
+					SecretName:      "nsxtcreds",
+					SecretNamespace: "kube-system",
+					Host:            "127.0.0.0",
+				},
 			},
 		},
 		{
@@ -129,6 +161,14 @@ server = "0.0.0.0"
 datacenter = "us-west"
 folder = "kubernetes"
 
+[Route]
+router-path = "/infra/tier-1s/test-router"
+
+[NSXT]
+secret-name = "nsxtcreds"
+secret-namespace = "kube-system"
+host = "127.0.0.0"
+
 `,
 			configObj: v1alpha3.CPIConfig{
 				Global: v1alpha3.CPIGlobalConfig{
@@ -143,6 +183,14 @@ folder = "kubernetes"
 					Server:     "0.0.0.0",
 					Datacenter: "us-west",
 					Folder:     "kubernetes",
+				},
+				Route: v1alpha3.CPIRouteConfig{
+					RouterPath: "/infra/tier-1s/test-router",
+				},
+				NSXT: v1alpha3.CPINSXTConfig{
+					SecretName:      "nsxtcreds",
+					SecretNamespace: "kube-system",
+					Host:            "127.0.0.0",
 				},
 			},
 		},
@@ -163,6 +211,14 @@ server = "0.0.0.0"
 datacenter = "us-west"
 folder = "kubernetes"
 
+[Route]
+router-path = "/infra/tier-1s/test-router"
+
+[NSXT]
+secret-name = "nsxtcreds"
+secret-namespace = "kube-system"
+host = "127.0.0.0"
+
 `,
 			configObj: v1alpha3.CPIConfig{
 				Global: v1alpha3.CPIGlobalConfig{
@@ -181,6 +237,14 @@ folder = "kubernetes"
 					Server:     "0.0.0.0",
 					Datacenter: "us-west",
 					Folder:     "kubernetes",
+				},
+				Route: v1alpha3.CPIRouteConfig{
+					RouterPath: "/infra/tier-1s/test-router",
+				},
+				NSXT: v1alpha3.CPINSXTConfig{
+					SecretName:      "nsxtcreds",
+					SecretNamespace: "kube-system",
+					Host:            "127.0.0.0",
 				},
 			},
 		},
@@ -370,6 +434,14 @@ func TestUnmarshalINI(t *testing.T) {
 		datacenter = "us-west"
 		folder = "kubernetes"
 		default-datastore = "default"
+
+		[Route]
+		router-path = "/infra/tier-1s/test-router"
+
+		[NSXT]
+		user = "user"
+		password = "password"
+		host = "127.0.0.0"
 		`,
 			configObj: v1alpha3.CPIConfig{
 				Global: v1alpha3.CPIGlobalConfig{
@@ -386,6 +458,14 @@ func TestUnmarshalINI(t *testing.T) {
 					Datacenter: "us-west",
 					Folder:     "kubernetes",
 					Datastore:  "default",
+				},
+				Route: v1alpha3.CPIRouteConfig{
+					RouterPath: "/infra/tier-1s/test-router",
+				},
+				NSXT: v1alpha3.CPINSXTConfig{
+					Username: "user",
+					Password: "password",
+					Host:     "127.0.0.0",
 				},
 			},
 		},
@@ -405,6 +485,14 @@ func TestUnmarshalINI(t *testing.T) {
 		server = 0.0.0.0
 		datacenter = "us-west"
 		folder = "kubernetes"
+
+		[Route]
+		router-path = "/infra/tier-1s/test-router"
+
+		[NSXT]
+		user = "user"
+		password = "password"
+		host = "127.0.0.0"
 		`,
 			configObj: v1alpha3.CPIConfig{
 				Global: v1alpha3.CPIGlobalConfig{
@@ -422,6 +510,14 @@ func TestUnmarshalINI(t *testing.T) {
 					Server:     "0.0.0.0",
 					Datacenter: "us-west",
 					Folder:     "kubernetes",
+				},
+				Route: v1alpha3.CPIRouteConfig{
+					RouterPath: "/infra/tier-1s/test-router",
+				},
+				NSXT: v1alpha3.CPINSXTConfig{
+					Username: "user",
+					Password: "password",
+					Host:     "127.0.0.0",
 				},
 			},
 		},
@@ -441,6 +537,14 @@ func TestUnmarshalINI(t *testing.T) {
 		server = 0.0.0.0
 		datacenter = "us-west"
 		folder = "kubernetes"
+
+		[Route]
+		router-path = "/infra/tier-1s/test-router"
+
+		[NSXT]
+		user = "user"
+		password = "password"
+		host = "127.0.0.0"
 		`,
 			configObj: v1alpha3.CPIConfig{
 				Global: v1alpha3.CPIGlobalConfig{
@@ -458,6 +562,14 @@ func TestUnmarshalINI(t *testing.T) {
 					Server:     "0.0.0.0",
 					Datacenter: "us-west",
 					Folder:     "kubernetes",
+				},
+				Route: v1alpha3.CPIRouteConfig{
+					RouterPath: "/infra/tier-1s/test-router",
+				},
+				NSXT: v1alpha3.CPINSXTConfig{
+					Username: "user",
+					Password: "password",
+					Host:     "127.0.0.0",
 				},
 			},
 		},

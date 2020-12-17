@@ -99,6 +99,8 @@ variables:
   VSPHERE_NETWORK: "network-1"
   VSPHERE_RESOURCE_POOL: "ResourcePool"
   VSPHERE_TEMPLATE: "ubuntu-1804-kube-v1.18.2"
+  NSXT_HOST: "127.0.0.1"
+  NSXT_ROUTER_PATH: "/infra/tier-1s/test-router"
   # Also following variables are required but it is recommended to use env variables to avoid disclosure of sensitive data
   # VSPHERE_SSH_AUTHORIZED_KEY:
   # VSPHERE_PASSWORD:

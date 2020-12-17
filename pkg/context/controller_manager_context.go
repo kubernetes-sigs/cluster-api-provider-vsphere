@@ -77,6 +77,12 @@ type ControllerManagerContext struct {
 	// endpoints.
 	Password string
 
+	// NSXTUsername is the username for the account used to access NSX-T.
+	NSXTUsername string
+
+	// NSXTPassword is the password for the account used to access NSX-T.
+	NSXTPassword string
+
 	genericEventCache sync.Map
 }
 

@@ -740,6 +740,9 @@ func (r clusterReconciler) reconcileCloudConfigSecret(ctx *context.ClusterContex
 		credentials[fmt.Sprintf("%s.username", server)] = ctx.Username
 		credentials[fmt.Sprintf("%s.password", server)] = ctx.Password
 	}
+	credentials["nsxt-username"] = ctx.NSXTUsername
+	credentials["nsxt-password"] = ctx.NSXTPassword
+
 	// Define the kubeconfig secret for the target cluster.
 	secret := &apiv1.Secret{
 		ObjectMeta: metav1.ObjectMeta{

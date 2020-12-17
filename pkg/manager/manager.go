@@ -95,6 +95,8 @@ func New(opts Options) (Manager, error) {
 		Scheme:                  opts.Scheme,
 		Username:                opts.Username,
 		Password:                opts.Password,
+		NSXTUsername:            opts.NSXTUsername,
+		NSXTPassword:            opts.NSXTPassword,
 	}
 
 	// Add the requested items to the manager.

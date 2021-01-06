@@ -32,6 +32,7 @@ import (
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/net"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/task"
 )
 
 func sanitizeIPAddrs(ctx *context.VMContext, ipAddrs []string) []string {
@@ -156,7 +157,7 @@ func reconcileInFlightTask(ctx *context.VMContext) (bool, error) {
 
 func reconcileVSphereVMWhenNetworkIsReady(
 	ctx *virtualMachineContext,
-	powerOnTask *object.Task) {
+	powerOnTask *object.Task, taskCounter *task.Counter) {
 
 	reconcileVSphereVMOnChannel(
 		&ctx.VMContext,
@@ -167,6 +168,7 @@ func reconcileVSphereVMWhenNetworkIsReady(
 			if err != nil && powerOnTaskInfo == nil {
 				return nil, nil, errors.Wrapf(err, "failed to wait for power on op for vm %s", ctx)
 			}
+			taskCounter.Decrement()
 			powerState, err := ctx.Obj.PowerState(ctx)
 			if err != nil {
 				return nil, nil, errors.Wrapf(err, "failed to get power state for vm %s", ctx)
@@ -208,7 +210,7 @@ func reconcileVSphereVMWhenNetworkIsReady(
 		})
 }
 
-func reconcileVSphereVMOnTaskCompletion(ctx *context.VMContext) {
+func reconcileVSphereVMOnTaskCompletion(ctx *context.VMContext, taskCounter *task.Counter) {
 	task := getTask(ctx)
 	if task == nil {
 		ctx.Logger.V(4).Info(
@@ -234,6 +236,9 @@ func reconcileVSphereVMOnTaskCompletion(ctx *context.VMContext) {
 		if err != nil && taskInfo == nil {
 			return nil, err
 		}
+
+		// decrease the task count to allow incoming tasks to proceed
+		taskCounter.Decrement()
 
 		return []interface{}{
 			"reason", "task",

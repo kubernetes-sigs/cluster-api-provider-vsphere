@@ -25,6 +25,7 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/task"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 )
 
@@ -61,7 +62,7 @@ func TestCreate(t *testing.T) {
 	disk := object.VirtualDeviceList(vm.Config.Hardware.Device).SelectByType((*types.VirtualDisk)(nil))[0].(*types.VirtualDisk)
 	disk.CapacityInKB = int64(vmContext.VSphereVM.Spec.DiskGiB) * 1024 * 1024
 
-	if err := createVM(vmContext, []byte("")); err != nil {
+	if err := createVM(vmContext, []byte(""), &task.Counter{}); err != nil {
 		t.Fatal(err)
 	}
 

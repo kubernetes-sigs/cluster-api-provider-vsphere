@@ -49,6 +49,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/task"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 )
 
@@ -75,7 +76,10 @@ func AddVMControllerToManager(ctx *context.ControllerManagerContext, mgr manager
 		Recorder:                 record.New(mgr.GetEventRecorderFor(controllerNameLong)),
 		Logger:                   ctx.Logger.WithName(controllerNameShort),
 	}
-	r := vmReconciler{ControllerContext: controllerContext}
+	r := vmReconciler{
+		ControllerContext: controllerContext,
+		vmService:         &govmomi.VMService{TaskCounter: &task.Counter{}},
+	}
 	controller, err := ctrl.NewControllerManagedBy(mgr).
 		// Watch the controlled, infrastructure resource.
 		For(controlledType).
@@ -121,6 +125,7 @@ func AddVMControllerToManager(ctx *context.ControllerManagerContext, mgr manager
 
 type vmReconciler struct {
 	*context.ControllerContext
+	vmService services.VirtualMachineService
 }
 
 // Reconcile ensures the back-end state reflects the Kubernetes resource state intent.
@@ -283,11 +288,8 @@ func (r vmReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) 
 func (r vmReconciler) reconcileDelete(ctx *context.VMContext) (reconcile.Result, error) {
 	ctx.Logger.Info("Handling deleted VSphereVM")
 
-	// TODO(akutz) Implement selection of VM service based on vSphere version
-	var vmService services.VirtualMachineService = &govmomi.VMService{}
-
 	conditions.MarkFalse(ctx.VSphereVM, infrav1.VMProvisionedCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
-	vm, err := vmService.DestroyVM(ctx)
+	vm, err := r.vmService.DestroyVM(ctx)
 	if err != nil {
 		conditions.MarkFalse(ctx.VSphereVM, infrav1.VMProvisionedCondition, "DeletionFailed", clusterv1.ConditionSeverityWarning, err.Error())
 		return reconcile.Result{}, errors.Wrapf(err, "failed to destroy VM")
@@ -314,16 +316,13 @@ func (r vmReconciler) reconcileNormal(ctx *context.VMContext) (reconcile.Result,
 	// If the VSphereVM doesn't have our finalizer, add it.
 	ctrlutil.AddFinalizer(ctx.VSphereVM, infrav1.VMFinalizer)
 
-	// TODO(akutz) Implement selection of VM service based on vSphere version
-	var vmService services.VirtualMachineService = &govmomi.VMService{}
-
 	if r.isWaitingForStaticIPAllocation(ctx) {
 		ctx.Logger.Info("vm is waiting for static ip to be available")
 		return reconcile.Result{}, nil
 	}
 
 	// Get or create the VM.
-	vm, err := vmService.ReconcileVM(ctx)
+	vm, err := r.vmService.ReconcileVM(ctx)
 	if err != nil {
 		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile VM")
 	}

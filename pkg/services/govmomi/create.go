@@ -19,12 +19,13 @@ package govmomi
 import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/esxi"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/task"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/vcenter"
 )
 
-func createVM(ctx *context.VMContext, bootstrapData []byte) error {
+func createVM(ctx *context.VMContext, bootstrapData []byte, taskCounter *task.Counter) error {
 	if ctx.Session.IsVC() {
-		return vcenter.Clone(ctx, bootstrapData)
+		return vcenter.Clone(ctx, bootstrapData, taskCounter)
 	}
 	return esxi.Clone(ctx, bootstrapData)
 }

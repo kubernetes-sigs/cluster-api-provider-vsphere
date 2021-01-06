@@ -37,11 +37,18 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/extra"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/net"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/task"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
+const (
+	maxTaskCount = 80
+)
+
 // VMService provdes API to interact with the VMs using govmomi
-type VMService struct{}
+type VMService struct {
+	TaskCounter *task.Counter
+}
 
 // ReconcileVM makes sure that the VM is in the desired state by:
 //   1. Creating the VM if it does not exist, then...
@@ -66,7 +73,7 @@ func (vms *VMService) ReconcileVM(ctx *context.VMContext) (vm infrav1.VirtualMac
 	// VSphereVM resource once its associated task completes. If
 	// there is no task for the VSphereVM resource then no reconcile
 	// event is triggered.
-	defer reconcileVSphereVMOnTaskCompletion(ctx)
+	defer reconcileVSphereVMOnTaskCompletion(ctx, vms.TaskCounter)
 
 	// Before going further, we need the VM's managed object reference.
 	vmRef, err := findVM(ctx)
@@ -89,6 +96,12 @@ func (vms *VMService) ReconcileVM(ctx *context.VMContext) (vm infrav1.VirtualMac
 			conditions.MarkFalse(ctx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.CloningReason, clusterv1.ConditionSeverityInfo, "")
 		}
 
+		// gate the creation of new VMs when we have too much tasks running
+		// on the vcenter side
+		if vms.TaskCounter.Value() > maxTaskCount {
+			return vm, errors.Errorf("too many tasks running on vcenter, current task number: %v", vms.TaskCounter.Value())
+		}
+
 		// Get the bootstrap data.
 		bootstrapData, err := vms.getBootstrapData(ctx)
 		if err != nil {
@@ -97,7 +110,7 @@ func (vms *VMService) ReconcileVM(ctx *context.VMContext) (vm infrav1.VirtualMac
 		}
 
 		// Create the VM.
-		err = createVM(ctx, bootstrapData)
+		err = createVM(ctx, bootstrapData, vms.TaskCounter)
 		if err != nil {
 			conditions.MarkFalse(ctx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.CloningFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 		}
@@ -152,7 +165,7 @@ func (vms *VMService) DestroyVM(ctx *context.VMContext) (infrav1.VirtualMachine,
 	// VSphereVM resource once its associated task completes. If
 	// there is no task for the VSphereVM resource then no reconcile
 	// event is triggered.
-	defer reconcileVSphereVMOnTaskCompletion(ctx)
+	defer reconcileVSphereVMOnTaskCompletion(ctx, vms.TaskCounter)
 
 	// Before going further, we need the VM's managed object reference.
 	vmRef, err := findVM(ctx)
@@ -235,6 +248,7 @@ func (vms *VMService) reconcileMetadata(ctx *virtualMachineContext) (bool, error
 	if err != nil {
 		return false, errors.Wrapf(err, "unable to set metadata on vm %s", ctx)
 	}
+	vms.TaskCounter.Increment()
 
 	ctx.VSphereVM.Status.TaskRef = taskRef
 	ctx.Logger.Info("wait for VM metadata to be updated")
@@ -255,13 +269,13 @@ func (vms *VMService) reconcilePowerState(ctx *virtualMachineContext) (bool, err
 			return false, errors.Wrapf(err, "failed to trigger power on op for vm %s", ctx)
 		}
 		conditions.MarkFalse(ctx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.PoweringOnReason, clusterv1.ConditionSeverityInfo, "")
-
+		vms.TaskCounter.Increment()
 		// Update the VSphereVM.Status.TaskRef to track the power-on task.
 		ctx.VSphereVM.Status.TaskRef = task.Reference().Value
 
 		// Once the VM is successfully powered on, a reconcile request should be
 		// triggered once the VM reports IP addresses are available.
-		reconcileVSphereVMWhenNetworkIsReady(ctx, task)
+		reconcileVSphereVMWhenNetworkIsReady(ctx, task, vms.TaskCounter)
 
 		ctx.Logger.Info("wait for VM to be powered on")
 		return false, nil

@@ -100,6 +100,11 @@ type VirtualMachineCloneSpec struct {
 	// +optional
 	Datastore string `json:"datastore,omitempty"`
 
+	// StoragePolicyName of the storage policy to use with this
+	// Virtual Machine
+	// +optional
+	StoragePolicyName string `json:"storagePolicyName,omitempty"`
+
 	// ResourcePool is the name or inventory path of the resource pool in which
 	// the virtual machine is created/located.
 	// +optional

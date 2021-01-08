@@ -19,6 +19,7 @@ package vcenter
 import (
 	"github.com/pkg/errors"
 	"github.com/vmware/govmomi/object"
+	"github.com/vmware/govmomi/pbm"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 
@@ -107,11 +108,6 @@ func Clone(ctx *context.VMContext, bootstrapData []byte) error {
 		return errors.Wrapf(err, "unable to get folder for %q", ctx)
 	}
 
-	datastore, err := ctx.Session.Finder.DatastoreOrDefault(ctx, ctx.VSphereVM.Spec.Datastore)
-	if err != nil {
-		return errors.Wrapf(err, "unable to get datastore for %q", ctx)
-	}
-
 	pool, err := ctx.Session.Finder.ResourcePoolOrDefault(ctx, ctx.VSphereVM.Spec.ResourcePool)
 	if err != nil {
 		return errors.Wrapf(err, "unable to get resource pool for %q", ctx)
@@ -167,7 +163,6 @@ func Clone(ctx *context.VMContext, bootstrapData []byte) error {
 			MemoryMB:          memMiB,
 		},
 		Location: types.VirtualMachineRelocateSpec{
-			Datastore:    types.NewReference(datastore.Reference()),
 			DiskMoveType: string(diskMoveType),
 			Folder:       types.NewReference(folder.Reference()),
 			Pool:         types.NewReference(pool.Reference()),
@@ -178,6 +173,27 @@ func Clone(ctx *context.VMContext, bootstrapData []byte) error {
 		// are generated.
 		PowerOn:  false,
 		Snapshot: snapshotRef,
+	}
+
+	if ctx.VSphereVM.Spec.StoragePolicyName != "" {
+		pbmClient, err := pbm.NewClient(ctx, ctx.Session.Client.Client)
+		if err != nil {
+			return errors.Wrapf(err, "unable to create pbm client for %q", ctx)
+		}
+
+		storageProfileID, err := pbmClient.ProfileIDByName(ctx, ctx.VSphereVM.Spec.StoragePolicyName)
+		if err != nil {
+			return errors.Wrapf(err, "unable to get storageProfileID from name %s for %q", ctx.VSphereVM.Spec.StoragePolicyName, ctx)
+		}
+		spec.Location.Profile = []types.BaseVirtualMachineProfileSpec{
+			&types.VirtualMachineDefinedProfileSpec{ProfileId: storageProfileID},
+		}
+	} else {
+		datastore, err := ctx.Session.Finder.DatastoreOrDefault(ctx, ctx.VSphereVM.Spec.Datastore)
+		if err != nil {
+			return errors.Wrapf(err, "unable to get datastore for %q", ctx)
+		}
+		spec.Location.Datastore = types.NewReference(datastore.Reference())
 	}
 
 	ctx.Logger.Info("cloning machine", "namespace", ctx.VSphereVM.Namespace, "name", ctx.VSphereVM.Name, "cloneType", ctx.VSphereVM.Status.CloneMode)

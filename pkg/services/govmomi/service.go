@@ -24,6 +24,7 @@ import (
 
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/property"
+	"github.com/vmware/govmomi/vapi/tags"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 	corev1 "k8s.io/api/core/v1"
@@ -127,6 +128,11 @@ func (vms *VMService) ReconcileVM(ctx *context.VMContext) (vm infrav1.VirtualMac
 	}
 
 	if ok, err := vms.reconcilePowerState(vmCtx); err != nil || !ok {
+		return vm, err
+	}
+
+	// Assign object tags and assume tags are already created by user
+	if err := vms.reconcileTags(vmCtx); err != nil {
 		return vm, err
 	}
 
@@ -271,6 +277,18 @@ func (vms *VMService) reconcilePowerState(ctx *virtualMachineContext) (bool, err
 	default:
 		return false, errors.Errorf("unexpected power state %q for vm %s", powerState, ctx)
 	}
+}
+
+func (vms *VMService) reconcileTags(ctx *virtualMachineContext) error {
+	tagManager := tags.NewManager(ctx.Session.RestClient)
+
+	for _, tagName := range ctx.VSphereVM.Spec.Tags {
+		if err := tagManager.AttachTag(ctx, tagName, ctx.Ref); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (vms *VMService) reconcileUUID(ctx *virtualMachineContext) {

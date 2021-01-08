@@ -26,6 +26,8 @@ import (
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
+
+	_ "github.com/vmware/govmomi/vapi/simulator"
 )
 
 func TestCreate(t *testing.T) {
@@ -38,6 +40,7 @@ func TestCreate(t *testing.T) {
 		t.Fatal(err)
 	}
 	model.Service.TLS = new(tls.Config)
+	model.Service.RegisterEndpoints = true
 
 	s := model.Service.NewServer()
 	defer s.Close()

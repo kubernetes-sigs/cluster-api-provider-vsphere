@@ -466,6 +466,9 @@ func (r machineReconciler) reconcileNormalPre7(ctx *context.MachineContext, vsph
 		if vsphereVM != nil {
 			vm.Spec.BiosUUID = vsphereVM.Spec.BiosUUID
 		}
+
+		vm.Spec.Tags = ctx.VSphereMachine.Spec.Tags
+
 		return nil
 	}
 	if _, err := ctrlutil.CreateOrUpdate(ctx, ctx.Client, vm, mutateFn); err != nil {

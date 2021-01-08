@@ -574,6 +574,12 @@ spec:
                           to create a linked clone. This field is ignored if LinkedClone
                           is not enabled. Defaults to the source's current snapshot.
                         type: string
+                      tags:
+                        description: Tags is an optional set of tags to add to an
+                          instance.
+                        items:
+                          type: string
+                        type: array
                       template:
                         description: Template is the name or inventory path of the
                           template used to clone the virtual machine.

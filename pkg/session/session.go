@@ -18,6 +18,7 @@ package session
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 	"sync"
 
@@ -26,6 +27,7 @@ import (
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/session"
+	"github.com/vmware/govmomi/vapi/rest"
 	"github.com/vmware/govmomi/vim25"
 	"github.com/vmware/govmomi/vim25/soap"
 
@@ -40,6 +42,7 @@ type Session struct {
 	*govmomi.Client
 	Finder     *find.Finder
 	datacenter *object.Datacenter
+	RestClient *rest.Client
 }
 
 // GetOrCreate gets a cached session or creates a new one if one does not
@@ -86,11 +89,19 @@ func GetOrCreate(
 	session.datacenter = dc
 	session.Finder.SetDatacenter(dc)
 
-	// Cache the session.
-	sessionCache[sessionKey] = session
-
 	// TODO(akutz) Reintroduce the logger.
 	//ctx.Logger.V(2).Info("cached vSphere client session", "server", server, "datacenter", datacenter)
+
+	restClient := rest.NewClient(client.Client)
+
+	if err := restClient.Login(ctx, soapURL.User); err != nil {
+		return nil, fmt.Errorf("unable to create rest client: %w", err)
+	}
+
+	session.RestClient = restClient
+
+	// Cache the session.
+	sessionCache[sessionKey] = session
 
 	return &session, nil
 }

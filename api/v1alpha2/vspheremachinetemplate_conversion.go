@@ -38,6 +38,8 @@ func (src *VSphereMachineTemplate) ConvertTo(dstRaw conversion.Hub) error { // n
 
 	dst.Spec.Template.Spec.VirtualMachineCloneSpec = restored.Spec.Template.Spec.VirtualMachineCloneSpec
 
+	dst.Spec.Template.Spec.Tags = restored.Spec.Template.Spec.Tags
+
 	return nil
 }
 

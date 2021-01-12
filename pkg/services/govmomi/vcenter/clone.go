@@ -188,7 +188,8 @@ func Clone(ctx *context.VMContext, bootstrapData []byte) error {
 		spec.Location.Profile = []types.BaseVirtualMachineProfileSpec{
 			&types.VirtualMachineDefinedProfileSpec{ProfileId: storageProfileID},
 		}
-	} else {
+	}
+	if ctx.VSphereVM.Spec.Datastore != "" {
 		datastore, err := ctx.Session.Finder.DatastoreOrDefault(ctx, ctx.VSphereVM.Spec.Datastore)
 		if err != nil {
 			return errors.Wrapf(err, "unable to get datastore for %q", ctx)

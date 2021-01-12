@@ -53,9 +53,6 @@ func (r *VSphereMachine) ValidateCreate() error {
 		}
 	}
 
-	if spec.Datastore != "" && spec.StoragePolicyName != "" {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "Datastore"), spec.Datastore, "cannot be set when spec.StoragePolicyName is also set"))
-	}
 	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
 

@@ -24,8 +24,8 @@ import (
 	"os"
 	"time"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
+	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
 
 	"k8s.io/klog"
 	"k8s.io/klog/klogr"
@@ -143,11 +143,23 @@ func main() {
 			if err := (&v1alpha3.VSphereClusterList{}).SetupWebhookWithManager(mgr); err != nil {
 				return err
 			}
+			if err := (&v1alpha4.VSphereCluster{}).SetupWebhookWithManager(mgr); err != nil {
+				return err
+			}
+			if err := (&v1alpha4.VSphereClusterList{}).SetupWebhookWithManager(mgr); err != nil {
+				return err
+			}
 
 			if err := (&v1alpha3.VSphereMachine{}).SetupWebhookWithManager(mgr); err != nil {
 				return err
 			}
 			if err := (&v1alpha3.VSphereMachineList{}).SetupWebhookWithManager(mgr); err != nil {
+				return err
+			}
+			if err := (&v1alpha4.VSphereMachine{}).SetupWebhookWithManager(mgr); err != nil {
+				return err
+			}
+			if err := (&v1alpha4.VSphereMachineList{}).SetupWebhookWithManager(mgr); err != nil {
 				return err
 			}
 
@@ -157,6 +169,12 @@ func main() {
 			if err := (&v1alpha3.VSphereMachineTemplateList{}).SetupWebhookWithManager(mgr); err != nil {
 				return err
 			}
+			if err := (&v1alpha4.VSphereMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+				return err
+			}
+			if err := (&v1alpha4.VSphereMachineTemplateList{}).SetupWebhookWithManager(mgr); err != nil {
+				return err
+			}
 
 			if err := (&v1alpha3.VSphereVM{}).SetupWebhookWithManager(mgr); err != nil {
 				return err
@@ -164,20 +182,17 @@ func main() {
 			if err := (&v1alpha3.VSphereVMList{}).SetupWebhookWithManager(mgr); err != nil {
 				return err
 			}
+			if err := (&v1alpha4.VSphereVM{}).SetupWebhookWithManager(mgr); err != nil {
+				return err
+			}
+			if err := (&v1alpha4.VSphereVMList{}).SetupWebhookWithManager(mgr); err != nil {
+				return err
+			}
 
 			if err := (&v1alpha3.HAProxyLoadBalancer{}).SetupWebhookWithManager(mgr); err != nil {
 				return err
 			}
 			if err := (&v1alpha3.HAProxyLoadBalancerList{}).SetupWebhookWithManager(mgr); err != nil {
-				return err
-			}
-			if err := (&v1alpha2.VSphereCluster{}).SetupWebhookWithManager(mgr); err != nil {
-				return err
-			}
-			if err := (&v1alpha2.VSphereMachine{}).SetupWebhookWithManager(mgr); err != nil {
-				return err
-			}
-			if err := (&v1alpha2.VSphereMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 				return err
 			}
 		} else {

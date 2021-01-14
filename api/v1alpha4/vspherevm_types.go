@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha3
+package v1alpha4
 
 import (
 	corev1 "k8s.io/api/core/v1"
@@ -122,6 +122,7 @@ type VSphereVMStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=vspherevms,scope=Namespaced
+// +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 
 // VSphereVM is the Schema for the vspherevms API

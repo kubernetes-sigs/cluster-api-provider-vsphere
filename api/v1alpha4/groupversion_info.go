@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha3
+package v1alpha4
 
 import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -23,7 +23,7 @@ import (
 
 const (
 	// Version is the API version.
-	Version = "v1alpha3"
+	Version = "v1alpha4"
 
 	// GroupName is the name of the API group.
 	GroupName = "infrastructure.cluster.x-k8s.io"
@@ -38,7 +38,4 @@ var (
 
 	// AddToScheme adds the types in this group-version to the given scheme.
 	AddToScheme = SchemeBuilder.AddToScheme
-
-	// localSchemeBuilder is used for type conversions.
-	localSchemeBuilder = SchemeBuilder.SchemeBuilder
 )

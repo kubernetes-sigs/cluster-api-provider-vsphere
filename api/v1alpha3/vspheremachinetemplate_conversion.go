@@ -16,8 +16,28 @@ limitations under the License.
 
 package v1alpha3
 
-// Hub marks VSphereMachineTemplate as a conversion hub.
-func (*VSphereMachineTemplate) Hub() {}
+import (
+	infrav1alpha4 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
+	"sigs.k8s.io/controller-runtime/pkg/conversion"
+)
 
-// Hub marks VSphereMachineTemplateList as a conversion hub.
-func (*VSphereMachineTemplateList) Hub() {}
+// ConvertTo
+func (src *VSphereMachineTemplate) ConvertTo(dstRaw conversion.Hub) error { // nolint
+	dst := dstRaw.(*infrav1alpha4.VSphereMachineTemplate)
+	return Convert_v1alpha3_VSphereMachineTemplate_To_v1alpha4_VSphereMachineTemplate(src, dst, nil)
+}
+
+func (dst *VSphereMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error { // nolint
+	src := srcRaw.(*infrav1alpha4.VSphereMachineTemplate)
+	return Convert_v1alpha4_VSphereMachineTemplate_To_v1alpha3_VSphereMachineTemplate(src, dst, nil)
+}
+
+func (src *VSphereMachineTemplateList) ConvertTo(dstRaw conversion.Hub) error { // nolint
+	dst := dstRaw.(*infrav1alpha4.VSphereMachineTemplateList)
+	return Convert_v1alpha3_VSphereMachineTemplateList_To_v1alpha4_VSphereMachineTemplateList(src, dst, nil)
+}
+
+func (dst *VSphereMachineTemplateList) ConvertFrom(srcRaw conversion.Hub) error { // nolint
+	src := srcRaw.(*infrav1alpha4.VSphereMachineTemplateList)
+	return Convert_v1alpha4_VSphereMachineTemplateList_To_v1alpha3_VSphereMachineTemplateList(src, dst, nil)
+}

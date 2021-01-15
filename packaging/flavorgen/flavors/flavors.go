@@ -152,6 +152,9 @@ func createCrsResourceObjects(crs *addonsv1alpha3.ClusterResourceSet, vsphereClu
 	deploymentConfigMap := newConfigMap(deployment.Name, deployment)
 	appendConfigMapToCrsResource(crs, deploymentConfigMap)
 
+	configMap := cloudprovider.CSIFeatureStatesConfigMap()
+	featureStateConfigMap := newConfigMap(configMap.Name, configMap)
+
 	return []runtime.Object{
 		serviceAccountSecret,
 		clusterRoleConfigMap,
@@ -160,6 +163,7 @@ func createCrsResourceObjects(crs *addonsv1alpha3.ClusterResourceSet, vsphereClu
 		csiDriverConfigMap,
 		daemonSetConfigMap,
 		deploymentConfigMap,
+		featureStateConfigMap,
 	}
 }
 

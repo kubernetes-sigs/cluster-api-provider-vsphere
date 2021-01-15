@@ -257,6 +257,7 @@ release-overrides:
 .PHONY: dev-manifests
 dev-manifests:
 	$(MAKE) manifests STAGE=dev MANIFEST_DIR=$(OVERRIDES_DIR) PULL_POLICY=Always IMAGE=$(DEV_CONTROLLER_IMG):$(DEV_TAG)
+	cp metadata.yaml $(OVERRIDES_DIR)/metadata.yaml
 
 .PHONY: manifests
 manifests:  $(STAGE)-version-check $(STAGE)-flavors $(MANIFEST_DIR) $(BUILD_DIR) $(KUSTOMIZE)

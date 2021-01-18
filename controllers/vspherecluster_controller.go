@@ -252,12 +252,14 @@ func (r clusterReconciler) reconcileNormal(ctx *context.ClusterContext) (reconci
 	// If the VSphereCluster doesn't have our finalizer, add it.
 	ctrlutil.AddFinalizer(ctx.VSphereCluster, infrav1.ClusterFinalizer)
 
-	if err := r.reconcileVCenterConnectivity(ctx); err != nil {
-		conditions.MarkFalse(ctx.VSphereCluster, infrav1.VCenterAvailableCondition, infrav1.VCenterUnreachableReason, clusterv1.ConditionSeverityError, err.Error())
-		return reconcile.Result{}, errors.Wrapf(err,
-			"unexpected error while probing vcenter for %s", ctx)
+	if cloudProviderConfigurationAvailable(ctx) {
+		if err := r.reconcileVCenterConnectivity(ctx); err != nil {
+			conditions.MarkFalse(ctx.VSphereCluster, infrav1.VCenterAvailableCondition, infrav1.VCenterUnreachableReason, clusterv1.ConditionSeverityError, err.Error())
+			return reconcile.Result{}, errors.Wrapf(err,
+				"unexpected error while probing vcenter for %s", ctx)
+		}
+		conditions.MarkTrue(ctx.VSphereCluster, infrav1.VCenterAvailableCondition)
 	}
-	conditions.MarkTrue(ctx.VSphereCluster, infrav1.VCenterAvailableCondition)
 
 	// Reconcile the VSphereCluster's load balancer.
 	if ok, err := r.reconcileLoadBalancer(ctx); !ok {
@@ -295,36 +297,41 @@ func (r clusterReconciler) reconcileNormal(ctx *context.ClusterContext) (reconci
 	if !r.isAPIServerOnline(ctx) {
 		return reconcile.Result{}, nil
 	}
+	if cloudProviderConfigurationAvailable(ctx) {
+		// Create the cloud config secret for the target cluster.
+		if err := r.reconcileCloudConfigSecret(ctx); err != nil {
+			conditions.MarkFalse(ctx.VSphereCluster, infrav1.CCMAvailableCondition, infrav1.CCMProvisioningFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+			return reconcile.Result{}, errors.Wrapf(err,
+				"failed to reconcile cloud config secret for VSphereCluster %s/%s",
+				ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
+		}
 
-	// Create the cloud config secret for the target cluster.
-	if err := r.reconcileCloudConfigSecret(ctx); err != nil {
-		conditions.MarkFalse(ctx.VSphereCluster, infrav1.CCMAvailableCondition, infrav1.CCMProvisioningFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
-		return reconcile.Result{}, errors.Wrapf(err,
-			"failed to reconcile cloud config secret for VSphereCluster %s/%s",
-			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
-	}
+		// Create the external cloud provider addons
+		if err := r.reconcileCloudProvider(ctx); err != nil {
+			conditions.MarkFalse(ctx.VSphereCluster, infrav1.CCMAvailableCondition, infrav1.CCMProvisioningFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+			return reconcile.Result{}, errors.Wrapf(err,
+				"failed to reconcile cloud provider for VSphereCluster %s/%s",
+				ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
+		}
 
-	// Create the external cloud provider addons
-	if err := r.reconcileCloudProvider(ctx); err != nil {
-		conditions.MarkFalse(ctx.VSphereCluster, infrav1.CCMAvailableCondition, infrav1.CCMProvisioningFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
-		return reconcile.Result{}, errors.Wrapf(err,
-			"failed to reconcile cloud provider for VSphereCluster %s/%s",
-			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
-	}
+		conditions.MarkTrue(ctx.VSphereCluster, infrav1.CCMAvailableCondition)
 
-	conditions.MarkTrue(ctx.VSphereCluster, infrav1.CCMAvailableCondition)
-
-	// Create the vSphere CSI Driver addons
-	if err := r.reconcileStorageProvider(ctx); err != nil {
-		conditions.MarkFalse(ctx.VSphereCluster, infrav1.CSIAvailableCondition, infrav1.CSIProvisioningFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
-		return reconcile.Result{}, errors.Wrapf(err,
-			"failed to reconcile CSI Driver for VSphereCluster %s/%s",
-			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
+		// Create the vSphere CSI Driver addons
+		if err := r.reconcileStorageProvider(ctx); err != nil {
+			conditions.MarkFalse(ctx.VSphereCluster, infrav1.CSIAvailableCondition, infrav1.CSIProvisioningFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+			return reconcile.Result{}, errors.Wrapf(err,
+				"failed to reconcile CSI Driver for VSphereCluster %s/%s",
+				ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
+		}
 	}
 
 	conditions.MarkTrue(ctx.VSphereCluster, infrav1.CSIAvailableCondition)
 
 	return reconcile.Result{}, nil
+}
+
+func cloudProviderConfigurationAvailable(ctx *context.ClusterContext) bool {
+	return !reflect.DeepEqual(ctx.VSphereCluster.Spec.CloudProviderConfiguration, infrav1.CPIConfig{})
 }
 
 func (r clusterReconciler) reconcileVCenterConnectivity(ctx *context.ClusterContext) error {

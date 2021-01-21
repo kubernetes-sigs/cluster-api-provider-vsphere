@@ -35,11 +35,11 @@ import (
 const (
 	DefaultCSIControllerImage     = "gcr.io/cloud-provider-vsphere/csi/release/driver:v2.1.0"
 	DefaultCSINodeDriverImage     = "gcr.io/cloud-provider-vsphere/csi/release/driver:v2.1.0"
-	DefaultCSIAttacherImage       = "quay.io/k8scsi/csi-attacher:v2.2.0"
-	DefaultCSIProvisionerImage    = "quay.io/k8scsi/csi-provisioner:v1.6.0"
+	DefaultCSIAttacherImage       = "quay.io/k8scsi/csi-attacher:v3.0.0"
+	DefaultCSIProvisionerImage    = "quay.io/k8scsi/csi-provisioner:v2.0.0"
 	DefaultCSIMetadataSyncerImage = "gcr.io/cloud-provider-vsphere/csi/release/syncer:v2.1.0"
-	DefaultCSILivenessProbeImage  = "quay.io/k8scsi/livenessprobe:v2.0.0"
-	DefaultCSIRegistrarImage      = "quay.io/k8scsi/csi-node-driver-registrar:v1.3.0"
+	DefaultCSILivenessProbeImage  = "quay.io/k8scsi/livenessprobe:v2.1.0"
+	DefaultCSIRegistrarImage      = "quay.io/k8scsi/csi-node-driver-registrar:v2.0.1"
 	CSINamespace                  = metav1.NamespaceSystem
 	CSIControllerName             = "vsphere-csi-controller"
 	CSIFeatureStateConfigMapName  = "internal-feature-states.csi.vsphere.vmware.com"

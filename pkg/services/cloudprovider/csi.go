@@ -81,6 +81,11 @@ func CSIControllerClusterRole() *rbacv1.ClusterRole {
 				Verbs:     []string{"get", "list", "watch", "update", "patch"},
 			},
 			{
+				APIGroups: []string{"storage.k8s.io"},
+				Resources: []string{"volumeattachments/status"},
+				Verbs:     []string{"patch"},
+			},
+			{
 				APIGroups: []string{""},
 				Resources: []string{"persistentvolumeclaims"},
 				Verbs:     []string{"get", "list", "watch", "update"},
@@ -583,8 +588,8 @@ func CSIProvisionerContainer(image string) corev1.Container {
 			"--csi-address=$(ADDRESS)",
 			"--feature-gates=Topology=true",
 			"--strict-topology",
-			"--enable-leader-election",
-			"--leader-election-type=leases",
+			"--leader-election",
+			"--default-fstype=ext4",
 		},
 		Env: []corev1.EnvVar{
 			{

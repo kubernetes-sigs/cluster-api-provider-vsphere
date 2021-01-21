@@ -39,8 +39,9 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} \
     -o manager .
 
 # Copy the controller-manager into a thin image
-FROM gcr.io/distroless/static:latest
+FROM gcr.io/distroless/static:nonroot
 WORKDIR /
 COPY --from=builder /workspace/manager .
-USER nobody
+# Use uid of nonroot user (65532) because kubernetes expects numeric user when applying PSPs
+USER 65532
 ENTRYPOINT ["/manager"]

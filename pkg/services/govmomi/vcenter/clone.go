@@ -49,8 +49,11 @@ func Clone(ctx *context.VMContext, bootstrapData []byte) error {
 	var extraConfig extra.Config
 	if len(bootstrapData) > 0 {
 		ctx.Logger.Info("applied bootstrap data to VM clone spec")
-		if err := extraConfig.SetCloudInitUserData(bootstrapData); err != nil {
-			return err
+		switch ctx.VSphereVM.Spec.ProvisionerType {
+		case "cloud-init":
+			extraConfig.SetCloudInitUserData(bootstrapData)
+		case "ignition":
+			extraConfig.SetIgnitionUserData(bootstrapData)
 		}
 	}
 	if ctx.VSphereVM.Spec.CustomVMXKeys != nil {

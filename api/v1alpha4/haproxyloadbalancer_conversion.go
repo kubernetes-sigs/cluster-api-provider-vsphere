@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Kubernetes Authors.
+Copyright 2019 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,18 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha2
+package v1alpha4
 
-import (
-	ctrl "sigs.k8s.io/controller-runtime"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
-)
+// Hub marks HAProxyLoadBalancer as a conversion hub.
+func (*HAProxyLoadBalancer) Hub() {}
 
-// log is for logging in this package.
-var _ = logf.Log.WithName("vspheremachinev1alpha2-resource")
-
-func (r *VSphereMachine) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(r).
-		Complete()
-}
+// Hub marks HAProxyLoadBalancerList as a conversion hub.
+func (*HAProxyLoadBalancerList) Hub() {}

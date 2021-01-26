@@ -16,8 +16,31 @@ limitations under the License.
 
 package v1alpha3
 
-// Hub marks VSphereCluster as a conversion hub.
-func (*VSphereCluster) Hub() {}
+import (
+	infrav1alpha4 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
+	"sigs.k8s.io/controller-runtime/pkg/conversion"
+)
 
-// Hub marks VSphereClusterList as a conversion hub.
-func (*VSphereClusterList) Hub() {}
+// ConvertTo converts this VSphereCluster to the Hub version (v1alpha4).
+func (src *VSphereCluster) ConvertTo(dstRaw conversion.Hub) error { // nolint
+	dst := dstRaw.(*infrav1alpha4.VSphereCluster)
+	return Convert_v1alpha3_VSphereCluster_To_v1alpha4_VSphereCluster(src, dst, nil)
+}
+
+// ConvertFrom converts from the Hub version (v1alpha4) to this VSphereCluster.
+func (dst *VSphereCluster) ConvertFrom(srcRaw conversion.Hub) error { // nolint
+	src := srcRaw.(*infrav1alpha4.VSphereCluster)
+	return Convert_v1alpha4_VSphereCluster_To_v1alpha3_VSphereCluster(src, dst, nil)
+}
+
+// ConvertTo converts this VSphereClusterList to the Hub version (v1alpha4).
+func (src *VSphereClusterList) ConvertTo(dstRaw conversion.Hub) error { // nolint
+	dst := dstRaw.(*infrav1alpha4.VSphereClusterList)
+	return Convert_v1alpha3_VSphereClusterList_To_v1alpha4_VSphereClusterList(src, dst, nil)
+}
+
+// ConvertFrom converts this VSphereVM to the Hub version (v1alpha4).
+func (dst *VSphereClusterList) ConvertFrom(srcRaw conversion.Hub) error { // nolint
+	src := srcRaw.(*infrav1alpha4.VSphereClusterList)
+	return Convert_v1alpha4_VSphereClusterList_To_v1alpha3_VSphereClusterList(src, dst, nil)
+}

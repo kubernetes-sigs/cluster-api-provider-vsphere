@@ -31,8 +31,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha2"
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
+	infrav1a3 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
+	infrav1a4 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 )
@@ -53,8 +53,8 @@ func New(opts Options) (Manager, error) {
 
 	_ = clientgoscheme.AddToScheme(opts.Scheme)
 	_ = clusterv1.AddToScheme(opts.Scheme)
-	_ = infrav1.AddToScheme(opts.Scheme)
-	_ = v1alpha2.AddToScheme(opts.Scheme)
+	_ = infrav1a3.AddToScheme(opts.Scheme)
+	_ = infrav1a4.AddToScheme(opts.Scheme)
 	_ = bootstrapv1.AddToScheme(opts.Scheme)
 	// +kubebuilder:scaffold:scheme
 

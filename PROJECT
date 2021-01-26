@@ -3,15 +3,6 @@ domain: cluster.x-k8s.io
 repo: sigs.k8s.io/cluster-api-provider-vsphere
 resources:
 - group: infrastructure
-  version: v1alpha2
-  kind: VSphereCluster
-- group: infrastructure
-  version: v1alpha2
-  kind: VSphereMachine
-- group: infrastructure
-  version: v1alpha2
-  kind: VSphereMachineTemplate
-- group: infrastructure
   version: v1alpha3
   kind: VSphereCluster
 - group: infrastructure
@@ -26,4 +17,15 @@ resources:
 - group: infrastructure
   version: v1alpha3
   kind: HAProxyLoadBalancer
-
+ - group: infrastructure
+   version: v1alpha4
+   kind: VSphereCluster
+ - group: infrastructure
+   version: v1alpha4
+   kind: VSphereMachine
+ - group: infrastructure
+   version: v1alpha4
+   kind: VSphereMachineTemplate
+ - group: infrastructure
+   version: v1alpha4
+   kind: VSphereVM

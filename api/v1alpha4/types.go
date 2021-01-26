@@ -14,11 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha2
+package v1alpha4
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
+	"fmt"
 )
 
 const (
@@ -34,13 +33,115 @@ const (
 	ValueReady = "true"
 )
 
+// CloneMode is the type of clone operation used to clone a VM from a template.
+type CloneMode string
+
+const (
+	// FullClone indicates a VM will have no relationship to the source of the
+	// clone operation once the operation is complete. This is the safest clone
+	// mode, but it is not the fastest.
+	FullClone CloneMode = "fullClone"
+
+	// LinkedClone means resulting VMs will be dependent upon the snapshot of
+	// the source VM/template from which the VM was cloned. This is the fastest
+	// clone mode, but it also prevents expanding a VMs disk beyond the size of
+	// the source VM/template.
+	LinkedClone CloneMode = "linkedClone"
+)
+
+// VirtualMachineCloneSpec is information used to clone a virtual machine.
+type VirtualMachineCloneSpec struct {
+	// Template is the name or inventory path of the template used to clone
+	// the virtual machine.
+	// +kubebuilder:validation:MinLength=1
+	Template string `json:"template"`
+
+	// CloneMode specifies the type of clone operation.
+	// The LinkedClone mode is only support for templates that have at least
+	// one snapshot. If the template has no snapshots, then CloneMode defaults
+	// to FullClone.
+	// When LinkedClone mode is enabled the DiskGiB field is ignored as it is
+	// not possible to expand disks of linked clones.
+	// Defaults to LinkedClone, but fails gracefully to FullClone if the source
+	// of the clone operation has no snapshots.
+	// +optional
+	CloneMode CloneMode `json:"cloneMode,omitempty"`
+
+	// Snapshot is the name of the snapshot from which to create a linked clone.
+	// This field is ignored if LinkedClone is not enabled.
+	// Defaults to the source's current snapshot.
+	// +optional
+	Snapshot string `json:"snapshot,omitempty"`
+
+	// Server is the IP address or FQDN of the vSphere server on which
+	// the virtual machine is created/located.
+	// +optional
+	Server string `json:"server,omitempty"`
+
+	// Thumbprint is the colon-separated SHA-1 checksum of the given vCenter server's host certificate
+	// When this is set to empty, this VirtualMachine would be created
+	// without TLS certificate validation of the communication between Cluster API Provider vSphere
+	// and the VMware vCenter server.
+	// +optional
+	Thumbprint string `json:"thumbprint,omitempty"`
+
+	// Datacenter is the name or inventory path of the datacenter in which the
+	// virtual machine is created/located.
+	// +optional
+	Datacenter string `json:"datacenter,omitempty"`
+
+	// Folder is the name or inventory path of the folder in which the
+	// virtual machine is created/located.
+	// +optional
+	Folder string `json:"folder,omitempty"`
+
+	// Datastore is the name or inventory path of the datastore in which the
+	// virtual machine is created/located.
+	// +optional
+	Datastore string `json:"datastore,omitempty"`
+
+	// StoragePolicyName of the storage policy to use with this
+	// Virtual Machine
+	// +optional
+	StoragePolicyName string `json:"storagePolicyName,omitempty"`
+
+	// ResourcePool is the name or inventory path of the resource pool in which
+	// the virtual machine is created/located.
+	// +optional
+	ResourcePool string `json:"resourcePool,omitempty"`
+
+	// Network is the network configuration for this machine's VM.
+	Network NetworkSpec `json:"network"`
+
+	// NumCPUs is the number of virtual processors in a virtual machine.
+	// Defaults to the eponymous property value in the template from which the
+	// virtual machine is cloned.
+	// +optional
+	NumCPUs int32 `json:"numCPUs,omitempty"`
+	// NumCPUs is the number of cores among which to distribute CPUs in this
+	// virtual machine.
+	// Defaults to the eponymous property value in the template from which the
+	// virtual machine is cloned.
+	// +optional
+	NumCoresPerSocket int32 `json:"numCoresPerSocket,omitempty"`
+	// MemoryMiB is the size of a virtual machine's memory, in MiB.
+	// Defaults to the eponymous property value in the template from which the
+	// virtual machine is cloned.
+	// +optional
+	MemoryMiB int64 `json:"memoryMiB,omitempty"`
+	// DiskGiB is the size of a virtual machine's disk, in GiB.
+	// Defaults to the eponymous property value in the template from which the
+	// virtual machine is cloned.
+	// +optional
+	DiskGiB int32 `json:"diskGiB,omitempty"`
+	// CustomVMXKeys is a dictionary of advanced VMX options that can be set on VM
+	// Defaults to empty map
+	// +optional
+	CustomVMXKeys map[string]string `json:"customVMXKeys,omitempty"`
+}
+
 // VSphereMachineTemplateResource describes the data needed to create a VSphereMachine from a template
 type VSphereMachineTemplateResource struct {
-	metav1.TypeMeta `json:",inline"`
-
-	// Standard object's metadata.
-	clusterv1.ObjectMeta `json:"metadata,omitempty"`
-
 	// Spec is the specification of the desired behavior of the machine.
 	Spec VSphereMachineSpec `json:"spec"`
 }
@@ -61,7 +162,17 @@ type APIEndpoint struct {
 	Host string `json:"host"`
 
 	// The port on which the API server is serving.
-	Port int `json:"port"`
+	Port int32 `json:"port"`
+}
+
+// IsZero returns true if either the host or the port are zero values.
+func (v APIEndpoint) IsZero() bool {
+	return v.Host == "" || v.Port == 0
+}
+
+// String returns a formatted version HOST:PORT of this APIEndpoint.
+func (v APIEndpoint) String() string {
+	return fmt.Sprintf("%s:%d", v.Host, v.Port)
 }
 
 // NetworkSpec defines the virtual machine's network configuration.
@@ -220,4 +331,12 @@ type VirtualMachine struct {
 
 	// Network is the status of the VM's network devices.
 	Network []NetworkStatus `json:"network"`
+}
+
+// SSHUser is granted remote access to a system.
+type SSHUser struct {
+	// Name is the name of the SSH user.
+	Name string `json:"name"`
+	// AuthorizedKeys is one or more public SSH keys that grant remote access.
+	AuthorizedKeys []string `json:"authorizedKeys"`
 }

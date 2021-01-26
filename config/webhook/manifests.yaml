@@ -11,6 +11,86 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /validate-infrastructure-cluster-x-k8s-io-v1alpha4-vspherecluster
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.vspherecluster.infrastructure.x-k8s.io
+  rules:
+  - apiGroups:
+    - infrastructure.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha4
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - vsphereclusters
+  sideEffects: None
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-infrastructure-cluster-x-k8s-io-v1alpha4-vspheremachine
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.vspheremachine.infrastructure.x-k8s.io
+  rules:
+  - apiGroups:
+    - infrastructure.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha4
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - vspheremachines
+  sideEffects: None
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-infrastructure-cluster-x-k8s-io-v1alpha4-vspheremachinetemplate
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.vspheremachinetemplate.infrastructure.x-k8s.io
+  rules:
+  - apiGroups:
+    - infrastructure.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha4
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - vspheremachinetemplates
+  sideEffects: None
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-infrastructure-cluster-x-k8s-io-v1alpha4-vspherevm
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.vspherevm.infrastructure.x-k8s.io
+  rules:
+  - apiGroups:
+    - infrastructure.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha4
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - vspherevms
+  sideEffects: None
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: webhook-service
+      namespace: system
       path: /validate-infrastructure-cluster-x-k8s-io-v1alpha3-vspherecluster
   failurePolicy: Fail
   matchPolicy: Equivalent

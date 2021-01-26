@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,18 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha2
+package v1alpha4
 
-import (
-	ctrl "sigs.k8s.io/controller-runtime"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
-)
+// Hub marks VSphereMachineTemplate as a conversion hub.
+func (*VSphereMachineTemplate) Hub() {}
 
-// log is for logging in this package.
-var _ = logf.Log.WithName("vspheremachinetemplatev1alpha2-resource")
-
-func (r *VSphereMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(r).
-		Complete()
-}
+// Hub marks VSphereMachineTemplateList as a conversion hub.
+func (*VSphereMachineTemplateList) Hub() {}

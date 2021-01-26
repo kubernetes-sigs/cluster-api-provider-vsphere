@@ -148,6 +148,7 @@ e2e-templates: ## Generate e2e cluster templates
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/kustomization/mhc-remediation/kcp > $(E2E_TEMPLATE_DIR)/cluster-template-kcp-remediation.yaml
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/kustomization/mhc-remediation/md > $(E2E_TEMPLATE_DIR)/cluster-template-md-remediation.yaml
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/kustomization/node-drain > $(E2E_TEMPLATE_DIR)/cluster-template-node-drain.yaml
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/kustomization/ignition > $(E2E_TEMPLATE_DIR)/cluster-template-ignition.yaml
 	# generate clusterclass and cluster topology
 	cp $(RELEASE_DIR)/cluster-template-topology.yaml $(E2E_TEMPLATE_DIR)/kustomization/topology/cluster-template-topology.yaml
 	cp $(RELEASE_DIR)/clusterclass-template.yaml $(E2E_TEMPLATE_DIR)/clusterclass-quick-start.yaml
@@ -308,6 +309,7 @@ generate-flavors: $(FLAVOR_DIR)
 	go run ./packaging/flavorgen -f external-loadbalancer > $(FLAVOR_DIR)/cluster-template-external-loadbalancer.yaml
 	go run ./packaging/flavorgen -f cluster-class > $(FLAVOR_DIR)/clusterclass-template.yaml
 	go run ./packaging/flavorgen -f cluster-topology > $(FLAVOR_DIR)/cluster-template-topology.yaml
+	go run ./packaging/flavorgen -f ignition > $(FLAVOR_DIR)/cluster-template-ignition.yaml
 ## --------------------------------------
 ## Release
 ## --------------------------------------

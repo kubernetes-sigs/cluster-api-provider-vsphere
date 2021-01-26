@@ -1,0 +1,250 @@
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+kind: KubeadmControlPlane
+metadata:
+  name: '${CLUSTER_NAME}'
+  namespace: '${NAMESPACE}'
+spec:
+  kubeadmConfigSpec:
+    # Ignition mode in CABPK expects an explicit file mode.
+    # TODO: Because of https://github.com/kubernetes-sigs/cluster-api/issues/6147 we can't override
+    # just the permissions field and must copy the entire file element.
+    files:
+    - content: |
+        apiVersion: v1
+        kind: Pod
+        metadata:
+          creationTimestamp: null
+          name: kube-vip
+          namespace: kube-system
+        spec:
+          containers:
+          - args:
+            - manager
+            env:
+            - name: cp_enable
+              value: "true"
+            - name: vip_interface
+              value: ${VIP_NETWORK_INTERFACE=""}
+            - name: address
+              value: ${CONTROL_PLANE_ENDPOINT_IP}
+            - name: port
+              value: "6443"
+            - name: vip_arp
+              value: "true"
+            - name: vip_leaderelection
+              value: "true"
+            - name: vip_leaseduration
+              value: "15"
+            - name: vip_renewdeadline
+              value: "10"
+            - name: vip_retryperiod
+              value: "2"
+            image: ghcr.io/kube-vip/kube-vip:v0.4.1
+            imagePullPolicy: IfNotPresent
+            name: kube-vip
+            resources: {}
+            securityContext:
+              capabilities:
+                add:
+                - NET_ADMIN
+                - NET_RAW
+            volumeMounts:
+            - mountPath: /etc/kubernetes/admin.conf
+              name: kubeconfig
+          hostAliases:
+          - hostnames:
+            - kubernetes
+            ip: 127.0.0.1
+          hostNetwork: true
+          volumes:
+          - hostPath:
+              path: /etc/kubernetes/admin.conf
+              type: FileOrCreate
+            name: kubeconfig
+        status: {}
+      owner: root:root
+      path: /etc/kubernetes/manifests/kube-vip.yaml
+      permissions: "0644"
+    format: ignition
+    ignition:
+      containerLinuxConfig:
+        additionalConfig: |
+          storage:
+            files:
+            - path: /opt/set-hostname
+              filesystem: root
+              mode: 0744
+              contents:
+                inline: |
+                  #!/bin/sh
+                  set -x
+                  echo "$${COREOS_CUSTOM_HOSTNAME}" > /etc/hostname
+                  hostname "$${COREOS_CUSTOM_HOSTNAME}"
+                  echo "::1         ipv6-localhost ipv6-loopback" >/etc/hosts
+                  echo "127.0.0.1   localhost" >>/etc/hosts
+                  echo "127.0.0.1   $${COREOS_CUSTOM_HOSTNAME}" >>/etc/hosts
+          systemd:
+            units:
+            - name: coreos-metadata.service
+              contents: |
+                [Unit]
+                Description=VMware metadata agent
+                After=nss-lookup.target
+                After=network-online.target
+                Wants=network-online.target
+                [Service]
+                Type=oneshot
+                Restart=on-failure
+                RemainAfterExit=yes
+                Environment=OUTPUT=/run/metadata/coreos
+                ExecStart=/usr/bin/mkdir --parent /run/metadata
+                ExecStart=/usr/bin/bash -cv 'echo "COREOS_CUSTOM_HOSTNAME=$(/usr/share/oem/bin/vmtoolsd --cmd "info-get guestinfo.metadata" | base64 -d | grep local-hostname | awk {\'print $2\'} | tr -d \'"\')" > $${OUTPUT}'
+            - name: set-hostname.service
+              enabled: true
+              contents: |
+                [Unit]
+                Description=Set the hostname for this machine
+                Requires=coreos-metadata.service
+                After=coreos-metadata.service
+                [Service]
+                Type=oneshot
+                EnvironmentFile=/run/metadata/coreos
+                ExecStart=/opt/set-hostname
+                [Install]
+                WantedBy=multi-user.target
+            - name: kubeadm.service
+              enabled: true
+              dropins:
+              - name: 10-flatcar.conf
+                contents: |
+                  [Unit]
+                  # kubeadm must run after coreos-metadata populated /run/metadata directory.
+                  Requires=coreos-metadata.service
+                  After=coreos-metadata.service
+                  [Service]
+                  # Make metadata environment variables available for pre-kubeadm commands.
+                  EnvironmentFile=/run/metadata/*
+    initConfiguration:
+      nodeRegistration:
+        criSocket: /var/run/containerd/containerd.sock
+        kubeletExtraArgs:
+          cloud-provider: external
+        name: $${COREOS_CUSTOM_HOSTNAME}
+    joinConfiguration:
+      nodeRegistration:
+        criSocket: /var/run/containerd/containerd.sock
+        kubeletExtraArgs:
+          cloud-provider: external
+        name: $${COREOS_CUSTOM_HOSTNAME}
+    preKubeadmCommands:
+    - envsubst < /etc/kubeadm.yml > /etc/kubeadm.yml.tmp
+    - mv /etc/kubeadm.yml.tmp /etc/kubeadm.yml
+    useExperimentalRetryJoin: false
+    users:
+    - name: core
+      sshAuthorizedKeys:
+      - '${VSPHERE_SSH_AUTHORIZED_KEY}'
+      sudo: ALL=(ALL) NOPASSWD:ALL
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfigTemplate
+metadata:
+  name: '${CLUSTER_NAME}-md-0'
+  namespace: '${NAMESPACE}'
+spec:
+  template:
+    spec:
+      format: ignition
+      ignition:
+        containerLinuxConfig:
+          additionalConfig: |
+            storage:
+              files:
+              - path: /opt/set-hostname
+                filesystem: root
+                mode: 0744
+                contents:
+                  inline: |
+                    #!/bin/sh
+                    set -x
+                    echo "$${COREOS_CUSTOM_HOSTNAME}" > /etc/hostname
+                    hostname "$${COREOS_CUSTOM_HOSTNAME}"
+                    echo "::1         ipv6-localhost ipv6-loopback" >/etc/hosts
+                    echo "127.0.0.1   localhost" >>/etc/hosts
+                    echo "127.0.0.1   $${COREOS_CUSTOM_HOSTNAME}" >>/etc/hosts
+            systemd:
+              units:
+              - name: coreos-metadata.service
+                contents: |
+                  [Unit]
+                  Description=VMware metadata agent
+                  After=nss-lookup.target
+                  After=network-online.target
+                  Wants=network-online.target
+                  [Service]
+                  Type=oneshot
+                  Restart=on-failure
+                  RemainAfterExit=yes
+                  Environment=OUTPUT=/run/metadata/coreos
+                  ExecStart=/usr/bin/mkdir --parent /run/metadata
+                  ExecStart=/usr/bin/bash -cv 'echo "COREOS_CUSTOM_HOSTNAME=$(/usr/share/oem/bin/vmtoolsd --cmd "info-get guestinfo.metadata" | base64 -d | grep local-hostname | awk {\'print $2\'} | tr -d \'"\')" > $${OUTPUT}'
+              - name: set-hostname.service
+                enabled: true
+                contents: |
+                  [Unit]
+                  Description=Set the hostname for this machine
+                  Requires=coreos-metadata.service
+                  After=coreos-metadata.service
+                  [Service]
+                  Type=oneshot
+                  EnvironmentFile=/run/metadata/coreos
+                  ExecStart=/opt/set-hostname
+                  [Install]
+                  WantedBy=multi-user.target
+              - name: kubeadm.service
+                enabled: true
+                dropins:
+                - name: 10-flatcar.conf
+                  contents: |
+                    [Unit]
+                    # kubeadm must run after coreos-metadata populated /run/metadata directory.
+                    Requires=coreos-metadata.service
+                    After=coreos-metadata.service
+                    [Service]
+                    # Make metadata environment variables available for pre-kubeadm commands.
+                    EnvironmentFile=/run/metadata/*
+      joinConfiguration:
+        nodeRegistration:
+          criSocket: /var/run/containerd/containerd.sock
+          kubeletExtraArgs:
+            cloud-provider: external
+          name: $${COREOS_CUSTOM_HOSTNAME}
+      preKubeadmCommands:
+      - envsubst < /etc/kubeadm.yml > /etc/kubeadm.yml.tmp
+      - mv /etc/kubeadm.yml.tmp /etc/kubeadm.yml
+      users:
+      - name: core
+        sshAuthorizedKeys:
+        - '${VSPHERE_SSH_AUTHORIZED_KEY}'
+        sudo: ALL=(ALL) NOPASSWD:ALL
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: VSphereMachineTemplate
+metadata:
+  name: '${CLUSTER_NAME}'
+  namespace: '${NAMESPACE}'
+spec:
+  template:
+    spec:
+      template: '${FLATCAR_VSPHERE_TEMPLATE}'
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: VSphereMachineTemplate
+metadata:
+  name: ${CLUSTER_NAME}-worker
+  namespace: '${NAMESPACE}'
+spec:
+  template:
+    spec:
+      template: '${FLATCAR_VSPHERE_TEMPLATE}'

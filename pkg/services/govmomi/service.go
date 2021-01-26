@@ -31,6 +31,7 @@ import (
 	apitypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util/conditions"
 
@@ -93,14 +94,14 @@ func (vms *VMService) ReconcileVM(ctx *context.VMContext) (vm infrav1.VirtualMac
 		}
 
 		// Get the bootstrap data.
-		bootstrapData, err := vms.getBootstrapData(ctx)
+		bootstrapData, format, err := vms.getBootstrapData(ctx)
 		if err != nil {
 			conditions.MarkFalse(ctx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.CloningFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 			return vm, err
 		}
 
 		// Create the VM.
-		err = createVM(ctx, bootstrapData)
+		err = createVM(ctx, bootstrapData, format)
 		if err != nil {
 			conditions.MarkFalse(ctx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.CloningFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 		}
@@ -500,9 +501,8 @@ func (vms *VMService) reconcileHostInfo(ctx *virtualMachineContext) error {
 
 func (vms *VMService) setMetadata(ctx *virtualMachineContext, metadata []byte) (string, error) {
 	var extraConfig extra.Config
-	if err := extraConfig.SetCloudInitMetadata(metadata); err != nil {
-		return "", errors.Wrapf(err, "unable to set metadata on vm %s", ctx)
-	}
+
+	extraConfig.SetCloudInitMetadata(metadata)
 
 	task, err := ctx.Obj.Reconfigure(ctx, types.VirtualMachineConfigSpec{
 		ExtraConfig: extraConfig,
@@ -532,10 +532,12 @@ func (vms *VMService) getNetworkStatus(ctx *virtualMachineContext) ([]infrav1.Ne
 	return apiNetStatus, nil
 }
 
-func (vms *VMService) getBootstrapData(ctx *context.VMContext) ([]byte, error) {
+// getBootstrapData obtains a machine's bootstrap data from the relevant k8s secret and returns the
+// data and its format.
+func (vms *VMService) getBootstrapData(ctx *context.VMContext) ([]byte, bootstrapv1.Format, error) {
 	if ctx.VSphereVM.Spec.BootstrapRef == nil {
 		ctx.Logger.Info("VM has no bootstrap data")
-		return nil, nil
+		return nil, "", nil
 	}
 
 	secret := &corev1.Secret{}
@@ -544,15 +546,21 @@ func (vms *VMService) getBootstrapData(ctx *context.VMContext) ([]byte, error) {
 		Name:      ctx.VSphereVM.Spec.BootstrapRef.Name,
 	}
 	if err := ctx.Client.Get(ctx, secretKey, secret); err != nil {
-		return nil, errors.Wrapf(err, "failed to retrieve bootstrap data secret for %s", ctx)
+		return nil, "", errors.Wrapf(err, "failed to retrieve bootstrap data secret for %s", ctx)
+	}
+
+	format, ok := secret.Data["format"]
+	if !ok || len(format) == 0 {
+		// Bootstrap data format is missing or empty - assume cloud-config.
+		format = []byte(bootstrapv1.CloudConfig)
 	}
 
 	value, ok := secret.Data["value"]
 	if !ok {
-		return nil, errors.New("error retrieving bootstrap data: secret value key is missing")
+		return nil, "", errors.New("error retrieving bootstrap data: secret value key is missing")
 	}
 
-	return value, nil
+	return value, bootstrapv1.Format(format), nil
 }
 
 func (vms *VMService) reconcileVMGroupInfo(ctx *virtualMachineContext) (bool, error) {

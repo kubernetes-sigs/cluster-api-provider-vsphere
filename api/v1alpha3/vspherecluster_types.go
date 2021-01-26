@@ -36,10 +36,17 @@ type VSphereClusterSpec struct {
 
 	// Insecure is a flag that controls whether or not to validate the
 	// vSphere server's certificate.
+	// DEPRECATED: will be removed in v1alpha4
 	// +optional
 	Insecure *bool `json:"insecure,omitempty"`
 
+	// Thumbprint is the colon-separated SHA-1 checksum of the given vCenter server's host certificate
+	// When provided, Insecure should not be set to true
+	// +optional
+	Thumbprint string `json:"thumbprint,omitempty"`
+
 	// CloudProviderConfiguration holds the cluster-wide configuration for the
+	// DEPRECATED: will be removed in v1alpha4
 	// vSphere cloud provider.
 	CloudProviderConfiguration CPIConfig `json:"cloudProviderConfiguration,omitempty"`
 
@@ -52,6 +59,7 @@ type VSphereClusterSpec struct {
 	// When a LoadBalancerRef is provided, the VSphereCluster.Status.Ready field
 	// will not be true until the referenced resource is Status.Ready and has a
 	// non-empty Status.Address value.
+	// DEPRECATED: will be removed in v1alpha4
 	// +optional
 	LoadBalancerRef *corev1.ObjectReference `json:"loadBalancerRef,omitempty"`
 }

@@ -89,6 +89,12 @@ spec:
                   Defaults to LinkedClone, but fails gracefully to FullClone if the
                   source of the clone operation has no snapshots.
                 type: string
+              customVMXKeys:
+                additionalProperties:
+                  type: string
+                description: CustomVMXKeys is a dictionary of advanced VMX options
+                  that can be set on VM Defaults to empty map
+                type: object
               datacenter:
                 description: Datacenter is the name or inventory path of the datacenter
                   in which the virtual machine is created/located.
@@ -266,10 +272,21 @@ spec:
                   a linked clone. This field is ignored if LinkedClone is not enabled.
                   Defaults to the source's current snapshot.
                 type: string
+              storagePolicyName:
+                description: StoragePolicyName of the storage policy to use with this
+                  Virtual Machine
+                type: string
               template:
                 description: Template is the name or inventory path of the template
                   used to clone the virtual machine.
                 minLength: 1
+                type: string
+              thumbprint:
+                description: Thumbprint is the colon-separated SHA-1 checksum of the
+                  given vCenter server's host certificate When this is set to empty,
+                  this VirtualMachine would be created without TLS certificate validation
+                  of the communication between Cluster API Provider vSphere and the
+                  VMware vCenter server.
                 type: string
             required:
             - network

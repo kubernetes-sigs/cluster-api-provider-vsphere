@@ -52,6 +52,7 @@ func (r *VSphereMachine) ValidateCreate() error {
 			}
 		}
 	}
+
 	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
 

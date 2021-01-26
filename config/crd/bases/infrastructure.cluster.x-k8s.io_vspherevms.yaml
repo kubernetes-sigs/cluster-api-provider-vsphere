@@ -259,6 +259,14 @@ spec:
                   value in the template from which the virtual machine is cloned.
                 format: int32
                 type: integer
+              provisionerType:
+                default: cloud-init
+                description: ProvisionerType is the name of provisioner type to use.
+                  Can be either cloud-init or ignition. Defaults to cloud-init.
+                enum:
+                - cloud-init
+                - ignition
+                type: string
               resourcePool:
                 description: ResourcePool is the name or inventory path of the resource
                   pool in which the virtual machine is created/located.

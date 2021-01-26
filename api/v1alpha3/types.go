@@ -138,6 +138,12 @@ type VirtualMachineCloneSpec struct {
 	// Defaults to empty map
 	// +optional
 	CustomVMXKeys map[string]string `json:"customVMXKeys,omitempty"`
+	// ProvisionerType is the name of provisioner type to use. Can be either cloud-init or
+	// ignition. Defaults to cloud-init.
+	// +optional
+	// +kubebuilder:validation:Enum:=cloud-init;ignition
+	// +kubebuilder:default=cloud-init
+	ProvisionerType string `json:"provisionerType,omitempty"`
 }
 
 // VSphereMachineTemplateResource describes the data needed to create a VSphereMachine from a template

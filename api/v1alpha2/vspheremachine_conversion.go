@@ -38,6 +38,7 @@ func (src *VSphereMachine) ConvertTo(dstRaw conversion.Hub) error { // nolint
 
 	dst.Spec.VirtualMachineCloneSpec = restored.Spec.VirtualMachineCloneSpec
 	dst.Status.Conditions = restored.Status.Conditions
+	dst.Spec.FailureDomain = restored.Spec.FailureDomain
 
 	return nil
 }

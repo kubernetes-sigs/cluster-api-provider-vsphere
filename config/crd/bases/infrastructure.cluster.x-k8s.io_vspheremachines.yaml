@@ -347,6 +347,12 @@ spec:
                   the virtual machine is cloned.
                 format: int32
                 type: integer
+              failureDomain:
+                description: FailureDomain is the failure domain unique identifier
+                  this Machine should be attached to, as defined in Cluster API. For
+                  this infrastructure provider, the name is equivalent to the name
+                  of the VSphereDeploymentZone.
+                type: string
               folder:
                 description: Folder is the name or inventory path of the folder in
                   which the virtual machine is created/located.

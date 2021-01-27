@@ -39,3 +39,15 @@ patchesJson6902:
       kind: CustomResourceDefinition
       name: vspherevms.infrastructure.cluster.x-k8s.io
     path: patch_crd_webhook_namespace.yaml
+  - target: # NOTE: This patch needs to be repeatd for EACH CustomResourceDefinition you have under crd/bases.
+      group: apiextensions.k8s.io
+      version: v1
+      kind: CustomResourceDefinition
+      name: vspheredeploymentzones.infrastructure.cluster.x-k8s.io
+    path: patch_crd_webhook_namespace.yaml
+  - target: # NOTE: This patch needs to be repeatd for EACH CustomResourceDefinition you have under crd/bases.
+      group: apiextensions.k8s.io
+      version: v1
+      kind: CustomResourceDefinition
+      name: vspherefailuredomains.infrastructure.cluster.x-k8s.io
+    path: patch_crd_webhook_namespace.yaml

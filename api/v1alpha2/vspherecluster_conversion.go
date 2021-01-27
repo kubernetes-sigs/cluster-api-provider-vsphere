@@ -65,6 +65,7 @@ func (src *VSphereCluster) ConvertTo(dstRaw conversion.Hub) error { // nolint
 	}
 
 	dst.Status.Conditions = restored.Status.Conditions
+	dst.Status.FailureDomains = restored.Status.FailureDomains
 
 	return nil
 }

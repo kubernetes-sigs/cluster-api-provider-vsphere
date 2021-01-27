@@ -1,0 +1,245 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.4.1-0.20201002000720-57250aac17f6
+  creationTimestamp: null
+  name: vspherefailuredomains.infrastructure.cluster.x-k8s.io
+spec:
+  group: infrastructure.cluster.x-k8s.io
+  names:
+    categories:
+    - cluster-api
+    kind: VSphereFailureDomain
+    listKind: VSphereFailureDomainList
+    plural: vspherefailuredomains
+    singular: vspherefailuredomain
+  scope: Cluster
+  versions:
+  - name: v1alpha3
+    schema:
+      openAPIV3Schema:
+        description: VSphereFailureDomain is the Schema for the vspherefailuredomains
+          API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: VSphereFailureDomainSpec defines the desired state of VSphereFailureDomain
+            properties:
+              region:
+                description: Region defines the name and type of a region
+                properties:
+                  autoConfigure:
+                    description: AutoConfigure tags the Type which is specified in
+                      the Topology
+                    type: boolean
+                  name:
+                    description: Name is the name of the tag that represents this
+                      failure domain
+                    type: string
+                  tagCategory:
+                    description: TagCategory is the category used for the tag
+                    type: string
+                  type:
+                    description: Type is the type of failure domain, the current values
+                      are "Datacenter", "ComputeCluster" and "HostGroup"
+                    enum:
+                    - Datacenter
+                    - ComputeCluster
+                    - HostGroup
+                    type: string
+                required:
+                - name
+                - tagCategory
+                - type
+                type: object
+              topology:
+                description: Topology is the what describes a given failure domain
+                  using vSphere constructs
+                properties:
+                  computeCluster:
+                    description: ComputeCluster as the failure domain
+                    type: string
+                  datacenter:
+                    description: The underlying infrastructure for this failure domain
+                      Datacenter as the failure domain
+                    type: string
+                  hostGroup:
+                    description: HostGroup as the failure domain
+                    properties:
+                      autoConfigure:
+                        description: compute cluster that this hostgroup belongs to
+                        type: boolean
+                      name:
+                        description: name of the host group
+                        type: string
+                    required:
+                    - name
+                    type: object
+                required:
+                - datacenter
+                type: object
+              zone:
+                description: Zone defines the name and type of a zone
+                properties:
+                  autoConfigure:
+                    description: AutoConfigure tags the Type which is specified in
+                      the Topology
+                    type: boolean
+                  name:
+                    description: Name is the name of the tag that represents this
+                      failure domain
+                    type: string
+                  tagCategory:
+                    description: TagCategory is the category used for the tag
+                    type: string
+                  type:
+                    description: Type is the type of failure domain, the current values
+                      are "Datacenter", "ComputeCluster" and "HostGroup"
+                    enum:
+                    - Datacenter
+                    - ComputeCluster
+                    - HostGroup
+                    type: string
+                required:
+                - name
+                - tagCategory
+                - type
+                type: object
+            required:
+            - region
+            - topology
+            - zone
+            type: object
+        type: object
+    served: true
+    storage: false
+  - name: v1alpha4
+    schema:
+      openAPIV3Schema:
+        description: VSphereFailureDomain is the Schema for the vspherefailuredomains
+          API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: VSphereFailureDomainSpec defines the desired state of VSphereFailureDomain
+            properties:
+              region:
+                description: Region defines the name and type of a region
+                properties:
+                  autoConfigure:
+                    description: AutoConfigure tags the Type which is specified in
+                      the Topology
+                    type: boolean
+                  name:
+                    description: Name is the name of the tag that represents this
+                      failure domain
+                    type: string
+                  tagCategory:
+                    description: TagCategory is the category used for the tag
+                    type: string
+                  type:
+                    description: Type is the type of failure domain, the current values
+                      are "Datacenter", "ComputeCluster" and "HostGroup"
+                    enum:
+                    - Datacenter
+                    - ComputeCluster
+                    - HostGroup
+                    type: string
+                required:
+                - name
+                - tagCategory
+                - type
+                type: object
+              topology:
+                description: Topology is the what describes a given failure domain
+                  using vSphere constructs
+                properties:
+                  computeCluster:
+                    description: ComputeCluster as the failure domain
+                    type: string
+                  datacenter:
+                    description: The underlying infrastructure for this failure domain
+                      Datacenter as the failure domain
+                    type: string
+                  hostGroup:
+                    description: HostGroup as the failure domain
+                    properties:
+                      autoConfigure:
+                        description: AutoConfigure creates the given hostGroup based
+                          on the supplied zone tagging
+                        type: boolean
+                      name:
+                        description: name of the host group
+                        type: string
+                    required:
+                    - name
+                    type: object
+                required:
+                - datacenter
+                type: object
+              zone:
+                description: Zone defines the name and type of a zone
+                properties:
+                  autoConfigure:
+                    description: AutoConfigure tags the Type which is specified in
+                      the Topology
+                    type: boolean
+                  name:
+                    description: Name is the name of the tag that represents this
+                      failure domain
+                    type: string
+                  tagCategory:
+                    description: TagCategory is the category used for the tag
+                    type: string
+                  type:
+                    description: Type is the type of failure domain, the current values
+                      are "Datacenter", "ComputeCluster" and "HostGroup"
+                    enum:
+                    - Datacenter
+                    - ComputeCluster
+                    - HostGroup
+                    type: string
+                required:
+                - name
+                - tagCategory
+                - type
+                type: object
+            required:
+            - region
+            - topology
+            - zone
+            type: object
+        type: object
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

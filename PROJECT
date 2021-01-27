@@ -1,31 +1,42 @@
-version: "2"
 domain: cluster.x-k8s.io
 repo: sigs.k8s.io/cluster-api-provider-vsphere
 resources:
 - group: infrastructure
-  version: v1alpha3
   kind: VSphereCluster
-- group: infrastructure
   version: v1alpha3
+- group: infrastructure
   kind: VSphereMachine
-- group: infrastructure
   version: v1alpha3
+- group: infrastructure
   kind: VSphereMachineTemplate
-- group: infrastructure
   version: v1alpha3
+- group: infrastructure
   kind: VSphereVM
-- group: infrastructure
   version: v1alpha3
+- group: infrastructure
+  kind: VSphereFailureDomain
+  version: v1alpha3
+- group: infrastructure
+  kind: VSphereDeploymentZone
+  version: v1alpha3
+- group: infrastructure
   kind: HAProxyLoadBalancer
- - group: infrastructure
-   version: v1alpha4
-   kind: VSphereCluster
- - group: infrastructure
-   version: v1alpha4
-   kind: VSphereMachine
- - group: infrastructure
-   version: v1alpha4
-   kind: VSphereMachineTemplate
- - group: infrastructure
-   version: v1alpha4
-   kind: VSphereVM
+- group: infrastructure
+  kind: VSphereCluster
+  version: v1alpha4
+- group: infrastructure
+  kind: VSphereMachine
+  version: v1alpha4
+- group: infrastructure
+  kind: VSphereMachineTemplate
+  version: v1alpha4
+- group: infrastructure
+  kind: VSphereVM
+  version: v1alpha4
+- group: infrastructure
+  kind: VSphereDeploymentZone
+  version: v1alpha4
+- group: infrastructure
+  kind: VSphereFailureDomain
+  version: v1alpha4
+version: "2"

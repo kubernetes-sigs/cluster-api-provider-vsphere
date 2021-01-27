@@ -70,3 +70,7 @@ func (dst *VSphereClusterList) ConvertFrom(srcRaw conversion.Hub) error { // nol
 func Convert_v1alpha4_VSphereClusterSpec_To_v1alpha3_VSphereClusterSpec(in *infrav1alpha4.VSphereClusterSpec, out *VSphereClusterSpec, s apiconversion.Scope) error { // nolint
 	return autoConvert_v1alpha4_VSphereClusterSpec_To_v1alpha3_VSphereClusterSpec(in, out, s)
 }
+
+func Convert_v1alpha3_VSphereClusterSpec_To_v1alpha4_VSphereClusterSpec(in *VSphereClusterSpec, out *infrav1alpha4.VSphereClusterSpec, s apiconversion.Scope) error { //nolint
+	return autoConvert_v1alpha3_VSphereClusterSpec_To_v1alpha4_VSphereClusterSpec(in, out, s)
+}

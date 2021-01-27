@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha4
+package types
 
 import (
 	"bytes"
@@ -26,7 +26,6 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	gcfg "gopkg.in/gcfg.v1"
 )
 
 const gcfgTag = "gcfg"
@@ -160,55 +159,6 @@ func parseGcfgTag(field reflect.StructField) (string, bool, bool) {
 	return name, omitEmpty, hasTag
 }
 
-// UnmarshalINIOptions defines the options used to influence how INI data is
-// unmarshalled.
-//
-// +kubebuilder:object:generate=false
-type UnmarshalINIOptions struct {
-	// WarnAsFatal indicates that warnings that occur when unmarshalling INI
-	// data should be treated as fatal errors.
-	WarnAsFatal bool
-}
-
-// UnmarshalINIOptionFunc is used to set unmarshal options.
-//
-// +kubebuilder:object:generate=false
-type UnmarshalINIOptionFunc func(*UnmarshalINIOptions)
-
-// WarnAsFatal sets the option to treat warnings as fatal errors when
-// unmarshalling INI data.
-func WarnAsFatal(opts *UnmarshalINIOptions) {
-	opts.WarnAsFatal = true
-}
-
-// UnmarshalINI unmarshals the cloud provider configuration from INI-style
-// configuration data.
-func (c *CPIConfig) UnmarshalINI(data []byte, optFuncs ...UnmarshalINIOptionFunc) error {
-	opts := &UnmarshalINIOptions{}
-	for _, setOpts := range optFuncs {
-		setOpts(opts)
-	}
-	var config unmarshallableConfig
-	if err := gcfg.ReadStringInto(&config, string(data)); err != nil {
-		if opts.WarnAsFatal {
-			return err
-		}
-		if err := gcfg.FatalOnly(err); err != nil {
-			return err
-		}
-	}
-	c.Global = config.Global
-	c.Network = config.Network
-	c.Disk = config.Disk
-	c.Workspace = config.Workspace
-	c.Labels = config.Labels
-	c.VCenter = map[string]CPIVCenterConfig{}
-	for k, v := range config.VCenter {
-		c.VCenter[k] = *v
-	}
-	return nil
-}
-
 // IsEmpty returns true if an object is its empty value or if a struct, all of
 // its fields are their empty values.
 func IsEmpty(obj interface{}) bool {
@@ -254,20 +204,4 @@ func isEmpty(val reflect.Value) bool {
 	default:
 		panic(errors.Errorf("invalid kind: %s", val.Kind()))
 	}
-}
-
-// MarshalCloudProviderArgs marshals the cloud provider arguments for passing
-// into a pod spec
-func (cpic *CPICloudConfig) MarshalCloudProviderArgs() []string {
-	args := []string{
-		"--v=2",
-		"--cloud-provider=vsphere",
-		"--cloud-config=/etc/cloud/vsphere.conf",
-	}
-	if cpic.ExtraArgs != nil {
-		for k, v := range cpic.ExtraArgs {
-			args = append(args, fmt.Sprintf("--%s=%s", k, v))
-		}
-	}
-	return args
 }

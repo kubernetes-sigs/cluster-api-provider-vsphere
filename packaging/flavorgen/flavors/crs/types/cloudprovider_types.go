@@ -23,10 +23,9 @@ limitations under the License.
 //
 // The "gopkg.in/go-ini/ini.v1" package was investigated, but it does not
 // support reflecting a struct with a field of type "map[string]TYPE" to INI.
-package v1alpha4
+package types
 
 // CPIConfig is the vSphere cloud provider's configuration.
-// DEPRECATED: will be removed in v1alpha4
 type CPIConfig struct {
 	// Global is the vSphere cloud provider's global configuration.
 	// +optional
@@ -80,18 +79,6 @@ type CPIStorageConfig struct {
 	MetadataSyncerImage string `json:"metadataSyncerImage,omitempty"`
 	LivenessProbeImage  string `json:"livenessProbeImage,omitempty"`
 	RegistrarImage      string `json:"registrarImage,omitempty"`
-}
-
-// unmarshallableConfig is used to unmarshal the INI data using the gcfg
-// package. The package requires fields with map types use *Values. However,
-// kubebuilder v2 won't generate CRDs for map types with *Values.
-type unmarshallableConfig struct {
-	Global    CPIGlobalConfig              `gcfg:"Global,omitempty"`
-	VCenter   map[string]*CPIVCenterConfig `gcfg:"VirtualCenter,omitempty"`
-	Network   CPINetworkConfig             `gcfg:"Network,omitempty"`
-	Disk      CPIDiskConfig                `gcfg:"Disk,omitempty"`
-	Workspace CPIWorkspaceConfig           `gcfg:"Workspace,omitempty"`
-	Labels    CPILabelConfig               `gcfg:"Labels,omitempty"`
 }
 
 // CPIGlobalConfig is the vSphere cloud provider's global configuration.

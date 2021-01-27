@@ -11,7 +11,7 @@ import (
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
+	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/crs/types"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/env"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/cloudprovider"
 	addonsv1alpha4 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha4"
@@ -93,8 +93,8 @@ func CreateCrsResourceObjectsCSI(crs *addonsv1alpha4.ClusterResourceSet) []runti
 }
 
 // create StorageConfig to be used by tkg template
-func createStorageConfig() *infrav1.CPIStorageConfig {
-	return &infrav1.CPIStorageConfig{
+func createStorageConfig() *types.CPIStorageConfig {
+	return &types.CPIStorageConfig{
 		ControllerImage:     cloudprovider.DefaultCSIControllerImage,
 		NodeDriverImage:     cloudprovider.DefaultCSINodeDriverImage,
 		AttacherImage:       cloudprovider.DefaultCSIAttacherImage,
@@ -107,13 +107,13 @@ func createStorageConfig() *infrav1.CPIStorageConfig {
 
 // ConfigForCSI returns a cloudprovider.CPIConfig specific to the vSphere CSI driver until
 // it supports using Secrets for vCenter credentials
-func ConfigForCSI() *infrav1.CPIConfig {
-	config := &infrav1.CPIConfig{}
+func ConfigForCSI() *types.CPIConfig {
+	config := &types.CPIConfig{}
 
 	config.Global.ClusterID = fmt.Sprintf("%s/%s", env.NamespaceVar, env.ClusterNameVar)
 	config.Network.Name = env.VSphereNetworkVar
 
-	config.VCenter = map[string]infrav1.CPIVCenterConfig{
+	config.VCenter = map[string]types.CPIVCenterConfig{
 		env.VSphereServerVar: {
 			Username:    env.VSphereUsername,
 			Password:    env.VSpherePassword,

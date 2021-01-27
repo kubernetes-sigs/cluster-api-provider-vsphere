@@ -31,8 +31,8 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-func newVSphereCluster(lb *infrav1.HAProxyLoadBalancer) infrav1.VSphereCluster {
-	vsphereCluster := infrav1.VSphereCluster{
+func newVSphereCluster() infrav1.VSphereCluster {
+	return infrav1.VSphereCluster{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: infrav1.GroupVersion.String(),
 			Kind:       util.TypeToKind(&infrav1.VSphereCluster{}),
@@ -48,21 +48,12 @@ func newVSphereCluster(lb *infrav1.HAProxyLoadBalancer) infrav1.VSphereCluster {
 				Name: env.ClusterNameVar,
 				Kind: infrav1.SecretKind,
 			},
+			ControlPlaneEndpoint: infrav1.APIEndpoint{
+				Host: env.ControlPlaneEndpointVar,
+				Port: 6443,
+			},
 		},
 	}
-	if lb != nil {
-		vsphereCluster.Spec.LoadBalancerRef = &corev1.ObjectReference{
-			APIVersion: lb.GroupVersionKind().GroupVersion().String(),
-			Kind:       lb.Kind,
-			Name:       lb.Name,
-		}
-	} else {
-		vsphereCluster.Spec.ControlPlaneEndpoint = infrav1.APIEndpoint{
-			Host: env.ControlPlaneEndpointVar,
-			Port: 6443,
-		}
-	}
-	return vsphereCluster
 }
 
 func newCluster(vsphereCluster infrav1.VSphereCluster, controlPlane *controlplanev1.KubeadmControlPlane) clusterv1.Cluster {
@@ -402,31 +393,6 @@ func newMachineDeployment(cluster clusterv1.Cluster, machineTemplate infrav1.VSp
 						Kind:       machineTemplate.Kind,
 						Name:       machineTemplate.Name,
 					},
-				},
-			},
-		},
-	}
-}
-
-func newHAProxyLoadBalancer() infrav1.HAProxyLoadBalancer {
-	cloneSpec := defaultVirtualMachineCloneSpec()
-	cloneSpec.Template = env.VSphereHaproxyTemplateVar
-	return infrav1.HAProxyLoadBalancer{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: infrav1.GroupVersion.String(),
-			Kind:       util.TypeToKind(&infrav1.HAProxyLoadBalancer{}),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      env.ClusterNameVar,
-			Labels:    clusterLabels(),
-			Namespace: env.NamespaceVar,
-		},
-		Spec: infrav1.HAProxyLoadBalancerSpec{
-			VirtualMachineConfiguration: cloneSpec,
-			User: &infrav1.SSHUser{
-				Name: "capv",
-				AuthorizedKeys: []string{
-					env.VSphereSSHAuthorizedKeysVar,
 				},
 			},
 		},

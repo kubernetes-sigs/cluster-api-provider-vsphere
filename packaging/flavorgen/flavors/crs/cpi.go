@@ -99,14 +99,12 @@ func CreateCrsResourceObjectsCPI(crs *addonsv1alpha4.ClusterResourceSet) []runti
 }
 
 func CPIConfigString() (string, error) {
-	cpiConfig := newCPIConfig()
-
-	cpiConfigString, err := cpiConfig.MarshalINI()
+	cpiConfig, err := newCPIConfig()
 	if err != nil {
 		return "", err
 	}
 
-	return string(cpiConfigString), nil
+	return string(cpiConfig), nil
 }
 
 func cpiCredentials(credentials map[string]string) *corev1.Secret {

@@ -37,11 +37,7 @@ var _ webhook.Validator = &VSphereClusterTemplate{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *VSphereClusterTemplate) ValidateCreate() error {
-	allErrs := validateVSphereClusterSpec(r.Spec.Template.Spec)
-	if len(allErrs) == 0 {
-		return nil
-	}
-	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
+	return nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type

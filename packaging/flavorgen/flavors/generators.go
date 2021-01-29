@@ -369,8 +369,8 @@ func newWindowsKubeadmConfigTemplate() bootstrapv1.KubeadmConfigTemplate {
 					JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
 						NodeRegistration: windowsNodeRegistrationOptions(),
 					},
-					Users:              defaultWindowsUsers(),
-					PreKubeadmCommands: defaultWindowsPreKubeadmCommands(),
+					Users:              defaultUsers(),
+					PreKubeadmCommands: defaultPreKubeadmCommands(),
 				},
 			},
 		},
@@ -405,19 +405,6 @@ func defaultUsers() []bootstrapv1.User {
 	}
 }
 
-func defaultWindowsUsers() []bootstrapv1.User {
-	return []bootstrapv1.User{
-		{
-			Name:   "capv",
-			Groups: pointer.StringPtr("Administrators"),
-			Sudo:   pointer.StringPtr("ALL=(ALL) NOPASSWD:ALL"),
-			SSHAuthorizedKeys: []string{
-				vSphereSSHAuthorizedKeysVar,
-			},
-		},
-	}
-}
-
 func defaultControlPlaneComponent() kubeadmv1beta1.ControlPlaneComponent {
 	return kubeadmv1beta1.ControlPlaneComponent{
 		ExtraArgs: defaultExtraArgs(),
@@ -437,15 +424,6 @@ func defaultExtraArgs() map[string]string {
 func defaultPreKubeadmCommands() []string {
 	return []string{
 		"hostname \"{{ ds.meta_data.hostname }}\"",
-		"echo \"::1         ipv6-localhost ipv6-loopback\" >/etc/hosts",
-		"echo \"127.0.0.1   localhost\" >>/etc/hosts",
-		"echo \"127.0.0.1   {{ ds.meta_data.hostname }}\" >>/etc/hosts",
-		"echo \"{{ ds.meta_data.hostname }}\" >/etc/hostname",
-	}
-}
-
-func defaultWindowsPreKubeadmCommands() []string {
-	return []string{
 		"echo \"::1         ipv6-localhost ipv6-loopback\" >/etc/hosts",
 		"echo \"127.0.0.1   localhost\" >>/etc/hosts",
 		"echo \"127.0.0.1   {{ ds.meta_data.hostname }}\" >>/etc/hosts",

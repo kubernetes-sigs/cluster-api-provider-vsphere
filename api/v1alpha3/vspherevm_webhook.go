@@ -22,6 +22,7 @@ import (
 	"reflect"
 
 	"github.com/pkg/errors"
+	"golang.org/x/crypto/blake2b"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -35,6 +36,19 @@ func (r *VSphereVM) SetupWebhookWithManager(mgr ctrl.Manager) error {
 }
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1alpha3-vspherevm,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=vspherevms,versions=v1alpha3,name=validation.vspherevm.infrastructure.x-k8s.io,sideEffects=None
+// +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1alpha3-vspherevm,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=vspherevms,versions=v1alpha3,name=default.vspherevm.infrastructure.x-k8s.io,sideEffects=None
+
+// Default implements webhook.Defaulter so a webhook will be registered for the type
+func (r *VSphereVM) Default() {
+	// Windows hostnames must be < 16 characters in length
+	if r.Spec.OS == Windows && len(r.Name) > 15 {
+		name, err := base36TruncatedHash(r.Name, 15)
+
+		if err == nil {
+			r.Name = name
+		}
+	}
+}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *VSphereVM) ValidateCreate() error {
@@ -53,6 +67,9 @@ func (r *VSphereVM) ValidateCreate() error {
 		}
 	}
 
+	if r.Spec.OS == Windows && len(r.Name) > 15 {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("name"), r.Name, "name has to be less than 16 characters for Windows VM"))
+	}
 	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
 
@@ -97,4 +114,35 @@ func (r *VSphereVM) ValidateUpdate(old runtime.Object) error { //nolint
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (r *VSphereVM) ValidateDelete() error {
 	return nil
+}
+
+const base36set = "0123456789abcdefghijklmnopqrstuvwxyz"
+
+// From: https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/master/pkg/hash/base36.go
+// Base36TruncatedHash returns a consistent hash using blake2b
+// and truncating the byte values to alphanumeric only
+// of a fixed length specified by the consumer.
+func base36TruncatedHash(str string, len int) (string, error) {
+	hasher, err := blake2b.New(len, nil)
+	if err != nil {
+		return "", errors.Wrap(err, "unable to create hash function")
+	}
+
+	if _, err := hasher.Write([]byte(str)); err != nil {
+		return "", errors.Wrap(err, "unable to write hash")
+	}
+	return base36Truncate(hasher.Sum(nil)), nil
+}
+
+// base36Truncate returns a string that is base36 compliant
+// It is not an encoding since it returns a same-length string
+// for any byte value
+func base36Truncate(bytes []byte) string {
+	var chars string
+	for _, bite := range bytes {
+		idx := int(bite) % 36
+		chars += string(base36set[idx])
+	}
+
+	return chars
 }

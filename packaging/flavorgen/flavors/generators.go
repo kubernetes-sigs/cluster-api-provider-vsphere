@@ -256,6 +256,7 @@ func newVSphereLinuxMachineTemplate() infrav1.VSphereMachineTemplate {
 
 func newVSphereWindowsMachineTemplate() infrav1.VSphereMachineTemplate {
 	spec := defaultVirtualMachineSpec()
+	spec.OS = infrav1.Windows
 	spec.Template = vSphereTemplateWindowsVar
 	spec.DiskGiB = defaultWindowsDiskGiB
 	return infrav1.VSphereMachineTemplate{
@@ -294,15 +295,16 @@ func defaultVirtualMachineCloneSpec() infrav1.VirtualMachineCloneSpec {
 			},
 		},
 		CustomVMXKeys: defaultCustomVMXKeys(),
-		CloneMode:     infrav1.LinkedClone,
-		NumCPUs:       defaultNumCPUs,
-		DiskGiB:       defaultDiskGiB,
-		MemoryMiB:     defaultMemoryMiB,
-		Template:      vSphereTemplateVar,
-		Server:        vSphereServerVar,
-		ResourcePool:  vSphereResourcePoolVar,
-		Datastore:     vSphereDatastoreVar,
-		Folder:        vSphereFolderVar,
+		CloneMode:    infrav1.LinkedClone,
+		NumCPUs:      defaultNumCPUs,
+		DiskGiB:      defaultDiskGiB,
+		MemoryMiB:    defaultMemoryMiB,
+		Template:     vSphereTemplateVar,
+		Server:       vSphereServerVar,
+		ResourcePool: vSphereResourcePoolVar,
+		Datastore:    vSphereDatastoreVar,
+		Folder:       vSphereFolderVar,
+		OS:           infrav1.Linux,
 	}
 }
 
@@ -387,7 +389,7 @@ func windowsNodeRegistrationOptions() kubeadmv1beta1.NodeRegistrationOptions {
 	return kubeadmv1beta1.NodeRegistrationOptions{
 		Name:             "{{ ds.meta_data.hostname }}",
 		KubeletExtraArgs: defaultExtraArgs(),
-		Taints:           []v1.Taint{{Key: "windows", Value: "2019", Effect: v1.TaintEffectNoSchedule}},
+		Taints: []v1.Taint{{Key: "windows", Value: "2019", Effect: v1.TaintEffectNoSchedule}},
 	}
 }
 

@@ -295,16 +295,16 @@ func defaultVirtualMachineCloneSpec() infrav1.VirtualMachineCloneSpec {
 			},
 		},
 		CustomVMXKeys: defaultCustomVMXKeys(),
-		CloneMode:    infrav1.LinkedClone,
-		NumCPUs:      defaultNumCPUs,
-		DiskGiB:      defaultDiskGiB,
-		MemoryMiB:    defaultMemoryMiB,
-		Template:     vSphereTemplateVar,
-		Server:       vSphereServerVar,
-		ResourcePool: vSphereResourcePoolVar,
-		Datastore:    vSphereDatastoreVar,
-		Folder:       vSphereFolderVar,
-		OS:           infrav1.Linux,
+		CloneMode:     infrav1.LinkedClone,
+		NumCPUs:       defaultNumCPUs,
+		DiskGiB:       defaultDiskGiB,
+		MemoryMiB:     defaultMemoryMiB,
+		Template:      vSphereTemplateVar,
+		Server:        vSphereServerVar,
+		ResourcePool:  vSphereResourcePoolVar,
+		Datastore:     vSphereDatastoreVar,
+		Folder:        vSphereFolderVar,
+		OS:            infrav1.Linux,
 	}
 }
 
@@ -369,8 +369,8 @@ func newWindowsKubeadmConfigTemplate() bootstrapv1.KubeadmConfigTemplate {
 					JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
 						NodeRegistration: windowsNodeRegistrationOptions(),
 					},
-					Users:              defaultUsers(),
-					PreKubeadmCommands: defaultPreKubeadmCommands(),
+					Users:              defaultWindowsUsers(),
+					PreKubeadmCommands: defaultWindowsPreKubeadmCommands(),
 				},
 			},
 		},
@@ -389,7 +389,7 @@ func windowsNodeRegistrationOptions() kubeadmv1beta1.NodeRegistrationOptions {
 	return kubeadmv1beta1.NodeRegistrationOptions{
 		Name:             "{{ ds.meta_data.hostname }}",
 		KubeletExtraArgs: defaultExtraArgs(),
-		Taints: []v1.Taint{{Key: "windows", Value: "2019", Effect: v1.TaintEffectNoSchedule}},
+		Taints:           []v1.Taint{{Key: "windows", Value: "2019", Effect: v1.TaintEffectNoSchedule}},
 	}
 }
 
@@ -398,6 +398,19 @@ func defaultUsers() []bootstrapv1.User {
 		{
 			Name: "capv",
 			Sudo: pointer.StringPtr("ALL=(ALL) NOPASSWD:ALL"),
+			SSHAuthorizedKeys: []string{
+				vSphereSSHAuthorizedKeysVar,
+			},
+		},
+	}
+}
+
+func defaultWindowsUsers() []bootstrapv1.User {
+	return []bootstrapv1.User{
+		{
+			Name:   "capv",
+			Groups: pointer.StringPtr("Administrators"),
+			Sudo:   pointer.StringPtr("ALL=(ALL) NOPASSWD:ALL"),
 			SSHAuthorizedKeys: []string{
 				vSphereSSHAuthorizedKeysVar,
 			},
@@ -424,6 +437,15 @@ func defaultExtraArgs() map[string]string {
 func defaultPreKubeadmCommands() []string {
 	return []string{
 		"hostname \"{{ ds.meta_data.hostname }}\"",
+		"echo \"::1         ipv6-localhost ipv6-loopback\" >/etc/hosts",
+		"echo \"127.0.0.1   localhost\" >>/etc/hosts",
+		"echo \"127.0.0.1   {{ ds.meta_data.hostname }}\" >>/etc/hosts",
+		"echo \"{{ ds.meta_data.hostname }}\" >/etc/hostname",
+	}
+}
+
+func defaultWindowsPreKubeadmCommands() []string {
+	return []string{
 		"echo \"::1         ipv6-localhost ipv6-loopback\" >/etc/hosts",
 		"echo \"127.0.0.1   localhost\" >>/etc/hosts",
 		"echo \"127.0.0.1   {{ ds.meta_data.hostname }}\" >>/etc/hosts",

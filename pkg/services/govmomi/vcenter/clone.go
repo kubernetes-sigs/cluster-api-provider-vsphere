@@ -175,13 +175,14 @@ func Clone(ctx *context.VMContext, bootstrapData []byte) error {
 		Snapshot: snapshotRef,
 	}
 
+	var storageProfileID string
 	if ctx.VSphereVM.Spec.StoragePolicyName != "" {
 		pbmClient, err := pbm.NewClient(ctx, ctx.Session.Client.Client)
 		if err != nil {
 			return errors.Wrapf(err, "unable to create pbm client for %q", ctx)
 		}
 
-		storageProfileID, err := pbmClient.ProfileIDByName(ctx, ctx.VSphereVM.Spec.StoragePolicyName)
+		storageProfileID, err = pbmClient.ProfileIDByName(ctx, ctx.VSphereVM.Spec.StoragePolicyName)
 		if err != nil {
 			return errors.Wrapf(err, "unable to get storageProfileID from name %s for %q", ctx.VSphereVM.Spec.StoragePolicyName, ctx)
 		}
@@ -189,13 +190,18 @@ func Clone(ctx *context.VMContext, bootstrapData []byte) error {
 			&types.VirtualMachineDefinedProfileSpec{ProfileId: storageProfileID},
 		}
 	}
+	// TODO: if storagePolicy specifies datastore then target that datastore
+	var datastore *object.Datastore
 	if ctx.VSphereVM.Spec.Datastore != "" {
-		datastore, err := ctx.Session.Finder.DatastoreOrDefault(ctx, ctx.VSphereVM.Spec.Datastore)
+		datastore, err = ctx.Session.Finder.DatastoreOrDefault(ctx, ctx.VSphereVM.Spec.Datastore)
 		if err != nil {
 			return errors.Wrapf(err, "unable to get datastore for %q", ctx)
 		}
 		spec.Location.Datastore = types.NewReference(datastore.Reference())
 	}
+
+	disks := devices.SelectByType((*types.VirtualDisk)(nil))
+	spec.Location.Disk = getDiskLocators(disks, datastore, storageProfileID)
 
 	ctx.Logger.Info("cloning machine", "namespace", ctx.VSphereVM.Namespace, "name", ctx.VSphereVM.Name, "cloneType", ctx.VSphereVM.Status.CloneMode)
 	task, err := tpl.Clone(ctx, folder, ctx.VSphereVM.Name, spec)
@@ -219,6 +225,31 @@ func newVMFlagInfo() *types.VirtualMachineFlagInfo {
 	return &types.VirtualMachineFlagInfo{
 		DiskUuidEnabled: &diskUUIDEnabled,
 	}
+}
+
+func getDiskLocators(disks object.VirtualDeviceList, datastore *object.Datastore, storageProfileID string) []types.VirtualMachineRelocateSpecDiskLocator {
+	diskLocators := make([]types.VirtualMachineRelocateSpecDiskLocator, 0, len(disks))
+	for _, disk := range disks {
+		dl := types.VirtualMachineRelocateSpecDiskLocator{
+			DiskId:       disk.GetVirtualDevice().Key,
+			DiskMoveType: string(types.VirtualMachineRelocateDiskMoveOptionsMoveChildMostDiskBacking),
+		}
+
+		if datastore != nil {
+			dl.Datastore = *types.NewReference(datastore.Reference())
+		}
+		if storageProfileID != "" {
+			dl.Profile = []types.BaseVirtualMachineProfileSpec{
+				&types.VirtualMachineDefinedProfileSpec{ProfileId: storageProfileID},
+			}
+		}
+		if vmDiskBacking, ok := disk.(*types.VirtualDisk).Backing.(*types.VirtualDiskFlatVer2BackingInfo); ok {
+			dl.DiskBackingInfo = vmDiskBacking
+		}
+		diskLocators = append(diskLocators, dl)
+	}
+
+	return diskLocators
 }
 
 func getDiskSpec(

@@ -26,6 +26,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/extra"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/task"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/template"
 )
 
@@ -36,7 +37,7 @@ const (
 
 // Clone kicks off a clone operation on vCenter to create a new virtual machine.
 // nolint:gocognit
-func Clone(ctx *context.VMContext, bootstrapData []byte) error {
+func Clone(ctx *context.VMContext, bootstrapData []byte, taskCounter *task.Counter) error {
 	ctx = &context.VMContext{
 		ControllerContext: ctx.ControllerContext,
 		VSphereVM:         ctx.VSphereVM,
@@ -208,6 +209,8 @@ func Clone(ctx *context.VMContext, bootstrapData []byte) error {
 	if err != nil {
 		return errors.Wrapf(err, "error trigging clone op for machine %s", ctx)
 	}
+
+	taskCounter.Increment()
 
 	ctx.VSphereVM.Status.TaskRef = task.Reference().Value
 

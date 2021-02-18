@@ -213,6 +213,11 @@ func CloudControllerManagerClusterRole() *rbacv1.ClusterRole {
 				Resources: []string{"secrets"},
 				Verbs:     []string{"get", "list", "watch"},
 			},
+			{
+				APIGroups: []string{"coordination.k8s.io"},
+				Resources: []string{"leases"},
+				Verbs:     []string{"get", "watch", "list", "delete", "update", "create"},
+			},
 		},
 	}
 }

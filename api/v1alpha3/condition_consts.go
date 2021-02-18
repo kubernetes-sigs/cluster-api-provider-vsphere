@@ -78,6 +78,10 @@ const (
 	// NOTE: This reason does not apply to VSphereVM (this state happens before the VSphereVM is actually created).
 	WaitingForBootstrapDataReason = "WaitingForBootstrapData"
 
+	// WaitingForStaticIPAllocationReason (Severity=Info) documents a VSphereVM waiting for the allocation of
+	// a static IP address.
+	WaitingForStaticIPAllocationReason = "WaitingForStaticIPAllocation"
+
 	// CloningReason documents (Severity=Info) a VSphereMachine/VSphereVM currently executing the clone operation.
 	CloningReason = "Cloning"
 

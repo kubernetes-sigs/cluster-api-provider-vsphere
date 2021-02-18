@@ -214,7 +214,7 @@ func (r vmReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) 
 		// newer than the local resource.
 		// nolint:errcheck
 		wait.PollImmediateInfinite(time.Second*1, func() (bool, error) {
-			// remoteObj refererences the same VSphereVM resource as it exists
+			// remoteObj references the same VSphereVM resource as it exists
 			// on the API server post the patch operation above. In a perfect world,
 			// the Status for localObj and remoteObj should be the same.
 			remoteObj := &infrav1.VSphereVM{}
@@ -318,6 +318,7 @@ func (r vmReconciler) reconcileNormal(ctx *context.VMContext) (reconcile.Result,
 	var vmService services.VirtualMachineService = &govmomi.VMService{}
 
 	if r.isWaitingForStaticIPAllocation(ctx) {
+		conditions.MarkFalse(ctx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.WaitingForStaticIPAllocationReason, clusterv1.ConditionSeverityInfo, "")
 		ctx.Logger.Info("vm is waiting for static ip to be available")
 		return reconcile.Result{}, nil
 	}
@@ -363,6 +364,10 @@ func (r vmReconciler) reconcileNormal(ctx *context.VMContext) (reconcile.Result,
 	return reconcile.Result{}, nil
 }
 
+// isWaitingForStaticIPAllocation checks whether the VM should wait for a static IP
+// to be allocated.
+// It checks the state of both DHCP4 and DHCP6 for all the network devices and if
+// any static IP addresses are specified.
 func (r vmReconciler) isWaitingForStaticIPAllocation(ctx *context.VMContext) bool {
 	devices := ctx.VSphereVM.Spec.Network.Devices
 	for _, dev := range devices {

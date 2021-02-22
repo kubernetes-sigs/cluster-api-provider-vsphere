@@ -324,6 +324,11 @@ func (r machineReconciler) reconcileNormal(ctx *context.MachineContext) (reconci
 
 	// Make sure bootstrap data is available and populated.
 	if ctx.Machine.Spec.Bootstrap.DataSecretName == nil {
+		if !infrautilv1.IsControlPlaneMachine(ctx.VSphereMachine) && !ctx.Cluster.Status.ControlPlaneInitialized {
+			ctx.Logger.Info("Waiting for the control plane to be initialized")
+			conditions.MarkFalse(ctx.VSphereMachine, infrav1.VMProvisionedCondition, clusterv1.WaitingForControlPlaneAvailableReason, clusterv1.ConditionSeverityInfo, "")
+			return ctrl.Result{}, nil
+		}
 		ctx.Logger.Info("Waiting for bootstrap data to be available")
 		conditions.MarkFalse(ctx.VSphereMachine, infrav1.VMProvisionedCondition, infrav1.WaitingForBootstrapDataReason, clusterv1.ConditionSeverityInfo, "")
 		return reconcile.Result{}, nil
@@ -447,6 +452,9 @@ func (r machineReconciler) reconcileNormalPre7(ctx *context.MachineContext, vsph
 			if vm.Spec.Server = vsphereCloudConfig.Server; vm.Spec.Server == "" {
 				vm.Spec.Server = ctx.VSphereCluster.Spec.Server
 			}
+		}
+		if vm.Spec.Thumbprint == "" {
+			vm.Spec.Thumbprint = ctx.VSphereCluster.Spec.Thumbprint
 		}
 		if vm.Spec.Datacenter == "" {
 			vm.Spec.Datacenter = vsphereCloudConfig.Datacenter

@@ -202,7 +202,7 @@ generate-go: $(CONTROLLER_GEN) $(CONVERSION_GEN) ## Runs Go related generate tar
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt
 
 	$(CONVERSION_GEN) \
-		--input-dirs=./api/v1alpha2 \
+		--input-dirs=./api/v1alpha3 \
 		--output-file-base=zz_generated.conversion \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
 
@@ -257,6 +257,7 @@ release-overrides:
 .PHONY: dev-manifests
 dev-manifests:
 	$(MAKE) manifests STAGE=dev MANIFEST_DIR=$(OVERRIDES_DIR) PULL_POLICY=Always IMAGE=$(DEV_CONTROLLER_IMG):$(DEV_TAG)
+	cp metadata.yaml $(OVERRIDES_DIR)/metadata.yaml
 
 .PHONY: manifests
 manifests:  $(STAGE)-version-check $(STAGE)-flavors $(MANIFEST_DIR) $(BUILD_DIR) $(KUSTOMIZE)

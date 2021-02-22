@@ -27,21 +27,17 @@ readonly BASE_IMAGE_REPO=gcr.io/cluster-api-provider-vsphere
 
 # Release images
 readonly CAPV_MANAGER_IMAGE_RELEASE=${BASE_IMAGE_REPO}/release/manager
-readonly CAPV_MANIFESTS_IMAGE_RELEASE=${BASE_IMAGE_REPO}/release/manifests
 
 # PR images
 readonly CAPV_MANAGER_IMAGE_PR=${BASE_IMAGE_REPO}/pr/manager
-readonly CAPV_MANIFESTS_IMAGE_PR=${BASE_IMAGE_REPO}/pr/manifests
 
 # CI images
 readonly CAPV_MANAGER_IMAGE_CI=${BASE_IMAGE_REPO}/ci/manager
-readonly CAPV_MANIFESTS_IMAGE_CI=${BASE_IMAGE_REPO}/ci/manifests
 
 AUTH=
 PUSH=
 LATEST=
 MANAGER_IMAGE_NAME=
-MANIFESTS_IMAGE_NAME=
 VERSION=$(git describe --dirty --always 2>/dev/null)
 GCR_KEY_FILE="${GCR_KEY_FILE:-}"
 
@@ -91,22 +87,18 @@ function build_images() {
     ci)
       # A non-PR, non-release build. This is usually a build off of master
       MANAGER_IMAGE_NAME=${CAPV_MANAGER_IMAGE_CI}
-      MANIFESTS_IMAGE_NAME=${CAPV_MANIFESTS_IMAGE_CI}
       ;;
     pr)
       # A PR build
       MANAGER_IMAGE_NAME=${CAPV_MANAGER_IMAGE_PR}
-      MANIFESTS_IMAGE_NAME=${CAPV_MANIFESTS_IMAGE_PR}
       ;;
     release)
       # On an annotated tag
       MANAGER_IMAGE_NAME=${CAPV_MANAGER_IMAGE_RELEASE}
-      MANIFESTS_IMAGE_NAME=${CAPV_MANIFESTS_IMAGE_RELEASE}
       ;;
     *)
       # A local dev build
       MANAGER_IMAGE_NAME="${BUILD_RELEASE_TYPE}-manager"
-      MANIFESTS_IMAGE_NAME="${BUILD_RELEASE_TYPE}-manifests"
   esac
 
   # Manager image
@@ -118,18 +110,6 @@ function build_images() {
   if [ "${LATEST}" ]; then
     echo "tagging image ${MANAGER_IMAGE_NAME}:${VERSION} as latest"
     docker tag "${MANAGER_IMAGE_NAME}":"${VERSION}" "${MANAGER_IMAGE_NAME}":latest
-  fi
-
-  # Manifests image
-  echo "building ${MANIFESTS_IMAGE_NAME}:${VERSION}"
-  docker build \
-    -f hack/tools/generate-yaml/Dockerfile \
-    -t "${MANIFESTS_IMAGE_NAME}":"${VERSION}" \
-    --build-arg "CAPV_MANAGER_IMAGE=${MANAGER_IMAGE_NAME}:${VERSION}" \
-    .
-  if [ "${LATEST}" ]; then
-    echo "tagging image ${MANIFESTS_IMAGE_NAME}:${VERSION} as latest"
-    docker tag "${MANIFESTS_IMAGE_NAME}":"${VERSION}" "${MANIFESTS_IMAGE_NAME}":latest
   fi
 }
 
@@ -152,7 +132,6 @@ function login() {
 
 function push_images() {
   [ "${MANAGER_IMAGE_NAME}" ] || fatal "MANAGER_IMAGE_NAME not set"
-  [ "${MANIFESTS_IMAGE_NAME}" ] || fatal "MANIFESTS_IMAGE_NAME not set"
 
   login
 
@@ -162,14 +141,6 @@ function push_images() {
   if [ "${LATEST}" ]; then
     echo "also pushing ${MANAGER_IMAGE_NAME}:${VERSION} as latest"
     docker push "${MANAGER_IMAGE_NAME}":latest
-  fi
-
-  # Manifests image
-  echo "pushing ${MANIFESTS_IMAGE_NAME}:${VERSION}"
-  docker push "${MANIFESTS_IMAGE_NAME}":"${VERSION}"
-  if [ "${LATEST}" ]; then
-    echo "also pushing ${MANIFESTS_IMAGE_NAME}:${VERSION} as latest"
-    docker push "${MANIFESTS_IMAGE_NAME}":latest
   fi
 }
 

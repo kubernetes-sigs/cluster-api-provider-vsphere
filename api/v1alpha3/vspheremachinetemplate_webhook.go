@@ -53,6 +53,7 @@ func (r *VSphereMachineTemplate) ValidateCreate() error {
 			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "template", "spec", "network", "devices", "ipAddrs"), "cannot be set in templates"))
 		}
 	}
+
 	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
 

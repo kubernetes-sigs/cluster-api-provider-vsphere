@@ -62,10 +62,10 @@ type HAProxyLoadBalancerStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=haproxyloadbalancers,scope=Namespaced
-// +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 
 // HAProxyLoadBalancer is the Schema for the haproxyloadbalancers API
+// DEPRECATED: will be removed in v1alpha4
 type HAProxyLoadBalancer struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

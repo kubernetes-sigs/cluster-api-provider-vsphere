@@ -49,7 +49,7 @@ func TestCreate(t *testing.T) {
 	authSession, err := session.GetOrCreate(
 		vmContext,
 		vmContext.VSphereVM.Spec.Server, "",
-		s.URL.User.Username(), pass)
+		s.URL.User.Username(), pass, "")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -122,7 +122,6 @@ type VSphereVMStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=vspherevms,scope=Namespaced
-// +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 
 // VSphereVM is the Schema for the vspherevms API

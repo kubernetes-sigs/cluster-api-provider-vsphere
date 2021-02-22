@@ -84,6 +84,8 @@ Running the following generates these overrides for you:
 make dev-manifests
 ```
 
+For development purposes, if you are using a `major.minor.x` version (see env variable VERSION) which is not present in the `metadata.yml`, include this version entry along with the API contract in the file.
+
 ### Using dev manifests
 
 After publishing your test image and generating the manifests, you can use

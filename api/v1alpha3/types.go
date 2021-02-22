@@ -78,6 +78,13 @@ type VirtualMachineCloneSpec struct {
 	// +optional
 	Server string `json:"server,omitempty"`
 
+	// Thumbprint is the colon-separated SHA-1 checksum of the given vCenter server's host certificate
+	// When this is set to empty, this VirtualMachine would be created
+	// without TLS certificate validation of the communication between Cluster API Provider vSphere
+	// and the VMware vCenter server.
+	// +optional
+	Thumbprint string `json:"thumbprint,omitempty"`
+
 	// Datacenter is the name or inventory path of the datacenter in which the
 	// virtual machine is created/located.
 	// +optional
@@ -92,6 +99,11 @@ type VirtualMachineCloneSpec struct {
 	// virtual machine is created/located.
 	// +optional
 	Datastore string `json:"datastore,omitempty"`
+
+	// StoragePolicyName of the storage policy to use with this
+	// Virtual Machine
+	// +optional
+	StoragePolicyName string `json:"storagePolicyName,omitempty"`
 
 	// ResourcePool is the name or inventory path of the resource pool in which
 	// the virtual machine is created/located.
@@ -122,6 +134,10 @@ type VirtualMachineCloneSpec struct {
 	// virtual machine is cloned.
 	// +optional
 	DiskGiB int32 `json:"diskGiB,omitempty"`
+	// CustomVMXKeys is a dictionary of advanced VMX options that can be set on VM
+	// Defaults to empty map
+	// +optional
+	CustomVMXKeys map[string]string `json:"customVMXKeys,omitempty"`
 }
 
 // VSphereMachineTemplateResource describes the data needed to create a VSphereMachine from a template

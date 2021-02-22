@@ -70,10 +70,9 @@ type VSphereClusterStatus struct {
 // +kubebuilder:resource:path=vsphereclusters,scope=Namespaced,categories=cluster-api
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
-// +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels.cluster\\.x-k8s\\.io/cluster-name",description="Cluster to which this VSphereCluster belongs"
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="Cluster infrastructure is ready for VSphereMachine"
 // +kubebuilder:printcolumn:name="Server",type="string",JSONPath=".spec.server",description="Server is the address of the vSphere endpoint."
-// +kubebuilder:printcolumn:name="ControlPlaneEndpoint",type="string",JSONPath=".status.controlPlaneEndpoint[0]",description="API Endpoint",priority=1
+// +kubebuilder:printcolumn:name="ControlPlaneEndpoint",type="string",JSONPath=".spec.controlPlaneEndpoint[0]",description="API Endpoint",priority=1
 
 // VSphereCluster is the Schema for the vsphereclusters API
 type VSphereCluster struct {

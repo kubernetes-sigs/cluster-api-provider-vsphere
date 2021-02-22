@@ -258,10 +258,6 @@ spec:
     subresources:
       status: {}
   - additionalPrinterColumns:
-    - description: Cluster to which this VSphereCluster belongs
-      jsonPath: .metadata.labels.cluster\.x-k8s\.io/cluster-name
-      name: Cluster
-      type: string
     - description: Cluster infrastructure is ready for VSphereMachine
       jsonPath: .status.ready
       name: Ready
@@ -271,7 +267,7 @@ spec:
       name: Server
       type: string
     - description: API Endpoint
-      jsonPath: .status.controlPlaneEndpoint[0]
+      jsonPath: .spec.controlPlaneEndpoint[0]
       name: ControlPlaneEndpoint
       priority: 1
       type: string

@@ -314,6 +314,7 @@ spec:
     - description: Machine object which owns with this VSphereMachine
       jsonPath: .metadata.ownerReferences[?(@.kind=="Machine")].name
       name: Machine
+      priority: 1
       type: string
     name: v1alpha3
     schema:

@@ -114,7 +114,7 @@ func ConfigForCSI() *infrav1.CPIConfig {
 	config.Network.Name = env.VSphereNetworkVar
 
 	config.VCenter = map[string]infrav1.CPIVCenterConfig{
-		env.VSphereServerVar: infrav1.CPIVCenterConfig{
+		env.VSphereServerVar: {
 			Username:    env.VSphereUsername,
 			Password:    env.VSpherePassword,
 			Datacenters: env.VSphereDataCenterVar,

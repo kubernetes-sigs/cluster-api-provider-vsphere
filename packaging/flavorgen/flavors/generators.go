@@ -20,7 +20,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/env"
@@ -348,19 +347,6 @@ func newClusterResourceSet(cluster clusterv1.Cluster) addonsv1alpha3.ClusterReso
 
 	return crs
 }
-func appendSecretToCrsResource(crs *addonsv1alpha3.ClusterResourceSet, generatedSecret *v1.Secret) {
-	crs.Spec.Resources = append(crs.Spec.Resources, addonsv1alpha3.ResourceRef{
-		Name: generatedSecret.Name,
-		Kind: "Secret",
-	})
-}
-
-func appendConfigMapToCrsResource(crs *addonsv1alpha3.ClusterResourceSet, generatedConfigMap *v1.ConfigMap) {
-	crs.Spec.Resources = append(crs.Spec.Resources, addonsv1alpha3.ResourceRef{
-		Name: generatedConfigMap.Name,
-		Kind: "ConfigMap",
-	})
-}
 
 func newMachineDeployment(cluster clusterv1.Cluster, machineTemplate infrav1.VSphereMachineTemplate, bootstrapTemplate bootstrapv1.KubeadmConfigTemplate) clusterv1.MachineDeployment {
 	return clusterv1.MachineDeployment{
@@ -457,38 +443,5 @@ func newKubeadmControlplane(replicas int, infraTemplate infrav1.VSphereMachineTe
 			},
 			KubeadmConfigSpec: defaultKubeadmInitSpec(files),
 		},
-	}
-}
-
-func newConfigMap(name string, o runtime.Object) *v1.ConfigMap {
-	return &v1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: v1.SchemeGroupVersion.String(),
-			Kind:       "ConfigMap",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: env.NamespaceVar,
-		},
-		Data: map[string]string{
-			"data": util.GenerateObjectYAML(o, []util.Replacement{}),
-		},
-	}
-}
-
-func newSecret(name string, o runtime.Object) *v1.Secret {
-	return &v1.Secret{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: v1.SchemeGroupVersion.String(),
-			Kind:       "Secret",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: env.NamespaceVar,
-		},
-		StringData: map[string]string{
-			"data": util.GenerateObjectYAML(o, []util.Replacement{}),
-		},
-		Type: addonsv1alpha3.ClusterResourceSetSecretType,
 	}
 }

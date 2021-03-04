@@ -276,6 +276,7 @@ flavors: $(FLAVOR_DIR)
 	go run ./packaging/flavorgen -f multi-host > $(FLAVOR_DIR)/cluster-template-haproxy.yaml
 	go run ./packaging/flavorgen -f vip > $(FLAVOR_DIR)/cluster-template.yaml
 	go run ./packaging/flavorgen -f external-loadbalancer > $(FLAVOR_DIR)/cluster-template-external-loadbalancer.yaml
+	go run ./packaging/flavorgen -f windows > $(FLAVOR_DIR)/cluster-template-windows.yaml
 
 
 .PHONY: release-flavors ## Create release flavor manifests

@@ -17,6 +17,8 @@ limitations under the License.
 package flavors
 
 import (
+	"fmt"
+
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,6 +40,7 @@ const (
 	defaultCloudProviderImage    = "gcr.io/cloud-provider-vsphere/cpi/release/manager:v1.2.1"
 	defaultClusterCIDR           = "192.168.0.0/16"
 	defaultDiskGiB               = 25
+	defaultWindowsDiskGiB        = 80
 	defaultMemoryMiB             = 8192
 	defaultNumCPUs               = 2
 	kubernetesVersionVar         = "${KUBERNETES_VERSION}"
@@ -53,7 +56,9 @@ const (
 	vSphereServerVar             = "${VSPHERE_SERVER}"
 	vSphereSSHAuthorizedKeysVar  = "${VSPHERE_SSH_AUTHORIZED_KEY}"
 	vSphereTemplateVar           = "${VSPHERE_TEMPLATE}"
+	vSphereTemplateWindowsVar    = "${VSPHERE_TEMPLATE_WINDOWS}"
 	workerMachineCountVar        = "${WORKER_MACHINE_COUNT}"
+	windowsWorkerMachineCountVar = "${WINDOWS_WORKER_MACHINE_COUNT}"
 	controlPlaneEndpointVar      = "${CONTROL_PLANE_ENDPOINT_IP}"
 	vSphereUsername              = "${VSPHERE_USERNAME}"
 	vSpherePassword              = "${VSPHERE_PASSWORD}" /* #nosec */
@@ -87,11 +92,25 @@ var (
 			value:     map[string]interface{}{},
 			fieldPath: []string{"spec", "selector", "matchLabels"},
 		},
+		{
+			kind:      "MachineDeployment",
+			name:      "${CLUSTER_NAME}-md-0-windows",
+			value:     windowsWorkerMachineCountVar,
+			fieldPath: []string{"spec", "replicas"},
+		},
+		{
+			kind:      "MachineDeployment",
+			name:      "${CLUSTER_NAME}-md-0-windows",
+			value:     map[string]interface{}{},
+			fieldPath: []string{"spec", "selector", "matchLabels"},
+		},
 	}
 
 	stringVars = []string{
 		regexVar(clusterNameVar),
 		regexVar(clusterNameVar + machineDeploymentNameSuffix),
+		regexVar(fmt.Sprintf("%s%s-windows", clusterNameVar, machineDeploymentNameSuffix)),
+		regexVar(fmt.Sprintf("%s-windows", clusterNameVar)),
 		regexVar(namespaceVar),
 		regexVar(kubernetesVersionVar),
 		regexVar(vSphereFolderVar),
@@ -103,6 +122,7 @@ var (
 		regexVar(vSphereNetworkVar),
 		regexVar(vSphereServerVar),
 		regexVar(vSphereTemplateVar),
+		regexVar(vSphereTemplateWindowsVar),
 		regexVar(vSphereHaproxyTemplateVar),
 	}
 )
@@ -216,7 +236,7 @@ func clusterLabels() map[string]string {
 	return map[string]string{"cluster.x-k8s.io/cluster-name": clusterNameVar}
 }
 
-func newVSphereMachineTemplate() infrav1.VSphereMachineTemplate {
+func newVSphereLinuxMachineTemplate() infrav1.VSphereMachineTemplate {
 	return infrav1.VSphereMachineTemplate{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      clusterNameVar,
@@ -229,6 +249,28 @@ func newVSphereMachineTemplate() infrav1.VSphereMachineTemplate {
 		Spec: infrav1.VSphereMachineTemplateSpec{
 			Template: infrav1.VSphereMachineTemplateResource{
 				Spec: defaultVirtualMachineSpec(),
+			},
+		},
+	}
+}
+
+func newVSphereWindowsMachineTemplate() infrav1.VSphereMachineTemplate {
+	spec := defaultVirtualMachineSpec()
+	spec.OS = infrav1.Windows
+	spec.Template = vSphereTemplateWindowsVar
+	spec.DiskGiB = defaultWindowsDiskGiB
+	return infrav1.VSphereMachineTemplate{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-windows", clusterNameVar),
+			Namespace: namespaceVar,
+		},
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: infrav1.GroupVersion.String(),
+			Kind:       typeToKind(&infrav1.VSphereMachineTemplate{}),
+		},
+		Spec: infrav1.VSphereMachineTemplateSpec{
+			Template: infrav1.VSphereMachineTemplateResource{
+				Spec: spec,
 			},
 		},
 	}
@@ -259,10 +301,10 @@ func defaultVirtualMachineCloneSpec() infrav1.VirtualMachineCloneSpec {
 		MemoryMiB:     defaultMemoryMiB,
 		Template:      vSphereTemplateVar,
 		Server:        vSphereServerVar,
-		Thumbprint:    vSphereThumbprint,
 		ResourcePool:  vSphereResourcePoolVar,
 		Datastore:     vSphereDatastoreVar,
 		Folder:        vSphereFolderVar,
+		OS:            infrav1.Linux,
 	}
 }
 
@@ -287,7 +329,7 @@ func defaultKubeadmInitSpec(files []bootstrapv1.File) bootstrapv1.KubeadmConfigS
 	}
 }
 
-func newKubeadmConfigTemplate() bootstrapv1.KubeadmConfigTemplate {
+func newLinuxKubeadmConfigTemplate() bootstrapv1.KubeadmConfigTemplate {
 	return bootstrapv1.KubeadmConfigTemplate{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      clusterNameVar + machineDeploymentNameSuffix,
@@ -311,6 +353,30 @@ func newKubeadmConfigTemplate() bootstrapv1.KubeadmConfigTemplate {
 	}
 }
 
+func newWindowsKubeadmConfigTemplate() bootstrapv1.KubeadmConfigTemplate {
+	return bootstrapv1.KubeadmConfigTemplate{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s%s-windows", clusterNameVar, machineDeploymentNameSuffix),
+			Namespace: namespaceVar,
+		},
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: bootstrapv1.GroupVersion.String(),
+			Kind:       typeToKind(&bootstrapv1.KubeadmConfigTemplate{}),
+		},
+		Spec: bootstrapv1.KubeadmConfigTemplateSpec{
+			Template: bootstrapv1.KubeadmConfigTemplateResource{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
+						NodeRegistration: windowsNodeRegistrationOptions(),
+					},
+					Users:              defaultWindowsUsers(),
+					PreKubeadmCommands: defaultWindowsPreKubeadmCommands(),
+				},
+			},
+		},
+	}
+}
+
 func defaultNodeRegistrationOptions() kubeadmv1beta1.NodeRegistrationOptions {
 	return kubeadmv1beta1.NodeRegistrationOptions{
 		Name:             "{{ ds.meta_data.hostname }}",
@@ -319,11 +385,32 @@ func defaultNodeRegistrationOptions() kubeadmv1beta1.NodeRegistrationOptions {
 	}
 }
 
+func windowsNodeRegistrationOptions() kubeadmv1beta1.NodeRegistrationOptions {
+	return kubeadmv1beta1.NodeRegistrationOptions{
+		Name:             "{{ ds.meta_data.hostname }}",
+		KubeletExtraArgs: defaultExtraArgs(),
+		Taints:           []v1.Taint{{Key: "windows", Value: "2019", Effect: v1.TaintEffectNoSchedule}},
+	}
+}
+
 func defaultUsers() []bootstrapv1.User {
 	return []bootstrapv1.User{
 		{
 			Name: "capv",
 			Sudo: pointer.StringPtr("ALL=(ALL) NOPASSWD:ALL"),
+			SSHAuthorizedKeys: []string{
+				vSphereSSHAuthorizedKeysVar,
+			},
+		},
+	}
+}
+
+func defaultWindowsUsers() []bootstrapv1.User {
+	return []bootstrapv1.User{
+		{
+			Name:   "capv",
+			Groups: pointer.StringPtr("Administrators"),
+			Sudo:   pointer.StringPtr("ALL=(ALL) NOPASSWD:ALL"),
 			SSHAuthorizedKeys: []string{
 				vSphereSSHAuthorizedKeysVar,
 			},
@@ -350,6 +437,15 @@ func defaultExtraArgs() map[string]string {
 func defaultPreKubeadmCommands() []string {
 	return []string{
 		"hostname \"{{ ds.meta_data.hostname }}\"",
+		"echo \"::1         ipv6-localhost ipv6-loopback\" >/etc/hosts",
+		"echo \"127.0.0.1   localhost\" >>/etc/hosts",
+		"echo \"127.0.0.1   {{ ds.meta_data.hostname }}\" >>/etc/hosts",
+		"echo \"{{ ds.meta_data.hostname }}\" >/etc/hostname",
+	}
+}
+
+func defaultWindowsPreKubeadmCommands() []string {
+	return []string{
 		"echo \"::1         ipv6-localhost ipv6-loopback\" >/etc/hosts",
 		"echo \"127.0.0.1   localhost\" >>/etc/hosts",
 		"echo \"127.0.0.1   {{ ds.meta_data.hostname }}\" >>/etc/hosts",
@@ -477,7 +573,7 @@ func appendConfigMapToCrsResource(crs *addonsv1alpha3.ClusterResourceSet, genera
 	})
 }
 
-func newMachineDeployment(cluster clusterv1.Cluster, machineTemplate infrav1.VSphereMachineTemplate, bootstrapTemplate bootstrapv1.KubeadmConfigTemplate) clusterv1.MachineDeployment {
+func newLinuxMachineDeployment(cluster clusterv1.Cluster, machineTemplate infrav1.VSphereMachineTemplate, bootstrapTemplate bootstrapv1.KubeadmConfigTemplate) clusterv1.MachineDeployment {
 	return clusterv1.MachineDeployment{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: clusterv1.GroupVersion.String(),
@@ -485,6 +581,45 @@ func newMachineDeployment(cluster clusterv1.Cluster, machineTemplate infrav1.VSp
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      clusterNameVar + machineDeploymentNameSuffix,
+			Labels:    clusterLabels(),
+			Namespace: namespaceVar,
+		},
+		Spec: clusterv1.MachineDeploymentSpec{
+			ClusterName: clusterNameVar,
+			Replicas:    pointer.Int32Ptr(int32(555)),
+			Template: clusterv1.MachineTemplateSpec{
+				ObjectMeta: clusterv1.ObjectMeta{
+					Labels: clusterLabels(),
+				},
+				Spec: clusterv1.MachineSpec{
+					Version:     pointer.StringPtr(kubernetesVersionVar),
+					ClusterName: cluster.Name,
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: &corev1.ObjectReference{
+							APIVersion: bootstrapTemplate.GroupVersionKind().GroupVersion().String(),
+							Kind:       bootstrapTemplate.Kind,
+							Name:       bootstrapTemplate.Name,
+						},
+					},
+					InfrastructureRef: corev1.ObjectReference{
+						APIVersion: machineTemplate.GroupVersionKind().GroupVersion().String(),
+						Kind:       machineTemplate.Kind,
+						Name:       machineTemplate.Name,
+					},
+				},
+			},
+		},
+	}
+}
+
+func newWindowsMachineDeployment(cluster clusterv1.Cluster, machineTemplate infrav1.VSphereMachineTemplate, bootstrapTemplate bootstrapv1.KubeadmConfigTemplate) clusterv1.MachineDeployment {
+	return clusterv1.MachineDeployment{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       typeToKind(&clusterv1.MachineDeployment{}),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s%s-windows", clusterNameVar, machineDeploymentNameSuffix),
 			Labels:    clusterLabels(),
 			Namespace: namespaceVar,
 		},

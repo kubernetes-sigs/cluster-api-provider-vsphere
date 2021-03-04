@@ -237,6 +237,10 @@ spec:
                       value in the template from which the virtual machine is cloned.
                     format: int32
                     type: integer
+                  os:
+                    description: OS is the Operating System of the virtual machine
+                      Defaults to Linux
+                    type: string
                   resourcePool:
                     description: ResourcePool is the name or inventory path of the
                       resource pool in which the virtual machine is created/located.

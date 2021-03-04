@@ -396,6 +396,7 @@ func (r machineReconciler) reconcileNormal(ctx *context.MachineContext) (reconci
 
 func (r machineReconciler) reconcileNormalPre7(ctx *context.MachineContext, vsphereVM *infrav1.VSphereVM) (runtime.Object, error) {
 	// Create or update the VSphereVM resource.
+
 	vm := &infrav1.VSphereVM{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ctx.VSphereMachine.Namespace,

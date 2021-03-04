@@ -189,6 +189,10 @@ func (vms *VMService) DestroyVM(ctx *context.VMContext) (infrav1.VirtualMachine,
 			return vm, err
 		}
 		ctx.VSphereVM.Status.TaskRef = task.Reference().Value
+		if err = ctx.Patch(); err != nil {
+			ctx.Logger.Error(err, "patch failed", "vm", ctx.String())
+			return vm, err
+		}
 		ctx.Logger.Info("wait for VM to be powered off")
 		return vm, nil
 	}
@@ -258,6 +262,10 @@ func (vms *VMService) reconcilePowerState(ctx *virtualMachineContext) (bool, err
 
 		// Update the VSphereVM.Status.TaskRef to track the power-on task.
 		ctx.VSphereVM.Status.TaskRef = task.Reference().Value
+		if err = ctx.Patch(); err != nil {
+			ctx.Logger.Error(err, "patch failed", "vm", ctx.String())
+			return false, err
+		}
 
 		// Once the VM is successfully powered on, a reconcile request should be
 		// triggered once the VM reports IP addresses are available.

@@ -94,7 +94,6 @@ variables:
   VSPHERE_NETWORK: "sddc-cgw-network-8"
   VSPHERE_HAPROXY_TEMPLATE: "capv-haproxy-v0.6.3"
   VSPHERE_TEMPLATE: "ubuntu-1804-kube-v1.19.1"
-  VSPHERE_SSH_AUTHORIZED_KEY: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDCbQg7ywSD1oJAwAHhQuemrL6C9wvOIgE7wfZ0PfqolcTEQbLbv7Zxe1/TRzr4B20pb6GMryJ7O3SH9kuCubDYQ4Atw9MF/iAtsg0s3Xs4a3RAqoeaTHA0u401Um27ANDVqLswdTZ0J0Ev+XqRCEgPX+IpGgiNOyiHxfIgwdev/fG1MmMEyCKj8JNlRghFnleBcE+N3Mu0rKb88ascch2mKLY5fGDwbnC3V7d6LE6jWVT5HV391N4IWmjoBjlBt3mfzNslWqJUS+PxRbYR3i7vyVrpb/mkw1YG1jeomTAmkx4kwiV7hSzNVF6pKNIOoB1mpwULJ0VL+UkM8IPEfVJb root@9ae81f510a14"
 
 intervals:
   default/wait-controllers: ["5m", "10s"]

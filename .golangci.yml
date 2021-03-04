@@ -20,3 +20,9 @@ run:
 issue:
   max-same-issues: 0
   max-per-linter: 0
+issues:
+  exclude-rules:
+    - path: "test/e2e/*"
+      linters:
+        - gosec
+      text: "G106:"

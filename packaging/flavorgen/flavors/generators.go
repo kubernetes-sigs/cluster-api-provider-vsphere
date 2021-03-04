@@ -35,7 +35,6 @@ import (
 const (
 	clusterNameVar               = "${CLUSTER_NAME}"
 	controlPlaneMachineCountVar  = "${CONTROL_PLANE_MACHINE_COUNT}"
-	defaultCloudProviderImage    = "gcr.io/cloud-provider-vsphere/cpi/release/manager:v1.2.1"
 	defaultClusterCIDR           = "192.168.0.0/16"
 	defaultDiskGiB               = 25
 	defaultMemoryMiB             = 8192
@@ -148,7 +147,7 @@ func newVSphereCluster(lb *infrav1.HAProxyLoadBalancer) infrav1.VSphereCluster {
 				},
 				ProviderConfig: infrav1.CPIProviderConfig{
 					Cloud: &infrav1.CPICloudConfig{
-						ControllerImage: defaultCloudProviderImage,
+						ControllerImage: cloudprovidersvc.DefaultCPIControllerImage,
 					},
 					Storage: &infrav1.CPIStorageConfig{
 						ControllerImage:     cloudprovidersvc.DefaultCSIControllerImage,

@@ -33,15 +33,16 @@ import (
 // NOTE: the contents of this file are derived from https://github.com/kubernetes-sigs/vsphere-csi-driver/tree/master/manifests/1.14
 
 const (
-	DefaultCSIControllerImage     = "gcr.io/cloud-provider-vsphere/csi/release/driver:v2.0.0"
-	DefaultCSINodeDriverImage     = "gcr.io/cloud-provider-vsphere/csi/release/driver:v2.0.0"
-	DefaultCSIAttacherImage       = "quay.io/k8scsi/csi-attacher:v2.0.0"
-	DefaultCSIProvisionerImage    = "quay.io/k8scsi/csi-provisioner:v1.4.0"
-	DefaultCSIMetadataSyncerImage = "gcr.io/cloud-provider-vsphere/csi/release/syncer:v2.0.0"
-	DefaultCSILivenessProbeImage  = "quay.io/k8scsi/livenessprobe:v1.1.0"
-	DefaultCSIRegistrarImage      = "quay.io/k8scsi/csi-node-driver-registrar:v1.2.0"
+	DefaultCSIControllerImage     = "gcr.io/cloud-provider-vsphere/csi/release/driver:v2.1.0"
+	DefaultCSINodeDriverImage     = "gcr.io/cloud-provider-vsphere/csi/release/driver:v2.1.0"
+	DefaultCSIAttacherImage       = "quay.io/k8scsi/csi-attacher:v3.0.0"
+	DefaultCSIProvisionerImage    = "quay.io/k8scsi/csi-provisioner:v2.0.0"
+	DefaultCSIMetadataSyncerImage = "gcr.io/cloud-provider-vsphere/csi/release/syncer:v2.1.0"
+	DefaultCSILivenessProbeImage  = "quay.io/k8scsi/livenessprobe:v2.1.0"
+	DefaultCSIRegistrarImage      = "quay.io/k8scsi/csi-node-driver-registrar:v2.0.1"
 	CSINamespace                  = metav1.NamespaceSystem
 	CSIControllerName             = "vsphere-csi-controller"
+	CSIFeatureStateConfigMapName  = "internal-feature-states.csi.vsphere.vmware.com"
 )
 
 func CSIControllerServiceAccount() *corev1.ServiceAccount {
@@ -66,7 +67,7 @@ func CSIControllerClusterRole() *rbacv1.ClusterRole {
 			},
 			{
 				APIGroups: []string{""},
-				Resources: []string{"nodes", "pods", "secrets"},
+				Resources: []string{"nodes", "pods", "secrets", "configmaps"},
 				Verbs:     []string{"get", "list", "watch"},
 			},
 			{
@@ -78,6 +79,11 @@ func CSIControllerClusterRole() *rbacv1.ClusterRole {
 				APIGroups: []string{"storage.k8s.io"},
 				Resources: []string{"volumeattachments"},
 				Verbs:     []string{"get", "list", "watch", "update", "patch"},
+			},
+			{
+				APIGroups: []string{"storage.k8s.io"},
+				Resources: []string{"volumeattachments/status"},
+				Verbs:     []string{"patch"},
 			},
 			{
 				APIGroups: []string{""},
@@ -388,9 +394,6 @@ func CSIControllerDeployment(storageConfig *v1alpha3.CPIStorageConfig) *appsv1.D
 			Namespace: CSINamespace,
 		},
 		Spec: appsv1.DeploymentSpec{
-			Strategy: appsv1.DeploymentStrategy{
-				Type: appsv1.RollingUpdateDeploymentStrategyType,
-			},
 			Replicas: boolInt32(1),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
@@ -437,10 +440,7 @@ func CSIControllerDeployment(storageConfig *v1alpha3.CPIStorageConfig) *appsv1.D
 						{
 							Name: "socket-dir",
 							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/var/lib/csi/sockets/pluginproxy/csi.vsphere.vmware.com",
-									Type: newHostPathType(string(corev1.HostPathDirectoryOrCreate)),
-								},
+								EmptyDir: &corev1.EmptyDirVolumeSource{},
 							},
 						},
 					},
@@ -474,13 +474,6 @@ func VSphereCSIControllerContainer(image string) corev1.Container {
 	return corev1.Container{
 		Name:  CSIControllerName,
 		Image: image,
-		Lifecycle: &corev1.Lifecycle{
-			PreStop: &corev1.Handler{
-				Exec: &corev1.ExecAction{
-					Command: []string{"/bin/sh", "-c", "rm -rf /var/lib/csi/sockets/pluginproxy/csi.vsphere.vmware.com"},
-				},
-			},
-		},
 		Ports: []corev1.ContainerPort{
 			{
 				Name:          "healthz",
@@ -595,8 +588,8 @@ func CSIProvisionerContainer(image string) corev1.Container {
 			"--csi-address=$(ADDRESS)",
 			"--feature-gates=Topology=true",
 			"--strict-topology",
-			"--enable-leader-election",
-			"--leader-election-type=leases",
+			"--leader-election",
+			"--default-fstype=ext4",
 		},
 		Env: []corev1.EnvVar{
 			{
@@ -658,6 +651,22 @@ func ConfigForCSI(vsphereCluster v1alpha3.VSphereCluster, cluster clusterv1.Clus
 	}
 
 	return config
+}
+
+func CSIFeatureStatesConfigMap() *corev1.ConfigMap {
+	return &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "ConfigMap",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      CSIFeatureStateConfigMapName,
+			Namespace: CSINamespace,
+		},
+		Data: map[string]string{
+			"csi-migration": "false",
+		},
+	}
 }
 
 func boolPtr(b bool) *bool {

@@ -18,6 +18,8 @@ package vcenter
 
 import (
 	"fmt"
+	"math/rand"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/vmware/govmomi/object"
@@ -227,8 +229,9 @@ func Clone(ctx *context.VMContext, bootstrapData []byte) error {
 				return errors.New(fmt.Sprintf("couldn't find specified datastore: %s in compatible list of datastores for storage policy", ctx.VSphereVM.Spec.Datastore))
 			}
 		} else {
-			firstDSRef := fmt.Sprintf("%s:%s", result.CompatibleDatastores()[0].HubType, result.CompatibleDatastores()[0].HubId)
-			datastoreRef.FromString(firstDSRef)
+			rand.Seed(time.Now().UnixNano())
+			ds := result.CompatibleDatastores()[rand.Intn(len(result.CompatibleDatastores()))]
+			datastoreRef = &types.ManagedObjectReference{Type: ds.HubType, Value: ds.HubId}
 		}
 	}
 

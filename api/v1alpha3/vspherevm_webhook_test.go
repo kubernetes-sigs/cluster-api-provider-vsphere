@@ -24,7 +24,8 @@ import (
 )
 
 var (
-	biosUUID = "vsphere://42305f0b-dad7-1d3d-5727-0eafffffbbbfc"
+	biosUUID   = "vsphere://42305f0b-dad7-1d3d-5727-0eafffffbbbfc"
+	thumbprint = "A2:54:E3:BA:71:36:B4:38:86:16:52:EC:48:AF:89:00:A0:12:CE:53"
 )
 
 //nolint
@@ -38,17 +39,17 @@ func TestVSphereVM_ValidateCreate(t *testing.T) {
 	}{
 		{
 			name:      "preferredAPIServerCIDR set on creation ",
-			vSphereVM: createVSphereVM("foo.com", "", "192.168.0.1/32", []string{}, nil),
+			vSphereVM: createVSphereVM("foo.com", "", "192.168.0.1/32", []string{}, nil, ""),
 			wantErr:   true,
 		},
 		{
 			name:      "IPs are not in CIDR format",
-			vSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3"}, nil),
+			vSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3"}, nil, ""),
 			wantErr:   true,
 		},
 		{
 			name:      "successful VSphereVM creation",
-			vSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, nil),
+			vSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, nil, ""),
 			wantErr:   false,
 		},
 	}
@@ -77,26 +78,32 @@ func TestVSphereVM_ValidateUpdate(t *testing.T) {
 	}{
 		{
 			name:         "ProviderID can be updated",
-			oldVSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32"}, nil),
-			vSphereVM:    createVSphereVM("foo.com", biosUUID, "", []string{"192.168.0.1/32"}, nil),
+			oldVSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32"}, nil, ""),
+			vSphereVM:    createVSphereVM("foo.com", biosUUID, "", []string{"192.168.0.1/32"}, nil, ""),
 			wantErr:      false,
 		},
 		{
 			name:         "updating ips can be done",
-			oldVSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32"}, nil),
-			vSphereVM:    createVSphereVM("foo.com", biosUUID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}, nil),
+			oldVSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32"}, nil, ""),
+			vSphereVM:    createVSphereVM("foo.com", biosUUID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}, nil, ""),
 			wantErr:      false,
 		},
 		{
 			name:         "updating bootstrapRef can be done",
-			oldVSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32"}, nil),
-			vSphereVM:    createVSphereVM("foo.com", biosUUID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}, &corev1.ObjectReference{}),
+			oldVSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32"}, nil, ""),
+			vSphereVM:    createVSphereVM("foo.com", biosUUID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}, &corev1.ObjectReference{}, ""),
+			wantErr:      false,
+		},
+		{
+			name:         "updating thumbprint can be done",
+			oldVSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32"}, nil, ""),
+			vSphereVM:    createVSphereVM("foo.com", biosUUID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}, nil, thumbprint),
 			wantErr:      false,
 		},
 		{
 			name:         "updating server cannot be done",
-			oldVSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32"}, nil),
-			vSphereVM:    createVSphereVM("bar.com", biosUUID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}, nil),
+			oldVSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32"}, nil, ""),
+			vSphereVM:    createVSphereVM("bar.com", biosUUID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}, nil, ""),
 			wantErr:      true,
 		},
 	}
@@ -112,13 +119,14 @@ func TestVSphereVM_ValidateUpdate(t *testing.T) {
 	}
 }
 
-func createVSphereVM(server string, biosUUID string, preferredAPIServerCIDR string, ips []string, bootstrapRef *corev1.ObjectReference) *VSphereVM {
+func createVSphereVM(server string, biosUUID string, preferredAPIServerCIDR string, ips []string, bootstrapRef *corev1.ObjectReference, thumbprint string) *VSphereVM {
 	VSphereVM := &VSphereVM{
 		Spec: VSphereVMSpec{
 			BiosUUID:     biosUUID,
 			BootstrapRef: bootstrapRef,
 			VirtualMachineCloneSpec: VirtualMachineCloneSpec{
-				Server: server,
+				Server:     server,
+				Thumbprint: thumbprint,
 				Network: NetworkSpec{
 					PreferredAPIServerCIDR: preferredAPIServerCIDR,
 					Devices:                []NetworkDeviceSpec{},

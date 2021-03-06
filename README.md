@@ -111,7 +111,7 @@ Participating in the project is governed by the Kubernetes code of conduct. Plea
 
 ### Implementer office hours
 
-- Bi-weekly on Mondays @ 1:00 PT on [Zoom][zoom_meeting] starting on 8/13
+- Bi-weekly on Thursdays @ 10:00am PT / 5:00pm UTC on [Zoom][zoom_meeting], passcode 77777
 - Previous meetings: \[ [notes][meeting_notes] \]
 
 ### Other ways to communicate with the contributors
@@ -154,6 +154,6 @@ We also use the issue tracker to track features. If you have an idea for a featu
 [slack]: https://kubernetes.slack.com/messages/CKFGK3SSD
 [slack_info]: https://github.com/kubernetes/community/tree/master/communication#communication
 [troubleshooting]: ./docs/troubleshooting.md
-[zoom_meeting]: https://zoom.us/j/875399243
+[zoom_meeting]: https://zoom.us/j/92253194848?pwd=cVVVNDMxeTl1QVJPUlpvLzNSVU1JZz09
 
 <!-- markdownlint-disable-file MD033 -->

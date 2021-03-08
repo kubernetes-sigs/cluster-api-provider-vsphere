@@ -22,19 +22,15 @@ import (
 	"strings"
 	"time"
 
-	"sigs.k8s.io/yaml"
-
-	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
-
-	// +kubebuilder:scaffold:imports
+	"sigs.k8s.io/yaml"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	// +kubebuilder:scaffold:imports
 )
 
 // AddToManagerFunc is a function that can be optionally specified with
@@ -44,38 +40,17 @@ type AddToManagerFunc func(*context.ControllerManagerContext, ctrlmgr.Manager) e
 
 // Options describes the options used to create a new CAPV manager.
 type Options struct {
-	// LeaderElectionEnabled is a flag that enables leader election.
-	LeaderElectionEnabled bool
+	ctrlmgr.Options
 
 	// EnableKeepAlive is a session feature to enable keep alive handler
 	// for better load management on vSphere api server
 	EnableKeepAlive bool
-
-	// LeaderElectionID is the name of the config map to use as the
-	// locking resource when configuring leader election.
-	LeaderElectionID string
-
-	// SyncPeriod is the amount of time to wait between syncing the local
-	// object cache with the API server.
-	SyncPeriod time.Duration
 
 	// MaxConcurrentReconciles the maximum number of allowed, concurrent
 	// reconciles.
 	//
 	// Defaults to the eponymous constant in this package.
 	MaxConcurrentReconciles int
-
-	// MetricsAddr is the net.Addr string for the metrics server.
-	MetricsAddr string
-
-	// HealthAddr is the net.Addr string for the healthcheck server
-	HealthAddr string
-
-	// LeaderElectionNamespace is the namespace in which the pod running the
-	// controller maintains a leader election lock
-	//
-	// Defaults to ""
-	LeaderElectionNamespace string
 
 	// LeaderElectionNamespace is the namespace in which the pod running the
 	// controller maintains a leader election lock
@@ -87,12 +62,6 @@ type Options struct {
 	//
 	// Defaults to the eponymous constant in this package.
 	PodName string
-
-	// WatchNamespace is the namespace the controllers watch for changes. If
-	// no value is specified then all namespaces are watched.
-	//
-	// Defaults to the eponymous constant in this package.
-	WatchNamespace string
 
 	// Username is the username for the account used to access remote vSphere
 	// endpoints.
@@ -106,20 +75,10 @@ type Options struct {
 	// in keepalive handler
 	KeepAliveDuration time.Duration
 
-	// WebhookPort is the port that the webhook server serves at.
-	WebhookPort int
-
-	// CertDir is the directory that contains the server key and certificate.
-	// TODO (srm09): Use CertDir from controller-runtime instead
-	CertDir string
-
 	// CredentialsFile is the file that contains credentials of CAPV
 	CredentialsFile string
 
-	Logger     logr.Logger
 	KubeConfig *rest.Config
-	Scheme     *runtime.Scheme
-	NewCache   cache.NewCacheFunc
 
 	// AddToManager is a function that can be optionally specified with
 	// the manager's Options in order to explicitly decide what controllers
@@ -134,10 +93,6 @@ func (o *Options) defaults() {
 
 	if o.PodName == "" {
 		o.PodName = DefaultPodName
-	}
-
-	if o.SyncPeriod == 0 {
-		o.SyncPeriod = DefaultSyncPeriod
 	}
 
 	if o.KubeConfig == nil {

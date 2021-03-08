@@ -60,19 +60,7 @@ func New(opts Options) (Manager, error) {
 	}
 
 	// Build the controller manager.
-	mgr, err := ctrl.NewManager(opts.KubeConfig, ctrl.Options{
-		Scheme:                  opts.Scheme,
-		MetricsBindAddress:      opts.MetricsAddr,
-		LeaderElection:          opts.LeaderElectionEnabled,
-		LeaderElectionID:        opts.LeaderElectionID,
-		LeaderElectionNamespace: opts.LeaderElectionNamespace,
-		SyncPeriod:              &opts.SyncPeriod,
-		Namespace:               opts.WatchNamespace,
-		NewCache:                opts.NewCache,
-		Port:                    opts.WebhookPort,
-		HealthProbeBindAddress:  opts.HealthAddr,
-		CertDir:                 opts.CertDir,
-	})
+	mgr, err := ctrl.NewManager(opts.KubeConfig, opts.Options)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create manager")
 	}
@@ -80,7 +68,7 @@ func New(opts Options) (Manager, error) {
 	// Build the controller manager context.
 	controllerManagerContext := &context.ControllerManagerContext{
 		Context:                 goctx.Background(),
-		WatchNamespace:          opts.WatchNamespace,
+		WatchNamespace:          opts.Namespace,
 		Namespace:               opts.PodNamespace,
 		Name:                    opts.PodName,
 		LeaderElectionID:        opts.LeaderElectionID,

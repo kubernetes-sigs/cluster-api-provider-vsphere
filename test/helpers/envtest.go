@@ -121,11 +121,13 @@ func NewTestEnvironment() *TestEnvironment {
 	}
 
 	managerOpts := manager.Options{
-		Scheme:      scheme,
-		MetricsAddr: "0",
-		WebhookPort: env.WebhookInstallOptions.LocalServingPort,
-		CertDir:     env.WebhookInstallOptions.LocalServingCertDir,
-		KubeConfig:  env.Config,
+		Options: ctrl.Options{
+			Scheme:             scheme,
+			Port:               env.WebhookInstallOptions.LocalServingPort,
+			CertDir:            env.WebhookInstallOptions.LocalServingCertDir,
+			MetricsBindAddress: "0",
+		},
+		KubeConfig: env.Config,
 		// TODO (srm09): might need to supply some mock for
 		// 		vCenter interactions
 		Username: "blah",

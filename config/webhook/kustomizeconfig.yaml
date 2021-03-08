@@ -12,8 +12,3 @@ namespace:
   group: admissionregistration.k8s.io
   path: webhooks/clientConfig/service/namespace
   create: true
-
-
-varReference:
-- kind: Deployment
-  path: spec/template/spec/volumes/secret/secretName

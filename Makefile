@@ -263,9 +263,9 @@ dev-manifests:
 manifests:  $(STAGE)-version-check $(STAGE)-flavors $(MANIFEST_DIR) $(BUILD_DIR) $(KUSTOMIZE)
 	rm -rf $(BUILD_DIR)/config
 	cp -R config $(BUILD_DIR)
-	sed -i'' -e 's@imagePullPolicy: .*@imagePullPolicy: '"$(PULL_POLICY)"'@' $(BUILD_DIR)/config/manager/manager_pull_policy.yaml
-	sed -i'' -e 's@image: .*@image: '"$(IMAGE)"'@' $(BUILD_DIR)/config/manager/manager_image_patch.yaml
-	"$(KUSTOMIZE)" build $(BUILD_DIR)/config > $(MANIFEST_DIR)/infrastructure-components.yaml
+	sed -i'' -e 's@imagePullPolicy: .*@imagePullPolicy: '"$(PULL_POLICY)"'@' $(BUILD_DIR)/config/default/manager_pull_policy.yaml
+	sed -i'' -e 's@image: .*@image: '"$(IMAGE)"'@' $(BUILD_DIR)/config/default/manager_image_patch.yaml
+	"$(KUSTOMIZE)" build $(BUILD_DIR)/config/default > $(MANIFEST_DIR)/infrastructure-components.yaml
 
 ## --------------------------------------
 ## Cleanup / Verification

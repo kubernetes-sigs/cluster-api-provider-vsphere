@@ -1,12 +1,14 @@
 
 ---
-apiVersion: admissionregistration.k8s.io/v1beta1
+apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
   creationTimestamp: null
   name: validating-webhook-configuration
 webhooks:
-- clientConfig:
+- admissionReviewVersions:
+  - v1beta1
+  clientConfig:
     caBundle: Cg==
     service:
       name: webhook-service
@@ -26,7 +28,9 @@ webhooks:
     resources:
     - vsphereclusters
   sideEffects: None
-- clientConfig:
+- admissionReviewVersions:
+  - v1beta1
+  clientConfig:
     caBundle: Cg==
     service:
       name: webhook-service
@@ -46,7 +50,9 @@ webhooks:
     resources:
     - vspheremachines
   sideEffects: None
-- clientConfig:
+- admissionReviewVersions:
+  - v1beta1
+  clientConfig:
     caBundle: Cg==
     service:
       name: webhook-service
@@ -66,7 +72,9 @@ webhooks:
     resources:
     - vspheremachinetemplates
   sideEffects: None
-- clientConfig:
+- admissionReviewVersions:
+  - v1beta1
+  clientConfig:
     caBundle: Cg==
     service:
       name: webhook-service
@@ -80,86 +88,6 @@ webhooks:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
     - v1alpha4
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - vspherevms
-  sideEffects: None
-- clientConfig:
-    caBundle: Cg==
-    service:
-      name: webhook-service
-      namespace: system
-      path: /validate-infrastructure-cluster-x-k8s-io-v1alpha3-vspherecluster
-  failurePolicy: Fail
-  matchPolicy: Equivalent
-  name: validation.vspherecluster.infrastructure.x-k8s.io
-  rules:
-  - apiGroups:
-    - infrastructure.cluster.x-k8s.io
-    apiVersions:
-    - v1alpha3
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - vsphereclusters
-  sideEffects: None
-- clientConfig:
-    caBundle: Cg==
-    service:
-      name: webhook-service
-      namespace: system
-      path: /validate-infrastructure-cluster-x-k8s-io-v1alpha3-vspheremachine
-  failurePolicy: Fail
-  matchPolicy: Equivalent
-  name: validation.vspheremachine.infrastructure.x-k8s.io
-  rules:
-  - apiGroups:
-    - infrastructure.cluster.x-k8s.io
-    apiVersions:
-    - v1alpha3
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - vspheremachines
-  sideEffects: None
-- clientConfig:
-    caBundle: Cg==
-    service:
-      name: webhook-service
-      namespace: system
-      path: /validate-infrastructure-cluster-x-k8s-io-v1alpha3-vspheremachinetemplate
-  failurePolicy: Fail
-  matchPolicy: Equivalent
-  name: validation.vspheremachinetemplate.infrastructure.x-k8s.io
-  rules:
-  - apiGroups:
-    - infrastructure.cluster.x-k8s.io
-    apiVersions:
-    - v1alpha3
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - vspheremachinetemplates
-  sideEffects: None
-- clientConfig:
-    caBundle: Cg==
-    service:
-      name: webhook-service
-      namespace: system
-      path: /validate-infrastructure-cluster-x-k8s-io-v1alpha3-vspherevm
-  failurePolicy: Fail
-  matchPolicy: Equivalent
-  name: validation.vspherevm.infrastructure.x-k8s.io
-  rules:
-  - apiGroups:
-    - infrastructure.cluster.x-k8s.io
-    apiVersions:
-    - v1alpha3
     operations:
     - CREATE
     - UPDATE

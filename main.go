@@ -24,7 +24,6 @@ import (
 	"os"
 	"time"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
 
 	"k8s.io/klog/v2"
@@ -136,78 +135,46 @@ func main() {
 	// Create a function that adds all of the controllers and webhooks to the
 	// manager.
 	addToManager := func(ctx *context.ControllerManagerContext, mgr ctrlmgr.Manager) error {
-		if managerOpts.WebhookPort != 0 {
-			if err := (&v1alpha3.VSphereCluster{}).SetupWebhookWithManager(mgr); err != nil {
-				return err
-			}
-			if err := (&v1alpha3.VSphereClusterList{}).SetupWebhookWithManager(mgr); err != nil {
-				return err
-			}
-			if err := (&v1alpha4.VSphereCluster{}).SetupWebhookWithManager(mgr); err != nil {
-				return err
-			}
-			if err := (&v1alpha4.VSphereClusterList{}).SetupWebhookWithManager(mgr); err != nil {
-				return err
-			}
 
-			if err := (&v1alpha3.VSphereMachine{}).SetupWebhookWithManager(mgr); err != nil {
-				return err
-			}
-			if err := (&v1alpha3.VSphereMachineList{}).SetupWebhookWithManager(mgr); err != nil {
-				return err
-			}
-			if err := (&v1alpha4.VSphereMachine{}).SetupWebhookWithManager(mgr); err != nil {
-				return err
-			}
-			if err := (&v1alpha4.VSphereMachineList{}).SetupWebhookWithManager(mgr); err != nil {
-				return err
-			}
+		if err := (&v1alpha4.VSphereCluster{}).SetupWebhookWithManager(mgr); err != nil {
+			return err
+		}
+		if err := (&v1alpha4.VSphereClusterList{}).SetupWebhookWithManager(mgr); err != nil {
+			return err
+		}
 
-			if err := (&v1alpha3.VSphereMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
-				return err
-			}
-			if err := (&v1alpha3.VSphereMachineTemplateList{}).SetupWebhookWithManager(mgr); err != nil {
-				return err
-			}
-			if err := (&v1alpha4.VSphereMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
-				return err
-			}
-			if err := (&v1alpha4.VSphereMachineTemplateList{}).SetupWebhookWithManager(mgr); err != nil {
-				return err
-			}
+		if err := (&v1alpha4.VSphereMachine{}).SetupWebhookWithManager(mgr); err != nil {
+			return err
+		}
+		if err := (&v1alpha4.VSphereMachineList{}).SetupWebhookWithManager(mgr); err != nil {
+			return err
+		}
 
-			if err := (&v1alpha3.VSphereVM{}).SetupWebhookWithManager(mgr); err != nil {
-				return err
-			}
-			if err := (&v1alpha3.VSphereVMList{}).SetupWebhookWithManager(mgr); err != nil {
-				return err
-			}
-			if err := (&v1alpha4.VSphereVM{}).SetupWebhookWithManager(mgr); err != nil {
-				return err
-			}
-			if err := (&v1alpha4.VSphereVMList{}).SetupWebhookWithManager(mgr); err != nil {
-				return err
-			}
+		if err := (&v1alpha4.VSphereMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+			return err
+		}
+		if err := (&v1alpha4.VSphereMachineTemplateList{}).SetupWebhookWithManager(mgr); err != nil {
+			return err
+		}
 
-			if err := (&v1alpha3.HAProxyLoadBalancer{}).SetupWebhookWithManager(mgr); err != nil {
-				return err
-			}
-			if err := (&v1alpha3.HAProxyLoadBalancerList{}).SetupWebhookWithManager(mgr); err != nil {
-				return err
-			}
-		} else {
-			if err := controllers.AddClusterControllerToManager(ctx, mgr); err != nil {
-				return err
-			}
-			if err := controllers.AddMachineControllerToManager(ctx, mgr); err != nil {
-				return err
-			}
-			if err := controllers.AddVMControllerToManager(ctx, mgr); err != nil {
-				return err
-			}
-			if err := controllers.AddHAProxyLoadBalancerControllerToManager(ctx, mgr); err != nil {
-				return err
-			}
+		if err := (&v1alpha4.VSphereVM{}).SetupWebhookWithManager(mgr); err != nil {
+			return err
+		}
+		if err := (&v1alpha4.VSphereVMList{}).SetupWebhookWithManager(mgr); err != nil {
+			return err
+		}
+
+		if err := controllers.AddClusterControllerToManager(ctx, mgr); err != nil {
+			return err
+		}
+		if err := controllers.AddMachineControllerToManager(ctx, mgr); err != nil {
+			return err
+		}
+		if err := controllers.AddVMControllerToManager(ctx, mgr); err != nil {
+			return err
+		}
+		if err := controllers.AddHAProxyLoadBalancerControllerToManager(ctx, mgr); err != nil {
+			return err
 		}
 
 		return nil

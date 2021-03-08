@@ -34,11 +34,7 @@ func TestFuzzyConversion(t *testing.T) {
 	g.Expect(nextver.AddToScheme(scheme)).To(Succeed())
 
 	t.Run("for VSphereCluster", utilconversion.FuzzTestFunc(scheme, &nextver.VSphereCluster{}, &VSphereCluster{}))
-	t.Run("for VSphereCluster", utilconversion.FuzzTestFunc(scheme, &nextver.VSphereClusterList{}, &VSphereClusterList{}))
 	t.Run("for VSphereMachine", utilconversion.FuzzTestFunc(scheme, &nextver.VSphereMachine{}, &VSphereMachine{}))
-	t.Run("for VSphereMachineList", utilconversion.FuzzTestFunc(scheme, &nextver.VSphereMachineList{}, &VSphereMachineList{}))
 	t.Run("for VSphereMachineTemplate", utilconversion.FuzzTestFunc(scheme, &nextver.VSphereMachineTemplate{}, &VSphereMachineTemplate{}))
-	t.Run("for VSphereMachineTemplateList", utilconversion.FuzzTestFunc(scheme, &nextver.VSphereMachineTemplateList{}, &VSphereMachineTemplateList{}))
 	t.Run("for VSphereVM", utilconversion.FuzzTestFunc(scheme, &nextver.VSphereVM{}, &VSphereVM{}))
-	t.Run("for VSphereVMList", utilconversion.FuzzTestFunc(scheme, &nextver.VSphereVMList{}, &VSphereVMList{}))
 }

@@ -20,7 +20,7 @@ import (
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 )
 

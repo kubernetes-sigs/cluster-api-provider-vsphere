@@ -1,5 +1,5 @@
 ---
-apiVersion: cluster.x-k8s.io/v1alpha3
+apiVersion: cluster.x-k8s.io/v1alpha4
 kind: Cluster
 metadata:
   name: '${CLUSTER_NAME}'
@@ -10,15 +10,15 @@ spec:
       cidrBlocks:
       - 192.168.0.0/16
   controlPlaneRef:
-    apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+    apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
     kind: KubeadmControlPlane
     name: '${CLUSTER_NAME}'
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
     kind: VSphereCluster
     name: '${CLUSTER_NAME}'
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
 kind: HAProxyLoadBalancer
 metadata:
   labels:
@@ -46,7 +46,7 @@ spec:
     server: '${VSPHERE_SERVER}'
     template: '${VSPHERE_HAPROXY_TEMPLATE}'
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
 kind: VSphereCluster
 metadata:
   name: '${CLUSTER_NAME}'
@@ -80,12 +80,12 @@ spec:
       resourcePool: '${VSPHERE_RESOURCE_POOL}'
       server: '${VSPHERE_SERVER}'
   loadBalancerRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
     kind: HAProxyLoadBalancer
     name: '${CLUSTER_NAME}'
   server: '${VSPHERE_SERVER}'
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
 kind: VSphereMachineTemplate
 metadata:
   name: '${CLUSTER_NAME}'
@@ -108,14 +108,14 @@ spec:
       server: '${VSPHERE_SERVER}'
       template: '${VSPHERE_TEMPLATE}'
 ---
-apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
 kind: KubeadmControlPlane
 metadata:
   name: '${CLUSTER_NAME}'
   namespace: '${NAMESPACE}'
 spec:
   infrastructureTemplate:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
     kind: VSphereMachineTemplate
     name: '${CLUSTER_NAME}'
   kubeadmConfigSpec:
@@ -153,7 +153,7 @@ spec:
   replicas: ${CONTROL_PLANE_MACHINE_COUNT}
   version: '${KUBERNETES_VERSION}'
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha4
 kind: KubeadmConfigTemplate
 metadata:
   name: '${CLUSTER_NAME}-md-0'
@@ -179,7 +179,7 @@ spec:
         - '${VSPHERE_SSH_AUTHORIZED_KEY}'
         sudo: ALL=(ALL) NOPASSWD:ALL
 ---
-apiVersion: cluster.x-k8s.io/v1alpha3
+apiVersion: cluster.x-k8s.io/v1alpha4
 kind: MachineDeployment
 metadata:
   labels:
@@ -198,12 +198,12 @@ spec:
     spec:
       bootstrap:
         configRef:
-          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha4
           kind: KubeadmConfigTemplate
           name: '${CLUSTER_NAME}-md-0'
       clusterName: '${CLUSTER_NAME}'
       infrastructureRef:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
         kind: VSphereMachineTemplate
         name: '${CLUSTER_NAME}'
       version: '${KUBERNETES_VERSION}'

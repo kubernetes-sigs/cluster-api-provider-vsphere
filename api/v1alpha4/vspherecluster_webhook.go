@@ -28,7 +28,7 @@ func (r *VSphereCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-// +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1alpha4-vspherecluster,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=vsphereclusters,versions=v1alpha4,name=validation.vspherecluster.infrastructure.x-k8s.io,sideEffects=None
+// +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1alpha4-vspherecluster,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=vsphereclusters,versions=v1alpha4,name=validation.vspherecluster.infrastructure.x-k8s.io,sideEffects=None,admissionReviewVersions=v1beta1
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *VSphereCluster) ValidateCreate() error {

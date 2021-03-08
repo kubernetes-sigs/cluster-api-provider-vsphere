@@ -29,7 +29,7 @@ import (
 	"github.com/vmware/govmomi/vim25"
 	"github.com/vmware/govmomi/vim25/soap"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
+	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
 )
 
 var sessionCache = map[string]Session{}
@@ -73,7 +73,7 @@ func GetOrCreate(
 	}
 
 	session := Session{Client: client}
-	session.UserAgent = v1alpha3.GroupVersion.String()
+	session.UserAgent = v1alpha4.GroupVersion.String()
 
 	// Assign the finder to the session.
 	session.Finder = find.NewFinder(session.Client.Client, false)

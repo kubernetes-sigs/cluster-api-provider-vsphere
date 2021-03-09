@@ -26,7 +26,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	ctrl "sigs.k8s.io/controller-runtime"
-	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
 
 	infrav1a3 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
 	infrav1a4 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
@@ -36,7 +35,7 @@ import (
 
 // Manager is a CAPV controller manager.
 type Manager interface {
-	ctrlmgr.Manager
+	ctrl.Manager
 
 	// GetContext returns the controller manager's context.
 	GetContext() *context.ControllerManagerContext
@@ -61,7 +60,7 @@ func New(opts Options) (Manager, error) {
 	}
 
 	// Build the controller manager.
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	mgr, err := ctrl.NewManager(opts.KubeConfig, ctrl.Options{
 		Scheme:                  opts.Scheme,
 		MetricsBindAddress:      opts.MetricsAddr,
 		LeaderElection:          opts.LeaderElectionEnabled,
@@ -72,6 +71,7 @@ func New(opts Options) (Manager, error) {
 		NewCache:                opts.NewCache,
 		Port:                    opts.WebhookPort,
 		HealthProbeBindAddress:  opts.HealthAddr,
+		CertDir:                 opts.CertDir,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create manager")
@@ -107,7 +107,7 @@ func New(opts Options) (Manager, error) {
 }
 
 type manager struct {
-	ctrlmgr.Manager
+	ctrl.Manager
 	ctx *context.ControllerManagerContext
 }
 

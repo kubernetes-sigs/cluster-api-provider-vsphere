@@ -31,9 +31,9 @@ import (
 )
 
 var (
-	vsphereUsername = os.Getenv("VSPHERE_USERNAME")
-	vspherePassword = os.Getenv("VSPHERE_PASSWORD")
-
+	vsphereUsername   = os.Getenv("VSPHERE_USERNAME")
+	vspherePassword   = os.Getenv("VSPHERE_PASSWORD")
+	userInfo          = url.UserPassword(vsphereUsername, vspherePassword)
 	vsphereServer     string
 	vsphereDatacenter string
 

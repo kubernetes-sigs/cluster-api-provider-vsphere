@@ -89,6 +89,8 @@ providers:
       # Add a cluster template
       - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template.yaml"
       - sourcePath: "../../../metadata.yaml"
+      - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-storage-policy.yaml"
+        targetName: "cluster-template-storage-policy.yaml"
 
 variables:
   KUBERNETES_VERSION: "v1.18.2"

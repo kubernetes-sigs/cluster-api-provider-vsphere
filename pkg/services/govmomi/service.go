@@ -21,6 +21,8 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+	"github.com/vmware/govmomi/pbm"
+	pbmTypes "github.com/vmware/govmomi/pbm/types"
 
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/property"
@@ -123,6 +125,10 @@ func (vms *VMService) ReconcileVM(ctx *context.VMContext) (vm infrav1.VirtualMac
 	}
 
 	if ok, err := vms.reconcileMetadata(vmCtx); err != nil || !ok {
+		return vm, err
+	}
+
+	if err := vms.reconcileStoragePolicy(vmCtx); err != nil {
 		return vm, err
 	}
 
@@ -279,6 +285,83 @@ func (vms *VMService) reconcilePowerState(ctx *virtualMachineContext) (bool, err
 	default:
 		return false, errors.Errorf("unexpected power state %q for vm %s", powerState, ctx)
 	}
+}
+
+func (vms *VMService) reconcileStoragePolicy(ctx *virtualMachineContext) error {
+	if ctx.VSphereVM.Spec.StoragePolicyName == "" {
+		ctx.Logger.Info("storage policy not defined. skipping reconcile storage policy")
+		return nil
+	}
+
+	// return early if the VM is already powered on
+	powerState, err := vms.getPowerState(ctx)
+	if err != nil {
+		return err
+	}
+	if powerState == infrav1.VirtualMachinePowerStatePoweredOn {
+		ctx.Logger.Info("VM powered on. skipping reconcile storage policy")
+		return nil
+	}
+
+	pbmClient, err := pbm.NewClient(ctx, ctx.Session.Client.Client)
+	if err != nil {
+		return errors.Wrap(err, "unable to create pbm client")
+	}
+	storageProfileID, err := pbmClient.ProfileIDByName(ctx, ctx.VSphereVM.Spec.StoragePolicyName)
+	if err != nil {
+		return errors.Wrap(err, "unable to retrieve storage profile ID")
+	}
+	entities, err := pbmClient.QueryAssociatedEntity(ctx, pbmTypes.PbmProfileId{UniqueId: storageProfileID}, "virtualDiskId")
+	if err != nil {
+		return err
+	}
+
+	var changes []types.BaseVirtualDeviceConfigSpec
+	devices, err := ctx.Obj.Device(ctx)
+	if err != nil {
+		return err
+	}
+
+	disks := devices.SelectByType((*types.VirtualDisk)(nil))
+	for _, d := range disks {
+		disk := d.(*types.VirtualDisk)
+		found := false
+		for _, e := range entities {
+			// entities associated with storage policy has key in the form <vm-ID>:<disk>
+			diskID := fmt.Sprintf("%s:%d", ctx.Obj.Reference().Value, disk.Key)
+
+			if e.Key == diskID {
+				found = true
+			}
+		}
+
+		if !found {
+			// disk wasn't associated with storage policy, create a device change to make the association
+			config := &types.VirtualDeviceConfigSpec{
+				Operation: types.VirtualDeviceConfigSpecOperationEdit,
+				Device:    disk,
+				Profile: []types.BaseVirtualMachineProfileSpec{
+					&types.VirtualMachineDefinedProfileSpec{ProfileId: storageProfileID},
+				},
+			}
+			changes = append(changes, config)
+		}
+	}
+
+	if len(changes) > 0 {
+		task, err := ctx.Obj.Reconfigure(ctx, types.VirtualMachineConfigSpec{
+			VmProfile: []types.BaseVirtualMachineProfileSpec{
+				&types.VirtualMachineDefinedProfileSpec{ProfileId: storageProfileID},
+			},
+			DeviceChange: changes,
+		})
+		if err != nil {
+			return errors.Wrapf(err, "unable to set storagePolicy on vm %s", ctx)
+		}
+
+		ctx.VSphereVM.Status.TaskRef = task.Reference().Value
+	}
+	return nil
 }
 
 func (vms *VMService) reconcileUUID(ctx *virtualMachineContext) {

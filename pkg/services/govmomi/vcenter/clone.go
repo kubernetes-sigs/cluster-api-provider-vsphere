@@ -201,9 +201,6 @@ func Clone(ctx *context.VMContext, bootstrapData []byte) error {
 		if err != nil {
 			return errors.Wrapf(err, "unable to get storageProfileID from name %s for %q", ctx.VSphereVM.Spec.StoragePolicyName, ctx)
 		}
-		spec.Location.Profile = []types.BaseVirtualMachineProfileSpec{
-			&types.VirtualMachineDefinedProfileSpec{ProfileId: storageProfileID},
-		}
 
 		var constraints []pbmTypes.BasePbmPlacementRequirement
 		constraints = append(constraints, &pbmTypes.PbmPlacementCapabilityProfileRequirement{ProfileId: pbmTypes.PbmProfileId{UniqueId: storageProfileID}})
@@ -245,7 +242,7 @@ func Clone(ctx *context.VMContext, bootstrapData []byte) error {
 	}
 
 	disks := devices.SelectByType((*types.VirtualDisk)(nil))
-	spec.Location.Disk = getDiskLocators(disks, *datastoreRef, storageProfileID)
+	spec.Location.Disk = getDiskLocators(disks, *datastoreRef)
 
 	ctx.Logger.Info("cloning machine", "namespace", ctx.VSphereVM.Namespace, "name", ctx.VSphereVM.Name, "cloneType", ctx.VSphereVM.Status.CloneMode)
 	task, err := tpl.Clone(ctx, folder, ctx.VSphereVM.Name, spec)
@@ -271,7 +268,7 @@ func newVMFlagInfo() *types.VirtualMachineFlagInfo {
 	}
 }
 
-func getDiskLocators(disks object.VirtualDeviceList, datastoreRef types.ManagedObjectReference, storageProfileID string) []types.VirtualMachineRelocateSpecDiskLocator {
+func getDiskLocators(disks object.VirtualDeviceList, datastoreRef types.ManagedObjectReference) []types.VirtualMachineRelocateSpecDiskLocator {
 	diskLocators := make([]types.VirtualMachineRelocateSpecDiskLocator, 0, len(disks))
 	for _, disk := range disks {
 		dl := types.VirtualMachineRelocateSpecDiskLocator{
@@ -280,11 +277,6 @@ func getDiskLocators(disks object.VirtualDeviceList, datastoreRef types.ManagedO
 			Datastore:    datastoreRef,
 		}
 
-		if storageProfileID != "" {
-			dl.Profile = []types.BaseVirtualMachineProfileSpec{
-				&types.VirtualMachineDefinedProfileSpec{ProfileId: storageProfileID},
-			}
-		}
 		if vmDiskBacking, ok := disk.(*types.VirtualDisk).Backing.(*types.VirtualDiskFlatVer2BackingInfo); ok {
 			dl.DiskBackingInfo = vmDiskBacking
 		}

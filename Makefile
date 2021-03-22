@@ -56,6 +56,11 @@ KIND := $(TOOLS_BIN_DIR)/kind
 KUSTOMIZE := $(TOOLS_BIN_DIR)/kustomize
 TOOLING_BINARIES := $(CONTROLLER_GEN) $(CONVERSION_GEN) $(GINKGO) $(GOLANGCI_LINT) $(GOVC) $(KIND) $(KUSTOMIZE)
 
+# Set --output-base for conversion-gen if we are not within GOPATH
+ifneq ($(abspath $(ROOT_DIR)),$(shell go env GOPATH)/src/sigs.k8s.io/cluster-api-provider-vsphere)
+	OUTPUT_BASE := --output-base=$(ROOT_DIR)
+endif
+
 # Allow overriding manifest generation destination directory
 MANIFEST_ROOT ?= ./config
 CRD_ROOT ?= $(MANIFEST_ROOT)/crd/bases
@@ -203,7 +208,7 @@ generate-go: $(CONTROLLER_GEN) $(CONVERSION_GEN) ## Runs Go related generate tar
 
 	$(CONVERSION_GEN) \
 		--input-dirs=./api/v1alpha3 \
-		--output-file-base=zz_generated.conversion \
+		--output-file-base=zz_generated.conversion $(OUTPUT_BASE) \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
 
 .PHONY: generate-manifests

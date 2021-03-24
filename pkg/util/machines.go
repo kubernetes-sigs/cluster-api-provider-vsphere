@@ -26,6 +26,7 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apitypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/integer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -137,22 +138,20 @@ func IsControlPlaneMachine(machine metav1.Object) bool {
 
 // GetMachineMetadata returns the cloud-init metadata as a base-64 encoded
 // string for a given VSphereMachine.
-func GetMachineMetadata(hostname string, machine infrav1.VSphereVM, networkStatus ...infrav1.NetworkStatus) ([]byte, error) {
+func GetMachineMetadata(hostname string, vsphereVM infrav1.VSphereVM, networkStatuses ...infrav1.NetworkStatus) ([]byte, error) {
 	// Create a copy of the devices and add their MAC addresses from a network status.
-	devices := make([]infrav1.NetworkDeviceSpec, len(machine.Spec.Network.Devices))
+	devices := make([]infrav1.NetworkDeviceSpec, integer.IntMax(len(vsphereVM.Spec.Network.Devices), len(networkStatuses)))
+
 	var waitForIPv4, waitForIPv6 bool
-	for i := range machine.Spec.Network.Devices {
-		machine.Spec.Network.Devices[i].DeepCopyInto(&devices[i])
-		if len(networkStatus) > 0 {
-			devices[i].MACAddr = networkStatus[i].MACAddr
-		}
+	for i := range vsphereVM.Spec.Network.Devices {
+		vsphereVM.Spec.Network.Devices[i].DeepCopyInto(&devices[i])
 
 		if waitForIPv4 && waitForIPv6 {
 			// break early as we already wait for ipv4 and ipv6
 			continue
 		}
 		// check static IPs
-		for _, ipStr := range machine.Spec.Network.Devices[i].IPAddrs {
+		for _, ipStr := range vsphereVM.Spec.Network.Devices[i].IPAddrs {
 			ip := net.ParseIP(ipStr)
 			// check the IP family
 			if ip != nil {
@@ -164,12 +163,17 @@ func GetMachineMetadata(hostname string, machine infrav1.VSphereVM, networkStatu
 			}
 		}
 		// check if DHCP is enabled
-		if machine.Spec.Network.Devices[i].DHCP4 {
+		if vsphereVM.Spec.Network.Devices[i].DHCP4 {
 			waitForIPv4 = true
 		}
-		if machine.Spec.Network.Devices[i].DHCP6 {
+		if vsphereVM.Spec.Network.Devices[i].DHCP6 {
 			waitForIPv6 = true
 		}
+	}
+
+	// Add the MAC Address to the network device
+	for i, status := range networkStatuses {
+		devices[i].MACAddr = status.MACAddr
 	}
 
 	buf := &bytes.Buffer{}
@@ -188,14 +192,14 @@ func GetMachineMetadata(hostname string, machine infrav1.VSphereVM, networkStatu
 	}{
 		Hostname:    hostname, // note that hostname determines the Kubernetes node name
 		Devices:     devices,
-		Routes:      machine.Spec.Network.Routes,
+		Routes:      vsphereVM.Spec.Network.Routes,
 		WaitForIPv4: waitForIPv4,
 		WaitForIPv6: waitForIPv6,
 	}); err != nil {
 		return nil, errors.Wrapf(
 			err,
-			"error getting cloud init metadata for machine %s/%s/%s",
-			machine.Namespace, machine.ClusterName, machine.Name)
+			"error getting cloud init metadata for vsphereVM %s/%s/%s",
+			vsphereVM.Namespace, vsphereVM.ClusterName, vsphereVM.Name)
 	}
 	return buf.Bytes(), nil
 }

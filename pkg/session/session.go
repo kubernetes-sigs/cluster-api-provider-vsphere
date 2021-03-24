@@ -28,6 +28,7 @@ import (
 	"github.com/vmware/govmomi/session"
 	"github.com/vmware/govmomi/vim25"
 	"github.com/vmware/govmomi/vim25/soap"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
 )
@@ -47,14 +48,15 @@ type Session struct {
 func GetOrCreate(
 	ctx context.Context,
 	server, datacenter, username, password string, thumbprint string) (*Session, error) {
-
+	logger := ctrl.LoggerFrom(ctx)
 	sessionMU.Lock()
 	defer sessionMU.Unlock()
 
 	sessionKey := server + username + datacenter
-	if session, ok := sessionCache[sessionKey]; ok {
-		if ok, _ := session.SessionManager.SessionIsActive(ctx); ok {
-			return &session, nil
+	if cachedSession, ok := sessionCache[sessionKey]; ok {
+		if ok, _ := cachedSession.SessionManager.SessionIsActive(ctx); ok {
+			logger.V(2).Info("found active cached vSphere client session", "server", server, "datacenter", datacenter)
+			return &cachedSession, nil
 		}
 	}
 
@@ -89,8 +91,7 @@ func GetOrCreate(
 	// Cache the session.
 	sessionCache[sessionKey] = session
 
-	// TODO(akutz) Reintroduce the logger.
-	//ctx.Logger.V(2).Info("cached vSphere client session", "server", server, "datacenter", datacenter)
+	logger.V(2).Info("cached vSphere client session", "server", server, "datacenter", datacenter)
 
 	return &session, nil
 }

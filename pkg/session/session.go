@@ -21,6 +21,7 @@ import (
 	"net/url"
 	"sync"
 
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
@@ -46,15 +47,17 @@ type Session struct {
 // already exist.
 func GetOrCreate(
 	ctx context.Context,
+	logger logr.Logger,
 	server, datacenter, username, password string, thumbprint string) (*Session, error) {
 
 	sessionMU.Lock()
 	defer sessionMU.Unlock()
 
 	sessionKey := server + username + datacenter
-	if session, ok := sessionCache[sessionKey]; ok {
-		if ok, _ := session.SessionManager.SessionIsActive(ctx); ok {
-			return &session, nil
+	if cachedSession, ok := sessionCache[sessionKey]; ok {
+		if ok, _ := cachedSession.SessionManager.SessionIsActive(ctx); ok {
+			logger.V(2).Info("found active cached vSphere client session", "server", server, "datacenter", datacenter)
+			return &cachedSession, nil
 		}
 	}
 
@@ -89,8 +92,7 @@ func GetOrCreate(
 	// Cache the session.
 	sessionCache[sessionKey] = session
 
-	// TODO(akutz) Reintroduce the logger.
-	//ctx.Logger.V(2).Info("cached vSphere client session", "server", server, "datacenter", datacenter)
+	logger.V(2).Info("cached vSphere client session", "server", server, "datacenter", datacenter)
 
 	return &session, nil
 }

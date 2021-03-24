@@ -335,7 +335,7 @@ func cloudProviderConfigurationAvailable(ctx *context.ClusterContext) bool {
 }
 
 func (r clusterReconciler) reconcileVCenterConnectivity(ctx *context.ClusterContext) error {
-	_, err := session.GetOrCreate(ctx, ctx.VSphereCluster.Spec.Server,
+	_, err := session.GetOrCreate(ctx, r.Logger, ctx.VSphereCluster.Spec.Server,
 		ctx.VSphereCluster.Spec.CloudProviderConfiguration.Workspace.Datacenter, ctx.Username, ctx.Password, ctx.VSphereCluster.Spec.Thumbprint)
 	return err
 }

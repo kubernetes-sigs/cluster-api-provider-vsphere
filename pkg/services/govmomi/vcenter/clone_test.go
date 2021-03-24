@@ -21,6 +21,7 @@ import (
 	"crypto/tls"
 	"testing"
 
+	"github.com/go-logr/logr"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/simulator"
 	"github.com/vmware/govmomi/vim25/types"
@@ -143,6 +144,7 @@ func initSimulator(t *testing.T) (*simulator.Model, *session.Session, *simulator
 
 	authSession, err := session.GetOrCreate(
 		ctx.TODO(),
+		logr.DiscardLogger{},
 		server.URL.Host, "",
 		server.URL.User.Username(), pass, "")
 	if err != nil {

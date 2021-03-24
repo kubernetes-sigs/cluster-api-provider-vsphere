@@ -4,7 +4,7 @@ go 1.15
 
 require (
 	github.com/antihax/optional v1.0.0
-	github.com/go-logr/logr v0.1.0
+	github.com/go-logr/logr v0.4.0
 	github.com/google/go-cmp v0.4.1
 	github.com/google/uuid v1.1.1
 	github.com/onsi/ginkgo v1.12.1

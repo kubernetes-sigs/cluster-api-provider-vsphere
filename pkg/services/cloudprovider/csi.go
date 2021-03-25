@@ -586,8 +586,6 @@ func CSIProvisionerContainer(image string) corev1.Container {
 			"--v=4",
 			"--timeout=300s",
 			"--csi-address=$(ADDRESS)",
-			"--feature-gates=Topology=true",
-			"--strict-topology",
 			"--leader-election",
 			"--default-fstype=ext4",
 		},

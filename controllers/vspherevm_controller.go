@@ -415,11 +415,21 @@ func (r *vmReconciler) clusterToVSphereVMs(a ctrlclient.Object) []reconcile.Requ
 
 func (r *vmReconciler) retrieveVcenterSession(ctx goctx.Context, vsphereVM *infrav1.VSphereVM) (*session.Session, error) {
 	// Get cluster object and then get VSphereCluster object
+
+	params := session.NewParams().
+		WithServer(vsphereVM.Spec.Server).
+		WithDatacenter(vsphereVM.Spec.Datacenter).
+		WithUserInfo(r.ControllerContext.Username, r.ControllerContext.Password).
+		WithThumbprint(vsphereVM.Spec.Thumbprint).
+		WithFeatures(session.Feature{
+			EnableKeepAlive:   r.EnableKeepAlive,
+			KeepAliveDuration: r.KeepAliveDuration,
+		})
 	cluster, err := clusterutilv1.GetClusterFromMetadata(r.ControllerContext, r.Client, vsphereVM.ObjectMeta)
 	if err != nil {
 		r.Logger.Info("VsphereVM is missing cluster label or cluster does not exist")
-		return session.GetOrCreate(r.Context, vsphereVM.Spec.Server, vsphereVM.Spec.Datacenter,
-			r.ControllerManagerContext.Username, r.ControllerManagerContext.Password, vsphereVM.Spec.Thumbprint)
+		return session.GetOrCreate(r.Context,
+			params)
 	}
 
 	key := client.ObjectKey{
@@ -430,8 +440,8 @@ func (r *vmReconciler) retrieveVcenterSession(ctx goctx.Context, vsphereVM *infr
 	err = r.Client.Get(r, key, vsphereCluster)
 	if err != nil {
 		r.Logger.Info("VSphereCluster couldn't be retrieved")
-		return session.GetOrCreate(r.Context, vsphereVM.Spec.Server, vsphereVM.Spec.Datacenter,
-			r.ControllerManagerContext.Username, r.ControllerManagerContext.Password, vsphereVM.Spec.Thumbprint)
+		return session.GetOrCreate(r.Context,
+			params)
 	}
 
 	if vsphereCluster.Spec.IdentityRef != nil {
@@ -439,10 +449,12 @@ func (r *vmReconciler) retrieveVcenterSession(ctx goctx.Context, vsphereVM *infr
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to retrieve credentials from IdentityRef")
 		}
-		return session.GetOrCreate(ctx, vsphereVM.Spec.Server, vsphereVM.Spec.Datacenter, creds.Username, creds.Password, vsphereVM.Spec.Thumbprint)
+		params = params.WithUserInfo(creds.Username, creds.Password)
+		return session.GetOrCreate(r.Context,
+			params)
 	}
 
 	// Fallback to using credentials provided to the manager
-	return session.GetOrCreate(r.Context, vsphereVM.Spec.Server, vsphereVM.Spec.Datacenter,
-		r.ControllerManagerContext.Username, r.ControllerManagerContext.Password, vsphereVM.Spec.Thumbprint)
+	return session.GetOrCreate(r.Context,
+		params)
 }

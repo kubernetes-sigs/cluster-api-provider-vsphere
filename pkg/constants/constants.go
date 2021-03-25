@@ -17,6 +17,8 @@ limitations under the License.
 package constants
 
 import (
+	"time"
+
 	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
 )
 
@@ -48,4 +50,10 @@ const (
 	// MaintenanceAnnotationLabel is the annotation used to indicate a machine and/or
 	// cluster are in maintenance mode.
 	MaintenanceAnnotationLabel = "capv." + v1alpha3.GroupName + "/maintenance"
+
+	// DefaultEnableKeepAlive is false by default
+	DefaultEnableKeepAlive = false
+
+	// KeepaliveDuration unit minutes
+	DefaultKeepAliveDuration = time.Minute * 5
 )

@@ -19,6 +19,7 @@ package context
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -76,6 +77,14 @@ type ControllerManagerContext struct {
 	// Password is the password for the account used to access remote vSphere
 	// endpoints.
 	Password string
+
+	// EnableKeepAlive is a session feature to enable keep alive handler
+	// for better load management on vSphere api server
+	EnableKeepAlive bool
+
+	// KeepAliveDuration is the idle time interval in between send() requests
+	// in keepalive handler
+	KeepAliveDuration time.Duration
 
 	genericEventCache sync.Map
 }

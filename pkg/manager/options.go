@@ -47,6 +47,10 @@ type Options struct {
 	// LeaderElectionEnabled is a flag that enables leader election.
 	LeaderElectionEnabled bool
 
+	// EnableKeepAlive is a session feature to enable keep alive handler
+	// for better load management on vSphere api server
+	EnableKeepAlive bool
+
 	// LeaderElectionID is the name of the config map to use as the
 	// locking resource when configuring leader election.
 	LeaderElectionID string
@@ -97,6 +101,10 @@ type Options struct {
 	// Password is the password for the account used to access remote vSphere
 	// endpoints.
 	Password string
+
+	// KeepAliveDuration is the idle time interval in between send() requests
+	// in keepalive handler
+	KeepAliveDuration time.Duration
 
 	// WebhookPort is the port that the webhook server serves at.
 	WebhookPort int

@@ -403,19 +403,29 @@ func (r clusterReconciler) reconcileIdentitySecret(ctx *context.ClusterContext) 
 }
 
 func (r clusterReconciler) reconcileVCenterConnectivity(ctx *context.ClusterContext) error {
+	params := session.NewParams().
+		WithServer(ctx.VSphereCluster.Spec.Server).
+		WithDatacenter(ctx.VSphereCluster.Spec.CloudProviderConfiguration.Workspace.Datacenter).
+		WithThumbprint(ctx.VSphereCluster.Spec.Thumbprint).
+		WithFeatures(session.Feature{
+			EnableKeepAlive:   r.EnableKeepAlive,
+			KeepAliveDuration: r.KeepAliveDuration,
+		})
+
 	if ctx.VSphereCluster.Spec.IdentityRef != nil {
 		creds, err := identity.GetCredentials(ctx, r.Client, ctx.VSphereCluster, r.Namespace)
 		if err != nil {
 			return err
 		}
 
-		_, err = session.GetOrCreate(ctx, ctx.VSphereCluster.Spec.Server,
-			ctx.VSphereCluster.Spec.CloudProviderConfiguration.Workspace.Datacenter, creds.Username, creds.Password, ctx.VSphereCluster.Spec.Thumbprint)
+		params = params.WithUserInfo(creds.Username, creds.Password)
+		_, err = session.GetOrCreate(ctx, params)
 		return err
 	}
 
-	_, err := session.GetOrCreate(ctx, ctx.VSphereCluster.Spec.Server,
-		ctx.VSphereCluster.Spec.CloudProviderConfiguration.Workspace.Datacenter, ctx.Username, ctx.Password, ctx.VSphereCluster.Spec.Thumbprint)
+	params = params.WithUserInfo(ctx.Username, ctx.Password)
+	_, err := session.GetOrCreate(ctx,
+		params)
 	return err
 }
 

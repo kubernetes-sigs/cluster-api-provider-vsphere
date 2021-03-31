@@ -43,15 +43,7 @@ import (
 
 const (
 	KubernetesVersion    = "KUBERNETES_VERSION"
-	StoragePolicyFlavor  = "storage-policy"
-	VsphereDatacenter    = "VSPHERE_DATACENTER"
-	VsphereDatastore     = "VSPHERE_DATASTORE"
-	VsphereFolder        = "VSPHERE_FOLDER"
-	VsphereNetwork       = "VSPHERE_NETWORK"
-	VsphereResourcePool  = "VSPHERE_RESOURCE_POOL"
-	VsphereServer        = "VSPHERE_SERVER"
-	VsphereTemplate      = "VSPHERE_TEMPLATE"
-	VsphereTLSThumbprint = "VSPHERE_TLS_THUMBPRINT"
+	VsphereStoragePolicy = "VSPHERE_STORAGE_POLICY"
 )
 
 // Test suite flags

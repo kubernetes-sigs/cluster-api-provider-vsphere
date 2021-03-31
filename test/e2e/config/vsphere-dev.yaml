@@ -89,8 +89,6 @@ providers:
       # Add a cluster template
       - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template.yaml"
       - sourcePath: "../../../metadata.yaml"
-      - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-storage-policy.yaml"
-        targetName: "cluster-template-storage-policy.yaml"
 
 variables:
   KUBERNETES_VERSION: "v1.18.2"
@@ -103,6 +101,7 @@ variables:
   VSPHERE_SERVER: "vcenter.vmware.com"
   VSPHERE_DATACENTER: "SDDC-Datacenter"
   VSPHERE_DATASTORE: "WorkloadDatastore"
+  VSPHERE_STORAGE_POLICY: "Cluster API vSphere Storage Policy"
   VSPHERE_FOLDER: "FolderName"
   VSPHERE_HAPROXY_TEMPLATE: "capv-haproxy-v0.6.3"
   VSPHERE_NETWORK: "network-1"

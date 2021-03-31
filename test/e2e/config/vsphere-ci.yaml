@@ -86,8 +86,6 @@ providers:
       # Add a cluster template
       - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template.yaml"
       - sourcePath: "../../../metadata.yaml"
-      - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-storage-policy.yaml"
-        targetName: "cluster-template-storage-policy.yaml"
 
 variables:
   KUBERNETES_VERSION: "v1.19.1"
@@ -100,6 +98,7 @@ variables:
   VSPHERE_FOLDER: "clusterapi"
   VSPHERE_RESOURCE_POOL: "clusterapi"
   VSPHERE_DATASTORE: "WorkloadDatastore"
+  VSPHERE_STORAGE_POLICY: "Cluster API vSphere Storage Policy"
   VSPHERE_NETWORK: "sddc-cgw-network-8"
   VSPHERE_HAPROXY_TEMPLATE: "capv-haproxy-v0.6.3"
   VSPHERE_TEMPLATE: "ubuntu-1804-kube-v1.19.1"

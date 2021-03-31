@@ -25,11 +25,11 @@ import (
 	"github.com/vmware/govmomi/property"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/net"
 )
@@ -267,7 +267,6 @@ func reconcileVSphereVMOnFuncCompletion(
 		ctx.Logger.Info("triggering GenericEvent", loggerKeysAndValues...)
 		eventChannel := ctx.GetGenericEventChannelFor(gvk)
 		eventChannel <- event.GenericEvent{
-			Meta:   obj,
 			Object: obj,
 		}
 	}()
@@ -301,7 +300,6 @@ func reconcileVSphereVMOnChannel(
 					ctx.Logger.Info("triggering GenericEvent", loggerKeysAndValues...)
 					eventChannel := ctx.GetGenericEventChannelFor(gvk)
 					eventChannel <- event.GenericEvent{
-						Meta:   obj,
 						Object: obj,
 					}
 				}()

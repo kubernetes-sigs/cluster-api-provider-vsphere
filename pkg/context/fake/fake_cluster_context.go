@@ -19,9 +19,9 @@ package fake
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	clusterv1a2 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 )
 
@@ -30,7 +30,7 @@ import (
 func NewClusterContext(ctx *context.ControllerContext) *context.ClusterContext {
 
 	// Create the cluster resources.
-	cluster := newClusterV1a2()
+	cluster := newClusterV1()
 	vsphereCluster := newVSphereCluster(cluster)
 
 	// Add the cluster resources to the fake cluster client.
@@ -49,19 +49,19 @@ func NewClusterContext(ctx *context.ControllerContext) *context.ClusterContext {
 	}
 }
 
-func newClusterV1a2() clusterv1a2.Cluster {
-	return clusterv1a2.Cluster{
+func newClusterV1() clusterv1.Cluster {
+	return clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: Namespace,
 			Name:      Clusterv1a2Name,
 			UID:       types.UID(Clusterv1a2UUID),
 		},
-		Spec: clusterv1a2.ClusterSpec{
-			ClusterNetwork: &clusterv1a2.ClusterNetwork{
-				Pods: &clusterv1a2.NetworkRanges{
+		Spec: clusterv1.ClusterSpec{
+			ClusterNetwork: &clusterv1.ClusterNetwork{
+				Pods: &clusterv1.NetworkRanges{
 					CIDRBlocks: []string{PodCIDR},
 				},
-				Services: &clusterv1a2.NetworkRanges{
+				Services: &clusterv1.NetworkRanges{
 					CIDRBlocks: []string{ServiceCIDR},
 				},
 			},
@@ -69,7 +69,7 @@ func newClusterV1a2() clusterv1a2.Cluster {
 	}
 }
 
-func newVSphereCluster(owner clusterv1a2.Cluster) infrav1.VSphereCluster {
+func newVSphereCluster(owner clusterv1.Cluster) infrav1.VSphereCluster {
 	return infrav1.VSphereCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: owner.Namespace,

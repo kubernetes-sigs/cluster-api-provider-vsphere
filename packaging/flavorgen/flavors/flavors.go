@@ -24,12 +24,12 @@ import (
 	storagev1 "k8s.io/api/storage/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/cloudprovider"
 	cloudprovidersvc "sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/cloudprovider"
-	"sigs.k8s.io/cluster-api/api/v1alpha3"
-	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
-	addonsv1alpha3 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
+	addonsv1alpha4 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha4"
 )
 
 // create StorageConfig to be used by tkg template
@@ -89,7 +89,7 @@ func MultiNodeTemplateWithKubeVIP() []runtime.Object {
 }
 
 // createCrsResourceObjects creates the api objects necessary for CSI to function. Also appends the resources to the CRS
-func createCrsResourceObjects(crs *addonsv1alpha3.ClusterResourceSet, vsphereCluster infrav1.VSphereCluster, cluster v1alpha3.Cluster) []runtime.Object {
+func createCrsResourceObjects(crs *addonsv1alpha4.ClusterResourceSet, vsphereCluster infrav1.VSphereCluster, cluster clusterv1.Cluster) []runtime.Object {
 	serviceAccount := cloudprovidersvc.CSIControllerServiceAccount()
 	serviceAccount.TypeMeta = v1.TypeMeta{
 		Kind:       "ServiceAccount",

@@ -28,6 +28,7 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	v1alpha4 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
 	apiv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	apiv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	errors "sigs.k8s.io/cluster-api/errors"
 )
 
@@ -1107,7 +1108,7 @@ func Convert_v1alpha4_VSphereClusterSpec_To_v1alpha3_VSphereClusterSpec(in *v1al
 
 func autoConvert_v1alpha3_VSphereClusterStatus_To_v1alpha4_VSphereClusterStatus(in *VSphereClusterStatus, out *v1alpha4.VSphereClusterStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
-	out.Conditions = *(*apiv1alpha3.Conditions)(unsafe.Pointer(&in.Conditions))
+	out.Conditions = *(*apiv1alpha4.Conditions)(unsafe.Pointer(&in.Conditions))
 	return nil
 }
 
@@ -1209,11 +1210,11 @@ func Convert_v1alpha4_VSphereMachineSpec_To_v1alpha3_VSphereMachineSpec(in *v1al
 
 func autoConvert_v1alpha3_VSphereMachineStatus_To_v1alpha4_VSphereMachineStatus(in *VSphereMachineStatus, out *v1alpha4.VSphereMachineStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
-	out.Addresses = *(*[]apiv1alpha3.MachineAddress)(unsafe.Pointer(&in.Addresses))
+	out.Addresses = *(*[]apiv1alpha4.MachineAddress)(unsafe.Pointer(&in.Addresses))
 	out.Network = *(*[]v1alpha4.NetworkStatus)(unsafe.Pointer(&in.Network))
 	out.FailureReason = (*errors.MachineStatusError)(unsafe.Pointer(in.FailureReason))
 	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
-	out.Conditions = *(*apiv1alpha3.Conditions)(unsafe.Pointer(&in.Conditions))
+	out.Conditions = *(*apiv1alpha4.Conditions)(unsafe.Pointer(&in.Conditions))
 	return nil
 }
 
@@ -1424,7 +1425,7 @@ func autoConvert_v1alpha3_VSphereVMStatus_To_v1alpha4_VSphereVMStatus(in *VSpher
 	out.Network = *(*[]v1alpha4.NetworkStatus)(unsafe.Pointer(&in.Network))
 	out.FailureReason = (*errors.MachineStatusError)(unsafe.Pointer(in.FailureReason))
 	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
-	out.Conditions = *(*apiv1alpha3.Conditions)(unsafe.Pointer(&in.Conditions))
+	out.Conditions = *(*apiv1alpha4.Conditions)(unsafe.Pointer(&in.Conditions))
 	return nil
 }
 

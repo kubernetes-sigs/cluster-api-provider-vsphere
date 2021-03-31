@@ -31,7 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	apitypes "k8s.io/apimachinery/pkg/types"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -47,7 +47,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 	infrautilv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
@@ -92,9 +92,7 @@ func AddMachineControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 		// Watch the CAPI resource that owns this infrastructure resource.
 		Watches(
 			&source.Kind{Type: &clusterv1.Machine{}},
-			&handler.EnqueueRequestsFromMapFunc{
-				ToRequests: clusterutilv1.MachineToInfrastructureMapFunc(controlledTypeGVK),
-			},
+			handler.EnqueueRequestsFromMapFunc(clusterutilv1.MachineToInfrastructureMapFunc(controlledTypeGVK)),
 		).
 		// Watch a GenericEvent channel for the controlled resource.
 		//
@@ -113,9 +111,7 @@ func AddMachineControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 
 	err = controller.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
-		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: handler.ToRequestsFunc(r.clusterToVSphereMachines),
-		},
+		handler.EnqueueRequestsFromMapFunc(r.clusterToVSphereMachines),
 		predicate.Funcs{
 			UpdateFunc: func(e event.UpdateEvent) bool {
 				oldCluster := e.ObjectOld.(*clusterv1.Cluster)
@@ -123,7 +119,7 @@ func AddMachineControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 				return oldCluster.Spec.Paused && !newCluster.Spec.Paused
 			},
 			CreateFunc: func(e event.CreateEvent) bool {
-				if _, ok := e.Meta.GetAnnotations()[clusterv1.PausedAnnotation]; !ok {
+				if _, ok := e.Object.GetAnnotations()[clusterv1.PausedAnnotation]; !ok {
 					return false
 				}
 				return true
@@ -140,7 +136,7 @@ type machineReconciler struct {
 }
 
 // Reconcile ensures the back-end state reflects the Kubernetes resource state intent.
-func (r machineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) {
+func (r machineReconciler) Reconcile(ctx goctx.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 
 	// Get the VSphereMachine resource for this request.
 	vsphereMachine := &infrav1.VSphereMachine{}
@@ -605,9 +601,9 @@ func (r machineReconciler) waitReadyState(ctx *context.MachineContext, vm *unstr
 	return true, nil
 }
 
-func (r *machineReconciler) clusterToVSphereMachines(a handler.MapObject) []reconcile.Request {
+func (r *machineReconciler) clusterToVSphereMachines(a client.Object) []reconcile.Request {
 	requests := []reconcile.Request{}
-	machines, err := infrautilv1.GetMachinesInCluster(goctx.Background(), r.Client, a.Meta.GetNamespace(), a.Meta.GetName())
+	machines, err := infrautilv1.GetMachinesInCluster(goctx.Background(), r.Client, a.GetNamespace(), a.GetName())
 	if err != nil {
 		return requests
 	}

@@ -20,18 +20,18 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
-	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
 )
 
 // ClusterContext is a Go context used with a VSphereCluster.
 type ClusterContext struct {
 	*ControllerContext
 	Cluster        *clusterv1.Cluster
-	VSphereCluster *v1alpha3.VSphereCluster
+	VSphereCluster *infrav1.VSphereCluster
 	PatchHelper    *patch.Helper
 	Logger         logr.Logger
 }

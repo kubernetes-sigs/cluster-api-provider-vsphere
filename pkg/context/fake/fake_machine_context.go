@@ -19,9 +19,9 @@ package fake
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	clusterv1a2 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 )
 
@@ -51,18 +51,18 @@ func NewMachineContext(ctx *context.ClusterContext) *context.MachineContext {
 	}
 }
 
-func newMachineV1a2() clusterv1a2.Machine {
-	return clusterv1a2.Machine{
+func newMachineV1a2() clusterv1.Machine {
+	return clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: Namespace,
 			Name:      Clusterv1a2Name,
 			UID:       types.UID(Clusterv1a2UUID),
 		},
-		Spec: clusterv1a2.MachineSpec{},
+		Spec: clusterv1.MachineSpec{},
 	}
 }
 
-func newVSphereMachine(owner clusterv1a2.Machine) infrav1.VSphereMachine {
+func newVSphereMachine(owner clusterv1.Machine) infrav1.VSphereMachine {
 	return infrav1.VSphereMachine{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: owner.Namespace,

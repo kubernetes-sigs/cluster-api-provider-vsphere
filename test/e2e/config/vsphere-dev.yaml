@@ -11,19 +11,19 @@
 # - from the CAPV repository root, `make e2e` to build the vsphere provider image and run e2e tests.
 
 images:
-  - name: gcr.io/k8s-staging-cluster-api/cluster-api-controller-amd64:v0.3.11
+  - name: gcr.io/k8s-staging-cluster-api/cluster-api-controller-amd64:v0.4.0
     loadBehavior: tryLoad
-  - name: gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller-amd64:v0.3.11
+  - name: gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller-amd64:v0.4.0
     loadBehavior: tryLoad
-  - name: gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller-amd64:v0.3.11
+  - name: gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller-amd64:v0.4.0
     loadBehavior: tryLoad
   - name: gcr.io/k8s-staging-cluster-api/capv-manager:e2e
     loadBehavior: mustLoad
-  - name: quay.io/jetstack/cert-manager-cainjector:v0.11.0
+  - name: quay.io/jetstack/cert-manager-cainjector:v1.0.1
     loadBehavior: tryLoad
-  - name: quay.io/jetstack/cert-manager-webhook:v0.11.0
+  - name: quay.io/jetstack/cert-manager-webhook:v1.0.1
     loadBehavior: tryLoad
-  - name: quay.io/jetstack/cert-manager-controller:v0.11.0
+  - name: quay.io/jetstack/cert-manager-controller:v1.0.1
     loadBehavior: tryLoad
 
 providers:
@@ -31,10 +31,12 @@ providers:
   - name: cluster-api
     type: CoreProvider
     versions:
-      - name: v0.3.11
+      - name: v0.4.0
         # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.11/core-components.yaml"
+        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_master_20210310/core-components.yaml"
         type: "url"
+        files:
+          - sourcePath: "../data/shared/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -44,10 +46,12 @@ providers:
   - name: kubeadm
     type: BootstrapProvider
     versions:
-      - name: v0.3.11
+      - name: v0.4.0
         # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.11/bootstrap-components.yaml"
+        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_master_20210310/bootstrap-components.yaml"
         type: "url"
+        files:
+          - sourcePath: "../data/shared/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -57,10 +61,12 @@ providers:
   - name: kubeadm
     type: ControlPlaneProvider
     versions:
-      - name: v0.3.11
+      - name: v0.4.0
         # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.11/control-plane-components.yaml"
+        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_master_20210310/control-plane-components.yaml"
         type: "url"
+        files:
+          - sourcePath: "../data/shared/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -70,9 +76,9 @@ providers:
   - name: vsphere
     type: InfrastructureProvider
     versions:
-      - name: v0.6.0
+      - name: v0.8.0
         # Use manifest from source files
-        value: ../../../../cluster-api-provider-vsphere/config
+        value: ../../../../cluster-api-provider-vsphere/config/default
         replacements:
           - old: gcr.io/cluster-api-provider-vsphere/release/manager:latest
             new: gcr.io/k8s-staging-cluster-api/capv-manager:e2e
@@ -82,6 +88,7 @@ providers:
     files:
       # Add a cluster template
       - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template.yaml"
+      - sourcePath: "../../../metadata.yaml"
 
 variables:
   KUBERNETES_VERSION: "v1.18.2"

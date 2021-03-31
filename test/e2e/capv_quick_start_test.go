@@ -70,13 +70,13 @@ var _ = Describe("Cluster creation with vSphere validations", func() {
 		By("creating a workload cluster")
 		configCluster := defaultConfigCluster(clusterName, namespace.Name)
 
-		_ = clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
+		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 			ClusterProxy:                 bootstrapClusterProxy,
 			ConfigCluster:                configCluster,
 			WaitForClusterIntervals:      e2eConfig.GetIntervals("", "wait-cluster"),
 			WaitForControlPlaneIntervals: e2eConfig.GetIntervals("", "wait-control-plane"),
 			WaitForMachineDeployments:    e2eConfig.GetIntervals("", "wait-worker-nodes"),
-		})
+		}, &clusterctl.ApplyClusterTemplateAndWaitResult{})
 
 		pbmClient, err := pbm.NewClient(ctx, vsphereClient.Client)
 		Expect(err).NotTo(HaveOccurred())

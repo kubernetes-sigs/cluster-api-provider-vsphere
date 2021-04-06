@@ -326,12 +326,12 @@ func (vms *VMService) reconcileStoragePolicy(ctx *virtualMachineContext) error {
 	for _, d := range disks {
 		disk := d.(*types.VirtualDisk)
 		found := false
+		// entities associated with storage policy has key in the form <vm-ID>:<disk>
+		diskID := fmt.Sprintf("%s:%d", ctx.Obj.Reference().Value, disk.Key)
 		for _, e := range entities {
-			// entities associated with storage policy has key in the form <vm-ID>:<disk>
-			diskID := fmt.Sprintf("%s:%d", ctx.Obj.Reference().Value, disk.Key)
-
 			if e.Key == diskID {
 				found = true
+				break
 			}
 		}
 
@@ -358,7 +358,6 @@ func (vms *VMService) reconcileStoragePolicy(ctx *virtualMachineContext) error {
 		if err != nil {
 			return errors.Wrapf(err, "unable to set storagePolicy on vm %s", ctx)
 		}
-
 		ctx.VSphereVM.Status.TaskRef = task.Reference().Value
 	}
 	return nil

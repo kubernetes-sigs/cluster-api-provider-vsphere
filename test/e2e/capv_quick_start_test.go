@@ -28,8 +28,8 @@ import (
 	"github.com/vmware/govmomi/pbm/types"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
@@ -70,13 +70,13 @@ var _ = Describe("Cluster creation with vSphere validations", func() {
 		By("creating a workload cluster")
 		configCluster := defaultConfigCluster(clusterName, namespace.Name)
 
-		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
+		_ = clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 			ClusterProxy:                 bootstrapClusterProxy,
 			ConfigCluster:                configCluster,
 			WaitForClusterIntervals:      e2eConfig.GetIntervals("", "wait-cluster"),
 			WaitForControlPlaneIntervals: e2eConfig.GetIntervals("", "wait-control-plane"),
 			WaitForMachineDeployments:    e2eConfig.GetIntervals("", "wait-worker-nodes"),
-		}, &clusterctl.ApplyClusterTemplateAndWaitResult{})
+		})
 
 		pbmClient, err := pbm.NewClient(ctx, vsphereClient.Client)
 		Expect(err).NotTo(HaveOccurred())

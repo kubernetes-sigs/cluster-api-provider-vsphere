@@ -51,6 +51,7 @@ const (
 	vSphereResourcePoolVar       = "${VSPHERE_RESOURCE_POOL}"
 	vSphereServerVar             = "${VSPHERE_SERVER}"
 	vSphereSSHAuthorizedKeysVar  = "${VSPHERE_SSH_AUTHORIZED_KEY}"
+	vSphereStoragePolicyVar      = "${VSPHERE_STORAGE_POLICY}"
 	vSphereTemplateVar           = "${VSPHERE_TEMPLATE}"
 	workerMachineCountVar        = "${WORKER_MACHINE_COUNT}"
 	controlPlaneEndpointVar      = "${CONTROL_PLANE_ENDPOINT_IP}"
@@ -251,17 +252,18 @@ func defaultVirtualMachineCloneSpec() infrav1.VirtualMachineCloneSpec {
 				},
 			},
 		},
-		CustomVMXKeys: defaultCustomVMXKeys(),
-		CloneMode:     infrav1.LinkedClone,
-		NumCPUs:       defaultNumCPUs,
-		DiskGiB:       defaultDiskGiB,
-		MemoryMiB:     defaultMemoryMiB,
-		Template:      vSphereTemplateVar,
-		Server:        vSphereServerVar,
-		Thumbprint:    vSphereThumbprint,
-		ResourcePool:  vSphereResourcePoolVar,
-		Datastore:     vSphereDatastoreVar,
-		Folder:        vSphereFolderVar,
+		CustomVMXKeys:     defaultCustomVMXKeys(),
+		CloneMode:         infrav1.LinkedClone,
+		NumCPUs:           defaultNumCPUs,
+		DiskGiB:           defaultDiskGiB,
+		MemoryMiB:         defaultMemoryMiB,
+		Template:          vSphereTemplateVar,
+		Server:            vSphereServerVar,
+		Thumbprint:        vSphereThumbprint,
+		ResourcePool:      vSphereResourcePoolVar,
+		Datastore:         vSphereDatastoreVar,
+		StoragePolicyName: vSphereStoragePolicyVar,
+		Folder:            vSphereFolderVar,
 	}
 }
 

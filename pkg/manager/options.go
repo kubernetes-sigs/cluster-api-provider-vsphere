@@ -101,6 +101,9 @@ type Options struct {
 	// WebhookPort is the port that the webhook server serves at.
 	WebhookPort int
 
+	// CertDir is the directory that contains the server key and certificate.
+	CertDir string
+
 	// CredentialsFile is the file that contains credentials of CAPV
 	CredentialsFile string
 

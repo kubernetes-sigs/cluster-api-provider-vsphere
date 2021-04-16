@@ -228,9 +228,10 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 
 func Test_GetMachineMetadata(t *testing.T) {
 	testCases := []struct {
-		name     string
-		machine  *v1alpha3.VSphereVM
-		expected string
+		name            string
+		machine         *v1alpha3.VSphereVM
+		networkStatuses []v1alpha3.NetworkStatus
+		expected        string
 	}{
 		{
 			name: "dhcp4",
@@ -586,12 +587,63 @@ network:
         - "vmware6.ci"
 `,
 		},
+		{
+			name: "2nets+network-statuses",
+			machine: &v1alpha3.VSphereVM{
+				Spec: v1alpha3.VSphereVMSpec{
+					VirtualMachineCloneSpec: v1alpha3.VirtualMachineCloneSpec{
+						Network: v1alpha3.NetworkSpec{
+							Devices: []v1alpha3.NetworkDeviceSpec{
+								{
+									NetworkName: "network1",
+									MACAddr:     "00:00:00:00:00",
+									DHCP4:       true,
+								},
+								{
+									NetworkName: "network12",
+									MACAddr:     "00:00:00:00:01",
+									DHCP6:       true,
+								},
+							},
+						},
+					},
+				},
+			},
+			networkStatuses: []v1alpha3.NetworkStatus{
+				{MACAddr: "00:00:00:00:ab"},
+				{MACAddr: "00:00:00:00:cd"},
+			},
+			expected: `
+instance-id: "test-vm"
+local-hostname: "test-vm"
+wait-on-network:
+  ipv4: true
+  ipv6: true
+network:
+  version: 2
+  ethernets:
+    id0:
+      match:
+        macaddress: "00:00:00:00:ab"
+      set-name: "eth0"
+      wakeonlan: true
+      dhcp4: true
+      dhcp6: false
+    id1:
+      match:
+        macaddress: "00:00:00:00:cd"
+      set-name: "eth1"
+      wakeonlan: true
+      dhcp4: false
+      dhcp6: true
+`,
+		},
 	}
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			tc.machine.Name = tc.name
-			actVal, err := util.GetMachineMetadata("test-vm", *tc.machine)
+			actVal, err := util.GetMachineMetadata("test-vm", *tc.machine, tc.networkStatuses...)
 			if err != nil {
 				t.Fatal(err)
 			}

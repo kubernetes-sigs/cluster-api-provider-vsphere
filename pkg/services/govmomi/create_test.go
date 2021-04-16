@@ -20,6 +20,7 @@ import (
 	"crypto/tls"
 	"testing"
 
+	"github.com/go-logr/logr"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/simulator"
 	"github.com/vmware/govmomi/vim25/types"
@@ -48,6 +49,7 @@ func TestCreate(t *testing.T) {
 
 	authSession, err := session.GetOrCreate(
 		vmContext,
+		logr.DiscardLogger{},
 		vmContext.VSphereVM.Spec.Server, "",
 		s.URL.User.Username(), pass, "")
 	if err != nil {

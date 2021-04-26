@@ -30,7 +30,7 @@ providers:
     versions:
       - name: v0.4.0
         # Use manifest from source files
-        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_master_20210310/core-components.yaml"
+        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_master_20210325/core-components.yaml"
         type: "url"
         files:
           - sourcePath: "../data/shared/metadata.yaml"
@@ -45,7 +45,7 @@ providers:
     versions:
       - name: v0.4.0
         # Use manifest from source files
-        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_master_20210310/bootstrap-components.yaml"
+        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_master_20210325/bootstrap-components.yaml"
         type: "url"
         files:
           - sourcePath: "../data/shared/metadata.yaml"
@@ -60,7 +60,7 @@ providers:
     versions:
       - name: v0.4.0
         # Use manifest from source files
-        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_master_20210310/control-plane-components.yaml"
+        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_master_20210325/control-plane-components.yaml"
         type: "url"
         files:
           - sourcePath: "../data/shared/metadata.yaml"

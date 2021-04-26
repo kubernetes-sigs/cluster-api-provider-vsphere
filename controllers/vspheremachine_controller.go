@@ -33,6 +33,7 @@ import (
 	apitypes "k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -164,7 +165,7 @@ func (r machineReconciler) Reconcile(ctx goctx.Context, req ctrl.Request) (_ ctr
 		r.Logger.Info("Machine is missing cluster label or cluster does not exist")
 		return reconcile.Result{}, nil
 	}
-	if clusterutilv1.IsPaused(cluster, vsphereMachine) {
+	if annotations.IsPaused(cluster, vsphereMachine) {
 		r.Logger.V(4).Info("VSphereMachine %s/%s linked to a cluster that is paused",
 			vsphereMachine.Namespace, vsphereMachine.Name)
 		return reconcile.Result{}, nil
@@ -320,7 +321,7 @@ func (r machineReconciler) reconcileNormal(ctx *context.MachineContext) (reconci
 
 	// Make sure bootstrap data is available and populated.
 	if ctx.Machine.Spec.Bootstrap.DataSecretName == nil {
-		if !infrautilv1.IsControlPlaneMachine(ctx.VSphereMachine) && !ctx.Cluster.Status.ControlPlaneInitialized {
+		if !infrautilv1.IsControlPlaneMachine(ctx.VSphereMachine) && !conditions.IsTrue(ctx.Cluster, clusterv1.ControlPlaneInitializedCondition) {
 			ctx.Logger.Info("Waiting for the control plane to be initialized")
 			conditions.MarkFalse(ctx.VSphereMachine, infrav1.VMProvisionedCondition, clusterv1.WaitingForControlPlaneAvailableReason, clusterv1.ConditionSeverityInfo, "")
 			return ctrl.Result{}, nil

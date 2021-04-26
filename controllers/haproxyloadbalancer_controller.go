@@ -32,14 +32,15 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	apitypes "k8s.io/apimachinery/pkg/types"
 	utilnet "k8s.io/utils/net"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/collections"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -190,7 +191,7 @@ func (r haproxylbReconciler) Reconcile(_ goctx.Context, req ctrl.Request) (_ ctr
 
 	cluster, err := clusterutilv1.GetClusterFromMetadata(r.Context, r.Client, haproxylb.ObjectMeta)
 	if err == nil {
-		if clusterutilv1.IsPaused(cluster, haproxylb) {
+		if annotations.IsPaused(cluster, haproxylb) {
 			ctx.Logger.V(4).Info("Linked cluster is paused")
 			return ctrl.Result{}, nil
 		}
@@ -251,7 +252,7 @@ func (r haproxylbReconciler) reconcileDeleteVM(ctx *context.HAProxyLoadBalancerC
 func (r haproxylbReconciler) reconcileDeleteVMPre7(ctx *context.HAProxyLoadBalancerContext) error {
 	// Get ready to find the associated VSphereVM resource.
 	vm := &infrav1.VSphereVM{}
-	vmKey := apitypes.NamespacedName{
+	vmKey := types.NamespacedName{
 		Namespace: ctx.HAProxyLoadBalancer.Namespace,
 		Name:      ctx.HAProxyLoadBalancer.Name + "-lb",
 	}
@@ -352,12 +353,12 @@ func (r haproxylbReconciler) BackEndpointsForCluster(ctx *context.HAProxyLoadBal
 	}
 
 	// Get the control plane machines.
-	controlPlaneMachines := clusterutilv1.GetControlPlaneMachinesFromList(machineList)
+	controlPlaneMachines := collections.FromMachineList(machineList).Filter(collections.ControlPlaneMachines(ctx.Cluster.Name))
 	endpoints := make([]corev1.EndpointAddress, 0)
 	for _, machine := range controlPlaneMachines {
 
 		// check if machine has joined the cluster before adding it to the list of backends
-		if ctx.Cluster.Status.ControlPlaneInitialized {
+		if conditions.IsTrue(ctx.Cluster, clusterv1.ControlPlaneInitializedCondition) {
 			if machine.Status.NodeRef == nil ||
 				machine.Status.FailureReason != nil ||
 				machine.Status.FailureMessage != nil {
@@ -627,7 +628,7 @@ func (r haproxylbReconciler) reconcileNetwork(ctx *context.HAProxyLoadBalancerCo
 // used to trigger reconcile events for an HAProxyLoadBalancer when a CAPI
 // Machine is reconciled and it has IP addresses and is a member of the same
 // control plane that the HAProxyLoadBalancer services.
-func (r haproxylbReconciler) controlPlaneMachineToHAProxyLoadBalancer(o client.Object) []ctrl.Request {
+func (r haproxylbReconciler) controlPlaneMachineToHAProxyLoadBalancer(o ctrlclient.Object) []ctrl.Request {
 	machine, ok := o.(*clusterv1.Machine)
 	if !ok {
 		r.Logger.Error(errors.New("invalid type"),
@@ -673,7 +674,7 @@ func (r haproxylbReconciler) controlPlaneMachineToHAProxyLoadBalancer(o client.O
 		infraClusterRef.Namespace = cluster.Namespace
 	}
 
-	infraClusterKey := client.ObjectKey{
+	infraClusterKey := ctrlclient.ObjectKey{
 		Namespace: infraClusterRef.Namespace,
 		Name:      infraClusterRef.Name,
 	}
@@ -738,7 +739,7 @@ func (r haproxylbReconciler) controlPlaneMachineToHAProxyLoadBalancer(o client.O
 	}}
 }
 
-func (r *haproxylbReconciler) reconcileClusterToHAProxyLoadBalancers(a client.Object) []reconcile.Request {
+func (r *haproxylbReconciler) reconcileClusterToHAProxyLoadBalancers(a ctrlclient.Object) []reconcile.Request {
 	requests := []reconcile.Request{}
 	lbs := &infrav1.HAProxyLoadBalancerList{}
 	err := r.Client.List(goctx.Background(),
@@ -754,7 +755,7 @@ func (r *haproxylbReconciler) reconcileClusterToHAProxyLoadBalancers(a client.Ob
 	}
 	for _, lb := range lbs.Items {
 		r := reconcile.Request{
-			NamespacedName: apitypes.NamespacedName{
+			NamespacedName: types.NamespacedName{
 				Name:      lb.Name,
 				Namespace: lb.Namespace,
 			},

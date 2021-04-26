@@ -26,7 +26,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/cloudprovider"
-	cloudprovidersvc "sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/cloudprovider"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	addonsv1alpha4 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha4"
@@ -35,13 +34,13 @@ import (
 // create StorageConfig to be used by tkg template
 func createStorageConfig() *infrav1.CPIStorageConfig {
 	return &infrav1.CPIStorageConfig{
-		ControllerImage:     cloudprovidersvc.DefaultCSIControllerImage,
-		NodeDriverImage:     cloudprovidersvc.DefaultCSINodeDriverImage,
-		AttacherImage:       cloudprovidersvc.DefaultCSIAttacherImage,
-		ProvisionerImage:    cloudprovidersvc.DefaultCSIProvisionerImage,
-		MetadataSyncerImage: cloudprovidersvc.DefaultCSIMetadataSyncerImage,
-		LivenessProbeImage:  cloudprovidersvc.DefaultCSILivenessProbeImage,
-		RegistrarImage:      cloudprovidersvc.DefaultCSIRegistrarImage,
+		ControllerImage:     cloudprovider.DefaultCSIControllerImage,
+		NodeDriverImage:     cloudprovider.DefaultCSINodeDriverImage,
+		AttacherImage:       cloudprovider.DefaultCSIAttacherImage,
+		ProvisionerImage:    cloudprovider.DefaultCSIProvisionerImage,
+		MetadataSyncerImage: cloudprovider.DefaultCSIMetadataSyncerImage,
+		LivenessProbeImage:  cloudprovider.DefaultCSILivenessProbeImage,
+		RegistrarImage:      cloudprovider.DefaultCSIRegistrarImage,
 	}
 }
 func MultiNodeTemplateWithHAProxy() []runtime.Object {
@@ -90,7 +89,7 @@ func MultiNodeTemplateWithKubeVIP() []runtime.Object {
 
 // createCrsResourceObjects creates the api objects necessary for CSI to function. Also appends the resources to the CRS
 func createCrsResourceObjects(crs *addonsv1alpha4.ClusterResourceSet, vsphereCluster infrav1.VSphereCluster, cluster clusterv1.Cluster) []runtime.Object {
-	serviceAccount := cloudprovidersvc.CSIControllerServiceAccount()
+	serviceAccount := cloudprovider.CSIControllerServiceAccount()
 	serviceAccount.TypeMeta = v1.TypeMeta{
 		Kind:       "ServiceAccount",
 		APIVersion: corev1.SchemeGroupVersion.String(),
@@ -114,12 +113,12 @@ func createCrsResourceObjects(crs *addonsv1alpha4.ClusterResourceSet, vsphereClu
 	clusterRoleBindingConfigMap := newConfigMap(clusterRoleBinding.Name, clusterRoleBinding)
 	appendConfigMapToCrsResource(crs, clusterRoleBindingConfigMap)
 
-	cloudConfig, err := cloudprovidersvc.ConfigForCSI(vsphereCluster, cluster, vSphereUsername, vSpherePassword).MarshalINI()
+	cloudConfig, err := cloudprovider.ConfigForCSI(vsphereCluster, cluster, vSphereUsername, vSpherePassword).MarshalINI()
 	if err != nil {
 		panic(errors.Errorf("invalid cloudConfig"))
 	}
 	// cloud config secret is wrapped in another secret so it could be injected via CRS
-	cloudConfigSecret := cloudprovidersvc.CSICloudConfigSecret(string(cloudConfig))
+	cloudConfigSecret := cloudprovider.CSICloudConfigSecret(string(cloudConfig))
 	cloudConfigSecret.TypeMeta = v1.TypeMeta{
 		Kind:       "Secret",
 		APIVersion: corev1.SchemeGroupVersion.String(),
@@ -136,7 +135,7 @@ func createCrsResourceObjects(crs *addonsv1alpha4.ClusterResourceSet, vsphereClu
 	appendConfigMapToCrsResource(crs, csiDriverConfigMap)
 
 	storageConfig := createStorageConfig()
-	daemonSet := cloudprovidersvc.VSphereCSINodeDaemonSet(storageConfig)
+	daemonSet := cloudprovider.VSphereCSINodeDaemonSet(storageConfig)
 	daemonSet.TypeMeta = v1.TypeMeta{
 		Kind:       "DaemonSet",
 		APIVersion: appsv1.SchemeGroupVersion.String(),

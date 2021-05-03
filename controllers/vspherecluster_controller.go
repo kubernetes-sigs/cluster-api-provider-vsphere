@@ -39,6 +39,7 @@ import (
 	infrautilv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -147,7 +148,7 @@ func (r clusterReconciler) Reconcile(ctx goctx.Context, req ctrl.Request) (_ ctr
 		r.Logger.Info("Waiting for Cluster Controller to set OwnerRef on VSphereCluster")
 		return reconcile.Result{}, nil
 	}
-	if clusterutilv1.IsPaused(cluster, vsphereCluster) {
+	if annotations.IsPaused(cluster, vsphereCluster) {
 		r.Logger.V(4).Info("VSphereCluster %s/%s linked to a cluster that is paused",
 			vsphereCluster.Namespace, vsphereCluster.Name)
 		return reconcile.Result{}, nil
@@ -485,7 +486,7 @@ var (
 )
 
 func (r clusterReconciler) reconcileVSphereClusterWhenAPIServerIsOnline(ctx *context.ClusterContext) {
-	if ctx.Cluster.Status.ControlPlaneInitialized {
+	if conditions.IsTrue(ctx.Cluster, clusterv1.ControlPlaneInitializedCondition) {
 		ctx.Logger.Info("skipping reconcile when API server is online",
 			"reason", "controlPlaneInitialized")
 		return
@@ -558,7 +559,7 @@ func (r clusterReconciler) isControlPlaneInitialized(ctx *context.ClusterContext
 		ctx.Logger.Info("exiting early because cluster no longer exists")
 		return true
 	}
-	return cluster.Status.ControlPlaneInitialized
+	return conditions.IsTrue(ctx.Cluster, clusterv1.ControlPlaneInitializedCondition)
 }
 
 func (r clusterReconciler) reconcileCloudProvider(ctx *context.ClusterContext) error {
@@ -821,7 +822,7 @@ func (r clusterReconciler) controlPlaneMachineToCluster(o client.Object) []ctrl.
 		return nil
 	}
 
-	if cluster.Status.ControlPlaneInitialized {
+	if conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
 		return nil
 	}
 

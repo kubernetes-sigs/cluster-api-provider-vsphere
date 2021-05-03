@@ -22,32 +22,32 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-func (r *VSphereCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
+func (c *VSphereCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
-		For(r).
+		For(c).
 		Complete()
 }
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1alpha4-vspherecluster,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=vsphereclusters,versions=v1alpha4,name=validation.vspherecluster.infrastructure.x-k8s.io,sideEffects=None,admissionReviewVersions=v1beta1
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *VSphereCluster) ValidateCreate() error {
+func (c *VSphereCluster) ValidateCreate() error {
 	var allErrs field.ErrorList
-	spec := r.Spec
+	spec := c.Spec
 
 	if spec.Thumbprint != "" && spec.Insecure != nil && *spec.Insecure {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "Insecure"), spec.Insecure, "cannot be set to true at the same time as .spec.Thumbprint"))
 	}
 
-	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
+	return aggregateObjErrors(c.GroupVersionKind().GroupKind(), c.Name, allErrs)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *VSphereCluster) ValidateUpdate(old runtime.Object) error {
+func (c *VSphereCluster) ValidateUpdate(old runtime.Object) error {
 	return nil
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *VSphereCluster) ValidateDelete() error {
+func (c *VSphereCluster) ValidateDelete() error {
 	return nil
 }

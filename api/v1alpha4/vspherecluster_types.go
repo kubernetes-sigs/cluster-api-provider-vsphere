@@ -88,12 +88,12 @@ type VSphereCluster struct {
 	Status VSphereClusterStatus `json:"status,omitempty"`
 }
 
-func (m *VSphereCluster) GetConditions() clusterv1.Conditions {
-	return m.Status.Conditions
+func (c *VSphereCluster) GetConditions() clusterv1.Conditions {
+	return c.Status.Conditions
 }
 
-func (m *VSphereCluster) SetConditions(conditions clusterv1.Conditions) {
-	m.Status.Conditions = conditions
+func (c *VSphereCluster) SetConditions(conditions clusterv1.Conditions) {
+	c.Status.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true

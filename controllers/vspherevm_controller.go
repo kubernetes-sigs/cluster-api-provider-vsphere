@@ -31,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -262,7 +263,7 @@ func (r vmReconciler) Reconcile(ctx goctx.Context, req ctrl.Request) (_ ctrl.Res
 
 	cluster, err := clusterutilv1.GetClusterFromMetadata(r.ControllerContext, r.Client, vsphereVM.ObjectMeta)
 	if err == nil {
-		if clusterutilv1.IsPaused(cluster, vsphereVM) {
+		if annotations.IsPaused(cluster, vsphereVM) {
 			r.Logger.V(4).Info("VSphereVM %s/%s linked to a cluster that is paused",
 				vsphereVM.Namespace, vsphereVM.Name)
 			return reconcile.Result{}, nil

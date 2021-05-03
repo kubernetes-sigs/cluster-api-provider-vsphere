@@ -18,7 +18,6 @@ package flavors
 
 import (
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
@@ -359,40 +358,40 @@ func defaultPreKubeadmCommands() []string {
 }
 
 func kubeVIPPod() string {
-	hostPathType := v1.HostPathFileOrCreate
-	pod := &v1.Pod{
+	hostPathType := corev1.HostPathFileOrCreate
+	pod := &corev1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "v1",
-			Kind:       typeToKind(&v1.Pod{}),
+			Kind:       typeToKind(&corev1.Pod{}),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "kube-vip",
 			Namespace: "kube-system",
 		},
-		Spec: v1.PodSpec{
-			Containers: []v1.Container{
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
 				{
 					Name:  "kube-vip",
 					Image: "plndr/kube-vip:0.3.2",
 					Args: []string{
 						"start",
 					},
-					ImagePullPolicy: v1.PullIfNotPresent,
-					SecurityContext: &v1.SecurityContext{
-						Capabilities: &v1.Capabilities{
-							Add: []v1.Capability{
+					ImagePullPolicy: corev1.PullIfNotPresent,
+					SecurityContext: &corev1.SecurityContext{
+						Capabilities: &corev1.Capabilities{
+							Add: []corev1.Capability{
 								"NET_ADMIN",
 								"SYS_TIME",
 							},
 						},
 					},
-					VolumeMounts: []v1.VolumeMount{
+					VolumeMounts: []corev1.VolumeMount{
 						{
 							MountPath: "/etc/kubernetes/admin.conf",
 							Name:      "kubeconfig",
 						},
 					},
-					Env: []v1.EnvVar{
+					Env: []corev1.EnvVar{
 						{
 							Name:  "vip_arp",
 							Value: "true",
@@ -426,11 +425,11 @@ func kubeVIPPod() string {
 				},
 			},
 			HostNetwork: true,
-			Volumes: []v1.Volume{
+			Volumes: []corev1.Volume{
 				{
 					Name: "kubeconfig",
-					VolumeSource: v1.VolumeSource{
-						HostPath: &v1.HostPathVolumeSource{
+					VolumeSource: corev1.VolumeSource{
+						HostPath: &corev1.HostPathVolumeSource{
 							Path: "/etc/kubernetes/admin.conf",
 							Type: &hostPathType,
 						},
@@ -464,14 +463,14 @@ func newClusterResourceSet(cluster clusterv1.Cluster) addonsv1alpha3.ClusterReso
 
 	return crs
 }
-func appendSecretToCrsResource(crs *addonsv1alpha3.ClusterResourceSet, generatedSecret *v1.Secret) {
+func appendSecretToCrsResource(crs *addonsv1alpha3.ClusterResourceSet, generatedSecret *corev1.Secret) {
 	crs.Spec.Resources = append(crs.Spec.Resources, addonsv1alpha3.ResourceRef{
 		Name: generatedSecret.Name,
 		Kind: "Secret",
 	})
 }
 
-func appendConfigMapToCrsResource(crs *addonsv1alpha3.ClusterResourceSet, generatedConfigMap *v1.ConfigMap) {
+func appendConfigMapToCrsResource(crs *addonsv1alpha3.ClusterResourceSet, generatedConfigMap *corev1.ConfigMap) {
 	crs.Spec.Resources = append(crs.Spec.Resources, addonsv1alpha3.ResourceRef{
 		Name: generatedConfigMap.Name,
 		Kind: "ConfigMap",
@@ -576,10 +575,10 @@ func newKubeadmControlplane(replicas int, infraTemplate infrav1.VSphereMachineTe
 	}
 }
 
-func newConfigMap(name string, o runtime.Object) *v1.ConfigMap {
-	return &v1.ConfigMap{
+func newConfigMap(name string, o runtime.Object) *corev1.ConfigMap {
+	return &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: v1.SchemeGroupVersion.String(),
+			APIVersion: corev1.SchemeGroupVersion.String(),
 			Kind:       "ConfigMap",
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -592,10 +591,10 @@ func newConfigMap(name string, o runtime.Object) *v1.ConfigMap {
 	}
 }
 
-func newSecret(name string, o runtime.Object) *v1.Secret {
-	return &v1.Secret{
+func newSecret(name string, o runtime.Object) *corev1.Secret {
+	return &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: v1.SchemeGroupVersion.String(),
+			APIVersion: corev1.SchemeGroupVersion.String(),
 			Kind:       "Secret",
 		},
 		ObjectMeta: metav1.ObjectMeta{

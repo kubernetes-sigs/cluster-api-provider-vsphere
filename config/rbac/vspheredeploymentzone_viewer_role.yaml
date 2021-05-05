@@ -1,0 +1,20 @@
+# permissions for end users to view vspheredeploymentzones.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: vspheredeploymentzone-viewer-role
+rules:
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - vspheredeploymentzones
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - vspheredeploymentzones/status
+  verbs:
+  - get

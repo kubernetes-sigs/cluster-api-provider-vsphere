@@ -8,6 +8,7 @@ authors:
   - "Ben Corrie"
   - "@abhinavnagaraj"
   - "@sadysnaat"
+  - "@yastij"
 reviewers:
   - "@yastij"
   - "@randomvariable"
@@ -172,138 +173,221 @@ CSI/CPI will be configured with region/zone information so nodes and PVs will ha
 ### API Design
 
 ```go
-New APIs in addition to https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/pull/752
+type FailureDomainType string
 
-//CRD VSphereFailureDomain defines region/zone for this failure domain
-type VSphereFailureDomain struct {
-    Spec   VSphereFailureDomainSpec `json:"spec,omitempty"`
-    Status VSphereFailureDomainStatus `json:"status,omitempty"`
-}
+const (
+  HostGroupFailureDomain      FailureDomainType = "HostGroup"
+  ComputeClusterFailureDomain FailureDomainType = "ComputeCluster"
+  DatacenterFailureDomain     FailureDomainType = "Datacenter"
+)
 
-// CRD VSphereDeploymentZone define one placement constraints for a VSphereFailureDomain
-// there may be more than one VSphereDeploymentZone for a VSphereFailureDomain
-type VSphereDeploymentZone struct {
-    Spec   VSphereDeploymentZoneSpec `json:"spec,omitempty"`
-    Status VSphereDeploymentZoneStatus `json:"status,omitempty"`
-}
-
-type VSphereDeploymentZoneSpec struct {
-    // name of the VSphereFailureDomain
-    VSphereFailureDomainName string `json:"vSphereFailureDomainName"`
-
-    // the placement constraints which is used within this failure domain
-    PlacementConstaint PlacementConstraint `json:"placementConstraint"`
-}
-
+// VSphereFailureDomainSpec defines the desired state of VSphereFailureDomain
 type VSphereFailureDomainSpec struct {
-    // name of the Region
-    // if is defined with tags, then should be the tag name, for eg: k8s-region-us-west
-    // if not defined with tags for the case with hostgroup, then it’s a user defined region name
-    Region string `json:"region"`
 
-    // name of the Zone,
-    // if is defined with tags, then should be the tag name, for eg:  k8s-zone-us-west-az1
-    // if mapped to hostgroup, then should be the name of the hostgroup
-    Zone string `json:"zone"`
+  // Region defines the name and type of a region
+  Region FailureDomain `json:"region"`
 
-    // Labels is the Tag category used to configure Region/Zone tags
-    // for FailureDomainDatacenter and FailureDomainComputeCluster
-    // +optional
-    Labels CPILabelConfig `json:"labels,omitempty"`
+  // Zone defines the name and type of a zone
+  Zone FailureDomain `json:"zone"`
 
-    // when AutoConfigure==true
-    // for FailureDomainDatacenter and FailureDomainComputeCluster
-    //        CAPV will try to tag the infrastructure with CPILabelConfig as tag category
-    //        and Region/Zone as tags
-    // for FailureDomainHostGroup
-    //         CAPV will try to create the hostGroup
-    // +optional
-    AutoConfigure bool `json:"autoConfigure,omitempty"`
-
-    // The underlying infrastructure for this failure domain
-    // only one of the three should be non-nill: Datacenter/ComputeCluster/HostGroup
-    // Datacenter as the failure domain
-    // +optional
-    Datacenter         *FailureDomainDatacenter `json:"datacenter,omitempty"`
-
-    // ComputeCluster as the failure domain
-    // +optional
-    ComputeCluster     *FailureDomainComputeCluster `json:"computeCluster,omitempty"`
-
-    // HostGroup as the failure domain
-    // +optional
-    HostGroup        *FailureDomainHostGroup `json:"hostGroup,omitempty"`
+  // Topology is the what describes a given failure domain using vSphere constructs
+  Topology Topology `json:"topology"`
 }
 
-// Datacenter as the failure domain
-type FailureDomainDatacenter struct {
-    // name of the datacenter
-    Name string `json:"name"`
+type FailureDomain struct {
+  // Name is the name of the tag that represents this failure domain
+  Name string `json:"name"`
+
+  // Type is the type of failure domain, the current values are "Datacenter", "ComputeCluster" and "HostGroup"
+  // +kubebuilder:validation:Enum=Datacenter;ComputeCluster;HostGroup
+  Type FailureDomainType `json:"type"`
+
+  // TagCategory is the category used for the tag
+  TagCategory string `json:"tagCategory"`
+
+  // AutoConfigure tags the Type which is specified in the Topology
+  AutoConfigure *bool `json:"autoConfigure,omitempty"`
 }
 
-// ComputeCluster as the failure domain
-type FailureDomainComputeCluster struct {
-    // name of the compute cluster
-    Name string `json:"name"`
+type Topology struct {
+  // The underlying infrastructure for this failure domain
+  // Datacenter as the failure domain
+  Datacenter string `json:"datacenter"`
 
-// datacenter that this compute cluster belongs to
-    Datacenter string `json:"datacenter"`
+  // ComputeCluster as the failure domain
+  // +optional
+  ComputeCluster *string `json:"computeCluster,omitempty"`
+
+  // HostGroup as the failure domain
+  // +optional
+  HostGroup *FailureDomainHostGroup `json:"hostGroup,omitempty"`
 }
 
-// HostGroup as the failure domain
+// FailureDomainHostGroup as the failure domain
 type FailureDomainHostGroup struct {
-    // name of the host group
-    Name string `json:"name"`
+  // name of the host group
+  Name string `json:"name"`
 
-    // datacenter that this hostgroup belongs to
-    Datacenter string `json:"datacenter"`
-
-    // compute cluster that this hostgroup belongs to
-    ComputeCluster string `json:"computeCluster"`
+  // compute cluster that this hostgroup belongs to
+  // +optional
+  AutoConfigure *bool `json:"autoConfigure,omitempty"`
 }
 
-// PlacementConstraint is the context information for VM placements within a failure domain
-type PlacementConstraint struct {
-    // ResourcePool is the name or inventory path of the resource pool in which
-    // the virtual machine is created/located.
-    // +optional
-    ResourcePool string `json:"resourcePool,omitempty"`
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:path=vspherefailuredomains,scope=Cluster,categories=cluster-api
 
-    // Datastore is the name or inventory path of the datastore in which the
-    // virtual machine is created/located.
-    Datastore string `json:"datastore"`
+// VSphereFailureDomain is the Schema for the vspherefailuredomains API
+type VSphereFailureDomain struct {
+  metav1.TypeMeta   `json:",inline"`
+  metav1.ObjectMeta `json:"metadata,omitempty"`
 
-    // Network is the network configuration for this machine's VM.
-    Network NetworkSpec `json:"network"`
-
-    // Folder is the name or inventory path of the folder in which the
-    // virtual machine is created/located.
-    Folder string `json:"folder"`
-}
-
-type VSphereClusterSpec struct {
-    // Server is the address of the vSphere endpoint.
-    Server string `json:"server,omitempty"`
-
-    …..
-
-    // DeploymentZones are names of the VSphereDeploymentZones that
-    // this cluster will use
-    // items in this array should have different failure domains (zones)
-    // if empty, will not use failure domain for control plane nodes
-    DeploymentZones []string `json:"deploymentZones,omitempty"`
+  Spec VSphereFailureDomainSpec `json:"spec,omitempty"`
 }
 
 ```
 
+we'll also introduce the concept of `VSphereDeploymentZone` which allows us to reference `VSphereFailureDomains`
+and combine it with `PlacementConstrains`
+
+```go
+// VSphereDeploymentZoneSpec defines the desired state of VSphereDeploymentZone
+type VSphereDeploymentZoneSpec struct {
+
+  // Server is the address of the vSphere endpoint.
+  Server string `json:"server,omitempty"`
+
+  // failureDomain is the name of the VSphereFailureDomain used for this VSphereDeploymentZone
+  FailureDomain string `json:"failureDomain,omitempty"`
+
+  // ControlPlane determines if this failure domain is suitable for use by control plane machines.
+  // +optional
+  ControlPlane *bool `json:"controlPlane,omitempty"`
+
+// the placement constraints which is used within this failure domain
+  PlacementConstaint PlacementConstraint `json:"placementConstraint"`
+}
+
+// PlacementConstraint is the context information for VM placements within a failure domain
+type PlacementConstraint struct {
+  // ResourcePool is the name or inventory path of the resource pool in which
+  // the virtual machine is created/located.
+  // +optional
+  ResourcePool string `json:"resourcePool,omitempty"`
+
+  // Datastore is the name or inventory path of the datastore in which the
+  // virtual machine is created/located.
+  // +optional
+  Datastore string `json:"datastore,omitempty"`
+
+  // Network represents the networking for this depoyment zone
+  // +optional
+  Network []Network `json:"Network,omitempty"`
+
+  // Folder is the name or inventory path of the folder in which the
+  // virtual machine is created/located.
+  // +optional
+  Folder string `json:"folder,omitempty"`
+}
+
+type Network struct {
+  // NetworkName is the network name for this machine's VM.
+  NetworkName string `json:"networkName,omitempty"`
+
+  // DHCP4 is a flag that indicates whether or not to use DHCP for IPv4
+  // +optional
+  DHCP4 *bool `json:"dhcp4,omitempty"`
+
+  // DHCP6 indicates whether or not to use DHCP for IPv6
+  // +optional
+  DHCP6 *bool `json:"dhcp6,omitempty"`
+}
+
+type VSphereDeploymentZoneStatus struct {
+  // Ready is true when the VSphereDeploymentZone resource is ready.
+  // If set to false, it will be ignored by VSphereClusters
+  // +optional
+  Ready *bool `json:"ready,omitempty"`
+
+  // Conditions defines current service state of the VSphereMachine.
+  // +optional
+  Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:path=vspheredeploymentzones,scope=Cluster,categories=cluster-api
+// +kubebuilder:subresource:status
+
+// VSphereDeploymentZone is the Schema for the vspheredeploymentzones API
+type VSphereDeploymentZone struct {
+  metav1.TypeMeta   `json:",inline"`
+  metav1.ObjectMeta `json:"metadata,omitempty"`
+
+  Spec   VSphereDeploymentZoneSpec   `json:"spec,omitempty"`
+  Status VSphereDeploymentZoneStatus `json:"status,omitempty"`
+}
+```
+
 ### Implementation Details
 
-1. Manually Pre-populate CR for VSphereFailureDomain and VSphereDeploymentZone
-2. Controller change for user story 2/3/4
-3. Controller change for user story 1
-4. New controller for CRD VSphereFailureDomain
-5. Auto discovery, validation of VSphereFailureDomain for user story 1/2/3.
-6. Auto configuration for hostgroup for user story 1/2/3, if provided with enough permission
+the changes required to the controllers are the following
+
+#### VSphereFailureDomain validating webhook
+
+the validation for `VSphereFailureDomain` should:
+
+* verify that the `.Spec.Topology.Datacenter` is not empty
+* if `.Spec.Topology.HostGroup` is not `nil`, verify that `autoconfigure` is not true for both the `hostGroup` and `FailureDomain` struct
+
+#### VSphereDeploymentZone defaulting webhook
+
+the defaultijg for `VSphereDeploymentZone` should:
+
+* check if `controlPlane` is `nil`, if it is default to true
+
+#### the vspheredeploymentzone_controller
+
+This controller would be responsible for:
+
+* Listing `VSphereClusters` and checking if `server` field matches
+  * pickup the first matching `VSphereCluster` and extract credentials through reading `.spec.identityRef`
+  * No `VSphereCluster` is matching, this means that we fallback to the `capv-controller-manager` credentials
+* Verifying the following:
+  * being able to create a session
+  * the compute cluster exists and has the specified resource pool
+  * the network, datastore and folder all exist
+  * if autoconfigure is `false` verify that the hostGroup exists
+  * if autoconfigure is `false` verify that tags on the elements (compute cluster, datacenter or Hosts) exist
+* Depending on autoconfiguration enablement (only ONE of the following can be done):
+  * Create the hostGroup and add the tagged hosts
+  * List the hosts within the hostGroup and tag them accordingly
+* set `.status.Ready` when all of the above is done
+
+note: `.status.Ready` should remain nil, unless we deem the `VSphereDeploymentZone` not ready for consumption
+
+#### the vspherecluster_controller
+
+the following changes are going to be introduced to vspherecluster_controller:
+
+* List the `VSphereDeploymentZones` and match based on `.spec.server`
+* check `.status.Ready`
+  * if `.status.Ready` is `nil`, add it to the failureDomain map, but  skip setting `.status.InfrastructureReady` on the `VSphereCluster`
+  * if `.status.Ready` is `true` add it to the failureDomain map
+  * if `.status.Ready` is `false` skip adding `VSphereDeploymentZone` to the map
+* copy `.spec.controlPlane` of `VSphereDeploymentZone` into the failureDomain map value
+* Before setting `.status.InfrastructureReady` ensure that no matched `VSphereFailureDomain` has `.status.Ready` set to `nil`
+* Add a condition to represent the controller waiting for a failure domain to be ready
+* Add a condition to represent the controller skipping a matching failure domain
+* Add a condition to represent the controller listing all the matched failure domains
+
+#### the vspheremachine_controller
+
+the following changes are going to be introduced to vspheremachine_controller:
+
+* if `.spec.failureDomain` is set:
+  * fetch the `VSphereDeploymentZone` that has `.spec.failureDomain` as a name
+  * use that to populate the values of the `VSphereVM`
+* if `.spec.failureDomain` is not set
+  * fallback to reading from the vspheremachine itself
 
 ### Notes/Constraints
 

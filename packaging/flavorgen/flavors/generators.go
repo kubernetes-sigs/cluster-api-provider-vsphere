@@ -157,6 +157,7 @@ func newVSphereCluster(lb *infrav1.HAProxyLoadBalancer) infrav1.VSphereCluster {
 						MetadataSyncerImage: cloudprovidersvc.DefaultCSIMetadataSyncerImage,
 						LivenessProbeImage:  cloudprovidersvc.DefaultCSILivenessProbeImage,
 						RegistrarImage:      cloudprovidersvc.DefaultCSIRegistrarImage,
+						ResizerImage:        cloudprovidersvc.DefaultCSIResizerImage,
 					},
 				},
 			},

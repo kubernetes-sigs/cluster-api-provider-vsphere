@@ -167,6 +167,8 @@ spec:
                             type: string
                           registrarImage:
                             type: string
+                          resizerImage:
+                            type: string
                         type: object
                     type: object
                   virtualCenter:
@@ -518,6 +520,8 @@ spec:
                           provisionerImage:
                             type: string
                           registrarImage:
+                            type: string
+                          resizerImage:
                             type: string
                         type: object
                     type: object

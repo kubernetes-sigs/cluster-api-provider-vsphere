@@ -629,7 +629,7 @@ func (r clusterReconciler) reconcileCloudProvider(ctx *context.ClusterContext) e
 	return nil
 }
 
-// nolint:gocognit
+// nolint:gocognit,gocyclo
 func (r clusterReconciler) reconcileStorageProvider(ctx *context.ClusterContext) error {
 	// if storage config is not defined, assume we don't want CSI installed
 	storageConfig := ctx.VSphereCluster.Spec.CloudProviderConfiguration.ProviderConfig.Storage
@@ -669,6 +669,10 @@ func (r clusterReconciler) reconcileStorageProvider(ctx *context.ClusterContext)
 
 	if storageConfig.RegistrarImage == "" {
 		storageConfig.RegistrarImage = cloudprovider.DefaultCSIRegistrarImage
+	}
+
+	if storageConfig.ResizerImage == "" {
+		storageConfig.ResizerImage = cloudprovider.DefaultCSIResizerImage
 	}
 
 	ctx.VSphereCluster.Spec.CloudProviderConfiguration.ProviderConfig.Storage = storageConfig

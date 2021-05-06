@@ -782,6 +782,7 @@ func autoConvert_v1alpha3_CPIStorageConfig_To_v1alpha4_CPIStorageConfig(in *CPIS
 	out.MetadataSyncerImage = in.MetadataSyncerImage
 	out.LivenessProbeImage = in.LivenessProbeImage
 	out.RegistrarImage = in.RegistrarImage
+	out.ResizerImage = in.ResizerImage
 	return nil
 }
 
@@ -798,6 +799,7 @@ func autoConvert_v1alpha4_CPIStorageConfig_To_v1alpha3_CPIStorageConfig(in *v1al
 	out.MetadataSyncerImage = in.MetadataSyncerImage
 	out.LivenessProbeImage = in.LivenessProbeImage
 	out.RegistrarImage = in.RegistrarImage
+	out.ResizerImage = in.ResizerImage
 	return nil
 }
 

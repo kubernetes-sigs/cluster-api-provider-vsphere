@@ -80,6 +80,7 @@ type CPIStorageConfig struct {
 	MetadataSyncerImage string `json:"metadataSyncerImage,omitempty"`
 	LivenessProbeImage  string `json:"livenessProbeImage,omitempty"`
 	RegistrarImage      string `json:"registrarImage,omitempty"`
+	ResizerImage        string `json:"resizerImage,omitempty"`
 }
 
 // unmarshallableConfig is used to unmarshal the INI data using the gcfg

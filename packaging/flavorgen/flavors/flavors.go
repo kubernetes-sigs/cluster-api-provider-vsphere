@@ -41,6 +41,7 @@ func createStorageConfig() *infrav1.CPIStorageConfig {
 		MetadataSyncerImage: cloudprovider.DefaultCSIMetadataSyncerImage,
 		LivenessProbeImage:  cloudprovider.DefaultCSILivenessProbeImage,
 		RegistrarImage:      cloudprovider.DefaultCSIRegistrarImage,
+		ResizerImage:        cloudprovider.DefaultCSIResizerImage,
 	}
 }
 func MultiNodeTemplateWithHAProxy() []runtime.Object {

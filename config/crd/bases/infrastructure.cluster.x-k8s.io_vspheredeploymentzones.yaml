@@ -51,10 +51,25 @@ spec:
                 description: the placement constraints which is used within this failure
                   domain
                 properties:
-                  NetworkName:
-                    description: NetworkName is the network name for this machine's
-                      VM.
-                    type: string
+                  Network:
+                    description: Network represents the networking for this depoyment
+                      zone
+                    items:
+                      properties:
+                        dhcp4:
+                          description: DHCP4 is a flag that indicates whether or not
+                            to use DHCP for IPv4
+                          type: boolean
+                        dhcp6:
+                          description: DHCP6 indicates whether or not to use DHCP
+                            for IPv6
+                          type: boolean
+                        networkName:
+                          description: NetworkName is the network name for this machine's
+                            VM.
+                          type: string
+                      type: object
+                    type: array
                   datastore:
                     description: Datastore is the name or inventory path of the datastore
                       in which the virtual machine is created/located.
@@ -67,8 +82,6 @@ spec:
                     description: ResourcePool is the name or inventory path of the
                       resource pool in which the virtual machine is created/located.
                     type: string
-                required:
-                - NetworkName
                 type: object
               server:
                 description: Server is the address of the vSphere endpoint.
@@ -165,10 +178,25 @@ spec:
                 description: the placement constraints which is used within this failure
                   domain
                 properties:
-                  NetworkName:
-                    description: NetworkName is the network name for this machine's
-                      VM.
-                    type: string
+                  Network:
+                    description: Network represents the networking for this depoyment
+                      zone
+                    items:
+                      properties:
+                        dhcp4:
+                          description: DHCP4 is a flag that indicates whether or not
+                            to use DHCP for IPv4
+                          type: boolean
+                        dhcp6:
+                          description: DHCP6 indicates whether or not to use DHCP
+                            for IPv6
+                          type: boolean
+                        networkName:
+                          description: NetworkName is the network name for this machine's
+                            VM.
+                          type: string
+                      type: object
+                    type: array
                   datastore:
                     description: Datastore is the name or inventory path of the datastore
                       in which the virtual machine is created/located.
@@ -181,14 +209,10 @@ spec:
                     description: ResourcePool is the name or inventory path of the
                       resource pool in which the virtual machine is created/located.
                     type: string
-                required:
-                - NetworkName
                 type: object
               server:
                 description: Server is the address of the vSphere endpoint.
                 type: string
-            required:
-            - placementConstraint
             type: object
           status:
             properties:

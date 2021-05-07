@@ -50,13 +50,27 @@ type PlacementConstraint struct {
 	// +optional
 	Datastore string `json:"datastore,omitempty"`
 
-	// NetworkName is the network name for this machine's VM.
-	NetworkName string `json:"NetworkName"`
+	// Network represents the networking for this depoyment zone
+	// +optional
+	Network []Network `json:"Network,omitempty"`
 
 	// Folder is the name or inventory path of the folder in which the
 	// virtual machine is created/located.
 	// +optional
 	Folder string `json:"folder,omitempty"`
+}
+
+type Network struct {
+	// NetworkName is the network name for this machine's VM.
+	NetworkName string `json:"networkName,omitempty"`
+
+	// DHCP4 is a flag that indicates whether or not to use DHCP for IPv4
+	// +optional
+	DHCP4 *bool `json:"dhcp4,omitempty"`
+
+	// DHCP6 indicates whether or not to use DHCP for IPv6
+	// +optional
+	DHCP6 *bool `json:"dhcp6,omitempty"`
 }
 
 type VSphereDeploymentZoneStatus struct {

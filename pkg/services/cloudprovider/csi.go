@@ -33,13 +33,14 @@ import (
 // NOTE: the contents of this file are derived from https://github.com/kubernetes-sigs/vsphere-csi-driver/tree/master/manifests/1.14
 
 const (
-	DefaultCSIControllerImage     = "gcr.io/cloud-provider-vsphere/csi/release/driver:v2.1.0"
-	DefaultCSINodeDriverImage     = "gcr.io/cloud-provider-vsphere/csi/release/driver:v2.1.0"
-	DefaultCSIAttacherImage       = "quay.io/k8scsi/csi-attacher:v3.0.0"
-	DefaultCSIProvisionerImage    = "quay.io/k8scsi/csi-provisioner:v2.0.0"
-	DefaultCSIMetadataSyncerImage = "gcr.io/cloud-provider-vsphere/csi/release/syncer:v2.1.0"
-	DefaultCSILivenessProbeImage  = "quay.io/k8scsi/livenessprobe:v2.1.0"
-	DefaultCSIRegistrarImage      = "quay.io/k8scsi/csi-node-driver-registrar:v2.0.1"
+	DefaultCSIControllerImage     = "gcr.io/cloud-provider-vsphere/csi/release/driver:v2.2.0"
+	DefaultCSINodeDriverImage     = "gcr.io/cloud-provider-vsphere/csi/release/driver:v2.2.0"
+	DefaultCSIAttacherImage       = "quay.io/k8scsi/csi-attacher:v3.1.0"
+	DefaultCSIProvisionerImage    = "quay.io/k8scsi/csi-provisioner:v2.1.0"
+	DefaultCSIMetadataSyncerImage = "gcr.io/cloud-provider-vsphere/csi/release/syncer:v2.2.0"
+	DefaultCSILivenessProbeImage  = "quay.io/k8scsi/livenessprobe:v2.2.0"
+	DefaultCSIRegistrarImage      = "quay.io/k8scsi/csi-node-driver-registrar:v2.1.0"
+	DefaultCSIResizerImage        = "quay.io/k8scsi/csi-resizer:v1.1.0"
 	CSINamespace                  = metav1.NamespaceSystem
 	CSIControllerName             = "vsphere-csi-controller"
 	CSIFeatureStateConfigMapName  = "internal-feature-states.csi.vsphere.vmware.com"
@@ -427,6 +428,7 @@ func CSIControllerDeployment(storageConfig *infrav1.CPIStorageConfig) *appsv1.De
 						LivenessProbeForCSIControllerContainer(storageConfig.LivenessProbeImage),
 						VSphereSyncerContainer(storageConfig.MetadataSyncerImage),
 						CSIProvisionerContainer(storageConfig.ProvisionerImage),
+						CSIResizerContainer(storageConfig.ResizerImage),
 					},
 					Volumes: []corev1.Volume{
 						{
@@ -604,6 +606,34 @@ func CSIProvisionerContainer(image string) corev1.Container {
 	}
 }
 
+func CSIResizerContainer(image string) corev1.Container {
+	return corev1.Container{
+		Name:  "csi-resizer",
+		Image: image,
+		Args: []string{
+			"--v=4",
+			"--timeout=300s",
+			"--handle-volume-inuse-error=false",
+			"--csi-address=$(ADDRESS)",
+			"--kube-api-qps=100",
+			"--kube-api-burst=100",
+			"--leader-election",
+		},
+		Env: []corev1.EnvVar{
+			{
+				Name:  "ADDRESS",
+				Value: "/csi/csi.sock",
+			},
+		},
+		VolumeMounts: []corev1.VolumeMount{
+			{
+				MountPath: "/csi",
+				Name:      "socket-dir",
+			},
+		},
+	}
+}
+
 func CSICloudConfigSecret(data string) *corev1.Secret {
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -637,6 +667,7 @@ func ConfigForCSI(vsphereCluster infrav1.VSphereCluster, cluster clusterv1.Clust
 
 	config.Global.ClusterID = fmt.Sprintf("%s/%s", cluster.Namespace, cluster.Name)
 	config.Global.Insecure = vsphereCluster.Spec.CloudProviderConfiguration.Global.Insecure
+	config.Global.Thumbprint = vsphereCluster.Spec.CloudProviderConfiguration.Global.Thumbprint
 	config.Network.Name = vsphereCluster.Spec.CloudProviderConfiguration.Network.Name
 
 	config.VCenter = map[string]infrav1.CPIVCenterConfig{}

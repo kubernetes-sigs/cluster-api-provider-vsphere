@@ -82,7 +82,6 @@ func AddClusterControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 		Recorder:                 record.New(mgr.GetEventRecorderFor(controllerNameLong)),
 		Logger:                   ctx.Logger.WithName(controllerNameShort),
 	}
-
 	reconciler := clusterReconciler{ControllerContext: controllerContext}
 
 	return ctrl.NewControllerManagedBy(mgr).
@@ -114,6 +113,14 @@ func AddClusterControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 			&source.Kind{Type: &infrav1.HAProxyLoadBalancer{}},
 			&handler.EnqueueRequestsFromMapFunc{
 				ToRequests: handler.ToRequestsFunc(reconciler.loadBalancerToCluster),
+			},
+		).
+		// Watch the Vsphere deployment zone with the Server field matching the
+		// server field of the VSphereCluster.
+		Watches(
+			&source.Kind{Type: &infrav1.VSphereDeploymentZone{}},
+			&handler.EnqueueRequestsFromMapFunc{
+				ToRequests: handler.ToRequestsFunc(reconciler.deploymentZoneToCluster),
 			},
 		).
 		// Watch a GenericEvent channel for the controlled resource.
@@ -279,6 +286,15 @@ func (r clusterReconciler) reconcileNormal(ctx *context.ClusterContext) (reconci
 
 	// If the VSphereCluster doesn't have our finalizer, add it.
 	ctrlutil.AddFinalizer(ctx.VSphereCluster, infrav1.ClusterFinalizer)
+
+	ok, err := r.reconcileDeploymentZones(ctx)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	if !ok {
+		ctx.Logger.Info("waiting for failure domains to be reconciled")
+		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
+	}
 
 	if err := r.reconcileIdentitySecret(ctx); err != nil {
 		conditions.MarkFalse(ctx.VSphereCluster, infrav1.VCenterAvailableCondition, infrav1.VCenterUnreachableReason, clusterv1.ConditionSeverityError, err.Error())
@@ -562,6 +578,50 @@ func (r clusterReconciler) reconcileLoadBalancer(ctx *context.ClusterContext) (b
 	ctx.Logger.Info("ControlPlaneEndpoint discovered via load balancer",
 		"controlPlaneEndpoint", ctx.VSphereCluster.Spec.ControlPlaneEndpoint.String())
 
+	return true, nil
+}
+
+func (r clusterReconciler) reconcileDeploymentZones(ctx *context.ClusterContext) (bool, error) {
+	var deploymentZoneList infrav1.VSphereDeploymentZoneList
+	err := r.Client.List(ctx, &deploymentZoneList)
+	if err != nil {
+		return false, errors.Wrap(err, "unable to list deployment zones")
+	}
+
+	readyNotReported, notReady := 0, 0
+	failureDomains := clusterv1.FailureDomains{}
+	for _, zone := range deploymentZoneList.Items {
+		if zone.Spec.Server == ctx.VSphereCluster.Spec.Server {
+			if zone.Status.Ready == nil {
+				readyNotReported++
+				failureDomains[zone.Name] = clusterv1.FailureDomainSpec{
+					ControlPlane: *zone.Spec.ControlPlane,
+				}
+			} else {
+				if *zone.Status.Ready {
+					failureDomains[zone.Name] = clusterv1.FailureDomainSpec{
+						ControlPlane: *zone.Spec.ControlPlane,
+					}
+				} else {
+					notReady++
+				}
+			}
+		}
+	}
+
+	ctx.VSphereCluster.Status.FailureDomains = failureDomains
+	if readyNotReported > 0 {
+		conditions.MarkFalse(ctx.VSphereCluster, infrav1.FailureDomainsAvailableCondition, infrav1.WaitingForFailureDomainStatusReason, clusterv1.ConditionSeverityInfo, "waiting for failure domains to report ready status")
+		return false, nil
+	}
+
+	if len(failureDomains) > 0 {
+		if notReady > 0 {
+			conditions.MarkFalse(ctx.VSphereCluster, infrav1.FailureDomainsAvailableCondition, infrav1.FailureDomainsSkippedReason, clusterv1.ConditionSeverityInfo, "one or more failure domains are not ready")
+		} else {
+			conditions.MarkTrue(ctx.VSphereCluster, infrav1.FailureDomainsAvailableCondition)
+		}
+	}
 	return true, nil
 }
 
@@ -970,4 +1030,33 @@ func (r clusterReconciler) loadBalancerToCluster(o handler.MapObject) []ctrl.Req
 			Name:      vsphereClusterRef.Name,
 		},
 	}}
+}
+
+func (r clusterReconciler) deploymentZoneToCluster(o handler.MapObject) []reconcile.Request {
+	var requests []ctrl.Request
+	obj, ok := o.Object.(*infrav1.VSphereDeploymentZone)
+	if !ok {
+		r.Logger.Error(nil, fmt.Sprintf("expected an infrav1.VSphereDeploymentZone but got a %T", o))
+		return nil
+	}
+
+	var clusterList infrav1.VSphereClusterList
+	err := r.Client.List(r.Context, &clusterList)
+	if err != nil {
+		r.Logger.Error(err, fmt.Sprintf("unable to list clusters"))
+		return requests
+	}
+
+	for _, cluster := range clusterList.Items {
+		if obj.Spec.Server == cluster.Spec.Server {
+			r := reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      cluster.Name,
+					Namespace: cluster.Namespace,
+				},
+			}
+			requests = append(requests, r)
+		}
+	}
+	return requests
 }

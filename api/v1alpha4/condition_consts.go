@@ -27,7 +27,7 @@ const (
 	// LoadBalancerProvisioningReason (Severity=Info) documents a VSphereCluster provisioning a load balancer.
 	LoadBalancerProvisioningReason = "LoadBalancerProvisioning"
 
-	// LoadBalancerProvisioningReason (Severity=Warning) documents a VSphereCluster controller detecting
+	// LoadBalancerProvisioningFailedReason (Severity=Warning) documents a VSphereCluster controller detecting
 	// while provisioning the load balancer; those kind of errors are usually transient and failed provisioning
 	// are automatically re-tried by the controller.
 	LoadBalancerProvisioningFailedReason = "LoadBalancerProvisioningFailed"
@@ -47,6 +47,20 @@ const (
 	// while installing the container storage interface  addon; those kind of errors are usually transient
 	// the operation is automatically re-tried by the controller.
 	CSIProvisioningFailedReason = "CSIProvisioningFailed"
+
+	// FailureDomainsAvailableCondition documents the status of the failure domains
+	// associated to the VSphereCluster.
+	FailureDomainsAvailableCondition clusterv1.ConditionType = "FailureDomainsAvailable"
+
+	// FailureDomainsSkippedReason (Severity=Info) documents that some of the failure domain statuses
+	// associated to the VSphereCluster are reported as not ready.
+	FailureDomainsSkippedReason = "FailureDomainsSkipped"
+
+	// WaitingForFailureDomainStatusReason (Severity=Info) documents that some of the failure domains
+	// associated to the VSphereCluster are not reporting the Ready status.
+	// Instead of reporting a false ready status, these failure domains are still under the process of reconciling
+	// and hence not yet reporting their status.
+	WaitingForFailureDomainStatusReason = "WaitingForFailureDomainStatus"
 )
 
 // Conditions and condition Reasons for the VSphereMachine and the VSphereVM object.
@@ -102,7 +116,6 @@ const (
 )
 
 // Conditions and Reasons related to utilizing a VSphereIdentity to make connections to a VCenter. Can currently be used by VSphereCluster and VSphereVM
-
 const (
 	// VCenterAvailableCondition documents the connectivity with vcenter
 	// for a given resource

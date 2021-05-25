@@ -53,6 +53,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=vspherevms,verbs=get;list;watch;create;update;patch;delete
@@ -155,13 +156,42 @@ func (r vmReconciler) Reconcile(ctx goctx.Context, req ctrl.Request) (_ ctrl.Res
 	}
 	conditions.MarkTrue(vsphereVM, infrav1.VCenterAvailableCondition)
 
+	var vsphereFailureDomain *infrav1.VSphereFailureDomain
+	// VSphereVMs for HAProxyLoadBalancer type do not support Failure Domains
+	if !clusterutilv1.HasOwner(vsphereVM.OwnerReferences, infrav1.GroupVersion.String(), []string{"HAProxyLoadBalancer"}) {
+		// Fetch the owner VSphereMachine.
+		vsphereMachine, err := util.GetOwnerVSphereMachine(r, r.Client, vsphereVM.ObjectMeta)
+		if err != nil {
+			r.Logger.Info("Owner VSphereMachine not found, won't reconcile", "key", req.NamespacedName)
+			return reconcile.Result{}, nil
+		}
+
+		// Fetch the CAPI Machine.
+		machine, err := clusterutilv1.GetOwnerMachine(r, r.Client, vsphereMachine.ObjectMeta)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		if machine == nil {
+			r.Logger.Info("Waiting for OwnerRef to be set on VSphereMachine", "key", vsphereMachine.Name)
+			return reconcile.Result{}, nil
+		}
+
+		if failureDomain := machine.Spec.FailureDomain; failureDomain != nil {
+			vsphereFailureDomain = &infrav1.VSphereFailureDomain{}
+			if err := r.Client.Get(r, apitypes.NamespacedName{Name: *failureDomain}, vsphereFailureDomain); err != nil {
+				return reconcile.Result{}, errors.Wrapf(err, "failed to find vsphere failure domain %s", *failureDomain)
+			}
+		}
+	}
+
 	// Create the VM context for this request.
 	vmContext := &context.VMContext{
-		ControllerContext: r.ControllerContext,
-		VSphereVM:         vsphereVM,
-		Session:           authSession,
-		Logger:            r.Logger.WithName(req.Namespace).WithName(req.Name),
-		PatchHelper:       patchHelper,
+		ControllerContext:    r.ControllerContext,
+		VSphereVM:            vsphereVM,
+		VSphereFailureDomain: vsphereFailureDomain,
+		Session:              authSession,
+		Logger:               r.Logger.WithName(req.Namespace).WithName(req.Name),
+		PatchHelper:          patchHelper,
 	}
 
 	// Print the task-ref upon entry and upon exit.

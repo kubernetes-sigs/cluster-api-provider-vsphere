@@ -22,17 +22,18 @@ import (
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/cluster-api/util/patch"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 )
 
 // VMContext is a Go context used with a VSphereVM.
 type VMContext struct {
 	*ControllerContext
-	VSphereVM   *v1alpha3.VSphereVM
-	PatchHelper *patch.Helper
-	Logger      logr.Logger
-	Session     *session.Session
+	VSphereVM            *infrav1.VSphereVM
+	PatchHelper          *patch.Helper
+	Logger               logr.Logger
+	Session              *session.Session
+	VSphereFailureDomain *infrav1.VSphereFailureDomain
 }
 
 // String returns VSphereVMGroupVersionKind VSphereVMNamespace/VSphereVMName.

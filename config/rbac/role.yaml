@@ -38,6 +38,14 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - namespaces
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
   - secrets
   verbs:
   - create
@@ -45,6 +53,7 @@ rules:
   - get
   - list
   - patch
+  - update
   - watch
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
@@ -62,6 +71,26 @@ rules:
   - infrastructure.cluster.x-k8s.io
   resources:
   - haproxyloadbalancers/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - vsphereclusteridentities
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - vsphereclusteridentities/status
   verbs:
   - get
   - patch

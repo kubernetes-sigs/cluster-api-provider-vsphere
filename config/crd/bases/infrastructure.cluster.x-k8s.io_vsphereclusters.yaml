@@ -241,6 +241,25 @@ spec:
                 - host
                 - port
                 type: object
+              identityRef:
+                description: IdentityRef is a reference to either a Secret or VSphereClusterIdentity
+                  that contains the identity to use when reconciling the cluster.
+                properties:
+                  kind:
+                    description: Kind of the identity. Can either be VSphereClusterIdentity
+                      or Secret
+                    enum:
+                    - VSphereClusterIdentity
+                    - Secret
+                    type: string
+                  name:
+                    description: Name of the identity.
+                    minLength: 1
+                    type: string
+                required:
+                - kind
+                - name
+                type: object
               insecure:
                 description: 'Insecure is a flag that controls whether or not to validate
                   the vSphere server''s certificate. DEPRECATED: will be removed in
@@ -592,6 +611,25 @@ spec:
                 required:
                 - host
                 - port
+                type: object
+              identityRef:
+                description: IdentityRef is a reference to either a Secret or VSphereClusterIdentity
+                  that contains the identity to use when reconciling the cluster.
+                properties:
+                  kind:
+                    description: Kind of the identity. Can either be VSphereClusterIdentity
+                      or Secret
+                    enum:
+                    - VSphereClusterIdentity
+                    - Secret
+                    type: string
+                  name:
+                    description: Name of the identity.
+                    minLength: 1
+                    type: string
+                required:
+                - kind
+                - name
                 type: object
               insecure:
                 description: 'Insecure is a flag that controls whether or not to validate

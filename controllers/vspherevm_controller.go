@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -46,6 +47,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/identity"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi"
@@ -136,14 +138,6 @@ func (r vmReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) 
 		return reconcile.Result{}, err
 	}
 
-	// Get or create an authenticated session to the vSphere endpoint.
-	authSession, err := session.GetOrCreate(r.Context,
-		r.Logger, vsphereVM.Spec.Server, vsphereVM.Spec.Datacenter,
-		r.ControllerManagerContext.Username, r.ControllerManagerContext.Password, vsphereVM.Spec.Thumbprint)
-	if err != nil {
-		return reconcile.Result{}, errors.Wrap(err, "failed to create vSphere session")
-	}
-
 	// Create the patch helper.
 	patchHelper, err := patch.NewHelper(vsphereVM, r.Client)
 	if err != nil {
@@ -154,6 +148,13 @@ func (r vmReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) 
 			vsphereVM.Namespace,
 			vsphereVM.Name)
 	}
+
+	authSession, err := r.retrieveVcenterSession(r, vsphereVM)
+	if err != nil {
+		conditions.MarkFalse(vsphereVM, infrav1.VCenterAvailableCondition, infrav1.VCenterUnreachableReason, clusterv1.ConditionSeverityError, err.Error())
+		return reconcile.Result{}, err
+	}
+	conditions.MarkTrue(vsphereVM, infrav1.VCenterAvailableCondition)
 
 	// Create the VM context for this request.
 	vmContext := &context.VMContext{
@@ -181,6 +182,7 @@ func (r vmReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) 
 		conditions.SetSummary(vmContext.VSphereVM,
 			conditions.WithConditions(
 				infrav1.VMProvisionedCondition,
+				infrav1.VCenterAvailableCondition,
 			),
 		)
 
@@ -410,4 +412,38 @@ func (r *vmReconciler) clusterToVSphereVMs(a handler.MapObject) []reconcile.Requ
 		requests = append(requests, r)
 	}
 	return requests
+}
+
+func (r *vmReconciler) retrieveVcenterSession(ctx goctx.Context, vsphereVM *infrav1.VSphereVM) (*session.Session, error) {
+	// Get cluster object and then get VSphereCluster object
+	cluster, err := clusterutilv1.GetClusterFromMetadata(r.ControllerContext, r.Client, vsphereVM.ObjectMeta)
+	if err != nil {
+		r.Logger.Info("VsphereVM is missing cluster label or cluster does not exist")
+		return session.GetOrCreate(r.Context, r.Logger, vsphereVM.Spec.Server, vsphereVM.Spec.Datacenter,
+			r.ControllerManagerContext.Username, r.ControllerManagerContext.Password, vsphereVM.Spec.Thumbprint)
+	}
+
+	key := client.ObjectKey{
+		Namespace: cluster.Namespace,
+		Name:      cluster.Spec.InfrastructureRef.Name,
+	}
+	vsphereCluster := &infrav1.VSphereCluster{}
+	err = r.Client.Get(r, key, vsphereCluster)
+	if err != nil {
+		r.Logger.Info("VSphereCluster couldn't be retrieved")
+		return session.GetOrCreate(r.Context, r.Logger, vsphereVM.Spec.Server, vsphereVM.Spec.Datacenter,
+			r.ControllerManagerContext.Username, r.ControllerManagerContext.Password, vsphereVM.Spec.Thumbprint)
+	}
+
+	if vsphereCluster.Spec.IdentityRef != nil {
+		creds, err := identity.GetCredentials(ctx, r.Client, vsphereCluster, r.Namespace)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to retrieve credentials from IdentityRef")
+		}
+		return session.GetOrCreate(ctx, r.Logger, vsphereVM.Spec.Server, vsphereVM.Spec.Datacenter, creds.Username, creds.Password, vsphereVM.Spec.Thumbprint)
+	}
+
+	// Fallback to using credentials provided to the manager
+	return session.GetOrCreate(r.Context, r.Logger, vsphereVM.Spec.Server, vsphereVM.Spec.Datacenter,
+		r.ControllerManagerContext.Username, r.ControllerManagerContext.Password, vsphereVM.Spec.Thumbprint)
 }

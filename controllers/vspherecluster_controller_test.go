@@ -26,6 +26,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -60,15 +61,29 @@ var _ = Describe("ClusterReconciler", func() {
 			// Create the CAPI cluster (owner) object
 			Expect(testEnv.Create(ctx, capiCluster)).To(Succeed())
 
+			// Create the secret containing the credentials
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					GenerateName: "secret-",
+					Namespace:    "default",
+				},
+			}
+			Expect(testEnv.Create(ctx, secret)).To(Succeed())
+
+			// Create the VSphereCluster object
 			instance := &infrav1.VSphereCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "vsphere-test1",
 					Namespace: "default",
 				},
-				Spec: infrav1.VSphereClusterSpec{},
+				Spec: infrav1.VSphereClusterSpec{
+					IdentityRef: &infrav1.VSphereIdentityReference{
+						Kind: infrav1.SecretKind,
+						Name: secret.Name,
+					},
+				},
 			}
 
-			// Create the VSphereCluster object
 			Expect(testEnv.Create(ctx, instance)).To(Succeed())
 			key := client.ObjectKey{Namespace: instance.Namespace, Name: instance.Name}
 			defer func() {
@@ -96,6 +111,99 @@ var _ = Describe("ClusterReconciler", func() {
 					return false
 				}
 				return len(instance.Finalizers) > 0
+			}, timeout).Should(BeTrue())
+
+			// checking cluster is setting the ownerRef on the secret
+			secretKey := client.ObjectKey{Namespace: secret.Namespace, Name: secret.Name}
+			Eventually(func() bool {
+				if err := testEnv.Get(ctx, secretKey, secret); err != nil {
+					return false
+				}
+				return len(secret.OwnerReferences) > 0
+			}, timeout).Should(BeTrue())
+		})
+
+		It("should error if secret is already owned by a different cluster", func() {
+			ctx := goctx.Background()
+
+			capiCluster := &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					GenerateName: "test1-",
+					Namespace:    "default",
+				},
+				Spec: clusterv1.ClusterSpec{
+					InfrastructureRef: &corev1.ObjectReference{
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
+						Kind:       "VsphereCluster",
+						Name:       "vsphere-test1",
+					},
+				},
+			}
+			// Create the CAPI cluster (owner) object
+			Expect(testEnv.Create(ctx, capiCluster)).To(Succeed())
+
+			// Create the secret containing the credentials
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					GenerateName: "secret-",
+					Namespace:    "default",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: "api-version",
+							Kind:       "cluster",
+							Name:       "another-cluster",
+							UID:        "some-uid",
+						},
+					},
+				},
+			}
+			Expect(testEnv.Create(ctx, secret)).To(Succeed())
+
+			// Create the VSphereCluster object
+			instance := &infrav1.VSphereCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					GenerateName: "vsphere-cluster",
+					Namespace:    "default",
+				},
+				Spec: infrav1.VSphereClusterSpec{
+					IdentityRef: &infrav1.VSphereIdentityReference{
+						Kind: infrav1.SecretKind,
+						Name: secret.Name,
+					},
+				},
+			}
+
+			Expect(testEnv.Create(ctx, instance)).To(Succeed())
+			key := client.ObjectKey{Namespace: instance.Namespace, Name: instance.Name}
+			defer func() {
+				err := testEnv.Delete(ctx, instance)
+				Expect(err).NotTo(HaveOccurred())
+			}()
+			By("setting the OwnerRef on the VSphereCluster")
+			Eventually(func() bool {
+				ph, err := patch.NewHelper(instance, testEnv)
+				Expect(err).ShouldNot(HaveOccurred())
+				instance.OwnerReferences = append(instance.OwnerReferences, metav1.OwnerReference{Kind: "Cluster", APIVersion: clusterv1.GroupVersion.String(), Name: capiCluster.Name, UID: "blah"})
+				Expect(ph.Patch(ctx, instance, patch.WithStatusObservedGeneration{})).ShouldNot(HaveOccurred())
+				return true
+			}, timeout).Should(BeTrue())
+
+			Eventually(func() bool {
+				if err := testEnv.Get(ctx, key, instance); err != nil {
+					return false
+				}
+
+				actual := conditions.Get(instance, infrav1.VCenterAvailableCondition)
+				if actual == nil {
+					return false
+				}
+				actual.Message = ""
+				return Expect(*actual).Should(conditions.MatchCondition(clusterv1.Condition{
+					Type:     infrav1.VCenterAvailableCondition,
+					Status:   corev1.ConditionFalse,
+					Severity: clusterv1.ConditionSeverityError,
+					Reason:   infrav1.VCenterUnreachableReason,
+				}))
 			}, timeout).Should(BeTrue())
 		})
 	})

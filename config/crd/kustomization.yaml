@@ -12,6 +12,7 @@ resources:
 - bases/infrastructure.cluster.x-k8s.io_vspheremachinetemplates.yaml
 - bases/infrastructure.cluster.x-k8s.io_vspherevms.yaml
 - bases/infrastructure.cluster.x-k8s.io_haproxyloadbalancers.yaml
+- bases/infrastructure.cluster.x-k8s.io_vsphereclusteridentities.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patches:

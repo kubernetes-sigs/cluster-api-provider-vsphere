@@ -48,7 +48,9 @@ func (src *VSphereCluster) ConvertTo(dstRaw conversion.Hub) error { // nolint
 	if dst.Spec.CloudProviderConfiguration.ProviderConfig.Cloud != nil {
 		dst.Spec.CloudProviderConfiguration.ProviderConfig.Cloud.ExtraArgs = restored.Spec.CloudProviderConfiguration.ProviderConfig.Cloud.ExtraArgs
 	}
-
+	if restored.Spec.IdentityRef != nil {
+		dst.Spec.IdentityRef = restored.Spec.IdentityRef
+	}
 	if restored.Spec.LoadBalancerRef != nil {
 		dst.Spec.LoadBalancerRef = restored.Spec.LoadBalancerRef
 	}

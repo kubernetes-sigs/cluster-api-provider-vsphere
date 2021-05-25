@@ -84,7 +84,8 @@ func New(opts Options) (Manager, error) {
 	// Build the controller manager context.
 	controllerManagerContext := &context.ControllerManagerContext{
 		Context:                 goctx.Background(),
-		Namespace:               opts.WatchNamespace,
+		WatchNamespace:          opts.WatchNamespace,
+		Namespace:               opts.PodNamespace,
 		Name:                    opts.PodName,
 		LeaderElectionID:        opts.LeaderElectionID,
 		LeaderElectionNamespace: opts.LeaderElectionNamespace,

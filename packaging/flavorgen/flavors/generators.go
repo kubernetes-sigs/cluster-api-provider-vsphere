@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/identity"
 	cloudprovidersvc "sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/cloudprovider"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
@@ -124,6 +125,10 @@ func newVSphereCluster(lb *infrav1.HAProxyLoadBalancer) infrav1.VSphereCluster {
 		Spec: infrav1.VSphereClusterSpec{
 			Server:     vSphereServerVar,
 			Thumbprint: vSphereThumbprint,
+			IdentityRef: &infrav1.VSphereIdentityReference{
+				Name: clusterNameVar,
+				Kind: infrav1.SecretKind,
+			},
 			CloudProviderConfiguration: infrav1.CPIConfig{
 				Global: infrav1.CPIGlobalConfig{
 					SecretName:      "cloud-provider-vsphere-credentials",
@@ -464,6 +469,24 @@ func newClusterResourceSet(cluster clusterv1.Cluster) addonsv1alpha3.ClusterReso
 
 	return crs
 }
+
+func newIdentitySecret() corev1.Secret {
+	return corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "Secret",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespaceVar,
+			Name:      clusterNameVar,
+		},
+		StringData: map[string]string{
+			identity.UsernameKey: vSphereUsername,
+			identity.PasswordKey: vSpherePassword,
+		},
+	}
+}
+
 func appendSecretToCrsResource(crs *addonsv1alpha3.ClusterResourceSet, generatedSecret *v1.Secret) {
 	crs.Spec.Resources = append(crs.Spec.Resources, addonsv1alpha3.ResourceRef{
 		Name: generatedSecret.Name,

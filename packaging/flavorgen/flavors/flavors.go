@@ -52,6 +52,7 @@ func MultiNodeTemplateWithHAProxy() []runtime.Object {
 	kubeadmJoinTemplate := newKubeadmConfigTemplate()
 	cluster := newCluster(vsphereCluster, &controlPlane)
 	machineDeployment := newMachineDeployment(cluster, machineTemplate, kubeadmJoinTemplate)
+	identitySecret := newIdentitySecret()
 	return []runtime.Object{
 		&cluster,
 		&lb,
@@ -60,6 +61,7 @@ func MultiNodeTemplateWithHAProxy() []runtime.Object {
 		&controlPlane,
 		&kubeadmJoinTemplate,
 		&machineDeployment,
+		&identitySecret,
 	}
 }
 
@@ -72,6 +74,7 @@ func MultiNodeTemplateWithKubeVIP() []runtime.Object {
 	machineDeployment := newMachineDeployment(cluster, machineTemplate, kubeadmJoinTemplate)
 	clusterResourceSet := newClusterResourceSet(cluster)
 	crsResources := createCrsResourceObjects(&clusterResourceSet, vsphereCluster, cluster)
+	identitySecret := newIdentitySecret()
 
 	// removing Storage config so the cluster controller is not going not install CSI (it is installed by the clusterResourceSet)
 	vsphereCluster.Spec.CloudProviderConfiguration.ProviderConfig.Storage = nil
@@ -84,6 +87,7 @@ func MultiNodeTemplateWithKubeVIP() []runtime.Object {
 		&kubeadmJoinTemplate,
 		&machineDeployment,
 		&clusterResourceSet,
+		&identitySecret,
 	}
 	return append(MultiNodeTemplate, crsResources...)
 }
@@ -174,6 +178,7 @@ func MultiNodeTemplateWithExternalLoadBalancer() []runtime.Object {
 	kubeadmJoinTemplate := newKubeadmConfigTemplate()
 	cluster := newCluster(vsphereCluster, &controlPlane)
 	machineDeployment := newMachineDeployment(cluster, machineTemplate, kubeadmJoinTemplate)
+	identitySecret := newIdentitySecret()
 	return []runtime.Object{
 		&cluster,
 		&vsphereCluster,
@@ -181,5 +186,6 @@ func MultiNodeTemplateWithExternalLoadBalancer() []runtime.Object {
 		&controlPlane,
 		&kubeadmJoinTemplate,
 		&machineDeployment,
+		&identitySecret,
 	}
 }

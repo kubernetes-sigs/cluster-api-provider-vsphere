@@ -47,14 +47,6 @@ const (
 	// while installing the container storage interface  addon; those kind of errors are usually transient
 	// the operation is automatically re-tried by the controller.
 	CSIProvisioningFailedReason = "CSIProvisioningFailed"
-
-	// VCenterAvailableCondition documents the connectivity with vcenter
-	// for a given VSphereCluster
-	VCenterAvailableCondition clusterv1.ConditionType = "VCenterAvailable"
-
-	// VCenterUnreachableReason (Severity=Error) documents a VSphereCluster controller detecting
-	// issues with VCenter reachability;
-	VCenterUnreachableReason = "VCenterUnreachable"
 )
 
 // Conditions and condition Reasons for the VSphereMachine and the VSphereVM object.
@@ -107,4 +99,25 @@ const (
 	//
 	// NOTE: This reason does not apply to VSphereVM (this state happens after the VSphereVM is in ready state).
 	WaitingForNetworkAddressesReason = "WaitingForNetworkAddresses"
+)
+
+// Conditions and Reasons related to utilizing a VSphereIdentity to make connections to a VCenter. Can currently be used by VSphereCluster and VSphereVM
+
+const (
+	// VCenterAvailableCondition documents the connectivity with vcenter
+	// for a given VSphereCluster
+	VCenterAvailableCondition clusterv1.ConditionType = "VCenterAvailable"
+
+	// VCenterUnreachableReason (Severity=Error) documents a VSphereCluster controller detecting
+	// issues with VCenter reachability;
+	VCenterUnreachableReason = "VCenterUnreachable"
+
+	// CredentialsAvailableCondidtion is used by VSphereClusterIdentity when a credential secret is available and unused by other VSphereClusterIdentities
+	CredentialsAvailableCondidtion clusterv1.ConditionType = "CredentialsAvailable"
+
+	// SecretNotAvailableReason is used when the secret referenced by the VSphereClusterIdentity cannot be found
+	SecretNotAvailableReason = "SecretNotAvailable"
+
+	// SecretAlreadyInUseReason is used when another VSphereClusterIdentity is using the secret
+	SecretAlreadyInUseReason = "SecretInUse"
 )

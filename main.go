@@ -193,6 +193,9 @@ func main() {
 			if err := controllers.AddHAProxyLoadBalancerControllerToManager(ctx, mgr); err != nil {
 				return err
 			}
+			if err := controllers.AddVsphereClusterIdentityControllerToManager(ctx, mgr); err != nil {
+				return err
+			}
 		}
 
 		return nil

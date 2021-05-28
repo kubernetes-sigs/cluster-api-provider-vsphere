@@ -17,9 +17,14 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
+
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -43,6 +48,7 @@ func TestControllers(t *testing.T) {
 
 var (
 	testEnv *helpers.TestEnvironment
+	ctx     = context.Background()
 )
 
 func TestMain(m *testing.M) {
@@ -74,6 +80,9 @@ func setup() {
 	if err := AddHAProxyLoadBalancerControllerToManager(testEnv.GetContext(), testEnv.Manager); err != nil {
 		panic(fmt.Sprintf("unable to setup HAProxyLB controller: %v", err))
 	}
+	if err := AddVsphereClusterIdentityControllerToManager(testEnv.GetContext(), testEnv.Manager); err != nil {
+		panic(fmt.Sprintf("unable to setup VSphereClusterIdentity controller: %v", err))
+	}
 
 	go func() {
 		fmt.Println("Starting the manager")
@@ -84,6 +93,16 @@ func setup() {
 
 	// wait for webhook port to be open prior to running tests
 	testEnv.WaitForWebhooks()
+
+	// create manager pod namespace
+	ns := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: manager.DefaultPodNamespace,
+		},
+	}
+	if err := testEnv.Create(ctx, ns); err != nil {
+		panic("unable to create controller namespace")
+	}
 }
 
 func teardown() {

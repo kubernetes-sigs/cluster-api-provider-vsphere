@@ -24,6 +24,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -206,5 +207,61 @@ var _ = Describe("ClusterReconciler", func() {
 				}))
 			}, timeout).Should(BeTrue())
 		})
+
+		It("should remove vspherecluster finalizer if the secret does not exist", func() {
+			ctx := goctx.Background()
+
+			capiCluster := &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					GenerateName: "test1-",
+					Namespace:    "default",
+				},
+				Spec: clusterv1.ClusterSpec{
+					InfrastructureRef: &corev1.ObjectReference{
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
+						Kind:       "VsphereCluster",
+						Name:       "vsphere-test1",
+					},
+				},
+			}
+			// Create the CAPI cluster (owner) object
+			Expect(testEnv.Create(ctx, capiCluster)).To(Succeed())
+
+			// Create the VSphereCluster object
+			instance := &infrav1.VSphereCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "vsphere-test1",
+					Namespace: "default",
+				},
+				Spec: infrav1.VSphereClusterSpec{
+					IdentityRef: &infrav1.VSphereIdentityReference{
+						Kind: infrav1.SecretKind,
+						Name: "foo",
+					},
+				},
+			}
+
+			Expect(testEnv.Create(ctx, instance)).To(Succeed())
+			key := client.ObjectKey{Namespace: instance.Namespace, Name: instance.Name}
+
+			// Make sure the VSphereCluster exists.
+			Eventually(func() bool {
+				err := testEnv.Get(ctx, key, instance)
+				return err == nil
+			}, timeout).Should(BeTrue())
+
+			By("deleting the vspherecluster while the secret is gone")
+			Eventually(func() bool {
+				err := testEnv.Delete(ctx, instance)
+				return err == nil
+			}, timeout).Should(BeTrue())
+
+			Eventually(func() bool {
+				err := testEnv.Get(ctx, key, instance)
+				return apierrors.IsNotFound(err)
+			}, timeout).Should(BeTrue())
+
+		})
+
 	})
 })

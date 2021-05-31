@@ -253,6 +253,7 @@ func (r clusterReconciler) reconcileDelete(ctx *context.ClusterContext) (reconci
 		err := ctx.Client.Get(ctx, secretKey, secret)
 		if err != nil {
 			if apierrors.IsNotFound(err) {
+				ctrlutil.RemoveFinalizer(ctx.VSphereCluster, infrav1.ClusterFinalizer)
 				return reconcile.Result{}, nil
 			}
 			return reconcile.Result{}, err

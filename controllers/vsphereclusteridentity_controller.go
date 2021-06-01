@@ -149,6 +149,7 @@ func (r clusterIdentityReconciler) Reconcile(req ctrl.Request) (_ reconcile.Resu
 		}
 	}
 
+	conditions.MarkTrue(identity, infrav1.CredentialsAvailableCondidtion)
 	identity.Status.Ready = true
 	return reconcile.Result{}, nil
 }

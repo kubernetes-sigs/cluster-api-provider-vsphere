@@ -273,7 +273,7 @@ func getDiskLocators(disks object.VirtualDeviceList, datastoreRef types.ManagedO
 	for _, disk := range disks {
 		dl := types.VirtualMachineRelocateSpecDiskLocator{
 			DiskId:       disk.GetVirtualDevice().Key,
-			DiskMoveType: string(types.VirtualMachineRelocateDiskMoveOptionsMoveChildMostDiskBacking),
+			DiskMoveType: string(types.VirtualMachineRelocateDiskMoveOptionsMoveAllDiskBackingsAndDisallowSharing),
 			Datastore:    datastoreRef,
 		}
 

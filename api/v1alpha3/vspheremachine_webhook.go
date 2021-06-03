@@ -83,6 +83,16 @@ func (r *VSphereMachine) ValidateUpdate(old runtime.Object) error {
 	delete(oldVSphereMachineNetwork, "devices")
 	delete(newVSphereMachineNetwork, "devices")
 
+	// validate that IPAddrs in updaterequest are valid
+	spec := r.Spec
+	for i, device := range spec.Network.Devices {
+		for j, ip := range device.IPAddrs {
+			if _, _, err := net.ParseCIDR(ip); err != nil {
+				allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "network", fmt.Sprintf("devices[%d]", i), fmt.Sprintf("ipAddrs[%d]", j)), ip, "ip addresses should be in the CIDR format"))
+			}
+		}
+	}
+
 	if !reflect.DeepEqual(oldVSphereMachineSpec, newVSphereMachineSpec) {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec"), "cannot be modified"))
 	}

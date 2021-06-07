@@ -59,6 +59,7 @@ func (m *VSphereMachine) ValidateCreate() error {
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (m *VSphereMachine) ValidateUpdate(old runtime.Object) error {
 	newVSphereMachine, err := runtime.DefaultUnstructuredConverter.ToUnstructured(m)
+
 	if err != nil {
 		return apierrors.NewInternalError(errors.Wrap(err, "failed to convert new VSphereMachine to unstructured object"))
 	}
@@ -82,6 +83,16 @@ func (m *VSphereMachine) ValidateUpdate(old runtime.Object) error {
 	// allow changes to the devices
 	delete(oldVSphereMachineNetwork, "devices")
 	delete(newVSphereMachineNetwork, "devices")
+
+	// validate that IPAddrs in updaterequest are valid
+	spec := m.Spec
+	for i, device := range spec.Network.Devices {
+		for j, ip := range device.IPAddrs {
+			if _, _, err := net.ParseCIDR(ip); err != nil {
+				allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "network", fmt.Sprintf("devices[%d]", i), fmt.Sprintf("ipAddrs[%d]", j)), ip, "ip addresses should be in the CIDR format"))
+			}
+		}
+	}
 
 	if !reflect.DeepEqual(oldVSphereMachineSpec, newVSphereMachineSpec) {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec"), "cannot be modified"))

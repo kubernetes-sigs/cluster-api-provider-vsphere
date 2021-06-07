@@ -46,6 +46,11 @@ func TestVSphereMachine_ValidateCreate(t *testing.T) {
 			wantErr:        true,
 		},
 		{
+			name:           "IPs are not valid IPs in CIDR format",
+			vsphereMachine: createVSphereMachine("foo.com", nil, "", []string{"<nil>/32", "192.168.0.644/33"}),
+			wantErr:        true,
+		},
+		{
 			name:           "successful VSphereMachine creation",
 			vsphereMachine: createVSphereMachine("foo.com", nil, "", []string{"192.168.0.1/32", "192.168.0.3/32"}),
 			wantErr:        false,
@@ -85,6 +90,18 @@ func TestVSphereMachine_ValidateUpdate(t *testing.T) {
 			oldVSphereMachine: createVSphereMachine("foo.com", nil, "", []string{"192.168.0.1/32"}),
 			vsphereMachine:    createVSphereMachine("foo.com", &someProviderID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}),
 			wantErr:           false,
+		},
+		{
+			name:              "updating non-existing IP with invalid ips can not be done",
+			oldVSphereMachine: createVSphereMachine("foo.com", nil, "", nil),
+			vsphereMachine:    createVSphereMachine("foo.com", &someProviderID, "", []string{"<nil>/32", "192.168.0.10/33"}),
+			wantErr:           true,
+		},
+		{
+			name:              "updating existing IP with invalid ips can not be done",
+			oldVSphereMachine: createVSphereMachine("foo.com", nil, "", []string{"192.168.0.1/32"}),
+			vsphereMachine:    createVSphereMachine("foo.com", &someProviderID, "", []string{"<nil>/32", "192.168.0.10/33"}),
+			wantErr:           true,
 		},
 		{
 			name:              "updating server cannot be done",

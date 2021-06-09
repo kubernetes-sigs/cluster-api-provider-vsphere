@@ -33,7 +33,7 @@ providers:
     versions:
       - name: v0.4.0
         # Use manifest from source files
-        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_master_20210325/core-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.0/core-components.yaml"
         type: "url"
         files:
           - sourcePath: "../data/shared/metadata.yaml"
@@ -48,7 +48,7 @@ providers:
     versions:
       - name: v0.4.0
         # Use manifest from source files
-        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_master_20210325/bootstrap-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.0/bootstrap-components.yaml"
         type: "url"
         files:
           - sourcePath: "../data/shared/metadata.yaml"
@@ -63,7 +63,7 @@ providers:
     versions:
       - name: v0.4.0
         # Use manifest from source files
-        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_master_20210325/control-plane-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.0/control-plane-components.yaml"
         type: "url"
         files:
           - sourcePath: "../data/shared/metadata.yaml"
@@ -97,6 +97,7 @@ variables:
   EXP_CLUSTER_RESOURCE_SET: "true"
   CONTROL_PLANE_MACHINE_COUNT: 1
   WORKER_MACHINE_COUNT: 1
+  IP_FAMILY: "IPv4"
   # Following CAPV variables should be set before testing
   VSPHERE_SERVER: "vcenter.vmware.com"
   VSPHERE_DATACENTER: "SDDC-Datacenter"

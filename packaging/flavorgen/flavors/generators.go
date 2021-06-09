@@ -26,7 +26,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/identity"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
-	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	addonsv1alpha4 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha4"
 	"sigs.k8s.io/yaml"
@@ -157,14 +156,14 @@ func defaultVirtualMachineCloneSpec() infrav1.VirtualMachineCloneSpec {
 
 func defaultKubeadmInitSpec(files []bootstrapv1.File) bootstrapv1.KubeadmConfigSpec {
 	return bootstrapv1.KubeadmConfigSpec{
-		InitConfiguration: &kubeadmv1beta1.InitConfiguration{
+		InitConfiguration: &bootstrapv1.InitConfiguration{
 			NodeRegistration: defaultNodeRegistrationOptions(),
 		},
-		JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
+		JoinConfiguration: &bootstrapv1.JoinConfiguration{
 			NodeRegistration: defaultNodeRegistrationOptions(),
 		},
-		ClusterConfiguration: &kubeadmv1beta1.ClusterConfiguration{
-			APIServer: kubeadmv1beta1.APIServer{
+		ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+			APIServer: bootstrapv1.APIServer{
 				ControlPlaneComponent: defaultControlPlaneComponent(),
 			},
 			ControllerManager: defaultControlPlaneComponent(),
@@ -189,7 +188,7 @@ func newKubeadmConfigTemplate() bootstrapv1.KubeadmConfigTemplate {
 		Spec: bootstrapv1.KubeadmConfigTemplateSpec{
 			Template: bootstrapv1.KubeadmConfigTemplateResource{
 				Spec: bootstrapv1.KubeadmConfigSpec{
-					JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
+					JoinConfiguration: &bootstrapv1.JoinConfiguration{
 						NodeRegistration: defaultNodeRegistrationOptions(),
 					},
 					Users:              defaultUsers(),
@@ -200,8 +199,8 @@ func newKubeadmConfigTemplate() bootstrapv1.KubeadmConfigTemplate {
 	}
 }
 
-func defaultNodeRegistrationOptions() kubeadmv1beta1.NodeRegistrationOptions {
-	return kubeadmv1beta1.NodeRegistrationOptions{
+func defaultNodeRegistrationOptions() bootstrapv1.NodeRegistrationOptions {
+	return bootstrapv1.NodeRegistrationOptions{
 		Name:             "{{ ds.meta_data.hostname }}",
 		CRISocket:        "/var/run/containerd/containerd.sock",
 		KubeletExtraArgs: defaultExtraArgs(),
@@ -220,8 +219,8 @@ func defaultUsers() []bootstrapv1.User {
 	}
 }
 
-func defaultControlPlaneComponent() kubeadmv1beta1.ControlPlaneComponent {
-	return kubeadmv1beta1.ControlPlaneComponent{
+func defaultControlPlaneComponent() bootstrapv1.ControlPlaneComponent {
+	return bootstrapv1.ControlPlaneComponent{
 		ExtraArgs: defaultExtraArgs(),
 	}
 }
@@ -458,10 +457,12 @@ func newKubeadmControlplane(replicas int, infraTemplate infrav1.VSphereMachineTe
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Replicas: pointer.Int32Ptr(int32(replicas)),
 			Version:  env.KubernetesVersionVar,
-			InfrastructureTemplate: corev1.ObjectReference{
-				APIVersion: infraTemplate.GroupVersionKind().GroupVersion().String(),
-				Kind:       infraTemplate.Kind,
-				Name:       infraTemplate.Name,
+			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
+				InfrastructureRef: corev1.ObjectReference{
+					APIVersion: infraTemplate.GroupVersionKind().GroupVersion().String(),
+					Kind:       infraTemplate.Kind,
+					Name:       infraTemplate.Name,
+				},
 			},
 			KubeadmConfigSpec: defaultKubeadmInitSpec(files),
 		},

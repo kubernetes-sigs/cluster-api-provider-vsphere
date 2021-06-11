@@ -2,7 +2,6 @@ package controllers
 
 import (
 	goctx "context"
-	"crypto/tls"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -22,22 +21,19 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/identity"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
+	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers"
 )
 
 func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 	// initializing a fake server to replace the vSphere endpoint
 	model := simulator.VPX()
 	model.Host = 0
-	defer model.Remove()
 
-	err := model.Create()
+	simr, err := helpers.VCSimBuilder().WithModel(model).Build()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("unable to create simulator: %s", err)
 	}
-	model.Service.TLS = new(tls.Config)
-
-	s := model.Service.NewServer()
-	defer s.Close()
+	defer simr.Destroy()
 
 	vsphereCluster := &infrav1.VSphereCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -73,7 +69,7 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 		},
 		Spec: infrav1.VSphereVMSpec{
 			VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
-				Server: s.URL.Host,
+				Server: simr.ServerURL().Host,
 				Network: infrav1.NetworkSpec{
 					Devices: []infrav1.NetworkDeviceSpec{
 						{NetworkName: "nw-1"},
@@ -86,9 +82,9 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 	}
 
 	controllerMgrContext := fake.NewControllerManagerContext(vSphereVM, cluster, vsphereCluster)
-	password, _ := s.URL.User.Password()
+	password, _ := simr.ServerURL().User.Password()
 	controllerMgrContext.Password = password
-	controllerMgrContext.Username = s.URL.User.Username()
+	controllerMgrContext.Username = simr.ServerURL().User.Username()
 
 	controllerContext := &context.ControllerContext{
 		ControllerManagerContext: controllerMgrContext,
@@ -175,26 +171,21 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 	// initializing a fake server to replace the vSphere endpoint
 	model := simulator.VPX()
 	model.Host = 0
-	defer model.Remove()
 
-	err := model.Create()
+	simr, err := helpers.VCSimBuilder().WithModel(model).Build()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("unable to create simulator: %s", err)
 	}
-	model.Service.TLS = new(tls.Config)
+	defer simr.Destroy()
 
-	s := model.Service.NewServer()
-	defer s.Close()
-
-	password, _ := s.URL.User.Password()
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "creds-secret",
 			Namespace: "test",
 		},
 		Data: map[string][]byte{
-			identity.UsernameKey: []byte(s.URL.User.Username()),
-			identity.PasswordKey: []byte(password),
+			identity.UsernameKey: []byte(simr.Username()),
+			identity.PasswordKey: []byte(simr.Password()),
 		},
 	}
 
@@ -238,7 +229,7 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 		},
 		Spec: infrav1.VSphereVMSpec{
 			VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
-				Server: s.URL.Host,
+				Server: simr.ServerURL().Host,
 				Network: infrav1.NetworkSpec{
 					Devices: []infrav1.NetworkDeviceSpec{
 						{NetworkName: "nw-1"},

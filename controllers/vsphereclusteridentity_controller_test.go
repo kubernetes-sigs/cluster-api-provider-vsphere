@@ -43,7 +43,7 @@ var _ = Describe("VSphereClusterIdentity Reconciler", func() {
 					Namespace:    controllerNamespace,
 				},
 			}
-			Expect(testEnv.Create(ctx, credentialSecret)).NotTo(HaveOccurred())
+			Expect(testEnv.Create(ctx, credentialSecret)).To(Succeed())
 
 			// create identity
 			identity := &infrav1.VSphereClusterIdentity{
@@ -54,7 +54,7 @@ var _ = Describe("VSphereClusterIdentity Reconciler", func() {
 					SecretName: credentialSecret.Name,
 				},
 			}
-			Expect(testEnv.Create(ctx, identity)).NotTo(HaveOccurred())
+			Expect(testEnv.Create(ctx, identity)).To(Succeed())
 
 			// wait for identity to set owner ref
 			skey := client.ObjectKey{
@@ -93,7 +93,7 @@ var _ = Describe("VSphereClusterIdentity Reconciler", func() {
 					},
 				},
 			}
-			Expect(testEnv.Create(ctx, credentialSecret)).NotTo(HaveOccurred())
+			Expect(testEnv.Create(ctx, credentialSecret)).To(Succeed())
 
 			// create identity
 			identity := &infrav1.VSphereClusterIdentity{
@@ -104,7 +104,7 @@ var _ = Describe("VSphereClusterIdentity Reconciler", func() {
 					SecretName: credentialSecret.Name,
 				},
 			}
-			Expect(testEnv.Create(ctx, identity)).NotTo(HaveOccurred())
+			Expect(testEnv.Create(ctx, identity)).To(Succeed())
 
 			Eventually(func() bool {
 				i := &infrav1.VSphereClusterIdentity{}
@@ -128,7 +128,7 @@ var _ = Describe("VSphereClusterIdentity Reconciler", func() {
 					SecretName: "non-existent-secret",
 				},
 			}
-			Expect(testEnv.Create(ctx, identity)).NotTo(HaveOccurred())
+			Expect(testEnv.Create(ctx, identity)).To(Succeed())
 
 			Eventually(func() bool {
 				i := &infrav1.VSphereClusterIdentity{}

@@ -118,5 +118,29 @@ var _ = Describe("VSphereClusterIdentity Reconciler", func() {
 				return false
 			}, timeout).Should(BeTrue())
 		})
+
+		It("should error if secret is not found", func() {
+			identity := &infrav1.VSphereClusterIdentity{
+				ObjectMeta: metav1.ObjectMeta{
+					GenerateName: "identity-",
+				},
+				Spec: infrav1.VSphereClusterIdentitySpec{
+					SecretName: "non-existent-secret",
+				},
+			}
+			Expect(testEnv.Create(ctx, identity)).NotTo(HaveOccurred())
+
+			Eventually(func() bool {
+				i := &infrav1.VSphereClusterIdentity{}
+				if err := testEnv.Get(ctx, client.ObjectKey{Name: identity.Name}, i); err != nil {
+					return false
+				}
+
+				if i.Status.Ready == false && conditions.GetReason(i, infrav1.CredentialsAvailableCondidtion) == infrav1.SecretNotAvailableReason {
+					return true
+				}
+				return false
+			}, timeout).Should(BeTrue())
+		})
 	})
 })

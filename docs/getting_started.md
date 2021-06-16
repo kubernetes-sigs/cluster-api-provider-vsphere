@@ -138,6 +138,8 @@ the `CONTROL_PLANE_ENDPOINT_IP` is an IP that must be an IP on the same subnet a
 
 the `EXP_CLUSTER_RESOURCE_SET` is required if you want to deploy CSI using cluster resource sets (mandatory in the default flavor).
 
+Setting `VSPHERE_USERNAME` and `VSPHERE_PASSWORD` is one way to manage identities. For the full set of options see [identity management](identity_management.md).
+
 Once you have access to a management cluster, you can instantiate Cluster API with the following:
 
 ```shell

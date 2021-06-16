@@ -123,6 +123,7 @@ func (r clusterIdentityReconciler) Reconcile(ctx _context.Context, req reconcile
 	}
 	if err := r.Client.Get(ctx, secretKey, secret); err != nil {
 		conditions.MarkFalse(identity, infrav1.CredentialsAvailableCondidtion, infrav1.SecretNotAvailableReason, clusterv1.ConditionSeverityWarning, err.Error())
+		return reconcile.Result{}, errors.Errorf("secret: %s not found in namespace: %s", secretKey.Name, secretKey.Namespace)
 	}
 
 	if !clusterutilv1.IsOwnedByObject(secret, identity) {
@@ -144,7 +145,7 @@ func (r clusterIdentityReconciler) Reconcile(ctx _context.Context, req reconcile
 		}
 		err = r.Client.Update(ctx, secret)
 		if err != nil {
-			conditions.MarkFalse(identity, infrav1.CredentialsAvailableCondidtion, infrav1.SecretNotAvailableReason, clusterv1.ConditionSeverityWarning, err.Error())
+			conditions.MarkFalse(identity, infrav1.CredentialsAvailableCondidtion, infrav1.SecretOwnerReferenceFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 			return reconcile.Result{}, err
 		}
 	}

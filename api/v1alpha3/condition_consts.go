@@ -118,6 +118,9 @@ const (
 	// SecretNotAvailableReason is used when the secret referenced by the VSphereClusterIdentity cannot be found
 	SecretNotAvailableReason = "SecretNotAvailable"
 
+	// SecretOwnerReferenceFailedReason is used for errors while updating the owner reference of the secret
+	SecretOwnerReferenceFailedReason = "SecretOwnerReferenceFailed"
+
 	// SecretAlreadyInUseReason is used when another VSphereClusterIdentity is using the secret
 	SecretAlreadyInUseReason = "SecretInUse"
 )

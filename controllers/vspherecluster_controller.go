@@ -33,6 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/identity"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/cloudprovider"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
@@ -60,7 +61,9 @@ var (
 	clusterControlledTypeGVK  = infrav1.GroupVersion.WithKind(clusterControlledTypeName)
 )
 
-// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;patch
+// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;patch;update
+// +kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;watch
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=vsphereclusteridentities,verbs=get;list;watch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=vsphereclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=vsphereclusters/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
@@ -236,6 +239,31 @@ func (r clusterReconciler) reconcileDelete(ctx *context.ClusterContext) (reconci
 	}
 	conditions.MarkFalse(ctx.VSphereCluster, infrav1.LoadBalancerAvailableCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
 
+	// Remove finalizer on Identity Secret
+	if identity.IsSecretIdentity(ctx.VSphereCluster) {
+		secret := &apiv1.Secret{}
+		secretKey := client.ObjectKey{
+			Namespace: ctx.VSphereCluster.Namespace,
+			Name:      ctx.VSphereCluster.Spec.IdentityRef.Name,
+		}
+		err := ctx.Client.Get(ctx, secretKey, secret)
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				ctrlutil.RemoveFinalizer(ctx.VSphereCluster, infrav1.ClusterFinalizer)
+				return reconcile.Result{}, nil
+			}
+			return reconcile.Result{}, err
+		}
+		r.Logger.Info(fmt.Sprintf("Removing finalizer form Secret %s/%s", secret.Namespace, secret.Name))
+		ctrlutil.RemoveFinalizer(secret, infrav1.SecretIdentitySetFinalizer)
+		if err := ctx.Client.Update(ctx, secret); err != nil {
+			return reconcile.Result{}, err
+		}
+		if err := ctx.Client.Delete(ctx, secret); err != nil {
+			return reconcile.Result{}, err
+		}
+	}
+
 	// Cluster is deleted so remove the finalizer.
 	ctrlutil.RemoveFinalizer(ctx.VSphereCluster, infrav1.ClusterFinalizer)
 
@@ -247,6 +275,11 @@ func (r clusterReconciler) reconcileNormal(ctx *context.ClusterContext) (reconci
 
 	// If the VSphereCluster doesn't have our finalizer, add it.
 	ctrlutil.AddFinalizer(ctx.VSphereCluster, infrav1.ClusterFinalizer)
+
+	if err := r.reconcileIdentitySecret(ctx); err != nil {
+		conditions.MarkFalse(ctx.VSphereCluster, infrav1.VCenterAvailableCondition, infrav1.VCenterUnreachableReason, clusterv1.ConditionSeverityError, err.Error())
+		return reconcile.Result{}, err
+	}
 
 	if cloudProviderConfigurationAvailable(ctx) {
 		if err := r.reconcileVCenterConnectivity(ctx); err != nil {
@@ -330,7 +363,57 @@ func cloudProviderConfigurationAvailable(ctx *context.ClusterContext) bool {
 	return !reflect.DeepEqual(ctx.VSphereCluster.Spec.CloudProviderConfiguration, infrav1.CPIConfig{})
 }
 
+func (r clusterReconciler) reconcileIdentitySecret(ctx *context.ClusterContext) error {
+	vsphereCluster := ctx.VSphereCluster
+	if identity.IsSecretIdentity(vsphereCluster) {
+		secret := &apiv1.Secret{}
+		secretKey := client.ObjectKey{
+			Namespace: vsphereCluster.Namespace,
+			Name:      vsphereCluster.Spec.IdentityRef.Name,
+		}
+		err := ctx.Client.Get(ctx, secretKey, secret)
+		if err != nil {
+			return err
+		}
+
+		// check if cluster is already an owner
+		if !clusterutilv1.IsOwnedByObject(secret, vsphereCluster) {
+			if len(secret.GetOwnerReferences()) > 0 {
+				return fmt.Errorf("another cluster has set the OwnerRef for secret: %s/%s", secret.Namespace, secret.Name)
+			}
+
+			secret.SetOwnerReferences([]metav1.OwnerReference{{
+				APIVersion: infrav1.GroupVersion.String(),
+				Kind:       vsphereCluster.Kind,
+				Name:       vsphereCluster.Name,
+				UID:        vsphereCluster.UID,
+			}})
+		}
+
+		if !ctrlutil.ContainsFinalizer(secret, infrav1.SecretIdentitySetFinalizer) {
+			ctrlutil.AddFinalizer(secret, infrav1.SecretIdentitySetFinalizer)
+		}
+		err = r.Client.Update(ctx, secret)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (r clusterReconciler) reconcileVCenterConnectivity(ctx *context.ClusterContext) error {
+	if ctx.VSphereCluster.Spec.IdentityRef != nil {
+		creds, err := identity.GetCredentials(ctx, r.Client, ctx.VSphereCluster, r.Namespace)
+		if err != nil {
+			return err
+		}
+
+		_, err = session.GetOrCreate(ctx, ctx.VSphereCluster.Spec.Server,
+			ctx.VSphereCluster.Spec.CloudProviderConfiguration.Workspace.Datacenter, creds.Username, creds.Password, ctx.VSphereCluster.Spec.Thumbprint)
+		return err
+	}
+
 	_, err := session.GetOrCreate(ctx, ctx.VSphereCluster.Spec.Server,
 		ctx.VSphereCluster.Spec.CloudProviderConfiguration.Workspace.Datacenter, ctx.Username, ctx.Password, ctx.VSphereCluster.Spec.Thumbprint)
 	return err

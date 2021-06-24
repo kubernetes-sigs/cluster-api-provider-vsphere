@@ -20,6 +20,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/identity"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 )
 
@@ -37,6 +38,25 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 
 	s := model.Service.NewServer()
 	defer s.Close()
+
+	vsphereCluster := &infrav1.VSphereCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "valid-vsphere-cluster",
+			Namespace: "test",
+		},
+	}
+
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "valid-cluster",
+			Namespace: "test",
+		},
+		Spec: clusterv1.ClusterSpec{
+			InfrastructureRef: &corev1.ObjectReference{
+				Name: vsphereCluster.Name,
+			},
+		},
+	}
 
 	vSphereVM := &infrav1.VSphereVM{
 		TypeMeta: metav1.TypeMeta{
@@ -65,7 +85,7 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 		Status: infrav1.VSphereVMStatus{},
 	}
 
-	controllerMgrContext := fake.NewControllerManagerContext(vSphereVM)
+	controllerMgrContext := fake.NewControllerManagerContext(vSphereVM, cluster, vsphereCluster)
 	password, _ := s.URL.User.Password()
 	controllerMgrContext.Password = password
 	controllerMgrContext.Username = s.URL.User.Username()
@@ -149,5 +169,104 @@ func TestVmReconciler_WaitingForStaticIPAllocation(t *testing.T) {
 			g.Expect(isWaiting).To(Equal(tt.shouldWait))
 		})
 	}
+}
 
+func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
+	// initializing a fake server to replace the vSphere endpoint
+	model := simulator.VPX()
+	model.Host = 0
+	defer model.Remove()
+
+	err := model.Create()
+	if err != nil {
+		t.Fatal(err)
+	}
+	model.Service.TLS = new(tls.Config)
+
+	s := model.Service.NewServer()
+	defer s.Close()
+
+	password, _ := s.URL.User.Password()
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "creds-secret",
+			Namespace: "test",
+		},
+		Data: map[string][]byte{
+			identity.UsernameKey: []byte(s.URL.User.Username()),
+			identity.PasswordKey: []byte(password),
+		},
+	}
+
+	vsphereCluster := &infrav1.VSphereCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "valid-vsphere-cluster",
+			Namespace: "test",
+		},
+		Spec: infrav1.VSphereClusterSpec{
+			IdentityRef: &infrav1.VSphereIdentityReference{
+				Kind: infrav1.SecretKind,
+				Name: secret.Name,
+			},
+		},
+	}
+
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "valid-cluster",
+			Namespace: "test",
+		},
+		Spec: clusterv1.ClusterSpec{
+			InfrastructureRef: &corev1.ObjectReference{
+				Name: vsphereCluster.Name,
+			},
+		},
+	}
+
+	vSphereVM := &infrav1.VSphereVM{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "VSphereVM",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo-vm",
+			Namespace: "test",
+			Labels: map[string]string{
+				clusterv1.ClusterLabelName: "valid-cluster",
+			},
+			// To make sure PatchHelper does not error out
+			ResourceVersion: "1234",
+		},
+		Spec: infrav1.VSphereVMSpec{
+			VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
+				Server: s.URL.Host,
+				Network: infrav1.NetworkSpec{
+					Devices: []infrav1.NetworkDeviceSpec{
+						{NetworkName: "nw-1"},
+						{NetworkName: "nw-2"},
+					},
+				},
+			},
+		},
+		Status: infrav1.VSphereVMStatus{},
+	}
+
+	controllerMgrContext := fake.NewControllerManagerContext(secret, vSphereVM, cluster, vsphereCluster)
+
+	controllerContext := &context.ControllerContext{
+		ControllerManagerContext: controllerMgrContext,
+		Recorder:                 record.New(apirecord.NewFakeRecorder(100)),
+		Logger:                   log.Log,
+	}
+	r := vmReconciler{ControllerContext: controllerContext}
+
+	_, err = r.Reconcile(goctx.Background(), ctrl.Request{NamespacedName: util.ObjectKey(vSphereVM)})
+	g := NewWithT(t)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	vm := &infrav1.VSphereVM{}
+	vmKey := util.ObjectKey(vSphereVM)
+	g.Expect(r.Client.Get(goctx.Background(), vmKey, vm)).NotTo(HaveOccurred())
+	g.Expect(conditions.Has(vm, infrav1.VCenterAvailableCondition)).To(BeTrue())
+	vCenterCondition := conditions.Get(vm, infrav1.VCenterAvailableCondition)
+	g.Expect(vCenterCondition.Status).To(Equal(corev1.ConditionTrue))
 }

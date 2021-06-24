@@ -33,6 +33,7 @@ func MultiNodeTemplateWithHAProxy() []runtime.Object {
 	clusterResourceSet := newClusterResourceSet(cluster)
 	crsResourcesCSI := crs.CreateCrsResourceObjectsCSI(&clusterResourceSet)
 	crsResourcesCPI := crs.CreateCrsResourceObjectsCPI(&clusterResourceSet)
+	identitySecret := newIdentitySecret()
 
 	MultiNodeTemplate := []runtime.Object{
 		&cluster,
@@ -43,6 +44,7 @@ func MultiNodeTemplateWithHAProxy() []runtime.Object {
 		&kubeadmJoinTemplate,
 		&machineDeployment,
 		&clusterResourceSet,
+		&identitySecret,
 	}
 
 	MultiNodeTemplate = append(MultiNodeTemplate, crsResourcesCSI...)
@@ -61,6 +63,7 @@ func MultiNodeTemplateWithKubeVIP() []runtime.Object {
 	clusterResourceSet := newClusterResourceSet(cluster)
 	crsResourcesCSI := crs.CreateCrsResourceObjectsCSI(&clusterResourceSet)
 	crsResourcesCPI := crs.CreateCrsResourceObjectsCPI(&clusterResourceSet)
+	identitySecret := newIdentitySecret()
 
 	MultiNodeTemplate := []runtime.Object{
 		&cluster,
@@ -70,6 +73,7 @@ func MultiNodeTemplateWithKubeVIP() []runtime.Object {
 		&kubeadmJoinTemplate,
 		&machineDeployment,
 		&clusterResourceSet,
+		&identitySecret,
 	}
 
 	MultiNodeTemplate = append(MultiNodeTemplate, crsResourcesCSI...)
@@ -88,6 +92,7 @@ func MultiNodeTemplateWithExternalLoadBalancer() []runtime.Object {
 	clusterResourceSet := newClusterResourceSet(cluster)
 	crsResourcesCSI := crs.CreateCrsResourceObjectsCSI(&clusterResourceSet)
 	crsResourcesCPI := crs.CreateCrsResourceObjectsCPI(&clusterResourceSet)
+	identitySecret := newIdentitySecret()
 
 	MultiNodeTemplate := []runtime.Object{
 		&cluster,
@@ -97,6 +102,7 @@ func MultiNodeTemplateWithExternalLoadBalancer() []runtime.Object {
 		&kubeadmJoinTemplate,
 		&machineDeployment,
 		&clusterResourceSet,
+		&identitySecret,
 	}
 	MultiNodeTemplate = append(MultiNodeTemplate, crsResourcesCSI...)
 	MultiNodeTemplate = append(MultiNodeTemplate, crsResourcesCPI...)

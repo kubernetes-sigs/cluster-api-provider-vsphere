@@ -62,6 +62,11 @@ type VSphereClusterSpec struct {
 	// DEPRECATED: will be removed in v1alpha4
 	// +optional
 	LoadBalancerRef *corev1.ObjectReference `json:"loadBalancerRef,omitempty"`
+
+	// IdentityRef is a reference to either a Secret or VSphereClusterIdentity that contains
+	// the identity to use when reconciling the cluster.
+	// +optional
+	IdentityRef *VSphereIdentityReference `json:"identityRef,omitempty"`
 }
 
 // VSphereClusterStatus defines the observed state of VSphereClusterSpec

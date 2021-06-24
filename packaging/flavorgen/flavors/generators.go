@@ -23,6 +23,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/env"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/util"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/identity"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
@@ -44,6 +45,10 @@ func newVSphereCluster(lb *infrav1.HAProxyLoadBalancer) infrav1.VSphereCluster {
 		Spec: infrav1.VSphereClusterSpec{
 			Server:     env.VSphereServerVar,
 			Thumbprint: env.VSphereThumbprint,
+			IdentityRef: &infrav1.VSphereIdentityReference{
+				Name: env.ClusterNameVar,
+				Kind: infrav1.SecretKind,
+			},
 		},
 	}
 	if lb != nil {
@@ -346,6 +351,23 @@ func newClusterResourceSet(cluster clusterv1.Cluster) addonsv1alpha4.ClusterReso
 	}
 
 	return crs
+}
+
+func newIdentitySecret() corev1.Secret {
+	return corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "Secret",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: env.NamespaceVar,
+			Name:      env.ClusterNameVar,
+		},
+		StringData: map[string]string{
+			identity.UsernameKey: env.VSphereUsername,
+			identity.PasswordKey: env.VSpherePassword,
+		},
+	}
 }
 
 func newMachineDeployment(cluster clusterv1.Cluster, machineTemplate infrav1.VSphereMachineTemplate, bootstrapTemplate bootstrapv1.KubeadmConfigTemplate) clusterv1.MachineDeployment {

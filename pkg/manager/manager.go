@@ -92,6 +92,8 @@ func New(opts Options) (Manager, error) {
 		Scheme:                  opts.Scheme,
 		Username:                opts.Username,
 		Password:                opts.Password,
+		EnableKeepAlive:         opts.EnableKeepAlive,
+		KeepAliveDuration:       opts.KeepAliveDuration,
 	}
 
 	// Add the requested items to the manager.

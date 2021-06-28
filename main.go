@@ -24,8 +24,6 @@ import (
 	"os"
 	"time"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
-
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
@@ -33,7 +31,9 @@ import (
 	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
 	ctrlsig "sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
+	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-vsphere/controllers"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/constants"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/version"
@@ -42,12 +42,14 @@ import (
 var (
 	setupLog = ctrllog.Log.WithName("entrypoint")
 
-	managerOpts             manager.Options
-	defaultProfilerAddr     = os.Getenv("PROFILER_ADDR")
-	defaultSyncPeriod       = manager.DefaultSyncPeriod
-	defaultLeaderElectionID = manager.DefaultLeaderElectionID
-	defaultPodName          = manager.DefaultPodName
-	defaultWebhookPort      = manager.DefaultWebhookServiceContainerPort
+	managerOpts              manager.Options
+	defaultProfilerAddr      = os.Getenv("PROFILER_ADDR")
+	defaultSyncPeriod        = manager.DefaultSyncPeriod
+	defaultLeaderElectionID  = manager.DefaultLeaderElectionID
+	defaultPodName           = manager.DefaultPodName
+	defaultWebhookPort       = manager.DefaultWebhookServiceContainerPort
+	defaultEnableKeepAlive   = constants.DefaultEnableKeepAlive
+	defaultKeepAliveDuration = constants.DefaultKeepAliveDuration
 )
 
 // nolint:gocognit
@@ -116,6 +118,15 @@ func main() {
 		"/etc/capv/credentials.yaml",
 		"path to CAPV's credentials file",
 	)
+	flag.BoolVar(&managerOpts.EnableKeepAlive,
+		"enable-keep-alive",
+		defaultEnableKeepAlive,
+		"feature to enable keep alive handler in vsphere sessions")
+
+	flag.DurationVar(&managerOpts.KeepAliveDuration,
+		"keep-alive-duration",
+		defaultKeepAliveDuration,
+		"idle time interval(minutes) in between send() requests in keepalive handler")
 
 	flag.Parse()
 

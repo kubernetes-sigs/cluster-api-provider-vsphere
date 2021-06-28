@@ -47,9 +47,10 @@ func TestCreate(t *testing.T) {
 	vmContext.VSphereVM.Spec.Server = s.URL.Host
 
 	authSession, err := session.GetOrCreate(
-		vmContext,
-		vmContext.VSphereVM.Spec.Server, "",
-		s.URL.User.Username(), pass, "")
+		vmContext.Context,
+		session.NewParams().
+			WithServer(vmContext.VSphereVM.Spec.Server).
+			WithUserInfo(s.URL.User.Username(), pass))
 	if err != nil {
 		t.Fatal(err)
 	}

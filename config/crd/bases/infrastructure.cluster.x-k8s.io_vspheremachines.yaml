@@ -391,7 +391,25 @@ spec:
     storage: false
     subresources:
       status: {}
-  - name: v1alpha4
+  - additionalPrinterColumns:
+    - description: Cluster to which this VSphereMachine belongs
+      jsonPath: .metadata.labels.cluster\.x-k8s\.io/cluster-name
+      name: Cluster
+      type: string
+    - description: Machine ready status
+      jsonPath: .status.ready
+      name: Ready
+      type: string
+    - description: VSphereMachine instance ID
+      jsonPath: .spec.providerID
+      name: ProviderID
+      type: string
+    - description: Machine object which owns with this VSphereMachine
+      jsonPath: .metadata.ownerReferences[?(@.kind=="Machine")].name
+      name: Machine
+      priority: 1
+      type: string
+    name: v1alpha4
     schema:
       openAPIV3Schema:
         description: VSphereMachine is the Schema for the vspheremachines API

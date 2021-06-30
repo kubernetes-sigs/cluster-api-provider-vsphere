@@ -43,6 +43,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -86,15 +87,33 @@ func AddClusterControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 	}
 
 	reconciler := clusterReconciler{ControllerContext: controllerContext}
-
+	clusterToInfraFn := clusterutilv1.ClusterToInfrastructureMapFunc(clusterControlledTypeGVK)
 	return ctrl.NewControllerManagedBy(mgr).
 		// Watch the controlled, infrastructure resource.
 		For(clusterControlledType).
 		// Watch the CAPI resource that owns this infrastructure resource.
 		Watches(
 			&source.Kind{Type: &clusterv1.Cluster{}},
-			handler.EnqueueRequestsFromMapFunc(clusterutilv1.ClusterToInfrastructureMapFunc(clusterControlledTypeGVK)),
+			handler.EnqueueRequestsFromMapFunc(func(o client.Object) []reconcile.Request {
+				requests := clusterToInfraFn(o)
+				if requests == nil {
+					return nil
+				}
+
+				c := &infrav1.VSphereCluster{}
+				if err := reconciler.Client.Get(ctx, requests[0].NamespacedName, c); err != nil {
+					reconciler.Logger.V(4).Error(err, "Failed to get VSphereCluster")
+					return nil
+				}
+
+				if annotations.IsExternallyManaged(c) {
+					reconciler.Logger.V(4).Info("VSphereCluster is externally managed, skipping mapping.")
+					return nil
+				}
+				return requests
+			}),
 		).
+
 		// Watch the infrastructure machine resources that belong to the control
 		// plane. This controller needs to reconcile the infrastructure cluster
 		// once a control plane machine has an IP address.
@@ -121,6 +140,7 @@ func AddClusterControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 			&source.Channel{Source: ctx.GetGenericEventChannelFor(clusterControlledTypeGVK)},
 			&handler.EnqueueRequestForObject{},
 		).
+		WithEventFilter(predicates.ResourceIsNotExternallyManaged(reconciler.Logger)).
 		WithOptions(controller.Options{MaxConcurrentReconciles: ctx.MaxConcurrentReconciles}).
 		Complete(reconciler)
 }

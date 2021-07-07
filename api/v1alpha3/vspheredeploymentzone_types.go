@@ -77,6 +77,14 @@ type VSphereDeploymentZone struct {
 	Status VSphereDeploymentZoneStatus `json:"status,omitempty"`
 }
 
+func (z *VSphereDeploymentZone) GetConditions() clusterv1.Conditions {
+	return z.Status.Conditions
+}
+
+func (z *VSphereDeploymentZone) SetConditions(conditions clusterv1.Conditions) {
+	z.Status.Conditions = conditions
+}
+
 // +kubebuilder:object:root=true
 
 // VSphereDeploymentZoneList contains a list of VSphereDeploymentZone

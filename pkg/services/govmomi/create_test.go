@@ -17,7 +17,6 @@ limitations under the License.
 package govmomi
 
 import (
-	"crypto/tls"
 	"testing"
 
 	"github.com/go-logr/logr"
@@ -27,31 +26,27 @@ import (
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
+	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers"
 )
 
 func TestCreate(t *testing.T) {
 	model := simulator.VPX()
 	model.Host = 0 // ClusterHost only
 
-	defer model.Remove()
-	err := model.Create()
+	simr, err := helpers.VCSimBuilder().WithModel(model).Build()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("unable to create simulator: %s", err)
 	}
-	model.Service.TLS = new(tls.Config)
-
-	s := model.Service.NewServer()
-	defer s.Close()
-	pass, _ := s.URL.User.Password()
+	defer simr.Destroy()
 
 	vmContext := fake.NewVMContext(fake.NewControllerContext(fake.NewControllerManagerContext()))
-	vmContext.VSphereVM.Spec.Server = s.URL.Host
+	vmContext.VSphereVM.Spec.Server = simr.ServerURL().Host
 
 	authSession, err := session.GetOrCreate(
 		vmContext,
 		logr.DiscardLogger{},
 		vmContext.VSphereVM.Spec.Server, "",
-		s.URL.User.Username(), pass, "")
+		simr.Username(), simr.Password(), "")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -210,6 +210,9 @@ func main() {
 			if err := controllers.AddVsphereClusterIdentityControllerToManager(ctx, mgr); err != nil {
 				return err
 			}
+			if err := controllers.AddVSphereDeploymentZoneControllerToManager(ctx, mgr); err != nil {
+				return err
+			}
 		}
 
 		return nil

@@ -98,6 +98,46 @@ rules:
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
+  - vspheredeploymentzones
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - vspheredeploymentzones/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+    - infrastructure.cluster.x-k8s.io
+  resources:
+    - vspherefailuredomains
+  verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
+- apiGroups:
+    - infrastructure.cluster.x-k8s.io
+  resources:
+    - vspherefailuredomains/status
+  verbs:
+    - get
+    - patch
+    - update
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
   - vsphereclusters
   verbs:
   - create

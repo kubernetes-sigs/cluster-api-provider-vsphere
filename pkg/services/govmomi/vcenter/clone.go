@@ -124,7 +124,7 @@ func Clone(ctx *context.VMContext, bootstrapData []byte) error {
 	}
 
 	// Create a new list of device specs for cloning the VM.
-	deviceSpecs := []types.BaseVirtualDeviceConfigSpec{}
+	var deviceSpecs []types.BaseVirtualDeviceConfigSpec
 
 	// Only non-linked clones may expand the size of the template's disk.
 	if snapshotRef == nil {

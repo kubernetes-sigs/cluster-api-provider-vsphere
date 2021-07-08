@@ -24,6 +24,10 @@ import (
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/simulator"
 	"github.com/vmware/govmomi/vim25/types"
+
+	// run init func to register the tagging API endpoints
+	_ "github.com/vmware/govmomi/vapi/simulator"
+
 	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"

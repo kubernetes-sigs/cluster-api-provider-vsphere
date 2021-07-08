@@ -21,6 +21,7 @@ resources:
   version: v1alpha3
 - group: infrastructure
   kind: HAProxyLoadBalancer
+  version: v1alpha3
 - group: infrastructure
   kind: VSphereCluster
   version: v1alpha4

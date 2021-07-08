@@ -77,18 +77,30 @@ spec:
                     description: The underlying infrastructure for this failure domain
                       Datacenter as the failure domain
                     type: string
-                  hostGroup:
-                    description: HostGroup as the failure domain
+                  datastore:
+                    description: Datastore is the name or inventory path of the datastore
+                      in which the virtual machine is created/located.
+                    type: string
+                  hosts:
+                    description: Hosts has information required for placement of machines
+                      on VSphere hosts.
                     properties:
-                      autoConfigure:
-                        description: compute cluster that this hostgroup belongs to
-                        type: boolean
-                      name:
-                        description: name of the host group
+                      hostGroupName:
+                        description: HostGroupName is the name of the Host group
+                        type: string
+                      vmGroupName:
+                        description: VMGroupName is the name of the VM group
                         type: string
                     required:
-                    - name
+                    - hostGroupName
+                    - vmGroupName
                     type: object
+                  networks:
+                    description: Networks is the list of networks within this failure
+                      domain
+                    items:
+                      type: string
+                    type: array
                 required:
                 - datacenter
                 type: object
@@ -176,8 +188,8 @@ spec:
                 - type
                 type: object
               topology:
-                description: Topology is the what describes a given failure domain
-                  using vSphere constructs
+                description: Topology describes a given failure domain using vSphere
+                  constructs
                 properties:
                   computeCluster:
                     description: ComputeCluster as the failure domain
@@ -186,19 +198,30 @@ spec:
                     description: The underlying infrastructure for this failure domain
                       Datacenter as the failure domain
                     type: string
-                  hostGroup:
-                    description: HostGroup as the failure domain
+                  datastore:
+                    description: Datastore is the name or inventory path of the datastore
+                      in which the virtual machine is created/located.
+                    type: string
+                  hosts:
+                    description: Hosts has information required for placement of machines
+                      on VSphere hosts.
                     properties:
-                      autoConfigure:
-                        description: AutoConfigure creates the given hostGroup based
-                          on the supplied zone tagging
-                        type: boolean
-                      name:
-                        description: name of the host group
+                      hostGroupName:
+                        description: HostGroupName is the name of the Host group
+                        type: string
+                      vmGroupName:
+                        description: VMGroupName is the name of the VM group
                         type: string
                     required:
-                    - name
+                    - hostGroupName
+                    - vmGroupName
                     type: object
+                  networks:
+                    description: Networks is the list of networks within this failure
+                      domain
+                    items:
+                      type: string
+                    type: array
                 required:
                 - datacenter
                 type: object

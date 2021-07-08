@@ -111,8 +111,9 @@ help: ## Display this help
 ## --------------------------------------
 
 .PHONY: test
-test: generate lint-go ## Run tests
-	source ./hack/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v ./api/... ./controllers/... ./pkg/...
+test: $(GOVC)
+	$(MAKE) generate lint-go
+	source ./hack/fetch_ext_bins.sh; fetch_tools; setup_envs; export GOVC_BIN_PATH=$(GOVC); go test -v ./api/... ./controllers/... ./pkg/...
 
 .PHONY: e2e-image
 e2e-image: ## Build the e2e manager image

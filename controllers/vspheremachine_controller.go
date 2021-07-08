@@ -31,6 +31,8 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	apitypes "k8s.io/apimachinery/pkg/types"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/utils/integer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -47,7 +49,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
@@ -438,12 +439,18 @@ func (r machineReconciler) reconcileNormalPre7(ctx *context.MachineContext, vsph
 		// clone spec.
 		ctx.VSphereMachine.Spec.VirtualMachineCloneSpec.DeepCopyInto(&vm.Spec.VirtualMachineCloneSpec)
 
+		// If Failure Domain is present on CAPI machine, use that to override the vm clone spec.
+		if overrideFunc, ok := r.generateOverrideFunc(ctx); ok {
+			overrideFunc(vm)
+		}
+
 		// Several of the VSphereVM's clone spec properties can be derived
 		// from multiple places. The order is:
 		//
-		//   1. From the VSphereMachine.Spec (the DeepCopyInto above)
-		//   2. From the VSphereCluster.Spec.CloudProviderConfiguration.Workspace
-		//   3. From the VSphereCluster.Spec
+		//   1. From the Machine.Spec.FailureDomain
+		//   2. From the VSphereMachine.Spec (the DeepCopyInto above)
+		//   3. From the VSphereCluster.Spec.CloudProviderConfiguration.Workspace
+		//   4. From the VSphereCluster.Spec
 		vsphereCloudConfig := ctx.VSphereCluster.Spec.CloudProviderConfiguration.Workspace
 		if vm.Spec.Server == "" {
 			if vm.Spec.Server = vsphereCloudConfig.Server; vm.Spec.Server == "" {
@@ -483,10 +490,80 @@ func (r machineReconciler) reconcileNormalPre7(ctx *context.MachineContext, vsph
 	return vm, nil
 }
 
+// generateOverrideFunc returns a function which can override the values in the VSphereVM Spec
+// with the values from the FailureDomain (if any) set on the owner CAPI machine.
+func (r machineReconciler) generateOverrideFunc(ctx *context.MachineContext) (func(vm *infrav1.VSphereVM), bool) {
+	var overrideWithFailureDomainFunc func(vm *infrav1.VSphereVM)
+	if failureDomainName := ctx.Machine.Spec.FailureDomain; failureDomainName != nil {
+		var vsphereDeploymentZoneList infrav1.VSphereDeploymentZoneList
+		if err := r.Client.List(ctx, &vsphereDeploymentZoneList); err != nil {
+			r.Logger.Error(err, "unable to fetch list of deployment zones")
+			return overrideWithFailureDomainFunc, false
+		}
+
+		var vsphereFailureDomain infrav1.VSphereFailureDomain
+		if err := r.Client.Get(ctx, client.ObjectKey{Name: *failureDomainName}, &vsphereFailureDomain); err != nil {
+			r.Logger.Error(err, "unable to fetch failure domain", "name", *failureDomainName)
+			return overrideWithFailureDomainFunc, false
+		}
+
+		for index := range vsphereDeploymentZoneList.Items {
+			zone := vsphereDeploymentZoneList.Items[index]
+			if zone.Spec.FailureDomain == *ctx.Machine.Spec.FailureDomain {
+				overrideWithFailureDomainFunc = func(vm *infrav1.VSphereVM) {
+					vm.Spec.Server = zone.Spec.Server
+					vm.Spec.Datacenter = vsphereFailureDomain.Spec.Topology.Datacenter
+					if zone.Spec.PlacementConstraint.Folder != "" {
+						vm.Spec.Folder = zone.Spec.PlacementConstraint.Folder
+					}
+					if zone.Spec.PlacementConstraint.ResourcePool != "" {
+						vm.Spec.ResourcePool = zone.Spec.PlacementConstraint.ResourcePool
+					}
+					if vsphereFailureDomain.Spec.Topology.Datastore != "" {
+						vm.Spec.Datastore = vsphereFailureDomain.Spec.Topology.Datastore
+					}
+					if len(vsphereFailureDomain.Spec.Topology.Networks) > 0 {
+						vm.Spec.Network.Devices = overrideNetworkDeviceSpecs(vm.Spec.Network.Devices, vsphereFailureDomain.Spec.Topology.Networks)
+					}
+				}
+				return overrideWithFailureDomainFunc, true
+			}
+		}
+	}
+	return overrideWithFailureDomainFunc, false
+}
+
+// overrideNetworkDeviceSpecs updates the network devices with the network definitions from the PlacementConstraint.
+// The substitution is done based on the order in which the network devices have been defined.
+//
+// In case there are more network definitions than the number of network devices specified, the definitions are appended to the list.
+func overrideNetworkDeviceSpecs(deviceSpecs []infrav1.NetworkDeviceSpec, networks []string) []infrav1.NetworkDeviceSpec {
+	index, length := 0, len(networks)
+
+	devices := make([]infrav1.NetworkDeviceSpec, 0, integer.IntMax(length, len(deviceSpecs)))
+	// override the networks on the VM spec with placement constraint network definitions
+	for i := range deviceSpecs {
+		vmNetworkDeviceSpec := deviceSpecs[i]
+		if i < length {
+			index++
+			vmNetworkDeviceSpec.NetworkName = networks[i]
+		}
+		devices = append(devices, vmNetworkDeviceSpec)
+	}
+	// append the remaining network definitions to the VM spec
+	for ; index < length; index++ {
+		devices = append(devices, infrav1.NetworkDeviceSpec{
+			NetworkName: networks[index],
+		})
+	}
+
+	return devices
+}
+
 func (r machineReconciler) reconcileNetwork(ctx *context.MachineContext, vm *unstructured.Unstructured) (bool, error) {
 	var errs []error
 	if networkStatusListOfIfaces, ok, _ := unstructured.NestedSlice(vm.Object, "status", "network"); ok {
-		networkStatusList := []infrav1.NetworkStatus{}
+		var networkStatusList []infrav1.NetworkStatus
 		for i, networkStatusListMemberIface := range networkStatusListOfIfaces {
 			if buf, err := json.Marshal(networkStatusListMemberIface); err != nil {
 				ctx.Logger.Error(err,

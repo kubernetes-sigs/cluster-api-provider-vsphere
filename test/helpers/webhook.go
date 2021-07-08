@@ -41,8 +41,8 @@ const (
 
 // Mutate the name of each webhook, because kubebuilder generates the same name for all controllers.
 // In normal usage, kustomize will prefix the controller name, which we have to do manually here.
-func appendWebhookConfiguration(mutatingWebhooks []client.Object, validatingWebhooks []client.Object, configyamlFile []byte, tag string) ([]client.Object, []client.Object, error) {
-
+func appendWebhookConfiguration(configyamlFile []byte, tag string) ([]client.Object, []client.Object, error) {
+	var mutatingWebhooks, validatingWebhooks []client.Object
 	objs, err := utilyaml.ToUnstructured(configyamlFile)
 	if err != nil {
 		klog.Fatalf("failed to parse yaml")
@@ -69,9 +69,6 @@ func appendWebhookConfiguration(mutatingWebhooks []client.Object, validatingWebh
 }
 
 func initializeWebhookInEnvironment() {
-	validatingWebhooks := []client.Object{}
-	mutatingWebhooks := []client.Object{}
-
 	// Get the root of the current file to use in CRD paths.
 	_, filename, _, _ := goruntime.Caller(0) //nolint
 	root := path.Join(path.Dir(filename), "..", "..")
@@ -83,7 +80,7 @@ func initializeWebhookInEnvironment() {
 		klog.Fatalf("failed to parse yaml")
 	}
 	// append the webhook with suffix to avoid clashing webhooks. repeated for every webhook
-	mutatingWebhooks, validatingWebhooks, err = appendWebhookConfiguration(mutatingWebhooks, validatingWebhooks, configyamlFile, "config")
+	mutatingWebhooks, validatingWebhooks, err := appendWebhookConfiguration(configyamlFile, "config")
 	if err != nil {
 		klog.Fatalf("Failed to append core controller webhook config: %v", err)
 	}

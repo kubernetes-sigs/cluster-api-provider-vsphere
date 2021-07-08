@@ -37,7 +37,7 @@ type VSphereFailureDomainSpec struct {
 	// Zone defines the name and type of a zone
 	Zone FailureDomain `json:"zone"`
 
-	// Topology is the what describes a given failure domain using vSphere constructs
+	// Topology describes a given failure domain using vSphere constructs
 	Topology Topology `json:"topology"`
 }
 
@@ -59,25 +59,33 @@ type FailureDomain struct {
 type Topology struct {
 	// The underlying infrastructure for this failure domain
 	// Datacenter as the failure domain
+	// +kubebuilder:validation:Required
 	Datacenter string `json:"datacenter"`
 
 	// ComputeCluster as the failure domain
 	// +optional
 	ComputeCluster *string `json:"computeCluster,omitempty"`
 
-	// HostGroup as the failure domain
+	// Hosts has information required for placement of machines on VSphere hosts.
 	// +optional
-	HostGroup *FailureDomainHostGroup `json:"hostGroup,omitempty"`
+	Hosts *FailureDomainHosts `json:"hosts,omitempty"`
+
+	// Networks is the list of networks within this failure domain
+	// +optional
+	Networks []string `json:"networks,omitempty"`
+
+	// Datastore is the name or inventory path of the datastore in which the
+	// virtual machine is created/located.
+	// +optional
+	Datastore string `json:"datastore,omitempty"`
 }
 
-// FailureDomainHostGroup as the failure domain
-type FailureDomainHostGroup struct {
-	// name of the host group
-	Name string `json:"name"`
+type FailureDomainHosts struct {
+	// VMGroupName is the name of the VM group
+	VMGroupName string `json:"vmGroupName"`
 
-	// AutoConfigure creates the given hostGroup based on the supplied zone tagging
-	// +optional
-	AutoConfigure *bool `json:"autoConfigure,omitempty"`
+	// HostGroupName is the name of the Host group
+	HostGroupName string `json:"hostGroupName"`
 }
 
 // +kubebuilder:object:root=true

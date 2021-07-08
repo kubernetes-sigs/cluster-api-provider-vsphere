@@ -28,6 +28,8 @@ import (
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/session"
+	"github.com/vmware/govmomi/vapi/rest"
+	"github.com/vmware/govmomi/vapi/tags"
 	"github.com/vmware/govmomi/vim25"
 	"github.com/vmware/govmomi/vim25/methods"
 	"github.com/vmware/govmomi/vim25/soap"
@@ -45,6 +47,7 @@ type Session struct {
 	*govmomi.Client
 	Finder     *find.Finder
 	datacenter *object.Datacenter
+	TagManager *tags.Manager
 }
 
 type Feature struct {
@@ -105,16 +108,19 @@ func GetOrCreate(ctx context.Context, params *Params) (*Session, error) {
 	defer sessionMU.Unlock()
 
 	sessionKey := params.server + params.userinfo.Username() + params.datacenter
-	if session, ok := sessionCache[sessionKey]; ok {
+	if cachedSession, ok := sessionCache[sessionKey]; ok {
+		logger = logger.WithValues("server", params.server, "datacenter", params.datacenter)
 		// if keepalive is enabled we depend upon roundtripper to reestablish the connection
 		// and remove the key if it could not
 		if params.feature.EnableKeepAlive {
-			return &session, nil
+			return &cachedSession, nil
 		}
-		if ok, _ := session.SessionManager.SessionIsActive(ctx); ok {
-			logger.V(2).Info("found active cached vSphere client session", "server", params.server, "datacenter", params.datacenter)
-			return &session, nil
+		var err error
+		if ok, err = cachedSession.SessionManager.SessionIsActive(ctx); ok {
+			logger.V(2).Info("found active cached vSphere client session")
+			return &cachedSession, nil
 		}
+		logger.V(2).Error(err, "error checking if session is active")
 	}
 
 	soapURL, err := soap.ParseURL(params.server)
@@ -136,6 +142,12 @@ func GetOrCreate(ctx context.Context, params *Params) (*Session, error) {
 
 	// Assign the finder to the session.
 	session.Finder = find.NewFinder(session.Client.Client, false)
+	// Assign tag manager to the session.
+	manager, err := newManager(ctx, client.Client, soapURL.User)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to create tags manager")
+	}
+	session.TagManager = manager
 
 	// Assign the datacenter if one was specified.
 	dc, err := session.Finder.DatacenterOrDefault(ctx, params.datacenter)
@@ -153,11 +165,11 @@ func GetOrCreate(ctx context.Context, params *Params) (*Session, error) {
 	return &session, nil
 }
 
-func newClient(ctx context.Context, logger logr.Logger, sessionKey string, url *url.URL, thumprint string, feature Feature) (*govmomi.Client, error) {
-	insecure := thumprint == ""
+func newClient(ctx context.Context, logger logr.Logger, sessionKey string, url *url.URL, thumbprint string, feature Feature) (*govmomi.Client, error) {
+	insecure := thumbprint == ""
 	soapClient := soap.NewClient(url, insecure)
 	if !insecure {
-		soapClient.SetThumbprint(url.Host, thumprint)
+		soapClient.SetThumbprint(url.Host, thumbprint)
 	}
 
 	vimClient, err := vim25.NewClient(ctx, soapClient)
@@ -198,6 +210,16 @@ func clearCache(sessionKey string) {
 	sessionMU.Lock()
 	defer sessionMU.Unlock()
 	delete(sessionCache, sessionKey)
+}
+
+// newManager creates a Manager that encompasses the REST Client for the VSphere tagging API
+func newManager(ctx context.Context, client *vim25.Client, user *url.Userinfo) (*tags.Manager, error) {
+	rc := rest.NewClient(client)
+	err := rc.Login(ctx, user)
+	if err != nil {
+		return nil, err
+	}
+	return tags.NewManager(rc), nil
 }
 
 // FindByBIOSUUID finds an object by its BIOS UUID.

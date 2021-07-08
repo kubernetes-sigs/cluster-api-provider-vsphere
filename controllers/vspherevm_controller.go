@@ -27,6 +27,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apitypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
@@ -137,6 +138,33 @@ func (r vmReconciler) Reconcile(ctx goctx.Context, req ctrl.Request) (_ ctrl.Res
 		return reconcile.Result{}, err
 	}
 
+	// Fetch the owner VSphereMachine.
+	vsphereMachine := &infrav1.VSphereMachine{}
+	hasMachineOwner := clusterutilv1.HasOwnerRef(vsphereVM.OwnerReferences, metav1.OwnerReference{
+		APIVersion: vsphereMachine.APIVersion,
+		Kind:       vsphereMachine.Kind,
+		Name:       vsphereVM.Name,
+	})
+	if !hasMachineOwner {
+		r.Logger.Info("VSphereVM does not have OwnerRef, won't reconcile", "key", vsphereVM.Name)
+		return reconcile.Result{}, nil
+	}
+	if err := r.Client.Get(r, req.NamespacedName, vsphereMachine); err != nil {
+		if apierrors.IsNotFound(err) {
+			r.Logger.Info("Owner VSphereMachine not found, won't reconcile", "key", req.NamespacedName)
+			return reconcile.Result{}, nil
+		}
+		return reconcile.Result{}, err
+	}
+
+	var vsphereFailureDomain infrav1.VSphereFailureDomain
+	if failureDomain := vsphereMachine.Spec.FailureDomain; failureDomain != nil {
+		vsphereFailureDomain = infrav1.VSphereFailureDomain{}
+		if err := r.Client.Get(ctx, apitypes.NamespacedName{Name: *failureDomain}, &vsphereFailureDomain); err != nil {
+			return reconcile.Result{}, errors.Wrapf(err, "failed to find vsphere failure domain %s", *failureDomain)
+		}
+	}
+
 	// Create the patch helper.
 	patchHelper, err := patch.NewHelper(vsphereVM, r.Client)
 	if err != nil {
@@ -157,11 +185,12 @@ func (r vmReconciler) Reconcile(ctx goctx.Context, req ctrl.Request) (_ ctrl.Res
 
 	// Create the VM context for this request.
 	vmContext := &context.VMContext{
-		ControllerContext: r.ControllerContext,
-		VSphereVM:         vsphereVM,
-		Session:           authSession,
-		Logger:            r.Logger.WithName(req.Namespace).WithName(req.Name),
-		PatchHelper:       patchHelper,
+		ControllerContext:    r.ControllerContext,
+		VSphereVM:            vsphereVM,
+		VSphereFailureDomain: &vsphereFailureDomain,
+		Session:              authSession,
+		Logger:               r.Logger.WithName(req.Namespace).WithName(req.Name),
+		PatchHelper:          patchHelper,
 	}
 
 	// Print the task-ref upon entry and upon exit.

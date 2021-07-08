@@ -27,16 +27,16 @@ type VSphereDeploymentZoneSpec struct {
 	// Server is the address of the vSphere endpoint.
 	Server string `json:"server,omitempty"`
 
-	// failureDomain is the name of the VSphereFailureDomain used for this VSphereDeploymentZone
+	// FailureDomain is the name of the VSphereFailureDomain used for this VSphereDeploymentZone
 	FailureDomain string `json:"failureDomain,omitempty"`
 
 	// ControlPlane determines if this failure domain is suitable for use by control plane machines.
 	// +optional
 	ControlPlane *bool `json:"controlPlane,omitempty"`
 
-	// the placement constraints which is used within this failure domain
-	// +optional
-	PlacementConstaint PlacementConstraint `json:"placementConstraint,omitempty"`
+	// PlacementConstraint encapsulates the placement constraints
+	// used within this deployment zone.
+	PlacementConstraint PlacementConstraint `json:"placementConstraint"`
 }
 
 // PlacementConstraint is the context information for VM placements within a failure domain
@@ -46,15 +46,6 @@ type PlacementConstraint struct {
 	// +optional
 	ResourcePool string `json:"resourcePool,omitempty"`
 
-	// Datastore is the name or inventory path of the datastore in which the
-	// virtual machine is created/located.
-	// +optional
-	Datastore string `json:"datastore,omitempty"`
-
-	// Network represents the networking for this depoyment zone
-	// +optional
-	Network []Network `json:"Network,omitempty"`
-
 	// Folder is the name or inventory path of the folder in which the
 	// virtual machine is created/located.
 	// +optional
@@ -62,8 +53,8 @@ type PlacementConstraint struct {
 }
 
 type Network struct {
-	// NetworkName is the network name for this machine's VM.
-	NetworkName string `json:"networkName,omitempty"`
+	// Name is the network name for this machine's VM.
+	Name string `json:"name,omitempty"`
 
 	// DHCP4 is a flag that indicates whether or not to use DHCP for IPv4
 	// +optional
@@ -97,6 +88,14 @@ type VSphereDeploymentZone struct {
 
 	Spec   VSphereDeploymentZoneSpec   `json:"spec,omitempty"`
 	Status VSphereDeploymentZoneStatus `json:"status,omitempty"`
+}
+
+func (z *VSphereDeploymentZone) GetConditions() clusterv1.Conditions {
+	return z.Status.Conditions
+}
+
+func (z *VSphereDeploymentZone) SetConditions(conditions clusterv1.Conditions) {
+	z.Status.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true

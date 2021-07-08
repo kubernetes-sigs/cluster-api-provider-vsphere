@@ -21,10 +21,9 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/pbm"
 	pbmTypes "github.com/vmware/govmomi/pbm/types"
-
-	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/property"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
@@ -37,6 +36,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/cluster"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/extra"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/net"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
@@ -133,6 +133,10 @@ func (vms *VMService) ReconcileVM(ctx *context.VMContext) (vm infrav1.VirtualMac
 	}
 
 	if ok, err := vms.reconcilePowerState(vmCtx); err != nil || !ok {
+		return vm, err
+	}
+
+	if err := vms.reconcileVMGroupInfo(ctx); err != nil {
 		return vm, err
 	}
 
@@ -484,4 +488,17 @@ func (vms *VMService) getBootstrapData(ctx *context.VMContext) ([]byte, error) {
 	}
 
 	return value, nil
+}
+
+func (vms *VMService) reconcileVMGroupInfo(ctx *context.VMContext) error {
+	if ctx.VSphereFailureDomain != nil {
+		topology := ctx.VSphereFailureDomain.Spec.Topology
+		if topology.Hosts != nil {
+			return cluster.AddVMToGroup(ctx,
+				*topology.ComputeCluster,
+				topology.Hosts.VMGroupName,
+				ctx.VSphereVM.Name)
+		}
+	}
+	return nil
 }

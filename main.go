@@ -156,6 +156,9 @@ func main() {
 		if err := (&v1alpha4.VSphereCluster{}).SetupWebhookWithManager(mgr); err != nil {
 			return err
 		}
+		if err := (&v1alpha4.VSphereClusterTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+			return err
+		}
 		if err := (&v1alpha4.VSphereClusterList{}).SetupWebhookWithManager(mgr); err != nil {
 			return err
 		}

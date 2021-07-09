@@ -399,30 +399,30 @@ the following changes are going to be introduced to vspheremachine_controller:
 
 ```shell
 #dcwest,az1
-govc tags.attach k8s-region k8s-region-west /dc-west/host/cluster-az1
-govc tags.attach k8s-zone k8s-zone-west-1 /dc-west/host/cluster-az1
+govc tags.attach -c k8s-region k8s-region-west /dc-west/host/cluster-az1
+govc tags.attach -c k8s-zone k8s-zone-west-1 /dc-west/host/cluster-az1
 
 #dcwest,az2
-govc tags.attach k8s-region k8s-region-west /dc-west/host/cluster-az2
-govc tags.attach k8s-zone k8s-zone-west-2 /dc-west/host/cluster-az2
+govc tags.attach -c k8s-region k8s-region-west /dc-west/host/cluster-az2
+govc tags.attach -c k8s-zone k8s-zone-west-2 /dc-west/host/cluster-az2
 
 #dceast,az1
-govc tags.attach k8s-region k8s-region-east /dc-east/host/cluster-az1
-govc tags.attach k8s-zone k8s-zone-east-1 /dc-east/host/cluster-az1
+govc tags.attach -c k8s-region k8s-region-east /dc-east/host/cluster-az1
+govc tags.attach -c k8s-zone k8s-zone-east-1 /dc-east/host/cluster-az1
 ```
 
 ##### Region -> Country , Zone -> DataCenter
 
 ```shell
 #dcwest
-govc tags.attach k8s-region k8s-region-us /dc-west
-govc tags.attach k8s-zone k8s-zone-us-west /dc-west
+govc tags.attach -c k8s-region k8s-region-us /dc-west
+govc tags.attach -c k8s-zone k8s-zone-us-west /dc-west
 #dceast
-govc tags.attach k8s-region k8s-region-us /dc-east
-govc tags.attach k8s-zone k8s-zone-us-east /dc-east
+govc tags.attach -c k8s-region k8s-region-us /dc-east
+govc tags.attach -c k8s-zone k8s-zone-us-east /dc-east
 #dceu
-govc tags.attach k8s-region k8s-region-eu /dc-eu
-govc tags.attach k8s-zone k8s-region-eu-all /dc-eu
+govc tags.attach -c k8s-region k8s-region-eu /dc-eu
+govc tags.attach -c k8s-zone k8s-region-eu-all /dc-eu
 ```
 
 ##### Region -> ComputeCluster, Zone -> HostGroup

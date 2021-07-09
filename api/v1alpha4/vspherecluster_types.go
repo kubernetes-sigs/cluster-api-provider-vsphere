@@ -17,7 +17,6 @@ limitations under the License.
 package v1alpha4
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 )
@@ -34,34 +33,13 @@ type VSphereClusterSpec struct {
 	// Server is the address of the vSphere endpoint.
 	Server string `json:"server,omitempty"`
 
-	// Insecure is a flag that controls whether or not to validate the
-	// vSphere server's certificate.
-	// DEPRECATED: will be removed in v1alpha4
-	// +optional
-	Insecure *bool `json:"insecure,omitempty"`
-
 	// Thumbprint is the colon-separated SHA-1 checksum of the given vCenter server's host certificate
-	// When provided, Insecure should not be set to true
 	// +optional
 	Thumbprint string `json:"thumbprint,omitempty"`
-
-	// CloudProviderConfiguration holds the cluster-wide configuration for the
-	// DEPRECATED: will be removed in v1alpha4
-	// vSphere cloud provider.
-	CloudProviderConfiguration CPIConfig `json:"cloudProviderConfiguration,omitempty"`
 
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
 	ControlPlaneEndpoint APIEndpoint `json:"controlPlaneEndpoint"`
-
-	// LoadBalancerRef may be used to enable a control plane load balancer
-	// for this cluster.
-	// When a LoadBalancerRef is provided, the VSphereCluster.Status.Ready field
-	// will not be true until the referenced resource is Status.Ready and has a
-	// non-empty Status.Address value.
-	// DEPRECATED: will be removed in v1alpha4
-	// +optional
-	LoadBalancerRef *corev1.ObjectReference `json:"loadBalancerRef,omitempty"`
 
 	// IdentityRef is a reference to either a Secret or VSphereClusterIdentity that contains
 	// the identity to use when reconciling the cluster.

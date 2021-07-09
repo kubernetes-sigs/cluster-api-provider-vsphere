@@ -17,148 +17,11 @@ limitations under the License.
 package v1alpha4
 
 import (
-	"bytes"
 	"fmt"
-	"io"
 	"reflect"
-	"regexp"
-	"sort"
-	"strings"
 
 	"github.com/pkg/errors"
-	gcfg "gopkg.in/gcfg.v1"
 )
-
-const gcfgTag = "gcfg"
-
-var iniEscapeChars = regexp.MustCompile(`([\\"])`)
-
-// MarshalINI marshals the cloud provider configuration to INI-style
-// configuration data.
-func (c *CPIConfig) MarshalINI() ([]byte, error) {
-	if c == nil {
-		return nil, errors.New("config is nil")
-	}
-
-	buf := &bytes.Buffer{}
-
-	// Get the reflected type and value of the CPIConfig object.
-	configValue := reflect.ValueOf(*c)
-	configType := reflect.TypeOf(*c)
-
-	for sectionIndex := 0; sectionIndex < configValue.NumField(); sectionIndex++ {
-		sectionType := configType.Field(sectionIndex)
-		sectionValue := configValue.Field(sectionIndex)
-
-		// Get the value of the gcfg tag to help determine the section
-		// name and whether to omit an empty value. Also ignore fields without the gcfg tag
-		sectionName, omitEmpty, hasTag := parseGcfgTag(sectionType)
-		if !hasTag {
-			continue
-		}
-
-		// Do not marshal a section if it is empty.
-		if omitEmpty && isEmpty(sectionValue) {
-			continue
-		}
-
-		switch sectionValue.Kind() {
-		case reflect.Map:
-			keys := sectionValue.MapKeys()
-			sort.Slice(keys, func(i, j int) bool {
-				return keys[i].String() < keys[j].String()
-			})
-
-			for _, key := range keys {
-				sectionNameKey, sectionValue := key, sectionValue.MapIndex(key)
-				sectionName := fmt.Sprintf(`%s "%v"`, sectionName, sectionNameKey.String())
-				if err := c.marshalINISectionProperties(buf, sectionValue, sectionName); err != nil {
-					return nil, err
-				}
-			}
-		default:
-			if err := c.marshalINISectionProperties(buf, sectionValue, sectionName); err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	return buf.Bytes(), nil
-}
-
-func (c *CPIConfig) marshalINISectionProperties(
-	out io.Writer,
-	sectionValue reflect.Value,
-	sectionName string) error {
-
-	switch sectionValue.Kind() {
-	case reflect.Interface, reflect.Ptr:
-		return c.marshalINISectionProperties(out, sectionValue.Elem(), sectionName)
-	}
-
-	fmt.Fprintf(out, "[%s]\n", sectionName)
-
-	sectionType := sectionValue.Type()
-	for propertyIndex := 0; propertyIndex < sectionType.NumField(); propertyIndex++ {
-		propertyType := sectionType.Field(propertyIndex)
-		propertyValue := sectionValue.Field(propertyIndex)
-
-		// Get the value of the gcfg tag to help determine the property
-		// name and whether to omit an empty value.
-		propertyName, omitEmpty, hasTag := parseGcfgTag(propertyType)
-		if !hasTag {
-			continue
-		}
-
-		// Do not marshal a property if it is empty.
-		if omitEmpty && isEmpty(propertyValue) {
-			continue
-		}
-
-		switch propertyValue.Kind() {
-		case reflect.Interface, reflect.Ptr:
-			propertyValue = propertyValue.Elem()
-		}
-
-		fmt.Fprintf(out, "%s", propertyName)
-		if propertyValue.IsValid() {
-			rawVal := fmt.Sprintf("%v", propertyValue.Interface())
-			val := iniEscapeChars.ReplaceAllString(rawVal, "\\$1")
-			val = strings.ReplaceAll(val, "\t", "\\t")
-			if propertyValue.Kind() == reflect.String {
-				val = "\"" + val + "\""
-			}
-			fmt.Fprintf(out, " = %s\n", val)
-		}
-	}
-
-	fmt.Fprintf(out, "\n")
-
-	return nil
-}
-
-func parseGcfgTag(field reflect.StructField) (string, bool, bool) {
-	name := field.Name
-	omitEmpty := false
-	hasTag := false
-
-	if tagVal, ok := field.Tag.Lookup(gcfgTag); ok {
-		hasTag = true
-		tagParts := strings.Split(tagVal, ",")
-		lenTagParts := len(tagParts)
-		if lenTagParts > 0 {
-			tagName := tagParts[0]
-			if len(tagName) > 0 && tagName != "-" {
-				name = tagName
-			}
-		}
-		if lenTagParts > 1 {
-			omitEmpty = tagParts[1] == "omitempty"
-		}
-	}
-
-	return name, omitEmpty, hasTag
-}
 
 // UnmarshalINIOptions defines the options used to influence how INI data is
 // unmarshalled.
@@ -179,34 +42,6 @@ type UnmarshalINIOptionFunc func(*UnmarshalINIOptions)
 // unmarshalling INI data.
 func WarnAsFatal(opts *UnmarshalINIOptions) {
 	opts.WarnAsFatal = true
-}
-
-// UnmarshalINI unmarshals the cloud provider configuration from INI-style
-// configuration data.
-func (c *CPIConfig) UnmarshalINI(data []byte, optFuncs ...UnmarshalINIOptionFunc) error {
-	opts := &UnmarshalINIOptions{}
-	for _, setOpts := range optFuncs {
-		setOpts(opts)
-	}
-	var config unmarshallableConfig
-	if err := gcfg.ReadStringInto(&config, string(data)); err != nil {
-		if opts.WarnAsFatal {
-			return err
-		}
-		if err := gcfg.FatalOnly(err); err != nil {
-			return err
-		}
-	}
-	c.Global = config.Global
-	c.Network = config.Network
-	c.Disk = config.Disk
-	c.Workspace = config.Workspace
-	c.Labels = config.Labels
-	c.VCenter = map[string]CPIVCenterConfig{}
-	for k, v := range config.VCenter {
-		c.VCenter[k] = *v
-	}
-	return nil
 }
 
 // IsEmpty returns true if an object is its empty value or if a struct, all of

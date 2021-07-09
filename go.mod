@@ -6,6 +6,7 @@ require (
 	github.com/antihax/optional v1.0.0
 	github.com/go-logr/logr v0.4.0
 	github.com/google/go-cmp v0.5.6
+	github.com/google/gofuzz v1.2.0
 	github.com/google/uuid v1.2.0
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.13.0

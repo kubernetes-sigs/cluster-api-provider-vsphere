@@ -442,28 +442,12 @@ func (r machineReconciler) reconcileNormalPre7(ctx *context.MachineContext, vsph
 		// from multiple places. The order is:
 		//
 		//   1. From the VSphereMachine.Spec (the DeepCopyInto above)
-		//   2. From the VSphereCluster.Spec.CloudProviderConfiguration.Workspace
-		//   3. From the VSphereCluster.Spec
-		vsphereCloudConfig := ctx.VSphereCluster.Spec.CloudProviderConfiguration.Workspace
+		//   2. From the VSphereCluster.Spec
 		if vm.Spec.Server == "" {
-			if vm.Spec.Server = vsphereCloudConfig.Server; vm.Spec.Server == "" {
-				vm.Spec.Server = ctx.VSphereCluster.Spec.Server
-			}
+			vm.Spec.Server = ctx.VSphereCluster.Spec.Server
 		}
 		if vm.Spec.Thumbprint == "" {
 			vm.Spec.Thumbprint = ctx.VSphereCluster.Spec.Thumbprint
-		}
-		if vm.Spec.Datacenter == "" {
-			vm.Spec.Datacenter = vsphereCloudConfig.Datacenter
-		}
-		if vm.Spec.Datastore == "" {
-			vm.Spec.Datastore = vsphereCloudConfig.Datastore
-		}
-		if vm.Spec.Folder == "" {
-			vm.Spec.Folder = vsphereCloudConfig.Folder
-		}
-		if vm.Spec.ResourcePool == "" {
-			vm.Spec.ResourcePool = vsphereCloudConfig.ResourcePool
 		}
 		if vsphereVM != nil {
 			vm.Spec.BiosUUID = vsphereVM.Spec.BiosUUID

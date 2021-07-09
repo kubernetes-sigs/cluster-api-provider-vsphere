@@ -18,43 +18,12 @@ package flavors
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
+
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/crs"
-	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 )
 
-func MultiNodeTemplateWithHAProxy() []runtime.Object {
-	lb := newHAProxyLoadBalancer()
-	vsphereCluster := newVSphereCluster(&lb)
-	machineTemplate := newVSphereMachineTemplate()
-	controlPlane := newKubeadmControlplane(444, machineTemplate, []bootstrapv1.File{})
-	kubeadmJoinTemplate := newKubeadmConfigTemplate()
-	cluster := newCluster(vsphereCluster, &controlPlane)
-	machineDeployment := newMachineDeployment(cluster, machineTemplate, kubeadmJoinTemplate)
-	clusterResourceSet := newClusterResourceSet(cluster)
-	crsResourcesCSI := crs.CreateCrsResourceObjectsCSI(&clusterResourceSet)
-	crsResourcesCPI := crs.CreateCrsResourceObjectsCPI(&clusterResourceSet)
-	identitySecret := newIdentitySecret()
-
-	MultiNodeTemplate := []runtime.Object{
-		&cluster,
-		&lb,
-		&vsphereCluster,
-		&machineTemplate,
-		&controlPlane,
-		&kubeadmJoinTemplate,
-		&machineDeployment,
-		&clusterResourceSet,
-		&identitySecret,
-	}
-
-	MultiNodeTemplate = append(MultiNodeTemplate, crsResourcesCSI...)
-	MultiNodeTemplate = append(MultiNodeTemplate, crsResourcesCPI...)
-
-	return MultiNodeTemplate
-}
-
 func MultiNodeTemplateWithKubeVIP() []runtime.Object {
-	vsphereCluster := newVSphereCluster(nil)
+	vsphereCluster := newVSphereCluster()
 	machineTemplate := newVSphereMachineTemplate()
 	controlPlane := newKubeadmControlplane(444, machineTemplate, newKubeVIPFiles())
 	kubeadmJoinTemplate := newKubeadmConfigTemplate()
@@ -83,7 +52,7 @@ func MultiNodeTemplateWithKubeVIP() []runtime.Object {
 }
 
 func MultiNodeTemplateWithExternalLoadBalancer() []runtime.Object {
-	vsphereCluster := newVSphereCluster(nil)
+	vsphereCluster := newVSphereCluster()
 	machineTemplate := newVSphereMachineTemplate()
 	controlPlane := newKubeadmControlplane(444, machineTemplate, nil)
 	kubeadmJoinTemplate := newKubeadmConfigTemplate()

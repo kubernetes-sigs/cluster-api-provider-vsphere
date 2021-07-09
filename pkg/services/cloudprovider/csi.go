@@ -17,16 +17,12 @@ limitations under the License.
 package cloudprovider
 
 import (
-	"fmt"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	storagev1beta1 "k8s.io/api/storage/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
 )
 
@@ -628,27 +624,6 @@ func CSIComponentConfigSecret(secretName string, data string) *corev1.Secret {
 			"csi-vsphere.conf": data,
 		},
 	}
-}
-
-// ConfigForCSI returns a cloudprovider.CPIConfig specific to the vSphere CSI driver until
-// it supports using Secrets for vCenter credentials
-func ConfigForCSI(vsphereCluster infrav1.VSphereCluster, cluster clusterv1.Cluster, username string, password string) *infrav1.CPIConfig {
-	config := &infrav1.CPIConfig{}
-
-	config.Global.ClusterID = fmt.Sprintf("%s/%s", cluster.Namespace, cluster.Name)
-	config.Global.Insecure = vsphereCluster.Spec.CloudProviderConfiguration.Global.Insecure
-	config.Network.Name = vsphereCluster.Spec.CloudProviderConfiguration.Network.Name
-
-	config.VCenter = map[string]infrav1.CPIVCenterConfig{}
-	for name, vcenter := range vsphereCluster.Spec.CloudProviderConfiguration.VCenter {
-		config.VCenter[name] = infrav1.CPIVCenterConfig{
-			Username:    username,
-			Password:    password,
-			Datacenters: vcenter.Datacenters,
-		}
-	}
-
-	return config
 }
 
 func CSIFeatureStatesConfigMap() *corev1.ConfigMap {

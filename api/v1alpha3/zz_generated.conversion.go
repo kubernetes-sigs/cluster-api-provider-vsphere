@@ -69,16 +69,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*CPIConfig)(nil), (*v1alpha4.CPIConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha3_CPIConfig_To_v1alpha4_CPIConfig(a.(*CPIConfig), b.(*v1alpha4.CPIConfig), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1alpha4.CPIConfig)(nil), (*CPIConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_CPIConfig_To_v1alpha3_CPIConfig(a.(*v1alpha4.CPIConfig), b.(*CPIConfig), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*CPIDiskConfig)(nil), (*v1alpha4.CPIDiskConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha3_CPIDiskConfig_To_v1alpha4_CPIDiskConfig(a.(*CPIDiskConfig), b.(*v1alpha4.CPIDiskConfig), scope)
 	}); err != nil {
@@ -176,46 +166,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1alpha4.FailureDomainHostGroup)(nil), (*FailureDomainHostGroup)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha4_FailureDomainHostGroup_To_v1alpha3_FailureDomainHostGroup(a.(*v1alpha4.FailureDomainHostGroup), b.(*FailureDomainHostGroup), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*HAProxyLoadBalancer)(nil), (*v1alpha4.HAProxyLoadBalancer)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha3_HAProxyLoadBalancer_To_v1alpha4_HAProxyLoadBalancer(a.(*HAProxyLoadBalancer), b.(*v1alpha4.HAProxyLoadBalancer), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1alpha4.HAProxyLoadBalancer)(nil), (*HAProxyLoadBalancer)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_HAProxyLoadBalancer_To_v1alpha3_HAProxyLoadBalancer(a.(*v1alpha4.HAProxyLoadBalancer), b.(*HAProxyLoadBalancer), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*HAProxyLoadBalancerList)(nil), (*v1alpha4.HAProxyLoadBalancerList)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha3_HAProxyLoadBalancerList_To_v1alpha4_HAProxyLoadBalancerList(a.(*HAProxyLoadBalancerList), b.(*v1alpha4.HAProxyLoadBalancerList), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1alpha4.HAProxyLoadBalancerList)(nil), (*HAProxyLoadBalancerList)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_HAProxyLoadBalancerList_To_v1alpha3_HAProxyLoadBalancerList(a.(*v1alpha4.HAProxyLoadBalancerList), b.(*HAProxyLoadBalancerList), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*HAProxyLoadBalancerSpec)(nil), (*v1alpha4.HAProxyLoadBalancerSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha3_HAProxyLoadBalancerSpec_To_v1alpha4_HAProxyLoadBalancerSpec(a.(*HAProxyLoadBalancerSpec), b.(*v1alpha4.HAProxyLoadBalancerSpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1alpha4.HAProxyLoadBalancerSpec)(nil), (*HAProxyLoadBalancerSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_HAProxyLoadBalancerSpec_To_v1alpha3_HAProxyLoadBalancerSpec(a.(*v1alpha4.HAProxyLoadBalancerSpec), b.(*HAProxyLoadBalancerSpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*HAProxyLoadBalancerStatus)(nil), (*v1alpha4.HAProxyLoadBalancerStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha3_HAProxyLoadBalancerStatus_To_v1alpha4_HAProxyLoadBalancerStatus(a.(*HAProxyLoadBalancerStatus), b.(*v1alpha4.HAProxyLoadBalancerStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1alpha4.HAProxyLoadBalancerStatus)(nil), (*HAProxyLoadBalancerStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_HAProxyLoadBalancerStatus_To_v1alpha3_HAProxyLoadBalancerStatus(a.(*v1alpha4.HAProxyLoadBalancerStatus), b.(*HAProxyLoadBalancerStatus), scope)
 	}); err != nil {
 		return err
 	}
@@ -366,11 +316,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1alpha4.VSphereClusterList)(nil), (*VSphereClusterList)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha4_VSphereClusterList_To_v1alpha3_VSphereClusterList(a.(*v1alpha4.VSphereClusterList), b.(*VSphereClusterList), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*VSphereClusterSpec)(nil), (*v1alpha4.VSphereClusterSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha3_VSphereClusterSpec_To_v1alpha4_VSphereClusterSpec(a.(*VSphereClusterSpec), b.(*v1alpha4.VSphereClusterSpec), scope)
 	}); err != nil {
 		return err
 	}
@@ -604,6 +549,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*VSphereClusterSpec)(nil), (*v1alpha4.VSphereClusterSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha3_VSphereClusterSpec_To_v1alpha4_VSphereClusterSpec(a.(*VSphereClusterSpec), b.(*v1alpha4.VSphereClusterSpec), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*v1alpha4.VSphereClusterSpec)(nil), (*VSphereClusterSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha4_VSphereClusterSpec_To_v1alpha3_VSphereClusterSpec(a.(*v1alpha4.VSphereClusterSpec), b.(*VSphereClusterSpec), scope)
 	}); err != nil {
@@ -674,62 +624,6 @@ func autoConvert_v1alpha4_CPICloudConfig_To_v1alpha3_CPICloudConfig(in *v1alpha4
 // Convert_v1alpha4_CPICloudConfig_To_v1alpha3_CPICloudConfig is an autogenerated conversion function.
 func Convert_v1alpha4_CPICloudConfig_To_v1alpha3_CPICloudConfig(in *v1alpha4.CPICloudConfig, out *CPICloudConfig, s conversion.Scope) error {
 	return autoConvert_v1alpha4_CPICloudConfig_To_v1alpha3_CPICloudConfig(in, out, s)
-}
-
-func autoConvert_v1alpha3_CPIConfig_To_v1alpha4_CPIConfig(in *CPIConfig, out *v1alpha4.CPIConfig, s conversion.Scope) error {
-	if err := Convert_v1alpha3_CPIGlobalConfig_To_v1alpha4_CPIGlobalConfig(&in.Global, &out.Global, s); err != nil {
-		return err
-	}
-	out.VCenter = *(*map[string]v1alpha4.CPIVCenterConfig)(unsafe.Pointer(&in.VCenter))
-	if err := Convert_v1alpha3_CPINetworkConfig_To_v1alpha4_CPINetworkConfig(&in.Network, &out.Network, s); err != nil {
-		return err
-	}
-	if err := Convert_v1alpha3_CPIDiskConfig_To_v1alpha4_CPIDiskConfig(&in.Disk, &out.Disk, s); err != nil {
-		return err
-	}
-	if err := Convert_v1alpha3_CPIWorkspaceConfig_To_v1alpha4_CPIWorkspaceConfig(&in.Workspace, &out.Workspace, s); err != nil {
-		return err
-	}
-	if err := Convert_v1alpha3_CPILabelConfig_To_v1alpha4_CPILabelConfig(&in.Labels, &out.Labels, s); err != nil {
-		return err
-	}
-	if err := Convert_v1alpha3_CPIProviderConfig_To_v1alpha4_CPIProviderConfig(&in.ProviderConfig, &out.ProviderConfig, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Convert_v1alpha3_CPIConfig_To_v1alpha4_CPIConfig is an autogenerated conversion function.
-func Convert_v1alpha3_CPIConfig_To_v1alpha4_CPIConfig(in *CPIConfig, out *v1alpha4.CPIConfig, s conversion.Scope) error {
-	return autoConvert_v1alpha3_CPIConfig_To_v1alpha4_CPIConfig(in, out, s)
-}
-
-func autoConvert_v1alpha4_CPIConfig_To_v1alpha3_CPIConfig(in *v1alpha4.CPIConfig, out *CPIConfig, s conversion.Scope) error {
-	if err := Convert_v1alpha4_CPIGlobalConfig_To_v1alpha3_CPIGlobalConfig(&in.Global, &out.Global, s); err != nil {
-		return err
-	}
-	out.VCenter = *(*map[string]CPIVCenterConfig)(unsafe.Pointer(&in.VCenter))
-	if err := Convert_v1alpha4_CPINetworkConfig_To_v1alpha3_CPINetworkConfig(&in.Network, &out.Network, s); err != nil {
-		return err
-	}
-	if err := Convert_v1alpha4_CPIDiskConfig_To_v1alpha3_CPIDiskConfig(&in.Disk, &out.Disk, s); err != nil {
-		return err
-	}
-	if err := Convert_v1alpha4_CPIWorkspaceConfig_To_v1alpha3_CPIWorkspaceConfig(&in.Workspace, &out.Workspace, s); err != nil {
-		return err
-	}
-	if err := Convert_v1alpha4_CPILabelConfig_To_v1alpha3_CPILabelConfig(&in.Labels, &out.Labels, s); err != nil {
-		return err
-	}
-	if err := Convert_v1alpha4_CPIProviderConfig_To_v1alpha3_CPIProviderConfig(&in.ProviderConfig, &out.ProviderConfig, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Convert_v1alpha4_CPIConfig_To_v1alpha3_CPIConfig is an autogenerated conversion function.
-func Convert_v1alpha4_CPIConfig_To_v1alpha3_CPIConfig(in *v1alpha4.CPIConfig, out *CPIConfig, s conversion.Scope) error {
-	return autoConvert_v1alpha4_CPIConfig_To_v1alpha3_CPIConfig(in, out, s)
 }
 
 func autoConvert_v1alpha3_CPIDiskConfig_To_v1alpha4_CPIDiskConfig(in *CPIDiskConfig, out *v1alpha4.CPIDiskConfig, s conversion.Scope) error {
@@ -1000,108 +894,6 @@ func autoConvert_v1alpha4_FailureDomainHostGroup_To_v1alpha3_FailureDomainHostGr
 // Convert_v1alpha4_FailureDomainHostGroup_To_v1alpha3_FailureDomainHostGroup is an autogenerated conversion function.
 func Convert_v1alpha4_FailureDomainHostGroup_To_v1alpha3_FailureDomainHostGroup(in *v1alpha4.FailureDomainHostGroup, out *FailureDomainHostGroup, s conversion.Scope) error {
 	return autoConvert_v1alpha4_FailureDomainHostGroup_To_v1alpha3_FailureDomainHostGroup(in, out, s)
-}
-
-func autoConvert_v1alpha3_HAProxyLoadBalancer_To_v1alpha4_HAProxyLoadBalancer(in *HAProxyLoadBalancer, out *v1alpha4.HAProxyLoadBalancer, s conversion.Scope) error {
-	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_v1alpha3_HAProxyLoadBalancerSpec_To_v1alpha4_HAProxyLoadBalancerSpec(&in.Spec, &out.Spec, s); err != nil {
-		return err
-	}
-	if err := Convert_v1alpha3_HAProxyLoadBalancerStatus_To_v1alpha4_HAProxyLoadBalancerStatus(&in.Status, &out.Status, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Convert_v1alpha3_HAProxyLoadBalancer_To_v1alpha4_HAProxyLoadBalancer is an autogenerated conversion function.
-func Convert_v1alpha3_HAProxyLoadBalancer_To_v1alpha4_HAProxyLoadBalancer(in *HAProxyLoadBalancer, out *v1alpha4.HAProxyLoadBalancer, s conversion.Scope) error {
-	return autoConvert_v1alpha3_HAProxyLoadBalancer_To_v1alpha4_HAProxyLoadBalancer(in, out, s)
-}
-
-func autoConvert_v1alpha4_HAProxyLoadBalancer_To_v1alpha3_HAProxyLoadBalancer(in *v1alpha4.HAProxyLoadBalancer, out *HAProxyLoadBalancer, s conversion.Scope) error {
-	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_v1alpha4_HAProxyLoadBalancerSpec_To_v1alpha3_HAProxyLoadBalancerSpec(&in.Spec, &out.Spec, s); err != nil {
-		return err
-	}
-	if err := Convert_v1alpha4_HAProxyLoadBalancerStatus_To_v1alpha3_HAProxyLoadBalancerStatus(&in.Status, &out.Status, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Convert_v1alpha4_HAProxyLoadBalancer_To_v1alpha3_HAProxyLoadBalancer is an autogenerated conversion function.
-func Convert_v1alpha4_HAProxyLoadBalancer_To_v1alpha3_HAProxyLoadBalancer(in *v1alpha4.HAProxyLoadBalancer, out *HAProxyLoadBalancer, s conversion.Scope) error {
-	return autoConvert_v1alpha4_HAProxyLoadBalancer_To_v1alpha3_HAProxyLoadBalancer(in, out, s)
-}
-
-func autoConvert_v1alpha3_HAProxyLoadBalancerList_To_v1alpha4_HAProxyLoadBalancerList(in *HAProxyLoadBalancerList, out *v1alpha4.HAProxyLoadBalancerList, s conversion.Scope) error {
-	out.ListMeta = in.ListMeta
-	out.Items = *(*[]v1alpha4.HAProxyLoadBalancer)(unsafe.Pointer(&in.Items))
-	return nil
-}
-
-// Convert_v1alpha3_HAProxyLoadBalancerList_To_v1alpha4_HAProxyLoadBalancerList is an autogenerated conversion function.
-func Convert_v1alpha3_HAProxyLoadBalancerList_To_v1alpha4_HAProxyLoadBalancerList(in *HAProxyLoadBalancerList, out *v1alpha4.HAProxyLoadBalancerList, s conversion.Scope) error {
-	return autoConvert_v1alpha3_HAProxyLoadBalancerList_To_v1alpha4_HAProxyLoadBalancerList(in, out, s)
-}
-
-func autoConvert_v1alpha4_HAProxyLoadBalancerList_To_v1alpha3_HAProxyLoadBalancerList(in *v1alpha4.HAProxyLoadBalancerList, out *HAProxyLoadBalancerList, s conversion.Scope) error {
-	out.ListMeta = in.ListMeta
-	out.Items = *(*[]HAProxyLoadBalancer)(unsafe.Pointer(&in.Items))
-	return nil
-}
-
-// Convert_v1alpha4_HAProxyLoadBalancerList_To_v1alpha3_HAProxyLoadBalancerList is an autogenerated conversion function.
-func Convert_v1alpha4_HAProxyLoadBalancerList_To_v1alpha3_HAProxyLoadBalancerList(in *v1alpha4.HAProxyLoadBalancerList, out *HAProxyLoadBalancerList, s conversion.Scope) error {
-	return autoConvert_v1alpha4_HAProxyLoadBalancerList_To_v1alpha3_HAProxyLoadBalancerList(in, out, s)
-}
-
-func autoConvert_v1alpha3_HAProxyLoadBalancerSpec_To_v1alpha4_HAProxyLoadBalancerSpec(in *HAProxyLoadBalancerSpec, out *v1alpha4.HAProxyLoadBalancerSpec, s conversion.Scope) error {
-	if err := Convert_v1alpha3_VirtualMachineCloneSpec_To_v1alpha4_VirtualMachineCloneSpec(&in.VirtualMachineConfiguration, &out.VirtualMachineConfiguration, s); err != nil {
-		return err
-	}
-	out.User = (*v1alpha4.SSHUser)(unsafe.Pointer(in.User))
-	return nil
-}
-
-// Convert_v1alpha3_HAProxyLoadBalancerSpec_To_v1alpha4_HAProxyLoadBalancerSpec is an autogenerated conversion function.
-func Convert_v1alpha3_HAProxyLoadBalancerSpec_To_v1alpha4_HAProxyLoadBalancerSpec(in *HAProxyLoadBalancerSpec, out *v1alpha4.HAProxyLoadBalancerSpec, s conversion.Scope) error {
-	return autoConvert_v1alpha3_HAProxyLoadBalancerSpec_To_v1alpha4_HAProxyLoadBalancerSpec(in, out, s)
-}
-
-func autoConvert_v1alpha4_HAProxyLoadBalancerSpec_To_v1alpha3_HAProxyLoadBalancerSpec(in *v1alpha4.HAProxyLoadBalancerSpec, out *HAProxyLoadBalancerSpec, s conversion.Scope) error {
-	if err := Convert_v1alpha4_VirtualMachineCloneSpec_To_v1alpha3_VirtualMachineCloneSpec(&in.VirtualMachineConfiguration, &out.VirtualMachineConfiguration, s); err != nil {
-		return err
-	}
-	out.User = (*SSHUser)(unsafe.Pointer(in.User))
-	return nil
-}
-
-// Convert_v1alpha4_HAProxyLoadBalancerSpec_To_v1alpha3_HAProxyLoadBalancerSpec is an autogenerated conversion function.
-func Convert_v1alpha4_HAProxyLoadBalancerSpec_To_v1alpha3_HAProxyLoadBalancerSpec(in *v1alpha4.HAProxyLoadBalancerSpec, out *HAProxyLoadBalancerSpec, s conversion.Scope) error {
-	return autoConvert_v1alpha4_HAProxyLoadBalancerSpec_To_v1alpha3_HAProxyLoadBalancerSpec(in, out, s)
-}
-
-func autoConvert_v1alpha3_HAProxyLoadBalancerStatus_To_v1alpha4_HAProxyLoadBalancerStatus(in *HAProxyLoadBalancerStatus, out *v1alpha4.HAProxyLoadBalancerStatus, s conversion.Scope) error {
-	out.Ready = in.Ready
-	out.Address = in.Address
-	return nil
-}
-
-// Convert_v1alpha3_HAProxyLoadBalancerStatus_To_v1alpha4_HAProxyLoadBalancerStatus is an autogenerated conversion function.
-func Convert_v1alpha3_HAProxyLoadBalancerStatus_To_v1alpha4_HAProxyLoadBalancerStatus(in *HAProxyLoadBalancerStatus, out *v1alpha4.HAProxyLoadBalancerStatus, s conversion.Scope) error {
-	return autoConvert_v1alpha3_HAProxyLoadBalancerStatus_To_v1alpha4_HAProxyLoadBalancerStatus(in, out, s)
-}
-
-func autoConvert_v1alpha4_HAProxyLoadBalancerStatus_To_v1alpha3_HAProxyLoadBalancerStatus(in *v1alpha4.HAProxyLoadBalancerStatus, out *HAProxyLoadBalancerStatus, s conversion.Scope) error {
-	out.Ready = in.Ready
-	out.Address = in.Address
-	return nil
-}
-
-// Convert_v1alpha4_HAProxyLoadBalancerStatus_To_v1alpha3_HAProxyLoadBalancerStatus is an autogenerated conversion function.
-func Convert_v1alpha4_HAProxyLoadBalancerStatus_To_v1alpha3_HAProxyLoadBalancerStatus(in *v1alpha4.HAProxyLoadBalancerStatus, out *HAProxyLoadBalancerStatus, s conversion.Scope) error {
-	return autoConvert_v1alpha4_HAProxyLoadBalancerStatus_To_v1alpha3_HAProxyLoadBalancerStatus(in, out, s)
 }
 
 func autoConvert_v1alpha3_Network_To_v1alpha4_Network(in *Network, out *v1alpha4.Network, s conversion.Scope) error {
@@ -1510,35 +1302,23 @@ func Convert_v1alpha4_VSphereClusterList_To_v1alpha3_VSphereClusterList(in *v1al
 
 func autoConvert_v1alpha3_VSphereClusterSpec_To_v1alpha4_VSphereClusterSpec(in *VSphereClusterSpec, out *v1alpha4.VSphereClusterSpec, s conversion.Scope) error {
 	out.Server = in.Server
-	out.Insecure = (*bool)(unsafe.Pointer(in.Insecure))
+	// WARNING: in.Insecure requires manual conversion: does not exist in peer-type
 	out.Thumbprint = in.Thumbprint
-	if err := Convert_v1alpha3_CPIConfig_To_v1alpha4_CPIConfig(&in.CloudProviderConfiguration, &out.CloudProviderConfiguration, s); err != nil {
-		return err
-	}
+	// WARNING: in.CloudProviderConfiguration requires manual conversion: does not exist in peer-type
 	if err := Convert_v1alpha3_APIEndpoint_To_v1alpha4_APIEndpoint(&in.ControlPlaneEndpoint, &out.ControlPlaneEndpoint, s); err != nil {
 		return err
 	}
-	out.LoadBalancerRef = (*v1.ObjectReference)(unsafe.Pointer(in.LoadBalancerRef))
+	// WARNING: in.LoadBalancerRef requires manual conversion: does not exist in peer-type
 	out.IdentityRef = (*v1alpha4.VSphereIdentityReference)(unsafe.Pointer(in.IdentityRef))
 	return nil
 }
 
-// Convert_v1alpha3_VSphereClusterSpec_To_v1alpha4_VSphereClusterSpec is an autogenerated conversion function.
-func Convert_v1alpha3_VSphereClusterSpec_To_v1alpha4_VSphereClusterSpec(in *VSphereClusterSpec, out *v1alpha4.VSphereClusterSpec, s conversion.Scope) error {
-	return autoConvert_v1alpha3_VSphereClusterSpec_To_v1alpha4_VSphereClusterSpec(in, out, s)
-}
-
 func autoConvert_v1alpha4_VSphereClusterSpec_To_v1alpha3_VSphereClusterSpec(in *v1alpha4.VSphereClusterSpec, out *VSphereClusterSpec, s conversion.Scope) error {
 	out.Server = in.Server
-	out.Insecure = (*bool)(unsafe.Pointer(in.Insecure))
 	out.Thumbprint = in.Thumbprint
-	if err := Convert_v1alpha4_CPIConfig_To_v1alpha3_CPIConfig(&in.CloudProviderConfiguration, &out.CloudProviderConfiguration, s); err != nil {
-		return err
-	}
 	if err := Convert_v1alpha4_APIEndpoint_To_v1alpha3_APIEndpoint(&in.ControlPlaneEndpoint, &out.ControlPlaneEndpoint, s); err != nil {
 		return err
 	}
-	out.LoadBalancerRef = (*v1.ObjectReference)(unsafe.Pointer(in.LoadBalancerRef))
 	out.IdentityRef = (*VSphereIdentityReference)(unsafe.Pointer(in.IdentityRef))
 	return nil
 }

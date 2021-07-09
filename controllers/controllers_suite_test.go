@@ -77,9 +77,6 @@ func setup() {
 	if err := AddVMControllerToManager(testEnv.GetContext(), testEnv.Manager); err != nil {
 		panic(fmt.Sprintf("unable to setup VsphereVM controller: %v", err))
 	}
-	if err := AddHAProxyLoadBalancerControllerToManager(testEnv.GetContext(), testEnv.Manager); err != nil {
-		panic(fmt.Sprintf("unable to setup HAProxyLB controller: %v", err))
-	}
 	if err := AddVsphereClusterIdentityControllerToManager(testEnv.GetContext(), testEnv.Manager); err != nil {
 		panic(fmt.Sprintf("unable to setup VSphereClusterIdentity controller: %v", err))
 	}

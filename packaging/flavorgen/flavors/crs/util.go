@@ -4,7 +4,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/env"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/util"
 	addonsv1alpha4 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha4"
@@ -70,30 +69,4 @@ func appendConfigMapToCrsResource(crs *addonsv1alpha4.ClusterResourceSet, genera
 		Name: generatedConfigMap.Name,
 		Kind: "ConfigMap",
 	})
-}
-
-func newCPIConfig() *infrav1.CPIConfig {
-	return &infrav1.CPIConfig{
-		Global: infrav1.CPIGlobalConfig{
-			SecretName:      "cloud-provider-vsphere-credentials",
-			SecretNamespace: metav1.NamespaceSystem,
-			Thumbprint:      env.VSphereThumbprint,
-		},
-		VCenter: map[string]infrav1.CPIVCenterConfig{
-			env.VSphereServerVar: {
-				Datacenters: env.VSphereDataCenterVar,
-				Thumbprint:  env.VSphereThumbprint,
-			},
-		},
-		Network: infrav1.CPINetworkConfig{
-			Name: env.VSphereNetworkVar,
-		},
-		Workspace: infrav1.CPIWorkspaceConfig{
-			Server:       env.VSphereServerVar,
-			Datacenter:   env.VSphereDataCenterVar,
-			Datastore:    env.VSphereDatastoreVar,
-			ResourcePool: env.VSphereResourcePoolVar,
-			Folder:       env.VSphereFolderVar,
-		},
-	}
 }

@@ -18,7 +18,6 @@ package v1alpha4
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -32,14 +31,7 @@ func (c *VSphereCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (c *VSphereCluster) ValidateCreate() error {
-	var allErrs field.ErrorList
-	spec := c.Spec
-
-	if spec.Thumbprint != "" && spec.Insecure != nil && *spec.Insecure {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "Insecure"), spec.Insecure, "cannot be set to true at the same time as .spec.Thumbprint"))
-	}
-
-	return aggregateObjErrors(c.GroupVersionKind().GroupKind(), c.Name, allErrs)
+	return nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type

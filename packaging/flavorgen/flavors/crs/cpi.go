@@ -3,8 +3,6 @@ package crs
 import (
 	"fmt"
 
-	"github.com/pkg/errors"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
@@ -49,18 +47,6 @@ func CreateCrsResourceObjectsCPI(crs *addonsv1alpha4.ClusterResourceSet) []runti
 	}
 	cpiObjects = append(cpiObjects, clusterRoleBinding)
 
-	cloudConfig, err := CPIConfigString()
-	if err != nil {
-		panic(errors.Errorf("invalid cloudConfig"))
-	}
-	// cloud config secret is wrapped in another secret so it could be injected via CRS
-	cloudConfigConfigMap := cloudprovidersvc.CloudControllerManagerConfigMap(cloudConfig)
-	cloudConfigConfigMap.TypeMeta = v1.TypeMeta{
-		Kind:       "ConfigMap",
-		APIVersion: corev1.SchemeGroupVersion.String(),
-	}
-	cpiObjects = append(cpiObjects, cloudConfigConfigMap)
-
 	roleBinding := cloudprovider.CloudControllerManagerRoleBinding()
 	roleBinding.TypeMeta = v1.TypeMeta{
 		Kind:       "RoleBinding",
@@ -96,17 +82,6 @@ func CreateCrsResourceObjectsCPI(crs *addonsv1alpha4.ClusterResourceSet) []runti
 		cpiSecretWrapper,
 		manifestsCm,
 	}
-}
-
-func CPIConfigString() (string, error) {
-	cpiConfig := newCPIConfig()
-
-	cpiConfigString, err := cpiConfig.MarshalINI()
-	if err != nil {
-		return "", err
-	}
-
-	return string(cpiConfigString), nil
 }
 
 func cpiCredentials(credentials map[string]string) *corev1.Secret {

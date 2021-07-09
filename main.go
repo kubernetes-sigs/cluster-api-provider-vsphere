@@ -42,7 +42,9 @@ import (
 var (
 	setupLog = ctrllog.Log.WithName("entrypoint")
 
-	managerOpts              manager.Options
+	managerOpts manager.Options
+	syncPeriod  time.Duration
+
 	defaultProfilerAddr      = os.Getenv("PROFILER_ADDR")
 	defaultSyncPeriod        = manager.DefaultSyncPeriod
 	defaultLeaderElectionID  = manager.DefaultLeaderElectionID
@@ -63,12 +65,12 @@ func main() {
 	}
 
 	flag.StringVar(
-		&managerOpts.MetricsAddr,
+		&managerOpts.MetricsBindAddress,
 		"metrics-addr",
 		":8080",
 		"The address the metric endpoint binds to.")
 	flag.BoolVar(
-		&managerOpts.LeaderElectionEnabled,
+		&managerOpts.LeaderElection,
 		"enable-leader-election",
 		true,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
@@ -78,7 +80,7 @@ func main() {
 		defaultLeaderElectionID,
 		"Name of the config map to use as the locking resource when configuring leader election.")
 	flag.StringVar(
-		&managerOpts.WatchNamespace,
+		&managerOpts.Namespace,
 		"namespace",
 		"",
 		"Namespace that the controller watches to reconcile cluster-api objects. If unspecified, the controller watches for cluster-api objects across all namespaces.")
@@ -87,7 +89,7 @@ func main() {
 		defaultProfilerAddr,
 		"Bind address to expose the pprof profiler (e.g. localhost:6060)")
 	flag.DurationVar(
-		&managerOpts.SyncPeriod,
+		&syncPeriod,
 		"sync-period",
 		defaultSyncPeriod,
 		"The interval at which cluster-api objects are synchronized")
@@ -102,12 +104,12 @@ func main() {
 		defaultPodName,
 		"The name of the pod running the controller manager.")
 	flag.IntVar(
-		&managerOpts.WebhookPort,
+		&managerOpts.Port,
 		"webhook-port",
 		defaultWebhookPort,
 		"Webhook Server port (set to 0 to disable)")
 	flag.StringVar(
-		&managerOpts.HealthAddr,
+		&managerOpts.HealthProbeBindAddress,
 		"health-addr",
 		":9440",
 		"The address the health endpoint binds to.",
@@ -118,22 +120,24 @@ func main() {
 		"/etc/capv/credentials.yaml",
 		"path to CAPV's credentials file",
 	)
-	flag.BoolVar(&managerOpts.EnableKeepAlive,
+	flag.BoolVar(
+		&managerOpts.EnableKeepAlive,
 		"enable-keep-alive",
 		defaultEnableKeepAlive,
 		"feature to enable keep alive handler in vsphere sessions")
 
-	flag.DurationVar(&managerOpts.KeepAliveDuration,
+	flag.DurationVar(
+		&managerOpts.KeepAliveDuration,
 		"keep-alive-duration",
 		defaultKeepAliveDuration,
 		"idle time interval(minutes) in between send() requests in keepalive handler")
 
 	flag.Parse()
 
-	if managerOpts.WatchNamespace != "" {
+	if managerOpts.Namespace != "" {
 		setupLog.Info(
 			"Watching objects only in namespace for reconciliation",
-			"namespace", managerOpts.WatchNamespace)
+			"namespace", managerOpts.Namespace)
 	}
 
 	if *profilerAddress != "" {
@@ -142,6 +146,8 @@ func main() {
 			"profiler-address", *profilerAddress)
 		go runProfiler(*profilerAddress)
 	}
+
+	managerOpts.SyncPeriod = &syncPeriod
 
 	// Create a function that adds all of the controllers and webhooks to the
 	// manager.

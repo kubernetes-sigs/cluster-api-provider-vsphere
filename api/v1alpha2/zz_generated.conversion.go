@@ -1060,7 +1060,10 @@ func Convert_v1alpha3_VSphereMachineTemplateList_To_v1alpha2_VSphereMachineTempl
 
 func autoConvert_v1alpha2_VSphereMachineTemplateResource_To_v1alpha3_VSphereMachineTemplateResource(in *VSphereMachineTemplateResource, out *v1alpha3.VSphereMachineTemplateResource, s conversion.Scope) error {
 	// WARNING: in.TypeMeta requires manual conversion: does not exist in peer-type
-	// WARNING: in.ObjectMeta requires manual conversion: does not exist in peer-type
+	// TODO: Inefficient conversion - can we improve it?
+	if err := s.Convert(&in.ObjectMeta, &out.ObjectMeta, 0); err != nil {
+		return err
+	}
 	if err := Convert_v1alpha2_VSphereMachineSpec_To_v1alpha3_VSphereMachineSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
@@ -1068,6 +1071,10 @@ func autoConvert_v1alpha2_VSphereMachineTemplateResource_To_v1alpha3_VSphereMach
 }
 
 func autoConvert_v1alpha3_VSphereMachineTemplateResource_To_v1alpha2_VSphereMachineTemplateResource(in *v1alpha3.VSphereMachineTemplateResource, out *VSphereMachineTemplateResource, s conversion.Scope) error {
+	// TODO: Inefficient conversion - can we improve it?
+	if err := s.Convert(&in.ObjectMeta, &out.ObjectMeta, 0); err != nil {
+		return err
+	}
 	if err := Convert_v1alpha3_VSphereMachineSpec_To_v1alpha2_VSphereMachineSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}

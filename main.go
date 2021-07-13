@@ -165,6 +165,20 @@ func main() {
 				return err
 			}
 
+			if err := (&v1alpha3.VSphereDeploymentZone{}).SetupWebhookWithManager(mgr); err != nil {
+				return err
+			}
+			if err := (&v1alpha3.VSphereDeploymentZoneList{}).SetupWebhookWithManager(mgr); err != nil {
+				return err
+			}
+
+			if err := (&v1alpha3.VSphereFailureDomain{}).SetupWebhookWithManager(mgr); err != nil {
+				return err
+			}
+			if err := (&v1alpha3.VSphereFailureDomainList{}).SetupWebhookWithManager(mgr); err != nil {
+				return err
+			}
+
 			if err := (&v1alpha3.HAProxyLoadBalancer{}).SetupWebhookWithManager(mgr); err != nil {
 				return err
 			}
@@ -194,6 +208,9 @@ func main() {
 				return err
 			}
 			if err := controllers.AddVsphereClusterIdentityControllerToManager(ctx, mgr); err != nil {
+				return err
+			}
+			if err := controllers.AddVSphereDeploymentZoneControllerToManager(ctx, mgr); err != nil {
 				return err
 			}
 		}

@@ -860,6 +860,7 @@ func autoConvert_v1alpha3_VSphereClusterSpec_To_v1alpha2_VSphereClusterSpec(in *
 	}
 	// WARNING: in.ControlPlaneEndpoint requires manual conversion: does not exist in peer-type
 	// WARNING: in.LoadBalancerRef requires manual conversion: does not exist in peer-type
+	// WARNING: in.IdentityRef requires manual conversion: does not exist in peer-type
 	return nil
 }
 
@@ -872,6 +873,7 @@ func autoConvert_v1alpha2_VSphereClusterStatus_To_v1alpha3_VSphereClusterStatus(
 func autoConvert_v1alpha3_VSphereClusterStatus_To_v1alpha2_VSphereClusterStatus(in *v1alpha3.VSphereClusterStatus, out *VSphereClusterStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
 	// WARNING: in.Conditions requires manual conversion: does not exist in peer-type
+	// WARNING: in.FailureDomains requires manual conversion: does not exist in peer-type
 	return nil
 }
 
@@ -964,6 +966,7 @@ func autoConvert_v1alpha2_VSphereMachineSpec_To_v1alpha3_VSphereMachineSpec(in *
 func autoConvert_v1alpha3_VSphereMachineSpec_To_v1alpha2_VSphereMachineSpec(in *v1alpha3.VSphereMachineSpec, out *VSphereMachineSpec, s conversion.Scope) error {
 	// WARNING: in.VirtualMachineCloneSpec requires manual conversion: does not exist in peer-type
 	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
+	// WARNING: in.FailureDomain requires manual conversion: does not exist in peer-type
 	return nil
 }
 

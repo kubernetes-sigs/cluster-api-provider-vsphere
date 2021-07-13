@@ -18,7 +18,6 @@ package fake
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	clusterv1a2 "sigs.k8s.io/cluster-api/api/v1alpha3"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
@@ -54,7 +53,7 @@ func newClusterV1a2() clusterv1a2.Cluster {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: Namespace,
 			Name:      Clusterv1a2Name,
-			UID:       types.UID(Clusterv1a2UUID),
+			UID:       Clusterv1a2UUID,
 		},
 		Spec: clusterv1a2.ClusterSpec{
 			ClusterNetwork: &clusterv1a2.ClusterNetwork{
@@ -74,7 +73,7 @@ func newVSphereCluster(owner clusterv1a2.Cluster) infrav1.VSphereCluster {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: owner.Namespace,
 			Name:      owner.Name,
-			UID:       types.UID(VSphereClusterUUID),
+			UID:       VSphereClusterUUID,
 			OwnerReferences: []metav1.OwnerReference{
 				{
 					APIVersion:         owner.APIVersion,

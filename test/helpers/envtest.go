@@ -17,6 +17,7 @@ limitations under the License.
 package helpers
 
 import (
+	goctx "context"
 	"fmt"
 	"go/build"
 	"io/ioutil"
@@ -28,9 +29,12 @@ import (
 	"strings"
 
 	"github.com/onsi/ginkgo"
-
+	"github.com/vmware/govmomi/simulator"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
+	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -40,6 +44,7 @@ import (
 	"k8s.io/klog/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"
+	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -102,7 +107,8 @@ func init() {
 type TestEnvironment struct {
 	manager.Manager
 	client.Client
-	Config *rest.Config
+	Config    *rest.Config
+	Simulator *Simulator
 
 	doneMgr chan struct{}
 }
@@ -117,16 +123,23 @@ func NewTestEnvironment() *TestEnvironment {
 		panic(err)
 	}
 
+	model := simulator.VPX()
+	model.Pool = 1
+	simr, err := VCSimBuilder().
+		WithModel(model).
+		Build()
+	if err != nil {
+		klog.Fatalf("unable to start vc simulator %s", err)
+	}
+
 	managerOpts := manager.Options{
 		Scheme:      scheme,
 		MetricsAddr: "0",
 		WebhookPort: env.WebhookInstallOptions.LocalServingPort,
 		CertDir:     env.WebhookInstallOptions.LocalServingCertDir,
 		KubeConfig:  env.Config,
-		// TODO (srm09): might need to supply some mock for
-		// 		vCenter interactions
-		Username: "blah",
-		Password: "blah2",
+		Username:    simr.Username(),
+		Password:    simr.Password(),
 	}
 	managerOpts.AddToManager = func(ctx *context.ControllerManagerContext, mgr ctrlmgr.Manager) error {
 		if err := (&infrav1.VSphereCluster{}).SetupWebhookWithManager(mgr); err != nil {
@@ -157,6 +170,13 @@ func NewTestEnvironment() *TestEnvironment {
 			return err
 		}
 
+		if err := (&infrav1.VSphereDeploymentZone{}).SetupWebhookWithManager(mgr); err != nil {
+			return err
+		}
+		if err := (&infrav1.VSphereDeploymentZoneList{}).SetupWebhookWithManager(mgr); err != nil {
+			return err
+		}
+
 		return nil
 	}
 
@@ -166,10 +186,11 @@ func NewTestEnvironment() *TestEnvironment {
 	}
 
 	return &TestEnvironment{
-		Manager: mgr,
-		Client:  mgr.GetClient(),
-		Config:  mgr.GetConfig(),
-		doneMgr: make(chan struct{}),
+		Manager:   mgr,
+		Client:    mgr.GetClient(),
+		Config:    mgr.GetConfig(),
+		Simulator: simr,
+		doneMgr:   make(chan struct{}),
 	}
 }
 
@@ -179,7 +200,43 @@ func (t *TestEnvironment) StartManager() error {
 
 func (t *TestEnvironment) Stop() error {
 	t.doneMgr <- struct{}{}
+	t.Simulator.Destroy()
 	return env.Stop()
+}
+
+func (t *TestEnvironment) Cleanup(ctx goctx.Context, objs ...runtime.Object) error {
+	errs := make([]error, 0, len(objs))
+	for _, o := range objs {
+		err := t.Client.Delete(ctx, o)
+		if apierrors.IsNotFound(err) {
+			// If the object is not found, it must've been garbage collected
+			// already. For example, if we delete namespace first and then
+			// objects within it.
+			continue
+		}
+		errs = append(errs, err)
+	}
+	return kerrors.NewAggregate(errs)
+}
+
+func (t *TestEnvironment) CreateNamespace(ctx goctx.Context, generateName string) (*corev1.Namespace, error) {
+	ns := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: fmt.Sprintf("%s-", generateName),
+			Labels: map[string]string{
+				"testenv/original-name": generateName,
+			},
+		},
+	}
+	if err := t.Client.Create(ctx, ns); err != nil {
+		return nil, err
+	}
+
+	return ns, nil
+}
+
+func (t *TestEnvironment) CreateKubeconfigSecret(ctx goctx.Context, cluster *clusterv1.Cluster) error {
+	return t.Create(ctx, kubeconfig.GenerateSecret(cluster, kubeconfig.FromEnvTestConfig(t.Config, cluster)))
 }
 
 func getFilePathToCAPICRDs(root string) string {

@@ -18,10 +18,13 @@ package controllers
 
 import (
 	goctx "context"
+	"fmt"
+	"net/url"
 	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/vmware/govmomi/simulator"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -32,6 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/identity"
 )
 
 const (
@@ -45,6 +49,9 @@ var _ = Describe("ClusterReconciler", func() {
 	Context("Reconcile an VSphereCluster", func() {
 		It("should create a cluster", func() {
 			ctx := goctx.Background()
+
+			fakeVCenter := startVcenter()
+			defer fakeVCenter.Close()
 
 			capiCluster := &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -63,10 +70,15 @@ var _ = Describe("ClusterReconciler", func() {
 			Expect(testEnv.Create(ctx, capiCluster)).To(Succeed())
 
 			// Create the secret containing the credentials
+			password, _ := fakeVCenter.URL.User.Password()
 			secret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					GenerateName: "secret-",
 					Namespace:    "default",
+				},
+				Data: map[string][]byte{
+					identity.UsernameKey: []byte(fakeVCenter.URL.User.Username()),
+					identity.PasswordKey: []byte(password),
 				},
 			}
 			Expect(testEnv.Create(ctx, secret)).To(Succeed())
@@ -82,6 +94,7 @@ var _ = Describe("ClusterReconciler", func() {
 						Kind: infrav1.SecretKind,
 						Name: secret.Name,
 					},
+					Server: fmt.Sprintf("%s://%s", fakeVCenter.URL.Scheme, fakeVCenter.URL.Host),
 				},
 			}
 
@@ -121,6 +134,14 @@ var _ = Describe("ClusterReconciler", func() {
 					return false
 				}
 				return len(secret.OwnerReferences) > 0
+			}, timeout).Should(BeTrue())
+
+			By("setting the VSphereCluster's VCenterAvailableCondition to true")
+			Eventually(func() bool {
+				if err := testEnv.Get(ctx, key, instance); err != nil {
+					return false
+				}
+				return conditions.IsTrue(instance, infrav1.VCenterAvailableCondition)
 			}, timeout).Should(BeTrue())
 		})
 
@@ -264,3 +285,18 @@ var _ = Describe("ClusterReconciler", func() {
 
 	})
 })
+
+func startVcenter() *simulator.Server {
+	model := simulator.VPX()
+
+	err := model.Create()
+	if err != nil {
+		panic(err)
+	}
+
+	model.Service.Listen = &url.URL{
+		User: url.UserPassword("user", "pass"),
+	}
+
+	return model.Service.NewServer()
+}

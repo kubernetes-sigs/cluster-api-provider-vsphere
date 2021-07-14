@@ -301,14 +301,12 @@ func (r clusterReconciler) reconcileNormal(ctx *context.ClusterContext) (reconci
 		return reconcile.Result{}, err
 	}
 
-	if cloudProviderConfigurationAvailable(ctx) {
-		if err := r.reconcileVCenterConnectivity(ctx); err != nil {
-			conditions.MarkFalse(ctx.VSphereCluster, infrav1.VCenterAvailableCondition, infrav1.VCenterUnreachableReason, clusterv1.ConditionSeverityError, err.Error())
-			return reconcile.Result{}, errors.Wrapf(err,
-				"unexpected error while probing vcenter for %s", ctx)
-		}
-		conditions.MarkTrue(ctx.VSphereCluster, infrav1.VCenterAvailableCondition)
+	if err := r.reconcileVCenterConnectivity(ctx); err != nil {
+		conditions.MarkFalse(ctx.VSphereCluster, infrav1.VCenterAvailableCondition, infrav1.VCenterUnreachableReason, clusterv1.ConditionSeverityError, err.Error())
+		return reconcile.Result{}, errors.Wrapf(err,
+			"unexpected error while probing vcenter for %s", ctx)
 	}
+	conditions.MarkTrue(ctx.VSphereCluster, infrav1.VCenterAvailableCondition)
 
 	// Reconcile the VSphereCluster's load balancer.
 	if ok, err := r.reconcileLoadBalancer(ctx); !ok {

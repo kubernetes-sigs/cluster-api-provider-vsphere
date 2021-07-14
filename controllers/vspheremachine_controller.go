@@ -318,9 +318,9 @@ func (r machineReconciler) reconcileNormal(ctx *context.MachineContext) (reconci
 	ctrlutil.AddFinalizer(ctx.VSphereMachine, infrav1.MachineFinalizer)
 
 	if !ctx.Cluster.Status.InfrastructureReady {
-		ctx.Logger.Info("Cluster infrastructure is not ready yet")
+		ctx.Logger.Info("Cluster infrastructure is not ready yet, requeuing")
 		conditions.MarkFalse(ctx.VSphereMachine, infrav1.VMProvisionedCondition, infrav1.WaitingForClusterInfrastructureReason, clusterv1.ConditionSeverityInfo, "")
-		return reconcile.Result{}, nil
+		return reconcile.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
 	// Make sure bootstrap data is available and populated.

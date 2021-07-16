@@ -15,6 +15,7 @@ resources:
 - bases/infrastructure.cluster.x-k8s.io_vspherefailuredomains.yaml
 - bases/infrastructure.cluster.x-k8s.io_vspheredeploymentzones.yaml
 - bases/infrastructure.cluster.x-k8s.io_vsphereclusteridentities.yaml
+- bases/infrastructure.cluster.x-k8s.io_vsphereclustertemplates.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patches:
@@ -25,9 +26,10 @@ patches:
 - patches/webhook_in_vspheremachinetemplates.yaml
 - patches/webhook_in_vspherevms.yaml
 - patches/webhook_in_haproxyloadbalancers.yaml
+- patches/webhook_in_vsphereclustertemplates.yaml
 #- patches/webhook_in_vspherefailuredomains.yaml
 #- patches/webhook_in_vspheredeploymentzones.yaml
-  # +kubebuilder:scaffold:crdkustomizewebhookpatch
+# +kubebuilder:scaffold:crdkustomizewebhookpatch
 
 # [CERTMANAGER] To enable webhook, uncomment all the sections with [CERTMANAGER] prefix.
 # patches here are for enabling the CA injection for each CRD
@@ -36,6 +38,7 @@ patches:
 - patches/cainjection_in_vspheremachinetemplates.yaml
 - patches/cainjection_in_vspherevms.yaml
 - patches/cainjection_in_haproxyloadbalancers.yaml
+- patches/cainjection_in_vsphereclustertemplates.yaml
 #- patches/cainjection_in_vspherefailuredomains.yaml
 #- patches/cainjection_in_vspheredeploymentzones.yaml
 # +kubebuilder:scaffold:crdkustomizecainjectionpatch

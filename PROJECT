@@ -39,4 +39,7 @@ resources:
 - group: infrastructure
   kind: VSphereFailureDomain
   version: v1alpha4
+- group: infrastructure
+  kind: VSphereClusterTemplate
+  version: v1alpha4
 version: "2"

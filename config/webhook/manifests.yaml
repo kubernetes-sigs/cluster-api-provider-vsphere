@@ -1,12 +1,67 @@
 
 ---
 apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  creationTimestamp: null
+  name: mutating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1
+  - v1beta1
+  clientConfig:
+    caBundle: Cg==
+    service:
+      name: webhook-service
+      namespace: system
+      path: /default-infrastructure-cluster-x-k8s-io-v1alpha4-vspherecluster
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: default.vspherecluster.infrastructure.x-k8s.io
+  rules:
+  - apiGroups:
+    - infrastructure.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha4
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - vsphereclusters
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  - v1beta1
+  clientConfig:
+    caBundle: Cg==
+    service:
+      name: webhook-service
+      namespace: system
+      path: /default-infrastructure-cluster-x-k8s-io-v1alpha4-vsphereclustertemplate
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: default.vsphereclustertemplate.infrastructure.x-k8s.io
+  rules:
+  - apiGroups:
+    - infrastructure.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha4
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - vsphereclustertemplates
+  sideEffects: None
+
+---
+apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
   creationTimestamp: null
   name: validating-webhook-configuration
 webhooks:
 - admissionReviewVersions:
+  - v1
   - v1beta1
   clientConfig:
     caBundle: Cg==
@@ -27,6 +82,29 @@ webhooks:
     - UPDATE
     resources:
     - vsphereclusters
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  - v1beta1
+  clientConfig:
+    caBundle: Cg==
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-infrastructure-cluster-x-k8s-io-v1alpha4-vsphereclustertemplate
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.vsphereclustertemplate.infrastructure.x-k8s.io
+  rules:
+  - apiGroups:
+    - infrastructure.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha4
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - vsphereclustertemplates
   sideEffects: None
 - admissionReviewVersions:
   - v1beta1

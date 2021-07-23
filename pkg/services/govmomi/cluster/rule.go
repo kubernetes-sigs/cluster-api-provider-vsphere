@@ -20,7 +20,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/vmware/govmomi/vim25/types"
 	"k8s.io/utils/pointer"
-	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 type Rule interface {
@@ -49,9 +48,6 @@ func negate(input bool) bool {
 }
 
 func VerifyAffinityRule(ctx computeClusterContext, clusterName, hostGroupName, vmGroupName string) (Rule, error) {
-	logger := ctrl.LoggerFrom(ctx).WithValues("compute cluster", clusterName, "VM Group", vmGroupName, "Host Group", hostGroupName)
-
-	logger.V(4).Info("listing affinity rules")
 	rules, err := listRules(ctx, clusterName)
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to list rules for compute cluster %s", clusterName)
@@ -61,7 +57,6 @@ func VerifyAffinityRule(ctx computeClusterContext, clusterName, hostGroupName, v
 		if vmHostRuleInfo, ok := rule.(*types.ClusterVmHostRuleInfo); ok {
 			if vmHostRuleInfo.AffineHostGroupName == hostGroupName &&
 				vmHostRuleInfo.VmGroupName == vmGroupName {
-				logger.V(4).Info("found matching VM Host affinity rule")
 				return vmHostAffinityRule{vmHostRuleInfo}, nil
 			}
 		}

@@ -178,7 +178,7 @@ func (r vsphereDeploymentZoneReconciler) createAndAttachMetadata(ctx *context.VS
 		logger.V(4).Info("attaching tag to object")
 		err := obj.AttachTag(ctx, failureDomain.Name)
 		if err != nil {
-			logger.V(4).Error(err, "failed to find object", obj)
+			logger.V(4).Error(err, "failed to find object")
 			errList = append(errList, errors.Wrapf(err, "failed to attach tag"))
 		}
 	}

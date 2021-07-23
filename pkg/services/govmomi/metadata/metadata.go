@@ -45,24 +45,34 @@ func getCategoryAssociableType(domainType infrav1.FailureDomainType) string {
 	}
 }
 
+// CreateCategory either creates a new vSphere category or updates the associable type for an existing category.
 func CreateCategory(ctx metadataContext, name string, failureDomainType infrav1.FailureDomainType) (string, error) {
 	logger := ctrl.LoggerFrom(ctx, "category", name)
 	manager := ctx.GetSession().TagManager
 	category, err := manager.GetCategory(ctx, name)
 	if err != nil {
 		logger.V(4).Info("failed to find existing category, creating a new category")
-		id, err := manager.CreateCategory(ctx, &tags.Category{
-			Name:            name,
-			Description:     "CAPV generated category for Failure Domain support",
-			AssociableTypes: []string{getCategoryAssociableType(failureDomainType)},
-			Cardinality:     "MULTIPLE",
-		})
+		id, err := manager.CreateCategory(ctx, getCategoryObject(name, failureDomainType))
 		if err != nil {
 			return "", err
 		}
 		return id, nil
 	}
+	category.Patch(getCategoryObject(name, failureDomainType))
+	if err := manager.UpdateCategory(ctx, category); err != nil {
+		logger.V(4).Error(err, "failed to update existing category")
+		return "", err
+	}
 	return category.ID, nil
+}
+
+func getCategoryObject(name string, failureDomainType infrav1.FailureDomainType) *tags.Category {
+	return &tags.Category{
+		Name:            name,
+		Description:     "CAPV generated category for Failure Domain support",
+		AssociableTypes: []string{getCategoryAssociableType(failureDomainType)},
+		Cardinality:     "MULTIPLE",
+	}
 }
 
 func CreateTag(ctx metadataContext, name, categoryID string) error {

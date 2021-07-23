@@ -33,9 +33,7 @@ func TestAddVMToGroup(t *testing.T) {
 	sim, err := helpers.VCSimBuilder().
 		WithOperations("cluster.group.create -cluster DC0_C0 -name blah-vm-group -vm").
 		Build()
-	if err != nil {
-		t.Fatalf("failed to create a VC simulator object %s", err)
-	}
+	g.Expect(err).NotTo(HaveOccurred())
 	defer sim.Destroy()
 
 	ctx := context.Background()
@@ -50,14 +48,21 @@ func TestAddVMToGroup(t *testing.T) {
 		finder:  finder,
 	}
 
-	vmGroupName := "blah-vm-group"
-	g.Expect(AddVMToGroup(computeClusterCtx, "DC0_C0", vmGroupName, "DC0_H0_VM0")).To(Succeed())
-	g.Expect(AddVMToGroup(computeClusterCtx, "DC0_C0", vmGroupName, "DC0_H0_VM1")).To(Succeed())
-
-	ccr, err := finder.ClusterComputeResource(ctx, "DC0_C0")
+	vmObjOne, err := finder.VirtualMachine(ctx, "DC0_H0_VM0")
+	g.Expect(err).NotTo(HaveOccurred())
+	vmObjTwo, err := finder.VirtualMachine(ctx, "DC0_H0_VM1")
 	g.Expect(err).NotTo(HaveOccurred())
 
-	refs, err := listVMs(ctx, ccr, "blah-vm-group")
+	computeClusterName := "DC0_C0"
+	vmGroupName := "blah-vm-group"
+
+	g.Expect(AddVMToGroup(computeClusterCtx, computeClusterName, vmGroupName, vmObjOne.Reference())).To(Succeed())
+	g.Expect(AddVMToGroup(computeClusterCtx, computeClusterName, vmGroupName, vmObjTwo.Reference())).To(Succeed())
+
+	ccr, err := finder.ClusterComputeResource(ctx, computeClusterName)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	refs, err := listVMs(ctx, ccr, vmGroupName)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(refs).To(HaveLen(2))
 }

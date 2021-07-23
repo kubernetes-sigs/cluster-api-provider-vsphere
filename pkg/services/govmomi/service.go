@@ -132,11 +132,11 @@ func (vms *VMService) ReconcileVM(ctx *context.VMContext) (vm infrav1.VirtualMac
 		return vm, err
 	}
 
-	if ok, err := vms.reconcilePowerState(vmCtx); err != nil || !ok {
+	if err := vms.reconcileVMGroupInfo(vmCtx); err != nil {
 		return vm, err
 	}
 
-	if err := vms.reconcileVMGroupInfo(ctx); err != nil {
+	if ok, err := vms.reconcilePowerState(vmCtx); err != nil || !ok {
 		return vm, err
 	}
 
@@ -490,14 +490,13 @@ func (vms *VMService) getBootstrapData(ctx *context.VMContext) ([]byte, error) {
 	return value, nil
 }
 
-func (vms *VMService) reconcileVMGroupInfo(ctx *context.VMContext) error {
+func (vms *VMService) reconcileVMGroupInfo(ctx *virtualMachineContext) error {
 	if ctx.VSphereFailureDomain != nil {
-		topology := ctx.VSphereFailureDomain.Spec.Topology
-		if topology.Hosts != nil {
+		if topology := ctx.VSphereFailureDomain.Spec.Topology; topology.Hosts != nil {
 			return cluster.AddVMToGroup(ctx,
 				*topology.ComputeCluster,
 				topology.Hosts.VMGroupName,
-				ctx.VSphereVM.Name)
+				ctx.Ref)
 		}
 	}
 	return nil

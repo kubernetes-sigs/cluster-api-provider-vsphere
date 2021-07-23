@@ -23,7 +23,7 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
-func AddVMToGroup(ctx computeClusterContext, clusterName, vmGroupName, vm string) error {
+func AddVMToGroup(ctx computeClusterContext, clusterName, vmGroupName string, vmObj types.ManagedObjectReference) error {
 	ccr, err := ctx.GetSession().Finder.ClusterComputeResource(ctx, clusterName)
 	if err != nil {
 		return err
@@ -34,11 +34,7 @@ func AddVMToGroup(ctx computeClusterContext, clusterName, vmGroupName, vm string
 		return err
 	}
 
-	vmObj, err := ctx.GetSession().Finder.VirtualMachine(ctx, vm)
-	if err != nil {
-		return err
-	}
-	vms = append(vms, vmObj.Reference())
+	vms = append(vms, vmObj)
 
 	info := &types.ClusterVmGroup{
 		ClusterGroupInfo: types.ClusterGroupInfo{

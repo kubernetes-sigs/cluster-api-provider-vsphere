@@ -19,7 +19,6 @@ package cluster
 import (
 	"context"
 
-	"github.com/go-logr/logr"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
 
@@ -30,8 +29,6 @@ type computeClusterContext interface {
 	context.Context
 
 	GetSession() *session.Session
-
-	GetLogger() logr.Logger
 }
 
 func ListHostsFromGroup(ctx context.Context, ccr *object.ClusterComputeResource, hostGroup string) ([]object.Reference, error) {

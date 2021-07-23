@@ -335,11 +335,6 @@ func (r machineReconciler) reconcileNormal(ctx *context.MachineContext) (reconci
 		return reconcile.Result{}, nil
 	}
 
-	// Propagating the failure domain name to the VSphereMachine object
-	if failureDomain := ctx.Machine.Spec.FailureDomain; failureDomain != nil {
-		ctx.VSphereMachine.Spec.FailureDomain = failureDomain
-	}
-
 	// TODO(akutz) Determine the version of vSphere.
 	vm, err := r.reconcileNormalPre7(ctx, vsphereVM)
 	if err != nil {
@@ -517,7 +512,7 @@ func (r machineReconciler) generateOverrideFunc(ctx *context.MachineContext) (fu
 
 		for index := range vsphereDeploymentZoneList.Items {
 			zone := vsphereDeploymentZoneList.Items[index]
-			if zone.Spec.FailureDomain == *ctx.Machine.Spec.FailureDomain {
+			if zone.Spec.FailureDomain == *failureDomainName {
 				overrideWithFailureDomainFunc = func(vm *infrav1.VSphereVM) {
 					vm.Spec.Server = zone.Spec.Server
 					vm.Spec.Datacenter = vsphereFailureDomain.Spec.Topology.Datacenter

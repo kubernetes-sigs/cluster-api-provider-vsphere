@@ -111,6 +111,7 @@ func ConfigForCSI() *infrav1.CPIConfig {
 	config := &infrav1.CPIConfig{}
 
 	config.Global.ClusterID = fmt.Sprintf("%s/%s", env.NamespaceVar, env.ClusterNameVar)
+	config.Global.Thumbprint = env.VSphereThumbprint
 	config.Network.Name = env.VSphereNetworkVar
 
 	config.VCenter = map[string]infrav1.CPIVCenterConfig{

@@ -637,6 +637,7 @@ func ConfigForCSI(vsphereCluster infrav1.VSphereCluster, cluster clusterv1.Clust
 
 	config.Global.ClusterID = fmt.Sprintf("%s/%s", cluster.Namespace, cluster.Name)
 	config.Global.Insecure = vsphereCluster.Spec.CloudProviderConfiguration.Global.Insecure
+	config.Global.Thumbprint = vsphereCluster.Spec.CloudProviderConfiguration.Global.Thumbprint
 	config.Network.Name = vsphereCluster.Spec.CloudProviderConfiguration.Network.Name
 
 	config.VCenter = map[string]infrav1.CPIVCenterConfig{}

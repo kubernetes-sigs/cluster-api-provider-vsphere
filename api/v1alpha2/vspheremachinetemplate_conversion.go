@@ -19,6 +19,8 @@ package v1alpha2
 import (
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
 	infrav1alpha3 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
+
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
@@ -38,7 +40,6 @@ func (src *VSphereMachineTemplate) ConvertTo(dstRaw conversion.Hub) error { // n
 
 	dst.Spec.Template.Spec.VirtualMachineCloneSpec = restored.Spec.Template.Spec.VirtualMachineCloneSpec
 	dst.Spec.Template.Spec.FailureDomain = restored.Spec.Template.Spec.FailureDomain
-
 	return nil
 }
 
@@ -69,8 +70,24 @@ func (dst *VSphereMachineTemplateList) ConvertFrom(srcRaw conversion.Hub) error 
 	return Convert_v1alpha3_VSphereMachineTemplateList_To_v1alpha2_VSphereMachineTemplateList(src, dst, nil)
 }
 
-// Convert_v1alpha2_VSphereMachineTemplateResource_To_v1alpha3_VSphereMachineTemplateResource converts VSphereMachineTemplateResource from v1alpha2 to v1alpha3.
-func Convert_v1alpha2_VSphereMachineTemplateResource_To_v1alpha3_VSphereMachineTemplateResource(in *VSphereMachineTemplateResource, out *infrav1alpha3.VSphereMachineTemplateResource, s apiconversion.Scope) error { // nolint
-	return autoConvert_v1alpha2_VSphereMachineTemplateResource_To_v1alpha3_VSphereMachineTemplateResource(in, out, s)
+//nolint
+func Convert_v1alpha2_VSphereMachineTemplateResource_To_v1alpha3_VSphereMachineTemplateResource(in *VSphereMachineTemplateResource, out *infrav1alpha3.VSphereMachineTemplateResource, s apiconversion.Scope) error {
+	if err := clusterv1.Convert_v1alpha2_ObjectMeta_To_v1alpha3_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+		return err
+	}
+	if err := Convert_v1alpha2_VSphereMachineSpec_To_v1alpha3_VSphereMachineSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	return nil
+}
 
+//nolint
+func Convert_v1alpha3_VSphereMachineTemplateResource_To_v1alpha2_VSphereMachineTemplateResource(in *infrav1alpha3.VSphereMachineTemplateResource, out *VSphereMachineTemplateResource, s apiconversion.Scope) error {
+	if err := clusterv1.Convert_v1alpha3_ObjectMeta_To_v1alpha2_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+		return err
+	}
+	if err := Convert_v1alpha3_VSphereMachineSpec_To_v1alpha2_VSphereMachineSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	return nil
 }

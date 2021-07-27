@@ -19,55 +19,67 @@ package cluster
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
-func AddVMToGroup(ctx computeClusterContext, clusterName, vmGroupName string, vmObj types.ManagedObjectReference) error {
+func FindVMGroup(ctx computeClusterContext, clusterName, vmGroupName string) (*VMGroup, error) {
 	ccr, err := ctx.GetSession().Finder.ClusterComputeResource(ctx, clusterName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	vms, err := listVMs(ctx, ccr, vmGroupName)
+	clusterConfigInfoEx, err := ccr.Configuration(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	vms = append(vms, vmObj)
-
-	info := &types.ClusterVmGroup{
-		ClusterGroupInfo: types.ClusterGroupInfo{
-			Name: vmGroupName,
-		},
-		Vm: vms,
+	for _, group := range clusterConfigInfoEx.Group {
+		if clusterVMGroup, ok := group.(*types.ClusterVmGroup); ok {
+			if clusterVMGroup.Name == vmGroupName {
+				return &VMGroup{ccr, clusterVMGroup}, nil
+			}
+		}
 	}
+	return nil, errors.Errorf("cannot find VM group %s", vmGroupName)
+}
+
+// VMGroup represents a VSphere VM Group object
+type VMGroup struct {
+	*object.ClusterComputeResource
+	*types.ClusterVmGroup
+}
+
+// Add a VSphere VM object to the VM Group
+func (vg VMGroup) Add(ctx context.Context, vmObj types.ManagedObjectReference) (*object.Task, error) {
+	vms := vg.listVMs()
+	vg.ClusterVmGroup.Vm = append(vms, vmObj) //nolint:gocritic
+
 	spec := &types.ClusterConfigSpecEx{
 		GroupSpec: []types.ClusterGroupSpec{
 			{
 				ArrayUpdateSpec: types.ArrayUpdateSpec{
 					Operation: types.ArrayUpdateOperationEdit,
 				},
-				Info: info,
+				Info: vg.ClusterVmGroup,
 			},
 		},
 	}
-	return reconfigure(ctx, ccr, spec)
+	return vg.ClusterComputeResource.Reconfigure(ctx, spec, true)
 }
 
-func listVMs(ctx context.Context, ccr *object.ClusterComputeResource, vmGroupName string) ([]types.ManagedObjectReference, error) {
-	clusterConfigInfoEx, err := ccr.Configuration(ctx)
-	if err != nil {
-		return nil, err
-	}
+// HasVM returns whether a VSphere VM object is a member of the VM Group
+func (vg VMGroup) HasVM(vmObj types.ManagedObjectReference) (bool, error) {
+	vms := vg.listVMs()
 
-	var refs []types.ManagedObjectReference
-	for _, group := range clusterConfigInfoEx.Group {
-		if clusterVMGroup, ok := group.(*types.ClusterVmGroup); ok {
-			if clusterVMGroup.Name == vmGroupName {
-				return clusterVMGroup.Vm, nil
-			}
+	for _, vm := range vms {
+		if vm == vmObj {
+			return true, nil
 		}
 	}
-	return refs, nil
+	return false, nil
+}
+
+func (vg VMGroup) listVMs() []types.ManagedObjectReference {
+	return vg.ClusterVmGroup.Vm
 }

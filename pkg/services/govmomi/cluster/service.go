@@ -21,6 +21,7 @@ import (
 
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
+
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 )
 
@@ -48,17 +49,4 @@ func ListHostsFromGroup(ctx context.Context, ccr *object.ClusterComputeResource,
 		}
 	}
 	return refs, nil
-}
-
-func reconfigure(ctx context.Context, ccr *object.ClusterComputeResource, spec types.BaseComputeResourceConfigSpec) error {
-	reconfigureTask, err := ccr.Reconfigure(ctx, spec, true)
-	if err != nil {
-		return err
-	}
-
-	err = reconfigureTask.Wait(ctx)
-	if err != nil {
-		return err
-	}
-	return nil
 }

@@ -19,7 +19,6 @@ package cluster
 import (
 	"context"
 
-	"github.com/go-logr/logr"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
 
@@ -30,8 +29,6 @@ type computeClusterContext interface {
 	context.Context
 
 	GetSession() *session.Session
-
-	GetLogger() logr.Logger
 }
 
 func ListHostsFromGroup(ctx context.Context, ccr *object.ClusterComputeResource, hostGroup string) ([]object.Reference, error) {
@@ -52,18 +49,4 @@ func ListHostsFromGroup(ctx context.Context, ccr *object.ClusterComputeResource,
 		}
 	}
 	return refs, nil
-}
-
-// TODO(srm09): Consider deferring the reconciliation of the task completion to a separate loop.
-func reconfigure(ctx context.Context, ccr *object.ClusterComputeResource, spec types.BaseComputeResourceConfigSpec) error {
-	reconfigureTask, err := ccr.Reconfigure(ctx, spec, true)
-	if err != nil {
-		return err
-	}
-
-	err = reconfigureTask.Wait(ctx)
-	if err != nil {
-		return err
-	}
-	return nil
 }

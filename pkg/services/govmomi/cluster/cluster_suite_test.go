@@ -23,7 +23,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/go-logr/logr"
 	"github.com/vmware/govmomi/find"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 )
@@ -40,8 +39,4 @@ type testComputeClusterCtx struct {
 
 func (t testComputeClusterCtx) GetSession() *session.Session {
 	return &session.Session{Finder: t.finder}
-}
-
-func (t testComputeClusterCtx) GetLogger() logr.Logger {
-	return logr.DiscardLogger{}
 }

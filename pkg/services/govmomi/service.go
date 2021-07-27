@@ -132,11 +132,11 @@ func (vms *VMService) ReconcileVM(ctx *context.VMContext) (vm infrav1.VirtualMac
 		return vm, err
 	}
 
-	if ok, err := vms.reconcilePowerState(vmCtx); err != nil || !ok {
+	if ok, err := vms.reconcileVMGroupInfo(vmCtx); err != nil || !ok {
 		return vm, err
 	}
 
-	if err := vms.reconcileVMGroupInfo(ctx); err != nil {
+	if ok, err := vms.reconcilePowerState(vmCtx); err != nil || !ok {
 		return vm, err
 	}
 
@@ -490,15 +490,31 @@ func (vms *VMService) getBootstrapData(ctx *context.VMContext) ([]byte, error) {
 	return value, nil
 }
 
-func (vms *VMService) reconcileVMGroupInfo(ctx *context.VMContext) error {
-	if ctx.VSphereFailureDomain != nil {
-		topology := ctx.VSphereFailureDomain.Spec.Topology
-		if topology.Hosts != nil {
-			return cluster.AddVMToGroup(ctx,
-				*topology.ComputeCluster,
-				topology.Hosts.VMGroupName,
-				ctx.VSphereVM.Name)
-		}
+func (vms *VMService) reconcileVMGroupInfo(ctx *virtualMachineContext) (bool, error) {
+	if ctx.VSphereFailureDomain == nil || ctx.VSphereFailureDomain.Spec.Topology.Hosts == nil {
+		ctx.Logger.Info("hosts topology in failure domain not defined. skipping reconcile VM group")
+		return true, nil
 	}
-	return nil
+
+	topology := ctx.VSphereFailureDomain.Spec.Topology
+	vmGroup, err := cluster.FindVMGroup(ctx, *topology.ComputeCluster, topology.Hosts.VMGroupName)
+	if err != nil {
+		return false, errors.Wrapf(err, "unable to find VM Group %s", topology.Hosts.VMGroupName)
+	}
+
+	hasVM, err := vmGroup.HasVM(ctx.Ref)
+	if err != nil {
+		return false, errors.Wrapf(err, "unable to find VM Group %s membership", topology.Hosts.VMGroupName)
+	}
+
+	if !hasVM {
+		task, err := vmGroup.Add(ctx, ctx.Ref)
+		if err != nil {
+			return false, errors.Wrapf(err, "failed to add VM %s to VM group", ctx.VSphereVM.Name)
+		}
+		ctx.VSphereVM.Status.TaskRef = task.Reference().Value
+		ctx.Logger.Info("wait for VM to be added to group")
+		return false, nil
+	}
+	return true, nil
 }

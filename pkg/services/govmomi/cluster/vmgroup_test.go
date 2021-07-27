@@ -28,14 +28,12 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers"
 )
 
-func TestAddVMToGroup(t *testing.T) {
+func Test_VMGroup(t *testing.T) {
 	g := NewWithT(t)
 	sim, err := helpers.VCSimBuilder().
-		WithOperations("cluster.group.create -cluster DC0_C0 -name blah-vm-group -vm").
+		WithOperations("cluster.group.create -cluster DC0_C0 -name blah-vm-group -vm DC0_C0_RP0_VM0 DC0_C0_RP0_VM1").
 		Build()
-	if err != nil {
-		t.Fatalf("failed to create a VC simulator object %s", err)
-	}
+	g.Expect(err).NotTo(HaveOccurred())
 	defer sim.Destroy()
 
 	ctx := context.Background()
@@ -50,14 +48,31 @@ func TestAddVMToGroup(t *testing.T) {
 		finder:  finder,
 	}
 
+	computeClusterName := "DC0_C0"
 	vmGroupName := "blah-vm-group"
-	g.Expect(AddVMToGroup(computeClusterCtx, "DC0_C0", vmGroupName, "DC0_H0_VM0")).To(Succeed())
-	g.Expect(AddVMToGroup(computeClusterCtx, "DC0_C0", vmGroupName, "DC0_H0_VM1")).To(Succeed())
 
-	ccr, err := finder.ClusterComputeResource(ctx, "DC0_C0")
+	vmGrp, err := FindVMGroup(computeClusterCtx, computeClusterName, vmGroupName)
 	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(vmGrp.listVMs()).To(HaveLen(2))
 
-	refs, err := listVMs(ctx, ccr, "blah-vm-group")
+	vmObjOne, err := finder.VirtualMachine(ctx, "DC0_H0_VM0")
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(refs).To(HaveLen(2))
+	vmRef := vmObjOne.Reference()
+
+	hasVM, err := vmGrp.HasVM(vmRef)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(hasVM).To(BeFalse())
+
+	task, err := vmGrp.Add(computeClusterCtx, vmRef)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(task.Wait(ctx)).To(Succeed())
+	g.Expect(vmGrp.listVMs()).To(HaveLen(3))
+
+	hasVM, err = vmGrp.HasVM(vmRef)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(hasVM).To(BeTrue())
+
+	vmGroupName = "incorrect-vm-group"
+	_, err = FindVMGroup(computeClusterCtx, computeClusterName, vmGroupName)
+	g.Expect(err).To(HaveOccurred())
 }

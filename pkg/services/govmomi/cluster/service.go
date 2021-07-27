@@ -50,17 +50,3 @@ func ListHostsFromGroup(ctx context.Context, ccr *object.ClusterComputeResource,
 	}
 	return refs, nil
 }
-
-// TODO(srm09): Consider deferring the reconciliation of the task completion to a separate loop.
-func reconfigure(ctx context.Context, ccr *object.ClusterComputeResource, spec types.BaseComputeResourceConfigSpec) error {
-	reconfigureTask, err := ccr.Reconfigure(ctx, spec, true)
-	if err != nil {
-		return err
-	}
-
-	err = reconfigureTask.Wait(ctx)
-	if err != nil {
-		return err
-	}
-	return nil
-}

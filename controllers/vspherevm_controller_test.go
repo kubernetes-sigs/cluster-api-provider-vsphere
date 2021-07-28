@@ -1,8 +1,23 @@
+/*
+Copyright 2021 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package controllers
 
 import (
 	goctx "context"
-	"crypto/tls"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -22,22 +37,19 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/identity"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
+	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers"
 )
 
 func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 	// initializing a fake server to replace the vSphere endpoint
 	model := simulator.VPX()
 	model.Host = 0
-	defer model.Remove()
 
-	err := model.Create()
+	simr, err := helpers.VCSimBuilder().WithModel(model).Build()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("unable to create simulator: %s", err)
 	}
-	model.Service.TLS = new(tls.Config)
-
-	s := model.Service.NewServer()
-	defer s.Close()
+	defer simr.Destroy()
 
 	vsphereCluster := &infrav1.VSphereCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -58,22 +70,44 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 		},
 	}
 
-	vSphereVM := &infrav1.VSphereVM{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "VSphereVM",
+	machine := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: "test",
+			Labels: map[string]string{
+				clusterv1.ClusterLabelName: "valid-cluster",
+			},
 		},
+	}
+
+	vsphereMachine := &infrav1.VSphereMachine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo-vm",
 			Namespace: "test",
 			Labels: map[string]string{
 				clusterv1.ClusterLabelName: "valid-cluster",
 			},
+			OwnerReferences: []metav1.OwnerReference{{APIVersion: clusterv1.GroupVersion.String(), Kind: "Machine", Name: "foo"}},
+		},
+	}
+
+	vSphereVM := &infrav1.VSphereVM{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "VSphereVM",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: "test",
+			Labels: map[string]string{
+				clusterv1.ClusterLabelName: "valid-cluster",
+			},
+			OwnerReferences: []metav1.OwnerReference{{APIVersion: infrav1.GroupVersion.String(), Kind: "VSphereMachine", Name: "foo-vm"}},
 			// To make sure PatchHelper does not error out
 			ResourceVersion: "1234",
 		},
 		Spec: infrav1.VSphereVMSpec{
 			VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
-				Server: s.URL.Host,
+				Server: simr.ServerURL().Host,
 				Network: infrav1.NetworkSpec{
 					Devices: []infrav1.NetworkDeviceSpec{
 						{NetworkName: "nw-1"},
@@ -85,10 +119,10 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 		Status: infrav1.VSphereVMStatus{},
 	}
 
-	controllerMgrContext := fake.NewControllerManagerContext(vSphereVM, cluster, vsphereCluster)
-	password, _ := s.URL.User.Password()
+	controllerMgrContext := fake.NewControllerManagerContext(vSphereVM, vsphereMachine, machine, cluster, vsphereCluster)
+	password, _ := simr.ServerURL().User.Password()
 	controllerMgrContext.Password = password
-	controllerMgrContext.Username = s.URL.User.Username()
+	controllerMgrContext.Username = simr.ServerURL().User.Username()
 
 	controllerContext := &context.ControllerContext{
 		ControllerManagerContext: controllerMgrContext,
@@ -160,8 +194,8 @@ func TestVmReconciler_WaitingForStaticIPAllocation(t *testing.T) {
 	vmContext := fake.NewVMContext(controllerCtx)
 	r := vmReconciler{controllerCtx}
 
+	// nolint:scopelint
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			vmContext.VSphereVM.Spec.Network = infrav1.NetworkSpec{Devices: tt.devices}
 			isWaiting := r.isWaitingForStaticIPAllocation(vmContext)
@@ -175,26 +209,21 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 	// initializing a fake server to replace the vSphere endpoint
 	model := simulator.VPX()
 	model.Host = 0
-	defer model.Remove()
 
-	err := model.Create()
+	simr, err := helpers.VCSimBuilder().WithModel(model).Build()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("unable to create simulator: %s", err)
 	}
-	model.Service.TLS = new(tls.Config)
+	defer simr.Destroy()
 
-	s := model.Service.NewServer()
-	defer s.Close()
-
-	password, _ := s.URL.User.Password()
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "creds-secret",
 			Namespace: "test",
 		},
 		Data: map[string][]byte{
-			identity.UsernameKey: []byte(s.URL.User.Username()),
-			identity.PasswordKey: []byte(password),
+			identity.UsernameKey: []byte(simr.Username()),
+			identity.PasswordKey: []byte(simr.Password()),
 		},
 	}
 
@@ -223,22 +252,44 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 		},
 	}
 
-	vSphereVM := &infrav1.VSphereVM{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "VSphereVM",
+	machine := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: "test",
+			Labels: map[string]string{
+				clusterv1.ClusterLabelName: "valid-cluster",
+			},
 		},
+	}
+
+	vsphereMachine := &infrav1.VSphereMachine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo-vm",
 			Namespace: "test",
 			Labels: map[string]string{
 				clusterv1.ClusterLabelName: "valid-cluster",
 			},
+			OwnerReferences: []metav1.OwnerReference{{APIVersion: clusterv1.GroupVersion.String(), Kind: "Machine", Name: "foo"}},
+		},
+	}
+
+	vSphereVM := &infrav1.VSphereVM{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "VSphereVM",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: "test",
+			Labels: map[string]string{
+				clusterv1.ClusterLabelName: "valid-cluster",
+			},
+			OwnerReferences: []metav1.OwnerReference{{APIVersion: infrav1.GroupVersion.String(), Kind: "VSphereMachine", Name: "foo-vm"}},
 			// To make sure PatchHelper does not error out
 			ResourceVersion: "1234",
 		},
 		Spec: infrav1.VSphereVMSpec{
 			VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
-				Server: s.URL.Host,
+				Server: simr.ServerURL().Host,
 				Network: infrav1.NetworkSpec{
 					Devices: []infrav1.NetworkDeviceSpec{
 						{NetworkName: "nw-1"},
@@ -250,7 +301,7 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 		Status: infrav1.VSphereVMStatus{},
 	}
 
-	controllerMgrContext := fake.NewControllerManagerContext(secret, vSphereVM, cluster, vsphereCluster)
+	controllerMgrContext := fake.NewControllerManagerContext(secret, vSphereVM, vsphereMachine, machine, cluster, vsphereCluster)
 
 	controllerContext := &context.ControllerContext{
 		ControllerManagerContext: controllerMgrContext,

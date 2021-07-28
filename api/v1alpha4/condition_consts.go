@@ -27,7 +27,7 @@ const (
 	// LoadBalancerProvisioningReason (Severity=Info) documents a VSphereCluster provisioning a load balancer.
 	LoadBalancerProvisioningReason = "LoadBalancerProvisioning"
 
-	// LoadBalancerProvisioningReason (Severity=Warning) documents a VSphereCluster controller detecting
+	// LoadBalancerProvisioningFailedReason (Severity=Warning) documents a VSphereCluster controller detecting
 	// while provisioning the load balancer; those kind of errors are usually transient and failed provisioning
 	// are automatically re-tried by the controller.
 	LoadBalancerProvisioningFailedReason = "LoadBalancerProvisioningFailed"
@@ -47,6 +47,20 @@ const (
 	// while installing the container storage interface  addon; those kind of errors are usually transient
 	// the operation is automatically re-tried by the controller.
 	CSIProvisioningFailedReason = "CSIProvisioningFailed"
+
+	// FailureDomainsAvailableCondition documents the status of the failure domains
+	// associated to the VSphereCluster.
+	FailureDomainsAvailableCondition clusterv1.ConditionType = "FailureDomainsAvailable"
+
+	// FailureDomainsSkippedReason (Severity=Info) documents that some of the failure domain statuses
+	// associated to the VSphereCluster are reported as not ready.
+	FailureDomainsSkippedReason = "FailureDomainsSkipped"
+
+	// WaitingForFailureDomainStatusReason (Severity=Info) documents that some of the failure domains
+	// associated to the VSphereCluster are not reporting the Ready status.
+	// Instead of reporting a false ready status, these failure domains are still under the process of reconciling
+	// and hence not yet reporting their status.
+	WaitingForFailureDomainStatusReason = "WaitingForFailureDomainStatus"
 )
 
 // Conditions and condition Reasons for the VSphereMachine and the VSphereVM object.
@@ -102,16 +116,17 @@ const (
 )
 
 // Conditions and Reasons related to utilizing a VSphereIdentity to make connections to a VCenter. Can currently be used by VSphereCluster and VSphereVM
-
 const (
 	// VCenterAvailableCondition documents the connectivity with vcenter
-	// for a given VSphereCluster
+	// for a given resource
 	VCenterAvailableCondition clusterv1.ConditionType = "VCenterAvailable"
 
-	// VCenterUnreachableReason (Severity=Error) documents a VSphereCluster controller detecting
-	// issues with VCenter reachability;
+	// VCenterUnreachableReason (Severity=Error) documents a controller detecting
+	// issues with VCenter reachability
 	VCenterUnreachableReason = "VCenterUnreachable"
+)
 
+const (
 	// CredentialsAvailableCondidtion is used by VSphereClusterIdentity when a credential secret is available and unused by other VSphereClusterIdentities
 	CredentialsAvailableCondidtion clusterv1.ConditionType = "CredentialsAvailable"
 
@@ -123,4 +138,49 @@ const (
 
 	// SecretAlreadyInUseReason is used when another VSphereClusterIdentity is using the secret
 	SecretAlreadyInUseReason = "SecretInUse"
+)
+
+const (
+	// PlacementConstraintMetCondition documents whether the placement constraint is configured correctly or not.
+	PlacementConstraintMetCondition clusterv1.ConditionType = "PlacementConstraintMet"
+
+	// ResourcePoolNotFoundReason (Severity=Error) documents that the resource pool in the placement constraint
+	// associated to the VSphereDeploymentZone is misconfigured.
+	ResourcePoolNotFoundReason = "ResourcePoolNotFound"
+
+	// FolderNotFoundReason (Severity=Error) documents that the folder in the placement constraint
+	// associated to the VSphereDeploymentZone is misconfigured.
+	FolderNotFoundReason = "FolderNotFound"
+)
+
+const (
+	// VSphereFailureDomainValidatedCondition documents whether the failure domain for the deployment zone is configured correctly or not.
+	VSphereFailureDomainValidatedCondition clusterv1.ConditionType = "VSphereFailureDomainValidated"
+
+	// RegionMisconfiguredReason (Severity=Error) documents that the region for the Failure Domain associated to
+	// the VSphereDeploymentZone is misconfigured.
+	RegionMisconfiguredReason = "FailureDomainRegionMisconfigured"
+
+	// ZoneMisconfiguredReason (Severity=Error) documents that the zone for the Failure Domain associated to
+	// the VSphereDeploymentZone is misconfigured.
+	ZoneMisconfiguredReason = "FailureDomainZoneMisconfigured"
+
+	// ComputeClusterNotFoundReason (Severity=Error) documents that the Compute Cluster for the Failure Domain
+	// associated to the VSphereDeploymentZone cannot be found.
+	ComputeClusterNotFoundReason = "ComputeClusterNotFound"
+
+	// HostsMisconfiguredReason (Severity=Error) documents that the VM & Host Group details for the Failure Domain
+	// associated to the VSphereDeploymentZone are misconfigured.
+	HostsMisconfiguredReason = "HostsMisconfigured"
+
+	// HostsAffinityMisconfiguredReason (Severity=Warning) documents that the VM & Host Group affinity rule for the FailureDomain is disabled.
+	HostsAffinityMisconfiguredReason = "HostsAffinityMisconfigured"
+
+	// NetworkNotFoundReason (Severity=Error) documents that the networks in the topology for the Failure Domain
+	// associated to the VSphereDeploymentZone are misconfigured.
+	NetworkNotFoundReason = "NetworkNotFound"
+
+	// DatastoreNotFoundReason (Severity=Error) documents that the datastore in the topology for the Failure Domain
+	// associated to the VSphereDeploymentZone is misconfigured.
+	DatastoreNotFoundReason = "DatastoreNotFound"
 )

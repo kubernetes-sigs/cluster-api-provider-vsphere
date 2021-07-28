@@ -34,8 +34,9 @@ type VSphereDeploymentZoneSpec struct {
 	// +optional
 	ControlPlane *bool `json:"controlPlane,omitempty"`
 
-	// the placement constraints which is used within this failure domain
-	PlacementConstaint PlacementConstraint `json:"placementConstraint"`
+	// PlacementConstraint encapsulates the placement constraints
+	// used within this deployment zone.
+	PlacementConstraint PlacementConstraint `json:"placementConstraint"`
 }
 
 // PlacementConstraint is the context information for VM placements within a failure domain
@@ -45,15 +46,6 @@ type PlacementConstraint struct {
 	// +optional
 	ResourcePool string `json:"resourcePool,omitempty"`
 
-	// Datastore is the name or inventory path of the datastore in which the
-	// virtual machine is created/located.
-	// +optional
-	Datastore string `json:"datastore,omitempty"`
-
-	// Network represents the networking for this depoyment zone
-	// +optional
-	Network []Network `json:"Network,omitempty"`
-
 	// Folder is the name or inventory path of the folder in which the
 	// virtual machine is created/located.
 	// +optional
@@ -61,8 +53,8 @@ type PlacementConstraint struct {
 }
 
 type Network struct {
-	// NetworkName is the network name for this machine's VM.
-	NetworkName string `json:"networkName,omitempty"`
+	// Name is the network name for this machine's VM.
+	Name string `json:"name,omitempty"`
 
 	// DHCP4 is a flag that indicates whether or not to use DHCP for IPv4
 	// +optional

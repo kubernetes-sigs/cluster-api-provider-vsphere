@@ -21,10 +21,9 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/pbm"
 	pbmTypes "github.com/vmware/govmomi/pbm/types"
-
-	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/property"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
@@ -37,6 +36,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/cluster"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/extra"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/net"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
@@ -129,6 +129,10 @@ func (vms *VMService) ReconcileVM(ctx *context.VMContext) (vm infrav1.VirtualMac
 	}
 
 	if err := vms.reconcileStoragePolicy(vmCtx); err != nil {
+		return vm, err
+	}
+
+	if ok, err := vms.reconcileVMGroupInfo(vmCtx); err != nil || !ok {
 		return vm, err
 	}
 
@@ -484,4 +488,33 @@ func (vms *VMService) getBootstrapData(ctx *context.VMContext) ([]byte, error) {
 	}
 
 	return value, nil
+}
+
+func (vms *VMService) reconcileVMGroupInfo(ctx *virtualMachineContext) (bool, error) {
+	if ctx.VSphereFailureDomain == nil || ctx.VSphereFailureDomain.Spec.Topology.Hosts == nil {
+		ctx.Logger.Info("hosts topology in failure domain not defined. skipping reconcile VM group")
+		return true, nil
+	}
+
+	topology := ctx.VSphereFailureDomain.Spec.Topology
+	vmGroup, err := cluster.FindVMGroup(ctx, *topology.ComputeCluster, topology.Hosts.VMGroupName)
+	if err != nil {
+		return false, errors.Wrapf(err, "unable to find VM Group %s", topology.Hosts.VMGroupName)
+	}
+
+	hasVM, err := vmGroup.HasVM(ctx.Ref)
+	if err != nil {
+		return false, errors.Wrapf(err, "unable to find VM Group %s membership", topology.Hosts.VMGroupName)
+	}
+
+	if !hasVM {
+		task, err := vmGroup.Add(ctx, ctx.Ref)
+		if err != nil {
+			return false, errors.Wrapf(err, "failed to add VM %s to VM group", ctx.VSphereVM.Name)
+		}
+		ctx.VSphereVM.Status.TaskRef = task.Reference().Value
+		ctx.Logger.Info("wait for VM to be added to group")
+		return false, nil
+	}
+	return true, nil
 }

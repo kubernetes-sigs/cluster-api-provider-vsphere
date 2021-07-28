@@ -18,7 +18,6 @@ package fake
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
@@ -30,7 +29,7 @@ import (
 func NewMachineContext(ctx *context.ClusterContext) *context.MachineContext {
 
 	// Create the machine resources.
-	machine := newMachineV1a2()
+	machine := newMachineV1a4()
 	vsphereMachine := newVSphereMachine(machine)
 
 	// Add the cluster resources to the fake cluster client.
@@ -51,12 +50,12 @@ func NewMachineContext(ctx *context.ClusterContext) *context.MachineContext {
 	}
 }
 
-func newMachineV1a2() clusterv1.Machine {
+func newMachineV1a4() clusterv1.Machine {
 	return clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: Namespace,
 			Name:      Clusterv1a2Name,
-			UID:       types.UID(Clusterv1a2UUID),
+			UID:       Clusterv1a2UUID,
 		},
 		Spec: clusterv1.MachineSpec{},
 	}
@@ -67,7 +66,7 @@ func newVSphereMachine(owner clusterv1.Machine) infrav1.VSphereMachine {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: owner.Namespace,
 			Name:      owner.Name,
-			UID:       types.UID(VSphereMachineUUID),
+			UID:       VSphereMachineUUID,
 			OwnerReferences: []metav1.OwnerReference{
 				{
 					APIVersion:         owner.APIVersion,

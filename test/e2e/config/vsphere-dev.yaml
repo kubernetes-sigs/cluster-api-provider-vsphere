@@ -104,7 +104,6 @@ variables:
   VSPHERE_DATASTORE: "WorkloadDatastore"
   VSPHERE_STORAGE_POLICY: "Cluster API vSphere Storage Policy"
   VSPHERE_FOLDER: "FolderName"
-  VSPHERE_HAPROXY_TEMPLATE: "capv-haproxy-v0.6.3"
   VSPHERE_NETWORK: "network-1"
   VSPHERE_RESOURCE_POOL: "ResourcePool"
   VSPHERE_TEMPLATE: "ubuntu-1804-kube-v1.18.2"
@@ -112,6 +111,8 @@ variables:
   # VSPHERE_SSH_AUTHORIZED_KEY:
   # VSPHERE_PASSWORD:
   # VSPHERE_USERNAME:
+  # Dedicated IP to be used by kube-vip
+  # CONTROL_PLANE_ENDPOINT_IP:
 
 intervals:
   default/wait-controllers: ["5m", "10s"]

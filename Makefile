@@ -123,7 +123,7 @@ e2e-image: ## Build the e2e manager image
 e2e: e2e-image
 e2e: $(GINKGO) $(KUSTOMIZE) $(KIND) $(GOVC) ## Run e2e tests
 	$(MAKE) release-manifests
-	cp $(RELEASE_DIR)/cluster-template-haproxy.yaml $(E2E_TEMPLATE_DIR)/kustomization/cluster-template.yaml
+	cp $(RELEASE_DIR)/cluster-template.yaml $(E2E_TEMPLATE_DIR)/kustomization/cluster-template.yaml
 	"$(KUSTOMIZE)" build $(E2E_TEMPLATE_DIR)/kustomization > $(E2E_TEMPLATE_DIR)/cluster-template.yaml
 	@echo PATH=$(PATH)
 	@echo

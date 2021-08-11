@@ -100,8 +100,7 @@ variables:
   VSPHERE_RESOURCE_POOL: "clusterapi"
   VSPHERE_DATASTORE: "WorkloadDatastore"
   VSPHERE_STORAGE_POLICY: "Cluster API vSphere Storage Policy"
-  VSPHERE_NETWORK: "sddc-cgw-network-8"
-  VSPHERE_HAPROXY_TEMPLATE: "capv-haproxy-v0.6.3"
+  VSPHERE_NETWORK: "sddc-cgw-network-6"
   VSPHERE_TEMPLATE: "ubuntu-1804-kube-v1.19.1"
 
 intervals:

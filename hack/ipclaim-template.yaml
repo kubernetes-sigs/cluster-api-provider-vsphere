@@ -1,0 +1,7 @@
+apiVersion: ipam.metal3.io/v1alpha1
+kind: IPClaim
+metadata:
+  name: IPCLAIM_NAME
+spec:
+  pool:
+    name: capv-e2e-ippool

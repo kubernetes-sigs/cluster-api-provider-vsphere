@@ -21,7 +21,14 @@ set -o pipefail # any non-zero exit code in a piped command causes the pipeline 
 export PATH=${PWD}/hack/tools/bin:${PATH}
 REPO_ROOT=$(git rev-parse --show-toplevel)
 
+# shellcheck source=./hack/ensure-kubectl.sh
+source "${REPO_ROOT}/hack/ensure-kubectl.sh"
+
 on_exit() {
+  # release IPClaim
+  echo "Releasing IP claim"
+  kubectl --kubeconfig="${KUBECONFIG}" delete ipclaim "${IPCLAIM_NAME}" || true
+
   # kill the VPN
   docker kill vpn
 }
@@ -45,6 +52,20 @@ docker run --rm -d --name vpn -v "${HOME}/.openvpn/:${HOME}/.openvpn/" \
 
 # Tail the vpn logs
 docker logs vpn
+
+# Sleep to allow vpn container to start running
+sleep 30
+
+# Retrieve an IP to be used as the kube-vip IP
+KUBECONFIG="/root/ipam-conf/capv-services.conf"
+IPCLAIM_NAME="ip-claim-$(date +%s)"
+sed "s/IPCLAIM_NAME/${IPCLAIM_NAME}/" "${REPO_ROOT}/hack/ipclaim-template.yaml" | kubectl --kubeconfig=${KUBECONFIG} create -f -
+
+IPADDRESS_NAME=$(kubectl --kubeconfig=${KUBECONFIG} get ipclaim "${IPCLAIM_NAME}" -o=jsonpath='{@.status.address.name}')
+CONTROL_PLANE_ENDPOINT_IP=$(kubectl --kubeconfig=${KUBECONFIG} get ipaddresses "${IPADDRESS_NAME}" -o=jsonpath='{@.spec.address}')
+export CONTROL_PLANE_ENDPOINT_IP
+
+echo "Acquired Control Plane IP: $CONTROL_PLANE_ENDPOINT_IP"
 
 # Run e2e tests
 make e2e

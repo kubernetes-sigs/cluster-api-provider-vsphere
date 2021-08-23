@@ -120,6 +120,8 @@ VSPHERE_SSH_AUTHORIZED_KEY: "ssh-rsa AAAAB3N..."              # The public ssh a
                                                               #   in this cluster.
                                                               #   Set to "" if you don't want to enable SSH,
                                                               #   or are using another solution.
+VSPHERE_STORAGE_POLICY: ""                                    # This is the vSphere storage policy.
+                                                              #  Set it to "" if you don't want to use a storage policy.
 ```
 
 If you are using the **DEPRECATED** `haproxy` flavour you will need to add the following variable to your `clusterctl.yaml`:

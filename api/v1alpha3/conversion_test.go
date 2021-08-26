@@ -21,7 +21,10 @@ import (
 
 	. "github.com/onsi/gomega"
 
+	fuzz "github.com/google/gofuzz"
+	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	"k8s.io/apimachinery/pkg/runtime"
+	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 
 	nextver "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
@@ -34,9 +37,10 @@ func TestFuzzyConversion(t *testing.T) {
 	g.Expect(nextver.AddToScheme(scheme)).To(Succeed())
 
 	t.Run("for VSphereCluster", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme: scheme,
-		Hub:    &nextver.VSphereCluster{},
-		Spoke:  &VSphereCluster{},
+		Scheme:      scheme,
+		Hub:         &nextver.VSphereCluster{},
+		Spoke:       &VSphereCluster{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{overrideDeprecatedFieldsFuncs},
 	}))
 	t.Run("for VSphereMachine", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme: scheme,
@@ -53,4 +57,12 @@ func TestFuzzyConversion(t *testing.T) {
 		Hub:    &nextver.VSphereVM{},
 		Spoke:  &VSphereVM{},
 	}))
+}
+
+func overrideDeprecatedFieldsFuncs(codecs runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		func(vsphereClusterSpec *VSphereClusterSpec, c fuzz.Continue) {
+			vsphereClusterSpec.CloudProviderConfiguration = CPIConfig{}
+		},
+	}
 }

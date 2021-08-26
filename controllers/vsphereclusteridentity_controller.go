@@ -48,7 +48,7 @@ var (
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=vsphereclusteridentities,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=vsphereclusteridentities/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;patch;update
+// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;patch;update;delete
 
 func AddVsphereClusterIdentityControllerToManager(ctx *context.ControllerManagerContext, mgr manager.Manager) error {
 	var (

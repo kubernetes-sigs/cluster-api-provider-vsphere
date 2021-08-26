@@ -11,7 +11,6 @@ resources:
 - bases/infrastructure.cluster.x-k8s.io_vsphereclusters.yaml
 - bases/infrastructure.cluster.x-k8s.io_vspheremachinetemplates.yaml
 - bases/infrastructure.cluster.x-k8s.io_vspherevms.yaml
-- bases/infrastructure.cluster.x-k8s.io_haproxyloadbalancers.yaml
 - bases/infrastructure.cluster.x-k8s.io_vspherefailuredomains.yaml
 - bases/infrastructure.cluster.x-k8s.io_vspheredeploymentzones.yaml
 - bases/infrastructure.cluster.x-k8s.io_vsphereclusteridentities.yaml
@@ -25,7 +24,6 @@ patches:
 - patches/webhook_in_vsphereclusters.yaml
 - patches/webhook_in_vspheremachinetemplates.yaml
 - patches/webhook_in_vspherevms.yaml
-- patches/webhook_in_haproxyloadbalancers.yaml
 - patches/webhook_in_vspherefailuredomains.yaml
 - patches/webhook_in_vspheredeploymentzones.yaml
 - patches/webhook_in_vsphereclustertemplates.yaml
@@ -37,7 +35,6 @@ patches:
 - patches/cainjection_in_vsphereclusters.yaml
 - patches/cainjection_in_vspheremachinetemplates.yaml
 - patches/cainjection_in_vspherevms.yaml
-- patches/cainjection_in_haproxyloadbalancers.yaml
 - patches/cainjection_in_vspherefailuredomains.yaml
 - patches/cainjection_in_vspheredeploymentzones.yaml
 - patches/cainjection_in_vsphereclustertemplates.yaml

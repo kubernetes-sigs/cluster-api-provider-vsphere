@@ -181,6 +181,8 @@ func Clone(ctx *context.VMContext, bootstrapData []byte) error {
 	}
 
 	var datastoreRef *types.ManagedObjectReference
+	var datastoreClusterRef *types.ManagedObjectReference
+	var storageProfileID string
 	if ctx.VSphereVM.Spec.Datastore != "" {
 		datastore, err := ctx.Session.Finder.Datastore(ctx, ctx.VSphereVM.Spec.Datastore)
 		if err != nil {
@@ -190,7 +192,50 @@ func Clone(ctx *context.VMContext, bootstrapData []byte) error {
 		spec.Location.Datastore = datastoreRef
 	}
 
-	var storageProfileID string
+	if ctx.VSphereVM.Spec.DatastoreCluster != "" {
+		// verify the datastoreCluster exists
+		datastoreCluster, err := ctx.Session.Finder.DatastoreCluster(ctx, ctx.VSphereVM.Spec.DatastoreCluster)
+		if err != nil {
+			return errors.Wrapf(err, "unable to get datastoreCluster %s for %v", ctx.VSphereVM.Spec.DatastoreCluster, ctx)
+		}
+		datastoreClusterRef = types.NewReference(datastoreCluster.Reference())
+		spec.Location.Datastore = datastoreClusterRef
+
+		// if the datastore is also defined by the user
+		// verify that the datastore is part of the datastoreCluster
+		if datastoreRef != nil {
+			pbmClient, err := pbm.NewClient(ctx, ctx.Session.Client.Client)
+			if err != nil {
+				return errors.Wrapf(err, "unable to create pbm client for %q", ctx)
+			}
+			storageProfileID, err = pbmClient.ProfileIDByName(ctx, ctx.VSphereVM.Spec.DatastoreCluster)
+			if err != nil {
+				return errors.Wrapf(err, "unable to get storageProfileID from name %s for %q", ctx.VSphereVM.Spec.DatastoreCluster, ctx)
+			}
+
+			var constraints []pbmTypes.BasePbmPlacementRequirement
+			constraints = append(constraints, &pbmTypes.PbmPlacementCapabilityProfileRequirement{ProfileId: pbmTypes.PbmProfileId{UniqueId: storageProfileID}})
+			result, err := pbmClient.CheckRequirements(ctx, nil, nil, constraints)
+			if len(result.CompatibleDatastores()) == 0 {
+				return errors.New(fmt.Sprintf("no compatible datastores found for storage policy %s", ctx.VSphereVM.Spec.StoragePolicyName))
+			}
+			if err != nil {
+				return errors.Wrapf(err, "unable to check requirements for storage policy")
+			}
+			ctx.Logger.Info("datastore and datastoreCluster defined; searching for compatible datastore in datastoreCluster")
+			found := false
+			for _, ds := range result.CompatibleDatastores() {
+				compatibleRef := types.ManagedObjectReference{Type: ds.HubType, Value: ds.HubId}
+				if compatibleRef.String() == datastoreRef.String() {
+					found = true
+				}
+			}
+			if !found {
+				return errors.New(fmt.Sprintf("couldn't find specified datastore: %s in compatible list of datastores for storageCluster", ctx.VSphereVM.Spec.Datastore))
+			}
+		}
+	}
+
 	if ctx.VSphereVM.Spec.StoragePolicyName != "" {
 		pbmClient, err := pbm.NewClient(ctx, ctx.Session.Client.Client)
 		if err != nil {

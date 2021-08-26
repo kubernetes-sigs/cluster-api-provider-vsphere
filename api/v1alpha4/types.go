@@ -138,6 +138,10 @@ type VirtualMachineCloneSpec struct {
 	// Defaults to empty map
 	// +optional
 	CustomVMXKeys map[string]string `json:"customVMXKeys,omitempty"`
+	// DatastoreCluster can be used blah blah
+	// TODO(AartiJivrajani): What goes into this description?
+	// +optional
+	DatastoreCluster string `json:"datastoreCluster,omitempty"`
 }
 
 // VSphereMachineTemplateResource describes the data needed to create a VSphereMachine from a template

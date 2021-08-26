@@ -359,6 +359,10 @@ spec:
                     description: Datastore is the name or inventory path of the datastore
                       in which the virtual machine is created/located.
                     type: string
+                  datastoreCluster:
+                    description: 'DatastoreCluster can be used blah blah TODO(AartiJivrajani):
+                      What goes into this description?'
+                    type: string
                   diskGiB:
                     description: DiskGiB is the size of a virtual machine's disk,
                       in GiB. Defaults to the eponymous property value in the template

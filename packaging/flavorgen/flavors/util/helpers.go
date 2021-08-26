@@ -68,6 +68,7 @@ var (
 		regexVar(env.VSphereSSHAuthorizedKeysVar),
 		regexVar(env.VSphereDataCenterVar),
 		regexVar(env.VSphereDatastoreVar),
+		regexVar(env.VSphereDatastoreClusterVar),
 		regexVar(env.VSphereNetworkVar),
 		regexVar(env.VSphereServerVar),
 		regexVar(env.VSphereTemplateVar),

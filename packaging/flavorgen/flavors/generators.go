@@ -149,6 +149,7 @@ func defaultVirtualMachineCloneSpec() infrav1.VirtualMachineCloneSpec {
 		Thumbprint:        env.VSphereThumbprint,
 		ResourcePool:      env.VSphereResourcePoolVar,
 		Datastore:         env.VSphereDatastoreVar,
+		DatastoreCluster:  env.VSphereDatastoreClusterVar,
 		StoragePolicyName: env.VSphereStoragePolicyVar,
 		Folder:            env.VSphereFolderVar,
 	}

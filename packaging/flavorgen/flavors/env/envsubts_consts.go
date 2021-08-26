@@ -14,6 +14,7 @@ const (
 	VSphereDataCenterVar         = "${VSPHERE_DATACENTER}"
 	VSphereThumbprint            = "${VSPHERE_TLS_THUMBPRINT}"
 	VSphereDatastoreVar          = "${VSPHERE_DATASTORE}"
+	VSphereDatastoreClusterVar   = "${VSPHERE_DATASTORE_CLUSTER}"
 	VSphereFolderVar             = "${VSPHERE_FOLDER}"
 	VSphereHaproxyTemplateVar    = "${VSPHERE_HAPROXY_TEMPLATE}"
 	VSphereNetworkVar            = "${VSPHERE_NETWORK}"

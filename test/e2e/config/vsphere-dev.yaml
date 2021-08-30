@@ -102,6 +102,7 @@ variables:
   VSPHERE_SERVER: "vcenter.vmware.com"
   VSPHERE_DATACENTER: "SDDC-Datacenter"
   VSPHERE_DATASTORE: "WorkloadDatastore"
+  VSPHERE_DATASTORE_CLUSTER: "WorkloadDatastoreCluster"
   VSPHERE_STORAGE_POLICY: "Cluster API vSphere Storage Policy"
   VSPHERE_FOLDER: "FolderName"
   VSPHERE_NETWORK: "network-1"

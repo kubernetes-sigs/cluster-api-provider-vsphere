@@ -146,13 +146,6 @@ func NewTestEnvironment() *TestEnvironment {
 		Password:   simr.Password(),
 	}
 	managerOpts.AddToManager = func(ctx *context.ControllerManagerContext, mgr ctrlmgr.Manager) error {
-		if err := (&infrav1.VSphereCluster{}).SetupWebhookWithManager(mgr); err != nil {
-			return err
-		}
-		if err := (&infrav1.VSphereClusterList{}).SetupWebhookWithManager(mgr); err != nil {
-			return err
-		}
-
 		if err := (&infrav1.VSphereMachine{}).SetupWebhookWithManager(mgr); err != nil {
 			return err
 		}

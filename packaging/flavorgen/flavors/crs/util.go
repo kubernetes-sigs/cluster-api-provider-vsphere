@@ -4,10 +4,10 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/env"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/util"
 	addonsv1alpha4 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha4"
+	"sigs.k8s.io/yaml"
 )
 
 func newSecret(name string, o runtime.Object) *v1.Secret {
@@ -72,28 +72,26 @@ func appendConfigMapToCrsResource(crs *addonsv1alpha4.ClusterResourceSet, genera
 	})
 }
 
-func newCPIConfig() *infrav1.CPIConfig {
-	return &infrav1.CPIConfig{
-		Global: infrav1.CPIGlobalConfig{
-			SecretName:      "cloud-provider-vsphere-credentials",
-			SecretNamespace: metav1.NamespaceSystem,
-			Thumbprint:      env.VSphereThumbprint,
+func newCPIConfig() ([]byte, error) {
+	config := map[string]interface{}{
+		"global": map[string]interface{}{
+			"secretName":      "cloud-provider-vsphere-credentials",
+			"secretNamespace": metav1.NamespaceSystem,
+			"thumbprint":      env.VSphereThumbprint,
 		},
-		VCenter: map[string]infrav1.CPIVCenterConfig{
-			env.VSphereServerVar: {
-				Datacenters: env.VSphereDataCenterVar,
-				Thumbprint:  env.VSphereThumbprint,
+		"vcenter": map[string]interface{}{
+			env.VSphereServerVar: map[string]interface{}{
+				"server":          env.VSphereServerVar,
+				"datacenters":     []string{env.VSphereDataCenterVar},
+				"thumbprint":      env.VSphereThumbprint,
+				"secretName":      "cloud-provider-vsphere-credentials",
+				"secretNamespace": metav1.NamespaceSystem,
 			},
 		},
-		Network: infrav1.CPINetworkConfig{
-			Name: env.VSphereNetworkVar,
-		},
-		Workspace: infrav1.CPIWorkspaceConfig{
-			Server:       env.VSphereServerVar,
-			Datacenter:   env.VSphereDataCenterVar,
-			Datastore:    env.VSphereDatastoreVar,
-			ResourcePool: env.VSphereResourcePoolVar,
-			Folder:       env.VSphereFolderVar,
-		},
 	}
+	configBytes, err := yaml.Marshal(config)
+	if err != nil {
+		return nil, err
+	}
+	return configBytes, nil
 }

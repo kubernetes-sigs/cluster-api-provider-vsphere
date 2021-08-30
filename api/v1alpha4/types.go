@@ -138,8 +138,9 @@ type VirtualMachineCloneSpec struct {
 	// Defaults to empty map
 	// +optional
 	CustomVMXKeys map[string]string `json:"customVMXKeys,omitempty"`
-	// DatastoreCluster can be used blah blah
-	// TODO(AartiJivrajani): What goes into this description?
+	// DatastoreCluster is the name of the inventory path of the datastore cluster which
+	// has member datastores. If datastore and datastoreClusters are defined, the datastore
+	// must belong to the datastoreCluster
 	// +optional
 	DatastoreCluster string `json:"datastoreCluster,omitempty"`
 }

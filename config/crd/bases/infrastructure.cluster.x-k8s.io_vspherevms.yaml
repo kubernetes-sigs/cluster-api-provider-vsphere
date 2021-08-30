@@ -510,8 +510,10 @@ spec:
                   in which the virtual machine is created/located.
                 type: string
               datastoreCluster:
-                description: 'DatastoreCluster can be used blah blah TODO(AartiJivrajani):
-                  What goes into this description?'
+                description: DatastoreCluster is the name of the inventory path of
+                  the datastore cluster which has member datastores. If datastore
+                  and datastoreClusters are defined, the datastore must belong to
+                  the datastoreCluster
                 type: string
               diskGiB:
                 description: DiskGiB is the size of a virtual machine's disk, in GiB.

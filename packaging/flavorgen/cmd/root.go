@@ -52,8 +52,6 @@ func RunRoot(command *cobra.Command) error {
 		return errors.Wrapf(err, "error accessing flag %s for command %s", flavorFlag, command.Name())
 	}
 	switch flavor {
-	case "multi-host":
-		util.PrintObjects(flavors.MultiNodeTemplateWithHAProxy())
 	case "vip":
 		util.PrintObjects(flavors.MultiNodeTemplateWithKubeVIP())
 	case "external-loadbalancer":

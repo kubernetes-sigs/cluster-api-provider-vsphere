@@ -99,6 +99,7 @@ variables:
   VSPHERE_FOLDER: "clusterapi"
   VSPHERE_RESOURCE_POOL: "clusterapi"
   VSPHERE_DATASTORE: "WorkloadDatastore"
+  VSPHERE_DATASTORE_CLUSTER: ""
   VSPHERE_STORAGE_POLICY: "Cluster API vSphere Storage Policy"
   VSPHERE_NETWORK: "sddc-cgw-network-6"
   VSPHERE_TEMPLATE: "ubuntu-1804-kube-v1.19.1"

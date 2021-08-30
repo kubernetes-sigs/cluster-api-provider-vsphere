@@ -16,31 +16,8 @@ limitations under the License.
 
 package v1alpha3
 
-import (
-	infrav1alpha4 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
-	"sigs.k8s.io/controller-runtime/pkg/conversion"
-)
+// Hub marks HAProxyLoadBalancer as a conversion hub.
+func (*HAProxyLoadBalancer) Hub() {}
 
-// ConvertTo converts this HAProxyLoadBalancer to the Hub version (v1alpha4).
-func (src *HAProxyLoadBalancer) ConvertTo(dstRaw conversion.Hub) error { // nolint
-	dst := dstRaw.(*infrav1alpha4.HAProxyLoadBalancer)
-	return Convert_v1alpha3_HAProxyLoadBalancer_To_v1alpha4_HAProxyLoadBalancer(src, dst, nil)
-}
-
-// ConvertFrom converts from the Hub version (v1alpha4) to this HAProxyLoadBalancer.
-func (dst *HAProxyLoadBalancer) ConvertFrom(srcRaw conversion.Hub) error { // nolint
-	src := srcRaw.(*infrav1alpha4.HAProxyLoadBalancer)
-	return Convert_v1alpha4_HAProxyLoadBalancer_To_v1alpha3_HAProxyLoadBalancer(src, dst, nil)
-}
-
-// ConvertTo converts this HAProxyLoadBalancerList to the Hub version (v1alpha4).
-func (src *HAProxyLoadBalancerList) ConvertTo(dstRaw conversion.Hub) error { // nolint
-	dst := dstRaw.(*infrav1alpha4.HAProxyLoadBalancerList)
-	return Convert_v1alpha3_HAProxyLoadBalancerList_To_v1alpha4_HAProxyLoadBalancerList(src, dst, nil)
-}
-
-// ConvertFrom converts this VSphereVM to the Hub version (v1alpha4).
-func (dst *HAProxyLoadBalancerList) ConvertFrom(srcRaw conversion.Hub) error { // nolint
-	src := srcRaw.(*infrav1alpha4.HAProxyLoadBalancerList)
-	return Convert_v1alpha4_HAProxyLoadBalancerList_To_v1alpha3_HAProxyLoadBalancerList(src, dst, nil)
-}
+// Hub marks HAProxyLoadBalancerList as a conversion hub.
+func (*HAProxyLoadBalancerList) Hub() {}

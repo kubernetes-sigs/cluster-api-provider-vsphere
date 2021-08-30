@@ -153,13 +153,7 @@ func main() {
 	// manager.
 	addToManager := func(ctx *context.ControllerManagerContext, mgr ctrlmgr.Manager) error {
 
-		if err := (&v1alpha4.VSphereCluster{}).SetupWebhookWithManager(mgr); err != nil {
-			return err
-		}
 		if err := (&v1alpha4.VSphereClusterTemplate{}).SetupWebhookWithManager(mgr); err != nil {
-			return err
-		}
-		if err := (&v1alpha4.VSphereClusterList{}).SetupWebhookWithManager(mgr); err != nil {
 			return err
 		}
 
@@ -205,9 +199,6 @@ func main() {
 			return err
 		}
 		if err := controllers.AddVMControllerToManager(ctx, mgr); err != nil {
-			return err
-		}
-		if err := controllers.AddHAProxyLoadBalancerControllerToManager(ctx, mgr); err != nil {
 			return err
 		}
 		if err := controllers.AddVsphereClusterIdentityControllerToManager(ctx, mgr); err != nil {

@@ -369,16 +369,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*VSphereMachineTemplateResource)(nil), (*v1alpha4.VSphereMachineTemplateResource)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha3_VSphereMachineTemplateResource_To_v1alpha4_VSphereMachineTemplateResource(a.(*VSphereMachineTemplateResource), b.(*v1alpha4.VSphereMachineTemplateResource), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1alpha4.VSphereMachineTemplateResource)(nil), (*VSphereMachineTemplateResource)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_VSphereMachineTemplateResource_To_v1alpha3_VSphereMachineTemplateResource(a.(*v1alpha4.VSphereMachineTemplateResource), b.(*VSphereMachineTemplateResource), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*VSphereMachineTemplateSpec)(nil), (*v1alpha4.VSphereMachineTemplateSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha3_VSphereMachineTemplateSpec_To_v1alpha4_VSphereMachineTemplateSpec(a.(*VSphereMachineTemplateSpec), b.(*v1alpha4.VSphereMachineTemplateSpec), scope)
 	}); err != nil {
@@ -449,13 +439,33 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*apiv1alpha3.ObjectMeta)(nil), (*apiv1alpha4.ObjectMeta)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha3_ObjectMeta_To_v1alpha4_ObjectMeta(a.(*apiv1alpha3.ObjectMeta), b.(*apiv1alpha4.ObjectMeta), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*VSphereClusterSpec)(nil), (*v1alpha4.VSphereClusterSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha3_VSphereClusterSpec_To_v1alpha4_VSphereClusterSpec(a.(*VSphereClusterSpec), b.(*v1alpha4.VSphereClusterSpec), scope)
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*VSphereMachineTemplateResource)(nil), (*v1alpha4.VSphereMachineTemplateResource)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha3_VSphereMachineTemplateResource_To_v1alpha4_VSphereMachineTemplateResource(a.(*VSphereMachineTemplateResource), b.(*v1alpha4.VSphereMachineTemplateResource), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*apiv1alpha4.ObjectMeta)(nil), (*apiv1alpha3.ObjectMeta)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_ObjectMeta_To_v1alpha3_ObjectMeta(a.(*apiv1alpha4.ObjectMeta), b.(*apiv1alpha3.ObjectMeta), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*v1alpha4.VSphereClusterSpec)(nil), (*VSphereClusterSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha4_VSphereClusterSpec_To_v1alpha3_VSphereClusterSpec(a.(*v1alpha4.VSphereClusterSpec), b.(*VSphereClusterSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1alpha4.VSphereMachineTemplateResource)(nil), (*VSphereMachineTemplateResource)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_VSphereMachineTemplateResource_To_v1alpha3_VSphereMachineTemplateResource(a.(*v1alpha4.VSphereMachineTemplateResource), b.(*VSphereMachineTemplateResource), scope)
 	}); err != nil {
 		return err
 	}
@@ -1335,7 +1345,17 @@ func Convert_v1alpha4_VSphereMachineTemplate_To_v1alpha3_VSphereMachineTemplate(
 
 func autoConvert_v1alpha3_VSphereMachineTemplateList_To_v1alpha4_VSphereMachineTemplateList(in *VSphereMachineTemplateList, out *v1alpha4.VSphereMachineTemplateList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]v1alpha4.VSphereMachineTemplate)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]v1alpha4.VSphereMachineTemplate, len(*in))
+		for i := range *in {
+			if err := Convert_v1alpha3_VSphereMachineTemplate_To_v1alpha4_VSphereMachineTemplate(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -1346,7 +1366,17 @@ func Convert_v1alpha3_VSphereMachineTemplateList_To_v1alpha4_VSphereMachineTempl
 
 func autoConvert_v1alpha4_VSphereMachineTemplateList_To_v1alpha3_VSphereMachineTemplateList(in *v1alpha4.VSphereMachineTemplateList, out *VSphereMachineTemplateList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]VSphereMachineTemplate)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]VSphereMachineTemplate, len(*in))
+		for i := range *in {
+			if err := Convert_v1alpha4_VSphereMachineTemplate_To_v1alpha3_VSphereMachineTemplate(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -1356,27 +1386,23 @@ func Convert_v1alpha4_VSphereMachineTemplateList_To_v1alpha3_VSphereMachineTempl
 }
 
 func autoConvert_v1alpha3_VSphereMachineTemplateResource_To_v1alpha4_VSphereMachineTemplateResource(in *VSphereMachineTemplateResource, out *v1alpha4.VSphereMachineTemplateResource, s conversion.Scope) error {
+	if err := Convert_v1alpha3_ObjectMeta_To_v1alpha4_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+		return err
+	}
 	if err := Convert_v1alpha3_VSphereMachineSpec_To_v1alpha4_VSphereMachineSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1alpha3_VSphereMachineTemplateResource_To_v1alpha4_VSphereMachineTemplateResource is an autogenerated conversion function.
-func Convert_v1alpha3_VSphereMachineTemplateResource_To_v1alpha4_VSphereMachineTemplateResource(in *VSphereMachineTemplateResource, out *v1alpha4.VSphereMachineTemplateResource, s conversion.Scope) error {
-	return autoConvert_v1alpha3_VSphereMachineTemplateResource_To_v1alpha4_VSphereMachineTemplateResource(in, out, s)
-}
-
 func autoConvert_v1alpha4_VSphereMachineTemplateResource_To_v1alpha3_VSphereMachineTemplateResource(in *v1alpha4.VSphereMachineTemplateResource, out *VSphereMachineTemplateResource, s conversion.Scope) error {
+	if err := Convert_v1alpha4_ObjectMeta_To_v1alpha3_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+		return err
+	}
 	if err := Convert_v1alpha4_VSphereMachineSpec_To_v1alpha3_VSphereMachineSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
 	return nil
-}
-
-// Convert_v1alpha4_VSphereMachineTemplateResource_To_v1alpha3_VSphereMachineTemplateResource is an autogenerated conversion function.
-func Convert_v1alpha4_VSphereMachineTemplateResource_To_v1alpha3_VSphereMachineTemplateResource(in *v1alpha4.VSphereMachineTemplateResource, out *VSphereMachineTemplateResource, s conversion.Scope) error {
-	return autoConvert_v1alpha4_VSphereMachineTemplateResource_To_v1alpha3_VSphereMachineTemplateResource(in, out, s)
 }
 
 func autoConvert_v1alpha3_VSphereMachineTemplateSpec_To_v1alpha4_VSphereMachineTemplateSpec(in *VSphereMachineTemplateSpec, out *v1alpha4.VSphereMachineTemplateSpec, s conversion.Scope) error {

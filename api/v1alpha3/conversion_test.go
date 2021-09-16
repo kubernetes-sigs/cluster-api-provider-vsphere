@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	"k8s.io/apimachinery/pkg/runtime"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 
 	nextver "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
@@ -40,7 +41,7 @@ func TestFuzzyConversion(t *testing.T) {
 		Scheme:      scheme,
 		Hub:         &nextver.VSphereCluster{},
 		Spoke:       &VSphereCluster{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{overrideDeprecatedFieldsFuncs},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{overrideVSphereClusterDeprecatedFieldsFuncs},
 	}))
 	t.Run("for VSphereMachine", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme: scheme,
@@ -48,9 +49,10 @@ func TestFuzzyConversion(t *testing.T) {
 		Spoke:  &VSphereMachine{},
 	}))
 	t.Run("for VSphereMachineTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme: scheme,
-		Hub:    &nextver.VSphereMachineTemplate{},
-		Spoke:  &VSphereMachineTemplate{},
+		Scheme:      scheme,
+		Hub:         &nextver.VSphereMachineTemplate{},
+		Spoke:       &VSphereMachineTemplate{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{CustomObjectMetaFuzzFunc},
 	}))
 	t.Run("for VSphereVM", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme: scheme,
@@ -59,10 +61,28 @@ func TestFuzzyConversion(t *testing.T) {
 	}))
 }
 
-func overrideDeprecatedFieldsFuncs(codecs runtimeserializer.CodecFactory) []interface{} {
+func overrideVSphereClusterDeprecatedFieldsFuncs(codecs runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		func(vsphereClusterSpec *VSphereClusterSpec, c fuzz.Continue) {
 			vsphereClusterSpec.CloudProviderConfiguration = CPIConfig{}
 		},
 	}
+}
+
+func CustomObjectMetaFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		CustomObjectMetaFuzzer,
+	}
+}
+
+//nolint
+func CustomObjectMetaFuzzer(in *clusterv1.ObjectMeta, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+
+	// These fields have been removed in v1alpha4
+	// data is going to be lost, so we're forcing zero values here.
+	in.Name = ""
+	in.GenerateName = ""
+	in.Namespace = ""
+	in.OwnerReferences = nil
 }

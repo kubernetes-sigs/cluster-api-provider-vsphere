@@ -72,6 +72,7 @@ var (
 		regexVar(env.VSphereServerVar),
 		regexVar(env.VSphereTemplateVar),
 		regexVar(env.VSphereHaproxyTemplateVar),
+		regexVar(env.VSphereStoragePolicyVar),
 	}
 )
 

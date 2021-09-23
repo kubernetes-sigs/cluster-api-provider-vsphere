@@ -91,6 +91,12 @@ For development purposes, if you are using a `major.minor.x` version (see env va
 After publishing your test image and generating the manifests, you can use
 `clusterctl`, as per the getting-started instructions.
 
+#### Using custom cluster-templates  
+
+In order to generate a custom `custom-template.yaml`, run `make dev-flavors`.  
+This command will generate a `cluster-template.yaml` at and the logs will mention the path where this file is generated. On mac it will look something like this - `/Users/<user>/.cluster-api/overrides/infrastructure-vsphere/v0.x.0/cluster-template.yaml`.  
+To create this custom cluster, use `clusterctl generate cluster --from="<cluster_template_path>" <cluster_name>`  
+
 ## Testing e2e
 
 See the [e2e docs](../test/e2e/README.md)

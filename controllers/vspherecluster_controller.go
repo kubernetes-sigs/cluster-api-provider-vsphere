@@ -582,7 +582,7 @@ func (r clusterReconciler) deploymentZoneToCluster(o client.Object) []ctrl.Reque
 	var clusterList infrav1.VSphereClusterList
 	err := r.Client.List(r.Context, &clusterList)
 	if err != nil {
-		r.Logger.Error(err, fmt.Sprintf("unable to list clusters"))
+		r.Logger.Error(err, "unable to list clusters")
 		return requests
 	}
 

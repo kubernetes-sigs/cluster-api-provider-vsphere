@@ -330,7 +330,7 @@ var _ = Describe("ClusterReconciler", func() {
 
 			By("Create the VSphere Deployment Zone")
 			zoneOne = &infrav1.VSphereDeploymentZone{
-				ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("zone-one")},
+				ObjectMeta: metav1.ObjectMeta{Name: "zone-one"},
 				Spec: infrav1.VSphereDeploymentZoneSpec{
 					Server:        testEnv.Simulator.ServerURL().Host,
 					FailureDomain: "fd-one",

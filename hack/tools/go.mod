@@ -9,6 +9,6 @@ require (
 	k8s.io/code-generator v0.22.2
 	sigs.k8s.io/controller-tools v0.7.0
 	sigs.k8s.io/kind v0.7.0
-	sigs.k8s.io/kustomize/kustomize/v3 v3.9.1
+	sigs.k8s.io/kustomize/kustomize/v4 v4.3.0
 	sigs.k8s.io/testing_frameworks v0.1.2
 )

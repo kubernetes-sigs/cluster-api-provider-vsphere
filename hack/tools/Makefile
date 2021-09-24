@@ -80,7 +80,7 @@ $(KIND): go.mod
 
 kustomize: $(KUSTOMIZE) $(SRCS) ## Build kustomize
 $(KUSTOMIZE): go.mod
-	go build -tags=tools -o $@ sigs.k8s.io/kustomize/kustomize/v3
+	go build -tags=tools -o $@ sigs.k8s.io/kustomize/kustomize/v4
 
 ## --------------------------------------
 ## Generate

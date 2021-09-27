@@ -14,10 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha4
-
-// Hub marks VSphereVM as a conversion hub.
-func (*VSphereVM) Hub() {}
-
-// Hub marks VSphereVMList as a conversion hub.
-func (*VSphereVMList) Hub() {}
+// Package v1beta1 contains API Schema definitions for the infrastructure v1beta1 API group
+// +kubebuilder:object:generate=true
+// +groupName=infrastructure.cluster.x-k8s.io
+package v1beta1

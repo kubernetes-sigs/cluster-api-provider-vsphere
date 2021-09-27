@@ -14,13 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha4
+package v1beta1
 
 import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-func (r *VSphereMachineList) SetupWebhookWithManager(mgr ctrl.Manager) error {
+func (r *VSphereDeploymentZoneList) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
 		Complete()

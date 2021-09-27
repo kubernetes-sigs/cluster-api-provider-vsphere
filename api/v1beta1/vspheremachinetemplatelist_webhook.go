@@ -14,10 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha4
+package v1beta1
 
-// Hub marks VSphereMachine as a conversion hub.
-func (*VSphereMachine) Hub() {}
+import (
+	ctrl "sigs.k8s.io/controller-runtime"
+)
 
-// Hub marks VSphereMachineList as a conversion hub.
-func (*VSphereMachineList) Hub() {}
+func (r *VSphereMachineTemplateList) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewWebhookManagedBy(mgr).
+		For(r).
+		Complete()
+}

@@ -28,7 +28,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 
-	nextver "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
+	nextver "sigs.k8s.io/cluster-api-provider-vsphere/api/v1beta1"
 )
 
 func TestFuzzyConversion(t *testing.T) {

@@ -14,41 +14,38 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha4
+package v1beta1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// VSphereClusterTemplateSpec defines the desired state of VSphereClusterTemplate
-type VSphereClusterTemplateSpec struct {
-	Template VSphereClusterTemplateResource `json:"template"`
+// VSphereMachineTemplateSpec defines the desired state of VSphereMachineTemplate
+type VSphereMachineTemplateSpec struct {
+	Template VSphereMachineTemplateResource `json:"template"`
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:path=vsphereclustertemplates,scope=Namespaced,categories=cluster-api
+// +kubebuilder:resource:path=vspheremachinetemplates,scope=Namespaced,categories=cluster-api
+// +kubebuilder:storageversion
 
-// VSphereClusterTemplate is the Schema for the vsphereclustertemplates API
-type VSphereClusterTemplate struct {
+// VSphereMachineTemplate is the Schema for the vspheremachinetemplates API
+type VSphereMachineTemplate struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec VSphereClusterTemplateSpec `json:"spec,omitempty"`
+	Spec VSphereMachineTemplateSpec `json:"spec,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// VSphereClusterTemplateList contains a list of VSphereClusterTemplate.
-type VSphereClusterTemplateList struct {
+// VSphereMachineTemplateList contains a list of VSphereMachineTemplate
+type VSphereMachineTemplateList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []VSphereClusterTemplate `json:"items"`
+	Items           []VSphereMachineTemplate `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&VSphereClusterTemplate{}, &VSphereClusterTemplateList{})
-}
-
-type VSphereClusterTemplateResource struct {
-	Spec VSphereClusterSpec `json:"spec"`
+	SchemeBuilder.Register(&VSphereMachineTemplate{}, &VSphereMachineTemplateList{})
 }

@@ -11,10 +11,10 @@ require (
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.15.0
 	github.com/pkg/errors v0.9.1
-	github.com/spf13/cobra v1.1.3
+	github.com/spf13/cobra v1.2.1
 	github.com/vmware/govmomi v0.23.1
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
-	golang.org/x/oauth2 v0.0.0-20210615190721-d04028783cf1
+	golang.org/x/oauth2 v0.0.0-20210628180205-a41e5a781914
 	gopkg.in/gcfg.v1 v1.2.3
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	k8s.io/api v0.22.2
@@ -24,7 +24,7 @@ require (
 	k8s.io/component-base v0.22.2
 	k8s.io/klog/v2 v2.9.0
 	k8s.io/utils v0.0.0-20210819203725-bdf08cb9a70a
-	sigs.k8s.io/cluster-api v0.4.0
+	sigs.k8s.io/cluster-api v0.4.4-0.20210924162544-f2cc2113db1e
 	sigs.k8s.io/cluster-api/test v0.4.0
 	sigs.k8s.io/controller-runtime v0.10.1
 	sigs.k8s.io/kind v0.11.1
@@ -34,5 +34,5 @@ require (
 replace (
 	github.com/onsi/ginkgo => github.com/onsi/ginkgo v1.16.1
 	github.com/onsi/gomega => github.com/onsi/gomega v1.11.0
-	sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v0.4.0
+	sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v0.4.4-0.20210924162544-f2cc2113db1e
 )

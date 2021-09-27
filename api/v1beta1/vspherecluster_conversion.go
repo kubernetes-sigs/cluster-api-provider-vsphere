@@ -14,14 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha4
+package v1beta1
 
-import (
-	ctrl "sigs.k8s.io/controller-runtime"
-)
+// Hub marks VSphereCluster as a conversion hub.
+func (*VSphereCluster) Hub() {}
 
-func (r *VSphereVMList) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(r).
-		Complete()
-}
+// Hub marks VSphereClusterList as a conversion hub.
+func (*VSphereClusterList) Hub() {}

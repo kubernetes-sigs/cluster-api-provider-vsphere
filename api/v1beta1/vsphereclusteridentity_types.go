@@ -14,11 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha4
+package v1beta1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 const (
@@ -79,6 +79,7 @@ func (c *VSphereClusterIdentity) SetConditions(conditions clusterv1.Conditions) 
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=vsphereclusteridentities,scope=Cluster,categories=cluster-api
+// +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 
 // VSphereClusterIdentity defines the account to be used for reconciling clusters

@@ -18,7 +18,21 @@ spec:
     singular: vspherecluster
   scope: Namespaced
   versions:
-  - name: v1alpha3
+  - additionalPrinterColumns:
+    - description: Cluster infrastructure is ready for VSphereMachine
+      jsonPath: .status.ready
+      name: Ready
+      type: string
+    - description: Server is the address of the vSphere endpoint
+      jsonPath: .spec.server
+      name: Server
+      type: string
+    - description: API Endpoint
+      jsonPath: .spec.controlPlaneEndpoint[0]
+      name: ControlPlaneEndpoint
+      priority: 1
+      type: string
+    name: v1alpha3
     schema:
       openAPIV3Schema:
         description: VSphereCluster is the Schema for the vsphereclusters API
@@ -394,7 +408,7 @@ spec:
       jsonPath: .status.ready
       name: Ready
       type: string
-    - description: Server is the address of the vSphere endpoint.
+    - description: Server is the address of the vSphere endpoint
       jsonPath: .spec.server
       name: Server
       type: string

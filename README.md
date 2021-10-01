@@ -38,7 +38,7 @@ This provider's versions are compatible with the following versions of Cluster A
 | CAPV v1alpha2 (v0.5)         |              ☓              |              ✓              |              ☓              |               ☓            |
 | CAPV v1alpha3 (v0.6)         |              ☓              |              ☓              |              ✓              |               ☓            |
 | CAPV v1alpha3 (v0.7)         |              ☓              |              ☓              |              ✓              |               ☓            |
-| CAPV v1alpha3 (v0.8, master) |              ☓              |              ☓              |              ☓              |               ✓            |
+| CAPV v1alpha4 (v0.8, master) |              ☓              |              ☓              |              ☓              |               ✓            |
 
 |                              | Kubernetes 1.13 | Kubernetes 1.14 | Kubernetes 1.15 |
 | ---------------------------- | :-------------: | :-------------: | :-------------: |

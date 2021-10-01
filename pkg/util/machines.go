@@ -28,10 +28,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	apitypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/integer"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1beta1"
 )
 
 // GetMachinesInCluster gets a cluster's Machine resources.

@@ -6,7 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/env"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/util"
-	addonsv1alpha4 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha4"
+	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	"sigs.k8s.io/yaml"
 )
 
@@ -23,12 +23,12 @@ func newSecret(name string, o runtime.Object) *v1.Secret {
 		StringData: map[string]string{
 			"data": util.GenerateObjectYAML(o, []util.Replacement{}),
 		},
-		Type: addonsv1alpha4.ClusterResourceSetSecretType,
+		Type: addonsv1.ClusterResourceSetSecretType,
 	}
 }
 
-func appendSecretToCrsResource(crs *addonsv1alpha4.ClusterResourceSet, generatedSecret *v1.Secret) {
-	crs.Spec.Resources = append(crs.Spec.Resources, addonsv1alpha4.ResourceRef{
+func appendSecretToCrsResource(crs *addonsv1.ClusterResourceSet, generatedSecret *v1.Secret) {
+	crs.Spec.Resources = append(crs.Spec.Resources, addonsv1.ResourceRef{
 		Name: generatedSecret.Name,
 		Kind: "Secret",
 	})
@@ -65,8 +65,8 @@ func newConfigMapManifests(name string, o []runtime.Object) *v1.ConfigMap {
 	}
 }
 
-func appendConfigMapToCrsResource(crs *addonsv1alpha4.ClusterResourceSet, generatedConfigMap *v1.ConfigMap) {
-	crs.Spec.Resources = append(crs.Spec.Resources, addonsv1alpha4.ResourceRef{
+func appendConfigMapToCrsResource(crs *addonsv1.ClusterResourceSet, generatedConfigMap *v1.ConfigMap) {
+	crs.Spec.Resources = append(crs.Spec.Resources, addonsv1.ResourceRef{
 		Name: generatedConfigMap.Name,
 		Kind: "ConfigMap",
 	})

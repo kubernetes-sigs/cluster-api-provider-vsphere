@@ -12,11 +12,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/env"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/cloudprovider"
-	addonsv1alpha4 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha4"
+	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 )
 
 // CreateCrsResourceObjectsCPI creates the api objects necessary for CSI to function. Also appends the resources to the CRS
-func CreateCrsResourceObjectsCPI(crs *addonsv1alpha4.ClusterResourceSet) []runtime.Object {
+func CreateCrsResourceObjectsCPI(crs *addonsv1.ClusterResourceSet) []runtime.Object {
 	serviceAccount := cloudprovider.CloudControllerManagerServiceAccount()
 	serviceAccount.TypeMeta = metav1.TypeMeta{
 		Kind:       "ServiceAccount",

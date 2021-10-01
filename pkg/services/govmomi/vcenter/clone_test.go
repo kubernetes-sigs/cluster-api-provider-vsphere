@@ -28,7 +28,7 @@ import (
 	// run init func to register the tagging API endpoints
 	_ "github.com/vmware/govmomi/vapi/simulator"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
+	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 )
@@ -96,11 +96,11 @@ func TestGetDiskSpec(t *testing.T) {
 	for _, test := range testCases {
 		tc := test
 		t.Run(tc.name, func(t *testing.T) {
-			cloneSpec := v1alpha4.VirtualMachineCloneSpec{
+			cloneSpec := v1beta1.VirtualMachineCloneSpec{
 				DiskGiB: tc.cloneDiskSize,
 			}
-			vsphereVM := &v1alpha4.VSphereVM{
-				Spec: v1alpha4.VSphereVMSpec{
+			vsphereVM := &v1beta1.VSphereVM{
+				Spec: v1beta1.VSphereVMSpec{
 					VirtualMachineCloneSpec: cloneSpec,
 				},
 			}

@@ -42,7 +42,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -51,7 +51,8 @@ import (
 	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
 
 	infrav1alpha3 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
+	infrav1alpha4 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
 )
@@ -80,8 +81,9 @@ func init() {
 	utilruntime.Must(apiextensionsv1.AddToScheme(scheme))
 	utilruntime.Must(admissionv1.AddToScheme(scheme))
 	utilruntime.Must(clusterv1.AddToScheme(scheme))
-	utilruntime.Must(infrav1.AddToScheme(scheme))
 	utilruntime.Must(infrav1alpha3.AddToScheme(scheme))
+	utilruntime.Must(infrav1alpha4.AddToScheme(scheme))
+	utilruntime.Must(infrav1.AddToScheme(scheme))
 
 	// Get the root of the current file to use in CRD paths.
 	_, filename, _, _ := goruntime.Caller(0) //nolint

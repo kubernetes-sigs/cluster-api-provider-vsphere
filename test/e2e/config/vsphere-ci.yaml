@@ -102,6 +102,8 @@ variables:
   VSPHERE_STORAGE_POLICY: "Cluster API vSphere Storage Policy"
   VSPHERE_NETWORK: "sddc-cgw-network-6"
   VSPHERE_TEMPLATE: "ubuntu-1804-kube-v1.19.1"
+  INIT_WITH_BINARY_V1ALPHA3: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.23/clusterctl-{OS}-{ARCH}"
+  INIT_WITH_BINARY_V1ALPHA4: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.4/clusterctl-{OS}-{ARCH}"
 
 intervals:
   default/wait-controllers: ["5m", "10s"]

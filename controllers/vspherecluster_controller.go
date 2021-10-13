@@ -213,10 +213,6 @@ func (r clusterReconciler) Reconcile(ctx goctx.Context, req ctrl.Request) (_ ctr
 func (r clusterReconciler) reconcileDelete(ctx *context.ClusterContext) (reconcile.Result, error) {
 	ctx.Logger.Info("Reconciling VSphereCluster delete")
 
-	// ccm and csi needs the control plane endpoint (which is removed when the VSphereCluster is)
-	conditions.MarkFalse(ctx.VSphereCluster, infrav1.CCMAvailableCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
-	conditions.MarkFalse(ctx.VSphereCluster, infrav1.CSIAvailableCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
-
 	vsphereMachines, err := infrautilv1.GetVSphereMachinesInCluster(ctx, ctx.Client, ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
 	if err != nil {
 		return reconcile.Result{}, errors.Wrapf(err,
@@ -298,8 +294,6 @@ func (r clusterReconciler) reconcileNormal(ctx *context.ClusterContext) (reconci
 
 	// If the cluster is deleted, that's mean that the workload cluster is being deleted and so the CCM/CSI instances
 	if !ctx.Cluster.DeletionTimestamp.IsZero() {
-		conditions.MarkFalse(ctx.VSphereCluster, infrav1.CCMAvailableCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
-		conditions.MarkFalse(ctx.VSphereCluster, infrav1.CSIAvailableCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
 		return reconcile.Result{}, nil
 	}
 
@@ -307,8 +301,6 @@ func (r clusterReconciler) reconcileNormal(ctx *context.ClusterContext) (reconci
 	if !r.isAPIServerOnline(ctx) {
 		return reconcile.Result{}, nil
 	}
-
-	conditions.MarkTrue(ctx.VSphereCluster, infrav1.CSIAvailableCondition)
 
 	return reconcile.Result{}, nil
 }

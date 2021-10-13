@@ -21,33 +21,6 @@ import clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 // Conditions and condition Reasons for the VSphereCluster object.
 
 const (
-	// LoadBalancerAvailableCondition documents the status of the VSphereCluster load balancer.
-	LoadBalancerAvailableCondition clusterv1.ConditionType = "LoadBalancerAvailable"
-
-	// LoadBalancerProvisioningReason (Severity=Info) documents a VSphereCluster provisioning a load balancer.
-	LoadBalancerProvisioningReason = "LoadBalancerProvisioning"
-
-	// LoadBalancerProvisioningFailedReason (Severity=Warning) documents a VSphereCluster controller detecting
-	// while provisioning the load balancer; those kind of errors are usually transient and failed provisioning
-	// are automatically re-tried by the controller.
-	LoadBalancerProvisioningFailedReason = "LoadBalancerProvisioningFailed"
-
-	// CCMAvailableCondition documents the status of the VSphereCluster cloud controller manager addon.
-	CCMAvailableCondition clusterv1.ConditionType = "CCMAvailable"
-
-	// CCMProvisioningFailedReason (Severity=Warning) documents a VSphereCluster controller detecting
-	// while installing the cloud controller manager addon; those kind of errors are usually transient
-	// the operation is automatically re-tried by the controller.
-	CCMProvisioningFailedReason = "CCMProvisioningFailed"
-
-	// CSIAvailableCondition documents the status of the VSphereCluster container storage interface addon.
-	CSIAvailableCondition clusterv1.ConditionType = "CSIAvailable"
-
-	// CSIProvisioningFailedReason (Severity=Warning) documents a VSphereCluster controller detecting
-	// while installing the container storage interface  addon; those kind of errors are usually transient
-	// the operation is automatically re-tried by the controller.
-	CSIProvisioningFailedReason = "CSIProvisioningFailed"
-
 	// FailureDomainsAvailableCondition documents the status of the failure domains
 	// associated to the VSphereCluster.
 	FailureDomainsAvailableCondition clusterv1.ConditionType = "FailureDomainsAvailable"

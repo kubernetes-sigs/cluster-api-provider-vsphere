@@ -9,11 +9,10 @@ webhooks:
 - admissionReviewVersions:
   - v1beta1
   clientConfig:
-    caBundle: Cg==
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-infrastructure-cluster-x-k8s-io-v1alpha4-vspheredeploymentzone
+      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta1-vspheredeploymentzone
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: default.vspheredeploymentzone.infrastructure.cluster.x-k8s.io
@@ -21,7 +20,7 @@ webhooks:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1alpha4
+    - v1beta1
     operations:
     - CREATE
     - UPDATE
@@ -31,11 +30,10 @@ webhooks:
 - admissionReviewVersions:
   - v1beta1
   clientConfig:
-    caBundle: Cg==
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-infrastructure-cluster-x-k8s-io-v1alpha4-vspherefailuredomain
+      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta1-vspherefailuredomain
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: default.vspherefailuredomain.infrastructure.cluster.x-k8s.io
@@ -43,7 +41,7 @@ webhooks:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1alpha4
+    - v1beta1
     operations:
     - CREATE
     - UPDATE
@@ -61,11 +59,10 @@ webhooks:
 - admissionReviewVersions:
   - v1beta1
   clientConfig:
-    caBundle: Cg==
     service:
       name: webhook-service
       namespace: system
-      path: /validate-infrastructure-cluster-x-k8s-io-v1alpha4-vsphereclustertemplate
+      path: /validate-infrastructure-cluster-x-k8s-io-v1beta1-vsphereclustertemplate
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: validation.vsphereclustertemplate.infrastructure.x-k8s.io
@@ -73,7 +70,7 @@ webhooks:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1alpha4
+    - v1beta1
     operations:
     - CREATE
     - UPDATE
@@ -83,11 +80,10 @@ webhooks:
 - admissionReviewVersions:
   - v1beta1
   clientConfig:
-    caBundle: Cg==
     service:
       name: webhook-service
       namespace: system
-      path: /validate-infrastructure-cluster-x-k8s-io-v1alpha4-vspherefailuredomain
+      path: /validate-infrastructure-cluster-x-k8s-io-v1beta1-vspherefailuredomain
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: validation.vspherefailuredomain.infrastructure.cluster.x-k8s.io
@@ -95,7 +91,7 @@ webhooks:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1alpha4
+    - v1beta1
     operations:
     - CREATE
     - UPDATE
@@ -105,11 +101,10 @@ webhooks:
 - admissionReviewVersions:
   - v1beta1
   clientConfig:
-    caBundle: Cg==
     service:
       name: webhook-service
       namespace: system
-      path: /validate-infrastructure-cluster-x-k8s-io-v1alpha4-vspheremachine
+      path: /validate-infrastructure-cluster-x-k8s-io-v1beta1-vspheremachine
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: validation.vspheremachine.infrastructure.x-k8s.io
@@ -117,7 +112,7 @@ webhooks:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1alpha4
+    - v1beta1
     operations:
     - CREATE
     - UPDATE
@@ -127,11 +122,10 @@ webhooks:
 - admissionReviewVersions:
   - v1beta1
   clientConfig:
-    caBundle: Cg==
     service:
       name: webhook-service
       namespace: system
-      path: /validate-infrastructure-cluster-x-k8s-io-v1alpha4-vspheremachinetemplate
+      path: /validate-infrastructure-cluster-x-k8s-io-v1beta1-vspheremachinetemplate
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: validation.vspheremachinetemplate.infrastructure.x-k8s.io
@@ -139,7 +133,7 @@ webhooks:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1alpha4
+    - v1beta1
     operations:
     - CREATE
     - UPDATE
@@ -149,11 +143,10 @@ webhooks:
 - admissionReviewVersions:
   - v1beta1
   clientConfig:
-    caBundle: Cg==
     service:
       name: webhook-service
       namespace: system
-      path: /validate-infrastructure-cluster-x-k8s-io-v1alpha4-vspherevm
+      path: /validate-infrastructure-cluster-x-k8s-io-v1beta1-vspherevm
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: validation.vspherevm.infrastructure.x-k8s.io
@@ -161,7 +154,7 @@ webhooks:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1alpha4
+    - v1beta1
     operations:
     - CREATE
     - UPDATE

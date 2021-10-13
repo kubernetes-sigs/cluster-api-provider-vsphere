@@ -17,30 +17,30 @@ limitations under the License.
 package v1alpha3
 
 import (
-	infrav1alpha4 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
+	infrav1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
-// ConvertTo converts this VSphereVM to the Hub version (v1alpha4).
+// ConvertTo converts this VSphereVM to the Hub version (v1beta1).
 func (src *VSphereVM) ConvertTo(dstRaw conversion.Hub) error { // nolint
-	dst := dstRaw.(*infrav1alpha4.VSphereVM)
-	return Convert_v1alpha3_VSphereVM_To_v1alpha4_VSphereVM(src, dst, nil)
+	dst := dstRaw.(*infrav1beta1.VSphereVM)
+	return Convert_v1alpha3_VSphereVM_To_v1beta1_VSphereVM(src, dst, nil)
 }
 
-// ConvertFrom converts from the Hub version (v1alpha4) to this VSphereVM.
+// ConvertFrom converts from the Hub version (v1beta1) to this VSphereVM.
 func (dst *VSphereVM) ConvertFrom(srcRaw conversion.Hub) error { // nolint
-	src := srcRaw.(*infrav1alpha4.VSphereVM)
-	return Convert_v1alpha4_VSphereVM_To_v1alpha3_VSphereVM(src, dst, nil)
+	src := srcRaw.(*infrav1beta1.VSphereVM)
+	return Convert_v1beta1_VSphereVM_To_v1alpha3_VSphereVM(src, dst, nil)
 }
 
-// ConvertTo converts this VSphereVMList to the Hub version (v1alpha4).
+// ConvertTo converts this VSphereVMList to the Hub version (v1beta1).
 func (src *VSphereVMList) ConvertTo(dstRaw conversion.Hub) error { // nolint
-	dst := dstRaw.(*infrav1alpha4.VSphereVMList)
-	return Convert_v1alpha3_VSphereVMList_To_v1alpha4_VSphereVMList(src, dst, nil)
+	dst := dstRaw.(*infrav1beta1.VSphereVMList)
+	return Convert_v1alpha3_VSphereVMList_To_v1beta1_VSphereVMList(src, dst, nil)
 }
 
-// ConvertFrom converts this VSphereVM to the Hub version (v1alpha4).
+// ConvertFrom converts this VSphereVM to the Hub version (v1beta1).
 func (dst *VSphereVMList) ConvertFrom(srcRaw conversion.Hub) error { // nolint
-	src := srcRaw.(*infrav1alpha4.VSphereVMList)
-	return Convert_v1alpha4_VSphereVMList_To_v1alpha3_VSphereVMList(src, dst, nil)
+	src := srcRaw.(*infrav1beta1.VSphereVMList)
+	return Convert_v1beta1_VSphereVMList_To_v1alpha3_VSphereVMList(src, dst, nil)
 }

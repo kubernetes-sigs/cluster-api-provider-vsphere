@@ -20,14 +20,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/env"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/util"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/identity"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
-	addonsv1alpha4 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	"sigs.k8s.io/yaml"
 )
 
@@ -323,20 +323,20 @@ func kubeVIPPod() string {
 	}
 	return string(podBytes)
 }
-func newClusterResourceSet(cluster clusterv1.Cluster) addonsv1alpha4.ClusterResourceSet {
-	crs := addonsv1alpha4.ClusterResourceSet{
+func newClusterResourceSet(cluster clusterv1.Cluster) addonsv1.ClusterResourceSet {
+	crs := addonsv1.ClusterResourceSet{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       util.TypeToKind(&addonsv1alpha4.ClusterResourceSet{}),
-			APIVersion: addonsv1alpha4.GroupVersion.String(),
+			Kind:       util.TypeToKind(&addonsv1.ClusterResourceSet{}),
+			APIVersion: addonsv1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cluster.Name + env.ClusterResourceSetNameSuffix,
 			Labels:    clusterLabels(),
 			Namespace: cluster.Namespace,
 		},
-		Spec: addonsv1alpha4.ClusterResourceSetSpec{
+		Spec: addonsv1.ClusterResourceSetSpec{
 			ClusterSelector: metav1.LabelSelector{MatchLabels: clusterLabels()},
-			Resources:       []addonsv1alpha4.ResourceRef{},
+			Resources:       []addonsv1.ResourceRef{},
 		},
 	}
 

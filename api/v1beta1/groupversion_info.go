@@ -14,22 +14,28 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha4
+package v1beta1
 
 import (
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/util/validation/field"
+	"sigs.k8s.io/controller-runtime/pkg/scheme"
 )
 
-func aggregateObjErrors(gk schema.GroupKind, name string, allErrs field.ErrorList) error {
-	if len(allErrs) == 0 {
-		return nil
-	}
+const (
+	// Version is the API version.
+	Version = "v1beta1"
 
-	return apierrors.NewInvalid(
-		gk,
-		name,
-		allErrs,
-	)
-}
+	// GroupName is the name of the API group.
+	GroupName = "infrastructure.cluster.x-k8s.io"
+)
+
+var (
+	// GroupVersion is group version used to register these objects
+	GroupVersion = schema.GroupVersion{Group: GroupName, Version: Version}
+
+	// SchemeBuilder is used to add go types to the GroupVersionKind scheme
+	SchemeBuilder = &scheme.Builder{GroupVersion: GroupVersion}
+
+	// AddToScheme adds the types in this group-version to the given scheme.
+	AddToScheme = SchemeBuilder.AddToScheme
+)

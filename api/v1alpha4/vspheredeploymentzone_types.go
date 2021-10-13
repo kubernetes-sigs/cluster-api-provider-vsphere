@@ -77,7 +77,6 @@ type VSphereDeploymentZoneStatus struct {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:storageversion
 // +kubebuilder:resource:path=vspheredeploymentzones,scope=Cluster,categories=cluster-api
 // +kubebuilder:subresource:status
 

@@ -79,7 +79,6 @@ func (c *VSphereClusterIdentity) SetConditions(conditions clusterv1.Conditions) 
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=vsphereclusteridentities,scope=Cluster,categories=cluster-api
-// +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 
 // VSphereClusterIdentity defines the account to be used for reconciling clusters

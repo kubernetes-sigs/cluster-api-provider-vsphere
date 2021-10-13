@@ -30,7 +30,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -46,7 +46,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/identity"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
@@ -213,10 +213,6 @@ func (r clusterReconciler) Reconcile(ctx goctx.Context, req ctrl.Request) (_ ctr
 func (r clusterReconciler) reconcileDelete(ctx *context.ClusterContext) (reconcile.Result, error) {
 	ctx.Logger.Info("Reconciling VSphereCluster delete")
 
-	// ccm and csi needs the control plane endpoint (which is removed when the VSphereCluster is)
-	conditions.MarkFalse(ctx.VSphereCluster, infrav1.CCMAvailableCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
-	conditions.MarkFalse(ctx.VSphereCluster, infrav1.CSIAvailableCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
-
 	vsphereMachines, err := infrautilv1.GetVSphereMachinesInCluster(ctx, ctx.Client, ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
 	if err != nil {
 		return reconcile.Result{}, errors.Wrapf(err,
@@ -298,8 +294,6 @@ func (r clusterReconciler) reconcileNormal(ctx *context.ClusterContext) (reconci
 
 	// If the cluster is deleted, that's mean that the workload cluster is being deleted and so the CCM/CSI instances
 	if !ctx.Cluster.DeletionTimestamp.IsZero() {
-		conditions.MarkFalse(ctx.VSphereCluster, infrav1.CCMAvailableCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
-		conditions.MarkFalse(ctx.VSphereCluster, infrav1.CSIAvailableCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
 		return reconcile.Result{}, nil
 	}
 
@@ -307,8 +301,6 @@ func (r clusterReconciler) reconcileNormal(ctx *context.ClusterContext) (reconci
 	if !r.isAPIServerOnline(ctx) {
 		return reconcile.Result{}, nil
 	}
-
-	conditions.MarkTrue(ctx.VSphereCluster, infrav1.CSIAvailableCondition)
 
 	return reconcile.Result{}, nil
 }
@@ -582,7 +574,7 @@ func (r clusterReconciler) deploymentZoneToCluster(o client.Object) []ctrl.Reque
 	var clusterList infrav1.VSphereClusterList
 	err := r.Client.List(r.Context, &clusterList)
 	if err != nil {
-		r.Logger.Error(err, fmt.Sprintf("unable to list clusters"))
+		r.Logger.Error(err, "unable to list clusters")
 		return requests
 	}
 

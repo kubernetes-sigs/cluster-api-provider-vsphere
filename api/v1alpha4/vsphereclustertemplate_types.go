@@ -27,7 +27,6 @@ type VSphereClusterTemplateSpec struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=vsphereclustertemplates,scope=Namespaced,categories=cluster-api
-// +kubebuilder:storageversion
 
 // VSphereClusterTemplate is the Schema for the vsphereclustertemplates API
 type VSphereClusterTemplate struct {

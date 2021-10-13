@@ -31,12 +31,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/identity"
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers"
@@ -330,7 +330,7 @@ var _ = Describe("ClusterReconciler", func() {
 
 			By("Create the VSphere Deployment Zone")
 			zoneOne = &infrav1.VSphereDeploymentZone{
-				ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("zone-one")},
+				ObjectMeta: metav1.ObjectMeta{Name: "zone-one"},
 				Spec: infrav1.VSphereDeploymentZoneSpec{
 					Server:        testEnv.Simulator.ServerURL().Host,
 					FailureDomain: "fd-one",

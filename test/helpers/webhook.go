@@ -26,9 +26,10 @@ import (
 	"strings"
 	"time"
 
+	v1 "k8s.io/api/admissionregistration/v1"
+
 	"k8s.io/klog/v2"
 	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 )
 
@@ -41,8 +42,9 @@ const (
 
 // Mutate the name of each webhook, because kubebuilder generates the same name for all controllers.
 // In normal usage, kustomize will prefix the controller name, which we have to do manually here.
-func appendWebhookConfiguration(configyamlFile []byte, tag string) ([]client.Object, []client.Object, error) {
-	var mutatingWebhooks, validatingWebhooks []client.Object
+func appendWebhookConfiguration(configyamlFile []byte, tag string) ([]v1.MutatingWebhookConfiguration, []v1.ValidatingWebhookConfiguration, error) {
+	var mutatingWebhooks []v1.MutatingWebhookConfiguration
+	var validatingWebhooks []v1.ValidatingWebhookConfiguration
 	objs, err := utilyaml.ToUnstructured(configyamlFile)
 	if err != nil {
 		klog.Fatalf("failed to parse yaml")
@@ -53,15 +55,23 @@ func appendWebhookConfiguration(configyamlFile []byte, tag string) ([]client.Obj
 		if o.GetKind() == mutatingWebhookKind {
 			// update the name in metadata
 			if o.GetName() == mutatingwebhook {
+				var m v1.MutatingWebhookConfiguration
 				o.SetName(strings.Join([]string{mutatingwebhook, "-", tag}, ""))
-				mutatingWebhooks = append(mutatingWebhooks, &o)
+				if err := scheme.Convert(&o, &m, nil); err != nil {
+					return nil, nil, err
+				}
+				mutatingWebhooks = append(mutatingWebhooks, m)
 			}
 		}
 		if o.GetKind() == validatingWebhookKind {
 			// update the name in metadata
 			if o.GetName() == validatingwebhook {
+				var v v1.ValidatingWebhookConfiguration
 				o.SetName(strings.Join([]string{validatingwebhook, "-", tag}, ""))
-				validatingWebhooks = append(validatingWebhooks, &o)
+				if err := scheme.Convert(&o, &v, nil); err != nil {
+					return nil, nil, err
+				}
+				validatingWebhooks = append(validatingWebhooks, v)
 			}
 		}
 	}

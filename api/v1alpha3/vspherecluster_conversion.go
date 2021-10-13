@@ -18,20 +18,20 @@ package v1alpha3
 
 import (
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
-	infrav1alpha4 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
+	infrav1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1beta1"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
-// ConvertTo converts this VSphereCluster to the Hub version (v1alpha4).
+// ConvertTo converts this VSphereCluster to the Hub version (v1beta1).
 func (src *VSphereCluster) ConvertTo(dstRaw conversion.Hub) error { // nolint
-	dst := dstRaw.(*infrav1alpha4.VSphereCluster)
-	if err := Convert_v1alpha3_VSphereCluster_To_v1alpha4_VSphereCluster(src, dst, nil); err != nil {
+	dst := dstRaw.(*infrav1beta1.VSphereCluster)
+	if err := Convert_v1alpha3_VSphereCluster_To_v1beta1_VSphereCluster(src, dst, nil); err != nil {
 		return err
 	}
 
 	// Manually restore data.
-	restored := &infrav1alpha4.VSphereCluster{}
+	restored := &infrav1beta1.VSphereCluster{}
 	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
 		return err
 	}
@@ -41,10 +41,10 @@ func (src *VSphereCluster) ConvertTo(dstRaw conversion.Hub) error { // nolint
 	return nil
 }
 
-// ConvertFrom converts from the Hub version (v1alpha4) to this VSphereCluster.
+// ConvertFrom converts from the Hub version (v1beta1) to this VSphereCluster.
 func (dst *VSphereCluster) ConvertFrom(srcRaw conversion.Hub) error { // nolint
-	src := srcRaw.(*infrav1alpha4.VSphereCluster)
-	if err := Convert_v1alpha4_VSphereCluster_To_v1alpha3_VSphereCluster(src, dst, nil); err != nil {
+	src := srcRaw.(*infrav1beta1.VSphereCluster)
+	if err := Convert_v1beta1_VSphereCluster_To_v1alpha3_VSphereCluster(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -55,22 +55,18 @@ func (dst *VSphereCluster) ConvertFrom(srcRaw conversion.Hub) error { // nolint
 	return nil
 }
 
-// ConvertTo converts this VSphereClusterList to the Hub version (v1alpha4).
+// ConvertTo converts this VSphereClusterList to the Hub version (v1beta1).
 func (src *VSphereClusterList) ConvertTo(dstRaw conversion.Hub) error { // nolint
-	dst := dstRaw.(*infrav1alpha4.VSphereClusterList)
-	return Convert_v1alpha3_VSphereClusterList_To_v1alpha4_VSphereClusterList(src, dst, nil)
+	dst := dstRaw.(*infrav1beta1.VSphereClusterList)
+	return Convert_v1alpha3_VSphereClusterList_To_v1beta1_VSphereClusterList(src, dst, nil)
 }
 
-// ConvertFrom converts this VSphereVM to the Hub version (v1alpha4).
+// ConvertFrom converts this VSphereVM to the Hub version (v1beta1).
 func (dst *VSphereClusterList) ConvertFrom(srcRaw conversion.Hub) error { // nolint
-	src := srcRaw.(*infrav1alpha4.VSphereClusterList)
-	return Convert_v1alpha4_VSphereClusterList_To_v1alpha3_VSphereClusterList(src, dst, nil)
+	src := srcRaw.(*infrav1beta1.VSphereClusterList)
+	return Convert_v1beta1_VSphereClusterList_To_v1alpha3_VSphereClusterList(src, dst, nil)
 }
 
-func Convert_v1alpha4_VSphereClusterSpec_To_v1alpha3_VSphereClusterSpec(in *infrav1alpha4.VSphereClusterSpec, out *VSphereClusterSpec, s apiconversion.Scope) error { // nolint
-	return autoConvert_v1alpha4_VSphereClusterSpec_To_v1alpha3_VSphereClusterSpec(in, out, s)
-}
-
-func Convert_v1alpha3_VSphereClusterSpec_To_v1alpha4_VSphereClusterSpec(in *VSphereClusterSpec, out *infrav1alpha4.VSphereClusterSpec, s apiconversion.Scope) error { //nolint
-	return autoConvert_v1alpha3_VSphereClusterSpec_To_v1alpha4_VSphereClusterSpec(in, out, s)
+func Convert_v1alpha3_VSphereClusterSpec_To_v1beta1_VSphereClusterSpec(in *VSphereClusterSpec, out *infrav1beta1.VSphereClusterSpec, s apiconversion.Scope) error { //nolint
+	return autoConvert_v1alpha3_VSphereClusterSpec_To_v1beta1_VSphereClusterSpec(in, out, s)
 }

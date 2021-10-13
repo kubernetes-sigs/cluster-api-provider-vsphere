@@ -62,7 +62,6 @@ type VSphereClusterStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=vsphereclusters,scope=Namespaced,categories=cluster-api
-// +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="Cluster infrastructure is ready for VSphereMachine"
 // +kubebuilder:printcolumn:name="Server",type="string",JSONPath=".spec.server",description="Server is the address of the vSphere endpoint."

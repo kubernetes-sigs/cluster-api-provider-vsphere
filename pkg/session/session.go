@@ -35,7 +35,7 @@ import (
 	"github.com/vmware/govmomi/vim25/soap"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
+	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/constants"
 )
 
@@ -138,7 +138,7 @@ func GetOrCreate(ctx context.Context, params *Params) (*Session, error) {
 	}
 
 	session := Session{Client: client}
-	session.UserAgent = v1alpha4.GroupVersion.String()
+	session.UserAgent = v1beta1.GroupVersion.String()
 
 	// Assign the finder to the session.
 	session.Finder = find.NewFinder(session.Client.Client, false)

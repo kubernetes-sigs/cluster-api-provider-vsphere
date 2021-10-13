@@ -209,6 +209,7 @@ generate-go: $(CONTROLLER_GEN) $(CONVERSION_GEN) ## Runs Go related generate tar
 
 	$(CONVERSION_GEN) \
 		--input-dirs=./api/v1alpha3 \
+		--input-dirs=./api/v1alpha4 \
 		--output-file-base=zz_generated.conversion $(OUTPUT_BASE) \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
 

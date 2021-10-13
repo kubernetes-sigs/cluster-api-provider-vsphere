@@ -119,20 +119,34 @@ test: $(GOVC)
 e2e-image: ## Build the e2e manager image
 	docker build --build-arg ldflags="$(LDFLAGS)" --tag="gcr.io/k8s-staging-cluster-api/capv-manager:e2e" .
 
-.PHONY: e2e
-e2e: e2e-image
-e2e: $(GINKGO) $(KUSTOMIZE) $(KIND) $(GOVC) ## Run e2e tests
+.PHONY: e2e-templates
+e2e-templates: ## Generate e2e cluster templates
 	$(MAKE) release-manifests
-	cp $(RELEASE_DIR)/cluster-template.yaml $(E2E_TEMPLATE_DIR)/kustomization/cluster-template.yaml
-	"$(KUSTOMIZE)" build $(E2E_TEMPLATE_DIR)/kustomization > $(E2E_TEMPLATE_DIR)/cluster-template.yaml
+	cp $(RELEASE_DIR)/cluster-template.yaml $(E2E_TEMPLATE_DIR)/kustomization/base/cluster-template.yaml
+	"$(KUSTOMIZE)" build $(E2E_TEMPLATE_DIR)/kustomization/base > $(E2E_TEMPLATE_DIR)/cluster-template.yaml
+	"$(KUSTOMIZE)" build $(E2E_TEMPLATE_DIR)/kustomization/remote-management > $(E2E_TEMPLATE_DIR)/cluster-template-remote-management.yaml
+
+.PHONY: e2e
+e2e: e2e-image e2e-templates
+e2e: $(GINKGO) $(KUSTOMIZE) $(KIND) $(GOVC) ## Run e2e tests
 	@echo PATH=$(PATH)
 	@echo
 	@echo Contents of $(TOOLS_BIN_DIR):
 	@ls $(TOOLS_BIN_DIR)
 	@echo
 
-	time $(GINKGO) -v ./test/e2e -- --e2e.config="$(E2E_CONF_FILE)"
+	time $(GINKGO) -v -skip="ClusterAPI Upgrade Tests" ./test/e2e -- --e2e.config="$(E2E_CONF_FILE)"
 
+.PHONY: e2e-upgrade
+e2e-upgrade: e2e-image e2e-templates
+e2e-upgrade: $(GINKGO) $(KUSTOMIZE) $(KIND) $(GOVC) ## Run e2e tests
+	@echo PATH=$(PATH)
+	@echo
+	@echo Contents of $(TOOLS_BIN_DIR):
+	@ls $(TOOLS_BIN_DIR)
+	@echo
+
+	time $(GINKGO) -v -focus="ClusterAPI Upgrade Tests" ./test/e2e -- --e2e.config="$(E2E_CONF_FILE)"
 ## --------------------------------------
 ## Binaries
 ## --------------------------------------

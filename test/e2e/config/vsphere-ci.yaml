@@ -28,6 +28,24 @@ providers:
   - name: cluster-api
     type: CoreProvider
     versions:
+      - name: v0.3.23 # latest published release in the v1alpha3 series; this is used for v1alpha3 --> v1beta1 clusterctl upgrades test only.
+        value: https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.23/core-components.yaml
+        type: url
+        contract: v1alpha3
+        files:
+          - sourcePath: "../data/shared/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+      - name: v0.4.4 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
+        contract: v1alpha4
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.4/core-components.yaml"
+        type: "url"
+        files:
+          - sourcePath: "../data/shared/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
       - name: v1.0.0
         # Use manifest from source files
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.0.0/core-components.yaml"
@@ -37,12 +55,28 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-          - old: "--enable-leader-election"
-            new: "--enable-leader-election=false"
 
   - name: kubeadm
     type: BootstrapProvider
     versions:
+      - name: v0.3.23 # latest published release in the v1alpha3 series; this is used for v1alpha3 --> v1beta1 clusterctl upgrades test only.
+        value: https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.23/bootstrap-components.yaml
+        type: url
+        contract: v1alpha3
+        files:
+          - sourcePath: "../data/shared/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+      - name: v0.4.4 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.4/bootstrap-components.yaml"
+        type: "url"
+        contract: v1alpha4
+        files:
+          - sourcePath: "../data/shared/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
       - name: v1.0.0
         # Use manifest from source files
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.0.0/bootstrap-components.yaml"
@@ -52,12 +86,28 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-          - old: "--enable-leader-election"
-            new: "--enable-leader-election=false"
 
   - name: kubeadm
     type: ControlPlaneProvider
     versions:
+      - name: v0.3.23 # latest published release in the v1alpha3 series; this is used for v1alpha3 --> v1beta1 clusterctl upgrades test only.
+        value: https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.23/control-plane-components.yaml
+        type: url
+        contract: v1alpha3
+        files:
+          - sourcePath: "../data/shared/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+      - name: v0.4.4
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.4/control-plane-components.yaml"
+        type: "url"
+        contract: v1alpha4
+        files:
+          - sourcePath: "../data/shared/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
       - name: v1.0.0
         # Use manifest from source files
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.0.0/control-plane-components.yaml"
@@ -67,25 +117,38 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-          - old: "--enable-leader-election"
-            new: "--enable-leader-election=false"
 
   - name: vsphere
     type: InfrastructureProvider
     versions:
+      - name: v0.7.10
+        value: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/download/v0.7.10/infrastructure-components.yaml
+        type: "url"
+        contract: v1alpha3
+        files:
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/capi-upgrades/v1alpha3/cluster-template.yaml"
+          - sourcePath: "../../../metadata.yaml"
+      - name: v0.8.1
+        value: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/download/v0.8.1/infrastructure-components.yaml
+        type: "url"
+        contract: v1alpha4
+        files:
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/capi-upgrades/v1alpha4/cluster-template.yaml"
+          - sourcePath: "../../../metadata.yaml"
       - name: v1.0.0
         # Use manifest from source files
         value: ../../../../cluster-api-provider-vsphere/config/default
+        contract: v1beta1
         replacements:
           - old: gcr.io/cluster-api-provider-vsphere/release/manager:latest
             new: gcr.io/k8s-staging-cluster-api/capv-manager:e2e
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-
-    files:
-      # Add a cluster template
-      - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template.yaml"
-      - sourcePath: "../../../metadata.yaml"
+        files:
+          # Add a cluster template
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-remote-management.yaml"
+          - sourcePath: "../../../metadata.yaml"
 
 variables:
   KUBERNETES_VERSION: "v1.19.1"
@@ -102,11 +165,14 @@ variables:
   VSPHERE_STORAGE_POLICY: "Cluster API vSphere Storage Policy"
   VSPHERE_NETWORK: "sddc-cgw-network-6"
   VSPHERE_TEMPLATE: "ubuntu-1804-kube-v1.19.1"
+  INIT_WITH_BINARY_V1ALPHA3: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.23/clusterctl-{OS}-{ARCH}"
+  INIT_WITH_BINARY_V1ALPHA4: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.4/clusterctl-{OS}-{ARCH}"
+  INIT_WITH_KUBERNETES_VERSION: "v1.19.1"
 
 intervals:
   default/wait-controllers: ["5m", "10s"]
   default/wait-cluster: ["5m", "10s"]
-  default/wait-control-plane: ["5m", "10s"]
-  default/wait-worker-nodes: ["5m", "10s"]
+  default/wait-control-plane: ["10m", "10s"]
+  default/wait-worker-nodes: ["10m", "10s"]
   default/wait-delete-cluster: ["5m", "10s"]
   default/wait-machine-upgrade: ["15m", "1m"]

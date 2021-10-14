@@ -42,7 +42,7 @@ export VSPHERE_SSH_AUTHORIZED_KEY="${VM_SSH_PUB_KEY}"
 export VSPHERE_SSH_PRIVATE_KEY="/root/ssh/.private-key/private-key"
 export E2E_CONF_FILE="${REPO_ROOT}/test/e2e/config/vsphere-ci.yaml"
 export ARTIFACTS="${ARTIFACTS:-${REPO_ROOT}/_artifacts}"
-
+export DOCKER_IMAGE_TAR="${ARTIFACTS}/tempContainers/image.tar"
 export GC_KIND="false"
 
 # Run the vpn client in container
@@ -67,18 +67,19 @@ export CONTROL_PLANE_ENDPOINT_IP
 
 echo "Acquired Control Plane IP: $CONTROL_PLANE_ENDPOINT_IP"
 
-mkdir -p ${ARTIFACTS}/tempContainers
-dockerImage=${ARTIFACTS}/tempContainers/image.tar
-docker save gcr.io/k8s-staging-cluster-api/capv-manager:e2e -o dockerImage
-
-# create bucket to store the docker image
-BUCKET_NAME=capi-images-oci-images
-IMAGE_SHA=$(docker inspect --format='{{index .Id}}' gcr.io/k8s-staging-cluster-api/capv-manager:e2e)
-gsutil mb gs://$BUCKET_NAME
-gsutil cp _artifacts/tempContainers/image.tar gs://$BUCKET_NAME/$IMAGE_SHA
-rm -rf ${ARTIFACTS}/tempContainers
-
-echo $IMAGE_SHA
-
 # Run e2e tests
 make e2e
+
+mkdir -p "$ARTIFACTS"/tempContainers
+docker images 
+docker save gcr.io/k8s-staging-cluster-api/capv-manager:e2e -o "$DOCKER_IMAGE_TAR"
+
+# create bucket to store the docker image
+export CAPI_IMAGES_BUCKET="capi-images-oci-images"
+export E2E_IMAGE_SHA=$(docker inspect --format='{{index .Id}}' gcr.io/k8s-staging-cluster-api/capv-manager:e2e)
+# TODO: [Aarti]: cleanup the bucket after the run
+gsutil mb gs://"$CAPI_IMAGES_BUCKET"
+gsutil cp "$ARTIFACTS"/tempContainers/image.tar gs://"$CAPI_IMAGES_BUCKET"/"$E2E_IMAGE_SHA"
+rm -rf "$ARTIFACTS"/tempContainers
+
+echo "$E2E_IMAGE_SHA"

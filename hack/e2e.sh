@@ -31,10 +31,26 @@ on_exit() {
 
   # kill the VPN
   docker kill vpn
+
+  # logout of gcloud
+  if [ "${AUTH}" ]; then
+    gcloud auth revoke
+  fi
 }
 
 trap on_exit EXIT
 
+function login() {
+  # If GCR_KEY_FILE is set, use that service account to login
+  if [ "${GCR_KEY_FILE}" ]; then
+    gcloud auth activate-service-account --key-file "${GCR_KEY_FILE}" || fatal "unable to login"
+    AUTH=1
+  fi
+}
+
+AUTH=
+E2E_IMAGE_SHA=
+GCR_KEY_FILE="${GCR_KEY_FILE:-}"
 export VSPHERE_SERVER="${GOVC_URL}"
 export VSPHERE_USERNAME="${GOVC_USERNAME}"
 export VSPHERE_PASSWORD="${GOVC_PASSWORD}"
@@ -67,19 +83,22 @@ export CONTROL_PLANE_ENDPOINT_IP
 
 echo "Acquired Control Plane IP: $CONTROL_PLANE_ENDPOINT_IP"
 
-# Run e2e tests
-make e2e
-
+# save the docker image locally
+make e2e-image
 mkdir -p "$ARTIFACTS"/tempContainers
-docker images 
+docker images
 docker save gcr.io/k8s-staging-cluster-api/capv-manager:e2e -o "$DOCKER_IMAGE_TAR"
 
-# create bucket to store the docker image
-export CAPI_IMAGES_BUCKET="capi-images-oci-images"
-export E2E_IMAGE_SHA=$(docker inspect --format='{{index .Id}}' gcr.io/k8s-staging-cluster-api/capv-manager:e2e)
-# TODO: [Aarti]: cleanup the bucket after the run
-gsutil mb gs://"$CAPI_IMAGES_BUCKET"
-gsutil cp "$ARTIFACTS"/tempContainers/image.tar gs://"$CAPI_IMAGES_BUCKET"/"$E2E_IMAGE_SHA"
-rm -rf "$ARTIFACTS"/tempContainers
+# store the image on gcs
+login
+E2E_IMAGE_SHA=$(docker inspect --format='{{index .Id}}' gcr.io/k8s-staging-cluster-api/capv-manager:e2e)
+gsutil cp "$ARTIFACTS"/tempContainers/image.tar gs://capv-ci/"$E2E_IMAGE_SHA"
+
+
+# Run e2e tests
+# TODO: re-enable tests
+#make e2e
+
+
 
 echo "$E2E_IMAGE_SHA"

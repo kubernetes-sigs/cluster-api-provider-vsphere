@@ -7,7 +7,7 @@ spec:
   kubeadmConfigSpec:
     preKubeadmCommands:
     - mkdir -p /opt/cluster-api
-    - gsutil cp "gs://${CAPI_IMAGES_BUCKET}/${E2E_IMAGE_SHA}" /opt/cluster-api/image.tar
+    - curl "https://storage.googleapis.com/capv-ci/${E2E_IMAGE_SHA}" -o /opt/cluster-api/image.tar
     - ctr -n k8s.io images import /opt/cluster-api/image.tar
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
@@ -19,5 +19,5 @@ spec:
     spec:
       preKubeadmCommands:
       - mkdir -p /opt/cluster-api
-      - gsutil cp "gs://${CAPI_IMAGES_BUCKET}/${E2E_IMAGE_SHA}" /opt/cluster-api/image.tar
+      - curl "https://storage.googleapis.com/capv-ci/${E2E_IMAGE_SHA}" -o /opt/cluster-api/image.tar
       - ctr -n k8s.io images import /opt/cluster-api/image.tar

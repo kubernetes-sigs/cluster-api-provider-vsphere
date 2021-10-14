@@ -92,8 +92,10 @@ docker save gcr.io/k8s-staging-cluster-api/capv-manager:e2e -o "$DOCKER_IMAGE_TA
 # store the image on gcs
 login
 E2E_IMAGE_SHA=$(docker inspect --format='{{index .Id}}' gcr.io/k8s-staging-cluster-api/capv-manager:e2e)
+export E2E_IMAGE_SHA
 gsutil cp "$ARTIFACTS"/tempContainers/image.tar gs://capv-ci/"$E2E_IMAGE_SHA"
 
+echo "$E2E_IMAGE_SHA"
 
 # Run e2e tests
 # TODO: re-enable tests
@@ -101,4 +103,3 @@ gsutil cp "$ARTIFACTS"/tempContainers/image.tar gs://capv-ci/"$E2E_IMAGE_SHA"
 
 
 
-echo "$E2E_IMAGE_SHA"

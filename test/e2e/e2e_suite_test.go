@@ -125,31 +125,31 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	initBootstrapCluster(bootstrapClusterProxy, e2eConfig, clusterctlConfigPath, artifactFolder)
 	namespaces = map[*corev1.Namespace]context.CancelFunc{}
 
-	By("Upgrading clusterctl spec from v1alpha3 to v1beta1")
-	capi_e2e.ClusterctlUpgradeSpec(context.TODO(), func() capi_e2e.ClusterctlUpgradeSpecInput {
-		return capi_e2e.ClusterctlUpgradeSpecInput{
-			E2EConfig:                 e2eConfig,
-			ClusterctlConfigPath:      clusterctlConfigPath,
-			BootstrapClusterProxy:     bootstrapClusterProxy,
-			ArtifactFolder:            artifactFolder,
-			SkipCleanup:               skipCleanup,
-			InitWithBinary:            e2eConfig.GetVariable("INIT_WITH_BINARY_V1ALPHA3"),
-			InitWithProvidersContract: "v1alpha3",
-		}
-	})
+	// By("Upgrading clusterctl spec from v1alpha3 to v1beta1")
+	// capi_e2e.ClusterctlUpgradeSpec(context.TODO(), func() capi_e2e.ClusterctlUpgradeSpecInput {
+	// 	return capi_e2e.ClusterctlUpgradeSpecInput{
+	// 		E2EConfig:                 e2eConfig,
+	// 		ClusterctlConfigPath:      clusterctlConfigPath,
+	// 		BootstrapClusterProxy:     bootstrapClusterProxy,
+	// 		ArtifactFolder:            artifactFolder,
+	// 		SkipCleanup:               skipCleanup,
+	// 		InitWithBinary:            e2eConfig.GetVariable("INIT_WITH_BINARY_V1ALPHA3"),
+	// 		InitWithProvidersContract: "v1alpha3",
+	// 	}
+	// })
 
-	By("Upgrading clusterctl spec from v1alpha4 to v1beta1")
-	capi_e2e.ClusterctlUpgradeSpec(context.TODO(), func() capi_e2e.ClusterctlUpgradeSpecInput {
-		return capi_e2e.ClusterctlUpgradeSpecInput{
-			E2EConfig:                 e2eConfig,
-			ClusterctlConfigPath:      clusterctlConfigPath,
-			BootstrapClusterProxy:     bootstrapClusterProxy,
-			ArtifactFolder:            artifactFolder,
-			SkipCleanup:               skipCleanup,
-			InitWithBinary:            e2eConfig.GetVariable("INIT_WITH_BINARY_V1ALPHA4"),
-			InitWithProvidersContract: "v1alpha4",
-		}
-	})
+	// By("Upgrading clusterctl spec from v1alpha4 to v1beta1")
+	// capi_e2e.ClusterctlUpgradeSpec(context.TODO(), func() capi_e2e.ClusterctlUpgradeSpecInput {
+	// 	return capi_e2e.ClusterctlUpgradeSpecInput{
+	// 		E2EConfig:                 e2eConfig,
+	// 		ClusterctlConfigPath:      clusterctlConfigPath,
+	// 		BootstrapClusterProxy:     bootstrapClusterProxy,
+	// 		ArtifactFolder:            artifactFolder,
+	// 		SkipCleanup:               skipCleanup,
+	// 		InitWithBinary:            e2eConfig.GetVariable("INIT_WITH_BINARY_V1ALPHA4"),
+	// 		InitWithProvidersContract: "v1alpha4",
+	// 	}
+	// })
 
 	return []byte(
 		strings.Join([]string{

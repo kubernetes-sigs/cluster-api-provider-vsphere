@@ -67,5 +67,18 @@ export CONTROL_PLANE_ENDPOINT_IP
 
 echo "Acquired Control Plane IP: $CONTROL_PLANE_ENDPOINT_IP"
 
+mkdir -p ${ARTIFACTS}/tempContainers
+dockerImage=${ARTIFACTS}/tempContainers/image.tar
+docker save gcr.io/k8s-staging-cluster-api/capv-manager:e2e -o dockerImage
+
+# create bucket to store the docker image
+BUCKET_NAME=capi-images-oci-images
+IMAGE_SHA=$(docker inspect --format='{{index .Id}}' gcr.io/k8s-staging-cluster-api/capv-manager:e2e)
+gsutil mb gs://$BUCKET_NAME
+gsutil cp _artifacts/tempContainers/image.tar gs://$BUCKET_NAME/$IMAGE_SHA
+rm -rf ${ARTIFACTS}/tempContainers
+
+echo $IMAGE_SHA
+
 # Run e2e tests
 make e2e

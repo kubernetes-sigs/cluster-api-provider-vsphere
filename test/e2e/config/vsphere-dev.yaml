@@ -40,6 +40,19 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
+          - old: --metrics-bind-addr=127.0.0.1:8080
+            new: --metrics-bind-addr=:8080
+      - name: v0.4.4 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
+        contract: v1alpha4
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.4/core-components.yaml"
+        type: "url"
+        files:
+          - sourcePath: "./shared/v1alpha4/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+          - old: --metrics-bind-addr=127.0.0.1:8080
+            new: --metrics-bind-addr=:8080
       - name: v1.0.0
         # Use manifest from source files
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.0.0/core-components.yaml"
@@ -49,8 +62,8 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-          - old: "--enable-leader-election"
-            new: "--enable-leader-election=false"
+          - old: --metrics-bind-addr=127.0.0.1:8080
+            new: --metrics-bind-addr=:8080
 
   - name: kubeadm
     type: BootstrapProvider
@@ -62,19 +75,31 @@ providers:
         files:
           - sourcePath: "../data/shared/metadata.yaml"
         replacements:
-          - old: "imagePullPolicy: Always"
-            new: "imagePullPolicy: IfNotPresent"
-      - name: v1.0.0
-        # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.0.0/bootstrap-components.yaml"
+          - old: --metrics-addr=127.0.0.1:8080
+            new: --metrics-addr=:8080
+      - name: v0.4.4 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.4/bootstrap-components.yaml"
         type: "url"
+        contract: v1alpha4
         files:
           - sourcePath: "../data/shared/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-          - old: "--enable-leader-election"
-            new: "--enable-leader-election=false"
+          - old: --metrics-bind-addr=127.0.0.1:8080
+            new: --metrics-bind-addr=:8080
+      - name: v1.0.0
+        # Use manifest from source files
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.0.0/bootstrap-components.yaml"
+        type: "url"
+        contract: "v1beta1"
+        files:
+          - sourcePath: "../data/shared/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+          - old: --metrics-bind-addr=127.0.0.1:8080
+            new: --metrics-bind-addr=:8080
 
   - name: kubeadm
     type: ControlPlaneProvider
@@ -86,8 +111,19 @@ providers:
         files:
           - sourcePath: "../data/shared/metadata.yaml"
         replacements:
+          - old: --metrics-addr=127.0.0.1:8080
+            new: --metrics-addr=:8080
+      - name: v0.4.4
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.4/control-plane-components.yaml"
+        type: "url"
+        contract: v1alpha4
+        files:
+          - sourcePath: "../data/shared/metadata.yaml"
+        replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
+          - old: --metrics-bind-addr=127.0.0.1:8080
+            new: --metrics-bind-addr=:8080
       - name: v1.0.0
         # Use manifest from source files
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.0.0/control-plane-components.yaml"
@@ -97,8 +133,8 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-          - old: "--enable-leader-election"
-            new: "--enable-leader-election=false"
+          - old: --metrics-bind-addr=127.0.0.1:8080
+            new: --metrics-bind-addr=:8080
 
   - name: vsphere
     type: InfrastructureProvider
@@ -109,10 +145,7 @@ providers:
         contract: v1alpha3
         files:
           - sourcePath: "../data/shared/metadata.yaml"
-          - targetName: "cluster-template.yaml"
-        replacements:
-          - old: "imagePullPolicy: Always"
-            new: "imagePullPolicy: IfNotPresent"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template.yaml"
       - name: v1.0.0
         # Use manifest from source files
         value: ../../../../cluster-api-provider-vsphere/config/default

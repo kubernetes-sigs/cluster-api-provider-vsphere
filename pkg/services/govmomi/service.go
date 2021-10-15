@@ -141,6 +141,7 @@ func (vms *VMService) ReconcileVM(ctx *context.VMContext) (vm infrav1.VirtualMac
 	}
 
 	if err := vms.reconcileTags(vmCtx); err != nil {
+		conditions.MarkFalse(ctx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.TagsAttachmentFailedReason, clusterv1.ConditionSeverityError, err.Error())
 		return vm, err
 	}
 

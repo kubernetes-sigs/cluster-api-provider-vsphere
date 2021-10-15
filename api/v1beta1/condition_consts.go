@@ -86,6 +86,9 @@ const (
 	//
 	// NOTE: This reason does not apply to VSphereVM (this state happens after the VSphereVM is in ready state).
 	WaitingForNetworkAddressesReason = "WaitingForNetworkAddresses"
+
+	// TagsAttachmentFailedReason (Severity=Error) documents a VSPhereMachine/VSphereVM tags attachment failure.
+	TagsAttachmentFailedReason = "TagsAttachmentFailed"
 )
 
 // Conditions and Reasons related to utilizing a VSphereIdentity to make connections to a VCenter. Can currently be used by VSphereCluster and VSphereVM

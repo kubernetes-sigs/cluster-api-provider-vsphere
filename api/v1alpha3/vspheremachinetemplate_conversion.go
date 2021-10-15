@@ -21,18 +21,39 @@ import (
 	infrav1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1beta1"
 	clusterv1a3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterv1b1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
 // ConvertTo
 func (src *VSphereMachineTemplate) ConvertTo(dstRaw conversion.Hub) error { // nolint
 	dst := dstRaw.(*infrav1beta1.VSphereMachineTemplate)
-	return Convert_v1alpha3_VSphereMachineTemplate_To_v1beta1_VSphereMachineTemplate(src, dst, nil)
+	if err := Convert_v1alpha3_VSphereMachineTemplate_To_v1beta1_VSphereMachineTemplate(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually restore data.
+	restored := &infrav1beta1.VSphereMachineTemplate{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+	dst.Spec.Template.Spec.TagIDs = restored.Spec.Template.Spec.TagIDs
+
+	return nil
 }
 
 func (dst *VSphereMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error { // nolint
 	src := srcRaw.(*infrav1beta1.VSphereMachineTemplate)
-	return Convert_v1beta1_VSphereMachineTemplate_To_v1alpha3_VSphereMachineTemplate(src, dst, nil)
+	if err := Convert_v1beta1_VSphereMachineTemplate_To_v1alpha3_VSphereMachineTemplate(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Preserve Hub data on down-conversion.
+	if err := utilconversion.MarshalData(src, dst); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (src *VSphereMachineTemplateList) ConvertTo(dstRaw conversion.Hub) error { // nolint

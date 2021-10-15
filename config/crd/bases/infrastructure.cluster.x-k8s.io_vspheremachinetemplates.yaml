@@ -942,6 +942,12 @@ spec:
                         description: StoragePolicyName of the storage policy to use
                           with this Virtual Machine
                         type: string
+                      tagIDs:
+                        description: TagIDs is an optional set of tags to add to an
+                          instance.
+                        items:
+                          type: string
+                        type: array
                       template:
                         description: Template is the name or inventory path of the
                           template used to clone the virtual machine.

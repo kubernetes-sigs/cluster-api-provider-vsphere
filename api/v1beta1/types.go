@@ -140,6 +140,9 @@ type VirtualMachineCloneSpec struct {
 	// Defaults to empty map
 	// +optional
 	CustomVMXKeys map[string]string `json:"customVMXKeys,omitempty"`
+	// TagIDs is an optional set of tags to add to an instance.
+	// +optional
+	TagIDs []string `json:"tagIDs,omitempty"`
 }
 
 // VSphereMachineTemplateResource describes the data needed to create a VSphereMachine from a template

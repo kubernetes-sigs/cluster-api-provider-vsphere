@@ -18,19 +18,40 @@ package v1alpha4
 
 import (
 	infrav1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1beta1"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
 // ConvertTo converts this VSphereVM to the Hub version (v1beta1).
 func (src *VSphereVM) ConvertTo(dstRaw conversion.Hub) error { // nolint
 	dst := dstRaw.(*infrav1beta1.VSphereVM)
-	return Convert_v1alpha4_VSphereVM_To_v1beta1_VSphereVM(src, dst, nil)
+	if err := Convert_v1alpha4_VSphereVM_To_v1beta1_VSphereVM(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually restore data.
+	restored := &infrav1beta1.VSphereVM{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+	dst.Spec.TagIDs = restored.Spec.TagIDs
+
+	return nil
 }
 
 // ConvertFrom converts from the Hub version (v1beta1) to this VSphereVM.
 func (dst *VSphereVM) ConvertFrom(srcRaw conversion.Hub) error { // nolint
 	src := srcRaw.(*infrav1beta1.VSphereVM)
-	return Convert_v1beta1_VSphereVM_To_v1alpha4_VSphereVM(src, dst, nil)
+	if err := Convert_v1beta1_VSphereVM_To_v1alpha4_VSphereVM(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Preserve Hub data on down-conversion.
+	if err := utilconversion.MarshalData(src, dst); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // ConvertTo converts this VSphereVMList to the Hub version (v1beta1).

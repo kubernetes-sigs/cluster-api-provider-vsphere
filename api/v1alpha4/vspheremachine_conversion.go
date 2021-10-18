@@ -18,13 +18,26 @@ package v1alpha4
 
 import (
 	infrav1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1beta1"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
 // ConvertTo converts this VSphereMachine to the Hub version (v1beta1).
 func (src *VSphereMachine) ConvertTo(dstRaw conversion.Hub) error { // nolint
 	dst := dstRaw.(*infrav1beta1.VSphereMachine)
-	return Convert_v1alpha4_VSphereMachine_To_v1beta1_VSphereMachine(src, dst, nil)
+	if err := Convert_v1alpha4_VSphereMachine_To_v1beta1_VSphereMachine(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually restore data.
+	restored := &infrav1beta1.VSphereMachine{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+
+	dst.Spec.TagIDs = restored.Spec.TagIDs
+
+	return nil
 }
 
 // ConvertFrom converts from the Hub version (v1beta1) to this VSphereMachine.

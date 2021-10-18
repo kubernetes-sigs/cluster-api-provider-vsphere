@@ -140,6 +140,11 @@ func (vms *VMService) ReconcileVM(ctx *context.VMContext) (vm infrav1.VirtualMac
 		return vm, err
 	}
 
+	if err := vms.reconcileTags(vmCtx); err != nil {
+		conditions.MarkFalse(ctx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.TagsAttachmentFailedReason, clusterv1.ConditionSeverityError, err.Error())
+		return vm, err
+	}
+
 	vm.State = infrav1.VirtualMachineStateReady
 	return vm, nil
 }
@@ -517,4 +522,18 @@ func (vms *VMService) reconcileVMGroupInfo(ctx *virtualMachineContext) (bool, er
 		return false, nil
 	}
 	return true, nil
+}
+
+func (vms *VMService) reconcileTags(ctx *virtualMachineContext) error {
+	if len(ctx.VSphereVM.Spec.TagIDs) == 0 {
+		ctx.Logger.Info("no tags defined. skipping tags reconciliation")
+		return nil
+	}
+
+	err := ctx.Session.TagManager.AttachMultipleTagsToObject(ctx, ctx.VSphereVM.Spec.TagIDs, ctx.Ref)
+	if err != nil {
+		return errors.Wrapf(err, "failed to attach tags %v to VM %s", ctx.VSphereVM.Spec.TagIDs, ctx.VSphereVM.Name)
+	}
+
+	return nil
 }

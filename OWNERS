@@ -1,14 +1,11 @@
 # See the OWNERS docs: https://git.k8s.io/community/contributors/guide/owners.md
 
 approvers:
-  - sig-cluster-lifecycle-leads
   - cluster-api-admins
-  - cluster-api-vsphere-maintainers
   - cluster-api-maintainers
+  - cluster-api-vsphere-maintainers
+  - sig-cluster-lifecycle-leads
 
 reviewers:
   - cluster-api-vsphere-maintainers
-  - cluster-api-maintainers
-
-emeritus_maintainers:
-  - ncdc
+  - cluster-api-vsphere-reviewers

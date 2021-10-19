@@ -28,7 +28,7 @@ import (
 	// run init func to register the tagging API endpoints
 	_ "github.com/vmware/govmomi/vapi/simulator"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 )

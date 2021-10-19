@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,23 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package govmomi
-
-import (
-	"github.com/vmware/govmomi/object"
-	"github.com/vmware/govmomi/vim25/types"
-
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
-)
-
-type virtualMachineContext struct {
-	context.VMContext
-	Ref   types.ManagedObjectReference
-	Obj   *object.VirtualMachine
-	State *infrav1.VirtualMachine
-}
-
-func (c *virtualMachineContext) String() string {
-	return c.VMContext.String()
-}
+// Package v1alpha4 contains API Schema definitions for the infrastructure v1alpha4 API group
+// +kubebuilder:object:generate=true
+// +groupName=infrastructure.cluster.x-k8s.io
+// +k8s:conversion-gen=sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1
+package v1alpha4

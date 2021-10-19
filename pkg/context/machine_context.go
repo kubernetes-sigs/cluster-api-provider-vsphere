@@ -23,7 +23,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 )
 
 // MachineContext is a Go context used with a VSphereMachine.

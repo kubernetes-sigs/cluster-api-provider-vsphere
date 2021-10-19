@@ -1,4 +1,5 @@
 domain: cluster.x-k8s.io
+multigroup: true
 repo: sigs.k8s.io/cluster-api-provider-vsphere
 resources:
 - group: infrastructure

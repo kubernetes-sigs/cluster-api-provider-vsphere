@@ -22,7 +22,7 @@ import (
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/cluster"
 )
 

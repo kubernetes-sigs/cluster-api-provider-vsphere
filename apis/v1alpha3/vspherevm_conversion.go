@@ -1,5 +1,5 @@
 /*
-Copyright 2021 The Kubernetes Authors.
+Copyright 2019 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,10 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha4
+package v1alpha3
 
 import (
-	infrav1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1beta1"
+	infrav1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
@@ -25,7 +25,7 @@ import (
 // ConvertTo converts this VSphereVM to the Hub version (v1beta1).
 func (src *VSphereVM) ConvertTo(dstRaw conversion.Hub) error { // nolint
 	dst := dstRaw.(*infrav1beta1.VSphereVM)
-	if err := Convert_v1alpha4_VSphereVM_To_v1beta1_VSphereVM(src, dst, nil); err != nil {
+	if err := Convert_v1alpha3_VSphereVM_To_v1beta1_VSphereVM(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -42,7 +42,7 @@ func (src *VSphereVM) ConvertTo(dstRaw conversion.Hub) error { // nolint
 // ConvertFrom converts from the Hub version (v1beta1) to this VSphereVM.
 func (dst *VSphereVM) ConvertFrom(srcRaw conversion.Hub) error { // nolint
 	src := srcRaw.(*infrav1beta1.VSphereVM)
-	if err := Convert_v1beta1_VSphereVM_To_v1alpha4_VSphereVM(src, dst, nil); err != nil {
+	if err := Convert_v1beta1_VSphereVM_To_v1alpha3_VSphereVM(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -57,11 +57,11 @@ func (dst *VSphereVM) ConvertFrom(srcRaw conversion.Hub) error { // nolint
 // ConvertTo converts this VSphereVMList to the Hub version (v1beta1).
 func (src *VSphereVMList) ConvertTo(dstRaw conversion.Hub) error { // nolint
 	dst := dstRaw.(*infrav1beta1.VSphereVMList)
-	return Convert_v1alpha4_VSphereVMList_To_v1beta1_VSphereVMList(src, dst, nil)
+	return Convert_v1alpha3_VSphereVMList_To_v1beta1_VSphereVMList(src, dst, nil)
 }
 
 // ConvertFrom converts this VSphereVM to the Hub version (v1beta1).
 func (dst *VSphereVMList) ConvertFrom(srcRaw conversion.Hub) error { // nolint
 	src := srcRaw.(*infrav1beta1.VSphereVMList)
-	return Convert_v1beta1_VSphereVMList_To_v1alpha4_VSphereVMList(src, dst, nil)
+	return Convert_v1beta1_VSphereVMList_To_v1alpha3_VSphereVMList(src, dst, nil)
 }

@@ -14,8 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v1alpha4 contains API Schema definitions for the infrastructure v1alpha4 API group
-// +kubebuilder:object:generate=true
-// +groupName=infrastructure.cluster.x-k8s.io
-// +k8s:conversion-gen=sigs.k8s.io/cluster-api-provider-vsphere/api/v1beta1
-package v1alpha4
+package v1beta1
+
+// VSphereMachineTemplateResource describes the data needed to create a VSphereMachine from a template
+type VSphereMachineTemplateResource struct {
+	// Spec is the specification of the desired behavior of the machine.
+	Spec VSphereMachineSpec `json:"spec"`
+}
+
+// VirtualMachineState describes the state of a VM.
+type VirtualMachineState string

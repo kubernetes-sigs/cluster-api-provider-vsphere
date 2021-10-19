@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"testing"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
+	"sigs.k8s.io/cluster-api-provider-vsphere/apis/v1alpha3"
 
 	"github.com/onsi/gomega"
 	"github.com/pkg/errors"

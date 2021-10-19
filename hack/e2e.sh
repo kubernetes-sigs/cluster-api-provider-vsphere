@@ -26,15 +26,32 @@ source "${REPO_ROOT}/hack/ensure-kubectl.sh"
 
 on_exit() {
   # release IPClaim
-  echo "Releasing IP claim"
+  echo "Releasing IP claims"
   kubectl --kubeconfig="${KUBECONFIG}" delete ipclaim "${IPCLAIM_NAME}" || true
+  kubectl --kubeconfig="${KUBECONFIG}" delete ipclaim "${WORKLOAD_IPCLAIM_NAME}" || true
 
   # kill the VPN
   docker kill vpn
+
+  # logout of gcloud
+  if [ "${AUTH}" ]; then
+    gcloud auth revoke
+  fi
 }
 
 trap on_exit EXIT
 
+function login() {
+  # If GCR_KEY_FILE is set, use that service account to login
+  if [ "${GCR_KEY_FILE}" ]; then
+    gcloud auth activate-service-account --key-file "${GCR_KEY_FILE}" || fatal "unable to login"
+    AUTH=1
+  fi
+}
+
+AUTH=
+E2E_IMAGE_SHA=
+GCR_KEY_FILE="${GCR_KEY_FILE:-}"
 export VSPHERE_SERVER="${GOVC_URL}"
 export VSPHERE_USERNAME="${GOVC_USERNAME}"
 export VSPHERE_PASSWORD="${GOVC_PASSWORD}"
@@ -42,7 +59,7 @@ export VSPHERE_SSH_AUTHORIZED_KEY="${VM_SSH_PUB_KEY}"
 export VSPHERE_SSH_PRIVATE_KEY="/root/ssh/.private-key/private-key"
 export E2E_CONF_FILE="${REPO_ROOT}/test/e2e/config/vsphere-ci.yaml"
 export ARTIFACTS="${ARTIFACTS:-${REPO_ROOT}/_artifacts}"
-
+export DOCKER_IMAGE_TAR="${ARTIFACTS}/tempContainers/image.tar"
 export GC_KIND="false"
 
 # Run the vpn client in container
@@ -64,8 +81,30 @@ sed "s/IPCLAIM_NAME/${IPCLAIM_NAME}/" "${REPO_ROOT}/hack/ipclaim-template.yaml" 
 IPADDRESS_NAME=$(kubectl --kubeconfig=${KUBECONFIG} get ipclaim "${IPCLAIM_NAME}" -o=jsonpath='{@.status.address.name}')
 CONTROL_PLANE_ENDPOINT_IP=$(kubectl --kubeconfig=${KUBECONFIG} get ipaddresses "${IPADDRESS_NAME}" -o=jsonpath='{@.spec.address}')
 export CONTROL_PLANE_ENDPOINT_IP
-
 echo "Acquired Control Plane IP: $CONTROL_PLANE_ENDPOINT_IP"
+
+# Retrieve an IP to be used for the workload cluster in v1a3/v1a4 -> v1b1 upgrade tests
+WORKLOAD_IPCLAIM_NAME="workload-ip-claim-$(date +%s)"
+sed "s/IPCLAIM_NAME/${WORKLOAD_IPCLAIM_NAME}/" "${REPO_ROOT}/hack/ipclaim-template.yaml" | kubectl --kubeconfig=${KUBECONFIG} create -f -
+WORKLOAD_IPADDRESS_NAME=$(kubectl --kubeconfig=${KUBECONFIG} get ipclaim "${WORKLOAD_IPCLAIM_NAME}" -o=jsonpath='{@.status.address.name}')
+WORKLOAD_CONTROL_PLANE_ENDPOINT_IP=$(kubectl --kubeconfig=${KUBECONFIG} get ipaddresses "${WORKLOAD_IPADDRESS_NAME}" -o=jsonpath='{@.spec.address}')
+export WORKLOAD_CONTROL_PLANE_ENDPOINT_IP
+echo "Acquired Workload Cluster Control Plane IP: $WORKLOAD_CONTROL_PLANE_ENDPOINT_IP"
+
+# save the docker image locally
+make e2e-image
+mkdir -p "$ARTIFACTS"/tempContainers
+docker save gcr.io/k8s-staging-cluster-api/capv-manager:e2e -o "$DOCKER_IMAGE_TAR"
+
+# store the image on gcs
+login
+E2E_IMAGE_SHA=$(docker inspect --format='{{index .Id}}' gcr.io/k8s-staging-cluster-api/capv-manager:e2e)
+export E2E_IMAGE_SHA
+gsutil cp "$ARTIFACTS"/tempContainers/image.tar gs://capv-ci/"$E2E_IMAGE_SHA"
+
+# Run e2e-upgrade tests
+# TODO: move e2e-upgrade into its own prow job
+make e2e-upgrade
 
 # Run e2e tests
 make e2e

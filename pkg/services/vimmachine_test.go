@@ -78,7 +78,7 @@ var _ = Describe("VimMachineService_GenerateOverrideFunc", func() {
 
 	Context("When Failure Domain is present", func() {
 		BeforeEach(func() {
-			machineCtx.Machine.Spec.FailureDomain = pointer.String("fd-one")
+			machineCtx.Machine.Spec.FailureDomain = pointer.String("zone-one")
 		})
 
 		It("generates an override function", func() {
@@ -98,6 +98,18 @@ var _ = Describe("VimMachineService_GenerateOverrideFunc", func() {
 			Expect(vm.Spec.Datastore).To(Equal("ds-one"))
 			Expect(vm.Spec.ResourcePool).To(Equal("rp-one"))
 			Expect(vm.Spec.Datacenter).To(Equal("dc-one"))
+		})
+
+		Context("for non-existent failure domain value", func() {
+			BeforeEach(func() {
+				machineCtx.Machine.Spec.FailureDomain = pointer.String("non-existent-zone")
+			})
+
+			It("fails to generate an override function", func() {
+				overrideFunc, ok := vimMachineService.generateOverrideFunc(machineCtx)
+				Expect(ok).To(BeFalse())
+				Expect(overrideFunc).To(BeNil())
+			})
 		})
 
 		Context("with network specified in the topology", func() {

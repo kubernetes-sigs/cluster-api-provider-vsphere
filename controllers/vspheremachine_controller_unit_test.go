@@ -78,7 +78,7 @@ var _ = Describe("MachineReconciler_GenerateOverrideFunc", func() {
 
 	Context("When Failure Domain is present", func() {
 		BeforeEach(func() {
-			machineCtx.Machine.Spec.FailureDomain = pointer.StringPtr("fd-one")
+			machineCtx.Machine.Spec.FailureDomain = pointer.StringPtr("zone-one")
 		})
 
 		It("generates an override function", func() {
@@ -100,6 +100,19 @@ var _ = Describe("MachineReconciler_GenerateOverrideFunc", func() {
 			Expect(vm.Spec.Datastore).To(Equal("ds-one"))
 			Expect(vm.Spec.ResourcePool).To(Equal("rp-one"))
 			Expect(vm.Spec.Datacenter).To(Equal("dc-one"))
+		})
+
+		Context("for non-existent failure domain value", func() {
+			BeforeEach(func() {
+				machineCtx.Machine.Spec.FailureDomain = pointer.StringPtr("non-existent-zone")
+			})
+
+			It("fails to generate an override function", func() {
+				r := machineReconciler{controllerCtx}
+				overrideFunc, ok := r.generateOverrideFunc(machineCtx)
+				Expect(ok).To(BeFalse())
+				Expect(overrideFunc).To(BeNil())
+			})
 		})
 
 		Context("with network specified in the topology", func() {

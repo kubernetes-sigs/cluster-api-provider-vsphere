@@ -176,11 +176,16 @@ func (r vmReconciler) Reconcile(ctx goctx.Context, req ctrl.Request) (_ ctrl.Res
 			return reconcile.Result{}, nil
 		}
 
-		if failureDomain := machine.Spec.FailureDomain; failureDomain != nil {
-			vsphereFailureDomain = &infrav1.VSphereFailureDomain{}
-			if err := r.Client.Get(r, apitypes.NamespacedName{Name: *failureDomain}, vsphereFailureDomain); err != nil {
-				return reconcile.Result{}, errors.Wrapf(err, "failed to find vsphere failure domain %s", *failureDomain)
-			}
+	var vsphereFailureDomain *infrav1.VSphereFailureDomain
+	if failureDomain := machine.Spec.FailureDomain; failureDomain != nil {
+		vsphereDeploymentZone := &infrav1.VSphereDeploymentZone{}
+		if err := r.Client.Get(r, apitypes.NamespacedName{Name: *failureDomain}, vsphereDeploymentZone); err != nil {
+			return reconcile.Result{}, errors.Wrapf(err, "failed to find vsphere deployment zone %s", *failureDomain)
+		}
+
+		vsphereFailureDomain = &infrav1.VSphereFailureDomain{}
+		if err := r.Client.Get(r, apitypes.NamespacedName{Name: vsphereDeploymentZone.Spec.FailureDomain}, vsphereFailureDomain); err != nil {
+			return reconcile.Result{}, errors.Wrapf(err, "failed to find vsphere failure domain %s", vsphereDeploymentZone.Spec.FailureDomain)
 		}
 	}
 

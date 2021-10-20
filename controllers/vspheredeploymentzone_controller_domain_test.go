@@ -33,6 +33,10 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers"
 )
 
+const (
+	defaultDatacenter string = "DC0"
+)
+
 func TestVsphereDeploymentZoneReconciler_Reconcile_VerifyFailureDomain(t *testing.T) {
 	t.Run("for Compute Cluster Zone Failure Domain", ForComputeClusterZone)
 	t.Run("for Host Group Zone Failure Domain", ForHostGroupZone)
@@ -66,7 +70,8 @@ func ForComputeClusterZone(t *testing.T) {
 
 	params := session.NewParams().
 		WithServer(simr.ServerURL().Host).
-		WithUserInfo(simr.Username(), simr.Password())
+		WithUserInfo(simr.Username(), simr.Password()).
+		WithDatacenter(defaultDatacenter)
 	authSession, err := session.GetOrCreate(controllerCtx, params)
 	g.Expect(err).NotTo(HaveOccurred())
 
@@ -85,7 +90,7 @@ func ForComputeClusterZone(t *testing.T) {
 				AutoConfigure: nil,
 			},
 			Topology: infrav1.Topology{
-				Datacenter:     "DC0",
+				Datacenter:     defaultDatacenter,
 				ComputeCluster: pointer.String("DC0_C0"),
 			},
 		},
@@ -146,7 +151,8 @@ func ForHostGroupZone(t *testing.T) {
 
 	params := session.NewParams().
 		WithServer(simr.ServerURL().Host).
-		WithUserInfo(simr.Username(), simr.Password())
+		WithUserInfo(simr.Username(), simr.Password()).
+		WithDatacenter(defaultDatacenter)
 	authSession, err := session.GetOrCreate(controllerCtx, params)
 	g.Expect(err).NotTo(HaveOccurred())
 
@@ -165,7 +171,7 @@ func ForHostGroupZone(t *testing.T) {
 				AutoConfigure: nil,
 			},
 			Topology: infrav1.Topology{
-				Datacenter:     "DC0",
+				Datacenter:     defaultDatacenter,
 				ComputeCluster: pointer.String("DC0_C0"),
 				Hosts: &infrav1.FailureDomainHosts{
 					HostGroupName: "test_grp_1",
@@ -217,7 +223,8 @@ func TestVsphereDeploymentZoneReconciler_Reconcile_CreateAndAttachMetadata(t *te
 	controllerCtx := fake.NewControllerContext(mgmtContext)
 	params := session.NewParams().
 		WithServer(simr.ServerURL().Host).
-		WithUserInfo(simr.Username(), simr.Password())
+		WithUserInfo(simr.Username(), simr.Password()).
+		WithDatacenter(defaultDatacenter)
 	authSession, err := session.GetOrCreate(controllerCtx, params)
 	NewWithT(t).Expect(err).NotTo(HaveOccurred())
 
@@ -237,7 +244,7 @@ func TestVsphereDeploymentZoneReconciler_Reconcile_CreateAndAttachMetadata(t *te
 					AutoConfigure: nil,
 				},
 				Topology: infrav1.Topology{
-					Datacenter:     "DC0",
+					Datacenter:     defaultDatacenter,
 					ComputeCluster: nil,
 				},
 			},
@@ -252,7 +259,7 @@ func TestVsphereDeploymentZoneReconciler_Reconcile_CreateAndAttachMetadata(t *te
 					AutoConfigure: nil,
 				},
 				Topology: infrav1.Topology{
-					Datacenter:     "DC0",
+					Datacenter:     defaultDatacenter,
 					ComputeCluster: pointer.String("DC0_C0"),
 				},
 			},
@@ -267,7 +274,7 @@ func TestVsphereDeploymentZoneReconciler_Reconcile_CreateAndAttachMetadata(t *te
 					AutoConfigure: pointer.Bool(true),
 				},
 				Topology: infrav1.Topology{
-					Datacenter:     "DC0",
+					Datacenter:     defaultDatacenter,
 					ComputeCluster: pointer.String("DC0_C0"),
 					Hosts: &infrav1.FailureDomainHosts{
 						HostGroupName: "group-one",

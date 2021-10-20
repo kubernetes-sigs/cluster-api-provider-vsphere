@@ -149,7 +149,8 @@ func initSimulator(t *testing.T) (*simulator.Model, *session.Session, *simulator
 		ctx.TODO(),
 		session.NewParams().
 			WithServer(server.URL.Host).
-			WithUserInfo(server.URL.User.Username(), pass))
+			WithUserInfo(server.URL.User.Username(), pass).
+			WithDefaultDatacenter())
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -45,7 +45,8 @@ func TestCreate(t *testing.T) {
 		vmContext.Context,
 		session.NewParams().
 			WithServer(vmContext.VSphereVM.Spec.Server).
-			WithUserInfo(simr.Username(), simr.Password()))
+			WithUserInfo(simr.Username(), simr.Password()).
+			WithDefaultDatacenter())
 	if err != nil {
 		t.Fatal(err)
 	}

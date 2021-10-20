@@ -62,11 +62,12 @@ func DefaultFeature() Feature {
 }
 
 type Params struct {
-	server     string
-	datacenter string
-	userinfo   *url.Userinfo
-	thumbprint string
-	feature    Feature
+	server               string
+	datacenter           string
+	tryDefaultDatacenter bool
+	userinfo             *url.Userinfo
+	thumbprint           string
+	feature              Feature
 }
 
 func NewParams() *Params {
@@ -82,6 +83,11 @@ func (p *Params) WithServer(server string) *Params {
 
 func (p *Params) WithDatacenter(datacenter string) *Params {
 	p.datacenter = datacenter
+	return p
+}
+
+func (p *Params) WithDefaultDatacenter() *Params {
+	p.tryDefaultDatacenter = true
 	return p
 }
 
@@ -150,12 +156,21 @@ func GetOrCreate(ctx context.Context, params *Params) (*Session, error) {
 	session.TagManager = manager
 
 	// Assign the datacenter if one was specified.
-	dc, err := session.Finder.DatacenterOrDefault(ctx, params.datacenter)
-	if err != nil {
-		return nil, errors.Wrapf(err, "unable to find datacenter %q", params.datacenter)
+	if params.datacenter != "" {
+		dc, err := session.Finder.Datacenter(ctx, params.datacenter)
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to find datacenter %q", params.datacenter)
+		}
+		session.datacenter = dc
+		session.Finder.SetDatacenter(dc)
+	} else if params.tryDefaultDatacenter {
+		dc, err := session.Finder.DefaultDatacenter(ctx)
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to find default datacenter %q", params.datacenter)
+		}
+		session.datacenter = dc
+		session.Finder.SetDatacenter(dc)
 	}
-	session.datacenter = dc
-	session.Finder.SetDatacenter(dc)
 
 	// Cache the session.
 	sessionCache[sessionKey] = session

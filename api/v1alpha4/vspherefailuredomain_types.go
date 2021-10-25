@@ -57,8 +57,7 @@ type FailureDomain struct {
 }
 
 type Topology struct {
-	// The underlying infrastructure for this failure domain
-	// Datacenter as the failure domain
+	// Datacenter as the failure domain.
 	// +kubebuilder:validation:Required
 	Datacenter string `json:"datacenter"`
 

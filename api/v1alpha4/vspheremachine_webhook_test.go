@@ -27,6 +27,17 @@ var (
 )
 
 //nolint
+func TestVsphereMachine_Default(t *testing.T) {
+	g := NewWithT(t)
+	m := &VSphereMachine{
+		Spec: VSphereMachineSpec{},
+	}
+	m.Default()
+
+	g.Expect(m.Spec.Datacenter).To(Equal("*"))
+}
+
+//nolint
 func TestVSphereMachine_ValidateCreate(t *testing.T) {
 
 	g := NewWithT(t)

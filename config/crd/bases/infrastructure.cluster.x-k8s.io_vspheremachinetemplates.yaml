@@ -172,6 +172,7 @@ spec:
                       datacenter:
                         description: Datacenter is the name or inventory path of the
                           datacenter in which the virtual machine is created/located.
+                          Defaults to * which selects the default datacenter.
                         type: string
                       datastore:
                         description: Datastore is the name or inventory path of the

@@ -66,7 +66,8 @@ func ForComputeClusterZone(t *testing.T) {
 
 	params := session.NewParams().
 		WithServer(simr.ServerURL().Host).
-		WithUserInfo(simr.Username(), simr.Password())
+		WithUserInfo(simr.Username(), simr.Password()).
+		WithDatacenter("*")
 	authSession, err := session.GetOrCreate(controllerCtx, params)
 	g.Expect(err).NotTo(HaveOccurred())
 
@@ -146,7 +147,8 @@ func ForHostGroupZone(t *testing.T) {
 
 	params := session.NewParams().
 		WithServer(simr.ServerURL().Host).
-		WithUserInfo(simr.Username(), simr.Password())
+		WithUserInfo(simr.Username(), simr.Password()).
+		WithDatacenter("*")
 	authSession, err := session.GetOrCreate(controllerCtx, params)
 	g.Expect(err).NotTo(HaveOccurred())
 
@@ -217,7 +219,8 @@ func TestVsphereDeploymentZoneReconciler_Reconcile_CreateAndAttachMetadata(t *te
 	controllerCtx := fake.NewControllerContext(mgmtContext)
 	params := session.NewParams().
 		WithServer(simr.ServerURL().Host).
-		WithUserInfo(simr.Username(), simr.Password())
+		WithUserInfo(simr.Username(), simr.Password()).
+		WithDatacenter("*")
 	authSession, err := session.GetOrCreate(controllerCtx, params)
 	NewWithT(t).Expect(err).NotTo(HaveOccurred())
 

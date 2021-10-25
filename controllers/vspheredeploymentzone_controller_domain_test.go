@@ -64,7 +64,7 @@ func ForComputeClusterZone(t *testing.T) {
 
 	controllerCtx := fake.NewControllerContext(mgmtContext)
 
-	authSession, err := session.GetOrCreate(controllerCtx, logr.DiscardLogger{}, simr.ServerURL().Host, "",
+	authSession, err := session.GetOrCreate(controllerCtx, logr.DiscardLogger{}, simr.ServerURL().Host, "*",
 		simr.Username(), simr.Password(), "")
 	g.Expect(err).NotTo(HaveOccurred())
 
@@ -142,7 +142,7 @@ func ForHostGroupZone(t *testing.T) {
 
 	controllerCtx := fake.NewControllerContext(mgmtContext)
 
-	authSession, err := session.GetOrCreate(controllerCtx, logr.DiscardLogger{}, simr.ServerURL().Host, "",
+	authSession, err := session.GetOrCreate(controllerCtx, logr.DiscardLogger{}, simr.ServerURL().Host, "*",
 		simr.Username(), simr.Password(), "")
 	g.Expect(err).NotTo(HaveOccurred())
 
@@ -211,7 +211,7 @@ func TestVsphereDeploymentZoneReconciler_Reconcile_CreateAndAttachMetadata(t *te
 	mgmtContext.Password = simr.Password()
 
 	controllerCtx := fake.NewControllerContext(mgmtContext)
-	authSession, err := session.GetOrCreate(controllerCtx, logr.DiscardLogger{}, simr.ServerURL().Host, "",
+	authSession, err := session.GetOrCreate(controllerCtx, logr.DiscardLogger{}, simr.ServerURL().Host, "*",
 		simr.Username(), simr.Password(), "")
 	NewWithT(t).Expect(err).NotTo(HaveOccurred())
 

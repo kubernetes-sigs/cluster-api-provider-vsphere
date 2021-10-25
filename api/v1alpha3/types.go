@@ -89,6 +89,7 @@ type VirtualMachineCloneSpec struct {
 
 	// Datacenter is the name or inventory path of the datacenter in which the
 	// virtual machine is created/located.
+	// Defaults to * which selects the default datacenter.
 	// +optional
 	Datacenter string `json:"datacenter,omitempty"`
 

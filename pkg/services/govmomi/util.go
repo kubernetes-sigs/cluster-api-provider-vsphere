@@ -19,12 +19,15 @@ package govmomi
 import (
 	gonet "net"
 	"path"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/property"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -122,6 +125,12 @@ func reconcileInFlightTask(ctx *context.VMContext) (bool, error) {
 		return false, nil
 	}
 
+	// Since RetryAfter is set, the last task failed. Wait for the RetryAfter time duration to expire
+	// before checking/resetting the task.
+	if !ctx.VSphereVM.Status.RetryAfter.IsZero() && time.Now().Before(ctx.VSphereVM.Status.RetryAfter.Time) {
+		return false, errors.Errorf("last task failed retry after %v", ctx.VSphereVM.Status.RetryAfter)
+	}
+
 	// Otherwise the course of action is determined by the state of the task.
 	logger := ctx.Logger.WithName(task.Reference().Value)
 	logger.Info("task found", "state", task.Info.State, "description-id", task.Info.DescriptionId)
@@ -147,8 +156,16 @@ func reconcileInFlightTask(ctx *context.VMContext) (bool, error) {
 			description = task.Info.Description.Message
 		}
 		conditions.MarkFalse(ctx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.TaskFailure, clusterv1.ConditionSeverityInfo, description)
-		ctx.VSphereVM.Status.TaskRef = ""
-		return false, nil
+
+		// Instead of directly requeuing the failed task, wait for the RetryAfter duration to pass
+		// before resetting the taskRef from the VSphereVM status.
+		if ctx.VSphereVM.Status.RetryAfter.IsZero() {
+			ctx.VSphereVM.Status.RetryAfter = metav1.Time{Time: time.Now().Add(1 * time.Minute)}
+		} else {
+			ctx.VSphereVM.Status.TaskRef = ""
+			ctx.VSphereVM.Status.RetryAfter = metav1.Time{}
+		}
+		return true, nil
 	default:
 		return false, errors.Errorf("unknown task state %q for %q", task.Info.State, ctx)
 	}
@@ -233,6 +250,12 @@ func reconcileVSphereVMOnTaskCompletion(ctx *context.VMContext) {
 		// failed, *not* if the task itself failed.
 		if err != nil && taskInfo == nil {
 			return nil, err
+		}
+		// do not queue in the event channel when task fails as we don't
+		// want to retry right away
+		if taskInfo.State == types.TaskInfoStateError {
+			ctx.Logger.Info("async task wait failed")
+			return nil, errors.Errorf("task failed")
 		}
 
 		return []interface{}{

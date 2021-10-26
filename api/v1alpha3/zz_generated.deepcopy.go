@@ -1292,6 +1292,7 @@ func (in *VSphereVMStatus) DeepCopyInto(out *VSphereVMStatus) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	in.RetryAfter.DeepCopyInto(&out.RetryAfter)
 	if in.Network != nil {
 		in, out := &in.Network, &out.Network
 		*out = make([]NetworkStatus, len(*in))

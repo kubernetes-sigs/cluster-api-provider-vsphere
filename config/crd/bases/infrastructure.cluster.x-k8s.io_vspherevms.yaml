@@ -407,6 +407,10 @@ spec:
                   field is required at runtime for other controllers that read this
                   CRD as unstructured data.
                 type: boolean
+              retryAfter:
+                description: RetryAfter tracks the time we can retry queueing a task
+                format: date-time
+                type: string
               snapshot:
                 description: Snapshot is the name of the snapshot from which the VM
                   was cloned if LinkedMode is enabled.
@@ -813,6 +817,10 @@ spec:
                   field is required at runtime for other controllers that read this
                   CRD as unstructured data.
                 type: boolean
+              retryAfter:
+                description: RetryAfter tracks the time we can retry queueing a task
+                format: date-time
+                type: string
               snapshot:
                 description: Snapshot is the name of the snapshot from which the VM
                   was cloned if LinkedMode is enabled.

@@ -10,6 +10,8 @@
       "contrib",
       "controllers",
       "pkg"
-    ]
+    ],
+    "label": "CAPV",
+    "manager-name": "capv-controller-manager"
   }
 }

@@ -12,7 +12,7 @@ require (
 	github.com/onsi/gomega v1.13.0
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.1.3
-	github.com/vmware/govmomi v0.23.1
+	github.com/vmware/govmomi v0.27.1
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
 	golang.org/x/oauth2 v0.0.0-20210615190721-d04028783cf1
 	gopkg.in/gcfg.v1 v1.2.3
@@ -21,7 +21,7 @@ require (
 	k8s.io/apiextensions-apiserver v0.21.2
 	k8s.io/apimachinery v0.21.2
 	k8s.io/client-go v0.21.2
-	k8s.io/component-base v0.21.2 // indirect
+	k8s.io/component-base v0.21.2
 	k8s.io/klog/v2 v2.9.0
 	k8s.io/utils v0.0.0-20210527160623-6fdb442a123b
 	sigs.k8s.io/cluster-api v0.4.0

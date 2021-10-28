@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
@@ -750,6 +751,41 @@ func TestConvertUUIDtoProviderID(t *testing.T) {
 			actualProviderID := util.ConvertUUIDToProviderID(tc.uuid)
 			g.Expect(actualProviderID).To(gomega.Equal(tc.expectedProviderID))
 		})
+	}
+}
+
+func Test_MachinesAsString(t *testing.T) {
+	tests := []struct {
+		machines     []*clusterv1.Machine
+		errorMessage string
+	}{
+		{
+			machines: []*clusterv1.Machine{
+				{ObjectMeta: metav1.ObjectMeta{Name: "m1", Namespace: "m1-ns"}},
+			},
+			errorMessage: "m1-ns/m1",
+		},
+		{
+			machines: []*clusterv1.Machine{
+				{ObjectMeta: metav1.ObjectMeta{Name: "m1", Namespace: "m1-ns"}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "m2", Namespace: "m2-ns"}},
+			},
+			errorMessage: "m1-ns/m1 and m2-ns/m2",
+		},
+		{
+			machines: []*clusterv1.Machine{
+				{ObjectMeta: metav1.ObjectMeta{Name: "m1", Namespace: "m1-ns"}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "m2", Namespace: "m2-ns"}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "m3", Namespace: "m3-ns"}},
+			},
+			errorMessage: "m1-ns/m1, m2-ns/m2 and m3-ns/m3",
+		},
+	}
+
+	for _, tt := range tests {
+		g := gomega.NewWithT(t)
+		msg := util.MachinesAsString(tt.machines)
+		g.Expect(msg).To(gomega.Equal(tt.errorMessage))
 	}
 }
 

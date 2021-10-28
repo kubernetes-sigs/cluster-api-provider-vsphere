@@ -173,6 +173,13 @@ func NewTestEnvironment() *TestEnvironment {
 			return err
 		}
 
+		if err := (&infrav1.VSphereFailureDomain{}).SetupWebhookWithManager(mgr); err != nil {
+			return err
+		}
+		if err := (&infrav1.VSphereFailureDomainList{}).SetupWebhookWithManager(mgr); err != nil {
+			return err
+		}
+
 		return nil
 	}
 

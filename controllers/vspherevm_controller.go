@@ -159,7 +159,11 @@ func (r vmReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) 
 	if !clusterutilv1.HasOwner(vsphereVM.OwnerReferences, infrav1.GroupVersion.String(), []string{"HAProxyLoadBalancer"}) {
 		// Fetch the owner VSphereMachine.
 		vsphereMachine, err := util.GetOwnerVSphereMachine(r, r.Client, vsphereVM.ObjectMeta)
-		if err != nil {
+		// vsphereMachine can be nil in cases where custom mover other than clusterctl
+		// moves the resources without ownerreferences set
+		// in that case nil vsphereMachine can cause panic and CrashLoopBackOff the pod
+		// preventing vspheremachine_controller from setting the ownerref
+		if err != nil || vsphereMachine == nil {
 			r.Logger.Info("Owner VSphereMachine not found, won't reconcile", "key", req.NamespacedName)
 			return reconcile.Result{}, nil
 		}

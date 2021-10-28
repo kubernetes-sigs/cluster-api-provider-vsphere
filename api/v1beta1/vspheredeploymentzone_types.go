@@ -21,6 +21,13 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
+const (
+	// DeploymentZoneFinalizer allows ReconcileVSphereDeploymentZone to
+	// check for dependents associated with VSphereDeploymentZone
+	// before removing it from the API Server.
+	DeploymentZoneFinalizer = "vspheredeploymentzone.infrastructure.cluster.x-k8s.io"
+)
+
 // VSphereDeploymentZoneSpec defines the desired state of VSphereDeploymentZone
 type VSphereDeploymentZoneSpec struct {
 

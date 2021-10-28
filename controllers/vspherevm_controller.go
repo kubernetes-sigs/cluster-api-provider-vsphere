@@ -152,29 +152,26 @@ func (r vmReconciler) Reconcile(ctx goctx.Context, req ctrl.Request) (_ ctrl.Res
 	}
 	conditions.MarkTrue(vsphereVM, infrav1.VCenterAvailableCondition)
 
-	var vsphereFailureDomain *infrav1.VSphereFailureDomain
-	// VSphereVMs for HAProxyLoadBalancer type do not support Failure Domains
-	if !clusterutilv1.HasOwner(vsphereVM.OwnerReferences, infrav1.GroupVersion.String(), []string{"HAProxyLoadBalancer"}) {
-		// Fetch the owner VSphereMachine.
-		vsphereMachine, err := util.GetOwnerVSphereMachine(r, r.Client, vsphereVM.ObjectMeta)
-		// vsphereMachine can be nil in cases where custom mover other than clusterctl
-		// moves the resources without ownerreferences set
-		// in that case nil vsphereMachine can cause panic and CrashLoopBackOff the pod
-		// preventing vspheremachine_controller from setting the ownerref
-		if err != nil || vsphereMachine == nil {
-			r.Logger.Info("Owner VSphereMachine not found, won't reconcile", "key", req.NamespacedName)
-			return reconcile.Result{}, nil
-		}
+	// Fetch the owner VSphereMachine.
+	vsphereMachine, err := util.GetOwnerVSphereMachine(r, r.Client, vsphereVM.ObjectMeta)
+	// vsphereMachine can be nil in cases where custom mover other than clusterctl
+	// moves the resources without ownerreferences set
+	// in that case nil vsphereMachine can cause panic and CrashLoopBackOff the pod
+	// preventing vspheremachine_controller from setting the ownerref
+	if err != nil || vsphereMachine == nil {
+		r.Logger.Info("Owner VSphereMachine not found, won't reconcile", "key", req.NamespacedName)
+		return reconcile.Result{}, nil
+	}
 
-		// Fetch the CAPI Machine.
-		machine, err := clusterutilv1.GetOwnerMachine(r, r.Client, vsphereMachine.ObjectMeta)
-		if err != nil {
-			return reconcile.Result{}, err
-		}
-		if machine == nil {
-			r.Logger.Info("Waiting for OwnerRef to be set on VSphereMachine", "key", vsphereMachine.Name)
-			return reconcile.Result{}, nil
-		}
+	// Fetch the CAPI Machine.
+	machine, err := clusterutilv1.GetOwnerMachine(r, r.Client, vsphereMachine.ObjectMeta)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	if machine == nil {
+		r.Logger.Info("Waiting for OwnerRef to be set on VSphereMachine", "key", vsphereMachine.Name)
+		return reconcile.Result{}, nil
+	}
 
 	var vsphereFailureDomain *infrav1.VSphereFailureDomain
 	if failureDomain := machine.Spec.FailureDomain; failureDomain != nil {

@@ -21,7 +21,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -150,5 +149,5 @@ func readPrivateKey() ([]byte, error) {
 		return nil, errors.Errorf("private key information missing. Please set %s environment variable", VSpherePrivateKeyFilePath)
 	}
 
-	return ioutil.ReadFile(privateKeyFilePath)
+	return os.ReadFile(privateKeyFilePath)
 }

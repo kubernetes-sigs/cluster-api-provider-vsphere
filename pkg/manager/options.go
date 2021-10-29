@@ -17,7 +17,6 @@ limitations under the License.
 package manager
 
 import (
-	"io/ioutil"
 	"os"
 	"strings"
 	"time"
@@ -111,7 +110,7 @@ func (o *Options) defaults() {
 
 	if ns, ok := os.LookupEnv("POD_NAMESPACE"); ok {
 		o.PodNamespace = ns
-	} else if data, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace"); err == nil {
+	} else if data, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace"); err == nil {
 		if ns := strings.TrimSpace(string(data)); len(ns) > 0 {
 			o.PodNamespace = ns
 		}
@@ -121,7 +120,7 @@ func (o *Options) defaults() {
 }
 
 func (o *Options) getCredentials() map[string]string {
-	file, err := ioutil.ReadFile(o.CredentialsFile)
+	file, err := os.ReadFile(o.CredentialsFile)
 	if err != nil {
 		o.Logger.Error(err, "error opening credentials file")
 		return map[string]string{}

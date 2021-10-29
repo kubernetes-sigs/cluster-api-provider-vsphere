@@ -251,7 +251,7 @@ func kubeVIPPod() string {
 			Containers: []corev1.Container{
 				{
 					Name:  "kube-vip",
-					Image: "plndr/kube-vip:0.3.2",
+					Image: "ghcr.io/kube-vip/kube-vip:v0.3.5",
 					Args: []string{
 						"start",
 					},

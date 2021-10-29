@@ -101,7 +101,7 @@ spec:
               value: "10"
             - name: vip_retryperiod
               value: "2"
-            image: projects-stg.registry.vmware.com/tkg/kube-vip:v0.3.3_vmware.1
+            image: ghcr.io/kube-vip/kube-vip:v0.3.5
             imagePullPolicy: IfNotPresent
             name: kube-vip
             resources: {}

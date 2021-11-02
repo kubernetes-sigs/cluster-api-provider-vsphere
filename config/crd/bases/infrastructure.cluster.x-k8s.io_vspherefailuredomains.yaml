@@ -316,8 +316,7 @@ spec:
                     description: ComputeCluster as the failure domain
                     type: string
                   datacenter:
-                    description: The underlying infrastructure for this failure domain
-                      Datacenter as the failure domain
+                    description: Datacenter as the failure domain.
                     type: string
                   datastore:
                     description: Datastore is the name or inventory path of the datastore

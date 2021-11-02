@@ -74,6 +74,10 @@ type VSphereVMStatus struct {
 	// +optional
 	Snapshot string `json:"snapshot,omitempty"`
 
+	// RetryAfter tracks the time we can retry queueing a task
+	// +optional
+	RetryAfter metav1.Time `json:"retryAfter,omitempty"`
+
 	// TaskRef is a managed object reference to a Task related to the machine.
 	// This value is set automatically at runtime and should not be set or
 	// modified by users.

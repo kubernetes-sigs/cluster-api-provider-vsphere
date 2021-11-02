@@ -23,12 +23,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apitypes "k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/wait"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -226,74 +223,6 @@ func (r vmReconciler) Reconcile(ctx goctx.Context, req ctrl.Request) (_ ctrl.Res
 			vmContext.Logger.Error(err, "patch failed", "vm", vmContext.String())
 		}
 
-		// localObj is a deep copy of the VSphereVM resource that was
-		// fetched at the top of this Reconcile function.
-		localObj := vmContext.VSphereVM.DeepCopy()
-
-		// Fetch the up-to-date VSphereVM resource into remoteObj until the
-		// fetched resource has a a different ResourceVersion than the local
-		// object.
-		//
-		// FYI - resource versions are opaque, numeric strings and should not
-		// be compared with < or >, only for equality -
-		// https://kubernetes.io/docs/reference/using-api/api-concepts/#resource-versions.
-		//
-		// Since CAPV is currently deployed with a single replica, and this
-		// controller has a max concurrency of one, the only agent updating the
-		// VSphereVM resource should be this controller.
-		//
-		// So if the remote resource's ResourceVersion is different than the
-		// ResourceVersion of the resource fetched at the beginning of this
-		// reconcile request, then that means the remote resource should be
-		// newer than the local resource.
-		// nolint:errcheck
-		wait.PollImmediateInfinite(time.Second*1, func() (bool, error) {
-			// remoteObj references the same VSphereVM resource as it exists
-			// on the API server post the patch operation above. In a perfect world,
-			// the Status for localObj and remoteObj should be the same.
-			remoteObj := &infrav1.VSphereVM{}
-			if err := vmContext.Client.Get(vmContext, req.NamespacedName, remoteObj); err != nil {
-				if apierrors.IsNotFound(err) {
-					// It's possible that the remote resource cannot be found
-					// because it has been removed. Do not error, just exit.
-					return true, nil
-				}
-
-				// There was an issue getting the remote resource. Sleep for a
-				// second and try again.
-				vmContext.Logger.Error(err, "failed to get VSphereVM while exiting reconcile")
-				return false, nil
-			}
-			// If the remote resource version is not the same as the local
-			// resource version, then it means we were able to get a resource
-			// newer than the one we already had.
-			if localObj.ResourceVersion != remoteObj.ResourceVersion {
-				vmContext.Logger.Info(
-					"resource is patched",
-					"local-resource-version", localObj.ResourceVersion,
-					"remote-resource-version", remoteObj.ResourceVersion)
-				return true, nil
-			}
-
-			// If the resources are the same resource version, then a previous
-			// patch may not have resulted in any changes. Check to see if the
-			// remote status is the same as the local status.
-			if cmp.Equal(localObj.Status, remoteObj.Status, cmpopts.EquateEmpty()) {
-				vmContext.Logger.Info(
-					"resource patch was not required",
-					"local-resource-version", localObj.ResourceVersion,
-					"remote-resource-version", remoteObj.ResourceVersion)
-				return true, nil
-			}
-
-			// The remote resource version is the same as the local resource
-			// version, which means the local cache is not yet up-to-date.
-			vmContext.Logger.Info(
-				"resource is not patched",
-				"local-resource-version", localObj.ResourceVersion,
-				"remote-resource-version", remoteObj.ResourceVersion)
-			return false, nil
-		})
 	}()
 
 	cluster, err := clusterutilv1.GetClusterFromMetadata(r.ControllerContext, r.Client, vsphereVM.ObjectMeta)

@@ -1689,6 +1689,7 @@ func autoConvert_v1alpha4_VSphereVMStatus_To_v1beta1_VSphereVMStatus(in *VSphere
 	out.Addresses = *(*[]string)(unsafe.Pointer(&in.Addresses))
 	out.CloneMode = v1beta1.CloneMode(in.CloneMode)
 	out.Snapshot = in.Snapshot
+	out.RetryAfter = in.RetryAfter
 	out.TaskRef = in.TaskRef
 	out.Network = *(*[]v1beta1.NetworkStatus)(unsafe.Pointer(&in.Network))
 	out.FailureReason = (*errors.MachineStatusError)(unsafe.Pointer(in.FailureReason))
@@ -1707,6 +1708,7 @@ func autoConvert_v1beta1_VSphereVMStatus_To_v1alpha4_VSphereVMStatus(in *v1beta1
 	out.Addresses = *(*[]string)(unsafe.Pointer(&in.Addresses))
 	out.CloneMode = CloneMode(in.CloneMode)
 	out.Snapshot = in.Snapshot
+	out.RetryAfter = in.RetryAfter
 	out.TaskRef = in.TaskRef
 	out.Network = *(*[]NetworkStatus)(unsafe.Pointer(&in.Network))
 	out.FailureReason = (*errors.MachineStatusError)(unsafe.Pointer(in.FailureReason))

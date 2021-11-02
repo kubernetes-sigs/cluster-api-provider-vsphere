@@ -24,7 +24,7 @@ import (
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 )
 
-var _ = Context("ClusterAPI Upgrade Tests", func() {
+var _ = PContext("ClusterAPI Upgrade Tests", func() {
 	Describe("Upgrading cluster from v1alpha3 to v1beta1 using clusterctl", func() {
 		capi_e2e.ClusterctlUpgradeSpec(context.TODO(), func() capi_e2e.ClusterctlUpgradeSpecInput {
 			return capi_e2e.ClusterctlUpgradeSpecInput{

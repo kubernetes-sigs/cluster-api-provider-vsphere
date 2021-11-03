@@ -18,7 +18,6 @@ package manager
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -58,7 +57,7 @@ password: '%s'
 		// for linting reasons
 		test := tt
 		content := fmt.Sprintf(contentFmt, tt.username, tt.password)
-		tmpFile, err := ioutil.TempFile("", "creds")
+		tmpFile, err := os.CreateTemp("", "creds")
 		if err != nil {
 			t.Fatal(err)
 		}

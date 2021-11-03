@@ -20,7 +20,6 @@ import (
 	goctx "context"
 	"fmt"
 	"go/build"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -240,7 +239,7 @@ func (t *TestEnvironment) CreateKubeconfigSecret(ctx goctx.Context, cluster *clu
 }
 
 func getFilePathToCAPICRDs(root string) string {
-	modBits, err := ioutil.ReadFile(filepath.Join(root, "go.mod"))
+	modBits, err := os.ReadFile(filepath.Join(root, "go.mod"))
 	if err != nil {
 		return ""
 	}

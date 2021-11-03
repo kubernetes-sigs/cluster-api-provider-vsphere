@@ -17,8 +17,8 @@ limitations under the License.
 package helpers
 
 import (
-	"io/ioutil"
 	"net"
+	"os"
 	"path"
 	"path/filepath"
 	goruntime "runtime"
@@ -82,7 +82,7 @@ func initializeWebhookInEnvironment() {
 	// Get the root of the current file to use in CRD paths.
 	_, filename, _, _ := goruntime.Caller(0) //nolint
 	root := path.Join(path.Dir(filename), "..", "..")
-	configyamlFile, err := ioutil.ReadFile(filepath.Join(root, "config", "webhook", "manifests.yaml"))
+	configyamlFile, err := os.ReadFile(filepath.Join(root, "config", "webhook", "manifests.yaml"))
 	if err != nil {
 		klog.Fatalf("Failed to read core webhook configuration file: %v ", err)
 	}

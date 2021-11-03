@@ -150,13 +150,14 @@ func GetOrCreate(ctx context.Context, params *Params) (*Session, error) {
 	session.TagManager = manager
 
 	// Assign the datacenter if one was specified.
-	dc, err := session.Finder.DatacenterOrDefault(ctx, params.datacenter)
-	if err != nil {
-		return nil, errors.Wrapf(err, "unable to find datacenter %q", params.datacenter)
+	if params.datacenter != "" {
+		dc, err := session.Finder.Datacenter(ctx, params.datacenter)
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to find datacenter %q", params.datacenter)
+		}
+		session.datacenter = dc
+		session.Finder.SetDatacenter(dc)
 	}
-	session.datacenter = dc
-	session.Finder.SetDatacenter(dc)
-
 	// Cache the session.
 	sessionCache[sessionKey] = session
 

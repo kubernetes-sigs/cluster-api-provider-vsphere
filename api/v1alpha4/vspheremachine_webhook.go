@@ -26,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
 func (m *VSphereMachine) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -35,6 +36,16 @@ func (m *VSphereMachine) SetupWebhookWithManager(mgr ctrl.Manager) error {
 }
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1alpha4-vspheremachine,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=vspheremachines,versions=v1alpha4,name=validation.vspheremachine.infrastructure.x-k8s.io,sideEffects=None,admissionReviewVersions=v1beta1
+// +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1alpha4-vspheremachine,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=vspheremachines,versions=v1alpha4,name=default.vspheremachine.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1beta1
+
+var _ webhook.Validator = &VSphereMachine{}
+var _ webhook.Defaulter = &VSphereMachine{}
+
+func (m *VSphereMachine) Default() {
+	if m.Spec.Datacenter == "" {
+		m.Spec.Datacenter = "*"
+	}
+}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (m *VSphereMachine) ValidateCreate() error {

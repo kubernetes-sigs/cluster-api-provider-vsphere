@@ -24,6 +24,18 @@ import (
 	"k8s.io/utils/pointer"
 )
 
+//nolint
+func TestVsphereFailureDomain_Default(t *testing.T) {
+	g := NewWithT(t)
+	m := &VSphereFailureDomain{
+		Spec: VSphereFailureDomainSpec{},
+	}
+	m.Default()
+
+	g.Expect(*m.Spec.Zone.AutoConfigure).To(BeFalse())
+	g.Expect(*m.Spec.Region.AutoConfigure).To(BeFalse())
+}
+
 func TestVSphereFailureDomain_ValidateCreate(t *testing.T) {
 	g := NewWithT(t)
 

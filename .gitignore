@@ -11,6 +11,7 @@
 test/e2e/data/infrastructure-vsphere/kustomization/base/cluster-template.yaml
 test/e2e/data/infrastructure-vsphere/cluster-template.yaml
 test/e2e/data/infrastructure-vsphere/cluster-template-remote-management.yaml
+_artifacts/
 
 # env vars file used in getting-started.md and manifests generation
 envvars.txt

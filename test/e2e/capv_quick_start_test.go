@@ -82,7 +82,7 @@ var _ = Describe("Cluster creation with vSphere validations", func() {
 		Expect(err).NotTo(HaveOccurred())
 		var res []types.PbmServerObjectRef
 		if pbmClient != nil {
-			spName := getVariable(VsphereStoragePolicy)
+			spName := e2eConfig.GetVariable(VsphereStoragePolicy)
 			if spName == "" {
 				Fail("storage policy test run without setting VSPHERE_STORAGE_POLICY")
 			}

@@ -1,0 +1,77 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.7.0
+  creationTimestamp: null
+  name: webconsolerequests.vmoperator.vmware.com
+spec:
+  group: vmoperator.vmware.com
+  names:
+    kind: WebConsoleRequest
+    listKind: WebConsoleRequestList
+    plural: webconsolerequests
+    singular: webconsolerequest
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: WebConsoleRequest allows the creation of a one-time web console
+          ticket that can be used to interact with the VM.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: WebConsoleRequestSpec describes the specification for used
+              to request a web console request.
+            properties:
+              publicKey:
+                description: PublicKey is used to encrypt the status.response. This
+                  is expected to be a RSA OAEP public key in X.509 PEM format.
+                type: string
+              virtualMachineName:
+                description: VirtualMachineName is the VM in the same namespace, for
+                  which the web console is requested.
+                type: string
+            required:
+            - publicKey
+            - virtualMachineName
+            type: object
+          status:
+            description: WebConsoleRequestStatus defines the observed state, which
+              includes the web console request itself.
+            properties:
+              expiryTime:
+                description: ExpiryTime is when the ticket referenced in Response
+                  will expire.
+                format: date-time
+                type: string
+              response:
+                description: Response will be the authenticated ticket corresponding
+                  to this web console request.
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

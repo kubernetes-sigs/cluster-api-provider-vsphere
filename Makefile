@@ -40,6 +40,7 @@ TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
 
 E2E_CONF_FILE  ?= "$(abspath test/e2e/config/vsphere-dev.yaml)"
+INTEGRATION_CONF_FILE ?= "$(abspath test/integration/integration-dev.yaml)"
 E2E_TEMPLATE_DIR := "$(abspath test/e2e/data/infrastructure-vsphere/)"
 
 # Binaries
@@ -55,6 +56,7 @@ GOVC := $(TOOLS_BIN_DIR)/govc
 KIND := $(TOOLS_BIN_DIR)/kind
 KUSTOMIZE := $(TOOLS_BIN_DIR)/kustomize
 TOOLING_BINARIES := $(CONTROLLER_GEN) $(CONVERSION_GEN) $(GINKGO) $(GOLANGCI_LINT) $(GOVC) $(KIND) $(KUSTOMIZE)
+ARTIFACTS_PATH := $(ROOT_DIR)/_artifacts
 
 # Set --output-base for conversion-gen if we are not within GOPATH
 ifneq ($(abspath $(ROOT_DIR)),$(shell go env GOPATH)/src/sigs.k8s.io/cluster-api-provider-vsphere)
@@ -65,6 +67,7 @@ endif
 MANIFEST_ROOT ?= ./config
 CRD_ROOT ?= $(MANIFEST_ROOT)/default/crd/bases
 SUPERVISOR_CRD_ROOT ?= $(MANIFEST_ROOT)/supervisor/crd
+VMOP_CRD_ROOT ?= $(MANIFEST_ROOT)/deployments/integration-tests/crds
 WEBHOOK_ROOT ?= $(MANIFEST_ROOT)/webhook
 RBAC_ROOT ?= $(MANIFEST_ROOT)/rbac
 GC_KIND ?= true
@@ -126,6 +129,11 @@ e2e-templates: ## Generate e2e cluster templates
 	cp $(RELEASE_DIR)/cluster-template.yaml $(E2E_TEMPLATE_DIR)/kustomization/base/cluster-template.yaml
 	"$(KUSTOMIZE)" build $(E2E_TEMPLATE_DIR)/kustomization/base > $(E2E_TEMPLATE_DIR)/cluster-template.yaml
 	"$(KUSTOMIZE)" build $(E2E_TEMPLATE_DIR)/kustomization/remote-management > $(E2E_TEMPLATE_DIR)/cluster-template-remote-management.yaml
+
+.PHONY: test-integration
+test-integration: e2e-image
+test-integration: $(GINKGO) $(KUSTOMIZE) $(KIND)
+	time $(GINKGO) -v ./test/integration -- --config="$(INTEGRATION_CONF_FILE)" --artifacts-folder="$(ARTIFACTS_PATH)"
 
 .PHONY: e2e
 e2e: e2e-image e2e-templates
@@ -245,7 +253,12 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 	$(CONTROLLER_GEN) \
 		paths=./apis/vmware/v1beta1 \
 		crd:crdVersions=v1 \
-		output:crd:dir=$(SUPERVISOR_CRD_ROOT) \
+		output:crd:dir=$(SUPERVISOR_CRD_ROOT)
+	# vm-operator crds are loaded to be used for integration tests.
+	$(CONTROLLER_GEN) \
+		paths=github.com/vmware-tanzu/vm-operator-api/api/... \
+		crd:crdVersions=v1 \
+		output:crd:dir=$(VMOP_CRD_ROOT)
 ## --------------------------------------
 ## Release
 ## --------------------------------------

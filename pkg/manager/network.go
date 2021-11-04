@@ -23,9 +23,9 @@ import (
 )
 
 const (
-	NSXNetworkProvider   = "NSX"
-	VDSNetworkProvider   = "vsphere-network"
-	DummyNetworkProvider = "DummyNetworkProvider"
+	NSXNetworkProvider     = "NSX"
+	VDSNetworkProvider     = "vsphere-network"
+	DummyLBNetworkProvider = "DummyLBNetworkProvider"
 )
 
 // GetNetworkProvider will return a network provider instance based on the environment
@@ -39,11 +39,11 @@ func GetNetworkProvider(ctx *context.ControllerManagerContext) (services.Network
 	case VDSNetworkProvider:
 		ctx.Logger.Info("Pick NetOp (VDS) network provider")
 		return network.NetOpNetworkProvider(ctx.Client), nil
-	case DummyNetworkProvider:
+	case DummyLBNetworkProvider:
 		ctx.Logger.Info("Pick Dummy network provider")
-		return network.DummyNetworkProvider(), nil
-	default:
-		ctx.Logger.Info("NetworkProvider not set. Pick Dummy LB network provider")
 		return network.DummyLBNetworkProvider(), nil
+	default:
+		ctx.Logger.Info("NetworkProvider not set. Pick Dummy network provider")
+		return network.DummyNetworkProvider(), nil
 	}
 }

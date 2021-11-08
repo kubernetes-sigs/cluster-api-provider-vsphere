@@ -23,9 +23,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-var (
-	biosUUID = "vsphere://42305f0b-dad7-1d3d-5727-0eafffffbbbfc"
-)
+var biosUUID = "vsphere://42305f0b-dad7-1d3d-5727-0eafffffbbbfc"
 
 //nolint
 func TestVSphereVM_ValidateCreate(t *testing.T) {

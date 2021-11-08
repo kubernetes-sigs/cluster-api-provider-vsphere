@@ -20,18 +20,19 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
+
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/env"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/cloudprovider"
-	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 )
 
-// CreateCrsResourceObjectsCPI creates the api objects necessary for CSI to function. Also appends the resources to the CRS
+// CreateCrsResourceObjectsCPI creates the api objects necessary for CSI to function.
+// Also appends the resources to the CRS.
 func CreateCrsResourceObjectsCPI(crs *addonsv1.ClusterResourceSet) []runtime.Object {
 	serviceAccount := cloudprovider.CloudControllerManagerServiceAccount()
 	serviceAccount.TypeMeta = metav1.TypeMeta{

@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+//nolint:godot
 package v1beta1
 
 // VSphereMachineTemplateResource describes the data needed to create a VSphereMachine from a template
@@ -29,10 +30,10 @@ const (
 	// VirtualMachineStateNotFound is the string representing a VM that cannot be located.
 	VirtualMachineStateNotFound = VirtualMachineState("notfound")
 
-	// VirtualMachineStateCreated is the string representing a VM that's been created
+	// VirtualMachineStateCreated is the string representing a VM that's been created.
 	VirtualMachineStateCreated = VirtualMachineState("created")
 
-	// VirtualMachineStatePoweredOn is the string representing a VM that has successfully powered on
+	// VirtualMachineStatePoweredOn is the string representing a VM that has successfully powered on.
 	VirtualMachineStatePoweredOn = VirtualMachineState("poweredon")
 
 	// VirtualMachineStatePending is the string representing a VM with an in-flight task.
@@ -42,9 +43,9 @@ const (
 	VirtualMachineStateReady = VirtualMachineState("ready")
 
 	// VirtualMachineStateDeleting is the string representing a machine that still exists, but has a deleteTimestamp
-	// Note that once a VirtualMachine is finally deleted, its state will be VirtualMachineStateNotFound
+	// Note that once a VirtualMachine is finally deleted, its state will be VirtualMachineStateNotFound.
 	VirtualMachineStateDeleting = VirtualMachineState("deleting")
 
-	// VirtualMachineStateError is reported if an error occurs determining the status
+	// VirtualMachineStateError is reported if an error occurs determining the status.
 	VirtualMachineStateError = VirtualMachineState("error")
 )

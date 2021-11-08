@@ -26,7 +26,7 @@ import (
 type Config []types.BaseOptionValue
 
 // SetCustomVMXKeys sets the custom VMX keys as
-// OptionValues in extraConfig
+// OptionValues in extraConfig.
 func (e *Config) SetCustomVMXKeys(customKeys map[string]string) error {
 	for k, v := range customKeys {
 		*e = append(*e, &types.OptionValue{
@@ -72,7 +72,7 @@ func (e *Config) SetCloudInitMetadata(data []byte) error {
 
 // encode first attempts to decode the data as many times as necessary
 // to ensure it is plain-text before returning the result as a base64
-// encoded string
+// encoded string.
 func (e *Config) encode(data []byte) string {
 	if len(data) == 0 {
 		return ""

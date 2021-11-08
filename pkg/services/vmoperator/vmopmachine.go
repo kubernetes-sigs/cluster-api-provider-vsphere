@@ -23,25 +23,25 @@ import (
 	"fmt"
 	"text/template"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
-
 	"github.com/pkg/errors"
 	vmoprv1 "github.com/vmware-tanzu/vm-operator-api/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
 	infrautilv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 	vmwareutil "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util/vmware"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/conditions"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 type VmopMachineService struct {
@@ -299,7 +299,8 @@ func (v VmopMachineService) reconcileVMOperatorVM(ctx *vmware.SupervisorMachineC
 			vmOperatorVM.Spec.ReadinessProbe = &vmoprv1.Probe{
 				TCPSocket: &vmoprv1.TCPSocketAction{
 					Port: intstr.FromInt(defaultAPIBindPort),
-				}}
+				},
+			}
 		}
 
 		// Assign the VM's labels.
@@ -435,7 +436,7 @@ func (v *VmopMachineService) reconcileProviderID(ctx *vmware.SupervisorMachineCo
 	}
 }
 
-// getVirtualMachinesInCluster returns all VMOperator VirtualMachine objects in the current cluster
+// getVirtualMachinesInCluster returns all VMOperator VirtualMachine objects in the current cluster.
 func getVirtualMachinesInCluster(ctx *vmware.SupervisorMachineContext) ([]*vmoprv1.VirtualMachine, error) {
 	labels := map[string]string{clusterSelectorKey: ctx.Cluster.Name}
 	vmList := &vmoprv1.VirtualMachineList{}
@@ -480,7 +481,7 @@ func volumeName(machine *vmwarev1.VSphereMachine, volume vmwarev1.VSphereMachine
 	return machine.Name + "-" + volume.Name
 }
 
-// addVolume ensures volume is included in vm.Spec.Volumes
+// addVolume ensures volume is included in vm.Spec.Volumes.
 func addVolume(vm *vmoprv1.VirtualMachine, name string) {
 	for _, volume := range vm.Spec.Volumes {
 		claim := volume.PersistentVolumeClaim
@@ -543,7 +544,6 @@ func addVolumes(ctx *vmware.SupervisorMachineContext, vm *vmoprv1.VirtualMachine
 
 // getVMLabels returns the labels applied to a VirtualMachine.
 func getVMLabels(ctx *vmware.SupervisorMachineContext, vmLabels map[string]string) map[string]string {
-
 	if vmLabels == nil {
 		vmLabels = map[string]string{}
 	}

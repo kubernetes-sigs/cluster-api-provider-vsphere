@@ -38,9 +38,7 @@ type TestFlags struct {
 	UnitTestsEnabled bool
 }
 
-var (
-	flags TestFlags
-)
+var flags TestFlags
 
 func init() {
 	flags = TestFlags{}

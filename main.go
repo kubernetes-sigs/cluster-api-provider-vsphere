@@ -58,7 +58,6 @@ var (
 	defaultKeepAliveDuration = constants.DefaultKeepAliveDuration
 )
 
-// nolint:gocognit
 func main() {
 	rand.Seed(time.Now().UnixNano())
 

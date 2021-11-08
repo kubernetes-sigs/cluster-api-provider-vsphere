@@ -40,7 +40,7 @@ import (
 )
 
 const (
-	// Mocked virtualnetwork status reason and message
+	// Mocked virtualnetwork status reason and message.
 	testVnetNotRealizedReason  = "Cannot realize network"
 	testVnetNotRealizedMessage = "NetworkNotRealized"
 )
@@ -58,7 +58,6 @@ func createUnReadyNsxtVirtualNetwork(ctx *vmware.ClusterContext, status ncpv1.Vi
 }
 
 var _ = Describe("Network provider", func() {
-
 	var (
 		dummyNs          = "dummy-ns"
 		dummyCluster     = "dummy-cluster"
@@ -112,7 +111,6 @@ var _ = Describe("Network provider", func() {
 	})
 
 	Context("ConfigureVirtualMachine", func() {
-
 		JustBeforeEach(func() {
 			err = np.ConfigureVirtualMachine(ctx, vm)
 		})
@@ -315,7 +313,7 @@ var _ = Describe("Network provider", func() {
 
 		Context("with nsx-t network provider and FW not enabled and VNET does not exist", func() {
 			BeforeEach(func() {
-				//no pre-existing vnet obj
+				// no pre-existing vnet obj
 				client = fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(configmapObj, systemNamespaceObj).Build()
 				nsxNp, _ = NsxtNetworkProvider(client, "true").(*nsxtNetworkProvider)
 				np = nsxNp
@@ -354,7 +352,7 @@ var _ = Describe("Network provider", func() {
 				Expect(localerr).To(BeNil())
 				Expect(vnet).To(Equal(GetNSXTVirtualNetworkName(ctx.VSphereCluster.Name)))
 
-				//Verify WhitelistSourceRanges have been updated
+				// Verify WhitelistSourceRanges have been updated
 				createdVNET := &ncpv1.VirtualNetwork{}
 				err = client.Get(ctx, apitypes.NamespacedName{
 					Name:      GetNSXTVirtualNetworkName(dummyCluster),
@@ -369,7 +367,7 @@ var _ = Describe("Network provider", func() {
 
 		Context("with nsx-t network provider and FW enabled and NCP version >= 3.0.1 and VNET does not exist", func() {
 			BeforeEach(func() {
-				//no pre-existing vnet obj
+				// no pre-existing vnet obj
 				client = fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(configmapObj, systemNamespaceObj).Build()
 				nsxNp, _ = NsxtNetworkProvider(client, "false").(*nsxtNetworkProvider)
 				np = nsxNp
@@ -382,7 +380,7 @@ var _ = Describe("Network provider", func() {
 				Expect(localerr).To(BeNil())
 				Expect(vnet).To(Equal(GetNSXTVirtualNetworkName(ctx.VSphereCluster.Name)))
 
-				//Verify WhitelistSourceRanges have been updated
+				// Verify WhitelistSourceRanges have been updated
 				createdVNET := &ncpv1.VirtualNetwork{}
 				err = client.Get(ctx, apitypes.NamespacedName{
 					Name:      GetNSXTVirtualNetworkName(dummyCluster),
@@ -390,7 +388,7 @@ var _ = Describe("Network provider", func() {
 				}, createdVNET)
 
 				Expect(createdVNET.Spec.WhitelistSourceRanges).To(Equal(fakeSNATIP + "/32"))
-				//err is not empty, but it is because vnetObj does not have status mocked in this test
+				// err is not empty, but it is because vnetObj does not have status mocked in this test
 
 				Expect(conditions.IsTrue(ctx.VSphereCluster, infrav1.ClusterNetworkReadyCondition)).To(BeTrue())
 			})
@@ -398,7 +396,7 @@ var _ = Describe("Network provider", func() {
 
 		Context("with nsx-t network provider and FW enabled and NCP version < 3.0.1 and VNET exists", func() {
 			BeforeEach(func() {
-				//test if NCP version is 3.0.0
+				// test if NCP version is 3.0.0
 				configmapObj.(*v1.ConfigMap).Data[util.NCPVersionKey] = "3.0.0"
 				client = fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(runtimeObjs...).Build()
 				nsxNp, _ = NsxtNetworkProvider(client, "false").(*nsxtNetworkProvider)
@@ -412,7 +410,7 @@ var _ = Describe("Network provider", func() {
 				Expect(localerr).To(BeNil())
 				Expect(vnet).To(Equal(GetNSXTVirtualNetworkName(ctx.VSphereCluster.Name)))
 
-				//Verify WhitelistSourceRanges is not included
+				// Verify WhitelistSourceRanges is not included
 				createdVNET := &ncpv1.VirtualNetwork{}
 				err = client.Get(ctx, apitypes.NamespacedName{
 					Name:      GetNSXTVirtualNetworkName(dummyCluster),
@@ -420,13 +418,13 @@ var _ = Describe("Network provider", func() {
 				}, createdVNET)
 
 				Expect(createdVNET.Spec.WhitelistSourceRanges).To(BeEmpty())
-				//err is not empty, but it is because vnetObj does not have status mocked in this test
+				// err is not empty, but it is because vnetObj does not have status mocked in this test
 
 				Expect(conditions.IsTrue(ctx.VSphereCluster, infrav1.ClusterNetworkReadyCondition)).To(BeTrue())
 			})
 
 			AfterEach(func() {
-				//change NCP version back
+				// change NCP version back
 				configmapObj.(*v1.ConfigMap).Data[util.NCPVersionKey] = util.NCPVersionSupportFW
 			})
 		})
@@ -466,7 +464,6 @@ var _ = Describe("Network provider", func() {
 	})
 
 	Context("GetVMServiceAnnotations", func() {
-
 		Context("with netop network provider", func() {
 			var defaultNetwork *netopv1alpha1.Network
 
@@ -544,5 +541,4 @@ var _ = Describe("Network provider", func() {
 			})
 		})
 	})
-
 })

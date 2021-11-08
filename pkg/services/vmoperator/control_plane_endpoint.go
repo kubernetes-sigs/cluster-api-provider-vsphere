@@ -43,10 +43,10 @@ const (
 	roleControlPlane   = "controlplane"
 )
 
-// CPService represents the ability to reconcile a ControlPlaneEndpoint
+// CPService represents the ability to reconcile a ControlPlaneEndpoint.
 type CPService struct{}
 
-// ReconcileControlPlaneEndpointService manages the lifecycle of a control plane endpoint managed by a vmoperator VirtualMachineService
+// ReconcileControlPlaneEndpointService manages the lifecycle of a control plane endpoint managed by a vmoperator VirtualMachineService.
 func (s CPService) ReconcileControlPlaneEndpointService(ctx *vmware.ClusterContext, netProvider services.NetworkProvider) (*clusterv1.APIEndpoint, error) {
 	ctx.Logger.V(4).Info("Reconciling control plane VirtualMachineService for cluster")
 
@@ -130,7 +130,6 @@ func newVirtualMachineService(ctx *vmware.ClusterContext) *vmoprv1.VirtualMachin
 }
 
 func (s CPService) createVMControlPlaneService(ctx *vmware.ClusterContext, annotations map[string]string) (*vmoprv1.VirtualMachineService, error) {
-
 	// Note that the current implementation will only create a VirtualMachineService for a load balanced endpoint
 	serviceType := vmoprv1.VirtualMachineServiceTypeLoadBalancer
 
@@ -161,7 +160,6 @@ func (s CPService) createVMControlPlaneService(ctx *vmware.ClusterContext, annot
 		}
 		return nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -197,9 +195,9 @@ func getVMServiceVIP(vmService *vmoprv1.VirtualMachineService) (string, error) {
 			return ingress.IP, nil
 		}
 		// BMV: Supported?
-		//if ingress.Hostname != "" {
-		//	return ingress.Hostname, nil
-		//}
+		// if ingress.Hostname != "" {
+		// 	return ingress.Hostname, nil
+		// }
 	}
 
 	return "", fmt.Errorf("VirtualMachineService LoadBalancer does not have any Ingresses")

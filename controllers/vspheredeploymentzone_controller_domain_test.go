@@ -19,9 +19,8 @@ package controllers
 import (
 	"testing"
 
-	. "github.com/onsi/gomega"
-
 	"github.com/go-logr/logr"
+	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/vmware/govmomi/simulator"
 	"k8s.io/utils/pointer"
@@ -33,6 +32,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers"
 )
 
+//nolint:paralleltest
 func TestVsphereDeploymentZoneReconciler_Reconcile_VerifyFailureDomain(t *testing.T) {
 	t.Run("for Compute Cluster Zone Failure Domain", ForComputeClusterZone)
 	t.Run("for Host Group Zone Failure Domain", ForHostGroupZone)
@@ -56,7 +56,7 @@ func ForComputeClusterZone(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create VC simulator")
 	}
-	defer simr.Destroy()
+	t.Cleanup(simr.Destroy)
 
 	mgmtContext := fake.NewControllerManagerContext()
 	mgmtContext.Username = simr.Username()
@@ -137,7 +137,7 @@ func ForHostGroupZone(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create VC simulator")
 	}
-	defer simr.Destroy()
+	t.Cleanup(simr.Destroy)
 
 	mgmtContext := fake.NewControllerManagerContext()
 	mgmtContext.Username = simr.Username()
@@ -210,7 +210,7 @@ func TestVsphereDeploymentZoneReconciler_Reconcile_CreateAndAttachMetadata(t *te
 	if err != nil {
 		t.Fatalf("failed to create VC simulator")
 	}
-	defer simr.Destroy()
+	t.Cleanup(simr.Destroy)
 
 	mgmtContext := fake.NewControllerManagerContext()
 	mgmtContext.Username = simr.Username()

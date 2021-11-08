@@ -37,7 +37,6 @@ import (
 // testing reconcilers and webhooks with a fake client. You can choose to
 // initialize it with a slice of runtime.Object.
 func NewControllerManagerContext(initObjects ...runtime.Object) *context.ControllerManagerContext {
-
 	scheme := runtime.NewScheme()
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = clusterv1.AddToScheme(scheme)

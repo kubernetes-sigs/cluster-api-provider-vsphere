@@ -25,7 +25,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/vmware/govmomi/simulator"
-
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -290,7 +289,6 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 			err := testEnv.Get(ctx, key, instance)
 			return apierrors.IsNotFound(err)
 		}, timeout).Should(BeTrue())
-
 	})
 
 	Context("With Deployment Zones", func() {
@@ -388,7 +386,6 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 	})
 
 	Context("For VSphereMachines belonging to the cluster", func() {
-
 		var (
 			namespace string
 			testNs    *corev1.Namespace
@@ -571,8 +568,9 @@ func TestClusterReconciler_ReconcileDeploymentZones(t *testing.T) {
 		},
 	}
 
-	// nolint:scopelint
 	for _, tt := range tests {
+		// Looks odd, but need to reinit test variable
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			controllerCtx := fake.NewControllerContext(fake.NewControllerManagerContext(tt.initObjs...))

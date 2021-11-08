@@ -53,23 +53,21 @@ const (
 	testSecretToken = "ZXlKaGJHY2lPaUpTVXpJMU5pSXNJbXRwWkNJNklp" // nolint:gosec
 )
 
-var (
-	truePointer = true
-)
+var truePointer = true
 
-func createTargetSecretWithInvalidToken(ctx *builder.UnitTestContextForController, guestClient client.Client) { // nolint
+func createTargetSecretWithInvalidToken(ctx *builder.UnitTestContextForController, guestClient client.Client) {
 	secret := getTestTargetSecretWithInvalidToken()
 	Expect(guestClient.Create(ctx, secret)).To(Succeed())
 }
 
-func assertEventuallyExistsInNamespace(ctx goctx.Context, c client.Client, namespace, name string, obj client.Object) { // nolint
+func assertEventuallyExistsInNamespace(ctx goctx.Context, c client.Client, namespace, name string, obj client.Object) {
 	EventuallyWithOffset(2, func() error {
 		key := client.ObjectKey{Namespace: namespace, Name: name}
 		return c.Get(ctx, key, obj)
 	}).Should(Succeed())
 }
 
-func assertNoEntities(ctx *builder.UnitTestContextForController, ctrlClient client.Client, namespace string) { // nolint
+func assertNoEntities(ctx *builder.UnitTestContextForController, ctrlClient client.Client, namespace string) {
 	Consistently(func() int {
 		var serviceAccountList corev1.ServiceAccountList
 		err := ctrlClient.List(ctx, &serviceAccountList, client.InNamespace(namespace))
@@ -116,7 +114,7 @@ func assertTargetSecret(ctx *builder.UnitTestContextForController, guestClient c
 	}).Should(Equal([]byte(testSecretToken)))
 }
 
-func assertTargetNamespace(ctx *builder.UnitTestContextForController, guestClient client.Client, namespaceName string, isExist bool) { // nolint
+func assertTargetNamespace(ctx *builder.UnitTestContextForController, guestClient client.Client, namespaceName string, isExist bool) {
 	namespace := &corev1.Namespace{}
 	err := guestClient.Get(ctx, client.ObjectKey{Name: namespaceName}, namespace)
 	if isExist {
@@ -126,7 +124,7 @@ func assertTargetNamespace(ctx *builder.UnitTestContextForController, guestClien
 	}
 }
 
-func assertRoleWithGetPVC(ctx *builder.UnitTestContextForController, ctrlClient client.Client, namespace, name string) { // nolint
+func assertRoleWithGetPVC(ctx *builder.UnitTestContextForController, ctrlClient client.Client, namespace, name string) {
 	var roleList rbacv1.RoleList
 	opts := &client.ListOptions{
 		Namespace: namespace,
@@ -144,7 +142,7 @@ func assertRoleWithGetPVC(ctx *builder.UnitTestContextForController, ctrlClient 
 	}))
 }
 
-func assertRoleBinding(_ *builder.UnitTestContextForController, ctrlClient client.Client, namespace, name string) { // nolint
+func assertRoleBinding(_ *builder.UnitTestContextForController, ctrlClient client.Client, namespace, name string) {
 	var roleBindingList rbacv1.RoleBindingList
 	opts := &client.ListOptions{
 		Namespace: namespace,
@@ -209,7 +207,9 @@ func getTestProviderServiceAccount(namespace, name string, vSphereCluster *vmwar
 			},
 			TargetNamespace:  testTargetNS,
 			TargetSecretName: testTargetSecret,
-		}}
+		},
+	}
+
 	if vSphereCluster != nil {
 		pSvcAccount.OwnerReferences = []metav1.OwnerReference{
 			{
@@ -284,7 +284,8 @@ func getTestRoleBindingWithInvalidRoleRef(namespace, name string) *rbacv1.RoleBi
 				Kind:      "ServiceAccount",
 				APIGroup:  "",
 				Name:      testSvcAccountName,
-				Namespace: namespace},
+				Namespace: namespace,
+			},
 		},
 	}
 }

@@ -14,20 +14,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+//nolint:golint,revive,stylecheck
 package v1alpha4
 
 import (
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
-	infrav1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	clusterv1a4 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	clusterv1b1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
+
+	infrav1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 )
 
-// ConvertTo
-func (src *VSphereMachineTemplate) ConvertTo(dstRaw conversion.Hub) error { // nolint
-	dst := dstRaw.(*infrav1beta1.VSphereMachineTemplate)
+// ConvertTo.
+func (src *VSphereMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*infrav1beta1.VSphereMachineTemplate) //nolint:forcetypeassert
 	if err := Convert_v1alpha4_VSphereMachineTemplate_To_v1beta1_VSphereMachineTemplate(src, dst, nil); err != nil {
 		return err
 	}
@@ -42,8 +44,8 @@ func (src *VSphereMachineTemplate) ConvertTo(dstRaw conversion.Hub) error { // n
 	return nil
 }
 
-func (dst *VSphereMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error { // nolint
-	src := srcRaw.(*infrav1beta1.VSphereMachineTemplate)
+func (dst *VSphereMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*infrav1beta1.VSphereMachineTemplate) //nolint:forcetypeassert
 	if err := Convert_v1beta1_VSphereMachineTemplate_To_v1alpha4_VSphereMachineTemplate(src, dst, nil); err != nil {
 		return err
 	}
@@ -56,13 +58,13 @@ func (dst *VSphereMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error { //
 	return nil
 }
 
-func (src *VSphereMachineTemplateList) ConvertTo(dstRaw conversion.Hub) error { // nolint
-	dst := dstRaw.(*infrav1beta1.VSphereMachineTemplateList)
+func (src *VSphereMachineTemplateList) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*infrav1beta1.VSphereMachineTemplateList) //nolint:forcetypeassert
 	return Convert_v1alpha4_VSphereMachineTemplateList_To_v1beta1_VSphereMachineTemplateList(src, dst, nil)
 }
 
-func (dst *VSphereMachineTemplateList) ConvertFrom(srcRaw conversion.Hub) error { // nolint
-	src := srcRaw.(*infrav1beta1.VSphereMachineTemplateList)
+func (dst *VSphereMachineTemplateList) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*infrav1beta1.VSphereMachineTemplateList) //nolint:forcetypeassert
 	return Convert_v1beta1_VSphereMachineTemplateList_To_v1alpha4_VSphereMachineTemplateList(src, dst, nil)
 }
 

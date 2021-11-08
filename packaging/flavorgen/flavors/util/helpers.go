@@ -24,8 +24,9 @@ import (
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/env"
 	"sigs.k8s.io/yaml"
+
+	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/env"
 )
 
 type Replacement struct {
@@ -108,7 +109,7 @@ func deleteZeroValues(o map[string]interface{}) map[string]interface{} {
 			continue
 		}
 		if val.Kind() == reflect.Map {
-			newMap := v.(map[string]interface{})
+			newMap := v.(map[string]interface{}) //nolint:forcetypeassert
 			newMap = deleteZeroValues(newMap)
 			if isZeroValue(reflect.ValueOf(newMap)) {
 				delete(o, k)
@@ -120,7 +121,6 @@ func deleteZeroValues(o map[string]interface{}) map[string]interface{} {
 }
 
 func GenerateObjectYAML(obj runtime.Object, replacements []Replacement) string {
-
 	bytes, err := yaml.Marshal(obj)
 	if err != nil {
 		panic(err)
@@ -178,7 +178,7 @@ func GenerateManifestYaml(objs []runtime.Object) string {
 func PrintObjects(objs []runtime.Object) {
 	for _, o := range objs {
 		o := o
-		fmt.Printf("---\n%s", GenerateObjectYAML(o, replacements))
+		fmt.Printf("---\n%s", GenerateObjectYAML(o, replacements)) //nolint:forbidigo
 	}
 }
 

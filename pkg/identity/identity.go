@@ -80,7 +80,8 @@ func GetCredentials(ctx context.Context, c client.Client, cluster *infrav1.VSphe
 		if err != nil {
 			return nil, errors.New("failed to build selector")
 		}
-		var ns = &apiv1.Namespace{}
+
+		ns := &apiv1.Namespace{}
 		nsKey := client.ObjectKey{
 			Name: cluster.Namespace,
 		}

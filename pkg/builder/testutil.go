@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+//nolint:unused
 package builder
 
 import (
@@ -35,7 +36,7 @@ const (
 )
 
 func randomTCPPort() int {
-	tcpPortRand := rand.New(rand.NewSource(time.Now().UnixNano()))
+	tcpPortRand := rand.New(rand.NewSource(time.Now().UnixNano())) //nolint:gosec
 	for i := maxReservedTCPPort; i < maxTCPPort; i++ {
 		p := tcpPortRand.Intn(maxRandTCPPort) + maxReservedTCPPort + 1
 		if isTCPPortAvailable(p) {

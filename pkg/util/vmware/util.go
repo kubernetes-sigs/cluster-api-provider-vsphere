@@ -28,8 +28,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// GetMachineDeploymentName returns the MachineDeployment name for a Cluster
-// This is also the name used by VSphereMachineTemplate and KubeadmConfigTemplate
+// GetMachineDeploymentName returns the MachineDeployment name for a Cluster.
+// This is also the name used by VSphereMachineTemplate and KubeadmConfigTemplate.
 func GetMachineDeploymentNameForCluster(cluster *clusterv1.Cluster) string {
 	return fmt.Sprintf("%s-workers-0", cluster.Name)
 }
@@ -49,7 +49,7 @@ func GetBootstrapData(ctx context.Context, c client.Client, machine *clusterv1.M
 }
 
 // GetRawBootstrapData returns the bootstrap data from the secret in the
-// Machine's bootstrap.dataSecretName
+// Machine's bootstrap.dataSecretName.
 func GetRawBootstrapData(ctx context.Context, c client.Client, machine *clusterv1.Machine) ([]byte, error) {
 	if machine.Spec.Bootstrap.DataSecretName == nil {
 		return nil, errors.New("error retrieving bootstrap data: linked Machine's bootstrap.dataSecretName is nil")

@@ -20,10 +20,10 @@ import (
 	"fmt"
 	"testing"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/apis/v1alpha3"
-
 	"github.com/onsi/gomega"
 	"github.com/pkg/errors"
+
+	"sigs.k8s.io/cluster-api-provider-vsphere/apis/v1alpha3"
 )
 
 var unmarshalWarnAsFatal = []v1alpha3.UnmarshalINIOptionFunc{v1alpha3.WarnAsFatal}
@@ -610,6 +610,7 @@ func TestUnmarshalINI(t *testing.T) {
 		},
 	}
 
+	//nolint:gocritic
 	testCases := append(
 		testcases,
 		deprecatedTestCases...,
@@ -623,7 +624,6 @@ func TestUnmarshalINI(t *testing.T) {
 			if err := actualConfig.UnmarshalINI(
 				[]byte(tc.iniString),
 				tc.unmarshalOptions...); err != nil {
-
 				if tc.expectedError == nil {
 					g.Expect(err).ShouldNot(
 						gomega.HaveOccurred(),
@@ -721,5 +721,4 @@ func TestPasswords(t *testing.T) {
 				"actual config does not match expected config")
 		})
 	}
-
 }

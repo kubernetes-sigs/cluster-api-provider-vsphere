@@ -57,7 +57,7 @@ type CPIConfig struct {
 }
 
 // CPIProviderConfig defines any extra information used to configure
-// the vSphere external cloud provider
+// the vSphere external cloud provider.
 type CPIProviderConfig struct {
 	Cloud   *CPICloudConfig   `json:"cloud,omitempty"`
 	Storage *CPIStorageConfig `json:"storage,omitempty"`
@@ -66,7 +66,7 @@ type CPIProviderConfig struct {
 type CPICloudConfig struct {
 	ControllerImage string `json:"controllerImage,omitempty"`
 	// ExtraArgs passes through extra arguments to the cloud provider.
-	// The arguments here are passed to the cloud provider daemonset specification
+	// The arguments here are passed to the cloud provider daemonset specification.
 	// +optional
 	ExtraArgs map[string]string `json:"extraArgs,omitempty"`
 }

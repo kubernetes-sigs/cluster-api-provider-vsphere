@@ -368,9 +368,7 @@ var isFaultDomainsFSSEnabled = func() bool {
 
 // Returns the failure domain information discovered on the cluster
 // hosting this controller.
-func (r *ClusterReconciler) getFailureDomains(
-	ctx *vmware.ClusterContext) (clusterv1.FailureDomains, error) {
-
+func (r *ClusterReconciler) getFailureDomains(ctx *vmware.ClusterContext) (clusterv1.FailureDomains, error) {
 	if !isFaultDomainsFSSEnabled() {
 		return nil, nil
 	}

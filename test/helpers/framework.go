@@ -23,9 +23,8 @@ import (
 	"os"
 	"path/filepath"
 
-	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
-
 	"k8s.io/apimachinery/pkg/runtime"
+	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -75,9 +74,6 @@ func SetupBootstrapCluster(config *clusterctl.E2EConfig, scheme *runtime.Scheme,
 			RequiresDockerSock: config.HasDockerProvider(),
 			Images:             config.Images,
 		})
-		if clusterProvider == nil {
-			return nil, nil, errors.New("failed to create bootstrap cluster")
-		}
 
 		kubeconfigPath = clusterProvider.GetKubeconfigPath()
 		if _, err := os.Stat(kubeconfigPath); err != nil {
@@ -86,9 +82,6 @@ func SetupBootstrapCluster(config *clusterctl.E2EConfig, scheme *runtime.Scheme,
 	}
 
 	clusterProxy := framework.NewClusterProxy("bootstrap", kubeconfigPath, scheme)
-	if clusterProxy == nil {
-		return nil, nil, errors.New("failed to get a bootstrap cluster proxy")
-	}
 
 	return clusterProvider, clusterProxy, nil
 }

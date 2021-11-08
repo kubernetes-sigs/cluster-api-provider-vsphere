@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+//nolint:nestif
 package controllers
 
 import (
@@ -22,19 +23,13 @@ import (
 	"sync"
 	"time"
 
-	kerrors "k8s.io/apimachinery/pkg/util/errors"
-
 	"github.com/pkg/errors"
 	apiv1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/identity"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
-	infrautilv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -45,6 +40,12 @@ import (
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/identity"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
+	infrautilv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
 type clusterReconciler struct {
@@ -53,7 +54,6 @@ type clusterReconciler struct {
 
 // Reconcile ensures the back-end state reflects the Kubernetes resource state intent.
 func (r clusterReconciler) Reconcile(ctx goctx.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
-
 	// Get the VSphereCluster resource for this request.
 	vsphereCluster := &infrav1.VSphereCluster{}
 	if err := r.Client.Get(r, req.NamespacedName, vsphereCluster); err != nil {

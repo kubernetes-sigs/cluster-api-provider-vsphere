@@ -22,7 +22,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-
 	"k8s.io/client-go/rest"
 )
 
@@ -61,7 +60,7 @@ password: '%s'
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer os.Remove(tmpFile.Name())
+		t.Cleanup(func() { os.Remove(tmpFile.Name()) })
 
 		if _, err := tmpFile.Write([]byte(content)); err != nil {
 			t.Fatal(err)

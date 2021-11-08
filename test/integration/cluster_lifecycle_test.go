@@ -23,15 +23,14 @@ import (
 	. "github.com/onsi/ginkgo"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/utils/pointer"
+
 	infrautilv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
 // The purpose of this test is to start up a CAPI controller against a real API
-// server and run Cluster tests
+// server and run Cluster tests.
 var _ = Describe("Cluster lifecycle tests", func() {
-
 	var (
 		mf            *Manifests
 		controlPlane  *ControlPlaneComponents

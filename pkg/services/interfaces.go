@@ -17,16 +17,15 @@ limitations under the License.
 package services
 
 import (
+	vmoprv1 "github.com/vmware-tanzu/vm-operator-api/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	vmoprv1 "github.com/vmware-tanzu/vm-operator-api/api/v1alpha1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
 )
 
 // VSphereMachineService is used for vsphere VM lifecycle and syncing with VSphereMachine types.
@@ -48,21 +47,21 @@ type VirtualMachineService interface {
 	DestroyVM(ctx *context.VMContext) (infrav1.VirtualMachine, error)
 }
 
-// ControlPlaneEndpointService is a service for reconciling load balanced control plane endpoints
+// ControlPlaneEndpointService is a service for reconciling load balanced control plane endpoints.
 type ControlPlaneEndpointService interface {
 	// ReconcileControlPlaneEndpointService manages the lifecycle of a
 	// control plane endpoint managed by a vmoperator VirtualMachineService
 	ReconcileControlPlaneEndpointService(ctx *vmware.ClusterContext, netProvider NetworkProvider) (*clusterv1.APIEndpoint, error)
 }
 
-// ResourcePolicyService is a service for reconciling a VirtualMachineSetResourcePolicy for a cluster
+// ResourcePolicyService is a service for reconciling a VirtualMachineSetResourcePolicy for a cluster.
 type ResourcePolicyService interface {
 	// ReconcileResourcePolicy ensures that a VirtualMachineSetResourcePolicy exists for the cluster
 	// Returns the name of a policy if it exists, otherwise returns an error
 	ReconcileResourcePolicy(ctx *vmware.ClusterContext) (string, error)
 }
 
-// NetworkProvider provision network resources and configures VM based on network type
+// NetworkProvider provision network resources and configures VM based on network type.
 type NetworkProvider interface {
 	// HasLoadBalancer indicates whether this provider has a load balancer for Services.
 	HasLoadBalancer() bool

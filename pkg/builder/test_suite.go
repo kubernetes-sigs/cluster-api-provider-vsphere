@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+//nolint:unused
 package builder
 
 import (
@@ -22,20 +23,17 @@ import (
 	"testing"
 	"time"
 
-	// nolint
 	. "github.com/onsi/ginkgo"
-	// nolint
 	. "github.com/onsi/gomega"
-
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	context "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
 )
 
 // TestSuite is used for unit and integration testing builder.
@@ -66,16 +64,13 @@ type Reconciler interface {
 	ReconcileNormal(ctx *context.GuestClusterContext) (reconcile.Result, error)
 }
 
-// NewReconcilerFunc is a base type for functions that return a reconciler
+// NewReconcilerFunc is a base type for functions that return a reconciler.
 type NewReconcilerFunc func() Reconciler
 
 // NewTestSuiteForController returns a new test suite used for unit and
 // integration testing controllers created using the "pkg/builder"
 // package.
-func NewTestSuiteForController(
-	addToManagerFn manager.AddToManagerFunc,
-	newReconcilerFn NewReconcilerFunc) *TestSuite {
-
+func NewTestSuiteForController(addToManagerFn manager.AddToManagerFunc, newReconcilerFn NewReconcilerFunc) *TestSuite {
 	testSuite := &TestSuite{
 		Context: goctx.Background(),
 	}
@@ -106,18 +101,20 @@ func (s *TestSuite) init(addToManagerFn manager.AddToManagerFunc, newReconcilerF
 // integration testing is enabled with
 // Describe("Unit tests", runIntegrationTestsFn).
 func (s *TestSuite) Register(t *testing.T, name string, runUnitTestsFn func()) {
+	t.Helper()
 	RegisterFailHandler(Fail)
 
-	//if runIntegrationTestsFn == nil {
-	//	s.flags.IntegrationTestsEnabled = false
-	//}
+	// Uncomment the following to run integration tests.
+	// if runIntegrationTestsFn == nil {
+	// 	s.flags.IntegrationTestsEnabled = false
+	// }
 	if runUnitTestsFn == nil {
 		s.flags.UnitTestsEnabled = false
 	}
 
-	//if s.flags.IntegrationTestsEnabled {
-	//	Describe("Integration tests", runIntegrationTestsFn)
-	//}
+	// if s.flags.IntegrationTestsEnabled {
+	// 	Describe("Integration tests", runIntegrationTestsFn)
+	// }
 	if s.flags.UnitTestsEnabled {
 		Describe("Unit tests", runUnitTestsFn)
 	}
@@ -169,11 +166,10 @@ func reconcileNormalAndExpectSuccess(ctx *UnitTestContextForController) {
 	// Manually invoke the reconciliation. This is poor design, but in order
 	// to support unit testing with a minimum set of dependencies that does
 	// not include the Kubernetes envtest package, this is required.
-	//
 	Expect(ctx.ReconcileNormal()).ShouldNot(HaveOccurred())
 }
 
-// Create a new Manager with default values
+// Create a new Manager with default values.
 func (s *TestSuite) createManager() {
 	var err error
 
@@ -199,14 +195,14 @@ func (s *TestSuite) initializeManager() {
 	}
 }
 
-// Set a flag to indicate that the manager is running or not
+// Set a flag to indicate that the manager is running or not.
 func (s *TestSuite) setManagerRunning(isRunning bool) {
 	s.managerRunningMutex.Lock()
 	s.managerRunning = isRunning
 	s.managerRunningMutex.Unlock()
 }
 
-// Returns true if the manager is running, false otherwise
+// Returns true if the manager is running, false otherwise.
 func (s *TestSuite) getManagerRunning() bool {
 	var result bool
 	s.managerRunningMutex.Lock()
@@ -215,7 +211,7 @@ func (s *TestSuite) getManagerRunning() bool {
 	return result
 }
 
-// Starts the manager and sets managerRunning
+// Starts the manager and sets managerRunning.
 func (s *TestSuite) startManager() {
 	go func() {
 		defer GinkgoRecover()

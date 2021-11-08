@@ -1,17 +1,50 @@
 linters:
-  enable-all: true
-  disable:
-    - dupl
-    - funlen
-    - gochecknoglobals
-    - gochecknoinits
-    - lll
-    - godox
-    - wsl
-    - whitespace
-    - gomnd
-  # Run with --fast=false for more extensive checks
-  fast: true
+  disable-all: true
+  enable:
+  - asciicheck
+  - bodyclose
+  - deadcode
+  - depguard
+  - dogsled
+  - errcheck
+  - exportloopref
+  - gci
+  - goconst
+  - gocritic
+  - gocyclo
+  - godot
+  - gofmt
+  - goimports
+  - goprintffuncname
+  - gosec
+  - gosimple
+  - govet
+  - ifshort
+  - importas
+  - ineffassign
+  - misspell
+  - nakedret
+  - nilerr
+  - noctx
+  - nolintlint
+  - prealloc
+  - predeclared
+  - revive
+  - rowserrcheck
+  - staticcheck
+  - structcheck
+  - stylecheck
+  - thelper
+  - typecheck
+  - unconvert
+  - unparam
+  - unused
+  - varcheck
+  - whitespace
+
+linters-settings:
+  gci:
+    local-prefixes: sigs.k8s.io/cluster-api-provider-vsphere
 run:
   skip-files:
   - ".*zz_generated.*\\.go"
@@ -26,3 +59,11 @@ issues:
       linters:
         - gosec
       text: "G106:"
+    - linters:
+        - revive
+      text: "dot-imports"
+      path: ".*test.*"
+    - linters:
+        - stylecheck
+      text: "ST1001"
+      path: ".*test.*"

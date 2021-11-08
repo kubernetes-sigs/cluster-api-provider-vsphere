@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-
 	"k8s.io/utils/pointer"
 )
 
@@ -44,8 +43,9 @@ func TestVSphereDeploymentZone_Default(t *testing.T) {
 		},
 	}
 
-	// nolint:scopelint
 	for _, tt := range tests {
+		// Need to reinit the test variable
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			vdz := VSphereDeploymentZone{
 				Spec: VSphereDeploymentZoneSpec{

@@ -27,7 +27,6 @@ import (
 	"time"
 
 	v1 "k8s.io/api/admissionregistration/v1"
-
 	"k8s.io/klog/v2"
 	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"

@@ -27,7 +27,6 @@ import (
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -171,14 +170,10 @@ func reconcileInFlightTask(ctx *context.VMContext) (bool, error) {
 	}
 }
 
-func reconcileVSphereVMWhenNetworkIsReady(
-	ctx *virtualMachineContext,
-	powerOnTask *object.Task) {
-
+func reconcileVSphereVMWhenNetworkIsReady(ctx *virtualMachineContext, powerOnTask *object.Task) {
 	reconcileVSphereVMOnChannel(
 		&ctx.VMContext,
 		func() (<-chan []interface{}, <-chan error, error) {
-
 			// Wait for the VM to be powered on.
 			powerOnTaskInfo, err := powerOnTask.WaitForResult(ctx)
 			if err != nil && powerOnTaskInfo == nil {
@@ -269,10 +264,7 @@ func reconcileVSphereVMOnTaskCompletion(ctx *context.VMContext) {
 	})
 }
 
-func reconcileVSphereVMOnFuncCompletion(
-	ctx *context.VMContext,
-	waitFn func() (loggerKeysAndValues []interface{}, _ error)) {
-
+func reconcileVSphereVMOnFuncCompletion(ctx *context.VMContext, waitFn func() (loggerKeysAndValues []interface{}, _ error)) {
 	obj := ctx.VSphereVM.DeepCopy()
 	gvk := obj.GetObjectKind().GroupVersionKind()
 
@@ -295,10 +287,7 @@ func reconcileVSphereVMOnFuncCompletion(
 	}()
 }
 
-func reconcileVSphereVMOnChannel(
-	ctx *context.VMContext,
-	waitFn func() (<-chan []interface{}, <-chan error, error)) {
-
+func reconcileVSphereVMOnChannel(ctx *context.VMContext, waitFn func() (<-chan []interface{}, <-chan error, error)) {
 	obj := ctx.VSphereVM.DeepCopy()
 	gvk := obj.GetObjectKind().GroupVersionKind()
 
@@ -401,7 +390,6 @@ func waitForIPAddresses(
 	ctx *virtualMachineContext,
 	macToDeviceIndex map[string]int,
 	deviceToMacIndex map[int]string) (<-chan string, <-chan error) {
-
 	var (
 		chanErrs          = make(chan error)
 		chanIPAddresses   = make(chan string)
@@ -576,7 +564,6 @@ func waitForIPAddresses(
 		if err := property.Wait(
 			ctx, propCollector, ctx.Obj.Reference(),
 			[]string{"guest.net"}, onPropertyChange); err != nil {
-
 			chanErrs <- errors.Wrapf(err, "failed to wait for ip addresses for vm %s", ctx)
 		}
 		close(chanIPAddresses)

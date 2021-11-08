@@ -25,7 +25,6 @@ import (
 // NewVmwareClusterContext returns a fake ClusterContext for unit testing
 // reconcilers with a fake client.
 func NewVmwareClusterContext(ctx *context.ControllerContext, vsphereCluster *infrav1.VSphereCluster) *vmware.ClusterContext {
-
 	// Create the cluster resources.
 	cluster := newClusterV1()
 	if vsphereCluster == nil {

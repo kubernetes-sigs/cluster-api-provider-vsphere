@@ -19,9 +19,8 @@ package util
 import (
 	"context"
 
-	"github.com/pkg/errors"
-
 	"github.com/hashicorp/go-version"
+	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	apitypes "k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -32,16 +31,16 @@ const (
 	NCPVersionKey       = "version"
 	NCPNamespace        = "vmware-system-nsx"
 	NCPVersionConfigMap = "nsx-ncp-version-config"
-	//3.0.1 is where NCP starts to support "whitelist_source_ranges" specification in VNET and enforce FW rules on GC T1
+	// 3.0.1 is where NCP starts to support "whitelist_source_ranges" specification in VNET and enforce FW rules on GC T1.
 	NCPVersionSupportFW = "3.0.1"
-	//3.1.0 is where NCP stopped to support "whitelist_source_ranges" specification in VNET
+	// 3.1.0 is where NCP stopped to support "whitelist_source_ranges" specification in VNET.
 	NCPVersionSupportFWEnded = "3.1.0"
 
 	EmptyAnnotationErrorMsg = "annotation not found"
 	EmptyNCPSNATKeyMsg      = NCPSNATKey + " key not found"
 )
 
-// GetNamespaceNetSnatIP finds out the namespace's corresponding network's SNAT IP
+// GetNamespaceNetSnatIP finds out the namespace's corresponding network's SNAT IP.
 func GetNamespaceNetSnatIP(ctx context.Context, controllerClient client.Client, namespace string) (string, error) {
 	namespaceObj := &v1.Namespace{}
 	namespacedName := apitypes.NamespacedName{
@@ -65,7 +64,7 @@ func GetNamespaceNetSnatIP(ctx context.Context, controllerClient client.Client, 
 	return snatIP, nil
 }
 
-// GetNCPVersion finds out the running ncp's version from its configmap
+// GetNCPVersion finds out the running ncp's version from its configmap.
 func GetNCPVersion(ctx context.Context, controllerClient client.Client) (string, error) {
 	configmapObj := &v1.ConfigMap{}
 	namespacedName := apitypes.NamespacedName{
@@ -81,7 +80,7 @@ func GetNCPVersion(ctx context.Context, controllerClient client.Client) (string,
 	return version, nil
 }
 
-// NCPSupportFW checks the version of running NCP and return true if it supports FW rule enforcement on GC T1 Router
+// NCPSupportFW checks the version of running NCP and return true if it supports FW rule enforcement on GC T1 Router.
 func NCPSupportFW(ctx context.Context, controllerClient client.Client) (bool, error) {
 	ncpVersion, err := GetNCPVersion(ctx, controllerClient)
 	if err != nil {

@@ -21,9 +21,7 @@ import (
 	"strconv"
 	"strings"
 
-	// nolint
 	. "github.com/onsi/gomega"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -49,14 +47,14 @@ const (
 	supervisorHeadlessSvcPort = 6443
 )
 
-func assertEventuallyDoesNotExistInNamespace(ctx context.Context, guestClient client.Client, namespace, name string, obj client.Object) { // nolint
+func assertEventuallyDoesNotExistInNamespace(ctx context.Context, guestClient client.Client, namespace, name string, obj client.Object) {
 	EventuallyWithOffset(4, func() error {
 		key := client.ObjectKey{Namespace: namespace, Name: name}
 		return guestClient.Get(ctx, key, obj)
 	}).ShouldNot(Succeed())
 }
 
-func assertHeadlessSvc(ctx context.Context, guestClient client.Client, namespace, name string) { // nolint
+func assertHeadlessSvc(ctx context.Context, guestClient client.Client, namespace, name string) {
 	headlessSvc := &corev1.Service{}
 	EventuallyWithOffset(4, func() error {
 		key := client.ObjectKey{Namespace: namespace, Name: name}

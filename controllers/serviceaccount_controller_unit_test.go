@@ -21,9 +21,9 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/builder"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
@@ -109,7 +109,7 @@ func unitTestsReconcileNormal() {
 }
 
 // Updates the service account secret similar to how a token controller would act upon a service account
-// and then re-invokes reconcileNormal
+// and then re-invokes reconcileNormal.
 func updateServiceAccountSecretAndReconcileNormal(ctx *builder.UnitTestContextForController) {
 	assertServiceAccountAndUpdateSecret(ctx, ctx.Client, testNS, testSvcAccountName)
 	Expect(ctx.ReconcileNormal()).Should(Succeed())

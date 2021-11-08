@@ -23,6 +23,7 @@ limitations under the License.
 //
 // The "gopkg.in/go-ini/ini.v1" package was investigated, but it does not
 // support reflecting a struct with a field of type "map[string]TYPE" to INI.
+//nolint:gocritic,godot
 package v1alpha3
 
 // CPIConfig is the vSphere cloud provider's configuration.

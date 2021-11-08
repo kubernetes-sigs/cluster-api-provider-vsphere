@@ -74,6 +74,4 @@ const (
 	ServiceCIDR = "2.0.0.0/16"
 )
 
-var (
-	boolTrue = true
-)
+var boolTrue = true

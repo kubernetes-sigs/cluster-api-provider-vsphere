@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 

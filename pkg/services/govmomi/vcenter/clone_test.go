@@ -23,10 +23,10 @@ import (
 
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/simulator"
-	"github.com/vmware/govmomi/vim25/types"
 
-	// run init func to register the tagging API endpoints
+	// run init func to register the tagging API endpoints.
 	_ "github.com/vmware/govmomi/vapi/simulator"
+	"github.com/vmware/govmomi/vim25/types"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
@@ -37,9 +37,9 @@ func TestGetDiskSpec(t *testing.T) {
 	defaultSizeGiB := int32(5)
 
 	model, session, server := initSimulator(t)
-	defer model.Remove()
-	defer server.Close()
-	vm := simulator.Map.Any("VirtualMachine").(*simulator.VirtualMachine)
+	t.Cleanup(model.Remove)
+	t.Cleanup(server.Close)
+	vm := simulator.Map.Any("VirtualMachine").(*simulator.VirtualMachine) //nolint:forcetypeassert
 	machine := object.NewVirtualMachine(session.Client.Client, vm.Reference())
 
 	devices, err := machine.Device(ctx.TODO())
@@ -50,7 +50,7 @@ func TestGetDiskSpec(t *testing.T) {
 	if len(defaultDisks) < 1 {
 		t.Fatal("Unable to find attached disk for resize")
 	}
-	disk := defaultDisks[0].(*types.VirtualDisk)
+	disk := defaultDisks[0].(*types.VirtualDisk)            //nolint:forcetypeassert
 	disk.CapacityInKB = int64(defaultSizeGiB) * 1024 * 1024 // GiB
 	if err := machine.EditDevice(ctx.TODO(), disk); err != nil {
 		t.Fatalf("Can't resize disk for specified size")
@@ -118,7 +118,7 @@ func TestGetDiskSpec(t *testing.T) {
 				t.Fatalf("Expected to get a device: %v, but got: '%#v'", tc.expectDevice, device)
 			}
 			if tc.expectDevice {
-				disk := device.GetVirtualDeviceConfigSpec().Device.(*types.VirtualDisk)
+				disk := device.GetVirtualDeviceConfigSpec().Device.(*types.VirtualDisk) //nolint:forcetypeassert
 				expectedSizeKB := int64(tc.cloneDiskSize) * 1024 * 1024
 				if device.GetVirtualDeviceConfigSpec().Operation != types.VirtualDeviceConfigSpecOperationEdit {
 					t.Errorf("Disk operation does not match '%s', got: %s",
@@ -133,10 +133,11 @@ func TestGetDiskSpec(t *testing.T) {
 }
 
 func initSimulator(t *testing.T) (*simulator.Model, *session.Session, *simulator.Server) {
+	t.Helper()
+
 	model := simulator.VPX()
 	model.Host = 0
-	err := model.Create()
-	if err != nil {
+	if err := model.Create(); err != nil {
 		t.Fatal(err)
 	}
 	model.Service.TLS = new(tls.Config)

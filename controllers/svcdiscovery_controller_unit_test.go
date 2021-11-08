@@ -68,8 +68,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 	})
 	Context("When FIP is available", func() {
 		BeforeEach(func() {
-			initObjects = []runtime.Object{
-				newTestConfigMapWithHost(testSupervisorAPIServerFIP)}
+			initObjects = []runtime.Object{newTestConfigMapWithHost(testSupervisorAPIServerFIP)}
 		})
 		It("Should reconcile headless svc", func() {
 			By("creating a service and endpoints using the FIP in the guest cluster")
@@ -81,7 +80,8 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 		BeforeEach(func() {
 			initObjects = []runtime.Object{
 				newTestSupervisorLBServiceWithIPStatus(),
-				newTestConfigMapWithHost(testSupervisorAPIServerFIP)}
+				newTestConfigMapWithHost(testSupervisorAPIServerFIP),
+			}
 		})
 		It("Should reconcile headless svc", func() {
 			By("creating a service and endpoints using the VIP in the guest cluster")
@@ -91,8 +91,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 	})
 	Context("When VIP is an hostname", func() {
 		BeforeEach(func() {
-			initObjects = []runtime.Object{
-				newTestSupervisorLBServiceWithHostnameStatus()}
+			initObjects = []runtime.Object{newTestSupervisorLBServiceWithHostnameStatus()}
 		})
 		It("Should reconcile headless svc", func() {
 			By("creating a service and endpoints using the VIP in the guest cluster")

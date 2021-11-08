@@ -26,7 +26,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/cluster"
 )
 
-// ManagedRefFinder is the method to find the reference of the type specified in the Failure Domain
+// ManagedRefFinder is the method to find the reference of the type specified in the Failure Domain.
 type ManagedRefFinder func(context.Context) ([]object.Reference, error)
 
 func ObjectFunc(failureDomainType infrav1.FailureDomainType, topology infrav1.Topology, finder *find.Finder) ManagedRefFinder {

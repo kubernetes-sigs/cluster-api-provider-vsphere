@@ -19,16 +19,15 @@ package fake
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/cluster-api/util/patch"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
-	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 // NewVMContext returns a fake VMContext for unit testing
 // reconcilers with a fake client.
 func NewVMContext(ctx *context.ControllerContext) *context.VMContext {
-
 	// Create the resources.
 	vsphereVM := newVSphereVM()
 

@@ -73,6 +73,7 @@ func Clone(ctx *context.VMContext, bootstrapData []byte) error {
 	// If a linked clone is requested then a MoRef for a snapshot must be
 	// found with which to perform the linked clone.
 	var snapshotRef *types.ManagedObjectReference
+	//nolint:nestif
 	if ctx.VSphereVM.Spec.CloneMode == "" || ctx.VSphereVM.Spec.CloneMode == infrav1.LinkedClone {
 		ctx.Logger.Info("linked clone requested")
 		// If the name of a snapshot was not provided then find the template's
@@ -191,6 +192,7 @@ func Clone(ctx *context.VMContext, bootstrapData []byte) error {
 	}
 
 	var storageProfileID string
+	//nolint:nestif
 	if ctx.VSphereVM.Spec.StoragePolicyName != "" {
 		pbmClient, err := pbm.NewClient(ctx, ctx.Session.Client.Client)
 		if err != nil {
@@ -205,12 +207,12 @@ func Clone(ctx *context.VMContext, bootstrapData []byte) error {
 		var constraints []pbmTypes.BasePbmPlacementRequirement
 		constraints = append(constraints, &pbmTypes.PbmPlacementCapabilityProfileRequirement{ProfileId: pbmTypes.PbmProfileId{UniqueId: storageProfileID}})
 		result, err := pbmClient.CheckRequirements(ctx, nil, nil, constraints)
-
 		if err != nil {
 			return errors.Wrapf(err, "unable to check requirements for storage policy")
 		}
+
 		if len(result.CompatibleDatastores()) == 0 {
-			return errors.New(fmt.Sprintf("no compatible datastores found for storage policy: %s", ctx.VSphereVM.Spec.StoragePolicyName))
+			return fmt.Errorf("no compatible datastores found for storage policy: %s", ctx.VSphereVM.Spec.StoragePolicyName)
 		}
 
 		if datastoreRef != nil {
@@ -223,11 +225,11 @@ func Clone(ctx *context.VMContext, bootstrapData []byte) error {
 				}
 			}
 			if !found {
-				return errors.New(fmt.Sprintf("couldn't find specified datastore: %s in compatible list of datastores for storage policy", ctx.VSphereVM.Spec.Datastore))
+				return fmt.Errorf("couldn't find specified datastore: %s in compatible list of datastores for storage policy", ctx.VSphereVM.Spec.Datastore)
 			}
 		} else {
 			rand.Seed(time.Now().UnixNano())
-			ds := result.CompatibleDatastores()[rand.Intn(len(result.CompatibleDatastores()))]
+			ds := result.CompatibleDatastores()[rand.Intn(len(result.CompatibleDatastores()))] //nolint:gosec
 			datastoreRef = &types.ManagedObjectReference{Type: ds.HubType, Value: ds.HubId}
 		}
 	}
@@ -286,16 +288,13 @@ func getDiskLocators(disks object.VirtualDeviceList, datastoreRef types.ManagedO
 	return diskLocators
 }
 
-func getDiskSpec(
-	ctx *context.VMContext,
-	devices object.VirtualDeviceList) (types.BaseVirtualDeviceConfigSpec, error) {
-
+func getDiskSpec(ctx *context.VMContext, devices object.VirtualDeviceList) (types.BaseVirtualDeviceConfigSpec, error) {
 	disks := devices.SelectByType((*types.VirtualDisk)(nil))
 	if len(disks) != 1 {
 		return nil, errors.Errorf("invalid disk count: %d", len(disks))
 	}
 
-	disk := disks[0].(*types.VirtualDisk)
+	disk := disks[0].(*types.VirtualDisk) //nolint:forcetypeassert
 	cloneCapacityKB := int64(ctx.VSphereVM.Spec.DiskGiB) * 1024 * 1024
 	if disk.CapacityInKB > cloneCapacityKB {
 		return nil, errors.Errorf(
@@ -312,10 +311,7 @@ func getDiskSpec(
 
 const ethCardType = "vmxnet3"
 
-func getNetworkSpecs(
-	ctx *context.VMContext,
-	devices object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error) {
-
+func getNetworkSpecs(ctx *context.VMContext, devices object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error) {
 	deviceSpecs := []types.BaseVirtualDeviceConfigSpec{}
 
 	// Remove any existing NICs

@@ -20,20 +20,21 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
+
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/crs/types"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/env"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/cloudprovider"
-	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 )
 
-// CreateCrsResourceObjectsCSI creates the api objects necessary for CSI to function. Also appends the resources to the CRS
+// CreateCrsResourceObjectsCSI creates the api objects necessary for CSI to function.
+// Also appends the resources to the CRS.
 func CreateCrsResourceObjectsCSI(crs *addonsv1.ClusterResourceSet) []runtime.Object {
 	serviceAccount := cloudprovider.CSIControllerServiceAccount()
 	serviceAccount.TypeMeta = metav1.TypeMeta{
@@ -108,7 +109,7 @@ func CreateCrsResourceObjectsCSI(crs *addonsv1.ClusterResourceSet) []runtime.Obj
 	}
 }
 
-// create StorageConfig to be used by tkg template
+// createStorageConfig to be used by tkg template.
 func createStorageConfig() *types.CPIStorageConfig {
 	return &types.CPIStorageConfig{
 		ControllerImage:     cloudprovider.DefaultCSIControllerImage,
@@ -122,7 +123,7 @@ func createStorageConfig() *types.CPIStorageConfig {
 }
 
 // ConfigForCSI returns a cloudprovider.CPIConfig specific to the vSphere CSI driver until
-// it supports using Secrets for vCenter credentials
+// it supports using Secrets for vCenter credentials.
 func ConfigForCSI() *types.CPIConfig {
 	config := &types.CPIConfig{}
 

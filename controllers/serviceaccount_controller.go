@@ -29,7 +29,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -292,9 +291,8 @@ func (r ServiceAccountReconciler) ReconcileNormal(ctx *vmwarecontext.GuestCluste
 	return reconcile.Result{}, nil
 }
 
-// Ensure service accounts from provider spec is created
+// Ensure service accounts from provider spec is created.
 func (r ServiceAccountReconciler) ensureProviderServiceAccounts(ctx *vmwarecontext.GuestClusterContext, pSvcAccounts []vmwarev1.ProviderServiceAccount) error {
-
 	for _, pSvcAccount := range pSvcAccounts {
 		// 1. Create service accounts by the name specified in Provider Spec
 		if err := r.ensureServiceAccount(ctx.ClusterContext, pSvcAccount); err != nil {
@@ -390,7 +388,8 @@ func (r ServiceAccountReconciler) ensureRoleBinding(ctx *vmwarecontext.ClusterCo
 				Kind:      "ServiceAccount",
 				APIGroup:  "",
 				Name:      svcAccountName,
-				Namespace: pSvcAccount.Namespace},
+				Namespace: pSvcAccount.Namespace,
+			},
 		}
 		return nil
 	})
@@ -552,7 +551,7 @@ func getServiceAccountNamespace(pSvcAccount vmwarev1.ProviderServiceAccount) str
 	return pSvcAccount.Namespace
 }
 
-// GetCMNamespaceName gets capi valid modifier configmap metadata
+// GetCMNamespaceName gets capi valid modifier configmap metadata.
 func GetCMNamespaceName() types.NamespacedName {
 	return types.NamespacedName{
 		Namespace: os.Getenv("SERVICE_ACCOUNTS_CM_NAMESPACE"),

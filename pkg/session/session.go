@@ -40,6 +40,7 @@ import (
 )
 
 var sessionCache = map[string]Session{}
+
 var sessionMU sync.Mutex
 
 // Session is a vSphere session with a configured Finder.
@@ -213,11 +214,10 @@ func clearCache(sessionKey string) {
 	delete(sessionCache, sessionKey)
 }
 
-// newManager creates a Manager that encompasses the REST Client for the VSphere tagging API
+// newManager creates a Manager that encompasses the REST Client for the VSphere tagging API.
 func newManager(ctx context.Context, client *vim25.Client, user *url.Userinfo) (*tags.Manager, error) {
 	rc := rest.NewClient(client)
-	err := rc.Login(ctx, user)
-	if err != nil {
+	if err := rc.Login(ctx, user); err != nil {
 		return nil, err
 	}
 	return tags.NewManager(rc), nil

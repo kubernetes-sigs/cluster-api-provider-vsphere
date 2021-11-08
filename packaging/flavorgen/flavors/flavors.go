@@ -18,6 +18,7 @@ package flavors
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
+
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/crs"
 )
 

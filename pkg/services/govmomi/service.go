@@ -42,7 +42,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
-// VMService provdes API to interact with the VMs using govmomi
+// VMService provdes API to interact with the VMs using govmomi.
 type VMService struct{}
 
 // ReconcileVM makes sure that the VM is in the desired state by:
@@ -51,7 +51,6 @@ type VMService struct{}
 //   3. Powering on the VM, and finally...
 //   4. Returning the real-time state of the VM to the caller
 func (vms *VMService) ReconcileVM(ctx *context.VMContext) (vm infrav1.VirtualMachine, _ error) {
-
 	// Initialize the result.
 	vm = infrav1.VirtualMachine{
 		Name:  ctx.VSphereVM.Name,
@@ -72,6 +71,7 @@ func (vms *VMService) ReconcileVM(ctx *context.VMContext) (vm infrav1.VirtualMac
 
 	// Before going further, we need the VM's managed object reference.
 	vmRef, err := findVM(ctx)
+	//nolint:nestif
 	if err != nil {
 		if !isNotFound(err) {
 			return vm, err
@@ -151,7 +151,6 @@ func (vms *VMService) ReconcileVM(ctx *context.VMContext) (vm infrav1.VirtualMac
 
 // DestroyVM powers off and destroys a virtual machine.
 func (vms *VMService) DestroyVM(ctx *context.VMContext) (infrav1.VirtualMachine, error) {
-
 	vm := infrav1.VirtualMachine{
 		Name:  ctx.VSphereVM.Name,
 		State: infrav1.VirtualMachineStatePending,
@@ -333,7 +332,7 @@ func (vms *VMService) reconcileStoragePolicy(ctx *virtualMachineContext) error {
 
 	disks := devices.SelectByType((*types.VirtualDisk)(nil))
 	for _, d := range disks {
-		disk := d.(*types.VirtualDisk)
+		disk := d.(*types.VirtualDisk) //nolint:forcetypeassert
 		found := false
 		// entities associated with storage policy has key in the form <vm-ID>:<disk>
 		diskID := fmt.Sprintf("%s:%d", ctx.Obj.Reference().Value, disk.Key)
@@ -416,7 +415,7 @@ func (vms *VMService) getMetadata(ctx *virtualMachineContext) (string, error) {
 			//             want to check the metadata encoding as well.
 			//             Since the image stamped images always use
 			//             base64, it should be okay to not check.
-			// nolint
+			//nolint:gocritic
 			switch optVal.Key {
 			case guestInfoKeyMetadata:
 				if v, ok := optVal.Value.(string); ok {

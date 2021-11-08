@@ -69,6 +69,7 @@ import (
 
 // AddMachineControllerToManager adds the machine controller to the provided
 // manager.
+
 func AddMachineControllerToManager(ctx *context.ControllerManagerContext, mgr manager.Manager, controlledType client.Object) error {
 	supervisorBased, err := util.IsSupervisorType(controlledType)
 	if err != nil {
@@ -159,7 +160,6 @@ type machineReconciler struct {
 	supervisorBased bool
 }
 
-// nolint:gocognit
 // Reconcile ensures the back-end state reflects the Kubernetes resource state intent.
 func (r machineReconciler) Reconcile(ctx goctx.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	var machineContext context.MachineContext
@@ -344,7 +344,7 @@ func (r *machineReconciler) fetchCAPICluster(machine *clusterv1.Machine, vsphere
 	return cluster
 }
 
-// Return hooks that will be invoked when a VirtualMachine is created
+// Return hooks that will be invoked when a VirtualMachine is created.
 func (r *machineReconciler) setVMModifiers(c context.MachineContext) error {
 	ctx, ok := c.(*vmware.SupervisorMachineContext)
 	if !ok {

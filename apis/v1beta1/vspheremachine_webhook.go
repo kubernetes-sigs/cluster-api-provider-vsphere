@@ -39,6 +39,7 @@ func (m *VSphereMachine) SetupWebhookWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta1-vspheremachine,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=vspheremachines,versions=v1beta1,name=default.vspheremachine.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1beta1
 
 var _ webhook.Validator = &VSphereMachine{}
+
 var _ webhook.Defaulter = &VSphereMachine{}
 
 func (m *VSphereMachine) Default() {
@@ -47,7 +48,7 @@ func (m *VSphereMachine) Default() {
 	}
 }
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
+// ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (m *VSphereMachine) ValidateCreate() error {
 	var allErrs field.ErrorList
 	spec := m.Spec
@@ -67,13 +68,14 @@ func (m *VSphereMachine) ValidateCreate() error {
 	return aggregateObjErrors(m.GroupVersionKind().GroupKind(), m.Name, allErrs)
 }
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
+//nolint:forcetypeassert
 func (m *VSphereMachine) ValidateUpdate(old runtime.Object) error {
 	newVSphereMachine, err := runtime.DefaultUnstructuredConverter.ToUnstructured(m)
-
 	if err != nil {
 		return apierrors.NewInternalError(errors.Wrap(err, "failed to convert new VSphereMachine to unstructured object"))
 	}
+
 	oldVSphereMachine, err := runtime.DefaultUnstructuredConverter.ToUnstructured(old)
 	if err != nil {
 		return apierrors.NewInternalError(errors.Wrap(err, "failed to convert old VSphereMachine to unstructured object"))
@@ -91,11 +93,11 @@ func (m *VSphereMachine) ValidateUpdate(old runtime.Object) error {
 	newVSphereMachineNetwork := newVSphereMachineSpec["network"].(map[string]interface{})
 	oldVSphereMachineNetwork := oldVSphereMachineSpec["network"].(map[string]interface{})
 
-	// allow changes to the devices
+	// allow changes to the devices..
 	delete(oldVSphereMachineNetwork, "devices")
 	delete(newVSphereMachineNetwork, "devices")
 
-	// validate that IPAddrs in updaterequest are valid
+	// validate that IPAddrs in updaterequest are valid.
 	spec := m.Spec
 	for i, device := range spec.Network.Devices {
 		for j, ip := range device.IPAddrs {
@@ -112,7 +114,7 @@ func (m *VSphereMachine) ValidateUpdate(old runtime.Object) error {
 	return aggregateObjErrors(m.GroupVersionKind().GroupKind(), m.Name, allErrs)
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
+// ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 func (m *VSphereMachine) ValidateDelete() error {
 	return nil
 }

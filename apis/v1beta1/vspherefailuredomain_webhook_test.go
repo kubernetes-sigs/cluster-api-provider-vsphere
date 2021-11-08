@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-
 	"k8s.io/utils/pointer"
 )
 
@@ -132,8 +131,9 @@ func TestVSphereFailureDomain_ValidateCreate(t *testing.T) {
 		},
 	}
 
-	// nolint:scopelint
 	for _, tt := range tests {
+		// Need to reinit the test variable
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.failureDomain.ValidateCreate()
 			if tt.errExpected == nil || !*tt.errExpected {

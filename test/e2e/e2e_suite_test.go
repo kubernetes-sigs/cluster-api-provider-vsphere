@@ -25,21 +25,19 @@ import (
 	"strings"
 	"testing"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers"
-
-	corev1 "k8s.io/api/core/v1"
-	capiutil "sigs.k8s.io/cluster-api/util"
-
 	. "github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"
 	"github.com/onsi/ginkgo/reporters"
 	. "github.com/onsi/gomega"
-
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
+	capiutil "sigs.k8s.io/cluster-api/util"
+
+	"sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers"
 )
 
 const (
@@ -47,12 +45,13 @@ const (
 	VsphereStoragePolicy = "VSPHERE_STORAGE_POLICY"
 )
 
-// Test suite flags
+// Test suite flags.
 var (
 	// configPath is the path to the e2e config file.
 	configPath string
 
-	// useExistingCluster instructs the test to use the current cluster instead of creating a new one (default discovery rules apply).
+	// useExistingCluster instructs the test to use the current cluster instead
+	// of creating a new one (default discovery rules apply).
 	useExistingCluster bool
 
 	// artifactFolder is the folder to store e2e test artifacts.
@@ -62,7 +61,7 @@ var (
 	skipCleanup bool
 )
 
-// Test suite global vars
+// Test suite global vars.
 var (
 	// e2eConfig to be used for this test, read from configPath.
 	e2eConfig *clusterctl.E2EConfig
@@ -106,7 +105,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	// Before all ParallelNodes.
 
 	Expect(configPath).To(BeAnExistingFile(), "Invalid test suite argument. e2e.config should be an existing file.")
-	Expect(os.MkdirAll(artifactFolder, 0755)).To(Succeed(), "Invalid test suite argument. Can't create e2e.artifacts-folder %q", artifactFolder)
+	Expect(os.MkdirAll(artifactFolder, 0755)).To(Succeed(), "Invalid test suite argument. Can't create e2e.artifacts-folder %q", artifactFolder) //nolint:gofumpt
 
 	By("Initializing a runtime.Scheme with all the GVK relevant for this test")
 	scheme := initScheme()

@@ -22,8 +22,8 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
 	"github.com/vmware/govmomi/find"
+
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 )
 

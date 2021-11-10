@@ -216,7 +216,7 @@ $ clusterctl config custom-cluster vsphere-quickstart \
 [cluster-api-book]: https://cluster-api.sigs.k8s.io/
 [glossary-bootstrapping]: https://cluster-api.sigs.k8s.io/reference/glossary.html#bootstrap
 [kind]: https://kind.sigs.k8s.io
-[glossary-management-cluster]: https://github.com/kubernetes-sigs/cluster-api/blob/master/docs/book/GLOSSARY.md#management-cluster
+[glossary-management-cluster]: https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/book/GLOSSARY.md#management-cluster
 [releases]: https://github.com/kubernetes-sigs/cluster-api/releases
 [docker]: https://docs.docker.com/glossary/?term=install
 [kubectl]: https://kubernetes.io/docs/tasks/tools/install-kubectl/

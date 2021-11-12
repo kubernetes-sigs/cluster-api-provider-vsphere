@@ -665,7 +665,7 @@ func (r machineReconciler) waitReadyState(ctx *context.MachineContext, vm *unstr
 
 func (r *machineReconciler) clusterToVSphereMachines(a client.Object) []reconcile.Request {
 	requests := []reconcile.Request{}
-	machines, err := infrautilv1.GetMachinesInCluster(goctx.Background(), r.Client, a.GetNamespace(), a.GetName())
+	machines, err := infrautilv1.GetVSphereMachinesInCluster(goctx.Background(), r.Client, a.GetNamespace(), a.GetName())
 	if err != nil {
 		return requests
 	}

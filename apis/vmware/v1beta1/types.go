@@ -24,3 +24,27 @@ type VSphereMachineTemplateResource struct {
 
 // VirtualMachineState describes the state of a VM.
 type VirtualMachineState string
+
+const (
+	// VirtualMachineStateNotFound is the string representing a VM that cannot be located.
+	VirtualMachineStateNotFound = VirtualMachineState("notfound")
+
+	// VirtualMachineStateCreated is the string representing a VM that's been created
+	VirtualMachineStateCreated = VirtualMachineState("created")
+
+	// VirtualMachineStatePoweredOn is the string representing a VM that has successfully powered on
+	VirtualMachineStatePoweredOn = VirtualMachineState("poweredon")
+
+	// VirtualMachineStatePending is the string representing a VM with an in-flight task.
+	VirtualMachineStatePending = VirtualMachineState("pending")
+
+	// VirtualMachineStateReady is the string representing a powered-on VM with reported IP addresses.
+	VirtualMachineStateReady = VirtualMachineState("ready")
+
+	// VirtualMachineStateDeleting is the string representing a machine that still exists, but has a deleteTimestamp
+	// Note that once a VirtualMachine is finally deleted, its state will be VirtualMachineStateNotFound
+	VirtualMachineStateDeleting = VirtualMachineState("deleting")
+
+	// VirtualMachineStateError is reported if an error occurs determining the status
+	VirtualMachineStateError = VirtualMachineState("error")
+)

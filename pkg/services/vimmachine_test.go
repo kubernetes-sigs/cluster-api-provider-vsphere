@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package services
 
 import (
 	"fmt"
@@ -30,7 +30,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
 )
 
-var _ = Describe("MachineReconciler_GenerateOverrideFunc", func() {
+var _ = Describe("VimMachineService_GenerateOverrideFunc", func() {
 	deplZone := func(suffix string) *infrav1.VSphereDeploymentZone {
 		return &infrav1.VSphereDeploymentZone{
 			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("zone-%s", suffix)},
@@ -59,19 +59,20 @@ var _ = Describe("MachineReconciler_GenerateOverrideFunc", func() {
 		}
 	}
 	var (
-		controllerCtx *context.ControllerContext
-		machineCtx    *context.MachineContext
+		controllerCtx     *context.ControllerContext
+		machineCtx        *context.VIMMachineContext
+		vimMachineService *VimMachineService
 	)
 
 	BeforeEach(func() {
 		controllerCtx = fake.NewControllerContext(fake.NewControllerManagerContext(deplZone("one"), deplZone("two"), failureDomain("one"), failureDomain("two")))
 		machineCtx = fake.NewMachineContext(fake.NewClusterContext(controllerCtx))
+		vimMachineService = &VimMachineService{}
 	})
 
 	Context("When Failure Domain is not present", func() {
 		It("does not generate an override function", func() {
-			r := machineReconciler{controllerCtx}
-			_, ok := r.generateOverrideFunc(machineCtx)
+			_, ok := vimMachineService.generateOverrideFunc(machineCtx)
 			Expect(ok).To(BeFalse())
 		})
 	})
@@ -82,14 +83,12 @@ var _ = Describe("MachineReconciler_GenerateOverrideFunc", func() {
 		})
 
 		It("generates an override function", func() {
-			r := machineReconciler{controllerCtx}
-			_, ok := r.generateOverrideFunc(machineCtx)
+			_, ok := vimMachineService.generateOverrideFunc(machineCtx)
 			Expect(ok).To(BeTrue())
 		})
 
 		It("uses the deployment zone placement constraint & failure domains topology for VM values", func() {
-			r := machineReconciler{controllerCtx}
-			overrideFunc, ok := r.generateOverrideFunc(machineCtx)
+			overrideFunc, ok := vimMachineService.generateOverrideFunc(machineCtx)
 			Expect(ok).To(BeTrue())
 
 			vm := &infrav1.VSphereVM{Spec: infrav1.VSphereVMSpec{}}
@@ -113,8 +112,7 @@ var _ = Describe("MachineReconciler_GenerateOverrideFunc", func() {
 					},
 				}
 
-				r := machineReconciler{controllerCtx}
-				overrideFunc, ok := r.generateOverrideFunc(machineCtx)
+				overrideFunc, ok := vimMachineService.generateOverrideFunc(machineCtx)
 				Expect(ok).To(BeTrue())
 
 				overrideFunc(vm)
@@ -136,8 +134,7 @@ var _ = Describe("MachineReconciler_GenerateOverrideFunc", func() {
 					},
 				}
 
-				r := machineReconciler{controllerCtx}
-				overrideFunc, ok := r.generateOverrideFunc(machineCtx)
+				overrideFunc, ok := vimMachineService.generateOverrideFunc(machineCtx)
 				Expect(ok).To(BeTrue())
 
 				overrideFunc(vm)
@@ -159,8 +156,7 @@ var _ = Describe("MachineReconciler_GenerateOverrideFunc", func() {
 					},
 				}
 
-				r := machineReconciler{controllerCtx}
-				overrideFunc, ok := r.generateOverrideFunc(machineCtx)
+				overrideFunc, ok := vimMachineService.generateOverrideFunc(machineCtx)
 				Expect(ok).To(BeTrue())
 
 				overrideFunc(vm)

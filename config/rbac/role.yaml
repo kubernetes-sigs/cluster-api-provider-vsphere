@@ -9,6 +9,28 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - configmaps
+  - events
+  - nodes
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - configmaps/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resources:
   - events
   verbs:
   - create
@@ -16,6 +38,34 @@ rules:
   - list
   - patch
   - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumeclaims
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumeclaims/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - bootstrap.cluster.x-k8s.io
+  resources:
+  - kubeadmconfigtemplates
+  verbs:
+  - delete
+  - get
+  - list
   - watch
 - apiGroups:
   - cluster.x-k8s.io
@@ -167,3 +217,139 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - netoperator.vmware.com
+  resources:
+  - networks
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - topology.tanzu.vmware.com
+  resources:
+  - availabilityzones
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - topology.tanzu.vmware.com
+  resources:
+  - availabilityzones/status
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - vmoperator.vmware.com
+  resources:
+  - virtualmachineimages
+  - virtualmachineimages/status
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - vmoperator.vmware.com
+  resources:
+  - virtualmachines
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - vmoperator.vmware.com
+  resources:
+  - virtualmachineservices
+  - virtualmachineservices/status
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - vmoperator.vmware.com
+  resources:
+  - virtualmachinesetresourcepolicies
+  - virtualmachinesetresourcepolicies/status
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - vmware.com
+  resources:
+  - virtualnetworks
+  - virtualnetworks/status
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - vmware.infrastructure.cluster.x-k8s.io
+  resources:
+  - vsphereclusters
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - vmware.infrastructure.cluster.x-k8s.io
+  resources:
+  - vsphereclusters/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - vmware.infrastructure.cluster.x-k8s.io
+  resources:
+  - vspheremachines
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - vmware.infrastructure.cluster.x-k8s.io
+  resources:
+  - vspheremachines/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - vmware.infrastructure.cluster.x-k8s.io
+  resources:
+  - vspheremachinetemplates
+  verbs:
+  - delete
+  - get
+  - list

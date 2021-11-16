@@ -19,35 +19,60 @@ package context
 import (
 	"fmt"
 
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/go-logr/logr"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
-
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 )
 
-// MachineContext is a Go context used with a VSphereMachine.
-type MachineContext struct {
+type BaseMachineContext struct {
 	*ControllerContext
-	Cluster        *clusterv1.Cluster
-	Machine        *clusterv1.Machine
+	Logger      logr.Logger
+	Cluster     *clusterv1.Cluster
+	Machine     *clusterv1.Machine
+	PatchHelper *patch.Helper
+}
+
+func (c *BaseMachineContext) GetCluster() *clusterv1.Cluster {
+	return c.Cluster
+}
+
+func (c *BaseMachineContext) GetMachine() *clusterv1.Machine {
+	return c.Machine
+}
+
+// GetLogger returns this context's logger.
+func (c *BaseMachineContext) GetLogger() logr.Logger {
+	return c.Logger
+}
+
+// VIMMachineContext is a Go context used with a VSphereMachine.
+type VIMMachineContext struct {
+	*BaseMachineContext
 	VSphereCluster *infrav1.VSphereCluster
 	VSphereMachine *infrav1.VSphereMachine
-	Logger         logr.Logger
-	PatchHelper    *patch.Helper
 }
 
 // String returns VSphereMachineGroupVersionKind VSphereMachineNamespace/VSphereMachineName.
-func (c *MachineContext) String() string {
+func (c *VIMMachineContext) String() string {
 	return fmt.Sprintf("%s %s/%s", c.VSphereMachine.GroupVersionKind(), c.VSphereMachine.Namespace, c.VSphereMachine.Name)
 }
 
 // Patch updates the object and its status on the API server.
-func (c *MachineContext) Patch() error {
+func (c *VIMMachineContext) Patch() error {
 	return c.PatchHelper.Patch(c, c.VSphereMachine)
 }
 
-// GetLogger returns this context's logger.
-func (c *MachineContext) GetLogger() logr.Logger {
-	return c.Logger
+func (c *VIMMachineContext) GetVSphereMachine() VSphereMachine {
+	return c.VSphereMachine
+}
+
+func (c *VIMMachineContext) GetObjectMeta() v1.ObjectMeta {
+	return c.VSphereMachine.ObjectMeta
+}
+
+func (c *VIMMachineContext) SetBaseMachineContext(base *BaseMachineContext) {
+	c.BaseMachineContext = base
 }

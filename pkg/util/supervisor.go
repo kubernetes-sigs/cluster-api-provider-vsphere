@@ -1,8 +1,5 @@
-//go:build tools
-// +build tools
-
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,16 +14,23 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// This package imports things required by build scripts, to force `go mod` to see them as dependencies
-package tools
+package util
 
 import (
-	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
-	_ "github.com/onsi/ginkgo/ginkgo"
-	_ "github.com/vmware/govmomi"
-	_ "k8s.io/code-generator/cmd/conversion-gen"
-	_ "sigs.k8s.io/controller-tools/cmd/controller-gen"
-	_ "sigs.k8s.io/kind"
-	_ "sigs.k8s.io/kustomize/kustomize/v3"
-	_ "sigs.k8s.io/testing_frameworks/integration"
+	"fmt"
+	"reflect"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 )
+
+func IsSupervisorType(input interface{}) (bool, error) {
+	switch input.(type) {
+	case *infrav1.VSphereCluster, *infrav1.VSphereMachine:
+		return false, nil
+	case *vmwarev1.VSphereCluster, *vmwarev1.VSphereMachine:
+		return true, nil
+	default:
+		return false, fmt.Errorf("unexpected type %s", reflect.TypeOf(input))
+	}
+}

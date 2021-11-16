@@ -22,6 +22,10 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
+	netopv1 "github.com/vmware-tanzu/net-operator-api/api/v1alpha1"
+	vmoprv1 "github.com/vmware-tanzu/vm-operator-api/api/v1alpha1"
+	ncpv1 "github.com/vmware-tanzu/vm-operator/external/ncp/api/v1alpha1"
+	topologyv1 "github.com/vmware-tanzu/vm-operator/external/tanzu-topology/api/v1alpha1"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
@@ -56,6 +60,10 @@ func New(opts Options) (Manager, error) {
 	_ = infrav1b1.AddToScheme(opts.Scheme)
 	_ = bootstrapv1.AddToScheme(opts.Scheme)
 	_ = vmwarev1b1.AddToScheme(opts.Scheme)
+	_ = vmoprv1.AddToScheme(opts.Scheme)
+	_ = ncpv1.AddToScheme(opts.Scheme)
+	_ = netopv1.AddToScheme(opts.Scheme)
+	_ = topologyv1.AddToScheme(opts.Scheme)
 	// +kubebuilder:scaffold:scheme
 
 	podName, err := os.Hostname()
@@ -86,6 +94,7 @@ func New(opts Options) (Manager, error) {
 		Password:                opts.Password,
 		EnableKeepAlive:         opts.EnableKeepAlive,
 		KeepAliveDuration:       opts.KeepAliveDuration,
+		NetworkProvider:         opts.NetworkProvider,
 	}
 
 	// Add the requested items to the manager.

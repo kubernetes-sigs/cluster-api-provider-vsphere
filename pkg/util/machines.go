@@ -23,6 +23,8 @@ import (
 	"regexp"
 	"text/template"
 
+	vmwarev1b1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -84,13 +86,13 @@ func GetVSphereMachinesInCluster(
 	return machines, nil
 }
 
-// GetVSphereMachine gets a VSphereMachine resource for the given CAPI Machine.
+// GetVSphereMachine gets a vmware.infrastructure.cluster.x-k8s.io.VSphereMachine resource for the given CAPI Machine.
 func GetVSphereMachine(
 	ctx context.Context,
 	controllerClient client.Client,
-	namespace, machineName string) (*infrav1.VSphereMachine, error) {
+	namespace, machineName string) (*vmwarev1b1.VSphereMachine, error) {
 
-	machine := &infrav1.VSphereMachine{}
+	machine := &vmwarev1b1.VSphereMachine{}
 	namespacedName := apitypes.NamespacedName{
 		Namespace: namespace,
 		Name:      machineName,
@@ -99,6 +101,22 @@ func GetVSphereMachine(
 		return nil, err
 	}
 	return machine, nil
+}
+
+// GetVSphereClusterFromVSphereMachine gets the vmware.infrastructure.cluster.x-k8s.io.VSPhereCluster resource for the given VSphereMachine
+func GetVSphereClusterFromVSphereMachine(ctx context.Context, c client.Client, machine *vmwarev1b1.VSphereMachine) (*vmwarev1b1.VSphereCluster, error) {
+	clusterName := machine.Labels[clusterv1.ClusterLabelName]
+	if clusterName == "" {
+		return nil, errors.Errorf("error getting VSphereCluster name from VSphereMachine %s/%s",
+			machine.Namespace, machine.Name)
+	}
+	namespacedName := apitypes.NamespacedName{
+		Namespace: machine.Namespace,
+		Name:      clusterName,
+	}
+	cluster := &vmwarev1b1.VSphereCluster{}
+	err := c.Get(ctx, namespacedName, cluster)
+	return cluster, err
 }
 
 // ErrNoMachineIPAddr indicates that no valid IP addresses were found in a machine context

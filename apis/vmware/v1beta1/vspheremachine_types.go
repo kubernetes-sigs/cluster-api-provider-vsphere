@@ -42,6 +42,11 @@ type VSphereMachineSpec struct {
 	// +optional
 	ProviderID *string `json:"providerID,omitempty"`
 
+	// FailureDomain is the failure domain the machine will be created in.
+	// Must match a key in the FailureDomains map stored on the cluster object.
+	// +optional
+	FailureDomain *string `json:"failureDomain,omitempty"`
+
 	// ImageName is the name of the base image used when specifying the
 	// underlying virtual machine
 	ImageName string `json:"imageName"`
@@ -131,6 +136,7 @@ type VSphereMachineStatus struct {
 // +kubebuilder:resource:path=vspheremachines,scope=Namespaced,categories=cluster-api
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Zone",type="string",JSONPath=".spec.failureDomain",description="Zone"
 // +kubebuilder:printcolumn:name="ProviderID",type="string",JSONPath=".spec.providerID",description="Provider ID"
 // +kubebuilder:printcolumn:name="IPAddr",type="string",JSONPath=".status.vmIp",description="IP address"
 type VSphereMachine struct {

@@ -19,6 +19,10 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
+    - description: Zone
+      jsonPath: .spec.failureDomain
+      name: Zone
+      type: string
     - description: Provider ID
       jsonPath: .spec.providerID
       name: ProviderID
@@ -50,6 +54,11 @@ spec:
               className:
                 description: ClassName is the name of the class used when specifying
                   the underlying virtual machine
+                type: string
+              failureDomain:
+                description: FailureDomain is the failure domain the machine will
+                  be created in. Must match a key in the FailureDomains map stored
+                  on the cluster object.
                 type: string
               imageName:
                 description: ImageName is the name of the base image used when specifying

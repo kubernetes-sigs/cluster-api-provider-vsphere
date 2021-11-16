@@ -43,7 +43,7 @@ import (
 
 var (
 	identityControlledType     = &infrav1.VSphereClusterIdentity{}
-	identityControlledTypeName = reflect.TypeOf(clusterControlledType).Elem().Name()
+	identityControlledTypeName = reflect.TypeOf(identityControlledType).Elem().Name()
 )
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=vsphereclusteridentities,verbs=get;list;watch;create;update;patch;delete

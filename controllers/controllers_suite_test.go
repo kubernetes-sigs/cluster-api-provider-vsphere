@@ -68,10 +68,10 @@ func setup() {
 
 	testEnv = helpers.NewTestEnvironment()
 
-	if err := AddClusterControllerToManager(testEnv.GetContext(), testEnv.Manager); err != nil {
+	if err := AddClusterControllerToManager(testEnv.GetContext(), testEnv.Manager, &infrav1.VSphereCluster{}); err != nil {
 		panic(fmt.Sprintf("unable to setup VsphereCluster controller: %v", err))
 	}
-	if err := AddMachineControllerToManager(testEnv.GetContext(), testEnv.Manager); err != nil {
+	if err := AddMachineControllerToManager(testEnv.GetContext(), testEnv.Manager, &infrav1.VSphereMachine{}); err != nil {
 		panic(fmt.Sprintf("unable to setup VsphereMachine controller: %v", err))
 	}
 	if err := AddVMControllerToManager(testEnv.GetContext(), testEnv.Manager); err != nil {

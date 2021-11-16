@@ -83,6 +83,11 @@ type Options struct {
 	// the manager's Options in order to explicitly decide what controllers
 	// and webhooks to add to the manager.
 	AddToManager AddToManagerFunc
+
+	// NetworkProvider is the network provider used by Supervisor based clusters.
+	// If not set, it will default to a DummyNetworkProvider which is intended for testing purposes.
+	// VIM based clusters and managers will not need to set this flag.
+	NetworkProvider string
 }
 
 func (o *Options) defaults() {

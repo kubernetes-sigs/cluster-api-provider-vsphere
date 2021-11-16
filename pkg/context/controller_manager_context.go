@@ -86,6 +86,9 @@ type ControllerManagerContext struct {
 	// in keepalive handler
 	KeepAliveDuration time.Duration
 
+	// NetworkProvider is the network provider used by Supervisor based clusters
+	NetworkProvider string
+
 	genericEventCache sync.Map
 }
 

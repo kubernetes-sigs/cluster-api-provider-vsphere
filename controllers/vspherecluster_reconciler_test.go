@@ -47,7 +47,7 @@ const (
 	timeout = time.Second * 30
 )
 
-var _ = Describe("ClusterReconciler", func() {
+var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 	BeforeEach(func() {})
 	AfterEach(func() {})
 

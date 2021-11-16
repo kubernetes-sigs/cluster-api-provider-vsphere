@@ -21,6 +21,13 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
+const (
+	// ClusterFinalizer allows ReconcileVSphereCluster to clean up vSphere
+	// resources associated with VSphereCluster before removing it from the
+	// API server.
+	ClusterFinalizer = "vspherecluster.vmware.infrastructure.cluster.x-k8s.io"
+)
+
 // VSphereClusterSpec defines the desired state of VSphereCluster
 type VSphereClusterSpec struct {
 	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
@@ -41,6 +48,10 @@ type VSphereClusterStatus struct {
 	// Conditions defines current service state of the VSphereCluster.
 	// +optional
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+
+	// FailureDomains is a list of failure domain objects synced from the
+	// infrastructure provider.
+	FailureDomains clusterv1.FailureDomains `json:"failureDomains,omitempty"`
 }
 
 // +kubebuilder:object:root=true

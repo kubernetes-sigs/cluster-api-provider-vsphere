@@ -1,0 +1,118 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.7.0
+  creationTimestamp: null
+  name: vspheremachinetemplates.vmware.infrastructure.cluster.x-k8s.io
+spec:
+  group: vmware.infrastructure.cluster.x-k8s.io
+  names:
+    categories:
+    - cluster-api
+    kind: VSphereMachineTemplate
+    listKind: VSphereMachineTemplateList
+    plural: vspheremachinetemplates
+    singular: vspheremachinetemplate
+  scope: Namespaced
+  versions:
+  - name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: VSphereMachineTemplate is the Schema for the vspheremachinetemplates
+          API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: VSphereMachineTemplateSpec defines the desired state of VSphereMachineTemplate
+            properties:
+              template:
+                description: VSphereMachineTemplateResource describes the data needed
+                  to create a VSphereMachine from a template
+                properties:
+                  spec:
+                    description: Spec is the specification of the desired behavior
+                      of the machine.
+                    properties:
+                      className:
+                        description: ClassName is the name of the class used when
+                          specifying the underlying virtual machine
+                        type: string
+                      failureDomain:
+                        description: FailureDomain is the failure domain the machine
+                          will be created in. Must match a key in the FailureDomains
+                          map stored on the cluster object.
+                        type: string
+                      imageName:
+                        description: ImageName is the name of the base image used
+                          when specifying the underlying virtual machine
+                        type: string
+                      providerID:
+                        description: ProviderID is the virtual machine's BIOS UUID
+                          formated as vsphere://12345678-1234-1234-1234-123456789abc.
+                          This is required at runtime by CAPI. Do not remove this
+                          field.
+                        type: string
+                      storageClass:
+                        description: StorageClass is the name of the storage class
+                          used when specifying the underlying virtual machine.
+                        type: string
+                      volumes:
+                        description: Volumes is the set of PVCs to be created and
+                          attached to the VSphereMachine
+                        items:
+                          description: VSphereMachineVolume defines a PVC attachment
+                          properties:
+                            capacity:
+                              additionalProperties:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                x-kubernetes-int-or-string: true
+                              description: Capacity is the PVC capacity
+                              type: object
+                            name:
+                              description: 'Name is suffix used to name this PVC as:
+                                VSphereMachine.Name + "-" + Name'
+                              type: string
+                            storageClass:
+                              description: StorageClass defaults to VSphereMachineSpec.StorageClass
+                              type: string
+                          required:
+                          - capacity
+                          - name
+                          type: object
+                        type: array
+                    required:
+                    - className
+                    - imageName
+                    type: object
+                required:
+                - spec
+                type: object
+            required:
+            - template
+            type: object
+        type: object
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

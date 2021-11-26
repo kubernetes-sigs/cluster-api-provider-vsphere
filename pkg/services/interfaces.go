@@ -17,9 +17,26 @@ limitations under the License.
 package services
 
 import (
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	vmoprv1 "github.com/vmware-tanzu/vm-operator-api/api/v1alpha1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 )
+
+// VSphereMachineService is used for vsphere VM lifecycle and syncing with VSphereMachine types.
+type VSphereMachineService interface {
+	FetchVSphereMachine(client client.Client, name types.NamespacedName) (context.MachineContext, error)
+	FetchVSphereCluster(client client.Client, cluster *clusterv1.Cluster, controllerContext *context.ControllerContext, machineContext context.MachineContext) (context.MachineContext, error)
+	ReconcileDelete(ctx context.MachineContext) error
+	SyncFailureReason(ctx context.MachineContext) (bool, error)
+	ReconcileNormal(ctx context.MachineContext) (bool, error)
+}
 
 // VirtualMachineService is a service for creating/updating/deleting virtual
 // machines on vSphere.
@@ -29,4 +46,41 @@ type VirtualMachineService interface {
 
 	// DestroyVM powers off and removes a VM from the inventory.
 	DestroyVM(ctx *context.VMContext) (infrav1.VirtualMachine, error)
+}
+
+// ControlPlaneEndpointService is a service for reconciling load balanced control plane endpoints
+type ControlPlaneEndpointService interface {
+	// ReconcileControlPlaneEndpointService manages the lifecycle of a
+	// control plane endpoint managed by a vmoperator VirtualMachineService
+	ReconcileControlPlaneEndpointService(ctx *vmware.ClusterContext, netProvider NetworkProvider) (*clusterv1.APIEndpoint, error)
+}
+
+// ResourcePolicyService is a service for reconciling a VirtualMachineSetResourcePolicy for a cluster
+type ResourcePolicyService interface {
+	// ReconcileResourcePolicy ensures that a VirtualMachineSetResourcePolicy exists for the cluster
+	// Returns the name of a policy if it exists, otherwise returns an error
+	ReconcileResourcePolicy(ctx *vmware.ClusterContext) (string, error)
+}
+
+// NetworkProvider provision network resources and configures VM based on network type
+type NetworkProvider interface {
+	// HasLoadBalancer indicates whether this provider has a load balancer for Services.
+	HasLoadBalancer() bool
+
+	// ProvisionClusterNetwork creates network resource for a given cluster
+	// This operation should be idempotent
+	ProvisionClusterNetwork(ctx *vmware.ClusterContext) error
+
+	// GetClusterNetworkName returns the name of a valid cluster network if one exists
+	// Returns an empty string if the operation is not supported
+	GetClusterNetworkName(ctx *vmware.ClusterContext) (string, error)
+
+	// GetServiceAnnotations returns the annotations, if any, to place on a VM Service.
+	GetVMServiceAnnotations(ctx *vmware.ClusterContext) (map[string]string, error)
+
+	// ConfigureVirtualMachine configures a VM for the particular network
+	ConfigureVirtualMachine(ctx *vmware.ClusterContext, vm *vmoprv1.VirtualMachine) error
+
+	// Verify the status of the network after vnet creation
+	VerifyNetworkStatus(ctx *vmware.ClusterContext, obj runtime.Object) error
 }

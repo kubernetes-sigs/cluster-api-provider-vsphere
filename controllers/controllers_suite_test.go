@@ -34,7 +34,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers"
 	// +kubebuilder:scaffold:imports
 )
@@ -68,10 +68,10 @@ func setup() {
 
 	testEnv = helpers.NewTestEnvironment()
 
-	if err := AddClusterControllerToManager(testEnv.GetContext(), testEnv.Manager); err != nil {
+	if err := AddClusterControllerToManager(testEnv.GetContext(), testEnv.Manager, &infrav1.VSphereCluster{}); err != nil {
 		panic(fmt.Sprintf("unable to setup VsphereCluster controller: %v", err))
 	}
-	if err := AddMachineControllerToManager(testEnv.GetContext(), testEnv.Manager); err != nil {
+	if err := AddMachineControllerToManager(testEnv.GetContext(), testEnv.Manager, &infrav1.VSphereMachine{}); err != nil {
 		panic(fmt.Sprintf("unable to setup VsphereMachine controller: %v", err))
 	}
 	if err := AddVMControllerToManager(testEnv.GetContext(), testEnv.Manager); err != nil {

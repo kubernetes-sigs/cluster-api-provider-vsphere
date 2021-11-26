@@ -49,9 +49,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
 
-	infrav1alpha3 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
-	infrav1alpha4 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha4"
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1beta1"
+	infrav1alpha3 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1alpha3"
+	infrav1alpha4 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
 )
@@ -89,7 +89,7 @@ func init() {
 	root := path.Join(path.Dir(filename), "..", "..")
 
 	crdPaths := []string{
-		filepath.Join(root, "config", "crd", "bases"),
+		filepath.Join(root, "config", "default", "crd", "bases"),
 	}
 
 	// append CAPI CRDs path

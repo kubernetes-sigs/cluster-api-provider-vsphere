@@ -20,13 +20,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 )
 
-// NewMachineContext returns a fake MachineContext for unit testing
+// NewMachineContext returns a fake VIMMachineContext for unit testing
 // reconcilers with a fake client.
-func NewMachineContext(ctx *context.ClusterContext) *context.MachineContext {
+func NewMachineContext(ctx *context.ClusterContext) *context.VIMMachineContext {
 
 	// Create the machine resources.
 	machine := newMachineV1a4()
@@ -40,13 +40,15 @@ func NewMachineContext(ctx *context.ClusterContext) *context.MachineContext {
 		panic(err)
 	}
 
-	return &context.MachineContext{
-		ControllerContext: ctx.ControllerContext,
-		Cluster:           ctx.Cluster,
-		VSphereCluster:    ctx.VSphereCluster,
-		Machine:           &machine,
-		VSphereMachine:    &vsphereMachine,
-		Logger:            ctx.Logger.WithName(vsphereMachine.Name),
+	return &context.VIMMachineContext{
+		BaseMachineContext: &context.BaseMachineContext{
+			ControllerContext: ctx.ControllerContext,
+			Cluster:           ctx.Cluster,
+			Machine:           &machine,
+			Logger:            ctx.Logger.WithName(vsphereMachine.Name),
+		},
+		VSphereCluster: ctx.VSphereCluster,
+		VSphereMachine: &vsphereMachine,
 	}
 }
 

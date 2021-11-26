@@ -251,9 +251,9 @@ func kubeVIPPod() string {
 			Containers: []corev1.Container{
 				{
 					Name:  "kube-vip",
-					Image: "ghcr.io/kube-vip/kube-vip:v0.3.5",
+					Image: "ghcr.io/kube-vip/kube-vip:v0.4.0",
 					Args: []string{
-						"start",
+						"manager",
 					},
 					ImagePullPolicy: corev1.PullIfNotPresent,
 					SecurityContext: &corev1.SecurityContext{
@@ -261,6 +261,7 @@ func kubeVIPPod() string {
 							Add: []corev1.Capability{
 								"NET_ADMIN",
 								"SYS_TIME",
+								"NET_RAW",
 							},
 						},
 					},
@@ -272,31 +273,50 @@ func kubeVIPPod() string {
 					},
 					Env: []corev1.EnvVar{
 						{
-							Name:  "vip_arp",
+							// Enables kube-vip control-plane functionality
+							Name:  "cp_enable",
 							Value: "true",
 						},
-						{
-							Name:  "vip_leaderelection",
-							Value: "true",
-						},
-						{
-							Name:  "vip_address",
-							Value: env.ControlPlaneEndpointVar,
-						},
-						{
+						{	
+							// Interface that the vip should bind to
 							// this is hardcoded since we use eth0 as a network interface for all of our machines in this template
 							Name:  "vip_interface",
 							Value: "eth0",
 						},
 						{
+							// VIP IP address
+							// 'vip_address' was replaced by 'address'
+							Name:  "address",
+							Value: env.ControlPlaneEndpointVar,
+						},
+						{	
+							// VIP TCP port
+							Name:  "port",
+							Value: "6443",
+						},
+						{
+							// Enables ARP brodcasts from Leader (requries L2 connectivity)
+							Name:  "vip_arp",
+							Value: "true",
+						},
+						{
+							// Kubernetes algorithm to be used.
+							Name:  "vip_leaderelection",
+							Value: "true",
+						},
+						
+						{
+							// Seconds a lease is held for
 							Name:  "vip_leaseduration",
 							Value: "15",
 						},
 						{
+							// Seconds a leader can attempt to renew the lease
 							Name:  "vip_renewdeadline",
 							Value: "10",
 						},
 						{
+							// Number of times the leader will hold the lease for
 							Name:  "vip_retryperiod",
 							Value: "2",
 						},

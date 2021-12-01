@@ -10,6 +10,14 @@ rules:
   - ""
   resources:
   - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
   - events
   - nodes
   verbs:
@@ -58,6 +66,38 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+- apiGroups:
+  - ""
+  resources:
+  - serviceaccounts
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - services
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - services/status
+  verbs:
+  - get
 - apiGroups:
   - bootstrap.cluster.x-k8s.io
   resources:
@@ -226,6 +266,19 @@ rules:
   - list
   - watch
 - apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - rolebindings
+  - roles
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - topology.tanzu.vmware.com
   resources:
   - availabilityzones
@@ -305,6 +358,22 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - vmware.infrastructure.cluster.x-k8s.io
+  resources:
+  - providerserviceaccounts
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - vmware.infrastructure.cluster.x-k8s.io
+  resources:
+  - providerserviceaccounts/status
+  verbs:
+  - get
+  - patch
+  - update
 - apiGroups:
   - vmware.infrastructure.cluster.x-k8s.io
   resources:

@@ -61,3 +61,29 @@ const (
 	// WaitingForBIOSUUIDReason (Severity=Info) documents a VSphereMachine waiting for the the machine to have a BIOS UUID.
 	WaitingForBIOSUUIDReason = "WaitingForBIOSUUID"
 )
+
+const (
+	// ProviderServiceAccountsReadyCondition documents the status of provider service accounts
+	// and related Roles, RoleBindings and Secrets are created
+	ProviderServiceAccountsReadyCondition clusterv1.ConditionType = "ProviderServiceAccountsReady"
+
+	// ProviderServiceAccountsReconciliationFailedReason reports that provider service accounts related resources reconciliation failed
+	ProviderServiceAccountsReconciliationFailedReason = "ProviderServiceAccountsReconciliationFailed"
+)
+
+
+const (
+	SupervisorLoadBalancerSvcNamespace = "kube-system"
+	SupervisorLoadBalancerSvcName      = "kube-apiserver-lb-svc"
+	SupervisorAPIServerPort            = 6443
+
+	SupervisorHeadlessSvcNamespace = "default"
+	SupervisorHeadlessSvcName      = "supervisor"
+	SupervisorHeadlessSvcPort = 6443
+
+	// ServiceDiscoveryReadyCondition documents the status of service discoveries
+	ServiceDiscoveryReadyCondition clusterv1.ConditionType = "ServiceDiscoveryReady"
+
+	// SupervisorHeadlessServiceSetupFailedReason documents the headless service setup for svc api server failed
+	SupervisorHeadlessServiceSetupFailedReason = "SupervisorHeadlessServiceSetupFailed"
+)

@@ -1,0 +1,530 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.7.0
+  creationTimestamp: null
+  name: virtualmachines.vmoperator.vmware.com
+spec:
+  group: vmoperator.vmware.com
+  names:
+    kind: VirtualMachine
+    listKind: VirtualMachineList
+    plural: virtualmachines
+    shortNames:
+    - vm
+    singular: virtualmachine
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.powerState
+      name: PowerState
+      type: string
+    - jsonPath: .spec.className
+      name: Class
+      priority: 1
+      type: string
+    - jsonPath: .spec.imageName
+      name: Image
+      priority: 1
+      type: string
+    - jsonPath: .status.vmIp
+      name: Primary-IP
+      priority: 1
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: VirtualMachine is the Schema for the virtualmachines API. A VirtualMachine
+          represents the desired specification and the observed status of a VirtualMachine
+          instance.  A VirtualMachine is realized by the VirtualMachine controller
+          on a backing Virtual Infrastructure provider such as vSphere.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: VirtualMachineSpec defines the desired state of a VirtualMachine
+            properties:
+              advancedOptions:
+                description: AdvancedOptions describes a set of optional, advanced
+                  options for configuring a VirtualMachine
+                properties:
+                  changeBlockTracking:
+                    description: ChangeBlockTracking specifies the enablement of incremental
+                      backup support for this VirtualMachine, which can be utilized
+                      by external backup systems such as VMware Data Recovery.
+                    type: boolean
+                  defaultVolumeProvisioningOptions:
+                    description: DefaultProvisioningOptions specifies the provisioning
+                      type to be used by default for VirtualMachine volumes exclusively
+                      owned by this VirtualMachine. This does not apply to PersistentVolumeClaim
+                      volumes that are created and managed externally.
+                    properties:
+                      eagerZeroed:
+                        description: EagerZeroed specifies whether to use eager zero
+                          provisioning for the VirtualMachineVolume. An eager zeroed
+                          thick disk has all space allocated and wiped clean of any
+                          previous contents on the physical media at creation time.
+                          Such disks may take longer time during creation compared
+                          to other disk formats. EagerZeroed is only applicable if
+                          ThinProvisioned is false. This is validated by the webhook.
+                        type: boolean
+                      thinProvisioned:
+                        description: ThinProvisioned specifies whether to use thin
+                          provisioning for the VirtualMachineVolume. This means a
+                          sparse (allocate on demand) format with additional space
+                          optimizations.
+                        type: boolean
+                    type: object
+                type: object
+              className:
+                description: ClassName describes the name of a VirtualMachineClass
+                  that is to be used as the overlaid resource configuration of VirtualMachine.  A
+                  VirtualMachineClass is used to further customize the attributes
+                  of the VirtualMachine instance.  See VirtualMachineClass for more
+                  description.
+                type: string
+              imageName:
+                description: ImageName describes the name of a VirtualMachineImage
+                  that is to be used as the base Operating System image of the desired
+                  VirtualMachine instances.  The VirtualMachineImage resources can
+                  be introspected to discover identifying attributes that may help
+                  users to identify the desired image to use.
+                type: string
+              networkInterfaces:
+                description: NetworkInterfaces describes a list of VirtualMachineNetworkInterfaces
+                  to be configured on the VirtualMachine instance. Each of these VirtualMachineNetworkInterfaces
+                  describes external network integration configurations that are to
+                  be used by the VirtualMachine controller when integrating the VirtualMachine
+                  into one or more external networks.
+                items:
+                  description: VirtualMachineNetworkInterface defines the properties
+                    of a network interface to attach to a VirtualMachine instance.  A
+                    VirtualMachineNetworkInterface describes network interface configuration
+                    that is used by the VirtualMachine controller when integrating
+                    the VirtualMachine into a VirtualNetwork.  Currently, only NSX-T
+                    and vSphere Distributed Switch (VDS) type network integrations
+                    are supported using this VirtualMachineNetworkInterface structure.
+                  properties:
+                    ethernetCardType:
+                      description: EthernetCardType describes an optional ethernet
+                        card that should be used by the VirtualNetworkInterface (vNIC)
+                        associated with this network integration.  The default is
+                        "vmxnet3".
+                      type: string
+                    networkName:
+                      description: NetworkName describes the name of an existing virtual
+                        network that this interface should be added to. For "nsx-t"
+                        NetworkType, this is the name of a pre-existing NSX-T VirtualNetwork.
+                        If unspecified, the default network for the namespace will
+                        be used. For "vsphere-distributed" NetworkType, the NetworkName
+                        must be specified.
+                      type: string
+                    networkType:
+                      description: NetworkType describes the type of VirtualNetwork
+                        that is referenced by the NetworkName.  Currently, the only
+                        supported NetworkTypes are "nsx-t" and "vsphere-distributed".
+                      type: string
+                    providerRef:
+                      description: ProviderRef is reference to a network interface
+                        provider object that specifies the network interface configuration.
+                        If unset, default configuration is assumed.
+                      properties:
+                        apiGroup:
+                          description: APIGroup is the group for the resource being
+                            referenced.
+                          type: string
+                        apiVersion:
+                          description: API version of the referent.
+                          type: string
+                        kind:
+                          description: Kind is the type of resource being referenced
+                          type: string
+                        name:
+                          description: Name is the name of resource being referenced
+                          type: string
+                      required:
+                      - apiGroup
+                      - kind
+                      - name
+                      type: object
+                  type: object
+                type: array
+              ports:
+                description: Ports is currently unused and can be considered deprecated.
+                items:
+                  description: VirtualMachinePort is unused and can be considered
+                    deprecated.
+                  properties:
+                    ip:
+                      type: string
+                    name:
+                      type: string
+                    port:
+                      type: integer
+                    protocol:
+                      default: TCP
+                      type: string
+                  required:
+                  - ip
+                  - name
+                  - port
+                  - protocol
+                  type: object
+                type: array
+              powerState:
+                description: PowerState describes the desired power state of a VirtualMachine.  Valid
+                  power states are "poweredOff" and "poweredOn".
+                enum:
+                - poweredOff
+                - poweredOn
+                type: string
+              readinessProbe:
+                description: ReadinessProbe describes a network probe that can be
+                  used to determine if the VirtualMachine is available and responding
+                  to the probe.
+                properties:
+                  guestHeartbeat:
+                    description: GuestHeartbeat specifies an action involving the
+                      guest heartbeat status.
+                    properties:
+                      thresholdStatus:
+                        default: green
+                        description: ThresholdStatus is the value that the guest heartbeat
+                          status must be at or above to be considered successful.
+                        enum:
+                        - yellow
+                        - green
+                        type: string
+                    type: object
+                  periodSeconds:
+                    description: PeriodSeconds specifics how often (in seconds) to
+                      perform the probe. Defaults to 10 seconds. Minimum value is
+                      1.
+                    format: int32
+                    minimum: 1
+                    type: integer
+                  tcpSocket:
+                    description: TCPSocket specifies an action involving a TCP port.
+                    properties:
+                      host:
+                        description: Host is an optional host name to connect to.  Host
+                          defaults to the VirtualMachine IP.
+                        type: string
+                      port:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: Port specifies a number or name of the port to
+                          access on the VirtualMachine. If the format of port is a
+                          number, it must be in the range 1 to 65535. If the format
+                          of name is a string, it must be an IANA_SVC_NAME.
+                        x-kubernetes-int-or-string: true
+                    required:
+                    - port
+                    type: object
+                  timeoutSeconds:
+                    description: TimeoutSeconds specifies a number of seconds after
+                      which the probe times out. Defaults to 10 seconds. Minimum value
+                      is 1.
+                    format: int32
+                    maximum: 60
+                    minimum: 1
+                    type: integer
+                type: object
+              resourcePolicyName:
+                description: ResourcePolicyName describes the name of a VirtualMachineSetResourcePolicy
+                  to be used when creating the VirtualMachine instance.
+                type: string
+              storageClass:
+                description: StorageClass describes the name of a StorageClass that
+                  should be used to configure storage-related attributes of the VirtualMachine
+                  instance.
+                type: string
+              vmMetadata:
+                description: VmMetadata describes any optional metadata that should
+                  be passed to the Guest OS.
+                properties:
+                  configMapName:
+                    description: ConfigMapName describes the name of the ConfigMap,
+                      in the same Namespace as the VirtualMachine, that should be
+                      used for VirtualMachine metadata.  The contents of the Data
+                      field of the ConfigMap is used as the VM Metadata. The format
+                      of the contents of the VM Metadata are not parsed or interpreted
+                      by the VirtualMachine controller. Please note, this field and
+                      SecretName are mutually exclusive.
+                    type: string
+                  secretName:
+                    description: SecretName describes the name of the Secret, in the
+                      same Namespace as the VirtualMachine, that should be used for
+                      VirtualMachine metadata. The contents of the Data field of the
+                      Secret is used as the VM Metadata. The format of the contents
+                      of the VM Metadata are not parsed or interpreted by the VirtualMachine
+                      controller. Please note, this field and ConfigMapName are mutually
+                      exclusive.
+                    type: string
+                  transport:
+                    description: Transport describes the name of a supported VirtualMachineMetadata
+                      transport protocol.  Currently, the only supported transport
+                      protocols are "ExtraConfig", "OvfEnv" and "CloudInit".
+                    enum:
+                    - ExtraConfig
+                    - OvfEnv
+                    - CloudInit
+                    type: string
+                type: object
+              volumes:
+                description: Volumes describes the list of VirtualMachineVolumes that
+                  are desired to be attached to the VirtualMachine.  Each of these
+                  volumes specifies a volume identity that the VirtualMachine controller
+                  will attempt to satisfy, potentially with an external Volume Management
+                  service.
+                items:
+                  description: VirtualMachineVolume describes a Volume that should
+                    be attached to a specific VirtualMachine. Only one of PersistentVolumeClaim,
+                    VsphereVolume should be specified.
+                  properties:
+                    name:
+                      description: Name specifies the name of the VirtualMachineVolume.  Each
+                        volume within the scope of a VirtualMachine must have a unique
+                        name.
+                      type: string
+                    persistentVolumeClaim:
+                      description: "PersistentVolumeClaim represents a reference to
+                        a PersistentVolumeClaim in the same namespace. The PersistentVolumeClaim
+                        must match one of the following: \n   * A volume provisioned
+                        (either statically or dynamically) by the     cluster's CSI
+                        provider. \n   * An instance volume with a lifecycle coupled
+                        to the VM."
+                      properties:
+                        claimName:
+                          description: 'ClaimName is the name of a PersistentVolumeClaim
+                            in the same namespace as the pod using this volume. More
+                            info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistentvolumeclaims'
+                          type: string
+                        instanceVolumeClaim:
+                          description: InstanceVolumeClaim is set if the PVC is backed
+                            by instance storage.
+                          properties:
+                            size:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              description: Size is the size of the requested instance
+                                storage volume.
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            storageClass:
+                              description: StorageClass is the name of the Kubernetes
+                                StorageClass that provides the backing storage for
+                                this instance storage volume.
+                              type: string
+                          required:
+                          - size
+                          - storageClass
+                          type: object
+                        readOnly:
+                          description: Will force the ReadOnly setting in VolumeMounts.
+                            Default false.
+                          type: boolean
+                      required:
+                      - claimName
+                      type: object
+                    vSphereVolume:
+                      description: VsphereVolume represents a reference to a VsphereVolumeSource
+                        in the same namespace. Only one of PersistentVolumeClaim or
+                        VsphereVolume can be specified. This is enforced via a webhook
+                      properties:
+                        capacity:
+                          additionalProperties:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                          description: A description of the virtual volume's resources
+                            and capacity
+                          type: object
+                        deviceKey:
+                          description: Device key of vSphere disk.
+                          type: integer
+                      type: object
+                  required:
+                  - name
+                  type: object
+                type: array
+            required:
+            - className
+            - imageName
+            - powerState
+            type: object
+          status:
+            description: VirtualMachineStatus defines the observed state of a VirtualMachine
+              instance.
+            properties:
+              biosUUID:
+                description: BiosUUID describes a unique identifier provided by the
+                  underlying infrastructure provider that is exposed to the Guest
+                  OS BIOS as a unique hardware identifier.
+                type: string
+              changeBlockTracking:
+                description: ChangeBlockTracking describes the CBT enablement status
+                  on the VirtualMachine.
+                type: boolean
+              conditions:
+                description: Conditions describes the current condition information
+                  of the VirtualMachine.
+                items:
+                  description: Condition defines an observation of a VM Operator API
+                    resource operational state.
+                  properties:
+                    lastTransitionTime:
+                      description: Last time the condition transitioned from one status
+                        to another. This should be when the underlying condition changed.
+                        If that is not known, then using the time when the API field
+                        changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: A human readable message indicating details about
+                        the transition. This field may be empty.
+                      type: string
+                    reason:
+                      description: The reason for the condition's last transition
+                        in CamelCase. The specific API may choose whether or not this
+                        field is considered a guaranteed API. This field may not be
+                        empty.
+                      type: string
+                    severity:
+                      description: Severity provides an explicit classification of
+                        Reason code, so the users or machines can immediately understand
+                        the current situation and act accordingly. The Severity field
+                        MUST be set only when Status=False.
+                      type: string
+                    status:
+                      description: Status of the condition, one of True, False, Unknown.
+                      type: string
+                    type:
+                      description: Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        Many .condition.type values are consistent across resources
+                        like Available, but because arbitrary conditions can be useful
+                        (see .node.status.conditions), the ability to deconflict is
+                        important.
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+              host:
+                description: Host describes the hostname or IP address of the infrastructure
+                  host that the VirtualMachine is executing on.
+                type: string
+              instanceUUID:
+                description: InstanceUUID describes the unique instance UUID provided
+                  by the underlying infrastructure provider, such as vSphere.
+                type: string
+              networkInterfaces:
+                description: NetworkInterfaces describes a list of current status
+                  information for each network interface that is desired to be attached
+                  to the VirtualMachine.
+                items:
+                  description: NetworkInterfaceStatus defines the observed state of
+                    network interfaces attached to the VirtualMachine as seen by the
+                    Guest OS and VMware tools
+                  properties:
+                    connected:
+                      description: Connected represents whether the network interface
+                        is connected or not.
+                      type: boolean
+                    ipAddresses:
+                      description: IpAddresses represents zero, one or more IP addresses
+                        assigned to the network interface in CIDR notation. For eg,
+                        "192.0.2.1/16".
+                      items:
+                        type: string
+                      type: array
+                    macAddress:
+                      description: MAC address of the network adapter
+                      type: string
+                  required:
+                  - connected
+                  type: object
+                type: array
+              phase:
+                description: Phase describes the current phase information of the
+                  VirtualMachine.
+                type: string
+              powerState:
+                description: PowerState describes the current power state of the VirtualMachine.
+                enum:
+                - poweredOff
+                - poweredOn
+                type: string
+              uniqueID:
+                description: UniqueID describes a unique identifier that is provided
+                  by the underlying infrastructure provider, such as vSphere.
+                type: string
+              vmIp:
+                description: VmIp describes the Primary IP address assigned to the
+                  guest operating system, if known. Multiple IPs can be available
+                  for the VirtualMachine. Refer to networkInterfaces in the VirtualMachine
+                  status for additional IPs
+                type: string
+              volumes:
+                description: Volumes describes a list of current status information
+                  for each Volume that is desired to be attached to the VirtualMachine.
+                items:
+                  description: VirtualMachineVolumeStatus defines the observed state
+                    of a VirtualMachineVolume instance.
+                  properties:
+                    attached:
+                      description: Attached represents whether a volume has been successfully
+                        attached to the VirtualMachine or not.
+                      type: boolean
+                    diskUUID:
+                      description: DiskUuid represents the underlying virtual disk
+                        UUID and is present when attachment succeeds.
+                      type: string
+                    error:
+                      description: Error represents the last error seen when attaching
+                        or detaching a volume.  Error will be empty if attachment
+                        succeeds.
+                      type: string
+                    name:
+                      description: Name is the name of the volume in a VirtualMachine.
+                      type: string
+                  required:
+                  - attached
+                  - diskUUID
+                  - error
+                  - name
+                  type: object
+                type: array
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

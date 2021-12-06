@@ -1,0 +1,210 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.7.0
+  creationTimestamp: null
+  name: virtualmachineclasses.vmoperator.vmware.com
+spec:
+  group: vmoperator.vmware.com
+  names:
+    kind: VirtualMachineClass
+    listKind: VirtualMachineClassList
+    plural: virtualmachineclasses
+    shortNames:
+    - vmclass
+    singular: virtualmachineclass
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.hardware.cpus
+      name: CPU
+      type: string
+    - jsonPath: .spec.hardware.memory
+      name: Memory
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    - jsonPath: .spec.hardware.devices.vgpuDevices[*].profileName
+      name: VGPUDevicesProfileNames
+      priority: 1
+      type: string
+    - jsonPath: .spec.hardware.devices.dynamicDirectPathIODevices[*].deviceID
+      name: PassthroughDeviceIDs
+      priority: 1
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: VirtualMachineClass is the Schema for the virtualmachineclasses
+          API. A VirtualMachineClass represents the desired specification and the
+          observed status of a VirtualMachineClass instance.  A VirtualMachineClass
+          represents a policy and configuration resource which defines a set of attributes
+          to be used in the configuration of a VirtualMachine instance.  A VirtualMachine
+          resource references a VirtualMachineClass as a required input.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: VirtualMachineClassSpec defines the desired state of VirtualMachineClass
+            properties:
+              description:
+                description: Description describes the configuration of the VirtualMachineClass
+                  which is not related to virtual hardware or infrastructure policy.
+                  This field is used to address remaining specs about this VirtualMachineClass.
+                type: string
+              hardware:
+                description: Hardware describes the configuration of the VirtualMachineClass
+                  attributes related to virtual hardware.  The configuration specified
+                  in this field is used to customize the virtual hardware characteristics
+                  of any VirtualMachine associated with this VirtualMachineClass.
+                properties:
+                  cpus:
+                    format: int64
+                    type: integer
+                  devices:
+                    description: VirtualDevices contains information about the virtual
+                      devices associated with a VirtualMachineClass.
+                    properties:
+                      dynamicDirectPathIODevices:
+                        items:
+                          description: DynamicDirectPathIODevice contains the configuration
+                            corresponding to a Dynamic DirectPath I/O device.
+                          properties:
+                            customLabel:
+                              type: string
+                            deviceID:
+                              type: integer
+                            vendorID:
+                              type: integer
+                          required:
+                          - deviceID
+                          - vendorID
+                          type: object
+                        type: array
+                      vgpuDevices:
+                        items:
+                          description: VGPUDevice contains the configuration corresponding
+                            to a vGPU device.
+                          properties:
+                            profileName:
+                              type: string
+                          required:
+                          - profileName
+                          type: object
+                        type: array
+                    type: object
+                  instanceStorage:
+                    description: InstanceStorage provides information used to configure
+                      instance storage volumes for a VirtualMachine.
+                    properties:
+                      storageClass:
+                        description: StorageClass refers to the name of a StorageClass
+                          resource used to provide the storage for the configured
+                          instance storage volumes. The value of this field has no
+                          relationship to or bearing on the field virtualMachine.spec.storageClass.
+                          Please note the referred StorageClass must be available
+                          in the same namespace as the VirtualMachineClass that uses
+                          it for configuring instance storage.
+                        type: string
+                      volumes:
+                        description: Volumes describes instance storage volumes created
+                          for a VirtualMachine instance that use this VirtualMachineClass.
+                        items:
+                          description: InstanceStorageVolume contains information
+                            required to create an instance storage volume on a VirtualMachine.
+                          properties:
+                            size:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                          required:
+                          - size
+                          type: object
+                        type: array
+                    type: object
+                  memory:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                type: object
+              policies:
+                description: Policies describes the configuration of the VirtualMachineClass
+                  attributes related to virtual infrastructure policy.  The configuration
+                  specified in this field is used to customize various policies related
+                  to infrastructure resource consumption.
+                properties:
+                  resources:
+                    description: VirtualMachineClassResources describes the virtual
+                      hardware resource reservations and limits configuration to be
+                      used by a VirtualMachineClass.
+                    properties:
+                      limits:
+                        description: VirtualMachineResourceSpec describes a virtual
+                          hardware policy specification.
+                        properties:
+                          cpu:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                          memory:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                        type: object
+                      requests:
+                        description: VirtualMachineResourceSpec describes a virtual
+                          hardware policy specification.
+                        properties:
+                          cpu:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                          memory:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                        type: object
+                    type: object
+                type: object
+            type: object
+          status:
+            description: VirtualMachineClassStatus defines the observed state of VirtualMachineClass.  VirtualMachineClasses
+              are immutable, non-dynamic resources, so this status is currently unused.
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

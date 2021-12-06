@@ -18,6 +18,7 @@ package util
 
 import (
 	goctx "context"
+	"fmt"
 
 	netopv1 "github.com/vmware-tanzu/net-operator-api/api/v1alpha1"
 	vmoprv1 "github.com/vmware-tanzu/vm-operator-api/api/v1alpha1"
@@ -177,4 +178,10 @@ func CreateMachineContext(clusterContext *vmware.ClusterContext, machine *cluste
 		VSphereCluster: clusterContext.VSphereCluster,
 		VSphereMachine: vsphereMachine,
 	}
+}
+
+// GetBootstrapConfigMapName returns the name of the bootstrap data ConfigMap
+// for a VM Operator VirtualMachine.
+func GetBootstrapConfigMapName(machineName string) string {
+	return fmt.Sprintf("%s-cloud-init", machineName)
 }

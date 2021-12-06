@@ -139,7 +139,7 @@ func main() {
 	flag.StringVar(
 		&managerOpts.NetworkProvider,
 		"network-provider",
-		manager.DummyNetworkProvider,
+		"",
 		"network provider to be used by Supervisor based clusters.")
 
 	flag.Parse()

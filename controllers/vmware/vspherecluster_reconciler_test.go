@@ -17,6 +17,8 @@ limitations under the License.
 package vmware
 
 import (
+	"testing"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	topologyv1 "github.com/vmware-tanzu/vm-operator/external/tanzu-topology/api/v1alpha1"
@@ -31,6 +33,11 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/vmoperator"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
+
+func TestVSphereClusterReconciler(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "VSphereCluster reconciler test suite")
+}
 
 var _ = Describe("Cluster Controller Tests", func() {
 	const (

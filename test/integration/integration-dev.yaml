@@ -1,0 +1,88 @@
+---
+# E2E test scenario using local dev images and manifests built from the source tree for following providers:
+# - cluster-api
+# - bootstrap kubeadm
+# - control-plane kubeadm
+# - vsphere
+
+# For creating local dev images built from the source tree;
+# - from the CAPI repository root, `make docker-build REGISTRY=gcr.io/k8s-staging-cluster-api` to build the cluster-api,
+#  bootstrap kubeadm, control-plane kubeadm provider images. This step can be skipped to use upstream images.
+# - from the CAPV repository root, `make e2e` to build the vsphere provider image and run e2e tests.
+
+images:
+  - name: gcr.io/k8s-staging-cluster-api/cluster-api-controller-amd64:v1.0.0
+    loadBehavior: tryLoad
+  - name: gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller-amd64:v1.0.0
+    loadBehavior: tryLoad
+  - name: gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller-amd64:v1.0.0
+    loadBehavior: tryLoad
+  - name: gcr.io/k8s-staging-cluster-api/capv-manager:e2e
+    loadBehavior: mustLoad
+  - name: quay.io/jetstack/cert-manager-cainjector:v1.0.1
+    loadBehavior: tryLoad
+  - name: quay.io/jetstack/cert-manager-webhook:v1.0.1
+    loadBehavior: tryLoad
+  - name: quay.io/jetstack/cert-manager-controller:v1.0.1
+    loadBehavior: tryLoad
+providers:
+  - name: cluster-api
+    type: CoreProvider
+    versions:
+      - name: v1.0.0
+        # Use manifest from source files
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.0.0/core-components.yaml"
+        type: "url"
+        contract: v1beta1
+        files:
+          - sourcePath: "./data/shared/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+
+  - name: kubeadm
+    type: BootstrapProvider
+    versions:
+      - name: v1.0.0
+        # Use manifest from source files
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.0.0/bootstrap-components.yaml"
+        type: "url"
+        contract: "v1beta1"
+        files:
+          - sourcePath: "./data/shared/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+
+  - name: kubeadm
+    type: ControlPlaneProvider
+    versions:
+      - name: v1.0.0
+        # Use manifest from source files
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.0.0/control-plane-components.yaml"
+        type: "url"
+        files:
+          - sourcePath: "./data/shared/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+
+  - name: vsphere
+    type: InfrastructureProvider
+    versions:
+      - name: v1.0.0
+        # Use manifest from source files
+        value: ../../../cluster-api-provider-vsphere/config/deployments/integration-tests
+        contract: v1beta1
+        files:
+          - sourcePath: "../../metadata.yaml"
+        replacements:
+          - old: gcr.io/cluster-api-provider-vsphere/release/manager:latest
+            new: gcr.io/k8s-staging-cluster-api/capv-manager:e2e
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+variables:
+  VSPHERE_PASSWORD: "admin123"
+  VSPHERE_USERNAME: "admin123"
+intervals:
+  default/wait-controllers: ["5m", "10s"]

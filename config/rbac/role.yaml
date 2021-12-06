@@ -350,6 +350,18 @@ rules:
   resources:
   - vspheremachinetemplates
   verbs:
+  - create
   - delete
   - get
   - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - vmware.infrastructure.cluster.x-k8s.io
+  resources:
+  - vspheremachinetemplates/status
+  verbs:
+  - get
+  - patch
+  - update

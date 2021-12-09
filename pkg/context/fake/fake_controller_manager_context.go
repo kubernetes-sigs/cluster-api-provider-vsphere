@@ -19,6 +19,7 @@ package fake
 import (
 	goctx "context"
 
+	vmoprv1 "github.com/vmware-tanzu/vm-operator-api/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	clientrecord "k8s.io/client-go/tools/record"
@@ -27,6 +28,7 @@ import (
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 )
@@ -40,6 +42,8 @@ func NewControllerManagerContext(initObjects ...runtime.Object) *context.Control
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = clusterv1.AddToScheme(scheme)
 	_ = infrav1.AddToScheme(scheme)
+	_ = vmwarev1.AddToScheme(scheme)
+	_ = vmoprv1.AddToScheme(scheme)
 
 	client := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(initObjects...).Build()
 

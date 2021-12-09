@@ -281,6 +281,14 @@ func setupSupervisorControllers(ctx *context.ControllerManagerContext, mgr ctrlm
 		return err
 	}
 
+	if err := controllers.AddServiceAccountProviderControllerToManager(ctx, mgr); err != nil {
+		return err
+	}
+
+	if err := controllers.AddServiceDiscoveryControllerToManager(ctx, mgr); err != nil {
+		return err
+	}
+
 	return nil
 }
 

@@ -652,9 +652,9 @@ func TestClusterReconciler_ReconcileDeploymentZones(t *testing.T) {
 	}{
 		{
 			name: "with deployment zone status not reported",
-			initObjs: []client.Object{
-				deploymentZone(server, "zone-1", pointer.Bool(false), nil),
-				deploymentZone(server, "zone-2", pointer.Bool(true), pointer.Bool(false)),
+			initObjs: []runtime.Object{
+				deploymentZone(server, "1", pointer.Bool(false), nil),
+				deploymentZone(server, "2", pointer.Bool(true), pointer.Bool(false)),
 			},
 			assert: func(zone *infrav1.VSphereCluster) {
 				g.Expect(conditions.IsFalse(zone, infrav1.FailureDomainsAvailableCondition)).To(BeTrue())
@@ -664,9 +664,9 @@ func TestClusterReconciler_ReconcileDeploymentZones(t *testing.T) {
 		{
 			name:       "with some deployment zones statuses as not ready",
 			reconciled: true,
-			initObjs: []client.Object{
-				deploymentZone(server, "zone-1", pointer.Bool(false), pointer.Bool(false)),
-				deploymentZone(server, "zone-2", pointer.Bool(true), pointer.Bool(true)),
+			initObjs: []runtime.Object{
+				deploymentZone(server, "1", pointer.Bool(false), pointer.Bool(false)),
+				deploymentZone(server, "2", pointer.Bool(true), pointer.Bool(true)),
 			},
 			assert: func(zone *infrav1.VSphereCluster) {
 				g.Expect(conditions.IsFalse(zone, infrav1.FailureDomainsAvailableCondition)).To(BeTrue())
@@ -676,12 +676,28 @@ func TestClusterReconciler_ReconcileDeploymentZones(t *testing.T) {
 		{
 			name:       "with all deployment zone statuses as ready",
 			reconciled: true,
-			initObjs: []client.Object{
-				deploymentZone(server, "zone-1", pointer.Bool(false), pointer.Bool(true)),
-				deploymentZone(server, "zone-2", pointer.Bool(true), pointer.Bool(true)),
+			initObjs: []runtime.Object{
+				deploymentZone(server, "1", pointer.Bool(false), pointer.Bool(true)),
+				deploymentZone(server, "2", pointer.Bool(true), pointer.Bool(true)),
 			},
 			assert: func(zone *infrav1.VSphereCluster) {
 				g.Expect(conditions.IsTrue(zone, infrav1.FailureDomainsAvailableCondition)).To(BeTrue())
+			},
+		},
+		{
+			name:       "with all deployment zone statuses as ready, but should adopt zone-1 and zone-2 only",
+			reconciled: true,
+			initObjs: []runtime.Object{
+				deploymentZone(server, "1", pointer.Bool(false), pointer.Bool(true)),
+				deploymentZone(server, "2", pointer.Bool(true), pointer.Bool(true)),
+				deploymentZone(server, "3", pointer.Bool(true), pointer.Bool(true)),
+			},
+			assert: func(zone *infrav1.VSphereCluster) {
+				g.Expect(conditions.IsTrue(zone, infrav1.FailureDomainsAvailableCondition)).To(BeTrue())
+				g.Expect(len(zone.Status.FailureDomains)).To(BeNumerically("==", 2))
+				g.Expect(zone.Status.FailureDomains).To(HaveKey("zone-1"))
+				g.Expect(zone.Status.FailureDomains).To(HaveKey("zone-2"))
+				g.Expect(zone.Status.FailureDomains).ToNot(HaveKey("zone-3"))
 			},
 		},
 	}
@@ -694,6 +710,9 @@ func TestClusterReconciler_ReconcileDeploymentZones(t *testing.T) {
 			controllerCtx := fake.NewControllerContext(fake.NewControllerManagerContext(tt.initObjs...))
 			ctx := fake.NewClusterContext(controllerCtx)
 			ctx.VSphereCluster.Spec.Server = server
+			ctx.VSphereCluster.Annotations = map[string]string{
+				adoptDeploymentZoneAnnotation: "zone-1:zone-2",
+			}
 
 			r := clusterReconciler{controllerCtx}
 			reconciled, err := r.reconcileDeploymentZones(ctx)

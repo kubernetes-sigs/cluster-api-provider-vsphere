@@ -20,6 +20,7 @@ package controllers
 import (
 	goctx "context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -51,6 +52,9 @@ import (
 // legacyIdentityFinalizer is deprecated and should be used only while upgrading the cluster
 // from v1alpha3(v.0.7).
 const legacyIdentityFinalizer string = "identity/infrastructure.cluster.x-k8s.io"
+const (
+	adoptDeploymentZoneAnnotation = "vsphere.infrastructure.cluster.x-k8s.io/adopt-deploymentzone"
+)
 
 type clusterReconciler struct {
 	*context.ControllerContext
@@ -326,7 +330,7 @@ func (r clusterReconciler) reconcileDeploymentZones(ctx *context.ClusterContext)
 	readyNotReported, notReady := 0, 0
 	failureDomains := clusterv1.FailureDomains{}
 	for _, zone := range deploymentZoneList.Items {
-		if zone.Spec.Server == ctx.VSphereCluster.Spec.Server {
+		if shouldIncludeZone(zone, ctx.VSphereCluster) {
 			if zone.Status.Ready == nil {
 				readyNotReported++
 				failureDomains[zone.Name] = clusterv1.FailureDomainSpec{
@@ -358,6 +362,32 @@ func (r clusterReconciler) reconcileDeploymentZones(ctx *context.ClusterContext)
 		}
 	}
 	return true, nil
+}
+
+func shouldIncludeZone(zone infrav1.VSphereDeploymentZone, cluster *infrav1.VSphereCluster) bool {
+	// expects cluster to be annotated
+	// vsphere.infrastructure.cluster.x-k8s.io/adopt-deploymentzone: "dz1, dz2"
+	// if there are three deploymentzones available
+	// dz1, dz2 and dz3
+	// this annotation will allow cluster to include dz1 and dz2 only
+	deploymentZones, annotationExists := cluster.GetAnnotations()[adoptDeploymentZoneAnnotation]
+	// we have not annotated the cluster yet skip all reconciles
+	// fallback to server comparison
+	if !annotationExists {
+		return zone.Spec.Server == cluster.Spec.Server
+	}
+	deploymentZonesList := strings.Split(deploymentZones, ":")
+	return zone.Spec.Server == cluster.Spec.Server && contains(deploymentZonesList, zone.GetName())
+}
+
+func contains(list []string, search string) bool {
+	for _, item := range list {
+		if item == search {
+			return true
+		}
+	}
+
+	return false
 }
 
 var (

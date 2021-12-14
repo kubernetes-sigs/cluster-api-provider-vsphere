@@ -31,6 +31,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	"k8s.io/klog/v2"
 	infrav1a3 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1alpha3"
 	infrav1a4 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1alpha4"
 	infrav1b1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
@@ -72,6 +73,7 @@ func New(opts Options) (Manager, error) {
 	}
 
 	// Build the controller manager.
+	klog.Infof("Creating a new controller-runtime manager object from kubeconfig...")
 	mgr, err := ctrl.NewManager(opts.KubeConfig, opts.Options)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create manager")

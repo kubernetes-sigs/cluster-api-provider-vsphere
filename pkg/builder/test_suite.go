@@ -19,37 +19,33 @@ package builder
 
 import (
 	goctx "context"
-	"sync"
-	"testing"
-	"time"
+	"encoding/json"
+	"os/exec"
+	"path"
+	"path/filepath"
+	goruntime "runtime"
 
-	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
+	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
-	context "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
+	vmwarecontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
 )
 
 // TestSuite is used for unit and integration testing builder.
 type TestSuite struct {
 	goctx.Context
-	addToManagerFn        manager.AddToManagerFunc
-	certDir               string
 	integrationTestClient client.Client
+	envTest               envtest.Environment
 	config                *rest.Config
-	done                  chan struct{}
 	flags                 TestFlags
-	manager               manager.Manager
 	newReconcilerFn       NewReconcilerFunc
 	webhookName           string
-	managerRunning        bool
-	managerRunningMutex   sync.Mutex
 }
 
 func (s *TestSuite) isWebhookTest() bool {
@@ -61,7 +57,7 @@ func (s *TestSuite) GetEnvTestConfg() *rest.Config {
 }
 
 type Reconciler interface {
-	ReconcileNormal(ctx *context.GuestClusterContext) (reconcile.Result, error)
+	ReconcileNormal(ctx *vmwarecontext.GuestClusterContext) (reconcile.Result, error)
 }
 
 // NewReconcilerFunc is a base type for functions that return a reconciler.
@@ -70,11 +66,11 @@ type NewReconcilerFunc func() Reconciler
 // NewTestSuiteForController returns a new test suite used for unit and
 // integration testing controllers created using the "pkg/builder"
 // package.
-func NewTestSuiteForController(addToManagerFn manager.AddToManagerFunc, newReconcilerFn NewReconcilerFunc) *TestSuite {
+func NewTestSuiteForController(newReconcilerFn NewReconcilerFunc) *TestSuite {
 	testSuite := &TestSuite{
 		Context: goctx.Background(),
 	}
-	testSuite.init(addToManagerFn, newReconcilerFn)
+	testSuite.init(newReconcilerFn)
 
 	if testSuite.flags.UnitTestsEnabled {
 		if newReconcilerFn == nil {
@@ -85,53 +81,52 @@ func NewTestSuiteForController(addToManagerFn manager.AddToManagerFunc, newRecon
 	return testSuite
 }
 
-func (s *TestSuite) init(addToManagerFn manager.AddToManagerFunc, newReconcilerFn NewReconcilerFunc, additionalAPIServerFlags ...string) {
-	// Initialize the test flags.
-	s.flags = GetTestFlags()
-
-	s.newReconcilerFn = newReconcilerFn
+func (s *TestSuite) SetIntegrationTestClient(integrationTestClient client.Client) {
+	s.integrationTestClient = integrationTestClient
 }
 
-// Register should be invoked by the function to which *testing.T is passed.
-//
-// Use runUnitTestsFn to pass a function that will be invoked if unit testing
-// is enabled with Describe("Unit tests", runUnitTestsFn).
-//
-// Use runIntegrationTestsFn to pass a function that will be invoked if
-// integration testing is enabled with
-// Describe("Unit tests", runIntegrationTestsFn).
-func (s *TestSuite) Register(t *testing.T, name string, runUnitTestsFn func()) {
-	t.Helper()
-	RegisterFailHandler(Fail)
+var (
+	scheme *runtime.Scheme
+)
 
-	// Uncomment the following to run integration tests.
-	// if runIntegrationTestsFn == nil {
-	// 	s.flags.IntegrationTestsEnabled = false
-	// }
-	if runUnitTestsFn == nil {
-		s.flags.UnitTestsEnabled = false
-	}
+func (s *TestSuite) init(newReconcilerFn NewReconcilerFunc) {
+	s.flags = GetTestFlags()
+	s.newReconcilerFn = newReconcilerFn
 
-	// if s.flags.IntegrationTestsEnabled {
-	// 	Describe("Integration tests", runIntegrationTestsFn)
-	// }
-	if s.flags.UnitTestsEnabled {
-		Describe("Unit tests", runUnitTestsFn)
-	}
+	_, filename, _, _ := goruntime.Caller(0) //nolint
+	root := path.Join(path.Dir(filename), "..", "..", "..")
+	clusterAPIDir := findModuleDir("sigs.k8s.io/cluster-api")
 
-	if s.flags.IntegrationTestsEnabled {
-		SetDefaultEventuallyTimeout(time.Second * 30)
-		RunSpecsWithDefaultAndCustomReporters(t, name, []Reporter{printer.NewlineReporter{}})
-	} else if s.flags.UnitTestsEnabled {
-		RunSpecs(t, name)
+	s.envTest = envtest.Environment{
+		CRDDirectoryPaths: []string{
+			filepath.Join(root, "config", "supervisor", "crd"),
+			filepath.Join(root, "config", "deployments", "integration-tests", "crds"),
+			filepath.Join(clusterAPIDir, "config", "crd", "bases"),
+		},
+		Scheme: scheme,
 	}
+}
+
+func findModuleDir(module string) string {
+	cmd := exec.Command("go", "mod", "download", "-json", module)
+	out, err := cmd.Output()
+	if err != nil {
+		klog.Fatalf("Failed to run go mod to find module %q directory", module)
+	}
+	info := struct{ Dir string }{}
+	if err := json.Unmarshal(out, &info); err != nil {
+		klog.Fatalf("Failed to unmarshal output from go mod command: %v", err)
+	} else if info.Dir == "" {
+		klog.Fatalf("Failed to find go module %q directory, received %v", module, string(out))
+	}
+	return info.Dir
 }
 
 // NewUnitTestContextForController returns a new unit test context for this
 // suite's reconciler.
 //
 // Returns nil if unit testing is disabled.
-func (s *TestSuite) NewUnitTestContextForController(initObjects ...runtime.Object) *UnitTestContextForController {
+func (s *TestSuite) NewUnitTestContextForController(initObjects ...client.Object) *UnitTestContextForController {
 	return s.NewUnitTestContextForControllerWithVSphereCluster(nil, false, initObjects...)
 }
 
@@ -141,7 +136,7 @@ func (s *TestSuite) NewUnitTestContextForController(initObjects ...runtime.Objec
 // spec reconciliation.
 //
 // Returns nil if unit testing is disabled.
-func (s *TestSuite) NewUnitTestContextForControllerWithPrototypeCluster(initObjects ...runtime.Object) *UnitTestContextForController {
+func (s *TestSuite) NewUnitTestContextForControllerWithPrototypeCluster(initObjects ...client.Object) *UnitTestContextForController {
 	return s.NewUnitTestContextForControllerWithVSphereCluster(nil, true, initObjects...)
 }
 
@@ -149,7 +144,7 @@ func (s *TestSuite) NewUnitTestContextForControllerWithPrototypeCluster(initObje
 // suite's reconciler initialized with the given vspherecluster.
 //
 // Returns nil if unit testing is disabled.
-func (s *TestSuite) NewUnitTestContextForControllerWithVSphereCluster(vsphereCluster *vmwarev1.VSphereCluster, prototypeCluster bool, initObjects ...runtime.Object) *UnitTestContextForController {
+func (s *TestSuite) NewUnitTestContextForControllerWithVSphereCluster(vsphereCluster *vmwarev1.VSphereCluster, prototypeCluster bool, initObjects ...client.Object) *UnitTestContextForController {
 	if s.flags.UnitTestsEnabled {
 		ctx := NewUnitTestContextForController(s.newReconcilerFn, vsphereCluster, prototypeCluster, initObjects, nil)
 		reconcileNormalAndExpectSuccess(ctx)
@@ -167,58 +162,4 @@ func reconcileNormalAndExpectSuccess(ctx *UnitTestContextForController) {
 	// to support unit testing with a minimum set of dependencies that does
 	// not include the Kubernetes envtest package, this is required.
 	Expect(ctx.ReconcileNormal()).ShouldNot(HaveOccurred())
-}
-
-// Create a new Manager with default values.
-func (s *TestSuite) createManager() {
-	var err error
-
-	s.done = make(chan struct{})
-	s.manager, err = manager.New(manager.Options{
-		KubeConfig:   s.config,
-		AddToManager: s.addToManagerFn,
-	})
-	Expect(err).NotTo(HaveOccurred())
-	Expect(s.manager).ToNot(BeNil())
-	s.integrationTestClient = s.manager.GetClient()
-}
-
-func (s *TestSuite) initializeManager() {
-	// If one or more webhooks are being tested then go ahead and configure the
-	// webhook server.
-	if s.isWebhookTest() {
-		By("configuring webhook server", func() {
-			s.manager.GetWebhookServer().Host = "127.0.0.1"
-			s.manager.GetWebhookServer().Port = randomTCPPort()
-			s.manager.GetWebhookServer().CertDir = s.certDir
-		})
-	}
-}
-
-// Set a flag to indicate that the manager is running or not.
-func (s *TestSuite) setManagerRunning(isRunning bool) {
-	s.managerRunningMutex.Lock()
-	s.managerRunning = isRunning
-	s.managerRunningMutex.Unlock()
-}
-
-// Returns true if the manager is running, false otherwise.
-func (s *TestSuite) getManagerRunning() bool {
-	var result bool
-	s.managerRunningMutex.Lock()
-	result = s.managerRunning
-	s.managerRunningMutex.Unlock()
-	return result
-}
-
-// Starts the manager and sets managerRunning.
-func (s *TestSuite) startManager() {
-	go func() {
-		defer GinkgoRecover()
-
-		s.setManagerRunning(true)
-		ctx := goctx.TODO()
-		Expect(s.manager.Start(ctx)).ToNot(HaveOccurred())
-		s.setManagerRunning(false)
-	}()
 }

@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-//nolint:gci
 package manager
 
 import (
@@ -30,7 +29,6 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
-	// +kubebuilder:scaffold:imports
 )
 
 // AddToManagerFunc is a function that can be optionally specified with

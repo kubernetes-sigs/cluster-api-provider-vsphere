@@ -24,6 +24,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	clientrecord "k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -36,7 +37,8 @@ import (
 // NewControllerManagerContext returns a fake ControllerManagerContext for unit
 // testing reconcilers and webhooks with a fake client. You can choose to
 // initialize it with a slice of runtime.Object.
-func NewControllerManagerContext(initObjects ...runtime.Object) *context.ControllerManagerContext {
+
+func NewControllerManagerContext(initObjects ...client.Object) *context.ControllerManagerContext {
 	scheme := runtime.NewScheme()
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = clusterv1.AddToScheme(scheme)
@@ -44,7 +46,7 @@ func NewControllerManagerContext(initObjects ...runtime.Object) *context.Control
 	_ = vmwarev1.AddToScheme(scheme)
 	_ = vmoprv1.AddToScheme(scheme)
 
-	client := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(initObjects...).Build()
+	client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(initObjects...).Build()
 
 	return &context.ControllerManagerContext{
 		Context:                 goctx.Background(),

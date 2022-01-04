@@ -23,6 +23,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	bootstrapapi "k8s.io/cluster-bootstrap/token/api"
@@ -35,10 +36,11 @@ import (
 )
 
 // serviceAccountProviderTestsuite is used for unit and integration testing this controller.
-var serviceDiscoveryTestSuite = builder.NewTestSuiteForController(AddServiceDiscoveryControllerToManager, newServiceDiscoveryReconciler)
+var serviceDiscoveryTestSuite = builder.NewTestSuiteForController(newServiceDiscoveryReconciler)
 
 const (
 	testSupervisorAPIServerVIP         = "10.0.0.100"
+	testSupervisorAPIServerVIP2        = "10.0.0.200"
 	testSupervisorAPIServerVIPHostName = "vip.example.com"
 	testSupervisorAPIServerFIP         = "192.168.1.100"
 	testSupervisorAPIServerFIPHostName = "fip.example.com"
@@ -46,6 +48,25 @@ const (
 
 	supervisorHeadlessSvcPort = 6443
 )
+
+func createObjects(ctx context.Context, ctrlClient client.Client, runtimeObjects []client.Object) {
+	for _, obj := range runtimeObjects {
+		Expect(ctrlClient.Create(ctx, obj)).To(Succeed())
+	}
+}
+
+func deleteObjects(ctx context.Context, ctrlClient client.Client, runtimeObjects []client.Object) {
+	for i := range runtimeObjects {
+		obj := runtimeObjects[i]
+		Expect(ctrlClient.Delete(ctx, obj)).To(Succeed())
+		m, err := meta.Accessor(obj)
+		Expect(err).NotTo(HaveOccurred())
+		EventuallyWithOffset(2, func() error {
+			key := client.ObjectKey{Namespace: m.GetNamespace(), Name: m.GetName()}
+			return ctrlClient.Get(ctx, key, obj)
+		}).ShouldNot(Succeed())
+	}
+}
 
 func assertEventuallyDoesNotExistInNamespace(ctx context.Context, guestClient client.Client, namespace, name string, obj client.Object) {
 	EventuallyWithOffset(4, func() error {
@@ -117,6 +138,18 @@ func assertServiceDiscoveryCondition(vsphereCluster *vmwarev1beta1.VSphereCluste
 	Expect(c.Severity).To(Equal(severity))
 }
 
+func assertHeadlessSvcWithUpdatedVIPEndpoints(ctx context.Context, guestClient client.Client, namespace, name string) {
+	assertHeadlessSvc(ctx, guestClient, namespace, name)
+	headlessEndpoints := &corev1.Endpoints{}
+	assertEventuallyExistsInNamespace(ctx, guestClient, namespace, name, headlessEndpoints)
+	EventuallyWithOffset(2, func() string {
+		key := client.ObjectKey{Namespace: namespace, Name: name}
+		Expect(guestClient.Get(ctx, key, headlessEndpoints)).Should(Succeed())
+		return headlessEndpoints.Subsets[0].Addresses[0].IP
+	}).Should(Equal(testSupervisorAPIServerVIP))
+	Expect(headlessEndpoints.Subsets[0].Ports[0].Port).To(Equal(int32(supervisorAPIServerPort)))
+}
+
 func newTestSupervisorLBServiceWithIPStatus() *corev1.Service {
 	svc := newTestSupervisorLBService()
 	svc.Status = corev1.ServiceStatus{
@@ -162,6 +195,45 @@ func newTestSupervisorLBService() *corev1.Service {
 			},
 		},
 	}
+}
+
+func newTestHeadlessSvcEndpoints() []client.Object {
+	svc := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      supervisorHeadlessSvcName,
+			Namespace: supervisorHeadlessSvcNamespace,
+		},
+		Spec: corev1.ServiceSpec{
+			ClusterIP: corev1.ClusterIPNone,
+			Ports: []corev1.ServicePort{
+				{
+					Port:       supervisorHeadlessSvcPort,
+					TargetPort: intstr.FromInt(supervisorAPIServerPort),
+				},
+			},
+		},
+	}
+	endpoint := &corev1.Endpoints{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      supervisorHeadlessSvcName,
+			Namespace: supervisorHeadlessSvcNamespace,
+		},
+		Subsets: []corev1.EndpointSubset{
+			{
+				Addresses: []corev1.EndpointAddress{
+					{
+						IP: testSupervisorAPIServerVIP2,
+					},
+				},
+				Ports: []corev1.EndpointPort{
+					{
+						Port: int32(supervisorAPIServerPort),
+					},
+				},
+			},
+		},
+	}
+	return []client.Object{svc, endpoint}
 }
 
 func newTestConfigMapWithHost(serverHost string) *corev1.ConfigMap {

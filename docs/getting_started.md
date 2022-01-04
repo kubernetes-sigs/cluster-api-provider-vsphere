@@ -12,6 +12,7 @@ depth, check out the the [Cluster API book][cluster-api-book].
   - [Configuring and installing Cluster API Provider vSphere in a management cluster](#configuring-and-installing-cluster-api-provider-vsphere-in-a-management-cluster)
   - [Creating a vSphere-based workload cluster](#creating-a-vsphere-based-workload-cluster)
   - [Accessing the workload cluster](#accessing-the-workload-cluster)
+  - [Custom cluster templates](#custom-cluster-templates)
 
 ## Install Requirements
 
@@ -132,7 +133,7 @@ VSPHERE_HAPROXY_TEMPLATE: "capv-haproxy-v0.6.4"               # The VM template 
 
 **NOTE**: Technically, SSH keys and vSphere folders are optional, but optional template variables are not currently
 supported by clusterctl. If you need to not set the vSphere folder or SSH keys, then remove the appropriate fields after
-running `clusterctl config`.
+running `clusterctl generate`.
 
 the `CONTROL_PLANE_ENDPOINT_IP` is an IP that must be an IP on the same subnet as the control plane machines, it should be also an IP that is not part of your DHCP range
 
@@ -153,7 +154,7 @@ clusterctl init --infrastructure vsphere
 The following command
 
 ```shell
-$ clusterctl config cluster vsphere-quickstart \
+$ clusterctl generate cluster vsphere-quickstart \
     --infrastructure vsphere \
     --kubernetes-version v1.17.3 \
     --control-plane-machine-count 1 \
@@ -198,12 +199,12 @@ vsphere-quickstart-9qtfd                                      Ready      master 
 
 ```
 
-## custom cluster templates
+## Custom cluster templates
 
 the provided cluster templates are quickstarts. If you need anything specific that requires a more complex setup, we recommand to use custom templates:
 
 ```shell
-$ clusterctl config custom-cluster vsphere-quickstart \
+$ clusterctl generate custom-cluster vsphere-quickstart \
     --infrastructure vsphere \
     --kubernetes-version v1.17.3 \
     --control-plane-machine-count 1 \

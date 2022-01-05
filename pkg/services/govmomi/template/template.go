@@ -64,7 +64,7 @@ func findTemplateByName(ctx tplContext, templateID string) (*object.VirtualMachi
 	ctx.GetLogger().V(6).Info("find template by name", "name", templateID)
 	tpl, err := ctx.GetSession().Finder.VirtualMachine(ctx, templateID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to find tempate by name %q", templateID)
+		return nil, errors.Wrapf(err, "unable to find template by name %q", templateID)
 	}
 	return tpl, nil
 }

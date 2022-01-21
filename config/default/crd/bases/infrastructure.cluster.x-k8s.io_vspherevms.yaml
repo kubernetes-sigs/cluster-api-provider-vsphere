@@ -856,6 +856,14 @@ spec:
           spec:
             description: VSphereVMSpec defines the desired state of VSphereVM.
             properties:
+              additionalDisksGiB:
+                description: AdditionalDisksGiB holds the sizes of additional disks
+                  of the virtual machine, in GiB Defaults to the eponymous property
+                  value in the template from which the virtual machine is cloned.
+                items:
+                  format: int32
+                  type: integer
+                type: array
               biosUUID:
                 description: BiosUUID is the the VM's BIOS UUID that is assigned at
                   runtime after the VM has been created. This field is required at

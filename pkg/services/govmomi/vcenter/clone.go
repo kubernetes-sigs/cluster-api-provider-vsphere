@@ -129,11 +129,11 @@ func Clone(ctx *context.VMContext, bootstrapData []byte) error {
 
 	// Only non-linked clones may expand the size of the template's disk.
 	if snapshotRef == nil {
-		diskSpec, err := getDiskSpec(ctx, devices)
+		diskSpecs, err := getDiskSpec(ctx, devices)
 		if err != nil {
 			return errors.Wrapf(err, "error getting disk spec for %q", ctx)
 		}
-		deviceSpecs = append(deviceSpecs, diskSpec)
+		deviceSpecs = append(deviceSpecs, diskSpecs...)
 	}
 
 	networkSpecs, err := getNetworkSpecs(ctx, devices)
@@ -288,20 +288,51 @@ func getDiskLocators(disks object.VirtualDeviceList, datastoreRef types.ManagedO
 	return diskLocators
 }
 
-func getDiskSpec(ctx *context.VMContext, devices object.VirtualDeviceList) (types.BaseVirtualDeviceConfigSpec, error) {
+func getDiskSpec(ctx *context.VMContext, devices object.VirtualDeviceList) ([]types.BaseVirtualDeviceConfigSpec, error) {
 	disks := devices.SelectByType((*types.VirtualDisk)(nil))
-	if len(disks) != 1 {
-		return nil, errors.Errorf("invalid disk count: %d", len(disks))
+	if len(disks) == 0 {
+		return nil, errors.Errorf("Invalid disk count: %d", len(disks))
 	}
 
-	disk := disks[0].(*types.VirtualDisk) //nolint:forcetypeassert
-	cloneCapacityKB := int64(ctx.VSphereVM.Spec.DiskGiB) * 1024 * 1024
-	if disk.CapacityInKB > cloneCapacityKB {
+	// There is at least one disk
+	var diskSpecs []types.BaseVirtualDeviceConfigSpec
+	primaryDisk := disks[0].(*types.VirtualDisk) //nolint:forcetypeassert
+	primaryCloneCapacityKB := int64(ctx.VSphereVM.Spec.DiskGiB) * 1024 * 1024
+	primaryDiskConfigSpec, err := getDiskConfigSpec(primaryDisk, primaryCloneCapacityKB)
+	if err != nil {
+		return nil, errors.Wrap(err, "Error getting disk config spec for primary disk")
+	}
+	diskSpecs = append(diskSpecs, primaryDiskConfigSpec)
+
+	// Check for additional disks
+	// CAPV will not spin up additional extra disks provided in the conf but not available in the template
+	if len(disks) > 1 {
+		// Disk range starts from 1 to avoid primary disk
+		for i, disk := range disks[1:] {
+			var diskCloneCapacityKB int64
+			// Check if additional Disks have been provided
+			if len(ctx.VSphereVM.Spec.AdditionalDisksGiB) > i {
+				diskCloneCapacityKB = int64(ctx.VSphereVM.Spec.AdditionalDisksGiB[i]) * 1024 * 1024
+			} else {
+				diskCloneCapacityKB = disk.(*types.VirtualDisk).CapacityInKB
+			}
+			additionalDiskConfigSpec, err := getDiskConfigSpec(disk.(*types.VirtualDisk), diskCloneCapacityKB)
+			if err != nil {
+				return nil, errors.Wrap(err, "Error getting disk config spec for additional disk")
+			}
+			diskSpecs = append(diskSpecs, additionalDiskConfigSpec)
+		}
+	}
+	return diskSpecs, nil
+}
+
+func getDiskConfigSpec(disk *types.VirtualDisk, diskCloneCapacityKB int64) (types.BaseVirtualDeviceConfigSpec, error) {
+	if disk.CapacityInKB > diskCloneCapacityKB {
 		return nil, errors.Errorf(
 			"can't resize template disk down, initial capacity is larger: %dKiB > %dKiB",
-			disk.CapacityInKB, cloneCapacityKB)
+			disk.CapacityInKB, diskCloneCapacityKB)
 	}
-	disk.CapacityInKB = cloneCapacityKB
+	disk.CapacityInKB = diskCloneCapacityKB
 
 	return &types.VirtualDeviceConfigSpec{
 		Operation: types.VirtualDeviceConfigSpecOperationEdit,

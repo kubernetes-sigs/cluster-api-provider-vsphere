@@ -37,6 +37,7 @@ func (src *VSphereVM) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 	dst.Spec.TagIDs = restored.Spec.TagIDs
+	dst.Spec.AdditionalDisksGiB = restored.Spec.AdditionalDisksGiB
 
 	return nil
 }

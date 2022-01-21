@@ -138,6 +138,11 @@ type VirtualMachineCloneSpec struct {
 	// virtual machine is cloned.
 	// +optional
 	DiskGiB int32 `json:"diskGiB,omitempty"`
+	// AdditionalDisksGiB holds the sizes of additional disks of the virtual machine, in GiB
+	// Defaults to the eponymous property value in the template from which the
+	// virtual machine is cloned.
+	// +optional
+	AdditionalDisksGiB []int32 `json:"additionalDisksGiB,omitempty"`
 	// CustomVMXKeys is a dictionary of advanced VMX options that can be set on VM
 	// Defaults to empty map
 	// +optional

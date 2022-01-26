@@ -252,7 +252,7 @@ func kubeVIPPod() string {
 			Containers: []corev1.Container{
 				{
 					Name:            "kube-vip",
-					Image:           "ghcr.io/kube-vip/kube-vip:v0.4.0",
+					Image:           "ghcr.io/kube-vip/kube-vip:v0.4.1",
 					ImagePullPolicy: corev1.PullIfNotPresent,
 					Args: []string{
 						"manager",
@@ -262,12 +262,6 @@ func kubeVIPPod() string {
 							// Enables kube-vip control-plane functionality
 							Name:  "cp_enable",
 							Value: "true",
-						},
-						{
-							// Interface that the vip should bind to
-							// this is hardcoded since we use eth0 as a network interface for all of our machines in this template
-							Name:  "vip_interface",
-							Value: "eth0",
 						},
 						{
 							// VIP IP address
@@ -310,7 +304,6 @@ func kubeVIPPod() string {
 						Capabilities: &corev1.Capabilities{
 							Add: []corev1.Capability{
 								"NET_ADMIN",
-								"SYS_TIME",
 								"NET_RAW",
 							},
 						},

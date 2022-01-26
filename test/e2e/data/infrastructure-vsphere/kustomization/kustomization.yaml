@@ -6,3 +6,4 @@ resources:
 patchesStrategicMerge:
   - cluster-resource-set-label.yaml
   - cluster-network-CIDR.yaml
+  - cluster-resource-set-csi-insecure.yaml

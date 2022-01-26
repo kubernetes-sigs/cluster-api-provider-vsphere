@@ -3,4 +3,4 @@ kind: ClusterRole
 metadata:
   name: manager-role
   labels:
-    cluster.x-k8s.io/aggregate-to-manager: true
+    cluster.x-k8s.io/aggregate-to-manager: "true"

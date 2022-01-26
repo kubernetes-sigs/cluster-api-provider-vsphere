@@ -20,10 +20,6 @@ import (
 	"encoding/base64"
 	"time"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	vmoprv1 "github.com/vmware-tanzu/vm-operator-api/api/v1alpha1"
@@ -33,9 +29,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
 func getBootstrapDataConfigMap(vmService VmopMachineService, ctx *vmware.SupervisorMachineContext) *corev1.ConfigMap {
@@ -107,7 +107,7 @@ var _ = Describe("VirtualMachine tests", func() {
 		ctx            *vmware.SupervisorMachineContext
 
 		cm *corev1.ConfigMap
-		//vm     vmwarev1.VirtualMachine
+		// vm     vmwarev1.VirtualMachine
 		vmopVM *vmoprv1.VirtualMachine
 
 		vmService = VmopMachineService{}

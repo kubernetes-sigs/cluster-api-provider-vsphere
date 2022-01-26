@@ -17,8 +17,6 @@ limitations under the License.
 package vmoperator
 
 import (
-	vmwareutil "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util/vmware"
-
 	"github.com/pkg/errors"
 	vmoprv1 "github.com/vmware-tanzu/vm-operator-api/api/v1alpha1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -28,13 +26,14 @@ import (
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
+	vmwareutil "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util/vmware"
 )
 
-// RPService represents the ability to reconcile a VirtualMachineSetResourcePolicy via vmoperator
+// RPService represents the ability to reconcile a VirtualMachineSetResourcePolicy via vmoperator.
 type RPService struct{}
 
 // ReconcileResourcePolicy ensures that a VirtualMachineSetResourcePolicy exists for the cluster
-// Returns the name of a policy if it exists, otherwise returns an error
+// Returns the name of a policy if it exists, otherwise returns an error.
 func (s RPService) ReconcileResourcePolicy(ctx *vmware.ClusterContext) (string, error) {
 	resourcePolicy, err := s.getVirtualMachineSetResourcePolicy(ctx)
 	if err != nil {
@@ -100,7 +99,6 @@ func (s RPService) createVirtualMachineSetResourcePolicy(ctx *vmware.ClusterCont
 		}
 		return nil
 	})
-
 	if err != nil {
 		return nil, err
 	}

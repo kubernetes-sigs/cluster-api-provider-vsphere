@@ -51,7 +51,6 @@ func GetNetworkStatus(
 	ctx context.Context,
 	client *vim25.Client,
 	moRef types.ManagedObjectReference) ([]NetworkStatus, error) {
-
 	var (
 		obj mo.VirtualMachine
 

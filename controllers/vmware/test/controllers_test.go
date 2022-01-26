@@ -22,14 +22,14 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
 	vmoprv1 "github.com/vmware-tanzu/vm-operator-api/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
-	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 )
 
 const (
@@ -37,9 +37,9 @@ const (
 )
 
 // newInfraCluster returns an Infra cluster with the same name as the target
-// cluster
+// cluster.
 func newInfraCluster(cluster *clusterv1.Cluster) client.Object {
-	//func newInfraCluster(cluster *clusterv1.Cluster) runtimeObject {
+	// func newInfraCluster(cluster *clusterv1.Cluster) runtimeObject {
 	return &vmwarev1.VSphereCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cluster.Name,
@@ -48,7 +48,7 @@ func newInfraCluster(cluster *clusterv1.Cluster) client.Object {
 	}
 }
 
-// newAnonInfraCluster returns an Infra cluster with a generated name
+// newAnonInfraCluster returns an Infra cluster with a generated name.
 func newAnonInfraCluster() client.Object {
 	return &vmwarev1.VSphereCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -59,7 +59,7 @@ func newAnonInfraCluster() client.Object {
 }
 
 // newInfraMachine creates an Infra machine with the same name as the target
-// machine
+// machine.
 func newInfraMachine(machine *clusterv1.Machine) client.Object {
 	return &vmwarev1.VSphereMachine{
 		ObjectMeta: metav1.ObjectMeta{
@@ -69,7 +69,7 @@ func newInfraMachine(machine *clusterv1.Machine) client.Object {
 	}
 }
 
-// newInfraMachine creates an Infra machine with a generated name
+// newInfraMachine creates an Infra machine with a generated name.
 func newAnonInfraMachine() client.Object {
 	return &vmwarev1.VSphereMachine{
 		ObjectMeta: metav1.ObjectMeta{
@@ -115,7 +115,7 @@ func deployCluster() (client.ObjectKey, *clusterv1.Cluster, client.Object) {
 }
 
 // Creates and deploys a CAPI Machine. Function does not block on Machine
-// creation
+// creation.
 func deployCAPIMachine(cluster *clusterv1.Cluster) (client.ObjectKey, *clusterv1.Machine) {
 	// A finalizer is added to prevent it from being deleted until its
 	// dependents are removed.
@@ -147,7 +147,7 @@ func deployCAPIMachine(cluster *clusterv1.Cluster) (client.ObjectKey, *clusterv1
 }
 
 // Creates and deploys a VSphereMachine. Function does not block on Machine
-// creation
+// creation.
 func deployInfraMachine(machine *clusterv1.Machine, finalizers []string) (client.ObjectKey, client.Object) {
 	infraMachine := newInfraMachine(machine)
 	infraMachine.SetOwnerReferences([]metav1.OwnerReference{
@@ -165,7 +165,7 @@ func deployInfraMachine(machine *clusterv1.Machine, finalizers []string) (client
 }
 
 // Updates the InfrastructureRef of a CAPI Cluster to a VSphereCluster. Function
-// does not block on update success
+// does not block on update success.
 func updateClusterInfraRef(cluster *clusterv1.Cluster, infraCluster client.Object) {
 	cluster.Spec.InfrastructureRef = &corev1.ObjectReference{
 		APIVersion: infraCluster.GetObjectKind().GroupVersionKind().GroupVersion().String(),
@@ -249,7 +249,7 @@ var _ = Describe("Reconciler tests", func() {
 			if err := k8sClient.Get(ctx, key, obj); err != nil {
 				return "", err
 			}
-			vSphereMachine := obj.(*vmwarev1.VSphereMachine)
+			vSphereMachine := obj.(*vmwarev1.VSphereMachine) //nolint:forcetypeassert
 			return vSphereMachine.Status.VMStatus, nil
 		}, time.Second*30).Should(Equal(expectedState))
 	}
@@ -259,7 +259,7 @@ var _ = Describe("Reconciler tests", func() {
 			if err := k8sClient.Get(ctx, key, obj); err != nil {
 				return "", err
 			}
-			vsphereCluster := obj.(*vmwarev1.VSphereCluster)
+			vsphereCluster := obj.(*vmwarev1.VSphereCluster) //nolint:forcetypeassert
 			return vsphereCluster.Spec.ControlPlaneEndpoint.Host, nil
 		}, time.Second*30).Should(Equal(expectedIP))
 	}

@@ -37,9 +37,10 @@ func (r *VSphereFailureDomain) SetupWebhookWithManager(mgr ctrl.Manager) error {
 //+kubebuilder:webhook:path=/mutate-infrastructure-cluster-x-k8s-io-v1beta1-vspherefailuredomain,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=vspherefailuredomains,verbs=create;update,versions=v1beta1,name=default.vspherefailuredomain.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1beta1
 
 var _ webhook.Validator = &VSphereFailureDomain{}
+
 var _ webhook.Defaulter = &VSphereFailureDomain{}
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
+// ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (r *VSphereFailureDomain) ValidateCreate() error {
 	var allErrs field.ErrorList
 
@@ -66,21 +67,21 @@ func (r *VSphereFailureDomain) ValidateCreate() error {
 	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
 func (r *VSphereFailureDomain) ValidateUpdate(old runtime.Object) error {
-	oldVSphereFailureDomain := old.(*VSphereFailureDomain)
-	if !reflect.DeepEqual(r.Spec, oldVSphereFailureDomain.Spec) {
+	oldVSphereFailureDomain, ok := old.(*VSphereFailureDomain)
+	if !ok || !reflect.DeepEqual(r.Spec, oldVSphereFailureDomain.Spec) {
 		return field.Forbidden(field.NewPath("spec"), "VSphereFailureDomainSpec is immutable")
 	}
 	return nil
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
+// ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 func (r *VSphereFailureDomain) ValidateDelete() error {
 	return nil
 }
 
-// Default implements webhook.Defaulter so a webhook will be registered for the type
+// Default implements webhook.Defaulter so a webhook will be registered for the type.
 func (r *VSphereFailureDomain) Default() {
 	if r.Spec.Zone.AutoConfigure == nil {
 		r.Spec.Zone.AutoConfigure = pointer.Bool(false)

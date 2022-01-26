@@ -25,9 +25,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"golang.org/x/crypto/ssh"
-
 	"github.com/pkg/errors"
+	"golang.org/x/crypto/ssh"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -120,7 +119,7 @@ func executeRemoteCommand(f io.StringWriter, hostIPAddr, command string, args ..
 	return nil
 }
 
-// newSSHConfig returns a configuration to use for SSH connections to remote machines
+// newSSHConfig returns a configuration to use for SSH connections to remote machines.
 func newSSHConfig() (*ssh.ClientConfig, error) {
 	sshPrivateKeyContent, err := readPrivateKey()
 	if err != nil {

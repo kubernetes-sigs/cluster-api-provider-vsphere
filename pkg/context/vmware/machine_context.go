@@ -20,14 +20,14 @@ import (
 	"fmt"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/runtime"
+
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 )
 
 // VMModifier allows a function to be passed to VM creation to modify its spec
-// The hook is loosely typed so as to allow for different VirtualMachine backends
+// The hook is loosely typed so as to allow for different VirtualMachine backends.
 type VMModifier func(runtime.Object) (runtime.Object, error)
 
 // SupervisorMachineContext is a Go context used with a VSphereMachine.

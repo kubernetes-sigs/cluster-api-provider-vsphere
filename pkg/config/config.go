@@ -20,8 +20,6 @@ import (
 	"time"
 )
 
-var (
-	// DefaultRequeue is the default time for how long to wait when
-	// requeueing a CAPI operation.
-	DefaultRequeue = 20 * time.Second
-)
+// DefaultRequeue is the default time for how long to wait when
+// requeueing a CAPI operation.
+var DefaultRequeue = 20 * time.Second

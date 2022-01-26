@@ -21,6 +21,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/util"
 )
@@ -40,7 +41,6 @@ func RootCmd() *cobra.Command {
 }
 
 func Execute() {
-
 	if err := RootCmd().Execute(); err != nil {
 		os.Exit(1)
 	}

@@ -101,28 +101,31 @@ func (r vsphereDeploymentZoneReconciler) reconcileTopology(ctx *context.VSphereD
 }
 
 func (r vsphereDeploymentZoneReconciler) reconcileComputeCluster(ctx *context.VSphereDeploymentZoneContext) error {
-	if computeCluster := ctx.VSphereFailureDomain.Spec.Topology.ComputeCluster; computeCluster != nil {
-		ccr, err := ctx.AuthSession.Finder.ClusterComputeResource(ctx, *computeCluster)
+	computeCluster := ctx.VSphereFailureDomain.Spec.Topology.ComputeCluster
+	if computeCluster == nil {
+		return nil
+	}
+
+	ccr, err := ctx.AuthSession.Finder.ClusterComputeResource(ctx, *computeCluster)
+	if err != nil {
+		conditions.MarkFalse(ctx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition, infrav1.ComputeClusterNotFoundReason, clusterv1.ConditionSeverityError, "compute cluster %s not found", *computeCluster)
+		return errors.Wrap(err, "compute cluster not found")
+	}
+
+	if resourcePool := ctx.VSphereDeploymentZone.Spec.PlacementConstraint.ResourcePool; resourcePool != "" {
+		rp, err := ctx.AuthSession.Finder.ResourcePool(ctx, resourcePool)
 		if err != nil {
-			conditions.MarkFalse(ctx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition, infrav1.ComputeClusterNotFoundReason, clusterv1.ConditionSeverityError, "compute cluster %s not found", *computeCluster)
-			return errors.Wrap(err, "compute cluster not found")
+			return errors.Wrapf(err, "unable to find resource pool")
 		}
 
-		if resourcePool := ctx.VSphereDeploymentZone.Spec.PlacementConstraint.ResourcePool; resourcePool != "" {
-			rp, err := ctx.AuthSession.Finder.ResourcePool(ctx, resourcePool)
-			if err != nil {
-				return errors.Wrapf(err, "unable to find resource pool")
-			}
-
-			ref, err := rp.Owner(ctx)
-			if err != nil {
-				conditions.MarkFalse(ctx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition, infrav1.ComputeClusterNotFoundReason, clusterv1.ConditionSeverityError, "resource pool owner not found")
-				return errors.Wrap(err, "unable to find owner compute resource")
-			}
-			if ref.Reference() != ccr.Reference() {
-				conditions.MarkFalse(ctx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition, infrav1.ResourcePoolNotFoundReason, clusterv1.ConditionSeverityError, "resource pool is not owned by compute cluster")
-				return errors.Errorf("compute cluster %s does not own resource pool %s", *computeCluster, resourcePool)
-			}
+		ref, err := rp.Owner(ctx)
+		if err != nil {
+			conditions.MarkFalse(ctx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition, infrav1.ComputeClusterNotFoundReason, clusterv1.ConditionSeverityError, "resource pool owner not found")
+			return errors.Wrap(err, "unable to find owner compute resource")
+		}
+		if ref.Reference() != ccr.Reference() {
+			conditions.MarkFalse(ctx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition, infrav1.ResourcePoolNotFoundReason, clusterv1.ConditionSeverityError, "resource pool is not owned by compute cluster")
+			return errors.Errorf("compute cluster %s does not own resource pool %s", *computeCluster, resourcePool)
 		}
 	}
 	return nil

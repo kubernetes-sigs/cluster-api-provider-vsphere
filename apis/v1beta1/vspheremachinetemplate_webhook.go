@@ -35,7 +35,7 @@ func (r *VSphereMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error
 
 var _ webhook.Validator = &VSphereMachineTemplate{}
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
+// ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (r *VSphereMachineTemplate) ValidateCreate() error {
 	var allErrs field.ErrorList
 	spec := r.Spec.Template.Spec
@@ -57,9 +57,9 @@ func (r *VSphereMachineTemplate) ValidateCreate() error {
 	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
 func (r *VSphereMachineTemplate) ValidateUpdate(old runtime.Object) error {
-	oldVSphereMachineTemplate := old.(*VSphereMachineTemplate)
+	oldVSphereMachineTemplate := old.(*VSphereMachineTemplate) //nolint:forcetypeassert
 	if !reflect.DeepEqual(r.Spec, oldVSphereMachineTemplate.Spec) {
 		return field.Forbidden(field.NewPath("spec"), "VSphereMachineTemplateSpec is immutable")
 	}
@@ -67,7 +67,7 @@ func (r *VSphereMachineTemplate) ValidateUpdate(old runtime.Object) error {
 	return nil
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
+// ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 func (r *VSphereMachineTemplate) ValidateDelete() error {
 	return nil
 }

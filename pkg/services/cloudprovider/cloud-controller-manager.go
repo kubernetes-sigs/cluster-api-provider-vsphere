@@ -31,7 +31,7 @@ const (
 	DefaultCPIControllerImage = "gcr.io/cloud-provider-vsphere/cpi/release/manager:v1.18.1"
 )
 
-// CloudControllerManagerServiceAccount returns the ServiceAccount used for the cloud-controller-manager
+// CloudControllerManagerServiceAccount returns the ServiceAccount used for the cloud-controller-manager.
 func CloudControllerManagerServiceAccount() *corev1.ServiceAccount {
 	return &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
@@ -41,7 +41,7 @@ func CloudControllerManagerServiceAccount() *corev1.ServiceAccount {
 	}
 }
 
-// CloudControllerManagerService returns a Service for the cloud-controller-manager
+// CloudControllerManagerService returns a Service for the cloud-controller-manager.
 func CloudControllerManagerService() *corev1.Service {
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -67,7 +67,7 @@ func CloudControllerManagerService() *corev1.Service {
 	}
 }
 
-// CloudControllerManagerConfigMap returns a ConfigMap containing data for the cloud config file
+// CloudControllerManagerConfigMap returns a ConfigMap containing data for the cloud config file.
 func CloudControllerManagerConfigMap(cloudConfig string) *corev1.ConfigMap {
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -80,7 +80,7 @@ func CloudControllerManagerConfigMap(cloudConfig string) *corev1.ConfigMap {
 	}
 }
 
-// CloudControllerManagerDaemonSet returns the DaemonSet which runs the cloud-controller-manager
+// CloudControllerManagerDaemonSet returns the DaemonSet which runs the cloud-controller-manager.
 func CloudControllerManagerDaemonSet(image string, args []string) *appsv1.DaemonSet {
 	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -166,7 +166,8 @@ func CloudControllerManagerDaemonSet(image string, args []string) *appsv1.Daemon
 	}
 }
 
-// CloudControllerManagerClusterRole returns the ClusterRole systemLcloud-controller-manager used by the cloud-controller-manager
+// CloudControllerManagerClusterRole returns the ClusterRole systemLcloud-controller-manager
+// used by the cloud-controller-manager.
 func CloudControllerManagerClusterRole() *rbacv1.ClusterRole {
 	return &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
@@ -222,7 +223,8 @@ func CloudControllerManagerClusterRole() *rbacv1.ClusterRole {
 	}
 }
 
-// CloudControllerManagerRoleBinding binds the extension-apiserver-authentication-reader to the cloud-controller-manager
+// CloudControllerManagerRoleBinding binds the extension-apiserver-authentication-reader
+// to the cloud-controller-manager.
 func CloudControllerManagerRoleBinding() *rbacv1.RoleBinding {
 	return &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
@@ -250,7 +252,8 @@ func CloudControllerManagerRoleBinding() *rbacv1.RoleBinding {
 	}
 }
 
-// CloudControllerManagerClusterRoleBinding binds the system:cloud-controller-manager cluster role to the cloud-controller-manager
+// CloudControllerManagerClusterRoleBinding binds the system:cloud-controller-manager
+// cluster role to the cloud-controller-manager.
 func CloudControllerManagerClusterRoleBinding() *rbacv1.ClusterRoleBinding {
 	return &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{

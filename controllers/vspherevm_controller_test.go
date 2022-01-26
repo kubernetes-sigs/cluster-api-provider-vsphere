@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-
 	"github.com/vmware/govmomi/simulator"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -146,7 +145,6 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 }
 
 func TestVmReconciler_WaitingForStaticIPAllocation(t *testing.T) {
-
 	tests := []struct {
 		name       string
 		devices    []infrav1.NetworkDeviceSpec
@@ -194,8 +192,9 @@ func TestVmReconciler_WaitingForStaticIPAllocation(t *testing.T) {
 	vmContext := fake.NewVMContext(controllerCtx)
 	r := vmReconciler{controllerCtx}
 
-	// nolint:scopelint
 	for _, tt := range tests {
+		// Need to explicitly reinitialize test variable, looks odd, but needed
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			vmContext.VSphereVM.Spec.Network = infrav1.NetworkSpec{Devices: tt.devices}
 			isWaiting := r.isWaitingForStaticIPAllocation(vmContext)

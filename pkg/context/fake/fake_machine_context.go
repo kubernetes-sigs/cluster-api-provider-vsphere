@@ -27,7 +27,6 @@ import (
 // NewMachineContext returns a fake VIMMachineContext for unit testing
 // reconcilers with a fake client.
 func NewMachineContext(ctx *context.ClusterContext) *context.VIMMachineContext {
-
 	// Create the machine resources.
 	machine := newMachineV1a4()
 	vsphereMachine := newVSphereMachine(machine)

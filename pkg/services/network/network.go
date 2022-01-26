@@ -39,20 +39,20 @@ import (
 
 const (
 	NSXTTypeNetwork = "nsx-t"
-	// This constant is also defined in VM Operator
+	// This constant is also defined in VM Operator.
 	NSXTVNetSelectorKey = "ncp.vmware.com/virtual-network-name"
 
-	CAPVDefaultNetworkLabel    = "capv.vmware.com/is-default-network" //nolint:gosec
+	CAPVDefaultNetworkLabel    = "capv.vmware.com/is-default-network"
 	NetOpNetworkNameAnnotation = "netoperator.vmware.com/network-name"
 
-	// kube-system network is where supervisor control plane vms reside
+	// kube-system network is where supervisor control plane vms reside.
 	SystemNamespace = "kube-system"
 )
 
-// dummyNetworkProvider doesn't provision network resource
+// dummyNetworkProvider doesn't provision network resource.
 type dummyNetworkProvider struct{}
 
-// DummyNetworkProvider returns an instance of dummy network provider
+// DummyNetworkProvider returns an instance of dummy network provider.
 func DummyNetworkProvider() services.NetworkProvider {
 	return &dummyNetworkProvider{}
 }
@@ -85,7 +85,7 @@ type dummyLBNetworkProvider struct {
 	dummyNetworkProvider
 }
 
-// DummyLBNetworkProvider returns an instance of dummy network provider that has a LB
+// DummyLBNetworkProvider returns an instance of dummy network provider that has a LB.
 func DummyLBNetworkProvider() services.NetworkProvider {
 	return &dummyLBNetworkProvider{}
 }
@@ -188,13 +188,13 @@ func (np *netopNetworkProvider) VerifyNetworkStatus(ctx *vmware.ClusterContext, 
 	return nil
 }
 
-// nsxtNetworkProvider provision nsx-t type cluster network
+// nsxtNetworkProvider provision nsx-t type cluster network.
 type nsxtNetworkProvider struct {
 	client    client.Client
 	disableFW string // "true" means disable firewalls on GC network
 }
 
-// NsxtNetworkProvider returns an instance of nsx-t type network provider
+// NsxtNetworkProvider returns an instance of nsx-t type network provider.
 func NsxtNetworkProvider(client client.Client, disableFW string) services.NetworkProvider {
 	return &nsxtNetworkProvider{
 		client:    client,
@@ -206,7 +206,7 @@ func (np *nsxtNetworkProvider) HasLoadBalancer() bool {
 	return true
 }
 
-// GetNSXTVirtualNetworkName returns the name of the NSX-T vnet object
+// GetNSXTVirtualNetworkName returns the name of the NSX-T vnet object.
 func GetNSXTVirtualNetworkName(clusterName string) string {
 	return fmt.Sprintf("%s-vnet", clusterName)
 }
@@ -284,7 +284,6 @@ func (np *nsxtNetworkProvider) ProvisionClusterNetwork(ctx *vmware.ClusterContex
 
 		return nil
 	})
-
 	if err != nil {
 		conditions.MarkFalse(ctx.VSphereCluster, infrav1.ClusterNetworkReadyCondition, infrav1.ClusterNetworkProvisionFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 		ctx.Logger.V(2).Info("Failed to provision network", "cluster", clusterKey)
@@ -294,7 +293,7 @@ func (np *nsxtNetworkProvider) ProvisionClusterNetwork(ctx *vmware.ClusterContex
 	return np.verifyNSXTVirtualNetworkStatus(ctx, vnet)
 }
 
-// Returns the name of a valid cluster network if one exists
+// Returns the name of a valid cluster network if one exists.
 func (np *nsxtNetworkProvider) GetClusterNetworkName(ctx *vmware.ClusterContext) (string, error) {
 	vnet := &ncpv1.VirtualNetwork{}
 	cluster := ctx.VSphereCluster
@@ -317,7 +316,7 @@ func (np *nsxtNetworkProvider) GetVMServiceAnnotations(ctx *vmware.ClusterContex
 	return map[string]string{NSXTVNetSelectorKey: vnetName}, nil
 }
 
-// ConfigureVirtualMachine configures a VirtualMachine object based on the networking configuration
+// ConfigureVirtualMachine configures a VirtualMachine object based on the networking configuration.
 func (np *nsxtNetworkProvider) ConfigureVirtualMachine(ctx *vmware.ClusterContext, vm *vmopv1.VirtualMachine) error {
 	nsxtClusterNetworkName := GetNSXTVirtualNetworkName(ctx.Cluster.Name)
 	for _, vnif := range vm.Spec.NetworkInterfaces {

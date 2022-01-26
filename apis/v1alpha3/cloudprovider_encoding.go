@@ -86,11 +86,7 @@ func (c *CPIConfig) MarshalINI() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (c *CPIConfig) marshalINISectionProperties(
-	out io.Writer,
-	sectionValue reflect.Value,
-	sectionName string) error {
-
+func (c *CPIConfig) marshalINISectionProperties(out io.Writer, sectionValue reflect.Value, sectionName string) error {
 	switch sectionValue.Kind() {
 	case reflect.Interface, reflect.Ptr:
 		return c.marshalINISectionProperties(out, sectionValue.Elem(), sectionName)
@@ -223,7 +219,6 @@ func IsNotEmpty(obj interface{}) bool {
 // isEmpty returns true if an object's fields are all set to their empty values.
 func isEmpty(val reflect.Value) bool {
 	switch val.Kind() {
-
 	case reflect.Interface, reflect.Ptr:
 		return val.IsNil() || isEmpty(val.Elem())
 
@@ -257,7 +252,7 @@ func isEmpty(val reflect.Value) bool {
 }
 
 // MarshalCloudProviderArgs marshals the cloud provider arguments for passing
-// into a pod spec
+// into a pod spec.
 func (cpic *CPICloudConfig) MarshalCloudProviderArgs() []string {
 	args := []string{
 		"--v=2",

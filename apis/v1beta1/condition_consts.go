@@ -91,28 +91,30 @@ const (
 	TagsAttachmentFailedReason = "TagsAttachmentFailed"
 )
 
-// Conditions and Reasons related to utilizing a VSphereIdentity to make connections to a VCenter. Can currently be used by VSphereCluster and VSphereVM
+// Conditions and Reasons related to utilizing a VSphereIdentity to make connections to a VCenter.
+// Can currently be used by VSphereCluster and VSphereVM.
 const (
 	// VCenterAvailableCondition documents the connectivity with vcenter
-	// for a given resource
+	// for a given resource.
 	VCenterAvailableCondition clusterv1.ConditionType = "VCenterAvailable"
 
 	// VCenterUnreachableReason (Severity=Error) documents a controller detecting
-	// issues with VCenter reachability
+	// issues with VCenter reachability.
 	VCenterUnreachableReason = "VCenterUnreachable"
 )
 
 const (
-	// CredentialsAvailableCondidtion is used by VSphereClusterIdentity when a credential secret is available and unused by other VSphereClusterIdentities
+	// CredentialsAvailableCondidtion is used by VSphereClusterIdentity when a credential
+	// secret is available and unused by other VSphereClusterIdentities.
 	CredentialsAvailableCondidtion clusterv1.ConditionType = "CredentialsAvailable"
 
-	// SecretNotAvailableReason is used when the secret referenced by the VSphereClusterIdentity cannot be found
+	// SecretNotAvailableReason is used when the secret referenced by the VSphereClusterIdentity cannot be found.
 	SecretNotAvailableReason = "SecretNotAvailable"
 
-	// SecretOwnerReferenceFailedReason is used for errors while updating the owner reference of the secret
+	// SecretOwnerReferenceFailedReason is used for errors while updating the owner reference of the secret.
 	SecretOwnerReferenceFailedReason = "SecretOwnerReferenceFailed"
 
-	// SecretAlreadyInUseReason is used when another VSphereClusterIdentity is using the secret
+	// SecretAlreadyInUseReason is used when another VSphereClusterIdentity is using the secret.
 	SecretAlreadyInUseReason = "SecretInUse"
 )
 

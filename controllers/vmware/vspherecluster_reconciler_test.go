@@ -76,7 +76,6 @@ var _ = Describe("Cluster Controller Tests", func() {
 
 	// Ensure that the mechanism for reconciling clusters when a control plane machine gets an IP works
 	Context("Test controlPlaneMachineToCluster", func() {
-
 		It("Returns nil if there is no IP address", func() {
 			request := reconciler.VSphereMachineToCluster(vsphereMachine)
 			Expect(request).Should(BeNil())
@@ -92,7 +91,6 @@ var _ = Describe("Cluster Controller Tests", func() {
 	})
 
 	Context("Test reconcileDelete", func() {
-
 		It("should mark specific resources to be in deleting conditions", func() {
 			ctx.VSphereCluster.Status.Conditions = append(ctx.VSphereCluster.Status.Conditions,
 				clusterv1.Condition{Type: infrav1.ResourcePolicyReadyCondition, Status: corev1.ConditionTrue})
@@ -116,9 +114,7 @@ var _ = Describe("Cluster Controller Tests", func() {
 	})
 
 	Context("Test getFailureDomains", func() {
-		var (
-			fss = isFaultDomainsFSSEnabled
-		)
+		fss := isFaultDomainsFSSEnabled
 
 		BeforeEach(func() {
 			isFaultDomainsFSSEnabled = func() bool { return true }

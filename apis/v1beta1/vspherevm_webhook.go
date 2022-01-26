@@ -36,7 +36,7 @@ func (r *VSphereVM) SetupWebhookWithManager(mgr ctrl.Manager) error {
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta1-vspherevm,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=vspherevms,versions=v1beta1,name=validation.vspherevm.infrastructure.x-k8s.io,sideEffects=None,admissionReviewVersions=v1beta1
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
+// ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (r *VSphereVM) ValidateCreate() error {
 	var allErrs field.ErrorList
 	spec := r.Spec
@@ -56,8 +56,9 @@ func (r *VSphereVM) ValidateCreate() error {
 	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *VSphereVM) ValidateUpdate(old runtime.Object) error { //nolint
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
+//nolint:forcetypeassert
+func (r *VSphereVM) ValidateUpdate(old runtime.Object) error {
 	newVSphereVM, err := runtime.DefaultUnstructuredConverter.ToUnstructured(r)
 	if err != nil {
 		return apierrors.NewInternalError(errors.Wrap(err, "failed to convert new VSphereVM to unstructured object"))
@@ -94,7 +95,7 @@ func (r *VSphereVM) ValidateUpdate(old runtime.Object) error { //nolint
 	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
+// ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 func (r *VSphereVM) ValidateDelete() error {
 	return nil
 }

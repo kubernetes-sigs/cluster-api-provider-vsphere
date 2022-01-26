@@ -119,7 +119,7 @@ func AddServiceDiscoveryControllerToManager(ctx *context.ControllerManagerContex
 		Scheme: mgr.GetScheme(),
 		Mapper: mgr.GetRESTMapper(),
 		// TODO: Reintroduce the cache sync period
-		//Resync:    ctx.SyncPeriod,
+		// Resync:    ctx.SyncPeriod,
 		Namespace: metav1.NamespacePublic,
 	})
 	if err != nil {
@@ -206,7 +206,6 @@ func (r serviceDiscoveryReconciler) Reconcile(ctx goctx.Context, req reconcile.R
 
 	// This type of controller doesn't care about delete events.
 	if !vsphereCluster.DeletionTimestamp.IsZero() {
-		//return r.ReconcileDelete(clusterContext)
 		return reconcile.Result{}, nil
 	}
 
@@ -300,8 +299,7 @@ func (r serviceDiscoveryReconciler) reconcileSupervisorHeadlessService(ctx *vmwa
 	// CreateOrUpdate the newEndpoints with the discovered supervisor api server address
 	newEndpoints := NewSupervisorHeadlessServiceEndpoints(supervisorHost, supervisorPort)
 	endpointsKey := types.NamespacedName{Name: vmwarev1.SupervisorHeadlessSvcName, Namespace: vmwarev1.SupervisorHeadlessSvcNamespace}
-	if createErr := ctx.GuestClient.Create(ctx, newEndpoints); createErr != nil {
-
+	if createErr := ctx.GuestClient.Create(ctx, newEndpoints); createErr != nil { //nolint:nestif
 		if apierrors.IsAlreadyExists(createErr) {
 			var endpoints corev1.Endpoints
 			if getErr := ctx.GuestClient.Get(ctx, endpointsKey, &endpoints); getErr != nil {
@@ -388,7 +386,7 @@ func NewSupervisorHeadlessServiceEndpoints(targetHost string, targetPort int) *c
 	}
 }
 
-func GetSupervisorAPIServerVIP(client client.Client) (string, error) { // nolint
+func GetSupervisorAPIServerVIP(client client.Client) (string, error) {
 	svc := &corev1.Service{}
 	svcKey := types.NamespacedName{Name: vmwarev1.SupervisorLoadBalancerSvcName, Namespace: vmwarev1.SupervisorLoadBalancerSvcNamespace}
 	if err := client.Get(goctx.Background(), svcKey, svc); err != nil {
@@ -420,7 +418,7 @@ func GetSupervisorAPIServerFIP(client client.Client) (string, error) {
 	return host, nil
 }
 
-func getSupervisorAPIServerURLWithFIP(client client.Client) (string, error) { // nolint
+func getSupervisorAPIServerURLWithFIP(client client.Client) (string, error) {
 	cm := &corev1.ConfigMap{}
 	cmKey := types.NamespacedName{Name: bootstrapapi.ConfigMapClusterInfo, Namespace: metav1.NamespacePublic}
 	if err := client.Get(goctx.Background(), cmKey, cm); err != nil {
@@ -435,10 +433,9 @@ func getSupervisorAPIServerURLWithFIP(client client.Client) (string, error) { //
 		return clusterConfig.Server, nil
 	}
 	return "", errors.Errorf("unable to get cluster from kubeconfig in ConfigMap %s/%s", cm.Namespace, cm.Name)
-
 }
 
-// tryParseClusterInfoFromConfigMap tries to parse a kubeconfig file from a ConfigMap key
+// tryParseClusterInfoFromConfigMap tries to parse a kubeconfig file from a ConfigMap key.
 func tryParseClusterInfoFromConfigMap(cm *corev1.ConfigMap) (*clientcmdapi.Config, error) {
 	kubeConfigString, ok := cm.Data[bootstrapapi.KubeConfigKey]
 	if !ok || len(kubeConfigString) == 0 {
@@ -451,7 +448,7 @@ func tryParseClusterInfoFromConfigMap(cm *corev1.ConfigMap) (*clientcmdapi.Confi
 	return parsedKubeConfig, nil
 }
 
-// GetClusterFromKubeConfig returns the default Cluster of the specified KubeConfig
+// GetClusterFromKubeConfig returns the default Cluster of the specified KubeConfig.
 func getClusterFromKubeConfig(config *clientcmdapi.Config) *clientcmdapi.Cluster {
 	// If there is an unnamed cluster object, use it
 	if config.Clusters[""] != nil {

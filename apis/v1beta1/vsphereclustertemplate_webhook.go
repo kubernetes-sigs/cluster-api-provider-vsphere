@@ -35,21 +35,21 @@ func (r *VSphereClusterTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error
 
 var _ webhook.Validator = &VSphereClusterTemplate{}
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
+// ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (r *VSphereClusterTemplate) ValidateCreate() error {
 	return nil
 }
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
 func (r *VSphereClusterTemplate) ValidateUpdate(oldRaw runtime.Object) error {
-	old := oldRaw.(*VSphereClusterTemplate)
+	old := oldRaw.(*VSphereClusterTemplate) //nolint:forcetypeassert
 	if !reflect.DeepEqual(r.Spec.Template.Spec, old.Spec.Template.Spec) {
 		return field.Forbidden(field.NewPath("spec", "template", "spec"), "VSphereClusterTemplate spec is immutable")
 	}
 	return nil
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
+// ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 func (r *VSphereClusterTemplate) ValidateDelete() error {
 	return nil
 }

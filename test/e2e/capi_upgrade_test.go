@@ -20,7 +20,6 @@ import (
 	"context"
 
 	. "github.com/onsi/ginkgo"
-
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 )
 

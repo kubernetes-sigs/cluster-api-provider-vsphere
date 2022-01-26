@@ -19,16 +19,14 @@ package integration
 import (
 	"fmt"
 
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	vmoprv1 "github.com/vmware-tanzu/vm-operator-api/api/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-
-	vmoprv1 "github.com/vmware-tanzu/vm-operator-api/api/v1alpha1"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	infrautilv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
@@ -37,7 +35,6 @@ import (
 // The purpose of this test is to start up a CAPI controller against a real API
 // server and run basic checks.
 var _ = Describe("Sanity tests", func() {
-
 	var (
 		mf            *Manifests
 		controlPlane  *ControlPlaneComponents

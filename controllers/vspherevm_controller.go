@@ -57,8 +57,8 @@ import (
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 
 // AddVMControllerToManager adds the VM controller to the provided manager.
+//nolint:forcetypeassert
 func AddVMControllerToManager(ctx *context.ControllerManagerContext, mgr manager.Manager) error {
-
 	var (
 		controlledType     = &infrav1.VSphereVM{}
 		controlledTypeName = reflect.TypeOf(controlledType).Elem().Name()
@@ -90,7 +90,6 @@ func AddVMControllerToManager(ctx *context.ControllerManagerContext, mgr manager
 		).
 		WithOptions(controller.Options{MaxConcurrentReconciles: ctx.MaxConcurrentReconciles}).
 		Build(r)
-
 	if err != nil {
 		return err
 	}
@@ -122,7 +121,6 @@ type vmReconciler struct {
 }
 
 // Reconcile ensures the back-end state reflects the Kubernetes resource state intent.
-// nolint:gocognit
 func (r vmReconciler) Reconcile(ctx goctx.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	// Get the VSphereVM resource for this request.
 	vsphereVM := &infrav1.VSphereVM{}
@@ -154,6 +152,7 @@ func (r vmReconciler) Reconcile(ctx goctx.Context, req ctrl.Request) (_ ctrl.Res
 
 	var vsphereFailureDomain *infrav1.VSphereFailureDomain
 	// VSphereVMs for HAProxyLoadBalancer type do not support Failure Domains
+	//nolint:nestif
 	if !clusterutilv1.HasOwner(vsphereVM.OwnerReferences, infrav1.GroupVersion.String(), []string{"HAProxyLoadBalancer"}) {
 		// Fetch the owner VSphereMachine.
 		vsphereMachine, err := util.GetOwnerVSphereMachine(r, r.Client, vsphereVM.ObjectMeta)
@@ -222,7 +221,6 @@ func (r vmReconciler) Reconcile(ctx goctx.Context, req ctrl.Request) (_ ctrl.Res
 			}
 			vmContext.Logger.Error(err, "patch failed", "vm", vmContext.String())
 		}
-
 	}()
 
 	cluster, err := clusterutilv1.GetClusterFromMetadata(r.ControllerContext, r.Client, vsphereVM.ObjectMeta)
@@ -269,7 +267,6 @@ func (r vmReconciler) reconcileDelete(ctx *context.VMContext) (reconcile.Result,
 }
 
 func (r vmReconciler) reconcileNormal(ctx *context.VMContext) (reconcile.Result, error) {
-
 	if ctx.VSphereVM.Status.FailureReason != nil || ctx.VSphereVM.Status.FailureMessage != nil {
 		r.Logger.Info("VM is failed, won't reconcile", "namespace", ctx.VSphereVM.Namespace, "name", ctx.VSphereVM.Name)
 		return reconcile.Result{}, nil

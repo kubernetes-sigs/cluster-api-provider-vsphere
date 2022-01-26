@@ -89,7 +89,6 @@ func (c *CPIConfig) marshalINISectionProperties(
 	out io.Writer,
 	sectionValue reflect.Value,
 	sectionName string) error {
-
 	switch sectionValue.Kind() {
 	case reflect.Interface, reflect.Ptr:
 		return c.marshalINISectionProperties(out, sectionValue.Elem(), sectionName)
@@ -173,7 +172,6 @@ func IsNotEmpty(obj interface{}) bool {
 // isEmpty returns true if an object's fields are all set to their empty values.
 func isEmpty(val reflect.Value) bool {
 	switch val.Kind() {
-
 	case reflect.Interface, reflect.Ptr:
 		return val.IsNil() || isEmpty(val.Elem())
 

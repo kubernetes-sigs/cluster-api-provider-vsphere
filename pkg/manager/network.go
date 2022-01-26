@@ -29,7 +29,7 @@ const (
 )
 
 // GetNetworkProvider will return a network provider instance based on the environment
-// the cfg is used to initialize a client that talks directly to api-server without using the cache
+// the cfg is used to initialize a client that talks directly to api-server without using the cache.
 func GetNetworkProvider(ctx *context.ControllerManagerContext) (services.NetworkProvider, error) {
 	switch ctx.NetworkProvider {
 	case NSXNetworkProvider:

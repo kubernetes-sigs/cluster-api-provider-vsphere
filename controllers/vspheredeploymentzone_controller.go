@@ -50,7 +50,6 @@ import (
 
 // AddVSphereDeploymentZoneControllerToManager adds the VSphereDeploymentZone controller to the provided manager.
 func AddVSphereDeploymentZoneControllerToManager(ctx *context.ControllerManagerContext, mgr manager.Manager) error {
-
 	var (
 		controlledType     = &infrav1.VSphereDeploymentZone{}
 		controlledTypeName = reflect.TypeOf(controlledType).Elem().Name()
@@ -215,7 +214,8 @@ func (r vsphereDeploymentZoneReconciler) getVCenterSession(ctx *context.VSphereD
 		if ctx.VSphereDeploymentZone.Spec.Server == vsphereCluster.Spec.Server && vsphereCluster.Spec.IdentityRef != nil {
 			logger := ctx.Logger.WithValues("cluster", vsphereCluster.Name)
 			params = params.WithThumbprint(vsphereCluster.Spec.Thumbprint)
-			creds, err := identity.GetCredentials(ctx, r.Client, &vsphereCluster, r.Namespace) // nolint:scopelint
+			clust := vsphereCluster
+			creds, err := identity.GetCredentials(ctx, r.Client, &clust, r.Namespace)
 			if err != nil {
 				logger.Error(err, "error retrieving credentials from IdentityRef")
 				continue

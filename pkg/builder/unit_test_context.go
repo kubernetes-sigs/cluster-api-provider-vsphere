@@ -17,11 +17,8 @@ limitations under the License.
 package builder
 
 import (
-	// nolint
 	. "github.com/onsi/ginkgo"
-	// nolint
 	. "github.com/onsi/gomega"
-
 	vmoprv1 "github.com/vmware-tanzu/vm-operator-api/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -49,13 +46,12 @@ type UnitTestContextForController struct {
 
 // NewUnitTestContextForController returns a new UnitTestContextForController
 // with an optional prototype cluster for unit testing controllers that do not
-// invoke the VSphereCluster spec controller
+// invoke the VSphereCluster spec controller.
 func NewUnitTestContextForController(newReconcilerFn NewReconcilerFunc,
 	vSphereCluster *vmwarev1.VSphereCluster,
 	prototypeCluster bool,
 	initObjects,
 	gcInitObjects []runtime.Object) *UnitTestContextForController {
-
 	reconciler := newReconcilerFn()
 
 	ctx := &UnitTestContextForController{
@@ -83,7 +79,7 @@ func CreatePrototypePrereqs(_ *UnitTestContextForController, ctx *context.Contro
 	})
 }
 
-// ReconcileNormal manually invokes the ReconcileNormal method on the controller
+// ReconcileNormal manually invokes the ReconcileNormal method on the controller.
 func (ctx UnitTestContextForController) ReconcileNormal() error {
 	_, err := ctx.Reconciler.ReconcileNormal(ctx.GuestClusterContext)
 	return err

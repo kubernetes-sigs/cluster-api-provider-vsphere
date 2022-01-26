@@ -22,9 +22,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var (
-	someProviderID = "vsphere://42305f0b-dad7-1d3d-5727-0eaffffffffc"
-)
+var someProviderID = "vsphere://42305f0b-dad7-1d3d-5727-0eaffffffffc"
 
 //nolint
 func TestVsphereMachine_Default(t *testing.T) {

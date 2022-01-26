@@ -44,13 +44,13 @@ func FindVMGroup(ctx computeClusterContext, clusterName, vmGroupName string) (*V
 	return nil, errors.Errorf("cannot find VM group %s", vmGroupName)
 }
 
-// VMGroup represents a VSphere VM Group object
+// VMGroup represents a VSphere VM Group object.
 type VMGroup struct {
 	*object.ClusterComputeResource
 	*types.ClusterVmGroup
 }
 
-// Add a VSphere VM object to the VM Group
+// Add a VSphere VM object to the VM Group.
 func (vg VMGroup) Add(ctx context.Context, vmObj types.ManagedObjectReference) (*object.Task, error) {
 	vms := vg.listVMs()
 	vg.ClusterVmGroup.Vm = append(vms, vmObj) //nolint:gocritic
@@ -68,7 +68,7 @@ func (vg VMGroup) Add(ctx context.Context, vmObj types.ManagedObjectReference) (
 	return vg.ClusterComputeResource.Reconfigure(ctx, spec, true)
 }
 
-// HasVM returns whether a VSphere VM object is a member of the VM Group
+// HasVM returns whether a VSphere VM object is a member of the VM Group.
 func (vg VMGroup) HasVM(vmObj types.ManagedObjectReference) (bool, error) {
 	vms := vg.listVMs()
 

@@ -14,39 +14,48 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+//nolint:godot
 package v1beta1
 
 import clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
 const (
-	//  ResourcePolicyReadyCondition reports the successful creation of a Resource Policy
+	// ResourcePolicyReadyCondition reports the successful creation of a
+	// Resource Policy.
 	ResourcePolicyReadyCondition clusterv1.ConditionType = "ResourcePolicyReady"
 
-	// ResourcePolicyCreationFailedReason used when any errors occur during ResourcePolicy creation
+	// ResourcePolicyCreationFailedReason used when any errors occur during
+	// ResourcePolicy creation.
 	ResourcePolicyCreationFailedReason = "ResourcePolicyCreationFailed"
 )
 
 const (
-	// ClusterNetworkReadyCondition reports the successful provision of a Cluster Network
+	// ClusterNetworkReadyCondition reports the successful provision of a
+	// Cluster Network.
 	ClusterNetworkReadyCondition clusterv1.ConditionType = "ClusterNetworkReady"
 
-	// ClusterNetworkProvisionStarted is used when waiting for Cluster Network to be Ready
+	// ClusterNetworkProvisionStarted is used when waiting for Cluster
+	// Network to be Ready.
 	ClusterNetworkProvisionStartedReason = "ClusterNetworkProvisionStarted"
-	// ClusterNetworkProvisionFailedReason is used when any errors occur during network provision
+	// ClusterNetworkProvisionFailedReason is used when any errors occur
+	// during network provision.
 	ClusterNetworkProvisionFailedReason = "ClusterNetworkProvisionFailed"
 )
 
 const (
-	// LoadBalancerReadyCondition reports the successful reconciliation of a static control plane endpoint
+	// LoadBalancerReadyCondition reports the successful reconciliation of
+	// a static control plane endpoint.
 	LoadBalancerReadyCondition clusterv1.ConditionType = "LoadBalancerReady"
 
-	// LoadBalancerCreationFailedReason is used when load balancer related resources creation fails
+	// LoadBalancerCreationFailedReason is used when load balancer related
+	// resources creation fails.
 	LoadBalancerCreationFailedReason = "LoadBalancerCreationFailed"
-	// WaitingForLoadBalancerIPReason is used when waiting for load balancer IP to exist
+	// WaitingForLoadBalancerIPReason is used when waiting for load
+	// balancer IP to exist.
 	WaitingForLoadBalancerIPReason = "WaitingForLoadBalancerIP"
 )
 
-// Conditions and condition Reasons for VSphereMachine
+// Conditions and condition Reasons for VSphereMachine.
 const (
 	// ConditionType VMProvisionedCondition is shared with infrav1.VSPhereMachine
 	// VMCreationFailedReason reports that creating VM CRD or corresponding bootstrap ConfigMap failed.

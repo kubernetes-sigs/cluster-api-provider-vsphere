@@ -23,6 +23,7 @@ import (
 	storagev1beta1 "k8s.io/api/storage/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/crs/types"
 )
 
@@ -660,5 +661,4 @@ func newMountPropagation(propagation string) *corev1.MountPropagationMode {
 	propagationMode := new(corev1.MountPropagationMode)
 	*propagationMode = corev1.MountPropagationMode(propagation)
 	return propagationMode
-
 }

@@ -9,3 +9,6 @@ approvers:
 reviewers:
   - cluster-api-vsphere-maintainers
   - cluster-api-vsphere-reviewers
+
+emeritus_approvers:
+  - gab-satchi

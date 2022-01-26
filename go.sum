@@ -855,10 +855,10 @@ github.com/vmware-tanzu/net-operator-api v0.0.0-20210401185409-b0dc6c297707 h1:2
 github.com/vmware-tanzu/net-operator-api v0.0.0-20210401185409-b0dc6c297707/go.mod h1:pDB0pUiFYufuP3lUkQX9fZ67PYnKvqBpDcJN3mSrw5U=
 github.com/vmware-tanzu/vm-operator-api v0.1.4-0.20211029224930-6ec913d11bff h1:ThuEcNdWY5aXymrx0iOYhkIDwAQhZnOwXyEQ776lepI=
 github.com/vmware-tanzu/vm-operator-api v0.1.4-0.20211029224930-6ec913d11bff/go.mod h1:mubK0QMyaA2TbeAmGsu2GVfiqDFppNUAUqoMPoKFgzM=
-github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20211118193625-3a50e2e58c47 h1:TNuLY6iE8yaVoL150eOw1alga1fJrHkaJBh3qr0ShEA=
-github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20211118193625-3a50e2e58c47/go.mod h1:5rqRJ9zGR+KnKbkGx373WgN8xJpvAj99kHnfoDYRO5I=
-github.com/vmware-tanzu/vm-operator/external/tanzu-topology v0.0.0-20211118193625-3a50e2e58c47 h1:zJAQmYtZSwCt7nS9qBsT91NTuE3ZN2WW438t5JQJcnI=
-github.com/vmware-tanzu/vm-operator/external/tanzu-topology v0.0.0-20211118193625-3a50e2e58c47/go.mod h1:dfYrWS8DMRN+XZfhu8M4LVHmeGvYB29Ipd7j4uIq+mU=
+github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20211209213435-0f4ab286f64f h1:RUuS5lh25citvQoXmDSfxJ1BB72LXOjD5cXvJETJ7Cc=
+github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20211209213435-0f4ab286f64f/go.mod h1:5rqRJ9zGR+KnKbkGx373WgN8xJpvAj99kHnfoDYRO5I=
+github.com/vmware-tanzu/vm-operator/external/tanzu-topology v0.0.0-20211209213435-0f4ab286f64f h1:wwYUf16/g8bLywQMQJB5VHbDtuf6aOFH24Ar2/yA7+I=
+github.com/vmware-tanzu/vm-operator/external/tanzu-topology v0.0.0-20211209213435-0f4ab286f64f/go.mod h1:dfYrWS8DMRN+XZfhu8M4LVHmeGvYB29Ipd7j4uIq+mU=
 github.com/vmware/govmomi v0.27.1 h1:Rf3o1btFrkJa9be5KtgJ4CyOO8mbFnBxmNtAVHNyFes=
 github.com/vmware/govmomi v0.27.1/go.mod h1:daTuJEcQosNMXYJOeku0qdBJP9SOLLWB3Mqz8THtv6o=
 github.com/vmware/vmw-guestinfo v0.0.0-20170707015358-25eff159a728/go.mod h1:x9oS4Wk2s2u4tS29nEaDLdzvuHdB19CvSGJjPgkZJNk=

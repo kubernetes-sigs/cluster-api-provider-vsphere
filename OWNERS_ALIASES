@@ -14,7 +14,6 @@ aliases:
     - vincepri
   cluster-api-vsphere-maintainers:
     - frapposelli
-    - gab-satchi
     - randomvariable
     - srm09
     - yastij

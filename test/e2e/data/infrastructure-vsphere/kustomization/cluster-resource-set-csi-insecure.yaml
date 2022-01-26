@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: csi-vsphere-config
+  namespace: '${NAMESPACE}'
+stringData:
+  data: |
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: csi-vsphere-config
+      namespace: kube-system
+    stringData:
+      csi-vsphere.conf: |+
+        [Global]
+        cluster-id = "${NAMESPACE}/${CLUSTER_NAME}"
+
+        [VirtualCenter "${VSPHERE_SERVER}"]
+        insecure-flag = "${VSPHERE_INSECURE_CSI}"
+        user = "${VSPHERE_USERNAME}"
+        password = "${VSPHERE_PASSWORD}"
+        datacenters = "${VSPHERE_DATACENTER}"
+
+        [Network]
+        public-network = "${VSPHERE_NETWORK}"
+
+    type: Opaque
+type: addons.cluster.x-k8s.io/resource-set

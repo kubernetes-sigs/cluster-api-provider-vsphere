@@ -13,4 +13,5 @@ resources:
   - crd/vmware.infrastructure.cluster.x-k8s.io_vspheremachines.yaml
   - crd/vmware.infrastructure.cluster.x-k8s.io_vsphereclusters.yaml
   - crd/vmware.infrastructure.cluster.x-k8s.io_vspheremachinetemplates.yaml
+  - crd/vmware.infrastructure.cluster.x-k8s.io_vsphereclustertemplates.yaml
   - crd/vmware.infrastructure.cluster.x-k8s.io_providerserviceaccounts.yaml

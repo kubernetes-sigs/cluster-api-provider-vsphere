@@ -157,7 +157,7 @@ variables:
   CONTROL_PLANE_MACHINE_COUNT: 1
   WORKER_MACHINE_COUNT: 1
   IP_FAMILY: "IPv4"
-  VSPHERE_TLS_THUMBPRINT: "4F:AF:22:BD:C8:B2:AC:DE:0A:04:71:02:D1:62:05:50:2B:A2:54:E9"
+  VSPHERE_TLS_THUMBPRINT: "9E:7F:01:3B:13:CF:B2:93:16:2C:31:6A:03:6A:D1:5D:C7:79:D8:DE"
   VSPHERE_DATACENTER:  "SDDC-Datacenter"
   VSPHERE_FOLDER: "clusterapi"
   VSPHERE_RESOURCE_POOL: "clusterapi"
@@ -168,6 +168,7 @@ variables:
   INIT_WITH_BINARY_V1ALPHA3: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.23/clusterctl-{OS}-{ARCH}"
   INIT_WITH_BINARY_V1ALPHA4: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.4/clusterctl-{OS}-{ARCH}"
   INIT_WITH_KUBERNETES_VERSION: "v1.19.1"
+  VSPHERE_INSECURE_CSI: "true"
 
 intervals:
   default/wait-controllers: ["5m", "10s"]

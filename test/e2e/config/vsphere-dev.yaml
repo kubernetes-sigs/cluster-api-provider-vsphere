@@ -183,6 +183,8 @@ variables:
   # VSPHERE_USERNAME:
   # Dedicated IP to be used by kube-vip
   # CONTROL_PLANE_ENDPOINT_IP:
+  # Sets the insecure-flag for vsphere-csi-controller config
+  VSPHERE_INSECURE_CSI: "true"
 
 intervals:
   default/wait-controllers: ["5m", "10s"]

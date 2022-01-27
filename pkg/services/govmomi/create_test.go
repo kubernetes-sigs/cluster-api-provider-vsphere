@@ -45,7 +45,7 @@ func TestCreate(t *testing.T) {
 	authSession, err := session.GetOrCreate(
 		vmContext,
 		logr.DiscardLogger{},
-		vmContext.VSphereVM.Spec.Server, "",
+		vmContext.VSphereVM.Spec.Server, "*",
 		simr.Username(), simr.Password(), "")
 	if err != nil {
 		t.Fatal(err)

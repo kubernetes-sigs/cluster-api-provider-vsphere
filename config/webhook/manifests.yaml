@@ -46,6 +46,26 @@ webhooks:
     resources:
     - vspherefailuredomains
   sideEffects: None
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-infrastructure-cluster-x-k8s-io-v1alpha3-vspheremachine
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: default.vspheremachine.infrastructure.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - infrastructure.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha3
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - vspheremachines
+  sideEffects: None
 
 ---
 apiVersion: admissionregistration.k8s.io/v1beta1

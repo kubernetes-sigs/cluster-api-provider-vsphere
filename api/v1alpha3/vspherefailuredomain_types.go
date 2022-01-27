@@ -57,7 +57,6 @@ type FailureDomain struct {
 }
 
 type Topology struct {
-	// The underlying infrastructure for this failure domain
 	// Datacenter as the failure domain
 	Datacenter string `json:"datacenter"`
 
@@ -90,6 +89,7 @@ type FailureDomainHosts struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=vspherefailuredomains,scope=Cluster,categories=cluster-api
 // +kubebuilder:storageversion
+
 // VSphereFailureDomain is the Schema for the vspherefailuredomains API
 type VSphereFailureDomain struct {
 	metav1.TypeMeta   `json:",inline"`

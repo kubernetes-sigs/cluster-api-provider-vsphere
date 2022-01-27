@@ -144,7 +144,7 @@ e2e: $(GINKGO) $(KUSTOMIZE) $(KIND) $(GOVC) ## Run e2e tests
 	@ls $(TOOLS_BIN_DIR)
 	@echo
 
-	time $(GINKGO) -v -skip="ClusterAPI Upgrade Tests" ./test/e2e -- --e2e.config="$(E2E_CONF_FILE)"
+	time $(GINKGO) -v -skip="ClusterAPI Upgrade Tests" ./test/e2e -- --e2e.config="$(E2E_CONF_FILE)" --e2e.artifacts-folder="$(ARTIFACTS_PATH)"
 
 .PHONY: e2e-upgrade
 e2e-upgrade: e2e-image e2e-templates

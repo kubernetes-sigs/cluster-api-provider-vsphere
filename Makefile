@@ -138,7 +138,7 @@ test-integration: $(GINKGO) $(KUSTOMIZE) $(KIND)
 .PHONY: e2e
 e2e: e2e-image e2e-templates
 e2e: $(GINKGO) $(KUSTOMIZE) $(KIND) $(GOVC) ## Run e2e tests
-	@echo PATH=$(PATH)
+	@echo PATH="$(PATH)"
 	@echo
 	@echo Contents of $(TOOLS_BIN_DIR):
 	@ls $(TOOLS_BIN_DIR)
@@ -149,7 +149,7 @@ e2e: $(GINKGO) $(KUSTOMIZE) $(KIND) $(GOVC) ## Run e2e tests
 .PHONY: e2e-upgrade
 e2e-upgrade: e2e-image e2e-templates
 e2e-upgrade: $(GINKGO) $(KUSTOMIZE) $(KIND) $(GOVC) ## Run e2e tests
-	@echo PATH=$(PATH)
+	@echo PATH="$(PATH)"
 	@echo
 	@echo Contents of $(TOOLS_BIN_DIR):
 	@ls $(TOOLS_BIN_DIR)

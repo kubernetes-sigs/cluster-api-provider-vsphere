@@ -40,6 +40,7 @@ func (src *VSphereMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 	dst.Spec.Template.Spec.TagIDs = restored.Spec.Template.Spec.TagIDs
+	dst.Spec.Template.Spec.AdditionalDisksGiB = restored.Spec.Template.Spec.AdditionalDisksGiB
 
 	return nil
 }

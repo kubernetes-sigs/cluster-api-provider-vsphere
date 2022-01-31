@@ -57,27 +57,18 @@ func TestGetDiskSpec(t *testing.T) {
 	}
 
 	testCases := []struct {
-		expectDevice  bool
-		cloneDiskSize int32
-		name          string
-		disks         object.VirtualDeviceList
-		err           string
+		expectDevice             bool
+		cloneDiskSize            int32
+		additionalCloneDiskSizes []int32
+		name                     string
+		disks                    object.VirtualDeviceList
+		err                      string
 	}{
 		{
 			name:          "Successfully clone template with correct disk requirements",
 			disks:         defaultDisks,
 			cloneDiskSize: defaultSizeGiB,
 			expectDevice:  true,
-		},
-		{
-			name:  "Fail to clone template without disk devices",
-			disks: object.VirtualDeviceList{},
-			err:   "invalid disk count: 0",
-		},
-		{
-			name:  "Fail to clone template with multiple disk devices",
-			disks: append(defaultDisks, defaultDisks...),
-			err:   "invalid disk count: 2",
 		},
 		{
 			name:          "Successfully clone template and increase disk requirements",
@@ -89,7 +80,27 @@ func TestGetDiskSpec(t *testing.T) {
 			name:          "Fail to clone template with lower disk requirements then on template",
 			disks:         defaultDisks,
 			cloneDiskSize: defaultSizeGiB - 1,
-			err:           "can't resize template disk down, initial capacity is larger: 6291456KiB > 4194304KiB",
+			err:           "Error getting disk config spec for primary disk: can't resize template disk down, initial capacity is larger: 6291456KiB > 4194304KiB",
+		},
+		{
+			name:  "Fail to clone template without disk devices",
+			disks: object.VirtualDeviceList{},
+			err:   "Invalid disk count: 0",
+		},
+		{
+			name:  "Successfully clone template with 2 correct disk requirements",
+			disks: append(defaultDisks, defaultDisks...),
+			// Disk sizes were bumped up by 1 in the previous test case, defaultSize + 1 is the defaultSize now.
+			cloneDiskSize:            defaultSizeGiB + 1,
+			additionalCloneDiskSizes: []int32{defaultSizeGiB + 1},
+			expectDevice:             true,
+		},
+		{
+			name:                     "Fails to clone template and decrease second disk size",
+			disks:                    append(defaultDisks, defaultDisks...),
+			cloneDiskSize:            defaultSizeGiB + 2,
+			additionalCloneDiskSizes: []int32{defaultSizeGiB},
+			err:                      "Error getting disk config spec for additional disk: can't resize template disk down, initial capacity is larger: 7340032KiB > 5242880KiB",
 		},
 	}
 
@@ -97,7 +108,8 @@ func TestGetDiskSpec(t *testing.T) {
 		tc := test
 		t.Run(tc.name, func(t *testing.T) {
 			cloneSpec := v1beta1.VirtualMachineCloneSpec{
-				DiskGiB: tc.cloneDiskSize,
+				DiskGiB:            tc.cloneDiskSize,
+				AdditionalDisksGiB: tc.additionalCloneDiskSizes,
 			}
 			vsphereVM := &v1beta1.VSphereVM{
 				Spec: v1beta1.VSphereVMSpec{
@@ -105,7 +117,7 @@ func TestGetDiskSpec(t *testing.T) {
 				},
 			}
 			vmContext := &context.VMContext{VSphereVM: vsphereVM}
-			device, err := getDiskSpec(vmContext, tc.disks)
+			devices, err := getDiskSpec(vmContext, tc.disks)
 			switch {
 			case tc.err != "" && err == nil:
 				fallthrough
@@ -114,21 +126,31 @@ func TestGetDiskSpec(t *testing.T) {
 			case err != nil && tc.err != err.Error():
 				t.Fatalf("Expected to get '%v' error from getDiskSpec, got: '%v'", tc.err, err)
 			}
-			if deviceFound := device != nil; tc.expectDevice != deviceFound {
-				t.Fatalf("Expected to get a device: %v, but got: '%#v'", tc.expectDevice, device)
+			if deviceFound := len(devices) != 0; tc.expectDevice != deviceFound {
+				t.Fatalf("Expected to get a device: %v, but got: '%#v'", tc.expectDevice, devices)
 			}
 			if tc.expectDevice {
-				disk := device.GetVirtualDeviceConfigSpec().Device.(*types.VirtualDisk) //nolint:forcetypeassert
-				expectedSizeKB := int64(tc.cloneDiskSize) * 1024 * 1024
-				if device.GetVirtualDeviceConfigSpec().Operation != types.VirtualDeviceConfigSpecOperationEdit {
-					t.Errorf("Disk operation does not match '%s', got: %s",
-						types.VirtualDeviceConfigSpecOperationEdit, device.GetVirtualDeviceConfigSpec().Operation)
-				}
-				if disk.CapacityInKB != expectedSizeKB {
-					t.Errorf("Disk size does not match: expected %d, got %d", expectedSizeKB, disk.CapacityInKB)
+				primaryDevice := devices[0]
+				validateDiskSpec(t, primaryDevice, tc.cloneDiskSize)
+				if len(tc.additionalCloneDiskSizes) != 0 {
+					secondaryDevice := devices[1]
+					validateDiskSpec(t, secondaryDevice, tc.additionalCloneDiskSizes[0])
 				}
 			}
 		})
+	}
+}
+
+func validateDiskSpec(t *testing.T, device types.BaseVirtualDeviceConfigSpec, cloneDiskSize int32) {
+	t.Helper()
+	disk := device.GetVirtualDeviceConfigSpec().Device.(*types.VirtualDisk)
+	expectedSizeKB := int64(cloneDiskSize) * 1024 * 1024
+	if device.GetVirtualDeviceConfigSpec().Operation != types.VirtualDeviceConfigSpecOperationEdit {
+		t.Errorf("Disk operation does not match '%s', got: %s",
+			types.VirtualDeviceConfigSpecOperationEdit, device.GetVirtualDeviceConfigSpec().Operation)
+	}
+	if disk.CapacityInKB != expectedSizeKB {
+		t.Errorf("Disk size does not match: expected %d, got %d", expectedSizeKB, disk.CapacityInKB)
 	}
 }
 

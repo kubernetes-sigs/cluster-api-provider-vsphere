@@ -1154,6 +1154,11 @@ func (in *VirtualMachine) DeepCopy() *VirtualMachine {
 func (in *VirtualMachineCloneSpec) DeepCopyInto(out *VirtualMachineCloneSpec) {
 	*out = *in
 	in.Network.DeepCopyInto(&out.Network)
+	if in.AdditionalDisksGiB != nil {
+		in, out := &in.AdditionalDisksGiB, &out.AdditionalDisksGiB
+		*out = make([]int32, len(*in))
+		copy(*out, *in)
+	}
 	if in.CustomVMXKeys != nil {
 		in, out := &in.CustomVMXKeys, &out.CustomVMXKeys
 		*out = make(map[string]string, len(*in))

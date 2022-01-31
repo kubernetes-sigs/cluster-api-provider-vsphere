@@ -838,6 +838,14 @@ spec:
           spec:
             description: VSphereMachineSpec defines the desired state of VSphereMachine
             properties:
+              additionalDisksGiB:
+                description: AdditionalDisksGiB holds the sizes of additional disks
+                  of the virtual machine, in GiB Defaults to the eponymous property
+                  value in the template from which the virtual machine is cloned.
+                items:
+                  format: int32
+                  type: integer
+                type: array
               cloneMode:
                 description: CloneMode specifies the type of clone operation. The
                   LinkedClone mode is only support for templates that have at least

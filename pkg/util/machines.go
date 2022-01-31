@@ -19,6 +19,7 @@ package util
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"net"
 	"regexp"
 	"text/template"
@@ -269,4 +270,26 @@ func ConvertUUIDToProviderID(uuid string) string {
 		return ""
 	}
 	return ProviderIDPrefix + uuid
+}
+
+// MachinesAsString constructs a string (with correct punctuations) to be
+// used in logging and error messages.
+func MachinesAsString(machines []*clusterv1.Machine) string {
+	var message string
+	count := 1
+	for _, m := range machines {
+		if count == 1 {
+			message = fmt.Sprintf("%s/%s", m.Namespace, m.Name)
+		} else {
+			var format string
+			if count > 1 && count != len(machines) {
+				format = "%s, %s/%s"
+			} else if count == len(machines) {
+				format = "%s and %s/%s"
+			}
+			message = fmt.Sprintf(format, message, m.Namespace, m.Name)
+		}
+		count++
+	}
+	return message
 }

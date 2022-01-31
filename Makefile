@@ -135,6 +135,8 @@ test-integration: e2e-image
 test-integration: $(GINKGO) $(KUSTOMIZE) $(KIND)
 	time $(GINKGO) -v ./test/integration -- --config="$(INTEGRATION_CONF_FILE)" --artifacts-folder="$(ARTIFACTS_PATH)"
 
+GINKGO_FOCUS ?=
+
 .PHONY: e2e
 e2e: e2e-image e2e-templates
 e2e: $(GINKGO) $(KUSTOMIZE) $(KIND) $(GOVC) ## Run e2e tests
@@ -143,18 +145,16 @@ e2e: $(GINKGO) $(KUSTOMIZE) $(KIND) $(GOVC) ## Run e2e tests
 	@echo Contents of $(TOOLS_BIN_DIR):
 	@ls $(TOOLS_BIN_DIR)
 	@echo
-
 	time $(GINKGO) -v -skip="ClusterAPI Upgrade Tests" ./test/e2e -- --e2e.config="$(E2E_CONF_FILE)" --e2e.artifacts-folder="$(ARTIFACTS_PATH)"
 
 .PHONY: e2e-upgrade
 e2e-upgrade: e2e-image e2e-templates
-e2e-upgrade: $(GINKGO) $(KUSTOMIZE) $(KIND) $(GOVC) ## Run e2e tests
+e2e-upgrade: $(GINKGO) $(KUSTOMIZE) $(KIND) $(GOVC) ## Run only upgrade e2e tests
 	@echo PATH="$(PATH)"
 	@echo
 	@echo Contents of $(TOOLS_BIN_DIR):
 	@ls $(TOOLS_BIN_DIR)
 	@echo
-
 	time $(GINKGO) -v -focus="ClusterAPI Upgrade Tests" ./test/e2e -- --e2e.config="$(E2E_CONF_FILE)"
 ## --------------------------------------
 ## Binaries

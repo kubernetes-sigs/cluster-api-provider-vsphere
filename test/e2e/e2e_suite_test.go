@@ -188,6 +188,15 @@ func setupSpecNamespace(specName string) *corev1.Namespace {
 }
 
 func cleanupSpecNamespace(namespace *corev1.Namespace) {
+	Byf("Dumping all the Cluster API resources in the %q namespace", namespace.Name)
+
+	// Dump all Cluster API related resources to artifacts before deleting them.
+	framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
+		Lister:    bootstrapClusterProxy.GetClient(),
+		Namespace: namespace.Name,
+		LogPath:   filepath.Join(artifactFolder, "clusters", bootstrapClusterProxy.GetName(), "resources"),
+	})
+
 	Byf("cleaning up namespace: %s", namespace.Name)
 	cancelWatches := namespaces[namespace]
 

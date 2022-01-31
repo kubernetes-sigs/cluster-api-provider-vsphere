@@ -496,44 +496,41 @@ func (r machineReconciler) reconcileNormalPre7(ctx *context.MachineContext, vsph
 // generateOverrideFunc returns a function which can override the values in the VSphereVM Spec
 // with the values from the FailureDomain (if any) set on the owner CAPI machine.
 func (r machineReconciler) generateOverrideFunc(ctx *context.MachineContext) (func(vm *infrav1.VSphereVM), bool) {
-	var overrideWithFailureDomainFunc func(vm *infrav1.VSphereVM)
-	if failureDomainName := ctx.Machine.Spec.FailureDomain; failureDomainName != nil {
-		var vsphereDeploymentZoneList infrav1.VSphereDeploymentZoneList
-		if err := r.Client.List(ctx, &vsphereDeploymentZoneList); err != nil {
-			r.Logger.Error(err, "unable to fetch list of deployment zones")
-			return overrideWithFailureDomainFunc, false
-		}
+	failureDomainName := ctx.Machine.Spec.FailureDomain
+	if failureDomainName == nil {
+		return nil, false
+	}
 
-		var vsphereFailureDomain infrav1.VSphereFailureDomain
-		if err := r.Client.Get(ctx, client.ObjectKey{Name: *failureDomainName}, &vsphereFailureDomain); err != nil {
-			r.Logger.Error(err, "unable to fetch failure domain", "name", *failureDomainName)
-			return overrideWithFailureDomainFunc, false
-		}
+	// Use the failureDomain name to fetch the vSphereDeploymentZone object
+	var vsphereDeploymentZone infrav1.VSphereDeploymentZone
+	if err := r.Client.Get(ctx, client.ObjectKey{Name: *failureDomainName}, &vsphereDeploymentZone); err != nil {
+		r.Logger.Error(err, "unable to fetch vsphere deployment zone", "name", *failureDomainName)
+		return nil, false
+	}
 
-		for index := range vsphereDeploymentZoneList.Items {
-			zone := vsphereDeploymentZoneList.Items[index]
-			if zone.Spec.FailureDomain == *failureDomainName {
-				overrideWithFailureDomainFunc = func(vm *infrav1.VSphereVM) {
-					vm.Spec.Server = zone.Spec.Server
-					vm.Spec.Datacenter = vsphereFailureDomain.Spec.Topology.Datacenter
-					if zone.Spec.PlacementConstraint.Folder != "" {
-						vm.Spec.Folder = zone.Spec.PlacementConstraint.Folder
-					}
-					if zone.Spec.PlacementConstraint.ResourcePool != "" {
-						vm.Spec.ResourcePool = zone.Spec.PlacementConstraint.ResourcePool
-					}
-					if vsphereFailureDomain.Spec.Topology.Datastore != "" {
-						vm.Spec.Datastore = vsphereFailureDomain.Spec.Topology.Datastore
-					}
-					if len(vsphereFailureDomain.Spec.Topology.Networks) > 0 {
-						vm.Spec.Network.Devices = overrideNetworkDeviceSpecs(vm.Spec.Network.Devices, vsphereFailureDomain.Spec.Topology.Networks)
-					}
-				}
-				return overrideWithFailureDomainFunc, true
-			}
+	var vsphereFailureDomain infrav1.VSphereFailureDomain
+	if err := r.Client.Get(ctx, client.ObjectKey{Name: vsphereDeploymentZone.Spec.FailureDomain}, &vsphereFailureDomain); err != nil {
+		r.Logger.Error(err, "unable to fetch failure domain", "name", vsphereDeploymentZone.Spec.FailureDomain)
+		return nil, false
+	}
+
+	overrideWithFailureDomainFunc := func(vm *infrav1.VSphereVM) {
+		vm.Spec.Server = vsphereDeploymentZone.Spec.Server
+		vm.Spec.Datacenter = vsphereFailureDomain.Spec.Topology.Datacenter
+		if vsphereDeploymentZone.Spec.PlacementConstraint.Folder != "" {
+			vm.Spec.Folder = vsphereDeploymentZone.Spec.PlacementConstraint.Folder
+		}
+		if vsphereDeploymentZone.Spec.PlacementConstraint.ResourcePool != "" {
+			vm.Spec.ResourcePool = vsphereDeploymentZone.Spec.PlacementConstraint.ResourcePool
+		}
+		if vsphereFailureDomain.Spec.Topology.Datastore != "" {
+			vm.Spec.Datastore = vsphereFailureDomain.Spec.Topology.Datastore
+		}
+		if len(vsphereFailureDomain.Spec.Topology.Networks) > 0 {
+			vm.Spec.Network.Devices = overrideNetworkDeviceSpecs(vm.Spec.Network.Devices, vsphereFailureDomain.Spec.Topology.Networks)
 		}
 	}
-	return overrideWithFailureDomainFunc, false
+	return overrideWithFailureDomainFunc, true
 }
 
 // overrideNetworkDeviceSpecs updates the network devices with the network definitions from the PlacementConstraint.

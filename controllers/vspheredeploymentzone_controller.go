@@ -24,14 +24,17 @@ import (
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -42,6 +45,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/identity"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=vspheredeploymentzones,verbs=get;list;watch;create;update;patch;delete
@@ -150,6 +154,9 @@ func (r vsphereDeploymentZoneReconciler) Reconcile(request reconcile.Request) (_
 }
 
 func (r vsphereDeploymentZoneReconciler) reconcileNormal(ctx *context.VSphereDeploymentZoneContext) (reconcile.Result, error) {
+
+	ctrlutil.AddFinalizer(ctx.VSphereDeploymentZone, infrav1.DeploymentZoneFinalizer)
+
 	authSession, err := r.getVCenterSession(ctx)
 	if err != nil {
 		ctx.Logger.V(4).Error(err, "unable to create session")
@@ -173,6 +180,24 @@ func (r vsphereDeploymentZoneReconciler) reconcileNormal(ctx *context.VSphereDep
 		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile failure domain")
 	}
 	conditions.MarkTrue(ctx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition)
+
+	// Ensure the VSphereDeploymentZone is marked as an owner of the VSphereFailureDomain.
+	if !clusterutilv1.HasOwnerRef(ctx.VSphereFailureDomain.GetOwnerReferences(), metav1.OwnerReference{
+		APIVersion: infrav1.GroupVersion.String(),
+		Kind:       "VSphereDeploymentZone",
+		Name:       ctx.VSphereDeploymentZone.Name,
+	}) {
+		if err := updateOwnerReferences(ctx, ctx.VSphereFailureDomain, r.Client, func() []metav1.OwnerReference {
+			return append(ctx.VSphereFailureDomain.OwnerReferences, metav1.OwnerReference{
+				APIVersion: infrav1.GroupVersion.String(),
+				Kind:       ctx.VSphereDeploymentZone.Kind,
+				Name:       ctx.VSphereDeploymentZone.Name,
+				UID:        ctx.VSphereDeploymentZone.UID,
+			})
+		}); err != nil {
+			return reconcile.Result{}, err
+		}
+	}
 
 	ctx.VSphereDeploymentZone.Status.Ready = pointer.BoolPtr(true)
 	return reconcile.Result{}, nil
@@ -226,7 +251,67 @@ func (r vsphereDeploymentZoneReconciler) getVCenterSession(ctx *context.VSphereD
 }
 
 func (r vsphereDeploymentZoneReconciler) reconcileDelete(ctx *context.VSphereDeploymentZoneContext) (reconcile.Result, error) {
+	r.Logger.Info("Deleting VSphereDeploymentZone")
+
+	machines := &clusterv1.MachineList{}
+	if err := r.Client.List(ctx, machines); err != nil {
+		r.Logger.Error(err, "unable to list machines")
+		return reconcile.Result{}, errors.Wrapf(err, "unable to list machines")
+	}
+
+	var machinesUsingDeploymentZone []clusterv1.Machine
+	for _, machine := range machines.Items {
+		if machine.DeletionTimestamp.IsZero() && *machine.Spec.FailureDomain == ctx.VSphereDeploymentZone.Name {
+			machinesUsingDeploymentZone = append(machinesUsingDeploymentZone, machine)
+		}
+	}
+
+	if len(machinesUsingDeploymentZone) > 0 {
+		machineNamesStr := util.MachinesAsString(machinesUsingDeploymentZone)
+		err := errors.Errorf("%s is currently in use by machines: %s", ctx.VSphereDeploymentZone.Name, machineNamesStr)
+		r.Logger.Error(err, "Error deleting VSphereDeploymentZone", "name", ctx.VSphereDeploymentZone.Name)
+		return reconcile.Result{}, err
+	}
+
+	if err := updateOwnerReferences(ctx, ctx.VSphereFailureDomain, r.Client, func() []metav1.OwnerReference {
+		return clusterutilv1.RemoveOwnerRef(ctx.VSphereFailureDomain.OwnerReferences, metav1.OwnerReference{
+			APIVersion: infrav1.GroupVersion.String(),
+			Kind:       ctx.VSphereDeploymentZone.Kind,
+			Name:       ctx.VSphereDeploymentZone.Name,
+		})
+	}); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	if len(ctx.VSphereFailureDomain.OwnerReferences) == 0 {
+		ctx.Logger.Info("deleting vsphereFailureDomain", "name", ctx.VSphereFailureDomain.Name)
+		if err := r.Client.Delete(ctx, ctx.VSphereFailureDomain); err != nil && !apierrors.IsNotFound(err) {
+			ctx.Logger.Error(err, "failed to delete related %s %s", ctx.VSphereFailureDomain.GroupVersionKind(), ctx.VSphereFailureDomain.Name)
+		}
+	}
+
+	ctrlutil.RemoveFinalizer(ctx.VSphereDeploymentZone, infrav1.DeploymentZoneFinalizer)
+
 	return reconcile.Result{}, nil
+}
+
+// updateOwnerReferences uses the ownerRef function to calculate the owner references
+// to be set on the object and patches the object.
+func updateOwnerReferences(ctx goctx.Context, obj *infrav1.VSphereFailureDomain, client client.Client, ownerRefFunc func() []metav1.OwnerReference) error {
+	patchHelper, err := patch.NewHelper(obj, client)
+	if err != nil {
+		return errors.Wrapf(err, "failed to init patch helper for %s %s",
+			obj.GetObjectKind(),
+			obj.GetName())
+	}
+
+	obj.SetOwnerReferences(ownerRefFunc())
+	if err := patchHelper.Patch(ctx, obj); err != nil {
+		return errors.Wrapf(err, "failed to patch object %s %s",
+			obj.GetObjectKind(),
+			obj.GetName())
+	}
+	return nil
 }
 
 func (r vsphereDeploymentZoneReconciler) failureDomainsToDeploymentZones(o handler.MapObject) []ctrl.Request {

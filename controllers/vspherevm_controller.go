@@ -159,7 +159,11 @@ func (r vmReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) 
 	if !clusterutilv1.HasOwner(vsphereVM.OwnerReferences, infrav1.GroupVersion.String(), []string{"HAProxyLoadBalancer"}) {
 		// Fetch the owner VSphereMachine.
 		vsphereMachine, err := util.GetOwnerVSphereMachine(r, r.Client, vsphereVM.ObjectMeta)
-		if err != nil {
+		// vsphereMachine can be nil in cases where custom mover other than clusterctl
+		// moves the resources without ownerreferences set
+		// in that case nil vsphereMachine can cause panic and CrashLoopBackOff the pod
+		// preventing vspheremachine_controller from setting the ownerref
+		if err != nil || vsphereMachine == nil {
 			r.Logger.Info("Owner VSphereMachine not found, won't reconcile", "key", req.NamespacedName)
 			return reconcile.Result{}, nil
 		}
@@ -175,9 +179,14 @@ func (r vmReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) 
 		}
 
 		if failureDomain := machine.Spec.FailureDomain; failureDomain != nil {
+			vsphereDeploymentZone := &infrav1.VSphereDeploymentZone{}
+			if err := r.Client.Get(r, apitypes.NamespacedName{Name: *failureDomain}, vsphereDeploymentZone); err != nil {
+				return reconcile.Result{}, errors.Wrapf(err, "failed to find vsphere deployment zone %s", *failureDomain)
+			}
+
 			vsphereFailureDomain = &infrav1.VSphereFailureDomain{}
-			if err := r.Client.Get(r, apitypes.NamespacedName{Name: *failureDomain}, vsphereFailureDomain); err != nil {
-				return reconcile.Result{}, errors.Wrapf(err, "failed to find vsphere failure domain %s", *failureDomain)
+			if err := r.Client.Get(r, apitypes.NamespacedName{Name: vsphereDeploymentZone.Spec.FailureDomain}, vsphereFailureDomain); err != nil {
+				return reconcile.Result{}, errors.Wrapf(err, "failed to find vsphere failure domain %s", vsphereDeploymentZone.Spec.FailureDomain)
 			}
 		}
 	}

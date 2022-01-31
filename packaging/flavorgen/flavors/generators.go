@@ -265,9 +265,8 @@ func kubeVIPPod() string {
 						},
 						{
 							// Interface that the vip should bind to
-							// this is hardcoded since we use eth0 as a network interface for all of our machines in this template
 							Name:  "vip_interface",
-							Value: "eth0",
+							Value: env.VipNetworkInterfaceVar,
 						},
 						{
 							// VIP IP address

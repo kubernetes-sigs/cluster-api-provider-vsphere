@@ -115,6 +115,7 @@ VSPHERE_RESOURCE_POOL: "*/Resources"                          # The vSphere reso
 VSPHERE_FOLDER: "vm"                                          # The VM folder for your VMs. Set to "" to use the root vSphere folder
 VSPHERE_TEMPLATE: "ubuntu-1804-kube-v1.17.3"                  # The VM template to use for your management cluster.
 CONTROL_PLANE_ENDPOINT_IP: "192.168.9.230"                    # the IP that kube-vip is going to use as a control plane endpoint
+VIP_NETWORK_INTERFACE: "ens192"                               # The interface that kube-vip should apply the IP to. Omit to tell kube-vip to autodetect the interface.
 VSPHERE_TLS_THUMBPRINT: "..."                                 # sha1 thumbprint of the vcenter certificate: openssl x509 -sha1 -fingerprint -in ca.crt -noout
 EXP_CLUSTER_RESOURCE_SET: "true"                              # This enables the ClusterResourceSet feature that we are using to deploy CSI
 VSPHERE_SSH_AUTHORIZED_KEY: "ssh-rsa AAAAB3N..."              # The public ssh authorized key on all machines

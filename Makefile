@@ -374,6 +374,24 @@ verify-boilerplate: ## Verifies all sources have appropriate boilerplate
 verify-crds: ## Verifies the committed CRDs are up-to-date
 	./hack/verify-crds.sh
 
+.PHONY: verify-gen
+verify-gen: generate  ## Verfiy go generated files are up to date
+	@if !(git diff --quiet HEAD); then \
+		git diff; \
+		echo "generated files are out of date, run make generate"; exit 1; \
+	fi
+
+.PHONY: verify-modules
+verify-modules: modules  ## Verify go modules are up to date
+	@if !(git diff --quiet HEAD -- go.sum go.mod $(TOOLS_DIR)/go.mod $(TOOLS_DIR)/go.sum); then \
+		git diff; \
+		echo "go module files are out of date"; exit 1; \
+	fi
+	@if (find . -name 'go.mod' | xargs -n1 grep -q -i 'k8s.io/client-go.*+incompatible'); then \
+		find . -name "go.mod" -exec grep -i 'k8s.io/client-go.*+incompatible' {} \; -print; \
+		echo "go module contains an incompatible client-go version"; exit 1; \
+	fi
+
 ## --------------------------------------
 ## Check
 ## --------------------------------------

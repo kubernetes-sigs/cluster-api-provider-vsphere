@@ -102,9 +102,5 @@ E2E_IMAGE_SHA=$(docker inspect --format='{{index .Id}}' gcr.io/k8s-staging-clust
 export E2E_IMAGE_SHA
 gsutil cp "$ARTIFACTS"/tempContainers/image.tar gs://capv-ci/"$E2E_IMAGE_SHA"
 
-# Run e2e-upgrade tests
-# TODO: move e2e-upgrade into its own prow job
-make e2e-upgrade
-
 # Run e2e tests
 make e2e

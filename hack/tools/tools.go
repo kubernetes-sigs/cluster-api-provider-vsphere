@@ -26,6 +26,7 @@ import (
 	_ "github.com/vmware/govmomi"
 	_ "github.com/vmware/govmomi/govc/flags"
 	_ "k8s.io/code-generator/cmd/conversion-gen"
+	_ "sigs.k8s.io/cluster-api/hack/tools"
 	_ "sigs.k8s.io/controller-tools/cmd/controller-gen"
 	_ "sigs.k8s.io/kind"
 	_ "sigs.k8s.io/kustomize/kustomize/v4"

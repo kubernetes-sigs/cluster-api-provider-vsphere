@@ -42,6 +42,7 @@ CONVERSION_GEN := $(BIN_DIR)/conversion-gen
 KIND := $(BIN_DIR)/kind
 GOVC := $(BIN_DIR)/govc
 GINKGO := $(BIN_DIR)/ginkgo
+CONVERSION_VERIFIER := $(BIN_DIR)/conversion-verifier
 
 ## --------------------------------------
 ## Help
@@ -81,6 +82,10 @@ $(KIND): go.mod
 kustomize: $(KUSTOMIZE) $(SRCS) ## Build kustomize
 $(KUSTOMIZE): go.mod
 	go build -tags=tools -o $@ sigs.k8s.io/kustomize/kustomize/v4
+
+conversion-verifier: $(CONVERSION_VERIFIER) $(SRCS) ## fetch CAPI's conversion verifier
+$(CONVERSION_VERIFIER): go.mod
+	go build -tags=tools -o $@ sigs.k8s.io/cluster-api/hack/tools/conversion-verifier
 
 ## --------------------------------------
 ## Generate

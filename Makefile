@@ -306,12 +306,50 @@ manifests:  $(STAGE)-version-check $(STAGE)-flavors $(MANIFEST_DIR) $(BUILD_DIR)
 	"$(KUSTOMIZE)" build $(BUILD_DIR)/config/default > $(MANIFEST_DIR)/infrastructure-components.yaml
 	"$(KUSTOMIZE)" build $(BUILD_DIR)/config/supervisor > $(MANIFEST_DIR)/infrastructure-components-supervisor.yaml
 
+## --------------------------------------
+## Verification
+## --------------------------------------
+
+.PHONY: verify
+verify: ## Runs all the verify targets
+	$(MAKE) verify-boilerplate
+	$(MAKE) verify-crds
+	$(MAKE) verify-gen
+	$(MAKE) verify-modules
+	$(MAKE) verify-conversions
+
+.PHONY: verify-boilerplate
+verify-boilerplate: ## Verifies all sources have appropriate boilerplate
+	./hack/verify-boilerplate.sh
+
+.PHONY: verify-crds
+verify-crds: ## Verifies the committed CRDs are up-to-date
+	./hack/verify-crds.sh
+
+.PHONY: verify-gen
+verify-gen: generate  ## Verfiy go generated files are up to date
+	@if !(git diff --quiet HEAD); then \
+		git diff; \
+		echo "generated files are out of date, run make generate"; exit 1; \
+	fi
+
+.PHONY: verify-modules
+verify-modules: modules  ## Verify go modules are up to date
+	@if !(git diff --quiet HEAD -- go.sum go.mod $(TOOLS_DIR)/go.mod $(TOOLS_DIR)/go.sum); then \
+		git diff; \
+		echo "go module files are out of date"; exit 1; \
+	fi
+	@if (find . -name 'go.mod' | xargs -n1 grep -q -i 'k8s.io/client-go.*+incompatible'); then \
+		find . -name "go.mod" -exec grep -i 'k8s.io/client-go.*+incompatible' {} \; -print; \
+		echo "go module contains an incompatible client-go version"; exit 1; \
+	fi
+
 .PHONY: verify-conversions
 verify-conversions: $(CONVERSION_VERIFIER)  ## Verifies expected API conversion are in place
 	$(CONVERSION_VERIFIER)
 
 ## --------------------------------------
-## Cleanup / Verification
+## Cleanup
 ## --------------------------------------
 
 .PHONY: flavors
@@ -362,37 +400,6 @@ clean-release: ## Remove the release folder
 clean-examples: ## Remove all the temporary files generated in the examples folder
 	rm -rf examples/_out/
 	rm -f examples/provider-components/provider-components-*.yaml
-
-.PHONY: verify
-verify: ## Runs all the verify targets
-	$(MAKE) verify-boilerplate
-	$(MAKE) verify-crds
-
-.PHONY: verify-boilerplate
-verify-boilerplate: ## Verifies all sources have appropriate boilerplate
-	./hack/verify-boilerplate.sh
-
-.PHONY: verify-crds
-verify-crds: ## Verifies the committed CRDs are up-to-date
-	./hack/verify-crds.sh
-
-.PHONY: verify-gen
-verify-gen: generate  ## Verfiy go generated files are up to date
-	@if !(git diff --quiet HEAD); then \
-		git diff; \
-		echo "generated files are out of date, run make generate"; exit 1; \
-	fi
-
-.PHONY: verify-modules
-verify-modules: modules  ## Verify go modules are up to date
-	@if !(git diff --quiet HEAD -- go.sum go.mod $(TOOLS_DIR)/go.mod $(TOOLS_DIR)/go.sum); then \
-		git diff; \
-		echo "go module files are out of date"; exit 1; \
-	fi
-	@if (find . -name 'go.mod' | xargs -n1 grep -q -i 'k8s.io/client-go.*+incompatible'); then \
-		find . -name "go.mod" -exec grep -i 'k8s.io/client-go.*+incompatible' {} \; -print; \
-		echo "go module contains an incompatible client-go version"; exit 1; \
-	fi
 
 ## --------------------------------------
 ## Check

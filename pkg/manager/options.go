@@ -25,7 +25,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
-	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/yaml"
 
@@ -92,10 +91,6 @@ type Options struct {
 }
 
 func (o *Options) defaults() {
-	if o.Logger == nil {
-		o.Logger = ctrllog.Log
-	}
-
 	if o.PodName == "" {
 		o.PodName = DefaultPodName
 	}
@@ -125,16 +120,16 @@ func (o *Options) defaults() {
 	}
 }
 
+// getCredentials looks up the credentials from the file-system
+// TODO: re-enable logger statements for lookup errors.
 func (o *Options) getCredentials() map[string]string {
 	file, err := os.ReadFile(o.CredentialsFile)
 	if err != nil {
-		o.Logger.Error(err, "error opening credentials file")
 		return map[string]string{}
 	}
 
 	credentials := map[string]string{}
 	if err := yaml.Unmarshal(file, &credentials); err != nil {
-		o.Logger.Error(err, "error unmarshaling credentials to yaml")
 		return map[string]string{}
 	}
 

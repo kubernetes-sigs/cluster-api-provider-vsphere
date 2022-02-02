@@ -13,3 +13,5 @@ require (
 	sigs.k8s.io/kustomize/kustomize/v4 v4.4.0
 	sigs.k8s.io/testing_frameworks v0.1.2
 )
+
+replace github.com/golangci/golangci-lint v1.43.0 => github.com/golangci/golangci-lint v1.44.0

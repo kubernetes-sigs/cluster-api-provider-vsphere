@@ -27,11 +27,10 @@ import (
 	v1 "k8s.io/api/core/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
+	v1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	apiv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	apiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	errors "sigs.k8s.io/cluster-api/errors"
-
-	v1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 )
 
 func init() {

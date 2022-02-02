@@ -86,7 +86,7 @@ func New(opts Options) (Manager, error) {
 		LeaderElectionNamespace: opts.LeaderElectionNamespace,
 		MaxConcurrentReconciles: opts.MaxConcurrentReconciles,
 		Client:                  mgr.GetClient(),
-		Logger:                  opts.Logger.WithName(opts.PodName),
+		Logger:                  mgr.GetLogger().WithName(opts.PodName),
 		Recorder:                record.New(mgr.GetEventRecorderFor(fmt.Sprintf("%s/%s", opts.PodNamespace, podName))),
 		Scheme:                  opts.Scheme,
 		Username:                opts.Username,

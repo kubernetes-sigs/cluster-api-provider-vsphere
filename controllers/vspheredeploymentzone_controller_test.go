@@ -335,7 +335,7 @@ func TestVsphereDeploymentZone_Failed_ReconcilePlacementConstraint(t *testing.T)
 						},
 					},
 				},
-				Logger: logr.DiscardLogger{},
+				Logger: logr.Discard(),
 			}
 
 			reconciler := vsphereDeploymentZoneReconciler{controllerCtx}

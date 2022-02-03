@@ -26,7 +26,6 @@ import (
 	"path/filepath"
 	"regexp"
 	goruntime "runtime"
-	"strings"
 
 	"github.com/onsi/ginkgo"
 	"github.com/vmware/govmomi/simulator"
@@ -248,20 +247,14 @@ func (t *TestEnvironment) CreateKubeconfigSecret(ctx goctx.Context, cluster *clu
 }
 
 func getFilePathToCAPICRDs(root string) string {
-	modBits, err := os.ReadFile(filepath.Join(root, "go.mod"))
+	mod, err := NewMod(filepath.Join(root, "go.mod"))
 	if err != nil {
 		return ""
 	}
 
-	var clusterAPIVersion string
-	for _, line := range strings.Split(string(modBits), "\n") {
-		matches := clusterAPIVersionRegex.FindStringSubmatch(line)
-		if len(matches) == 3 {
-			clusterAPIVersion = matches[2]
-		}
-	}
-
-	if clusterAPIVersion == "" {
+	packageName := "sigs.k8s.io/cluster-api"
+	clusterAPIVersion, err := mod.FindDependencyVersion(packageName)
+	if err != nil {
 		return ""
 	}
 

@@ -36,10 +36,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
@@ -50,17 +48,17 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 )
 
-const (
-	controllerName             = "provider-serviceaccount-controller"
-	kindProviderServiceAccount = "ProviderServiceAccount"
-	systemServiceAccountPrefix = "system.serviceaccount"
-)
-
 // +kubebuilder:rbac:groups=vmware.infrastructure.cluster.x-k8s.io,resources=providerserviceaccounts,verbs=get;list;watch;
 // +kubebuilder:rbac:groups=vmware.infrastructure.cluster.x-k8s.io,resources=providerserviceaccounts/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get
 // +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles;rolebindings,verbs=get;list;watch;create;update;patch;delete
+
+const (
+	controllerName             = "provider-serviceaccount-controller"
+	kindProviderServiceAccount = "ProviderServiceAccount"
+	systemServiceAccountPrefix = "system.serviceaccount"
+)
 
 // AddServiceAccountProviderControllerToManager adds this controller to the provided manager.
 func AddServiceAccountProviderControllerToManager(ctx *context.ControllerManagerContext, mgr manager.Manager) error {
@@ -76,68 +74,18 @@ func AddServiceAccountProviderControllerToManager(ctx *context.ControllerManager
 		Recorder:                 record.New(mgr.GetEventRecorderFor(controllerNameLong)),
 		Logger:                   ctx.Logger.WithName(controllerNameShort),
 	}
-	// When watching a VSphereCluster, we only care about Create and Update events.
-	clusterPredicates := predicate.Funcs{
-		CreateFunc: func(event.CreateEvent) bool { return true },
-		// Reconcile on update. Don't test for equality as the DefaultSyncTime reconciles happen through this path
-		UpdateFunc:  func(e event.UpdateEvent) bool { return true },
-		DeleteFunc:  func(event.DeleteEvent) bool { return false },
-		GenericFunc: func(event.GenericEvent) bool { return false },
-	}
-	// When watching a Cluster, we only care about Update events.
-	// Should not be necessary to watch Create events since we watch VSphereCluster Create and
-	//  there are no circumstances in which a VSphereCluster and Cluster can be created separately
-	capiClusterPredicates := predicate.Funcs{
-		CreateFunc: func(event.CreateEvent) bool { return false },
-		UpdateFunc: func(e event.UpdateEvent) bool {
-			for _, ownerRef := range e.ObjectNew.GetOwnerReferences() {
-				if ownerRef.Name == e.ObjectNew.GetName() {
-					// We don't have this check in VSphereCluster Update ensuring that every DefaultTimeSync
-					// we're guaranteed to have at least one Reconcile.
-					// If we didn't have this check here, we'd get at least two Reconciles every DefaultTimeSync
-					return e.ObjectOld.GetResourceVersion() != e.ObjectNew.GetResourceVersion()
-				}
-			}
-			return false
-		},
-		DeleteFunc:  func(event.DeleteEvent) bool { return false },
-		GenericFunc: func(event.GenericEvent) bool { return false },
-	}
-	vsphereCluster := &vmwarev1.VSphereCluster{}
 	r := ServiceAccountReconciler{
 		ControllerContext: controllerContext,
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).For(controlledType).
-		Watches(
-			&source.Kind{Type: &vmwarev1.VSphereCluster{}}, &handler.EnqueueRequestForObject{},
-		).
 		// Watch a ProviderServiceAccount
 		Watches(
-			&source.Kind{Type: &vmwarev1.ProviderServiceAccount{}}, &handler.EnqueueRequestForOwner{
-				OwnerType:    &vmwarev1.VSphereCluster{},
-				IsController: true,
-			}).
+			&source.Kind{Type: &vmwarev1.ProviderServiceAccount{}}, &handler.EnqueueRequestForObject{}).
 		Watches(
 			&source.Kind{Type: &corev1.ServiceAccount{}},
-			handler.EnqueueRequestsFromMapFunc(requestMapper{ctx: controllerContext.ControllerManagerContext}.Map),
+			handler.EnqueueRequestsFromMapFunc(requestMapper{ctx}.Map),
 		).
-		Watches(
-			&source.Kind{Type: &rbacv1.Role{}},
-			handler.EnqueueRequestsFromMapFunc(requestMapper{ctx: controllerContext.ControllerManagerContext}.Map),
-		).
-		Watches(
-			&source.Kind{Type: &rbacv1.RoleBinding{}},
-			handler.EnqueueRequestsFromMapFunc(requestMapper{ctx: controllerContext.ControllerManagerContext}.Map),
-		).
-		WithEventFilter(clusterPredicates).
-		// watch the CAPI cluster
-		Watches(
-			&source.Kind{Type: &clusterv1.Cluster{}}, &handler.EnqueueRequestForOwner{
-				OwnerType:    vsphereCluster,
-				IsController: true,
-			}).
-		WithEventFilter(capiClusterPredicates).
 		Complete(r)
 }
 
@@ -146,7 +94,7 @@ type requestMapper struct {
 }
 
 func (d requestMapper) Map(o client.Object) []reconcile.Request {
-	// If the watched object [role|rolebinding|serviceaccount] is owned by this providerserviceaccount controller, then
+	// If the watched object is owned by this providerserviceaccount controller, then
 	// lookup the vsphere cluster that owns the providerserviceaccount object that needs to be queued. We do this because
 	// this controller is effectively a vsphere controller which reconciles it's dependent providerserviceaccounts.
 	ownerRef := metav1.GetControllerOf(o)
@@ -171,7 +119,7 @@ func getVSphereCluster(ctx *context.ControllerManagerContext, pSvcAccountKey typ
 	return []reconcile.Request{{NamespacedName: key}}
 }
 
-func newServiceAccountReconciler() builder.Reconciler {
+func NewServiceAccountReconciler() builder.Reconciler {
 	return ServiceAccountReconciler{}
 }
 
@@ -223,8 +171,6 @@ func (r ServiceAccountReconciler) Reconcile(ctx goctx.Context, req reconcile.Req
 			}
 		}
 	}()
-
-	// This type of controller doesn't care about delete events.
 	if !vsphereCluster.DeletionTimestamp.IsZero() {
 		return r.ReconcileDelete(clusterContext)
 	}
@@ -267,7 +213,6 @@ func (r ServiceAccountReconciler) ReconcileDelete(ctx *vmwarecontext.ClusterCont
 
 func (r ServiceAccountReconciler) ReconcileNormal(ctx *vmwarecontext.GuestClusterContext) (_ reconcile.Result, reterr error) {
 	ctx.Logger.V(4).Info("Reconciling Provider ServiceAccount", "cluster", ctx.VSphereCluster.Name)
-
 	defer func() {
 		if reterr != nil {
 			conditions.MarkFalse(ctx.VSphereCluster, vmwarev1.ProviderServiceAccountsReadyCondition, vmwarev1.ProviderServiceAccountsReconciliationFailedReason,
@@ -298,7 +243,6 @@ func (r ServiceAccountReconciler) ensureProviderServiceAccounts(ctx *vmwareconte
 		if err := r.ensureServiceAccount(ctx.ClusterContext, pSvcAccount); err != nil {
 			return errors.Wrapf(err, "unable to create provider serviceaccount %s", pSvcAccount.Name)
 		}
-
 		// 2. Update configmap with serviceaccount
 		if err := r.ensureServiceAccountConfigMap(ctx.ClusterContext, pSvcAccount); err != nil {
 			return errors.Wrapf(err, "unable to sync configmap for provider serviceaccount %s", pSvcAccount.Name)
@@ -518,7 +462,7 @@ func getProviderServiceAccounts(ctx *vmwarecontext.ClusterContext) ([]vmwarev1.P
 
 	for _, pSvcAccount := range pSvcAccountList.Items {
 		// step to clean up the target secret in the guest cluster. Note: when the provider service account is deleted
-		// all the associated [serviceaccount|role|rolebindings] are deleted. Hence, the bearer token in the target
+		// all the associated serviceaccounts are deleted. Hence, the bearer token in the target
 		// secret will be rendered invalid. Still, it's a good practice to delete the secret that we created.
 		if pSvcAccount.DeletionTimestamp != nil {
 			continue

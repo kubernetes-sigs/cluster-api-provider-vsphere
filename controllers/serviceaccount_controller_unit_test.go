@@ -22,7 +22,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/builder"
@@ -35,13 +35,13 @@ func unitTestsReconcileNormal() {
 	var (
 		ctx            *builder.UnitTestContextForController
 		vsphereCluster *vmwarev1.VSphereCluster
-		initObjects    []runtime.Object
+		initObjects    []client.Object
 	)
 
 	JustBeforeEach(func() {
 		// Note: The service account provider requires a reference to the vSphereCluster hence the need to create
 		// a fake vSphereCluster in the test and pass it to during context setup.
-		ctx = serviceAccountProviderTestsuite.NewUnitTestContextForControllerWithVSphereCluster(vsphereCluster, false, initObjects...)
+		ctx = ServiceAccountProviderTestsuite.NewUnitTestContextForControllerWithVSphereCluster(vsphereCluster, false, initObjects...)
 	})
 	AfterEach(func() {
 		ctx = nil
@@ -62,7 +62,7 @@ func unitTestsReconcileNormal() {
 			vsphereCluster.Namespace = testNS
 			_ = os.Setenv("SERVICE_ACCOUNTS_CM_NAMESPACE", testSystemSvcAcctNs)
 			_ = os.Setenv("SERVICE_ACCOUNTS_CM_NAME", testSystemSvcAcctCM)
-			initObjects = []runtime.Object{
+			initObjects = []client.Object{
 				getSystemServiceAccountsConfigMap(testSystemSvcAcctNs, testSystemSvcAcctCM),
 				getTestProviderServiceAccount(testNS, testProviderSvcAccountName, vsphereCluster),
 			}
@@ -80,7 +80,7 @@ func unitTestsReconcileNormal() {
 		Context("When serviceaccount secret is modified", func() {
 			It("Should reconcile", func() {
 				// This is to simulate an outdated token that will be replaced when the serviceaccount secret is created.
-				createTargetSecretWithInvalidToken(ctx, ctx.GuestClient)
+				createTargetSecretWithInvalidToken(ctx, ctx.GuestClient, testTargetNS)
 				updateServiceAccountSecretAndReconcileNormal(ctx)
 				By("Updating the target secret in the target namespace")
 				assertTargetSecret(ctx, ctx.GuestClient, testTargetNS, testTargetSecret)

@@ -28,7 +28,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterutil1v1 "sigs.k8s.io/cluster-api/util"
@@ -528,13 +527,13 @@ func TestClusterReconciler_ReconcileDeploymentZones(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		initObjs   []runtime.Object
+		initObjs   []client.Object
 		reconciled bool
 		assert     func(*infrav1.VSphereCluster)
 	}{
 		{
 			name: "with deployment zone status not reported",
-			initObjs: []runtime.Object{
+			initObjs: []client.Object{
 				deploymentZone(server, "zone-1", pointer.Bool(false), nil),
 				deploymentZone(server, "zone-2", pointer.Bool(true), pointer.Bool(false)),
 			},
@@ -546,7 +545,7 @@ func TestClusterReconciler_ReconcileDeploymentZones(t *testing.T) {
 		{
 			name:       "with some deployment zones statuses as not ready",
 			reconciled: true,
-			initObjs: []runtime.Object{
+			initObjs: []client.Object{
 				deploymentZone(server, "zone-1", pointer.Bool(false), pointer.Bool(false)),
 				deploymentZone(server, "zone-2", pointer.Bool(true), pointer.Bool(true)),
 			},
@@ -558,7 +557,7 @@ func TestClusterReconciler_ReconcileDeploymentZones(t *testing.T) {
 		{
 			name:       "with all deployment zone statuses as ready",
 			reconciled: true,
-			initObjs: []runtime.Object{
+			initObjs: []client.Object{
 				deploymentZone(server, "zone-1", pointer.Bool(false), pointer.Bool(true)),
 				deploymentZone(server, "zone-2", pointer.Bool(true), pointer.Bool(true)),
 			},

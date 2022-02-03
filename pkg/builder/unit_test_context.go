@@ -20,7 +20,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	vmoprv1 "github.com/vmware-tanzu/vm-operator-api/api/v1alpha1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
@@ -47,13 +46,9 @@ type UnitTestContextForController struct {
 // NewUnitTestContextForController returns a new UnitTestContextForController
 // with an optional prototype cluster for unit testing controllers that do not
 // invoke the VSphereCluster spec controller.
-func NewUnitTestContextForController(newReconcilerFn NewReconcilerFunc,
-	vSphereCluster *vmwarev1.VSphereCluster,
-	prototypeCluster bool,
-	initObjects,
-	gcInitObjects []runtime.Object) *UnitTestContextForController {
+func NewUnitTestContextForController(newReconcilerFn NewReconcilerFunc, vSphereCluster *vmwarev1.VSphereCluster,
+	prototypeCluster bool, initObjects, gcInitObjects []client.Object) *UnitTestContextForController {
 	reconciler := newReconcilerFn()
-
 	ctx := &UnitTestContextForController{
 		GuestClusterContext: fake.NewGuestClusterContext(fake.NewVmwareClusterContext(
 			fake.NewControllerContext(

@@ -24,9 +24,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"regexp"
 	goruntime "runtime"
-	"strings"
 
 	"github.com/onsi/ginkgo"
 	"github.com/vmware/govmomi/simulator"
@@ -70,9 +68,8 @@ func init() {
 }
 
 var (
-	scheme                 = runtime.NewScheme()
-	env                    *envtest.Environment
-	clusterAPIVersionRegex = regexp.MustCompile(`^(\W)sigs.k8s.io/cluster-api v(.+)`)
+	scheme = runtime.NewScheme()
+	env    *envtest.Environment
 )
 
 func init() {
@@ -248,25 +245,19 @@ func (t *TestEnvironment) CreateKubeconfigSecret(ctx goctx.Context, cluster *clu
 }
 
 func getFilePathToCAPICRDs(root string) string {
-	modBits, err := os.ReadFile(filepath.Join(root, "go.mod"))
+	mod, err := NewMod(filepath.Join(root, "go.mod"))
 	if err != nil {
 		return ""
 	}
 
-	var clusterAPIVersion string
-	for _, line := range strings.Split(string(modBits), "\n") {
-		matches := clusterAPIVersionRegex.FindStringSubmatch(line)
-		if len(matches) == 3 {
-			clusterAPIVersion = matches[2]
-		}
-	}
-
-	if clusterAPIVersion == "" {
+	packageName := "sigs.k8s.io/cluster-api"
+	clusterAPIVersion, err := mod.FindDependencyVersion(packageName)
+	if err != nil {
 		return ""
 	}
 
 	gopath := envOr("GOPATH", build.Default.GOPATH)
-	return filepath.Join(gopath, "pkg", "mod", "sigs.k8s.io", fmt.Sprintf("cluster-api@v%s", clusterAPIVersion), "config", "crd", "bases")
+	return filepath.Join(gopath, "pkg", "mod", "sigs.k8s.io", fmt.Sprintf("cluster-api@%s", clusterAPIVersion), "config", "crd", "bases")
 }
 
 func envOr(envKey, defaultValue string) string {

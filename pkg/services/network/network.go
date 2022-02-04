@@ -318,7 +318,7 @@ func (np *nsxtNetworkProvider) GetVMServiceAnnotations(ctx *vmware.ClusterContex
 
 // ConfigureVirtualMachine configures a VirtualMachine object based on the networking configuration.
 func (np *nsxtNetworkProvider) ConfigureVirtualMachine(ctx *vmware.ClusterContext, vm *vmopv1.VirtualMachine) error {
-	nsxtClusterNetworkName := GetNSXTVirtualNetworkName(ctx.Cluster.Name)
+	nsxtClusterNetworkName := GetNSXTVirtualNetworkName(ctx.VSphereCluster.Name)
 	for _, vnif := range vm.Spec.NetworkInterfaces {
 		if vnif.NetworkType == NSXTTypeNetwork && vnif.NetworkName == nsxtClusterNetworkName {
 			// expected network interface is already found

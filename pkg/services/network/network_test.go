@@ -179,6 +179,7 @@ var _ = Describe("Network provider", func() {
 			})
 			AfterEach(func() {
 				Expect(err).To(BeNil())
+				Expect(vm.Spec.NetworkInterfaces[0].NetworkName).To(Equal(GetNSXTVirtualNetworkName(vSphereCluster.Name)))
 				Expect(vm.Spec.NetworkInterfaces[0].NetworkType).To(Equal("nsx-t"))
 			})
 		})

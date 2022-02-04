@@ -252,7 +252,7 @@ func kubeVIPPod() string {
 			Containers: []corev1.Container{
 				{
 					Name:            "kube-vip",
-					Image:           "ghcr.io/kube-vip/kube-vip:v0.4.0",
+					Image:           "ghcr.io/kube-vip/kube-vip:v0.4.1",
 					ImagePullPolicy: corev1.PullIfNotPresent,
 					Args: []string{
 						"manager",
@@ -309,7 +309,6 @@ func kubeVIPPod() string {
 						Capabilities: &corev1.Capabilities{
 							Add: []corev1.Capability{
 								"NET_ADMIN",
-								"SYS_TIME",
 								"NET_RAW",
 							},
 						},

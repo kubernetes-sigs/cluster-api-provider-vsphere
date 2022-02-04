@@ -177,8 +177,7 @@ func (np *netopNetworkProvider) ConfigureVirtualMachine(ctx *vmware.ClusterConte
 }
 
 func (np *netopNetworkProvider) VerifyNetworkStatus(ctx *vmware.ClusterContext, obj runtime.Object) error {
-	_, ok := obj.(*netopv1.Network)
-	if !ok {
+	if _, ok := obj.(*netopv1.Network); !ok {
 		return fmt.Errorf("expected Net Operator Network but got %T", obj)
 	}
 

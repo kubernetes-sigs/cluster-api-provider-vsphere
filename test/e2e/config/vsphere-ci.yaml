@@ -147,6 +147,7 @@ providers:
         files:
           # Add a cluster template
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-conformance.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-remote-management.yaml"
           - sourcePath: "../../../metadata.yaml"
 
@@ -169,6 +170,7 @@ variables:
   INIT_WITH_BINARY_V1ALPHA4: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.4/clusterctl-{OS}-{ARCH}"
   INIT_WITH_KUBERNETES_VERSION: "v1.19.1"
   VSPHERE_INSECURE_CSI: "true"
+  KUBETEST_CONFIGURATION: "./data/kubetest/conformance.yaml"
 
 intervals:
   default/wait-controllers: ["5m", "10s"]

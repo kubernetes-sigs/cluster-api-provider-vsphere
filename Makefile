@@ -130,6 +130,7 @@ e2e-templates: ## Generate e2e cluster templates
 	cp $(RELEASE_DIR)/cluster-template.yaml $(E2E_TEMPLATE_DIR)/kustomization/base/cluster-template.yaml
 	"$(KUSTOMIZE)" build $(E2E_TEMPLATE_DIR)/kustomization/base > $(E2E_TEMPLATE_DIR)/cluster-template.yaml
 	"$(KUSTOMIZE)" build $(E2E_TEMPLATE_DIR)/kustomization/remote-management > $(E2E_TEMPLATE_DIR)/cluster-template-remote-management.yaml
+	"$(KUSTOMIZE)" build $(E2E_TEMPLATE_DIR)/kustomization/conformance > $(E2E_TEMPLATE_DIR)/cluster-template-conformance.yaml
 
 .PHONY: test-integration
 test-integration: e2e-image

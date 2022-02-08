@@ -118,7 +118,7 @@ help: ## Display this help
 .PHONY: test
 test: $(GOVC)
 	$(MAKE) generate lint-go
-	source ./hack/fetch_ext_bins.sh; fetch_tools; setup_envs; export GOVC_BIN_PATH=$(GOVC); go test -v ./apis/... ./controllers/... ./pkg/...
+	source ./hack/fetch_ext_bins.sh; fetch_tools; setup_envs; export GOVC_BIN_PATH=$(GOVC); go test -v ./apis/... ./controllers/... ./pkg/... $(TEST_ARGS)
 
 .PHONY: e2e-image
 e2e-image: ## Build the e2e manager image
@@ -154,6 +154,12 @@ e2e: $(GINKGO) $(KUSTOMIZE) $(KIND) $(GOVC) ## Run e2e tests
 	@ls $(TOOLS_BIN_DIR)
 	@echo
 	time $(GINKGO) -v  -focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) ./test/e2e -- --e2e.config="$(E2E_CONF_FILE)" --e2e.artifacts-folder="$(ARTIFACTS_PATH)"
+
+.PHONY: test-cover
+test-cover: ## Run tests with code coverage and code generate  reports
+	$(MAKE) test TEST_ARGS="$(TEST_ARGS) -coverprofile=coverage.out"
+	go tool cover -func=coverage.out -o coverage.txt
+	go tool cover -html=coverage.out -o coverage.html
 
 ## --------------------------------------
 ## Binaries

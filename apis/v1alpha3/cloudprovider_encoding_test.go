@@ -29,7 +29,7 @@ import (
 var unmarshalWarnAsFatal = []v1alpha3.UnmarshalINIOptionFunc{v1alpha3.WarnAsFatal}
 
 func errDeprecated(section, key string) error {
-	return errors.Errorf("warning:\ncan't store data at section \"%s\", variable \"%s\"\n", section, key)
+	return errors.Errorf("warning:\ncan't store data at section \"%s\", variable \"%s\"\n", section, key) //nolint:revive
 }
 
 type codecTestCase struct {

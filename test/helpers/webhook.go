@@ -41,9 +41,9 @@ const (
 
 // Mutate the name of each webhook, because kubebuilder generates the same name for all controllers.
 // In normal usage, kustomize will prefix the controller name, which we have to do manually here.
-func appendWebhookConfiguration(configyamlFile []byte, tag string) ([]v1.MutatingWebhookConfiguration, []v1.ValidatingWebhookConfiguration, error) {
-	var mutatingWebhooks []v1.MutatingWebhookConfiguration
-	var validatingWebhooks []v1.ValidatingWebhookConfiguration
+func appendWebhookConfiguration(configyamlFile []byte, tag string) ([]*v1.MutatingWebhookConfiguration, []*v1.ValidatingWebhookConfiguration, error) {
+	var mutatingWebhooks []*v1.MutatingWebhookConfiguration
+	var validatingWebhooks []*v1.ValidatingWebhookConfiguration
 	objs, err := utilyaml.ToUnstructured(configyamlFile)
 	if err != nil {
 		klog.Fatalf("failed to parse yaml")
@@ -59,7 +59,7 @@ func appendWebhookConfiguration(configyamlFile []byte, tag string) ([]v1.Mutatin
 				if err := scheme.Convert(&o, &m, nil); err != nil {
 					return nil, nil, err
 				}
-				mutatingWebhooks = append(mutatingWebhooks, m)
+				mutatingWebhooks = append(mutatingWebhooks, &m)
 			}
 		}
 		if o.GetKind() == validatingWebhookKind {
@@ -70,7 +70,7 @@ func appendWebhookConfiguration(configyamlFile []byte, tag string) ([]v1.Mutatin
 				if err := scheme.Convert(&o, &v, nil); err != nil {
 					return nil, nil, err
 				}
-				validatingWebhooks = append(validatingWebhooks, v)
+				validatingWebhooks = append(validatingWebhooks, &v)
 			}
 		}
 	}

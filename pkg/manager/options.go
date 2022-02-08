@@ -90,7 +90,7 @@ type Options struct {
 }
 
 func (o *Options) defaults() {
-	if o.Logger == nil {
+	if o.Logger.GetSink() == nil {
 		o.Logger = ctrllog.Log
 	}
 

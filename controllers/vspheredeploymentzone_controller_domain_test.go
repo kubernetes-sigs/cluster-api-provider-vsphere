@@ -95,7 +95,7 @@ func ForComputeClusterZone(t *testing.T) {
 	deploymentZoneCtx := &context.VSphereDeploymentZoneContext{
 		ControllerContext:    controllerCtx,
 		VSphereFailureDomain: vsphereFailureDomain,
-		Logger:               logr.DiscardLogger{},
+		Logger:               logr.Discard(),
 		AuthSession:          authSession,
 	}
 
@@ -179,7 +179,7 @@ func ForHostGroupZone(t *testing.T) {
 	deploymentZoneCtx := &context.VSphereDeploymentZoneContext{
 		ControllerContext:    controllerCtx,
 		VSphereFailureDomain: vsphereFailureDomain,
-		Logger:               logr.DiscardLogger{},
+		Logger:               logr.Discard(),
 		AuthSession:          authSession,
 	}
 
@@ -290,7 +290,7 @@ func TestVsphereDeploymentZoneReconciler_Reconcile_CreateAndAttachMetadata(t *te
 		deploymentZoneCtx := &context.VSphereDeploymentZoneContext{
 			ControllerContext:    controllerCtx,
 			VSphereFailureDomain: vsphereFailureDomain,
-			Logger:               logr.DiscardLogger{},
+			Logger:               logr.Discard(),
 			AuthSession:          authSession,
 		}
 
@@ -311,7 +311,7 @@ func TestVsphereDeploymentZoneReconciler_Reconcile_CreateAndAttachMetadata(t *te
 		deploymentZoneCtx := &context.VSphereDeploymentZoneContext{
 			ControllerContext:    controllerCtx,
 			VSphereFailureDomain: vsphereFailureDomain,
-			Logger:               logr.DiscardLogger{},
+			Logger:               logr.Discard(),
 			AuthSession:          authSession,
 		}
 
@@ -332,7 +332,7 @@ func TestVsphereDeploymentZoneReconciler_Reconcile_CreateAndAttachMetadata(t *te
 		deploymentZoneCtx := &context.VSphereDeploymentZoneContext{
 			ControllerContext:    controllerCtx,
 			VSphereFailureDomain: vsphereFailureDomain,
-			Logger:               logr.DiscardLogger{},
+			Logger:               logr.Discard(),
 			AuthSession:          authSession,
 		}
 

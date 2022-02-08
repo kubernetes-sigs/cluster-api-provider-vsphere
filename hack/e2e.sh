@@ -75,7 +75,7 @@ sleep 30
 
 # Retrieve an IP to be used as the kube-vip IP
 KUBECONFIG="/root/ipam-conf/capv-services.conf"
-IPCLAIM_NAME="ip-claim-$(date +%s)"
+IPCLAIM_NAME="ip-claim-$(openssl rand -hex 20)"
 sed "s/IPCLAIM_NAME/${IPCLAIM_NAME}/" "${REPO_ROOT}/hack/ipclaim-template.yaml" | kubectl --kubeconfig=${KUBECONFIG} create -f -
 
 IPADDRESS_NAME=$(kubectl --kubeconfig=${KUBECONFIG} get ipclaim "${IPCLAIM_NAME}" -o=jsonpath='{@.status.address.name}')
@@ -84,7 +84,7 @@ export CONTROL_PLANE_ENDPOINT_IP
 echo "Acquired Control Plane IP: $CONTROL_PLANE_ENDPOINT_IP"
 
 # Retrieve an IP to be used for the workload cluster in v1a3/v1a4 -> v1b1 upgrade tests
-WORKLOAD_IPCLAIM_NAME="workload-ip-claim-$(date +%s)"
+WORKLOAD_IPCLAIM_NAME="workload-ip-claim-$(openssl rand -hex 20)"
 sed "s/IPCLAIM_NAME/${WORKLOAD_IPCLAIM_NAME}/" "${REPO_ROOT}/hack/ipclaim-template.yaml" | kubectl --kubeconfig=${KUBECONFIG} create -f -
 WORKLOAD_IPADDRESS_NAME=$(kubectl --kubeconfig=${KUBECONFIG} get ipclaim "${WORKLOAD_IPCLAIM_NAME}" -o=jsonpath='{@.status.address.name}')
 WORKLOAD_CONTROL_PLANE_ENDPOINT_IP=$(kubectl --kubeconfig=${KUBECONFIG} get ipaddresses "${WORKLOAD_IPADDRESS_NAME}" -o=jsonpath='{@.spec.address}')

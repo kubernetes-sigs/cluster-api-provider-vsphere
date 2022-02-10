@@ -267,16 +267,18 @@ func (r clusterReconciler) reconcileIdentitySecret(ctx *context.ClusterContext) 
 
 		// check if cluster is already an owner
 		if !clusterutilv1.IsOwnedByObject(secret, vsphereCluster) {
-			if len(secret.GetOwnerReferences()) > 0 {
+			ownerReferences := secret.GetOwnerReferences()
+			if identity.IsOwnedByIdentityOrCluster(ownerReferences) {
 				return fmt.Errorf("another cluster has set the OwnerRef for secret: %s/%s", secret.Namespace, secret.Name)
 			}
+			ownerReferences = append(ownerReferences, metav1.OwnerReference{
+				APIVersion: infrav1.GroupVersion.String(),
+				Kind:       vsphereCluster.Kind,
+				Name:       vsphereCluster.Name,
+				UID:        vsphereCluster.UID,
+			})
+			secret.SetOwnerReferences(ownerReferences)
 		}
-		secret.SetOwnerReferences([]metav1.OwnerReference{{
-			APIVersion: infrav1.GroupVersion.String(),
-			Kind:       vsphereCluster.Kind,
-			Name:       vsphereCluster.Name,
-			UID:        vsphereCluster.UID,
-		}})
 		if !ctrlutil.ContainsFinalizer(secret, infrav1.SecretIdentitySetFinalizer) {
 			ctrlutil.AddFinalizer(secret, infrav1.SecretIdentitySetFinalizer)
 		}

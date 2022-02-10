@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -127,6 +128,20 @@ func IsSecretIdentity(cluster *infrav1.VSphereCluster) bool {
 	}
 
 	return cluster.Spec.IdentityRef.Kind == infrav1.SecretKind
+}
+
+func IsOwnedByIdentityOrCluster(ownerReferences []metav1.OwnerReference) bool {
+	if len(ownerReferences) > 0 {
+		for _, ownerReference := range ownerReferences {
+			if !strings.Contains(ownerReference.APIVersion, infrav1.GroupName+"/") {
+				continue
+			}
+			if ownerReference.Kind == "VSphereCluster" || ownerReference.Kind == "VSphereClusterIdentity" {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func getData(secret *apiv1.Secret, key string) string {

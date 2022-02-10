@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/env"
 )
 
 // NOTE: the contents of this file are derived from https://github.com/kubernetes/cloud-provider-vsphere/tree/master/manifests/controller-manager
@@ -35,7 +36,7 @@ const (
 func CloudControllerManagerServiceAccount() *corev1.ServiceAccount {
 	return &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "cloud-controller-manager",
+			Name:      env.ClusterNameVar + "-" + "cloud-controller-manager",
 			Namespace: "kube-system",
 		},
 	}
@@ -45,7 +46,7 @@ func CloudControllerManagerServiceAccount() *corev1.ServiceAccount {
 func CloudControllerManagerService() *corev1.Service {
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "cloud-controller-manager",
+			Name:      env.ClusterNameVar + "-" + "cloud-controller-manager",
 			Namespace: "kube-system",
 			Labels: map[string]string{
 				"component": "cloud-controller-manager",
@@ -127,7 +128,7 @@ func CloudControllerManagerDaemonSet(image string, args []string) *appsv1.Daemon
 							Effect: corev1.TaintEffectNoSchedule,
 						},
 					},
-					ServiceAccountName: "cloud-controller-manager",
+					ServiceAccountName: env.ClusterNameVar + "-" + "cloud-controller-manager",
 					Containers: []corev1.Container{
 						{
 							Name:  "vsphere-cloud-controller-manager",
@@ -240,13 +241,13 @@ func CloudControllerManagerRoleBinding() *rbacv1.RoleBinding {
 			{
 				APIGroup:  "",
 				Kind:      "ServiceAccount",
-				Name:      "cloud-controller-manager",
+				Name:      env.ClusterNameVar + "-" + "cloud-controller-manager",
 				Namespace: "kube-system",
 			},
 			{
 				APIGroup: "",
 				Kind:     "User",
-				Name:     "cloud-controller-manager",
+				Name:     env.ClusterNameVar + "-" + "cloud-controller-manager",
 			},
 		},
 	}
@@ -267,12 +268,12 @@ func CloudControllerManagerClusterRoleBinding() *rbacv1.ClusterRoleBinding {
 		Subjects: []rbacv1.Subject{
 			{
 				Kind:      "ServiceAccount",
-				Name:      "cloud-controller-manager",
+				Name:      env.ClusterNameVar + "-" + "cloud-controller-manager",
 				Namespace: "kube-system",
 			},
 			{
 				Kind: "User",
-				Name: "cloud-controller-manager",
+				Name: env.ClusterNameVar + "-" + "cloud-controller-manager",
 			},
 		},
 	}

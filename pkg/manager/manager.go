@@ -28,16 +28,15 @@ import (
 	topologyv1 "github.com/vmware-tanzu/vm-operator/external/tanzu-topology/api/v1alpha1"
 	"gopkg.in/fsnotify.v1"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
-	ctrl "sigs.k8s.io/controller-runtime"
-
 	infrav1a3 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1alpha3"
 	infrav1a4 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1alpha4"
 	infrav1b1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vmwarev1b1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 // Manager is a CAPV controller manager.

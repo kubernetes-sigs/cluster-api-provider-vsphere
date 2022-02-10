@@ -20,11 +20,10 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
-	"sigs.k8s.io/yaml"
-
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/env"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/util"
+	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
+	"sigs.k8s.io/yaml"
 )
 
 func newSecret(name string, o runtime.Object) *v1.Secret {
@@ -74,7 +73,7 @@ func newConfigMapManifests(name string, o []runtime.Object) *v1.ConfigMap {
 			Kind:       "ConfigMap",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
+			Name:      env.ClusterNameVar + "-" + name,
 			Namespace: env.NamespaceVar,
 		},
 		Data: map[string]string{

@@ -18,7 +18,6 @@ package esxi
 
 import (
 	"github.com/pkg/errors"
-
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 )
 

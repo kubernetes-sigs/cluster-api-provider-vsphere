@@ -21,7 +21,6 @@ import (
 
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
-
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 )
 

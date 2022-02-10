@@ -23,8 +23,8 @@ import (
 	storagev1beta1 "k8s.io/api/storage/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/crs/types"
+	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/env"
 )
 
 // NOTE: the contents of this file are derived from https://github.com/kubernetes-sigs/vsphere-csi-driver/tree/master/manifests/1.14
@@ -38,7 +38,7 @@ const (
 	DefaultCSILivenessProbeImage  = "quay.io/k8scsi/livenessprobe:v2.1.0"
 	DefaultCSIRegistrarImage      = "quay.io/k8scsi/csi-node-driver-registrar:v2.0.1"
 	CSINamespace                  = metav1.NamespaceSystem
-	CSIControllerName             = "vsphere-csi-controller"
+	CSIControllerName             = env.ClusterNameVar + "-" + "vsphere-csi-controller"
 	CSIFeatureStateConfigMapName  = "internal-feature-states.csi.vsphere.vmware.com"
 )
 
@@ -54,7 +54,7 @@ func CSIControllerServiceAccount() *corev1.ServiceAccount {
 func CSIControllerClusterRole() *rbacv1.ClusterRole {
 	return &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "vsphere-csi-controller-role",
+			Name: env.ClusterNameVar + "-" + "vsphere-csi-controller-role",
 		},
 		Rules: []rbacv1.PolicyRule{
 			{
@@ -119,7 +119,7 @@ func CSIControllerClusterRole() *rbacv1.ClusterRole {
 func CSIControllerClusterRoleBinding() *rbacv1.ClusterRoleBinding {
 	return &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "vsphere-csi-controller-binding",
+			Name: env.ClusterNameVar + "-" + "vsphere-csi-controller-binding",
 		},
 		Subjects: []rbacv1.Subject{
 			{
@@ -130,7 +130,7 @@ func CSIControllerClusterRoleBinding() *rbacv1.ClusterRoleBinding {
 		},
 		RoleRef: rbacv1.RoleRef{
 			Kind:     "ClusterRole",
-			Name:     "vsphere-csi-controller-role",
+			Name:     env.ClusterNameVar + "-" + "vsphere-csi-controller-role",
 			APIGroup: "rbac.authorization.k8s.io",
 		},
 	}
@@ -151,7 +151,7 @@ func CSIDriver() *storagev1beta1.CSIDriver {
 func VSphereCSINodeDaemonSet(storageConfig *types.CPIStorageConfig) *appsv1.DaemonSet {
 	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "vsphere-csi-node",
+			Name:      env.ClusterNameVar + "-" + "vsphere-csi-node",
 			Namespace: CSINamespace,
 		},
 		Spec: appsv1.DaemonSetSpec{
@@ -604,7 +604,7 @@ func CSIProvisionerContainer(image string) corev1.Container {
 func CSICloudConfigSecret(data string) *corev1.Secret {
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "csi-vsphere-config",
+			Name:      env.ClusterNameVar + "-" + "csi-vsphere-config",
 			Namespace: CSINamespace,
 		},
 		Type: corev1.SecretTypeOpaque,

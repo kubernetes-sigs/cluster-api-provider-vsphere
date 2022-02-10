@@ -23,12 +23,11 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/yaml"
-
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 )
 
 // AddToManagerFunc is a function that can be optionally specified with

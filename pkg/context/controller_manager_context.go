@@ -24,10 +24,9 @@ import (
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
-
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 )
 
 // ControllerManagerContext is the context of the controller that owns the

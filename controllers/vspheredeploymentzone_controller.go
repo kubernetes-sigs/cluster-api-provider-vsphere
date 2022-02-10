@@ -267,7 +267,10 @@ func (r vsphereDeploymentZoneReconciler) reconcileDelete(ctx *context.VSphereDep
 	}
 
 	machinesUsingDeploymentZone := collections.FromMachineList(machines).Filter(collections.ActiveMachines, func(machine *clusterv1.Machine) bool {
-		return *machine.Spec.FailureDomain == ctx.VSphereDeploymentZone.Name
+		if machine.Spec.FailureDomain != nil {
+			return *machine.Spec.FailureDomain == ctx.VSphereDeploymentZone.Name
+		}
+		return false
 	})
 	if len(machinesUsingDeploymentZone) > 0 {
 		machineNamesStr := util.MachinesAsString(machinesUsingDeploymentZone.SortedByCreationTimestamp())

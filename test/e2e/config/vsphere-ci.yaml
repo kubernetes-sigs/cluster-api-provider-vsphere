@@ -8,19 +8,19 @@
 # For creating local images, run ./hack/e2e.sh
 
 images:
-  - name: gcr.io/k8s-staging-cluster-api/cluster-api-controller-amd64:v1.0.0
+  - name: gcr.io/k8s-staging-cluster-api/cluster-api-controller-amd64:v1.1.0
     loadBehavior: tryLoad
-  - name: gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller-amd64:v1.0.0
+  - name: gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller-amd64:v1.1.0
     loadBehavior: tryLoad
-  - name: gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller-amd64:v1.0.0
+  - name: gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller-amd64:v1.1.0
     loadBehavior: tryLoad
   - name: gcr.io/k8s-staging-cluster-api/capv-manager:e2e
     loadBehavior: mustLoad
-  - name: quay.io/jetstack/cert-manager-cainjector:v0.16.1
+  - name: quay.io/jetstack/cert-manager-cainjector:v1.5.3
     loadBehavior: tryLoad
-  - name: quay.io/jetstack/cert-manager-webhook:v0.16.1
+  - name: quay.io/jetstack/cert-manager-webhook:v1.5.3
     loadBehavior: tryLoad
-  - name: quay.io/jetstack/cert-manager-controller:v0.16.1
+  - name: quay.io/jetstack/cert-manager-controller:v1.5.3
     loadBehavior: tryLoad
 
 providers:
@@ -46,9 +46,9 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-      - name: v1.0.0
+      - name: v1.1.0
         # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.0.0/core-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.0/core-components.yaml"
         type: "url"
         files:
           - sourcePath: "../data/shared/metadata.yaml"
@@ -77,9 +77,9 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-      - name: v1.0.0
+      - name: v1.1.0
         # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.0.0/bootstrap-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.0/bootstrap-components.yaml"
         type: "url"
         files:
           - sourcePath: "../data/shared/metadata.yaml"
@@ -108,9 +108,9 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-      - name: v1.0.0
+      - name: v1.1.0
         # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.0.0/control-plane-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.0/control-plane-components.yaml"
         type: "url"
         files:
           - sourcePath: "../data/shared/metadata.yaml"
@@ -135,7 +135,7 @@ providers:
         files:
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/capi-upgrades/v1alpha4/cluster-template.yaml"
           - sourcePath: "../../../metadata.yaml"
-      - name: v1.0.0
+      - name: v1.1.0
         # Use manifest from source files
         value: ../../../../cluster-api-provider-vsphere/config/default
         contract: v1beta1

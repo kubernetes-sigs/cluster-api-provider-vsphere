@@ -7,3 +7,4 @@ resources:
 - leader_election_role_binding.yaml
 patchesStrategicMerge:
 - aggregate_label_to_cluster_role_patch.yaml
+- aggregate_kcp_label_to_clusterrole_patch.yaml

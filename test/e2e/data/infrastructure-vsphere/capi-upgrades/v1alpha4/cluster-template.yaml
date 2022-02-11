@@ -27,7 +27,7 @@ metadata:
   namespace: '${NAMESPACE}'
 spec:
   controlPlaneEndpoint:
-    host: ${WORKLOAD_CONTROL_PLANE_ENDPOINT_IP}
+    host: ${CONTROL_PLANE_ENDPOINT_IP}
     port: 6443
   identityRef:
     kind: Secret
@@ -95,7 +95,7 @@ spec:
                 - name: vip_interface
                   value: eth0
                 - name: address
-                  value: ${WORKLOAD_CONTROL_PLANE_ENDPOINT_IP}
+                  value: ${CONTROL_PLANE_ENDPOINT_IP}
                 - name: port
                   value: "6443"
                 - name: vip_arp

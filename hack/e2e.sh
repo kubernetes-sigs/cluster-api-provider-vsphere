@@ -83,14 +83,6 @@ CONTROL_PLANE_ENDPOINT_IP=$(kubectl --kubeconfig=${KUBECONFIG} get ipaddresses "
 export CONTROL_PLANE_ENDPOINT_IP
 echo "Acquired Control Plane IP: $CONTROL_PLANE_ENDPOINT_IP"
 
-# Retrieve an IP to be used for the workload cluster in v1a3/v1a4 -> v1b1 upgrade tests
-WORKLOAD_IPCLAIM_NAME="workload-ip-claim-$(openssl rand -hex 20)"
-sed "s/IPCLAIM_NAME/${WORKLOAD_IPCLAIM_NAME}/" "${REPO_ROOT}/hack/ipclaim-template.yaml" | kubectl --kubeconfig=${KUBECONFIG} create -f -
-WORKLOAD_IPADDRESS_NAME=$(kubectl --kubeconfig=${KUBECONFIG} get ipclaim "${WORKLOAD_IPCLAIM_NAME}" -o=jsonpath='{@.status.address.name}')
-WORKLOAD_CONTROL_PLANE_ENDPOINT_IP=$(kubectl --kubeconfig=${KUBECONFIG} get ipaddresses "${WORKLOAD_IPADDRESS_NAME}" -o=jsonpath='{@.spec.address}')
-export WORKLOAD_CONTROL_PLANE_ENDPOINT_IP
-echo "Acquired Workload Cluster Control Plane IP: $WORKLOAD_CONTROL_PLANE_ENDPOINT_IP"
-
 # save the docker image locally
 make e2e-image
 mkdir -p "$ARTIFACTS"/tempContainers

@@ -153,7 +153,7 @@ e2e: $(GINKGO) $(KUSTOMIZE) $(KIND) $(GOVC) ## Run e2e tests
 	@echo Contents of $(TOOLS_BIN_DIR):
 	@ls $(TOOLS_BIN_DIR)
 	@echo
-	time $(GINKGO) -v  -focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) ./test/e2e -- --e2e.config="$(E2E_CONF_FILE)" --e2e.artifacts-folder="$(ARTIFACTS_PATH)"
+	time $(GINKGO) -v -focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) ./test/e2e -- --e2e.config="$(E2E_CONF_FILE)" --e2e.artifacts-folder="$(ARTIFACTS_PATH)"
 
 .PHONY: test-cover
 test-cover: ## Run tests with code coverage and code generate  reports

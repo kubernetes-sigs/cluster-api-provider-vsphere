@@ -121,15 +121,15 @@ providers:
   - name: vsphere
     type: InfrastructureProvider
     versions:
-      - name: v0.7.10
-        value: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/download/v0.7.10/infrastructure-components.yaml
+      - name: v0.7.12
+        value: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/download/v0.7.12/infrastructure-components.yaml
         type: "url"
         contract: v1alpha3
         files:
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/capi-upgrades/v1alpha3/cluster-template.yaml"
           - sourcePath: "../../../metadata.yaml"
-      - name: v0.8.1
-        value: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/download/v0.8.1/infrastructure-components.yaml
+      - name: v0.8.2
+        value: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/download/v0.8.2/infrastructure-components.yaml
         type: "url"
         contract: v1alpha4
         files:

@@ -38,6 +38,7 @@ func (src *VSphereVM) ConvertTo(dstRaw conversion.Hub) error {
 	}
 	dst.Spec.TagIDs = restored.Spec.TagIDs
 	dst.Spec.AdditionalDisksGiB = restored.Spec.AdditionalDisksGiB
+	dst.Status.RetryAfter = restored.Status.RetryAfter
 
 	return nil
 }
@@ -53,6 +54,9 @@ func (dst *VSphereVM) ConvertFrom(srcRaw conversion.Hub) error {
 	if err := utilconversion.MarshalData(src, dst); err != nil {
 		return err
 	}
+	/*if src.Status.RetryAfter != nil && !src.Status.RetryAfter.IsZero() {
+		dst.Status.RetryAfter = *src.Status.RetryAfter
+	}*/
 
 	return nil
 }

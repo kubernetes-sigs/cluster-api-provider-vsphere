@@ -165,11 +165,11 @@ func checkAndRetryTask(ctx *context.VMContext, task *mo.Task) (bool, error) {
 
 		// Instead of directly requeuing the failed task, wait for the RetryAfter duration to pass
 		// before resetting the taskRef from the VSphereVM status.
-		if ctx.VSphereVM.Status.RetryAfter.IsZero() {
-			ctx.VSphereVM.Status.RetryAfter = metav1.Time{Time: time.Now().Add(1 * time.Minute)}
+		if ctx.VSphereVM.Status.RetryAfter == nil {
+			ctx.VSphereVM.Status.RetryAfter = &metav1.Time{Time: time.Now().Add(1 * time.Minute)}
 		} else {
 			ctx.VSphereVM.Status.TaskRef = ""
-			ctx.VSphereVM.Status.RetryAfter = metav1.Time{Time: time.Time{}}
+			ctx.VSphereVM.Status.RetryAfter = nil
 		}
 		return true, nil
 	default:

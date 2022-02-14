@@ -17,6 +17,9 @@ limitations under the License.
 package v1alpha4
 
 import (
+	"time"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 
 	v1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
@@ -26,4 +29,24 @@ import (
 //nolint:golint,revive,stylecheck
 func Convert_v1beta1_VirtualMachineCloneSpec_To_v1alpha4_VirtualMachineCloneSpec(in *v1beta1.VirtualMachineCloneSpec, out *VirtualMachineCloneSpec, s conversion.Scope) error {
 	return autoConvert_v1beta1_VirtualMachineCloneSpec_To_v1alpha4_VirtualMachineCloneSpec(in, out, s)
+}
+
+//nolint:golint,revive,stylecheck
+func Convert_v1alpha4_VSphereVMStatus_To_v1beta1_VSphereVMStatus(in *VSphereVMStatus, out *v1beta1.VSphereVMStatus, s conversion.Scope) error {
+	if in.RetryAfter.IsZero() {
+		out.RetryAfter = nil
+	} else {
+		out.RetryAfter = &in.RetryAfter
+	}
+	return autoConvert_v1alpha4_VSphereVMStatus_To_v1beta1_VSphereVMStatus(in, out, s)
+}
+
+//nolint:golint,revive,stylecheck
+func Convert_v1beta1_VSphereVMStatus_To_v1alpha4_VSphereVMStatus(in *v1beta1.VSphereVMStatus, out *VSphereVMStatus, s conversion.Scope) error {
+	if in.RetryAfter == nil || in.RetryAfter.IsZero() {
+		out.RetryAfter = metav1.Time{Time: time.Time{}}
+	} else {
+		out.RetryAfter = *in.RetryAfter
+	}
+	return autoConvert_v1beta1_VSphereVMStatus_To_v1alpha4_VSphereVMStatus(in, out, s)
 }

@@ -50,7 +50,7 @@ func Test_ShouldRetryTask(t *testing.T) {
 		vmCtx := &context.VMContext{
 			VSphereVM: &infrav1.VSphereVM{Status: infrav1.VSphereVMStatus{
 				TaskRef:    "task-123",
-				RetryAfter: metav1.Time{Time: time.Now().Add(1 * time.Minute)},
+				RetryAfter: &metav1.Time{Time: time.Now().Add(1 * time.Minute)},
 			}},
 		}
 
@@ -68,7 +68,7 @@ func Test_ShouldRetryTask(t *testing.T) {
 			Logger: logr.Discard(),
 			VSphereVM: &infrav1.VSphereVM{Status: infrav1.VSphereVMStatus{
 				TaskRef:    "task-123",
-				RetryAfter: metav1.Time{Time: time.Now().Add(-1 * time.Minute)},
+				RetryAfter: &metav1.Time{Time: time.Now().Add(-1 * time.Minute)},
 			}},
 		}
 

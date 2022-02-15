@@ -43,7 +43,11 @@ func newClusterClassCluster() clusterv1.Cluster {
 			Kind:       util.TypeToKind(&clusterv1.Cluster{}),
 		},
 		ObjectMeta: metav1.ObjectMeta{
+<<<<<<< HEAD
 			Name:      env.ClusterNameVar,
+=======
+			Name:      env.ClusterClassNameVar,
+>>>>>>> 62133a3e (create new flavor to generate ClusterClass template)
 			Namespace: env.NamespaceVar,
 			Labels:    clusterLabels(),
 		},
@@ -90,7 +94,6 @@ func clusterTopologyVariables() []clusterv1.ClusterVariable {
 		{
 			Name: "kubeVipPodManifest",
 			Value: apiextensionsv1.JSON{
-
 				Raw: kubeVIPPodJSON(),
 			},
 		},
@@ -532,7 +535,7 @@ func newKubeVIPFiles() []bootstrapv1.File {
 		{
 			Owner:   "root:root",
 			Path:    "/etc/kubernetes/manifests/kube-vip.yaml",
-			Content: kubeVIPPod(),
+			Content: string(kubeVIPPod()),
 		},
 	}
 }

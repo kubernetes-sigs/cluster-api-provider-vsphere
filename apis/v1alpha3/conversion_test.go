@@ -18,10 +18,12 @@ package v1alpha3
 
 import (
 	"testing"
+	"time"
 
 	fuzz "github.com/google/gofuzz"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -55,9 +57,10 @@ func TestFuzzyConversion(t *testing.T) {
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{CustomObjectMetaFuzzFunc},
 	}))
 	t.Run("for VSphereVM", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme: scheme,
-		Hub:    &nextver.VSphereVM{},
-		Spoke:  &VSphereVM{},
+		Scheme:      scheme,
+		Hub:         &nextver.VSphereVM{},
+		Spoke:       &VSphereVM{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{overrideVSphereVMStatusFieldsFuncs},
 	}))
 }
 
@@ -85,4 +88,12 @@ func CustomObjectMetaFuzzer(in *clusterv1.ObjectMeta, c fuzz.Continue) {
 	in.GenerateName = ""
 	in.Namespace = ""
 	in.OwnerReferences = nil
+}
+
+func overrideVSphereVMStatusFieldsFuncs(codecs runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		func(in *VSphereVM, c fuzz.Continue) {
+			in.Status.RetryAfter = metav1.Time{Time: time.Time{}}
+		},
+	}
 }

@@ -360,14 +360,12 @@ verify-modules: modules  ## Verify go modules are up to date
 verify-conversions: $(CONVERSION_VERIFIER)  ## Verifies expected API conversion are in place
 	$(CONVERSION_VERIFIER)
 
-## --------------------------------------
-## Cleanup
-## --------------------------------------
-
 .PHONY: flavors
 flavors: $(FLAVOR_DIR)
 	go run ./packaging/flavorgen -f vip > $(FLAVOR_DIR)/cluster-template.yaml
 	go run ./packaging/flavorgen -f external-loadbalancer > $(FLAVOR_DIR)/cluster-template-external-loadbalancer.yaml
+	go run ./packaging/flavorgen -f cluster-class > $(FLAVOR_DIR)/clusterclass-template.yaml
+	go run ./packaging/flavorgen -f cluster-class-cluster > $(FLAVOR_DIR)/cluster-topology-template.yaml
 
 
 .PHONY: release-flavors ## Create release flavor manifests
@@ -381,6 +379,10 @@ dev-flavors:
 .PHONY: overrides ## Generates flavors as clusterctl overrides
 overrides: version-check $(OVERRIDES_DIR)
 	go run ./packaging/flavorgen -f multi-host > $(OVERRIDES_DIR)/cluster-template.yaml
+
+## --------------------------------------
+## Cleanup
+## --------------------------------------
 
 .PHONY: clean
 clean: ## Run all the clean targets

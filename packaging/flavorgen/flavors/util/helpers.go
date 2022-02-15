@@ -60,6 +60,7 @@ var (
 
 	stringVars = []string{
 		regexVar(env.ClusterNameVar),
+		regexVar(env.ClusterClassNameVar),
 		regexVar(env.ClusterNameVar + env.MachineDeploymentNameSuffix),
 		regexVar(env.NamespaceVar),
 		regexVar(env.KubernetesVersionVar),
@@ -74,6 +75,8 @@ var (
 		regexVar(env.VSphereTemplateVar),
 		regexVar(env.VSphereHaproxyTemplateVar),
 		regexVar(env.VSphereStoragePolicyVar),
+		// TODO: Why was thumbprint not here?
+		regexVar(env.VSphereThumbprint),
 	}
 )
 

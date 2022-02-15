@@ -56,6 +56,10 @@ func RunRoot(command *cobra.Command) error {
 		util.PrintObjects(flavors.MultiNodeTemplateWithKubeVIP())
 	case "external-loadbalancer":
 		util.PrintObjects(flavors.MultiNodeTemplateWithExternalLoadBalancer())
+	case "cluster-class-cluster":
+		util.PrintObjects(flavors.MultiNodeTemplateWithClusterClassKubeVIP())
+	case "cluster-class":
+		util.PrintObjects(flavors.ClusterClassTemplateWithKubeVIP())
 	default:
 		return errors.Errorf("invalid flavor")
 	}

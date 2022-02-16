@@ -25,10 +25,12 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/vmware/govmomi/simulator"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -42,6 +44,8 @@ var _ = Describe("VSphereDeploymentZoneReconciler", func() {
 	var (
 		simr *helpers.Simulator
 		ctx  goctx.Context
+
+		failureDomainKey, deploymentZoneKey client.ObjectKey
 
 		vsphereDeploymentZone *infrav1.VSphereDeploymentZone
 		vsphereFailureDomain  *infrav1.VSphereFailureDomain
@@ -73,32 +77,10 @@ var _ = Describe("VSphereDeploymentZoneReconciler", func() {
 		ctx = goctx.Background()
 	})
 
-	AfterEach(func() {
-		Expect(testEnv.Cleanup(ctx, vsphereDeploymentZone, vsphereFailureDomain)).To(Succeed())
-	})
-
-	It("should create a deployment zone & failure domain", func() {
-		dzName := "blah"
-		fdName := "blah-fd"
-
-		vsphereDeploymentZone = &infrav1.VSphereDeploymentZone{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: dzName,
-			},
-			Spec: infrav1.VSphereDeploymentZoneSpec{
-				Server:        simr.ServerURL().Host,
-				FailureDomain: fdName,
-				ControlPlane:  pointer.Bool(true),
-				PlacementConstraint: infrav1.PlacementConstraint{
-					ResourcePool: "DC0_C0_RP1",
-					Folder:       "/",
-				},
-			}}
-		Expect(testEnv.Create(ctx, vsphereDeploymentZone)).To(Succeed())
-
+	BeforeEach(func() {
 		vsphereFailureDomain = &infrav1.VSphereFailureDomain{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: fdName,
+				GenerateName: "blah-fd-",
 			},
 			Spec: infrav1.VSphereFailureDomainSpec{
 				Region: infrav1.FailureDomain{
@@ -123,15 +105,40 @@ var _ = Describe("VSphereDeploymentZoneReconciler", func() {
 		}
 		Expect(testEnv.Create(ctx, vsphereFailureDomain)).To(Succeed())
 
+		vsphereDeploymentZone = &infrav1.VSphereDeploymentZone{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "blah-",
+			},
+			Spec: infrav1.VSphereDeploymentZoneSpec{
+				Server:        simr.ServerURL().Host,
+				FailureDomain: vsphereFailureDomain.Name,
+				ControlPlane:  pointer.Bool(true),
+				PlacementConstraint: infrav1.PlacementConstraint{
+					ResourcePool: "DC0_C0_RP1",
+					Folder:       "/",
+				},
+			}}
+		Expect(testEnv.Create(ctx, vsphereDeploymentZone)).To(Succeed())
+	})
+
+	AfterEach(func() {
+		Expect(testEnv.Cleanup(ctx, vsphereDeploymentZone, vsphereFailureDomain)).To(Succeed())
+		simr.Destroy()
+	})
+
+	It("should create a deployment zone & failure domain", func() {
+		deploymentZoneKey = client.ObjectKey{Name: vsphereDeploymentZone.Name}
+		failureDomainKey = client.ObjectKey{Name: vsphereFailureDomain.Name}
+
 		Eventually(func() bool {
-			if err := testEnv.Get(ctx, client.ObjectKey{Name: dzName}, vsphereDeploymentZone); err != nil {
+			if err := testEnv.Get(ctx, deploymentZoneKey, vsphereDeploymentZone); err != nil {
 				return false
 			}
 			return len(vsphereDeploymentZone.Finalizers) > 0
 		}, timeout).Should(BeTrue())
 
 		Eventually(func() bool {
-			if err := testEnv.Get(ctx, client.ObjectKey{Name: dzName}, vsphereDeploymentZone); err != nil {
+			if err := testEnv.Get(ctx, deploymentZoneKey, vsphereDeploymentZone); err != nil {
 				return false
 			}
 			return conditions.IsTrue(vsphereDeploymentZone, infrav1.VCenterAvailableCondition) &&
@@ -140,22 +147,53 @@ var _ = Describe("VSphereDeploymentZoneReconciler", func() {
 		}, timeout).Should(BeTrue())
 
 		By("sets the owner ref on the vsphereFailureDomain object")
-		Expect(testEnv.Get(ctx, client.ObjectKey{Name: fdName}, vsphereFailureDomain)).To(Succeed())
+		Expect(testEnv.Get(ctx, failureDomainKey, vsphereFailureDomain)).To(Succeed())
 		ownerRefs := vsphereFailureDomain.GetOwnerReferences()
 		Expect(ownerRefs).To(HaveLen(1))
-		Expect(ownerRefs[0].Name).To(Equal(dzName))
+		Expect(ownerRefs[0].Name).To(Equal(deploymentZoneKey.Name))
 		Expect(ownerRefs[0].Kind).To(Equal("VSphereDeploymentZone"))
 	})
 
 	Context("With incorrect details: when resource pool is not owned by compute cluster", func() {
 		It("should fail creation of deployment zone", func() {
+			vsphereFailureDomain = &infrav1.VSphereFailureDomain{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "VSphereFailureDomain",
+					APIVersion: infrav1.GroupVersion.String(),
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					GenerateName: "blah-fd-",
+				},
+				Spec: infrav1.VSphereFailureDomainSpec{
+					Region: infrav1.FailureDomain{
+						Name:          "k8s-region-west",
+						Type:          infrav1.DatacenterFailureDomain,
+						TagCategory:   "k8s-region",
+						AutoConfigure: pointer.Bool(false),
+					},
+					Zone: infrav1.FailureDomain{
+						Name:          "k8s-zone-west-1",
+						Type:          infrav1.ComputeClusterFailureDomain,
+						TagCategory:   "k8s-zone",
+						AutoConfigure: pointer.Bool(false),
+					},
+					Topology: infrav1.Topology{
+						Datacenter:     "DC0",
+						ComputeCluster: pointer.String("DC0_C0"),
+						Datastore:      "LocalDS_0",
+						Networks:       []string{"VM Network"},
+					},
+				},
+			}
+			Expect(testEnv.Create(ctx, vsphereFailureDomain)).To(Succeed())
+
 			vsphereDeploymentZone = &infrav1.VSphereDeploymentZone{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "blah-two",
+					GenerateName: "blah-",
 				},
 				Spec: infrav1.VSphereDeploymentZoneSpec{
 					Server:        simr.ServerURL().Host,
-					FailureDomain: "blah-fd-two",
+					FailureDomain: vsphereFailureDomain.Name,
 					ControlPlane:  pointer.Bool(true),
 					PlacementConstraint: infrav1.PlacementConstraint{
 						ResourcePool: "DC0_C1_RP1",
@@ -164,39 +202,11 @@ var _ = Describe("VSphereDeploymentZoneReconciler", func() {
 				}}
 			Expect(testEnv.Create(ctx, vsphereDeploymentZone)).To(Succeed())
 
-			vsphereFailureDomain = &infrav1.VSphereFailureDomain{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "VSphereFailureDomain",
-					APIVersion: infrav1.GroupVersion.String(),
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "blah-fd-two",
-				},
-				Spec: infrav1.VSphereFailureDomainSpec{
-					Region: infrav1.FailureDomain{
-						Name:          "k8s-region-west",
-						Type:          infrav1.DatacenterFailureDomain,
-						TagCategory:   "k8s-region",
-						AutoConfigure: pointer.Bool(false),
-					},
-					Zone: infrav1.FailureDomain{
-						Name:          "k8s-zone-west-1",
-						Type:          infrav1.ComputeClusterFailureDomain,
-						TagCategory:   "k8s-zone",
-						AutoConfigure: pointer.Bool(false),
-					},
-					Topology: infrav1.Topology{
-						Datacenter:     "DC0",
-						ComputeCluster: pointer.String("DC0_C0"),
-						Datastore:      "LocalDS_0",
-						Networks:       []string{"VM Network"},
-					},
-				},
-			}
-			Expect(testEnv.Create(ctx, vsphereFailureDomain)).To(Succeed())
+			deploymentZoneKey = client.ObjectKey{Name: vsphereDeploymentZone.Name}
+			failureDomainKey = client.ObjectKey{Name: vsphereFailureDomain.Name}
 
 			Eventually(func() bool {
-				if err := testEnv.Get(ctx, client.ObjectKey{Name: "blah-two"}, vsphereDeploymentZone); err != nil {
+				if err := testEnv.Get(ctx, deploymentZoneKey, vsphereDeploymentZone); err != nil {
 					return false
 				}
 				return conditions.IsFalse(vsphereDeploymentZone, infrav1.PlacementConstraintMetCondition)
@@ -205,70 +215,299 @@ var _ = Describe("VSphereDeploymentZoneReconciler", func() {
 	})
 
 	Context("Delete VSphereDeploymentZone", func() {
-		It("should delete the associated failure domain", func() {
-			fdName := "blah-fd-three"
 
-			vsphereDeploymentZone = &infrav1.VSphereDeploymentZone{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "blah-three",
-				},
-				Spec: infrav1.VSphereDeploymentZoneSpec{
-					Server:        simr.ServerURL().Host,
-					FailureDomain: fdName,
-					ControlPlane:  pointer.Bool(true),
-					PlacementConstraint: infrav1.PlacementConstraint{
-						ResourcePool: "DC0_C0_RP1",
-						Folder:       "/",
-					},
-				}}
-			Expect(testEnv.Create(ctx, vsphereDeploymentZone)).To(Succeed())
-
-			vsphereFailureDomain = &infrav1.VSphereFailureDomain{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: fdName,
-				},
-				Spec: infrav1.VSphereFailureDomainSpec{
-					Region: infrav1.FailureDomain{
-						Name:          "k8s-region-west",
-						Type:          infrav1.DatacenterFailureDomain,
-						TagCategory:   "k8s-region",
-						AutoConfigure: pointer.Bool(false),
-					},
-					Zone: infrav1.FailureDomain{
-						Name:          "k8s-zone-west-1",
-						Type:          infrav1.ComputeClusterFailureDomain,
-						TagCategory:   "k8s-zone",
-						AutoConfigure: pointer.Bool(false),
-					},
-					Topology: infrav1.Topology{
-						Datacenter:     "DC0",
-						ComputeCluster: pointer.String("DC0_C0"),
-						Datastore:      "LocalDS_0",
-						Networks:       []string{"VM Network"},
-					},
-				},
-			}
-			Expect(testEnv.Create(ctx, vsphereFailureDomain)).To(Succeed())
+		BeforeEach(func() {
+			deploymentZoneKey = client.ObjectKey{Name: vsphereDeploymentZone.Name}
+			failureDomainKey = client.ObjectKey{Name: vsphereFailureDomain.Name}
 
 			Eventually(func() bool {
-				if err := testEnv.Get(ctx, client.ObjectKey{Name: "blah-three"}, vsphereDeploymentZone); err != nil {
+				deploymentZoneWithFinalizers := &infrav1.VSphereDeploymentZone{}
+				if err := testEnv.Get(ctx, deploymentZoneKey, deploymentZoneWithFinalizers); err != nil {
 					return false
 				}
-				return pointer.BoolDeref(vsphereDeploymentZone.Status.Ready, false) &&
-					conditions.IsTrue(vsphereDeploymentZone, clusterv1.ReadyCondition)
+				return len(deploymentZoneWithFinalizers.Finalizers) > 0
 			}, timeout).Should(BeTrue())
+		})
 
+		It("should delete the associated failure domain", func() {
 			By("deleting the vsphere deployment zone")
-			Expect(testEnv.Delete(ctx, vsphereFailureDomain)).To(Succeed())
+			Expect(testEnv.Delete(ctx, vsphereDeploymentZone)).To(Succeed())
 
 			Eventually(func() bool {
 				fd := &infrav1.VSphereFailureDomain{}
-				err := testEnv.Get(ctx, client.ObjectKey{Name: fdName}, fd)
+				err := testEnv.Get(ctx, failureDomainKey, fd)
 				return apierrors.IsNotFound(err)
 			}, timeout).Should(BeTrue())
 		})
+
+		Context("With machines being present", func() {
+			var machineNamespace *corev1.Namespace
+
+			BeforeEach(func() {
+				var err error
+				machineNamespace, err = testEnv.CreateNamespace(ctx, "multi-az-test")
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			AfterEach(func() {
+				_ = testEnv.Cleanup(ctx, machineNamespace)
+			})
+
+			Context("when machines are using Deployment Zone", func() {
+				It("should block deletion", func() {
+					machineUsingDeplZone := createMachine("machine-using-zone", "cluster-using-zone", machineNamespace.Name, false)
+					machineUsingDeplZone.Spec.FailureDomain = pointer.String(vsphereDeploymentZone.Name)
+					Expect(testEnv.Create(ctx, machineUsingDeplZone)).To(Succeed())
+
+					By("deleting the vsphere deployment zone")
+					Expect(testEnv.Delete(ctx, vsphereDeploymentZone)).To(Succeed())
+
+					Eventually(func() bool {
+						if err := testEnv.Get(ctx, deploymentZoneKey, vsphereDeploymentZone); err != nil {
+							return false
+						}
+						return !vsphereDeploymentZone.DeletionTimestamp.IsZero() &&
+							len(vsphereDeploymentZone.Finalizers) > 0
+					}, timeout).Should(BeTrue())
+				})
+
+				It("should not block deletion if machines are being deleted", func() {
+					machineBeingDeleted := createMachine("machine-deleted", "cluster-deleted", machineNamespace.Name, false)
+					machineBeingDeleted.Spec.FailureDomain = pointer.String(vsphereDeploymentZone.Name)
+					machineBeingDeleted.Finalizers = []string{clusterv1.MachineFinalizer}
+					Expect(testEnv.Create(ctx, machineBeingDeleted)).To(Succeed())
+
+					By("Deleting the machine")
+					Expect(testEnv.Delete(ctx, machineBeingDeleted)).To(Succeed())
+
+					By("deleting the vsphere deployment zone")
+					Expect(testEnv.Delete(ctx, vsphereDeploymentZone)).To(Succeed())
+
+					Eventually(func() bool {
+						if err := testEnv.Get(ctx, deploymentZoneKey, vsphereDeploymentZone); err != nil {
+							return false
+						}
+						return !vsphereDeploymentZone.DeletionTimestamp.IsZero() &&
+							len(vsphereDeploymentZone.Finalizers) > 0
+					}, timeout).Should(BeTrue())
+				})
+			})
+
+			It("should not block deletion if machines are not using Deployment Zone", func() {
+				machineNotUsingDeplZone := createMachine("machine-without-zone", "cluster-without-zone", machineNamespace.Name, true)
+				Expect(testEnv.Create(ctx, machineNotUsingDeplZone)).To(Succeed())
+
+				By("deleting the vsphere deployment zone")
+				Expect(testEnv.Delete(ctx, vsphereDeploymentZone)).To(Succeed())
+
+				Eventually(func() bool {
+					err := testEnv.Get(ctx, deploymentZoneKey, &infrav1.VSphereDeploymentZone{})
+					return apierrors.IsNotFound(err)
+				}, timeout).Should(BeTrue())
+			})
+		})
 	})
 })
+
+func TestVSphereDeploymentZone_Reconcile(t *testing.T) {
+	g := NewWithT(t)
+	model := simulator.VPX()
+	model.Pool = 1
+
+	simr, err := helpers.VCSimBuilder().
+		WithModel(model).
+		WithOperations().
+		Build()
+	g.Expect(err).NotTo(HaveOccurred())
+	defer func() {
+		simr.Destroy()
+	}()
+
+	operations := []string{
+		"tags.category.create -t Datacenter,ClusterComputeResource k8s-region",
+		"tags.category.create -t Datacenter,ClusterComputeResource k8s-zone",
+		"tags.create -c k8s-region k8s-region-west",
+		"tags.create -c k8s-zone k8s-zone-west-1",
+		"tags.attach -c k8s-region k8s-region-west /DC0",
+		"tags.attach -c k8s-zone k8s-zone-west-1 /DC0/host/DC0_C0",
+	}
+	for _, op := range operations {
+		g.Expect(simr.Run(op, gbytes.NewBuffer(), gbytes.NewBuffer())).To(Succeed())
+	}
+
+	t.Run("should create a deployment zone & failure domain", func(t *testing.T) {
+		g := NewWithT(t)
+
+		vsphereFailureDomain := &infrav1.VSphereFailureDomain{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "blah-fd-",
+			},
+			Spec: infrav1.VSphereFailureDomainSpec{
+				Region: infrav1.FailureDomain{
+					Name:          "k8s-region-west",
+					Type:          infrav1.DatacenterFailureDomain,
+					TagCategory:   "k8s-region",
+					AutoConfigure: pointer.Bool(false),
+				},
+				Zone: infrav1.FailureDomain{
+					Name:          "k8s-zone-west-1",
+					Type:          infrav1.ComputeClusterFailureDomain,
+					TagCategory:   "k8s-zone",
+					AutoConfigure: pointer.Bool(false),
+				},
+				Topology: infrav1.Topology{
+					Datacenter:     "DC0",
+					ComputeCluster: pointer.String("DC0_C0"),
+					Datastore:      "LocalDS_0",
+					Networks:       []string{"VM Network"},
+				},
+			},
+		}
+		g.Expect(testEnv.Create(ctx, vsphereFailureDomain)).To(Succeed())
+
+		vsphereDeploymentZone := &infrav1.VSphereDeploymentZone{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "blah-",
+			},
+			Spec: infrav1.VSphereDeploymentZoneSpec{
+				Server:        simr.ServerURL().Host,
+				FailureDomain: vsphereFailureDomain.Name,
+				ControlPlane:  pointer.Bool(true),
+				PlacementConstraint: infrav1.PlacementConstraint{
+					ResourcePool: "DC0_C0_RP1",
+					Folder:       "/",
+				},
+			}}
+		g.Expect(testEnv.Create(ctx, vsphereDeploymentZone)).To(Succeed())
+
+		defer func(do ...client.Object) {
+			g.Expect(testEnv.Cleanup(ctx, do...)).To(Succeed())
+		}(vsphereDeploymentZone, vsphereFailureDomain)
+
+		g.Eventually(func() bool {
+			if err := testEnv.Get(ctx, client.ObjectKeyFromObject(vsphereDeploymentZone), vsphereDeploymentZone); err != nil {
+				return false
+			}
+			return len(vsphereDeploymentZone.Finalizers) > 0
+		}, timeout).Should(BeTrue())
+
+		g.Eventually(func() bool {
+			if err := testEnv.Get(ctx, client.ObjectKeyFromObject(vsphereDeploymentZone), vsphereDeploymentZone); err != nil {
+				return false
+			}
+			return conditions.IsTrue(vsphereDeploymentZone, infrav1.VCenterAvailableCondition) &&
+				conditions.IsTrue(vsphereDeploymentZone, infrav1.PlacementConstraintMetCondition) &&
+				conditions.IsTrue(vsphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition)
+		}, timeout).Should(BeTrue())
+
+		By("sets the owner ref on the vsphereFailureDomain object")
+		g.Expect(testEnv.Get(ctx, client.ObjectKeyFromObject(vsphereFailureDomain), vsphereFailureDomain)).To(Succeed())
+		ownerRefs := vsphereFailureDomain.GetOwnerReferences()
+		g.Expect(ownerRefs).To(HaveLen(1))
+		g.Expect(ownerRefs[0].Name).To(Equal(vsphereDeploymentZone.Name))
+		g.Expect(ownerRefs[0].Kind).To(Equal("VSphereDeploymentZone"))
+	})
+
+	By("deleting deployment zone")
+	t.Run("it should delete associated failure domain", func(t *testing.T) {
+		g := NewWithT(t)
+
+		vsphereFailureDomain := &infrav1.VSphereFailureDomain{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "blah-fd-",
+			},
+			Spec: infrav1.VSphereFailureDomainSpec{
+				Region: infrav1.FailureDomain{
+					Name:          "k8s-region-west",
+					Type:          infrav1.DatacenterFailureDomain,
+					TagCategory:   "k8s-region",
+					AutoConfigure: pointer.Bool(false),
+				},
+				Zone: infrav1.FailureDomain{
+					Name:          "k8s-zone-west-1",
+					Type:          infrav1.ComputeClusterFailureDomain,
+					TagCategory:   "k8s-zone",
+					AutoConfigure: pointer.Bool(false),
+				},
+				Topology: infrav1.Topology{
+					Datacenter:     "DC0",
+					ComputeCluster: pointer.String("DC0_C0"),
+					Datastore:      "LocalDS_0",
+					Networks:       []string{"VM Network"},
+				},
+			},
+		}
+		g.Expect(testEnv.Create(ctx, vsphereFailureDomain)).To(Succeed())
+
+		vsphereDeploymentZone := &infrav1.VSphereDeploymentZone{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "blah-",
+			},
+			Spec: infrav1.VSphereDeploymentZoneSpec{
+				Server:        simr.ServerURL().Host,
+				FailureDomain: vsphereFailureDomain.Name,
+				ControlPlane:  pointer.Bool(true),
+				PlacementConstraint: infrav1.PlacementConstraint{
+					ResourcePool: "DC0_C0_RP1",
+					Folder:       "/",
+				},
+			}}
+		g.Expect(testEnv.Create(ctx, vsphereDeploymentZone)).To(Succeed())
+
+		defer func(do ...client.Object) {
+			g.Expect(testEnv.Cleanup(ctx, do...)).To(Succeed())
+		}(vsphereDeploymentZone, vsphereFailureDomain)
+
+		g.Eventually(func() bool {
+			if err := testEnv.Get(ctx, client.ObjectKeyFromObject(vsphereDeploymentZone), vsphereDeploymentZone); err != nil {
+				return false
+			}
+			return len(vsphereDeploymentZone.Finalizers) > 0
+		}, timeout).Should(BeTrue())
+
+		g.Expect(testEnv.Delete(ctx, vsphereDeploymentZone)).To(Succeed())
+
+		g.Eventually(func() bool {
+			err := testEnv.Get(ctx, client.ObjectKeyFromObject(vsphereFailureDomain), vsphereFailureDomain)
+			return apierrors.IsNotFound(err)
+		}, timeout).Should(BeTrue())
+	})
+}
+
+func createMachine(machineName, clusterName, namespace string, isControlPlane bool) *clusterv1.Machine {
+	m := &clusterv1.Machine{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       "Machine",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      machineName,
+			Namespace: namespace,
+			Labels: map[string]string{
+				clusterv1.ClusterLabelName: clusterName,
+			},
+		},
+		Spec: clusterv1.MachineSpec{
+			Version: pointer.String("v1.22.0"),
+			Bootstrap: clusterv1.Bootstrap{
+				ConfigRef: &corev1.ObjectReference{
+					APIVersion: bootstrapv1.GroupVersion.String(),
+					Name:       machineName,
+				},
+			},
+			InfrastructureRef: corev1.ObjectReference{
+				APIVersion: infrav1.GroupVersion.String(),
+				Kind:       "VSphereMachine",
+				Name:       machineName,
+			},
+			ClusterName: clusterName,
+		},
+	}
+	if isControlPlane {
+		m.Labels[clusterv1.MachineControlPlaneLabelName] = ""
+	}
+	return m
+}
 
 func TestVsphereDeploymentZone_Failed_ReconcilePlacementConstraint(t *testing.T) {
 	tests := []struct {
@@ -343,4 +582,157 @@ func TestVsphereDeploymentZone_Failed_ReconcilePlacementConstraint(t *testing.T)
 			g.Expect(err).To(HaveOccurred())
 		})
 	}
+}
+
+func TestVSphereDeploymentZoneReconciler_ReconcileDelete(t *testing.T) {
+	vsphereDeploymentZone := &infrav1.VSphereDeploymentZone{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "VSphereDeploymentZone",
+			APIVersion: infrav1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "blah",
+			Finalizers: []string{infrav1.DeploymentZoneFinalizer},
+		},
+	}
+
+	vsphereFailureDomain := &infrav1.VSphereFailureDomain{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "blah-fd",
+		},
+		Spec: infrav1.VSphereFailureDomainSpec{
+			Topology: infrav1.Topology{
+				Datacenter:     "DC0",
+				ComputeCluster: pointer.String("DC0_C0"),
+			},
+		},
+	}
+
+	t.Run("when machines are using deployment zone", func(t *testing.T) {
+		machineUsingDeplZone := createMachine("machine-1", "cluster-1", "ns", false)
+		machineUsingDeplZone.Spec.FailureDomain = pointer.String("blah")
+
+		t.Run("should block deletion", func(t *testing.T) {
+			mgmtContext := fake.NewControllerManagerContext(machineUsingDeplZone, vsphereFailureDomain)
+			controllerCtx := fake.NewControllerContext(mgmtContext)
+			deploymentZoneCtx := &context.VSphereDeploymentZoneContext{
+				ControllerContext:     controllerCtx,
+				VSphereDeploymentZone: vsphereDeploymentZone,
+				VSphereFailureDomain:  vsphereFailureDomain,
+				Logger:                logr.Discard(),
+			}
+
+			g := NewWithT(t)
+			reconciler := vsphereDeploymentZoneReconciler{controllerCtx}
+			_, err := reconciler.reconcileDelete(deploymentZoneCtx)
+			g.Expect(err).To(HaveOccurred())
+			g.Expect(err.Error()).To(MatchRegexp(".*[is currently in use]{1}.*"))
+			g.Expect(vsphereDeploymentZone.Finalizers).To(HaveLen(1))
+		})
+
+		t.Run("for machines being deleted, should not block deletion", func(t *testing.T) {
+			deletionTime := metav1.Now()
+			machineUsingDeplZone.DeletionTimestamp = &deletionTime
+
+			mgmtContext := fake.NewControllerManagerContext(machineUsingDeplZone, vsphereFailureDomain)
+			controllerCtx := fake.NewControllerContext(mgmtContext)
+			deploymentZoneCtx := &context.VSphereDeploymentZoneContext{
+				ControllerContext:     controllerCtx,
+				VSphereDeploymentZone: vsphereDeploymentZone,
+				VSphereFailureDomain:  vsphereFailureDomain,
+				Logger:                logr.Discard(),
+			}
+
+			g := NewWithT(t)
+			reconciler := vsphereDeploymentZoneReconciler{controllerCtx}
+			_, err := reconciler.reconcileDelete(deploymentZoneCtx)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(vsphereDeploymentZone.Finalizers).To(HaveLen(0))
+		})
+	})
+
+	t.Run("when machines are not using deployment zone", func(t *testing.T) {
+		machineNotUsingDeplZone := createMachine("machine-1", "cluster-1", "ns", false)
+		mgmtContext := fake.NewControllerManagerContext(machineNotUsingDeplZone, vsphereFailureDomain)
+		controllerCtx := fake.NewControllerContext(mgmtContext)
+		deploymentZoneCtx := &context.VSphereDeploymentZoneContext{
+			ControllerContext:     controllerCtx,
+			VSphereDeploymentZone: vsphereDeploymentZone,
+			VSphereFailureDomain:  vsphereFailureDomain,
+			Logger:                logr.Discard(),
+		}
+
+		g := NewWithT(t)
+		reconciler := vsphereDeploymentZoneReconciler{controllerCtx}
+		_, err := reconciler.reconcileDelete(deploymentZoneCtx)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(vsphereDeploymentZone.Finalizers).To(HaveLen(0))
+	})
+
+	t.Run("when no machines are present", func(t *testing.T) {
+		mgmtContext := fake.NewControllerManagerContext(vsphereFailureDomain)
+		controllerCtx := fake.NewControllerContext(mgmtContext)
+		deploymentZoneCtx := &context.VSphereDeploymentZoneContext{
+			ControllerContext:     controllerCtx,
+			VSphereDeploymentZone: vsphereDeploymentZone,
+			VSphereFailureDomain:  vsphereFailureDomain,
+			Logger:                logr.Discard(),
+		}
+
+		g := NewWithT(t)
+		reconciler := vsphereDeploymentZoneReconciler{controllerCtx}
+		_, err := reconciler.reconcileDelete(deploymentZoneCtx)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(vsphereDeploymentZone.Finalizers).To(HaveLen(0))
+	})
+
+	t.Run("delete failure domain", func(t *testing.T) {
+		vsphereFailureDomain.OwnerReferences = []metav1.OwnerReference{{
+			APIVersion: infrav1.GroupVersion.String(),
+			Kind:       vsphereDeploymentZone.Kind,
+			Name:       vsphereDeploymentZone.Name,
+		}}
+
+		t.Run("not used by other deployment zones", func(t *testing.T) {
+			mgmtContext := fake.NewControllerManagerContext(vsphereFailureDomain)
+			controllerCtx := fake.NewControllerContext(mgmtContext)
+			deploymentZoneCtx := &context.VSphereDeploymentZoneContext{
+				ControllerContext:     controllerCtx,
+				VSphereDeploymentZone: vsphereDeploymentZone,
+				VSphereFailureDomain:  vsphereFailureDomain,
+				Logger:                logr.Discard(),
+			}
+
+			g := NewWithT(t)
+			reconciler := vsphereDeploymentZoneReconciler{controllerCtx}
+			_, err := reconciler.reconcileDelete(deploymentZoneCtx)
+			g.Expect(err).NotTo(HaveOccurred())
+		})
+
+		t.Run("used by other deployment zones", func(t *testing.T) {
+			vsphereFailureDomain.OwnerReferences = append(vsphereFailureDomain.OwnerReferences, metav1.OwnerReference{
+				APIVersion: infrav1.GroupVersion.String(),
+				Kind:       vsphereDeploymentZone.Kind,
+				Name:       "another-deployment-zone",
+			})
+
+			mgmtContext := fake.NewControllerManagerContext(vsphereFailureDomain)
+			controllerCtx := fake.NewControllerContext(mgmtContext)
+			deploymentZoneCtx := &context.VSphereDeploymentZoneContext{
+				ControllerContext:     controllerCtx,
+				VSphereDeploymentZone: vsphereDeploymentZone,
+				VSphereFailureDomain:  vsphereFailureDomain,
+				Logger:                logr.Discard(),
+			}
+
+			g := NewWithT(t)
+			reconciler := vsphereDeploymentZoneReconciler{controllerCtx}
+			_, err := reconciler.reconcileDelete(deploymentZoneCtx)
+			g.Expect(err).NotTo(HaveOccurred())
+
+			fetchedFailureDomain := &infrav1.VSphereFailureDomain{}
+			g.Expect(mgmtContext.Client.Get(goctx.Background(), client.ObjectKey{Name: vsphereFailureDomain.Name}, fetchedFailureDomain)).To(Succeed())
+			g.Expect(fetchedFailureDomain.OwnerReferences).To(HaveLen(1))
+		})
+	})
 }

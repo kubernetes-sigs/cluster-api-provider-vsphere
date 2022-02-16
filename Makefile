@@ -134,6 +134,7 @@ e2e-templates: ## Generate e2e cluster templates
 	# Since CAPI uses different flavor names for KCP and MD remediation using MHC
 	"$(KUSTOMIZE)" build $(E2E_TEMPLATE_DIR)/kustomization/mhc-remediation/kcp > $(E2E_TEMPLATE_DIR)/cluster-template-kcp-remediation.yaml
 	"$(KUSTOMIZE)" build $(E2E_TEMPLATE_DIR)/kustomization/mhc-remediation/md > $(E2E_TEMPLATE_DIR)/cluster-template-md-remediation.yaml
+	"$(KUSTOMIZE)" build $(E2E_TEMPLATE_DIR)/kustomization/node-drain > $(E2E_TEMPLATE_DIR)/cluster-template-node-drain.yaml
 
 
 .PHONY: test-integration

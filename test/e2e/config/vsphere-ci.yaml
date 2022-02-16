@@ -151,6 +151,7 @@ providers:
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-remote-management.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-kcp-remediation.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-md-remediation.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-node-drain.yaml"
           - sourcePath: "../../../metadata.yaml"
 
 variables:
@@ -173,6 +174,7 @@ variables:
   INIT_WITH_KUBERNETES_VERSION: "v1.20.1"
   VSPHERE_INSECURE_CSI: "true"
   KUBETEST_CONFIGURATION: "./data/kubetest/conformance.yaml"
+  NODE_DRAIN_TIMEOUT: "60s"
 
 intervals:
   default/wait-controllers: ["5m", "10s"]
@@ -182,3 +184,5 @@ intervals:
   default/wait-delete-cluster: ["5m", "10s"]
   default/wait-machine-upgrade: ["15m", "1m"]
   default/wait-machine-remediation: ["5m", "10s"]
+  node-drain/wait-deployment-available: ["3m", "10s"]
+  node-drain/wait-machine-deleted: ["2m", "10s"]

@@ -1,0 +1,13 @@
+# VSphereMachineTemplate object with the number of CPUs raised to 4
+# for the purposes of mitigating the CPU spikes caused by scaling up
+# the control plane (during upgrades and for HA control planes)
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: VSphereMachineTemplate
+metadata:
+  name: ${CLUSTER_NAME}
+  namespace: ${NAMESPACE}
+spec:
+  template:
+    spec:
+      numCPUs: 4

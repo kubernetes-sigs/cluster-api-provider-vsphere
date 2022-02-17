@@ -36,12 +36,17 @@ The first step to running the e2e tests is setting up the required environment v
 | `CONTROL_PLANE_ENDPOINT_IP`   | The IP that kube-vip should use as a control plane endpoint                         | `10.10.123.100`                                                                  |
 | `VSPHERE_STORAGE_POLICY`      | The name of an existing vSphere storage policy to be assigned to created VMs        | `my-test-sp`                                                                     |
 
+### Flags
+
+| Flag                       | Description                                                           |Default Value
+`SKIP_RESOURCE_CLEANUP`      | This flags skips cleanup of the resources created during the tests as well as the kind/bootstrap cluster        | `false`
+
 ### Running the e2e tests
 
 Run the following command to execute the CAPV e2e tests:
 
 ```shell
-make e2e GC_KIND=false
+make e2e
 ```
 
 The above command should build the CAPV manager image locally and use that image with the e2e test suite.

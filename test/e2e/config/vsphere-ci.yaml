@@ -12,7 +12,7 @@ images:
     loadBehavior: tryLoad
   - name: k8s.gcr.io/cluster-api/kubeadm-bootstrap-controller:v1.1.0
     loadBehavior: tryLoad
-  - name: k8s.gcr.io/cluster-api/kubeadm-control-plane-controller :v1.1.0
+  - name: k8s.gcr.io/cluster-api/kubeadm-control-plane-controller:v1.1.0
     loadBehavior: tryLoad
   - name: gcr.io/k8s-staging-cluster-api/capv-manager:e2e
     loadBehavior: mustLoad

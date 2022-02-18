@@ -43,11 +43,7 @@ func newClusterClassCluster() clusterv1.Cluster {
 			Kind:       util.TypeToKind(&clusterv1.Cluster{}),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-<<<<<<< HEAD
 			Name:      env.ClusterNameVar,
-=======
-			Name:      env.ClusterClassNameVar,
->>>>>>> 62133a3e (create new flavor to generate ClusterClass template)
 			Namespace: env.NamespaceVar,
 			Labels:    clusterLabels(),
 		},

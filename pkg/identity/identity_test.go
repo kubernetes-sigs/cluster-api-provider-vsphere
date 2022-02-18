@@ -184,21 +184,50 @@ var _ = Describe("GetCredentials", func() {
 			Expect(err).To(HaveOccurred())
 		})
 	})
+})
 
-	Context("prerequisites missing", func() {
-		It("should error if cluster is missing", func() {
-			_, err := GetCredentials(ctx, k8sclient, nil, manager.DefaultPodNamespace)
-			Expect(err).To(HaveOccurred())
-		})
+var _ = Describe("validateInputs", func() {
+	var (
+		ns      *corev1.Namespace
+		cluster *infrav1.VSphereCluster
+	)
 
+	BeforeEach(func() {
+		ns = &corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "namespace-",
+			},
+		}
+		Expect(k8sclient.Create(ctx, ns)).To(Succeed())
+
+		cluster = &infrav1.VSphereCluster{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "cluster-",
+				Namespace:    ns.Name,
+			},
+		}
+		Expect(k8sclient.Create(ctx, cluster)).To(Succeed())
+	})
+
+	AfterEach(func() {
+		Expect(k8sclient.Delete(ctx, ns)).To(Succeed())
+	})
+
+	Context("If the client is missing", func() {
 		It("should error if client is missing", func() {
-			_, err := GetCredentials(ctx, nil, cluster, manager.DefaultPodNamespace)
-			Expect(err).To(HaveOccurred())
+			Expect(validateInputs(nil, cluster)).NotTo(Succeed())
 		})
+	})
 
+	Context("If the cluster is missing", func() {
+		It("should error if cluster is missing", func() {
+			Expect(validateInputs(k8sclient, nil)).NotTo(Succeed())
+		})
+	})
+
+	Context("If the identityRef is missing on cluster", func() {
 		It("should error if identityRef is missing on cluster", func() {
-			_, err := GetCredentials(ctx, k8sclient, cluster, manager.DefaultPodNamespace)
-			Expect(err).To(HaveOccurred())
+			Expect(validateInputs(k8sclient, cluster)).NotTo(Succeed())
 		})
 	})
 })

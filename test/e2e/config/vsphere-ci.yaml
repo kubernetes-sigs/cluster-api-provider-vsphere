@@ -152,6 +152,8 @@ providers:
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-kcp-remediation.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-md-remediation.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-node-drain.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/clusterclass-quick-start.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-topology.yaml"
           - sourcePath: "../../../metadata.yaml"
 
 variables:
@@ -175,6 +177,7 @@ variables:
   VSPHERE_INSECURE_CSI: "true"
   KUBETEST_CONFIGURATION: "./data/kubetest/conformance.yaml"
   NODE_DRAIN_TIMEOUT: "60s"
+  CLUSTER_TOPOLOGY: "true"
 
 intervals:
   default/wait-controllers: ["5m", "10s"]

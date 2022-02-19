@@ -14,6 +14,7 @@ test/e2e/data/infrastructure-vsphere/cluster-template-remote-management.yaml
 test/e2e/data/infrastructure-vsphere/cluster-template-kcp-remediation.yaml
 test/e2e/data/infrastructure-vsphere/cluster-template-md-remediation.yaml
 test/e2e/data/infrastructure-vsphere/cluster-template-node-drain.yaml
+test/e2e/data/infrastructure-vsphere/cluster-template-topology.yaml
 _artifacts/
 
 # env vars file used in getting-started.md and manifests generation

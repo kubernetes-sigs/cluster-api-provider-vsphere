@@ -135,7 +135,7 @@ e2e-templates: ## Generate e2e cluster templates
 	"$(KUSTOMIZE)" build $(E2E_TEMPLATE_DIR)/kustomization/mhc-remediation/kcp > $(E2E_TEMPLATE_DIR)/cluster-template-kcp-remediation.yaml
 	"$(KUSTOMIZE)" build $(E2E_TEMPLATE_DIR)/kustomization/mhc-remediation/md > $(E2E_TEMPLATE_DIR)/cluster-template-md-remediation.yaml
 	"$(KUSTOMIZE)" build $(E2E_TEMPLATE_DIR)/kustomization/node-drain > $(E2E_TEMPLATE_DIR)/cluster-template-node-drain.yaml
-
+	"$(KUSTOMIZE)" build $(E2E_TEMPLATE_DIR)/kustomization/topology > $(E2E_TEMPLATE_DIR)/cluster-template-topology.yaml
 
 .PHONY: test-integration
 test-integration: e2e-image

@@ -21,6 +21,7 @@ SHELL := /usr/bin/env bash
 .DEFAULT_GOAL := help
 
 VERSION ?= $(shell cat clusterctl-settings.json | jq .config.nextVersion -r)
+PREVIOUS_VERSION ?= $(shell cat clusterctl-settings.json | jq .config.currentVersion -r)
 
 # Use GOPROXY environment variable if set
 GOPROXY := $(shell go env GOPROXY)
@@ -39,6 +40,9 @@ TOOLS_DIR := $(ROOT_DIR)/hack/tools
 TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
 
+GH_ORG_NAME ?= kubernetes-sigs
+GH_REPO_NAME ?= cluster-api-provider-vsphere
+GH_REPO ?= $(GH_ORG_NAME)/$(GH_REPO_NAME)
 E2E_CONF_FILE  ?= "$(abspath test/e2e/config/vsphere-dev.yaml)"
 INTEGRATION_CONF_FILE ?= "$(abspath test/integration/integration-dev.yaml)"
 E2E_TEMPLATE_DIR := "$(abspath test/e2e/data/infrastructure-vsphere/)"
@@ -292,6 +296,14 @@ ifndef VERSION
 	$(error VERSION must be set)
 endif
 
+.PHONY: check-previous-release-tag
+check-previous-release-tag: ## Check if the previous release tag is set
+	@if [ -z "${PREVIOUS_VERSION}" ]; then echo "PREVIOUS_VERSION is not set"; exit 1; fi
+
+.PHONY: check-github-token
+check-github-token: ## Check if your github token is set
+	@if [ -z "${GITHUB_TOKEN}" ]; then echo "GITHUB_TOKEN is not set"; exit 1; fi
+
 .PHONY: release-version-check
 release-version-check:
 ifeq ($(VERSION), 0.0.0)
@@ -306,6 +318,17 @@ release-manifests:
 .PHONY: release-overrides
 release-overrides:
 	$(MAKE) manifests STAGE=release MANIFEST_DIR=$(OVERRIDES_DIR) PULL_POLICY=IfNotPresent IMAGE=$(RELEASE_CONTROLLER_IMG):$(VERSION)
+
+.PHONY: release-changelog
+release-changelog: $(GH) #Generates release notes using Github release notes.
+	$(GH) api repos/$(GH_ORG_NAME)/$(GH_REPO_NAME)/releases/generate-notes -F tag_name=${RELEASE_TAG} --template \
+	'{{printf "# Release notes for Cluster API Provider vSphere (CAPV) '"$(VERSION)"'"}} \
+	{{printf "[Documentation](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/blob/master/docs/getting_started.md)"}} \
+	{{printf "# Changelog since '"$(PREVIOUS_VERSION)"'"}} \
+	{{.body}} \
+	{{printf "**The image for this release is**: '"$(DEV_CONTROLLER_IMG)"':'"$(VERSION)"'"}} \
+	{{printf "Thanks to all our contributors!"}} \
+	' > $(RELEASE_DIR)/CHANGELOG.md
 
 .PHONY: dev-manifests
 dev-manifests:

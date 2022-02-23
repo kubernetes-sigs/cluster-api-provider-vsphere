@@ -29,7 +29,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/util"
 )
 
-func getEnableSSHPatch() clusterv1.ClusterClassPatch {
+func enableSSHPatch() clusterv1.ClusterClassPatch {
 	return clusterv1.ClusterClassPatch{
 		Name:      "enableSSHIntoNodes",
 		EnabledIf: pointer.StringPtr("{{ if .sshKey }}true{{end}}"),
@@ -77,7 +77,7 @@ func getEnableSSHPatch() clusterv1.ClusterClassPatch {
 	}
 }
 
-func getInfraClusterPatch() clusterv1.ClusterClassPatch {
+func infraClusterPatch() clusterv1.ClusterClassPatch {
 	return clusterv1.ClusterClassPatch{
 		Name: "infraClusterSubstitutions",
 		Definitions: []clusterv1.PatchDefinition{
@@ -124,7 +124,7 @@ func getInfraClusterPatch() clusterv1.ClusterClassPatch {
 	}
 }
 
-func getKubeVipEnabledPatch() clusterv1.ClusterClassPatch {
+func kubeVipEnabledPatch() clusterv1.ClusterClassPatch {
 	return clusterv1.ClusterClassPatch{
 		Name: "kubeVipEnabled",
 		Definitions: []clusterv1.PatchDefinition{

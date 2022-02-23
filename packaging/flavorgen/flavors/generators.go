@@ -57,9 +57,8 @@ func newClusterClassCluster() clusterv1.Cluster {
 				Workers: &clusterv1.WorkersTopology{
 					MachineDeployments: []clusterv1.MachineDeploymentTopology{
 						{
-							Class: fmt.Sprintf("%s-worker", env.ClusterClassNameVar),
-							Name:  "md-0",
-							// TODO: [Aarti]: Figure out how to use an env variable here
+							Class:    fmt.Sprintf("%s-worker", env.ClusterClassNameVar),
+							Name:     "md-0",
 							Replicas: pointer.Int32Ptr(3),
 						},
 					},

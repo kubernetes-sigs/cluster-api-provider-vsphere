@@ -128,14 +128,17 @@ e2e-image: ## Build the e2e manager image
 e2e-templates: ## Generate e2e cluster templates
 	$(MAKE) release-manifests
 	cp $(RELEASE_DIR)/cluster-template.yaml $(E2E_TEMPLATE_DIR)/kustomization/base/cluster-template.yaml
-	"$(KUSTOMIZE)" build $(E2E_TEMPLATE_DIR)/kustomization/base > $(E2E_TEMPLATE_DIR)/cluster-template.yaml
-	"$(KUSTOMIZE)" build $(E2E_TEMPLATE_DIR)/kustomization/remote-management > $(E2E_TEMPLATE_DIR)/cluster-template-remote-management.yaml
-	"$(KUSTOMIZE)" build $(E2E_TEMPLATE_DIR)/kustomization/conformance > $(E2E_TEMPLATE_DIR)/cluster-template-conformance.yaml
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/kustomization/base > $(E2E_TEMPLATE_DIR)/cluster-template.yaml
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/kustomization/remote-management > $(E2E_TEMPLATE_DIR)/cluster-template-remote-management.yaml
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/kustomization/conformance > $(E2E_TEMPLATE_DIR)/cluster-template-conformance.yaml
 	# Since CAPI uses different flavor names for KCP and MD remediation using MHC
-	"$(KUSTOMIZE)" build $(E2E_TEMPLATE_DIR)/kustomization/mhc-remediation/kcp > $(E2E_TEMPLATE_DIR)/cluster-template-kcp-remediation.yaml
-	"$(KUSTOMIZE)" build $(E2E_TEMPLATE_DIR)/kustomization/mhc-remediation/md > $(E2E_TEMPLATE_DIR)/cluster-template-md-remediation.yaml
-	"$(KUSTOMIZE)" build $(E2E_TEMPLATE_DIR)/kustomization/node-drain > $(E2E_TEMPLATE_DIR)/cluster-template-node-drain.yaml
-
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/kustomization/mhc-remediation/kcp > $(E2E_TEMPLATE_DIR)/cluster-template-kcp-remediation.yaml
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/kustomization/mhc-remediation/md > $(E2E_TEMPLATE_DIR)/cluster-template-md-remediation.yaml
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/kustomization/node-drain > $(E2E_TEMPLATE_DIR)/cluster-template-node-drain.yaml
+	# generate clusterclass and cluster topology
+	cp $(RELEASE_DIR)/cluster-template-topology.yaml $(E2E_TEMPLATE_DIR)/kustomization/topology/cluster-template-topology.yaml
+	cp $(RELEASE_DIR)/clusterclass-template.yaml $(E2E_TEMPLATE_DIR)/clusterclass-quick-start.yaml
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/kustomization/topology > $(E2E_TEMPLATE_DIR)/cluster-template-topology.yaml
 
 .PHONY: test-integration
 test-integration: e2e-image
@@ -365,6 +368,7 @@ flavors: $(FLAVOR_DIR)
 	go run ./packaging/flavorgen -f vip > $(FLAVOR_DIR)/cluster-template.yaml
 	go run ./packaging/flavorgen -f external-loadbalancer > $(FLAVOR_DIR)/cluster-template-external-loadbalancer.yaml
 	go run ./packaging/flavorgen -f cluster-class > $(FLAVOR_DIR)/clusterclass-template.yaml
+	go run ./packaging/flavorgen -f cluster-topology > $(FLAVOR_DIR)/cluster-template-topology.yaml
 
 .PHONY: release-flavors ## Create release flavor manifests
 release-flavors: release-version-check

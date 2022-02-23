@@ -108,9 +108,9 @@ func getWorkersClass() clusterv1.WorkersClass {
 
 func getClusterClassPatches() []clusterv1.ClusterClassPatch {
 	return []clusterv1.ClusterClassPatch{
-		getEnableSSHPatch(),
-		getInfraClusterPatch(),
-		getKubeVipEnabledPatch(),
+		enableSSHPatch(),
+		infraClusterPatch(),
+		kubeVipEnabledPatch(),
 	}
 }
 

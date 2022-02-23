@@ -153,7 +153,16 @@ func GenerateObjectYAML(obj runtime.Object, replacements []Replacement) string {
 			}
 		}
 	}
-
+	// In the future, if we need to replace nested slice for some other reason,
+	// we could consider creating another utility for it and move this out.
+	if data.GetKind() == "Cluster" {
+		path := []string{"spec", "topology", "workers", "machineDeployments"}
+		slice, found, err := unstructured.NestedSlice(data.Object, path...)
+		if found && err == nil {
+			slice[0].(map[string]interface{})["replicas"] = env.WorkerMachineCountVar
+			_ = unstructured.SetNestedSlice(data.Object, slice, path...)
+		}
+	}
 	bytes, err = yaml.Marshal(data.Object)
 	if err != nil {
 		panic(err)

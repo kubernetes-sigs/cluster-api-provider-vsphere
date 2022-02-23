@@ -57,7 +57,7 @@ func RunRoot(command *cobra.Command) error {
 		util.PrintObjects(flavors.MultiNodeTemplateWithKubeVIP())
 	case "external-loadbalancer":
 		util.PrintObjects(flavors.MultiNodeTemplateWithExternalLoadBalancer())
-	case "cluster-class-cluster":
+	case "cluster-class":
 		additionalReplacements := []util.Replacement{
 			{
 				Kind:      "Cluster",
@@ -67,9 +67,8 @@ func RunRoot(command *cobra.Command) error {
 			},
 		}
 		util.Replacements = append(util.Replacements, additionalReplacements...)
-		util.PrintObjects(flavors.ClusterTopologyTemplateKubeVIP())
-	case "cluster-class":
 		util.PrintObjects(flavors.ClusterClassTemplateWithKubeVIP())
+		util.PrintObjects(flavors.ClusterTopologyTemplateKubeVIP())
 	default:
 		return errors.Errorf("invalid flavor")
 	}

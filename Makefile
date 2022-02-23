@@ -365,8 +365,6 @@ flavors: $(FLAVOR_DIR)
 	go run ./packaging/flavorgen -f vip > $(FLAVOR_DIR)/cluster-template.yaml
 	go run ./packaging/flavorgen -f external-loadbalancer > $(FLAVOR_DIR)/cluster-template-external-loadbalancer.yaml
 	go run ./packaging/flavorgen -f cluster-class > $(FLAVOR_DIR)/clusterclass-template.yaml
-	go run ./packaging/flavorgen -f cluster-class-cluster > $(FLAVOR_DIR)/cluster-topology-template.yaml
-
 
 .PHONY: release-flavors ## Create release flavor manifests
 release-flavors: release-version-check

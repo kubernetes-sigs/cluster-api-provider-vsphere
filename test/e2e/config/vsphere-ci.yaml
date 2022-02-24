@@ -152,6 +152,8 @@ providers:
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-kcp-remediation.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-md-remediation.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-node-drain.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-topology.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/clusterclass-quick-start.yaml"
           - sourcePath: "../../../metadata.yaml"
 
 variables:
@@ -161,6 +163,7 @@ variables:
   CONTROL_PLANE_MACHINE_COUNT: 1
   WORKER_MACHINE_COUNT: 1
   IP_FAMILY: "IPv4"
+  CLUSTER_CLASS_NAME: "quick-start"
   VSPHERE_TLS_THUMBPRINT: "9E:7F:01:3B:13:CF:B2:93:16:2C:31:6A:03:6A:D1:5D:C7:79:D8:DE"
   VSPHERE_DATACENTER:  "SDDC-Datacenter"
   VSPHERE_FOLDER: "clusterapi"
@@ -175,6 +178,7 @@ variables:
   VSPHERE_INSECURE_CSI: "true"
   KUBETEST_CONFIGURATION: "./data/kubetest/conformance.yaml"
   NODE_DRAIN_TIMEOUT: "60s"
+  CLUSTER_TOPOLOGY: "true"
 
 intervals:
   default/wait-controllers: ["5m", "10s"]

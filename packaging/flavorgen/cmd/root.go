@@ -23,6 +23,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors"
+	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/env"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/util"
 )
 
@@ -56,6 +57,19 @@ func RunRoot(command *cobra.Command) error {
 		util.PrintObjects(flavors.MultiNodeTemplateWithKubeVIP())
 	case "external-loadbalancer":
 		util.PrintObjects(flavors.MultiNodeTemplateWithExternalLoadBalancer())
+	case "cluster-class":
+		util.PrintObjects(flavors.ClusterClassTemplateWithKubeVIP())
+	case "cluster-topology":
+		additionalReplacements := []util.Replacement{
+			{
+				Kind:      "Cluster",
+				Name:      "${CLUSTER_NAME}",
+				Value:     env.ControlPlaneMachineCountVar,
+				FieldPath: []string{"spec", "topology", "controlPlane", "replicas"},
+			},
+		}
+		util.Replacements = append(util.Replacements, additionalReplacements...)
+		util.PrintObjects(flavors.ClusterTopologyTemplateKubeVIP())
 	default:
 		return errors.Errorf("invalid flavor")
 	}

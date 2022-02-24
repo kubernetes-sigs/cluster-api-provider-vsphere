@@ -37,7 +37,7 @@ type Replacement struct {
 }
 
 var (
-	replacements = []Replacement{
+	Replacements = []Replacement{
 		{
 			Kind:      "KubeadmControlPlane",
 			Name:      "${CLUSTER_NAME}",
@@ -56,10 +56,17 @@ var (
 			Value:     map[string]interface{}{},
 			FieldPath: []string{"spec", "selector", "matchLabels"},
 		},
+		{
+			Kind:      "VSphereClusterTemplate",
+			Name:      "${CLUSTER_CLASS_NAME}",
+			Value:     map[string]interface{}{},
+			FieldPath: []string{"spec", "template", "spec"},
+		},
 	}
 
 	stringVars = []string{
 		regexVar(env.ClusterNameVar),
+		regexVar(env.ClusterClassNameVar),
 		regexVar(env.ClusterNameVar + env.MachineDeploymentNameSuffix),
 		regexVar(env.NamespaceVar),
 		regexVar(env.KubernetesVersionVar),
@@ -74,6 +81,8 @@ var (
 		regexVar(env.VSphereTemplateVar),
 		regexVar(env.VSphereHaproxyTemplateVar),
 		regexVar(env.VSphereStoragePolicyVar),
+		// TODO: Why was thumbprint not here?
+		regexVar(env.VSphereThumbprint),
 	}
 )
 
@@ -144,7 +153,16 @@ func GenerateObjectYAML(obj runtime.Object, replacements []Replacement) string {
 			}
 		}
 	}
-
+	// In the future, if we need to replace nested slice for some other reason,
+	// we could consider creating another utility for it and move this out.
+	if data.GetKind() == "Cluster" {
+		path := []string{"spec", "topology", "workers", "machineDeployments"}
+		slice, found, err := unstructured.NestedSlice(data.Object, path...)
+		if found && err == nil {
+			slice[0].(map[string]interface{})["replicas"] = env.WorkerMachineCountVar
+			_ = unstructured.SetNestedSlice(data.Object, slice, path...)
+		}
+	}
 	bytes, err = yaml.Marshal(data.Object)
 	if err != nil {
 		panic(err)
@@ -169,7 +187,7 @@ func GenerateManifestYaml(objs []runtime.Object) string {
 
 	for _, o := range objs {
 		sb.WriteString("---\n")
-		sb.WriteString(GenerateObjectYAML(o, replacements))
+		sb.WriteString(GenerateObjectYAML(o, Replacements))
 	}
 
 	return sb.String()
@@ -178,7 +196,7 @@ func GenerateManifestYaml(objs []runtime.Object) string {
 func PrintObjects(objs []runtime.Object) {
 	for _, o := range objs {
 		o := o
-		fmt.Printf("---\n%s", GenerateObjectYAML(o, replacements)) //nolint:forbidigo
+		fmt.Printf("---\n%s", GenerateObjectYAML(o, Replacements)) //nolint:forbidigo
 	}
 }
 

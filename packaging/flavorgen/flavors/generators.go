@@ -17,7 +17,11 @@ limitations under the License.
 package flavors
 
 import (
+	"encoding/json"
+	"fmt"
+
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -31,6 +35,87 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/util"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/identity"
 )
+
+func newClusterClassCluster() clusterv1.Cluster {
+	return clusterv1.Cluster{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       util.TypeToKind(&clusterv1.Cluster{}),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      env.ClusterNameVar,
+			Namespace: env.NamespaceVar,
+			Labels:    clusterLabels(),
+		},
+		Spec: clusterv1.ClusterSpec{
+			Topology: &clusterv1.Topology{
+				Class:   env.ClusterClassNameVar,
+				Version: env.KubernetesVersionVar,
+				ControlPlane: clusterv1.ControlPlaneTopology{
+					Replicas: pointer.Int32Ptr(1),
+				},
+				Workers: &clusterv1.WorkersTopology{
+					MachineDeployments: []clusterv1.MachineDeploymentTopology{
+						{
+							Class:    fmt.Sprintf("%s-worker", env.ClusterClassNameVar),
+							Name:     "md-0",
+							Replicas: pointer.Int32Ptr(3),
+						},
+					},
+				},
+				Variables: clusterTopologyVariables(),
+			},
+		},
+	}
+}
+
+func clusterTopologyVariables() []clusterv1.ClusterVariable {
+	sshKey, _ := json.Marshal(env.VSphereSSHAuthorizedKeysVar)
+	controlPlaneIP, _ := json.Marshal(env.ControlPlaneEndpointVar)
+	secretName, _ := json.Marshal(env.ClusterNameVar)
+	kubeVipPod, _ := json.Marshal(kubeVIPPodYaml())
+	return []clusterv1.ClusterVariable{
+		{
+			Name: "sshKey",
+			Value: apiextensionsv1.JSON{
+				Raw: sshKey,
+			},
+		},
+		{
+			Name: "infraServer",
+			Value: apiextensionsv1.JSON{
+				Raw: getInfraServerValue(),
+			},
+		},
+		{
+			Name: "kubeVipPodManifest",
+			Value: apiextensionsv1.JSON{
+
+				Raw: kubeVipPod,
+			},
+		},
+		{
+			Name: "controlPlaneIpAddr",
+			Value: apiextensionsv1.JSON{
+				Raw: controlPlaneIP,
+			},
+		},
+		{
+			Name: "credsSecretName",
+			Value: apiextensionsv1.JSON{
+				Raw: secretName,
+			},
+		},
+	}
+}
+
+func getInfraServerValue() []byte {
+	byteArr, _ := json.Marshal(map[string]string{
+		"url":        env.VSphereServerVar,
+		"thumbprint": env.VSphereThumbprint,
+	})
+	return byteArr
+}
 
 func newVSphereCluster() infrav1.VSphereCluster {
 	return infrav1.VSphereCluster{
@@ -95,10 +180,10 @@ func clusterLabels() map[string]string {
 	return map[string]string{"cluster.x-k8s.io/cluster-name": env.ClusterNameVar}
 }
 
-func newVSphereMachineTemplate() infrav1.VSphereMachineTemplate {
+func newVSphereMachineTemplate(templateName string) infrav1.VSphereMachineTemplate {
 	return infrav1.VSphereMachineTemplate{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      env.ClusterNameVar,
+			Name:      templateName,
 			Namespace: env.NamespaceVar,
 		},
 		TypeMeta: metav1.TypeMeta{
@@ -167,10 +252,10 @@ func defaultKubeadmInitSpec(files []bootstrapv1.File) bootstrapv1.KubeadmConfigS
 	}
 }
 
-func newKubeadmConfigTemplate() bootstrapv1.KubeadmConfigTemplate {
-	return bootstrapv1.KubeadmConfigTemplate{
+func newKubeadmConfigTemplate(templateName string, addUsers bool) bootstrapv1.KubeadmConfigTemplate {
+	template := bootstrapv1.KubeadmConfigTemplate{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      env.ClusterNameVar + env.MachineDeploymentNameSuffix,
+			Name:      templateName,
 			Namespace: env.NamespaceVar,
 		},
 		TypeMeta: metav1.TypeMeta{
@@ -183,12 +268,15 @@ func newKubeadmConfigTemplate() bootstrapv1.KubeadmConfigTemplate {
 					JoinConfiguration: &bootstrapv1.JoinConfiguration{
 						NodeRegistration: defaultNodeRegistrationOptions(),
 					},
-					Users:              defaultUsers(),
 					PreKubeadmCommands: defaultPreKubeadmCommands(),
 				},
 			},
 		},
 	}
+	if addUsers {
+		template.Spec.Template.Spec.Users = defaultUsers()
+	}
+	return template
 }
 
 func defaultNodeRegistrationOptions() bootstrapv1.NodeRegistrationOptions {
@@ -236,8 +324,7 @@ func defaultPreKubeadmCommands() []string {
 		"echo \"{{ ds.meta_data.hostname }}\" >/etc/hostname",
 	}
 }
-
-func kubeVIPPod() string {
+func kubeVIPPodSpec() *corev1.Pod {
 	hostPathType := corev1.HostPathFileOrCreate
 	pod := &corev1.Pod{
 		TypeMeta: metav1.TypeMeta{
@@ -343,6 +430,19 @@ func kubeVIPPod() string {
 			},
 		},
 	}
+	return pod
+}
+
+// kubeVIPPodYaml converts the KubeVip pod spec to a `printable` yaml
+// this is needed for the file contents of KubeadmConfig.
+func kubeVIPPodYaml() string {
+	pod := kubeVIPPodSpec()
+	podYaml := util.GenerateObjectYAML(pod, []util.Replacement{})
+	return podYaml
+}
+
+func kubeVIPPod() string {
+	pod := kubeVIPPodSpec()
 	podBytes, err := yaml.Marshal(pod)
 	if err != nil {
 		panic(err)
@@ -374,7 +474,7 @@ func newIdentitySecret() corev1.Secret {
 	return corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: corev1.SchemeGroupVersion.String(),
-			Kind:       "Secret",
+			Kind:       util.TypeToKind(&corev1.Secret{}),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: env.NamespaceVar,

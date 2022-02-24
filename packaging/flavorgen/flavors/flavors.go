@@ -17,16 +17,54 @@ limitations under the License.
 package flavors
 
 import (
+	"fmt"
+
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/crs"
+	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/env"
 )
+
+func ClusterClassTemplateWithKubeVIP() []runtime.Object {
+	vSphereClusterTemplate := newVSphereClusterTemplate()
+	clusterClass := newClusterClass()
+	machineTemplate := newVSphereMachineTemplate(fmt.Sprintf("%s-template", env.ClusterClassNameVar))
+	workerMachineTemplate := newVSphereMachineTemplate(fmt.Sprintf("%s-worker-machinetemplate", env.ClusterClassNameVar))
+	controlPlaneTemplate := newKubeadmControlPlaneTemplate(fmt.Sprintf("%s-controlplane", env.ClusterClassNameVar))
+	kubeadmJoinTemplate := newKubeadmConfigTemplate(fmt.Sprintf("%s-worker-bootstrap-template", env.ClusterClassNameVar), false)
+
+	ClusterClassTemplate := []runtime.Object{
+		&vSphereClusterTemplate,
+		&clusterClass,
+		&machineTemplate,
+		&workerMachineTemplate,
+		&controlPlaneTemplate,
+		&kubeadmJoinTemplate,
+	}
+	return ClusterClassTemplate
+}
+
+func ClusterTopologyTemplateKubeVIP() []runtime.Object {
+	cluster := newClusterClassCluster()
+	identitySecret := newIdentitySecret()
+	clusterResourceSet := newClusterResourceSet(cluster)
+	crsResourcesCSI := crs.CreateCrsResourceObjectsCSI(&clusterResourceSet)
+	crsResourcesCPI := crs.CreateCrsResourceObjectsCPI(&clusterResourceSet)
+	MultiNodeTemplate := []runtime.Object{
+		&cluster,
+		&identitySecret,
+		&clusterResourceSet,
+	}
+	MultiNodeTemplate = append(MultiNodeTemplate, crsResourcesCSI...)
+	MultiNodeTemplate = append(MultiNodeTemplate, crsResourcesCPI...)
+	return MultiNodeTemplate
+}
 
 func MultiNodeTemplateWithKubeVIP() []runtime.Object {
 	vsphereCluster := newVSphereCluster()
-	machineTemplate := newVSphereMachineTemplate()
+	machineTemplate := newVSphereMachineTemplate(env.ClusterNameVar)
 	controlPlane := newKubeadmControlplane(444, machineTemplate, newKubeVIPFiles())
-	kubeadmJoinTemplate := newKubeadmConfigTemplate()
+	kubeadmJoinTemplate := newKubeadmConfigTemplate(fmt.Sprintf("%s%s", env.ClusterNameVar, env.MachineDeploymentNameSuffix), true)
 	cluster := newCluster(vsphereCluster, &controlPlane)
 	machineDeployment := newMachineDeployment(cluster, machineTemplate, kubeadmJoinTemplate)
 	clusterResourceSet := newClusterResourceSet(cluster)
@@ -53,9 +91,9 @@ func MultiNodeTemplateWithKubeVIP() []runtime.Object {
 
 func MultiNodeTemplateWithExternalLoadBalancer() []runtime.Object {
 	vsphereCluster := newVSphereCluster()
-	machineTemplate := newVSphereMachineTemplate()
+	machineTemplate := newVSphereMachineTemplate(env.ClusterNameVar)
 	controlPlane := newKubeadmControlplane(444, machineTemplate, nil)
-	kubeadmJoinTemplate := newKubeadmConfigTemplate()
+	kubeadmJoinTemplate := newKubeadmConfigTemplate(fmt.Sprintf("%s%s", env.ClusterNameVar, env.MachineDeploymentNameSuffix), true)
 	cluster := newCluster(vsphereCluster, &controlPlane)
 	machineDeployment := newMachineDeployment(cluster, machineTemplate, kubeadmJoinTemplate)
 	clusterResourceSet := newClusterResourceSet(cluster)

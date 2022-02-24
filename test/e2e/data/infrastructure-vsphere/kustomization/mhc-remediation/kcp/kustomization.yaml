@@ -4,4 +4,4 @@ resources:
   - ../../base
   - mhc.yaml
 patchesStrategicMerge:
-  - vcpu.yaml
+  - ../../commons/vcpu.yaml

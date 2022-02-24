@@ -5,4 +5,4 @@ resources:
 patchesStrategicMerge:
   - kcp-drain.yaml
   - md-drain.yaml
-  - vcpu.yaml
+  - ../commons/vcpu.yaml

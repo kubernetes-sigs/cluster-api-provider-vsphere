@@ -85,7 +85,7 @@ function fatal() {
 function build_images() {
   case "${BUILD_RELEASE_TYPE}" in
     ci)
-      # A non-PR, non-release build. This is usually a build off of master
+      # A non-PR, non-release build. This is usually a build off of main
       MANAGER_IMAGE_NAME=${CAPV_MANAGER_IMAGE_CI}
       ;;
     pr)

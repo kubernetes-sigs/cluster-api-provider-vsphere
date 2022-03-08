@@ -5,8 +5,12 @@
 1. Login using `gcloud auth login`. You should see
    `cluster-api-provider-vsphere` in your list of available projects.
 2. Make sure your repo is clean by git's standards
-3. If this is a new minor release, create a new release branch and push
-   to github, otherwise switch to it, for example `release-0.7`
+3. If this is a new minor release,
+   1. Verify that the `metadata.yaml` file has an entry binding the CAPI contract
+      to this new release version.
+      If this is not yet done, create a new commit to add this entry.
+   2. Create a new release branch and push
+      to github, otherwise switch to it, for example `release-0.7`
 4. Create an env var VERSION=v0.x.x Ensure the version is prefixed with a v
 5. Tag the repository and push the tag `git tag -m $VERSION $VERSION`
    * If you have a GPG key for use with git use `git tag -s -m $VERSION $VERSION`

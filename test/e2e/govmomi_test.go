@@ -21,11 +21,13 @@ import (
 	"flag"
 	"net/url"
 	"os"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
+	"github.com/vmware/govmomi/session/keepalive"
 	"github.com/vmware/govmomi/vim25/soap"
 )
 
@@ -55,6 +57,9 @@ func initVSphereSession() {
 		serverURL.User = url.UserPassword(vsphereUsername, vspherePassword)
 		vsphereClient, err = govmomi.NewClient(ctx, serverURL, true)
 		Expect(err).ShouldNot(HaveOccurred())
+
+		// To keep the session from timing out until the test suite finishes
+		vsphereClient.RoundTripper = keepalive.NewHandlerSOAP(vsphereClient.RoundTripper, 1*time.Minute, nil)
 	})
 
 	By("creating vSphere finder")

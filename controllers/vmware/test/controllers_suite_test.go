@@ -19,6 +19,8 @@ package test
 import (
 	goctx "context"
 	"encoding/json"
+	"fmt"
+	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
@@ -102,6 +104,16 @@ func getTestEnv() (*envtest.Environment, *rest.Config) {
 }
 
 func getManager(cfg *rest.Config, networkProvider string) manager.Manager {
+	contentFmt := `username: '%s'
+	password: '%s'
+	`
+	tmpFile, err := os.CreateTemp("", "creds")
+	Expect(err).NotTo(HaveOccurred())
+
+	content := fmt.Sprintf(contentFmt, cfg.Username, cfg.Password)
+	_, err = tmpFile.Write([]byte(content))
+	Expect(err).NotTo(HaveOccurred())
+
 	opts := manager.Options{
 		Options: ctrlmgr.Options{
 			Scheme: scheme.Scheme,
@@ -113,6 +125,7 @@ func getManager(cfg *rest.Config, networkProvider string) manager.Manager {
 		},
 		KubeConfig:      cfg,
 		NetworkProvider: networkProvider,
+		CredentialsFile: tmpFile.Name(),
 	}
 
 	opts.AddToManager = func(ctx *context.ControllerManagerContext, mgr ctrlmgr.Manager) error {

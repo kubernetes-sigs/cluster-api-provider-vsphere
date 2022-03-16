@@ -107,9 +107,7 @@ func (o *Options) defaults() {
 	}
 
 	if o.Username == "" || o.Password == "" {
-		credentials := o.getCredentials()
-		o.Username = credentials["username"]
-		o.Password = credentials["password"]
+		o.readAndSetCredentials()
 	}
 
 	if ns, ok := os.LookupEnv("POD_NAMESPACE"); ok {
@@ -137,4 +135,10 @@ func (o *Options) getCredentials() map[string]string {
 	}
 
 	return credentials
+}
+
+func (o *Options) readAndSetCredentials() {
+	credentials := o.getCredentials()
+	o.Username = credentials["username"]
+	o.Password = credentials["password"]
 }

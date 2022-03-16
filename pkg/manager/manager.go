@@ -26,6 +26,7 @@ import (
 	vmoprv1 "github.com/vmware-tanzu/vm-operator-api/api/v1alpha1"
 	ncpv1 "github.com/vmware-tanzu/vm-operator/external/ncp/api/v1alpha1"
 	topologyv1 "github.com/vmware-tanzu/vm-operator/external/tanzu-topology/api/v1alpha1"
+	"gopkg.in/fsnotify.v1"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
@@ -116,4 +117,41 @@ type manager struct {
 
 func (m *manager) GetContext() *context.ControllerManagerContext {
 	return m.ctx
+}
+
+func UpdateCredentials(opts *Options) {
+	opts.readAndSetCredentials()
+}
+
+// InitializeWatch adds a filesystem watcher for the capv credentials file
+// In case of any update to the credentials file, the new credentials are passed to the capv manager context.
+func InitializeWatch(ctx *context.ControllerManagerContext, managerOpts *Options) (watch *fsnotify.Watcher, err error) {
+	capvCredentialsFile := managerOpts.CredentialsFile
+	updateEventCh := make(chan bool)
+	watch, err = fsnotify.NewWatcher()
+	if err != nil {
+		return nil, errors.Wrap(err, fmt.Sprintf("failed to create new Watcher for %s", capvCredentialsFile))
+	}
+	if err = watch.Add(capvCredentialsFile); err != nil {
+		return nil, errors.Wrap(err, "received error on CAPV credential watcher")
+	}
+	go func() {
+		for {
+			select {
+			case err := <-watch.Errors:
+				ctx.Logger.Error(err, "received error on CAPV credential watcher")
+			case event := <-watch.Events:
+				ctx.Logger.Info(fmt.Sprintf("received event %v on the credential file %s", event, capvCredentialsFile))
+				updateEventCh <- true
+			}
+		}
+	}()
+
+	go func() {
+		for range updateEventCh {
+			UpdateCredentials(managerOpts)
+		}
+	}()
+
+	return watch, err
 }

@@ -26,6 +26,7 @@ import (
 	"reflect"
 	"time"
 
+	"gopkg.in/fsnotify.v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
@@ -211,6 +212,16 @@ func main() {
 		setupLog.Error(err, "problem running controller manager")
 		os.Exit(1)
 	}
+
+	// initialize notifier for capv-manager-bootstrap-credentials
+	watch, err := manager.InitializeWatch(mgr.GetContext(), &managerOpts)
+	if err != nil {
+		setupLog.Error(err, "failed to initialize watch on CAPV credentials file")
+		os.Exit(1)
+	}
+	defer func(watch *fsnotify.Watcher) {
+		_ = watch.Close()
+	}(watch)
 }
 
 func setupVAPIControllers(ctx *context.ControllerManagerContext, mgr ctrlmgr.Manager) error {

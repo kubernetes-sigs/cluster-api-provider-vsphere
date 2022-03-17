@@ -48,6 +48,10 @@ import (
 	infrautilv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
+// legacyIdentityFinalizer is deprecated and should be used only while upgrading the cluster
+// from v1alpha3(v.0.7).
+const legacyIdentityFinalizer string = "identity/infrastructure.cluster.x-k8s.io"
+
 type clusterReconciler struct {
 	*context.ControllerContext
 }
@@ -176,8 +180,14 @@ func (r clusterReconciler) reconcileDelete(ctx *context.ClusterContext) (reconci
 			}
 			return reconcile.Result{}, err
 		}
-		r.Logger.Info(fmt.Sprintf("Removing finalizer form Secret %s/%s", secret.Namespace, secret.Name))
+		r.Logger.Info(fmt.Sprintf("Removing finalizer from Secret %s/%s having finalizers %v", secret.Namespace, secret.Name, secret.Finalizers))
 		ctrlutil.RemoveFinalizer(secret, infrav1.SecretIdentitySetFinalizer)
+
+		// Check if the old finalizer(from v0.7) is present, if yes, delete it
+		// For more context, please refer: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/1482
+		if ctrlutil.ContainsFinalizer(secret, legacyIdentityFinalizer) {
+			ctrlutil.RemoveFinalizer(secret, legacyIdentityFinalizer)
+		}
 		if err := ctx.Client.Update(ctx, secret); err != nil {
 			return reconcile.Result{}, err
 		}
@@ -260,15 +270,13 @@ func (r clusterReconciler) reconcileIdentitySecret(ctx *context.ClusterContext) 
 			if len(secret.GetOwnerReferences()) > 0 {
 				return fmt.Errorf("another cluster has set the OwnerRef for secret: %s/%s", secret.Namespace, secret.Name)
 			}
-
-			secret.SetOwnerReferences([]metav1.OwnerReference{{
-				APIVersion: infrav1.GroupVersion.String(),
-				Kind:       vsphereCluster.Kind,
-				Name:       vsphereCluster.Name,
-				UID:        vsphereCluster.UID,
-			}})
 		}
-
+		secret.SetOwnerReferences([]metav1.OwnerReference{{
+			APIVersion: infrav1.GroupVersion.String(),
+			Kind:       vsphereCluster.Kind,
+			Name:       vsphereCluster.Name,
+			UID:        vsphereCluster.UID,
+		}})
 		if !ctrlutil.ContainsFinalizer(secret, infrav1.SecretIdentitySetFinalizer) {
 			ctrlutil.AddFinalizer(secret, infrav1.SecretIdentitySetFinalizer)
 		}

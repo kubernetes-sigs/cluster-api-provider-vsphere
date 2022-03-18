@@ -214,8 +214,8 @@ func GetMachineMetadata(hostname string, vsphereVM infrav1.VSphereVM, networkSta
 	}); err != nil {
 		return nil, errors.Wrapf(
 			err,
-			"error getting cloud init metadata for vsphereVM %s/%s/%s",
-			vsphereVM.Namespace, vsphereVM.ClusterName, vsphereVM.Name)
+			"error getting cloud init metadata for vsphereVM %s/%s",
+			vsphereVM.Namespace, vsphereVM.Name)
 	}
 	return buf.Bytes(), nil
 }

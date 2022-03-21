@@ -183,3 +183,25 @@ var _ = Describe("VimMachineService_GenerateOverrideFunc", func() {
 		})
 	})
 })
+
+var _ = Describe("Reconcile_Normal", func() {
+	var (
+		controllerCtx     *context.ControllerContext
+		machineCtx        *context.VIMMachineContext
+		vimMachineService *VimMachineService
+	)
+
+	BeforeEach(func() {
+		controllerCtx = fake.NewControllerContext(fake.NewControllerManagerContext(deplZone("one"), deplZone("two"), failureDomain("one"), failureDomain("two")))
+		machineCtx = fake.NewMachineContext(fake.NewClusterContext(controllerCtx))
+		vimMachineService = &VimMachineService{}
+	})
+
+	Context("Successfully reconcile vim machine", func() {
+		It("performs a normal reconcile function", func() {
+			check, err := vimMachineService.ReconcileNormal(machineCtx)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(check).Should(BeTrue())
+		})
+	})
+})

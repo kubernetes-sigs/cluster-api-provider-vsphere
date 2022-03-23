@@ -30,10 +30,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
-	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
-	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
-	ctrlsig "sigs.k8s.io/controller-runtime/pkg/manager/signals"
-
 	"sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vmwarev1b1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/controllers"
@@ -42,6 +38,9 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/version"
+	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
+	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
+	ctrlsig "sigs.k8s.io/controller-runtime/pkg/manager/signals"
 )
 
 var (

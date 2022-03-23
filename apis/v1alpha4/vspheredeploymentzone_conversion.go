@@ -17,9 +17,8 @@ limitations under the License.
 package v1alpha4
 
 import (
-	"sigs.k8s.io/controller-runtime/pkg/conversion"
-
 	infrav1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
 // ConvertTo converts this VSphereDeploymentZone to the Hub version (v1beta1).

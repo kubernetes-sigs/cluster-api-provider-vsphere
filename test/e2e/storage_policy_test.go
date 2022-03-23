@@ -27,12 +27,11 @@ import (
 	"github.com/vmware/govmomi/pbm/types"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
+	"sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	v1beta12 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 )
 
 var _ = Describe("Cluster creation with storage policy", func() {

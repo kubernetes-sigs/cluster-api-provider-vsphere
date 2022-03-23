@@ -24,10 +24,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	"k8s.io/apimachinery/pkg/runtime"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
+	nextver "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
-
-	nextver "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 )
 
 //nolint:paralleltest

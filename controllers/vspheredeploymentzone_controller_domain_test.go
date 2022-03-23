@@ -24,7 +24,6 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/vmware/govmomi/simulator"
 	"k8s.io/utils/pointer"
-
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"

@@ -22,7 +22,6 @@ import (
 
 	"github.com/onsi/gomega"
 	"github.com/pkg/errors"
-
 	"sigs.k8s.io/cluster-api-provider-vsphere/apis/v1alpha3"
 )
 

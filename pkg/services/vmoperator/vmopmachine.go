@@ -437,6 +437,7 @@ func (v *VmopMachineService) reconcileProviderID(ctx *vmware.SupervisorMachineCo
 }
 
 // getVirtualMachinesInCluster returns all VMOperator VirtualMachine objects in the current cluster.
+// First filter by clusterSelectorKey. If the result is empty, they fall back to legacyClusterSelectorKey.
 func getVirtualMachinesInCluster(ctx *vmware.SupervisorMachineContext) ([]*vmoprv1.VirtualMachine, error) {
 	labels := map[string]string{clusterSelectorKey: ctx.Cluster.Name}
 	vmList := &vmoprv1.VirtualMachineList{}
@@ -448,6 +449,19 @@ func getVirtualMachinesInCluster(ctx *vmware.SupervisorMachineContext) ([]*vmopr
 		return nil, errors.Wrapf(
 			err, "error getting virtualmachines in cluster %s/%s",
 			ctx.Cluster.Namespace, ctx.Cluster.Name)
+	}
+
+	// If the list is empty, fall back to usse legacy labels for filtering
+	if len(vmList.Items) == 0 {
+		legacyLabels := map[string]string{legacyClusterSelectorKey: ctx.Cluster.Name}
+		if err := ctx.Client.List(
+			ctx, vmList,
+			client.InNamespace(ctx.Cluster.Namespace),
+			client.MatchingLabels(legacyLabels)); err != nil {
+			return nil, errors.Wrapf(
+				err, "error getting virtualmachines in cluster %s/%s using legacy labels",
+				ctx.Cluster.Namespace, ctx.Cluster.Name)
+		}
 	}
 
 	vms := make([]*vmoprv1.VirtualMachine, len(vmList.Items))

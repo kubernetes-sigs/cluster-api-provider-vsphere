@@ -27,6 +27,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 var _ = Describe("VimMachineService_GenerateOverrideFunc", func() {
@@ -229,8 +230,9 @@ var _ = Describe("Reconcile_Normal", func() {
 			Expect(machineCtx.VSphereMachine.Status).Should(BeTrue(), "VSphere Machine Status Should be Ready")
 			Expect(machineCtx.VSphereMachine.Spec.ProviderID).NotTo(BeNil(), "VSphere must have a ProviderId")
 			Expect(machineCtx.VSphereMachine.Status.Network).NotTo(BeNil(), "Vsphere Network has to be set")
+			Expect(conditions.Has(machineCtx.VSphereMachine, infrav1.VMProvisionedCondition)).To(BeTrue())
 		})
-		It("performs a normal reconcile", func() {
+		It("perform a normal reconcile", func() {
 			check, err := vimMachineService.ReconcileNormal(machineCtx)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(check).Should(BeTrue())

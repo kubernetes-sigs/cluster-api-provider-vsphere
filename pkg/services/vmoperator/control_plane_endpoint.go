@@ -41,6 +41,14 @@ const (
 	nodeSelectorKey    = "capv.vmware.com/cluster.role"
 	roleNode           = "node"
 	roleControlPlane   = "controlplane"
+
+	// TODO(lubronzhan): Deprecated, will be removed in a future release.
+	// https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/1483
+	// legacyClusterSelectorKey and legacyNodeSelectorKey are added for backward compatibility.
+	// These will be removed in the future release.
+	// Please refer to the issue above for deprecation process.
+	legacyClusterSelectorKey = "capw.vmware.com/cluster.name"
+	legacyNodeSelectorKey    = "capw.vmware.com/cluster.role"
 )
 
 // CPService represents the ability to reconcile a ControlPlaneEndpoint.
@@ -104,14 +112,18 @@ func controlPlaneVMServiceName(ctx *vmware.ClusterContext) string {
 
 // ClusterRoleVMLabels returns labels applied to a VirtualMachine in the cluster. The Control Plane
 // VM Service uses these labels to select VMs, as does the Cloud Provider.
+// Add the legacyNodeSelectorKey and legacyClusterSelectorKey to machines as well.
 func clusterRoleVMLabels(ctx *vmware.ClusterContext, controlPlane bool) map[string]string {
 	result := map[string]string{
-		clusterSelectorKey: ctx.Cluster.Name,
+		clusterSelectorKey:       ctx.Cluster.Name,
+		legacyClusterSelectorKey: ctx.Cluster.Name,
 	}
 	if controlPlane {
 		result[nodeSelectorKey] = roleControlPlane
+		result[legacyNodeSelectorKey] = roleControlPlane
 	} else {
 		result[nodeSelectorKey] = roleNode
+		result[legacyNodeSelectorKey] = roleControlPlane
 	}
 	return result
 }

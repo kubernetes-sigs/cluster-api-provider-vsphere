@@ -168,6 +168,12 @@ var _ = Describe("VirtualMachine tests", func() {
 				Expect(vmopVM.Spec.PowerState).To(Equal(vmoprv1.VirtualMachinePoweredOn))
 				Expect(vmopVM.ObjectMeta.Annotations[ClusterModuleNameAnnotationKey]).To(Equal(ControlPlaneVMClusterModuleGroupName))
 				Expect(vmopVM.ObjectMeta.Annotations[ProviderTagsAnnotationKey]).To(Equal(ControlPlaneVMVMAntiAffinityTagValue))
+
+				Expect(vmopVM.Labels[clusterSelectorKey]).To(Equal(clusterName))
+				Expect(vmopVM.Labels[nodeSelectorKey]).To(Equal(roleControlPlane))
+				// for backward compatibility, will be removed in the future
+				Expect(vmopVM.Labels[legacyClusterSelectorKey]).To(Equal(clusterName))
+				Expect(vmopVM.Labels[legacyNodeSelectorKey]).To(Equal(roleControlPlane))
 			}
 
 			for _, expectedCondition := range expectedConditions {

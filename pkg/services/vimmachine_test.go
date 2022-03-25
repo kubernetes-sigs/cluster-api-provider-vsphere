@@ -230,7 +230,7 @@ var _ = Describe("Reconcile_Normal", func() {
 			Expect(machineCtx.VSphereMachine.Status).Should(BeTrue(), "VSphere Machine Status Should be Ready")
 			Expect(machineCtx.VSphereMachine.Spec.ProviderID).NotTo(BeNil(), "VSphere must have a ProviderId")
 			Expect(machineCtx.VSphereMachine.Status.Network).NotTo(BeNil(), "Vsphere Network has to be set")
-			Expect(conditions.Has(machineCtx.VSphereMachine, infrav1.VMProvisionedCondition)).To(BeTrue())
+			Expect(conditions.Has(machineCtx.VSphereMachine, infrav1.VMProvisionedCondition)).To(BeTrue(), "VMProvisionedCondition should be set")
 		})
 		It("perform a normal reconcile", func() {
 			check, err := vimMachineService.ReconcileNormal(machineCtx)

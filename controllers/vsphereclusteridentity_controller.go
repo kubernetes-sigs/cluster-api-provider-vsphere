@@ -26,9 +26,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -39,6 +36,10 @@ import (
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/api/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 )
 
 var (
@@ -169,7 +170,12 @@ func (r clusterIdentityReconciler) reconcileDelete(ctx _context.Context, identit
 		}
 		return reconcile.Result{}, err
 	}
-	r.Logger.Info(fmt.Sprintf("Removing finalizer form Secret %s/%s", secret.Namespace, secret.Name))
+	r.Logger.Info(fmt.Sprintf("Removing finalizer from Secret %s/%s", secret.Namespace, secret.Name))
+	// Check if the old finalizer(from v0.7) is present, if yes, delete it
+	// For more context, please refer: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/1482
+	if ctrlutil.ContainsFinalizer(secret, legacyIdentityFinalizer) {
+		ctrlutil.RemoveFinalizer(secret, legacyIdentityFinalizer)
+	}
 	ctrlutil.RemoveFinalizer(secret, infrav1.SecretIdentitySetFinalizer)
 	if err := r.Client.Update(ctx, secret); err != nil {
 		return reconcile.Result{}, err

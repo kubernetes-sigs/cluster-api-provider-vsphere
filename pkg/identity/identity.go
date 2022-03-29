@@ -40,19 +40,14 @@ type Credentials struct {
 }
 
 func GetCredentials(ctx context.Context, c client.Client, cluster *infrav1.VSphereCluster, controllerNamespace string) (*Credentials, error) {
-	if c == nil {
-		return nil, errors.New("kubernetes client is required")
-	}
-	if cluster == nil {
-		return nil, errors.New("vsphere cluster is required")
-	}
-	ref := cluster.Spec.IdentityRef
-	if ref == nil {
-		return nil, errors.New("IdentityRef is required")
+	if err := validateInputs(c, cluster); err != nil {
+		return nil, err
 	}
 
+	ref := cluster.Spec.IdentityRef
 	secret := &apiv1.Secret{}
 	var secretKey client.ObjectKey
+
 	switch ref.Kind {
 	case infrav1.SecretKind:
 		secretKey = client.ObjectKey{
@@ -110,6 +105,20 @@ func GetCredentials(ctx context.Context, c client.Client, cluster *infrav1.VSphe
 	}
 
 	return credentials, nil
+}
+
+func validateInputs(c client.Client, cluster *infrav1.VSphereCluster) error {
+	if c == nil {
+		return errors.New("kubernetes client is required")
+	}
+	if cluster == nil {
+		return errors.New("vsphere cluster is required")
+	}
+	ref := cluster.Spec.IdentityRef
+	if ref == nil {
+		return errors.New("IdentityRef is required")
+	}
+	return nil
 }
 
 func IsSecretIdentity(cluster *infrav1.VSphereCluster) bool {

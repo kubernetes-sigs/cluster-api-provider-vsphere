@@ -26,9 +26,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	infrautilv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // The purpose of this test is to start up a CAPI controller against a real API

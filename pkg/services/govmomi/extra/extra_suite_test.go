@@ -35,25 +35,23 @@ type ConfigInitFn func(*Config, string) error
 
 var _ = Describe("Config_SetCustomVMXKeys", func() {
 	Context("we try to set custom keys in the config", func() {
-		config := getMockConfig()
+		var config Config
 		customConfigKeys := map[string]string{
 			"customKey1": "customVal1",
 			"customKey2": "customKey2",
-		}
-
-		var configKeys []interface{}
-		for k, v := range customConfigKeys {
-			configKeys = append(configKeys, &types.OptionValue{
-				Key:   k,
-				Value: v,
-			})
 		}
 
 		It("adds the keys to the config", func() {
 			err := config.SetCustomVMXKeys(customConfigKeys)
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(*config).To(ConsistOf(configKeys...))
+
+			for k, v := range customConfigKeys {
+				Expect(config).To(ContainElement(&types.OptionValue{
+					Key:   k,
+					Value: v,
+				}))
+			}
 		})
 	})
 })
@@ -79,10 +77,6 @@ var _ = Describe("Config_SetCloudInitMetadata", func() {
 	)
 })
 
-func getMockConfig() *Config {
-	return new(Config)
-}
-
 func base64Encode(s string) string {
 	return base64.StdEncoding.EncodeToString([]byte(s))
 }
@@ -93,23 +87,23 @@ func ConfigInitFnTester(method ConfigInitFn, methodName string, dataKey string, 
 	var expectedData = base64Encode(sampleData)
 
 	Context(fmt.Sprintf("we call %q with some non-encoded sample data", methodName), func() {
-		config := getMockConfig()
-		err := method(config, sampleData)
+		var config Config
+		err := method(&config, sampleData)
 
 		It("must set 2 keys in the config", func() {
 			Expect(err).ToNot(HaveOccurred())
-			Expect(len(*config)).To(Equal(2))
+			Expect(len(config)).To(Equal(2))
 		})
 
 		It(fmt.Sprintf("must set data as a base64 encoded string with the key %q", dataKey), func() {
-			Expect(*config).To(ContainElement(&types.OptionValue{
+			Expect(config).To(ContainElement(&types.OptionValue{
 				Key:   dataKey,
 				Value: expectedData,
 			}))
 		})
 
 		It("must set a key to indicate base64 encoding of the data", func() {
-			Expect(*config).To(ContainElement(&types.OptionValue{
+			Expect(config).To(ContainElement(&types.OptionValue{
 				Key:   encodingKey,
 				Value: "base64",
 			}))
@@ -117,13 +111,13 @@ func ConfigInitFnTester(method ConfigInitFn, methodName string, dataKey string, 
 	})
 
 	Context(fmt.Sprintf("We call %q with some pre-encoded data (single pass)", methodName), func() {
-		config := getMockConfig()
+		var config Config
 		preEncodedData := base64Encode(sampleData)
-		err := method(config, preEncodedData)
+		err := method(&config, preEncodedData)
 
 		It("does not encode the data further on storing", func() {
 			Expect(err).ToNot(HaveOccurred())
-			Expect(*config).To(ContainElement(&types.OptionValue{
+			Expect(config).To(ContainElement(&types.OptionValue{
 				Key:   dataKey,
 				Value: preEncodedData,
 			}))
@@ -131,18 +125,18 @@ func ConfigInitFnTester(method ConfigInitFn, methodName string, dataKey string, 
 	})
 
 	Context(fmt.Sprintf("We call %q with some pre-encoded data (multiple passes)", methodName), func() {
-		config := getMockConfig()
+		var config Config
 		const passCount = 5
 		multiPassEncodedData := sampleData
 		for i := 0; i < passCount; i++ {
 			multiPassEncodedData = base64Encode(multiPassEncodedData)
 		}
 
-		err := method(config, multiPassEncodedData)
+		err := method(&config, multiPassEncodedData)
 
 		It("saves data with a single pass of encoding", func() {
 			Expect(err).ToNot(HaveOccurred())
-			Expect(*config).To(ContainElement(&types.OptionValue{
+			Expect(config).To(ContainElement(&types.OptionValue{
 				Key:   dataKey,
 				Value: expectedData,
 			}))

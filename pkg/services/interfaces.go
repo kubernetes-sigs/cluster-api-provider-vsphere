@@ -20,11 +20,12 @@ import (
 	vmoprv1 "github.com/vmware-tanzu/vm-operator-api/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // VSphereMachineService is used for vsphere VM lifecycle and syncing with VSphereMachine types.

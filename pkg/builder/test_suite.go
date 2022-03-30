@@ -29,11 +29,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
-	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
-	vmwarecontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	vmwarecontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
 )
 
 // TestSuite is used for unit and integration testing builder.

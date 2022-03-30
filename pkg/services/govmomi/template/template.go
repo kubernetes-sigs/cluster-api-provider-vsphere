@@ -23,6 +23,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/vmware/govmomi/object"
+
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 )
 

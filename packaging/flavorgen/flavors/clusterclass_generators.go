@@ -22,13 +22,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/env"
-	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/util"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/yaml"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/env"
+	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/util"
 )
 
 func newClusterClass() clusterv1.ClusterClass {

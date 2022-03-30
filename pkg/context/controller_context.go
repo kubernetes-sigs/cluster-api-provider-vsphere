@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
+
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 )
 

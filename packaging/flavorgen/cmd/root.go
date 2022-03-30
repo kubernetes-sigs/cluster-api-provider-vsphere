@@ -21,6 +21,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/env"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/util"

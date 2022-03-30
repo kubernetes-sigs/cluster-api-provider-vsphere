@@ -18,6 +18,7 @@ package fake
 
 import (
 	clientrecord "k8s.io/client-go/tools/record"
+
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 )

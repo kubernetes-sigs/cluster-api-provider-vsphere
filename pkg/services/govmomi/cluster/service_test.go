@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
+
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers"
 )
 

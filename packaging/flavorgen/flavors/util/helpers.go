@@ -24,8 +24,9 @@ import (
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/env"
 	"sigs.k8s.io/yaml"
+
+	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/env"
 )
 
 type Replacement struct {

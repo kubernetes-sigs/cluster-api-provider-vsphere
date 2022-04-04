@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.4
+
 # Copyright 2019 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,34 +16,29 @@
 
 # Build the manager binary
 ARG GOLANG_VERSION=golang:1.17.6
-FROM $GOLANG_VERSION as builder
+FROM --platform=${BUILDPLATFORM} ${GOLANG_VERSION} as builder
 WORKDIR /workspace
 
 # Run this with docker build --build_arg $(go env GOPROXY) to override the goproxy
 ARG goproxy=https://proxy.golang.org
-ENV GOPROXY=$goproxy
-
-# Copy the Go Modules manifests
-COPY go.mod go.mod
-COPY go.sum go.sum
-# Cache deps before building and copying source so that we don't need to re-download as much
-# and so that source changes don't invalidate our downloaded layer
-RUN go mod download
-
-# Copy the sources
-COPY ./ ./
+ENV GOPROXY=${goproxy}
 
 # Build
-ARG ARCH=amd64
+ARG TARGETOS
+ARG TARGETARCH
 ARG ldflags
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} \
+RUN --mount=type=bind,target=. \
+    --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg \
+    CGO_ENABLED=0 GOOS=linux GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
     go build -a -ldflags "${ldflags} -extldflags '-static'" \
-    -o manager .
+    -o /out/manager .
 
 # Copy the controller-manager into a thin image
-FROM gcr.io/distroless/static:nonroot
+ARG TARGETPLATFORM
+FROM --platform=${TARGETPLATFORM} gcr.io/distroless/static:nonroot
 WORKDIR /
-COPY --from=builder /workspace/manager .
+COPY --from=builder /out/manager .
 # Use uid of nonroot user (65532) because kubernetes expects numeric user when applying PSPs
 USER 65532
 ENTRYPOINT ["/manager"]

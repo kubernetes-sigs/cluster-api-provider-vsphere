@@ -71,7 +71,7 @@ export DEV_TAG ?= dev
 The following make targets build and push a test image to your repository:
 
 ``` shell
-make docker-build docker-push
+make docker-push
 ```
 
 ### Generating clusterctl overrides

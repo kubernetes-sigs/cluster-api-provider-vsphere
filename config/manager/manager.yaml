@@ -20,6 +20,7 @@ spec:
         - --enable-leader-election
         - --logtostderr
         - --v=4
+        - --enable-keep-alive
         image: gcr.io/cluster-api-provider-vsphere/release/manager:latest
         imagePullPolicy: IfNotPresent
         name: manager

@@ -147,7 +147,8 @@ type VirtualMachineCloneSpec struct {
 	// Defaults to empty map
 	// +optional
 	CustomVMXKeys map[string]string `json:"customVMXKeys,omitempty"`
-	// TagIDs is an optional set of tags to add to an instance.
+	// TagIDs is an optional set of tags to add to an instance. Specified tagIDs
+	// must use URN-notation instead of display names.
 	// +optional
 	TagIDs []string `json:"tagIDs,omitempty"`
 }

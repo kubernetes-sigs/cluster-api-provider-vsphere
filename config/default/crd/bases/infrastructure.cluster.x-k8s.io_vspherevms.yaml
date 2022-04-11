@@ -1107,6 +1107,7 @@ spec:
                 type: string
               tagIDs:
                 description: TagIDs is an optional set of tags to add to an instance.
+                  Specified tagIDs must use URN-notation instead of display names.
                 items:
                   type: string
                 type: array

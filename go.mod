@@ -2,6 +2,8 @@ module sigs.k8s.io/cluster-api-provider-vsphere
 
 go 1.17
 
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.1.3
+
 require (
 	github.com/antihax/optional v1.0.0
 	github.com/go-logr/logr v1.2.0

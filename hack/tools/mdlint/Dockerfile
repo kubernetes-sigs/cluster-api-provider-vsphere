@@ -16,7 +16,7 @@
 ##                             INSTALL MDLINT                                 ##
 ################################################################################
 FROM node:12.6.0-slim as build
-ARG MDLINT_CLI_VERSION=0.23.2
+ARG MDLINT_CLI_VERSION=0.31.1
 ENV MDLINT_CLI_VERSION=${MDLINT_CLI_VERSION}
 RUN npm install -g --prefix=/md markdownlint-cli@${MDLINT_CLI_VERSION} && \
     ln -s /md/lib/node_modules/markdownlint-cli/markdownlint.js /md/lint

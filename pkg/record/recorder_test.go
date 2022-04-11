@@ -18,6 +18,7 @@ package record_test
 
 import (
 	"errors"
+	"fmt"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -51,6 +52,26 @@ var _ = Describe("Event utils", func() {
 			Expect(len(fakeRecorder.Events)).Should(Equal(1))
 			event := <-fakeRecorder.Events
 			Expect(event).Should(Equal("Warning CreateFailure something wrong"))
+		})
+
+		It("should use Sprintf to format event message", func() {
+			message := "a % message: should call"
+			fmtArgs := []interface{}{"formatted", "Sprintf"}
+
+			recorder.Eventf(nil, "Create", message, fmtArgs...)
+			recorder.Warnf(nil, "Create", message, fmtArgs...)
+			Expect(len(fakeRecorder.Events)).To(Equal(2))
+			eventFmt := <-fakeRecorder.Events
+			warnFmt := <-fakeRecorder.Events
+
+			recorder.Event(nil, "Create", message)
+			recorder.Warn(nil, "Create", message)
+			Expect(len(fakeRecorder.Events)).To(Equal(2))
+			eventNoFmt := <-fakeRecorder.Events
+			warnNoFmt := <-fakeRecorder.Events
+
+			Expect(eventFmt).To(Equal(fmt.Sprintf(eventNoFmt, fmtArgs...)), "Eventf should call Sprintf to format the message under-the-hood")
+			Expect(warnFmt).To(Equal(fmt.Sprintf(warnNoFmt, fmtArgs...)), "Warnf should call Sprintf to format the message under-the-hood")
 		})
 	})
 })

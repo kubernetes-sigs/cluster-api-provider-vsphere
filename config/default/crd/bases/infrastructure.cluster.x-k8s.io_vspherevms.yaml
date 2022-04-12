@@ -1088,6 +1088,26 @@ spec:
                   value in the template from which the virtual machine is cloned.
                 format: int32
                 type: integer
+              pciDevices:
+                description: PciDevices is the list of pci devices used by the virtual
+                  machine.
+                items:
+                  description: PCIDeviceSpec defines virtual machine's PCI configuration
+                  properties:
+                    deviceId:
+                      description: DeviceID is the device ID of a virtual machine's
+                        PCI, in integer. Defaults to the eponymous property value
+                        in the template from which the virtual machine is cloned.
+                      format: int32
+                      type: integer
+                    vendorId:
+                      description: VendorId is the vendor ID of a virtual machine's
+                        PCI, in integer. Defaults to the eponymous property value
+                        in the template from which the virtual machine is cloned.
+                      format: int32
+                      type: integer
+                  type: object
+                type: array
               resourcePool:
                 description: ResourcePool is the name or inventory path of the resource
                   pool in which the virtual machine is created/located.

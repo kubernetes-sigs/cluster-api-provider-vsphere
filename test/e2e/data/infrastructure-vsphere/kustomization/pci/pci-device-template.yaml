@@ -1,0 +1,12 @@
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: VSphereMachineTemplate
+metadata:
+  name: ${CLUSTER_NAME}-worker
+  namespace: ${NAMESPACE}
+spec:
+  template:
+    spec:
+      pciDevices:
+        - deviceId: ${DEVICE_ID}
+          vendorId: ${VENDOR_ID}

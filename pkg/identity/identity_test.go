@@ -54,7 +54,26 @@ var _ = Describe("GetCredentials", func() {
 	AfterEach(func() {
 		Expect(k8sclient.Delete(ctx, ns)).To(Succeed())
 	})
-
+	Context("with checking if cluster spec identity Ref secret", func() {
+		It("should return false if cluster is nil", func() {
+			cluster = &infrav1.VSphereCluster{}
+			Expect(IsSecretIdentity((cluster))).To(BeFalse())
+		})
+		It("should return false if cluster spec identity Ref is nil", func() {
+			cluster.Spec = infrav1.VSphereClusterSpec{}
+			Expect(IsSecretIdentity((cluster))).To(BeFalse())
+		})
+		It("should return true if cluster spec identity Ref is not nil", func() {
+			credentialSecret := createSecret(cluster.Namespace)
+			cluster.Spec = infrav1.VSphereClusterSpec{
+				IdentityRef: &infrav1.VSphereIdentityReference{
+					Kind: infrav1.SecretKind,
+					Name: credentialSecret.Name,
+				},
+			}
+			Expect(IsSecretIdentity(cluster)).To(BeTrue())
+		})
+	})
 	Context("with using a secret directly", func() {
 		It("should find and return credentials from a secret within same namespace", func() {
 			credentialSecret := createSecret(cluster.Namespace)

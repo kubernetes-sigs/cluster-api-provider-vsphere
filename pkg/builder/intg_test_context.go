@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package builder
 
 import (
@@ -30,7 +31,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/util/patch"
+	capiutil "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
@@ -44,20 +45,15 @@ type IntegrationTestContext struct {
 	Client            client.Client
 	GuestClient       client.Client
 	Namespace         string
-	Cluster           *clusterv1.Cluster
-	ClusterKey        client.ObjectKey
 	VSphereCluster    *vmwarev1.VSphereCluster
 	VSphereClusterKey client.ObjectKey
 	envTest           *envtest.Environment
 	suite             *TestSuite
-	PatchHelper       *patch.Helper
 }
 
 func (*IntegrationTestContext) GetLogger() logr.Logger {
 	return logr.Discard()
 }
-
-var boolTrue = true
 
 // AfterEach should be invoked by ginko.AfterEach to stop the guest cluster's
 // API server.
@@ -76,19 +72,21 @@ func (ctx *IntegrationTestContext) AfterEach() {
 	}
 }
 
-// NewIntegrationTestContext should be invoked by ginkgo.BeforeEach
+// NewIntegrationTestContextWithClusters should be invoked by ginkgo.BeforeEach.
 //
-// This function creates a VSphereCluster with a generated name, but stops
-// short of generating a CAPI cluster so that it will work when the VSphere Cluster
-// controller is also deployed.
+// This function creates a VSphereCluster with a generated name as well as a
+// CAPI Cluster with the same name. The function also creates a test environment
+// and starts its API server to serve as the control plane endpoint for the
+// guest cluster.
 //
-// This function returns a TestSuite context
+// This function returns a IntegrationTest context.
+//
 // The resources created by this function may be cleaned up by calling AfterEach
 // with the IntegrationTestContext returned by this function.
-func (s *TestSuite) NewIntegrationTestContext(goctx context.Context, integrationTestClient client.Client) *IntegrationTestContext {
+func (s *TestSuite) NewIntegrationTestContextWithClusters(goctx context.Context, integrationTestClient client.Client) *IntegrationTestContext {
 	ctx := &IntegrationTestContext{
 		Context: goctx,
-		Client:  s.integrationTestClient,
+		Client:  integrationTestClient,
 		suite:   s,
 	}
 
@@ -103,29 +101,114 @@ func (s *TestSuite) NewIntegrationTestContext(goctx context.Context, integration
 		ctx.Namespace = namespace.Name
 	})
 
-	By("Create a vsphere cluster and wait for it to exist", func() {
-		ctx.VSphereCluster = &vmwarev1.VSphereCluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ctx.Namespace,
-				Name:      "test-pvcsi",
-			},
-		}
-		Expect(ctx.Client.Create(s, ctx.VSphereCluster)).To(Succeed())
-		ctx.VSphereClusterKey = client.ObjectKey{Namespace: ctx.VSphereCluster.Namespace, Name: ctx.VSphereCluster.Name}
-		Eventually(func() error {
-			return ctx.Client.Get(s, ctx.VSphereClusterKey, ctx.VSphereCluster)
-		}).Should(Succeed())
+	vsphereClusterName := capiutil.RandomString(6)
+	cluster := createCluster(goctx, integrationTestClient, ctx.Namespace, vsphereClusterName)
 
-		ph, err := patch.NewHelper(ctx.VSphereCluster, ctx.Client)
-		Expect(err).To(BeNil())
-		ctx.PatchHelper = ph
+	By("Create a vsphere cluster and wait for it to exist", func() {
+		ctx.VSphereCluster = createVSphereCluster(goctx, integrationTestClient, ctx.Namespace, vsphereClusterName, cluster.GetName())
+		ctx.VSphereClusterKey = client.ObjectKeyFromObject(ctx.VSphereCluster)
 	})
 
+	var config *rest.Config
+	By("Creating guest cluster control plane", func() {
+		// Initialize a test environment to simulate the control plane of the guest cluster.
+		var err error
+		envTest := &envtest.Environment{
+			// Add some form of CRD so the CRD object is registered in the
+			// scheme...
+			CRDDirectoryPaths: []string{
+				filepath.Join(s.flags.RootDir, "config", "default", "crd"),
+				filepath.Join(s.flags.RootDir, "config", "supervisor", "crd"),
+			},
+		}
+		envTest.ControlPlane.GetAPIServer().Configure().Set("allow-privileged", "true")
+		config, err = envTest.Start()
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(config).ShouldNot(BeNil())
+
+		ctx.GuestClient, err = client.New(config, client.Options{})
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(ctx.GuestClient).ShouldNot(BeNil())
+
+		ctx.envTest = envTest
+	})
+	By("Create the kubeconfig secret for the cluster", func() {
+		buf, err := writeKubeConfig(config)
+		Expect(err).ToNot(HaveOccurred())
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ctx.Namespace,
+				Name:      fmt.Sprintf("%s-kubeconfig", cluster.Name),
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: cluster.APIVersion,
+						Kind:       cluster.Kind,
+						Name:       cluster.Name,
+						UID:        cluster.UID,
+					},
+				},
+			},
+			Data: map[string][]byte{
+				"value": buf,
+			},
+		}
+		Expect(integrationTestClient.Create(s, secret)).To(Succeed())
+		Eventually(func() error {
+			return integrationTestClient.Get(s, client.ObjectKeyFromObject(secret), secret)
+		}).Should(Succeed())
+	})
+
+	return ctx
+}
+
+func createCluster(ctx context.Context, integrationTestClient client.Client, namespace, name string) *clusterv1.Cluster {
+	By("Create the CAPI Cluster and wait for it to exist")
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:    namespace,
+			GenerateName: name,
+		},
+		Spec: clusterv1.ClusterSpec{
+			ClusterNetwork: &clusterv1.ClusterNetwork{
+				Pods: &clusterv1.NetworkRanges{
+					CIDRBlocks: []string{"1.0.0.0/16"},
+				},
+				Services: &clusterv1.NetworkRanges{
+					CIDRBlocks: []string{"2.0.0.0/16"},
+				},
+			},
+			InfrastructureRef: &corev1.ObjectReference{
+				Name:      name,
+				Namespace: namespace,
+			},
+		},
+	}
+	Expect(integrationTestClient.Create(ctx, cluster)).To(Succeed())
+	Eventually(func() error {
+		return integrationTestClient.Get(ctx, client.ObjectKeyFromObject(cluster), cluster)
+	}).Should(Succeed())
+	return cluster
+}
+
+func createVSphereCluster(ctx context.Context, integrationTestClient client.Client, namespace, name, capiClusterName string) *vmwarev1.VSphereCluster {
+	vsphereCluster := &vmwarev1.VSphereCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      name,
+			Labels:    map[string]string{clusterv1.ClusterLabelName: capiClusterName},
+		},
+	}
+	Expect(integrationTestClient.Create(ctx, vsphereCluster)).To(Succeed())
+	Eventually(func() error {
+		return integrationTestClient.Get(ctx, client.ObjectKeyFromObject(vsphereCluster), vsphereCluster)
+	}).Should(Succeed())
+
+	// TODO: remove if not needed
 	By("Creating a extensions ca", func() {
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      ctx.VSphereCluster.Name + "-extensions-ca",
-				Namespace: ctx.Namespace,
+				Name:      vsphereCluster.Name + "-extensions-ca",
+				Namespace: namespace,
 			},
 			Data: map[string][]byte{
 				"ca.crt":  []byte("test-ca"),
@@ -134,129 +217,17 @@ func (s *TestSuite) NewIntegrationTestContext(goctx context.Context, integration
 			},
 			Type: corev1.SecretTypeTLS,
 		}
-		Expect(ctx.Client.Create(s, secret)).To(Succeed())
+		Expect(integrationTestClient.Create(ctx, secret)).To(Succeed())
 		secretKey := client.ObjectKey{Namespace: secret.Namespace, Name: secret.Name}
 		Eventually(func() error {
-			return ctx.Client.Get(s, secretKey, secret)
+			return integrationTestClient.Get(ctx, secretKey, secret)
 		}).Should(Succeed())
 	})
-	return ctx
+	return vsphereCluster
 }
 
-// NewIntegrationTestContextWithClusters should be invoked by ginkgo.BeforeEach.
-//
-// This function creates a VSphereCluster with a generated name as well as a
-// CAPI Cluster with the same name. The function also creates a test environment
-// and starts its API server to serve as the control plane endpoint for the
-// guest cluster.
-//
-// This function returns a IntegrationTest context.
-//
-// The resources created by this function may be cleaned up by calling AfterEach
-// with the IntegrationTestContext returned by this function.
-func (s *TestSuite) NewIntegrationTestContextWithClusters(goctx context.Context, integrationTestClient client.Client, simulateControlPlane bool) *IntegrationTestContext {
-	ctx := s.NewIntegrationTestContext(goctx, integrationTestClient)
-	s.SetIntegrationTestClient(integrationTestClient)
-	By("Create the CAPI Cluster and wait for it to exist", func() {
-		cluster := &clusterv1.Cluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ctx.VSphereCluster.Namespace,
-				Name:      ctx.VSphereCluster.Name,
-				OwnerReferences: []metav1.OwnerReference{
-					{
-						APIVersion:         ctx.VSphereCluster.APIVersion,
-						Kind:               ctx.VSphereCluster.Kind,
-						Name:               ctx.VSphereCluster.Name,
-						UID:                ctx.VSphereCluster.UID,
-						BlockOwnerDeletion: &boolTrue,
-						Controller:         &boolTrue,
-					},
-				},
-			},
-			Spec: clusterv1.ClusterSpec{
-				ClusterNetwork: &clusterv1.ClusterNetwork{
-					Pods: &clusterv1.NetworkRanges{
-						CIDRBlocks: []string{"1.0.0.0/16"},
-					},
-					Services: &clusterv1.NetworkRanges{
-						CIDRBlocks: []string{"2.0.0.0/16"},
-					},
-				},
-				InfrastructureRef: &corev1.ObjectReference{
-					Name:      ctx.VSphereCluster.Name,
-					Namespace: ctx.VSphereCluster.Namespace,
-				},
-			},
-		}
-		Expect(ctx.Client.Create(s, cluster)).To(Succeed())
-		clusterKey := client.ObjectKey{Namespace: cluster.Namespace, Name: cluster.Name}
-		Eventually(func() error {
-			return ctx.Client.Get(s, clusterKey, cluster)
-		}).Should(Succeed())
-
-		ctx.Cluster = cluster
-		ctx.ClusterKey = clusterKey
-	})
-
-	if simulateControlPlane {
-		var config *rest.Config
-		By("Creating guest cluster control plane", func() {
-			// Initialize a test environment to simulate the control plane of the
-			// guest cluster.
-			var err error
-			ctx.envTest = &envtest.Environment{
-				//KubeAPIServerFlags: append([]string{"--allow-privileged=true"}, envtest.DefaultKubeAPIServerFlags...),
-				// Add some form of CRD so the CRD object is registered in the
-				// scheme...
-				CRDDirectoryPaths: []string{
-					filepath.Join(s.flags.RootDir, "config", "default", "crd"),
-					filepath.Join(s.flags.RootDir, "config", "supervisor", "crd"),
-				},
-			}
-			ctx.envTest.ControlPlane.GetAPIServer().Configure().Set("allow-privileged", "true")
-			config, err = ctx.envTest.Start()
-			Expect(err).ShouldNot(HaveOccurred())
-			Expect(config).ShouldNot(BeNil())
-
-			ctx.GuestClient, err = client.New(config, client.Options{})
-			Expect(err).ShouldNot(HaveOccurred())
-			Expect(ctx.GuestClient).ShouldNot(BeNil())
-		})
-
-		By("Create the kubeconfig secret for the cluster", func() {
-			buf, err := WriteKubeConfig(config)
-			Expect(err).ToNot(HaveOccurred())
-			secret := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: ctx.Cluster.Namespace,
-					Name:      fmt.Sprintf("%s-kubeconfig", ctx.Cluster.Name),
-					OwnerReferences: []metav1.OwnerReference{
-						{
-							APIVersion: ctx.Cluster.APIVersion,
-							Kind:       ctx.Cluster.Kind,
-							Name:       ctx.Cluster.Name,
-							UID:        ctx.Cluster.UID,
-						},
-					},
-				},
-				Data: map[string][]byte{
-					"value": buf,
-				},
-			}
-			Expect(ctx.Client.Create(s, secret)).To(Succeed())
-			secretKey := client.ObjectKey{Namespace: secret.Namespace, Name: secret.Name}
-			Eventually(func() error {
-				return ctx.Client.Get(s, secretKey, secret)
-			}).Should(Succeed())
-		})
-	}
-
-	return ctx
-}
-
-// WriteKubeConfig writes an existing *rest.Config out as the typical
-// KubeConfig YAML data.
-func WriteKubeConfig(config *rest.Config) ([]byte, error) {
+// writeKubeConfig writes an existing *rest.Config out as the typical kubeconfig YAML data.
+func writeKubeConfig(config *rest.Config) ([]byte, error) {
 	return clientcmd.Write(api.Config{
 		Clusters: map[string]*api.Cluster{
 			config.ServerName: {

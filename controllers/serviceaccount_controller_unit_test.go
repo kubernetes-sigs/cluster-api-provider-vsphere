@@ -22,6 +22,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	capiutil "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
@@ -36,41 +37,43 @@ func unitTestsReconcileNormal() {
 		ctx            *builder.UnitTestContextForController
 		vsphereCluster *vmwarev1.VSphereCluster
 		initObjects    []client.Object
+		namespace      string
 	)
 
 	JustBeforeEach(func() {
 		// Note: The service account provider requires a reference to the vSphereCluster hence the need to create
 		// a fake vSphereCluster in the test and pass it to during context setup.
-		ctx = ServiceAccountProviderTestsuite.NewUnitTestContextForControllerWithVSphereCluster(vsphereCluster, false, initObjects...)
+		ctx = ServiceAccountProviderTestsuite.NewUnitTestContextForControllerWithVSphereCluster(namespace, vsphereCluster, false, initObjects...)
 	})
 	AfterEach(func() {
 		ctx = nil
 	})
 
 	Context("When no provider service account is available", func() {
+		namespace = capiutil.RandomString(6)
 		It("Should reconcile", func() {
 			By("Not creating any entities")
-			assertNoEntities(ctx, ctx.Client, testNS)
+			assertNoEntities(ctx, ctx.Client, namespace)
 			assertProviderServiceAccountsCondition(ctx.VSphereCluster, corev1.ConditionTrue, "", "", "")
 		})
 	})
 
 	Describe("When the ProviderServiceAccount is created", func() {
 		BeforeEach(func() {
-			obj := fake.NewVSphereCluster()
+			namespace = capiutil.RandomString(6)
+			obj := fake.NewVSphereCluster(namespace)
 			vsphereCluster = &obj
-			vsphereCluster.Namespace = testNS
 			_ = os.Setenv("SERVICE_ACCOUNTS_CM_NAMESPACE", testSystemSvcAcctNs)
 			_ = os.Setenv("SERVICE_ACCOUNTS_CM_NAME", testSystemSvcAcctCM)
 			initObjects = []client.Object{
 				getSystemServiceAccountsConfigMap(testSystemSvcAcctNs, testSystemSvcAcctCM),
-				getTestProviderServiceAccount(testNS, testProviderSvcAccountName, vsphereCluster),
+				getTestProviderServiceAccount(namespace, vsphereCluster, false),
 			}
 		})
 		Context("When serviceaccount secret is created", func() {
 			It("Should reconcile", func() {
 				assertTargetNamespace(ctx, ctx.GuestClient, testTargetNS, false)
-				updateServiceAccountSecretAndReconcileNormal(ctx)
+				updateServiceAccountSecretAndReconcileNormal(ctx, vsphereCluster)
 				assertTargetNamespace(ctx, ctx.GuestClient, testTargetNS, true)
 				By("Creating the target secret in the target namespace")
 				assertTargetSecret(ctx, ctx.GuestClient, testTargetNS, testTargetSecret)
@@ -81,7 +84,7 @@ func unitTestsReconcileNormal() {
 			It("Should reconcile", func() {
 				// This is to simulate an outdated token that will be replaced when the serviceaccount secret is created.
 				createTargetSecretWithInvalidToken(ctx, ctx.GuestClient, testTargetNS)
-				updateServiceAccountSecretAndReconcileNormal(ctx)
+				updateServiceAccountSecretAndReconcileNormal(ctx, vsphereCluster)
 				By("Updating the target secret in the target namespace")
 				assertTargetSecret(ctx, ctx.GuestClient, testTargetNS, testTargetSecret)
 				assertProviderServiceAccountsCondition(ctx.VSphereCluster, corev1.ConditionTrue, "", "", "")
@@ -89,19 +92,19 @@ func unitTestsReconcileNormal() {
 		})
 		Context("When invalid role exists", func() {
 			BeforeEach(func() {
-				initObjects = append(initObjects, getTestRoleWithGetPod(testNS, testRoleName))
+				initObjects = append(initObjects, getTestRoleWithGetPod(namespace, vsphereCluster.GetName()))
 			})
 			It("Should update role", func() {
-				assertRoleWithGetPVC(ctx, ctx.Client, testNS, testRoleName)
+				assertRoleWithGetPVC(ctx, ctx.Client, namespace, vsphereCluster.GetName())
 				assertProviderServiceAccountsCondition(ctx.VSphereCluster, corev1.ConditionTrue, "", "", "")
 			})
 		})
 		Context("When invalid rolebinding exists", func() {
 			BeforeEach(func() {
-				initObjects = append(initObjects, getTestRoleBindingWithInvalidRoleRef(testNS, testRoleBindingName))
+				initObjects = append(initObjects, getTestRoleBindingWithInvalidRoleRef(namespace, vsphereCluster.GetName()))
 			})
 			It("Should update rolebinding", func() {
-				assertRoleBinding(ctx, ctx.Client, testNS, testRoleBindingName)
+				assertRoleBinding(ctx, ctx.Client, namespace, vsphereCluster.GetName())
 				assertProviderServiceAccountsCondition(ctx.VSphereCluster, corev1.ConditionTrue, "", "", "")
 			})
 		})
@@ -110,7 +113,7 @@ func unitTestsReconcileNormal() {
 
 // Updates the service account secret similar to how a token controller would act upon a service account
 // and then re-invokes reconcileNormal.
-func updateServiceAccountSecretAndReconcileNormal(ctx *builder.UnitTestContextForController) {
-	assertServiceAccountAndUpdateSecret(ctx, ctx.Client, testNS, testSvcAccountName)
+func updateServiceAccountSecretAndReconcileNormal(ctx *builder.UnitTestContextForController, object client.Object) {
+	assertServiceAccountAndUpdateSecret(ctx, ctx.Client, object.GetNamespace(), object.GetName())
 	Expect(ctx.ReconcileNormal()).Should(Succeed())
 }

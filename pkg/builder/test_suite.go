@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-//nolint:unused
 package builder
 
 import (
@@ -27,7 +26,6 @@ import (
 
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -42,18 +40,8 @@ type TestSuite struct {
 	goctx.Context
 	integrationTestClient client.Client
 	envTest               envtest.Environment
-	config                *rest.Config
 	flags                 TestFlags
 	newReconcilerFn       NewReconcilerFunc
-	webhookName           string
-}
-
-func (s *TestSuite) isWebhookTest() bool {
-	return s.webhookName != ""
-}
-
-func (s *TestSuite) GetEnvTestConfg() *rest.Config {
-	return s.config
 }
 
 type Reconciler interface {
@@ -71,13 +59,6 @@ func NewTestSuiteForController(newReconcilerFn NewReconcilerFunc) *TestSuite {
 		Context: goctx.Background(),
 	}
 	testSuite.init(newReconcilerFn)
-
-	if testSuite.flags.UnitTestsEnabled {
-		if newReconcilerFn == nil {
-			panic("newReconcilerFn is nil")
-		}
-	}
-
 	return testSuite
 }
 
@@ -126,35 +107,21 @@ func findModuleDir(module string) string {
 // suite's reconciler.
 //
 // Returns nil if unit testing is disabled.
-func (s *TestSuite) NewUnitTestContextForController(initObjects ...client.Object) *UnitTestContextForController {
-	return s.NewUnitTestContextForControllerWithVSphereCluster(nil, false, initObjects...)
-}
-
-// NewUnitTestContextForControllerWithPrototypeCluster returns a new unit test
-// context with a prototype cluster for this suite's reconciler. This prototype cluster
-// helps controllers that do not wish to invoke the full TanzuKubernetesCluster
-// spec reconciliation.
-//
-// Returns nil if unit testing is disabled.
-func (s *TestSuite) NewUnitTestContextForControllerWithPrototypeCluster(initObjects ...client.Object) *UnitTestContextForController {
-	return s.NewUnitTestContextForControllerWithVSphereCluster(nil, true, initObjects...)
+func (s *TestSuite) NewUnitTestContextForController(namespace string, vsphereCluster *vmwarev1.VSphereCluster, initObjects ...client.Object) *UnitTestContextForController {
+	return s.NewUnitTestContextForControllerWithVSphereCluster(namespace, vsphereCluster, false, initObjects...)
 }
 
 // NewUnitTestContextForControllerWithVSphereCluster returns a new unit test context for this
 // suite's reconciler initialized with the given vspherecluster.
 //
 // Returns nil if unit testing is disabled.
-func (s *TestSuite) NewUnitTestContextForControllerWithVSphereCluster(vsphereCluster *vmwarev1.VSphereCluster, prototypeCluster bool, initObjects ...client.Object) *UnitTestContextForController {
-	if s.flags.UnitTestsEnabled {
-		ctx := NewUnitTestContextForController(s.newReconcilerFn, vsphereCluster, prototypeCluster, initObjects, nil)
-		reconcileNormalAndExpectSuccess(ctx)
-		// Update the VSphereCluster and its status in the fake client.
-		Expect(ctx.Client.Update(ctx, ctx.VSphereCluster)).To(Succeed())
-		Expect(ctx.Client.Status().Update(ctx, ctx.VSphereCluster)).To(Succeed())
-
-		return ctx
-	}
-	return nil
+func (s *TestSuite) NewUnitTestContextForControllerWithVSphereCluster(namespace string, vsphereCluster *vmwarev1.VSphereCluster, prototypeCluster bool, initObjects ...client.Object) *UnitTestContextForController {
+	ctx := NewUnitTestContextForController(s.newReconcilerFn, namespace, vsphereCluster, prototypeCluster, initObjects, nil)
+	reconcileNormalAndExpectSuccess(ctx)
+	// Update the VSphereCluster and its status in the fake client.
+	Expect(ctx.Client.Update(ctx, ctx.VSphereCluster)).To(Succeed())
+	Expect(ctx.Client.Status().Update(ctx, ctx.VSphereCluster)).To(Succeed())
+	return ctx
 }
 
 func reconcileNormalAndExpectSuccess(ctx *UnitTestContextForController) {

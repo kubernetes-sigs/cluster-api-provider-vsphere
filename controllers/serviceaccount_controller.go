@@ -22,6 +22,7 @@ import (
 	"os"
 	"reflect"
 	"strconv"
+	"strings"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -31,6 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
+	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -55,16 +57,19 @@ import (
 // +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles;rolebindings,verbs=get;list;watch;create;update;patch;delete
 
 const (
-	controllerName             = "provider-serviceaccount-controller"
-	kindProviderServiceAccount = "ProviderServiceAccount"
-	systemServiceAccountPrefix = "system.serviceaccount"
+	// ProviderServiceAccountControllerName defines the controller used when creating clients.
+	ProviderServiceAccountControllerName = "provider-serviceaccount-controller"
+	kindProviderServiceAccount           = "ProviderServiceAccount"
+	systemServiceAccountPrefix           = "system.serviceaccount"
 )
 
 // AddServiceAccountProviderControllerToManager adds this controller to the provided manager.
 func AddServiceAccountProviderControllerToManager(ctx *context.ControllerManagerContext, mgr manager.Manager) error {
 	var (
-		controlledType      = &vmwarev1.ProviderServiceAccount{}
-		controllerNameShort = reflect.TypeOf(controlledType).Elem().Name()
+		controlledType     = &vmwarev1.ProviderServiceAccount{}
+		controlledTypeName = reflect.TypeOf(controlledType).Elem().Name()
+
+		controllerNameShort = fmt.Sprintf("%s-controller", strings.ToLower(controlledTypeName))
 		controllerNameLong  = fmt.Sprintf("%s/%s/%s", ctx.Namespace, ctx.Name, controllerNameShort)
 	)
 
@@ -75,48 +80,21 @@ func AddServiceAccountProviderControllerToManager(ctx *context.ControllerManager
 		Logger:                   ctx.Logger.WithName(controllerNameShort),
 	}
 	r := ServiceAccountReconciler{
-		ControllerContext: controllerContext,
+		ControllerContext:  controllerContext,
+		remoteClientGetter: remote.NewClusterClient,
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).For(controlledType).
 		// Watch a ProviderServiceAccount
 		Watches(
-			&source.Kind{Type: &vmwarev1.ProviderServiceAccount{}}, &handler.EnqueueRequestForObject{}).
+			&source.Kind{Type: &vmwarev1.ProviderServiceAccount{}},
+			handler.EnqueueRequestsFromMapFunc(r.providerServiceAccountToVSphereCluster),
+		).
 		Watches(
 			&source.Kind{Type: &corev1.ServiceAccount{}},
-			handler.EnqueueRequestsFromMapFunc(requestMapper{ctx}.Map),
+			handler.EnqueueRequestsFromMapFunc(r.serviceAccountToVSphereCluster),
 		).
 		Complete(r)
-}
-
-type requestMapper struct {
-	ctx *context.ControllerManagerContext
-}
-
-func (d requestMapper) Map(o client.Object) []reconcile.Request {
-	// If the watched object is owned by this providerserviceaccount controller, then
-	// lookup the vsphere cluster that owns the providerserviceaccount object that needs to be queued. We do this because
-	// this controller is effectively a vsphere controller which reconciles it's dependent providerserviceaccounts.
-	ownerRef := metav1.GetControllerOf(o)
-	if ownerRef != nil && ownerRef.Kind == kindProviderServiceAccount {
-		key := types.NamespacedName{Namespace: o.GetNamespace(), Name: ownerRef.Name}
-		return getVSphereCluster(d.ctx, key)
-	}
-	return nil
-}
-
-func getVSphereCluster(ctx *context.ControllerManagerContext, pSvcAccountKey types.NamespacedName) []reconcile.Request {
-	pSvcAccount := &vmwarev1.ProviderServiceAccount{}
-	if err := ctx.Client.Get(ctx, pSvcAccountKey, pSvcAccount); err != nil {
-		return nil
-	}
-
-	vsphereClusterRef := pSvcAccount.Spec.Ref
-	if vsphereClusterRef == nil || vsphereClusterRef.Name == "" {
-		return nil
-	}
-	key := client.ObjectKey{Namespace: pSvcAccount.Namespace, Name: vsphereClusterRef.Name}
-	return []reconcile.Request{{NamespacedName: key}}
 }
 
 func NewServiceAccountReconciler() builder.Reconciler {
@@ -125,6 +103,8 @@ func NewServiceAccountReconciler() builder.Reconciler {
 
 type ServiceAccountReconciler struct {
 	*context.ControllerContext
+
+	remoteClientGetter remote.ClusterClientGetter
 }
 
 func (r ServiceAccountReconciler) Reconcile(ctx goctx.Context, req reconcile.Request) (_ reconcile.Result, reterr error) {
@@ -175,11 +155,17 @@ func (r ServiceAccountReconciler) Reconcile(ctx goctx.Context, req reconcile.Req
 		return r.ReconcileDelete(clusterContext)
 	}
 
+	cluster, err := clusterutilv1.GetClusterFromMetadata(r, r.Client, vsphereCluster.ObjectMeta)
+	if err != nil {
+		r.Logger.Info("unable to get capi cluster from vsphereCluster", "err", err)
+		return reconcile.Result{}, nil
+	}
+
 	// We cannot proceed until we are able to access the target cluster. Until
 	// then just return a no-op and wait for the next sync. This will occur when
 	// the Cluster's status is updated with a reference to the secret that has
 	// the Kubeconfig data used to access the target cluster.
-	guestClient, err := remote.NewClusterClient(clusterContext, controllerName, clusterContext.Client, clusterKey)
+	guestClient, err := r.remoteClientGetter(clusterContext, ProviderServiceAccountControllerName, clusterContext.Client, client.ObjectKeyFromObject(cluster))
 	if err != nil {
 		clusterContext.Logger.Info("The control plane is not ready yet", "err", err)
 		return reconcile.Result{RequeueAfter: clusterNotReadyRequeueTime}, nil
@@ -500,5 +486,43 @@ func GetCMNamespaceName() types.NamespacedName {
 	return types.NamespacedName{
 		Namespace: os.Getenv("SERVICE_ACCOUNTS_CM_NAMESPACE"),
 		Name:      os.Getenv("SERVICE_ACCOUNTS_CM_NAME"),
+	}
+}
+
+// serviceAccountToVSphereCluster is a mapper function used to enqueue reconcile.Request objects.
+// From the watched object owned by this controller, it creates reconcile.Request object
+// for the vmwarev1.VSphereCluster object that owns the watched object.
+func (r ServiceAccountReconciler) serviceAccountToVSphereCluster(o client.Object) []reconcile.Request {
+	// We do this because this controller is effectively a vSphereCluster controller that reconciles its
+	// dependent ProviderServiceAccount objects.
+	ownerRef := metav1.GetControllerOf(o)
+	if ownerRef != nil && ownerRef.Kind == kindProviderServiceAccount {
+		key := types.NamespacedName{Namespace: o.GetNamespace(), Name: ownerRef.Name}
+		pSvcAccount := &vmwarev1.ProviderServiceAccount{}
+		if err := r.Client.Get(r.Context, key, pSvcAccount); err != nil {
+			return nil
+		}
+		return toVSphereClusterRequest(pSvcAccount)
+	}
+	return nil
+}
+
+// providerServiceAccountToVSphereCluster is a mapper function used to enqueue reconcile.Request objects.
+func (r ServiceAccountReconciler) providerServiceAccountToVSphereCluster(o client.Object) []reconcile.Request {
+	providerServiceAccount, ok := o.(*vmwarev1.ProviderServiceAccount)
+	if !ok {
+		return nil
+	}
+
+	return toVSphereClusterRequest(providerServiceAccount)
+}
+
+func toVSphereClusterRequest(providerServiceAccount *vmwarev1.ProviderServiceAccount) []reconcile.Request {
+	vsphereClusterRef := providerServiceAccount.Spec.Ref
+	if vsphereClusterRef == nil || vsphereClusterRef.Name == "" {
+		return nil
+	}
+	return []reconcile.Request{
+		{NamespacedName: client.ObjectKey{Namespace: providerServiceAccount.Namespace, Name: vsphereClusterRef.Name}},
 	}
 }

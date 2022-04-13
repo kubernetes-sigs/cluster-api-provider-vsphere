@@ -39,20 +39,20 @@ type UnitTestContextForController struct {
 
 	VirtualMachineImage *vmoprv1.VirtualMachineImage
 
-	// reconciler is the builder.Reconciler being unit tested.
+	// Reconciler is the builder.Reconciler being unit tested.
 	Reconciler Reconciler
 }
 
 // NewUnitTestContextForController returns a new UnitTestContextForController
 // with an optional prototype cluster for unit testing controllers that do not
 // invoke the VSphereCluster spec controller.
-func NewUnitTestContextForController(newReconcilerFn NewReconcilerFunc, vSphereCluster *vmwarev1.VSphereCluster,
+func NewUnitTestContextForController(newReconcilerFn NewReconcilerFunc, namespace string, vSphereCluster *vmwarev1.VSphereCluster,
 	prototypeCluster bool, initObjects, gcInitObjects []client.Object) *UnitTestContextForController {
 	reconciler := newReconcilerFn()
 	ctx := &UnitTestContextForController{
 		GuestClusterContext: fake.NewGuestClusterContext(fake.NewVmwareClusterContext(
 			fake.NewControllerContext(
-				fake.NewControllerManagerContext(initObjects...)), vSphereCluster), prototypeCluster, gcInitObjects...),
+				fake.NewControllerManagerContext(initObjects...)), namespace, vSphereCluster), prototypeCluster, gcInitObjects...),
 		Reconciler: reconciler,
 	}
 	ctx.Key = client.ObjectKey{Namespace: ctx.VSphereCluster.Namespace, Name: ctx.VSphereCluster.Name}

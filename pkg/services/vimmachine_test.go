@@ -30,34 +30,35 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
-var _ = Describe("VimMachineService_GenerateOverrideFunc", func() {
-	deplZone := func(suffix string) *infrav1.VSphereDeploymentZone {
-		return &infrav1.VSphereDeploymentZone{
-			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("zone-%s", suffix)},
-			Spec: infrav1.VSphereDeploymentZoneSpec{
-				Server:        fmt.Sprintf("server-%s", suffix),
-				FailureDomain: fmt.Sprintf("fd-%s", suffix),
-				ControlPlane:  pointer.Bool(true),
-				PlacementConstraint: infrav1.PlacementConstraint{
-					ResourcePool: fmt.Sprintf("rp-%s", suffix),
-					Folder:       fmt.Sprintf("folder-%s", suffix),
-				},
+func deplZone(suffix string) *infrav1.VSphereDeploymentZone {
+	return &infrav1.VSphereDeploymentZone{
+		ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("zone-%s", suffix)},
+		Spec: infrav1.VSphereDeploymentZoneSpec{
+			Server:        fmt.Sprintf("server-%s", suffix),
+			FailureDomain: fmt.Sprintf("fd-%s", suffix),
+			ControlPlane:  pointer.Bool(true),
+			PlacementConstraint: infrav1.PlacementConstraint{
+				ResourcePool: fmt.Sprintf("rp-%s", suffix),
+				Folder:       fmt.Sprintf("folder-%s", suffix),
 			},
-		}
+		},
 	}
+}
 
-	failureDomain := func(suffix string) *infrav1.VSphereFailureDomain {
-		return &infrav1.VSphereFailureDomain{
-			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("fd-%s", suffix)},
-			Spec: infrav1.VSphereFailureDomainSpec{
-				Topology: infrav1.Topology{
-					Datacenter: fmt.Sprintf("dc-%s", suffix),
-					Datastore:  fmt.Sprintf("ds-%s", suffix),
-					Networks:   []string{fmt.Sprintf("nw-%s", suffix), "another-nw"},
-				},
+func failureDomain(suffix string) *infrav1.VSphereFailureDomain {
+	return &infrav1.VSphereFailureDomain{
+		ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("fd-%s", suffix)},
+		Spec: infrav1.VSphereFailureDomainSpec{
+			Topology: infrav1.Topology{
+				Datacenter: fmt.Sprintf("dc-%s", suffix),
+				Datastore:  fmt.Sprintf("ds-%s", suffix),
+				Networks:   []string{fmt.Sprintf("nw-%s", suffix), "another-nw"},
 			},
-		}
+		},
 	}
+}
+
+var _ = Describe("VimMachineService_GenerateOverrideFunc", func() {
 	var (
 		controllerCtx     *context.ControllerContext
 		machineCtx        *context.VIMMachineContext
@@ -186,33 +187,6 @@ var _ = Describe("VimMachineService_GenerateOverrideFunc", func() {
 })
 
 var _ = Describe("Reconcile_Normal", func() {
-	deplZone := func(suffix string) *infrav1.VSphereDeploymentZone {
-		return &infrav1.VSphereDeploymentZone{
-			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("zone-%s", suffix)},
-			Spec: infrav1.VSphereDeploymentZoneSpec{
-				Server:        fmt.Sprintf("server-%s", suffix),
-				FailureDomain: fmt.Sprintf("fd-%s", suffix),
-				ControlPlane:  pointer.Bool(true),
-				PlacementConstraint: infrav1.PlacementConstraint{
-					ResourcePool: fmt.Sprintf("rp-%s", suffix),
-					Folder:       fmt.Sprintf("folder-%s", suffix),
-				},
-			},
-		}
-	}
-
-	failureDomain := func(suffix string) *infrav1.VSphereFailureDomain {
-		return &infrav1.VSphereFailureDomain{
-			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("fd-%s", suffix)},
-			Spec: infrav1.VSphereFailureDomainSpec{
-				Topology: infrav1.Topology{
-					Datacenter: fmt.Sprintf("dc-%s", suffix),
-					Datastore:  fmt.Sprintf("ds-%s", suffix),
-					Networks:   []string{fmt.Sprintf("nw-%s", suffix), "another-nw"},
-				},
-			},
-		}
-	}
 	var (
 		controllerCtx     *context.ControllerContext
 		machineCtx        *context.VIMMachineContext
@@ -226,16 +200,39 @@ var _ = Describe("Reconcile_Normal", func() {
 	})
 
 	Context("Successfully reconcile vim machine", func() {
-		BeforeEach(func() {
-			Expect(machineCtx.VSphereMachine.Status).Should(BeTrue(), "VSphere Machine Status Should be Ready")
+		It("perform a normal reconcile", func() {
+			check, err := vimMachineService.ReconcileNormal(machineCtx)
+			Expect(err).To(BeNil())
+			Expect(check).Should(BeTrue())
+
+			Expect(machineCtx.VSphereMachine.Status.Ready).Should(BeTrue(), "VSphere Machine Status Should be Ready")
 			Expect(machineCtx.VSphereMachine.Spec.ProviderID).NotTo(BeNil(), "VSphere must have a ProviderId")
 			Expect(machineCtx.VSphereMachine.Status.Network).NotTo(BeNil(), "Vsphere Network has to be set")
 			Expect(conditions.Has(machineCtx.VSphereMachine, infrav1.VMProvisionedCondition)).To(BeTrue(), "VMProvisionedCondition should be set")
 		})
-		It("perform a normal reconcile", func() {
-			check, err := vimMachineService.ReconcileNormal(machineCtx)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(check).Should(BeTrue())
+	})
+})
+
+var _ = Describe("Reconcile_Delete", func() {
+	var (
+		controllerCtx     *context.ControllerContext
+		machineCtx        *context.VIMMachineContext
+		vimMachineService *VimMachineService
+	)
+
+	BeforeEach(func() {
+		controllerCtx = fake.NewControllerContext(fake.NewControllerManagerContext(deplZone("one"), deplZone("two"), failureDomain("one"), failureDomain("two")))
+		machineCtx = fake.NewMachineContext(fake.NewClusterContext(controllerCtx))
+		vimMachineService = &VimMachineService{}
+	})
+
+	Context("Successfully reconcile delete vim machine", func() {
+		It("perform a reconcile delete", func() {
+			err := vimMachineService.ReconcileDelete(machineCtx)
+			Expect(err).To(BeNil())
+
+			Expect(conditions.Has(machineCtx.VSphereMachine, infrav1.VMProvisionedCondition)).To(BeFalse(), "VMProvisionedCondition should not be set")
 		})
 	})
+
 })

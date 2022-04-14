@@ -113,7 +113,7 @@ Participating in the project is governed by the Kubernetes code of conduct. Plea
 
 ### Implementer office hours
 
-- Bi-weekly on Thursdays @ 10:00am PT / 5:00pm UTC on [Zoom][zoom_meeting], passcode 77777
+- Bi-weekly on [Zoom][zoom_meeting] on Thursdays @ 10:00am Pacific. [Convert to your time zone.][time_zone_converter]
 - Previous meetings: \[ [notes][meeting_notes] \]
 
 ### Other ways to communicate with the contributors
@@ -157,5 +157,6 @@ We also use the issue tracker to track features. If you have an idea for a featu
 [slack_info]: https://github.com/kubernetes/community/tree/master/communication#communication
 [troubleshooting]: ./docs/troubleshooting.md
 [zoom_meeting]: https://zoom.us/j/92253194848?pwd=cVVVNDMxeTl1QVJPUlpvLzNSVU1JZz09
+[time_zone_converter]: http://www.thetimezoneconverter.com/?t=08:00&tz=PT%20%28Pacific%20Time%29
 
 <!-- markdownlint-disable-file MD033 -->

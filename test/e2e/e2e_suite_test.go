@@ -160,6 +160,7 @@ var _ = SynchronizedAfterSuite(func() {
 }, func() {
 	// After all ParallelNodes.
 
+	By("Cleaning up the vSphere session", terminateVSphereSession)
 	By("Tearing down the management cluster")
 	if !skipCleanup {
 		helpers.TearDown(bootstrapClusterProvider, bootstrapClusterProxy)

@@ -27,7 +27,9 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
+	"github.com/vmware/govmomi/session"
 	"github.com/vmware/govmomi/session/keepalive"
+	"github.com/vmware/govmomi/vim25"
 	"github.com/vmware/govmomi/vim25/soap"
 )
 
@@ -53,13 +55,21 @@ func initVSphereSession() {
 	Expect(err).ShouldNot(HaveOccurred())
 
 	By("creating vSphere client", func() {
-		var err error
 		serverURL.User = url.UserPassword(vsphereUsername, vspherePassword)
-		vsphereClient, err = govmomi.NewClient(ctx, serverURL, true)
+		soapClient := soap.NewClient(serverURL, true)
+
+		vimClient, err := vim25.NewClient(ctx, soapClient)
 		Expect(err).ShouldNot(HaveOccurred())
 
+		vsphereClient = &govmomi.Client{
+			Client:         vimClient,
+			SessionManager: session.NewManager(vimClient),
+		}
 		// To keep the session from timing out until the test suite finishes
 		vsphereClient.RoundTripper = keepalive.NewHandlerSOAP(vsphereClient.RoundTripper, 1*time.Minute, nil)
+
+		// Login to session which will also start the keep alive goroutine
+		Expect(vsphereClient.Login(ctx, url.UserPassword(vsphereUsername, vspherePassword))).To(Succeed())
 	})
 
 	By("creating vSphere finder")
@@ -69,4 +79,8 @@ func initVSphereSession() {
 	datacenter, err := vsphereFinder.DatacenterOrDefault(ctx, vsphereDatacenter)
 	Expect(err).ShouldNot(HaveOccurred())
 	vsphereFinder.SetDatacenter(datacenter)
+}
+
+func terminateVSphereSession() {
+	Expect(vsphereClient.Logout(ctx)).To(Succeed())
 }

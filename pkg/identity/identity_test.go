@@ -17,6 +17,8 @@ limitations under the License.
 package identity
 
 import (
+	"testing"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -286,4 +288,160 @@ func createIdentity(secretName string) *infrav1.VSphereClusterIdentity {
 	identity.Status.Ready = true
 	Expect(k8sclient.Status().Update(ctx, identity)).To(Succeed())
 	return identity
+}
+
+func TestIsOwnedByIdentityOrCluster(t *testing.T) {
+	type args struct {
+		ownerReferences []metav1.OwnerReference
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "No Owners",
+			args: args{
+				ownerReferences: []metav1.OwnerReference{},
+			},
+			want: false,
+		},
+		{
+			name: "Owned by external entity",
+			args: args{
+				ownerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: "api",
+						Kind:       "bla",
+						Name:       "test",
+					},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "Owned by external different entity",
+			args: args{
+				ownerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: "api2",
+						Kind:       "bla2",
+						Name:       "tes2t",
+					},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "Owned by VSphereCluster/v1beta1",
+			args: args{
+				ownerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+						Kind:       "VSphereCluster",
+						Name:       "tes2t",
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "Owned by VSphereClusterIdentity/v1beta1",
+			args: args{
+				ownerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+						Kind:       "VSphereClusterIdentity",
+						Name:       "tes2t",
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "Owned by VSphereCluster/v1alpha4",
+			args: args{
+				ownerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
+						Kind:       "VSphereCluster",
+						Name:       "tes2t",
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "Owned by VSphereClusterIdentity/v1alpha4",
+			args: args{
+				ownerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
+						Kind:       "VSphereClusterIdentity",
+						Name:       "tes2t",
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "Owned by VSphereCluster/v1alpha3",
+			args: args{
+				ownerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
+						Kind:       "VSphereCluster",
+						Name:       "tes2t",
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "Owned by VSphereClusterIdentity/v1alpha3",
+			args: args{
+				ownerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
+						Kind:       "VSphereClusterIdentity",
+						Name:       "tes2t",
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "Owned by vmware.infrastructure.cluster.x-k8s.io/VSphereCluster",
+			args: args{
+				ownerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: "vmware.infrastructure.cluster.x-k8s.io/v1beta1",
+						Kind:       "VSphereCluster",
+						Name:       "tes2t",
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "Owned by vmware.infrastructure.cluster.x-k8s.io/VSphereClusterIdentity",
+			args: args{
+				ownerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: "vmware.infrastructure.cluster.x-k8s.io/v1beta1",
+						Kind:       "VSphereClusterIdentity",
+						Name:       "tes2t",
+					},
+				},
+			},
+			want: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := IsOwnedByIdentityOrCluster(tt.args.ownerReferences); got != tt.want {
+				t.Errorf("IsOwnedByIdentityOrCluster() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }

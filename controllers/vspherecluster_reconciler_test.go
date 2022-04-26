@@ -61,6 +61,14 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					GenerateName: "secret-",
 					Namespace:    "default",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: "bitnami.com/v1alpha1",
+							Kind:       "SealedSecret",
+							Name:       "some-name",
+							UID:        "some-uid",
+						},
+					},
 				},
 				Data: map[string][]byte{
 					identity.UsernameKey: []byte(vcURL.User.Username()),
@@ -177,8 +185,8 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 					Namespace:    "default",
 					OwnerReferences: []metav1.OwnerReference{
 						{
-							APIVersion: "api-version",
-							Kind:       "cluster",
+							APIVersion: infrav1.GroupVersion.String(),
+							Kind:       "VSphereClusterIdentity",
 							Name:       "another-cluster",
 							UID:        "some-uid",
 						},

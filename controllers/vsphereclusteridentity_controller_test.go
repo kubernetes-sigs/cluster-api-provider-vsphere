@@ -76,6 +76,55 @@ var _ = Describe("VSphereClusterIdentity Reconciler", func() {
 			}, timeout).Should(BeTrue())
 		})
 
+		It("should set the ownerRef on a secret and set Ready condition, if owned by an external identity", func() {
+			// create secret
+			credentialSecret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					GenerateName: "secret-",
+					Namespace:    controllerNamespace,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: "bitnami.com/v1alpha1",
+							Kind:       "SealedSecret",
+							Name:       "some-name",
+							UID:        "some-uid",
+						},
+					},
+				},
+			}
+			Expect(testEnv.Create(ctx, credentialSecret)).To(Succeed())
+
+			// create identity
+			identity := &infrav1.VSphereClusterIdentity{
+				ObjectMeta: metav1.ObjectMeta{
+					GenerateName: "identity-",
+				},
+				Spec: infrav1.VSphereClusterIdentitySpec{
+					SecretName: credentialSecret.Name,
+				},
+			}
+			Expect(testEnv.Create(ctx, identity)).To(Succeed())
+
+			// wait for identity to set owner ref
+			skey := client.ObjectKey{
+				Namespace: credentialSecret.Namespace,
+				Name:      credentialSecret.Name,
+			}
+
+			Eventually(func() bool {
+				i := &infrav1.VSphereClusterIdentity{}
+				if err := testEnv.Get(ctx, client.ObjectKey{Name: identity.Name}, i); err != nil {
+					return false
+				}
+
+				s := &corev1.Secret{}
+				if err := testEnv.Get(ctx, skey, s); err != nil {
+					return false
+				}
+				return clusterutilv1.IsOwnedByObject(s, i)
+			}, timeout).Should(BeTrue())
+		})
+
 		It("should error if secret has another owner reference", func() {
 			// create secret
 			credentialSecret := &corev1.Secret{
@@ -85,7 +134,7 @@ var _ = Describe("VSphereClusterIdentity Reconciler", func() {
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							APIVersion: infrav1.GroupVersion.String(),
-							Kind:       "some-kind",
+							Kind:       "VSphereCluster",
 							Name:       "some-name",
 							UID:        "some-uid",
 						},

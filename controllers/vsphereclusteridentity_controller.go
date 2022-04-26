@@ -39,6 +39,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	pkgidentity "sigs.k8s.io/cluster-api-provider-vsphere/pkg/identity"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 )
 
@@ -128,18 +129,20 @@ func (r clusterIdentityReconciler) Reconcile(ctx _context.Context, req reconcile
 	}
 
 	if !clusterutilv1.IsOwnedByObject(secret, identity) {
-		if len(secret.OwnerReferences) > 0 {
+		ownerReferences := secret.GetOwnerReferences()
+		if pkgidentity.IsOwnedByIdentityOrCluster(ownerReferences) {
 			conditions.MarkFalse(identity, infrav1.CredentialsAvailableCondidtion, infrav1.SecretAlreadyInUseReason, clusterv1.ConditionSeverityError, "secret being used by another Cluster/VSphereIdentity")
 			identity.Status.Ready = false
 			return reconcile.Result{}, errors.New("secret being used by another Cluster/VSphereIdentity")
 		}
 
-		secret.SetOwnerReferences([]metav1.OwnerReference{{
+		ownerReferences = append(ownerReferences, metav1.OwnerReference{
 			APIVersion: infrav1.GroupVersion.String(),
 			Kind:       identity.Kind,
 			Name:       identity.Name,
 			UID:        identity.UID,
-		}})
+		})
+		secret.SetOwnerReferences(ownerReferences)
 
 		if !ctrlutil.ContainsFinalizer(secret, infrav1.SecretIdentitySetFinalizer) {
 			ctrlutil.AddFinalizer(secret, infrav1.SecretIdentitySetFinalizer)

@@ -26,6 +26,7 @@ import (
 
 	"github.com/onsi/gomega/gbytes"
 	"github.com/vmware/govmomi/simulator"
+
 	// run init func to register the tagging API endpoints.
 	_ "github.com/vmware/govmomi/vapi/simulator"
 )

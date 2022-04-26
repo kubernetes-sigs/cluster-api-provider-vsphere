@@ -23,6 +23,7 @@ import (
 
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/simulator"
+
 	// run init func to register the tagging API endpoints.
 	_ "github.com/vmware/govmomi/vapi/simulator"
 	"github.com/vmware/govmomi/vim25/types"

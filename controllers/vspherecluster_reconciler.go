@@ -154,6 +154,9 @@ func (r clusterReconciler) reconcileDelete(ctx *context.ClusterContext) (reconci
 				ctx.Logger.Error(err, "Failed to delete for VSphereMachine", "namespace", vsphereMachine.Namespace, "name", vsphereMachine.Name)
 				deletionErrors = append(deletionErrors, err)
 			}
+
+			// Attempt to delete the node corresponding to the vsphereMachine
+			r.deleteNode(ctx, vsphereMachine.Name)
 		}
 	}
 	if len(deletionErrors) > 0 {
@@ -200,6 +203,18 @@ func (r clusterReconciler) reconcileDelete(ctx *context.ClusterContext) (reconci
 	ctrlutil.RemoveFinalizer(ctx.VSphereCluster, infrav1.ClusterFinalizer)
 
 	return reconcile.Result{}, nil
+}
+
+func (r clusterReconciler) deleteNode(ctx *context.ClusterContext, name string) {
+	node := &apiv1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
+	// Attempt to delete the corresponding node, silently fail on error
+	if err := r.Client.Delete(ctx, node); err != nil {
+		r.Logger.V(4).Info("Unable to delete node ", "node", name)
+	}
 }
 
 func (r clusterReconciler) reconcileNormal(ctx *context.ClusterContext) (reconcile.Result, error) {

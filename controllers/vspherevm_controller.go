@@ -24,7 +24,9 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	apiv1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apitypes "k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
@@ -264,7 +266,22 @@ func (r vmReconciler) reconcileDelete(ctx *context.VMContext) (reconcile.Result,
 	// The VM is deleted so remove the finalizer.
 	ctrlutil.RemoveFinalizer(ctx.VSphereVM, infrav1.VMFinalizer)
 
+	// Attempt to delete the node corresponding to the vsphereMachine
+	r.deleteNode(ctx, vm.Name)
+
 	return reconcile.Result{}, nil
+}
+
+func (r vmReconciler) deleteNode(ctx *context.VMContext, name string) {
+	node := &apiv1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
+	// Attempt to delete the corresponding node, silently fail on error
+	if err := r.Client.Delete(ctx, node); err != nil {
+		r.Logger.V(4).Info("Unable to delete node ", "node", name)
+	}
 }
 
 func (r vmReconciler) reconcileNormal(ctx *context.VMContext) (reconcile.Result, error) {

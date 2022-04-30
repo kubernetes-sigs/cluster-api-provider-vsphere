@@ -17,6 +17,8 @@ limitations under the License.
 package govmomi_test
 
 import (
+	"github.com/vmware/govmomi/simulator"
+	corev1 "k8s.io/api/core/v1"
 	"testing"
 	"time"
 
@@ -37,7 +39,12 @@ import (
 func TestReconcileVM(t *testing.T) {
 	g := NewWithT(t)
 
-	sim, err := helpers.VCSimBuilder().Build()
+	model := simulator.VPX()
+	model.Host = 0
+	model.ClusterHost = 1
+	model.Machine = 1
+	model.Pool = 1
+	sim, err := helpers.VCSimBuilder().WithModel(model).Build()
 	g.Expect(err).ToNot(HaveOccurred())
 
 	t.Cleanup(func() {
@@ -72,13 +79,35 @@ func TestReconcileVM(t *testing.T) {
 	})
 
 	// Case 2: Returns error on failure to find VM by BiosUUID (pass an invalid UUID?)
-	t.Run("when vm reference is set but it cannot be found", func(t *testing.T) {
+	t.Run("when vm BiosUUID is set but it cannot be found", func(t *testing.T) {
+		g := NewWithT(t)
+		vmCtx, err := getFakeContext(sim)
+		g.Expect(err).ToNot(HaveOccurred())
 
+		vm, err := vms.ReconcileVM(vmCtx)
+		g.Expect(vm).ToNot(BeNil())
+		g.Expect(err).To(HaveOccurred())
 	})
+
+	// Case 3: Invalid BiosUUID
 
 	// Case 3: Bootstraps new VM when the VM doesn't exist already
 	t.Run("when vm does not exist already", func(t *testing.T) {
+		g := NewWithT(t)
+		vmCtx, err := getFakeContext(sim)
+		g.Expect(err).ToNot(HaveOccurred())
 
+		// !? how do we set valid bootstrap data
+		vmCtx.VSphereVM.Spec.BootstrapRef = &corev1.ObjectReference{
+			APIVersion: "v1",
+			Kind:       "Secret",
+			Name:       "test-vm-bootstrap",
+			Namespace:  "test-ns",
+		}
+
+		vm, err := vms.ReconcileVM(vmCtx)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(vm).To(Equal(infrav1.VirtualMachine{Name: "test-vm-bootstrap", State: infrav1.VirtualMachineStatePending}))
 	})
 
 	// ...

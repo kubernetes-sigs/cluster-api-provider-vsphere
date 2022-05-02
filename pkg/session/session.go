@@ -36,7 +36,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/constants"
 )
 
 var sessionCache = map[string]Session{}
@@ -52,14 +51,11 @@ type Session struct {
 }
 
 type Feature struct {
-	EnableKeepAlive   bool
 	KeepAliveDuration time.Duration
 }
 
 func DefaultFeature() Feature {
-	return Feature{
-		EnableKeepAlive: constants.DefaultEnableKeepAlive,
-	}
+	return Feature{}
 }
 
 type Params struct {
@@ -110,18 +106,10 @@ func GetOrCreate(ctx context.Context, params *Params) (*Session, error) {
 
 	sessionKey := params.server + params.userinfo.Username() + params.datacenter
 	if cachedSession, ok := sessionCache[sessionKey]; ok {
-		logger = logger.WithValues("server", params.server, "datacenter", params.datacenter)
-		// if keepalive is enabled we depend upon roundtripper to reestablish the connection
-		// and remove the key if it could not
-		if params.feature.EnableKeepAlive {
-			return &cachedSession, nil
-		}
-		var err error
-		if ok, err = cachedSession.SessionManager.SessionIsActive(ctx); ok {
-			logger.V(2).Info("found active cached vSphere client session")
-			return &cachedSession, nil
-		}
-		logger.V(2).Error(err, "error checking if session is active")
+		// Since keepalive is always enabled, we return a cached session when available.
+		// To make sure that the cached session is still active, we depend on the roundtripper -- which, as configured
+		// in newClient(), removes the session from the cache if it dies.
+		return &cachedSession, nil
 	}
 
 	soapURL, err := soap.ParseURL(params.server)
@@ -184,22 +172,16 @@ func newClient(ctx context.Context, logger logr.Logger, sessionKey string, url *
 		SessionManager: session.NewManager(vimClient),
 	}
 
-	if feature.EnableKeepAlive {
-		vimClient.RoundTripper = session.KeepAliveHandler(vimClient.RoundTripper, feature.KeepAliveDuration, func(tripper soap.RoundTripper) error {
-			// we tried implementing
-			// c.Login here but the client once logged out
-			// keeps errong in invalid username or password
-			// we tried with cached username and password in session still the error persisted
-			// hence we just clear the cache and expect the client to
-			// be recreated in next GetOrCreate call
-			_, err := methods.GetCurrentTime(ctx, tripper)
-			if err != nil {
-				logger.Error(err, "failed to keep alive govmomi client")
-				clearCache(sessionKey)
-			}
-			return err
-		})
-	}
+	vimClient.RoundTripper = session.KeepAliveHandler(vimClient.RoundTripper, feature.KeepAliveDuration, func(tripper soap.RoundTripper) error {
+		// GetCurrentTime is used to keep the session alive. If it fails then we clear the cache
+		// and expect the client to be recreated in the next GetOrCreate() call.
+		_, err := methods.GetCurrentTime(ctx, tripper)
+		if err != nil {
+			logger.Error(err, "failed to keep alive govmomi client")
+			clearCache(sessionKey)
+		}
+		return err
+	})
 
 	if err := c.Login(ctx, url.User); err != nil {
 		return nil, err

@@ -382,7 +382,6 @@ func (r *vmReconciler) retrieveVcenterSession(ctx goctx.Context, vsphereVM *infr
 		WithUserInfo(r.ControllerContext.Username, r.ControllerContext.Password).
 		WithThumbprint(vsphereVM.Spec.Thumbprint).
 		WithFeatures(session.Feature{
-			EnableKeepAlive:   r.EnableKeepAlive,
 			KeepAliveDuration: r.KeepAliveDuration,
 		})
 	cluster, err := clusterutilv1.GetClusterFromMetadata(r.ControllerContext, r.Client, vsphereVM.ObjectMeta)

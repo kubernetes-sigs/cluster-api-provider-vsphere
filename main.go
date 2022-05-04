@@ -128,7 +128,7 @@ func main() {
 		&managerOpts.EnableKeepAlive,
 		"enable-keep-alive",
 		defaultEnableKeepAlive,
-		"feature to enable keep alive handler in vsphere sessions")
+		"DEPRECATED: feature to enable keep alive handler in vsphere sessions. This functionality is enabled by default now")
 
 	flag.DurationVar(
 		&managerOpts.KeepAliveDuration,

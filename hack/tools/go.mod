@@ -4,6 +4,7 @@ go 1.15
 
 require (
 	github.com/golangci/golangci-lint v1.44.0
+	github.com/joelanford/go-apidiff v0.1.0
 	github.com/onsi/ginkgo v1.16.5
 	github.com/vmware/govmomi v0.23.1
 	k8s.io/code-generator v0.22.2

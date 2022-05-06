@@ -56,7 +56,8 @@ GOVC := $(TOOLS_BIN_DIR)/govc
 KIND := $(TOOLS_BIN_DIR)/kind
 KUSTOMIZE := $(TOOLS_BIN_DIR)/kustomize
 CONVERSION_VERIFIER := $(abspath $(TOOLS_BIN_DIR)/conversion-verifier)
-TOOLING_BINARIES := $(CONTROLLER_GEN) $(CONVERSION_GEN) $(GINKGO) $(GOLANGCI_LINT) $(GOVC) $(KIND) $(KUSTOMIZE) $(CONVERSION_VERIFIER)
+GO_APIDIFF := $(TOOLS_BIN_DIR)/go-apidiff
+TOOLING_BINARIES := $(CONTROLLER_GEN) $(CONVERSION_GEN) $(GINKGO) $(GOLANGCI_LINT) $(GOVC) $(KIND) $(KUSTOMIZE) $(CONVERSION_VERIFIER) $(GO_APIDIFF)
 ARTIFACTS_PATH := $(ROOT_DIR)/_artifacts
 
 # Set --output-base for conversion-gen if we are not within GOPATH
@@ -226,6 +227,12 @@ lint-shell: ## Lint the project's shell scripts
 .PHONY: fix
 fix: GOLANGCI_LINT_FLAGS = --fast=false --fix
 fix: lint-go ## Tries to fix errors reported by lint-go-full target
+
+APIDIFF_OLD_COMMIT ?= $(shell git rev-parse origin/main)
+
+.PHONY: apidiff
+apidiff: $(GO_APIDIFF) ## Run the apidiff tool
+	$(GO_APIDIFF) $(APIDIFF_OLD_COMMIT) --print-compatible
 
 ## --------------------------------------
 ## Generate

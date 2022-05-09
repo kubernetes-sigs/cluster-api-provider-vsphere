@@ -39,15 +39,11 @@ import (
 var ServiceAccountProviderTestsuite = builder.NewTestSuiteForController(NewServiceAccountReconciler)
 
 const (
-	testNS                     = "test-pvcsi-system"
 	testProviderSvcAccountName = "test-pvcsi"
 
 	testTargetNS             = "test-pvcsi-system"
 	testTargetSecret         = "test-pvcsi-secret" // nolint:gosec
-	testSvcAccountName       = testProviderSvcAccountName
 	testSvcAccountSecretName = testProviderSvcAccountName + "-token-abcdef"
-	testRoleName             = testProviderSvcAccountName
-	testRoleBindingName      = testProviderSvcAccountName
 	testSystemSvcAcctNs      = "test-system-svc-acct-namespace"
 	testSystemSvcAcctCM      = "test-system-svc-acct-cm"
 
@@ -161,7 +157,7 @@ func assertRoleBinding(_ *builder.UnitTestContextForController, ctrlClient clien
 	Expect(len(roleBindingList.Items)).To(Equal(1))
 	Expect(roleBindingList.Items[0].Name).To(Equal(name))
 	Expect(roleBindingList.Items[0].RoleRef).To(Equal(rbacv1.RoleRef{
-		Name:     testRoleName,
+		Name:     name,
 		Kind:     "Role",
 		APIGroup: rbacv1.GroupName,
 	}))
@@ -200,12 +196,17 @@ func getTestTargetSecretWithValidToken(namespace string) *corev1.Secret {
 	}
 }
 
-func getTestProviderServiceAccount(namespace, name string, vSphereCluster *vmwarev1.VSphereCluster) *vmwarev1.ProviderServiceAccount {
+func getTestProviderServiceAccount(namespace string, vSphereCluster *vmwarev1.VSphereCluster, randomize ...bool) *vmwarev1.ProviderServiceAccount {
+	objectMeta := metav1.ObjectMeta{
+		Namespace: namespace,
+	}
+	if len(randomize) > 0 && !randomize[0] {
+		objectMeta.Name = vSphereCluster.GetName()
+	} else {
+		objectMeta.GenerateName = vSphereCluster.GetName()
+	}
 	pSvcAccount := &vmwarev1.ProviderServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
+		ObjectMeta: objectMeta,
 		Spec: vmwarev1.ProviderServiceAccountSpec{
 			Rules: []rbacv1.PolicyRule{
 				{
@@ -292,7 +293,7 @@ func getTestRoleBindingWithInvalidRoleRef(namespace, name string) *rbacv1.RoleBi
 			{
 				Kind:      "ServiceAccount",
 				APIGroup:  "",
-				Name:      testProviderSvcAccountName,
+				Name:      name,
 				Namespace: namespace},
 		},
 	}

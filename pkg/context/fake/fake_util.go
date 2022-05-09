@@ -23,10 +23,10 @@ import (
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 )
 
-func NewVSphereCluster() vmwarev1.VSphereCluster {
+func NewVSphereCluster(namespace string) vmwarev1.VSphereCluster {
 	return vmwarev1.VSphereCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: Namespace,
+			Namespace: namespace,
 			Name:      VSphereClusterName,
 			UID:       VSphereClusterUUID,
 		},

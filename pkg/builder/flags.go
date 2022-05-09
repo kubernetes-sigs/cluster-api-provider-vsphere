@@ -32,10 +32,6 @@ type TestFlags struct {
 	// flag.
 	// Defaults to false.
 	IntegrationTestsEnabled bool
-
-	// unitTestsEnabled is set to true with the -enable-unit-tests flag.
-	// Defaults to true.
-	UnitTestsEnabled bool
 }
 
 var flags TestFlags
@@ -60,7 +56,6 @@ func init() {
 		i++
 	}
 	cmdLine.BoolVar(&flags.IntegrationTestsEnabled, "enable-integration-tests", false, "Enables integration tests")
-	cmdLine.BoolVar(&flags.UnitTestsEnabled, "enable-unit-tests", true, "Enables unit tests")
 	_ = cmdLine.Parse(args)
 
 	// We still need to add the flags to the default flagset, because otherwise

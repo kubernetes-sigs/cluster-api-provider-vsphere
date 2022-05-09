@@ -22,21 +22,26 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	bootstrapapi "k8s.io/cluster-bootstrap/token/api"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	capiutil "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	vmwarev1b1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/builder"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
 )
 
 var _ = Describe("ServiceDiscoveryReconciler ReconcileNormal", serviceDiscoveryUnitTestsReconcileNormal)
 
 func serviceDiscoveryUnitTestsReconcileNormal() {
 	var (
-		ctx         *builder.UnitTestContextForController
-		initObjects []client.Object
+		ctx            *builder.UnitTestContextForController
+		vsphereCluster vmwarev1b1.VSphereCluster
+		initObjects    []client.Object
 	)
+	namespace := capiutil.RandomString(6)
 	JustBeforeEach(func() {
-		ctx = serviceDiscoveryTestSuite.NewUnitTestContextForController(initObjects...)
+		vsphereCluster = fake.NewVSphereCluster(namespace)
+		ctx = serviceDiscoveryTestSuite.NewUnitTestContextForController(namespace, &vsphereCluster, initObjects...)
 	})
 	JustAfterEach(func() {
 		ctx = nil

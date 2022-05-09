@@ -17,8 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	goctx "context"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -33,12 +31,10 @@ var _ = Describe("Service Discovery controller integration tests", func() {
 		initObjects []client.Object
 	)
 	BeforeEach(func() {
-		serviceDiscoveryTestSuite.SetIntegrationTestClient(testEnv.Manager.GetClient())
-		intCtx = serviceDiscoveryTestSuite.NewIntegrationTestContextWithClusters(goctx.Background(), testEnv.Manager.GetClient(), true)
+		intCtx = serviceDiscoveryTestSuite.NewIntegrationTestContextWithClusters(ctx, testEnv.Manager.GetClient())
 	})
 	AfterEach(func() {
 		intCtx.AfterEach()
-		intCtx = nil
 	})
 
 	Context("When VIP is available", func() {

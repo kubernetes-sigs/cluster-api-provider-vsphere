@@ -43,6 +43,7 @@ KIND := $(BIN_DIR)/kind
 GOVC := $(BIN_DIR)/govc
 GINKGO := $(BIN_DIR)/ginkgo
 CONVERSION_VERIFIER := $(BIN_DIR)/conversion-verifier
+APIDIFF := $(BIN_DIR)/go-apidiff
 
 ## --------------------------------------
 ## Help
@@ -86,6 +87,10 @@ $(KUSTOMIZE): go.mod
 conversion-verifier: $(CONVERSION_VERIFIER) $(SRCS) ## fetch CAPI's conversion verifier
 $(CONVERSION_VERIFIER): go.mod
 	go build -tags=tools -o $@ sigs.k8s.io/cluster-api/hack/tools/conversion-verifier
+
+go-apidiff: $(APIDIFF) $(SRCS) ## Build go-apidiff
+$(APIDIFF): go.mod
+	go build -tags=tools -o $@ github.com/joelanford/go-apidiff
 
 ## --------------------------------------
 ## Generate

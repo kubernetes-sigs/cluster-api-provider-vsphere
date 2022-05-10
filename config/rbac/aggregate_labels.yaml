@@ -3,4 +3,5 @@ kind: ClusterRole
 metadata:
   name: manager-role
   labels:
+    kubeadm.controlplane.cluster.x-k8s.io/aggregate-to-manager: "true"
     cluster.x-k8s.io/aggregate-to-manager: "true"

@@ -31,7 +31,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/find"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
-	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers"
+	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers/vcsim"
 )
 
 const TestHostGroup = "host-group-alpha"
@@ -112,12 +112,12 @@ func TestObjectFunc(t *testing.T) {
 
 // setupSimulatorAndSession sets up a VC Simulator and a session.Session that connects to it.
 // The function also returns a resourceCount instance as a convenient reference of resource counts to test against.
-func setupSimulatorAndSession(model *simulator.Model) (*helpers.Simulator, *session.Session, resourceCount, error) {
+func setupSimulatorAndSession(model *simulator.Model) (*vcsim.Simulator, *session.Session, resourceCount, error) {
 	setupCommands := []string{
 		fmt.Sprintf("cluster.group.create -name %s -cluster DC0_C0 -host DC0_C0_H0 DC0_C0_H1", TestHostGroup),
 	}
 
-	sim, err := helpers.VCSimBuilder().WithOperations(setupCommands...).WithModel(model).Build()
+	sim, err := vcsim.NewBuilder().WithOperations(setupCommands...).WithModel(model).Build()
 	if err != nil {
 		return sim, nil, resourceCount{}, err
 	}
@@ -153,7 +153,7 @@ func setupSimulatorAndSession(model *simulator.Model) (*helpers.Simulator, *sess
 }
 
 // countResources counts resources relevant to testing find.ObjectFunc into a resourceCount struct.
-func countResources(sim *helpers.Simulator, session *session.Session) (resources resourceCount, err error) {
+func countResources(sim *vcsim.Simulator, session *session.Session) (resources resourceCount, err error) {
 	defaultDc, err := session.Finder.DefaultDatacenter(context.Background())
 	if err != nil {
 		return resources, err

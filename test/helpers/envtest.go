@@ -53,6 +53,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
+	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers/vcsim"
 )
 
 func init() {
@@ -61,7 +62,7 @@ func init() {
 
 	// use klog as the internal logger for this envtest environment.
 	log.SetLogger(logger)
-	// additionally force all of the controllers to use the Ginkgo logger.
+	// Additionally, force all the controllers to use the Ginkgo logger.
 	ctrl.SetLogger(logger)
 	// add logger for ginkgo
 	klog.SetOutput(ginkgo.GinkgoWriter)
@@ -109,7 +110,7 @@ type (
 		manager.Manager
 		client.Client
 		Config    *rest.Config
-		Simulator *Simulator
+		Simulator *vcsim.Simulator
 
 		cancel goctx.CancelFunc
 	}
@@ -127,7 +128,7 @@ func NewTestEnvironment() *TestEnvironment {
 
 	model := simulator.VPX()
 	model.Pool = 1
-	simr, err := VCSimBuilder().
+	simr, err := vcsim.NewBuilder().
 		WithModel(model).
 		Build()
 	if err != nil {

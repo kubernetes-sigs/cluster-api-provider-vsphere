@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package session
 
 import (
 	"bytes"
@@ -27,13 +27,11 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/vmware/govmomi/simulator"
-	_ "github.com/vmware/govmomi/vapi/simulator"
 	"k8s.io/klog/v2/klogr"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
-	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers"
+	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers/vcsim"
 )
 
 func TestGetSession(t *testing.T) {
@@ -44,19 +42,19 @@ func TestGetSession(t *testing.T) {
 	model := simulator.VPX()
 	model.Cluster = 2
 
-	simr, err := helpers.VCSimBuilder().
+	simr, err := vcsim.NewBuilder().
 		WithModel(model).Build()
 	if err != nil {
 		t.Fatalf("failed to create VC simulator")
 	}
 	defer simr.Destroy()
 
-	params := session.NewParams().
+	params := NewParams().
 		WithServer(simr.ServerURL().Host).
 		WithUserInfo(simr.Username(), simr.Password()).WithDatacenter("*")
 
 	// Get first session
-	s, err := session.GetOrCreate(context.Background(), params)
+	s, err := GetOrCreate(context.Background(), params)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(s).ToNot(BeNil())
 	assertSessionCountEqualTo(g, simr, 1)
@@ -73,7 +71,7 @@ func TestGetSession(t *testing.T) {
 	assertSessionCountEqualTo(g, simr, 0)
 
 	// request sesion again should be a new and different session
-	s, err = session.GetOrCreate(context.Background(), params)
+	s, err = GetOrCreate(context.Background(), params)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(s).ToNot(BeNil())
 
@@ -105,14 +103,14 @@ func sessionCount(stdout io.Reader) (int, error) {
 	}
 }
 
-func assertSessionCountEqualTo(g *WithT, simr *helpers.Simulator, count int) {
+func assertSessionCountEqualTo(g *WithT, simr *vcsim.Simulator, count int) {
 	g.Eventually(func() bool {
 		stdout := gbytes.NewBuffer()
 		g.Expect(simr.Run("session.ls", stdout)).To(Succeed())
 		sessions, err := sessionCount(stdout)
 		g.Expect(err).ToNot(HaveOccurred())
 		return sessions == count
-	}, timeout).Should(BeTrue())
+	}, 30*time.Second).Should(BeTrue())
 }
 
 func TestGetSessionWithKeepAlive(t *testing.T) {
@@ -123,20 +121,20 @@ func TestGetSessionWithKeepAlive(t *testing.T) {
 	model := simulator.VPX()
 	model.Cluster = 2
 
-	simr, err := helpers.VCSimBuilder().
+	simr, err := vcsim.NewBuilder().
 		WithModel(model).Build()
 	if err != nil {
 		t.Fatalf("failed to create VC simulator")
 	}
 	defer simr.Destroy()
 
-	params := session.NewParams().
+	params := NewParams().
 		WithServer(simr.ServerURL().Host).
 		WithUserInfo(simr.Username(), simr.Password()).
 		WithDatacenter("*")
 
 	// Get first Session
-	s, err := session.GetOrCreate(context.Background(), params)
+	s, err := GetOrCreate(context.Background(), params)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(s).ToNot(BeNil())
 	assertSessionCountEqualTo(g, simr, 1)
@@ -150,7 +148,7 @@ func TestGetSessionWithKeepAlive(t *testing.T) {
 	// Get the session again
 	// as keep alive is enabled and session is
 	// not expired we must get the same cached session
-	s, err = session.GetOrCreate(context.Background(), params)
+	s, err = GetOrCreate(context.Background(), params)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(s).ToNot(BeNil())
 	sessionInfo, err = s.SessionManager.UserSession(context.Background())
@@ -165,7 +163,7 @@ func TestGetSessionWithKeepAlive(t *testing.T) {
 	// after logging out old session must be deleted and
 	// we must get a new different session
 	// total session count must remain 1
-	s, err = session.GetOrCreate(context.Background(), params)
+	s, err = GetOrCreate(context.Background(), params)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(s).ToNot(BeNil())
 	sessionInfo, err = s.SessionManager.UserSession(context.Background())
@@ -184,20 +182,20 @@ func TestGetSessionWithKeepAliveTagManagerLogout(t *testing.T) {
 	model := simulator.VPX()
 	model.Cluster = 2
 
-	simr, err := helpers.VCSimBuilder().
+	simr, err := vcsim.NewBuilder().
 		WithModel(model).Build()
 	if err != nil {
 		t.Fatalf("failed to create VC simulator")
 	}
 	defer simr.Destroy()
 
-	params := session.NewParams().
+	params := NewParams().
 		WithServer(simr.ServerURL().Host).
 		WithUserInfo(simr.Username(), simr.Password()).
-		WithFeatures(session.Feature{KeepAliveDuration: 400 * time.Millisecond}).WithDatacenter("*")
+		WithFeatures(Feature{KeepAliveDuration: 400 * time.Millisecond}).WithDatacenter("*")
 
 	// Get first session
-	s, err := session.GetOrCreate(context.Background(), params)
+	s, err := GetOrCreate(context.Background(), params)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(s).ToNot(BeNil())
 	assertSessionCountEqualTo(g, simr, 1)
@@ -214,7 +212,7 @@ func TestGetSessionWithKeepAliveTagManagerLogout(t *testing.T) {
 	// Get session again
 	// as session is deleted we must get new session
 	// old session is expected to be cleaned up so count == 1
-	s, err = session.GetOrCreate(context.Background(), params)
+	s, err = GetOrCreate(context.Background(), params)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(s).ToNot(BeNil())
 	assertSessionCountEqualTo(g, simr, 1)
@@ -229,7 +227,7 @@ func TestGetSessionWithKeepAliveTagManagerLogout(t *testing.T) {
 	// as KeepAliveDuration 2 seconds > SessionIdleTimeout 1 second
 	assertSessionCountEqualTo(g, simr, 0)
 
-	s, err = session.GetOrCreate(context.Background(), params)
+	s, err = GetOrCreate(context.Background(), params)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(s).ToNot(BeNil())
 	sessionInfo, err = s.SessionManager.UserSession(context.Background())

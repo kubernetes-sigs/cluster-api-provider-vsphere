@@ -24,12 +24,12 @@ import (
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers"
+	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers/vcsim"
 )
 
 func TestListHostsFromGroup(t *testing.T) {
 	g := NewWithT(t)
-	sim, err := helpers.VCSimBuilder().
+	sim, err := vcsim.NewBuilder().
 		WithOperations("cluster.group.create -cluster DC0_C0 -name test_grp_1 -host DC0_C0_H0 DC0_C0_H1",
 			"cluster.group.create -cluster DC0_C0 -name test_grp_2 -host DC0_C0_H1").
 		Build()

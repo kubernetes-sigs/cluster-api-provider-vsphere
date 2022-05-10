@@ -14,43 +14,25 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package helpers
+package vcsim
 
 import (
 	"crypto/tls"
 	"fmt"
-	"net/url"
 	"os"
 	"os/exec"
 	"strings"
 
 	"github.com/onsi/gomega/gbytes"
 	"github.com/vmware/govmomi/simulator"
-
-	// run init func to register the tagging API endpoints.
-	_ "github.com/vmware/govmomi/vapi/simulator"
 )
-
-type Simulator struct {
-	model  *simulator.Model
-	server *simulator.Server
-}
-
-func (s Simulator) Destroy() {
-	s.server.Close()
-	s.model.Remove()
-}
-
-func (s Simulator) ServerURL() *url.URL {
-	return s.server.URL
-}
 
 type Builder struct {
 	model      *simulator.Model
 	operations []string
 }
 
-func VCSimBuilder() *Builder {
+func NewBuilder() *Builder {
 	return &Builder{model: simulator.VPX()}
 }
 
@@ -108,21 +90,4 @@ func govcCommand(govcURL, commandStr string, buffers ...*gbytes.Buffer) *exec.Cm
 		cmd.Stderr = buffers[1]
 	}
 	return cmd
-}
-
-func (s Simulator) Run(commandStr string, buffers ...*gbytes.Buffer) error {
-	pwd, _ := s.server.URL.User.Password()
-	govcURL := fmt.Sprintf("https://%s:%s@%s", s.server.URL.User.Username(), pwd, s.server.URL.Host)
-
-	cmd := govcCommand(govcURL, commandStr, buffers...)
-	return cmd.Run()
-}
-
-func (s Simulator) Username() string {
-	return s.server.URL.User.Username()
-}
-
-func (s Simulator) Password() string {
-	pwd, _ := s.server.URL.User.Password()
-	return pwd
 }

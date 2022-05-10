@@ -30,7 +30,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
-	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers"
+	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers/vcsim"
 )
 
 func TestMetadata(t *testing.T) {
@@ -46,7 +46,7 @@ const (
 )
 
 var (
-	sim *helpers.Simulator
+	sim *vcsim.Simulator
 	ctx *context.VMContext
 
 	existingCategoryID string
@@ -135,7 +135,7 @@ var _ = Describe("Metadata_CreateTag", func() {
 })
 
 func configureSimulatorAndContext() (err error) {
-	sim, err = helpers.VCSimBuilder().Build()
+	sim, err = vcsim.NewBuilder().Build()
 	if err != nil {
 		return
 	}

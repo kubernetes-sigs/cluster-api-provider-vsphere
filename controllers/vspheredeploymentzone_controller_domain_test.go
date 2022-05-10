@@ -29,7 +29,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
-	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers"
+	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers/vcsim"
 )
 
 //nolint:paralleltest
@@ -44,7 +44,7 @@ func ForComputeClusterZone(t *testing.T) {
 	model := simulator.VPX()
 	model.Cluster = 2
 
-	simr, err := helpers.VCSimBuilder().
+	simr, err := vcsim.NewBuilder().
 		WithModel(model).
 		WithOperations("tags.category.create k8s-region",
 			"tags.create -c k8s-region k8s-region-west",
@@ -126,7 +126,7 @@ func ForHostGroupZone(t *testing.T) {
 	model := simulator.VPX()
 	model.Cluster = 2
 
-	simr, err := helpers.VCSimBuilder().
+	simr, err := vcsim.NewBuilder().
 		WithModel(model).
 		WithOperations("tags.category.create k8s-region",
 			"tags.create -c k8s-region k8s-region-west",
@@ -203,7 +203,7 @@ func ForHostGroupZone(t *testing.T) {
 }
 
 func TestVsphereDeploymentZoneReconciler_Reconcile_CreateAndAttachMetadata(t *testing.T) {
-	simr, err := helpers.VCSimBuilder().
+	simr, err := vcsim.NewBuilder().
 		WithOperations("cluster.group.create -cluster DC0_C0 -name group-one -host DC0_C0_H0 DC0_C0_H1",
 			"cluster.group.create -cluster DC0_C0 -name group-two -host DC0_C0_H2").
 		Build()

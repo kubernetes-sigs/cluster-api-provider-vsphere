@@ -25,7 +25,7 @@ import (
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
-	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers"
+	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers/vcsim"
 )
 
 //nolint:forcetypeassert
@@ -33,7 +33,7 @@ func TestCreate(t *testing.T) {
 	model := simulator.VPX()
 	model.Host = 0 // ClusterHost only
 
-	simr, err := helpers.VCSimBuilder().WithModel(model).Build()
+	simr, err := vcsim.NewBuilder().WithModel(model).Build()
 	if err != nil {
 		t.Fatalf("unable to create simulator: %s", err)
 	}

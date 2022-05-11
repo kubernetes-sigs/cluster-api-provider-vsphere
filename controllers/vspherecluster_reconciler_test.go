@@ -39,6 +39,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/identity"
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers"
+	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers/vcsim"
 )
 
 const (
@@ -716,11 +717,11 @@ func deploymentZone(server, fdName string, cp, ready *bool) *infrav1.VSphereDepl
 	}
 }
 
-func startVcenter() *helpers.Simulator {
+func startVcenter() *vcsim.Simulator {
 	model := simulator.VPX()
 	model.Pool = 1
 
-	simr, err := helpers.VCSimBuilder().WithModel(model).Build()
+	simr, err := vcsim.NewBuilder().WithModel(model).Build()
 	if err != nil {
 		panic(fmt.Sprintf("unable to create simulator %s", err))
 	}

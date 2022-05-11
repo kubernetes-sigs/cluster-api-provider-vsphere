@@ -36,7 +36,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/identity"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
-	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers"
+	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers/vcsim"
 )
 
 func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
@@ -44,7 +44,7 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 	model := simulator.VPX()
 	model.Host = 0
 
-	simr, err := helpers.VCSimBuilder().WithModel(model).Build()
+	simr, err := vcsim.NewBuilder().WithModel(model).Build()
 	if err != nil {
 		t.Fatalf("unable to create simulator: %s", err)
 	}
@@ -209,7 +209,7 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 	model := simulator.VPX()
 	model.Host = 0
 
-	simr, err := helpers.VCSimBuilder().WithModel(model).Build()
+	simr, err := vcsim.NewBuilder().WithModel(model).Build()
 	if err != nil {
 		t.Fatalf("unable to create simulator: %s", err)
 	}

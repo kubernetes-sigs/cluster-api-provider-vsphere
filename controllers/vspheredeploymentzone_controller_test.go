@@ -37,12 +37,12 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
-	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers"
+	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers/vcsim"
 )
 
 var _ = Describe("VSphereDeploymentZoneReconciler", func() {
 	var (
-		simr *helpers.Simulator
+		simr *vcsim.Simulator
 		ctx  goctx.Context
 
 		failureDomainKey, deploymentZoneKey client.ObjectKey
@@ -56,7 +56,7 @@ var _ = Describe("VSphereDeploymentZoneReconciler", func() {
 		model.Pool = 1
 
 		var err error
-		simr, err = helpers.VCSimBuilder().
+		simr, err = vcsim.NewBuilder().
 			WithModel(model).
 			WithOperations().
 			Build()
@@ -314,7 +314,7 @@ func TestVSphereDeploymentZone_Reconcile(t *testing.T) {
 	model := simulator.VPX()
 	model.Pool = 1
 
-	simr, err := helpers.VCSimBuilder().
+	simr, err := vcsim.NewBuilder().
 		WithModel(model).
 		WithOperations().
 		Build()
@@ -540,7 +540,7 @@ func TestVsphereDeploymentZone_Failed_ReconcilePlacementConstraint(t *testing.T)
 			model.Cluster = 2
 			model.Pool = 2
 
-			simr, err := helpers.VCSimBuilder().
+			simr, err := vcsim.NewBuilder().
 				WithModel(model).
 				Build()
 			if err != nil {

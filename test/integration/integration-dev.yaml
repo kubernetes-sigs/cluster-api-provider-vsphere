@@ -85,5 +85,7 @@ providers:
 variables:
   VSPHERE_PASSWORD: "admin123"
   VSPHERE_USERNAME: "admin123"
+  SERVICE_ACCOUNTS_CM_NAMESPACE: "foo-system"
+  SERVICE_ACCOUNTS_CM_NAME: "foo"
 intervals:
   default/wait-controllers: ["5m", "10s"]

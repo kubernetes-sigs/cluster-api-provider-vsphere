@@ -15,3 +15,6 @@ resources:
   - crd/vmware.infrastructure.cluster.x-k8s.io_vspheremachinetemplates.yaml
   - crd/vmware.infrastructure.cluster.x-k8s.io_vsphereclustertemplates.yaml
   - crd/vmware.infrastructure.cluster.x-k8s.io_providerserviceaccounts.yaml
+
+patchesStrategicMerge:
+  - add-configmap-env-vars.yaml

@@ -128,39 +128,49 @@ var _ = Describe("Network provider", func() {
 		Context("with netop network provider", func() {
 			var defaultNetwork *netopv1alpha1.Network
 
-			BeforeEach(func() {
-				defaultNetwork = &netopv1alpha1.Network{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "dummy-network",
-						Namespace: dummyNs,
-						Labels:    map[string]string{CAPVDefaultNetworkLabel: "true"},
-					},
-					Spec: netopv1alpha1.NetworkSpec{
-						Type: netopv1alpha1.NetworkTypeVDS,
-					},
-				}
+			testWithLabelFunc := func(label string) {
+				BeforeEach(func() {
+					defaultNetwork = &netopv1alpha1.Network{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "dummy-network",
+							Namespace: dummyNs,
+							Labels:    map[string]string{label: "true"},
+						},
+						Spec: netopv1alpha1.NetworkSpec{
+							Type: netopv1alpha1.NetworkTypeVDS,
+						},
+					}
+				})
+
+				Context("ConfigureVirtualMachine", func() {
+					BeforeEach(func() {
+						scheme := runtime.NewScheme()
+						Expect(netopv1alpha1.AddToScheme(scheme)).To(Succeed())
+						client := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(defaultNetwork).Build()
+						np = NetOpNetworkProvider(client)
+					})
+
+					AfterEach(func() {
+						Expect(err).To(BeNil())
+						Expect(vm.Spec.NetworkInterfaces).To(HaveLen(1))
+						Expect(vm.Spec.NetworkInterfaces[0].NetworkType).To(Equal("vsphere-distributed"))
+					})
+
+					It("should add vds type network interface", func() {
+					})
+
+					It("vds network interface already exists", func() {
+						err = np.ConfigureVirtualMachine(ctx, vm)
+					})
+				})
+			}
+
+			Context("with new CAPV default network label", func() {
+				testWithLabelFunc(CAPVDefaultNetworkLabel)
 			})
 
-			Context("ConfigureVirtualMachine", func() {
-				BeforeEach(func() {
-					scheme := runtime.NewScheme()
-					Expect(netopv1alpha1.AddToScheme(scheme)).To(Succeed())
-					client := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(defaultNetwork).Build()
-					np = NetOpNetworkProvider(client)
-				})
-
-				AfterEach(func() {
-					Expect(err).To(BeNil())
-					Expect(vm.Spec.NetworkInterfaces).To(HaveLen(1))
-					Expect(vm.Spec.NetworkInterfaces[0].NetworkType).To(Equal("vsphere-distributed"))
-				})
-
-				It("should add vds type network interface", func() {
-				})
-
-				It("vds network interface already exists", func() {
-					err = np.ConfigureVirtualMachine(ctx, vm)
-				})
+			Context("with legacy default network label", func() {
+				testWithLabelFunc(legacyDefaultNetworkLabel)
 			})
 		})
 
@@ -468,30 +478,41 @@ var _ = Describe("Network provider", func() {
 		Context("with netop network provider", func() {
 			var defaultNetwork *netopv1alpha1.Network
 
-			BeforeEach(func() {
-				defaultNetwork = &netopv1alpha1.Network{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "dummy-network",
-						Namespace: dummyNs,
-						Labels:    map[string]string{CAPVDefaultNetworkLabel: "true"},
-					},
-					Spec: netopv1alpha1.NetworkSpec{
-						Type: netopv1alpha1.NetworkTypeVDS,
-					},
-				}
-				scheme := runtime.NewScheme()
-				Expect(netopv1alpha1.AddToScheme(scheme)).To(Succeed())
-				client := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(defaultNetwork).Build()
-				np = NetOpNetworkProvider(client)
+			testWithLabelFunc := func(label string) {
+				BeforeEach(func() {
+					defaultNetwork = &netopv1alpha1.Network{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "dummy-network",
+							Namespace: dummyNs,
+							Labels:    map[string]string{label: "true"},
+						},
+						Spec: netopv1alpha1.NetworkSpec{
+							Type: netopv1alpha1.NetworkTypeVDS,
+						},
+					}
+					scheme := runtime.NewScheme()
+					Expect(netopv1alpha1.AddToScheme(scheme)).To(Succeed())
+					client := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(defaultNetwork).Build()
+					np = NetOpNetworkProvider(client)
+				})
+
+				Context("with default network", func() {
+					It("Should return expected annotations", func() {
+						annotations, err := np.GetVMServiceAnnotations(ctx)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(annotations).To(HaveKeyWithValue("netoperator.vmware.com/network-name", defaultNetwork.Name))
+					})
+				})
+			}
+
+			Context("with new CAPV default network label", func() {
+				testWithLabelFunc(CAPVDefaultNetworkLabel)
 			})
 
-			Context("with default network", func() {
-				It("Should return expected annotations", func() {
-					annotations, err := np.GetVMServiceAnnotations(ctx)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(annotations).To(HaveKeyWithValue("netoperator.vmware.com/network-name", defaultNetwork.Name))
-				})
+			Context("with legacy default network label", func() {
+				testWithLabelFunc(legacyDefaultNetworkLabel)
 			})
+
 		})
 	})
 

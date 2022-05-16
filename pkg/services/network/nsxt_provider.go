@@ -1,5 +1,5 @@
 /*
-Copyright 2021 The Kubernetes Authors.
+Copyright 2022 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-	netopv1 "github.com/vmware-tanzu/net-operator-api/api/v1alpha1"
 	vmopv1 "github.com/vmware-tanzu/vm-operator-api/api/v1alpha1"
 	ncpv1 "github.com/vmware-tanzu/vm-operator/external/ncp/api/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -36,156 +35,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
-
-const (
-	NSXTTypeNetwork = "nsx-t"
-	// This constant is also defined in VM Operator.
-	NSXTVNetSelectorKey = "ncp.vmware.com/virtual-network-name"
-
-	CAPVDefaultNetworkLabel    = "capv.vmware.com/is-default-network"
-	NetOpNetworkNameAnnotation = "netoperator.vmware.com/network-name"
-
-	// kube-system network is where supervisor control plane vms reside.
-	SystemNamespace = "kube-system"
-)
-
-// dummyNetworkProvider doesn't provision network resource.
-type dummyNetworkProvider struct{}
-
-// DummyNetworkProvider returns an instance of dummy network provider.
-func DummyNetworkProvider() services.NetworkProvider {
-	return &dummyNetworkProvider{}
-}
-
-func (np *dummyNetworkProvider) HasLoadBalancer() bool {
-	return false
-}
-
-func (np *dummyNetworkProvider) ProvisionClusterNetwork(ctx *vmware.ClusterContext) error {
-	return nil
-}
-
-func (np *dummyNetworkProvider) GetClusterNetworkName(ctx *vmware.ClusterContext) (string, error) {
-	return "", nil
-}
-
-func (np *dummyNetworkProvider) ConfigureVirtualMachine(ctx *vmware.ClusterContext, vm *vmopv1.VirtualMachine) error {
-	return nil
-}
-
-func (np *dummyNetworkProvider) GetVMServiceAnnotations(ctx *vmware.ClusterContext) (map[string]string, error) {
-	return map[string]string{}, nil
-}
-
-func (np *dummyNetworkProvider) VerifyNetworkStatus(ctx *vmware.ClusterContext, obj runtime.Object) error {
-	return nil
-}
-
-type dummyLBNetworkProvider struct {
-	dummyNetworkProvider
-}
-
-// DummyLBNetworkProvider returns an instance of dummy network provider that has a LB.
-func DummyLBNetworkProvider() services.NetworkProvider {
-	return &dummyLBNetworkProvider{}
-}
-
-func (np *dummyLBNetworkProvider) HasLoadBalancer() bool {
-	return true
-}
-
-type netopNetworkProvider struct {
-	client client.Client
-}
-
-func NetOpNetworkProvider(client client.Client) services.NetworkProvider {
-	return &netopNetworkProvider{
-		client: client,
-	}
-}
-
-func (np *netopNetworkProvider) HasLoadBalancer() bool {
-	return true
-}
-
-func (np *netopNetworkProvider) ProvisionClusterNetwork(ctx *vmware.ClusterContext) error {
-	conditions.MarkTrue(ctx.VSphereCluster, infrav1.ClusterNetworkReadyCondition)
-	return nil
-}
-
-func (np *netopNetworkProvider) getDefaultClusterNetwork(ctx *vmware.ClusterContext) (*netopv1.Network, error) {
-	labels := map[string]string{CAPVDefaultNetworkLabel: "true"}
-
-	networkList := &netopv1.NetworkList{}
-	err := np.client.List(ctx, networkList, client.InNamespace(ctx.Cluster.Namespace), client.MatchingLabels(labels))
-	if err != nil {
-		return nil, err
-	}
-
-	switch len(networkList.Items) {
-	case 0:
-		return nil, fmt.Errorf("no default CAPV Network found")
-	case 1:
-		return &networkList.Items[0], nil
-	default:
-		return nil, fmt.Errorf("more than one default CAPV Network found: %d", len(networkList.Items))
-	}
-}
-
-func (np *netopNetworkProvider) getClusterNetwork(ctx *vmware.ClusterContext) (*netopv1.Network, error) {
-	// A "NetworkName" can later be added to the TKG Spec, but currently we only have a preselected default.
-	return np.getDefaultClusterNetwork(ctx)
-}
-
-func (np *netopNetworkProvider) GetClusterNetworkName(ctx *vmware.ClusterContext) (string, error) {
-	network, err := np.getClusterNetwork(ctx)
-	if err != nil {
-		return "", err
-	}
-
-	return network.Name, nil
-}
-
-func (np *netopNetworkProvider) GetVMServiceAnnotations(ctx *vmware.ClusterContext) (map[string]string, error) {
-	networkName, err := np.GetClusterNetworkName(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return map[string]string{NetOpNetworkNameAnnotation: networkName}, nil
-}
-
-func (np *netopNetworkProvider) ConfigureVirtualMachine(ctx *vmware.ClusterContext, vm *vmopv1.VirtualMachine) error {
-	network, err := np.getClusterNetwork(ctx)
-	if err != nil {
-		return err
-	}
-
-	for _, vnif := range vm.Spec.NetworkInterfaces {
-		if vnif.NetworkType == string(network.Spec.Type) && vnif.NetworkName == network.Name {
-			// Expected network interface already exists.
-			return nil
-		}
-	}
-
-	vm.Spec.NetworkInterfaces = append(vm.Spec.NetworkInterfaces, vmopv1.VirtualMachineNetworkInterface{
-		NetworkName: network.Name,
-		NetworkType: string(network.Spec.Type),
-	})
-
-	return nil
-}
-
-func (np *netopNetworkProvider) VerifyNetworkStatus(ctx *vmware.ClusterContext, obj runtime.Object) error {
-	if _, ok := obj.(*netopv1.Network); !ok {
-		return fmt.Errorf("expected Net Operator Network but got %T", obj)
-	}
-
-	// Network doesn't have a []Conditions but the specific network type pointed to by ProviderRef might.
-	// The VSphereDistributedNetwork does but it is not currently populated by net-operator.
-
-	return nil
-}
 
 // nsxtNetworkProvider provision nsx-t type cluster network.
 type nsxtNetworkProvider struct {

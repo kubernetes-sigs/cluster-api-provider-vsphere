@@ -67,3 +67,7 @@ issues:
         - stylecheck
       text: "ST1001"
       path: ".*test.*"
+    - linters:
+        - staticcheck
+      text: "SA1019:"  # Using a deprecated function, variable, constant or field
+      path: "^apis/.*_conversion\\.go$"

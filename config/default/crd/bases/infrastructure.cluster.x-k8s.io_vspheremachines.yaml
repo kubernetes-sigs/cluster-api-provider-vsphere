@@ -839,9 +839,10 @@ spec:
             description: VSphereMachineSpec defines the desired state of VSphereMachine
             properties:
               additionalDisksGiB:
-                description: AdditionalDisksGiB holds the sizes of additional disks
+                description: "AdditionalDisksGiB holds the sizes of additional disks
                   of the virtual machine, in GiB Defaults to the eponymous property
                   value in the template from which the virtual machine is cloned.
+                  \n Deprecated: Use the disks field instead."
                 items:
                   format: int32
                   type: integer
@@ -871,11 +872,37 @@ spec:
                   in which the virtual machine is created/located.
                 type: string
               diskGiB:
-                description: DiskGiB is the size of a virtual machine's disk, in GiB.
-                  Defaults to the eponymous property value in the template from which
-                  the virtual machine is cloned.
+                description: "DiskGiB is the size of a virtual machine's disk, in
+                  GiB. Defaults to the eponymous property value in the template from
+                  which the virtual machine is cloned. \n Deprecated: Use the disks
+                  field instead."
                 format: int32
                 type: integer
+              disks:
+                description: Disks is a list of disk configurations applied to the
+                  virtual machine.
+                items:
+                  description: DiskSpec defines the configuration for a virtual machine's
+                    disk device.
+                  properties:
+                    datastore:
+                      description: Datastore is the name or inventory path of the
+                        datastore in which the disk is created/located. If both datastore
+                        and storagePolicyName are unset, disk is located with the
+                        VM (based on Datastore and storagePolicyName ot higher level).
+                      type: string
+                    sizeGiB:
+                      description: SizeGiB is the disk size, in GiB.
+                      format: int64
+                      type: integer
+                    storagePolicyName:
+                      description: StoragePolicyName is the storage policy to use
+                        with this disk. If both datastore and storagePolicyName are
+                        unset, disk is located with the VM (based on Datastore and
+                        storagePolicyName ot higher level).
+                      type: string
+                  type: object
+                type: array
               failureDomain:
                 description: FailureDomain is the failure domain unique identifier
                   this Machine should be attached to, as defined in Cluster API. For

@@ -32,23 +32,49 @@ func TestVSphereMachineTemplate_ValidateCreate(t *testing.T) {
 		wantErr        bool
 	}{
 		{
-			name:           "preferredAPIServerCIDR set on creation ",
-			vsphereMachine: createVSphereMachineTemplate("foo.com", nil, "192.168.0.1/32", []string{}),
+			name:           "success",
+			vsphereMachine: createVSphereMachineTemplate("foo.com", nil, "", []string{}, 0, []int32{}, []DiskSpec{}),
+			wantErr:        false,
+		},
+		{
+			name:           "preferredAPIServerCIDR set on creation",
+			vsphereMachine: createVSphereMachineTemplate("foo.com", nil, "192.168.0.1/32", []string{}, 0, []int32{}, []DiskSpec{}),
 			wantErr:        true,
 		},
 		{
 			name:           "ProviderID set on creation",
-			vsphereMachine: createVSphereMachineTemplate("foo.com", &someProviderID, "", []string{}),
+			vsphereMachine: createVSphereMachineTemplate("foo.com", &someProviderID, "", []string{}, 0, []int32{}, []DiskSpec{}),
 			wantErr:        true,
 		},
 		{
 			name:           "IPs are not in CIDR format",
-			vsphereMachine: createVSphereMachineTemplate("foo.com", nil, "", []string{"192.168.0.1/32", "192.168.0.3"}),
+			vsphereMachine: createVSphereMachineTemplate("foo.com", nil, "", []string{"192.168.0.1/32", "192.168.0.3"}, 0, []int32{}, []DiskSpec{}),
 			wantErr:        true,
 		},
 		{
-			name:           "successful VSphereMachine creation",
-			vsphereMachine: createVSphereMachineTemplate("foo.com", nil, "", []string{"192.168.0.1/32", "192.168.0.3/32"}),
+			name:           "ipAddrs cannot be set in templates",
+			vsphereMachine: createVSphereMachineTemplate("foo.com", nil, "", []string{"192.168.0.1/32", "192.168.0.3/32"}, 0, []int32{}, []DiskSpec{}),
+			wantErr:        true,
+		},
+
+		{
+			name:           "success with diskGiB only",
+			vsphereMachine: createVSphereMachineTemplate("foo.com", nil, "", []string{}, 40, []int32{}, []DiskSpec{}),
+			wantErr:        false,
+		},
+		{
+			name:           "success with diskGiB and additionalDisksGiB",
+			vsphereMachine: createVSphereMachineTemplate("foo.com", nil, "", []string{}, 40, []int32{50, 60}, []DiskSpec{}),
+			wantErr:        false,
+		},
+		{
+			name:           "diskGiB cannot be set, when disks is set",
+			vsphereMachine: createVSphereMachineTemplate("foo.com", nil, "", []string{}, 40, []int32{}, []DiskSpec{{SizeGiB: 50}}),
+			wantErr:        true,
+		},
+		{
+			name:           "additionalDisksGiB cannot be set, when disks is set",
+			vsphereMachine: createVSphereMachineTemplate("foo.com", nil, "", []string{}, 0, []int32{50}, []DiskSpec{{SizeGiB: 50}}),
 			wantErr:        true,
 		},
 	}
@@ -77,20 +103,20 @@ func TestVSphereMachineTemplate_ValidateUpdate(t *testing.T) {
 	}{
 		{
 			name:              "ProviderID cannot be updated",
-			oldVSphereMachine: createVSphereMachineTemplate("foo.com", nil, "", []string{"192.168.0.1/32"}),
-			vsphereMachine:    createVSphereMachineTemplate("foo.com", &someProviderID, "", []string{"192.168.0.1/32"}),
+			oldVSphereMachine: createVSphereMachineTemplate("foo.com", nil, "", []string{"192.168.0.1/32"}, 0, []int32{}, []DiskSpec{}),
+			vsphereMachine:    createVSphereMachineTemplate("foo.com", &someProviderID, "", []string{"192.168.0.1/32"}, 0, []int32{}, []DiskSpec{}),
 			wantErr:           true,
 		},
 		{
 			name:              "updating ips cannot be done",
-			oldVSphereMachine: createVSphereMachineTemplate("foo.com", nil, "", []string{"192.168.0.1/32"}),
-			vsphereMachine:    createVSphereMachineTemplate("foo.com", &someProviderID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}),
+			oldVSphereMachine: createVSphereMachineTemplate("foo.com", nil, "", []string{"192.168.0.1/32"}, 0, []int32{}, []DiskSpec{}),
+			vsphereMachine:    createVSphereMachineTemplate("foo.com", &someProviderID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}, 0, []int32{}, []DiskSpec{}),
 			wantErr:           true,
 		},
 		{
 			name:              "updating server cannot be done",
-			oldVSphereMachine: createVSphereMachineTemplate("foo.com", nil, "", []string{"192.168.0.1/32"}),
-			vsphereMachine:    createVSphereMachineTemplate("baz.com", &someProviderID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}),
+			oldVSphereMachine: createVSphereMachineTemplate("foo.com", nil, "", []string{"192.168.0.1/32"}, 0, []int32{}, []DiskSpec{}),
+			vsphereMachine:    createVSphereMachineTemplate("baz.com", &someProviderID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}, 0, []int32{}, []DiskSpec{}),
 			wantErr:           true,
 		},
 	}
@@ -106,7 +132,7 @@ func TestVSphereMachineTemplate_ValidateUpdate(t *testing.T) {
 	}
 }
 
-func createVSphereMachineTemplate(server string, providerID *string, preferredAPIServerCIDR string, ips []string) *VSphereMachineTemplate {
+func createVSphereMachineTemplate(server string, providerID *string, preferredAPIServerCIDR string, ips []string, diskGiB int32, additionalDisksGiB []int32, disks []DiskSpec) *VSphereMachineTemplate {
 	VSphereMachineTemplate := &VSphereMachineTemplate{
 		Spec: VSphereMachineTemplateSpec{
 			Template: VSphereMachineTemplateResource{
@@ -118,6 +144,9 @@ func createVSphereMachineTemplate(server string, providerID *string, preferredAP
 							PreferredAPIServerCIDR: preferredAPIServerCIDR,
 							Devices:                []NetworkDeviceSpec{},
 						},
+						DiskGiB:            diskGiB,
+						AdditionalDisksGiB: additionalDisksGiB,
+						Disks:              disks,
 					},
 				},
 			},

@@ -36,18 +36,39 @@ func TestVSphereVM_ValidateCreate(t *testing.T) {
 	}{
 		{
 			name:      "preferredAPIServerCIDR set on creation ",
-			vSphereVM: createVSphereVM("foo.com", "", "192.168.0.1/32", []string{}, nil),
+			vSphereVM: createVSphereVM("foo.com", "", "192.168.0.1/32", []string{}, nil, 0, []int32{}, []DiskSpec{}),
 			wantErr:   true,
 		},
 		{
 			name:      "IPs are not in CIDR format",
-			vSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3"}, nil),
+			vSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3"}, nil, 0, []int32{}, []DiskSpec{}),
 			wantErr:   true,
 		},
 		{
 			name:      "successful VSphereVM creation",
-			vSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, nil),
+			vSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, nil, 0, []int32{}, []DiskSpec{}),
 			wantErr:   false,
+		},
+
+		{
+			name:      "success with diskGiB only",
+			vSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, nil, 40, []int32{}, []DiskSpec{}),
+			wantErr:   false,
+		},
+		{
+			name:      "success with diskGiB and additionalDisksGiB",
+			vSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, nil, 40, []int32{50, 60}, []DiskSpec{}),
+			wantErr:   false,
+		},
+		{
+			name:      "diskGiB cannot be set, when disks is set",
+			vSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, nil, 40, []int32{}, []DiskSpec{{SizeGiB: 50}}),
+			wantErr:   true,
+		},
+		{
+			name:      "additionalDisksGiB cannot be set, when disks is set",
+			vSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, nil, 0, []int32{50}, []DiskSpec{{SizeGiB: 50}}),
+			wantErr:   true,
 		},
 	}
 	for _, tc := range tests {
@@ -75,26 +96,26 @@ func TestVSphereVM_ValidateUpdate(t *testing.T) {
 	}{
 		{
 			name:         "ProviderID can be updated",
-			oldVSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32"}, nil),
-			vSphereVM:    createVSphereVM("foo.com", biosUUID, "", []string{"192.168.0.1/32"}, nil),
+			oldVSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32"}, nil, 0, []int32{}, []DiskSpec{}),
+			vSphereVM:    createVSphereVM("foo.com", biosUUID, "", []string{"192.168.0.1/32"}, nil, 0, []int32{}, []DiskSpec{}),
 			wantErr:      false,
 		},
 		{
 			name:         "updating ips can be done",
-			oldVSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32"}, nil),
-			vSphereVM:    createVSphereVM("foo.com", biosUUID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}, nil),
+			oldVSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32"}, nil, 0, []int32{}, []DiskSpec{}),
+			vSphereVM:    createVSphereVM("foo.com", biosUUID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}, nil, 0, []int32{}, []DiskSpec{}),
 			wantErr:      false,
 		},
 		{
 			name:         "updating bootstrapRef can be done",
-			oldVSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32"}, nil),
-			vSphereVM:    createVSphereVM("foo.com", biosUUID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}, &corev1.ObjectReference{}),
+			oldVSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32"}, nil, 0, []int32{}, []DiskSpec{}),
+			vSphereVM:    createVSphereVM("foo.com", biosUUID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}, &corev1.ObjectReference{}, 0, []int32{}, []DiskSpec{}),
 			wantErr:      false,
 		},
 		{
 			name:         "updating server cannot be done",
-			oldVSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32"}, nil),
-			vSphereVM:    createVSphereVM("bar.com", biosUUID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}, nil),
+			oldVSphereVM: createVSphereVM("foo.com", "", "", []string{"192.168.0.1/32"}, nil, 0, []int32{}, []DiskSpec{}),
+			vSphereVM:    createVSphereVM("bar.com", biosUUID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}, nil, 0, []int32{}, []DiskSpec{}),
 			wantErr:      true,
 		},
 	}
@@ -110,7 +131,7 @@ func TestVSphereVM_ValidateUpdate(t *testing.T) {
 	}
 }
 
-func createVSphereVM(server string, biosUUID string, preferredAPIServerCIDR string, ips []string, bootstrapRef *corev1.ObjectReference) *VSphereVM {
+func createVSphereVM(server string, biosUUID string, preferredAPIServerCIDR string, ips []string, bootstrapRef *corev1.ObjectReference, diskGiB int32, additionalDisksGiB []int32, disks []DiskSpec) *VSphereVM {
 	VSphereVM := &VSphereVM{
 		Spec: VSphereVMSpec{
 			BiosUUID:     biosUUID,
@@ -121,6 +142,9 @@ func createVSphereVM(server string, biosUUID string, preferredAPIServerCIDR stri
 					PreferredAPIServerCIDR: preferredAPIServerCIDR,
 					Devices:                []NetworkDeviceSpec{},
 				},
+				DiskGiB:            diskGiB,
+				AdditionalDisksGiB: additionalDisksGiB,
+				Disks:              disks,
 			},
 		},
 	}

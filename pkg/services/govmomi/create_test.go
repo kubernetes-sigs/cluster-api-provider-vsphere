@@ -62,6 +62,7 @@ func TestCreate(t *testing.T) {
 	vmContext.VSphereVM.Spec.Template = vm.Name
 
 	disk := object.VirtualDeviceList(vm.Config.Hardware.Device).SelectByType((*types.VirtualDisk)(nil))[0].(*types.VirtualDisk)
+	//nolint:staticcheck // deprecated field
 	disk.CapacityInKB = int64(vmContext.VSphereVM.Spec.DiskGiB) * 1024 * 1024
 
 	if err := createVM(vmContext, []byte("")); err != nil {

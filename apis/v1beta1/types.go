@@ -137,11 +137,15 @@ type VirtualMachineCloneSpec struct {
 	// Defaults to the eponymous property value in the template from which the
 	// virtual machine is cloned.
 	// +optional
+	//
+	// Deprecated: Use the disks field instead.
 	DiskGiB int32 `json:"diskGiB,omitempty"`
 	// AdditionalDisksGiB holds the sizes of additional disks of the virtual machine, in GiB
 	// Defaults to the eponymous property value in the template from which the
 	// virtual machine is cloned.
 	// +optional
+	//
+	// Deprecated: Use the disks field instead.
 	AdditionalDisksGiB []int32 `json:"additionalDisksGiB,omitempty"`
 	// CustomVMXKeys is a dictionary of advanced VMX options that can be set on VM
 	// Defaults to empty map
@@ -154,6 +158,9 @@ type VirtualMachineCloneSpec struct {
 	// PciDevices is the list of pci devices used by the virtual machine.
 	// +optional
 	PciDevices []PCIDeviceSpec `json:"pciDevices,omitempty"`
+	// Disks is a list of disk configurations applied to the virtual machine.
+	// +optional
+	Disks []DiskSpec `json:"disks,omitempty"`
 }
 
 // VSphereMachineTemplateResource describes the data needed to create a VSphereMachine from a template
@@ -323,6 +330,28 @@ type NetworkStatus struct {
 	// NetworkName is the name of the network.
 	// +optional
 	NetworkName string `json:"networkName,omitempty"`
+}
+
+// DiskSpec defines the configuration for a virtual machine's
+// disk device.
+type DiskSpec struct {
+	// SizeGiB is the disk size, in GiB.
+	// +optional
+	SizeGiB int64 `json:"sizeGiB,omitempty"`
+
+	// Datastore is the name or inventory path of the datastore in which the
+	// disk is created/located. If both datastore and storagePolicyName are
+	// unset, disk is located with the VM (based on Datastore and storagePolicyName
+	// ot higher level).
+	// +optional
+	Datastore string `json:"datastore,omitempty"`
+
+	// StoragePolicyName is the storage policy to use with this
+	// disk. If both datastore and storagePolicyName are
+	// unset, disk is located with the VM (based on Datastore and storagePolicyName
+	// ot higher level).
+	// +optional
+	StoragePolicyName string `json:"storagePolicyName,omitempty"`
 }
 
 // VirtualMachineState describes the state of a VM.

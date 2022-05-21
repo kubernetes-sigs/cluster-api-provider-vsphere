@@ -53,6 +53,15 @@ func (m *VSphereMachine) ValidateCreate() error {
 	var allErrs field.ErrorList
 	spec := m.Spec
 
+	if len(spec.Disks) > 0 {
+		if len(spec.AdditionalDisksGiB) > 0 {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "additionalDisksGiB"), spec.AdditionalDisksGiB, "cannot be set, when disks is set"))
+		}
+		if spec.DiskGiB > 0 {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "diskGiB"), spec.DiskGiB, "cannot be set, when disks is set"))
+		}
+	}
+
 	if spec.Network.PreferredAPIServerCIDR != "" {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "PreferredAPIServerCIDR"), spec.Network.PreferredAPIServerCIDR, "cannot be set, as it will be removed and is no longer used"))
 	}

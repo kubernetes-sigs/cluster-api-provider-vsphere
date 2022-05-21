@@ -46,23 +46,44 @@ func TestVSphereMachine_ValidateCreate(t *testing.T) {
 	}{
 		{
 			name:           "preferredAPIServerCIDR set on creation ",
-			vsphereMachine: createVSphereMachine("foo.com", nil, "192.168.0.1/32", []string{}),
+			vsphereMachine: createVSphereMachine("foo.com", nil, "192.168.0.1/32", []string{}, 0, []int32{}, []DiskSpec{}),
 			wantErr:        true,
 		},
 		{
 			name:           "IPs are not in CIDR format",
-			vsphereMachine: createVSphereMachine("foo.com", nil, "", []string{"192.168.0.1/32", "192.168.0.3"}),
+			vsphereMachine: createVSphereMachine("foo.com", nil, "", []string{"192.168.0.1/32", "192.168.0.3"}, 0, []int32{}, []DiskSpec{}),
 			wantErr:        true,
 		},
 		{
 			name:           "IPs are not valid IPs in CIDR format",
-			vsphereMachine: createVSphereMachine("foo.com", nil, "", []string{"<nil>/32", "192.168.0.644/33"}),
+			vsphereMachine: createVSphereMachine("foo.com", nil, "", []string{"<nil>/32", "192.168.0.644/33"}, 0, []int32{}, []DiskSpec{}),
 			wantErr:        true,
 		},
 		{
 			name:           "successful VSphereMachine creation",
-			vsphereMachine: createVSphereMachine("foo.com", nil, "", []string{"192.168.0.1/32", "192.168.0.3/32"}),
+			vsphereMachine: createVSphereMachine("foo.com", nil, "", []string{"192.168.0.1/32", "192.168.0.3/32"}, 0, []int32{}, []DiskSpec{}),
 			wantErr:        false,
+		},
+
+		{
+			name:           "success with diskGiB only",
+			vsphereMachine: createVSphereMachine("foo.com", nil, "", []string{"192.168.0.1/32", "192.168.0.3/32"}, 40, []int32{}, []DiskSpec{}),
+			wantErr:        false,
+		},
+		{
+			name:           "success with diskGiB and additionalDisksGiB",
+			vsphereMachine: createVSphereMachine("foo.com", nil, "", []string{"192.168.0.1/32", "192.168.0.3/32"}, 40, []int32{50, 60}, []DiskSpec{}),
+			wantErr:        false,
+		},
+		{
+			name:           "diskGiB cannot be set, when disks is set",
+			vsphereMachine: createVSphereMachine("foo.com", nil, "", []string{"192.168.0.1/32", "192.168.0.3/32"}, 40, []int32{}, []DiskSpec{{SizeGiB: 50}}),
+			wantErr:        true,
+		},
+		{
+			name:           "additionalDisksGiB cannot be set, when disks is set",
+			vsphereMachine: createVSphereMachine("foo.com", nil, "", []string{"192.168.0.1/32", "192.168.0.3/32"}, 0, []int32{50}, []DiskSpec{{SizeGiB: 50}}),
+			wantErr:        true,
 		},
 	}
 	for _, tc := range tests {
@@ -90,32 +111,32 @@ func TestVSphereMachine_ValidateUpdate(t *testing.T) {
 	}{
 		{
 			name:              "ProviderID can be updated",
-			oldVSphereMachine: createVSphereMachine("foo.com", nil, "", []string{"192.168.0.1/32"}),
-			vsphereMachine:    createVSphereMachine("foo.com", &someProviderID, "", []string{"192.168.0.1/32"}),
+			oldVSphereMachine: createVSphereMachine("foo.com", nil, "", []string{"192.168.0.1/32"}, 0, []int32{}, []DiskSpec{}),
+			vsphereMachine:    createVSphereMachine("foo.com", &someProviderID, "", []string{"192.168.0.1/32"}, 0, []int32{}, []DiskSpec{}),
 			wantErr:           false,
 		},
 		{
 			name:              "updating ips can be done",
-			oldVSphereMachine: createVSphereMachine("foo.com", nil, "", []string{"192.168.0.1/32"}),
-			vsphereMachine:    createVSphereMachine("foo.com", &someProviderID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}),
+			oldVSphereMachine: createVSphereMachine("foo.com", nil, "", []string{"192.168.0.1/32"}, 0, []int32{}, []DiskSpec{}),
+			vsphereMachine:    createVSphereMachine("foo.com", &someProviderID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}, 0, []int32{}, []DiskSpec{}),
 			wantErr:           false,
 		},
 		{
 			name:              "updating non-existing IP with invalid ips can not be done",
-			oldVSphereMachine: createVSphereMachine("foo.com", nil, "", nil),
-			vsphereMachine:    createVSphereMachine("foo.com", &someProviderID, "", []string{"<nil>/32", "192.168.0.10/33"}),
+			oldVSphereMachine: createVSphereMachine("foo.com", nil, "", nil, 0, []int32{}, []DiskSpec{}),
+			vsphereMachine:    createVSphereMachine("foo.com", &someProviderID, "", []string{"<nil>/32", "192.168.0.10/33"}, 0, []int32{}, []DiskSpec{}),
 			wantErr:           true,
 		},
 		{
 			name:              "updating existing IP with invalid ips can not be done",
-			oldVSphereMachine: createVSphereMachine("foo.com", nil, "", []string{"192.168.0.1/32"}),
-			vsphereMachine:    createVSphereMachine("foo.com", &someProviderID, "", []string{"<nil>/32", "192.168.0.10/33"}),
+			oldVSphereMachine: createVSphereMachine("foo.com", nil, "", []string{"192.168.0.1/32"}, 0, []int32{}, []DiskSpec{}),
+			vsphereMachine:    createVSphereMachine("foo.com", &someProviderID, "", []string{"<nil>/32", "192.168.0.10/33"}, 0, []int32{}, []DiskSpec{}),
 			wantErr:           true,
 		},
 		{
 			name:              "updating server cannot be done",
-			oldVSphereMachine: createVSphereMachine("foo.com", nil, "", []string{"192.168.0.1/32"}),
-			vsphereMachine:    createVSphereMachine("bar.com", &someProviderID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}),
+			oldVSphereMachine: createVSphereMachine("foo.com", nil, "", []string{"192.168.0.1/32"}, 0, []int32{}, []DiskSpec{}),
+			vsphereMachine:    createVSphereMachine("bar.com", &someProviderID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}, 0, []int32{}, []DiskSpec{}),
 			wantErr:           true,
 		},
 	}
@@ -131,7 +152,7 @@ func TestVSphereMachine_ValidateUpdate(t *testing.T) {
 	}
 }
 
-func createVSphereMachine(server string, providerID *string, preferredAPIServerCIDR string, ips []string) *VSphereMachine {
+func createVSphereMachine(server string, providerID *string, preferredAPIServerCIDR string, ips []string, diskGiB int32, additionalDisksGiB []int32, disks []DiskSpec) *VSphereMachine {
 	VSphereMachine := &VSphereMachine{
 		Spec: VSphereMachineSpec{
 			ProviderID: providerID,
@@ -141,6 +162,9 @@ func createVSphereMachine(server string, providerID *string, preferredAPIServerC
 					PreferredAPIServerCIDR: preferredAPIServerCIDR,
 					Devices:                []NetworkDeviceSpec{},
 				},
+				DiskGiB:            diskGiB,
+				AdditionalDisksGiB: additionalDisksGiB,
+				Disks:              disks,
 			},
 		},
 	}

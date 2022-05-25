@@ -79,8 +79,7 @@ BUILD_DIR := .build
 OVERRIDES_DIR := $(HOME)/.cluster-api/overrides/infrastructure-vsphere/$(VERSION)
 
 # Architecture variables
-ARCH ?= amd64
-ALL_ARCH = amd64 arm arm64 ppc64le s390x
+ARCH ?= $(shell go env GOARCH)
 
 # Common docker variables
 IMAGE_NAME ?= manager
@@ -101,7 +100,6 @@ RELEASE_CONTROLLER_IMG := $(RELEASE_REGISTRY)/$(IMAGE_NAME)
 DEV_REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
 DEV_CONTROLLER_IMG ?= $(DEV_REGISTRY)/vsphere-$(IMAGE_NAME)
 DEV_TAG ?= dev
-DEV_MANIFEST_IMG := $(DEV_CONTROLLER_IMG)-$(ARCH)
 
 # Set build time variables including git version details
 LDFLAGS := $(shell hack/version.sh)
@@ -124,7 +122,8 @@ test: $(GOVC)
 
 .PHONY: e2e-image
 e2e-image: ## Build the e2e manager image
-	docker build --build-arg ldflags="$(LDFLAGS)" --tag="gcr.io/k8s-staging-cluster-api/capv-manager:e2e" .
+	docker buildx build --platform linux/$(ARCH) --output=type=docker \
+		--build-arg ldflags="$(LDFLAGS)" --tag="gcr.io/k8s-staging-cluster-api/capv-manager:e2e" .
 
 .PHONY: e2e-templates
 e2e-templates: ## Generate e2e cluster templates
@@ -444,8 +443,14 @@ check: ## Verify and lint the project
 
 .PHONY: docker-build
 docker-build: ## Build the docker image for controller-manager
-	docker build --pull --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)"  . -t $(DEV_CONTROLLER_IMG):$(DEV_TAG)
+	docker buildx build --platform linux/$(ARCH) --output=type=docker \
+		--pull --build-arg ldflags="$(LDFLAGS)" \
+		-t $(DEV_CONTROLLER_IMG):$(DEV_TAG) .
 
 .PHONY: docker-push
 docker-push: ## Push the docker image
-	docker push $(DEV_CONTROLLER_IMG):$(DEV_TAG)
+	docker buildx inspect capv &>/dev/null || docker buildx create --name capv
+	docker buildx build --builder capv --platform linux/amd64,linux/arm64 --output=type=registry \
+		--pull --build-arg ldflags="$(LDFLAGS)" \
+		-t $(DEV_CONTROLLER_IMG):$(DEV_TAG) .
+	docker buildx rm capv

@@ -58,44 +58,77 @@ func sanitizeIPAddrs(ctx *context.VMContext, ipAddrs []string) []string {
 //   3. If it is not found by instance UUID, fallback to an inventory path search
 //      using the vm folder path and the VSphereVM name
 func findVM(ctx *context.VMContext) (types.ManagedObjectReference, error) {
-	if biosUUID := ctx.VSphereVM.Spec.BiosUUID; biosUUID != "" {
-		objRef, err := ctx.Session.FindByBIOSUUID(ctx, biosUUID)
-		if err != nil {
-			return types.ManagedObjectReference{}, err
-		}
-		if objRef == nil {
-			ctx.Logger.Info("vm not found by bios uuid", "biosuuid", biosUUID)
-			return types.ManagedObjectReference{}, errNotFound{uuid: biosUUID}
-		}
-		ctx.Logger.Info("vm found by bios uuid", "vmref", objRef.Reference())
-		return objRef.Reference(), nil
+	var err error
+	moRef, err := findVMWithBiosUUID(ctx)
+	if err == nil {
+		return moRef, nil
 	}
+	moRef, err = findVMWithInstanceUUID(ctx)
+	if err == nil {
+		return moRef, nil
+	}
+	// Fallback to finding by inventory path
+	moRef, err = findVMWithInventoryPath(ctx)
+	if err != nil {
+		return moRef, err
+	}
+	return moRef, nil
+}
 
+// findVMWithBiosUUID searches for a VM by its BIOS UUID.
+func findVMWithBiosUUID(ctx *context.VMContext) (types.ManagedObjectReference, error) {
+	biosUUID := ctx.VSphereVM.Spec.BiosUUID
+	if biosUUID == "" {
+		return types.ManagedObjectReference{}, errNotApplicable{reason: "no bios uuid in spec"}
+	}
+	objRef, err := ctx.Session.FindByBIOSUUID(ctx, biosUUID)
+	if err != nil {
+		return types.ManagedObjectReference{}, err
+	}
+	if objRef == nil {
+		ctx.Logger.Info("vm not found by bios uuid", "biosuuid", biosUUID)
+		return types.ManagedObjectReference{}, errNotFound{uuid: biosUUID}
+	}
+	ctx.Logger.Info("vm found by bios uuid", "vmref", objRef.Reference())
+	return objRef.Reference(), nil
+}
+
+// findVMWithInstanceUUID searches for a VM by its instance UUID.
+func findVMWithInstanceUUID(ctx *context.VMContext) (types.ManagedObjectReference, error) {
 	instanceUUID := string(ctx.VSphereVM.UID)
+	if instanceUUID == "" {
+		return types.ManagedObjectReference{}, errNotApplicable{reason: "no instance uuid associated with vm"}
+	}
 	objRef, err := ctx.Session.FindByInstanceUUID(ctx, instanceUUID)
 	if err != nil {
 		return types.ManagedObjectReference{}, err
 	}
 	if objRef == nil {
-		// fallback to use inventory paths
-		folder, err := ctx.Session.Finder.FolderOrDefault(ctx, ctx.VSphereVM.Spec.Folder)
-		if err != nil {
-			return types.ManagedObjectReference{}, err
-		}
-		inventoryPath := path.Join(folder.InventoryPath, ctx.VSphereVM.Name)
-		ctx.Logger.Info("using inventory path to find vm", "path", inventoryPath)
-		vm, err := ctx.Session.Finder.VirtualMachine(ctx, inventoryPath)
-		if err != nil {
-			if isVirtualMachineNotFound(err) {
-				return types.ManagedObjectReference{}, errNotFound{byInventoryPath: inventoryPath}
-			}
-			return types.ManagedObjectReference{}, err
-		}
-		ctx.Logger.Info("vm found by name", "vmref", vm.Reference())
-		return vm.Reference(), nil
+		ctx.Logger.Info("vm found by instance uuid", "instance uuid", instanceUUID)
+		return types.ManagedObjectReference{}, errNotFound{uuid: instanceUUID}
 	}
-	ctx.Logger.Info("vm found by instance uuid", "vmref", objRef.Reference())
+	ctx.Logger.Info("vm found by instance uuid", "instance uuid", instanceUUID)
 	return objRef.Reference(), nil
+}
+
+// findVMWithInventoryPath searches for a VM by its inventory path.
+func findVMWithInventoryPath(ctx *context.VMContext) (types.ManagedObjectReference, error) {
+	folder, err := ctx.Session.Finder.FolderOrDefault(ctx, ctx.VSphereVM.Spec.Folder)
+	if err != nil {
+		return types.ManagedObjectReference{}, err
+	}
+	inventoryPath := path.Join(folder.InventoryPath, ctx.VSphereVM.Name)
+	ctx.Logger.Info("using inventory path to find vm", "path", inventoryPath)
+	vm, err := ctx.Session.Finder.VirtualMachine(ctx, inventoryPath)
+	if err != nil {
+		ctx.Logger.Info("vm not found by inventory path", "path", inventoryPath, "error", err)
+		if isVirtualMachineNotFound(err) {
+			return types.ManagedObjectReference{}, errNotFound{byInventoryPath: inventoryPath}
+		}
+		return types.ManagedObjectReference{}, err
+	}
+	ctx.Logger.Info("vm found by inventory path", "vmref", vm.Reference())
+	return vm.Reference(), nil
 }
 
 func getTask(ctx *context.VMContext) *mo.Task {

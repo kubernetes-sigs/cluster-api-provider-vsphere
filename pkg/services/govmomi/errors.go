@@ -35,6 +35,23 @@ func (e errNotFound) Error() string {
 	return fmt.Sprintf("vm with bios uuid %s not found", e.uuid)
 }
 
+type errNotApplicable struct {
+	reason string
+}
+
+func (e errNotApplicable) Error() string {
+	return fmt.Sprintf("not applicable: %s", e.reason)
+}
+
+func isNotApplicable(err error) bool {
+	switch err.(type) {
+	case errNotApplicable, *errNotApplicable:
+		return true
+	default:
+		return false
+	}
+}
+
 func isNotFound(err error) bool {
 	switch err.(type) {
 	case errNotFound, *errNotFound:

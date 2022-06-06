@@ -181,7 +181,7 @@ func (r machineReconciler) Reconcile(ctx goctx.Context, req ctrl.Request) (_ ctr
 		return reconcile.Result{}, err
 	}
 	if machine == nil {
-		r.Logger.V(2).Info("waiting on Machine controller to set OwnerRef on infra machine")
+		logger.V(2).Info("waiting on Machine controller to set OwnerRef on infra machine")
 		return reconcile.Result{}, nil
 	}
 
@@ -200,7 +200,7 @@ func (r machineReconciler) Reconcile(ctx goctx.Context, req ctrl.Request) (_ ctr
 		ControllerContext: r.ControllerContext,
 		Cluster:           cluster,
 		Machine:           machine,
-		Logger:            r.Logger.WithName(req.Namespace).WithName(req.Name),
+		Logger:            logger,
 		PatchHelper:       patchHelper,
 	})
 	// always patch the VSphereMachine object
@@ -231,9 +231,9 @@ func (r machineReconciler) Reconcile(ctx goctx.Context, req ctrl.Request) (_ ctr
 	}
 
 	// Fetch the VSphereCluster and update the machine context
-	machineContext, err = r.VMService.FetchVSphereCluster(r.Client, cluster, r.ControllerContext, machineContext)
+	machineContext, err = r.VMService.FetchVSphereCluster(r.Client, cluster, machineContext)
 	if err != nil {
-		r.Logger.Info("unable to retrieve VSphereCluster", "error", err)
+		logger.Info("unable to retrieve VSphereCluster", "error", err)
 		return reconcile.Result{}, nil
 	}
 
@@ -355,7 +355,7 @@ func (r *machineReconciler) setVMModifiers(c context.MachineContext) error {
 		// No need to check the type. We know this will be a VirtualMachine
 		vm, _ := obj.(*vmoprv1.VirtualMachine)
 		ctx.Logger.V(3).Info("Applying network config to VM", "vm-name", vm.Name)
-		err := r.networkProvider.ConfigureVirtualMachine(ctx.ClusterContext, vm)
+		err := r.networkProvider.ConfigureVirtualMachine(ctx.GetClusterContext(), vm)
 		if err != nil {
 			return nil, errors.Errorf("failed to configure machine network: %+v", err)
 		}

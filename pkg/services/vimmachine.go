@@ -49,7 +49,7 @@ func (v *VimMachineService) FetchVSphereMachine(c client.Client, name types.Name
 	return &context.VIMMachineContext{VSphereMachine: vsphereMachine}, err
 }
 
-func (v *VimMachineService) FetchVSphereCluster(c client.Client, cluster *clusterv1.Cluster, controllerContext *context.ControllerContext, machineContext context.MachineContext) (context.MachineContext, error) {
+func (v *VimMachineService) FetchVSphereCluster(c client.Client, cluster *clusterv1.Cluster, machineContext context.MachineContext) (context.MachineContext, error) {
 	ctx, ok := machineContext.(*context.VIMMachineContext)
 	if !ok {
 		return nil, errors.New("received unexpected VIMMachineContext type")

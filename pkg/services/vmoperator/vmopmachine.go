@@ -51,31 +51,23 @@ type VmopMachineService struct {
 func (v *VmopMachineService) FetchVSphereMachine(client client.Client, name types.NamespacedName) (context.MachineContext, error) {
 	vsphereMachine := &vmwarev1.VSphereMachine{}
 	err := client.Get(goctx.Background(), name, vsphereMachine)
-
 	return &vmware.SupervisorMachineContext{VSphereMachine: vsphereMachine}, err
 }
 
-func (v *VmopMachineService) FetchVSphereCluster(c client.Client, cluster *clusterv1.Cluster, controllerContext *context.ControllerContext, machineContext context.MachineContext) (context.MachineContext, error) {
+func (v *VmopMachineService) FetchVSphereCluster(c client.Client, cluster *clusterv1.Cluster, machineContext context.MachineContext) (context.MachineContext, error) {
 	ctx, ok := machineContext.(*vmware.SupervisorMachineContext)
 	if !ok {
 		return nil, errors.New("received unexpected SupervisorMachineContext type")
 	}
+
 	vsphereCluster := &vmwarev1.VSphereCluster{}
-	vsphereClusterName := client.ObjectKey{
+	key := client.ObjectKey{
 		Namespace: machineContext.GetObjectMeta().Namespace,
 		Name:      cluster.Spec.InfrastructureRef.Name,
 	}
-
-	err := c.Get(goctx.Background(), vsphereClusterName, vsphereCluster)
-
-	clusterContext := &vmware.ClusterContext{
-		ControllerContext: controllerContext,
-		Cluster:           cluster,
-		VSphereCluster:    vsphereCluster,
-	}
+	err := c.Get(goctx.Background(), key, vsphereCluster)
 
 	ctx.VSphereCluster = vsphereCluster
-	ctx.ClusterContext = clusterContext
 	return ctx, err
 }
 
@@ -564,7 +556,7 @@ func getVMLabels(ctx *vmware.SupervisorMachineContext, vmLabels map[string]strin
 
 	// Get the labels for the VM that differ based on the cluster role of
 	// the Kubernetes node hosted on this VM.
-	clusterRoleLabels := clusterRoleVMLabels(ctx.ClusterContext, infrautilv1.IsControlPlaneMachine(ctx.Machine))
+	clusterRoleLabels := clusterRoleVMLabels(ctx.GetClusterContext(), infrautilv1.IsControlPlaneMachine(ctx.Machine))
 	for k, v := range clusterRoleLabels {
 		vmLabels[k] = v
 	}

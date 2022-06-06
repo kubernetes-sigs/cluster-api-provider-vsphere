@@ -33,7 +33,6 @@ type VMModifier func(runtime.Object) (runtime.Object, error)
 // SupervisorMachineContext is a Go context used with a VSphereMachine.
 type SupervisorMachineContext struct {
 	*context.BaseMachineContext
-	ClusterContext *ClusterContext
 	VSphereCluster *vmwarev1.VSphereCluster
 	VSphereMachine *vmwarev1.VSphereMachine
 	VMModifiers    []VMModifier
@@ -55,6 +54,15 @@ func (c *SupervisorMachineContext) GetVSphereMachine() context.VSphereMachine {
 
 func (c *SupervisorMachineContext) GetObjectMeta() v1.ObjectMeta {
 	return c.VSphereMachine.ObjectMeta
+}
+
+func (c *SupervisorMachineContext) GetClusterContext() *ClusterContext {
+	return &ClusterContext{
+		ControllerContext: c.ControllerContext,
+		Cluster:           c.Cluster,
+		VSphereCluster:    c.VSphereCluster,
+		Logger:            c.GetLogger(),
+	}
 }
 
 func (c *SupervisorMachineContext) SetBaseMachineContext(base *context.BaseMachineContext) {

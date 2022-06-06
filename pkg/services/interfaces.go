@@ -31,7 +31,7 @@ import (
 // VSphereMachineService is used for vsphere VM lifecycle and syncing with VSphereMachine types.
 type VSphereMachineService interface {
 	FetchVSphereMachine(client client.Client, name types.NamespacedName) (context.MachineContext, error)
-	FetchVSphereCluster(client client.Client, cluster *clusterv1.Cluster, controllerContext *context.ControllerContext, machineContext context.MachineContext) (context.MachineContext, error)
+	FetchVSphereCluster(client client.Client, cluster *clusterv1.Cluster, machineContext context.MachineContext) (context.MachineContext, error)
 	ReconcileDelete(ctx context.MachineContext) error
 	SyncFailureReason(ctx context.MachineContext) (bool, error)
 	ReconcileNormal(ctx context.MachineContext) (bool, error)

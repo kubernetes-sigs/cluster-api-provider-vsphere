@@ -173,7 +173,6 @@ func CreateMachineContext(clusterContext *vmware.ClusterContext, machine *cluste
 			Machine: machine,
 			Cluster: clusterContext.Cluster,
 		},
-		ClusterContext: clusterContext,
 		VSphereCluster: clusterContext.VSphereCluster,
 		VSphereMachine: vsphereMachine,
 	}

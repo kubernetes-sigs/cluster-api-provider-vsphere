@@ -22,6 +22,8 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/vcenter"
 )
 
+// createVM creates a new VM with the data in the VMContext passed. This method does not wait
+// for the new VM to be created.
 func createVM(ctx *context.VMContext, bootstrapData []byte) error {
 	if ctx.Session.IsVC() {
 		return vcenter.Clone(ctx, bootstrapData)

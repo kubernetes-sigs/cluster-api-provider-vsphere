@@ -9,6 +9,7 @@ require (
 	github.com/vmware/govmomi v0.23.1
 	k8s.io/code-generator v0.22.2
 	sigs.k8s.io/cluster-api/hack/tools v0.0.0-20211104153216-fb1f86267fed
+	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20211025141024-c73b143dc503
 	sigs.k8s.io/controller-tools v0.7.0
 	sigs.k8s.io/kind v0.7.0
 	sigs.k8s.io/kustomize/kustomize/v4 v4.4.0

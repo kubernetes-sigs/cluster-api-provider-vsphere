@@ -32,6 +32,11 @@ export GOPROXY
 # Active module mode, as we use go modules to manage dependencies
 export GO111MODULE := on
 
+#
+# Kubebuilder.
+#
+export KUBEBUILDER_ENVTEST_KUBERNETES_VERSION ?= 1.23.3
+
 # Directories
 ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 BIN_DIR := $(ROOT_DIR)/bin
@@ -55,6 +60,7 @@ GOLANGCI_LINT := $(TOOLS_BIN_DIR)/golangci-lint
 GOVC := $(TOOLS_BIN_DIR)/govc
 KIND := $(TOOLS_BIN_DIR)/kind
 KUSTOMIZE := $(TOOLS_BIN_DIR)/kustomize
+SETUP_ENVTEST := $(abspath $(TOOLS_BIN_DIR)/setup-envtest)
 CONVERSION_VERIFIER := $(abspath $(TOOLS_BIN_DIR)/conversion-verifier)
 GO_APIDIFF := $(TOOLS_BIN_DIR)/go-apidiff
 TOOLING_BINARIES := $(CONTROLLER_GEN) $(CONVERSION_GEN) $(GINKGO) $(GOLANGCI_LINT) $(GOVC) $(KIND) $(KUSTOMIZE) $(CONVERSION_VERIFIER) $(GO_APIDIFF)
@@ -115,10 +121,13 @@ help: ## Display this help
 ## Testing
 ## --------------------------------------
 
+KUBEBUILDER_ASSETS ?= $(shell $(SETUP_ENVTEST) use --use-env -p path $(KUBEBUILDER_ENVTEST_KUBERNETES_VERSION))
+
 .PHONY: test
-test: $(GOVC)
+test: $(SETUP_ENVTEST) $(GOVC)
+	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" GOVC_BIN_PATH=$(GOVC) go test -v ./apis/... ./controllers/... ./pkg/... $(TEST_ARGS)
 	$(MAKE) generate lint-go
-	source ./hack/fetch_ext_bins.sh; fetch_tools; setup_envs; export GOVC_BIN_PATH=$(GOVC); go test -v ./apis/... ./controllers/... ./pkg/... $(TEST_ARGS)
+
 
 .PHONY: e2e-image
 e2e-image: ## Build the e2e manager image
@@ -187,6 +196,9 @@ $(MANAGER): generate
 clusterctl: $(CLUSTERCTL) ## Build clusterctl binary
 $(CLUSTERCTL): go.mod
 	go build -o $@ sigs.k8s.io/cluster-api/cmd/clusterctl
+
+$(SETUP_ENVTEST): $(TOOLS_DIR)/go.mod # Build setup-envtest from tools folder.
+	cd $(TOOLS_DIR); go build -tags=tools -o $(TOOLS_BIN_DIR)/setup-envtest sigs.k8s.io/controller-runtime/tools/setup-envtest
 
 ## --------------------------------------
 ## Tooling Binaries

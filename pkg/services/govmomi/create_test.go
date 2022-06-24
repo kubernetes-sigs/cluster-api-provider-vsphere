@@ -21,6 +21,7 @@ import (
 
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/simulator"
+	"github.com/vmware/govmomi/vim25"
 	"github.com/vmware/govmomi/vim25/types"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
@@ -53,7 +54,11 @@ func TestCreate(t *testing.T) {
 	}
 	vmContext.Session = authSession
 
-	vm := simulator.Map.Any("VirtualMachine").(*simulator.VirtualMachine)
+	vmRef := simulator.Map.Any("VirtualMachine")
+	vm, ok := vmRef.(*simulator.VirtualMachine)
+	if !ok {
+		t.Fatal("failed to get reference to an existing VM on the vcsim instance")
+	}
 	vmContext.VSphereVM.Spec.Template = vm.Name
 
 	disk := object.VirtualDeviceList(vm.Config.Hardware.Device).SelectByType((*types.VirtualDisk)(nil))[0].(*types.VirtualDisk)
@@ -61,6 +66,20 @@ func TestCreate(t *testing.T) {
 
 	if err := createVM(vmContext, []byte("")); err != nil {
 		t.Fatal(err)
+	}
+
+	taskRef := types.ManagedObjectReference{
+		Type:  morefTypeTask,
+		Value: vmContext.VSphereVM.Status.TaskRef,
+	}
+	vimClient, err := vim25.NewClient(vmContext, vmContext.Session.RoundTripper)
+	if err != nil {
+		t.Fatal("could not make vim25 client.")
+	}
+	task := object.NewTask(vimClient, taskRef)
+	err = task.Wait(vmContext)
+	if err != nil {
+		t.Fatal("error waiting for task:", err)
 	}
 
 	if model.Machine+1 != model.Count().Machine {

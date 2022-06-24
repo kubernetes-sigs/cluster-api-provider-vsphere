@@ -422,13 +422,7 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 			var err error
 			namespace, err = testEnv.CreateNamespace(ctx, "dz-test")
 			Expect(err).NotTo(HaveOccurred())
-		})
 
-		AfterEach(func() {
-			Expect(testEnv.Cleanup(ctx, namespace, capiCluster, instance, zoneOne)).To(Succeed())
-		})
-
-		It("should reconcile a cluster", func() {
 			capiCluster = &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					GenerateName: "test1-",
@@ -475,7 +469,13 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 				},
 			}
 			Expect(testEnv.Create(ctx, instance)).To(Succeed())
+		})
 
+		AfterEach(func() {
+			Expect(testEnv.Cleanup(ctx, namespace, capiCluster, instance, zoneOne)).To(Succeed())
+		})
+
+		It("should reconcile a cluster", func() {
 			key := client.ObjectKey{Namespace: instance.Namespace, Name: instance.Name}
 			Eventually(func() bool {
 				if err := testEnv.Get(ctx, key, instance); err != nil {
@@ -501,6 +501,40 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 				return conditions.Has(instance, infrav1.FailureDomainsAvailableCondition) &&
 					conditions.IsTrue(instance, infrav1.FailureDomainsAvailableCondition)
 			}, timeout).Should(BeTrue())
+		})
+
+		Context("when deployment zones are deleted", func() {
+			BeforeEach(func() {
+				By("Setting the status of the Deployment Zone to true")
+				Eventually(func() error {
+					ph, err := patch.NewHelper(zoneOne, testEnv)
+					Expect(err).ShouldNot(HaveOccurred())
+					zoneOne.Status.Ready = pointer.Bool(true)
+					return ph.Patch(ctx, zoneOne, patch.WithStatusObservedGeneration{})
+				}, timeout).Should(BeNil())
+			})
+
+			It("should remove the FailureDomainsAvailable condition from the cluster", func() {
+				key := client.ObjectKey{Namespace: instance.Namespace, Name: instance.Name}
+				Eventually(func() bool {
+					if err := testEnv.Get(ctx, key, instance); err != nil {
+						return false
+					}
+					return conditions.Has(instance, infrav1.FailureDomainsAvailableCondition) &&
+						conditions.IsTrue(instance, infrav1.FailureDomainsAvailableCondition)
+				}, timeout).Should(BeTrue())
+
+				By("Deleting the Deployment Zone", func() {
+					Expect(testEnv.Delete(ctx, zoneOne)).To(Succeed())
+				})
+
+				Eventually(func() bool {
+					if err := testEnv.Get(ctx, key, instance); err != nil {
+						return false
+					}
+					return conditions.Has(instance, infrav1.FailureDomainsAvailableCondition)
+				}, timeout).Should(BeFalse())
+			})
 		})
 	})
 
@@ -632,19 +666,6 @@ func TestClusterReconciler_ReconcileDeploymentZones(t *testing.T) {
 	server := "vcenter123.foo.com"
 	g := NewWithT(t)
 
-	t.Run("with no deployment zones", func(t *testing.T) {
-		controllerCtx := fake.NewControllerContext(fake.NewControllerManagerContext())
-		ctx := fake.NewClusterContext(controllerCtx)
-		ctx.VSphereCluster = &infrav1.VSphereCluster{
-			Spec: infrav1.VSphereClusterSpec{Server: server},
-		}
-
-		r := clusterReconciler{controllerCtx}
-		reconciled, err := r.reconcileDeploymentZones(ctx)
-		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(reconciled).To(BeTrue())
-	})
-
 	tests := []struct {
 		name       string
 		initObjs   []client.Object
@@ -652,14 +673,21 @@ func TestClusterReconciler_ReconcileDeploymentZones(t *testing.T) {
 		assert     func(*infrav1.VSphereCluster)
 	}{
 		{
+			name:       "with no deployment zones",
+			reconciled: true,
+			assert: func(vsphereCluster *infrav1.VSphereCluster) {
+				g.Expect(conditions.Has(vsphereCluster, infrav1.FailureDomainsAvailableCondition)).To(BeFalse())
+			},
+		},
+		{
 			name: "with deployment zone status not reported",
 			initObjs: []client.Object{
 				deploymentZone(server, "zone-1", pointer.Bool(false), nil),
 				deploymentZone(server, "zone-2", pointer.Bool(true), pointer.Bool(false)),
 			},
-			assert: func(zone *infrav1.VSphereCluster) {
-				g.Expect(conditions.IsFalse(zone, infrav1.FailureDomainsAvailableCondition)).To(BeTrue())
-				g.Expect(conditions.Get(zone, infrav1.FailureDomainsAvailableCondition).Reason).To(Equal(infrav1.WaitingForFailureDomainStatusReason))
+			assert: func(vsphereCluster *infrav1.VSphereCluster) {
+				g.Expect(conditions.IsFalse(vsphereCluster, infrav1.FailureDomainsAvailableCondition)).To(BeTrue())
+				g.Expect(conditions.Get(vsphereCluster, infrav1.FailureDomainsAvailableCondition).Reason).To(Equal(infrav1.WaitingForFailureDomainStatusReason))
 			},
 		},
 		{
@@ -669,9 +697,9 @@ func TestClusterReconciler_ReconcileDeploymentZones(t *testing.T) {
 				deploymentZone(server, "zone-1", pointer.Bool(false), pointer.Bool(false)),
 				deploymentZone(server, "zone-2", pointer.Bool(true), pointer.Bool(true)),
 			},
-			assert: func(zone *infrav1.VSphereCluster) {
-				g.Expect(conditions.IsFalse(zone, infrav1.FailureDomainsAvailableCondition)).To(BeTrue())
-				g.Expect(conditions.Get(zone, infrav1.FailureDomainsAvailableCondition).Reason).To(Equal(infrav1.FailureDomainsSkippedReason))
+			assert: func(vsphereCluster *infrav1.VSphereCluster) {
+				g.Expect(conditions.IsFalse(vsphereCluster, infrav1.FailureDomainsAvailableCondition)).To(BeTrue())
+				g.Expect(conditions.Get(vsphereCluster, infrav1.FailureDomainsAvailableCondition).Reason).To(Equal(infrav1.FailureDomainsSkippedReason))
 			},
 		},
 		{
@@ -681,8 +709,8 @@ func TestClusterReconciler_ReconcileDeploymentZones(t *testing.T) {
 				deploymentZone(server, "zone-1", pointer.Bool(false), pointer.Bool(true)),
 				deploymentZone(server, "zone-2", pointer.Bool(true), pointer.Bool(true)),
 			},
-			assert: func(zone *infrav1.VSphereCluster) {
-				g.Expect(conditions.IsTrue(zone, infrav1.FailureDomainsAvailableCondition)).To(BeTrue())
+			assert: func(vsphereCluster *infrav1.VSphereCluster) {
+				g.Expect(conditions.IsTrue(vsphereCluster, infrav1.FailureDomainsAvailableCondition)).To(BeTrue())
 			},
 		},
 	}

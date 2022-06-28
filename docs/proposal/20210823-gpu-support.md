@@ -10,6 +10,8 @@ reviewers:
   - "@ankitaswamy"
   - "@sonasingh46"
   - "@pshail"
+  - "@srm09"
+  - "@yastij"
   
 creation-date: 2021-08-23
 last-updated: 2021-08-25

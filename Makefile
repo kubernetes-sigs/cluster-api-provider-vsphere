@@ -125,8 +125,8 @@ KUBEBUILDER_ASSETS ?= $(shell $(SETUP_ENVTEST) use --use-env -p path $(KUBEBUILD
 
 .PHONY: test
 test: $(SETUP_ENVTEST) $(GOVC)
-	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" GOVC_BIN_PATH=$(GOVC) go test -v ./apis/... ./controllers/... ./pkg/... $(TEST_ARGS)
 	$(MAKE) generate lint-go
+	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" GOVC_BIN_PATH=$(GOVC) go test -v ./apis/... ./controllers/... ./pkg/... $(TEST_ARGS)
 
 
 .PHONY: e2e-image

@@ -7,19 +7,5 @@ metadata:
 spec:
   template:
     spec:
-      cloneMode: linkedClone
-      datacenter: ${VSPHERE_DATACENTER}
-      datastore: ${VSPHERE_DATASTORE}
-      diskGiB: 25
-      folder: ${VSPHERE_FOLDER}
       memoryMiB: 8192
-      network:
-        devices:
-          - dhcp4: true
-            networkName: ${VSPHERE_NETWORK}
       numCPUs: 8
-      resourcePool: ${VSPHERE_RESOURCE_POOL}
-      server: ${VSPHERE_SERVER}
-      storagePolicyName: ${VSPHERE_STORAGE_POLICY}
-      template: ${VSPHERE_TEMPLATE}
-      thumbprint: ${VSPHERE_TLS_THUMBPRINT}

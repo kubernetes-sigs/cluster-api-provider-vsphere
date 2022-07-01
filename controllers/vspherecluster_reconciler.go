@@ -356,6 +356,9 @@ func (r clusterReconciler) reconcileDeploymentZones(ctx *context.ClusterContext)
 		} else {
 			conditions.MarkTrue(ctx.VSphereCluster, infrav1.FailureDomainsAvailableCondition)
 		}
+	} else {
+		// Remove the condition if failure domains do not exist
+		conditions.Delete(ctx.VSphereCluster, infrav1.FailureDomainsAvailableCondition)
 	}
 	return true, nil
 }

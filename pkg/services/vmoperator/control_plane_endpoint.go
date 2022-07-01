@@ -123,7 +123,7 @@ func clusterRoleVMLabels(ctx *vmware.ClusterContext, controlPlane bool) map[stri
 		result[legacyNodeSelectorKey] = roleControlPlane
 	} else {
 		result[nodeSelectorKey] = roleNode
-		result[legacyNodeSelectorKey] = roleControlPlane
+		result[legacyNodeSelectorKey] = roleNode
 	}
 	return result
 }

@@ -12,6 +12,7 @@ require (
 	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20211025141024-c73b143dc503
 	sigs.k8s.io/controller-tools v0.7.0
 	sigs.k8s.io/kind v0.7.0
+	sigs.k8s.io/kubebuilder-release-tools/notes v0.0.0-20220428224951-d8a44c7aef35 // indirect
 	sigs.k8s.io/kustomize/kustomize/v4 v4.4.0
 	sigs.k8s.io/testing_frameworks v0.1.2
 )

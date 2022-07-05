@@ -44,20 +44,22 @@ func TestFuzzyConversion(t *testing.T) {
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{overrideVSphereClusterDeprecatedFieldsFuncs},
 	}))
 	t.Run("for VSphereMachine", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme: scheme,
-		Hub:    &nextver.VSphereMachine{},
-		Spoke:  &VSphereMachine{},
+		Scheme:      scheme,
+		Hub:         &nextver.VSphereMachine{},
+		Spoke:       &VSphereMachine{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{CustomNewFieldFuzzFunc},
 	}))
 	t.Run("for VSphereMachineTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme:      scheme,
 		Hub:         &nextver.VSphereMachineTemplate{},
 		Spoke:       &VSphereMachineTemplate{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{CustomObjectMetaFuzzFunc},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{CustomObjectMetaFuzzFunc, CustomNewFieldFuzzFunc},
 	}))
 	t.Run("for VSphereVM", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme: scheme,
-		Hub:    &nextver.VSphereVM{},
-		Spoke:  &VSphereVM{},
+		Scheme:      scheme,
+		Hub:         &nextver.VSphereVM{},
+		Spoke:       &VSphereVM{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{CustomNewFieldFuzzFunc},
 	}))
 }
 
@@ -85,4 +87,17 @@ func CustomObjectMetaFuzzer(in *clusterv1.ObjectMeta, c fuzz.Continue) {
 	in.GenerateName = ""
 	in.Namespace = ""
 	in.OwnerReferences = nil
+}
+
+func CustomNewFieldFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		CustomNewFieldFuzzer,
+	}
+}
+
+func CustomNewFieldFuzzer(in *nextver.VirtualMachineCloneSpec, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+
+	in.PciDevices = nil
+	in.AdditionalDisksGiB = nil
 }

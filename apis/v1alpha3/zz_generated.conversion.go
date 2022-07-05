@@ -1679,5 +1679,6 @@ func autoConvert_v1beta1_VirtualMachineCloneSpec_To_v1alpha3_VirtualMachineClone
 	// WARNING: in.AdditionalDisksGiB requires manual conversion: does not exist in peer-type
 	out.CustomVMXKeys = *(*map[string]string)(unsafe.Pointer(&in.CustomVMXKeys))
 	// WARNING: in.TagIDs requires manual conversion: does not exist in peer-type
+	// WARNING: in.PciDevices requires manual conversion: does not exist in peer-type
 	return nil
 }

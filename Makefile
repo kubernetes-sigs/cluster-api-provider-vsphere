@@ -149,6 +149,8 @@ e2e-templates: ## Generate e2e cluster templates
 	cp $(RELEASE_DIR)/cluster-template-topology.yaml $(E2E_TEMPLATE_DIR)/kustomization/topology/cluster-template-topology.yaml
 	cp $(RELEASE_DIR)/clusterclass-template.yaml $(E2E_TEMPLATE_DIR)/clusterclass-quick-start.yaml
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/kustomization/topology > $(E2E_TEMPLATE_DIR)/cluster-template-topology.yaml
+	# for PCI passthrough template
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/kustomization/pci > $(E2E_TEMPLATE_DIR)/cluster-template-pci.yaml
 
 .PHONY: test-integration
 test-integration: e2e-image

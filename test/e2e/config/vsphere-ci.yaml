@@ -152,6 +152,7 @@ providers:
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-kcp-remediation.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-md-remediation.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-node-drain.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-pci.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-topology.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/clusterclass-quick-start.yaml"
           - sourcePath: "../../../metadata.yaml"
@@ -179,6 +180,9 @@ variables:
   KUBETEST_CONFIGURATION: "./data/kubetest/conformance.yaml"
   NODE_DRAIN_TIMEOUT: "60s"
   CLUSTER_TOPOLOGY: "true"
+  # These IDs correspond to Tesla T4s, they are the decimal representation of the hex values.
+  DEVICE_ID: 7864
+  VENDOR_ID: 4318
 
 intervals:
   default/wait-controllers: ["5m", "10s"]

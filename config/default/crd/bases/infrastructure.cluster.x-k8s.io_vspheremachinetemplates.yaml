@@ -931,6 +931,29 @@ spec:
                           virtual machine is cloned.
                         format: int32
                         type: integer
+                      pciDevices:
+                        description: PciDevices is the list of pci devices used by
+                          the virtual machine.
+                        items:
+                          description: PCIDeviceSpec defines virtual machine's PCI
+                            configuration
+                          properties:
+                            deviceId:
+                              description: DeviceID is the device ID of a virtual
+                                machine's PCI, in integer. Defaults to the eponymous
+                                property value in the template from which the virtual
+                                machine is cloned.
+                              format: int32
+                              type: integer
+                            vendorId:
+                              description: VendorId is the vendor ID of a virtual
+                                machine's PCI, in integer. Defaults to the eponymous
+                                property value in the template from which the virtual
+                                machine is cloned.
+                              format: int32
+                              type: integer
+                          type: object
+                        type: array
                       providerID:
                         description: ProviderID is the virtual machine's BIOS UUID
                           formated as vsphere://12345678-1234-1234-1234-123456789abc

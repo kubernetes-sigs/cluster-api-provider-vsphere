@@ -141,7 +141,7 @@ providers:
         files:
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/capi-upgrades/v1alpha4/cluster-template.yaml"
           - sourcePath: "../../../metadata.yaml"
-      - name: v1.0.0
+      - name: v1.3.0
         # Use manifest from source files
         value: ../../../../cluster-api-provider-vsphere/config/default
         contract: v1beta1

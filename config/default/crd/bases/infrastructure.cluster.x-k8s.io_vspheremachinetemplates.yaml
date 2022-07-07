@@ -931,6 +931,10 @@ spec:
                           virtual machine is cloned.
                         format: int32
                         type: integer
+                      os:
+                        description: OS is the Operating System of the virtual machine
+                          Defaults to Linux
+                        type: string
                       pciDevices:
                         description: PciDevices is the list of pci devices used by
                           the virtual machine.

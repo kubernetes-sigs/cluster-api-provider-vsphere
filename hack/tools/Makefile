@@ -44,6 +44,7 @@ GOVC := $(BIN_DIR)/govc
 GINKGO := $(BIN_DIR)/ginkgo
 CONVERSION_VERIFIER := $(BIN_DIR)/conversion-verifier
 APIDIFF := $(BIN_DIR)/go-apidiff
+RELEASE_NOTES := $(BIN_DIR)/release-notes
 
 ## --------------------------------------
 ## Help
@@ -91,6 +92,10 @@ $(CONVERSION_VERIFIER): go.mod
 go-apidiff: $(APIDIFF) $(SRCS) ## Build go-apidiff
 $(APIDIFF): go.mod
 	go build -tags=tools -o $@ github.com/joelanford/go-apidiff
+
+release-notes: $(RELEASE_NOTES) $(SRCS)
+$(RELEASE_NOTES): go.mod
+	go build -tags=tools -o $@ sigs.k8s.io/kubebuilder-release-tools/notes
 
 ## --------------------------------------
 ## Generate

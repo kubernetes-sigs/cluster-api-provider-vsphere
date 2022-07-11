@@ -20,6 +20,7 @@ import (
 	"bytes"
 	goctx "context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"text/template"
 
@@ -533,6 +534,19 @@ func addVolumes(ctx *vmware.SupervisorMachineContext, vm *vmoprv1.VirtualMachine
 				},
 				StorageClassName: &storageClassName,
 			},
+		}
+
+		if zone := ctx.VSphereMachine.Spec.FailureDomain; zone != nil {
+			topology := []map[string]string{
+				{kubeTopologyZoneLabelKey: *zone},
+			}
+			b, err := json.Marshal(topology)
+			if err != nil {
+				return errors.Errorf("failed to marshal zone topology %q: %s", *zone, err)
+			}
+			pvc.Annotations = map[string]string{
+				"csi.vsphere.volume-requested-topology": string(b),
+			}
 		}
 
 		_, err := ctrlutil.CreateOrUpdate(ctx, ctx.Client, pvc, func() error {

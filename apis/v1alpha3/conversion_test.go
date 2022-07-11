@@ -100,4 +100,5 @@ func CustomNewFieldFuzzer(in *nextver.VirtualMachineCloneSpec, c fuzz.Continue) 
 
 	in.PciDevices = nil
 	in.AdditionalDisksGiB = nil
+	in.OS = ""
 }

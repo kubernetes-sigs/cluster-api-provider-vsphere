@@ -228,6 +228,7 @@ func defaultVirtualMachineCloneSpec() infrav1.VirtualMachineCloneSpec {
 		Datastore:         env.VSphereDatastoreVar,
 		StoragePolicyName: env.VSphereStoragePolicyVar,
 		Folder:            env.VSphereFolderVar,
+		OS:                infrav1.Linux,
 	}
 }
 

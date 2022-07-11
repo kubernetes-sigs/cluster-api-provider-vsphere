@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net"
 	"reflect"
+	"strings"
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -35,6 +36,20 @@ func (r *VSphereVM) SetupWebhookWithManager(mgr ctrl.Manager) error {
 }
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta1-vspherevm,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=vspherevms,versions=v1beta1,name=validation.vspherevm.infrastructure.x-k8s.io,sideEffects=None,admissionReviewVersions=v1beta1
+// +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta1-vspherevm,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=vspherevms,versions=v1beta1,name=default.vspherevm.infrastructure.x-k8s.io,sideEffects=None,admissionReviewVersions=v1beta1
+
+// Default implements webhook.Defaulter so a webhook will be registered for the type.
+func (r *VSphereVM) Default() {
+	// Set Linux as default OS value
+	if r.Spec.OS == "" {
+		r.Spec.OS = Linux
+	}
+
+	// Windows hostnames must be < 16 characters in length
+	if r.Spec.OS == Windows && len(r.Name) > 15 {
+		r.Name = strings.TrimSuffix(r.Name[0:9], "-") + "-" + r.Name[len(r.Name)-5:]
+	}
+}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (r *VSphereVM) ValidateCreate() error {
@@ -53,6 +68,9 @@ func (r *VSphereVM) ValidateCreate() error {
 		}
 	}
 
+	if r.Spec.OS == Windows && len(r.Name) > 15 {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("name"), r.Name, "name has to be less than 16 characters for Windows VM"))
+	}
 	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
 

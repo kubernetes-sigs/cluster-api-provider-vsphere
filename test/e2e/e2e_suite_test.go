@@ -41,8 +41,10 @@ import (
 )
 
 const (
-	KubernetesVersion    = "KUBERNETES_VERSION"
-	VsphereStoragePolicy = "VSPHERE_STORAGE_POLICY"
+	KubernetesVersion         = "KUBERNETES_VERSION"
+	VsphereStoragePolicy      = "VSPHERE_STORAGE_POLICY"
+	SecurityScanFailThreshold = "SECURITY_SCAN_FAIL_THRESHOLD"
+	SecurityScanContainer     = "SECURITY_SCAN_CONTAINER"
 )
 
 // Test suite flags.

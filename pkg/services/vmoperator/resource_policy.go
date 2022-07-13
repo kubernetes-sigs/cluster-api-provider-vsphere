@@ -52,8 +52,8 @@ func (s RPService) ReconcileResourcePolicy(ctx *vmware.ClusterContext) (string, 
 func (s RPService) newVirtualMachineSetResourcePolicy(ctx *vmware.ClusterContext) *vmoprv1.VirtualMachineSetResourcePolicy {
 	return &vmoprv1.VirtualMachineSetResourcePolicy{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ctx.VSphereCluster.Namespace,
-			Name:      ctx.VSphereCluster.Name,
+			Namespace: ctx.Cluster.Namespace,
+			Name:      ctx.Cluster.Name,
 		},
 	}
 }
@@ -61,8 +61,8 @@ func (s RPService) newVirtualMachineSetResourcePolicy(ctx *vmware.ClusterContext
 func (s RPService) getVirtualMachineSetResourcePolicy(ctx *vmware.ClusterContext) (*vmoprv1.VirtualMachineSetResourcePolicy, error) {
 	vmResourcePolicy := &vmoprv1.VirtualMachineSetResourcePolicy{}
 	vmResourcePolicyName := client.ObjectKey{
-		Namespace: ctx.VSphereCluster.Namespace,
-		Name:      ctx.VSphereCluster.Name,
+		Namespace: ctx.Cluster.Namespace,
+		Name:      ctx.Cluster.Name,
 	}
 	err := ctx.Client.Get(ctx, vmResourcePolicyName, vmResourcePolicy)
 	return vmResourcePolicy, err
@@ -74,10 +74,10 @@ func (s RPService) createVirtualMachineSetResourcePolicy(ctx *vmware.ClusterCont
 	_, err := ctrlutil.CreateOrUpdate(ctx, ctx.Client, vmResourcePolicy, func() error {
 		vmResourcePolicy.Spec = vmoprv1.VirtualMachineSetResourcePolicySpec{
 			ResourcePool: vmoprv1.ResourcePoolSpec{
-				Name: ctx.VSphereCluster.Name,
+				Name: ctx.Cluster.Name,
 			},
 			Folder: vmoprv1.FolderSpec{
-				Name: ctx.VSphereCluster.Name,
+				Name: ctx.Cluster.Name,
 			},
 			ClusterModules: []vmoprv1.ClusterModuleSpec{
 				{

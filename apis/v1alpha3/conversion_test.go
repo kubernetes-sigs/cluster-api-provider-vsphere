@@ -123,6 +123,7 @@ func CustomSpecNewFieldFuzzer(in *nextver.VirtualMachineCloneSpec, c fuzz.Contin
 	c.FuzzNoCustom(in)
 
 	in.PciDevices = nil
+	in.VGPUDevices = nil
 	in.AdditionalDisksGiB = nil
 	in.OS = ""
 	in.HardwareVersion = ""

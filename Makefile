@@ -310,6 +310,8 @@ generate-e2e-templates-main: $(KUSTOMIZE) ## Generate test templates for the mai
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/main/topology > $(E2E_TEMPLATE_DIR)/main/cluster-template-topology.yaml
 	# for PCI passthrough template
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/main/pci > $(E2E_TEMPLATE_DIR)/main/cluster-template-pci.yaml
+	# for vGPU template
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/main/vgpu > $(E2E_TEMPLATE_DIR)/main/cluster-template-vgpu.yaml
 	# for DHCP overrides
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/main/dhcp-overrides > $(E2E_TEMPLATE_DIR)/main/cluster-template-dhcp-overrides.yaml
 

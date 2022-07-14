@@ -68,9 +68,9 @@ func Clone(ctx context.Context, vmCtx *capvcontext.VMContext, bootstrapData []by
 			extraConfig.SetIgnitionUserData(bootstrapData)
 		}
 	}
-	if vmCtx.VSphereVM.Spec.CustomVMXKeys != nil {
-		log.Info("Applied custom vmx keys o VM clone spec")
-		if err := extraConfig.SetCustomVMXKeys(vmCtx.VSphereVM.Spec.CustomVMXKeys); err != nil {
+	if ctx.VSphereVM.Spec.CustomVMXKeys != nil {
+		ctx.Logger.Info("applied custom vmx keys to VM clone spec")
+		if err := extraConfig.SetCustomVMXKeys(ctx.VSphereVM.Spec.CustomVMXKeys); err != nil {
 			return err
 		}
 	}
@@ -152,8 +152,16 @@ func Clone(ctx context.Context, vmCtx *capvcontext.VMContext, bootstrapData []by
 
 	deviceSpecs = append(deviceSpecs, networkSpecs...)
 
-	if err != nil {
-		return errors.Wrapf(err, "error getting network specs for %q", ctx)
+	if len(ctx.VSphereVM.Spec.VirtualMachineCloneSpec.PciDevices) != 0 {
+		gpuSpecs := getGpuSpecs(ctx)
+		ctx.Logger.V(4).Info("created gpu devices", "gpu-device-specs", gpuSpecs)
+		deviceSpecs = append(deviceSpecs, gpuSpecs...)
+	}
+
+	if len(ctx.VSphereVM.Spec.VirtualMachineCloneSpec.VGPUDevices) != 0 {
+		vgpuSpecs := getVgpuSpecs(ctx)
+		ctx.Logger.V(4).Info("created vgpu devices", "vgpu-device-specs", vgpuSpecs)
+		deviceSpecs = append(deviceSpecs, vgpuSpecs...)
 	}
 
 	numCPUs := vmCtx.VSphereVM.Spec.NumCPUs
@@ -200,7 +208,7 @@ func Clone(ctx context.Context, vmCtx *capvcontext.VMContext, bootstrapData []by
 		Snapshot: snapshotRef,
 	}
 
-	// For PCI devices, the memory for the VM needs to be reserved
+	// For PCI and vGPU devices, the memory for the VM needs to be reserved
 	// We can replace this once we have another way of reserving memory option
 	// exposed via the API types.
 	if len(vmCtx.VSphereVM.Spec.PciDevices) > 0 {
@@ -452,4 +460,56 @@ func getNetworkSpecs(ctx context.Context, vmCtx *capvcontext.VMContext, devices 
 	}
 
 	return deviceSpecs, nil
+}
+
+func createPCIPassThroughDevice(deviceKey int32, backingInfo types.BaseVirtualDeviceBackingInfo) types.BaseVirtualDevice {
+	device := &types.VirtualPCIPassthrough{
+		VirtualDevice: types.VirtualDevice{
+			Key:     deviceKey,
+			Backing: backingInfo,
+		},
+	}
+	return device
+}
+
+func getGpuSpecs(ctx *context.VMContext) []types.BaseVirtualDeviceConfigSpec {
+	deviceSpecs := []types.BaseVirtualDeviceConfigSpec{}
+	deviceKey := int32(-200)
+
+	for _, pciDevice := range ctx.VSphereVM.Spec.VirtualMachineCloneSpec.PciDevices {
+		backingInfo := &types.VirtualPCIPassthroughDynamicBackingInfo{
+			AllowedDevice: []types.VirtualPCIPassthroughAllowedDevice{
+				{
+					VendorId: *pciDevice.VendorID,
+					DeviceId: *pciDevice.DeviceID,
+				},
+			},
+		}
+		dynamicDirectPathDevice := createPCIPassThroughDevice(deviceKey, backingInfo)
+		deviceSpecs = append(deviceSpecs, &types.VirtualDeviceConfigSpec{
+			Device:    dynamicDirectPathDevice,
+			Operation: types.VirtualDeviceConfigSpecOperationAdd,
+		})
+		deviceKey--
+	}
+	return deviceSpecs
+}
+
+func getVgpuSpecs(ctx *context.VMContext) []types.BaseVirtualDeviceConfigSpec {
+	deviceSpecs := []types.BaseVirtualDeviceConfigSpec{}
+	deviceKey := int32(-200)
+
+	for _, vGPUDevice := range ctx.VSphereVM.Spec.VirtualMachineCloneSpec.VGPUDevices {
+		backingInfo := &types.VirtualPCIPassthroughVmiopBackingInfo{
+			Vgpu: vGPUDevice.ProfileName,
+		}
+		dynamicDirectPathDevice := createPCIPassThroughDevice(deviceKey, backingInfo)
+		deviceSpecs = append(deviceSpecs, &types.VirtualDeviceConfigSpec{
+			Device:    dynamicDirectPathDevice,
+			Operation: types.VirtualDeviceConfigSpecOperationAdd,
+		})
+		ctx.Logger.V(4).Info("created vGPU device", "vgpu-profile", vGPUDevice.ProfileName)
+		deviceKey--
+	}
+	return deviceSpecs
 }

@@ -856,6 +856,18 @@ spec:
           spec:
             description: VSphereVMSpec defines the desired state of VSphereVM.
             properties:
+              VGPUs:
+                description: VGPUs is the list of VGPUs used by the virtual machine.
+                items:
+                  description: VGPUSpec defines virtual machine's VGPU configuration
+                  properties:
+                    profileName:
+                      description: DProfileName is the ProfileName of a virtual machine's
+                        PCI, in string. Defaults to the eponymous property value in
+                        the template from which the virtual machine is cloned.
+                      type: string
+                  type: object
+                type: array
               additionalDisksGiB:
                 description: AdditionalDisksGiB holds the sizes of additional disks
                   of the virtual machine, in GiB Defaults to the eponymous property

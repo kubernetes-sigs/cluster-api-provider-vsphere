@@ -145,16 +145,20 @@ func Clone(ctx *context.VMContext, bootstrapData []byte) error {
 
 	deviceSpecs = append(deviceSpecs, networkSpecs...)
 
-	if err != nil {
-		return errors.Wrapf(err, "error getting network specs for %q", ctx)
-	}
-
 	if len(ctx.VSphereVM.Spec.VirtualMachineCloneSpec.PciDevices) != 0 {
 		gpuSpecs, _ := getGpuSpecs(ctx)
 		if err != nil {
 			return errors.Wrapf(err, "error getting gpu specs for %q", ctx)
 		}
 		deviceSpecs = append(deviceSpecs, gpuSpecs...)
+	}
+
+	if len(ctx.VSphereVM.Spec.VirtualMachineCloneSpec.VGPUDevices) != 0 {
+		vgpuSpecs, _ := getVgpuSpecs(ctx)
+		if err != nil {
+			return errors.Wrapf(err, "error getting gpu specs for %q", ctx)
+		}
+		deviceSpecs = append(deviceSpecs, vgpuSpecs...)
 	}
 
 	numCPUs := ctx.VSphereVM.Spec.NumCPUs
@@ -447,6 +451,28 @@ func getGpuSpecs(ctx *context.VMContext) ([]types.BaseVirtualDeviceConfigSpec, e
 					DeviceId: *pciDevice.DeviceID,
 				},
 			},
+		}
+		dynamicDirectPathDevice := createPCIPassThroughDevice(deviceKey, backingInfo)
+		deviceSpecs = append(deviceSpecs, &types.VirtualDeviceConfigSpec{
+			Device:    dynamicDirectPathDevice,
+			Operation: types.VirtualDeviceConfigSpecOperationAdd,
+		})
+		deviceKey--
+	}
+	return deviceSpecs, nil
+}
+func getVgpuSpecs(ctx *context.VMContext) ([]types.BaseVirtualDeviceConfigSpec, error) {
+	deviceSpecs := []types.BaseVirtualDeviceConfigSpec{}
+	deviceKey := int32(-200)
+
+	expectedVGpuDevices := ctx.VSphereVM.Spec.VirtualMachineCloneSpec.VGPUDevices
+	if len(expectedVGpuDevices) == 0 {
+		return nil, errors.Errorf("Invalid vgpu device count count: %d", len(expectedVGpuDevices))
+	}
+
+	for _, vGPUDevice := range expectedVGpuDevices {
+		backingInfo := &types.VirtualPCIPassthroughVmiopBackingInfo{
+			Vgpu: vGPUDevice.ProfileName,
 		}
 		dynamicDirectPathDevice := createPCIPassThroughDevice(deviceKey, backingInfo)
 		deviceSpecs = append(deviceSpecs, &types.VirtualDeviceConfigSpec{

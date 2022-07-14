@@ -158,6 +158,8 @@ e2e-templates: ## Generate e2e cluster templates
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/kustomization/pci > $(E2E_TEMPLATE_DIR)/cluster-template-pci.yaml
 	# for DHCP overrides
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/kustomization/dhcp-overrides > $(E2E_TEMPLATE_DIR)/cluster-template-dhcp-overrides.yaml
+	# for vGPU template
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/kustomization/vgpu > $(E2E_TEMPLATE_DIR)/cluster-template-vgpu.yaml
 
 .PHONY: test-integration
 test-integration: e2e-image

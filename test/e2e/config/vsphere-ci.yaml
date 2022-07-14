@@ -152,6 +152,7 @@ variables:
   # These IDs correspond to Tesla T4s, they are the decimal representation of the hex values.
   DEVICE_ID: 7864
   VENDOR_ID: 4318
+  PROFILE_NAME: grid_v100d-4c
   # CAPV feature flags
   EXP_NODE_ANTI_AFFINITY: "true"
   EXP_NODE_LABELING: "true"

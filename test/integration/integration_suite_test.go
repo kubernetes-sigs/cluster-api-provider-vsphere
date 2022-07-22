@@ -727,8 +727,7 @@ func assertVirtualMachineState(machine *clusterv1.Machine, vm *vmoprv1.VirtualMa
 	Expect(vm.Spec.ImageName).ShouldNot(BeEmpty())
 	Expect(machine.Spec.Version).ShouldNot(BeNil(), "Error accessing nil Spec.Version for machine %s", machine.Name)
 	Expect(vm.Spec.VmMetadata).NotTo(BeNil())
-	// TODO: Aarti: not sure where to get this varaible from
-	//Expect(vm.Spec.VmMetadata.Transport).To(Equal(vmoprv1.VirtualMachineMetadataExtraConfigTransport))
+	Expect(vm.Spec.VmMetadata.Transport).To(Equal(vmoprv1.VirtualMachineMetadataCloudInitTransport))
 	Expect(vm.Spec.VmMetadata.ConfigMapName).ToNot(BeNil())
 }
 

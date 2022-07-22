@@ -294,7 +294,7 @@ func (v VmopMachineService) reconcileVMOperatorVM(ctx *vmware.SupervisorMachineC
 		vmOperatorVM.Spec.ResourcePolicyName = ctx.VSphereCluster.Status.ResourcePolicyName
 		vmOperatorVM.Spec.VmMetadata = &vmoprv1.VirtualMachineMetadata{
 			ConfigMapName: vmwareutil.GetBootstrapConfigMapName(ctx.VSphereMachine.Name),
-			Transport:     "ExtraConfig",
+			Transport:     "CloudInit",
 		}
 
 		// VMOperator supports readiness probe and will add/remove endpoints to a

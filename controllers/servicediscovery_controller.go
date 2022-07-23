@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"net"
 	"net/url"
-	"reflect"
 	"time"
 
 	"github.com/pkg/errors"
@@ -41,6 +40,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -233,26 +233,76 @@ func (r serviceDiscoveryReconciler) reconcileSupervisorHeadlessService(ctx *vmwa
 	}
 
 	ctx.Logger.Info("Discovered supervisor apiserver address", "host", supervisorHost, "port", supervisorPort)
-	// CreateOrUpdate the newEndpoints with the discovered supervisor api server address
-	newEndpoints := NewSupervisorHeadlessServiceEndpoints(supervisorHost, supervisorPort)
-	endpointsKey := types.NamespacedName{Name: vmwarev1.SupervisorHeadlessSvcName, Namespace: vmwarev1.SupervisorHeadlessSvcNamespace}
-	if createErr := ctx.GuestClient.Create(ctx, newEndpoints); createErr != nil { //nolint:nestif
-		if apierrors.IsAlreadyExists(createErr) {
-			var endpoints corev1.Endpoints
-			if getErr := ctx.GuestClient.Get(ctx, endpointsKey, &endpoints); getErr != nil {
-				return errors.Wrapf(getErr, "cannot get k8s service endpoints %s", endpointsKey)
-			}
-			// Update only if modified
-			if !reflect.DeepEqual(endpoints.Subsets, newEndpoints.Subsets) {
-				endpoints.Subsets = newEndpoints.Subsets
-				// Update the newEndpoints if it already exists
-				if updateErr := ctx.GuestClient.Update(ctx, &endpoints); updateErr != nil {
-					return errors.Wrapf(updateErr, "cannot update k8s service endpoints %s", endpointsKey)
-				}
-			}
-		} else {
-			return errors.Wrapf(createErr, "cannot create k8s service endpoints %s", endpointsKey)
-		}
+	// CreateOrPatch the newEndpoints with the discovered supervisor api server address
+	newEndpoints := NewSupervisorHeadlessServiceEndpoints(
+		supervisorHost,
+		supervisorPort,
+	)
+	endpointsKey := types.NamespacedName{
+		Namespace: newEndpoints.Namespace,
+		Name:      newEndpoints.Name,
+	}
+	endpoints := &corev1.Endpoints{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: newEndpoints.Namespace,
+			Name:      newEndpoints.Name,
+		},
+	}
+	result, err := controllerutil.CreateOrPatch(
+		ctx,
+		ctx.GuestClient,
+		endpoints,
+		func() error {
+			endpoints.Subsets = newEndpoints.Subsets
+			return nil
+		})
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"cannot create k8s service endpoints %s",
+			endpointsKey,
+		)
+	}
+
+	endpointsSubsetsStr := fmt.Sprintf("%+v", endpoints.Subsets)
+
+	switch result {
+	case controllerutil.OperationResultNone:
+		ctx.Logger.Info(
+			"no update required for k8s service endpoints",
+			"endpointsKey",
+			endpointsKey,
+			"endpointsSubsets",
+			endpointsSubsetsStr,
+		)
+	case controllerutil.OperationResultCreated:
+		ctx.Logger.Info(
+			"created k8s service endpoints",
+			"endpointsKey",
+			endpointsKey,
+			"endpointsSubsets",
+			endpointsSubsetsStr,
+		)
+	case controllerutil.OperationResultUpdated:
+		ctx.Logger.Info(
+			"updated k8s service endpoints",
+			"endpointsKey",
+			endpointsKey,
+			"endpointsSubsets",
+			endpointsSubsetsStr,
+		)
+	default:
+		ctx.Logger.Error(
+			fmt.Errorf(
+				"unexpected result during createOrPatch k8s service endpoints",
+			),
+			"endpointsKey",
+			endpointsKey,
+			"endpointsSubsets",
+			endpointsSubsetsStr,
+			"result",
+			result,
+		)
 	}
 
 	conditions.MarkTrue(ctx.VSphereCluster, vmwarev1.ServiceDiscoveryReadyCondition)

@@ -265,7 +265,7 @@ func (v VmopMachineService) reconcileVMOperatorVM(ctx *vmware.SupervisorMachineC
 			ctx.Machine.Name)
 	}
 
-	_, err := ctrlutil.CreateOrUpdate(ctx, ctx.Client, vmOperatorVM, func() error {
+	_, err := ctrlutil.CreateOrPatch(ctx, ctx.Client, vmOperatorVM, func() error {
 		// Define a new VM Operator virtual machine.
 		// NOTE: Set field-by-field in order to preserve changes made directly
 		//  to the VirtualMachine spec by other sources (e.g. the cloud provider)
@@ -349,7 +349,7 @@ func (v VmopMachineService) reconcileBootstrapDataConfigMap(ctx *vmware.Supervis
 		return err
 	}
 
-	_, err = ctrlutil.CreateOrUpdate(ctx, ctx.Client, configMap, func() error {
+	_, err = ctrlutil.CreateOrPatch(ctx, ctx.Client, configMap, func() error {
 		// Make sure the VSphereMachine owns the bootstrap data ConfigMap.
 		if err := ctrlutil.SetControllerReference(ctx.VSphereMachine, configMap, ctx.Scheme); err != nil {
 			return errors.Wrapf(err, "failed to mark %s %s/%s as owner of %s %s/%s",
@@ -535,11 +535,28 @@ func addVolumes(ctx *vmware.SupervisorMachineContext, vm *vmoprv1.VirtualMachine
 			},
 		}
 
-		_, err := ctrlutil.CreateOrUpdate(ctx, ctx.Client, pvc, func() error {
-			return ctrlutil.SetOwnerReference(ctx.VSphereMachine, pvc, ctx.Scheme)
-		})
-		if err != nil {
-			return errors.Wrapf(err, "failed to create volume %s/%s", ctx.VSphereMachine.Namespace, pvc.Name)
+		if _, err := ctrlutil.CreateOrPatch(ctx, ctx.Client, pvc, func() error {
+			if err := ctrlutil.SetOwnerReference(
+				ctx.VSphereCluster,
+				pvc,
+				ctx.Scheme,
+			); err != nil {
+				return errors.Wrapf(
+					err,
+					"error setting %s/%s as owner of %s/%s",
+					ctx.VSphereCluster.Namespace,
+					ctx.VSphereCluster.Name,
+					pvc.Namespace,
+					pvc.Name,
+				)
+			}
+			return nil
+		}); err != nil {
+			return errors.Wrapf(
+				err,
+				"failed to create volume %s/%s",
+				pvc.Namespace,
+				pvc.Name)
 		}
 
 		addVolume(vm, pvc.Name)

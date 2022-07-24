@@ -97,7 +97,7 @@ func (np *nsxtNetworkProvider) ProvisionClusterNetwork(ctx *vmware.ClusterContex
 		},
 	}
 
-	_, err := ctrlutil.CreateOrUpdate(ctx, np.client, vnet, func() error {
+	_, err := ctrlutil.CreateOrPatch(ctx, np.client, vnet, func() error {
 		// add or update vnet spec only if FW is enabled and if WhitelistSourceRanges is empty
 		if np.disableFW != "true" && vnet.Spec.WhitelistSourceRanges == "" {
 			supportFW, err := util.NCPSupportFW(ctx, np.client)
@@ -121,14 +121,20 @@ func (np *nsxtNetworkProvider) ProvisionClusterNetwork(ctx *vmware.ClusterContex
 			}
 		}
 
-		vnet.SetOwnerReferences([]metav1.OwnerReference{
-			{
-				APIVersion: infrav1.GroupVersion.String(),
-				Kind:       "VSphereCluster",
-				Name:       cluster.Name,
-				UID:        cluster.UID,
-			},
-		})
+		if err := ctrlutil.SetOwnerReference(
+			ctx.VSphereCluster,
+			vnet,
+			ctx.Scheme,
+		); err != nil {
+			return errors.Wrapf(
+				err,
+				"error setting %s/%s as owner of %s/%s",
+				ctx.VSphereCluster.Namespace,
+				ctx.VSphereCluster.Name,
+				vnet.Namespace,
+				vnet.Name,
+			)
+		}
 
 		return nil
 	})

@@ -120,7 +120,7 @@ func (v *VimMachineService) ReconcileNormal(c context.MachineContext) (bool, err
 		return false, err
 	}
 
-	vm, err := v.createOrUpdateVSPhereVM(ctx, vsphereVM)
+	vm, err := v.createOrPatchVSPhereVM(ctx, vsphereVM)
 
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		return false, err
@@ -307,7 +307,7 @@ func (v *VimMachineService) reconcileNetwork(ctx *context.VIMMachineContext, vm 
 	return true, nil
 }
 
-func (v *VimMachineService) createOrUpdateVSPhereVM(ctx *context.VIMMachineContext, vsphereVM *infrav1.VSphereVM) (runtime.Object, error) {
+func (v *VimMachineService) createOrPatchVSPhereVM(ctx *context.VIMMachineContext, vsphereVM *infrav1.VSphereVM) (runtime.Object, error) {
 	// Create or update the VSphereVM resource.
 	vm := &infrav1.VSphereVM{
 		ObjectMeta: metav1.ObjectMeta{
@@ -376,14 +376,54 @@ func (v *VimMachineService) createOrUpdateVSPhereVM(ctx *context.VIMMachineConte
 		}
 		return nil
 	}
-	if _, err := ctrlutil.CreateOrUpdate(ctx, ctx.Client, vm, mutateFn); err != nil {
-		if apierrors.IsAlreadyExists(err) {
-			ctx.Logger.Info("VSphereVM already exists")
-			return vsphereVM, err
-		}
-		ctx.Logger.Error(err, "failed to CreateOrUpdate VSphereVM",
-			"namespace", vm.Namespace, "name", vm.Name)
+
+	vmKey := types.NamespacedName{
+		Namespace: vm.Namespace,
+		Name:      vm.Name,
+	}
+	result, err := ctrlutil.CreateOrPatch(ctx, ctx.Client, vm, mutateFn)
+	if err != nil {
+		ctx.Logger.Error(
+			err,
+			"failed to CreateOrPatch VSphereVM",
+			"namespace",
+			vm.Namespace,
+			"name",
+			vm.Name,
+		)
 		return nil, err
+	}
+	switch result {
+	case ctrlutil.OperationResultNone:
+		ctx.Logger.Info(
+			"no update required for vm",
+			"vm",
+			vmKey,
+		)
+	case ctrlutil.OperationResultCreated:
+		ctx.Logger.Info(
+			"created vm",
+			"vm",
+			vmKey,
+		)
+	case ctrlutil.OperationResultUpdated:
+		ctx.Logger.Info(
+			"updated vm",
+			"vm",
+			vmKey,
+		)
+	case ctrlutil.OperationResultUpdatedStatus:
+		ctx.Logger.Info(
+			"updated vm and vm status",
+			"vm",
+			vmKey,
+		)
+	case ctrlutil.OperationResultUpdatedStatusOnly:
+		ctx.Logger.Info(
+			"updated vm status",
+			"vm",
+			vmKey,
+		)
 	}
 
 	return vm, nil

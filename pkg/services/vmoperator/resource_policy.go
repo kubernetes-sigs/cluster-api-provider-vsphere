@@ -24,7 +24,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
 	vmwareutil "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util/vmware"
 )
@@ -71,7 +70,7 @@ func (s RPService) getVirtualMachineSetResourcePolicy(ctx *vmware.ClusterContext
 func (s RPService) createVirtualMachineSetResourcePolicy(ctx *vmware.ClusterContext) (*vmoprv1.VirtualMachineSetResourcePolicy, error) {
 	vmResourcePolicy := s.newVirtualMachineSetResourcePolicy(ctx)
 
-	_, err := ctrlutil.CreateOrUpdate(ctx, ctx.Client, vmResourcePolicy, func() error {
+	_, err := ctrlutil.CreateOrPatch(ctx, ctx.Client, vmResourcePolicy, func() error {
 		vmResourcePolicy.Spec = vmoprv1.VirtualMachineSetResourcePolicySpec{
 			ResourcePool: vmoprv1.ResourcePoolSpec{
 				Name: ctx.Cluster.Name,
@@ -89,13 +88,19 @@ func (s RPService) createVirtualMachineSetResourcePolicy(ctx *vmware.ClusterCont
 			},
 		}
 		// Ensure that the VirtualMachineSetResourcePolicy is owned by the VSphereCluster
-		vmResourcePolicy.OwnerReferences = []metav1.OwnerReference{
-			{
-				Name:       ctx.VSphereCluster.Name,
-				APIVersion: vmwarev1.GroupVersion.String(),
-				Kind:       "VSphereCluster",
-				UID:        ctx.VSphereCluster.UID,
-			},
+		if err := ctrlutil.SetOwnerReference(
+			ctx.VSphereCluster,
+			vmResourcePolicy,
+			ctx.Scheme,
+		); err != nil {
+			return errors.Wrapf(
+				err,
+				"error setting %s/%s as owner of %s/%s",
+				ctx.VSphereCluster.Namespace,
+				ctx.VSphereCluster.Name,
+				vmResourcePolicy.Namespace,
+				vmResourcePolicy.Name,
+			)
 		}
 		return nil
 	})

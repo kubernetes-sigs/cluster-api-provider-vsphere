@@ -41,6 +41,9 @@ func (src *VSphereMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	}
 	dst.Spec.Template.Spec.TagIDs = restored.Spec.Template.Spec.TagIDs
 	dst.Spec.Template.Spec.AdditionalDisksGiB = restored.Spec.Template.Spec.AdditionalDisksGiB
+	for i := range dst.Spec.Template.Spec.Network.Devices {
+		dst.Spec.Template.Spec.Network.Devices[i].IgnoreDHCPNameservers = restored.Spec.Template.Spec.Network.Devices[i].IgnoreDHCPNameservers
+	}
 
 	return nil
 }
@@ -81,4 +84,30 @@ func Convert_v1beta1_ObjectMeta_To_v1alpha4_ObjectMeta(in *clusterv1b1.ObjectMet
 	// wrapping the conversion func to avoid having compile errors due to compileErrorOnMissingConversion()
 	// more details at https://github.com/kubernetes/kubernetes/issues/98380
 	return clusterv1a4.Convert_v1beta1_ObjectMeta_To_v1alpha4_ObjectMeta(in, out, s)
+}
+
+func Convert_v1beta1_NetworkDeviceSpec_To_v1alpha4_NetworkDeviceSpec(in *infrav1beta1.NetworkDeviceSpec, out *NetworkDeviceSpec, s apiconversion.Scope) error {
+	out.NetworkName = in.NetworkName
+	out.DeviceName = in.DeviceName
+	out.DHCP4 = in.DHCP4
+	out.DHCP6 = in.DHCP6
+	out.Gateway4 = in.Gateway4
+	out.Gateway6 = in.Gateway6
+	out.IPAddrs = in.IPAddrs
+	out.MTU = in.MTU
+	out.MACAddr = in.MACAddr
+	out.Nameservers = in.Nameservers
+	out.SearchDomains = in.SearchDomains
+	if in.Routes != nil {
+		inRoutes, outRoutes := &in.Routes, &out.Routes
+		*outRoutes = make([]NetworkRouteSpec, len(*inRoutes))
+		for i := range *inRoutes {
+			if err := Convert_v1beta1_NetworkRouteSpec_To_v1alpha4_NetworkRouteSpec(&(*inRoutes)[i], &(*outRoutes)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Routes = nil
+	}
+	return nil
 }

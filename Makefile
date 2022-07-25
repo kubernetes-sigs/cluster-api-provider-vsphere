@@ -151,6 +151,8 @@ e2e-templates: ## Generate e2e cluster templates
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/kustomization/topology > $(E2E_TEMPLATE_DIR)/cluster-template-topology.yaml
 	# for PCI passthrough template
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/kustomization/pci > $(E2E_TEMPLATE_DIR)/cluster-template-pci.yaml
+	# for ignore DHCP nameservers
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/kustomization/ignore-dhcp-nameservers > $(E2E_TEMPLATE_DIR)/cluster-template-ignore-dhcp-nameservers.yaml
 
 .PHONY: test-integration
 test-integration: e2e-image

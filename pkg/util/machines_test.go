@@ -306,6 +306,45 @@ network:
 `,
 		},
 		{
+			name: "dhcp4+ignore-dhcp-nameservers",
+			machine: &infrav1.VSphereVM{
+				Spec: infrav1.VSphereVMSpec{
+					VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
+						Network: infrav1.NetworkSpec{
+							Devices: []infrav1.NetworkDeviceSpec{
+								{
+									NetworkName:           "network1",
+									MACAddr:               "00:00:00:00:00",
+									DHCP4:                 true,
+									IgnoreDHCPNameservers: true,
+									DeviceName:            "ens192",
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: `
+instance-id: "test-vm"
+local-hostname: "test-vm"
+wait-on-network:
+  ipv4: true
+  ipv6: false
+network:
+  version: 2
+  ethernets:
+    id0:
+      match:
+        macaddress: "00:00:00:00:00"
+      set-name: "ens192"
+      wakeonlan: true
+      dhcp4: true
+      dhcp6: false
+      dhcp4-overrides:
+        use-dns: false
+`,
+		},
+		{
 			name: "dhcp6",
 			machine: &infrav1.VSphereVM{
 				Spec: infrav1.VSphereVMSpec{
@@ -338,6 +377,45 @@ network:
       wakeonlan: true
       dhcp4: false
       dhcp6: true
+`,
+		},
+		{
+			name: "dhcp6+ignore-dhcp-nameservers",
+			machine: &infrav1.VSphereVM{
+				Spec: infrav1.VSphereVMSpec{
+					VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
+						Network: infrav1.NetworkSpec{
+							Devices: []infrav1.NetworkDeviceSpec{
+								{
+									NetworkName:           "network1",
+									MACAddr:               "00:00:00:00:00",
+									DHCP6:                 true,
+									IgnoreDHCPNameservers: true,
+									DeviceName:            "ens192",
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: `
+instance-id: "test-vm"
+local-hostname: "test-vm"
+wait-on-network:
+  ipv4: false
+  ipv6: true
+network:
+  version: 2
+  ethernets:
+    id0:
+      match:
+        macaddress: "00:00:00:00:00"
+      set-name: "ens192"
+      wakeonlan: true
+      dhcp4: false
+      dhcp6: true
+      dhcp6-overrides:
+        use-dns: false
 `,
 		},
 		{
@@ -374,6 +452,48 @@ network:
       wakeonlan: true
       dhcp4: true
       dhcp6: true
+`,
+		},
+		{
+			name: "dhcp4+dhcp6+ignore-dhcp-nameservers",
+			machine: &infrav1.VSphereVM{
+				Spec: infrav1.VSphereVMSpec{
+					VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
+						Network: infrav1.NetworkSpec{
+							Devices: []infrav1.NetworkDeviceSpec{
+								{
+									NetworkName:           "network1",
+									MACAddr:               "00:00:00:00:00",
+									DHCP4:                 true,
+									DHCP6:                 true,
+									IgnoreDHCPNameservers: true,
+									DeviceName:            "ens192",
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: `
+instance-id: "test-vm"
+local-hostname: "test-vm"
+wait-on-network:
+  ipv4: true
+  ipv6: true
+network:
+  version: 2
+  ethernets:
+    id0:
+      match:
+        macaddress: "00:00:00:00:00"
+      set-name: "ens192"
+      wakeonlan: true
+      dhcp4: true
+      dhcp6: true
+      dhcp4-overrides:
+        use-dns: false
+      dhcp6-overrides:
+        use-dns: false
 `,
 		},
 		{

@@ -983,6 +983,16 @@ spec:
                           description: Gateway4 is the IPv4 gateway used by this device.
                             Required when DHCP6 is false.
                           type: string
+                        ignoreDHCPNameservers:
+                          description: IgnoreDHCPNameservers is a flag that indicates
+                            whether or not to use the DNS servers received from the
+                            DHCP server. If true the DNS servers from the DHCP server
+                            will be ignored and only the statically configured nameservers
+                            will be added to the devices DNS servers. If false the
+                            DNS servers from DHCP and any statically configured nameservers
+                            will be added to the devices DNS servers. Please note
+                            that this only works with the `networkd` backend for netplan.
+                          type: boolean
                         ipAddrs:
                           description: IPAddrs is a list of one or more IPv4 and/or
                             IPv6 addresses to assign to this device. Required when

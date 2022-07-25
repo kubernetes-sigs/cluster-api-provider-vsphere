@@ -160,6 +160,7 @@ providers:
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-node-drain.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-pci.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-topology.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-ignore-dhcp-nameservers.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/clusterclass-quick-start.yaml"
           - sourcePath: "../../../metadata.yaml"
 

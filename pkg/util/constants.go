@@ -38,6 +38,14 @@ network:
       {{- if or $net.DHCP4 $net.DHCP6 }}
       dhcp4: {{ $net.DHCP4 }}
       dhcp6: {{ $net.DHCP6 }}
+      {{- if and $net.DHCP4 $net.IgnoreDHCPNameservers }}
+      dhcp4-overrides:
+        use-dns: false
+      {{- end }}
+      {{- if and $net.DHCP6 $net.IgnoreDHCPNameservers }}
+      dhcp6-overrides:
+        use-dns: false
+      {{- end }}
       {{- end }}
       {{- if $net.IPAddrs }}
       addresses:

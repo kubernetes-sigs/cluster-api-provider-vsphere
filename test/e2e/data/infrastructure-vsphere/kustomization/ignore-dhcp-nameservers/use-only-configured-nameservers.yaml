@@ -1,0 +1,14 @@
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: VSphereMachineTemplate
+metadata:
+  name: ${CLUSTER_NAME}
+  namespace: ${NAMESPACE}
+spec:
+  template:
+    spec:
+      network:
+        devices:
+          - networkName: "my-favorite-network"
+            nameservers: [8.8.8.8, 8.8.4.4]
+            ignoreDHCPNameservers: true

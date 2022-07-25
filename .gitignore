@@ -19,6 +19,7 @@ test/e2e/data/infrastructure-vsphere/cluster-template-node-drain.yaml
 test/e2e/data/infrastructure-vsphere/cluster-template-pci.yaml
 test/e2e/data/infrastructure-vsphere/cluster-template-topology.yaml
 test/e2e/data/infrastructure-vsphere/clusterclass-quick-start.yaml
+test/e2e/data/infrastructure-vsphere/cluster-template-ignore-dhcp-nameservers.yaml
 _artifacts/
 
 # env vars file used in getting-started.md and manifests generation

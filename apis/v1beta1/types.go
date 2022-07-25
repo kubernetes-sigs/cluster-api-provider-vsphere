@@ -311,6 +311,17 @@ type NetworkDeviceSpec struct {
 	// addresses with DNS.
 	// +optional
 	SearchDomains []string `json:"searchDomains,omitempty"`
+
+	// IgnoreDHCPNameservers is a flag that indicates whether or not to use the
+	// DNS servers received from the DHCP server.
+	// If true the DNS servers from the DHCP server will be ignored and only
+	// the statically configured nameservers will be added to the devices DNS
+	// servers.
+	// If false the DNS servers from DHCP and any statically configured
+	// nameservers will be added to the devices DNS servers.
+	// Please note that this only works with the `networkd` backend for netplan.
+	// +optional
+	IgnoreDHCPNameservers bool `json:"ignoreDHCPNameservers,omitempty"`
 }
 
 // NetworkRouteSpec defines a static network route.

@@ -29,7 +29,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
-	infrautilv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
 // The purpose of this test is to start up a CAPI controller against a real API
@@ -109,7 +108,6 @@ var _ = Describe("Sanity tests", func() {
 		// Operator VirtualMachine, and bootstrap data ConfigMap
 		// resources for the control plane machine are eventually
 		// deleted.
-		assertEventuallyDoesNotExist(configmapsResource, infrautilv1.GetBootstrapConfigMapName(controlPlane.Machine.Name), controlPlane.Machine.Namespace)
 		assertEventuallyDoesNotExist(virtualmachinesResource, controlPlane.Machine.Name, controlPlane.Machine.Namespace)
 		assertEventuallyDoesNotExist(vspheremachinesResource, controlPlane.Machine.Name, controlPlane.Machine.Namespace)
 		assertEventuallyDoesNotExist(kubeadmconfigResources, controlPlane.Machine.Name, controlPlane.Machine.Namespace)
@@ -140,7 +138,6 @@ var _ = Describe("Sanity tests", func() {
 			// ASSERT the VirtualMachine and bootstrap data ConfigMap resources
 			// eventually exist. Ensure ConfigMap has OwnerRef set to the VSphereMachine.
 			vmObj := assertEventuallyExists(virtualmachinesResource, controlPlane.Machine.Name, controlPlane.Machine.Namespace, nil)
-			assertEventuallyExists(configmapsResource, infrautilv1.GetBootstrapConfigMapName(controlPlane.Machine.Name), controlPlane.Machine.Namespace, toControllerOwnerRef(vsphereMachine))
 			vm := &vmoprv1.VirtualMachine{}
 			toStructured(controlPlane.Machine.Name, vm, vmObj)
 

@@ -489,15 +489,15 @@ func addVolumes(ctx *vmware.SupervisorMachineContext, vm *vmoprv1.VirtualMachine
 
 		if _, err := ctrlutil.CreateOrPatch(ctx, ctx.Client, pvc, func() error {
 			if err := ctrlutil.SetOwnerReference(
-				ctx.VSphereCluster,
+				ctx.VSphereMachine,
 				pvc,
 				ctx.Scheme,
 			); err != nil {
 				return errors.Wrapf(
 					err,
 					"error setting %s/%s as owner of %s/%s",
-					ctx.VSphereCluster.Namespace,
-					ctx.VSphereCluster.Name,
+					ctx.VSphereMachine.Namespace,
+					ctx.VSphereMachine.Name,
 					pvc.Namespace,
 					pvc.Name,
 				)

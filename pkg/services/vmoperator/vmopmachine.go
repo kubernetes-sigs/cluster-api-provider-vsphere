@@ -17,12 +17,9 @@ limitations under the License.
 package vmoperator
 
 import (
-	"bytes"
 	goctx "context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"text/template"
 
 	"github.com/pkg/errors"
 	vmoprv1 "github.com/vmware-tanzu/vm-operator-api/api/v1alpha1"
@@ -32,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -170,16 +166,6 @@ func (v *VmopMachineService) ReconcileNormal(c context.MachineContext) (bool, er
 		return false, err
 	}
 
-	// Define the bootstrap data ConfigMap resource to reconcile.
-	bootstrapDataConfigMap := v.newBootstrapDataConfigMap(ctx)
-
-	// Reconcile the bootstrap data ConfigMap.
-	if err := v.reconcileBootstrapDataConfigMap(ctx, bootstrapDataConfigMap); err != nil {
-		conditions.MarkFalse(ctx.VSphereMachine, infrav1.VMProvisionedCondition, vmwarev1.VMCreationFailedReason, clusterv1.ConditionSeverityWarning,
-			fmt.Sprintf("failed to create or update bootstrap configmap: %v", err))
-		return false, err
-	}
-
 	// Update the VM's state to Pending
 	ctx.VSphereMachine.Status.VMStatus = vmwarev1.VirtualMachineStatePending
 
@@ -266,6 +252,11 @@ func (v VmopMachineService) reconcileVMOperatorVM(ctx *vmware.SupervisorMachineC
 			ctx.Machine.Name)
 	}
 
+	var dataSecretName string
+	if dsn := ctx.Machine.Spec.Bootstrap.DataSecretName; dsn != nil {
+		dataSecretName = *dsn
+	}
+
 	_, err := ctrlutil.CreateOrPatch(ctx, ctx.Client, vmOperatorVM, func() error {
 		// Define a new VM Operator virtual machine.
 		// NOTE: Set field-by-field in order to preserve changes made directly
@@ -276,8 +267,8 @@ func (v VmopMachineService) reconcileVMOperatorVM(ctx *vmware.SupervisorMachineC
 		vmOperatorVM.Spec.PowerState = vmoprv1.VirtualMachinePoweredOn
 		vmOperatorVM.Spec.ResourcePolicyName = ctx.VSphereCluster.Status.ResourcePolicyName
 		vmOperatorVM.Spec.VmMetadata = &vmoprv1.VirtualMachineMetadata{
-			ConfigMapName: vmwareutil.GetBootstrapConfigMapName(ctx.VSphereMachine.Name),
-			Transport:     "CloudInit",
+			SecretName: dataSecretName,
+			Transport:  vmoprv1.VirtualMachineMetadataCloudInitTransport,
 		}
 
 		// VMOperator supports readiness probe and will add/remove endpoints to a
@@ -333,76 +324,6 @@ func (v VmopMachineService) reconcileVMOperatorVM(ctx *vmware.SupervisorMachineC
 		return nil
 	})
 	return err
-}
-
-func (v VmopMachineService) newBootstrapDataConfigMap(ctx *vmware.SupervisorMachineContext) *corev1.ConfigMap {
-	return &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ctx.VSphereMachine.Namespace,
-			Name:      vmwareutil.GetBootstrapConfigMapName(ctx.VSphereMachine.Name),
-		},
-	}
-}
-
-func (v VmopMachineService) reconcileBootstrapDataConfigMap(ctx *vmware.SupervisorMachineContext, configMap *corev1.ConfigMap) error {
-	bootstrapData, err := vmwareutil.GetBootstrapData(ctx, ctx.Client, ctx.Machine)
-	if err != nil {
-		return err
-	}
-
-	_, err = ctrlutil.CreateOrPatch(ctx, ctx.Client, configMap, func() error {
-		// Make sure the VSphereMachine owns the bootstrap data ConfigMap.
-		if err := ctrlutil.SetControllerReference(ctx.VSphereMachine, configMap, ctx.Scheme); err != nil {
-			return errors.Wrapf(err, "failed to mark %s %s/%s as owner of %s %s/%s",
-				ctx.VSphereMachine.GroupVersionKind(),
-				ctx.VSphereMachine.Namespace,
-				ctx.VSphereMachine.Name,
-				configMap.GroupVersionKind(),
-				configMap.Namespace,
-				configMap.Name)
-		}
-
-		metadata, err := v.getGuestInfoMetadata(ctx)
-		if err != nil {
-			return errors.Wrapf(err, "failed to get guest info metadata for machine %s", ctx.Machine.Name)
-		}
-
-		// The CAPI contract states that the string assigned to the field
-		// Machine.Spec.Bootstrap.Data will be base64 encoded.
-		configMap.Data = map[string]string{
-			"guestinfo.userdata":          bootstrapData,
-			"guestinfo.userdata.encoding": "base64",
-			"guestinfo.metadata":          metadata,
-			"guestinfo.metadata.encoding": "base64",
-		}
-		return nil
-	})
-	return err
-}
-
-func (v VmopMachineService) getGuestInfoMetadata(ctx *vmware.SupervisorMachineContext) (string, error) {
-	tpl := template.Must(template.New("t").Parse(metadataFormat))
-
-	// We can configure this for control plane machines - only the init node will
-	// likely leverage it for controlPlaneEndpoint
-	controlPlaneEndpoint := ""
-	if util.IsControlPlaneMachine(ctx.Machine) && !ctx.Cluster.Spec.ControlPlaneEndpoint.IsZero() {
-		apiEndpoint := ctx.Cluster.Spec.ControlPlaneEndpoint
-		controlPlaneEndpoint = fmt.Sprintf("%s:%d", apiEndpoint.Host, apiEndpoint.Port)
-	}
-
-	buf := &bytes.Buffer{}
-	if err := tpl.Execute(buf, struct {
-		Hostname             string
-		ControlPlaneEndpoint string
-	}{
-		Hostname:             ctx.Machine.Name,
-		ControlPlaneEndpoint: controlPlaneEndpoint,
-	}); err != nil {
-		return "", err
-	}
-
-	return base64.StdEncoding.EncodeToString(buf.Bytes()), nil
 }
 
 func (v *VmopMachineService) reconcileNetwork(ctx *vmware.SupervisorMachineContext, vm *vmoprv1.VirtualMachine) bool {

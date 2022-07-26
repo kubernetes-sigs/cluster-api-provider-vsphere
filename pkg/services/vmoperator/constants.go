@@ -19,14 +19,6 @@ package vmoperator
 const (
 	kubeTopologyZoneLabelKey = "topology.kubernetes.io/zone"
 
-	metadataFormat = `
-instance-id: "{{ .Hostname }}"
-local-hostname: "{{ .Hostname }}"
-{{ if .ControlPlaneEndpoint }}
-controlPlaneEndpoint: "{{ .ControlPlaneEndpoint }}"
-{{ end }}
-`
-
 	ControlPlaneVMClusterModuleGroupName = "control-plane-group"
 	ClusterModuleNameAnnotationKey       = "vsphere-cluster-module-group"
 	ProviderTagsAnnotationKey            = "vsphere-tag"

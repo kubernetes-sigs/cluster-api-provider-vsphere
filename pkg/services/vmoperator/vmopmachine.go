@@ -474,7 +474,13 @@ func addVolumes(ctx *vmware.SupervisorMachineContext, vm *vmoprv1.VirtualMachine
 			},
 		}
 
-		if zone := ctx.VSphereMachine.Spec.FailureDomain; zone != nil {
+		// The CSI zone annotation must be set when using a zonal storage class,
+		// which is required when the cluster has multiple (3) zones.
+		// Single zone clusters (legacy/default) do not support zonal storage and must not
+		// have the zone annotation set.
+		zonal := len(ctx.VSphereCluster.Status.FailureDomains) > 1
+
+		if zone := ctx.VSphereMachine.Spec.FailureDomain; zonal && zone != nil {
 			topology := []map[string]string{
 				{kubeTopologyZoneLabelKey: *zone},
 			}

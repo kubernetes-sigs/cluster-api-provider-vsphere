@@ -24,9 +24,12 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	apiv1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apitypes "k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/controllers/remote"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -261,10 +264,43 @@ func (r vmReconciler) reconcileDelete(ctx *context.VMContext) (reconcile.Result,
 		return reconcile.Result{}, nil
 	}
 
+	// Attempt to delete the node corresponding to the vsphere VM
+	err = r.deleteNode(ctx, vm.Name)
+	if err != nil {
+		r.Logger.V(6).Info("unable to delete node", "err", err)
+	}
+
 	// The VM is deleted so remove the finalizer.
 	ctrlutil.RemoveFinalizer(ctx.VSphereVM, infrav1.VMFinalizer)
 
 	return reconcile.Result{}, nil
+}
+
+// deleteNode attempts to find and best effort delete the node corresponding to the VM
+// This is necessary since CAPI does not the nodeRef field on the owner Machine object
+// until the node moves to Ready state. Hence, on Machine deletion it is unable to delete
+// the kubernetes node corresponding to the VM.
+func (r vmReconciler) deleteNode(ctx *context.VMContext, name string) error {
+	// Fetching the cluster object from the VSphereVM object to create a remote client to the cluster
+	cluster, err := clusterutilv1.GetClusterFromMetadata(r.ControllerContext, r.Client, ctx.VSphereVM.ObjectMeta)
+	if err != nil {
+		return err
+	}
+	clusterClient, err := remote.NewClusterClient(ctx, r.ControllerContext.Name, r.Client, ctrlclient.ObjectKeyFromObject(cluster))
+	if err != nil {
+		return err
+	}
+
+	// Attempt to delete the corresponding node
+	node := &apiv1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
+	if err := clusterClient.Delete(ctx, node); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (r vmReconciler) reconcileNormal(ctx *context.VMContext) (reconcile.Result, error) {

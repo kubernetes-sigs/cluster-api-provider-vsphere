@@ -31,20 +31,20 @@ Check out the [getting started guide](./docs/getting_started.md) for launching a
 
 This provider's versions are compatible with the following versions of Cluster API:
 
-|                              | Cluster API v1alpha1 (v0.1) | Cluster API v1alpha2 (v0.2) | Cluster API v1alpha3 (v0.3) | Cluster API v1alpha4 (v0.4) |
-| ---------------------------- | :-------------------------: | :-------------------------: | :-------------------------: | :-------------------------: |
-| CAPV v1alpha1 (v0.3)         |              ✓              |              ☓              |              ☓              |               ☓            |
-| CAPV v1alpha1 (v0.4)         |              ✓              |              ☓              |              ☓              |               ☓            |
-| CAPV v1alpha2 (v0.5)         |              ☓              |              ✓              |              ☓              |               ☓            |
-| CAPV v1alpha3 (v0.6)         |              ☓              |              ☓              |              ✓              |               ☓            |
-| CAPV v1alpha3 (v0.7)         |              ☓              |              ☓              |              ✓              |               ☓            |
-| CAPV v1alpha4 (v0.8, master) |              ☓              |              ☓              |              ☓              |               ✓            |
+|                                  | Cluster API v1alpha3 (v0.7) | Cluster API v1alpha4 (v0.8) | Cluster API v1beta1 (v1.0) | Cluster API v1beta1 (v1.3) |
+|----------------------------------|:---------------------------:|:---------------------------:|:--------------------------:|:--------------------------:|
+| CAPV v1alpha3 (v0.7)(deprecated) |              ✓              |              ✓              |             ✓              |             ✓              |
+| CAPV v1alpha4 (v0.8)(deprecated)             |              ☓              |              ✓              |             ✓              |             ✓              |
+| CAPV v1beta1 (v1.0)              |              ☓              |              ☓              |             ✓              |             ✓              |
+| CAPV v1beta1 (v1.1)              |              ☓              |              ☓              |             ☓              |             ✓              |
+| CAPV v1beta1 (v1.2)              |              ☓              |              ☓              |             ☓              |             ✓              |
+| CAPV v1beta1 (v1.3, master)      |              ☓              |              ☓              |             ☓              |             ✓              |
 
-|                              | Kubernetes 1.13 | Kubernetes 1.14 | Kubernetes 1.15 |
-| ---------------------------- | :-------------: | :-------------: | :-------------: |
-| CAPV v1alpha1 (v0.3)         |        ✓        |        ✓        |        ✓        |
-| CAPV v1alpha1 (v0.4)         |        ✓        |        ✓        |        ✓        |
-| CAPV v1alpha2 (v0.5, master) |        ✓        |        ✓        |        ✓        |
+|                              | Kubernetes 1.20 | Kubernetes 1.21 | Kubernetes 1.22 |
+|------------------------------|:---------------:|:--------------:|:---------------:|
+| CAPV v1alpha4 (v0.8)         |        ✓        |       ✓        |        ✓        |
+| CAPV v1beta1 (v1.0)          |        ✓        |       ✓        |        ✓        |
+| CAPV v1alpha2 (v1.3, master) |        ✓        |       ✓        |        ✓        |
 
 **NOTE:** As the versioning for this project is tied to the versioning of Cluster API, future modifications to this policy may be made to more closely align with other providers in the Cluster API ecosystem.
 

@@ -20,7 +20,7 @@ In order to run the e2e tests the following requirements must be met:
 
 The first step to running the e2e tests is setting up the required environment variables:
 
-| Environment variable          | Description                                                                                           | Example                                                                          |
+| Environment variable          | Description                                                                         | Example                                                                          |
 | ----------------------------- | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
 | `VSPHERE_SERVER`              | The IP address or FQDN of a vCenter 6.7u3 server                                    | `my.vcenter.com`                                                                 |
 | `VSPHERE_USERNAME`            | The username used to access the vSphere server                                      | `my-username`                                                                    |
@@ -38,9 +38,10 @@ The first step to running the e2e tests is setting up the required environment v
 
 ### Flags
 
-| Flag                       | Description                                                           |Default Value
-`SKIP_RESOURCE_CLEANUP`      | This flags skips cleanup of the resources created during the tests as well as the kind/bootstrap cluster        | `false`
-`USE_EXISTING_CLUSTER`       | This flag enables the usage of an existing K8S cluster as the management cluster to run tests against.          | `false`
+| Flag                        | Description                                                                                                     | Default Value |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------- | ------------- |
+|`SKIP_RESOURCE_CLEANUP`      | This flags skips cleanup of the resources created during the tests as well as the kind/bootstrap cluster        | `false`       |
+|`USE_EXISTING_CLUSTER`       | This flag enables the usage of an existing K8S cluster as the management cluster to run tests against.          | `false`       |
 
 ### Running the e2e tests
 

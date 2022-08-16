@@ -17,13 +17,20 @@ limitations under the License.
 package util_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
@@ -786,6 +793,86 @@ func Test_MachinesAsString(t *testing.T) {
 		g := gomega.NewWithT(t)
 		msg := util.MachinesAsString(tt.machines)
 		g.Expect(msg).To(gomega.Equal(tt.errorMessage))
+	}
+}
+
+func Test_GetVSphereClusterFromVSphereMachine(t *testing.T) {
+	scheme := runtime.NewScheme()
+	_ = clientgoscheme.AddToScheme(scheme)
+	_ = clusterv1.AddToScheme(scheme)
+	_ = vmwarev1.AddToScheme(scheme)
+
+	ns := "util-test"
+
+	incorrectMachine := &vmwarev1.VSphereMachine{
+		ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"foo": "bar"}},
+	}
+	machine := &vmwarev1.VSphereMachine{
+		ObjectMeta: metav1.ObjectMeta{
+			Labels:    map[string]string{clusterv1.ClusterLabelName: "foo"},
+			Name:      "foo-machine-1",
+			Namespace: ns,
+		},
+	}
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: ns,
+		},
+		Spec: clusterv1.ClusterSpec{
+			InfrastructureRef: &corev1.ObjectReference{
+				Name: "foo-abcdef", // auto generated name
+			},
+		},
+	}
+	vsphereCluster := &vmwarev1.VSphereCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo-abcdef",
+			Namespace: ns,
+		},
+	}
+
+	testCases := []struct {
+		name         string
+		initObjects  []client.Object
+		inputMachine *vmwarev1.VSphereMachine
+		hasError     bool
+	}{
+		{
+			name:         "for machine without CAPI cluster name label",
+			hasError:     true,
+			inputMachine: incorrectMachine,
+		},
+		{
+			name:         "for non-existent CAPI cluster",
+			hasError:     true,
+			inputMachine: machine,
+		},
+		{
+			name:         "for non-existent VSphereCluster",
+			hasError:     true,
+			inputMachine: machine,
+			initObjects:  []client.Object{cluster},
+		},
+		{
+			name:         "for non-existent VSphereCluster",
+			inputMachine: machine,
+			initObjects:  []client.Object{cluster, vsphereCluster},
+		},
+	}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			g := gomega.NewGomegaWithT(t)
+
+			client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.initObjects...).Build()
+			_, err := util.GetVSphereClusterFromVSphereMachine(context.Background(), client, tt.inputMachine)
+			if tt.hasError {
+				g.Expect(err).To(gomega.HaveOccurred())
+			} else {
+				g.Expect(err).NotTo(gomega.HaveOccurred())
+			}
+		})
 	}
 }
 

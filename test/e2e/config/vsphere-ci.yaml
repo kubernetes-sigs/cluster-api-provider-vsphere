@@ -158,23 +158,21 @@ providers:
           - sourcePath: "../../../metadata.yaml"
 
 variables:
-  KUBERNETES_VERSION: "v1.20.1"
+  KUBERNETES_VERSION: "v1.23.5"
   CNI: "./data/cni/calico/calico.yaml"
   EXP_CLUSTER_RESOURCE_SET: "true"
   CONTROL_PLANE_MACHINE_COUNT: 1
   WORKER_MACHINE_COUNT: 1
   IP_FAMILY: "IPv4"
   CLUSTER_CLASS_NAME: "quick-start"
-  VSPHERE_TLS_THUMBPRINT: "9E:7F:01:3B:13:CF:B2:93:16:2C:31:6A:03:6A:D1:5D:C7:79:D8:DE"
+  VSPHERE_TLS_THUMBPRINT: "AA:70:F9:CF:5A:5F:CF:6C:81:15:E0:A1:88:B9:E9:2B:DC:19:0E:D0"
   VSPHERE_DATACENTER:  "SDDC-Datacenter"
   VSPHERE_FOLDER: "clusterapi"
   VSPHERE_RESOURCE_POOL: "clusterapi"
   VSPHERE_DATASTORE: "WorkloadDatastore"
   VSPHERE_STORAGE_POLICY: "Cluster API vSphere Storage Policy"
   VSPHERE_NETWORK: "sddc-cgw-network-6"
-  VSPHERE_TEMPLATE: "ubuntu-1804-kube-v1.20.1"
-  INIT_WITH_BINARY_V1ALPHA4: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.7/clusterctl-{OS}-{ARCH}"
-  INIT_WITH_KUBERNETES_VERSION: "v1.20.1"
+  VSPHERE_TEMPLATE: "ubuntu-2004-kube-v1.23.5"
   VSPHERE_INSECURE_CSI: "true"
   KUBETEST_CONFIGURATION: "./data/kubetest/conformance.yaml"
   NODE_DRAIN_TIMEOUT: "60s"

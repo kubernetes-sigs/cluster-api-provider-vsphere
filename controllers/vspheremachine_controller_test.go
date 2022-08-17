@@ -64,7 +64,7 @@ var _ = Describe("VsphereMachineReconciler", func() {
 			},
 			Spec: clusterv1.ClusterSpec{
 				InfrastructureRef: &corev1.ObjectReference{
-					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
+					APIVersion: infrav1.GroupVersion.String(),
 					Kind:       "VSphereCluster",
 					Name:       "vsphere-test1",
 				},
@@ -78,14 +78,16 @@ var _ = Describe("VsphereMachineReconciler", func() {
 				Namespace: testNs.Name,
 				OwnerReferences: []metav1.OwnerReference{
 					{
-						APIVersion: "cluster.x-k8s.io/v1alpha4",
+						APIVersion: clusterv1.GroupVersion.String(),
 						Kind:       "Cluster",
 						Name:       capiCluster.Name,
 						UID:        "blah",
 					},
 				},
 			},
-			Spec: infrav1.VSphereClusterSpec{},
+			Spec: infrav1.VSphereClusterSpec{
+				Server: testEnv.Simulator.ServerURL().String(),
+			},
 		}
 		Expect(testEnv.Create(ctx, infraCluster)).To(Succeed())
 
@@ -101,7 +103,7 @@ var _ = Describe("VsphereMachineReconciler", func() {
 			Spec: clusterv1.MachineSpec{
 				ClusterName: capiCluster.Name,
 				InfrastructureRef: corev1.ObjectReference{
-					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
+					APIVersion: infrav1.GroupVersion.String(),
 					Kind:       "VSphereMachine",
 					Name:       "vsphere-machine-1",
 				},

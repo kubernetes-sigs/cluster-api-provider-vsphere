@@ -203,7 +203,10 @@ func (r machineReconciler) Reconcile(ctx goctx.Context, req ctrl.Request) (_ ctr
 		return reconcile.Result{}, nil
 	}
 
-	cluster := r.fetchCAPICluster(machine, machineContext.GetVSphereMachine())
+	cluster, infoErr := r.fetchCAPICluster(machine, machineContext.GetVSphereMachine())
+	if infoErr != nil {
+		logger.Info(infoErr.Error())
+	}
 
 	// Create the patch helper.
 	patchHelper, err := patch.NewHelper(machineContext.GetVSphereMachine(), r.Client)
@@ -387,18 +390,19 @@ func (r *machineReconciler) clusterToVSphereMachines(a client.Object) []reconcil
 	return requests
 }
 
-func (r *machineReconciler) fetchCAPICluster(machine *clusterv1.Machine, vsphereMachine metav1.Object) *clusterv1.Cluster {
-	cluster, err := clusterutilv1.GetClusterFromMetadata(r, r.Client, machine.ObjectMeta)
-	if err != nil {
-		r.Logger.Info("Machine is missing cluster label or cluster does not exist")
-		return nil
+func (r *machineReconciler) fetchCAPICluster(machine *clusterv1.Machine, vsphereMachine metav1.Object) (cluster *clusterv1.Cluster, infoErr error) {
+	cluster, infoErr = clusterutilv1.GetClusterFromMetadata(r, r.Client, machine.ObjectMeta)
+	if infoErr != nil {
+		infoErr = errors.Wrapf(infoErr, "Machine %s/%s is missing cluster label or cluster does not exist",
+			machine.Namespace, machine.Name)
+		return nil, infoErr
 	}
 	if annotations.IsPaused(cluster, vsphereMachine) {
-		r.Logger.V(4).Info("VSphereMachine %s/%s linked to a cluster that is paused", vsphereMachine.GetNamespace(), vsphereMachine.GetName())
-		return nil
+		infoErr = errors.Errorf("VSphereMachine linked to a cluster %s/%s that is paused",
+			cluster.GetNamespace(), cluster.GetName())
+		return nil, infoErr
 	}
-
-	return cluster
+	return cluster, infoErr
 }
 
 // Return hooks that will be invoked when a VirtualMachine is created.

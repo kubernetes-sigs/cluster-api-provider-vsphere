@@ -146,6 +146,7 @@ variables:
   VSPHERE_NETWORK: "network-1"
   VSPHERE_RESOURCE_POOL: "ResourcePool"
   VSPHERE_TEMPLATE: "ubuntu-2004-kube-v1.23.5"
+  VSPHERE_TLS_THUMBPRINT: "AA:BB:CC:DD:11:22:33:44:EE:FF"
   # WORKLOAD_CONTROL_PLANE_ENDPOINT_IP:
   # Also following variables are required but it is recommended to use env variables to avoid disclosure of sensitive data
   # VSPHERE_SSH_AUTHORIZED_KEY:

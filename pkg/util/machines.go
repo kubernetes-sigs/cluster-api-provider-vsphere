@@ -36,31 +36,6 @@ import (
 	vmwarev1b1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 )
 
-// GetMachinesInCluster gets a cluster's Machine resources.
-func GetMachinesInCluster(
-	ctx context.Context,
-	controllerClient client.Client,
-	namespace, clusterName string) ([]*clusterv1.Machine, error) {
-	labels := map[string]string{clusterv1.ClusterLabelName: clusterName}
-	machineList := &clusterv1.MachineList{}
-
-	if err := controllerClient.List(
-		ctx, machineList,
-		client.InNamespace(namespace),
-		client.MatchingLabels(labels)); err != nil {
-		return nil, errors.Wrapf(
-			err, "error getting machines in cluster %s/%s",
-			namespace, clusterName)
-	}
-
-	machines := make([]*clusterv1.Machine, len(machineList.Items))
-	for i := range machineList.Items {
-		machines[i] = &machineList.Items[i]
-	}
-
-	return machines, nil
-}
-
 // GetVSphereMachinesInCluster gets a cluster's VSphereMachine resources.
 func GetVSphereMachinesInCluster(
 	ctx context.Context,
@@ -100,7 +75,7 @@ func GetVSphereMachine(
 	return machine, nil
 }
 
-// GetVSphereClusterFromVSphereMachine gets the vmware.infrastructure.cluster.x-k8s.io.VSPhereCluster resource for the given VSphereMachine.
+// GetVSphereClusterFromVSphereMachine gets the vmware.infrastructure.cluster.x-k8s.io.VSphereCluster resource for the given VSphereMachine.
 func GetVSphereClusterFromVSphereMachine(ctx context.Context, c client.Client, machine *vmwarev1b1.VSphereMachine) (*vmwarev1b1.VSphereCluster, error) {
 	clusterName := machine.Labels[clusterv1.ClusterLabelName]
 	if clusterName == "" {
@@ -111,9 +86,18 @@ func GetVSphereClusterFromVSphereMachine(ctx context.Context, c client.Client, m
 		Namespace: machine.Namespace,
 		Name:      clusterName,
 	}
-	cluster := &vmwarev1b1.VSphereCluster{}
-	err := c.Get(ctx, namespacedName, cluster)
-	return cluster, err
+	cluster := &clusterv1.Cluster{}
+	if err := c.Get(ctx, namespacedName, cluster); err != nil {
+		return nil, err
+	}
+
+	vsphereClusterKey := apitypes.NamespacedName{
+		Namespace: machine.Namespace,
+		Name:      cluster.Spec.InfrastructureRef.Name,
+	}
+	vsphereCluster := &vmwarev1b1.VSphereCluster{}
+	err := c.Get(ctx, vsphereClusterKey, vsphereCluster)
+	return vsphereCluster, err
 }
 
 // ErrNoMachineIPAddr indicates that no valid IP addresses were found in a machine context.

@@ -246,10 +246,9 @@ func defaultKubeadmInitSpec(files []bootstrapv1.File) bootstrapv1.KubeadmConfigS
 			},
 			ControllerManager: defaultControlPlaneComponent(),
 		},
-		Users:                    defaultUsers(),
-		PreKubeadmCommands:       defaultPreKubeadmCommands(),
-		UseExperimentalRetryJoin: true,
-		Files:                    files,
+		Users:              defaultUsers(),
+		PreKubeadmCommands: defaultPreKubeadmCommands(),
+		Files:              files,
 	}
 }
 

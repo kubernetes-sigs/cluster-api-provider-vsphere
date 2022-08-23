@@ -402,8 +402,8 @@ github.com/golangci/go-misc v0.0.0-20220329215616-d24fe342adfe h1:6RGUuS7EGotKx6
 github.com/golangci/go-misc v0.0.0-20220329215616-d24fe342adfe/go.mod h1:gjqyPShc/m8pEMpk0a3SeagVb0kaqvhscv+i9jI5ZhQ=
 github.com/golangci/gofmt v0.0.0-20190930125516-244bba706f1a h1:iR3fYXUjHCR97qWS8ch1y9zPNsgXThGwjKPrYfqMPks=
 github.com/golangci/gofmt v0.0.0-20190930125516-244bba706f1a/go.mod h1:9qCChq59u/eW8im404Q2WWTrnBUQKjpNYKMbU4M7EFU=
-github.com/golangci/golangci-lint v1.48.0 h1:hRiBNk9iRqdAKMa06ntfEiLyza1/3IE9rHLNJaek4a8=
-github.com/golangci/golangci-lint v1.48.0/go.mod h1:5N+oxduCho+7yuccW69upg/O7cxjfR/d+IQeiNxGmKM=
+github.com/golangci/golangci-lint v1.47.3 h1:ri7A2DgtFpxgqcMSsU3qIT0IBm/SCdYgXlvmJx4szUU=
+github.com/golangci/golangci-lint v1.47.3/go.mod h1:IvT5xyPX1W8JUJJrV60gcMzgQe1ttW/38yAzn6LuHOk=
 github.com/golangci/lint-1 v0.0.0-20191013205115-297bf364a8e0 h1:MfyDlzVjl1hoaPzPD4Gpb/QgoRfSBR0jdhwGyAWwMSA=
 github.com/golangci/lint-1 v0.0.0-20191013205115-297bf364a8e0/go.mod h1:66R6K6P6VWk9I95jvqGxkqJxVWGFy9XlDwLwVz1RCFg=
 github.com/golangci/maligned v0.0.0-20180506175553-b1d89398deca h1:kNY3/svz5T29MYHubXix4aDDuE3RWHkPvopM/EDv/MA=
@@ -911,8 +911,6 @@ github.com/ryanuber/columnize v0.0.0-20160712163229-9b3edd62028f/go.mod h1:sm1tb
 github.com/samuel/go-zookeeper v0.0.0-20190923202752-2cc03de413da/go.mod h1:gi+0XIa01GRL2eRQVjQkKGqKF3SF9vZR/HnPullcV2E=
 github.com/sanposhiho/wastedassign/v2 v2.0.6 h1:+6/hQIHKNJAUixEj6EmOngGIisyeI+T3335lYTyxRoA=
 github.com/sanposhiho/wastedassign/v2 v2.0.6/go.mod h1:KyZ0MWTwxxBmfwn33zh3k1dmsbF2ud9pAAGfoLfjhtI=
-github.com/sashamelentyev/usestdlibvars v1.8.0 h1:QnWP9IOEuRyYKH+IG0LlQIjuJlc0rfdo4K3/Zh3WRMw=
-github.com/sashamelentyev/usestdlibvars v1.8.0/go.mod h1:BFt7b5mSVHaaa26ZupiNRV2ODViQBxZZVhtAxAJRrjs=
 github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529/go.mod h1:DxrIzT+xaE7yg65j358z/aeFdxmN0P9QXhEzd20vsDc=
 github.com/securego/gosec/v2 v2.12.0 h1:CQWdW7ATFpvLSohMVsajscfyHJ5rsGmEXmsNcsDNmAg=
 github.com/securego/gosec/v2 v2.12.0/go.mod h1:iTpT+eKTw59bSgklBHlSnH5O2tNygHMDxfvMubA4i7I=

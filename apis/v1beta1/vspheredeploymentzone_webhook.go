@@ -22,9 +22,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
-func (r *VSphereDeploymentZone) SetupWebhookWithManager(mgr ctrl.Manager) error {
+func (z *VSphereDeploymentZone) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
-		For(r).
+		For(z).
 		Complete()
 }
 
@@ -32,10 +32,9 @@ func (r *VSphereDeploymentZone) SetupWebhookWithManager(mgr ctrl.Manager) error 
 
 var _ webhook.Defaulter = &VSphereDeploymentZone{}
 
-// Default implements webhook.Defaulter so a webhook will be registered for the type
-// nolint:stylecheck
-func (r *VSphereDeploymentZone) Default() {
-	if r.Spec.ControlPlane == nil {
-		r.Spec.ControlPlane = pointer.BoolPtr(true)
+// Default implements webhook.Defaulter so a webhook will be registered for the type.
+func (z *VSphereDeploymentZone) Default() {
+	if z.Spec.ControlPlane == nil {
+		z.Spec.ControlPlane = pointer.Bool(true)
 	}
 }

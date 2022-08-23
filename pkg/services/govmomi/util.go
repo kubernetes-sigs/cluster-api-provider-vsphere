@@ -52,11 +52,11 @@ func sanitizeIPAddrs(ctx *context.VMContext, ipAddrs []string) []string {
 }
 
 // findVM searches for a VM in one of two ways:
-//   1. If the BIOS UUID is available, then it is used to find the VM.
-//   2. Lacking the BIOS UUID, the VM is queried by its instance UUID,
-//      which was assigned the value of the VSphereVM resource's UID string.
-//   3. If it is not found by instance UUID, fallback to an inventory path search
-//      using the vm folder path and the VSphereVM name
+//  1. If the BIOS UUID is available, then it is used to find the VM.
+//  2. Lacking the BIOS UUID, the VM is queried by its instance UUID,
+//     which was assigned the value of the VSphereVM resource's UID string.
+//  3. If it is not found by instance UUID, fallback to an inventory path search
+//     using the vm folder path and the VSphereVM name
 func findVM(ctx *context.VMContext) (types.ManagedObjectReference, error) {
 	if biosUUID := ctx.VSphereVM.Spec.BiosUUID; biosUUID != "" {
 		objRef, err := ctx.Session.FindByBIOSUUID(ctx, biosUUID)
@@ -392,7 +392,8 @@ func getMacAddresses(ctx *virtualMachineContext) ([]string, map[string]int, map[
 // The gocyclo detector is disabled for this function as it is difficult to
 // rewrite much simpler due to the maps used to track state and the lambdas
 // that use the maps.
-// nolint:gocyclo,gocognit
+//
+//nolint:gocyclo,gocognit
 func waitForIPAddresses(
 	ctx *virtualMachineContext,
 	macToDeviceIndex map[string]int,

@@ -3,7 +3,7 @@ module sigs.k8s.io/cluster-api-provider-vsphere/hack/tools
 go 1.18
 
 require (
-	github.com/golangci/golangci-lint v1.48.0
+	github.com/golangci/golangci-lint v1.47.3
 	github.com/joelanford/go-apidiff v0.1.0
 	github.com/onsi/ginkgo v1.16.5
 	github.com/vmware/govmomi v0.23.1
@@ -167,7 +167,6 @@ require (
 	github.com/ryancurrah/gomodguard v1.2.4 // indirect
 	github.com/ryanrolds/sqlclosecheck v0.3.0 // indirect
 	github.com/sanposhiho/wastedassign/v2 v2.0.6 // indirect
-	github.com/sashamelentyev/usestdlibvars v1.8.0 // indirect
 	github.com/securego/gosec/v2 v2.12.0 // indirect
 	github.com/sergi/go-diff v1.2.0 // indirect
 	github.com/shazow/go-diff v0.0.0-20160112020656-b6b7b6733b8c // indirect

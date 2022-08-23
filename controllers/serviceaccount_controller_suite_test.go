@@ -42,12 +42,12 @@ const (
 	testProviderSvcAccountName = "test-pvcsi"
 
 	testTargetNS             = "test-pvcsi-system"
-	testTargetSecret         = "test-pvcsi-secret" // nolint:gosec
+	testTargetSecret         = "test-pvcsi-secret" //nolint:gosec
 	testSvcAccountSecretName = testProviderSvcAccountName + "-token-abcdef"
 	testSystemSvcAcctNs      = "test-system-svc-acct-namespace"
 	testSystemSvcAcctCM      = "test-system-svc-acct-cm"
 
-	testSecretToken = "ZXlKaGJHY2lPaUpTVXpJMU5pSXNJbXRwWkNJNklp" // nolint:gosec
+	testSecretToken = "ZXlKaGJHY2lPaUpTVXpJMU5pSXNJbXRwWkNJNklp" //nolint:gosec
 )
 
 var truePointer = true
@@ -109,7 +109,7 @@ func assertServiceAccountAndUpdateSecret(ctx goctx.Context, ctrlClient client.Cl
 	Expect(ctrlClient.Update(ctx, svcAccount)).To(Succeed())
 }
 
-func assertTargetSecret(ctx goctx.Context, guestClient client.Client, namespace, name string) { // nolint
+func assertTargetSecret(ctx goctx.Context, guestClient client.Client, namespace, name string) { //nolint
 	secret := &corev1.Secret{}
 	assertEventuallyExistsInNamespace(ctx, guestClient, namespace, name, secret)
 	EventuallyWithOffset(2, func() []byte {
@@ -163,9 +163,8 @@ func assertRoleBinding(_ *builder.UnitTestContextForController, ctrlClient clien
 	}))
 }
 
-// nolint
-func assertProviderServiceAccountsCondition(vCluster *vmwarev1.VSphereCluster, status corev1.ConditionStatus,
-	message string, reason string, severity clusterv1.ConditionSeverity) {
+// assertProviderServiceAccountsCondition asserts the condition on the ProviderServiceAccount CR.
+func assertProviderServiceAccountsCondition(vCluster *vmwarev1.VSphereCluster, status corev1.ConditionStatus, message string, reason string, severity clusterv1.ConditionSeverity) { //nolint
 	c := conditions.Get(vCluster, vmwarev1.ProviderServiceAccountsReadyCondition)
 	Expect(c).NotTo(BeNil())
 	Expect(c.Status).To(Equal(status))

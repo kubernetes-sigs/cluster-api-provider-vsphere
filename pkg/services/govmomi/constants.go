@@ -20,10 +20,6 @@ const (
 	morefTypeTask = "Task"
 )
 
-// nolint
 const (
-	guestInfoKeyMetadata    = "guestinfo.metadata"
-	guestInfoKeyMetadataEnc = "guestinfo.metadata.encoding"
-	guestInfoKeyUserdata    = "guestinfo.userdata"
-	guestInfoKeyUserdataEnc = "guestinfo.userdata.encoding"
+	guestInfoKeyMetadata = "guestinfo.metadata"
 )

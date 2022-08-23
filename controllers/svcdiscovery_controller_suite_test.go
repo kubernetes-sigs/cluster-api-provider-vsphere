@@ -85,8 +85,7 @@ func assertHeadlessSvc(ctx context.Context, guestClient client.Client, namespace
 	Expect(headlessSvc.Spec.Ports[0].TargetPort.IntVal).To(Equal(int32(supervisorAPIServerPort)))
 }
 
-// nolint
-func assertHeadlessSvcWithNoEndpoints(ctx context.Context, guestClient client.Client, namespace, name string) {
+func assertHeadlessSvcWithNoEndpoints(ctx context.Context, guestClient client.Client, namespace, name string) { //nolint
 	assertHeadlessSvc(ctx, guestClient, namespace, name)
 	headlessEndpoints := &corev1.Endpoints{}
 	assertEventuallyDoesNotExistInNamespace(ctx, guestClient, namespace, name, headlessEndpoints)

@@ -387,7 +387,7 @@ func (r clusterReconciler) reconcileVSphereClusterWhenAPIServerIsOnline(ctx *con
 	go func() {
 		// Block until the target API server is online.
 		ctx.Logger.Info("start polling API server for online check")
-		wait.PollImmediateInfinite(time.Second*1, func() (bool, error) { return r.isAPIServerOnline(ctx), nil }) // nolint:errcheck
+		wait.PollImmediateInfinite(time.Second*1, func() (bool, error) { return r.isAPIServerOnline(ctx), nil }) //nolint:errcheck
 		ctx.Logger.Info("stop polling API server for online check")
 		ctx.Logger.Info("triggering GenericEvent", "reason", "api-server-online")
 		eventChannel := ctx.GetGenericEventChannelFor(ctx.VSphereCluster.GetObjectKind().GroupVersionKind())
@@ -399,7 +399,7 @@ func (r clusterReconciler) reconcileVSphereClusterWhenAPIServerIsOnline(ctx *con
 		// remove the key from the map that prevents multiple goroutines from
 		// polling the API server to see if it is online.
 		ctx.Logger.Info("start polling for control plane initialized")
-		wait.PollImmediateInfinite(time.Second*1, func() (bool, error) { return r.isControlPlaneInitialized(ctx), nil }) // nolint:errcheck
+		wait.PollImmediateInfinite(time.Second*1, func() (bool, error) { return r.isControlPlaneInitialized(ctx), nil }) //nolint:errcheck
 		ctx.Logger.Info("stop polling for control plane initialized")
 		apiServerTriggersMu.Lock()
 		delete(apiServerTriggers, ctx.Cluster.UID)

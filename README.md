@@ -33,7 +33,6 @@ This provider's versions are compatible with the following versions of Cluster A
 
 |                                  | Cluster API v1alpha3 (v0.7) | Cluster API v1alpha4 (v0.8) | Cluster API v1beta1 (v1.0) | Cluster API v1beta1 (v1.3) |
 |----------------------------------|:---------------------------:|:---------------------------:|:--------------------------:|:--------------------------:|
-| CAPV v1alpha3 (v0.7)(deprecated) |              ✓              |              ✓              |             ✓              |             ✓              |
 | CAPV v1alpha4 (v0.8)(deprecated)             |              ☓              |              ✓              |             ✓              |             ✓              |
 | CAPV v1beta1 (v1.0)              |              ☓              |              ☓              |             ✓              |             ✓              |
 | CAPV v1beta1 (v1.1)              |              ☓              |              ☓              |             ☓              |             ✓              |

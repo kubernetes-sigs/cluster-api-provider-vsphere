@@ -41,7 +41,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/klog/v2"
-	"k8s.io/klog/v2/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
@@ -239,7 +238,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	// Before all ParallelNodes.
 	flags := flag.NewFlagSet("flags", flag.PanicOnError)
 	klog.InitFlags(flags)
-	ctrl.SetLogger(klogr.New())
+	ctrl.SetLogger(klog.Background())
 	err := flags.Parse([]string{"-v", loglevel})
 	Expect(err).NotTo(HaveOccurred())
 

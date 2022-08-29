@@ -39,9 +39,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
-	"k8s.io/klog/v2/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -57,13 +55,7 @@ import (
 )
 
 func init() {
-	klog.InitFlags(nil)
-	logger := klogr.New()
-
-	// use klog as the internal logger for this envtest environment.
-	log.SetLogger(logger)
-	// Additionally, force all the controllers to use the Ginkgo logger.
-	ctrl.SetLogger(logger)
+	ctrl.SetLogger(klog.Background())
 	// add logger for ginkgo
 	klog.SetOutput(ginkgo.GinkgoWriter)
 }

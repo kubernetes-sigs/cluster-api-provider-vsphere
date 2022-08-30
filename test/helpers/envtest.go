@@ -142,35 +142,20 @@ func NewTestEnvironment() *TestEnvironment {
 		if err := (&infrav1.VSphereMachine{}).SetupWebhookWithManager(mgr); err != nil {
 			return err
 		}
-		if err := (&infrav1.VSphereMachineList{}).SetupWebhookWithManager(mgr); err != nil {
-			return err
-		}
 
-		if err := (&infrav1.VSphereMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
-			return err
-		}
-		if err := (&infrav1.VSphereMachineTemplateList{}).SetupWebhookWithManager(mgr); err != nil {
+		if err := (&infrav1.VSphereMachineTemplateWebhook{}).SetupWebhookWithManager(mgr); err != nil {
 			return err
 		}
 
 		if err := (&infrav1.VSphereVM{}).SetupWebhookWithManager(mgr); err != nil {
 			return err
 		}
-		if err := (&infrav1.VSphereVMList{}).SetupWebhookWithManager(mgr); err != nil {
-			return err
-		}
 
 		if err := (&infrav1.VSphereDeploymentZone{}).SetupWebhookWithManager(mgr); err != nil {
 			return err
 		}
-		if err := (&infrav1.VSphereDeploymentZoneList{}).SetupWebhookWithManager(mgr); err != nil {
-			return err
-		}
 
 		if err := (&infrav1.VSphereFailureDomain{}).SetupWebhookWithManager(mgr); err != nil {
-			return err
-		}
-		if err := (&infrav1.VSphereFailureDomainList{}).SetupWebhookWithManager(mgr); err != nil {
 			return err
 		}
 

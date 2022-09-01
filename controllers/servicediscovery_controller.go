@@ -47,7 +47,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/builder"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	vmwarecontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
@@ -119,10 +118,6 @@ func AddServiceDiscoveryControllerToManager(ctx *context.ControllerManagerContex
 				IsController: true,
 			}).
 		Complete(r)
-}
-
-func newServiceDiscoveryReconciler() builder.Reconciler {
-	return serviceDiscoveryReconciler{}
 }
 
 type serviceDiscoveryReconciler struct {

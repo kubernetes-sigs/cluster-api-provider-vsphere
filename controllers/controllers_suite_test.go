@@ -68,9 +68,6 @@ func setup() {
 	if err := AddClusterControllerToManager(testEnv.GetContext(), testEnv.Manager, &infrav1.VSphereCluster{}); err != nil {
 		panic(fmt.Sprintf("unable to setup VsphereCluster controller: %v", err))
 	}
-	if err := AddClusterControllerToManager(testEnv.GetContext(), testEnv.Manager, &vmwarev1.VSphereCluster{}); err != nil {
-		panic(fmt.Sprintf("unable to setup supervisor VsphereCluster controller: %v", err))
-	}
 	if err := AddMachineControllerToManager(testEnv.GetContext(), testEnv.Manager, &infrav1.VSphereMachine{}); err != nil {
 		panic(fmt.Sprintf("unable to setup VsphereMachine controller: %v", err))
 	}

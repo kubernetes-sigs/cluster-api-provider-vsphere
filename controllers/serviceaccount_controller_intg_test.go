@@ -31,16 +31,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/builder"
+	helpers "sigs.k8s.io/cluster-api-provider-vsphere/test/helpers/vmware"
 )
 
 var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 	var (
-		intCtx *builder.IntegrationTestContext
+		intCtx *helpers.IntegrationTestContext
 	)
 
 	BeforeEach(func() {
-		intCtx = ServiceAccountProviderTestsuite.NewIntegrationTestContextWithClusters(ctx, testEnv.Manager.GetClient())
+		intCtx = helpers.NewIntegrationTestContextWithClusters(ctx, testEnv.Manager.GetClient())
 		testSystemSvcAcctCM := "test-system-svc-acct-cm"
 		cfgMap := getSystemServiceAccountsConfigMap(intCtx.VSphereCluster.Namespace, testSystemSvcAcctCM)
 		Expect(intCtx.Client.Create(intCtx, cfgMap)).To(Succeed())

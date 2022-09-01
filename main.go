@@ -29,11 +29,11 @@ import (
 	"github.com/spf13/pflag"
 	"gopkg.in/fsnotify.v1"
 	"k8s.io/apimachinery/pkg/api/meta"
+	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
 	_ "k8s.io/component-base/logs/json/register"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
-	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
 	ctrlsig "sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
@@ -48,7 +48,7 @@ import (
 )
 
 var (
-	setupLog   = ctrllog.Log.WithName("entrypoint")
+	setupLog   = ctrl.Log.WithName("entrypoint")
 	logOptions = logs.NewOptions()
 
 	managerOpts     manager.Options
@@ -152,6 +152,7 @@ func main() {
 
 	InitFlags(pflag.CommandLine)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
+	pflag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
 	if err := pflag.CommandLine.Set("v", "2"); err != nil {
 		setupLog.Error(err, "failed to set log level: %v")
 		os.Exit(1)

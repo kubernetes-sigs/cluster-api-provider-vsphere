@@ -22,16 +22,16 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/builder"
+	helpers "sigs.k8s.io/cluster-api-provider-vsphere/test/helpers/vmware"
 )
 
 var _ = Describe("Service Discovery controller integration tests", func() {
 	var (
-		intCtx      *builder.IntegrationTestContext
+		intCtx      *helpers.IntegrationTestContext
 		initObjects []client.Object
 	)
 	BeforeEach(func() {
-		intCtx = serviceDiscoveryTestSuite.NewIntegrationTestContextWithClusters(ctx, testEnv.Manager.GetClient())
+		intCtx = helpers.NewIntegrationTestContextWithClusters(ctx, testEnv.Manager.GetClient())
 	})
 	AfterEach(func() {
 		intCtx.AfterEach()

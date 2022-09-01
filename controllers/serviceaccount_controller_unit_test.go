@@ -26,25 +26,34 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/builder"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
+	helpers "sigs.k8s.io/cluster-api-provider-vsphere/test/helpers/vmware"
 )
 
 var _ = Describe("ServiceAccountReconciler ReconcileNormal", unitTestsReconcileNormal)
 
 func unitTestsReconcileNormal() {
 	var (
-		ctx            *builder.UnitTestContextForController
+		ctx            *helpers.UnitTestContextForController
 		vsphereCluster *vmwarev1.VSphereCluster
 		initObjects    []client.Object
 		namespace      string
+		reconciler     ServiceAccountReconciler
 	)
 
 	JustBeforeEach(func() {
 		// Note: The service account provider requires a reference to the vSphereCluster hence the need to create
 		// a fake vSphereCluster in the test and pass it to during context setup.
-		ctx = ServiceAccountProviderTestsuite.NewUnitTestContextForControllerWithVSphereCluster(namespace, vsphereCluster, false, initObjects...)
+		reconciler = ServiceAccountReconciler{}
+		ctx = helpers.NewUnitTestContextForController(namespace, vsphereCluster, false, initObjects, nil)
+		_, err := reconciler.ReconcileNormal(ctx.GuestClusterContext)
+		Expect(err).NotTo(HaveOccurred())
+
+		// Update the VSphereCluster and its status in the fake client.
+		Expect(ctx.Client.Update(ctx, ctx.VSphereCluster)).To(Succeed())
+		Expect(ctx.Client.Status().Update(ctx, ctx.VSphereCluster)).To(Succeed())
 	})
+
 	AfterEach(func() {
 		ctx = nil
 	})
@@ -73,7 +82,7 @@ func unitTestsReconcileNormal() {
 		Context("When serviceaccount secret is created", func() {
 			It("Should reconcile", func() {
 				assertTargetNamespace(ctx, ctx.GuestClient, testTargetNS, false)
-				updateServiceAccountSecretAndReconcileNormal(ctx, vsphereCluster)
+				updateServiceAccountSecretAndReconcileNormal(ctx, reconciler, vsphereCluster)
 				assertTargetNamespace(ctx, ctx.GuestClient, testTargetNS, true)
 				By("Creating the target secret in the target namespace")
 				assertTargetSecret(ctx, ctx.GuestClient, testTargetNS, testTargetSecret)
@@ -84,7 +93,7 @@ func unitTestsReconcileNormal() {
 			It("Should reconcile", func() {
 				// This is to simulate an outdated token that will be replaced when the serviceaccount secret is created.
 				createTargetSecretWithInvalidToken(ctx, ctx.GuestClient, testTargetNS)
-				updateServiceAccountSecretAndReconcileNormal(ctx, vsphereCluster)
+				updateServiceAccountSecretAndReconcileNormal(ctx, reconciler, vsphereCluster)
 				By("Updating the target secret in the target namespace")
 				assertTargetSecret(ctx, ctx.GuestClient, testTargetNS, testTargetSecret)
 				assertProviderServiceAccountsCondition(ctx.VSphereCluster, corev1.ConditionTrue, "", "", "")
@@ -113,7 +122,8 @@ func unitTestsReconcileNormal() {
 
 // Updates the service account secret similar to how a token controller would act upon a service account
 // and then re-invokes reconcileNormal.
-func updateServiceAccountSecretAndReconcileNormal(ctx *builder.UnitTestContextForController, object client.Object) {
+func updateServiceAccountSecretAndReconcileNormal(ctx *helpers.UnitTestContextForController, reconciler ServiceAccountReconciler, object client.Object) {
 	assertServiceAccountAndUpdateSecret(ctx, ctx.Client, object.GetNamespace(), object.GetName())
-	Expect(ctx.ReconcileNormal()).Should(Succeed())
+	_, err := reconciler.ReconcileNormal(ctx.GuestClusterContext)
+	Expect(err).NotTo(HaveOccurred())
 }

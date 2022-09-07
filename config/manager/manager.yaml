@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - args:
-        - --enable-leader-election
+        - --leader-elect
         - --logtostderr
         - --v=4
         image: gcr.io/cluster-api-provider-vsphere/release/manager:latest

@@ -848,12 +848,128 @@ spec:
                                     true then IPAddrs should not contain any IPv4
                                     addresses.
                                   type: boolean
+                                dhcp4Overrides:
+                                  description: DHCP4Overrides allows for the control
+                                    over several DHCP behaviors. Overrides will only
+                                    be applied when the corresponding DHCP flag is
+                                    set. Only configured values will be sent, omitted
+                                    values will default to distribution defaults.
+                                    Dependent on support in the network stack for
+                                    your distribution. For more information see the
+                                    netplan reference (https://netplan.io/reference#dhcp-overrides)
+                                  properties:
+                                    hostname:
+                                      description: Hostname is the name which will
+                                        be sent to the DHCP server instead of the
+                                        machine's hostname.
+                                      type: string
+                                    routeMetric:
+                                      description: RouteMetric is used to prioritize
+                                        routes for devices. A lower metric for an
+                                        interface will have a higher priority.
+                                      type: integer
+                                    sendHostname:
+                                      description: SendHostname when `true`, the hostname
+                                        of the machine will be sent to the DHCP server.
+                                      type: boolean
+                                    useDNS:
+                                      description: UseDNS when `true`, the DNS servers
+                                        in the DHCP server will be used and take precedence.
+                                      type: boolean
+                                    useDomains:
+                                      description: UseDomains can take the values
+                                        `true`, `false`, or `route`. When `true`,
+                                        the domain name from the DHCP server will
+                                        be used as the DNS search domain for this
+                                        device. When `route`, the domain name from
+                                        the DHCP response will be used for routing
+                                        DNS only, not for searching.
+                                      type: string
+                                    useHostname:
+                                      description: UseHostname when `true`, the hostname
+                                        from the DHCP server will be set as the transient
+                                        hostname of the machine.
+                                      type: boolean
+                                    useMTU:
+                                      description: UseMTU when `true`, the MTU from
+                                        the DHCP server will be set as the MTU of
+                                        the device.
+                                      type: boolean
+                                    useNTP:
+                                      description: UseNTP when `true`, the NTP servers
+                                        from the DHCP server will be used by systemd-timesyncd
+                                        and take precedence.
+                                      type: boolean
+                                    useRoutes:
+                                      description: UseRoutes when `true`, the routes
+                                        from the DHCP server will be installed in
+                                        the routing table.
+                                      type: string
+                                  type: object
                                 dhcp6:
                                   description: DHCP6 is a flag that indicates whether
                                     or not to use DHCP for IPv6 on this device. If
                                     true then IPAddrs should not contain any IPv6
                                     addresses.
                                   type: boolean
+                                dhcp6Overrides:
+                                  description: DHCP6Overrides allows for the control
+                                    over several DHCP behaviors. Overrides will only
+                                    be applied when the corresponding DHCP flag is
+                                    set. Only configured values will be sent, omitted
+                                    values will default to distribution defaults.
+                                    Dependent on support in the network stack for
+                                    your distribution. For more information see the
+                                    netplan reference (https://netplan.io/reference#dhcp-overrides)
+                                  properties:
+                                    hostname:
+                                      description: Hostname is the name which will
+                                        be sent to the DHCP server instead of the
+                                        machine's hostname.
+                                      type: string
+                                    routeMetric:
+                                      description: RouteMetric is used to prioritize
+                                        routes for devices. A lower metric for an
+                                        interface will have a higher priority.
+                                      type: integer
+                                    sendHostname:
+                                      description: SendHostname when `true`, the hostname
+                                        of the machine will be sent to the DHCP server.
+                                      type: boolean
+                                    useDNS:
+                                      description: UseDNS when `true`, the DNS servers
+                                        in the DHCP server will be used and take precedence.
+                                      type: boolean
+                                    useDomains:
+                                      description: UseDomains can take the values
+                                        `true`, `false`, or `route`. When `true`,
+                                        the domain name from the DHCP server will
+                                        be used as the DNS search domain for this
+                                        device. When `route`, the domain name from
+                                        the DHCP response will be used for routing
+                                        DNS only, not for searching.
+                                      type: string
+                                    useHostname:
+                                      description: UseHostname when `true`, the hostname
+                                        from the DHCP server will be set as the transient
+                                        hostname of the machine.
+                                      type: boolean
+                                    useMTU:
+                                      description: UseMTU when `true`, the MTU from
+                                        the DHCP server will be set as the MTU of
+                                        the device.
+                                      type: boolean
+                                    useNTP:
+                                      description: UseNTP when `true`, the NTP servers
+                                        from the DHCP server will be used by systemd-timesyncd
+                                        and take precedence.
+                                      type: boolean
+                                    useRoutes:
+                                      description: UseRoutes when `true`, the routes
+                                        from the DHCP server will be installed in
+                                        the routing table.
+                                      type: string
+                                  type: object
                                 gateway4:
                                   description: Gateway4 is the IPv4 gateway used by
                                     this device. Required when DHCP4 is false.

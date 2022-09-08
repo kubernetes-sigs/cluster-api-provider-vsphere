@@ -385,6 +385,122 @@ network:
 `,
 		},
 		{
+			name: "dhcp4+dhcp6+dhcpOverrides",
+			machine: &infrav1.VSphereVM{
+				Spec: infrav1.VSphereVMSpec{
+					VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
+						Network: infrav1.NetworkSpec{
+							Devices: []infrav1.NetworkDeviceSpec{
+								{
+									NetworkName: "network1",
+									MACAddr:     "00:00:00:00:00",
+									DHCP4:       true,
+									DHCP4Overrides: &infrav1.DHCPOverrides{
+										Hostname:     toStringPtr("hal"),
+										RouteMetric:  toIntPtr(12345),
+										SendHostname: toBoolPtr(true),
+										UseDNS:       toBoolPtr(true),
+										UseDomains:   toStringPtr("true"),
+										UseHostname:  toBoolPtr(true),
+										UseMTU:       toBoolPtr(true),
+										UseNTP:       toBoolPtr(true),
+										UseRoutes:    toStringPtr("route"),
+									},
+									DHCP6: true,
+									DHCP6Overrides: &infrav1.DHCPOverrides{
+										Hostname:     toStringPtr("hal"),
+										RouteMetric:  toIntPtr(12345),
+										SendHostname: toBoolPtr(true),
+										UseDNS:       toBoolPtr(true),
+										UseDomains:   toStringPtr("true"),
+										UseHostname:  toBoolPtr(true),
+										UseMTU:       toBoolPtr(true),
+										UseNTP:       toBoolPtr(true),
+										UseRoutes:    toStringPtr("route"),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: `
+instance-id: "test-vm"
+local-hostname: "test-vm"
+wait-on-network:
+  ipv4: true
+  ipv6: true
+network:
+  version: 2
+  ethernets:
+    id0:
+      match:
+        macaddress: "00:00:00:00:00"
+      set-name: "eth0"
+      wakeonlan: true
+      dhcp4: true
+      dhcp4-overrides:
+        hostname: "hal"
+        route-metric: 12345
+        send-hostname: true
+        use-dns: true
+        use-domains: true
+        use-hostname: true
+        use-mtu: true
+        use-ntp: true
+        use-routes: "route"
+      dhcp6: true
+      dhcp6-overrides:
+        hostname: "hal"
+        route-metric: 12345
+        send-hostname: true
+        use-dns: true
+        use-domains: true
+        use-hostname: true
+        use-mtu: true
+        use-ntp: true
+        use-routes: "route"
+`,
+		},
+		{
+			name: "dhcp4+dhcp6+noDhcpOverrides",
+			machine: &infrav1.VSphereVM{
+				Spec: infrav1.VSphereVMSpec{
+					VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
+						Network: infrav1.NetworkSpec{
+							Devices: []infrav1.NetworkDeviceSpec{
+								{
+									NetworkName:    "network1",
+									MACAddr:        "00:00:00:00:00",
+									DHCP4:          true,
+									DHCP4Overrides: nil,
+									DHCP6:          true,
+									DHCP6Overrides: nil,
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: `
+instance-id: "test-vm"
+local-hostname: "test-vm"
+wait-on-network:
+  ipv4: true
+  ipv6: true
+network:
+  version: 2
+  ethernets:
+    id0:
+      match:
+        macaddress: "00:00:00:00:00"
+      set-name: "eth0"
+      wakeonlan: true
+      dhcp4: true
+      dhcp6: true
+`,
+		},
+		{
 			name: "static4+dhcp6",
 			machine: &infrav1.VSphereVM{
 				Spec: infrav1.VSphereVMSpec{
@@ -959,4 +1075,12 @@ func mtu(i int64) *int64 {
 
 func toStringPtr(s string) *string {
 	return &s
+}
+
+func toBoolPtr(b bool) *bool {
+	return &b
+}
+
+func toIntPtr(i int) *int {
+	return &i
 }

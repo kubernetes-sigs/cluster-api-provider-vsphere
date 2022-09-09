@@ -27,7 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/klog/v2/klogr"
+	"k8s.io/klog/v2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	testclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -143,7 +143,7 @@ func CreateClusterContext(cluster *clusterv1.Cluster, vsphereCluster *infrav1.VS
 	scheme := createScheme()
 	controllerManagerContext := &context.ControllerManagerContext{
 		Context: goctx.Background(),
-		Logger:  klogr.New().WithName("controller-manager-logger"),
+		Logger:  klog.Background().WithName("controller-manager-logger"),
 		Scheme:  scheme,
 		Client:  testclient.NewClientBuilder().WithScheme(scheme).Build(),
 	}

@@ -27,8 +27,8 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/vmware/govmomi/simulator"
-	"k8s.io/klog/v2/klogr"
-	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
+	"k8s.io/klog/v2"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers/vcsim"
@@ -36,8 +36,7 @@ import (
 
 func TestGetSession(t *testing.T) {
 	g := NewWithT(t)
-	log := klogr.New()
-	ctrllog.SetLogger(log)
+	ctrl.SetLogger(klog.Background())
 
 	model := simulator.VPX()
 	model.Cluster = 2
@@ -115,8 +114,7 @@ func assertSessionCountEqualTo(g *WithT, simr *vcsim.Simulator, count int) {
 
 func TestGetSessionWithKeepAlive(t *testing.T) {
 	g := NewWithT(t)
-	log := klogr.New()
-	ctrllog.SetLogger(log)
+	ctrl.SetLogger(klog.Background())
 
 	model := simulator.VPX()
 	model.Cluster = 2
@@ -175,8 +173,7 @@ func TestGetSessionWithKeepAlive(t *testing.T) {
 
 func TestGetSessionWithKeepAliveTagManagerLogout(t *testing.T) {
 	g := NewWithT(t)
-	log := klogr.New()
-	ctrllog.SetLogger(log)
+	ctrl.SetLogger(klog.Background())
 
 	simulator.SessionIdleTimeout = 200 * time.Millisecond
 	model := simulator.VPX()

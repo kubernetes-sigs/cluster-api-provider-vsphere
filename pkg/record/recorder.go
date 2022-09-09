@@ -17,8 +17,8 @@ limitations under the License.
 package record
 
 import (
-	"strings"
-
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
@@ -51,24 +51,28 @@ type recorder struct {
 	record.EventRecorder
 }
 
+func (r recorder) String(reason string) string {
+	return cases.Title(language.English, cases.NoLower).String(reason)
+}
+
 // Event constructs an event from the given information and puts it in the queue for sending.
 func (r recorder) Event(object runtime.Object, reason, message string) {
-	r.EventRecorder.Event(object, corev1.EventTypeNormal, strings.Title(reason), message)
+	r.EventRecorder.Event(object, corev1.EventTypeNormal, r.String(reason), message)
 }
 
 // Eventf is just like Event, but with Sprintf for the message field.
 func (r recorder) Eventf(object runtime.Object, reason, message string, args ...interface{}) {
-	r.EventRecorder.Eventf(object, corev1.EventTypeNormal, strings.Title(reason), message, args...)
+	r.EventRecorder.Eventf(object, corev1.EventTypeNormal, r.String(reason), message, args...)
 }
 
 // Warn constructs a warning event from the given information and puts it in the queue for sending.
 func (r recorder) Warn(object runtime.Object, reason, message string) {
-	r.EventRecorder.Event(object, corev1.EventTypeWarning, strings.Title(reason), message)
+	r.EventRecorder.Event(object, corev1.EventTypeWarning, r.String(reason), message)
 }
 
 // Warnf is just like Event, but with Sprintf for the message field.
 func (r recorder) Warnf(object runtime.Object, reason, message string, args ...interface{}) {
-	r.EventRecorder.Eventf(object, corev1.EventTypeWarning, strings.Title(reason), message, args...)
+	r.EventRecorder.Eventf(object, corev1.EventTypeWarning, r.String(reason), message, args...)
 }
 
 // EmitEvent records a Success or Failure depending on whether or not an error occurred.

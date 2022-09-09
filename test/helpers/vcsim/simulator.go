@@ -16,6 +16,7 @@ limitations under the License.
 
 package vcsim
 
+//nolint
 import (
 	"fmt"
 	"net/url"

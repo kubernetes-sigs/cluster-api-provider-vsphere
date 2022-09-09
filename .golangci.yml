@@ -49,6 +49,8 @@ run:
   skip-files:
   - ".*zz_generated.*\\.go"
   - "contrib/.*"
+  - "apis/v1alpha3/.*"
+  - "apis/v1alpha4/.*"
   timeout: 5m
 issue:
   max-same-issues: 0

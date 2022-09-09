@@ -274,7 +274,7 @@ func (r machineReconciler) reconcileNormal(ctx context.MachineContext) (reconcil
 	// If the VSphereMachine doesn't have our finalizer, add it.
 	ctrlutil.AddFinalizer(ctx.GetVSphereMachine(), infrav1.MachineFinalizer)
 
-	// nolint:gocritic
+	//nolint:gocritic
 	if r.supervisorBased {
 		err := r.setVMModifiers(ctx)
 		if err != nil {

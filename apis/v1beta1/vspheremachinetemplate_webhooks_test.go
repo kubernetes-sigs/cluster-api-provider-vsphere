@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -54,7 +55,8 @@ func TestVSphereMachineTemplate_ValidateCreate(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			err := tc.vsphereMachine.ValidateCreate()
+			webhook := &VSphereMachineTemplateWebhook{}
+			err := webhook.ValidateCreate(context.Background(), tc.vsphereMachine)
 			if tc.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -96,7 +98,8 @@ func TestVSphereMachineTemplate_ValidateUpdate(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			err := tc.vsphereMachine.ValidateUpdate(tc.oldVSphereMachine)
+			webhook := &VSphereMachineTemplateWebhook{}
+			err := webhook.ValidateUpdate(context.Background(), tc.oldVSphereMachine, tc.vsphereMachine)
 			if tc.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -107,7 +110,7 @@ func TestVSphereMachineTemplate_ValidateUpdate(t *testing.T) {
 }
 
 func createVSphereMachineTemplate(server string, providerID *string, preferredAPIServerCIDR string, ips []string) *VSphereMachineTemplate {
-	VSphereMachineTemplate := &VSphereMachineTemplate{
+	vsphereMachineTemplate := &VSphereMachineTemplate{
 		Spec: VSphereMachineTemplateSpec{
 			Template: VSphereMachineTemplateResource{
 				Spec: VSphereMachineSpec{
@@ -124,9 +127,9 @@ func createVSphereMachineTemplate(server string, providerID *string, preferredAP
 		},
 	}
 	for _, ip := range ips {
-		VSphereMachineTemplate.Spec.Template.Spec.Network.Devices = append(VSphereMachineTemplate.Spec.Template.Spec.Network.Devices, NetworkDeviceSpec{
+		vsphereMachineTemplate.Spec.Template.Spec.Network.Devices = append(vsphereMachineTemplate.Spec.Template.Spec.Network.Devices, NetworkDeviceSpec{
 			IPAddrs: []string{ip},
 		})
 	}
-	return VSphereMachineTemplate
+	return vsphereMachineTemplate
 }

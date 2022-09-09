@@ -43,7 +43,8 @@ const (
 // Clone kicks off a clone operation on vCenter to create a new virtual machine. This function does not wait for
 // the virtual machine to be created on the vCenter, which can be resolved by waiting on the task reference stored
 // in VMContext.VSphereVM.Status.TaskRef.
-// nolint:gocognit,gocyclo
+//
+//nolint:gocognit,gocyclo
 func Clone(ctx *context.VMContext, bootstrapData []byte) error {
 	ctx = &context.VMContext{
 		ControllerContext: ctx.ControllerContext,

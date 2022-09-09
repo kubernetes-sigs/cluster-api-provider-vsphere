@@ -28,7 +28,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
 )
 
-// nolint:goconst
+//nolint:goconst
 var _ = Describe("GetCredentials", func() {
 	var (
 		ns      *corev1.Namespace
@@ -59,11 +59,11 @@ var _ = Describe("GetCredentials", func() {
 	Context("with checking if cluster spec identity Ref secret", func() {
 		It("should return false if cluster is nil", func() {
 			cluster = &infrav1.VSphereCluster{}
-			Expect(IsSecretIdentity((cluster))).To(BeFalse())
+			Expect(IsSecretIdentity(cluster)).To(BeFalse())
 		})
 		It("should return false if cluster spec identity Ref is nil", func() {
 			cluster.Spec = infrav1.VSphereClusterSpec{}
-			Expect(IsSecretIdentity((cluster))).To(BeFalse())
+			Expect(IsSecretIdentity(cluster)).To(BeFalse())
 		})
 		It("should return true if cluster spec identity Ref is not nil", func() {
 			credentialSecret := createSecret(cluster.Namespace)

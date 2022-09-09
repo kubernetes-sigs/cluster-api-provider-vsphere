@@ -104,7 +104,7 @@ func AddClusterControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 	}
 
 	reconciler := clusterReconciler{ControllerContext: controllerContext}
-	clusterToInfraFn := clusterutilv1.ClusterToInfrastructureMapFunc(clusterControlledTypeGVK)
+	clusterToInfraFn := clusterToInfrastructureMapFunc(ctx)
 	return ctrl.NewControllerManagedBy(mgr).
 		// Watch the controlled, infrastructure resource.
 		For(clusterControlledType).
@@ -156,4 +156,9 @@ func AddClusterControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 		WithEventFilter(predicates.ResourceIsNotExternallyManaged(reconciler.Logger)).
 		WithOptions(controller.Options{MaxConcurrentReconciles: ctx.MaxConcurrentReconciles}).
 		Complete(reconciler)
+}
+
+func clusterToInfrastructureMapFunc(managerContext *context.ControllerManagerContext) handler.MapFunc {
+	gvk := infrav1.GroupVersion.WithKind(reflect.TypeOf(&infrav1.VSphereCluster{}).Elem().Name())
+	return clusterutilv1.ClusterToInfrastructureMapFunc(managerContext, gvk, managerContext.Client, &infrav1.VSphereCluster{})
 }

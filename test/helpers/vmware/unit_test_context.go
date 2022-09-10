@@ -14,12 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package builder
+package vmware
 
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	vmoprv1 "github.com/vmware-tanzu/vm-operator-api/api/v1alpha1"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
@@ -38,22 +40,17 @@ type UnitTestContextForController struct {
 	Key client.ObjectKey
 
 	VirtualMachineImage *vmoprv1.VirtualMachineImage
-
-	// Reconciler is the builder.Reconciler being unit tested.
-	Reconciler Reconciler
 }
 
 // NewUnitTestContextForController returns a new UnitTestContextForController
 // with an optional prototype cluster for unit testing controllers that do not
 // invoke the VSphereCluster spec controller.
-func NewUnitTestContextForController(newReconcilerFn NewReconcilerFunc, namespace string, vSphereCluster *vmwarev1.VSphereCluster,
+func NewUnitTestContextForController( /*newReconcilerFn NewReconcilerFunc, */ namespace string, vSphereCluster *vmwarev1.VSphereCluster,
 	prototypeCluster bool, initObjects, gcInitObjects []client.Object) *UnitTestContextForController {
-	reconciler := newReconcilerFn()
 	ctx := &UnitTestContextForController{
 		GuestClusterContext: fake.NewGuestClusterContext(fake.NewVmwareClusterContext(
 			fake.NewControllerContext(
 				fake.NewControllerManagerContext(initObjects...)), namespace, vSphereCluster), prototypeCluster, gcInitObjects...),
-		Reconciler: reconciler,
 	}
 	ctx.Key = client.ObjectKey{Namespace: ctx.VSphereCluster.Namespace, Name: ctx.VSphereCluster.Name}
 
@@ -74,8 +71,28 @@ func CreatePrototypePrereqs(_ *UnitTestContextForController, ctx *context.Contro
 	})
 }
 
-// ReconcileNormal manually invokes the ReconcileNormal method on the controller.
-func (ctx UnitTestContextForController) ReconcileNormal() error {
-	_, err := ctx.Reconciler.ReconcileNormal(ctx.GuestClusterContext)
-	return err
+func FakeVirtualMachineClass() *vmoprv1.VirtualMachineClass {
+	return &vmoprv1.VirtualMachineClass{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: "test-",
+		},
+		Spec: vmoprv1.VirtualMachineClassSpec{
+			Hardware: vmoprv1.VirtualMachineClassHardware{
+				Cpus:   int64(2),
+				Memory: resource.MustParse("4Gi"),
+			},
+			Policies: vmoprv1.VirtualMachineClassPolicies{
+				Resources: vmoprv1.VirtualMachineClassResources{
+					Requests: vmoprv1.VirtualMachineResourceSpec{
+						Cpu:    resource.MustParse("2Gi"),
+						Memory: resource.MustParse("4Gi"),
+					},
+					Limits: vmoprv1.VirtualMachineResourceSpec{
+						Cpu:    resource.MustParse("2Gi"),
+						Memory: resource.MustParse("4Gi"),
+					},
+				},
+			},
+		},
+	}
 }

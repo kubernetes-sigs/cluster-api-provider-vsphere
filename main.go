@@ -71,12 +71,12 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	flag.StringVar(
 		&managerOpts.MetricsBindAddress,
-		"metrics-addr",
+		"metrics-bind-addr",
 		"localhost:8080",
 		"The address the metric endpoint binds to.")
 	flag.BoolVar(
 		&managerOpts.LeaderElection,
-		"enable-leader-election",
+		"leader-elect",
 		true,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
 	flag.StringVar(

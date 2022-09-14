@@ -21,8 +21,6 @@ import (
 	capie2e "sigs.k8s.io/cluster-api/test/e2e"
 )
 
-// TODO(srm09): Add the ModifyMachineDeploymentInfrastructureMachineTemplateFields to the test below
-//				once it is available in CAPI v.1.2.x release line.
 var _ = Describe("When testing ClusterClass changes [ClusterClass]", func() {
 	capie2e.ClusterClassChangesSpec(ctx, func() capie2e.ClusterClassChangesSpecInput {
 		return capie2e.ClusterClassChangesSpecInput{
@@ -32,17 +30,14 @@ var _ = Describe("When testing ClusterClass changes [ClusterClass]", func() {
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,
 			Flavor:                "topology",
-			// ModifyControlPlaneFields are the ControlPlane fields which will be set on the
-			// ControlPlaneTemplate of the ClusterClass after the initial Cluster creation.
-			// The test verifies that these fields are rolled out to the ControlPlane.
 			ModifyControlPlaneFields: map[string]interface{}{
 				"spec.machineTemplate.nodeDrainTimeout": "10s",
 			},
-			// ModifyMachineDeploymentBootstrapConfigTemplateFields are the fields which will be set on the
-			// BootstrapConfigTemplate of all MachineDeploymentClasses of the ClusterClass after the initial Cluster creation.
-			// The test verifies that these fields are rolled out to the MachineDeployments.
 			ModifyMachineDeploymentBootstrapConfigTemplateFields: map[string]interface{}{
 				"spec.template.spec.verbosity": int64(4),
+			},
+			ModifyMachineDeploymentInfrastructureMachineTemplateFields: map[string]interface{}{
+				"spec.template.spec.numCPUs": int64(4),
 			},
 		}
 	})

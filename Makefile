@@ -43,6 +43,7 @@ BIN_DIR := $(ROOT_DIR)/bin
 TOOLS_DIR := $(ROOT_DIR)/hack/tools
 TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
+FLAVOR_DIR := $(ROOT_DIR)/templates
 
 E2E_CONF_FILE  ?= "$(abspath test/e2e/config/vsphere-dev.yaml)"
 INTEGRATION_CONF_FILE ?= "$(abspath test/integration/integration-dev.yaml)"
@@ -260,6 +261,7 @@ modules: ## Runs go mod to ensure proper vendoring
 generate: ## Generate code
 	$(MAKE) generate-go
 	$(MAKE) generate-manifests
+	$(MAKE) generate-flavors
 
 .PHONY: generate-go
 generate-go: $(CONTROLLER_GEN) $(CONVERSION_GEN) ## Runs Go related generate targets
@@ -297,6 +299,13 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 		paths=github.com/vmware-tanzu/vm-operator-api/api/... \
 		crd:crdVersions=v1 \
 		output:crd:dir=$(VMOP_CRD_ROOT)
+
+.PHONY: generate-flavors
+generate-flavors: $(FLAVOR_DIR)
+	go run ./packaging/flavorgen -f vip > $(FLAVOR_DIR)/cluster-template.yaml
+	go run ./packaging/flavorgen -f external-loadbalancer > $(FLAVOR_DIR)/cluster-template-external-loadbalancer.yaml
+	go run ./packaging/flavorgen -f cluster-class > $(FLAVOR_DIR)/clusterclass-template.yaml
+	go run ./packaging/flavorgen -f cluster-topology > $(FLAVOR_DIR)/cluster-template-topology.yaml
 ## --------------------------------------
 ## Release
 ## --------------------------------------
@@ -370,7 +379,7 @@ verify-crds: ## Verifies the committed CRDs are up-to-date
 verify-gen: generate  ## Verfiy go generated files are up to date
 	@if !(git diff --quiet HEAD); then \
 		git diff; \
-		echo "generated files are out of date, run make generate"; exit 1; \
+		echo "generated files are out of date, run make generate and commit the result"; exit 1; \
 	fi
 
 .PHONY: verify-modules
@@ -388,20 +397,13 @@ verify-modules: modules  ## Verify go modules are up to date
 verify-conversions: $(CONVERSION_VERIFIER)  ## Verifies expected API conversion are in place
 	$(CONVERSION_VERIFIER)
 
-.PHONY: flavors
-flavors: $(FLAVOR_DIR)
-	go run ./packaging/flavorgen -f vip > $(FLAVOR_DIR)/cluster-template.yaml
-	go run ./packaging/flavorgen -f external-loadbalancer > $(FLAVOR_DIR)/cluster-template-external-loadbalancer.yaml
-	go run ./packaging/flavorgen -f cluster-class > $(FLAVOR_DIR)/clusterclass-template.yaml
-	go run ./packaging/flavorgen -f cluster-topology > $(FLAVOR_DIR)/cluster-template-topology.yaml
-
 .PHONY: release-flavors ## Create release flavor manifests
 release-flavors: release-version-check
-	$(MAKE) flavors FLAVOR_DIR=$(RELEASE_DIR)
+	$(MAKE) generate-flavors FLAVOR_DIR=$(RELEASE_DIR)
 
 .PHONY: dev-flavors ## Create release flavor manifests
 dev-flavors:
-	$(MAKE) flavors FLAVOR_DIR=$(OVERRIDES_DIR)
+	$(MAKE) generate-flavors FLAVOR_DIR=$(OVERRIDES_DIR)
 
 .PHONY: overrides ## Generates flavors as clusterctl overrides
 overrides: version-check $(OVERRIDES_DIR)

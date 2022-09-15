@@ -56,4 +56,8 @@ const (
 
 	// KeepaliveDuration unit minutes.
 	DefaultKeepAliveDuration = time.Minute * 5
+
+	NodeLabelPrefix = "node.cluster.x-k8s.io"
+
+	ESXiHostInfoLabel = NodeLabelPrefix + "/esxi-host"
 )

@@ -145,6 +145,10 @@ func (vms *VMService) ReconcileVM(ctx *context.VMContext) (vm infrav1.VirtualMac
 		return vm, err
 	}
 
+	if err := vms.reconcileHostInfo(vmCtx); err != nil {
+		return vm, err
+	}
+
 	if err := vms.reconcileTags(vmCtx); err != nil {
 		conditions.MarkFalse(ctx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.TagsAttachmentFailedReason, clusterv1.ConditionSeverityError, err.Error())
 		return vm, err
@@ -449,6 +453,19 @@ func (vms *VMService) getMetadata(ctx *virtualMachineContext) (string, error) {
 	}
 
 	return string(metadataBuf), nil
+}
+
+func (vms *VMService) reconcileHostInfo(ctx *virtualMachineContext) error {
+	host, err := ctx.Obj.HostSystem(ctx)
+	if err != nil {
+		return err
+	}
+	name, err := host.ObjectName(ctx)
+	if err != nil {
+		return err
+	}
+	ctx.VSphereVM.Status.Host = name
+	return nil
 }
 
 func (vms *VMService) setMetadata(ctx *virtualMachineContext, metadata []byte) (string, error) {

@@ -229,6 +229,23 @@ func (v *VmopMachineService) ReconcileNormal(c context.MachineContext) (bool, er
 	return false, nil
 }
 
+func (v VmopMachineService) GetHostInfo(c context.MachineContext) (string, error) {
+	ctx, ok := c.(*vmware.SupervisorMachineContext)
+	if !ok {
+		return "", errors.New("received unexpected SupervisorMachineContext type")
+	}
+
+	vmOperatorVM := &vmoprv1.VirtualMachine{}
+	if err := ctx.Client.Get(ctx, client.ObjectKey{
+		Name:      ctx.Machine.Name,
+		Namespace: ctx.Machine.Namespace,
+	}, vmOperatorVM); err != nil {
+		return "", err
+	}
+
+	return vmOperatorVM.Status.Host, nil
+}
+
 func (v VmopMachineService) newVMOperatorVM(ctx *vmware.SupervisorMachineContext) *vmoprv1.VirtualMachine {
 	return &vmoprv1.VirtualMachine{
 		ObjectMeta: metav1.ObjectMeta{

@@ -1231,6 +1231,10 @@ spec:
                   of vspherevms can be added as events to the vspherevm object and/or
                   logged in the controller's output."
                 type: string
+              host:
+                description: Host describes the hostname or IP address of the infrastructure
+                  host that the VSphereVM is residing on.
+                type: string
               moduleUUID:
                 description: ModuleUUID is the unique identifier for the vCenter cluster
                   module construct which is used to configure anti-affinity. Objects

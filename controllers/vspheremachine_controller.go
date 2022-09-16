@@ -36,11 +36,14 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
+	ctrlbldr "sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
@@ -133,7 +136,17 @@ func AddMachineControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 		r.networkProvider = networkProvider
 	} else {
 		// Watch any VSphereVM resources owned by the controlled type.
-		builder.Watches(&source.Kind{Type: &infrav1.VSphereVM{}}, &handler.EnqueueRequestForOwner{OwnerType: controlledType, IsController: false})
+		builder.Watches(
+			&source.Kind{Type: &infrav1.VSphereVM{}},
+			&handler.EnqueueRequestForOwner{OwnerType: controlledType, IsController: false},
+			ctrlbldr.WithPredicates(predicate.Funcs{
+				// ignore creation events since this controller is responsible for
+				// the creation of the type.
+				CreateFunc: func(e event.CreateEvent) bool {
+					return false
+				},
+			}),
+		)
 	}
 
 	c, err := builder.Build(r)

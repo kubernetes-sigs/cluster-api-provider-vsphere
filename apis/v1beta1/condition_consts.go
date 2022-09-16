@@ -61,6 +61,12 @@ const (
 	// a static IP address.
 	WaitingForStaticIPAllocationReason = "WaitingForStaticIPAllocation"
 
+	// WaitingForIPAllocationReason (Severity=Info) documents a VSphereVM waiting for the allocation of
+	// an IP address.
+	// This is used when the dhcp4 or dhcp6 for a VSphereVM is set and the VSphereVM is waiting for the
+	// relevant IP address  to show up on the VM.
+	WaitingForIPAllocationReason = "WaitingForIPAllocation"
+
 	// CloningReason documents (Severity=Info) a VSphereMachine/VSphereVM currently executing the clone operation.
 	CloningReason = "Cloning"
 

@@ -700,6 +700,10 @@ spec:
                 type: object
               ready:
                 type: boolean
+              vCenterVersion:
+                description: VCenterVersion defines the version of the vCenter server
+                  defined in the spec.
+                type: string
             type: object
         type: object
     served: true

@@ -38,10 +38,13 @@ func TestFuzzyConversion(t *testing.T) {
 	g.Expect(nextver.AddToScheme(scheme)).To(Succeed())
 
 	t.Run("for VSphereCluster", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme:      scheme,
-		Hub:         &nextver.VSphereCluster{},
-		Spoke:       &VSphereCluster{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{overrideVSphereClusterDeprecatedFieldsFuncs},
+		Scheme: scheme,
+		Hub:    &nextver.VSphereCluster{},
+		Spoke:  &VSphereCluster{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{
+			overrideVSphereClusterDeprecatedFieldsFuncs,
+			overrideVSphereClusterStatusFieldsFuncs,
+		},
 	}))
 	t.Run("for VSphereMachine", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme:      scheme,
@@ -67,6 +70,15 @@ func overrideVSphereClusterDeprecatedFieldsFuncs(codecs runtimeserializer.CodecF
 	return []interface{}{
 		func(vsphereClusterSpec *VSphereClusterSpec, c fuzz.Continue) {
 			vsphereClusterSpec.CloudProviderConfiguration = CPIConfig{}
+		},
+	}
+}
+
+func overrideVSphereClusterStatusFieldsFuncs(codecs runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		func(in *nextver.VSphereClusterStatus, c fuzz.Continue) {
+			c.FuzzNoCustom(in)
+			in.VCenterVersion = ""
 		},
 	}
 }

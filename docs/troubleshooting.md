@@ -238,7 +238,7 @@ It is quite typical to see many errors in Kubernetes service logs, from the API 
 
 ### Timed out while failing to retrieve kubeconfig secret
 
-When `clusterctl` times out waiting for the management cluster to come online, and the vSphere manager log repeats `failed to retrieve kubeconfig secret for Cluster` over and over again, it means there was an error bringing the management cluster's first control plane node online. Possible resaons include:
+When `clusterctl` times out waiting for the management cluster to come online, and the vSphere manager log repeats `failed to retrieve kubeconfig secret for Cluster` over and over again, it means there was an error bringing the management cluster's first control plane node online. Possible reasons include:
 
 #### Cannot access the vSphere endpoint
 

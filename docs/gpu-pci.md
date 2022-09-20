@@ -15,7 +15,7 @@ Before we begin, a couple of important things of note:
 
 Let's create a CAPV cluster with GPU enabled via PCI passthrough mode and run a GPU-powered vector calculation.
 
-### Pre-requisities
+### Prerequisites
 
 - Enable Passthrough for the GPU device on the ESXi Host
   - Browse to a host in the vSphere Client navigator.

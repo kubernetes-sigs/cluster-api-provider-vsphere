@@ -18,7 +18,6 @@ package fake
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/cluster-api/util/patch"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
@@ -54,7 +53,7 @@ func newVSphereVM() infrav1.VSphereVM {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: Namespace,
 			Name:      VSphereVMName,
-			UID:       types.UID(VSphereVMUUID),
+			UID:       VSphereVMUUID,
 		},
 		Spec: infrav1.VSphereVMSpec{
 			VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{

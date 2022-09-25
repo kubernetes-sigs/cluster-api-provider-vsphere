@@ -42,6 +42,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/identity"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
@@ -54,6 +55,8 @@ const legacyIdentityFinalizer string = "identity/infrastructure.cluster.x-k8s.io
 
 type clusterReconciler struct {
 	*context.ControllerContext
+
+	clusterModuleReconciler Reconciler
 }
 
 // Reconcile ensures the back-end state reflects the Kubernetes resource state intent.
@@ -165,6 +168,14 @@ func (r clusterReconciler) reconcileDelete(ctx *context.ClusterContext) (reconci
 		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
+	// The cluster module info needs to be reconciled before the secret deletion
+	// since it needs access to the vCenter instance to be able to perform LCM operations
+	// on the cluster modules.
+	affinityReconcileResult, err := r.reconcileClusterModules(ctx)
+	if err != nil {
+		return affinityReconcileResult, err
+	}
+
 	// Remove finalizer on Identity Secret
 	if identity.IsSecretIdentity(ctx.VSphereCluster) {
 		secret := &apiv1.Secret{}
@@ -228,14 +239,20 @@ func (r clusterReconciler) reconcileNormal(ctx *context.ClusterContext) (reconci
 		return reconcile.Result{}, errors.Wrapf(err,
 			"unexpected error while probing vcenter for %s", ctx)
 	}
+	conditions.MarkTrue(ctx.VSphereCluster, infrav1.VCenterAvailableCondition)
 
-	// TODO (srm09): Is a condition better?
 	err = r.reconcileVCenterVersion(ctx, vcenterSession)
-	if err != nil {
+	if err != nil || ctx.VSphereCluster.Status.VCenterVersion == "" {
+		conditions.MarkFalse(ctx.VSphereCluster, infrav1.ClusterModulesAvailableCondition, infrav1.MissingVCenterVersionReason, clusterv1.ConditionSeverityWarning, "vCenter API version not set")
 		ctx.Logger.Error(err, "could not reconcile vCenter version")
 	}
 
-	conditions.MarkTrue(ctx.VSphereCluster, infrav1.VCenterAvailableCondition)
+	affinityReconcileResult, err := r.reconcileClusterModules(ctx)
+	if err != nil {
+		conditions.MarkFalse(ctx.VSphereCluster, infrav1.ClusterModulesAvailableCondition, infrav1.ClusterModuleSetupFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+		return affinityReconcileResult, err
+	}
+
 	ctx.VSphereCluster.Status.Ready = true
 
 	// Ensure the VSphereCluster is reconciled when the API server first comes online.
@@ -490,6 +507,13 @@ func setOwnerRefsOnVsphereMachines(ctx *context.ClusterContext) error {
 		}
 	}
 	return kerrors.NewAggregate(patchErrors)
+}
+
+func (r clusterReconciler) reconcileClusterModules(ctx *context.ClusterContext) (reconcile.Result, error) {
+	if feature.Gates.Enabled(feature.NodeAntiAffinity) {
+		return r.clusterModuleReconciler.Reconcile(ctx)
+	}
+	return reconcile.Result{}, nil
 }
 
 // controlPlaneMachineToCluster is a handler.ToRequestsFunc to be used

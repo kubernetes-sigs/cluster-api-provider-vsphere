@@ -29,6 +29,7 @@ import (
 // VMContext is a Go context used with a VSphereVM.
 type VMContext struct {
 	*ControllerContext
+	ClusterModuleInfo    *string
 	VSphereVM            *infrav1.VSphereVM
 	PatchHelper          *patch.Helper
 	Logger               logr.Logger

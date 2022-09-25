@@ -343,7 +343,7 @@ func (r *ClusterReconciler) VSphereMachineToCluster(o client.Object) []reconcile
 		return nil
 	}
 
-	cluster, err := util.GetVSphereClusterFromVSphereMachine(r, r.Client, vsphereMachine)
+	cluster, err := util.GetVSphereClusterFromVMwareMachine(r, r.Client, vsphereMachine)
 	if err != nil {
 		r.Logger.Error(err, "failed to get cluster", "machine", vsphereMachine.Name, "namespace", vsphereMachine.Namespace)
 		return nil

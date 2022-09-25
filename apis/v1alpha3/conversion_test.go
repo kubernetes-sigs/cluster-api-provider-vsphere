@@ -43,6 +43,7 @@ func TestFuzzyConversion(t *testing.T) {
 		Spoke:  &VSphereCluster{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{
 			overrideVSphereClusterDeprecatedFieldsFuncs,
+			overrideVSphereClusterSpecFieldsFuncs,
 			overrideVSphereClusterStatusFieldsFuncs,
 		},
 	}))
@@ -70,6 +71,15 @@ func overrideVSphereClusterDeprecatedFieldsFuncs(codecs runtimeserializer.CodecF
 	return []interface{}{
 		func(vsphereClusterSpec *VSphereClusterSpec, c fuzz.Continue) {
 			vsphereClusterSpec.CloudProviderConfiguration = CPIConfig{}
+		},
+	}
+}
+
+func overrideVSphereClusterSpecFieldsFuncs(codecs runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		func(in *nextver.VSphereClusterSpec, c fuzz.Continue) {
+			c.FuzzNoCustom(in)
+			in.ClusterModules = nil
 		},
 	}
 }
@@ -104,6 +114,7 @@ func CustomObjectMetaFuzzer(in *clusterv1.ObjectMeta, c fuzz.Continue) {
 func CustomNewFieldFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		CustomNewFieldFuzzer,
+		CustomStatusNewFieldFuzzer,
 	}
 }
 
@@ -112,4 +123,10 @@ func CustomNewFieldFuzzer(in *nextver.VirtualMachineCloneSpec, c fuzz.Continue) 
 
 	in.PciDevices = nil
 	in.AdditionalDisksGiB = nil
+}
+
+func CustomStatusNewFieldFuzzer(in *nextver.VSphereVMStatus, c fuzz.Continue) {
+	c.FuzzNoCustom(in)
+
+	in.ModuleUUID = nil
 }

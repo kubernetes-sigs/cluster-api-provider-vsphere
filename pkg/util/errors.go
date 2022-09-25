@@ -14,26 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package session
+package util
 
 import (
-	"fmt"
+	"net/http"
 	"strings"
 )
 
-const (
-	errString = "vCenter version cannot be identified"
-)
-
-// TODO (srm09): figure out a common place for custom errors.
-type unidentifiedVCenterVersion struct {
-	version string
-}
-
-func (e unidentifiedVCenterVersion) Error() string {
-	return fmt.Sprintf("%s: %s", errString, e.version)
-}
-
-func IsUnidentifiedVCenterVersion(err error) bool {
-	return strings.HasPrefix(err.Error(), errString)
+func IsNotFoundError(err error) bool {
+	return strings.HasSuffix(err.Error(), http.StatusText(http.StatusNotFound))
 }

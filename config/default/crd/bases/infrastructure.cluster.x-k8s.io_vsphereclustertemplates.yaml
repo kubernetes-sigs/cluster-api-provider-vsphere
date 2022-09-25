@@ -122,6 +122,38 @@ spec:
                   spec:
                     description: VSphereClusterSpec defines the desired state of VSphereCluster
                     properties:
+                      clusterModules:
+                        description: ClusterModules hosts information regarding the
+                          anti-affinity vSphere constructs for each of the objects
+                          responsible for creation of VM objects belonging to the
+                          cluster.
+                        items:
+                          description: ClusterModule holds the anti affinity construct
+                            `ClusterModule` identifier in use by the VMs owned by
+                            the object referred by the TargetObjectName field.
+                          properties:
+                            controlPlane:
+                              description: ControlPlane indicates whether the referred
+                                object is responsible for control plane nodes. Currently,
+                                only the KubeadmControlPlane objects have this flag
+                                set to true. Only a single object in the slice can
+                                have this value set to true.
+                              type: boolean
+                            moduleUUID:
+                              description: ModuleUUID is the unique identifier of
+                                the `ClusterModule` used by the object.
+                              type: string
+                            targetObjectName:
+                              description: TargetObjectName points to the object that
+                                uses the Cluster Module information to enforce anti-affinity
+                                amongst its descendant VM objects.
+                              type: string
+                          required:
+                          - controlPlane
+                          - moduleUUID
+                          - targetObjectName
+                          type: object
+                        type: array
                       controlPlaneEndpoint:
                         description: ControlPlaneEndpoint represents the endpoint
                           used to communicate with the control plane.

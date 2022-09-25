@@ -22,6 +22,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/blang/semver"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"github.com/vmware/govmomi"
@@ -36,7 +37,7 @@ import (
 	"github.com/vmware/govmomi/vim25/soap"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 )
 
 // global Session map against sessionKeys
@@ -140,7 +141,7 @@ func GetOrCreate(ctx context.Context, params *Params) (*Session, error) {
 	}
 
 	session := Session{Client: client}
-	session.UserAgent = v1beta1.GroupVersion.String()
+	session.UserAgent = infrav1.GroupVersion.String()
 
 	// Assign the finder to the session.
 	session.Finder = find.NewFinder(session.Client.Client, false)
@@ -259,6 +260,21 @@ func newManager(ctx context.Context, logger logr.Logger, sessionKey string, clie
 		return nil, err
 	}
 	return tags.NewManager(rc), nil
+}
+
+func (s *Session) GetVersion() (infrav1.VCenterVersion, error) {
+	svcVersion := s.ServiceContent.About.Version
+	version, err := semver.New(svcVersion)
+	if err != nil {
+		return "", err
+	}
+
+	switch version.Major {
+	case 6, 7, 8:
+		return infrav1.NewVCenterVersion(svcVersion), nil
+	default:
+		return "", unidentifiedVCenterVersion{version: svcVersion}
+	}
 }
 
 // FindByBIOSUUID finds an object by its BIOS UUID.

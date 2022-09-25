@@ -724,7 +724,7 @@ func TestClusterReconciler_ReconcileDeploymentZones(t *testing.T) {
 			ctx := fake.NewClusterContext(controllerCtx)
 			ctx.VSphereCluster.Spec.Server = server
 
-			r := clusterReconciler{controllerCtx}
+			r := clusterReconciler{ControllerContext: controllerCtx}
 			reconciled, err := r.reconcileDeploymentZones(ctx)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(reconciled).To(Equal(tt.reconciled))

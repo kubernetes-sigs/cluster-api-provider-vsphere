@@ -110,6 +110,24 @@ const (
 )
 
 const (
+	// ClusterModulesAvailableCondition documents the availability of cluster modules for the VSphereCluster object.
+	ClusterModulesAvailableCondition clusterv1.ConditionType = "ClusterModulesAvailable"
+
+	// MissingVCenterVersionReason (Severity=Warning) documents a controller detecting
+	//  the scenario in which the vCenter version is not set in the status of the VSphereCluster object.
+	MissingVCenterVersionReason = "MissingVCenterVersion"
+
+	// VCenterVersionIncompatibleReason (Severity=Info) documents the case where the vCenter version of the
+	// VSphereCluster object does not support cluster modules.
+	VCenterVersionIncompatibleReason = "VCenterVersionIncompatible"
+
+	// ClusterModuleSetupFailedReason (Severity=Warning) documents a controller detecting
+	// issues when setting up anti-affinity constraints via cluster modules for objects
+	// belonging to the cluster.
+	ClusterModuleSetupFailedReason = "ClusterModuleSetupFailed"
+)
+
+const (
 	// CredentialsAvailableCondidtion is used by VSphereClusterIdentity when a credential
 	// secret is available and unused by other VSphereClusterIdentities.
 	CredentialsAvailableCondidtion clusterv1.ConditionType = "CredentialsAvailable"

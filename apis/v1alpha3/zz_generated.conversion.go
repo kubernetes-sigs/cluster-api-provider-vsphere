@@ -967,6 +967,7 @@ func autoConvert_v1beta1_VSphereClusterSpec_To_v1alpha3_VSphereClusterSpec(in *v
 		return err
 	}
 	out.IdentityRef = (*VSphereIdentityReference)(unsafe.Pointer(in.IdentityRef))
+	// WARNING: in.ClusterModules requires manual conversion: does not exist in peer-type
 	return nil
 }
 
@@ -1588,6 +1589,7 @@ func autoConvert_v1beta1_VSphereVMStatus_To_v1alpha3_VSphereVMStatus(in *v1beta1
 	out.FailureReason = (*errors.MachineStatusError)(unsafe.Pointer(in.FailureReason))
 	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
 	out.Conditions = *(*apiv1alpha3.Conditions)(unsafe.Pointer(&in.Conditions))
+	// WARNING: in.ModuleUUID requires manual conversion: does not exist in peer-type
 	return nil
 }
 

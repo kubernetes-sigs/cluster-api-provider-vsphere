@@ -123,6 +123,13 @@ type VSphereVMStatus struct {
 	// Conditions defines current service state of the VSphereVM.
 	// +optional
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+
+	// ModuleUUID is the unique identifier for the vCenter cluster module construct
+	// which is used to configure anti-affinity. Objects with the same ModuleUUID
+	// will be anti-affined, meaning that the vCenter DRS will best effort schedule
+	// the VMs on separate hosts.
+	// +optional
+	ModuleUUID *string `json:"moduleUUID,omitempty"`
 }
 
 // +kubebuilder:object:root=true

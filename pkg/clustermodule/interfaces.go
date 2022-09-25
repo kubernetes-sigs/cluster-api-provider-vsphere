@@ -14,25 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package session
+package clustermodule
 
-import (
-	"github.com/blang/semver"
+import "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
-)
+type Service interface {
+	Create(ctx *context.ClusterContext, wrapper Wrapper) (string, error)
 
-func (s Session) GetVersion() (infrav1.VCenterVersion, error) {
-	svcVersion := s.ServiceContent.About.Version
-	version, err := semver.New(svcVersion)
-	if err != nil {
-		return "", err
-	}
+	DoesExist(ctx *context.ClusterContext, wrapper Wrapper, moduleUUID string) (bool, error)
 
-	switch version.Major {
-	case 6, 7, 8:
-		return infrav1.NewVCenterVersion(svcVersion), nil
-	default:
-		return "", unidentifiedVCenterVersion{version: svcVersion}
-	}
+	Remove(ctx *context.ClusterContext, moduleUUID string) error
 }

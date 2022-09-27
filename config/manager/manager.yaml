@@ -20,7 +20,7 @@ spec:
         - --enable-leader-election
         - --logtostderr
         - --v=4
-        - "--feature-gates=NodeAntiAffinity=${EXP_NODE_ANTI_AFFINITY:=false}"
+        - "--feature-gates=NodeAntiAffinity=${EXP_NODE_ANTI_AFFINITY:=false},NodeLabeling=${EXP_NODE_LABELING:=false}"
         image: gcr.io/cluster-api-provider-vsphere/release/manager:latest
         imagePullPolicy: IfNotPresent
         name: manager

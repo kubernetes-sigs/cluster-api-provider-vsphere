@@ -301,8 +301,11 @@ func setupVAPIControllers(ctx *context.ControllerManagerContext, mgr ctrlmgr.Man
 	if err := controllers.AddVSphereDeploymentZoneControllerToManager(ctx, mgr); err != nil {
 		return err
 	}
-	if err := controllers.AddNodeLabelControllerToManager(ctx, mgr); err != nil {
-		return err
+
+	if feature.Gates.Enabled(feature.NodeLabeling) {
+		if err := controllers.AddNodeLabelControllerToManager(ctx, mgr); err != nil {
+			return err
+		}
 	}
 	return nil
 }

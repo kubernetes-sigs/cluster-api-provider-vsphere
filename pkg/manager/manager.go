@@ -31,6 +31,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1alpha1"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	infrav1a3 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1alpha3"
@@ -66,6 +67,7 @@ func New(opts Options) (Manager, error) {
 	_ = ncpv1.AddToScheme(opts.Scheme)
 	_ = netopv1.AddToScheme(opts.Scheme)
 	_ = topologyv1.AddToScheme(opts.Scheme)
+	_ = ipamv1.AddToScheme(opts.Scheme)
 	// +kubebuilder:scaffold:scheme
 
 	podName, err := os.Hostname()

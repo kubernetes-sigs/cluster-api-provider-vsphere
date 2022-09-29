@@ -39,6 +39,9 @@ func (src *VSphereMachine) ConvertTo(dstRaw conversion.Hub) error {
 
 	dst.Spec.AdditionalDisksGiB = restored.Spec.AdditionalDisksGiB
 	dst.Spec.TagIDs = restored.Spec.TagIDs
+	for i := range dst.Spec.Network.Devices {
+		dst.Spec.Network.Devices[i].AddressesFromPools = restored.Spec.Network.Devices[i].AddressesFromPools
+	}
 
 	return nil
 }

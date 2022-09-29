@@ -186,3 +186,17 @@ const (
 	// associated to the VSphereDeploymentZone is misconfigured.
 	DatastoreNotFoundReason = "DatastoreNotFound"
 )
+
+const (
+	// IPAddressClaimedCondition documents the status of claiming an IP address
+	// from an IPAM provider.
+	IPAddressClaimedCondition clusterv1.ConditionType = "IPAddressClaimed"
+
+	// WaitingForIPAddressReason (Severity=Info) documents that the VSphereVM is
+	// currently waiting for an IP address to be provisioned.
+	WaitingForIPAddressReason = "WaitingForIPAddress"
+
+	// IPAddressInvalidReason (Severity=Error) documents that the IP address
+	// provided by the IPAM provider is not valid.
+	IPAddressInvalidReason = "IPAddressInvalid"
+)

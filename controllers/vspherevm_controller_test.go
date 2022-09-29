@@ -20,13 +20,16 @@ import (
 	goctx "context"
 	"fmt"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	"github.com/vmware/govmomi/simulator"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apirecord "k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -52,8 +55,12 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 		vsphereMachine *infrav1.VSphereMachine
 		vsphereCluster *infrav1.VSphereCluster
 
-		initObjs []client.Object
+		initObjs       []client.Object
+		ipAddressClaim *ipamv1.IPAddressClaim
 	)
+
+	poolAPIGroup := "some.ipam.api.group"
+
 	// initializing a fake server to replace the vSphere endpoint
 	model := simulator.VPX()
 	model.Host = 0
@@ -114,6 +121,9 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "foo",
 					Namespace: "test",
+					Finalizers: []string{
+						infrav1.VMFinalizer,
+					},
 					Labels: map[string]string{
 						clusterv1.ClusterLabelName: "valid-cluster",
 					},
@@ -131,11 +141,32 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 				},
 				Status: infrav1.VSphereVMStatus{},
 			}
+
+			ipAddressClaim = &ipamv1.IPAddressClaim{
+				TypeMeta: metav1.TypeMeta{
+					Kind: "IPAddressClaim",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "foo-0-0",
+					Namespace: "test",
+					Finalizers: []string{
+						infrav1.IPAddressClaimFinalizer,
+					},
+					OwnerReferences: []metav1.OwnerReference{{APIVersion: infrav1.GroupVersion.String(), Kind: vsphereVM.Kind, Name: "foo"}},
+				},
+				Spec: ipamv1.IPAddressClaimSpec{
+					PoolRef: corev1.TypedLocalObjectReference{
+						APIGroup: &poolAPIGroup,
+						Kind:     "IPAMPools",
+						Name:     "my-ip-pool",
+					},
+				},
+			}
 		}
 	}
 
 	setupReconciler := func(vmService services.VirtualMachineService) vmReconciler {
-		initObjs = append(initObjs, vsphereVM, vsphereMachine, machine, cluster, vsphereCluster)
+		initObjs = append(initObjs, vsphereVM, vsphereMachine, machine, cluster, vsphereCluster, ipAddressClaim)
 		controllerMgrContext := fake.NewControllerManagerContext(initObjs...)
 		password, _ := simr.ServerURL().User.Password()
 		controllerMgrContext.Password = password
@@ -208,6 +239,51 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 		vmProvisionCondition := conditions.Get(vm, infrav1.VMProvisionedCondition)
 		g.Expect(vmProvisionCondition.Status).To(Equal(corev1.ConditionFalse))
 		g.Expect(vmProvisionCondition.Reason).To(Equal(infrav1.WaitingForIPAllocationReason))
+	})
+
+	t.Run("Deleting a VM with IPAddressClaims", func(t *testing.T) {
+		create(infrav1.NetworkSpec{
+			Devices: []infrav1.NetworkDeviceSpec{
+				{
+					NetworkName: "nw-1",
+					AddressesFromPools: []corev1.TypedLocalObjectReference{
+						{
+							APIGroup: &poolAPIGroup,
+							Kind:     "IPAMPools",
+							Name:     "my-ip-pool",
+						},
+					},
+				},
+			},
+		})()
+		vsphereVM.ObjectMeta.Finalizers = []string{infrav1.VMFinalizer}
+		vsphereVM.ObjectMeta.DeletionTimestamp = &metav1.Time{Time: time.Now()}
+
+		r := setupReconciler(fake_svc.NewVMServiceWithVM(infrav1.VirtualMachine{
+			Name:     vsphereVM.Name,
+			BiosUUID: "265104de-1472-547c-b873-6dc7883fb6cb",
+			State:    infrav1.VirtualMachineStateNotFound,
+			Network: []infrav1.NetworkStatus{{
+				Connected:   true,
+				IPAddrs:     []string{}, // empty array to show waiting for IP address
+				MACAddr:     "blah-mac",
+				NetworkName: vsphereVM.Spec.Network.Devices[0].NetworkName,
+			}},
+		}))
+
+		g := NewWithT(t)
+
+		_, err := r.Reconcile(goctx.Background(), ctrl.Request{NamespacedName: util.ObjectKey(vsphereVM)})
+		g.Expect(err).To(HaveOccurred())
+
+		vm := &infrav1.VSphereVM{}
+		vmKey := util.ObjectKey(vsphereVM)
+		g.Expect(apierrors.IsNotFound(r.Client.Get(goctx.Background(), vmKey, vm))).To(BeTrue())
+
+		claim := &ipamv1.IPAddressClaim{}
+		ipacKey := util.ObjectKey(ipAddressClaim)
+		g.Expect(r.Client.Get(goctx.Background(), ipacKey, claim)).NotTo(HaveOccurred())
+		g.Expect(claim.ObjectMeta.Finalizers).NotTo(ContainElement(infrav1.IPAddressClaimFinalizer))
 	})
 }
 

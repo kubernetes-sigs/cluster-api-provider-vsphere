@@ -29,6 +29,7 @@ import (
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/session"
 	"github.com/vmware/govmomi/session/keepalive"
+	"github.com/vmware/govmomi/vapi/rest"
 	"github.com/vmware/govmomi/vim25"
 	"github.com/vmware/govmomi/vim25/soap"
 )
@@ -41,6 +42,7 @@ var (
 
 	ctx           = context.TODO()
 	vsphereClient *govmomi.Client
+	restClient    *rest.Client
 	vsphereFinder *find.Finder
 )
 
@@ -54,11 +56,13 @@ func initVSphereSession() {
 	serverURL, err := soap.ParseURL(vsphereServer)
 	Expect(err).ShouldNot(HaveOccurred())
 
+	var vimClient *vim25.Client
+
 	By("creating vSphere client", func() {
 		serverURL.User = url.UserPassword(vsphereUsername, vspherePassword)
 		soapClient := soap.NewClient(serverURL, true)
 
-		vimClient, err := vim25.NewClient(ctx, soapClient)
+		vimClient, err = vim25.NewClient(ctx, soapClient)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		vsphereClient = &govmomi.Client{
@@ -70,6 +74,12 @@ func initVSphereSession() {
 
 		// Login to session which will also start the keep alive goroutine
 		Expect(vsphereClient.Login(ctx, url.UserPassword(vsphereUsername, vspherePassword))).To(Succeed())
+	})
+
+	By("creating vSphere Rest Client", func() {
+		restClient = rest.NewClient(vimClient)
+		restClient.Transport = keepalive.NewHandlerREST(restClient, 5*time.Minute, nil)
+		Expect(restClient.Login(ctx, url.UserPassword(vsphereUsername, vspherePassword))).To(Succeed())
 	})
 
 	By("creating vSphere finder")

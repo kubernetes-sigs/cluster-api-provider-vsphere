@@ -41,7 +41,6 @@ import (
 )
 
 const (
-	KubernetesVersion    = "KUBERNETES_VERSION"
 	VsphereStoragePolicy = "VSPHERE_STORAGE_POLICY"
 )
 

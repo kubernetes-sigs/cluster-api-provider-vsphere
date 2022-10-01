@@ -18,10 +18,50 @@ package e2e
 
 import (
 	"fmt"
+	"path/filepath"
 
 	. "github.com/onsi/ginkgo"
+	"github.com/vmware/govmomi"
+	"github.com/vmware/govmomi/find"
+	"github.com/vmware/govmomi/vapi/rest"
+	"k8s.io/utils/pointer"
+	"sigs.k8s.io/cluster-api/test/framework"
+	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
+)
+
+const (
+	KubernetesVersion = "KUBERNETES_VERSION"
 )
 
 func Byf(format string, a ...interface{}) {
 	By(fmt.Sprintf(format, a...))
+}
+
+type InfraClients struct {
+	Client     *govmomi.Client
+	RestClient *rest.Client
+	Finder     *find.Finder
+}
+
+type GlobalInput struct {
+	ArtifactFolder        string
+	ClusterctlConfigPath  string
+	BootstrapClusterProxy framework.ClusterProxy
+	E2EConfig             *clusterctl.E2EConfig
+}
+
+func defaultConfigCluster(clusterName, namespace string, controlPlaneNodeCount, workerNodeCount int64,
+	input GlobalInput) clusterctl.ConfigClusterInput {
+	return clusterctl.ConfigClusterInput{
+		LogFolder:                filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
+		ClusterctlConfigPath:     input.ClusterctlConfigPath,
+		KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
+		InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
+		Flavor:                   clusterctl.DefaultFlavor,
+		Namespace:                namespace,
+		ClusterName:              clusterName,
+		KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
+		ControlPlaneMachineCount: pointer.Int64(controlPlaneNodeCount),
+		WorkerMachineCount:       pointer.Int64(workerNodeCount),
+	}
 }

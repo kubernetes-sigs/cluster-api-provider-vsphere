@@ -182,6 +182,8 @@ variables:
   # These IDs correspond to Tesla T4s, they are the decimal representation of the hex values.
   DEVICE_ID: 7864
   VENDOR_ID: 4318
+  # CAPV feature flags
+  EXP_NODE_ANTI_AFFINITY: "true"
 
 intervals:
   default/wait-controllers: ["5m", "10s"]
@@ -194,3 +196,4 @@ intervals:
   mhc-remediation/mhc-remediation: ["30m", "10s"]
   node-drain/wait-deployment-available: ["3m", "10s"]
   node-drain/wait-machine-deleted: ["2m", "10s"]
+  anti-affinity/wait-vm-redistribution: ["5m", "10s"]

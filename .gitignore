@@ -1,3 +1,6 @@
+# Do not commit the manager binary at the project's root.
+/manager
+
 # Do not commit any JSON keys at the project's root.
 /gcs*.json
 

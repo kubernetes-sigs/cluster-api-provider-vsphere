@@ -147,7 +147,14 @@ func (s CPService) createVMControlPlaneService(ctx *vmware.ClusterContext, annot
 
 	vmService := newVirtualMachineService(ctx)
 
-	_, err := ctrlutil.CreateOrUpdate(ctx, ctx.Client, vmService, func() error {
+	_, err := ctrlutil.CreateOrPatch(ctx, ctx.Client, vmService, func() error {
+		if vmService.Annotations == nil {
+			vmService.Annotations = annotations
+		} else {
+			for k, v := range annotations {
+				vmService.Annotations[k] = v
+			}
+		}
 		vmService.Annotations = annotations
 		vmService.Spec = vmoprv1.VirtualMachineServiceSpec{
 			Type: serviceType,
@@ -161,15 +168,22 @@ func (s CPService) createVMControlPlaneService(ctx *vmware.ClusterContext, annot
 			},
 			Selector: clusterRoleVMLabels(ctx, true),
 		}
-		// Ensure that the VirtualMachineService is owned by the VSphereCluster
-		vmService.OwnerReferences = []metav1.OwnerReference{
-			{
-				Name:       ctx.VSphereCluster.Name,
-				APIVersion: infrav1.GroupVersion.String(),
-				Kind:       "VSphereCluster",
-				UID:        ctx.VSphereCluster.UID,
-			},
+
+		if err := ctrlutil.SetOwnerReference(
+			ctx.VSphereCluster,
+			vmService,
+			ctx.Scheme,
+		); err != nil {
+			return errors.Wrapf(
+				err,
+				"error setting %s/%s as owner of %s/%s",
+				ctx.VSphereCluster.Namespace,
+				ctx.VSphereCluster.Name,
+				vmService.Namespace,
+				vmService.Name,
+			)
 		}
+
 		return nil
 	})
 	if err != nil {

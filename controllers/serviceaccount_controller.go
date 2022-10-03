@@ -283,7 +283,7 @@ func (r ServiceAccountReconciler) ensureRole(ctx *vmwarecontext.ClusterContext, 
 	}
 	logger := ctx.Logger.WithValues("providerserviceaccount", pSvcAccount.Name, "role", role.Name)
 	logger.V(4).Info("Creating or updating role")
-	_, err := controllerutil.CreateOrUpdate(ctx, ctx.Client, &role, func() error {
+	_, err := controllerutil.CreateOrPatch(ctx, ctx.Client, &role, func() error {
 		if err := controllerutil.SetControllerReference(&pSvcAccount, &role, ctx.Scheme); err != nil {
 			return err
 		}
@@ -304,7 +304,7 @@ func (r ServiceAccountReconciler) ensureRoleBinding(ctx *vmwarecontext.ClusterCo
 	}
 	logger := ctx.Logger.WithValues("providerserviceaccount", pSvcAccount.Name, "rolebinding", roleBinding.Name)
 	logger.V(4).Info("Creating or updating rolebinding")
-	_, err := controllerutil.CreateOrUpdate(ctx, ctx.Client, &roleBinding, func() error {
+	_, err := controllerutil.CreateOrPatch(ctx, ctx.Client, &roleBinding, func() error {
 		if err := controllerutil.SetControllerReference(&pSvcAccount, &roleBinding, ctx.Scheme); err != nil {
 			return err
 		}
@@ -376,7 +376,7 @@ func (r ServiceAccountReconciler) syncServiceAccountSecret(ctx *vmwarecontext.Gu
 		},
 	}
 	logger.V(4).Info("Creating or updating secret in cluster", "namespace", targetSecret.Namespace, "name", targetSecret.Name)
-	_, err = controllerutil.CreateOrUpdate(ctx, ctx.GuestClient, targetSecret, func() error {
+	_, err = controllerutil.CreateOrPatch(ctx, ctx.GuestClient, targetSecret, func() error {
 		targetSecret.Data = sourceSecret.Data
 		return nil
 	})
@@ -409,7 +409,7 @@ func (r ServiceAccountReconciler) deleteServiceAccountConfigMap(ctx *vmwareconte
 		return nil
 	}
 	logger.Info("Deleting config map entry for provider service account")
-	_, err = controllerutil.CreateOrUpdate(ctx, ctx.Client, configMapBuffer, func() error {
+	_, err = controllerutil.CreateOrPatch(ctx, ctx.Client, configMapBuffer, func() error {
 		configMapBuffer.Data = configMap.Data
 		delete(configMapBuffer.Data, svcAccountName)
 		return nil
@@ -430,7 +430,7 @@ func (r ServiceAccountReconciler) ensureServiceAccountConfigMap(ctx *vmwareconte
 		return nil
 	}
 	logger.Info("Updating config map for provider service account")
-	_, err = controllerutil.CreateOrUpdate(ctx, ctx.Client, configMapBuffer, func() error {
+	_, err = controllerutil.CreateOrPatch(ctx, ctx.Client, configMapBuffer, func() error {
 		configMapBuffer.Data = configMap.Data
 		configMapBuffer.Data[svcAccountName] = "true"
 		return nil

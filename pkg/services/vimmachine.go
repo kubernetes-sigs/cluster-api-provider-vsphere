@@ -121,8 +121,8 @@ func (v *VimMachineService) ReconcileNormal(c context.MachineContext) (bool, err
 	}
 
 	vm, err := v.createOrPatchVSPhereVM(ctx, vsphereVM)
-
-	if err != nil && !apierrors.IsAlreadyExists(err) {
+	if err != nil {
+		ctx.Logger.Error(err, "error creating or patching VM", "vsphereVM", vsphereVM)
 		return false, err
 	}
 

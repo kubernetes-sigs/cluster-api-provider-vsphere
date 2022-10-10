@@ -71,7 +71,7 @@ providers:
   - name: vsphere
     type: InfrastructureProvider
     versions:
-      - name: v1.3.0
+      - name: v1.4.0
         # Use manifest from source files
         value: ../../../cluster-api-provider-vsphere/config/deployments/integration-tests
         contract: v1beta1

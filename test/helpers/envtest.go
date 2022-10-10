@@ -85,8 +85,8 @@ func init() {
 	}
 
 	// append CAPI CRDs path
-	if capiPath := getFilePathToCAPICRDs(root); capiPath != "" {
-		crdPaths = append(crdPaths, capiPath)
+	if capiPaths := getFilePathToCAPICRDs(root); capiPaths != nil {
+		crdPaths = append(crdPaths, capiPaths...)
 	}
 
 	// Create the test environment.
@@ -222,20 +222,23 @@ func (t *TestEnvironment) CreateKubeconfigSecret(ctx goctx.Context, cluster *clu
 	return t.Create(ctx, kubeconfig.GenerateSecret(cluster, kubeconfig.FromEnvTestConfig(t.Config, cluster)))
 }
 
-func getFilePathToCAPICRDs(root string) string {
+func getFilePathToCAPICRDs(root string) []string {
 	mod, err := NewMod(filepath.Join(root, "go.mod"))
 	if err != nil {
-		return ""
+		return nil
 	}
 
 	packageName := "sigs.k8s.io/cluster-api"
 	clusterAPIVersion, err := mod.FindDependencyVersion(packageName)
 	if err != nil {
-		return ""
+		return nil
 	}
 
 	gopath := envOr("GOPATH", build.Default.GOPATH)
-	return filepath.Join(gopath, "pkg", "mod", "sigs.k8s.io", fmt.Sprintf("cluster-api@%s", clusterAPIVersion), "config", "crd", "bases")
+	return []string{
+		filepath.Join(gopath, "pkg", "mod", "sigs.k8s.io", fmt.Sprintf("cluster-api@%s", clusterAPIVersion), "config", "crd", "bases"),
+		filepath.Join(gopath, "pkg", "mod", "sigs.k8s.io", fmt.Sprintf("cluster-api@%s", clusterAPIVersion), "controlplane", "kubeadm", "config", "crd", "bases"),
+	}
 }
 
 func envOr(envKey, defaultValue string) string {

@@ -29,6 +29,13 @@ const (
 	ClusterFinalizer = "vspherecluster.infrastructure.cluster.x-k8s.io"
 )
 
+// VCenterVersion conveys the API version of the vCenter instance.
+type VCenterVersion string
+
+func NewVCenterVersion(version string) VCenterVersion {
+	return VCenterVersion(version)
+}
+
 // VSphereClusterSpec defines the desired state of VSphereCluster
 type VSphereClusterSpec struct {
 	// Server is the address of the vSphere endpoint.
@@ -46,6 +53,27 @@ type VSphereClusterSpec struct {
 	// the identity to use when reconciling the cluster.
 	// +optional
 	IdentityRef *VSphereIdentityReference `json:"identityRef,omitempty"`
+
+	// ClusterModules hosts information regarding the anti-affinity vSphere constructs
+	// for each of the objects responsible for creation of VM objects belonging to the cluster.
+	// +optional
+	ClusterModules []ClusterModule `json:"clusterModules,omitempty"`
+}
+
+// ClusterModule holds the anti affinity construct `ClusterModule` identifier
+// in use by the VMs owned by the object referred by the TargetObjectName field.
+type ClusterModule struct {
+	// ControlPlane indicates whether the referred object is responsible for control plane nodes.
+	// Currently, only the KubeadmControlPlane objects have this flag set to true.
+	// Only a single object in the slice can have this value set to true.
+	ControlPlane bool `json:"controlPlane"`
+
+	// TargetObjectName points to the object that uses the Cluster Module information to enforce
+	// anti-affinity amongst its descendant VM objects.
+	TargetObjectName string `json:"targetObjectName"`
+
+	// ModuleUUID is the unique identifier of the `ClusterModule` used by the object.
+	ModuleUUID string `json:"moduleUUID"`
 }
 
 // VSphereClusterStatus defines the observed state of VSphereClusterSpec
@@ -59,6 +87,9 @@ type VSphereClusterStatus struct {
 
 	// FailureDomains is a list of failure domain objects synced from the infrastructure provider.
 	FailureDomains clusterv1.FailureDomains `json:"failureDomains,omitempty"`
+
+	// VCenterVersion defines the version of the vCenter server defined in the spec.
+	VCenterVersion VCenterVersion `json:"vCenterVersion,omitempty"`
 }
 
 // +kubebuilder:object:root=true

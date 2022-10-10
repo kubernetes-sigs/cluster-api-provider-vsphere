@@ -18,6 +18,7 @@ package controllers
 
 import (
 	goctx "context"
+	"fmt"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -29,6 +30,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
@@ -49,6 +51,8 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 		vsphereVM      *infrav1.VSphereVM
 		vsphereMachine *infrav1.VSphereMachine
 		vsphereCluster *infrav1.VSphereCluster
+
+		initObjs []client.Object
 	)
 	// initializing a fake server to replace the vSphere endpoint
 	model := simulator.VPX()
@@ -90,6 +94,7 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 					},
 				},
 			}
+			initObjs = createMachineOwnerHierarchy(machine)
 
 			vsphereMachine = &infrav1.VSphereMachine{
 				ObjectMeta: metav1.ObjectMeta{
@@ -130,7 +135,8 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 	}
 
 	setupReconciler := func(vmService services.VirtualMachineService) vmReconciler {
-		controllerMgrContext := fake.NewControllerManagerContext(vsphereVM, vsphereMachine, machine, cluster, vsphereCluster)
+		initObjs = append(initObjs, vsphereVM, vsphereMachine, machine, cluster, vsphereCluster)
+		controllerMgrContext := fake.NewControllerManagerContext(initObjs...)
 		password, _ := simr.ServerURL().User.Password()
 		controllerMgrContext.Password = password
 		controllerMgrContext.Username = simr.ServerURL().User.Username()
@@ -322,6 +328,8 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 		},
 	}
 
+	initObjs := createMachineOwnerHierarchy(machine)
+
 	vsphereMachine := &infrav1.VSphereMachine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo-vm",
@@ -333,7 +341,7 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 		},
 	}
 
-	vSphereVM := &infrav1.VSphereVM{
+	vsphereVM := &infrav1.VSphereVM{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "VSphereVM",
 		},
@@ -361,7 +369,8 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 		Status: infrav1.VSphereVMStatus{},
 	}
 
-	controllerMgrContext := fake.NewControllerManagerContext(secret, vSphereVM, vsphereMachine, machine, cluster, vsphereCluster)
+	initObjs = append(initObjs, secret, vsphereVM, vsphereMachine, machine, cluster, vsphereCluster)
+	controllerMgrContext := fake.NewControllerManagerContext(initObjs...)
 
 	controllerContext := &context.ControllerContext{
 		ControllerManagerContext: controllerMgrContext,
@@ -370,14 +379,57 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 	}
 	r := vmReconciler{ControllerContext: controllerContext}
 
-	_, err = r.Reconcile(goctx.Background(), ctrl.Request{NamespacedName: util.ObjectKey(vSphereVM)})
+	_, err = r.Reconcile(goctx.Background(), ctrl.Request{NamespacedName: util.ObjectKey(vsphereVM)})
 	g := NewWithT(t)
 	g.Expect(err).NotTo(HaveOccurred())
 
 	vm := &infrav1.VSphereVM{}
-	vmKey := util.ObjectKey(vSphereVM)
+	vmKey := util.ObjectKey(vsphereVM)
 	g.Expect(r.Client.Get(goctx.Background(), vmKey, vm)).NotTo(HaveOccurred())
 	g.Expect(conditions.Has(vm, infrav1.VCenterAvailableCondition)).To(BeTrue())
 	vCenterCondition := conditions.Get(vm, infrav1.VCenterAvailableCondition)
 	g.Expect(vCenterCondition.Status).To(Equal(corev1.ConditionTrue))
+}
+
+func createMachineOwnerHierarchy(machine *clusterv1.Machine) []client.Object {
+	machine.OwnerReferences = []metav1.OwnerReference{
+		{
+			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       "MachineSet",
+			Name:       fmt.Sprintf("%s-ms", machine.Name),
+		},
+	}
+
+	var (
+		objs           []client.Object
+		clusterName, _ = machine.Labels[clusterv1.ClusterLabelName]
+	)
+
+	objs = append(objs, &clusterv1.MachineSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-ms", machine.Name),
+			Namespace: machine.Namespace,
+			Labels: map[string]string{
+				clusterv1.ClusterLabelName: clusterName,
+			},
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: clusterv1.GroupVersion.String(),
+					Kind:       "MachineDeployment",
+					Name:       fmt.Sprintf("%s-md", machine.Name),
+				},
+			},
+		},
+	})
+
+	objs = append(objs, &clusterv1.MachineDeployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-md", machine.Name),
+			Namespace: machine.Namespace,
+			Labels: map[string]string{
+				clusterv1.ClusterLabelName: clusterName,
+			},
+		},
+	})
+	return objs
 }

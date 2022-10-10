@@ -37,6 +37,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/cluster"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/clustermodules"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/extra"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/net"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
@@ -136,6 +137,10 @@ func (vms *VMService) ReconcileVM(ctx *context.VMContext) (vm infrav1.VirtualMac
 		return vm, err
 	}
 
+	if err := vms.reconcileClusterModuleMembership(vmCtx); err != nil {
+		return vm, err
+	}
+
 	if ok, err := vms.reconcilePowerState(vmCtx); err != nil || !ok {
 		return vm, err
 	}
@@ -209,6 +214,15 @@ func (vms *VMService) DestroyVM(ctx *context.VMContext) (infrav1.VirtualMachine,
 		}
 		ctx.Logger.Info("wait for VM to be powered off")
 		return vm, nil
+	}
+
+	if ctx.ClusterModuleInfo != nil {
+		provider := clustermodules.NewProvider(ctx.Session.TagManager.Client)
+		err := provider.RemoveMoRefFromModule(ctx, *ctx.ClusterModuleInfo, vmCtx.Ref)
+		if err != nil && !util.IsNotFoundError(err) {
+			return vm, err
+		}
+		ctx.VSphereVM.Status.ModuleUUID = nil
 	}
 
 	// At this point the VM is not powered on and can be destroyed. Store the
@@ -534,5 +548,19 @@ func (vms *VMService) reconcileTags(ctx *virtualMachineContext) error {
 		return errors.Wrapf(err, "failed to attach tags %v to VM %s", ctx.VSphereVM.Spec.TagIDs, ctx.VSphereVM.Name)
 	}
 
+	return nil
+}
+
+func (vms *VMService) reconcileClusterModuleMembership(ctx *virtualMachineContext) error {
+	if ctx.ClusterModuleInfo != nil {
+		ctx.Logger.V(4).Info("add vm to module", "moduleUUID", *ctx.ClusterModuleInfo)
+		provider := clustermodules.NewProvider(ctx.Session.TagManager.Client)
+
+		if err := provider.AddMoRefToModule(ctx, *ctx.ClusterModuleInfo, ctx.Ref); err != nil {
+			ctx.Logger.V(4).Error(err, "failed to add vm to module", "moduleUUID", *ctx.ClusterModuleInfo)
+			return err
+		}
+		ctx.VSphereVM.Status.ModuleUUID = ctx.ClusterModuleInfo
+	}
 	return nil
 }

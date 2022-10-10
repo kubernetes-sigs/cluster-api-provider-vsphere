@@ -103,9 +103,12 @@ func AddClusterControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 			Complete(reconciler)
 	}
 
-	reconciler := clusterReconciler{ControllerContext: controllerContext}
+	reconciler := clusterReconciler{
+		ControllerContext:       controllerContext,
+		clusterModuleReconciler: NewReconciler(controllerContext),
+	}
 	clusterToInfraFn := clusterToInfrastructureMapFunc(ctx)
-	return ctrl.NewControllerManagedBy(mgr).
+	c, err := ctrl.NewControllerManagedBy(mgr).
 		// Watch the controlled, infrastructure resource.
 		For(clusterControlledType).
 		// Watch the CAPI resource that owns this infrastructure resource.
@@ -155,7 +158,13 @@ func AddClusterControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 		).
 		WithEventFilter(predicates.ResourceIsNotExternallyManaged(reconciler.Logger)).
 		WithOptions(controller.Options{MaxConcurrentReconciles: ctx.MaxConcurrentReconciles}).
-		Complete(reconciler)
+		Build(reconciler)
+	if err != nil {
+		return err
+	}
+
+	// TODO (srm09): Need to figure out how to add the watches only when the anti-affinity feature flag is enabled.
+	return reconciler.clusterModuleReconciler.PopulateWatchesOnController(c)
 }
 
 func clusterToInfrastructureMapFunc(managerContext *context.ControllerManagerContext) handler.MapFunc {

@@ -18,7 +18,6 @@ package e2e
 
 import (
 	"fmt"
-	"path/filepath"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -27,12 +26,12 @@ import (
 	"github.com/vmware/govmomi/pbm/types"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
-	v1beta12 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 )
 
 var _ = Describe("Cluster creation with storage policy", func() {
@@ -52,7 +51,12 @@ var _ = Describe("Cluster creation with storage policy", func() {
 		Expect(namespace).NotTo(BeNil())
 
 		By("creating a workload cluster")
-		configCluster := defaultConfigCluster(clusterName, namespace.Name, 1, 0)
+		configCluster := defaultConfigCluster(clusterName, namespace.Name, 1, 0, GlobalInput{
+			BootstrapClusterProxy: bootstrapClusterProxy,
+			ClusterctlConfigPath:  clusterctlConfigPath,
+			E2EConfig:             e2eConfig,
+			ArtifactFolder:        artifactFolder,
+		})
 
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 			ClusterProxy:                 bootstrapClusterProxy,
@@ -103,29 +107,14 @@ var _ = Describe("Cluster creation with storage policy", func() {
 	})
 })
 
-func defaultConfigCluster(clusterName, namespace string, controlPlaneNodeCount, workerNodeCount int64) clusterctl.ConfigClusterInput {
-	return clusterctl.ConfigClusterInput{
-		LogFolder:                filepath.Join(artifactFolder, "clusters", bootstrapClusterProxy.GetName()),
-		ClusterctlConfigPath:     clusterctlConfigPath,
-		KubeconfigPath:           bootstrapClusterProxy.GetKubeconfigPath(),
-		InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
-		Flavor:                   clusterctl.DefaultFlavor,
-		Namespace:                namespace,
-		ClusterName:              clusterName,
-		KubernetesVersion:        e2eConfig.GetVariable(KubernetesVersion),
-		ControlPlaneMachineCount: pointer.Int64Ptr(controlPlaneNodeCount),
-		WorkerMachineCount:       pointer.Int64Ptr(workerNodeCount),
-	}
-}
-
-func getVSphereVMsForCluster(clusterName, namespace string) *v1beta1.VSphereVMList {
-	var vms v1beta1.VSphereVMList
+func getVSphereVMsForCluster(clusterName, namespace string) *infrav1.VSphereVMList {
+	var vms infrav1.VSphereVMList
 	err := bootstrapClusterProxy.GetClient().List(
 		ctx,
 		&vms,
 		client.InNamespace(namespace),
 		client.MatchingLabels{
-			v1beta12.ClusterLabelName: clusterName,
+			v1beta1.ClusterLabelName: clusterName,
 		},
 	)
 	Expect(err).NotTo(HaveOccurred())

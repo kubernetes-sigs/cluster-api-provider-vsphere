@@ -147,6 +147,7 @@ variables:
   VENDOR_ID: 4318
   # CAPV feature flags
   EXP_NODE_ANTI_AFFINITY: "true"
+  EXP_NODE_LABELING: "true"
 
 intervals:
   default/wait-controllers: ["5m", "10s"]

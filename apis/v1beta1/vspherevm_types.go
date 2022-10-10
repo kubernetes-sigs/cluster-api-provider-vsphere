@@ -51,6 +51,11 @@ type VSphereVMSpec struct {
 
 // VSphereVMStatus defines the observed state of VSphereVM
 type VSphereVMStatus struct {
+	// Host describes the hostname or IP address of the infrastructure host
+	// that the VSphereVM is residing on.
+	// +optional
+	Host string `json:"host,omitempty"`
+
 	// Ready is true when the provider resource is ready.
 	// This field is required at runtime for other controllers that read
 	// this CRD as unstructured data.

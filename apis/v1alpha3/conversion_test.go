@@ -113,12 +113,12 @@ func CustomObjectMetaFuzzer(in *clusterv1.ObjectMeta, c fuzz.Continue) {
 
 func CustomNewFieldFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
-		CustomNewFieldFuzzer,
+		CustomSpecNewFieldFuzzer,
 		CustomStatusNewFieldFuzzer,
 	}
 }
 
-func CustomNewFieldFuzzer(in *nextver.VirtualMachineCloneSpec, c fuzz.Continue) {
+func CustomSpecNewFieldFuzzer(in *nextver.VirtualMachineCloneSpec, c fuzz.Continue) {
 	c.FuzzNoCustom(in)
 
 	in.PciDevices = nil
@@ -129,5 +129,6 @@ func CustomNewFieldFuzzer(in *nextver.VirtualMachineCloneSpec, c fuzz.Continue) 
 func CustomStatusNewFieldFuzzer(in *nextver.VSphereVMStatus, c fuzz.Continue) {
 	c.FuzzNoCustom(in)
 
+	in.Host = ""
 	in.ModuleUUID = nil
 }

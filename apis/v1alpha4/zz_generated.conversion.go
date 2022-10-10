@@ -1737,6 +1737,7 @@ func Convert_v1alpha4_VSphereVMStatus_To_v1beta1_VSphereVMStatus(in *VSphereVMSt
 }
 
 func autoConvert_v1beta1_VSphereVMStatus_To_v1alpha4_VSphereVMStatus(in *v1beta1.VSphereVMStatus, out *VSphereVMStatus, s conversion.Scope) error {
+	// WARNING: in.Host requires manual conversion: does not exist in peer-type
 	out.Ready = in.Ready
 	out.Addresses = *(*[]string)(unsafe.Pointer(&in.Addresses))
 	out.CloneMode = CloneMode(in.CloneMode)

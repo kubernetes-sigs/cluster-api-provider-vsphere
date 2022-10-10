@@ -21,8 +21,10 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
@@ -182,4 +184,56 @@ var _ = Describe("VimMachineService_GenerateOverrideFunc", func() {
 			})
 		})
 	})
+})
+
+var _ = Describe("VimMachineService_GetHostInfo", func() {
+	var (
+		controllerCtx     *context.ControllerContext
+		machineCtx        *context.VIMMachineContext
+		vimMachineService = &VimMachineService{}
+		hostAddr          = "1.2.3.4"
+	)
+
+	getVSphereVM := func(hostAddr string, conditionStatus corev1.ConditionStatus) *infrav1.VSphereVM {
+		return &infrav1.VSphereVM{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: fake.Namespace,
+				Name:      fake.Clusterv1a2Name,
+			},
+			Status: infrav1.VSphereVMStatus{
+				Host: hostAddr,
+				Conditions: []clusterv1.Condition{
+					{
+						Type:   infrav1.VMProvisionedCondition,
+						Status: conditionStatus,
+					},
+				},
+			},
+		}
+	}
+
+	Context("When VMProvisioned Condition is set", func() {
+		BeforeEach(func() {
+			controllerCtx = fake.NewControllerContext(fake.NewControllerManagerContext(getVSphereVM(hostAddr, corev1.ConditionTrue)))
+			machineCtx = fake.NewMachineContext(fake.NewClusterContext(controllerCtx))
+		})
+		It("Fetches host address from the VSphereVM object", func() {
+			host, err := vimMachineService.GetHostInfo(machineCtx)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(host).To(Equal(hostAddr))
+		})
+	})
+
+	Context("When VMProvisioned Condition is unset", func() {
+		BeforeEach(func() {
+			controllerCtx = fake.NewControllerContext(fake.NewControllerManagerContext(getVSphereVM(hostAddr, corev1.ConditionFalse)))
+			machineCtx = fake.NewMachineContext(fake.NewClusterContext(controllerCtx))
+		})
+		It("returns empty string", func() {
+			host, err := vimMachineService.GetHostInfo(machineCtx)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(host).To(BeEmpty())
+		})
+	})
+
 })

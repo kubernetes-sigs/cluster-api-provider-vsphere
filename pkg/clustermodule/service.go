@@ -24,6 +24,7 @@ import (
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/clustermodules"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 )
 
 type service struct{}
@@ -48,7 +49,7 @@ func (s service) Create(ctx *context.ClusterContext, wrapper Wrapper) (string, e
 
 	// Fetch the compute cluster resource by tracing the owner of the resource pool in use.
 	// TODO (srm09): How do we support Multi AZ scenarios here
-	computeClusterRef, err := getComputeClusterResource(ctx, vCenterSession.Finder, template.Spec.Template.Spec.ResourcePool)
+	computeClusterRef, err := getComputeClusterResource(ctx, vCenterSession, template.Spec.Template.Spec.ResourcePool)
 	if err != nil {
 		logger.V(4).Error(err, "error fetching compute cluster resource")
 		return "", err
@@ -80,7 +81,7 @@ func (s service) DoesExist(ctx *context.ClusterContext, wrapper Wrapper, moduleU
 
 	// Fetch the compute cluster resource by tracing the owner of the resource pool in use.
 	// TODO (srm09): How do we support Multi AZ scenarios here
-	computeClusterRef, err := getComputeClusterResource(ctx, vCenterSession.Finder, template.Spec.Template.Spec.ResourcePool)
+	computeClusterRef, err := getComputeClusterResource(ctx, vCenterSession, template.Spec.Template.Spec.ResourcePool)
 	if err != nil {
 		logger.V(4).Error(err, "error fetching compute cluster resource")
 		return false, err
@@ -104,8 +105,8 @@ func (s service) Remove(ctx *context.ClusterContext, moduleUUID string) error {
 	return nil
 }
 
-func getComputeClusterResource(ctx goctx.Context, finder *find.Finder, resourcePool string) (types.ManagedObjectReference, error) {
-	rp, err := finder.ResourcePool(ctx, resourcePool)
+func getComputeClusterResource(ctx goctx.Context, s *session.Session, resourcePool string) (types.ManagedObjectReference, error) {
+	rp, err := s.Finder.ResourcePoolOrDefault(ctx, resourcePool)
 	if err != nil {
 		return types.ManagedObjectReference{}, err
 	}
@@ -114,5 +115,14 @@ func getComputeClusterResource(ctx goctx.Context, finder *find.Finder, resourceP
 	if err != nil {
 		return types.ManagedObjectReference{}, err
 	}
+
+	ownerPath, err := find.InventoryPath(ctx, s.Client.Client, cc.Reference())
+	if err != nil {
+		return types.ManagedObjectReference{}, err
+	}
+	if _, err = s.Finder.ClusterComputeResource(ctx, ownerPath); err != nil {
+		return types.ManagedObjectReference{}, IncompatibleOwnerError{cc.Reference().Value}
+	}
+
 	return cc.Reference(), nil
 }

@@ -22,10 +22,12 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/mock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
@@ -42,6 +44,7 @@ func TestReconciler_Reconcile(t *testing.T) {
 
 	tests := []struct {
 		name           string
+		haveError      bool
 		clusterModules []infrav1.ClusterModule
 		beforeFn       func(object client.Object)
 		setupMocks     func(*cmodfake.CMService)
@@ -87,6 +90,60 @@ func TestReconciler_Reconcile(t *testing.T) {
 				}
 				g.Expect(names).To(gomega.ConsistOf("kcp", "md"))
 				g.Expect(moduleUUIDs).To(gomega.ConsistOf(kcpUUID, mdUUID))
+			},
+		},
+		{
+			name:           "when cluster module creation is called for a resource pool owned by non compute cluster resource",
+			clusterModules: []infrav1.ClusterModule{},
+			setupMocks: func(svc *cmodfake.CMService) {
+				svc.On("Create", mock.Anything, clustermodule.NewWrapper(kcp)).Return("", clustermodule.NewIncompatibleOwnerError("foo-123"))
+				svc.On("Create", mock.Anything, clustermodule.NewWrapper(md)).Return(mdUUID, nil)
+			},
+			customAssert: func(g *gomega.WithT, ctx *context.ClusterContext) {
+				g.Expect(ctx.VSphereCluster.Spec.ClusterModules).To(gomega.HaveLen(1))
+				g.Expect(ctx.VSphereCluster.Spec.ClusterModules[0].TargetObjectName).To(gomega.Equal("md"))
+				g.Expect(ctx.VSphereCluster.Spec.ClusterModules[0].ModuleUUID).To(gomega.Equal(mdUUID))
+				g.Expect(ctx.VSphereCluster.Spec.ClusterModules[0].ControlPlane).To(gomega.BeFalse())
+
+				g.Expect(conditions.Has(ctx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)).To(gomega.BeTrue())
+				g.Expect(conditions.IsFalse(ctx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)).To(gomega.BeTrue())
+				g.Expect(conditions.Get(ctx.VSphereCluster, infrav1.ClusterModulesAvailableCondition).Message).To(gomega.ContainSubstring("kcp"))
+			},
+		},
+		{
+			name:           "when cluster module creation fails",
+			clusterModules: []infrav1.ClusterModule{},
+			setupMocks: func(svc *cmodfake.CMService) {
+				svc.On("Create", mock.Anything, clustermodule.NewWrapper(kcp)).Return(kcpUUID, nil)
+				svc.On("Create", mock.Anything, clustermodule.NewWrapper(md)).Return("", errors.New("failed to reach API"))
+			},
+			// if cluster module creation fails for any reason apart from incompatibility, error should be returned
+			haveError: true,
+			customAssert: func(g *gomega.WithT, ctx *context.ClusterContext) {
+				g.Expect(ctx.VSphereCluster.Spec.ClusterModules).To(gomega.HaveLen(1))
+				g.Expect(ctx.VSphereCluster.Spec.ClusterModules[0].TargetObjectName).To(gomega.Equal("kcp"))
+				g.Expect(ctx.VSphereCluster.Spec.ClusterModules[0].ModuleUUID).To(gomega.Equal(kcpUUID))
+				g.Expect(ctx.VSphereCluster.Spec.ClusterModules[0].ControlPlane).To(gomega.BeTrue())
+
+				g.Expect(conditions.Has(ctx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)).To(gomega.BeTrue())
+				g.Expect(conditions.IsFalse(ctx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)).To(gomega.BeTrue())
+				g.Expect(conditions.Get(ctx.VSphereCluster, infrav1.ClusterModulesAvailableCondition).Message).To(gomega.ContainSubstring("md"))
+			},
+		},
+		{
+			name:           "when all cluster module creations fail for a resource pool owned by non compute cluster resource",
+			clusterModules: []infrav1.ClusterModule{},
+			setupMocks: func(svc *cmodfake.CMService) {
+				svc.On("Create", mock.Anything, clustermodule.NewWrapper(kcp)).Return("", clustermodule.NewIncompatibleOwnerError("foo-123"))
+				svc.On("Create", mock.Anything, clustermodule.NewWrapper(md)).Return("", clustermodule.NewIncompatibleOwnerError("bar-123"))
+			},
+			// if cluster module creation fails due to resource pool owner incompatibility, vSphereCluster object is set to Ready
+			haveError: false,
+			customAssert: func(g *gomega.WithT, ctx *context.ClusterContext) {
+				g.Expect(ctx.VSphereCluster.Spec.ClusterModules).To(gomega.HaveLen(0))
+				g.Expect(conditions.Has(ctx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)).To(gomega.BeTrue())
+				g.Expect(conditions.IsFalse(ctx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)).To(gomega.BeTrue())
+				g.Expect(conditions.Get(ctx.VSphereCluster, infrav1.ClusterModulesAvailableCondition).Message).To(gomega.ContainSubstring("kcp"))
 			},
 		},
 		{
@@ -200,7 +257,11 @@ func TestReconciler_Reconcile(t *testing.T) {
 				ClusterModuleService: svc,
 			}
 			_, err := r.Reconcile(ctx)
-			g.Expect(err).ToNot(gomega.HaveOccurred())
+			if tt.haveError {
+				g.Expect(err).To(gomega.HaveOccurred())
+			} else {
+				g.Expect(err).ToNot(gomega.HaveOccurred())
+			}
 			tt.customAssert(g, ctx)
 
 			svc.AssertExpectations(t)

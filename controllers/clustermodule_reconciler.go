@@ -17,9 +17,11 @@ limitations under the License.
 package controllers
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
@@ -70,9 +72,7 @@ func (r Reconciler) Reconcile(ctx *context.ClusterContext) (reconcile.Result, er
 		return reconcile.Result{}, err
 	}
 
-	var errList []error
 	clusterModuleSpecs := []infrav1.ClusterModule{}
-
 	for _, mod := range ctx.VSphereCluster.Spec.ClusterModules {
 		curr := mod.TargetObjectName
 		if mod.ControlPlane {
@@ -84,14 +84,14 @@ func (r Reconciler) Reconcile(ctx *context.ClusterContext) (reconcile.Result, er
 			if err := r.ClusterModuleService.Remove(ctx, mod.ModuleUUID); err != nil {
 				ctx.Logger.Error(err, "failed to delete cluster module for object",
 					"name", mod.TargetObjectName, "moduleUUID", mod.ModuleUUID)
-				errList = append(errList, err)
 			}
 			delete(objectMap, curr)
 		} else {
 			// verify the cluster module
 			exists, err := r.ClusterModuleService.DoesExist(ctx, obj, mod.ModuleUUID)
 			if err != nil {
-				errList = append(errList, err)
+				ctx.Logger.Error(err, "failed to verify cluster module for object",
+					"name", mod.TargetObjectName, "moduleUUID", mod.ModuleUUID)
 			}
 			// append the module and object info to the VSphereCluster object
 			// and remove it from the object map since no new cluster module
@@ -110,17 +110,14 @@ func (r Reconciler) Reconcile(ctx *context.ClusterContext) (reconcile.Result, er
 			}
 		}
 	}
-	if len(errList) > 0 {
-		ctx.Logger.Error(kerrors.NewAggregate(errList), "errors reconciling cluster modules for cluster",
-			"namespace", ctx.VSphereCluster.Namespace, "name", ctx.VSphereCluster.Name)
-	}
 
-	errList = []error{}
+	modErrs := []clusterModError{}
 	for _, obj := range objectMap {
 		moduleUUID, err := r.ClusterModuleService.Create(ctx, obj)
 		if err != nil {
 			ctx.Logger.Error(err, "failed to create cluster module for target object", "name", obj.GetName())
-			errList = append(errList, err)
+			modErrs = append(modErrs, clusterModError{obj.GetName(), err})
+			continue
 		}
 		clusterModuleSpecs = append(clusterModuleSpecs, infrav1.ClusterModule{
 			ControlPlane:     obj.IsControlPlane(),
@@ -130,16 +127,19 @@ func (r Reconciler) Reconcile(ctx *context.ClusterContext) (reconcile.Result, er
 	}
 	ctx.VSphereCluster.Spec.ClusterModules = clusterModuleSpecs
 
-	if len(errList) > 0 {
-		err = kerrors.NewAggregate(errList)
-		ctx.Logger.Error(err, "errors reconciling cluster modules for cluster",
-			"namespace", ctx.VSphereCluster.Namespace, "name", ctx.VSphereCluster.Name)
-	}
-
 	switch {
-	case err != nil:
-		conditions.MarkFalse(ctx.VSphereCluster, infrav1.ClusterModulesAvailableCondition, infrav1.ClusterModuleSetupFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
-	case err == nil && len(clusterModuleSpecs) > 0:
+	case len(modErrs) > 0:
+		incompatibleOwnerErrs := incompatibleOwnerErrors(modErrs)
+		// if cluster module creation is not possible due to incompatibility,
+		// cluster creation should succeed with a warning condition
+		if len(incompatibleOwnerErrs) > 0 && len(incompatibleOwnerErrs) == len(modErrs) {
+			err = nil
+		} else {
+			err = errors.New(generateClusterModuleErrorMessage(modErrs))
+		}
+		conditions.MarkFalse(ctx.VSphereCluster, infrav1.ClusterModulesAvailableCondition, infrav1.ClusterModuleSetupFailedReason,
+			clusterv1.ConditionSeverityWarning, generateClusterModuleErrorMessage(modErrs))
+	case len(modErrs) == 0 && len(clusterModuleSpecs) > 0:
 		conditions.MarkTrue(ctx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)
 	default:
 		conditions.Delete(ctx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)
@@ -252,4 +252,30 @@ func (r Reconciler) fetchMachineOwnerObjects(ctx *context.ClusterContext) (map[s
 // having the same name.
 func appendKCPKey(name string) string {
 	return "kcp" + name
+}
+
+func incompatibleOwnerErrors(errList []clusterModError) []clusterModError {
+	toReport := []clusterModError{}
+	for _, e := range errList {
+		if clustermodule.IsIncompatibleOwnerError(e.err) {
+			toReport = append(toReport, e)
+		}
+	}
+	return toReport
+}
+
+type clusterModError struct {
+	name string
+	err  error
+}
+
+func generateClusterModuleErrorMessage(errList []clusterModError) string {
+	sb := strings.Builder{}
+	sb.WriteString("failed to create cluster modules for: ")
+
+	for _, e := range errList {
+		sb.WriteString(fmt.Sprintf("%s %s, ", e.name, e.err.Error()))
+	}
+	msg := sb.String()
+	return msg[:len(msg)-2]
 }

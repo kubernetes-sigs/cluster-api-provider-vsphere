@@ -35,6 +35,7 @@ type VSphereMachineService interface {
 	ReconcileDelete(ctx context.MachineContext) error
 	SyncFailureReason(ctx context.MachineContext) (bool, error)
 	ReconcileNormal(ctx context.MachineContext) (bool, error)
+	GetHostInfo(ctx context.MachineContext) (string, error)
 }
 
 // VirtualMachineService is a service for creating/updating/deleting virtual

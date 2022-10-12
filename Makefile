@@ -253,8 +253,8 @@ apidiff: $(GO_APIDIFF) ## Run the apidiff tool
 
 .PHONY: modules
 modules: ## Runs go mod to ensure proper vendoring
-	go mod tidy
-	cd $(TOOLS_DIR); go mod tidy
+	go mod tidy -compat=1.17
+	cd $(TOOLS_DIR); go mod tidy -compat=1.17
 
 .PHONY: generate
 generate: ## Generate code

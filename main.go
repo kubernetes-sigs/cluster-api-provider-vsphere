@@ -26,8 +26,11 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/spf13/pflag"
 	"gopkg.in/fsnotify.v1"
 	"k8s.io/apimachinery/pkg/api/meta"
+	cliflag "k8s.io/component-base/cli/flag"
+	_ "k8s.io/component-base/logs/json/register"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
@@ -47,8 +50,9 @@ import (
 var (
 	setupLog = ctrllog.Log.WithName("entrypoint")
 
-	managerOpts manager.Options
-	syncPeriod  time.Duration
+	managerOpts     manager.Options
+	syncPeriod      time.Duration
+	profilerAddress string
 
 	defaultProfilerAddr      = os.Getenv("PROFILER_ADDR")
 	defaultSyncPeriod        = manager.DefaultSyncPeriod
@@ -59,15 +63,8 @@ var (
 	defaultKeepAliveDuration = constants.DefaultKeepAliveDuration
 )
 
-func main() {
-	rand.Seed(time.Now().UnixNano())
-
-	klog.InitFlags(nil)
-	ctrllog.SetLogger(klogr.New())
-	if err := flag.Set("v", "2"); err != nil {
-		klog.Fatalf("failed to set log level: %v", err)
-	}
-
+// InitFlags initializes the flags.
+func InitFlags(fs *pflag.FlagSet) {
 	flag.StringVar(
 		&managerOpts.MetricsBindAddress,
 		"metrics-addr",
@@ -88,7 +85,8 @@ func main() {
 		"namespace",
 		"",
 		"Namespace that the controller watches to reconcile cluster-api objects. If unspecified, the controller watches for cluster-api objects across all namespaces.")
-	profilerAddress := flag.String(
+	flag.StringVar(
+		&profilerAddress,
 		"profiler-address",
 		defaultProfilerAddr,
 		"Bind address to expose the pprof profiler (e.g. localhost:6060)")
@@ -128,21 +126,41 @@ func main() {
 		&managerOpts.EnableKeepAlive,
 		"enable-keep-alive",
 		defaultEnableKeepAlive,
-		"DEPRECATED: feature to enable keep alive handler in vsphere sessions. This functionality is enabled by default now")
-
+		"DEPRECATED: feature to enable keep alive handler in vsphere sessions. This functionality is enabled by default now",
+	)
 	flag.DurationVar(
 		&managerOpts.KeepAliveDuration,
 		"keep-alive-duration",
 		defaultKeepAliveDuration,
-		"idle time interval(minutes) in between send() requests in keepalive handler")
-
+		"idle time interval(minutes) in between send() requests in keepalive handler",
+	)
 	flag.StringVar(
 		&managerOpts.NetworkProvider,
 		"network-provider",
 		"",
-		"network provider to be used by Supervisor based clusters.")
+		"network provider to be used by Supervisor based clusters.",
+	)
 
-	flag.Parse()
+	feature.MutableGates.AddFlag(fs)
+}
+
+func main() {
+	rand.Seed(time.Now().UnixNano())
+	klog.InitFlags(nil)
+
+	InitFlags(pflag.CommandLine)
+	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
+	pflag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
+	if err := pflag.CommandLine.Set("v", "2"); err != nil {
+		setupLog.Error(err, "failed to set log level: %v")
+		os.Exit(1)
+	}
+	pflag.Parse()
+
+	ctrllog.SetLogger(klogr.New())
+	if err := flag.Set("v", "2"); err != nil {
+		klog.Fatalf("failed to set log level: %v", err)
+	}
 
 	if managerOpts.Namespace != "" {
 		setupLog.Info(
@@ -150,18 +168,17 @@ func main() {
 			"namespace", managerOpts.Namespace)
 	}
 
-	if *profilerAddress != "" {
+	if profilerAddress != "" {
 		setupLog.Info(
 			"Profiler listening for requests",
-			"profiler-address", *profilerAddress)
-		go runProfiler(*profilerAddress)
+			"profiler-address", profilerAddress)
+		go runProfiler(profilerAddress)
 	}
 	setupLog.V(1).Info(fmt.Sprintf("feature gates: %+v\n", feature.Gates))
 
 	managerOpts.SyncPeriod = &syncPeriod
 
-	// Create a function that adds all of the controllers and webhooks to the
-	// manager.
+	// Create a function that adds all the controllers and webhooks to the manager.
 	addToManager := func(ctx *context.ControllerManagerContext, mgr ctrlmgr.Manager) error {
 		cluster := &v1beta1.VSphereCluster{}
 		gvr := v1beta1.GroupVersion.WithResource(reflect.TypeOf(cluster).Elem().Name())
@@ -278,6 +295,12 @@ func setupVAPIControllers(ctx *context.ControllerManagerContext, mgr ctrlmgr.Man
 	}
 	if err := controllers.AddVSphereDeploymentZoneControllerToManager(ctx, mgr); err != nil {
 		return err
+	}
+
+	if feature.Gates.Enabled(feature.NodeLabeling) {
+		if err := controllers.AddNodeLabelControllerToManager(ctx, mgr); err != nil {
+			return err
+		}
 	}
 	return nil
 }

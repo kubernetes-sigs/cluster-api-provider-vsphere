@@ -51,6 +51,11 @@ type VSphereVMSpec struct {
 
 // VSphereVMStatus defines the observed state of VSphereVM
 type VSphereVMStatus struct {
+	// Host describes the hostname or IP address of the infrastructure host
+	// that the VSphereVM is residing on.
+	// +optional
+	Host string `json:"host,omitempty"`
+
 	// Ready is true when the provider resource is ready.
 	// This field is required at runtime for other controllers that read
 	// this CRD as unstructured data.
@@ -123,6 +128,13 @@ type VSphereVMStatus struct {
 	// Conditions defines current service state of the VSphereVM.
 	// +optional
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+
+	// ModuleUUID is the unique identifier for the vCenter cluster module construct
+	// which is used to configure anti-affinity. Objects with the same ModuleUUID
+	// will be anti-affined, meaning that the vCenter DRS will best effort schedule
+	// the VMs on separate hosts.
+	// +optional
+	ModuleUUID *string `json:"moduleUUID,omitempty"`
 }
 
 // +kubebuilder:object:root=true

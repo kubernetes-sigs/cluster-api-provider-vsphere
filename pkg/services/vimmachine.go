@@ -173,6 +173,27 @@ func (v *VimMachineService) ReconcileNormal(c context.MachineContext) (bool, err
 	return false, nil
 }
 
+func (v *VimMachineService) GetHostInfo(c context.MachineContext) (string, error) {
+	ctx, ok := c.(*context.VIMMachineContext)
+	if !ok {
+		return "", errors.New("received unexpected VIMMachineContext type")
+	}
+
+	vsphereVM := &infrav1.VSphereVM{}
+	if err := ctx.Client.Get(ctx, client.ObjectKey{
+		Namespace: ctx.Machine.Namespace,
+		Name:      ctx.Machine.Name,
+	}, vsphereVM); err != nil {
+		return "", err
+	}
+
+	if conditions.IsTrue(vsphereVM, infrav1.VMProvisionedCondition) {
+		return vsphereVM.Status.Host, nil
+	}
+	ctx.Logger.V(4).Info("VMProvisionedCondition is set to false", "vsphereVM", vsphereVM.Name)
+	return "", nil
+}
+
 func (v *VimMachineService) findVMPre7(ctx *context.VIMMachineContext) (*infrav1.VSphereVM, error) {
 	// Get ready to find the associated VSphereVM resource.
 	vm := &infrav1.VSphereVM{}

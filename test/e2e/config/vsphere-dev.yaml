@@ -96,6 +96,19 @@ providers:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
 
+  - name: incluster
+    type: IPAMProvider
+    versions:
+      - name: v0.1.0
+        value: https://github.com/telekom/cluster-api-ipam-provider-in-cluster/releases/download/v0.1.0-alpha.1/ipam-components.yaml
+        type: "url"
+        contract: v1beta1
+        files:
+          - sourcePath: "../data/cluster-api-ipam-provider-in-cluster/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+
   - name: vsphere
     type: InfrastructureProvider
     versions:
@@ -126,6 +139,7 @@ providers:
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-pci.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-remote-management.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-storage-policy.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-ipam.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-topology.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-dhcp-overrides.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/clusterclass-quick-start.yaml"
@@ -170,6 +184,12 @@ variables:
   # CAPV feature flags
   EXP_NODE_ANTI_AFFINITY: "true"
   EXP_NODE_LABELING: "true"
+  # Node IPAM settings
+  NODE_IPAM_POOL_SUBNET: 192.168.116.1/24
+  NODE_IPAM_POOL_GATEWAY: 192.168.116.1
+  NODE_IPAM_POOL_START: 192.168.116.151
+  NODE_IPAM_POOL_END: 192.168.116.200
+  NODE_IPAM_NAMESERVER: 10.142.7.1
 
 intervals:
   default/wait-controllers: ["5m", "10s"]

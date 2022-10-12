@@ -1,0 +1,11 @@
+---
+apiVersion: ipam.cluster.x-k8s.io/v1alpha1
+kind: InClusterIPPool
+metadata:
+  name: inclusterippool
+  namespace: ${NAMESPACE}
+spec:
+  subnet: ${NODE_IPAM_POOL_SUBNET}
+  gateway: ${NODE_IPAM_POOL_GATEWAY}
+  start: ${NODE_IPAM_POOL_START}
+  end: ${NODE_IPAM_POOL_END}

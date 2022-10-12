@@ -12,6 +12,7 @@ require (
 	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20211025141024-c73b143dc503
 	sigs.k8s.io/controller-tools v0.7.0
 	sigs.k8s.io/kind v0.7.0
+	sigs.k8s.io/kubebuilder-release-tools/notes v0.0.0-20220428224951-d8a44c7aef35
 	sigs.k8s.io/kustomize/kustomize/v4 v4.4.0
 	sigs.k8s.io/testing_frameworks v0.1.2
 )
@@ -35,6 +36,7 @@ require (
 	github.com/ashanbrown/makezero v1.1.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bkielbasa/cyclop v1.2.0 // indirect
+	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/blizzy78/varnamelen v0.8.0 // indirect
 	github.com/bombsimon/wsl/v3 v3.3.0 // indirect
 	github.com/breml/bidichk v0.2.3 // indirect

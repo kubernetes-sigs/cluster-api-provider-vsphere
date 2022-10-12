@@ -144,6 +144,8 @@ github.com/bketelsen/crypt v0.0.4/go.mod h1:aI6NrJ0pMGgvZKL1iVgXLnfIFJtfV+bKCoqO
 github.com/bkielbasa/cyclop v1.2.0 h1:7Jmnh0yL2DjKfw28p86YTd/B4lRGcNuu12sKE35sM7A=
 github.com/bkielbasa/cyclop v1.2.0/go.mod h1:qOI0yy6A7dYC4Zgsa72Ppm9kONl0RoIlPbzot9mhmeI=
 github.com/blang/semver v3.5.1+incompatible/go.mod h1:kRBLl5iJ+tD4TcOOxsy/0fnwebNt5EWlYSAyrTnjyyk=
+github.com/blang/semver/v4 v4.0.0 h1:1PFHFE6yCCTv8C1TeyNNarDzntLi7wMI5i/pzqYIsAM=
+github.com/blang/semver/v4 v4.0.0/go.mod h1:IbckMUScFkM3pff0VJDNKRiT6TG/YpiHIM2yvyW5YoQ=
 github.com/blizzy78/varnamelen v0.8.0 h1:oqSblyuQvFsW1hbBHh1zfwrKe3kcSj0rnXkKzsQ089M=
 github.com/blizzy78/varnamelen v0.8.0/go.mod h1:V9TzQZ4fLJ1DSrjVDfl89H7aMnTvKkApdHeyESmyR7k=
 github.com/bombsimon/wsl/v3 v3.3.0 h1:Mka/+kRLoQJq7g2rggtgQsjuI/K5Efd87WX96EWFxjM=
@@ -1754,6 +1756,8 @@ sigs.k8s.io/controller-tools v0.7.0 h1:iZIz1vEcavyEfxjcTLs1WH/MPf4vhPCtTKhoHqV8/
 sigs.k8s.io/controller-tools v0.7.0/go.mod h1:bpBAo0VcSDDLuWt47evLhMLPxRPxMDInTEH/YbdeMK0=
 sigs.k8s.io/kind v0.7.0 h1:7y7a8EYtGHM+auHmsvzuK5o84SrxPYGidlvfql7j/k4=
 sigs.k8s.io/kind v0.7.0/go.mod h1:An/AbWHT6pA/Lm0Og8j3ukGhfJP3RiVN/IBU6Lo3zl8=
+sigs.k8s.io/kubebuilder-release-tools/notes v0.0.0-20220428224951-d8a44c7aef35 h1:nUlVsmPoM5QezMBch4fcKiw14QC9ICge+u4qWLouGLQ=
+sigs.k8s.io/kubebuilder-release-tools/notes v0.0.0-20220428224951-d8a44c7aef35/go.mod h1:0MFmf9EVf9hm7ULQMpWPWHfh0w7Ut4Ze09onqy2zDSM=
 sigs.k8s.io/kubebuilder/docs/book/utils v0.0.0-20211028165026-57688c578b5d/go.mod h1:NRdZafr4zSCseLQggdvIMXa7umxf+Q+PJzrj3wFwiGE=
 sigs.k8s.io/kustomize/api v0.10.0 h1:HK5gVSlVV24AmZ2fTHUIchZ6osaYNegK1jAdx7lJ/mU=
 sigs.k8s.io/kustomize/api v0.10.0/go.mod h1:syysqD8Oews9oghLfCitMCuCPxxu4MErSJ6uw8ge9jk=

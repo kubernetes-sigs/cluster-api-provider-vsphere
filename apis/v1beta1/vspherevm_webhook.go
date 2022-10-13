@@ -106,6 +106,12 @@ func (r *VSphereVM) ValidateUpdate(old runtime.Object) error {
 	delete(oldVSphereVMNetwork, "devices")
 	delete(newVSphereVMNetwork, "devices")
 
+	// allow changes to os only if the old spec has empty OS field
+	if _, ok := oldVSphereVMSpec["os"]; !ok {
+		delete(oldVSphereVMSpec, "os")
+		delete(newVSphereVMSpec, "os")
+	}
+
 	if !reflect.DeepEqual(oldVSphereVMSpec, newVSphereVMSpec) {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec"), "cannot be modified"))
 	}

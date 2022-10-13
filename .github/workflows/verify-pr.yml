@@ -2,16 +2,15 @@ name: Verify PR
 
 on:
   pull_request:
-    types:
-      - opened
-      - edited
-      - reopened
-      - synchronize
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  checks: write # Allow access to checks to write check runs.
 
 jobs:
   verify:
     runs-on: ubuntu-latest
-    name: Check PR contents
+    name: Verify PR contents
     steps:
       - name: Verifier action
         id: verifier

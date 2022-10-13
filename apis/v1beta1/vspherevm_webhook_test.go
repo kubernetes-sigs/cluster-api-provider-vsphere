@@ -132,6 +132,18 @@ func TestVSphereVM_ValidateUpdate(t *testing.T) {
 			vSphereVM:    createVSphereVM("vsphere-vm-1", "bar.com", biosUUID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}, nil, Linux),
 			wantErr:      true,
 		},
+		{
+			name:         "updating OS can be done only when empty",
+			oldVSphereVM: createVSphereVM("vsphere-vm-1-os", "foo.com", "", "", []string{"192.168.0.1/32"}, nil, ""),
+			vSphereVM:    createVSphereVM("vsphere-vm-1-os", "foo.com", "", "", []string{"192.168.0.1/32"}, nil, Linux),
+			wantErr:      false,
+		},
+		{
+			name:         "updating OS cannot be done when alreadySet",
+			oldVSphereVM: createVSphereVM("vsphere-vm-1-os", "foo.com", "", "", []string{"192.168.0.1/32"}, nil, Windows),
+			vSphereVM:    createVSphereVM("vsphere-vm-1-os", "foo.com", "", "", []string{"192.168.0.1/32"}, nil, Linux),
+			wantErr:      true,
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

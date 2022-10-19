@@ -102,8 +102,9 @@ function build_images() {
   esac
 
   # Manager image
-  echo "building ${MANAGER_IMAGE_NAME}:${VERSION}"
-  docker build \
+  ARCH=$(go env GOARCH)
+  echo "building ${MANAGER_IMAGE_NAME}:${VERSION} for arch ${ARCH}"
+  docker buildx build --platform linux/"${ARCH}" --output=type=docker --pull \
     -f Dockerfile \
     -t "${MANAGER_IMAGE_NAME}":"${VERSION}" \
     .

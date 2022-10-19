@@ -62,6 +62,7 @@ var (
 	defaultWebhookPort       = manager.DefaultWebhookServiceContainerPort
 	defaultEnableKeepAlive   = constants.DefaultEnableKeepAlive
 	defaultKeepAliveDuration = constants.DefaultKeepAliveDuration
+	defaultTLSMinVersion     = "1.2"
 )
 
 // InitFlags initializes the flags.
@@ -144,7 +145,7 @@ func InitFlags(fs *pflag.FlagSet) {
 	flag.StringVar(
 		&tlsMinVersion,
 		"tls-min-version",
-		"",
+		defaultTLSMinVersion,
 		"minimum TLS version in use by the webhook server. Possible values are  \"\", \"1.0\", \"1.1\", \"1.2\" and \"1.3\".",
 	)
 

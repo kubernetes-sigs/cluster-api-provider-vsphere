@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"math/rand"
@@ -24,6 +25,7 @@ import (
 	"net/http/pprof"
 	"os"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/spf13/pflag"
@@ -55,6 +57,7 @@ var (
 	syncPeriod      time.Duration
 	profilerAddress string
 	tlsMinVersion   string
+	tlsCipherSuites string
 
 	defaultProfilerAddr      = os.Getenv("PROFILER_ADDR")
 	defaultSyncPeriod        = manager.DefaultSyncPeriod
@@ -63,7 +66,6 @@ var (
 	defaultWebhookPort       = manager.DefaultWebhookServiceContainerPort
 	defaultEnableKeepAlive   = constants.DefaultEnableKeepAlive
 	defaultKeepAliveDuration = constants.DefaultKeepAliveDuration
-	defaultTLSMinVersion     = "1.2"
 )
 
 // InitFlags initializes the flags.
@@ -148,8 +150,16 @@ func InitFlags(fs *pflag.FlagSet) {
 	flag.StringVar(
 		&tlsMinVersion,
 		"tls-min-version",
-		defaultTLSMinVersion,
-		"minimum TLS version in use by the webhook server. Possible values are  \"\", \"1.0\", \"1.1\", \"1.2\" and \"1.3\".",
+		"",
+		"Minimum TLS version in use by the webhook server.\n"+
+			fmt.Sprintf("Possible values are %s.", strings.Join(cliflag.TLSPossibleVersions(), ", ")),
+	)
+	flag.StringVar(
+		&tlsCipherSuites,
+		"tls-cipher-suites",
+		"",
+		"Comma-separated list of cipher suites for the server. If omitted, the default Go cipher suites will be used.\n"+
+			fmt.Sprintf("Possible values are %s.", strings.Join(cliflag.TLSCipherPossibleValues(), ", ")),
 	)
 
 	feature.MutableGates.AddFlag(fs)
@@ -234,7 +244,22 @@ func main() {
 		os.Exit(1)
 	}
 
-	mgr.GetWebhookServer().TLSMinVersion = tlsMinVersion
+	minTLSVersionSetFunc, err := setMinTLSVersionFunc(tlsMinVersion)
+	if err != nil {
+		setupLog.Error(err, "unable to set TLS min version")
+		os.Exit(1)
+	}
+	mgr.GetWebhookServer().TLSOpts = append(mgr.GetWebhookServer().TLSOpts, minTLSVersionSetFunc)
+
+	if tlsCipherSuites != "" {
+		cipherSuitesSetFunc, err := setCipherSuiteFunc(tlsCipherSuites)
+		if err != nil {
+			setupLog.Error(err, "unable to set TLS Cipher suites")
+			os.Exit(1)
+		}
+		mgr.GetWebhookServer().TLSOpts = append(mgr.GetWebhookServer().TLSOpts, cipherSuitesSetFunc)
+	}
+
 	setupChecks(mgr)
 
 	sigHandler := ctrlsig.SetupSignalHandler()
@@ -337,6 +362,27 @@ func setupSupervisorControllers(ctx *context.ControllerManagerContext, mgr ctrlm
 	}
 
 	return nil
+}
+
+func setCipherSuiteFunc(cipherSuiteString string) (func(cfg *tls.Config), error) {
+	cipherSuites := strings.Split(cipherSuiteString, ",")
+	suites, err := cliflag.TLSCipherSuites(cipherSuites)
+	if err != nil {
+		return nil, err
+	}
+	return func(cfg *tls.Config) {
+		cfg.CipherSuites = suites
+	}, nil
+}
+
+func setMinTLSVersionFunc(versionName string) (func(cfg *tls.Config), error) {
+	tlsVersion, err := cliflag.TLSVersion(versionName)
+	if err != nil {
+		return nil, err
+	}
+	return func(cfg *tls.Config) {
+		cfg.MinVersion = tlsVersion
+	}, nil
 }
 
 func setupChecks(mgr ctrlmgr.Manager) {

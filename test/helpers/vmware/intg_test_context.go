@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package builder
+package vmware
 
 import (
 	"context"
@@ -48,7 +48,6 @@ type IntegrationTestContext struct {
 	VSphereCluster    *vmwarev1.VSphereCluster
 	VSphereClusterKey client.ObjectKey
 	envTest           *envtest.Environment
-	suite             *TestSuite
 }
 
 func (*IntegrationTestContext) GetLogger() logr.Logger {
@@ -83,11 +82,10 @@ func (ctx *IntegrationTestContext) AfterEach() {
 //
 // The resources created by this function may be cleaned up by calling AfterEach
 // with the IntegrationTestContext returned by this function.
-func (s *TestSuite) NewIntegrationTestContextWithClusters(goctx context.Context, integrationTestClient client.Client) *IntegrationTestContext {
+func NewIntegrationTestContextWithClusters(goctx context.Context, integrationTestClient client.Client) *IntegrationTestContext {
 	ctx := &IntegrationTestContext{
 		Context: goctx,
 		Client:  integrationTestClient,
-		suite:   s,
 	}
 
 	By("Creating a temporary namespace", func() {
@@ -96,7 +94,7 @@ func (s *TestSuite) NewIntegrationTestContextWithClusters(goctx context.Context,
 				Name: uuid.New().String(),
 			},
 		}
-		Expect(ctx.Client.Create(s, namespace)).To(Succeed())
+		Expect(ctx.Client.Create(goctx, namespace)).To(Succeed())
 
 		ctx.Namespace = namespace.Name
 	})
@@ -117,8 +115,8 @@ func (s *TestSuite) NewIntegrationTestContextWithClusters(goctx context.Context,
 			// Add some form of CRD so the CRD object is registered in the
 			// scheme...
 			CRDDirectoryPaths: []string{
-				filepath.Join(s.flags.RootDir, "config", "default", "crd"),
-				filepath.Join(s.flags.RootDir, "config", "supervisor", "crd"),
+				filepath.Join("../../", "config", "default", "crd"),
+				filepath.Join("../../", "config", "supervisor", "crd"),
 			},
 		}
 		envTest.ControlPlane.GetAPIServer().Configure().Set("allow-privileged", "true")
@@ -152,9 +150,9 @@ func (s *TestSuite) NewIntegrationTestContextWithClusters(goctx context.Context,
 				"value": buf,
 			},
 		}
-		Expect(integrationTestClient.Create(s, secret)).To(Succeed())
+		Expect(integrationTestClient.Create(goctx, secret)).To(Succeed())
 		Eventually(func() error {
-			return integrationTestClient.Get(s, client.ObjectKeyFromObject(secret), secret)
+			return integrationTestClient.Get(goctx, client.ObjectKeyFromObject(secret), secret)
 		}).Should(Succeed())
 	})
 

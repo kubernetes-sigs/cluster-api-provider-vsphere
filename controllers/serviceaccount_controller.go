@@ -44,7 +44,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/builder"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	vmwarecontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
@@ -95,10 +94,6 @@ func AddServiceAccountProviderControllerToManager(ctx *context.ControllerManager
 			handler.EnqueueRequestsFromMapFunc(r.serviceAccountToVSphereCluster),
 		).
 		Complete(r)
-}
-
-func NewServiceAccountReconciler() builder.Reconciler {
-	return ServiceAccountReconciler{}
 }
 
 type ServiceAccountReconciler struct {

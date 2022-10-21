@@ -31,12 +31,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/builder"
+	helpers "sigs.k8s.io/cluster-api-provider-vsphere/test/helpers/vmware"
 )
-
-// This object is used for unit tests setup only
-// Integration tests will be run using the existing envTest setup.
-var ServiceAccountProviderTestsuite = builder.NewTestSuiteForController(NewServiceAccountReconciler)
 
 const (
 	testProviderSvcAccountName = "test-pvcsi"
@@ -119,7 +115,7 @@ func assertTargetSecret(ctx goctx.Context, guestClient client.Client, namespace,
 	}).Should(Equal([]byte(testSecretToken)))
 }
 
-func assertTargetNamespace(ctx *builder.UnitTestContextForController, guestClient client.Client, namespaceName string, isExist bool) {
+func assertTargetNamespace(ctx *helpers.UnitTestContextForController, guestClient client.Client, namespaceName string, isExist bool) {
 	namespace := &corev1.Namespace{}
 	err := guestClient.Get(ctx, client.ObjectKey{Name: namespaceName}, namespace)
 	if isExist {
@@ -129,7 +125,7 @@ func assertTargetNamespace(ctx *builder.UnitTestContextForController, guestClien
 	}
 }
 
-func assertRoleWithGetPVC(ctx *builder.UnitTestContextForController, ctrlClient client.Client, namespace, name string) {
+func assertRoleWithGetPVC(ctx *helpers.UnitTestContextForController, ctrlClient client.Client, namespace, name string) {
 	var roleList rbacv1.RoleList
 	opts := &client.ListOptions{
 		Namespace: namespace,
@@ -147,7 +143,7 @@ func assertRoleWithGetPVC(ctx *builder.UnitTestContextForController, ctrlClient 
 	}))
 }
 
-func assertRoleBinding(_ *builder.UnitTestContextForController, ctrlClient client.Client, namespace, name string) {
+func assertRoleBinding(_ *helpers.UnitTestContextForController, ctrlClient client.Client, namespace, name string) {
 	var roleBindingList rbacv1.RoleBindingList
 	opts := &client.ListOptions{
 		Namespace: namespace,

@@ -17,7 +17,6 @@ limitations under the License.
 package vmoperator
 
 import (
-	"encoding/base64"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -37,20 +36,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
-
-func getBootstrapDataConfigMap(vmService VmopMachineService, ctx *vmware.SupervisorMachineContext) *corev1.ConfigMap {
-	cm := vmService.newBootstrapDataConfigMap(ctx)
-	nsname := types.NamespacedName{
-		Namespace: cm.Namespace,
-		Name:      cm.Name,
-	}
-	err := ctx.Client.Get(ctx, nsname, cm)
-	if apierrors.IsNotFound(err) {
-		return nil
-	}
-	Expect(err).Should(BeNil())
-	return cm
-}
 
 func getReconciledVM(ctx *vmware.SupervisorMachineContext) *vmoprv1.VirtualMachine {
 	vm := &vmoprv1.VirtualMachine{}
@@ -82,23 +67,21 @@ var _ = Describe("VirtualMachine tests", func() {
 		storageClass             = "test-storageClass"
 		vmIP                     = "127.0.0.1"
 		biosUUID                 = "test-biosUuid"
-		bootstrapDataFailure     = "failed to create or update bootstrap configmap"
 		missingK8SVersionFailure = "missing kubernetes version"
 	)
 	var (
 		bootstrapData = "test-bootstrap-data"
 
-		err                      error
-		requeue                  bool
-		expectedBiosUUID         string
-		expectedImageName        string
-		expectedVMIP             string
-		expectReconcileError     bool
-		expectBootstrapConfigMap bool
-		expectVMOpVM             bool
-		expectedState            vmwarev1.VirtualMachineState
-		expectedConditions       clusterv1.Conditions
-		expectedRequeue          bool
+		err                  error
+		requeue              bool
+		expectedBiosUUID     string
+		expectedImageName    string
+		expectedVMIP         string
+		expectReconcileError bool
+		expectVMOpVM         bool
+		expectedState        vmwarev1.VirtualMachineState
+		expectedConditions   clusterv1.Conditions
+		expectedRequeue      bool
 
 		cluster        *clusterv1.Cluster
 		vsphereCluster *vmwarev1.VSphereCluster
@@ -106,7 +89,6 @@ var _ = Describe("VirtualMachine tests", func() {
 		vsphereMachine *vmwarev1.VSphereMachine
 		ctx            *vmware.SupervisorMachineContext
 
-		cm *corev1.ConfigMap
 		// vm     vmwarev1.VirtualMachine
 		vmopVM *vmoprv1.VirtualMachine
 
@@ -147,15 +129,6 @@ var _ = Describe("VirtualMachine tests", func() {
 			Expect(vsphereMachine.Status.IPAddr).Should(Equal(expectedVMIP))
 			Expect(vsphereMachine.Status.VMStatus).Should(Equal(expectedState))
 
-			cm = getBootstrapDataConfigMap(vmService, ctx)
-			Expect(cm != nil).Should(Equal(expectBootstrapConfigMap))
-			if cm != nil {
-				expectedMeta, err := vmService.getGuestInfoMetadata(ctx)
-				Expect(err).Should(BeNil())
-				Expect(cm.Data["guestinfo.userdata"]).To(Equal(base64.StdEncoding.EncodeToString([]byte(bootstrapData))))
-				Expect(cm.Data["guestinfo.metadata"]).To(Equal(expectedMeta))
-			}
-
 			vmopVM = getReconciledVM(ctx)
 			Expect(vmopVM != nil).Should(Equal(expectVMOpVM))
 
@@ -191,20 +164,26 @@ var _ = Describe("VirtualMachine tests", func() {
 
 		Specify("Reconcile valid Machine", func() {
 			// Reconcile should return an error up and until all prerequisites have been met
-			expectReconcileError = true
-			// There should be no bootstrap config until the prerequisites have been met
-			expectBootstrapConfigMap = false
+			expectReconcileError = false
 			// A vmoperator VM should be created unless there is an error in configuration
 			expectVMOpVM = true
 			// We will mutate this later in the test
 			expectedImageName = imageName
-			// we expect the reconciliation fail because lack of bootstrap data
+			// VM Operator will wait on the bootstrap resource, but as far as
+			// CAPV is concerned, the VM has started provisioning.
+			//
+			// TODO(akutz) Ideally CAPV would check the VM Operator VM's
+			//             conditions and assert the VM is waiting on the
+			//             bootstrap data resource, but VM Operator is not
+			//             running in this test domain, and so the condition
+			//             will not be set on the VM Operator VM.
 			expectedConditions = append(expectedConditions, clusterv1.Condition{
 				Type:    infrav1.VMProvisionedCondition,
 				Status:  corev1.ConditionFalse,
-				Reason:  vmwarev1.VMCreationFailedReason,
-				Message: bootstrapDataFailure,
+				Reason:  vmwarev1.VMProvisionStartedReason,
+				Message: "",
 			})
+			expectedRequeue = true
 
 			// Do the bare minimum that will cause a vmoperator VirtualMachine to be created
 			// Note that the VM returned is not a vmoperator type, but is intentionally implementation agnostic
@@ -212,8 +191,8 @@ var _ = Describe("VirtualMachine tests", func() {
 			requeue, err = vmService.ReconcileNormal(ctx)
 			verifyOutput(ctx)
 
-			// Provide valid bootstrap data. Expect a bootstrap data ConfigMap
-			By("bootstrap data ConfigMap is created")
+			// Provide valid bootstrap data.
+			By("bootstrap data is created")
 			secretName := machine.GetName() + "-data"
 			secret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
@@ -227,7 +206,6 @@ var _ = Describe("VirtualMachine tests", func() {
 			Expect(ctx.Client.Create(ctx, secret)).To(Succeed())
 
 			machine.Spec.Bootstrap.DataSecretName = &secretName
-			expectBootstrapConfigMap = true
 			// we expect the reconciliation waiting for VM to be created
 			expectedConditions[0].Reason = vmwarev1.VMProvisionStartedReason
 			expectedConditions[0].Message = ""
@@ -307,15 +285,13 @@ var _ = Describe("VirtualMachine tests", func() {
 			// Reconcile should prompt to requeue until the prerequisites are met
 			expectedRequeue = true
 			expectReconcileError = false
-			// There should be no bootstrap config until the prerequisites have been met
-			expectBootstrapConfigMap = false
 			// A vmoperator VM should be created unless there is an error in configuration
 			expectVMOpVM = true
 			// We will mutate this later in the test
 			expectedImageName = imageName
 
-			// Provide valid bootstrap data. Expect a bootstrap data ConfigMap
-			By("bootstrap data ConfigMap is created")
+			// Provide valid bootstrap data.
+			By("bootstrap data is created")
 			secretName := machine.GetName() + "-data"
 			secret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
@@ -329,7 +305,6 @@ var _ = Describe("VirtualMachine tests", func() {
 			Expect(ctx.Client.Create(ctx, secret)).To(Succeed())
 
 			machine.Spec.Bootstrap.DataSecretName = &secretName
-			expectBootstrapConfigMap = true
 			expectedConditions = append(expectedConditions, clusterv1.Condition{
 				Type:    infrav1.VMProvisionedCondition,
 				Status:  corev1.ConditionFalse,
@@ -400,7 +375,6 @@ var _ = Describe("VirtualMachine tests", func() {
 
 		Specify("Reconcile invalid Machine", func() {
 			expectReconcileError = true
-			expectBootstrapConfigMap = false
 			expectVMOpVM = false
 			expectedImageName = imageName
 
@@ -445,7 +419,6 @@ var _ = Describe("VirtualMachine tests", func() {
 			requeue, err = vmService.ReconcileNormal(ctx)
 
 			expectedImageName = imageName
-			expectBootstrapConfigMap = true
 			expectReconcileError = true
 			expectVMOpVM = true
 			expectedConditions = append(expectedConditions, clusterv1.Condition{
@@ -459,10 +432,23 @@ var _ = Describe("VirtualMachine tests", func() {
 		})
 
 		Specify("Preserve changes made by other sources", func() {
-			expectReconcileError = true
-			expectBootstrapConfigMap = false
+			secretName := machine.GetName() + "-data"
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      secretName,
+					Namespace: machine.GetNamespace(),
+				},
+				Data: map[string][]byte{
+					"value": []byte(bootstrapData),
+				},
+			}
+			Expect(ctx.Client.Create(ctx, secret)).To(Succeed())
+			machine.Spec.Bootstrap.DataSecretName = &secretName
+
+			expectReconcileError = false
 			expectVMOpVM = true
 			expectedImageName = imageName
+			expectedRequeue = true
 
 			By("VirtualMachine is created")
 			requeue, err = vmService.ReconcileNormal(ctx)
@@ -493,10 +479,10 @@ var _ = Describe("VirtualMachine tests", func() {
 		})
 
 		Specify("Create and attach volumes", func() {
-			expectReconcileError = true
-			expectBootstrapConfigMap = false
+			expectReconcileError = false
 			expectVMOpVM = true
 			expectedImageName = imageName
+			expectedRequeue = true
 
 			vsphereMachine.Spec.Volumes = []vmwarev1.VSphereMachineVolume{
 				{

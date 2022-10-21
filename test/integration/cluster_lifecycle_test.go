@@ -24,8 +24,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
-
-	infrautilv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
 // The purpose of this test is to start up a CAPI controller against a real API
@@ -130,11 +128,7 @@ var _ = Describe("Cluster lifecycle tests", func() {
 				machineOwnerRef.BlockOwnerDeletion = pointer.BoolPtr(true)
 				assertEventuallyExists(kubeadmconfigResources, controlPlane.Machine.Name, testNamespace, machineOwnerRef)
 
-				vsphereMachine := assertEventuallyExists(vspheremachinesResource, controlPlane.Machine.Name, testNamespace, machineOwnerRef)
-				vsphereMachineOwnerRef := toControllerOwnerRef(vsphereMachine)
-
 				assertEventuallyExists(virtualmachinesResource, controlPlane.Machine.Name, testNamespace, nil)
-				assertEventuallyExists(configmapsResource, infrautilv1.GetBootstrapConfigMapName(controlPlane.Machine.Name), testNamespace, vsphereMachineOwnerRef)
 
 				// TODO: gab-satchi these should also be looking for correct ownerReferences before proceeding to a delete in the AfterEach
 				assertEventuallyExists(machinedeploymentResource, worker.MachineDeployment.Name, testNamespace, nil)
@@ -146,7 +140,6 @@ var _ = Describe("Cluster lifecycle tests", func() {
 				// Operator VirtualMachine, and bootstrap data ConfigMap
 				// resources for the control plane machine are eventually
 				// deleted.
-				assertEventuallyDoesNotExist(configmapsResource, infrautilv1.GetBootstrapConfigMapName(controlPlane.Machine.Name), testNamespace)
 				assertEventuallyDoesNotExist(virtualmachinesResource, controlPlane.Machine.Name, testNamespace)
 				assertEventuallyDoesNotExist(vspheremachinesResource, controlPlane.Machine.Name, testNamespace)
 				assertEventuallyDoesNotExist(kubeadmconfigResources, controlPlane.Machine.Name, testNamespace)

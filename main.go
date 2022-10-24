@@ -53,6 +53,7 @@ var (
 	managerOpts     manager.Options
 	syncPeriod      time.Duration
 	profilerAddress string
+	tlsMinVersion   string
 
 	defaultProfilerAddr      = os.Getenv("PROFILER_ADDR")
 	defaultSyncPeriod        = manager.DefaultSyncPeriod
@@ -61,6 +62,7 @@ var (
 	defaultWebhookPort       = manager.DefaultWebhookServiceContainerPort
 	defaultEnableKeepAlive   = constants.DefaultEnableKeepAlive
 	defaultKeepAliveDuration = constants.DefaultKeepAliveDuration
+	defaultTLSMinVersion     = "1.2"
 )
 
 // InitFlags initializes the flags.
@@ -139,6 +141,12 @@ func InitFlags(fs *pflag.FlagSet) {
 		"network-provider",
 		"",
 		"network provider to be used by Supervisor based clusters.",
+	)
+	flag.StringVar(
+		&tlsMinVersion,
+		"tls-min-version",
+		defaultTLSMinVersion,
+		"minimum TLS version in use by the webhook server. Possible values are  \"\", \"1.0\", \"1.1\", \"1.2\" and \"1.3\".",
 	)
 
 	feature.MutableGates.AddFlag(fs)
@@ -221,6 +229,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	mgr.GetWebhookServer().TLSMinVersion = tlsMinVersion
 	setupChecks(mgr)
 
 	sigHandler := ctrlsig.SetupSignalHandler()

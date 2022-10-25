@@ -17,6 +17,7 @@ limitations under the License.
 package controllers
 
 import (
+	"fmt"
 	"os"
 
 	. "github.com/onsi/ginkgo"
@@ -78,6 +79,16 @@ func unitTestsReconcileNormal() {
 				getSystemServiceAccountsConfigMap(testSystemSvcAcctNs, testSystemSvcAcctCM),
 				getTestProviderServiceAccount(namespace, vsphereCluster, false),
 			}
+		})
+		It("should create a service account and a secret", func() {
+			_, err := reconciler.ReconcileNormal(ctx.GuestClusterContext)
+			Expect(err).NotTo(HaveOccurred())
+
+			svcAccount := &corev1.ServiceAccount{}
+			assertEventuallyExistsInNamespace(ctx, ctx.Client, namespace, vsphereCluster.GetName(), svcAccount)
+
+			secret := &corev1.Secret{}
+			assertEventuallyExistsInNamespace(ctx, ctx.Client, namespace, fmt.Sprintf("%s-secret", vsphereCluster.GetName()), secret)
 		})
 		Context("When serviceaccount secret is created", func() {
 			It("Should reconcile", func() {

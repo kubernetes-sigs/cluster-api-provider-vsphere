@@ -36,6 +36,10 @@ spec:
       name: Machine
       priority: 1
       type: string
+    - description: Time duration since creation of Machine
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
     name: v1alpha3
     schema:
       openAPIV3Schema:
@@ -427,6 +431,10 @@ spec:
       name: Machine
       priority: 1
       type: string
+    - description: Time duration since creation of Machine
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
     name: v1alpha4
     schema:
       openAPIV3Schema:
@@ -818,6 +826,10 @@ spec:
       name: Machine
       priority: 1
       type: string
+    - description: Time duration since creation of Machine
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
     name: v1beta1
     schema:
       openAPIV3Schema:

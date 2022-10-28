@@ -85,6 +85,8 @@ func newVSphereCluster(owner clusterv1.Cluster) infrav1.VSphereCluster {
 				},
 			},
 		},
-		Spec: infrav1.VSphereClusterSpec{},
+		Spec: infrav1.VSphereClusterSpec{
+			Server: VCenterURL,
+		},
 	}
 }

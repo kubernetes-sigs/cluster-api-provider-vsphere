@@ -119,6 +119,10 @@ func (r Reconciler) Reconcile(ctx *context.ClusterContext) (reconcile.Result, er
 			modErrs = append(modErrs, clusterModError{obj.GetName(), err})
 			continue
 		}
+		// module creation was skipped
+		if moduleUUID == "" {
+			continue
+		}
 		clusterModuleSpecs = append(clusterModuleSpecs, infrav1.ClusterModule{
 			ControlPlane:     obj.IsControlPlane(),
 			TargetObjectName: obj.GetName(),

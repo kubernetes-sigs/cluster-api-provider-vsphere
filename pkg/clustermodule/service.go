@@ -19,6 +19,7 @@ package clustermodule
 import (
 	goctx "context"
 
+	"github.com/pkg/errors"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/vim25/types"
 
@@ -27,6 +28,8 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 )
 
+const validMachineTemplate = "VSphereMachineTemplate"
+
 type service struct{}
 
 func NewService() Service {
@@ -34,11 +37,27 @@ func NewService() Service {
 }
 
 func (s service) Create(ctx *context.ClusterContext, wrapper Wrapper) (string, error) {
-	logger := ctx.Logger.WithValues("object", wrapper.GetName())
-	template, err := fetchMachineTemplate(ctx, wrapper)
+	logger := ctx.Logger.WithValues("object", wrapper.GetName(), "namespace", wrapper.GetNamespace())
+
+	templateRef, err := fetchTemplateRef(ctx, ctx.Client, wrapper)
+	if err != nil {
+		logger.V(4).Error(err, "error fetching template for object")
+		return "", errors.Wrapf(err, "error fetching machine template for object %s/%s", wrapper.GetNamespace(), wrapper.GetName())
+	}
+	if templateRef.Kind != validMachineTemplate {
+		// since this is a heterogeneous cluster, we should skip cluster module creation for non VSphereMachine objects
+		logger.V(4).Info("skipping module creation for object")
+		return "", nil
+	}
+
+	template, err := fetchMachineTemplate(ctx, wrapper, templateRef.Name)
 	if err != nil {
 		logger.V(4).Error(err, "error fetching template")
 		return "", err
+	}
+	if server := template.Spec.Template.Spec.Server; server != ctx.VSphereCluster.Spec.Server {
+		logger.V(4).Info("skipping module creation for object since template uses a different server", "server", server)
+		return "", nil
 	}
 
 	vCenterSession, err := fetchSessionForObject(ctx, template)
@@ -67,7 +86,14 @@ func (s service) Create(ctx *context.ClusterContext, wrapper Wrapper) (string, e
 
 func (s service) DoesExist(ctx *context.ClusterContext, wrapper Wrapper, moduleUUID string) (bool, error) {
 	logger := ctx.Logger.WithValues("object", wrapper.GetName())
-	template, err := fetchMachineTemplate(ctx, wrapper)
+
+	templateRef, err := fetchTemplateRef(ctx, ctx.Client, wrapper)
+	if err != nil {
+		logger.V(4).Error(err, "error fetching template for object")
+		return false, errors.Wrapf(err, "error fetching infrastructure machine template for object %s/%s", wrapper.GetNamespace(), wrapper.GetName())
+	}
+
+	template, err := fetchMachineTemplate(ctx, wrapper, templateRef.Name)
 	if err != nil {
 		logger.V(4).Error(err, "error fetching template")
 		return false, err

@@ -80,16 +80,10 @@ func fetchTemplateRef(ctx goctx.Context, c client.Client, input Wrapper) (*corev
 	return &objRef, nil
 }
 
-func fetchMachineTemplate(ctx *context.ClusterContext, input Wrapper) (*infrav1.VSphereMachineTemplate, error) {
-	templateRef, err := fetchTemplateRef(ctx, ctx.Client, input)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error fetching machine template for object %s/%s", input.GetNamespace(), input.GetName())
-	}
-
-	ctx.Logger.Info("found template", "ref", templateRef.Name)
+func fetchMachineTemplate(ctx *context.ClusterContext, input Wrapper, templateName string) (*infrav1.VSphereMachineTemplate, error) {
 	template := &infrav1.VSphereMachineTemplate{}
 	if err := ctx.Client.Get(ctx, client.ObjectKey{
-		Name:      templateRef.Name,
+		Name:      templateName,
 		Namespace: input.GetNamespace(),
 	}, template); err != nil {
 		return nil, err

@@ -72,6 +72,8 @@ const (
 
 	// ServiceCIDR is the CIDR for the service network.
 	ServiceCIDR = "2.0.0.0/16"
+
+	VCenterURL = "foo.vcenter.com"
 )
 
 var boolTrue = true

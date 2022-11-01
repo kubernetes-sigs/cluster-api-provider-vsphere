@@ -165,11 +165,16 @@ type VirtualMachineCloneSpec struct {
 	// PciDevices is the list of pci devices used by the virtual machine.
 	// +optional
 	PciDevices []PCIDeviceSpec `json:"pciDevices,omitempty"`
-
 	// OS is the Operating System of the virtual machine
 	// Defaults to Linux
 	// +optional
 	OS OS `json:"os,omitempty"`
+	// HardwareVersion is the hardware version of the virtual machine.
+	// Defaults to the eponymous property value in the template from which the
+	// virtual machine is cloned.
+	// Check the compatibility with the ESXi version before setting the value.
+	// +optional
+	HardwareVersion string `json:"hardwareVersion,omitempty"`
 }
 
 // VSphereMachineTemplateResource describes the data needed to create a VSphereMachine from a template

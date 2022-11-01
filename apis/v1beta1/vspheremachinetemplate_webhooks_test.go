@@ -21,11 +21,12 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	admissionv1 "k8s.io/api/admission/v1"
+	"k8s.io/utils/pointer"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-//nolint
 func TestVSphereMachineTemplate_ValidateCreate(t *testing.T) {
-
 	g := NewWithT(t)
 	tests := []struct {
 		name           string
@@ -34,23 +35,37 @@ func TestVSphereMachineTemplate_ValidateCreate(t *testing.T) {
 	}{
 		{
 			name:           "preferredAPIServerCIDR set on creation ",
-			vsphereMachine: createVSphereMachineTemplate("foo.com", nil, "192.168.0.1/32", []string{}),
+			vsphereMachine: createVSphereMachineTemplate("foo.com", "", nil, "192.168.0.1/32", []string{}),
 			wantErr:        true,
 		},
 		{
 			name:           "ProviderID set on creation",
-			vsphereMachine: createVSphereMachineTemplate("foo.com", &someProviderID, "", []string{}),
+			vsphereMachine: createVSphereMachineTemplate("foo.com", "", &someProviderID, "", []string{}),
 			wantErr:        true,
 		},
 		{
 			name:           "IPs are not in CIDR format",
-			vsphereMachine: createVSphereMachineTemplate("foo.com", nil, "", []string{"192.168.0.1/32", "192.168.0.3"}),
+			vsphereMachine: createVSphereMachineTemplate("foo.com", "", nil, "", []string{"192.168.0.1/32", "192.168.0.3"}),
 			wantErr:        true,
 		},
 		{
 			name:           "successful VSphereMachine creation",
-			vsphereMachine: createVSphereMachineTemplate("foo.com", nil, "", []string{"192.168.0.1/32", "192.168.0.3/32"}),
+			vsphereMachine: createVSphereMachineTemplate("foo.com", "", nil, "", []string{"192.168.0.1/32", "192.168.0.3/32"}),
 			wantErr:        true,
+		},
+		{
+			name:           "incomplete hardware version",
+			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-", nil, "", []string{"192.168.0.1/32", "192.168.0.3/32"}),
+			wantErr:        true,
+		},
+		{
+			name:           "incorrect hardware version",
+			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-0", nil, "", []string{"192.168.0.1/32", "192.168.0.3/32"}),
+			wantErr:        true,
+		},
+		{
+			name:           "successful VSphereMachine creation with hardware version set",
+			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", nil, "", []string{}),
 		},
 	}
 	for _, tc := range tests {
@@ -66,40 +81,59 @@ func TestVSphereMachineTemplate_ValidateCreate(t *testing.T) {
 	}
 }
 
-//nolint
 func TestVSphereMachineTemplate_ValidateUpdate(t *testing.T) {
-
 	g := NewWithT(t)
-
 	tests := []struct {
 		name              string
 		oldVSphereMachine *VSphereMachineTemplate
 		vsphereMachine    *VSphereMachineTemplate
+		req               *admission.Request
 		wantErr           bool
 	}{
 		{
 			name:              "ProviderID cannot be updated",
-			oldVSphereMachine: createVSphereMachineTemplate("foo.com", nil, "", []string{"192.168.0.1/32"}),
-			vsphereMachine:    createVSphereMachineTemplate("foo.com", &someProviderID, "", []string{"192.168.0.1/32"}),
+			oldVSphereMachine: createVSphereMachineTemplate("foo.com", "", nil, "", []string{"192.168.0.1/32"}),
+			vsphereMachine:    createVSphereMachineTemplate("foo.com", "", &someProviderID, "", []string{"192.168.0.1/32"}),
+			req:               &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: pointer.Bool(false)}},
 			wantErr:           true,
 		},
 		{
-			name:              "updating ips cannot be done",
-			oldVSphereMachine: createVSphereMachineTemplate("foo.com", nil, "", []string{"192.168.0.1/32"}),
-			vsphereMachine:    createVSphereMachineTemplate("foo.com", &someProviderID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}),
+			name:              "ip addresses cannot be updated",
+			oldVSphereMachine: createVSphereMachineTemplate("foo.com", "", nil, "", []string{"192.168.0.1/32"}),
+			vsphereMachine:    createVSphereMachineTemplate("foo.com", "", &someProviderID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}),
+			req:               &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: pointer.Bool(false)}},
 			wantErr:           true,
 		},
 		{
-			name:              "updating server cannot be done",
-			oldVSphereMachine: createVSphereMachineTemplate("foo.com", nil, "", []string{"192.168.0.1/32"}),
-			vsphereMachine:    createVSphereMachineTemplate("baz.com", &someProviderID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}),
+			name:              "server cannot be updated",
+			oldVSphereMachine: createVSphereMachineTemplate("foo.com", "", nil, "", []string{"192.168.0.1/32"}),
+			vsphereMachine:    createVSphereMachineTemplate("baz.com", "", &someProviderID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}),
+			req:               &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: pointer.Bool(false)}},
 			wantErr:           true,
+		},
+		{
+			name:              "hardware version cannot be updated",
+			oldVSphereMachine: createVSphereMachineTemplate("foo.com", "vmx-16", nil, "", []string{"192.168.0.1/32"}),
+			vsphereMachine:    createVSphereMachineTemplate("baz.com", "vmx-17", nil, "", []string{"192.168.0.1/32"}),
+			req:               &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: pointer.Bool(false)}},
+			wantErr:           true,
+		},
+		{
+			name:              "with hardware version set and not updated",
+			oldVSphereMachine: createVSphereMachineTemplate("foo.com", "vmx-16", nil, "", []string{"192.168.0.1/32"}),
+			vsphereMachine:    createVSphereMachineTemplate("foo.com", "vmx-16", nil, "", []string{"192.168.0.1/32"}),
+			req:               &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: pointer.Bool(false)}},
+			wantErr:           false, // explicitly calling out that this is a valid scenario.
 		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			webhook := &VSphereMachineTemplateWebhook{}
-			err := webhook.ValidateUpdate(context.Background(), tc.oldVSphereMachine, tc.vsphereMachine)
+			ctx := context.Background()
+			if tc.req != nil {
+				ctx = admission.NewContextWithRequest(ctx, *tc.req)
+			}
+			err := webhook.ValidateUpdate(ctx, tc.oldVSphereMachine, tc.vsphereMachine)
 			if tc.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -109,7 +143,7 @@ func TestVSphereMachineTemplate_ValidateUpdate(t *testing.T) {
 	}
 }
 
-func createVSphereMachineTemplate(server string, providerID *string, preferredAPIServerCIDR string, ips []string) *VSphereMachineTemplate {
+func createVSphereMachineTemplate(server, hwVersion string, providerID *string, preferredAPIServerCIDR string, ips []string) *VSphereMachineTemplate {
 	vsphereMachineTemplate := &VSphereMachineTemplate{
 		Spec: VSphereMachineTemplateSpec{
 			Template: VSphereMachineTemplateResource{
@@ -121,6 +155,7 @@ func createVSphereMachineTemplate(server string, providerID *string, preferredAP
 							PreferredAPIServerCIDR: preferredAPIServerCIDR,
 							Devices:                []NetworkDeviceSpec{},
 						},
+						HardwareVersion: hwVersion,
 					},
 				},
 			},

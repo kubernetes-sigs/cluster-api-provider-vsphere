@@ -898,6 +898,12 @@ spec:
                 description: Folder is the name or inventory path of the folder in
                   which the virtual machine is created/located.
                 type: string
+              hardwareVersion:
+                description: HardwareVersion is the hardware version of the virtual
+                  machine. Defaults to the eponymous property value in the template
+                  from which the virtual machine is cloned. Check the compatibility
+                  with the ESXi version before setting the value.
+                type: string
               memoryMiB:
                 description: MemoryMiB is the size of a virtual machine's memory,
                   in MiB. Defaults to the eponymous property value in the template

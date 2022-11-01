@@ -121,6 +121,10 @@ func (vms *VMService) ReconcileVM(ctx *context.VMContext) (vm infrav1.VirtualMac
 
 	vms.reconcileUUID(vmCtx)
 
+	if err := vms.reconcileHardwareVersion(vmCtx); err != nil {
+		return vm, err
+	}
+
 	if err := vms.reconcileNetworkStatus(vmCtx); err != nil {
 		return vm, err
 	}
@@ -391,6 +395,32 @@ func (vms *VMService) reconcileStoragePolicy(ctx *virtualMachineContext) error {
 
 func (vms *VMService) reconcileUUID(ctx *virtualMachineContext) {
 	ctx.State.BiosUUID = ctx.Obj.UUID(ctx)
+}
+
+func (vms *VMService) reconcileHardwareVersion(ctx *virtualMachineContext) error {
+	if ctx.VSphereVM.Spec.HardwareVersion == "" {
+		return nil
+	}
+
+	var virtualMachine mo.VirtualMachine
+	if err := ctx.Obj.Properties(ctx, ctx.Obj.Reference(), []string{"config.version"}, &virtualMachine); err != nil {
+		return errors.Wrapf(err, "error getting guestInfo version information from VM %s", ctx.VSphereVM.Name)
+	}
+	toUpgrade, err := util.LessThan(virtualMachine.Config.Version, ctx.VSphereVM.Spec.HardwareVersion)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse hardware version")
+	}
+	if toUpgrade {
+		ctx.Logger.Info("upgrading hardware version",
+			"from", virtualMachine.Config.Version,
+			"to", ctx.VSphereVM.Spec.HardwareVersion)
+		task, err := ctx.Obj.UpgradeVM(ctx, ctx.VSphereVM.Spec.HardwareVersion)
+		if err != nil {
+			return errors.Wrapf(err, "error trigging upgrade op for machine %s", ctx)
+		}
+		ctx.VSphereVM.Status.TaskRef = task.Reference().Value
+	}
+	return nil
 }
 
 func (vms *VMService) getPowerState(ctx *virtualMachineContext) (infrav1.VirtualMachinePowerState, error) {

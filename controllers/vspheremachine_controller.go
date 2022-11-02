@@ -29,6 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	apitypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -58,6 +59,8 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/vmoperator"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
+
+const hostInfoErrStr = "host info cannot be used as a label value"
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=vspheremachines,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=vspheremachines/status,verbs=get;update;patch
@@ -345,6 +348,14 @@ func (r *machineReconciler) patchMachineLabelsWithHostInfo(ctx context.MachineCo
 		return err
 	}
 
+	info := util.SanitizeHostInfoLabel(hostInfo)
+	errs := validation.IsValidLabelValue(info)
+	if len(errs) > 0 {
+		err := errors.Errorf("%s: %s", hostInfoErrStr, strings.Join(errs, ","))
+		r.Logger.Error(err, hostInfoErrStr, "info", hostInfo)
+		return err
+	}
+
 	machine := ctx.GetMachine()
 	patchHelper, err := patch.NewHelper(machine, r.Client)
 	if err != nil {
@@ -352,7 +363,7 @@ func (r *machineReconciler) patchMachineLabelsWithHostInfo(ctx context.MachineCo
 	}
 
 	labels := machine.GetLabels()
-	labels[constants.ESXiHostInfoLabel] = hostInfo
+	labels[constants.ESXiHostInfoLabel] = info
 	machine.Labels = labels
 
 	return patchHelper.Patch(r, machine)

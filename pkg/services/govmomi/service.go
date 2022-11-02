@@ -315,7 +315,7 @@ func (vms *VMService) reconcilePowerState(ctx *virtualMachineContext) (bool, err
 
 func (vms *VMService) reconcileStoragePolicy(ctx *virtualMachineContext) error {
 	if ctx.VSphereVM.Spec.StoragePolicyName == "" {
-		ctx.Logger.Info("storage policy not defined. skipping reconcile storage policy")
+		ctx.Logger.V(5).Info("storage policy not defined. skipping reconcile storage policy")
 		return nil
 	}
 
@@ -527,7 +527,7 @@ func (vms *VMService) getBootstrapData(ctx *context.VMContext) ([]byte, error) {
 
 func (vms *VMService) reconcileVMGroupInfo(ctx *virtualMachineContext) (bool, error) {
 	if ctx.VSphereFailureDomain == nil || ctx.VSphereFailureDomain.Spec.Topology.Hosts == nil {
-		ctx.Logger.Info("hosts topology in failure domain not defined. skipping reconcile VM group")
+		ctx.Logger.V(5).Info("hosts topology in failure domain not defined. skipping reconcile VM group")
 		return true, nil
 	}
 
@@ -556,7 +556,7 @@ func (vms *VMService) reconcileVMGroupInfo(ctx *virtualMachineContext) (bool, er
 
 func (vms *VMService) reconcileTags(ctx *virtualMachineContext) error {
 	if len(ctx.VSphereVM.Spec.TagIDs) == 0 {
-		ctx.Logger.Info("no tags defined. skipping tags reconciliation")
+		ctx.Logger.V(5).Info("no tags defined. skipping tags reconciliation")
 		return nil
 	}
 
@@ -570,11 +570,10 @@ func (vms *VMService) reconcileTags(ctx *virtualMachineContext) error {
 
 func (vms *VMService) reconcileClusterModuleMembership(ctx *virtualMachineContext) error {
 	if ctx.ClusterModuleInfo != nil {
-		ctx.Logger.V(4).Info("add vm to module", "moduleUUID", *ctx.ClusterModuleInfo)
+		ctx.Logger.V(5).Info("add vm to module", "moduleUUID", *ctx.ClusterModuleInfo)
 		provider := clustermodules.NewProvider(ctx.Session.TagManager.Client)
 
 		if err := provider.AddMoRefToModule(ctx, *ctx.ClusterModuleInfo, ctx.Ref); err != nil {
-			ctx.Logger.V(4).Error(err, "failed to add vm to module", "moduleUUID", *ctx.ClusterModuleInfo)
 			return err
 		}
 		ctx.VSphereVM.Status.ModuleUUID = ctx.ClusterModuleInfo

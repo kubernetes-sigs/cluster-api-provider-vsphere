@@ -18,6 +18,7 @@ package controllers
 
 import (
 	goctx "context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -35,13 +36,10 @@ import (
 )
 
 const (
-	testProviderSvcAccountName = "test-pvcsi"
-
-	testTargetNS             = "test-pvcsi-system"
-	testTargetSecret         = "test-pvcsi-secret" //nolint:gosec
-	testSvcAccountSecretName = testProviderSvcAccountName + "-token-abcdef"
-	testSystemSvcAcctNs      = "test-system-svc-acct-namespace"
-	testSystemSvcAcctCM      = "test-system-svc-acct-cm"
+	testTargetNS        = "test-pvcsi-system"
+	testTargetSecret    = "test-pvcsi-secret" //nolint:gosec
+	testSystemSvcAcctNs = "test-system-svc-acct-namespace"
+	testSystemSvcAcctCM = "test-system-svc-acct-cm"
 
 	testSecretToken = "ZXlKaGJHY2lPaUpTVXpJMU5pSXNJbXRwWkNJNklp" //nolint:gosec
 )
@@ -94,15 +92,14 @@ func assertNoEntities(ctx goctx.Context, ctrlClient client.Client, namespace str
 func assertServiceAccountAndUpdateSecret(ctx goctx.Context, ctrlClient client.Client, namespace, name string) {
 	svcAccount := &corev1.ServiceAccount{}
 	assertEventuallyExistsInNamespace(ctx, ctrlClient, namespace, name, svcAccount)
-	// Update the service account with a prototype secret
-	secret := getTestSvcAccountSecret(namespace, testSvcAccountSecretName)
-	Expect(ctrlClient.Create(ctx, secret)).To(Succeed())
-	svcAccount.Secrets = []corev1.ObjectReference{
-		{
-			Name: testSvcAccountSecretName,
-		},
+	secret := &corev1.Secret{}
+	assertEventuallyExistsInNamespace(ctx, ctrlClient, namespace, fmt.Sprintf("%s-secret", name), secret)
+
+	// Update the data on the secret
+	secret.Data = map[string][]byte{
+		"token": []byte(testSecretToken),
 	}
-	Expect(ctrlClient.Update(ctx, svcAccount)).To(Succeed())
+	Expect(ctrlClient.Update(ctx, secret)).To(Succeed())
 }
 
 func assertTargetSecret(ctx goctx.Context, guestClient client.Client, namespace, name string) { //nolint
@@ -241,18 +238,6 @@ func getSystemServiceAccountsConfigMap(namespace, name string) *corev1.ConfigMap
 		Data: map[string]string{
 			"system-account-1": "true",
 			"system-account-2": "true",
-		},
-	}
-}
-
-func getTestSvcAccountSecret(namespace, name string) *corev1.Secret {
-	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Data: map[string][]byte{
-			"token": []byte(testSecretToken),
 		},
 	}
 }

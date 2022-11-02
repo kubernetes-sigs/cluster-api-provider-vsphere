@@ -89,9 +89,10 @@ func AddServiceAccountProviderControllerToManager(ctx *context.ControllerManager
 			&source.Kind{Type: &vmwarev1.ProviderServiceAccount{}},
 			handler.EnqueueRequestsFromMapFunc(r.providerServiceAccountToVSphereCluster),
 		).
+		// Watches the secrets to re-enqueue once the service account token is set
 		Watches(
-			&source.Kind{Type: &corev1.ServiceAccount{}},
-			handler.EnqueueRequestsFromMapFunc(r.serviceAccountToVSphereCluster),
+			&source.Kind{Type: &corev1.Secret{}},
+			handler.EnqueueRequestsFromMapFunc(r.secretToVSphereCluster),
 		).
 		Complete(r)
 }
@@ -228,18 +229,22 @@ func (r ServiceAccountReconciler) ensureProviderServiceAccounts(ctx *vmwareconte
 		if err := r.ensureServiceAccountConfigMap(ctx.ClusterContext, pSvcAccount); err != nil {
 			return errors.Wrapf(err, "unable to sync configmap for provider serviceaccount %s", pSvcAccount.Name)
 		}
+		// 3. Create secret of Service account token type for the service account
+		if err := r.ensureServiceAccountSecret(ctx.ClusterContext, pSvcAccount); err != nil {
+			return errors.Wrapf(err, "unable to create provider serviceaccount secret %s", getServiceAccountSecretName(pSvcAccount))
+		}
 
-		// 3. Create the associated role for the service account
+		// 4. Create the associated role for the service account
 		if err := r.ensureRole(ctx.ClusterContext, pSvcAccount); err != nil {
 			return errors.Wrapf(err, "unable to create role for provider serviceaccount %s", pSvcAccount.Name)
 		}
 
-		// 4. Create the associated roleBinding for the service account
+		// 5. Create the associated roleBinding for the service account
 		if err := r.ensureRoleBinding(ctx.ClusterContext, pSvcAccount); err != nil {
 			return errors.Wrapf(err, "unable to create rolebinding for provider serviceaccount %s", pSvcAccount.Name)
 		}
 
-		// 5. Sync the service account with the target
+		// 6. Sync the service account with the target
 		if err := r.syncServiceAccountSecret(ctx, pSvcAccount); err != nil {
 			return errors.Wrapf(err, "unable to sync secret for provider serviceaccount %s", pSvcAccount.Name)
 		}
@@ -261,6 +266,34 @@ func (r ServiceAccountReconciler) ensureServiceAccount(ctx *vmwarecontext.Cluste
 	}
 	logger.V(4).Info("Creating service account")
 	err = ctx.Client.Create(ctx, &svcAccount)
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		// Note: We skip updating the service account because the token controller updates the service account with a
+		// secret and we don't want to overwrite it with an empty secret.
+		return err
+	}
+	return nil
+}
+
+func (r ServiceAccountReconciler) ensureServiceAccountSecret(ctx *vmwarecontext.ClusterContext, pSvcAccount vmwarev1.ProviderServiceAccount) error {
+	secret := corev1.Secret{
+		Type: corev1.SecretTypeServiceAccountToken,
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      getServiceAccountSecretName(pSvcAccount),
+			Namespace: pSvcAccount.Namespace,
+			Annotations: map[string]string{
+				// denotes that this secret holds the token for the service account
+				corev1.ServiceAccountNameKey: getServiceAccountName(pSvcAccount),
+			},
+		},
+	}
+
+	logger := ctx.Logger.WithValues("providerserviceaccount", pSvcAccount.Name, "secret", secret.Name)
+	err := controllerutil.SetControllerReference(&pSvcAccount, &secret, ctx.Scheme)
+	if err != nil {
+		return err
+	}
+	logger.V(4).Info("Creating service account secret")
+	err = ctx.Client.Create(ctx, &secret)
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		// Note: We skip updating the service account because the token controller updates the service account with a
 		// secret and we don't want to overwrite it with an empty secret.
@@ -323,27 +356,21 @@ func (r ServiceAccountReconciler) ensureRoleBinding(ctx *vmwarecontext.ClusterCo
 
 func (r ServiceAccountReconciler) syncServiceAccountSecret(ctx *vmwarecontext.GuestClusterContext, pSvcAccount vmwarev1.ProviderServiceAccount) error {
 	logger := ctx.Logger.WithValues("providerserviceaccount", pSvcAccount.Name)
-	logger.V(4).Info("Attempting to sync secret for provider service account")
-	var svcAccount corev1.ServiceAccount
-	err := ctx.Client.Get(ctx, types.NamespacedName{Name: getServiceAccountName(pSvcAccount), Namespace: pSvcAccount.Namespace}, &svcAccount)
-	if err != nil {
-		return err
-	}
-	// Check if token secret exists
-	if len(svcAccount.Secrets) == 0 {
-		// Note: We don't have to requeue here because we have a watch on the service account and the cluster should be reconciled
-		// when a secret is added to the service account by the token controller.
-		logger.Info("Skipping sync secret for provider service account: serviceaccount has no secrets", "serviceaccount", svcAccount.Name)
-		return nil
-	}
+	logger.V(4).Info("Attempting to sync token secret for provider service account")
 
-	// Choose the default secret
-	secretRef := svcAccount.Secrets[0]
-	logger.V(4).Info("Fetching secret for provider service account", "secret", secretRef.Name)
-	var sourceSecret corev1.Secret
-	err = ctx.Client.Get(ctx, types.NamespacedName{Name: secretRef.Name, Namespace: svcAccount.Namespace}, &sourceSecret)
+	secretName := getServiceAccountSecretName(pSvcAccount)
+	logger.V(4).Info("Fetching secret for service account token details", "secret", secretName)
+	var svcAccountTokenSecret corev1.Secret
+	err := ctx.Client.Get(ctx, types.NamespacedName{Name: secretName, Namespace: pSvcAccount.Namespace}, &svcAccountTokenSecret)
 	if err != nil {
 		return err
+	}
+	// Check if token data exists
+	if len(svcAccountTokenSecret.Data) == 0 {
+		// Note: We don't have to requeue here because we have a watch on the secret and the cluster should be reconciled
+		// when a secret has token data populated.
+		logger.Info("Skipping sync secret for provider service account: secret has no data", "secret", secretName)
+		return nil
 	}
 
 	// Create the target namespace if it is not existing
@@ -372,7 +399,7 @@ func (r ServiceAccountReconciler) syncServiceAccountSecret(ctx *vmwarecontext.Gu
 	}
 	logger.V(4).Info("Creating or updating secret in cluster", "namespace", targetSecret.Namespace, "name", targetSecret.Name)
 	_, err = controllerutil.CreateOrPatch(ctx, ctx.GuestClient, targetSecret, func() error {
-		targetSecret.Data = sourceSecret.Data
+		targetSecret.Data = svcAccountTokenSecret.Data
 		return nil
 	})
 	return err
@@ -468,6 +495,10 @@ func getServiceAccountName(pSvcAccount vmwarev1.ProviderServiceAccount) string {
 	return pSvcAccount.Name
 }
 
+func getServiceAccountSecretName(pSvcAccount vmwarev1.ProviderServiceAccount) string {
+	return fmt.Sprintf("%s-secret", pSvcAccount.Name)
+}
+
 func getSystemServiceAccountFullName(pSvcAccount vmwarev1.ProviderServiceAccount) string {
 	return fmt.Sprintf("%s.%s.%s", systemServiceAccountPrefix, getServiceAccountNamespace(pSvcAccount), getServiceAccountName(pSvcAccount))
 }
@@ -482,6 +513,33 @@ func GetCMNamespaceName() types.NamespacedName {
 		Namespace: os.Getenv("SERVICE_ACCOUNTS_CM_NAMESPACE"),
 		Name:      os.Getenv("SERVICE_ACCOUNTS_CM_NAME"),
 	}
+}
+
+// secretToVSphereCluster is a mapper function used to enqueue reconcile.Request objects.
+// It accepts a Secret object owned by the controller and fetches the service account
+// that contains the token and creates a reconcile.Request for the vmwarev1.VSphereCluster object.
+func (r ServiceAccountReconciler) secretToVSphereCluster(o client.Object) []reconcile.Request {
+	secret, ok := o.(*corev1.Secret)
+	if !ok {
+		return nil
+	}
+
+	ownerRef := metav1.GetControllerOf(secret)
+	if ownerRef != nil && ownerRef.Kind == kindProviderServiceAccount {
+		if !metav1.HasAnnotation(secret.ObjectMeta, corev1.ServiceAccountNameKey) {
+			return nil
+		}
+		svcAccountName := secret.GetAnnotations()[corev1.ServiceAccountNameKey]
+		svcAccount := &corev1.ServiceAccount{}
+		if err := r.Client.Get(r.Context, client.ObjectKey{
+			Namespace: secret.Namespace,
+			Name:      svcAccountName,
+		}, svcAccount); err != nil {
+			return nil
+		}
+		return r.serviceAccountToVSphereCluster(svcAccount)
+	}
+	return nil
 }
 
 // serviceAccountToVSphereCluster is a mapper function used to enqueue reconcile.Request objects.

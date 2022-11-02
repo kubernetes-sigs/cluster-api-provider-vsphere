@@ -147,6 +147,21 @@ func TestReconciler_Reconcile(t *testing.T) {
 			},
 		},
 		{
+			name:           "when some cluster module creations are skipped",
+			clusterModules: []infrav1.ClusterModule{},
+			setupMocks: func(svc *cmodfake.CMService) {
+				svc.On("Create", mock.Anything, clustermodule.NewWrapper(kcp)).Return(kcpUUID, nil)
+				// mimics cluster module creation was skipped
+				svc.On("Create", mock.Anything, clustermodule.NewWrapper(md)).Return("", nil)
+			},
+			customAssert: func(g *gomega.WithT, ctx *context.ClusterContext) {
+				g.Expect(ctx.VSphereCluster.Spec.ClusterModules).To(gomega.HaveLen(1))
+				g.Expect(ctx.VSphereCluster.Spec.ClusterModules[0].TargetObjectName).To(gomega.Equal("kcp"))
+				g.Expect(ctx.VSphereCluster.Spec.ClusterModules[0].ModuleUUID).To(gomega.Equal(kcpUUID))
+				g.Expect(ctx.VSphereCluster.Spec.ClusterModules[0].ControlPlane).To(gomega.BeTrue())
+			},
+		},
+		{
 			name: "when machine deployment is being deleted",
 			beforeFn: func(object client.Object) {
 				tym := metav1.NewTime(time.Now())

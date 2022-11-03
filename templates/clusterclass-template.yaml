@@ -1,0 +1,275 @@
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: VSphereClusterTemplate
+metadata:
+  name: '${CLUSTER_CLASS_NAME}'
+  namespace: '${NAMESPACE}'
+spec:
+  template:
+    spec: {}
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: '${CLUSTER_CLASS_NAME}'
+spec:
+  controlPlane:
+    machineInfrastructure:
+      ref:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: VSphereMachineTemplate
+        name: ${CLUSTER_CLASS_NAME}-template
+        namespace: '${NAMESPACE}'
+    ref:
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+      kind: KubeadmControlPlaneTemplate
+      name: ${CLUSTER_CLASS_NAME}-controlplane
+      namespace: '${NAMESPACE}'
+  infrastructure:
+    ref:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      kind: VSphereClusterTemplate
+      name: '${CLUSTER_CLASS_NAME}'
+      namespace: '${NAMESPACE}'
+  patches:
+  - definitions:
+    - jsonPatches:
+      - op: add
+        path: /spec/template/spec/kubeadmConfigSpec/users
+        valueFrom:
+          template: |
+            - name: capv
+              sshAuthorizedKeys:
+              - '{{ .sshKey }}'
+              sudo: ALL=(ALL) NOPASSWD:ALL
+      selector:
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        kind: KubeadmControlPlaneTemplate
+        matchResources:
+          controlPlane: true
+    - jsonPatches:
+      - op: add
+        path: /spec/template/spec/users
+        valueFrom:
+          template: |
+            - name: capv
+              sshAuthorizedKeys:
+              - '{{ .sshKey }}'
+              sudo: ALL=(ALL) NOPASSWD:ALL
+      selector:
+        apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+        kind: KubeadmConfigTemplate
+        matchResources:
+          machineDeploymentClass:
+            names:
+            - ${CLUSTER_CLASS_NAME}-worker
+    enabledIf: '{{ if .sshKey }}true{{end}}'
+    name: enableSSHIntoNodes
+  - definitions:
+    - jsonPatches:
+      - op: add
+        path: /spec/template/spec/controlPlaneEndpoint
+        valueFrom:
+          template: |
+            host: '{{ .controlPlaneIpAddr }}'
+            port: 6443
+      - op: add
+        path: /spec/template/spec/identityRef
+        valueFrom:
+          template: |
+            kind: Secret
+            name: '{{ .credsSecretName }}'
+      - op: add
+        path: /spec/template/spec/server
+        valueFrom:
+          variable: infraServer.url
+      - op: add
+        path: /spec/template/spec/thumbprint
+        valueFrom:
+          variable: infraServer.thumbprint
+      selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: VSphereClusterTemplate
+        matchResources:
+          infrastructureCluster: true
+    name: infraClusterSubstitutions
+  - definitions:
+    - jsonPatches:
+      - op: add
+        path: /spec/template/spec/kubeadmConfigSpec/files/0/content
+        valueFrom:
+          variable: kubeVipPodManifest
+      selector:
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        kind: KubeadmControlPlaneTemplate
+        matchResources:
+          controlPlane: true
+    name: kubeVipEnabled
+  variables:
+  - name: sshKey
+    required: false
+    schema:
+      openAPIV3Schema:
+        description: Public key to SSH onto the cluster nodes.
+        type: string
+  - name: infraServer
+    required: true
+    schema:
+      openAPIV3Schema:
+        properties:
+          thumbprint:
+            type: string
+          url:
+            type: string
+        type: object
+  - name: controlPlaneIpAddr
+    required: true
+    schema:
+      openAPIV3Schema:
+        description: Floating VIP for the control plane.
+        type: string
+  - name: credsSecretName
+    required: true
+    schema:
+      openAPIV3Schema:
+        description: Secret containing the credentials for the infra cluster.
+        type: string
+  - name: kubeVipPodManifest
+    required: true
+    schema:
+      openAPIV3Schema:
+        description: kube-vip manifest for the control plane.
+        type: string
+  workers:
+    machineDeployments:
+    - class: ${CLUSTER_CLASS_NAME}-worker
+      template:
+        bootstrap:
+          ref:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            kind: KubeadmConfigTemplate
+            name: ${CLUSTER_CLASS_NAME}-worker-bootstrap-template
+            namespace: '${NAMESPACE}'
+        infrastructure:
+          ref:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: VSphereMachineTemplate
+            name: ${CLUSTER_CLASS_NAME}-worker-machinetemplate
+            namespace: '${NAMESPACE}'
+        metadata: {}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: VSphereMachineTemplate
+metadata:
+  name: ${CLUSTER_CLASS_NAME}-template
+  namespace: '${NAMESPACE}'
+spec:
+  template:
+    spec:
+      cloneMode: linkedClone
+      datacenter: '${VSPHERE_DATACENTER}'
+      datastore: '${VSPHERE_DATASTORE}'
+      diskGiB: 25
+      folder: '${VSPHERE_FOLDER}'
+      memoryMiB: 8192
+      network:
+        devices:
+        - dhcp4: true
+          networkName: '${VSPHERE_NETWORK}'
+      numCPUs: 2
+      os: Linux
+      resourcePool: '${VSPHERE_RESOURCE_POOL}'
+      server: '${VSPHERE_SERVER}'
+      storagePolicyName: '${VSPHERE_STORAGE_POLICY}'
+      template: '${VSPHERE_TEMPLATE}'
+      thumbprint: '${VSPHERE_TLS_THUMBPRINT}'
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: VSphereMachineTemplate
+metadata:
+  name: ${CLUSTER_CLASS_NAME}-worker-machinetemplate
+  namespace: '${NAMESPACE}'
+spec:
+  template:
+    spec:
+      cloneMode: linkedClone
+      datacenter: '${VSPHERE_DATACENTER}'
+      datastore: '${VSPHERE_DATASTORE}'
+      diskGiB: 25
+      folder: '${VSPHERE_FOLDER}'
+      memoryMiB: 8192
+      network:
+        devices:
+        - dhcp4: true
+          networkName: '${VSPHERE_NETWORK}'
+      numCPUs: 2
+      os: Linux
+      resourcePool: '${VSPHERE_RESOURCE_POOL}'
+      server: '${VSPHERE_SERVER}'
+      storagePolicyName: '${VSPHERE_STORAGE_POLICY}'
+      template: '${VSPHERE_TEMPLATE}'
+      thumbprint: '${VSPHERE_TLS_THUMBPRINT}'
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+kind: KubeadmControlPlaneTemplate
+metadata:
+  name: ${CLUSTER_CLASS_NAME}-controlplane
+  namespace: '${NAMESPACE}'
+spec:
+  template:
+    spec:
+      kubeadmConfigSpec:
+        clusterConfiguration:
+          apiServer:
+            extraArgs:
+              cloud-provider: external
+          controllerManager:
+            extraArgs:
+              cloud-provider: external
+        files:
+        - owner: root:root
+          path: /etc/kubernetes/manifests/kube-vip.yaml
+        initConfiguration:
+          nodeRegistration:
+            criSocket: /var/run/containerd/containerd.sock
+            kubeletExtraArgs:
+              cloud-provider: external
+            name: '{{ ds.meta_data.hostname }}'
+        joinConfiguration:
+          nodeRegistration:
+            criSocket: /var/run/containerd/containerd.sock
+            kubeletExtraArgs:
+              cloud-provider: external
+            name: '{{ ds.meta_data.hostname }}'
+        preKubeadmCommands:
+        - hostname "{{ ds.meta_data.hostname }}"
+        - echo "::1         ipv6-localhost ipv6-loopback" >/etc/hosts
+        - echo "127.0.0.1   localhost" >>/etc/hosts
+        - echo "127.0.0.1   {{ ds.meta_data.hostname }}" >>/etc/hosts
+        - echo "{{ ds.meta_data.hostname }}" >/etc/hostname
+        users:
+        - name: capv
+          sshAuthorizedKeys:
+          - '${VSPHERE_SSH_AUTHORIZED_KEY}'
+          sudo: ALL=(ALL) NOPASSWD:ALL
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfigTemplate
+metadata:
+  name: ${CLUSTER_CLASS_NAME}-worker-bootstrap-template
+  namespace: '${NAMESPACE}'
+spec:
+  template:
+    spec:
+      joinConfiguration:
+        nodeRegistration:
+          criSocket: /var/run/containerd/containerd.sock
+          kubeletExtraArgs:
+            cloud-provider: external
+          name: '{{ ds.meta_data.hostname }}'
+      preKubeadmCommands:
+      - hostname "{{ ds.meta_data.hostname }}"
+      - echo "::1         ipv6-localhost ipv6-loopback" >/etc/hosts
+      - echo "127.0.0.1   localhost" >>/etc/hosts
+      - echo "127.0.0.1   {{ ds.meta_data.hostname }}" >>/etc/hosts
+      - echo "{{ ds.meta_data.hostname }}" >/etc/hostname

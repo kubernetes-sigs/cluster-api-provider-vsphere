@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"regexp"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -66,6 +67,12 @@ func (v *VSphereMachineTemplateWebhook) ValidateCreate(_ context.Context, raw ru
 	for _, device := range spec.Network.Devices {
 		if len(device.IPAddrs) != 0 {
 			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "template", "spec", "network", "devices", "ipAddrs"), "cannot be set in templates"))
+		}
+	}
+	if spec.HardwareVersion != "" {
+		r := regexp.MustCompile("^vmx-[1-9][0-9]?$")
+		if !r.MatchString(spec.HardwareVersion) {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "template", "spec", "hardwareVersion"), spec.HardwareVersion, "should be a valid VM hardware version, example vmx-17"))
 		}
 	}
 	return aggregateObjErrors(obj.GroupVersionKind().GroupKind(), obj.Name, allErrs)

@@ -76,7 +76,7 @@ func VerifyNodeLabeling(ctx context.Context, input NodeLabelingSpecInput) {
 
 	clusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 	By("creating a workload cluster")
-	configCluster := defaultConfigCluster(clusterName, namespace.Name, 1, 1, input.Global)
+	configCluster := defaultConfigCluster(clusterName, namespace.Name, "", 1, 1, input.Global)
 
 	clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 		ClusterProxy:                 input.Global.BootstrapClusterProxy,

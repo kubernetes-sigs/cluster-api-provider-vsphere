@@ -7,3 +7,7 @@ patchesStrategicMerge:
   - ../commons/cluster-resource-set-label.yaml
   - ../commons/cluster-network-CIDR.yaml
   - ../commons/cluster-resource-set-csi-insecure.yaml
+patches:
+  - target:
+      kind: VSphereMachineTemplate
+    path: ../commons/remove-storage-policy.yaml

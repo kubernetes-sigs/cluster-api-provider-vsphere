@@ -13,14 +13,7 @@
 /examples/provider-components/provider-components*.yaml
 test/e2e/data/infrastructure-vsphere/kustomization/base/cluster-template.yaml
 test/e2e/data/infrastructure-vsphere/kustomization/topology/cluster-template-topology.yaml
-test/e2e/data/infrastructure-vsphere/cluster-template-conformance.yaml
-test/e2e/data/infrastructure-vsphere/cluster-template.yaml
-test/e2e/data/infrastructure-vsphere/cluster-template-remote-management.yaml
-test/e2e/data/infrastructure-vsphere/cluster-template-kcp-remediation.yaml
-test/e2e/data/infrastructure-vsphere/cluster-template-md-remediation.yaml
-test/e2e/data/infrastructure-vsphere/cluster-template-node-drain.yaml
-test/e2e/data/infrastructure-vsphere/cluster-template-pci.yaml
-test/e2e/data/infrastructure-vsphere/cluster-template-topology.yaml
+test/e2e/data/infrastructure-vsphere/cluster-template*.yaml
 test/e2e/data/infrastructure-vsphere/clusterclass-quick-start.yaml
 _artifacts/
 

@@ -164,6 +164,7 @@ variables:
   # CAPV feature flags
   EXP_NODE_ANTI_AFFINITY: "true"
   EXP_NODE_LABELING: "true"
+  HARDWARE_VERSION: "vmx-17"
 
 intervals:
   default/wait-controllers: ["5m", "10s"]

@@ -114,11 +114,12 @@ providers:
           # Add a cluster template
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-conformance.yaml"
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-remote-management.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-kcp-remediation.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-md-remediation.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-node-drain.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-pci.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-remote-management.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-storage-policy.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-topology.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/clusterclass-quick-start.yaml"
           - sourcePath: "../../../metadata.yaml"

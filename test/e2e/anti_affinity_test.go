@@ -89,7 +89,7 @@ func VerifyAntiAffinity(ctx context.Context, input AntiAffinitySpecInput) {
 	Expect(namespace).NotTo(BeNil())
 
 	Byf("creating a workload cluster with")
-	configCluster := defaultConfigCluster(clusterName, namespace.Name, 1, input.WorkerNodeCount,
+	configCluster := defaultConfigCluster(clusterName, namespace.Name, "", 1, input.WorkerNodeCount,
 		input.Global)
 
 	clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{

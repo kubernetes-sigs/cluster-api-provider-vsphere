@@ -50,9 +50,9 @@ type GlobalInput struct {
 	E2EConfig             *clusterctl.E2EConfig
 }
 
-func defaultConfigCluster(clusterName, namespace string, controlPlaneNodeCount, workerNodeCount int64,
+func defaultConfigCluster(clusterName, namespace, flavor string, controlPlaneNodeCount, workerNodeCount int64,
 	input GlobalInput) clusterctl.ConfigClusterInput {
-	return clusterctl.ConfigClusterInput{
+	configClusterInput := clusterctl.ConfigClusterInput{
 		LogFolder:                filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
 		ClusterctlConfigPath:     input.ClusterctlConfigPath,
 		KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
@@ -64,4 +64,8 @@ func defaultConfigCluster(clusterName, namespace string, controlPlaneNodeCount, 
 		ControlPlaneMachineCount: pointer.Int64(controlPlaneNodeCount),
 		WorkerMachineCount:       pointer.Int64(workerNodeCount),
 	}
+	if flavor != "" {
+		configClusterInput.Flavor = flavor
+	}
+	return configClusterInput
 }

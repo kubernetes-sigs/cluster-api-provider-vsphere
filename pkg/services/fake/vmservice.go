@@ -17,26 +17,22 @@ limitations under the License.
 package fake
 
 import (
+	"github.com/stretchr/testify/mock"
+
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services"
 )
 
-type vmService struct {
-	fakeMachine infrav1.VirtualMachine
-	err         error
+type VMService struct {
+	mock.Mock
 }
 
-func NewVMServiceWithVM(fakeMachine infrav1.VirtualMachine) services.VirtualMachineService {
-	return vmService{
-		fakeMachine: fakeMachine,
-	}
+func (v *VMService) ReconcileVM(ctx *context.VMContext) (infrav1.VirtualMachine, error) {
+	args := v.Called(ctx)
+	return args.Get(0).(infrav1.VirtualMachine), args.Error(1)
 }
 
-func (v vmService) ReconcileVM(_ *context.VMContext) (infrav1.VirtualMachine, error) {
-	return v.fakeMachine, v.err
-}
-
-func (v vmService) DestroyVM(ctx *context.VMContext) (infrav1.VirtualMachine, error) {
-	return v.fakeMachine, v.err
+func (v *VMService) DestroyVM(ctx *context.VMContext) (infrav1.VirtualMachine, error) {
+	args := v.Called(ctx)
+	return args.Get(0).(infrav1.VirtualMachine), args.Error(1)
 }

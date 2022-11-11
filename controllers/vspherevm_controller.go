@@ -211,11 +211,6 @@ func (r vmReconciler) Reconcile(ctx goctx.Context, req ctrl.Request) (_ ctrl.Res
 		return reconcile.Result{}, nil
 	}
 
-	clusterModule, err := r.fetchClusterModuleInfo(vsphereCluster, machine)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
 	var vsphereFailureDomain *infrav1.VSphereFailureDomain
 	if failureDomain := machine.Spec.FailureDomain; failureDomain != nil {
 		vsphereDeploymentZone := &infrav1.VSphereDeploymentZone{}
@@ -232,7 +227,6 @@ func (r vmReconciler) Reconcile(ctx goctx.Context, req ctrl.Request) (_ ctrl.Res
 	// Create the VM context for this request.
 	vmContext := &context.VMContext{
 		ControllerContext:    r.ControllerContext,
-		ClusterModuleInfo:    clusterModule,
 		VSphereVM:            vsphereVM,
 		VSphereFailureDomain: vsphereFailureDomain,
 		Session:              authSession,
@@ -279,13 +273,34 @@ func (r vmReconciler) Reconcile(ctx goctx.Context, req ctrl.Request) (_ ctrl.Res
 		}
 	}
 
+	return r.reconcile(vmContext, fetchClusterModuleInput{
+		VSphereCluster: vsphereCluster,
+		Machine:        machine,
+	})
+}
+
+// reconcile encases the behavior of the controller around cluster module information
+// retrieval depending upon inputs passed.
+//
+// This logic was moved to a smaller function outside of the main Reconcile() loop
+// for the ease of testing.
+func (r vmReconciler) reconcile(ctx *context.VMContext, input fetchClusterModuleInput) (reconcile.Result, error) {
+	clusterModuleInfo, err := r.fetchClusterModuleInfo(input)
+	// If cluster module information cannot be fetched for a VM being deleted,
+	// we should not block VM deletion since the cluster module is updated
+	// once the VM gets removed.
+	if err != nil && ctx.VSphereVM.ObjectMeta.DeletionTimestamp.IsZero() {
+		return reconcile.Result{}, err
+	}
+	ctx.ClusterModuleInfo = clusterModuleInfo
+
 	// Handle deleted machines
-	if !vsphereVM.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(vmContext)
+	if !ctx.VSphereVM.ObjectMeta.DeletionTimestamp.IsZero() {
+		return r.reconcileDelete(ctx)
 	}
 
 	// Handle non-deleted machines
-	return r.reconcileNormal(vmContext)
+	return r.reconcileNormal(ctx)
 }
 
 func (r vmReconciler) reconcileDelete(ctx *context.VMContext) (reconcile.Result, error) {
@@ -550,11 +565,12 @@ func (r vmReconciler) retrieveVcenterSession(ctx goctx.Context, vsphereVM *infra
 		params)
 }
 
-func (r vmReconciler) fetchClusterModuleInfo(vsphereCluster *infrav1.VSphereCluster, machine *clusterv1.Machine) (*string, error) {
+func (r vmReconciler) fetchClusterModuleInfo(clusterModInput fetchClusterModuleInput) (*string, error) {
 	var (
 		owner ctrlclient.Object
 		err   error
 	)
+	machine := clusterModInput.Machine
 	logger := r.Logger.WithName(machine.Namespace).WithName(machine.Name)
 
 	input := util.FetchObjectInput{
@@ -577,7 +593,7 @@ func (r vmReconciler) fetchClusterModuleInfo(vsphereCluster *infrav1.VSphereClus
 		return nil, err
 	}
 
-	for _, mod := range vsphereCluster.Spec.ClusterModules {
+	for _, mod := range clusterModInput.VSphereCluster.Spec.ClusterModules {
 		if mod.TargetObjectName == owner.GetName() {
 			logger.Info("cluster module with UUID found", "moduleUUID", mod.ModuleUUID)
 			return pointer.String(mod.ModuleUUID), nil
@@ -585,4 +601,9 @@ func (r vmReconciler) fetchClusterModuleInfo(vsphereCluster *infrav1.VSphereClus
 	}
 	logger.V(4).Info("no cluster module found")
 	return nil, nil
+}
+
+type fetchClusterModuleInput struct {
+	VSphereCluster *infrav1.VSphereCluster
+	Machine        *clusterv1.Machine
 }

@@ -23,6 +23,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
+	"github.com/stretchr/testify/mock"
 	"github.com/vmware/govmomi/simulator"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -64,7 +65,6 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 	// initializing a fake server to replace the vSphere endpoint
 	model := simulator.VPX()
 	model.Host = 0
-
 	simr, err := vcsim.NewBuilder().WithModel(model).Build()
 	if err != nil {
 		t.Fatalf("unable to create simulator: %s", err)
@@ -190,12 +190,14 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 				{NetworkName: "nw-2"},
 			},
 		})()
-		r := setupReconciler(fake_svc.NewVMServiceWithVM(infrav1.VirtualMachine{
+		fakeVMSvc := new(fake_svc.VMService)
+		fakeVMSvc.On("ReconcileVM", mock.Anything).Return(infrav1.VirtualMachine{
 			Name:     vsphereVM.Name,
 			BiosUUID: "265104de-1472-547c-b873-6dc7883fb6cb",
 			State:    infrav1.VirtualMachineStatePending,
 			Network:  nil,
-		}))
+		}, nil)
+		r := setupReconciler(fakeVMSvc)
 		_, err = r.Reconcile(goctx.Background(), ctrl.Request{NamespacedName: util.ObjectKey(vsphereVM)})
 		g := NewWithT(t)
 		g.Expect(err).NotTo(HaveOccurred())
@@ -216,7 +218,8 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 				{NetworkName: "nw-1", DHCP4: true},
 			},
 		})()
-		r := setupReconciler(fake_svc.NewVMServiceWithVM(infrav1.VirtualMachine{
+		fakeVMSvc := new(fake_svc.VMService)
+		fakeVMSvc.On("ReconcileVM", mock.Anything).Return(infrav1.VirtualMachine{
 			Name:     vsphereVM.Name,
 			BiosUUID: "265104de-1472-547c-b873-6dc7883fb6cb",
 			State:    infrav1.VirtualMachineStateReady,
@@ -226,7 +229,8 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 				MACAddr:     "blah-mac",
 				NetworkName: vsphereVM.Spec.Network.Devices[0].NetworkName,
 			}},
-		}))
+		}, nil)
+		r := setupReconciler(fakeVMSvc)
 		_, err = r.Reconcile(goctx.Background(), ctrl.Request{NamespacedName: util.ObjectKey(vsphereVM)})
 		g := NewWithT(t)
 		g.Expect(err).NotTo(HaveOccurred())
@@ -259,7 +263,8 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 		vsphereVM.ObjectMeta.Finalizers = []string{infrav1.VMFinalizer}
 		vsphereVM.ObjectMeta.DeletionTimestamp = &metav1.Time{Time: time.Now()}
 
-		r := setupReconciler(fake_svc.NewVMServiceWithVM(infrav1.VirtualMachine{
+		fakeVMSvc := new(fake_svc.VMService)
+		fakeVMSvc.On("DestroyVM", mock.Anything).Return(infrav1.VirtualMachine{
 			Name:     vsphereVM.Name,
 			BiosUUID: "265104de-1472-547c-b873-6dc7883fb6cb",
 			State:    infrav1.VirtualMachineStateNotFound,
@@ -269,7 +274,8 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 				MACAddr:     "blah-mac",
 				NetworkName: vsphereVM.Spec.Network.Devices[0].NetworkName,
 			}},
-		}))
+		}, nil)
+		r := setupReconciler(fakeVMSvc)
 
 		g := NewWithT(t)
 
@@ -465,6 +471,142 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 	g.Expect(conditions.Has(vm, infrav1.VCenterAvailableCondition)).To(BeTrue())
 	vCenterCondition := conditions.Get(vm, infrav1.VCenterAvailableCondition)
 	g.Expect(vCenterCondition.Status).To(Equal(corev1.ConditionTrue))
+}
+
+func Test_reconcile(t *testing.T) {
+	ns := "test"
+	vsphereCluster := &infrav1.VSphereCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "valid-vsphere-cluster",
+			Namespace: ns,
+		},
+		Spec: infrav1.VSphereClusterSpec{},
+	}
+	machine := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: ns,
+			Labels: map[string]string{
+				clusterv1.ClusterLabelName: "valid-cluster",
+			},
+		},
+	}
+	vsphereVM := &infrav1.VSphereVM{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: infrav1.GroupVersion.String(),
+			Kind:       "VSphereVM",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: ns,
+			Labels: map[string]string{
+				clusterv1.ClusterLabelName: "valid-cluster",
+			},
+			OwnerReferences: []metav1.OwnerReference{{APIVersion: infrav1.GroupVersion.String(), Kind: "VSphereMachine", Name: "foo-vm"}},
+			Finalizers:      []string{infrav1.VMFinalizer},
+		},
+		Spec: infrav1.VSphereVMSpec{},
+	}
+
+	setupReconciler := func(vmService services.VirtualMachineService, initObjs ...client.Object) vmReconciler {
+		return vmReconciler{
+			ControllerContext: &context.ControllerContext{
+				ControllerManagerContext: fake.NewControllerManagerContext(initObjs...),
+				Recorder:                 record.New(apirecord.NewFakeRecorder(100)),
+				Logger:                   log.Log,
+			},
+			VMService: vmService,
+		}
+	}
+
+	t.Run("during VM creation", func(t *testing.T) {
+		initObjs := []client.Object{vsphereCluster, machine, vsphereVM}
+		t.Run("when info cannot be fetched", func(t *testing.T) {
+			r := setupReconciler(new(fake_svc.VMService), initObjs...)
+			_, err := r.reconcile(&context.VMContext{
+				ControllerContext: r.ControllerContext,
+				VSphereVM:         vsphereVM,
+				Logger:            r.Logger,
+			}, fetchClusterModuleInput{
+				VSphereCluster: vsphereCluster,
+				Machine:        machine,
+			})
+
+			g := NewWithT(t)
+			g.Expect(err).To(HaveOccurred())
+		})
+
+		t.Run("when info can be fetched", func(t *testing.T) {
+			objsWithHierarchy := initObjs
+			objsWithHierarchy = append(objsWithHierarchy, createMachineOwnerHierarchy(machine)...)
+			fakeVMSvc := new(fake_svc.VMService)
+			fakeVMSvc.On("ReconcileVM", mock.Anything).Return(infrav1.VirtualMachine{
+				Name:     vsphereVM.Name,
+				BiosUUID: "265104de-1472-547c-b873-6dc7883fb6cb",
+				State:    infrav1.VirtualMachineStateReady,
+			}, nil)
+
+			r := setupReconciler(fakeVMSvc, objsWithHierarchy...)
+			_, err := r.reconcile(&context.VMContext{
+				ControllerContext: r.ControllerContext,
+				VSphereVM:         vsphereVM,
+				Logger:            r.Logger,
+			}, fetchClusterModuleInput{
+				VSphereCluster: vsphereCluster,
+				Machine:        machine,
+			})
+
+			g := NewWithT(t)
+			g.Expect(err).NotTo(HaveOccurred())
+		})
+	})
+
+	t.Run("during VM deletion", func(t *testing.T) {
+		deletedVM := vsphereVM.DeepCopy()
+		deletedVM.DeletionTimestamp = &metav1.Time{Time: time.Now()}
+
+		fakeVMSvc := new(fake_svc.VMService)
+		fakeVMSvc.On("DestroyVM", mock.Anything).Return(infrav1.VirtualMachine{
+			Name:     deletedVM.Name,
+			BiosUUID: "265104de-1472-547c-b873-6dc7883fb6cb",
+			State:    infrav1.VirtualMachineStateNotFound,
+		}, nil)
+
+		initObjs := []client.Object{vsphereCluster, machine, deletedVM}
+		t.Run("when info can be fetched", func(t *testing.T) {
+			objsWithHierarchy := initObjs
+			objsWithHierarchy = append(objsWithHierarchy, createMachineOwnerHierarchy(machine)...)
+
+			r := setupReconciler(fakeVMSvc, objsWithHierarchy...)
+			_, err := r.reconcile(&context.VMContext{
+				ControllerContext: r.ControllerContext,
+				VSphereVM:         deletedVM,
+				Logger:            r.Logger,
+			}, fetchClusterModuleInput{
+				VSphereCluster: vsphereCluster,
+				Machine:        machine,
+			})
+
+			g := NewWithT(t)
+			g.Expect(err).NotTo(HaveOccurred())
+		})
+
+		t.Run("when info cannot be fetched", func(t *testing.T) {
+			r := setupReconciler(fakeVMSvc, initObjs...)
+			_, err := r.reconcile(&context.VMContext{
+				ControllerContext: r.ControllerContext,
+				VSphereVM:         deletedVM,
+				Logger:            r.Logger,
+			}, fetchClusterModuleInput{
+				VSphereCluster: vsphereCluster,
+				Machine:        machine,
+			})
+
+			g := NewWithT(t)
+			// Assertion to verify that cluster module info is not mandatory
+			g.Expect(err).NotTo(HaveOccurred())
+		})
+	})
 }
 
 func createMachineOwnerHierarchy(machine *clusterv1.Machine) []client.Object {

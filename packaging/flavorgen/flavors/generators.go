@@ -678,7 +678,7 @@ func newKubeVIPFiles() []bootstrapv1.File {
 	}
 }
 
-func newKubeadmControlplane(replicas int, infraTemplate infrav1.VSphereMachineTemplate, files []bootstrapv1.File) controlplanev1.KubeadmControlPlane {
+func newKubeadmControlplane(infraTemplate infrav1.VSphereMachineTemplate, files []bootstrapv1.File) controlplanev1.KubeadmControlPlane {
 	return controlplanev1.KubeadmControlPlane{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: controlplanev1.GroupVersion.String(),
@@ -689,8 +689,7 @@ func newKubeadmControlplane(replicas int, infraTemplate infrav1.VSphereMachineTe
 			Namespace: env.NamespaceVar,
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
-			Replicas: pointer.Int32Ptr(int32(replicas)),
-			Version:  env.KubernetesVersionVar,
+			Version: env.KubernetesVersionVar,
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
 				InfrastructureRef: corev1.ObjectReference{
 					APIVersion: infraTemplate.GroupVersionKind().GroupVersion().String(),

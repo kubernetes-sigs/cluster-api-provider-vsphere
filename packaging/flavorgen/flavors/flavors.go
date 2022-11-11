@@ -25,6 +25,15 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/env"
 )
 
+const (
+	// Supported workload cluster flavors.
+	VIP                  = "vip"
+	ExternalLoadBalancer = "external-loadbalancer"
+	Ignition             = "ignition"
+	ClusterClass         = "cluster-class"
+	ClusterTopology      = "cluster-topology"
+)
+
 func ClusterClassTemplateWithKubeVIP() []runtime.Object {
 	vSphereClusterTemplate := newVSphereClusterTemplate()
 	clusterClass := newClusterClass()
@@ -64,7 +73,7 @@ func MultiNodeTemplateWithKubeVIP() []runtime.Object {
 	vsphereCluster := newVSphereCluster()
 	cpMachineTemplate := newVSphereMachineTemplate(env.ClusterNameVar)
 	workerMachineTemplate := newVSphereMachineTemplate(fmt.Sprintf("%s-worker", env.ClusterNameVar))
-	controlPlane := newKubeadmControlplane(444, cpMachineTemplate, newKubeVIPFiles())
+	controlPlane := newKubeadmControlplane(cpMachineTemplate, newKubeVIPFiles())
 	kubeadmJoinTemplate := newKubeadmConfigTemplate(fmt.Sprintf("%s%s", env.ClusterNameVar, env.MachineDeploymentNameSuffix), true)
 	cluster := newCluster(vsphereCluster, &controlPlane)
 	machineDeployment := newMachineDeployment(cluster, workerMachineTemplate, kubeadmJoinTemplate)
@@ -95,7 +104,7 @@ func MultiNodeTemplateWithExternalLoadBalancer() []runtime.Object {
 	vsphereCluster := newVSphereCluster()
 	cpMachineTemplate := newVSphereMachineTemplate(env.ClusterNameVar)
 	workerMachineTemplate := newVSphereMachineTemplate(fmt.Sprintf("%s-worker", env.ClusterNameVar))
-	controlPlane := newKubeadmControlplane(444, cpMachineTemplate, nil)
+	controlPlane := newKubeadmControlplane(cpMachineTemplate, nil)
 	kubeadmJoinTemplate := newKubeadmConfigTemplate(fmt.Sprintf("%s%s", env.ClusterNameVar, env.MachineDeploymentNameSuffix), true)
 	cluster := newCluster(vsphereCluster, &controlPlane)
 	machineDeployment := newMachineDeployment(cluster, workerMachineTemplate, kubeadmJoinTemplate)
@@ -115,6 +124,44 @@ func MultiNodeTemplateWithExternalLoadBalancer() []runtime.Object {
 		&clusterResourceSet,
 		&identitySecret,
 	}
+	MultiNodeTemplate = append(MultiNodeTemplate, crsResourcesCSI...)
+	MultiNodeTemplate = append(MultiNodeTemplate, crsResourcesCPI...)
+
+	return MultiNodeTemplate
+}
+
+func MultiNodeTemplateWithKubeVIPIgnition() []runtime.Object {
+	vsphereCluster := newVSphereCluster()
+	machineTemplate := newVSphereMachineTemplate(env.ClusterNameVar)
+
+	files := newKubeVIPFiles()
+	// CABPK requires specifying file permissions in Ignition mode. Set a default value if not set.
+	for i := range files {
+		if files[i].Permissions == "" {
+			files[i].Permissions = "0400"
+		}
+	}
+	controlPlane := newIgnitionKubeadmControlplane(machineTemplate, files)
+
+	kubeadmJoinTemplate := newIgnitionKubeadmConfigTemplate()
+	cluster := newCluster(vsphereCluster, &controlPlane)
+	machineDeployment := newMachineDeployment(cluster, machineTemplate, kubeadmJoinTemplate)
+	clusterResourceSet := newClusterResourceSet(cluster)
+	crsResourcesCSI := crs.CreateCrsResourceObjectsCSI(&clusterResourceSet)
+	crsResourcesCPI := crs.CreateCrsResourceObjectsCPI(&clusterResourceSet)
+	identitySecret := newIdentitySecret()
+
+	MultiNodeTemplate := []runtime.Object{
+		&cluster,
+		&vsphereCluster,
+		&machineTemplate,
+		&controlPlane,
+		&kubeadmJoinTemplate,
+		&machineDeployment,
+		&clusterResourceSet,
+		&identitySecret,
+	}
+
 	MultiNodeTemplate = append(MultiNodeTemplate, crsResourcesCSI...)
 	MultiNodeTemplate = append(MultiNodeTemplate, crsResourcesCPI...)
 

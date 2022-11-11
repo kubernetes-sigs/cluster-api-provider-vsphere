@@ -53,13 +53,13 @@ func RunRoot(command *cobra.Command) error {
 		return errors.Wrapf(err, "error accessing flag %s for command %s", flavorFlag, command.Name())
 	}
 	switch flavor {
-	case "vip":
+	case flavors.VIP:
 		util.PrintObjects(flavors.MultiNodeTemplateWithKubeVIP())
-	case "external-loadbalancer":
+	case flavors.ExternalLoadBalancer:
 		util.PrintObjects(flavors.MultiNodeTemplateWithExternalLoadBalancer())
-	case "cluster-class":
+	case flavors.ClusterClass:
 		util.PrintObjects(flavors.ClusterClassTemplateWithKubeVIP())
-	case "cluster-topology":
+	case flavors.ClusterTopology:
 		additionalReplacements := []util.Replacement{
 			{
 				Kind:      "Cluster",
@@ -70,6 +70,8 @@ func RunRoot(command *cobra.Command) error {
 		}
 		util.Replacements = append(util.Replacements, additionalReplacements...)
 		util.PrintObjects(flavors.ClusterTopologyTemplateKubeVIP())
+	case flavors.Ignition:
+		util.PrintObjects(flavors.MultiNodeTemplateWithKubeVIPIgnition())
 	default:
 		return errors.Errorf("invalid flavor")
 	}

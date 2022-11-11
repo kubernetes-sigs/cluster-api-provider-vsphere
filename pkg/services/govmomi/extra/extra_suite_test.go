@@ -31,7 +31,7 @@ func TestExtra(t *testing.T) {
 	RunSpecs(t, "Extra Suite")
 }
 
-type ConfigInitFn func(*Config, string) error
+type ConfigInitFn func(*Config, string)
 
 var _ = Describe("Config_SetCustomVMXKeys", func() {
 	Context("we try to set custom keys in the config", func() {
@@ -58,8 +58,8 @@ var _ = Describe("Config_SetCustomVMXKeys", func() {
 
 var _ = Describe("Config_SetCloudInitUserData", func() {
 	ConfigInitFnTester(
-		func(config *Config, s string) error {
-			return config.SetCloudInitUserData([]byte(s))
+		func(config *Config, s string) {
+			config.SetCloudInitUserData([]byte(s))
 		},
 		"SetCloudInitUserData",
 		"guestinfo.userdata",
@@ -68,8 +68,8 @@ var _ = Describe("Config_SetCloudInitUserData", func() {
 })
 
 var _ = Describe("Config_SetCloudInitMetadata", func() {
-	ConfigInitFnTester(func(config *Config, s string) error {
-		return config.SetCloudInitMetadata([]byte(s))
+	ConfigInitFnTester(func(config *Config, s string) {
+		config.SetCloudInitMetadata([]byte(s))
 	},
 		"SetCloudInitMetadata",
 		"guestinfo.metadata",
@@ -88,10 +88,9 @@ func ConfigInitFnTester(method ConfigInitFn, methodName string, dataKey string, 
 
 	Context(fmt.Sprintf("we call %q with some non-encoded sample data", methodName), func() {
 		var config Config
-		err := method(&config, sampleData)
+		method(&config, sampleData)
 
 		It("must set 2 keys in the config", func() {
-			Expect(err).ToNot(HaveOccurred())
 			Expect(len(config)).To(Equal(2))
 		})
 
@@ -113,10 +112,9 @@ func ConfigInitFnTester(method ConfigInitFn, methodName string, dataKey string, 
 	Context(fmt.Sprintf("We call %q with some pre-encoded data (single pass)", methodName), func() {
 		var config Config
 		preEncodedData := base64Encode(sampleData)
-		err := method(&config, preEncodedData)
+		method(&config, preEncodedData)
 
 		It("does not encode the data further on storing", func() {
-			Expect(err).ToNot(HaveOccurred())
 			Expect(config).To(ContainElement(&types.OptionValue{
 				Key:   dataKey,
 				Value: preEncodedData,
@@ -132,10 +130,9 @@ func ConfigInitFnTester(method ConfigInitFn, methodName string, dataKey string, 
 			multiPassEncodedData = base64Encode(multiPassEncodedData)
 		}
 
-		err := method(&config, multiPassEncodedData)
+		method(&config, multiPassEncodedData)
 
 		It("saves data with a single pass of encoding", func() {
-			Expect(err).ToNot(HaveOccurred())
 			Expect(config).To(ContainElement(&types.OptionValue{
 				Key:   dataKey,
 				Value: expectedData,

@@ -36,6 +36,64 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/identity"
 )
 
+const (
+	AdditionalIgnitionConfig = `storage:
+  files:
+  - path: /opt/set-hostname
+    filesystem: root
+    mode: 0744
+    contents:
+      inline: |
+        #!/bin/sh
+        set -x
+        echo "$${COREOS_CUSTOM_HOSTNAME}" > /etc/hostname
+        hostname "$${COREOS_CUSTOM_HOSTNAME}"
+        echo "::1         ipv6-localhost ipv6-loopback" >/etc/hosts
+        echo "127.0.0.1   localhost" >>/etc/hosts
+        echo "127.0.0.1   $${COREOS_CUSTOM_HOSTNAME}" >>/etc/hosts
+systemd:
+  units:
+  - name: coreos-metadata.service
+    contents: |
+      [Unit]
+      Description=VMware metadata agent
+      After=nss-lookup.target
+      After=network-online.target
+      Wants=network-online.target
+      [Service]
+      Type=oneshot
+      Restart=on-failure
+      RemainAfterExit=yes
+      Environment=OUTPUT=/run/metadata/coreos
+      ExecStart=/usr/bin/mkdir --parent /run/metadata
+      ExecStart=/usr/bin/bash -cv 'echo "COREOS_CUSTOM_HOSTNAME=$(/usr/share/oem/bin/vmtoolsd --cmd "info-get guestinfo.metadata" | base64 -d | grep local-hostname | awk {\'print $2\'} | tr -d \'"\')" > $${OUTPUT}'
+  - name: set-hostname.service
+    enabled: true
+    contents: |
+      [Unit]
+      Description=Set the hostname for this machine
+      Requires=coreos-metadata.service
+      After=coreos-metadata.service
+      [Service]
+      Type=oneshot
+      EnvironmentFile=/run/metadata/coreos
+      ExecStart=/opt/set-hostname
+      [Install]
+      WantedBy=multi-user.target
+  - name: kubeadm.service
+    enabled: true
+    dropins:
+    - name: 10-flatcar.conf
+      contents: |
+        [Unit]
+        # kubeadm must run after coreos-metadata populated /run/metadata directory.
+        Requires=coreos-metadata.service
+        After=coreos-metadata.service
+        [Service]
+        # Make metadata environment variables available for pre-kubeadm commands.
+        EnvironmentFile=/run/metadata/*`
+)
+
 func newClusterClassCluster() clusterv1.Cluster {
 	return clusterv1.Cluster{
 		TypeMeta: metav1.TypeMeta{
@@ -252,6 +310,37 @@ func defaultKubeadmInitSpec(files []bootstrapv1.File) bootstrapv1.KubeadmConfigS
 	}
 }
 
+func ignitionKubeadmInitSpec(files []bootstrapv1.File) bootstrapv1.KubeadmConfigSpec {
+	nro := defaultNodeRegistrationOptions()
+	nro.Name = "$${COREOS_CUSTOM_HOSTNAME}"
+
+	return bootstrapv1.KubeadmConfigSpec{
+		Format: bootstrapv1.Ignition,
+		Ignition: &bootstrapv1.IgnitionSpec{
+			ContainerLinuxConfig: &bootstrapv1.ContainerLinuxConfig{
+				AdditionalConfig: AdditionalIgnitionConfig,
+			},
+		},
+		InitConfiguration: &bootstrapv1.InitConfiguration{
+			NodeRegistration: nro,
+		},
+		JoinConfiguration: &bootstrapv1.JoinConfiguration{
+			NodeRegistration: nro,
+		},
+		ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+			APIServer: bootstrapv1.APIServer{
+				ControlPlaneComponent: defaultControlPlaneComponent(),
+			},
+			ControllerManager: defaultControlPlaneComponent(),
+		},
+		Users:              flatcarUsers(),
+		PreKubeadmCommands: flatcarPreKubeadmCommands(),
+		// UseExperimentalRetryJoin isn't supported with Ignition bootstrap.
+		UseExperimentalRetryJoin: false,
+		Files:                    files,
+	}
+}
+
 func newKubeadmConfigTemplate(templateName string, addUsers bool) bootstrapv1.KubeadmConfigTemplate {
 	template := bootstrapv1.KubeadmConfigTemplate{
 		ObjectMeta: metav1.ObjectMeta{
@@ -279,6 +368,39 @@ func newKubeadmConfigTemplate(templateName string, addUsers bool) bootstrapv1.Ku
 	return template
 }
 
+func newIgnitionKubeadmConfigTemplate() bootstrapv1.KubeadmConfigTemplate {
+	nro := defaultNodeRegistrationOptions()
+	nro.Name = "$${COREOS_CUSTOM_HOSTNAME}"
+
+	return bootstrapv1.KubeadmConfigTemplate{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      env.ClusterNameVar + env.MachineDeploymentNameSuffix,
+			Namespace: env.NamespaceVar,
+		},
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: bootstrapv1.GroupVersion.String(),
+			Kind:       util.TypeToKind(&bootstrapv1.KubeadmConfigTemplate{}),
+		},
+		Spec: bootstrapv1.KubeadmConfigTemplateSpec{
+			Template: bootstrapv1.KubeadmConfigTemplateResource{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Format: bootstrapv1.Ignition,
+					Ignition: &bootstrapv1.IgnitionSpec{
+						ContainerLinuxConfig: &bootstrapv1.ContainerLinuxConfig{
+							AdditionalConfig: AdditionalIgnitionConfig,
+						},
+					},
+					JoinConfiguration: &bootstrapv1.JoinConfiguration{
+						NodeRegistration: nro,
+					},
+					Users:              flatcarUsers(),
+					PreKubeadmCommands: flatcarPreKubeadmCommands(),
+				},
+			},
+		},
+	}
+}
+
 func defaultNodeRegistrationOptions() bootstrapv1.NodeRegistrationOptions {
 	return bootstrapv1.NodeRegistrationOptions{
 		Name:             "{{ ds.meta_data.hostname }}",
@@ -291,6 +413,18 @@ func defaultUsers() []bootstrapv1.User {
 	return []bootstrapv1.User{
 		{
 			Name: "capv",
+			Sudo: pointer.StringPtr("ALL=(ALL) NOPASSWD:ALL"),
+			SSHAuthorizedKeys: []string{
+				env.VSphereSSHAuthorizedKeysVar,
+			},
+		},
+	}
+}
+
+func flatcarUsers() []bootstrapv1.User {
+	return []bootstrapv1.User{
+		{
+			Name: "core",
 			Sudo: pointer.StringPtr("ALL=(ALL) NOPASSWD:ALL"),
 			SSHAuthorizedKeys: []string{
 				env.VSphereSSHAuthorizedKeysVar,
@@ -324,6 +458,14 @@ func defaultPreKubeadmCommands() []string {
 		"echo \"{{ ds.meta_data.hostname }}\" >/etc/hostname",
 	}
 }
+
+func flatcarPreKubeadmCommands() []string {
+	return []string{
+		"envsubst < /etc/kubeadm.yml > /etc/kubeadm.yml.tmp",
+		"mv /etc/kubeadm.yml.tmp /etc/kubeadm.yml",
+	}
+}
+
 func kubeVIPPodSpec() *corev1.Pod {
 	hostPathType := corev1.HostPathFileOrCreate
 	pod := &corev1.Pod{
@@ -536,7 +678,7 @@ func newKubeVIPFiles() []bootstrapv1.File {
 	}
 }
 
-func newKubeadmControlplane(replicas int, infraTemplate infrav1.VSphereMachineTemplate, files []bootstrapv1.File) controlplanev1.KubeadmControlPlane {
+func newKubeadmControlplane(infraTemplate infrav1.VSphereMachineTemplate, files []bootstrapv1.File) controlplanev1.KubeadmControlPlane {
 	return controlplanev1.KubeadmControlPlane{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: controlplanev1.GroupVersion.String(),
@@ -547,8 +689,7 @@ func newKubeadmControlplane(replicas int, infraTemplate infrav1.VSphereMachineTe
 			Namespace: env.NamespaceVar,
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
-			Replicas: pointer.Int32Ptr(int32(replicas)),
-			Version:  env.KubernetesVersionVar,
+			Version: env.KubernetesVersionVar,
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
 				InfrastructureRef: corev1.ObjectReference{
 					APIVersion: infraTemplate.GroupVersionKind().GroupVersion().String(),
@@ -557,6 +698,30 @@ func newKubeadmControlplane(replicas int, infraTemplate infrav1.VSphereMachineTe
 				},
 			},
 			KubeadmConfigSpec: defaultKubeadmInitSpec(files),
+		},
+	}
+}
+
+func newIgnitionKubeadmControlplane(infraTemplate infrav1.VSphereMachineTemplate, files []bootstrapv1.File) controlplanev1.KubeadmControlPlane {
+	return controlplanev1.KubeadmControlPlane{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: controlplanev1.GroupVersion.String(),
+			Kind:       util.TypeToKind(&controlplanev1.KubeadmControlPlane{}),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      env.ClusterNameVar,
+			Namespace: env.NamespaceVar,
+		},
+		Spec: controlplanev1.KubeadmControlPlaneSpec{
+			Version: env.KubernetesVersionVar,
+			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
+				InfrastructureRef: corev1.ObjectReference{
+					APIVersion: infraTemplate.GroupVersionKind().GroupVersion().String(),
+					Kind:       infraTemplate.Kind,
+					Name:       infraTemplate.Name,
+				},
+			},
+			KubeadmConfigSpec: ignitionKubeadmInitSpec(files),
 		},
 	}
 }

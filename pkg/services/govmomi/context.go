@@ -26,9 +26,10 @@ import (
 
 type virtualMachineContext struct {
 	context.VMContext
-	Ref   types.ManagedObjectReference
-	Obj   *object.VirtualMachine
-	State *infrav1.VirtualMachine
+	Ref       types.ManagedObjectReference
+	Obj       *object.VirtualMachine
+	State     *infrav1.VirtualMachine
+	IPAMState map[string]infrav1.NetworkDeviceSpec
 }
 
 func (c *virtualMachineContext) String() string {

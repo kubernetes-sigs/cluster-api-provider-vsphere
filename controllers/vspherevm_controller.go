@@ -31,6 +31,7 @@ import (
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
+	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1alpha1"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -63,8 +64,11 @@ import (
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=kubeadmcontrolplanes,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;delete
+// +kubebuilder:rbac:groups=ipam.cluster.x-k8s.io,resources=ipaddressclaims,verbs=get;create;update;watch;list
+// +kubebuilder:rbac:groups=ipam.cluster.x-k8s.io,resources=ipaddresses,verbs=get;list;watch
 
 // AddVMControllerToManager adds the VM controller to the provided manager.
+//
 //nolint:forcetypeassert
 func AddVMControllerToManager(ctx *context.ControllerManagerContext, mgr manager.Manager) error {
 	var (
@@ -306,6 +310,31 @@ func (r vmReconciler) reconcileDelete(ctx *context.VMContext) (reconcile.Result,
 		r.Logger.V(6).Info("unable to delete node", "err", err)
 	}
 
+	// Remove finalizers from any ipam claims
+	for devIdx, device := range ctx.VSphereVM.Spec.Network.Devices {
+		for poolRefIdx := range device.AddressesFromPools {
+			// check if claim exists
+			ipAddrClaim := &ipamv1.IPAddressClaim{}
+			ipAddrClaimName := govmomi.IPAddressClaimName(ctx.VSphereVM.Name, devIdx, poolRefIdx)
+			ctx.Logger.Info("removing finalizer", "IPAddressClaim", ipAddrClaimName)
+			ipAddrClaimKey := apitypes.NamespacedName{
+				Namespace: ctx.VSphereVM.Namespace,
+				Name:      ipAddrClaimName,
+			}
+			if err := ctx.Client.Get(ctx, ipAddrClaimKey, ipAddrClaim); err != nil {
+				if apierrors.IsNotFound(err) {
+					continue
+				}
+				return reconcile.Result{}, errors.Wrapf(err, fmt.Sprintf("failed to find IPAddressClaim %q to remove the finalizer", ipAddrClaimName))
+			}
+			if ctrlutil.RemoveFinalizer(ipAddrClaim, infrav1.IPAddressClaimFinalizer) {
+				if err := ctx.Client.Update(ctx, ipAddrClaim); err != nil {
+					return reconcile.Result{}, errors.Wrapf(err, fmt.Sprintf("failed to update IPAddressClaim %q", ipAddrClaimName))
+				}
+			}
+		}
+	}
+
 	// The VM is deleted so remove the finalizer.
 	ctrlutil.RemoveFinalizer(ctx.VSphereVM, infrav1.VMFinalizer)
 
@@ -399,11 +428,11 @@ func (r vmReconciler) reconcileNormal(ctx *context.VMContext) (reconcile.Result,
 // isWaitingForStaticIPAllocation checks whether the VM should wait for a static IP
 // to be allocated.
 // It checks the state of both DHCP4 and DHCP6 for all the network devices and if
-// any static IP addresses are specified.
+// any static IP addresses or IPAM Pools are specified.
 func (r vmReconciler) isWaitingForStaticIPAllocation(ctx *context.VMContext) bool {
 	devices := ctx.VSphereVM.Spec.Network.Devices
 	for _, dev := range devices {
-		if !dev.DHCP4 && !dev.DHCP6 && len(dev.IPAddrs) == 0 {
+		if !dev.DHCP4 && !dev.DHCP6 && len(dev.IPAddrs) == 0 && len(dev.AddressesFromPools) == 0 {
 			// Static IP is not available yet
 			return true
 		}

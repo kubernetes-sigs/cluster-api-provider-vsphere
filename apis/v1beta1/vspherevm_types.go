@@ -28,6 +28,10 @@ const (
 	// VMFinalizer allows the reconciler to clean up resources associated
 	// with a VSphereVM before removing it from the API Server.
 	VMFinalizer = "vspherevm.infrastructure.cluster.x-k8s.io"
+
+	// IPClaimFinalizer allows the reconciler to prevent deletion of an
+	// IPAddressClaim that is in use.
+	IPAddressClaimFinalizer = "vspherevm.infrastructure.cluster.x-k8s.io/ip-claim-protection"
 )
 
 // VSphereVMSpec defines the desired state of VSphereVM.

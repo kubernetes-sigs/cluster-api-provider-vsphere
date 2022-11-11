@@ -41,6 +41,9 @@ func (src *VSphereMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	}
 	dst.Spec.Template.Spec.TagIDs = restored.Spec.Template.Spec.TagIDs
 	dst.Spec.Template.Spec.AdditionalDisksGiB = restored.Spec.Template.Spec.AdditionalDisksGiB
+	for i := range dst.Spec.Template.Spec.Network.Devices {
+		dst.Spec.Template.Spec.Network.Devices[i].AddressesFromPools = restored.Spec.Template.Spec.Network.Devices[i].AddressesFromPools
+	}
 
 	return nil
 }
@@ -69,14 +72,14 @@ func (dst *VSphereMachineTemplateList) ConvertFrom(srcRaw conversion.Hub) error 
 	return Convert_v1beta1_VSphereMachineTemplateList_To_v1alpha4_VSphereMachineTemplateList(src, dst, nil)
 }
 
-//nolint
+// nolint
 func Convert_v1alpha4_ObjectMeta_To_v1beta1_ObjectMeta(in *clusterv1a4.ObjectMeta, out *clusterv1b1.ObjectMeta, s apiconversion.Scope) error {
 	// wrapping the conversion func to avoid having compile errors due to compileErrorOnMissingConversion()
 	// more details at https://github.com/kubernetes/kubernetes/issues/98380
 	return clusterv1a4.Convert_v1alpha4_ObjectMeta_To_v1beta1_ObjectMeta(in, out, s)
 }
 
-//nolint
+// nolint
 func Convert_v1beta1_ObjectMeta_To_v1alpha4_ObjectMeta(in *clusterv1b1.ObjectMeta, out *clusterv1a4.ObjectMeta, s apiconversion.Scope) error {
 	// wrapping the conversion func to avoid having compile errors due to compileErrorOnMissingConversion()
 	// more details at https://github.com/kubernetes/kubernetes/issues/98380

@@ -39,6 +39,9 @@ func (src *VSphereVM) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.TagIDs = restored.Spec.TagIDs
 	dst.Spec.AdditionalDisksGiB = restored.Spec.AdditionalDisksGiB
 	dst.Status.Host = restored.Status.Host
+	for i := range dst.Spec.Network.Devices {
+		dst.Spec.Network.Devices[i].AddressesFromPools = restored.Spec.Network.Devices[i].AddressesFromPools
+	}
 
 	return nil
 }

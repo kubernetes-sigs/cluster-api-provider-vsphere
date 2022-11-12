@@ -114,6 +114,7 @@ providers:
           # Add a cluster template
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-conformance.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-hw-upgrade.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-kcp-remediation.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-md-remediation.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-node-drain.yaml"

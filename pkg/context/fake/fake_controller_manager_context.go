@@ -50,11 +50,11 @@ func NewControllerManagerContext(initObjects ...client.Object) *context.Controll
 	_ = vmoprv1.AddToScheme(scheme)
 	_ = ipamv1.AddToScheme(scheme)
 
-	client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(initObjects...).Build()
+	clientWithObjects := fake.NewClientBuilder().WithScheme(scheme).WithObjects(initObjects...).Build()
 
 	return &context.ControllerManagerContext{
 		Context:                 goctx.Background(),
-		Client:                  client,
+		Client:                  clientWithObjects,
 		Logger:                  ctrllog.Log.WithName(ControllerManagerName),
 		Scheme:                  scheme,
 		Namespace:               ControllerManagerNamespace,

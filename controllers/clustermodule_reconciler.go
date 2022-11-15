@@ -162,6 +162,11 @@ func (r Reconciler) toAffinityInput(obj client.Object) []reconcile.Request {
 		return nil
 	}
 
+	if cluster.Spec.InfrastructureRef == nil {
+		r.Logger.Error(err, "cluster infrastructureRef not set. Requeing",
+			"namespace", cluster.Namespace, "cluster_name", cluster.Name)
+		return nil
+	}
 	vsphereCluster := &infrav1.VSphereCluster{}
 	if err := r.Client.Get(r, client.ObjectKey{
 		Name:      cluster.Spec.InfrastructureRef.Name,

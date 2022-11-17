@@ -122,6 +122,7 @@ providers:
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-remote-management.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-storage-policy.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-topology.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-dhcp-overrides.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/clusterclass-quick-start.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-ignition.yaml"
           - sourcePath: "../../../metadata.yaml"

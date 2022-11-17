@@ -41,6 +41,8 @@ func (src *VSphereMachine) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.TagIDs = restored.Spec.TagIDs
 	for i := range dst.Spec.Network.Devices {
 		dst.Spec.Network.Devices[i].AddressesFromPools = restored.Spec.Network.Devices[i].AddressesFromPools
+		dst.Spec.Network.Devices[i].DHCP4Overrides = restored.Spec.Network.Devices[i].DHCP4Overrides
+		dst.Spec.Network.Devices[i].DHCP6Overrides = restored.Spec.Network.Devices[i].DHCP6Overrides
 	}
 
 	return nil

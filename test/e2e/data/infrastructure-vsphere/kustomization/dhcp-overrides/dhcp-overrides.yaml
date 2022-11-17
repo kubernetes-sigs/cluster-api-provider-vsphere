@@ -1,0 +1,31 @@
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: VSphereMachineTemplate
+metadata:
+  name: ${CLUSTER_NAME}
+  namespace: ${NAMESPACE}
+spec:
+  template:
+    spec:
+      network:
+        devices:
+          - networkName: "${VSPHERE_NETWORK}"
+            dhcp4: true
+            dhcp4Overrides:
+              sendHostname: false
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: VSphereMachineTemplate
+metadata:
+  name: ${CLUSTER_NAME}-worker
+  namespace: ${NAMESPACE}
+spec:
+  template:
+    spec:
+      network:
+        devices:
+          - networkName: "${VSPHERE_NETWORK}"
+            dhcp4: true
+            dhcp4Overrides:
+              sendHostname: false
+

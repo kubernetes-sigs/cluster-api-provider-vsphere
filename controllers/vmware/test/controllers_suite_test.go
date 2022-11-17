@@ -19,8 +19,6 @@ package test
 import (
 	goctx "context"
 	"encoding/json"
-	"fmt"
-	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
@@ -36,24 +34,17 @@ import (
 	"k8s.io/klog/v2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/controllers"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
 )
 
 var (
-	k8sClient     client.Client
 	testEnv       *envtest.Environment
+	restConfig    *rest.Config
 	ctx, cancel   = goctx.WithCancel(goctx.Background())
-	isLB          = false
 	clusterAPIDir = findModuleDir("sigs.k8s.io/cluster-api")
 )
 
@@ -72,16 +63,6 @@ func TestAPIs(t *testing.T) {
 		[]Reporter{printer.NewlineReporter{}})
 }
 
-// TODO: can't call RunSpecs twice. Need to parameterize this externally and call the test suite twice
-// func TestAPIsLB(t *testing.T) {
-// 	isLB = true
-// 	RegisterFailHandler(Fail)
-
-// 	RunSpecsWithDefaultAndCustomReporters(t,
-// 		"VMware Controller Suite with LB network provider",
-// 		[]Reporter{printer.NewlineReporter{}})
-// }
-
 func getTestEnv() (*envtest.Environment, *rest.Config) {
 	utilruntime.Must(clusterv1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(vmwarev1.AddToScheme(scheme.Scheme))
@@ -96,6 +77,7 @@ func getTestEnv() (*envtest.Environment, *rest.Config) {
 			filepath.Join(root, "config", "deployments", "integration-tests", "crds"),
 			filepath.Join(clusterAPIDir, "config", "crd", "bases"),
 		},
+		ControlPlaneStopTimeout: 60 * time.Second,
 	}
 
 	localCfg, err := localTestEnv.Start()
@@ -104,65 +86,10 @@ func getTestEnv() (*envtest.Environment, *rest.Config) {
 	return localTestEnv, localCfg
 }
 
-func getManager(cfg *rest.Config, networkProvider string) manager.Manager {
-	contentFmt := `username: '%s'
-	password: '%s'
-	`
-	tmpFile, err := os.CreateTemp("", "creds")
-	Expect(err).NotTo(HaveOccurred())
-
-	content := fmt.Sprintf(contentFmt, cfg.Username, cfg.Password)
-	_, err = tmpFile.Write([]byte(content))
-	Expect(err).NotTo(HaveOccurred())
-
-	opts := manager.Options{
-		Options: ctrlmgr.Options{
-			Scheme: scheme.Scheme,
-			NewCache: func(config *rest.Config, opts cache.Options) (cache.Cache, error) {
-				syncPeriod := 1 * time.Second
-				opts.Resync = &syncPeriod
-				return cache.New(config, opts)
-			},
-		},
-		KubeConfig:      cfg,
-		NetworkProvider: networkProvider,
-		CredentialsFile: tmpFile.Name(),
-	}
-
-	opts.AddToManager = func(ctx *context.ControllerManagerContext, mgr ctrlmgr.Manager) error {
-		if err := controllers.AddClusterControllerToManager(ctx, mgr, &vmwarev1.VSphereCluster{}); err != nil {
-			return err
-		}
-
-		if err := controllers.AddMachineControllerToManager(ctx, mgr, &vmwarev1.VSphereMachine{}); err != nil {
-			return err
-		}
-		return nil
-	}
-
-	mgr, err := manager.New(opts)
-	Expect(err).NotTo(HaveOccurred())
-	return mgr
-}
-
 var _ = BeforeSuite(func() {
 	By("bootstrapping test environments")
-	var cfg *rest.Config
-	testEnv, cfg = getTestEnv()
-	networkProvider := ""
-	if isLB {
-		networkProvider = manager.DummyLBNetworkProvider
-	}
-
-	By("setting up a new manager")
-	mgr := getManager(cfg, networkProvider)
-	k8sClient = mgr.GetClient()
-
-	By("starting the manager")
-	go func() {
-		Expect(mgr.Start(ctx)).ToNot(HaveOccurred())
-	}()
-}, 60)
+	testEnv, restConfig = getTestEnv()
+})
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environments")

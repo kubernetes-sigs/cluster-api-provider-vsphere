@@ -48,6 +48,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/clustermodule"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/identity"
@@ -285,14 +286,16 @@ func (r vmReconciler) Reconcile(ctx goctx.Context, req ctrl.Request) (_ ctrl.Res
 // This logic was moved to a smaller function outside of the main Reconcile() loop
 // for the ease of testing.
 func (r vmReconciler) reconcile(ctx *context.VMContext, input fetchClusterModuleInput) (reconcile.Result, error) {
-	clusterModuleInfo, err := r.fetchClusterModuleInfo(input)
-	// If cluster module information cannot be fetched for a VM being deleted,
-	// we should not block VM deletion since the cluster module is updated
-	// once the VM gets removed.
-	if err != nil && ctx.VSphereVM.ObjectMeta.DeletionTimestamp.IsZero() {
-		return reconcile.Result{}, err
+	if feature.Gates.Enabled(feature.NodeAntiAffinity) {
+		clusterModuleInfo, err := r.fetchClusterModuleInfo(input)
+		// If cluster module information cannot be fetched for a VM being deleted,
+		// we should not block VM deletion since the cluster module is updated
+		// once the VM gets removed.
+		if err != nil && ctx.VSphereVM.ObjectMeta.DeletionTimestamp.IsZero() {
+			return reconcile.Result{}, err
+		}
+		ctx.ClusterModuleInfo = clusterModuleInfo
 	}
-	ctx.ClusterModuleInfo = clusterModuleInfo
 
 	// Handle deleted machines
 	if !ctx.VSphereVM.ObjectMeta.DeletionTimestamp.IsZero() {

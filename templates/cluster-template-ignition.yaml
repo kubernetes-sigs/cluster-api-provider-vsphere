@@ -654,8 +654,9 @@ data:
             - mountPath: /dev
               name: device-dir
           - args:
+            - --v=4
             - --csi-address=/csi/csi.sock
-            image: quay.io/k8scsi/livenessprobe:v2.1.0
+            image: k8s.gcr.io/sig-storage/livenessprobe:v2.7.0
             name: liveness-probe
             resources: {}
             volumeMounts:
@@ -760,11 +761,12 @@ data:
             - mountPath: /var/lib/csi/sockets/pluginproxy/
               name: socket-dir
           - args:
+            - --v=4
             - --csi-address=$(ADDRESS)
             env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
-            image: quay.io/k8scsi/livenessprobe:v2.1.0
+            image: k8s.gcr.io/sig-storage/livenessprobe:v2.7.0
             name: liveness-probe
             resources: {}
             volumeMounts:

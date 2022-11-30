@@ -35,7 +35,7 @@ const (
 	DefaultCSIAttacherImage       = "quay.io/k8scsi/csi-attacher:v3.0.0"
 	DefaultCSIProvisionerImage    = "quay.io/k8scsi/csi-provisioner:v2.0.0"
 	DefaultCSIMetadataSyncerImage = "gcr.io/cloud-provider-vsphere/csi/release/syncer:v2.1.0"
-	DefaultCSILivenessProbeImage  = "quay.io/k8scsi/livenessprobe:v2.1.0"
+	DefaultCSILivenessProbeImage  = "k8s.gcr.io/sig-storage/livenessprobe:v2.7.0"
 	DefaultCSIRegistrarImage      = "quay.io/k8scsi/csi-node-driver-registrar:v2.0.1"
 	CSINamespace                  = metav1.NamespaceSystem
 	CSIControllerName             = "vsphere-csi-controller"

@@ -20,7 +20,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	netopv1 "github.com/vmware-tanzu/net-operator-api/api/v1alpha1"
-	vmoprv1 "github.com/vmware-tanzu/vm-operator-api/api/v1alpha1"
+	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha1"
 	ncpv1 "github.com/vmware-tanzu/vm-operator/external/ncp/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"

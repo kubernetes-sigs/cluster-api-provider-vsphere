@@ -36,7 +36,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: ContentSourceSpec defines the desired state of ContentSource
+            description: ContentSourceSpec defines the desired state of ContentSource.
             properties:
               providerRef:
                 description: ProviderRef is a reference to a content provider object
@@ -61,7 +61,7 @@ spec:
                 type: object
             type: object
           status:
-            description: ContentSourceStatus defines the observed state of ContentSource
+            description: ContentSourceStatus defines the observed state of ContentSource.
             type: object
         type: object
     served: true

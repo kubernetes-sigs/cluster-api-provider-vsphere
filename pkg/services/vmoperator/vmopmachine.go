@@ -22,7 +22,7 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-	vmoprv1 "github.com/vmware-tanzu/vm-operator-api/api/v1alpha1"
+	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -549,8 +549,9 @@ func getVMLabels(ctx *vmware.SupervisorMachineContext, vmLabels map[string]strin
 // getTopologyLabels returns the labels related to a VM's topology.
 //
 // TODO(akutz): Currently this function just returns the availability zone,
-//              and thus the code is optimized as such. However, in the future
-//              this function may return a more diverse topology.
+//
+//	and thus the code is optimized as such. However, in the future
+//	this function may return a more diverse topology.
 func getTopologyLabels(ctx *vmware.SupervisorMachineContext) map[string]string {
 	if fd := ctx.VSphereMachine.Spec.FailureDomain; fd != nil && *fd != "" {
 		return map[string]string{

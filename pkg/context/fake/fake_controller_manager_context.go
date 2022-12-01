@@ -19,7 +19,7 @@ package fake
 import (
 	goctx "context"
 
-	vmoprv1 "github.com/vmware-tanzu/vm-operator-api/api/v1alpha1"
+	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	clientrecord "k8s.io/client-go/tools/record"

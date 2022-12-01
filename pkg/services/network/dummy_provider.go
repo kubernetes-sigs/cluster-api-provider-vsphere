@@ -17,7 +17,7 @@ limitations under the License.
 package network
 
 import (
-	vmopv1 "github.com/vmware-tanzu/vm-operator-api/api/v1alpha1"
+	vmopv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"

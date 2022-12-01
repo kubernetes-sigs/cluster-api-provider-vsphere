@@ -22,7 +22,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	netopv1alpha1 "github.com/vmware-tanzu/net-operator-api/api/v1alpha1"
-	"github.com/vmware-tanzu/vm-operator-api/api/v1alpha1"
+	"github.com/vmware-tanzu/vm-operator/api/v1alpha1"
 	ncpv1 "github.com/vmware-tanzu/vm-operator/external/ncp/api/v1alpha1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

@@ -20,7 +20,7 @@ spec:
   versions:
   - additionalPrinterColumns:
     - jsonPath: .status.powerState
-      name: PowerState
+      name: Power-State
       type: string
     - jsonPath: .spec.className
       name: Class
@@ -58,7 +58,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: VirtualMachineSpec defines the desired state of a VirtualMachine
+            description: VirtualMachineSpec defines the desired state of a VirtualMachine.
             properties:
               advancedOptions:
                 description: AdvancedOptions describes a set of optional, advanced
@@ -285,6 +285,7 @@ spec:
                     enum:
                     - ExtraConfig
                     - OvfEnv
+                    - vAppConfig
                     - CloudInit
                     type: string
                 type: object
@@ -423,8 +424,8 @@ spec:
                       description: Type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources
                         like Available, but because arbitrary conditions can be useful
-                        (see .node.status.conditions), the ability to deconflict is
-                        important.
+                        (see .node.status.conditions), the ability to disambiguate
+                        is important.
                       type: string
                   required:
                   - status
@@ -446,7 +447,7 @@ spec:
                 items:
                   description: NetworkInterfaceStatus defines the observed state of
                     network interfaces attached to the VirtualMachine as seen by the
-                    Guest OS and VMware tools
+                    Guest OS and VMware tools.
                   properties:
                     connected:
                       description: Connected represents whether the network interface
@@ -516,6 +517,11 @@ spec:
                   - name
                   type: object
                 type: array
+              zone:
+                description: Zone describes the availability zone where the VirtualMachine
+                  has been scheduled. Please note this field may be empty when the
+                  cluster is not zone-aware.
+                type: string
             type: object
         type: object
     served: true

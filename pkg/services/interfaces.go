@@ -17,7 +17,7 @@ limitations under the License.
 package services
 
 import (
-	vmoprv1 "github.com/vmware-tanzu/vm-operator-api/api/v1alpha1"
+	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"

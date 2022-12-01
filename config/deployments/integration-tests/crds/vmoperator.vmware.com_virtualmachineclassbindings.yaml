@@ -26,7 +26,7 @@ spec:
     schema:
       openAPIV3Schema:
         description: VirtualMachineClassBinding is a binding object responsible for
-          defining a VirtualMachineClass and a Namespace associated with it
+          defining a VirtualMachineClass and a Namespace associated with it.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation

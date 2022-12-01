@@ -6,17 +6,18 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.7.0
   creationTimestamp: null
-  name: virtualmachineimages.vmoperator.vmware.com
+  name: clustervirtualmachineimages.vmoperator.vmware.com
 spec:
   group: vmoperator.vmware.com
   names:
-    kind: VirtualMachineImage
-    listKind: VirtualMachineImageList
-    plural: virtualmachineimages
+    kind: ClusterVirtualMachineImage
+    listKind: ClusterVirtualMachineImageList
+    plural: clustervirtualmachineimages
     shortNames:
-    - vmi
-    - vmimage
-    singular: virtualmachineimage
+    - cvmi
+    - cvmimage
+    - clustervmimage
+    singular: clustervirtualmachineimage
   scope: Cluster
   versions:
   - additionalPrinterColumns:
@@ -48,11 +49,9 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: VirtualMachineImage is the Schema for the virtualmachineimages
-          API A VirtualMachineImage represents a VirtualMachine image (e.g. VM template)
-          that can be used as the base image for creating a VirtualMachine instance.  The
-          VirtualMachineImage is a required field of the VirtualMachine spec.  Currently,
-          VirtualMachineImages are immutable to end users.
+        description: ClusterVirtualMachineImage is the schema for the clustervirtualmachineimage
+          API A ClusterVirtualMachineImage represents the desired specification and
+          the observed status of a ClusterVirtualMachineImage instance.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation

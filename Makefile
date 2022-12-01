@@ -302,7 +302,7 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 		output:crd:dir=$(SUPERVISOR_CRD_ROOT)
 	# vm-operator crds are loaded to be used for integration tests.
 	$(CONTROLLER_GEN) \
-		paths=github.com/vmware-tanzu/vm-operator-api/api/... \
+		paths=github.com/vmware-tanzu/vm-operator/api/... \
 		crd:crdVersions=v1 \
 		output:crd:dir=$(VMOP_CRD_ROOT)
 

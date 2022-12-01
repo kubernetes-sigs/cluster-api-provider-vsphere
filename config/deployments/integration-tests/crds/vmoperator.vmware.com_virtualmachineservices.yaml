@@ -145,7 +145,7 @@ spec:
             type: object
           status:
             description: VirtualMachineServiceStatus defines the observed state of
-              VirtualMachineService
+              VirtualMachineService.
             properties:
               loadBalancer:
                 description: LoadBalancer contains the current status of the load

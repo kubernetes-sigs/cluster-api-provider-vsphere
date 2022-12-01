@@ -29,11 +29,11 @@ spec:
       name: Age
       type: date
     - jsonPath: .spec.hardware.devices.vgpuDevices[*].profileName
-      name: VGPUDevicesProfileNames
+      name: VGPU-Devices-Profile-Names
       priority: 1
       type: string
     - jsonPath: .spec.hardware.devices.dynamicDirectPathIODevices[*].deviceID
-      name: PassthroughDeviceIDs
+      name: Passthrough-DeviceIDs
       priority: 1
       type: string
     name: v1alpha1
@@ -59,8 +59,17 @@ spec:
           metadata:
             type: object
           spec:
-            description: VirtualMachineClassSpec defines the desired state of VirtualMachineClass
+            description: VirtualMachineClassSpec defines the desired state of VirtualMachineClass.
             properties:
+              configSpec:
+                description: ConfigSpec may specify additional virtual machine configuration
+                  settings including hardware specifications for a VirtualMachine
+                properties:
+                  xml:
+                    description: XML contains a vim.vm.ConfigSpec object that has
+                      been serialized to XML and base64-encoded.
+                    type: string
+                type: object
               description:
                 description: Description describes the configuration of the VirtualMachineClass
                   which is not related to virtual hardware or infrastructure policy.

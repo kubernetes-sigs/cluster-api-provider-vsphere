@@ -452,6 +452,7 @@ func (v *VimMachineService) createOrPatchVSPhereVM(ctx *context.VIMMachineContex
 
 // generateOverrideFunc returns a function which can override the values in the VSphereVM Spec
 // with the values from the FailureDomain (if any) set on the owner CAPI machine.
+//
 //nolint:nestif
 func (v *VimMachineService) generateOverrideFunc(ctx *context.VIMMachineContext) (func(vm *infrav1.VSphereVM), bool) {
 	failureDomainName := ctx.Machine.Spec.FailureDomain

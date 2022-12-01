@@ -18,9 +18,9 @@ updates:
     interval: "weekly"
   ignore:
   # Ignore k8s modules as they are upgraded manually
-  # together with controller-runtime.
+  # together with controller-runtime and CAPI dependencies.
   - dependency-name: "k8s.io/*"
-  - dependency-name: "sigs.k8s.io/controller-runtime"
+  - dependency-name: "sigs.k8s.io/*"
   commit-message:
     prefix: ":seedling:"
   labels:

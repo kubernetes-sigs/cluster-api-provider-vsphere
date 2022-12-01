@@ -38,6 +38,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/identity"
@@ -522,18 +523,42 @@ func Test_reconcile(t *testing.T) {
 	t.Run("during VM creation", func(t *testing.T) {
 		initObjs := []client.Object{vsphereCluster, machine, vsphereVM}
 		t.Run("when info cannot be fetched", func(t *testing.T) {
-			r := setupReconciler(new(fake_svc.VMService), initObjs...)
-			_, err := r.reconcile(&context.VMContext{
-				ControllerContext: r.ControllerContext,
-				VSphereVM:         vsphereVM,
-				Logger:            r.Logger,
-			}, fetchClusterModuleInput{
-				VSphereCluster: vsphereCluster,
-				Machine:        machine,
+			t.Run("when anti affinity feature gate is turned off", func(t *testing.T) {
+				fakeVMSvc := new(fake_svc.VMService)
+				fakeVMSvc.On("ReconcileVM", mock.Anything).Return(infrav1.VirtualMachine{
+					Name:     vsphereVM.Name,
+					BiosUUID: "265104de-1472-547c-b873-6dc7883fb6cb",
+					State:    infrav1.VirtualMachineStateReady,
+				}, nil)
+				r := setupReconciler(fakeVMSvc, initObjs...)
+				_, err := r.reconcile(&context.VMContext{
+					ControllerContext: r.ControllerContext,
+					VSphereVM:         vsphereVM,
+					Logger:            r.Logger,
+				}, fetchClusterModuleInput{
+					VSphereCluster: vsphereCluster,
+					Machine:        machine,
+				})
+
+				g := NewWithT(t)
+				g.Expect(err).NotTo(HaveOccurred())
 			})
 
-			g := NewWithT(t)
-			g.Expect(err).To(HaveOccurred())
+			t.Run("when anti affinity feature gate is turned on", func(t *testing.T) {
+				_ = feature.MutableGates.Set("NodeAntiAffinity=true")
+				r := setupReconciler(new(fake_svc.VMService), initObjs...)
+				_, err := r.reconcile(&context.VMContext{
+					ControllerContext: r.ControllerContext,
+					VSphereVM:         vsphereVM,
+					Logger:            r.Logger,
+				}, fetchClusterModuleInput{
+					VSphereCluster: vsphereCluster,
+					Machine:        machine,
+				})
+
+				g := NewWithT(t)
+				g.Expect(err).To(HaveOccurred())
+			})
 		})
 
 		t.Run("when info can be fetched", func(t *testing.T) {

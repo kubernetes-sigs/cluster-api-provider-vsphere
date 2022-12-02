@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"strings"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	"github.com/vmware/govmomi/find"
@@ -88,7 +88,7 @@ func VerifyAntiAffinity(ctx context.Context, input AntiAffinitySpecInput) {
 	clusterName := fmt.Sprintf("anti-affinity-%s", util.RandomString(6))
 	Expect(namespace).NotTo(BeNil())
 
-	Byf("creating a workload cluster with")
+	Byf("creating a workload cluster %s", clusterName)
 	configCluster := defaultConfigCluster(clusterName, namespace.Name, "", 1, input.WorkerNodeCount,
 		input.Global)
 

@@ -25,15 +25,14 @@ import (
 	"strings"
 	"testing"
 
-	. "github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/config"
-	"github.com/onsi/ginkgo/reporters"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
+	"sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
 	capiutil "sigs.k8s.io/cluster-api/util"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
@@ -93,9 +92,12 @@ func TestE2E(t *testing.T) {
 	}
 
 	RegisterFailHandler(Fail)
-	junitPath := filepath.Join(artifactFolder, fmt.Sprintf("junit.e2e_suite.%d.xml", config.GinkgoConfig.ParallelNode))
-	junitReporter := reporters.NewJUnitReporter(junitPath)
-	RunSpecsWithDefaultAndCustomReporters(t, "capv-e2e", []Reporter{junitReporter})
+
+	w, err := ginkgoextensions.EnableFileLogging(filepath.Join(artifactFolder, "ginkgo-log.txt"))
+	NewWithT(t).Expect(err).ToNot(HaveOccurred())
+	defer w.Close()
+
+	RunSpecs(t, "capv-e2e")
 }
 
 // Using a SynchronizedBeforeSuite for controlling how to create resources shared across ParallelNodes (~ginkgo threads).

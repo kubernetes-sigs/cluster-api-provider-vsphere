@@ -23,7 +23,7 @@ package tools
 import (
 	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
 	_ "github.com/joelanford/go-apidiff"
-	_ "github.com/onsi/ginkgo/ginkgo"
+	_ "github.com/onsi/ginkgo/v2/ginkgo"
 	_ "github.com/vmware/govmomi"
 	_ "github.com/vmware/govmomi/govc/flags"
 	_ "k8s.io/code-generator/cmd/conversion-gen"

@@ -67,7 +67,7 @@ $(CONVERSION_GEN): go.mod
 
 ginkgo: $(GINKGO) $(SRCS)
 $(GINKGO): go.mod
-	go build -tags=tools -o $@ github.com/onsi/ginkgo/ginkgo
+	go build -tags=tools -o $@ github.com/onsi/ginkgo/v2/ginkgo
 
 golangci-lint: $(GOLANGCI_LINT) $(SRCS) ## Build golangci-lint
 $(GOLANGCI_LINT): go.mod

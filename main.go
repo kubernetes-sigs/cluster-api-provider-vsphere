@@ -17,7 +17,6 @@ limitations under the License.
 package main
 
 import (
-	"crypto/tls"
 	"flag"
 	"fmt"
 	"math/rand"
@@ -25,7 +24,6 @@ import (
 	"net/http/pprof"
 	"os"
 	"reflect"
-	"strings"
 	"time"
 
 	"github.com/spf13/pflag"
@@ -33,8 +31,10 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
+	logsv1 "k8s.io/component-base/logs/api/v1"
 	_ "k8s.io/component-base/logs/json/register"
 	"k8s.io/klog/v2"
+	"sigs.k8s.io/cluster-api/util/flags"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
 	ctrlsig "sigs.k8s.io/controller-runtime/pkg/manager/signals"
@@ -56,8 +56,8 @@ var (
 	managerOpts     manager.Options
 	syncPeriod      time.Duration
 	profilerAddress string
-	tlsMinVersion   string
-	tlsCipherSuites string
+
+	tlsOptions = flags.TLSOptions{}
 
 	defaultProfilerAddr      = os.Getenv("PROFILER_ADDR")
 	defaultSyncPeriod        = manager.DefaultSyncPeriod
@@ -71,7 +71,7 @@ var (
 // InitFlags initializes the flags.
 func InitFlags(fs *pflag.FlagSet) {
 	logs.AddFlags(fs, logs.SkipLoggingConfigurationFlags())
-	logOptions.AddFlags(fs)
+	logsv1.AddFlags(logOptions, fs)
 
 	flag.StringVar(
 		&managerOpts.MetricsBindAddress,
@@ -147,20 +147,7 @@ func InitFlags(fs *pflag.FlagSet) {
 		"",
 		"network provider to be used by Supervisor based clusters.",
 	)
-	flag.StringVar(
-		&tlsMinVersion,
-		"tls-min-version",
-		"",
-		"Minimum TLS version in use by the webhook server.\n"+
-			fmt.Sprintf("Possible values are %s.", strings.Join(cliflag.TLSPossibleVersions(), ", ")),
-	)
-	flag.StringVar(
-		&tlsCipherSuites,
-		"tls-cipher-suites",
-		"",
-		"Comma-separated list of cipher suites for the server. If omitted, the default Go cipher suites will be used.\n"+
-			fmt.Sprintf("Possible values are %s.", strings.Join(cliflag.TLSCipherPossibleValues(), ", ")),
-	)
+	flags.AddTLSOptions(fs, &tlsOptions)
 
 	feature.MutableGates.AddFlag(fs)
 }
@@ -177,7 +164,7 @@ func main() {
 	}
 	pflag.Parse()
 
-	if err := logOptions.ValidateAndApply(nil); err != nil {
+	if err := logsv1.ValidateAndApply(logOptions, nil); err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
@@ -236,28 +223,19 @@ func main() {
 		return nil
 	}
 
+	tlsOptionOverrides, err := flags.GetTLSOptionOverrideFuncs(tlsOptions)
+	if err != nil {
+		setupLog.Error(err, "unable to add TLS settings to the webhook server")
+		os.Exit(1)
+	}
+	managerOpts.TLSOpts = tlsOptionOverrides
+
 	setupLog.Info("creating controller manager", "version", version.Get().String())
 	managerOpts.AddToManager = addToManager
 	mgr, err := manager.New(managerOpts)
 	if err != nil {
 		setupLog.Error(err, "problem creating controller manager")
 		os.Exit(1)
-	}
-
-	minTLSVersionSetFunc, err := setMinTLSVersionFunc(tlsMinVersion)
-	if err != nil {
-		setupLog.Error(err, "unable to set TLS min version")
-		os.Exit(1)
-	}
-	mgr.GetWebhookServer().TLSOpts = append(mgr.GetWebhookServer().TLSOpts, minTLSVersionSetFunc)
-
-	if tlsCipherSuites != "" {
-		cipherSuitesSetFunc, err := setCipherSuiteFunc(tlsCipherSuites)
-		if err != nil {
-			setupLog.Error(err, "unable to set TLS Cipher suites")
-			os.Exit(1)
-		}
-		mgr.GetWebhookServer().TLSOpts = append(mgr.GetWebhookServer().TLSOpts, cipherSuitesSetFunc)
 	}
 
 	setupChecks(mgr)
@@ -364,27 +342,6 @@ func setupSupervisorControllers(ctx *context.ControllerManagerContext, mgr ctrlm
 	return nil
 }
 
-func setCipherSuiteFunc(cipherSuiteString string) (func(cfg *tls.Config), error) {
-	cipherSuites := strings.Split(cipherSuiteString, ",")
-	suites, err := cliflag.TLSCipherSuites(cipherSuites)
-	if err != nil {
-		return nil, err
-	}
-	return func(cfg *tls.Config) {
-		cfg.CipherSuites = suites
-	}, nil
-}
-
-func setMinTLSVersionFunc(versionName string) (func(cfg *tls.Config), error) {
-	tlsVersion, err := cliflag.TLSVersion(versionName)
-	if err != nil {
-		return nil, err
-	}
-	return func(cfg *tls.Config) {
-		cfg.MinVersion = tlsVersion
-	}, nil
-}
-
 func setupChecks(mgr ctrlmgr.Manager) {
 	if err := mgr.AddReadyzCheck("webhook", mgr.GetWebhookServer().StartedChecker()); err != nil {
 		setupLog.Error(err, "unable to create ready check")
@@ -404,5 +361,13 @@ func runProfiler(addr string) {
 	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
 	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
-	_ = http.ListenAndServe(addr, mux)
+
+	srv := http.Server{
+		Addr:              addr,
+		Handler:           mux,
+		ReadHeaderTimeout: 2 * time.Second,
+	}
+	if err := srv.ListenAndServe(); err != nil {
+		setupLog.Error(err, "problem running profiler server")
+	}
 }

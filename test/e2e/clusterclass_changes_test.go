@@ -17,7 +17,7 @@ limitations under the License.
 package e2e
 
 import (
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	capie2e "sigs.k8s.io/cluster-api/test/e2e"
 )
 

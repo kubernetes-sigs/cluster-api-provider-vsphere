@@ -334,6 +334,11 @@ func createIPAddressClaim(ctx *context.VMContext, ipAddrClaimName string, poolRe
 // expected to contain a valid IP, Prefix and Gateway.
 func (vms *VMService) reconcileIPAddresses(ctx *virtualMachineContext) (bool, error) {
 	ctx.IPAMState = map[string]infrav1.NetworkDeviceSpec{}
+	ipAddrNames, err := resolveIpAddressNamesForClaims(ctx)
+	if err != nil {
+		return false, err
+	}
+
 	for devIdx, device := range ctx.VSphereVM.Spec.Network.Devices {
 		var ipAddrs []string
 		var gateway4 string
@@ -342,34 +347,13 @@ func (vms *VMService) reconcileIPAddresses(ctx *virtualMachineContext) (bool, er
 		//TODO: Break this up into smaller functions
 		for poolRefIdx := range device.AddressesFromPools {
 			// check if claim exists
-			ipAddrClaim := &ipamv1.IPAddressClaim{}
-			ipAddrClaimName := IPAddressClaimName(ctx.VSphereVM.Name, devIdx, poolRefIdx)
-			ipAddrClaimKey := apitypes.NamespacedName{
-				Namespace: ctx.VSphereVM.Namespace,
-				Name:      ipAddrClaimName,
-			}
-			var err error
-			ctx.Logger.V(5).Info("fetching IPAddressClaim", "name", ipAddrClaimKey.String())
-			if err = ctx.Client.Get(ctx, ipAddrClaimKey, ipAddrClaim); err != nil && !apierrors.IsNotFound(err) {
-				ctx.Logger.Error(err, "error fetching IPAddressClaim", "name", ipAddrClaimName)
-				return false, err
-			}
-
-			ipAddrName := ipAddrClaim.Status.AddressRef.Name
-			ctx.Logger.V(5).Info("fetched IPAddressClaim", "name", ipAddrClaimName, "IPAddressClaim.Status.AddressRef.Name", ipAddrName)
-			if ipAddrName == "" {
-				ctx.Logger.V(5).Info("IPAddress name was empty on IPAddressClaim", "name", ipAddrClaimName, "IPAddressClaim.Status.AddressRef.Name", ipAddrName)
-				msg := "Waiting for IPAddressClaim to have an IPAddress bound"
-				markIPAddressClaimedConditionWaitingForClaimAddress(ctx.VSphereVM, msg)
-				return false, errors.New(msg)
-			}
-
+			ipAddrName := ipAddrNames[devIdx][poolRefIdx]
 			ipAddr := &ipamv1.IPAddress{}
 			ipAddrKey := apitypes.NamespacedName{
 				Namespace: ctx.VSphereVM.Namespace,
 				Name:      ipAddrName,
 			}
-			if err = ctx.Client.Get(ctx, ipAddrKey, ipAddr); err != nil {
+			if err := ctx.Client.Get(ctx, ipAddrKey, ipAddr); err != nil {
 				return false, err
 			}
 
@@ -406,14 +390,14 @@ func (vms *VMService) reconcileIPAddresses(ctx *virtualMachineContext) (bool, er
 				}
 
 				if gatewayAddr.Is4() {
-					if device.Gateway4 != "" && device.Gateway4 != ipAddr.Spec.Gateway {
+					if areGatewaysMismatched(device.Gateway4, ipAddr.Spec.Gateway) {
 						msg := fmt.Sprintf("The IPv4 Gateway for IPAddress %s does not match the Gateway4 already configured on device (index %d)",
 							ipAddrName,
 							devIdx,
 						)
 						return markIPAddressClaimedConditionInvalidIPWithError(ctx.VSphereVM, msg)
 					}
-					if gateway4 != "" && gateway4 != ipAddr.Spec.Gateway {
+					if areGatewaysMismatched(gateway4, ipAddr.Spec.Gateway) {
 						msg := fmt.Sprintf("The IPv4 IPAddresses assigned to the same device (index %d) do not have the same gateway",
 							devIdx,
 						)
@@ -421,14 +405,14 @@ func (vms *VMService) reconcileIPAddresses(ctx *virtualMachineContext) (bool, er
 					}
 					gateway4 = ipAddr.Spec.Gateway
 				} else {
-					if device.Gateway6 != "" && device.Gateway6 != ipAddr.Spec.Gateway {
+					if areGatewaysMismatched(device.Gateway6, ipAddr.Spec.Gateway) {
 						msg := fmt.Sprintf("The IPv6 Gateway for IPAddress %s does not match the Gateway6 already configured on device (index %d)",
 							ipAddrName,
 							devIdx,
 						)
 						return markIPAddressClaimedConditionInvalidIPWithError(ctx.VSphereVM, msg)
 					}
-					if gateway6 != "" && gateway6 != ipAddr.Spec.Gateway {
+					if areGatewaysMismatched(gateway6, ipAddr.Spec.Gateway) {
 						msg := fmt.Sprintf("The IPv6 IPAddresses assigned to the same device (index %d) do not have the same gateway",
 							devIdx,
 						)
@@ -450,6 +434,61 @@ func (vms *VMService) reconcileIPAddresses(ctx *virtualMachineContext) (bool, er
 	}
 
 	return true, nil
+}
+
+// resolveIpAddressNamesForClaims checks that all the IPAddressClaims have been
+// satisfied. If waiting on a claim to have an IPAddress, the status will refelct
+// how many are bound out of the total expected. A slice of slices matching the
+// structure of the device and AddressFromPools slices is returned so that
+// names don't need to be resolved more than once.
+func resolveIpAddressNamesForClaims(ctx *virtualMachineContext) ([][]string, error) {
+	boundClaims := 0
+	totalClaims := 0
+	ipAddrNames := make([][]string, len(ctx.VSphereVM.Spec.Network.Devices))
+	for devIdx, device := range ctx.VSphereVM.Spec.Network.Devices {
+		ipAddrNames[devIdx] = make([]string, len(device.AddressesFromPools))
+		for poolRefIdx := range device.AddressesFromPools {
+			// check if claim exists
+			ipAddrClaim := &ipamv1.IPAddressClaim{}
+			ipAddrClaimName := IPAddressClaimName(ctx.VSphereVM.Name, devIdx, poolRefIdx)
+			ipAddrClaimKey := apitypes.NamespacedName{
+				Namespace: ctx.VSphereVM.Namespace,
+				Name:      ipAddrClaimName,
+			}
+			var err error
+			ctx.Logger.V(5).Info("fetching IPAddressClaim", "name", ipAddrClaimKey.String())
+			if err = ctx.Client.Get(ctx, ipAddrClaimKey, ipAddrClaim); err != nil && !apierrors.IsNotFound(err) {
+				ctx.Logger.Error(err, "error fetching IPAddressClaim", "name", ipAddrClaimName)
+				return nil, err
+			}
+
+			ipAddrName := ipAddrClaim.Status.AddressRef.Name
+			ctx.Logger.V(5).Info("fetched IPAddressClaim", "name", ipAddrClaimName, "IPAddressClaim.Status.AddressRef.Name", ipAddrName)
+			if ipAddrName == "" {
+				ctx.Logger.V(5).Info("IPAddress name was empty on IPAddressClaim", "name", ipAddrClaimName, "IPAddressClaim.Status.AddressRef.Name", ipAddrName)
+			} else {
+				boundClaims++
+				ipAddrNames[devIdx][poolRefIdx] = ipAddrName
+			}
+			totalClaims++
+		}
+	}
+
+	if boundClaims < totalClaims {
+		msg := fmt.Sprintf("Waiting for IPAddressClaim to have an IPAddress bound, %d out of %d bound", boundClaims, totalClaims)
+		markIPAddressClaimedConditionWaitingForClaimAddress(ctx.VSphereVM, msg)
+		return nil, errors.New(msg)
+	}
+
+	return ipAddrNames, nil
+}
+
+// areGatewaysMismatched checks that a gateway for a device is equal to an
+// IPAddresses gateway. We can assume that IPAddresses will always have
+// gateways so we do not need to check for empty string. It is possible to
+// configure a device and not a gateway, we don't want to fail in that case.
+func areGatewaysMismatched(deviceGateway, ipAddressGateway string) bool {
+	return deviceGateway != "" && deviceGateway != ipAddressGateway
 }
 
 func (vms *VMService) reconcileMetadata(ctx *virtualMachineContext) (bool, error) {

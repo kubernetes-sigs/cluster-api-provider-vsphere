@@ -299,7 +299,7 @@ func Test_reconcileIPAddresses_ShouldUpdateVMDevicesWithAddresses(t *testing.T) 
 
 		// IP provider has not provided Addresses yet
 		reconciled, err := vms.reconcileIPAddresses(ctx)
-		g.Expect(err).To(MatchError("Waiting for IPAddressClaim to have an IPAddress bound"))
+		g.Expect(err).To(MatchError("Waiting for IPAddressClaim to have an IPAddress bound, 0 out of 3 bound"))
 		g.Expect(reconciled).To(BeFalse())
 
 		// Ensure that the VM has a IPAddressClaimed condition set to False
@@ -307,16 +307,42 @@ func Test_reconcileIPAddresses_ShouldUpdateVMDevicesWithAddresses(t *testing.T) 
 		claimedCondition := conditions.Get(ctx.VSphereVM, infrav1.IPAddressClaimedCondition)
 		g.Expect(claimedCondition).NotTo(BeNil())
 		g.Expect(claimedCondition.Reason).To(Equal(infrav1.WaitingForIPAddressReason))
-		g.Expect(claimedCondition.Message).To(Equal("Waiting for IPAddressClaim to have an IPAddress bound"))
+		g.Expect(claimedCondition.Message).To(Equal("Waiting for IPAddressClaim to have an IPAddress bound, 0 out of 3 bound"))
 		g.Expect(claimedCondition.Status).To(Equal(corev1.ConditionFalse))
 
-		// Simulate IP provider reconciling claim
-		ctx.Client.Create(ctx, address1)
-		ctx.Client.Create(ctx, address2)
+		// Simulate IP provider reconciling one claim
 		ctx.Client.Create(ctx, address3)
 
 		ipAddrClaim := &ipamv1a1.IPAddressClaim{}
 		ipAddrClaimKey := apitypes.NamespacedName{
+			Namespace: ctx.VSphereVM.Namespace,
+			Name:      "vsphereVM1-0-2",
+		}
+		err = ctx.Client.Get(ctx, ipAddrClaimKey, ipAddrClaim)
+		g.Expect(err).NotTo(HaveOccurred())
+
+		ipAddrClaim.Status.AddressRef.Name = "vsphereVM1-0-2-address2"
+
+		ctx.Client.Update(ctx, ipAddrClaim)
+
+		// Only the last claim has been bound
+		reconciled, err = vms.reconcileIPAddresses(ctx)
+		g.Expect(err).To(MatchError("Waiting for IPAddressClaim to have an IPAddress bound, 1 out of 3 bound"))
+		g.Expect(reconciled).To(BeFalse())
+
+		// Ensure that the VM has a IPAddressClaimed condition set to False
+		// for the WaitingForIPAddress reason.
+		claimedCondition = conditions.Get(ctx.VSphereVM, infrav1.IPAddressClaimedCondition)
+		g.Expect(claimedCondition).NotTo(BeNil())
+		g.Expect(claimedCondition.Reason).To(Equal(infrav1.WaitingForIPAddressReason))
+		g.Expect(claimedCondition.Message).To(Equal("Waiting for IPAddressClaim to have an IPAddress bound, 1 out of 3 bound"))
+		g.Expect(claimedCondition.Status).To(Equal(corev1.ConditionFalse))
+
+		// Simulate IP provider reconciling remaining claims
+		ctx.Client.Create(ctx, address1)
+		ctx.Client.Create(ctx, address2)
+
+		ipAddrClaimKey = apitypes.NamespacedName{
 			Namespace: ctx.VSphereVM.Namespace,
 			Name:      "vsphereVM1-0-0",
 		}
@@ -335,17 +361,6 @@ func Test_reconcileIPAddresses_ShouldUpdateVMDevicesWithAddresses(t *testing.T) 
 		g.Expect(err).NotTo(HaveOccurred())
 
 		ipAddrClaim.Status.AddressRef.Name = "vsphereVM1-0-1-address1"
-
-		ctx.Client.Update(ctx, ipAddrClaim)
-
-		ipAddrClaimKey = apitypes.NamespacedName{
-			Namespace: ctx.VSphereVM.Namespace,
-			Name:      "vsphereVM1-0-2",
-		}
-		err = ctx.Client.Get(ctx, ipAddrClaimKey, ipAddrClaim)
-		g.Expect(err).NotTo(HaveOccurred())
-
-		ipAddrClaim.Status.AddressRef.Name = "vsphereVM1-0-2-address2"
 
 		ctx.Client.Update(ctx, ipAddrClaim)
 

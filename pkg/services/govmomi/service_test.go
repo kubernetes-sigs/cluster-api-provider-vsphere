@@ -422,8 +422,8 @@ func Test_reconcileIPAddresses_ShouldUpdateTheStatusOnValidationIssues(t *testin
 	_ = ipamv1a1.AddToScheme(scheme)
 
 	var ctx *virtualMachineContext
-	var claim1, claim2 *ipamv1a1.IPAddressClaim
-	var address1, address2 *ipamv1a1.IPAddress
+	var claim1, claim2, claim3 *ipamv1a1.IPAddressClaim
+	var address1, address2, address3 *ipamv1a1.IPAddress
 	var g *WithT
 	var vms *VMService
 
@@ -455,6 +455,18 @@ func Test_reconcileIPAddresses_ShouldUpdateTheStatusOnValidationIssues(t *testin
 			},
 		}
 
+		claim3 = &ipamv1a1.IPAddressClaim{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "vsphereVM1-1-0",
+				Namespace: "my-namespace",
+			},
+			Status: ipamv1a1.IPAddressClaimStatus{
+				AddressRef: corev1.LocalObjectReference{
+					Name: "vsphereVM1-1-0",
+				},
+			},
+		}
+
 		address1 = &ipamv1a1.IPAddress{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "vsphereVM1-0-0",
@@ -476,6 +488,18 @@ func Test_reconcileIPAddresses_ShouldUpdateTheStatusOnValidationIssues(t *testin
 				Address: "10.0.1.51",
 				Prefix:  24,
 				Gateway: "10.0.0.1",
+			},
+		}
+
+		address3 = &ipamv1a1.IPAddress{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "vsphereVM1-1-0",
+				Namespace: "my-namespace",
+			},
+			Spec: ipamv1a1.IPAddressSpec{
+				Address: "11.0.1.50",
+				Prefix:  24,
+				Gateway: "11.0.0.1",
 			},
 		}
 
@@ -502,6 +526,15 @@ func Test_reconcileIPAddresses_ShouldUpdateTheStatusOnValidationIssues(t *testin
 									},
 								},
 							},
+							{
+								AddressesFromPools: []corev1.TypedLocalObjectReference{
+									{
+										APIGroup: &myAPIGroup,
+										Name:     "my-pool-3",
+										Kind:     "my-pool-kind",
+									},
+								},
+							},
 						},
 					},
 				},
@@ -515,13 +548,15 @@ func Test_reconcileIPAddresses_ShouldUpdateTheStatusOnValidationIssues(t *testin
 		// Creates ip address claims
 		ctx.Client.Create(ctx, claim1)
 		ctx.Client.Create(ctx, claim2)
+		ctx.Client.Create(ctx, claim3)
 
 		// Simulate an invalid ip address was provided: the address is empty
 		ctx.Client.Create(ctx, address1)
 		ctx.Client.Create(ctx, address2)
+		ctx.Client.Create(ctx, address3)
 	}
 
-	t.Run("when a provider assigns an IPAdress without an Address field", func(_ *testing.T) {
+	t.Run("when a provider assigns an IPAddress without an Address field", func(_ *testing.T) {
 		before()
 		address1.Spec.Address = ""
 		ctx.Client.Update(ctx, address1)
@@ -658,7 +693,7 @@ func Test_reconcileIPAddresses_ShouldUpdateTheStatusOnValidationIssues(t *testin
 		claimedCondition := conditions.Get(ctx.VSphereVM, infrav1.IPAddressClaimedCondition)
 		g.Expect(claimedCondition).NotTo(BeNil())
 		g.Expect(claimedCondition.Reason).To(Equal(infrav1.IPAddressInvalidReason))
-		g.Expect(claimedCondition.Message).To(Equal("The IPv4 IPAddresses assigned to the same device (index 0) do not have the same gateway"))
+		g.Expect(claimedCondition.Message).To(Equal("the IPv4 IPAddresses assigned to the same device (index 0) do not have the same gateway"))
 		g.Expect(claimedCondition.Status).To(Equal(corev1.ConditionFalse))
 
 		// Simulate multiple gateways were provided
@@ -679,7 +714,7 @@ func Test_reconcileIPAddresses_ShouldUpdateTheStatusOnValidationIssues(t *testin
 		claimedCondition = conditions.Get(ctx.VSphereVM, infrav1.IPAddressClaimedCondition)
 		g.Expect(claimedCondition).NotTo(BeNil())
 		g.Expect(claimedCondition.Reason).To(Equal(infrav1.IPAddressInvalidReason))
-		g.Expect(claimedCondition.Message).To(Equal("The IPv6 IPAddresses assigned to the same device (index 0) do not have the same gateway"))
+		g.Expect(claimedCondition.Message).To(Equal("the IPv6 IPAddresses assigned to the same device (index 0) do not have the same gateway"))
 		g.Expect(claimedCondition.Status).To(Equal(corev1.ConditionFalse))
 	})
 
@@ -693,25 +728,94 @@ func Test_reconcileIPAddresses_ShouldUpdateTheStatusOnValidationIssues(t *testin
 		ctx.Client.Update(ctx, address2)
 
 		reconciled, err := vms.reconcileIPAddresses(ctx)
-		g.Expect(err).To(MatchError("The IPv4 Gateway for IPAddress vsphereVM1-0-0 does not match the Gateway4 already configured on device (index 0)"))
+		g.Expect(err).To(MatchError(ContainSubstring("the IPv4 Gateway for IPAddress vsphereVM1-0-0 does not match the Gateway4 already configured on device (index 0)")))
 		g.Expect(reconciled).To(BeFalse())
 
 		claimedCondition := conditions.Get(ctx.VSphereVM, infrav1.IPAddressClaimedCondition)
 		g.Expect(claimedCondition).NotTo(BeNil())
 		g.Expect(claimedCondition.Reason).To(Equal(infrav1.IPAddressInvalidReason))
-		g.Expect(claimedCondition.Message).To(Equal("The IPv4 Gateway for IPAddress vsphereVM1-0-0 does not match the Gateway4 already configured on device (index 0)"))
+		g.Expect(claimedCondition.Message).To(ContainSubstring("the IPv4 Gateway for IPAddress vsphereVM1-0-0 does not match the Gateway4 already configured on device (index 0)"))
 		g.Expect(claimedCondition.Status).To(Equal(corev1.ConditionFalse))
 
 		// Fix the Gateway4 for dev0
 		ctx.VSphereVM.Spec.VirtualMachineCloneSpec.Network.Devices[0].Gateway4 = "10.0.0.1"
 		reconciled, err = vms.reconcileIPAddresses(ctx)
-		g.Expect(err).To(MatchError("The IPv6 Gateway for IPAddress vsphereVM1-0-1 does not match the Gateway6 already configured on device (index 0)"))
+		g.Expect(err).To(MatchError("the IPv6 Gateway for IPAddress vsphereVM1-0-1 does not match the Gateway6 already configured on device (index 0)"))
 		g.Expect(reconciled).To(BeFalse())
 
 		claimedCondition = conditions.Get(ctx.VSphereVM, infrav1.IPAddressClaimedCondition)
 		g.Expect(claimedCondition).NotTo(BeNil())
 		g.Expect(claimedCondition.Reason).To(Equal(infrav1.IPAddressInvalidReason))
-		g.Expect(claimedCondition.Message).To(Equal("The IPv6 Gateway for IPAddress vsphereVM1-0-1 does not match the Gateway6 already configured on device (index 0)"))
+		g.Expect(claimedCondition.Message).To(Equal("the IPv6 Gateway for IPAddress vsphereVM1-0-1 does not match the Gateway6 already configured on device (index 0)"))
+		g.Expect(claimedCondition.Status).To(Equal(corev1.ConditionFalse))
+	})
+
+	t.Run("when there are multiple IPAM ip configuration issues on one vm, it notes all of the problems", func(_ *testing.T) {
+		before()
+
+		address1.Spec.Address = "10.10.10.10.10"
+		address2.Spec.Address = "11.11.11.11.11"
+		address3.Spec.Address = "12.12.12.12.12"
+		ctx.Client.Update(ctx, address1)
+		ctx.Client.Update(ctx, address2)
+		ctx.Client.Update(ctx, address3)
+
+		reconciled, err := vms.reconcileIPAddresses(ctx)
+		g.Expect(err).To(MatchError(ContainSubstring("IPAddress my-namespace/vsphereVM1-0-0 has invalid ip address: \"10.10.10.10.10/24\"")))
+		g.Expect(err).To(MatchError(ContainSubstring("IPAddress my-namespace/vsphereVM1-0-1 has invalid ip address: \"11.11.11.11.11/24\"")))
+		g.Expect(err).To(MatchError(ContainSubstring("IPAddress my-namespace/vsphereVM1-1-0 has invalid ip address: \"12.12.12.12.12/24\"")))
+		g.Expect(reconciled).To(BeFalse())
+
+		claimedCondition := conditions.Get(ctx.VSphereVM, infrav1.IPAddressClaimedCondition)
+		g.Expect(claimedCondition).NotTo(BeNil())
+		g.Expect(claimedCondition.Reason).To(Equal(infrav1.IPAddressInvalidReason))
+		g.Expect(claimedCondition.Message).To(ContainSubstring("IPAddress my-namespace/vsphereVM1-0-0 has invalid ip address: \"10.10.10.10.10/24\""))
+		g.Expect(claimedCondition.Message).To(ContainSubstring("IPAddress my-namespace/vsphereVM1-0-1 has invalid ip address: \"11.11.11.11.11/24\""))
+		g.Expect(claimedCondition.Message).To(ContainSubstring("IPAddress my-namespace/vsphereVM1-1-0 has invalid ip address: \"12.12.12.12.12/24\""))
+		g.Expect(claimedCondition.Status).To(Equal(corev1.ConditionFalse))
+	})
+
+	t.Run("when there are multiple IPAM gateway configuration issues on one vm, it notes all of the problems", func(_ *testing.T) {
+		before()
+
+		address1.Spec.Gateway = "10.10.10.10.10"
+		address2.Spec.Gateway = "11.11.11.11.11"
+		address3.Spec.Gateway = "12.12.12.12.12"
+		ctx.Client.Update(ctx, address1)
+		ctx.Client.Update(ctx, address2)
+		ctx.Client.Update(ctx, address3)
+		reconciled, err := vms.reconcileIPAddresses(ctx)
+
+		g.Expect(err).To(MatchError(ContainSubstring("IPAddress my-namespace/vsphereVM1-0-0 has invalid gateway: \"10.10.10.10.10\"")))
+		g.Expect(err).To(MatchError(ContainSubstring("IPAddress my-namespace/vsphereVM1-0-1 has invalid gateway: \"11.11.11.11.11\"")))
+		g.Expect(err).To(MatchError(ContainSubstring("IPAddress my-namespace/vsphereVM1-1-0 has invalid gateway: \"12.12.12.12.12\"")))
+		g.Expect(reconciled).To(BeFalse())
+
+		claimedCondition := conditions.Get(ctx.VSphereVM, infrav1.IPAddressClaimedCondition)
+		g.Expect(claimedCondition).NotTo(BeNil())
+		g.Expect(claimedCondition.Reason).To(Equal(infrav1.IPAddressInvalidReason))
+		g.Expect(claimedCondition.Message).To(ContainSubstring("IPAddress my-namespace/vsphereVM1-0-0 has invalid gateway: \"10.10.10.10.10\""))
+		g.Expect(claimedCondition.Message).To(ContainSubstring("IPAddress my-namespace/vsphereVM1-0-1 has invalid gateway: \"11.11.11.11.11\""))
+		g.Expect(claimedCondition.Message).To(ContainSubstring("IPAddress my-namespace/vsphereVM1-1-0 has invalid gateway: \"12.12.12.12.12\""))
+		g.Expect(claimedCondition.Status).To(Equal(corev1.ConditionFalse))
+	})
+
+	t.Run("when there are duplicate IPAddresses", func(_ *testing.T) {
+		before()
+
+		address1.Spec.Address = "10.0.0.50"
+		address2.Spec.Address = "10.0.0.50"
+		ctx.Client.Update(ctx, address1)
+		ctx.Client.Update(ctx, address2)
+		reconciled, err := vms.reconcileIPAddresses(ctx)
+
+		g.Expect(err).To(MatchError(ContainSubstring("IPAddress my-namespace/vsphereVM1-0-1 is a duplicate of another address: \"10.0.0.50/24\"")))
+		g.Expect(reconciled).To(BeFalse())
+
+		claimedCondition := conditions.Get(ctx.VSphereVM, infrav1.IPAddressClaimedCondition)
+		g.Expect(claimedCondition).NotTo(BeNil())
+		g.Expect(claimedCondition.Reason).To(Equal(infrav1.IPAddressInvalidReason))
+		g.Expect(claimedCondition.Message).To(ContainSubstring("IPAddress my-namespace/vsphereVM1-0-1 is a duplicate of another address: \"10.0.0.50/24\""))
 		g.Expect(claimedCondition.Status).To(Equal(corev1.ConditionFalse))
 	})
 }

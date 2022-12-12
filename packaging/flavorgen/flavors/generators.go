@@ -403,7 +403,7 @@ func newIgnitionKubeadmConfigTemplate() bootstrapv1.KubeadmConfigTemplate {
 
 func defaultNodeRegistrationOptions() bootstrapv1.NodeRegistrationOptions {
 	return bootstrapv1.NodeRegistrationOptions{
-		Name:             "{{ ds.meta_data.hostname }}",
+		Name:             "{{ local_hostname }}",
 		CRISocket:        "/var/run/containerd/containerd.sock",
 		KubeletExtraArgs: defaultExtraArgs(),
 	}
@@ -451,11 +451,9 @@ func defaultExtraArgs() map[string]string {
 
 func defaultPreKubeadmCommands() []string {
 	return []string{
-		"hostname \"{{ ds.meta_data.hostname }}\"",
-		"echo \"::1         ipv6-localhost ipv6-loopback\" >/etc/hosts",
-		"echo \"127.0.0.1   localhost\" >>/etc/hosts",
-		"echo \"127.0.0.1   {{ ds.meta_data.hostname }}\" >>/etc/hosts",
-		"echo \"{{ ds.meta_data.hostname }}\" >/etc/hostname",
+		"hostnamectl set-hostname \"{{ ds.meta_data.hostname }}\"",
+		"echo \"::1         ipv6-localhost ipv6-loopback localhost6 localhost6.localdomain6\" >/etc/hosts",
+		"echo \"127.0.0.1   {{ ds.meta_data.hostname }} {{ local_hostname }} localhost localhost.localdomain localhost4 localhost4.localdomain4\" >>/etc/hosts",
 	}
 }
 

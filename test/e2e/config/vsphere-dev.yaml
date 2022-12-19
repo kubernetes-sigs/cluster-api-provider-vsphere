@@ -112,7 +112,8 @@ providers:
         contract: v1beta1
         replacements:
           - old: gcr.io/cluster-api-provider-vsphere/release/manager:latest
-            new: gcr.io/k8s-staging-cluster-api/capv-manager:e2e
+            # Tag the gcr.io/k8s-staging-cluster-api/capv-manager:e2e and push to projects.registry.vmware.com/tkgi/capv-manager:e2e so that move can be completed
+            new: projects.registry.vmware.com/tkgi/capv-manager:e2e
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
         files:
@@ -143,16 +144,17 @@ variables:
   IP_FAMILY: "IPv4"
   CLUSTER_CLASS_NAME: "quick-start"
   # Following CAPV variables should be set before testing
-  VSPHERE_SERVER: "vcenter.vmware.com"
-  VSPHERE_DATACENTER: "SDDC-Datacenter"
-  VSPHERE_DATASTORE: "WorkloadDatastore"
+  VSPHERE_SERVER: "10.92.221.139"
+  VSPHERE_DATACENTER: "dc0"
+  VSPHERE_DATASTORE: "sharedVmfs-0"
   VSPHERE_STORAGE_POLICY: "Cluster API vSphere Storage Policy"
-  VSPHERE_FOLDER: "FolderName"
-  VSPHERE_NETWORK: "network-1"
-  VSPHERE_RESOURCE_POOL: "ResourcePool"
-  VSPHERE_TEMPLATE: "ubuntu-2004-kube-v1.23.5"
+  VSPHERE_FOLDER: "/dc0/vm/"
+  VSPHERE_NETWORK: "VM Network"
+  VSPHERE_RESOURCE_POOL: "rp1"
+  VSPHERE_TEMPLATE: "ubuntu-2004-kube-v1.23.10+vmware.1-tkg.2"
   FLATCAR_VSPHERE_TEMPLATE: "flatcar-stable-3139.2.3-kube-v1.23.5"
-  VSPHERE_TLS_THUMBPRINT: "AA:BB:CC:DD:11:22:33:44:EE:FF"
+  VSPHERE_TLS_THUMBPRINT: "76:B5:C3:4A:9F:15:1D:F4:6D:37:1C:8B:C4:23:8C:C4:2D:4B:58:55"
+  CONTROL_PLANE_ENDPOINT_IP: "10.92.193.254"
   # WORKLOAD_CONTROL_PLANE_ENDPOINT_IP:
   # Also following variables are required but it is recommended to use env variables to avoid disclosure of sensitive data
   # VSPHERE_SSH_AUTHORIZED_KEY:
@@ -170,6 +172,14 @@ variables:
   # CAPV feature flags
   EXP_NODE_ANTI_AFFINITY: "true"
   EXP_NODE_LABELING: "true"
+  # 2nd VC
+  VSPHERE2_SERVER: "10.182.52.76"
+  VSPHERE2_TLS_THUMBPRINT: "2D:D5:9C:8D:D4:D8:EE:22:C3:A1:94:F1:8E:D4:65:1C:79:C1:10:A5"
+  #VSPHERE2_USERNAME: pass from env
+  # VSPHERE2_PASSWORD: pass from env
+  VSPHERE2_RESOURCE_POOL: "rp1"
+  VSPHERE2_TEMPLATE: "ubuntu-2004-kube-v1.23.10+vmware.1-tkg.2"
+  VSPHERE2_CONTROL_PLANE_ENDPOINT_IP: "10.182.48.110"
 
 intervals:
   default/wait-controllers: ["5m", "10s"]

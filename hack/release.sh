@@ -102,12 +102,12 @@ function build_images() {
   esac
 
   # Manager image
-  ARCH=$(go env GOARCH)
-  echo "building ${MANAGER_IMAGE_NAME}:${VERSION} for arch ${ARCH}"
-  docker buildx build --platform linux/"${ARCH}" --output=type=docker --pull \
-    -f Dockerfile \
-    -t "${MANAGER_IMAGE_NAME}":"${VERSION}" \
-    .
+  make docker-buildx
+  ARCH=("arm64" "amd64")
+  for arch in "${ARCH[@]}"; do
+    echo "building ${MANAGER_IMAGE_NAME}:${VERSION} for arch ${arch}"
+    ARCH=${arch} FULL_DOCKER_IMG="${MANAGER_IMAGE_NAME}:${VERSION}" make docker-build
+  done
   if [ "${LATEST}" ]; then
     echo "tagging image ${MANAGER_IMAGE_NAME}:${VERSION} as latest"
     docker tag "${MANAGER_IMAGE_NAME}":"${VERSION}" "${MANAGER_IMAGE_NAME}":latest
@@ -138,7 +138,7 @@ function push_images() {
 
   # Manager image
   echo "pushing ${MANAGER_IMAGE_NAME}:${VERSION}"
-  docker push "${MANAGER_IMAGE_NAME}":"${VERSION}"
+  FULL_DOCKER_IMG="${MANAGER_IMAGE_NAME}:${VERSION}" make docker-push
   if [ "${LATEST}" ]; then
     echo "also pushing ${MANAGER_IMAGE_NAME}:${VERSION} as latest"
     docker push "${MANAGER_IMAGE_NAME}":latest

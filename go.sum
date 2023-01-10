@@ -663,8 +663,8 @@ github.com/valyala/fastjson v1.6.3 h1:tAKFnnwmeMGPbwJ7IwxcTPCNr3uIzoIj3/Fh90ra4x
 github.com/valyala/fastjson v1.6.3/go.mod h1:CLCAqky6SMuOcxStkYQvblddUtoRxhYMGLrsQns1aXY=
 github.com/vmware-tanzu/net-operator-api v0.0.0-20210401185409-b0dc6c297707 h1:2onys8tWlQh7DFiOz6+68AwJdW9EBOEv6RTKzwh1x7A=
 github.com/vmware-tanzu/net-operator-api v0.0.0-20210401185409-b0dc6c297707/go.mod h1:pDB0pUiFYufuP3lUkQX9fZ67PYnKvqBpDcJN3mSrw5U=
-github.com/vmware-tanzu/vm-operator/api v0.0.0-20221121185334-8c4d5ac76c83 h1:sCnIye9vMtR4JNcHBQV678ZTbeoY9/NokRus8NSYPyk=
-github.com/vmware-tanzu/vm-operator/api v0.0.0-20221121185334-8c4d5ac76c83/go.mod h1:fsqKK8tWRDbsuOkH/mwIsW25wBnmGxHiTj0yLiTQH74=
+github.com/vmware-tanzu/vm-operator/api v0.0.0-20221204041501-ec03d8bb733c h1:7UAqqa9GTxMTtCmgkGWk0JdWZoZssgdbSywpIurgjC0=
+github.com/vmware-tanzu/vm-operator/api v0.0.0-20221204041501-ec03d8bb733c/go.mod h1:fsqKK8tWRDbsuOkH/mwIsW25wBnmGxHiTj0yLiTQH74=
 github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20211209213435-0f4ab286f64f h1:RUuS5lh25citvQoXmDSfxJ1BB72LXOjD5cXvJETJ7Cc=
 github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20211209213435-0f4ab286f64f/go.mod h1:5rqRJ9zGR+KnKbkGx373WgN8xJpvAj99kHnfoDYRO5I=
 github.com/vmware-tanzu/vm-operator/external/tanzu-topology v0.0.0-20211209213435-0f4ab286f64f h1:wwYUf16/g8bLywQMQJB5VHbDtuf6aOFH24Ar2/yA7+I=

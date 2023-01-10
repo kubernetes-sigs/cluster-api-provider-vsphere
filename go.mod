@@ -14,7 +14,7 @@ require (
 	github.com/spf13/cobra v1.5.0
 	github.com/stretchr/testify v1.8.0
 	github.com/vmware-tanzu/net-operator-api v0.0.0-20210401185409-b0dc6c297707
-	github.com/vmware-tanzu/vm-operator/api v0.0.0-20221121185334-8c4d5ac76c83
+	github.com/vmware-tanzu/vm-operator/api v0.0.0-20221204041501-ec03d8bb733c
 	github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20211209213435-0f4ab286f64f
 	github.com/vmware-tanzu/vm-operator/external/tanzu-topology v0.0.0-20211209213435-0f4ab286f64f
 	github.com/vmware/govmomi v0.27.1

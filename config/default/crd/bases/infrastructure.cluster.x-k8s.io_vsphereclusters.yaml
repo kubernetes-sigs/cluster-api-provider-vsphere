@@ -1,10 +1,9 @@
-
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.7.0
+    controller-gen.kubebuilder.io/version: v0.10.0
   creationTimestamp: null
   name: vsphereclusters.infrastructure.cluster.x-k8s.io
 spec:
@@ -116,9 +115,9 @@ spec:
                           may be found. This may used in the event that: 1. It is
                           not desirable to use the K8s API to watch changes to secrets
                           2. The cloud controller manager is not running in a K8s
-                          environment,    such as DC/OS. For example, the container
-                          storage interface (CSI) is    container orcehstrator (CO)
-                          agnostic, and should support non-K8s COs. Defaults to /etc/cloud/credentials.'
+                          environment, such as DC/OS. For example, the container storage
+                          interface (CSI) is container orcehstrator (CO) agnostic,
+                          and should support non-K8s COs. Defaults to /etc/cloud/credentials.'
                         type: string
                       serviceAccount:
                         description: ServiceAccount is the Kubernetes service account
@@ -323,6 +322,7 @@ spec:
                     description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
                     type: string
                 type: object
+                x-kubernetes-map-type: atomic
               server:
                 description: Server is the address of the vSphere endpoint.
                 type: string
@@ -752,9 +752,3 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []

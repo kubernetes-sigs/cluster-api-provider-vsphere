@@ -26,7 +26,7 @@ import (
 	"path/filepath"
 	goruntime "runtime"
 
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	"github.com/vmware/govmomi/simulator"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"

@@ -15,7 +15,7 @@
 # limitations under the License.
 
 # Build the manager binary
-ARG GOLANG_VERSION=golang:1.18.5
+ARG GOLANG_VERSION=golang:1.19.3
 FROM --platform=${BUILDPLATFORM} ${GOLANG_VERSION} as builder
 WORKDIR /workspace
 

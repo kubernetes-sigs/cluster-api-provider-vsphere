@@ -52,22 +52,22 @@ This provider's versions are compatible with the following versions of Cluster A
 
 Note: These OVAs are not updated for security fixes and it is recommended to always use the latest patch version for the Kubernetes version you wish to run. For production-like environments, it is highly recommended to build and use your own custom images.
 
-| Kubernetes | CentOS 7 | Ubuntu 18.04 | Ubuntu 20.04 | Photon 3 |
-| :--------: | :------: | :----------: | :----------: | :------: |
-|  v1.21.11   |   [ova](https://storage.googleapis.com/capv-images/release/v1.21.11/centos-7-kube-v1.21.11.ova), [sha256](https://storage.googleapis.com/capv-images/release/v1.21.11/centos-7-kube-v1.21.11.ova.sha256)   |   [ova](https://storage.googleapis.com/capv-images/release/v1.21.11/ubuntu-1804-kube-v1.21.11.ova), [sha256](https://storage.googleapis.com/capv-images/release/v1.21.11/ubuntu-1804-kube-v1.21.11.ova.sha256)   |   [ova](https://storage.googleapis.com/capv-images/release/v1.21.11/ubuntu-2004-kube-v1.21.11.ova), [sha256](https://storage.googleapis.com/capv-images/release/v1.21.11/ubuntu-2004-kube-v1.21.11.ova.sha256)| [ova](https://storage.googleapis.com/capv-images/release/v1.21.11/photon-3-kube-v1.21.11.ova), [sha256](https://storage.googleapis.com/capv-images/release/v1.21.11/photon-3-1804-kube-v1.21.11.ova.sha256) |
-|  v1.22.8  | [ova](https://storage.googleapis.com/capv-images/release/v1.22.8/centos-7-kube-v1.22.8.ova), [sha256](https://storage.googleapis.com/capv-images/release/v1.22.8/centos-7-kube-v1.22.8.ova.sha256) | [ova](https://storage.googleapis.com/capv-images/release/v1.22.8/ubuntu-1804-kube-v1.22.8.ova), [sha256](https://storage.googleapis.com/capv-images/release/v1.22.8/ubuntu-1804-kube-v1.22.8.ova.sha256) | [ova](https://storage.googleapis.com/capv-images/release/v1.22.8/ubuntu-2004-kube-v1.22.8.ova), [sha256](https://storage.googleapis.com/capv-images/release/v1.22.8/ubuntu-2004-kube-v1.22.8.ova.sha256)| [ova](https://storage.googleapis.com/capv-images/release/v1.22.8/photon-3-kube-v1.22.8.ova), [sha256](https://storage.googleapis.com/capv-images/release/v1.22.8/photon-3-kube-v1.22.8.ova.sha256)  |
-|  v1.23.5   |   [ova](https://storage.googleapis.com/capv-images/release/v1.23.5/centos-7-kube-v1.23.5.ova), [sha256](https://storage.googleapis.com/capv-images/release/v1.23.5/centos-7-kube-v1.23.5.ova.sha256)   |   [ova](https://storage.googleapis.com/capv-images/release/v1.23.5/ubuntu-1804-kube-v1.23.5.ova), [sha256](https://storage.googleapis.com/capv-images/release/v1.23.5/ubuntu-1804-kube-v1.23.5.ova.sha256)   |   [ova](https://storage.googleapis.com/capv-images/release/v1.23.5/ubuntu-2004-kube-v1.23.5.ova), [sha256](https://storage.googleapis.com/capv-images/release/v1.23.5/ubuntu-2004-kube-v1.23.5.ova.sha256)|   [ova](https://storage.googleapis.com/capv-images/release/v1.23.5/photon-3-kube-v1.23.5.ova), [sha256](https://storage.googleapis.com/capv-images/release/v1.23.5/photon-3-kube-v1.23.5.ova.sha256)    |
+| Kubernetes | Ubuntu 18.04 | Ubuntu 20.04 | Photon 3 |
+| :--------: | :----------: | :----------: | :------: |
+|  v1.23.15   |   [ova](https://storage.googleapis.com/capv-templates/v1.23.15/ubuntu-1804-kube-v1.23.15.ova), [sha256](https://storage.googleapis.com/capv-templates/v1.23.15/ubuntu-1804-kube-v1.23.15.ova.sha256)   |   [ova](https://storage.googleapis.com/capv-templates/v1.23.15/ubuntu-2004-kube-v1.23.15.ova), [sha256](https://storage.googleapis.com/capv-templates/v1.23.15/ubuntu-2004-kube-v1.23.15.ova.sha256)|   [ova](https://storage.googleapis.com/capv-templates/v1.23.15/photon-3-kube-v1.23.15.ova), [sha256](https://storage.googleapis.com/capv-templates/v1.23.15/photon-3-kube-v1.23.15.ova.sha256)    |
+|  v1.24.9   |   [ova](https://storage.googleapis.com/capv-templates/v1.24.9/ubuntu-1804-kube-v1.24.9.ova), [sha256](https://storage.googleapis.com/capv-templates/v1.24.9/ubuntu-1804-kube-v1.24.9.ova.sha256)   |   [ova](https://storage.googleapis.com/capv-templates/v1.24.9/ubuntu-2004-kube-v1.24.9.ova), [sha256](https://storage.googleapis.com/capv-templates/v1.24.9/ubuntu-2004-kube-v1.24.9.ova.sha256)|   [ova](https://storage.googleapis.com/capv-templates/v1.24.9/photon-3-kube-v1.24.9.ova), [sha256](https://storage.googleapis.com/capv-templates/v1.24.9/photon-3-kube-v1.24.9.ova.sha256)    |
+|  v1.25.5   |   [ova](https://storage.googleapis.com/capv-templates/v1.25.5/ubuntu-1804-kube-v1.25.5.ova), [sha256](https://storage.googleapis.com/capv-templates/v1.25.5/ubuntu-1804-kube-v1.25.5.ova.sha256)   |   [ova](https://storage.googleapis.com/capv-templates/v1.25.5/ubuntu-2004-kube-v1.25.5.ova), [sha256](https://storage.googleapis.com/capv-templates/v1.25.5/ubuntu-2004-kube-v1.25.5.ova.sha256)|   [ova](https://storage.googleapis.com/capv-templates/v1.25.5/photon-3-kube-v1.25.5.ova), [sha256](https://storage.googleapis.com/capv-templates/v1.25.5/photon-3-kube-v1.25.5.ova.sha256)    |
 
 A full list of the published machine images for CAPV may be obtained with the following command:
 
 ```shell
-gsutil ls gs://capv-images/release/*
+gsutil ls gs://capv-templates/*
 ```
 
 Or, to produce a list of URLs for the same image files (and their checksums), the following command may be used:
 
 ```shell
-gsutil ls gs://capv-images/release/*/*.{ova,sha256} | sed 's~^gs://~https://storage.googleapis.com/~'
+gsutil ls gs://capv-templates/*/*.{ova,sha256} | sed 's~^gs://~https://storage.googleapis.com/~'
 ```
 
 ## HAProxy published OVAs

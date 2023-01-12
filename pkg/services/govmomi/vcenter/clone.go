@@ -271,7 +271,8 @@ func Clone(ctx *context.VMContext, bootstrapData []byte, format bootstrapv1.Form
 	}
 
 	disks := devices.SelectByType((*types.VirtualDisk)(nil))
-	spec.Location.Disk = getDiskLocators(disks, *datastoreRef)
+	isLinkedClone := snapshotRef != nil
+	spec.Location.Disk = getDiskLocators(disks, *datastoreRef, isLinkedClone)
 
 	ctx.Logger.Info("cloning machine", "namespace", ctx.VSphereVM.Namespace, "name", ctx.VSphereVM.Name, "cloneType", ctx.VSphereVM.Status.CloneMode)
 	task, err := tpl.Clone(ctx, folder, ctx.VSphereVM.Name, spec)
@@ -297,7 +298,7 @@ func newVMFlagInfo() *types.VirtualMachineFlagInfo {
 	}
 }
 
-func getDiskLocators(disks object.VirtualDeviceList, datastoreRef types.ManagedObjectReference) []types.VirtualMachineRelocateSpecDiskLocator {
+func getDiskLocators(disks object.VirtualDeviceList, datastoreRef types.ManagedObjectReference, isLinkedClone bool) []types.VirtualMachineRelocateSpecDiskLocator {
 	diskLocators := make([]types.VirtualMachineRelocateSpecDiskLocator, 0, len(disks))
 	for _, disk := range disks {
 		dl := types.VirtualMachineRelocateSpecDiskLocator{
@@ -306,6 +307,9 @@ func getDiskLocators(disks object.VirtualDeviceList, datastoreRef types.ManagedO
 			Datastore:    datastoreRef,
 		}
 
+		if isLinkedClone {
+			dl.DiskMoveType = string(linkCloneDiskMoveType)
+		}
 		if vmDiskBacking, ok := disk.(*types.VirtualDisk).Backing.(*types.VirtualDiskFlatVer2BackingInfo); ok {
 			dl.DiskBackingInfo = vmDiskBacking
 		}

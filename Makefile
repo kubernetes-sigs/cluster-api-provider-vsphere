@@ -106,9 +106,8 @@ RELEASE_CONTROLLER_IMG := $(RELEASE_REGISTRY)/$(IMAGE_NAME)
 
 # Development Docker variables
 DEV_REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
-DOCKER_CONTROLLER_IMG ?= $(DEV_REGISTRY)/vsphere-$(IMAGE_NAME)
-DOCKER_TAG ?= dev
-FULL_DOCKER_IMG ?= $(DOCKER_CONTROLLER_IMG):$(DOCKER_TAG)
+DEV_CONTROLLER_IMG ?= $(DEV_REGISTRY)/vsphere-$(IMAGE_NAME)
+DEV_TAG ?= dev
 
 # Set build time variables including git version details
 LDFLAGS := $(shell hack/version.sh)
@@ -351,7 +350,7 @@ release-overrides:
 
 .PHONY: dev-manifests
 dev-manifests:
-	$(MAKE) manifests STAGE=dev MANIFEST_DIR=$(OVERRIDES_DIR) PULL_POLICY=Always IMAGE=$(FULL_DOCKER_IMG)
+	$(MAKE) manifests STAGE=dev MANIFEST_DIR=$(OVERRIDES_DIR) PULL_POLICY=Always IMAGE=$(DEV_CONTROLLER_IMG):$(DEV_TAG)
 	cp metadata.yaml $(OVERRIDES_DIR)/metadata.yaml
 
 .PHONY: manifests
@@ -469,20 +468,16 @@ check: ## Verify and lint the project
 ## Docker
 ## --------------------------------------
 
-.PHONY: docker-buildx
-docker-buildx:
-	docker buildx inspect capv &>/dev/null || docker buildx create --name capv
-
-
 .PHONY: docker-build
 docker-build: ## Build the docker image for controller-manager
 	docker buildx build --platform linux/$(ARCH) --output=type=docker \
 		--pull --build-arg ldflags="$(LDFLAGS)" \
-		-t $(FULL_DOCKER_IMG) .
+		-t $(DEV_CONTROLLER_IMG):$(DEV_TAG) .
 
 .PHONY: docker-push
-docker-push: docker-buildx ## Push the docker image
+docker-push: ## Push the docker image
+	docker buildx inspect capv &>/dev/null || docker buildx create --name capv
 	docker buildx build --builder capv --platform linux/amd64,linux/arm64 --output=type=registry \
 		--pull --build-arg ldflags="$(LDFLAGS)" \
-		-t $(FULL_DOCKER_IMG) .
+		-t $(DEV_CONTROLLER_IMG):$(DEV_TAG) .
 	docker buildx rm capv

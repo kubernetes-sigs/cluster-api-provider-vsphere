@@ -102,16 +102,19 @@ function build_images() {
   esac
 
   # Manager image
-  make docker-buildx
   ARCH=("arm64" "amd64")
   for arch in "${ARCH[@]}"; do
     echo "building ${MANAGER_IMAGE_NAME}:${VERSION} for arch ${arch}"
-    ARCH=${arch} FULL_DOCKER_IMG="${MANAGER_IMAGE_NAME}:${VERSION}" make docker-build
+	  docker buildx inspect capv &>/dev/null || docker buildx create --name capv
+    docker buildx build --builder capv --platform linux/"${arch}" --output=type=docker --pull \
+      -f Dockerfile \
+      -t "${MANAGER_IMAGE_NAME}":"${VERSION}-${arch}" \
+      .
+    if [ "${LATEST}" ]; then
+      echo "tagging image ${MANAGER_IMAGE_NAME}:${VERSION}-${arch} as latest"
+      docker tag "${MANAGER_IMAGE_NAME}":"${VERSION}-${arch}" "${MANAGER_IMAGE_NAME}:latest-${arch}"
+    fi
   done
-  if [ "${LATEST}" ]; then
-    echo "tagging image ${MANAGER_IMAGE_NAME}:${VERSION} as latest"
-    docker tag "${MANAGER_IMAGE_NAME}":"${VERSION}" "${MANAGER_IMAGE_NAME}":latest
-  fi
 }
 
 function logout() {
@@ -137,11 +140,26 @@ function push_images() {
   login
 
   # Manager image
-  echo "pushing ${MANAGER_IMAGE_NAME}:${VERSION}"
-  FULL_DOCKER_IMG="${MANAGER_IMAGE_NAME}:${VERSION}" make docker-push
+  ARCH=("arm64" "amd64")
+  for arch in "${ARCH[@]}"; do
+    echo "pushing ${MANAGER_IMAGE_NAME}:${VERSION}-${arch}"
+    docker push "${MANAGER_IMAGE_NAME}":"${VERSION}-${arch}"
+    if [ "${LATEST}" ]; then
+      echo "also pushing ${MANAGER_IMAGE_NAME}:${VERSION} as latest"
+      docker push "${MANAGER_IMAGE_NAME}:latest-${arch}"
+    fi
+  done
+  docker manifest create \
+    "${MANAGER_IMAGE_NAME}:${VERSION}" \
+    --amend "${MANAGER_IMAGE_NAME}:${VERSION}-arm64" \
+    --amend "${MANAGER_IMAGE_NAME}:${VERSION}-amd64"
+  docker manifest push "${MANAGER_IMAGE_NAME}:${VERSION}"
   if [ "${LATEST}" ]; then
-    echo "also pushing ${MANAGER_IMAGE_NAME}:${VERSION} as latest"
-    docker push "${MANAGER_IMAGE_NAME}":latest
+    docker manifest create \
+      "${MANAGER_IMAGE_NAME}:latest" \
+      --amend "${MANAGER_IMAGE_NAME}:latest-arm64" \
+      --amend "${MANAGER_IMAGE_NAME}:latest-amd64"
+    docker manifest push "${MANAGER_IMAGE_NAME}:latest"
   fi
 }
 

@@ -55,7 +55,7 @@ func (np *netopNetworkProvider) getDefaultClusterNetwork(ctx *vmware.ClusterCont
 		return networkWithLabel, nil
 	}
 
-	ctx.Logger.Info("falling back to legacy label %s to identify default network", legacyDefaultNetworkLabel)
+	ctx.Logger.Info("falling back to legacy label to identify default network", "label", legacyDefaultNetworkLabel)
 	return np.getDefaultClusterNetworkWithLabel(ctx, legacyDefaultNetworkLabel)
 }
 

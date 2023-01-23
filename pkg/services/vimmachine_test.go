@@ -237,3 +237,59 @@ var _ = Describe("VimMachineService_GetHostInfo", func() {
 	})
 
 })
+
+var _ = Describe("VimMachineService_createOrPatchVSPhereVM", func() {
+	var (
+		controllerCtx       *context.ControllerContext
+		machineCtx          *context.VIMMachineContext
+		vimMachineService   = &VimMachineService{}
+		hostAddr            = "1.2.3.4"
+		fakeLongClusterName = "fake-long-clustername"
+	)
+
+	getVSphereVM := func(hostAddr string, conditionStatus corev1.ConditionStatus) *infrav1.VSphereVM {
+		return &infrav1.VSphereVM{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: fake.Namespace,
+				Name:      fakeLongClusterName,
+			},
+			Status: infrav1.VSphereVMStatus{
+				Host: hostAddr,
+				Conditions: []clusterv1.Condition{
+					{
+						Type:   infrav1.VMProvisionedCondition,
+						Status: conditionStatus,
+					},
+				},
+			},
+		}
+	}
+
+	controllerCtx = fake.NewControllerContext(fake.NewControllerManagerContext(getVSphereVM(hostAddr, corev1.ConditionTrue)))
+	machineCtx = fake.NewMachineContext(fake.NewClusterContext(controllerCtx))
+	machineCtx.Machine.SetName(fakeLongClusterName)
+
+	Context("When VSphereMachine OS is Windows", func() {
+		BeforeEach(func() {
+			machineCtx.VSphereMachine.Spec.OS = infrav1.Windows
+		})
+		It("returns a renamed vspherevm object", func() {
+			vm, err := vimMachineService.createOrPatchVSPhereVM(machineCtx, getVSphereVM(hostAddr, corev1.ConditionTrue))
+			vmName := vm.(*infrav1.VSphereVM).GetName()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(vmName).To(Equal("fake-long-rname"))
+		})
+	})
+
+	Context("When VSphereMachine OS is Linux", func() {
+		BeforeEach(func() {
+			machineCtx.VSphereMachine.Spec.OS = infrav1.Linux
+		})
+		It("returns the same vspherevm name", func() {
+			vm, err := vimMachineService.createOrPatchVSPhereVM(machineCtx, getVSphereVM(hostAddr, corev1.ConditionTrue))
+			vmName := vm.(*infrav1.VSphereVM).GetName()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(vmName).To(Equal(fakeLongClusterName))
+		})
+	})
+})

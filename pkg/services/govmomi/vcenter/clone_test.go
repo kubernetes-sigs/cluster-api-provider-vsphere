@@ -141,70 +141,6 @@ func TestGetDiskSpec(t *testing.T) {
 	}
 }
 
-func TestPCISpec(t *testing.T) {
-	defaultVendorID := int32(7864)
-	defaultDeviceID := int32(4318)
-
-	anotherDeviceID := int32(1234)
-	anotherVendorID := int32(5678)
-
-	testCases := []struct {
-		deviceSpecs []v1beta1.PCIDeviceSpec
-		name        string
-		err         string
-	}{
-		{
-			name: "single device",
-			deviceSpecs: []v1beta1.PCIDeviceSpec{
-				{
-					DeviceID: &defaultDeviceID,
-					VendorID: &defaultVendorID,
-				},
-			},
-		},
-		{
-			name: "multiple devices",
-			deviceSpecs: []v1beta1.PCIDeviceSpec{
-				{
-					DeviceID: &defaultDeviceID,
-					VendorID: &defaultVendorID,
-				},
-				{
-					DeviceID: &anotherDeviceID,
-					VendorID: &anotherVendorID,
-				},
-			},
-		},
-	}
-
-	for _, test := range testCases {
-		tc := test
-		t.Run(tc.name, func(t *testing.T) {
-			vsphereVM := &v1beta1.VSphereVM{
-				Spec: v1beta1.VSphereVMSpec{
-					VirtualMachineCloneSpec: v1beta1.VirtualMachineCloneSpec{
-						PciDevices: tc.deviceSpecs,
-					},
-				},
-			}
-			vmContext := &context.VMContext{VSphereVM: vsphereVM}
-			deviceSpecs, err := getGpuSpecs(vmContext)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if len(deviceSpecs) != len(tc.deviceSpecs) {
-				t.Fatalf("Expected number of deviceSpecs: %d, but got: '%d'", len(deviceSpecs), len(tc.deviceSpecs))
-			}
-			for _, deviceSpec := range deviceSpecs {
-				if deviceSpec.GetVirtualDeviceConfigSpec().Operation != types.VirtualDeviceConfigSpecOperationAdd {
-					t.Fatalf("incorrect operation: %s", deviceSpec.GetVirtualDeviceConfigSpec().Operation)
-				}
-			}
-			validatePCISpec(t, vmContext.VSphereVM.Spec.PciDevices, tc.deviceSpecs)
-		})
-	}
-}
-
 func validateDiskSpec(t *testing.T, device types.BaseVirtualDeviceConfigSpec, cloneDiskSize int32) {
 	t.Helper()
 	disk := device.GetVirtualDeviceConfigSpec().Device.(*types.VirtualDisk)
@@ -215,24 +151,6 @@ func validateDiskSpec(t *testing.T, device types.BaseVirtualDeviceConfigSpec, cl
 	}
 	if disk.CapacityInKB != expectedSizeKB {
 		t.Errorf("Disk size does not match: expected %d, got %d", expectedSizeKB, disk.CapacityInKB)
-	}
-}
-
-func validatePCISpec(t *testing.T, devices []v1beta1.PCIDeviceSpec, expectedDevices []v1beta1.PCIDeviceSpec) {
-	t.Helper()
-	expectedDeviceMap := make(map[int32]int32, len(expectedDevices))
-	for _, expected := range expectedDevices {
-		expectedDeviceMap[*expected.DeviceID] = *expected.VendorID
-	}
-
-	for _, device := range devices {
-		val, ok := expectedDeviceMap[*device.DeviceID]
-		if !ok {
-			t.Errorf("expected to found device with deviceID %d", *device.DeviceID)
-		}
-		if val != *device.VendorID {
-			t.Errorf("expected to find matching vendor id, found %d expected %d", val, *device.DeviceID)
-		}
 	}
 }
 

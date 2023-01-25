@@ -76,6 +76,10 @@ func (vms *VMService) ReconcileVM(ctx *context.VMContext) (vm infrav1.VirtualMac
 	// event is triggered.
 	defer reconcileVSphereVMOnTaskCompletion(ctx)
 
+	if ok, err := vms.reconcileIPAddressClaims(ctx); err != nil || !ok {
+		return vm, err
+	}
+
 	// Before going further, we need the VM's managed object reference.
 	vmRef, err := findVM(ctx)
 	//nolint:nestif
@@ -132,10 +136,6 @@ func (vms *VMService) ReconcileVM(ctx *context.VMContext) (vm infrav1.VirtualMac
 	}
 
 	if err := vms.reconcileNetworkStatus(vmCtx); err != nil {
-		return vm, err
-	}
-
-	if ok, err := vms.reconcileIPAddressClaims(vmCtx); err != nil || !ok {
 		return vm, err
 	}
 
@@ -270,7 +270,7 @@ func (vms *VMService) reconcileNetworkStatus(ctx *virtualMachineContext) error {
 
 // reconcileIPAddressClaims ensures that VSphereVMs that are configured with
 // .spec.network.devices.addressFromPools have corresponding IPAddressClaims.
-func (vms *VMService) reconcileIPAddressClaims(ctx *virtualMachineContext) (bool, error) {
+func (vms *VMService) reconcileIPAddressClaims(ctx *context.VMContext) (bool, error) {
 	for devIdx, device := range ctx.VSphereVM.Spec.Network.Devices {
 		for poolRefIdx, poolRef := range device.AddressesFromPools {
 			// check if claim exists
@@ -288,24 +288,7 @@ func (vms *VMService) reconcileIPAddressClaims(ctx *virtualMachineContext) (bool
 				ctx.Logger.V(5).Info("IPAddressClaim found", "name", ipAddrClaimName)
 			}
 			if apierrors.IsNotFound(err) {
-				ctx.Logger.Info("creating IPAddressClaim", "name", ipAddrClaimName)
-				claim := &ipamv1.IPAddressClaim{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      ipAddrClaimName,
-						Namespace: ctx.VSphereVM.Namespace,
-						OwnerReferences: []metav1.OwnerReference{
-							{
-								APIVersion: ctx.VSphereVM.APIVersion,
-								Kind:       ctx.VSphereVM.Kind,
-								Name:       ctx.VSphereVM.Name,
-								UID:        ctx.VSphereVM.UID,
-							},
-						},
-						Finalizers: []string{infrav1.IPAddressClaimFinalizer},
-					},
-					Spec: ipamv1.IPAddressClaimSpec{PoolRef: poolRef},
-				}
-				if err = ctx.Client.Create(ctx, claim); err != nil {
+				if err = createIPAddressClaim(ctx, ipAddrClaimName, poolRef); err != nil {
 					return false, err
 				}
 				msg := "Waiting for IPAddressClaim to have an IPAddress bound"
@@ -314,6 +297,29 @@ func (vms *VMService) reconcileIPAddressClaims(ctx *virtualMachineContext) (bool
 		}
 	}
 	return true, nil
+}
+
+// createIPAddressClaim sets up the ipam IPAddressClaim object and creates it in
+// the API.
+func createIPAddressClaim(ctx *context.VMContext, ipAddrClaimName string, poolRef corev1.TypedLocalObjectReference) error {
+	ctx.Logger.Info("creating IPAddressClaim", "name", ipAddrClaimName)
+	claim := &ipamv1.IPAddressClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ipAddrClaimName,
+			Namespace: ctx.VSphereVM.Namespace,
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: ctx.VSphereVM.APIVersion,
+					Kind:       ctx.VSphereVM.Kind,
+					Name:       ctx.VSphereVM.Name,
+					UID:        ctx.VSphereVM.UID,
+				},
+			},
+			Finalizers: []string{infrav1.IPAddressClaimFinalizer},
+		},
+		Spec: ipamv1.IPAddressClaimSpec{PoolRef: poolRef},
+	}
+	return ctx.Client.Create(ctx, claim)
 }
 
 // reconcileIPAddresses prevents successful reconcilliation of a VSphereVM

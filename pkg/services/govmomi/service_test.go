@@ -40,12 +40,12 @@ func Test_reconcileIPAddressClaims_ShouldGenerateIPAddressClaims(t *testing.T) {
 	scheme := runtime.NewScheme()
 	_ = ipamv1a1.AddToScheme(scheme)
 
-	var ctx *virtualMachineContext
+	var ctx *context.VMContext
 	var g *WithT
 	var vms *VMService
 
 	before := func() {
-		ctx = emptyVirtualMachineContext()
+		ctx = emptyVMContext()
 		ctx.Client = fake.NewClientBuilder().WithScheme(scheme).Build()
 
 		vms = &VMService{}
@@ -702,6 +702,15 @@ func emptyVirtualMachineContext() *virtualMachineContext {
 			ControllerContext: &context.ControllerContext{
 				ControllerManagerContext: &context.ControllerManagerContext{},
 			},
+		},
+	}
+}
+
+func emptyVMContext() *context.VMContext {
+	return &context.VMContext{
+		Logger: logr.Discard(),
+		ControllerContext: &context.ControllerContext{
+			ControllerManagerContext: &context.ControllerManagerContext{},
 		},
 	}
 }

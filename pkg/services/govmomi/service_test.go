@@ -17,14 +17,20 @@ limitations under the License.
 package govmomi
 
 import (
+	goctx "context"
 	"testing"
 
 	"github.com/go-logr/logr"
 	. "github.com/onsi/gomega"
+	"github.com/vmware/govmomi/find"
+	"github.com/vmware/govmomi/simulator"
+	"github.com/vmware/govmomi/vim25"
+	"github.com/vmware/govmomi/vim25/types"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	apitypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/pointer"
 	ipamv1a1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -700,8 +706,65 @@ func emptyVirtualMachineContext() *virtualMachineContext {
 		VMContext: context.VMContext{
 			Logger: logr.Discard(),
 			ControllerContext: &context.ControllerContext{
-				ControllerManagerContext: &context.ControllerManagerContext{},
+				ControllerManagerContext: &context.ControllerManagerContext{
+					Context: goctx.TODO(),
+				},
 			},
 		},
 	}
+}
+
+func Test_reconcilePCIDevices(t *testing.T) {
+	var vmCtx *virtualMachineContext
+	var g *WithT
+	var vms *VMService
+
+	before := func() {
+		vmCtx = emptyVirtualMachineContext()
+		vmCtx.Client = fake.NewClientBuilder().Build()
+
+		vms = &VMService{}
+	}
+
+	t.Run("when powered off VM has no PCI devices", func(t *testing.T) {
+		g = NewWithT(t)
+		before()
+
+		simulator.Run(func(ctx goctx.Context, c *vim25.Client) error {
+			finder := find.NewFinder(c)
+			vm, err := finder.VirtualMachine(ctx, "DC0_H0_VM0")
+			g.Expect(err).ToNot(HaveOccurred())
+			_, err = vm.PowerOff(ctx)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			vmCtx.Obj = vm
+			vmCtx.VSphereVM = &infrav1.VSphereVM{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "vsphereVM1",
+					Namespace: "my-namespace",
+				},
+				Spec: infrav1.VSphereVMSpec{
+					VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
+						PciDevices: []infrav1.PCIDeviceSpec{
+							{DeviceID: pointer.Int32(1234), VendorID: pointer.Int32(5678)},
+							{DeviceID: pointer.Int32(1234), VendorID: pointer.Int32(5678)},
+						},
+					},
+				},
+			}
+
+			g.Expect(vms.reconcilePCIDevices(vmCtx)).ToNot(HaveOccurred())
+
+			// get the VM's virtual device list
+			devices, err := vm.Device(ctx)
+			g.Expect(err).ToNot(HaveOccurred())
+			// filter the device with the given backing info
+			pciDevices := devices.SelectByBackingInfo(&types.VirtualPCIPassthroughDynamicBackingInfo{
+				AllowedDevice: []types.VirtualPCIPassthroughAllowedDevice{
+					{DeviceId: 1234, VendorId: 5678},
+				}})
+			g.Expect(pciDevices).To(HaveLen(2))
+			return nil
+		})
+	})
 }

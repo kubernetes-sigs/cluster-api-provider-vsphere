@@ -21,6 +21,7 @@ import (
 
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -35,7 +36,7 @@ type FetchObjectInput struct {
 func FetchControlPlaneOwnerObject(input FetchObjectInput) (ctrlclient.Object, error) {
 	gvk := controlplanev1.GroupVersion
 	kcp := &controlplanev1.KubeadmControlPlane{}
-	if err := fetchOwnerOfKindInto(input, input.Client, gvk.String(), "KubeadmControlPlane", input.Object, kcp); err != nil {
+	if err := fetchOwnerOfKindInto(input, input.Client, gvk, "KubeadmControlPlane", input.Object, kcp); err != nil {
 		return nil, err
 	}
 	return kcp, nil
@@ -45,18 +46,18 @@ func FetchMachineDeploymentOwnerObject(input FetchObjectInput) (ctrlclient.Objec
 	gvk := clusterv1.GroupVersion
 
 	ms := &clusterv1.MachineSet{}
-	if err := fetchOwnerOfKindInto(input, input.Client, gvk.String(), "MachineSet", input.Object, ms); err != nil {
+	if err := fetchOwnerOfKindInto(input, input.Client, gvk, "MachineSet", input.Object, ms); err != nil {
 		return nil, err
 	}
 
 	md := &clusterv1.MachineDeployment{}
-	if err := fetchOwnerOfKindInto(input, input.Client, gvk.String(), "MachineDeployment", ms, md); err != nil {
+	if err := fetchOwnerOfKindInto(input, input.Client, gvk, "MachineDeployment", ms, md); err != nil {
 		return nil, err
 	}
 	return md, nil
 }
 
-func fetchOwnerOfKindInto(ctx context.Context, c ctrlclient.Client, gvk, kind string, fromObject ctrlclient.Object, intoObj ctrlclient.Object) error {
+func fetchOwnerOfKindInto(ctx context.Context, c ctrlclient.Client, gvk schema.GroupVersion, kind string, fromObject ctrlclient.Object, intoObj ctrlclient.Object) error {
 	ref, err := findOwnerRefWithKind(fromObject.GetOwnerReferences(), gvk, kind)
 	if err != nil {
 		return err
@@ -68,9 +69,13 @@ func fetchOwnerOfKindInto(ctx context.Context, c ctrlclient.Client, gvk, kind st
 	}, intoObj)
 }
 
-func findOwnerRefWithKind(ownerRefs []metav1.OwnerReference, gvk, kind string) (*metav1.OwnerReference, error) {
+func findOwnerRefWithKind(ownerRefs []metav1.OwnerReference, gvk schema.GroupVersion, kind string) (*metav1.OwnerReference, error) {
 	for _, ref := range ownerRefs {
-		if ref.APIVersion == gvk && ref.Kind == kind {
+		gv, err := schema.ParseGroupVersion(ref.APIVersion)
+		if err != nil {
+			return nil, err
+		}
+		if gv.Group == gvk.Group && ref.Kind == kind {
 			return &ref, nil
 		}
 	}

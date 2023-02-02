@@ -97,7 +97,6 @@ func VerifyLinkedClone(ctx context.Context, input LinkedCloneSpecInput) {
 	By("verifying linked clone")
 	vsphereVMs := FetchVsphereVMsForCluster(ctx, input.Global.BootstrapClusterProxy, clusterName, namespace.Name)
 	Expect(verifyDiskLayoutOfVMs(ctx, input.Finder, vsphereVMs)).To(Succeed())
-
 }
 
 func verifyDiskLayoutOfVMs(ctx context.Context, finder *find.Finder, vms []infrav1.VSphereVM) error {

@@ -46,6 +46,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/constants"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/version"
 )
 
@@ -278,6 +279,7 @@ func main() {
 	defer func(watch *fsnotify.Watcher) {
 		_ = watch.Close()
 	}(watch)
+	defer session.Clear()
 }
 
 func setupVAPIControllers(ctx *context.ControllerManagerContext, mgr ctrlmgr.Manager) error {

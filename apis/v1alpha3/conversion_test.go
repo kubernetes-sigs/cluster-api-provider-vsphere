@@ -99,7 +99,7 @@ func CustomObjectMetaFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {
 	}
 }
 
-//nolint
+// nolint
 func CustomObjectMetaFuzzer(in *clusterv1.ObjectMeta, c fuzz.Continue) {
 	c.FuzzNoCustom(in)
 

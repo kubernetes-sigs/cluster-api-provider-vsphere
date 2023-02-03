@@ -52,6 +52,7 @@ run:
   - "apis/v1alpha3/.*"
   - "apis/v1alpha4/.*"
   timeout: 5m
+  go: 1.18
 issue:
   max-same-issues: 0
   max-per-linter: 0

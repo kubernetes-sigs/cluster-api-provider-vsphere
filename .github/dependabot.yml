@@ -21,6 +21,8 @@ updates:
   # together with controller-runtime and CAPI dependencies.
   - dependency-name: "k8s.io/*"
   - dependency-name: "sigs.k8s.io/*"
+  - dependency-name: "sigs.k8s.io/cluster-api/test"
+    update-types: ["version-update:semver-major", "version-update:semver-minor"]
   commit-message:
     prefix: ":seedling:"
   labels:

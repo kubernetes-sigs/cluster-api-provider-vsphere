@@ -40,9 +40,14 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 )
 
-// global Session map against sessionKeys
-// in map[sessionKey]Session.
-var sessionCache sync.Map
+var (
+	// global Session map against sessionKeys in map[sessionKey]Session.
+	sessionCache sync.Map
+
+	// mutex to control access to the GetOrCreate function to avoid duplicate
+	// session creations on startup.
+	sessionMU sync.Mutex
+)
 
 // Session is a vSphere session with a configured Finder.
 type Session struct {
@@ -103,6 +108,8 @@ func (p *Params) WithFeatures(feature Feature) *Params {
 // already exist.
 func GetOrCreate(ctx context.Context, params *Params) (*Session, error) {
 	logger := ctrl.LoggerFrom(ctx).WithName("session")
+	sessionMU.Lock()
+	defer sessionMU.Unlock()
 
 	sessionKey := params.server + params.userinfo.Username() + params.datacenter
 	if cachedSession, ok := sessionCache.Load(sessionKey); ok {
@@ -212,29 +219,9 @@ func clearCache(logger logr.Logger, sessionKey string) {
 	if cachedSession, ok := sessionCache.Load(sessionKey); ok {
 		s := cachedSession.(*Session)
 
-		// check for the presence of tagmanager session
-		// since calling Logout on an expired session blocks
-		session, err := s.TagManager.Session(context.Background())
-		if err != nil {
-			logger.Error(err, "unable to get tag manager session")
-		}
-		if session != nil {
-			logger.V(6).Info("found active tag manager session, logging out")
-			err := s.TagManager.Logout(context.Background())
-			if err != nil {
-				logger.Error(err, "unable to logout tag manager session")
-			}
-		}
-
-		vimSessionActive, err := s.SessionManager.SessionIsActive(context.Background())
-		if err != nil {
-			logger.Error(err, "unable to get vim client session")
-		} else if vimSessionActive {
-			logger.V(6).Info("found active vim session, logging out")
-			err := s.SessionManager.Logout(context.Background())
-			if err != nil {
-				logger.Error(err, "unable to logout vim session")
-			}
+		logger.Info("performing session log out and clearing session", "key", sessionKey)
+		if err := s.Logout(context.Background()); err != nil {
+			logger.Error(err, "unable to logout session")
 		}
 	}
 	sessionCache.Delete(sessionKey)
@@ -252,7 +239,7 @@ func newManager(ctx context.Context, logger logr.Logger, sessionKey string, clie
 			return nil
 		}
 
-		logger.V(6).Info("rest client session expired, clearing cache")
+		logger.Info("rest client session expired, clearing cache")
 		clearCache(logger, sessionKey)
 		return errors.New("rest client session expired")
 	})
@@ -275,6 +262,15 @@ func (s *Session) GetVersion() (infrav1.VCenterVersion, error) {
 	default:
 		return "", unidentifiedVCenterVersion{version: svcVersion}
 	}
+}
+
+// Clear is meant to destroy all the cached sessions.
+func Clear() {
+	sessionCache.Range(func(key, s any) bool {
+		cachedSession := s.(*Session)
+		_ = cachedSession.Logout(context.Background())
+		return true
+	})
 }
 
 // FindByBIOSUUID finds an object by its BIOS UUID.

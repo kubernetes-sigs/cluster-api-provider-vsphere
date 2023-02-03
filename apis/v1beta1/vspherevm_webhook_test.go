@@ -30,7 +30,7 @@ const (
 	linuxVMName   = "linux-control-plane-qkkbv"
 )
 
-//nolint
+// nolint
 func TestVSphereVM_Default(t *testing.T) {
 	g := NewWithT(t)
 
@@ -51,7 +51,7 @@ func TestVSphereVM_Default(t *testing.T) {
 	g.Expect(LinuxVM.Name).To(Equal("linux-control-plane-qkkbv"))
 }
 
-//nolint
+// nolint
 func TestVSphereVM_ValidateCreate(t *testing.T) {
 	g := NewWithT(t)
 
@@ -98,7 +98,7 @@ func TestVSphereVM_ValidateCreate(t *testing.T) {
 	}
 }
 
-//nolint
+// nolint
 func TestVSphereVM_ValidateUpdate(t *testing.T) {
 	g := NewWithT(t)
 

@@ -75,6 +75,7 @@ func (r *VSphereVM) ValidateCreate() error {
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
+//
 //nolint:forcetypeassert
 func (r *VSphereVM) ValidateUpdate(old runtime.Object) error {
 	newVSphereVM, err := runtime.DefaultUnstructuredConverter.ToUnstructured(r)

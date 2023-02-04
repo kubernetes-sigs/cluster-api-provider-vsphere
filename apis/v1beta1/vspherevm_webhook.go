@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"net"
 	"reflect"
-	"strings"
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -43,11 +42,6 @@ func (r *VSphereVM) Default() {
 	// Set Linux as default OS value
 	if r.Spec.OS == "" {
 		r.Spec.OS = Linux
-	}
-
-	// Windows hostnames must be < 16 characters in length
-	if r.Spec.OS == Windows && len(r.Name) > 15 {
-		r.Name = strings.TrimSuffix(r.Name[0:9], "-") + "-" + r.Name[len(r.Name)-5:]
 	}
 }
 

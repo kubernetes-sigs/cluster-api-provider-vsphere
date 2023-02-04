@@ -52,13 +52,18 @@ func NewMachineContext(ctx *context.ClusterContext) *context.VIMMachineContext {
 }
 
 func newMachineV1a4() clusterv1.Machine {
+	dataSecretName := "fake-name"
 	return clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: Namespace,
 			Name:      Clusterv1a2Name,
 			UID:       Clusterv1a2UUID,
 		},
-		Spec: clusterv1.MachineSpec{},
+		Spec: clusterv1.MachineSpec{
+			Bootstrap: clusterv1.Bootstrap{
+				DataSecretName: &dataSecretName,
+			},
+		},
 	}
 }
 

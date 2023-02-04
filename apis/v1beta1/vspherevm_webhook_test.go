@@ -45,10 +45,6 @@ func TestVSphereVM_Default(t *testing.T) {
 	g.Expect(LinuxVM.Spec.OS).To(Equal(Linux))
 	g.Expect(WindowsVM.Spec.OS).To(Equal(Windows))
 	g.Expect(NoOSVM.Spec.OS).To(Equal(Linux))
-
-	// WindowsVM gets name updated to be 15 characters. Linux remains unchanged
-	g.Expect(WindowsVM.Name).To(Equal("cluster-m-2qj6q"))
-	g.Expect(LinuxVM.Name).To(Equal("linux-control-plane-qkkbv"))
 }
 
 //nolint
@@ -81,7 +77,7 @@ func TestVSphereVM_ValidateCreate(t *testing.T) {
 			wantErr:   true,
 		},
 		{
-			name:      "name too long for Linux VM",
+			name:      "no error with name too long for Linux VM",
 			vSphereVM: createVSphereVM(linuxVMName, "foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, nil, Linux),
 			wantErr:   false,
 		},

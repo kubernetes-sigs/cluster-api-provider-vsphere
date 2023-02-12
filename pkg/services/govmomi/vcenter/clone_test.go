@@ -34,7 +34,7 @@ import (
 )
 
 func TestGetDiskSpec(t *testing.T) {
-	defaultSizeGiB := int32(5)
+	defaultSizeGiB := int32(20)
 
 	model, session, server := initSimulator(t)
 	t.Cleanup(model.Remove)
@@ -80,7 +80,7 @@ func TestGetDiskSpec(t *testing.T) {
 			name:          "Fail to clone template with lower disk requirements then on template",
 			disks:         defaultDisks,
 			cloneDiskSize: defaultSizeGiB - 1,
-			err:           "Error getting disk config spec for primary disk: can't resize template disk down, initial capacity is larger: 6291456KiB > 4194304KiB",
+			err:           "Error getting disk config spec for primary disk: can't resize template disk down, initial capacity is larger: 22020096KiB > 19922944KiB",
 		},
 		{
 			name:  "Fail to clone template without disk devices",
@@ -100,7 +100,7 @@ func TestGetDiskSpec(t *testing.T) {
 			disks:                    append(defaultDisks, defaultDisks...),
 			cloneDiskSize:            defaultSizeGiB + 2,
 			additionalCloneDiskSizes: []int32{defaultSizeGiB},
-			err:                      "Error getting disk config spec for additional disk: can't resize template disk down, initial capacity is larger: 7340032KiB > 5242880KiB",
+			err:                      "Error getting disk config spec for additional disk: can't resize template disk down, initial capacity is larger: 23068672KiB > 20971520KiB",
 		},
 	}
 

@@ -26,11 +26,8 @@ import (
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/vim25/mo"
 	corev1 "k8s.io/api/core/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 )
@@ -95,12 +92,12 @@ func VerifyLinkedClone(ctx context.Context, input LinkedCloneSpecInput) {
 	}, clusterResources)
 
 	By("verifying linked clone")
-	vsphereVMs := FetchVsphereVMsForCluster(ctx, input.Global.BootstrapClusterProxy, clusterName, namespace.Name)
+	vsphereVMs := getVSphereVMsForCluster(clusterName, namespace.Name)
 	Expect(verifyDiskLayoutOfVMs(ctx, input.Finder, vsphereVMs)).To(Succeed())
 }
 
-func verifyDiskLayoutOfVMs(ctx context.Context, finder *find.Finder, vms []infrav1.VSphereVM) error {
-	for _, vm := range vms {
+func verifyDiskLayoutOfVMs(ctx context.Context, finder *find.Finder, vms *infrav1.VSphereVMList) error {
+	for _, vm := range vms.Items {
 		vmObj, err := finder.VirtualMachine(ctx, vm.Name)
 		if err != nil {
 			return err
@@ -119,18 +116,4 @@ func verifyDiskLayoutOfVMs(ctx context.Context, finder *find.Finder, vms []infra
 		}
 	}
 	return nil
-}
-
-func FetchVsphereVMsForCluster(ctx context.Context, bootstrapClusterProxy framework.ClusterProxy, clusterName, ns string) []infrav1.VSphereVM {
-	vms := &infrav1.VSphereVMList{}
-	err := bootstrapClusterProxy.GetClient().List(
-		ctx,
-		vms,
-		client.InNamespace(ns),
-		client.MatchingLabels{
-			clusterv1.ClusterLabelName: clusterName,
-		})
-	Expect(err).ToNot(HaveOccurred())
-
-	return vms.Items
 }

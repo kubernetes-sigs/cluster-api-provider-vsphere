@@ -154,14 +154,6 @@ func Clone(ctx *context.VMContext, bootstrapData []byte, format bootstrapv1.Form
 		return errors.Wrapf(err, "error getting network specs for %q", ctx)
 	}
 
-	if len(ctx.VSphereVM.Spec.VirtualMachineCloneSpec.PciDevices) != 0 {
-		gpuSpecs, _ := getGpuSpecs(ctx)
-		if err != nil {
-			return errors.Wrapf(err, "error getting gpu specs for %q", ctx)
-		}
-		deviceSpecs = append(deviceSpecs, gpuSpecs...)
-	}
-
 	numCPUs := ctx.VSphereVM.Spec.NumCPUs
 	if numCPUs < 2 {
 		numCPUs = 2
@@ -426,43 +418,5 @@ func getNetworkSpecs(ctx *context.VMContext, devices object.VirtualDeviceList) (
 		key--
 	}
 
-	return deviceSpecs, nil
-}
-
-func createPCIPassThroughDevice(deviceKey int32, backingInfo types.BaseVirtualDeviceBackingInfo) types.BaseVirtualDevice {
-	device := &types.VirtualPCIPassthrough{
-		VirtualDevice: types.VirtualDevice{
-			Key:     deviceKey,
-			Backing: backingInfo,
-		},
-	}
-	return device
-}
-
-func getGpuSpecs(ctx *context.VMContext) ([]types.BaseVirtualDeviceConfigSpec, error) {
-	deviceSpecs := []types.BaseVirtualDeviceConfigSpec{}
-	deviceKey := int32(-200)
-
-	expectedPciDevices := ctx.VSphereVM.Spec.VirtualMachineCloneSpec.PciDevices
-	if len(expectedPciDevices) == 0 {
-		return nil, errors.Errorf("Invalid pci device count count: %d", len(expectedPciDevices))
-	}
-
-	for _, pciDevice := range expectedPciDevices {
-		backingInfo := &types.VirtualPCIPassthroughDynamicBackingInfo{
-			AllowedDevice: []types.VirtualPCIPassthroughAllowedDevice{
-				{
-					VendorId: *pciDevice.VendorID,
-					DeviceId: *pciDevice.DeviceID,
-				},
-			},
-		}
-		dynamicDirectPathDevice := createPCIPassThroughDevice(deviceKey, backingInfo)
-		deviceSpecs = append(deviceSpecs, &types.VirtualDeviceConfigSpec{
-			Device:    dynamicDirectPathDevice,
-			Operation: types.VirtualDeviceConfigSpecOperationAdd,
-		})
-		deviceKey--
-	}
 	return deviceSpecs, nil
 }

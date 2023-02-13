@@ -11,11 +11,11 @@
 # - from the CAPV repository root, `make e2e` to build the vsphere provider image and run e2e tests.
 
 images:
-  - name: k8s.gcr.io/cluster-api/cluster-api-controller:v1.1.0
+  - name: registry.k8s.io/cluster-api/cluster-api-controller:v1.1.0
     loadBehavior: tryLoad
-  - name: k8s.gcr.io/cluster-api/kubeadm-bootstrap-controller:v1.1.0
+  - name: registry.k8s.io/cluster-api/kubeadm-bootstrap-controller:v1.1.0
     loadBehavior: tryLoad
-  - name: k8s.gcr.io/cluster-api/kubeadm-control-plane-controller:v1.1.0
+  - name: registry.k8s.io/cluster-api/kubeadm-control-plane-controller:v1.1.0
     loadBehavior: tryLoad
   - name: gcr.io/k8s-staging-cluster-api/capv-manager:e2e
     loadBehavior: mustLoad

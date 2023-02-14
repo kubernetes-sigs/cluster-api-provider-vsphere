@@ -48,4 +48,3 @@ verify_go_version
 
 # Explicitly opt into go modules.
 export GO111MODULE=on
-export GOFLAGS="-mod=vendor"

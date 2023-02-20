@@ -8,8 +8,8 @@ require (
 	github.com/google/gofuzz v1.2.0
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-version v1.3.0
-	github.com/onsi/ginkgo/v2 v2.7.0
-	github.com/onsi/gomega v1.24.1
+	github.com/onsi/ginkgo/v2 v2.8.3
+	github.com/onsi/gomega v1.27.0
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.6.1
 	github.com/stretchr/testify v1.8.0
@@ -20,10 +20,10 @@ require (
 	github.com/vmware/govmomi v0.30.2
 	golang.org/x/crypto v0.5.0
 	golang.org/x/exp v0.0.0-20221002003631-540bb7301a08
-	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4
-	golang.org/x/net v0.5.0
+	golang.org/x/mod v0.8.0
+	golang.org/x/net v0.7.0
 	golang.org/x/oauth2 v0.0.0-20220909003341-f21342109be1
-	golang.org/x/text v0.6.0
+	golang.org/x/text v0.7.0
 	gopkg.in/gcfg.v1 v1.2.3
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.25.0
@@ -35,7 +35,7 @@ require (
 	k8s.io/klog/v2 v2.80.1
 	k8s.io/utils v0.0.0-20220823124924-e9cbc92d1a73
 	sigs.k8s.io/cluster-api v1.3.0
-	sigs.k8s.io/cluster-api/test v1.3.0
+	sigs.k8s.io/cluster-api/test v1.3.3
 	sigs.k8s.io/controller-runtime v0.13.1
 	sigs.k8s.io/kind v0.17.0
 	sigs.k8s.io/yaml v1.3.0
@@ -45,8 +45,10 @@ require (
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/emicklei/go-restful/v3 v3.9.0 // indirect
 	github.com/go-logr/zapr v1.2.3 // indirect
+	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
 	github.com/google/gnostic v0.6.9 // indirect
 	github.com/google/go-github/v45 v45.2.0 // indirect
+	github.com/google/pprof v0.0.0-20210407192527-94a9f03dee38 // indirect
 	github.com/google/safetext v0.0.0-20220905092116-b49f7bc46da2 // indirect
 	github.com/moby/term v0.0.0-20220808134915-39b0c02b01ae // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
@@ -56,16 +58,17 @@ require (
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.22.0 // indirect
-	golang.org/x/sys v0.4.0 // indirect
-	golang.org/x/term v0.4.0 // indirect
+	golang.org/x/sys v0.5.0 // indirect
+	golang.org/x/term v0.5.0 // indirect
+	golang.org/x/tools v0.6.0 // indirect
 )
 
 require (
 	github.com/BurntSushi/toml v1.0.0 // indirect
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
-	github.com/Masterminds/semver/v3 v3.1.1 // indirect
-	github.com/Masterminds/sprig/v3 v3.2.2 // indirect
+	github.com/Masterminds/semver/v3 v3.2.0 // indirect
+	github.com/Masterminds/sprig/v3 v3.2.3 // indirect
 	github.com/Microsoft/go-winio v0.5.0 // indirect
 	github.com/alessio/shellescape v1.4.1 // indirect
 	github.com/antlr/antlr4/runtime/Go/antlr v0.0.0-20220816024939-bc8df83d7b9d // indirect

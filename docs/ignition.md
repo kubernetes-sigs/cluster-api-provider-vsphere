@@ -6,12 +6,19 @@ support Ignition could likely be used as well.
 
 ## Requirements
 
+- A vSphere environment
+- A Flatcar OVA template (see blow)
 - Docker
 - [Kind][3] version `0.14.0` or higher
 - kubectl
 - [clusterctl][4]
 
 ## Deployment
+
+Ensure your vSphere environment has a Flatcar OVA template either by [building an image][5] using
+image-builder (recommended) or by [importing a prebuilt image][6] using a published [OVA URL][7].
+Ensure the built/imported image is marked as a template. Use the template name as the value of the
+`VSPHERE_TEMPLATE` variable below.
 
 Set required environment variables:
 
@@ -171,3 +178,6 @@ kind delete cluster
 [2]: https://www.flatcar.org/
 [3]: https://kind.sigs.k8s.io/
 [4]: https://cluster-api.sigs.k8s.io/user/quick-start.html#install-clusterctl
+[5]: https://image-builder.sigs.k8s.io/capi/providers/vsphere.html
+[6]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.vm_admin.doc/GUID-17BEDA21-43F6-41F4-8FB2-E01D275FE9B4.html
+[7]: https://storage.googleapis.com/capv-templates/v1.25.6/flatcar-stable-3374.2.4-kube-v1.25.6.ova

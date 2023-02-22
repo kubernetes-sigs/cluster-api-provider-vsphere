@@ -17,15 +17,13 @@ limitations under the License.
 package e2e
 
 import (
-	"context"
-
 	. "github.com/onsi/ginkgo/v2"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 )
 
 var _ = Describe("ClusterAPI Machine Deployment Tests", func() {
 	Context("Running the MachineDeployment rollout spec", func() {
-		capi_e2e.MachineDeploymentRolloutSpec(context.TODO(), func() capi_e2e.MachineDeploymentRolloutSpecInput {
+		capi_e2e.MachineDeploymentRolloutSpec(ctx, func() capi_e2e.MachineDeploymentRolloutSpecInput {
 			return capi_e2e.MachineDeploymentRolloutSpecInput{
 				E2EConfig:             e2eConfig,
 				ClusterctlConfigPath:  clusterctlConfigPath,

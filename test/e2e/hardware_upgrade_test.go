@@ -93,9 +93,9 @@ func VerifyHardwareUpgrade(ctx context.Context, input HardwareUpgradeSpecInput) 
 	clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 		ClusterProxy:                 input.Global.BootstrapClusterProxy,
 		ConfigCluster:                configCluster,
-		WaitForClusterIntervals:      input.Global.E2EConfig.GetIntervals("", "wait-cluster"),
-		WaitForControlPlaneIntervals: input.Global.E2EConfig.GetIntervals("", "wait-control-plane"),
-		WaitForMachineDeployments:    input.Global.E2EConfig.GetIntervals("", "wait-worker-nodes"),
+		WaitForClusterIntervals:      input.Global.E2EConfig.GetIntervals(specName, "wait-cluster"),
+		WaitForControlPlaneIntervals: input.Global.E2EConfig.GetIntervals(specName, "wait-control-plane"),
+		WaitForMachineDeployments:    input.Global.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 	}, clusterResources)
 
 	Byf("Fetching the VSphereVM objects for the cluster %s", clusterName)

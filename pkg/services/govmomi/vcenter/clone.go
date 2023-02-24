@@ -350,12 +350,16 @@ func getDiskSpec(ctx *context.VMContext, devices object.VirtualDeviceList) ([]ty
 }
 
 func getDiskConfigSpec(disk *types.VirtualDisk, diskCloneCapacityKB int64) (types.BaseVirtualDeviceConfigSpec, error) {
-	if disk.CapacityInKB > diskCloneCapacityKB {
+	switch {
+	case diskCloneCapacityKB == 0:
+		// No disk size specified for the clone. Default to the template disk capacity.
+	case diskCloneCapacityKB > 0 && diskCloneCapacityKB >= disk.CapacityInKB:
+		disk.CapacityInKB = diskCloneCapacityKB
+	case diskCloneCapacityKB > 0 && diskCloneCapacityKB < disk.CapacityInKB:
 		return nil, errors.Errorf(
 			"can't resize template disk down, initial capacity is larger: %dKiB > %dKiB",
 			disk.CapacityInKB, diskCloneCapacityKB)
 	}
-	disk.CapacityInKB = diskCloneCapacityKB
 
 	return &types.VirtualDeviceConfigSpec{
 		Operation: types.VirtualDeviceConfigSpecOperationEdit,

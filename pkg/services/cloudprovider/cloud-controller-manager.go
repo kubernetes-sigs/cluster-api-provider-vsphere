@@ -106,9 +106,6 @@ func CloudControllerManagerDaemonSet(image string, args []string) *appsv1.Daemon
 					},
 				},
 				Spec: corev1.PodSpec{
-					NodeSelector: map[string]string{
-						"node-role.kubernetes.io/master": "",
-					},
 					SecurityContext: &corev1.PodSecurityContext{
 						RunAsUser: int64ptr(0),
 					},
@@ -120,6 +117,10 @@ func CloudControllerManagerDaemonSet(image string, args []string) *appsv1.Daemon
 						},
 						{
 							Key:    "node-role.kubernetes.io/master",
+							Effect: corev1.TaintEffectNoSchedule,
+						},
+						{
+							Key:    "node-role.kubernetes.io/control-plane",
 							Effect: corev1.TaintEffectNoSchedule,
 						},
 						{

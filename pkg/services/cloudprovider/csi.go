@@ -406,13 +406,14 @@ func CSIControllerDeployment(storageConfig *types.CPIStorageConfig) *appsv1.Depl
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName: CSIControllerName,
-					NodeSelector: map[string]string{
-						"node-role.kubernetes.io/master": "",
-					},
 					Tolerations: []corev1.Toleration{
-
 						{
 							Key:      "node-role.kubernetes.io/master",
+							Operator: corev1.TolerationOpExists,
+							Effect:   corev1.TaintEffectNoSchedule,
+						},
+						{
+							Key:      "node-role.kubernetes.io/control-plane",
 							Operator: corev1.TolerationOpExists,
 							Effect:   corev1.TaintEffectNoSchedule,
 						},

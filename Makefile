@@ -166,6 +166,7 @@ test-integration: $(GINKGO) $(KUSTOMIZE) $(KIND)
 
 GINKGO_FOCUS ?=
 GINKGO_SKIP ?=
+GINKGO_TEST_TIMEOUT ?= 2h
 
 # to set multiple ginkgo skip flags, if any
 ifneq ($(strip $(GINKGO_SKIP)),)
@@ -180,7 +181,7 @@ e2e: $(GINKGO) $(KUSTOMIZE) $(KIND) $(GOVC) ## Run e2e tests
 	@echo Contents of $(TOOLS_BIN_DIR):
 	@ls $(TOOLS_BIN_DIR)
 	@echo
-	time $(GINKGO) -v -focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) ./test/e2e -- \
+	time $(GINKGO) -v -focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) -timeout=$(GINKGO_TEST_TIMEOUT) ./test/e2e -- \
 		--e2e.config="$(E2E_CONF_FILE)" \
 		--e2e.artifacts-folder="$(ARTIFACTS_PATH)" \
 		--e2e.skip-resource-cleanup=$(SKIP_RESOURCE_CLEANUP) \

@@ -38,6 +38,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/identity"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers"
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers/vcsim"
 )
@@ -408,6 +409,125 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 			err := testEnv.Get(ctx, key, instance)
 			return apierrors.IsNotFound(err)
 		}, timeout).Should(BeTrue())
+	})
+
+	Context("Reconcile delete with CleanClusterIdentitySecrets=false", func() {
+		var (
+			ctx             context.Context
+			secret          *corev1.Secret
+			capiCluster     *clusterv1.Cluster
+			instance        *infrav1.VSphereCluster
+			legacyFinalizer = "identity/infrastructure.cluster.x-k8s.io"
+			key             client.ObjectKey
+			customTestEnv   = helpers.NewTestEnvironment(func(options manager.Options) {
+				options.CleanClusterIdentitySecrets = false
+			})
+		)
+		defer func() {
+			if err := customTestEnv.Stop(); err != nil {
+				panic(fmt.Sprintf("Failed to stop customTestEnv: %v", err))
+			}
+		}()
+		It("should remove legacy finalizer if present during the cluster deletion", func() {
+			ctx = context.Background()
+			capiCluster = &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					GenerateName: "test1-",
+					Namespace:    "default",
+				},
+				Spec: clusterv1.ClusterSpec{
+					InfrastructureRef: &corev1.ObjectReference{
+						APIVersion: infrav1.GroupVersion.String(),
+						Kind:       "VsphereCluster",
+						Name:       "vsphere-test1",
+					},
+				},
+			}
+			defer func() {
+				Expect(customTestEnv.Cleanup(ctx, capiCluster)).To(Succeed())
+			}()
+
+			// Create the CAPI cluster (owner) object
+			Expect(customTestEnv.Create(ctx, capiCluster)).To(Succeed())
+
+			fakeVCenter := startVcenter()
+			vcURL := fakeVCenter.ServerURL()
+			defer fakeVCenter.Destroy()
+			// Create the secret containing the credentials
+			password, _ := vcURL.User.Password()
+
+			secret = &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					GenerateName: "secret-",
+					Namespace:    "default",
+					Finalizers:   []string{legacyFinalizer},
+				},
+				Data: map[string][]byte{
+					identity.UsernameKey: []byte(vcURL.User.Username()),
+					identity.PasswordKey: []byte(password),
+				},
+			}
+			Expect(customTestEnv.Create(ctx, secret)).To(Succeed())
+			Eventually(func() error {
+				secretKey := client.ObjectKey{Namespace: secret.Namespace, Name: secret.Name}
+				return customTestEnv.Get(ctx, secretKey, secret)
+			}).Should(BeNil())
+
+			// Create the VSphereCluster object
+			instance = &infrav1.VSphereCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "vsphere-test1",
+					Namespace: "default",
+				},
+				Spec: infrav1.VSphereClusterSpec{
+					IdentityRef: &infrav1.VSphereIdentityReference{
+						Kind: infrav1.SecretKind,
+						Name: secret.Name,
+					},
+					Server: fmt.Sprintf("%s://%s", vcURL.Scheme, vcURL.Host),
+				},
+			}
+			Expect(customTestEnv.Create(ctx, instance)).To(Succeed())
+
+			// Make sure the VSphereCluster exists.
+			key = client.ObjectKey{Namespace: instance.Namespace, Name: instance.Name}
+			Eventually(func() error {
+				return customTestEnv.Get(ctx, key, instance)
+			}, timeout).Should(BeNil())
+
+			By("setting the OwnerRef on the VSphereCluster")
+			Eventually(func() bool {
+				ph, err := patch.NewHelper(instance, customTestEnv)
+				Expect(err).ShouldNot(HaveOccurred())
+				instance.OwnerReferences = append(instance.OwnerReferences, metav1.OwnerReference{Kind: "Cluster", APIVersion: clusterv1.GroupVersion.String(), Name: capiCluster.Name, UID: "blah"})
+				Expect(ph.Patch(ctx, instance, patch.WithStatusObservedGeneration{})).ShouldNot(HaveOccurred())
+				return true
+			}, timeout).Should(BeTrue())
+
+			By("setting the VSphereCluster's VCenterAvailableCondition to true")
+			Eventually(func() bool {
+				if err := testEnv.Get(ctx, key, instance); err != nil {
+					return false
+				}
+				return conditions.IsTrue(instance, infrav1.VCenterAvailableCondition)
+			}, timeout).Should(BeTrue())
+
+			By("deleting the vspherecluster which has the secret with legacy finalizer")
+			Eventually(func() error {
+				return customTestEnv.Delete(ctx, instance)
+			}, timeout).Should(BeNil())
+			// confirm that the VSphereCluster is deleted
+			Eventually(func() bool {
+				err := customTestEnv.Get(ctx, key, instance)
+				return apierrors.IsNotFound(err)
+			}, timeout).Should(BeTrue())
+
+			By("checking that the secret was not deleted")
+			secretKey := client.ObjectKey{Namespace: secret.Namespace, Name: secret.Name}
+			Eventually(func() error {
+				return customTestEnv.Get(ctx, secretKey, secret)
+			}, timeout).Should(BeNil())
+		})
 	})
 
 	Context("With Deployment Zones", func() {

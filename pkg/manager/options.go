@@ -44,6 +44,10 @@ type Options struct {
 	// for better load management on vSphere api server
 	EnableKeepAlive bool
 
+	// CleanClusterIdentitySecrets when enabled, the controller will remove also
+	// the secret referenced in VSphereCluster.spec.identityRef
+	CleanClusterIdentitySecrets bool
+
 	// MaxConcurrentReconciles the maximum number of allowed, concurrent
 	// reconciles.
 	//

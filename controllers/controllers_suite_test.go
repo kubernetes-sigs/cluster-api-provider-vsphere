@@ -60,7 +60,7 @@ func setup() {
 	utilruntime.Must(clusterv1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(vmwarev1.AddToScheme(scheme.Scheme))
 
-	testEnv = helpers.NewTestEnvironment()
+	testEnv = helpers.NewTestEnvironment(nil)
 
 	if err := AddClusterControllerToManager(testEnv.GetContext(), testEnv.Manager, &infrav1.VSphereCluster{}); err != nil {
 		panic(fmt.Sprintf("unable to setup VsphereCluster controller: %v", err))

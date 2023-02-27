@@ -60,13 +60,14 @@ var (
 
 	tlsOptions = flags.TLSOptions{}
 
-	defaultProfilerAddr      = os.Getenv("PROFILER_ADDR")
-	defaultSyncPeriod        = manager.DefaultSyncPeriod
-	defaultLeaderElectionID  = manager.DefaultLeaderElectionID
-	defaultPodName           = manager.DefaultPodName
-	defaultWebhookPort       = manager.DefaultWebhookServiceContainerPort
-	defaultEnableKeepAlive   = constants.DefaultEnableKeepAlive
-	defaultKeepAliveDuration = constants.DefaultKeepAliveDuration
+	defaultProfilerAddr                = os.Getenv("PROFILER_ADDR")
+	defaultSyncPeriod                  = manager.DefaultSyncPeriod
+	defaultLeaderElectionID            = manager.DefaultLeaderElectionID
+	defaultPodName                     = manager.DefaultPodName
+	defaultWebhookPort                 = manager.DefaultWebhookServiceContainerPort
+	defaultEnableKeepAlive             = constants.DefaultEnableKeepAlive
+	defaultKeepAliveDuration           = constants.DefaultKeepAliveDuration
+	defaultCleanClusterIdentitySecrets = constants.DefaultCleanClusterIdentitySecrets
 )
 
 // InitFlags initializes the flags.
@@ -142,6 +143,11 @@ func InitFlags(fs *pflag.FlagSet) {
 		defaultKeepAliveDuration,
 		"idle time interval(minutes) in between send() requests in keepalive handler",
 	)
+	flag.BoolVar(
+		&managerOpts.CleanClusterIdentitySecrets,
+		"clean-cluster-identity-secrets",
+		defaultCleanClusterIdentitySecrets,
+		"feature to enable automatic secret deletion when deleting the vspherecluster. This functionality is enabled by default")
 	flag.StringVar(
 		&managerOpts.NetworkProvider,
 		"network-provider",

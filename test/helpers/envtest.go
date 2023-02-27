@@ -109,7 +109,7 @@ type (
 )
 
 // NewTestEnvironment creates a new environment spinning up a local api-server.
-func NewTestEnvironment() *TestEnvironment {
+func NewTestEnvironment(overrideConfig func(manager.Options)) *TestEnvironment {
 	// initialize webhook here to be able to test the envtest install via webhookOptions
 	initializeWebhookInEnvironment()
 
@@ -137,6 +137,9 @@ func NewTestEnvironment() *TestEnvironment {
 		KubeConfig: env.Config,
 		Username:   simr.Username(),
 		Password:   simr.Password(),
+	}
+	if overrideConfig != nil {
+		overrideConfig(managerOpts)
 	}
 	managerOpts.AddToManager = func(ctx *context.ControllerManagerContext, mgr ctrlmgr.Manager) error {
 		if err := (&infrav1.VSphereMachine{}).SetupWebhookWithManager(mgr); err != nil {

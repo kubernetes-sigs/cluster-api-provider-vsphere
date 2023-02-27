@@ -54,6 +54,10 @@ const (
 	// DefaultEnableKeepAlive is false by default.
 	DefaultEnableKeepAlive = false
 
+	// DefaultCleanClusterIdentitySecrets when enabled, the controller will remove also
+	// the secret referenced in VSphereCluster.spec.identityRef.
+	DefaultCleanClusterIdentitySecrets = true
+
 	// KeepaliveDuration unit minutes.
 	DefaultKeepAliveDuration = time.Minute * 5
 

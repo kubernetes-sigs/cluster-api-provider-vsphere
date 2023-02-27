@@ -202,8 +202,10 @@ func (r clusterReconciler) reconcileDelete(ctx *context.ClusterContext) (reconci
 		if err := ctx.Client.Update(ctx, secret); err != nil {
 			return reconcile.Result{}, err
 		}
-		if err := ctx.Client.Delete(ctx, secret); err != nil {
-			return reconcile.Result{}, err
+		if ctx.CleanClusterIdentitySecrets {
+			if err := ctx.Client.Delete(ctx, secret); err != nil {
+				return reconcile.Result{}, err
+			}
 		}
 	}
 

@@ -114,6 +114,7 @@ func (vms *VMService) ReconcileVM(ctx *context.VMContext) (vm infrav1.VirtualMac
 		err = createVM(ctx, bootstrapData, format)
 		if err != nil {
 			conditions.MarkFalse(ctx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.CloningFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+			return vm, err
 		}
 		return vm, nil
 	}

@@ -118,12 +118,11 @@ CONTROL_PLANE_ENDPOINT_IP: "192.168.9.230"                    # the IP that kube
 VIP_NETWORK_INTERFACE: "ens192"                               # The interface that kube-vip should apply the IP to. Omit to tell kube-vip to autodetect the interface.
 VSPHERE_TLS_THUMBPRINT: "..."                                 # sha1 thumbprint of the vcenter certificate: openssl x509 -sha1 -fingerprint -in ca.crt -noout
 EXP_CLUSTER_RESOURCE_SET: "true"                              # This enables the ClusterResourceSet feature that we are using to deploy CSI
-VSPHERE_SSH_AUTHORIZED_KEY: "ssh-rsa AAAAB3N..."              # The public ssh authorized key on all machines
-                                                              #   in this cluster.
-                                                              #   Set to "" if you don't want to enable SSH,
-                                                              #   or are using another solution.
-VSPHERE_STORAGE_POLICY: ""                                    # This is the vSphere storage policy.
-                                                              #  Set it to "" if you don't want to use a storage policy.
+VSPHERE_SSH_AUTHORIZED_KEY: "ssh-rsa AAAAB3N..."              # The public ssh authorized key on all machines in this cluster.
+                                                              #  Set to "" if you don't want to enable SSH, or are using another solution.
+VSPHERE_STORAGE_POLICY: ""                                    # This is the vSphere storage policy. Set it to "" if you don't want to use a storage policy.
+"CPI_IMAGE_K8S_VERSION": "v1.25.0"                            # The version of the vSphere CPI image to be used by the CPI workloads
+                                                              #  Keep this close to the minimum Kubernetes version of the cluster being created.
 ```
 
 If you are using the **DEPRECATED** `haproxy` flavour you will need to add the following variable to your `clusterctl.yaml`:

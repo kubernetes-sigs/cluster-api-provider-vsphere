@@ -129,6 +129,7 @@ providers:
 
 variables:
   KUBERNETES_VERSION: "v1.25.6"
+  CPI_IMAGE_K8S_VERSION: "v1.25.0"
   CNI: "./data/cni/calico/calico.yaml"
   EXP_CLUSTER_RESOURCE_SET: "true"
   EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION: "true"

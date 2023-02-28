@@ -187,6 +187,7 @@ func newClient(ctx context.Context, logger logr.Logger, sessionKey string, url *
 	if err != nil {
 		return nil, err
 	}
+	vimClient.UserAgent = "k8s-capv-useragent"
 
 	c := &govmomi.Client{
 		Client:         vimClient,

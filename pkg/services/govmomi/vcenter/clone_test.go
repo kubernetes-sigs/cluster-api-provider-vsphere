@@ -24,6 +24,7 @@ import (
 
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/simulator"
+
 	// run init func to register the tagging API endpoints.
 	_ "github.com/vmware/govmomi/vapi/simulator"
 	"github.com/vmware/govmomi/vim25/types"
@@ -74,6 +75,12 @@ func TestGetDiskSpec(t *testing.T) {
 			name:          "Successfully clone template and increase disk requirements",
 			disks:         defaultDisks,
 			cloneDiskSize: defaultSizeGiB + 1,
+			expectDevice:  true,
+		},
+		{
+			name:          "Successfully clone template with no explicit disk requirements",
+			disks:         defaultDisks,
+			cloneDiskSize: 0,
 			expectDevice:  true,
 		},
 		{
@@ -144,7 +151,10 @@ func TestGetDiskSpec(t *testing.T) {
 func validateDiskSpec(t *testing.T, device types.BaseVirtualDeviceConfigSpec, cloneDiskSize int32) {
 	t.Helper()
 	disk := device.GetVirtualDeviceConfigSpec().Device.(*types.VirtualDisk)
-	expectedSizeKB := int64(cloneDiskSize) * 1024 * 1024
+	expectedSizeKB := disk.CapacityInKB
+	if cloneDiskSize > 0 {
+		expectedSizeKB = int64(cloneDiskSize) * 1024 * 1024
+	}
 	if device.GetVirtualDeviceConfigSpec().Operation != types.VirtualDeviceConfigSpecOperationEdit {
 		t.Errorf("Disk operation does not match '%s', got: %s",
 			types.VirtualDeviceConfigSpecOperationEdit, device.GetVirtualDeviceConfigSpec().Operation)

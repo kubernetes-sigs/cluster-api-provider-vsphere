@@ -66,7 +66,7 @@ CONVERSION_VERIFIER := $(abspath $(TOOLS_BIN_DIR)/conversion-verifier)
 GO_APIDIFF := $(TOOLS_BIN_DIR)/go-apidiff
 RELEASE_NOTES := $(TOOLS_BIN_DIR)/release-notes
 TOOLING_BINARIES := $(CONTROLLER_GEN) $(CONVERSION_GEN) $(GINKGO) $(GOLANGCI_LINT) $(GOVC) $(KIND) $(KUSTOMIZE) $(CONVERSION_VERIFIER) $(GO_APIDIFF) $(RELEASE_NOTES)
-ARTIFACTS_PATH := $(ROOT_DIR)/_artifacts
+ARTIFACTS ?= $(ROOT_DIR)/_artifacts
 
 # Set --output-base for conversion-gen if we are not within GOPATH
 ifneq ($(abspath $(ROOT_DIR)),$(shell go env GOPATH)/src/sigs.k8s.io/cluster-api-provider-vsphere)
@@ -162,7 +162,7 @@ e2e-templates: ## Generate e2e cluster templates
 .PHONY: test-integration
 test-integration: e2e-image
 test-integration: $(GINKGO) $(KUSTOMIZE) $(KIND)
-	time $(GINKGO) -v ./test/integration -- --config="$(INTEGRATION_CONF_FILE)" --artifacts-folder="$(ARTIFACTS_PATH)"
+	time $(GINKGO) -v ./test/integration -- --config="$(INTEGRATION_CONF_FILE)" --artifacts-folder="$(ARTIFACTS)"
 
 GINKGO_FOCUS ?=
 GINKGO_SKIP ?=
@@ -181,9 +181,10 @@ e2e: $(GINKGO) $(KUSTOMIZE) $(KIND) $(GOVC) ## Run e2e tests
 	@echo Contents of $(TOOLS_BIN_DIR):
 	@ls $(TOOLS_BIN_DIR)
 	@echo
-	time $(GINKGO) -v -focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) -timeout=$(GINKGO_TEST_TIMEOUT) ./test/e2e -- \
+	time $(GINKGO) -v -focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) -timeout=$(GINKGO_TEST_TIMEOUT) \
+		--output-dir="$(ARTIFACTS)" --junit-report="junit.e2e_suite.1.xml" ./test/e2e -- \
 		--e2e.config="$(E2E_CONF_FILE)" \
-		--e2e.artifacts-folder="$(ARTIFACTS_PATH)" \
+		--e2e.artifacts-folder="$(ARTIFACTS)" \
 		--e2e.skip-resource-cleanup=$(SKIP_RESOURCE_CLEANUP) \
 		--e2e.use-existing-cluster="$(USE_EXISTING_CLUSTER)"
 

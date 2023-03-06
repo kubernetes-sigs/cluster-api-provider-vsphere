@@ -9,8 +9,6 @@ metadata:
 spec:
   group: infrastructure.cluster.x-k8s.io
   names:
-    categories:
-    - cluster-api
     kind: VSphereVM
     listKind: VSphereVMList
     plural: vspherevms

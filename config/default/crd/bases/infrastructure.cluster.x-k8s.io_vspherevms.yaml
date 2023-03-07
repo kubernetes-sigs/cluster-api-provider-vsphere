@@ -81,7 +81,6 @@ spec:
                     description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
                     type: string
                 type: object
-                x-kubernetes-map-type: atomic
               cloneMode:
                 description: CloneMode specifies the type of clone operation. The
                   LinkedClone mode is only support for templates that have at least
@@ -910,6 +909,7 @@ spec:
                     description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
                     type: string
                 type: object
+                x-kubernetes-map-type: atomic
               cloneMode:
                 description: CloneMode specifies the type of clone operation. The
                   LinkedClone mode is only support for templates that have at least
@@ -991,10 +991,10 @@ spec:
                                 description: Name is the name of resource being referenced
                                 type: string
                             required:
-                            - apiGroup
                             - kind
                             - name
                             type: object
+                            x-kubernetes-map-type: atomic
                           type: array
                         deviceName:
                           description: DeviceName may be used to explicitly assign

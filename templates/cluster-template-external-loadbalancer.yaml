@@ -390,8 +390,6 @@ stringData:
     stringData:
       csi-vsphere.conf: |+
         [Global]
-        insecure-flag = true
-        thumbprint = "${VSPHERE_TLS_THUMBPRINT}"
         cluster-id = "${NAMESPACE}/${CLUSTER_NAME}"
 
         [VirtualCenter "${VSPHERE_SERVER}"]

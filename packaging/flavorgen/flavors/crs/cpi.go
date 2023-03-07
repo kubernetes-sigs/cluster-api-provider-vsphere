@@ -27,18 +27,25 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 
+	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/cloudprovider"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/env"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/cloudprovider"
 )
+
+func addCPILabels(o metav1.Object, cpiInfraLabelValue string) {
+	labels := map[string]string{}
+	if o.GetLabels() != nil {
+		labels = o.GetLabels()
+	}
+	labels["vsphere-cpi-infra"] = cpiInfraLabelValue
+	labels["component"] = "cloud-controller-manager"
+	o.SetLabels(labels)
+}
 
 // CreateCrsResourceObjectsCPI creates the api objects necessary for CSI to function.
 // Also appends the resources to the CRS.
 func CreateCrsResourceObjectsCPI(crs *addonsv1.ClusterResourceSet) []runtime.Object {
 	serviceAccount := cloudprovider.CloudControllerManagerServiceAccount()
-	serviceAccount.TypeMeta = metav1.TypeMeta{
-		Kind:       "ServiceAccount",
-		APIVersion: corev1.SchemeGroupVersion.String(),
-	}
+	addCPILabels(serviceAccount, "service-account")
 	serviceAccountSecret := newSecret(serviceAccount.Name, serviceAccount)
 	appendSecretToCrsResource(crs, serviceAccountSecret)
 
@@ -46,6 +53,7 @@ func CreateCrsResourceObjectsCPI(crs *addonsv1.ClusterResourceSet) []runtime.Obj
 	credentials[fmt.Sprintf("%s.username", env.VSphereServerVar)] = env.VSphereUsername
 	credentials[fmt.Sprintf("%s.password", env.VSphereServerVar)] = env.VSpherePassword
 	cpiSecret := cpiCredentials(credentials)
+	addCPILabels(cpiSecret, "secret")
 	cpiSecretWrapper := newSecret(cpiSecret.Name, cpiSecret)
 	appendSecretToCrsResource(crs, cpiSecretWrapper)
 
@@ -55,6 +63,7 @@ func CreateCrsResourceObjectsCPI(crs *addonsv1.ClusterResourceSet) []runtime.Obj
 		Kind:       "ClusterRole",
 		APIVersion: rbac.SchemeGroupVersion.String(),
 	}
+	addCPILabels(clusterRole, "role")
 	cpiObjects = append(cpiObjects, clusterRole)
 
 	clusterRoleBinding := cloudprovider.CloudControllerManagerClusterRoleBinding()
@@ -62,6 +71,7 @@ func CreateCrsResourceObjectsCPI(crs *addonsv1.ClusterResourceSet) []runtime.Obj
 		Kind:       "ClusterRoleBinding",
 		APIVersion: rbac.SchemeGroupVersion.String(),
 	}
+	addCPILabels(clusterRoleBinding, "cluster-role-binding")
 	cpiObjects = append(cpiObjects, clusterRoleBinding)
 
 	cloudConfig, err := CPIConfigString()
@@ -81,21 +91,15 @@ func CreateCrsResourceObjectsCPI(crs *addonsv1.ClusterResourceSet) []runtime.Obj
 		Kind:       "RoleBinding",
 		APIVersion: rbac.SchemeGroupVersion.String(),
 	}
+	addCPILabels(roleBinding, "role-binding")
 	cpiObjects = append(cpiObjects, roleBinding)
-
-	cpiService := cloudprovider.CloudControllerManagerService()
-	cpiService.TypeMeta = metav1.TypeMeta{
-		Kind:       "Service",
-		APIVersion: corev1.SchemeGroupVersion.String(),
-	}
-	cpiObjects = append(cpiObjects, cpiService)
 
 	extraArgs := []string{
 		"--v=2",
 		"--cloud-provider=vsphere",
 		"--cloud-config=/etc/cloud/vsphere.conf",
 	}
-	cpiDaemonSet := cloudprovider.CloudControllerManagerDaemonSet(cloudprovider.DefaultCPIControllerImage, extraArgs)
+	cpiDaemonSet := cloudprovider.CloudControllerManagerDaemonSet(extraArgs)
 	cpiDaemonSet.TypeMeta = metav1.TypeMeta{
 		Kind:       "DaemonSet",
 		APIVersion: appsv1.SchemeGroupVersion.String(),

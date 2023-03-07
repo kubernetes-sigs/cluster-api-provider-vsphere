@@ -96,14 +96,12 @@ func newCPIConfig() ([]byte, error) {
 			"secretName":      "cloud-provider-vsphere-credentials",
 			"secretNamespace": metav1.NamespaceSystem,
 			"thumbprint":      env.VSphereThumbprint,
+			"port":            443,
 		},
 		"vcenter": map[string]interface{}{
 			env.VSphereServerVar: map[string]interface{}{
-				"server":          env.VSphereServerVar,
-				"datacenters":     []string{env.VSphereDataCenterVar},
-				"thumbprint":      env.VSphereThumbprint,
-				"secretName":      "cloud-provider-vsphere-credentials",
-				"secretNamespace": metav1.NamespaceSystem,
+				"server":      env.VSphereServerVar,
+				"datacenters": []string{env.VSphereDataCenterVar},
 			},
 		},
 	}

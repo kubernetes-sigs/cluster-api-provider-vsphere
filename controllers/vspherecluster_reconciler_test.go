@@ -303,6 +303,9 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "vsphere-test1",
 					Namespace: "default",
+					OwnerReferences: []metav1.OwnerReference{
+						{Kind: "Cluster", APIVersion: clusterv1.GroupVersion.String(), Name: capiCluster.Name, UID: "blah"},
+					},
 				},
 				Spec: infrav1.VSphereClusterSpec{
 					IdentityRef: &infrav1.VSphereIdentityReference{
@@ -320,32 +323,16 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 				return testEnv.Get(ctx, key, instance)
 			}, timeout).Should(BeNil())
 
-			By("setting the OwnerRef on the VSphereCluster")
-			Eventually(func() bool {
-				ph, err := patch.NewHelper(instance, testEnv)
-				Expect(err).ShouldNot(HaveOccurred())
-				instance.OwnerReferences = append(instance.OwnerReferences, metav1.OwnerReference{Kind: "Cluster", APIVersion: clusterv1.GroupVersion.String(), Name: capiCluster.Name, UID: "blah"})
-				Expect(ph.Patch(ctx, instance, patch.WithStatusObservedGeneration{})).ShouldNot(HaveOccurred())
-				return true
-			}, timeout).Should(BeTrue())
-
-			By("setting the VSphereCluster's VCenterAvailableCondition to true")
+			By("checking that the finalizers on the object are set")
 			Eventually(func() bool {
 				if err := testEnv.Get(ctx, key, instance); err != nil {
 					return false
 				}
-				return conditions.IsTrue(instance, infrav1.VCenterAvailableCondition)
+				return len(instance.Finalizers) > 0
 			}, timeout).Should(BeTrue())
 
 			By("deleting the vspherecluster which has the secret with legacy finalizer")
-			Eventually(func() error {
-				return testEnv.Delete(ctx, instance)
-			}, timeout).Should(BeNil())
-			// confirm that the VSphereCluster is deleted
-			Eventually(func() bool {
-				err := testEnv.Get(ctx, key, instance)
-				return apierrors.IsNotFound(err)
-			}, timeout).Should(BeTrue())
+			Expect(testEnv.Delete(ctx, instance)).To(Succeed())
 
 			By("checking that the secret is deleted")
 			secretKey := client.ObjectKey{Namespace: secret.Namespace, Name: secret.Name}
@@ -353,6 +340,19 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 				err := testEnv.Get(ctx, secretKey, secret)
 				return apierrors.IsNotFound(err)
 			}, timeout).Should(BeTrue())
+
+			// confirm that the VSphereCluster is deleted
+			Eventually(func() bool {
+				err := testEnv.Get(ctx, key, instance)
+				return apierrors.IsNotFound(err)
+			}, timeout).Should(BeTrue())
+
+			/*By("checking that the secret is deleted")
+			secretKey := client.ObjectKey{Namespace: secret.Namespace, Name: secret.Name}
+			Eventually(func() bool {
+				err := testEnv.Get(ctx, secretKey, secret)
+				return apierrors.IsNotFound(err)
+			}, timeout).Should(BeTrue())*/
 		})
 	})
 

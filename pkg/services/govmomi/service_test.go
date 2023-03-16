@@ -45,6 +45,7 @@ var myAPIGroup = "my-pool-api-group"
 func Test_reconcileIPAddressClaims_ShouldGenerateIPAddressClaims(t *testing.T) {
 	scheme := runtime.NewScheme()
 	_ = ipamv1a1.AddToScheme(scheme)
+	_ = infrav1.AddToScheme(scheme)
 
 	var ctx *context.VMContext
 	var g *WithT
@@ -53,6 +54,7 @@ func Test_reconcileIPAddressClaims_ShouldGenerateIPAddressClaims(t *testing.T) {
 	before := func() {
 		ctx = emptyVMContext()
 		ctx.Client = fake.NewClientBuilder().WithScheme(scheme).Build()
+		ctx.Scheme = scheme
 
 		vms = &VMService{}
 		g = NewWithT(t)
@@ -98,9 +100,8 @@ func Test_reconcileIPAddressClaims_ShouldGenerateIPAddressClaims(t *testing.T) {
 			},
 		}
 
-		reconciled, err := vms.reconcileIPAddressClaims(ctx)
+		err := vms.reconcileIPAddressClaims(ctx)
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(reconciled).To(BeTrue())
 
 		ipAddrClaimKey := apitypes.NamespacedName{
 			Name:      "vsphereVM1-0-0",
@@ -127,9 +128,8 @@ func Test_reconcileIPAddressClaims_ShouldGenerateIPAddressClaims(t *testing.T) {
 		g.Expect(ipAddrClaim.Spec.PoolRef.Name).To(Equal("my-pool-3"))
 
 		// Ensure that duplicate claims are not created
-		reconciled, err = vms.reconcileIPAddressClaims(ctx)
+		err = vms.reconcileIPAddressClaims(ctx)
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(reconciled).To(BeTrue())
 
 		ipAddrClaims := &ipamv1a1.IPAddressClaimList{}
 		ctx.Client.List(ctx, ipAddrClaims)
@@ -140,6 +140,130 @@ func Test_reconcileIPAddressClaims_ShouldGenerateIPAddressClaims(t *testing.T) {
 		claimedCondition := conditions.Get(ctx.VSphereVM, infrav1.IPAddressClaimedCondition)
 		g.Expect(claimedCondition).NotTo(BeNil())
 		g.Expect(claimedCondition.Reason).To(Equal(infrav1.WaitingForIPAddressReason))
+	})
+
+	t.Run("when a claim is missing it's owner ref", func(_ *testing.T) {
+		before()
+		ctx.VSphereVM = &infrav1.VSphereVM{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "vsphereVM1",
+				Namespace: "my-namespace",
+			},
+			Spec: infrav1.VSphereVMSpec{
+				VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
+					Network: infrav1.NetworkSpec{
+						Devices: []infrav1.NetworkDeviceSpec{
+							{
+								AddressesFromPools: []corev1.TypedLocalObjectReference{
+									{
+										APIGroup: &myAPIGroup,
+										Name:     "my-pool-1",
+										Kind:     "my-pool-kind",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		preExistingClaimWithoutOwnerRef := &ipamv1a1.IPAddressClaim{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "vsphereVM1-0-0",
+				Namespace: "my-namespace",
+			},
+			Spec: ipamv1a1.IPAddressClaimSpec{
+				PoolRef: corev1.TypedLocalObjectReference{
+					APIGroup: &myAPIGroup,
+					Name:     "my-pool-1",
+					Kind:     "my-pool-kind",
+				},
+			},
+		}
+
+		err := ctx.Client.Create(ctx, preExistingClaimWithoutOwnerRef)
+		g.Expect(err).NotTo(HaveOccurred())
+
+		err = vms.reconcileIPAddressClaims(ctx)
+		g.Expect(err).NotTo(HaveOccurred())
+
+		ipAddrClaimKey := apitypes.NamespacedName{
+			Name:      "vsphereVM1-0-0",
+			Namespace: "my-namespace",
+		}
+		ipAddrClaim := &ipamv1a1.IPAddressClaim{}
+		ctx.Client.Get(ctx, ipAddrClaimKey, ipAddrClaim)
+		g.Expect(ipAddrClaim.Spec.PoolRef.Name).To(Equal("my-pool-1"))
+		g.Expect(ipAddrClaim.ObjectMeta.OwnerReferences).To(HaveLen(1))
+		g.Expect(ipAddrClaim.ObjectMeta.OwnerReferences[0].Name).To(Equal("vsphereVM1"))
+		g.Expect(ipAddrClaim.ObjectMeta.OwnerReferences[0].APIVersion).To(Equal("infrastructure.cluster.x-k8s.io/v1beta1"))
+		g.Expect(ipAddrClaim.ObjectMeta.OwnerReferences[0].Kind).To(Equal("VSphereVM"))
+		g.Expect(ipAddrClaim.ObjectMeta.OwnerReferences[0].UID).NotTo(BeNil())
+	})
+
+	t.Run("when a claim is missing it's finalizer", func(_ *testing.T) {
+		before()
+		ctx.VSphereVM = &infrav1.VSphereVM{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "vsphereVM1",
+				Namespace: "my-namespace",
+			},
+			Spec: infrav1.VSphereVMSpec{
+				VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
+					Network: infrav1.NetworkSpec{
+						Devices: []infrav1.NetworkDeviceSpec{
+							{
+								AddressesFromPools: []corev1.TypedLocalObjectReference{
+									{
+										APIGroup: &myAPIGroup,
+										Name:     "my-pool-1",
+										Kind:     "my-pool-kind",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		preExistingClaimWithoutFinalizer := &ipamv1a1.IPAddressClaim{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "vsphereVM1-0-0",
+				Namespace: "my-namespace",
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: "foo",
+						Kind:       "bar",
+						Name:       "baz",
+						UID:        "fiz",
+					},
+				},
+			},
+			Spec: ipamv1a1.IPAddressClaimSpec{
+				PoolRef: corev1.TypedLocalObjectReference{
+					APIGroup: &myAPIGroup,
+					Name:     "my-pool-1",
+					Kind:     "my-pool-kind",
+				},
+			},
+		}
+
+		err := ctx.Client.Create(ctx, preExistingClaimWithoutFinalizer)
+		g.Expect(err).NotTo(HaveOccurred())
+
+		err = vms.reconcileIPAddressClaims(ctx)
+		g.Expect(err).NotTo(HaveOccurred())
+
+		ipAddrClaimKey := apitypes.NamespacedName{
+			Name:      "vsphereVM1-0-0",
+			Namespace: "my-namespace",
+		}
+		ipAddrClaim := &ipamv1a1.IPAddressClaim{}
+		ctx.Client.Get(ctx, ipAddrClaimKey, ipAddrClaim)
+		g.Expect(ipAddrClaim.ObjectMeta.Finalizers).To(HaveLen(1))
+		g.Expect(ipAddrClaim.ObjectMeta.Finalizers[0]).To(Equal(infrav1.IPAddressClaimFinalizer))
 	})
 
 	t.Run("when there are no FromPools it does not set the IPAddressClaimedCondition", func(_ *testing.T) {
@@ -165,9 +289,8 @@ func Test_reconcileIPAddressClaims_ShouldGenerateIPAddressClaims(t *testing.T) {
 			},
 		}
 
-		reconciled, err := vms.reconcileIPAddressClaims(ctx)
+		err := vms.reconcileIPAddressClaims(ctx)
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(reconciled).To(BeTrue())
 
 		ipAddrClaims := &ipamv1a1.IPAddressClaimList{}
 		ctx.Client.List(ctx, ipAddrClaims)

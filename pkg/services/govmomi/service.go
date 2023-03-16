@@ -40,6 +40,8 @@ import (
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
@@ -90,7 +92,7 @@ func (vms *VMService) ReconcileVM(ctx *context.VMContext) (vm infrav1.VirtualMac
 	// event is triggered.
 	defer reconcileVSphereVMOnTaskCompletion(ctx)
 
-	if ok, err := vms.reconcileIPAddressClaims(ctx); err != nil || !ok {
+	if err := vms.reconcileIPAddressClaims(ctx); err != nil {
 		return vm, err
 	}
 
@@ -289,24 +291,49 @@ func (vms *VMService) reconcileNetworkStatus(ctx *virtualMachineContext) error {
 
 // reconcileIPAddressClaims ensures that VSphereVMs that are configured with
 // .spec.network.devices.addressFromPools have corresponding IPAddressClaims.
-func (vms *VMService) reconcileIPAddressClaims(ctx *context.VMContext) (bool, error) {
+func (vms *VMService) reconcileIPAddressClaims(ctx *context.VMContext) error {
 	for devIdx, device := range ctx.VSphereVM.Spec.Network.Devices {
 		for poolRefIdx, poolRef := range device.AddressesFromPools {
 			ipAddrClaimName := IPAddressClaimName(ctx.VSphereVM.Name, devIdx, poolRefIdx)
-			_, err := getIPAddrClaim(ctx, ipAddrClaimName)
+			claim, err := getIPAddrClaim(ctx, ipAddrClaimName)
 			if err == nil {
 				ctx.Logger.V(5).Info("IPAddressClaim found", "name", ipAddrClaimName)
 			}
 			if apierrors.IsNotFound(err) {
 				if err = createIPAddressClaim(ctx, ipAddrClaimName, poolRef); err != nil {
-					return false, err
+					return err
 				}
 				msg := "Waiting for IPAddressClaim to have an IPAddress bound"
 				markIPAddressClaimedConditionWaitingForClaimAddress(ctx.VSphereVM, msg)
+			} else {
+				if err = ensureIPAddressClaimOwnerRef(ctx, claim); err != nil {
+					return err
+				}
 			}
 		}
 	}
-	return true, nil
+	return nil
+}
+
+func ensureIPAddressClaimOwnerRef(ctx *context.VMContext, claim *ipamv1.IPAddressClaim) error {
+	patchHelper, err := patch.NewHelper(claim, ctx.Client)
+	if err != nil {
+		return errors.Wrap(err, "Failed to initialize patch helper")
+	}
+
+	if err := controllerutil.SetOwnerReference(ctx.VSphereVM, claim, ctx.Scheme); err != nil {
+		if _, ok := err.(*controllerutil.AlreadyOwnedError); !ok {
+			return errors.Wrap(err, "Failed to update address's claim owner reference")
+		}
+	}
+
+	_ = controllerutil.AddFinalizer(claim, infrav1.IPAddressClaimFinalizer)
+
+	if err := patchHelper.Patch(ctx, claim); err != nil {
+		return errors.Wrap(err, "Failed to patch object refs and finalizer on IPAddressClaim")
+	}
+
+	return nil
 }
 
 // createIPAddressClaim sets up the ipam IPAddressClaim object and creates it in

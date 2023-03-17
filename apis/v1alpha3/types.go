@@ -237,7 +237,8 @@ type NetworkDeviceSpec struct {
 	Gateway6 string `json:"gateway6,omitempty"`
 
 	// IPAddrs is a list of one or more IPv4 and/or IPv6 addresses to assign
-	// to this device.
+	// to this device. IP addresses must also specify the segment length in
+	// CIDR notation.
 	// Required when DHCP4 and DHCP6 are both false.
 	// +optional
 	IPAddrs []string `json:"ipAddrs,omitempty"`

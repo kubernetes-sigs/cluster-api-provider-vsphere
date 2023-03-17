@@ -241,7 +241,9 @@ spec:
                                 ipAddrs:
                                   description: IPAddrs is a list of one or more IPv4
                                     and/or IPv6 addresses to assign to this device.
-                                    Required when DHCP4 and DHCP6 are both false.
+                                    IP addresses must also specify the segment length
+                                    in CIDR notation. Required when DHCP4 and DHCP6
+                                    are both false.
                                   items:
                                     type: string
                                   type: array
@@ -529,7 +531,9 @@ spec:
                                 ipAddrs:
                                   description: IPAddrs is a list of one or more IPv4
                                     and/or IPv6 addresses to assign to this device.
-                                    Required when DHCP4 and DHCP6 are both false.
+                                    IP addresses must also specify the segment length
+                                    in CIDR notation. Required when DHCP4 and DHCP6
+                                    are both false.
                                   items:
                                     type: string
                                   type: array
@@ -988,8 +992,10 @@ spec:
                                   type: string
                                 ipAddrs:
                                   description: IPAddrs is a list of one or more IPv4
-                                    and/or IPv6 addresses to assign to this device.
-                                    Required when DHCP4 and DHCP6 are both false.
+                                    and/or IPv6 addresses to assign to this device.  IP
+                                    addresses must also specify the segment length
+                                    in CIDR notation. Required when DHCP4 and DHCP6
+                                    are both false.
                                   items:
                                     type: string
                                   type: array

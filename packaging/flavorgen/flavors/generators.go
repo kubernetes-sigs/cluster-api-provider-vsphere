@@ -110,14 +110,14 @@ func newClusterClassCluster() clusterv1.Cluster {
 				Class:   env.ClusterClassNameVar,
 				Version: env.KubernetesVersionVar,
 				ControlPlane: clusterv1.ControlPlaneTopology{
-					Replicas: pointer.Int32Ptr(1),
+					Replicas: pointer.Int32(1),
 				},
 				Workers: &clusterv1.WorkersTopology{
 					MachineDeployments: []clusterv1.MachineDeploymentTopology{
 						{
 							Class:    fmt.Sprintf("%s-worker", env.ClusterClassNameVar),
 							Name:     "md-0",
-							Replicas: pointer.Int32Ptr(3),
+							Replicas: pointer.Int32(3),
 						},
 					},
 				},
@@ -413,7 +413,7 @@ func defaultUsers() []bootstrapv1.User {
 	return []bootstrapv1.User{
 		{
 			Name: "capv",
-			Sudo: pointer.StringPtr("ALL=(ALL) NOPASSWD:ALL"),
+			Sudo: pointer.String("ALL=(ALL) NOPASSWD:ALL"),
 			SSHAuthorizedKeys: []string{
 				env.VSphereSSHAuthorizedKeysVar,
 			},
@@ -425,7 +425,7 @@ func flatcarUsers() []bootstrapv1.User {
 	return []bootstrapv1.User{
 		{
 			Name: "core",
-			Sudo: pointer.StringPtr("ALL=(ALL) NOPASSWD:ALL"),
+			Sudo: pointer.String("ALL=(ALL) NOPASSWD:ALL"),
 			SSHAuthorizedKeys: []string{
 				env.VSphereSSHAuthorizedKeysVar,
 			},
@@ -640,13 +640,13 @@ func newMachineDeployment(cluster clusterv1.Cluster, machineTemplate infrav1.VSp
 		},
 		Spec: clusterv1.MachineDeploymentSpec{
 			ClusterName: env.ClusterNameVar,
-			Replicas:    pointer.Int32Ptr(int32(555)),
+			Replicas:    pointer.Int32(int32(555)),
 			Template: clusterv1.MachineTemplateSpec{
 				ObjectMeta: clusterv1.ObjectMeta{
 					Labels: clusterLabels(),
 				},
 				Spec: clusterv1.MachineSpec{
-					Version:     pointer.StringPtr(env.KubernetesVersionVar),
+					Version:     pointer.String(env.KubernetesVersionVar),
 					ClusterName: cluster.Name,
 					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: &corev1.ObjectReference{

@@ -238,7 +238,7 @@ var _ = Describe("VimMachineService_GetHostInfo", func() {
 
 })
 
-var _ = Describe("VimMachineService_createOrPatchVSPhereVM", func() {
+var _ = Describe("VimMachineService_createOrPatchVSphereVM", func() {
 	var (
 		controllerCtx       *context.ControllerContext
 		machineCtx          *context.VIMMachineContext
@@ -274,7 +274,7 @@ var _ = Describe("VimMachineService_createOrPatchVSPhereVM", func() {
 			machineCtx.VSphereMachine.Spec.OS = infrav1.Windows
 		})
 		It("returns a renamed vspherevm object", func() {
-			vm, err := vimMachineService.createOrPatchVSPhereVM(machineCtx, getVSphereVM(hostAddr, corev1.ConditionTrue))
+			vm, err := vimMachineService.createOrPatchVSphereVM(machineCtx, getVSphereVM(hostAddr, corev1.ConditionTrue))
 			vmName := vm.(*infrav1.VSphereVM).GetName()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(vmName).To(Equal("fake-long-rname"))
@@ -286,7 +286,7 @@ var _ = Describe("VimMachineService_createOrPatchVSPhereVM", func() {
 			machineCtx.VSphereMachine.Spec.OS = infrav1.Linux
 		})
 		It("returns the same vspherevm name", func() {
-			vm, err := vimMachineService.createOrPatchVSPhereVM(machineCtx, getVSphereVM(hostAddr, corev1.ConditionTrue))
+			vm, err := vimMachineService.createOrPatchVSphereVM(machineCtx, getVSphereVM(hostAddr, corev1.ConditionTrue))
 			vmName := vm.(*infrav1.VSphereVM).GetName()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(vmName).To(Equal(fakeLongClusterName))

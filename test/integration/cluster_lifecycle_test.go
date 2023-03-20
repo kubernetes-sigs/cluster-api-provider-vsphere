@@ -79,8 +79,8 @@ var _ = Describe("Cluster lifecycle tests", func() {
 			// Cluster.
 			cluster := assertEventuallyExists(clustersResource, mf.ClusterComponents.Cluster.Name, testNamespace, nil)
 			clusterOwnerRef := toOwnerRef(cluster)
-			clusterOwnerRef.Controller = pointer.BoolPtr(true)
-			clusterOwnerRef.BlockOwnerDeletion = pointer.BoolPtr(true)
+			clusterOwnerRef.Controller = pointer.Bool(true)
+			clusterOwnerRef.BlockOwnerDeletion = pointer.Bool(true)
 			assertEventuallyExists(vsphereclustersResource, mf.ClusterComponents.Cluster.Name, testNamespace, clusterOwnerRef)
 		})
 
@@ -124,8 +124,8 @@ var _ = Describe("Cluster lifecycle tests", func() {
 				// controller OwnerRef that points to the VSphereMachine.
 				machine := assertEventuallyExists(machinesResource, controlPlane.Machine.Name, testNamespace, nil)
 				machineOwnerRef := toOwnerRef(machine)
-				machineOwnerRef.Controller = pointer.BoolPtr(true)
-				machineOwnerRef.BlockOwnerDeletion = pointer.BoolPtr(true)
+				machineOwnerRef.Controller = pointer.Bool(true)
+				machineOwnerRef.BlockOwnerDeletion = pointer.Bool(true)
 				assertEventuallyExists(kubeadmconfigResources, controlPlane.Machine.Name, testNamespace, machineOwnerRef)
 
 				assertEventuallyExists(virtualmachinesResource, controlPlane.Machine.Name, testNamespace, nil)

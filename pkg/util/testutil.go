@@ -76,8 +76,8 @@ func CreateVSphereCluster(clusterName string) *infrav1.VSphereCluster {
 	}
 }
 
-func CreateMachine(machineName, clusterName, controlPlaneLabel, k8sVersion string) *clusterv1.Machine {
-	return &clusterv1.Machine{
+func CreateMachine(machineName, clusterName, k8sVersion string, controlPlaneLabel bool) *clusterv1.Machine {
+	machine := &clusterv1.Machine{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: clusterv1.GroupVersion.String(),
 			Kind:       machineKind,
@@ -85,8 +85,7 @@ func CreateMachine(machineName, clusterName, controlPlaneLabel, k8sVersion strin
 		ObjectMeta: metav1.ObjectMeta{
 			Name: machineName,
 			Labels: map[string]string{
-				clusterv1.MachineControlPlaneLabelName: controlPlaneLabel,
-				clusterNameLabelName:                   clusterName,
+				clusterNameLabelName: clusterName,
 			},
 		},
 		Spec: clusterv1.MachineSpec{
@@ -104,10 +103,16 @@ func CreateMachine(machineName, clusterName, controlPlaneLabel, k8sVersion strin
 			},
 		},
 	}
+	if controlPlaneLabel {
+		labels := machine.GetLabels()
+		labels[clusterv1.MachineControlPlaneLabel] = ""
+		machine.SetLabels(labels)
+	}
+	return machine
 }
 
-func CreateVSphereMachine(machineName, clusterName, controlPlaneLabel, className, imageName, storageClass string) *infrav1.VSphereMachine {
-	return &infrav1.VSphereMachine{
+func CreateVSphereMachine(machineName, clusterName, className, imageName, storageClass string, controlPlaneLabel bool) *infrav1.VSphereMachine {
+	vsphereMachine := &infrav1.VSphereMachine{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: infrav1.GroupVersion.String(),
 			Kind:       infraMachineKind,
@@ -115,8 +120,7 @@ func CreateVSphereMachine(machineName, clusterName, controlPlaneLabel, className
 		ObjectMeta: metav1.ObjectMeta{
 			Name: machineName,
 			Labels: map[string]string{
-				clusterv1.MachineControlPlaneLabelName: controlPlaneLabel,
-				clusterv1.ClusterLabelName:             clusterName,
+				clusterv1.ClusterNameLabel: clusterName,
 			},
 		},
 		Spec: infrav1.VSphereMachineSpec{
@@ -125,6 +129,12 @@ func CreateVSphereMachine(machineName, clusterName, controlPlaneLabel, className
 			StorageClass: storageClass,
 		},
 	}
+	if controlPlaneLabel {
+		labels := vsphereMachine.GetLabels()
+		labels[clusterv1.MachineControlPlaneLabel] = ""
+		vsphereMachine.SetLabels(labels)
+	}
+	return vsphereMachine
 }
 
 func createScheme() *runtime.Scheme {

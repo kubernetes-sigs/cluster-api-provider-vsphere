@@ -95,7 +95,7 @@ var _ = Describe("VsphereMachineReconciler", func() {
 				Namespace:    testNs.Name,
 				Finalizers:   []string{clusterv1.MachineFinalizer},
 				Labels: map[string]string{
-					clusterv1.ClusterLabelName: capiCluster.Name,
+					clusterv1.ClusterNameLabel: capiCluster.Name,
 				},
 			},
 			Spec: clusterv1.MachineSpec{
@@ -114,8 +114,8 @@ var _ = Describe("VsphereMachineReconciler", func() {
 				Name:      "vsphere-machine-1",
 				Namespace: testNs.Name,
 				Labels: map[string]string{
-					clusterv1.ClusterLabelName:             capiCluster.Name,
-					clusterv1.MachineControlPlaneLabelName: "",
+					clusterv1.ClusterNameLabel:         capiCluster.Name,
+					clusterv1.MachineControlPlaneLabel: "",
 				},
 				OwnerReferences: []metav1.OwnerReference{
 					{
@@ -181,7 +181,7 @@ var _ = Describe("VsphereMachineReconciler", func() {
 			Eventually(func() bool {
 				vms := infrav1.VSphereVMList{}
 				Expect(testEnv.List(ctx, &vms, client.InNamespace(testNs.Name), client.MatchingLabels{
-					clusterv1.ClusterLabelName: capiCluster.Name,
+					clusterv1.ClusterNameLabel: capiCluster.Name,
 				})).To(Succeed())
 				return isPresentAndFalseWithReason(infraMachine, infrav1.VMProvisionedCondition, infrav1.WaitingForBootstrapDataReason) &&
 					len(vms.Items) == 0

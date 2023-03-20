@@ -484,7 +484,7 @@ func createMachine(machineName, clusterName, namespace string, isControlPlane bo
 			Name:      machineName,
 			Namespace: namespace,
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: clusterName,
+				clusterv1.ClusterNameLabel: clusterName,
 			},
 		},
 		Spec: clusterv1.MachineSpec{
@@ -504,7 +504,7 @@ func createMachine(machineName, clusterName, namespace string, isControlPlane bo
 		},
 	}
 	if isControlPlane {
-		m.Labels[clusterv1.MachineControlPlaneLabelName] = ""
+		m.Labels[clusterv1.MachineControlPlaneLabel] = ""
 	}
 	return m
 }

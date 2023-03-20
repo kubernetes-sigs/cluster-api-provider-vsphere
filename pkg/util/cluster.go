@@ -31,7 +31,7 @@ import (
 // GetVSphereClusterFromVMwareMachine gets the vmware.infrastructure.cluster.x-k8s.io.VSphereCluster resource for the given VSphereMachine.
 // TODO (srm09): Rename this to a more appropriate name.
 func GetVSphereClusterFromVMwareMachine(ctx context.Context, c client.Client, machine *vmwarev1b1.VSphereMachine) (*vmwarev1b1.VSphereCluster, error) {
-	clusterName := machine.Labels[clusterv1.ClusterLabelName]
+	clusterName := machine.Labels[clusterv1.ClusterNameLabel]
 	if clusterName == "" {
 		return nil, errors.Errorf("error getting VSphereCluster name from VSphereMachine %s/%s",
 			machine.Namespace, machine.Name)
@@ -56,7 +56,7 @@ func GetVSphereClusterFromVMwareMachine(ctx context.Context, c client.Client, ma
 
 // GetVSphereClusterFromVSphereMachine gets the infrastructure.cluster.x-k8s.io.VSphereCluster resource for the given VSphereMachine.
 func GetVSphereClusterFromVSphereMachine(ctx context.Context, c client.Client, machine *infrav1.VSphereMachine) (*infrav1.VSphereCluster, error) {
-	clusterName := machine.Labels[clusterv1.ClusterLabelName]
+	clusterName := machine.Labels[clusterv1.ClusterNameLabel]
 	if clusterName == "" {
 		return nil, errors.Errorf("error getting VSphereCluster name from VSphereMachine %s/%s",
 			machine.Namespace, machine.Name)

@@ -120,7 +120,7 @@ func getCredSecretNameTemplate() *string {
 		"kind": "Secret",
 	}
 	templateStr, _ := yaml.Marshal(template)
-	return pointer.StringPtr(string(templateStr))
+	return pointer.String(string(templateStr))
 }
 
 func getControlPlaneEndpointTemplate() *string {
@@ -129,7 +129,7 @@ func getControlPlaneEndpointTemplate() *string {
 		"port": 6443,
 	}
 	templateStr, _ := yaml.Marshal(template)
-	return pointer.StringPtr(string(templateStr))
+	return pointer.String(string(templateStr))
 }
 
 func getEnableSSHIntoNodesTemplate() *string {
@@ -143,7 +143,7 @@ func getEnableSSHIntoNodesTemplate() *string {
 		},
 	}
 	templateStr, _ := yaml.Marshal(template)
-	return pointer.StringPtr(string(templateStr))
+	return pointer.String(string(templateStr))
 }
 
 func getClusterClassVariables() []clusterv1.ClusterClassVariable {

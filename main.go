@@ -71,7 +71,6 @@ var (
 
 // InitFlags initializes the flags.
 func InitFlags(fs *pflag.FlagSet) {
-	logs.AddFlags(fs, logs.SkipLoggingConfigurationFlags())
 	logsv1.AddFlags(logOptions, fs)
 
 	flag.StringVar(

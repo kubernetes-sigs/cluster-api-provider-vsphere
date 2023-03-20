@@ -98,7 +98,7 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 					Name:      "foo",
 					Namespace: "test",
 					Labels: map[string]string{
-						clusterv1.ClusterLabelName: "valid-cluster",
+						clusterv1.ClusterNameLabel: "valid-cluster",
 					},
 				},
 			}
@@ -109,7 +109,7 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 					Name:      "foo-vm",
 					Namespace: "test",
 					Labels: map[string]string{
-						clusterv1.ClusterLabelName: "valid-cluster",
+						clusterv1.ClusterNameLabel: "valid-cluster",
 					},
 					OwnerReferences: []metav1.OwnerReference{{APIVersion: clusterv1.GroupVersion.String(), Kind: "Machine", Name: "foo"}},
 				},
@@ -126,7 +126,7 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 						infrav1.VMFinalizer,
 					},
 					Labels: map[string]string{
-						clusterv1.ClusterLabelName: "valid-cluster",
+						clusterv1.ClusterNameLabel: "valid-cluster",
 					},
 					OwnerReferences: []metav1.OwnerReference{{APIVersion: infrav1.GroupVersion.String(), Kind: "VSphereMachine", Name: "foo-vm"}},
 					// To make sure PatchHelper does not error out
@@ -406,7 +406,7 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 			Name:      "foo",
 			Namespace: "test",
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: "valid-cluster",
+				clusterv1.ClusterNameLabel: "valid-cluster",
 			},
 		},
 	}
@@ -418,7 +418,7 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 			Name:      "foo-vm",
 			Namespace: "test",
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: "valid-cluster",
+				clusterv1.ClusterNameLabel: "valid-cluster",
 			},
 			OwnerReferences: []metav1.OwnerReference{{APIVersion: clusterv1.GroupVersion.String(), Kind: "Machine", Name: "foo"}},
 		},
@@ -432,7 +432,7 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 			Name:      "foo",
 			Namespace: "test",
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: "valid-cluster",
+				clusterv1.ClusterNameLabel: "valid-cluster",
 			},
 			OwnerReferences: []metav1.OwnerReference{{APIVersion: infrav1.GroupVersion.String(), Kind: "VSphereMachine", Name: "foo-vm"}},
 			// To make sure PatchHelper does not error out
@@ -488,7 +488,7 @@ func Test_reconcile(t *testing.T) {
 			Name:      "foo",
 			Namespace: ns,
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: "valid-cluster",
+				clusterv1.ClusterNameLabel: "valid-cluster",
 			},
 		},
 	}
@@ -501,7 +501,7 @@ func Test_reconcile(t *testing.T) {
 			Name:      "foo",
 			Namespace: ns,
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: "valid-cluster",
+				clusterv1.ClusterNameLabel: "valid-cluster",
 			},
 			OwnerReferences: []metav1.OwnerReference{{APIVersion: infrav1.GroupVersion.String(), Kind: "VSphereMachine", Name: "foo-vm"}},
 			Finalizers:      []string{infrav1.VMFinalizer},
@@ -645,7 +645,7 @@ func createMachineOwnerHierarchy(machine *clusterv1.Machine) []client.Object {
 
 	var (
 		objs           []client.Object
-		clusterName, _ = machine.Labels[clusterv1.ClusterLabelName]
+		clusterName, _ = machine.Labels[clusterv1.ClusterNameLabel]
 	)
 
 	objs = append(objs, &clusterv1.MachineSet{
@@ -653,7 +653,7 @@ func createMachineOwnerHierarchy(machine *clusterv1.Machine) []client.Object {
 			Name:      fmt.Sprintf("%s-ms", machine.Name),
 			Namespace: machine.Namespace,
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: clusterName,
+				clusterv1.ClusterNameLabel: clusterName,
 			},
 			OwnerReferences: []metav1.OwnerReference{
 				{
@@ -670,7 +670,7 @@ func createMachineOwnerHierarchy(machine *clusterv1.Machine) []client.Object {
 			Name:      fmt.Sprintf("%s-md", machine.Name),
 			Namespace: machine.Namespace,
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: clusterName,
+				clusterv1.ClusterNameLabel: clusterName,
 			},
 		},
 	})

@@ -611,7 +611,7 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 			Eventually(func() int {
 				machines := &infrav1.VSphereMachineList{}
 				if err := testEnv.List(ctx, machines, client.InNamespace(namespace),
-					client.MatchingLabels(map[string]string{clusterv1.ClusterLabelName: capiCluster.Name})); err != nil {
+					client.MatchingLabels(map[string]string{clusterv1.ClusterNameLabel: capiCluster.Name})); err != nil {
 					return -1
 				}
 				return len(machines.Items)
@@ -621,7 +621,7 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 			Eventually(func() int {
 				machines := &infrav1.VSphereMachineList{}
 				if err := testEnv.List(ctx, machines, client.InNamespace(namespace),
-					client.MatchingLabels(map[string]string{clusterv1.ClusterLabelName: capiCluster.Name})); err != nil {
+					client.MatchingLabels(map[string]string{clusterv1.ClusterNameLabel: capiCluster.Name})); err != nil {
 					return 0
 				}
 				ownerRefSet := 0
@@ -646,7 +646,7 @@ func createVsphereMachine(ctx context.Context, env *helpers.TestEnvironment, nam
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "test-vsp",
 			Namespace:    namespace,
-			Labels:       map[string]string{clusterv1.ClusterLabelName: clusterName},
+			Labels:       map[string]string{clusterv1.ClusterNameLabel: clusterName},
 		},
 		Spec: infrav1.VSphereMachineSpec{
 			VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{

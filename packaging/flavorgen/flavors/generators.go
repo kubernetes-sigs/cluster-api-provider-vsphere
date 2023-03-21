@@ -479,7 +479,7 @@ func kubeVIPPodSpec() *corev1.Pod {
 			Containers: []corev1.Container{
 				{
 					Name:            "kube-vip",
-					Image:           "ghcr.io/kube-vip/kube-vip:v0.5.5",
+					Image:           "ghcr.io/kube-vip/kube-vip:v0.5.11",
 					ImagePullPolicy: corev1.PullIfNotPresent,
 					Args: []string{
 						"manager",

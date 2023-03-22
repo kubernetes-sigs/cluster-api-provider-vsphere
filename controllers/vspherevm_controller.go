@@ -65,8 +65,6 @@ import (
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=kubeadmcontrolplanes,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;delete
-// +kubebuilder:rbac:groups=ipam.cluster.x-k8s.io,resources=ipaddressclaims,verbs=get;create;update;watch;list
-// +kubebuilder:rbac:groups=ipam.cluster.x-k8s.io,resources=ipaddresses,verbs=get;list;watch
 
 // AddVMControllerToManager adds the VM controller to the provided manager.
 //
@@ -143,6 +141,13 @@ func AddVMControllerToManager(ctx *context.ControllerManagerContext, mgr manager
 			DeleteFunc:  func(e event.DeleteEvent) bool { return false },
 			GenericFunc: func(e event.GenericEvent) bool { return false },
 		})
+	if err != nil {
+		return err
+	}
+
+	err = controller.Watch(
+		&source.Kind{Type: &ipamv1.IPAddressClaim{}},
+		handler.EnqueueRequestsFromMapFunc(r.ipAddressClaimToVSphereVM))
 	if err != nil {
 		return err
 	}
@@ -251,8 +256,9 @@ func (r vmReconciler) Reconcile(ctx goctx.Context, req ctrl.Request) (_ ctrl.Res
 		// always update the readyCondition.
 		conditions.SetSummary(vmContext.VSphereVM,
 			conditions.WithConditions(
-				infrav1.VMProvisionedCondition,
 				infrav1.VCenterAvailableCondition,
+				infrav1.IPAddressClaimedCondition,
+				infrav1.VMProvisionedCondition,
 			),
 		)
 
@@ -323,34 +329,12 @@ func (r vmReconciler) reconcileDelete(ctx *context.VMContext) (reconcile.Result,
 	}
 
 	// Attempt to delete the node corresponding to the vsphere VM
-	err = r.deleteNode(ctx, vm.Name)
-	if err != nil {
+	if err := r.deleteNode(ctx, vm.Name); err != nil {
 		r.Logger.V(6).Info("unable to delete node", "err", err)
 	}
 
-	// Remove finalizers from any ipam claims
-	for devIdx, device := range ctx.VSphereVM.Spec.Network.Devices {
-		for poolRefIdx := range device.AddressesFromPools {
-			// check if claim exists
-			ipAddrClaim := &ipamv1.IPAddressClaim{}
-			ipAddrClaimName := govmomi.IPAddressClaimName(ctx.VSphereVM.Name, devIdx, poolRefIdx)
-			ctx.Logger.Info("removing finalizer", "IPAddressClaim", ipAddrClaimName)
-			ipAddrClaimKey := apitypes.NamespacedName{
-				Namespace: ctx.VSphereVM.Namespace,
-				Name:      ipAddrClaimName,
-			}
-			if err := ctx.Client.Get(ctx, ipAddrClaimKey, ipAddrClaim); err != nil {
-				if apierrors.IsNotFound(err) {
-					continue
-				}
-				return reconcile.Result{}, errors.Wrapf(err, fmt.Sprintf("failed to find IPAddressClaim %q to remove the finalizer", ipAddrClaimName))
-			}
-			if ctrlutil.RemoveFinalizer(ipAddrClaim, infrav1.IPAddressClaimFinalizer) {
-				if err := ctx.Client.Update(ctx, ipAddrClaim); err != nil {
-					return reconcile.Result{}, errors.Wrapf(err, fmt.Sprintf("failed to update IPAddressClaim %q", ipAddrClaimName))
-				}
-			}
-		}
+	if err := r.deleteIPAddressClaims(ctx); err != nil {
+		return reconcile.Result{}, err
 	}
 
 	// The VM is deleted so remove the finalizer.
@@ -397,6 +381,10 @@ func (r vmReconciler) reconcileNormal(ctx *context.VMContext) (reconcile.Result,
 		return reconcile.Result{}, nil
 	}
 
+	if err := r.reconcileIPAddressClaims(ctx); err != nil {
+		return reconcile.Result{}, err
+	}
+
 	// Get or create the VM.
 	vm, err := r.VMService.ReconcileVM(ctx)
 	if err != nil {
@@ -436,7 +424,6 @@ func (r vmReconciler) reconcileNormal(ctx *context.VMContext) (reconcile.Result,
 	ctx.VSphereVM.Status.Ready = true
 	conditions.MarkTrue(ctx.VSphereVM, infrav1.VMProvisionedCondition)
 	ctx.Logger.Info("VSphereVM is ready")
-
 	return reconcile.Result{}, nil
 }
 
@@ -516,6 +503,29 @@ func (r vmReconciler) vsphereClusterToVSphereVMs(a ctrlclient.Object) []reconcil
 			},
 		}
 		requests = append(requests, r)
+	}
+	return requests
+}
+
+func (r vmReconciler) ipAddressClaimToVSphereVM(a ctrlclient.Object) []reconcile.Request {
+	ipAddressClaim, ok := a.(*ipamv1.IPAddressClaim)
+	if !ok {
+		return nil
+	}
+
+	requests := []reconcile.Request{}
+	if clusterutilv1.HasOwner(ipAddressClaim.OwnerReferences, infrav1.GroupVersion.String(), []string{"VSphereVM"}) {
+		for _, ref := range ipAddressClaim.OwnerReferences {
+			if ref.Kind == "VSphereVM" {
+				requests = append(requests, reconcile.Request{
+					NamespacedName: apitypes.NamespacedName{
+						Name:      ref.Name,
+						Namespace: ipAddressClaim.Namespace,
+					},
+				})
+				break
+			}
+		}
 	}
 	return requests
 }

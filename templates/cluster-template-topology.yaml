@@ -48,7 +48,7 @@ spec:
               value: "10"
             - name: vip_retryperiod
               value: "2"
-            image: ghcr.io/kube-vip/kube-vip:v0.5.5
+            image: ghcr.io/kube-vip/kube-vip:v0.5.11
             imagePullPolicy: IfNotPresent
             name: kube-vip
             resources: {}

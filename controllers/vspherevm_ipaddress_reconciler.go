@@ -125,7 +125,8 @@ func (r vmReconciler) reconcileIPAddressClaims(ctx *context.VMContext) error {
 }
 
 // createOrPatchIPAddressClaim creates/patches an IPAddressClaim object for a device requesting an address
-// from an externally managed IPPool.
+// from an externally managed IPPool. Ensures that the claim has a reference to the cluster of the VM to
+// support pausing reconciliation.
 // The responsibility of the IP address resolution is handled by an external IPAM provider.
 func createOrPatchIPAddressClaim(ctx *context.VMContext, name string, poolRef corev1.TypedLocalObjectReference) (*ipamv1.IPAddressClaim, bool, error) {
 	claim := &ipamv1.IPAddressClaim{
@@ -145,6 +146,11 @@ func createOrPatchIPAddressClaim(ctx *context.VMContext, name string, poolRef co
 			}))
 
 		ctrlutil.AddFinalizer(claim, infrav1.IPAddressClaimFinalizer)
+
+		if claim.Annotations == nil {
+			claim.Annotations = make(map[string]string)
+		}
+		claim.Annotations[clusterv1.ClusterNameAnnotation] = ctx.VSphereVM.ObjectMeta.Annotations[clusterv1.ClusterNameAnnotation]
 
 		claim.Spec.PoolRef.APIGroup = poolRef.APIGroup
 		claim.Spec.PoolRef.Kind = poolRef.Kind

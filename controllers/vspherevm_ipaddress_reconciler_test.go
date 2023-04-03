@@ -53,6 +53,9 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      name,
 				Namespace: namespace,
+				Annotations: map[string]string{
+					clusterv1.ClusterNameAnnotation: "my-cluster",
+				},
 			},
 			Spec: infrav1.VSphereVMSpec{
 				VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
@@ -91,6 +94,7 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 
 				g.Expect(claim.OwnerReferences).To(gomega.HaveLen(1))
 				g.Expect(claim.OwnerReferences[0].Name).To(gomega.Equal(vsphereVM.Name))
+				g.Expect(claim.ObjectMeta.Annotations).To(gomega.HaveKeyWithValue(clusterv1.ClusterNameAnnotation, "my-cluster"))
 			}
 
 			claimedCondition := conditions.Get(testCtx.VSphereVM, infrav1.IPAddressClaimedCondition)
@@ -138,6 +142,7 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 
 				g.Expect(claim.OwnerReferences).To(gomega.HaveLen(1))
 				g.Expect(claim.OwnerReferences[0].Name).To(gomega.Equal(vsphereVM.Name))
+				g.Expect(claim.ObjectMeta.Annotations).To(gomega.HaveKeyWithValue(clusterv1.ClusterNameAnnotation, "my-cluster"))
 			}
 		})
 
@@ -171,6 +176,7 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 
 				g.Expect(claim.OwnerReferences).To(gomega.HaveLen(1))
 				g.Expect(claim.OwnerReferences[0].Name).To(gomega.Equal(vsphereVM.Name))
+				g.Expect(claim.ObjectMeta.Annotations).To(gomega.HaveKeyWithValue(clusterv1.ClusterNameAnnotation, "my-cluster"))
 			}
 		})
 

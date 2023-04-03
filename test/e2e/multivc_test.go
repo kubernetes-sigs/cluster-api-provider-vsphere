@@ -26,13 +26,14 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers"
 )
 
 type MultiVCenterSpecInput struct {
@@ -42,7 +43,7 @@ type MultiVCenterSpecInput struct {
 	Datacenter string
 }
 
-var _ = Describe("Cluster creation with multivc", func() {
+var _ = Describe("Cluster creation with multivc [specialized-infra]", func() {
 	var namespace *corev1.Namespace
 
 	BeforeEach(func() {
@@ -146,7 +147,7 @@ func VerifyMultiVC(ctx context.Context, input MultiVCenterSpecInput) {
 		ctx,
 		preMoveMachineList,
 		client.InNamespace(namespace.Name),
-		client.MatchingLabels{clusterv1.ClusterLabelName: clusterName},
+		client.MatchingLabels{clusterv1.ClusterNameLabel: clusterName},
 	)
 	Expect(err).NotTo(HaveOccurred(), "Failed to list machines before move")
 
@@ -163,14 +164,14 @@ func VerifyMultiVC(ctx context.Context, input MultiVCenterSpecInput) {
 
 	wlClusterName := fmt.Sprintf("%s-%s", "wlcluster", util.RandomString(6))
 
-	os.Setenv("VSPHERE_SERVER", e2eConfig.GetVariable("VSPHERE2_SERVER"))
+	_ = os.Setenv("VSPHERE_SERVER", e2eConfig.GetVariable("VSPHERE2_SERVER"))
 
-	os.Setenv("VSPHERE_TLS_THUMBPRINT", e2eConfig.GetVariable("VSPHERE2_TLS_THUMBPRINT"))
-	os.Setenv("VSPHERE_USERNAME", os.Getenv("VSPHERE2_USERNAME"))
-	os.Setenv("VSPHERE_PASSWORD", os.Getenv("VSPHERE2_PASSWORD"))
-	os.Setenv("VSPHERE_RESOURCE_POOL", e2eConfig.GetVariable("VSPHERE2_RESOURCE_POOL"))
-	os.Setenv("VSPHERE_TEMPLATE", e2eConfig.GetVariable("VSPHERE2_TEMPLATE"))
-	os.Setenv("CONTROL_PLANE_ENDPOINT_IP", e2eConfig.GetVariable("VSPHERE2_CONTROL_PLANE_ENDPOINT_IP"))
+	_ = os.Setenv("VSPHERE_TLS_THUMBPRINT", e2eConfig.GetVariable("VSPHERE2_TLS_THUMBPRINT"))
+	_ = os.Setenv("VSPHERE_USERNAME", os.Getenv("VSPHERE2_USERNAME"))
+	_ = os.Setenv("VSPHERE_PASSWORD", os.Getenv("VSPHERE2_PASSWORD"))
+	_ = os.Setenv("VSPHERE_RESOURCE_POOL", e2eConfig.GetVariable("VSPHERE2_RESOURCE_POOL"))
+	_ = os.Setenv("VSPHERE_TEMPLATE", e2eConfig.GetVariable("VSPHERE2_TEMPLATE"))
+	_ = os.Setenv("CONTROL_PLANE_ENDPOINT_IP", e2eConfig.GetVariable("VSPHERE2_CONTROL_PLANE_ENDPOINT_IP"))
 
 	By("creating a workload cluster from vsphere hosted management cluster")
 	wlConfigCluster := defaultConfigCluster(wlClusterName, namespace.Name, specName, 1, 1, GlobalInput{
@@ -190,13 +191,10 @@ func VerifyMultiVC(ctx context.Context, input MultiVCenterSpecInput) {
 
 	vms = getVSphereVMs(mgmtClusterProxy, wlClusterName, namespace.Name)
 	Expect(len(vms.Items)).To(BeNumerically(">", 0))
-
 	if selfHostedCancelWatches != nil {
 		selfHostedCancelWatches()
 	}
-
 }
-
 func getVSphereVMs(clusterProxy framework.ClusterProxy, clusterName, namespace string) *infrav1.VSphereVMList {
 	var vms infrav1.VSphereVMList
 	err := clusterProxy.GetClient().List(
@@ -204,7 +202,7 @@ func getVSphereVMs(clusterProxy framework.ClusterProxy, clusterName, namespace s
 		&vms,
 		client.InNamespace(namespace),
 		client.MatchingLabels{
-			v1beta1.ClusterLabelName: clusterName,
+			clusterv1.ClusterNameLabel: clusterName,
 		},
 	)
 	Expect(err).NotTo(HaveOccurred())

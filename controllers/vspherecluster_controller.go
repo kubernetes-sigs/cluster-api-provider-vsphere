@@ -37,6 +37,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/controllers/vmware"
+	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	inframanager "sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
@@ -163,8 +164,10 @@ func AddClusterControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 		return err
 	}
 
-	// TODO (srm09): Need to figure out how to add the watches only when the anti-affinity feature flag is enabled.
-	return reconciler.clusterModuleReconciler.PopulateWatchesOnController(c)
+	if feature.Gates.Enabled(feature.NodeAntiAffinity) {
+		return reconciler.clusterModuleReconciler.PopulateWatchesOnController(c)
+	}
+	return nil
 }
 
 func clusterToInfrastructureMapFunc(managerContext *context.ControllerManagerContext) handler.MapFunc {

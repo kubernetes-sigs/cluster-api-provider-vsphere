@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/antihax/optional v1.0.0
-	github.com/go-logr/logr v1.2.3
+	github.com/go-logr/logr v1.2.4
 	github.com/google/gofuzz v1.2.0
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-version v1.3.0

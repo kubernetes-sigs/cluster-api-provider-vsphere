@@ -21,7 +21,6 @@ limitations under the License.
 package tools
 
 import (
-	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
 	_ "github.com/joelanford/go-apidiff"
 	_ "github.com/onsi/ginkgo/v2/ginkgo"
 	_ "github.com/vmware/govmomi"

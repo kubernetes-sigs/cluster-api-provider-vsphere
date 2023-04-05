@@ -31,6 +31,7 @@ export GOPROXY
 export GO111MODULE := on
 
 # Directories.
+REPO_ROOT := $(shell git rev-parse --show-toplevel)
 BIN_DIR := bin
 SRCS := go.mod go.sum
 
@@ -69,10 +70,6 @@ ginkgo: $(GINKGO) $(SRCS)
 $(GINKGO): go.mod
 	go build -tags=tools -o $@ github.com/onsi/ginkgo/v2/ginkgo
 
-golangci-lint: $(GOLANGCI_LINT) $(SRCS) ## Build golangci-lint
-$(GOLANGCI_LINT): go.mod
-	go build -tags=tools -o $@ github.com/golangci/golangci-lint/cmd/golangci-lint
-
 govc: $(GOVC) $(SRCS)
 $(GOVC): go.mod
 	go build -tags=tools -o $@ github.com/vmware/govmomi/govc
@@ -96,6 +93,13 @@ $(APIDIFF): go.mod
 release-notes: $(RELEASE_NOTES) $(SRCS)
 $(RELEASE_NOTES): go.mod
 	go build -tags=tools -o $@ sigs.k8s.io/kubebuilder-release-tools/notes
+
+## Download golangci-lint binary using the script in `hack` directory
+golangci-lint: $(GOLANGCI_LINT)
+$(GOLANGCI_LINT): $(REPO_ROOT)/.github/workflows/golangci-lint.yaml
+	$(REPO_ROOT)/hack/ensure-golangci-lint.sh \
+		-b $(BIN_DIR) \
+		$(shell cat .github/workflows/golangci-lint.yaml | grep version | sed 's/.*version: //')
 
 ## --------------------------------------
 ## Generate

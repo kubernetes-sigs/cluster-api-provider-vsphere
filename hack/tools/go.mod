@@ -7,7 +7,7 @@ require (
 	github.com/joelanford/go-apidiff v0.6.0
 	github.com/onsi/ginkgo/v2 v2.9.2
 	github.com/vmware/govmomi v0.23.1
-	k8s.io/code-generator v0.25.0
+	k8s.io/code-generator v0.25.8
 	sigs.k8s.io/cluster-api/hack/tools v0.0.0-20211104153216-fb1f86267fed
 	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20221201045826-d9912251cd81
 	sigs.k8s.io/controller-tools v0.10.0

@@ -38,7 +38,7 @@ func TestVSphereDeploymentZone_Default(t *testing.T) {
 		},
 		{
 			name:        "when control plane is set",
-			boolPtr:     pointer.BoolPtr(false),
+			boolPtr:     pointer.Bool(false),
 			expectedVal: false,
 		},
 	}

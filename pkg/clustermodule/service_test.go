@@ -91,7 +91,7 @@ func machineDeployment(name, namespace, cluster string) *clusterv1.MachineDeploy
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
-			Labels:    map[string]string{clusterv1.ClusterLabelName: cluster},
+			Labels:    map[string]string{clusterv1.ClusterNameLabel: cluster},
 		},
 	}
 }

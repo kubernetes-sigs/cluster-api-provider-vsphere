@@ -41,7 +41,7 @@ func GetVSphereMachinesInCluster(
 	ctx context.Context,
 	controllerClient client.Client,
 	namespace, clusterName string) ([]*infrav1.VSphereMachine, error) {
-	labels := map[string]string{clusterv1.ClusterLabelName: clusterName}
+	labels := map[string]string{clusterv1.ClusterNameLabel: clusterName}
 	machineList := &infrav1.VSphereMachineList{}
 
 	if err := controllerClient.List(
@@ -107,7 +107,7 @@ func GetMachinePreferredIPAddress(machine *infrav1.VSphereMachine) (string, erro
 // IsControlPlaneMachine returns true if the provided resource is
 // a member of the control plane.
 func IsControlPlaneMachine(machine metav1.Object) bool {
-	_, ok := machine.GetLabels()[clusterv1.MachineControlPlaneLabelName]
+	_, ok := machine.GetLabels()[clusterv1.MachineControlPlaneLabel]
 	return ok
 }
 

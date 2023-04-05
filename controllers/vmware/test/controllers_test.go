@@ -30,7 +30,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
@@ -156,8 +156,8 @@ func deployCAPIMachine(namespace string, cluster *clusterv1.Cluster, k8sClient c
 			Namespace:    namespace,
 			Finalizers:   []string{"test"},
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName:             cluster.Name,
-				clusterv1.MachineControlPlaneLabelName: "true",
+				clusterv1.ClusterNameLabel:         cluster.Name,
+				clusterv1.MachineControlPlaneLabel: "",
 			},
 			OwnerReferences: []metav1.OwnerReference{
 				{

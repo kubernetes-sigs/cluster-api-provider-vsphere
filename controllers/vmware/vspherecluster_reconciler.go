@@ -266,7 +266,7 @@ func (r *ClusterReconciler) reconcileAPIEndpoints(ctx *vmware.ClusterContext) er
 	if err != nil {
 		return errors.Wrapf(err,
 			"failed to get Machines for Cluster %s/%s",
-			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
+			ctx.Cluster.Namespace, ctx.Cluster.Name)
 	}
 
 	// Define a variable to assign the API endpoints of control plane

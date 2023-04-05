@@ -999,7 +999,7 @@ func Test_GetVSphereClusterFromVSphereMachine(t *testing.T) {
 	}
 	machine := &vmwarev1.VSphereMachine{
 		ObjectMeta: metav1.ObjectMeta{
-			Labels:    map[string]string{clusterv1.ClusterLabelName: "foo"},
+			Labels:    map[string]string{clusterv1.ClusterNameLabel: "foo"},
 			Name:      "foo-machine-1",
 			Namespace: ns,
 		},

@@ -316,9 +316,9 @@ func setupVAPIControllers(ctx *context.ControllerManagerContext, mgr ctrlmgr.Man
 	}
 
 	if feature.Gates.Enabled(feature.NodeLabeling) {
-		if err := controllers.AddNodeLabelControllerToManager(ctx, mgr); err != nil {
-			return err
-		}
+		setupLog.Info("Use of this feature flag is deprecated. Please consider unsetting this feature flag."+
+			"This flag does not enable the node labeling feature anymore. Consider using the cluster-api node labeling functionality instead.",
+			"flag", feature.NodeLabeling, "value", "true")
 	}
 	return nil
 }

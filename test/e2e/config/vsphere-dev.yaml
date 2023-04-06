@@ -170,7 +170,6 @@ variables:
   VENDOR_ID: 4318
   # CAPV feature flags
   EXP_NODE_ANTI_AFFINITY: "true"
-  EXP_NODE_LABELING: "true"
   # Following CAPV variables is used for multivc_test.go. This is the second VSphere and should be set if multivc test is enabled.
   VSPHERE2_SERVER: "vcenter2.vmware.com"
   VSPHERE2_TLS_THUMBPRINT: "AA:BB:CC:DD:11:22:33:44:EE:FF"

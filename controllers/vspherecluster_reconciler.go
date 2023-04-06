@@ -358,15 +358,19 @@ func (r clusterReconciler) reconcileDeploymentZones(ctx *context.ClusterContext)
 	failureDomains := clusterv1.FailureDomains{}
 	for _, zone := range deploymentZoneList.Items {
 		if zone.Spec.Server == ctx.VSphereCluster.Spec.Server {
+			var isCP bool
+			if zone.Spec.ControlPlane != nil {
+				isCP = *zone.Spec.ControlPlane
+			}
 			if zone.Status.Ready == nil {
 				readyNotReported++
 				failureDomains[zone.Name] = clusterv1.FailureDomainSpec{
-					ControlPlane: *zone.Spec.ControlPlane,
+					ControlPlane: isCP,
 				}
 			} else {
 				if *zone.Status.Ready {
 					failureDomains[zone.Name] = clusterv1.FailureDomainSpec{
-						ControlPlane: *zone.Spec.ControlPlane,
+						ControlPlane: isCP,
 					}
 				} else {
 					notReady++

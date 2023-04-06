@@ -62,7 +62,7 @@ func (r vsphereDeploymentZoneReconciler) reconcileFailureDomain(ctx *context.VSp
 }
 
 func (r vsphereDeploymentZoneReconciler) reconcileInfraFailureDomain(ctx *context.VSphereDeploymentZoneContext, failureDomain infrav1.FailureDomain) error {
-	if *failureDomain.AutoConfigure {
+	if failureDomain.AutoConfigure != nil && *failureDomain.AutoConfigure {
 		return r.createAndAttachMetadata(ctx, failureDomain)
 	}
 	return r.verifyFailureDomain(ctx, failureDomain)

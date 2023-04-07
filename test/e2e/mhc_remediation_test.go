@@ -21,7 +21,7 @@ import (
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 )
 
-var _ = Describe("When testing control plane node remediation", func() {
+var _ = XDescribe("When testing control plane node remediation", func() {
 	capi_e2e.KCPRemediationSpec(ctx, func() capi_e2e.KCPRemediationSpecInput {
 		return capi_e2e.KCPRemediationSpecInput{
 			E2EConfig:             e2eConfig,

@@ -32,6 +32,7 @@ const (
 	Ignition             = "ignition"
 	ClusterClass         = "cluster-class"
 	ClusterTopology      = "cluster-topology"
+	NodeIPAM             = "node-ipam"
 )
 
 func ClusterClassTemplateWithKubeVIP() []runtime.Object {
@@ -155,6 +156,37 @@ func MultiNodeTemplateWithKubeVIPIgnition() []runtime.Object {
 		&cluster,
 		&vsphereCluster,
 		&machineTemplate,
+		&controlPlane,
+		&kubeadmJoinTemplate,
+		&machineDeployment,
+		&clusterResourceSet,
+		&identitySecret,
+	}
+
+	MultiNodeTemplate = append(MultiNodeTemplate, crsResourcesCSI...)
+	MultiNodeTemplate = append(MultiNodeTemplate, crsResourcesCPI...)
+
+	return MultiNodeTemplate
+}
+
+func MultiNodeTemplateWithKubeVIPNodeIPAM() []runtime.Object {
+	vsphereCluster := newVSphereCluster()
+	cpMachineTemplate := newNodeIPAMVSphereMachineTemplate(env.ClusterNameVar)
+	workerMachineTemplate := newNodeIPAMVSphereMachineTemplate(fmt.Sprintf("%s-worker", env.ClusterNameVar))
+	controlPlane := newKubeadmControlplane(cpMachineTemplate, newKubeVIPFiles())
+	kubeadmJoinTemplate := newKubeadmConfigTemplate(fmt.Sprintf("%s%s", env.ClusterNameVar, env.MachineDeploymentNameSuffix), true)
+	cluster := newCluster(vsphereCluster, &controlPlane)
+	machineDeployment := newMachineDeployment(cluster, workerMachineTemplate, kubeadmJoinTemplate)
+	clusterResourceSet := newClusterResourceSet(cluster)
+	crsResourcesCSI := crs.CreateCrsResourceObjectsCSI(&clusterResourceSet)
+	crsResourcesCPI := crs.CreateCrsResourceObjectsCPI(&clusterResourceSet)
+	identitySecret := newIdentitySecret()
+
+	MultiNodeTemplate := []runtime.Object{
+		&cluster,
+		&vsphereCluster,
+		&cpMachineTemplate,
+		&workerMachineTemplate,
 		&controlPlane,
 		&kubeadmJoinTemplate,
 		&machineDeployment,

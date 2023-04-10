@@ -315,6 +315,7 @@ generate-flavors: $(FLAVOR_DIR)
 	go run ./packaging/flavorgen -f cluster-class > $(FLAVOR_DIR)/clusterclass-template.yaml
 	go run ./packaging/flavorgen -f cluster-topology > $(FLAVOR_DIR)/cluster-template-topology.yaml
 	go run ./packaging/flavorgen -f ignition > $(FLAVOR_DIR)/cluster-template-ignition.yaml
+	go run ./packaging/flavorgen -f node-ipam > $(FLAVOR_DIR)/cluster-template-node-ipam.yaml
 ## --------------------------------------
 ## Release
 ## --------------------------------------

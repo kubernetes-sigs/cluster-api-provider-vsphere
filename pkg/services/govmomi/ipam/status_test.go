@@ -716,6 +716,28 @@ func Test_BuildState(t *testing.T) {
 			g.Expect(err).To(gomega.MatchError("IPAddress my-namespace/vsphereVM1-0-0 has invalid ip address: \"10.0.1.50/200\""))
 		})
 
+		t.Run("when a provider assigns an IPv4 IPAddress without a Gateway field", func(_ *testing.T) {
+			beforeWithClaimsAndAddressCreated()
+
+			address1.Spec.Gateway = ""
+			g.Expect(ctx.Client.Update(ctx, address1)).NotTo(gomega.HaveOccurred())
+
+			_, err := BuildState(ctx, networkStatus)
+			g.Expect(err).To(gomega.HaveOccurred())
+			g.Expect(err).To(gomega.MatchError("IPAddress my-namespace/vsphereVM1-0-0 has invalid gateway: \"\""))
+		})
+
+		t.Run("when a provider assigns an IPv6 IPAddress without a Gateway field", func(_ *testing.T) {
+			beforeWithClaimsAndAddressCreated()
+
+			address1.Spec.Address = "fd00:dddd::1"
+			address1.Spec.Gateway = ""
+			g.Expect(ctx.Client.Update(ctx, address1)).NotTo(gomega.HaveOccurred())
+
+			_, err := BuildState(ctx, networkStatus)
+			g.Expect(err).NotTo(gomega.HaveOccurred())
+		})
+
 		t.Run("when a provider assigns an IPAddress with an invalid value in the Gateway field", func(_ *testing.T) {
 			beforeWithClaimsAndAddressCreated()
 			// Simulate an invalid gateway was provided: the gateway is an invalid ip

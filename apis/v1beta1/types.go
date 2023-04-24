@@ -281,7 +281,6 @@ type NetworkDeviceSpec struct {
 	Gateway4 string `json:"gateway4,omitempty"`
 
 	// Gateway4 is the IPv4 gateway used by this device.
-	// Required when DHCP6 is false.
 	// +optional
 	Gateway6 string `json:"gateway6,omitempty"`
 

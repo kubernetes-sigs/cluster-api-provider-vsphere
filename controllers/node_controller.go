@@ -111,11 +111,13 @@ func (r nodeLabelReconciler) Reconcile(ctx goctx.Context, req ctrl.Request) (_ c
 	}
 
 	cluster, err := clusterutilv1.GetClusterFromMetadata(r.ControllerContext, r.Client, machine.ObjectMeta)
-	if err == nil {
-		if annotations.IsPaused(cluster, machine) {
-			logger.V(4).Info("Machine linked to a cluster that is paused")
-			return reconcile.Result{}, nil
-		}
+	if err != nil {
+		logger.Error(err, "Could not fetch cluster data", "machine", key)
+		return reconcile.Result{}, nil
+	}
+	if annotations.IsPaused(cluster, machine) {
+		logger.V(4).Info("Machine linked to a cluster that is paused")
+		return reconcile.Result{}, nil
 	}
 
 	if !machine.DeletionTimestamp.IsZero() {

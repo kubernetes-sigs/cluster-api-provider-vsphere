@@ -33,13 +33,17 @@ const (
 	// alpha: v1.4
 	NodeAntiAffinity featuregate.Feature = "NodeAntiAffinity"
 
+	//nolint: gocritic
 	// NodeLabeling is a feature gate for the functionality to propagate Machine labels
 	// with the prefix to the Node objects.
 	// This is a stop-gap measure which will be removed when we have this functionality
 	// present in CAPI.
 	// See https://github.com/kubernetes-sigs/cluster-api/pull/6255
+	// Since this is natively supported in CAPI with the v1.4 release, this feature is being
+	// deprecated.
 	//
 	// alpha: v1.4
+	// deprecated: v1.7
 	NodeLabeling featuregate.Feature = "NodeLabeling"
 )
 
@@ -52,5 +56,5 @@ func init() {
 var defaultCAPVFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	// Every feature should be initiated here:
 	NodeAntiAffinity: {Default: false, PreRelease: featuregate.Alpha},
-	NodeLabeling:     {Default: false, PreRelease: featuregate.Alpha},
+	NodeLabeling:     {Default: false, PreRelease: featuregate.Deprecated},
 }

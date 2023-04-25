@@ -260,7 +260,7 @@ A new controller is added which is responsible for propagating the labels with a
 Two new feature flags are introduced to control the availability of these new behaviors:
 
 1. **NodeAntiAffinity** which is set to `false` by default. This controls the creation of cluster modules to dictate anti affinity for VM placement.
-2. **NodeLabeling** which is set to `false` by default. This controls the propagation of labels with a special prefix from Machine to Node objects.
+2. **NodeLabeling** which is set to `false` by default. This controls the propagation of labels with a special prefix from Machine to Node objects. Starting from v1.7.0 release, this feature flag is deprecated and this functionality will not be provided by CAPV. CAPI v1.4.0 natively supports this feature.
 
 ## Upgrade Strategy
 

@@ -290,6 +290,68 @@ func defaultVirtualMachineCloneSpec() infrav1.VirtualMachineCloneSpec {
 	}
 }
 
+func newNodeIPAMVSphereMachineTemplate(templateName string) infrav1.VSphereMachineTemplate {
+	return infrav1.VSphereMachineTemplate{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      templateName,
+			Namespace: env.NamespaceVar,
+		},
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: infrav1.GroupVersion.String(),
+			Kind:       util.TypeToKind(&infrav1.VSphereMachineTemplate{}),
+		},
+		Spec: infrav1.VSphereMachineTemplateSpec{
+			Template: infrav1.VSphereMachineTemplateResource{
+				Spec: nodeIPAMVirtualMachineSpec(),
+			},
+		},
+	}
+}
+
+func nodeIPAMVirtualMachineSpec() infrav1.VSphereMachineSpec {
+	return infrav1.VSphereMachineSpec{
+		VirtualMachineCloneSpec: nodeIPAMVirtualMachineCloneSpec(),
+	}
+}
+
+func nodeIPAMVirtualMachineCloneSpec() infrav1.VirtualMachineCloneSpec {
+	return infrav1.VirtualMachineCloneSpec{
+		Datacenter: env.VSphereDataCenterVar,
+		Network: infrav1.NetworkSpec{
+			Devices: []infrav1.NetworkDeviceSpec{
+				{
+					NetworkName: env.VSphereNetworkVar,
+					DHCP4:       false,
+					DHCP6:       false,
+					AddressesFromPools: []corev1.TypedLocalObjectReference{
+						{
+							APIGroup: pointer.String(env.NodeIPAMPoolAPIGroup),
+							Kind:     env.NodeIPAMPoolKind,
+							Name:     env.NodeIPAMPoolName,
+						},
+					},
+					Nameservers: []string{
+						env.Nameserver,
+					},
+				},
+			},
+		},
+		CustomVMXKeys:     defaultCustomVMXKeys(),
+		CloneMode:         infrav1.LinkedClone,
+		NumCPUs:           env.DefaultNumCPUs,
+		DiskGiB:           env.DefaultDiskGiB,
+		MemoryMiB:         env.DefaultMemoryMiB,
+		Template:          env.VSphereTemplateVar,
+		Server:            env.VSphereServerVar,
+		Thumbprint:        env.VSphereThumbprint,
+		ResourcePool:      env.VSphereResourcePoolVar,
+		Datastore:         env.VSphereDatastoreVar,
+		StoragePolicyName: env.VSphereStoragePolicyVar,
+		Folder:            env.VSphereFolderVar,
+		OS:                infrav1.Linux,
+	}
+}
+
 func defaultKubeadmInitSpec(files []bootstrapv1.File) bootstrapv1.KubeadmConfigSpec {
 	return bootstrapv1.KubeadmConfigSpec{
 		InitConfiguration: &bootstrapv1.InitConfiguration{

@@ -147,10 +147,10 @@ func createOrPatchIPAddressClaim(ctx *context.VMContext, name string, poolRef co
 
 		ctrlutil.AddFinalizer(claim, infrav1.IPAddressClaimFinalizer)
 
-		if claim.Annotations == nil {
-			claim.Annotations = make(map[string]string)
+		if claim.Labels == nil {
+			claim.Labels = make(map[string]string)
 		}
-		claim.Annotations[clusterv1.ClusterNameAnnotation] = ctx.VSphereVM.ObjectMeta.Annotations[clusterv1.ClusterNameAnnotation]
+		claim.Labels[clusterv1.ClusterNameLabel] = ctx.VSphereVM.Labels[clusterv1.ClusterNameLabel]
 
 		claim.Spec.PoolRef.APIGroup = poolRef.APIGroup
 		claim.Spec.PoolRef.Kind = poolRef.Kind

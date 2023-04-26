@@ -121,6 +121,12 @@ func GetMachineMetadata(hostname string, vsphereVM infrav1.VSphereVM, ipamState 
 	var waitForIPv4, waitForIPv6 bool
 	for i := range vsphereVM.Spec.Network.Devices {
 		vsphereVM.Spec.Network.Devices[i].DeepCopyInto(&devices[i])
+
+		// Add the MAC Address to the network device
+		if len(networkStatuses) > i {
+			devices[i].MACAddr = networkStatuses[i].MACAddr
+		}
+
 		if state, ok := ipamState[devices[i].MACAddr]; ok {
 			devices[i].IPAddrs = append(devices[i].IPAddrs, state.IPAddrs...)
 			devices[i].Gateway4 = state.Gateway4
@@ -153,6 +159,8 @@ func GetMachineMetadata(hostname string, vsphereVM infrav1.VSphereVM, ipamState 
 	}
 
 	// Add the MAC Address to the network device
+	// networkStatuses may be longer than devices
+	// and we want to add all the networks
 	for i, status := range networkStatuses {
 		devices[i].MACAddr = status.MACAddr
 	}

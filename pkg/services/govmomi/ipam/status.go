@@ -44,10 +44,10 @@ type ipamDeviceConfig struct {
 	IPAMConfigGateway6  string
 }
 
-func BuildState(ctx context.VMContext) (map[string]infrav1.NetworkDeviceSpec, error) {
+func BuildState(ctx context.VMContext, networkStatus []infrav1.NetworkStatus) (map[string]infrav1.NetworkDeviceSpec, error) {
 	state := map[string]infrav1.NetworkDeviceSpec{}
 
-	ipamDeviceConfigs, err := buildIPAMDeviceConfigs(ctx)
+	ipamDeviceConfigs, err := buildIPAMDeviceConfigs(ctx, networkStatus)
 	if err != nil {
 		return state, err
 	}
@@ -111,13 +111,19 @@ func BuildState(ctx context.VMContext) (map[string]infrav1.NetworkDeviceSpec, er
 // is returned, one for each device with addressesFromPools.
 // If any of the IPAddressClaims do not have an associated IPAddress yet,
 // a custom error is returned.
-func buildIPAMDeviceConfigs(ctx context.VMContext) ([]ipamDeviceConfig, error) {
+func buildIPAMDeviceConfigs(ctx context.VMContext, networkStatus []infrav1.NetworkStatus) ([]ipamDeviceConfig, error) {
 	boundClaims, totalClaims := 0, 0
 	ipamDeviceConfigs := []ipamDeviceConfig{}
 	for devIdx, networkSpecDevice := range ctx.VSphereVM.Spec.Network.Devices {
+		if len(networkStatus) == 0 ||
+			len(networkStatus) <= devIdx ||
+			networkStatus[devIdx].MACAddr == "" {
+			return ipamDeviceConfigs, errors.New("waiting for devices to have MAC address set")
+		}
+
 		ipamDeviceConfig := ipamDeviceConfig{
 			IPAMAddresses:       []*ipamv1.IPAddress{},
-			MACAddress:          networkSpecDevice.MACAddr,
+			MACAddress:          networkStatus[devIdx].MACAddr,
 			NetworkSpecGateway4: networkSpecDevice.Gateway4,
 			NetworkSpecGateway6: networkSpecDevice.Gateway6,
 			DeviceIndex:         devIdx,

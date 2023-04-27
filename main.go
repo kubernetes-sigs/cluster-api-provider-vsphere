@@ -134,7 +134,7 @@ func InitFlags(fs *pflag.FlagSet) {
 		&managerOpts.EnableKeepAlive,
 		"enable-keep-alive",
 		defaultEnableKeepAlive,
-		"DEPRECATED: feature to enable keep alive handler in vsphere sessions. This functionality is enabled by default now")
+		"feature to enable keep alive handler in vsphere sessions. This functionality is enabled by default.")
 	flag.DurationVar(
 		&managerOpts.KeepAliveDuration,
 		"keep-alive-duration",

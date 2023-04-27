@@ -271,7 +271,7 @@ func (vms *VMService) reconcileNetworkStatus(ctx *virtualMachineContext) error {
 // This function is a no-op if the VSphereVM has no associated IPAddressClaims.
 // A discovered IPAddress is expected to contain a valid IP, Prefix and Gateway.
 func (vms *VMService) reconcileIPAddresses(ctx *virtualMachineContext) (bool, error) {
-	ipamState, err := ipam.BuildState(ctx.VMContext)
+	ipamState, err := ipam.BuildState(ctx.VMContext, ctx.State.Network)
 	if err != nil && !errors.Is(err, ipam.ErrWaitingForIPAddr) {
 		return false, err
 	}

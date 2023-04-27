@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/onsi/gomega"
+	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apitypes "k8s.io/apimachinery/pkg/types"
@@ -28,6 +29,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
 var (
@@ -36,13 +38,19 @@ var (
 )
 
 func Test_buildIPAMDeviceConfigs(t *testing.T) {
-	var ctx context.VMContext
-	var claim1, claim2, claim3 *ipamv1a1.IPAddressClaim
-	var address1, address2, address3 *ipamv1a1.IPAddress
-	var g *gomega.WithT
+	var (
+		ctx                          context.VMContext
+		networkStatus                []infrav1.NetworkStatus
+		claim1, claim2, claim3       *ipamv1a1.IPAddressClaim
+		address1, address2, address3 *ipamv1a1.IPAddress
+		g                            *gomega.WithT
+	)
 
 	before := func() {
 		ctx = *fake.NewVMContext(fake.NewControllerContext(fake.NewControllerManagerContext()))
+		networkStatus = []infrav1.NetworkStatus{
+			{Connected: true, MACAddr: devMAC},
+		}
 
 		g = gomega.NewWithT(t)
 		namespace := "my-namespace"
@@ -132,7 +140,7 @@ func Test_buildIPAMDeviceConfigs(t *testing.T) {
 		g.Expect(ctx.Client.Create(ctx, claim3)).NotTo(gomega.HaveOccurred())
 
 		// IP provider has not provided Addresses yet
-		_, err := buildIPAMDeviceConfigs(ctx)
+		_, err := buildIPAMDeviceConfigs(ctx, networkStatus)
 		g.Expect(err).To(gomega.Equal(ErrWaitingForIPAddr))
 
 		// Simulate IP provider reconciling one claim
@@ -148,7 +156,7 @@ func Test_buildIPAMDeviceConfigs(t *testing.T) {
 		g.Expect(ctx.Client.Update(ctx, ipAddrClaim)).NotTo(gomega.HaveOccurred())
 
 		// Only the last claim has been bound
-		_, err = buildIPAMDeviceConfigs(ctx)
+		_, err = buildIPAMDeviceConfigs(ctx, networkStatus)
 		g.Expect(err).To(gomega.Equal(ErrWaitingForIPAddr))
 
 		// Simulate IP provider reconciling remaining claims
@@ -173,7 +181,7 @@ func Test_buildIPAMDeviceConfigs(t *testing.T) {
 
 		// Now that claims are fulfilled, reconciling should update
 		// ipAddrs on network spec
-		configs, err := buildIPAMDeviceConfigs(ctx)
+		configs, err := buildIPAMDeviceConfigs(ctx, networkStatus)
 		g.Expect(err).NotTo(gomega.HaveOccurred())
 		g.Expect(configs).To(gomega.HaveLen(1))
 
@@ -205,20 +213,43 @@ func Test_buildIPAMDeviceConfigs(t *testing.T) {
 		}
 
 		// The IPAddressClaimed condition should not be added
-		config, err := buildIPAMDeviceConfigs(ctx)
+		config, err := buildIPAMDeviceConfigs(ctx, networkStatus)
 		g.Expect(err).NotTo(gomega.HaveOccurred())
 		g.Expect(config[0].IPAMAddresses).To(gomega.HaveLen(0))
 	})
 }
 
 func Test_BuildState(t *testing.T) {
-	var ctx context.VMContext
-	var claim1, claim2, claim3 *ipamv1a1.IPAddressClaim
-	var address1, address2, address3 *ipamv1a1.IPAddress
-	var g *gomega.WithT
+	var (
+		ctx                          context.VMContext
+		networkStatus                []infrav1.NetworkStatus
+		claim1, claim2, claim3       *ipamv1a1.IPAddressClaim
+		address1, address2, address3 *ipamv1a1.IPAddress
+		g                            *gomega.WithT
+	)
+	type nameservers struct {
+		Addresses []string `json:"addresses"`
+	}
+	type ethernet struct {
+		Addresses   []string          `json:"addresses"`
+		DHCP4       bool              `json:"dhcp4"`
+		DHCP6       bool              `json:"dhcp6"`
+		Gateway4    string            `json:"gateway4"`
+		Match       map[string]string `json:"match"`
+		Nameservers nameservers       `json:"nameservers"`
+	}
+	type network struct {
+		Ethernets map[string]ethernet `json:"ethernets"`
+	}
+	type vmMetadata struct {
+		Network network `json:"network"`
+	}
 
 	before := func() {
 		ctx = *fake.NewVMContext(fake.NewControllerContext(fake.NewControllerManagerContext()))
+		networkStatus = []infrav1.NetworkStatus{
+			{Connected: true, MACAddr: devMAC},
+		}
 
 		g = gomega.NewWithT(t)
 
@@ -322,7 +353,7 @@ func Test_BuildState(t *testing.T) {
 		g.Expect(ctx.Client.Create(ctx, claim3)).NotTo(gomega.HaveOccurred())
 
 		// IP provider has not provided Addresses yet
-		_, err := BuildState(ctx)
+		_, err := BuildState(ctx, networkStatus)
 		g.Expect(err).To(gomega.Equal(ErrWaitingForIPAddr))
 
 		// Simulate IP provider reconciling one claim
@@ -338,7 +369,7 @@ func Test_BuildState(t *testing.T) {
 		g.Expect(ctx.Client.Update(ctx, ipAddrClaim)).NotTo(gomega.HaveOccurred())
 
 		// Only the last claim has been bound
-		_, err = BuildState(ctx)
+		_, err = BuildState(ctx, networkStatus)
 		g.Expect(err).To(gomega.Equal(ErrWaitingForIPAddr))
 
 		// Simulate IP provider reconciling remaining claims
@@ -363,7 +394,7 @@ func Test_BuildState(t *testing.T) {
 
 		// Now that claims are fulfilled, reconciling should update
 		// ipAddrs on network spec
-		state, err := BuildState(ctx)
+		state, err := BuildState(ctx, networkStatus)
 		g.Expect(err).NotTo(gomega.HaveOccurred())
 		g.Expect(state).To(gomega.HaveLen(1))
 
@@ -397,12 +428,132 @@ func Test_BuildState(t *testing.T) {
 			},
 		}
 
-		state, err := BuildState(ctx)
+		state, err := BuildState(ctx, networkStatus)
 		g.Expect(err).NotTo(gomega.HaveOccurred())
 		g.Expect(state).To(gomega.HaveLen(0))
 	})
 
+	t.Run("when one device has no pool and is DHCP true, and one device has a IPAddressPool", func(_ *testing.T) {
+		before()
+		devMAC0 := "0:0:0:0:a"
+		devMAC1 := "0:0:0:0:b"
+
+		claim := &ipamv1a1.IPAddressClaim{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "vsphereVM1-1-0",
+				Namespace: "my-namespace",
+			},
+		}
+		address := &ipamv1a1.IPAddress{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "vsphereVM1-1-0-address",
+				Namespace: "my-namespace",
+			},
+			Spec: ipamv1a1.IPAddressSpec{
+				Address: "10.0.0.50",
+				Prefix:  24,
+				Gateway: "10.0.0.1",
+			},
+		}
+
+		ctx.VSphereVM = &infrav1.VSphereVM{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "vsphereVM1",
+				Namespace: "my-namespace",
+			},
+			Spec: infrav1.VSphereVMSpec{
+				VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
+					Network: infrav1.NetworkSpec{
+						Devices: []infrav1.NetworkDeviceSpec{
+							{
+								DHCP4: true,
+							},
+							{
+								AddressesFromPools: []corev1.TypedLocalObjectReference{
+									{
+										APIGroup: &myAPIGroup,
+										Name:     "my-pool-1",
+										Kind:     "my-pool-kind",
+									},
+								},
+								Nameservers: []string{"1.1.1.1"},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		networkStatus = []infrav1.NetworkStatus{
+			{Connected: true},
+			{Connected: true},
+		}
+
+		// Creates ip address claims
+		g.Expect(ctx.Client.Create(ctx, claim)).NotTo(gomega.HaveOccurred())
+
+		// VSphere has not yet assigned MAC addresses to the machine's devices
+		_, err := BuildState(ctx, networkStatus)
+		g.Expect(err).To(gomega.MatchError("waiting for devices to have MAC address set"))
+
+		networkStatus = []infrav1.NetworkStatus{
+			{Connected: true, MACAddr: devMAC0},
+			{Connected: true, MACAddr: devMAC1},
+		}
+
+		// IP provider has not provided Addresses yet
+		_, err = BuildState(ctx, networkStatus)
+		g.Expect(err).To(gomega.MatchError("waiting for IP address claims to be bound"))
+
+		// Simulate IP provider reconciling one claim
+		g.Expect(ctx.Client.Create(ctx, address)).NotTo(gomega.HaveOccurred())
+
+		ipAddrClaim := &ipamv1a1.IPAddressClaim{}
+		ipAddrClaimKey := apitypes.NamespacedName{
+			Namespace: ctx.VSphereVM.Namespace,
+			Name:      "vsphereVM1-1-0",
+		}
+		g.Expect(ctx.Client.Get(ctx, ipAddrClaimKey, ipAddrClaim)).NotTo(gomega.HaveOccurred())
+
+		ipAddrClaim.Status.AddressRef.Name = "vsphereVM1-1-0-address"
+		g.Expect(ctx.Client.Update(ctx, ipAddrClaim)).NotTo(gomega.HaveOccurred())
+
+		// Now that claims are fulfilled, reconciling should update
+		// ipAddrs on network spec
+		ipamState, err := BuildState(ctx, networkStatus)
+		g.Expect(err).NotTo(gomega.HaveOccurred())
+
+		g.Expect(ipamState).To(gomega.HaveLen(1))
+
+		_, found := ipamState[devMAC0]
+		g.Expect(found).To(gomega.BeFalse())
+
+		g.Expect(ipamState[devMAC1].IPAddrs).To(gomega.HaveLen(1))
+		g.Expect(ipamState[devMAC1].IPAddrs[0]).To(gomega.Equal("10.0.0.50/24"))
+		g.Expect(ipamState[devMAC1].Gateway4).To(gomega.Equal("10.0.0.1"))
+
+		// Compute the new metadata from the context to see if the addresses are rendered correctly
+		metadataBytes, err := util.GetMachineMetadata(ctx.VSphereVM.Name, *ctx.VSphereVM, ipamState, networkStatus...)
+		g.Expect(err).NotTo(gomega.HaveOccurred())
+
+		metadata := vmMetadata{}
+		g.Expect(yaml.Unmarshal(metadataBytes, &metadata)).To(gomega.Succeed())
+
+		g.Expect(metadata.Network.Ethernets["id0"].Addresses).To(gomega.BeNil())
+		g.Expect(metadata.Network.Ethernets["id0"].DHCP4).To(gomega.BeTrue())
+
+		g.Expect(metadata.Network.Ethernets["id1"].Addresses).To(gomega.ConsistOf("10.0.0.50/24"))
+		g.Expect(metadata.Network.Ethernets["id1"].DHCP4).To(gomega.BeFalse())
+		g.Expect(metadata.Network.Ethernets["id1"].Gateway4).To(gomega.Equal("10.0.0.1"))
+		g.Expect(metadata.Network.Ethernets["id1"].Nameservers.Addresses).To(gomega.ConsistOf("1.1.1.1"))
+	})
+
 	t.Run("when realized IP addresses are incorrect", func(t *testing.T) {
+		var (
+			devMAC0 = "0:0:0:0:a"
+			devMAC1 = "0:0:0:0:b"
+		)
+
 		beforeWithClaimsAndAddressCreated := func() {
 			before()
 
@@ -488,6 +639,7 @@ func Test_BuildState(t *testing.T) {
 						Network: infrav1.NetworkSpec{
 							Devices: []infrav1.NetworkDeviceSpec{
 								{
+									MACAddr: devMAC0,
 									AddressesFromPools: []corev1.TypedLocalObjectReference{
 										{
 											APIGroup: &myAPIGroup,
@@ -502,6 +654,7 @@ func Test_BuildState(t *testing.T) {
 									},
 								},
 								{
+									MACAddr: devMAC1,
 									AddressesFromPools: []corev1.TypedLocalObjectReference{
 										{
 											APIGroup: &myAPIGroup,
@@ -514,6 +667,11 @@ func Test_BuildState(t *testing.T) {
 						},
 					},
 				},
+			}
+
+			networkStatus = []infrav1.NetworkStatus{
+				{Connected: true, MACAddr: devMAC0},
+				{Connected: true, MACAddr: devMAC1},
 			}
 
 			g.Expect(ctx.Client.Create(ctx, claim1)).NotTo(gomega.HaveOccurred())
@@ -531,7 +689,7 @@ func Test_BuildState(t *testing.T) {
 			address1.Spec.Address = ""
 			g.Expect(ctx.Client.Update(ctx, address1)).NotTo(gomega.HaveOccurred())
 
-			_, err := BuildState(ctx)
+			_, err := BuildState(ctx, networkStatus)
 			g.Expect(err).To(gomega.HaveOccurred())
 			g.Expect(err).To(gomega.MatchError("IPAddress my-namespace/vsphereVM1-0-0 has invalid ip address: \"/24\""))
 		})
@@ -542,7 +700,7 @@ func Test_BuildState(t *testing.T) {
 			address1.Spec.Address = "invalid-ip"
 			g.Expect(ctx.Client.Update(ctx, address1)).NotTo(gomega.HaveOccurred())
 
-			_, err := BuildState(ctx)
+			_, err := BuildState(ctx, networkStatus)
 			g.Expect(err).To(gomega.HaveOccurred())
 			g.Expect(err).To(gomega.MatchError("IPAddress my-namespace/vsphereVM1-0-0 has invalid ip address: \"invalid-ip/24\""))
 		})
@@ -553,7 +711,7 @@ func Test_BuildState(t *testing.T) {
 			address1.Spec.Prefix = 200
 			g.Expect(ctx.Client.Update(ctx, address1)).NotTo(gomega.HaveOccurred())
 
-			_, err := BuildState(ctx)
+			_, err := BuildState(ctx, networkStatus)
 			g.Expect(err).To(gomega.HaveOccurred())
 			g.Expect(err).To(gomega.MatchError("IPAddress my-namespace/vsphereVM1-0-0 has invalid ip address: \"10.0.1.50/200\""))
 		})
@@ -564,7 +722,7 @@ func Test_BuildState(t *testing.T) {
 			address1.Spec.Gateway = "invalid-gateway"
 			g.Expect(ctx.Client.Update(ctx, address1)).NotTo(gomega.HaveOccurred())
 
-			_, err := BuildState(ctx)
+			_, err := BuildState(ctx, networkStatus)
 			g.Expect(err).To(gomega.HaveOccurred())
 			g.Expect(err).To(gomega.MatchError("IPAddress my-namespace/vsphereVM1-0-0 has invalid gateway: \"invalid-gateway\""))
 		})
@@ -576,7 +734,7 @@ func Test_BuildState(t *testing.T) {
 			address1.Spec.Gateway = "fd01::1"
 			g.Expect(ctx.Client.Update(ctx, address1)).NotTo(gomega.HaveOccurred())
 
-			_, err := BuildState(ctx)
+			_, err := BuildState(ctx, networkStatus)
 			g.Expect(err).To(gomega.HaveOccurred())
 			g.Expect(err).To(gomega.MatchError("IPAddress my-namespace/vsphereVM1-0-0 has mismatched gateway and address IP families"))
 
@@ -585,7 +743,7 @@ func Test_BuildState(t *testing.T) {
 			address1.Spec.Gateway = "10.0.0.1"
 			g.Expect(ctx.Client.Update(ctx, address1)).NotTo(gomega.HaveOccurred())
 
-			_, err = BuildState(ctx)
+			_, err = BuildState(ctx, networkStatus)
 			g.Expect(err).To(gomega.HaveOccurred())
 			g.Expect(err).To(gomega.MatchError("IPAddress my-namespace/vsphereVM1-0-0 has mismatched gateway and address IP families"))
 		})
@@ -600,7 +758,7 @@ func Test_BuildState(t *testing.T) {
 			address2.Spec.Gateway = "10.0.0.3"
 			g.Expect(ctx.Client.Update(ctx, address2)).NotTo(gomega.HaveOccurred())
 
-			_, err := BuildState(ctx)
+			_, err := BuildState(ctx, networkStatus)
 			g.Expect(err).To(gomega.HaveOccurred())
 			g.Expect(err).To(gomega.MatchError("the IPv4 IPAddresses assigned to the same device (index 0) do not have the same gateway"))
 
@@ -612,7 +770,7 @@ func Test_BuildState(t *testing.T) {
 			address2.Spec.Gateway = "fd00::2"
 			g.Expect(ctx.Client.Update(ctx, address2)).NotTo(gomega.HaveOccurred())
 
-			_, err = BuildState(ctx)
+			_, err = BuildState(ctx, networkStatus)
 			g.Expect(err).To(gomega.HaveOccurred())
 			g.Expect(err).To(gomega.MatchError("the IPv6 IPAddresses assigned to the same device (index 0) do not have the same gateway"))
 		})
@@ -626,13 +784,13 @@ func Test_BuildState(t *testing.T) {
 			address2.Spec.Gateway = "fd00::1"
 			g.Expect(ctx.Client.Update(ctx, address2)).NotTo(gomega.HaveOccurred())
 
-			_, err := BuildState(ctx)
+			_, err := BuildState(ctx, networkStatus)
 			g.Expect(err).To(gomega.HaveOccurred())
 			g.Expect(err).To(gomega.MatchError(gomega.ContainSubstring("the IPv4 Gateway for IPAddress vsphereVM1-0-0 does not match the Gateway4 already configured on device (index 0)")))
 
 			// Fix the Gateway4 for dev0
 			ctx.VSphereVM.Spec.VirtualMachineCloneSpec.Network.Devices[0].Gateway4 = "10.0.0.1"
-			_, err = BuildState(ctx)
+			_, err = BuildState(ctx, networkStatus)
 			g.Expect(err).To(gomega.HaveOccurred())
 			g.Expect(err).To(gomega.MatchError("the IPv6 Gateway for IPAddress vsphereVM1-0-1 does not match the Gateway6 already configured on device (index 0)"))
 		})
@@ -649,7 +807,7 @@ func Test_BuildState(t *testing.T) {
 			g.Expect(ctx.Client.Update(ctx, address2)).NotTo(gomega.HaveOccurred())
 			g.Expect(ctx.Client.Update(ctx, address3)).NotTo(gomega.HaveOccurred())
 
-			_, err := BuildState(ctx)
+			_, err := BuildState(ctx, networkStatus)
 			g.Expect(err).To(gomega.HaveOccurred())
 			g.Expect(err).To(gomega.MatchError(
 				gomega.ContainSubstring("IPAddress my-namespace/vsphereVM1-0-0 has invalid ip address: \"10.10.10.10.10/24\"")))
@@ -669,7 +827,7 @@ func Test_BuildState(t *testing.T) {
 			g.Expect(ctx.Client.Update(ctx, address2)).NotTo(gomega.HaveOccurred())
 			g.Expect(ctx.Client.Update(ctx, address3)).NotTo(gomega.HaveOccurred())
 
-			_, err := BuildState(ctx)
+			_, err := BuildState(ctx, networkStatus)
 			g.Expect(err).To(gomega.HaveOccurred())
 			g.Expect(err).To(gomega.MatchError(
 				gomega.ContainSubstring("IPAddress my-namespace/vsphereVM1-0-0 has invalid gateway: \"10.10.10.10.10\"")))
@@ -687,7 +845,7 @@ func Test_BuildState(t *testing.T) {
 			g.Expect(ctx.Client.Update(ctx, address1)).NotTo(gomega.HaveOccurred())
 			g.Expect(ctx.Client.Update(ctx, address2)).NotTo(gomega.HaveOccurred())
 
-			_, err := BuildState(ctx)
+			_, err := BuildState(ctx, networkStatus)
 			g.Expect(err).To(gomega.HaveOccurred())
 			g.Expect(err).To(gomega.MatchError(
 				gomega.ContainSubstring("IPAddress my-namespace/vsphereVM1-0-1 is a duplicate of another address: \"10.0.0.50/24\"")))

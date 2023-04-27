@@ -664,73 +664,160 @@ func createVsphereMachine(ctx context.Context, env *helpers.TestEnvironment, nam
 
 func TestClusterReconciler_ReconcileDeploymentZones(t *testing.T) {
 	server := "vcenter123.foo.com"
-	g := NewWithT(t)
 
-	tests := []struct {
-		name       string
-		initObjs   []client.Object
-		reconciled bool
-		assert     func(*infrav1.VSphereCluster)
-	}{
-		{
-			name:       "with no deployment zones",
-			reconciled: true,
-			assert: func(vsphereCluster *infrav1.VSphereCluster) {
-				g.Expect(conditions.Has(vsphereCluster, infrav1.FailureDomainsAvailableCondition)).To(BeFalse())
+	t.Run("with no selectors", func(t *testing.T) {
+		g := NewWithT(t)
+		tests := []struct {
+			name       string
+			initObjs   []client.Object
+			reconciled bool
+			assert     func(*infrav1.VSphereCluster)
+		}{
+			{
+				name:       "with no deployment zones",
+				reconciled: true,
+				assert: func(vsphereCluster *infrav1.VSphereCluster) {
+					g.Expect(conditions.Has(vsphereCluster, infrav1.FailureDomainsAvailableCondition)).To(BeFalse())
+				},
 			},
-		},
-		{
-			name: "with deployment zone status not reported",
-			initObjs: []client.Object{
-				deploymentZone(server, "zone-1", pointer.Bool(false), nil),
-				deploymentZone(server, "zone-2", pointer.Bool(true), pointer.Bool(false)),
+			{
+				name: "with deployment zone status not reported",
+				initObjs: []client.Object{
+					deploymentZone(server, "zone-1", pointer.Bool(false), nil),
+					deploymentZone(server, "zone-2", pointer.Bool(true), pointer.Bool(false)),
+				},
+				assert: func(vsphereCluster *infrav1.VSphereCluster) {
+					g.Expect(conditions.IsFalse(vsphereCluster, infrav1.FailureDomainsAvailableCondition)).To(BeTrue())
+					g.Expect(conditions.Get(vsphereCluster, infrav1.FailureDomainsAvailableCondition).Reason).To(Equal(infrav1.WaitingForFailureDomainStatusReason))
+				},
 			},
-			assert: func(vsphereCluster *infrav1.VSphereCluster) {
-				g.Expect(conditions.IsFalse(vsphereCluster, infrav1.FailureDomainsAvailableCondition)).To(BeTrue())
-				g.Expect(conditions.Get(vsphereCluster, infrav1.FailureDomainsAvailableCondition).Reason).To(Equal(infrav1.WaitingForFailureDomainStatusReason))
+			{
+				name:       "with some deployment zones statuses as not ready",
+				reconciled: true,
+				initObjs: []client.Object{
+					deploymentZone(server, "zone-1", pointer.Bool(false), pointer.Bool(false)),
+					deploymentZone(server, "zone-2", pointer.Bool(true), pointer.Bool(true)),
+				},
+				assert: func(vsphereCluster *infrav1.VSphereCluster) {
+					g.Expect(conditions.IsFalse(vsphereCluster, infrav1.FailureDomainsAvailableCondition)).To(BeTrue())
+					g.Expect(conditions.Get(vsphereCluster, infrav1.FailureDomainsAvailableCondition).Reason).To(Equal(infrav1.FailureDomainsSkippedReason))
+				},
 			},
-		},
-		{
-			name:       "with some deployment zones statuses as not ready",
-			reconciled: true,
-			initObjs: []client.Object{
-				deploymentZone(server, "zone-1", pointer.Bool(false), pointer.Bool(false)),
-				deploymentZone(server, "zone-2", pointer.Bool(true), pointer.Bool(true)),
+			{
+				name:       "with all deployment zone statuses as ready",
+				reconciled: true,
+				initObjs: []client.Object{
+					deploymentZone(server, "zone-1", pointer.Bool(false), pointer.Bool(true)),
+					deploymentZone(server, "zone-2", pointer.Bool(true), pointer.Bool(true)),
+				},
+				assert: func(vsphereCluster *infrav1.VSphereCluster) {
+					g.Expect(conditions.IsTrue(vsphereCluster, infrav1.FailureDomainsAvailableCondition)).To(BeTrue())
+				},
 			},
-			assert: func(vsphereCluster *infrav1.VSphereCluster) {
-				g.Expect(conditions.IsFalse(vsphereCluster, infrav1.FailureDomainsAvailableCondition)).To(BeTrue())
-				g.Expect(conditions.Get(vsphereCluster, infrav1.FailureDomainsAvailableCondition).Reason).To(Equal(infrav1.FailureDomainsSkippedReason))
-			},
-		},
-		{
-			name:       "with all deployment zone statuses as ready",
-			reconciled: true,
-			initObjs: []client.Object{
-				deploymentZone(server, "zone-1", pointer.Bool(false), pointer.Bool(true)),
-				deploymentZone(server, "zone-2", pointer.Bool(true), pointer.Bool(true)),
-			},
-			assert: func(vsphereCluster *infrav1.VSphereCluster) {
-				g.Expect(conditions.IsTrue(vsphereCluster, infrav1.FailureDomainsAvailableCondition)).To(BeTrue())
-			},
-		},
-	}
+		}
 
-	for _, tt := range tests {
-		// Looks odd, but need to reinit test variable
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			g := NewWithT(t)
-			controllerCtx := fake.NewControllerContext(fake.NewControllerManagerContext(tt.initObjs...))
+		for _, tt := range tests {
+			// Looks odd, but need to reinit test variable
+			tt := tt
+			t.Run(tt.name, func(t *testing.T) {
+				g := NewWithT(t)
+				controllerCtx := fake.NewControllerContext(fake.NewControllerManagerContext(tt.initObjs...))
+				ctx := fake.NewClusterContext(controllerCtx)
+				ctx.VSphereCluster.Spec.Server = server
+
+				r := clusterReconciler{ControllerContext: controllerCtx}
+				reconciled, err := r.reconcileDeploymentZones(ctx)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(reconciled).To(Equal(tt.reconciled))
+				tt.assert(ctx.VSphereCluster)
+			})
+		}
+	})
+
+	t.Run("with zone selectors", func(t *testing.T) {
+		g := NewWithT(t)
+
+		zoneOne := deploymentZone(server, "zone-1", pointer.Bool(false), pointer.Bool(true))
+		zoneOne.Labels = map[string]string{
+			"zone":       "rack-one",
+			"datacenter": "ohio",
+		}
+		zoneTwo := deploymentZone(server, "zone-2", pointer.Bool(false), pointer.Bool(true))
+		zoneTwo.Labels = map[string]string{
+			"zone":       "rack-two",
+			"datacenter": "ohio",
+		}
+		zoneThree := deploymentZone(server, "zone-3", pointer.Bool(false), pointer.Bool(true))
+		zoneThree.Labels = map[string]string{
+			"datacenter": "oregon",
+		}
+
+		assertNumberOfZones := func(selector *metav1.LabelSelector, selectedZones int) {
+			controllerCtx := fake.NewControllerContext(fake.NewControllerManagerContext(zoneOne, zoneTwo, zoneThree))
 			ctx := fake.NewClusterContext(controllerCtx)
 			ctx.VSphereCluster.Spec.Server = server
+			ctx.VSphereCluster.Spec.FailureDomainSelector = selector
 
 			r := clusterReconciler{ControllerContext: controllerCtx}
-			reconciled, err := r.reconcileDeploymentZones(ctx)
+			_, err := r.reconcileDeploymentZones(ctx)
 			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(reconciled).To(Equal(tt.reconciled))
-			tt.assert(ctx.VSphereCluster)
+			g.Expect(ctx.VSphereCluster.Status.FailureDomains).To(HaveLen(selectedZones))
+		}
+
+		t.Run("with no zones matching labels", func(_ *testing.T) {
+			assertNumberOfZones(&metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}}, 0)
 		})
-	}
+
+		t.Run("with all zones matching some labels", func(_ *testing.T) {
+			assertNumberOfZones(&metav1.LabelSelector{MatchLabels: map[string]string{"datacenter": "ohio"}}, 2)
+		})
+
+		t.Run("with selector and all matching labels", func(_ *testing.T) {
+			assertNumberOfZones(&metav1.LabelSelector{MatchLabels: map[string]string{
+				"zone":       "rack-two",
+				"datacenter": "ohio",
+			}}, 1)
+		})
+
+		t.Run("with no selector", func(_ *testing.T) {
+			assertNumberOfZones(nil, 3)
+		})
+
+		t.Run("with selector and a negation label matcher", func(_ *testing.T) {
+			assertNumberOfZones(&metav1.LabelSelector{
+				MatchExpressions: []metav1.LabelSelectorRequirement{
+					{
+						Key:      "datacenter",
+						Operator: metav1.LabelSelectorOpNotIn,
+						Values:   []string{"ohio"},
+					},
+				},
+			}, 1)
+		})
+
+		t.Run("with selector and a key-only label matcher", func(_ *testing.T) {
+			assertNumberOfZones(&metav1.LabelSelector{
+				MatchExpressions: []metav1.LabelSelectorRequirement{
+					{
+						Key:      "zone",
+						Operator: metav1.LabelSelectorOpExists,
+					},
+				},
+			}, 2)
+		})
+
+		t.Run("with selector and a multi value label matcher", func(_ *testing.T) {
+			assertNumberOfZones(&metav1.LabelSelector{
+				MatchExpressions: []metav1.LabelSelectorRequirement{
+					{
+						Key:      "datacenter",
+						Operator: metav1.LabelSelectorOpIn,
+						Values:   []string{"ohio", "oregon"},
+					},
+				},
+			}, 3)
+		})
+	})
 }
 
 func deploymentZone(server, fdName string, cp, ready *bool) *infrav1.VSphereDeploymentZone {

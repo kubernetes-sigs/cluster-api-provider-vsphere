@@ -23,6 +23,7 @@ package v1beta1
 
 import (
 	"k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	apiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/errors"
@@ -576,6 +577,11 @@ func (in *VSphereClusterSpec) DeepCopyInto(out *VSphereClusterSpec) {
 		in, out := &in.ClusterModules, &out.ClusterModules
 		*out = make([]ClusterModule, len(*in))
 		copy(*out, *in)
+	}
+	if in.FailureDomainSelector != nil {
+		in, out := &in.FailureDomainSelector, &out.FailureDomainSelector
+		*out = new(metav1.LabelSelector)
+		(*in).DeepCopyInto(*out)
 	}
 }
 

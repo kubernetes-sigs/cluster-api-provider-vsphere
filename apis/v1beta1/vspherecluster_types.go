@@ -58,6 +58,12 @@ type VSphereClusterSpec struct {
 	// for each of the objects responsible for creation of VM objects belonging to the cluster.
 	// +optional
 	ClusterModules []ClusterModule `json:"clusterModules,omitempty"`
+
+	// FailureDomainSelector is the label selector to use for failure domain selection
+	// for the control plane nodes of the cluster.
+	// An empty value for the selector includes all the related failure domains.
+	// +optional
+	FailureDomainSelector *metav1.LabelSelector `json:"failureDomainSelector,omitempty"`
 }
 
 // ClusterModule holds the anti affinity construct `ClusterModule` identifier

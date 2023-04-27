@@ -35,7 +35,7 @@ export GO111MODULE := on
 #
 # Kubebuilder.
 #
-export KUBEBUILDER_ENVTEST_KUBERNETES_VERSION ?= 1.23.3
+export KUBEBUILDER_ENVTEST_KUBERNETES_VERSION ?= 1.25.0
 
 # Directories
 ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))

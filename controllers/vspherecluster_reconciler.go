@@ -325,6 +325,7 @@ func (r clusterReconciler) reconcileVCenterConnectivity(ctx *context.ClusterCont
 		WithServer(ctx.VSphereCluster.Spec.Server).
 		WithThumbprint(ctx.VSphereCluster.Spec.Thumbprint).
 		WithFeatures(session.Feature{
+			EnableKeepAlive:   r.EnableKeepAlive,
 			KeepAliveDuration: r.KeepAliveDuration,
 		})
 

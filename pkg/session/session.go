@@ -41,6 +41,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/constants"
 )
 
 var (
@@ -61,11 +62,14 @@ type Session struct {
 }
 
 type Feature struct {
+	EnableKeepAlive   bool
 	KeepAliveDuration time.Duration
 }
 
 func DefaultFeature() Feature {
-	return Feature{}
+	return Feature{
+		EnableKeepAlive: constants.DefaultEnableKeepAlive,
+	}
 }
 
 type Params struct {
@@ -219,15 +223,17 @@ func newClient(ctx context.Context, logger logr.Logger, sessionKey string, url *
 		SessionManager: session.NewManager(vimClient),
 	}
 
-	vimClient.RoundTripper = session.KeepAliveHandler(vimClient.RoundTripper, feature.KeepAliveDuration, func(tripper soap.RoundTripper) error {
-		_, err := methods.GetCurrentTime(ctx, tripper)
-		if err != nil {
-			logger.Error(err, "failed to keep alive govmomi client")
-			logger.Info("clearing the session")
-			sessionCache.Delete(sessionKey)
-		}
-		return err
-	})
+	if feature.EnableKeepAlive {
+		vimClient.RoundTripper = session.KeepAliveHandler(vimClient.RoundTripper, feature.KeepAliveDuration, func(tripper soap.RoundTripper) error {
+			_, err := methods.GetCurrentTime(ctx, tripper)
+			if err != nil {
+				logger.Error(err, "failed to keep alive govmomi client")
+				logger.Info("clearing the session")
+				sessionCache.Delete(sessionKey)
+			}
+			return err
+		})
+	}
 
 	if err := c.Login(ctx, url.User); err != nil {
 		return nil, err
@@ -239,19 +245,21 @@ func newClient(ctx context.Context, logger logr.Logger, sessionKey string, url *
 // newManager creates a Manager that encompasses the REST Client for the VSphere tagging API.
 func newManager(ctx context.Context, logger logr.Logger, sessionKey string, client *vim25.Client, user *url.Userinfo, feature Feature) (*tags.Manager, error) {
 	rc := rest.NewClient(client)
-	rc.Transport = keepalive.NewHandlerREST(rc, feature.KeepAliveDuration, func() error {
-		s, err := rc.Session(ctx)
-		if err != nil {
-			return err
-		}
-		if s != nil {
-			return nil
-		}
+	if feature.EnableKeepAlive {
+		rc.Transport = keepalive.NewHandlerREST(rc, feature.KeepAliveDuration, func() error {
+			s, err := rc.Session(ctx)
+			if err != nil {
+				return err
+			}
+			if s != nil {
+				return nil
+			}
 
-		logger.Info("rest client session expired, clearing session")
-		sessionCache.Delete(sessionKey)
-		return errors.New("rest client session expired")
-	})
+			logger.Info("rest client session expired, clearing session")
+			sessionCache.Delete(sessionKey)
+			return errors.New("rest client session expired")
+		})
+	}
 	if err := rc.Login(ctx, user); err != nil {
 		return nil, err
 	}

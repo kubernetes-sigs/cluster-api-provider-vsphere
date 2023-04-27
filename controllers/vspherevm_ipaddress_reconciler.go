@@ -37,7 +37,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
-// +kubebuilder:rbac:groups=ipam.cluster.x-k8s.io,resources=ipaddressclaims,verbs=get;create;update;watch;list
+// +kubebuilder:rbac:groups=ipam.cluster.x-k8s.io,resources=ipaddressclaims,verbs=get;create;patch;watch;list
 // +kubebuilder:rbac:groups=ipam.cluster.x-k8s.io,resources=ipaddresses,verbs=get;list;watch
 
 // reconcileIPAddressClaims ensures that VSphereVMs that are configured with .spec.network.devices.addressFromPools
@@ -69,6 +69,7 @@ func (r vmReconciler) reconcileIPAddressClaims(ctx *context.VMContext) error {
 			if err != nil {
 				ctx.Logger.Error(err, "createOrPatchIPAddressClaim failed", "name", ipAddrClaimName)
 				errList = append(errList, err)
+				continue
 			}
 			if created {
 				claimsCreated++

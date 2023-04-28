@@ -51,11 +51,16 @@ func parseAddressWithPrefix(ipamAddress *ipamv1.IPAddress) (netip.Prefix, error)
 // does not conflict with the gateway addresses parsed from other
 // ipamv1.IPAddresses on the current device. Gateway addresses must be the same
 // family as the address on the ipamv1.IPAddress. Gateway addresses of one
-// family must match the other addresses of the same family.
-func parseGateway(ipamAddress *ipamv1.IPAddress, addressWithPrefix netip.Prefix, ipamDeviceConfig ipamDeviceConfig) (netip.Addr, error) {
+// family must match the other addresses of the same family. IPv4 Gateways are
+// required, but IPv6 gateways are not.
+func parseGateway(ipamAddress *ipamv1.IPAddress, addressWithPrefix netip.Prefix, ipamDeviceConfig ipamDeviceConfig) (*netip.Addr, error) {
+	if ipamAddress.Spec.Gateway == "" && addressWithPrefix.Addr().Is6() {
+		return nil, nil
+	}
+
 	gatewayAddr, err := netip.ParseAddr(ipamAddress.Spec.Gateway)
 	if err != nil {
-		return netip.Addr{}, fmt.Errorf("IPAddress %s/%s has invalid gateway: %q",
+		return nil, fmt.Errorf("IPAddress %s/%s has invalid gateway: %q",
 			ipamAddress.Namespace,
 			ipamAddress.Name,
 			ipamAddress.Spec.Gateway,
@@ -63,7 +68,7 @@ func parseGateway(ipamAddress *ipamv1.IPAddress, addressWithPrefix netip.Prefix,
 	}
 
 	if addressWithPrefix.Addr().Is4() != gatewayAddr.Is4() {
-		return netip.Addr{}, fmt.Errorf("IPAddress %s/%s has mismatched gateway and address IP families",
+		return nil, fmt.Errorf("IPAddress %s/%s has mismatched gateway and address IP families",
 			ipamAddress.Namespace,
 			ipamAddress.Name,
 		)
@@ -71,31 +76,31 @@ func parseGateway(ipamAddress *ipamv1.IPAddress, addressWithPrefix netip.Prefix,
 
 	if gatewayAddr.Is4() {
 		if areGatewaysMismatched(ipamDeviceConfig.NetworkSpecGateway4, ipamAddress.Spec.Gateway) {
-			return netip.Addr{}, fmt.Errorf("the IPv4 Gateway for IPAddress %s does not match the Gateway4 already configured on device (index %d)",
+			return nil, fmt.Errorf("the IPv4 Gateway for IPAddress %s does not match the Gateway4 already configured on device (index %d)",
 				ipamAddress.Name,
 				ipamDeviceConfig.DeviceIndex,
 			)
 		}
 		if areGatewaysMismatched(ipamDeviceConfig.IPAMConfigGateway4, ipamAddress.Spec.Gateway) {
-			return netip.Addr{}, fmt.Errorf("the IPv4 IPAddresses assigned to the same device (index %d) do not have the same gateway",
+			return nil, fmt.Errorf("the IPv4 IPAddresses assigned to the same device (index %d) do not have the same gateway",
 				ipamDeviceConfig.DeviceIndex,
 			)
 		}
 	} else {
 		if areGatewaysMismatched(ipamDeviceConfig.NetworkSpecGateway6, ipamAddress.Spec.Gateway) {
-			return netip.Addr{}, fmt.Errorf("the IPv6 Gateway for IPAddress %s does not match the Gateway6 already configured on device (index %d)",
+			return nil, fmt.Errorf("the IPv6 Gateway for IPAddress %s does not match the Gateway6 already configured on device (index %d)",
 				ipamAddress.Name,
 				ipamDeviceConfig.DeviceIndex,
 			)
 		}
 		if areGatewaysMismatched(ipamDeviceConfig.IPAMConfigGateway6, ipamAddress.Spec.Gateway) {
-			return netip.Addr{}, fmt.Errorf("the IPv6 IPAddresses assigned to the same device (index %d) do not have the same gateway",
+			return nil, fmt.Errorf("the IPv6 IPAddresses assigned to the same device (index %d) do not have the same gateway",
 				ipamDeviceConfig.DeviceIndex,
 			)
 		}
 	}
 
-	return gatewayAddr, nil
+	return &gatewayAddr, nil
 }
 
 // areGatewaysMismatched checks that a gateway for a device is equal to an

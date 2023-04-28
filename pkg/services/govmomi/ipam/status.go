@@ -77,10 +77,12 @@ func BuildState(ctx context.VMContext, networkStatus []infrav1.NetworkStatus) (m
 				continue
 			}
 
-			if gatewayAddr.Is4() {
-				ipamDeviceConfig.IPAMConfigGateway4 = ipamAddress.Spec.Gateway
-			} else {
-				ipamDeviceConfig.IPAMConfigGateway6 = ipamAddress.Spec.Gateway
+			if gatewayAddr != nil {
+				if gatewayAddr.Is4() {
+					ipamDeviceConfig.IPAMConfigGateway4 = ipamAddress.Spec.Gateway
+				} else {
+					ipamDeviceConfig.IPAMConfigGateway6 = ipamAddress.Spec.Gateway
+				}
 			}
 
 			addressWithPrefixes = append(addressWithPrefixes, addressWithPrefix)

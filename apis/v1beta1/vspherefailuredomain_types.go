@@ -53,6 +53,8 @@ type FailureDomain struct {
 	// TagCategory is the category used for the tag
 	TagCategory string `json:"tagCategory"`
 
+	// Deprecated: This will be released in a future release. Setting this value
+	// does not take any action.
 	// AutoConfigure tags the Type which is specified in the Topology
 	AutoConfigure *bool `json:"autoConfigure,omitempty"`
 }

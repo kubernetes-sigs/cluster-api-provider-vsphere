@@ -84,16 +84,14 @@ var _ = Describe("VSphereDeploymentZoneReconciler", func() {
 			},
 			Spec: infrav1.VSphereFailureDomainSpec{
 				Region: infrav1.FailureDomain{
-					Name:          "k8s-region-west",
-					Type:          infrav1.DatacenterFailureDomain,
-					TagCategory:   "k8s-region",
-					AutoConfigure: pointer.Bool(false),
+					Name:        "k8s-region-west",
+					Type:        infrav1.DatacenterFailureDomain,
+					TagCategory: "k8s-region",
 				},
 				Zone: infrav1.FailureDomain{
-					Name:          "k8s-zone-west-1",
-					Type:          infrav1.ComputeClusterFailureDomain,
-					TagCategory:   "k8s-zone",
-					AutoConfigure: pointer.Bool(false),
+					Name:        "k8s-zone-west-1",
+					Type:        infrav1.ComputeClusterFailureDomain,
+					TagCategory: "k8s-zone",
 				},
 				Topology: infrav1.Topology{
 					Datacenter:     "DC0",
@@ -166,16 +164,14 @@ var _ = Describe("VSphereDeploymentZoneReconciler", func() {
 				},
 				Spec: infrav1.VSphereFailureDomainSpec{
 					Region: infrav1.FailureDomain{
-						Name:          "k8s-region-west",
-						Type:          infrav1.DatacenterFailureDomain,
-						TagCategory:   "k8s-region",
-						AutoConfigure: pointer.Bool(false),
+						Name:        "k8s-region-west",
+						Type:        infrav1.DatacenterFailureDomain,
+						TagCategory: "k8s-region",
 					},
 					Zone: infrav1.FailureDomain{
-						Name:          "k8s-zone-west-1",
-						Type:          infrav1.ComputeClusterFailureDomain,
-						TagCategory:   "k8s-zone",
-						AutoConfigure: pointer.Bool(false),
+						Name:        "k8s-zone-west-1",
+						Type:        infrav1.ComputeClusterFailureDomain,
+						TagCategory: "k8s-zone",
 					},
 					Topology: infrav1.Topology{
 						Datacenter:     "DC0",
@@ -344,16 +340,14 @@ func TestVSphereDeploymentZone_Reconcile(t *testing.T) {
 			},
 			Spec: infrav1.VSphereFailureDomainSpec{
 				Region: infrav1.FailureDomain{
-					Name:          "k8s-region-west",
-					Type:          infrav1.DatacenterFailureDomain,
-					TagCategory:   "k8s-region",
-					AutoConfigure: pointer.Bool(false),
+					Name:        "k8s-region-west",
+					Type:        infrav1.DatacenterFailureDomain,
+					TagCategory: "k8s-region",
 				},
 				Zone: infrav1.FailureDomain{
-					Name:          "k8s-zone-west-1",
-					Type:          infrav1.ComputeClusterFailureDomain,
-					TagCategory:   "k8s-zone",
-					AutoConfigure: pointer.Bool(false),
+					Name:        "k8s-zone-west-1",
+					Type:        infrav1.ComputeClusterFailureDomain,
+					TagCategory: "k8s-zone",
 				},
 				Topology: infrav1.Topology{
 					Datacenter:     "DC0",
@@ -418,16 +412,14 @@ func TestVSphereDeploymentZone_Reconcile(t *testing.T) {
 			},
 			Spec: infrav1.VSphereFailureDomainSpec{
 				Region: infrav1.FailureDomain{
-					Name:          "k8s-region-west",
-					Type:          infrav1.DatacenterFailureDomain,
-					TagCategory:   "k8s-region",
-					AutoConfigure: pointer.Bool(false),
+					Name:        "k8s-region-west",
+					Type:        infrav1.DatacenterFailureDomain,
+					TagCategory: "k8s-region",
 				},
 				Zone: infrav1.FailureDomain{
-					Name:          "k8s-zone-west-1",
-					Type:          infrav1.ComputeClusterFailureDomain,
-					TagCategory:   "k8s-zone",
-					AutoConfigure: pointer.Bool(false),
+					Name:        "k8s-zone-west-1",
+					Type:        infrav1.ComputeClusterFailureDomain,
+					TagCategory: "k8s-zone",
 				},
 				Topology: infrav1.Topology{
 					Datacenter:     "DC0",

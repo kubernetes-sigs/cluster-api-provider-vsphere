@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"github.com/pkg/errors"
-	apierrors "k8s.io/apimachinery/pkg/util/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -26,7 +25,6 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/cluster"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/metadata"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/taggable"
 )
 
@@ -62,9 +60,6 @@ func (r vsphereDeploymentZoneReconciler) reconcileFailureDomain(ctx *context.VSp
 }
 
 func (r vsphereDeploymentZoneReconciler) reconcileInfraFailureDomain(ctx *context.VSphereDeploymentZoneContext, failureDomain infrav1.FailureDomain) error {
-	if *failureDomain.AutoConfigure {
-		return r.createAndAttachMetadata(ctx, failureDomain)
-	}
 	return r.verifyFailureDomain(ctx, failureDomain)
 }
 
@@ -154,36 +149,4 @@ func (r vsphereDeploymentZoneReconciler) verifyFailureDomain(ctx *context.VSpher
 		}
 	}
 	return nil
-}
-
-func (r vsphereDeploymentZoneReconciler) createAndAttachMetadata(ctx *context.VSphereDeploymentZoneContext, failureDomain infrav1.FailureDomain) error {
-	logger := ctrl.LoggerFrom(ctx, "tag", failureDomain.Name, "category", failureDomain.TagCategory)
-	categoryID, err := metadata.CreateCategory(ctx, failureDomain.TagCategory, failureDomain.Type)
-	if err != nil {
-		logger.V(4).Error(err, "category creation failed")
-		return errors.Wrapf(err, "failed to create category %s", failureDomain.TagCategory)
-	}
-	err = metadata.CreateTag(ctx, failureDomain.Name, categoryID)
-	if err != nil {
-		logger.V(4).Error(err, "tag creation failed")
-		return errors.Wrapf(err, "failed to create tag %s", failureDomain.Name)
-	}
-
-	logger = logger.WithValues("type", failureDomain.Type)
-	objects, err := taggable.GetObjects(ctx, failureDomain.Type)
-	if err != nil {
-		logger.V(4).Error(err, "failed to find object")
-		return err
-	}
-
-	var errList []error
-	for _, obj := range objects {
-		logger.V(4).Info("attaching tag to object")
-		err := obj.AttachTag(ctx, failureDomain.Name)
-		if err != nil {
-			logger.V(4).Error(err, "failed to find object")
-			errList = append(errList, errors.Wrapf(err, "failed to attach tag"))
-		}
-	}
-	return apierrors.NewAggregate(errList)
 }

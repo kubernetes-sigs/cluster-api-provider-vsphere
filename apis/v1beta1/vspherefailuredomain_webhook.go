@@ -22,7 +22,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
@@ -34,11 +33,8 @@ func (r *VSphereFailureDomain) SetupWebhookWithManager(mgr ctrl.Manager) error {
 }
 
 //+kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta1-vspherefailuredomain,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=vspherefailuredomains,versions=v1beta1,name=validation.vspherefailuredomain.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1beta1
-//+kubebuilder:webhook:path=/mutate-infrastructure-cluster-x-k8s-io-v1beta1-vspherefailuredomain,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=vspherefailuredomains,verbs=create;update,versions=v1beta1,name=default.vspherefailuredomain.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1beta1
 
 var _ webhook.Validator = &VSphereFailureDomain{}
-
-var _ webhook.Defaulter = &VSphereFailureDomain{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (r *VSphereFailureDomain) ValidateCreate() error {
@@ -79,15 +75,4 @@ func (r *VSphereFailureDomain) ValidateUpdate(old runtime.Object) error {
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 func (r *VSphereFailureDomain) ValidateDelete() error {
 	return nil
-}
-
-// Default implements webhook.Defaulter so a webhook will be registered for the type.
-func (r *VSphereFailureDomain) Default() {
-	if r.Spec.Zone.AutoConfigure == nil {
-		r.Spec.Zone.AutoConfigure = pointer.Bool(false)
-	}
-
-	if r.Spec.Region.AutoConfigure == nil {
-		r.Spec.Region.AutoConfigure = pointer.Bool(false)
-	}
 }

@@ -44,6 +44,7 @@ func newParams(ctx context.ClusterContext) *session.Params {
 		WithServer(ctx.VSphereCluster.Spec.Server).
 		WithThumbprint(ctx.VSphereCluster.Spec.Thumbprint).
 		WithFeatures(session.Feature{
+			EnableKeepAlive:   ctx.EnableKeepAlive,
 			KeepAliveDuration: ctx.KeepAliveDuration,
 		})
 }

@@ -19,6 +19,7 @@ spec:
       - args:
         - --leader-elect
         - --v=4
+        - --enable-keep-alive
         - "--feature-gates=NodeAntiAffinity=${EXP_NODE_ANTI_AFFINITY:=false}"
         image: gcr.io/cluster-api-provider-vsphere/release/manager:latest
         imagePullPolicy: IfNotPresent

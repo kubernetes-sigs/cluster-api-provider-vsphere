@@ -226,6 +226,7 @@ func (r vsphereDeploymentZoneReconciler) getVCenterSession(ctx *context.VSphereD
 		WithDatacenter(ctx.VSphereFailureDomain.Spec.Topology.Datacenter).
 		WithUserInfo(r.ControllerContext.Username, r.ControllerContext.Password).
 		WithFeatures(session.Feature{
+			EnableKeepAlive:   r.EnableKeepAlive,
 			KeepAliveDuration: r.KeepAliveDuration,
 		})
 

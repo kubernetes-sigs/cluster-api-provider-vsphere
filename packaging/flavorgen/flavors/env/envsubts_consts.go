@@ -51,5 +51,4 @@ const (
 	VSphereUsername              = "${VSPHERE_USERNAME}"
 	VSpherePassword              = "${VSPHERE_PASSWORD}" /* #nosec */
 	ClusterResourceSetNameSuffix = "-crs-0"
-	VSphereInsecure              = true
 )

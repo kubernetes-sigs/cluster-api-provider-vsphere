@@ -129,7 +129,6 @@ func ConfigForCSI() *types.CPIConfig {
 
 	config.Global.ClusterID = fmt.Sprintf("%s/%s", env.NamespaceVar, env.ClusterNameVar)
 	config.Global.Thumbprint = env.VSphereThumbprint
-	config.Global.Insecure = env.VSphereInsecure
 	config.Network.Name = env.VSphereNetworkVar
 
 	config.VCenter = map[string]types.CPIVCenterConfig{

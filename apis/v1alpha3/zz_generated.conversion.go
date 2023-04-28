@@ -986,6 +986,7 @@ func autoConvert_v1beta1_VSphereClusterSpec_To_v1alpha3_VSphereClusterSpec(in *v
 	}
 	out.IdentityRef = (*VSphereIdentityReference)(unsafe.Pointer(in.IdentityRef))
 	// WARNING: in.ClusterModules requires manual conversion: does not exist in peer-type
+	// WARNING: in.FailureDomainSelector requires manual conversion: does not exist in peer-type
 	return nil
 }
 

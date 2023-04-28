@@ -27,9 +27,11 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -359,15 +361,29 @@ func (r clusterReconciler) reconcileDeploymentZones(ctx *context.ClusterContext)
 	failureDomains := clusterv1.FailureDomains{}
 	for _, zone := range deploymentZoneList.Items {
 		if zone.Spec.Server == ctx.VSphereCluster.Spec.Server {
+			// This should never fail, validating webhook should catch this first
+			if ctx.VSphereCluster.Spec.FailureDomainSelector != nil {
+				selector, err := metav1.LabelSelectorAsSelector(ctx.VSphereCluster.Spec.FailureDomainSelector)
+				if err != nil {
+					return false, errors.Wrapf(err, "zone label selector is misconfigured")
+				}
+
+				// An empty selector allows the zone to be selected
+				if !selector.Empty() && !selector.Matches(labels.Set(zone.GetLabels())) {
+					r.Logger.V(5).Info("skipping the deployment zone due to label mismatch", "name", zone.Name)
+					continue
+				}
+			}
+
 			if zone.Status.Ready == nil {
 				readyNotReported++
 				failureDomains[zone.Name] = clusterv1.FailureDomainSpec{
-					ControlPlane: *zone.Spec.ControlPlane,
+					ControlPlane: pointer.BoolDeref(zone.Spec.ControlPlane, true),
 				}
 			} else {
 				if *zone.Status.Ready {
 					failureDomains[zone.Name] = clusterv1.FailureDomainSpec{
-						ControlPlane: *zone.Spec.ControlPlane,
+						ControlPlane: pointer.BoolDeref(zone.Spec.ControlPlane, true),
 					}
 				} else {
 					notReady++

@@ -80,6 +80,7 @@ func overrideVSphereClusterSpecFieldsFuncs(codecs runtimeserializer.CodecFactory
 		func(in *nextver.VSphereClusterSpec, c fuzz.Continue) {
 			c.FuzzNoCustom(in)
 			in.ClusterModules = nil
+			in.FailureDomainSelector = nil
 		},
 	}
 }
@@ -99,7 +100,7 @@ func CustomObjectMetaFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {
 	}
 }
 
-//nolint
+// nolint
 func CustomObjectMetaFuzzer(in *clusterv1.ObjectMeta, c fuzz.Continue) {
 	c.FuzzNoCustom(in)
 

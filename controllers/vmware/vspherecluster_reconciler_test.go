@@ -43,7 +43,7 @@ var _ = Describe("Cluster Controller Tests", func() {
 	const (
 		clusterName           = "test-cluster"
 		machineName           = "test-machine"
-		controlPlaneLabelTrue = "true"
+		controlPlaneLabelTrue = true
 		className             = "test-className"
 		imageName             = "test-imageName"
 		storageClass          = "test-storageClass"
@@ -62,7 +62,7 @@ var _ = Describe("Cluster Controller Tests", func() {
 		cluster = util.CreateCluster(clusterName)
 		vsphereCluster = util.CreateVSphereCluster(clusterName)
 		ctx = util.CreateClusterContext(cluster, vsphereCluster)
-		vsphereMachine = util.CreateVSphereMachine(machineName, clusterName, controlPlaneLabelTrue, className, imageName, storageClass)
+		vsphereMachine = util.CreateVSphereMachine(machineName, clusterName, className, imageName, storageClass, controlPlaneLabelTrue)
 
 		reconciler = &ClusterReconciler{
 			ControllerContext:   ctx.ControllerContext,

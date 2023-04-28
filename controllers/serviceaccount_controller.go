@@ -103,7 +103,7 @@ type ServiceAccountReconciler struct {
 	remoteClientGetter remote.ClusterClientGetter
 }
 
-func (r ServiceAccountReconciler) Reconcile(ctx goctx.Context, req reconcile.Request) (_ reconcile.Result, reterr error) {
+func (r ServiceAccountReconciler) Reconcile(_ goctx.Context, req reconcile.Request) (_ reconcile.Result, reterr error) {
 	r.ControllerContext.Logger.V(4).Info("Starting Reconcile")
 
 	// Get the vSphereCluster for this request.

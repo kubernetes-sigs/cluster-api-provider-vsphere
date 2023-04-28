@@ -32,7 +32,7 @@ import (
 func enableSSHPatch() clusterv1.ClusterClassPatch {
 	return clusterv1.ClusterClassPatch{
 		Name:      "enableSSHIntoNodes",
-		EnabledIf: pointer.StringPtr("{{ if .sshKey }}true{{end}}"),
+		EnabledIf: pointer.String("{{ if .sshKey }}true{{end}}"),
 		Definitions: []clusterv1.PatchDefinition{
 			{
 				Selector: clusterv1.PatchSelector{
@@ -108,14 +108,14 @@ func infraClusterPatch() clusterv1.ClusterClassPatch {
 						Op:   "add",
 						Path: "/spec/template/spec/server",
 						ValueFrom: &clusterv1.JSONPatchValue{
-							Variable: pointer.StringPtr("infraServer.url"),
+							Variable: pointer.String("infraServer.url"),
 						},
 					},
 					{
 						Op:   "add",
 						Path: "/spec/template/spec/thumbprint",
 						ValueFrom: &clusterv1.JSONPatchValue{
-							Variable: pointer.StringPtr("infraServer.thumbprint"),
+							Variable: pointer.String("infraServer.thumbprint"),
 						},
 					},
 				},

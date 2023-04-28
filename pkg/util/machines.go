@@ -41,7 +41,7 @@ func GetVSphereMachinesInCluster(
 	ctx context.Context,
 	controllerClient client.Client,
 	namespace, clusterName string) ([]*infrav1.VSphereMachine, error) {
-	labels := map[string]string{clusterv1.ClusterLabelName: clusterName}
+	labels := map[string]string{clusterv1.ClusterNameLabel: clusterName}
 	machineList := &infrav1.VSphereMachineList{}
 
 	if err := controllerClient.List(
@@ -107,7 +107,7 @@ func GetMachinePreferredIPAddress(machine *infrav1.VSphereMachine) (string, erro
 // IsControlPlaneMachine returns true if the provided resource is
 // a member of the control plane.
 func IsControlPlaneMachine(machine metav1.Object) bool {
-	_, ok := machine.GetLabels()[clusterv1.MachineControlPlaneLabelName]
+	_, ok := machine.GetLabels()[clusterv1.MachineControlPlaneLabel]
 	return ok
 }
 
@@ -121,6 +121,12 @@ func GetMachineMetadata(hostname string, vsphereVM infrav1.VSphereVM, ipamState 
 	var waitForIPv4, waitForIPv6 bool
 	for i := range vsphereVM.Spec.Network.Devices {
 		vsphereVM.Spec.Network.Devices[i].DeepCopyInto(&devices[i])
+
+		// Add the MAC Address to the network device
+		if len(networkStatuses) > i {
+			devices[i].MACAddr = networkStatuses[i].MACAddr
+		}
+
 		if state, ok := ipamState[devices[i].MACAddr]; ok {
 			devices[i].IPAddrs = append(devices[i].IPAddrs, state.IPAddrs...)
 			devices[i].Gateway4 = state.Gateway4
@@ -153,6 +159,8 @@ func GetMachineMetadata(hostname string, vsphereVM infrav1.VSphereVM, ipamState 
 	}
 
 	// Add the MAC Address to the network device
+	// networkStatuses may be longer than devices
+	// and we want to add all the networks
 	for i, status := range networkStatuses {
 		devices[i].MACAddr = status.MACAddr
 	}

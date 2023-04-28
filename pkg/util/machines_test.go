@@ -836,6 +836,63 @@ network:
       gateway6: "fe80::1"
 `,
 		},
+		{
+			name: "more-network-statuses-than-spec-devices",
+			machine: &infrav1.VSphereVM{
+				Spec: infrav1.VSphereVMSpec{
+					VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
+						Network: infrav1.NetworkSpec{
+							Devices: []infrav1.NetworkDeviceSpec{
+								{
+									NetworkName: "network1",
+									MACAddr:     "00:00:00:00:00",
+									DHCP4:       true,
+								},
+								{
+									NetworkName: "network12",
+									MACAddr:     "00:00:00:00:01",
+									DHCP6:       true,
+								},
+							},
+						},
+					},
+				},
+			},
+			networkStatuses: []infrav1.NetworkStatus{
+				{MACAddr: "00:00:00:00:ab"},
+				{MACAddr: "00:00:00:00:cd"},
+				{MACAddr: "00:00:00:00:ef"},
+			},
+			expected: `
+instance-id: "test-vm"
+local-hostname: "test-vm"
+wait-on-network:
+  ipv4: true
+  ipv6: true
+network:
+  version: 2
+  ethernets:
+    id0:
+      match:
+        macaddress: "00:00:00:00:ab"
+      set-name: "eth0"
+      wakeonlan: true
+      dhcp4: true
+      dhcp6: false
+    id1:
+      match:
+        macaddress: "00:00:00:00:cd"
+      set-name: "eth1"
+      wakeonlan: true
+      dhcp4: false
+      dhcp6: true
+    id2:
+      match:
+        macaddress: "00:00:00:00:ef"
+      set-name: "eth2"
+      wakeonlan: true
+`,
+		},
 	}
 	for _, tc := range testCases {
 		tc := tc
@@ -999,7 +1056,7 @@ func Test_GetVSphereClusterFromVSphereMachine(t *testing.T) {
 	}
 	machine := &vmwarev1.VSphereMachine{
 		ObjectMeta: metav1.ObjectMeta{
-			Labels:    map[string]string{clusterv1.ClusterLabelName: "foo"},
+			Labels:    map[string]string{clusterv1.ClusterNameLabel: "foo"},
 			Name:      "foo-machine-1",
 			Namespace: ns,
 		},

@@ -72,6 +72,8 @@ func RunRoot(command *cobra.Command) error {
 		util.PrintObjects(flavors.ClusterTopologyTemplateKubeVIP())
 	case flavors.Ignition:
 		util.PrintObjects(flavors.MultiNodeTemplateWithKubeVIPIgnition())
+	case flavors.NodeIPAM:
+		util.PrintObjects(flavors.MultiNodeTemplateWithKubeVIPNodeIPAM())
 	default:
 		return errors.Errorf("invalid flavor")
 	}

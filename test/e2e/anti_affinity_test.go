@@ -199,13 +199,13 @@ func FetchWorkerVMsForCluster(ctx context.Context, bootstrapClusterProxy framewo
 		vms,
 		client.InNamespace(ns),
 		client.MatchingLabels{
-			clusterv1.ClusterLabelName: clusterName,
+			clusterv1.ClusterNameLabel: clusterName,
 		})
 	Expect(err).ToNot(HaveOccurred())
 
 	workerVMs := []infrav1.VSphereVM{}
 	for _, vm := range vms.Items {
-		if _, ok := vm.Labels[clusterv1.MachineControlPlaneLabelName]; !ok {
+		if _, ok := vm.Labels[clusterv1.MachineControlPlaneLabel]; !ok {
 			workerVMs = append(workerVMs, vm)
 		}
 	}

@@ -27,3 +27,19 @@ updates:
     prefix: ":seedling:"
   labels:
     - "ok-to-test"
+
+- package-ecosystem: "gomod"
+  directory: "/hack/tools"
+  schedule:
+    interval: "weekly"
+  ignore:
+    # Ignore k8s modules as they are upgraded manually
+    # together with controller-runtime and CAPI dependencies.
+    - dependency-name: "k8s.io/*"
+      update-types: ["version-update:semver-major", "version-update:semver-minor"]
+    - dependency-name: "sigs.k8s.io/*"
+      update-types: ["version-update:semver-major", "version-update:semver-minor"]
+  commit-message:
+    prefix: ":seedling:"
+  labels:
+    - "ok-to-test"

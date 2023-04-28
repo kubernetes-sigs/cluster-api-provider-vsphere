@@ -151,10 +151,15 @@ export VSPHERE_DATASTORE="the-datastore"
 export VSPHERE_NETWORK="VM Network"
 export VSPHERE_RESOURCE_POOL="*/Resources"
 export VSPHERE_FOLDER="vm"
-export VSPHERE_TEMPLATE="ubuntu-2004-kube-v1.25.5"
+export VSPHERE_TEMPLATE="ubuntu-2004-kube-v1.26.2"
 export VSPHERE_SSH_AUTHORIZED_KEY="ssh-rsa AAAAB3N..."
 export VSPHERE_TLS_THUMBPRINT="97:48:03:8D:78:A9..."
 export VSPHERE_STORAGE_POLICY="policy-one"
+export CPI_IMAGE_K8S_VERSION=v1.26.0
+export NODE_IPAM_POOL_NAME=example-pool
+export NODE_IPAM_POOL_API_GROUP=ipam.cluster.x-k8s.io
+export NODE_IPAM_POOL_KIND=InClusterIPPool
+export NAMESERVER="8.8.8.8"
 export CONTROL_PLANE_ENDPOINT_IP="1.2.3.4"
 ```
 
@@ -163,9 +168,8 @@ export CONTROL_PLANE_ENDPOINT_IP="1.2.3.4"
 The CAPV README.md file includes links to ovas.
 
 ```bash
-wget https://storage.googleapis.com/capv-templates/v1.25.5/ubuntu-2004-kube-v1.25.5.ova
-govc import.ova ubuntu-2004-kube-v1.25.5.ova
-govc vm.markastemplate ubuntu-2004-kube-v1.25.5
+govc import.ova https://storage.googleapis.com/capv-templates/v1.26.2/ubuntu-2004-kube-v1.26.2.ova
+govc vm.markastemplate ubuntu-2004-kube-v1.26.2
 ```
 
 ## Generate a Workload Cluster Config
@@ -176,73 +180,12 @@ to the same namespace as the IP pool created in earlier steps.
 ```bash
 clusterctl generate cluster ipam-example \
     --infrastructure vsphere \
+    --flavor node-ipam \
     --target-namespace cluster-ns \
-    --kubernetes-version v1.25.5 \
+    --kubernetes-version v1.26.2 \
     --control-plane-machine-count 1 \
     --worker-machine-count 1 > cluster.yaml
 ```
-
-## Edit the Generated cluster.yaml to use the IP Pool
-
-The generated `cluster.yaml` file contains `VSphereMachineTemplate`
-declarations that describe network device settings of nodes in the cluster.
-
-By default, DHCP is enabled. Disable DHCP.
-
-Because DHCP is disabled, nameserver configuration must be added for the Node
-to function correctly.
-
-To turn off DHCP and also add a reference to the pool created in prior steps,
-modify *both* the control plane and worker `VSphereMachineTemplate`
-configurations as follows:
-
-```yaml
----
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-kind: VSphereMachineTemplate
-metadata:
-  name: ipam-example
-  namespace: cluster-ns  # Same namespace as the IP pool
-spec:
-  template:
-    spec:
-      cloneMode: linkedClone
-      datacenter: dc0
-      datastore: sharedVmfs-0
-      diskGiB: 25
-      folder: folder0
-      memoryMiB: 8192
-      network:
-        devices:
-        - networkName: port-group-vlan-101
-          # BEGIN NEW CONFIGURATION
-          dhcp4: false                          # SET THIS TO FALSE
-          addressesFromPools:                   # add reference to pool created earlier
-          - apiGroup: ipam.cluster.x-k8s.io
-            kind: InClusterIPPool
-            name: example-pool
-          nameservers:
-          - "8.8.8.8"
-          # END NEW CONFIGURATION
-      numCPUs: 2
-      os: Linux
-      resourcePool: rp0
-      server: vsphere-server-url.com
-      storagePolicyName: ""
-      template: ubuntu-2004-kube-v1.25.5
-      thumbprint: B8:03:5B:35:93:1...
-```
-
-The `addressesFromPools` is an array of `TypedLocalObjectReference` that refer
-to pool objects. The `apiGroup` and `kind` in this example refer to the
-`InClusterIPPool` CRD, the object type created in earlier steps. The name
-matches the pool instance this cluster should use. Also note the namespace of
-`VsphereMachineTemplate` matches the `InClusterIPPool`.
-
-At the time of writing this doc, the `InClusterIPPool` and its associated IPAM
-provider is the only implementation choice available. As other IPAM providers
-become available, the `apiGroup` and `kind` variables can be changed to point a
-provider of choice.
 
 ## Create the Workload Cluster
 

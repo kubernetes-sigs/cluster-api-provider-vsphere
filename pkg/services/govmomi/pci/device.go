@@ -17,11 +17,11 @@ limitations under the License.
 package pci
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
-	"golang.org/x/net/context"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 )

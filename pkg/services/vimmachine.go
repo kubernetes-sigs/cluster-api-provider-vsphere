@@ -121,7 +121,7 @@ func (v *VimMachineService) ReconcileNormal(c context.MachineContext) (bool, err
 		return false, err
 	}
 
-	vm, err := v.createOrPatchVSPhereVM(ctx, vsphereVM)
+	vm, err := v.createOrPatchVSphereVM(ctx, vsphereVM)
 	if err != nil {
 		ctx.Logger.Error(err, "error creating or patching VM", "vsphereVM", vsphereVM)
 		return false, err
@@ -329,7 +329,7 @@ func (v *VimMachineService) reconcileNetwork(ctx *context.VIMMachineContext, vm 
 	return true, nil
 }
 
-func (v *VimMachineService) createOrPatchVSPhereVM(ctx *context.VIMMachineContext, vsphereVM *infrav1.VSphereVM) (runtime.Object, error) {
+func (v *VimMachineService) createOrPatchVSphereVM(ctx *context.VIMMachineContext, vsphereVM *infrav1.VSphereVM) (runtime.Object, error) {
 	// Create or update the VSphereVM resource.
 	vm := &infrav1.VSphereVM{
 		ObjectMeta: metav1.ObjectMeta{
@@ -364,12 +364,12 @@ func (v *VimMachineService) createOrPatchVSPhereVM(ctx *context.VIMMachineContex
 
 		// Ensure the VSphereVM has a label that can be used when searching for
 		// resources associated with the target cluster.
-		vm.Labels[clusterv1.ClusterLabelName] = ctx.Machine.Labels[clusterv1.ClusterLabelName]
+		vm.Labels[clusterv1.ClusterNameLabel] = ctx.Machine.Labels[clusterv1.ClusterNameLabel]
 
 		// For convenience, add a label that makes it easy to figure out if the
 		// VSphereVM resource is part of some control plane.
-		if val, ok := ctx.Machine.Labels[clusterv1.MachineControlPlaneLabelName]; ok {
-			vm.Labels[clusterv1.MachineControlPlaneLabelName] = val
+		if val, ok := ctx.Machine.Labels[clusterv1.MachineControlPlaneLabel]; ok {
+			vm.Labels[clusterv1.MachineControlPlaneLabel] = val
 		}
 
 		// Copy the VSphereMachine's VM clone spec into the VSphereVM's

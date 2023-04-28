@@ -18,9 +18,8 @@ spec:
       containers:
       - args:
         - --leader-elect
-        - --logtostderr
         - --v=4
-        - "--feature-gates=NodeAntiAffinity=${EXP_NODE_ANTI_AFFINITY:=false},NodeLabeling=${EXP_NODE_LABELING:=false}"
+        - "--feature-gates=NodeAntiAffinity=${EXP_NODE_ANTI_AFFINITY:=false}"
         image: gcr.io/cluster-api-provider-vsphere/release/manager:latest
         imagePullPolicy: IfNotPresent
         name: manager
@@ -36,6 +35,17 @@ spec:
           httpGet:
             path: /healthz
             port: healthz
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsUser: 65532
+          runAsGroup: 65532
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       terminationGracePeriodSeconds: 10
       tolerations:
         - effect: NoSchedule

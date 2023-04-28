@@ -127,7 +127,7 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 	Context("With non-existent Cluster object", func() {
 		It("cannot reconcile the ProviderServiceAccount object", func() {
 			By("Deleting the CAPI cluster object", func() {
-				clusterName, ok := intCtx.VSphereCluster.GetLabels()[clusterv1.ClusterLabelName]
+				clusterName, ok := intCtx.VSphereCluster.GetLabels()[clusterv1.ClusterNameLabel]
 				Expect(ok).To(BeTrue())
 				cluster := &clusterv1.Cluster{}
 				key := client.ObjectKey{Namespace: intCtx.Namespace, Name: clusterName}
@@ -153,7 +153,7 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 	Context("With non-existent Cluster credentials secret", func() {
 		It("cannot reconcile the ProviderServiceAccount object", func() {
 			By("Deleting the CAPI kubeconfig secret object", func() {
-				clusterName, ok := intCtx.VSphereCluster.GetLabels()[clusterv1.ClusterLabelName]
+				clusterName, ok := intCtx.VSphereCluster.GetLabels()[clusterv1.ClusterNameLabel]
 				Expect(ok).To(BeTrue())
 				secret := &corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{

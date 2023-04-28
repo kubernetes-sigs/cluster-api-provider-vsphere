@@ -63,7 +63,7 @@ type ClusterReconciler struct {
 // +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;update;create;delete
 // +kubebuilder:rbac:groups="",resources=persistentvolumeclaims/status,verbs=get;update;patch
 
-func (r ClusterReconciler) Reconcile(ctx goctx.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
+func (r ClusterReconciler) Reconcile(_ goctx.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	logger := r.Logger.WithName(req.Namespace).WithName(req.Name)
 	logger.V(3).Info("Starting Reconcile vsphereCluster")
 
@@ -266,7 +266,7 @@ func (r *ClusterReconciler) reconcileAPIEndpoints(ctx *vmware.ClusterContext) er
 	if err != nil {
 		return errors.Wrapf(err,
 			"failed to get Machines for Cluster %s/%s",
-			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
+			ctx.Cluster.Namespace, ctx.Cluster.Name)
 	}
 
 	// Define a variable to assign the API endpoints of control plane

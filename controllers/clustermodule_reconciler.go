@@ -198,7 +198,7 @@ func (r Reconciler) PopulateWatchesOnController(controller controller.Controller
 		return err
 	}
 
-	if err := controller.Watch(
+	return controller.Watch(
 		&source.Kind{Type: &clusterv1.MachineDeployment{}},
 		handler.EnqueueRequestsFromMapFunc(r.toAffinityInput),
 		predicate.Funcs{
@@ -209,21 +209,18 @@ func (r Reconciler) PopulateWatchesOnController(controller controller.Controller
 				return false
 			},
 		},
-	); err != nil {
-		return err
-	}
-	return nil
+	)
 }
 
 func (r Reconciler) fetchMachineOwnerObjects(ctx *context.ClusterContext) (map[string]clustermodule.Wrapper, error) {
 	objects := map[string]clustermodule.Wrapper{}
 
-	name, ok := ctx.VSphereCluster.GetLabels()[clusterv1.ClusterLabelName]
+	name, ok := ctx.VSphereCluster.GetLabels()[clusterv1.ClusterNameLabel]
 	if !ok {
 		return nil, errors.Errorf("missing CAPI cluster label")
 	}
 
-	labels := map[string]string{clusterv1.ClusterLabelName: name}
+	labels := map[string]string{clusterv1.ClusterNameLabel: name}
 	kcpList := &controlplanev1.KubeadmControlPlaneList{}
 	if err := r.Client.List(
 		ctx, kcpList,

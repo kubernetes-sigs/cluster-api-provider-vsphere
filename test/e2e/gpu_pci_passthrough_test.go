@@ -55,8 +55,8 @@ var _ = Describe("Cluster creation with GPU devices as PCI passthrough [speciali
 				Namespace:                namespace.Name,
 				ClusterName:              clusterName,
 				KubernetesVersion:        e2eConfig.GetVariable(KubernetesVersion),
-				ControlPlaneMachineCount: pointer.Int64Ptr(1),
-				WorkerMachineCount:       pointer.Int64Ptr(1),
+				ControlPlaneMachineCount: pointer.Int64(1),
+				WorkerMachineCount:       pointer.Int64(1),
 			},
 			WaitForClusterIntervals:      e2eConfig.GetIntervals("", "wait-cluster"),
 			WaitForControlPlaneIntervals: e2eConfig.GetIntervals("", "wait-control-plane"),
@@ -75,7 +75,7 @@ var _ = Describe("Cluster creation with GPU devices as PCI passthrough [speciali
 func verifyPCIDeviceOnWorkerNodes(clusterName, namespace string) {
 	list := getVSphereVMsForCluster(clusterName, namespace)
 	for _, vm := range list.Items {
-		if _, ok := vm.GetLabels()[v1beta1.MachineControlPlaneLabelName]; !ok {
+		if _, ok := vm.GetLabels()[v1beta1.MachineControlPlaneLabel]; !ok {
 			finder := find.NewFinder(vsphereClient.Client, false)
 			dc, err := finder.Datacenter(ctx, vm.Spec.Datacenter)
 			Expect(err).NotTo(HaveOccurred())

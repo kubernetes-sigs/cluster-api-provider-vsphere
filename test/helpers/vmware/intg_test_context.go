@@ -193,7 +193,7 @@ func createVSphereCluster(ctx context.Context, integrationTestClient client.Clie
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      name,
-			Labels:    map[string]string{clusterv1.ClusterLabelName: capiClusterName},
+			Labels:    map[string]string{clusterv1.ClusterNameLabel: capiClusterName},
 		},
 	}
 	Expect(integrationTestClient.Create(ctx, vsphereCluster)).To(Succeed())

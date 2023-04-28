@@ -146,7 +146,7 @@ func getVSphereVMsForCluster(clusterName, namespace string) *infrav1.VSphereVMLi
 		&vms,
 		client.InNamespace(namespace),
 		client.MatchingLabels{
-			v1beta1.ClusterLabelName: clusterName,
+			v1beta1.ClusterNameLabel: clusterName,
 		},
 	)
 	Expect(err).NotTo(HaveOccurred())

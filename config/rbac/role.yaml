@@ -2,7 +2,6 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  creationTimestamp: null
   name: manager-role
 rules:
 - apiGroups:
@@ -109,15 +108,6 @@ rules:
 - apiGroups:
   - cluster.x-k8s.io
   resources:
-  - clusters
-  - machines
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - cluster.x-k8s.io
-  resources:
   - machinedeployments
   verbs:
   - get
@@ -173,9 +163,6 @@ rules:
   - delete
   - get
   - list
-  - patch
-  - update
-  - watch
 - apiGroups:
   - ""
   resources:
@@ -316,7 +303,7 @@ rules:
   - create
   - get
   - list
-  - update
+  - patch
   - watch
 - apiGroups:
   - ipam.cluster.x-k8s.io

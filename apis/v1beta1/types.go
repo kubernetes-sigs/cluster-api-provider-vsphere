@@ -204,6 +204,11 @@ type VirtualMachineCloneSpec struct {
 	// Check the compatibility with the ESXi version before setting the value.
 	// +optional
 	HardwareVersion string `json:"hardwareVersion,omitempty"`
+
+	// IdentityRef is a reference to either a Secret or VSphereClusterIdentity that contains
+	// the identity to use when reconciling the virtual machine.
+	// +optional
+	IdentityRef *VSphereIdentityReference `json:"identityRef,omitempty"`
 }
 
 // VSphereMachineTemplateResource describes the data needed to create a VSphereMachine from a template

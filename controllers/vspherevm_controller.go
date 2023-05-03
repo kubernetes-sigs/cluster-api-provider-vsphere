@@ -554,29 +554,25 @@ func (r vmReconciler) retrieveVcenterSession(ctx goctx.Context, vsphereVM *infra
 	params := session.NewParams().
 		WithServer(vsphereVM.Spec.Server).
 		WithDatacenter(vsphereVM.Spec.Datacenter).
-		WithUserInfo(r.ControllerContext.Username, r.ControllerContext.Password).
 		WithThumbprint(vsphereVM.Spec.Thumbprint).
 		WithFeatures(session.Feature{
 			EnableKeepAlive:   r.EnableKeepAlive,
 			KeepAliveDuration: r.KeepAliveDuration,
 		})
-	cluster, err := clusterutilv1.GetClusterFromMetadata(r.ControllerContext, r.Client, vsphereVM.ObjectMeta)
+
+	vsphereCluster, err := r.retrieveCluster(vsphereVM)
 	if err != nil {
-		r.Logger.Info("VsphereVM is missing cluster label or cluster does not exist")
-		return session.GetOrCreate(r.Context,
-			params)
+		return nil, err
 	}
 
-	key := ctrlclient.ObjectKey{
-		Namespace: cluster.Namespace,
-		Name:      cluster.Spec.InfrastructureRef.Name,
-	}
-	vsphereCluster := &infrav1.VSphereCluster{}
-	err = r.Client.Get(r, key, vsphereCluster)
-	if err != nil {
-		r.Logger.Info("VSphereCluster couldn't be retrieved")
-		return session.GetOrCreate(r.Context,
-			params)
+	if vsphereVM.Spec.IdentityRef != nil {
+		creds, err := identity.GetCredentialsWithExternalIdentity(ctx, r.Client, vsphereCluster, vsphereVM.Spec.IdentityRef, r.Namespace)
+		if err != nil {
+			return nil, err
+		}
+
+		params = params.WithUserInfo(creds.Username, creds.Password)
+		return session.GetOrCreate(ctx, params)
 	}
 
 	if vsphereCluster.Spec.IdentityRef != nil {
@@ -589,9 +585,30 @@ func (r vmReconciler) retrieveVcenterSession(ctx goctx.Context, vsphereVM *infra
 			params)
 	}
 
+	params = params.WithUserInfo(r.ControllerContext.Username, r.ControllerContext.Password)
 	// Fallback to using credentials provided to the manager
 	return session.GetOrCreate(r.Context,
 		params)
+}
+
+func (r vmReconciler) retrieveCluster(vsphereVM *infrav1.VSphereVM) (*infrav1.VSphereCluster, error) {
+	cluster, err := clusterutilv1.GetClusterFromMetadata(r.ControllerContext, r.Client, vsphereVM.ObjectMeta)
+	if err != nil {
+		r.Logger.Info("VsphereVM is missing cluster label or cluster does not exist")
+		return nil, err
+	}
+
+	key := ctrlclient.ObjectKey{
+		Namespace: cluster.Namespace,
+		Name:      cluster.Spec.InfrastructureRef.Name,
+	}
+	vsphereCluster := &infrav1.VSphereCluster{}
+	err = r.Client.Get(r, key, vsphereCluster)
+	if err != nil {
+		r.Logger.Info("VSphereCluster couldn't be retrieved")
+		return nil, err
+	}
+	return vsphereCluster, nil
 }
 
 func (r vmReconciler) fetchClusterModuleInfo(clusterModInput fetchClusterModuleInput) (*string, error) {

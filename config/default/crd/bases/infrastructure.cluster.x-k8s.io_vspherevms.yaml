@@ -958,6 +958,25 @@ spec:
                   from which the virtual machine is cloned. Check the compatibility
                   with the ESXi version before setting the value.
                 type: string
+              identityRef:
+                description: IdentityRef is a reference to either a Secret or VSphereClusterIdentity
+                  that contains the identity to use when reconciling the virtual machine.
+                properties:
+                  kind:
+                    description: Kind of the identity. Can either be VSphereClusterIdentity
+                      or Secret
+                    enum:
+                    - VSphereClusterIdentity
+                    - Secret
+                    type: string
+                  name:
+                    description: Name of the identity.
+                    minLength: 1
+                    type: string
+                required:
+                - kind
+                - name
+                type: object
               memoryMiB:
                 description: MemoryMiB is the size of a virtual machine's memory,
                   in MiB. Defaults to the eponymous property value in the template

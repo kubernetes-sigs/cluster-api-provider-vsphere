@@ -38,7 +38,7 @@ echo "verify-crds: comparing crds"
 while IFS= read -r -d '' dst_file; do
   src_file="${dst_file#"${_output_dir}/"}"
   echo "  config/${src_file}"
-  diff "${dst_file}" "./config/${src_file}" >"${_diff_log}" || _exit_code="${?}"
+  diff <(yq -P 'sort_keys(..)' "${dst_file}") <(yq -P 'sort_keys(..)' "./config/${src_file}") >"${_diff_log}" || _exit_code="${?}"
   if [ "${_exit_code}" -ne "0" ]; then
     echo "config/${src_file}" 1>&2
     cat "${_diff_log}" 1>&2

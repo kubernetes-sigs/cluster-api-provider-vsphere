@@ -122,6 +122,7 @@ func (vms *VMService) ReconcileVM(ctx *context.VMContext) (vm infrav1.VirtualMac
 		Ref:       vmRef,
 		State:     &vm,
 	}
+	vm.VMRef = vmRef.String()
 
 	vms.reconcileUUID(vmCtx)
 

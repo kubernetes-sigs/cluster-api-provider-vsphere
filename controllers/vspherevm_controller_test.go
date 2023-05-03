@@ -569,6 +569,7 @@ func Test_reconcile(t *testing.T) {
 				Name:     vsphereVM.Name,
 				BiosUUID: "265104de-1472-547c-b873-6dc7883fb6cb",
 				State:    infrav1.VirtualMachineStateReady,
+				VMRef:    "VirtualMachine:vm-129",
 			}, nil)
 
 			r := setupReconciler(fakeVMSvc, objsWithHierarchy...)
@@ -583,6 +584,7 @@ func Test_reconcile(t *testing.T) {
 
 			g := NewWithT(t)
 			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(vsphereVM.Status.VMRef).To(Equal("VirtualMachine:vm-129"))
 		})
 	})
 

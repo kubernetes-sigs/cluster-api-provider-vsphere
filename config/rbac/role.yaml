@@ -304,6 +304,7 @@ rules:
   - get
   - list
   - patch
+  - update
   - watch
 - apiGroups:
   - ipam.cluster.x-k8s.io

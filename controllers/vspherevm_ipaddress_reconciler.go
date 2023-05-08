@@ -37,7 +37,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
-// +kubebuilder:rbac:groups=ipam.cluster.x-k8s.io,resources=ipaddressclaims,verbs=get;create;patch;watch;list
+// +kubebuilder:rbac:groups=ipam.cluster.x-k8s.io,resources=ipaddressclaims,verbs=get;create;patch;watch;list;update
 // +kubebuilder:rbac:groups=ipam.cluster.x-k8s.io,resources=ipaddresses,verbs=get;list;watch
 
 // reconcileIPAddressClaims ensures that VSphereVMs that are configured with .spec.network.devices.addressFromPools

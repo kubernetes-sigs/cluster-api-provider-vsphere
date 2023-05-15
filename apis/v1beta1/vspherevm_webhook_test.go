@@ -34,9 +34,9 @@ const (
 func TestVSphereVM_Default(t *testing.T) {
 	g := NewWithT(t)
 
-	WindowsVM := createVSphereVM(windowsVMName, "foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, nil, Windows)
-	LinuxVM := createVSphereVM(linuxVMName, "foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, nil, Linux)
-	NoOSVM := createVSphereVM(linuxVMName, "foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, nil, "")
+	WindowsVM := createVSphereVM(windowsVMName, "foo.com", "", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, nil, Windows)
+	LinuxVM := createVSphereVM(linuxVMName, "foo.com", "", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, nil, Linux)
+	NoOSVM := createVSphereVM(linuxVMName, "foo.com", "", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, nil, "")
 
 	WindowsVM.Default()
 	LinuxVM.Default()
@@ -58,27 +58,27 @@ func TestVSphereVM_ValidateCreate(t *testing.T) {
 	}{
 		{
 			name:      "preferredAPIServerCIDR set on creation ",
-			vSphereVM: createVSphereVM("vsphere-vm-1", "foo.com", "", "192.168.0.1/32", []string{}, nil, Linux),
+			vSphereVM: createVSphereVM("vsphere-vm-1", "foo.com", "", "192.168.0.1/32", "", []string{}, nil, Linux),
 			wantErr:   true,
 		},
 		{
 			name:      "IPs are not in CIDR format",
-			vSphereVM: createVSphereVM("vsphere-vm-1", "foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3"}, nil, Linux),
+			vSphereVM: createVSphereVM("vsphere-vm-1", "foo.com", "", "", "", []string{"192.168.0.1/32", "192.168.0.3"}, nil, Linux),
 			wantErr:   true,
 		},
 		{
 			name:      "successful VSphereVM creation",
-			vSphereVM: createVSphereVM("vsphere-vm-1", "foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, nil, Linux),
+			vSphereVM: createVSphereVM("vsphere-vm-1", "foo.com", "", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, nil, Linux),
 			wantErr:   false,
 		},
 		{
 			name:      "name too long for Windows VM",
-			vSphereVM: createVSphereVM(windowsVMName, "foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, nil, Windows),
+			vSphereVM: createVSphereVM(windowsVMName, "foo.com", "", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, nil, Windows),
 			wantErr:   true,
 		},
 		{
 			name:      "no error with name too long for Linux VM",
-			vSphereVM: createVSphereVM(linuxVMName, "foo.com", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, nil, Linux),
+			vSphereVM: createVSphereVM(linuxVMName, "foo.com", "", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, nil, Linux),
 			wantErr:   false,
 		},
 	}
@@ -106,39 +106,45 @@ func TestVSphereVM_ValidateUpdate(t *testing.T) {
 	}{
 		{
 			name:         "ProviderID can be updated",
-			oldVSphereVM: createVSphereVM("vsphere-vm-1", "foo.com", "", "", []string{"192.168.0.1/32"}, nil, Linux),
-			vSphereVM:    createVSphereVM("vsphere-vm-1", "foo.com", biosUUID, "", []string{"192.168.0.1/32"}, nil, Linux),
+			oldVSphereVM: createVSphereVM("vsphere-vm-1", "foo.com", "", "", "", []string{"192.168.0.1/32"}, nil, Linux),
+			vSphereVM:    createVSphereVM("vsphere-vm-1", "foo.com", biosUUID, "", "", []string{"192.168.0.1/32"}, nil, Linux),
 			wantErr:      false,
 		},
 		{
 			name:         "updating ips can be done",
-			oldVSphereVM: createVSphereVM("vsphere-vm-1", "foo.com", "", "", []string{"192.168.0.1/32"}, nil, Linux),
-			vSphereVM:    createVSphereVM("vsphere-vm-1", "foo.com", biosUUID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}, nil, Linux),
+			oldVSphereVM: createVSphereVM("vsphere-vm-1", "foo.com", "", "", "", []string{"192.168.0.1/32"}, nil, Linux),
+			vSphereVM:    createVSphereVM("vsphere-vm-1", "foo.com", biosUUID, "", "", []string{"192.168.0.1/32", "192.168.0.10/32"}, nil, Linux),
 			wantErr:      false,
 		},
 		{
 			name:         "updating bootstrapRef can be done",
-			oldVSphereVM: createVSphereVM("vsphere-vm-1", "foo.com", "", "", []string{"192.168.0.1/32"}, nil, Linux),
-			vSphereVM:    createVSphereVM("vsphere-vm-1", "foo.com", biosUUID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}, &corev1.ObjectReference{}, Linux),
+			oldVSphereVM: createVSphereVM("vsphere-vm-1", "foo.com", "", "", "", []string{"192.168.0.1/32"}, nil, Linux),
+			vSphereVM:    createVSphereVM("vsphere-vm-1", "foo.com", biosUUID, "", "", []string{"192.168.0.1/32", "192.168.0.10/32"}, &corev1.ObjectReference{}, Linux),
 			wantErr:      false,
 		},
 		{
 			name:         "updating server cannot be done",
-			oldVSphereVM: createVSphereVM("vsphere-vm-1", "foo.com", "", "", []string{"192.168.0.1/32"}, nil, Linux),
-			vSphereVM:    createVSphereVM("vsphere-vm-1", "bar.com", biosUUID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}, nil, Linux),
+			oldVSphereVM: createVSphereVM("vsphere-vm-1", "foo.com", "", "", "", []string{"192.168.0.1/32"}, nil, Linux),
+			vSphereVM:    createVSphereVM("vsphere-vm-1", "bar.com", biosUUID, "", "", []string{"192.168.0.1/32", "192.168.0.10/32"}, nil, Linux),
 			wantErr:      true,
 		},
 		{
 			name:         "updating OS can be done only when empty",
-			oldVSphereVM: createVSphereVM("vsphere-vm-1-os", "foo.com", "", "", []string{"192.168.0.1/32"}, nil, ""),
-			vSphereVM:    createVSphereVM("vsphere-vm-1-os", "foo.com", "", "", []string{"192.168.0.1/32"}, nil, Linux),
+			oldVSphereVM: createVSphereVM("vsphere-vm-1-os", "foo.com", "", "", "", []string{"192.168.0.1/32"}, nil, ""),
+			vSphereVM:    createVSphereVM("vsphere-vm-1-os", "foo.com", "", "", "", []string{"192.168.0.1/32"}, nil, Linux),
 			wantErr:      false,
 		},
 		{
 			name:         "updating OS cannot be done when alreadySet",
-			oldVSphereVM: createVSphereVM("vsphere-vm-1-os", "foo.com", "", "", []string{"192.168.0.1/32"}, nil, Windows),
-			vSphereVM:    createVSphereVM("vsphere-vm-1-os", "foo.com", "", "", []string{"192.168.0.1/32"}, nil, Linux),
+			oldVSphereVM: createVSphereVM("vsphere-vm-1-os", "foo.com", "", "", "", []string{"192.168.0.1/32"}, nil, Windows),
+			vSphereVM:    createVSphereVM("vsphere-vm-1-os", "foo.com", "", "", "", []string{"192.168.0.1/32"}, nil, Linux),
 			wantErr:      true,
+		},
+		{
+			name:         "updating thumbprint can be updated",
+			oldVSphereVM: createVSphereVM("vsphere-vm-1", "foo.com", "", "", "AA:BB:CC:DD:EE", []string{"192.168.0.1/32"}, nil, Linux),
+			vSphereVM:    createVSphereVM("vsphere-vm-1", "foo.com", biosUUID, "", "BB:CC:DD:EE:FF", []string{"192.168.0.1/32"}, nil, Linux),
+			wantErr:      false,
 		},
 	}
 	for _, tc := range tests {
@@ -153,7 +159,7 @@ func TestVSphereVM_ValidateUpdate(t *testing.T) {
 	}
 }
 
-func createVSphereVM(name, server, biosUUID, preferredAPIServerCIDR string, ips []string, bootstrapRef *corev1.ObjectReference, os OS) *VSphereVM {
+func createVSphereVM(name, server, biosUUID, preferredAPIServerCIDR, thumbprint string, ips []string, bootstrapRef *corev1.ObjectReference, os OS) *VSphereVM {
 	VSphereVM := &VSphereVM{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
@@ -167,6 +173,7 @@ func createVSphereVM(name, server, biosUUID, preferredAPIServerCIDR string, ips 
 					PreferredAPIServerCIDR: preferredAPIServerCIDR,
 					Devices:                []NetworkDeviceSpec{},
 				},
+				Thumbprint: thumbprint,
 			},
 		},
 	}

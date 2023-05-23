@@ -156,12 +156,12 @@ func checkAndRetryTask(ctx *context.VMContext, task *mo.Task) (bool, error) {
 
 		// NOTE: When a task fails there is not simple way to understand which operation is failing (e.g. cloning or powering on)
 		// so we are reporting failures using a dedicated reason until we find a better solution.
-		var description string
+		var errorMessage string
 
-		if task.Info.Description != nil {
-			description = task.Info.Description.Message
+		if task.Info.Error != nil {
+			errorMessage = task.Info.Error.LocalizedMessage
 		}
-		conditions.MarkFalse(ctx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.TaskFailure, clusterv1.ConditionSeverityInfo, description)
+		conditions.MarkFalse(ctx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.TaskFailure, clusterv1.ConditionSeverityInfo, errorMessage)
 
 		// Instead of directly requeuing the failed task, wait for the RetryAfter duration to pass
 		// before resetting the taskRef from the VSphereVM status.

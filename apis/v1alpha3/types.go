@@ -340,6 +340,9 @@ type VirtualMachine struct {
 
 	// Network is the status of the VM's network devices.
 	Network []NetworkStatus `json:"network"`
+
+	// VMRef is the the VM's Managed Object Reference on vSphere.
+	VMRef string `json:"vmRef"`
 }
 
 // SSHUser is granted remote access to a system.

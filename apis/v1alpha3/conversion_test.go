@@ -133,4 +133,5 @@ func CustomStatusNewFieldFuzzer(in *nextver.VSphereVMStatus, c fuzz.Continue) {
 
 	in.Host = ""
 	in.ModuleUUID = nil
+	in.VMRef = ""
 }

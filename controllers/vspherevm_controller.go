@@ -411,6 +411,11 @@ func (r vmReconciler) reconcileNormal(ctx *context.VMContext) (reconcile.Result,
 		return reconcile.Result{}, errors.Errorf("bios uuid is empty while VM is ready")
 	}
 
+	// VMRef should be set just once. It is not supposed to change!
+	if vm.VMRef != "" && ctx.VSphereVM.Status.VMRef == "" {
+		ctx.VSphereVM.Status.VMRef = vm.VMRef
+	}
+
 	// Update the VSphereVM's network status.
 	r.reconcileNetwork(ctx, vm)
 

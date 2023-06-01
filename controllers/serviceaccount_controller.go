@@ -48,6 +48,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	vmwarecontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
 // +kubebuilder:rbac:groups=vmware.infrastructure.cluster.x-k8s.io,resources=providerserviceaccounts,verbs=get;list;watch;
@@ -303,7 +304,7 @@ func (r ServiceAccountReconciler) ensureServiceAccount(ctx *vmwarecontext.Cluste
 		},
 	}
 	logger := ctx.Logger.WithValues("providerserviceaccount", pSvcAccount.Name, "serviceaccount", svcAccount.Name)
-	err := controllerutil.SetControllerReference(&pSvcAccount, &svcAccount, ctx.Scheme)
+	err := util.SetControllerReferenceWithOverride(&pSvcAccount, &svcAccount, ctx.Scheme)
 	if err != nil {
 		return err
 	}
@@ -331,7 +332,7 @@ func (r ServiceAccountReconciler) ensureServiceAccountSecret(ctx *vmwarecontext.
 	}
 
 	logger := ctx.Logger.WithValues("providerserviceaccount", pSvcAccount.Name, "secret", secret.Name)
-	err := controllerutil.SetControllerReference(&pSvcAccount, &secret, ctx.Scheme)
+	err := util.SetControllerReferenceWithOverride(&pSvcAccount, &secret, ctx.Scheme)
 	if err != nil {
 		return err
 	}
@@ -355,7 +356,7 @@ func (r ServiceAccountReconciler) ensureRole(ctx *vmwarecontext.ClusterContext, 
 	logger := ctx.Logger.WithValues("providerserviceaccount", pSvcAccount.Name, "role", role.Name)
 	logger.V(4).Info("Creating or updating role")
 	_, err := controllerutil.CreateOrPatch(ctx, ctx.Client, &role, func() error {
-		if err := controllerutil.SetControllerReference(&pSvcAccount, &role, ctx.Scheme); err != nil {
+		if err := util.SetControllerReferenceWithOverride(&pSvcAccount, &role, ctx.Scheme); err != nil {
 			return err
 		}
 		role.Rules = pSvcAccount.Spec.Rules
@@ -375,8 +376,23 @@ func (r ServiceAccountReconciler) ensureRoleBinding(ctx *vmwarecontext.ClusterCo
 	}
 	logger := ctx.Logger.WithValues("providerserviceaccount", pSvcAccount.Name, "rolebinding", roleBinding.Name)
 	logger.V(4).Info("Creating or updating rolebinding")
-	_, err := controllerutil.CreateOrPatch(ctx, ctx.Client, &roleBinding, func() error {
-		if err := controllerutil.SetControllerReference(&pSvcAccount, &roleBinding, ctx.Scheme); err != nil {
+
+	err := ctx.Client.Get(ctx, types.NamespacedName{Name: getRoleBindingName(pSvcAccount), Namespace: pSvcAccount.Namespace}, &roleBinding)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return err
+	}
+
+	if err == nil {
+		// If the roleRef needs changing, we have to delete the rolebinding and recreate it.
+		if roleBinding.RoleRef.Name != roleName || roleBinding.RoleRef.Kind != "Role" || roleBinding.RoleRef.APIGroup != rbacv1.GroupName {
+			if err := ctx.Client.Delete(ctx, &roleBinding); err != nil {
+				return err
+			}
+		}
+	}
+
+	_, err = controllerutil.CreateOrPatch(ctx, ctx.Client, &roleBinding, func() error {
+		if err := util.SetControllerReferenceWithOverride(&pSvcAccount, &roleBinding, ctx.Scheme); err != nil {
 			return err
 		}
 		roleBinding.RoleRef = rbacv1.RoleRef{

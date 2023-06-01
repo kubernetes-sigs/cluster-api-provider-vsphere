@@ -19,15 +19,20 @@ package controllers
 import (
 	"fmt"
 	"os"
+	"reflect"
 
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
@@ -35,9 +40,7 @@ import (
 )
 
 var _ = Describe("ProviderServiceAccount controller integration tests", func() {
-	var (
-		intCtx *helpers.IntegrationTestContext
-	)
+	var intCtx *helpers.IntegrationTestContext
 
 	BeforeEach(func() {
 		intCtx = helpers.NewIntegrationTestContextWithClusters(ctx, testEnv.Manager.GetClient())
@@ -178,4 +181,163 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 			})
 		})
 	})
+
+	Context("Upgrading from vSphere 7", func() {
+		var pSvcAccount *vmwarev1.ProviderServiceAccount
+		var role *rbacv1.Role
+		var roleBinding *rbacv1.RoleBinding
+		BeforeEach(func() {
+			pSvcAccount = getTestProviderServiceAccount(intCtx.Namespace, intCtx.VSphereCluster)
+			pSvcAccount.Spec.TargetNamespace = "default"
+			// Pause the ProviderServiceAccount so we can create dependent but legacy resources
+			pSvcAccount.ObjectMeta.Annotations = map[string]string{
+				"cluster.x-k8s.io/paused": "true",
+			}
+			createTestResource(intCtx, intCtx.Client, pSvcAccount)
+			oldOwnerUID := uuid.New().String()
+
+			role = &rbacv1.Role{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      pSvcAccount.GetName(),
+					Namespace: pSvcAccount.GetNamespace(),
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: "incorrect.api.com/v1beta1",
+							Kind:       "ProviderServiceAccount",
+							Name:       pSvcAccount.GetName(),
+							UID:        types.UID(oldOwnerUID),
+							Controller: pointer.Bool(true),
+						},
+					},
+				},
+				Rules: []rbacv1.PolicyRule{
+					{
+						Verbs:     []string{"get"},
+						APIGroups: []string{""},
+						Resources: []string{"oldpersistentvolumeclaims"},
+					},
+				},
+			}
+			roleBinding = &rbacv1.RoleBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      pSvcAccount.GetName(),
+					Namespace: pSvcAccount.GetNamespace(),
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: "incorrect.api.com/v1beta1",
+							Kind:       "ProviderServiceAccount",
+							Name:       pSvcAccount.GetName(),
+							Controller: pointer.Bool(true),
+							UID:        types.UID(oldOwnerUID),
+						},
+					},
+				},
+				RoleRef: rbacv1.RoleRef{
+					APIGroup: "rbac.authorization.k8s.io",
+					Kind:     "Role",
+					Name:     pSvcAccount.GetName() + "-incorrect",
+				},
+				Subjects: []rbacv1.Subject{
+					{
+						Kind:      "User",
+						Name:      pSvcAccount.GetName(),
+						Namespace: pSvcAccount.GetNamespace(),
+					},
+				},
+			}
+
+			createTestResource(intCtx, intCtx.Client, role)
+			createTestResource(intCtx, intCtx.Client, roleBinding)
+			assertEventuallyExistsInNamespace(intCtx, intCtx.Client, intCtx.Namespace, pSvcAccount.GetName(), pSvcAccount)
+			svcAccountPatcher, err := patch.NewHelper(pSvcAccount, intCtx.Client)
+			Expect(err).ToNot(HaveOccurred())
+			// Unpause the ProviderServiceAccount so we can reconcile
+			pSvcAccount.SetAnnotations(map[string]string{})
+			Expect(svcAccountPatcher.Patch(ctx, pSvcAccount)).To(Succeed())
+		})
+		AfterEach(func() {
+			deleteTestResource(intCtx, intCtx.Client, pSvcAccount)
+			deleteTestResource(intCtx, intCtx.Client, role)
+			deleteTestResource(intCtx, intCtx.Client, roleBinding)
+		})
+
+		It("should fully reconciles dependent resources", func() {
+			correctOwnership := metav1.OwnerReference{
+				APIVersion: pSvcAccount.APIVersion,
+				Kind:       pSvcAccount.Kind,
+				Name:       pSvcAccount.GetName(),
+				UID:        pSvcAccount.UID,
+				Controller: pointer.Bool(true),
+			}
+			By("Taking ownership of the role and reconciling the rules", func() {
+				Eventually(func() error {
+					role := &rbacv1.Role{}
+					key := client.ObjectKeyFromObject(pSvcAccount)
+					if err := intCtx.Client.Get(ctx, key, role); err != nil {
+						return err
+					}
+					if err := verifyControllerOwnership(correctOwnership, role); err != nil {
+						return err
+					}
+					correctRules := []rbacv1.PolicyRule{
+						{
+							Verbs:     []string{"get"},
+							APIGroups: []string{""},
+							Resources: []string{"persistentvolumeclaims"},
+						},
+					}
+					if !reflect.DeepEqual(role.Rules, correctRules) {
+						return errors.Errorf("role %s/%s is incorrect", role.GetNamespace(), role.GetName())
+					}
+					return nil
+				}, "25s").Should(Succeed())
+			})
+			By("Taking ownership of the rolebinding and reconciling the subjects", func() {
+				Eventually(func() error {
+					role := &rbacv1.RoleBinding{}
+					key := client.ObjectKeyFromObject(pSvcAccount)
+					if err := intCtx.Client.Get(ctx, key, role); err != nil {
+						return err
+					}
+					if err := verifyControllerOwnership(correctOwnership, role); err != nil {
+						return err
+					}
+					correctRoleRef := rbacv1.RoleRef{
+						Name:     pSvcAccount.Name,
+						Kind:     "Role",
+						APIGroup: rbacv1.GroupName,
+					}
+					correctSubjects := []rbacv1.Subject{
+						{
+							Kind:      "ServiceAccount",
+							APIGroup:  "",
+							Name:      pSvcAccount.Name,
+							Namespace: pSvcAccount.Namespace,
+						},
+					}
+					if !reflect.DeepEqual(role.RoleRef, correctRoleRef) {
+						return errors.Errorf("role reference %v is incorrect, got %v", correctRoleRef, role.RoleRef)
+					}
+					if !reflect.DeepEqual(role.Subjects, correctSubjects) {
+						return errors.Errorf("subjects %v are incorrect, got %v", role.Subjects, role.RoleRef)
+					}
+					return nil
+				}, "25s").Should(Succeed())
+			})
+		})
+	})
 })
+
+func verifyControllerOwnership(expected metav1.OwnerReference, obj client.Object) error {
+	controller := metav1.GetControllerOf(obj)
+	if controller == nil {
+		return errors.Errorf("%s/%s %s is not owned by %s/%s %s", obj.GetNamespace(), obj.GetName(), obj.GetObjectKind().GroupVersionKind().String(), expected.APIVersion, expected.Kind, expected.Name)
+	}
+	if controller.UID != expected.UID || controller.Name != expected.Name || controller.Kind != expected.Kind || controller.APIVersion != expected.APIVersion {
+		return errors.Errorf("object %s/%s %s is not a controller of %s %s/%s, got %s/%s %s",
+			expected.APIVersion, expected.Kind, expected.Name,
+			obj.GetObjectKind().GroupVersionKind().String(), obj.GetNamespace(), obj.GetName(),
+			controller.APIVersion, controller.Kind, controller.Name)
+	}
+	return nil
+}

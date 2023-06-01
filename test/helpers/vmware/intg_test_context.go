@@ -46,6 +46,7 @@ type IntegrationTestContext struct {
 	GuestClient       client.Client
 	Namespace         string
 	VSphereCluster    *vmwarev1.VSphereCluster
+	Cluster           *clusterv1.Cluster
 	VSphereClusterKey client.ObjectKey
 	envTest           *envtest.Environment
 }
@@ -100,10 +101,10 @@ func NewIntegrationTestContextWithClusters(goctx context.Context, integrationTes
 	})
 
 	vsphereClusterName := capiutil.RandomString(6)
-	cluster := createCluster(goctx, integrationTestClient, ctx.Namespace, vsphereClusterName)
+	ctx.Cluster = createCluster(goctx, integrationTestClient, ctx.Namespace, vsphereClusterName)
 
 	By("Create a vsphere cluster and wait for it to exist", func() {
-		ctx.VSphereCluster = createVSphereCluster(goctx, integrationTestClient, ctx.Namespace, vsphereClusterName, cluster.GetName())
+		ctx.VSphereCluster = createVSphereCluster(goctx, integrationTestClient, ctx.Namespace, vsphereClusterName, ctx.Cluster.GetName())
 		ctx.VSphereClusterKey = client.ObjectKeyFromObject(ctx.VSphereCluster)
 	})
 
@@ -136,13 +137,13 @@ func NewIntegrationTestContextWithClusters(goctx context.Context, integrationTes
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ctx.Namespace,
-				Name:      fmt.Sprintf("%s-kubeconfig", cluster.Name),
+				Name:      fmt.Sprintf("%s-kubeconfig", ctx.Cluster.Name),
 				OwnerReferences: []metav1.OwnerReference{
 					{
-						APIVersion: cluster.APIVersion,
-						Kind:       cluster.Kind,
-						Name:       cluster.Name,
-						UID:        cluster.UID,
+						APIVersion: ctx.Cluster.APIVersion,
+						Kind:       ctx.Cluster.Kind,
+						Name:       ctx.Cluster.Name,
+						UID:        ctx.Cluster.UID,
 					},
 				},
 			},

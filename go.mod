@@ -23,6 +23,7 @@ require (
 	golang.org/x/mod v0.12.0
 	golang.org/x/oauth2 v0.10.0
 	golang.org/x/text v0.11.0
+	golang.org/x/tools v0.9.3
 	gopkg.in/gcfg.v1 v1.2.3
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.27.2
@@ -60,7 +61,6 @@ require (
 	golang.org/x/net v0.12.0 // indirect
 	golang.org/x/sys v0.10.0 // indirect
 	golang.org/x/term v0.10.0 // indirect
-	golang.org/x/tools v0.9.3 // indirect
 )
 
 require (

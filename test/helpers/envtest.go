@@ -20,14 +20,13 @@ package helpers
 import (
 	goctx "context"
 	"fmt"
-	"go/build"
-	"os"
 	"path"
 	"path/filepath"
 	goruntime "runtime"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/vmware/govmomi/simulator"
+	"golang.org/x/tools/go/packages"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -85,7 +84,7 @@ func init() {
 	}
 
 	// append CAPI CRDs path
-	if capiPaths := getFilePathToCAPICRDs(root); capiPaths != nil {
+	if capiPaths := getFilePathToCAPICRDs(); capiPaths != nil {
 		crdPaths = append(crdPaths, capiPaths...)
 	}
 
@@ -218,28 +217,21 @@ func (t *TestEnvironment) CreateKubeconfigSecret(ctx goctx.Context, cluster *clu
 	return t.Create(ctx, kubeconfig.GenerateSecret(cluster, kubeconfig.FromEnvTestConfig(t.Config, cluster)))
 }
 
-func getFilePathToCAPICRDs(root string) []string {
-	mod, err := NewMod(filepath.Join(root, "go.mod"))
-	if err != nil {
-		return nil
-	}
-
+func getFilePathToCAPICRDs() []string {
 	packageName := "sigs.k8s.io/cluster-api"
-	clusterAPIVersion, err := mod.FindDependencyVersion(packageName)
+	packageConfig := &packages.Config{
+		Mode: packages.NeedModule,
+	}
+
+	pkgs, err := packages.Load(packageConfig, packageName)
 	if err != nil {
 		return nil
 	}
 
-	gopath := envOr("GOPATH", build.Default.GOPATH)
-	return []string{
-		filepath.Join(gopath, "pkg", "mod", "sigs.k8s.io", fmt.Sprintf("cluster-api@%s", clusterAPIVersion), "config", "crd", "bases"),
-		filepath.Join(gopath, "pkg", "mod", "sigs.k8s.io", fmt.Sprintf("cluster-api@%s", clusterAPIVersion), "controlplane", "kubeadm", "config", "crd", "bases"),
-	}
-}
+	pkg := pkgs[0]
 
-func envOr(envKey, defaultValue string) string {
-	if value, ok := os.LookupEnv(envKey); ok {
-		return value
+	return []string{
+		filepath.Join(pkg.Module.Dir, "config", "crd", "bases"),
+		filepath.Join(pkg.Module.Dir, "controlplane", "kubeadm", "config", "crd", "bases"),
 	}
-	return defaultValue
 }

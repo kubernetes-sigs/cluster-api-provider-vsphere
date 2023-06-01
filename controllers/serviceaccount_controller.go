@@ -33,6 +33,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -47,6 +48,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	vmwarecontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
 // +kubebuilder:rbac:groups=vmware.infrastructure.cluster.x-k8s.io,resources=providerserviceaccounts,verbs=get;list;watch;
@@ -83,6 +85,8 @@ func AddServiceAccountProviderControllerToManager(ctx *context.ControllerManager
 		remoteClientGetter: remote.NewClusterClient,
 	}
 
+	clusterToInfraFn := clusterToSupervisorInfrastructureMapFunc(ctx)
+
 	return ctrl.NewControllerManagedBy(mgr).For(controlledType).
 		// Watch a ProviderServiceAccount
 		Watches(
@@ -94,7 +98,34 @@ func AddServiceAccountProviderControllerToManager(ctx *context.ControllerManager
 			&source.Kind{Type: &corev1.Secret{}},
 			handler.EnqueueRequestsFromMapFunc(r.secretToVSphereCluster),
 		).
+		// Watches clusters and reconciles the vSphereCluster
+		Watches(
+			&source.Kind{Type: &clusterv1.Cluster{}},
+			handler.EnqueueRequestsFromMapFunc(func(o client.Object) []reconcile.Request {
+				requests := clusterToInfraFn(o)
+				if requests == nil {
+					return nil
+				}
+
+				c := &vmwarev1.VSphereCluster{}
+				if err := r.Client.Get(ctx, requests[0].NamespacedName, c); err != nil {
+					r.Logger.V(4).Error(err, "Failed to get VSphereCluster")
+					return nil
+				}
+
+				if annotations.IsExternallyManaged(c) {
+					r.Logger.V(4).Info("VSphereCluster is externally managed, skipping mapping.")
+					return nil
+				}
+				return requests
+			}),
+		).
 		Complete(r)
+}
+
+func clusterToSupervisorInfrastructureMapFunc(managerContext *context.ControllerManagerContext) handler.MapFunc {
+	gvk := vmwarev1.GroupVersion.WithKind(reflect.TypeOf(&vmwarev1.VSphereCluster{}).Elem().Name())
+	return clusterutilv1.ClusterToInfrastructureMapFunc(managerContext, gvk, managerContext.Client, &vmwarev1.VSphereCluster{})
 }
 
 type ServiceAccountReconciler struct {
@@ -111,7 +142,7 @@ func (r ServiceAccountReconciler) Reconcile(_ goctx.Context, req reconcile.Reque
 	clusterKey := client.ObjectKey{Namespace: req.Namespace, Name: req.Name}
 	if err := r.Client.Get(r, clusterKey, vsphereCluster); err != nil {
 		if apierrors.IsNotFound(err) {
-			r.Logger.Info("Cluster not found, won't reconcile", "cluster", clusterKey)
+			r.Logger.Info("vSphereCluster not found, won't reconcile", "cluster", clusterKey)
 			return reconcile.Result{}, nil
 		}
 		return reconcile.Result{}, err
@@ -154,6 +185,13 @@ func (r ServiceAccountReconciler) Reconcile(_ goctx.Context, req reconcile.Reque
 	cluster, err := clusterutilv1.GetClusterFromMetadata(r, r.Client, vsphereCluster.ObjectMeta)
 	if err != nil {
 		r.Logger.Info("unable to get capi cluster from vsphereCluster", "err", err)
+		return reconcile.Result{}, nil
+	}
+
+	// Pause reconciliation if entire vSphereCluster or Cluster is paused
+	if annotations.IsPaused(cluster, vsphereCluster) {
+		r.Logger.V(4).Info("VSphereCluster %s/%s linked to a cluster that is paused",
+			vsphereCluster.Namespace, vsphereCluster.Name)
 		return reconcile.Result{}, nil
 	}
 
@@ -220,7 +258,13 @@ func (r ServiceAccountReconciler) ReconcileNormal(ctx *vmwarecontext.GuestCluste
 
 // Ensure service accounts from provider spec is created.
 func (r ServiceAccountReconciler) ensureProviderServiceAccounts(ctx *vmwarecontext.GuestClusterContext, pSvcAccounts []vmwarev1.ProviderServiceAccount) error {
-	for _, pSvcAccount := range pSvcAccounts {
+	for i, pSvcAccount := range pSvcAccounts {
+		if ctx.Cluster != nil && annotations.IsPaused(ctx.Cluster, &(pSvcAccounts[i])) {
+			r.Logger.V(4).Info("ProviderServiceAccount %s/%s linked to a cluster that is paused or has pause annotation",
+				pSvcAccount.Namespace, pSvcAccount.Name)
+			continue
+		}
+
 		// 1. Create service accounts by the name specified in Provider Spec
 		if err := r.ensureServiceAccount(ctx.ClusterContext, pSvcAccount); err != nil {
 			return errors.Wrapf(err, "unable to create provider serviceaccount %s", pSvcAccount.Name)
@@ -260,7 +304,7 @@ func (r ServiceAccountReconciler) ensureServiceAccount(ctx *vmwarecontext.Cluste
 		},
 	}
 	logger := ctx.Logger.WithValues("providerserviceaccount", pSvcAccount.Name, "serviceaccount", svcAccount.Name)
-	err := controllerutil.SetControllerReference(&pSvcAccount, &svcAccount, ctx.Scheme)
+	err := util.SetControllerReferenceWithOverride(&pSvcAccount, &svcAccount, ctx.Scheme)
 	if err != nil {
 		return err
 	}
@@ -288,7 +332,7 @@ func (r ServiceAccountReconciler) ensureServiceAccountSecret(ctx *vmwarecontext.
 	}
 
 	logger := ctx.Logger.WithValues("providerserviceaccount", pSvcAccount.Name, "secret", secret.Name)
-	err := controllerutil.SetControllerReference(&pSvcAccount, &secret, ctx.Scheme)
+	err := util.SetControllerReferenceWithOverride(&pSvcAccount, &secret, ctx.Scheme)
 	if err != nil {
 		return err
 	}
@@ -312,7 +356,7 @@ func (r ServiceAccountReconciler) ensureRole(ctx *vmwarecontext.ClusterContext, 
 	logger := ctx.Logger.WithValues("providerserviceaccount", pSvcAccount.Name, "role", role.Name)
 	logger.V(4).Info("Creating or updating role")
 	_, err := controllerutil.CreateOrPatch(ctx, ctx.Client, &role, func() error {
-		if err := controllerutil.SetControllerReference(&pSvcAccount, &role, ctx.Scheme); err != nil {
+		if err := util.SetControllerReferenceWithOverride(&pSvcAccount, &role, ctx.Scheme); err != nil {
 			return err
 		}
 		role.Rules = pSvcAccount.Spec.Rules
@@ -332,8 +376,23 @@ func (r ServiceAccountReconciler) ensureRoleBinding(ctx *vmwarecontext.ClusterCo
 	}
 	logger := ctx.Logger.WithValues("providerserviceaccount", pSvcAccount.Name, "rolebinding", roleBinding.Name)
 	logger.V(4).Info("Creating or updating rolebinding")
-	_, err := controllerutil.CreateOrPatch(ctx, ctx.Client, &roleBinding, func() error {
-		if err := controllerutil.SetControllerReference(&pSvcAccount, &roleBinding, ctx.Scheme); err != nil {
+
+	err := ctx.Client.Get(ctx, types.NamespacedName{Name: getRoleBindingName(pSvcAccount), Namespace: pSvcAccount.Namespace}, &roleBinding)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return err
+	}
+
+	if err == nil {
+		// If the roleRef needs changing, we have to delete the rolebinding and recreate it.
+		if roleBinding.RoleRef.Name != roleName || roleBinding.RoleRef.Kind != "Role" || roleBinding.RoleRef.APIGroup != rbacv1.GroupName {
+			if err := ctx.Client.Delete(ctx, &roleBinding); err != nil {
+				return err
+			}
+		}
+	}
+
+	_, err = controllerutil.CreateOrPatch(ctx, ctx.Client, &roleBinding, func() error {
+		if err := util.SetControllerReferenceWithOverride(&pSvcAccount, &roleBinding, ctx.Scheme); err != nil {
 			return err
 		}
 		roleBinding.RoleRef = rbacv1.RoleRef{

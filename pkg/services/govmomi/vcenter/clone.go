@@ -25,6 +25,7 @@ import (
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/pbm"
 	pbmTypes "github.com/vmware/govmomi/pbm/types"
+	"github.com/vmware/govmomi/view"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 	"k8s.io/utils/pointer"
@@ -223,9 +224,32 @@ func Clone(ctx *context.VMContext, bootstrapData []byte, format bootstrapv1.Form
 			return errors.Wrapf(err, "unable to get storageProfileID from name %s for %q", ctx.VSphereVM.Spec.StoragePolicyName, ctx)
 		}
 
+		kind := []string{"Datastore"}
+		m := view.NewManager(ctx.Session.Client.Client)
+
+		v, err := m.CreateContainerView(ctx, ctx.Session.Client.Client.ServiceContent.RootFolder, kind, true)
+		if err != nil {
+			return errors.Wrapf(err, "unable to create container view for Datastore for %q", ctx)
+		}
+
+		var content []types.ObjectContent
+		err = v.Retrieve(ctx, kind, []string{"name"}, &content)
+		_ = v.Destroy(ctx)
+		if err != nil {
+			return errors.Wrapf(err, "unable to retrieve container view for Datastore for %q", ctx)
+		}
+
+		var hubs []pbmTypes.PbmPlacementHub
+		for _, ds := range content {
+			hubs = append(hubs, pbmTypes.PbmPlacementHub{
+				HubType: ds.Obj.Type,
+				HubId:   ds.Obj.Value,
+			})
+		}
+
 		var constraints []pbmTypes.BasePbmPlacementRequirement
 		constraints = append(constraints, &pbmTypes.PbmPlacementCapabilityProfileRequirement{ProfileId: pbmTypes.PbmProfileId{UniqueId: storageProfileID}})
-		result, err := pbmClient.CheckRequirements(ctx, nil, nil, constraints)
+		result, err := pbmClient.CheckRequirements(ctx, hubs, nil, constraints)
 		if err != nil {
 			return errors.Wrapf(err, "unable to check requirements for storage policy")
 		}

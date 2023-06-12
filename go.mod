@@ -8,8 +8,8 @@ require (
 	github.com/google/gofuzz v1.2.0
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-version v1.3.0
-	github.com/onsi/ginkgo/v2 v2.9.2
-	github.com/onsi/gomega v1.27.6
+	github.com/onsi/ginkgo/v2 v2.10.0
+	github.com/onsi/gomega v1.27.7
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.7.0
 	github.com/stretchr/testify v1.8.2
@@ -34,7 +34,7 @@ require (
 	k8s.io/klog/v2 v2.80.1
 	k8s.io/utils v0.0.0-20221128185143-99ec85e7a448
 	sigs.k8s.io/cluster-api v1.4.1
-	sigs.k8s.io/cluster-api/test v1.4.2
+	sigs.k8s.io/cluster-api/test v1.4.3
 	sigs.k8s.io/controller-runtime v0.14.5
 	sigs.k8s.io/kind v0.18.0
 	sigs.k8s.io/yaml v1.3.0
@@ -59,7 +59,7 @@ require (
 	golang.org/x/net v0.10.0 // indirect
 	golang.org/x/sys v0.8.0 // indirect
 	golang.org/x/term v0.8.0 // indirect
-	golang.org/x/tools v0.7.0 // indirect
+	golang.org/x/tools v0.9.3 // indirect
 )
 
 require (
@@ -78,7 +78,7 @@ require (
 	github.com/coredns/caddy v1.1.1 // indirect
 	github.com/coredns/corefile-migration v1.0.20 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/docker/distribution v2.8.1+incompatible // indirect
+	github.com/docker/distribution v2.8.2+incompatible // indirect
 	github.com/docker/docker v20.10.24+incompatible // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.4.0 // indirect

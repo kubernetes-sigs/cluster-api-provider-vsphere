@@ -99,7 +99,7 @@ golangci-lint: $(GOLANGCI_LINT)
 $(GOLANGCI_LINT): $(REPO_ROOT)/.github/workflows/golangci-lint.yaml
 	$(REPO_ROOT)/hack/ensure-golangci-lint.sh \
 		-b $(BIN_DIR) \
-		$(shell cat .github/workflows/golangci-lint.yaml | grep version | sed 's/.*version: //')
+		$(shell cat $(REPO_ROOT)/.github/workflows/golangci-lint.yaml | grep [[:space:]]version: | sed 's/.*version: //')
 
 ## --------------------------------------
 ## Generate

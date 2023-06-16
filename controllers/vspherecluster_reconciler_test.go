@@ -465,7 +465,8 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 					}},
 				},
 				Spec: infrav1.VSphereClusterSpec{
-					Server: testEnv.Simulator.ServerURL().Host,
+					FailureDomainSelector: &metav1.LabelSelector{MatchLabels: map[string]string{}},
+					Server:                testEnv.Simulator.ServerURL().Host,
 				},
 			}
 			Expect(testEnv.Create(ctx, instance)).To(Succeed())
@@ -665,7 +666,53 @@ func createVsphereMachine(ctx context.Context, env *helpers.TestEnvironment, nam
 func TestClusterReconciler_ReconcileDeploymentZones(t *testing.T) {
 	server := "vcenter123.foo.com"
 
-	t.Run("with no selectors", func(t *testing.T) {
+	t.Run("with nil selectors", func(t *testing.T) {
+		g := NewWithT(t)
+		tests := []struct {
+			name       string
+			initObjs   []client.Object
+			reconciled bool
+			assert     func(*infrav1.VSphereCluster)
+		}{
+			{
+				name:       "with no deployment zones",
+				reconciled: true,
+				assert: func(vsphereCluster *infrav1.VSphereCluster) {
+					g.Expect(conditions.Has(vsphereCluster, infrav1.FailureDomainsAvailableCondition)).To(BeFalse())
+				},
+			},
+			{
+				name:       "with all deployment zone statuses as ready",
+				reconciled: true,
+				initObjs: []client.Object{
+					deploymentZone(server, "zone-1", pointer.Bool(false), pointer.Bool(true)),
+					deploymentZone(server, "zone-2", pointer.Bool(true), pointer.Bool(true)),
+				},
+				assert: func(vsphereCluster *infrav1.VSphereCluster) {
+					g.Expect(conditions.Has(vsphereCluster, infrav1.FailureDomainsAvailableCondition)).To(BeFalse())
+				},
+			},
+		}
+
+		for _, tt := range tests {
+			// Looks odd, but need to reinit test variable
+			tt := tt
+			t.Run(tt.name, func(t *testing.T) {
+				g := NewWithT(t)
+				controllerCtx := fake.NewControllerContext(fake.NewControllerManagerContext(tt.initObjs...))
+				ctx := fake.NewClusterContext(controllerCtx)
+				ctx.VSphereCluster.Spec.Server = server
+
+				r := clusterReconciler{ControllerContext: controllerCtx}
+				reconciled, err := r.reconcileDeploymentZones(ctx)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(reconciled).To(Equal(tt.reconciled))
+				tt.assert(ctx.VSphereCluster)
+			})
+		}
+	})
+
+	t.Run("with empty selectors", func(t *testing.T) {
 		g := NewWithT(t)
 		tests := []struct {
 			name       string
@@ -724,6 +771,7 @@ func TestClusterReconciler_ReconcileDeploymentZones(t *testing.T) {
 				controllerCtx := fake.NewControllerContext(fake.NewControllerManagerContext(tt.initObjs...))
 				ctx := fake.NewClusterContext(controllerCtx)
 				ctx.VSphereCluster.Spec.Server = server
+				ctx.VSphereCluster.Spec.FailureDomainSelector = &metav1.LabelSelector{MatchLabels: map[string]string{}}
 
 				r := clusterReconciler{ControllerContext: controllerCtx}
 				reconciled, err := r.reconcileDeploymentZones(ctx)
@@ -780,7 +828,7 @@ func TestClusterReconciler_ReconcileDeploymentZones(t *testing.T) {
 		})
 
 		t.Run("with no selector", func(_ *testing.T) {
-			assertNumberOfZones(nil, 3)
+			assertNumberOfZones(nil, 0)
 		})
 
 		t.Run("with selector and a negation label matcher", func(_ *testing.T) {

@@ -361,18 +361,22 @@ func (r clusterReconciler) reconcileDeploymentZones(ctx *context.ClusterContext)
 	failureDomains := clusterv1.FailureDomains{}
 	for _, zone := range deploymentZoneList.Items {
 		if zone.Spec.Server == ctx.VSphereCluster.Spec.Server {
-			// This should never fail, validating webhook should catch this first
-			if ctx.VSphereCluster.Spec.FailureDomainSelector != nil {
-				selector, err := metav1.LabelSelectorAsSelector(ctx.VSphereCluster.Spec.FailureDomainSelector)
-				if err != nil {
-					return false, errors.Wrapf(err, "zone label selector is misconfigured")
-				}
+			// If users are deploying a non-multi-az workload cluster in a multi-az enabled management cluster,
+			// FailureDomainSelector shouldn't be set, it would be a null label selector, and no zone should be
+			// selected
+			if ctx.VSphereCluster.Spec.FailureDomainSelector == nil {
+				continue
+			}
 
-				// An empty selector allows the zone to be selected
-				if !selector.Empty() && !selector.Matches(labels.Set(zone.GetLabels())) {
-					r.Logger.V(5).Info("skipping the deployment zone due to label mismatch", "name", zone.Name)
-					continue
-				}
+			selector, err := metav1.LabelSelectorAsSelector(ctx.VSphereCluster.Spec.FailureDomainSelector)
+			if err != nil {
+				return false, errors.Wrapf(err, "zone label selector is misconfigured")
+			}
+
+			// An empty selector allows the zone to be selected
+			if !selector.Empty() && !selector.Matches(labels.Set(zone.GetLabels())) {
+				r.Logger.V(5).Info("skipping the deployment zone due to label mismatch", "name", zone.Name)
+				continue
 			}
 
 			if zone.Status.Ready == nil {

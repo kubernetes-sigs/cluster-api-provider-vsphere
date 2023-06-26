@@ -113,15 +113,14 @@ func AddVMControllerToManager(ctx *context.ControllerManagerContext, mgr manager
 		handler.EnqueueRequestsFromMapFunc(r.clusterToVSphereVMs),
 		predicate.Funcs{
 			UpdateFunc: func(e event.UpdateEvent) bool {
-				oldCluster := e.ObjectOld.(*clusterv1.Cluster)
 				newCluster := e.ObjectNew.(*clusterv1.Cluster)
-				return oldCluster.Spec.Paused && !newCluster.Spec.Paused
+				// check whether cluster has either spec.paused or pasued annotation
+				return !annotations.IsPaused(newCluster, newCluster)
 			},
 			CreateFunc: func(e event.CreateEvent) bool {
-				if _, ok := e.Object.GetAnnotations()[clusterv1.PausedAnnotation]; !ok {
-					return false
-				}
-				return true
+				cluster := e.Object.(*clusterv1.Cluster)
+				// check whether cluster has either spec.paused or pasued annotation
+				return annotations.IsPaused(cluster, cluster)
 			},
 		})
 	if err != nil {

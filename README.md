@@ -31,20 +31,25 @@ Check out the [getting started guide](./docs/getting_started.md) for launching a
 
 This provider's versions are compatible with the following versions of Cluster API:
 
-|                                  | Cluster API v1alpha3 (v0.7) | Cluster API v1alpha4 (v0.8) | Cluster API v1beta1 (v1.0) | Cluster API v1beta1 (v1.3) |
-|----------------------------------|:---------------------------:|:---------------------------:|:--------------------------:|:--------------------------:|
-| CAPV v1alpha3 (v0.7)(deprecated) |              ✓              |              ✓              |             ✓              |             ✓              |
-| CAPV v1alpha4 (v0.8)(deprecated)             |              ☓              |              ✓              |             ✓              |             ✓              |
-| CAPV v1beta1 (v1.0)              |              ☓              |              ☓              |             ✓              |             ✓              |
-| CAPV v1beta1 (v1.1)              |              ☓              |              ☓              |             ☓              |             ✓              |
-| CAPV v1beta1 (v1.2)              |              ☓              |              ☓              |             ☓              |             ✓              |
-| CAPV v1beta1 (v1.3, master)      |              ☓              |              ☓              |             ☓              |             ✓              |
+|                     | Cluster API v1alpha3 (v0.7) | Cluster API v1alpha4 (v0.8) | Cluster API v1beta1 (v1.0) | Cluster API v1beta1 (v1.3) | Cluster API v1beta1 (v1.4) |
+|---------------------|:---------------------------:|:---------------------------:|:--------------------------:|:--------------------------:|:-------------------------:|
+| CAPV v1alpha3 (v0.7)(deprecated) |              ✓              |              ✓              |             ✓              |             ✓              |             ☓             |
+| CAPV v1alpha4 (v0.8)(deprecated) |              ☓              |              ✓              |             ✓              |             ✓              |             ☓             |
+| CAPV v1beta1 (v1.0) |              ☓              |              ☓              |             ✓              |             ✓              |             ☓             |
+| CAPV v1beta1 (v1.1) |              ☓              |              ☓              |             ☓              |             ✓              |             ☓             |
+| CAPV v1beta1 (v1.2) |              ☓              |              ☓              |             ☓              |             ✓              |             ☓             |
+| CAPV v1beta1 (v1.3, master) |              ☓              |              ☓              |             ☓              |             ✓              |             ☓             |
+| CAPV v1beta1 (v1.4) |              ☓              |              ☓              |             ☓              |             ✓              |             ☓             |
+| CAPV v1beta1 (v1.5) |              ☓              |              ☓              |             ☓              |             ✓              |             ✓             |
+| CAPV v1beta1 (v1.6) |              ☓              |              ☓              |             ☓              |             ✓              |             ✓             |
+| CAPV v1beta1 (v1.7) |              ☓              |              ☓              |             ☓              |             ✓              |             ✓             |
 
-|                              | Kubernetes 1.20 | Kubernetes 1.21 | Kubernetes 1.22 |
-|------------------------------|:---------------:|:--------------:|:---------------:|
-| CAPV v1alpha4 (v0.8)         |        ✓        |       ✓        |        ✓        |
-| CAPV v1beta1 (v1.0)          |        ✓        |       ✓        |        ✓        |
-| CAPV v1alpha2 (v1.3, master) |        ✓        |       ✓        |        ✓        |
+As CAPV doesn't dictate supported K8s versions, and it supports whatever CAPI supported, about the provider's compatibility with K8s versions, please refer to [CAPI Supported Kubernetes Versions](https://cluster-api.sigs.k8s.io/reference/versions.html).
+
+Basically:
+
+- 4 Kubernetes minor releases for the management cluster (N - N-3)
+- 6 Kubernetes minor releases for the workload cluster (N - N-5)
 
 **NOTE:** As the versioning for this project is tied to the versioning of Cluster API, future modifications to this policy may be made to more closely align with other providers in the Cluster API ecosystem.
 

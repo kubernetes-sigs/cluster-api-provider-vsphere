@@ -59,6 +59,33 @@ var _ = Describe("VimMachineService_GenerateOverrideFunc", func() {
 			},
 		}
 	}
+
+	failureDomainWithNetConfig := func(suffix string, addOldNetwork bool) *infrav1.VSphereFailureDomain {
+		var networks []string
+		if addOldNetwork {
+			networks = append(networks, fmt.Sprintf("nw-%s", suffix), "another-nw")
+		}
+		return &infrav1.VSphereFailureDomain{
+			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("fd-%s", suffix)},
+			Spec: infrav1.VSphereFailureDomainSpec{
+				Topology: infrav1.Topology{
+					Datacenter: fmt.Sprintf("dc-%s", suffix),
+					Datastore:  fmt.Sprintf("ds-%s", suffix),
+					Networks:   networks,
+					NetworkConfigs: []infrav1.FailureDomainNetwork{
+						{
+							NetworkName: fmt.Sprintf("newnw-%s", suffix),
+							DHCP4:       pointer.Bool(false),
+						},
+						{
+							NetworkName: "another-new-nw",
+							Nameservers: []string{"10.10.10.10", "10.10.20.20"},
+						},
+					},
+				},
+			},
+		}
+	}
 	var (
 		controllerCtx     *context.ControllerContext
 		machineCtx        *context.VIMMachineContext
@@ -66,7 +93,8 @@ var _ = Describe("VimMachineService_GenerateOverrideFunc", func() {
 	)
 
 	BeforeEach(func() {
-		controllerCtx = fake.NewControllerContext(fake.NewControllerManagerContext(deplZone("one"), deplZone("two"), failureDomain("one"), failureDomain("two")))
+		controllerCtx = fake.NewControllerContext(fake.NewControllerManagerContext(deplZone("one"), deplZone("two"), deplZone("three"), deplZone("four"),
+			failureDomain("one"), failureDomain("two"), failureDomainWithNetConfig("three", false), failureDomainWithNetConfig("four", true)))
 		machineCtx = fake.NewMachineContext(fake.NewClusterContext(controllerCtx))
 		vimMachineService = &VimMachineService{}
 	})
@@ -183,7 +211,125 @@ var _ = Describe("VimMachineService_GenerateOverrideFunc", func() {
 				Expect(devices[2].NetworkName).To(Equal("baz"))
 			})
 		})
+
+		Context("with only network config specified in the topology", func() {
+			BeforeEach(func() {
+				machineCtx.Machine.Spec.FailureDomain = pointer.String("zone-three")
+			})
+			It("overrides the n/w configs from the networks list of the topology", func() {
+				By("For equal number of networks")
+				vm := &infrav1.VSphereVM{
+					Spec: infrav1.VSphereVMSpec{
+						VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
+							Network: infrav1.NetworkSpec{Devices: []infrav1.NetworkDeviceSpec{{NetworkName: "foo", DHCP4: true}, {NetworkName: "bar", DHCP6: true, Nameservers: []string{"10.50.50.10"}}}},
+						},
+					},
+				}
+
+				overrideFunc, ok := vimMachineService.generateOverrideFunc(machineCtx)
+				Expect(ok).To(BeTrue())
+
+				overrideFunc(vm)
+
+				devices := vm.Spec.Network.Devices
+				Expect(devices).To(HaveLen(2))
+				Expect(devices[0].NetworkName).To(Equal("newnw-three"))
+				Expect(devices[0].DHCP4).To(BeFalse())
+				Expect(devices[0].DHCP6).To(BeFalse())
+
+				Expect(devices[1].NetworkName).To(Equal("another-new-nw"))
+				Expect(devices[1].DHCP4).To(BeFalse())
+				Expect(devices[1].DHCP6).To(BeTrue())
+				Expect(devices[1].Nameservers).To(HaveLen(2))
+				Expect(devices[1].Nameservers).To(Equal([]string{"10.10.10.10", "10.10.20.20"}))
+
+			})
+
+			It("appends the n/w names present in the networks list of the topology", func() {
+				By("With number of devices in VMSpec < number of networks in the placement constraint")
+				vm := &infrav1.VSphereVM{
+					Spec: infrav1.VSphereVMSpec{
+						VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
+							Network: infrav1.NetworkSpec{Devices: []infrav1.NetworkDeviceSpec{{NetworkName: "foo", DHCP4: false}}},
+						},
+					},
+				}
+
+				overrideFunc, ok := vimMachineService.generateOverrideFunc(machineCtx)
+				Expect(ok).To(BeTrue())
+
+				overrideFunc(vm)
+
+				devices := vm.Spec.Network.Devices
+				Expect(devices).To(HaveLen(2))
+				Expect(devices[0].NetworkName).To(Equal("newnw-three"))
+				Expect(devices[0].DHCP4).To(BeFalse())
+				Expect(devices[0].DHCP6).To(BeFalse())
+				Expect(devices[1].NetworkName).To(Equal("another-new-nw"))
+			})
+
+			It("only overrides the n/w names present in the networks list of the topology", func() {
+				By("With number of devices in VMSpec > number of networks in the placement constraint")
+				vm := &infrav1.VSphereVM{
+					Spec: infrav1.VSphereVMSpec{
+						VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
+							Network: infrav1.NetworkSpec{Devices: []infrav1.NetworkDeviceSpec{{NetworkName: "foo", DHCP4: true}, {NetworkName: "bar", DHCP6: true}, {NetworkName: "baz", DHCP6: false}}},
+						},
+					},
+				}
+
+				overrideFunc, ok := vimMachineService.generateOverrideFunc(machineCtx)
+				Expect(ok).To(BeTrue())
+
+				overrideFunc(vm)
+
+				devices := vm.Spec.Network.Devices
+				Expect(devices).To(HaveLen(3))
+				Expect(devices[0].NetworkName).To(Equal("newnw-three"))
+				Expect(devices[0].DHCP4).To(BeFalse())
+
+				Expect(devices[1].NetworkName).To(Equal("another-new-nw"))
+				Expect(devices[1].DHCP6).To(BeTrue())
+
+				Expect(devices[2].NetworkName).To(Equal("baz"))
+			})
+		})
+
+		Context("with network config and networks specified in the topology", func() {
+			BeforeEach(func() {
+				machineCtx.Machine.Spec.FailureDomain = pointer.String("zone-four")
+			})
+			It("overrides the n/w configs using the networkconfig and discarding networks", func() {
+				By("For equal number of networks")
+				vm := &infrav1.VSphereVM{
+					Spec: infrav1.VSphereVMSpec{
+						VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
+							Network: infrav1.NetworkSpec{Devices: []infrav1.NetworkDeviceSpec{{NetworkName: "foo", DHCP4: true}, {NetworkName: "bar", DHCP6: true, Nameservers: []string{"10.50.50.10"}}}},
+						},
+					},
+				}
+
+				overrideFunc, ok := vimMachineService.generateOverrideFunc(machineCtx)
+				Expect(ok).To(BeTrue())
+
+				overrideFunc(vm)
+
+				devices := vm.Spec.Network.Devices
+				Expect(devices).To(HaveLen(2))
+				Expect(devices[0].NetworkName).To(Equal("newnw-four"))
+				Expect(devices[0].DHCP4).To(BeFalse())
+				Expect(devices[0].DHCP6).To(BeFalse())
+
+				Expect(devices[1].NetworkName).To(Equal("another-new-nw"))
+				Expect(devices[1].DHCP4).To(BeFalse())
+				Expect(devices[1].DHCP6).To(BeTrue())
+				Expect(devices[1].Nameservers).To(HaveLen(2))
+				Expect(devices[1].Nameservers).To(Equal([]string{"10.10.10.10", "10.10.20.20"}))
+
+			})
+		})
 	})
+
 })
 
 var _ = Describe("VimMachineService_GetHostInfo", func() {

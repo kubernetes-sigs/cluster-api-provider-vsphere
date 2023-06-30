@@ -23,16 +23,124 @@ import (
 	"k8s.io/utils/pointer"
 )
 
-//nolint
+// nolint
 func TestVsphereFailureDomain_Default(t *testing.T) {
-	g := NewWithT(t)
-	m := &VSphereFailureDomain{
-		Spec: VSphereFailureDomainSpec{},
+	tests := []struct {
+		name         string
+		spec         VSphereFailureDomainSpec
+		expectedSpec VSphereFailureDomainSpec
+	}{
+		{
+			name: "when autoconfigure is not set",
+			spec: VSphereFailureDomainSpec{
+				Zone: FailureDomain{
+					AutoConfigure: nil,
+				},
+				Region: FailureDomain{
+					AutoConfigure: nil,
+				},
+			},
+			expectedSpec: VSphereFailureDomainSpec{
+				Zone: FailureDomain{
+					AutoConfigure: pointer.Bool(false),
+				},
+				Region: FailureDomain{
+					AutoConfigure: pointer.Bool(false),
+				},
+			},
+		},
+		{
+			name: "when autoconfigure is set just on one field",
+			spec: VSphereFailureDomainSpec{
+				Region: FailureDomain{
+					AutoConfigure: pointer.Bool(true),
+				},
+			},
+			expectedSpec: VSphereFailureDomainSpec{
+				Zone: FailureDomain{
+					AutoConfigure: pointer.Bool(false),
+				},
+				Region: FailureDomain{
+					AutoConfigure: pointer.Bool(true),
+				},
+			},
+		},
+		{
+			name: "when networkconfigs is null and network field exists",
+			spec: VSphereFailureDomainSpec{
+				Topology: Topology{
+					Networks: []string{"network-a", "network-b"},
+				},
+			},
+			expectedSpec: VSphereFailureDomainSpec{
+				Zone: FailureDomain{
+					AutoConfigure: pointer.Bool(false),
+				},
+				Region: FailureDomain{
+					AutoConfigure: pointer.Bool(false),
+				},
+				Topology: Topology{
+					Networks: []string{"network-a", "network-b"},
+					NetworkConfigs: []FailureDomainNetwork{
+						{
+							NetworkName: "network-a",
+						},
+						{
+							NetworkName: "network-b",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "when networkconfigs is not null and network field exists",
+			spec: VSphereFailureDomainSpec{
+				Topology: Topology{
+					Networks: []string{"network-a", "network-b"},
+					NetworkConfigs: []FailureDomainNetwork{
+						{
+							NetworkName: "network-c",
+						},
+						{
+							NetworkName: "network-d",
+						},
+					},
+				},
+			},
+			expectedSpec: VSphereFailureDomainSpec{
+				Zone: FailureDomain{
+					AutoConfigure: pointer.Bool(false),
+				},
+				Region: FailureDomain{
+					AutoConfigure: pointer.Bool(false),
+				},
+				Topology: Topology{
+					Networks: []string{"network-a", "network-b"},
+					NetworkConfigs: []FailureDomainNetwork{
+						{
+							NetworkName: "network-c",
+						},
+						{
+							NetworkName: "network-d",
+						},
+					},
+				},
+			},
+		},
 	}
-	m.Default()
 
-	g.Expect(*m.Spec.Zone.AutoConfigure).To(BeFalse())
-	g.Expect(*m.Spec.Region.AutoConfigure).To(BeFalse())
+	g := NewWithT(t)
+
+	for _, test := range tests {
+		m := &VSphereFailureDomain{
+			Spec: test.spec,
+		}
+		m.Default()
+		g.Expect(m.Spec).To(Equal(test.expectedSpec))
+	}
+
+	//g.Expect(*m.Spec.Zone.AutoConfigure).To(BeFalse())
+	//g.Expect(*m.Spec.Region.AutoConfigure).To(BeFalse())
 }
 
 func TestVSphereFailureDomain_ValidateCreate(t *testing.T) {

@@ -496,8 +496,17 @@ func (v *VimMachineService) generateOverrideFunc(ctx *context.VIMMachineContext)
 		if vsphereFailureDomain.Spec.Topology.Datastore != "" {
 			vm.Spec.Datastore = vsphereFailureDomain.Spec.Topology.Datastore
 		}
-		if len(vsphereFailureDomain.Spec.Topology.Networks) > 0 {
-			vm.Spec.Network.Devices = overrideNetworkDeviceSpecs(vm.Spec.Network.Devices, vsphereFailureDomain.Spec.Topology.Networks)
+
+		// Some old cases may still use Networks instead of NetworkConfigs, so we should use the old fields
+		if len(vsphereFailureDomain.Spec.Topology.NetworkConfigs) == 0 && len(vsphereFailureDomain.Spec.Topology.Networks) > 0 {
+			vsphereFailureDomain.Spec.Topology.NetworkConfigs = make([]infrav1.FailureDomainNetwork, len(vsphereFailureDomain.Spec.Topology.Networks))
+			for i := range vsphereFailureDomain.Spec.Topology.Networks {
+				vsphereFailureDomain.Spec.Topology.NetworkConfigs[i].NetworkName = vsphereFailureDomain.Spec.Topology.Networks[i]
+			}
+		}
+
+		if len(vsphereFailureDomain.Spec.Topology.NetworkConfigs) > 0 {
+			vm.Spec.Network.Devices = overrideNetworkDeviceSpecs(vm.Spec.Network.Devices, vsphereFailureDomain.Spec.Topology.NetworkConfigs)
 		}
 	}
 	return overrideWithFailureDomainFunc, true
@@ -507,7 +516,7 @@ func (v *VimMachineService) generateOverrideFunc(ctx *context.VIMMachineContext)
 // The substitution is done based on the order in which the network devices have been defined.
 //
 // In case there are more network definitions than the number of network devices specified, the definitions are appended to the list.
-func overrideNetworkDeviceSpecs(deviceSpecs []infrav1.NetworkDeviceSpec, networks []string) []infrav1.NetworkDeviceSpec {
+func overrideNetworkDeviceSpecs(deviceSpecs []infrav1.NetworkDeviceSpec, networks []infrav1.FailureDomainNetwork) []infrav1.NetworkDeviceSpec {
 	index, length := 0, len(networks)
 
 	devices := make([]infrav1.NetworkDeviceSpec, 0, integer.IntMax(length, len(deviceSpecs)))
@@ -516,16 +525,54 @@ func overrideNetworkDeviceSpecs(deviceSpecs []infrav1.NetworkDeviceSpec, network
 		vmNetworkDeviceSpec := deviceSpecs[i]
 		if i < length {
 			index++
-			vmNetworkDeviceSpec.NetworkName = networks[i]
+			mergeFailureDomainNetSpecToNetworkDeviceSpec(networks[i], &vmNetworkDeviceSpec)
 		}
 		devices = append(devices, vmNetworkDeviceSpec)
 	}
 	// append the remaining network definitions to the VM spec
 	for ; index < length; index++ {
-		devices = append(devices, infrav1.NetworkDeviceSpec{
-			NetworkName: networks[index],
-		})
+		newNetwork := infrav1.NetworkDeviceSpec{}
+		mergeFailureDomainNetSpecToNetworkDeviceSpec(networks[index], &newNetwork)
+		devices = append(devices, newNetwork)
 	}
 
 	return devices
+}
+
+func mergeFailureDomainNetSpecToNetworkDeviceSpec(fd infrav1.FailureDomainNetwork, vmNetworkDeviceSpec *infrav1.NetworkDeviceSpec) {
+	// We don't convert if destination is null
+	if vmNetworkDeviceSpec == nil {
+		return
+	}
+	if fd.NetworkName != "" {
+		vmNetworkDeviceSpec.NetworkName = fd.NetworkName
+	}
+	if fd.DHCP4 != nil {
+		vmNetworkDeviceSpec.DHCP4 = *fd.DHCP4
+	}
+	if fd.DHCP6 != nil {
+		vmNetworkDeviceSpec.DHCP6 = *fd.DHCP6
+	}
+	if len(fd.Nameservers) > 0 {
+		vmNetworkDeviceSpec.Nameservers = make([]string, len(fd.Nameservers))
+		copy(vmNetworkDeviceSpec.Nameservers, fd.Nameservers)
+	}
+
+	if len(fd.SearchDomains) > 0 {
+		vmNetworkDeviceSpec.SearchDomains = make([]string, len(fd.SearchDomains))
+		copy(vmNetworkDeviceSpec.SearchDomains, fd.SearchDomains)
+	}
+
+	if fd.DHCP4Overrides != nil {
+		vmNetworkDeviceSpec.DHCP4Overrides = fd.DHCP4Overrides.DeepCopy()
+	}
+
+	if fd.DHCP6Overrides != nil {
+		vmNetworkDeviceSpec.DHCP6Overrides = fd.DHCP6Overrides.DeepCopy()
+	}
+
+	if len(fd.AddressesFromPools) > 0 {
+		vmNetworkDeviceSpec.AddressesFromPools = make([]corev1.TypedLocalObjectReference, len(fd.AddressesFromPools))
+		copy(vmNetworkDeviceSpec.AddressesFromPools, fd.AddressesFromPools)
+	}
 }

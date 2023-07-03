@@ -497,16 +497,18 @@ func (v *VimMachineService) generateOverrideFunc(ctx *context.VIMMachineContext)
 			vm.Spec.Datastore = vsphereFailureDomain.Spec.Topology.Datastore
 		}
 
-		// Some old cases may still use Networks instead of NetworkConfigs, so we should use the old fields
-		if len(vsphereFailureDomain.Spec.Topology.NetworkConfigs) == 0 && len(vsphereFailureDomain.Spec.Topology.Networks) > 0 {
-			vsphereFailureDomain.Spec.Topology.NetworkConfigs = make([]infrav1.FailureDomainNetwork, len(vsphereFailureDomain.Spec.Topology.Networks))
+		networkConfigs := vsphereFailureDomain.Spec.Topology.NetworkConfigs
+		// Convert the deprecated vsphereFailureDomain.Spec.Topology to networkConfigs if necessary.
+		if len(networkConfigs) == 0 && len(vsphereFailureDomain.Spec.Topology.Networks) > 0 {
+			networkConfigs = make([]infrav1.FailureDomainNetwork, len(vsphereFailureDomain.Spec.Topology.Networks))
 			for i := range vsphereFailureDomain.Spec.Topology.Networks {
-				vsphereFailureDomain.Spec.Topology.NetworkConfigs[i].NetworkName = vsphereFailureDomain.Spec.Topology.Networks[i]
+				networkConfigs[i].NetworkName = vsphereFailureDomain.Spec.Topology.Networks[i]
 			}
+
 		}
 
-		if len(vsphereFailureDomain.Spec.Topology.NetworkConfigs) > 0 {
-			vm.Spec.Network.Devices = overrideNetworkDeviceSpecs(vm.Spec.Network.Devices, vsphereFailureDomain.Spec.Topology.NetworkConfigs)
+		if len(networkConfigs) > 0 {
+			vm.Spec.Network.Devices = overrideNetworkDeviceSpecs(vm.Spec.Network.Devices, networkConfigs)
 		}
 	}
 	return overrideWithFailureDomainFunc, true

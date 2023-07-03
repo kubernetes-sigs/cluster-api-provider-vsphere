@@ -84,6 +84,16 @@ func (r vsphereDeploymentZoneReconciler) reconcileTopology(ctx *context.VSphereD
 		}
 	}
 
+	for _, networkConfig := range topology.NetworkConfigurations {
+		if networkConfig.NetworkName == "" {
+			continue
+		}
+		if _, err := ctx.AuthSession.Finder.Network(ctx, networkConfig.NetworkName); err != nil {
+			conditions.MarkFalse(ctx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition, infrav1.NetworkNotFoundReason, clusterv1.ConditionSeverityError, "network %s is misconfigured", networkConfig.NetworkName)
+			return errors.Wrapf(err, "unable to find network %s", networkConfig.NetworkName)
+		}
+	}
+
 	if hostPlacementInfo := topology.Hosts; hostPlacementInfo != nil {
 		rule, err := cluster.VerifyAffinityRule(ctx, *topology.ComputeCluster, hostPlacementInfo.HostGroupName, hostPlacementInfo.VMGroupName)
 		switch {

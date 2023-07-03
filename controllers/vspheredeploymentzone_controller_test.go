@@ -466,7 +466,6 @@ func TestVSphereDeploymentZone_Reconcile(t *testing.T) {
 			return conditions.IsFalse(vsphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition) &&
 				conditions.GetReason(vsphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition) == infrav1.NetworkNotFoundReason
 		}, timeout).Should(BeTrue())
-
 	})
 
 	t.Run("should create a deployment zone & failure domain with networkconfig", func(t *testing.T) {

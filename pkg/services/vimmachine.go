@@ -504,7 +504,6 @@ func (v *VimMachineService) generateOverrideFunc(ctx *context.VIMMachineContext)
 			for i := range vsphereFailureDomain.Spec.Topology.Networks {
 				networkConfigs[i].NetworkName = vsphereFailureDomain.Spec.Topology.Networks[i]
 			}
-
 		}
 
 		if len(networkConfigs) > 0 {

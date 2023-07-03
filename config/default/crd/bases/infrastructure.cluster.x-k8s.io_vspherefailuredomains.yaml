@@ -364,10 +364,10 @@ spec:
                                 description: Name is the name of resource being referenced
                                 type: string
                             required:
-                            - apiGroup
                             - kind
                             - name
                             type: object
+                            x-kubernetes-map-type: atomic
                           type: array
                         dhcp4:
                           description: DHCP4 is a flag that indicates whether or not

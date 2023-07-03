@@ -64,6 +64,10 @@ func (r *VSphereFailureDomain) ValidateCreate() error {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "Topology", "ComputeCluster"), fmt.Sprintf("cannot be nil if zone's Failure Domain type is %s", r.Spec.Zone.Type)))
 	}
 
+	if len(r.Spec.Topology.NetworkConfigs) != 0 && len(r.Spec.Topology.Networks) != 0 {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "Topology", "Networks"), "cannot be set if spec.Topology.NetworkConfigs is not empty"))
+	}
+
 	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
 
@@ -89,16 +93,5 @@ func (r *VSphereFailureDomain) Default() {
 
 	if r.Spec.Region.AutoConfigure == nil {
 		r.Spec.Region.AutoConfigure = pointer.Bool(false)
-	}
-
-	// Converts the old Networks field to NetworkConfigs
-	// TODO (@rkatz) - Can this be harmful for Gitops and other users that check spec and re-apply? Probably it will generate
-	// a difference between "what is expected" and "what we have" as there's going to be the additional "NetworkConfigs" field
-	//
-	if len(r.Spec.Topology.NetworkConfigs) == 0 && len(r.Spec.Topology.Networks) > 0 {
-		r.Spec.Topology.NetworkConfigs = make([]FailureDomainNetwork, len(r.Spec.Topology.Networks))
-		for i := range r.Spec.Topology.Networks {
-			r.Spec.Topology.NetworkConfigs[i].NetworkName = r.Spec.Topology.Networks[i]
-		}
 	}
 }

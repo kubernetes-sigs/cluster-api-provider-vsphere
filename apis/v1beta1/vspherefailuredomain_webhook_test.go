@@ -65,68 +65,6 @@ func TestVsphereFailureDomain_Default(t *testing.T) {
 				},
 			},
 		},
-		{
-			name: "when networkconfigs is null and network field exists",
-			spec: VSphereFailureDomainSpec{
-				Topology: Topology{
-					Networks: []string{"network-a", "network-b"},
-				},
-			},
-			expectedSpec: VSphereFailureDomainSpec{
-				Zone: FailureDomain{
-					AutoConfigure: pointer.Bool(false),
-				},
-				Region: FailureDomain{
-					AutoConfigure: pointer.Bool(false),
-				},
-				Topology: Topology{
-					Networks: []string{"network-a", "network-b"},
-					NetworkConfigs: []FailureDomainNetwork{
-						{
-							NetworkName: "network-a",
-						},
-						{
-							NetworkName: "network-b",
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "when networkconfigs is not null and network field exists",
-			spec: VSphereFailureDomainSpec{
-				Topology: Topology{
-					Networks: []string{"network-a", "network-b"},
-					NetworkConfigs: []FailureDomainNetwork{
-						{
-							NetworkName: "network-c",
-						},
-						{
-							NetworkName: "network-d",
-						},
-					},
-				},
-			},
-			expectedSpec: VSphereFailureDomainSpec{
-				Zone: FailureDomain{
-					AutoConfigure: pointer.Bool(false),
-				},
-				Region: FailureDomain{
-					AutoConfigure: pointer.Bool(false),
-				},
-				Topology: Topology{
-					Networks: []string{"network-a", "network-b"},
-					NetworkConfigs: []FailureDomainNetwork{
-						{
-							NetworkName: "network-c",
-						},
-						{
-							NetworkName: "network-d",
-						},
-					},
-				},
-			},
-		},
 	}
 
 	g := NewWithT(t)
@@ -138,9 +76,6 @@ func TestVsphereFailureDomain_Default(t *testing.T) {
 		m.Default()
 		g.Expect(m.Spec).To(Equal(test.expectedSpec))
 	}
-
-	//g.Expect(*m.Spec.Zone.AutoConfigure).To(BeFalse())
-	//g.Expect(*m.Spec.Region.AutoConfigure).To(BeFalse())
 }
 
 func TestVSphereFailureDomain_ValidateCreate(t *testing.T) {
@@ -148,7 +83,7 @@ func TestVSphereFailureDomain_ValidateCreate(t *testing.T) {
 
 	tests := []struct {
 		name          string
-		errExpected   *bool
+		errExpected   bool
 		failureDomain VSphereFailureDomain
 	}{
 		{
@@ -161,6 +96,7 @@ func TestVSphereFailureDomain_ValidateCreate(t *testing.T) {
 					AutoConfigure: pointer.Bool(true),
 				},
 			}},
+			errExpected: true,
 		},
 		{
 			name: "hostGroup failureDomain set but compute Cluster is empty",
@@ -174,6 +110,7 @@ func TestVSphereFailureDomain_ValidateCreate(t *testing.T) {
 					},
 				},
 			}},
+			errExpected: true,
 		},
 		{
 			name: "type of zone failure domain is Hostgroup but topology's hostgroup is not set",
@@ -194,6 +131,7 @@ func TestVSphereFailureDomain_ValidateCreate(t *testing.T) {
 					Hosts:          nil,
 				},
 			}},
+			errExpected: true,
 		},
 		{
 			name: "type of region failure domain is Compute Cluster but topology is not set",
@@ -217,6 +155,7 @@ func TestVSphereFailureDomain_ValidateCreate(t *testing.T) {
 					},
 				},
 			}},
+			errExpected: true,
 		},
 		{
 			name: "type of zone failure domain is Compute Cluster but topology is not set",
@@ -236,6 +175,83 @@ func TestVSphereFailureDomain_ValidateCreate(t *testing.T) {
 					ComputeCluster: nil,
 				},
 			}},
+			errExpected: true,
+		},
+		{
+			name: "valid failure domain configuration should not cause an error",
+			failureDomain: VSphereFailureDomain{Spec: VSphereFailureDomainSpec{
+				Region: FailureDomain{
+					Name:        "foo",
+					Type:        DatacenterFailureDomain,
+					TagCategory: "k8s-bar",
+				},
+				Zone: FailureDomain{
+					Name:        "foo",
+					Type:        ComputeClusterFailureDomain,
+					TagCategory: "k8s-bar",
+				},
+				Topology: Topology{
+					Datacenter:     "/blah",
+					ComputeCluster: pointer.String("Cluster1"),
+					Networks:       []string{"network-a", "network-b"},
+				},
+			}},
+			errExpected: false,
+		},
+		{
+			name: "valid failure domain configuration with new NetworkConfig should not cause an error",
+			failureDomain: VSphereFailureDomain{Spec: VSphereFailureDomainSpec{
+				Region: FailureDomain{
+					Name:        "foo",
+					Type:        DatacenterFailureDomain,
+					TagCategory: "k8s-bar",
+				},
+				Zone: FailureDomain{
+					Name:        "foo",
+					Type:        ComputeClusterFailureDomain,
+					TagCategory: "k8s-bar",
+				},
+				Topology: Topology{
+					Datacenter:     "/blah",
+					ComputeCluster: pointer.String("Cluster1"),
+					NetworkConfigs: []FailureDomainNetwork{
+						{
+							NetworkName: "network-a",
+							DHCP4:       pointer.Bool(true),
+							DHCP6:       pointer.Bool(false),
+						},
+					},
+				},
+			}},
+			errExpected: false,
+		},
+		{
+			name: "failure domain configuration with new NetworkConfig and networks should cause an error",
+			failureDomain: VSphereFailureDomain{Spec: VSphereFailureDomainSpec{
+				Region: FailureDomain{
+					Name:        "foo",
+					Type:        DatacenterFailureDomain,
+					TagCategory: "k8s-bar",
+				},
+				Zone: FailureDomain{
+					Name:        "foo",
+					Type:        ComputeClusterFailureDomain,
+					TagCategory: "k8s-bar",
+				},
+				Topology: Topology{
+					Datacenter:     "/blah",
+					ComputeCluster: pointer.String("Cluster1"),
+					Networks:       []string{"network-a", "network-b"},
+					NetworkConfigs: []FailureDomainNetwork{
+						{
+							NetworkName: "network-a",
+							DHCP4:       pointer.Bool(true),
+							DHCP6:       pointer.Bool(false),
+						},
+					},
+				},
+			}},
+			errExpected: true,
 		},
 	}
 
@@ -244,7 +260,7 @@ func TestVSphereFailureDomain_ValidateCreate(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.failureDomain.ValidateCreate()
-			if tt.errExpected == nil || !*tt.errExpected {
+			if tt.errExpected {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(err).NotTo(HaveOccurred())

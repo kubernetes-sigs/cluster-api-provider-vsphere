@@ -943,10 +943,10 @@ spec:
                                 description: Name is the name of resource being referenced
                                 type: string
                             required:
+                            - apiGroup
                             - kind
                             - name
                             type: object
-                            x-kubernetes-map-type: atomic
                           type: array
                         deviceName:
                           description: DeviceName may be used to explicitly assign

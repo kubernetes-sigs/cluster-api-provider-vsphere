@@ -214,7 +214,7 @@ func TestVSphereFailureDomain_ValidateCreate(t *testing.T) {
 				Topology: Topology{
 					Datacenter:     "/blah",
 					ComputeCluster: pointer.String("Cluster1"),
-					NetworkConfigs: []FailureDomainNetwork{
+					NetworkConfigurations: []NetworkConfiguration{
 						{
 							NetworkName: "network-a",
 							DHCP4:       pointer.Bool(true),
@@ -242,7 +242,7 @@ func TestVSphereFailureDomain_ValidateCreate(t *testing.T) {
 					Datacenter:     "/blah",
 					ComputeCluster: pointer.String("Cluster1"),
 					Networks:       []string{"network-a", "network-b"},
-					NetworkConfigs: []FailureDomainNetwork{
+					NetworkConfigurations: []NetworkConfiguration{
 						{
 							NetworkName: "network-a",
 							DHCP4:       pointer.Bool(true),

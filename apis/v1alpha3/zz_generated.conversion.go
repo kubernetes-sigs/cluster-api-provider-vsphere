@@ -784,7 +784,7 @@ func autoConvert_v1beta1_Topology_To_v1alpha3_Topology(in *v1beta1.Topology, out
 	out.ComputeCluster = (*string)(unsafe.Pointer(in.ComputeCluster))
 	out.Hosts = (*FailureDomainHosts)(unsafe.Pointer(in.Hosts))
 	out.Networks = *(*[]string)(unsafe.Pointer(&in.Networks))
-	// WARNING: in.NetworkConfigs requires manual conversion: does not exist in peer-type
+	// WARNING: in.NetworkConfigurations requires manual conversion: does not exist in peer-type
 	out.Datastore = in.Datastore
 	return nil
 }

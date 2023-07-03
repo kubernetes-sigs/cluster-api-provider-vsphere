@@ -22,10 +22,10 @@ import (
 )
 
 func Convert_v1beta1_Topology_To_v1alpha3_Topology(in *v1beta1.Topology, out *Topology, s conversion.Scope) error {
-	if len(in.NetworkConfigs) > 0 {
-		networks := make([]string, len(in.NetworkConfigs))
-		for i := range in.NetworkConfigs {
-			networks[i] = in.NetworkConfigs[i].NetworkName
+	if len(in.NetworkConfigurations) > 0 {
+		networks := make([]string, len(in.NetworkConfigurations))
+		for i := range in.NetworkConfigurations {
+			networks[i] = in.NetworkConfigurations[i].NetworkName
 		}
 	}
 	return nil

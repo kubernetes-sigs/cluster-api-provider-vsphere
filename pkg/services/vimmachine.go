@@ -497,10 +497,10 @@ func (v *VimMachineService) generateOverrideFunc(ctx *context.VIMMachineContext)
 			vm.Spec.Datastore = vsphereFailureDomain.Spec.Topology.Datastore
 		}
 
-		networkConfigs := vsphereFailureDomain.Spec.Topology.NetworkConfigs
+		networkConfigs := vsphereFailureDomain.Spec.Topology.NetworkConfigurations
 		// Convert the deprecated vsphereFailureDomain.Spec.Topology to networkConfigs if necessary.
 		if len(networkConfigs) == 0 && len(vsphereFailureDomain.Spec.Topology.Networks) > 0 {
-			networkConfigs = make([]infrav1.FailureDomainNetwork, len(vsphereFailureDomain.Spec.Topology.Networks))
+			networkConfigs = make([]infrav1.NetworkConfiguration, len(vsphereFailureDomain.Spec.Topology.Networks))
 			for i := range vsphereFailureDomain.Spec.Topology.Networks {
 				networkConfigs[i].NetworkName = vsphereFailureDomain.Spec.Topology.Networks[i]
 			}
@@ -518,7 +518,7 @@ func (v *VimMachineService) generateOverrideFunc(ctx *context.VIMMachineContext)
 // The substitution is done based on the order in which the network devices have been defined.
 //
 // In case there are more network definitions than the number of network devices specified, the definitions are appended to the list.
-func overrideNetworkDeviceSpecs(deviceSpecs []infrav1.NetworkDeviceSpec, networks []infrav1.FailureDomainNetwork) []infrav1.NetworkDeviceSpec {
+func overrideNetworkDeviceSpecs(deviceSpecs []infrav1.NetworkDeviceSpec, networks []infrav1.NetworkConfiguration) []infrav1.NetworkDeviceSpec {
 	index, length := 0, len(networks)
 
 	devices := make([]infrav1.NetworkDeviceSpec, 0, integer.IntMax(length, len(deviceSpecs)))
@@ -541,7 +541,7 @@ func overrideNetworkDeviceSpecs(deviceSpecs []infrav1.NetworkDeviceSpec, network
 	return devices
 }
 
-func mergeFailureDomainNetSpecToNetworkDeviceSpec(fd infrav1.FailureDomainNetwork, vmNetworkDeviceSpec *infrav1.NetworkDeviceSpec) {
+func mergeFailureDomainNetSpecToNetworkDeviceSpec(fd infrav1.NetworkConfiguration, vmNetworkDeviceSpec *infrav1.NetworkDeviceSpec) {
 	// We don't convert if destination is null
 	if vmNetworkDeviceSpec == nil {
 		return

@@ -72,7 +72,7 @@ var _ = Describe("VimMachineService_GenerateOverrideFunc", func() {
 					Datacenter: fmt.Sprintf("dc-%s", suffix),
 					Datastore:  fmt.Sprintf("ds-%s", suffix),
 					Networks:   networks,
-					NetworkConfigs: []infrav1.FailureDomainNetwork{
+					NetworkConfigurations: []infrav1.NetworkConfiguration{
 						{
 							NetworkName: fmt.Sprintf("newnw-%s", suffix),
 							DHCP4:       pointer.Bool(false),

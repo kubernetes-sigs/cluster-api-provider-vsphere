@@ -64,7 +64,7 @@ func (r *VSphereFailureDomain) ValidateCreate() error {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "Topology", "ComputeCluster"), fmt.Sprintf("cannot be nil if zone's Failure Domain type is %s", r.Spec.Zone.Type)))
 	}
 
-	if len(r.Spec.Topology.NetworkConfigs) != 0 && len(r.Spec.Topology.Networks) != 0 {
+	if len(r.Spec.Topology.NetworkConfigurations) != 0 && len(r.Spec.Topology.Networks) != 0 {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "Topology", "Networks"), "cannot be set if spec.Topology.NetworkConfigs is not empty"))
 	}
 

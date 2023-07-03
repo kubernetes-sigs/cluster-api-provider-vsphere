@@ -335,12 +335,11 @@ spec:
                     - vmGroupName
                     type: object
                   networkConfigs:
-                    description: NetworkConfigs is a list with new network configurations
-                      within this failure domain
+                    description: NetworkConfigurations is a list with new network
+                      configurations within this failure domain
                     items:
-                      description: FailureDomainNetwork defines a network configuration
-                        that should be used when consuming this failure domain. @rkatz
-                        - To be discussed with team, should we just embed NetworkDeviceSpec?
+                      description: NetworkConfiguration defines a network configuration
+                        that should be used when consuming a failure domain.
                       properties:
                         addressesFromPools:
                           description: AddressesFromPools is a list of IPAddressPools
@@ -371,15 +370,8 @@ spec:
                             type: object
                           type: array
                         dhcp4:
-                          description: '@rkatz - The reason NetworkDeviceSpec is not
-                            being copied here, is because DHCP4 and DHCP6 are not
-                            pointers there This means that, in a case like "I want
-                            DHCP4 to be enabled on my template" and "I want DHCP4
-                            to be disabled on this failure domain" we cannot verify
-                            if DHCP4 was unset (nil, we don''t care about it on failure
-                            domain) vs set to false (I want to FORCE it to be false)
-                            DHCP4 is a flag that indicates whether or not to use DHCP
-                            for IPv4'
+                          description: DHCP4 is a flag that indicates whether or not
+                            to use DHCP for IPv4
                           type: boolean
                         dhcp4Overrides:
                           description: DHCP4Overrides allows for the control over
@@ -435,8 +427,8 @@ spec:
                               type: string
                           type: object
                         dhcp6:
-                          description: DHCP6 indicates whether or not to use DHCP
-                            for IPv6
+                          description: DHCP6 is a flag that indicates whether or not
+                            to use DHCP for IPv6
                           type: boolean
                         dhcp6Overrides:
                           description: DHCP6Overrides allows for the control over
@@ -511,8 +503,8 @@ spec:
                       type: object
                     type: array
                   networks:
-                    description: 'Networks is the list of networks within this failure
-                      domain TODO (@rkatz): Deprecate in favor of NetworkConfigs?'
+                    description: Networks is the list of networks within this failure
+                      domain
                     items:
                       type: string
                     type: array

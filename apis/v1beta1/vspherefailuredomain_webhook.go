@@ -65,7 +65,7 @@ func (r *VSphereFailureDomain) ValidateCreate() error {
 	}
 
 	if len(r.Spec.Topology.NetworkConfigurations) != 0 && len(r.Spec.Topology.Networks) != 0 {
-		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "Topology", "Networks"), "cannot be set if spec.Topology.NetworkConfigs is not empty"))
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "Topology", "Networks"), "cannot be set if spec.Topology.NetworkConfigs is already set"))
 	}
 
 	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)

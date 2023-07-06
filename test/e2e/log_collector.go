@@ -77,6 +77,10 @@ func (collector LogCollector) CollectMachineLog(_ context.Context, _ client.Clie
 	})
 }
 
+func (collector LogCollector) CollectInfrastructureLogs(_ context.Context, _ client.Client, _ *clusterv1.Cluster, _ string) error {
+	return nil
+}
+
 func createOutputFile(path string) (*os.File, error) {
 	if err := os.MkdirAll(filepath.Dir(path), os.ModePerm); err != nil {
 		return nil, err

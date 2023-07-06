@@ -225,6 +225,7 @@ func getManager(cfg *rest.Config, networkProvider string) manager.Manager {
 				opts.SyncPeriod = &syncPeriod
 				return cache.New(config, opts)
 			},
+			MetricsBindAddress: "0",
 		},
 		KubeConfig:      cfg,
 		NetworkProvider: networkProvider,

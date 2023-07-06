@@ -40,7 +40,7 @@ var (
 	vsphereServer     string
 	vsphereDatacenter string
 
-	ctx           = context.TODO()
+	ctx           = context.Background()
 	vsphereClient *govmomi.Client
 	restClient    *rest.Client
 	vsphereFinder *find.Finder

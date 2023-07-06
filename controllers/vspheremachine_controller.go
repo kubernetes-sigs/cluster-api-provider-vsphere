@@ -110,7 +110,7 @@ func AddMachineControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 		For(controlledType).
 		// Watch the CAPI resource that owns this infrastructure resource.
 		Watches(
-			&source.Kind{Type: &clusterv1.Machine{}},
+			&clusterv1.Machine{},
 			handler.EnqueueRequestsFromMapFunc(clusterutilv1.MachineToInfrastructureMapFunc(controlledTypeGVK)),
 		).
 		// Watch a GenericEvent channel for the controlled resource.
@@ -118,7 +118,7 @@ func AddMachineControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 		// This is useful when there are events outside of Kubernetes that
 		// should cause a resource to be synchronized, such as a goroutine
 		// waiting on some asynchronous, external task to complete.
-		Watches(
+		WatchesRawSource(
 			&source.Channel{Source: ctx.GetGenericEventChannelFor(controlledTypeGVK)},
 			&handler.EnqueueRequestForObject{},
 		).
@@ -142,8 +142,8 @@ func AddMachineControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 	} else {
 		// Watch any VSphereVM resources owned by the controlled type.
 		builder.Watches(
-			&source.Kind{Type: &infrav1.VSphereVM{}},
-			&handler.EnqueueRequestForOwner{OwnerType: controlledType, IsController: false},
+			&infrav1.VSphereVM{},
+			handler.EnqueueRequestForOwner(mgr.GetScheme(), mgr.GetRESTMapper(), controlledType),
 			ctrlbldr.WithPredicates(predicate.Funcs{
 				// ignore creation events since this controller is responsible for
 				// the creation of the type.
@@ -161,7 +161,7 @@ func AddMachineControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 
 	if !supervisorBased {
 		err = c.Watch(
-			&source.Kind{Type: &clusterv1.Cluster{}},
+			source.Kind(mgr.GetCache(), &clusterv1.Cluster{}),
 			handler.EnqueueRequestsFromMapFunc(r.clusterToVSphereMachines),
 			predicates.ClusterUnpausedAndInfrastructureReady(r.Logger))
 		if err != nil {
@@ -369,9 +369,9 @@ func (r *machineReconciler) patchMachineLabelsWithHostInfo(ctx context.MachineCo
 	return patchHelper.Patch(r, machine)
 }
 
-func (r *machineReconciler) clusterToVSphereMachines(a client.Object) []reconcile.Request {
+func (r *machineReconciler) clusterToVSphereMachines(ctx goctx.Context, a client.Object) []reconcile.Request {
 	requests := []reconcile.Request{}
-	machines, err := util.GetVSphereMachinesInCluster(goctx.Background(), r.Client, a.GetNamespace(), a.GetName())
+	machines, err := util.GetVSphereMachinesInCluster(ctx, r.Client, a.GetNamespace(), a.GetName())
 	if err != nil {
 		return requests
 	}

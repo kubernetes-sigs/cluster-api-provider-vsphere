@@ -25,7 +25,7 @@ import (
 
 var _ = PContext("ClusterAPI Upgrade Tests [clusterctl-Upgrade]", func() {
 	Describe("Upgrading cluster from v1alpha4 to v1beta1 using clusterctl", func() {
-		capi_e2e.ClusterctlUpgradeSpec(context.TODO(), func() capi_e2e.ClusterctlUpgradeSpecInput {
+		capi_e2e.ClusterctlUpgradeSpec(context.Background(), func() capi_e2e.ClusterctlUpgradeSpecInput {
 			return capi_e2e.ClusterctlUpgradeSpecInput{
 				E2EConfig:                 e2eConfig,
 				ClusterctlConfigPath:      clusterctlConfigPath,

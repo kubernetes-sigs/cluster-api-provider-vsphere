@@ -98,7 +98,7 @@ func AddVMControllerToManager(ctx *context.ControllerManagerContext, mgr manager
 		// This is useful when there are events outside of Kubernetes that
 		// should cause a resource to be synchronized, such as a goroutine
 		// waiting on some asynchronous, external task to complete.
-		Watches(
+		WatchesRawSource(
 			&source.Channel{Source: ctx.GetGenericEventChannelFor(controlledTypeGVK)},
 			&handler.EnqueueRequestForObject{},
 		).
@@ -109,7 +109,7 @@ func AddVMControllerToManager(ctx *context.ControllerManagerContext, mgr manager
 	}
 
 	err = controller.Watch(
-		&source.Kind{Type: &clusterv1.Cluster{}},
+		source.Kind(mgr.GetCache(), &clusterv1.Cluster{}),
 		handler.EnqueueRequestsFromMapFunc(r.clusterToVSphereVMs),
 		predicate.Funcs{
 			UpdateFunc: func(e event.UpdateEvent) bool {
@@ -128,7 +128,7 @@ func AddVMControllerToManager(ctx *context.ControllerManagerContext, mgr manager
 	}
 
 	err = controller.Watch(
-		&source.Kind{Type: &infrav1.VSphereCluster{}},
+		source.Kind(mgr.GetCache(), &infrav1.VSphereCluster{}),
 		handler.EnqueueRequestsFromMapFunc(r.vsphereClusterToVSphereVMs),
 		predicate.Funcs{
 			UpdateFunc: func(e event.UpdateEvent) bool {
@@ -145,7 +145,7 @@ func AddVMControllerToManager(ctx *context.ControllerManagerContext, mgr manager
 	}
 
 	err = controller.Watch(
-		&source.Kind{Type: &ipamv1.IPAddressClaim{}},
+		source.Kind(mgr.GetCache(), &ipamv1.IPAddressClaim{}),
 		handler.EnqueueRequestsFromMapFunc(r.ipAddressClaimToVSphereVM))
 	if err != nil {
 		return err
@@ -456,10 +456,10 @@ func (r vmReconciler) reconcileNetwork(ctx *context.VMContext, vm infrav1.Virtua
 	ctx.VSphereVM.Status.Addresses = ipAddrs
 }
 
-func (r vmReconciler) clusterToVSphereVMs(a ctrlclient.Object) []reconcile.Request {
+func (r vmReconciler) clusterToVSphereVMs(ctx goctx.Context, a ctrlclient.Object) []reconcile.Request {
 	requests := []reconcile.Request{}
 	vms := &infrav1.VSphereVMList{}
-	err := r.Client.List(goctx.Background(), vms, ctrlclient.MatchingLabels(
+	err := r.Client.List(ctx, vms, ctrlclient.MatchingLabels(
 		map[string]string{
 			clusterv1.ClusterNameLabel: a.GetName(),
 		},
@@ -479,7 +479,7 @@ func (r vmReconciler) clusterToVSphereVMs(a ctrlclient.Object) []reconcile.Reque
 	return requests
 }
 
-func (r vmReconciler) vsphereClusterToVSphereVMs(a ctrlclient.Object) []reconcile.Request {
+func (r vmReconciler) vsphereClusterToVSphereVMs(ctx goctx.Context, a ctrlclient.Object) []reconcile.Request {
 	vsphereCluster, ok := a.(*infrav1.VSphereCluster)
 	if !ok {
 		return nil
@@ -491,7 +491,7 @@ func (r vmReconciler) vsphereClusterToVSphereVMs(a ctrlclient.Object) []reconcil
 
 	requests := []reconcile.Request{}
 	vms := &infrav1.VSphereVMList{}
-	err := r.Client.List(goctx.Background(), vms, ctrlclient.MatchingLabels(
+	err := r.Client.List(ctx, vms, ctrlclient.MatchingLabels(
 		map[string]string{
 			clusterv1.ClusterNameLabel: clusterName,
 		},
@@ -511,7 +511,7 @@ func (r vmReconciler) vsphereClusterToVSphereVMs(a ctrlclient.Object) []reconcil
 	return requests
 }
 
-func (r vmReconciler) ipAddressClaimToVSphereVM(a ctrlclient.Object) []reconcile.Request {
+func (r vmReconciler) ipAddressClaimToVSphereVM(_ goctx.Context, a ctrlclient.Object) []reconcile.Request {
 	ipAddressClaim, ok := a.(*ipamv1.IPAddressClaim)
 	if !ok {
 		return nil

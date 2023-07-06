@@ -327,7 +327,7 @@ func (r *ClusterReconciler) reconcileAPIEndpoints(ctx *vmware.ClusterContext) er
 	return nil
 }
 
-func (r *ClusterReconciler) VSphereMachineToCluster(o client.Object) []reconcile.Request {
+func (r *ClusterReconciler) VSphereMachineToCluster(ctx goctx.Context, o client.Object) []reconcile.Request {
 	vsphereMachine, ok := o.(*vmwarev1.VSphereMachine)
 	if !ok {
 		r.Logger.Error(errors.New("did not get vspheremachine"), "got", fmt.Sprintf("%T", o))
@@ -343,7 +343,7 @@ func (r *ClusterReconciler) VSphereMachineToCluster(o client.Object) []reconcile
 		return nil
 	}
 
-	cluster, err := util.GetVSphereClusterFromVMwareMachine(r, r.Client, vsphereMachine)
+	cluster, err := util.GetVSphereClusterFromVMwareMachine(ctx, r.Client, vsphereMachine)
 	if err != nil {
 		r.Logger.Error(err, "failed to get cluster", "machine", vsphereMachine.Name, "namespace", vsphereMachine.Namespace)
 		return nil

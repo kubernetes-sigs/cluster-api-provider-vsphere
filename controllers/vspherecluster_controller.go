@@ -17,6 +17,7 @@ limitations under the License.
 package controllers
 
 import (
+	goctx "context"
 	"fmt"
 	"reflect"
 	"strings"
@@ -97,7 +98,7 @@ func AddClusterControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 			Named(controllerNameShort).
 			For(clusterControlledType).
 			Watches(
-				&source.Kind{Type: &vmwarev1.VSphereMachine{}},
+				&vmwarev1.VSphereMachine{},
 				handler.EnqueueRequestsFromMapFunc(reconciler.VSphereMachineToCluster),
 			).
 			WithOptions(controller.Options{MaxConcurrentReconciles: ctx.MaxConcurrentReconciles}).
@@ -114,9 +115,9 @@ func AddClusterControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 		For(clusterControlledType).
 		// Watch the CAPI resource that owns this infrastructure resource.
 		Watches(
-			&source.Kind{Type: &clusterv1.Cluster{}},
-			handler.EnqueueRequestsFromMapFunc(func(o client.Object) []reconcile.Request {
-				requests := clusterToInfraFn(o)
+			&clusterv1.Cluster{},
+			handler.EnqueueRequestsFromMapFunc(func(ctx goctx.Context, o client.Object) []reconcile.Request {
+				requests := clusterToInfraFn(ctx, o)
 				if requests == nil {
 					return nil
 				}
@@ -139,13 +140,13 @@ func AddClusterControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 		// plane. This controller needs to reconcile the infrastructure cluster
 		// once a control plane machine has an IP address.
 		Watches(
-			&source.Kind{Type: &infrav1.VSphereMachine{}},
+			&infrav1.VSphereMachine{},
 			handler.EnqueueRequestsFromMapFunc(reconciler.controlPlaneMachineToCluster),
 		).
 		// Watch the Vsphere deployment zone with the Server field matching the
 		// server field of the VSphereCluster.
 		Watches(
-			&source.Kind{Type: &infrav1.VSphereDeploymentZone{}},
+			&infrav1.VSphereDeploymentZone{},
 			handler.EnqueueRequestsFromMapFunc(reconciler.deploymentZoneToCluster),
 		).
 		// Watch a GenericEvent channel for the controlled resource.
@@ -153,7 +154,7 @@ func AddClusterControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 		// This is useful when there are events outside of Kubernetes that
 		// should cause a resource to be synchronized, such as a goroutine
 		// waiting on some asynchronous, external task to complete.
-		Watches(
+		WatchesRawSource(
 			&source.Channel{Source: ctx.GetGenericEventChannelFor(clusterControlledTypeGVK)},
 			&handler.EnqueueRequestForObject{},
 		).
@@ -165,7 +166,7 @@ func AddClusterControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 	}
 
 	if feature.Gates.Enabled(feature.NodeAntiAffinity) {
-		return reconciler.clusterModuleReconciler.PopulateWatchesOnController(c)
+		return reconciler.clusterModuleReconciler.PopulateWatchesOnController(mgr, c)
 	}
 	return nil
 }

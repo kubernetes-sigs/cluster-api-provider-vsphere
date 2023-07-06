@@ -540,7 +540,7 @@ func (r clusterReconciler) reconcileClusterModules(ctx *context.ClusterContext) 
 // controlPlaneMachineToCluster is a handler.ToRequestsFunc to be used
 // to enqueue requests for reconciliation for VSphereCluster to update
 // its status.apiEndpoints field.
-func (r clusterReconciler) controlPlaneMachineToCluster(o client.Object) []ctrl.Request {
+func (r clusterReconciler) controlPlaneMachineToCluster(ctx goctx.Context, o client.Object) []ctrl.Request {
 	vsphereMachine, ok := o.(*infrav1.VSphereMachine)
 	if !ok {
 		r.Logger.Error(nil, fmt.Sprintf("expected a VSphereMachine but got a %T", o))
@@ -563,7 +563,7 @@ func (r clusterReconciler) controlPlaneMachineToCluster(o client.Object) []ctrl.
 	}
 
 	// Fetch the CAPI Cluster.
-	cluster, err := clusterutilv1.GetClusterFromMetadata(r, r.Client, vsphereMachine.ObjectMeta)
+	cluster, err := clusterutilv1.GetClusterFromMetadata(ctx, r.Client, vsphereMachine.ObjectMeta)
 	if err != nil {
 		r.Logger.Error(err, "VSphereMachine is missing cluster label or cluster does not exist",
 			"namespace", vsphereMachine.Namespace, "name", vsphereMachine.Name)
@@ -584,7 +584,7 @@ func (r clusterReconciler) controlPlaneMachineToCluster(o client.Object) []ctrl.
 		Namespace: vsphereMachine.Namespace,
 		Name:      cluster.Spec.InfrastructureRef.Name,
 	}
-	if err := r.Client.Get(r, vsphereClusterKey, vsphereCluster); err != nil {
+	if err := r.Client.Get(ctx, vsphereClusterKey, vsphereCluster); err != nil {
 		r.Logger.Error(err, "failed to get VSphereCluster",
 			"namespace", vsphereClusterKey.Namespace, "name", vsphereClusterKey.Name)
 		return nil
@@ -602,7 +602,7 @@ func (r clusterReconciler) controlPlaneMachineToCluster(o client.Object) []ctrl.
 	}}
 }
 
-func (r clusterReconciler) deploymentZoneToCluster(o client.Object) []ctrl.Request {
+func (r clusterReconciler) deploymentZoneToCluster(ctx goctx.Context, o client.Object) []ctrl.Request {
 	var requests []ctrl.Request
 	obj, ok := o.(*infrav1.VSphereDeploymentZone)
 	if !ok {
@@ -611,7 +611,7 @@ func (r clusterReconciler) deploymentZoneToCluster(o client.Object) []ctrl.Reque
 	}
 
 	var clusterList infrav1.VSphereClusterList
-	err := r.Client.List(r.Context, &clusterList)
+	err := r.Client.List(ctx, &clusterList)
 	if err != nil {
 		r.Logger.Error(err, "unable to list clusters")
 		return requests

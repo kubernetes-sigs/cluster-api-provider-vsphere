@@ -155,7 +155,10 @@ func CreateClusterContext(cluster *clusterv1.Cluster, vsphereCluster *infrav1.VS
 		Context: goctx.Background(),
 		Logger:  klog.Background().WithName("controller-manager-logger"),
 		Scheme:  scheme,
-		Client:  testclient.NewClientBuilder().WithScheme(scheme).Build(),
+		Client: testclient.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(
+			&vmoprv1.VirtualMachineService{},
+			&vmoprv1.VirtualMachine{},
+		).Build(),
 	}
 
 	// Build the controller context.

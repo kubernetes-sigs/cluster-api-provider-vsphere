@@ -71,7 +71,7 @@ func TestVSphereMachineTemplate_ValidateCreate(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			webhook := &VSphereMachineTemplateWebhook{}
-			err := webhook.ValidateCreate(context.Background(), tc.vsphereMachine)
+			_, err := webhook.ValidateCreate(context.Background(), tc.vsphereMachine)
 			if tc.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -133,7 +133,7 @@ func TestVSphereMachineTemplate_ValidateUpdate(t *testing.T) {
 			if tc.req != nil {
 				ctx = admission.NewContextWithRequest(ctx, *tc.req)
 			}
-			err := webhook.ValidateUpdate(ctx, tc.oldVSphereMachine, tc.vsphereMachine)
+			_, err := webhook.ValidateUpdate(ctx, tc.oldVSphereMachine, tc.vsphereMachine)
 			if tc.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {

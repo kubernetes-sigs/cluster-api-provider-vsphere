@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"math/rand"
@@ -28,7 +29,9 @@ import (
 
 	"github.com/spf13/pflag"
 	"gopkg.in/fsnotify.v1"
-	"k8s.io/apimachinery/pkg/api/meta"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/discovery"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
 	logsv1 "k8s.io/component-base/logs/api/v1"
@@ -190,34 +193,32 @@ func main() {
 
 	// Create a function that adds all the controllers and webhooks to the manager.
 	addToManager := func(ctx *context.ControllerManagerContext, mgr ctrlmgr.Manager) error {
-		cluster := &v1beta1.VSphereCluster{}
-		gvr := v1beta1.GroupVersion.WithResource(reflect.TypeOf(cluster).Elem().Name())
-		_, err := mgr.GetRESTMapper().KindFor(gvr)
+		// Check for non-supervisor VSphereCluster and start controller if found
+		gvr := v1beta1.GroupVersion.WithResource(reflect.TypeOf(&v1beta1.VSphereCluster{}).Elem().Name())
+		isLoaded, err := isCRDDeployed(mgr, gvr)
 		if err != nil {
-			if meta.IsNoMatchError(err) {
-				setupLog.Info(fmt.Sprintf("CRD for %s not loaded, skipping.", gvr.String()))
-			} else {
-				return err
+			return err
+		}
+		if isLoaded {
+			if err := setupVAPIControllers(ctx, mgr); err != nil {
+				return fmt.Errorf("setupVAPIControllers: %w", err)
 			}
 		} else {
-			if err := setupVAPIControllers(ctx, mgr); err != nil {
-				return err
-			}
+			setupLog.Info(fmt.Sprintf("CRD for %s not loaded, skipping.", gvr.String()))
 		}
 
-		supervisorCluster := &vmwarev1b1.VSphereCluster{}
-		gvr = vmwarev1b1.GroupVersion.WithResource(reflect.TypeOf(supervisorCluster).Elem().Name())
-		_, err = mgr.GetRESTMapper().KindFor(gvr)
+		// Check for supervisor VSphereCluster and start controller if found
+		gvr = vmwarev1b1.GroupVersion.WithResource(reflect.TypeOf(&vmwarev1b1.VSphereCluster{}).Elem().Name())
+		isLoaded, err = isCRDDeployed(mgr, gvr)
 		if err != nil {
-			if meta.IsNoMatchError(err) {
-				setupLog.Info(fmt.Sprintf("CRD for %s not loaded, skipping.", gvr.String()))
-			} else {
-				return err
+			return err
+		}
+		if isLoaded {
+			if err := setupSupervisorControllers(ctx, mgr); err != nil {
+				return fmt.Errorf("setupSupervisorControllers: %w", err)
 			}
 		} else {
-			if err := setupSupervisorControllers(ctx, mgr); err != nil {
-				return err
-			}
+			setupLog.Info(fmt.Sprintf("CRD for %s not loaded, skipping.", gvr.String()))
 		}
 
 		return nil
@@ -367,4 +368,23 @@ func runProfiler(addr string) {
 	if err := srv.ListenAndServe(); err != nil {
 		setupLog.Error(err, "problem running profiler server")
 	}
+}
+
+func isCRDDeployed(mgr ctrlmgr.Manager, gvr schema.GroupVersionResource) (bool, error) {
+	_, err := mgr.GetRESTMapper().KindFor(gvr)
+	if err != nil {
+		discoveryErr, ok := errors.Unwrap(err).(*discovery.ErrGroupDiscoveryFailed)
+		if !ok {
+			return false, err
+		}
+		gvrErr, ok := discoveryErr.Groups[gvr.GroupVersion()]
+		if !ok {
+			return false, err
+		}
+		if apierrors.IsNotFound(gvrErr) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }

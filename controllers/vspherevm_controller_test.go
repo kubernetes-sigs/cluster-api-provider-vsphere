@@ -116,9 +116,6 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 			}
 
 			vsphereVM = &infrav1.VSphereVM{
-				TypeMeta: metav1.TypeMeta{
-					Kind: "VSphereVM",
-				},
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "foo",
 					Namespace: "test",
@@ -425,9 +422,6 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 	}
 
 	vsphereVM := &infrav1.VSphereVM{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "VSphereVM",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "test",
@@ -591,6 +585,7 @@ func Test_reconcile(t *testing.T) {
 	t.Run("during VM deletion", func(t *testing.T) {
 		deletedVM := vsphereVM.DeepCopy()
 		deletedVM.DeletionTimestamp = &metav1.Time{Time: time.Now()}
+		deletedVM.Finalizers = append(deletedVM.Finalizers, "keep-this-for-the-test")
 
 		fakeVMSvc := new(fake_svc.VMService)
 		fakeVMSvc.On("DestroyVM", mock.Anything).Return(infrav1.VirtualMachine{

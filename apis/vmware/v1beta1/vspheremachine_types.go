@@ -64,6 +64,22 @@ type VSphereMachineSpec struct {
 	// Volumes is the set of PVCs to be created and attached to the VSphereMachine
 	// +optional
 	Volumes []VSphereMachineVolume `json:"volumes,omitempty"`
+
+	// PowerOffMode describes the desired behavior when powering off a VM.
+	//
+	// There are three, supported power off modes: hard, soft, and
+	// trySoft. The first mode, hard, is the equivalent of a physical
+	// system's power cord being ripped from the wall. The soft mode
+	// requires the VM's guest to have VM Tools installed and attempts to
+	// gracefully shut down the VM. Its variant, trySoft, first attempts
+	// a graceful shutdown, and if that fails or the VM is not in a powered off
+	// state after reaching 5 minutes timeout, the VM is halted.
+	//
+	// If omitted, the mode defaults to hard.
+	//
+	// +optional
+	// +kubebuilder:default=hard
+	PowerOffMode VirtualMachinePowerOpMode `json:"powerOffMode,omitempty"`
 }
 
 // VSphereMachineStatus defines the observed state of VSphereMachine

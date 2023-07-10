@@ -22,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
@@ -45,7 +46,7 @@ type VirtualMachineService interface {
 	ReconcileVM(ctx *context.VMContext) (infrav1.VirtualMachine, error)
 
 	// DestroyVM powers off and removes a VM from the inventory.
-	DestroyVM(ctx *context.VMContext) (infrav1.VirtualMachine, error)
+	DestroyVM(ctx *context.VMContext) (reconcile.Result, infrav1.VirtualMachine, error)
 }
 
 // ControlPlaneEndpointService is a service for reconciling load balanced control plane endpoints.

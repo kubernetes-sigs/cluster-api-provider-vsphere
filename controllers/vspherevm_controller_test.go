@@ -36,6 +36,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
@@ -262,7 +263,7 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 		vsphereVM.ObjectMeta.DeletionTimestamp = &metav1.Time{Time: time.Now()}
 
 		fakeVMSvc := new(fake_svc.VMService)
-		fakeVMSvc.On("DestroyVM", mock.Anything).Return(infrav1.VirtualMachine{
+		fakeVMSvc.On("DestroyVM", mock.Anything).Return(reconcile.Result{}, infrav1.VirtualMachine{
 			Name:     vsphereVM.Name,
 			BiosUUID: "265104de-1472-547c-b873-6dc7883fb6cb",
 			State:    infrav1.VirtualMachineStateNotFound,
@@ -588,7 +589,7 @@ func Test_reconcile(t *testing.T) {
 		deletedVM.Finalizers = append(deletedVM.Finalizers, "keep-this-for-the-test")
 
 		fakeVMSvc := new(fake_svc.VMService)
-		fakeVMSvc.On("DestroyVM", mock.Anything).Return(infrav1.VirtualMachine{
+		fakeVMSvc.On("DestroyVM", mock.Anything).Return(reconcile.Result{}, infrav1.VirtualMachine{
 			Name:     deletedVM.Name,
 			BiosUUID: "265104de-1472-547c-b873-6dc7883fb6cb",
 			State:    infrav1.VirtualMachineStateNotFound,

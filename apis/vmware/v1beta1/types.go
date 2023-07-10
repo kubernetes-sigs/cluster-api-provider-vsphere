@@ -49,3 +49,31 @@ const (
 	// VirtualMachineStateError is reported if an error occurs determining the status.
 	VirtualMachineStateError = VirtualMachineState("error")
 )
+
+// VirtualMachinePowerOpMode represents the various power operation modes
+// when powering off or suspending a VM.
+// +kubebuilder:validation:Enum=hard;soft;trySoft
+type VirtualMachinePowerOpMode string
+
+const (
+	// VirtualMachinePowerOpModeHard indicates to halt a VM when powering it
+	// off or when suspending a VM to not involve the guest.
+	VirtualMachinePowerOpModeHard VirtualMachinePowerOpMode = "hard"
+
+	// VirtualMachinePowerOpModeSoft indicates to ask VM Tools running
+	// inside of a VM's guest to shutdown the guest gracefully when powering
+	// off a VM or when suspending a VM to allow the guest to participate.
+	//
+	// If this mode is set on a VM whose guest does not have VM Tools or if
+	// VM Tools is present but the operation fails, the VM may never realize
+	// the desired power state. This can prevent a VM from being deleted as well
+	// as many other unexpected issues. It is recommended to use trySoft
+	// instead.
+	VirtualMachinePowerOpModeSoft VirtualMachinePowerOpMode = "soft"
+
+	// VirtualMachinePowerOpModeTrySoft indicates to first attempt a Soft
+	// operation and fall back to hard if VM Tools is not present in the guest,
+	// if the soft operation fails, or if the VM is not in the desired power
+	// state within the configured timeout (default 5m).
+	VirtualMachinePowerOpModeTrySoft VirtualMachinePowerOpMode = "trySoft"
+)

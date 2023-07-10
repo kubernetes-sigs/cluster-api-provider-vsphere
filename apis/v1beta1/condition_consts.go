@@ -219,3 +219,17 @@ const (
 	// cannot be found.
 	IPAddressClaimNotFoundReason = "IPAddressClaimNotFound"
 )
+
+const (
+	// GuestSoftPowerOffSucceededCondition documents the status of performing guest initiated
+	// graceful shutdown.
+	GuestSoftPowerOffSucceededCondition clusterv1.ConditionType = "GuestSoftPowerOffSucceeded"
+
+	// GuestSoftPowerOffInProgressReason (Severity=Info) documents that the guest receives
+	// a graceful shutdown request.
+	GuestSoftPowerOffInProgressReason = "GuestSoftPowerOffInProgress"
+
+	// GuestSoftPowerOffFailedReason (Severity=Warning) documents that the graceful
+	// shutdown request fails.
+	GuestSoftPowerOffFailedReason = "GuestSoftPowerOffFailed"
+)

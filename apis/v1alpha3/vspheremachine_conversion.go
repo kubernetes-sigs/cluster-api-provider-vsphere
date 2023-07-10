@@ -39,6 +39,8 @@ func (src *VSphereMachine) ConvertTo(dstRaw conversion.Hub) error {
 
 	dst.Spec.AdditionalDisksGiB = restored.Spec.AdditionalDisksGiB
 	dst.Spec.TagIDs = restored.Spec.TagIDs
+	dst.Spec.PowerOffMode = restored.Spec.PowerOffMode
+	dst.Spec.GuestSoftPowerOffTimeout = restored.Spec.GuestSoftPowerOffTimeout
 	for i := range dst.Spec.Network.Devices {
 		dst.Spec.Network.Devices[i].AddressesFromPools = restored.Spec.Network.Devices[i].AddressesFromPools
 		dst.Spec.Network.Devices[i].DHCP4Overrides = restored.Spec.Network.Devices[i].DHCP4Overrides

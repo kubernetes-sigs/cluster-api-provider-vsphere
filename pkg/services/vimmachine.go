@@ -396,6 +396,8 @@ func (v *VimMachineService) createOrPatchVSphereVM(ctx *context.VIMMachineContex
 		if vsphereVM != nil {
 			vm.Spec.BiosUUID = vsphereVM.Spec.BiosUUID
 		}
+		vm.Spec.PowerOffMode = ctx.VSphereMachine.Spec.PowerOffMode
+		vm.Spec.GuestSoftPowerOffTimeout = ctx.VSphereMachine.Spec.GuestSoftPowerOffTimeout
 		return nil
 	}
 

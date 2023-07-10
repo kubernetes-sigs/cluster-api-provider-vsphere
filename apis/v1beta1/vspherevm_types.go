@@ -18,6 +18,8 @@ limitations under the License.
 package v1beta1
 
 import (
+	"time"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -32,6 +34,11 @@ const (
 	// IPClaimFinalizer allows the reconciler to prevent deletion of an
 	// IPAddressClaim that is in use.
 	IPAddressClaimFinalizer = "vspherevm.infrastructure.cluster.x-k8s.io/ip-claim-protection"
+
+	// GuestSoftPowerOffDefaultTimeout is the default timeout to wait for
+	// shutdown finishes in the guest VM before powering off the VM forcibly
+	// Only effective when the powerOffMode is set to trySoft.
+	GuestSoftPowerOffDefaultTimeout = 5 * time.Minute
 )
 
 // VSphereVMSpec defines the desired state of VSphereVM.
@@ -51,6 +58,33 @@ type VSphereVMSpec struct {
 	// this CRD as unstructured data.
 	// +optional
 	BiosUUID string `json:"biosUUID,omitempty"`
+
+	// PowerOffMode describes the desired behavior when powering off a VM.
+	//
+	// There are three, supported power off modes: hard, soft, and
+	// trySoft. The first mode, hard, is the equivalent of a physical
+	// system's power cord being ripped from the wall. The soft mode
+	// requires the VM's guest to have VM Tools installed and attempts to
+	// gracefully shut down the VM. Its variant, trySoft, first attempts
+	// a graceful shutdown, and if that fails or the VM is not in a powered off
+	// state after reaching the GuestSoftPowerOffTimeout, the VM is halted.
+	//
+	// If omitted, the mode defaults to hard.
+	//
+	// +optional
+	// +kubebuilder:default=hard
+	PowerOffMode VirtualMachinePowerOpMode `json:"powerOffMode,omitempty"`
+
+	// GuestSoftPowerOffTimeout sets the wait timeout for shutdown in the VM guest.
+	// The VM will be powered off forcibly after the timeout if the VM is still
+	// up and running when the PowerOffMode is set to trySoft.
+	//
+	// This parameter only applies when the PowerOffMode is set to trySoft.
+	//
+	// If omitted, the timeout defaults to 5 minutes.
+	//
+	// +optional
+	GuestSoftPowerOffTimeout *metav1.Duration `json:"guestSoftPowerOffTimeout,omitempty"`
 }
 
 // VSphereVMStatus defines the observed state of VSphereVM

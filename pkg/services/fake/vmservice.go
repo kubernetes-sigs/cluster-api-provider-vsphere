@@ -18,6 +18,7 @@ package fake
 
 import (
 	"github.com/stretchr/testify/mock"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
@@ -32,7 +33,7 @@ func (v *VMService) ReconcileVM(ctx *context.VMContext) (infrav1.VirtualMachine,
 	return args.Get(0).(infrav1.VirtualMachine), args.Error(1)
 }
 
-func (v *VMService) DestroyVM(ctx *context.VMContext) (infrav1.VirtualMachine, error) {
+func (v *VMService) DestroyVM(ctx *context.VMContext) (reconcile.Result, infrav1.VirtualMachine, error) {
 	args := v.Called(ctx)
-	return args.Get(0).(infrav1.VirtualMachine), args.Error(1)
+	return args.Get(0).(reconcile.Result), args.Get(1).(infrav1.VirtualMachine), args.Error(2)
 }

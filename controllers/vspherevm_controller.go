@@ -324,10 +324,15 @@ func (r vmReconciler) reconcileDelete(ctx *context.VMContext) (reconcile.Result,
 	ctx.Logger.Info("Handling deleted VSphereVM")
 
 	conditions.MarkFalse(ctx.VSphereVM, infrav1.VMProvisionedCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
-	vm, err := r.VMService.DestroyVM(ctx)
+	result, vm, err := r.VMService.DestroyVM(ctx)
 	if err != nil {
 		conditions.MarkFalse(ctx.VSphereVM, infrav1.VMProvisionedCondition, "DeletionFailed", clusterv1.ConditionSeverityWarning, err.Error())
 		return reconcile.Result{}, errors.Wrapf(err, "failed to destroy VM")
+	}
+
+	if !result.IsZero() {
+		// a non-zero value means we need to requeue the request before proceed.
+		return result, nil
 	}
 
 	// Requeue the operation until the VM is "notfound".

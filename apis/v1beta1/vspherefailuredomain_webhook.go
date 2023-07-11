@@ -25,6 +25,7 @@ import (
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 func (r *VSphereFailureDomain) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -41,7 +42,7 @@ var _ webhook.Validator = &VSphereFailureDomain{}
 var _ webhook.Defaulter = &VSphereFailureDomain{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (r *VSphereFailureDomain) ValidateCreate() error {
+func (r *VSphereFailureDomain) ValidateCreate() (admission.Warnings, error) {
 	var allErrs field.ErrorList
 
 	if r.Spec.Topology.ComputeCluster == nil && r.Spec.Topology.Hosts != nil {
@@ -64,21 +65,21 @@ func (r *VSphereFailureDomain) ValidateCreate() error {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "Topology", "ComputeCluster"), fmt.Sprintf("cannot be nil if zone's Failure Domain type is %s", r.Spec.Zone.Type)))
 	}
 
-	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
+	return nil, aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (r *VSphereFailureDomain) ValidateUpdate(old runtime.Object) error {
+func (r *VSphereFailureDomain) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	oldVSphereFailureDomain, ok := old.(*VSphereFailureDomain)
 	if !ok || !reflect.DeepEqual(r.Spec, oldVSphereFailureDomain.Spec) {
-		return field.Forbidden(field.NewPath("spec"), "VSphereFailureDomainSpec is immutable")
+		return nil, field.Forbidden(field.NewPath("spec"), "VSphereFailureDomainSpec is immutable")
 	}
-	return nil
+	return nil, nil
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (r *VSphereFailureDomain) ValidateDelete() error {
-	return nil
+func (r *VSphereFailureDomain) ValidateDelete() (admission.Warnings, error) {
+	return nil, nil
 }
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type.

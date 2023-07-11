@@ -23,7 +23,6 @@ import (
 	"k8s.io/utils/pointer"
 )
 
-//nolint
 func TestVsphereFailureDomain_Default(t *testing.T) {
 	g := NewWithT(t)
 	m := &VSphereFailureDomain{
@@ -135,7 +134,7 @@ func TestVSphereFailureDomain_ValidateCreate(t *testing.T) {
 		// Need to reinit the test variable
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.failureDomain.ValidateCreate()
+			_, err := tt.failureDomain.ValidateCreate()
 			if tt.errExpected == nil || !*tt.errExpected {
 				g.Expect(err).To(HaveOccurred())
 			} else {

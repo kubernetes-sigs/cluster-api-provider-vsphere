@@ -17,6 +17,7 @@ limitations under the License.
 package vmware
 
 import (
+	"context"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -77,13 +78,13 @@ var _ = Describe("Cluster Controller Tests", func() {
 	// Ensure that the mechanism for reconciling clusters when a control plane machine gets an IP works
 	Context("Test controlPlaneMachineToCluster", func() {
 		It("Returns nil if there is no IP address", func() {
-			request := reconciler.VSphereMachineToCluster(vsphereMachine)
+			request := reconciler.VSphereMachineToCluster(context.Background(), vsphereMachine)
 			Expect(request).Should(BeNil())
 		})
 
 		It("Returns valid request with IP address", func() {
 			vsphereMachine.Status.IPAddr = testIP
-			request := reconciler.VSphereMachineToCluster(vsphereMachine)
+			request := reconciler.VSphereMachineToCluster(context.Background(), vsphereMachine)
 			Expect(request).ShouldNot(BeNil())
 			Expect(request[0].Namespace).Should(Equal(cluster.Namespace))
 			Expect(request[0].Name).Should(Equal(cluster.Name))

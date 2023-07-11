@@ -24,7 +24,6 @@ import (
 
 var someProviderID = "vsphere://42305f0b-dad7-1d3d-5727-0eaffffffffc"
 
-//nolint
 func TestVsphereMachine_Default(t *testing.T) {
 	g := NewWithT(t)
 	m := &VSphereMachine{
@@ -35,7 +34,7 @@ func TestVsphereMachine_Default(t *testing.T) {
 	g.Expect(m.Spec.Datacenter).To(Equal("*"))
 }
 
-//nolint
+//nolint:all
 func TestVSphereMachine_ValidateCreate(t *testing.T) {
 
 	g := NewWithT(t)
@@ -67,7 +66,7 @@ func TestVSphereMachine_ValidateCreate(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			err := tc.vsphereMachine.ValidateCreate()
+			_, err := tc.vsphereMachine.ValidateCreate()
 			if tc.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -77,7 +76,7 @@ func TestVSphereMachine_ValidateCreate(t *testing.T) {
 	}
 }
 
-//nolint
+//nolint:all
 func TestVSphereMachine_ValidateUpdate(t *testing.T) {
 
 	g := NewWithT(t)
@@ -121,7 +120,7 @@ func TestVSphereMachine_ValidateUpdate(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			err := tc.vsphereMachine.ValidateUpdate(tc.oldVSphereMachine)
+			_, err := tc.vsphereMachine.ValidateUpdate(tc.oldVSphereMachine)
 			if tc.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {

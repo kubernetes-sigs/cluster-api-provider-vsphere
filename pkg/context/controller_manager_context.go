@@ -50,9 +50,9 @@ type ControllerManagerContext struct {
 	// object is located.
 	LeaderElectionNamespace string
 
-	// WatchNamespace is the namespace the controllers watch for changes. If
+	// WatchNamespaces are the namespaces the controllers watches for changes. If
 	// no value is specified then all namespaces are watched.
-	WatchNamespace string
+	WatchNamespaces []string
 
 	// Client is the controller manager's client.
 	Client client.Client

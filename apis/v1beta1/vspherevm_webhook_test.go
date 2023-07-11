@@ -30,7 +30,6 @@ const (
 	linuxVMName   = "linux-control-plane-qkkbv"
 )
 
-//nolint
 func TestVSphereVM_Default(t *testing.T) {
 	g := NewWithT(t)
 
@@ -47,7 +46,6 @@ func TestVSphereVM_Default(t *testing.T) {
 	g.Expect(NoOSVM.Spec.OS).To(Equal(Linux))
 }
 
-//nolint
 func TestVSphereVM_ValidateCreate(t *testing.T) {
 	g := NewWithT(t)
 
@@ -84,7 +82,7 @@ func TestVSphereVM_ValidateCreate(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			err := tc.vSphereVM.ValidateCreate()
+			_, err := tc.vSphereVM.ValidateCreate()
 			if tc.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -94,7 +92,6 @@ func TestVSphereVM_ValidateCreate(t *testing.T) {
 	}
 }
 
-//nolint
 func TestVSphereVM_ValidateUpdate(t *testing.T) {
 	g := NewWithT(t)
 
@@ -149,7 +146,7 @@ func TestVSphereVM_ValidateUpdate(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			err := tc.vSphereVM.ValidateUpdate(tc.oldVSphereVM)
+			_, err := tc.vSphereVM.ValidateUpdate(tc.oldVSphereVM)
 			if tc.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {

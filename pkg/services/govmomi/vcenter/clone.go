@@ -271,8 +271,8 @@ func Clone(ctx *context.VMContext, bootstrapData []byte, format bootstrapv1.Form
 				return fmt.Errorf("couldn't find specified datastore: %s in compatible list of datastores for storage policy", ctx.VSphereVM.Spec.Datastore)
 			}
 		} else {
-			rand.Seed(time.Now().UnixNano())
-			ds := result.CompatibleDatastores()[rand.Intn(len(result.CompatibleDatastores()))] //nolint:gosec
+			r := rand.New(rand.NewSource(time.Now().UnixNano())) //nolint:gosec
+			ds := result.CompatibleDatastores()[r.Intn(len(result.CompatibleDatastores()))]
 			datastoreRef = &types.ManagedObjectReference{Type: ds.HubType, Value: ds.HubId}
 		}
 	}

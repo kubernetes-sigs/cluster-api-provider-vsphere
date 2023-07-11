@@ -633,6 +633,7 @@ func TestVSphereDeploymentZoneReconciler_ReconcileDelete(t *testing.T) {
 		t.Run("for machines being deleted, should not block deletion", func(t *testing.T) {
 			deletionTime := metav1.Now()
 			machineUsingDeplZone.DeletionTimestamp = &deletionTime
+			machineUsingDeplZone.Finalizers = append(machineUsingDeplZone.Finalizers, "keep-this-for-the-test")
 
 			mgmtContext := fake.NewControllerManagerContext(machineUsingDeplZone, vsphereFailureDomain)
 			controllerCtx := fake.NewControllerContext(mgmtContext)

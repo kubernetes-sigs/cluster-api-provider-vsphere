@@ -62,17 +62,21 @@ GOVC_BIN := govc
 GOVC := $(abspath $(TOOLS_BIN_DIR)/$(GOVC_BIN)-$(GOVC_VER))
 GOVC_PKG := github.com/vmware/govmomi/govc
 
+KUSTOMIZE_VER := v4.5.2
+KUSTOMIZE_BIN := kustomize
+KUSTOMIZE := $(abspath $(TOOLS_BIN_DIR)/$(KUSTOMIZE_BIN)-$(KUSTOMIZE_VER))
+KUSTOMIZE_PKG := sigs.k8s.io/kustomize/kustomize/v4
+
 CONTROLLER_GEN := $(abspath $(TOOLS_BIN_DIR)/controller-gen)
 CONVERSION_GEN := $(TOOLS_BIN_DIR)/conversion-gen
 GINKGO := $(TOOLS_BIN_DIR)/ginkgo
 GOLANGCI_LINT := $(TOOLS_BIN_DIR)/golangci-lint
 KIND := $(TOOLS_BIN_DIR)/kind
-KUSTOMIZE := $(TOOLS_BIN_DIR)/kustomize
 SETUP_ENVTEST := $(abspath $(TOOLS_BIN_DIR)/setup-envtest)
 CONVERSION_VERIFIER := $(abspath $(TOOLS_BIN_DIR)/conversion-verifier)
 GO_APIDIFF := $(TOOLS_BIN_DIR)/go-apidiff
 RELEASE_NOTES := $(TOOLS_BIN_DIR)/release-notes
-TOOLING_BINARIES := $(CONTROLLER_GEN) $(CONVERSION_GEN) $(GINKGO) $(GOLANGCI_LINT) $(KIND) $(KUSTOMIZE) $(CONVERSION_VERIFIER) $(GO_APIDIFF) $(RELEASE_NOTES)
+TOOLING_BINARIES := $(CONTROLLER_GEN) $(CONVERSION_GEN) $(GINKGO) $(GOLANGCI_LINT) $(KIND) $(CONVERSION_VERIFIER) $(GO_APIDIFF) $(RELEASE_NOTES)
 ARTIFACTS ?= $(ROOT_DIR)/_artifacts
 
 # Set --output-base for conversion-gen if we are not within GOPATH
@@ -231,6 +235,12 @@ $(GOVC): # Build GOVC from tools folder.
 
 .PHONY: $(GOVC_BIN)
 $(GOVC_BIN): $(GOVC) ## Build a local copy of kustomize.
+
+$(KUSTOMIZE): # Build kustomize from tools folder.
+	CGO_ENABLED=0 GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(KUSTOMIZE_PKG) $(KUSTOMIZE_BIN) $(KUSTOMIZE_VER)
+
+.PHONY: $(KUSTOMIZE_BIN)
+$(KUSTOMIZE_BIN): $(KUSTOMIZE) ## Build a local copy of kustomize.
 
 ## --------------------------------------
 ## Linting and fixing linter errors

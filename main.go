@@ -17,9 +17,9 @@ limitations under the License.
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
-	"math/rand"
 	"net/http"
 	"net/http/pprof"
 	"os"
@@ -28,7 +28,9 @@ import (
 
 	"github.com/spf13/pflag"
 	"gopkg.in/fsnotify.v1"
-	"k8s.io/apimachinery/pkg/api/meta"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/discovery"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
 	logsv1 "k8s.io/component-base/logs/api/v1"
@@ -38,6 +40,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
 	ctrlsig "sigs.k8s.io/controller-runtime/pkg/manager/signals"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vmwarev1b1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
@@ -55,6 +58,7 @@ var (
 	logOptions = logs.NewOptions()
 
 	managerOpts     manager.Options
+	webhookOpts     webhook.Options
 	syncPeriod      time.Duration
 	profilerAddress string
 
@@ -68,6 +72,8 @@ var (
 	defaultEnableKeepAlive   = constants.DefaultEnableKeepAlive
 	defaultKeepAliveDuration = constants.DefaultKeepAliveDuration
 )
+
+var namespace string
 
 // InitFlags initializes the flags.
 func InitFlags(fs *pflag.FlagSet) {
@@ -89,7 +95,7 @@ func InitFlags(fs *pflag.FlagSet) {
 		defaultLeaderElectionID,
 		"Name of the config map to use as the locking resource when configuring leader election.")
 	flag.StringVar(
-		&managerOpts.Namespace,
+		&namespace,
 		"namespace",
 		"",
 		"Namespace that the controller watches to reconcile cluster-api objects. If unspecified, the controller watches for cluster-api objects across all namespaces.")
@@ -114,7 +120,7 @@ func InitFlags(fs *pflag.FlagSet) {
 		defaultPodName,
 		"The name of the pod running the controller manager.")
 	flag.IntVar(
-		&managerOpts.Port,
+		&webhookOpts.Port,
 		"webhook-port",
 		defaultWebhookPort,
 		"Webhook Server port (set to 0 to disable)")
@@ -153,8 +159,6 @@ func InitFlags(fs *pflag.FlagSet) {
 }
 
 func main() {
-	rand.Seed(time.Now().UnixNano())
-
 	InitFlags(pflag.CommandLine)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
@@ -172,10 +176,11 @@ func main() {
 	// klog.Background will automatically use the right logger.
 	ctrl.SetLogger(klog.Background())
 
-	if managerOpts.Namespace != "" {
+	if namespace != "" {
+		managerOpts.Cache.Namespaces = []string{namespace}
 		setupLog.Info(
 			"Watching objects only in namespace for reconciliation",
-			"namespace", managerOpts.Namespace)
+			"namespace", namespace)
 	}
 
 	if profilerAddress != "" {
@@ -186,38 +191,36 @@ func main() {
 	}
 	setupLog.V(1).Info(fmt.Sprintf("feature gates: %+v\n", feature.Gates))
 
-	managerOpts.SyncPeriod = &syncPeriod
+	managerOpts.Cache.SyncPeriod = &syncPeriod
 
 	// Create a function that adds all the controllers and webhooks to the manager.
 	addToManager := func(ctx *context.ControllerManagerContext, mgr ctrlmgr.Manager) error {
-		cluster := &v1beta1.VSphereCluster{}
-		gvr := v1beta1.GroupVersion.WithResource(reflect.TypeOf(cluster).Elem().Name())
-		_, err := mgr.GetRESTMapper().KindFor(gvr)
+		// Check for non-supervisor VSphereCluster and start controller if found
+		gvr := v1beta1.GroupVersion.WithResource(reflect.TypeOf(&v1beta1.VSphereCluster{}).Elem().Name())
+		isLoaded, err := isCRDDeployed(mgr, gvr)
 		if err != nil {
-			if meta.IsNoMatchError(err) {
-				setupLog.Info(fmt.Sprintf("CRD for %s not loaded, skipping.", gvr.String()))
-			} else {
-				return err
+			return err
+		}
+		if isLoaded {
+			if err := setupVAPIControllers(ctx, mgr); err != nil {
+				return fmt.Errorf("setupVAPIControllers: %w", err)
 			}
 		} else {
-			if err := setupVAPIControllers(ctx, mgr); err != nil {
-				return err
-			}
+			setupLog.Info(fmt.Sprintf("CRD for %s not loaded, skipping.", gvr.String()))
 		}
 
-		supervisorCluster := &vmwarev1b1.VSphereCluster{}
-		gvr = vmwarev1b1.GroupVersion.WithResource(reflect.TypeOf(supervisorCluster).Elem().Name())
-		_, err = mgr.GetRESTMapper().KindFor(gvr)
+		// Check for supervisor VSphereCluster and start controller if found
+		gvr = vmwarev1b1.GroupVersion.WithResource(reflect.TypeOf(&vmwarev1b1.VSphereCluster{}).Elem().Name())
+		isLoaded, err = isCRDDeployed(mgr, gvr)
 		if err != nil {
-			if meta.IsNoMatchError(err) {
-				setupLog.Info(fmt.Sprintf("CRD for %s not loaded, skipping.", gvr.String()))
-			} else {
-				return err
+			return err
+		}
+		if isLoaded {
+			if err := setupSupervisorControllers(ctx, mgr); err != nil {
+				return fmt.Errorf("setupSupervisorControllers: %w", err)
 			}
 		} else {
-			if err := setupSupervisorControllers(ctx, mgr); err != nil {
-				return err
-			}
+			setupLog.Info(fmt.Sprintf("CRD for %s not loaded, skipping.", gvr.String()))
 		}
 
 		return nil
@@ -228,7 +231,8 @@ func main() {
 		setupLog.Error(err, "unable to add TLS settings to the webhook server")
 		os.Exit(1)
 	}
-	managerOpts.TLSOpts = tlsOptionOverrides
+	webhookOpts.TLSOpts = tlsOptionOverrides
+	managerOpts.WebhookServer = webhook.NewServer(webhookOpts)
 
 	setupLog.Info("creating controller manager", "version", version.Get().String())
 	managerOpts.AddToManager = addToManager
@@ -367,4 +371,23 @@ func runProfiler(addr string) {
 	if err := srv.ListenAndServe(); err != nil {
 		setupLog.Error(err, "problem running profiler server")
 	}
+}
+
+func isCRDDeployed(mgr ctrlmgr.Manager, gvr schema.GroupVersionResource) (bool, error) {
+	_, err := mgr.GetRESTMapper().KindFor(gvr)
+	if err != nil {
+		discoveryErr, ok := errors.Unwrap(err).(*discovery.ErrGroupDiscoveryFailed)
+		if !ok {
+			return false, err
+		}
+		gvrErr, ok := discoveryErr.Groups[gvr.GroupVersion()]
+		if !ok {
+			return false, err
+		}
+		if apierrors.IsNotFound(gvrErr) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }

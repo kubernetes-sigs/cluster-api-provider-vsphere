@@ -166,6 +166,7 @@ func TestReconciler_Reconcile(t *testing.T) {
 			beforeFn: func(object client.Object) {
 				tym := metav1.NewTime(time.Now())
 				md.ObjectMeta.DeletionTimestamp = &tym
+				md.ObjectMeta.Finalizers = append(md.ObjectMeta.Finalizers, "keep-this-for-the-test")
 			},
 			clusterModules: []infrav1.ClusterModule{
 				{
@@ -189,6 +190,7 @@ func TestReconciler_Reconcile(t *testing.T) {
 			beforeFn: func(object client.Object) {
 				tym := metav1.NewTime(time.Now())
 				md.ObjectMeta.DeletionTimestamp = &tym
+				md.ObjectMeta.Finalizers = append(md.ObjectMeta.Finalizers, "keep-this-for-the-test")
 			},
 			clusterModules: []infrav1.ClusterModule{
 				{
@@ -218,6 +220,7 @@ func TestReconciler_Reconcile(t *testing.T) {
 			beforeFn: func(object client.Object) {
 				tym := metav1.NewTime(time.Now())
 				kcp.ObjectMeta.DeletionTimestamp = &tym
+				kcp.ObjectMeta.Finalizers = append(kcp.ObjectMeta.Finalizers, "keep-this-for-the-test")
 			},
 			clusterModules: []infrav1.ClusterModule{
 				{
@@ -244,6 +247,7 @@ func TestReconciler_Reconcile(t *testing.T) {
 			beforeFn: func(object client.Object) {
 				tym := metav1.NewTime(time.Now())
 				kcp.ObjectMeta.DeletionTimestamp = &tym
+				kcp.ObjectMeta.Finalizers = append(kcp.ObjectMeta.Finalizers, "keep-this-for-the-test")
 			},
 			clusterModules: []infrav1.ClusterModule{},
 			customAssert: func(g *gomega.WithT, ctx *context.ClusterContext) {
@@ -353,6 +357,7 @@ func TestReconciler_fetchMachineOwnerObjects(t *testing.T) {
 		currTime := metav1.Now()
 		mdToBeDeleted := machineDeployment("foo-1", metav1.NamespaceDefault, fake.Clusterv1a2Name)
 		mdToBeDeleted.DeletionTimestamp = &currTime
+		mdToBeDeleted.ObjectMeta.Finalizers = append(mdToBeDeleted.ObjectMeta.Finalizers, "keep-this-for-the-test")
 		controllerCtx := fake.NewControllerContext(fake.NewControllerManagerContext(
 			controlPlane("foo", metav1.NamespaceDefault, fake.Clusterv1a2Name),
 			machineDeployment("foo", metav1.NamespaceDefault, fake.Clusterv1a2Name),

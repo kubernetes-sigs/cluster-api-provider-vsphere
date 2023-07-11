@@ -547,18 +547,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			requeue, err = vmService.ReconcileNormal(ctx)
 			// There is no GC behavior in the unit test environment, so simulate it
 			vmService.deleteFunc = func(vm *vmoprv1.VirtualMachine) error {
-				if vm.GetFinalizers() == nil {
-					if err := ctx.Client.Delete(ctx, vm); err != nil {
-						return err
-					}
-				} else {
-					timeNow := metav1.Now()
-					vm.SetDeletionTimestamp(&timeNow)
-					if err := ctx.Client.Update(ctx, vm); err != nil {
-						return err
-					}
-				}
-				return nil
+				return ctx.Client.Delete(ctx, vm)
 			}
 		})
 

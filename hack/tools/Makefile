@@ -38,7 +38,6 @@ SRCS := go.mod go.sum
 # Binaries.
 CONTROLLER_GEN := $(BIN_DIR)/controller-gen
 GOLANGCI_LINT := $(BIN_DIR)/golangci-lint
-KUSTOMIZE := $(BIN_DIR)/kustomize
 CONVERSION_GEN := $(BIN_DIR)/conversion-gen
 KIND := $(BIN_DIR)/kind
 GINKGO := $(BIN_DIR)/ginkgo
@@ -72,10 +71,6 @@ $(GINKGO): go.mod
 kind: $(KIND) $(SRCS)
 $(KIND): go.mod
 	go build -tags=tools -o $@ sigs.k8s.io/kind
-
-kustomize: $(KUSTOMIZE) $(SRCS) ## Build kustomize
-$(KUSTOMIZE): go.mod
-	go build -tags=tools -o $@ sigs.k8s.io/kustomize/kustomize/v4
 
 conversion-verifier: $(CONVERSION_VERIFIER) $(SRCS) ## fetch CAPI's conversion verifier
 $(CONVERSION_VERIFIER): go.mod

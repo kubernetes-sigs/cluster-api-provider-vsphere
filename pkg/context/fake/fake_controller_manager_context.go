@@ -50,7 +50,10 @@ func NewControllerManagerContext(initObjects ...client.Object) *context.Controll
 	_ = vmoprv1.AddToScheme(scheme)
 	_ = ipamv1.AddToScheme(scheme)
 
-	clientWithObjects := fake.NewClientBuilder().WithScheme(scheme).WithObjects(initObjects...).Build()
+	clientWithObjects := fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(
+		&infrav1.VSphereVM{},
+		&vmwarev1.VSphereCluster{},
+	).WithObjects(initObjects...).Build()
 
 	return &context.ControllerManagerContext{
 		Context:                 goctx.Background(),

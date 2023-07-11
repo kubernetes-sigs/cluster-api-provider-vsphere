@@ -41,21 +41,21 @@ func TestListHostsFromGroup(t *testing.T) {
 	client, _ := govmomi.NewClient(context.Background(), sim.ServerURL(), true)
 	finder := find.NewFinder(client.Client, false)
 
-	dc, _ := finder.DatacenterOrDefault(context.TODO(), "DC0")
+	dc, _ := finder.DatacenterOrDefault(context.Background(), "DC0")
 	finder.SetDatacenter(dc)
 
-	ccr, err := finder.ClusterComputeResource(context.TODO(), "DC0_C0")
+	ccr, err := finder.ClusterComputeResource(context.Background(), "DC0_C0")
 	g.Expect(err).NotTo(HaveOccurred())
 
-	refs, err := ListHostsFromGroup(context.TODO(), ccr, "test_grp_1")
+	refs, err := ListHostsFromGroup(context.Background(), ccr, "test_grp_1")
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(refs).To(HaveLen(2))
 
-	refs, err = ListHostsFromGroup(context.TODO(), ccr, "test_grp_2")
+	refs, err = ListHostsFromGroup(context.Background(), ccr, "test_grp_2")
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(refs).To(HaveLen(1))
 
-	refs, err = ListHostsFromGroup(context.TODO(), ccr, "blah")
+	refs, err = ListHostsFromGroup(context.Background(), ccr, "blah")
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(refs).To(HaveLen(0))
 }

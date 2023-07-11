@@ -77,13 +77,13 @@ func AddVSphereDeploymentZoneControllerToManager(ctx *context.ControllerManagerC
 		// Watch the controlled, infrastructure resource.
 		For(controlledType).
 		Watches(
-			&source.Kind{Type: &infrav1.VSphereFailureDomain{}},
+			&infrav1.VSphereFailureDomain{},
 			handler.EnqueueRequestsFromMapFunc(reconciler.failureDomainsToDeploymentZones)).
 		// Watch a GenericEvent channel for the controlled resource.
 		// This is useful when there are events outside of Kubernetes that
 		// should cause a resource to be synchronized, such as a goroutine
 		// waiting on some asynchronous, external task to complete.
-		Watches(
+		WatchesRawSource(
 			&source.Channel{Source: ctx.GetGenericEventChannelFor(controlledTypeGVK)},
 			&handler.EnqueueRequestForObject{},
 		).
@@ -320,7 +320,7 @@ func updateOwnerReferences(ctx goctx.Context, obj client.Object, client client.C
 	return nil
 }
 
-func (r vsphereDeploymentZoneReconciler) failureDomainsToDeploymentZones(a client.Object) []reconcile.Request {
+func (r vsphereDeploymentZoneReconciler) failureDomainsToDeploymentZones(ctx goctx.Context, a client.Object) []reconcile.Request {
 	failureDomain, ok := a.(*infrav1.VSphereFailureDomain)
 	if !ok {
 		r.Logger.Error(nil, fmt.Sprintf("expected a VSphereFailureDomain but got a %T", a))
@@ -328,7 +328,7 @@ func (r vsphereDeploymentZoneReconciler) failureDomainsToDeploymentZones(a clien
 	}
 
 	var zones infrav1.VSphereDeploymentZoneList
-	if err := r.Client.List(goctx.Background(), &zones); err != nil {
+	if err := r.Client.List(ctx, &zones); err != nil {
 		return nil
 	}
 

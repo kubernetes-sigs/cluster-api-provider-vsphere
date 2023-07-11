@@ -11,19 +11,19 @@
 # - from the CAPV repository root, `make e2e` to build the vsphere provider image and run e2e tests.
 
 images:
-  - name: registry.k8s.io/cluster-api/cluster-api-controller:v1.4.1
+  - name: registry.k8s.io/cluster-api/cluster-api-controller:v1.5.0-beta.1
     loadBehavior: tryLoad
-  - name: registry.k8s.io/cluster-api/kubeadm-bootstrap-controller:v1.4.1
+  - name: registry.k8s.io/cluster-api/kubeadm-bootstrap-controller:v1.5.0-beta.1
     loadBehavior: tryLoad
-  - name: registry.k8s.io/cluster-api/kubeadm-control-plane-controller:v1.4.1
+  - name: registry.k8s.io/cluster-api/kubeadm-control-plane-controller:v1.5.0-beta.1
     loadBehavior: tryLoad
   - name: gcr.io/k8s-staging-cluster-api/capv-manager:e2e
     loadBehavior: mustLoad
-  - name: quay.io/jetstack/cert-manager-cainjector:v1.11.0
+  - name: quay.io/jetstack/cert-manager-cainjector:v1.12.2
     loadBehavior: tryLoad
-  - name: quay.io/jetstack/cert-manager-webhook:v1.11.0
+  - name: quay.io/jetstack/cert-manager-webhook:v1.12.2
     loadBehavior: tryLoad
-  - name: quay.io/jetstack/cert-manager-controller:v1.11.0
+  - name: quay.io/jetstack/cert-manager-controller:v1.12.2
     loadBehavior: tryLoad
 
 providers:
@@ -36,17 +36,17 @@ providers:
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.7/core-components.yaml"
         type: "url"
         files:
-          - sourcePath: "../data/shared/metadata.yaml"
+          - sourcePath: "../data/shared/v1beta1/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-      - name: v1.4.1
+      - name: v1.5.0-beta.1
         # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.4.1/core-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.5.0-beta.1/core-components.yaml"
         type: "url"
         contract: v1beta1
         files:
-          - sourcePath: "../data/shared/metadata.yaml"
+          - sourcePath: "../data/shared/v1beta1/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -59,17 +59,17 @@ providers:
         type: "url"
         contract: v1alpha4
         files:
-          - sourcePath: "../data/shared/metadata.yaml"
+          - sourcePath: "../data/shared/v1beta1/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-      - name: v1.4.1
+      - name: v1.5.0-beta.1
         # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.4.1/bootstrap-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.5.0-beta.1/bootstrap-components.yaml"
         type: "url"
-        contract: "v1beta1"
+        contract: v1beta1
         files:
-          - sourcePath: "../data/shared/metadata.yaml"
+          - sourcePath: "../data/shared/v1beta1/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -82,16 +82,17 @@ providers:
         type: "url"
         contract: v1alpha4
         files:
-          - sourcePath: "../data/shared/metadata.yaml"
+          - sourcePath: "../data/shared/v1beta1/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-      - name: v1.4.1
+      - name: v1.5.0-beta.1
         # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.4.1/control-plane-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.5.0-beta.1/control-plane-components.yaml"
         type: "url"
+        contract: v1beta1
         files:
-          - sourcePath: "../data/shared/metadata.yaml"
+          - sourcePath: "../data/shared/v1beta1/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -100,9 +101,9 @@ providers:
     type: InfrastructureProvider
     versions:
       - name: v0.8.2
-        type: url
-        contract: v1alpha4
         value: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/download/v0.8.2/infrastructure-components.yaml
+        type: "url"
+        contract: v1alpha4
         files:
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/capi-upgrades/v1alpha4/cluster-template.yaml"
           - sourcePath: "../../../metadata.yaml"
@@ -130,13 +131,12 @@ providers:
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-dhcp-overrides.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/clusterclass-quick-start.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-ignition.yaml"
-          - sourcePath: "../../../metadata.yaml"
+          - sourcePath: "../data/shared/v1beta1_provider/metadata.yaml"
 
 variables:
   KUBERNETES_VERSION: "v1.25.6"
   CPI_IMAGE_K8S_VERSION: "v1.25.0"
   CNI: "./data/cni/calico/calico.yaml"
-  #CNI: "./data/cni/kindnet/kindnet.yaml"
   EXP_CLUSTER_RESOURCE_SET: "true"
   EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION: "true"
   CONTROL_PLANE_MACHINE_COUNT: 1
@@ -145,15 +145,15 @@ variables:
   CLUSTER_CLASS_NAME: "quick-start"
   # Following CAPV variables should be set before testing
   VSPHERE_SERVER: "vcenter.vmware.com"
+  VSPHERE_TLS_THUMBPRINT: "AA:BB:CC:DD:11:22:33:44:EE:FF"
   VSPHERE_DATACENTER: "SDDC-Datacenter"
+  VSPHERE_FOLDER: "FolderName"
+  VSPHERE_RESOURCE_POOL: "ResourcePool"
   VSPHERE_DATASTORE: "WorkloadDatastore"
   VSPHERE_STORAGE_POLICY: "Cluster API vSphere Storage Policy"
-  VSPHERE_FOLDER: "FolderName"
   VSPHERE_NETWORK: "network-1"
-  VSPHERE_RESOURCE_POOL: "ResourcePool"
   VSPHERE_TEMPLATE: "ubuntu-2004-kube-v1.25.6"
   FLATCAR_VSPHERE_TEMPLATE: "flatcar-stable-3374.2.4-kube-v1.25.6"
-  VSPHERE_TLS_THUMBPRINT: "AA:BB:CC:DD:11:22:33:44:EE:FF"
   # WORKLOAD_CONTROL_PLANE_ENDPOINT_IP:
   # Also following variables are required but it is recommended to use env variables to avoid disclosure of sensitive data
   # VSPHERE_SSH_AUTHORIZED_KEY:
@@ -166,6 +166,7 @@ variables:
   KUBETEST_CONFIGURATION: "./data/kubetest/conformance-fast.yaml"
   NODE_DRAIN_TIMEOUT: "60s"
   CLUSTER_TOPOLOGY: "true"
+  # These IDs correspond to Tesla T4s, they are the decimal representation of the hex values.
   DEVICE_ID: 7864
   VENDOR_ID: 4318
   # CAPV feature flags
@@ -189,7 +190,8 @@ intervals:
   default/wait-worker-nodes: ["20m", "10s"]
   default/wait-delete-cluster: ["5m", "10s"]
   default/wait-machine-upgrade: ["15m", "1m"]
-  default/wait-machine-remediation: ["5m", "10s"]
-  node-drain/wait-deployment-available: [ "3m", "10s" ]
-  node-drain/wait-machine-deleted: [ "2m", "10s" ]
+  default/wait-machine-remediation: ["15m", "10s"]
+  mhc-remediation/mhc-remediation: ["30m", "10s"]
+  node-drain/wait-deployment-available: ["3m", "10s"]
+  node-drain/wait-machine-deleted: ["2m", "10s"]
   anti-affinity/wait-vm-redistribution: ["5m", "10s"]

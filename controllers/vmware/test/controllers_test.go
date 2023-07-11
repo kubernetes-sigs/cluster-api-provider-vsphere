@@ -222,9 +222,10 @@ func getManager(cfg *rest.Config, networkProvider string) manager.Manager {
 			Scheme: scheme.Scheme,
 			NewCache: func(config *rest.Config, opts cache.Options) (cache.Cache, error) {
 				syncPeriod := 1 * time.Second
-				opts.Resync = &syncPeriod
+				opts.SyncPeriod = &syncPeriod
 				return cache.New(config, opts)
 			},
+			MetricsBindAddress: "0",
 		},
 		KubeConfig:      cfg,
 		NetworkProvider: networkProvider,

@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 func (r *VSphereClusterTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -36,20 +37,20 @@ func (r *VSphereClusterTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error
 var _ webhook.Validator = &VSphereClusterTemplate{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (r *VSphereClusterTemplate) ValidateCreate() error {
-	return nil
+func (r *VSphereClusterTemplate) ValidateCreate() (admission.Warnings, error) {
+	return nil, nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (r *VSphereClusterTemplate) ValidateUpdate(oldRaw runtime.Object) error {
+func (r *VSphereClusterTemplate) ValidateUpdate(oldRaw runtime.Object) (admission.Warnings, error) {
 	old := oldRaw.(*VSphereClusterTemplate) //nolint:forcetypeassert
 	if !reflect.DeepEqual(r.Spec.Template.Spec, old.Spec.Template.Spec) {
-		return field.Forbidden(field.NewPath("spec", "template", "spec"), "VSphereClusterTemplate spec is immutable")
+		return nil, field.Forbidden(field.NewPath("spec", "template", "spec"), "VSphereClusterTemplate spec is immutable")
 	}
-	return nil
+	return nil, nil
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (r *VSphereClusterTemplate) ValidateDelete() error {
-	return nil
+func (r *VSphereClusterTemplate) ValidateDelete() (admission.Warnings, error) {
+	return nil, nil
 }

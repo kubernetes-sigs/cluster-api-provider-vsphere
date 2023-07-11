@@ -20,7 +20,7 @@ require (
 	github.com/vmware/govmomi v0.30.4
 	golang.org/x/crypto v0.10.0
 	golang.org/x/exp v0.0.0-20221002003631-540bb7301a08
-	golang.org/x/mod v0.10.0
+	golang.org/x/mod v0.12.0
 	golang.org/x/oauth2 v0.8.0
 	golang.org/x/text v0.10.0
 	gopkg.in/gcfg.v1 v1.2.3
@@ -34,9 +34,9 @@ require (
 	k8s.io/klog/v2 v2.80.1
 	k8s.io/utils v0.0.0-20221128185143-99ec85e7a448
 	sigs.k8s.io/cluster-api v1.4.1
-	sigs.k8s.io/cluster-api/test v1.4.3
+	sigs.k8s.io/cluster-api/test v1.4.4
 	sigs.k8s.io/controller-runtime v0.14.5
-	sigs.k8s.io/kind v0.18.0
+	sigs.k8s.io/kind v0.20.0
 	sigs.k8s.io/yaml v1.3.0
 )
 

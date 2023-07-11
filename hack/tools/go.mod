@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/joelanford/go-apidiff v0.6.0
 	github.com/onsi/ginkgo/v2 v2.11.0
-	github.com/vmware/govmomi v0.30.4
+	github.com/vmware/govmomi v0.30.5
 	k8s.io/code-generator v0.26.6
 	sigs.k8s.io/cluster-api/hack/tools v0.0.0-20211104153216-fb1f86267fed
 	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20211110210527-619e6b92dab9

@@ -41,7 +41,6 @@ GOLANGCI_LINT := $(BIN_DIR)/golangci-lint
 KUSTOMIZE := $(BIN_DIR)/kustomize
 CONVERSION_GEN := $(BIN_DIR)/conversion-gen
 KIND := $(BIN_DIR)/kind
-GOVC := $(BIN_DIR)/govc
 GINKGO := $(BIN_DIR)/ginkgo
 CONVERSION_VERIFIER := $(BIN_DIR)/conversion-verifier
 APIDIFF := $(BIN_DIR)/go-apidiff
@@ -69,10 +68,6 @@ $(CONVERSION_GEN): go.mod
 ginkgo: $(GINKGO) $(SRCS)
 $(GINKGO): go.mod
 	go build -tags=tools -o $@ github.com/onsi/ginkgo/v2/ginkgo
-
-govc: $(GOVC) $(SRCS)
-$(GOVC): go.mod
-	go build -tags=tools -o $@ github.com/vmware/govmomi/govc
 
 kind: $(KIND) $(SRCS)
 $(KIND): go.mod

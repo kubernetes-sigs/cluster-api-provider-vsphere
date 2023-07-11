@@ -22,6 +22,7 @@ SHELL := /usr/bin/env bash
 
 VERSION ?= $(shell cat clusterctl-settings.json | jq .config.nextVersion -r)
 
+GO_VERSION ?=1.19.3
 # Use GOPROXY environment variable if set
 GOPROXY := $(shell go env GOPROXY)
 ifeq (,$(strip $(GOPROXY)))
@@ -408,6 +409,10 @@ verify-modules: modules  ## Verify go modules are up to date
 verify-conversions: $(CONVERSION_VERIFIER)  ## Verifies expected API conversion are in place
 	$(CONVERSION_VERIFIER)
 
+.PHONY: verify-container-images
+verify-container-images: ## Verify container images
+	TRACE=$(TRACE) ./hack/verify-container-images.sh
+
 .PHONY: release-flavors ## Create release flavor manifests
 release-flavors: release-version-check
 	$(MAKE) generate-flavors FLAVOR_DIR=$(RELEASE_DIR)
@@ -471,7 +476,7 @@ check: ## Verify and lint the project
 .PHONY: docker-build
 docker-build: ## Build the docker image for controller-manager
 	docker buildx build --platform linux/$(ARCH) --output=type=docker \
-		--pull --build-arg ldflags="$(LDFLAGS)" \
+		--pull --build-arg ldflags="$(LDFLAGS)" --build-arg GOLANG_VERSION=golang:$(GO_VERSION) \
 		-t $(DEV_CONTROLLER_IMG):$(DEV_TAG) .
 
 .PHONY: docker-push
@@ -481,3 +486,6 @@ docker-push: ## Push the docker image
 		--pull --build-arg ldflags="$(LDFLAGS)" \
 		-t $(DEV_CONTROLLER_IMG):$(DEV_TAG) .
 	docker buildx rm capv
+
+go-version: ## Print the go version we use to compile our binaries and images
+	@echo $(GO_VERSION)

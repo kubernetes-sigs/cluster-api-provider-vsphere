@@ -59,9 +59,9 @@ var _ = Describe("Cluster creation with anti affined nodes", func() {
 	})
 
 	It("should create a cluster with anti-affined nodes", func() {
-		// Since the upstream CI has five nodes, worker node count is set to 5
+		// Since the upstream CI has four nodes, worker node count is set to 4.
 		VerifyAntiAffinity(ctx, AntiAffinitySpecInput{
-			WorkerNodeCount: 5,
+			WorkerNodeCount: 4,
 			Namespace:       namespace,
 			InfraClients: InfraClients{
 				Client:     vsphereClient,
@@ -87,6 +87,11 @@ func VerifyAntiAffinity(ctx context.Context, input AntiAffinitySpecInput) {
 
 	clusterName := fmt.Sprintf("anti-affinity-%s", util.RandomString(6))
 	Expect(namespace).NotTo(BeNil())
+
+	By("checking if the target system has enough hosts")
+	hostSystems, err := input.Finder.HostSystemList(ctx, "*")
+	Expect(err).ToNot(HaveOccurred())
+	Expect(len(hostSystems) >= int(input.WorkerNodeCount)).To(BeTrue(), "This test requires more or equal number of hosts compared to the WorkerNodeCount. Expected at least %d but only got %d hosts.", input.WorkerNodeCount, len(hostSystems))
 
 	Byf("creating a workload cluster %s", clusterName)
 	configCluster := defaultConfigCluster(clusterName, namespace.Name, "", 1, input.WorkerNodeCount,

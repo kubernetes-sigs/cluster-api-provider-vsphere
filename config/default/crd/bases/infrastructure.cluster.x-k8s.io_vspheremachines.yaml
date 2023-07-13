@@ -1,11 +1,9 @@
-
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.7.0
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.12.1
   name: vspheremachines.infrastructure.cluster.x-k8s.io
 spec:
   group: infrastructure.cluster.x-k8s.io
@@ -112,7 +110,7 @@ spec:
                   devices:
                     description: Devices is the list of network devices used by the
                       virtual machine. TODO(akutz) Make sure at least one network
-                      matches the             ClusterSpec.CloudProviderConfiguration.Network.Name
+                      matches the ClusterSpec.CloudProviderConfiguration.Network.Name
                     items:
                       description: NetworkDeviceSpec defines the network configuration
                         for a virtual machine's network device.
@@ -507,7 +505,7 @@ spec:
                   devices:
                     description: Devices is the list of network devices used by the
                       virtual machine. TODO(akutz) Make sure at least one network
-                      matches the             ClusterSpec.CloudProviderConfiguration.Network.Name
+                      matches the ClusterSpec.CloudProviderConfiguration.Network.Name
                     items:
                       description: NetworkDeviceSpec defines the network configuration
                         for a virtual machine's network device.
@@ -917,7 +915,7 @@ spec:
                   devices:
                     description: Devices is the list of network devices used by the
                       virtual machine. TODO(akutz) Make sure at least one network
-                      matches the             ClusterSpec.CloudProviderConfiguration.Network.Name
+                      matches the ClusterSpec.CloudProviderConfiguration.Network.Name
                     items:
                       description: NetworkDeviceSpec defines the network configuration
                         for a virtual machine's network device.
@@ -948,6 +946,7 @@ spec:
                             - kind
                             - name
                             type: object
+                            x-kubernetes-map-type: atomic
                           type: array
                         deviceName:
                           description: DeviceName may be used to explicitly assign
@@ -1382,9 +1381,3 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []

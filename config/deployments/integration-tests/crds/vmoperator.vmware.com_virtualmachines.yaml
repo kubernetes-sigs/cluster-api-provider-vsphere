@@ -1,11 +1,9 @@
-
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.7.0
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.12.1
   name: virtualmachines.vmoperator.vmware.com
 spec:
   group: vmoperator.vmware.com
@@ -307,10 +305,9 @@ spec:
                     persistentVolumeClaim:
                       description: "PersistentVolumeClaim represents a reference to
                         a PersistentVolumeClaim in the same namespace. The PersistentVolumeClaim
-                        must match one of the following: \n   * A volume provisioned
-                        (either statically or dynamically) by the     cluster's CSI
-                        provider. \n   * An instance volume with a lifecycle coupled
-                        to the VM."
+                        must match one of the following: \n * A volume provisioned
+                        (either statically or dynamically) by the cluster's CSI provider.
+                        \n * An instance volume with a lifecycle coupled to the VM."
                       properties:
                         claimName:
                           description: 'claimName is the name of a PersistentVolumeClaim
@@ -522,9 +519,3 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []

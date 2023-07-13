@@ -8,7 +8,7 @@ require (
 	k8s.io/code-generator v0.27.2
 	sigs.k8s.io/cluster-api/hack/tools v0.0.0-20230711141913-5dedc1b4f9d5
 	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20211110210527-619e6b92dab9
-	sigs.k8s.io/controller-tools v0.12.0
+	sigs.k8s.io/controller-tools v0.12.1
 	sigs.k8s.io/kind v0.17.0
 	sigs.k8s.io/kubebuilder-release-tools/notes v0.0.0-20220428224951-d8a44c7aef35
 	sigs.k8s.io/testing_frameworks v0.1.2

@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.12.0
+    controller-gen.kubebuilder.io/version: v0.12.1
   name: vsphereclusters.infrastructure.cluster.x-k8s.io
 spec:
   group: infrastructure.cluster.x-k8s.io
@@ -691,6 +691,7 @@ spec:
                       are ANDed.
                     type: object
                 type: object
+                x-kubernetes-map-type: atomic
               identityRef:
                 description: IdentityRef is a reference to either a Secret or VSphereClusterIdentity
                   that contains the identity to use when reconciling the cluster.

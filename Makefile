@@ -55,7 +55,13 @@ MANAGER := $(BIN_DIR)/manager
 CLUSTERCTL := $(BIN_DIR)/clusterctl
 
 # Tooling binaries
-CONTROLLER_GEN := $(abspath $(TOOLS_BIN_DIR)/controller-gen)
+GO_INSTALL := ./hack/go-install.sh
+
+CONTROLLER_GEN_VER := v0.12.1
+CONTROLLER_GEN_BIN := controller-gen
+CONTROLLER_GEN := $(abspath $(TOOLS_BIN_DIR)/$(CONTROLLER_GEN_BIN)-$(CONTROLLER_GEN_VER))
+CONTROLLER_GEN_PKG := sigs.k8s.io/controller-tools/cmd/controller-gen
+
 CONVERSION_GEN := $(TOOLS_BIN_DIR)/conversion-gen
 GINKGO := $(TOOLS_BIN_DIR)/ginkgo
 GOLANGCI_LINT := $(TOOLS_BIN_DIR)/golangci-lint
@@ -66,7 +72,7 @@ SETUP_ENVTEST := $(abspath $(TOOLS_BIN_DIR)/setup-envtest)
 CONVERSION_VERIFIER := $(abspath $(TOOLS_BIN_DIR)/conversion-verifier)
 GO_APIDIFF := $(TOOLS_BIN_DIR)/go-apidiff
 RELEASE_NOTES := $(TOOLS_BIN_DIR)/release-notes
-TOOLING_BINARIES := $(CONTROLLER_GEN) $(CONVERSION_GEN) $(GINKGO) $(GOLANGCI_LINT) $(GOVC) $(KIND) $(KUSTOMIZE) $(CONVERSION_VERIFIER) $(GO_APIDIFF) $(RELEASE_NOTES)
+TOOLING_BINARIES := $(CONVERSION_GEN) $(GINKGO) $(GOLANGCI_LINT) $(GOVC) $(KIND) $(KUSTOMIZE) $(CONVERSION_VERIFIER) $(GO_APIDIFF) $(RELEASE_NOTES)
 ARTIFACTS_PATH := $(ROOT_DIR)/_artifacts
 
 # Set --output-base for conversion-gen if we are not within GOPATH
@@ -217,6 +223,12 @@ tools: $(TOOLING_BINARIES) ## Build tooling binaries
 .PHONY: $(TOOLING_BINARIES)
 $(TOOLING_BINARIES):
 	make -C $(TOOLS_DIR) $(@F)
+
+$(CONTROLLER_GEN): # Build CONTROLLER_GEN from tools folder.
+	CGO_ENABLED=0 GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(CONTROLLER_GEN_PKG) $(CONTROLLER_GEN_BIN) $(CONTROLLER_GEN_VER)
+
+.PHONY: $(CONTROLLER_GEN_BIN)
+$(CONTROLLER_GEN_BIN): $(CONTROLLER_GEN) ## Build a local copy of controller-gen.
 
 ## --------------------------------------
 ## Linting and fixing linter errors

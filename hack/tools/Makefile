@@ -35,7 +35,6 @@ BIN_DIR := bin
 SRCS := go.mod go.sum
 
 # Binaries.
-CONTROLLER_GEN := $(BIN_DIR)/controller-gen
 GOLANGCI_LINT := $(BIN_DIR)/golangci-lint
 KUSTOMIZE := $(BIN_DIR)/kustomize
 CONVERSION_GEN := $(BIN_DIR)/conversion-gen
@@ -55,10 +54,6 @@ help: ## Display this help
 ## --------------------------------------
 ## Binaries
 ## --------------------------------------
-
-controller-gen: $(CONTROLLER_GEN) $(SRCS) ## Build controller-gen
-$(CONTROLLER_GEN): go.mod
-	go build -tags=tools -o $@ sigs.k8s.io/controller-tools/cmd/controller-gen
 
 conversion-gen: $(CONVERSION_GEN) $(SRCS) ## Build conversion-gen
 $(CONVERSION_GEN): go.mod

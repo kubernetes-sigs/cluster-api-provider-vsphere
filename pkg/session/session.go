@@ -18,6 +18,8 @@ package session
 
 import (
 	"context"
+	"fmt"
+	"net/netip"
 	"net/url"
 	"sync"
 	"time"
@@ -133,7 +135,17 @@ func GetOrCreate(ctx context.Context, params *Params) (*Session, error) {
 	}
 
 	clearCache(logger, sessionKey)
-	soapURL, err := soap.ParseURL(params.server)
+
+	// soap.ParseURL expects a valid URL. In the case of a bare, unbracketed
+	// IPv6 address (e.g fd00::1) ParseURL will fail. Surround unbracketed IPv6
+	// addresses with brackets.
+	urlSafeServer := params.server
+	ip, err := netip.ParseAddr(urlSafeServer)
+	if err == nil && ip.Is6() {
+		urlSafeServer = fmt.Sprintf("[%s]", urlSafeServer)
+	}
+
+	soapURL, err := soap.ParseURL(urlSafeServer)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error parsing vSphere URL %q", params.server)
 	}

@@ -168,6 +168,10 @@ func Clone(ctx *context.VMContext, bootstrapData []byte, format bootstrapv1.Form
 		memMiB = 2048
 	}
 
+	// Disable the vAppConfig during VM creation to ensure Cloud-Init inside of the guest does not
+	// activate and prefer the OVF datasource over the VMware datasource.
+	vappConfigRemoved := true
+
 	spec := types.VirtualMachineCloneSpec{
 		Config: &types.VirtualMachineConfigSpec{
 			// Assign the clone's InstanceUUID the value of the Kubernetes Machine
@@ -180,6 +184,7 @@ func Clone(ctx *context.VMContext, bootstrapData []byte, format bootstrapv1.Form
 			NumCPUs:           numCPUs,
 			NumCoresPerSocket: numCoresPerSocket,
 			MemoryMB:          memMiB,
+			VAppConfigRemoved: &vappConfigRemoved,
 		},
 		Location: types.VirtualMachineRelocateSpec{
 			DiskMoveType: string(diskMoveType),

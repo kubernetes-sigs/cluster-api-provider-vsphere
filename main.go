@@ -271,35 +271,20 @@ func setupVAPIControllers(ctx *context.ControllerManagerContext, mgr ctrlmgr.Man
 	if err := (&v1beta1.VSphereMachine{}).SetupWebhookWithManager(mgr); err != nil {
 		return err
 	}
-	if err := (&v1beta1.VSphereMachineList{}).SetupWebhookWithManager(mgr); err != nil {
-		return err
-	}
 
 	if err := (&v1beta1.VSphereMachineTemplateWebhook{}).SetupWebhookWithManager(mgr); err != nil {
-		return err
-	}
-	if err := (&v1beta1.VSphereMachineTemplateList{}).SetupWebhookWithManager(mgr); err != nil {
 		return err
 	}
 
 	if err := (&v1beta1.VSphereVM{}).SetupWebhookWithManager(mgr); err != nil {
 		return err
 	}
-	if err := (&v1beta1.VSphereVMList{}).SetupWebhookWithManager(mgr); err != nil {
-		return err
-	}
 
 	if err := (&v1beta1.VSphereDeploymentZone{}).SetupWebhookWithManager(mgr); err != nil {
 		return err
 	}
-	if err := (&v1beta1.VSphereDeploymentZoneList{}).SetupWebhookWithManager(mgr); err != nil {
-		return err
-	}
 
 	if err := (&v1beta1.VSphereFailureDomain{}).SetupWebhookWithManager(mgr); err != nil {
-		return err
-	}
-	if err := (&v1beta1.VSphereFailureDomainList{}).SetupWebhookWithManager(mgr); err != nil {
 		return err
 	}
 

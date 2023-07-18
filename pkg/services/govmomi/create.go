@@ -17,18 +17,18 @@ limitations under the License.
 package govmomi
 
 import (
+	"github.com/pkg/errors"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/esxi"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/vcenter"
 )
 
 // createVM creates a new VM with the data in the VMContext passed. This method does not wait
 // for the new VM to be created.
 func createVM(ctx *context.VMContext, bootstrapData []byte, format bootstrapv1.Format) error {
-	if ctx.Session.IsVC() {
-		return vcenter.Clone(ctx, bootstrapData, format)
+	if !ctx.Session.IsVC() {
+		return errors.Errorf("expected VCenter client got %v", ctx.Session.ServiceContent.About.ApiType)
 	}
-	return esxi.Clone(ctx, bootstrapData, format)
+	return vcenter.Clone(ctx, bootstrapData, format)
 }

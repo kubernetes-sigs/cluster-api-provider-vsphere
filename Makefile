@@ -22,7 +22,7 @@ SHELL := /usr/bin/env bash
 
 VERSION ?= $(shell cat clusterctl-settings.json | jq .config.nextVersion -r)
 
-GO_VERSION ?=1.19.3
+GO_VERSION ?=1.20.6
 # Use GOPROXY environment variable if set
 GOPROXY := $(shell go env GOPROXY)
 ifeq (,$(strip $(GOPROXY)))

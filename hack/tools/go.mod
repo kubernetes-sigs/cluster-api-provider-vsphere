@@ -1,6 +1,6 @@
 module sigs.k8s.io/cluster-api-provider-vsphere/hack/tools
 
-go 1.19
+go 1.20
 
 require (
 	github.com/joelanford/go-apidiff v0.6.0

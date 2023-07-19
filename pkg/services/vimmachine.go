@@ -72,7 +72,7 @@ func (v *VimMachineService) ReconcileDelete(c context.MachineContext) error {
 		return errors.New("received unexpected VIMMachineContext type")
 	}
 
-	vm, err := v.findVMPre7(ctx)
+	vm, err := v.findVSphereVM(ctx)
 	// Attempt to find the associated VSphereVM resource.
 	if err != nil {
 		return err
@@ -98,7 +98,7 @@ func (v *VimMachineService) SyncFailureReason(c context.MachineContext) (bool, e
 		return false, errors.New("received unexpected VIMMachineContext type")
 	}
 
-	vsphereVM, err := v.findVMPre7(ctx)
+	vsphereVM, err := v.findVSphereVM(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -116,7 +116,7 @@ func (v *VimMachineService) ReconcileNormal(c context.MachineContext) (bool, err
 	if !ok {
 		return false, errors.New("received unexpected VIMMachineContext type")
 	}
-	vsphereVM, err := v.findVMPre7(ctx)
+	vsphereVM, err := v.findVSphereVM(ctx)
 	if err != nil && !apierrors.IsNotFound(err) {
 		return false, err
 	}
@@ -195,7 +195,7 @@ func (v *VimMachineService) GetHostInfo(c context.MachineContext) (string, error
 	return "", nil
 }
 
-func (v *VimMachineService) findVMPre7(ctx *context.VIMMachineContext) (*infrav1.VSphereVM, error) {
+func (v *VimMachineService) findVSphereVM(ctx *context.VIMMachineContext) (*infrav1.VSphereVM, error) {
 	// Get ready to find the associated VSphereVM resource.
 	vm := &infrav1.VSphereVM{}
 	vmKey := types.NamespacedName{

@@ -217,7 +217,7 @@ func newClient(ctx context.Context, logger logr.Logger, sessionKey string, url *
 
 	if feature.EnableKeepAlive {
 		vimClient.RoundTripper = session.KeepAliveHandler(vimClient.RoundTripper, feature.KeepAliveDuration, func(tripper soap.RoundTripper) error {
-			_, err := methods.GetCurrentTime(ctx, vimClient)
+			_, err := methods.GetCurrentTime(ctx, tripper)
 			if err != nil {
 				logger.Error(err, "failed to keep alive govmomi client")
 				logger.Info("clearing the session", "key", sessionKey)

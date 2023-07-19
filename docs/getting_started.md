@@ -125,12 +125,6 @@ VSPHERE_STORAGE_POLICY: ""                                    # This is the vSph
                                                               #  Keep this close to the minimum Kubernetes version of the cluster being created.
 ```
 
-If you are using the **DEPRECATED** `haproxy` flavour you will need to add the following variable to your `clusterctl.yaml`:
-
-```yaml
-VSPHERE_HAPROXY_TEMPLATE: "capv-haproxy-v0.6.4"               # The VM template to use for the HAProxy load balancer
-```
-
 **NOTE**: Technically, SSH keys and vSphere folders are optional, but optional template variables are not currently
 supported by clusterctl. If you need to not set the vSphere folder or SSH keys, then remove the appropriate fields after
 running `clusterctl generate`.
@@ -170,7 +164,6 @@ $ kubectl apply -f cluster.yaml
 aside of the default flavour, CAPV has the following:
 
 - an `external-loadbalancer` flavour that enables you to to specify a pre-existing endpoint
-- **DEPRECATED** an `haproxy` flavour to use HAProxy as a control plane endpoint
 
 ## Accessing the workload cluster
 
@@ -223,6 +216,5 @@ $ clusterctl generate custom-cluster vsphere-quickstart \
 [kubectl]: https://kubernetes.io/docs/tasks/tools/install-kubectl/
 [ovas]: ../README.md#kubernetes-versions-with-published-ovas
 [default-machine-image]: https://storage.googleapis.com/capv-images/release/v1.17.3/ubuntu-1804-kube-v1.17.3.ova
-[haproxy-machine-image]: https://storage.googleapis.com/capv-images/extra/haproxy/release/v0.6.4/capv-haproxy-v0.6.4.ova
 [image-builder]: https://github.com/kubernetes-sigs/image-builder
 [govc]: https://github.com/vmware/govmomi/tree/master/govc

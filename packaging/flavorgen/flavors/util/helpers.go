@@ -71,7 +71,6 @@ var (
 		regexVar(env.NamespaceVar),
 		regexVar(env.KubernetesVersionVar),
 		regexVar(env.VSphereFolderVar),
-		regexVar(env.VSphereHaproxyTemplateVar),
 		regexVar(env.VSphereResourcePoolVar),
 		regexVar(env.VSphereSSHAuthorizedKeysVar),
 		regexVar(env.VSphereDataCenterVar),
@@ -79,7 +78,6 @@ var (
 		regexVar(env.VSphereNetworkVar),
 		regexVar(env.VSphereServerVar),
 		regexVar(env.VSphereTemplateVar),
-		regexVar(env.VSphereHaproxyTemplateVar),
 		regexVar(env.VSphereStoragePolicyVar),
 		// TODO: Why was thumbprint not here?
 		regexVar(env.VSphereThumbprint),

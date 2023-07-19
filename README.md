@@ -75,26 +75,6 @@ Or, to produce a list of URLs for the same image files (and their checksums), th
 gsutil ls gs://capv-templates/*/*.{ova,sha256} | sed 's~^gs://~https://storage.googleapis.com/~'
 ```
 
-## HAProxy published OVAs
-
-Note: These OVAs are not updated for security fixes and it is recommended to always use the latest patch version for the version you wish to run. For production-like environments, it is highly recommended to build and use your own custom images.
-
-| HAProxy Dataplane API | Photon 3 |
-|:--------------------: | :------: |
-|  v1.2.4  |  [ova](https://storage.googleapis.com/capv-images/extra/haproxy/release/v1.2.4/photon-3-haproxy-v1.2.4.ova), [sha256](https://storage.googleapis.com/capv-images/extra/haproxy/release/v1.2.4/photon-3-haproxy-v1.2.4.ova.sha256)  |
-
-A full list of the published HAProxy images for CAPV may be obtained with the following command:
-
-```shell
-gsutil ls gs://capv-images/extra/haproxy/release/*
-```
-
-Or, to produce a list of URLs for the same image files (and their checksums), the following command may be used:
-
-```shell
-gsutil ls gs://capv-images/extra/haproxy/release/*/*.{ova,sha256} | sed 's~^gs://~https://storage.googleapis.com/~'
-```
-
 ## Documentation
 
 Further documentation is available in the `/docs` directory.

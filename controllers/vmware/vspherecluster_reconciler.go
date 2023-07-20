@@ -112,7 +112,8 @@ func (r ClusterReconciler) Reconcile(ctx goctx.Context, req ctrl.Request) (_ ctr
 
 	// Handle deleted clusters
 	if !vsphereCluster.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(clusterContext), nil
+		r.reconcileDelete(clusterContext)
+		return ctrl.Result{}, nil
 	}
 
 	if cluster == nil {
@@ -121,10 +122,10 @@ func (r ClusterReconciler) Reconcile(ctx goctx.Context, req ctrl.Request) (_ ctr
 	}
 
 	// Handle non-deleted clusters
-	return r.reconcileNormal(clusterContext)
+	return ctrl.Result{}, r.reconcileNormal(clusterContext)
 }
 
-func (r *ClusterReconciler) reconcileDelete(ctx *vmware.ClusterContext) reconcile.Result {
+func (r *ClusterReconciler) reconcileDelete(ctx *vmware.ClusterContext) {
 	ctx.Logger.Info("Reconciling vsphereCluster delete")
 
 	deletingConditionTypes := []clusterv1.ConditionType{
@@ -141,11 +142,9 @@ func (r *ClusterReconciler) reconcileDelete(ctx *vmware.ClusterContext) reconcil
 
 	// Cluster is deleted so remove the finalizer.
 	controllerutil.RemoveFinalizer(ctx.VSphereCluster, vmwarev1.ClusterFinalizer)
-
-	return reconcile.Result{}
 }
 
-func (r *ClusterReconciler) reconcileNormal(ctx *vmware.ClusterContext) (reconcile.Result, error) {
+func (r *ClusterReconciler) reconcileNormal(ctx *vmware.ClusterContext) error {
 	ctx.Logger.Info("Reconciling vsphereCluster")
 
 	// If the vsphereCluster doesn't have our finalizer, add it.
@@ -154,7 +153,7 @@ func (r *ClusterReconciler) reconcileNormal(ctx *vmware.ClusterContext) (reconci
 	// Get any failure domains to report back to the CAPI core controller.
 	failureDomains, err := r.getFailureDomains(ctx)
 	if err != nil {
-		return reconcile.Result{}, errors.Wrapf(
+		return errors.Wrapf(
 			err,
 			"unexpected error while discovering failure domains for %s", ctx.VSphereCluster.Name)
 	}
@@ -166,7 +165,7 @@ func (r *ClusterReconciler) reconcileNormal(ctx *vmware.ClusterContext) (reconci
 	resourcePolicyName, err := r.ResourcePolicyService.ReconcileResourcePolicy(ctx)
 	if err != nil {
 		conditions.MarkFalse(ctx.VSphereCluster, vmwarev1.ResourcePolicyReadyCondition, vmwarev1.ResourcePolicyCreationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
-		return reconcile.Result{}, errors.Wrapf(err,
+		return errors.Wrapf(err,
 			"failed to configure resource policy for vsphereCluster %s/%s",
 			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
 	}
@@ -176,20 +175,20 @@ func (r *ClusterReconciler) reconcileNormal(ctx *vmware.ClusterContext) (reconci
 	// Configure the cluster for the cluster network
 	err = r.NetworkProvider.ProvisionClusterNetwork(ctx)
 	if err != nil {
-		return reconcile.Result{}, errors.Wrapf(err,
+		return errors.Wrapf(err,
 			"failed to configure cluster network for vsphereCluster %s/%s",
 			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
 	}
 
 	if ok, err := r.reconcileControlPlaneEndpoint(ctx); !ok {
 		if err != nil {
-			return reconcile.Result{}, errors.Wrapf(err, "unexpected error while reconciling control plane endpoint for %s", ctx.VSphereCluster.Name)
+			return errors.Wrapf(err, "unexpected error while reconciling control plane endpoint for %s", ctx.VSphereCluster.Name)
 		}
 	}
 
 	ctx.VSphereCluster.Status.Ready = true
 	ctx.Logger.V(2).Info("Reconcile completed, vsphereCluster is infrastructure-ready")
-	return reconcile.Result{}, nil
+	return nil
 }
 
 func (r *ClusterReconciler) reconcileControlPlaneEndpoint(ctx *vmware.ClusterContext) (bool, error) {

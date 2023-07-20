@@ -144,13 +144,13 @@ func (r vsphereDeploymentZoneReconciler) Reconcile(ctx goctx.Context, request re
 	}()
 
 	if !vsphereDeploymentZone.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(vsphereDeploymentZoneContext)
+		return ctrl.Result{}, r.reconcileDelete(vsphereDeploymentZoneContext)
 	}
 
-	return r.reconcileNormal(vsphereDeploymentZoneContext)
+	return ctrl.Result{}, r.reconcileNormal(vsphereDeploymentZoneContext)
 }
 
-func (r vsphereDeploymentZoneReconciler) reconcileNormal(ctx *context.VSphereDeploymentZoneContext) (reconcile.Result, error) {
+func (r vsphereDeploymentZoneReconciler) reconcileNormal(ctx *context.VSphereDeploymentZoneContext) error {
 	ctrlutil.AddFinalizer(ctx.VSphereDeploymentZone, infrav1.DeploymentZoneFinalizer)
 
 	authSession, err := r.getVCenterSession(ctx)
@@ -158,14 +158,14 @@ func (r vsphereDeploymentZoneReconciler) reconcileNormal(ctx *context.VSphereDep
 		ctx.Logger.V(4).Error(err, "unable to create session")
 		conditions.MarkFalse(ctx.VSphereDeploymentZone, infrav1.VCenterAvailableCondition, infrav1.VCenterUnreachableReason, clusterv1.ConditionSeverityError, err.Error())
 		ctx.VSphereDeploymentZone.Status.Ready = pointer.Bool(false)
-		return reconcile.Result{}, errors.Wrapf(err, "unable to create auth session")
+		return errors.Wrapf(err, "unable to create auth session")
 	}
 	ctx.AuthSession = authSession
 	conditions.MarkTrue(ctx.VSphereDeploymentZone, infrav1.VCenterAvailableCondition)
 
 	if err := r.reconcilePlacementConstraint(ctx); err != nil {
 		ctx.VSphereDeploymentZone.Status.Ready = pointer.Bool(false)
-		return reconcile.Result{}, errors.Wrap(err, "placement constraint is misconfigured")
+		return errors.Wrap(err, "placement constraint is misconfigured")
 	}
 	conditions.MarkTrue(ctx.VSphereDeploymentZone, infrav1.PlacementConstraintMetCondition)
 
@@ -173,7 +173,7 @@ func (r vsphereDeploymentZoneReconciler) reconcileNormal(ctx *context.VSphereDep
 	if err := r.reconcileFailureDomain(ctx); err != nil {
 		ctx.Logger.V(4).Error(err, "failed to reconcile failure domain", "failureDomain", ctx.VSphereDeploymentZone.Spec.FailureDomain)
 		ctx.VSphereDeploymentZone.Status.Ready = pointer.Bool(false)
-		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile failure domain")
+		return errors.Wrapf(err, "failed to reconcile failure domain")
 	}
 	conditions.MarkTrue(ctx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition)
 
@@ -191,12 +191,12 @@ func (r vsphereDeploymentZoneReconciler) reconcileNormal(ctx *context.VSphereDep
 				UID:        ctx.VSphereDeploymentZone.UID,
 			})
 		}); err != nil {
-			return reconcile.Result{}, err
+			return err
 		}
 	}
 
 	ctx.VSphereDeploymentZone.Status.Ready = pointer.Bool(true)
-	return reconcile.Result{}, nil
+	return nil
 }
 
 func (r vsphereDeploymentZoneReconciler) reconcilePlacementConstraint(ctx *context.VSphereDeploymentZoneContext) error {
@@ -256,13 +256,13 @@ func (r vsphereDeploymentZoneReconciler) getVCenterSession(ctx *context.VSphereD
 		params)
 }
 
-func (r vsphereDeploymentZoneReconciler) reconcileDelete(ctx *context.VSphereDeploymentZoneContext) (reconcile.Result, error) {
+func (r vsphereDeploymentZoneReconciler) reconcileDelete(ctx *context.VSphereDeploymentZoneContext) error {
 	r.Logger.Info("Deleting VSphereDeploymentZone")
 
 	machines := &clusterv1.MachineList{}
 	if err := r.Client.List(ctx, machines); err != nil {
 		r.Logger.Error(err, "unable to list machines")
-		return reconcile.Result{}, errors.Wrapf(err, "unable to list machines")
+		return errors.Wrapf(err, "unable to list machines")
 	}
 
 	machinesUsingDeploymentZone := collections.FromMachineList(machines).Filter(collections.ActiveMachines, func(machine *clusterv1.Machine) bool {
@@ -275,7 +275,7 @@ func (r vsphereDeploymentZoneReconciler) reconcileDelete(ctx *context.VSphereDep
 		machineNamesStr := util.MachinesAsString(machinesUsingDeploymentZone.SortedByCreationTimestamp())
 		err := errors.Errorf("%s is currently in use by machines: %s", ctx.VSphereDeploymentZone.Name, machineNamesStr)
 		r.Logger.Error(err, "Error deleting VSphereDeploymentZone", "name", ctx.VSphereDeploymentZone.Name)
-		return reconcile.Result{}, err
+		return err
 	}
 
 	if err := updateOwnerReferences(ctx, ctx.VSphereFailureDomain, r.Client, func() []metav1.OwnerReference {
@@ -285,7 +285,7 @@ func (r vsphereDeploymentZoneReconciler) reconcileDelete(ctx *context.VSphereDep
 			Name:       ctx.VSphereDeploymentZone.Name,
 		})
 	}); err != nil {
-		return reconcile.Result{}, err
+		return err
 	}
 
 	if len(ctx.VSphereFailureDomain.OwnerReferences) == 0 {
@@ -297,7 +297,7 @@ func (r vsphereDeploymentZoneReconciler) reconcileDelete(ctx *context.VSphereDep
 
 	ctrlutil.RemoveFinalizer(ctx.VSphereDeploymentZone, infrav1.DeploymentZoneFinalizer)
 
-	return reconcile.Result{}, nil
+	return nil
 }
 
 // updateOwnerReferences uses the ownerRef function to calculate the owner references

@@ -24,10 +24,9 @@ import (
 	_ "github.com/joelanford/go-apidiff"
 	_ "github.com/onsi/ginkgo/v2/ginkgo"
 	_ "k8s.io/code-generator/cmd/conversion-gen"
-	_ "sigs.k8s.io/cluster-api/hack/tools"
+	_ "sigs.k8s.io/cluster-api/hack/tools/conversion-verifier"
+	_ "sigs.k8s.io/cluster-api/hack/tools/release"
 	_ "sigs.k8s.io/controller-runtime/tools/setup-envtest"
 	_ "sigs.k8s.io/kind"
-	_ "sigs.k8s.io/kubebuilder-release-tools/notes"
-	_ "sigs.k8s.io/kustomize/kustomize/v4"
 	_ "sigs.k8s.io/testing_frameworks/integration"
 )

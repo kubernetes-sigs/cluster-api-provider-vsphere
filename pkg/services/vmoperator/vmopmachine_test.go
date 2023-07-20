@@ -545,10 +545,6 @@ var _ = Describe("VirtualMachine tests", func() {
 
 		BeforeEach(func() {
 			requeue, err = vmService.ReconcileNormal(ctx)
-			// There is no GC behavior in the unit test environment, so simulate it
-			vmService.deleteFunc = func(vm *vmoprv1.VirtualMachine) error {
-				return ctx.Client.Delete(ctx, vm)
-			}
 		})
 
 		// Test expects DestroyVM to return NotFound eventually

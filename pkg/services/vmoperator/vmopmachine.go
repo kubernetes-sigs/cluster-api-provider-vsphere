@@ -41,9 +41,7 @@ import (
 	vmwareutil "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util/vmware"
 )
 
-type VmopMachineService struct {
-	deleteFunc func(vm *vmoprv1.VirtualMachine) error
-}
+type VmopMachineService struct{}
 
 func (v *VmopMachineService) FetchVSphereMachine(client client.Client, name types.NamespacedName) (context.MachineContext, error) {
 	vsphereMachine := &vmwarev1.VSphereMachine{}
@@ -85,13 +83,6 @@ func (v *VmopMachineService) ReconcileDelete(c context.MachineContext) error {
 		}()
 	}
 
-	// Allow deleteFunc to be swappable for unit testing
-	if v.deleteFunc == nil {
-		v.deleteFunc = func(vm *vmoprv1.VirtualMachine) error {
-			return ctx.Client.Delete(ctx, vm)
-		}
-	}
-
 	// First, check to see if it's already deleted
 	vmopVM := vmoprv1.VirtualMachine{}
 	if err := ctx.Client.Get(ctx, types.NamespacedName{Namespace: ctx.Machine.Namespace, Name: ctx.Machine.Name}, &vmopVM); err != nil {
@@ -110,7 +101,7 @@ func (v *VmopMachineService) ReconcileDelete(c context.MachineContext) error {
 	}
 
 	// If none of the above are true, Delete the VM
-	if err := v.deleteFunc(&vmopVM); err != nil {
+	if err := ctx.Client.Delete(ctx, &vmopVM); err != nil {
 		if apierrors.IsNotFound(err) {
 			ctx.VSphereMachine.Status.VMStatus = vmwarev1.VirtualMachineStateNotFound
 			return err

@@ -74,9 +74,9 @@ go-apidiff: $(APIDIFF) $(SRCS) ## Build go-apidiff
 $(APIDIFF): go.mod
 	go build -tags=tools -o $@ github.com/joelanford/go-apidiff
 
-release-notes: $(RELEASE_NOTES) $(SRCS)
+release-notes: $(RELEASE_NOTES) $(SRCS) ## fetch CAPI's release notes tool
 $(RELEASE_NOTES): go.mod
-	go build -tags=tools -o $@ sigs.k8s.io/kubebuilder-release-tools/notes
+	go build -tags=tools -o $@ sigs.k8s.io/cluster-api/hack/tools/release
 
 ## --------------------------------------
 ## Generate

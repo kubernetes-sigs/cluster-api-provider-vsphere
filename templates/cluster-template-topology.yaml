@@ -285,6 +285,7 @@ stringData:
     stringData:
       csi-vsphere.conf: |+
         [Global]
+        thumbprint = "${VSPHERE_TLS_THUMBPRINT}"
         cluster-id = "${NAMESPACE}/${CLUSTER_NAME}"
 
         [VirtualCenter "${VSPHERE_SERVER}"]

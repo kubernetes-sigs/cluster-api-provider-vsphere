@@ -318,6 +318,10 @@ func (v *VimMachineService) reconcileNetwork(ctx *context.VIMMachineContext, vm 
 				Address: addr,
 			})
 		}
+		machineAddresses = append(machineAddresses, clusterv1.MachineAddress{
+			Type:    clusterv1.MachineInternalDNS,
+			Address: vm.GetName(),
+		})
 		ctx.VSphereMachine.Status.Addresses = machineAddresses
 	}
 

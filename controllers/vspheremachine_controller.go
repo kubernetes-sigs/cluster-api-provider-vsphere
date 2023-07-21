@@ -124,7 +124,7 @@ func AddMachineControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 		).
 		WithOptions(controller.Options{MaxConcurrentReconciles: ctx.MaxConcurrentReconciles})
 
-	r := machineReconciler{
+	r := &machineReconciler{
 		ControllerContext: controllerContext,
 		VMService:         &services.VimMachineService{},
 		supervisorBased:   supervisorBased,
@@ -179,7 +179,7 @@ type machineReconciler struct {
 }
 
 // Reconcile ensures the back-end state reflects the Kubernetes resource state intent.
-func (r machineReconciler) Reconcile(_ goctx.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
+func (r *machineReconciler) Reconcile(_ goctx.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	var machineContext context.MachineContext
 	logger := r.Logger.WithName(req.Namespace).WithName(req.Name)
 	logger.V(3).Info("Starting Reconcile VSphereMachine")
@@ -259,7 +259,7 @@ func (r machineReconciler) Reconcile(_ goctx.Context, req ctrl.Request) (_ ctrl.
 	return r.reconcileNormal(machineContext)
 }
 
-func (r machineReconciler) reconcileDelete(ctx context.MachineContext) (reconcile.Result, error) {
+func (r *machineReconciler) reconcileDelete(ctx context.MachineContext) (reconcile.Result, error) {
 	ctx.GetLogger().Info("Handling deleted VSphereMachine")
 	conditions.MarkFalse(ctx.GetVSphereMachine(), infrav1.VMProvisionedCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
 
@@ -277,7 +277,7 @@ func (r machineReconciler) reconcileDelete(ctx context.MachineContext) (reconcil
 	return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
 }
 
-func (r machineReconciler) reconcileNormal(ctx context.MachineContext) (reconcile.Result, error) {
+func (r *machineReconciler) reconcileNormal(ctx context.MachineContext) (reconcile.Result, error) {
 	machineFailed, err := r.VMService.SyncFailureReason(ctx)
 	if err != nil && !apierrors.IsNotFound(err) {
 		return reconcile.Result{}, err

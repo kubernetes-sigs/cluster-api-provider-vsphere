@@ -133,8 +133,8 @@ providers:
           - sourcePath: "../../../metadata.yaml"
 
 variables:
-  KUBERNETES_VERSION: "v1.25.6"
-  CPI_IMAGE_K8S_VERSION: "v1.25.0"
+  KUBERNETES_VERSION: "v1.27.3"
+  CPI_IMAGE_K8S_VERSION: "v1.27.0"
   CNI: "./data/cni/calico/calico.yaml"
   #CNI: "./data/cni/kindnet/kindnet.yaml"
   EXP_CLUSTER_RESOURCE_SET: "true"
@@ -151,8 +151,8 @@ variables:
   VSPHERE_FOLDER: "FolderName"
   VSPHERE_NETWORK: "network-1"
   VSPHERE_RESOURCE_POOL: "ResourcePool"
-  VSPHERE_TEMPLATE: "ubuntu-2004-kube-v1.25.6"
-  FLATCAR_VSPHERE_TEMPLATE: "flatcar-stable-3374.2.4-kube-v1.25.6"
+  VSPHERE_TEMPLATE: "ubuntu-2004-kube-v1.27.3"
+  FLATCAR_VSPHERE_TEMPLATE: "flatcar-stable-3510.2.4-kube-v1.27.3"
   VSPHERE_TLS_THUMBPRINT: "AA:BB:CC:DD:11:22:33:44:EE:FF"
   # WORKLOAD_CONTROL_PLANE_ENDPOINT_IP:
   # Also following variables are required but it is recommended to use env variables to avoid disclosure of sensitive data
@@ -174,7 +174,7 @@ variables:
   VSPHERE2_SERVER: "vcenter2.vmware.com"
   VSPHERE2_TLS_THUMBPRINT: "AA:BB:CC:DD:11:22:33:44:EE:FF"
   VSPHERE2_RESOURCE_POOL: "ResourcePool"
-  VSPHERE2_TEMPLATE: "ubuntu-2004-kube-v1.25.6"
+  VSPHERE2_TEMPLATE: "ubuntu-2004-kube-v1.27.3"
   # Dedicated IP to be used by kube-vip
   VSPHERE2_CONTROL_PLANE_ENDPOINT_IP:
   # Following variables are also required and please use env variables to avoid disclosure of sensitive data

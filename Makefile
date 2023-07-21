@@ -101,7 +101,17 @@ WEBHOOK_ROOT ?= $(MANIFEST_ROOT)/webhook
 RBAC_ROOT ?= $(MANIFEST_ROOT)/rbac
 SKIP_RESOURCE_CLEANUP ?= false
 USE_EXISTING_CLUSTER ?= false
+
+## latest git tag for the commit, e.g., v0.3.10
+RELEASE_TAG ?= $(shell git describe --abbrev=0 2>/dev/null)
+ifneq (,$(findstring -,$(RELEASE_TAG)))
+    PRE_RELEASE=true
+endif
+# the previous release tag, e.g., v0.3.9, excluding pre-release tags
+PREVIOUS_TAG ?= $(shell git tag -l | grep -E "^v[0-9]+\.[0-9]+\.[0-9]+$$" | sort -V | grep -B1 $(RELEASE_TAG) | head -n 1 2>/dev/null)
 RELEASE_DIR := out
+RELEASE_NOTES_DIR := _releasenotes
+
 BUILD_DIR := .build
 OVERRIDES_DIR := $(HOME)/.cluster-api/overrides/infrastructure-vsphere/$(VERSION)
 
@@ -367,6 +377,8 @@ generate-flavors: $(FLAVOR_DIR)
 $(RELEASE_DIR):
 	@mkdir -p $(RELEASE_DIR)
 
+$(RELEASE_NOTES_DIR):
+	mkdir -p $(RELEASE_NOTES_DIR)/
 
 $(BUILD_DIR):
 	@mkdir -p $(BUILD_DIR)
@@ -410,8 +422,12 @@ manifests:  $(STAGE)-version-check $(STAGE)-flavors $(MANIFEST_DIR) $(BUILD_DIR)
 	"$(KUSTOMIZE)" build $(BUILD_DIR)/config/supervisor > $(MANIFEST_DIR)/infrastructure-components-supervisor.yaml
 
 .PHONY: generate-release-notes
-generate-release-notes: $(TOOLING_BINARIES)
-	"$(RELEASE_NOTES)" --project kubernetes-sigs/cluster-api-provider-vsphere --branch $(release_branch) --from $(previous_release_tag_or_commit) --r $(release_type) --show-others docs,infra
+generate-release-notes: $(RELEASE_NOTES_DIR) $(TOOLING_BINARIES)
+	if [ -n "${PRE_RELEASE}" ]; then \
+	echo ":rotating_light: This is a RELEASE CANDIDATE. Use it only for testing purposes. If you find any bugs, file an [issue](https://github.com/kubernetes-sigs/cluster-api/issues/new)." > $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md; \
+	else \
+	"$(RELEASE_NOTES)" --from=$(PREVIOUS_TAG) --prefix-area-label=false --add-kubernetes-version-support=false > $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md; \
+	fi
 
 ## --------------------------------------
 ## Verification

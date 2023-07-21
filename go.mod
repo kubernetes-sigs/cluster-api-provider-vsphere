@@ -5,7 +5,6 @@ go 1.20
 replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.5.0-rc.1
 
 require (
-	github.com/antihax/optional v1.0.0
 	github.com/go-logr/logr v1.2.4
 	github.com/google/gofuzz v1.2.0
 	github.com/google/uuid v1.3.0
@@ -23,7 +22,6 @@ require (
 	golang.org/x/crypto v0.11.0
 	golang.org/x/exp v0.0.0-20221002003631-540bb7301a08
 	golang.org/x/mod v0.12.0
-	golang.org/x/oauth2 v0.10.0
 	golang.org/x/text v0.11.0
 	golang.org/x/tools v0.11.0
 	gopkg.in/gcfg.v1 v1.2.3
@@ -61,6 +59,7 @@ require (
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/net v0.12.0 // indirect
+	golang.org/x/oauth2 v0.10.0 // indirect
 	golang.org/x/sys v0.10.0 // indirect
 	golang.org/x/term v0.10.0 // indirect
 )

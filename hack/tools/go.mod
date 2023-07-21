@@ -6,20 +6,19 @@ require (
 	github.com/joelanford/go-apidiff v0.6.0
 	github.com/onsi/ginkgo/v2 v2.11.0
 	k8s.io/code-generator v0.27.3
-	sigs.k8s.io/cluster-api/hack/tools v0.0.0-20230711141913-5dedc1b4f9d5
+	sigs.k8s.io/cluster-api/hack/tools v0.0.0-20230720182410-9c0a017bd4e3
 	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20211110210527-619e6b92dab9
 	sigs.k8s.io/kind v0.17.0
-	sigs.k8s.io/kubebuilder-release-tools/notes v0.0.0-20220428224951-d8a44c7aef35
 	sigs.k8s.io/testing_frameworks v0.1.2
 )
 
 require (
 	github.com/BurntSushi/toml v1.2.1 // indirect
 	github.com/Microsoft/go-winio v0.5.2 // indirect
-	github.com/ProtonMail/go-crypto v0.0.0-20210428141323-04723f9f07d7 // indirect
+	github.com/ProtonMail/go-crypto v0.0.0-20230217124315-7d5c6f04bbb8 // indirect
 	github.com/acomagu/bufpipe v1.0.3 // indirect
 	github.com/alessio/shellescape v1.4.1 // indirect
-	github.com/blang/semver/v4 v4.0.0 // indirect
+	github.com/cloudflare/circl v1.3.3 // indirect
 	github.com/emirpasic/gods v1.12.0 // indirect
 	github.com/evanphx/json-patch/v5 v5.6.0 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect

@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/joelanford/go-apidiff v0.6.0
 	github.com/onsi/ginkgo/v2 v2.11.0
-	k8s.io/code-generator v0.27.3
+	k8s.io/code-generator v0.27.4
 	sigs.k8s.io/cluster-api/hack/tools v0.0.0-20230720182410-9c0a017bd4e3
 	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20211110210527-619e6b92dab9
 	sigs.k8s.io/kind v0.17.0

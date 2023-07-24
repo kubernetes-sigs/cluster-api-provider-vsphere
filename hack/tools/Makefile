@@ -36,7 +36,6 @@ SRCS := go.mod go.sum
 
 # Binaries.
 GOLANGCI_LINT := $(BIN_DIR)/golangci-lint
-KUSTOMIZE := $(BIN_DIR)/kustomize
 CONVERSION_GEN := $(BIN_DIR)/conversion-gen
 KIND := $(BIN_DIR)/kind
 GOVC := $(BIN_DIR)/govc
@@ -76,10 +75,6 @@ kind: $(KIND) $(SRCS)
 $(KIND): go.mod
 	go build -tags=tools -o $@ sigs.k8s.io/kind
 
-kustomize: $(KUSTOMIZE) $(SRCS) ## Build kustomize
-$(KUSTOMIZE): go.mod
-	go build -tags=tools -o $@ sigs.k8s.io/kustomize/kustomize/v4
-
 conversion-verifier: $(CONVERSION_VERIFIER) $(SRCS) ## fetch CAPI's conversion verifier
 $(CONVERSION_VERIFIER): go.mod
 	go build -tags=tools -o $@ sigs.k8s.io/cluster-api/hack/tools/conversion-verifier
@@ -88,9 +83,9 @@ go-apidiff: $(APIDIFF) $(SRCS) ## Build go-apidiff
 $(APIDIFF): go.mod
 	go build -tags=tools -o $@ github.com/joelanford/go-apidiff
 
-release-notes: $(RELEASE_NOTES) $(SRCS)
+release-notes: $(RELEASE_NOTES) $(SRCS) ## fetch CAPI's release notes tool
 $(RELEASE_NOTES): go.mod
-	go build -tags=tools -o $@ sigs.k8s.io/kubebuilder-release-tools/notes
+	go build -tags=tools -o $@ sigs.k8s.io/cluster-api/hack/tools/release
 
 ## --------------------------------------
 ## Generate

@@ -36,7 +36,6 @@ BIN_DIR := bin
 SRCS := go.mod go.sum
 
 # Binaries.
-GOLANGCI_LINT := $(BIN_DIR)/golangci-lint
 CONVERSION_GEN := $(BIN_DIR)/conversion-gen
 KIND := $(BIN_DIR)/kind
 GINKGO := $(BIN_DIR)/ginkgo
@@ -78,13 +77,6 @@ $(APIDIFF): go.mod
 release-notes: $(RELEASE_NOTES) $(SRCS) ## fetch CAPI's release notes tool
 $(RELEASE_NOTES): go.mod
 	go build -tags=tools -o $@ sigs.k8s.io/cluster-api/hack/tools/release
-
-## Download golangci-lint binary using the script in `hack` directory
-golangci-lint: $(GOLANGCI_LINT)
-$(GOLANGCI_LINT): $(REPO_ROOT)/.github/workflows/golangci-lint.yaml
-	$(REPO_ROOT)/hack/ensure-golangci-lint.sh \
-		-b $(BIN_DIR) \
-		$(shell cat $(REPO_ROOT)/.github/workflows/golangci-lint.yaml | grep [[:space:]]version: | sed 's/.*version: //')
 
 ## --------------------------------------
 ## Generate

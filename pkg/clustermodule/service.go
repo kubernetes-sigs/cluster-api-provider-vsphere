@@ -125,10 +125,7 @@ func (s service) Remove(ctx *context.ClusterContext, moduleUUID string) error {
 	}
 
 	provider := clustermodules.NewProvider(vcenterSession.TagManager.Client)
-	if err := provider.DeleteModule(ctx, moduleUUID); err != nil {
-		return err
-	}
-	return nil
+	return provider.DeleteModule(ctx, moduleUUID)
 }
 
 func getComputeClusterResource(ctx goctx.Context, s *session.Session, resourcePool string) (types.ManagedObjectReference, error) {

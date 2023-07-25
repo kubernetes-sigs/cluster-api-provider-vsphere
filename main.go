@@ -359,11 +359,7 @@ func setupSupervisorControllers(ctx *context.ControllerManagerContext, mgr ctrlm
 		return err
 	}
 
-	if err := controllers.AddServiceDiscoveryControllerToManager(ctx, mgr); err != nil {
-		return err
-	}
-
-	return nil
+	return controllers.AddServiceDiscoveryControllerToManager(ctx, mgr)
 }
 
 func setCipherSuiteFunc(cipherSuiteString string) (func(cfg *tls.Config), error) {
@@ -406,5 +402,13 @@ func runProfiler(addr string) {
 	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
 	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
-	_ = http.ListenAndServe(addr, mux)
+
+	srv := http.Server{
+		Addr:              addr,
+		Handler:           mux,
+		ReadHeaderTimeout: 2 * time.Second,
+	}
+	if err := srv.ListenAndServe(); err != nil {
+		setupLog.Error(err, "problem running profiler server")
+	}
 }

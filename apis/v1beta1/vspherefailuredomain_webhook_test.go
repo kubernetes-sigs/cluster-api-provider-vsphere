@@ -23,7 +23,6 @@ import (
 	"k8s.io/utils/pointer"
 )
 
-// nolint
 func TestVsphereFailureDomain_Default(t *testing.T) {
 	g := NewWithT(t)
 	m := &VSphereFailureDomain{

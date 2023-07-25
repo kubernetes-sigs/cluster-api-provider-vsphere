@@ -35,7 +35,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
-func getVirtualMachineService(cpService CPService, ctx *vmware.ClusterContext) *vmoprv1.VirtualMachineService {
+func getVirtualMachineService(_ CPService, ctx *vmware.ClusterContext) *vmoprv1.VirtualMachineService {
 	vms := newVirtualMachineService(ctx)
 	nsname := types.NamespacedName{
 		Namespace: vms.Namespace,

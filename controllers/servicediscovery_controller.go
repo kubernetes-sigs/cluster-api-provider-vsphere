@@ -126,7 +126,7 @@ type serviceDiscoveryReconciler struct {
 	remoteClientGetter remote.ClusterClientGetter
 }
 
-func (r serviceDiscoveryReconciler) Reconcile(ctx goctx.Context, req reconcile.Request) (_ reconcile.Result, reterr error) {
+func (r serviceDiscoveryReconciler) Reconcile(_ goctx.Context, req reconcile.Request) (_ reconcile.Result, reterr error) {
 	logger := r.Logger.WithName(req.Namespace).WithName(req.Name)
 	logger.V(4).Info("Starting Reconcile")
 

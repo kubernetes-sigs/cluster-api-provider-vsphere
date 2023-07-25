@@ -155,11 +155,7 @@ func NewTestEnvironment() *TestEnvironment {
 			return err
 		}
 
-		if err := (&infrav1.VSphereFailureDomain{}).SetupWebhookWithManager(mgr); err != nil {
-			return err
-		}
-
-		return nil
+		return (&infrav1.VSphereFailureDomain{}).SetupWebhookWithManager(mgr)
 	}
 
 	mgr, err := manager.New(managerOpts)

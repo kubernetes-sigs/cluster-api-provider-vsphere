@@ -3,8 +3,6 @@ linters:
   enable:
   - asciicheck
   - bodyclose
-  - deadcode
-  - depguard
   - dogsled
   - errcheck
   - exportloopref

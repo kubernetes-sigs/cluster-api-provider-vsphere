@@ -40,7 +40,7 @@ const (
 
 type LogCollector struct{}
 
-func (collector LogCollector) CollectMachinePoolLog(ctx context.Context, managementClusterClient client.Client, m *expv1.MachinePool, outputPath string) error {
+func (collector LogCollector) CollectMachinePoolLog(_ context.Context, _ client.Client, _ *expv1.MachinePool, _ string) error {
 	return nil
 }
 

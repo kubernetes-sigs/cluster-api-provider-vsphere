@@ -60,7 +60,7 @@ type clusterReconciler struct {
 }
 
 // Reconcile ensures the back-end state reflects the Kubernetes resource state intent.
-func (r clusterReconciler) Reconcile(ctx goctx.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
+func (r clusterReconciler) Reconcile(_ goctx.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	// Get the VSphereCluster resource for this request.
 	vsphereCluster := &infrav1.VSphereCluster{}
 	if err := r.Client.Get(r, req.NamespacedName, vsphereCluster); err != nil {

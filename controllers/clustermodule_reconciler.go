@@ -198,7 +198,7 @@ func (r Reconciler) PopulateWatchesOnController(controller controller.Controller
 		return err
 	}
 
-	if err := controller.Watch(
+	return controller.Watch(
 		&source.Kind{Type: &clusterv1.MachineDeployment{}},
 		handler.EnqueueRequestsFromMapFunc(r.toAffinityInput),
 		predicate.Funcs{
@@ -209,10 +209,7 @@ func (r Reconciler) PopulateWatchesOnController(controller controller.Controller
 				return false
 			},
 		},
-	); err != nil {
-		return err
-	}
-	return nil
+	)
 }
 
 func (r Reconciler) fetchMachineOwnerObjects(ctx *context.ClusterContext) (map[string]clustermodule.Wrapper, error) {

@@ -380,10 +380,7 @@ func (r vmReconciler) deleteNode(ctx *context.VMContext, name string) error {
 			Name: name,
 		},
 	}
-	if err := clusterClient.Delete(ctx, node); err != nil {
-		return err
-	}
-	return nil
+	return clusterClient.Delete(ctx, node)
 }
 
 func (r vmReconciler) reconcileNormal(ctx *context.VMContext) (reconcile.Result, error) {

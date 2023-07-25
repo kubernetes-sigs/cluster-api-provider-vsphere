@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// nolint
 package integration
 
 import (
@@ -58,7 +57,7 @@ const (
 	dummyVirtualMachineImageName       = "dummy-image"
 	dummyDistributionVersion           = "dummy-distro.123"
 	dummyImageRepository               = "vmware"
-	dummyDnsVersion                    = "v1.3.1_vmware.1"
+	dummyDNSVersion                    = "v1.3.1_vmware.1"
 	dummyEtcdVersion                   = "v3.3.10_vmware.1"
 	numControlPlaneMachines            = 1
 	controlPlaneMachineClassName       = "dummy-control-plane-class"
@@ -135,18 +134,6 @@ var (
 		Resource: "namespaces",
 	}
 
-	configmapsResource = schema.GroupVersionResource{
-		Group:    "",
-		Version:  "v1",
-		Resource: "configmaps",
-	}
-
-	eventsResource = schema.GroupVersionResource{
-		Group:    "",
-		Version:  "v1",
-		Resource: "events",
-	}
-
 	virtualmachinesResource = schema.GroupVersionResource{
 		Group:    vmoprv1.SchemeGroupVersion.Group,
 		Version:  vmoprv1.SchemeGroupVersion.Version,
@@ -195,7 +182,6 @@ func TestCAPV(t *testing.T) {
 	RunSpecs(t, "CAPV Supervisor integration tests")
 }
 
-// Test suite flags
 var (
 	// configPath is the path to the e2e config file.
 	configPath string
@@ -210,7 +196,6 @@ var (
 	skipCleanup bool
 )
 
-// Test suite global vars
 var (
 	// e2eConfig to be used for this test, read from configPath.
 	e2eConfig *clusterctl.E2EConfig
@@ -337,7 +322,7 @@ func generateVirtualMachineImage() *vmoprv1.VirtualMachineImage {
 		},
 		CoreDNS: ImageVersion{
 			ImageRepository: dummyImageRepository,
-			Version:         dummyDnsVersion,
+			Version:         dummyDNSVersion,
 		},
 	}
 
@@ -426,7 +411,6 @@ func createClusterComponents(testNamespace string) *ClusterComponents {
 }
 
 func createControlPlaneComponentsList(testNamespace string) []*ControlPlaneComponents {
-
 	cpMachineNameFmt := "%s-control-plane-%d"
 	var controlPlaneComponentsList []*ControlPlaneComponents
 
@@ -624,6 +608,7 @@ func createResource(resource schema.GroupVersionResource, obj runtimeObjectWithN
 	Expect(err).NotTo(HaveOccurred(), "Error creating %s %s/%s", resource, obj.GetNamespace(), obj.GetName())
 }
 
+//nolint:unparam
 func deleteResource(resource schema.GroupVersionResource, name, namespace string, propagationPolicy *metav1.DeletionPropagation) {
 	deleteOptions := metav1.DeleteOptions{PropagationPolicy: propagationPolicy}
 	err := k8sClient.Resource(resource).Namespace(namespace).Delete(ctx, name, deleteOptions)
@@ -648,6 +633,7 @@ func updateResourceStatus(resource schema.GroupVersionResource, obj runtimeObjec
 	Expect(err).NotTo(HaveOccurred(), "Error updating status of %s %s/%s", resource, obj.GetNamespace(), obj.GetName())
 }
 
+//nolint:gocritic
 func assertEventuallyExists(resource schema.GroupVersionResource, name, ns string, ownerRef *metav1.OwnerReference) *unstructuredv1.Unstructured {
 	var obj *unstructuredv1.Unstructured
 	EventuallyWithOffset(1, func() (bool, error) {
@@ -731,7 +717,7 @@ func assertVirtualMachineState(machine *clusterv1.Machine, vm *vmoprv1.VirtualMa
 }
 
 // assertClusterEventuallyGetsControlPlaneEndpoint ensures that the cluster
-// receives a control plane endpoint that matches the expected IP address
+// receives a control plane endpoint that matches the expected IP address.
 func assertClusterEventuallyGetsControlPlaneEndpoint(clusterName, clusterNs string, ipAddress string) {
 	EventuallyWithOffset(1, func() bool {
 		vsphereCluster := &infrav1.VSphereCluster{}
@@ -783,18 +769,6 @@ func toOwnerRef(obj canBeReferenced) *metav1.OwnerReference {
 		Kind:       obj.GroupVersionKind().Kind,
 		Name:       obj.GetName(),
 		UID:        obj.GetUID(),
-	}
-}
-
-func toControllerOwnerRef(obj canBeReferenced) *metav1.OwnerReference {
-	ptrBool := true
-	return &metav1.OwnerReference{
-		APIVersion:         obj.GroupVersionKind().GroupVersion().String(),
-		Kind:               obj.GroupVersionKind().Kind,
-		Name:               obj.GetName(),
-		UID:                obj.GetUID(),
-		Controller:         &ptrBool,
-		BlockOwnerDeletion: &ptrBool,
 	}
 }
 

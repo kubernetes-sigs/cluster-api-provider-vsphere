@@ -35,10 +35,8 @@ BIN_DIR := bin
 SRCS := go.mod go.sum
 
 # Binaries.
-GOLANGCI_LINT := $(BIN_DIR)/golangci-lint
 CONVERSION_GEN := $(BIN_DIR)/conversion-gen
 KIND := $(BIN_DIR)/kind
-GOVC := $(BIN_DIR)/govc
 GINKGO := $(BIN_DIR)/ginkgo
 CONVERSION_VERIFIER := $(BIN_DIR)/conversion-verifier
 APIDIFF := $(BIN_DIR)/go-apidiff
@@ -62,14 +60,6 @@ $(CONVERSION_GEN): go.mod
 ginkgo: $(GINKGO) $(SRCS)
 $(GINKGO): go.mod
 	go build -tags=tools -o $@ github.com/onsi/ginkgo/ginkgo
-
-golangci-lint: $(GOLANGCI_LINT) $(SRCS) ## Build golangci-lint
-$(GOLANGCI_LINT): go.mod
-	go build -tags=tools -o $@ github.com/golangci/golangci-lint/cmd/golangci-lint
-
-govc: $(GOVC) $(SRCS)
-$(GOVC): go.mod
-	go build -tags=tools -o $@ github.com/vmware/govmomi/govc
 
 kind: $(KIND) $(SRCS)
 $(KIND): go.mod

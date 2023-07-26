@@ -163,8 +163,8 @@ github.com/elazarl/goproxy v0.0.0-20170405201442-c4fc26588b6e/go.mod h1:/Zj4wYkg
 github.com/elazarl/goproxy v0.0.0-20180725130230-947c36da3153/go.mod h1:/Zj4wYkgs4iZTTu3o/KG3Itv/qCCa8VVMlb3i9OVuzc=
 github.com/emicklei/go-restful v0.0.0-20170410110728-ff4f55a20633/go.mod h1:otzb+WCGbkyDHkqmQmT5YD2WR4BBwUdeQoFo8l/7tVs=
 github.com/emicklei/go-restful v2.9.5+incompatible/go.mod h1:otzb+WCGbkyDHkqmQmT5YD2WR4BBwUdeQoFo8l/7tVs=
-github.com/emicklei/go-restful/v3 v3.9.0 h1:XwGDlfxEnQZzuopoqxwSEllNcCOM9DhhFyhFIIGKwxE=
-github.com/emicklei/go-restful/v3 v3.9.0/go.mod h1:6n3XBCmQQb25CM2LCACGz8ukIrRry+4bhvbpWn3mrbc=
+github.com/emicklei/go-restful/v3 v3.10.2 h1:hIovbnmBTLjHXkqEBUz3HGpXZdM7ZrE9fJIZIqlJLqE=
+github.com/emicklei/go-restful/v3 v3.10.2/go.mod h1:6n3XBCmQQb25CM2LCACGz8ukIrRry+4bhvbpWn3mrbc=
 github.com/envoyproxy/go-control-plane v0.9.0/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/go-control-plane v0.9.1-0.20191026205805-5f8ba28d4473/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/go-control-plane v0.9.4/go.mod h1:6rpuAdCZL397s3pYoYcLgu1mIlRU8Am5FuJP05cCM98=
@@ -1164,10 +1164,10 @@ rsc.io/binaryregexp v0.2.0/go.mod h1:qTv7/COck+e2FymRvadv62gMdZztPaShugOCi3I+8D8
 rsc.io/quote/v3 v3.1.0/go.mod h1:yEA65RcK8LyAZtP9Kv3t0HmxON59tX3rD+tICJqUlj0=
 rsc.io/sampler v1.3.0/go.mod h1:T1hPZKmBbMNahiBKFy5HrXp6adAjACjK9JXDnKaTXpA=
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.15/go.mod h1:LEScyzhFmoF5pso/YSeBstl57mOzx9xlU9n85RGrDQg=
-sigs.k8s.io/cluster-api v1.5.0-rc.1 h1:pLaRjFlknMWMKzippA+Dm2HXmONubAicSujFhsO2pzo=
-sigs.k8s.io/cluster-api v1.5.0-rc.1/go.mod h1:ZSEP01t8oT6104gB4ljsOwwp5uJcI8SWy8IFp2HUvrc=
-sigs.k8s.io/cluster-api/test v1.5.0-rc.1 h1:jFqe7FH0z9dbuHUADHKLrDlc8TLeLFFCETlNOhSU4Q0=
-sigs.k8s.io/cluster-api/test v1.5.0-rc.1/go.mod h1:jcB/RQqtF8Od75DKWEoVVxWv9/n6wKuTQO63ILJJTQg=
+sigs.k8s.io/cluster-api v1.5.0 h1:pwXvzScbAwnrB7EWHTApzW+VQfrj2OSrWAQDC9+bcbU=
+sigs.k8s.io/cluster-api v1.5.0/go.mod h1:ZSEP01t8oT6104gB4ljsOwwp5uJcI8SWy8IFp2HUvrc=
+sigs.k8s.io/cluster-api/test v1.5.0 h1:ePfrh7S+eaVWy+D0ca4AjzhBqrhXxRE9NTr5te4hCa0=
+sigs.k8s.io/cluster-api/test v1.5.0/go.mod h1:Ii5Mh9oVq7QJEtiUkGg9mM2qojjWxvsqmL8TMlwZViM=
 sigs.k8s.io/controller-runtime v0.9.0/go.mod h1:TgkfvrhhEw3PlI0BRL/5xM+89y3/yc0ZDfdbTl84si8=
 sigs.k8s.io/controller-runtime v0.15.0 h1:ML+5Adt3qZnMSYxZ7gAverBLNPSMQEibtzAgp0UPojU=
 sigs.k8s.io/controller-runtime v0.15.0/go.mod h1:7ngYvp1MLT+9GeZ+6lH3LOlcHkp/+tzA/fmHa4iq9kk=

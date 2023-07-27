@@ -121,6 +121,13 @@ func (r ClusterReconciler) Reconcile(_ goctx.Context, req ctrl.Request) (_ ctrl.
 		return reconcile.Result{}, nil
 	}
 
+	// If the VSphereCluster doesn't have our finalizer, add it.
+	// Requeue immediately after adding finalizer to avoid the race condition between init and delete
+	if !controllerutil.ContainsFinalizer(vsphereCluster, vmwarev1.ClusterFinalizer) {
+		controllerutil.AddFinalizer(vsphereCluster, vmwarev1.ClusterFinalizer)
+		return ctrl.Result{}, nil
+	}
+
 	// Handle non-deleted clusters
 	return ctrl.Result{}, r.reconcileNormal(clusterContext)
 }
@@ -146,9 +153,6 @@ func (r *ClusterReconciler) reconcileDelete(ctx *vmware.ClusterContext) {
 
 func (r *ClusterReconciler) reconcileNormal(ctx *vmware.ClusterContext) error {
 	ctx.Logger.Info("Reconciling vsphereCluster")
-
-	// If the vsphereCluster doesn't have our finalizer, add it.
-	controllerutil.AddFinalizer(ctx.VSphereCluster, vmwarev1.ClusterFinalizer)
 
 	// Get any failure domains to report back to the CAPI core controller.
 	failureDomains, err := r.getFailureDomains(ctx)

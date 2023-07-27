@@ -280,6 +280,15 @@ func (r vmReconciler) Reconcile(ctx goctx.Context, req ctrl.Request) (_ ctrl.Res
 		}
 	}
 
+	if vsphereVM.ObjectMeta.DeletionTimestamp.IsZero() {
+		// If the VSphereVM doesn't have our finalizer, add it.
+		// Requeue immediately to avoid the race condition between init and delete
+		if !ctrlutil.ContainsFinalizer(vsphereVM, infrav1.VMFinalizer) {
+			ctrlutil.AddFinalizer(vsphereVM, infrav1.VMFinalizer)
+			return reconcile.Result{}, nil
+		}
+	}
+
 	return r.reconcile(vmContext, fetchClusterModuleInput{
 		VSphereCluster: vsphereCluster,
 		Machine:        machine,
@@ -372,8 +381,6 @@ func (r vmReconciler) reconcileNormal(ctx *context.VMContext) (reconcile.Result,
 		r.Logger.Info("VM is failed, won't reconcile", "namespace", ctx.VSphereVM.Namespace, "name", ctx.VSphereVM.Name)
 		return reconcile.Result{}, nil
 	}
-	// If the VSphereVM doesn't have our finalizer, add it.
-	ctrlutil.AddFinalizer(ctx.VSphereVM, infrav1.VMFinalizer)
 
 	if r.isWaitingForStaticIPAllocation(ctx) {
 		conditions.MarkFalse(ctx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.WaitingForStaticIPAllocationReason, clusterv1.ConditionSeverityInfo, "")

@@ -127,6 +127,13 @@ func (r clusterReconciler) Reconcile(_ goctx.Context, req ctrl.Request) (_ ctrl.
 		return r.reconcileDelete(clusterContext)
 	}
 
+	// If the VSphereCluster doesn't have our finalizer, add it.
+	// Requeue immediately after adding finalizer to avoid the race condition between init and delete
+	if !ctrlutil.ContainsFinalizer(vsphereCluster, infrav1.ClusterFinalizer) {
+		ctrlutil.AddFinalizer(vsphereCluster, infrav1.ClusterFinalizer)
+		return reconcile.Result{}, nil
+	}
+
 	// Handle non-deleted clusters
 	return r.reconcileNormal(clusterContext)
 }
@@ -216,9 +223,6 @@ func (r clusterReconciler) reconcileDelete(ctx *context.ClusterContext) (reconci
 
 func (r clusterReconciler) reconcileNormal(ctx *context.ClusterContext) (reconcile.Result, error) {
 	ctx.Logger.Info("Reconciling VSphereCluster")
-
-	// If the VSphereCluster doesn't have our finalizer, add it.
-	ctrlutil.AddFinalizer(ctx.VSphereCluster, infrav1.ClusterFinalizer)
 
 	ok, err := r.reconcileDeploymentZones(ctx)
 	if err != nil {

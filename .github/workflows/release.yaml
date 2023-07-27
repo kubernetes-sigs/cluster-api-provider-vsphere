@@ -28,7 +28,7 @@ jobs:
           go-version: ${{ env.go_version }}
       - name: generate release artifacts
         run: |
-          make release-manifests VERSION=${RELEASE_TAG}
+          make release
       - name: generate release notes
         run: |
           make generate-release-notes

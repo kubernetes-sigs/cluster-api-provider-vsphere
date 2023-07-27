@@ -52,18 +52,19 @@ you will need the following:
 If you are using Google Cloud, and have installed gcloud and set up Docker
 authentication, there is no more for you to do.
 
-Otherwise, set the `DEV_REGISTRY` environment variable to the OCI repository
+Otherwise, set the `REGISTRY` environment variable to the OCI repository
 you want test images uploaded to.
 
 The following environment variables are supported for configuration:
 
 ```shell
 export VERSION ?= $(shell cat clusterctl-settings.json | jq .config.nextVersion -r)
-export IMAGE_NAME ?= manager
 export PULL_POLICY ?= Always
-export DEV_REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
-export DEV_CONTROLLER_IMG ?= $(DEV_REGISTRY)/vsphere-$(IMAGE_NAME)
-export DEV_TAG ?= dev
+export IMAGE_NAME ?= cluster-api-vsphere-controller
+export REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
+export CONTROLLER_IMG ?= $(REGISTRY)/$(IMAGE_NAME)
+export TAG ?= dev
+export ARCH ?= $(shell go env GOARCH)
 ```
 
 ### Building images
@@ -71,7 +72,8 @@ export DEV_TAG ?= dev
 The following make targets build and push a test image to your repository:
 
 ``` shell
-make docker-push
+make docker-build DOCKER_BUILD_MODIFY_MANIFESTS=false
+make docker-push-all ALL_ARCH=$(go env GOARCH)
 ```
 
 ### Generating clusterctl overrides

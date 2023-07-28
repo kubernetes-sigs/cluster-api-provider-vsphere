@@ -41,9 +41,16 @@ export KUBEBUILDER_ENVTEST_KUBERNETES_VERSION ?= 1.23.3
 # Directories
 ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 BIN_DIR := $(ROOT_DIR)/bin
-TOOLS_DIR := $(ROOT_DIR)/hack/tools
-TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
+TOOLS_BIN_DIR := $(ROOT_DIR)/hack/tools/bin
 export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
+
+# Set --output-base for conversion-gen if we are not within GOPATH
+ifneq ($(abspath $(ROOT_DIR)),$(shell go env GOPATH)/src/sigs.k8s.io/cluster-api-provider-vsphere)
+	OUTPUT_BASE := --output-base=$(ROOT_DIR)
+else
+	export GOPATH := $(shell go env GOPATH)
+endif
+
 FLAVOR_DIR := $(ROOT_DIR)/templates
 
 E2E_CONF_FILE  ?= "$(abspath test/e2e/config/vsphere-dev.yaml)"
@@ -56,41 +63,75 @@ CLUSTERCTL := $(BIN_DIR)/clusterctl
 
 # Tooling binaries
 GO_INSTALL := ./hack/go-install.sh
+GO_TOOLS_BUILD := ./hack/go-tools-build.sh
+
+# Helper function to get dependency version from go.mod
+get_go_version = $(shell go list -m $1 | awk '{print $$NF}')
+
+#
+# Binaries.
+#
+# Note: Need to use abspath so we can invoke these from subdirectories
+KUSTOMIZE_VER := v4.5.2
+KUSTOMIZE_BIN := kustomize
+KUSTOMIZE := $(abspath $(TOOLS_BIN_DIR)/$(KUSTOMIZE_BIN)-$(KUSTOMIZE_VER))
+KUSTOMIZE_PKG := sigs.k8s.io/kustomize/kustomize/v4
+
+SETUP_ENVTEST_VER := 116a1b831fffe7ccc3c8145306c3e1a3b1b14ffa # Note: this matches the commit ID of the dependent controller-runtime module.
+SETUP_ENVTEST_BIN := setup-envtest
+SETUP_ENVTEST := $(abspath $(TOOLS_BIN_DIR)/$(SETUP_ENVTEST_BIN)-$(SETUP_ENVTEST_VER))
+SETUP_ENVTEST_PKG := sigs.k8s.io/controller-runtime/tools/setup-envtest
 
 CONTROLLER_GEN_VER := v0.12.1
 CONTROLLER_GEN_BIN := controller-gen
 CONTROLLER_GEN := $(abspath $(TOOLS_BIN_DIR)/$(CONTROLLER_GEN_BIN)-$(CONTROLLER_GEN_VER))
 CONTROLLER_GEN_PKG := sigs.k8s.io/controller-tools/cmd/controller-gen
 
-GOVC_VER := $(shell cat go.mod | grep "github.com/vmware/govmomi" | awk '{print $$NF}')
-GOVC_BIN := govc
-GOVC := $(abspath $(TOOLS_BIN_DIR)/$(GOVC_BIN)-$(GOVC_VER))
-GOVC_PKG := github.com/vmware/govmomi/govc
+CONVERSION_GEN_VER := v0.27.1
+CONVERSION_GEN_BIN := conversion-gen
+# We are intentionally using the binary without version suffix, to avoid the version
+# in generated files.
+CONVERSION_GEN := $(abspath $(TOOLS_BIN_DIR)/$(CONVERSION_GEN_BIN))
+CONVERSION_GEN_PKG := k8s.io/code-generator/cmd/conversion-gen
 
-KUSTOMIZE_VER := v4.5.2
-KUSTOMIZE_BIN := kustomize
-KUSTOMIZE := $(abspath $(TOOLS_BIN_DIR)/$(KUSTOMIZE_BIN)-$(KUSTOMIZE_VER))
-KUSTOMIZE_PKG := sigs.k8s.io/kustomize/kustomize/v4
+GO_APIDIFF_VER := v0.6.0
+GO_APIDIFF_BIN := go-apidiff
+GO_APIDIFF := $(abspath $(TOOLS_BIN_DIR)/$(GO_APIDIFF_BIN)-$(GO_APIDIFF_VER))
+GO_APIDIFF_PKG := github.com/joelanford/go-apidiff
+
+GINKGO_BIN := ginkgo
+GINGKO_VER := $(call get_go_version,github.com/onsi/ginkgo/v2)
+GINKGO := $(abspath $(TOOLS_BIN_DIR)/$(GINKGO_BIN)-$(GINGKO_VER))
+GINKGO_PKG := github.com/onsi/ginkgo/v2/ginkgo
 
 GOLANGCI_LINT_BIN := golangci-lint
 GOLANGCI_LINT_VER := $(shell cat .github/workflows/golangci-lint.yaml | grep [[:space:]]version: | sed 's/.*version: //')
 GOLANGCI_LINT := $(abspath $(TOOLS_BIN_DIR)/$(GOLANGCI_LINT_BIN)-$(GOLANGCI_LINT_VER))
 GOLANGCI_LINT_PKG := github.com/golangci/golangci-lint/cmd/golangci-lint
 
-CONVERSION_GEN := $(TOOLS_BIN_DIR)/conversion-gen
-GINKGO := $(TOOLS_BIN_DIR)/ginkgo
-KIND := $(TOOLS_BIN_DIR)/kind
-SETUP_ENVTEST := $(abspath $(TOOLS_BIN_DIR)/setup-envtest)
-CONVERSION_VERIFIER := $(abspath $(TOOLS_BIN_DIR)/conversion-verifier)
-GO_APIDIFF := $(TOOLS_BIN_DIR)/go-apidiff
-RELEASE_NOTES := $(TOOLS_BIN_DIR)/release-notes
-TOOLING_BINARIES := $(CONVERSION_GEN) $(GINKGO) $(KIND) $(CONVERSION_VERIFIER) $(GO_APIDIFF) $(RELEASE_NOTES)
-ARTIFACTS ?= $(ROOT_DIR)/_artifacts
+GOVC_VER := $(shell cat go.mod | grep "github.com/vmware/govmomi" | awk '{print $$NF}')
+GOVC_BIN := govc
+GOVC := $(abspath $(TOOLS_BIN_DIR)/$(GOVC_BIN)-$(GOVC_VER))
+GOVC_PKG := github.com/vmware/govmomi/govc
 
-# Set --output-base for conversion-gen if we are not within GOPATH
-ifneq ($(abspath $(ROOT_DIR)),$(shell go env GOPATH)/src/sigs.k8s.io/cluster-api-provider-vsphere)
-	OUTPUT_BASE := --output-base=$(ROOT_DIR)
-endif
+KIND_VER := $(call get_go_version,sigs.k8s.io/kind)
+KIND_BIN := kind
+KIND := $(abspath $(TOOLS_BIN_DIR)/$(KIND_BIN)-$(KIND_VER))
+KIND_PKG := sigs.k8s.io/kind
+
+CAPI_HACK_TOOLS_VER := 4abf44cd85c4590602e4c10543d53cd4ec914845 # Note: this is the commit ID of the dependend CAPI release tag, currently v1.5.0
+
+CONVERSION_VERIFIER_VER := $(CAPI_HACK_TOOLS_VER)
+CONVERSION_VERIFIER_BIN := conversion-verifier
+CONVERSION_VERIFIER := $(abspath $(TOOLS_BIN_DIR)/$(CONVERSION_VERIFIER_BIN)-$(CONVERSION_VERIFIER_VER))
+CONVERSION_VERIFIER_PKG := sigs.k8s.io/cluster-api/hack/tools/conversion-verifier
+
+RELEASE_NOTES_VER := $(CAPI_HACK_TOOLS_VER)
+RELEASE_NOTES_BIN := release-notes
+RELEASE_NOTES := $(abspath $(TOOLS_BIN_DIR)/$(RELEASE_NOTES_BIN)-$(RELEASE_NOTES_VER))
+RELEASE_NOTES_PKG := sigs.k8s.io/cluster-api/hack/tools/release
+
+ARTIFACTS ?= $(ROOT_DIR)/_artifacts
 
 # Allow overriding manifest generation destination directory
 MANIFEST_ROOT ?= ./config
@@ -146,7 +187,7 @@ LDFLAGS := $(shell hack/version.sh)
 ## --------------------------------------
 
 help: ## Display this help
-	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z0-9_-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[0-9A-Za-z_-]+:.*?##/ { printf "  \033[36m%-50s\033[0m %s\n", $$1, $$2 } /^\$$\([0-9A-Za-z_-]+\):.*?##/ { gsub("_","-", $$1); printf "  \033[36m%-50s\033[0m %s\n", tolower(substr($$1, 3, length($$1)-7)), $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
 ## --------------------------------------
 ## Testing
@@ -156,7 +197,7 @@ KUBEBUILDER_ASSETS ?= $(shell $(SETUP_ENVTEST) use --use-env -p path $(KUBEBUILD
 
 .PHONY: test
 test: $(SETUP_ENVTEST) $(GOVC)
-	$(MAKE) generate lint-go
+	$(MAKE) generate
 	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" GOVC_BIN_PATH=$(GOVC) go test -v ./apis/... ./controllers/... ./pkg/... $(TEST_ARGS)
 
 
@@ -237,42 +278,6 @@ clusterctl: $(CLUSTERCTL) ## Build clusterctl binary
 $(CLUSTERCTL): go.mod
 	go build -o $@ sigs.k8s.io/cluster-api/cmd/clusterctl
 
-$(SETUP_ENVTEST): $(TOOLS_DIR)/go.mod # Build setup-envtest from tools folder.
-	cd $(TOOLS_DIR); go build -tags=tools -o $(TOOLS_BIN_DIR)/setup-envtest sigs.k8s.io/controller-runtime/tools/setup-envtest
-
-## --------------------------------------
-## Tooling Binaries
-## --------------------------------------
-tools: $(TOOLING_BINARIES) ## Build tooling binaries
-.PHONY: $(TOOLING_BINARIES)
-$(TOOLING_BINARIES):
-	make -C $(TOOLS_DIR) $(@F)
-
-$(CONTROLLER_GEN): # Build CONTROLLER_GEN from tools folder.
-	CGO_ENABLED=0 GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(CONTROLLER_GEN_PKG) $(CONTROLLER_GEN_BIN) $(CONTROLLER_GEN_VER)
-
-.PHONY: $(CONTROLLER_GEN_BIN)
-$(CONTROLLER_GEN_BIN): $(CONTROLLER_GEN) ## Build a local copy of controller-gen.
-
-
-$(GOVC): # Build GOVC from tools folder.
-	CGO_ENABLED=0 GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GOVC_PKG) $(GOVC_BIN) $(GOVC_VER)
-
-.PHONY: $(GOVC_BIN)
-$(GOVC_BIN): $(GOVC) ## Build a local copy of govc.
-
-$(KUSTOMIZE): # Build kustomize from tools folder.
-	CGO_ENABLED=0 GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(KUSTOMIZE_PKG) $(KUSTOMIZE_BIN) $(KUSTOMIZE_VER)
-
-.PHONY: $(KUSTOMIZE_BIN)
-$(KUSTOMIZE_BIN): $(KUSTOMIZE) ## Build a local copy of kustomize.
-
-.PHONY: $(GOLANGCI_LINT_BIN)
-$(GOLANGCI_LINT_BIN): $(GOLANGCI_LINT) ## Build a local copy of golangci-lint.
-
-$(GOLANGCI_LINT): # Build golangci-lint from tools folder.
-	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GOLANGCI_LINT_PKG) $(GOLANGCI_LINT_BIN) $(GOLANGCI_LINT_VER)
-
 ## --------------------------------------
 ## Linting and fixing linter errors
 ## --------------------------------------
@@ -317,7 +322,6 @@ apidiff: $(GO_APIDIFF) ## Run the apidiff tool
 .PHONY: modules
 modules: ## Runs go mod to ensure proper vendoring
 	go mod tidy
-	cd $(TOOLS_DIR); go mod tidy
 
 .PHONY: generate
 generate: ## Generate code
@@ -421,7 +425,7 @@ manifests:  $(STAGE)-version-check $(STAGE)-flavors $(MANIFEST_DIR) $(BUILD_DIR)
 	"$(KUSTOMIZE)" build $(BUILD_DIR)/config/supervisor > $(MANIFEST_DIR)/infrastructure-components-supervisor.yaml
 
 .PHONY: generate-release-notes
-generate-release-notes: $(RELEASE_NOTES_DIR) $(TOOLING_BINARIES)
+generate-release-notes: $(RELEASE_NOTES_DIR)
 	if [ -n "${PRE_RELEASE}" ]; then \
 	echo ":rotating_light: This is a RELEASE CANDIDATE. Use it only for testing purposes. If you find any bugs, file an [issue](https://github.com/kubernetes-sigs/cluster-api/issues/new)." > $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md; \
 	else \
@@ -457,7 +461,7 @@ verify-gen: generate  ## Verfiy go generated files are up to date
 
 .PHONY: verify-modules
 verify-modules: modules  ## Verify go modules are up to date
-	@if !(git diff --quiet HEAD -- go.sum go.mod $(TOOLS_DIR)/go.mod $(TOOLS_DIR)/go.sum); then \
+	@if !(git diff --quiet HEAD -- go.sum go.mod); then \
 		git diff; \
 		echo "go module files are out of date"; exit 1; \
 	fi
@@ -505,7 +509,7 @@ clean-build:
 .PHONY: clean-bin
 clean-bin: ## Remove all generated binaries
 	rm -rf bin
-	$(MAKE) -C $(TOOLS_DIR) clean
+	rm -rf $(TOOLS_BIN_DIR)
 
 .PHONY: clean-temporary
 clean-temporary: ## Remove all temporary files and folders
@@ -547,6 +551,88 @@ docker-push: ## Push the docker image
 		--pull --build-arg ldflags="$(LDFLAGS)" \
 		-t $(DEV_CONTROLLER_IMG):$(DEV_TAG) .
 	docker buildx rm capv
+
+
+## --------------------------------------
+## Hack / Tools
+## --------------------------------------
+
+##@ hack/tools:
+
+.PHONY: $(CONTROLLER_GEN_BIN)
+$(CONTROLLER_GEN_BIN): $(CONTROLLER_GEN) ## Build a local copy of controller-gen.
+
+.PHONY: $(CONVERSION_GEN_BIN)
+$(CONVERSION_GEN_BIN): $(CONVERSION_GEN) ## Build a local copy of conversion-gen.
+
+.PHONY: $(GO_APIDIFF_BIN)
+$(GO_APIDIFF_BIN): $(GO_APIDIFF) ## Build a local copy of go-apidiff
+
+.PHONY: $(KUSTOMIZE_BIN)
+$(KUSTOMIZE_BIN): $(KUSTOMIZE) ## Build a local copy of kustomize.
+
+.PHONY: $(SETUP_ENVTEST_BIN)
+$(SETUP_ENVTEST_BIN): $(SETUP_ENVTEST) ## Build a local copy of setup-envtest.
+
+.PHONY: $(GINKGO_BIN)
+$(GINKGO_BIN): $(GINKGO) ## Build a local copy of ginkgo.
+
+.PHONY: $(GOLANGCI_LINT_BIN)
+$(GOLANGCI_LINT_BIN): $(GOLANGCI_LINT) ## Build a local copy of golangci-lint.
+
+.PHONY: $(GOVC_BIN)
+$(GOVC_BIN): $(GOVC) ## Build a local copy of govc.
+
+.PHONY: $(KIND_BIN)
+$(KIND_BIN): $(KIND) ## Build a local copy of kind.
+
+.PHONY: $(CONVERSION_VERIFIER_BIN)
+$(CONVERSION_VERIFIER_BIN): $(CONVERSION_VERIFIER) ## Build a local copy of conversion-verifier.
+
+.PHONY: $(RELEASE_NOTES_BIN)
+$(RELEASE_NOTES_BIN): $(RELEASE_NOTES) ## Build a local copy of release-notes.
+
+$(CONTROLLER_GEN): # Build CONTROLLER_GEN.
+	CGO_ENABLED=0 GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(CONTROLLER_GEN_PKG) $(CONTROLLER_GEN_BIN) $(CONTROLLER_GEN_VER)
+
+## We are forcing a rebuilt of conversion-gen via PHONY so that we're always using an up-to-date version.
+## We can't use a versioned name for the binary, because that would be reflected in generated files.
+.PHONY: $(CONVERSION_GEN)
+$(CONVERSION_GEN): # Build conversion-gen.
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(CONVERSION_GEN_PKG) $(CONVERSION_GEN_BIN) $(CONVERSION_GEN_VER)
+
+$(GO_APIDIFF): # Build go-apidiff.
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GO_APIDIFF_PKG) $(GO_APIDIFF_BIN) $(GO_APIDIFF_VER)
+
+$(KUSTOMIZE): # Build kustomize.
+	CGO_ENABLED=0 GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(KUSTOMIZE_PKG) $(KUSTOMIZE_BIN) $(KUSTOMIZE_VER)
+
+$(SETUP_ENVTEST): # Build setup-envtest.
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(SETUP_ENVTEST_PKG) $(SETUP_ENVTEST_BIN) $(SETUP_ENVTEST_VER)
+
+$(GINKGO): # Build ginkgo.
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GINKGO_PKG) $(GINKGO_BIN) $(GINGKO_VER)
+
+$(GOLANGCI_LINT): # Build golangci-lint.
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GOLANGCI_LINT_PKG) $(GOLANGCI_LINT_BIN) $(GOLANGCI_LINT_VER)
+
+$(GOVC): # Build GOVC.
+	CGO_ENABLED=0 GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GOVC_PKG) $(GOVC_BIN) $(GOVC_VER)
+
+$(KIND): # Build kind.
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(KIND_PKG) $(KIND_BIN) $(KIND_VER)
+
+$(CONVERSION_VERIFIER): # Build conversion-verifier.
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_TOOLS_BUILD) $(CONVERSION_VERIFIER_PKG) $(CONVERSION_VERIFIER_BIN) $(CONVERSION_VERIFIER_VER)
+
+$(RELEASE_NOTES): # Build release-notes.
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_TOOLS_BUILD) $(RELEASE_NOTES_PKG) $(RELEASE_NOTES_BIN) $(RELEASE_NOTES_VER)
+
+## --------------------------------------
+## Helpers
+## --------------------------------------
+
+##@ helpers:
 
 go-version: ## Print the go version we use to compile our binaries and images
 	@echo $(GO_VERSION)

@@ -20,10 +20,9 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"net/http"
-	"net/http/pprof"
 	"os"
 	"reflect"
+	goruntime "runtime"
 	"time"
 
 	"github.com/spf13/pflag"
@@ -36,6 +35,7 @@ import (
 	logsv1 "k8s.io/component-base/logs/api/v1"
 	_ "k8s.io/component-base/logs/json/register"
 	"k8s.io/klog/v2"
+	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util/flags"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
@@ -54,13 +54,21 @@ import (
 )
 
 var (
-	setupLog   = ctrl.Log.WithName("entrypoint")
-	logOptions = logs.NewOptions()
+	setupLog       = ctrl.Log.WithName("entrypoint")
+	logOptions     = logs.NewOptions()
+	controllerName = "cluster-api-vsphere-manager"
 
-	managerOpts     manager.Options
-	webhookOpts     webhook.Options
-	syncPeriod      time.Duration
-	profilerAddress string
+	enableContentionProfiling   bool
+	leaderElectionLeaseDuration time.Duration
+	leaderElectionRenewDeadline time.Duration
+	leaderElectionRetryPeriod   time.Duration
+	managerOpts                 manager.Options
+	profilerAddress             string
+	restConfigBurst             int
+	restConfigQPS               float32
+	syncPeriod                  time.Duration
+	webhookOpts                 webhook.Options
+	watchNamespace              string
 
 	tlsOptions = flags.TLSOptions{}
 
@@ -73,86 +81,99 @@ var (
 	defaultKeepAliveDuration = constants.DefaultKeepAliveDuration
 )
 
-var namespace string
-
 // InitFlags initializes the flags.
 func InitFlags(fs *pflag.FlagSet) {
-	logsv1.AddFlags(logOptions, fs)
+	// Flags specific to CAPV
 
-	flag.StringVar(
-		&managerOpts.MetricsBindAddress,
-		"metrics-bind-addr",
-		"localhost:8080",
-		"The address the metric endpoint binds to.")
-	flag.BoolVar(
-		&managerOpts.LeaderElection,
-		"leader-elect",
-		true,
-		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
-	flag.StringVar(
+	fs.StringVar(
 		&managerOpts.LeaderElectionID,
 		"leader-election-id",
 		defaultLeaderElectionID,
 		"Name of the config map to use as the locking resource when configuring leader election.")
-	flag.StringVar(
-		&namespace,
-		"namespace",
-		"",
-		"Namespace that the controller watches to reconcile cluster-api objects. If unspecified, the controller watches for cluster-api objects across all namespaces.")
-	flag.StringVar(
-		&profilerAddress,
-		"profiler-address",
-		defaultProfilerAddr,
-		"Bind address to expose the pprof profiler (e.g. localhost:6060)")
-	flag.DurationVar(
-		&syncPeriod,
-		"sync-period",
-		defaultSyncPeriod,
-		"The interval at which cluster-api objects are synchronized")
-	flag.IntVar(
+
+	fs.IntVar(
 		&managerOpts.MaxConcurrentReconciles,
 		"max-concurrent-reconciles",
 		10,
 		"The maximum number of allowed, concurrent reconciles.")
-	flag.StringVar(
+
+	fs.StringVar(
 		&managerOpts.PodName,
 		"pod-name",
 		defaultPodName,
 		"The name of the pod running the controller manager.")
-	flag.IntVar(
-		&webhookOpts.Port,
-		"webhook-port",
-		defaultWebhookPort,
-		"Webhook Server port (set to 0 to disable)")
-	flag.StringVar(
-		&managerOpts.HealthProbeBindAddress,
-		"health-addr",
-		":9440",
-		"The address the health endpoint binds to.",
-	)
-	flag.StringVar(
+
+	fs.StringVar(
 		&managerOpts.CredentialsFile,
 		"credentials-file",
 		"/etc/capv/credentials.yaml",
 		"path to CAPV's credentials file",
 	)
-	flag.BoolVar(
+	fs.BoolVar(
 		&managerOpts.EnableKeepAlive,
 		"enable-keep-alive",
 		defaultEnableKeepAlive,
 		"feature to enable keep alive handler in vsphere sessions. This functionality is enabled by default.")
-	flag.DurationVar(
+	fs.DurationVar(
 		&managerOpts.KeepAliveDuration,
 		"keep-alive-duration",
 		defaultKeepAliveDuration,
 		"idle time interval(minutes) in between send() requests in keepalive handler",
 	)
-	flag.StringVar(
+	fs.StringVar(
 		&managerOpts.NetworkProvider,
 		"network-provider",
 		"",
 		"network provider to be used by Supervisor based clusters.",
 	)
+
+	// Flags common between CAPI and CAPV
+
+	logsv1.AddFlags(logOptions, fs)
+
+	fs.StringVar(&managerOpts.MetricsBindAddress, "metrics-bind-addr", "localhost:8080",
+		"The address the metric endpoint binds to.")
+
+	fs.BoolVar(&managerOpts.LeaderElection, "leader-elect", true,
+		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
+
+	fs.DurationVar(&leaderElectionLeaseDuration, "leader-elect-lease-duration", 15*time.Second,
+		"Interval at which non-leader candidates will wait to force acquire leadership (duration string)")
+
+	fs.DurationVar(&leaderElectionRenewDeadline, "leader-elect-renew-deadline", 10*time.Second,
+		"Duration that the leading controller manager will retry refreshing leadership before giving up (duration string)")
+
+	fs.DurationVar(&leaderElectionRetryPeriod, "leader-elect-retry-period", 2*time.Second,
+		"Duration the LeaderElector clients should wait between tries of actions (duration string)")
+
+	fs.StringVar(&watchNamespace, "namespace", "",
+		"Namespace that the controller watches to reconcile cluster-api objects. If unspecified, the controller watches for cluster-api objects across all namespaces.")
+
+	fs.StringVar(&managerOpts.PprofBindAddress, "profiler-address", defaultProfilerAddr,
+		"Bind address to expose the pprof profiler (e.g. localhost:6060)")
+
+	fs.BoolVar(&enableContentionProfiling, "contention-profiling", false,
+		"Enable block profiling, if profiler-address is set.")
+
+	fs.DurationVar(&syncPeriod, "sync-period", defaultSyncPeriod,
+		"The minimum interval at which watched resources are reconciled (e.g. 15m)")
+
+	fs.Float32Var(&restConfigQPS, "kube-api-qps", 20,
+		"Maximum queries per second from the controller client to the Kubernetes API server. Defaults to 20")
+
+	fs.IntVar(&restConfigBurst, "kube-api-burst", 30,
+		"Maximum number of queries that should be allowed in one burst from the controller client to the Kubernetes API server. Default 30")
+
+	fs.IntVar(&webhookOpts.Port, "webhook-port", defaultWebhookPort,
+		"Webhook Server port")
+
+	fs.StringVar(&webhookOpts.CertDir, "webhook-cert-dir", "/tmp/k8s-webhook-server/serving-certs/",
+		"Webhook cert dir, only used when webhook-port is specified.")
+
+	fs.StringVar(&managerOpts.HealthProbeBindAddress, "health-addr", ":9440",
+		"The address the health endpoint binds to.",
+	)
+
 	flags.AddTLSOptions(fs, &tlsOptions)
 
 	feature.MutableGates.AddFlag(fs)
@@ -176,22 +197,28 @@ func main() {
 	// klog.Background will automatically use the right logger.
 	ctrl.SetLogger(klog.Background())
 
-	if namespace != "" {
-		managerOpts.Cache.Namespaces = []string{namespace}
+	managerOpts.KubeConfig = ctrl.GetConfigOrDie()
+	managerOpts.KubeConfig.QPS = restConfigQPS
+	managerOpts.KubeConfig.Burst = restConfigBurst
+	managerOpts.KubeConfig.UserAgent = remote.DefaultClusterAPIUserAgent(controllerName)
+
+	if watchNamespace != "" {
+		managerOpts.Cache.Namespaces = []string{watchNamespace}
 		setupLog.Info(
 			"Watching objects only in namespace for reconciliation",
-			"namespace", namespace)
+			"namespace", watchNamespace)
 	}
 
-	if profilerAddress != "" {
-		setupLog.Info(
-			"Profiler listening for requests",
-			"profiler-address", profilerAddress)
-		go runProfiler(profilerAddress)
+	if profilerAddress != "" && enableContentionProfiling {
+		goruntime.SetBlockProfileRate(1)
 	}
+
 	setupLog.V(1).Info(fmt.Sprintf("feature gates: %+v\n", feature.Gates))
 
 	managerOpts.Cache.SyncPeriod = &syncPeriod
+	managerOpts.LeaseDuration = &leaderElectionLeaseDuration
+	managerOpts.RenewDeadline = &leaderElectionRenewDeadline
+	managerOpts.RetryPeriod = &leaderElectionRetryPeriod
 
 	// Create a function that adds all the controllers and webhooks to the manager.
 	addToManager := func(ctx *context.ControllerManagerContext, mgr ctrlmgr.Manager) error {
@@ -329,24 +356,6 @@ func setupChecks(mgr ctrlmgr.Manager) {
 	if err := mgr.AddHealthzCheck("webhook", mgr.GetWebhookServer().StartedChecker()); err != nil {
 		setupLog.Error(err, "unable to create health check")
 		os.Exit(1)
-	}
-}
-
-func runProfiler(addr string) {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/debug/pprof/", pprof.Index)
-	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
-	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
-	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
-	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
-
-	srv := http.Server{
-		Addr:              addr,
-		Handler:           mux,
-		ReadHeaderTimeout: 2 * time.Second,
-	}
-	if err := srv.ListenAndServe(); err != nil {
-		setupLog.Error(err, "problem running profiler server")
 	}
 }
 

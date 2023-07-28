@@ -38,6 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util/flags"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
 	ctrlsig "sigs.k8s.io/controller-runtime/pkg/manager/signals"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -70,6 +71,14 @@ var (
 	webhookOpts                 webhook.Options
 	watchNamespace              string
 
+	vSphereClusterConcurrency         int
+	vSphereMachineConcurrency         int
+	providerServiceAccountConcurrency int
+	serviceDiscoveryConcurrency       int
+	vSphereVMConcurrency              int
+	vSphereClusterIdentityConcurrency int
+	vSphereDeploymentZoneConcurrency  int
+
 	tlsOptions = flags.TLSOptions{}
 
 	defaultProfilerAddr      = os.Getenv("PROFILER_ADDR")
@@ -91,11 +100,26 @@ func InitFlags(fs *pflag.FlagSet) {
 		defaultLeaderElectionID,
 		"Name of the config map to use as the locking resource when configuring leader election.")
 
-	fs.IntVar(
-		&managerOpts.MaxConcurrentReconciles,
-		"max-concurrent-reconciles",
-		10,
-		"The maximum number of allowed, concurrent reconciles.")
+	fs.IntVar(&vSphereClusterConcurrency, "vspherecluster-concurrency", 10,
+		"Number of vSphere clusters to process simultaneously")
+
+	fs.IntVar(&vSphereMachineConcurrency, "vspheremachine-concurrency", 10,
+		"Number of vSphere machines to process simultaneously")
+
+	fs.IntVar(&providerServiceAccountConcurrency, "providerserviceaccount-concurrency", 10,
+		"Number of provider service accounts to process simultaneously")
+
+	fs.IntVar(&serviceDiscoveryConcurrency, "servicediscovery-concurrency", 10,
+		"Number of vSphere clusters for service discovery to process simultaneously")
+
+	fs.IntVar(&vSphereVMConcurrency, "vspherevm-concurrency", 10,
+		"Number of vSphere vms to process simultaneously")
+
+	fs.IntVar(&vSphereClusterIdentityConcurrency, "vsphereclusteridentity-concurrency", 10,
+		"Number of vSphere cluster identities to process simultaneously")
+
+	fs.IntVar(&vSphereDeploymentZoneConcurrency, "vspheredeploymentzone-concurrency", 10,
+		"Number of vSphere deployment zones to process simultaneously")
 
 	fs.StringVar(
 		&managerOpts.PodName,
@@ -315,36 +339,36 @@ func setupVAPIControllers(ctx *context.ControllerManagerContext, mgr ctrlmgr.Man
 		return err
 	}
 
-	if err := controllers.AddClusterControllerToManager(ctx, mgr, &v1beta1.VSphereCluster{}); err != nil {
+	if err := controllers.AddClusterControllerToManager(ctx, mgr, &v1beta1.VSphereCluster{}, concurrency(vSphereClusterConcurrency)); err != nil {
 		return err
 	}
-	if err := controllers.AddMachineControllerToManager(ctx, mgr, &v1beta1.VSphereMachine{}); err != nil {
+	if err := controllers.AddMachineControllerToManager(ctx, mgr, &v1beta1.VSphereMachine{}, concurrency(vSphereMachineConcurrency)); err != nil {
 		return err
 	}
-	if err := controllers.AddVMControllerToManager(ctx, mgr); err != nil {
+	if err := controllers.AddVMControllerToManager(ctx, mgr, concurrency(vSphereVMConcurrency)); err != nil {
 		return err
 	}
-	if err := controllers.AddVsphereClusterIdentityControllerToManager(ctx, mgr); err != nil {
+	if err := controllers.AddVsphereClusterIdentityControllerToManager(ctx, mgr, concurrency(vSphereClusterIdentityConcurrency)); err != nil {
 		return err
 	}
 
-	return controllers.AddVSphereDeploymentZoneControllerToManager(ctx, mgr)
+	return controllers.AddVSphereDeploymentZoneControllerToManager(ctx, mgr, concurrency(vSphereDeploymentZoneConcurrency))
 }
 
 func setupSupervisorControllers(ctx *context.ControllerManagerContext, mgr ctrlmgr.Manager) error {
-	if err := controllers.AddClusterControllerToManager(ctx, mgr, &vmwarev1b1.VSphereCluster{}); err != nil {
+	if err := controllers.AddClusterControllerToManager(ctx, mgr, &vmwarev1b1.VSphereCluster{}, concurrency(vSphereClusterConcurrency)); err != nil {
 		return err
 	}
 
-	if err := controllers.AddMachineControllerToManager(ctx, mgr, &vmwarev1b1.VSphereMachine{}); err != nil {
+	if err := controllers.AddMachineControllerToManager(ctx, mgr, &vmwarev1b1.VSphereMachine{}, concurrency(vSphereMachineConcurrency)); err != nil {
 		return err
 	}
 
-	if err := controllers.AddServiceAccountProviderControllerToManager(ctx, mgr); err != nil {
+	if err := controllers.AddServiceAccountProviderControllerToManager(ctx, mgr, concurrency(providerServiceAccountConcurrency)); err != nil {
 		return err
 	}
 
-	return controllers.AddServiceDiscoveryControllerToManager(ctx, mgr)
+	return controllers.AddServiceDiscoveryControllerToManager(ctx, mgr, concurrency(serviceDiscoveryConcurrency))
 }
 
 func setupChecks(mgr ctrlmgr.Manager) {
@@ -376,4 +400,8 @@ func isCRDDeployed(mgr ctrlmgr.Manager, gvr schema.GroupVersionResource) (bool, 
 		return false, err
 	}
 	return true, nil
+}
+
+func concurrency(c int) controller.Options {
+	return controller.Options{MaxConcurrentReconciles: c}
 }

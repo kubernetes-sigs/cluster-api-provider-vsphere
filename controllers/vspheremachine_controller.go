@@ -78,7 +78,7 @@ const hostInfoErrStr = "host info cannot be used as a label value"
 // AddMachineControllerToManager adds the machine controller to the provided
 // manager.
 
-func AddMachineControllerToManager(ctx *context.ControllerManagerContext, mgr manager.Manager, controlledType client.Object) error {
+func AddMachineControllerToManager(ctx *context.ControllerManagerContext, mgr manager.Manager, controlledType client.Object, options controller.Options) error {
 	supervisorBased, err := util.IsSupervisorType(controlledType)
 	if err != nil {
 		return err
@@ -108,6 +108,7 @@ func AddMachineControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 	builder := ctrl.NewControllerManagedBy(mgr).
 		// Watch the controlled, infrastructure resource.
 		For(controlledType).
+		WithOptions(options).
 		// Watch the CAPI resource that owns this infrastructure resource.
 		Watches(
 			&clusterv1.Machine{},
@@ -121,8 +122,7 @@ func AddMachineControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 		WatchesRawSource(
 			&source.Channel{Source: ctx.GetGenericEventChannelFor(controlledTypeGVK)},
 			&handler.EnqueueRequestForObject{},
-		).
-		WithOptions(controller.Options{MaxConcurrentReconciles: ctx.MaxConcurrentReconciles})
+		)
 
 	r := &machineReconciler{
 		ControllerContext: controllerContext,

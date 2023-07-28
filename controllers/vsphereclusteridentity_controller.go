@@ -52,7 +52,7 @@ var (
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=vsphereclusteridentities/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;patch;update;delete
 
-func AddVsphereClusterIdentityControllerToManager(ctx *context.ControllerManagerContext, mgr manager.Manager) error {
+func AddVsphereClusterIdentityControllerToManager(ctx *context.ControllerManagerContext, mgr manager.Manager, options controller.Options) error {
 	var (
 		controllerNameShort = fmt.Sprintf("%s-controller", strings.ToLower(identityControlledTypeName))
 		controllerNameLong  = fmt.Sprintf("%s/%s/%s", ctx.Namespace, ctx.Name, controllerNameShort)
@@ -70,7 +70,7 @@ func AddVsphereClusterIdentityControllerToManager(ctx *context.ControllerManager
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(identityControlledType).
-		WithOptions(controller.Options{MaxConcurrentReconciles: ctx.MaxConcurrentReconciles}).
+		WithOptions(options).
 		Complete(reconciler)
 }
 

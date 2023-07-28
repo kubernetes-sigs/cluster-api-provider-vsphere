@@ -54,6 +54,8 @@ type FailureDomain struct {
 	TagCategory string `json:"tagCategory"`
 
 	// AutoConfigure tags the Type which is specified in the Topology
+	//
+	// Deprecated: This field is going to be removed in a future release.
 	AutoConfigure *bool `json:"autoConfigure,omitempty"`
 }
 

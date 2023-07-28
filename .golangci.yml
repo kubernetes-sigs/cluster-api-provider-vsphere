@@ -52,6 +52,11 @@ issue:
   max-per-linter: 0
 issues:
   exclude-rules:
+    # Specific exclude rules for deprecated fields that are still part of the codebase. These
+    # should be removed as the referenced deprecated item is removed from the project.
+    - linters:
+      - staticcheck
+      text: "SA1019: failureDomain.AutoConfigure is deprecated"
     - path: "test/e2e/*"
       linters:
         - gosec

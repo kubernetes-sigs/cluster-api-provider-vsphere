@@ -283,8 +283,9 @@ spec:
                 description: Region defines the name and type of a region
                 properties:
                   autoConfigure:
-                    description: AutoConfigure tags the Type which is specified in
-                      the Topology
+                    description: "AutoConfigure tags the Type which is specified in
+                      the Topology \n Deprecated: This field is going to be removed
+                      in a future release."
                     type: boolean
                   name:
                     description: Name is the name of the tag that represents this
@@ -347,8 +348,9 @@ spec:
                 description: Zone defines the name and type of a zone
                 properties:
                   autoConfigure:
-                    description: AutoConfigure tags the Type which is specified in
-                      the Topology
+                    description: "AutoConfigure tags the Type which is specified in
+                      the Topology \n Deprecated: This field is going to be removed
+                      in a future release."
                     type: boolean
                   name:
                     description: Name is the name of the tag that represents this

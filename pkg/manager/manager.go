@@ -98,6 +98,7 @@ func New(opts Options) (Manager, error) {
 		EnableKeepAlive:         opts.EnableKeepAlive,
 		KeepAliveDuration:       opts.KeepAliveDuration,
 		NetworkProvider:         opts.NetworkProvider,
+		WatchFilterValue:        opts.WatchFilterValue,
 	}
 
 	// Add the requested items to the manager.

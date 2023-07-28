@@ -102,6 +102,7 @@ func AddClusterControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 				&vmwarev1.VSphereMachine{},
 				handler.EnqueueRequestsFromMapFunc(reconciler.VSphereMachineToCluster),
 			).
+			WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), ctx.WatchFilterValue)).
 			Complete(reconciler)
 	}
 
@@ -159,6 +160,7 @@ func AddClusterControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 			&source.Channel{Source: ctx.GetGenericEventChannelFor(clusterControlledTypeGVK)},
 			&handler.EnqueueRequestForObject{},
 		).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), ctx.WatchFilterValue)).
 		WithEventFilter(predicates.ResourceIsNotExternallyManaged(reconciler.Logger)).
 		Build(reconciler)
 	if err != nil {

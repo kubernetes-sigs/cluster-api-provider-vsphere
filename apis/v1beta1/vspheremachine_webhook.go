@@ -66,6 +66,15 @@ func (m *VSphereMachine) ValidateCreate() (admission.Warnings, error) {
 		}
 	}
 
+	if spec.GuestSoftPowerOffTimeout != nil {
+		if spec.PowerOffMode != VirtualMachinePowerOpModeTrySoft {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "guestSoftPowerOffTimeout"), spec.GuestSoftPowerOffTimeout, "should not be set in templates unless the powerOffMode is trySoft"))
+		}
+		if spec.GuestSoftPowerOffTimeout.Duration <= 0 {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "guestSoftPowerOffTimeout"), spec.GuestSoftPowerOffTimeout, "should be greater than 0"))
+		}
+	}
+
 	return nil, aggregateObjErrors(m.GroupVersionKind().GroupKind(), m.Name, allErrs)
 }
 
@@ -73,6 +82,16 @@ func (m *VSphereMachine) ValidateCreate() (admission.Warnings, error) {
 //
 //nolint:forcetypeassert
 func (m *VSphereMachine) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
+	var allErrs field.ErrorList
+	if m.Spec.GuestSoftPowerOffTimeout != nil {
+		if m.Spec.PowerOffMode != VirtualMachinePowerOpModeTrySoft {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "guestSoftPowerOffTimeout"), m.Spec.GuestSoftPowerOffTimeout, "should not be set in templates unless the powerOffMode is trySoft"))
+		}
+		if m.Spec.GuestSoftPowerOffTimeout.Duration <= 0 {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "guestSoftPowerOffTimeout"), m.Spec.GuestSoftPowerOffTimeout, "should be greater than 0"))
+		}
+	}
+
 	newVSphereMachine, err := runtime.DefaultUnstructuredConverter.ToUnstructured(m)
 	if err != nil {
 		return nil, apierrors.NewInternalError(errors.Wrap(err, "failed to convert new VSphereMachine to unstructured object"))
@@ -83,19 +102,19 @@ func (m *VSphereMachine) ValidateUpdate(old runtime.Object) (admission.Warnings,
 		return nil, apierrors.NewInternalError(errors.Wrap(err, "failed to convert old VSphereMachine to unstructured object"))
 	}
 
-	var allErrs field.ErrorList
-
 	newVSphereMachineSpec := newVSphereMachine["spec"].(map[string]interface{})
 	oldVSphereMachineSpec := oldVSphereMachine["spec"].(map[string]interface{})
 
-	// allow changes to providerID
-	delete(oldVSphereMachineSpec, "providerID")
-	delete(newVSphereMachineSpec, "providerID")
+	allowChangeKeys := []string{"providerID", "powerOffMode", "guestSoftPowerOffTimeout"}
+	for _, key := range allowChangeKeys {
+		delete(oldVSphereMachineSpec, key)
+		delete(newVSphereMachineSpec, key)
+	}
 
 	newVSphereMachineNetwork := newVSphereMachineSpec["network"].(map[string]interface{})
 	oldVSphereMachineNetwork := oldVSphereMachineSpec["network"].(map[string]interface{})
 
-	// allow changes to the devices..
+	// allow changes to the devices.
 	delete(oldVSphereMachineNetwork, "devices")
 	delete(newVSphereMachineNetwork, "devices")
 

@@ -75,6 +75,14 @@ func (v *VSphereMachineTemplateWebhook) ValidateCreate(_ context.Context, raw ru
 			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "template", "spec", "hardwareVersion"), spec.HardwareVersion, "should be a valid VM hardware version, example vmx-17"))
 		}
 	}
+	if spec.GuestSoftPowerOffTimeout != nil {
+		if spec.PowerOffMode != VirtualMachinePowerOpModeTrySoft {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "template", "spec", "guestSoftPowerOffTimeout"), spec.GuestSoftPowerOffTimeout, "should not be set in templates unless the powerOffMode is trySoft"))
+		}
+		if spec.GuestSoftPowerOffTimeout.Duration <= 0 {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "template", "spec", "guestSoftPowerOffTimeout"), spec.GuestSoftPowerOffTimeout, "should be greater than 0"))
+		}
+	}
 	return nil, aggregateObjErrors(obj.GroupVersionKind().GroupKind(), obj.Name, allErrs)
 }
 

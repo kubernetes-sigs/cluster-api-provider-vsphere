@@ -66,6 +66,14 @@ func (r *VSphereVM) ValidateCreate() (admission.Warnings, error) {
 	if r.Spec.OS == Windows && len(r.Name) > 15 {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("name"), r.Name, "name has to be less than 16 characters for Windows VM"))
 	}
+	if spec.GuestSoftPowerOffTimeout != nil {
+		if spec.PowerOffMode != VirtualMachinePowerOpModeTrySoft {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "guestSoftPowerOffTimeout"), spec.GuestSoftPowerOffTimeout, "should not be set in templates unless the powerOffMode is trySoft"))
+		}
+		if spec.GuestSoftPowerOffTimeout.Duration <= 0 {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "guestSoftPowerOffTimeout"), spec.GuestSoftPowerOffTimeout, "should be greater than 0"))
+		}
+	}
 	return nil, aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
 
@@ -73,6 +81,16 @@ func (r *VSphereVM) ValidateCreate() (admission.Warnings, error) {
 //
 //nolint:forcetypeassert
 func (r *VSphereVM) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
+	var allErrs field.ErrorList
+	if r.Spec.GuestSoftPowerOffTimeout != nil {
+		if r.Spec.PowerOffMode != VirtualMachinePowerOpModeTrySoft {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "guestSoftPowerOffTimeout"), r.Spec.GuestSoftPowerOffTimeout, "should not be set in templates unless the powerOffMode is trySoft"))
+		}
+		if r.Spec.GuestSoftPowerOffTimeout.Duration <= 0 {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "guestSoftPowerOffTimeout"), r.Spec.GuestSoftPowerOffTimeout, "should be greater than 0"))
+		}
+	}
+
 	newVSphereVM, err := runtime.DefaultUnstructuredConverter.ToUnstructured(r)
 	if err != nil {
 		return nil, apierrors.NewInternalError(errors.Wrap(err, "failed to convert new VSphereVM to unstructured object"))
@@ -82,13 +100,11 @@ func (r *VSphereVM) ValidateUpdate(old runtime.Object) (admission.Warnings, erro
 		return nil, apierrors.NewInternalError(errors.Wrap(err, "failed to convert old VSphereVM to unstructured object"))
 	}
 
-	var allErrs field.ErrorList
-
 	newVSphereVMSpec := newVSphereVM["spec"].(map[string]interface{})
 	oldVSphereVMSpec := oldVSphereVM["spec"].(map[string]interface{})
 
 	// allow changes to biosUUID, bootstrapRef, thumbprint
-	keys := []string{"biosUUID", "bootstrapRef", "thumbprint"}
+	keys := []string{"biosUUID", "bootstrapRef", "thumbprint", "powerOffMode", "guestSoftPowerOffTimeout"}
 	// allow changes to os only if the old spec has empty OS field
 	if _, ok := oldVSphereVMSpec["os"]; !ok {
 		keys = append(keys, "os")

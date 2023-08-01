@@ -38,6 +38,8 @@ func (src *VSphereVM) ConvertTo(dstRaw conversion.Hub) error {
 	}
 	dst.Spec.TagIDs = restored.Spec.TagIDs
 	dst.Spec.AdditionalDisksGiB = restored.Spec.AdditionalDisksGiB
+	dst.Spec.PowerOffMode = restored.Spec.PowerOffMode
+	dst.Spec.GuestSoftPowerOffTimeout = restored.Spec.GuestSoftPowerOffTimeout
 	dst.Status.Host = restored.Status.Host
 	for i := range dst.Spec.Network.Devices {
 		dst.Spec.Network.Devices[i].AddressesFromPools = restored.Spec.Network.Devices[i].AddressesFromPools

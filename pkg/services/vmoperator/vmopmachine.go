@@ -278,6 +278,7 @@ func (v VmopMachineService) reconcileVMOperatorVM(ctx *vmware.SupervisorMachineC
 			SecretName: dataSecretName,
 			Transport:  vmoprv1.VirtualMachineMetadataCloudInitTransport,
 		}
+		vmOperatorVM.Spec.PowerOffMode = vmoprv1.VirtualMachinePowerOpMode(ctx.VSphereMachine.Spec.PowerOffMode)
 
 		// VMOperator supports readiness probe and will add/remove endpoints to a
 		// VirtualMachineService based on the outcome of the readiness check.

@@ -19,6 +19,7 @@ package govmomi
 import (
 	"encoding/base64"
 	"fmt"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/vmware/govmomi/object"
@@ -34,6 +35,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
@@ -176,7 +178,7 @@ func (vms *VMService) ReconcileVM(ctx *context.VMContext) (vm infrav1.VirtualMac
 }
 
 // DestroyVM powers off and destroys a virtual machine.
-func (vms *VMService) DestroyVM(ctx *context.VMContext) (infrav1.VirtualMachine, error) {
+func (vms *VMService) DestroyVM(ctx *context.VMContext) (reconcile.Result, infrav1.VirtualMachine, error) {
 	vm := infrav1.VirtualMachine{
 		Name:  ctx.VSphereVM.Name,
 		State: infrav1.VirtualMachineStatePending,
@@ -185,7 +187,7 @@ func (vms *VMService) DestroyVM(ctx *context.VMContext) (infrav1.VirtualMachine,
 	// If there is an in-flight task associated with this VM then do not
 	// reconcile the VM until the task is completed.
 	if inFlight, err := reconcileInFlightTask(ctx); err != nil || inFlight {
-		return vm, err
+		return reconcile.Result{}, vm, err
 	}
 
 	// This deferred function will trigger a reconcile event for the
@@ -201,9 +203,9 @@ func (vms *VMService) DestroyVM(ctx *context.VMContext) (infrav1.VirtualMachine,
 		// is the desired state.
 		if isNotFound(err) || isFolderNotFound(err) {
 			vm.State = infrav1.VirtualMachineStateNotFound
-			return vm, nil
+			return reconcile.Result{}, vm, nil
 		}
-		return vm, err
+		return reconcile.Result{}, vm, err
 	}
 
 	//
@@ -218,30 +220,51 @@ func (vms *VMService) DestroyVM(ctx *context.VMContext) (infrav1.VirtualMachine,
 		State:     &vm,
 	}
 
-	// Power off the VM.
+	// Shut down the VM
 	powerState, err := vms.getPowerState(vmCtx)
 	if err != nil {
-		return vm, err
-	}
-	if powerState == infrav1.VirtualMachinePowerStatePoweredOn {
-		task, err := vmCtx.Obj.PowerOff(ctx)
-		if err != nil {
-			return vm, err
-		}
-		ctx.VSphereVM.Status.TaskRef = task.Reference().Value
-		if err = ctx.Patch(); err != nil {
-			ctx.Logger.Error(err, "patch failed", "vm", ctx.String())
-			return vm, err
-		}
-		ctx.Logger.Info("wait for VM to be powered off")
-		return vm, nil
+		return reconcile.Result{}, vm, err
 	}
 
+	if powerState == infrav1.VirtualMachinePowerStatePoweredOn {
+		// Trigger the soft power off and set the condition.
+		softPowerOffPending, err := vms.triggerSoftPowerOff(vmCtx)
+		if err != nil {
+			return reconcile.Result{}, vm, err
+		}
+
+		if softPowerOffPending {
+			// Return to reconcile later when we have a pending soft power off operation.
+			return reconcile.Result{RequeueAfter: time.Second * 20}, vm, nil
+		}
+
+		// Hard shut off VM.
+		task, err := vmCtx.Obj.PowerOff(ctx)
+		if err != nil {
+			return reconcile.Result{}, vm, err
+		}
+
+		vmCtx.VSphereVM.Status.TaskRef = task.Reference().Value
+		if err = vmCtx.Patch(); err != nil {
+			vmCtx.Logger.Error(err, "patch failed", "vm", ctx.String())
+			return reconcile.Result{}, vm, err
+		}
+
+		vmCtx.Logger.Info("wait for VM to be powered off")
+		return reconcile.Result{}, vm, nil
+	}
+
+	// Only set the GuestPowerOffCondition to true when the guest shutdown has been initiated.
+	if conditions.Has(vmCtx.VSphereVM, infrav1.GuestSoftPowerOffSucceededCondition) {
+		conditions.MarkTrue(vmCtx.VSphereVM, infrav1.GuestSoftPowerOffSucceededCondition)
+	}
+
+	ctx.Logger.Info("VM is powered off", "vmref", vmRef.Reference())
 	if ctx.ClusterModuleInfo != nil {
 		provider := clustermodules.NewProvider(ctx.Session.TagManager.Client)
 		err := provider.RemoveMoRefFromModule(ctx, *ctx.ClusterModuleInfo, vmCtx.Ref)
 		if err != nil && !util.IsNotFoundError(err) {
-			return vm, err
+			return reconcile.Result{}, vm, err
 		}
 		ctx.VSphereVM.Status.ModuleUUID = nil
 	}
@@ -251,11 +274,11 @@ func (vms *VMService) DestroyVM(ctx *context.VMContext) (infrav1.VirtualMachine,
 	ctx.Logger.Info("destroying vm")
 	task, err := vmCtx.Obj.Destroy(ctx)
 	if err != nil {
-		return vm, err
+		return reconcile.Result{}, vm, err
 	}
 	ctx.VSphereVM.Status.TaskRef = task.Reference().Value
 	ctx.Logger.Info("wait for VM to be destroyed")
-	return vm, nil
+	return reconcile.Result{}, vm, nil
 }
 
 func (vms *VMService) reconcileNetworkStatus(ctx *virtualMachineContext) error {
@@ -488,24 +511,6 @@ func (vms *VMService) reconcilePCIDevices(ctx *virtualMachineContext) error {
 		}
 	}
 	return nil
-}
-
-func (vms *VMService) getPowerState(ctx *virtualMachineContext) (infrav1.VirtualMachinePowerState, error) {
-	powerState, err := ctx.Obj.PowerState(ctx)
-	if err != nil {
-		return "", err
-	}
-
-	switch powerState {
-	case types.VirtualMachinePowerStatePoweredOn:
-		return infrav1.VirtualMachinePowerStatePoweredOn, nil
-	case types.VirtualMachinePowerStatePoweredOff:
-		return infrav1.VirtualMachinePowerStatePoweredOff, nil
-	case types.VirtualMachinePowerStateSuspended:
-		return infrav1.VirtualMachinePowerStateSuspended, nil
-	default:
-		return "", errors.Errorf("unexpected power state %q for vm %s", powerState, ctx)
-	}
 }
 
 func (vms *VMService) getMetadata(ctx *virtualMachineContext) (string, error) {

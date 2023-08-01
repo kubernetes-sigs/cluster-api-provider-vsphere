@@ -255,6 +255,12 @@ func (r machineReconciler) Reconcile(_ goctx.Context, req ctrl.Request) (_ ctrl.
 		return reconcile.Result{}, nil
 	}
 
+	// If the VSphereMachine doesn't have our finalizer, add it.
+	// Requeue immediately after adding finalizer to avoid the race condition between init and delete
+	if !ctrlutil.ContainsFinalizer(machineContext.GetVSphereMachine(), infrav1.MachineFinalizer) {
+		ctrlutil.AddFinalizer(machineContext.GetVSphereMachine(), infrav1.MachineFinalizer)
+		return reconcile.Result{}, nil
+	}
 	// Handle non-deleted machines
 	return r.reconcileNormal(machineContext)
 }
@@ -288,9 +294,6 @@ func (r machineReconciler) reconcileNormal(ctx context.MachineContext) (reconcil
 		ctx.GetLogger().Info("Error state detected, skipping reconciliation")
 		return reconcile.Result{}, nil
 	}
-
-	// If the VSphereMachine doesn't have our finalizer, add it.
-	ctrlutil.AddFinalizer(ctx.GetVSphereMachine(), infrav1.MachineFinalizer)
 
 	//nolint:gocritic
 	if r.supervisorBased {

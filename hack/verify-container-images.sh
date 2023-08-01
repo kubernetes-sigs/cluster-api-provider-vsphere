@@ -52,11 +52,12 @@ tar -xf "${TOOL_BIN}/trivy.tar.gz" -C "${TOOL_BIN}" trivy
 chmod +x ${TOOL_BIN}/trivy
 rm ${TOOL_BIN}/trivy.tar.gz
 
-# Builds all the container images to be scanned
-make DEV_REGISTRY="gcr.io/cluster-api-provider-vsphere" PULL_POLICY=IfNotPresent DEV_TAG="dev" docker-build
+# Builds all the container images to be scanned and cleans up changes to ./*manager_image_patch.yaml ./*manager_pull_policy.yaml.
+make REGISTRY=gcr.io/k8s-staging-capi-vsphere PULL_POLICY=IfNotPresent TAG=dev docker-build
+make clean-release-git
 
 # Scan the images
-${TOOL_BIN}/trivy image -q --exit-code 1 --ignore-unfixed --severity MEDIUM,HIGH,CRITICAL gcr.io/cluster-api-provider-vsphere/vsphere-manager:dev && R1=$? || R1=$?
+${TOOL_BIN}/trivy image -q --exit-code 1 --ignore-unfixed --severity MEDIUM,HIGH,CRITICAL gcr.io/k8s-staging-capi-vsphere/cluster-api-vsphere-controller-"${GO_ARCH}":dev && R1=$? || R1=$?
 
 echo ""
 BRed='\033[1;31m'

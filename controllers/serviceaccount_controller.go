@@ -66,7 +66,7 @@ const (
 )
 
 // AddServiceAccountProviderControllerToManager adds this controller to the provided manager.
-func AddServiceAccountProviderControllerToManager(ctx *context.ControllerManagerContext, mgr manager.Manager, options controller.Options) error {
+func AddServiceAccountProviderControllerToManager(ctx *context.ControllerManagerContext, mgr manager.Manager, tracker *remote.ClusterCacheTracker, options controller.Options) error {
 	var (
 		controlledType     = &vmwarev1.ProviderServiceAccount{}
 		controlledTypeName = reflect.TypeOf(controlledType).Elem().Name()
@@ -82,8 +82,8 @@ func AddServiceAccountProviderControllerToManager(ctx *context.ControllerManager
 		Logger:                   ctx.Logger.WithName(controllerNameShort),
 	}
 	r := ServiceAccountReconciler{
-		ControllerContext:  controllerContext,
-		remoteClientGetter: remote.NewClusterClient,
+		ControllerContext:         controllerContext,
+		remoteClusterCacheTracker: tracker,
 	}
 
 	clusterToInfraFn := clusterToSupervisorInfrastructureMapFunc(ctx)
@@ -134,7 +134,7 @@ func clusterToSupervisorInfrastructureMapFunc(managerContext *context.Controller
 type ServiceAccountReconciler struct {
 	*context.ControllerContext
 
-	remoteClientGetter remote.ClusterClientGetter
+	remoteClusterCacheTracker *remote.ClusterCacheTracker
 }
 
 func (r ServiceAccountReconciler) Reconcile(_ goctx.Context, req reconcile.Request) (_ reconcile.Result, reterr error) {
@@ -202,8 +202,12 @@ func (r ServiceAccountReconciler) Reconcile(_ goctx.Context, req reconcile.Reque
 	// then just return a no-op and wait for the next sync. This will occur when
 	// the Cluster's status is updated with a reference to the secret that has
 	// the Kubeconfig data used to access the target cluster.
-	guestClient, err := r.remoteClientGetter(clusterContext, ProviderServiceAccountControllerName, clusterContext.Client, client.ObjectKeyFromObject(cluster))
+	guestClient, err := r.remoteClusterCacheTracker.GetClient(clusterContext, client.ObjectKeyFromObject(cluster))
 	if err != nil {
+		if errors.Is(err, remote.ErrClusterLocked) {
+			r.Logger.V(5).Info("Requeuing because another worker has the lock on the ClusterCacheTracker")
+			return ctrl.Result{Requeue: true}, nil
+		}
 		clusterContext.Logger.Info("The control plane is not ready yet", "err", err)
 		return reconcile.Result{RequeueAfter: clusterNotReadyRequeueTime}, nil
 	}

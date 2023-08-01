@@ -30,11 +30,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apirecord "k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/controllers/remote"
 	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -72,6 +74,36 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 		t.Fatalf("unable to create simulator: %s", err)
 	}
 	defer simr.Destroy()
+
+	secretCachingClient, err := client.New(testEnv.Manager.GetConfig(), client.Options{
+		HTTPClient: testEnv.Manager.GetHTTPClient(),
+		Cache: &client.CacheOptions{
+			Reader: testEnv.Manager.GetCache(),
+		},
+	})
+	if err != nil {
+		panic("unable to create secret caching client")
+	}
+
+	tracker, err := remote.NewClusterCacheTracker(
+		testEnv.Manager,
+		remote.ClusterCacheTrackerOptions{
+			SecretCachingClient: secretCachingClient,
+			ControllerName:      "testvspherevm-manager",
+		},
+	)
+	if err != nil {
+		t.Fatalf("unable to setup ClusterCacheTracker: %v", err)
+	}
+
+	controllerOpts := controller.Options{MaxConcurrentReconciles: 10}
+
+	if err := (&remote.ClusterCacheReconciler{
+		Client:  testEnv.Manager.GetClient(),
+		Tracker: tracker,
+	}).SetupWithManager(ctx, testEnv.Manager, controllerOpts); err != nil {
+		panic(fmt.Sprintf("unable to create ClusterCacheReconciler controller: %v", err))
+	}
 
 	create := func(netSpec infrav1.NetworkSpec) func() {
 		return func() {
@@ -177,8 +209,9 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 			Logger:                   log.Log,
 		}
 		return vmReconciler{
-			ControllerContext: controllerContext,
-			VMService:         vmService,
+			ControllerContext:         controllerContext,
+			VMService:                 vmService,
+			remoteClusterCacheTracker: tracker,
 		}
 	}
 

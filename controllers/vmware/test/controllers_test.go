@@ -416,7 +416,9 @@ var _ = Describe("Reconciliation tests", func() {
 			By("Expect a ResourcePolicy to exist")
 			rpKey := client.ObjectKey{Namespace: infraCluster.GetNamespace(), Name: infraCluster.GetName()}
 			resourcePolicy := &vmoprv1.VirtualMachineSetResourcePolicy{}
-			Expect(k8sClient.Get(ctx, rpKey, resourcePolicy)).To(Succeed())
+			Eventually(func() error {
+				return k8sClient.Get(ctx, rpKey, resourcePolicy)
+			}, time.Second*30).Should(Succeed())
 			Expect(len(resourcePolicy.Spec.ClusterModules)).To(BeEquivalentTo(2))
 
 			By("Create the CAPI Machine and wait for it to exist")

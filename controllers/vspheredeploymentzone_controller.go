@@ -147,12 +147,17 @@ func (r vsphereDeploymentZoneReconciler) Reconcile(ctx goctx.Context, request re
 		return ctrl.Result{}, r.reconcileDelete(vsphereDeploymentZoneContext)
 	}
 
+	// If the VSphereDeploymentZone doesn't have our finalizer, add it.
+	// Requeue immediately after adding finalizer to avoid the race condition between init and delete
+	if !ctrlutil.ContainsFinalizer(vsphereDeploymentZone, infrav1.DeploymentZoneFinalizer) {
+		ctrlutil.AddFinalizer(vsphereDeploymentZone, infrav1.DeploymentZoneFinalizer)
+		return ctrl.Result{}, nil
+	}
+
 	return ctrl.Result{}, r.reconcileNormal(vsphereDeploymentZoneContext)
 }
 
 func (r vsphereDeploymentZoneReconciler) reconcileNormal(ctx *context.VSphereDeploymentZoneContext) error {
-	ctrlutil.AddFinalizer(ctx.VSphereDeploymentZone, infrav1.DeploymentZoneFinalizer)
-
 	authSession, err := r.getVCenterSession(ctx)
 	if err != nil {
 		ctx.Logger.V(4).Error(err, "unable to create session")

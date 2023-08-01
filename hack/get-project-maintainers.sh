@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright 2014 The Kubernetes Authors.
+# Copyright 2021 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,21 +22,13 @@ if [[ "${TRACE-0}" == "1" ]]; then
     set -o xtrace
 fi
 
-KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
+REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 
-boilerDir="${KUBE_ROOT}/hack/boilerplate"
-boiler="${boilerDir}/boilerplate.py"
+YQ_BIN=yq
+YQ_PATH=hack/tools/bin/${YQ_BIN}
 
-files_need_boilerplate=()
-while IFS=$'\n' read -r line; do
-  files_need_boilerplate+=( "$line" )
-done < <("${boiler}" "$@")
+cd "${REPO_ROOT}" && make ${YQ_BIN} >/dev/null
 
-# Run boilerplate check
-if [[ ${#files_need_boilerplate[@]} -gt 0 ]]; then
-  for file in "${files_need_boilerplate[@]}"; do
-    echo "Boilerplate header is wrong for: ${file}" >&2
-  done
-
-  exit 1
-fi
+KEYS=()
+while IFS='' read -r line; do KEYS+=("$line"); done < <(${YQ_PATH} e '.aliases["cluster-api-vsphere-maintainers"][]' OWNERS_ALIASES)
+echo "${KEYS[@]/#/@}"

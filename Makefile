@@ -575,7 +575,7 @@ generate-release-notes: $(RELEASE_NOTES_DIR) $(RELEASE_NOTES)
 	# Reset the file
 	echo -n > $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md
 	if [ -n "${PRE_RELEASE}" ]; then \
-	echo -e ":rotating_light: This is a RELEASE CANDIDATE. Use it only for testing purposes. If you find any bugs, file an [issue](https://github.com/kubernetes-sigs/cluster-api/issues/new).\n" >> $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md; \
+	echo -e ":rotating_light: This is a RELEASE CANDIDATE. Use it only for testing purposes. If you find any bugs, file an [issue](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/new/choose).\n" >> $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md; \
 	fi
 	"$(RELEASE_NOTES)" --from=$(PREVIOUS_TAG) --prefix-area-label=false --add-kubernetes-version-support=false >> $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md
 

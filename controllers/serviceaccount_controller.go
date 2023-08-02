@@ -38,6 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -64,7 +65,7 @@ const (
 )
 
 // AddServiceAccountProviderControllerToManager adds this controller to the provided manager.
-func AddServiceAccountProviderControllerToManager(ctx *context.ControllerManagerContext, mgr manager.Manager) error {
+func AddServiceAccountProviderControllerToManager(ctx *context.ControllerManagerContext, mgr manager.Manager, options controller.Options) error {
 	var (
 		controlledType     = &vmwarev1.ProviderServiceAccount{}
 		controlledTypeName = reflect.TypeOf(controlledType).Elem().Name()
@@ -87,6 +88,7 @@ func AddServiceAccountProviderControllerToManager(ctx *context.ControllerManager
 	clusterToInfraFn := clusterToSupervisorInfrastructureMapFunc(ctx)
 
 	return ctrl.NewControllerManagedBy(mgr).For(controlledType).
+		WithOptions(options).
 		// Watch a ProviderServiceAccount
 		Watches(
 			&vmwarev1.ProviderServiceAccount{},

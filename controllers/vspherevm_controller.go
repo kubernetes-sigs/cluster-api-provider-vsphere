@@ -69,7 +69,7 @@ import (
 // AddVMControllerToManager adds the VM controller to the provided manager.
 //
 //nolint:forcetypeassert
-func AddVMControllerToManager(ctx *context.ControllerManagerContext, mgr manager.Manager) error {
+func AddVMControllerToManager(ctx *context.ControllerManagerContext, mgr manager.Manager, options controller.Options) error {
 	var (
 		controlledType     = &infrav1.VSphereVM{}
 		controlledTypeName = reflect.TypeOf(controlledType).Elem().Name()
@@ -93,6 +93,7 @@ func AddVMControllerToManager(ctx *context.ControllerManagerContext, mgr manager
 	controller, err := ctrl.NewControllerManagedBy(mgr).
 		// Watch the controlled, infrastructure resource.
 		For(controlledType).
+		WithOptions(options).
 		// Watch a GenericEvent channel for the controlled resource.
 		//
 		// This is useful when there are events outside of Kubernetes that
@@ -102,7 +103,6 @@ func AddVMControllerToManager(ctx *context.ControllerManagerContext, mgr manager
 			&source.Channel{Source: ctx.GetGenericEventChannelFor(controlledTypeGVK)},
 			&handler.EnqueueRequestForObject{},
 		).
-		WithOptions(controller.Options{MaxConcurrentReconciles: ctx.MaxConcurrentReconciles}).
 		Build(r)
 	if err != nil {
 		return err

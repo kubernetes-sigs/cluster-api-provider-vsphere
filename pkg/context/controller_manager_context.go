@@ -66,10 +66,6 @@ type ControllerManagerContext struct {
 	// Scheme is the controller manager's API scheme.
 	Scheme *runtime.Scheme
 
-	// MaxConcurrentReconciles is the maximum number of recocnile requests this
-	// controller will receive concurrently.
-	MaxConcurrentReconciles int
-
 	// Username is the username for the account used to access remote vSphere
 	// endpoints.
 	Username string

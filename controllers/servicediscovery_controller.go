@@ -40,6 +40,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -70,7 +71,7 @@ const (
 // +kubebuilder:rbac:groups="",resources=configmaps/status,verbs=get
 
 // AddServiceDiscoveryControllerToManager adds the ServiceDiscovery controller to the provided manager.
-func AddServiceDiscoveryControllerToManager(ctx *context.ControllerManagerContext, mgr manager.Manager) error {
+func AddServiceDiscoveryControllerToManager(ctx *context.ControllerManagerContext, mgr manager.Manager, options controller.Options) error {
 	var (
 		controllerNameShort = ServiceDiscoveryControllerName
 		controllerNameLong  = fmt.Sprintf("%s/%s/%s", ctx.Namespace, ctx.Name, ServiceDiscoveryControllerName)
@@ -102,6 +103,7 @@ func AddServiceDiscoveryControllerToManager(ctx *context.ControllerManagerContex
 	src := source.Kind(configMapCache, &corev1.ConfigMap{})
 
 	return ctrl.NewControllerManagedBy(mgr).For(&vmwarev1.VSphereCluster{}).
+		WithOptions(options).
 		Watches(
 			&corev1.Service{},
 			handler.EnqueueRequestsFromMapFunc(r.serviceToClusters),

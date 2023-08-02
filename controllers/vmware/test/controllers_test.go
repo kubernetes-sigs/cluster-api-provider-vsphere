@@ -33,6 +33,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
@@ -232,12 +233,14 @@ func getManager(cfg *rest.Config, networkProvider string) manager.Manager {
 		CredentialsFile: tmpFile.Name(),
 	}
 
+	controllerOpts := controller.Options{MaxConcurrentReconciles: 10}
+
 	opts.AddToManager = func(ctx *context.ControllerManagerContext, mgr ctrlmgr.Manager) error {
-		if err := controllers.AddClusterControllerToManager(ctx, mgr, &vmwarev1.VSphereCluster{}); err != nil {
+		if err := controllers.AddClusterControllerToManager(ctx, mgr, &vmwarev1.VSphereCluster{}, controllerOpts); err != nil {
 			return err
 		}
 
-		return controllers.AddMachineControllerToManager(ctx, mgr, &vmwarev1.VSphereMachine{})
+		return controllers.AddMachineControllerToManager(ctx, mgr, &vmwarev1.VSphereMachine{}, controllerOpts)
 	}
 
 	mgr, err := manager.New(opts)

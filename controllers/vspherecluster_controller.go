@@ -57,7 +57,7 @@ import (
 
 // AddClusterControllerToManager adds the cluster controller to the provided
 // manager.
-func AddClusterControllerToManager(ctx *context.ControllerManagerContext, mgr manager.Manager, clusterControlledType client.Object) error {
+func AddClusterControllerToManager(ctx *context.ControllerManagerContext, mgr manager.Manager, clusterControlledType client.Object, options controller.Options) error {
 	supervisorBased, err := util.IsSupervisorType(clusterControlledType)
 	if err != nil {
 		return err
@@ -97,11 +97,11 @@ func AddClusterControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 		return ctrl.NewControllerManagedBy(mgr).
 			Named(controllerNameShort).
 			For(clusterControlledType).
+			WithOptions(options).
 			Watches(
 				&vmwarev1.VSphereMachine{},
 				handler.EnqueueRequestsFromMapFunc(reconciler.VSphereMachineToCluster),
 			).
-			WithOptions(controller.Options{MaxConcurrentReconciles: ctx.MaxConcurrentReconciles}).
 			Complete(reconciler)
 	}
 
@@ -113,6 +113,7 @@ func AddClusterControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		// Watch the controlled, infrastructure resource.
 		For(clusterControlledType).
+		WithOptions(options).
 		// Watch the CAPI resource that owns this infrastructure resource.
 		Watches(
 			&clusterv1.Cluster{},
@@ -159,7 +160,6 @@ func AddClusterControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 			&handler.EnqueueRequestForObject{},
 		).
 		WithEventFilter(predicates.ResourceIsNotExternallyManaged(reconciler.Logger)).
-		WithOptions(controller.Options{MaxConcurrentReconciles: ctx.MaxConcurrentReconciles}).
 		Build(reconciler)
 	if err != nil {
 		return err

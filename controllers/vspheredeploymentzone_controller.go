@@ -54,7 +54,7 @@ import (
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=vspherefailuredomains,verbs=get;list;watch;create;update;patch;delete
 
 // AddVSphereDeploymentZoneControllerToManager adds the VSphereDeploymentZone controller to the provided manager.
-func AddVSphereDeploymentZoneControllerToManager(ctx *context.ControllerManagerContext, mgr manager.Manager) error {
+func AddVSphereDeploymentZoneControllerToManager(ctx *context.ControllerManagerContext, mgr manager.Manager, options controller.Options) error {
 	var (
 		controlledType     = &infrav1.VSphereDeploymentZone{}
 		controlledTypeName = reflect.TypeOf(controlledType).Elem().Name()
@@ -76,6 +76,7 @@ func AddVSphereDeploymentZoneControllerToManager(ctx *context.ControllerManagerC
 	return ctrl.NewControllerManagedBy(mgr).
 		// Watch the controlled, infrastructure resource.
 		For(controlledType).
+		WithOptions(options).
 		Watches(
 			&infrav1.VSphereFailureDomain{},
 			handler.EnqueueRequestsFromMapFunc(reconciler.failureDomainsToDeploymentZones)).
@@ -87,7 +88,6 @@ func AddVSphereDeploymentZoneControllerToManager(ctx *context.ControllerManagerC
 			&source.Channel{Source: ctx.GetGenericEventChannelFor(controlledTypeGVK)},
 			&handler.EnqueueRequestForObject{},
 		).
-		WithOptions(controller.Options{MaxConcurrentReconciles: ctx.MaxConcurrentReconciles}).
 		Complete(reconciler)
 }
 

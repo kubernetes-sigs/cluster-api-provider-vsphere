@@ -85,6 +85,9 @@ type ControllerManagerContext struct {
 	// NetworkProvider is the network provider used by Supervisor based clusters
 	NetworkProvider string
 
+	// WatchFilterValue is used to filter incoming objects by label.
+	WatchFilterValue string
+
 	genericEventCache sync.Map
 }
 

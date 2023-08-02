@@ -122,7 +122,8 @@ func AddMachineControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 		WatchesRawSource(
 			&source.Channel{Source: ctx.GetGenericEventChannelFor(controlledTypeGVK)},
 			&handler.EnqueueRequestForObject{},
-		)
+		).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), ctx.WatchFilterValue))
 
 	r := &machineReconciler{
 		ControllerContext: controllerContext,

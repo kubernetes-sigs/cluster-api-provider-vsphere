@@ -83,6 +83,11 @@ const (
 	// are automatically re-tried by the controller.
 	PoweringOnFailedReason = "PoweringOnFailed"
 
+	// NotFoundByBIOSUUIDReason (Severity=Warning) documents a VSphereVM which can't be found by BIOS UUID.
+	// Those kind of errors could be transient sometimes and failed VSphereVM are automatically
+	// reconciled by the controller.
+	NotFoundByBIOSUUIDReason = "NotFoundByBIOSUUID"
+
 	// TaskFailure (Severity=Warning) documents a VSphereMachine/VSphere task failure; the reconcile look will automatically
 	// retry the operation, but a user intervention might be required to fix the problem.
 	TaskFailure = "TaskFailure"

@@ -28,6 +28,8 @@ import (
 	"time"
 
 	. "github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/config"
+	"github.com/onsi/ginkgo/reporters"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	vmoprv1 "github.com/vmware-tanzu/vm-operator-api/api/v1alpha1"
@@ -179,7 +181,9 @@ type WorkerComponents struct {
 
 func TestCAPV(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "CAPV Supervisor integration tests")
+	junitPath := filepath.Join(artifactFolder, fmt.Sprintf("junit.integration_suite.%d.xml", config.GinkgoConfig.ParallelNode))
+	junitReporter := reporters.NewJUnitReporter(junitPath)
+	RunSpecsWithCustomReporters(t, "CAPV Supervisor integration tests", []Reporter{junitReporter})
 }
 
 var (

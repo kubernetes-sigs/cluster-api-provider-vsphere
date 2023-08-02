@@ -424,6 +424,12 @@ test: $(SETUP_ENVTEST) $(GOVC) ## Run unit tests
 test-verbose: ## Run unit tests with verbose flag
 	$(MAKE) test TEST_ARGS="$(TEST_ARGS) -v"
 
+.PHONY: test-junit
+test-junit: $(SETUP_ENVTEST) $(GOTESTSUM) $(GOVC) ## Run unit tests
+	set +o errexit; (KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" GOVC_BIN_PATH=$(GOVC) go test -json ./apis/... ./controllers/... ./pkg/... $(TEST_ARGS); echo $$? > $(ARTIFACTS)/junit.exitcode) | tee $(ARTIFACTS)/junit.stdout
+	$(GOTESTSUM) --junitfile $(ARTIFACTS)/junit.xml --raw-command cat $(ARTIFACTS)/junit.stdout
+	exit $$(cat $(ARTIFACTS)/junit.exitcode)
+
 .PHONY: test-cover
 test-cover: ## Run unit tests and generate a coverage report
 	$(MAKE) test TEST_ARGS="$(TEST_ARGS) -coverprofile=coverage.out"

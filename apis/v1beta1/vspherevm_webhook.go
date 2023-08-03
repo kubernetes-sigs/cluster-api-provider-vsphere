@@ -100,14 +100,23 @@ func (r *VSphereVM) ValidateUpdate(old runtime.Object) (admission.Warnings, erro
 		return nil, apierrors.NewInternalError(errors.Wrap(err, "failed to convert old VSphereVM to unstructured object"))
 	}
 
+	oldTyped, ok := old.(*VSphereVM)
+	if !ok {
+		return nil, apierrors.NewInternalError(fmt.Errorf("failed to typecast old runtime object to VSphereVM"))
+	}
+
 	newVSphereVMSpec := newVSphereVM["spec"].(map[string]interface{})
 	oldVSphereVMSpec := oldVSphereVM["spec"].(map[string]interface{})
 
-	// allow changes to biosUUID, bootstrapRef, thumbprint
-	keys := []string{"biosUUID", "bootstrapRef", "thumbprint", "powerOffMode", "guestSoftPowerOffTimeout"}
-	// allow changes to os only if the old spec has empty OS field
-	if _, ok := oldVSphereVMSpec["os"]; !ok {
+	// Allow changes to bootstrapRef, thumbprint, powerOffMode, guestSoftPowerOffTimeout.
+	keys := []string{"bootstrapRef", "thumbprint", "powerOffMode", "guestSoftPowerOffTimeout"}
+	// Allow changes to os only if the old spec has empty OS field.
+	if oldTyped.Spec.OS == "" {
 		keys = append(keys, "os")
+	}
+	// Allow changes to biosUUID only if it is not already set.
+	if oldTyped.Spec.BiosUUID == "" {
+		keys = append(keys, "biosUUID")
 	}
 	r.deleteSpecKeys(oldVSphereVMSpec, keys)
 	r.deleteSpecKeys(newVSphereVMSpec, keys)

@@ -191,6 +191,18 @@ func TestVSphereVM_ValidateUpdate(t *testing.T) {
 			vSphereVM:    createVSphereVM("vsphere-vm-1", "foo.com", biosUUID, "", "BB:CC:DD:EE:FF", []string{"192.168.0.1/32"}, nil, Linux, VirtualMachinePowerOpModeSoft, nil),
 			wantErr:      false,
 		},
+		{
+			name:         "biosUUID can be set to a value",
+			oldVSphereVM: createVSphereVM("vsphere-vm-1", "foo.com", "", "", "AA:BB:CC:DD:EE", []string{"192.168.0.1/32"}, nil, Linux, VirtualMachinePowerOpModeTrySoft, nil),
+			vSphereVM:    createVSphereVM("vsphere-vm-1", "foo.com", biosUUID, "", "AA:BB:CC:DD:EE", []string{"192.168.0.1/32"}, nil, Linux, VirtualMachinePowerOpModeTrySoft, nil),
+			wantErr:      false,
+		},
+		{
+			name:         "biosUUID cannot be updated to a different value",
+			oldVSphereVM: createVSphereVM("vsphere-vm-1", "foo.com", "old-uuid", "", "AA:BB:CC:DD:EE", []string{"192.168.0.1/32"}, nil, Linux, VirtualMachinePowerOpModeTrySoft, nil),
+			vSphereVM:    createVSphereVM("vsphere-vm-1", "foo.com", biosUUID, "", "AA:BB:CC:DD:EE", []string{"192.168.0.1/32"}, nil, Linux, VirtualMachinePowerOpModeTrySoft, nil),
+			wantErr:      true,
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

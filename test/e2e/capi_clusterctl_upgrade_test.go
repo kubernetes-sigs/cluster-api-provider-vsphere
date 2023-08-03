@@ -32,7 +32,7 @@ var _ = PContext("ClusterAPI Upgrade Tests [clusterctl-Upgrade]", func() {
 				BootstrapClusterProxy:     bootstrapClusterProxy,
 				ArtifactFolder:            artifactFolder,
 				SkipCleanup:               skipCleanup,
-				InitWithBinary:            e2eConfig.GetVariable("INIT_WITH_BINARY_V1ALPHA4"),
+				InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.8/clusterctl-{OS}-{ARCH}",
 				InitWithProvidersContract: "v1alpha4",
 				MgmtFlavor:                "remote-management",
 			}

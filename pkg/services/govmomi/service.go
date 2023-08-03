@@ -30,10 +30,8 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 	corev1 "k8s.io/api/core/v1"
 	apitypes "k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
-	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -83,10 +81,12 @@ func (vms *VMService) ReconcileVM(ctx *context.VMContext) (vm infrav1.VirtualMac
 			return vm, err
 		}
 
-		// If the machine was not found by BIOS UUID it means that it got deleted from vcenter directly
+		// If the machine was not found by BIOS UUID, it could mean that the machine got deleted from vcenter directly,
+		// but sometimes this error is transient, for instance, if the storage was temporarily disconnected but
+		// later recovered, the machine will recover from this error.
 		if wasNotFoundByBIOSUUID(err) {
-			ctx.VSphereVM.Status.FailureReason = capierrors.MachineStatusErrorPtr(capierrors.UpdateMachineError)
-			ctx.VSphereVM.Status.FailureMessage = pointer.String(fmt.Sprintf("Unable to find VM by BIOS UUID %s. The vm was removed from infra", ctx.VSphereVM.Spec.BiosUUID))
+			conditions.MarkFalse(ctx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.NotFoundByBIOSUUIDReason, clusterv1.ConditionSeverityWarning, err.Error())
+			vm.State = infrav1.VirtualMachineStateNotFound
 			return vm, err
 		}
 

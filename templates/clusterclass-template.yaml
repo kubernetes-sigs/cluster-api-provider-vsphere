@@ -178,6 +178,7 @@ spec:
           networkName: '${VSPHERE_NETWORK}'
       numCPUs: 2
       os: Linux
+      powerOffMode: hard
       resourcePool: '${VSPHERE_RESOURCE_POOL}'
       server: '${VSPHERE_SERVER}'
       storagePolicyName: '${VSPHERE_STORAGE_POLICY}'
@@ -204,6 +205,7 @@ spec:
           networkName: '${VSPHERE_NETWORK}'
       numCPUs: 2
       os: Linux
+      powerOffMode: hard
       resourcePool: '${VSPHERE_RESOURCE_POOL}'
       server: '${VSPHERE_SERVER}'
       storagePolicyName: '${VSPHERE_STORAGE_POLICY}'

@@ -131,7 +131,9 @@ func GetOrCreate(ctx context.Context, params *Params) (*Session, error) {
 	if cachedSession, ok := sessionCache.Load(sessionKey); ok {
 		s := cachedSession.(*Session)
 
-		vimSessionActive, err := s.SessionManager.SessionIsActive(ctx)
+		// Retrieve the current session from Managed Object.
+		// The userSession is active when the value is not nil.
+		userSession, err := s.SessionManager.UserSession(ctx)
 		if err != nil {
 			logger.Error(err, "unable to check if vim session is active")
 		}
@@ -141,7 +143,7 @@ func GetOrCreate(ctx context.Context, params *Params) (*Session, error) {
 			logger.Error(err, "unable to check if rest session is active")
 		}
 
-		if vimSessionActive && tagManagerSession != nil {
+		if userSession != nil && tagManagerSession != nil {
 			logger.V(2).Info("found active cached vSphere client session")
 			return s, nil
 		}

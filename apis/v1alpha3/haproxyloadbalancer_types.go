@@ -62,11 +62,13 @@ type HAProxyLoadBalancerStatus struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:deprecatedversion
 // +kubebuilder:resource:path=haproxyloadbalancers,scope=Namespaced
 // +kubebuilder:subresource:status
 
 // HAProxyLoadBalancer is the Schema for the haproxyloadbalancers API
-// DEPRECATED: will be removed in v1alpha4
+//
+// Deprecated: This type will be removed in v1alpha4.
 type HAProxyLoadBalancer struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -78,6 +80,8 @@ type HAProxyLoadBalancer struct {
 // +kubebuilder:object:root=true
 
 // HAProxyLoadBalancerList contains a list of HAProxyLoadBalancer
+//
+// Deprecated: This type will be removed in one of the next releases.
 type HAProxyLoadBalancerList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

@@ -18,4 +18,6 @@ limitations under the License.
 // +kubebuilder:object:generate=true
 // +groupName=infrastructure.cluster.x-k8s.io
 // +k8s:conversion-gen=sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1
+//
+// Deprecated: This package will be removed in one of the next releases.
 package v1alpha3

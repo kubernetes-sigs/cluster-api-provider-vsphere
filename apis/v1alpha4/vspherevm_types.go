@@ -126,10 +126,13 @@ type VSphereVMStatus struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:deprecatedversion
 // +kubebuilder:resource:path=vspherevms,scope=Namespaced,categories=cluster-api
 // +kubebuilder:subresource:status
 
 // VSphereVM is the Schema for the vspherevms API
+//
+// Deprecated: This type will be removed in one of the next releases.
 type VSphereVM struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -149,6 +152,8 @@ func (r *VSphereVM) SetConditions(conditions clusterv1.Conditions) {
 // +kubebuilder:object:root=true
 
 // VSphereVMList contains a list of VSphereVM
+//
+// Deprecated: This type will be removed in one of the next releases.
 type VSphereVMList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

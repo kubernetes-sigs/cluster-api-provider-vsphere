@@ -14,11 +14,12 @@ spec:
     singular: haproxyloadbalancer
   scope: Namespaced
   versions:
-  - name: v1alpha3
+  - deprecated: true
+    name: v1alpha3
     schema:
       openAPIV3Schema:
-        description: 'HAProxyLoadBalancer is the Schema for the haproxyloadbalancers
-          API DEPRECATED: will be removed in v1alpha4'
+        description: "HAProxyLoadBalancer is the Schema for the haproxyloadbalancers
+          API \n Deprecated: This type will be removed in v1alpha4."
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation

@@ -27,9 +27,12 @@ type VSphereMachineTemplateSpec struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:deprecatedversion
 // +kubebuilder:resource:path=vspheremachinetemplates,scope=Namespaced,categories=cluster-api
 
 // VSphereMachineTemplate is the Schema for the vspheremachinetemplates API
+//
+// Deprecated: This type will be removed in one of the next releases.
 type VSphereMachineTemplate struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -40,6 +43,8 @@ type VSphereMachineTemplate struct {
 // +kubebuilder:object:root=true
 
 // VSphereMachineTemplateList contains a list of VSphereMachineTemplate
+//
+// Deprecated: This type will be removed in one of the next releases.
 type VSphereMachineTemplateList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

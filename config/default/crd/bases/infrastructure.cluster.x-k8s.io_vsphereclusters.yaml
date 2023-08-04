@@ -34,10 +34,12 @@ spec:
       jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
+    deprecated: true
     name: v1alpha3
     schema:
       openAPIV3Schema:
-        description: VSphereCluster is the Schema for the vsphereclusters API
+        description: "VSphereCluster is the Schema for the vsphereclusters API \n
+          Deprecated: This type will be removed in one of the next releases."
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -424,10 +426,12 @@ spec:
       jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
+    deprecated: true
     name: v1alpha4
     schema:
       openAPIV3Schema:
-        description: VSphereCluster is the Schema for the vsphereclusters API
+        description: "VSphereCluster is the Schema for the vsphereclusters API \n
+          Deprecated: This type will be removed in one of the next releases."
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation

@@ -16,11 +16,12 @@ spec:
     singular: vsphereclustertemplate
   scope: Namespaced
   versions:
-  - name: v1alpha4
+  - deprecated: true
+    name: v1alpha4
     schema:
       openAPIV3Schema:
-        description: VSphereClusterTemplate is the Schema for the vsphereclustertemplates
-          API
+        description: "VSphereClusterTemplate is the Schema for the vsphereclustertemplates
+          API \n Deprecated: This type will be removed in one of the next releases."
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation

@@ -28,7 +28,7 @@ import (
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 )
 
 // The purpose of this test is to start up a CAPI controller against a real API
@@ -132,7 +132,7 @@ var _ = Describe("Sanity tests", func() {
 			getResource(machinesResource, controlPlane.Machine.Name, controlPlane.Machine.Namespace, machine)
 
 			// GET the associated VSphereMachine.
-			vsphereMachine := &infrav1.VSphereMachine{}
+			vsphereMachine := &vmwarev1.VSphereMachine{}
 			getResource(vspheremachinesResource, controlPlane.Machine.Name, controlPlane.Machine.Namespace, vsphereMachine)
 
 			// ASSERT the VirtualMachine and bootstrap data ConfigMap resources

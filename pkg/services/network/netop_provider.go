@@ -20,12 +20,12 @@ import (
 	"fmt"
 
 	netopv1 "github.com/vmware-tanzu/net-operator-api/api/v1alpha1"
-	vmopv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha1"
+	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services"
 )
@@ -45,7 +45,7 @@ func (np *netopNetworkProvider) HasLoadBalancer() bool {
 }
 
 func (np *netopNetworkProvider) ProvisionClusterNetwork(ctx *vmware.ClusterContext) error {
-	conditions.MarkTrue(ctx.VSphereCluster, infrav1.ClusterNetworkReadyCondition)
+	conditions.MarkTrue(ctx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition)
 	return nil
 }
 
@@ -102,7 +102,7 @@ func (np *netopNetworkProvider) GetVMServiceAnnotations(ctx *vmware.ClusterConte
 	return map[string]string{NetOpNetworkNameAnnotation: networkName}, nil
 }
 
-func (np *netopNetworkProvider) ConfigureVirtualMachine(ctx *vmware.ClusterContext, vm *vmopv1.VirtualMachine) error {
+func (np *netopNetworkProvider) ConfigureVirtualMachine(ctx *vmware.ClusterContext, vm *vmoprv1.VirtualMachine) error {
 	network, err := np.getClusterNetwork(ctx)
 	if err != nil {
 		return err
@@ -115,7 +115,7 @@ func (np *netopNetworkProvider) ConfigureVirtualMachine(ctx *vmware.ClusterConte
 		}
 	}
 
-	vm.Spec.NetworkInterfaces = append(vm.Spec.NetworkInterfaces, vmopv1.VirtualMachineNetworkInterface{
+	vm.Spec.NetworkInterfaces = append(vm.Spec.NetworkInterfaces, vmoprv1.VirtualMachineNetworkInterface{
 		NetworkName: network.Name,
 		NetworkType: string(network.Spec.Type),
 	})

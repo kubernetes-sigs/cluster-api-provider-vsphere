@@ -28,7 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services"
 )
@@ -67,7 +67,7 @@ func (s CPService) ReconcileControlPlaneEndpointService(ctx *vmware.ClusterConte
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
 			err = errors.Wrapf(err, "failed to check if VirtualMachineService exists")
-			conditions.MarkFalse(ctx.VSphereCluster, infrav1.LoadBalancerReadyCondition, infrav1.LoadBalancerCreationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+			conditions.MarkFalse(ctx.VSphereCluster, vmwarev1.LoadBalancerReadyCondition, vmwarev1.LoadBalancerCreationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 			return nil, err
 		}
 
@@ -75,14 +75,14 @@ func (s CPService) ReconcileControlPlaneEndpointService(ctx *vmware.ClusterConte
 		annotations, err := netProvider.GetVMServiceAnnotations(ctx)
 		if err != nil {
 			err = errors.Wrapf(err, "failed to get provider VirtualMachineService annotations")
-			conditions.MarkFalse(ctx.VSphereCluster, infrav1.LoadBalancerReadyCondition, infrav1.LoadBalancerCreationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+			conditions.MarkFalse(ctx.VSphereCluster, vmwarev1.LoadBalancerReadyCondition, vmwarev1.LoadBalancerCreationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 			return nil, err
 		}
 
 		vmService, err = s.createVMControlPlaneService(ctx, annotations)
 		if err != nil {
 			err = errors.Wrapf(err, "failed to create VirtualMachineService")
-			conditions.MarkFalse(ctx.VSphereCluster, infrav1.LoadBalancerReadyCondition, infrav1.LoadBalancerCreationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+			conditions.MarkFalse(ctx.VSphereCluster, vmwarev1.LoadBalancerReadyCondition, vmwarev1.LoadBalancerCreationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 			return nil, err
 		}
 	}
@@ -91,18 +91,18 @@ func (s CPService) ReconcileControlPlaneEndpointService(ctx *vmware.ClusterConte
 	vip, err := getVMServiceVIP(vmService)
 	if err != nil {
 		err = errors.Wrapf(err, "VirtualMachineService LB does not yet have VIP assigned")
-		conditions.MarkFalse(ctx.VSphereCluster, infrav1.LoadBalancerReadyCondition, infrav1.WaitingForLoadBalancerIPReason, clusterv1.ConditionSeverityInfo, err.Error())
+		conditions.MarkFalse(ctx.VSphereCluster, vmwarev1.LoadBalancerReadyCondition, vmwarev1.WaitingForLoadBalancerIPReason, clusterv1.ConditionSeverityInfo, err.Error())
 		return nil, err
 	}
 
 	cpEndpoint, err := getAPIEndpointFromVIP(vmService, vip)
 	if err != nil {
 		err = errors.Wrapf(err, "VirtualMachineService LB does not have an apiserver endpoint")
-		conditions.MarkFalse(ctx.VSphereCluster, infrav1.LoadBalancerReadyCondition, infrav1.WaitingForLoadBalancerIPReason, clusterv1.ConditionSeverityWarning, err.Error())
+		conditions.MarkFalse(ctx.VSphereCluster, vmwarev1.LoadBalancerReadyCondition, vmwarev1.WaitingForLoadBalancerIPReason, clusterv1.ConditionSeverityWarning, err.Error())
 		return nil, err
 	}
 
-	conditions.MarkTrue(ctx.VSphereCluster, infrav1.LoadBalancerReadyCondition)
+	conditions.MarkTrue(ctx.VSphereCluster, vmwarev1.LoadBalancerReadyCondition)
 	return cpEndpoint, nil
 }
 

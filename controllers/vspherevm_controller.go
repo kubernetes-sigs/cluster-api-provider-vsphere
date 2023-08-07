@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	apiv1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apitypes "k8s.io/apimachinery/pkg/types"
@@ -385,7 +385,7 @@ func (r vmReconciler) deleteNode(ctx *context.VMContext, name string) (reconcile
 	}
 
 	// Attempt to delete the corresponding node
-	node := &apiv1.Node{
+	node := &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},

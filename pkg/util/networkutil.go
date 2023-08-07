@@ -21,7 +21,7 @@ import (
 
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	apitypes "k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -47,7 +47,7 @@ var (
 
 // GetNamespaceNetSnatIP finds out the namespace's corresponding network's SNAT IP.
 func GetNamespaceNetSnatIP(ctx context.Context, controllerClient client.Client, namespace string) (string, error) {
-	namespaceObj := &v1.Namespace{}
+	namespaceObj := &corev1.Namespace{}
 	namespacedName := apitypes.NamespacedName{
 		Name: namespace,
 	}
@@ -71,7 +71,7 @@ func GetNamespaceNetSnatIP(ctx context.Context, controllerClient client.Client, 
 
 // GetNCPVersion finds out the running ncp's version from its configmap.
 func GetNCPVersion(ctx context.Context, controllerClient client.Client) (string, error) {
-	configmapObj := &v1.ConfigMap{}
+	configmapObj := &corev1.ConfigMap{}
 	namespacedName := apitypes.NamespacedName{
 		Name:      NCPVersionConfigMap,
 		Namespace: NCPNamespace,

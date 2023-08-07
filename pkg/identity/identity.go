@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"strings"
 
-	apiv1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -46,7 +46,7 @@ func GetCredentials(ctx context.Context, c client.Client, cluster *infrav1.VSphe
 	}
 
 	ref := cluster.Spec.IdentityRef
-	secret := &apiv1.Secret{}
+	secret := &corev1.Secret{}
 	var secretKey client.ObjectKey
 
 	switch ref.Kind {
@@ -77,7 +77,7 @@ func GetCredentials(ctx context.Context, c client.Client, cluster *infrav1.VSphe
 			return nil, errors.New("failed to build selector")
 		}
 
-		ns := &apiv1.Namespace{}
+		ns := &corev1.Namespace{}
 		nsKey := client.ObjectKey{
 			Name: cluster.Namespace,
 		}
@@ -144,7 +144,7 @@ func IsOwnedByIdentityOrCluster(ownerReferences []metav1.OwnerReference) bool {
 	return false
 }
 
-func getData(secret *apiv1.Secret, key string) string {
+func getData(secret *corev1.Secret, key string) string {
 	if secret.Data == nil {
 		return ""
 	}

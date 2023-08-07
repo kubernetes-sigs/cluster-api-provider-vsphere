@@ -35,7 +35,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
 	capiutil "sigs.k8s.io/cluster-api/util"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers"
 )
 
@@ -171,7 +171,7 @@ var _ = SynchronizedAfterSuite(func() {
 func initScheme() *runtime.Scheme {
 	sc := runtime.NewScheme()
 	framework.TryAddDefaultSchemes(sc)
-	_ = v1beta1.AddToScheme(sc)
+	_ = infrav1.AddToScheme(sc)
 	return sc
 }
 

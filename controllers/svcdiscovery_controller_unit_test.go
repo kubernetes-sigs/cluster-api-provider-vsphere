@@ -25,7 +25,7 @@ import (
 	capiutil "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	vmwarev1b1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
 	helpers "sigs.k8s.io/cluster-api-provider-vsphere/test/helpers/vmware"
 )
@@ -35,7 +35,7 @@ var _ = Describe("ServiceDiscoveryReconciler ReconcileNormal", serviceDiscoveryU
 func serviceDiscoveryUnitTestsReconcileNormal() {
 	var (
 		ctx            *helpers.UnitTestContextForController
-		vsphereCluster vmwarev1b1.VSphereCluster
+		vsphereCluster vmwarev1.VSphereCluster
 		initObjects    []client.Object
 		reconciler     serviceDiscoveryReconciler
 	)
@@ -58,7 +58,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 			By("creating a service and no endpoint in the guest cluster")
 			assertHeadlessSvcWithNoEndpoints(ctx, ctx.GuestClient, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
 			assertServiceDiscoveryCondition(ctx.VSphereCluster, corev1.ConditionFalse, "Unable to discover supervisor apiserver address",
-				vmwarev1b1.SupervisorHeadlessServiceSetupFailedReason, clusterv1.ConditionSeverityWarning)
+				vmwarev1.SupervisorHeadlessServiceSetupFailedReason, clusterv1.ConditionSeverityWarning)
 		})
 	})
 	Context("When VIP is available", func() {
@@ -70,7 +70,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 		})
 		It("Should reconcile headless svc", func() {
 			By("creating a service and endpoints using the VIP in the guest cluster")
-			assertHeadlessSvcWithVIPEndpoints(ctx, ctx.GuestClient, vmwarev1b1.SupervisorHeadlessSvcNamespace, vmwarev1b1.SupervisorHeadlessSvcName)
+			assertHeadlessSvcWithVIPEndpoints(ctx, ctx.GuestClient, vmwarev1.SupervisorHeadlessSvcNamespace, vmwarev1.SupervisorHeadlessSvcName)
 			assertServiceDiscoveryCondition(ctx.VSphereCluster, corev1.ConditionTrue, "", "", "")
 		})
 		It("Should get supervisor master endpoint IP", func() {
@@ -136,7 +136,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 			By("creating a service and no endpoint in the guest cluster")
 			assertHeadlessSvcWithNoEndpoints(ctx, ctx.GuestClient, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
 			assertServiceDiscoveryCondition(ctx.VSphereCluster, corev1.ConditionFalse, "Unable to discover supervisor apiserver address",
-				vmwarev1b1.SupervisorHeadlessServiceSetupFailedReason, clusterv1.ConditionSeverityWarning)
+				vmwarev1.SupervisorHeadlessServiceSetupFailedReason, clusterv1.ConditionSeverityWarning)
 		})
 	})
 	Context("When FIP is an invalid host", func() {
@@ -149,7 +149,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 			By("creating a service and no endpoint in the guest cluster")
 			assertHeadlessSvcWithNoEndpoints(ctx, ctx.GuestClient, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
 			assertServiceDiscoveryCondition(ctx.VSphereCluster, corev1.ConditionFalse, "Unable to discover supervisor apiserver address",
-				vmwarev1b1.SupervisorHeadlessServiceSetupFailedReason, clusterv1.ConditionSeverityWarning)
+				vmwarev1.SupervisorHeadlessServiceSetupFailedReason, clusterv1.ConditionSeverityWarning)
 		})
 	})
 	Context("When FIP config map has invalid kubeconfig data", func() {
@@ -165,7 +165,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 			By("creating a service and no endpoint in the guest cluster")
 			assertHeadlessSvcWithNoEndpoints(ctx, ctx.GuestClient, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
 			assertServiceDiscoveryCondition(ctx.VSphereCluster, corev1.ConditionFalse, "Unable to discover supervisor apiserver address",
-				vmwarev1b1.SupervisorHeadlessServiceSetupFailedReason, clusterv1.ConditionSeverityWarning)
+				vmwarev1.SupervisorHeadlessServiceSetupFailedReason, clusterv1.ConditionSeverityWarning)
 		})
 	})
 	Context("When FIP config map has invalid kubeconfig key", func() {
@@ -181,7 +181,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 			By("creating a service and no endpoint in the guest cluster")
 			assertHeadlessSvcWithNoEndpoints(ctx, ctx.GuestClient, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
 			assertServiceDiscoveryCondition(ctx.VSphereCluster, corev1.ConditionFalse, "Unable to discover supervisor apiserver address",
-				vmwarev1b1.SupervisorHeadlessServiceSetupFailedReason, clusterv1.ConditionSeverityWarning)
+				vmwarev1.SupervisorHeadlessServiceSetupFailedReason, clusterv1.ConditionSeverityWarning)
 		})
 	})
 }

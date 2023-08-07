@@ -27,7 +27,7 @@ import (
 	"github.com/vmware/govmomi/pbm/types"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
-	"sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -146,7 +146,7 @@ func getVSphereVMsForCluster(clusterName, namespace string) *infrav1.VSphereVMLi
 		&vms,
 		client.InNamespace(namespace),
 		client.MatchingLabels{
-			v1beta1.ClusterNameLabel: clusterName,
+			clusterv1.ClusterNameLabel: clusterName,
 		},
 	)
 	Expect(err).NotTo(HaveOccurred())

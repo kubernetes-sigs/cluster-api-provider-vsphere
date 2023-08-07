@@ -20,7 +20,7 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 
@@ -69,7 +69,7 @@ func (c *VIMMachineContext) GetVSphereMachine() VSphereMachine {
 	return c.VSphereMachine
 }
 
-func (c *VIMMachineContext) GetObjectMeta() v1.ObjectMeta {
+func (c *VIMMachineContext) GetObjectMeta() metav1.ObjectMeta {
 	return c.VSphereMachine.ObjectMeta
 }
 

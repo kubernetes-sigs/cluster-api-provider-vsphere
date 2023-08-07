@@ -22,9 +22,9 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	netopv1alpha1 "github.com/vmware-tanzu/net-operator-api/api/v1alpha1"
-	"github.com/vmware-tanzu/vm-operator/api/v1alpha1"
+	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha1"
 	ncpv1 "github.com/vmware-tanzu/vm-operator/external/ncp/api/v1alpha1"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	apitypes "k8s.io/apimachinery/pkg/types"
@@ -33,7 +33,7 @@ import (
 	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
@@ -69,8 +69,8 @@ var _ = Describe("Network provider", func() {
 		err              error
 		np               services.NetworkProvider
 		cluster          *clusterv1.Cluster
-		vSphereCluster   *infrav1.VSphereCluster
-		vm               *v1alpha1.VirtualMachine
+		vSphereCluster   *vmwarev1.VSphereCluster
+		vm               *vmoprv1.VirtualMachine
 		hasLB            bool
 	)
 	BeforeEach(func() {
@@ -84,16 +84,16 @@ var _ = Describe("Network provider", func() {
 				Namespace: dummyNs,
 			},
 			Spec: clusterv1.ClusterSpec{
-				InfrastructureRef: &v1.ObjectReference{
-					APIVersion: infrav1.GroupVersion.String(),
+				InfrastructureRef: &corev1.ObjectReference{
+					APIVersion: vmwarev1.GroupVersion.String(),
 					Kind:       infraClusterKind,
 					Name:       dummyCluster,
 				},
 			},
 		}
-		vSphereCluster = &infrav1.VSphereCluster{
+		vSphereCluster = &vmwarev1.VSphereCluster{
 			TypeMeta: metav1.TypeMeta{
-				APIVersion: infrav1.GroupVersion.String(),
+				APIVersion: vmwarev1.GroupVersion.String(),
 				Kind:       infraClusterKind,
 			},
 			ObjectMeta: metav1.ObjectMeta{
@@ -102,7 +102,7 @@ var _ = Describe("Network provider", func() {
 			},
 		}
 		ctx = util.CreateClusterContext(cluster, vSphereCluster)
-		vm = &v1alpha1.VirtualMachine{
+		vm = &vmoprv1.VirtualMachine{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: dummyNs,
 				Name:      dummyVM,
@@ -221,7 +221,7 @@ var _ = Describe("Network provider", func() {
 					},
 				},
 			}
-			configmapObj = &v1.ConfigMap{
+			configmapObj = &corev1.ConfigMap{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "ConfigMap",
 					APIVersion: "v1",
@@ -234,7 +234,7 @@ var _ = Describe("Network provider", func() {
 					util.NCPVersionKey: util.NCPVersionSupportFW,
 				},
 			}
-			systemNamespaceObj = &v1.Namespace{
+			systemNamespaceObj = &corev1.Namespace{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Namespace",
 					APIVersion: "v1",
@@ -253,7 +253,7 @@ var _ = Describe("Network provider", func() {
 			}
 			scheme = runtime.NewScheme()
 			Expect(ncpv1.AddToScheme(scheme)).To(Succeed())
-			Expect(v1.AddToScheme(scheme)).To(Succeed())
+			Expect(corev1.AddToScheme(scheme)).To(Succeed())
 		})
 
 		Context("with dummy network provider", func() {
@@ -284,7 +284,7 @@ var _ = Describe("Network provider", func() {
 			})
 			It("should succeed", func() {
 				Expect(err).To(BeNil())
-				Expect(conditions.IsTrue(ctx.VSphereCluster, infrav1.ClusterNetworkReadyCondition)).To(BeTrue())
+				Expect(conditions.IsTrue(ctx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition)).To(BeTrue())
 			})
 		})
 
@@ -318,7 +318,7 @@ var _ = Describe("Network provider", func() {
 				annotations, err := np.GetVMServiceAnnotations(ctx)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(annotations).To(HaveKeyWithValue("ncp.vmware.com/virtual-network-name", GetNSXTVirtualNetworkName(ctx.VSphereCluster.Name)))
-				Expect(conditions.IsTrue(ctx.VSphereCluster, infrav1.ClusterNetworkReadyCondition)).To(BeTrue())
+				Expect(conditions.IsTrue(ctx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition)).To(BeTrue())
 			})
 		})
 
@@ -345,7 +345,7 @@ var _ = Describe("Network provider", func() {
 
 				Expect(err).To(BeNil())
 				Expect(createdVNET.Spec.WhitelistSourceRanges).To(BeEmpty())
-				Expect(conditions.IsTrue(ctx.VSphereCluster, infrav1.ClusterNetworkReadyCondition)).To(BeTrue())
+				Expect(conditions.IsTrue(ctx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition)).To(BeTrue())
 			})
 		})
 
@@ -372,7 +372,7 @@ var _ = Describe("Network provider", func() {
 
 				Expect(err).To(BeNil())
 				Expect(createdVNET.Spec.WhitelistSourceRanges).To(Equal(fakeSNATIP + "/32"))
-				Expect(conditions.IsTrue(ctx.VSphereCluster, infrav1.ClusterNetworkReadyCondition)).To(BeTrue())
+				Expect(conditions.IsTrue(ctx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition)).To(BeTrue())
 			})
 		})
 
@@ -401,14 +401,14 @@ var _ = Describe("Network provider", func() {
 				Expect(createdVNET.Spec.WhitelistSourceRanges).To(Equal(fakeSNATIP + "/32"))
 				// err is not empty, but it is because vnetObj does not have status mocked in this test
 
-				Expect(conditions.IsTrue(ctx.VSphereCluster, infrav1.ClusterNetworkReadyCondition)).To(BeTrue())
+				Expect(conditions.IsTrue(ctx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition)).To(BeTrue())
 			})
 		})
 
 		Context("with nsx-t network provider and FW enabled and NCP version < 3.0.1 and VNET exists", func() {
 			BeforeEach(func() {
 				// test if NCP version is 3.0.0
-				configmapObj.(*v1.ConfigMap).Data[util.NCPVersionKey] = "3.0.0"
+				configmapObj.(*corev1.ConfigMap).Data[util.NCPVersionKey] = "3.0.0"
 				client = fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(runtimeObjs...).Build()
 				nsxNp, _ = NsxtNetworkProvider(client, "false").(*nsxtNetworkProvider)
 				np = nsxNp
@@ -431,12 +431,12 @@ var _ = Describe("Network provider", func() {
 				Expect(createdVNET.Spec.WhitelistSourceRanges).To(BeEmpty())
 				// err is not empty, but it is because vnetObj does not have status mocked in this test
 
-				Expect(conditions.IsTrue(ctx.VSphereCluster, infrav1.ClusterNetworkReadyCondition)).To(BeTrue())
+				Expect(conditions.IsTrue(ctx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition)).To(BeTrue())
 			})
 
 			AfterEach(func() {
 				// change NCP version back
-				configmapObj.(*v1.ConfigMap).Data[util.NCPVersionKey] = util.NCPVersionSupportFW
+				configmapObj.(*corev1.ConfigMap).Data[util.NCPVersionKey] = util.NCPVersionSupportFW
 			})
 		})
 
@@ -469,7 +469,7 @@ var _ = Describe("Network provider", func() {
 				expectedErrorMessage := fmt.Sprintf("virtual network ready status is: '%s' in cluster %s. reason: %s, message: %s",
 					"False", apitypes.NamespacedName{Namespace: dummyNs, Name: dummyCluster}, testVnetNotRealizedReason, testVnetNotRealizedMessage)
 				Expect(err).To(MatchError(expectedErrorMessage))
-				Expect(conditions.IsFalse(ctx.VSphereCluster, infrav1.ClusterNetworkReadyCondition)).To(BeTrue())
+				Expect(conditions.IsFalse(ctx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition)).To(BeTrue())
 			})
 		})
 	})

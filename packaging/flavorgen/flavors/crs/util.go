@@ -17,7 +17,7 @@ limitations under the License.
 package crs
 
 import (
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
@@ -27,10 +27,10 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/util"
 )
 
-func newSecret(name string, o runtime.Object) *v1.Secret {
-	return &v1.Secret{
+func newSecret(name string, o runtime.Object) *corev1.Secret {
+	return &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: v1.SchemeGroupVersion.String(),
+			APIVersion: corev1.SchemeGroupVersion.String(),
 			Kind:       "Secret",
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -44,17 +44,17 @@ func newSecret(name string, o runtime.Object) *v1.Secret {
 	}
 }
 
-func appendSecretToCrsResource(crs *addonsv1.ClusterResourceSet, generatedSecret *v1.Secret) {
+func appendSecretToCrsResource(crs *addonsv1.ClusterResourceSet, generatedSecret *corev1.Secret) {
 	crs.Spec.Resources = append(crs.Spec.Resources, addonsv1.ResourceRef{
 		Name: generatedSecret.Name,
 		Kind: "Secret",
 	})
 }
 
-func newConfigMap(name string, o runtime.Object) *v1.ConfigMap {
-	return &v1.ConfigMap{
+func newConfigMap(name string, o runtime.Object) *corev1.ConfigMap {
+	return &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: v1.SchemeGroupVersion.String(),
+			APIVersion: corev1.SchemeGroupVersion.String(),
 			Kind:       "ConfigMap",
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -67,10 +67,10 @@ func newConfigMap(name string, o runtime.Object) *v1.ConfigMap {
 	}
 }
 
-func newConfigMapManifests(name string, o []runtime.Object) *v1.ConfigMap {
-	return &v1.ConfigMap{
+func newConfigMapManifests(name string, o []runtime.Object) *corev1.ConfigMap {
+	return &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: v1.SchemeGroupVersion.String(),
+			APIVersion: corev1.SchemeGroupVersion.String(),
 			Kind:       "ConfigMap",
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -83,7 +83,7 @@ func newConfigMapManifests(name string, o []runtime.Object) *v1.ConfigMap {
 	}
 }
 
-func appendConfigMapToCrsResource(crs *addonsv1.ClusterResourceSet, generatedConfigMap *v1.ConfigMap) {
+func appendConfigMapToCrsResource(crs *addonsv1.ClusterResourceSet, generatedConfigMap *corev1.ConfigMap) {
 	crs.Spec.Resources = append(crs.Spec.Resources, addonsv1.ResourceRef{
 		Name: generatedConfigMap.Name,
 		Kind: "ConfigMap",

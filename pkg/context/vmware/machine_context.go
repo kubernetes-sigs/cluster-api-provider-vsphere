@@ -19,7 +19,7 @@ package vmware
 import (
 	"fmt"
 
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
@@ -52,7 +52,7 @@ func (c *SupervisorMachineContext) GetVSphereMachine() context.VSphereMachine {
 	return c.VSphereMachine
 }
 
-func (c *SupervisorMachineContext) GetObjectMeta() v1.ObjectMeta {
+func (c *SupervisorMachineContext) GetObjectMeta() metav1.ObjectMeta {
 	return c.VSphereMachine.ObjectMeta
 }
 

@@ -32,7 +32,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	testclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
 )
@@ -56,7 +56,7 @@ func CreateCluster(clusterName string) *clusterv1.Cluster {
 		},
 		Spec: clusterv1.ClusterSpec{
 			InfrastructureRef: &corev1.ObjectReference{
-				APIVersion: infrav1.GroupVersion.String(),
+				APIVersion: vmwarev1.GroupVersion.String(),
 				Kind:       infraClusterKind,
 				Name:       clusterName,
 			},
@@ -64,10 +64,10 @@ func CreateCluster(clusterName string) *clusterv1.Cluster {
 	}
 }
 
-func CreateVSphereCluster(clusterName string) *infrav1.VSphereCluster {
-	return &infrav1.VSphereCluster{
+func CreateVSphereCluster(clusterName string) *vmwarev1.VSphereCluster {
+	return &vmwarev1.VSphereCluster{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: infrav1.GroupVersion.String(),
+			APIVersion: vmwarev1.GroupVersion.String(),
 			Kind:       infraClusterKind,
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -97,7 +97,7 @@ func CreateMachine(machineName, clusterName, k8sVersion string, controlPlaneLabe
 				},
 			},
 			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: infrav1.GroupVersion.String(),
+				APIVersion: vmwarev1.GroupVersion.String(),
 				Kind:       infraMachineKind,
 				Name:       machineName,
 			},
@@ -111,10 +111,10 @@ func CreateMachine(machineName, clusterName, k8sVersion string, controlPlaneLabe
 	return machine
 }
 
-func CreateVSphereMachine(machineName, clusterName, className, imageName, storageClass string, controlPlaneLabel bool) *infrav1.VSphereMachine {
-	vsphereMachine := &infrav1.VSphereMachine{
+func CreateVSphereMachine(machineName, clusterName, className, imageName, storageClass string, controlPlaneLabel bool) *vmwarev1.VSphereMachine {
+	vsphereMachine := &vmwarev1.VSphereMachine{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: infrav1.GroupVersion.String(),
+			APIVersion: vmwarev1.GroupVersion.String(),
 			Kind:       infraMachineKind,
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -123,7 +123,7 @@ func CreateVSphereMachine(machineName, clusterName, className, imageName, storag
 				clusterv1.ClusterNameLabel: clusterName,
 			},
 		},
-		Spec: infrav1.VSphereMachineSpec{
+		Spec: vmwarev1.VSphereMachineSpec{
 			ClassName:    className,
 			ImageName:    imageName,
 			StorageClass: storageClass,
@@ -140,7 +140,7 @@ func CreateVSphereMachine(machineName, clusterName, className, imageName, storag
 func createScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
 	_ = clientgoscheme.AddToScheme(scheme)
-	_ = infrav1.AddToScheme(scheme)
+	_ = vmwarev1.AddToScheme(scheme)
 	_ = clusterv1.AddToScheme(scheme)
 	_ = topologyv1.AddToScheme(scheme)
 	_ = vmoprv1.AddToScheme(scheme)
@@ -149,7 +149,7 @@ func createScheme() *runtime.Scheme {
 	return scheme
 }
 
-func CreateClusterContext(cluster *clusterv1.Cluster, vsphereCluster *infrav1.VSphereCluster) *vmware.ClusterContext {
+func CreateClusterContext(cluster *clusterv1.Cluster, vsphereCluster *vmwarev1.VSphereCluster) *vmware.ClusterContext {
 	scheme := createScheme()
 	controllerManagerContext := &context.ControllerManagerContext{
 		Context: goctx.Background(),
@@ -177,7 +177,7 @@ func CreateClusterContext(cluster *clusterv1.Cluster, vsphereCluster *infrav1.VS
 }
 
 func CreateMachineContext(clusterContext *vmware.ClusterContext, machine *clusterv1.Machine,
-	vsphereMachine *infrav1.VSphereMachine) *vmware.SupervisorMachineContext {
+	vsphereMachine *vmwarev1.VSphereMachine) *vmware.SupervisorMachineContext {
 	// Build the machine context.
 	return &vmware.SupervisorMachineContext{
 		BaseMachineContext: &context.BaseMachineContext{

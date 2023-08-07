@@ -30,7 +30,7 @@ import (
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers/vcsim"
 )
 
@@ -86,7 +86,7 @@ func TestGetSession(t *testing.T) {
 func sessionCount(stdout io.Reader) (int, error) {
 	buf := make([]byte, 1024)
 	count := 0
-	lineSep := []byte(v1beta1.GroupVersion.String())
+	lineSep := []byte(infrav1.GroupVersion.String())
 
 	for {
 		c, err := stdout.Read(buf)

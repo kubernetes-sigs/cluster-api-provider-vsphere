@@ -46,8 +46,8 @@ import (
 	ctrlsig "sigs.k8s.io/controller-runtime/pkg/manager/signals"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
-	vmwarev1b1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/controllers"
 	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/constants"
@@ -258,7 +258,7 @@ func main() {
 		}
 
 		// Check for non-supervisor VSphereCluster and start controller if found
-		gvr := v1beta1.GroupVersion.WithResource(reflect.TypeOf(&v1beta1.VSphereCluster{}).Elem().Name())
+		gvr := infrav1.GroupVersion.WithResource(reflect.TypeOf(&infrav1.VSphereCluster{}).Elem().Name())
 		isLoaded, err := isCRDDeployed(mgr, gvr)
 		if err != nil {
 			return err
@@ -272,7 +272,7 @@ func main() {
 		}
 
 		// Check for supervisor VSphereCluster and start controller if found
-		gvr = vmwarev1b1.GroupVersion.WithResource(reflect.TypeOf(&vmwarev1b1.VSphereCluster{}).Elem().Name())
+		gvr = vmwarev1.GroupVersion.WithResource(reflect.TypeOf(&vmwarev1.VSphereCluster{}).Elem().Name())
 		isLoaded, err = isCRDDeployed(mgr, gvr)
 		if err != nil {
 			return err
@@ -326,34 +326,34 @@ func main() {
 }
 
 func setupVAPIControllers(ctx *context.ControllerManagerContext, mgr ctrlmgr.Manager, tracker *remote.ClusterCacheTracker) error {
-	if err := (&v1beta1.VSphereClusterTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&infrav1.VSphereClusterTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		return err
 	}
 
-	if err := (&v1beta1.VSphereMachine{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&infrav1.VSphereMachine{}).SetupWebhookWithManager(mgr); err != nil {
 		return err
 	}
 
-	if err := (&v1beta1.VSphereMachineTemplateWebhook{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&infrav1.VSphereMachineTemplateWebhook{}).SetupWebhookWithManager(mgr); err != nil {
 		return err
 	}
 
-	if err := (&v1beta1.VSphereVM{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&infrav1.VSphereVM{}).SetupWebhookWithManager(mgr); err != nil {
 		return err
 	}
 
-	if err := (&v1beta1.VSphereDeploymentZone{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&infrav1.VSphereDeploymentZone{}).SetupWebhookWithManager(mgr); err != nil {
 		return err
 	}
 
-	if err := (&v1beta1.VSphereFailureDomain{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&infrav1.VSphereFailureDomain{}).SetupWebhookWithManager(mgr); err != nil {
 		return err
 	}
 
-	if err := controllers.AddClusterControllerToManager(ctx, mgr, &v1beta1.VSphereCluster{}, concurrency(vSphereClusterConcurrency)); err != nil {
+	if err := controllers.AddClusterControllerToManager(ctx, mgr, &infrav1.VSphereCluster{}, concurrency(vSphereClusterConcurrency)); err != nil {
 		return err
 	}
-	if err := controllers.AddMachineControllerToManager(ctx, mgr, &v1beta1.VSphereMachine{}, concurrency(vSphereMachineConcurrency)); err != nil {
+	if err := controllers.AddMachineControllerToManager(ctx, mgr, &infrav1.VSphereMachine{}, concurrency(vSphereMachineConcurrency)); err != nil {
 		return err
 	}
 	if err := controllers.AddVMControllerToManager(ctx, mgr, tracker, concurrency(vSphereVMConcurrency)); err != nil {
@@ -367,11 +367,11 @@ func setupVAPIControllers(ctx *context.ControllerManagerContext, mgr ctrlmgr.Man
 }
 
 func setupSupervisorControllers(ctx *context.ControllerManagerContext, mgr ctrlmgr.Manager, tracker *remote.ClusterCacheTracker) error {
-	if err := controllers.AddClusterControllerToManager(ctx, mgr, &vmwarev1b1.VSphereCluster{}, concurrency(vSphereClusterConcurrency)); err != nil {
+	if err := controllers.AddClusterControllerToManager(ctx, mgr, &vmwarev1.VSphereCluster{}, concurrency(vSphereClusterConcurrency)); err != nil {
 		return err
 	}
 
-	if err := controllers.AddMachineControllerToManager(ctx, mgr, &vmwarev1b1.VSphereMachine{}, concurrency(vSphereMachineConcurrency)); err != nil {
+	if err := controllers.AddMachineControllerToManager(ctx, mgr, &vmwarev1.VSphereMachine{}, concurrency(vSphereMachineConcurrency)); err != nil {
 		return err
 	}
 

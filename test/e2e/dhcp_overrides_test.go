@@ -31,7 +31,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
 
-	types "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 )
 
 type GuestInfoMetadata struct {
@@ -101,7 +101,7 @@ var _ = Describe("DHCPOverrides configuration test", func() {
 	})
 })
 
-func getVMMetadata(vm types.VSphereVM) ([]byte, error) {
+func getVMMetadata(vm infrav1.VSphereVM) ([]byte, error) {
 	vmObj, err := vsphereFinder.VirtualMachine(ctx, vm.Name)
 	Expect(err).NotTo(HaveOccurred())
 

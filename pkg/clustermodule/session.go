@@ -56,7 +56,7 @@ func fetchSession(ctx *context.ClusterContext, params *session.Params) (*session
 			return nil, err
 		}
 
-		params = params.WithUserInfo(creds.Username, creds.Password)
+		params = params.WithUserInfo(creds.Username, creds.Password).WithUserCertificate(creds.UserCert).WithUserKey(creds.UserKey)
 		return session.GetOrCreate(ctx, params)
 	}
 

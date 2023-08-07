@@ -33,11 +33,15 @@ import (
 const (
 	UsernameKey = "username"
 	PasswordKey = "password"
+	UserCertKey = "userCertificate"
+	UserKeyKey  = "userKey"
 )
 
 type Credentials struct {
 	Username string
 	Password string
+	UserCert string
+	UserKey  string
 }
 
 func GetCredentials(ctx context.Context, c client.Client, cluster *infrav1.VSphereCluster, controllerNamespace string) (*Credentials, error) {
@@ -103,6 +107,8 @@ func GetCredentials(ctx context.Context, c client.Client, cluster *infrav1.VSphe
 	credentials := &Credentials{
 		Username: getData(secret, UsernameKey),
 		Password: getData(secret, PasswordKey),
+		UserCert: getData(secret, UserCertKey),
+		UserKey:  getData(secret, UserKeyKey),
 	}
 
 	return credentials, nil

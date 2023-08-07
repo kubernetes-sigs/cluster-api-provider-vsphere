@@ -19,6 +19,7 @@ package session
 import (
 	"context"
 	"crypto/sha256"
+	"crypto/tls"
 	"fmt"
 	"net/netip"
 	"net/url"
@@ -33,6 +34,7 @@ import (
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/session"
 	"github.com/vmware/govmomi/session/keepalive"
+	"github.com/vmware/govmomi/sts"
 	"github.com/vmware/govmomi/vapi/rest"
 	"github.com/vmware/govmomi/vapi/tags"
 	"github.com/vmware/govmomi/vim25"
@@ -78,6 +80,8 @@ type Params struct {
 	userinfo   *url.Userinfo
 	thumbprint string
 	feature    Feature
+	userCert   string
+	userKey    string
 }
 
 func NewParams() *Params {
@@ -108,6 +112,16 @@ func (p *Params) WithThumbprint(thumbprint string) *Params {
 
 func (p *Params) WithFeatures(feature Feature) *Params {
 	p.feature = feature
+	return p
+}
+
+func (p *Params) WithUserCertificate(cert string) *Params {
+	p.userCert = cert
+	return p
+}
+
+func (p *Params) WithUserKey(key string) *Params {
+	p.userKey = key
 	return p
 }
 
@@ -172,7 +186,8 @@ func GetOrCreate(ctx context.Context, params *Params) (*Session, error) {
 	}
 
 	soapURL.User = params.userinfo
-	client, err := newClient(ctx, logger, sessionKey, soapURL, params.thumbprint, params.feature)
+
+	client, err := newClient(ctx, logger, sessionKey, soapURL, params.thumbprint, params.feature, params.userCert, params.userKey)
 	if err != nil {
 		return nil, err
 	}
@@ -183,7 +198,7 @@ func GetOrCreate(ctx context.Context, params *Params) (*Session, error) {
 	// Assign the finder to the session.
 	session.Finder = find.NewFinder(session.Client.Client, false)
 	// Assign tag manager to the session.
-	manager, err := newManager(ctx, logger, sessionKey, client.Client, soapURL.User, params.feature)
+	manager, err := newManager(ctx, logger, sessionKey, client.Client, soapURL.User, params.feature, params.userCert, params.userKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create tags manager")
 	}
@@ -206,7 +221,7 @@ func GetOrCreate(ctx context.Context, params *Params) (*Session, error) {
 	return &session, nil
 }
 
-func newClient(ctx context.Context, logger logr.Logger, sessionKey string, url *url.URL, thumbprint string, feature Feature) (*govmomi.Client, error) {
+func newClient(ctx context.Context, logger logr.Logger, sessionKey string, url *url.URL, thumbprint string, feature Feature, userCert, userKey string) (*govmomi.Client, error) {
 	insecure := thumbprint == ""
 	soapClient := soap.NewClient(url, insecure)
 	if !insecure {
@@ -236,7 +251,7 @@ func newClient(ctx context.Context, logger logr.Logger, sessionKey string, url *
 		})
 	}
 
-	if err := c.Login(ctx, url.User); err != nil {
+	if err := login(ctx, logger, c, url.User, userCert, userKey); err != nil {
 		return nil, err
 	}
 
@@ -244,7 +259,7 @@ func newClient(ctx context.Context, logger logr.Logger, sessionKey string, url *
 }
 
 // newManager creates a Manager that encompasses the REST Client for the VSphere tagging API.
-func newManager(ctx context.Context, logger logr.Logger, sessionKey string, client *vim25.Client, user *url.Userinfo, feature Feature) (*tags.Manager, error) {
+func newManager(ctx context.Context, logger logr.Logger, sessionKey string, client *vim25.Client, user *url.Userinfo, feature Feature, userCert, userKey string) (*tags.Manager, error) {
 	rc := rest.NewClient(client)
 	if feature.EnableKeepAlive {
 		rc.Transport = keepalive.NewHandlerREST(rc, feature.KeepAliveDuration, func() error {
@@ -261,9 +276,11 @@ func newManager(ctx context.Context, logger logr.Logger, sessionKey string, clie
 			return errors.New("rest client session expired")
 		})
 	}
-	if err := rc.Login(ctx, user); err != nil {
+
+	if err := loginWithRestClient(ctx, logger, rc, client, user, userCert, userKey); err != nil {
 		return nil, err
 	}
+
 	return tags.NewManager(rc), nil
 }
 
@@ -315,4 +332,69 @@ func (s *Session) findByUUID(ctx context.Context, uuid string, findByInstanceUUI
 		return nil, errors.Wrapf(err, "error finding object by uuid %q", uuid)
 	}
 	return ref, nil
+}
+
+func login(ctx context.Context, logger logr.Logger, client *govmomi.Client, user *url.Userinfo, userCert, userKey string) error {
+	if len(userCert) > 0 || len(userKey) > 0 {
+		// if certificate is configured, prefer using certificate
+		if user != nil {
+			logger.Info("Bother usrename/password and userCertificate/userKey are set. Using the userCertificate/userKey")
+		}
+
+		logger.V(4).Info("Session.LoginByToken with certificate", string(userCert))
+		signer, err := signer(ctx, logger, client.Client, userCert, userKey)
+		if err != nil {
+			return err
+		}
+
+		header := soap.Header{Security: signer}
+		return client.SessionManager.LoginByToken(client.WithHeader(ctx, header))
+	} else {
+		return client.Login(ctx, user)
+	}
+}
+
+func loginWithRestClient(ctx context.Context, logger logr.Logger, rc *rest.Client, client *vim25.Client, user *url.Userinfo, userCert, userKey string) error {
+	if len(userCert) > 0 || len(userKey) > 0 {
+		// if certificate is configured, prefer using certificate
+		if user != nil {
+			logger.Info("Bother usrename/password and userCertificate/userKey are set. Using the userCertificate/userKey")
+		}
+		signer, err := signer(ctx, logger, client, userCert, userKey)
+		if err != nil {
+			return err
+		}
+		return rc.LoginByToken(rc.WithSigner(ctx, signer))
+	} else {
+		return rc.Login(ctx, user)
+	}
+}
+
+// signer returns an sts.Signer for use with SAML token auth if connection is configured for such.
+// Returns nil if username/password auth is configured for the connection.
+func signer(ctx context.Context, logger logr.Logger, client *vim25.Client, cert, key string) (*sts.Signer, error) {
+	certificate, err := tls.X509KeyPair([]byte(cert), []byte(key))
+	if err != nil {
+		logger.Error(err, "Failed to load X509 key pair")
+		return nil, err
+	}
+
+	tokens, err := sts.NewClient(ctx, client)
+	if err != nil {
+		logger.Error(err, "Failed to create STS client")
+		return nil, err
+	}
+
+	req := sts.TokenRequest{
+		Certificate: &certificate,
+		Delegatable: true,
+	}
+
+	signer, err := tokens.Issue(ctx, req)
+	if err != nil {
+		logger.Error(err, "Failed to issue SAML token")
+		return nil, err
+	}
+
+	return signer, nil
 }

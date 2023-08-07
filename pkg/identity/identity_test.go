@@ -90,6 +90,8 @@ var _ = Describe("GetCredentials", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(creds.Username).To(Equal(getData(credentialSecret, UsernameKey)))
 			Expect(creds.Password).To(Equal(getData(credentialSecret, PasswordKey)))
+			Expect(creds.UserCert).To(Equal(getData(credentialSecret, UserCertKey)))
+			Expect(creds.UserKey).To(Equal(getData(credentialSecret, UserKeyKey)))
 		})
 
 		It("should error if secret is not in the same namespace as the cluster", func() {
@@ -133,6 +135,8 @@ var _ = Describe("GetCredentials", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(creds.Username).To(Equal(getData(credentialSecret, UsernameKey)))
 			Expect(creds.Password).To(Equal(getData(credentialSecret, PasswordKey)))
+			Expect(creds.UserCert).To(Equal(getData(credentialSecret, UserCertKey)))
+			Expect(creds.UserKey).To(Equal(getData(credentialSecret, UserKeyKey)))
 		})
 
 		It("should error if allowedNamespaces is set to nil", func() {
@@ -262,6 +266,8 @@ func createSecret(namespace string) *corev1.Secret {
 		Data: map[string][]byte{
 			UsernameKey: []byte("user"),
 			PasswordKey: []byte("pass"),
+			UserCertKey: []byte("cert"),
+			UserKeyKey:  []byte("key"),
 		},
 	}
 	Expect(k8sclient.Create(ctx, credentialSecret)).To(Succeed())

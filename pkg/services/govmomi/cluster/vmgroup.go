@@ -53,7 +53,7 @@ type VMGroup struct {
 // Add a VSphere VM object to the VM Group.
 func (vg VMGroup) Add(ctx context.Context, vmObj types.ManagedObjectReference) (*object.Task, error) {
 	vms := vg.listVMs()
-	vg.ClusterVmGroup.Vm = append(vms, vmObj) //nolint:gocritic
+	vg.ClusterVmGroup.Vm = append(vms, vmObj)
 
 	spec := &types.ClusterConfigSpecEx{
 		GroupSpec: []types.ClusterGroupSpec{

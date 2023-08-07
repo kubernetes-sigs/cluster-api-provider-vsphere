@@ -32,7 +32,7 @@ require (
 )
 
 replace (
-	github.com/foo/bar v1.0.0 => github.com/foo/bar v1.0.1 
+	github.com/foo/bar v1.0.0 => github.com/foo/bar v1.0.1
 )
 `
 	tempPath, err := createTempGoMod(goModData)

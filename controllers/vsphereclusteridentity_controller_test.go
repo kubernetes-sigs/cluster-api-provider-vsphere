@@ -160,7 +160,7 @@ var _ = Describe("VSphereClusterIdentity Reconciler", func() {
 					return false
 				}
 
-				if i.Status.Ready == false && conditions.GetReason(i, infrav1.CredentialsAvailableCondidtion) == infrav1.SecretAlreadyInUseReason {
+				if !i.Status.Ready && conditions.GetReason(i, infrav1.CredentialsAvailableCondidtion) == infrav1.SecretAlreadyInUseReason {
 					return true
 				}
 				return false
@@ -184,7 +184,7 @@ var _ = Describe("VSphereClusterIdentity Reconciler", func() {
 					return false
 				}
 
-				if i.Status.Ready == false && conditions.GetReason(i, infrav1.CredentialsAvailableCondidtion) == infrav1.SecretNotAvailableReason {
+				if !i.Status.Ready && conditions.GetReason(i, infrav1.CredentialsAvailableCondidtion) == infrav1.SecretNotAvailableReason {
 					return true
 				}
 				return false

@@ -607,7 +607,6 @@ func createResource(resource schema.GroupVersionResource, obj runtimeObjectWithN
 	Expect(err).NotTo(HaveOccurred(), "Error creating %s %s/%s", resource, obj.GetNamespace(), obj.GetName())
 }
 
-//nolint:unparam
 func deleteResource(resource schema.GroupVersionResource, name, namespace string, propagationPolicy *metav1.DeletionPropagation) {
 	deleteOptions := metav1.DeleteOptions{PropagationPolicy: propagationPolicy}
 	err := k8sClient.Resource(resource).Namespace(namespace).Delete(ctx, name, deleteOptions)

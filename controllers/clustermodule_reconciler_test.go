@@ -518,7 +518,6 @@ func TestReconciler_fetchMachineOwnerObjects(t *testing.T) {
 	})
 }
 
-//nolint:unparam
 func machineDeployment(name, namespace, cluster string) *clusterv1.MachineDeployment {
 	return &clusterv1.MachineDeployment{
 		TypeMeta: metav1.TypeMeta{
@@ -532,7 +531,6 @@ func machineDeployment(name, namespace, cluster string) *clusterv1.MachineDeploy
 	}
 }
 
-//nolint:unparam
 func controlPlane(name, namespace, cluster string) *controlplanev1.KubeadmControlPlane {
 	return &controlplanev1.KubeadmControlPlane{
 		TypeMeta: metav1.TypeMeta{

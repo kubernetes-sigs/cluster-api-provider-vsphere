@@ -102,7 +102,7 @@ func assertServiceAccountAndUpdateSecret(ctx goctx.Context, ctrlClient client.Cl
 	Expect(ctrlClient.Update(ctx, secret)).To(Succeed())
 }
 
-func assertTargetSecret(ctx goctx.Context, guestClient client.Client, namespace, name string) { //nolint
+func assertTargetSecret(ctx goctx.Context, guestClient client.Client, namespace, name string) {
 	secret := &corev1.Secret{}
 	assertEventuallyExistsInNamespace(ctx, guestClient, namespace, name, secret)
 	EventuallyWithOffset(2, func() []byte {
@@ -157,7 +157,7 @@ func assertRoleBinding(_ *helpers.UnitTestContextForController, ctrlClient clien
 }
 
 // assertProviderServiceAccountsCondition asserts the condition on the ProviderServiceAccount CR.
-func assertProviderServiceAccountsCondition(vCluster *vmwarev1.VSphereCluster, status corev1.ConditionStatus, message string, reason string, severity clusterv1.ConditionSeverity) { //nolint
+func assertProviderServiceAccountsCondition(vCluster *vmwarev1.VSphereCluster, status corev1.ConditionStatus, message string, reason string, severity clusterv1.ConditionSeverity) {
 	c := conditions.Get(vCluster, vmwarev1.ProviderServiceAccountsReadyCondition)
 	Expect(c).NotTo(BeNil())
 	Expect(c.Status).To(Equal(status))

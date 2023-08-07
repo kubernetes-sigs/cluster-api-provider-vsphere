@@ -335,8 +335,8 @@ func (s *Session) findByUUID(ctx context.Context, uuid string, findByInstanceUUI
 }
 
 func login(ctx context.Context, logger logr.Logger, client *govmomi.Client, user *url.Userinfo, userCert, userKey string) error {
+	// if certificate is configured, prefer using certificate
 	if len(userCert) > 0 || len(userKey) > 0 {
-		// if certificate is configured, prefer using certificate
 		if user != nil {
 			logger.Info("Bother usrename/password and userCertificate/userKey are set. Using the userCertificate/userKey")
 		}
@@ -349,14 +349,16 @@ func login(ctx context.Context, logger logr.Logger, client *govmomi.Client, user
 
 		header := soap.Header{Security: signer}
 		return client.SessionManager.LoginByToken(client.WithHeader(ctx, header))
-	} else {
-		return client.Login(ctx, user)
 	}
+
+	// basic auth login
+	return client.Login(ctx, user)
+
 }
 
 func loginWithRestClient(ctx context.Context, logger logr.Logger, rc *rest.Client, client *vim25.Client, user *url.Userinfo, userCert, userKey string) error {
+	// if certificate is configured, prefer using certificate
 	if len(userCert) > 0 || len(userKey) > 0 {
-		// if certificate is configured, prefer using certificate
 		if user != nil {
 			logger.Info("Bother usrename/password and userCertificate/userKey are set. Using the userCertificate/userKey")
 		}
@@ -365,9 +367,10 @@ func loginWithRestClient(ctx context.Context, logger logr.Logger, rc *rest.Clien
 			return err
 		}
 		return rc.LoginByToken(rc.WithSigner(ctx, signer))
-	} else {
-		return rc.Login(ctx, user)
 	}
+
+	// basic auth login
+	return rc.Login(ctx, user)
 }
 
 // signer returns an sts.Signer for use with SAML token auth if connection is configured for such.

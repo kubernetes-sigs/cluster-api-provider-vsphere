@@ -341,7 +341,7 @@ func login(ctx context.Context, logger logr.Logger, client *govmomi.Client, user
 			logger.Info("Bother usrename/password and userCertificate/userKey are set. Using the userCertificate/userKey")
 		}
 
-		logger.V(4).Info("Session.LoginByToken with certificate", string(userCert))
+		logger.V(4).Info("Session.LoginByToken with certificate", userCert)
 		signer, err := signer(ctx, logger, client.Client, userCert, userKey)
 		if err != nil {
 			return err
@@ -353,7 +353,6 @@ func login(ctx context.Context, logger logr.Logger, client *govmomi.Client, user
 
 	// basic auth login
 	return client.Login(ctx, user)
-
 }
 
 func loginWithRestClient(ctx context.Context, logger logr.Logger, rc *rest.Client, client *vim25.Client, user *url.Userinfo, userCert, userKey string) error {

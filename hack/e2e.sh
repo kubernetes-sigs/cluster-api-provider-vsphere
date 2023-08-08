@@ -103,6 +103,12 @@ function kubectl_get_jsonpath() {
 
 # Retrieve an IP to be used as the kube-vip IP
 KUBECONFIG="/root/ipam-conf/capv-services.conf"
+
+# Temporarily fixup the KUBECONFIG (TODO(sbueringer) should be removed later)
+cp ${KUBECONFIG} /tmp/kubeconfig
+KUBECONFIG=/tmp/kubeconfig
+kubectl --kubeconfig=${KUBECONFIG} config set-cluster capv-services --insecure-skip-tls-verify=true
+
 IPCLAIM_NAME="ip-claim-$(openssl rand -hex 20)"
 sed "s/IPCLAIM_NAME/${IPCLAIM_NAME}/" "${REPO_ROOT}/hack/ipclaim-template.yaml" | kubectl --kubeconfig=${KUBECONFIG} create -f -
 IPADDRESS_NAME=$(kubectl_get_jsonpath ipclaim "${IPCLAIM_NAME}" '{@.status.address.name}')

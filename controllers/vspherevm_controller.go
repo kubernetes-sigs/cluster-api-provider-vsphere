@@ -70,7 +70,7 @@ import (
 // AddVMControllerToManager adds the VM controller to the provided manager.
 //
 //nolint:forcetypeassert
-func AddVMControllerToManager(ctx *context.ControllerManagerContext, mgr manager.Manager, options controller.Options) error {
+func AddVMControllerToManager(ctx *context.ControllerManagerContext, mgr manager.Manager, tracker *remote.ClusterCacheTracker, options controller.Options) error {
 	var (
 		controlledType     = &infrav1.VSphereVM{}
 		controlledTypeName = reflect.TypeOf(controlledType).Elem().Name()
@@ -88,8 +88,9 @@ func AddVMControllerToManager(ctx *context.ControllerManagerContext, mgr manager
 		Logger:                   ctx.Logger.WithName(controllerNameShort),
 	}
 	r := vmReconciler{
-		ControllerContext: controllerContext,
-		VMService:         &govmomi.VMService{},
+		ControllerContext:         controllerContext,
+		VMService:                 &govmomi.VMService{},
+		remoteClusterCacheTracker: tracker,
 	}
 	controller, err := ctrl.NewControllerManagedBy(mgr).
 		// Watch the controlled, infrastructure resource.
@@ -158,7 +159,8 @@ func AddVMControllerToManager(ctx *context.ControllerManagerContext, mgr manager
 type vmReconciler struct {
 	*context.ControllerContext
 
-	VMService services.VirtualMachineService
+	VMService                 services.VirtualMachineService
+	remoteClusterCacheTracker *remote.ClusterCacheTracker
 }
 
 // Reconcile ensures the back-end state reflects the Kubernetes resource state intent.
@@ -344,8 +346,13 @@ func (r vmReconciler) reconcileDelete(ctx *context.VMContext) (reconcile.Result,
 	}
 
 	// Attempt to delete the node corresponding to the vsphere VM
-	if err := r.deleteNode(ctx, vm.Name); err != nil {
+	result, err = r.deleteNode(ctx, vm.Name)
+	if err != nil {
 		r.Logger.V(6).Info("unable to delete node", "err", err)
+	}
+	if !result.IsZero() {
+		// a non-zero value means we need to requeue the request before proceed.
+		return result, nil
 	}
 
 	if err := r.deleteIPAddressClaims(ctx); err != nil {
@@ -362,15 +369,19 @@ func (r vmReconciler) reconcileDelete(ctx *context.VMContext) (reconcile.Result,
 // This is necessary since CAPI does not the nodeRef field on the owner Machine object
 // until the node moves to Ready state. Hence, on Machine deletion it is unable to delete
 // the kubernetes node corresponding to the VM.
-func (r vmReconciler) deleteNode(ctx *context.VMContext, name string) error {
+func (r vmReconciler) deleteNode(ctx *context.VMContext, name string) (reconcile.Result, error) {
 	// Fetching the cluster object from the VSphereVM object to create a remote client to the cluster
 	cluster, err := clusterutilv1.GetClusterFromMetadata(r.ControllerContext, r.Client, ctx.VSphereVM.ObjectMeta)
 	if err != nil {
-		return err
+		return ctrl.Result{}, err
 	}
-	clusterClient, err := remote.NewClusterClient(ctx, r.ControllerContext.Name, r.Client, ctrlclient.ObjectKeyFromObject(cluster))
+	clusterClient, err := r.remoteClusterCacheTracker.GetClient(ctx, ctrlclient.ObjectKeyFromObject(cluster))
 	if err != nil {
-		return err
+		if errors.Is(err, remote.ErrClusterLocked) {
+			r.Logger.V(5).Info("Requeuing because another worker has the lock on the ClusterCacheTracker")
+			return ctrl.Result{Requeue: true}, nil
+		}
+		return ctrl.Result{}, err
 	}
 
 	// Attempt to delete the corresponding node
@@ -379,7 +390,7 @@ func (r vmReconciler) deleteNode(ctx *context.VMContext, name string) error {
 			Name: name,
 		},
 	}
-	return clusterClient.Delete(ctx, node)
+	return ctrl.Result{}, clusterClient.Delete(ctx, node)
 }
 
 func (r vmReconciler) reconcileNormal(ctx *context.VMContext) (reconcile.Result, error) {

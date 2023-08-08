@@ -25,6 +25,7 @@ import (
 	goruntime "runtime"
 	"time"
 
+	perrors "github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	"gopkg.in/fsnotify.v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -39,6 +40,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util/flags"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
 	ctrlsig "sigs.k8s.io/controller-runtime/pkg/manager/signals"
@@ -250,6 +252,11 @@ func main() {
 
 	// Create a function that adds all the controllers and webhooks to the manager.
 	addToManager := func(ctx *context.ControllerManagerContext, mgr ctrlmgr.Manager) error {
+		tracker, err := setupRemoteClusterCacheTracker(ctx, mgr)
+		if err != nil {
+			return perrors.Wrapf(err, "unable to create remote cluster tracker tracker")
+		}
+
 		// Check for non-supervisor VSphereCluster and start controller if found
 		gvr := v1beta1.GroupVersion.WithResource(reflect.TypeOf(&v1beta1.VSphereCluster{}).Elem().Name())
 		isLoaded, err := isCRDDeployed(mgr, gvr)
@@ -257,7 +264,7 @@ func main() {
 			return err
 		}
 		if isLoaded {
-			if err := setupVAPIControllers(ctx, mgr); err != nil {
+			if err := setupVAPIControllers(ctx, mgr, tracker); err != nil {
 				return fmt.Errorf("setupVAPIControllers: %w", err)
 			}
 		} else {
@@ -271,7 +278,7 @@ func main() {
 			return err
 		}
 		if isLoaded {
-			if err := setupSupervisorControllers(ctx, mgr); err != nil {
+			if err := setupSupervisorControllers(ctx, mgr, tracker); err != nil {
 				return fmt.Errorf("setupSupervisorControllers: %w", err)
 			}
 		} else {
@@ -318,7 +325,7 @@ func main() {
 	defer session.Clear()
 }
 
-func setupVAPIControllers(ctx *context.ControllerManagerContext, mgr ctrlmgr.Manager) error {
+func setupVAPIControllers(ctx *context.ControllerManagerContext, mgr ctrlmgr.Manager, tracker *remote.ClusterCacheTracker) error {
 	if err := (&v1beta1.VSphereClusterTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		return err
 	}
@@ -349,7 +356,7 @@ func setupVAPIControllers(ctx *context.ControllerManagerContext, mgr ctrlmgr.Man
 	if err := controllers.AddMachineControllerToManager(ctx, mgr, &v1beta1.VSphereMachine{}, concurrency(vSphereMachineConcurrency)); err != nil {
 		return err
 	}
-	if err := controllers.AddVMControllerToManager(ctx, mgr, concurrency(vSphereVMConcurrency)); err != nil {
+	if err := controllers.AddVMControllerToManager(ctx, mgr, tracker, concurrency(vSphereVMConcurrency)); err != nil {
 		return err
 	}
 	if err := controllers.AddVsphereClusterIdentityControllerToManager(ctx, mgr, concurrency(vSphereClusterIdentityConcurrency)); err != nil {
@@ -359,7 +366,7 @@ func setupVAPIControllers(ctx *context.ControllerManagerContext, mgr ctrlmgr.Man
 	return controllers.AddVSphereDeploymentZoneControllerToManager(ctx, mgr, concurrency(vSphereDeploymentZoneConcurrency))
 }
 
-func setupSupervisorControllers(ctx *context.ControllerManagerContext, mgr ctrlmgr.Manager) error {
+func setupSupervisorControllers(ctx *context.ControllerManagerContext, mgr ctrlmgr.Manager, tracker *remote.ClusterCacheTracker) error {
 	if err := controllers.AddClusterControllerToManager(ctx, mgr, &vmwarev1b1.VSphereCluster{}, concurrency(vSphereClusterConcurrency)); err != nil {
 		return err
 	}
@@ -368,11 +375,11 @@ func setupSupervisorControllers(ctx *context.ControllerManagerContext, mgr ctrlm
 		return err
 	}
 
-	if err := controllers.AddServiceAccountProviderControllerToManager(ctx, mgr, concurrency(providerServiceAccountConcurrency)); err != nil {
+	if err := controllers.AddServiceAccountProviderControllerToManager(ctx, mgr, tracker, concurrency(providerServiceAccountConcurrency)); err != nil {
 		return err
 	}
 
-	return controllers.AddServiceDiscoveryControllerToManager(ctx, mgr, concurrency(serviceDiscoveryConcurrency))
+	return controllers.AddServiceDiscoveryControllerToManager(ctx, mgr, tracker, concurrency(serviceDiscoveryConcurrency))
 }
 
 func setupChecks(mgr ctrlmgr.Manager) {
@@ -408,4 +415,41 @@ func isCRDDeployed(mgr ctrlmgr.Manager, gvr schema.GroupVersionResource) (bool, 
 
 func concurrency(c int) controller.Options {
 	return controller.Options{MaxConcurrentReconciles: c}
+}
+
+func setupRemoteClusterCacheTracker(ctx *context.ControllerManagerContext, mgr ctrlmgr.Manager) (*remote.ClusterCacheTracker, error) {
+	secretCachingClient, err := client.New(mgr.GetConfig(), client.Options{
+		HTTPClient: mgr.GetHTTPClient(),
+		Cache: &client.CacheOptions{
+			Reader: mgr.GetCache(),
+		},
+	})
+	if err != nil {
+		return nil, perrors.Wrapf(err, "unable to create secret caching client")
+	}
+
+	// Set up a ClusterCacheTracker and ClusterCacheReconciler to provide to controllers
+	// requiring a connection to a remote cluster
+	log := ctrl.Log.WithName("remote").WithName("ClusterCacheTracker")
+	tracker, err := remote.NewClusterCacheTracker(
+		mgr,
+		remote.ClusterCacheTrackerOptions{
+			SecretCachingClient: secretCachingClient,
+			ControllerName:      controllerName,
+			Log:                 &log,
+		},
+	)
+	if err != nil {
+		return nil, perrors.Wrapf(err, "unable to create cluster cache tracker")
+	}
+
+	if err := (&remote.ClusterCacheReconciler{
+		Client:           mgr.GetClient(),
+		Tracker:          tracker,
+		WatchFilterValue: managerOpts.WatchFilterValue,
+	}).SetupWithManager(ctx, mgr, concurrency(10)); err != nil {
+		return nil, perrors.Wrapf(err, "unable to create ClusterCacheReconciler controller")
+	}
+
+	return tracker, nil
 }

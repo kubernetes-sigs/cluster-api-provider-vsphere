@@ -72,7 +72,7 @@ const (
 // +kubebuilder:rbac:groups="",resources=configmaps/status,verbs=get
 
 // AddServiceDiscoveryControllerToManager adds the ServiceDiscovery controller to the provided manager.
-func AddServiceDiscoveryControllerToManager(ctx *context.ControllerManagerContext, mgr manager.Manager, options controller.Options) error {
+func AddServiceDiscoveryControllerToManager(ctx *context.ControllerManagerContext, mgr manager.Manager, tracker *remote.ClusterCacheTracker, options controller.Options) error {
 	var (
 		controllerNameShort = ServiceDiscoveryControllerName
 		controllerNameLong  = fmt.Sprintf("%s/%s/%s", ctx.Namespace, ctx.Name, ServiceDiscoveryControllerName)
@@ -84,8 +84,8 @@ func AddServiceDiscoveryControllerToManager(ctx *context.ControllerManagerContex
 		Logger:                   ctx.Logger.WithName(controllerNameShort),
 	}
 	r := serviceDiscoveryReconciler{
-		ControllerContext:  controllerContext,
-		remoteClientGetter: remote.NewClusterClient,
+		ControllerContext:         controllerContext,
+		remoteClusterCacheTracker: tracker,
 	}
 
 	configMapCache, err := cache.New(mgr.GetConfig(), cache.Options{
@@ -128,7 +128,7 @@ func AddServiceDiscoveryControllerToManager(ctx *context.ControllerManagerContex
 type serviceDiscoveryReconciler struct {
 	*context.ControllerContext
 
-	remoteClientGetter remote.ClusterClientGetter
+	remoteClusterCacheTracker *remote.ClusterCacheTracker
 }
 
 func (r serviceDiscoveryReconciler) Reconcile(_ goctx.Context, req reconcile.Request) (_ reconcile.Result, reterr error) {
@@ -189,8 +189,12 @@ func (r serviceDiscoveryReconciler) Reconcile(_ goctx.Context, req reconcile.Req
 
 	// We cannot proceed until we are able to access the target cluster. Until
 	// then just return a no-op and wait for the next sync.
-	guestClient, err := r.remoteClientGetter(clusterContext, ServiceDiscoveryControllerName, clusterContext.Client, client.ObjectKeyFromObject(cluster))
+	guestClient, err := r.remoteClusterCacheTracker.GetClient(clusterContext, client.ObjectKeyFromObject(cluster))
 	if err != nil {
+		if errors.Is(err, remote.ErrClusterLocked) {
+			r.Logger.V(5).Info("Requeuing because another worker has the lock on the ClusterCacheTracker")
+			return ctrl.Result{Requeue: true}, nil
+		}
 		logger.Info("The control plane is not ready yet", "err", err)
 		return reconcile.Result{RequeueAfter: clusterNotReadyRequeueTime}, nil
 	}

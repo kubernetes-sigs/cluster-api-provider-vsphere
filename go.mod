@@ -18,7 +18,7 @@ require (
 	github.com/vmware-tanzu/vm-operator/api v1.8.2
 	github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20211209213435-0f4ab286f64f
 	github.com/vmware-tanzu/vm-operator/external/tanzu-topology v0.0.0-20211209213435-0f4ab286f64f
-	github.com/vmware/govmomi v0.30.6
+	github.com/vmware/govmomi v0.30.7
 	golang.org/x/crypto v0.12.0
 	golang.org/x/exp v0.0.0-20221002003631-540bb7301a08
 	golang.org/x/mod v0.12.0

@@ -271,6 +271,10 @@ generate-go-conversions: $(CONTROLLER_GEN) $(CONVERSION_GEN) ## Runs Go related 
 generate-modules: ## Run go mod tidy to ensure modules are up to date
 	go mod tidy
 
+.PHONY: generate-doctoc
+generate-doctoc:
+	TRACE=$(TRACE) ./hack/generate-doctoc.sh
+
 .PHONY: generate-e2e-templates
 generate-e2e-templates: ## Generate e2e cluster templates
 	$(MAKE) release-flavors
@@ -335,7 +339,7 @@ APIDIFF_OLD_COMMIT ?= $(shell git rev-parse origin/main)
 apidiff: $(GO_APIDIFF) ## Check for API differences
 	$(GO_APIDIFF) $(APIDIFF_OLD_COMMIT) --print-compatible
 
-ALL_VERIFY_CHECKS = boilerplate modules gen conversions
+ALL_VERIFY_CHECKS = boilerplate modules gen conversions doctoc
 
 .PHONY: verify
 verify: $(addprefix verify-,$(ALL_VERIFY_CHECKS)) lint-markdown lint-shell ## Run all verify-* targets
@@ -361,6 +365,13 @@ verify-gen: generate  ## Verify go generated files are up to date
 .PHONY: verify-conversions
 verify-conversions: $(CONVERSION_VERIFIER)  ## Verifies expected API conversion are in place
 	$(CONVERSION_VERIFIER)
+
+.PHONY: verify-doctoc
+verify-doctoc: generate-doctoc
+	@if !(git diff --quiet HEAD); then \
+		git diff; \
+		echo "doctoc is out of date, run make generate-doctoc"; exit 1; \
+	fi
 
 .PHONY: verify-boilerplate
 verify-boilerplate: ## Verify boilerplate text exists in each file

@@ -84,6 +84,7 @@ type VSphereClusterStatus struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:deprecatedversion
 // +kubebuilder:resource:path=vsphereclusters,scope=Namespaced,categories=cluster-api
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="Cluster infrastructure is ready for VSphereMachine"
@@ -92,6 +93,8 @@ type VSphereClusterStatus struct {
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of Machine"
 
 // VSphereCluster is the Schema for the vsphereclusters API
+//
+// Deprecated: This type will be removed in one of the next releases.
 type VSphereCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -111,6 +114,8 @@ func (m *VSphereCluster) SetConditions(conditions clusterv1.Conditions) {
 // +kubebuilder:object:root=true
 
 // VSphereClusterList contains a list of VSphereCluster
+//
+// Deprecated: This type will be removed in one of the next releases.
 type VSphereClusterList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

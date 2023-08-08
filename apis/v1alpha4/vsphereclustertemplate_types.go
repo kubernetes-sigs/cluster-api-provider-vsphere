@@ -27,9 +27,12 @@ type VSphereClusterTemplateSpec struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:deprecatedversion
 // +kubebuilder:resource:path=vsphereclustertemplates,scope=Namespaced,categories=cluster-api
 
 // VSphereClusterTemplate is the Schema for the vsphereclustertemplates API
+//
+// Deprecated: This type will be removed in one of the next releases.
 type VSphereClusterTemplate struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -40,6 +43,8 @@ type VSphereClusterTemplate struct {
 // +kubebuilder:object:root=true
 
 // VSphereClusterTemplateList contains a list of VSphereClusterTemplate.
+//
+// Deprecated: This type will be removed in one of the next releases.
 type VSphereClusterTemplateList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

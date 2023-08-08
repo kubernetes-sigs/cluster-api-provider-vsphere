@@ -90,9 +90,12 @@ type FailureDomainHosts struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:deprecatedversion
 // +kubebuilder:resource:path=vspherefailuredomains,scope=Cluster,categories=cluster-api
 
 // VSphereFailureDomain is the Schema for the vspherefailuredomains API
+//
+// Deprecated: This type will be removed in one of the next releases.
 type VSphereFailureDomain struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -103,6 +106,8 @@ type VSphereFailureDomain struct {
 // +kubebuilder:object:root=true
 
 // VSphereFailureDomainList contains a list of VSphereFailureDomain
+//
+// Deprecated: This type will be removed in one of the next releases.
 type VSphereFailureDomainList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

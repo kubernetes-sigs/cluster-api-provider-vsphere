@@ -79,10 +79,13 @@ func (c *VSphereClusterIdentity) SetConditions(conditions clusterv1.Conditions) 
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:deprecatedversion
 // +kubebuilder:resource:path=vsphereclusteridentities,scope=Cluster,categories=cluster-api
 // +kubebuilder:subresource:status
 
 // VSphereClusterIdentity defines the account to be used for reconciling clusters
+//
+// Deprecated: This type will be removed in one of the next releases.
 type VSphereClusterIdentity struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -93,6 +96,8 @@ type VSphereClusterIdentity struct {
 
 // +kubebuilder:object:root=true
 // VSphereClusterIdentityList contains a list of VSphereClusterIdentity
+//
+// Deprecated: This type will be removed in one of the next releases.
 type VSphereClusterIdentityList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

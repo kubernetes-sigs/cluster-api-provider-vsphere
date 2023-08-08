@@ -78,10 +78,13 @@ type VSphereDeploymentZoneStatus struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:deprecatedversion
 // +kubebuilder:resource:path=vspheredeploymentzones,scope=Cluster,categories=cluster-api
 // +kubebuilder:subresource:status
 
 // VSphereDeploymentZone is the Schema for the vspheredeploymentzones API
+//
+// Deprecated: This type will be removed in one of the next releases.
 type VSphereDeploymentZone struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -101,6 +104,8 @@ func (z *VSphereDeploymentZone) SetConditions(conditions clusterv1.Conditions) {
 // +kubebuilder:object:root=true
 
 // VSphereDeploymentZoneList contains a list of VSphereDeploymentZone
+//
+// Deprecated: This type will be removed in one of the next releases.
 type VSphereDeploymentZoneList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

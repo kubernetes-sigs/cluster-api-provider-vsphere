@@ -134,6 +134,8 @@ GO_APIDIFF_BIN := go-apidiff
 GO_APIDIFF := $(abspath $(TOOLS_BIN_DIR)/$(GO_APIDIFF_BIN)-$(GO_APIDIFF_VER))
 GO_APIDIFF_PKG := github.com/joelanford/go-apidiff
 
+SHELLCHECK_VER := v0.9.0
+
 KPROMO_VER := v4.0.4
 KPROMO_BIN := kpromo
 KPROMO :=  $(abspath $(TOOLS_BIN_DIR)/$(KPROMO_BIN)-$(KPROMO_VER))
@@ -150,9 +152,14 @@ GINKGO := $(abspath $(TOOLS_BIN_DIR)/$(GINKGO_BIN)-$(GINGKO_VER))
 GINKGO_PKG := github.com/onsi/ginkgo/v2/ginkgo
 
 GOLANGCI_LINT_BIN := golangci-lint
-GOLANGCI_LINT_VER := $(shell cat .github/workflows/golangci-lint.yaml | grep [[:space:]]version: | sed 's/.*version: //')
+GOLANGCI_LINT_VER := $(shell cat .github/workflows/pr-golangci-lint.yaml | grep [[:space:]]version: | sed 's/.*version: //')
 GOLANGCI_LINT := $(abspath $(TOOLS_BIN_DIR)/$(GOLANGCI_LINT_BIN)-$(GOLANGCI_LINT_VER))
 GOLANGCI_LINT_PKG := github.com/golangci/golangci-lint/cmd/golangci-lint
+
+GOVULNCHECK_BIN := govulncheck
+GOVULNCHECK_VER := v1.0.0
+GOVULNCHECK := $(abspath $(TOOLS_BIN_DIR)/$(GOVULNCHECK_BIN)-$(GOVULNCHECK_VER))
+GOVULNCHECK_PKG := golang.org/x/vuln/cmd/govulncheck
 
 GOVC_VER := $(shell cat go.mod | grep "github.com/vmware/govmomi" | awk '{print $$NF}')
 GOVC_BIN := govc
@@ -228,7 +235,7 @@ help:  # Display this help
 
 .PHONY: generate
 generate: ## Run all generate targets
-	$(MAKE) generate-modules generate-manifests generate-go-deepcopy generate-go-conversions
+	$(MAKE) generate-modules generate-manifests generate-go-deepcopy generate-go-conversions generate-flavors
 
 .PHONY: generate-manifests
 generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
@@ -276,6 +283,10 @@ generate-go-conversions: $(CONTROLLER_GEN) $(CONVERSION_GEN) ## Runs Go related 
 generate-modules: ## Run go mod tidy to ensure modules are up to date
 	go mod tidy
 
+.PHONY: generate-doctoc
+generate-doctoc:
+	TRACE=$(TRACE) ./hack/generate-doctoc.sh
+
 .PHONY: generate-e2e-templates
 generate-e2e-templates: ## Generate e2e cluster templates
 	$(MAKE) release-flavors
@@ -311,7 +322,6 @@ generate-e2e-templates: ## Generate e2e cluster templates
 lint: $(GOLANGCI_LINT) ## Lint the codebase
 	$(MAKE) lint-go-full
 	$(MAKE) lint-markdown
-	$(MAKE) lint-shell
 
 GOLANGCI_LINT_EXTRA_ARGS ?= --fast=true
 .PHONY: lint-go
@@ -326,10 +336,6 @@ lint-go-full: lint-go ## Run slower linters to detect possible issues
 lint-markdown: ## Lint the project's markdown
 	docker run --rm -v "$$(pwd)":/build$(DOCKER_VOL_OPTS) gcr.io/cluster-api-provider-vsphere/extra/mdlint:0.17.0 -- /md/lint -i contrib/haproxy/openapi -i _releasenotes .
 
-.PHONY: lint-shell
-lint-shell: ## Lint the project's shell scripts
-	docker run --rm -t -v "$$(pwd)":/build:ro gcr.io/cluster-api-provider-vsphere/extra/shellcheck
-
 .PHONY: lint-fix
 lint-fix: $(GOLANGCI_LINT) ## Lint the codebase and run auto-fixers if supported by the linter
 	GOLANGCI_LINT_EXTRA_ARGS="--fast=false --fix" $(MAKE) lint-go
@@ -340,10 +346,10 @@ APIDIFF_OLD_COMMIT ?= $(shell git rev-parse origin/main)
 apidiff: $(GO_APIDIFF) ## Check for API differences
 	$(GO_APIDIFF) $(APIDIFF_OLD_COMMIT) --print-compatible
 
-ALL_VERIFY_CHECKS = boilerplate modules gen conversions
+ALL_VERIFY_CHECKS = boilerplate shellcheck modules gen conversions doctoc flavors
 
 .PHONY: verify
-verify: $(addprefix verify-,$(ALL_VERIFY_CHECKS)) lint-markdown lint-shell ## Run all verify-* targets
+verify: $(addprefix verify-,$(ALL_VERIFY_CHECKS)) lint-markdown ## Run all verify-* targets
 
 .PHONY: verify-modules
 verify-modules: generate-modules  ## Verify go modules are up to date
@@ -367,13 +373,45 @@ verify-gen: generate  ## Verify go generated files are up to date
 verify-conversions: $(CONVERSION_VERIFIER)  ## Verifies expected API conversion are in place
 	$(CONVERSION_VERIFIER)
 
+.PHONY: verify-doctoc
+verify-doctoc: generate-doctoc
+	@if !(git diff --quiet HEAD); then \
+		git diff; \
+		echo "doctoc is out of date, run make generate-doctoc"; exit 1; \
+	fi
+
 .PHONY: verify-boilerplate
 verify-boilerplate: ## Verify boilerplate text exists in each file
 	TRACE=$(TRACE) ./hack/verify-boilerplate.sh
 
+.PHONY: verify-shellcheck
+verify-shellcheck: ## Verify shell files
+	TRACE=$(TRACE) ./hack/verify-shellcheck.sh $(SHELLCHECK_VER)
+
 .PHONY: verify-container-images
 verify-container-images: ## Verify container images
 	TRACE=$(TRACE) ./hack/verify-container-images.sh
+
+.PHONY: verify-govulncheck
+verify-govulncheck: $(GOVULNCHECK) ## Verify code for vulnerabilities
+	$(GOVULNCHECK) ./...
+
+.PHONY: verify-security
+verify-security: ## Verify code and images for vulnerabilities
+	$(MAKE) verify-container-images && R1=$$? || R1=$$?; \
+	$(MAKE) verify-govulncheck && R2=$$? || R2=$$?; \
+	if [ "$$R1" -ne "0" ] || [ "$$R2" -ne "0" ]; then \
+	  echo "Check for vulnerabilities failed! There are vulnerabilities to be fixed"; \
+		exit 1; \
+	fi
+
+.PHONY: verify-flavors
+verify-flavors: $(FLAVOR_DIR) generate-flavors ## Verify generated flavors
+	@if !(git diff --quiet HEAD -- $(FLAVOR_DIR)); then \
+		git diff $(FLAVOR_DIR); \
+		echo "flavor files in templates directory are out of date"; exit 1; \
+	fi
+
 
 ## --------------------------------------
 ## Build
@@ -722,6 +760,9 @@ $(GINKGO_BIN): $(GINKGO) ## Build a local copy of ginkgo.
 .PHONY: $(GOLANGCI_LINT_BIN)
 $(GOLANGCI_LINT_BIN): $(GOLANGCI_LINT) ## Build a local copy of golangci-lint.
 
+.PHONY: $(GOVULNCHECK_BIN)
+$(GOVULNCHECK_BIN): $(GOVULNCHECK) ## Build a local copy of govulncheck.
+
 .PHONY: $(GOVC_BIN)
 $(GOVC_BIN): $(GOVC) ## Build a local copy of govc.
 
@@ -770,6 +811,9 @@ $(GINKGO): # Build ginkgo.
 
 $(GOLANGCI_LINT): # Build golangci-lint.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GOLANGCI_LINT_PKG) $(GOLANGCI_LINT_BIN) $(GOLANGCI_LINT_VER)
+
+$(GOVULNCHECK): # Build govulncheck.
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GOVULNCHECK_PKG) $(GOVULNCHECK_BIN) $(GOVULNCHECK_VER)
 
 $(GOVC): # Build GOVC.
 	CGO_ENABLED=0 GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GOVC_PKG) $(GOVC_BIN) $(GOVC_VER)

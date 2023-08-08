@@ -1,0 +1,34 @@
+# Please see the documentation for all configuration options:
+# https://docs.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
+version: 2
+updates:
+# GitHub Actions
+- package-ecosystem: "github-actions"
+  directory: "/"
+  schedule:
+      interval: "weekly"
+  commit-message:
+      prefix: ":seedling:"
+  labels:
+    - "ok-to-test"
+
+# Go
+- package-ecosystem: "gomod"
+  directory: "/"
+  schedule:
+    interval: "weekly"
+    day: "monday"
+  ignore:
+  # Ignore controller-runtime as its upgraded manually.
+  - dependency-name: "sigs.k8s.io/controller-runtime"
+    update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
+    # Ignore k8s and its transitives modules as they are upgraded manually
+    # together with controller-runtime.
+  - dependency-name: "k8s.io/*"
+    update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
+  - dependency-name: "sigs.k8s.io/cluster-api/test"
+    update-types: ["version-update:semver-major", "version-update:semver-minor"]
+  commit-message:
+    prefix: ":seedling:"
+  labels:
+    - "ok-to-test"

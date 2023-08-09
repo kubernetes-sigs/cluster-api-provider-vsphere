@@ -18,6 +18,7 @@ package session
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
 	"net/netip"
 	"net/url"
@@ -109,14 +110,22 @@ func (p *Params) WithFeatures(feature Feature) *Params {
 // GetOrCreate gets a cached session or creates a new one if one does not
 // already exist.
 func GetOrCreate(ctx context.Context, params *Params) (*Session, error) {
-	logger := ctrl.LoggerFrom(ctx).WithName("session")
+	logger := ctrl.LoggerFrom(ctx).WithName("session").WithValues(
+		"server", params.server,
+		"datacenter", params.datacenter,
+		"username", params.userinfo.Username())
+
 	sessionMU.Lock()
 	defer sessionMU.Unlock()
 
-	sessionKey := params.server + params.userinfo.Username() + params.datacenter
+	userPassword, _ := params.userinfo.Password()
+	h := sha256.New()
+	h.Write([]byte(userPassword))
+	hashedUserPassword := h.Sum(nil)
+	sessionKey := fmt.Sprintf("%s#%s#%s#%x", params.server, params.datacenter, params.userinfo.Username(),
+		hashedUserPassword)
 	if cachedSession, ok := sessionCache.Load(sessionKey); ok {
 		s := cachedSession.(*Session)
-		logger = logger.WithValues("server", params.server, "datacenter", params.datacenter)
 
 		vimSessionActive, err := s.SessionManager.SessionIsActive(ctx)
 		if err != nil {
@@ -214,7 +223,7 @@ func newClient(ctx context.Context, logger logr.Logger, sessionKey string, url *
 		_, err := methods.GetCurrentTime(ctx, tripper)
 		if err != nil {
 			logger.Error(err, "failed to keep alive govmomi client")
-			logger.Info("clearing the session", "key", sessionKey)
+			logger.Info("clearing the session")
 			sessionCache.Delete(sessionKey)
 		}
 		return err
@@ -239,7 +248,7 @@ func newManager(ctx context.Context, logger logr.Logger, sessionKey string, clie
 			return nil
 		}
 
-		logger.Info("rest client session expired, clearing session", "key", sessionKey)
+		logger.Info("rest client session expired, clearing session")
 		sessionCache.Delete(sessionKey)
 		return errors.New("rest client session expired")
 	})

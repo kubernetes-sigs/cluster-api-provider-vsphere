@@ -72,6 +72,8 @@ func (r Reconciler) Reconcile(ctx *context.ClusterContext) (reconcile.Result, er
 		return reconcile.Result{}, err
 	}
 
+	modErrs := []clusterModError{}
+
 	clusterModuleSpecs := []infrav1.ClusterModule{}
 	for _, mod := range ctx.VSphereCluster.Spec.ClusterModules {
 		curr := mod.TargetObjectName
@@ -90,9 +92,20 @@ func (r Reconciler) Reconcile(ctx *context.ClusterContext) (reconcile.Result, er
 			// verify the cluster module
 			exists, err := r.ClusterModuleService.DoesExist(ctx, obj, mod.ModuleUUID)
 			if err != nil {
+				// Add the error to modErrs so it gets handled below.
+				modErrs = append(modErrs, clusterModError{obj.GetName(), errors.Wrapf(err, "failed to verify cluster module %q", mod.ModuleUUID)})
 				ctx.Logger.Error(err, "failed to verify cluster module for object",
 					"name", mod.TargetObjectName, "moduleUUID", mod.ModuleUUID)
+				// Append the module and remove it from objectMap to not create new ones instead.
+				clusterModuleSpecs = append(clusterModuleSpecs, infrav1.ClusterModule{
+					ControlPlane:     obj.IsControlPlane(),
+					TargetObjectName: obj.GetName(),
+					ModuleUUID:       mod.ModuleUUID,
+				})
+				delete(objectMap, curr)
+				continue
 			}
+
 			// append the module and object info to the VSphereCluster object
 			// and remove it from the object map since no new cluster module
 			// needs to be created.
@@ -111,7 +124,6 @@ func (r Reconciler) Reconcile(ctx *context.ClusterContext) (reconcile.Result, er
 		}
 	}
 
-	modErrs := []clusterModError{}
 	for _, obj := range objectMap {
 		moduleUUID, err := r.ClusterModuleService.Create(ctx, obj)
 		if err != nil {

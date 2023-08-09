@@ -78,7 +78,7 @@ func newConfigMapManifests(name string, o []runtime.Object) *v1.ConfigMap {
 			Namespace: env.NamespaceVar,
 		},
 		Data: map[string]string{
-			"data": util.GenerateManifestYaml(o),
+			"data": util.GenerateManifestYaml(o, util.DefaultReplacements),
 		},
 	}
 }

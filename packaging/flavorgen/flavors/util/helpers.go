@@ -17,7 +17,6 @@ limitations under the License.
 package util
 
 import (
-	"fmt"
 	"reflect"
 	"regexp"
 	"strings"
@@ -37,7 +36,7 @@ type Replacement struct {
 }
 
 var (
-	Replacements = []Replacement{
+	DefaultReplacements = []Replacement{
 		{
 			Kind:      "KubeadmControlPlane",
 			Name:      "${CLUSTER_NAME}",
@@ -180,22 +179,15 @@ func GenerateObjectYAML(obj runtime.Object, replacements []Replacement) string {
 	return str
 }
 
-func GenerateManifestYaml(objs []runtime.Object) string {
+func GenerateManifestYaml(objs []runtime.Object, replacements []Replacement) string {
 	var sb strings.Builder
 
 	for _, o := range objs {
 		sb.WriteString("---\n")
-		sb.WriteString(GenerateObjectYAML(o, Replacements))
+		sb.WriteString(GenerateObjectYAML(o, replacements))
 	}
 
 	return sb.String()
-}
-
-func PrintObjects(objs []runtime.Object) {
-	for _, o := range objs {
-		o := o
-		fmt.Printf("---\n%s", GenerateObjectYAML(o, Replacements)) //nolint:forbidigo
-	}
 }
 
 func TypeToKind(i interface{}) string {

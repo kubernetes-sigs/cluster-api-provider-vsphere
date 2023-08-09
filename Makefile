@@ -223,7 +223,7 @@ help:  # Display this help
 
 .PHONY: generate
 generate: ## Run all generate targets
-	$(MAKE) generate-modules generate-manifests generate-go-deepcopy generate-go-conversions
+	$(MAKE) generate-modules generate-manifests generate-go-deepcopy generate-go-conversions generate-flavors
 
 .PHONY: generate-manifests
 generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
@@ -339,7 +339,7 @@ APIDIFF_OLD_COMMIT ?= $(shell git rev-parse origin/main)
 apidiff: $(GO_APIDIFF) ## Check for API differences
 	$(GO_APIDIFF) $(APIDIFF_OLD_COMMIT) --print-compatible
 
-ALL_VERIFY_CHECKS = boilerplate modules gen conversions doctoc
+ALL_VERIFY_CHECKS = boilerplate modules gen conversions doctoc flavors
 
 .PHONY: verify
 verify: $(addprefix verify-,$(ALL_VERIFY_CHECKS)) lint-markdown lint-shell ## Run all verify-* targets
@@ -380,6 +380,13 @@ verify-boilerplate: ## Verify boilerplate text exists in each file
 .PHONY: verify-container-images
 verify-container-images: ## Verify container images
 	TRACE=$(TRACE) ./hack/verify-container-images.sh
+
+.PHONY: verify-flavors
+verify-flavors: $(FLAVOR_DIR) generate-flavors ## Verify generated flavors
+	@if !(git diff --quiet HEAD -- $(FLAVOR_DIR)); then \
+		git diff $(FLAVOR_DIR); \
+		echo "flavor files in templates directory are out of date"; exit 1; \
+	fi
 
 ## --------------------------------------
 ## Build
@@ -572,12 +579,7 @@ dev-flavors: $(OVERRIDES_DIR)
 
 .PHONY: generate-flavors
 generate-flavors: $(FLAVOR_DIR)
-	go run ./packaging/flavorgen -f vip > $(FLAVOR_DIR)/cluster-template.yaml
-	go run ./packaging/flavorgen -f external-loadbalancer > $(FLAVOR_DIR)/cluster-template-external-loadbalancer.yaml
-	go run ./packaging/flavorgen -f cluster-class > $(FLAVOR_DIR)/clusterclass-template.yaml
-	go run ./packaging/flavorgen -f cluster-topology > $(FLAVOR_DIR)/cluster-template-topology.yaml
-	go run ./packaging/flavorgen -f ignition > $(FLAVOR_DIR)/cluster-template-ignition.yaml
-	go run ./packaging/flavorgen -f node-ipam > $(FLAVOR_DIR)/cluster-template-node-ipam.yaml
+	go run ./packaging/flavorgen --output-dir $(FLAVOR_DIR)
 
 .PHONY: release-staging
 release-staging: ## Build and push container images to the staging registry

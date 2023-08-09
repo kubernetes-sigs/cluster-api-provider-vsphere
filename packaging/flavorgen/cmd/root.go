@@ -17,10 +17,13 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/env"
@@ -28,6 +31,27 @@ import (
 )
 
 const flavorFlag = "flavor"
+const outputDirFlag = "output-dir"
+
+var (
+	flavorMappings = map[string]string{
+		flavors.VIP:                  "cluster-template.yaml",
+		flavors.ExternalLoadBalancer: "cluster-template-external-loadbalancer.yaml",
+		flavors.ClusterClass:         "clusterclass-template.yaml",
+		flavors.ClusterTopology:      "cluster-template-topology.yaml",
+		flavors.Ignition:             "cluster-template-ignition.yaml",
+		flavors.NodeIPAM:             "cluster-template-node-ipam.yaml",
+	}
+
+	allFlavors = []string{
+		flavors.VIP,
+		flavors.ExternalLoadBalancer,
+		flavors.ClusterClass,
+		flavors.Ignition,
+		flavors.NodeIPAM,
+		flavors.ClusterTopology,
+	}
+)
 
 func RootCmd() *cobra.Command {
 	rootCmd := &cobra.Command{
@@ -36,8 +60,11 @@ func RootCmd() *cobra.Command {
 		RunE: func(command *cobra.Command, args []string) error {
 			return RunRoot(command)
 		},
+		SilenceUsage: true,
 	}
 	rootCmd.Flags().StringP(flavorFlag, "f", "", "Name of flavor to compile")
+	rootCmd.Flags().StringP(outputDirFlag, "o", "", "Directory to store the generated flavor templates.\nBy default the current directory is used.\nUse '-' to output the result to stdout.")
+
 	return rootCmd
 }
 
@@ -52,30 +79,73 @@ func RunRoot(command *cobra.Command) error {
 	if err != nil {
 		return errors.Wrapf(err, "error accessing flag %s for command %s", flavorFlag, command.Name())
 	}
+	outputDir, err := command.Flags().GetString(outputDirFlag)
+	if err != nil {
+		return errors.Wrapf(err, "error accessing flag %s for command %s", outputDirFlag, command.Name())
+	}
+	var outputFlavors []string
+	if flavor != "" {
+		outputFlavors = append(outputFlavors, flavor)
+	} else {
+		outputFlavors = allFlavors
+	}
+	generateMultiFlavors := len(outputFlavors) > 1
+	for _, f := range outputFlavors {
+		manifest, err := generateSingle(f)
+		if err != nil {
+			return err
+		}
+
+		yamlFileName, ok := flavorMappings[f]
+		if !ok {
+			return fmt.Errorf("file mapping for flavor %q is missng in flavorMappings", f)
+		}
+
+		if outputDir == "-" {
+			if generateMultiFlavors {
+				// use the yaml filename as a section delimiter
+				fmt.Printf("### %s\n", yamlFileName)
+			}
+			fmt.Print(manifest)
+			continue
+		}
+
+		yamlPath := filepath.Join(outputDir, yamlFileName)
+		err = os.WriteFile(yamlPath, []byte(manifest), 0600)
+		if err != nil {
+			return errors.Wrapf(err, "failed to save manifest content to file for flavor %s", f)
+		}
+	}
+
+	return nil
+}
+
+func generateSingle(flavor string) (string, error) {
+	replacements := append([]util.Replacement{}, util.DefaultReplacements...)
+
+	var objs []runtime.Object
 	switch flavor {
 	case flavors.VIP:
-		util.PrintObjects(flavors.MultiNodeTemplateWithKubeVIP())
+		objs = flavors.MultiNodeTemplateWithKubeVIP()
 	case flavors.ExternalLoadBalancer:
-		util.PrintObjects(flavors.MultiNodeTemplateWithExternalLoadBalancer())
+		objs = flavors.MultiNodeTemplateWithExternalLoadBalancer()
 	case flavors.ClusterClass:
-		util.PrintObjects(flavors.ClusterClassTemplateWithKubeVIP())
+		objs = flavors.ClusterClassTemplateWithKubeVIP()
 	case flavors.ClusterTopology:
-		additionalReplacements := []util.Replacement{
-			{
-				Kind:      "Cluster",
-				Name:      "${CLUSTER_NAME}",
-				Value:     env.ControlPlaneMachineCountVar,
-				FieldPath: []string{"spec", "topology", "controlPlane", "replicas"},
-			},
-		}
-		util.Replacements = append(util.Replacements, additionalReplacements...)
-		util.PrintObjects(flavors.ClusterTopologyTemplateKubeVIP())
+		objs = flavors.ClusterTopologyTemplateKubeVIP()
+		replacements = append(replacements, util.Replacement{
+			Kind:      "Cluster",
+			Name:      "${CLUSTER_NAME}",
+			Value:     env.ControlPlaneMachineCountVar,
+			FieldPath: []string{"spec", "topology", "controlPlane", "replicas"},
+		})
 	case flavors.Ignition:
-		util.PrintObjects(flavors.MultiNodeTemplateWithKubeVIPIgnition())
+		objs = flavors.MultiNodeTemplateWithKubeVIPIgnition()
 	case flavors.NodeIPAM:
-		util.PrintObjects(flavors.MultiNodeTemplateWithKubeVIPNodeIPAM())
+		objs = flavors.MultiNodeTemplateWithKubeVIPNodeIPAM()
 	default:
-		return errors.Errorf("invalid flavor")
+		return "", errors.Errorf("invalid flavor")
 	}
-	return nil
+
+	return util.GenerateManifestYaml(objs, replacements), nil
 }

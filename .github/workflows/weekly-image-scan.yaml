@@ -1,4 +1,4 @@
-name: scan-images
+name: Weekly image scan
 
 on:
   schedule:
@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        branch: [ main, release-1.7, release-1.6, release-1.5 ]
+        branch: [ main, release-1.8, release-1.7, release-1.6, release-1.5 ]
     name: Trivy
     runs-on: ubuntu-latest
     steps:
@@ -25,7 +25,7 @@ jobs:
         id: vars
         run: echo "go_version=$(make go-version)" >> $GITHUB_OUTPUT
       - name: Set up Go
-        uses: actions/setup-go@v4.0.1 # tag=v3.5.0
+        uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # tag=v4.0.1
         with:
           go-version: ${{ steps.vars.outputs.go_version }}
       - name: Run verify container script

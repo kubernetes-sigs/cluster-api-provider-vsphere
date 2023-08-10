@@ -141,11 +141,11 @@ func GetOrCreate(ctx context.Context, params *Params) (*Session, error) {
 	sessionMU.Lock()
 	defer sessionMU.Unlock()
 
-	if err := validateCredentials(ctx, logger, params); err != nil {
+	if err := validateCredentials(logger, params); err != nil {
 		return nil, err
 	}
 
-	sessionKey := generateSessionKey(ctx, logger, params)
+	sessionKey := generateSessionKey(logger, params)
 	if cachedSession, ok := sessionCache.Load(sessionKey); ok {
 		s := cachedSession.(*Session)
 
@@ -400,7 +400,7 @@ func signer(ctx context.Context, logger logr.Logger, client *vim25.Client, cert,
 	return signer, nil
 }
 
-func validateCredentials(ctx context.Context, logger logr.Logger, params *Params) error {
+func validateCredentials(logger logr.Logger, params *Params) error {
 	if params.userCert != "" || params.userKey != "" {
 		if params.userCert == "" || params.userKey == "" {
 			return errors.New("one of userCert/userKey is empty")
@@ -412,7 +412,7 @@ func validateCredentials(ctx context.Context, logger logr.Logger, params *Params
 	return nil
 }
 
-func generateSessionKey(ctx context.Context, logger logr.Logger, params *Params) string {
+func generateSessionKey(logger logr.Logger, params *Params) string {
 	key1 := hash(params.userCert)
 	key2 := hash(params.userKey)
 	if params.userinfo.Username() != "" {

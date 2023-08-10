@@ -60,7 +60,7 @@ func fetchSession(ctx *context.ClusterContext, params *session.Params) (*session
 		return session.GetOrCreate(ctx, params)
 	}
 
-	params = params.WithUserInfo(ctx.Username, ctx.Password)
+	params = params.WithUserInfo(ctx.Username, ctx.Password).WithUserCertificate(ctx.UserCert).WithUserKey(ctx.UserKey)
 	return session.GetOrCreate(ctx, params)
 }
 

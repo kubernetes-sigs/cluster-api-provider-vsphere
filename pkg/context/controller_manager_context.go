@@ -74,6 +74,14 @@ type ControllerManagerContext struct {
 	// endpoints.
 	Password string
 
+	// UserCert is the user certificate for the account to access remote vSphere
+	// endpoints.
+	UserCert string
+
+	// UserKey is the user certificate for the account to access remote vSphere
+	// endpoints.
+	UserKey string
+
 	// EnableKeepAlive is a session feature to enable keep alive handler
 	// for better load management on vSphere api server
 	EnableKeepAlive bool

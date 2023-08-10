@@ -63,6 +63,14 @@ type Options struct {
 	// endpoints.
 	Password string
 
+	// UserCert is the user certificate for the account to access remote vSphere
+	// endpoints.
+	UserCert string
+
+	// UserKey is the user certificate for the account to access remote vSphere
+	// endpoints.
+	UserKey string
+
 	// KeepAliveDuration is the idle time interval in between send() requests
 	// in keepalive handler
 	KeepAliveDuration time.Duration
@@ -140,4 +148,6 @@ func (o *Options) readAndSetCredentials() {
 	credentials := o.getCredentials()
 	o.Username = credentials["username"]
 	o.Password = credentials["password"]
+	o.UserCert = credentials["userCert"]
+	o.UserKey = credentials["userKey"]
 }

@@ -95,6 +95,8 @@ func New(opts Options) (Manager, error) {
 		Scheme:                  opts.Scheme,
 		Username:                opts.Username,
 		Password:                opts.Password,
+		UserCert:                opts.UserCert,
+		UserKey:                 opts.UserKey,
 		EnableKeepAlive:         opts.EnableKeepAlive,
 		KeepAliveDuration:       opts.KeepAliveDuration,
 		NetworkProvider:         opts.NetworkProvider,

@@ -132,16 +132,20 @@ func GetOrCreate(ctx context.Context, params *Params) (*Session, error) {
 		"server", params.server,
 		"datacenter", params.datacenter,
 		"username", params.userinfo.Username())
-
+	// if it's certificate
+	if params.userinfo.Username() == "" {
+		logger = ctrl.LoggerFrom(ctx).WithName("session").WithValues(
+			"server", params.server,
+			"datacenter", params.datacenter)
+	}
 	sessionMU.Lock()
 	defer sessionMU.Unlock()
 
-	userPassword, _ := params.userinfo.Password()
-	h := sha256.New()
-	h.Write([]byte(userPassword))
-	hashedUserPassword := h.Sum(nil)
-	sessionKey := fmt.Sprintf("%s#%s#%s#%x", params.server, params.datacenter, params.userinfo.Username(),
-		hashedUserPassword)
+	if err := validateCredentials(ctx, logger, params); err != nil {
+		return nil, err
+	}
+
+	sessionKey := generateSessionKey(ctx, logger, params)
 	if cachedSession, ok := sessionCache.Load(sessionKey); ok {
 		s := cachedSession.(*Session)
 
@@ -338,7 +342,7 @@ func login(ctx context.Context, logger logr.Logger, client *govmomi.Client, user
 	// if certificate is configured, prefer using certificate
 	if len(userCert) > 0 || len(userKey) > 0 {
 		if user != nil {
-			logger.Info("Bother usrename/password and userCertificate/userKey are set. Using the userCertificate/userKey")
+			logger.V(4).Info("Bother usrename/password and userCertificate/userKey are set. Using the userCertificate/userKey")
 		}
 
 		logger.V(4).Info("Session.LoginByToken with certificate", userCert)
@@ -356,10 +360,13 @@ func login(ctx context.Context, logger logr.Logger, client *govmomi.Client, user
 }
 
 func loginWithRestClient(ctx context.Context, logger logr.Logger, rc *rest.Client, client *vim25.Client, user *url.Userinfo, userCert, userKey string) error {
+	if userKey != "" && userCert == "" || userKey == "" && userCert != "" {
+		return errors.New("only one of userKey or userCert are provided")
+	}
 	// if certificate is configured, prefer using certificate
-	if len(userCert) > 0 || len(userKey) > 0 {
+	if userCert != "" && userKey != "" {
 		if user != nil {
-			logger.Info("Bother usrename/password and userCertificate/userKey are set. Using the userCertificate/userKey")
+			logger.V(4).Info("Bother usrename/password and userCertificate/userKey are set. Using the userCertificate/userKey")
 		}
 		signer, err := signer(ctx, logger, client, userCert, userKey)
 		if err != nil {
@@ -399,4 +406,34 @@ func signer(ctx context.Context, logger logr.Logger, client *vim25.Client, cert,
 	}
 
 	return signer, nil
+}
+
+func validateCredentials(ctx context.Context, logger logr.Logger, params *Params) error {
+	if params.userCert != "" || params.userKey != "" {
+		if params.userCert == "" || params.userKey == "" {
+			return errors.New("one of userCert/userKey is empty")
+		}
+	}
+	if params.userCert != "" || params.userKey != "" && params.userinfo.Username() != "" {
+		logger.V(2).Info("Bother username/password and userCertificate/userKey are set. Using the username/password")
+	}
+	return nil
+}
+
+func generateSessionKey(ctx context.Context, logger logr.Logger, params *Params) string {
+	key1 := hash(params.userCert)
+	key2 := hash(params.userKey)
+	if params.userinfo.Username() != "" {
+		key1 = []byte(params.userinfo.Username())
+		userPassword, _ := params.userinfo.Password()
+		key2 = hash(userPassword)
+	}
+
+	return fmt.Sprintf("%s#%s#%x#%x", params.server, params.datacenter, key1, key2)
+}
+
+func hash(input string) []byte {
+	h := sha256.New()
+	h.Write([]byte(input))
+	return h.Sum(nil)
 }

@@ -339,44 +339,36 @@ func (s *Session) findByUUID(ctx context.Context, uuid string, findByInstanceUUI
 }
 
 func login(ctx context.Context, logger logr.Logger, client *govmomi.Client, user *url.Userinfo, userCert, userKey string) error {
-	// if certificate is configured, prefer using certificate
-	if len(userCert) > 0 || len(userKey) > 0 {
-		if user != nil {
-			logger.V(4).Info("Bother usrename/password and userCertificate/userKey are set. Using the userCertificate/userKey")
-		}
-
-		logger.V(4).Info("Session.LoginByToken with certificate", userCert)
-		signer, err := signer(ctx, logger, client.Client, userCert, userKey)
-		if err != nil {
-			return err
-		}
-
-		header := soap.Header{Security: signer}
-		return client.SessionManager.LoginByToken(client.WithHeader(ctx, header))
+	// if basic auth enabled, prefer using this
+	logger.V(4).Info("Session.Login with username/password", userCert)
+	if user.Username() != "" {
+		return client.Login(ctx, user)
 	}
 
-	// basic auth login
-	return client.Login(ctx, user)
+	// if certificate is configured, prefer using certificate
+	logger.V(4).Info("Session.LoginByToken with certificate/key", userCert)
+	signer, err := signer(ctx, logger, client.Client, userCert, userKey)
+	if err != nil {
+		return err
+	}
+	header := soap.Header{Security: signer}
+	return client.SessionManager.LoginByToken(client.WithHeader(ctx, header))
 }
 
 func loginWithRestClient(ctx context.Context, logger logr.Logger, rc *rest.Client, client *vim25.Client, user *url.Userinfo, userCert, userKey string) error {
-	if userKey != "" && userCert == "" || userKey == "" && userCert != "" {
-		return errors.New("only one of userKey or userCert are provided")
-	}
-	// if certificate is configured, prefer using certificate
-	if userCert != "" && userKey != "" {
-		if user != nil {
-			logger.V(4).Info("Bother usrename/password and userCertificate/userKey are set. Using the userCertificate/userKey")
-		}
-		signer, err := signer(ctx, logger, client, userCert, userKey)
-		if err != nil {
-			return err
-		}
-		return rc.LoginByToken(rc.WithSigner(ctx, signer))
+	// if basic auth enabled, prefer using this
+	logger.V(4).Info("Session.Login with username/password", userCert)
+	if user.Username() != "" {
+		return rc.Login(ctx, user)
 	}
 
-	// basic auth login
-	return rc.Login(ctx, user)
+	logger.V(4).Info("Session.LoginByToken with certificate/key", userCert)
+	// if certificate is configured, prefer using certificate
+	signer, err := signer(ctx, logger, client, userCert, userKey)
+	if err != nil {
+		return err
+	}
+	return rc.LoginByToken(rc.WithSigner(ctx, signer))
 }
 
 // signer returns an sts.Signer for use with SAML token auth if connection is configured for such.

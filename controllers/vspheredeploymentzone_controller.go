@@ -184,24 +184,7 @@ func (r vsphereDeploymentZoneReconciler) reconcileNormal(ctx *context.VSphereDep
 	}
 	conditions.MarkTrue(ctx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition)
 
-	// Ensure the VSphereDeploymentZone is marked as an owner of the VSphereFailureDomain.
-	if !clusterutilv1.HasOwnerRef(ctx.VSphereFailureDomain.GetOwnerReferences(), metav1.OwnerReference{
-		APIVersion: infrav1.GroupVersion.String(),
-		Kind:       "VSphereDeploymentZone",
-		Name:       ctx.VSphereDeploymentZone.Name,
-	}) {
-		if err := updateOwnerReferences(ctx, ctx.VSphereFailureDomain, r.Client, func() []metav1.OwnerReference {
-			return append(ctx.VSphereFailureDomain.OwnerReferences, metav1.OwnerReference{
-				APIVersion: infrav1.GroupVersion.String(),
-				Kind:       ctx.VSphereDeploymentZone.Kind,
-				Name:       ctx.VSphereDeploymentZone.Name,
-				UID:        ctx.VSphereDeploymentZone.UID,
-			})
-		}); err != nil {
-			return err
-		}
-	}
-
+	// Mark the deployment zone as ready.
 	ctx.VSphereDeploymentZone.Status.Ready = pointer.Bool(true)
 	return nil
 }

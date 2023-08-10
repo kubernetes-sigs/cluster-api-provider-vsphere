@@ -1,0 +1,31 @@
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: VSphereFailureDomain
+metadata:
+  name: "ownerreferences"
+spec:
+  region:
+    name: '${VSPHERE_DATACENTER}'
+    type: Datacenter
+    tagCategory: k8s-region
+#    autoConfigure: true
+  zone:
+    name: '${VSPHERE_COMPUTE_CLUSTER}'
+    type: ComputeCluster
+    tagCategory: k8s-zone
+#    autoConfigure: true
+  topology:
+    datacenter: '${VSPHERE_DATACENTER}'
+    # datastore is optional and should\can be set when only one compute cluster is set
+    # or we should use storage policy
+    computeCluster: '${VSPHERE_COMPUTE_CLUSTER}'
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: VSphereDeploymentZone
+metadata:
+  name: "ownerreferences"
+spec:
+  server: '${VSPHERE_SERVER}'
+  failureDomain: "ownerreferences"
+  placementConstraint:
+    resourcePool: '${VSPHERE_RESOURCE_POOL}'

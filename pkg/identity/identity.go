@@ -122,11 +122,11 @@ func validateInputs(c client.Client, cluster *infrav1.VSphereCluster) error {
 	return nil
 }
 
+// IsSecretIdentity returns true if the VSphereCluster identity is a Secret.
 func IsSecretIdentity(cluster *infrav1.VSphereCluster) bool {
 	if cluster == nil || cluster.Spec.IdentityRef == nil {
 		return false
 	}
-
 	return cluster.Spec.IdentityRef.Kind == infrav1.SecretKind
 }
 

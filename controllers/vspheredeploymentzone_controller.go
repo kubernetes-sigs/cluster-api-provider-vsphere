@@ -182,26 +182,8 @@ func (r vsphereDeploymentZoneReconciler) reconcileNormal(deploymentZoneCtx *capv
 		deploymentZoneCtx.VSphereDeploymentZone.Status.Ready = pointer.Bool(false)
 		return errors.Wrapf(err, "failed to reconcile failure domain")
 	}
-	conditions.MarkTrue(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition)
 
-	// Ensure the VSphereDeploymentZone is marked as an owner of the VSphereFailureDomain.
-	if !clusterutilv1.HasOwnerRef(deploymentZoneCtx.VSphereFailureDomain.GetOwnerReferences(), metav1.OwnerReference{
-		APIVersion: infrav1.GroupVersion.String(),
-		Kind:       "VSphereDeploymentZone",
-		Name:       deploymentZoneCtx.VSphereDeploymentZone.Name,
-	}) {
-		if err := updateOwnerReferences(deploymentZoneCtx, deploymentZoneCtx.VSphereFailureDomain, r.Client, func() []metav1.OwnerReference {
-			return append(deploymentZoneCtx.VSphereFailureDomain.OwnerReferences, metav1.OwnerReference{
-				APIVersion: infrav1.GroupVersion.String(),
-				Kind:       deploymentZoneCtx.VSphereDeploymentZone.Kind,
-				Name:       deploymentZoneCtx.VSphereDeploymentZone.Name,
-				UID:        deploymentZoneCtx.VSphereDeploymentZone.UID,
-			})
-		}); err != nil {
-			return err
-		}
-	}
-
+	// Mark the deployment zone as ready.
 	deploymentZoneCtx.VSphereDeploymentZone.Status.Ready = pointer.Bool(true)
 	return nil
 }

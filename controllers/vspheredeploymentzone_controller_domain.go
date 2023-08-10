@@ -18,8 +18,10 @@ package controllers
 
 import (
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -58,6 +60,24 @@ func (r vsphereDeploymentZoneReconciler) reconcileFailureDomain(deploymentZoneCt
 		logger.Error(err, "topology is not configured correctly")
 		return errors.Wrap(err, "topology is not configured correctly")
 	}
+
+	// Ensure the VSphereDeploymentZone is marked as an owner of the VSphereFailureDomain.
+	if err := updateOwnerReferences(deploymentZoneCtx, deploymentZoneCtx.VSphereFailureDomain, r.Client,
+		func() []metav1.OwnerReference {
+			return clusterutilv1.EnsureOwnerRef(
+				deploymentZoneCtx.VSphereFailureDomain.OwnerReferences,
+				metav1.OwnerReference{
+					APIVersion: infrav1.GroupVersion.String(),
+					Kind:       deploymentZoneCtx.VSphereDeploymentZone.Kind,
+					Name:       deploymentZoneCtx.VSphereDeploymentZone.Name,
+					UID:        deploymentZoneCtx.VSphereDeploymentZone.UID,
+				})
+		}); err != nil {
+		return err
+	}
+
+	// Mark the VSphereDeploymentZone as having a valid VSphereFailureDomain.
+	conditions.MarkTrue(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition)
 	return nil
 }
 

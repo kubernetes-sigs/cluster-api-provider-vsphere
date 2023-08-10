@@ -285,38 +285,46 @@ func (r clusterReconciler) reconcileNormal(ctx context.Context, clusterCtx *capv
 
 func (r clusterReconciler) reconcileIdentitySecret(ctx context.Context, clusterCtx *capvcontext.ClusterContext) error {
 	vsphereCluster := clusterCtx.VSphereCluster
-	if identity.IsSecretIdentity(vsphereCluster) {
-		secret := &corev1.Secret{}
-		secretKey := client.ObjectKey{
-			Namespace: vsphereCluster.Namespace,
-			Name:      vsphereCluster.Spec.IdentityRef.Name,
-		}
-		err := clusterCtx.Client.Get(ctx, secretKey, secret)
-		if err != nil {
-			return err
-		}
+	if !identity.IsSecretIdentity(vsphereCluster) {
+		return nil
+	}
+	secret := &corev1.Secret{}
+	secretKey := client.ObjectKey{
+		Namespace: vsphereCluster.Namespace,
+		Name:      vsphereCluster.Spec.IdentityRef.Name,
+	}
+	err := clusterCtx.Client.Get(ctx, secretKey, secret)
+	if err != nil {
+		return err
+	}
 
-		// check if cluster is already an owner
-		if !clusterutilv1.IsOwnedByObject(secret, vsphereCluster) {
-			ownerReferences := secret.GetOwnerReferences()
-			if identity.IsOwnedByIdentityOrCluster(ownerReferences) {
-				return fmt.Errorf("another cluster has set the OwnerRef for secret: %s/%s", secret.Namespace, secret.Name)
-			}
-			ownerReferences = append(ownerReferences, metav1.OwnerReference{
-				APIVersion: infrav1.GroupVersion.String(),
-				Kind:       vsphereCluster.Kind,
-				Name:       vsphereCluster.Name,
-				UID:        vsphereCluster.UID,
-			})
-			secret.SetOwnerReferences(ownerReferences)
-		}
-		if !ctrlutil.ContainsFinalizer(secret, infrav1.SecretIdentitySetFinalizer) {
-			ctrlutil.AddFinalizer(secret, infrav1.SecretIdentitySetFinalizer)
-		}
-		err = r.Client.Update(ctx, secret)
-		if err != nil {
-			return err
-		}
+	// If a different VSphereCluster is an owner return an error.
+	if !clusterutilv1.IsOwnedByObject(secret, vsphereCluster) && identity.IsOwnedByIdentityOrCluster(secret.GetOwnerReferences()) {
+		return fmt.Errorf("another cluster has set the OwnerRef for secret: %s/%s", secret.Namespace, secret.Name)
+	}
+
+	helper, err := patch.NewHelper(secret, clusterCtx.Client)
+	if err != nil {
+		return err
+	}
+
+	// Ensure the VSphereCluster is an owner and that the APIVersion is up to date.
+	secret.SetOwnerReferences(clusterutilv1.EnsureOwnerRef(secret.GetOwnerReferences(),
+		metav1.OwnerReference{
+			APIVersion: infrav1.GroupVersion.String(),
+			Kind:       vsphereCluster.Kind,
+			Name:       vsphereCluster.Name,
+			UID:        vsphereCluster.UID,
+		},
+	))
+
+	// Ensure the finalizer is added.
+	if !ctrlutil.ContainsFinalizer(secret, infrav1.SecretIdentitySetFinalizer) {
+		ctrlutil.AddFinalizer(secret, infrav1.SecretIdentitySetFinalizer)
+	}
+	err = helper.Patch(ctx, secret)
+	if err != nil {
+		return err
 	}
 
 	return nil

@@ -263,7 +263,7 @@ func (r *machineReconciler) Reconcile(_ context.Context, req ctrl.Request) (_ ct
 }
 
 func (r *machineReconciler) reconcileDelete(machineCtx capvcontext.MachineContext) (reconcile.Result, error) {
-	machineCtx.GetLogger().Info("Handling deleted SphereMachine")
+	machineCtx.GetLogger().Info("Handling deleted VSphereMachine")
 	conditions.MarkFalse(machineCtx.GetVSphereMachine(), infrav1.VMProvisionedCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
 
 	if err := r.VMService.ReconcileDelete(machineCtx); err != nil {

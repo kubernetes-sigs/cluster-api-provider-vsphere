@@ -108,7 +108,7 @@ From this point forward changes which should land in the release have to be cher
          - Adjust branches: `^main$` => `^release-1.8$`.
 5. Remove tests for old release branches if necessary
 6. Verify the jobs and dashboards a day later by taking a look at [testgrid](https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api-provider-vsphere)
-7. Update `.github/workflows/weekly-image-scan.yaml` - to setup Trivy scanning - `.github/workflows/weekly-md-link-check.yaml` - to setup link checking in the CAPI book - and `.github/workflows/weekly-test-release.yaml` - to verify the release target is working - for the currently supported branches.
+7. Update `.github/workflows/weekly-security-scan.yaml` - to setup Trivy and govulncheck scanning - `.github/workflows/weekly-md-link-check.yaml` - to setup link checking in the CAPI book - and `.github/workflows/weekly-test-release.yaml` - to verify the release target is working - for the currently supported branches.
 
 ## Cut a release
 

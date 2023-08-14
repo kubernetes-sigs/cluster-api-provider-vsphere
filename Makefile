@@ -129,6 +129,8 @@ GO_APIDIFF_BIN := go-apidiff
 GO_APIDIFF := $(abspath $(TOOLS_BIN_DIR)/$(GO_APIDIFF_BIN)-$(GO_APIDIFF_VER))
 GO_APIDIFF_PKG := github.com/joelanford/go-apidiff
 
+SHELLCHECK_VER := v0.9.0
+
 KPROMO_VER := v4.0.4
 KPROMO_BIN := kpromo
 KPROMO :=  $(abspath $(TOOLS_BIN_DIR)/$(KPROMO_BIN)-$(KPROMO_VER))
@@ -310,7 +312,6 @@ generate-e2e-templates: ## Generate e2e cluster templates
 lint: $(GOLANGCI_LINT) ## Lint the codebase
 	$(MAKE) lint-go-full
 	$(MAKE) lint-markdown
-	$(MAKE) lint-shell
 
 GOLANGCI_LINT_EXTRA_ARGS ?= --fast=true
 .PHONY: lint-go
@@ -325,10 +326,6 @@ lint-go-full: lint-go ## Run slower linters to detect possible issues
 lint-markdown: ## Lint the project's markdown
 	docker run --rm -v "$$(pwd)":/build$(DOCKER_VOL_OPTS) gcr.io/cluster-api-provider-vsphere/extra/mdlint:0.17.0 -- /md/lint -i _releasenotes .
 
-.PHONY: lint-shell
-lint-shell: ## Lint the project's shell scripts
-	docker run --rm -t -v "$$(pwd)":/build:ro gcr.io/cluster-api-provider-vsphere/extra/shellcheck
-
 .PHONY: lint-fix
 lint-fix: $(GOLANGCI_LINT) ## Lint the codebase and run auto-fixers if supported by the linter
 	GOLANGCI_LINT_EXTRA_ARGS="--fast=false --fix" $(MAKE) lint-go
@@ -339,10 +336,10 @@ APIDIFF_OLD_COMMIT ?= $(shell git rev-parse origin/main)
 apidiff: $(GO_APIDIFF) ## Check for API differences
 	$(GO_APIDIFF) $(APIDIFF_OLD_COMMIT) --print-compatible
 
-ALL_VERIFY_CHECKS = boilerplate modules gen conversions doctoc flavors
+ALL_VERIFY_CHECKS = boilerplate shellcheck modules gen conversions doctoc flavors
 
 .PHONY: verify
-verify: $(addprefix verify-,$(ALL_VERIFY_CHECKS)) lint-markdown lint-shell ## Run all verify-* targets
+verify: $(addprefix verify-,$(ALL_VERIFY_CHECKS)) lint-markdown ## Run all verify-* targets
 
 .PHONY: verify-modules
 verify-modules: generate-modules  ## Verify go modules are up to date
@@ -376,6 +373,10 @@ verify-doctoc: generate-doctoc
 .PHONY: verify-boilerplate
 verify-boilerplate: ## Verify boilerplate text exists in each file
 	TRACE=$(TRACE) ./hack/verify-boilerplate.sh
+
+.PHONY: verify-shellcheck
+verify-shellcheck: ## Verify shell files
+	TRACE=$(TRACE) ./hack/verify-shellcheck.sh $(SHELLCHECK_VER)
 
 .PHONY: verify-container-images
 verify-container-images: ## Verify container images

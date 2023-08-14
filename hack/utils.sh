@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # Copyright 2019 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,16 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-all: build
-
-IMAGE_VERSION ?= v0.6.0
-IMAGE_NAME ?= gcr.io/cluster-api-provider-vsphere/extra/shellcheck
-IMAGE_TAG ?= $(IMAGE_NAME):$(IMAGE_VERSION)
-
-build:
-	docker build --build-arg SHELLCHECK_VERSION=$(IMAGE_VERSION) -t $(IMAGE_TAG) .
-.PHONY: build
-
-push:
-	docker push $(IMAGE_TAG)
-.PHONY: push
+# get_root_path returns the root path of the project source tree
+get_root_path() {
+    git rev-parse --show-toplevel
+}

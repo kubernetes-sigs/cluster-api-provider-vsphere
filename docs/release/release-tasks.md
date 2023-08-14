@@ -151,7 +151,7 @@ From this point forward changes which should land in the release have to be cher
        i.e.  `export USER_FORK=<personal GitHub handle>`
        - `kpromo` uses `git@github.com:...` as remote to push the branch for the PR. If you don't have `ssh` set up you can configure
        git to use `https` instead via `git config --global url."https://github.com/".insteadOf git@github.com:`.
-       - This will automatically create a PR in [k8s.io](https://github.com/kubernetes/k8s.io) and assign the CAPI maintainers.
+       - This will automatically create a PR in [k8s.io](https://github.com/kubernetes/k8s.io) and assign the CAPV maintainers.
 4. Merge the PR (/lgtm + /hold cancel) and verify the images are available in the production registry:
     - Wait for the [promotion prow job](https://prow.k8s.io/?repo=kubernetes%2Fk8s.io&job=post-k8sio-image-promo) to complete successfully. Then verify that the production images are accessible:
 
@@ -170,7 +170,7 @@ From this point forward changes which should land in the release have to be cher
       7. **For minor releases** Modify `Changes since v1.x.y` to `Changes since v1.x`
          **Note**: The release notes tool includes all merges since the previous release branch was branched of.
    2. Publish the release and ensure release is flagged as `pre-release` for all `beta` and `rc` releases or `latest` for a new release in the most recent release branch.
-6. **For minor releases** Update supported versions in versions.md.
+6. **For minor releases** Update supported versions in README.md.
 
 - Cutting a release as of today requires permissions to:
   - Create a release tag on the GitHub repository.

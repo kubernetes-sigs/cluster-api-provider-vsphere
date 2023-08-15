@@ -124,6 +124,11 @@ CONVERSION_GEN_BIN := conversion-gen
 CONVERSION_GEN := $(abspath $(TOOLS_BIN_DIR)/$(CONVERSION_GEN_BIN))
 CONVERSION_GEN_PKG := k8s.io/code-generator/cmd/conversion-gen
 
+ENVSUBST_BIN := envsubst
+ENVSUBST_VER := $(call get_go_version,github.com/drone/envsubst/v2)
+ENVSUBST := $(abspath $(TOOLS_BIN_DIR)/$(ENVSUBST_BIN)-$(ENVSUBST_VER))
+ENVSUBST_PKG := github.com/drone/envsubst/v2/cmd/envsubst
+
 GO_APIDIFF_VER := v0.6.0
 GO_APIDIFF_BIN := go-apidiff
 GO_APIDIFF := $(abspath $(TOOLS_BIN_DIR)/$(GO_APIDIFF_BIN)-$(GO_APIDIFF_VER))
@@ -729,6 +734,9 @@ $(GOTESTSUM_BIN): $(GOTESTSUM) ## Build a local copy of gotestsum.
 .PHONY: $(GO_APIDIFF_BIN)
 $(GO_APIDIFF_BIN): $(GO_APIDIFF) ## Build a local copy of go-apidiff
 
+.PHONY: $(ENVSUBST_BIN)
+$(ENVSUBST_BIN): $(ENVSUBST) ## Build a local copy of envsubst.
+
 .PHONY: $(KUSTOMIZE_BIN)
 $(KUSTOMIZE_BIN): $(KUSTOMIZE) ## Build a local copy of kustomize.
 
@@ -777,6 +785,9 @@ $(GOTESTSUM): # Build gotestsum from tools folder.
 
 $(GO_APIDIFF): # Build go-apidiff.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GO_APIDIFF_PKG) $(GO_APIDIFF_BIN) $(GO_APIDIFF_VER)
+
+$(ENVSUBST): # Build envsubst.
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(ENVSUBST_PKG) $(ENVSUBST_BIN) $(ENVSUBST_VER)
 
 $(KUSTOMIZE): # Build kustomize.
 	CGO_ENABLED=0 GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(KUSTOMIZE_PKG) $(KUSTOMIZE_BIN) $(KUSTOMIZE_VER)

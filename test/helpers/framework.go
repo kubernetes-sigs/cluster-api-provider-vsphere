@@ -30,7 +30,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 )
 
-// Util functions to interact with the clusterctl e2e framework
+// Util functions to interact with the clusterctl e2e framework.
 
 func LoadE2EConfig(configPath string) (*clusterctl.E2EConfig, error) {
 	config := clusterctl.LoadE2EConfig(goctx.TODO(), clusterctl.LoadE2EConfigInput{ConfigPath: configPath})

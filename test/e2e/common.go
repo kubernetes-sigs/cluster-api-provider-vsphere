@@ -50,7 +50,6 @@ type GlobalInput struct {
 	E2EConfig             *clusterctl.E2EConfig
 }
 
-//nolint:unparam
 func defaultConfigCluster(clusterName, namespace, flavor string, controlPlaneNodeCount, workerNodeCount int64,
 	input GlobalInput) clusterctl.ConfigClusterInput {
 	configClusterInput := clusterctl.ConfigClusterInput{

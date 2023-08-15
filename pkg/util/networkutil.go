@@ -19,7 +19,7 @@ package util
 import (
 	"context"
 
-	"github.com/hashicorp/go-version"
+	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	apitypes "k8s.io/apimachinery/pkg/types"
@@ -38,6 +38,11 @@ const (
 
 	EmptyAnnotationErrorMsg = "annotation not found"
 	EmptyNCPSNATKeyMsg      = NCPSNATKey + " key not found"
+)
+
+var (
+	NCPVersionSupportFWSemver      = semver.MustParse(NCPVersionSupportFW)
+	NCPVersionSupportFWEndedSemver = semver.MustParse(NCPVersionSupportFWEnded)
 )
 
 // GetNamespaceNetSnatIP finds out the namespace's corresponding network's SNAT IP.
@@ -86,18 +91,10 @@ func NCPSupportFW(ctx context.Context, controllerClient client.Client) (bool, er
 	if err != nil {
 		return false, err
 	}
-	currVersion, err := version.NewVersion(ncpVersion)
+	currVersion, err := semver.Parse(ncpVersion)
 	if err != nil {
 		return false, err
 	}
-	supportStartedVersion, err := version.NewVersion(NCPVersionSupportFW)
-	if err != nil {
-		return false, err
-	}
-	supportEndedVersion, err := version.NewVersion(NCPVersionSupportFWEnded)
-	if err != nil {
-		return false, err
-	}
-	supported := currVersion.GreaterThanOrEqual(supportStartedVersion) && currVersion.LessThan(supportEndedVersion)
+	supported := currVersion.GTE(NCPVersionSupportFWSemver) && currVersion.LT(NCPVersionSupportFWEndedSemver)
 	return supported, nil
 }

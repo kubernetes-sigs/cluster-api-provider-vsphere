@@ -27,8 +27,8 @@ source "${REPO_ROOT}/hack/ensure-kubectl.sh"
 on_exit() {
   # release IPClaim
   echo "Releasing IP claims"
-  kubectl --kubeconfig="${KUBECONFIG}" delete "$(append_api_group ipclaim)" "${IPCLAIM_NAME}" || true
-  kubectl --kubeconfig="${KUBECONFIG}" delete "$(append_api_group ipclaim)" "${WORKLOAD_IPCLAIM_NAME}" || true
+  kubectl --kubeconfig="${KUBECONFIG}" delete "ipclaim.ipam.metal3.io" "${CONTROL_PLANE_IPCLAIM_NAME}" || true
+  kubectl --kubeconfig="${KUBECONFIG}" delete "ipclaim.ipam.metal3.io" "${WORKLOAD_IPCLAIM_NAME}" || true
 
   # kill the VPN
   docker kill vpn
@@ -73,10 +73,6 @@ docker logs vpn
 # Sleep to allow vpn container to start running
 sleep 30
 
-function append_api_group() {
-  resource=$1
-  echo "${resource}.ipam.metal3.io"
-}
 
 function kubectl_get_jsonpath() {
   local OBJECT_KIND="${1}"
@@ -84,7 +80,7 @@ function kubectl_get_jsonpath() {
   local JSON_PATH="${3}"
   local n=0
   until [ $n -ge 30 ]; do
-    OUTPUT=$(kubectl --kubeconfig="${KUBECONFIG}" get "$(append_api_group "${OBJECT_KIND}")" "${OBJECT_NAME}" -o=jsonpath="${JSON_PATH}")
+    OUTPUT=$(kubectl --kubeconfig="${KUBECONFIG}" get "${OBJECT_KIND}.ipam.metal3.io" "${OBJECT_NAME}" -o=jsonpath="${JSON_PATH}")
     if [[ "${OUTPUT}" != "" ]]; then
       break
     fi
@@ -101,20 +97,27 @@ function kubectl_get_jsonpath() {
   fi
 }
 
+function claim_ip() {
+  IPCLAIM_NAME="$1"
+  export IPCLAIM_NAME
+  envsubst < "${REPO_ROOT}/hack/ipclaim-template.yaml" | kubectl --kubeconfig="${KUBECONFIG}" create -f - 1>&2
+  IPADDRESS_NAME=$(kubectl_get_jsonpath ipclaim "${IPCLAIM_NAME}" '{@.status.address.name}')
+  kubectl --kubeconfig="${KUBECONFIG}" get "ipaddresses.ipam.metal3.io" "${IPADDRESS_NAME}" -o=jsonpath='{@.spec.address}'
+}
+
+export KUBECONFIG="/root/ipam-conf/capv-services.conf"
+
+make envsubst
+
 # Retrieve an IP to be used as the kube-vip IP
-KUBECONFIG="/root/ipam-conf/capv-services.conf"
-IPCLAIM_NAME="ip-claim-$(openssl rand -hex 20)"
-sed "s/IPCLAIM_NAME/${IPCLAIM_NAME}/" "${REPO_ROOT}/hack/ipclaim-template.yaml" | kubectl --kubeconfig=${KUBECONFIG} create -f -
-IPADDRESS_NAME=$(kubectl_get_jsonpath ipclaim "${IPCLAIM_NAME}" '{@.status.address.name}')
-CONTROL_PLANE_ENDPOINT_IP=$(kubectl --kubeconfig=${KUBECONFIG} get "$(append_api_group ipaddresses)" "${IPADDRESS_NAME}" -o=jsonpath='{@.spec.address}')
+CONTROL_PLANE_IPCLAIM_NAME="ip-claim-$(openssl rand -hex 20)"
+CONTROL_PLANE_ENDPOINT_IP=$(claim_ip "${CONTROL_PLANE_IPCLAIM_NAME}")
 export CONTROL_PLANE_ENDPOINT_IP
 echo "Acquired Control Plane IP: $CONTROL_PLANE_ENDPOINT_IP"
 
 # Retrieve an IP to be used for the workload cluster in v1a3/v1a4 -> v1b1 upgrade tests
 WORKLOAD_IPCLAIM_NAME="workload-ip-claim-$(openssl rand -hex 20)"
-sed "s/IPCLAIM_NAME/${WORKLOAD_IPCLAIM_NAME}/" "${REPO_ROOT}/hack/ipclaim-template.yaml" | kubectl --kubeconfig=${KUBECONFIG} create -f -
-WORKLOAD_IPADDRESS_NAME=$(kubectl_get_jsonpath ipclaim "${WORKLOAD_IPCLAIM_NAME}" '{@.status.address.name}')
-WORKLOAD_CONTROL_PLANE_ENDPOINT_IP=$(kubectl --kubeconfig=${KUBECONFIG} get "$(append_api_group ipaddresses)" "${WORKLOAD_IPADDRESS_NAME}" -o=jsonpath='{@.spec.address}')
+WORKLOAD_CONTROL_PLANE_ENDPOINT_IP=$(claim_ip "${WORKLOAD_IPCLAIM_NAME}")
 export WORKLOAD_CONTROL_PLANE_ENDPOINT_IP
 echo "Acquired Workload Cluster Control Plane IP: $WORKLOAD_CONTROL_PLANE_ENDPOINT_IP"
 

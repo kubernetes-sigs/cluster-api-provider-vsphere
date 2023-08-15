@@ -259,7 +259,7 @@ func newVSphereMachineTemplate(templateName string) infrav1.VSphereMachineTempla
 func defaultVirtualMachineSpec() infrav1.VSphereMachineSpec {
 	return infrav1.VSphereMachineSpec{
 		VirtualMachineCloneSpec: defaultVirtualMachineCloneSpec(),
-		PowerOffMode:            infrav1.VirtualMachinePowerOpModeHard,
+		PowerOffMode:            infrav1.VirtualMachinePowerOpModeTrySoft,
 	}
 }
 
@@ -312,7 +312,7 @@ func newNodeIPAMVSphereMachineTemplate(templateName string) infrav1.VSphereMachi
 func nodeIPAMVirtualMachineSpec() infrav1.VSphereMachineSpec {
 	return infrav1.VSphereMachineSpec{
 		VirtualMachineCloneSpec: nodeIPAMVirtualMachineCloneSpec(),
-		PowerOffMode:            infrav1.VirtualMachinePowerOpModeHard,
+		PowerOffMode:            infrav1.VirtualMachinePowerOpModeTrySoft,
 	}
 }
 

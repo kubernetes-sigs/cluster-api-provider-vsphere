@@ -1,0 +1,6 @@
+config:
+  default: true
+  line_length: false
+ignores:
+- _releasenotes
+# - .github

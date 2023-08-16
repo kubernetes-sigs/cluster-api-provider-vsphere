@@ -208,9 +208,7 @@ $ clusterctl generate custom-cluster vsphere-quickstart \
 <!-- References -->
 [vm-template]: https://docs.vmware.com/en/VMware-vSphere/6.7/com.vmware.vsphere.vm_admin.doc/GUID-17BEDA21-43F6-41F4-8FB2-E01D275FE9B4.html
 [cluster-api-book]: https://cluster-api.sigs.k8s.io/
-[glossary-bootstrapping]: https://cluster-api.sigs.k8s.io/reference/glossary.html#bootstrap
 [kind]: https://kind.sigs.k8s.io
-[glossary-management-cluster]: https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/book/GLOSSARY.md#management-cluster
 [releases]: https://github.com/kubernetes-sigs/cluster-api/releases
 [docker]: https://docs.docker.com/glossary/?term=install
 [kubectl]: https://kubernetes.io/docs/tasks/tools/install-kubectl/

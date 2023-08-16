@@ -15,7 +15,7 @@ status: proposed
 
 ## Table of Contents
 
-* [Support for Node affinity and anti-affinity](#support-for-node-affinity-and-anti-affinity)
+* [Support for Node anti-affinity](#support-for-node-anti-affinity)
   * [Table of Contents](#table-of-contents)
   * [Glossary](#glossary)
   * [Summary](#summary)

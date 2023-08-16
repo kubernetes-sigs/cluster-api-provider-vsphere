@@ -183,6 +183,10 @@ RELEASE_NOTES_BIN := release-notes
 RELEASE_NOTES := $(abspath $(TOOLS_BIN_DIR)/$(RELEASE_NOTES_BIN)-$(RELEASE_NOTES_VER))
 RELEASE_NOTES_PKG := sigs.k8s.io/cluster-api/hack/tools/release
 
+# Defines the version used for lint-markdown. Make sure to run ./hack/markdownlint-sync-image.sh after updating the image.
+MARKDOWNLINT_CLI2_VERSION ?= "v0.8.1"
+MARKDOWNLINT_CLI2_IMAGE_NAME ?= "gcr.io/cluster-api-provider-vsphere/extra/markdownlint-cli2"
+
 # Define Docker related variables. Releases should modify and double check these vars.
 REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
 PROD_REGISTRY ?= registry.k8s.io/cluster-api-vsphere
@@ -334,7 +338,7 @@ lint-go-full: lint-go ## Run slower linters to detect possible issues
 
 .PHONY: lint-markdown
 lint-markdown: ## Lint the project's markdown
-	docker run --rm -v "$$(pwd)":/build$(DOCKER_VOL_OPTS) gcr.io/cluster-api-provider-vsphere/extra/mdlint:0.17.0 -- /md/lint -i _releasenotes .
+	docker run --rm -v "$$(pwd)":/workdir$(DOCKER_VOL_OPTS) --entrypoint="markdownlint-cli2-config" $(MARKDOWNLINT_CLI2_IMAGE_NAME):$(MARKDOWNLINT_CLI2_VERSION) ".markdownlint-cli2.yaml" "**/*.md"
 
 .PHONY: lint-fix
 lint-fix: $(GOLANGCI_LINT) ## Lint the codebase and run auto-fixers if supported by the linter

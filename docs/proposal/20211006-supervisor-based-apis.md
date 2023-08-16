@@ -13,7 +13,7 @@ status: implementable
 
 ## Table of Contents
 
-- [Title](#title)
+- [supervisor-based APIs for CAPV](#supervisor-based-apis-for-capv)
   - [Table of Contents](#table-of-contents)
   - [Glossary](#glossary)
   - [Summary](#summary)
@@ -21,14 +21,21 @@ status: implementable
     - [Goals](#goals)
     - [Non-Goals/Future Work](#non-goalsfuture-work)
   - [Proposal](#proposal)
+    - [Release engineering](#release-engineering)
     - [User Stories](#user-stories)
       - [Story 1](#story-1)
       - [Story 2](#story-2)
-      - [Story 3](#story-3)
+    - [Story 3](#story-3)
     - [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
+      - [Controller changes](#controller-changes)
+      - [Newly added Controllers](#newly-added-controllers)
+      - [ServiceDiscovery controller](#servicediscovery-controller)
+      - [CI and test coverage](#ci-and-test-coverage)
     - [Security Model](#security-model)
     - [Risks and Mitigations](#risks-and-mitigations)
   - [Alternatives](#alternatives)
+    - [Use a separate branch to host the new APIs and controllers](#use-a-separate-branch-to-host-the-new-apis-and-controllers)
+    - [Add new fields to current API and heavily rely on webhook for field compatibility](#add-new-fields-to-current-api-and-heavily-rely-on-webhook-for-field-compatibility)
   - [Upgrade Strategy](#upgrade-strategy)
   - [Implementation History](#implementation-history)
 

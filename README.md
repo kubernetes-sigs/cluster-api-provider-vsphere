@@ -20,7 +20,7 @@ Check out the [getting started guide](./docs/getting_started.md) for launching a
 
 - Native Kubernetes manifests and API
 - Manages the bootstrapping of VMs on cluster.
-- Choice of Linux distribution between Ubuntu 18.04 and CentOS 7 using VM Templates based on [OVA images](#Kubernetes-versions-with-published-OVAs).
+- Choice of Linux distribution between Ubuntu 18.04 and CentOS 7 using VM Templates based on [OVA images](#kubernetes-versions-with-published-ovas).
 - Deploys Kubernetes control planes into provided clusters on vSphere.
 - Doesn't use SSH for bootstrapping nodes.
 - Installs only the minimal components to bootstrap a control plane and workers.
@@ -128,7 +128,7 @@ We also use the issue tracker to track features. If you have an idea for a featu
 [good_first_issue]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22
 [kops]: https://github.com/kubernetes/kops
 [kubicorn]: http://kubicorn.io/
-[mailint_list]: https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle
+[mailing_list]: https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle
 [meeting_notes]: https://docs.google.com/document/d/1jQrQiOW75uWraPk4b_LWtCTHwT7EZwrWWwMdxeWOEvk/edit?usp=sharing
 [new_issue]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/new
 [prow]: https://go.k8s.io/bot-commands

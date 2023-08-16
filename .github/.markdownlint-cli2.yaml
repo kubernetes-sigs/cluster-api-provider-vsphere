@@ -1,0 +1,7 @@
+config:
+  # First line in a file should be a top-level heading
+  MD041: false
+  # Multiple consecutive blank lines
+  MD012: false
+  # Trailing spaces
+  MD009: false

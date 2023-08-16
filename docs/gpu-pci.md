@@ -21,14 +21,14 @@ Let's create a CAPV cluster with GPU enabled via PCI passthrough mode and run a 
   - Browse to a host in the vSphere Client navigator.
   - On the **Configure** tab, expand **Hardware** and click **PCI Devices**.
   - Select the GPU device to be used for passthrough and click **TOGGLE PASSTHROUGH**. This sets the device to be available in the passthrough mode.
-  <img width="1673" alt="image" src="https://user-images.githubusercontent.com/8758225/178333983-0dcc9771-ba41-4c90-918f-388795d77846.png">
+  ![image](https://user-images.githubusercontent.com/8758225/178333983-0dcc9771-ba41-4c90-918f-388795d77846.png)
 
 - Find the Device ID and Vendor ID of the PCI device.
   - Browse to a host in the vSphere Client navigator.
   - On the **Configure** tab, expand **Hardware** and click **PCI Devices**.
   - Click on the **PASSTHROUGH-ENABLED DEVICES** tab and select the device you want to use.
   - As shown below, the **General Information** section lists out the Device ID and Vendor ID information.
-  <img width="1675" alt="image" src="https://user-images.githubusercontent.com/8758225/178334149-def48b35-1142-4c05-b455-fefd15b1e41a.png">
+  ![image](https://user-images.githubusercontent.com/8758225/178334149-def48b35-1142-4c05-b455-fefd15b1e41a.png)
 
   **Note**: The device and vendor ID combination is the same for a single family of GPU cards. So, for all the Tesla T4 cards, the values would be the ones listed above.
 

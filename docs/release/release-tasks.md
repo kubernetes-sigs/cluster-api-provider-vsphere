@@ -180,9 +180,5 @@ From this point forward changes which should land in the release have to be cher
 
 The CAPV tests are pretty stable, but there are still some flaky tests from time to time. To reduce the amount of flakes please periodically:
 
-1. Take a look at recent CI failures via `k8s-triage`:
-    - [periodic-cluster-api-provider-vsphere-test-main](https://storage.googleapis.com/k8s-triage/index.html?pr=1&job=periodic-cluster-api-provider-vsphere-test-main)
-    - [periodic-cluster-api-provider-vsphere-test-integration-main](https://storage.googleapis.com/k8s-triage/index.html?pr=1&job=periodic-cluster-api-provider-vsphere-test-integration-main)
-    - [periodic-cluster-api-provider-vsphere-e2e-full-main](https://storage.googleapis.com/k8s-triage/index.html?pr=1&job=periodic-cluster-api-provider-vsphere-e2e-full-main)
-    - [periodic-cluster-api-provider-vsphere-conformance-main](https://storage.googleapis.com/k8s-triage/index.html?pr=1&job=periodic-cluster-api-provider-vsphere-conformance-main)
+1. Take a look at recent CI failures via [k8s-triage](https://storage.googleapis.com/k8s-triage/index.html?job=.*cluster-api-provider-vsphere.*)
 2. Open issues for occurring flakes and ideally fix them or find someone who can.

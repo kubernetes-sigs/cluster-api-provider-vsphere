@@ -63,7 +63,7 @@ The steps to add someone as a maintainer are:
 to [kubernetes/org/config/kubernetes-sigs/sig-cluster-lifecycle/teams.yaml](https://github.com/kubernetes/org/blob/main/config/kubernetes-sigs/sig-cluster-lifecycle/teams.yaml)
 * Open PR to add Github username to [kubernetes/test-infra/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere/OWNERS](https://github.com/kubernetes/test-infra/blob/master/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere/OWNERS)
 * Open PR to add Google ID to the k8s-infra-staging-capi-vsphere@kubernetes.io and sig-cluster-lifecycle-cluster-api-vsphere-alerts@kubernetes.io Google groups in [kubernetes/k8s.io/groups/sig-cluster-lifecycle/groups.yaml](https://github.com/kubernetes/k8s.io/blob/main/groups/sig-cluster-lifecycle/groups.yaml)
-* Open PR to add approvers/reviewers to [CAPV image promotion](https://github.com/kubernetes/k8s.io/blob/main/registry.k8s.io/images/k8s-staging-cluster-api-vsphere/OWNERS).
+* Open PR to add approvers/reviewers to [CAPV image promotion](https://github.com/kubernetes/k8s.io/blob/main/registry.k8s.io/images/k8s-staging-capi-vsphere/OWNERS).
 * Open PR to image-builder to modify `cluster-api-vsphere-maintainers` in [OWNERS_ALIASES](https://github.com/kubernetes-sigs/image-builder/blob/main/OWNERS_ALIASES)
 
 #### Becoming a admin

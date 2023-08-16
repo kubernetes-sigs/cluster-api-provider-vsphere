@@ -393,7 +393,7 @@ the following changes are going to be introduced to vspheremachine_controller:
 
 #### Supported topology
 
-[Example](https://cloud-provider-vsphere.sigs.k8s.io/tutorials/deploying_cpi_and_csi_with_multi_dc_vc_aka_zones.html)
+[Example](https://cloud-provider-vsphere.sigs.k8s.io/tutorials/deploying_cpi_with_multi_dc_vc_aka_zones)
 
 ##### Region -> Datacenter,  Zone -> ComputeCluster
 

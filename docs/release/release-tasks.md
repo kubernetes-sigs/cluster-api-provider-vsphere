@@ -109,6 +109,8 @@ From this point forward changes which should land in the release have to be cher
 5. Remove tests for old release branches if necessary
 6. Verify the jobs and dashboards a day later by taking a look at [testgrid](https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api-provider-vsphere)
 7. Update `.github/workflows/weekly-security-scan.yaml` - to setup Trivy and govulncheck scanning - `.github/workflows/weekly-md-link-check.yaml` - to setup link checking in the CAPI book - and `.github/workflows/weekly-test-release.yaml` - to verify the release target is working - for the currently supported branches.
+8. Update the [PR markdown link checker](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/blob/main/.github/workflows/pr-md-link-check.yaml) accordingly (e.g. `main` -> `release-1.8`).
+   - Prior art: [Update branch for link checker](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/pull/2242)
 
 ## Cut a release
 

@@ -1845,5 +1845,6 @@ func autoConvert_v1beta1_VirtualMachineCloneSpec_To_v1alpha4_VirtualMachineClone
 	// WARNING: in.PciDevices requires manual conversion: does not exist in peer-type
 	// WARNING: in.OS requires manual conversion: does not exist in peer-type
 	// WARNING: in.HardwareVersion requires manual conversion: does not exist in peer-type
+	// WARNING: in.IdentityRef requires manual conversion: does not exist in peer-type
 	return nil
 }

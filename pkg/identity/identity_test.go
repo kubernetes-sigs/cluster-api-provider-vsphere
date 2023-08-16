@@ -236,19 +236,19 @@ var _ = Describe("validateInputs", func() {
 
 	Context("If the client is missing", func() {
 		It("should error if client is missing", func() {
-			Expect(validateInputs(nil, cluster)).NotTo(Succeed())
+			Expect(validateInputs(nil, cluster, nil)).NotTo(Succeed())
 		})
 	})
 
 	Context("If the cluster is missing", func() {
 		It("should error if cluster is missing", func() {
-			Expect(validateInputs(k8sclient, nil)).NotTo(Succeed())
+			Expect(validateInputs(k8sclient, nil, nil)).NotTo(Succeed())
 		})
 	})
 
 	Context("If the identityRef is missing on cluster", func() {
 		It("should error if identityRef is missing on cluster", func() {
-			Expect(validateInputs(k8sclient, cluster)).NotTo(Succeed())
+			Expect(validateInputs(k8sclient, cluster, nil)).NotTo(Succeed())
 		})
 	})
 })

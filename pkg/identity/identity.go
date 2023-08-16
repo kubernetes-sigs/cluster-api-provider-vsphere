@@ -40,12 +40,11 @@ type Credentials struct {
 	Password string
 }
 
-func GetCredentials(ctx context.Context, c client.Client, cluster *infrav1.VSphereCluster, controllerNamespace string) (*Credentials, error) {
-	if err := validateInputs(c, cluster); err != nil {
+func GetCredentialsWithExternalIdentity(ctx context.Context, c client.Client, cluster *infrav1.VSphereCluster, ref *infrav1.VSphereIdentityReference, controllerNamespace string) (*Credentials, error) {
+	if err := validateInputs(c, cluster, ref); err != nil {
 		return nil, err
 	}
 
-	ref := cluster.Spec.IdentityRef
 	secret := &apiv1.Secret{}
 	var secretKey client.ObjectKey
 
@@ -108,15 +107,21 @@ func GetCredentials(ctx context.Context, c client.Client, cluster *infrav1.VSphe
 	return credentials, nil
 }
 
-func validateInputs(c client.Client, cluster *infrav1.VSphereCluster) error {
+func GetCredentials(ctx context.Context, c client.Client, cluster *infrav1.VSphereCluster, controllerNamespace string) (*Credentials, error) {
+	if err := validateInputs(c, cluster, cluster.Spec.IdentityRef); err != nil {
+		return nil, err
+	}
+	return GetCredentialsWithExternalIdentity(ctx, c, cluster, cluster.Spec.IdentityRef, controllerNamespace)
+}
+
+func validateInputs(c client.Client, cluster *infrav1.VSphereCluster, identityRef *infrav1.VSphereIdentityReference) error {
 	if c == nil {
 		return errors.New("kubernetes client is required")
 	}
 	if cluster == nil {
 		return errors.New("vsphere cluster is required")
 	}
-	ref := cluster.Spec.IdentityRef
-	if ref == nil {
+	if identityRef == nil {
 		return errors.New("IdentityRef is required")
 	}
 	return nil

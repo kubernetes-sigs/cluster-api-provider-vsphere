@@ -105,5 +105,5 @@ type VSphereClusterIdentityList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&VSphereClusterIdentity{}, &VSphereClusterIdentityList{})
+	objectTypes = append(objectTypes, &VSphereClusterIdentity{}, &VSphereClusterIdentityList{})
 }

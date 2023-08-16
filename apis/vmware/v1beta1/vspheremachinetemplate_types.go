@@ -48,5 +48,5 @@ type VSphereMachineTemplateList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&VSphereMachineTemplate{}, &VSphereMachineTemplateList{})
+	objectTypes = append(objectTypes, &VSphereMachineTemplate{}, &VSphereMachineTemplateList{})
 }

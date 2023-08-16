@@ -89,5 +89,5 @@ type HAProxyLoadBalancerList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&HAProxyLoadBalancer{}, &HAProxyLoadBalancerList{})
+	objectTypes = append(objectTypes, &HAProxyLoadBalancer{}, &HAProxyLoadBalancerList{})
 }

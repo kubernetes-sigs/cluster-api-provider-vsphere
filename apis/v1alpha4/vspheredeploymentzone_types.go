@@ -113,5 +113,5 @@ type VSphereDeploymentZoneList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&VSphereDeploymentZone{}, &VSphereDeploymentZoneList{})
+	objectTypes = append(objectTypes, &VSphereDeploymentZone{}, &VSphereDeploymentZoneList{})
 }

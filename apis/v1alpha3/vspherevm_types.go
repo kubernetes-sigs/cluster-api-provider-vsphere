@@ -161,5 +161,5 @@ type VSphereVMList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&VSphereVM{}, &VSphereVMList{})
+	objectTypes = append(objectTypes, &VSphereVM{}, &VSphereVMList{})
 }

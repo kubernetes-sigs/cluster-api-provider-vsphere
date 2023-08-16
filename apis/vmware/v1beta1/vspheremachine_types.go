@@ -182,5 +182,5 @@ func (r *VSphereMachine) SetConditions(conditions clusterv1.Conditions) {
 }
 
 func init() {
-	SchemeBuilder.Register(&VSphereMachine{}, &VSphereMachineList{})
+	objectTypes = append(objectTypes, &VSphereMachine{}, &VSphereMachineList{})
 }

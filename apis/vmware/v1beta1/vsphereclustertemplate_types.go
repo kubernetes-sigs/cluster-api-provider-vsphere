@@ -48,7 +48,7 @@ type VSphereClusterTemplateList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&VSphereClusterTemplate{}, &VSphereClusterTemplateList{})
+	objectTypes = append(objectTypes, &VSphereClusterTemplate{}, &VSphereClusterTemplateList{})
 }
 
 type VSphereClusterTemplateResource struct {

@@ -34,10 +34,10 @@ import (
 	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1alpha1"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	infrav1a3 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1alpha3"
-	infrav1a4 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1alpha4"
-	infrav1b1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
-	vmwarev1b1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	infrav1alpha3 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1alpha3"
+	infrav1alpha4 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 )
@@ -57,12 +57,12 @@ func New(opts Options) (Manager, error) {
 
 	_ = clientgoscheme.AddToScheme(opts.Scheme)
 	_ = clusterv1.AddToScheme(opts.Scheme)
-	_ = infrav1a3.AddToScheme(opts.Scheme)
-	_ = infrav1a4.AddToScheme(opts.Scheme)
-	_ = infrav1b1.AddToScheme(opts.Scheme)
+	_ = infrav1alpha3.AddToScheme(opts.Scheme)
+	_ = infrav1alpha4.AddToScheme(opts.Scheme)
+	_ = infrav1.AddToScheme(opts.Scheme)
 	_ = controlplanev1.AddToScheme(opts.Scheme)
 	_ = bootstrapv1.AddToScheme(opts.Scheme)
-	_ = vmwarev1b1.AddToScheme(opts.Scheme)
+	_ = vmwarev1.AddToScheme(opts.Scheme)
 	_ = vmoprv1.AddToScheme(opts.Scheme)
 	_ = ncpv1.AddToScheme(opts.Scheme)
 	_ = netopv1.AddToScheme(opts.Scheme)

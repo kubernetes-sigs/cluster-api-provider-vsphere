@@ -33,7 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
-	vmwarev1b1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 )
 
 // GetVSphereMachinesInCluster gets a cluster's VSphereMachine resources.
@@ -63,8 +63,8 @@ func GetVSphereMachinesInCluster(
 func GetVSphereMachine(
 	ctx context.Context,
 	controllerClient client.Client,
-	namespace, machineName string) (*vmwarev1b1.VSphereMachine, error) {
-	machine := &vmwarev1b1.VSphereMachine{}
+	namespace, machineName string) (*vmwarev1.VSphereMachine, error) {
+	machine := &vmwarev1.VSphereMachine{}
 	namespacedName := apitypes.NamespacedName{
 		Namespace: namespace,
 		Name:      machineName,

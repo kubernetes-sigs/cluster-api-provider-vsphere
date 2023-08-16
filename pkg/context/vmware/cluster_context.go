@@ -24,7 +24,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 
-	vmwarev1b1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 )
 
@@ -32,7 +32,7 @@ import (
 type ClusterContext struct {
 	*context.ControllerContext
 	Cluster        *clusterv1.Cluster
-	VSphereCluster *vmwarev1b1.VSphereCluster
+	VSphereCluster *vmwarev1.VSphereCluster
 	PatchHelper    *patch.Helper
 	Logger         logr.Logger
 }
@@ -47,9 +47,9 @@ func (c *ClusterContext) Patch() error {
 	// always update the readyCondition.
 	conditions.SetSummary(c.VSphereCluster,
 		conditions.WithConditions(
-			vmwarev1b1.ResourcePolicyReadyCondition,
-			vmwarev1b1.ClusterNetworkReadyCondition,
-			vmwarev1b1.LoadBalancerReadyCondition,
+			vmwarev1.ResourcePolicyReadyCondition,
+			vmwarev1.ClusterNetworkReadyCondition,
+			vmwarev1.LoadBalancerReadyCondition,
 		),
 	)
 	return c.PatchHelper.Patch(c, c.VSphereCluster)

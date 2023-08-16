@@ -29,7 +29,7 @@ import (
 	_ "github.com/vmware/govmomi/vapi/simulator"
 	"github.com/vmware/govmomi/vim25/types"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 )
@@ -114,12 +114,12 @@ func TestGetDiskSpec(t *testing.T) {
 	for _, test := range testCases {
 		tc := test
 		t.Run(tc.name, func(t *testing.T) {
-			cloneSpec := v1beta1.VirtualMachineCloneSpec{
+			cloneSpec := infrav1.VirtualMachineCloneSpec{
 				DiskGiB:            tc.cloneDiskSize,
 				AdditionalDisksGiB: tc.additionalCloneDiskSizes,
 			}
-			vsphereVM := &v1beta1.VSphereVM{
-				Spec: v1beta1.VSphereVMSpec{
+			vsphereVM := &infrav1.VSphereVM{
+				Spec: infrav1.VSphereVMSpec{
 					VirtualMachineCloneSpec: cloneSpec,
 				},
 			}

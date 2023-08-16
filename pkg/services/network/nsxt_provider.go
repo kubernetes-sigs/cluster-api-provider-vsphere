@@ -20,7 +20,7 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-	vmopv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha1"
+	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha1"
 	ncpv1 "github.com/vmware-tanzu/vm-operator/external/ncp/api/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -30,7 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
@@ -64,13 +64,13 @@ func (np *nsxtNetworkProvider) verifyNSXTVirtualNetworkStatus(ctx *vmware.Cluste
 	namespace := ctx.VSphereCluster.Namespace
 	for _, condition := range vnet.Status.Conditions {
 		if condition.Type == "Ready" && condition.Status != "True" {
-			conditions.MarkFalse(ctx.VSphereCluster, infrav1.ClusterNetworkReadyCondition, infrav1.ClusterNetworkProvisionFailedReason, clusterv1.ConditionSeverityWarning, condition.Message)
+			conditions.MarkFalse(ctx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition, vmwarev1.ClusterNetworkProvisionFailedReason, clusterv1.ConditionSeverityWarning, condition.Message)
 			return errors.Errorf("virtual network ready status is: '%s' in cluster %s. reason: %s, message: %s",
 				condition.Status, types.NamespacedName{Namespace: namespace, Name: clusterName}, condition.Reason, condition.Message)
 		}
 	}
 
-	conditions.MarkTrue(ctx.VSphereCluster, infrav1.ClusterNetworkReadyCondition)
+	conditions.MarkTrue(ctx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition)
 	return nil
 }
 
@@ -139,7 +139,7 @@ func (np *nsxtNetworkProvider) ProvisionClusterNetwork(ctx *vmware.ClusterContex
 		return nil
 	})
 	if err != nil {
-		conditions.MarkFalse(ctx.VSphereCluster, infrav1.ClusterNetworkReadyCondition, infrav1.ClusterNetworkProvisionFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+		conditions.MarkFalse(ctx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition, vmwarev1.ClusterNetworkProvisionFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 		ctx.Logger.V(2).Info("Failed to provision network", "cluster", clusterKey)
 		return err
 	}
@@ -171,7 +171,7 @@ func (np *nsxtNetworkProvider) GetVMServiceAnnotations(ctx *vmware.ClusterContex
 }
 
 // ConfigureVirtualMachine configures a VirtualMachine object based on the networking configuration.
-func (np *nsxtNetworkProvider) ConfigureVirtualMachine(ctx *vmware.ClusterContext, vm *vmopv1.VirtualMachine) error {
+func (np *nsxtNetworkProvider) ConfigureVirtualMachine(ctx *vmware.ClusterContext, vm *vmoprv1.VirtualMachine) error {
 	nsxtClusterNetworkName := GetNSXTVirtualNetworkName(ctx.VSphereCluster.Name)
 	for _, vnif := range vm.Spec.NetworkInterfaces {
 		if vnif.NetworkType == NSXTTypeNetwork && vnif.NetworkName == nsxtClusterNetworkName {
@@ -179,7 +179,7 @@ func (np *nsxtNetworkProvider) ConfigureVirtualMachine(ctx *vmware.ClusterContex
 			return nil
 		}
 	}
-	vm.Spec.NetworkInterfaces = append(vm.Spec.NetworkInterfaces, vmopv1.VirtualMachineNetworkInterface{
+	vm.Spec.NetworkInterfaces = append(vm.Spec.NetworkInterfaces, vmoprv1.VirtualMachineNetworkInterface{
 		NetworkName: nsxtClusterNetworkName,
 		NetworkType: NSXTTypeNetwork,
 	})

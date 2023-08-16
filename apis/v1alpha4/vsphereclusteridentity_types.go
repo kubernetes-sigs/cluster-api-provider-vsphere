@@ -19,7 +19,7 @@ package v1alpha4
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
 )
 
 const (
@@ -44,7 +44,7 @@ type VSphereClusterIdentityStatus struct {
 
 	// Conditions defines current service state of the VSphereCluster.
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions clusterv1alpha4.Conditions `json:"conditions,omitempty"`
 }
 
 type AllowedNamespaces struct {
@@ -70,11 +70,11 @@ type VSphereIdentityReference struct {
 	Name string `json:"name"`
 }
 
-func (c *VSphereClusterIdentity) GetConditions() clusterv1.Conditions {
+func (c *VSphereClusterIdentity) GetConditions() clusterv1alpha4.Conditions {
 	return c.Status.Conditions
 }
 
-func (c *VSphereClusterIdentity) SetConditions(conditions clusterv1.Conditions) {
+func (c *VSphereClusterIdentity) SetConditions(conditions clusterv1alpha4.Conditions) {
 	c.Status.Conditions = conditions
 }
 

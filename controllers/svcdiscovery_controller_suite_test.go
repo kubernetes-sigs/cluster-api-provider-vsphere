@@ -31,7 +31,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	vmwarev1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 )
 
 const (
@@ -119,9 +119,9 @@ func assertHeadlessSvcWithFIPHostNameEndpoints(ctx context.Context, guestClient 
 	Expect(headlessEndpoints.Subsets[0].Ports[0].Port).To(Equal(int32(testSupervisorAPIServerPort)))
 }
 
-func assertServiceDiscoveryCondition(vsphereCluster *vmwarev1beta1.VSphereCluster, status corev1.ConditionStatus,
+func assertServiceDiscoveryCondition(vsphereCluster *vmwarev1.VSphereCluster, status corev1.ConditionStatus,
 	message string, reason string, severity clusterv1.ConditionSeverity) {
-	c := conditions.Get(vsphereCluster, vmwarev1beta1.ServiceDiscoveryReadyCondition)
+	c := conditions.Get(vsphereCluster, vmwarev1.ServiceDiscoveryReadyCondition)
 	Expect(c).NotTo(BeNil())
 	if message == "" {
 		Expect(c.Message).To(BeEmpty())

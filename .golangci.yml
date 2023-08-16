@@ -85,56 +85,56 @@ linters-settings:
   #     - wrapperFunc
   #     - rangeValCopy
   #     - hugeParam
-  # importas:
-  #   no-unaliased: true
-  #   alias:
-  #     # Kubernetes
-  #     - pkg: k8s.io/api/core/v1
-  #       alias: corev1
-  #     - pkg: k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1
-  #       alias: apiextensionsv1
-  #     - pkg: k8s.io/apimachinery/pkg/apis/meta/v1
-  #       alias: metav1
-  #     - pkg: k8s.io/apimachinery/pkg/api/errors
-  #       alias: apierrors
-  #     - pkg: k8s.io/apimachinery/pkg/util/errors
-  #       alias: kerrors
-  #     - pkg: k8s.io/component-base/logs/api/v1
-  #       alias: logsv1
-  #     # Controller Runtime
-  #     - pkg: sigs.k8s.io/controller-runtime
-  #       alias: ctrl
-  #     # CAPV
-  #     - pkg: sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1
-  #       alias: infrav1
-  #     - pkg: sigs.k8s.io/cluster-api-provider-vsphere/apis/v1alpha3
-  #       alias: infrav1alpha3
-  #     - pkg: sigs.k8s.io/cluster-api-provider-vsphere/apis/v1alpha4
-  #       alias: infrav1alpha4
-  #     - pkg: sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1
-  #       alias: vmwarev1
-  #     # VMware Operator
-  #     - pkg: "github.com/vmware-tanzu/vm-operator/api/v1alpha1"
-  #       alias: vmoprv1 
-  #     # CABPK
-  #     - pkg: sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1
-  #       alias: bootstrapv1
-  #     # KCP
-  #     - pkg: sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1
-  #       alias: controlplanev1
-  #     # CAPI
-  #     - pkg: sigs.k8s.io/cluster-api/api/v1alpha3
-  #       alias: clusterv1alpha3
-  #     - pkg: sigs.k8s.io/cluster-api/api/v1alpha4
-  #       alias: clusterv1alpha4
-  #     - pkg: sigs.k8s.io/cluster-api/api/v1beta1
-  #       alias: clusterv1
-  #     # CAPI exp
-  #     - pkg: sigs.k8s.io/cluster-api/exp/api/v1beta1
-  #       alias: expv1
-  #     # CAPI exp addons
-  #     - pkg: sigs.k8s.io/cluster-api/exp/addons/api/v1beta1
-  #       alias: addonsv1
+  importas:
+    no-unaliased: true
+    alias:
+      # Kubernetes
+      - pkg: k8s.io/api/core/v1
+        alias: corev1
+      - pkg: k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1
+        alias: apiextensionsv1
+      - pkg: k8s.io/apimachinery/pkg/apis/meta/v1
+        alias: metav1
+      - pkg: k8s.io/apimachinery/pkg/api/errors
+        alias: apierrors
+      - pkg: k8s.io/apimachinery/pkg/util/errors
+        alias: kerrors
+      - pkg: k8s.io/component-base/logs/api/v1
+        alias: logsv1
+      # Controller Runtime
+      - pkg: sigs.k8s.io/controller-runtime
+        alias: ctrl
+      # CAPV
+      - pkg: sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1
+        alias: infrav1
+      - pkg: sigs.k8s.io/cluster-api-provider-vsphere/apis/v1alpha3
+        alias: infrav1alpha3
+      - pkg: sigs.k8s.io/cluster-api-provider-vsphere/apis/v1alpha4
+        alias: infrav1alpha4
+      - pkg: sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1
+        alias: vmwarev1
+      # VMware Operator
+      - pkg: "github.com/vmware-tanzu/vm-operator/api/v1alpha1"
+        alias: vmoprv1 
+      # CABPK
+      - pkg: sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1
+        alias: bootstrapv1
+      # KCP
+      - pkg: sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1
+        alias: controlplanev1
+      # CAPI
+      - pkg: sigs.k8s.io/cluster-api/api/v1alpha3
+        alias: clusterv1alpha3
+      - pkg: sigs.k8s.io/cluster-api/api/v1alpha4
+        alias: clusterv1alpha4
+      - pkg: sigs.k8s.io/cluster-api/api/v1beta1
+        alias: clusterv1
+      # CAPI exp
+      - pkg: sigs.k8s.io/cluster-api/exp/api/v1beta1
+        alias: expv1
+      # CAPI exp addons
+      - pkg: sigs.k8s.io/cluster-api/exp/addons/api/v1beta1
+        alias: addonsv1
   nolintlint:
     allow-unused: false
     allow-leading-space: false

@@ -25,12 +25,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
-	vmwarev1b1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 )
 
 // GetVSphereClusterFromVMwareMachine gets the vmware.infrastructure.cluster.x-k8s.io.VSphereCluster resource for the given VSphereMachine.
 // TODO (srm09): Rename this to a more appropriate name.
-func GetVSphereClusterFromVMwareMachine(ctx context.Context, c client.Client, machine *vmwarev1b1.VSphereMachine) (*vmwarev1b1.VSphereCluster, error) {
+func GetVSphereClusterFromVMwareMachine(ctx context.Context, c client.Client, machine *vmwarev1.VSphereMachine) (*vmwarev1.VSphereCluster, error) {
 	clusterName := machine.Labels[clusterv1.ClusterNameLabel]
 	if clusterName == "" {
 		return nil, errors.Errorf("error getting VSphereCluster name from VSphereMachine %s/%s",
@@ -49,7 +49,7 @@ func GetVSphereClusterFromVMwareMachine(ctx context.Context, c client.Client, ma
 		Namespace: machine.Namespace,
 		Name:      cluster.Spec.InfrastructureRef.Name,
 	}
-	vsphereCluster := &vmwarev1b1.VSphereCluster{}
+	vsphereCluster := &vmwarev1.VSphereCluster{}
 	err := c.Get(ctx, vsphereClusterKey, vsphereCluster)
 	return vsphereCluster, err
 }

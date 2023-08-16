@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	apiv1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -186,7 +186,7 @@ func (r clusterReconciler) reconcileDelete(ctx *context.ClusterContext) (reconci
 
 	// Remove finalizer on Identity Secret
 	if identity.IsSecretIdentity(ctx.VSphereCluster) {
-		secret := &apiv1.Secret{}
+		secret := &corev1.Secret{}
 		secretKey := client.ObjectKey{
 			Namespace: ctx.VSphereCluster.Namespace,
 			Name:      ctx.VSphereCluster.Spec.IdentityRef.Name,
@@ -285,7 +285,7 @@ func (r clusterReconciler) reconcileNormal(ctx *context.ClusterContext) (reconci
 func (r clusterReconciler) reconcileIdentitySecret(ctx *context.ClusterContext) error {
 	vsphereCluster := ctx.VSphereCluster
 	if identity.IsSecretIdentity(vsphereCluster) {
-		secret := &apiv1.Secret{}
+		secret := &corev1.Secret{}
 		secretKey := client.ObjectKey{
 			Namespace: vsphereCluster.Namespace,
 			Name:      vsphereCluster.Spec.IdentityRef.Name,

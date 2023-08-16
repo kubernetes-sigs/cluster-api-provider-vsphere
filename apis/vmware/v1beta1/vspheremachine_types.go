@@ -18,7 +18,7 @@ limitations under the License.
 package v1beta1
 
 import (
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/errors"
@@ -29,7 +29,7 @@ type VSphereMachineVolume struct {
 	// Name is suffix used to name this PVC as: VSphereMachine.Name + "-" + Name
 	Name string `json:"name"`
 	// Capacity is the PVC capacity
-	Capacity v1.ResourceList `json:"capacity"`
+	Capacity corev1.ResourceList `json:"capacity"`
 	// StorageClass defaults to VSphereMachineSpec.StorageClass
 	// +optional
 	StorageClass string `json:"storageClass,omitempty"`
@@ -90,7 +90,7 @@ type VSphereMachineStatus struct {
 	Ready bool `json:"ready"`
 
 	// Addresses contains the instance associated addresses.
-	Addresses []v1.NodeAddress `json:"addresses,omitempty"`
+	Addresses []corev1.NodeAddress `json:"addresses,omitempty"`
 
 	// ID is used to identify the virtual machine.
 	// +optional

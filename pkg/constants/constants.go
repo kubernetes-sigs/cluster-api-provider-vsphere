@@ -19,7 +19,7 @@ package constants
 import (
 	"time"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 )
 
 const (
@@ -45,11 +45,11 @@ const (
 
 	// MachineReadyAnnotationLabel is the annotation used to indicate that a
 	// machine is ready.
-	MachineReadyAnnotationLabel = "capv." + v1beta1.GroupName + "/machine-ready"
+	MachineReadyAnnotationLabel = "capv." + infrav1.GroupName + "/machine-ready"
 
 	// MaintenanceAnnotationLabel is the annotation used to indicate a machine and/or
 	// cluster are in maintenance mode.
-	MaintenanceAnnotationLabel = "capv." + v1beta1.GroupName + "/maintenance"
+	MaintenanceAnnotationLabel = "capv." + infrav1.GroupName + "/maintenance"
 
 	// DefaultEnableKeepAlive is true by default.
 	DefaultEnableKeepAlive = true

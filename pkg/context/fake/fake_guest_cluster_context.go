@@ -17,7 +17,7 @@ limitations under the License.
 package fake
 
 import (
-	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -43,7 +43,7 @@ func NewGuestClusterContext(ctx *vmware.ClusterContext, prototypeCluster bool, g
 
 func NewFakeGuestClusterClient(initObjects ...client.Object) client.Client {
 	scheme := scheme.Scheme
-	_ = apiextv1.AddToScheme(scheme)
+	_ = apiextensionsv1.AddToScheme(scheme)
 
 	return fake.NewClientBuilder().WithScheme(scheme).WithObjects(initObjects...).Build()
 }

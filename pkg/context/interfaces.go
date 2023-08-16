@@ -18,7 +18,7 @@ package context
 
 import (
 	"github.com/go-logr/logr"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -29,7 +29,7 @@ type MachineContext interface {
 	Patch() error
 	GetLogger() logr.Logger
 	GetVSphereMachine() VSphereMachine
-	GetObjectMeta() v1.ObjectMeta
+	GetObjectMeta() metav1.ObjectMeta
 	GetCluster() *clusterv1.Cluster
 	GetMachine() *clusterv1.Machine
 	SetBaseMachineContext(base *BaseMachineContext)

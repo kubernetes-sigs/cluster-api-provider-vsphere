@@ -47,7 +47,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers"
 )
 
@@ -86,8 +86,8 @@ var (
 	}
 
 	vsphereclustersResource = schema.GroupVersionResource{
-		Group:    infrav1.GroupVersion.Group,
-		Version:  infrav1.GroupVersion.Version,
+		Group:    vmwarev1.GroupVersion.Group,
+		Version:  vmwarev1.GroupVersion.Version,
 		Resource: "vsphereclusters",
 	}
 
@@ -104,14 +104,14 @@ var (
 	}
 
 	vspheremachinesResource = schema.GroupVersionResource{
-		Group:    infrav1.GroupVersion.Group,
-		Version:  infrav1.GroupVersion.Version,
+		Group:    vmwarev1.GroupVersion.Group,
+		Version:  vmwarev1.GroupVersion.Version,
 		Resource: "vspheremachines",
 	}
 
 	vspheremachinetemplateResource = schema.GroupVersionResource{
-		Group:    infrav1.GroupVersion.Group,
-		Version:  infrav1.GroupVersion.Version,
+		Group:    vmwarev1.GroupVersion.Group,
+		Version:  vmwarev1.GroupVersion.Version,
 		Resource: "vspheremachinetemplates",
 	}
 
@@ -157,14 +157,14 @@ type Manifests struct {
 
 type ClusterComponents struct {
 	Cluster        *clusterv1.Cluster
-	VSphereCluster *infrav1.VSphereCluster
+	VSphereCluster *vmwarev1.VSphereCluster
 }
 
 // ControlPlaneComponents contains the resources required to create a control
 // plane machine.
 type ControlPlaneComponents struct {
 	Machine        *clusterv1.Machine
-	VSphereMachine *infrav1.VSphereMachine
+	VSphereMachine *vmwarev1.VSphereMachine
 	KubeadmConfig  *bootstrapv1.KubeadmConfig
 }
 
@@ -172,7 +172,7 @@ type ControlPlaneComponents struct {
 // MachineDeployment.
 type WorkerComponents struct {
 	MachineDeployment      *clusterv1.MachineDeployment
-	VSphereMachineTemplate *infrav1.VSphereMachineTemplate
+	VSphereMachineTemplate *vmwarev1.VSphereMachineTemplate
 	KubeadmConfigTemplate  *bootstrapv1.KubeadmConfigTemplate
 }
 
@@ -290,7 +290,7 @@ var _ = SynchronizedAfterSuite(func() {
 func initScheme() *runtime.Scheme {
 	sc := runtime.NewScheme()
 	framework.TryAddDefaultSchemes(sc)
-	_ = infrav1.AddToScheme(sc)
+	_ = vmwarev1.AddToScheme(sc)
 	return sc
 }
 
@@ -363,9 +363,9 @@ func generateManifests(testNamespace string) *Manifests {
 
 func createClusterComponents(testNamespace string) *ClusterComponents {
 	By("Creating a VSphereCluster")
-	vsphereCluster := infrav1.VSphereCluster{
+	vsphereCluster := vmwarev1.VSphereCluster{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: infrav1.GroupVersion.String(),
+			APIVersion: vmwarev1.GroupVersion.String(),
 			Kind:       "VSphereCluster",
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -395,7 +395,7 @@ func createClusterComponents(testNamespace string) *ClusterComponents {
 				ServiceDomain: "cluster.local",
 			},
 			InfrastructureRef: &corev1.ObjectReference{
-				APIVersion: infrav1.GroupVersion.String(),
+				APIVersion: vmwarev1.GroupVersion.String(),
 				Kind:       "VSphereCluster",
 				Name:       vsphereCluster.Name,
 				Namespace:  vsphereCluster.Namespace,
@@ -417,9 +417,9 @@ func createControlPlaneComponentsList(testNamespace string) []*ControlPlaneCompo
 		var controlPlaneComponents ControlPlaneComponents
 
 		By("Creating a VSphereMachine")
-		vsphereMachine := infrav1.VSphereMachine{
+		vsphereMachine := vmwarev1.VSphereMachine{
 			TypeMeta: metav1.TypeMeta{
-				APIVersion: infrav1.GroupVersion.String(),
+				APIVersion: vmwarev1.GroupVersion.String(),
 				Kind:       "VSphereMachine",
 			},
 			ObjectMeta: metav1.ObjectMeta{
@@ -430,7 +430,7 @@ func createControlPlaneComponentsList(testNamespace string) []*ControlPlaneCompo
 					clusterv1.ClusterNameLabel:         testClusterName,
 				},
 			},
-			Spec: infrav1.VSphereMachineSpec{
+			Spec: vmwarev1.VSphereMachineSpec{
 				ImageName:    dummyVirtualMachineImageName,
 				ClassName:    controlPlaneMachineClassName,
 				StorageClass: controlPlaneMachineStorageClass,
@@ -485,7 +485,7 @@ func createControlPlaneComponentsList(testNamespace string) []*ControlPlaneCompo
 					},
 				},
 				InfrastructureRef: corev1.ObjectReference{
-					APIVersion: infrav1.GroupVersion.String(),
+					APIVersion: vmwarev1.GroupVersion.String(),
 					Kind:       "VSphereMachine",
 					Name:       vsphereMachine.Name,
 					Namespace:  vsphereMachine.Namespace,
@@ -506,9 +506,9 @@ func createWorkerComponents(testNamespace string) *WorkerComponents {
 	workerMachineDeploymentNameFmt := "%s-workers-0"
 
 	By("Creating VSphereMachineTemplates")
-	vsphereMachineTemplate := infrav1.VSphereMachineTemplate{
+	vsphereMachineTemplate := vmwarev1.VSphereMachineTemplate{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: infrav1.GroupVersion.String(),
+			APIVersion: vmwarev1.GroupVersion.String(),
 			Kind:       "VSphereMachineTemplate",
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -575,7 +575,7 @@ func createWorkerComponents(testNamespace string) *WorkerComponents {
 						},
 					},
 					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: infrav1.GroupVersion.String(),
+						APIVersion: vmwarev1.GroupVersion.String(),
 						Kind:       "VSphereMachineTemplate",
 						Name:       vsphereMachineTemplate.Name,
 						Namespace:  vsphereMachineTemplate.Namespace,
@@ -718,7 +718,7 @@ func assertVirtualMachineState(machine *clusterv1.Machine, vm *vmoprv1.VirtualMa
 // receives a control plane endpoint that matches the expected IP address.
 func assertClusterEventuallyGetsControlPlaneEndpoint(clusterName, clusterNs string, ipAddress string) {
 	EventuallyWithOffset(1, func() bool {
-		vsphereCluster := &infrav1.VSphereCluster{}
+		vsphereCluster := &vmwarev1.VSphereCluster{}
 		getResource(vsphereclustersResource, clusterName, clusterNs, vsphereCluster)
 		// If the control plane endpoint is undefined, return false
 		if vsphereCluster.Spec.ControlPlaneEndpoint.IsZero() {
@@ -771,7 +771,7 @@ func toOwnerRef(obj canBeReferenced) *metav1.OwnerReference {
 }
 
 func setIPAddressOnMachine(machineName, machineNs, ipAddress string) {
-	vsphereMachine := &infrav1.VSphereMachine{}
+	vsphereMachine := &vmwarev1.VSphereMachine{}
 	getResource(vspheremachinesResource, machineName, machineNs, vsphereMachine)
 	vsphereMachine.Status.IPAddr = ipAddress
 	updateResourceStatus(vspheremachinesResource, vsphereMachine)

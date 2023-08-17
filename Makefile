@@ -288,28 +288,30 @@ generate-doctoc:
 	TRACE=$(TRACE) ./hack/generate-doctoc.sh
 
 .PHONY: generate-e2e-templates
-generate-e2e-templates: ## Generate e2e cluster templates
-	$(MAKE) release-flavors
+generate-e2e-templates: $(KUSTOMIZE) $(addprefix generate-e2e-templates-, main) ## Generate test templates for all branches
 
-	cp $(RELEASE_DIR)/cluster-template.yaml $(E2E_TEMPLATE_DIR)/kustomization/base/cluster-template.yaml
-	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/kustomization/base > $(E2E_TEMPLATE_DIR)/cluster-template.yaml
-	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/kustomization/hw-upgrade > $(E2E_TEMPLATE_DIR)/cluster-template-hw-upgrade.yaml
-	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/kustomization/storage-policy > $(E2E_TEMPLATE_DIR)/cluster-template-storage-policy.yaml
-	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/kustomization/remote-management > $(E2E_TEMPLATE_DIR)/cluster-template-remote-management.yaml
-	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/kustomization/conformance > $(E2E_TEMPLATE_DIR)/cluster-template-conformance.yaml
+.PHONY: generate-e2e-templates-main
+generate-e2e-templates-main: $(KUSTOMIZE) ## Generate test templates for the main branch
+	$(MAKE) e2e-flavors-main
+	cp $(RELEASE_DIR)/main/cluster-template.yaml $(E2E_TEMPLATE_DIR)/main/base/cluster-template.yaml
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/main/base > $(E2E_TEMPLATE_DIR)/main/cluster-template.yaml
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/main/hw-upgrade > $(E2E_TEMPLATE_DIR)/main/cluster-template-hw-upgrade.yaml
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/main/storage-policy > $(E2E_TEMPLATE_DIR)/main/cluster-template-storage-policy.yaml
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/main/remote-management > $(E2E_TEMPLATE_DIR)/main/cluster-template-remote-management.yaml
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/main/conformance > $(E2E_TEMPLATE_DIR)/main/cluster-template-conformance.yaml
 	# Since CAPI uses different flavor names for KCP and MD remediation using MHC
-	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/kustomization/mhc-remediation/kcp > $(E2E_TEMPLATE_DIR)/cluster-template-kcp-remediation.yaml
-	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/kustomization/mhc-remediation/md > $(E2E_TEMPLATE_DIR)/cluster-template-md-remediation.yaml
-	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/kustomization/node-drain > $(E2E_TEMPLATE_DIR)/cluster-template-node-drain.yaml
-	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/kustomization/ignition > $(E2E_TEMPLATE_DIR)/cluster-template-ignition.yaml
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/main/mhc-remediation/kcp > $(E2E_TEMPLATE_DIR)/main/cluster-template-kcp-remediation.yaml
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/main/mhc-remediation/md > $(E2E_TEMPLATE_DIR)/main/cluster-template-md-remediation.yaml
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/main/node-drain > $(E2E_TEMPLATE_DIR)/main/cluster-template-node-drain.yaml
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/main/ignition > $(E2E_TEMPLATE_DIR)/main/cluster-template-ignition.yaml
 	# generate clusterclass and cluster topology
-	cp $(RELEASE_DIR)/cluster-template-topology.yaml $(E2E_TEMPLATE_DIR)/kustomization/topology/cluster-template-topology.yaml
-	cp $(RELEASE_DIR)/clusterclass-template.yaml $(E2E_TEMPLATE_DIR)/clusterclass-quick-start.yaml
-	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/kustomization/topology > $(E2E_TEMPLATE_DIR)/cluster-template-topology.yaml
+	cp $(RELEASE_DIR)/main/cluster-template-topology.yaml $(E2E_TEMPLATE_DIR)/main/topology/cluster-template-topology.yaml
+	cp $(RELEASE_DIR)/main/clusterclass-template.yaml $(E2E_TEMPLATE_DIR)/main/clusterclass-quick-start.yaml
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/main/topology > $(E2E_TEMPLATE_DIR)/main/cluster-template-topology.yaml
 	# for PCI passthrough template
-	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/kustomization/pci > $(E2E_TEMPLATE_DIR)/cluster-template-pci.yaml
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/main/pci > $(E2E_TEMPLATE_DIR)/main/cluster-template-pci.yaml
 	# for DHCP overrides
-	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/kustomization/dhcp-overrides > $(E2E_TEMPLATE_DIR)/cluster-template-dhcp-overrides.yaml
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/main/dhcp-overrides > $(E2E_TEMPLATE_DIR)/main/cluster-template-dhcp-overrides.yaml
 
 
 ## --------------------------------------
@@ -583,9 +585,18 @@ release-manifests: $(BUILD_DIR) $(MANIFEST_DIR) $(KUSTOMIZE) $(STAGE)-flavors ##
 release-flavors: $(RELEASE_DIR)
 	$(MAKE) generate-flavors FLAVOR_DIR=$(RELEASE_DIR)
 
-.PHONY: dev-flavors ## Create release flavor manifests
+.PHONY: dev-flavors ## Create dev flavor manifests
 dev-flavors: $(OVERRIDES_DIR)
 	$(MAKE) generate-flavors FLAVOR_DIR=$(OVERRIDES_DIR)
+
+.PHONY: e2e-flavors ## Create dev flavor manifests for e2e testing
+e2e-flavors: $(KUSTOMIZE) $(addprefix e2e-flavors-, main)
+
+.PHONY: e2e-flavors-main ## Create dev flavor manifests for e2e testing for main branch
+e2e-flavors-main: $(RELEASE_DIR)
+	mkdir -p $(RELEASE_DIR)/main
+	$(MAKE) generate-flavors FLAVOR_DIR=$(RELEASE_DIR)/main
+
 
 .PHONY: generate-flavors
 generate-flavors: $(FLAVOR_DIR)

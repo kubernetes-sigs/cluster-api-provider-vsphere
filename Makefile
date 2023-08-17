@@ -288,7 +288,7 @@ generate-doctoc:
 	TRACE=$(TRACE) ./hack/generate-doctoc.sh
 
 .PHONY: generate-e2e-templates
-generate-e2e-templates: ## Generate e2e cluster templates
+generate-e2e-templates: $(KUSTOMIZE) ## Generate e2e cluster templates
 	$(MAKE) release-flavors
 
 	cp $(RELEASE_DIR)/cluster-template.yaml $(E2E_TEMPLATE_DIR)/kustomization/base/cluster-template.yaml

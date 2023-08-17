@@ -31,22 +31,13 @@ providers:
   - name: cluster-api
     type: CoreProvider
     versions:
-      - name: v0.4.7 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
-        contract: v1alpha4
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.7/core-components.yaml"
-        type: "url"
-        files:
-          - sourcePath: "../data/shared/metadata.yaml"
-        replacements:
-          - old: "imagePullPolicy: Always"
-            new: "imagePullPolicy: IfNotPresent"
       - name: v1.4.1
         # Use manifest from source files
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.4.1/core-components.yaml"
         type: "url"
         contract: v1beta1
         files:
-          - sourcePath: "../data/shared/metadata.yaml"
+          - sourcePath: "../data/shared/main/v1beta1/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -54,22 +45,13 @@ providers:
   - name: kubeadm
     type: BootstrapProvider
     versions:
-      - name: v0.4.7 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.7/bootstrap-components.yaml"
-        type: "url"
-        contract: v1alpha4
-        files:
-          - sourcePath: "../data/shared/metadata.yaml"
-        replacements:
-          - old: "imagePullPolicy: Always"
-            new: "imagePullPolicy: IfNotPresent"
       - name: v1.4.1
         # Use manifest from source files
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.4.1/bootstrap-components.yaml"
         type: "url"
-        contract: "v1beta1"
+        contract: v1beta1
         files:
-          - sourcePath: "../data/shared/metadata.yaml"
+          - sourcePath: "../data/shared/main/v1beta1/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -77,21 +59,12 @@ providers:
   - name: kubeadm
     type: ControlPlaneProvider
     versions:
-      - name: v0.4.7
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.7/control-plane-components.yaml"
-        type: "url"
-        contract: v1alpha4
-        files:
-          - sourcePath: "../data/shared/metadata.yaml"
-        replacements:
-          - old: "imagePullPolicy: Always"
-            new: "imagePullPolicy: IfNotPresent"
       - name: v1.4.1
         # Use manifest from source files
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.4.1/control-plane-components.yaml"
         type: "url"
         files:
-          - sourcePath: "../data/shared/metadata.yaml"
+          - sourcePath: "../data/shared/main/v1beta1/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -99,14 +72,7 @@ providers:
   - name: vsphere
     type: InfrastructureProvider
     versions:
-      - name: v0.8.2
-        type: url
-        contract: v1alpha4
-        value: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/download/v0.8.2/infrastructure-components.yaml
-        files:
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/capi-upgrades/v1alpha4/cluster-template.yaml"
-          - sourcePath: "../../../metadata.yaml"
-      - name: v1.7.0
+      - name: v1.7.99
         # Use manifest from source files
         value: ../../../../cluster-api-provider-vsphere/config/default
         contract: v1beta1
@@ -117,20 +83,20 @@ providers:
             new: "imagePullPolicy: IfNotPresent"
         files:
           # Add a cluster template
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template.yaml"
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-conformance.yaml"
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-hw-upgrade.yaml"
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-kcp-remediation.yaml"
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-md-remediation.yaml"
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-node-drain.yaml"
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-pci.yaml"
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-remote-management.yaml"
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-storage-policy.yaml"
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-topology.yaml"
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-dhcp-overrides.yaml"
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/clusterclass-quick-start.yaml"
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/cluster-template-ignition.yaml"
-          - sourcePath: "../../../metadata.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-conformance.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-hw-upgrade.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-kcp-remediation.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-md-remediation.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-node-drain.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-pci.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-remote-management.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-storage-policy.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-topology.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-dhcp-overrides.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/clusterclass-quick-start.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-ignition.yaml"
+          - sourcePath: "../data/shared/main/v1beta1_provider/metadata.yaml"
 
 variables:
   KUBERNETES_VERSION: "v1.27.3"
@@ -166,6 +132,7 @@ variables:
   KUBETEST_CONFIGURATION: "./data/kubetest/conformance-fast.yaml"
   NODE_DRAIN_TIMEOUT: "60s"
   CLUSTER_TOPOLOGY: "true"
+  # These IDs correspond to Tesla T4s, they are the decimal representation of the hex values.
   DEVICE_ID: 7864
   VENDOR_ID: 4318
   # CAPV feature flags

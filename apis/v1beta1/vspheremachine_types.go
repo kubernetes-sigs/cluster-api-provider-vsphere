@@ -165,5 +165,5 @@ type VSphereMachineList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&VSphereMachine{}, &VSphereMachineList{})
+	objectTypes = append(objectTypes, &VSphereMachine{}, &VSphereMachineList{})
 }

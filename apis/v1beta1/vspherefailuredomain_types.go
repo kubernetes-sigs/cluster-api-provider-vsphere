@@ -112,5 +112,5 @@ type VSphereFailureDomainList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&VSphereFailureDomain{}, &VSphereFailureDomainList{})
+	objectTypes = append(objectTypes, &VSphereFailureDomain{}, &VSphereFailureDomainList{})
 }

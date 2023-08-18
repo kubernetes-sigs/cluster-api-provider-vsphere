@@ -87,5 +87,5 @@ func (r *VSphereCluster) SetConditions(conditions clusterv1.Conditions) {
 }
 
 func init() {
-	SchemeBuilder.Register(&VSphereCluster{}, &VSphereClusterList{})
+	objectTypes = append(objectTypes, &VSphereCluster{}, &VSphereClusterList{})
 }

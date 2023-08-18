@@ -73,5 +73,5 @@ type ProviderServiceAccountList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&ProviderServiceAccount{}, &ProviderServiceAccountList{})
+	objectTypes = append(objectTypes, &ProviderServiceAccount{}, &ProviderServiceAccountList{})
 }

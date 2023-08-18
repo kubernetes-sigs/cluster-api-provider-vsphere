@@ -131,7 +131,7 @@ providers:
           - sourcePath: "../data/shared/v1beta1_provider/metadata.yaml"
 
 variables:
-  KUBERNETES_VERSION: "v1.27.3"
+  KUBERNETES_VERSION: "v1.28.0"
   CPI_IMAGE_K8S_VERSION: "v1.27.0"
   CNI: "./data/cni/calico/calico.yaml"
   EXP_CLUSTER_RESOURCE_SET: "true"
@@ -146,8 +146,8 @@ variables:
   VSPHERE_DATASTORE: "WorkloadDatastore"
   VSPHERE_STORAGE_POLICY: "Cluster API vSphere Storage Policy"
   VSPHERE_NETWORK: "sddc-cgw-network-6"
-  VSPHERE_TEMPLATE: "ubuntu-2004-kube-v1.27.3"
-  FLATCAR_VSPHERE_TEMPLATE: "flatcar-stable-3510.2.4-kube-v1.27.3"
+  VSPHERE_TEMPLATE: "ubuntu-2004-kube-v1.28.0"
+  FLATCAR_VSPHERE_TEMPLATE: "flatcar-stable-3510.2.6-kube-v1.28.0"
   VSPHERE_INSECURE_CSI: "true"
   KUBETEST_CONFIGURATION: "./data/kubetest/conformance.yaml"
   NODE_DRAIN_TIMEOUT: "60s"

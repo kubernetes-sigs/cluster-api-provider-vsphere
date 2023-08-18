@@ -28,17 +28,17 @@ This comes down to changing occurrences of the old version to the new version, e
 
 1. Setup E2E tests for the new release:
    1. Goal is that our clusterctl upgrade tests are testing the right versions. For `v1.8` this means:
+      - v1beta1: `v1.8` (will change with each new release)
       - v1beta1: `v1.7` (will change with each new release)
-      - v1alpha4: `v0.8`
    2. Update providers in `vsphere-ci.yaml`, `vsphere-dev.yaml`, `integration-dev.yaml`:
       1. Add a new `v1.7.0` entry.
       2. Remove providers that are not used anymore in clusterctl upgrade tests.
       3. Change `v1.7.99` to `v1.8.99`.
    3. Adjust `metadata.yaml`'s:
       1. Add new release to the top-level `metadata.yaml`
-      2. Create a new `v1.7` `metadata.yaml` (`test/e2e/data/shared/v1.7/metadata.yaml`) by copying
-        `test/e2e/data/shared/main/metadata.yaml`
-      3. Add the new v1.8 release to the main `metadata.yaml` (`test/e2e/data/shared/main/metadata.yaml`).
+      2. Create a new `v1.7` `metadata.yaml` (`test/e2e/data/shared/v1.7/v1beta1_provider/metadata.yaml`) by copying
+        `test/e2e/data/shared/main/v1beta1_provider/metadata.yaml`
+      3. Add the new v1.8 release to the main `metadata.yaml` (`test/e2e/data/shared/main/v1beta1_provider/metadata.yaml`).
       4. Remove old `metadata.yaml`'s that are not used anymore in clusterctl upgrade tests.
    4. Adjust cluster templates in `test/e2e/data/infrastructure-vsphere`:
       1. Create a new `v1.7` folder. It should be created based on the `main` folder and only contain the templates

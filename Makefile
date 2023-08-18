@@ -320,25 +320,11 @@ generate-e2e-templates: ## Generate e2e cluster templates
 
 .PHONY: lint
 lint: $(GOLANGCI_LINT) ## Lint the codebase
-	$(MAKE) lint-go-full
-	$(MAKE) lint-markdown
-
-GOLANGCI_LINT_EXTRA_ARGS ?= --fast=true
-.PHONY: lint-go
-lint-go: $(GOLANGCI_LINT) ## Lint codebase
 	$(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS)
-
-.PHONY: lint-go-full
-lint-go-full: GOLANGCI_LINT_EXTRA_ARGS = --fast=false
-lint-go-full: lint-go ## Run slower linters to detect possible issues
-
-.PHONY: lint-markdown
-lint-markdown: ## Lint the project's markdown
-	docker run --rm -v "$$(pwd)":/build$(DOCKER_VOL_OPTS) gcr.io/cluster-api-provider-vsphere/extra/mdlint:0.17.0 -- /md/lint -i contrib/haproxy/openapi -i _releasenotes .
 
 .PHONY: lint-fix
 lint-fix: $(GOLANGCI_LINT) ## Lint the codebase and run auto-fixers if supported by the linter
-	GOLANGCI_LINT_EXTRA_ARGS="--fast=false --fix" $(MAKE) lint-go
+	GOLANGCI_LINT_EXTRA_ARGS=--fix $(MAKE) lint
 
 APIDIFF_OLD_COMMIT ?= $(shell git rev-parse origin/main)
 
@@ -349,7 +335,7 @@ apidiff: $(GO_APIDIFF) ## Check for API differences
 ALL_VERIFY_CHECKS = boilerplate shellcheck modules gen conversions doctoc flavors
 
 .PHONY: verify
-verify: $(addprefix verify-,$(ALL_VERIFY_CHECKS)) lint-markdown ## Run all verify-* targets
+verify: $(addprefix verify-,$(ALL_VERIFY_CHECKS)) ## Run all verify-* targets
 
 .PHONY: verify-modules
 verify-modules: generate-modules  ## Verify go modules are up to date

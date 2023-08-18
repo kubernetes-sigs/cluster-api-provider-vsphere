@@ -4,7 +4,6 @@
 .dockerignore
 .gitignore
 .golangci.yml
-.markdownlintrc
 *.out
 bin/
 hack/.bin/

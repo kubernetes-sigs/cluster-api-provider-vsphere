@@ -254,7 +254,7 @@ func main() {
 	addToManager := func(ctx *context.ControllerManagerContext, mgr ctrlmgr.Manager) error {
 		tracker, err := setupRemoteClusterCacheTracker(ctx, mgr)
 		if err != nil {
-			return perrors.Wrapf(err, "unable to create remote cluster tracker tracker")
+			return perrors.Wrapf(err, "unable to create remote cluster cache tracker")
 		}
 
 		// Check for non-supervisor VSphereCluster and start controller if found

@@ -15,7 +15,7 @@ linters:
   - bodyclose
   # - containedctx
   - dogsled
-  # - dupword
+  - dupword
   - durationcheck
   - errcheck
   # - errchkjson

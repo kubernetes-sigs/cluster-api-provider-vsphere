@@ -17,13 +17,16 @@ limitations under the License.
 package govmomi
 
 import (
+	gocontext "context"
 	gonet "net"
 	"path"
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/property"
+	"github.com/vmware/govmomi/vim25"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -58,6 +61,12 @@ func sanitizeIPAddrs(ctx *context.VMContext, ipAddrs []string) []string {
 //  3. If it is not found by instance UUID, fallback to an inventory path search
 //     using the vm folder path and the VSphereVM name
 func findVM(ctx *context.VMContext) (types.ManagedObjectReference, error) {
+	expectedInventoryPath, err := generateInventoryPath(ctx, ctx.Session.Finder, ctx.VSphereVM)
+	if err != nil {
+		return types.ManagedObjectReference{}, errors.Wrap(err, "get expected inventory path")
+	}
+
+	// Try to find vm by BiosUUID.
 	if biosUUID := ctx.VSphereVM.Spec.BiosUUID; biosUUID != "" {
 		objRef, err := ctx.Session.FindByBIOSUUID(ctx, biosUUID)
 		if err != nil {
@@ -67,35 +76,69 @@ func findVM(ctx *context.VMContext) (types.ManagedObjectReference, error) {
 			ctx.Logger.Info("vm not found by bios uuid", "biosuuid", biosUUID)
 			return types.ManagedObjectReference{}, errNotFound{uuid: biosUUID}
 		}
+
+		// Verify that inventory path matches the expectation
+		if err := verifyInventoryPath(ctx, ctx.Session.Client.Client, objRef.Reference(), expectedInventoryPath); err != nil {
+			return types.ManagedObjectReference{}, errors.Wrap(err, "by BiosUUID")
+		}
+
 		ctx.Logger.Info("vm found by bios uuid", "vmref", objRef.Reference())
 		return objRef.Reference(), nil
 	}
 
+	// Try to find vm by instance UUID.
 	instanceUUID := string(ctx.VSphereVM.UID)
 	objRef, err := ctx.Session.FindByInstanceUUID(ctx, instanceUUID)
 	if err != nil {
 		return types.ManagedObjectReference{}, err
 	}
-	if objRef == nil {
-		// fallback to use inventory paths
-		folder, err := ctx.Session.Finder.FolderOrDefault(ctx, ctx.VSphereVM.Spec.Folder)
-		if err != nil {
-			return types.ManagedObjectReference{}, err
+	if objRef != nil {
+		// Verify that inventory path matches the expectation
+		if err := verifyInventoryPath(ctx, ctx.Session.Client.Client, objRef.Reference(), expectedInventoryPath); err != nil {
+			return types.ManagedObjectReference{}, errors.Wrap(err, "by instance UUID")
 		}
-		inventoryPath := path.Join(folder.InventoryPath, ctx.VSphereVM.Name)
-		ctx.Logger.Info("using inventory path to find vm", "path", inventoryPath)
-		vm, err := ctx.Session.Finder.VirtualMachine(ctx, inventoryPath)
-		if err != nil {
-			if isVirtualMachineNotFound(err) {
-				return types.ManagedObjectReference{}, errNotFound{byInventoryPath: inventoryPath}
-			}
-			return types.ManagedObjectReference{}, err
-		}
-		ctx.Logger.Info("vm found by name", "vmref", vm.Reference())
-		return vm.Reference(), nil
+
+		ctx.Logger.Info("vm found by instance uuid", "vmref", objRef.Reference())
+		return objRef.Reference(), nil
 	}
-	ctx.Logger.Info("vm found by instance uuid", "vmref", objRef.Reference())
-	return objRef.Reference(), nil
+
+	// Fallback to find vm by inventory path.
+	ctx.Logger.Info("using inventory path to find vm", "path", expectedInventoryPath)
+	vm, err := ctx.Session.Finder.VirtualMachine(ctx, expectedInventoryPath)
+	if err != nil {
+		if isVirtualMachineNotFound(err) {
+			return types.ManagedObjectReference{}, errNotFound{byInventoryPath: expectedInventoryPath}
+		}
+		return types.ManagedObjectReference{}, err
+	}
+	ctx.Logger.Info("vm found by inventory path", "vmref", vm.Reference())
+	return vm.Reference(), nil
+}
+
+// verifyInventoryPath looks up the real inventory path of the given objRef and compares it to the expectedInventoryPath.
+func verifyInventoryPath(ctx gocontext.Context, client *vim25.Client, objRef types.ManagedObjectReference, expectedInventoryPath string) error {
+	// get actualInventoryPath inventory path of object
+	actualInventoryPath, err := find.InventoryPath(ctx, client, objRef)
+	if err != nil {
+		return errors.Wrapf(err, "unable to find actual inventory path for reference %q", objRef)
+	}
+
+	// return an error on mismatch
+	if actualInventoryPath != expectedInventoryPath {
+		return errors.Errorf("expected inventory path %q does not match actual inventory path %q for reference %q", actualInventoryPath, expectedInventoryPath, objRef)
+	}
+
+	return nil
+}
+
+// generateInventoryPath uses the given of the VSphereVM or the default folder of the data center
+// and combines it with the VSphereVM's name.
+func generateInventoryPath(ctx gocontext.Context, finder *find.Finder, vSphereVM *infrav1.VSphereVM) (string, error) {
+	folder, err := finder.FolderOrDefault(ctx, vSphereVM.Spec.Folder)
+	if err != nil {
+		return "", err
+	}
+	return path.Join(folder.InventoryPath, vSphereVM.Name), nil
 }
 
 func getTask(ctx *context.VMContext) *mo.Task {

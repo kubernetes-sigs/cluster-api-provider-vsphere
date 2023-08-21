@@ -112,7 +112,7 @@ variables:
   VSPHERE_DATASTORE: "WorkloadDatastore"
   VSPHERE_STORAGE_POLICY: "Cluster API vSphere Storage Policy"
   VSPHERE_NETWORK: "sddc-cgw-network-6"
-  VSPHERE_TEMPLATE: "ubuntu-2004-kube-v1.28.0"
+  VSPHERE_TEMPLATE: "ubuntu-2204-kube-v1.28.0"
   FLATCAR_VSPHERE_TEMPLATE: "flatcar-stable-3510.2.6-kube-v1.28.0"
   VSPHERE_INSECURE_CSI: "true"
   KUBETEST_CONFIGURATION: "./data/kubetest/conformance.yaml"

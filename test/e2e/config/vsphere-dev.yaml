@@ -118,7 +118,7 @@ variables:
   VSPHERE_DATASTORE: "WorkloadDatastore"
   VSPHERE_STORAGE_POLICY: "Cluster API vSphere Storage Policy"
   VSPHERE_NETWORK: "network-1"
-  VSPHERE_TEMPLATE: "ubuntu-2004-kube-v1.28.0"
+  VSPHERE_TEMPLATE: "ubuntu-2204-kube-v1.28.0"
   FLATCAR_VSPHERE_TEMPLATE: "flatcar-stable-3510.2.6-kube-v1.28.0"
   # WORKLOAD_CONTROL_PLANE_ENDPOINT_IP:
   # Also following variables are required but it is recommended to use env variables to avoid disclosure of sensitive data

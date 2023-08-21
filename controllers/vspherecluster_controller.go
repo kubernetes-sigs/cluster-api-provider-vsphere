@@ -88,7 +88,7 @@ func AddClusterControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 		if err != nil {
 			return errors.Wrap(err, "failed to create a network provider")
 		}
-		reconciler := vmware.ClusterReconciler{
+		reconciler := &vmware.ClusterReconciler{
 			ControllerContext:     controllerContext,
 			ResourcePolicyService: vmoperator.RPService{},
 			ControlPlaneService:   vmoperator.CPService{},

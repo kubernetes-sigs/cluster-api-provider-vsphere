@@ -63,7 +63,7 @@ type ClusterReconciler struct {
 // +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;update;create;delete
 // +kubebuilder:rbac:groups="",resources=persistentvolumeclaims/status,verbs=get;update;patch
 
-func (r ClusterReconciler) Reconcile(_ goctx.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
+func (r *ClusterReconciler) Reconcile(_ goctx.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	logger := r.Logger.WithName(req.Namespace).WithName(req.Name)
 	logger.V(3).Info("Starting Reconcile vsphereCluster")
 

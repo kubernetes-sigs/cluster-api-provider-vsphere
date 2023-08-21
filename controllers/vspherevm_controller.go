@@ -38,6 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
+	ctrlbldr "sigs.k8s.io/controller-runtime/pkg/builder"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -92,7 +93,8 @@ func AddVMControllerToManager(ctx *context.ControllerManagerContext, mgr manager
 		VMService:                 &govmomi.VMService{},
 		remoteClusterCacheTracker: tracker,
 	}
-	controller, err := ctrl.NewControllerManagedBy(mgr).
+
+	return ctrl.NewControllerManagedBy(mgr).
 		// Watch the controlled, infrastructure resource.
 		For(controlledType).
 		WithOptions(options).
@@ -106,54 +108,43 @@ func AddVMControllerToManager(ctx *context.ControllerManagerContext, mgr manager
 			&handler.EnqueueRequestForObject{},
 		).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), ctx.WatchFilterValue)).
-		Build(r)
-	if err != nil {
-		return err
-	}
-
-	err = controller.Watch(
-		source.Kind(mgr.GetCache(), &clusterv1.Cluster{}),
-		handler.EnqueueRequestsFromMapFunc(r.clusterToVSphereVMs),
-		predicate.Funcs{
-			UpdateFunc: func(e event.UpdateEvent) bool {
-				newCluster := e.ObjectNew.(*clusterv1.Cluster)
-				// check whether cluster has either spec.paused or pasued annotation
-				return !annotations.IsPaused(newCluster, newCluster)
-			},
-			CreateFunc: func(e event.CreateEvent) bool {
-				cluster := e.Object.(*clusterv1.Cluster)
-				// check whether cluster has either spec.paused or pasued annotation
-				return annotations.IsPaused(cluster, cluster)
-			},
-		})
-	if err != nil {
-		return err
-	}
-
-	err = controller.Watch(
-		source.Kind(mgr.GetCache(), &infrav1.VSphereCluster{}),
-		handler.EnqueueRequestsFromMapFunc(r.vsphereClusterToVSphereVMs),
-		predicate.Funcs{
-			UpdateFunc: func(e event.UpdateEvent) bool {
-				oldCluster := e.ObjectOld.(*infrav1.VSphereCluster)
-				newCluster := e.ObjectNew.(*infrav1.VSphereCluster)
-				return !clustermodule.Compare(oldCluster.Spec.ClusterModules, newCluster.Spec.ClusterModules)
-			},
-			CreateFunc:  func(e event.CreateEvent) bool { return false },
-			DeleteFunc:  func(e event.DeleteEvent) bool { return false },
-			GenericFunc: func(e event.GenericEvent) bool { return false },
-		})
-	if err != nil {
-		return err
-	}
-
-	err = controller.Watch(
-		source.Kind(mgr.GetCache(), &ipamv1.IPAddressClaim{}),
-		handler.EnqueueRequestsFromMapFunc(r.ipAddressClaimToVSphereVM))
-	if err != nil {
-		return err
-	}
-	return nil
+		Watches(
+			&clusterv1.Cluster{},
+			handler.EnqueueRequestsFromMapFunc(r.clusterToVSphereVMs),
+			ctrlbldr.WithPredicates(
+				predicate.Funcs{
+					UpdateFunc: func(e event.UpdateEvent) bool {
+						newCluster := e.ObjectNew.(*clusterv1.Cluster)
+						// check whether cluster has either spec.paused or pasued annotation
+						return !annotations.IsPaused(newCluster, newCluster)
+					},
+					CreateFunc: func(e event.CreateEvent) bool {
+						cluster := e.Object.(*clusterv1.Cluster)
+						// check whether cluster has either spec.paused or pasued annotation
+						return annotations.IsPaused(cluster, cluster)
+					},
+				}),
+		).
+		Watches(
+			&infrav1.VSphereCluster{},
+			handler.EnqueueRequestsFromMapFunc(r.vsphereClusterToVSphereVMs),
+			ctrlbldr.WithPredicates(
+				predicate.Funcs{
+					UpdateFunc: func(e event.UpdateEvent) bool {
+						oldCluster := e.ObjectOld.(*infrav1.VSphereCluster)
+						newCluster := e.ObjectNew.(*infrav1.VSphereCluster)
+						return !clustermodule.Compare(oldCluster.Spec.ClusterModules, newCluster.Spec.ClusterModules)
+					},
+					CreateFunc:  func(e event.CreateEvent) bool { return false },
+					DeleteFunc:  func(e event.DeleteEvent) bool { return false },
+					GenericFunc: func(e event.GenericEvent) bool { return false },
+				}),
+		).
+		Watches(
+			&ipamv1.IPAddressClaim{},
+			handler.EnqueueRequestsFromMapFunc(r.ipAddressClaimToVSphereVM),
+		).
+		Complete(r)
 }
 
 type vmReconciler struct {

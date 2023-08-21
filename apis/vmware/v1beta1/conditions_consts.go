@@ -64,10 +64,10 @@ const (
 	VMProvisionStartedReason = "VMProvisionStarted"
 	// PoweringOnReason documents (Severity=Info) a Virtual Machine currently executing the power on sequence.
 	PoweringOnReason = "PoweringOn"
-	// WaitingForNetworkAddressReason (Severity=Info) documents a VSphereMachine waiting for the the machine network
+	// WaitingForNetworkAddressReason (Severity=Info) documents a VSphereMachine waiting for the machine network
 	// settings to be reported after machine being powered on.
 	WaitingForNetworkAddressReason = "WaitingForNetworkAddress"
-	// WaitingForBIOSUUIDReason (Severity=Info) documents a VSphereMachine waiting for the the machine to have a BIOS UUID.
+	// WaitingForBIOSUUIDReason (Severity=Info) documents a VSphereMachine waiting for the machine to have a BIOS UUID.
 	WaitingForBIOSUUIDReason = "WaitingForBIOSUUID"
 )
 

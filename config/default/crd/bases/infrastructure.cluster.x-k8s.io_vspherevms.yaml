@@ -39,10 +39,9 @@ spec:
             description: VSphereVMSpec defines the desired state of VSphereVM.
             properties:
               biosUUID:
-                description: BiosUUID is the the VM's BIOS UUID that is assigned at
-                  runtime after the VM has been created. This field is required at
-                  runtime for other controllers that read this CRD as unstructured
-                  data.
+                description: BiosUUID is the VM's BIOS UUID that is assigned at runtime
+                  after the VM has been created. This field is required at runtime
+                  for other controllers that read this CRD as unstructured data.
                 type: string
               bootstrapRef:
                 description: BootstrapRef is a reference to a bootstrap provider-specific
@@ -453,10 +452,9 @@ spec:
             description: VSphereVMSpec defines the desired state of VSphereVM.
             properties:
               biosUUID:
-                description: BiosUUID is the the VM's BIOS UUID that is assigned at
-                  runtime after the VM has been created. This field is required at
-                  runtime for other controllers that read this CRD as unstructured
-                  data.
+                description: BiosUUID is the VM's BIOS UUID that is assigned at runtime
+                  after the VM has been created. This field is required at runtime
+                  for other controllers that read this CRD as unstructured data.
                 type: string
               bootstrapRef:
                 description: BootstrapRef is a reference to a bootstrap provider-specific
@@ -873,10 +871,9 @@ spec:
                   type: integer
                 type: array
               biosUUID:
-                description: BiosUUID is the the VM's BIOS UUID that is assigned at
-                  runtime after the VM has been created. This field is required at
-                  runtime for other controllers that read this CRD as unstructured
-                  data.
+                description: BiosUUID is the VM's BIOS UUID that is assigned at runtime
+                  after the VM has been created. This field is required at runtime
+                  for other controllers that read this CRD as unstructured data.
                 type: string
               bootstrapRef:
                 description: BootstrapRef is a reference to a bootstrap provider-specific
@@ -1463,7 +1460,7 @@ spec:
                   not be set or modified by users.
                 type: string
               vmRef:
-                description: VMRef is the the VM's Managed Object Reference on vSphere.
+                description: VMRef is the VM's Managed Object Reference on vSphere.
                   It can be used by consumers to programatically get this VM representation
                   on vSphere in case of the need to retrieve informations. This field
                   is set once the machine is created and should not be changed

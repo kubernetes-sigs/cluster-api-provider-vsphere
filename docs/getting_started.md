@@ -1,7 +1,7 @@
 # Getting Started
 
 This is a guide on how to get started with Cluster API Provider vSphere. To learn more about cluster API in more
-depth, check out the the [Cluster API book][cluster-api-book].
+depth, check out the [Cluster API book][cluster-api-book].
 
 - [Getting Started](#getting-started)
   - [Install Requirements](#install-requirements)

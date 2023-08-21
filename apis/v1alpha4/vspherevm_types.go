@@ -41,7 +41,7 @@ type VSphereVMSpec struct {
 	// +optional
 	BootstrapRef *corev1.ObjectReference `json:"bootstrapRef,omitempty"`
 
-	// BiosUUID is the the VM's BIOS UUID that is assigned at runtime after
+	// BiosUUID is the VM's BIOS UUID that is assigned at runtime after
 	// the VM has been created.
 	// This field is required at runtime for other controllers that read
 	// this CRD as unstructured data.

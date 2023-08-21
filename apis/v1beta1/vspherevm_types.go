@@ -52,7 +52,7 @@ type VSphereVMSpec struct {
 	// +optional
 	BootstrapRef *corev1.ObjectReference `json:"bootstrapRef,omitempty"`
 
-	// BiosUUID is the the VM's BIOS UUID that is assigned at runtime after
+	// BiosUUID is the VM's BIOS UUID that is assigned at runtime after
 	// the VM has been created.
 	// This field is required at runtime for other controllers that read
 	// this CRD as unstructured data.
@@ -174,7 +174,7 @@ type VSphereVMStatus struct {
 	// +optional
 	ModuleUUID *string `json:"moduleUUID,omitempty"`
 
-	// VMRef is the the VM's Managed Object Reference on vSphere. It can be used by consumers
+	// VMRef is the VM's Managed Object Reference on vSphere. It can be used by consumers
 	// to programatically get this VM representation on vSphere in case of the need to retrieve informations.
 	// This field is set once the machine is created and should not be changed
 	// +optional

@@ -18,13 +18,17 @@ updates:
   schedule:
     interval: "weekly"
     day: "monday"
+  ## group all dependencies with a k8s.io prefix into a single PR where possible
+  groups:
+    kubernetes:
+      patterns: [ "k8s.io/*" ]
   ignore:
+  # Ignore k8s and its transitives modules as they are upgraded manually
+  # together with controller-runtime.
+  - dependency-name: "k8s.io/*"
+    update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
   # Ignore controller-runtime as its upgraded manually.
   - dependency-name: "sigs.k8s.io/controller-runtime"
-    update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
-    # Ignore k8s and its transitives modules as they are upgraded manually
-    # together with controller-runtime.
-  - dependency-name: "k8s.io/*"
     update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
   - dependency-name: "sigs.k8s.io/cluster-api/test"
     update-types: ["version-update:semver-major", "version-update:semver-minor"]

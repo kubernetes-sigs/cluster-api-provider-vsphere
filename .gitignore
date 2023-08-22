@@ -8,14 +8,15 @@
 /clusterctl
 /cluster-api-provider-vsphere*
 
-# Generated files
-/cluster-api-provider-vsphere
+# Examples
 /examples/provider-components/provider-components*.yaml
-test/e2e/data/infrastructure-vsphere/kustomization/base/cluster-template.yaml
-test/e2e/data/infrastructure-vsphere/kustomization/topology/cluster-template-topology.yaml
-test/e2e/data/infrastructure-vsphere/cluster-template*.yaml
-test/e2e/data/infrastructure-vsphere/clusterclass-quick-start.yaml
+
+# E2E test artifacts folder
 _artifacts/
+
+# E2E test templates
+test/e2e/data/infrastructure-vsphere/**/cluster-template*.yaml
+test/e2e/data/infrastructure-vsphere/main/clusterclass-quick-start.yaml
 
 # env vars file used in getting-started.md and manifests generation
 envvars.txt

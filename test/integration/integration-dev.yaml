@@ -36,7 +36,7 @@ providers:
         type: "url"
         contract: v1beta1
         files:
-          - sourcePath: "../e2e/data/shared/v1beta1/metadata.yaml"
+          - sourcePath: "../e2e/data/shared/main/v1beta1/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -50,7 +50,7 @@ providers:
         type: "url"
         contract: v1beta1
         files:
-          - sourcePath: "../e2e/data/shared/v1beta1/metadata.yaml"
+          - sourcePath: "../e2e/data/shared/main/v1beta1/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -64,7 +64,7 @@ providers:
         type: "url"
         contract: v1beta1
         files:
-          - sourcePath: "../e2e/data/shared/v1beta1/metadata.yaml"
+          - sourcePath: "../e2e/data/shared/main/v1beta1/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -72,12 +72,12 @@ providers:
   - name: vsphere
     type: InfrastructureProvider
     versions:
-      - name: v1.7.0
+      - name: v1.8.99
         # Use manifest from source files
         value: ../../../cluster-api-provider-vsphere/config/deployments/integration-tests
         contract: v1beta1
         files:
-          - sourcePath: "../e2e/data/shared/v1beta1_provider/metadata.yaml"
+          - sourcePath: "../e2e/data/shared/main/v1beta1_provider/metadata.yaml"
         replacements:
           - old: gcr.io/cluster-api-provider-vsphere/release/manager:latest
             new: gcr.io/k8s-staging-cluster-api/capv-manager:e2e

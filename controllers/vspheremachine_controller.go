@@ -155,21 +155,17 @@ func AddMachineControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 		)
 	}
 
-	c, err := builder.Build(r)
-	if err != nil {
-		return err
+	if !supervisorBased {
+		builder.Watches(
+			&clusterv1.Cluster{},
+			handler.EnqueueRequestsFromMapFunc(r.clusterToVSphereMachines),
+			ctrlbldr.WithPredicates(
+				predicates.ClusterUnpausedAndInfrastructureReady(r.Logger),
+			),
+		)
 	}
 
-	if !supervisorBased {
-		err = c.Watch(
-			source.Kind(mgr.GetCache(), &clusterv1.Cluster{}),
-			handler.EnqueueRequestsFromMapFunc(r.clusterToVSphereMachines),
-			predicates.ClusterUnpausedAndInfrastructureReady(r.Logger))
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	return builder.Complete(r)
 }
 
 type machineReconciler struct {

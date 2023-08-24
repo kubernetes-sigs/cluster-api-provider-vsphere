@@ -54,10 +54,10 @@ func ClusterClassTemplateWithKubeVIP() []runtime.Object {
 	return ClusterClassTemplate
 }
 
-func ClusterTopologyTemplateKubeVIP() []runtime.Object {
+func ClusterTopologyTemplateKubeVIP() ([]runtime.Object, error) {
 	cluster, err := newClusterTopologyCluster()
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	identitySecret := newIdentitySecret()
 	clusterResourceSet := newClusterResourceSet(cluster)
@@ -70,7 +70,7 @@ func ClusterTopologyTemplateKubeVIP() []runtime.Object {
 	}
 	MultiNodeTemplate = append(MultiNodeTemplate, crsResourcesCSI...)
 	MultiNodeTemplate = append(MultiNodeTemplate, crsResourcesCPI...)
-	return MultiNodeTemplate
+	return MultiNodeTemplate, nil
 }
 
 func MultiNodeTemplateWithKubeVIP() []runtime.Object {

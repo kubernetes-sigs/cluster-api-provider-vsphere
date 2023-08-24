@@ -55,7 +55,10 @@ func ClusterClassTemplateWithKubeVIP() []runtime.Object {
 }
 
 func ClusterTopologyTemplateKubeVIP() []runtime.Object {
-	cluster := newClusterClassCluster()
+	cluster, err := newClusterTopologyCluster()
+	if err != nil {
+		return nil
+	}
 	identitySecret := newIdentitySecret()
 	clusterResourceSet := newClusterResourceSet(cluster)
 	crsResourcesCSI := crs.CreateCrsResourceObjectsCSI(&clusterResourceSet)

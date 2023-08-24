@@ -132,7 +132,11 @@ func generateSingle(flavor string) (string, error) {
 	case flavors.ClusterClass:
 		objs = flavors.ClusterClassTemplateWithKubeVIP()
 	case flavors.ClusterTopology:
-		objs = flavors.ClusterTopologyTemplateKubeVIP()
+		var err error
+		objs, err = flavors.ClusterTopologyTemplateKubeVIP()
+		if err != nil {
+			return "", err
+		}
 		replacements = append(replacements, util.Replacement{
 			Kind:      "Cluster",
 			Name:      "${CLUSTER_NAME}",

@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -94,7 +95,11 @@ systemd:
         EnvironmentFile=/run/metadata/*`
 )
 
-func newClusterClassCluster() clusterv1.Cluster {
+func newClusterTopologyCluster() (clusterv1.Cluster, error) {
+	variables, err := clusterTopologyVariables()
+	if err != nil {
+		return clusterv1.Cluster{}, errors.Wrap(err, "failed to create ClusterTopologyCluster template")
+	}
 	return clusterv1.Cluster{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: clusterv1.GroupVersion.String(),
@@ -121,17 +126,34 @@ func newClusterClassCluster() clusterv1.Cluster {
 						},
 					},
 				},
-				Variables: clusterTopologyVariables(),
+				Variables: variables,
 			},
 		},
-	}
+	}, nil
 }
 
-func clusterTopologyVariables() []clusterv1.ClusterVariable {
-	sshKey, _ := json.Marshal(env.VSphereSSHAuthorizedKeysVar)
-	controlPlaneIP, _ := json.Marshal(env.ControlPlaneEndpointVar)
-	secretName, _ := json.Marshal(env.ClusterNameVar)
-	kubeVipPod, _ := json.Marshal(kubeVIPPodYaml())
+func clusterTopologyVariables() ([]clusterv1.ClusterVariable, error) {
+	sshKey, err := json.Marshal(env.VSphereSSHAuthorizedKeysVar)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to json-encode variable VSphereSSHAuthorizedKeysVar: %q", env.VSphereSSHAuthorizedKeysVar)
+	}
+	controlPlaneIP, err := json.Marshal(env.ControlPlaneEndpointVar)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to json-encode variable ControlPlaneEndpointVar: %q", env.ControlPlaneEndpointVar)
+	}
+	secretName, err := json.Marshal(env.ClusterNameVar)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to json-encode variable ClusterNameVar: %q", env.ClusterNameVar)
+	}
+	kubeVipPodYaml := kubeVIPPodYaml()
+	kubeVipPod, err := json.Marshal(kubeVipPodYaml)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to json-encode variable kubeVipPod: %q", kubeVipPodYaml)
+	}
+	infraServerValue, err := getInfraServerValue()
+	if err != nil {
+		return nil, err
+	}
 	return []clusterv1.ClusterVariable{
 		{
 			Name: "sshKey",
@@ -142,7 +164,7 @@ func clusterTopologyVariables() []clusterv1.ClusterVariable {
 		{
 			Name: "infraServer",
 			Value: apiextensionsv1.JSON{
-				Raw: getInfraServerValue(),
+				Raw: infraServerValue,
 			},
 		},
 		{
@@ -164,15 +186,19 @@ func clusterTopologyVariables() []clusterv1.ClusterVariable {
 				Raw: secretName,
 			},
 		},
-	}
+	}, nil
 }
 
-func getInfraServerValue() []byte {
-	byteArr, _ := json.Marshal(map[string]string{
+func getInfraServerValue() ([]byte, error) {
+	byteArr, err := json.Marshal(map[string]string{
 		"url":        env.VSphereServerVar,
 		"thumbprint": env.VSphereThumbprint,
 	})
-	return byteArr
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to json-encode, VSphereServerVar: %s, VSphereThumbprint: %s",
+			env.VSphereServerVar, env.VSphereThumbprint)
+	}
+	return byteArr, nil
 }
 
 func newVSphereCluster() infrav1.VSphereCluster {

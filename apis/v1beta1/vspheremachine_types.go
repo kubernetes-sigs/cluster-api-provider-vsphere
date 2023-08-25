@@ -78,6 +78,7 @@ type VSphereMachineStatus struct {
 	Ready bool `json:"ready"`
 
 	// Addresses contains the VSphere instance associated addresses.
+	// +Metrics:info:name="status_addresses",help="Address information about a vspheremachine.",labelsFromPath={address:".address",type:".type"}
 	Addresses []clusterv1.MachineAddress `json:"addresses,omitempty"`
 
 	// Network returns the network status for each of the machine's configured
@@ -125,6 +126,8 @@ type VSphereMachineStatus struct {
 
 	// Conditions defines current service state of the VSphereMachine.
 	// +optional
+	// +Metrics:stateset:name="status_condition",help="The condition of a vspheremachine.",labelName="status",JSONPath=".status",list={"True","False","Unknown"},labelsFromPath={"type":".type"}
+	// +Metrics:gauge:name="status_condition_last_transition_time",help="The condition last transition time of a vspheremachine.",valueFrom=.lastTransitionTime,labelsFromPath={"type":".type","status":".status"}
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 }
 
@@ -139,6 +142,15 @@ type VSphereMachineStatus struct {
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of Machine"
 
 // VSphereMachine is the Schema for the vspheremachines API
+// +Metrics:gvk:namePrefix="capi_vspheremachine"
+// +Metrics:labelFromPath:name="name",JSONPath=".metadata.name"
+// +Metrics:labelFromPath:name="namespace",JSONPath=".metadata.namespace"
+// +Metrics:labelFromPath:name="uid",JSONPath=".metadata.uid"
+// +Metrics:gauge:name="created",JSONPath=".metadata.creationTimestamp",help="Unix creation timestamp."
+// +Metrics:info:name="annotation_paused",JSONPath=.metadata.annotations['cluster\.x-k8s\.io/paused'],help="Whether the vspheremachine is paused and any of its resources will not be processed by the controllers.",labelsFromPath={paused_value:"."}
+// +Metrics:info:name="owner",JSONPath=".metadata.ownerReferences",help="Owner references.",labelsFromPath={owner_is_controller:".controller",owner_kind:".kind",owner_name:".name",owner_uid:".uid"}
+// +Metrics:labelFromPath:name="cluster_name",JSONPath=.metadata.labels.cluster\.x-k8s\.io/cluster-name
+// +Metrics:info:name="info",help="Information about a vspheremachine.",labelsFromPath={provider_id:.spec.providerID}
 type VSphereMachine struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

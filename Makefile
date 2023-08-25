@@ -163,6 +163,12 @@ GOVULNCHECK_VER := v1.0.0
 GOVULNCHECK := $(abspath $(TOOLS_BIN_DIR)/$(GOVULNCHECK_BIN)-$(GOVULNCHECK_VER))
 GOVULNCHECK_PKG := golang.org/x/vuln/cmd/govulncheck
 
+KUBE_STATE_METRICS_VER := e31ed9ab
+KUBE_STATE_METRICS_BIN := kube-state-metrics
+KUBE_STATE_METRICS := $(abspath $(TOOLS_BIN_DIR)/$(KUBE_STATE_METRICS_BIN)-$(KUBE_STATE_METRICS_VER))
+KUBE_STATE_METRICS_PKG := k8s.io/kube-state-metrics/v2
+KUBE_STATE_METRICS_MOD_REPLACE := $(KUBE_STATE_METRICS_PKG)=github.com/chrischdi/kube-state-metrics/v2@$(KUBE_STATE_METRICS_VER)
+
 GOVC_VER := $(shell cat go.mod | grep "github.com/vmware/govmomi" | awk '{print $$NF}')
 GOVC_BIN := govc
 GOVC := $(abspath $(TOOLS_BIN_DIR)/$(GOVC_BIN)-$(GOVC_VER))
@@ -184,6 +190,8 @@ RELEASE_NOTES_VER := $(CAPI_HACK_TOOLS_VER)
 RELEASE_NOTES_BIN := release-notes
 RELEASE_NOTES := $(abspath $(TOOLS_BIN_DIR)/$(RELEASE_NOTES_BIN)-$(RELEASE_NOTES_VER))
 RELEASE_NOTES_PKG := sigs.k8s.io/cluster-api/hack/tools/release
+# let go resolve the tools version via the CAPI version.
+RELEASE_NOTES_MOD_REQUIRE := sigs.k8s.io/cluster-api/hack/tools@$(RELEASE_NOTES_VER)
 
 # Define Docker related variables. Releases should modify and double check these vars.
 REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
@@ -237,7 +245,7 @@ help:  # Display this help
 
 .PHONY: generate
 generate: ## Run all generate targets
-	$(MAKE) generate-modules generate-manifests generate-go-deepcopy generate-go-conversions generate-flavors
+	$(MAKE) generate-modules generate-manifests generate-go-deepcopy generate-go-conversions generate-flavors generate-metrics-config
 
 .PHONY: generate-manifests
 generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
@@ -316,6 +324,9 @@ generate-e2e-templates-main: $(KUSTOMIZE) ## Generate test templates for the mai
 	# for DHCP overrides
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build $(E2E_TEMPLATE_DIR)/main/dhcp-overrides > $(E2E_TEMPLATE_DIR)/main/cluster-template-dhcp-overrides.yaml
 
+.PHONY: generate-metrics-config
+generate-metrics-config: $(KUBE_STATE_METRICS) ## Generate ./crd-metrics-config.yaml
+	$(KUBE_STATE_METRICS) generate ./apis/v1beta1/... > config/metrics/crd-metrics-config.yaml
 
 ## --------------------------------------
 ## Lint / Verify
@@ -406,7 +417,6 @@ verify-flavors: $(FLAVOR_DIR) generate-flavors ## Verify generated flavors
 		git diff $(FLAVOR_DIR); \
 		echo "flavor files in templates directory are out of date"; exit 1; \
 	fi
-
 
 ## --------------------------------------
 ## Build
@@ -606,7 +616,6 @@ e2e-flavors-main: $(RELEASE_DIR)
 	mkdir -p $(RELEASE_DIR)/main
 	$(MAKE) generate-flavors FLAVOR_DIR=$(RELEASE_DIR)/main
 
-
 .PHONY: generate-flavors
 generate-flavors: $(FLAVOR_DIR)
 	go run ./packaging/flavorgen --output-dir $(FLAVOR_DIR)
@@ -763,12 +772,14 @@ $(GOLANGCI_LINT_BIN): $(GOLANGCI_LINT) ## Build a local copy of golangci-lint.
 .PHONY: $(GOVULNCHECK_BIN)
 $(GOVULNCHECK_BIN): $(GOVULNCHECK) ## Build a local copy of govulncheck.
 
+.PHONY: $(KUBE_STATE_METRICS_BIN)
+$(KUBE_STATE_METRICS_BIN): $(KUBE_STATE_METRICS) ## Build a local copy of metric-gen.
+
 .PHONY: $(GOVC_BIN)
 $(GOVC_BIN): $(GOVC) ## Build a local copy of govc.
 
 .PHONY: $(KIND_BIN)
 $(KIND_BIN): $(KIND) ## Build a local copy of kind.
-
 
 .PHONY: $(RELEASE_NOTES_BIN)
 $(RELEASE_NOTES_BIN): $(RELEASE_NOTES) ## Build a local copy of release-notes.
@@ -815,15 +826,17 @@ $(GOLANGCI_LINT): # Build golangci-lint.
 $(GOVULNCHECK): # Build govulncheck.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GOVULNCHECK_PKG) $(GOVULNCHECK_BIN) $(GOVULNCHECK_VER)
 
+$(KUBE_STATE_METRICS): # Build kube-state-metrics.
+	GOBIN=$(TOOLS_BIN_DIR) GOMOD_REPLACE="$(KUBE_STATE_METRICS_MOD_REPLACE)" $(GO_TOOLS_BUILD) $(KUBE_STATE_METRICS_PKG) $(KUBE_STATE_METRICS_BIN) $(KUBE_STATE_METRICS_VER)
+
 $(GOVC): # Build GOVC.
 	CGO_ENABLED=0 GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GOVC_PKG) $(GOVC_BIN) $(GOVC_VER)
 
 $(KIND): # Build kind.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(KIND_PKG) $(KIND_BIN) $(KIND_VER)
 
-
 $(RELEASE_NOTES): # Build release-notes.
-	GOBIN=$(TOOLS_BIN_DIR) $(GO_TOOLS_BUILD) $(RELEASE_NOTES_PKG) $(RELEASE_NOTES_BIN) $(RELEASE_NOTES_VER)
+	GOBIN=$(TOOLS_BIN_DIR) GOMOD_REQUIRE="$(RELEASE_NOTES_MOD_REQUIRE)" $(GO_TOOLS_BUILD) $(RELEASE_NOTES_PKG) $(RELEASE_NOTES_BIN) $(RELEASE_NOTES_VER)
 
 ## --------------------------------------
 ## Helpers

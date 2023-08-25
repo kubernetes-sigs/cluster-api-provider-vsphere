@@ -104,6 +104,7 @@ type VSphereVMStatus struct {
 	// This field is required at runtime for other controllers that read
 	// this CRD as unstructured data.
 	// +optional
+	// +Metrics:info:name="status_addresses",help="Address information about a vspherevm.",labelsFromPath={address:"."}
 	Addresses []string `json:"addresses,omitempty"`
 
 	// CloneMode is the type of clone operation used to clone this VM. Since
@@ -165,6 +166,8 @@ type VSphereVMStatus struct {
 
 	// Conditions defines current service state of the VSphereVM.
 	// +optional
+	// +Metrics:stateset:name="status_condition",help="The condition of a vspherevm.",labelName="status",JSONPath=".status",list={"True","False","Unknown"},labelsFromPath={"type":".type"}
+	// +Metrics:gauge:name="status_condition_last_transition_time",help="The condition last transition time of a vspherevm.",valueFrom=.lastTransitionTime,labelsFromPath={"type":".type","status":".status"}
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 
 	// ModuleUUID is the unique identifier for the vCenter cluster module construct
@@ -187,6 +190,15 @@ type VSphereVMStatus struct {
 // +kubebuilder:subresource:status
 
 // VSphereVM is the Schema for the vspherevms API
+// +Metrics:gvk:namePrefix="capi_vspherevm"
+// +Metrics:labelFromPath:name="name",JSONPath=".metadata.name"
+// +Metrics:labelFromPath:name="namespace",JSONPath=".metadata.namespace"
+// +Metrics:labelFromPath:name="uid",JSONPath=".metadata.uid"
+// +Metrics:gauge:name="created",JSONPath=".metadata.creationTimestamp",help="Unix creation timestamp."
+// +Metrics:info:name="annotation_paused",JSONPath=.metadata.annotations['cluster\.x-k8s\.io/paused'],help="Whether the vspherevm is paused and any of its resources will not be processed by the controllers.",labelsFromPath={paused_value:"."}
+// +Metrics:info:name="owner",JSONPath=".metadata.ownerReferences",help="Owner references.",labelsFromPath={owner_is_controller:".controller",owner_kind:".kind",owner_name:".name",owner_uid:".uid"}
+// +Metrics:labelFromPath:name="cluster_name",JSONPath=.metadata.labels.cluster\.x-k8s\.io/cluster-name
+// +Metrics:info:name="info",help="Information about a vspherevm.",labelsFromPath={status_clonemode:.status.cloneMode,bootstrap_reference_kind:".spec.bootstrapRef.kind",bootstrap_reference_name:".spec.bootstrapRef.name",status_vmref:".status.vmRef"}
 type VSphereVM struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

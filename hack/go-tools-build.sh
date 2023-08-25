@@ -37,7 +37,10 @@ if [ -z "${GOBIN}" ]; then
   exit 1
 fi
 
-CAPI_HACK_TOOLS="sigs.k8s.io/cluster-api/hack/tools"
+export GOWORK="off"
+
+GOMOD_REPLACE=${GOMOD_REPLACE:=}
+GOMOD_REQUIRE=${GOMOD_REQUIRE:=}
 
 rm -f "${GOBIN}/${2}"* || true
 
@@ -52,8 +55,13 @@ cd "${TMP_MODULE_DIR}"
 
 # Initialize a go module and place a tools.go file for building the binary.
 go mod init "tools"
-# Set require for "sigs.k8s.io/cluster-api" to let go resolve the tools version via the CAPI version.
-go mod edit -require "${CAPI_HACK_TOOLS}@${3}"
+
+for PARAM in ${GOMOD_REPLACE}; do
+  eval go mod edit -replace "${PARAM}"
+done
+for PARAM in ${GOMOD_REQUIRE}; do
+  eval go mod edit -require "${PARAM}"
+done
 
 # Create go file which imports the required package and resolve dependencies.
 cat << EOF > tools.go

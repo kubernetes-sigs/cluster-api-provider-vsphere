@@ -91,6 +91,8 @@ type VSphereClusterStatus struct {
 
 	// Conditions defines current service state of the VSphereCluster.
 	// +optional
+	// +Metrics:stateset:name="status_condition",help="The condition of a vspherecluster.",labelName="status",JSONPath=".status",list={"True","False","Unknown"},labelsFromPath={"type":".type"}
+	// +Metrics:gauge:name="status_condition_last_transition_time",help="The condition last transition time of a vspherecluster.",valueFrom=.lastTransitionTime,labelsFromPath={"type":".type","status":".status"}
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 
 	// FailureDomains is a list of failure domain objects synced from the infrastructure provider.
@@ -110,6 +112,15 @@ type VSphereClusterStatus struct {
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of Machine"
 
 // VSphereCluster is the Schema for the vsphereclusters API
+// +Metrics:gvk:namePrefix="capi_vspherecluster"
+// +Metrics:labelFromPath:name="name",JSONPath=".metadata.name"
+// +Metrics:labelFromPath:name="namespace",JSONPath=".metadata.namespace"
+// +Metrics:labelFromPath:name="uid",JSONPath=".metadata.uid"
+// +Metrics:gauge:name="created",JSONPath=".metadata.creationTimestamp",help="Unix creation timestamp."
+// +Metrics:info:name="annotation_paused",JSONPath=.metadata.annotations['cluster\.x-k8s\.io/paused'],help="Whether the vspherecluster is paused and any of its resources will not be processed by the controllers.",labelsFromPath={paused_value:"."}
+// +Metrics:info:name="owner",JSONPath=".metadata.ownerReferences",help="Owner references.",labelsFromPath={owner_is_controller:".controller",owner_kind:".kind",owner_name:".name",owner_uid:".uid"}
+// +Metrics:labelFromPath:name="cluster_name",JSONPath=.metadata.labels.cluster\.x-k8s\.io/cluster-name
+// +Metrics:info:name="info",help="Information about a vspherecluster.",labelsFromPath={status_vsphere_version:.status.vCenterVersion,spec_server:.spec.server,identity_reference_kind:".spec.identityRef.kind",identity_reference_name:".spec.identityRef.name"}
 type VSphereCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

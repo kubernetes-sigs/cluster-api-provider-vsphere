@@ -24,7 +24,10 @@ import (
 	"strings"
 
 	"github.com/onsi/gomega/gbytes"
+	_ "github.com/vmware/govmomi/lookup/simulator"
 	"github.com/vmware/govmomi/simulator"
+	_ "github.com/vmware/govmomi/sts/simulator"
+	_ "github.com/vmware/govmomi/vapi/simulator"
 )
 
 type Builder struct {

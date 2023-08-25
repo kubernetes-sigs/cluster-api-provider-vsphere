@@ -336,11 +336,11 @@ func (r clusterReconciler) reconcileVCenterConnectivity(ctx *context.ClusterCont
 			return nil, err
 		}
 
-		params = params.WithUserInfo(creds.Username, creds.Password)
+		params = params.WithUserInfo(creds.Username, creds.Password).WithUserCertificate(creds.UserCert).WithUserKey(creds.UserKey)
 		return session.GetOrCreate(ctx, params)
 	}
 
-	params = params.WithUserInfo(ctx.Username, ctx.Password)
+	params = params.WithUserInfo(ctx.Username, ctx.Password).WithUserCertificate(ctx.UserCert).WithUserKey(ctx.UserKey)
 	return session.GetOrCreate(ctx, params)
 }
 

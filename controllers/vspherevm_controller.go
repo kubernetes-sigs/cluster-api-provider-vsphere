@@ -570,7 +570,9 @@ func (r vmReconciler) retrieveVcenterSession(ctx goctx.Context, vsphereVM *infra
 		WithFeatures(session.Feature{
 			EnableKeepAlive:   r.EnableKeepAlive,
 			KeepAliveDuration: r.KeepAliveDuration,
-		})
+		}).
+		WithUserKey(r.ControllerContext.UserKey).
+		WithUserCertificate(r.ControllerContext.UserCert)
 	cluster, err := clusterutilv1.GetClusterFromMetadata(r.ControllerContext, r.Client, vsphereVM.ObjectMeta)
 	if err != nil {
 		r.Logger.Info("VsphereVM is missing cluster label or cluster does not exist")
@@ -595,7 +597,7 @@ func (r vmReconciler) retrieveVcenterSession(ctx goctx.Context, vsphereVM *infra
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to retrieve credentials from IdentityRef")
 		}
-		params = params.WithUserInfo(creds.Username, creds.Password)
+		params = params.WithUserInfo(creds.Username, creds.Password).WithUserCertificate(creds.UserCert).WithUserKey(creds.UserKey)
 		return session.GetOrCreate(r.Context,
 			params)
 	}

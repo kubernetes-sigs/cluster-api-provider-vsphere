@@ -380,7 +380,7 @@ func signer(ctx context.Context, logger logr.Logger, client *vim25.Client, cert,
 		return nil, err
 	}
 
-	tokens, err := sts.NewClient(ctx, client)
+	stsc, err := sts.NewClient(ctx, client)
 	if err != nil {
 		logger.Error(err, "Failed to create STS client")
 		return nil, err
@@ -391,7 +391,7 @@ func signer(ctx context.Context, logger logr.Logger, client *vim25.Client, cert,
 		Delegatable: true,
 	}
 
-	signer, err := tokens.Issue(ctx, req)
+	signer, err := stsc.Issue(ctx, req)
 	if err != nil {
 		logger.Error(err, "Failed to issue SAML token")
 		return nil, err

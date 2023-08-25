@@ -253,7 +253,7 @@ func (r vsphereDeploymentZoneReconciler) getVCenterSession(ctx *context.VSphereD
 				continue
 			}
 			logger.Info("using server credentials to create the authenticated session")
-			params = params.WithUserInfo(creds.Username, creds.Password)
+			params = params.WithUserInfo(creds.Username, creds.Password).WithUserCertificate(creds.UserCert).WithUserKey(creds.UserKey)
 			return session.GetOrCreate(r.Context,
 				params)
 		}

@@ -103,7 +103,7 @@ func Test_ShouldRetryTask(t *testing.T) {
 			reconciled, err := checkAndRetryTask(vmCtx, &task)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(reconciled).To(BeTrue())
-			g.Expect(conditions.IsFalse(vmCtx.VSphereVM, infrav1.VMProvisionedCondition))
+			g.Expect(conditions.IsFalse(vmCtx.VSphereVM, infrav1.VMProvisionedCondition)).To(BeTrue())
 			g.Expect(vmCtx.VSphereVM.Status.TaskRef).To(BeEmpty())
 			g.Expect(vmCtx.VSphereVM.Status.RetryAfter.IsZero()).To(BeTrue())
 		})
@@ -123,7 +123,7 @@ func Test_ShouldRetryTask(t *testing.T) {
 		reconciled, err := checkAndRetryTask(vmCtx, &task)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(reconciled).To(BeTrue())
-		g.Expect(conditions.IsFalse(vmCtx.VSphereVM, infrav1.VMProvisionedCondition))
+		g.Expect(conditions.IsFalse(vmCtx.VSphereVM, infrav1.VMProvisionedCondition)).To(BeTrue())
 		g.Expect(vmCtx.VSphereVM.Status.RetryAfter.Unix()).To(BeNumerically("<=", metav1.Now().Add(1*time.Minute).Unix()))
 	})
 }

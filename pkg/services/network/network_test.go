@@ -120,7 +120,7 @@ var _ = Describe("Network provider", func() {
 				np = DummyNetworkProvider()
 			})
 			It("should not add network interface", func() {
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(vm.Spec.NetworkInterfaces).To(BeNil())
 			})
 		})
@@ -151,7 +151,7 @@ var _ = Describe("Network provider", func() {
 					})
 
 					AfterEach(func() {
-						Expect(err).To(BeNil())
+						Expect(err).ToNot(HaveOccurred())
 						Expect(vm.Spec.NetworkInterfaces).To(HaveLen(1))
 						Expect(vm.Spec.NetworkInterfaces[0].NetworkType).To(Equal("vsphere-distributed"))
 					})
@@ -188,7 +188,7 @@ var _ = Describe("Network provider", func() {
 				err = np.ConfigureVirtualMachine(ctx, vm)
 			})
 			AfterEach(func() {
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(vm.Spec.NetworkInterfaces[0].NetworkName).To(Equal(GetNSXTVirtualNetworkName(vSphereCluster.Name)))
 				Expect(vm.Spec.NetworkInterfaces[0].NetworkType).To(Equal("nsx-t"))
 			})
@@ -264,9 +264,9 @@ var _ = Describe("Network provider", func() {
 				err = np.ProvisionClusterNetwork(ctx)
 			})
 			It("should succeed", func() {
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				vnet, localerr := np.GetClusterNetworkName(ctx)
-				Expect(localerr).To(BeNil())
+				Expect(localerr).ToNot(HaveOccurred())
 				Expect(vnet).To(BeEmpty())
 			})
 		})
@@ -283,7 +283,7 @@ var _ = Describe("Network provider", func() {
 				err = np.ProvisionClusterNetwork(ctx)
 			})
 			It("should succeed", func() {
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(conditions.IsTrue(ctx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition)).To(BeTrue())
 			})
 		})
@@ -297,9 +297,9 @@ var _ = Describe("Network provider", func() {
 			})
 
 			It("should not update vnet with whitelist_source_ranges in spec", func() {
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				vnet, localerr := np.GetClusterNetworkName(ctx)
-				Expect(localerr).To(BeNil())
+				Expect(localerr).ToNot(HaveOccurred())
 				Expect(vnet).To(Equal(GetNSXTVirtualNetworkName(ctx.VSphereCluster.Name)))
 
 				createdVNET := &ncpv1.VirtualNetwork{}
@@ -308,7 +308,7 @@ var _ = Describe("Network provider", func() {
 					Namespace: dummyNs,
 				}, createdVNET)
 
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(createdVNET.Spec.WhitelistSourceRanges).To(BeEmpty())
 			})
 
@@ -332,9 +332,9 @@ var _ = Describe("Network provider", func() {
 			})
 
 			It("should create vnet without whitelist_source_ranges in spec", func() {
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				vnet, localerr := np.GetClusterNetworkName(ctx)
-				Expect(localerr).To(BeNil())
+				Expect(localerr).ToNot(HaveOccurred())
 				Expect(vnet).To(Equal(GetNSXTVirtualNetworkName(ctx.VSphereCluster.Name)))
 
 				createdVNET := &ncpv1.VirtualNetwork{}
@@ -343,7 +343,7 @@ var _ = Describe("Network provider", func() {
 					Namespace: dummyNs,
 				}, createdVNET)
 
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(createdVNET.Spec.WhitelistSourceRanges).To(BeEmpty())
 				Expect(conditions.IsTrue(ctx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition)).To(BeTrue())
 			})
@@ -358,9 +358,9 @@ var _ = Describe("Network provider", func() {
 			})
 
 			It("should update vnet with whitelist_source_ranges in spec", func() {
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				vnet, localerr := np.GetClusterNetworkName(ctx)
-				Expect(localerr).To(BeNil())
+				Expect(localerr).ToNot(HaveOccurred())
 				Expect(vnet).To(Equal(GetNSXTVirtualNetworkName(ctx.VSphereCluster.Name)))
 
 				// Verify WhitelistSourceRanges have been updated
@@ -370,7 +370,7 @@ var _ = Describe("Network provider", func() {
 					Namespace: dummyNs,
 				}, createdVNET)
 
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(createdVNET.Spec.WhitelistSourceRanges).To(Equal(fakeSNATIP + "/32"))
 				Expect(conditions.IsTrue(ctx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition)).To(BeTrue())
 			})
@@ -386,9 +386,9 @@ var _ = Describe("Network provider", func() {
 			})
 
 			It("should create new vnet with whitelist_source_ranges in spec", func() {
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				vnet, localerr := np.GetClusterNetworkName(ctx)
-				Expect(localerr).To(BeNil())
+				Expect(localerr).ToNot(HaveOccurred())
 				Expect(vnet).To(Equal(GetNSXTVirtualNetworkName(ctx.VSphereCluster.Name)))
 
 				// Verify WhitelistSourceRanges have been updated
@@ -416,9 +416,9 @@ var _ = Describe("Network provider", func() {
 			})
 
 			It("should not update vnet with whitelist_source_ranges in spec", func() {
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				vnet, localerr := np.GetClusterNetworkName(ctx)
-				Expect(localerr).To(BeNil())
+				Expect(localerr).ToNot(HaveOccurred())
 				Expect(vnet).To(Equal(GetNSXTVirtualNetworkName(ctx.VSphereCluster.Name)))
 
 				// Verify WhitelistSourceRanges is not included

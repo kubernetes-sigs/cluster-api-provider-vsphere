@@ -288,7 +288,7 @@ func TestReconciler_Reconcile(t *testing.T) {
 			// if cluster module creation fails due to resource pool owner incompatibility, vSphereCluster object is set to Ready
 			haveError: false,
 			customAssert: func(g *gomega.WithT, ctx *context.ClusterContext) {
-				g.Expect(ctx.VSphereCluster.Spec.ClusterModules).To(gomega.HaveLen(0))
+				g.Expect(ctx.VSphereCluster.Spec.ClusterModules).To(gomega.BeEmpty())
 				g.Expect(conditions.Has(ctx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)).To(gomega.BeTrue())
 				g.Expect(conditions.IsFalse(ctx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)).To(gomega.BeTrue())
 				g.Expect(conditions.Get(ctx.VSphereCluster, infrav1.ClusterModulesAvailableCondition).Message).To(gomega.ContainSubstring("kcp"))
@@ -387,7 +387,7 @@ func TestReconciler_Reconcile(t *testing.T) {
 				svc.On("Remove", mock.Anything, mdUUID).Return(nil)
 			},
 			customAssert: func(g *gomega.WithT, ctx *context.ClusterContext) {
-				g.Expect(ctx.VSphereCluster.Spec.ClusterModules).To(gomega.HaveLen(0))
+				g.Expect(ctx.VSphereCluster.Spec.ClusterModules).To(gomega.BeEmpty())
 			},
 		},
 		{
@@ -399,7 +399,7 @@ func TestReconciler_Reconcile(t *testing.T) {
 			},
 			clusterModules: []infrav1.ClusterModule{},
 			customAssert: func(g *gomega.WithT, ctx *context.ClusterContext) {
-				g.Expect(ctx.VSphereCluster.Spec.ClusterModules).To(gomega.HaveLen(0))
+				g.Expect(ctx.VSphereCluster.Spec.ClusterModules).To(gomega.BeEmpty())
 			},
 		},
 	}

@@ -57,5 +57,5 @@ func TestListHostsFromGroup(t *testing.T) {
 
 	refs, err = ListHostsFromGroup(context.Background(), ccr, "blah")
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(refs).To(HaveLen(0))
+	g.Expect(refs).To(BeEmpty())
 }

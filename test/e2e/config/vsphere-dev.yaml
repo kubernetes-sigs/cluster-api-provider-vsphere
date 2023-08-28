@@ -101,7 +101,7 @@ providers:
 
 variables:
   KUBERNETES_VERSION: "v1.28.0"
-  CPI_IMAGE_K8S_VERSION: "v1.27.0"
+  CPI_IMAGE_K8S_VERSION: "v1.28.0"
   CNI: "./data/cni/calico/calico.yaml"
   EXP_CLUSTER_RESOURCE_SET: "true"
   EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION: "true"
@@ -141,7 +141,7 @@ variables:
   VSPHERE2_SERVER: "vcenter2.vmware.com"
   VSPHERE2_TLS_THUMBPRINT: "AA:BB:CC:DD:11:22:33:44:EE:FF"
   VSPHERE2_RESOURCE_POOL: "ResourcePool"
-  VSPHERE2_TEMPLATE: "ubuntu-2004-kube-v1.27.3"
+  VSPHERE2_TEMPLATE: "ubuntu-2204-kube-v1.28.0"
   # Dedicated IP to be used by kube-vip
   VSPHERE2_CONTROL_PLANE_ENDPOINT_IP:
   # Following variables are also required and please use env variables to avoid disclosure of sensitive data

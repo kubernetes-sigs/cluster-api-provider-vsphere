@@ -47,13 +47,13 @@ func getReconciledVM(ctx *vmware.SupervisorMachineContext) *vmoprv1.VirtualMachi
 	if apierrors.IsNotFound(err) {
 		return nil
 	}
-	Expect(err).Should(BeNil())
+	Expect(err).ShouldNot(HaveOccurred())
 	return vm
 }
 
 func updateReconciledVM(ctx *vmware.SupervisorMachineContext, vm *vmoprv1.VirtualMachine) {
 	err := ctx.Client.Status().Update(ctx, vm)
-	Expect(err).Should(BeNil())
+	Expect(err).ShouldNot(HaveOccurred())
 }
 
 var _ = Describe("VirtualMachine tests", func() {
@@ -550,7 +550,7 @@ var _ = Describe("VirtualMachine tests", func() {
 		// Test expects DestroyVM to return NotFound eventually
 		Specify("Delete VirtualMachine with no delay", func() {
 			Expect(getReconciledVM(ctx)).ShouldNot(BeNil())
-			Eventually(verifyDeleteFunc, timeout, interval).Should(Equal(true))
+			Eventually(verifyDeleteFunc, timeout, interval).Should(BeTrue())
 		})
 
 		Context("With finalizers", func() {
@@ -563,7 +563,7 @@ var _ = Describe("VirtualMachine tests", func() {
 
 			// Test never removes the finalizer and expects DestroyVM to never return NotFound
 			Specify("Delete VirtualMachine with finalizer", func() {
-				Consistently(verifyDeleteFunc, timeout, interval).Should(Equal(false))
+				Consistently(verifyDeleteFunc, timeout, interval).Should(BeFalse())
 			})
 
 			// Check that DestroyVM does not update VirtualMachine more than once

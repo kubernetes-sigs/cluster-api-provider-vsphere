@@ -91,7 +91,7 @@ func VerifyAntiAffinity(ctx context.Context, input AntiAffinitySpecInput) {
 	By("checking if the target system has enough hosts")
 	hostSystems, err := input.Finder.HostSystemList(ctx, "*")
 	Expect(err).ToNot(HaveOccurred())
-	Expect(len(hostSystems) >= int(input.WorkerNodeCount)).To(BeTrue(), "This test requires more or equal number of hosts compared to the WorkerNodeCount. Expected at least %d but only got %d hosts.", input.WorkerNodeCount, len(hostSystems))
+	Expect(len(hostSystems)).To(BeNumerically(">=", int(input.WorkerNodeCount)), "This test requires more or equal number of hosts compared to the WorkerNodeCount. Expected at least %d but only got %d hosts.", input.WorkerNodeCount, len(hostSystems))
 
 	Byf("creating a workload cluster %s", clusterName)
 	configCluster := defaultConfigCluster(clusterName, namespace.Name, "", 1, input.WorkerNodeCount,

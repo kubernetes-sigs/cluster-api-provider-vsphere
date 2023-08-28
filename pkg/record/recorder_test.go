@@ -35,13 +35,13 @@ var _ = Describe("Event utils", func() {
 		It("should not publish an event", func() {
 			var err error
 			recorder.EmitEvent(nil, "Create", err, true)
-			Expect(len(fakeRecorder.Events)).Should(Equal(0))
+			Expect(fakeRecorder.Events).Should(BeEmpty())
 		})
 
 		It("should publish a success event", func() {
 			var err error
 			recorder.EmitEvent(nil, "Create", err, false)
-			Expect(len(fakeRecorder.Events)).Should(Equal(1))
+			Expect(fakeRecorder.Events).Should(HaveLen(1))
 			event := <-fakeRecorder.Events
 			Expect(event).Should(Equal("Normal CreateSuccess Create success"))
 		})
@@ -49,7 +49,7 @@ var _ = Describe("Event utils", func() {
 		It("should publish a failure event", func() {
 			err := errors.New("something wrong")
 			recorder.EmitEvent(nil, "Create", err, false)
-			Expect(len(fakeRecorder.Events)).Should(Equal(1))
+			Expect(fakeRecorder.Events).Should(HaveLen(1))
 			event := <-fakeRecorder.Events
 			Expect(event).Should(Equal("Warning CreateFailure something wrong"))
 		})
@@ -60,13 +60,13 @@ var _ = Describe("Event utils", func() {
 
 			recorder.Eventf(nil, "Create", message, fmtArgs...)
 			recorder.Warnf(nil, "Create", message, fmtArgs...)
-			Expect(len(fakeRecorder.Events)).To(Equal(2))
+			Expect(fakeRecorder.Events).To(HaveLen(2))
 			eventFmt := <-fakeRecorder.Events
 			warnFmt := <-fakeRecorder.Events
 
 			recorder.Event(nil, "Create", message)
 			recorder.Warn(nil, "Create", message)
-			Expect(len(fakeRecorder.Events)).To(Equal(2))
+			Expect(fakeRecorder.Events).To(HaveLen(2))
 			eventNoFmt := <-fakeRecorder.Events
 			warnNoFmt := <-fakeRecorder.Events
 

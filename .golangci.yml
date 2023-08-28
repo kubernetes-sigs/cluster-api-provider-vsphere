@@ -21,7 +21,7 @@ linters:
   - errchkjson
   - exportloopref
   - gci
-  # - ginkgolinter
+  - ginkgolinter
   - goconst
   - gocritic
   - godot
@@ -171,6 +171,9 @@ linters-settings:
       #
       - name: bool-literal-in-expr
       - name: constant-logical-expr
+
+  ginkgolinter:
+    forbid-focus-container: true
 
 issues:
   max-same-issues: 0

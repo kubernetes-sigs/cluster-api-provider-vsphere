@@ -127,8 +127,8 @@ var _ = Describe("Cluster Controller Tests", func() {
 
 		It("should not find FailureDomains", func() {
 			fds, err := reconciler.getFailureDomains(ctx)
-			Expect(err).To(BeNil())
-			Expect(fds).Should(HaveLen(0))
+			Expect(err).ToNot(HaveOccurred())
+			Expect(fds).Should(BeEmpty())
 		})
 
 		It("should find FailureDomains", func() {
@@ -148,7 +148,7 @@ var _ = Describe("Cluster Controller Tests", func() {
 			}
 
 			fds, err := reconciler.getFailureDomains(ctx)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(fds).NotTo(BeNil())
 			Expect(fds).Should(HaveLen(3))
 		})

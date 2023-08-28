@@ -45,7 +45,7 @@ func getVirtualMachineService(_ CPService, ctx *vmware.ClusterContext) *vmoprv1.
 	if apierrors.IsNotFound(err) {
 		return nil
 	}
-	Expect(err).Should(BeNil())
+	Expect(err).ShouldNot(HaveOccurred())
 	return vms
 }
 
@@ -77,7 +77,7 @@ func updateVMServiceWithVIP(cpService CPService, ctx *vmware.ClusterContext, vip
 	vmService := getVirtualMachineService(cpService, ctx)
 	vmService.Status.LoadBalancer.Ingress = []vmoprv1.LoadBalancerIngress{{IP: vip}}
 	err := ctx.Client.Status().Update(ctx, vmService)
-	Expect(err).Should(BeNil())
+	Expect(err).ShouldNot(HaveOccurred())
 }
 
 var _ = Describe("ControlPlaneEndpoint Tests", func() {
@@ -140,7 +140,7 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 				for k, v := range expectedAnnotations {
 					Expect(vms.Annotations).To(HaveKeyWithValue(k, v))
 				}
-				Expect(len(vms.Spec.Ports)).To(Equal(1))
+				Expect(vms.Spec.Ports).To(HaveLen(1))
 				Expect(vms.Spec.Ports[0].Name).To(Equal(controlPlaneServiceAPIServerPortName))
 				Expect(vms.Spec.Ports[0].Protocol).To(Equal("TCP"))
 				Expect(vms.Spec.Ports[0].Port).To(Equal(int32(defaultAPIBindPort)))

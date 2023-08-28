@@ -129,7 +129,7 @@ func assertRoleWithGetPVC(ctx *helpers.UnitTestContextForController, ctrlClient 
 	}
 	err := ctrlClient.List(ctx, &roleList, opts)
 	Expect(err).ShouldNot(HaveOccurred())
-	Expect(len(roleList.Items)).To(Equal(1))
+	Expect(roleList.Items).To(HaveLen(1))
 	Expect(roleList.Items[0].Name).To(Equal(name))
 	Expect(roleList.Items[0].Rules).To(Equal([]rbacv1.PolicyRule{
 		{
@@ -147,7 +147,7 @@ func assertRoleBinding(_ *helpers.UnitTestContextForController, ctrlClient clien
 	}
 	err := ctrlClient.List(goctx.TODO(), &roleBindingList, opts)
 	Expect(err).ShouldNot(HaveOccurred())
-	Expect(len(roleBindingList.Items)).To(Equal(1))
+	Expect(roleBindingList.Items).To(HaveLen(1))
 	Expect(roleBindingList.Items[0].Name).To(Equal(name))
 	Expect(roleBindingList.Items[0].RoleRef).To(Equal(rbacv1.RoleRef{
 		Name:     name,

@@ -648,7 +648,7 @@ func TestVSphereDeploymentZoneReconciler_ReconcileDelete(t *testing.T) {
 			reconciler := vsphereDeploymentZoneReconciler{controllerCtx}
 			err := reconciler.reconcileDelete(deploymentZoneCtx)
 			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(vsphereDeploymentZone.Finalizers).To(HaveLen(0))
+			g.Expect(vsphereDeploymentZone.Finalizers).To(BeEmpty())
 		})
 	})
 
@@ -667,7 +667,7 @@ func TestVSphereDeploymentZoneReconciler_ReconcileDelete(t *testing.T) {
 		reconciler := vsphereDeploymentZoneReconciler{controllerCtx}
 		err := reconciler.reconcileDelete(deploymentZoneCtx)
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(vsphereDeploymentZone.Finalizers).To(HaveLen(0))
+		g.Expect(vsphereDeploymentZone.Finalizers).To(BeEmpty())
 	})
 
 	t.Run("when no machines are present", func(t *testing.T) {
@@ -684,7 +684,7 @@ func TestVSphereDeploymentZoneReconciler_ReconcileDelete(t *testing.T) {
 		reconciler := vsphereDeploymentZoneReconciler{controllerCtx}
 		err := reconciler.reconcileDelete(deploymentZoneCtx)
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(vsphereDeploymentZone.Finalizers).To(HaveLen(0))
+		g.Expect(vsphereDeploymentZone.Finalizers).To(BeEmpty())
 	})
 
 	t.Run("delete failure domain", func(t *testing.T) {

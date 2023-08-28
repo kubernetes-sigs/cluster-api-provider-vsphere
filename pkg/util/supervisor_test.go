@@ -239,7 +239,7 @@ func TestSetControllerReferenceWithOverride(t *testing.T) {
 				}
 				g.Expect(referSameObject(*controller, *newOwnerRef)).To(BeTrue(), "Expect controller to be: %v, got: %v", newOwnerRef, controller)
 			}
-			g.Expect(len(tc.controlled.GetOwnerReferences())).To(Equal(tc.expectedNumberOfOwners))
+			g.Expect(tc.controlled.GetOwnerReferences()).To(HaveLen(tc.expectedNumberOfOwners))
 		})
 	}
 }

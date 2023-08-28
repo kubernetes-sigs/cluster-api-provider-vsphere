@@ -114,10 +114,10 @@ func VerifyStoragePolicy(ctx context.Context, input StoragePolicySpecInput) {
 		res, err = pbmClient.QueryAssociatedEntity(ctx, types.PbmProfileId{UniqueId: spID}, "virtualMachine")
 		Expect(err).NotTo(HaveOccurred())
 	}
-	Expect(len(res)).To(BeNumerically(">", 0))
+	Expect(res).ToNot(BeEmpty())
 
 	vms := getVSphereVMsForCluster(clusterName, namespace.Name)
-	Expect(len(vms.Items)).To(BeNumerically(">", 0))
+	Expect(vms.Items).ToNot(BeEmpty())
 
 	datacenter, err := vsphereFinder.DatacenterOrDefault(ctx, input.Datacenter)
 	Expect(err).ShouldNot(HaveOccurred())

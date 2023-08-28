@@ -57,14 +57,14 @@ password: '%s'
 
 		watch, err := InitializeWatch(fake.NewControllerManagerContext(), managerOptsTest)
 		// Match initial credentials
-		g.Expect(err).To(BeNil())
+		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(managerOptsTest.Username).To(Equal(username))
 		g.Expect(managerOptsTest.Password).To(Equal(password))
 
 		// Update the file and wait for watch to detect the change
 		content := fmt.Sprintf(contentFmt, updatedUsername, updatedPassword)
 		_, err = tmpFile.Write([]byte(content))
-		g.Expect(err).To(BeNil())
+		g.Expect(err).ToNot(HaveOccurred())
 
 		g.Eventually(func() bool {
 			return managerOptsTest.Username == updatedUsername && managerOptsTest.Password == updatedPassword
@@ -89,7 +89,7 @@ password: '%s'
 		}
 		watch, err := InitializeWatch(fake.NewControllerManagerContext(), managerOptsTest)
 		// Match initial credentials
-		g.Expect(err).To(BeNil())
+		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(managerOptsTest.Username).To(Equal(username))
 		g.Expect(managerOptsTest.Password).To(Equal(password))
 
@@ -124,6 +124,6 @@ password: '%s'
 		}
 		_, err = InitializeWatch(fake.NewControllerManagerContext(), managerOptsTest)
 		// Match initial credentials
-		g.Expect(err).NotTo(BeNil())
+		g.Expect(err).To(HaveOccurred())
 	})
 }

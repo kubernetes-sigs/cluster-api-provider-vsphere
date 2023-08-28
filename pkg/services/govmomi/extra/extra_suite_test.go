@@ -91,7 +91,7 @@ func ConfigInitFnTester(method ConfigInitFn, methodName string, dataKey string, 
 		method(&config, sampleData)
 
 		It("must set 2 keys in the config", func() {
-			Expect(len(config)).To(Equal(2))
+			Expect(config).To(HaveLen(2))
 		})
 
 		It(fmt.Sprintf("must set data as a base64 encoded string with the key %q", dataKey), func() {

@@ -105,7 +105,7 @@ func VerifyMultiVC(ctx context.Context, input MultiVCenterSpecInput) {
 	}, clusterResources)
 
 	vms := getVSphereVMsForCluster(clusterName, namespace.Name)
-	Expect(len(vms.Items)).To(BeNumerically(">", 0))
+	Expect(vms.Items).ToNot(BeEmpty())
 
 	_, err := vsphereFinder.DatacenterOrDefault(ctx, input.Datacenter)
 	Expect(err).ShouldNot(HaveOccurred())
@@ -190,7 +190,7 @@ func VerifyMultiVC(ctx context.Context, input MultiVCenterSpecInput) {
 	}, clusterResources)
 
 	vms = getVSphereVMs(mgmtClusterProxy, wlClusterName, namespace.Name)
-	Expect(len(vms.Items)).To(BeNumerically(">", 0))
+	Expect(vms.Items).ToNot(BeEmpty())
 	if selfHostedCancelWatches != nil {
 		selfHostedCancelWatches()
 	}

@@ -46,7 +46,7 @@ const (
 	WorkerMachineCountVar        = "${WORKER_MACHINE_COUNT}"
 	ControlPlaneEndpointVar      = "${CONTROL_PLANE_ENDPOINT_IP}"
 	// Set the default to an empty string to let kube-vip autodetect the interface.
-	VipNetworkInterfaceVar       = "${VIP_NETWORK_INTERFACE=\"\"}"
+	VipNetworkInterfaceVar       = "${VIP_NETWORK_INTERFACE:=\"\"}"
 	VSphereUsername              = "${VSPHERE_USERNAME}"
 	VSpherePassword              = "${VSPHERE_PASSWORD}" /* #nosec */
 	ClusterResourceSetNameSuffix = "-crs-0"

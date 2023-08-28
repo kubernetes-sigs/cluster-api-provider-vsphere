@@ -25,7 +25,7 @@ spec:
             - name: cp_enable
               value: "true"
             - name: vip_interface
-              value: ${VIP_NETWORK_INTERFACE=""}
+              value: ${VIP_NETWORK_INTERFACE:=""}
             - name: address
               value: ${CONTROL_PLANE_ENDPOINT_IP}
             - name: port

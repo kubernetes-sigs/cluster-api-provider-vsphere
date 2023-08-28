@@ -74,6 +74,7 @@ var (
 	webhookOpts                 webhook.Options
 	watchNamespace              string
 
+	clusterCacheTrackerConcurrency    int
 	vSphereClusterConcurrency         int
 	vSphereMachineConcurrency         int
 	providerServiceAccountConcurrency int
@@ -102,6 +103,9 @@ func InitFlags(fs *pflag.FlagSet) {
 		"leader-election-id",
 		defaultLeaderElectionID,
 		"Name of the config map to use as the locking resource when configuring leader election.")
+
+	fs.IntVar(&clusterCacheTrackerConcurrency, "clustercachetracker-concurrency", 10,
+		"Number of clusters to process simultaneously")
 
 	fs.IntVar(&vSphereClusterConcurrency, "vspherecluster-concurrency", 10,
 		"Number of vSphere clusters to process simultaneously")
@@ -447,7 +451,7 @@ func setupRemoteClusterCacheTracker(ctx *context.ControllerManagerContext, mgr c
 		Client:           mgr.GetClient(),
 		Tracker:          tracker,
 		WatchFilterValue: managerOpts.WatchFilterValue,
-	}).SetupWithManager(ctx, mgr, concurrency(10)); err != nil {
+	}).SetupWithManager(ctx, mgr, concurrency(clusterCacheTrackerConcurrency)); err != nil {
 		return nil, perrors.Wrapf(err, "unable to create ClusterCacheReconciler controller")
 	}
 

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package webhooks
 
 import (
 	"context"
@@ -24,13 +24,15 @@ import (
 	admissionv1 "k8s.io/api/admission/v1"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 )
 
 func TestVSphereMachineTemplate_ValidateCreate(t *testing.T) {
 	g := NewWithT(t)
 	tests := []struct {
 		name           string
-		vsphereMachine *VSphereMachineTemplate
+		vsphereMachine *infrav1.VSphereMachineTemplate
 		wantErr        bool
 	}{
 		{
@@ -85,8 +87,8 @@ func TestVSphereMachineTemplate_ValidateUpdate(t *testing.T) {
 	g := NewWithT(t)
 	tests := []struct {
 		name              string
-		oldVSphereMachine *VSphereMachineTemplate
-		vsphereMachine    *VSphereMachineTemplate
+		oldVSphereMachine *infrav1.VSphereMachineTemplate
+		vsphereMachine    *infrav1.VSphereMachineTemplate
 		req               *admission.Request
 		wantErr           bool
 	}{
@@ -143,17 +145,17 @@ func TestVSphereMachineTemplate_ValidateUpdate(t *testing.T) {
 	}
 }
 
-func createVSphereMachineTemplate(server, hwVersion string, providerID *string, preferredAPIServerCIDR string, ips []string) *VSphereMachineTemplate {
-	vsphereMachineTemplate := &VSphereMachineTemplate{
-		Spec: VSphereMachineTemplateSpec{
-			Template: VSphereMachineTemplateResource{
-				Spec: VSphereMachineSpec{
+func createVSphereMachineTemplate(server, hwVersion string, providerID *string, preferredAPIServerCIDR string, ips []string) *infrav1.VSphereMachineTemplate {
+	vsphereMachineTemplate := &infrav1.VSphereMachineTemplate{
+		Spec: infrav1.VSphereMachineTemplateSpec{
+			Template: infrav1.VSphereMachineTemplateResource{
+				Spec: infrav1.VSphereMachineSpec{
 					ProviderID: providerID,
-					VirtualMachineCloneSpec: VirtualMachineCloneSpec{
+					VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
 						Server: server,
-						Network: NetworkSpec{
+						Network: infrav1.NetworkSpec{
 							PreferredAPIServerCIDR: preferredAPIServerCIDR,
-							Devices:                []NetworkDeviceSpec{},
+							Devices:                []infrav1.NetworkDeviceSpec{},
 						},
 						HardwareVersion: hwVersion,
 					},
@@ -162,7 +164,7 @@ func createVSphereMachineTemplate(server, hwVersion string, providerID *string, 
 		},
 	}
 	for _, ip := range ips {
-		vsphereMachineTemplate.Spec.Template.Spec.Network.Devices = append(vsphereMachineTemplate.Spec.Template.Spec.Network.Devices, NetworkDeviceSpec{
+		vsphereMachineTemplate.Spec.Template.Spec.Network.Devices = append(vsphereMachineTemplate.Spec.Template.Spec.Network.Devices, infrav1.NetworkDeviceSpec{
 			IPAddrs: []string{ip},
 		})
 	}

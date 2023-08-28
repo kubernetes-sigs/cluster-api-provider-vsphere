@@ -14,13 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package webhooks
 
 import (
+	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
 	"k8s.io/utils/pointer"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 )
 
 func TestVSphereDeploymentZone_Default(t *testing.T) {
@@ -47,12 +50,13 @@ func TestVSphereDeploymentZone_Default(t *testing.T) {
 		// Need to reinit the test variable
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			vdz := VSphereDeploymentZone{
-				Spec: VSphereDeploymentZoneSpec{
+			vdz := infrav1.VSphereDeploymentZone{
+				Spec: infrav1.VSphereDeploymentZoneSpec{
 					ControlPlane: tt.boolPtr,
 				},
 			}
-			vdz.Default()
+			webhook := VSphereDeploymentZoneWebhook{}
+			g.Expect(webhook.Default(context.Background(), &vdz)).NotTo(HaveOccurred())
 			g.Expect(vdz.Spec.ControlPlane).NotTo(BeNil())
 			g.Expect(*vdz.Spec.ControlPlane).To(Equal(tt.expectedVal))
 		})

@@ -48,6 +48,7 @@ import (
 	infrav1alpha3 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1alpha3"
 	infrav1alpha4 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1alpha4"
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/internal/webhooks"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers/vcsim"
@@ -141,23 +142,27 @@ func NewTestEnvironment() *TestEnvironment {
 		Password:   simr.Password(),
 	}
 	managerOpts.AddToManager = func(ctx *context.ControllerManagerContext, mgr ctrlmgr.Manager) error {
-		if err := (&infrav1.VSphereMachine{}).SetupWebhookWithManager(mgr); err != nil {
+		if err := (&webhooks.VSphereClusterTemplateWebhook{}).SetupWebhookWithManager(mgr); err != nil {
 			return err
 		}
 
-		if err := (&infrav1.VSphereMachineTemplateWebhook{}).SetupWebhookWithManager(mgr); err != nil {
+		if err := (&webhooks.VSphereMachineWebhook{}).SetupWebhookWithManager(mgr); err != nil {
 			return err
 		}
 
-		if err := (&infrav1.VSphereVM{}).SetupWebhookWithManager(mgr); err != nil {
+		if err := (&webhooks.VSphereMachineTemplateWebhook{}).SetupWebhookWithManager(mgr); err != nil {
 			return err
 		}
 
-		if err := (&infrav1.VSphereDeploymentZone{}).SetupWebhookWithManager(mgr); err != nil {
+		if err := (&webhooks.VSphereVMWebhook{}).SetupWebhookWithManager(mgr); err != nil {
 			return err
 		}
 
-		return (&infrav1.VSphereFailureDomain{}).SetupWebhookWithManager(mgr)
+		if err := (&webhooks.VSphereDeploymentZoneWebhook{}).SetupWebhookWithManager(mgr); err != nil {
+			return err
+		}
+
+		return (&webhooks.VSphereFailureDomainWebhook{}).SetupWebhookWithManager(mgr)
 	}
 
 	mgr, err := manager.New(managerOpts)

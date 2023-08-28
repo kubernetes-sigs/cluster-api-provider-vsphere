@@ -50,6 +50,7 @@ import (
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/controllers"
 	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
+	"sigs.k8s.io/cluster-api-provider-vsphere/internal/webhooks"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/constants"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
@@ -330,27 +331,27 @@ func main() {
 }
 
 func setupVAPIControllers(ctx *context.ControllerManagerContext, mgr ctrlmgr.Manager, tracker *remote.ClusterCacheTracker) error {
-	if err := (&infrav1.VSphereClusterTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&webhooks.VSphereClusterTemplateWebhook{}).SetupWebhookWithManager(mgr); err != nil {
 		return err
 	}
 
-	if err := (&infrav1.VSphereMachine{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&webhooks.VSphereMachineWebhook{}).SetupWebhookWithManager(mgr); err != nil {
 		return err
 	}
 
-	if err := (&infrav1.VSphereMachineTemplateWebhook{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&webhooks.VSphereMachineTemplateWebhook{}).SetupWebhookWithManager(mgr); err != nil {
 		return err
 	}
 
-	if err := (&infrav1.VSphereVM{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&webhooks.VSphereVMWebhook{}).SetupWebhookWithManager(mgr); err != nil {
 		return err
 	}
 
-	if err := (&infrav1.VSphereDeploymentZone{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&webhooks.VSphereDeploymentZoneWebhook{}).SetupWebhookWithManager(mgr); err != nil {
 		return err
 	}
 
-	if err := (&infrav1.VSphereFailureDomain{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&webhooks.VSphereFailureDomainWebhook{}).SetupWebhookWithManager(mgr); err != nil {
 		return err
 	}
 

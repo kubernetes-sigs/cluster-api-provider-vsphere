@@ -41,7 +41,7 @@ import (
 // IntegrationTestContext is used for integration testing
 // Supervisor controllers.
 type IntegrationTestContext struct {
-	context.Context
+	context.Context   //nolint:containedctx
 	Client            client.Client
 	GuestClient       client.Client
 	Namespace         string

@@ -28,7 +28,7 @@ import (
 )
 
 type FetchObjectInput struct {
-	context.Context
+	context.Context //nolint:containedctx
 	ctrlclient.Client
 	Object ctrlclient.Object
 }

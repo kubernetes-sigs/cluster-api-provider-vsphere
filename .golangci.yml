@@ -13,7 +13,7 @@ linters:
   - asciicheck
   - bidichk
   - bodyclose
-  # - containedctx
+  - containedctx
   - dogsled
   - dupword
   - durationcheck

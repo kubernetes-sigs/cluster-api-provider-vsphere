@@ -33,8 +33,8 @@ func TestCluster(t *testing.T) {
 }
 
 type testComputeClusterCtx struct {
-	context.Context
-	finder *find.Finder
+	context.Context //nolint:containedctx
+	finder          *find.Finder
 }
 
 func (t testComputeClusterCtx) GetSession() *session.Session {

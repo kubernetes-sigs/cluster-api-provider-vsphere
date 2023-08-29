@@ -70,8 +70,6 @@ import (
 // +kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;delete
 
 // AddVMControllerToManager adds the VM controller to the provided manager.
-//
-//nolint:forcetypeassert
 func AddVMControllerToManager(ctx *context.ControllerManagerContext, mgr manager.Manager, tracker *remote.ClusterCacheTracker, options controller.Options) error {
 	var (
 		controlledType     = &infrav1.VSphereVM{}

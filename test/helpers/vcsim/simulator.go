@@ -16,16 +16,13 @@ limitations under the License.
 
 package vcsim
 
-//nolint:all
 import (
 	"fmt"
 	"net/url"
 
 	"github.com/onsi/gomega/gbytes"
 	"github.com/vmware/govmomi/simulator"
-
-	// run init func to register the tagging API endpoints.
-	_ "github.com/vmware/govmomi/vapi/simulator"
+	_ "github.com/vmware/govmomi/vapi/simulator" // run init func to register the tagging API endpoints.
 )
 
 type Simulator struct {

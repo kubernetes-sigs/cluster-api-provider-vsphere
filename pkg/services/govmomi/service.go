@@ -407,7 +407,7 @@ func (vms *VMService) reconcileStoragePolicy(ctx *virtualMachineContext) error {
 
 	disks := devices.SelectByType((*types.VirtualDisk)(nil))
 	for _, d := range disks {
-		disk := d.(*types.VirtualDisk) //nolint:forcetypeassert
+		disk := d.(*types.VirtualDisk)
 		found := false
 		// entities associated with storage policy has key in the form <vm-ID>:<disk>
 		diskID := fmt.Sprintf("%s:%d", ctx.Obj.Reference().Value, disk.Key)

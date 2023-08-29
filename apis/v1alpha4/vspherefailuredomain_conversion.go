@@ -29,7 +29,7 @@ func (src *VSphereFailureDomain) ConvertTo(dstRaw conversion.Hub) error {
 }
 
 // ConvertFrom converts from the Hub version (v1beta1) to this VSphereFailureDomain.
-func (dst *VSphereFailureDomain) ConvertFrom(srcRaw conversion.Hub) error { // nolint
+func (dst *VSphereFailureDomain) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.VSphereFailureDomain)
 	return Convert_v1beta1_VSphereFailureDomain_To_v1alpha4_VSphereFailureDomain(src, dst, nil)
 }
@@ -41,7 +41,7 @@ func (src *VSphereFailureDomainList) ConvertTo(dstRaw conversion.Hub) error {
 }
 
 // ConvertFrom converts this VSphereFailureDomainList to the Hub version (v1beta1).
-func (dst *VSphereFailureDomainList) ConvertFrom(srcRaw conversion.Hub) error { // nolint
+func (dst *VSphereFailureDomainList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.VSphereFailureDomainList)
 	return Convert_v1beta1_VSphereFailureDomainList_To_v1alpha4_VSphereFailureDomainList(src, dst, nil)
 }

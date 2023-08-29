@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-//nolint:golint,revive,stylecheck
 package v1alpha4
 
 import (
@@ -29,7 +28,7 @@ import (
 
 // ConvertTo.
 func (src *VSphereMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*infrav1.VSphereMachineTemplate) //nolint:forcetypeassert
+	dst := dstRaw.(*infrav1.VSphereMachineTemplate)
 	if err := Convert_v1alpha4_VSphereMachineTemplate_To_v1beta1_VSphereMachineTemplate(src, dst, nil); err != nil {
 		return err
 	}
@@ -53,7 +52,7 @@ func (src *VSphereMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 }
 
 func (dst *VSphereMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*infrav1.VSphereMachineTemplate) //nolint:forcetypeassert
+	src := srcRaw.(*infrav1.VSphereMachineTemplate)
 	if err := Convert_v1beta1_VSphereMachineTemplate_To_v1alpha4_VSphereMachineTemplate(src, dst, nil); err != nil {
 		return err
 	}
@@ -67,23 +66,21 @@ func (dst *VSphereMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 }
 
 func (src *VSphereMachineTemplateList) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*infrav1.VSphereMachineTemplateList) //nolint:forcetypeassert
+	dst := dstRaw.(*infrav1.VSphereMachineTemplateList)
 	return Convert_v1alpha4_VSphereMachineTemplateList_To_v1beta1_VSphereMachineTemplateList(src, dst, nil)
 }
 
 func (dst *VSphereMachineTemplateList) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*infrav1.VSphereMachineTemplateList) //nolint:forcetypeassert
+	src := srcRaw.(*infrav1.VSphereMachineTemplateList)
 	return Convert_v1beta1_VSphereMachineTemplateList_To_v1alpha4_VSphereMachineTemplateList(src, dst, nil)
 }
 
-// nolint
 func Convert_v1alpha4_ObjectMeta_To_v1beta1_ObjectMeta(in *clusterv1alpha4.ObjectMeta, out *clusterv1.ObjectMeta, s apiconversion.Scope) error {
 	// wrapping the conversion func to avoid having compile errors due to compileErrorOnMissingConversion()
 	// more details at https://github.com/kubernetes/kubernetes/issues/98380
 	return clusterv1alpha4.Convert_v1alpha4_ObjectMeta_To_v1beta1_ObjectMeta(in, out, s)
 }
 
-// nolint
 func Convert_v1beta1_ObjectMeta_To_v1alpha4_ObjectMeta(in *clusterv1.ObjectMeta, out *clusterv1alpha4.ObjectMeta, s apiconversion.Scope) error {
 	// wrapping the conversion func to avoid having compile errors due to compileErrorOnMissingConversion()
 	// more details at https://github.com/kubernetes/kubernetes/issues/98380

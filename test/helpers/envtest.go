@@ -75,7 +75,10 @@ func init() {
 	utilruntime.Must(infrav1.AddToScheme(scheme))
 
 	// Get the root of the current file to use in CRD paths.
-	_, filename, _, _ := goruntime.Caller(0) //nolint
+	_, filename, _, ok := goruntime.Caller(0)
+	if !ok {
+		klog.Fatalf("Failed to get information for current file from runtime")
+	}
 	root := path.Join(path.Dir(filename), "..", "..")
 
 	crdPaths := []string{

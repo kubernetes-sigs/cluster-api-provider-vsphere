@@ -43,7 +43,7 @@ func (r *VSphereClusterTemplate) ValidateCreate() (admission.Warnings, error) {
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
 func (r *VSphereClusterTemplate) ValidateUpdate(oldRaw runtime.Object) (admission.Warnings, error) {
-	old := oldRaw.(*VSphereClusterTemplate) //nolint:forcetypeassert
+	old := oldRaw.(*VSphereClusterTemplate)
 	if !reflect.DeepEqual(r.Spec.Template.Spec, old.Spec.Template.Spec) {
 		return nil, field.Forbidden(field.NewPath("spec", "template", "spec"), "VSphereClusterTemplate spec is immutable")
 	}

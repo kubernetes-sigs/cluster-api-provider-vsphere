@@ -78,8 +78,6 @@ func (r *VSphereVM) ValidateCreate() (admission.Warnings, error) {
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-//
-//nolint:forcetypeassert
 func (r *VSphereVM) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	var allErrs field.ErrorList
 	if r.Spec.GuestSoftPowerOffTimeout != nil {

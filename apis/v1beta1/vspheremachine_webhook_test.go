@@ -35,9 +35,7 @@ func TestVsphereMachine_Default(t *testing.T) {
 	g.Expect(m.Spec.Datacenter).To(Equal("*"))
 }
 
-//nolint:all
 func TestVSphereMachine_ValidateCreate(t *testing.T) {
-
 	g := NewWithT(t)
 	tests := []struct {
 		name           string
@@ -107,9 +105,7 @@ func TestVSphereMachine_ValidateCreate(t *testing.T) {
 	}
 }
 
-//nolint:all
 func TestVSphereMachine_ValidateUpdate(t *testing.T) {
-
 	g := NewWithT(t)
 
 	tests := []struct {

@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-//nolint:forcetypeassert,golint,revive,stylecheck
 package v1alpha3
 
 import (

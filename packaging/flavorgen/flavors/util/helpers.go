@@ -115,7 +115,7 @@ func deleteZeroValues(o map[string]interface{}) map[string]interface{} {
 			continue
 		}
 		if val.Kind() == reflect.Map {
-			newMap := v.(map[string]interface{}) //nolint:forcetypeassert
+			newMap := v.(map[string]interface{})
 			newMap = deleteZeroValues(newMap)
 			if isZeroValue(reflect.ValueOf(newMap)) {
 				delete(o, k)

@@ -47,13 +47,14 @@ var (
 	ctx       goctx.Context
 )
 
-func init() {
+func getTestEnv() *envtest.Environment {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(apiextensionsv1.AddToScheme(scheme))
 	utilruntime.Must(infrav1.AddToScheme(scheme))
 	utilruntime.Must(infrav1alpha3.AddToScheme(scheme))
 
-	_, filename, _, _ := goruntime.Caller(0) //nolint
+	_, filename, _, ok := goruntime.Caller(0)
+	Expect(ok).To(BeTrue(), "Failed to get information for current file from runtime")
 	root := path.Join(path.Dir(filename), "..", "..")
 
 	crdPaths := []string{
@@ -64,6 +65,7 @@ func init() {
 		ErrorIfCRDPathMissing: true,
 		CRDDirectoryPaths:     crdPaths,
 	}
+	return env
 }
 
 func TestIdentity(t *testing.T) {
@@ -74,6 +76,7 @@ func TestIdentity(t *testing.T) {
 var _ = SynchronizedBeforeSuite(func() []byte {
 	By("Creating new test environment")
 	ctx = goctx.Background()
+	env = getTestEnv()
 	cfg, err := env.Start()
 	Expect(err).NotTo(HaveOccurred())
 

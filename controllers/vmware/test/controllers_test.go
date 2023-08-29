@@ -355,7 +355,7 @@ var _ = Describe("Reconciliation tests", func() {
 			if err := k8sClient.Get(ctx, key, obj); err != nil {
 				return "", err
 			}
-			vSphereMachine := obj.(*vmwarev1.VSphereMachine) //nolint:forcetypeassert
+			vSphereMachine := obj.(*vmwarev1.VSphereMachine)
 			return vSphereMachine.Status.VMStatus, nil
 		}, time.Second*30).Should(Equal(expectedState))
 	}
@@ -365,7 +365,7 @@ var _ = Describe("Reconciliation tests", func() {
 			if err := k8sClient.Get(ctx, key, obj); err != nil {
 				return "", err
 			}
-			vsphereCluster := obj.(*vmwarev1.VSphereCluster) //nolint:forcetypeassert
+			vsphereCluster := obj.(*vmwarev1.VSphereCluster)
 			return vsphereCluster.Spec.ControlPlaneEndpoint.Host, nil
 		}, time.Second*30).Should(Equal(expectedIP))
 	}

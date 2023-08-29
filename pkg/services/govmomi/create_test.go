@@ -29,7 +29,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers/vcsim"
 )
 
-//nolint:forcetypeassert
 func TestCreate(t *testing.T) {
 	model := simulator.VPX()
 	model.Host = 0 // ClusterHost only

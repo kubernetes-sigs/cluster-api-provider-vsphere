@@ -136,6 +136,8 @@ GO_APIDIFF_PKG := github.com/joelanford/go-apidiff
 
 SHELLCHECK_VER := v0.9.0
 
+TRIVY_VER := 0.44.1
+
 KPROMO_VER := v4.0.4
 KPROMO_BIN := kpromo
 KPROMO :=  $(abspath $(TOOLS_BIN_DIR)/$(KPROMO_BIN)-$(KPROMO_VER))
@@ -334,7 +336,7 @@ APIDIFF_OLD_COMMIT ?= $(shell git rev-parse origin/main)
 apidiff: $(GO_APIDIFF) ## Check for API differences
 	$(GO_APIDIFF) $(APIDIFF_OLD_COMMIT) --print-compatible
 
-ALL_VERIFY_CHECKS = boilerplate shellcheck modules gen conversions doctoc flavors
+ALL_VERIFY_CHECKS = licenses boilerplate shellcheck modules gen conversions doctoc flavors
 
 .PHONY: verify
 verify: $(addprefix verify-,$(ALL_VERIFY_CHECKS)) ## Run all verify-* targets
@@ -378,7 +380,11 @@ verify-shellcheck: ## Verify shell files
 
 .PHONY: verify-container-images
 verify-container-images: ## Verify container images
-	TRACE=$(TRACE) ./hack/verify-container-images.sh
+	TRACE=$(TRACE) ./hack/verify-container-images.sh  $(TRIVY_VER)
+
+.PHONY: verify-licenses
+verify-licenses: ## Verify licenses
+	TRACE=$(TRACE) ./hack/verify-licenses.sh $(TRIVY_VER)
 
 .PHONY: verify-govulncheck
 verify-govulncheck: $(GOVULNCHECK) ## Verify code for vulnerabilities

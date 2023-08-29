@@ -463,13 +463,12 @@ func getNetworkSpecs(ctx context.Context, vmCtx *capvcontext.VMContext, devices 
 }
 
 func createPCIPassThroughDevice(deviceKey int32, backingInfo types.BaseVirtualDeviceBackingInfo) types.BaseVirtualDevice {
-	device := &types.VirtualPCIPassthrough{
+	return &types.VirtualPCIPassthrough{
 		VirtualDevice: types.VirtualDevice{
 			Key:     deviceKey,
 			Backing: backingInfo,
 		},
 	}
-	return device
 }
 
 func getGpuSpecs(ctx *context.VMContext) []types.BaseVirtualDeviceConfigSpec {

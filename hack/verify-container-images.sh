@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2023 The Kubernetes Authors.
+# Copyright 2022 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,42 +22,20 @@ if [[ "${TRACE-0}" == "1" ]]; then
     set -o xtrace
 fi
 
-TRIVY_VERSION=0.34.0
-
-GO_OS="$(go env GOOS)"
-if [[ "${GO_OS}" == "linux" ]]; then
-  TRIVY_OS="Linux"
-elif [[ "${GO_OS}" == "darwin"* ]]; then
-  TRIVY_OS="macOS"
-fi
-
+VERSION=${1}
 GO_ARCH="$(go env GOARCH)"
-if [[ "${GO_ARCH}" == "amd" ]]; then
-  TRIVY_ARCH="32bit"
-elif [[ "${GO_ARCH}" == "amd64"* ]]; then
-  TRIVY_ARCH="64bit"
-elif [[ "${GO_ARCH}" == "arm" ]]; then
-  TRIVY_ARCH="ARM"
-elif [[ "${GO_ARCH}" == "arm64" ]]; then
-  TRIVY_ARCH="ARM64"
-fi
 
-TOOL_BIN=hack/tools/bin
-mkdir -p ${TOOL_BIN}
+REPO_ROOT=$(git rev-parse --show-toplevel)
+"${REPO_ROOT}/hack/ensure-trivy.sh" "${VERSION}"
 
-# Downloads trivy scanner
-curl -L -o ${TOOL_BIN}/trivy.tar.gz "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_${TRIVY_OS}-${TRIVY_ARCH}.tar.gz"
-
-tar -xf "${TOOL_BIN}/trivy.tar.gz" -C "${TOOL_BIN}" trivy
-chmod +x ${TOOL_BIN}/trivy
-rm ${TOOL_BIN}/trivy.tar.gz
+TRIVY="${REPO_ROOT}/hack/tools/bin/trivy/${VERSION}/trivy"
 
 # Builds all the container images to be scanned and cleans up changes to ./*manager_image_patch.yaml ./*manager_pull_policy.yaml.
 make REGISTRY=gcr.io/k8s-staging-capi-vsphere PULL_POLICY=IfNotPresent TAG=dev docker-build
 make clean-release-git
 
 # Scan the images
-${TOOL_BIN}/trivy image -q --exit-code 1 --ignore-unfixed --severity MEDIUM,HIGH,CRITICAL gcr.io/k8s-staging-capi-vsphere/cluster-api-vsphere-controller-"${GO_ARCH}":dev && R1=$? || R1=$?
+"${TRIVY}" image -q --exit-code 1 --ignore-unfixed --severity MEDIUM,HIGH,CRITICAL gcr.io/k8s-staging-capi-vsphere/cluster-api-vsphere-controller-"${GO_ARCH}":dev && R1=$? || R1=$?
 
 echo ""
 BRed='\033[1;31m'

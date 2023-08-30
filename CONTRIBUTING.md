@@ -18,7 +18,12 @@ Kubernetes projects require that you sign a Contributor License Agreement (CLA) 
         * 📖 (:book:, documentation or proposals)
         * 🌱 (:seedling:, minor or other)
 
-### Contributer Ladder
+## Dependency Licence Management
+
+Cluster API provider vSphere follows the [license policy of the CNCF](https://github.com/cncf/foundation/blob/main/allowed-third-party-license-policy.md). This sets limits on which
+licenses dependencies and other artifacts use. For go dependencies only dependencies listed in the `go.mod` are considered dependencies. This is in line with [how dependencies are reviewed in Kubernetes](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/vendor.md#reviewing-and-approving-dependency-changes).
+
+### Contributor Ladder
 
 We broadly follow the requirements from the [Kubernetes Community Membership](https://github.com/kubernetes/community/blob/master/community-membership.md).
 

@@ -420,18 +420,6 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 		},
 	}
 
-	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "valid-cluster",
-			Namespace: "test",
-		},
-		Spec: clusterv1.ClusterSpec{
-			InfrastructureRef: &corev1.ObjectReference{
-				Name: vsphereCluster.Name,
-			},
-		},
-	}
-
 	machine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
@@ -441,8 +429,6 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 			},
 		},
 	}
-
-	initObjs := createMachineOwnerHierarchy(machine)
 
 	vsphereMachine := &infrav1.VSphereMachine{
 		ObjectMeta: metav1.ObjectMeta{
@@ -480,26 +466,71 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 		Status: infrav1.VSphereVMStatus{},
 	}
 
-	initObjs = append(initObjs, secret, vsphereVM, vsphereMachine, machine, cluster, vsphereCluster)
-	controllerMgrContext := fake.NewControllerManagerContext(initObjs...)
+	t.Run("Retrieve credentials from cluster", func(t *testing.T) {
+		cluster := &clusterv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "valid-cluster",
+				Namespace: "test",
+			},
+			Spec: clusterv1.ClusterSpec{
+				InfrastructureRef: &corev1.ObjectReference{
+					Name: vsphereCluster.Name,
+				},
+			},
+		}
 
-	controllerContext := &context.ControllerContext{
-		ControllerManagerContext: controllerMgrContext,
-		Recorder:                 record.New(apirecord.NewFakeRecorder(100)),
-		Logger:                   log.Log,
-	}
-	r := vmReconciler{ControllerContext: controllerContext}
+		initObjs := createMachineOwnerHierarchy(machine)
+		initObjs = append(initObjs, secret, vsphereVM, vsphereMachine, machine, cluster, vsphereCluster)
+		controllerMgrContext := fake.NewControllerManagerContext(initObjs...)
 
-	_, err = r.Reconcile(goctx.Background(), ctrl.Request{NamespacedName: util.ObjectKey(vsphereVM)})
-	g := NewWithT(t)
-	g.Expect(err).NotTo(HaveOccurred())
+		controllerContext := &context.ControllerContext{
+			ControllerManagerContext: controllerMgrContext,
+			Recorder:                 record.New(apirecord.NewFakeRecorder(100)),
+			Logger:                   log.Log,
+		}
+		r := vmReconciler{ControllerContext: controllerContext}
 
-	vm := &infrav1.VSphereVM{}
-	vmKey := util.ObjectKey(vsphereVM)
-	g.Expect(r.Client.Get(goctx.Background(), vmKey, vm)).NotTo(HaveOccurred())
-	g.Expect(conditions.Has(vm, infrav1.VCenterAvailableCondition)).To(BeTrue())
-	vCenterCondition := conditions.Get(vm, infrav1.VCenterAvailableCondition)
-	g.Expect(vCenterCondition.Status).To(Equal(corev1.ConditionTrue))
+		_, err = r.Reconcile(goctx.Background(), ctrl.Request{NamespacedName: util.ObjectKey(vsphereVM)})
+		g := NewWithT(t)
+		g.Expect(err).NotTo(HaveOccurred())
+
+		vm := &infrav1.VSphereVM{}
+		vmKey := util.ObjectKey(vsphereVM)
+		g.Expect(r.Client.Get(goctx.Background(), vmKey, vm)).NotTo(HaveOccurred())
+		g.Expect(conditions.Has(vm, infrav1.VCenterAvailableCondition)).To(BeTrue())
+		vCenterCondition := conditions.Get(vm, infrav1.VCenterAvailableCondition)
+		g.Expect(vCenterCondition.Status).To(Equal(corev1.ConditionTrue))
+	},
+	)
+
+	t.Run("Error if cluster infrastructureRef is nil", func(t *testing.T) {
+		cluster := &clusterv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "valid-cluster",
+				Namespace: "test",
+			},
+
+			// InfrastructureRef is nil so we should get an error.
+			Spec: clusterv1.ClusterSpec{
+				InfrastructureRef: nil,
+			},
+		}
+		initObjs := createMachineOwnerHierarchy(machine)
+		initObjs = append(initObjs, secret, vsphereVM, vsphereMachine, machine, cluster, vsphereCluster)
+		controllerMgrContext := fake.NewControllerManagerContext(initObjs...)
+
+		controllerContext := &context.ControllerContext{
+			ControllerManagerContext: controllerMgrContext,
+			Recorder:                 record.New(apirecord.NewFakeRecorder(100)),
+			Logger:                   log.Log,
+		}
+		r := vmReconciler{ControllerContext: controllerContext}
+
+		_, err = r.Reconcile(goctx.Background(), ctrl.Request{NamespacedName: util.ObjectKey(vsphereVM)})
+		g := NewWithT(t)
+		g.Expect(err).To(HaveOccurred())
+	},
+	)
 }
 
 func Test_reconcile(t *testing.T) {

@@ -28,6 +28,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apitypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
@@ -578,6 +579,9 @@ func (r vmReconciler) retrieveVcenterSession(ctx goctx.Context, vsphereVM *infra
 			params)
 	}
 
+	if cluster.Spec.InfrastructureRef == nil {
+		return nil, errors.Errorf("cannot retrieve vCenter session for cluster %s: .spec.infrastructureRef is nil", klog.KObj(cluster))
+	}
 	key := ctrlclient.ObjectKey{
 		Namespace: cluster.Namespace,
 		Name:      cluster.Spec.InfrastructureRef.Name,

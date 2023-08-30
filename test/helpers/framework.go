@@ -17,7 +17,7 @@ limitations under the License.
 package helpers
 
 import (
-	goctx "context"
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -33,7 +33,7 @@ import (
 // Util functions to interact with the clusterctl e2e framework.
 
 func LoadE2EConfig(configPath string) (*clusterctl.E2EConfig, error) {
-	config := clusterctl.LoadE2EConfig(goctx.TODO(), clusterctl.LoadE2EConfigInput{ConfigPath: configPath})
+	config := clusterctl.LoadE2EConfig(context.TODO(), clusterctl.LoadE2EConfigInput{ConfigPath: configPath})
 	if config == nil {
 		return nil, fmt.Errorf("cannot load E2E config found at %s", configPath)
 	}
@@ -58,7 +58,7 @@ func CreateClusterctlLocalRepository(config *clusterctl.E2EConfig, repositoryFol
 		createRepositoryInput.RegisterClusterResourceSetConfigMapTransformation(cniPath, capi_e2e.CNIResources)
 	}
 
-	clusterctlConfig := clusterctl.CreateRepository(goctx.TODO(), createRepositoryInput)
+	clusterctlConfig := clusterctl.CreateRepository(context.TODO(), createRepositoryInput)
 	if _, err := os.Stat(clusterctlConfig); err != nil {
 		return "", fmt.Errorf("the clusterctl config file does not exists in the local repository %s", repositoryFolder)
 	}
@@ -69,7 +69,7 @@ func SetupBootstrapCluster(config *clusterctl.E2EConfig, scheme *runtime.Scheme,
 	var clusterProvider bootstrap.ClusterProvider
 	kubeconfigPath := ""
 	if !useExistingCluster {
-		clusterProvider = bootstrap.CreateKindBootstrapClusterAndLoadImages(goctx.TODO(), bootstrap.CreateKindBootstrapClusterAndLoadImagesInput{
+		clusterProvider = bootstrap.CreateKindBootstrapClusterAndLoadImages(context.TODO(), bootstrap.CreateKindBootstrapClusterAndLoadImagesInput{
 			Name:               config.ManagementClusterName,
 			RequiresDockerSock: config.HasDockerProvider(),
 			Images:             config.Images,
@@ -87,7 +87,7 @@ func SetupBootstrapCluster(config *clusterctl.E2EConfig, scheme *runtime.Scheme,
 }
 
 func InitBootstrapCluster(bootstrapClusterProxy framework.ClusterProxy, config *clusterctl.E2EConfig, clusterctlConfig, artifactFolder string) {
-	clusterctl.InitManagementClusterAndWatchControllerLogs(goctx.TODO(), clusterctl.InitManagementClusterAndWatchControllerLogsInput{
+	clusterctl.InitManagementClusterAndWatchControllerLogs(context.TODO(), clusterctl.InitManagementClusterAndWatchControllerLogsInput{
 		ClusterProxy:            bootstrapClusterProxy,
 		ClusterctlConfigPath:    clusterctlConfig,
 		InfrastructureProviders: config.InfrastructureProviders(),
@@ -97,9 +97,9 @@ func InitBootstrapCluster(bootstrapClusterProxy framework.ClusterProxy, config *
 
 func TearDown(bootstrapClusterProvider bootstrap.ClusterProvider, bootstrapClusterProxy framework.ClusterProxy) {
 	if bootstrapClusterProxy != nil {
-		bootstrapClusterProxy.Dispose(goctx.TODO())
+		bootstrapClusterProxy.Dispose(context.TODO())
 	}
 	if bootstrapClusterProvider != nil {
-		bootstrapClusterProvider.Dispose(goctx.TODO())
+		bootstrapClusterProvider.Dispose(context.TODO())
 	}
 }

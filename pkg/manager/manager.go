@@ -17,7 +17,7 @@ limitations under the License.
 package manager
 
 import (
-	goctx "context"
+	"context"
 	"fmt"
 	"os"
 
@@ -38,7 +38,7 @@ import (
 	infrav1alpha4 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1alpha4"
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 )
 
@@ -47,7 +47,7 @@ type Manager interface {
 	ctrl.Manager
 
 	// GetContext returns the controller manager's context.
-	GetContext() *context.ControllerManagerContext
+	GetContext() *capvcontext.ControllerManagerContext
 }
 
 // New returns a new CAPV controller manager.
@@ -81,8 +81,8 @@ func New(opts Options) (Manager, error) {
 	}
 
 	// Build the controller manager context.
-	controllerManagerContext := &context.ControllerManagerContext{
-		Context:                 goctx.Background(),
+	controllerManagerContext := &capvcontext.ControllerManagerContext{
+		Context:                 context.Background(),
 		WatchNamespaces:         opts.Cache.Namespaces,
 		Namespace:               opts.PodNamespace,
 		Name:                    opts.PodName,
@@ -106,18 +106,18 @@ func New(opts Options) (Manager, error) {
 	}
 
 	return &manager{
-		Manager: mgr,
-		ctx:     controllerManagerContext,
+		Manager:       mgr,
+		controllerCtx: controllerManagerContext,
 	}, nil
 }
 
 type manager struct {
 	ctrl.Manager
-	ctx *context.ControllerManagerContext
+	controllerCtx *capvcontext.ControllerManagerContext
 }
 
-func (m *manager) GetContext() *context.ControllerManagerContext {
-	return m.ctx
+func (m *manager) GetContext() *capvcontext.ControllerManagerContext {
+	return m.controllerCtx
 }
 
 func UpdateCredentials(opts *Options) {
@@ -126,7 +126,7 @@ func UpdateCredentials(opts *Options) {
 
 // InitializeWatch adds a filesystem watcher for the capv credentials file
 // In case of any update to the credentials file, the new credentials are passed to the capv manager context.
-func InitializeWatch(ctx *context.ControllerManagerContext, managerOpts *Options) (watch *fsnotify.Watcher, err error) {
+func InitializeWatch(controllerCtx *capvcontext.ControllerManagerContext, managerOpts *Options) (watch *fsnotify.Watcher, err error) {
 	capvCredentialsFile := managerOpts.CredentialsFile
 	updateEventCh := make(chan bool)
 	watch, err = fsnotify.NewWatcher()
@@ -140,9 +140,9 @@ func InitializeWatch(ctx *context.ControllerManagerContext, managerOpts *Options
 		for {
 			select {
 			case err := <-watch.Errors:
-				ctx.Logger.Error(err, "received error on CAPV credential watcher")
+				controllerCtx.Logger.Error(err, "received error on CAPV credential watcher")
 			case event := <-watch.Events:
-				ctx.Logger.Info(fmt.Sprintf("received event %v on the credential file %s", event, capvCredentialsFile))
+				controllerCtx.Logger.Info(fmt.Sprintf("received event %v on the credential file %s", event, capvCredentialsFile))
 				updateEventCh <- true
 			}
 		}

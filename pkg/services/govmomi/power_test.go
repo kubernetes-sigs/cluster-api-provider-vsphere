@@ -17,7 +17,7 @@ limitations under the License.
 package govmomi
 
 import (
-	goctx "context"
+	"context"
 	"testing"
 	"time"
 
@@ -147,7 +147,7 @@ func TestTriggerSoftPowerOff(t *testing.T) {
 		g = NewWithT(t)
 		before()
 
-		simulator.Run(func(ctx goctx.Context, c *vim25.Client) error {
+		simulator.Run(func(ctx context.Context, c *vim25.Client) error {
 			finder := find.NewFinder(c)
 			vm, err := finder.VirtualMachine(ctx, "DC0_H0_VM0")
 			g.Expect(err).NotTo(HaveOccurred())
@@ -176,7 +176,7 @@ func TestTriggerSoftPowerOff(t *testing.T) {
 		g = NewWithT(t)
 		before()
 
-		simulator.Run(func(ctx goctx.Context, c *vim25.Client) error {
+		simulator.Run(func(ctx context.Context, c *vim25.Client) error {
 			finder := find.NewFinder(c)
 			vm, err := finder.VirtualMachine(ctx, "DC0_H0_VM0")
 			g.Expect(err).NotTo(HaveOccurred())
@@ -213,7 +213,7 @@ func TestTriggerSoftPowerOff(t *testing.T) {
 		g = NewWithT(t)
 		before()
 
-		simulator.Run(func(ctx goctx.Context, c *vim25.Client) error {
+		simulator.Run(func(ctx context.Context, c *vim25.Client) error {
 			finder := find.NewFinder(c)
 			vm, err := finder.VirtualMachine(ctx, "DC0_H0_VM0")
 			g.Expect(err).NotTo(HaveOccurred())
@@ -250,7 +250,7 @@ func TestTriggerSoftPowerOff(t *testing.T) {
 		g = NewWithT(t)
 		before()
 
-		simulator.Run(func(ctx goctx.Context, c *vim25.Client) error {
+		simulator.Run(func(ctx context.Context, c *vim25.Client) error {
 			finder := find.NewFinder(c)
 			vm, err := finder.VirtualMachine(ctx, "DC0_H0_VM0")
 			g.Expect(err).NotTo(HaveOccurred())
@@ -287,7 +287,7 @@ func TestTriggerSoftPowerOff(t *testing.T) {
 		g = NewWithT(t)
 		before()
 
-		simulator.Run(func(ctx goctx.Context, c *vim25.Client) error {
+		simulator.Run(func(ctx context.Context, c *vim25.Client) error {
 			finder := find.NewFinder(c)
 			vm, err := finder.VirtualMachine(ctx, "DC0_H0_VM0")
 			g.Expect(err).NotTo(HaveOccurred())
@@ -315,7 +315,7 @@ func TestTriggerSoftPowerOff(t *testing.T) {
 		g = NewWithT(t)
 		before()
 
-		simulator.Run(func(ctx goctx.Context, c *vim25.Client) error {
+		simulator.Run(func(ctx context.Context, c *vim25.Client) error {
 			finder := find.NewFinder(c)
 			vm, err := finder.VirtualMachine(ctx, "DC0_H0_VM0")
 			g.Expect(err).NotTo(HaveOccurred())

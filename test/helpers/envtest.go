@@ -18,7 +18,7 @@ limitations under the License.
 package helpers
 
 import (
-	goctx "context"
+	"context"
 	"fmt"
 	"path"
 	"path/filepath"
@@ -49,7 +49,7 @@ import (
 	infrav1alpha4 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1alpha4"
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/internal/webhooks"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers/vcsim"
 )
@@ -107,7 +107,7 @@ type (
 		Config    *rest.Config
 		Simulator *vcsim.Simulator
 
-		cancel goctx.CancelFunc
+		cancel context.CancelFunc
 	}
 )
 
@@ -141,7 +141,7 @@ func NewTestEnvironment() *TestEnvironment {
 		Username:   simr.Username(),
 		Password:   simr.Password(),
 	}
-	managerOpts.AddToManager = func(ctx *context.ControllerManagerContext, mgr ctrlmgr.Manager) error {
+	managerOpts.AddToManager = func(controllerCtx *capvcontext.ControllerManagerContext, mgr ctrlmgr.Manager) error {
 		if err := (&webhooks.VSphereClusterTemplateWebhook{}).SetupWebhookWithManager(mgr); err != nil {
 			return err
 		}
@@ -178,8 +178,8 @@ func NewTestEnvironment() *TestEnvironment {
 	}
 }
 
-func (t *TestEnvironment) StartManager(ctx goctx.Context) error {
-	ctx, cancel := goctx.WithCancel(ctx)
+func (t *TestEnvironment) StartManager(ctx context.Context) error {
+	ctx, cancel := context.WithCancel(ctx)
 	t.cancel = cancel
 	return t.Manager.Start(ctx)
 }
@@ -190,7 +190,7 @@ func (t *TestEnvironment) Stop() error {
 	return env.Stop()
 }
 
-func (t *TestEnvironment) Cleanup(ctx goctx.Context, objs ...client.Object) error {
+func (t *TestEnvironment) Cleanup(ctx context.Context, objs ...client.Object) error {
 	errs := make([]error, 0, len(objs))
 	for _, o := range objs {
 		err := t.Client.Delete(ctx, o)
@@ -205,7 +205,7 @@ func (t *TestEnvironment) Cleanup(ctx goctx.Context, objs ...client.Object) erro
 	return kerrors.NewAggregate(errs)
 }
 
-func (t *TestEnvironment) CreateNamespace(ctx goctx.Context, generateName string) (*corev1.Namespace, error) {
+func (t *TestEnvironment) CreateNamespace(ctx context.Context, generateName string) (*corev1.Namespace, error) {
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: fmt.Sprintf("%s-", generateName),
@@ -221,7 +221,7 @@ func (t *TestEnvironment) CreateNamespace(ctx goctx.Context, generateName string
 	return ns, nil
 }
 
-func (t *TestEnvironment) CreateKubeconfigSecret(ctx goctx.Context, cluster *clusterv1.Cluster) error {
+func (t *TestEnvironment) CreateKubeconfigSecret(ctx context.Context, cluster *clusterv1.Cluster) error {
 	return t.Create(ctx, kubeconfig.GenerateSecret(cluster, kubeconfig.FromEnvTestConfig(t.Config, cluster)))
 }
 

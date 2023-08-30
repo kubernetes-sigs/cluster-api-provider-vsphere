@@ -17,7 +17,7 @@ limitations under the License.
 package controllers
 
 import (
-	_context "context"
+	"context"
 	"fmt"
 	"reflect"
 	"strings"
@@ -39,7 +39,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	pkgidentity "sigs.k8s.io/cluster-api-provider-vsphere/pkg/identity"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 )
@@ -53,18 +53,18 @@ var (
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=vsphereclusteridentities/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;patch;update;delete
 
-func AddVsphereClusterIdentityControllerToManager(ctx *context.ControllerManagerContext, mgr manager.Manager, options controller.Options) error {
+func AddVsphereClusterIdentityControllerToManager(controllerCtx *capvcontext.ControllerManagerContext, mgr manager.Manager, options controller.Options) error {
 	var (
 		controllerNameShort = fmt.Sprintf("%s-controller", strings.ToLower(identityControlledTypeName))
-		controllerNameLong  = fmt.Sprintf("%s/%s/%s", ctx.Namespace, ctx.Name, controllerNameShort)
+		controllerNameLong  = fmt.Sprintf("%s/%s/%s", controllerCtx.Namespace, controllerCtx.Name, controllerNameShort)
 	)
 
 	// Build the controller context.
-	controllerContext := &context.ControllerContext{
-		ControllerManagerContext: ctx,
+	controllerContext := &capvcontext.ControllerContext{
+		ControllerManagerContext: controllerCtx,
 		Name:                     controllerNameShort,
 		Recorder:                 record.New(mgr.GetEventRecorderFor(controllerNameLong)),
-		Logger:                   ctx.Logger.WithName(controllerNameShort),
+		Logger:                   controllerCtx.Logger.WithName(controllerNameShort),
 	}
 
 	reconciler := clusterIdentityReconciler{ControllerContext: controllerContext}
@@ -72,15 +72,15 @@ func AddVsphereClusterIdentityControllerToManager(ctx *context.ControllerManager
 	return ctrl.NewControllerManagedBy(mgr).
 		For(identityControlledType).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), ctx.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(controllerCtx), controllerCtx.WatchFilterValue)).
 		Complete(reconciler)
 }
 
 type clusterIdentityReconciler struct {
-	*context.ControllerContext
+	*capvcontext.ControllerContext
 }
 
-func (r clusterIdentityReconciler) Reconcile(ctx _context.Context, req reconcile.Request) (_ reconcile.Result, reterr error) {
+func (r clusterIdentityReconciler) Reconcile(ctx context.Context, req reconcile.Request) (_ reconcile.Result, reterr error) {
 	// TODO(gab-satchi) consider creating a context for the clusterIdentity
 	// Get VSphereClusterIdentity
 	identity := &infrav1.VSphereClusterIdentity{}
@@ -161,7 +161,7 @@ func (r clusterIdentityReconciler) Reconcile(ctx _context.Context, req reconcile
 	return reconcile.Result{}, nil
 }
 
-func (r clusterIdentityReconciler) reconcileDelete(ctx _context.Context, identity *infrav1.VSphereClusterIdentity) error {
+func (r clusterIdentityReconciler) reconcileDelete(ctx context.Context, identity *infrav1.VSphereClusterIdentity) error {
 	r.Logger.Info("Reconciling VSphereClusterIdentity delete")
 	secret := &corev1.Secret{}
 	secretKey := client.ObjectKey{

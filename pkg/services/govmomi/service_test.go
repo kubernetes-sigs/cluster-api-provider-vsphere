@@ -17,7 +17,7 @@ limitations under the License.
 package govmomi
 
 import (
-	goctx "context"
+	"context"
 	"testing"
 
 	"github.com/go-logr/logr"
@@ -31,16 +31,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 )
 
 func emptyVirtualMachineContext() *virtualMachineContext {
 	return &virtualMachineContext{
-		VMContext: context.VMContext{
+		VMContext: capvcontext.VMContext{
 			Logger: logr.Discard(),
-			ControllerContext: &context.ControllerContext{
-				ControllerManagerContext: &context.ControllerManagerContext{
-					Context: goctx.TODO(),
+			ControllerContext: &capvcontext.ControllerContext{
+				ControllerManagerContext: &capvcontext.ControllerManagerContext{
+					Context: context.TODO(),
 				},
 			},
 		},
@@ -63,7 +63,7 @@ func Test_reconcilePCIDevices(t *testing.T) {
 		g = NewWithT(t)
 		before()
 
-		simulator.Run(func(ctx goctx.Context, c *vim25.Client) error {
+		simulator.Run(func(ctx context.Context, c *vim25.Client) error {
 			finder := find.NewFinder(c)
 			vm, err := finder.VirtualMachine(ctx, "DC0_H0_VM0")
 			g.Expect(err).ToNot(HaveOccurred())

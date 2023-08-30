@@ -17,7 +17,7 @@ limitations under the License.
 package test
 
 import (
-	goctx "context"
+	"context"
 	"fmt"
 	"os"
 	"reflect"
@@ -39,7 +39,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/controllers"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
 )
 
@@ -235,12 +235,12 @@ func getManager(cfg *rest.Config, networkProvider string) manager.Manager {
 
 	controllerOpts := controller.Options{MaxConcurrentReconciles: 10}
 
-	opts.AddToManager = func(ctx *context.ControllerManagerContext, mgr ctrlmgr.Manager) error {
-		if err := controllers.AddClusterControllerToManager(ctx, mgr, &vmwarev1.VSphereCluster{}, controllerOpts); err != nil {
+	opts.AddToManager = func(controllerCtx *capvcontext.ControllerManagerContext, mgr ctrlmgr.Manager) error {
+		if err := controllers.AddClusterControllerToManager(controllerCtx, mgr, &vmwarev1.VSphereCluster{}, controllerOpts); err != nil {
 			return err
 		}
 
-		return controllers.AddMachineControllerToManager(ctx, mgr, &vmwarev1.VSphereMachine{}, controllerOpts)
+		return controllers.AddMachineControllerToManager(controllerCtx, mgr, &vmwarev1.VSphereMachine{}, controllerOpts)
 	}
 
 	mgr, err := manager.New(opts)
@@ -248,13 +248,13 @@ func getManager(cfg *rest.Config, networkProvider string) manager.Manager {
 	return mgr
 }
 
-func initManagerAndBuildClient(networkProvider string) (client.Client, goctx.CancelFunc) {
+func initManagerAndBuildClient(networkProvider string) (client.Client, context.CancelFunc) {
 	By("setting up a new manager")
 	mgr := getManager(restConfig, networkProvider)
 	k8sClient := mgr.GetClient()
 
 	By("starting the manager")
-	managerCtx, managerCancel := goctx.WithCancel(ctx)
+	managerCtx, managerCancel := context.WithCancel(ctx)
 
 	go func() {
 		managerRuntimeError := mgr.Start(managerCtx)
@@ -266,7 +266,7 @@ func initManagerAndBuildClient(networkProvider string) (client.Client, goctx.Can
 	return k8sClient, managerCancel
 }
 
-func prepareClient(isLoadBalanced bool) (cli client.Client, cancelation goctx.CancelFunc) {
+func prepareClient(isLoadBalanced bool) (cli client.Client, cancelation context.CancelFunc) {
 	networkProvider := ""
 	if isLoadBalanced {
 		networkProvider = manager.DummyLBNetworkProvider
@@ -285,7 +285,7 @@ var (
 var _ = Describe("Conformance tests", func() {
 	var (
 		k8sClient     client.Client
-		managerCancel goctx.CancelFunc
+		managerCancel context.CancelFunc
 		key           *client.ObjectKey
 		obj           *client.Object
 	)
@@ -336,7 +336,7 @@ var _ = Describe("Conformance tests", func() {
 var _ = Describe("Reconciliation tests", func() {
 	var (
 		k8sClient     client.Client
-		managerCancel goctx.CancelFunc
+		managerCancel context.CancelFunc
 	)
 
 	// assertEventuallyFinalizers is used to assert an object eventually has one

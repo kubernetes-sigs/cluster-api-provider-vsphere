@@ -17,7 +17,7 @@ limitations under the License.
 package controllers
 
 import (
-	goctx "context"
+	"context"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -31,7 +31,7 @@ import (
 )
 
 var _ = Describe("VSphereClusterIdentity Reconciler", func() {
-	ctx := goctx.Background()
+	ctx := context.Background()
 	controllerNamespace := testEnv.Manager.GetContext().Namespace
 
 	Context("Reconcile Normal", func() {

@@ -17,7 +17,7 @@ limitations under the License.
 package controllers
 
 import (
-	goctx "context"
+	"context"
 	"testing"
 
 	"github.com/go-logr/logr"
@@ -32,16 +32,16 @@ import (
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
 func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 	name, namespace := "test-vm", "my-namespace"
-	setup := func(vsphereVM *infrav1.VSphereVM, initObjects ...client.Object) *context.VMContext {
+	setup := func(vsphereVM *infrav1.VSphereVM, initObjects ...client.Object) *capvcontext.VMContext {
 		ctx := fake.NewControllerContext(fake.NewControllerManagerContext(initObjects...))
-		return &context.VMContext{
+		return &capvcontext.VMContext{
 			ControllerContext: ctx,
 			VSphereVM:         vsphereVM,
 			Logger:            logr.Discard(),
@@ -84,7 +84,7 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 			g.Expect(err).ToNot(gomega.HaveOccurred())
 
 			ipAddrClaimList := &ipamv1.IPAddressClaimList{}
-			g.Expect(testCtx.Client.List(goctx.TODO(), ipAddrClaimList)).To(gomega.Succeed())
+			g.Expect(testCtx.Client.List(context.TODO(), ipAddrClaimList)).To(gomega.Succeed())
 			g.Expect(ipAddrClaimList.Items).To(gomega.HaveLen(3))
 
 			for idx := range ipAddrClaimList.Items {
@@ -133,7 +133,7 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 			g.Expect(claimedCondition.Message).To(gomega.Equal("3/3 claims being processed"))
 
 			ipAddrClaimList := &ipamv1.IPAddressClaimList{}
-			g.Expect(testCtx.Client.List(goctx.TODO(), ipAddrClaimList)).To(gomega.Succeed())
+			g.Expect(testCtx.Client.List(context.TODO(), ipAddrClaimList)).To(gomega.Succeed())
 
 			for idx := range ipAddrClaimList.Items {
 				claim := ipAddrClaimList.Items[idx]
@@ -167,7 +167,7 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 			g.Expect(claimedCondition.Status).To(gomega.Equal(corev1.ConditionTrue))
 
 			ipAddrClaimList := &ipamv1.IPAddressClaimList{}
-			g.Expect(testCtx.Client.List(goctx.TODO(), ipAddrClaimList)).To(gomega.Succeed())
+			g.Expect(testCtx.Client.List(context.TODO(), ipAddrClaimList)).To(gomega.Succeed())
 
 			for idx := range ipAddrClaimList.Items {
 				claim := ipAddrClaimList.Items[idx]

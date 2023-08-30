@@ -17,7 +17,7 @@ limitations under the License.
 package controllers
 
 import (
-	goctx "context"
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -42,7 +42,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/identity"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
@@ -203,7 +203,7 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 		controllerMgrContext.Password = password
 		controllerMgrContext.Username = simr.ServerURL().User.Username()
 
-		controllerContext := &context.ControllerContext{
+		controllerContext := &capvcontext.ControllerContext{
 			ControllerManagerContext: controllerMgrContext,
 			Recorder:                 record.New(apirecord.NewFakeRecorder(100)),
 			Logger:                   log.Log,
@@ -230,13 +230,13 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 			Network:  nil,
 		}, nil)
 		r := setupReconciler(fakeVMSvc)
-		_, err = r.Reconcile(goctx.Background(), ctrl.Request{NamespacedName: util.ObjectKey(vsphereVM)})
+		_, err = r.Reconcile(context.Background(), ctrl.Request{NamespacedName: util.ObjectKey(vsphereVM)})
 		g := NewWithT(t)
 		g.Expect(err).NotTo(HaveOccurred())
 
 		vm := &infrav1.VSphereVM{}
 		vmKey := util.ObjectKey(vsphereVM)
-		g.Expect(r.Client.Get(goctx.Background(), vmKey, vm)).NotTo(HaveOccurred())
+		g.Expect(r.Client.Get(context.Background(), vmKey, vm)).NotTo(HaveOccurred())
 
 		g.Expect(conditions.Has(vm, infrav1.VMProvisionedCondition)).To(BeTrue())
 		vmProvisionCondition := conditions.Get(vm, infrav1.VMProvisionedCondition)
@@ -263,13 +263,13 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 			}},
 		}, nil)
 		r := setupReconciler(fakeVMSvc)
-		_, err = r.Reconcile(goctx.Background(), ctrl.Request{NamespacedName: util.ObjectKey(vsphereVM)})
+		_, err = r.Reconcile(context.Background(), ctrl.Request{NamespacedName: util.ObjectKey(vsphereVM)})
 		g := NewWithT(t)
 		g.Expect(err).NotTo(HaveOccurred())
 
 		vm := &infrav1.VSphereVM{}
 		vmKey := util.ObjectKey(vsphereVM)
-		g.Expect(r.Client.Get(goctx.Background(), vmKey, vm)).NotTo(HaveOccurred())
+		g.Expect(r.Client.Get(context.Background(), vmKey, vm)).NotTo(HaveOccurred())
 
 		g.Expect(conditions.Has(vm, infrav1.VMProvisionedCondition)).To(BeTrue())
 		vmProvisionCondition := conditions.Get(vm, infrav1.VMProvisionedCondition)
@@ -311,16 +311,16 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 
 		g := NewWithT(t)
 
-		_, err := r.Reconcile(goctx.Background(), ctrl.Request{NamespacedName: util.ObjectKey(vsphereVM)})
+		_, err := r.Reconcile(context.Background(), ctrl.Request{NamespacedName: util.ObjectKey(vsphereVM)})
 		g.Expect(err).To(HaveOccurred())
 
 		vm := &infrav1.VSphereVM{}
 		vmKey := util.ObjectKey(vsphereVM)
-		g.Expect(apierrors.IsNotFound(r.Client.Get(goctx.Background(), vmKey, vm))).To(BeTrue())
+		g.Expect(apierrors.IsNotFound(r.Client.Get(context.Background(), vmKey, vm))).To(BeTrue())
 
 		claim := &ipamv1.IPAddressClaim{}
 		ipacKey := util.ObjectKey(ipAddressClaim)
-		g.Expect(r.Client.Get(goctx.Background(), ipacKey, claim)).NotTo(HaveOccurred())
+		g.Expect(r.Client.Get(context.Background(), ipacKey, claim)).NotTo(HaveOccurred())
 		g.Expect(claim.ObjectMeta.Finalizers).NotTo(ContainElement(infrav1.IPAddressClaimFinalizer))
 	})
 }
@@ -483,20 +483,20 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 		initObjs = append(initObjs, secret, vsphereVM, vsphereMachine, machine, cluster, vsphereCluster)
 		controllerMgrContext := fake.NewControllerManagerContext(initObjs...)
 
-		controllerContext := &context.ControllerContext{
+		controllerContext := &capvcontext.ControllerContext{
 			ControllerManagerContext: controllerMgrContext,
 			Recorder:                 record.New(apirecord.NewFakeRecorder(100)),
 			Logger:                   log.Log,
 		}
 		r := vmReconciler{ControllerContext: controllerContext}
 
-		_, err = r.Reconcile(goctx.Background(), ctrl.Request{NamespacedName: util.ObjectKey(vsphereVM)})
+		_, err = r.Reconcile(context.Background(), ctrl.Request{NamespacedName: util.ObjectKey(vsphereVM)})
 		g := NewWithT(t)
 		g.Expect(err).NotTo(HaveOccurred())
 
 		vm := &infrav1.VSphereVM{}
 		vmKey := util.ObjectKey(vsphereVM)
-		g.Expect(r.Client.Get(goctx.Background(), vmKey, vm)).NotTo(HaveOccurred())
+		g.Expect(r.Client.Get(context.Background(), vmKey, vm)).NotTo(HaveOccurred())
 		g.Expect(conditions.Has(vm, infrav1.VCenterAvailableCondition)).To(BeTrue())
 		vCenterCondition := conditions.Get(vm, infrav1.VCenterAvailableCondition)
 		g.Expect(vCenterCondition.Status).To(Equal(corev1.ConditionTrue))
@@ -519,14 +519,14 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 		initObjs = append(initObjs, secret, vsphereVM, vsphereMachine, machine, cluster, vsphereCluster)
 		controllerMgrContext := fake.NewControllerManagerContext(initObjs...)
 
-		controllerContext := &context.ControllerContext{
+		controllerContext := &capvcontext.ControllerContext{
 			ControllerManagerContext: controllerMgrContext,
 			Recorder:                 record.New(apirecord.NewFakeRecorder(100)),
 			Logger:                   log.Log,
 		}
 		r := vmReconciler{ControllerContext: controllerContext}
 
-		_, err = r.Reconcile(goctx.Background(), ctrl.Request{NamespacedName: util.ObjectKey(vsphereVM)})
+		_, err = r.Reconcile(context.Background(), ctrl.Request{NamespacedName: util.ObjectKey(vsphereVM)})
 		g := NewWithT(t)
 		g.Expect(err).To(HaveOccurred())
 	},
@@ -570,7 +570,7 @@ func Test_reconcile(t *testing.T) {
 
 	setupReconciler := func(vmService services.VirtualMachineService, initObjs ...client.Object) vmReconciler {
 		return vmReconciler{
-			ControllerContext: &context.ControllerContext{
+			ControllerContext: &capvcontext.ControllerContext{
 				ControllerManagerContext: fake.NewControllerManagerContext(initObjs...),
 				Recorder:                 record.New(apirecord.NewFakeRecorder(100)),
 				Logger:                   log.Log,
@@ -590,7 +590,7 @@ func Test_reconcile(t *testing.T) {
 					State:    infrav1.VirtualMachineStateReady,
 				}, nil)
 				r := setupReconciler(fakeVMSvc, initObjs...)
-				_, err := r.reconcile(&context.VMContext{
+				_, err := r.reconcile(&capvcontext.VMContext{
 					ControllerContext: r.ControllerContext,
 					VSphereVM:         vsphereVM,
 					Logger:            r.Logger,
@@ -606,7 +606,7 @@ func Test_reconcile(t *testing.T) {
 			t.Run("when anti affinity feature gate is turned on", func(t *testing.T) {
 				_ = feature.MutableGates.Set("NodeAntiAffinity=true")
 				r := setupReconciler(new(fake_svc.VMService), initObjs...)
-				_, err := r.reconcile(&context.VMContext{
+				_, err := r.reconcile(&capvcontext.VMContext{
 					ControllerContext: r.ControllerContext,
 					VSphereVM:         vsphereVM,
 					Logger:            r.Logger,
@@ -632,7 +632,7 @@ func Test_reconcile(t *testing.T) {
 			}, nil)
 
 			r := setupReconciler(fakeVMSvc, objsWithHierarchy...)
-			_, err := r.reconcile(&context.VMContext{
+			_, err := r.reconcile(&capvcontext.VMContext{
 				ControllerContext: r.ControllerContext,
 				VSphereVM:         vsphereVM,
 				Logger:            r.Logger,
@@ -665,7 +665,7 @@ func Test_reconcile(t *testing.T) {
 			objsWithHierarchy = append(objsWithHierarchy, createMachineOwnerHierarchy(machine)...)
 
 			r := setupReconciler(fakeVMSvc, objsWithHierarchy...)
-			_, err := r.reconcile(&context.VMContext{
+			_, err := r.reconcile(&capvcontext.VMContext{
 				ControllerContext: r.ControllerContext,
 				VSphereVM:         deletedVM,
 				Logger:            r.Logger,
@@ -680,7 +680,7 @@ func Test_reconcile(t *testing.T) {
 
 		t.Run("when info cannot be fetched", func(t *testing.T) {
 			r := setupReconciler(fakeVMSvc, initObjs...)
-			_, err := r.reconcile(&context.VMContext{
+			_, err := r.reconcile(&capvcontext.VMContext{
 				ControllerContext: r.ControllerContext,
 				VSphereVM:         deletedVM,
 				Logger:            r.Logger,

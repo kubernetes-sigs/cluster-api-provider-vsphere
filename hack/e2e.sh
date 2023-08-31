@@ -119,6 +119,7 @@ export WORKLOAD_CONTROL_PLANE_ENDPOINT_IP
 echo "Acquired Workload Cluster Control Plane IP: $WORKLOAD_CONTROL_PLANE_ENDPOINT_IP"
 
 # save the docker image locally
+export LDFLAGS=""
 make e2e-image
 mkdir -p "$ARTIFACTS"/tempContainers
 docker save gcr.io/k8s-staging-cluster-api/capv-manager:e2e -o "$DOCKER_IMAGE_TAR"

@@ -68,7 +68,6 @@ func New(opts Options) (Manager, error) {
 	_ = netopv1.AddToScheme(opts.Scheme)
 	_ = topologyv1.AddToScheme(opts.Scheme)
 	_ = ipamv1.AddToScheme(opts.Scheme)
-	// +kubebuilder:scaffold:scheme
 
 	podName, err := os.Hostname()
 	if err != nil {
@@ -105,8 +104,6 @@ func New(opts Options) (Manager, error) {
 	if err := opts.AddToManager(controllerManagerContext, mgr); err != nil {
 		return nil, errors.Wrap(err, "failed to add resources to the manager")
 	}
-
-	// +kubebuilder:scaffold:builder
 
 	return &manager{
 		Manager: mgr,

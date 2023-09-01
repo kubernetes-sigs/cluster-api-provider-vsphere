@@ -89,7 +89,7 @@ From this point forward changes which should land in the release have to be cher
       git checkout -b release-1.8
 
       # Push the release branch
-      # Note: `upstream` must be the remote pointing to `github.com/kubernetes-sigs/cluster-api`.
+      # Note: `upstream` must be the remote pointing to `github.com/kubernetes-sigs/cluster-api-provider-vsphere`.
       git push -u upstream release-1.8
      ```
 
@@ -126,7 +126,7 @@ From this point forward changes which should land in the release have to be cher
       git tag -s -a ${RELEASE_TAG} -m ${RELEASE_TAG}
 
       # Push tags
-      # Note: `upstream` must be the remote pointing to `github.com/kubernetes-sigs/cluster-api`.
+      # Note: `upstream` must be the remote pointing to `github.com/kubernetes-sigs/cluster-api-provider-vsphere`.
       git push upstream ${RELEASE_TAG}
    ```
 

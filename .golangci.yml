@@ -37,7 +37,7 @@ linters:
   - nakedret
   - nilerr
   - noctx
-  # - nolintlint
+  - nolintlint
   - nosprintfhostport
   - prealloc
   - predeclared
@@ -55,7 +55,11 @@ linters:
 
 linters-settings:
   gci:
-    local-prefixes: "sigs.k8s.io/cluster-api-provider-vsphere"
+    sections:
+      - standard # Standard section: captures all standard packages.
+      - default # Default section: contains all imports that could not be matched to another section type.
+      - prefix(sigs.k8s.io/cluster-api-provider-vsphere) # Custom section: groups all imports with the specified Prefix.
+    custom-order: true
   godot:
     #   declarations - for top level declaration comments (default);
     #   toplevel     - for top level comments;

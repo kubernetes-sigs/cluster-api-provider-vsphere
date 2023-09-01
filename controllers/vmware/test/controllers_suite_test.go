@@ -65,7 +65,8 @@ func getTestEnv() (*envtest.Environment, *rest.Config) {
 	utilruntime.Must(vmwarev1.AddToScheme(scheme.Scheme))
 
 	// Get the root of the current file to use in CRD paths.
-	_, filename, _, _ := goruntime.Caller(0) //nolint
+	_, filename, _, ok := goruntime.Caller(0)
+	Expect(ok).To(BeTrue(), "Failed to get information for current file from runtime")
 	root := path.Join(path.Dir(filename), "..", "..", "..")
 
 	localTestEnv := &envtest.Environment{

@@ -345,7 +345,7 @@ func getDiskSpec(ctx *context.VMContext, devices object.VirtualDeviceList) ([]ty
 
 	// There is at least one disk
 	var diskSpecs []types.BaseVirtualDeviceConfigSpec
-	primaryDisk := disks[0].(*types.VirtualDisk) //nolint:forcetypeassert
+	primaryDisk := disks[0].(*types.VirtualDisk)
 	primaryCloneCapacityKB := int64(ctx.VSphereVM.Spec.DiskGiB) * 1024 * 1024
 	primaryDiskConfigSpec, err := getDiskConfigSpec(primaryDisk, primaryCloneCapacityKB)
 	if err != nil {

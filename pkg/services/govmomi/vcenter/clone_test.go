@@ -16,7 +16,6 @@ limitations under the License.
 
 package vcenter
 
-//nolint:all
 import (
 	ctx "context"
 	"crypto/tls"
@@ -24,9 +23,7 @@ import (
 
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/simulator"
-
-	// run init func to register the tagging API endpoints.
-	_ "github.com/vmware/govmomi/vapi/simulator"
+	_ "github.com/vmware/govmomi/vapi/simulator" // run init func to register the tagging API endpoints.
 	"github.com/vmware/govmomi/vim25/types"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
@@ -40,7 +37,7 @@ func TestGetDiskSpec(t *testing.T) {
 	model, session, server := initSimulator(t)
 	t.Cleanup(model.Remove)
 	t.Cleanup(server.Close)
-	vm := simulator.Map.Any("VirtualMachine").(*simulator.VirtualMachine) //nolint:forcetypeassert
+	vm := simulator.Map.Any("VirtualMachine").(*simulator.VirtualMachine)
 	machine := object.NewVirtualMachine(session.Client.Client, vm.Reference())
 
 	devices, err := machine.Device(ctx.TODO())
@@ -51,7 +48,7 @@ func TestGetDiskSpec(t *testing.T) {
 	if len(defaultDisks) < 1 {
 		t.Fatal("Unable to find attached disk for resize")
 	}
-	disk := defaultDisks[0].(*types.VirtualDisk)            //nolint:forcetypeassert
+	disk := defaultDisks[0].(*types.VirtualDisk)
 	disk.CapacityInKB = int64(defaultSizeGiB) * 1024 * 1024 // GiB
 	if err := machine.EditDevice(ctx.TODO(), disk); err != nil {
 		t.Fatalf("Can't resize disk for specified size")

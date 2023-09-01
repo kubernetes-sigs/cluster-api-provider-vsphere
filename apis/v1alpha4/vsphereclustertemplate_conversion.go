@@ -29,7 +29,7 @@ func (src *VSphereClusterTemplate) ConvertTo(dstRaw conversion.Hub) error {
 }
 
 // ConvertFrom converts from the Hub version (v1beta1) to this VSphereClusterTemplate.
-func (dst *VSphereClusterTemplate) ConvertFrom(srcRaw conversion.Hub) error { // nolint
+func (dst *VSphereClusterTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.VSphereClusterTemplate)
 	return Convert_v1beta1_VSphereClusterTemplate_To_v1alpha4_VSphereClusterTemplate(src, dst, nil)
 }
@@ -41,7 +41,7 @@ func (src *VSphereClusterTemplateList) ConvertTo(dstRaw conversion.Hub) error {
 }
 
 // ConvertFrom converts this VSphereClusterIdentityList to the Hub version (v1beta1).
-func (dst *VSphereClusterTemplateList) ConvertFrom(srcRaw conversion.Hub) error { // nolint
+func (dst *VSphereClusterTemplateList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.VSphereClusterTemplateList)
 	return Convert_v1beta1_VSphereClusterTemplateList_To_v1alpha4_VSphereClusterTemplateList(src, dst, nil)
 }

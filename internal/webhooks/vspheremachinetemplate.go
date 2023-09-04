@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package webhooks
 
 import (
 	"context"
@@ -29,28 +29,29 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 )
 
 const machineTemplateImmutableMsg = "VSphereMachineTemplate spec.template.spec field is immutable. Please create a new resource instead."
 
-func (v *VSphereMachineTemplateWebhook) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&VSphereMachineTemplate{}).
-		WithValidator(v).
-		Complete()
-}
-
 // +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta1-vspheremachinetemplate,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=vspheremachinetemplates,versions=v1beta1,name=validation.vspheremachinetemplate.infrastructure.x-k8s.io,sideEffects=None,admissionReviewVersions=v1beta1
 
-// VSphereMachineTemplateWebhook implements a custom validation webhook for DockerMachineTemplate.
-// +kubebuilder:object:generate=false
+// VSphereMachineTemplateWebhook implements a validation and defaulting webhook for VSphereMachineTemplate.
 type VSphereMachineTemplateWebhook struct{}
 
 var _ webhook.CustomValidator = &VSphereMachineTemplateWebhook{}
 
+func (webhook *VSphereMachineTemplateWebhook) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewWebhookManagedBy(mgr).
+		For(&infrav1.VSphereMachineTemplate{}).
+		WithValidator(webhook).
+		Complete()
+}
+
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (v *VSphereMachineTemplateWebhook) ValidateCreate(_ context.Context, raw runtime.Object) (admission.Warnings, error) {
-	obj, ok := raw.(*VSphereMachineTemplate)
+func (webhook *VSphereMachineTemplateWebhook) ValidateCreate(_ context.Context, raw runtime.Object) (admission.Warnings, error) {
+	obj, ok := raw.(*infrav1.VSphereMachineTemplate)
 	if !ok {
 		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a VSphereMachineTemplate but got a %T", raw))
 	}
@@ -76,7 +77,7 @@ func (v *VSphereMachineTemplateWebhook) ValidateCreate(_ context.Context, raw ru
 		}
 	}
 	if spec.GuestSoftPowerOffTimeout != nil {
-		if spec.PowerOffMode != VirtualMachinePowerOpModeTrySoft {
+		if spec.PowerOffMode != infrav1.VirtualMachinePowerOpModeTrySoft {
 			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "template", "spec", "guestSoftPowerOffTimeout"), spec.GuestSoftPowerOffTimeout, "should not be set in templates unless the powerOffMode is trySoft"))
 		}
 		if spec.GuestSoftPowerOffTimeout.Duration <= 0 {
@@ -87,14 +88,14 @@ func (v *VSphereMachineTemplateWebhook) ValidateCreate(_ context.Context, raw ru
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (v *VSphereMachineTemplateWebhook) ValidateUpdate(ctx context.Context, oldRaw runtime.Object, newRaw runtime.Object) (admission.Warnings, error) {
-	newObj, ok := newRaw.(*VSphereMachineTemplate)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a VSphereMachineTemplate but got a %T", newRaw))
-	}
-	oldObj, ok := oldRaw.(*VSphereMachineTemplate)
+func (webhook *VSphereMachineTemplateWebhook) ValidateUpdate(ctx context.Context, oldRaw runtime.Object, newRaw runtime.Object) (admission.Warnings, error) {
+	oldTyped, ok := oldRaw.(*infrav1.VSphereMachineTemplate)
 	if !ok {
 		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a VSphereMachineTemplate but got a %T", oldRaw))
+	}
+	newTyped, ok := newRaw.(*infrav1.VSphereMachineTemplate)
+	if !ok {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a VSphereMachineTemplate but got a %T", newRaw))
 	}
 
 	req, err := admission.RequestFromContext(ctx)
@@ -103,14 +104,14 @@ func (v *VSphereMachineTemplateWebhook) ValidateUpdate(ctx context.Context, oldR
 	}
 
 	var allErrs field.ErrorList
-	if !topology.ShouldSkipImmutabilityChecks(req, newObj) &&
-		!reflect.DeepEqual(newObj.Spec.Template.Spec, oldObj.Spec.Template.Spec) {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "template", "spec"), newObj, machineTemplateImmutableMsg))
+	if !topology.ShouldSkipImmutabilityChecks(req, newTyped) &&
+		!reflect.DeepEqual(newTyped.Spec.Template.Spec, oldTyped.Spec.Template.Spec) {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "template", "spec"), newTyped, machineTemplateImmutableMsg))
 	}
-	return nil, aggregateObjErrors(newObj.GroupVersionKind().GroupKind(), newObj.Name, allErrs)
+	return nil, aggregateObjErrors(newTyped.GroupVersionKind().GroupKind(), newTyped.Name, allErrs)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (v *VSphereMachineTemplateWebhook) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (webhook *VSphereMachineTemplateWebhook) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }

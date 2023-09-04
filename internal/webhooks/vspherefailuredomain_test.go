@@ -14,24 +14,28 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package webhooks
 
 import (
+	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
 	"k8s.io/utils/pointer"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 )
 
 func TestVsphereFailureDomain_Default(t *testing.T) {
 	g := NewWithT(t)
-	m := &VSphereFailureDomain{
-		Spec: VSphereFailureDomainSpec{},
+	m := &infrav1.VSphereFailureDomain{
+		Spec: infrav1.VSphereFailureDomainSpec{},
 	}
-	m.Default()
+	webhook := &VSphereFailureDomainWebhook{}
+	g.Expect(webhook.Default(context.Background(), m)).ToNot(HaveOccurred())
 
-	g.Expect(*m.Spec.Zone.AutoConfigure).To(BeFalse())
-	g.Expect(*m.Spec.Region.AutoConfigure).To(BeFalse())
+	g.Expect(*m.Spec.Zone.AutoConfigure).To(BeFalse())   //nolint:staticcheck
+	g.Expect(*m.Spec.Region.AutoConfigure).To(BeFalse()) //nolint:staticcheck
 }
 
 func TestVSphereFailureDomain_ValidateCreate(t *testing.T) {
@@ -40,14 +44,14 @@ func TestVSphereFailureDomain_ValidateCreate(t *testing.T) {
 	tests := []struct {
 		name          string
 		errExpected   *bool
-		failureDomain VSphereFailureDomain
+		failureDomain infrav1.VSphereFailureDomain
 	}{
 		{
 			name: "region failureDomain type is hostGroup",
-			failureDomain: VSphereFailureDomain{Spec: VSphereFailureDomainSpec{
-				Region: FailureDomain{
+			failureDomain: infrav1.VSphereFailureDomain{Spec: infrav1.VSphereFailureDomainSpec{
+				Region: infrav1.FailureDomain{
 					Name:          "foo",
-					Type:          HostGroupFailureDomain,
+					Type:          infrav1.HostGroupFailureDomain,
 					TagCategory:   "k8s-bar",
 					AutoConfigure: pointer.Bool(true),
 				},
@@ -55,11 +59,11 @@ func TestVSphereFailureDomain_ValidateCreate(t *testing.T) {
 		},
 		{
 			name: "hostGroup failureDomain set but compute Cluster is empty",
-			failureDomain: VSphereFailureDomain{Spec: VSphereFailureDomainSpec{
-				Topology: Topology{
+			failureDomain: infrav1.VSphereFailureDomain{Spec: infrav1.VSphereFailureDomainSpec{
+				Topology: infrav1.Topology{
 					Datacenter:     "/blah",
 					ComputeCluster: nil,
-					Hosts: &FailureDomainHosts{
+					Hosts: &infrav1.FailureDomainHosts{
 						VMGroupName:   "vm-foo",
 						HostGroupName: "host-foo",
 					},
@@ -68,18 +72,18 @@ func TestVSphereFailureDomain_ValidateCreate(t *testing.T) {
 		},
 		{
 			name: "type of zone failure domain is Hostgroup but topology's hostgroup is not set",
-			failureDomain: VSphereFailureDomain{Spec: VSphereFailureDomainSpec{
-				Region: FailureDomain{
+			failureDomain: infrav1.VSphereFailureDomain{Spec: infrav1.VSphereFailureDomainSpec{
+				Region: infrav1.FailureDomain{
 					Name:        "foo",
-					Type:        ComputeClusterFailureDomain,
+					Type:        infrav1.ComputeClusterFailureDomain,
 					TagCategory: "k8s-bar",
 				},
-				Zone: FailureDomain{
+				Zone: infrav1.FailureDomain{
 					Name:        "foo",
-					Type:        HostGroupFailureDomain,
+					Type:        infrav1.HostGroupFailureDomain,
 					TagCategory: "k8s-bar",
 				},
-				Topology: Topology{
+				Topology: infrav1.Topology{
 					Datacenter:     "/blah",
 					ComputeCluster: pointer.String("blah2"),
 					Hosts:          nil,
@@ -88,21 +92,21 @@ func TestVSphereFailureDomain_ValidateCreate(t *testing.T) {
 		},
 		{
 			name: "type of region failure domain is Compute Cluster but topology is not set",
-			failureDomain: VSphereFailureDomain{Spec: VSphereFailureDomainSpec{
-				Region: FailureDomain{
+			failureDomain: infrav1.VSphereFailureDomain{Spec: infrav1.VSphereFailureDomainSpec{
+				Region: infrav1.FailureDomain{
 					Name:        "foo",
-					Type:        ComputeClusterFailureDomain,
+					Type:        infrav1.ComputeClusterFailureDomain,
 					TagCategory: "k8s-bar",
 				},
-				Zone: FailureDomain{
+				Zone: infrav1.FailureDomain{
 					Name:        "foo",
-					Type:        HostGroupFailureDomain,
+					Type:        infrav1.HostGroupFailureDomain,
 					TagCategory: "k8s-bar",
 				},
-				Topology: Topology{
+				Topology: infrav1.Topology{
 					Datacenter:     "/blah",
 					ComputeCluster: nil,
-					Hosts: &FailureDomainHosts{
+					Hosts: &infrav1.FailureDomainHosts{
 						VMGroupName:   "vm-foo",
 						HostGroupName: "host-foo",
 					},
@@ -111,18 +115,18 @@ func TestVSphereFailureDomain_ValidateCreate(t *testing.T) {
 		},
 		{
 			name: "type of zone failure domain is Compute Cluster but topology is not set",
-			failureDomain: VSphereFailureDomain{Spec: VSphereFailureDomainSpec{
-				Region: FailureDomain{
+			failureDomain: infrav1.VSphereFailureDomain{Spec: infrav1.VSphereFailureDomainSpec{
+				Region: infrav1.FailureDomain{
 					Name:        "foo",
-					Type:        DatacenterFailureDomain,
+					Type:        infrav1.DatacenterFailureDomain,
 					TagCategory: "k8s-bar",
 				},
-				Zone: FailureDomain{
+				Zone: infrav1.FailureDomain{
 					Name:        "foo",
-					Type:        ComputeClusterFailureDomain,
+					Type:        infrav1.ComputeClusterFailureDomain,
 					TagCategory: "k8s-bar",
 				},
-				Topology: Topology{
+				Topology: infrav1.Topology{
 					Datacenter:     "/blah",
 					ComputeCluster: nil,
 				},
@@ -134,7 +138,8 @@ func TestVSphereFailureDomain_ValidateCreate(t *testing.T) {
 		// Need to reinit the test variable
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := tt.failureDomain.ValidateCreate()
+			webhook := &VSphereFailureDomainWebhook{}
+			_, err := webhook.ValidateCreate(context.Background(), &tt.failureDomain)
 			if tt.errExpected == nil || !*tt.errExpected {
 				g.Expect(err).To(HaveOccurred())
 			} else {

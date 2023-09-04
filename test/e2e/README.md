@@ -50,6 +50,9 @@ The first step to running the e2e tests is setting up the required environment v
 Run the following command to execute the CAPV e2e tests:
 
 ```shell
+# For local testing, uncomment the line below to turn off traceability in the built image.
+# export LDFLAGS="" 
+
 make e2e
 ```
 

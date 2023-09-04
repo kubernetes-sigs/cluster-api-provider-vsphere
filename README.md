@@ -132,7 +132,7 @@ We also use the issue tracker to track features. If you have an idea for a featu
 [mailint_list]: https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle
 [meeting_notes]: https://docs.google.com/document/d/1jQrQiOW75uWraPk4b_LWtCTHwT7EZwrWWwMdxeWOEvk/edit?usp=sharing
 [new_issue]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/new
-[prow]: https://go.k8s.io/bot-commands
+[prow]: https://prow.k8s.io/command-help?repo=kubernetes-sigs%2Fcluster-api-provider-vsphere
 [slack]: https://kubernetes.slack.com/messages/CKFGK3SSD
 [slack_info]: https://github.com/kubernetes/community/tree/master/communication#communication
 [troubleshooting]: ./docs/troubleshooting.md

@@ -61,7 +61,9 @@ type VSphereClusterSpec struct {
 
 	// FailureDomainSelector is the label selector to use for failure domain selection
 	// for the control plane nodes of the cluster.
-	// An empty value for the selector includes all the related failure domains.
+	// If not set (`nil`), selecting failure domains will be disabled.
+	// An empty value (`{}`) selects all existing failure domains.
+	// A valid selector will select all failure domains which match the selector.
 	// +optional
 	FailureDomainSelector *metav1.LabelSelector `json:"failureDomainSelector,omitempty"`
 }

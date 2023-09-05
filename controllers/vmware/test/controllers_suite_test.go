@@ -17,7 +17,7 @@ limitations under the License.
 package test
 
 import (
-	goctx "context"
+	"context"
 	"encoding/json"
 	"os/exec"
 	"path"
@@ -43,7 +43,7 @@ import (
 var (
 	testEnv       *envtest.Environment
 	restConfig    *rest.Config
-	ctx, cancel   = goctx.WithCancel(goctx.Background())
+	ctx, cancel   = context.WithCancel(context.Background())
 	clusterAPIDir = findModuleDir("sigs.k8s.io/cluster-api")
 )
 

@@ -17,7 +17,7 @@ limitations under the License.
 package controllers
 
 import (
-	goctx "context"
+	"context"
 	"testing"
 
 	"github.com/go-logr/logr"
@@ -35,7 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers/vcsim"
 )
@@ -43,7 +43,7 @@ import (
 var _ = Describe("VSphereDeploymentZoneReconciler", func() {
 	var (
 		simr *vcsim.Simulator
-		ctx  goctx.Context
+		ctx  context.Context
 
 		failureDomainKey, deploymentZoneKey client.ObjectKey
 
@@ -74,7 +74,7 @@ var _ = Describe("VSphereDeploymentZoneReconciler", func() {
 			Expect(simr.Run(op, gbytes.NewBuffer(), gbytes.NewBuffer())).To(Succeed())
 		}
 
-		ctx = goctx.Background()
+		ctx = context.Background()
 	})
 
 	BeforeEach(func() {
@@ -555,7 +555,7 @@ func TestVsphereDeploymentZone_Failed_ReconcilePlacementConstraint(t *testing.T)
 
 			controllerCtx := fake.NewControllerContext(mgmtContext)
 
-			deploymentZoneCtx := &context.VSphereDeploymentZoneContext{
+			deploymentZoneCtx := &capvcontext.VSphereDeploymentZoneContext{
 				ControllerContext: controllerCtx,
 				VSphereDeploymentZone: &infrav1.VSphereDeploymentZone{Spec: infrav1.VSphereDeploymentZoneSpec{
 					Server:              simr.ServerURL().Host,
@@ -615,7 +615,7 @@ func TestVSphereDeploymentZoneReconciler_ReconcileDelete(t *testing.T) {
 		t.Run("should block deletion", func(t *testing.T) {
 			mgmtContext := fake.NewControllerManagerContext(machineUsingDeplZone, vsphereFailureDomain)
 			controllerCtx := fake.NewControllerContext(mgmtContext)
-			deploymentZoneCtx := &context.VSphereDeploymentZoneContext{
+			deploymentZoneCtx := &capvcontext.VSphereDeploymentZoneContext{
 				ControllerContext:     controllerCtx,
 				VSphereDeploymentZone: vsphereDeploymentZone,
 				VSphereFailureDomain:  vsphereFailureDomain,
@@ -637,7 +637,7 @@ func TestVSphereDeploymentZoneReconciler_ReconcileDelete(t *testing.T) {
 
 			mgmtContext := fake.NewControllerManagerContext(machineUsingDeplZone, vsphereFailureDomain)
 			controllerCtx := fake.NewControllerContext(mgmtContext)
-			deploymentZoneCtx := &context.VSphereDeploymentZoneContext{
+			deploymentZoneCtx := &capvcontext.VSphereDeploymentZoneContext{
 				ControllerContext:     controllerCtx,
 				VSphereDeploymentZone: vsphereDeploymentZone,
 				VSphereFailureDomain:  vsphereFailureDomain,
@@ -656,7 +656,7 @@ func TestVSphereDeploymentZoneReconciler_ReconcileDelete(t *testing.T) {
 		machineNotUsingDeplZone := createMachine("machine-1", "cluster-1", "ns", false)
 		mgmtContext := fake.NewControllerManagerContext(machineNotUsingDeplZone, vsphereFailureDomain)
 		controllerCtx := fake.NewControllerContext(mgmtContext)
-		deploymentZoneCtx := &context.VSphereDeploymentZoneContext{
+		deploymentZoneCtx := &capvcontext.VSphereDeploymentZoneContext{
 			ControllerContext:     controllerCtx,
 			VSphereDeploymentZone: vsphereDeploymentZone,
 			VSphereFailureDomain:  vsphereFailureDomain,
@@ -673,7 +673,7 @@ func TestVSphereDeploymentZoneReconciler_ReconcileDelete(t *testing.T) {
 	t.Run("when no machines are present", func(t *testing.T) {
 		mgmtContext := fake.NewControllerManagerContext(vsphereFailureDomain)
 		controllerCtx := fake.NewControllerContext(mgmtContext)
-		deploymentZoneCtx := &context.VSphereDeploymentZoneContext{
+		deploymentZoneCtx := &capvcontext.VSphereDeploymentZoneContext{
 			ControllerContext:     controllerCtx,
 			VSphereDeploymentZone: vsphereDeploymentZone,
 			VSphereFailureDomain:  vsphereFailureDomain,
@@ -697,7 +697,7 @@ func TestVSphereDeploymentZoneReconciler_ReconcileDelete(t *testing.T) {
 		t.Run("not used by other deployment zones", func(t *testing.T) {
 			mgmtContext := fake.NewControllerManagerContext(vsphereFailureDomain)
 			controllerCtx := fake.NewControllerContext(mgmtContext)
-			deploymentZoneCtx := &context.VSphereDeploymentZoneContext{
+			deploymentZoneCtx := &capvcontext.VSphereDeploymentZoneContext{
 				ControllerContext:     controllerCtx,
 				VSphereDeploymentZone: vsphereDeploymentZone,
 				VSphereFailureDomain:  vsphereFailureDomain,
@@ -719,7 +719,7 @@ func TestVSphereDeploymentZoneReconciler_ReconcileDelete(t *testing.T) {
 
 			mgmtContext := fake.NewControllerManagerContext(vsphereFailureDomain)
 			controllerCtx := fake.NewControllerContext(mgmtContext)
-			deploymentZoneCtx := &context.VSphereDeploymentZoneContext{
+			deploymentZoneCtx := &capvcontext.VSphereDeploymentZoneContext{
 				ControllerContext:     controllerCtx,
 				VSphereDeploymentZone: vsphereDeploymentZone,
 				VSphereFailureDomain:  vsphereFailureDomain,
@@ -732,7 +732,7 @@ func TestVSphereDeploymentZoneReconciler_ReconcileDelete(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 
 			fetchedFailureDomain := &infrav1.VSphereFailureDomain{}
-			g.Expect(mgmtContext.Client.Get(goctx.Background(), client.ObjectKey{Name: vsphereFailureDomain.Name}, fetchedFailureDomain)).To(Succeed())
+			g.Expect(mgmtContext.Client.Get(context.Background(), client.ObjectKey{Name: vsphereFailureDomain.Name}, fetchedFailureDomain)).To(Succeed())
 			g.Expect(fetchedFailureDomain.OwnerReferences).To(HaveLen(1))
 		})
 	})

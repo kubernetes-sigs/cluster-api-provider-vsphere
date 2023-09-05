@@ -17,7 +17,7 @@ limitations under the License.
 package vmware
 
 import (
-	goctx "context"
+	"context"
 	"fmt"
 	"os"
 
@@ -36,7 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
@@ -47,7 +47,7 @@ const (
 )
 
 type ClusterReconciler struct {
-	*context.ControllerContext
+	*capvcontext.ControllerContext
 	NetworkProvider       services.NetworkProvider
 	ControlPlaneService   services.ControlPlaneEndpointService
 	ResourcePolicyService services.ResourcePolicyService
@@ -63,7 +63,7 @@ type ClusterReconciler struct {
 // +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;update;create;delete
 // +kubebuilder:rbac:groups="",resources=persistentvolumeclaims/status,verbs=get;update;patch
 
-func (r *ClusterReconciler) Reconcile(_ goctx.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
+func (r *ClusterReconciler) Reconcile(_ context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	logger := r.Logger.WithName(req.Namespace).WithName(req.Name)
 	logger.V(3).Info("Starting Reconcile vsphereCluster")
 
@@ -132,8 +132,8 @@ func (r *ClusterReconciler) Reconcile(_ goctx.Context, req ctrl.Request) (_ ctrl
 	return ctrl.Result{}, r.reconcileNormal(clusterContext)
 }
 
-func (r *ClusterReconciler) reconcileDelete(ctx *vmware.ClusterContext) {
-	ctx.Logger.Info("Reconciling vsphereCluster delete")
+func (r *ClusterReconciler) reconcileDelete(clusterCtx *vmware.ClusterContext) {
+	clusterCtx.Logger.Info("Reconciling vsphereCluster delete")
 
 	deletingConditionTypes := []clusterv1.ConditionType{
 		vmwarev1.ResourcePolicyReadyCondition,
@@ -142,134 +142,134 @@ func (r *ClusterReconciler) reconcileDelete(ctx *vmware.ClusterContext) {
 	}
 
 	for _, t := range deletingConditionTypes {
-		if c := conditions.Get(ctx.VSphereCluster, t); c != nil {
-			conditions.MarkFalse(ctx.VSphereCluster, t, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+		if c := conditions.Get(clusterCtx.VSphereCluster, t); c != nil {
+			conditions.MarkFalse(clusterCtx.VSphereCluster, t, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
 		}
 	}
 
 	// Cluster is deleted so remove the finalizer.
-	controllerutil.RemoveFinalizer(ctx.VSphereCluster, vmwarev1.ClusterFinalizer)
+	controllerutil.RemoveFinalizer(clusterCtx.VSphereCluster, vmwarev1.ClusterFinalizer)
 }
 
-func (r *ClusterReconciler) reconcileNormal(ctx *vmware.ClusterContext) error {
-	ctx.Logger.Info("Reconciling vsphereCluster")
+func (r *ClusterReconciler) reconcileNormal(clusterCtx *vmware.ClusterContext) error {
+	clusterCtx.Logger.Info("Reconciling vsphereCluster")
 
 	// Get any failure domains to report back to the CAPI core controller.
-	failureDomains, err := r.getFailureDomains(ctx)
+	failureDomains, err := r.getFailureDomains(clusterCtx)
 	if err != nil {
 		return errors.Wrapf(
 			err,
-			"unexpected error while discovering failure domains for %s", ctx.VSphereCluster.Name)
+			"unexpected error while discovering failure domains for %s", clusterCtx.VSphereCluster.Name)
 	}
-	ctx.VSphereCluster.Status.FailureDomains = failureDomains
+	clusterCtx.VSphereCluster.Status.FailureDomains = failureDomains
 
 	// Reconcile ResourcePolicy before we create the machines. If the ResourcePolicy is not reconciled before we create the Node VMs,
 	//   it will be handled by vm operator by relocating the VMs to the ResourcePool and Folder specified by the ResourcePolicy.
 	// Reconciling the ResourcePolicy early potentially saves us the extra relocate operation.
-	resourcePolicyName, err := r.ResourcePolicyService.ReconcileResourcePolicy(ctx)
+	resourcePolicyName, err := r.ResourcePolicyService.ReconcileResourcePolicy(clusterCtx)
 	if err != nil {
-		conditions.MarkFalse(ctx.VSphereCluster, vmwarev1.ResourcePolicyReadyCondition, vmwarev1.ResourcePolicyCreationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+		conditions.MarkFalse(clusterCtx.VSphereCluster, vmwarev1.ResourcePolicyReadyCondition, vmwarev1.ResourcePolicyCreationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 		return errors.Wrapf(err,
 			"failed to configure resource policy for vsphereCluster %s/%s",
-			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
+			clusterCtx.VSphereCluster.Namespace, clusterCtx.VSphereCluster.Name)
 	}
-	conditions.MarkTrue(ctx.VSphereCluster, vmwarev1.ResourcePolicyReadyCondition)
-	ctx.VSphereCluster.Status.ResourcePolicyName = resourcePolicyName
+	conditions.MarkTrue(clusterCtx.VSphereCluster, vmwarev1.ResourcePolicyReadyCondition)
+	clusterCtx.VSphereCluster.Status.ResourcePolicyName = resourcePolicyName
 
 	// Configure the cluster for the cluster network
-	err = r.NetworkProvider.ProvisionClusterNetwork(ctx)
+	err = r.NetworkProvider.ProvisionClusterNetwork(clusterCtx)
 	if err != nil {
 		return errors.Wrapf(err,
 			"failed to configure cluster network for vsphereCluster %s/%s",
-			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
+			clusterCtx.VSphereCluster.Namespace, clusterCtx.VSphereCluster.Name)
 	}
 
-	if ok, err := r.reconcileControlPlaneEndpoint(ctx); !ok {
+	if ok, err := r.reconcileControlPlaneEndpoint(clusterCtx); !ok {
 		if err != nil {
-			return errors.Wrapf(err, "unexpected error while reconciling control plane endpoint for %s", ctx.VSphereCluster.Name)
+			return errors.Wrapf(err, "unexpected error while reconciling control plane endpoint for %s", clusterCtx.VSphereCluster.Name)
 		}
 	}
 
-	ctx.VSphereCluster.Status.Ready = true
-	ctx.Logger.V(2).Info("Reconcile completed, vsphereCluster is infrastructure-ready")
+	clusterCtx.VSphereCluster.Status.Ready = true
+	clusterCtx.Logger.V(2).Info("Reconcile completed, vsphereCluster is infrastructure-ready")
 	return nil
 }
 
-func (r *ClusterReconciler) reconcileControlPlaneEndpoint(ctx *vmware.ClusterContext) (bool, error) {
-	if !ctx.Cluster.Spec.ControlPlaneEndpoint.IsZero() {
-		ctx.VSphereCluster.Spec.ControlPlaneEndpoint.Host = ctx.Cluster.Spec.ControlPlaneEndpoint.Host
-		ctx.VSphereCluster.Spec.ControlPlaneEndpoint.Port = ctx.Cluster.Spec.ControlPlaneEndpoint.Port
+func (r *ClusterReconciler) reconcileControlPlaneEndpoint(clusterCtx *vmware.ClusterContext) (bool, error) {
+	if !clusterCtx.Cluster.Spec.ControlPlaneEndpoint.IsZero() {
+		clusterCtx.VSphereCluster.Spec.ControlPlaneEndpoint.Host = clusterCtx.Cluster.Spec.ControlPlaneEndpoint.Host
+		clusterCtx.VSphereCluster.Spec.ControlPlaneEndpoint.Port = clusterCtx.Cluster.Spec.ControlPlaneEndpoint.Port
 		if r.NetworkProvider.HasLoadBalancer() {
-			conditions.MarkTrue(ctx.VSphereCluster, vmwarev1.LoadBalancerReadyCondition)
+			conditions.MarkTrue(clusterCtx.VSphereCluster, vmwarev1.LoadBalancerReadyCondition)
 		}
-		ctx.Logger.Info("skipping control plane endpoint reconciliation",
+		clusterCtx.Logger.Info("skipping control plane endpoint reconciliation",
 			"reason", "ControlPlaneEndpoint already set on Cluster",
-			"controlPlaneEndpoint", ctx.Cluster.Spec.ControlPlaneEndpoint.String())
+			"controlPlaneEndpoint", clusterCtx.Cluster.Spec.ControlPlaneEndpoint.String())
 		return true, nil
 	}
 
-	if !ctx.VSphereCluster.Spec.ControlPlaneEndpoint.IsZero() {
+	if !clusterCtx.VSphereCluster.Spec.ControlPlaneEndpoint.IsZero() {
 		if r.NetworkProvider.HasLoadBalancer() {
-			conditions.MarkTrue(ctx.VSphereCluster, vmwarev1.LoadBalancerReadyCondition)
+			conditions.MarkTrue(clusterCtx.VSphereCluster, vmwarev1.LoadBalancerReadyCondition)
 		}
-		ctx.Logger.Info("skipping control plane endpoint reconciliation",
+		clusterCtx.Logger.Info("skipping control plane endpoint reconciliation",
 			"reason", "ControlPlaneEndpoint already set on vsphereCluster",
-			"controlPlaneEndpoint", ctx.VSphereCluster.Spec.ControlPlaneEndpoint.String())
+			"controlPlaneEndpoint", clusterCtx.VSphereCluster.Spec.ControlPlaneEndpoint.String())
 		return true, nil
 	}
 
 	if r.NetworkProvider.HasLoadBalancer() {
-		if err := r.reconcileLoadBalancedEndpoint(ctx); err != nil {
+		if err := r.reconcileLoadBalancedEndpoint(clusterCtx); err != nil {
 			return false, errors.Wrapf(err,
 				"failed to reconcile loadbalanced endpoint for vsphereCluster %s/%s",
-				ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
+				clusterCtx.VSphereCluster.Namespace, clusterCtx.VSphereCluster.Name)
 		}
 
 		return true, nil
 	}
 
-	if err := r.reconcileAPIEndpoints(ctx); err != nil {
+	if err := r.reconcileAPIEndpoints(clusterCtx); err != nil {
 		return false, errors.Wrapf(err,
 			"failed to reconcile API endpoints for vsphereCluster %s/%s",
-			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
+			clusterCtx.VSphereCluster.Namespace, clusterCtx.VSphereCluster.Name)
 	}
 
 	return true, nil
 }
 
-func (r *ClusterReconciler) reconcileLoadBalancedEndpoint(ctx *vmware.ClusterContext) error {
-	ctx.Logger.Info("Reconciling load-balanced control plane endpoint")
+func (r *ClusterReconciler) reconcileLoadBalancedEndpoint(clusterCtx *vmware.ClusterContext) error {
+	clusterCtx.Logger.Info("Reconciling load-balanced control plane endpoint")
 
 	// Will create a VirtualMachineService for a NetworkProvider that supports load balancing
-	cpEndpoint, err := r.ControlPlaneService.ReconcileControlPlaneEndpointService(ctx, r.NetworkProvider)
+	cpEndpoint, err := r.ControlPlaneService.ReconcileControlPlaneEndpointService(clusterCtx, r.NetworkProvider)
 	if err != nil {
 		// Likely the endpoint is not ready. Keep retrying.
 		return errors.Wrapf(err,
 			"failed to get control plane endpoint for Cluster %s/%s",
-			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
+			clusterCtx.VSphereCluster.Namespace, clusterCtx.VSphereCluster.Name)
 	}
 
 	if cpEndpoint == nil {
 		return fmt.Errorf("control plane endpoint not available for Cluster %s/%s",
-			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
+			clusterCtx.VSphereCluster.Namespace, clusterCtx.VSphereCluster.Name)
 	}
 
 	// If we've got here and we have a cpEndpoint, we're done.
-	ctx.VSphereCluster.Spec.ControlPlaneEndpoint = *cpEndpoint
-	ctx.Logger.V(3).Info(
+	clusterCtx.VSphereCluster.Spec.ControlPlaneEndpoint = *cpEndpoint
+	clusterCtx.Logger.V(3).Info(
 		"found API endpoint via virtual machine service",
 		"host", cpEndpoint.Host,
 		"port", cpEndpoint.Port)
 	return nil
 }
 
-func (r *ClusterReconciler) reconcileAPIEndpoints(ctx *vmware.ClusterContext) error {
-	ctx.Logger.Info("Reconciling control plane endpoint")
-	machines, err := collections.GetFilteredMachinesForCluster(ctx, r.Client, ctx.Cluster, collections.ControlPlaneMachines(ctx.Cluster.Name))
+func (r *ClusterReconciler) reconcileAPIEndpoints(clusterCtx *vmware.ClusterContext) error {
+	clusterCtx.Logger.Info("Reconciling control plane endpoint")
+	machines, err := collections.GetFilteredMachinesForCluster(clusterCtx, r.Client, clusterCtx.Cluster, collections.ControlPlaneMachines(clusterCtx.Cluster.Name))
 	if err != nil {
 		return errors.Wrapf(err,
 			"failed to get Machines for Cluster %s/%s",
-			ctx.Cluster.Namespace, ctx.Cluster.Name)
+			clusterCtx.Cluster.Namespace, clusterCtx.Cluster.Name)
 	}
 
 	// Define a variable to assign the API endpoints of control plane
@@ -280,7 +280,7 @@ func (r *ClusterReconciler) reconcileAPIEndpoints(ctx *vmware.ClusterContext) er
 	for _, machine := range machines {
 		// Only machines with bootstrap data will have an IP address.
 		if machine.Spec.Bootstrap.DataSecretName == nil {
-			ctx.Logger.V(5).Info(
+			clusterCtx.Logger.V(5).Info(
 				"skipping machine while looking for IP address",
 				"reason", "bootstrap.DataSecretName is nil",
 				"machine-name", machine.Name)
@@ -288,16 +288,16 @@ func (r *ClusterReconciler) reconcileAPIEndpoints(ctx *vmware.ClusterContext) er
 		}
 
 		// Get the vsphereMachine for the CAPI Machine resource.
-		vsphereMachine, err := util.GetVSphereMachine(ctx, ctx.Client, machine.Namespace, machine.Name)
+		vsphereMachine, err := util.GetVSphereMachine(clusterCtx, clusterCtx.Client, machine.Namespace, machine.Name)
 		if err != nil {
 			return errors.Wrapf(err,
 				"failed to get vsphereMachine for Machine %s/%s/%s",
-				ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name, machine.Name)
+				clusterCtx.VSphereCluster.Namespace, clusterCtx.VSphereCluster.Name, machine.Name)
 		}
 
 		// If the machine has no IP address then skip it.
 		if vsphereMachine.Status.IPAddr == "" {
-			ctx.Logger.V(5).Info("skipping machine without IP address")
+			clusterCtx.Logger.V(5).Info("skipping machine without IP address")
 			continue
 		}
 
@@ -309,7 +309,7 @@ func (r *ClusterReconciler) reconcileAPIEndpoints(ctx *vmware.ClusterContext) er
 			Port: apiEndpointPort,
 		}
 		apiEndpointList = append(apiEndpointList, apiEndpoint)
-		ctx.Logger.V(3).Info(
+		clusterCtx.Logger.V(3).Info(
 			"found API endpoint via control plane machine",
 			"host", apiEndpoint.Host,
 			"port", apiEndpoint.Port)
@@ -321,16 +321,16 @@ func (r *ClusterReconciler) reconcileAPIEndpoints(ctx *vmware.ClusterContext) er
 	if len(apiEndpointList) == 0 {
 		return errors.Wrapf(err,
 			"failed to reconcile API endpoints for %s/%s",
-			ctx.VSphereCluster.Namespace, ctx.VSphereCluster.Name)
+			clusterCtx.VSphereCluster.Namespace, clusterCtx.VSphereCluster.Name)
 	}
 
 	// Update the vsphereCluster's list of APIEndpoints.
-	ctx.VSphereCluster.Spec.ControlPlaneEndpoint = apiEndpointList[0]
+	clusterCtx.VSphereCluster.Spec.ControlPlaneEndpoint = apiEndpointList[0]
 
 	return nil
 }
 
-func (r *ClusterReconciler) VSphereMachineToCluster(ctx goctx.Context, o client.Object) []reconcile.Request {
+func (r *ClusterReconciler) VSphereMachineToCluster(ctx context.Context, o client.Object) []reconcile.Request {
 	vsphereMachine, ok := o.(*vmwarev1.VSphereMachine)
 	if !ok {
 		r.Logger.Error(errors.New("did not get vspheremachine"), "got", fmt.Sprintf("%T", o))
@@ -368,13 +368,13 @@ var isFaultDomainsFSSEnabled = func() bool {
 
 // Returns the failure domain information discovered on the cluster
 // hosting this controller.
-func (r *ClusterReconciler) getFailureDomains(ctx *vmware.ClusterContext) (clusterv1.FailureDomains, error) {
+func (r *ClusterReconciler) getFailureDomains(clusterCtx *vmware.ClusterContext) (clusterv1.FailureDomains, error) {
 	if !isFaultDomainsFSSEnabled() {
 		return nil, nil
 	}
 
 	availabilityZoneList := &topologyv1.AvailabilityZoneList{}
-	if err := ctx.Client.List(ctx, availabilityZoneList); err != nil {
+	if err := clusterCtx.Client.List(clusterCtx, availabilityZoneList); err != nil {
 		return nil, err
 	}
 

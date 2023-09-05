@@ -17,7 +17,7 @@ limitations under the License.
 package controllers
 
 import (
-	goctx "context"
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -46,27 +46,27 @@ const (
 
 var truePointer = true
 
-func createTestResource(ctx goctx.Context, ctrlClient client.Client, obj client.Object) {
+func createTestResource(ctx context.Context, ctrlClient client.Client, obj client.Object) {
 	Expect(ctrlClient.Create(ctx, obj)).To(Succeed())
 }
 
-func deleteTestResource(ctx goctx.Context, ctrlClient client.Client, obj client.Object) {
+func deleteTestResource(ctx context.Context, ctrlClient client.Client, obj client.Object) {
 	Expect(ctrlClient.Delete(ctx, obj)).To(Succeed())
 }
 
-func createTargetSecretWithInvalidToken(ctx goctx.Context, guestClient client.Client, namespace string) {
+func createTargetSecretWithInvalidToken(ctx context.Context, guestClient client.Client, namespace string) {
 	secret := getTestTargetSecretWithInvalidToken(namespace)
 	Expect(guestClient.Create(ctx, secret)).To(Succeed())
 }
 
-func assertEventuallyExistsInNamespace(ctx goctx.Context, c client.Client, namespace, name string, obj client.Object) {
+func assertEventuallyExistsInNamespace(ctx context.Context, c client.Client, namespace, name string, obj client.Object) {
 	EventuallyWithOffset(2, func() error {
 		key := client.ObjectKey{Namespace: namespace, Name: name}
 		return c.Get(ctx, key, obj)
 	}).Should(Succeed())
 }
 
-func assertNoEntities(ctx goctx.Context, ctrlClient client.Client, namespace string) {
+func assertNoEntities(ctx context.Context, ctrlClient client.Client, namespace string) {
 	Consistently(func() int {
 		var serviceAccountList corev1.ServiceAccountList
 		err := ctrlClient.List(ctx, &serviceAccountList, client.InNamespace(namespace))
@@ -89,7 +89,7 @@ func assertNoEntities(ctx goctx.Context, ctrlClient client.Client, namespace str
 	}, time.Second*3).Should(Equal(0))
 }
 
-func assertServiceAccountAndUpdateSecret(ctx goctx.Context, ctrlClient client.Client, namespace, name string) {
+func assertServiceAccountAndUpdateSecret(ctx context.Context, ctrlClient client.Client, namespace, name string) {
 	svcAccount := &corev1.ServiceAccount{}
 	assertEventuallyExistsInNamespace(ctx, ctrlClient, namespace, name, svcAccount)
 	secret := &corev1.Secret{}
@@ -102,7 +102,7 @@ func assertServiceAccountAndUpdateSecret(ctx goctx.Context, ctrlClient client.Cl
 	Expect(ctrlClient.Update(ctx, secret)).To(Succeed())
 }
 
-func assertTargetSecret(ctx goctx.Context, guestClient client.Client, namespace, name string) {
+func assertTargetSecret(ctx context.Context, guestClient client.Client, namespace, name string) {
 	secret := &corev1.Secret{}
 	assertEventuallyExistsInNamespace(ctx, guestClient, namespace, name, secret)
 	EventuallyWithOffset(2, func() []byte {
@@ -145,7 +145,7 @@ func assertRoleBinding(_ *helpers.UnitTestContextForController, ctrlClient clien
 	opts := &client.ListOptions{
 		Namespace: namespace,
 	}
-	err := ctrlClient.List(goctx.TODO(), &roleBindingList, opts)
+	err := ctrlClient.List(context.TODO(), &roleBindingList, opts)
 	Expect(err).ShouldNot(HaveOccurred())
 	Expect(roleBindingList.Items).To(HaveLen(1))
 	Expect(roleBindingList.Items[0].Name).To(Equal(name))

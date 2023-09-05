@@ -17,7 +17,7 @@ limitations under the License.
 package integration
 
 import (
-	goctx "context"
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -69,7 +69,7 @@ const (
 var (
 	testClusterName        string
 	dummyKubernetesVersion = "1.15.0+vmware.1"
-	ctx                    goctx.Context
+	ctx                    context.Context
 	k8sClient              dynamic.Interface
 )
 
@@ -246,7 +246,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	By("Initializing the bootstrap cluster")
 	helpers.InitBootstrapCluster(bootstrapClusterProxy, e2eConfig, clusterctlConfigPath, artifactFolder)
-	ctx = goctx.Background()
+	ctx = context.Background()
 	return []byte(
 		strings.Join([]string{
 			artifactFolder,

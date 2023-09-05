@@ -17,7 +17,7 @@ limitations under the License.
 package fake
 
 import (
-	goctx "context"
+	"context"
 
 	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -32,7 +32,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 )
 
@@ -40,7 +40,7 @@ import (
 // testing reconcilers and webhooks with a fake client. You can choose to
 // initialize it with a slice of runtime.Object.
 
-func NewControllerManagerContext(initObjects ...client.Object) *context.ControllerManagerContext {
+func NewControllerManagerContext(initObjects ...client.Object) *capvcontext.ControllerManagerContext {
 	scheme := runtime.NewScheme()
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = clusterv1.AddToScheme(scheme)
@@ -55,8 +55,8 @@ func NewControllerManagerContext(initObjects ...client.Object) *context.Controll
 		&vmwarev1.VSphereCluster{},
 	).WithObjects(initObjects...).Build()
 
-	return &context.ControllerManagerContext{
-		Context:                 goctx.Background(),
+	return &capvcontext.ControllerManagerContext{
+		Context:                 context.Background(),
 		Client:                  clientWithObjects,
 		Logger:                  ctrllog.Log.WithName(ControllerManagerName),
 		Scheme:                  scheme,

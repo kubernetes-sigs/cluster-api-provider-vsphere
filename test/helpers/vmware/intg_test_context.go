@@ -83,9 +83,9 @@ func (ctx *IntegrationTestContext) AfterEach() {
 //
 // The resources created by this function may be cleaned up by calling AfterEach
 // with the IntegrationTestContext returned by this function.
-func NewIntegrationTestContextWithClusters(goctx context.Context, integrationTestClient client.Client) *IntegrationTestContext {
-	ctx := &IntegrationTestContext{
-		Context: goctx,
+func NewIntegrationTestContextWithClusters(ctx context.Context, integrationTestClient client.Client) *IntegrationTestContext {
+	testCtx := &IntegrationTestContext{
+		Context: ctx,
 		Client:  integrationTestClient,
 	}
 
@@ -95,17 +95,17 @@ func NewIntegrationTestContextWithClusters(goctx context.Context, integrationTes
 				Name: uuid.New().String(),
 			},
 		}
-		Expect(ctx.Client.Create(goctx, namespace)).To(Succeed())
+		Expect(testCtx.Client.Create(ctx, namespace)).To(Succeed())
 
-		ctx.Namespace = namespace.Name
+		testCtx.Namespace = namespace.Name
 	})
 
 	vsphereClusterName := capiutil.RandomString(6)
-	ctx.Cluster = createCluster(goctx, integrationTestClient, ctx.Namespace, vsphereClusterName)
+	testCtx.Cluster = createCluster(ctx, integrationTestClient, testCtx.Namespace, vsphereClusterName)
 
 	By("Create a vsphere cluster and wait for it to exist", func() {
-		ctx.VSphereCluster = createVSphereCluster(goctx, integrationTestClient, ctx.Namespace, vsphereClusterName, ctx.Cluster.GetName())
-		ctx.VSphereClusterKey = client.ObjectKeyFromObject(ctx.VSphereCluster)
+		testCtx.VSphereCluster = createVSphereCluster(ctx, integrationTestClient, testCtx.Namespace, vsphereClusterName, testCtx.Cluster.GetName())
+		testCtx.VSphereClusterKey = client.ObjectKeyFromObject(testCtx.VSphereCluster)
 	})
 
 	var config *rest.Config
@@ -125,25 +125,25 @@ func NewIntegrationTestContextWithClusters(goctx context.Context, integrationTes
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(config).ShouldNot(BeNil())
 
-		ctx.GuestClient, err = client.New(config, client.Options{})
+		testCtx.GuestClient, err = client.New(config, client.Options{})
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(ctx.GuestClient).ShouldNot(BeNil())
+		Expect(testCtx.GuestClient).ShouldNot(BeNil())
 
-		ctx.envTest = envTest
+		testCtx.envTest = envTest
 	})
 	By("Create the kubeconfig secret for the cluster", func() {
 		buf, err := writeKubeConfig(config)
 		Expect(err).ToNot(HaveOccurred())
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ctx.Namespace,
-				Name:      fmt.Sprintf("%s-kubeconfig", ctx.Cluster.Name),
+				Namespace: testCtx.Namespace,
+				Name:      fmt.Sprintf("%s-kubeconfig", testCtx.Cluster.Name),
 				OwnerReferences: []metav1.OwnerReference{
 					{
-						APIVersion: ctx.Cluster.APIVersion,
-						Kind:       ctx.Cluster.Kind,
-						Name:       ctx.Cluster.Name,
-						UID:        ctx.Cluster.UID,
+						APIVersion: testCtx.Cluster.APIVersion,
+						Kind:       testCtx.Cluster.Kind,
+						Name:       testCtx.Cluster.Name,
+						UID:        testCtx.Cluster.UID,
 					},
 				},
 			},
@@ -151,13 +151,13 @@ func NewIntegrationTestContextWithClusters(goctx context.Context, integrationTes
 				"value": buf,
 			},
 		}
-		Expect(integrationTestClient.Create(goctx, secret)).To(Succeed())
+		Expect(integrationTestClient.Create(ctx, secret)).To(Succeed())
 		Eventually(func() error {
-			return integrationTestClient.Get(goctx, client.ObjectKeyFromObject(secret), secret)
+			return integrationTestClient.Get(ctx, client.ObjectKeyFromObject(secret), secret)
 		}).Should(Succeed())
 	})
 
-	return ctx
+	return testCtx
 }
 
 func createCluster(ctx context.Context, integrationTestClient client.Client, namespace, name string) *clusterv1.Cluster {

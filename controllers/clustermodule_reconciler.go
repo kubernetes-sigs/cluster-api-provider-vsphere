@@ -17,7 +17,7 @@ limitations under the License.
 package controllers
 
 import (
-	goctx "context"
+	"context"
 	"fmt"
 	"strings"
 
@@ -38,7 +38,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/clustermodule"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 )
 
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinedeployments,verbs=get;list;watch
@@ -47,29 +47,29 @@ import (
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=vspheremachinetemplates,verbs=get;list;watch
 
 type Reconciler struct {
-	*context.ControllerContext
+	*capvcontext.ControllerContext
 
 	ClusterModuleService clustermodule.Service
 }
 
-func NewReconciler(ctx *context.ControllerContext) Reconciler {
+func NewReconciler(controllerCtx *capvcontext.ControllerContext) Reconciler {
 	return Reconciler{
-		ControllerContext:    ctx,
+		ControllerContext:    controllerCtx,
 		ClusterModuleService: clustermodule.NewService(),
 	}
 }
 
-func (r Reconciler) Reconcile(ctx *context.ClusterContext) (reconcile.Result, error) {
-	ctx.Logger.Info("reconcile anti affinity setup")
-	if !clustermodule.IsClusterCompatible(ctx) {
-		conditions.MarkFalse(ctx.VSphereCluster, infrav1.ClusterModulesAvailableCondition, infrav1.VCenterVersionIncompatibleReason, clusterv1.ConditionSeverityInfo,
-			"vCenter API version %s is not compatible with cluster modules", ctx.VSphereCluster.Status.VCenterVersion)
-		ctx.Logger.Info("cluster is not compatible for anti affinity",
-			"api version", ctx.VSphereCluster.Status.VCenterVersion)
+func (r Reconciler) Reconcile(clusterCtx *capvcontext.ClusterContext) (reconcile.Result, error) {
+	clusterCtx.Logger.Info("reconcile anti affinity setup")
+	if !clustermodule.IsClusterCompatible(clusterCtx) {
+		conditions.MarkFalse(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition, infrav1.VCenterVersionIncompatibleReason, clusterv1.ConditionSeverityInfo,
+			"vCenter API version %s is not compatible with cluster modules", clusterCtx.VSphereCluster.Status.VCenterVersion)
+		clusterCtx.Logger.Info("cluster is not compatible for anti affinity",
+			"api version", clusterCtx.VSphereCluster.Status.VCenterVersion)
 		return reconcile.Result{}, nil
 	}
 
-	objectMap, err := r.fetchMachineOwnerObjects(ctx)
+	objectMap, err := r.fetchMachineOwnerObjects(clusterCtx)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -77,7 +77,7 @@ func (r Reconciler) Reconcile(ctx *context.ClusterContext) (reconcile.Result, er
 	modErrs := []clusterModError{}
 
 	clusterModuleSpecs := []infrav1.ClusterModule{}
-	for _, mod := range ctx.VSphereCluster.Spec.ClusterModules {
+	for _, mod := range clusterCtx.VSphereCluster.Spec.ClusterModules {
 		curr := mod.TargetObjectName
 		if mod.ControlPlane {
 			curr = appendKCPKey(curr)
@@ -85,18 +85,18 @@ func (r Reconciler) Reconcile(ctx *context.ClusterContext) (reconcile.Result, er
 		if obj, ok := objectMap[curr]; !ok {
 			// delete the cluster module as the object is marked for deletion
 			// or already deleted.
-			if err := r.ClusterModuleService.Remove(ctx, mod.ModuleUUID); err != nil {
-				ctx.Logger.Error(err, "failed to delete cluster module for object",
+			if err := r.ClusterModuleService.Remove(clusterCtx, mod.ModuleUUID); err != nil {
+				clusterCtx.Logger.Error(err, "failed to delete cluster module for object",
 					"name", mod.TargetObjectName, "moduleUUID", mod.ModuleUUID)
 			}
 			delete(objectMap, curr)
 		} else {
 			// verify the cluster module
-			exists, err := r.ClusterModuleService.DoesExist(ctx, obj, mod.ModuleUUID)
+			exists, err := r.ClusterModuleService.DoesExist(clusterCtx, obj, mod.ModuleUUID)
 			if err != nil {
 				// Add the error to modErrs so it gets handled below.
 				modErrs = append(modErrs, clusterModError{obj.GetName(), errors.Wrapf(err, "failed to verify cluster module %q", mod.ModuleUUID)})
-				ctx.Logger.Error(err, "failed to verify cluster module for object",
+				clusterCtx.Logger.Error(err, "failed to verify cluster module for object",
 					"name", mod.TargetObjectName, "moduleUUID", mod.ModuleUUID)
 				// Append the module and remove it from objectMap to not create new ones instead.
 				clusterModuleSpecs = append(clusterModuleSpecs, infrav1.ClusterModule{
@@ -119,7 +119,7 @@ func (r Reconciler) Reconcile(ctx *context.ClusterContext) (reconcile.Result, er
 				})
 				delete(objectMap, curr)
 			} else {
-				ctx.Logger.Info("module for object not found",
+				clusterCtx.Logger.Info("module for object not found",
 					"moduleUUID", mod.ModuleUUID,
 					"object", mod.TargetObjectName)
 			}
@@ -127,9 +127,9 @@ func (r Reconciler) Reconcile(ctx *context.ClusterContext) (reconcile.Result, er
 	}
 
 	for _, obj := range objectMap {
-		moduleUUID, err := r.ClusterModuleService.Create(ctx, obj)
+		moduleUUID, err := r.ClusterModuleService.Create(clusterCtx, obj)
 		if err != nil {
-			ctx.Logger.Error(err, "failed to create cluster module for target object", "name", obj.GetName())
+			clusterCtx.Logger.Error(err, "failed to create cluster module for target object", "name", obj.GetName())
 			modErrs = append(modErrs, clusterModError{obj.GetName(), err})
 			continue
 		}
@@ -143,7 +143,7 @@ func (r Reconciler) Reconcile(ctx *context.ClusterContext) (reconcile.Result, er
 			ModuleUUID:       moduleUUID,
 		})
 	}
-	ctx.VSphereCluster.Spec.ClusterModules = clusterModuleSpecs
+	clusterCtx.VSphereCluster.Spec.ClusterModules = clusterModuleSpecs
 
 	switch {
 	case len(modErrs) > 0:
@@ -155,17 +155,17 @@ func (r Reconciler) Reconcile(ctx *context.ClusterContext) (reconcile.Result, er
 		} else {
 			err = errors.New(generateClusterModuleErrorMessage(modErrs))
 		}
-		conditions.MarkFalse(ctx.VSphereCluster, infrav1.ClusterModulesAvailableCondition, infrav1.ClusterModuleSetupFailedReason,
+		conditions.MarkFalse(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition, infrav1.ClusterModuleSetupFailedReason,
 			clusterv1.ConditionSeverityWarning, generateClusterModuleErrorMessage(modErrs))
 	case len(modErrs) == 0 && len(clusterModuleSpecs) > 0:
-		conditions.MarkTrue(ctx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)
+		conditions.MarkTrue(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)
 	default:
-		conditions.Delete(ctx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)
+		conditions.Delete(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)
 	}
 	return reconcile.Result{}, err
 }
 
-func (r Reconciler) toAffinityInput(ctx goctx.Context, obj client.Object) []reconcile.Request {
+func (r Reconciler) toAffinityInput(ctx context.Context, obj client.Object) []reconcile.Request {
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, metav1.ObjectMeta{
 		Namespace:       obj.GetNamespace(),
 		Labels:          obj.GetLabels(),
@@ -226,10 +226,10 @@ func (r Reconciler) PopulateWatchesOnController(mgr manager.Manager, controller 
 	)
 }
 
-func (r Reconciler) fetchMachineOwnerObjects(ctx *context.ClusterContext) (map[string]clustermodule.Wrapper, error) {
+func (r Reconciler) fetchMachineOwnerObjects(clusterCtx *capvcontext.ClusterContext) (map[string]clustermodule.Wrapper, error) {
 	objects := map[string]clustermodule.Wrapper{}
 
-	name, ok := ctx.VSphereCluster.GetLabels()[clusterv1.ClusterNameLabel]
+	name, ok := clusterCtx.VSphereCluster.GetLabels()[clusterv1.ClusterNameLabel]
 	if !ok {
 		return nil, errors.Errorf("missing CAPI cluster label")
 	}
@@ -237,8 +237,8 @@ func (r Reconciler) fetchMachineOwnerObjects(ctx *context.ClusterContext) (map[s
 	labels := map[string]string{clusterv1.ClusterNameLabel: name}
 	kcpList := &controlplanev1.KubeadmControlPlaneList{}
 	if err := r.Client.List(
-		ctx, kcpList,
-		client.InNamespace(ctx.VSphereCluster.GetNamespace()),
+		clusterCtx, kcpList,
+		client.InNamespace(clusterCtx.VSphereCluster.GetNamespace()),
 		client.MatchingLabels(labels)); err != nil {
 		return nil, errors.Wrapf(err, "failed to list control plane objects")
 	}
@@ -254,8 +254,8 @@ func (r Reconciler) fetchMachineOwnerObjects(ctx *context.ClusterContext) (map[s
 
 	mdList := &clusterv1.MachineDeploymentList{}
 	if err := r.Client.List(
-		ctx, mdList,
-		client.InNamespace(ctx.VSphereCluster.GetNamespace()),
+		clusterCtx, mdList,
+		client.InNamespace(clusterCtx.VSphereCluster.GetNamespace()),
 		client.MatchingLabels(labels)); err != nil {
 		return nil, errors.Wrapf(err, "failed to list machine deployment objects")
 	}

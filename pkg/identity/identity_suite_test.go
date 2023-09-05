@@ -17,7 +17,7 @@ limitations under the License.
 package identity
 
 import (
-	goctx "context"
+	"context"
 	"fmt"
 	"path"
 	"path/filepath"
@@ -44,7 +44,7 @@ var (
 	scheme    = runtime.NewScheme()
 	env       *envtest.Environment
 	k8sclient client.Client
-	ctx       goctx.Context
+	ctx       context.Context
 )
 
 func getTestEnv() *envtest.Environment {
@@ -75,7 +75,7 @@ func TestIdentity(t *testing.T) {
 
 var _ = SynchronizedBeforeSuite(func() []byte {
 	By("Creating new test environment")
-	ctx = goctx.Background()
+	ctx = context.Background()
 	env = getTestEnv()
 	cfg, err := env.Start()
 	Expect(err).NotTo(HaveOccurred())

@@ -28,12 +28,12 @@ type VMService struct {
 	mock.Mock
 }
 
-func (v *VMService) ReconcileVM(ctx *context.VMContext) (infrav1.VirtualMachine, error) {
-	args := v.Called(ctx)
+func (v *VMService) ReconcileVM(vmCtx *context.VMContext) (infrav1.VirtualMachine, error) {
+	args := v.Called(vmCtx)
 	return args.Get(0).(infrav1.VirtualMachine), args.Error(1)
 }
 
-func (v *VMService) DestroyVM(ctx *context.VMContext) (reconcile.Result, infrav1.VirtualMachine, error) {
-	args := v.Called(ctx)
+func (v *VMService) DestroyVM(vmCtx *context.VMContext) (reconcile.Result, infrav1.VirtualMachine, error) {
+	args := v.Called(vmCtx)
 	return args.Get(0).(reconcile.Result), args.Get(1).(infrav1.VirtualMachine), args.Error(2)
 }

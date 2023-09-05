@@ -26,7 +26,7 @@ import (
 	"k8s.io/utils/pointer"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers/vcsim"
@@ -92,7 +92,7 @@ func ForComputeClusterZone(t *testing.T) {
 		},
 	}
 
-	deploymentZoneCtx := &context.VSphereDeploymentZoneContext{
+	deploymentZoneCtx := &capvcontext.VSphereDeploymentZoneContext{
 		ControllerContext:    controllerCtx,
 		VSphereFailureDomain: vsphereFailureDomain,
 		Logger:               logr.Discard(),
@@ -176,7 +176,7 @@ func ForHostGroupZone(t *testing.T) {
 		},
 	}
 
-	deploymentZoneCtx := &context.VSphereDeploymentZoneContext{
+	deploymentZoneCtx := &capvcontext.VSphereDeploymentZoneContext{
 		ControllerContext:    controllerCtx,
 		VSphereFailureDomain: vsphereFailureDomain,
 		Logger:               logr.Discard(),
@@ -287,7 +287,7 @@ func TestVsphereDeploymentZoneReconciler_Reconcile_CreateAndAttachMetadata(t *te
 			Spec: tests[0].vsphereFailureDomainSpec,
 		}
 
-		deploymentZoneCtx := &context.VSphereDeploymentZoneContext{
+		deploymentZoneCtx := &capvcontext.VSphereDeploymentZoneContext{
 			ControllerContext:    controllerCtx,
 			VSphereFailureDomain: vsphereFailureDomain,
 			Logger:               logr.Discard(),
@@ -308,7 +308,7 @@ func TestVsphereDeploymentZoneReconciler_Reconcile_CreateAndAttachMetadata(t *te
 			Spec: tests[1].vsphereFailureDomainSpec,
 		}
 
-		deploymentZoneCtx := &context.VSphereDeploymentZoneContext{
+		deploymentZoneCtx := &capvcontext.VSphereDeploymentZoneContext{
 			ControllerContext:    controllerCtx,
 			VSphereFailureDomain: vsphereFailureDomain,
 			Logger:               logr.Discard(),
@@ -329,7 +329,7 @@ func TestVsphereDeploymentZoneReconciler_Reconcile_CreateAndAttachMetadata(t *te
 			Spec: tests[2].vsphereFailureDomainSpec,
 		}
 
-		deploymentZoneCtx := &context.VSphereDeploymentZoneContext{
+		deploymentZoneCtx := &capvcontext.VSphereDeploymentZoneContext{
 			ControllerContext:    controllerCtx,
 			VSphereFailureDomain: vsphereFailureDomain,
 			Logger:               logr.Discard(),

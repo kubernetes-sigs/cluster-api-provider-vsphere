@@ -117,6 +117,12 @@ func (r clusterIdentityReconciler) Reconcile(ctx _context.Context, req reconcile
 		return ctrl.Result{}, r.reconcileDelete(ctx, identity)
 	}
 
+	// Add a finalizer and requeue to ensure that the secret is deleted when the identity is deleted.
+	if !ctrlutil.ContainsFinalizer(identity, infrav1.VSphereClusterIdentityFinalizer) {
+		ctrlutil.AddFinalizer(identity, infrav1.VSphereClusterIdentityFinalizer)
+		return reconcile.Result{}, nil
+	}
+
 	// fetch secret
 	secret := &corev1.Secret{}
 	secretKey := client.ObjectKey{
@@ -169,6 +175,8 @@ func (r clusterIdentityReconciler) reconcileDelete(ctx _context.Context, identit
 	err := r.Client.Get(ctx, secretKey, secret)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
+			// The secret no longer exists. Remove the finalizer from the VSphereClusterIdentity.
+			ctrlutil.RemoveFinalizer(identity, infrav1.VSphereClusterIdentityFinalizer)
 			return nil
 		}
 		return err
@@ -183,5 +191,10 @@ func (r clusterIdentityReconciler) reconcileDelete(ctx _context.Context, identit
 	if err := r.Client.Update(ctx, secret); err != nil {
 		return err
 	}
-	return r.Client.Delete(ctx, secret)
+	if err := r.Client.Delete(ctx, secret); err != nil {
+		return err
+	}
+	// Remove the finalizer from the identity as all cleanup is complete.
+	ctrlutil.RemoveFinalizer(identity, infrav1.VSphereClusterIdentityFinalizer)
+	return nil
 }

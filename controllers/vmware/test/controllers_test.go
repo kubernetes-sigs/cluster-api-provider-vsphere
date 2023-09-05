@@ -223,15 +223,15 @@ func getManager(cfg *rest.Config, networkProvider string) manager.Manager {
 
 	controllerOpts := controller.Options{MaxConcurrentReconciles: 10}
 
-	opts.AddToManager = func(controllerCtx *capvcontext.ControllerManagerContext, mgr ctrlmgr.Manager) error {
-		if err := controllers.AddClusterControllerToManager(controllerCtx, mgr, &vmwarev1.VSphereCluster{}, controllerOpts); err != nil {
+	opts.AddToManager = func(ctx context.Context, controllerCtx *capvcontext.ControllerManagerContext, mgr ctrlmgr.Manager) error {
+		if err := controllers.AddClusterControllerToManager(ctx, controllerCtx, mgr, &vmwarev1.VSphereCluster{}, controllerOpts); err != nil {
 			return err
 		}
 
 		return controllers.AddMachineControllerToManager(controllerCtx, mgr, &vmwarev1.VSphereMachine{}, controllerOpts)
 	}
 
-	mgr, err := manager.New(opts)
+	mgr, err := manager.New(ctx, opts)
 	Expect(err).NotTo(HaveOccurred())
 	return mgr
 }

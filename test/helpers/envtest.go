@@ -112,7 +112,7 @@ type (
 )
 
 // NewTestEnvironment creates a new environment spinning up a local api-server.
-func NewTestEnvironment() *TestEnvironment {
+func NewTestEnvironment(ctx context.Context) *TestEnvironment {
 	// initialize webhook here to be able to test the envtest install via webhookOptions
 	initializeWebhookInEnvironment()
 
@@ -141,7 +141,7 @@ func NewTestEnvironment() *TestEnvironment {
 		Username:   simr.Username(),
 		Password:   simr.Password(),
 	}
-	managerOpts.AddToManager = func(controllerCtx *capvcontext.ControllerManagerContext, mgr ctrlmgr.Manager) error {
+	managerOpts.AddToManager = func(ctx context.Context, controllerCtx *capvcontext.ControllerManagerContext, mgr ctrlmgr.Manager) error {
 		if err := (&webhooks.VSphereClusterTemplateWebhook{}).SetupWebhookWithManager(mgr); err != nil {
 			return err
 		}
@@ -165,7 +165,7 @@ func NewTestEnvironment() *TestEnvironment {
 		return (&webhooks.VSphereFailureDomainWebhook{}).SetupWebhookWithManager(mgr)
 	}
 
-	mgr, err := manager.New(managerOpts)
+	mgr, err := manager.New(ctx, managerOpts)
 	if err != nil {
 		klog.Fatalf("failed to create the CAPV controller manager: %v", err)
 	}

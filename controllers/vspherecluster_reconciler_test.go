@@ -700,14 +700,14 @@ func TestClusterReconciler_ReconcileDeploymentZones(t *testing.T) {
 			t.Run(tt.name, func(t *testing.T) {
 				g := NewWithT(t)
 				controllerCtx := fake.NewControllerContext(fake.NewControllerManagerContext(tt.initObjs...))
-				ctx := fake.NewClusterContext(controllerCtx)
-				ctx.VSphereCluster.Spec.Server = server
+				clusterCtx := fake.NewClusterContext(controllerCtx)
+				clusterCtx.VSphereCluster.Spec.Server = server
 
 				r := clusterReconciler{ControllerContext: controllerCtx}
-				reconciled, err := r.reconcileDeploymentZones(ctx)
+				reconciled, err := r.reconcileDeploymentZones(ctx, clusterCtx)
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(reconciled).To(Equal(tt.reconciled))
-				tt.assert(ctx.VSphereCluster)
+				tt.assert(clusterCtx.VSphereCluster)
 			})
 		}
 	})
@@ -769,15 +769,15 @@ func TestClusterReconciler_ReconcileDeploymentZones(t *testing.T) {
 			t.Run(tt.name, func(t *testing.T) {
 				g := NewWithT(t)
 				controllerCtx := fake.NewControllerContext(fake.NewControllerManagerContext(tt.initObjs...))
-				ctx := fake.NewClusterContext(controllerCtx)
-				ctx.VSphereCluster.Spec.Server = server
-				ctx.VSphereCluster.Spec.FailureDomainSelector = &metav1.LabelSelector{MatchLabels: map[string]string{}}
+				clusterCtx := fake.NewClusterContext(controllerCtx)
+				clusterCtx.VSphereCluster.Spec.Server = server
+				clusterCtx.VSphereCluster.Spec.FailureDomainSelector = &metav1.LabelSelector{MatchLabels: map[string]string{}}
 
 				r := clusterReconciler{ControllerContext: controllerCtx}
-				reconciled, err := r.reconcileDeploymentZones(ctx)
+				reconciled, err := r.reconcileDeploymentZones(ctx, clusterCtx)
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(reconciled).To(Equal(tt.reconciled))
-				tt.assert(ctx.VSphereCluster)
+				tt.assert(clusterCtx.VSphereCluster)
 			})
 		}
 	})
@@ -802,14 +802,14 @@ func TestClusterReconciler_ReconcileDeploymentZones(t *testing.T) {
 
 		assertNumberOfZones := func(selector *metav1.LabelSelector, selectedZones int) {
 			controllerCtx := fake.NewControllerContext(fake.NewControllerManagerContext(zoneOne, zoneTwo, zoneThree))
-			ctx := fake.NewClusterContext(controllerCtx)
-			ctx.VSphereCluster.Spec.Server = server
-			ctx.VSphereCluster.Spec.FailureDomainSelector = selector
+			clusterCtx := fake.NewClusterContext(controllerCtx)
+			clusterCtx.VSphereCluster.Spec.Server = server
+			clusterCtx.VSphereCluster.Spec.FailureDomainSelector = selector
 
 			r := clusterReconciler{ControllerContext: controllerCtx}
-			_, err := r.reconcileDeploymentZones(ctx)
+			_, err := r.reconcileDeploymentZones(ctx, clusterCtx)
 			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(ctx.VSphereCluster.Status.FailureDomains).To(HaveLen(selectedZones))
+			g.Expect(clusterCtx.VSphereCluster.Status.FailureDomains).To(HaveLen(selectedZones))
 		}
 
 		t.Run("with no zones matching labels", func(_ *testing.T) {

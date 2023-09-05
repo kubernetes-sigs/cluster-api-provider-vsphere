@@ -30,20 +30,20 @@ const (
 
 // GetNetworkProvider will return a network provider instance based on the environment
 // the cfg is used to initialize a client that talks directly to api-server without using the cache.
-func GetNetworkProvider(ctx *context.ControllerManagerContext) (services.NetworkProvider, error) {
-	switch ctx.NetworkProvider {
+func GetNetworkProvider(controllerCtx *context.ControllerManagerContext) (services.NetworkProvider, error) {
+	switch controllerCtx.NetworkProvider {
 	case NSXNetworkProvider:
 		// TODO: disableFirewall not configurable
-		ctx.Logger.Info("Pick NSX-T network provider")
-		return network.NsxtNetworkProvider(ctx.Client, "false"), nil
+		controllerCtx.Logger.Info("Pick NSX-T network provider")
+		return network.NsxtNetworkProvider(controllerCtx.Client, "false"), nil
 	case VDSNetworkProvider:
-		ctx.Logger.Info("Pick NetOp (VDS) network provider")
-		return network.NetOpNetworkProvider(ctx.Client), nil
+		controllerCtx.Logger.Info("Pick NetOp (VDS) network provider")
+		return network.NetOpNetworkProvider(controllerCtx.Client), nil
 	case DummyLBNetworkProvider:
-		ctx.Logger.Info("Pick Dummy network provider")
+		controllerCtx.Logger.Info("Pick Dummy network provider")
 		return network.DummyLBNetworkProvider(), nil
 	default:
-		ctx.Logger.Info("NetworkProvider not set. Pick Dummy network provider")
+		controllerCtx.Logger.Info("NetworkProvider not set. Pick Dummy network provider")
 		return network.DummyNetworkProvider(), nil
 	}
 }

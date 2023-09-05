@@ -57,7 +57,7 @@ import (
 
 // AddClusterControllerToManager adds the cluster controller to the provided
 // manager.
-func AddClusterControllerToManager(controllerCtx *capvcontext.ControllerManagerContext, mgr manager.Manager, clusterControlledType client.Object, options controller.Options) error {
+func AddClusterControllerToManager(ctx context.Context, controllerCtx *capvcontext.ControllerManagerContext, mgr manager.Manager, clusterControlledType client.Object, options controller.Options) error {
 	supervisorBased, err := util.IsSupervisorType(clusterControlledType)
 	if err != nil {
 		return err
@@ -110,7 +110,7 @@ func AddClusterControllerToManager(controllerCtx *capvcontext.ControllerManagerC
 		ControllerContext:       controllerContext,
 		clusterModuleReconciler: NewReconciler(controllerContext),
 	}
-	clusterToInfraFn := clusterToInfrastructureMapFunc(controllerCtx)
+	clusterToInfraFn := clusterToInfrastructureMapFunc(ctx, controllerCtx)
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		// Watch the controlled, infrastructure resource.
 		For(clusterControlledType).
@@ -173,7 +173,7 @@ func AddClusterControllerToManager(controllerCtx *capvcontext.ControllerManagerC
 	return nil
 }
 
-func clusterToInfrastructureMapFunc(controllerCtx *capvcontext.ControllerManagerContext) handler.MapFunc {
+func clusterToInfrastructureMapFunc(ctx context.Context, controllerCtx *capvcontext.ControllerManagerContext) handler.MapFunc {
 	gvk := infrav1.GroupVersion.WithKind(reflect.TypeOf(&infrav1.VSphereCluster{}).Elem().Name())
-	return clusterutilv1.ClusterToInfrastructureMapFunc(controllerCtx, gvk, controllerCtx.Client, &infrav1.VSphereCluster{})
+	return clusterutilv1.ClusterToInfrastructureMapFunc(ctx, gvk, controllerCtx.Client, &infrav1.VSphereCluster{})
 }

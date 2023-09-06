@@ -26,7 +26,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 )
 
-// ConvertTo.
+// ConvertTo converts this VSphereMachineTemplate to the Hub version (v1beta1).
 func (src *VSphereMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*infrav1.VSphereMachineTemplate)
 	if err := Convert_v1alpha4_VSphereMachineTemplate_To_v1beta1_VSphereMachineTemplate(src, dst, nil); err != nil {
@@ -51,6 +51,7 @@ func (src *VSphereMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	return nil
 }
 
+// ConvertFrom converts from the Hub version (v1beta1) to this VSphereMachineTemplate.
 func (dst *VSphereMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.VSphereMachineTemplate)
 	if err := Convert_v1beta1_VSphereMachineTemplate_To_v1alpha4_VSphereMachineTemplate(src, dst, nil); err != nil {

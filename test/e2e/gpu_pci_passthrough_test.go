@@ -75,18 +75,19 @@ var _ = Describe("Cluster creation with GPU devices as PCI passthrough [speciali
 func verifyPCIDeviceOnWorkerNodes(clusterName, namespace string) {
 	list := getVSphereVMsForCluster(clusterName, namespace)
 	for _, vm := range list.Items {
-		if _, ok := vm.GetLabels()[clusterv1.MachineControlPlaneLabel]; !ok {
-			finder := find.NewFinder(vsphereClient.Client, false)
-			dc, err := finder.Datacenter(ctx, vm.Spec.Datacenter)
-			Expect(err).NotTo(HaveOccurred())
-			finder.SetDatacenter(dc)
-
-			vmObj, err := finder.VirtualMachine(ctx, fmt.Sprintf("/%s/vm/%s/%s", vm.Spec.Datacenter, vm.Spec.Folder, vm.Name))
-			Expect(err).NotTo(HaveOccurred())
-			devices, err := vmObj.Device(ctx)
-			Expect(err).NotTo(HaveOccurred())
-			defaultPciDevices := devices.SelectByType((*types.VirtualPCIPassthrough)(nil))
-			Expect(defaultPciDevices).To(HaveLen(1))
+		if _, ok := vm.GetLabels()[clusterv1.MachineControlPlaneLabel]; ok {
+			continue
 		}
+		finder := find.NewFinder(vsphereClient.Client, false)
+		dc, err := finder.Datacenter(ctx, vm.Spec.Datacenter)
+		Expect(err).NotTo(HaveOccurred())
+		finder.SetDatacenter(dc)
+
+		vmObj, err := finder.VirtualMachine(ctx, fmt.Sprintf("/%s/vm/%s/%s", vm.Spec.Datacenter, vm.Spec.Folder, vm.Name))
+		Expect(err).NotTo(HaveOccurred())
+		devices, err := vmObj.Device(ctx)
+		Expect(err).NotTo(HaveOccurred())
+		defaultPciDevices := devices.SelectByType((*types.VirtualPCIPassthrough)(nil))
+		Expect(defaultPciDevices).To(HaveLen(1))
 	}
 }

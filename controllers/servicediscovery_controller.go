@@ -429,7 +429,7 @@ func getSupervisorAPIServerURLWithFIP(client client.Client) (string, error) {
 // tryParseClusterInfoFromConfigMap tries to parse a kubeconfig file from a ConfigMap key.
 func tryParseClusterInfoFromConfigMap(cm *corev1.ConfigMap) (*clientcmdapi.Config, error) {
 	kubeConfigString, ok := cm.Data[bootstrapapi.KubeConfigKey]
-	if !ok || len(kubeConfigString) == 0 {
+	if !ok || kubeConfigString == "" {
 		return nil, errors.Errorf("no %s key in ConfigMap %s/%s", bootstrapapi.KubeConfigKey, cm.Namespace, cm.Name)
 	}
 	parsedKubeConfig, err := clientcmd.Load([]byte(kubeConfigString))

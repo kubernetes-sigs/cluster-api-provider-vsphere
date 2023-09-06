@@ -19,7 +19,6 @@ package vmware
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 
 	"github.com/go-logr/logr"
 	"github.com/google/uuid"
@@ -109,17 +108,11 @@ func NewIntegrationTestContextWithClusters(ctx context.Context, integrationTestC
 	})
 
 	var config *rest.Config
+
 	By("Creating guest cluster control plane", func() {
 		// Initialize a test environment to simulate the control plane of the guest cluster.
 		var err error
-		envTest := &envtest.Environment{
-			// Add some form of CRD so the CRD object is registered in the
-			// scheme...
-			CRDDirectoryPaths: []string{
-				filepath.Join("../../", "config", "default", "crd"),
-				filepath.Join("../../", "config", "supervisor", "crd"),
-			},
-		}
+		envTest := &envtest.Environment{}
 		envTest.ControlPlane.GetAPIServer().Configure().Set("allow-privileged", "true")
 		config, err = envTest.Start()
 		Expect(err).ShouldNot(HaveOccurred())

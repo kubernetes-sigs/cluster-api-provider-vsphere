@@ -153,18 +153,19 @@ func (r clusterReconciler) reconcileDelete(clusterCtx *capvcontext.ClusterContex
 		// If the VSphereMachine is not owned by the CAPI Machine object because the machine object was deleted
 		// before setting the owner references, then proceed with the deletion of the VSphereMachine object.
 		// This is required until CAPI has a solution for https://github.com/kubernetes-sigs/cluster-api/issues/5483
-		if clusterutilv1.IsOwnedByObject(vsphereMachine, clusterCtx.VSphereCluster) && len(vsphereMachine.OwnerReferences) == 1 {
-			machineDeletionCount++
-			// Remove the finalizer since VM creation wouldn't proceed
-			r.Logger.Info("Removing finalizer from VSphereMachine", "namespace", vsphereMachine.Namespace, "name", vsphereMachine.Name)
-			ctrlutil.RemoveFinalizer(vsphereMachine, infrav1.MachineFinalizer)
-			if err := r.Client.Update(clusterCtx, vsphereMachine); err != nil {
-				return reconcile.Result{}, err
-			}
-			if err := r.Client.Delete(clusterCtx, vsphereMachine); err != nil && !apierrors.IsNotFound(err) {
-				clusterCtx.Logger.Error(err, "Failed to delete for VSphereMachine", "namespace", vsphereMachine.Namespace, "name", vsphereMachine.Name)
-				deletionErrors = append(deletionErrors, err)
-			}
+		if !clusterutilv1.IsOwnedByObject(vsphereMachine, clusterCtx.VSphereCluster) || len(vsphereMachine.OwnerReferences) != 1 {
+			continue
+		}
+		machineDeletionCount++
+		// Remove the finalizer since VM creation wouldn't proceed
+		r.Logger.Info("Removing finalizer from VSphereMachine", "namespace", vsphereMachine.Namespace, "name", vsphereMachine.Name)
+		ctrlutil.RemoveFinalizer(vsphereMachine, infrav1.MachineFinalizer)
+		if err := r.Client.Update(clusterCtx, vsphereMachine); err != nil {
+			return reconcile.Result{}, err
+		}
+		if err := r.Client.Delete(clusterCtx, vsphereMachine); err != nil && !apierrors.IsNotFound(err) {
+			clusterCtx.Logger.Error(err, "Failed to delete for VSphereMachine", "namespace", vsphereMachine.Namespace, "name", vsphereMachine.Name)
+			deletionErrors = append(deletionErrors, err)
 		}
 	}
 	if len(deletionErrors) > 0 {

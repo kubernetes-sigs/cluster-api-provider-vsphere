@@ -122,12 +122,7 @@ func TestGetDiskSpec(t *testing.T) {
 			}
 			vmContext := &context.VMContext{VSphereVM: vsphereVM}
 			devices, err := getDiskSpec(vmContext, tc.disks)
-			switch {
-			case tc.err != "" && err == nil:
-				fallthrough
-			case tc.err == "" && err != nil:
-				fallthrough
-			case err != nil && tc.err != err.Error():
+			if (tc.err != "" && err == nil) || (tc.err == "" && err != nil) || (err != nil && tc.err != err.Error()) {
 				t.Fatalf("Expected to get '%v' error from getDiskSpec, got: '%v'", tc.err, err)
 			}
 			if deviceFound := len(devices) != 0; tc.expectDevice != deviceFound {

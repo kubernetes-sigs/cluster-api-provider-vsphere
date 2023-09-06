@@ -366,7 +366,7 @@ func waitForMacAddresses(ctx *virtualMachineContext) error {
 func getMacAddresses(ctx *virtualMachineContext) ([]string, map[string]int, map[int]string, error) {
 	var (
 		vm                   mo.VirtualMachine
-		macAddresses         []string
+		macAddresses         = make([]string, 0)
 		macToDeviceSpecIndex = map[string]int{}
 		deviceSpecIndexToMac = map[int]string{}
 	)
@@ -375,13 +375,15 @@ func getMacAddresses(ctx *virtualMachineContext) ([]string, map[string]int, map[
 	}
 	i := 0
 	for _, device := range vm.Config.Hardware.Device {
-		if nic, ok := device.(types.BaseVirtualEthernetCard); ok {
-			mac := nic.GetVirtualEthernetCard().MacAddress
-			macAddresses = append(macAddresses, mac)
-			macToDeviceSpecIndex[mac] = i
-			deviceSpecIndexToMac[i] = mac
-			i++
+		nic, ok := device.(types.BaseVirtualEthernetCard)
+		if !ok {
+			continue
 		}
+		mac := nic.GetVirtualEthernetCard().MacAddress
+		macAddresses = append(macAddresses, mac)
+		macToDeviceSpecIndex[mac] = i
+		deviceSpecIndexToMac[i] = mac
+		i++
 	}
 	return macAddresses, macToDeviceSpecIndex, deviceSpecIndexToMac, nil
 }

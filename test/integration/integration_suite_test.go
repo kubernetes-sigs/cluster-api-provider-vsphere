@@ -631,7 +631,6 @@ func updateResourceStatus(resource schema.GroupVersionResource, obj runtimeObjec
 	Expect(err).NotTo(HaveOccurred(), "Error updating status of %s %s/%s", resource, obj.GetNamespace(), obj.GetName())
 }
 
-//nolint:gocritic
 func assertEventuallyExists(resource schema.GroupVersionResource, name, ns string, ownerRef *metav1.OwnerReference) *unstructuredv1.Unstructured {
 	var obj *unstructuredv1.Unstructured
 	EventuallyWithOffset(1, func() (bool, error) {

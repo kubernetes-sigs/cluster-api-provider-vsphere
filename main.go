@@ -157,6 +157,7 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 
 	InitFlags(pflag.CommandLine)
+
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
 	if err := pflag.CommandLine.Set("v", "2"); err != nil {

@@ -148,7 +148,7 @@ func newSSHConfig() (*ssh.ClientConfig, error) {
 
 func readPrivateKey() ([]byte, error) {
 	privateKeyFilePath := os.Getenv(VSpherePrivateKeyFilePath)
-	if len(privateKeyFilePath) == 0 {
+	if privateKeyFilePath == "" {
 		return nil, errors.Errorf("private key information missing. Please set %s environment variable", VSpherePrivateKeyFilePath)
 	}
 

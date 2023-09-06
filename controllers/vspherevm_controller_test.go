@@ -710,31 +710,32 @@ func createMachineOwnerHierarchy(machine *clusterv1.Machine) []client.Object {
 		clusterName, _ = machine.Labels[clusterv1.ClusterNameLabel]
 	)
 
-	objs = append(objs, &clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-ms", machine.Name),
-			Namespace: machine.Namespace,
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: clusterName,
-			},
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion: clusterv1.GroupVersion.String(),
-					Kind:       "MachineDeployment",
-					Name:       fmt.Sprintf("%s-md", machine.Name),
+	objs = append(
+		objs,
+		&clusterv1.MachineSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      fmt.Sprintf("%s-ms", machine.Name),
+				Namespace: machine.Namespace,
+				Labels: map[string]string{
+					clusterv1.ClusterNameLabel: clusterName,
+				},
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: clusterv1.GroupVersion.String(),
+						Kind:       "MachineDeployment",
+						Name:       fmt.Sprintf("%s-md", machine.Name),
+					},
 				},
 			},
 		},
-	})
-
-	objs = append(objs, &clusterv1.MachineDeployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-md", machine.Name),
-			Namespace: machine.Namespace,
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: clusterName,
+		&clusterv1.MachineDeployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      fmt.Sprintf("%s-md", machine.Name),
+				Namespace: machine.Namespace,
+				Labels: map[string]string{
+					clusterv1.ClusterNameLabel: clusterName,
+				},
 			},
-		},
-	})
+		})
 	return objs
 }

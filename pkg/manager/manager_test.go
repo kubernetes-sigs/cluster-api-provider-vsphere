@@ -63,7 +63,7 @@ password: '%s'
 
 		// Update the file and wait for watch to detect the change
 		content := fmt.Sprintf(contentFmt, updatedUsername, updatedPassword)
-		_, err = tmpFile.Write([]byte(content))
+		_, err = tmpFile.WriteString(content)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		g.Eventually(func() bool {
@@ -98,7 +98,7 @@ password: '%s'
 
 		// Update the file and wait for watch to detect the change
 		content := fmt.Sprintf(contentFmt, updatedUsername, updatedPassword)
-		if _, err := tmpFile.Write([]byte(content)); err != nil {
+		if _, err := tmpFile.WriteString(content); err != nil {
 			fmt.Printf("failed to update credentials in the file err:%s", err.Error())
 		}
 

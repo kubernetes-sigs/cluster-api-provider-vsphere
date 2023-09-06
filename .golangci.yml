@@ -68,27 +68,27 @@ linters-settings:
     exclude:
       - '^ \+.*'
       - '^ ANCHOR.*'
-  # gocritic:
-  #   enabled-tags:
-  #     - diagnostic
-  #     - experimental
-  #     - performance
-  #   disabled-checks:
-  #     - appendAssign
-  #     - dupImport # https://github.com/go-critic/go-critic/issues/845
-  #     - evalOrder
-  #     - ifElseChain
-  #     - octalLiteral
-  #     - regexpSimplify
-  #     - sloppyReassign
-  #     - truncateCmp
-  #     - typeDefFirst
-  #     - unnamedResult
-  #     - unnecessaryDefer
-  #     - whyNoLint
-  #     - wrapperFunc
-  #     - rangeValCopy
-  #     - hugeParam
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - performance
+    disabled-checks:
+      - appendAssign
+      - dupImport # https://github.com/go-critic/go-critic/issues/845
+      - evalOrder
+      - ifElseChain
+      - octalLiteral
+      - regexpSimplify
+      - sloppyReassign
+      - truncateCmp
+      - typeDefFirst
+      - unnamedResult
+      - unnecessaryDefer
+      - whyNoLint
+      - wrapperFunc
+      - rangeValCopy
+      - hugeParam
   importas:
     no-unaliased: true
     alias:

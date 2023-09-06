@@ -610,7 +610,6 @@ func TestUnmarshalINI(t *testing.T) {
 		},
 	}
 
-	//nolint:gocritic
 	testCases := append(
 		testcases,
 		deprecatedTestCases...,

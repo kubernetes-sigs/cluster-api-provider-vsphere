@@ -62,7 +62,7 @@ password: '%s'
 		}
 		t.Cleanup(func() { os.Remove(tmpFile.Name()) })
 
-		if _, err := tmpFile.Write([]byte(content)); err != nil {
+		if _, err := tmpFile.WriteString(content); err != nil {
 			t.Fatal(err)
 		}
 		if err := tmpFile.Close(); err != nil {

@@ -22,12 +22,7 @@ import (
 	"github.com/onsi/gomega"
 )
 
-func TestSanitizeHostInfoLabel(t *testing.T) {
-	t.Run("for IP addresses", testIPAddressLogic)
-	t.Run("for DNS entries", testDNSLogic)
-}
-
-func testIPAddressLogic(t *testing.T) {
+func TestSanitizeIPHostInfoLabel(t *testing.T) {
 	tests := []struct {
 		name, input, expected string
 	}{
@@ -61,7 +56,7 @@ func testIPAddressLogic(t *testing.T) {
 	}
 }
 
-func testDNSLogic(t *testing.T) {
+func TestSanitizeDNSHostInfoLabel(t *testing.T) {
 	tests := []struct {
 		name, input, expected string
 	}{

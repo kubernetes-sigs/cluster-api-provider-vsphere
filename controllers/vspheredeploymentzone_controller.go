@@ -243,20 +243,21 @@ func (r vsphereDeploymentZoneReconciler) getVCenterSession(deploymentZoneCtx *ca
 	}
 
 	for _, vsphereCluster := range clusterList.Items {
-		if deploymentZoneCtx.VSphereDeploymentZone.Spec.Server == vsphereCluster.Spec.Server && vsphereCluster.Spec.IdentityRef != nil {
-			logger := deploymentZoneCtx.Logger.WithValues("cluster", vsphereCluster.Name)
-			params = params.WithThumbprint(vsphereCluster.Spec.Thumbprint)
-			clust := vsphereCluster
-			creds, err := identity.GetCredentials(deploymentZoneCtx, r.Client, &clust, r.Namespace)
-			if err != nil {
-				logger.Error(err, "error retrieving credentials from IdentityRef")
-				continue
-			}
-			logger.Info("using server credentials to create the authenticated session")
-			params = params.WithUserInfo(creds.Username, creds.Password)
-			return session.GetOrCreate(r.Context,
-				params)
+		if deploymentZoneCtx.VSphereDeploymentZone.Spec.Server != vsphereCluster.Spec.Server || vsphereCluster.Spec.IdentityRef == nil {
+			continue
 		}
+		logger := deploymentZoneCtx.Logger.WithValues("cluster", vsphereCluster.Name)
+		params = params.WithThumbprint(vsphereCluster.Spec.Thumbprint)
+		clust := vsphereCluster
+		creds, err := identity.GetCredentials(deploymentZoneCtx, r.Client, &clust, r.Namespace)
+		if err != nil {
+			logger.Error(err, "error retrieving credentials from IdentityRef")
+			continue
+		}
+		logger.Info("using server credentials to create the authenticated session")
+		params = params.WithUserInfo(creds.Username, creds.Password)
+		return session.GetOrCreate(r.Context,
+			params)
 	}
 
 	// Fallback to using credentials provided to the manager

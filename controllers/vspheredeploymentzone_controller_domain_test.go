@@ -32,13 +32,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers/vcsim"
 )
 
-//nolint:paralleltest
-func TestVsphereDeploymentZoneReconciler_Reconcile_VerifyFailureDomain(t *testing.T) {
-	t.Run("for Compute Cluster Zone Failure Domain", ForComputeClusterZone)
-	t.Run("for Host Group Zone Failure Domain", ForHostGroupZone)
-}
-
-func ForComputeClusterZone(t *testing.T) {
+func TestVsphereDeploymentZoneReconciler_Reconcile_VerifyFailureDomain_ComputeClusterZone(t *testing.T) {
 	g := NewWithT(t)
 
 	model := simulator.VPX()
@@ -120,7 +114,7 @@ func ForComputeClusterZone(t *testing.T) {
 	g.Expect(reconciler.verifyFailureDomain(deploymentZoneCtx, vsphereFailureDomain.Spec.Zone)).To(HaveOccurred())
 }
 
-func ForHostGroupZone(t *testing.T) {
+func TestVsphereDeploymentZoneReconciler_Reconcile_VerifyFailureDomain_HostGroupZone(t *testing.T) {
 	g := NewWithT(t)
 
 	model := simulator.VPX()

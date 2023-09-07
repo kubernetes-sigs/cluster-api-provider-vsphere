@@ -23,7 +23,8 @@ import (
 )
 
 const (
-	SecretIdentitySetFinalizer = "vspherecluster/infrastructure.cluster.x-k8s.io"
+	SecretIdentitySetFinalizer      = "vspherecluster/infrastructure.cluster.x-k8s.io"
+	VSphereClusterIdentityFinalizer = "vsphereclusteridentity/infrastructure.cluster.x-k8s.io"
 )
 
 type VSphereClusterIdentitySpec struct {

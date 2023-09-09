@@ -77,6 +77,7 @@ endif
 #
 GINKGO_FOCUS ?=
 GINKGO_SKIP ?=
+GINKGO_NODES ?= 1
 GINKGO_TIMEOUT ?= 2h
 E2E_CONF_FILE ?= "$(abspath test/e2e/config/vsphere-dev.yaml)"
 INTEGRATION_CONF_FILE ?= "$(abspath test/integration/integration-dev.yaml)"
@@ -492,7 +493,7 @@ e2e: $(GINKGO) $(KUSTOMIZE) $(KIND) $(GOVC) ## Run e2e tests
 	@echo Contents of $(TOOLS_BIN_DIR):
 	@ls $(TOOLS_BIN_DIR)
 	@echo
-	time $(GINKGO) -v --trace -focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) -timeout=$(GINKGO_TIMEOUT) \
+	time $(GINKGO) -v --trace --focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) --nodes=$(GINKGO_NODES) --timeout=$(GINKGO_TIMEOUT) \
 		--output-dir="$(ARTIFACTS)" --junit-report="junit.e2e_suite.1.xml" ./test/e2e -- \
 		--e2e.config="$(E2E_CONF_FILE)" \
 		--e2e.artifacts-folder="$(ARTIFACTS)" \

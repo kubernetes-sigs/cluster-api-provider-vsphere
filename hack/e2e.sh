@@ -57,6 +57,7 @@ export VSPHERE_USERNAME="${GOVC_USERNAME}"
 export VSPHERE_PASSWORD="${GOVC_PASSWORD}"
 export VSPHERE_SSH_AUTHORIZED_KEY="${VM_SSH_PUB_KEY}"
 export VSPHERE_SSH_PRIVATE_KEY="/root/ssh/.private-key/private-key"
+export GINKGO_NODES=${GINKGO_NODES:-10}
 export E2E_CONF_FILE="${REPO_ROOT}/test/e2e/config/vsphere-ci.yaml"
 export ARTIFACTS="${ARTIFACTS:-${REPO_ROOT}/_artifacts}"
 export DOCKER_IMAGE_TAR="${ARTIFACTS}/tempContainers/image.tar"

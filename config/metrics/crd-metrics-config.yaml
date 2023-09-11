@@ -1,0 +1,676 @@
+---
+kind: CustomResourceStateMetrics
+spec:
+  resources:
+  - errorLogV: 0
+    groupVersionKind:
+      group: infrastructure.cluster.x-k8s.io
+      kind: VSphereCluster
+      version: v1beta1
+    labelsFromPath:
+      cluster_name:
+      - metadata
+      - labels
+      - cluster.x-k8s.io/cluster-name
+      name:
+      - metadata
+      - name
+      namespace:
+      - metadata
+      - namespace
+      uid:
+      - metadata
+      - uid
+    metricNamePrefix: capi_vspherecluster
+    metrics:
+    - each:
+        info:
+          labelFromKey: ""
+          labelsFromPath:
+            paused_value: []
+          path:
+          - metadata
+          - annotations
+          - cluster.x-k8s.io/paused
+        type: Info
+      help: Whether the vspherecluster is paused and any of its resources will not
+        be processed by the controllers.
+      name: annotation_paused
+    - each:
+        gauge:
+          labelFromKey: ""
+          nilIsZero: false
+          path:
+          - metadata
+          - creationTimestamp
+          valueFrom: null
+        type: Gauge
+      help: Unix creation timestamp.
+      name: created
+    - each:
+        info:
+          labelFromKey: ""
+          labelsFromPath:
+            identity_reference_kind:
+            - spec
+            - identityRef
+            - kind
+            identity_reference_name:
+            - spec
+            - identityRef
+            - name
+            spec_server:
+            - spec
+            - server
+            status_vsphere_version:
+            - status
+            - vCenterVersion
+          path: null
+        type: Info
+      help: Information about a vspherecluster.
+      name: info
+    - each:
+        info:
+          labelFromKey: ""
+          labelsFromPath:
+            owner_is_controller:
+            - controller
+            owner_kind:
+            - kind
+            owner_name:
+            - name
+            owner_uid:
+            - uid
+          path:
+          - metadata
+          - ownerReferences
+        type: Info
+      help: Owner references.
+      name: owner
+    - each:
+        stateSet:
+          labelName: status
+          labelsFromPath:
+            type:
+            - type
+          list:
+          - "True"
+          - "False"
+          - Unknown
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - status
+        type: StateSet
+      help: The condition of a vspherecluster.
+      name: status_condition
+    - each:
+        gauge:
+          labelFromKey: ""
+          labelsFromPath:
+            status:
+            - status
+            type:
+            - type
+          nilIsZero: false
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - lastTransitionTime
+        type: Gauge
+      help: The condition last transition time of a vspherecluster.
+      name: status_condition_last_transition_time
+    resourcePlural: ""
+  - errorLogV: 0
+    groupVersionKind:
+      group: infrastructure.cluster.x-k8s.io
+      kind: VSphereClusterIdentity
+      version: v1beta1
+    labelsFromPath:
+      cluster_name:
+      - metadata
+      - labels
+      - cluster.x-k8s.io/cluster-name
+      name:
+      - metadata
+      - name
+      namespace:
+      - metadata
+      - namespace
+      uid:
+      - metadata
+      - uid
+    metricNamePrefix: capi_vsphereclusteridentity
+    metrics:
+    - each:
+        info:
+          labelFromKey: ""
+          labelsFromPath:
+            paused_value: []
+          path:
+          - metadata
+          - annotations
+          - cluster.x-k8s.io/paused
+        type: Info
+      help: Whether the vsphereclusteridentity is paused and any of its resources
+        will not be processed by the controllers.
+      name: annotation_paused
+    - each:
+        gauge:
+          labelFromKey: ""
+          nilIsZero: false
+          path:
+          - metadata
+          - creationTimestamp
+          valueFrom: null
+        type: Gauge
+      help: Unix creation timestamp.
+      name: created
+    - each:
+        info:
+          labelFromKey: ""
+          labelsFromPath:
+            name:
+            - metadata
+            - name
+          path: null
+        type: Info
+      help: Information about a vsphereclusteridentity.
+      name: info
+    - each:
+        info:
+          labelFromKey: ""
+          labelsFromPath:
+            owner_is_controller:
+            - controller
+            owner_kind:
+            - kind
+            owner_name:
+            - name
+            owner_uid:
+            - uid
+          path:
+          - metadata
+          - ownerReferences
+        type: Info
+      help: Owner references.
+      name: owner
+    - each:
+        stateSet:
+          labelName: status
+          labelsFromPath:
+            type:
+            - type
+          list:
+          - "True"
+          - "False"
+          - Unknown
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - status
+        type: StateSet
+      help: The condition of a vsphereclusteridentity.
+      name: status_condition
+    - each:
+        gauge:
+          labelFromKey: ""
+          labelsFromPath:
+            status:
+            - status
+            type:
+            - type
+          nilIsZero: false
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - lastTransitionTime
+        type: Gauge
+      help: The condition last transition time of a vsphereclusteridentity.
+      name: status_condition_last_transition_time
+    resourcePlural: ""
+  - errorLogV: 0
+    groupVersionKind:
+      group: infrastructure.cluster.x-k8s.io
+      kind: VSphereDeploymentZone
+      version: v1beta1
+    labelsFromPath:
+      cluster_name:
+      - metadata
+      - labels
+      - cluster.x-k8s.io/cluster-name
+      name:
+      - metadata
+      - name
+      namespace:
+      - metadata
+      - namespace
+      uid:
+      - metadata
+      - uid
+    metricNamePrefix: capi_vspheredeploymentzone
+    metrics:
+    - each:
+        info:
+          labelFromKey: ""
+          labelsFromPath:
+            paused_value: []
+          path:
+          - metadata
+          - annotations
+          - cluster.x-k8s.io/paused
+        type: Info
+      help: Whether the vspheredeploymentzone is paused and any of its resources will
+        not be processed by the controllers.
+      name: annotation_paused
+    - each:
+        gauge:
+          labelFromKey: ""
+          nilIsZero: false
+          path:
+          - metadata
+          - creationTimestamp
+          valueFrom: null
+        type: Gauge
+      help: Unix creation timestamp.
+      name: created
+    - each:
+        info:
+          labelFromKey: ""
+          labelsFromPath:
+            name:
+            - metadata
+            - name
+          path: null
+        type: Info
+      help: Information about a vspheredeploymentzone.
+      name: info
+    - each:
+        info:
+          labelFromKey: ""
+          labelsFromPath:
+            owner_is_controller:
+            - controller
+            owner_kind:
+            - kind
+            owner_name:
+            - name
+            owner_uid:
+            - uid
+          path:
+          - metadata
+          - ownerReferences
+        type: Info
+      help: Owner references.
+      name: owner
+    - each:
+        stateSet:
+          labelName: status
+          labelsFromPath:
+            type:
+            - type
+          list:
+          - "True"
+          - "False"
+          - Unknown
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - status
+        type: StateSet
+      help: The condition of a vspheredeploymentzone.
+      name: status_condition
+    - each:
+        gauge:
+          labelFromKey: ""
+          labelsFromPath:
+            status:
+            - status
+            type:
+            - type
+          nilIsZero: false
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - lastTransitionTime
+        type: Gauge
+      help: The condition last transition time of a vspheredeploymentzone.
+      name: status_condition_last_transition_time
+    resourcePlural: ""
+  - errorLogV: 0
+    groupVersionKind:
+      group: infrastructure.cluster.x-k8s.io
+      kind: VSphereFailureDomain
+      version: v1beta1
+    labelsFromPath:
+      cluster_name:
+      - metadata
+      - labels
+      - cluster.x-k8s.io/cluster-name
+      name:
+      - metadata
+      - name
+      namespace:
+      - metadata
+      - namespace
+      uid:
+      - metadata
+      - uid
+    metricNamePrefix: capi_vspherefailuredomain
+    metrics:
+    - each:
+        info:
+          labelFromKey: ""
+          labelsFromPath:
+            paused_value: []
+          path:
+          - metadata
+          - annotations
+          - cluster.x-k8s.io/paused
+        type: Info
+      help: Whether the vspherefailuredomain is paused and any of its resources will
+        not be processed by the controllers.
+      name: annotation_paused
+    - each:
+        gauge:
+          labelFromKey: ""
+          nilIsZero: false
+          path:
+          - metadata
+          - creationTimestamp
+          valueFrom: null
+        type: Gauge
+      help: Unix creation timestamp.
+      name: created
+    - each:
+        info:
+          labelFromKey: ""
+          labelsFromPath:
+            name:
+            - metadata
+            - name
+          path: null
+        type: Info
+      help: Information about a vspherefailuredomain.
+      name: info
+    - each:
+        info:
+          labelFromKey: ""
+          labelsFromPath:
+            owner_is_controller:
+            - controller
+            owner_kind:
+            - kind
+            owner_name:
+            - name
+            owner_uid:
+            - uid
+          path:
+          - metadata
+          - ownerReferences
+        type: Info
+      help: Owner references.
+      name: owner
+    resourcePlural: ""
+  - errorLogV: 0
+    groupVersionKind:
+      group: infrastructure.cluster.x-k8s.io
+      kind: VSphereMachine
+      version: v1beta1
+    labelsFromPath:
+      cluster_name:
+      - metadata
+      - labels
+      - cluster.x-k8s.io/cluster-name
+      name:
+      - metadata
+      - name
+      namespace:
+      - metadata
+      - namespace
+      uid:
+      - metadata
+      - uid
+    metricNamePrefix: capi_vspheremachine
+    metrics:
+    - each:
+        info:
+          labelFromKey: ""
+          labelsFromPath:
+            paused_value: []
+          path:
+          - metadata
+          - annotations
+          - cluster.x-k8s.io/paused
+        type: Info
+      help: Whether the vspheremachine is paused and any of its resources will not
+        be processed by the controllers.
+      name: annotation_paused
+    - each:
+        gauge:
+          labelFromKey: ""
+          nilIsZero: false
+          path:
+          - metadata
+          - creationTimestamp
+          valueFrom: null
+        type: Gauge
+      help: Unix creation timestamp.
+      name: created
+    - each:
+        info:
+          labelFromKey: ""
+          labelsFromPath:
+            provider_id:
+            - spec
+            - providerID
+          path: null
+        type: Info
+      help: Information about a vspheremachine.
+      name: info
+    - each:
+        info:
+          labelFromKey: ""
+          labelsFromPath:
+            owner_is_controller:
+            - controller
+            owner_kind:
+            - kind
+            owner_name:
+            - name
+            owner_uid:
+            - uid
+          path:
+          - metadata
+          - ownerReferences
+        type: Info
+      help: Owner references.
+      name: owner
+    - each:
+        info:
+          labelFromKey: ""
+          labelsFromPath:
+            address:
+            - address
+            type:
+            - type
+          path:
+          - status
+          - addresses
+        type: Info
+      help: Address information about a vspheremachine.
+      name: status_addresses
+    - each:
+        stateSet:
+          labelName: status
+          labelsFromPath:
+            type:
+            - type
+          list:
+          - "True"
+          - "False"
+          - Unknown
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - status
+        type: StateSet
+      help: The condition of a vspheremachine.
+      name: status_condition
+    - each:
+        gauge:
+          labelFromKey: ""
+          labelsFromPath:
+            status:
+            - status
+            type:
+            - type
+          nilIsZero: false
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - lastTransitionTime
+        type: Gauge
+      help: The condition last transition time of a vspheremachine.
+      name: status_condition_last_transition_time
+    resourcePlural: ""
+  - errorLogV: 0
+    groupVersionKind:
+      group: infrastructure.cluster.x-k8s.io
+      kind: VSphereVM
+      version: v1beta1
+    labelsFromPath:
+      cluster_name:
+      - metadata
+      - labels
+      - cluster.x-k8s.io/cluster-name
+      name:
+      - metadata
+      - name
+      namespace:
+      - metadata
+      - namespace
+      uid:
+      - metadata
+      - uid
+    metricNamePrefix: capi_vspherevm
+    metrics:
+    - each:
+        info:
+          labelFromKey: ""
+          labelsFromPath:
+            paused_value: []
+          path:
+          - metadata
+          - annotations
+          - cluster.x-k8s.io/paused
+        type: Info
+      help: Whether the vspherevm is paused and any of its resources will not be processed
+        by the controllers.
+      name: annotation_paused
+    - each:
+        gauge:
+          labelFromKey: ""
+          nilIsZero: false
+          path:
+          - metadata
+          - creationTimestamp
+          valueFrom: null
+        type: Gauge
+      help: Unix creation timestamp.
+      name: created
+    - each:
+        info:
+          labelFromKey: ""
+          labelsFromPath:
+            bootstrap_reference_kind:
+            - spec
+            - bootstrapRef
+            - kind
+            bootstrap_reference_name:
+            - spec
+            - bootstrapRef
+            - name
+            status_clonemode:
+            - status
+            - cloneMode
+            status_vmref:
+            - status
+            - vmRef
+          path: null
+        type: Info
+      help: Information about a vspherevm.
+      name: info
+    - each:
+        info:
+          labelFromKey: ""
+          labelsFromPath:
+            owner_is_controller:
+            - controller
+            owner_kind:
+            - kind
+            owner_name:
+            - name
+            owner_uid:
+            - uid
+          path:
+          - metadata
+          - ownerReferences
+        type: Info
+      help: Owner references.
+      name: owner
+    - each:
+        info:
+          labelFromKey: ""
+          labelsFromPath:
+            address: []
+          path:
+          - status
+          - addresses
+        type: Info
+      help: Address information about a vspherevm.
+      name: status_addresses
+    - each:
+        stateSet:
+          labelName: status
+          labelsFromPath:
+            type:
+            - type
+          list:
+          - "True"
+          - "False"
+          - Unknown
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - status
+        type: StateSet
+      help: The condition of a vspherevm.
+      name: status_condition
+    - each:
+        gauge:
+          labelFromKey: ""
+          labelsFromPath:
+            status:
+            - status
+            type:
+            - type
+          nilIsZero: false
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - lastTransitionTime
+        type: Gauge
+      help: The condition last transition time of a vspherevm.
+      name: status_condition_last_transition_time
+    resourcePlural: ""

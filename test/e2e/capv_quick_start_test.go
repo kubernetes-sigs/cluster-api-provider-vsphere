@@ -21,7 +21,7 @@ import (
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 )
 
-var _ = Describe("Cluster Creation using Cluster API quick-start test [PR-Blocking]", func() {
+var _ = Describe("Cluster Creation using Cluster API quick-start test", func() {
 	capi_e2e.QuickStartSpec(ctx, func() capi_e2e.QuickStartSpecInput {
 		return capi_e2e.QuickStartSpecInput{
 			E2EConfig:             e2eConfig,

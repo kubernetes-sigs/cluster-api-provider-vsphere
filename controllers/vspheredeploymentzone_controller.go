@@ -112,16 +112,6 @@ func (r vsphereDeploymentZoneReconciler) Reconcile(ctx context.Context, request 
 		return reconcile.Result{}, err
 	}
 
-	failureDomain := &infrav1.VSphereFailureDomain{}
-	failureDomainKey := client.ObjectKey{Name: vsphereDeploymentZone.Spec.FailureDomain}
-	if err := r.Client.Get(ctx, failureDomainKey, failureDomain); err != nil {
-		if apierrors.IsNotFound(err) {
-			log.V(4).Info("Failure Domain not found, won't reconcile", "key", failureDomainKey)
-			return reconcile.Result{}, nil
-		}
-		return reconcile.Result{}, err
-	}
-
 	patchHelper, err := patch.NewHelper(vsphereDeploymentZone, r.Client)
 	if err != nil {
 		return reconcile.Result{}, errors.Wrapf(
@@ -135,7 +125,6 @@ func (r vsphereDeploymentZoneReconciler) Reconcile(ctx context.Context, request 
 	vsphereDeploymentZoneContext := &capvcontext.VSphereDeploymentZoneContext{
 		ControllerContext:     r.ControllerContext,
 		VSphereDeploymentZone: vsphereDeploymentZone,
-		VSphereFailureDomain:  failureDomain,
 		Logger:                log,
 		PatchHelper:           patchHelper,
 	}
@@ -160,6 +149,13 @@ func (r vsphereDeploymentZoneReconciler) Reconcile(ctx context.Context, request 
 }
 
 func (r vsphereDeploymentZoneReconciler) reconcileNormal(ctx context.Context, deploymentZoneCtx *capvcontext.VSphereDeploymentZoneContext) error {
+	failureDomain := &infrav1.VSphereFailureDomain{}
+	failureDomainKey := client.ObjectKey{Name: deploymentZoneCtx.VSphereDeploymentZone.Spec.FailureDomain}
+	// Return an error if the FailureDomain can not be retrieved.
+	if err := r.Client.Get(ctx, failureDomainKey, failureDomain); err != nil {
+		return errors.Wrap(err, "VSphereFailureDomain could not be retrieved")
+	}
+	deploymentZoneCtx.VSphereFailureDomain = failureDomain
 	authSession, err := r.getVCenterSession(ctx, deploymentZoneCtx)
 	if err != nil {
 		deploymentZoneCtx.Logger.V(4).Error(err, "unable to create session")
@@ -252,7 +248,6 @@ func (r vsphereDeploymentZoneReconciler) reconcileDelete(ctx context.Context, de
 
 	machines := &clusterv1.MachineList{}
 	if err := r.Client.List(ctx, machines); err != nil {
-		r.Logger.Error(err, "unable to list machines")
 		return errors.Wrapf(err, "unable to list machines")
 	}
 
@@ -264,12 +259,26 @@ func (r vsphereDeploymentZoneReconciler) reconcileDelete(ctx context.Context, de
 	})
 	if len(machinesUsingDeploymentZone) > 0 {
 		machineNamesStr := util.MachinesAsString(machinesUsingDeploymentZone.SortedByCreationTimestamp())
-		err := errors.Errorf("%s is currently in use by machines: %s", deploymentZoneCtx.VSphereDeploymentZone.Name, machineNamesStr)
-		r.Logger.Error(err, "Error deleting VSphereDeploymentZone", "name", deploymentZoneCtx.VSphereDeploymentZone.Name)
+		err := errors.Errorf("error deleting VSphereDeploymentZone: %s is currently in use by machines: %s", deploymentZoneCtx.VSphereDeploymentZone.Name, machineNamesStr)
 		return err
 	}
 
-	if err := updateOwnerReferences(ctx, deploymentZoneCtx.VSphereFailureDomain, r.Client, func() []metav1.OwnerReference {
+	failureDomain := &infrav1.VSphereFailureDomain{}
+	failureDomainKey := client.ObjectKey{Name: deploymentZoneCtx.VSphereDeploymentZone.Spec.FailureDomain}
+	// Return an error if the FailureDomain can not be retrieved.
+	if err := r.Client.Get(ctx, failureDomainKey, failureDomain); err != nil {
+		// If the VSphereFailureDomain is not found return early and remove the finalizer.
+		// This prevents early deletion of the VSphereFailureDomain from blocking VSphereDeploymentZone deletion.
+		if apierrors.IsNotFound(err) {
+			ctrlutil.RemoveFinalizer(deploymentZoneCtx.VSphereDeploymentZone, infrav1.DeploymentZoneFinalizer)
+			return nil
+		}
+		return err
+	}
+	deploymentZoneCtx.VSphereFailureDomain = failureDomain
+
+	// Reconcile the deletion of the VSphereFailureDomain by removing ownerReferences and deleting if necessary.
+	if err := updateOwnerReferences(deploymentZoneCtx, deploymentZoneCtx.VSphereFailureDomain, r.Client, func() []metav1.OwnerReference {
 		return clusterutilv1.RemoveOwnerRef(deploymentZoneCtx.VSphereFailureDomain.OwnerReferences, metav1.OwnerReference{
 			APIVersion: infrav1.GroupVersion.String(),
 			Kind:       deploymentZoneCtx.VSphereDeploymentZone.Kind,
@@ -280,14 +289,13 @@ func (r vsphereDeploymentZoneReconciler) reconcileDelete(ctx context.Context, de
 	}
 
 	if len(deploymentZoneCtx.VSphereFailureDomain.OwnerReferences) == 0 {
-		deploymentZoneCtx.Logger.Info("deleting vsphereFailureDomain", "name", deploymentZoneCtx.VSphereFailureDomain.Name)
+		deploymentZoneCtx.Logger.Info("deleting VSphereFailureDomain", "name", deploymentZoneCtx.VSphereFailureDomain.Name)
 		if err := r.Client.Delete(ctx, deploymentZoneCtx.VSphereFailureDomain); err != nil && !apierrors.IsNotFound(err) {
-			deploymentZoneCtx.Logger.Error(err, "failed to delete related %s %s", deploymentZoneCtx.VSphereFailureDomain.GroupVersionKind(), deploymentZoneCtx.VSphereFailureDomain.Name)
+			return errors.Wrapf(err, "failed to delete VSphereFailureDomain %s", deploymentZoneCtx.VSphereFailureDomain.Name)
 		}
 	}
 
 	ctrlutil.RemoveFinalizer(deploymentZoneCtx.VSphereDeploymentZone, infrav1.DeploymentZoneFinalizer)
-
 	return nil
 }
 

@@ -173,6 +173,11 @@ KIND_BIN := kind
 KIND := $(abspath $(TOOLS_BIN_DIR)/$(KIND_BIN)-$(KIND_VER))
 KIND_PKG := sigs.k8s.io/kind
 
+IMPORT_BOSS_BIN := import-boss
+IMPORT_BOSS_VER := v0.28.1
+IMPORT_BOSS := $(abspath $(TOOLS_BIN_DIR)/$(IMPORT_BOSS_BIN))
+IMPORT_BOSS_PKG := k8s.io/code-generator/cmd/import-boss
+
 CAPI_HACK_TOOLS_VER := 4abf44cd85c4590602e4c10543d53cd4ec914845 # Note: this is the commit ID of the dependend CAPI release tag, currently v1.5.0
 
 CONVERSION_VERIFIER_VER := $(CAPI_HACK_TOOLS_VER)
@@ -337,7 +342,7 @@ APIDIFF_OLD_COMMIT ?= $(shell git rev-parse origin/main)
 apidiff: $(GO_APIDIFF) ## Check for API differences
 	$(GO_APIDIFF) $(APIDIFF_OLD_COMMIT) --print-compatible
 
-ALL_VERIFY_CHECKS = licenses boilerplate shellcheck modules gen conversions doctoc flavors
+ALL_VERIFY_CHECKS = licenses boilerplate shellcheck modules gen conversions doctoc flavors import-restrictions
 
 .PHONY: verify
 verify: $(addprefix verify-,$(ALL_VERIFY_CHECKS)) ## Run all verify-* targets
@@ -407,6 +412,9 @@ verify-flavors: $(FLAVOR_DIR) generate-flavors ## Verify generated flavors
 		echo "flavor files in templates directory are out of date"; exit 1; \
 	fi
 
+.PHONY: verify-import-restrictions
+verify-import-restrictions: $(IMPORT_BOSS) ## Verify import restrictions with import-boss
+	./hack/verify-import-restrictions.sh
 
 ## --------------------------------------
 ## Build
@@ -769,6 +777,8 @@ $(GOVC_BIN): $(GOVC) ## Build a local copy of govc.
 .PHONY: $(KIND_BIN)
 $(KIND_BIN): $(KIND) ## Build a local copy of kind.
 
+.PHONY: $(IMPORT_BOSS_BIN)
+$(IMPORT_BOSS_BIN): $(IMPORT_BOSS)
 
 .PHONY: $(RELEASE_NOTES_BIN)
 $(RELEASE_NOTES_BIN): $(RELEASE_NOTES) ## Build a local copy of release-notes.
@@ -821,6 +831,8 @@ $(GOVC): # Build GOVC.
 $(KIND): # Build kind.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(KIND_PKG) $(KIND_BIN) $(KIND_VER)
 
+$(IMPORT_BOSS): # Build import-boss
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(IMPORT_BOSS_PKG) $(IMPORT_BOSS_BIN) $(IMPORT_BOSS_VER)
 
 $(RELEASE_NOTES): # Build release-notes.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_TOOLS_BUILD) $(RELEASE_NOTES_PKG) $(RELEASE_NOTES_BIN) $(RELEASE_NOTES_VER)

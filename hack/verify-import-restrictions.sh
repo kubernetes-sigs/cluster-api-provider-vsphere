@@ -48,4 +48,5 @@ done
 
 INPUT_DIRS="$(IFS=, ; echo "${packages[*]}")"
 echo "Enforcing imports in source codes under the following directories: ${INPUT_DIRS}"
+unset GOPATH
 import-boss --include-test-files=true --verify-only --input-dirs "${INPUT_DIRS}"

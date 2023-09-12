@@ -59,7 +59,7 @@ import (
 )
 
 var (
-	setupLog       = ctrl.Log.WithName("entrypoint")
+	setupLog       = ctrl.Log.WithName("setup")
 	logOptions     = logs.NewOptions()
 	controllerName = "cluster-api-vsphere-manager"
 
@@ -216,8 +216,9 @@ func InitFlags(fs *pflag.FlagSet) {
 
 func main() {
 	InitFlags(pflag.CommandLine)
-	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
+	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
+	// Set log level 2 as default.
 	if err := pflag.CommandLine.Set("v", "2"); err != nil {
 		setupLog.Error(err, "failed to set log level: %v")
 		os.Exit(1)
@@ -239,16 +240,13 @@ func main() {
 
 	if watchNamespace != "" {
 		managerOpts.Cache.Namespaces = []string{watchNamespace}
-		setupLog.Info(
-			"Watching objects only in namespace for reconciliation",
-			"namespace", watchNamespace)
 	}
 
 	if profilerAddress != "" && enableContentionProfiling {
 		goruntime.SetBlockProfileRate(1)
 	}
 
-	setupLog.V(1).Info(fmt.Sprintf("feature gates: %+v\n", feature.Gates))
+	setupLog.Info(fmt.Sprintf("Feature gates: %+v\n", feature.Gates))
 
 	managerOpts.Cache.SyncPeriod = &syncPeriod
 	managerOpts.LeaseDuration = &leaderElectionLeaseDuration
@@ -300,8 +298,6 @@ func main() {
 	}
 	webhookOpts.TLSOpts = tlsOptionOverrides
 	managerOpts.WebhookServer = webhook.NewServer(webhookOpts)
-
-	setupLog.Info("creating controller manager", "version", version.Get().String())
 	managerOpts.AddToManager = addToManager
 
 	// Set up the context that's going to be used in controllers and for the manager.
@@ -309,15 +305,15 @@ func main() {
 
 	mgr, err := manager.New(ctx, managerOpts)
 	if err != nil {
-		setupLog.Error(err, "problem creating controller manager")
+		setupLog.Error(err, "Error creating manager")
 		os.Exit(1)
 	}
 
 	setupChecks(mgr)
 
-	setupLog.Info("starting controller manager")
+	setupLog.Info("Starting manager", "version", version.Get().String())
 	if err := mgr.Start(ctx); err != nil {
-		setupLog.Error(err, "problem running controller manager")
+		setupLog.Error(err, "Error starting manager")
 		os.Exit(1)
 	}
 
@@ -383,11 +379,11 @@ func setupSupervisorControllers(ctx context.Context, controllerCtx *capvcontext.
 		return err
 	}
 
-	if err := controllers.AddServiceAccountProviderControllerToManager(controllerCtx, mgr, tracker, concurrency(providerServiceAccountConcurrency)); err != nil {
+	if err := controllers.AddServiceAccountProviderControllerToManager(ctx, controllerCtx, mgr, tracker, concurrency(providerServiceAccountConcurrency)); err != nil {
 		return err
 	}
 
-	return controllers.AddServiceDiscoveryControllerToManager(controllerCtx, mgr, tracker, concurrency(serviceDiscoveryConcurrency))
+	return controllers.AddServiceDiscoveryControllerToManager(ctx, controllerCtx, mgr, tracker, concurrency(serviceDiscoveryConcurrency))
 }
 
 func setupChecks(mgr ctrlmgr.Manager) {

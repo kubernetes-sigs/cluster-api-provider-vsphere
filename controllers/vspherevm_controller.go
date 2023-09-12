@@ -28,6 +28,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apitypes "k8s.io/apimachinery/pkg/types"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -155,6 +156,8 @@ type vmReconciler struct {
 
 // Reconcile ensures the back-end state reflects the Kubernetes resource state intent.
 func (r vmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
+	r.Logger.V(4).Info("Starting Reconcile", "key", req.NamespacedName)
+
 	// Get the VSphereVM resource for this request.
 	vsphereVM := &infrav1.VSphereVM{}
 	if err := r.Client.Get(r, req.NamespacedName, vsphereVM); err != nil {
@@ -257,10 +260,7 @@ func (r vmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.R
 
 		// Patch the VSphereVM resource.
 		if err := vmContext.Patch(); err != nil {
-			if reterr == nil {
-				reterr = err
-			}
-			vmContext.Logger.Error(err, "patch failed", "vm", vmContext.String())
+			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
 	}()
 

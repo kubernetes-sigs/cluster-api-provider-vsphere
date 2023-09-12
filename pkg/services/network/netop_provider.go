@@ -17,12 +17,14 @@ limitations under the License.
 package network
 
 import (
+	"context"
 	"fmt"
 
 	netopv1 "github.com/vmware-tanzu/net-operator-api/api/v1alpha1"
 	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
@@ -44,27 +46,29 @@ func (np *netopNetworkProvider) HasLoadBalancer() bool {
 	return true
 }
 
-func (np *netopNetworkProvider) ProvisionClusterNetwork(ctx *vmware.ClusterContext) error {
-	conditions.MarkTrue(ctx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition)
+func (np *netopNetworkProvider) ProvisionClusterNetwork(_ context.Context, clusterCtx *vmware.ClusterContext) error {
+	conditions.MarkTrue(clusterCtx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition)
 	return nil
 }
 
-func (np *netopNetworkProvider) getDefaultClusterNetwork(ctx *vmware.ClusterContext) (*netopv1.Network, error) {
-	networkWithLabel, err := np.getDefaultClusterNetworkWithLabel(ctx, CAPVDefaultNetworkLabel)
+func (np *netopNetworkProvider) getDefaultClusterNetwork(ctx context.Context, clusterCtx *vmware.ClusterContext) (*netopv1.Network, error) {
+	log := ctrl.LoggerFrom(ctx)
+
+	networkWithLabel, err := np.getDefaultClusterNetworkWithLabel(ctx, clusterCtx, CAPVDefaultNetworkLabel)
 	if networkWithLabel != nil && err == nil {
 		return networkWithLabel, nil
 	}
 
-	ctx.Logger.Info("falling back to legacy label to identify default network", "label", legacyDefaultNetworkLabel)
-	return np.getDefaultClusterNetworkWithLabel(ctx, legacyDefaultNetworkLabel)
+	log.Info("falling back to legacy label to identify default network", "label", legacyDefaultNetworkLabel)
+	return np.getDefaultClusterNetworkWithLabel(ctx, clusterCtx, legacyDefaultNetworkLabel)
 }
 
-func (np *netopNetworkProvider) getDefaultClusterNetworkWithLabel(ctx *vmware.ClusterContext, label string) (*netopv1.Network, error) {
+func (np *netopNetworkProvider) getDefaultClusterNetworkWithLabel(ctx context.Context, clusterCtx *vmware.ClusterContext, label string) (*netopv1.Network, error) {
 	labels := map[string]string{
 		label: "true",
 	}
 	networkList := &netopv1.NetworkList{}
-	err := np.client.List(ctx, networkList, client.InNamespace(ctx.Cluster.Namespace), client.MatchingLabels(labels))
+	err := np.client.List(ctx, networkList, client.InNamespace(clusterCtx.Cluster.Namespace), client.MatchingLabels(labels))
 	if err != nil {
 		return nil, err
 	}
@@ -79,13 +83,13 @@ func (np *netopNetworkProvider) getDefaultClusterNetworkWithLabel(ctx *vmware.Cl
 	}
 }
 
-func (np *netopNetworkProvider) getClusterNetwork(ctx *vmware.ClusterContext) (*netopv1.Network, error) {
+func (np *netopNetworkProvider) getClusterNetwork(ctx context.Context, clusterCtx *vmware.ClusterContext) (*netopv1.Network, error) {
 	// A "NetworkName" can later be added to the Spec, but currently we only have a preselected default.
-	return np.getDefaultClusterNetwork(ctx)
+	return np.getDefaultClusterNetwork(ctx, clusterCtx)
 }
 
-func (np *netopNetworkProvider) GetClusterNetworkName(ctx *vmware.ClusterContext) (string, error) {
-	network, err := np.getClusterNetwork(ctx)
+func (np *netopNetworkProvider) GetClusterNetworkName(ctx context.Context, clusterCtx *vmware.ClusterContext) (string, error) {
+	network, err := np.getClusterNetwork(ctx, clusterCtx)
 	if err != nil {
 		return "", err
 	}
@@ -93,8 +97,8 @@ func (np *netopNetworkProvider) GetClusterNetworkName(ctx *vmware.ClusterContext
 	return network.Name, nil
 }
 
-func (np *netopNetworkProvider) GetVMServiceAnnotations(ctx *vmware.ClusterContext) (map[string]string, error) {
-	networkName, err := np.GetClusterNetworkName(ctx)
+func (np *netopNetworkProvider) GetVMServiceAnnotations(ctx context.Context, clusterCtx *vmware.ClusterContext) (map[string]string, error) {
+	networkName, err := np.GetClusterNetworkName(ctx, clusterCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -102,8 +106,8 @@ func (np *netopNetworkProvider) GetVMServiceAnnotations(ctx *vmware.ClusterConte
 	return map[string]string{NetOpNetworkNameAnnotation: networkName}, nil
 }
 
-func (np *netopNetworkProvider) ConfigureVirtualMachine(ctx *vmware.ClusterContext, vm *vmoprv1.VirtualMachine) error {
-	network, err := np.getClusterNetwork(ctx)
+func (np *netopNetworkProvider) ConfigureVirtualMachine(ctx context.Context, clusterCtx *vmware.ClusterContext, vm *vmoprv1.VirtualMachine) error {
+	network, err := np.getClusterNetwork(ctx, clusterCtx)
 	if err != nil {
 		return err
 	}
@@ -123,7 +127,7 @@ func (np *netopNetworkProvider) ConfigureVirtualMachine(ctx *vmware.ClusterConte
 	return nil
 }
 
-func (np *netopNetworkProvider) VerifyNetworkStatus(_ *vmware.ClusterContext, obj runtime.Object) error {
+func (np *netopNetworkProvider) VerifyNetworkStatus(_ context.Context, _ *vmware.ClusterContext, obj runtime.Object) error {
 	if _, ok := obj.(*netopv1.Network); !ok {
 		return fmt.Errorf("expected Net Operator Network but got %T", obj)
 	}

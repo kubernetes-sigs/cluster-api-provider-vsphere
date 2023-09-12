@@ -58,10 +58,8 @@ func (c *SupervisorMachineContext) GetObjectMeta() metav1.ObjectMeta {
 
 func (c *SupervisorMachineContext) GetClusterContext() *ClusterContext {
 	return &ClusterContext{
-		ControllerContext: c.ControllerContext,
-		Cluster:           c.Cluster,
-		VSphereCluster:    c.VSphereCluster,
-		Logger:            c.GetLogger(),
+		Cluster:        c.Cluster,
+		VSphereCluster: c.VSphereCluster,
 	}
 }
 

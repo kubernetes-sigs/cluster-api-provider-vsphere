@@ -17,6 +17,8 @@ limitations under the License.
 package vmware
 
 import (
+	"context"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha1"
@@ -25,7 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
 )
@@ -40,6 +42,7 @@ type UnitTestContextForController struct {
 	Key client.ObjectKey
 
 	VirtualMachineImage *vmoprv1.VirtualMachineImage
+	ControllerContext   *capvcontext.ControllerContext
 }
 
 // NewUnitTestContextForController returns a new UnitTestContextForController
@@ -47,26 +50,28 @@ type UnitTestContextForController struct {
 // invoke the VSphereCluster spec controller.
 func NewUnitTestContextForController( /*newReconcilerFn NewReconcilerFunc, */ namespace string, vSphereCluster *vmwarev1.VSphereCluster,
 	prototypeCluster bool, initObjects, gcInitObjects []client.Object) *UnitTestContextForController {
+	controllerCtx := fake.NewControllerContext(fake.NewControllerManagerContext(initObjects...))
+
 	ctx := &UnitTestContextForController{
-		GuestClusterContext: fake.NewGuestClusterContext(fake.NewVmwareClusterContext(
-			fake.NewControllerContext(
-				fake.NewControllerManagerContext(initObjects...)), namespace, vSphereCluster), prototypeCluster, gcInitObjects...),
+		GuestClusterContext: fake.NewGuestClusterContext(context.TODO(), fake.NewVmwareClusterContext(controllerCtx, namespace, vSphereCluster),
+			controllerCtx, prototypeCluster, gcInitObjects...),
+		ControllerContext: controllerCtx,
 	}
 	ctx.Key = client.ObjectKey{Namespace: ctx.VSphereCluster.Namespace, Name: ctx.VSphereCluster.Name}
 
-	CreatePrototypePrereqs(ctx, ctx.ControllerManagerContext)
+	CreatePrototypePrereqs(context.TODO(), controllerCtx.Client)
 
 	return ctx
 }
 
-func CreatePrototypePrereqs(_ *UnitTestContextForController, ctx *context.ControllerManagerContext) {
+func CreatePrototypePrereqs(ctx context.Context, c client.Client) {
 	By("Creating a prototype VirtualMachineClass", func() {
 		virtualMachineClass := FakeVirtualMachineClass()
 		virtualMachineClass.Name = "small"
-		Expect(ctx.Client.Create(ctx, virtualMachineClass)).To(Succeed())
+		Expect(c.Create(ctx, virtualMachineClass)).To(Succeed())
 		virtualMachineClassKey := client.ObjectKey{Name: virtualMachineClass.Name}
 		Eventually(func() error {
-			return ctx.Client.Get(ctx, virtualMachineClassKey, virtualMachineClass)
+			return c.Get(ctx, virtualMachineClassKey, virtualMachineClass)
 		}).Should(Succeed())
 	})
 }

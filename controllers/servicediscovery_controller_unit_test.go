@@ -43,12 +43,16 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 	JustBeforeEach(func() {
 		vsphereCluster = fake.NewVSphereCluster(namespace)
 		controllerCtx = helpers.NewUnitTestContextForController(namespace, &vsphereCluster, false, initObjects, nil)
-		_, err := reconciler.ReconcileNormal(controllerCtx.GuestClusterContext)
+		reconciler = serviceDiscoveryReconciler{
+			Client:   controllerCtx.ControllerContext.Client,
+			Recorder: controllerCtx.ControllerContext.Recorder,
+		}
+		_, err := reconciler.ReconcileNormal(ctx, controllerCtx.GuestClusterContext)
 		Expect(err).NotTo(HaveOccurred())
 
 		// Update the VSphereCluster and its status in the fake client.
-		Expect(controllerCtx.Client.Update(controllerCtx, controllerCtx.VSphereCluster)).To(Succeed())
-		Expect(controllerCtx.Client.Status().Update(controllerCtx, controllerCtx.VSphereCluster)).To(Succeed())
+		Expect(controllerCtx.ControllerContext.Client.Update(ctx, controllerCtx.VSphereCluster)).To(Succeed())
+		Expect(controllerCtx.ControllerContext.Client.Status().Update(ctx, controllerCtx.VSphereCluster)).To(Succeed())
 	})
 	JustAfterEach(func() {
 		controllerCtx = nil
@@ -74,7 +78,11 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 			assertServiceDiscoveryCondition(controllerCtx.VSphereCluster, corev1.ConditionTrue, "", "", "")
 		})
 		It("Should get supervisor master endpoint IP", func() {
-			supervisorEndpointIP, err := GetSupervisorAPIServerAddress(controllerCtx.ClusterContext)
+			r := &serviceDiscoveryReconciler{
+				Client:   controllerCtx.ControllerContext.Client,
+				Recorder: controllerCtx.ControllerContext.Recorder,
+			}
+			supervisorEndpointIP, err := r.getSupervisorAPIServerAddress(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(supervisorEndpointIP).To(Equal(testSupervisorAPIServerVIP))
 		})

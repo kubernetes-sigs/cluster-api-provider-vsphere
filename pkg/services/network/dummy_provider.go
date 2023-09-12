@@ -18,6 +18,8 @@ limitations under the License.
 package network
 
 import (
+	"context"
+
 	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -37,23 +39,23 @@ func (np *dummyNetworkProvider) HasLoadBalancer() bool {
 	return false
 }
 
-func (np *dummyNetworkProvider) ProvisionClusterNetwork(ctx *vmware.ClusterContext) error {
+func (np *dummyNetworkProvider) ProvisionClusterNetwork(ctx context.Context, clusterCtx *vmware.ClusterContext) error {
 	return nil
 }
 
-func (np *dummyNetworkProvider) GetClusterNetworkName(ctx *vmware.ClusterContext) (string, error) {
+func (np *dummyNetworkProvider) GetClusterNetworkName(ctx context.Context, clusterCtx *vmware.ClusterContext) (string, error) {
 	return "", nil
 }
 
-func (np *dummyNetworkProvider) ConfigureVirtualMachine(ctx *vmware.ClusterContext, vm *vmoprv1.VirtualMachine) error {
+func (np *dummyNetworkProvider) ConfigureVirtualMachine(ctx context.Context, clusterCtx *vmware.ClusterContext, vm *vmoprv1.VirtualMachine) error {
 	return nil
 }
 
-func (np *dummyNetworkProvider) GetVMServiceAnnotations(ctx *vmware.ClusterContext) (map[string]string, error) {
+func (np *dummyNetworkProvider) GetVMServiceAnnotations(ctx context.Context, clusterCtx *vmware.ClusterContext) (map[string]string, error) {
 	return map[string]string{}, nil
 }
 
-func (np *dummyNetworkProvider) VerifyNetworkStatus(ctx *vmware.ClusterContext, obj runtime.Object) error {
+func (np *dummyNetworkProvider) VerifyNetworkStatus(ctx context.Context, clusterCtx *vmware.ClusterContext, obj runtime.Object) error {
 	return nil
 }
 

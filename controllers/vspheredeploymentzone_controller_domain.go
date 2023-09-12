@@ -20,6 +20,7 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/klog/v2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -33,7 +34,7 @@ import (
 )
 
 func (r vsphereDeploymentZoneReconciler) reconcileFailureDomain(deploymentZoneCtx *capvcontext.VSphereDeploymentZoneContext) error {
-	logger := ctrl.LoggerFrom(deploymentZoneCtx).WithValues("failure domain", deploymentZoneCtx.VSphereFailureDomain.Name)
+	logger := ctrl.LoggerFrom(deploymentZoneCtx).WithValues("VSphereFailureDomain", klog.KObj(deploymentZoneCtx.VSphereFailureDomain))
 
 	// verify the failure domain for the region
 	if err := r.reconcileInfraFailureDomain(deploymentZoneCtx, deploymentZoneCtx.VSphereFailureDomain.Spec.Region); err != nil {

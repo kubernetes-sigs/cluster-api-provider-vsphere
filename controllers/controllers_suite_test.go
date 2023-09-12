@@ -108,10 +108,10 @@ func setup() {
 	if err := AddVSphereDeploymentZoneControllerToManager(testEnv.GetContext(), testEnv.Manager, controllerOpts); err != nil {
 		panic(fmt.Sprintf("unable to setup VSphereDeploymentZone controller: %v", err))
 	}
-	if err := AddServiceAccountProviderControllerToManager(testEnv.GetContext(), testEnv.Manager, tracker, controllerOpts); err != nil {
+	if err := AddServiceAccountProviderControllerToManager(ctx, testEnv.GetContext(), testEnv.Manager, tracker, controllerOpts); err != nil {
 		panic(fmt.Sprintf("unable to setup ServiceAccount controller: %v", err))
 	}
-	if err := AddServiceDiscoveryControllerToManager(testEnv.GetContext(), testEnv.Manager, tracker, controllerOpts); err != nil {
+	if err := AddServiceDiscoveryControllerToManager(ctx, testEnv.GetContext(), testEnv.Manager, tracker, controllerOpts); err != nil {
 		panic(fmt.Sprintf("unable to setup SvcDiscovery controller: %v", err))
 	}
 

@@ -17,6 +17,7 @@ limitations under the License.
 package clustermodule
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -30,8 +31,6 @@ import (
 )
 
 func TestService_Create(t *testing.T) {
-	svc := NewService()
-
 	t.Run("creation is skipped", func(t *testing.T) {
 		t.Run("when wrapper points to template != VSphereMachineTemplate", func(t *testing.T) {
 			md := machineDeployment("md", fake.Namespace, fake.Clusterv1a2Name)
@@ -43,9 +42,10 @@ func TestService_Create(t *testing.T) {
 
 			g := gomega.NewWithT(t)
 			controllerCtx := fake.NewControllerContext(fake.NewControllerManagerContext(md))
-			ctx := fake.NewClusterContext(controllerCtx)
+			clusterCtx := fake.NewClusterContext(controllerCtx)
+			svc := NewService(controllerCtx.ControllerManagerContext, controllerCtx.Client)
 
-			moduleUUID, err := svc.Create(ctx, mdWrapper{md})
+			moduleUUID, err := svc.Create(context.Background(), clusterCtx, mdWrapper{md})
 			g.Expect(err).ToNot(gomega.HaveOccurred())
 			g.Expect(moduleUUID).To(gomega.BeEmpty())
 		})
@@ -73,9 +73,10 @@ func TestService_Create(t *testing.T) {
 
 			g := gomega.NewWithT(t)
 			controllerCtx := fake.NewControllerContext(fake.NewControllerManagerContext(md, machineTemplate))
-			ctx := fake.NewClusterContext(controllerCtx)
+			clusterCtx := fake.NewClusterContext(controllerCtx)
+			svc := NewService(controllerCtx.ControllerManagerContext, controllerCtx.Client)
 
-			moduleUUID, err := svc.Create(ctx, mdWrapper{md})
+			moduleUUID, err := svc.Create(context.Background(), clusterCtx, mdWrapper{md})
 			g.Expect(err).ToNot(gomega.HaveOccurred())
 			g.Expect(moduleUUID).To(gomega.BeEmpty())
 		})

@@ -112,7 +112,7 @@ func assertTargetSecret(ctx context.Context, guestClient client.Client, namespac
 	}).Should(Equal([]byte(testSecretToken)))
 }
 
-func assertTargetNamespace(ctx *helpers.UnitTestContextForController, guestClient client.Client, namespaceName string, isExist bool) {
+func assertTargetNamespace(ctx context.Context, guestClient client.Client, namespaceName string, isExist bool) {
 	namespace := &corev1.Namespace{}
 	err := guestClient.Get(ctx, client.ObjectKey{Name: namespaceName}, namespace)
 	if isExist {
@@ -122,7 +122,7 @@ func assertTargetNamespace(ctx *helpers.UnitTestContextForController, guestClien
 	}
 }
 
-func assertRoleWithGetPVC(ctx *helpers.UnitTestContextForController, ctrlClient client.Client, namespace, name string) {
+func assertRoleWithGetPVC(ctx context.Context, ctrlClient client.Client, namespace, name string) {
 	var roleList rbacv1.RoleList
 	opts := &client.ListOptions{
 		Namespace: namespace,

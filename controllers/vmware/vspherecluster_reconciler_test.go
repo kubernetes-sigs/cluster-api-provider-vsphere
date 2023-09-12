@@ -27,8 +27,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/network"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/vmoperator"
@@ -54,7 +56,9 @@ var _ = Describe("Cluster Controller Tests", func() {
 		cluster        *clusterv1.Cluster
 		vsphereCluster *vmwarev1.VSphereCluster
 		vsphereMachine *vmwarev1.VSphereMachine
-		ctx            *vmware.ClusterContext
+		ctx            = ctrl.SetupSignalHandler()
+		clusterCtx     *vmware.ClusterContext
+		controllerCtx  *capvcontext.ControllerContext
 		reconciler     *ClusterReconciler
 	)
 
@@ -62,17 +66,20 @@ var _ = Describe("Cluster Controller Tests", func() {
 		// Create all necessary dependencies
 		cluster = util.CreateCluster(clusterName)
 		vsphereCluster = util.CreateVSphereCluster(clusterName)
-		ctx = util.CreateClusterContext(cluster, vsphereCluster)
+		clusterCtx, controllerCtx = util.CreateClusterContext(cluster, vsphereCluster)
 		vsphereMachine = util.CreateVSphereMachine(machineName, clusterName, className, imageName, storageClass, controlPlaneLabelTrue)
 
 		reconciler = &ClusterReconciler{
-			ControllerContext:   ctx.ControllerContext,
-			NetworkProvider:     network.DummyNetworkProvider(),
-			ControlPlaneService: vmoperator.CPService{},
+			Client:          controllerCtx.Client,
+			Recorder:        controllerCtx.Recorder,
+			NetworkProvider: network.DummyNetworkProvider(),
+			ControlPlaneService: &vmoperator.CPService{
+				Client: controllerCtx.Client,
+			},
 		}
 
-		Expect(ctx.Client.Create(ctx, cluster)).To(Succeed())
-		Expect(ctx.Client.Create(ctx, vsphereCluster)).To(Succeed())
+		Expect(controllerCtx.Client.Create(ctx, cluster)).To(Succeed())
+		Expect(controllerCtx.Client.Create(ctx, vsphereCluster)).To(Succeed())
 	})
 
 	// Ensure that the mechanism for reconciling clusters when a control plane machine gets an IP works
@@ -93,10 +100,10 @@ var _ = Describe("Cluster Controller Tests", func() {
 
 	Context("Test reconcileDelete", func() {
 		It("should mark specific resources to be in deleting conditions", func() {
-			ctx.VSphereCluster.Status.Conditions = append(ctx.VSphereCluster.Status.Conditions,
+			clusterCtx.VSphereCluster.Status.Conditions = append(clusterCtx.VSphereCluster.Status.Conditions,
 				clusterv1.Condition{Type: vmwarev1.ResourcePolicyReadyCondition, Status: corev1.ConditionTrue})
-			reconciler.reconcileDelete(ctx)
-			c := conditions.Get(ctx.VSphereCluster, vmwarev1.ResourcePolicyReadyCondition)
+			reconciler.reconcileDelete(ctx, clusterCtx)
+			c := conditions.Get(clusterCtx.VSphereCluster, vmwarev1.ResourcePolicyReadyCondition)
 			Expect(c).NotTo(BeNil())
 			Expect(c.Status).To(Equal(corev1.ConditionFalse))
 			Expect(c.Reason).To(Equal(clusterv1.DeletingReason))
@@ -104,10 +111,10 @@ var _ = Describe("Cluster Controller Tests", func() {
 
 		It("should not mark other resources to be in deleting conditions", func() {
 			otherReady := clusterv1.ConditionType("OtherReady")
-			ctx.VSphereCluster.Status.Conditions = append(ctx.VSphereCluster.Status.Conditions,
+			clusterCtx.VSphereCluster.Status.Conditions = append(clusterCtx.VSphereCluster.Status.Conditions,
 				clusterv1.Condition{Type: otherReady, Status: corev1.ConditionTrue})
-			reconciler.reconcileDelete(ctx)
-			c := conditions.Get(ctx.VSphereCluster, otherReady)
+			reconciler.reconcileDelete(ctx, clusterCtx)
+			c := conditions.Get(clusterCtx.VSphereCluster, otherReady)
 			Expect(c).NotTo(BeNil())
 			Expect(c.Status).NotTo(Equal(corev1.ConditionFalse))
 			Expect(c.Reason).NotTo(Equal(clusterv1.DeletingReason))
@@ -144,7 +151,7 @@ var _ = Describe("Cluster Controller Tests", func() {
 					},
 				}
 
-				Expect(ctx.Client.Create(ctx, zone)).To(Succeed())
+				Expect(controllerCtx.Client.Create(ctx, zone)).To(Succeed())
 			}
 
 			fds, err := reconciler.getFailureDomains(ctx)

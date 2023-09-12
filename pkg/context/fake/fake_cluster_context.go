@@ -40,10 +40,8 @@ func NewClusterContext(ctx *context.ControllerContext) *context.ClusterContext {
 	}
 
 	return &context.ClusterContext{
-		ControllerContext: ctx,
-		Cluster:           &cluster,
-		VSphereCluster:    &vsphereCluster,
-		Logger:            ctx.Logger.WithName(vsphereCluster.Name),
+		Cluster:        &cluster,
+		VSphereCluster: &vsphereCluster,
 	}
 }
 

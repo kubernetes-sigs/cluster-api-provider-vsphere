@@ -66,8 +66,8 @@ func TestReconciler_Reconcile(t *testing.T) {
 				},
 			},
 			setupMocks: func(svc *cmodfake.CMService) {
-				svc.On("DoesExist", mock.Anything, mock.Anything, kcpUUID).Return(true, nil)
-				svc.On("DoesExist", mock.Anything, mock.Anything, mdUUID).Return(true, nil)
+				svc.On("DoesExist", mock.Anything, mock.Anything, mock.Anything, kcpUUID).Return(true, nil)
+				svc.On("DoesExist", mock.Anything, mock.Anything, mock.Anything, mdUUID).Return(true, nil)
 			},
 			customAssert: func(g *gomega.WithT, clusterCtx *capvcontext.ClusterContext) {
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules).To(gomega.HaveLen(2))
@@ -77,8 +77,8 @@ func TestReconciler_Reconcile(t *testing.T) {
 			name:           "when no cluster modules exist",
 			clusterModules: []infrav1.ClusterModule{},
 			setupMocks: func(svc *cmodfake.CMService) {
-				svc.On("Create", mock.Anything, clustermodule.NewWrapper(kcp)).Return(kcpUUID, nil)
-				svc.On("Create", mock.Anything, clustermodule.NewWrapper(md)).Return(mdUUID, nil)
+				svc.On("Create", mock.Anything, mock.Anything, clustermodule.NewWrapper(kcp)).Return(kcpUUID, nil)
+				svc.On("Create", mock.Anything, mock.Anything, clustermodule.NewWrapper(md)).Return(mdUUID, nil)
 			},
 			customAssert: func(g *gomega.WithT, clusterCtx *capvcontext.ClusterContext) {
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules).To(gomega.HaveLen(2))
@@ -103,8 +103,8 @@ func TestReconciler_Reconcile(t *testing.T) {
 				},
 			},
 			setupMocks: func(svc *cmodfake.CMService) {
-				svc.On("DoesExist", mock.Anything, mock.Anything, kcpUUID).Return(true, nil)
-				svc.On("Create", mock.Anything, clustermodule.NewWrapper(md)).Return(mdUUID, nil)
+				svc.On("DoesExist", mock.Anything, mock.Anything, mock.Anything, kcpUUID).Return(true, nil)
+				svc.On("Create", mock.Anything, mock.Anything, clustermodule.NewWrapper(md)).Return(mdUUID, nil)
 			},
 			customAssert: func(g *gomega.WithT, clusterCtx *capvcontext.ClusterContext) {
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules).To(gomega.HaveLen(2))
@@ -134,10 +134,10 @@ func TestReconciler_Reconcile(t *testing.T) {
 				},
 			},
 			setupMocks: func(svc *cmodfake.CMService) {
-				svc.On("DoesExist", mock.Anything, mock.Anything, kcpUUID).Return(false, nil)
-				svc.On("DoesExist", mock.Anything, mock.Anything, mdUUID).Return(false, nil)
-				svc.On("Create", mock.Anything, clustermodule.NewWrapper(kcp)).Return(kcpUUID+"a", nil)
-				svc.On("Create", mock.Anything, clustermodule.NewWrapper(md)).Return(mdUUID+"a", nil)
+				svc.On("DoesExist", mock.Anything, mock.Anything, mock.Anything, kcpUUID).Return(false, nil)
+				svc.On("DoesExist", mock.Anything, mock.Anything, mock.Anything, mdUUID).Return(false, nil)
+				svc.On("Create", mock.Anything, mock.Anything, clustermodule.NewWrapper(kcp)).Return(kcpUUID+"a", nil)
+				svc.On("Create", mock.Anything, mock.Anything, clustermodule.NewWrapper(md)).Return(mdUUID+"a", nil)
 			},
 			customAssert: func(g *gomega.WithT, clusterCtx *capvcontext.ClusterContext) {
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules).To(gomega.HaveLen(2))
@@ -165,8 +165,8 @@ func TestReconciler_Reconcile(t *testing.T) {
 			},
 			haveError: true,
 			setupMocks: func(svc *cmodfake.CMService) {
-				svc.On("DoesExist", mock.Anything, mock.Anything, kcpUUID).Return(false, vCenter500err)
-				svc.On("DoesExist", mock.Anything, mock.Anything, mdUUID).Return(false, vCenter500err)
+				svc.On("DoesExist", mock.Anything, mock.Anything, mock.Anything, kcpUUID).Return(false, vCenter500err)
+				svc.On("DoesExist", mock.Anything, mock.Anything, mock.Anything, mdUUID).Return(false, vCenter500err)
 			},
 			customAssert: func(g *gomega.WithT, clusterCtx *capvcontext.ClusterContext) {
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules).To(gomega.HaveLen(2))
@@ -195,8 +195,8 @@ func TestReconciler_Reconcile(t *testing.T) {
 			},
 			haveError: true,
 			setupMocks: func(svc *cmodfake.CMService) {
-				svc.On("DoesExist", mock.Anything, mock.Anything, kcpUUID).Return(true, nil)
-				svc.On("DoesExist", mock.Anything, mock.Anything, mdUUID).Return(false, vCenter500err)
+				svc.On("DoesExist", mock.Anything, mock.Anything, mock.Anything, kcpUUID).Return(true, nil)
+				svc.On("DoesExist", mock.Anything, mock.Anything, mock.Anything, mdUUID).Return(false, vCenter500err)
 			},
 			customAssert: func(g *gomega.WithT, clusterCtx *capvcontext.ClusterContext) {
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules).To(gomega.HaveLen(2))
@@ -225,9 +225,9 @@ func TestReconciler_Reconcile(t *testing.T) {
 			},
 			haveError: true,
 			setupMocks: func(svc *cmodfake.CMService) {
-				svc.On("DoesExist", mock.Anything, mock.Anything, kcpUUID).Return(false, nil)
-				svc.On("DoesExist", mock.Anything, mock.Anything, mdUUID).Return(false, vCenter500err)
-				svc.On("Create", mock.Anything, clustermodule.NewWrapper(kcp)).Return(kcpUUID+"a", nil)
+				svc.On("DoesExist", mock.Anything, mock.Anything, mock.Anything, kcpUUID).Return(false, nil)
+				svc.On("DoesExist", mock.Anything, mock.Anything, mock.Anything, mdUUID).Return(false, vCenter500err)
+				svc.On("Create", mock.Anything, mock.Anything, clustermodule.NewWrapper(kcp)).Return(kcpUUID+"a", nil)
 			},
 			customAssert: func(g *gomega.WithT, clusterCtx *capvcontext.ClusterContext) {
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules).To(gomega.HaveLen(2))
@@ -244,8 +244,8 @@ func TestReconciler_Reconcile(t *testing.T) {
 			name:           "when cluster module creation is called for a resource pool owned by non compute cluster resource",
 			clusterModules: []infrav1.ClusterModule{},
 			setupMocks: func(svc *cmodfake.CMService) {
-				svc.On("Create", mock.Anything, clustermodule.NewWrapper(kcp)).Return("", clustermodule.NewIncompatibleOwnerError("foo-123"))
-				svc.On("Create", mock.Anything, clustermodule.NewWrapper(md)).Return(mdUUID, nil)
+				svc.On("Create", mock.Anything, mock.Anything, clustermodule.NewWrapper(kcp)).Return("", clustermodule.NewIncompatibleOwnerError("foo-123"))
+				svc.On("Create", mock.Anything, mock.Anything, clustermodule.NewWrapper(md)).Return(mdUUID, nil)
 			},
 			customAssert: func(g *gomega.WithT, clusterCtx *capvcontext.ClusterContext) {
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules).To(gomega.HaveLen(1))
@@ -262,8 +262,8 @@ func TestReconciler_Reconcile(t *testing.T) {
 			name:           "when cluster module creation fails",
 			clusterModules: []infrav1.ClusterModule{},
 			setupMocks: func(svc *cmodfake.CMService) {
-				svc.On("Create", mock.Anything, clustermodule.NewWrapper(kcp)).Return(kcpUUID, nil)
-				svc.On("Create", mock.Anything, clustermodule.NewWrapper(md)).Return("", errors.New("failed to reach API"))
+				svc.On("Create", mock.Anything, mock.Anything, clustermodule.NewWrapper(kcp)).Return(kcpUUID, nil)
+				svc.On("Create", mock.Anything, mock.Anything, clustermodule.NewWrapper(md)).Return("", errors.New("failed to reach API"))
 			},
 			// if cluster module creation fails for any reason apart from incompatibility, error should be returned
 			haveError: true,
@@ -282,8 +282,8 @@ func TestReconciler_Reconcile(t *testing.T) {
 			name:           "when all cluster module creations fail for a resource pool owned by non compute cluster resource",
 			clusterModules: []infrav1.ClusterModule{},
 			setupMocks: func(svc *cmodfake.CMService) {
-				svc.On("Create", mock.Anything, clustermodule.NewWrapper(kcp)).Return("", clustermodule.NewIncompatibleOwnerError("foo-123"))
-				svc.On("Create", mock.Anything, clustermodule.NewWrapper(md)).Return("", clustermodule.NewIncompatibleOwnerError("bar-123"))
+				svc.On("Create", mock.Anything, mock.Anything, clustermodule.NewWrapper(kcp)).Return("", clustermodule.NewIncompatibleOwnerError("foo-123"))
+				svc.On("Create", mock.Anything, mock.Anything, clustermodule.NewWrapper(md)).Return("", clustermodule.NewIncompatibleOwnerError("bar-123"))
 			},
 			// if cluster module creation fails due to resource pool owner incompatibility, vSphereCluster object is set to Ready
 			haveError: false,
@@ -298,9 +298,9 @@ func TestReconciler_Reconcile(t *testing.T) {
 			name:           "when some cluster module creations are skipped",
 			clusterModules: []infrav1.ClusterModule{},
 			setupMocks: func(svc *cmodfake.CMService) {
-				svc.On("Create", mock.Anything, clustermodule.NewWrapper(kcp)).Return(kcpUUID, nil)
+				svc.On("Create", mock.Anything, mock.Anything, clustermodule.NewWrapper(kcp)).Return(kcpUUID, nil)
 				// mimics cluster module creation was skipped
-				svc.On("Create", mock.Anything, clustermodule.NewWrapper(md)).Return("", nil)
+				svc.On("Create", mock.Anything, mock.Anything, clustermodule.NewWrapper(md)).Return("", nil)
 			},
 			customAssert: func(g *gomega.WithT, clusterCtx *capvcontext.ClusterContext) {
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules).To(gomega.HaveLen(1))
@@ -324,7 +324,7 @@ func TestReconciler_Reconcile(t *testing.T) {
 				},
 			},
 			setupMocks: func(svc *cmodfake.CMService) {
-				svc.On("DoesExist", mock.Anything, mock.Anything, kcpUUID).Return(true, nil)
+				svc.On("DoesExist", mock.Anything, mock.Anything, mock.Anything, kcpUUID).Return(true, nil)
 			},
 			customAssert: func(g *gomega.WithT, clusterCtx *capvcontext.ClusterContext) {
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules).To(gomega.HaveLen(1))
@@ -353,8 +353,8 @@ func TestReconciler_Reconcile(t *testing.T) {
 				},
 			},
 			setupMocks: func(svc *cmodfake.CMService) {
-				svc.On("DoesExist", mock.Anything, mock.Anything, kcpUUID).Return(true, nil)
-				svc.On("Remove", mock.Anything, mdUUID).Return(nil)
+				svc.On("DoesExist", mock.Anything, mock.Anything, mock.Anything, kcpUUID).Return(true, nil)
+				svc.On("Remove", mock.Anything, mock.Anything, mdUUID).Return(nil)
 			},
 			customAssert: func(g *gomega.WithT, clusterCtx *capvcontext.ClusterContext) {
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules).To(gomega.HaveLen(1))
@@ -383,8 +383,8 @@ func TestReconciler_Reconcile(t *testing.T) {
 				},
 			},
 			setupMocks: func(svc *cmodfake.CMService) {
-				svc.On("Remove", mock.Anything, kcpUUID).Return(nil)
-				svc.On("Remove", mock.Anything, mdUUID).Return(nil)
+				svc.On("Remove", mock.Anything, mock.Anything, kcpUUID).Return(nil)
+				svc.On("Remove", mock.Anything, mock.Anything, mdUUID).Return(nil)
 			},
 			customAssert: func(g *gomega.WithT, clusterCtx *capvcontext.ClusterContext) {
 				g.Expect(clusterCtx.VSphereCluster.Spec.ClusterModules).To(gomega.BeEmpty())
@@ -410,9 +410,9 @@ func TestReconciler_Reconcile(t *testing.T) {
 				tt.beforeFn(md)
 			}
 			controllerCtx := fake.NewControllerContext(fake.NewControllerManagerContext(kcp, md))
-			ctx := fake.NewClusterContext(controllerCtx)
-			ctx.VSphereCluster.Spec.ClusterModules = tt.clusterModules
-			ctx.VSphereCluster.Status = infrav1.VSphereClusterStatus{VCenterVersion: infrav1.NewVCenterVersion("7.0.0")}
+			clusterCtx := fake.NewClusterContext(controllerCtx)
+			clusterCtx.VSphereCluster.Spec.ClusterModules = tt.clusterModules
+			clusterCtx.VSphereCluster.Status = infrav1.VSphereClusterStatus{VCenterVersion: infrav1.NewVCenterVersion("7.0.0")}
 
 			svc := new(cmodfake.CMService)
 			if tt.setupMocks != nil {
@@ -420,16 +420,16 @@ func TestReconciler_Reconcile(t *testing.T) {
 			}
 
 			r := Reconciler{
-				ControllerContext:    controllerCtx,
+				Client:               controllerCtx.Client,
 				ClusterModuleService: svc,
 			}
-			_, err := r.Reconcile(ctx)
+			_, err := r.Reconcile(ctx, clusterCtx)
 			if tt.haveError {
 				g.Expect(err).To(gomega.HaveOccurred())
 			} else {
 				g.Expect(err).ToNot(gomega.HaveOccurred())
 			}
-			tt.customAssert(g, ctx)
+			tt.customAssert(g, clusterCtx)
 
 			svc.AssertExpectations(t)
 		})
@@ -486,9 +486,9 @@ func TestReconciler_fetchMachineOwnerObjects(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := gomega.NewWithT(t)
 			controllerCtx := fake.NewControllerContext(fake.NewControllerManagerContext(tt.initObjs...))
-			ctx := fake.NewClusterContext(controllerCtx)
-			r := Reconciler{ControllerContext: controllerCtx}
-			objMap, err := r.fetchMachineOwnerObjects(ctx)
+			clusterCtx := fake.NewClusterContext(controllerCtx)
+			r := Reconciler{Client: controllerCtx.Client}
+			objMap, err := r.fetchMachineOwnerObjects(ctx, clusterCtx)
 			if tt.hasError {
 				g.Expect(err).To(gomega.HaveOccurred())
 				return
@@ -511,8 +511,8 @@ func TestReconciler_fetchMachineOwnerObjects(t *testing.T) {
 			machineDeployment("foo", metav1.NamespaceDefault, fake.Clusterv1a2Name),
 			mdToBeDeleted,
 		))
-		ctx := fake.NewClusterContext(controllerCtx)
-		objMap, err := Reconciler{ControllerContext: controllerCtx}.fetchMachineOwnerObjects(ctx)
+		clusterCtx := fake.NewClusterContext(controllerCtx)
+		objMap, err := Reconciler{Client: controllerCtx.Client}.fetchMachineOwnerObjects(ctx, clusterCtx)
 		g.Expect(err).NotTo(gomega.HaveOccurred())
 		g.Expect(objMap).To(gomega.HaveLen(2))
 	})

@@ -19,7 +19,6 @@ package clustermodule
 import (
 	"testing"
 
-	"github.com/go-logr/logr"
 	"github.com/google/uuid"
 	"github.com/onsi/gomega"
 
@@ -68,7 +67,6 @@ func Test_IsCompatible(t *testing.T) {
 			g := gomega.NewWithT(t)
 			isCompatible := IsClusterCompatible(&context.ClusterContext{
 				VSphereCluster: cluster,
-				Logger:         logr.Discard(),
 			})
 			g.Expect(isCompatible).To(gomega.Equal(tt.isCompatible))
 		})

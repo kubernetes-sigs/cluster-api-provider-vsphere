@@ -26,6 +26,8 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
@@ -98,7 +100,9 @@ type vsphereDeploymentZoneReconciler struct {
 }
 
 func (r vsphereDeploymentZoneReconciler) Reconcile(ctx context.Context, request reconcile.Request) (_ reconcile.Result, reterr error) {
-	logr := r.Logger.WithValues("vspheredeploymentzone", request.Name)
+	// Note: Just adding VSphereDeploymentZone here explicitly as this reconciler was not refactored
+	// to use the logger from ctx yet. Once we do that, controller-runtime adds VSphereDeploymentZone for us.
+	logr := r.Logger.WithValues("VSphereDeploymentZone", klog.KRef(request.Namespace, request.Name))
 	// Fetch the VSphereDeploymentZone for this request.
 	vsphereDeploymentZone := &infrav1.VSphereDeploymentZone{}
 	if err := r.Client.Get(ctx, request.NamespacedName, vsphereDeploymentZone); err != nil {
@@ -138,10 +142,7 @@ func (r vsphereDeploymentZoneReconciler) Reconcile(ctx context.Context, request 
 	}
 	defer func() {
 		if err := vsphereDeploymentZoneContext.Patch(); err != nil {
-			if reterr == nil {
-				reterr = err
-			}
-			logr.Error(err, "patch failed", "vsphereDeploymentZone", vsphereDeploymentZoneContext.String())
+			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
 	}()
 
@@ -228,7 +229,7 @@ func (r vsphereDeploymentZoneReconciler) getVCenterSession(deploymentZoneCtx *ca
 		if deploymentZoneCtx.VSphereDeploymentZone.Spec.Server != vsphereCluster.Spec.Server || vsphereCluster.Spec.IdentityRef == nil {
 			continue
 		}
-		logger := deploymentZoneCtx.Logger.WithValues("cluster", vsphereCluster.Name)
+		logger := deploymentZoneCtx.Logger.WithValues("VSphereCluster", klog.KRef(vsphereCluster.Namespace, vsphereCluster.Name))
 		params = params.WithThumbprint(vsphereCluster.Spec.Thumbprint)
 		clust := vsphereCluster
 		creds, err := identity.GetCredentials(deploymentZoneCtx, r.Client, &clust, r.Namespace)

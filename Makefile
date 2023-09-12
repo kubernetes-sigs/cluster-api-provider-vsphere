@@ -478,7 +478,7 @@ test-junit: $(SETUP_ENVTEST) $(GOTESTSUM) $(GOVC) ## Run unit tests
 
 .PHONY: test-cover
 test-cover: ## Run unit tests and generate a coverage report
-	$(MAKE) test TEST_ARGS="$(TEST_ARGS) -coverprofile=coverage.out"
+	$(MAKE) test TEST_ARGS="$(TEST_ARGS) -coverpkg=./... -coverprofile=coverage.out"
 	./hack/codecov-ignore.sh
 	go tool cover -func=coverage.out -o coverage.txt
 	go tool cover -html=coverage.out -o coverage.html

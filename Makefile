@@ -213,7 +213,7 @@ ifeq ($(SELINUX_ENABLED),1)
 endif
 
 # Set build time variables including version details
-LDFLAGS := $(shell hack/version.sh)
+LDFLAGS ?= $(shell hack/version.sh)
 
 # Additional CAPV vars (everything else is ~ kept in sync with core CAPI)
 # Allow overriding manifest generation destination directory

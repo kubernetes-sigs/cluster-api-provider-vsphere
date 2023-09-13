@@ -51,22 +51,6 @@ func appendSecretToCrsResource(crs *addonsv1.ClusterResourceSet, generatedSecret
 	})
 }
 
-func newConfigMap(name string, o runtime.Object) *corev1.ConfigMap {
-	return &corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: corev1.SchemeGroupVersion.String(),
-			Kind:       "ConfigMap",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: env.NamespaceVar,
-		},
-		Data: map[string]string{
-			"data": util.GenerateObjectYAML(o, []util.Replacement{}),
-		},
-	}
-}
-
 func newConfigMapManifests(name string, o []runtime.Object) *corev1.ConfigMap {
 	return &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{

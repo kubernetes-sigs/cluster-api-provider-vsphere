@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Secret
 metadata:
-  name: csi-vsphere-config
+  name: vsphere-config-secret
   namespace: '${NAMESPACE}'
 stringData:
   data: |

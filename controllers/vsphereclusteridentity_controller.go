@@ -136,30 +136,30 @@ func (r clusterIdentityReconciler) Reconcile(ctx context.Context, req reconcile.
 		return reconcile.Result{}, errors.Errorf("secret: %s not found in namespace: %s", secretKey.Name, secretKey.Namespace)
 	}
 
-	if !clusterutilv1.IsOwnedByObject(secret, identity) {
-		ownerReferences := secret.GetOwnerReferences()
-		if pkgidentity.IsOwnedByIdentityOrCluster(ownerReferences) {
-			conditions.MarkFalse(identity, infrav1.CredentialsAvailableCondidtion, infrav1.SecretAlreadyInUseReason, clusterv1.ConditionSeverityError, "secret being used by another Cluster/VSphereIdentity")
-			identity.Status.Ready = false
-			return reconcile.Result{}, errors.New("secret being used by another Cluster/VSphereIdentity")
-		}
+	// If this secret is owned by a different VSphereClusterIdentity or a VSphereCluster, mark the identity as not ready and return an error.
+	if !clusterutilv1.IsOwnedByObject(secret, identity) && pkgidentity.IsOwnedByIdentityOrCluster(secret.GetOwnerReferences()) {
+		conditions.MarkFalse(identity, infrav1.CredentialsAvailableCondidtion, infrav1.SecretAlreadyInUseReason, clusterv1.ConditionSeverityError, "secret being used by another Cluster/VSphereIdentity")
+		identity.Status.Ready = false
+		return reconcile.Result{}, errors.New("secret being used by another Cluster/VSphereIdentity")
+	}
 
-		ownerReferences = append(ownerReferences, metav1.OwnerReference{
-			APIVersion: infrav1.GroupVersion.String(),
-			Kind:       identity.Kind,
-			Name:       identity.Name,
-			UID:        identity.UID,
-		})
-		secret.SetOwnerReferences(ownerReferences)
+	// Ensure the VSphereClusterIdentity is set as the owner of the secret, and that the reference has an up to date APIVersion.
+	secret.SetOwnerReferences(
+		clusterutilv1.EnsureOwnerRef(secret.GetOwnerReferences(),
+			metav1.OwnerReference{
+				APIVersion: infrav1.GroupVersion.String(),
+				Kind:       identity.Kind,
+				Name:       identity.Name,
+				UID:        identity.UID,
+			}))
 
-		if !ctrlutil.ContainsFinalizer(secret, infrav1.SecretIdentitySetFinalizer) {
-			ctrlutil.AddFinalizer(secret, infrav1.SecretIdentitySetFinalizer)
-		}
-		err = r.Client.Update(ctx, secret)
-		if err != nil {
-			conditions.MarkFalse(identity, infrav1.CredentialsAvailableCondidtion, infrav1.SecretOwnerReferenceFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
-			return reconcile.Result{}, err
-		}
+	if !ctrlutil.ContainsFinalizer(secret, infrav1.SecretIdentitySetFinalizer) {
+		ctrlutil.AddFinalizer(secret, infrav1.SecretIdentitySetFinalizer)
+	}
+	err = r.Client.Update(ctx, secret)
+	if err != nil {
+		conditions.MarkFalse(identity, infrav1.CredentialsAvailableCondidtion, infrav1.SecretOwnerReferenceFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+		return reconcile.Result{}, err
 	}
 
 	conditions.MarkTrue(identity, infrav1.CredentialsAvailableCondidtion)

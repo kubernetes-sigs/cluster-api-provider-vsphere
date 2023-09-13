@@ -51,7 +51,7 @@ type Manager interface {
 }
 
 // New returns a new CAPV controller manager.
-func New(opts Options) (Manager, error) {
+func New(ctx context.Context, opts Options) (Manager, error) {
 	// Ensure the default options are set.
 	opts.defaults()
 
@@ -101,7 +101,7 @@ func New(opts Options) (Manager, error) {
 	}
 
 	// Add the requested items to the manager.
-	if err := opts.AddToManager(controllerManagerContext, mgr); err != nil {
+	if err := opts.AddToManager(ctx, controllerManagerContext, mgr); err != nil {
 		return nil, errors.Wrap(err, "failed to add resources to the manager")
 	}
 
@@ -124,7 +124,7 @@ func UpdateCredentials(opts *Options) {
 	opts.readAndSetCredentials()
 }
 
-// InitializeWatch adds a filesystem watcher for the capv credentials file
+// InitializeWatch adds a filesystem watcher for the capv credentials file.
 // In case of any update to the credentials file, the new credentials are passed to the capv manager context.
 func InitializeWatch(controllerCtx *capvcontext.ControllerManagerContext, managerOpts *Options) (watch *fsnotify.Watcher, err error) {
 	capvCredentialsFile := managerOpts.CredentialsFile

@@ -61,7 +61,7 @@ func setup() {
 	utilruntime.Must(clusterv1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(vmwarev1.AddToScheme(scheme.Scheme))
 
-	testEnv = helpers.NewTestEnvironment()
+	testEnv = helpers.NewTestEnvironment(ctx)
 
 	secretCachingClient, err := client.New(testEnv.Manager.GetConfig(), client.Options{
 		HTTPClient: testEnv.Manager.GetHTTPClient(),
@@ -93,7 +93,7 @@ func setup() {
 		panic(fmt.Sprintf("unable to create ClusterCacheReconciler controller: %v", err))
 	}
 
-	if err := AddClusterControllerToManager(testEnv.GetContext(), testEnv.Manager, &infrav1.VSphereCluster{}, controllerOpts); err != nil {
+	if err := AddClusterControllerToManager(ctx, testEnv.GetContext(), testEnv.Manager, &infrav1.VSphereCluster{}, controllerOpts); err != nil {
 		panic(fmt.Sprintf("unable to setup VsphereCluster controller: %v", err))
 	}
 	if err := AddMachineControllerToManager(testEnv.GetContext(), testEnv.Manager, &infrav1.VSphereMachine{}, controllerOpts); err != nil {

@@ -275,7 +275,7 @@ var _ = Describe("VimMachineService_createOrPatchVSphereVM", func() {
 		})
 		It("returns a renamed vspherevm object", func() {
 			vm, err := vimMachineService.createOrPatchVSphereVM(machineCtx, getVSphereVM(hostAddr, corev1.ConditionTrue))
-			vmName := vm.(*infrav1.VSphereVM).GetName()
+			vmName := vm.Name
 			Expect(err).NotTo(HaveOccurred())
 			Expect(vmName).To(Equal("fake-long-rname"))
 		})
@@ -287,7 +287,7 @@ var _ = Describe("VimMachineService_createOrPatchVSphereVM", func() {
 		})
 		It("returns the same vspherevm name", func() {
 			vm, err := vimMachineService.createOrPatchVSphereVM(machineCtx, getVSphereVM(hostAddr, corev1.ConditionTrue))
-			vmName := vm.(*infrav1.VSphereVM).GetName()
+			vmName := vm.Name
 			Expect(err).NotTo(HaveOccurred())
 			Expect(vmName).To(Equal(fakeLongClusterName))
 		})

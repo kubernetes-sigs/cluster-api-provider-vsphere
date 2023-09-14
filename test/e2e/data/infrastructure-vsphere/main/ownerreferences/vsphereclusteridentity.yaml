@@ -1,0 +1,11 @@
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: VSphereCluster
+metadata:
+  name: "${CLUSTER_NAME}"
+  namespace: "${NAMESPACE}"
+spec:
+  identityRef:
+    kind: VSphereClusterIdentity
+    name: ownerreferences
+

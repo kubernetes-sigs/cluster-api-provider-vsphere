@@ -29,6 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	apitypes "k8s.io/apimachinery/pkg/types"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/validation"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
@@ -135,7 +136,7 @@ func AddMachineControllerToManager(controllerCtx *capvcontext.ControllerManagerC
 		// Watch any VirtualMachine resources owned by this VSphereMachine
 		builder.Owns(&vmoprv1.VirtualMachine{})
 		r.VMService = &vmoperator.VmopMachineService{}
-		networkProvider, err := inframanager.GetNetworkProvider(controllerCtx)
+		networkProvider, err := inframanager.GetNetworkProvider(context.TODO(), controllerCtx.Client, controllerCtx.NetworkProvider)
 		if err != nil {
 			return errors.Wrap(err, "failed to create a network provider")
 		}
@@ -179,7 +180,7 @@ type machineReconciler struct {
 func (r *machineReconciler) Reconcile(_ context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	var machineContext capvcontext.MachineContext
 	logger := r.Logger.WithName(req.Namespace).WithName(req.Name)
-	logger.V(3).Info("Starting Reconcile VSphereMachine")
+	logger.V(4).Info("Starting Reconcile")
 
 	// Fetch VSphereMachine object and populate the machine context
 	machineContext, err := r.VMService.FetchVSphereMachine(r.Client, req.NamespacedName)
@@ -229,10 +230,7 @@ func (r *machineReconciler) Reconcile(_ context.Context, req ctrl.Request) (_ ct
 
 		// Patch the VSphereMachine resource.
 		if err := machineContext.Patch(); err != nil {
-			if reterr == nil {
-				reterr = err
-			}
-			machineContext.GetLogger().Error(err, "patch failed", "machine", machineContext.String())
+			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
 	}()
 
@@ -412,7 +410,7 @@ func (r *machineReconciler) setVMModifiers(machineCtx capvcontext.MachineContext
 		// No need to check the type. We know this will be a VirtualMachine
 		vm, _ := obj.(*vmoprv1.VirtualMachine)
 		supervisorMachineCtx.Logger.V(3).Info("Applying network config to VM", "vm-name", vm.Name)
-		err := r.networkProvider.ConfigureVirtualMachine(supervisorMachineCtx.GetClusterContext(), vm)
+		err := r.networkProvider.ConfigureVirtualMachine(context.TODO(), supervisorMachineCtx.GetClusterContext(), vm)
 		if err != nil {
 			return nil, errors.Errorf("failed to configure machine network: %+v", err)
 		}

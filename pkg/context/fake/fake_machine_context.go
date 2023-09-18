@@ -17,36 +17,38 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 )
 
 // NewMachineContext returns a fake VIMMachineContext for unit testing
 // reconcilers with a fake client.
-func NewMachineContext(ctx *context.ClusterContext) *context.VIMMachineContext {
+func NewMachineContext(clusterCtx *capvcontext.ClusterContext, controllerCtx *capvcontext.ControllerContext) *capvcontext.VIMMachineContext {
 	// Create the machine resources.
 	machine := newMachineV1a4()
 	vsphereMachine := newVSphereMachine(machine)
 
 	// Add the cluster resources to the fake cluster client.
-	if err := ctx.Client.Create(ctx, &machine); err != nil {
+	if err := controllerCtx.Client.Create(context.TODO(), &machine); err != nil {
 		panic(err)
 	}
-	if err := ctx.Client.Create(ctx, &vsphereMachine); err != nil {
+	if err := controllerCtx.Client.Create(context.TODO(), &vsphereMachine); err != nil {
 		panic(err)
 	}
 
-	return &context.VIMMachineContext{
-		BaseMachineContext: &context.BaseMachineContext{
-			ControllerContext: ctx.ControllerContext,
-			Cluster:           ctx.Cluster,
+	return &capvcontext.VIMMachineContext{
+		BaseMachineContext: &capvcontext.BaseMachineContext{
+			ControllerContext: controllerCtx,
+			Cluster:           clusterCtx.Cluster,
 			Machine:           &machine,
-			Logger:            ctx.Logger.WithName(vsphereMachine.Name),
+			Logger:            controllerCtx.Logger.WithName(vsphereMachine.Name),
 		},
-		VSphereCluster: ctx.VSphereCluster,
+		VSphereCluster: clusterCtx.VSphereCluster,
 		VSphereMachine: &vsphereMachine,
 	}
 }

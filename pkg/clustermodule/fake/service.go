@@ -17,27 +17,29 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	"github.com/stretchr/testify/mock"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/clustermodule"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 )
 
 type CMService struct {
 	mock.Mock
 }
 
-func (f *CMService) Create(ctx *context.ClusterContext, wrapper clustermodule.Wrapper) (string, error) {
-	args := f.Called(ctx, wrapper)
+func (f *CMService) Create(ctx context.Context, clusterCtx *capvcontext.ClusterContext, wrapper clustermodule.Wrapper) (string, error) {
+	args := f.Called(ctx, clusterCtx, wrapper)
 	return args.String(0), args.Error(1)
 }
 
-func (f *CMService) DoesExist(ctx *context.ClusterContext, wrapper clustermodule.Wrapper, moduleUUID string) (bool, error) {
-	args := f.Called(ctx, wrapper, moduleUUID)
+func (f *CMService) DoesExist(ctx context.Context, clusterCtx *capvcontext.ClusterContext, wrapper clustermodule.Wrapper, moduleUUID string) (bool, error) {
+	args := f.Called(ctx, clusterCtx, wrapper, moduleUUID)
 	return args.Bool(0), args.Error(1)
 }
 
-func (f *CMService) Remove(ctx *context.ClusterContext, moduleUUID string) error {
-	args := f.Called(ctx, moduleUUID)
+func (f *CMService) Remove(ctx context.Context, clusterCtx *capvcontext.ClusterContext, moduleUUID string) error {
+	args := f.Called(ctx, clusterCtx, moduleUUID)
 	return args.Error(0)
 }

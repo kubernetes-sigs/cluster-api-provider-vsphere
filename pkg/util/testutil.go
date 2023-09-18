@@ -149,7 +149,7 @@ func createScheme() *runtime.Scheme {
 	return scheme
 }
 
-func CreateClusterContext(cluster *clusterv1.Cluster, vsphereCluster *vmwarev1.VSphereCluster) *vmware.ClusterContext {
+func CreateClusterContext(cluster *clusterv1.Cluster, vsphereCluster *vmwarev1.VSphereCluster) (*vmware.ClusterContext, *capvcontext.ControllerContext) {
 	scheme := createScheme()
 	controllerManagerContext := &capvcontext.ControllerManagerContext{
 		Context: context.Background(),
@@ -169,11 +169,9 @@ func CreateClusterContext(cluster *clusterv1.Cluster, vsphereCluster *vmwarev1.V
 
 	// Build the cluster context.
 	return &vmware.ClusterContext{
-		ControllerContext: controllerContext,
-		Logger:            controllerContext.Logger.WithName("cluster-context-logger"),
-		Cluster:           cluster,
-		VSphereCluster:    vsphereCluster,
-	}
+		Cluster:        cluster,
+		VSphereCluster: vsphereCluster,
+	}, controllerContext
 }
 
 func CreateMachineContext(clusterContext *vmware.ClusterContext, machine *clusterv1.Machine,
@@ -181,7 +179,10 @@ func CreateMachineContext(clusterContext *vmware.ClusterContext, machine *cluste
 	// Build the machine context.
 	return &vmware.SupervisorMachineContext{
 		BaseMachineContext: &capvcontext.BaseMachineContext{
-			Logger:  clusterContext.Logger.WithName(vsphereMachine.Name),
+			// TODO(sbueringer): This SupervisorMachineContext is only used in tests and the Logger
+			// will be removed anyway once we refactor the machine controllers, so it's fine if the
+			// logger is not perfect.
+			Logger:  klog.Background().WithName(vsphereMachine.Name),
 			Machine: machine,
 			Cluster: clusterContext.Cluster,
 		},

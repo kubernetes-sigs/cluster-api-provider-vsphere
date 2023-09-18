@@ -57,7 +57,7 @@ import (
 
 // AddClusterControllerToManager adds the cluster controller to the provided
 // manager.
-func AddClusterControllerToManager(ctx context.Context, controllerCtx *capvcontext.ControllerManagerContext, mgr manager.Manager, clusterControlledType client.Object, options controller.Options) error {
+func AddClusterControllerToManager(ctx context.Context, controllerManagerCtx *capvcontext.ControllerManagerContext, mgr manager.Manager, clusterControlledType client.Object, options controller.Options) error {
 	supervisorBased, err := util.IsSupervisorType(clusterControlledType)
 	if err != nil {
 		return err
@@ -66,51 +66,46 @@ func AddClusterControllerToManager(ctx context.Context, controllerCtx *capvconte
 	var (
 		clusterControlledTypeName = reflect.TypeOf(clusterControlledType).Elem().Name()
 		clusterControlledTypeGVK  = infrav1.GroupVersion.WithKind(clusterControlledTypeName)
-		controllerNameShort       = fmt.Sprintf("%s-controller", strings.ToLower(clusterControlledTypeName))
-		controllerNameLong        = fmt.Sprintf("%s/%s/%s", controllerCtx.Namespace, controllerCtx.Name, controllerNameShort)
+		controllerNameLong        = fmt.Sprintf("%s/%s/%s", controllerManagerCtx.Namespace, controllerManagerCtx.Name, strings.ToLower(clusterControlledTypeName))
 	)
 	if supervisorBased {
 		clusterControlledTypeGVK = vmwarev1.GroupVersion.WithKind(clusterControlledTypeName)
-		controllerNameShort = fmt.Sprintf("%s-supervisor-controller", strings.ToLower(clusterControlledTypeName))
-		controllerNameLong = fmt.Sprintf("%s/%s/%s", controllerCtx.Namespace, controllerCtx.Name, controllerNameShort)
-	}
-
-	// Build the controller context.
-	controllerContext := &capvcontext.ControllerContext{
-		ControllerManagerContext: controllerCtx,
-		Name:                     controllerNameShort,
-		Recorder:                 record.New(mgr.GetEventRecorderFor(controllerNameLong)),
-		Logger:                   controllerCtx.Logger.WithName(controllerNameShort),
+		controllerNameLong = fmt.Sprintf("%s/%s/%s", controllerManagerCtx.Namespace, controllerManagerCtx.Name, strings.ToLower(clusterControlledTypeName))
 	}
 
 	if supervisorBased {
-		networkProvider, err := inframanager.GetNetworkProvider(controllerCtx)
+		networkProvider, err := inframanager.GetNetworkProvider(ctx, controllerManagerCtx.Client, controllerManagerCtx.NetworkProvider)
 		if err != nil {
 			return errors.Wrap(err, "failed to create a network provider")
 		}
 		reconciler := &vmware.ClusterReconciler{
-			ControllerContext:     controllerContext,
-			ResourcePolicyService: vmoperator.RPService{},
-			ControlPlaneService:   vmoperator.CPService{},
-			NetworkProvider:       networkProvider,
+			Client:   controllerManagerCtx.Client,
+			Recorder: record.New(mgr.GetEventRecorderFor(controllerNameLong)),
+			ResourcePolicyService: &vmoperator.RPService{
+				Client: controllerManagerCtx.Client,
+			},
+			ControlPlaneService: &vmoperator.CPService{
+				Client: controllerManagerCtx.Client,
+			},
+			NetworkProvider: networkProvider,
 		}
 		return ctrl.NewControllerManagedBy(mgr).
-			Named(controllerNameShort).
 			For(clusterControlledType).
 			WithOptions(options).
 			Watches(
 				&vmwarev1.VSphereMachine{},
 				handler.EnqueueRequestsFromMapFunc(reconciler.VSphereMachineToCluster),
 			).
-			WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(controllerCtx), controllerCtx.WatchFilterValue)).
+			WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), controllerManagerCtx.WatchFilterValue)).
 			Complete(reconciler)
 	}
 
-	reconciler := clusterReconciler{
-		ControllerContext:       controllerContext,
-		clusterModuleReconciler: NewReconciler(controllerContext),
+	reconciler := &clusterReconciler{
+		ControllerManagerContext: controllerManagerCtx,
+		Client:                   controllerManagerCtx.Client,
+		clusterModuleReconciler:  NewReconciler(controllerManagerCtx),
 	}
-	clusterToInfraFn := clusterToInfrastructureMapFunc(ctx, controllerCtx)
+	clusterToInfraFn := clusterToInfrastructureMapFunc(ctx, controllerManagerCtx)
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		// Watch the controlled, infrastructure resource.
 		For(clusterControlledType).
@@ -119,6 +114,8 @@ func AddClusterControllerToManager(ctx context.Context, controllerCtx *capvconte
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, o client.Object) []reconcile.Request {
+				log := ctrl.LoggerFrom(ctx)
+
 				requests := clusterToInfraFn(ctx, o)
 				if requests == nil {
 					return nil
@@ -126,12 +123,12 @@ func AddClusterControllerToManager(ctx context.Context, controllerCtx *capvconte
 
 				c := &infrav1.VSphereCluster{}
 				if err := reconciler.Client.Get(ctx, requests[0].NamespacedName, c); err != nil {
-					reconciler.Logger.V(4).Error(err, "Failed to get VSphereCluster")
+					log.V(4).Error(err, "Failed to get VSphereCluster")
 					return nil
 				}
 
 				if annotations.IsExternallyManaged(c) {
-					reconciler.Logger.V(4).Info("VSphereCluster is externally managed, skipping mapping.")
+					log.V(4).Info("VSphereCluster is externally managed, skipping mapping.")
 					return nil
 				}
 				return requests
@@ -157,11 +154,11 @@ func AddClusterControllerToManager(ctx context.Context, controllerCtx *capvconte
 		// should cause a resource to be synchronized, such as a goroutine
 		// waiting on some asynchronous, external task to complete.
 		WatchesRawSource(
-			&source.Channel{Source: controllerCtx.GetGenericEventChannelFor(clusterControlledTypeGVK)},
+			&source.Channel{Source: controllerManagerCtx.GetGenericEventChannelFor(clusterControlledTypeGVK)},
 			&handler.EnqueueRequestForObject{},
 		).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(controllerCtx), controllerCtx.WatchFilterValue)).
-		WithEventFilter(predicates.ResourceIsNotExternallyManaged(reconciler.Logger)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), controllerManagerCtx.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceIsNotExternallyManaged(ctrl.LoggerFrom(ctx))).
 		Build(reconciler)
 	if err != nil {
 		return err

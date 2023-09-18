@@ -67,7 +67,7 @@ var _ = Describe("VimMachineService_GenerateOverrideFunc", func() {
 
 	BeforeEach(func() {
 		controllerCtx = fake.NewControllerContext(fake.NewControllerManagerContext(deplZone("one"), deplZone("two"), failureDomain("one"), failureDomain("two")))
-		machineCtx = fake.NewMachineContext(fake.NewClusterContext(controllerCtx))
+		machineCtx = fake.NewMachineContext(fake.NewClusterContext(controllerCtx), controllerCtx)
 		vimMachineService = &VimMachineService{}
 	})
 
@@ -215,7 +215,7 @@ var _ = Describe("VimMachineService_GetHostInfo", func() {
 	Context("When VMProvisioned Condition is set", func() {
 		BeforeEach(func() {
 			controllerCtx = fake.NewControllerContext(fake.NewControllerManagerContext(getVSphereVM(hostAddr, corev1.ConditionTrue)))
-			machineCtx = fake.NewMachineContext(fake.NewClusterContext(controllerCtx))
+			machineCtx = fake.NewMachineContext(fake.NewClusterContext(controllerCtx), controllerCtx)
 		})
 		It("Fetches host address from the VSphereVM object", func() {
 			host, err := vimMachineService.GetHostInfo(machineCtx)
@@ -227,7 +227,7 @@ var _ = Describe("VimMachineService_GetHostInfo", func() {
 	Context("When VMProvisioned Condition is unset", func() {
 		BeforeEach(func() {
 			controllerCtx = fake.NewControllerContext(fake.NewControllerManagerContext(getVSphereVM(hostAddr, corev1.ConditionFalse)))
-			machineCtx = fake.NewMachineContext(fake.NewClusterContext(controllerCtx))
+			machineCtx = fake.NewMachineContext(fake.NewClusterContext(controllerCtx), controllerCtx)
 		})
 		It("returns empty string", func() {
 			host, err := vimMachineService.GetHostInfo(machineCtx)
@@ -266,7 +266,7 @@ var _ = Describe("VimMachineService_createOrPatchVSphereVM", func() {
 	}
 
 	controllerCtx = fake.NewControllerContext(fake.NewControllerManagerContext(getVSphereVM(hostAddr, corev1.ConditionTrue)))
-	machineCtx = fake.NewMachineContext(fake.NewClusterContext(controllerCtx))
+	machineCtx = fake.NewMachineContext(fake.NewClusterContext(controllerCtx), controllerCtx)
 	machineCtx.Machine.SetName(fakeLongClusterName)
 
 	Context("When VSphereMachine OS is Windows", func() {

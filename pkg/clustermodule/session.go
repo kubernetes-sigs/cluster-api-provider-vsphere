@@ -31,46 +31,46 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 )
 
-func fetchSessionForObject(clusterCtx *capvcontext.ClusterContext, template *infrav1.VSphereMachineTemplate) (*session.Session, error) {
-	params := newParams(*clusterCtx)
+func (s *service) fetchSessionForObject(ctx context.Context, clusterCtx *capvcontext.ClusterContext, template *infrav1.VSphereMachineTemplate) (*session.Session, error) {
+	params := s.newParams(*clusterCtx)
 	// Datacenter is necessary since we use the finder.
 	params = params.WithDatacenter(template.Spec.Template.Spec.Datacenter)
 
-	return fetchSession(clusterCtx, params)
+	return s.fetchSession(ctx, clusterCtx, params)
 }
 
-func newParams(clusterCtx capvcontext.ClusterContext) *session.Params {
+func (s *service) newParams(clusterCtx capvcontext.ClusterContext) *session.Params {
 	return session.NewParams().
 		WithServer(clusterCtx.VSphereCluster.Spec.Server).
 		WithThumbprint(clusterCtx.VSphereCluster.Spec.Thumbprint).
 		WithFeatures(session.Feature{
-			EnableKeepAlive:   clusterCtx.EnableKeepAlive,
-			KeepAliveDuration: clusterCtx.KeepAliveDuration,
+			EnableKeepAlive:   s.ControllerManagerContext.EnableKeepAlive,
+			KeepAliveDuration: s.ControllerManagerContext.KeepAliveDuration,
 		})
 }
 
-func fetchSession(clusterCtx *capvcontext.ClusterContext, params *session.Params) (*session.Session, error) {
+func (s *service) fetchSession(ctx context.Context, clusterCtx *capvcontext.ClusterContext, params *session.Params) (*session.Session, error) {
 	if clusterCtx.VSphereCluster.Spec.IdentityRef != nil {
-		creds, err := identity.GetCredentials(clusterCtx, clusterCtx.Client, clusterCtx.VSphereCluster, clusterCtx.Namespace)
+		creds, err := identity.GetCredentials(ctx, s.Client, clusterCtx.VSphereCluster, s.ControllerManagerContext.Namespace)
 		if err != nil {
 			return nil, err
 		}
 
 		params = params.WithUserInfo(creds.Username, creds.Password)
-		return session.GetOrCreate(clusterCtx, params)
+		return session.GetOrCreate(ctx, params)
 	}
 
-	params = params.WithUserInfo(clusterCtx.Username, clusterCtx.Password)
-	return session.GetOrCreate(clusterCtx, params)
+	params = params.WithUserInfo(s.ControllerManagerContext.Username, s.ControllerManagerContext.Password)
+	return session.GetOrCreate(ctx, params)
 }
 
-func fetchTemplateRef(ctx context.Context, c client.Client, input Wrapper) (*corev1.ObjectReference, error) {
+func (s *service) fetchTemplateRef(ctx context.Context, input Wrapper) (*corev1.ObjectReference, error) {
 	obj := new(unstructured.Unstructured)
 	obj.SetAPIVersion(input.GetObjectKind().GroupVersionKind().GroupVersion().String())
 	obj.SetKind(input.GetObjectKind().GroupVersionKind().Kind)
 	obj.SetName(input.GetName())
 	key := client.ObjectKey{Name: obj.GetName(), Namespace: input.GetNamespace()}
-	if err := c.Get(ctx, key, obj); err != nil {
+	if err := s.Client.Get(ctx, key, obj); err != nil {
 		return nil, errors.Wrapf(err, "failed to retrieve %s external object %q/%q", obj.GetKind(), key.Namespace, key.Name)
 	}
 
@@ -81,9 +81,9 @@ func fetchTemplateRef(ctx context.Context, c client.Client, input Wrapper) (*cor
 	return &objRef, nil
 }
 
-func fetchMachineTemplate(clusterCtx *capvcontext.ClusterContext, input Wrapper, templateName string) (*infrav1.VSphereMachineTemplate, error) {
+func (s *service) fetchMachineTemplate(ctx context.Context, input Wrapper, templateName string) (*infrav1.VSphereMachineTemplate, error) {
 	template := &infrav1.VSphereMachineTemplate{}
-	if err := clusterCtx.Client.Get(clusterCtx, client.ObjectKey{
+	if err := s.Client.Get(ctx, client.ObjectKey{
 		Name:      templateName,
 		Namespace: input.GetNamespace(),
 	}, template); err != nil {

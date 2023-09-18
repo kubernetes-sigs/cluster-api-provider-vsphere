@@ -17,7 +17,11 @@ limitations under the License.
 package manager
 
 import (
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	"context"
+
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/network"
 )
@@ -30,20 +34,22 @@ const (
 
 // GetNetworkProvider will return a network provider instance based on the environment
 // the cfg is used to initialize a client that talks directly to api-server without using the cache.
-func GetNetworkProvider(controllerCtx *context.ControllerManagerContext) (services.NetworkProvider, error) {
-	switch controllerCtx.NetworkProvider {
+func GetNetworkProvider(ctx context.Context, client client.Client, networkProvider string) (services.NetworkProvider, error) {
+	log := ctrl.LoggerFrom(ctx)
+
+	switch networkProvider {
 	case NSXNetworkProvider:
 		// TODO: disableFirewall not configurable
-		controllerCtx.Logger.Info("Pick NSX-T network provider")
-		return network.NsxtNetworkProvider(controllerCtx.Client, "false"), nil
+		log.Info("Pick NSX-T network provider")
+		return network.NsxtNetworkProvider(client, "false"), nil
 	case VDSNetworkProvider:
-		controllerCtx.Logger.Info("Pick NetOp (VDS) network provider")
-		return network.NetOpNetworkProvider(controllerCtx.Client), nil
+		log.Info("Pick NetOp (VDS) network provider")
+		return network.NetOpNetworkProvider(client), nil
 	case DummyLBNetworkProvider:
-		controllerCtx.Logger.Info("Pick Dummy network provider")
+		log.Info("Pick Dummy network provider")
 		return network.DummyLBNetworkProvider(), nil
 	default:
-		controllerCtx.Logger.Info("NetworkProvider not set. Pick Dummy network provider")
+		log.Info("NetworkProvider not set. Pick Dummy network provider")
 		return network.DummyNetworkProvider(), nil
 	}
 }

@@ -118,6 +118,7 @@ func GetOrCreate(ctx context.Context, params *Params) (*Session, error) {
 		"server", params.server,
 		"datacenter", params.datacenter,
 		"username", params.userinfo.Username())
+	ctx = ctrl.LoggerInto(ctx, logger)
 
 	sessionMU.Lock()
 	defer sessionMU.Unlock()

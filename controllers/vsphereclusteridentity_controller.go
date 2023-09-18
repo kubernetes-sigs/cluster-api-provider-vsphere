@@ -26,6 +26,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -108,10 +109,7 @@ func (r clusterIdentityReconciler) Reconcile(ctx context.Context, req reconcile.
 		conditions.SetSummary(identity, conditions.WithConditions(infrav1.CredentialsAvailableCondidtion))
 
 		if err := patchHelper.Patch(ctx, identity); err != nil {
-			if reterr == nil {
-				reterr = err
-			}
-			r.Logger.Error(err, "patch failed", "namespace", identity.Namespace, "name", identity.Name)
+			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
 	}()
 

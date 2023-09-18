@@ -703,7 +703,10 @@ func TestClusterReconciler_ReconcileDeploymentZones(t *testing.T) {
 				clusterCtx := fake.NewClusterContext(controllerCtx)
 				clusterCtx.VSphereCluster.Spec.Server = server
 
-				r := clusterReconciler{ControllerContext: controllerCtx}
+				r := clusterReconciler{
+					ControllerManagerContext: controllerCtx.ControllerManagerContext,
+					Client:                   controllerCtx.Client,
+				}
 				reconciled, err := r.reconcileDeploymentZones(ctx, clusterCtx)
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(reconciled).To(Equal(tt.reconciled))
@@ -773,7 +776,10 @@ func TestClusterReconciler_ReconcileDeploymentZones(t *testing.T) {
 				clusterCtx.VSphereCluster.Spec.Server = server
 				clusterCtx.VSphereCluster.Spec.FailureDomainSelector = &metav1.LabelSelector{MatchLabels: map[string]string{}}
 
-				r := clusterReconciler{ControllerContext: controllerCtx}
+				r := clusterReconciler{
+					ControllerManagerContext: controllerCtx.ControllerManagerContext,
+					Client:                   controllerCtx.Client,
+				}
 				reconciled, err := r.reconcileDeploymentZones(ctx, clusterCtx)
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(reconciled).To(Equal(tt.reconciled))
@@ -806,7 +812,10 @@ func TestClusterReconciler_ReconcileDeploymentZones(t *testing.T) {
 			clusterCtx.VSphereCluster.Spec.Server = server
 			clusterCtx.VSphereCluster.Spec.FailureDomainSelector = selector
 
-			r := clusterReconciler{ControllerContext: controllerCtx}
+			r := clusterReconciler{
+				ControllerManagerContext: controllerCtx.ControllerManagerContext,
+				Client:                   controllerCtx.Client,
+			}
 			_, err := r.reconcileDeploymentZones(ctx, clusterCtx)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(clusterCtx.VSphereCluster.Status.FailureDomains).To(HaveLen(selectedZones))

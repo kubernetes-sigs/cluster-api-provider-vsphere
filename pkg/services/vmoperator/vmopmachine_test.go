@@ -108,9 +108,9 @@ var _ = Describe("VirtualMachine tests", func() {
 		vsphereCluster = util.CreateVSphereCluster(clusterName)
 		machine = util.CreateMachine(machineName, clusterName, k8sVersion, controlPlaneLabelTrue)
 		vsphereMachine = util.CreateVSphereMachine(machineName, clusterName, className, imageName, storageClass, controlPlaneLabelTrue)
-		clusterContext := util.CreateClusterContext(cluster, vsphereCluster)
+		clusterContext, controllerCtx := util.CreateClusterContext(cluster, vsphereCluster)
 		ctx = util.CreateMachineContext(clusterContext, machine, vsphereMachine)
-		ctx.ControllerContext = clusterContext.ControllerContext
+		ctx.ControllerContext = controllerCtx
 	})
 
 	Context("Reconcile VirtualMachine", func() {

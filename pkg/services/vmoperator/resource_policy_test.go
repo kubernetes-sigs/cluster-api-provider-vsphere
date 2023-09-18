@@ -17,6 +17,7 @@ limitations under the License.
 package vmoperator
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -31,17 +32,19 @@ func TestRPService(t *testing.T) {
 	vsphereClusterName := fmt.Sprintf("%s-%s", clusterName, capi_util.RandomString((6)))
 	cluster := util.CreateCluster(clusterName)
 	vsphereCluster := util.CreateVSphereCluster(vsphereClusterName)
-	ctx := util.CreateClusterContext(cluster, vsphereCluster)
-
-	rpService := RPService{}
+	clusterCtx, controllerCtx := util.CreateClusterContext(cluster, vsphereCluster)
+	ctx := context.Background()
+	rpService := RPService{
+		Client: controllerCtx.Client,
+	}
 
 	t.Run("Creates Resource Policy using the cluster name", func(t *testing.T) {
 		g := NewWithT(t)
-		name, err := rpService.ReconcileResourcePolicy(ctx)
+		name, err := rpService.ReconcileResourcePolicy(ctx, clusterCtx)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(name).To(Equal(clusterName))
 
-		resourcePolicy, err := rpService.getVirtualMachineSetResourcePolicy(ctx)
+		resourcePolicy, err := rpService.getVirtualMachineSetResourcePolicy(ctx, clusterCtx)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(resourcePolicy.Spec.ResourcePool.Name).To(Equal(clusterName))
 		g.Expect(resourcePolicy.Spec.Folder.Name).To(Equal(clusterName))

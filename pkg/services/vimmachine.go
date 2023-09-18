@@ -25,8 +25,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/utils/integer"
@@ -127,32 +125,17 @@ func (v *VimMachineService) ReconcileNormal(machineCtx capvcontext.MachineContex
 		return false, err
 	}
 
-	// Convert the VM resource to unstructured data.
-	vmData, err := runtime.DefaultUnstructuredConverter.ToUnstructured(vm)
-	if err != nil {
-		return false, errors.Wrapf(err,
-			"failed to convert %s to unstructured data",
-			vm.GetObjectKind().GroupVersionKind().String())
-	}
-	vmObj := &unstructured.Unstructured{Object: vmData}
-	vmObj.SetGroupVersionKind(vm.GetObjectKind().GroupVersionKind())
-	vmObj.SetAPIVersion(vm.GetObjectKind().GroupVersionKind().GroupVersion().String())
-	vmObj.SetKind(vm.GetObjectKind().GroupVersionKind().Kind)
-
 	// Waits the VM's ready state.
-	if ok, err := v.waitReadyState(vimMachineCtx, vmObj); !ok {
-		if err != nil {
-			return false, errors.Wrapf(err, "unexpected error while reconciling ready state for %s", vimMachineCtx)
-		}
+	if !vm.Status.Ready {
 		vimMachineCtx.Logger.Info("waiting for ready state")
 		// VSphereMachine wraps a VMSphereVM, so we are mirroring status from the underlying VMSphereVM
 		// in order to provide evidences about machine provisioning while provisioning is actually happening.
-		conditions.SetMirror(vimMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, conditions.UnstructuredGetter(vmObj))
+		conditions.SetMirror(vimMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, vm)
 		return true, nil
 	}
 
 	// Reconcile the VSphereMachine's provider ID using the VM's BIOS UUID.
-	if ok, err := v.reconcileProviderID(vimMachineCtx, vmObj); !ok {
+	if ok, err := v.reconcileProviderID(vimMachineCtx, vm); !ok {
 		if err != nil {
 			return false, errors.Wrapf(err, "unexpected error while reconciling provider ID for %s", vimMachineCtx)
 		}
@@ -161,7 +144,7 @@ func (v *VimMachineService) ReconcileNormal(machineCtx capvcontext.MachineContex
 	}
 
 	// Reconcile the VSphereMachine's node addresses from the VM's IP addresses.
-	if ok, err := v.reconcileNetwork(vimMachineCtx, vmObj); !ok {
+	if ok, err := v.reconcileNetwork(vimMachineCtx, vm); !ok {
 		if err != nil {
 			return false, errors.Wrapf(err, "unexpected error while reconciling network for %s", vimMachineCtx)
 		}
@@ -209,56 +192,13 @@ func (v *VimMachineService) findVSphereVM(vimMachineCtx *capvcontext.VIMMachineC
 	return vm, nil
 }
 
-func (v *VimMachineService) waitReadyState(vimMachineCtx *capvcontext.VIMMachineContext, vm *unstructured.Unstructured) (bool, error) {
-	ready, ok, err := unstructured.NestedBool(vm.Object, "status", "ready")
-	if !ok {
-		if err != nil {
-			return false, errors.Wrapf(err,
-				"unexpected error when getting status.ready from %s %s/%s for %s",
-				vm.GroupVersionKind(),
-				vm.GetNamespace(),
-				vm.GetName(),
-				vimMachineCtx)
-		}
-		vimMachineCtx.Logger.Info("status.ready not found",
-			"vmGVK", vm.GroupVersionKind().String(),
-			"vmNamespace", vm.GetNamespace(),
-			"vmName", vm.GetName())
-		return false, nil
-	}
-	if !ready {
-		vimMachineCtx.Logger.Info("status.ready is false",
-			"vmGVK", vm.GroupVersionKind().String(),
-			"vmNamespace", vm.GetNamespace(),
-			"vmName", vm.GetName())
-		return false, nil
-	}
-
-	return true, nil
-}
-
-func (v *VimMachineService) reconcileProviderID(vimMachineCtx *capvcontext.VIMMachineContext, vm *unstructured.Unstructured) (bool, error) {
-	biosUUID, ok, err := unstructured.NestedString(vm.Object, "spec", "biosUUID")
-	if !ok {
-		if err != nil {
-			return false, errors.Wrapf(err,
-				"unexpected error when getting spec.biosUUID from %s %s/%s for %s",
-				vm.GroupVersionKind(),
-				vm.GetNamespace(),
-				vm.GetName(),
-				vimMachineCtx)
-		}
-		vimMachineCtx.Logger.Info("spec.biosUUID not found",
-			"vmGVK", vm.GroupVersionKind().String(),
-			"vmNamespace", vm.GetNamespace(),
-			"vmName", vm.GetName())
-		return false, nil
-	}
+func (v *VimMachineService) reconcileProviderID(vimMachineCtx *capvcontext.VIMMachineContext, vm *infrav1.VSphereVM) (bool, error) {
+	biosUUID := vm.Spec.BiosUUID
 	if biosUUID == "" {
 		vimMachineCtx.Logger.Info("spec.biosUUID is empty",
-			"vmGVK", vm.GroupVersionKind().String(),
-			"vmNamespace", vm.GetNamespace(),
-			"vmName", vm.GetName())
+			"vmKind", vm.Kind,
+			"vmNamespace", vm.Namespace,
+			"vmName", vm.Name)
 		return false, nil
 	}
 
@@ -266,9 +206,9 @@ func (v *VimMachineService) reconcileProviderID(vimMachineCtx *capvcontext.VIMMa
 	if providerID == "" {
 		return false, errors.Errorf("invalid BIOS UUID %s from %s %s/%s for %s",
 			biosUUID,
-			vm.GroupVersionKind(),
-			vm.GetNamespace(),
-			vm.GetName(),
+			vm.Kind,
+			vm.Namespace,
+			vm.Name,
 			vimMachineCtx)
 	}
 	if vimMachineCtx.VSphereMachine.Spec.ProviderID == nil || *vimMachineCtx.VSphereMachine.Spec.ProviderID != providerID {
@@ -280,46 +220,44 @@ func (v *VimMachineService) reconcileProviderID(vimMachineCtx *capvcontext.VIMMa
 }
 
 //nolint:nestif
-func (v *VimMachineService) reconcileNetwork(vimMachineCtx *capvcontext.VIMMachineContext, vm *unstructured.Unstructured) (bool, error) {
+func (v *VimMachineService) reconcileNetwork(vimMachineCtx *capvcontext.VIMMachineContext, vm *infrav1.VSphereVM) (bool, error) {
 	var errs []error
-	if networkStatusListOfIfaces, ok, _ := unstructured.NestedSlice(vm.Object, "status", "network"); ok {
-		var networkStatusList []infrav1.NetworkStatus
-		for i, networkStatusListMemberIface := range networkStatusListOfIfaces {
-			if buf, err := json.Marshal(networkStatusListMemberIface); err != nil {
+	networkStatusListOfIfaces := vm.Status.Network
+	var networkStatusList []infrav1.NetworkStatus
+	for i, networkStatusListMemberIface := range networkStatusListOfIfaces {
+		if buf, err := json.Marshal(networkStatusListMemberIface); err != nil {
+			vimMachineCtx.Logger.Error(err,
+				"unsupported data for member of status.network list",
+				"index", i)
+			errs = append(errs, err)
+		} else {
+			var networkStatus infrav1.NetworkStatus
+			err := json.Unmarshal(buf, &networkStatus)
+			if err == nil && networkStatus.MACAddr == "" {
+				err = errors.New("macAddr is required")
+				errs = append(errs, err)
+			}
+			if err != nil {
 				vimMachineCtx.Logger.Error(err,
 					"unsupported data for member of status.network list",
-					"index", i)
+					"index", i, "data", string(buf))
 				errs = append(errs, err)
 			} else {
-				var networkStatus infrav1.NetworkStatus
-				err := json.Unmarshal(buf, &networkStatus)
-				if err == nil && networkStatus.MACAddr == "" {
-					err = errors.New("macAddr is required")
-					errs = append(errs, err)
-				}
-				if err != nil {
-					vimMachineCtx.Logger.Error(err,
-						"unsupported data for member of status.network list",
-						"index", i, "data", string(buf))
-					errs = append(errs, err)
-				} else {
-					networkStatusList = append(networkStatusList, networkStatus)
-				}
+				networkStatusList = append(networkStatusList, networkStatus)
 			}
 		}
-		vimMachineCtx.VSphereMachine.Status.Network = networkStatusList
 	}
+	vimMachineCtx.VSphereMachine.Status.Network = networkStatusList
 
-	if addresses, ok, _ := unstructured.NestedStringSlice(vm.Object, "status", "addresses"); ok {
-		var machineAddresses []clusterv1.MachineAddress
-		for _, addr := range addresses {
-			machineAddresses = append(machineAddresses, clusterv1.MachineAddress{
-				Type:    clusterv1.MachineExternalIP,
-				Address: addr,
-			})
-		}
-		vimMachineCtx.VSphereMachine.Status.Addresses = machineAddresses
+	addresses := vm.Status.Addresses
+	machineAddresses := make([]clusterv1.MachineAddress, 0, len(addresses))
+	for _, addr := range addresses {
+		machineAddresses = append(machineAddresses, clusterv1.MachineAddress{
+			Type:    clusterv1.MachineExternalIP,
+			Address: addr,
+		})
 	}
+	vimMachineCtx.VSphereMachine.Status.Addresses = machineAddresses
 
 	if len(vimMachineCtx.VSphereMachine.Status.Addresses) == 0 {
 		vimMachineCtx.Logger.Info("waiting on IP addresses")
@@ -329,7 +267,7 @@ func (v *VimMachineService) reconcileNetwork(vimMachineCtx *capvcontext.VIMMachi
 	return true, nil
 }
 
-func (v *VimMachineService) createOrPatchVSphereVM(vimMachineCtx *capvcontext.VIMMachineContext, vsphereVM *infrav1.VSphereVM) (runtime.Object, error) {
+func (v *VimMachineService) createOrPatchVSphereVM(vimMachineCtx *capvcontext.VIMMachineContext, vsphereVM *infrav1.VSphereVM) (*infrav1.VSphereVM, error) {
 	// Create or update the VSphereVM resource.
 	vm := &infrav1.VSphereVM{
 		ObjectMeta: metav1.ObjectMeta{

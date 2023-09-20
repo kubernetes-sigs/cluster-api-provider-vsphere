@@ -18,6 +18,7 @@ package metadata
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"testing"
 
@@ -27,7 +28,7 @@ import (
 	"github.com/pkg/errors"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers/vcsim"
@@ -46,9 +47,9 @@ const (
 )
 
 var (
-	sim *vcsim.Simulator
-	ctx *context.VMContext
-
+	sim                *vcsim.Simulator
+	vmCtx              *capvcontext.VMContext
+	ctx                = context.Background()
 	existingCategoryID string
 )
 
@@ -69,11 +70,11 @@ var _ = Describe("Metadata_CreateCategory", func() {
 
 	Context("we attempt to create a new category", func() {
 		It("creates a matching category in the context's TagManager", func() {
-			catID, err := CreateCategory(ctx, testCategory, testCategoryAssocType)
+			catID, err := CreateCategory(ctx, vmCtx, testCategory, testCategoryAssocType)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(catID).NotTo(BeEmpty())
 
-			cat, err := ctx.GetSession().TagManager.GetCategory(ctx, catID)
+			cat, err := vmCtx.GetSession().TagManager.GetCategory(ctx, catID)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cat.Name).To(Equal(testCategory))
 			Expect(cat.AssociableTypes).To(ConsistOf(categoryAssociableTypes()[testCategoryAssocType]))
@@ -86,11 +87,11 @@ var _ = Describe("Metadata_CreateCategory", func() {
 				Fail("category required to run this test has not been setup in the VCSim!")
 			}
 
-			catID, err := CreateCategory(ctx, existingCategory, existingCategoryNewAssocType)
+			catID, err := CreateCategory(ctx, vmCtx, existingCategory, existingCategoryNewAssocType)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(catID).To(Equal(existingCategoryID))
 
-			cat, err := ctx.GetSession().TagManager.GetCategory(ctx, catID)
+			cat, err := vmCtx.GetSession().TagManager.GetCategory(ctx, catID)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cat.Name).To(Equal(existingCategory))
 			Expect(cat.AssociableTypes).To(ConsistOf(
@@ -115,9 +116,9 @@ var _ = Describe("Metadata_CreateTag", func() {
 
 	Context("we attempt to create a new tag", func() {
 		It("creates a tag in the context's TagManager", func() {
-			Expect(CreateTag(ctx, testTag, existingCategoryID)).To(Succeed())
+			Expect(CreateTag(ctx, vmCtx, testTag, existingCategoryID)).To(Succeed())
 
-			tag, err := ctx.GetSession().TagManager.GetTag(ctx, testTag)
+			tag, err := vmCtx.GetSession().TagManager.GetTag(ctx, testTag)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(tag.CategoryID).To(Equal(existingCategoryID))
 		})
@@ -125,9 +126,9 @@ var _ = Describe("Metadata_CreateTag", func() {
 
 	Context("we attempt to create a tag which already exists but for a different category ID", func() {
 		It("does not return an error and does not modify the existing tag", func() {
-			Expect(CreateTag(ctx, existingTag, mockCategoryID)).To(Succeed())
+			Expect(CreateTag(ctx, vmCtx, existingTag, mockCategoryID)).To(Succeed())
 
-			tag, err := ctx.GetSession().TagManager.GetTag(ctx, existingTag)
+			tag, err := vmCtx.GetSession().TagManager.GetTag(ctx, existingTag)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(tag.CategoryID).To(Equal(existingCategoryID), "the tag's category ID must not change")
 		})
@@ -140,17 +141,17 @@ func configureSimulatorAndContext() (err error) {
 		return
 	}
 
-	ctx = fake.NewVMContext(fake.NewControllerContext(fake.NewControllerManagerContext()))
-	ctx.VSphereVM.Spec.Server = sim.ServerURL().Host
+	vmCtx = fake.NewVMContext(fake.NewControllerContext(fake.NewControllerManagerContext()))
+	vmCtx.VSphereVM.Spec.Server = sim.ServerURL().Host
 
 	authSession, err := session.GetOrCreate(
-		ctx.Context,
+		ctx,
 		session.NewParams().
-			WithServer(ctx.VSphereVM.Spec.Server).
+			WithServer(vmCtx.VSphereVM.Spec.Server).
 			WithUserInfo(sim.Username(), sim.Password()).
 			WithDatacenter("*"))
 
-	ctx.Session = authSession
+	vmCtx.Session = authSession
 
 	return
 }

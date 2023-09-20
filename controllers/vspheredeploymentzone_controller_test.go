@@ -43,7 +43,6 @@ import (
 var _ = Describe("VSphereDeploymentZoneReconciler", func() {
 	var (
 		simr *vcsim.Simulator
-		ctx  context.Context
 
 		failureDomainKey, deploymentZoneKey client.ObjectKey
 
@@ -74,7 +73,6 @@ var _ = Describe("VSphereDeploymentZoneReconciler", func() {
 			Expect(simr.Run(op, gbytes.NewBuffer(), gbytes.NewBuffer())).To(Succeed())
 		}
 
-		ctx = context.Background()
 	})
 
 	BeforeEach(func() {
@@ -578,7 +576,7 @@ func TestVsphereDeploymentZone_Failed_ReconcilePlacementConstraint(t *testing.T)
 			}
 
 			reconciler := vsphereDeploymentZoneReconciler{controllerCtx}
-			err = reconciler.reconcileNormal(deploymentZoneCtx)
+			err = reconciler.reconcileNormal(ctx, deploymentZoneCtx)
 			g.Expect(err).To(HaveOccurred())
 		})
 	}
@@ -624,7 +622,7 @@ func TestVSphereDeploymentZoneReconciler_ReconcileDelete(t *testing.T) {
 
 			g := NewWithT(t)
 			reconciler := vsphereDeploymentZoneReconciler{controllerCtx}
-			err := reconciler.reconcileDelete(deploymentZoneCtx)
+			err := reconciler.reconcileDelete(ctx, deploymentZoneCtx)
 			g.Expect(err).To(HaveOccurred())
 			g.Expect(err.Error()).To(MatchRegexp(".*[is currently in use]{1}.*"))
 			g.Expect(vsphereDeploymentZone.Finalizers).To(HaveLen(1))
@@ -646,7 +644,7 @@ func TestVSphereDeploymentZoneReconciler_ReconcileDelete(t *testing.T) {
 
 			g := NewWithT(t)
 			reconciler := vsphereDeploymentZoneReconciler{controllerCtx}
-			err := reconciler.reconcileDelete(deploymentZoneCtx)
+			err := reconciler.reconcileDelete(ctx, deploymentZoneCtx)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(vsphereDeploymentZone.Finalizers).To(BeEmpty())
 		})
@@ -665,7 +663,7 @@ func TestVSphereDeploymentZoneReconciler_ReconcileDelete(t *testing.T) {
 
 		g := NewWithT(t)
 		reconciler := vsphereDeploymentZoneReconciler{controllerCtx}
-		err := reconciler.reconcileDelete(deploymentZoneCtx)
+		err := reconciler.reconcileDelete(ctx, deploymentZoneCtx)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(vsphereDeploymentZone.Finalizers).To(BeEmpty())
 	})
@@ -682,7 +680,7 @@ func TestVSphereDeploymentZoneReconciler_ReconcileDelete(t *testing.T) {
 
 		g := NewWithT(t)
 		reconciler := vsphereDeploymentZoneReconciler{controllerCtx}
-		err := reconciler.reconcileDelete(deploymentZoneCtx)
+		err := reconciler.reconcileDelete(ctx, deploymentZoneCtx)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(vsphereDeploymentZone.Finalizers).To(BeEmpty())
 	})
@@ -706,7 +704,7 @@ func TestVSphereDeploymentZoneReconciler_ReconcileDelete(t *testing.T) {
 
 			g := NewWithT(t)
 			reconciler := vsphereDeploymentZoneReconciler{controllerCtx}
-			err := reconciler.reconcileDelete(deploymentZoneCtx)
+			err := reconciler.reconcileDelete(ctx, deploymentZoneCtx)
 			g.Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -728,7 +726,7 @@ func TestVSphereDeploymentZoneReconciler_ReconcileDelete(t *testing.T) {
 
 			g := NewWithT(t)
 			reconciler := vsphereDeploymentZoneReconciler{controllerCtx}
-			err := reconciler.reconcileDelete(deploymentZoneCtx)
+			err := reconciler.reconcileDelete(ctx, deploymentZoneCtx)
 			g.Expect(err).NotTo(HaveOccurred())
 
 			fetchedFailureDomain := &infrav1.VSphereFailureDomain{}

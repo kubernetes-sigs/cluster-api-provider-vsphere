@@ -35,20 +35,20 @@ import (
 type VSphereMachineService interface {
 	FetchVSphereMachine(client client.Client, name types.NamespacedName) (capvcontext.MachineContext, error)
 	FetchVSphereCluster(client client.Client, cluster *clusterv1.Cluster, machineContext capvcontext.MachineContext) (capvcontext.MachineContext, error)
-	ReconcileDelete(ctx capvcontext.MachineContext) error
-	SyncFailureReason(ctx capvcontext.MachineContext) (bool, error)
-	ReconcileNormal(ctx capvcontext.MachineContext) (bool, error)
-	GetHostInfo(ctx capvcontext.MachineContext) (string, error)
+	ReconcileDelete(machineCtx capvcontext.MachineContext) error
+	SyncFailureReason(machineCtx capvcontext.MachineContext) (bool, error)
+	ReconcileNormal(machineCtx capvcontext.MachineContext) (bool, error)
+	GetHostInfo(machineCtx capvcontext.MachineContext) (string, error)
 }
 
 // VirtualMachineService is a service for creating/updating/deleting virtual
 // machines on vSphere.
 type VirtualMachineService interface {
 	// ReconcileVM reconciles a VM with the intended state.
-	ReconcileVM(ctx *capvcontext.VMContext) (infrav1.VirtualMachine, error)
+	ReconcileVM(vmCtx *capvcontext.VMContext) (infrav1.VirtualMachine, error)
 
 	// DestroyVM powers off and removes a VM from the inventory.
-	DestroyVM(ctx *capvcontext.VMContext) (reconcile.Result, infrav1.VirtualMachine, error)
+	DestroyVM(vmCtx *capvcontext.VMContext) (reconcile.Result, infrav1.VirtualMachine, error)
 }
 
 // ControlPlaneEndpointService is a service for reconciling load balanced control plane endpoints.

@@ -27,13 +27,12 @@ import (
 )
 
 type taggableContext interface {
-	context.Context
 	GetSession() *session.Session
 	GetVsphereFailureDomain() infrav1.VSphereFailureDomain
 }
 
-func GetObjects(ctx taggableContext, fdType infrav1.FailureDomainType) (Objects, error) {
-	finderFunc := find.ObjectFunc(fdType, ctx.GetVsphereFailureDomain().Spec.Topology, ctx.GetSession().Finder)
+func GetObjects(ctx context.Context, taggableCtx taggableContext, fdType infrav1.FailureDomainType) (Objects, error) {
+	finderFunc := find.ObjectFunc(fdType, taggableCtx.GetVsphereFailureDomain().Spec.Topology, taggableCtx.GetSession().Finder)
 	objRefs, err := finderFunc(ctx)
 	if err != nil {
 		return nil, err
@@ -45,7 +44,7 @@ func GetObjects(ctx taggableContext, fdType infrav1.FailureDomainType) (Objects,
 	objects := make(Objects, len(objRefs))
 	for i, ref := range objRefs {
 		objects[i] = managedObject{
-			tagManager: ctx.GetSession().TagManager,
+			tagManager: taggableCtx.GetSession().TagManager,
 			ref:        ref,
 		}
 	}

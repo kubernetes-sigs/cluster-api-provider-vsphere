@@ -51,7 +51,7 @@ func TestVerifyAffinityRule(t *testing.T) {
 		finder:  finder,
 	}
 
-	rule, err := VerifyAffinityRule(computeClusterCtx, "DC0_C0", "blah-host-group", "blah-vm-group")
+	rule, err := VerifyAffinityRule(ctx, computeClusterCtx, "DC0_C0", "blah-host-group", "blah-vm-group")
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(rule.IsMandatory()).To(BeTrue())
 	g.Expect(rule.Disabled()).To(BeFalse())

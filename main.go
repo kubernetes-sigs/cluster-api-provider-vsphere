@@ -367,7 +367,7 @@ func setupVAPIControllers(ctx context.Context, controllerCtx *capvcontext.Contro
 		return err
 	}
 
-	return controllers.AddVSphereDeploymentZoneControllerToManager(controllerCtx, mgr, concurrency(vSphereDeploymentZoneConcurrency))
+	return controllers.AddVSphereDeploymentZoneControllerToManager(ctx, controllerCtx, mgr, concurrency(vSphereDeploymentZoneConcurrency))
 }
 
 func setupSupervisorControllers(ctx context.Context, controllerCtx *capvcontext.ControllerManagerContext, mgr ctrlmgr.Manager, tracker *remote.ClusterCacheTracker) error {

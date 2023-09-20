@@ -57,24 +57,24 @@ import (
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=vspherefailuredomains,verbs=get;list;watch;create;update;patch;delete
 
 // AddVSphereDeploymentZoneControllerToManager adds the VSphereDeploymentZone controller to the provided manager.
-func AddVSphereDeploymentZoneControllerToManager(controllerCtx *capvcontext.ControllerManagerContext, mgr manager.Manager, options controller.Options) error {
+func AddVSphereDeploymentZoneControllerToManager(ctx context.Context, controllerManagerCtx *capvcontext.ControllerManagerContext, mgr manager.Manager, options controller.Options) error {
 	var (
 		controlledType     = &infrav1.VSphereDeploymentZone{}
 		controlledTypeName = reflect.TypeOf(controlledType).Elem().Name()
 		controlledTypeGVK  = infrav1.GroupVersion.WithKind(controlledTypeName)
 
 		controllerNameShort = fmt.Sprintf("%s-controller", strings.ToLower(controlledTypeName))
-		controllerNameLong  = fmt.Sprintf("%s/%s/%s", controllerCtx.Namespace, controllerCtx.Name, controllerNameShort)
+		controllerNameLong  = fmt.Sprintf("%s/%s/%s", controllerManagerCtx.Namespace, controllerManagerCtx.Name, controllerNameShort)
 	)
 
 	// Build the controller context.
-	controllerContext := &capvcontext.ControllerContext{
-		ControllerManagerContext: controllerCtx,
+	controllerCtx := &capvcontext.ControllerContext{
+		ControllerManagerContext: controllerManagerCtx,
 		Name:                     controllerNameShort,
 		Recorder:                 record.New(mgr.GetEventRecorderFor(controllerNameLong)),
-		Logger:                   controllerCtx.Logger.WithName(controllerNameShort),
+		Logger:                   controllerManagerCtx.Logger.WithName(controllerNameShort),
 	}
-	reconciler := vsphereDeploymentZoneReconciler{ControllerContext: controllerContext}
+	reconciler := vsphereDeploymentZoneReconciler{ControllerContext: controllerCtx}
 
 	return ctrl.NewControllerManagedBy(mgr).
 		// Watch the controlled, infrastructure resource.
@@ -88,10 +88,10 @@ func AddVSphereDeploymentZoneControllerToManager(controllerCtx *capvcontext.Cont
 		// should cause a resource to be synchronized, such as a goroutine
 		// waiting on some asynchronous, external task to complete.
 		WatchesRawSource(
-			&source.Channel{Source: controllerCtx.GetGenericEventChannelFor(controlledTypeGVK)},
+			&source.Channel{Source: controllerManagerCtx.GetGenericEventChannelFor(controlledTypeGVK)},
 			&handler.EnqueueRequestForObject{},
 		).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(controllerCtx), controllerCtx.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), controllerManagerCtx.WatchFilterValue)).
 		Complete(reconciler)
 }
 
@@ -100,14 +100,13 @@ type vsphereDeploymentZoneReconciler struct {
 }
 
 func (r vsphereDeploymentZoneReconciler) Reconcile(ctx context.Context, request reconcile.Request) (_ reconcile.Result, reterr error) {
-	// Note: Just adding VSphereDeploymentZone here explicitly as this reconciler was not refactored
-	// to use the logger from ctx yet. Once we do that, controller-runtime adds VSphereDeploymentZone for us.
-	logr := r.Logger.WithValues("VSphereDeploymentZone", klog.KRef(request.Namespace, request.Name))
+	log := ctrl.LoggerFrom(ctx)
+
 	// Fetch the VSphereDeploymentZone for this request.
 	vsphereDeploymentZone := &infrav1.VSphereDeploymentZone{}
 	if err := r.Client.Get(ctx, request.NamespacedName, vsphereDeploymentZone); err != nil {
 		if apierrors.IsNotFound(err) {
-			logr.V(4).Info("VSphereDeploymentZone not found, won't reconcile", "key", request.NamespacedName)
+			log.V(4).Info("VSphereDeploymentZone not found, won't reconcile", "key", request.NamespacedName)
 			return reconcile.Result{}, nil
 		}
 		return reconcile.Result{}, err
@@ -117,7 +116,7 @@ func (r vsphereDeploymentZoneReconciler) Reconcile(ctx context.Context, request 
 	failureDomainKey := client.ObjectKey{Name: vsphereDeploymentZone.Spec.FailureDomain}
 	if err := r.Client.Get(ctx, failureDomainKey, failureDomain); err != nil {
 		if apierrors.IsNotFound(err) {
-			logr.V(4).Info("Failure Domain not found, won't reconcile", "key", failureDomainKey)
+			log.V(4).Info("Failure Domain not found, won't reconcile", "key", failureDomainKey)
 			return reconcile.Result{}, nil
 		}
 		return reconcile.Result{}, err
@@ -137,7 +136,7 @@ func (r vsphereDeploymentZoneReconciler) Reconcile(ctx context.Context, request 
 		ControllerContext:     r.ControllerContext,
 		VSphereDeploymentZone: vsphereDeploymentZone,
 		VSphereFailureDomain:  failureDomain,
-		Logger:                logr,
+		Logger:                log,
 		PatchHelper:           patchHelper,
 	}
 	defer func() {
@@ -147,7 +146,7 @@ func (r vsphereDeploymentZoneReconciler) Reconcile(ctx context.Context, request 
 	}()
 
 	if !vsphereDeploymentZone.DeletionTimestamp.IsZero() {
-		return ctrl.Result{}, r.reconcileDelete(vsphereDeploymentZoneContext)
+		return ctrl.Result{}, r.reconcileDelete(ctx, vsphereDeploymentZoneContext)
 	}
 
 	// If the VSphereDeploymentZone doesn't have our finalizer, add it.
@@ -157,11 +156,11 @@ func (r vsphereDeploymentZoneReconciler) Reconcile(ctx context.Context, request 
 		return ctrl.Result{}, nil
 	}
 
-	return ctrl.Result{}, r.reconcileNormal(vsphereDeploymentZoneContext)
+	return ctrl.Result{}, r.reconcileNormal(ctx, vsphereDeploymentZoneContext)
 }
 
-func (r vsphereDeploymentZoneReconciler) reconcileNormal(deploymentZoneCtx *capvcontext.VSphereDeploymentZoneContext) error {
-	authSession, err := r.getVCenterSession(deploymentZoneCtx)
+func (r vsphereDeploymentZoneReconciler) reconcileNormal(ctx context.Context, deploymentZoneCtx *capvcontext.VSphereDeploymentZoneContext) error {
+	authSession, err := r.getVCenterSession(ctx, deploymentZoneCtx)
 	if err != nil {
 		deploymentZoneCtx.Logger.V(4).Error(err, "unable to create session")
 		conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VCenterAvailableCondition, infrav1.VCenterUnreachableReason, clusterv1.ConditionSeverityError, err.Error())
@@ -171,14 +170,14 @@ func (r vsphereDeploymentZoneReconciler) reconcileNormal(deploymentZoneCtx *capv
 	deploymentZoneCtx.AuthSession = authSession
 	conditions.MarkTrue(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VCenterAvailableCondition)
 
-	if err := r.reconcilePlacementConstraint(deploymentZoneCtx); err != nil {
+	if err := r.reconcilePlacementConstraint(ctx, deploymentZoneCtx); err != nil {
 		deploymentZoneCtx.VSphereDeploymentZone.Status.Ready = pointer.Bool(false)
 		return errors.Wrap(err, "placement constraint is misconfigured")
 	}
 	conditions.MarkTrue(deploymentZoneCtx.VSphereDeploymentZone, infrav1.PlacementConstraintMetCondition)
 
 	// reconcile the failure domain
-	if err := r.reconcileFailureDomain(deploymentZoneCtx); err != nil {
+	if err := r.reconcileFailureDomain(ctx, deploymentZoneCtx); err != nil {
 		deploymentZoneCtx.Logger.V(4).Error(err, "failed to reconcile failure domain", "failureDomain", deploymentZoneCtx.VSphereDeploymentZone.Spec.FailureDomain)
 		deploymentZoneCtx.VSphereDeploymentZone.Status.Ready = pointer.Bool(false)
 		return errors.Wrapf(err, "failed to reconcile failure domain")
@@ -189,11 +188,11 @@ func (r vsphereDeploymentZoneReconciler) reconcileNormal(deploymentZoneCtx *capv
 	return nil
 }
 
-func (r vsphereDeploymentZoneReconciler) reconcilePlacementConstraint(deploymentZoneCtx *capvcontext.VSphereDeploymentZoneContext) error {
+func (r vsphereDeploymentZoneReconciler) reconcilePlacementConstraint(ctx context.Context, deploymentZoneCtx *capvcontext.VSphereDeploymentZoneContext) error {
 	placementConstraint := deploymentZoneCtx.VSphereDeploymentZone.Spec.PlacementConstraint
 
 	if resourcePool := placementConstraint.ResourcePool; resourcePool != "" {
-		if _, err := deploymentZoneCtx.AuthSession.Finder.ResourcePool(deploymentZoneCtx, resourcePool); err != nil {
+		if _, err := deploymentZoneCtx.AuthSession.Finder.ResourcePool(ctx, resourcePool); err != nil {
 			deploymentZoneCtx.Logger.V(4).Error(err, "unable to find resource pool", "name", resourcePool)
 			conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.PlacementConstraintMetCondition, infrav1.ResourcePoolNotFoundReason, clusterv1.ConditionSeverityError, "resource pool %s is misconfigured", resourcePool)
 			return errors.Wrapf(err, "unable to find resource pool %s", resourcePool)
@@ -201,7 +200,7 @@ func (r vsphereDeploymentZoneReconciler) reconcilePlacementConstraint(deployment
 	}
 
 	if folder := placementConstraint.Folder; folder != "" {
-		if _, err := deploymentZoneCtx.AuthSession.Finder.Folder(deploymentZoneCtx, placementConstraint.Folder); err != nil {
+		if _, err := deploymentZoneCtx.AuthSession.Finder.Folder(ctx, placementConstraint.Folder); err != nil {
 			deploymentZoneCtx.Logger.V(4).Error(err, "unable to find folder", "name", folder)
 			conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.PlacementConstraintMetCondition, infrav1.FolderNotFoundReason, clusterv1.ConditionSeverityError, "datastore %s is misconfigured", folder)
 			return errors.Wrapf(err, "unable to find folder %s", folder)
@@ -210,7 +209,7 @@ func (r vsphereDeploymentZoneReconciler) reconcilePlacementConstraint(deployment
 	return nil
 }
 
-func (r vsphereDeploymentZoneReconciler) getVCenterSession(deploymentZoneCtx *capvcontext.VSphereDeploymentZoneContext) (*session.Session, error) {
+func (r vsphereDeploymentZoneReconciler) getVCenterSession(ctx context.Context, deploymentZoneCtx *capvcontext.VSphereDeploymentZoneContext) (*session.Session, error) {
 	params := session.NewParams().
 		WithServer(deploymentZoneCtx.VSphereDeploymentZone.Spec.Server).
 		WithDatacenter(deploymentZoneCtx.VSphereFailureDomain.Spec.Topology.Datacenter).
@@ -221,7 +220,7 @@ func (r vsphereDeploymentZoneReconciler) getVCenterSession(deploymentZoneCtx *ca
 		})
 
 	clusterList := &infrav1.VSphereClusterList{}
-	if err := r.Client.List(deploymentZoneCtx, clusterList); err != nil {
+	if err := r.Client.List(ctx, clusterList); err != nil {
 		return nil, err
 	}
 
@@ -232,7 +231,7 @@ func (r vsphereDeploymentZoneReconciler) getVCenterSession(deploymentZoneCtx *ca
 		logger := deploymentZoneCtx.Logger.WithValues("VSphereCluster", klog.KRef(vsphereCluster.Namespace, vsphereCluster.Name))
 		params = params.WithThumbprint(vsphereCluster.Spec.Thumbprint)
 		clust := vsphereCluster
-		creds, err := identity.GetCredentials(deploymentZoneCtx, r.Client, &clust, r.Namespace)
+		creds, err := identity.GetCredentials(ctx, r.Client, &clust, r.Namespace)
 		if err != nil {
 			logger.Error(err, "error retrieving credentials from IdentityRef")
 			continue
@@ -244,15 +243,15 @@ func (r vsphereDeploymentZoneReconciler) getVCenterSession(deploymentZoneCtx *ca
 	}
 
 	// Fallback to using credentials provided to the manager
-	return session.GetOrCreate(r.Context,
+	return session.GetOrCreate(ctx,
 		params)
 }
 
-func (r vsphereDeploymentZoneReconciler) reconcileDelete(deploymentZoneCtx *capvcontext.VSphereDeploymentZoneContext) error {
+func (r vsphereDeploymentZoneReconciler) reconcileDelete(ctx context.Context, deploymentZoneCtx *capvcontext.VSphereDeploymentZoneContext) error {
 	r.Logger.Info("Deleting VSphereDeploymentZone")
 
 	machines := &clusterv1.MachineList{}
-	if err := r.Client.List(deploymentZoneCtx, machines); err != nil {
+	if err := r.Client.List(ctx, machines); err != nil {
 		r.Logger.Error(err, "unable to list machines")
 		return errors.Wrapf(err, "unable to list machines")
 	}
@@ -270,7 +269,7 @@ func (r vsphereDeploymentZoneReconciler) reconcileDelete(deploymentZoneCtx *capv
 		return err
 	}
 
-	if err := updateOwnerReferences(deploymentZoneCtx, deploymentZoneCtx.VSphereFailureDomain, r.Client, func() []metav1.OwnerReference {
+	if err := updateOwnerReferences(ctx, deploymentZoneCtx.VSphereFailureDomain, r.Client, func() []metav1.OwnerReference {
 		return clusterutilv1.RemoveOwnerRef(deploymentZoneCtx.VSphereFailureDomain.OwnerReferences, metav1.OwnerReference{
 			APIVersion: infrav1.GroupVersion.String(),
 			Kind:       deploymentZoneCtx.VSphereDeploymentZone.Kind,
@@ -282,7 +281,7 @@ func (r vsphereDeploymentZoneReconciler) reconcileDelete(deploymentZoneCtx *capv
 
 	if len(deploymentZoneCtx.VSphereFailureDomain.OwnerReferences) == 0 {
 		deploymentZoneCtx.Logger.Info("deleting vsphereFailureDomain", "name", deploymentZoneCtx.VSphereFailureDomain.Name)
-		if err := r.Client.Delete(deploymentZoneCtx, deploymentZoneCtx.VSphereFailureDomain); err != nil && !apierrors.IsNotFound(err) {
+		if err := r.Client.Delete(ctx, deploymentZoneCtx.VSphereFailureDomain); err != nil && !apierrors.IsNotFound(err) {
 			deploymentZoneCtx.Logger.Error(err, "failed to delete related %s %s", deploymentZoneCtx.VSphereFailureDomain.GroupVersionKind(), deploymentZoneCtx.VSphereFailureDomain.Name)
 		}
 	}

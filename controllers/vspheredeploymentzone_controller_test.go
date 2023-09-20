@@ -495,12 +495,11 @@ func TestVSphereDeploymentZone_Reconcile(t *testing.T) {
 
 		g.Consistently(func(g Gomega) bool {
 			g.Expect(testEnv.Get(ctx, client.ObjectKeyFromObject(vsphereDeploymentZone), vsphereDeploymentZone)).To(Succeed())
-
 			return vsphereDeploymentZone.Status.Ready != nil && !*vsphereDeploymentZone.Status.Ready
 		}, timeout).Should(BeFalse())
 	})
 
-	t.Run("it should delete the VSphereDeploymentZone when the associated VSphereFailureDomain does not exist", func(t *testing.T) {
+	t.Run("Delete the VSphereDeploymentZone when the associated VSphereFailureDomain does not exist", func(t *testing.T) {
 		g := NewWithT(t)
 
 		vsphereDeploymentZone := &infrav1.VSphereDeploymentZone{
@@ -618,6 +617,17 @@ func TestVsphereDeploymentZone_Failed_ReconcilePlacementConstraint(t *testing.T)
 			mgmtContext.Password = pass
 
 			controllerCtx := fake.NewControllerContext(mgmtContext)
+			Expect(controllerCtx.Client.Create(controllerCtx, &infrav1.VSphereFailureDomain{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "blah",
+				},
+				Spec: infrav1.VSphereFailureDomainSpec{
+					Topology: infrav1.Topology{
+						Datacenter:     "DC0",
+						ComputeCluster: pointer.String("DC0_C0"),
+					},
+				},
+			})).To(Succeed())
 
 			deploymentZoneCtx := &capvcontext.VSphereDeploymentZoneContext{
 				ControllerContext: controllerCtx,
@@ -627,17 +637,6 @@ func TestVsphereDeploymentZone_Failed_ReconcilePlacementConstraint(t *testing.T)
 					ControlPlane:        pointer.Bool(true),
 					PlacementConstraint: tt.placementConstraint,
 				}},
-				VSphereFailureDomain: &infrav1.VSphereFailureDomain{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "blah",
-					},
-					Spec: infrav1.VSphereFailureDomainSpec{
-						Topology: infrav1.Topology{
-							Datacenter:     "DC0",
-							ComputeCluster: pointer.String("DC0_C0"),
-						},
-					},
-				},
 				Logger: logr.Discard(),
 			}
 
@@ -685,7 +684,6 @@ func TestVSphereDeploymentZoneReconciler_ReconcileDelete(t *testing.T) {
 			deploymentZoneCtx := &capvcontext.VSphereDeploymentZoneContext{
 				ControllerContext:     controllerCtx,
 				VSphereDeploymentZone: vsphereDeploymentZone,
-				VSphereFailureDomain:  vsphereFailureDomain,
 				Logger:                logr.Discard(),
 			}
 
@@ -707,7 +705,6 @@ func TestVSphereDeploymentZoneReconciler_ReconcileDelete(t *testing.T) {
 			deploymentZoneCtx := &capvcontext.VSphereDeploymentZoneContext{
 				ControllerContext:     controllerCtx,
 				VSphereDeploymentZone: vsphereDeploymentZone,
-				VSphereFailureDomain:  vsphereFailureDomain,
 				Logger:                logr.Discard(),
 			}
 
@@ -726,7 +723,6 @@ func TestVSphereDeploymentZoneReconciler_ReconcileDelete(t *testing.T) {
 		deploymentZoneCtx := &capvcontext.VSphereDeploymentZoneContext{
 			ControllerContext:     controllerCtx,
 			VSphereDeploymentZone: vsphereDeploymentZone,
-			VSphereFailureDomain:  vsphereFailureDomain,
 			Logger:                logr.Discard(),
 		}
 
@@ -743,7 +739,6 @@ func TestVSphereDeploymentZoneReconciler_ReconcileDelete(t *testing.T) {
 		deploymentZoneCtx := &capvcontext.VSphereDeploymentZoneContext{
 			ControllerContext:     controllerCtx,
 			VSphereDeploymentZone: vsphereDeploymentZone,
-			VSphereFailureDomain:  vsphereFailureDomain,
 			Logger:                logr.Discard(),
 		}
 
@@ -767,7 +762,6 @@ func TestVSphereDeploymentZoneReconciler_ReconcileDelete(t *testing.T) {
 			deploymentZoneCtx := &capvcontext.VSphereDeploymentZoneContext{
 				ControllerContext:     controllerCtx,
 				VSphereDeploymentZone: vsphereDeploymentZone,
-				VSphereFailureDomain:  vsphereFailureDomain,
 				Logger:                logr.Discard(),
 			}
 

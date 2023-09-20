@@ -35,40 +35,40 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/taggable"
 )
 
-func (r vsphereDeploymentZoneReconciler) reconcileFailureDomain(ctx context.Context, deploymentZoneCtx *capvcontext.VSphereDeploymentZoneContext) error {
-	logger := ctrl.LoggerFrom(ctx).WithValues("VSphereFailureDomain", klog.KObj(deploymentZoneCtx.VSphereFailureDomain))
+func (r vsphereDeploymentZoneReconciler) reconcileFailureDomain(ctx context.Context, deploymentZoneCtx *capvcontext.VSphereDeploymentZoneContext, vsphereFailureDomain *infrav1.VSphereFailureDomain) error {
+	logger := ctrl.LoggerFrom(ctx).WithValues("VSphereFailureDomain", klog.KObj(vsphereFailureDomain))
 
 	// verify the failure domain for the region
-	if err := r.reconcileInfraFailureDomain(ctx, deploymentZoneCtx, deploymentZoneCtx.VSphereFailureDomain.Spec.Region); err != nil {
+	if err := r.reconcileInfraFailureDomain(ctx, deploymentZoneCtx, vsphereFailureDomain, vsphereFailureDomain.Spec.Region); err != nil {
 		conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition, infrav1.RegionMisconfiguredReason, clusterv1.ConditionSeverityError, err.Error())
 		logger.Error(err, "region is not configured correctly")
 		return errors.Wrapf(err, "region is not configured correctly")
 	}
 
 	// verify the failure domain for the zone
-	if err := r.reconcileInfraFailureDomain(ctx, deploymentZoneCtx, deploymentZoneCtx.VSphereFailureDomain.Spec.Zone); err != nil {
+	if err := r.reconcileInfraFailureDomain(ctx, deploymentZoneCtx, vsphereFailureDomain, vsphereFailureDomain.Spec.Zone); err != nil {
 		conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition, infrav1.ZoneMisconfiguredReason, clusterv1.ConditionSeverityError, err.Error())
 		logger.Error(err, "zone is not configured correctly")
 		return errors.Wrapf(err, "zone is not configured correctly")
 	}
 
-	if computeCluster := deploymentZoneCtx.VSphereFailureDomain.Spec.Topology.ComputeCluster; computeCluster != nil {
-		if err := r.reconcileComputeCluster(ctx, deploymentZoneCtx); err != nil {
+	if computeCluster := vsphereFailureDomain.Spec.Topology.ComputeCluster; computeCluster != nil {
+		if err := r.reconcileComputeCluster(ctx, deploymentZoneCtx, vsphereFailureDomain); err != nil {
 			logger.Error(err, "compute cluster is not configured correctly", "name", *computeCluster)
 			return errors.Wrap(err, "compute cluster is not configured correctly")
 		}
 	}
 
-	if err := r.reconcileTopology(ctx, deploymentZoneCtx); err != nil {
+	if err := r.reconcileTopology(ctx, deploymentZoneCtx, vsphereFailureDomain); err != nil {
 		logger.Error(err, "topology is not configured correctly")
 		return errors.Wrap(err, "topology is not configured correctly")
 	}
 
 	// Ensure the VSphereDeploymentZone is marked as an owner of the VSphereFailureDomain.
-	if err := updateOwnerReferences(ctx, deploymentZoneCtx.VSphereFailureDomain, r.Client,
+	if err := updateOwnerReferences(ctx, vsphereFailureDomain, r.Client,
 		func() []metav1.OwnerReference {
 			return clusterutilv1.EnsureOwnerRef(
-				deploymentZoneCtx.VSphereFailureDomain.OwnerReferences,
+				vsphereFailureDomain.OwnerReferences,
 				metav1.OwnerReference{
 					APIVersion: infrav1.GroupVersion.String(),
 					Kind:       deploymentZoneCtx.VSphereDeploymentZone.Kind,
@@ -84,15 +84,15 @@ func (r vsphereDeploymentZoneReconciler) reconcileFailureDomain(ctx context.Cont
 	return nil
 }
 
-func (r vsphereDeploymentZoneReconciler) reconcileInfraFailureDomain(ctx context.Context, deploymentZoneCtx *capvcontext.VSphereDeploymentZoneContext, failureDomain infrav1.FailureDomain) error {
+func (r vsphereDeploymentZoneReconciler) reconcileInfraFailureDomain(ctx context.Context, deploymentZoneCtx *capvcontext.VSphereDeploymentZoneContext, vsphereFailureDomain *infrav1.VSphereFailureDomain, failureDomain infrav1.FailureDomain) error {
 	if *failureDomain.AutoConfigure { //nolint:staticcheck
-		return r.createAndAttachMetadata(ctx, deploymentZoneCtx, failureDomain)
+		return r.createAndAttachMetadata(ctx, deploymentZoneCtx, vsphereFailureDomain, failureDomain)
 	}
-	return r.verifyFailureDomain(ctx, deploymentZoneCtx, failureDomain)
+	return r.verifyFailureDomain(ctx, deploymentZoneCtx, vsphereFailureDomain, failureDomain)
 }
 
-func (r vsphereDeploymentZoneReconciler) reconcileTopology(ctx context.Context, deploymentZoneCtx *capvcontext.VSphereDeploymentZoneContext) error {
-	topology := deploymentZoneCtx.VSphereFailureDomain.Spec.Topology
+func (r vsphereDeploymentZoneReconciler) reconcileTopology(ctx context.Context, deploymentZoneCtx *capvcontext.VSphereDeploymentZoneContext, vsphereFailureDomain *infrav1.VSphereFailureDomain) error {
+	topology := vsphereFailureDomain.Spec.Topology
 	if datastore := topology.Datastore; datastore != "" {
 		if _, err := deploymentZoneCtx.AuthSession.Finder.Datastore(ctx, datastore); err != nil {
 			conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition, infrav1.DatastoreNotFoundReason, clusterv1.ConditionSeverityError, "datastore %s is misconfigured", datastore)
@@ -123,8 +123,8 @@ func (r vsphereDeploymentZoneReconciler) reconcileTopology(ctx context.Context, 
 	return nil
 }
 
-func (r vsphereDeploymentZoneReconciler) reconcileComputeCluster(ctx context.Context, deploymentZoneCtx *capvcontext.VSphereDeploymentZoneContext) error {
-	computeCluster := deploymentZoneCtx.VSphereFailureDomain.Spec.Topology.ComputeCluster
+func (r vsphereDeploymentZoneReconciler) reconcileComputeCluster(ctx context.Context, deploymentZoneCtx *capvcontext.VSphereDeploymentZoneContext, vsphereFailureDomain *infrav1.VSphereFailureDomain) error {
+	computeCluster := vsphereFailureDomain.Spec.Topology.ComputeCluster
 	if computeCluster == nil {
 		return nil
 	}
@@ -156,12 +156,12 @@ func (r vsphereDeploymentZoneReconciler) reconcileComputeCluster(ctx context.Con
 
 // verifyFailureDomain verifies the Failure Domain. It verifies the existence of tag and category specified and
 // checks whether the specified tags exist on the DataCenter or Compute Cluster or Hosts (in a HostGroup).
-func (r vsphereDeploymentZoneReconciler) verifyFailureDomain(ctx context.Context, deploymentZoneCtx *capvcontext.VSphereDeploymentZoneContext, failureDomain infrav1.FailureDomain) error {
+func (r vsphereDeploymentZoneReconciler) verifyFailureDomain(ctx context.Context, deploymentZoneCtx *capvcontext.VSphereDeploymentZoneContext, vsphereFailureDomain *infrav1.VSphereFailureDomain, failureDomain infrav1.FailureDomain) error {
 	if _, err := deploymentZoneCtx.AuthSession.TagManager.GetTagForCategory(ctx, failureDomain.Name, failureDomain.TagCategory); err != nil {
 		return errors.Wrapf(err, "failed to verify tag %s and category %s", failureDomain.Name, failureDomain.TagCategory)
 	}
 
-	objects, err := taggable.GetObjects(ctx, deploymentZoneCtx, failureDomain.Type)
+	objects, err := taggable.GetObjects(ctx, deploymentZoneCtx, vsphereFailureDomain, failureDomain.Type)
 	if err != nil {
 		return errors.Wrapf(err, "failed to find object")
 	}
@@ -179,7 +179,7 @@ func (r vsphereDeploymentZoneReconciler) verifyFailureDomain(ctx context.Context
 	return nil
 }
 
-func (r vsphereDeploymentZoneReconciler) createAndAttachMetadata(ctx context.Context, deploymentZoneCtx *capvcontext.VSphereDeploymentZoneContext, failureDomain infrav1.FailureDomain) error {
+func (r vsphereDeploymentZoneReconciler) createAndAttachMetadata(ctx context.Context, deploymentZoneCtx *capvcontext.VSphereDeploymentZoneContext, vsphereFailureDomain *infrav1.VSphereFailureDomain, failureDomain infrav1.FailureDomain) error {
 	logger := ctrl.LoggerFrom(ctx, "tag", failureDomain.Name, "category", failureDomain.TagCategory)
 	categoryID, err := metadata.CreateCategory(ctx, deploymentZoneCtx, failureDomain.TagCategory, failureDomain.Type)
 	if err != nil {
@@ -193,7 +193,7 @@ func (r vsphereDeploymentZoneReconciler) createAndAttachMetadata(ctx context.Con
 	}
 
 	logger = logger.WithValues("type", failureDomain.Type)
-	objects, err := taggable.GetObjects(ctx, deploymentZoneCtx, failureDomain.Type)
+	objects, err := taggable.GetObjects(ctx, deploymentZoneCtx, vsphereFailureDomain, failureDomain.Type)
 	if err != nil {
 		logger.V(4).Error(err, "failed to find object")
 		return err

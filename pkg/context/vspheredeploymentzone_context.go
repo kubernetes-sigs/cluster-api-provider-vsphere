@@ -31,7 +31,6 @@ import (
 type VSphereDeploymentZoneContext struct {
 	*ControllerContext
 	VSphereDeploymentZone *infrav1.VSphereDeploymentZone
-	VSphereFailureDomain  *infrav1.VSphereFailureDomain
 	Logger                logr.Logger
 	PatchHelper           *patch.Helper
 	AuthSession           *session.Session
@@ -57,9 +56,4 @@ func (c *VSphereDeploymentZoneContext) String() string {
 // GetSession returns the session for the VSphereDeploymentZoneContext.
 func (c *VSphereDeploymentZoneContext) GetSession() *session.Session {
 	return c.AuthSession
-}
-
-// GetVsphereFailureDomain returns the VSphereFailureDomain for the VSphereDeploymentZoneContext.
-func (c *VSphereDeploymentZoneContext) GetVsphereFailureDomain() infrav1.VSphereFailureDomain {
-	return *c.VSphereFailureDomain
 }

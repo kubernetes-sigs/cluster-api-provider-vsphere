@@ -155,8 +155,7 @@ func (r vsphereDeploymentZoneReconciler) reconcileNormal(ctx context.Context, de
 	if err := r.Client.Get(ctx, failureDomainKey, failureDomain); err != nil {
 		return errors.Wrap(err, "VSphereFailureDomain could not be retrieved")
 	}
-	deploymentZoneCtx.VSphereFailureDomain = failureDomain
-	authSession, err := r.getVCenterSession(ctx, deploymentZoneCtx)
+	authSession, err := r.getVCenterSession(ctx, deploymentZoneCtx, failureDomain.Spec.Topology.Datacenter)
 	if err != nil {
 		deploymentZoneCtx.Logger.V(4).Error(err, "unable to create session")
 		conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VCenterAvailableCondition, infrav1.VCenterUnreachableReason, clusterv1.ConditionSeverityError, err.Error())
@@ -173,7 +172,7 @@ func (r vsphereDeploymentZoneReconciler) reconcileNormal(ctx context.Context, de
 	conditions.MarkTrue(deploymentZoneCtx.VSphereDeploymentZone, infrav1.PlacementConstraintMetCondition)
 
 	// reconcile the failure domain
-	if err := r.reconcileFailureDomain(ctx, deploymentZoneCtx); err != nil {
+	if err := r.reconcileFailureDomain(ctx, deploymentZoneCtx, failureDomain); err != nil {
 		deploymentZoneCtx.Logger.V(4).Error(err, "failed to reconcile failure domain", "failureDomain", deploymentZoneCtx.VSphereDeploymentZone.Spec.FailureDomain)
 		deploymentZoneCtx.VSphereDeploymentZone.Status.Ready = pointer.Bool(false)
 		return errors.Wrapf(err, "failed to reconcile failure domain")
@@ -205,10 +204,10 @@ func (r vsphereDeploymentZoneReconciler) reconcilePlacementConstraint(ctx contex
 	return nil
 }
 
-func (r vsphereDeploymentZoneReconciler) getVCenterSession(ctx context.Context, deploymentZoneCtx *capvcontext.VSphereDeploymentZoneContext) (*session.Session, error) {
+func (r vsphereDeploymentZoneReconciler) getVCenterSession(ctx context.Context, deploymentZoneCtx *capvcontext.VSphereDeploymentZoneContext, datacenter string) (*session.Session, error) {
 	params := session.NewParams().
 		WithServer(deploymentZoneCtx.VSphereDeploymentZone.Spec.Server).
-		WithDatacenter(deploymentZoneCtx.VSphereFailureDomain.Spec.Topology.Datacenter).
+		WithDatacenter(datacenter).
 		WithUserInfo(r.ControllerContext.Username, r.ControllerContext.Password).
 		WithFeatures(session.Feature{
 			EnableKeepAlive:   r.EnableKeepAlive,
@@ -259,8 +258,7 @@ func (r vsphereDeploymentZoneReconciler) reconcileDelete(ctx context.Context, de
 	})
 	if len(machinesUsingDeploymentZone) > 0 {
 		machineNamesStr := util.MachinesAsString(machinesUsingDeploymentZone.SortedByCreationTimestamp())
-		err := errors.Errorf("error deleting VSphereDeploymentZone: %s is currently in use by machines: %s", deploymentZoneCtx.VSphereDeploymentZone.Name, machineNamesStr)
-		return err
+		return errors.Errorf("error deleting VSphereDeploymentZone: %s is currently in use by machines: %s", deploymentZoneCtx.VSphereDeploymentZone.Name, machineNamesStr)
 	}
 
 	failureDomain := &infrav1.VSphereFailureDomain{}
@@ -275,11 +273,10 @@ func (r vsphereDeploymentZoneReconciler) reconcileDelete(ctx context.Context, de
 		}
 		return err
 	}
-	deploymentZoneCtx.VSphereFailureDomain = failureDomain
 
 	// Reconcile the deletion of the VSphereFailureDomain by removing ownerReferences and deleting if necessary.
-	if err := updateOwnerReferences(deploymentZoneCtx, deploymentZoneCtx.VSphereFailureDomain, r.Client, func() []metav1.OwnerReference {
-		return clusterutilv1.RemoveOwnerRef(deploymentZoneCtx.VSphereFailureDomain.OwnerReferences, metav1.OwnerReference{
+	if err := updateOwnerReferences(ctx, failureDomain, r.Client, func() []metav1.OwnerReference {
+		return clusterutilv1.RemoveOwnerRef(failureDomain.OwnerReferences, metav1.OwnerReference{
 			APIVersion: infrav1.GroupVersion.String(),
 			Kind:       deploymentZoneCtx.VSphereDeploymentZone.Kind,
 			Name:       deploymentZoneCtx.VSphereDeploymentZone.Name,
@@ -288,10 +285,10 @@ func (r vsphereDeploymentZoneReconciler) reconcileDelete(ctx context.Context, de
 		return err
 	}
 
-	if len(deploymentZoneCtx.VSphereFailureDomain.OwnerReferences) == 0 {
-		deploymentZoneCtx.Logger.Info("deleting VSphereFailureDomain", "name", deploymentZoneCtx.VSphereFailureDomain.Name)
-		if err := r.Client.Delete(ctx, deploymentZoneCtx.VSphereFailureDomain); err != nil && !apierrors.IsNotFound(err) {
-			return errors.Wrapf(err, "failed to delete VSphereFailureDomain %s", deploymentZoneCtx.VSphereFailureDomain.Name)
+	if len(failureDomain.OwnerReferences) == 0 {
+		deploymentZoneCtx.Logger.Info("deleting VSphereFailureDomain", "name", failureDomain.Name)
+		if err := r.Client.Delete(ctx, failureDomain); err != nil && !apierrors.IsNotFound(err) {
+			return errors.Wrapf(err, "failed to delete VSphereFailureDomain %s", failureDomain.Name)
 		}
 	}
 

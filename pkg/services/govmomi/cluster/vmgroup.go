@@ -24,13 +24,14 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
-func FindVMGroup(ctx computeClusterContext, clusterName, vmGroupName string) (*VMGroup, error) {
-	ccr, err := ctx.GetSession().Finder.ClusterComputeResource(ctx, clusterName)
+// TODO(zhanggbj): add (ctx context.Context) in function signature after refactoring context for pkg/services/govmomi/service.go.
+func FindVMGroup(computeClusterCtx computeClusterContext, clusterName, vmGroupName string) (*VMGroup, error) {
+	ccr, err := computeClusterCtx.GetSession().Finder.ClusterComputeResource(computeClusterCtx, clusterName)
 	if err != nil {
 		return nil, err
 	}
 
-	clusterConfigInfoEx, err := ccr.Configuration(ctx)
+	clusterConfigInfoEx, err := ccr.Configuration(computeClusterCtx)
 	if err != nil {
 		return nil, err
 	}

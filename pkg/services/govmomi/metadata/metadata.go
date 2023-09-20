@@ -27,8 +27,6 @@ import (
 )
 
 type metadataContext interface {
-	context.Context
-
 	GetSession() *session.Session
 }
 
@@ -46,9 +44,9 @@ func getCategoryAssociableType(domainType infrav1.FailureDomainType) string {
 }
 
 // CreateCategory either creates a new vSphere category or updates the associable type for an existing category.
-func CreateCategory(ctx metadataContext, name string, failureDomainType infrav1.FailureDomainType) (string, error) {
+func CreateCategory(ctx context.Context, metadataCtx metadataContext, name string, failureDomainType infrav1.FailureDomainType) (string, error) {
 	logger := ctrl.LoggerFrom(ctx, "category", name)
-	manager := ctx.GetSession().TagManager
+	manager := metadataCtx.GetSession().TagManager
 	category, err := manager.GetCategory(ctx, name)
 	if err != nil {
 		logger.V(4).Info("failed to find existing category, creating a new category")
@@ -75,9 +73,9 @@ func getCategoryObject(name string, failureDomainType infrav1.FailureDomainType)
 	}
 }
 
-func CreateTag(ctx metadataContext, name, categoryID string) error {
+func CreateTag(ctx context.Context, metadataCtx metadataContext, name, categoryID string) error {
 	logger := ctrl.LoggerFrom(ctx, "tag", name, "category", categoryID)
-	manager := ctx.GetSession().TagManager
+	manager := metadataCtx.GetSession().TagManager
 	_, err := manager.GetTag(ctx, name)
 	if err != nil {
 		logger.V(4).Info("failed to find existing tag, creating a new tag")

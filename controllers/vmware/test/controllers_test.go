@@ -228,7 +228,7 @@ func getManager(cfg *rest.Config, networkProvider string) manager.Manager {
 			return err
 		}
 
-		return controllers.AddMachineControllerToManager(controllerCtx, mgr, &vmwarev1.VSphereMachine{}, controllerOpts)
+		return controllers.AddMachineControllerToManager(ctx, controllerCtx, mgr, &vmwarev1.VSphereMachine{}, controllerOpts)
 	}
 
 	mgr, err := manager.New(ctx, opts)

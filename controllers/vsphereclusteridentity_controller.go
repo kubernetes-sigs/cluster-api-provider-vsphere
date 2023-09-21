@@ -54,18 +54,18 @@ var (
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=vsphereclusteridentities/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;patch;update;delete
 
-func AddVsphereClusterIdentityControllerToManager(controllerCtx *capvcontext.ControllerManagerContext, mgr manager.Manager, options controller.Options) error {
+func AddVsphereClusterIdentityControllerToManager(ctx context.Context, controllerManagerCtx *capvcontext.ControllerManagerContext, mgr manager.Manager, options controller.Options) error {
 	var (
 		controllerNameShort = fmt.Sprintf("%s-controller", strings.ToLower(identityControlledTypeName))
-		controllerNameLong  = fmt.Sprintf("%s/%s/%s", controllerCtx.Namespace, controllerCtx.Name, controllerNameShort)
+		controllerNameLong  = fmt.Sprintf("%s/%s/%s", controllerManagerCtx.Namespace, controllerManagerCtx.Name, controllerNameShort)
 	)
 
 	// Build the controller context.
 	controllerContext := &capvcontext.ControllerContext{
-		ControllerManagerContext: controllerCtx,
+		ControllerManagerContext: controllerManagerCtx,
 		Name:                     controllerNameShort,
 		Recorder:                 record.New(mgr.GetEventRecorderFor(controllerNameLong)),
-		Logger:                   controllerCtx.Logger.WithName(controllerNameShort),
+		Logger:                   controllerManagerCtx.Logger.WithName(controllerNameShort),
 	}
 
 	reconciler := clusterIdentityReconciler{ControllerContext: controllerContext}
@@ -73,7 +73,7 @@ func AddVsphereClusterIdentityControllerToManager(controllerCtx *capvcontext.Con
 	return ctrl.NewControllerManagedBy(mgr).
 		For(identityControlledType).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(controllerCtx), controllerCtx.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), controllerManagerCtx.WatchFilterValue)).
 		Complete(reconciler)
 }
 
@@ -85,7 +85,7 @@ func (r clusterIdentityReconciler) Reconcile(ctx context.Context, req reconcile.
 	// TODO(gab-satchi) consider creating a context for the clusterIdentity
 	// Get VSphereClusterIdentity
 	identity := &infrav1.VSphereClusterIdentity{}
-	if err := r.Client.Get(r, req.NamespacedName, identity); err != nil {
+	if err := r.Client.Get(ctx, req.NamespacedName, identity); err != nil {
 		if apierrors.IsNotFound(err) {
 			r.Logger.V(4).Info("VSphereClusterIdentity not found, won't reconcile", "key", req.NamespacedName)
 			return reconcile.Result{}, nil

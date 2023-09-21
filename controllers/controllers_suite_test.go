@@ -102,7 +102,7 @@ func setup() {
 	if err := AddVMControllerToManager(testEnv.GetContext(), testEnv.Manager, tracker, controllerOpts); err != nil {
 		panic(fmt.Sprintf("unable to setup VsphereVM controller: %v", err))
 	}
-	if err := AddVsphereClusterIdentityControllerToManager(testEnv.GetContext(), testEnv.Manager, controllerOpts); err != nil {
+	if err := AddVsphereClusterIdentityControllerToManager(ctx, testEnv.GetContext(), testEnv.Manager, controllerOpts); err != nil {
 		panic(fmt.Sprintf("unable to setup VSphereClusterIdentity controller: %v", err))
 	}
 	if err := AddVSphereDeploymentZoneControllerToManager(ctx, testEnv.GetContext(), testEnv.Manager, controllerOpts); err != nil {

@@ -38,10 +38,9 @@ import (
 
 type AntiAffinitySpecInput struct {
 	InfraClients
-	Global          GlobalInput
-	Namespace       *corev1.Namespace
-	WorkerNodeCount int64
-	SkipCleanup     bool
+	Global      GlobalInput
+	Namespace   *corev1.Namespace
+	SkipCleanup bool
 }
 
 var _ = Describe("Cluster creation with anti affined nodes", func() {
@@ -61,8 +60,7 @@ var _ = Describe("Cluster creation with anti affined nodes", func() {
 	It("should create a cluster with anti-affined nodes", func() {
 		// Since the upstream CI has four nodes, worker node count is set to 4.
 		VerifyAntiAffinity(ctx, AntiAffinitySpecInput{
-			WorkerNodeCount: 4,
-			Namespace:       namespace,
+			Namespace: namespace,
 			InfraClients: InfraClients{
 				Client:     vsphereClient,
 				RestClient: restClient,
@@ -91,10 +89,16 @@ func VerifyAntiAffinity(ctx context.Context, input AntiAffinitySpecInput) {
 	By("checking if the target system has enough hosts")
 	hostSystems, err := input.Finder.HostSystemList(ctx, "*")
 	Expect(err).ToNot(HaveOccurred())
-	Expect(len(hostSystems) >= int(input.WorkerNodeCount)).To(BeTrue(), "This test requires more or equal number of hosts compared to the WorkerNodeCount. Expected at least %d but only got %d hosts.", input.WorkerNodeCount, len(hostSystems))
+	// Setting the number of worker nodes to the number of hosts.
+	// Later in the test we check that all worker nodes are located on different hosts.
+	workerNodeCount := len(hostSystems)
+	// Limit size to not create too much VMs when running in a big environment.
+	if workerNodeCount > 10 {
+		workerNodeCount = 10
+	}
 
 	Byf("creating a workload cluster %s", clusterName)
-	configCluster := defaultConfigCluster(clusterName, namespace.Name, "", 1, input.WorkerNodeCount,
+	configCluster := defaultConfigCluster(clusterName, namespace.Name, "", 1, int64(workerNodeCount),
 		input.Global)
 
 	clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
@@ -123,30 +127,30 @@ func VerifyAntiAffinity(ctx context.Context, input AntiAffinitySpecInput) {
 
 	By("verifying node anti-affinity for worker nodes")
 	workerVMs := FetchWorkerVMsForCluster(ctx, input.Global.BootstrapClusterProxy, clusterName, namespace.Name)
-	Expect(workerVMs).To(HaveLen(int(input.WorkerNodeCount)))
+	Expect(workerVMs).To(HaveLen(workerNodeCount))
 	Expect(verifyAntiAffinityForVMs(ctx, input.Finder, workerVMs)).To(Succeed())
 
-	Byf("Scaling the MachineDeployment out to > %d nodes", input.WorkerNodeCount)
+	Byf("Scaling the MachineDeployment out to > %d nodes", workerNodeCount)
 	framework.ScaleAndWaitMachineDeployment(ctx, framework.ScaleAndWaitMachineDeploymentInput{
 		ClusterProxy:              input.Global.BootstrapClusterProxy,
 		Cluster:                   clusterResources.Cluster,
 		MachineDeployment:         clusterResources.MachineDeployments[0],
-		Replicas:                  int32(input.WorkerNodeCount + 2),
+		Replicas:                  int32(workerNodeCount + 2),
 		WaitForMachineDeployments: input.Global.E2EConfig.GetIntervals("", "wait-worker-nodes"),
 	})
 
-	Byf("Scaling the MachineDeployment down to %d nodes", input.WorkerNodeCount)
+	Byf("Scaling the MachineDeployment down to %d nodes", workerNodeCount)
 	framework.ScaleAndWaitMachineDeployment(ctx, framework.ScaleAndWaitMachineDeploymentInput{
 		ClusterProxy:              input.Global.BootstrapClusterProxy,
 		Cluster:                   clusterResources.Cluster,
 		MachineDeployment:         clusterResources.MachineDeployments[0],
-		Replicas:                  int32(input.WorkerNodeCount),
+		Replicas:                  int32(workerNodeCount),
 		WaitForMachineDeployments: input.Global.E2EConfig.GetIntervals("", "wait-worker-nodes"),
 	})
 
 	// Refetch the updated list of worker VMs
 	workerVMs = FetchWorkerVMsForCluster(ctx, input.Global.BootstrapClusterProxy, clusterName, namespace.Name)
-	Expect(workerVMs).To(HaveLen(int(input.WorkerNodeCount)))
+	Expect(workerVMs).To(HaveLen(workerNodeCount))
 
 	By("worker nodes should be anti-affined again since enough hosts are available")
 	Eventually(func() error {

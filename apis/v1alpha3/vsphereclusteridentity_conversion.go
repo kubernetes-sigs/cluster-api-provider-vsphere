@@ -32,7 +32,7 @@ func (src *VSphereClusterIdentity) ConvertTo(dstRaw conversion.Hub) error {
 }
 
 // ConvertFrom converts from the Hub version (v1beta1) to this VSphereClusterIdentity.
-func (dst *VSphereClusterIdentity) ConvertFrom(srcRaw conversion.Hub) error { // nolint
+func (dst *VSphereClusterIdentity) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.VSphereClusterIdentity)
 	if err := Convert_v1beta1_VSphereClusterIdentity_To_v1alpha3_VSphereClusterIdentity(src, dst, nil); err != nil {
 		return err
@@ -47,7 +47,7 @@ func (src *VSphereClusterIdentityList) ConvertTo(dstRaw conversion.Hub) error {
 }
 
 // ConvertFrom converts from the Hub version (v1beta1) to this VSphereClusterIdentityList.
-func (dst *VSphereClusterIdentityList) ConvertFrom(srcRaw conversion.Hub) error { // nolint
+func (dst *VSphereClusterIdentityList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.VSphereClusterIdentityList)
 	return Convert_v1beta1_VSphereClusterIdentityList_To_v1alpha3_VSphereClusterIdentityList(src, dst, nil)
 }

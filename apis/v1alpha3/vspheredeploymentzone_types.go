@@ -19,7 +19,7 @@ package v1alpha3
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
 // VSphereDeploymentZoneSpec defines the desired state of VSphereDeploymentZone
@@ -74,7 +74,7 @@ type VSphereDeploymentZoneStatus struct {
 
 	// Conditions defines current service state of the VSphereMachine.
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions clusterv1alpha3.Conditions `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true

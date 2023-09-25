@@ -83,7 +83,7 @@ func initializeWebhookInEnvironment() {
 		klog.Fatalf("Failed to get information for current file from runtime")
 	}
 	root := path.Join(path.Dir(filename), "..", "..")
-	configyamlFile, err := os.ReadFile(filepath.Join(root, "config", "webhook", "manifests.yaml"))
+	configyamlFile, err := os.ReadFile(filepath.Clean(filepath.Join(root, "config", "webhook", "manifests.yaml")))
 	if err != nil {
 		klog.Fatalf("Failed to read core webhook configuration file: %v ", err)
 	}

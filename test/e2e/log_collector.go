@@ -85,7 +85,7 @@ func createOutputFile(path string) (*os.File, error) {
 	if err := os.MkdirAll(filepath.Dir(path), os.ModePerm); err != nil {
 		return nil, err
 	}
-	return os.Create(path)
+	return os.Create(filepath.Clean(path))
 }
 
 func executeRemoteCommand(f io.StringWriter, hostIPAddr, command string, args ...string) error {
@@ -137,7 +137,7 @@ func newSSHConfig() (*ssh.ClientConfig, error) {
 
 	config := &ssh.ClientConfig{
 		User:            DefaultUserName,
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(), //nolint:gosec // Non-production code
 		Auth: []ssh.AuthMethod{
 			ssh.PublicKeys(signer),
 		},
@@ -152,5 +152,5 @@ func readPrivateKey() ([]byte, error) {
 		return nil, errors.Errorf("private key information missing. Please set %s environment variable", VSpherePrivateKeyFilePath)
 	}
 
-	return os.ReadFile(privateKeyFilePath)
+	return os.ReadFile(filepath.Clean(privateKeyFilePath))
 }

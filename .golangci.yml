@@ -263,13 +263,6 @@ issues:
     path: ^apis\/.*\/.*conversion.*\.go$
 
   # FIXME: All below excludes should get removed over time.
-  - linters:
-    - staticcheck
-    text: "SA1019: failureDomain.AutoConfigure is deprecated"
-  - path: "test/e2e/*"
-    linters:
-      - gosec
-    text: "G106:"
 
   # missing comments
   - linters:
@@ -300,7 +293,3 @@ issues:
     - gosec
     text: "G104: Errors unhandled."
     path: ^(controllers/vspherecluster_reconciler|pkg/manager/options_test|test/helpers/webhook)\.go$
-  - linters:
-    - gosec
-    text: "(G204|G301|G304): "
-    path: ^test/

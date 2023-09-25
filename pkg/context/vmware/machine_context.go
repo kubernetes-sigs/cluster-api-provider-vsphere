@@ -48,14 +48,17 @@ func (c *SupervisorMachineContext) Patch() error {
 	return c.PatchHelper.Patch(c, c.VSphereMachine)
 }
 
+// GetVSphereMachine returns the VSphereMachine from the SupervisorMachineContext.
 func (c *SupervisorMachineContext) GetVSphereMachine() context.VSphereMachine {
 	return c.VSphereMachine
 }
 
+// GetObjectMeta returns the metadata for the VSphereMachine from the SupervisorMachineContext.
 func (c *SupervisorMachineContext) GetObjectMeta() metav1.ObjectMeta {
 	return c.VSphereMachine.ObjectMeta
 }
 
+// GetClusterContext returns the Cluster and VSphereCluster from the SupervisorMachineContext.
 func (c *SupervisorMachineContext) GetClusterContext() *ClusterContext {
 	return &ClusterContext{
 		Cluster:        c.Cluster,
@@ -63,6 +66,7 @@ func (c *SupervisorMachineContext) GetClusterContext() *ClusterContext {
 	}
 }
 
+// SetBaseMachineContext sets the BaseMachineContext for the SupervisorMachineContext.
 func (c *SupervisorMachineContext) SetBaseMachineContext(base *context.BaseMachineContext) {
 	c.BaseMachineContext = base
 }

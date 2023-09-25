@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package clustermodule contains tools for handling ClusterModules.
 package clustermodule
 
 import (
@@ -22,6 +23,7 @@ import (
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 )
 
+// Service is a ClusterModule service.
 type Service interface {
 	Create(ctx context.Context, clusterCtx *capvcontext.ClusterContext, wrapper Wrapper) (string, error)
 

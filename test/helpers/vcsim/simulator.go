@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package vcsim contains tools for running a VCenter simulator.
 package vcsim
 
 import (

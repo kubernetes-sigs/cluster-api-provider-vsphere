@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package vcenter has tools for cloning virtual machines in vcenter.
 package vcenter
 
 import (

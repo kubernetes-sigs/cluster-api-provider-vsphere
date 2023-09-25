@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package cloudprovider contains tools to generate CSI and CPI manifests.
 package cloudprovider
 
 import (

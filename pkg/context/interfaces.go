@@ -24,6 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// MachineContext is the context used in VSphereMachine reconciliation.
 type MachineContext interface {
 	String() string
 	Patch() error
@@ -35,6 +36,7 @@ type MachineContext interface {
 	SetBaseMachineContext(base *BaseMachineContext)
 }
 
+// VSphereMachine is a common interface used for VSphereMachines across VMOperator and non-VMOperator modes.
 type VSphereMachine interface {
 	client.Object
 	conditions.Setter

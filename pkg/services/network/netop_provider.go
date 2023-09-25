@@ -36,16 +36,19 @@ type netopNetworkProvider struct {
 	client client.Client
 }
 
+// NetOpNetworkProvider returns a NetOp (VDS) Network Provider.
 func NetOpNetworkProvider(client client.Client) services.NetworkProvider {
 	return &netopNetworkProvider{
 		client: client,
 	}
 }
 
+// HasLoadBalancer is always true for the NetOp Network Provider.
 func (np *netopNetworkProvider) HasLoadBalancer() bool {
 	return true
 }
 
+// ProvisionClusterNetwork marks the ClusterNetworkReadyCondition true.
 func (np *netopNetworkProvider) ProvisionClusterNetwork(_ context.Context, clusterCtx *vmware.ClusterContext) error {
 	conditions.MarkTrue(clusterCtx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition)
 	return nil
@@ -88,6 +91,7 @@ func (np *netopNetworkProvider) getClusterNetwork(ctx context.Context, clusterCt
 	return np.getDefaultClusterNetwork(ctx, clusterCtx)
 }
 
+// GetClusterNetworkName returns the name of the network for the passed cluster.
 func (np *netopNetworkProvider) GetClusterNetworkName(ctx context.Context, clusterCtx *vmware.ClusterContext) (string, error) {
 	network, err := np.getClusterNetwork(ctx, clusterCtx)
 	if err != nil {
@@ -97,6 +101,7 @@ func (np *netopNetworkProvider) GetClusterNetworkName(ctx context.Context, clust
 	return network.Name, nil
 }
 
+// GetVMServiceAnnotations returns the name of the network in a map[string]string to allow usage in annotations.
 func (np *netopNetworkProvider) GetVMServiceAnnotations(ctx context.Context, clusterCtx *vmware.ClusterContext) (map[string]string, error) {
 	networkName, err := np.GetClusterNetworkName(ctx, clusterCtx)
 	if err != nil {
@@ -106,6 +111,7 @@ func (np *netopNetworkProvider) GetVMServiceAnnotations(ctx context.Context, clu
 	return map[string]string{NetOpNetworkNameAnnotation: networkName}, nil
 }
 
+// ConfigureVirtualMachine configures the NetworkInterfaces on a VM Operator virtual machine.
 func (np *netopNetworkProvider) ConfigureVirtualMachine(ctx context.Context, clusterCtx *vmware.ClusterContext, vm *vmoprv1.VirtualMachine) error {
 	network, err := np.getClusterNetwork(ctx, clusterCtx)
 	if err != nil {

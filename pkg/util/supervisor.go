@@ -30,6 +30,7 @@ import (
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 )
 
+// IsSupervisorType identifies whether the passed object is using the supervisor API.
 func IsSupervisorType(input interface{}) (bool, error) {
 	switch input.(type) {
 	case *infrav1.VSphereCluster, *infrav1.VSphereMachine:

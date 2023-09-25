@@ -15,6 +15,8 @@ limitations under the License.
 */
 
 //nolint:nestif
+
+// Package controllers contains controllers for CAPV objects.
 package controllers
 
 import (
@@ -460,7 +462,8 @@ func (r *clusterReconciler) reconcileVSphereClusterWhenAPIServerIsOnline(ctx con
 
 		// Block until the target API server is online.
 		log.Info("Start polling API server for online check")
-		wait.PollUntilContextCancel(ctx, time.Second*1, true, func(context.Context) (bool, error) { return r.isAPIServerOnline(ctx, clusterCtx), nil }) //nolint:errcheck
+		// Ignore the error as the passed function never returns one.
+		_ = wait.PollUntilContextCancel(ctx, time.Second*1, true, func(context.Context) (bool, error) { return r.isAPIServerOnline(ctx, clusterCtx), nil })
 		log.Info("Stop polling API server for online check")
 		log.Info("Triggering GenericEvent", "reason", "api-server-online")
 		eventChannel := r.ControllerManagerContext.GetGenericEventChannelFor(clusterCtx.VSphereCluster.GetObjectKind().GroupVersionKind())
@@ -472,7 +475,8 @@ func (r *clusterReconciler) reconcileVSphereClusterWhenAPIServerIsOnline(ctx con
 		// remove the key from the map that prevents multiple goroutines from
 		// polling the API server to see if it is online.
 		log.Info("Start polling for control plane initialized")
-		wait.PollUntilContextCancel(ctx, time.Second*1, true, func(context.Context) (bool, error) { return r.isControlPlaneInitialized(ctx, clusterCtx), nil }) //nolint:errcheck
+		// Ignore the error as the passed function never returns one.
+		_ = wait.PollUntilContextCancel(ctx, time.Second*1, true, func(context.Context) (bool, error) { return r.isControlPlaneInitialized(ctx, clusterCtx), nil })
 		log.Info("Stop polling for control plane initialized")
 		apiServerTriggersMu.Lock()
 		delete(apiServerTriggers, clusterCtx.Cluster.UID)

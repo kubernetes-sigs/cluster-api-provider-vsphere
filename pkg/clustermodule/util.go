@@ -49,6 +49,7 @@ func Compare(oldMods, newMods []infrav1.ClusterModule) bool {
 	return true
 }
 
+// IsClusterCompatible checks if the VCenterVersion is compatibly with CAPV. Only version 7 and over are supported.
 func IsClusterCompatible(ctx *context.ClusterContext) bool {
 	version := ctx.VSphereCluster.Status.VCenterVersion
 	if version == "" {

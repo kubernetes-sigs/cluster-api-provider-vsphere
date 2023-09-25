@@ -193,6 +193,7 @@ func GetMachineMetadata(hostname string, vsphereVM infrav1.VSphereVM, ipamState 
 	return buf.Bytes(), nil
 }
 
+// GetOwnerVSphereMachine returns the VSphereMachine owner for the passed object.
 func GetOwnerVSphereMachine(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*infrav1.VSphereMachine, error) {
 	for _, ref := range obj.OwnerReferences {
 		gv, err := schema.ParseGroupVersion(ref.APIVersion)

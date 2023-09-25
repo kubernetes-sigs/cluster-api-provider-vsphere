@@ -131,6 +131,7 @@ func clusterToSupervisorInfrastructureMapFunc(ctx context.Context, c client.Clie
 	return clusterutilv1.ClusterToInfrastructureMapFunc(ctx, gvk, c, &vmwarev1.VSphereCluster{})
 }
 
+// ServiceAccountReconciler reconciles changes to ProviderServiceAccounts.
 type ServiceAccountReconciler struct {
 	Client                    client.Client
 	Recorder                  record.Recorder
@@ -222,6 +223,7 @@ func (r *ServiceAccountReconciler) Reconcile(ctx context.Context, req reconcile.
 	})
 }
 
+// ReconcileDelete handles delete events for ProviderServiceAccounts.
 func (r *ServiceAccountReconciler) ReconcileDelete(ctx context.Context, clusterCtx *vmwarecontext.ClusterContext) (reconcile.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	log.V(4).Info("Reconciling deleting Provider ServiceAccounts")
@@ -242,6 +244,7 @@ func (r *ServiceAccountReconciler) ReconcileDelete(ctx context.Context, clusterC
 	return reconcile.Result{}, nil
 }
 
+// ReconcileNormal handles create and update events for ProviderServiceAccounts.
 func (r *ServiceAccountReconciler) ReconcileNormal(ctx context.Context, guestClusterCtx *vmwarecontext.GuestClusterContext) (_ reconcile.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
 	log.V(4).Info("Reconciling ProviderServiceAccount")

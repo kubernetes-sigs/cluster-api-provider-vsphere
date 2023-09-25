@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package vmware contains the VSphereCluster reconciler.
 package vmware
 
 import (
@@ -48,6 +49,7 @@ const (
 	apiEndpointPort = 6443
 )
 
+// ClusterReconciler reconciles VSphereClusters.
 type ClusterReconciler struct {
 	Client                client.Client
 	Recorder              record.Recorder
@@ -344,6 +346,7 @@ func (r *ClusterReconciler) reconcileAPIEndpoints(ctx context.Context, clusterCt
 	return nil
 }
 
+// VSphereMachineToCluster adds reconcile requests for a Cluster when one of its control plane machines has an event.
 func (r *ClusterReconciler) VSphereMachineToCluster(ctx context.Context, o client.Object) []reconcile.Request {
 	log := ctrl.LoggerFrom(ctx)
 

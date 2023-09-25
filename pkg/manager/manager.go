@@ -120,6 +120,7 @@ func (m *manager) GetContext() *capvcontext.ControllerManagerContext {
 	return m.controllerCtx
 }
 
+// UpdateCredentials reads and updates credentials from the credentials file.
 func UpdateCredentials(opts *Options) {
 	opts.readAndSetCredentials()
 }

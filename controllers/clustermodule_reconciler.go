@@ -48,12 +48,14 @@ import (
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=vsphereclusters,verbs=get;list;watch;patch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=vspheremachinetemplates,verbs=get;list;watch
 
+// Reconciler reconciles changes for ClusterModules.
 type Reconciler struct {
 	Client client.Client
 
 	ClusterModuleService clustermodule.Service
 }
 
+// NewReconciler creates a Cluster Module Reconciler with a Client and ClusterModuleService.
 func NewReconciler(controllerManagerCtx *capvcontext.ControllerManagerContext) Reconciler {
 	return Reconciler{
 		Client:               controllerManagerCtx.Client,
@@ -206,6 +208,7 @@ func (r Reconciler) toAffinityInput(ctx context.Context, obj client.Object) []re
 	}
 }
 
+// PopulateWatchesOnController adds watches to the ClusterModule reconciler.
 func (r Reconciler) PopulateWatchesOnController(mgr manager.Manager, controller controller.Controller) error {
 	if err := controller.Watch(
 		source.Kind(mgr.GetCache(), &controlplanev1.KubeadmControlPlane{}),

@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package services contains tools for handling VSphere services.
 package services
 
 import (
@@ -39,8 +40,10 @@ import (
 	infrautilv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
+// VimMachineService reconciles VSphere VMs.
 type VimMachineService struct{}
 
+// FetchVSphereMachine returns a new MachineContext containing the vsphereMachine.
 func (v *VimMachineService) FetchVSphereMachine(c client.Client, name types.NamespacedName) (capvcontext.MachineContext, error) {
 	vsphereMachine := &infrav1.VSphereMachine{}
 	err := c.Get(context.Background(), name, vsphereMachine)
@@ -48,6 +51,7 @@ func (v *VimMachineService) FetchVSphereMachine(c client.Client, name types.Name
 	return &capvcontext.VIMMachineContext{VSphereMachine: vsphereMachine}, err
 }
 
+// FetchVSphereCluster adds the VSphereCluster associated with the passed cluster to the machineContext.
 func (v *VimMachineService) FetchVSphereCluster(c client.Client, cluster *clusterv1.Cluster, machineContext capvcontext.MachineContext) (capvcontext.MachineContext, error) {
 	vimMachineCtx, ok := machineContext.(*capvcontext.VIMMachineContext)
 	if !ok {
@@ -64,6 +68,7 @@ func (v *VimMachineService) FetchVSphereCluster(c client.Client, cluster *cluste
 	return vimMachineCtx, err
 }
 
+// ReconcileDelete reconciles delete events for the VSphere VM.
 func (v *VimMachineService) ReconcileDelete(machineCtx capvcontext.MachineContext) error {
 	vimMachineCtx, ok := machineCtx.(*capvcontext.VIMMachineContext)
 	if !ok {
@@ -90,6 +95,7 @@ func (v *VimMachineService) ReconcileDelete(machineCtx capvcontext.MachineContex
 	return nil
 }
 
+// SyncFailureReason returns true if the VSphere Machine has failed.
 func (v *VimMachineService) SyncFailureReason(machineCtx capvcontext.MachineContext) (bool, error) {
 	vimMachineCtx, ok := machineCtx.(*capvcontext.VIMMachineContext)
 	if !ok {
@@ -109,6 +115,7 @@ func (v *VimMachineService) SyncFailureReason(machineCtx capvcontext.MachineCont
 	return vimMachineCtx.VSphereMachine.Status.FailureReason != nil || vimMachineCtx.VSphereMachine.Status.FailureMessage != nil, err
 }
 
+// ReconcileNormal reconciles create and update events for the VSphere VM.
 func (v *VimMachineService) ReconcileNormal(machineCtx capvcontext.MachineContext) (bool, error) {
 	vimMachineCtx, ok := machineCtx.(*capvcontext.VIMMachineContext)
 	if !ok {
@@ -157,6 +164,7 @@ func (v *VimMachineService) ReconcileNormal(machineCtx capvcontext.MachineContex
 	return false, nil
 }
 
+// GetHostInfo returns the hostname or IP address of the infrastructure host for the VSphere VM.
 func (v *VimMachineService) GetHostInfo(c capvcontext.MachineContext) (string, error) {
 	vimMachineCtx, ok := c.(*capvcontext.VIMMachineContext)
 	if !ok {

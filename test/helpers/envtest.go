@@ -15,6 +15,8 @@ limitations under the License.
 */
 
 //nolint:wrapcheck
+
+// Package helpers contains helpers for creating a test environment.
 package helpers
 
 import (

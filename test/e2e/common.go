@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package e2e contains end to end test code and utils.
 package e2e
 
 import (

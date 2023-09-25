@@ -27,12 +27,14 @@ import (
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// FetchObjectInput contains data to fetch objects.
 type FetchObjectInput struct {
 	context.Context //nolint:containedctx
 	ctrlclient.Client
 	Object ctrlclient.Object
 }
 
+// FetchControlPlaneOwnerObject returns the ControlPlane owner for a Machine.
 func FetchControlPlaneOwnerObject(input FetchObjectInput) (ctrlclient.Object, error) {
 	gvk := controlplanev1.GroupVersion
 	kcp := &controlplanev1.KubeadmControlPlane{}
@@ -42,6 +44,7 @@ func FetchControlPlaneOwnerObject(input FetchObjectInput) (ctrlclient.Object, er
 	return kcp, nil
 }
 
+// FetchMachineDeploymentOwnerObject returns the MachineDeployment owner for a Machine.
 func FetchMachineDeploymentOwnerObject(input FetchObjectInput) (ctrlclient.Object, error) {
 	gvk := clusterv1.GroupVersion
 

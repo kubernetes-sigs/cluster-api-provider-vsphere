@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// cloudprovider_types contains API types for the vSphere cloud provider.
+// Package types contains API types for the vSphere cloud provider.
 // The configuration may be unmarshalled from an INI-style configuration using
 // the "gopkg.in/gcfg.v1" package.
 //

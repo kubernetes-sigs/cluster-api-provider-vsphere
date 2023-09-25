@@ -27,21 +27,29 @@ import (
 )
 
 const (
-	NCPSNATKey          = "ncp/snat_ip"
-	NCPVersionKey       = "version"
-	NCPNamespace        = "vmware-system-nsx"
+	// NCPSNATKey is the key used for the NCPSNAT annotation.
+	NCPSNATKey = "ncp/snat_ip"
+	// NCPVersionKey is the key used for version information in the NCP configmap.
+	NCPVersionKey = "version"
+	// NCPNamespace is the namespace of the NCP configmap.
+	NCPNamespace = "vmware-system-nsx"
+	// NCPVersionConfigMap is a name of the NCP config map.
 	NCPVersionConfigMap = "nsx-ncp-version-config"
-	// 3.0.1 is where NCP starts to support "whitelist_source_ranges" specification in VNET and enforce FW rules on GC T1.
+	// NCPVersionSupportFW 3.0.1 is where NCP starts to support "whitelist_source_ranges" specification in VNET and enforce FW rules on GC T1.
 	NCPVersionSupportFW = "3.0.1"
-	// 3.1.0 is where NCP stopped to support "whitelist_source_ranges" specification in VNET.
+	// NCPVersionSupportFWEnded 3.1.0 is where NCP stopped to support "whitelist_source_ranges" specification in VNET.
 	NCPVersionSupportFWEnded = "3.1.0"
 
+	// EmptyAnnotationErrorMsg is an error message returned when no annotations are found.
 	EmptyAnnotationErrorMsg = "annotation not found"
-	EmptyNCPSNATKeyMsg      = NCPSNATKey + " key not found"
+	// EmptyNCPSNATKeyMsg is an error message returned when the annotation can not be found.
+	EmptyNCPSNATKeyMsg = NCPSNATKey + " key not found"
 )
 
 var (
-	NCPVersionSupportFWSemver      = semver.MustParse(NCPVersionSupportFW)
+	// NCPVersionSupportFWSemver is the SemVer representation of the minimum NCPVersion for enforcing FW rules.
+	NCPVersionSupportFWSemver = semver.MustParse(NCPVersionSupportFW)
+	// NCPVersionSupportFWEndedSemver is the SemVer representation of the maximum NCPVersion for enforcing FW rules.
 	NCPVersionSupportFWEndedSemver = semver.MustParse(NCPVersionSupportFWEnded)
 )
 

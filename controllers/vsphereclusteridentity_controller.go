@@ -54,6 +54,7 @@ var (
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=vsphereclusteridentities/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;patch;update;delete
 
+// AddVsphereClusterIdentityControllerToManager adds a VSphereClusterIdentity controller to the controller manager.
 func AddVsphereClusterIdentityControllerToManager(ctx context.Context, controllerManagerCtx *capvcontext.ControllerManagerContext, mgr manager.Manager, options controller.Options) error {
 	var (
 		controllerNameShort = fmt.Sprintf("%s-controller", strings.ToLower(identityControlledTypeName))

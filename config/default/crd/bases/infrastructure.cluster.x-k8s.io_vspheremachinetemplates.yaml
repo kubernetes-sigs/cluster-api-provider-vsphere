@@ -691,7 +691,7 @@ spec:
     schema:
       openAPIV3Schema:
         description: VSphereMachineTemplate is the Schema for the vspheremachinetemplates
-          API
+          API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -706,11 +706,11 @@ spec:
           metadata:
             type: object
           spec:
-            description: VSphereMachineTemplateSpec defines the desired state of VSphereMachineTemplate
+            description: VSphereMachineTemplateSpec defines the desired state of VSphereMachineTemplate.
             properties:
               template:
                 description: VSphereMachineTemplateResource describes the data needed
-                  to create a VSphereMachine from a template
+                  to create a VSphereMachine from a template.
                 properties:
                   metadata:
                     description: 'Standard object''s metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata'
@@ -1112,7 +1112,7 @@ spec:
                           the virtual machine.
                         items:
                           description: PCIDeviceSpec defines virtual machine's PCI
-                            configuration
+                            configuration.
                           properties:
                             deviceId:
                               description: DeviceID is the device ID of a virtual

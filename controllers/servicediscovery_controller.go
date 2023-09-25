@@ -56,7 +56,8 @@ import (
 )
 
 const (
-	clusterNotReadyRequeueTime     = time.Minute * 2
+	clusterNotReadyRequeueTime = time.Minute * 2
+	// ServiceDiscoveryControllerName is the name of the service discovery controller.
 	ServiceDiscoveryControllerName = "servicediscovery-controller"
 
 	supervisorLoadBalancerSvcNamespace = "kube-system"
@@ -330,6 +331,7 @@ func (r *serviceDiscoveryReconciler) getSupervisorAPIServerAddress(ctx context.C
 	return supervisorHost, nil
 }
 
+// NewSupervisorHeadlessService returns a new Supervisor headless service.
 func NewSupervisorHeadlessService(port, targetPort int) *corev1.Service {
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -349,6 +351,7 @@ func NewSupervisorHeadlessService(port, targetPort int) *corev1.Service {
 	}
 }
 
+// NewSupervisorHeadlessServiceEndpoints returns Kubernetes Endpoints for the supervisor apiserver address.
 func NewSupervisorHeadlessServiceEndpoints(targetHost string, targetPort int) *corev1.Endpoints {
 	var endpointAddr corev1.EndpointAddress
 	if ip := net.ParseIP(targetHost); ip != nil {
@@ -376,6 +379,7 @@ func NewSupervisorHeadlessServiceEndpoints(targetHost string, targetPort int) *c
 	}
 }
 
+// GetSupervisorAPIServerVIP finds the load balancer IP of the Supervisor APIServer.
 func GetSupervisorAPIServerVIP(client client.Client) (string, error) {
 	svc := &corev1.Service{}
 	svcKey := types.NamespacedName{Name: vmwarev1.SupervisorLoadBalancerSvcName, Namespace: vmwarev1.SupervisorLoadBalancerSvcNamespace}
@@ -392,6 +396,7 @@ func GetSupervisorAPIServerVIP(client client.Client) (string, error) {
 	return "", errors.Errorf("no VIP found in the supervisor loadbalancer svc %s", svcKey)
 }
 
+// GetSupervisorAPIServerFIP finds the floating ip of the Supervisor APIServer.
 func GetSupervisorAPIServerFIP(client client.Client) (string, error) {
 	urlString, err := getSupervisorAPIServerURLWithFIP(client)
 	if err != nil {

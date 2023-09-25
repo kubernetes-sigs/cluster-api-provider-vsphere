@@ -27,7 +27,8 @@ limitations under the License.
 package v1alpha3
 
 // CPIConfig is the vSphere cloud provider's configuration.
-// DEPRECATED: will be removed in v1alpha4
+//
+// Deprecated: will be removed in v1alpha4.
 type CPIConfig struct {
 	// Global is the vSphere cloud provider's global configuration.
 	// +optional
@@ -59,7 +60,7 @@ type CPIConfig struct {
 }
 
 // CPIProviderConfig defines any extra information used to configure
-// the vSphere external cloud provider
+// the vSphere external cloud provider.
 type CPIProviderConfig struct {
 	Cloud   *CPICloudConfig   `json:"cloud,omitempty"`
 	Storage *CPIStorageConfig `json:"storage,omitempty"`

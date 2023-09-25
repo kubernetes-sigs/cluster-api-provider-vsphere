@@ -24,10 +24,10 @@ import (
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	"k8s.io/apimachinery/pkg/runtime"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 
-	nextver "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 )
 
 //nolint:paralleltest
@@ -35,11 +35,11 @@ func TestFuzzyConversion(t *testing.T) {
 	g := NewWithT(t)
 	scheme := runtime.NewScheme()
 	g.Expect(AddToScheme(scheme)).To(Succeed())
-	g.Expect(nextver.AddToScheme(scheme)).To(Succeed())
+	g.Expect(infrav1.AddToScheme(scheme)).To(Succeed())
 
 	t.Run("for VSphereCluster", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme: scheme,
-		Hub:    &nextver.VSphereCluster{},
+		Hub:    &infrav1.VSphereCluster{},
 		Spoke:  &VSphereCluster{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{
 			overrideVSphereClusterDeprecatedFieldsFuncs,
@@ -49,25 +49,25 @@ func TestFuzzyConversion(t *testing.T) {
 	}))
 	t.Run("for VSphereMachine", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme:      scheme,
-		Hub:         &nextver.VSphereMachine{},
+		Hub:         &infrav1.VSphereMachine{},
 		Spoke:       &VSphereMachine{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{CustomNewFieldFuzzFunc},
 	}))
 	t.Run("for VSphereMachineTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme:      scheme,
-		Hub:         &nextver.VSphereMachineTemplate{},
+		Hub:         &infrav1.VSphereMachineTemplate{},
 		Spoke:       &VSphereMachineTemplate{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{CustomObjectMetaFuzzFunc, CustomNewFieldFuzzFunc},
 	}))
 	t.Run("for VSphereVM", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme:      scheme,
-		Hub:         &nextver.VSphereVM{},
+		Hub:         &infrav1.VSphereVM{},
 		Spoke:       &VSphereVM{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{CustomNewFieldFuzzFunc},
 	}))
 }
 
-func overrideVSphereClusterDeprecatedFieldsFuncs(codecs runtimeserializer.CodecFactory) []interface{} {
+func overrideVSphereClusterDeprecatedFieldsFuncs(runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		func(vsphereClusterSpec *VSphereClusterSpec, c fuzz.Continue) {
 			vsphereClusterSpec.CloudProviderConfiguration = CPIConfig{}
@@ -75,9 +75,9 @@ func overrideVSphereClusterDeprecatedFieldsFuncs(codecs runtimeserializer.CodecF
 	}
 }
 
-func overrideVSphereClusterSpecFieldsFuncs(codecs runtimeserializer.CodecFactory) []interface{} {
+func overrideVSphereClusterSpecFieldsFuncs(runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
-		func(in *nextver.VSphereClusterSpec, c fuzz.Continue) {
+		func(in *infrav1.VSphereClusterSpec, c fuzz.Continue) {
 			c.FuzzNoCustom(in)
 			in.ClusterModules = nil
 			in.FailureDomainSelector = nil
@@ -85,23 +85,22 @@ func overrideVSphereClusterSpecFieldsFuncs(codecs runtimeserializer.CodecFactory
 	}
 }
 
-func overrideVSphereClusterStatusFieldsFuncs(codecs runtimeserializer.CodecFactory) []interface{} {
+func overrideVSphereClusterStatusFieldsFuncs(runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
-		func(in *nextver.VSphereClusterStatus, c fuzz.Continue) {
+		func(in *infrav1.VSphereClusterStatus, c fuzz.Continue) {
 			c.FuzzNoCustom(in)
 			in.VCenterVersion = ""
 		},
 	}
 }
 
-func CustomObjectMetaFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {
+func CustomObjectMetaFuzzFunc(runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		CustomObjectMetaFuzzer,
 	}
 }
 
-// nolint
-func CustomObjectMetaFuzzer(in *clusterv1.ObjectMeta, c fuzz.Continue) {
+func CustomObjectMetaFuzzer(in *clusterv1alpha3.ObjectMeta, c fuzz.Continue) {
 	c.FuzzNoCustom(in)
 
 	// These fields have been removed in v1alpha4
@@ -112,14 +111,14 @@ func CustomObjectMetaFuzzer(in *clusterv1.ObjectMeta, c fuzz.Continue) {
 	in.OwnerReferences = nil
 }
 
-func CustomNewFieldFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {
+func CustomNewFieldFuzzFunc(runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		CustomSpecNewFieldFuzzer,
 		CustomStatusNewFieldFuzzer,
 	}
 }
 
-func CustomSpecNewFieldFuzzer(in *nextver.VirtualMachineCloneSpec, c fuzz.Continue) {
+func CustomSpecNewFieldFuzzer(in *infrav1.VirtualMachineCloneSpec, c fuzz.Continue) {
 	c.FuzzNoCustom(in)
 
 	in.PciDevices = nil
@@ -128,7 +127,7 @@ func CustomSpecNewFieldFuzzer(in *nextver.VirtualMachineCloneSpec, c fuzz.Contin
 	in.HardwareVersion = ""
 }
 
-func CustomStatusNewFieldFuzzer(in *nextver.VSphereVMStatus, c fuzz.Continue) {
+func CustomStatusNewFieldFuzzer(in *infrav1.VSphereVMStatus, c fuzz.Continue) {
 	c.FuzzNoCustom(in)
 
 	in.Host = ""

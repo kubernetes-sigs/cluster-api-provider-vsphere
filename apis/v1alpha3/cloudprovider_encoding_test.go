@@ -23,10 +23,10 @@ import (
 	"github.com/onsi/gomega"
 	"github.com/pkg/errors"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/apis/v1alpha3"
+	infrav1alpha3 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1alpha3"
 )
 
-var unmarshalWarnAsFatal = []v1alpha3.UnmarshalINIOptionFunc{v1alpha3.WarnAsFatal}
+var unmarshalWarnAsFatal = []infrav1alpha3.UnmarshalINIOptionFunc{infrav1alpha3.WarnAsFatal}
 
 func errDeprecated(section, key string) error {
 	return errors.Errorf("warning:\ncan't store data at section \"%s\", variable \"%s\"\n", section, key) //nolint:revive
@@ -35,9 +35,9 @@ func errDeprecated(section, key string) error {
 type codecTestCase struct {
 	testName         string
 	iniString        string
-	configObj        v1alpha3.CPIConfig
+	configObj        infrav1alpha3.CPIConfig
 	expectedError    error
-	unmarshalOptions []v1alpha3.UnmarshalINIOptionFunc
+	unmarshalOptions []infrav1alpha3.UnmarshalINIOptionFunc
 }
 
 func TestMarshalINI(t *testing.T) {
@@ -61,17 +61,17 @@ folder = "kubernetes"
 default-datastore = "default"
 
 `,
-			configObj: v1alpha3.CPIConfig{
-				Global: v1alpha3.CPIGlobalConfig{
+			configObj: infrav1alpha3.CPIConfig{
+				Global: infrav1alpha3.CPIGlobalConfig{
 					Username:    "user",
 					Password:    "password",
 					Datacenters: "us-west",
 					ClusterID:   "cluster-namespace/cluster-name",
 				},
-				VCenter: map[string]v1alpha3.CPIVCenterConfig{
+				VCenter: map[string]infrav1alpha3.CPIVCenterConfig{
 					"0.0.0.0": {},
 				},
-				Workspace: v1alpha3.CPIWorkspaceConfig{
+				Workspace: infrav1alpha3.CPIWorkspaceConfig{
 					Server:     "0.0.0.0",
 					Datacenter: "us-west",
 					Folder:     "kubernetes",
@@ -96,19 +96,19 @@ datacenter = "us-west"
 folder = "kubernetes"
 
 `,
-			configObj: v1alpha3.CPIConfig{
-				Global: v1alpha3.CPIGlobalConfig{
+			configObj: infrav1alpha3.CPIConfig{
+				Global: infrav1alpha3.CPIGlobalConfig{
 					Port:        "443",
 					Insecure:    true,
 					Datacenters: "us-west",
 				},
-				VCenter: map[string]v1alpha3.CPIVCenterConfig{
+				VCenter: map[string]infrav1alpha3.CPIVCenterConfig{
 					"0.0.0.0": {
 						Username: "user",
 						Password: "password",
 					},
 				},
-				Workspace: v1alpha3.CPIWorkspaceConfig{
+				Workspace: infrav1alpha3.CPIWorkspaceConfig{
 					Server:     "0.0.0.0",
 					Datacenter: "us-west",
 					Folder:     "kubernetes",
@@ -130,16 +130,16 @@ datacenter = "us-west"
 folder = "kubernetes"
 
 `,
-			configObj: v1alpha3.CPIConfig{
-				Global: v1alpha3.CPIGlobalConfig{
+			configObj: infrav1alpha3.CPIConfig{
+				Global: infrav1alpha3.CPIGlobalConfig{
 					SecretName:      "vccreds",
 					SecretNamespace: "kube-system",
 					Datacenters:     "us-west",
 				},
-				VCenter: map[string]v1alpha3.CPIVCenterConfig{
+				VCenter: map[string]infrav1alpha3.CPIVCenterConfig{
 					"0.0.0.0": {},
 				},
-				Workspace: v1alpha3.CPIWorkspaceConfig{
+				Workspace: infrav1alpha3.CPIWorkspaceConfig{
 					Server:     "0.0.0.0",
 					Datacenter: "us-west",
 					Folder:     "kubernetes",
@@ -164,20 +164,20 @@ datacenter = "us-west"
 folder = "kubernetes"
 
 `,
-			configObj: v1alpha3.CPIConfig{
-				Global: v1alpha3.CPIGlobalConfig{
+			configObj: infrav1alpha3.CPIConfig{
+				Global: infrav1alpha3.CPIGlobalConfig{
 					Port:            "443",
 					Insecure:        true,
 					SecretName:      "vccreds",
 					SecretNamespace: "kube-system",
 					Datacenters:     "us-west",
 				},
-				VCenter: map[string]v1alpha3.CPIVCenterConfig{
+				VCenter: map[string]infrav1alpha3.CPIVCenterConfig{
 					"0.0.0.0": {
 						Password: "password",
 					},
 				},
-				Workspace: v1alpha3.CPIWorkspaceConfig{
+				Workspace: infrav1alpha3.CPIWorkspaceConfig{
 					Server:     "0.0.0.0",
 					Datacenter: "us-west",
 					Folder:     "kubernetes",
@@ -205,13 +205,13 @@ datacenter = "us-west"
 folder = "kubernetes"
 
 `,
-			configObj: v1alpha3.CPIConfig{
-				Global: v1alpha3.CPIGlobalConfig{
+			configObj: infrav1alpha3.CPIConfig{
+				Global: infrav1alpha3.CPIGlobalConfig{
 					Username:    "user",
 					Password:    "password",
 					Datacenters: "us-west",
 				},
-				VCenter: map[string]v1alpha3.CPIVCenterConfig{
+				VCenter: map[string]infrav1alpha3.CPIVCenterConfig{
 					"0.0.0.0": {
 						Thumbprint: "thumbprint:0",
 					},
@@ -220,7 +220,7 @@ folder = "kubernetes"
 						Thumbprint: "thumbprint:1",
 					},
 				},
-				Workspace: v1alpha3.CPIWorkspaceConfig{
+				Workspace: infrav1alpha3.CPIWorkspaceConfig{
 					Server:     "0.0.0.0",
 					Datacenter: "us-west",
 					Folder:     "kubernetes",
@@ -245,24 +245,24 @@ datacenter = "us-west"
 folder = "kubernetes"
 
 `,
-			configObj: v1alpha3.CPIConfig{
-				Global: v1alpha3.CPIGlobalConfig{
+			configObj: infrav1alpha3.CPIConfig{
+				Global: infrav1alpha3.CPIGlobalConfig{
 					Datacenters:     "us-west",
 					SecretName:      "vccreds",
 					SecretNamespace: "kube-system",
 					CAFile:          "/some/path/to/my/trusted/ca.pem",
 				},
-				VCenter: map[string]v1alpha3.CPIVCenterConfig{
+				VCenter: map[string]infrav1alpha3.CPIVCenterConfig{
 					"0.0.0.0": {},
 					"1.1.1.1": {},
 				},
-				Workspace: v1alpha3.CPIWorkspaceConfig{
+				Workspace: infrav1alpha3.CPIWorkspaceConfig{
 					Server:     "0.0.0.0",
 					Datacenter: "us-west",
 					Folder:     "kubernetes",
 				},
-				ProviderConfig: v1alpha3.CPIProviderConfig{
-					Cloud: &v1alpha3.CPICloudConfig{
+				ProviderConfig: infrav1alpha3.CPIProviderConfig{
+					Cloud: &infrav1alpha3.CPICloudConfig{
 						ControllerImage: "test",
 					},
 				},
@@ -371,17 +371,17 @@ func TestUnmarshalINI(t *testing.T) {
 		folder = "kubernetes"
 		default-datastore = "default"
 		`,
-			configObj: v1alpha3.CPIConfig{
-				Global: v1alpha3.CPIGlobalConfig{
+			configObj: infrav1alpha3.CPIConfig{
+				Global: infrav1alpha3.CPIGlobalConfig{
 					Username:    "user",
 					Password:    "password",
 					Datacenters: "us-west",
 					ClusterID:   "cluster-namespace/cluster-name",
 				},
-				VCenter: map[string]v1alpha3.CPIVCenterConfig{
+				VCenter: map[string]infrav1alpha3.CPIVCenterConfig{
 					"0.0.0.0": {},
 				},
-				Workspace: v1alpha3.CPIWorkspaceConfig{
+				Workspace: infrav1alpha3.CPIWorkspaceConfig{
 					Server:     "0.0.0.0",
 					Datacenter: "us-west",
 					Folder:     "kubernetes",
@@ -406,19 +406,19 @@ func TestUnmarshalINI(t *testing.T) {
 		datacenter = "us-west"
 		folder = "kubernetes"
 		`,
-			configObj: v1alpha3.CPIConfig{
-				Global: v1alpha3.CPIGlobalConfig{
+			configObj: infrav1alpha3.CPIConfig{
+				Global: infrav1alpha3.CPIGlobalConfig{
 					Port:        "443",
 					Insecure:    true,
 					Datacenters: "us-west",
 				},
-				VCenter: map[string]v1alpha3.CPIVCenterConfig{
+				VCenter: map[string]infrav1alpha3.CPIVCenterConfig{
 					"0.0.0.0": {
 						Username: "user",
 						Password: "password",
 					},
 				},
-				Workspace: v1alpha3.CPIWorkspaceConfig{
+				Workspace: infrav1alpha3.CPIWorkspaceConfig{
 					Server:     "0.0.0.0",
 					Datacenter: "us-west",
 					Folder:     "kubernetes",
@@ -442,19 +442,19 @@ func TestUnmarshalINI(t *testing.T) {
 		datacenter = "us-west"
 		folder = "kubernetes"
 		`,
-			configObj: v1alpha3.CPIConfig{
-				Global: v1alpha3.CPIGlobalConfig{
+			configObj: infrav1alpha3.CPIConfig{
+				Global: infrav1alpha3.CPIGlobalConfig{
 					Port:        "443",
 					Insecure:    true,
 					Datacenters: "us-west",
 				},
-				VCenter: map[string]v1alpha3.CPIVCenterConfig{
+				VCenter: map[string]infrav1alpha3.CPIVCenterConfig{
 					"0.0.0.0": {
 						Username: "domain\\user",
 						Password: "password",
 					},
 				},
-				Workspace: v1alpha3.CPIWorkspaceConfig{
+				Workspace: infrav1alpha3.CPIWorkspaceConfig{
 					Server:     "0.0.0.0",
 					Datacenter: "us-west",
 					Folder:     "kubernetes",
@@ -476,16 +476,16 @@ func TestUnmarshalINI(t *testing.T) {
 		datacenter = "us-west"
 		folder = "kubernetes"
 		`,
-			configObj: v1alpha3.CPIConfig{
-				Global: v1alpha3.CPIGlobalConfig{
+			configObj: infrav1alpha3.CPIConfig{
+				Global: infrav1alpha3.CPIGlobalConfig{
 					SecretName:      "vccreds",
 					SecretNamespace: "kube-system",
 					Datacenters:     "us-west",
 				},
-				VCenter: map[string]v1alpha3.CPIVCenterConfig{
+				VCenter: map[string]infrav1alpha3.CPIVCenterConfig{
 					"0.0.0.0": {},
 				},
-				Workspace: v1alpha3.CPIWorkspaceConfig{
+				Workspace: infrav1alpha3.CPIWorkspaceConfig{
 					Server:     "0.0.0.0",
 					Datacenter: "us-west",
 					Folder:     "kubernetes",
@@ -510,20 +510,20 @@ func TestUnmarshalINI(t *testing.T) {
 		datacenter = "us-west"
 		folder = "kubernetes"
 		`,
-			configObj: v1alpha3.CPIConfig{
-				Global: v1alpha3.CPIGlobalConfig{
+			configObj: infrav1alpha3.CPIConfig{
+				Global: infrav1alpha3.CPIGlobalConfig{
 					Port:            "443",
 					Insecure:        true,
 					SecretName:      "vccreds",
 					SecretNamespace: "kube-system",
 					Datacenters:     "us-west",
 				},
-				VCenter: map[string]v1alpha3.CPIVCenterConfig{
+				VCenter: map[string]infrav1alpha3.CPIVCenterConfig{
 					"0.0.0.0": {
 						Password: "password",
 					},
 				},
-				Workspace: v1alpha3.CPIWorkspaceConfig{
+				Workspace: infrav1alpha3.CPIWorkspaceConfig{
 					Server:     "0.0.0.0",
 					Datacenter: "us-west",
 					Folder:     "kubernetes",
@@ -551,13 +551,13 @@ func TestUnmarshalINI(t *testing.T) {
 		datacenter = "us-west"
 		folder = "kubernetes"
 		`,
-			configObj: v1alpha3.CPIConfig{
-				Global: v1alpha3.CPIGlobalConfig{
+			configObj: infrav1alpha3.CPIConfig{
+				Global: infrav1alpha3.CPIGlobalConfig{
 					Username:    "user",
 					Password:    "password",
 					Datacenters: "us-west",
 				},
-				VCenter: map[string]v1alpha3.CPIVCenterConfig{
+				VCenter: map[string]infrav1alpha3.CPIVCenterConfig{
 					"0.0.0.0": {
 						Thumbprint: "thumbprint:0",
 					},
@@ -566,7 +566,7 @@ func TestUnmarshalINI(t *testing.T) {
 						Thumbprint: "thumbprint:1",
 					},
 				},
-				Workspace: v1alpha3.CPIWorkspaceConfig{
+				Workspace: infrav1alpha3.CPIWorkspaceConfig{
 					Server:     "0.0.0.0",
 					Datacenter: "us-west",
 					Folder:     "kubernetes",
@@ -590,18 +590,18 @@ func TestUnmarshalINI(t *testing.T) {
 		datacenter = "us-west"
 		folder = "kubernetes"
 		`,
-			configObj: v1alpha3.CPIConfig{
-				Global: v1alpha3.CPIGlobalConfig{
+			configObj: infrav1alpha3.CPIConfig{
+				Global: infrav1alpha3.CPIGlobalConfig{
 					Datacenters:     "us-west",
 					SecretName:      "vccreds",
 					SecretNamespace: "kube-system",
 					CAFile:          "/some/path/to/my/trusted/ca.pem",
 				},
-				VCenter: map[string]v1alpha3.CPIVCenterConfig{
+				VCenter: map[string]infrav1alpha3.CPIVCenterConfig{
 					"0.0.0.0": {},
 					"1.1.1.1": {},
 				},
-				Workspace: v1alpha3.CPIWorkspaceConfig{
+				Workspace: infrav1alpha3.CPIWorkspaceConfig{
 					Server:     "0.0.0.0",
 					Datacenter: "us-west",
 					Folder:     "kubernetes",
@@ -618,7 +618,7 @@ func TestUnmarshalINI(t *testing.T) {
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(tc.testName, func(t *testing.T) {
-			var actualConfig v1alpha3.CPIConfig
+			var actualConfig infrav1alpha3.CPIConfig
 
 			if err := actualConfig.UnmarshalINI(
 				[]byte(tc.iniString),
@@ -676,7 +676,7 @@ func TestPasswords(t *testing.T) {
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(tc.testName, func(t *testing.T) {
-			var actualConfig v1alpha3.CPIConfig
+			var actualConfig infrav1alpha3.CPIConfig
 
 			iniString := `
 			[Global]
@@ -693,19 +693,19 @@ func TestPasswords(t *testing.T) {
 			datacenter = "us-west"
 			folder = "kubernetes"
 `
-			expectedConfig := v1alpha3.CPIConfig{
-				Global: v1alpha3.CPIGlobalConfig{
+			expectedConfig := infrav1alpha3.CPIConfig{
+				Global: infrav1alpha3.CPIGlobalConfig{
 					Port:        "443",
 					Insecure:    true,
 					Datacenters: "us-west",
 				},
-				VCenter: map[string]v1alpha3.CPIVCenterConfig{
+				VCenter: map[string]infrav1alpha3.CPIVCenterConfig{
 					"0.0.0.0": {
 						Username: "user",
 						Password: tc.expectedString,
 					},
 				},
-				Workspace: v1alpha3.CPIWorkspaceConfig{
+				Workspace: infrav1alpha3.CPIWorkspaceConfig{
 					Server:     "0.0.0.0",
 					Datacenter: "us-west",
 					Folder:     "kubernetes",

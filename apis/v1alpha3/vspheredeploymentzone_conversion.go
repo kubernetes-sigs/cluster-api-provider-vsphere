@@ -29,7 +29,7 @@ func (src *VSphereDeploymentZone) ConvertTo(dstRaw conversion.Hub) error {
 }
 
 // ConvertFrom converts from the Hub version (v1beta1) to this VSphereDeploymentZone.
-func (dst *VSphereDeploymentZone) ConvertFrom(srcRaw conversion.Hub) error { // nolint
+func (dst *VSphereDeploymentZone) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.VSphereDeploymentZone)
 	return Convert_v1beta1_VSphereDeploymentZone_To_v1alpha3_VSphereDeploymentZone(src, dst, nil)
 }
@@ -41,7 +41,7 @@ func (src *VSphereDeploymentZoneList) ConvertTo(dstRaw conversion.Hub) error {
 }
 
 // ConvertFrom converts this VSphereDeploymentZoneList to the Hub version (v1beta1).
-func (dst *VSphereDeploymentZoneList) ConvertFrom(srcRaw conversion.Hub) error { // nolint
+func (dst *VSphereDeploymentZoneList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.VSphereDeploymentZoneList)
 	return Convert_v1beta1_VSphereDeploymentZoneList_To_v1alpha3_VSphereDeploymentZoneList(src, dst, nil)
 }

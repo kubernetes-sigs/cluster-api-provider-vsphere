@@ -19,7 +19,7 @@ package v1alpha3
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
 const (
@@ -29,14 +29,15 @@ const (
 	ClusterFinalizer = "vspherecluster.infrastructure.cluster.x-k8s.io"
 )
 
-// VSphereClusterSpec defines the desired state of VSphereCluster
+// VSphereClusterSpec defines the desired state of VSphereCluster.
 type VSphereClusterSpec struct {
 	// Server is the address of the vSphere endpoint.
 	Server string `json:"server,omitempty"`
 
-	// Insecure is a flag that controls whether or not to validate the
+	// Insecure is a flag that controls whether to validate the
 	// vSphere server's certificate.
-	// DEPRECATED: will be removed in v1alpha4
+	//
+	// Deprecated: will be removed in v1alpha4.
 	// +optional
 	Insecure *bool `json:"insecure,omitempty"`
 
@@ -45,9 +46,9 @@ type VSphereClusterSpec struct {
 	// +optional
 	Thumbprint string `json:"thumbprint,omitempty"`
 
-	// CloudProviderConfiguration holds the cluster-wide configuration for the
-	// DEPRECATED: will be removed in v1alpha4
-	// vSphere cloud provider.
+	// CloudProviderConfiguration holds the cluster-wide configuration for the vSphere cloud provider.
+	//
+	// Deprecated: will be removed in v1alpha4.
 	CloudProviderConfiguration CPIConfig `json:"cloudProviderConfiguration,omitempty"`
 
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
@@ -59,7 +60,8 @@ type VSphereClusterSpec struct {
 	// When a LoadBalancerRef is provided, the VSphereCluster.Status.Ready field
 	// will not be true until the referenced resource is Status.Ready and has a
 	// non-empty Status.Address value.
-	// DEPRECATED: will be removed in v1alpha4
+	//
+	// Deprecated: will be removed in v1alpha4.
 	// +optional
 	LoadBalancerRef *corev1.ObjectReference `json:"loadBalancerRef,omitempty"`
 
@@ -69,17 +71,17 @@ type VSphereClusterSpec struct {
 	IdentityRef *VSphereIdentityReference `json:"identityRef,omitempty"`
 }
 
-// VSphereClusterStatus defines the observed state of VSphereClusterSpec
+// VSphereClusterStatus defines the observed state of VSphereClusterSpec.
 type VSphereClusterStatus struct {
 	// +optional
 	Ready bool `json:"ready,omitempty"`
 
 	// Conditions defines current service state of the VSphereCluster.
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions clusterv1alpha3.Conditions `json:"conditions,omitempty"`
 
 	// FailureDomains is a list of failure domain objects synced from the infrastructure provider.
-	FailureDomains clusterv1.FailureDomains `json:"failureDomains,omitempty"`
+	FailureDomains clusterv1alpha3.FailureDomains `json:"failureDomains,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -102,11 +104,11 @@ type VSphereCluster struct {
 	Status VSphereClusterStatus `json:"status,omitempty"`
 }
 
-func (m *VSphereCluster) GetConditions() clusterv1.Conditions {
+func (m *VSphereCluster) GetConditions() clusterv1alpha3.Conditions {
 	return m.Status.Conditions
 }
 
-func (m *VSphereCluster) SetConditions(conditions clusterv1.Conditions) {
+func (m *VSphereCluster) SetConditions(conditions clusterv1alpha3.Conditions) {
 	m.Status.Conditions = conditions
 }
 

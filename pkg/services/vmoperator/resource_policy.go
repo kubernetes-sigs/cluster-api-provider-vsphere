@@ -27,7 +27,6 @@ import (
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
-	vmwareutil "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util/vmware"
 )
 
 // RPService represents the ability to reconcile a VirtualMachineSetResourcePolicy via vmoperator.
@@ -87,7 +86,7 @@ func (s *RPService) createVirtualMachineSetResourcePolicy(ctx context.Context, c
 					GroupName: ControlPlaneVMClusterModuleGroupName,
 				},
 				{
-					GroupName: vmwareutil.GetMachineDeploymentNameForCluster(clusterCtx.Cluster),
+					GroupName: getMachineDeploymentNameForCluster(clusterCtx.Cluster),
 				},
 			},
 		}

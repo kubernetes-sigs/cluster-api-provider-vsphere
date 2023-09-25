@@ -38,7 +38,6 @@ import (
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
 	infrautilv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
-	vmwareutil "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util/vmware"
 )
 
 // VmopMachineService reconciles VM Operator VM.
@@ -415,7 +414,7 @@ func addResourcePolicyAnnotations(supervisorMachineCtx *vmware.SupervisorMachine
 		annotations[ClusterModuleNameAnnotationKey] = ControlPlaneVMClusterModuleGroupName
 	} else {
 		annotations[ProviderTagsAnnotationKey] = WorkerVMVMAntiAffinityTagValue
-		annotations[ClusterModuleNameAnnotationKey] = vmwareutil.GetMachineDeploymentNameForCluster(supervisorMachineCtx.Cluster)
+		annotations[ClusterModuleNameAnnotationKey] = getMachineDeploymentNameForCluster(supervisorMachineCtx.Cluster)
 	}
 
 	vm.ObjectMeta.SetAnnotations(annotations)
@@ -558,4 +557,10 @@ func getTopologyLabels(supervisorMachineCtx *vmware.SupervisorMachineContext) ma
 		}
 	}
 	return nil
+}
+
+// getMachineDeploymentName returns the MachineDeployment name for a Cluster.
+// This is also the name used by VSphereMachineTemplate and KubeadmConfigTemplate.
+func getMachineDeploymentNameForCluster(cluster *clusterv1.Cluster) string {
+	return fmt.Sprintf("%s-workers-0", cluster.Name)
 }

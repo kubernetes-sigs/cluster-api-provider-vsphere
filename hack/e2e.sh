@@ -27,8 +27,8 @@ source "${REPO_ROOT}/hack/ensure-kubectl.sh"
 on_exit() {
   # release IPClaim
   echo "Releasing IP claims"
-  kubectl --kubeconfig="${KUBECONFIG}" delete "ipclaim.ipam.metal3.io" "${CONTROL_PLANE_IPCLAIM_NAME}" || true
-  kubectl --kubeconfig="${KUBECONFIG}" delete "ipclaim.ipam.metal3.io" "${WORKLOAD_IPCLAIM_NAME}" || true
+  kubectl --kubeconfig="${KUBECONFIG}" delete "ipaddressclaim.ipam.cluster.x-k8s.io" "${CONTROL_PLANE_IPCLAIM_NAME}" || true
+  kubectl --kubeconfig="${KUBECONFIG}" delete "ipaddressclaim.ipam.cluster.x-k8s.io" "${WORKLOAD_IPCLAIM_NAME}" || true
 
   # kill the VPN
   docker kill vpn
@@ -80,7 +80,7 @@ function kubectl_get_jsonpath() {
   local JSON_PATH="${3}"
   local n=0
   until [ $n -ge 30 ]; do
-    OUTPUT=$(kubectl --kubeconfig="${KUBECONFIG}" get "${OBJECT_KIND}.ipam.metal3.io" "${OBJECT_NAME}" -o=jsonpath="${JSON_PATH}")
+    OUTPUT=$(kubectl --kubeconfig="${KUBECONFIG}" get "${OBJECT_KIND}.ipam.cluster.x-k8s.io" "${OBJECT_NAME}" -o=jsonpath="${JSON_PATH}")
     if [[ "${OUTPUT}" != "" ]]; then
       break
     fi
@@ -101,8 +101,8 @@ function claim_ip() {
   IPCLAIM_NAME="$1"
   export IPCLAIM_NAME
   envsubst < "${REPO_ROOT}/hack/ipclaim-template.yaml" | kubectl --kubeconfig="${KUBECONFIG}" create -f - 1>&2
-  IPADDRESS_NAME=$(kubectl_get_jsonpath ipclaim "${IPCLAIM_NAME}" '{@.status.address.name}')
-  kubectl --kubeconfig="${KUBECONFIG}" get "ipaddresses.ipam.metal3.io" "${IPADDRESS_NAME}" -o=jsonpath='{@.spec.address}'
+  IPADDRESS_NAME=$(kubectl_get_jsonpath ipaddressclaim "${IPCLAIM_NAME}" '{@.status.addressRef.name}')
+  kubectl --kubeconfig="${KUBECONFIG}" get "ipaddresses.ipam.cluster.x-k8s.io" "${IPADDRESS_NAME}" -o=jsonpath='{@.spec.address}'
 }
 
 export KUBECONFIG="/root/ipam-conf/capv-services.conf"

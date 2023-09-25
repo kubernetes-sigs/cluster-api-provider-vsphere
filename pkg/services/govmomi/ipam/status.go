@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package ipam contains tools for to deal with CAPI IPAddress and related types.
 package ipam
 
 import (
@@ -44,6 +45,7 @@ type ipamDeviceConfig struct {
 	IPAMConfigGateway6  string
 }
 
+// BuildState checks if IPAddressClaims are satisfied and returns a map of NetworkDeviceSpec.
 func BuildState(ctx context.VMContext, networkStatus []infrav1.NetworkStatus) (map[string]infrav1.NetworkDeviceSpec, error) {
 	state := map[string]infrav1.NetworkDeviceSpec{}
 

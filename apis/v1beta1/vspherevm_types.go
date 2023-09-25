@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-//nolint:godot
 package v1beta1
 
 import (
@@ -31,7 +30,7 @@ const (
 	// with a VSphereVM before removing it from the API Server.
 	VMFinalizer = "vspherevm.infrastructure.cluster.x-k8s.io"
 
-	// IPClaimFinalizer allows the reconciler to prevent deletion of an
+	// IPAddressClaimFinalizer allows the reconciler to prevent deletion of an
 	// IPAddressClaim that is in use.
 	IPAddressClaimFinalizer = "vspherevm.infrastructure.cluster.x-k8s.io/ip-claim-protection"
 
@@ -87,7 +86,7 @@ type VSphereVMSpec struct {
 	GuestSoftPowerOffTimeout *metav1.Duration `json:"guestSoftPowerOffTimeout,omitempty"`
 }
 
-// VSphereVMStatus defines the observed state of VSphereVM
+// VSphereVMStatus defines the observed state of VSphereVM.
 type VSphereVMStatus struct {
 	// Host describes the hostname or IP address of the infrastructure host
 	// that the VSphereVM is residing on.
@@ -186,7 +185,7 @@ type VSphereVMStatus struct {
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 
-// VSphereVM is the Schema for the vspherevms API
+// VSphereVM is the Schema for the vspherevms API.
 type VSphereVM struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -195,17 +194,19 @@ type VSphereVM struct {
 	Status VSphereVMStatus `json:"status,omitempty"`
 }
 
+// GetConditions returns the conditions for a VSphereVM.
 func (r *VSphereVM) GetConditions() clusterv1.Conditions {
 	return r.Status.Conditions
 }
 
+// SetConditions sets the conditions on a VSphereVM.
 func (r *VSphereVM) SetConditions(conditions clusterv1.Conditions) {
 	r.Status.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true
 
-// VSphereVMList contains a list of VSphereVM
+// VSphereVMList contains a list of VSphereVM.
 type VSphereVMList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

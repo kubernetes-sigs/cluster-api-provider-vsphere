@@ -27,8 +27,11 @@ import (
 )
 
 const (
-	NSXNetworkProvider     = "NSX"
-	VDSNetworkProvider     = "vsphere-network"
+	// NSXNetworkProvider identifies the NSX network provider.
+	NSXNetworkProvider = "NSX"
+	// VDSNetworkProvider identifies the VDS network provider.
+	VDSNetworkProvider = "vsphere-network"
+	// DummyLBNetworkProvider identifies the Dummy network provider.
 	DummyLBNetworkProvider = "DummyLBNetworkProvider"
 )
 

@@ -60,7 +60,10 @@ password: '%s'
 		if err != nil {
 			t.Fatal(err)
 		}
-		t.Cleanup(func() { os.Remove(tmpFile.Name()) })
+		t.Cleanup(func() {
+			// we don't want to error if this fails so ignore the error.
+			_ = os.Remove(tmpFile.Name())
+		})
 
 		if _, err := tmpFile.WriteString(content); err != nil {
 			t.Fatal(err)

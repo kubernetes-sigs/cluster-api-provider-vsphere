@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-//nolint:godot
 package v1beta1
 
 import (
@@ -24,7 +23,7 @@ import (
 	"sigs.k8s.io/cluster-api/errors"
 )
 
-// VSphereMachineVolume defines a PVC attachment
+// VSphereMachineVolume defines a PVC attachment.
 type VSphereMachineVolume struct {
 	// Name is suffix used to name this PVC as: VSphereMachine.Name + "-" + Name
 	Name string `json:"name"`
@@ -35,7 +34,7 @@ type VSphereMachineVolume struct {
 	StorageClass string `json:"storageClass,omitempty"`
 }
 
-// VSphereMachineSpec defines the desired state of VSphereMachine
+// VSphereMachineSpec defines the desired state of VSphereMachine.
 type VSphereMachineSpec struct {
 	// ProviderID is the virtual machine's BIOS UUID formated as
 	// vsphere://12345678-1234-1234-1234-123456789abc.
@@ -82,7 +81,7 @@ type VSphereMachineSpec struct {
 	PowerOffMode VirtualMachinePowerOpMode `json:"powerOffMode,omitempty"`
 }
 
-// VSphereMachineStatus defines the observed state of VSphereMachine
+// VSphereMachineStatus defines the observed state of VSphereMachine.
 type VSphereMachineStatus struct {
 	// Ready is true when the provider resource is ready.
 	// This is required at runtime by CAPI. Do not remove this field.
@@ -166,17 +165,19 @@ type VSphereMachine struct {
 
 // +kubebuilder:object:root=true
 
-// VSphereMachineList contains a list of VSphereMachine
+// VSphereMachineList contains a list of VSphereMachine.
 type VSphereMachineList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []VSphereMachine `json:"items"`
 }
 
+// GetConditions returns the conditions for the VSphereMachine.
 func (r *VSphereMachine) GetConditions() clusterv1.Conditions {
 	return r.Status.Conditions
 }
 
+// SetConditions sets conditions on the VSphereMachine.
 func (r *VSphereMachine) SetConditions(conditions clusterv1.Conditions) {
 	r.Status.Conditions = conditions
 }

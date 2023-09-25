@@ -264,7 +264,7 @@ spec:
     schema:
       openAPIV3Schema:
         description: VSphereFailureDomain is the Schema for the vspherefailuredomains
-          API
+          API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -279,7 +279,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: VSphereFailureDomainSpec defines the desired state of VSphereFailureDomain
+            description: VSphereFailureDomainSpec defines the desired state of VSphereFailureDomain.
             properties:
               region:
                 description: Region defines the name and type of a region

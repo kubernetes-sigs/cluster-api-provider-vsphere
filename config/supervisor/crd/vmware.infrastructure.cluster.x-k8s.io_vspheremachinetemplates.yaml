@@ -20,7 +20,7 @@ spec:
     schema:
       openAPIV3Schema:
         description: VSphereMachineTemplate is the Schema for the vspheremachinetemplates
-          API
+          API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -35,11 +35,11 @@ spec:
           metadata:
             type: object
           spec:
-            description: VSphereMachineTemplateSpec defines the desired state of VSphereMachineTemplate
+            description: VSphereMachineTemplateSpec defines the desired state of VSphereMachineTemplate.
             properties:
               template:
                 description: VSphereMachineTemplateResource describes the data needed
-                  to create a VSphereMachine from a template
+                  to create a VSphereMachine from a template.
                 properties:
                   spec:
                     description: Spec is the specification of the desired behavior
@@ -89,7 +89,7 @@ spec:
                         description: Volumes is the set of PVCs to be created and
                           attached to the VSphereMachine
                         items:
-                          description: VSphereMachineVolume defines a PVC attachment
+                          description: VSphereMachineVolume defines a PVC attachment.
                           properties:
                             capacity:
                               additionalProperties:

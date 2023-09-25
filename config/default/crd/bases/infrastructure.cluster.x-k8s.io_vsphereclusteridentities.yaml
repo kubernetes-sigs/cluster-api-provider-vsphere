@@ -286,7 +286,7 @@ spec:
     schema:
       openAPIV3Schema:
         description: VSphereClusterIdentity defines the account to be used for reconciling
-          clusters
+          clusters.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -301,6 +301,8 @@ spec:
           metadata:
             type: object
           spec:
+            description: VSphereClusterIdentitySpec contains a secret reference and
+              a group of allowed namespaces.
             properties:
               allowedNamespaces:
                 description: AllowedNamespaces is used to identify which namespaces
@@ -361,6 +363,7 @@ spec:
                 type: string
             type: object
           status:
+            description: VSphereClusterIdentityStatus contains the status of the VSphereClusterIdentity.
             properties:
               conditions:
                 description: Conditions defines current service state of the VSphereCluster.

@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package session contains tools to create and retrieve a VCenter session.
 package session
 
 import (
@@ -61,17 +62,20 @@ type Session struct {
 	TagManager *tags.Manager
 }
 
+// Feature is a set of Features of the session.
 type Feature struct {
 	EnableKeepAlive   bool
 	KeepAliveDuration time.Duration
 }
 
+// DefaultFeature sets the default values for features.
 func DefaultFeature() Feature {
 	return Feature{
 		EnableKeepAlive: constants.DefaultEnableKeepAlive,
 	}
 }
 
+// Params are the parameters of a VCenter session.
 type Params struct {
 	server     string
 	datacenter string
@@ -80,32 +84,38 @@ type Params struct {
 	feature    Feature
 }
 
+// NewParams returns an empty set of parameters with default features.
 func NewParams() *Params {
 	return &Params{
 		feature: DefaultFeature(),
 	}
 }
 
+// WithServer adds a server to parameters.
 func (p *Params) WithServer(server string) *Params {
 	p.server = server
 	return p
 }
 
+// WithDatacenter adds a datacenter to parameters.
 func (p *Params) WithDatacenter(datacenter string) *Params {
 	p.datacenter = datacenter
 	return p
 }
 
+// WithUserInfo adds userinfo to parameters.
 func (p *Params) WithUserInfo(username, password string) *Params {
 	p.userinfo = url.UserPassword(username, password)
 	return p
 }
 
+// WithThumbprint adds a thumbprint to parameters.
 func (p *Params) WithThumbprint(thumbprint string) *Params {
 	p.thumbprint = thumbprint
 	return p
 }
 
+// WithFeatures adds features to parameters.
 func (p *Params) WithFeatures(feature Feature) *Params {
 	p.feature = feature
 	return p
@@ -270,6 +280,7 @@ func newManager(ctx context.Context, logger logr.Logger, sessionKey string, clie
 	return tags.NewManager(rc), nil
 }
 
+// GetVersion returns the VCenterVersion.
 func (s *Session) GetVersion() (infrav1.VCenterVersion, error) {
 	svcVersion := s.ServiceContent.About.Version
 	version, err := semver.New(svcVersion)

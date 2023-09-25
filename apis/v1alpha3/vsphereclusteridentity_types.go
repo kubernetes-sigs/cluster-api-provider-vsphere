@@ -22,6 +22,7 @@ import (
 )
 
 const (
+	// SecretIdentitySetFinalizer is the finalizer for VSphereCluster credentials secrets .
 	SecretIdentitySetFinalizer = "vspherecluster/infrastructure.cluster.x-k8s.io"
 )
 
@@ -94,6 +95,7 @@ type VSphereClusterIdentity struct {
 }
 
 // +kubebuilder:object:root=true
+
 // VSphereClusterIdentityList contains a list of VSphereClusterIdentity
 //
 // Deprecated: This type will be removed in one of the next releases.

@@ -81,10 +81,12 @@ type VSphereCluster struct {
 	Status VSphereClusterStatus `json:"status,omitempty"`
 }
 
+// GetConditions returns the conditions for the VSphereCluster.
 func (c *VSphereCluster) GetConditions() clusterv1alpha4.Conditions {
 	return c.Status.Conditions
 }
 
+// GetConditions sets conditions on the VSphereCluster.
 func (c *VSphereCluster) SetConditions(conditions clusterv1alpha4.Conditions) {
 	c.Status.Conditions = conditions
 }

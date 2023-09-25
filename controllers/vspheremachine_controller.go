@@ -78,7 +78,6 @@ const hostInfoErrStr = "host info cannot be used as a label value"
 
 // AddMachineControllerToManager adds the machine controller to the provided
 // manager.
-
 func AddMachineControllerToManager(ctx context.Context, controllerManagerContext *capvcontext.ControllerManagerContext, mgr manager.Manager, controlledType client.Object, options controller.Options) error {
 	supervisorBased, err := util.IsSupervisorType(controlledType)
 	if err != nil {

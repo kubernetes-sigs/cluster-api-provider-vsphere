@@ -41,14 +41,17 @@ import (
 	vmwareutil "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util/vmware"
 )
 
+// VmopMachineService reconciles VM Operator VM.
 type VmopMachineService struct{}
 
+// FetchVSphereMachine returns a MachineContext with a VSphereMachine for the passed NamespacedName.
 func (v *VmopMachineService) FetchVSphereMachine(client client.Client, name types.NamespacedName) (capvcontext.MachineContext, error) {
 	vsphereMachine := &vmwarev1.VSphereMachine{}
 	err := client.Get(context.Background(), name, vsphereMachine)
 	return &vmware.SupervisorMachineContext{VSphereMachine: vsphereMachine}, err
 }
 
+// FetchVSphereCluster adds the VSphereCluster for the cluster to the MachineContext.
 func (v *VmopMachineService) FetchVSphereCluster(c client.Client, cluster *clusterv1.Cluster, machineContext capvcontext.MachineContext) (capvcontext.MachineContext, error) {
 	ctx, ok := machineContext.(*vmware.SupervisorMachineContext)
 	if !ok {
@@ -66,6 +69,7 @@ func (v *VmopMachineService) FetchVSphereCluster(c client.Client, cluster *clust
 	return ctx, err
 }
 
+// ReconcileDelete reconciles delete events for VM Operator VM.
 func (v *VmopMachineService) ReconcileDelete(machineCtx capvcontext.MachineContext) error {
 	supervisorMachineCtx, ok := machineCtx.(*vmware.SupervisorMachineContext)
 	if !ok {
@@ -114,6 +118,7 @@ func (v *VmopMachineService) ReconcileDelete(machineCtx capvcontext.MachineConte
 	return nil
 }
 
+// SyncFailureReason returns true if there is a Failure on the VM Operator VM.
 func (v *VmopMachineService) SyncFailureReason(machineCtx capvcontext.MachineContext) (bool, error) {
 	supervisorMachineCtx, ok := machineCtx.(*vmware.SupervisorMachineContext)
 	if !ok {
@@ -123,6 +128,7 @@ func (v *VmopMachineService) SyncFailureReason(machineCtx capvcontext.MachineCon
 	return supervisorMachineCtx.VSphereMachine.Status.FailureReason != nil || supervisorMachineCtx.VSphereMachine.Status.FailureMessage != nil, nil
 }
 
+// ReconcileNormal reconciles create and update events for VM Operator VMs.
 func (v *VmopMachineService) ReconcileNormal(machineCtx capvcontext.MachineContext) (bool, error) {
 	supervisorMachineCtx, ok := machineCtx.(*vmware.SupervisorMachineContext)
 	if !ok {
@@ -220,6 +226,7 @@ func (v *VmopMachineService) ReconcileNormal(machineCtx capvcontext.MachineConte
 	return false, nil
 }
 
+// GetHostInfo returns the hostname or IP address of the infrastructure host for the VM Operator VM.
 func (v VmopMachineService) GetHostInfo(machineCtx capvcontext.MachineContext) (string, error) {
 	supervisorMachineCtx, ok := machineCtx.(*vmware.SupervisorMachineContext)
 	if !ok {

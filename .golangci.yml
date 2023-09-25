@@ -261,35 +261,25 @@ issues:
     - stylecheck
     text: "ST1016: methods on the same type should have the same receiver name"
     path: ^apis\/.*\/.*conversion.*\.go$
-
-  # FIXME: All below excludes should get removed over time.
-
-  # missing comments
+    # missing comments on v1alpha3 and v1alpha4 packages. These rules should be removed when those packages are removed.
   - linters:
-    - revive
+      - revive
     text: "package-comments"
-    path: ^(main|(packaging|apis|controllers|feature|test|pkg)\/.*)\.go$
+    path: ^(apis/(v1alpha3|v1alpha4)\/.*)\.go$
   - linters:
-    - stylecheck
+      - stylecheck
     text: "ST1000"
-    path: ^(main|(packaging|apis|controllers|feature|test|pkg)\/.*)\.go$
+    path: ^(apis/(v1alpha3|v1alpha4)\/.*)\.go$
   - linters:
-    - revive
+      - revive
     text: exported (.*) should have comment (.*)or be unexported
-    path: "^(apis|controllers|packaging|pkg)/.*.go"
-
-  # wrong comment
+    path: ^(apis/(v1alpha3|v1alpha4)\/.*)\.go$
+    # wrong comment
   - linters:
-    - revive
+      - revive
     text: comment on exported (.*) should be of the form (.*)
-    path: "^(apis|packaging|pkg/(constants|services|util))/"
+    path: ^(apis/(v1alpha3|v1alpha4)\/.*)\.go$
   - linters:
-    - stylecheck
+      - stylecheck
     text: ST1021|ST1020
-    path: "^(apis|packaging|pkg/(constants|services|util))/"
-
-  # gosec
-  - linters:
-    - gosec
-    text: "G104: Errors unhandled."
-    path: ^(controllers/vspherecluster_reconciler|pkg/manager/options_test|test/helpers/webhook)\.go$
+    path: ^(apis/(v1alpha3|v1alpha4)\/.*)\.go$

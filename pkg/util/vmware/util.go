@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package vmware contains tools for handling Cluster API objects.
 package vmware
 
 import (
@@ -22,7 +23,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
-// GetMachineDeploymentName returns the MachineDeployment name for a Cluster.
+// GetMachineDeploymentNameForCluster returns the MachineDeployment name for a Cluster.
 // This is also the name used by VSphereMachineTemplate and KubeadmConfigTemplate.
 func GetMachineDeploymentNameForCluster(cluster *clusterv1.Cluster) string {
 	return fmt.Sprintf("%s-workers-0", cluster.Name)

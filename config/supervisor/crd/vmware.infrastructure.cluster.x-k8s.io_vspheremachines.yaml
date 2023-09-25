@@ -47,7 +47,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: VSphereMachineSpec defines the desired state of VSphereMachine
+            description: VSphereMachineSpec defines the desired state of VSphereMachine.
             properties:
               className:
                 description: ClassName is the name of the class used when specifying
@@ -91,7 +91,7 @@ spec:
                 description: Volumes is the set of PVCs to be created and attached
                   to the VSphereMachine
                 items:
-                  description: VSphereMachineVolume defines a PVC attachment
+                  description: VSphereMachineVolume defines a PVC attachment.
                   properties:
                     capacity:
                       additionalProperties:
@@ -119,7 +119,7 @@ spec:
             - imageName
             type: object
           status:
-            description: VSphereMachineStatus defines the observed state of VSphereMachine
+            description: VSphereMachineStatus defines the observed state of VSphereMachine.
             properties:
               addresses:
                 description: Addresses contains the instance associated addresses.

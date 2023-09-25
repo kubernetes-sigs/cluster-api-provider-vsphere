@@ -24,6 +24,7 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
+// FindVMGroup returns the VSphereVMGroup object.
 // TODO(zhanggbj): add (ctx context.Context) in function signature after refactoring context for pkg/services/govmomi/service.go.
 func FindVMGroup(computeClusterCtx computeClusterContext, clusterName, vmGroupName string) (*VMGroup, error) {
 	ccr, err := computeClusterCtx.GetSession().Finder.ClusterComputeResource(computeClusterCtx, clusterName)

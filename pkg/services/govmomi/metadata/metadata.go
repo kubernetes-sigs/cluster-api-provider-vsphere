@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package metadata contains tools to manage metadata tags on VCenter objects.
 package metadata
 
 import (
@@ -73,6 +74,7 @@ func getCategoryObject(name string, failureDomainType infrav1.FailureDomainType)
 	}
 }
 
+// CreateTag creates a new tag with the given with the given Name, and CategoryID.
 func CreateTag(ctx context.Context, metadataCtx metadataContext, name, categoryID string) error {
 	logger := ctrl.LoggerFrom(ctx, "tag", name, "category", categoryID)
 	manager := metadataCtx.GetSession().TagManager

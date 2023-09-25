@@ -24,6 +24,7 @@ import (
 	"k8s.io/utils/pointer"
 )
 
+// Rule is a role for host affinity.
 type Rule interface {
 	Disabled() bool
 
@@ -49,6 +50,7 @@ func negate(input bool) bool {
 	return !input
 }
 
+// VerifyAffinityRule checks whether an affinity rule exists for a given hostGroup and vmGroup.
 func VerifyAffinityRule(ctx context.Context, computeClusterCtx computeClusterContext, clusterName, hostGroupName, vmGroupName string) (Rule, error) {
 	rules, err := listRules(ctx, computeClusterCtx, clusterName)
 	if err != nil {

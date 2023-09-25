@@ -20,7 +20,7 @@ spec:
     schema:
       openAPIV3Schema:
         description: VSphereClusterTemplate is the Schema for the vsphereclustertemplates
-          API
+          API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -35,12 +35,13 @@ spec:
           metadata:
             type: object
           spec:
-            description: VSphereClusterTemplateSpec defines the desired state of VSphereClusterTemplate
+            description: VSphereClusterTemplateSpec defines the desired state of VSphereClusterTemplate.
             properties:
               template:
+                description: VSphereClusterTemplateResource defines the template structure.
                 properties:
                   spec:
-                    description: VSphereClusterSpec defines the desired state of VSphereCluster
+                    description: VSphereClusterSpec defines the desired state of VSphereCluster.
                     properties:
                       controlPlaneEndpoint:
                         description: APIEndpoint represents a reachable Kubernetes

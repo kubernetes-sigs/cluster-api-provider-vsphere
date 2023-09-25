@@ -27,6 +27,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 )
 
+// BaseMachineContext contains information about a CAPI Machine for VSphereMachine reconciliation.
 type BaseMachineContext struct {
 	*ControllerContext
 	Logger      logr.Logger
@@ -35,10 +36,12 @@ type BaseMachineContext struct {
 	PatchHelper *patch.Helper
 }
 
+// GetCluster returns the cluster for the BaseMachineContext.
 func (c *BaseMachineContext) GetCluster() *clusterv1.Cluster {
 	return c.Cluster
 }
 
+// GetMachine returns the Machine for the BaseMachineContext.
 func (c *BaseMachineContext) GetMachine() *clusterv1.Machine {
 	return c.Machine
 }
@@ -65,14 +68,17 @@ func (c *VIMMachineContext) Patch() error {
 	return c.PatchHelper.Patch(c, c.VSphereMachine)
 }
 
+// GetVSphereMachine sets the VSphereMachine for the VIMMachineContext.
 func (c *VIMMachineContext) GetVSphereMachine() VSphereMachine {
 	return c.VSphereMachine
 }
 
+// GetObjectMeta returns the ObjectMeta for the VSphereMachine in the VIMMachineContext.
 func (c *VIMMachineContext) GetObjectMeta() metav1.ObjectMeta {
 	return c.VSphereMachine.ObjectMeta
 }
 
+// SetBaseMachineContext sets the BaseMachineContext for the VIMMachineContext.
 func (c *VIMMachineContext) SetBaseMachineContext(base *BaseMachineContext) {
 	c.BaseMachineContext = base
 }

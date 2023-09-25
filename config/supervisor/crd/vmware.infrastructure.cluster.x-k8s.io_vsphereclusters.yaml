@@ -19,7 +19,7 @@ spec:
   - name: v1beta1
     schema:
       openAPIV3Schema:
-        description: VSphereCluster is the Schema for the VSphereClusters API
+        description: VSphereCluster is the Schema for the VSphereClusters API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -34,7 +34,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: VSphereClusterSpec defines the desired state of VSphereCluster
+            description: VSphereClusterSpec defines the desired state of VSphereCluster.
             properties:
               controlPlaneEndpoint:
                 description: APIEndpoint represents a reachable Kubernetes API endpoint.
@@ -54,7 +54,7 @@ spec:
             - controlPlaneEndpoint
             type: object
           status:
-            description: VSphereClusterStatus defines the observed state of VSphereClusterSpec
+            description: VSphereClusterStatus defines the observed state of VSphereClusterSpec.
             properties:
               conditions:
                 description: Conditions defines current service state of the VSphereCluster.

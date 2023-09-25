@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package clustermodules contains tools for handling Cluster Modules.
 package clustermodules
 
 import (
@@ -45,12 +46,14 @@ type provider struct {
 	manager *cluster.Manager
 }
 
+// NewProvider returns a new Cluster Module provider.
 func NewProvider(restClient *rest.Client) Provider {
 	return &provider{
 		manager: cluster.NewManager(restClient),
 	}
 }
 
+// CreateModule creates a new Cluster Module and returns its ID.
 func (cm *provider) CreateModule(ctx context.Context, clusterRef types.ManagedObjectReference) (string, error) {
 	log.Info("Creating cluster module", "cluster", clusterRef)
 
@@ -63,6 +66,7 @@ func (cm *provider) CreateModule(ctx context.Context, clusterRef types.ManagedOb
 	return moduleID, nil
 }
 
+// DeleteModule deletes a  Cluster Module by ID.
 func (cm *provider) DeleteModule(ctx context.Context, moduleID string) error {
 	log.Info("Deleting cluster module", "moduleID", moduleID)
 
@@ -75,6 +79,7 @@ func (cm *provider) DeleteModule(ctx context.Context, moduleID string) error {
 	return nil
 }
 
+// DoesModuleExist checks whether a module with a given name exists with the passed clusterRef and moduleID.
 func (cm *provider) DoesModuleExist(ctx context.Context, moduleID string, clusterRef types.ManagedObjectReference) (bool, error) {
 	log.V(4).Info("Checking if cluster module exists", "moduleID", moduleID, "clusterRef", clusterRef)
 
@@ -97,6 +102,7 @@ func (cm *provider) DoesModuleExist(ctx context.Context, moduleID string, cluste
 	return false, nil
 }
 
+// IsMoRefModuleMember checks whether the passed managed object reference is in the ClusterModule.
 func (cm *provider) IsMoRefModuleMember(ctx context.Context, moduleID string, moRef types.ManagedObjectReference) (bool, error) {
 	moduleMembers, err := cm.manager.ListModuleMembers(ctx, moduleID)
 	if err != nil {
@@ -112,6 +118,7 @@ func (cm *provider) IsMoRefModuleMember(ctx context.Context, moduleID string, mo
 	return false, nil
 }
 
+// AddMoRefToModule adds the object to the ClusterModule if it is not already a member.
 func (cm *provider) AddMoRefToModule(ctx context.Context, moduleID string, moRef types.ManagedObjectReference) error {
 	isMember, err := cm.IsMoRefModuleMember(ctx, moduleID, moRef)
 	if err != nil {
@@ -131,6 +138,7 @@ func (cm *provider) AddMoRefToModule(ctx context.Context, moduleID string, moRef
 	return nil
 }
 
+// RemoveMoRefFromModule removes the object from the ClusterModule.
 func (cm *provider) RemoveMoRefFromModule(ctx context.Context, moduleID string, moRef types.ManagedObjectReference) error {
 	log.Info("Removing moRef from cluster module", "moduleID", moduleID, "moRef", moRef)
 

@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package cluster contains tools for managing ComputeClusters.
 package cluster
 
 import (
@@ -32,6 +33,7 @@ type computeClusterContext interface {
 	GetSession() *session.Session
 }
 
+// ListHostsFromGroup returns references to hosts for a given hostGroup.
 func ListHostsFromGroup(ctx context.Context, ccr *object.ClusterComputeResource, hostGroup string) ([]object.Reference, error) {
 	clusterConfigInfoEx, err := ccr.Configuration(ctx)
 	if err != nil {

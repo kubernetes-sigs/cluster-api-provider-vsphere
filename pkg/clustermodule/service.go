@@ -38,6 +38,7 @@ type service struct {
 	Client                   client.Client
 }
 
+// NewService returns a new Cluster Module service.
 func NewService(controllerManagerCtx *capvcontext.ControllerManagerContext, client client.Client) Service {
 	return &service{
 		ControllerManagerContext: controllerManagerCtx,

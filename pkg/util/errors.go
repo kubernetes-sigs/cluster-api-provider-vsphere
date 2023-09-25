@@ -21,6 +21,7 @@ import (
 	"strings"
 )
 
+// IsNotFoundError identifies a not found error from a HTTP 404 status code.
 func IsNotFoundError(err error) bool {
 	return strings.HasSuffix(err.Error(), http.StatusText(http.StatusNotFound))
 }

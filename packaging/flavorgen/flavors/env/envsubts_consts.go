@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package env contains variable names used with envsubst.
 package env
 
 const (
@@ -45,9 +46,10 @@ const (
 	VSphereTemplateVar           = "${VSPHERE_TEMPLATE}"
 	WorkerMachineCountVar        = "${WORKER_MACHINE_COUNT}"
 	ControlPlaneEndpointVar      = "${CONTROL_PLANE_ENDPOINT_IP}"
-	// Set the default to an empty string to let kube-vip autodetect the interface.
-	VipNetworkInterfaceVar       = "${VIP_NETWORK_INTERFACE:=\"\"}"
-	VSphereUsername              = "${VSPHERE_USERNAME}"
-	VSpherePassword              = "${VSPHERE_PASSWORD}" /* #nosec */
+	// VipNetworkInterfaceVar defaults to an empty string to let kube-vip autodetect the interface.
+	VipNetworkInterfaceVar = "${VIP_NETWORK_INTERFACE:=\"\"}"
+	VSphereUsername        = "${VSPHERE_USERNAME}"
+	// VSpherePassword is the password for the VSphere Server.
+	VSpherePassword              = "${VSPHERE_PASSWORD}" //nolint:gosec // Password is not hardcoded here.
 	ClusterResourceSetNameSuffix = "-crs-0"
 )

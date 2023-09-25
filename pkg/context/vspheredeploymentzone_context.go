@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 )
 
+// VSphereDeploymentZoneContext contains information for the VSphereDeploymentZone reconciliation.
 type VSphereDeploymentZoneContext struct {
 	*ControllerContext
 	VSphereDeploymentZone *infrav1.VSphereDeploymentZone
@@ -36,6 +37,7 @@ type VSphereDeploymentZoneContext struct {
 	AuthSession           *session.Session
 }
 
+// Patch patches the VSphereDeploymentZone.
 func (c *VSphereDeploymentZoneContext) Patch() error {
 	conditions.SetSummary(c.VSphereDeploymentZone,
 		conditions.WithConditions(
@@ -47,14 +49,17 @@ func (c *VSphereDeploymentZoneContext) Patch() error {
 	return c.PatchHelper.Patch(c, c.VSphereDeploymentZone)
 }
 
+// String returns a string with the GroupVersionKind and name of the VSphereDeploymentZone.
 func (c *VSphereDeploymentZoneContext) String() string {
 	return fmt.Sprintf("%s %s", c.VSphereDeploymentZone.GroupVersionKind(), c.VSphereDeploymentZone.Name)
 }
 
+// GetSession returns the session for the VSphereDeploymentZoneContext.
 func (c *VSphereDeploymentZoneContext) GetSession() *session.Session {
 	return c.AuthSession
 }
 
+// GetVsphereFailureDomain returns the VSphereFailureDomain for the VSphereDeploymentZoneContext.
 func (c *VSphereDeploymentZoneContext) GetVsphereFailureDomain() infrav1.VSphereFailureDomain {
 	return *c.VSphereFailureDomain
 }

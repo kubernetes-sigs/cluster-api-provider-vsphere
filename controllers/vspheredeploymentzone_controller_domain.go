@@ -85,7 +85,7 @@ func (r vsphereDeploymentZoneReconciler) reconcileFailureDomain(ctx context.Cont
 }
 
 func (r vsphereDeploymentZoneReconciler) reconcileInfraFailureDomain(ctx context.Context, deploymentZoneCtx *capvcontext.VSphereDeploymentZoneContext, failureDomain infrav1.FailureDomain) error {
-	if *failureDomain.AutoConfigure {
+	if *failureDomain.AutoConfigure { //nolint:staticcheck
 		return r.createAndAttachMetadata(ctx, deploymentZoneCtx, failureDomain)
 	}
 	return r.verifyFailureDomain(ctx, deploymentZoneCtx, failureDomain)

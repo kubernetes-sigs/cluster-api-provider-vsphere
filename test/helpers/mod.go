@@ -18,6 +18,7 @@ package helpers
 
 import (
 	"os"
+	"path/filepath"
 
 	"github.com/pkg/errors"
 	"golang.org/x/mod/modfile"
@@ -30,7 +31,7 @@ type Mod struct {
 
 func NewMod(path string) (Mod, error) {
 	var mod Mod
-	content, err := os.ReadFile(path)
+	content, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
 		return mod, err
 	}

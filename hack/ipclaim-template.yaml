@@ -1,10 +1,12 @@
-apiVersion: ipam.metal3.io/v1alpha1
-kind: IPClaim
+apiVersion: ipam.cluster.x-k8s.io/v1alpha1
+kind: IPAddressClaim
 metadata:
   name: ${IPCLAIM_NAME}
   annotations:
     prow.k8s.io/build-id: "${BUILD_ID}"
     prow.k8s.io/job: "${JOB_NAME}"
 spec:
-  pool:
+  poolRef:
+    apiGroup: ipam.cluster.x-k8s.io
+    kind: InClusterIPPool
     name: capv-e2e-ippool

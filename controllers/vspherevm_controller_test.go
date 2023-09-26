@@ -590,7 +590,7 @@ func Test_reconcile(t *testing.T) {
 					State:    infrav1.VirtualMachineStateReady,
 				}, nil)
 				r := setupReconciler(fakeVMSvc, initObjs...)
-				_, err := r.reconcile(&capvcontext.VMContext{
+				_, err := r.reconcile(ctx, &capvcontext.VMContext{
 					ControllerContext: r.ControllerContext,
 					VSphereVM:         vsphereVM,
 					Logger:            r.Logger,
@@ -606,7 +606,7 @@ func Test_reconcile(t *testing.T) {
 			t.Run("when anti affinity feature gate is turned on", func(t *testing.T) {
 				_ = feature.MutableGates.Set("NodeAntiAffinity=true")
 				r := setupReconciler(new(fake_svc.VMService), initObjs...)
-				_, err := r.reconcile(&capvcontext.VMContext{
+				_, err := r.reconcile(ctx, &capvcontext.VMContext{
 					ControllerContext: r.ControllerContext,
 					VSphereVM:         vsphereVM,
 					Logger:            r.Logger,
@@ -632,7 +632,7 @@ func Test_reconcile(t *testing.T) {
 			}, nil)
 
 			r := setupReconciler(fakeVMSvc, objsWithHierarchy...)
-			_, err := r.reconcile(&capvcontext.VMContext{
+			_, err := r.reconcile(ctx, &capvcontext.VMContext{
 				ControllerContext: r.ControllerContext,
 				VSphereVM:         vsphereVM,
 				Logger:            r.Logger,
@@ -665,7 +665,7 @@ func Test_reconcile(t *testing.T) {
 			objsWithHierarchy = append(objsWithHierarchy, createMachineOwnerHierarchy(machine)...)
 
 			r := setupReconciler(fakeVMSvc, objsWithHierarchy...)
-			_, err := r.reconcile(&capvcontext.VMContext{
+			_, err := r.reconcile(ctx, &capvcontext.VMContext{
 				ControllerContext: r.ControllerContext,
 				VSphereVM:         deletedVM,
 				Logger:            r.Logger,
@@ -680,7 +680,7 @@ func Test_reconcile(t *testing.T) {
 
 		t.Run("when info cannot be fetched", func(t *testing.T) {
 			r := setupReconciler(fakeVMSvc, initObjs...)
-			_, err := r.reconcile(&capvcontext.VMContext{
+			_, err := r.reconcile(ctx, &capvcontext.VMContext{
 				ControllerContext: r.ControllerContext,
 				VSphereVM:         deletedVM,
 				Logger:            r.Logger,

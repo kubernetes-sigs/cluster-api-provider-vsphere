@@ -17,6 +17,7 @@ limitations under the License.
 package govmomi
 
 import (
+	"context"
 	"testing"
 
 	"github.com/vmware/govmomi/object"
@@ -62,8 +63,9 @@ func TestCreate(t *testing.T) {
 
 	disk := object.VirtualDeviceList(vm.Config.Hardware.Device).SelectByType((*types.VirtualDisk)(nil))[0].(*types.VirtualDisk)
 	disk.CapacityInKB = int64(vmContext.VSphereVM.Spec.DiskGiB) * 1024 * 1024
+	ctx := context.Background()
 
-	if err := createVM(vmContext, []byte(""), ""); err != nil {
+	if err := createVM(ctx, vmContext, []byte(""), ""); err != nil {
 		t.Fatal(err)
 	}
 

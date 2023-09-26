@@ -29,16 +29,15 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 )
 
 func Test_ShouldRetryTask(t *testing.T) {
 	t.Run("when no task is present", func(t *testing.T) {
 		g := NewWithT(t)
-		vmCtx := &context.VMContext{
+		vmCtx := &capvcontext.VMContext{
 			VSphereVM: &infrav1.VSphereVM{Status: infrav1.VSphereVMStatus{TaskRef: ""}},
 		}
-
 		reconciled, err := checkAndRetryTask(vmCtx, nil)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(reconciled).To(BeFalse())
@@ -47,7 +46,7 @@ func Test_ShouldRetryTask(t *testing.T) {
 
 	t.Run("when failed task was previously checked & RetryAfter time has not yet passed", func(t *testing.T) {
 		g := NewWithT(t)
-		vmCtx := &context.VMContext{
+		vmCtx := &capvcontext.VMContext{
 			VSphereVM: &infrav1.VSphereVM{Status: infrav1.VSphereVMStatus{
 				TaskRef:    "task-123",
 				RetryAfter: metav1.Time{Time: time.Now().Add(1 * time.Minute)},
@@ -64,7 +63,7 @@ func Test_ShouldRetryTask(t *testing.T) {
 	t.Run("when failed task was previously checked & RetryAfter time has passed", func(t *testing.T) {
 		g := NewWithT(t)
 
-		vmCtx := &context.VMContext{
+		vmCtx := &capvcontext.VMContext{
 			Logger: logr.Discard(),
 			VSphereVM: &infrav1.VSphereVM{Status: infrav1.VSphereVMStatus{
 				TaskRef:    "task-123",
@@ -111,7 +110,7 @@ func Test_ShouldRetryTask(t *testing.T) {
 
 	t.Run("when failed task was previously not checked", func(t *testing.T) {
 		g := NewWithT(t)
-		vmCtx := &context.VMContext{
+		vmCtx := &capvcontext.VMContext{
 			Logger: logr.Discard(),
 			VSphereVM: &infrav1.VSphereVM{Status: infrav1.VSphereVMStatus{
 				// RetryAfter is not set since this is the first reconcile

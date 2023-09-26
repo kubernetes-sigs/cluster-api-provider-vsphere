@@ -50,7 +50,7 @@ func Test_VMGroup(t *testing.T) {
 	computeClusterName := "DC0_C0"
 	vmGroupName := "blah-vm-group"
 
-	vmGrp, err := FindVMGroup(computeClusterCtx, computeClusterName, vmGroupName)
+	vmGrp, err := FindVMGroup(ctx, computeClusterCtx, computeClusterName, vmGroupName)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(vmGrp.listVMs()).To(HaveLen(2))
 
@@ -72,6 +72,6 @@ func Test_VMGroup(t *testing.T) {
 	g.Expect(hasVM).To(BeTrue())
 
 	vmGroupName = "incorrect-vm-group"
-	_, err = FindVMGroup(computeClusterCtx, computeClusterName, vmGroupName)
+	_, err = FindVMGroup(ctx, computeClusterCtx, computeClusterName, vmGroupName)
 	g.Expect(err).To(HaveOccurred())
 }

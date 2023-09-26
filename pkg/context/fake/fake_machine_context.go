@@ -46,7 +46,6 @@ func NewMachineContext(clusterCtx *capvcontext.ClusterContext, controllerCtx *ca
 			ControllerContext: controllerCtx,
 			Cluster:           clusterCtx.Cluster,
 			Machine:           &machine,
-			Logger:            controllerCtx.Logger.WithName(vsphereMachine.Name),
 		},
 		VSphereCluster: clusterCtx.VSphereCluster,
 		VSphereMachine: &vsphereMachine,

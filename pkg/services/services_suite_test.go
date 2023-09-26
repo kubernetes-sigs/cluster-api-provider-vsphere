@@ -21,7 +21,10 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
+
+var ctx = ctrl.SetupSignalHandler()
 
 func TestCAPVServices(t *testing.T) {
 	RegisterFailHandler(Fail)

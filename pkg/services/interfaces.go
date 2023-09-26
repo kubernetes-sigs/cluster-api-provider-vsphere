@@ -23,7 +23,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
@@ -33,12 +32,12 @@ import (
 
 // VSphereMachineService is used for vsphere VM lifecycle and syncing with VSphereMachine types.
 type VSphereMachineService interface {
-	FetchVSphereMachine(client client.Client, name types.NamespacedName) (capvcontext.MachineContext, error)
-	FetchVSphereCluster(client client.Client, cluster *clusterv1.Cluster, machineContext capvcontext.MachineContext) (capvcontext.MachineContext, error)
-	ReconcileDelete(machineCtx capvcontext.MachineContext) error
-	SyncFailureReason(machineCtx capvcontext.MachineContext) (bool, error)
-	ReconcileNormal(machineCtx capvcontext.MachineContext) (bool, error)
-	GetHostInfo(machineCtx capvcontext.MachineContext) (string, error)
+	FetchVSphereMachine(ctx context.Context, name types.NamespacedName) (capvcontext.MachineContext, error)
+	FetchVSphereCluster(ctx context.Context, cluster *clusterv1.Cluster, machineContext capvcontext.MachineContext) (capvcontext.MachineContext, error)
+	ReconcileDelete(ctx context.Context, machineCtx capvcontext.MachineContext) error
+	SyncFailureReason(ctx context.Context, machineCtx capvcontext.MachineContext) (bool, error)
+	ReconcileNormal(ctx context.Context, machineCtx capvcontext.MachineContext) (bool, error)
+	GetHostInfo(ctx context.Context, machineCtx capvcontext.MachineContext) (string, error)
 }
 
 // VirtualMachineService is a service for creating/updating/deleting virtual

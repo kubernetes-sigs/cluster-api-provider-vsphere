@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -42,18 +43,20 @@ import (
 )
 
 // VmopMachineService reconciles VM Operator VM.
-type VmopMachineService struct{}
+type VmopMachineService struct {
+	Client client.Client
+}
 
 // FetchVSphereMachine returns a MachineContext with a VSphereMachine for the passed NamespacedName.
-func (v *VmopMachineService) FetchVSphereMachine(client client.Client, name types.NamespacedName) (capvcontext.MachineContext, error) {
+func (v *VmopMachineService) FetchVSphereMachine(ctx context.Context, name types.NamespacedName) (capvcontext.MachineContext, error) {
 	vsphereMachine := &vmwarev1.VSphereMachine{}
-	err := client.Get(context.Background(), name, vsphereMachine)
+	err := v.Client.Get(ctx, name, vsphereMachine)
 	return &vmware.SupervisorMachineContext{VSphereMachine: vsphereMachine}, err
 }
 
 // FetchVSphereCluster adds the VSphereCluster for the cluster to the MachineContext.
-func (v *VmopMachineService) FetchVSphereCluster(c client.Client, cluster *clusterv1.Cluster, machineContext capvcontext.MachineContext) (capvcontext.MachineContext, error) {
-	ctx, ok := machineContext.(*vmware.SupervisorMachineContext)
+func (v *VmopMachineService) FetchVSphereCluster(ctx context.Context, cluster *clusterv1.Cluster, machineContext capvcontext.MachineContext) (capvcontext.MachineContext, error) {
+	machineCtx, ok := machineContext.(*vmware.SupervisorMachineContext)
 	if !ok {
 		return nil, errors.New("received unexpected SupervisorMachineContext type")
 	}
@@ -63,33 +66,34 @@ func (v *VmopMachineService) FetchVSphereCluster(c client.Client, cluster *clust
 		Namespace: machineContext.GetObjectMeta().Namespace,
 		Name:      cluster.Spec.InfrastructureRef.Name,
 	}
-	err := c.Get(context.Background(), key, vsphereCluster)
+	err := v.Client.Get(ctx, key, vsphereCluster)
 
-	ctx.VSphereCluster = vsphereCluster
-	return ctx, err
+	machineCtx.VSphereCluster = vsphereCluster
+	return machineCtx, err
 }
 
 // ReconcileDelete reconciles delete events for VM Operator VM.
-func (v *VmopMachineService) ReconcileDelete(machineCtx capvcontext.MachineContext) error {
+func (v *VmopMachineService) ReconcileDelete(ctx context.Context, machineCtx capvcontext.MachineContext) error {
+	log := ctrl.LoggerFrom(ctx)
 	supervisorMachineCtx, ok := machineCtx.(*vmware.SupervisorMachineContext)
 	if !ok {
 		return errors.New("received unexpected SupervisorMachineContext type")
 	}
-	supervisorMachineCtx.Logger.V(2).Info("Destroying VM")
+	log.V(2).Info("Destroying VM")
 
 	// If debug logging is enabled, report the number of vms in the cluster before and after the reconcile
-	if supervisorMachineCtx.Logger.V(5).Enabled() {
-		vms, err := getVirtualMachinesInCluster(supervisorMachineCtx)
-		supervisorMachineCtx.Logger.Info("Trace Destroy PRE: VirtualMachines", "vmcount", len(vms), "error", err)
+	if log.V(5).Enabled() {
+		vms, err := v.getVirtualMachinesInCluster(ctx, supervisorMachineCtx)
+		log.Info("Trace Destroy PRE: VirtualMachines", "vmcount", len(vms), "error", err)
 		defer func() {
-			vms, err := getVirtualMachinesInCluster(supervisorMachineCtx)
-			supervisorMachineCtx.Logger.Info("Trace Destroy POST: VirtualMachines", "vmcount", len(vms), "error", err)
+			vms, err := v.getVirtualMachinesInCluster(ctx, supervisorMachineCtx)
+			log.Info("Trace Destroy POST: VirtualMachines", "vmcount", len(vms), "error", err)
 		}()
 	}
 
 	// First, check to see if it's already deleted
 	vmopVM := vmoprv1.VirtualMachine{}
-	if err := supervisorMachineCtx.Client.Get(supervisorMachineCtx, types.NamespacedName{Namespace: supervisorMachineCtx.Machine.Namespace, Name: supervisorMachineCtx.Machine.Name}, &vmopVM); err != nil {
+	if err := v.Client.Get(ctx, types.NamespacedName{Namespace: supervisorMachineCtx.Machine.Namespace, Name: supervisorMachineCtx.Machine.Name}, &vmopVM); err != nil {
 		if apierrors.IsNotFound(err) {
 			supervisorMachineCtx.VSphereMachine.Status.VMStatus = vmwarev1.VirtualMachineStateNotFound
 			return err
@@ -105,7 +109,7 @@ func (v *VmopMachineService) ReconcileDelete(machineCtx capvcontext.MachineConte
 	}
 
 	// If none of the above are true, Delete the VM
-	if err := supervisorMachineCtx.Client.Delete(supervisorMachineCtx, &vmopVM); err != nil {
+	if err := v.Client.Delete(ctx, &vmopVM); err != nil {
 		if apierrors.IsNotFound(err) {
 			supervisorMachineCtx.VSphereMachine.Status.VMStatus = vmwarev1.VirtualMachineStateNotFound
 			return err
@@ -119,7 +123,7 @@ func (v *VmopMachineService) ReconcileDelete(machineCtx capvcontext.MachineConte
 }
 
 // SyncFailureReason returns true if there is a Failure on the VM Operator VM.
-func (v *VmopMachineService) SyncFailureReason(machineCtx capvcontext.MachineContext) (bool, error) {
+func (v *VmopMachineService) SyncFailureReason(_ context.Context, machineCtx capvcontext.MachineContext) (bool, error) {
 	supervisorMachineCtx, ok := machineCtx.(*vmware.SupervisorMachineContext)
 	if !ok {
 		return false, errors.New("received unexpected SupervisorMachineContext type")
@@ -129,23 +133,23 @@ func (v *VmopMachineService) SyncFailureReason(machineCtx capvcontext.MachineCon
 }
 
 // ReconcileNormal reconciles create and update events for VM Operator VMs.
-func (v *VmopMachineService) ReconcileNormal(machineCtx capvcontext.MachineContext) (bool, error) {
+func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx capvcontext.MachineContext) (bool, error) {
+	log := ctrl.LoggerFrom(ctx)
 	supervisorMachineCtx, ok := machineCtx.(*vmware.SupervisorMachineContext)
 	if !ok {
 		return false, errors.New("received unexpected SupervisorMachineContext type")
 	}
 
 	supervisorMachineCtx.VSphereMachine.Spec.FailureDomain = supervisorMachineCtx.Machine.Spec.FailureDomain
-
-	supervisorMachineCtx.Logger.V(2).Info("Reconciling VM")
+	log.V(2).Info("Reconciling VM")
 
 	// If debug logging is enabled, report the number of vms in the cluster before and after the reconcile
-	if supervisorMachineCtx.Logger.V(5).Enabled() {
-		vms, err := getVirtualMachinesInCluster(supervisorMachineCtx)
-		supervisorMachineCtx.Logger.Info("Trace ReconcileVM PRE: VirtualMachines", "vmcount", len(vms), "error", err)
+	if log.V(5).Enabled() {
+		vms, err := v.getVirtualMachinesInCluster(ctx, supervisorMachineCtx)
+		log.Info("Trace ReconcileVM PRE: VirtualMachines", "vmcount", len(vms), "error", err)
 		defer func() {
-			vms, err := getVirtualMachinesInCluster(supervisorMachineCtx)
-			supervisorMachineCtx.Logger.Info("Trace ReconcileVM POST: VirtualMachines", "vmcount", len(vms), "error", err)
+			vms, err := v.getVirtualMachinesInCluster(ctx, supervisorMachineCtx)
+			log.Info("Trace ReconcileVM POST: VirtualMachines", "vmcount", len(vms), "error", err)
 		}()
 	}
 
@@ -156,7 +160,7 @@ func (v *VmopMachineService) ReconcileNormal(machineCtx capvcontext.MachineConte
 	vmOperatorVM := v.newVMOperatorVM(supervisorMachineCtx)
 
 	// Reconcile the VM Operator VirtualMachine.
-	if err := v.reconcileVMOperatorVM(supervisorMachineCtx, vmOperatorVM); err != nil {
+	if err := v.reconcileVMOperatorVM(ctx, supervisorMachineCtx, vmOperatorVM); err != nil {
 		conditions.MarkFalse(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, vmwarev1.VMCreationFailedReason, clusterv1.ConditionSeverityWarning,
 			fmt.Sprintf("failed to create or update VirtualMachine: %v", err))
 		// TODO: what to do if AlreadyExists error
@@ -184,7 +188,7 @@ func (v *VmopMachineService) ReconcileNormal(machineCtx capvcontext.MachineConte
 	// * A BIOS UUID
 	if vmOperatorVM.Status.Phase != vmoprv1.Created {
 		conditions.MarkFalse(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, vmwarev1.VMProvisionStartedReason, clusterv1.ConditionSeverityInfo, "")
-		supervisorMachineCtx.Logger.Info(fmt.Sprintf("vm is not yet created: %s", supervisorMachineCtx))
+		log.Info(fmt.Sprintf("vm is not yet created: %s", supervisorMachineCtx))
 		return true, nil
 	}
 	// Mark the VM as created
@@ -192,7 +196,7 @@ func (v *VmopMachineService) ReconcileNormal(machineCtx capvcontext.MachineConte
 
 	if vmOperatorVM.Status.PowerState != vmoprv1.VirtualMachinePoweredOn {
 		conditions.MarkFalse(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, vmwarev1.PoweringOnReason, clusterv1.ConditionSeverityInfo, "")
-		supervisorMachineCtx.Logger.Info(fmt.Sprintf("vm is not yet powered on: %s", supervisorMachineCtx))
+		log.Info(fmt.Sprintf("vm is not yet powered on: %s", supervisorMachineCtx))
 		return true, nil
 	}
 	// Mark the VM as poweredOn
@@ -200,13 +204,13 @@ func (v *VmopMachineService) ReconcileNormal(machineCtx capvcontext.MachineConte
 
 	if vmOperatorVM.Status.VmIp == "" {
 		conditions.MarkFalse(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, vmwarev1.WaitingForNetworkAddressReason, clusterv1.ConditionSeverityInfo, "")
-		supervisorMachineCtx.Logger.Info(fmt.Sprintf("vm does not have an IP address: %s", supervisorMachineCtx))
+		log.Info(fmt.Sprintf("vm does not have an IP address: %s", supervisorMachineCtx))
 		return true, nil
 	}
 
 	if vmOperatorVM.Status.BiosUUID == "" {
 		conditions.MarkFalse(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, vmwarev1.WaitingForBIOSUUIDReason, clusterv1.ConditionSeverityInfo, "")
-		supervisorMachineCtx.Logger.Info(fmt.Sprintf("vm does not have a BIOS UUID: %s", supervisorMachineCtx))
+		log.Info(fmt.Sprintf("vm does not have a BIOS UUID: %s", supervisorMachineCtx))
 		return true, nil
 	}
 
@@ -214,11 +218,11 @@ func (v *VmopMachineService) ReconcileNormal(machineCtx capvcontext.MachineConte
 	supervisorMachineCtx.VSphereMachine.Status.VMStatus = vmwarev1.VirtualMachineStateReady
 
 	if ok := v.reconcileNetwork(supervisorMachineCtx, vmOperatorVM); !ok {
-		supervisorMachineCtx.Logger.Info("ip not yet assigned")
+		log.Info("ip not yet assigned")
 		return true, nil
 	}
 
-	v.reconcileProviderID(supervisorMachineCtx, vmOperatorVM)
+	v.reconcileProviderID(ctx, supervisorMachineCtx, vmOperatorVM)
 
 	// Mark the VSphereMachine as Ready
 	supervisorMachineCtx.VSphereMachine.Status.Ready = true
@@ -227,14 +231,14 @@ func (v *VmopMachineService) ReconcileNormal(machineCtx capvcontext.MachineConte
 }
 
 // GetHostInfo returns the hostname or IP address of the infrastructure host for the VM Operator VM.
-func (v VmopMachineService) GetHostInfo(machineCtx capvcontext.MachineContext) (string, error) {
+func (v VmopMachineService) GetHostInfo(ctx context.Context, machineCtx capvcontext.MachineContext) (string, error) {
 	supervisorMachineCtx, ok := machineCtx.(*vmware.SupervisorMachineContext)
 	if !ok {
 		return "", errors.New("received unexpected SupervisorMachineContext type")
 	}
 
 	vmOperatorVM := &vmoprv1.VirtualMachine{}
-	if err := supervisorMachineCtx.Client.Get(supervisorMachineCtx, client.ObjectKey{
+	if err := v.Client.Get(ctx, client.ObjectKey{
 		Name:      supervisorMachineCtx.Machine.Name,
 		Namespace: supervisorMachineCtx.Machine.Namespace,
 	}, vmOperatorVM); err != nil {
@@ -257,7 +261,7 @@ func (v VmopMachineService) newVMOperatorVM(supervisorMachineCtx *vmware.Supervi
 	}
 }
 
-func (v VmopMachineService) reconcileVMOperatorVM(supervisorMachineCtx *vmware.SupervisorMachineContext, vmOperatorVM *vmoprv1.VirtualMachine) error {
+func (v VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervisorMachineCtx *vmware.SupervisorMachineContext, vmOperatorVM *vmoprv1.VirtualMachine) error {
 	// All Machine resources should define the version of Kubernetes to use.
 	if supervisorMachineCtx.Machine.Spec.Version == nil || *supervisorMachineCtx.Machine.Spec.Version == "" {
 		return errors.Errorf(
@@ -272,7 +276,7 @@ func (v VmopMachineService) reconcileVMOperatorVM(supervisorMachineCtx *vmware.S
 		dataSecretName = *dsn
 	}
 
-	_, err := ctrlutil.CreateOrPatch(supervisorMachineCtx, supervisorMachineCtx.Client, vmOperatorVM, func() error {
+	_, err := ctrlutil.CreateOrPatch(ctx, v.Client, vmOperatorVM, func() error {
 		// Define a new VM Operator virtual machine.
 		// NOTE: Set field-by-field in order to preserve changes made directly
 		//  to the VirtualMachine spec by other sources (e.g. the cloud provider)
@@ -308,7 +312,7 @@ func (v VmopMachineService) reconcileVMOperatorVM(supervisorMachineCtx *vmware.S
 
 		addResourcePolicyAnnotations(supervisorMachineCtx, vmOperatorVM)
 
-		if err := addVolumes(supervisorMachineCtx, vmOperatorVM); err != nil {
+		if err := v.addVolumes(ctx, supervisorMachineCtx, vmOperatorVM); err != nil {
 			return err
 		}
 
@@ -327,7 +331,7 @@ func (v VmopMachineService) reconcileVMOperatorVM(supervisorMachineCtx *vmware.S
 		}
 
 		// Make sure the VSphereMachine owns the VM Operator VirtualMachine.
-		if err := ctrlutil.SetControllerReference(supervisorMachineCtx.VSphereMachine, vmOperatorVM, supervisorMachineCtx.Scheme); err != nil {
+		if err := ctrlutil.SetControllerReference(supervisorMachineCtx.VSphereMachine, vmOperatorVM, v.Client.Scheme()); err != nil {
 			return errors.Wrapf(err, "failed to mark %s %s/%s as owner of %s %s/%s",
 				supervisorMachineCtx.VSphereMachine.GroupVersionKind(),
 				supervisorMachineCtx.VSphereMachine.Namespace,
@@ -352,28 +356,29 @@ func (v *VmopMachineService) reconcileNetwork(supervisorMachineCtx *vmware.Super
 	return true
 }
 
-func (v *VmopMachineService) reconcileProviderID(supervisorMachineCtx *vmware.SupervisorMachineContext, vm *vmoprv1.VirtualMachine) {
+func (v *VmopMachineService) reconcileProviderID(ctx context.Context, supervisorMachineCtx *vmware.SupervisorMachineContext, vm *vmoprv1.VirtualMachine) {
+	log := ctrl.LoggerFrom(ctx)
 	providerID := fmt.Sprintf("vsphere://%s", vm.Status.BiosUUID)
 
 	if supervisorMachineCtx.VSphereMachine.Spec.ProviderID == nil || *supervisorMachineCtx.VSphereMachine.Spec.ProviderID != providerID {
 		supervisorMachineCtx.VSphereMachine.Spec.ProviderID = &providerID
-		supervisorMachineCtx.Logger.Info("Updated provider ID for machine", "machine", supervisorMachineCtx.VSphereMachine.Name, "provider-id", providerID)
+		log.Info("Updated provider ID", "providerID", providerID)
 	}
 
 	if supervisorMachineCtx.VSphereMachine.Status.ID == nil || *supervisorMachineCtx.VSphereMachine.Status.ID != vm.Status.BiosUUID {
 		supervisorMachineCtx.VSphereMachine.Status.ID = &vm.Status.BiosUUID
-		supervisorMachineCtx.Logger.Info("Updated VM ID for machine", "machine", supervisorMachineCtx.VSphereMachine.Name, "vm-id", vm.Status.BiosUUID)
+		log.Info("Updated VM ID", "vmID", vm.Status.BiosUUID)
 	}
 }
 
 // getVirtualMachinesInCluster returns all VMOperator VirtualMachine objects in the current cluster.
 // First filter by clusterSelectorKey. If the result is empty, they fall back to legacyClusterSelectorKey.
-func getVirtualMachinesInCluster(supervisorMachineCtx *vmware.SupervisorMachineContext) ([]*vmoprv1.VirtualMachine, error) {
+func (v *VmopMachineService) getVirtualMachinesInCluster(ctx context.Context, supervisorMachineCtx *vmware.SupervisorMachineContext) ([]*vmoprv1.VirtualMachine, error) {
 	labels := map[string]string{clusterSelectorKey: supervisorMachineCtx.Cluster.Name}
 	vmList := &vmoprv1.VirtualMachineList{}
 
-	if err := supervisorMachineCtx.Client.List(
-		supervisorMachineCtx, vmList,
+	if err := v.Client.List(
+		ctx, vmList,
 		client.InNamespace(supervisorMachineCtx.Cluster.Namespace),
 		client.MatchingLabels(labels)); err != nil {
 		return nil, errors.Wrapf(
@@ -384,8 +389,8 @@ func getVirtualMachinesInCluster(supervisorMachineCtx *vmware.SupervisorMachineC
 	// If the list is empty, fall back to usse legacy labels for filtering
 	if len(vmList.Items) == 0 {
 		legacyLabels := map[string]string{legacyClusterSelectorKey: supervisorMachineCtx.Cluster.Name}
-		if err := supervisorMachineCtx.Client.List(
-			supervisorMachineCtx, vmList,
+		if err := v.Client.List(
+			ctx, vmList,
 			client.InNamespace(supervisorMachineCtx.Cluster.Namespace),
 			client.MatchingLabels(legacyLabels)); err != nil {
 			return nil, errors.Wrapf(
@@ -445,7 +450,7 @@ func addVolume(vm *vmoprv1.VirtualMachine, name string) {
 	})
 }
 
-func addVolumes(supervisorMachineCtx *vmware.SupervisorMachineContext, vm *vmoprv1.VirtualMachine) error {
+func (v *VmopMachineService) addVolumes(ctx context.Context, supervisorMachineCtx *vmware.SupervisorMachineContext, vm *vmoprv1.VirtualMachine) error {
 	nvolumes := len(supervisorMachineCtx.VSphereMachine.Spec.Volumes)
 	if nvolumes == 0 {
 		return nil
@@ -492,11 +497,11 @@ func addVolumes(supervisorMachineCtx *vmware.SupervisorMachineContext, vm *vmopr
 			}
 		}
 
-		if _, err := ctrlutil.CreateOrPatch(supervisorMachineCtx, supervisorMachineCtx.Client, pvc, func() error {
+		if _, err := ctrlutil.CreateOrPatch(ctx, v.Client, pvc, func() error {
 			if err := ctrlutil.SetOwnerReference(
 				supervisorMachineCtx.VSphereMachine,
 				pvc,
-				supervisorMachineCtx.Scheme,
+				v.Client.Scheme(),
 			); err != nil {
 				return errors.Wrapf(
 					err,

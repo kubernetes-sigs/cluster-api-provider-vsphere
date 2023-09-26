@@ -50,8 +50,14 @@ const (
 	// legacyClusterSelectorKey and legacyNodeSelectorKey are added for backward compatibility.
 	// These will be removed in the future release.
 	// Please refer to the issue above for deprecation process.
+	//
+	// Deprecated: legacyClusterSelectorKey will be removed in a future release.
 	legacyClusterSelectorKey = "capw.vmware.com/cluster.name"
-	legacyNodeSelectorKey    = "capw.vmware.com/cluster.role"
+
+	// Please refer to the issue above for deprecation process.
+	//
+	// Deprecated: legacyClusterSelectorKey will be removed in a future release.
+	legacyNodeSelectorKey = "capw.vmware.com/cluster.role"
 )
 
 // CPService represents the ability to reconcile a ControlPlaneEndpoint.

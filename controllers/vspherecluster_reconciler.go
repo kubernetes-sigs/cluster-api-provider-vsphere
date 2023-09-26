@@ -55,6 +55,8 @@ import (
 
 // legacyIdentityFinalizer is deprecated and should be used only while upgrading the cluster
 // from v1alpha3(v.0.7).
+//
+// Deprecated: legacyIdentityFinalizer will be removed in a future release.
 const legacyIdentityFinalizer string = "identity/infrastructure.cluster.x-k8s.io"
 
 type clusterReconciler struct {

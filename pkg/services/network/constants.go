@@ -32,7 +32,7 @@ const (
 	SystemNamespace = "kube-system"
 
 	// legacyDefaultNetworkLabel was the label used for default networks.
-	// This is deprecated and is introduced only for smoother transitions.
-	// This will be released in a future release.
+	//
+	// Deprecated: legacyDefaultNetworkLabel will be removed in a future release.
 	legacyDefaultNetworkLabel = "capw.vmware.com/is-default-network"
 )

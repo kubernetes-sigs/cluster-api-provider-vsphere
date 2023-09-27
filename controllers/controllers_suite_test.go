@@ -51,9 +51,9 @@ var (
 
 func TestMain(m *testing.M) {
 	setup()
-	defer teardown()
 	code := m.Run()
-	os.Exit(code) //nolint:gocritic
+	teardown()
+	os.Exit(code)
 }
 
 func setup() {

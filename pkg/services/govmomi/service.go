@@ -529,17 +529,9 @@ func (vms *VMService) getMetadata(ctx *virtualMachineContext) (string, error) {
 
 	var metadataBase64 string
 	for _, ec := range obj.Config.ExtraConfig {
-		if optVal := ec.GetOptionValue(); optVal != nil {
-			// TODO(akutz) Using a switch instead of if in case we ever
-			//             want to check the metadata encoding as well.
-			//             Since the image stamped images always use
-			//             base64, it should be okay to not check.
-			//nolint:gocritic
-			switch optVal.Key {
-			case guestInfoKeyMetadata:
-				if v, ok := optVal.Value.(string); ok {
-					metadataBase64 = v
-				}
+		if optVal := ec.GetOptionValue(); optVal != nil && optVal.Key == guestInfoKeyMetadata {
+			if v, ok := optVal.Value.(string); ok {
+				metadataBase64 = v
 			}
 		}
 	}

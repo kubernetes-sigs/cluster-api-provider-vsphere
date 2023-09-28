@@ -2,7 +2,7 @@ module sigs.k8s.io/cluster-api-provider-vsphere
 
 go 1.20
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.5.1
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.5.2
 
 require (
 	github.com/go-logr/logr v1.2.4
@@ -35,7 +35,7 @@ require (
 	k8s.io/klog/v2 v2.90.1
 	k8s.io/utils v0.0.0-20230209194617-a36077c30491
 	sigs.k8s.io/cluster-api v0.0.0-00010101000000-000000000000
-	sigs.k8s.io/cluster-api/test v1.5.1
+	sigs.k8s.io/cluster-api/test v1.5.2
 	sigs.k8s.io/controller-runtime v0.15.1
 	sigs.k8s.io/kind v0.20.0
 	sigs.k8s.io/yaml v1.3.0

@@ -90,6 +90,8 @@ systemd:
         # kubeadm must run after coreos-metadata populated /run/metadata directory.
         Requires=coreos-metadata.service
         After=coreos-metadata.service
+        # kubeadm must run after containerd - see https://github.com/kubernetes-sigs/image-builder/issues/939.
+        After=containerd.service
         [Service]
         # Make metadata environment variables available for pre-kubeadm commands.
         EnvironmentFile=/run/metadata/*`

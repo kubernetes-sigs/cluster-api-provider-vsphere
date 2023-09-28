@@ -29,12 +29,11 @@ import (
 
 type taggableContext interface {
 	GetSession() *session.Session
-	GetVsphereFailureDomain() infrav1.VSphereFailureDomain
 }
 
 // GetObjects returns the objects for a given failure domain.
-func GetObjects(ctx context.Context, taggableCtx taggableContext, fdType infrav1.FailureDomainType) (Objects, error) {
-	finderFunc := find.ObjectFunc(fdType, taggableCtx.GetVsphereFailureDomain().Spec.Topology, taggableCtx.GetSession().Finder)
+func GetObjects(ctx context.Context, taggableCtx taggableContext, failureDomain *infrav1.VSphereFailureDomain, fdType infrav1.FailureDomainType) (Objects, error) {
+	finderFunc := find.ObjectFunc(fdType, failureDomain.Spec.Topology, taggableCtx.GetSession().Finder)
 	objRefs, err := finderFunc(ctx)
 	if err != nil {
 		return nil, err

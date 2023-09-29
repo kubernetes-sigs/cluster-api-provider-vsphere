@@ -1,0 +1,5 @@
+- op: replace
+  path: /spec/topology/variables/3
+  value:
+    name: controlPlaneIpAddr
+    value: "${WORKLOAD_CONTROL_PLANE_ENDPOINT_IP}"

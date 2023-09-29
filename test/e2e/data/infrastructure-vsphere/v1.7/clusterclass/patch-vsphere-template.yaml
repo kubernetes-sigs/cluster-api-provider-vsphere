@@ -1,0 +1,37 @@
+- op: add
+  path: /spec/patches/-
+  value:
+    definitions:
+    - jsonPatches:
+      - op: replace
+        path: /spec/template/spec/template
+        valueFrom:
+          template: |-
+            {{- if semverCompare ">= v1.28" .builtin.controlPlane.version -}}
+            ubuntu-2204-kube-{{ .builtin.controlPlane.version }}
+            {{- else -}}
+            ubuntu-2004-kube-{{ .builtin.controlPlane.version }}
+            {{- end -}}
+      selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: VSphereMachineTemplate
+        matchResources:
+          controlPlane: true
+    - jsonPatches:
+      - op: replace
+        path: /spec/template/spec/template
+        valueFrom:
+          template: |-
+            {{- if semverCompare ">= v1.28" .builtin.machineDeployment.version -}}
+            ubuntu-2204-kube-{{ .builtin.machineDeployment.version }}
+            {{- else -}}
+            ubuntu-2004-kube-{{ .builtin.machineDeployment.version }}
+            {{- end -}}
+      selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: VSphereMachineTemplate
+        matchResources:
+          machineDeploymentClass:
+            names:
+            - ${CLUSTER_CLASS_NAME}-worker
+    name: vSphereTemplate

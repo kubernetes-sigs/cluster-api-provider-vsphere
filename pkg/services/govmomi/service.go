@@ -75,7 +75,6 @@ func (vms *VMService) ReconcileVM(ctx *context.VMContext) (vm infrav1.VirtualMac
 
 	// Before going further, we need the VM's managed object reference.
 	vmRef, err := findVM(ctx)
-	//nolint:nestif
 	if err != nil {
 		if !isNotFound(err) {
 			return vm, err

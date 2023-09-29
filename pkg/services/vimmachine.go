@@ -227,7 +227,6 @@ func (v *VimMachineService) reconcileProviderID(vimMachineCtx *capvcontext.VIMMa
 	return true, nil
 }
 
-//nolint:nestif
 func (v *VimMachineService) reconcileNetwork(vimMachineCtx *capvcontext.VIMMachineContext, vm *infrav1.VSphereVM) (bool, error) {
 	var errs []error
 	networkStatusListOfIfaces := vm.Status.Network
@@ -411,8 +410,6 @@ func generateVMObjectName(vimMachineCtx *capvcontext.VIMMachineContext, machineN
 
 // generateOverrideFunc returns a function which can override the values in the VSphereVM Spec
 // with the values from the FailureDomain (if any) set on the owner CAPI machine.
-//
-//nolint:nestif
 func (v *VimMachineService) generateOverrideFunc(vimMachineCtx *capvcontext.VIMMachineContext) (func(vm *infrav1.VSphereVM), bool) {
 	failureDomainName := vimMachineCtx.Machine.Spec.FailureDomain
 	if failureDomainName == nil {

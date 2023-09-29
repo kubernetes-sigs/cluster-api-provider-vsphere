@@ -28,7 +28,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
 )
 
-//nolint:goconst
 var _ = Describe("GetCredentials", func() {
 	var (
 		ns      *corev1.Namespace
@@ -116,7 +115,7 @@ var _ = Describe("GetCredentials", func() {
 			if labels == nil {
 				labels = map[string]string{}
 			}
-			labels["identity-authorized"] = "true"
+			labels["identity-authorized"] = "true" //nolint: goconst
 			ns.Labels = labels
 			Expect(k8sclient.Update(ctx, ns)).To(Succeed())
 

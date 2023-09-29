@@ -79,7 +79,7 @@ func Clone(ctx *context.VMContext, bootstrapData []byte, format bootstrapv1.Form
 	// If a linked clone is requested then a MoRef for a snapshot must be
 	// found with which to perform the linked clone.
 	var snapshotRef *types.ManagedObjectReference
-	//nolint:nestif
+
 	if ctx.VSphereVM.Spec.CloneMode == "" || ctx.VSphereVM.Spec.CloneMode == infrav1.LinkedClone {
 		ctx.Logger.Info("linked clone requested")
 		// If the name of a snapshot was not provided then find the template's
@@ -103,7 +103,7 @@ func Clone(ctx *context.VMContext, bootstrapData []byte, format bootstrapv1.Form
 		}
 	}
 
-	// The type of clone operation depends on whether or not there is a snapshot
+	// The type of clone operation depends on whether there is a snapshot
 	// from which to do a linked clone.
 	diskMoveType := fullCloneDiskMoveType
 	ctx.VSphereVM.Status.CloneMode = infrav1.FullClone
@@ -215,7 +215,6 @@ func Clone(ctx *context.VMContext, bootstrapData []byte, format bootstrapv1.Form
 	}
 
 	var storageProfileID string
-	//nolint:nestif
 	if ctx.VSphereVM.Spec.StoragePolicyName != "" {
 		pbmClient, err := pbm.NewClient(ctx, ctx.Session.Client.Client)
 		if err != nil {

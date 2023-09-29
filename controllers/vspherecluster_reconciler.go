@@ -14,8 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-//nolint:nestif
-
 // Package controllers contains controllers for CAPV objects.
 package controllers
 

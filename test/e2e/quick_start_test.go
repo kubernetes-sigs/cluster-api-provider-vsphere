@@ -34,7 +34,7 @@ var _ = Describe("Cluster Creation using Cluster API quick-start test", func() {
 	})
 })
 
-var _ = Describe("ClusterClass Creation using Cluster API quick-start test [PR-Blocking] [ClusterClass]", func() {
+var _ = Describe("ClusterClass Creation using Cluster API quick-start test [ClusterClass]", func() {
 	capi_e2e.QuickStartSpec(ctx, func() capi_e2e.QuickStartSpecInput {
 		return capi_e2e.QuickStartSpecInput{
 			E2EConfig:             e2eConfig,
@@ -47,7 +47,7 @@ var _ = Describe("ClusterClass Creation using Cluster API quick-start test [PR-B
 	})
 })
 
-var _ = Describe("Cluster creation with [Ignition] bootstrap [PR-Blocking]", func() {
+var _ = Describe("Cluster creation with [Ignition] bootstrap", func() {
 	capi_e2e.QuickStartSpec(ctx, func() capi_e2e.QuickStartSpecInput {
 		return capi_e2e.QuickStartSpecInput{
 			E2EConfig:             e2eConfig,

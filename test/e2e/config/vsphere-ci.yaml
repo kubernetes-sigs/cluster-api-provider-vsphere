@@ -70,6 +70,14 @@ providers:
   - name: vsphere
     type: InfrastructureProvider
     versions:
+      - name: v1.8.1
+        # Use manifest from source files
+        value: ../../../../cluster-api-provider-vsphere/config/default
+        contract: v1beta1
+        files:
+          # Add a cluster template
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/v1.8/cluster-template.yaml"
+          - sourcePath: "../data/shared/v1.8/v1beta1_provider/metadata.yaml"
       - name: v1.9.99
         # Use manifest from source files
         value: ../../../../cluster-api-provider-vsphere/config/default

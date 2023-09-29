@@ -18,6 +18,7 @@ set -o errexit  # exits immediately on any unexpected error (does not bypass tra
 set -o nounset  # will error if variables are used without first being defined
 set -o pipefail # any non-zero exit code in a piped command causes the pipeline to fail with that code
 
+export TRACE=1
 export PATH=${PWD}/hack/tools/bin:${PATH}
 REPO_ROOT=$(git rev-parse --show-toplevel)
 

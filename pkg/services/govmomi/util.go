@@ -391,11 +391,6 @@ func getMacAddresses(ctx *virtualMachineContext) ([]string, map[string]int, map[
 // waitForIPAddresses waits for all network devices that should be getting an
 // IP address to have an IP address. This is any network device that specifies a
 // network name and DHCP for v4 or v6 or one or more static IP addresses.
-// The gocyclo detector is disabled for this function as it is difficult to
-// rewrite much simpler due to the maps used to track state and the lambdas
-// that use the maps.
-//
-//nolint:gocyclo,gocognit
 func waitForIPAddresses(
 	ctx *virtualMachineContext,
 	macToDeviceIndex map[string]int,

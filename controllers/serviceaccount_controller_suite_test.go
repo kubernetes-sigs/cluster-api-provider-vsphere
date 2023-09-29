@@ -37,11 +37,11 @@ import (
 
 const (
 	testTargetNS        = "test-pvcsi-system"
-	testTargetSecret    = "test-pvcsi-secret" //nolint:gosec
+	testTargetSecret    = "test-pvcsi-secret" //nolint:gosec //Non-production code.
 	testSystemSvcAcctNs = "test-system-svc-acct-namespace"
 	testSystemSvcAcctCM = "test-system-svc-acct-cm"
 
-	testSecretToken = "ZXlKaGJHY2lPaUpTVXpJMU5pSXNJbXRwWkNJNklp" //nolint:gosec
+	testSecretToken = "ZXlKaGJHY2lPaUpTVXpJMU5pSXNJbXRwWkNJNklp" //nolint:gosec //Non-production code.
 )
 
 var truePointer = true

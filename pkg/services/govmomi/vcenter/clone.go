@@ -271,7 +271,7 @@ func Clone(ctx *context.VMContext, bootstrapData []byte, format bootstrapv1.Form
 		// select one of the datastores of the owning cluster of the resource pool that matched the
 		// requirements of the storage policy.
 		if datastoreRef == nil {
-			r := rand.New(rand.NewSource(time.Now().UnixNano())) //nolint:gosec
+			r := rand.New(rand.NewSource(time.Now().UnixNano())) //nolint:gosec // We won't need cryptographically secure randomness here.
 			ds := result.CompatibleDatastores()[r.Intn(len(result.CompatibleDatastores()))]
 			datastoreRef = &types.ManagedObjectReference{Type: ds.HubType, Value: ds.HubId}
 		}

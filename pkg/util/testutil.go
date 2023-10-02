@@ -179,10 +179,6 @@ func CreateMachineContext(clusterContext *vmware.ClusterContext, machine *cluste
 	// Build the machine context.
 	return &vmware.SupervisorMachineContext{
 		BaseMachineContext: &capvcontext.BaseMachineContext{
-			// TODO(sbueringer): This SupervisorMachineContext is only used in tests and the Logger
-			// will be removed anyway once we refactor the machine controllers, so it's fine if the
-			// logger is not perfect.
-			Logger:  klog.Background().WithName(vsphereMachine.Name),
 			Machine: machine,
 			Cluster: clusterContext.Cluster,
 		},

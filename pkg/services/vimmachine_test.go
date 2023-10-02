@@ -68,12 +68,12 @@ var _ = Describe("VimMachineService_GenerateOverrideFunc", func() {
 	BeforeEach(func() {
 		controllerCtx = fake.NewControllerContext(fake.NewControllerManagerContext(deplZone("one"), deplZone("two"), failureDomain("one"), failureDomain("two")))
 		machineCtx = fake.NewMachineContext(fake.NewClusterContext(controllerCtx), controllerCtx)
-		vimMachineService = &VimMachineService{}
+		vimMachineService = &VimMachineService{controllerCtx.Client}
 	})
 
 	Context("When Failure Domain is not present", func() {
 		It("does not generate an override function", func() {
-			_, ok := vimMachineService.generateOverrideFunc(machineCtx)
+			_, ok := vimMachineService.generateOverrideFunc(ctx, machineCtx)
 			Expect(ok).To(BeFalse())
 		})
 	})
@@ -84,12 +84,12 @@ var _ = Describe("VimMachineService_GenerateOverrideFunc", func() {
 		})
 
 		It("generates an override function", func() {
-			_, ok := vimMachineService.generateOverrideFunc(machineCtx)
+			_, ok := vimMachineService.generateOverrideFunc(ctx, machineCtx)
 			Expect(ok).To(BeTrue())
 		})
 
 		It("uses the deployment zone placement constraint & failure domains topology for VM values", func() {
-			overrideFunc, ok := vimMachineService.generateOverrideFunc(machineCtx)
+			overrideFunc, ok := vimMachineService.generateOverrideFunc(ctx, machineCtx)
 			Expect(ok).To(BeTrue())
 
 			vm := &infrav1.VSphereVM{Spec: infrav1.VSphereVMSpec{}}
@@ -108,7 +108,7 @@ var _ = Describe("VimMachineService_GenerateOverrideFunc", func() {
 			})
 
 			It("fails to generate an override function", func() {
-				overrideFunc, ok := vimMachineService.generateOverrideFunc(machineCtx)
+				overrideFunc, ok := vimMachineService.generateOverrideFunc(ctx, machineCtx)
 				Expect(ok).To(BeFalse())
 				Expect(overrideFunc).To(BeNil())
 			})
@@ -125,7 +125,7 @@ var _ = Describe("VimMachineService_GenerateOverrideFunc", func() {
 					},
 				}
 
-				overrideFunc, ok := vimMachineService.generateOverrideFunc(machineCtx)
+				overrideFunc, ok := vimMachineService.generateOverrideFunc(ctx, machineCtx)
 				Expect(ok).To(BeTrue())
 
 				overrideFunc(vm)
@@ -147,7 +147,7 @@ var _ = Describe("VimMachineService_GenerateOverrideFunc", func() {
 					},
 				}
 
-				overrideFunc, ok := vimMachineService.generateOverrideFunc(machineCtx)
+				overrideFunc, ok := vimMachineService.generateOverrideFunc(ctx, machineCtx)
 				Expect(ok).To(BeTrue())
 
 				overrideFunc(vm)
@@ -169,7 +169,7 @@ var _ = Describe("VimMachineService_GenerateOverrideFunc", func() {
 					},
 				}
 
-				overrideFunc, ok := vimMachineService.generateOverrideFunc(machineCtx)
+				overrideFunc, ok := vimMachineService.generateOverrideFunc(ctx, machineCtx)
 				Expect(ok).To(BeTrue())
 
 				overrideFunc(vm)
@@ -216,9 +216,10 @@ var _ = Describe("VimMachineService_GetHostInfo", func() {
 		BeforeEach(func() {
 			controllerCtx = fake.NewControllerContext(fake.NewControllerManagerContext(getVSphereVM(hostAddr, corev1.ConditionTrue)))
 			machineCtx = fake.NewMachineContext(fake.NewClusterContext(controllerCtx), controllerCtx)
+			vimMachineService = &VimMachineService{controllerCtx.Client}
 		})
 		It("Fetches host address from the VSphereVM object", func() {
-			host, err := vimMachineService.GetHostInfo(machineCtx)
+			host, err := vimMachineService.GetHostInfo(ctx, machineCtx)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(host).To(Equal(hostAddr))
 		})
@@ -228,9 +229,10 @@ var _ = Describe("VimMachineService_GetHostInfo", func() {
 		BeforeEach(func() {
 			controllerCtx = fake.NewControllerContext(fake.NewControllerManagerContext(getVSphereVM(hostAddr, corev1.ConditionFalse)))
 			machineCtx = fake.NewMachineContext(fake.NewClusterContext(controllerCtx), controllerCtx)
+			vimMachineService = &VimMachineService{controllerCtx.Client}
 		})
 		It("returns empty string", func() {
-			host, err := vimMachineService.GetHostInfo(machineCtx)
+			host, err := vimMachineService.GetHostInfo(ctx, machineCtx)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(host).To(BeEmpty())
 		})
@@ -242,7 +244,7 @@ var _ = Describe("VimMachineService_createOrPatchVSphereVM", func() {
 	var (
 		controllerCtx       *context.ControllerContext
 		machineCtx          *context.VIMMachineContext
-		vimMachineService   = &VimMachineService{}
+		vimMachineService   *VimMachineService
 		hostAddr            = "1.2.3.4"
 		fakeLongClusterName = "fake-long-clustername"
 	)
@@ -268,13 +270,14 @@ var _ = Describe("VimMachineService_createOrPatchVSphereVM", func() {
 	controllerCtx = fake.NewControllerContext(fake.NewControllerManagerContext(getVSphereVM(hostAddr, corev1.ConditionTrue)))
 	machineCtx = fake.NewMachineContext(fake.NewClusterContext(controllerCtx), controllerCtx)
 	machineCtx.Machine.SetName(fakeLongClusterName)
+	vimMachineService = &VimMachineService{controllerCtx.Client}
 
 	Context("When VSphereMachine OS is Windows", func() {
 		BeforeEach(func() {
 			machineCtx.VSphereMachine.Spec.OS = infrav1.Windows
 		})
 		It("returns a renamed vspherevm object", func() {
-			vm, err := vimMachineService.createOrPatchVSphereVM(machineCtx, getVSphereVM(hostAddr, corev1.ConditionTrue))
+			vm, err := vimMachineService.createOrPatchVSphereVM(ctx, machineCtx, getVSphereVM(hostAddr, corev1.ConditionTrue))
 			vmName := vm.Name
 			Expect(err).NotTo(HaveOccurred())
 			Expect(vmName).To(Equal("fake-long-rname"))
@@ -286,7 +289,7 @@ var _ = Describe("VimMachineService_createOrPatchVSphereVM", func() {
 			machineCtx.VSphereMachine.Spec.OS = infrav1.Linux
 		})
 		It("returns the same vspherevm name", func() {
-			vm, err := vimMachineService.createOrPatchVSphereVM(machineCtx, getVSphereVM(hostAddr, corev1.ConditionTrue))
+			vm, err := vimMachineService.createOrPatchVSphereVM(ctx, machineCtx, getVSphereVM(hostAddr, corev1.ConditionTrue))
 			vmName := vm.Name
 			Expect(err).NotTo(HaveOccurred())
 			Expect(vmName).To(Equal(fakeLongClusterName))

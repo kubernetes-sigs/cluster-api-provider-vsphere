@@ -17,7 +17,8 @@ limitations under the License.
 package context
 
 import (
-	"github.com/go-logr/logr"
+	"context"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -27,8 +28,7 @@ import (
 // MachineContext is the context used in VSphereMachine reconciliation.
 type MachineContext interface {
 	String() string
-	Patch() error
-	GetLogger() logr.Logger
+	Patch(ctx context.Context) error
 	GetVSphereMachine() VSphereMachine
 	GetObjectMeta() metav1.ObjectMeta
 	GetCluster() *clusterv1.Cluster

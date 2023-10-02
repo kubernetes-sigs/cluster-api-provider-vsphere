@@ -17,22 +17,23 @@ limitations under the License.
 package vmware
 
 import (
+	"context"
 	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 )
 
 // VMModifier allows a function to be passed to VM creation to modify its spec
 // The hook is loosely typed so as to allow for different VirtualMachine backends.
 type VMModifier func(runtime.Object) (runtime.Object, error)
 
-// SupervisorMachineContext is a Go context used with a VSphereMachine.
+// SupervisorMachineContext is a Go capvcontext used with a VSphereMachine.
 type SupervisorMachineContext struct {
-	*context.BaseMachineContext
+	*capvcontext.BaseMachineContext
 	VSphereCluster *vmwarev1.VSphereCluster
 	VSphereMachine *vmwarev1.VSphereMachine
 	VMModifiers    []VMModifier
@@ -44,12 +45,12 @@ func (c *SupervisorMachineContext) String() string {
 }
 
 // Patch updates the object and its status on the API server.
-func (c *SupervisorMachineContext) Patch() error {
-	return c.PatchHelper.Patch(c, c.VSphereMachine)
+func (c *SupervisorMachineContext) Patch(ctx context.Context) error {
+	return c.PatchHelper.Patch(ctx, c.VSphereMachine)
 }
 
 // GetVSphereMachine returns the VSphereMachine from the SupervisorMachineContext.
-func (c *SupervisorMachineContext) GetVSphereMachine() context.VSphereMachine {
+func (c *SupervisorMachineContext) GetVSphereMachine() capvcontext.VSphereMachine {
 	return c.VSphereMachine
 }
 
@@ -67,6 +68,6 @@ func (c *SupervisorMachineContext) GetClusterContext() *ClusterContext {
 }
 
 // SetBaseMachineContext sets the BaseMachineContext for the SupervisorMachineContext.
-func (c *SupervisorMachineContext) SetBaseMachineContext(base *context.BaseMachineContext) {
+func (c *SupervisorMachineContext) SetBaseMachineContext(base *capvcontext.BaseMachineContext) {
 	c.BaseMachineContext = base
 }

@@ -28,10 +28,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/integer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -41,18 +43,20 @@ import (
 )
 
 // VimMachineService reconciles VSphere VMs.
-type VimMachineService struct{}
+type VimMachineService struct {
+	Client client.Client
+}
 
 // FetchVSphereMachine returns a new MachineContext containing the vsphereMachine.
-func (v *VimMachineService) FetchVSphereMachine(c client.Client, name types.NamespacedName) (capvcontext.MachineContext, error) {
+func (v *VimMachineService) FetchVSphereMachine(ctx context.Context, name types.NamespacedName) (capvcontext.MachineContext, error) {
 	vsphereMachine := &infrav1.VSphereMachine{}
-	err := c.Get(context.Background(), name, vsphereMachine)
+	err := v.Client.Get(ctx, name, vsphereMachine)
 
 	return &capvcontext.VIMMachineContext{VSphereMachine: vsphereMachine}, err
 }
 
 // FetchVSphereCluster adds the VSphereCluster associated with the passed cluster to the machineContext.
-func (v *VimMachineService) FetchVSphereCluster(c client.Client, cluster *clusterv1.Cluster, machineContext capvcontext.MachineContext) (capvcontext.MachineContext, error) {
+func (v *VimMachineService) FetchVSphereCluster(ctx context.Context, cluster *clusterv1.Cluster, machineContext capvcontext.MachineContext) (capvcontext.MachineContext, error) {
 	vimMachineCtx, ok := machineContext.(*capvcontext.VIMMachineContext)
 	if !ok {
 		return nil, errors.New("received unexpected VIMMachineContext type")
@@ -62,20 +66,20 @@ func (v *VimMachineService) FetchVSphereCluster(c client.Client, cluster *cluste
 		Namespace: machineContext.GetObjectMeta().Namespace,
 		Name:      cluster.Spec.InfrastructureRef.Name,
 	}
-	err := c.Get(context.Background(), vsphereClusterName, vsphereCluster)
+	err := v.Client.Get(ctx, vsphereClusterName, vsphereCluster)
 
 	vimMachineCtx.VSphereCluster = vsphereCluster
 	return vimMachineCtx, err
 }
 
 // ReconcileDelete reconciles delete events for the VSphere VM.
-func (v *VimMachineService) ReconcileDelete(machineCtx capvcontext.MachineContext) error {
+func (v *VimMachineService) ReconcileDelete(ctx context.Context, machineCtx capvcontext.MachineContext) error {
 	vimMachineCtx, ok := machineCtx.(*capvcontext.VIMMachineContext)
 	if !ok {
 		return errors.New("received unexpected VIMMachineContext type")
 	}
 
-	vm, err := v.findVSphereVM(vimMachineCtx)
+	vm, err := v.findVSphereVM(ctx, vimMachineCtx)
 	// Attempt to find the associated VSphereVM resource.
 	if err != nil {
 		return err
@@ -84,7 +88,7 @@ func (v *VimMachineService) ReconcileDelete(machineCtx capvcontext.MachineContex
 	if vm != nil && vm.GetDeletionTimestamp().IsZero() {
 		// If the VSphereVM was found and it's not already enqueued for
 		// deletion, go ahead and attempt to delete it.
-		if err := vimMachineCtx.Client.Delete(vimMachineCtx, vm); err != nil {
+		if err := v.Client.Delete(ctx, vm); err != nil {
 			return err
 		}
 	}
@@ -96,13 +100,13 @@ func (v *VimMachineService) ReconcileDelete(machineCtx capvcontext.MachineContex
 }
 
 // SyncFailureReason returns true if the VSphere Machine has failed.
-func (v *VimMachineService) SyncFailureReason(machineCtx capvcontext.MachineContext) (bool, error) {
+func (v *VimMachineService) SyncFailureReason(ctx context.Context, machineCtx capvcontext.MachineContext) (bool, error) {
 	vimMachineCtx, ok := machineCtx.(*capvcontext.VIMMachineContext)
 	if !ok {
 		return false, errors.New("received unexpected VIMMachineContext type")
 	}
 
-	vsphereVM, err := v.findVSphereVM(vimMachineCtx)
+	vsphereVM, err := v.findVSphereVM(ctx, vimMachineCtx)
 	if err != nil {
 		return false, err
 	}
@@ -116,25 +120,27 @@ func (v *VimMachineService) SyncFailureReason(machineCtx capvcontext.MachineCont
 }
 
 // ReconcileNormal reconciles create and update events for the VSphere VM.
-func (v *VimMachineService) ReconcileNormal(machineCtx capvcontext.MachineContext) (bool, error) {
+func (v *VimMachineService) ReconcileNormal(ctx context.Context, machineCtx capvcontext.MachineContext) (bool, error) {
+	log := ctrl.LoggerFrom(ctx)
 	vimMachineCtx, ok := machineCtx.(*capvcontext.VIMMachineContext)
 	if !ok {
 		return false, errors.New("received unexpected VIMMachineContext type")
 	}
-	vsphereVM, err := v.findVSphereVM(vimMachineCtx)
+	vsphereVM, err := v.findVSphereVM(ctx, vimMachineCtx)
 	if err != nil && !apierrors.IsNotFound(err) {
 		return false, err
 	}
 
-	vm, err := v.createOrPatchVSphereVM(vimMachineCtx, vsphereVM)
+	log = log.WithValues("VSphereVM", klog.KObj(vsphereVM))
+	ctx = ctrl.LoggerInto(ctx, log)
+	vm, err := v.createOrPatchVSphereVM(ctx, vimMachineCtx, vsphereVM)
 	if err != nil {
-		vimMachineCtx.Logger.Error(err, "error creating or patching VM", "vsphereVM", vsphereVM)
-		return false, err
+		log.Error(err, "error creating or patching VM")
 	}
 
 	// Waits the VM's ready state.
 	if !vm.Status.Ready {
-		vimMachineCtx.Logger.Info("waiting for ready state")
+		log.Info("Waiting for ready state")
 		// VSphereMachine wraps a VMSphereVM, so we are mirroring status from the underlying VMSphereVM
 		// in order to provide evidences about machine provisioning while provisioning is actually happening.
 		conditions.SetMirror(vimMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, vm)
@@ -142,20 +148,20 @@ func (v *VimMachineService) ReconcileNormal(machineCtx capvcontext.MachineContex
 	}
 
 	// Reconcile the VSphereMachine's provider ID using the VM's BIOS UUID.
-	if ok, err := v.reconcileProviderID(vimMachineCtx, vm); !ok {
+	if ok, err := v.reconcileProviderID(ctx, vimMachineCtx, vm); !ok {
 		if err != nil {
 			return false, errors.Wrapf(err, "unexpected error while reconciling provider ID for %s", vimMachineCtx)
 		}
-		vimMachineCtx.Logger.Info("provider ID is not reconciled")
+		log.Info("Provider ID is not reconciled")
 		return true, nil
 	}
 
 	// Reconcile the VSphereMachine's node addresses from the VM's IP addresses.
-	if ok, err := v.reconcileNetwork(vimMachineCtx, vm); !ok {
+	if ok, err := v.reconcileNetwork(ctx, vimMachineCtx, vm); !ok {
 		if err != nil {
 			return false, errors.Wrapf(err, "unexpected error while reconciling network for %s", vimMachineCtx)
 		}
-		vimMachineCtx.Logger.Info("network is not reconciled")
+		log.Info("Network is not reconciled")
 		conditions.MarkFalse(vimMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, infrav1.WaitingForNetworkAddressesReason, clusterv1.ConditionSeverityInfo, "")
 		return true, nil
 	}
@@ -165,14 +171,15 @@ func (v *VimMachineService) ReconcileNormal(machineCtx capvcontext.MachineContex
 }
 
 // GetHostInfo returns the hostname or IP address of the infrastructure host for the VSphere VM.
-func (v *VimMachineService) GetHostInfo(c capvcontext.MachineContext) (string, error) {
-	vimMachineCtx, ok := c.(*capvcontext.VIMMachineContext)
+func (v *VimMachineService) GetHostInfo(ctx context.Context, machineCtx capvcontext.MachineContext) (string, error) {
+	log := ctrl.LoggerFrom(ctx)
+	vimMachineCtx, ok := machineCtx.(*capvcontext.VIMMachineContext)
 	if !ok {
 		return "", errors.New("received unexpected VIMMachineContext type")
 	}
 
 	vsphereVM := &infrav1.VSphereVM{}
-	if err := vimMachineCtx.Client.Get(vimMachineCtx, client.ObjectKey{
+	if err := v.Client.Get(ctx, client.ObjectKey{
 		Namespace: vimMachineCtx.VSphereMachine.Namespace,
 		Name:      generateVMObjectName(vimMachineCtx, vimMachineCtx.Machine.Name),
 	}, vsphereVM); err != nil {
@@ -182,11 +189,11 @@ func (v *VimMachineService) GetHostInfo(c capvcontext.MachineContext) (string, e
 	if conditions.IsTrue(vsphereVM, infrav1.VMProvisionedCondition) {
 		return vsphereVM.Status.Host, nil
 	}
-	vimMachineCtx.Logger.V(4).Info("VMProvisionedCondition is set to false", "vsphereVM", vsphereVM.Name)
+	log.V(4).Info("VMProvisionedCondition is set to false", "vsphereVM", klog.KRef(vsphereVM.Namespace, vsphereVM.Name))
 	return "", nil
 }
 
-func (v *VimMachineService) findVSphereVM(vimMachineCtx *capvcontext.VIMMachineContext) (*infrav1.VSphereVM, error) {
+func (v *VimMachineService) findVSphereVM(ctx context.Context, vimMachineCtx *capvcontext.VIMMachineContext) (*infrav1.VSphereVM, error) {
 	// Get ready to find the associated VSphereVM resource.
 	vm := &infrav1.VSphereVM{}
 	vmKey := types.NamespacedName{
@@ -194,46 +201,40 @@ func (v *VimMachineService) findVSphereVM(vimMachineCtx *capvcontext.VIMMachineC
 		Name:      generateVMObjectName(vimMachineCtx, vimMachineCtx.Machine.Name),
 	}
 	// Attempt to find the associated VSphereVM resource.
-	if err := vimMachineCtx.Client.Get(vimMachineCtx, vmKey, vm); err != nil {
+	if err := v.Client.Get(ctx, vmKey, vm); err != nil {
 		return nil, err
 	}
 	return vm, nil
 }
 
-func (v *VimMachineService) reconcileProviderID(vimMachineCtx *capvcontext.VIMMachineContext, vm *infrav1.VSphereVM) (bool, error) {
+func (v *VimMachineService) reconcileProviderID(ctx context.Context, vimMachineCtx *capvcontext.VIMMachineContext, vm *infrav1.VSphereVM) (bool, error) {
+	log := ctrl.LoggerFrom(ctx).WithValues("VSphereVM", klog.KRef(vm.Namespace, vm.Name))
 	biosUUID := vm.Spec.BiosUUID
 	if biosUUID == "" {
-		vimMachineCtx.Logger.Info("spec.biosUUID is empty",
-			"vmKind", vm.Kind,
-			"vmNamespace", vm.Namespace,
-			"vmName", vm.Name)
+		log.Info("spec.biosUUID is empty")
 		return false, nil
 	}
 
 	providerID := infrautilv1.ConvertUUIDToProviderID(biosUUID)
 	if providerID == "" {
-		return false, errors.Errorf("invalid BIOS UUID %s from %s %s/%s for %s",
-			biosUUID,
-			vm.Kind,
-			vm.Namespace,
-			vm.Name,
-			vimMachineCtx)
+		return false, errors.Errorf("invalid BIOS UUID %s for %s", biosUUID, vimMachineCtx)
 	}
 	if vimMachineCtx.VSphereMachine.Spec.ProviderID == nil || *vimMachineCtx.VSphereMachine.Spec.ProviderID != providerID {
 		vimMachineCtx.VSphereMachine.Spec.ProviderID = &providerID
-		vimMachineCtx.Logger.Info("updated provider ID", "provider-id", providerID)
+		log.Info("Updated provider ID", "providerID", providerID)
 	}
 
 	return true, nil
 }
 
-func (v *VimMachineService) reconcileNetwork(vimMachineCtx *capvcontext.VIMMachineContext, vm *infrav1.VSphereVM) (bool, error) {
+func (v *VimMachineService) reconcileNetwork(ctx context.Context, vimMachineCtx *capvcontext.VIMMachineContext, vm *infrav1.VSphereVM) (bool, error) {
+	log := ctrl.LoggerFrom(ctx)
 	var errs []error
 	networkStatusListOfIfaces := vm.Status.Network
 	var networkStatusList []infrav1.NetworkStatus
 	for i, networkStatusListMemberIface := range networkStatusListOfIfaces {
 		if buf, err := json.Marshal(networkStatusListMemberIface); err != nil {
-			vimMachineCtx.Logger.Error(err,
+			log.Error(err,
 				"unsupported data for member of status.network list",
 				"index", i)
 			errs = append(errs, err)
@@ -245,7 +246,7 @@ func (v *VimMachineService) reconcileNetwork(vimMachineCtx *capvcontext.VIMMachi
 				errs = append(errs, err)
 			}
 			if err != nil {
-				vimMachineCtx.Logger.Error(err,
+				log.Error(err,
 					"unsupported data for member of status.network list",
 					"index", i, "data", string(buf))
 				errs = append(errs, err)
@@ -267,14 +268,15 @@ func (v *VimMachineService) reconcileNetwork(vimMachineCtx *capvcontext.VIMMachi
 	vimMachineCtx.VSphereMachine.Status.Addresses = machineAddresses
 
 	if len(vimMachineCtx.VSphereMachine.Status.Addresses) == 0 {
-		vimMachineCtx.Logger.Info("waiting on IP addresses")
+		log.Info("Waiting on IP addresses")
 		return false, kerrors.NewAggregate(errs)
 	}
 
 	return true, nil
 }
 
-func (v *VimMachineService) createOrPatchVSphereVM(vimMachineCtx *capvcontext.VIMMachineContext, vsphereVM *infrav1.VSphereVM) (*infrav1.VSphereVM, error) {
+func (v *VimMachineService) createOrPatchVSphereVM(ctx context.Context, vimMachineCtx *capvcontext.VIMMachineContext, vsphereVM *infrav1.VSphereVM) (*infrav1.VSphereVM, error) {
+	log := ctrl.LoggerFrom(ctx)
 	// Create or update the VSphereVM resource.
 	vm := &infrav1.VSphereVM{
 		ObjectMeta: metav1.ObjectMeta{
@@ -322,7 +324,7 @@ func (v *VimMachineService) createOrPatchVSphereVM(vimMachineCtx *capvcontext.VI
 		vimMachineCtx.VSphereMachine.Spec.VirtualMachineCloneSpec.DeepCopyInto(&vm.Spec.VirtualMachineCloneSpec)
 
 		// If Failure Domain is present on CAPI machine, use that to override the vm clone spec.
-		if overrideFunc, ok := v.generateOverrideFunc(vimMachineCtx); ok {
+		if overrideFunc, ok := v.generateOverrideFunc(ctx, vimMachineCtx); ok {
 			overrideFunc(vm)
 		}
 
@@ -346,53 +348,22 @@ func (v *VimMachineService) createOrPatchVSphereVM(vimMachineCtx *capvcontext.VI
 		return nil
 	}
 
-	vmKey := types.NamespacedName{
-		Namespace: vm.Namespace,
-		Name:      vm.Name,
-	}
-	result, err := ctrlutil.CreateOrPatch(vimMachineCtx, vimMachineCtx.Client, vm, mutateFn)
+	result, err := ctrlutil.CreateOrPatch(ctx, v.Client, vm, mutateFn)
 	if err != nil {
-		vimMachineCtx.Logger.Error(
-			err,
-			"failed to CreateOrPatch VSphereVM",
-			"namespace",
-			vm.Namespace,
-			"name",
-			vm.Name,
-		)
+		log.Error(err, "failed to CreateOrPatch VSphereVM")
 		return nil, err
 	}
 	switch result {
 	case ctrlutil.OperationResultNone:
-		vimMachineCtx.Logger.Info(
-			"no update required for vm",
-			"vm",
-			vmKey,
-		)
+		log.Info("No update required for vm")
 	case ctrlutil.OperationResultCreated:
-		vimMachineCtx.Logger.Info(
-			"created vm",
-			"vm",
-			vmKey,
-		)
+		log.Info("Created vm")
 	case ctrlutil.OperationResultUpdated:
-		vimMachineCtx.Logger.Info(
-			"updated vm",
-			"vm",
-			vmKey,
-		)
+		log.Info("Updated vm")
 	case ctrlutil.OperationResultUpdatedStatus:
-		vimMachineCtx.Logger.Info(
-			"updated vm and vm status",
-			"vm",
-			vmKey,
-		)
+		log.Info("Updated vm and vm status")
 	case ctrlutil.OperationResultUpdatedStatusOnly:
-		vimMachineCtx.Logger.Info(
-			"updated vm status",
-			"vm",
-			vmKey,
-		)
+		log.Info("Updated vm status")
 	}
 
 	return vm, nil
@@ -410,7 +381,8 @@ func generateVMObjectName(vimMachineCtx *capvcontext.VIMMachineContext, machineN
 
 // generateOverrideFunc returns a function which can override the values in the VSphereVM Spec
 // with the values from the FailureDomain (if any) set on the owner CAPI machine.
-func (v *VimMachineService) generateOverrideFunc(vimMachineCtx *capvcontext.VIMMachineContext) (func(vm *infrav1.VSphereVM), bool) {
+func (v *VimMachineService) generateOverrideFunc(ctx context.Context, vimMachineCtx *capvcontext.VIMMachineContext) (func(vm *infrav1.VSphereVM), bool) {
+	log := ctrl.LoggerFrom(ctx)
 	failureDomainName := vimMachineCtx.Machine.Spec.FailureDomain
 	if failureDomainName == nil {
 		return nil, false
@@ -418,14 +390,14 @@ func (v *VimMachineService) generateOverrideFunc(vimMachineCtx *capvcontext.VIMM
 
 	// Use the failureDomain name to fetch the vSphereDeploymentZone object
 	var vsphereDeploymentZone infrav1.VSphereDeploymentZone
-	if err := vimMachineCtx.Client.Get(vimMachineCtx, client.ObjectKey{Name: *failureDomainName}, &vsphereDeploymentZone); err != nil {
-		vimMachineCtx.Logger.Error(err, "unable to fetch vsphere deployment zone", "name", *failureDomainName)
+	if err := v.Client.Get(ctx, client.ObjectKey{Name: *failureDomainName}, &vsphereDeploymentZone); err != nil {
+		log.Error(err, "unable to fetch vsphere deployment zone", "VSphereDeploymentZone", klog.KRef(vsphereDeploymentZone.Namespace, vsphereDeploymentZone.Name), "name", *failureDomainName)
 		return nil, false
 	}
 
 	var vsphereFailureDomain infrav1.VSphereFailureDomain
-	if err := vimMachineCtx.Client.Get(vimMachineCtx, client.ObjectKey{Name: vsphereDeploymentZone.Spec.FailureDomain}, &vsphereFailureDomain); err != nil {
-		vimMachineCtx.Logger.Error(err, "unable to fetch failure domain", "name", vsphereDeploymentZone.Spec.FailureDomain)
+	if err := v.Client.Get(ctx, client.ObjectKey{Name: vsphereDeploymentZone.Spec.FailureDomain}, &vsphereFailureDomain); err != nil {
+		log.Error(err, "unable to fetch failure domain", "VSphereFailureDomain", klog.KRef(vsphereFailureDomain.Namespace, vsphereFailureDomain.Name), "name", vsphereDeploymentZone.Spec.FailureDomain)
 		return nil, false
 	}
 

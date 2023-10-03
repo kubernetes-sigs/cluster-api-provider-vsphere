@@ -51,10 +51,10 @@ func parseAddressWithPrefix(ipamAddress *ipamv1.IPAddress) (netip.Prefix, error)
 // does not conflict with the gateway addresses parsed from other
 // ipamv1.IPAddresses on the current device. Gateway addresses must be the same
 // family as the address on the ipamv1.IPAddress. Gateway addresses of one
-// family must match the other addresses of the same family. IPv4 Gateways are
-// required, but IPv6 gateways are not.
+// family must match the other addresses of the same family. A gateway address
+// is optional. If it is not set this function returns `nil, nil`.
 func parseGateway(ipamAddress *ipamv1.IPAddress, addressWithPrefix netip.Prefix, ipamDeviceConfig ipamDeviceConfig) (*netip.Addr, error) {
-	if ipamAddress.Spec.Gateway == "" && addressWithPrefix.Addr().Is6() {
+	if ipamAddress.Spec.Gateway == "" {
 		return nil, nil
 	}
 

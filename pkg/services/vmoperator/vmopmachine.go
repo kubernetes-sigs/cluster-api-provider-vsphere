@@ -80,19 +80,17 @@ func (v *VmopMachineService) ReconcileDelete(ctx context.Context, machineCtx cap
 	}
 	log.V(2).Info("Destroying VM")
 
-	// If debug logging is enabled, report the number of vms in the cluster before and after the reconcile
-	if log.V(5).Enabled() {
+	vms, err := v.getVirtualMachinesInCluster(ctx, supervisorMachineCtx)
+	log.V(5).Info("Trace Destroy PRE: VirtualMachines", "vmcount", len(vms), "error", err)
+	defer func() {
 		vms, err := v.getVirtualMachinesInCluster(ctx, supervisorMachineCtx)
-		log.Info("Trace Destroy PRE: VirtualMachines", "vmcount", len(vms), "error", err)
-		defer func() {
-			vms, err := v.getVirtualMachinesInCluster(ctx, supervisorMachineCtx)
-			log.Info("Trace Destroy POST: VirtualMachines", "vmcount", len(vms), "error", err)
-		}()
-	}
+		log.V(5).Info("Trace Destroy POST: VirtualMachines", "vmcount", len(vms), "error", err)
+	}()
 
 	// First, check to see if it's already deleted
 	vmopVM := vmoprv1.VirtualMachine{}
 	if err := v.Client.Get(ctx, types.NamespacedName{Namespace: supervisorMachineCtx.Machine.Namespace, Name: supervisorMachineCtx.Machine.Name}, &vmopVM); err != nil {
+		// If debug logging is enabled, report the number of vms in the cluster before and after the reconcile
 		if apierrors.IsNotFound(err) {
 			supervisorMachineCtx.VSphereMachine.Status.VMStatus = vmwarev1.VirtualMachineStateNotFound
 			return err
@@ -116,7 +114,6 @@ func (v *VmopMachineService) ReconcileDelete(ctx context.Context, machineCtx cap
 		supervisorMachineCtx.VSphereMachine.Status.VMStatus = vmwarev1.VirtualMachineStateError
 		return err
 	}
-
 	supervisorMachineCtx.VSphereMachine.Status.VMStatus = vmwarev1.VirtualMachineStateDeleting
 	return nil
 }
@@ -143,14 +140,12 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 	log.V(2).Info("Reconciling VM")
 
 	// If debug logging is enabled, report the number of vms in the cluster before and after the reconcile
-	if log.V(5).Enabled() {
-		vms, err := v.getVirtualMachinesInCluster(ctx, supervisorMachineCtx)
-		log.Info("Trace ReconcileVM PRE: VirtualMachines", "vmcount", len(vms), "error", err)
-		defer func() {
-			vms, err := v.getVirtualMachinesInCluster(ctx, supervisorMachineCtx)
-			log.Info("Trace ReconcileVM POST: VirtualMachines", "vmcount", len(vms), "error", err)
-		}()
-	}
+	vms, err := v.getVirtualMachinesInCluster(ctx, supervisorMachineCtx)
+	log.V(5).Info("Trace ReconcileVM PRE: VirtualMachines", "vmcount", len(vms), "error", err)
+	defer func() {
+		vms, err = v.getVirtualMachinesInCluster(ctx, supervisorMachineCtx)
+		log.V(5).Info("Trace ReconcileVM POST: VirtualMachines", "vmcount", len(vms), "error", err)
+	}()
 
 	// Set the VM state. Will get reset throughout the reconcile
 	supervisorMachineCtx.VSphereMachine.Status.VMStatus = vmwarev1.VirtualMachineStatePending
@@ -373,6 +368,9 @@ func (v *VmopMachineService) reconcileProviderID(ctx context.Context, supervisor
 // getVirtualMachinesInCluster returns all VMOperator VirtualMachine objects in the current cluster.
 // First filter by clusterSelectorKey. If the result is empty, they fall back to legacyClusterSelectorKey.
 func (v *VmopMachineService) getVirtualMachinesInCluster(ctx context.Context, supervisorMachineCtx *vmware.SupervisorMachineContext) ([]*vmoprv1.VirtualMachine, error) {
+	if supervisorMachineCtx.Cluster == nil {
+		return []*vmoprv1.VirtualMachine{}, errors.Errorf("No cluster is set for machine %s in namespace %s", supervisorMachineCtx.GetVSphereMachine().GetName(), supervisorMachineCtx.GetVSphereMachine().GetNamespace())
+	}
 	labels := map[string]string{clusterSelectorKey: supervisorMachineCtx.Cluster.Name}
 	vmList := &vmoprv1.VirtualMachineList{}
 

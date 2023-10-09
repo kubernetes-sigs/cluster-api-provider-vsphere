@@ -1,0 +1,7 @@
+# original job: https://github.com/kubernetes/test-infra/blob/92927d1abec1c3c78e396356e1bbaf19f9e2b699/config/jobs/kubernetes/sig-cloud-provider/gcp/gcp-gce.yaml#L713
+disable-log-dump: true
+ginkgo.focus: \[Feature:(AdmissionWebhookMatchConditions|InPlacePodVerticalScaling|SidecarContainers|StorageVersionAPI|PodPreset|StatefulSetAutoDeletePVC)\]|Networking 
+ginkgo.skip: \[Feature:(SCTPConnectivity|Volumes|Networking-Performance)\]|IPv6|csi-hostpath-v0
+minStartupPods: 8
+
+ginkgo.trace: true

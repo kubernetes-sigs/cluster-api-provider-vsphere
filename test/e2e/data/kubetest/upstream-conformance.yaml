@@ -1,0 +1,5 @@
+disable-log-dump: true
+ginkgo.focus: \[Conformance\]
+# ginkgo.skip:
+
+ginkgo.trace: true

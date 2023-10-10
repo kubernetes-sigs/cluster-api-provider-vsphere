@@ -293,18 +293,19 @@ func (r *machineReconciler) reconcileNormal(ctx context.Context, machineCtx capv
 		return reconcile.Result{}, nil
 	}
 
-	//nolint:gocritic
-	if r.supervisorBased {
-		err := r.setVMModifiers(ctx, machineCtx)
-		if err != nil {
-			return reconcile.Result{}, err
-		}
-	} else {
+	// Cluster `.status.infrastructureReady == false is handled differently depending on if the machine is supervisor based.
+	// 1) If the Cluster is not supervisor-based mark the VMProvisionedCondition false and return nil.
+	// 2) If the Cluster is supervisor-based continue to reconcile as InfrastructureReady is not set to true until after the kube apiserver is available.
+	if !r.supervisorBased {
 		// vmwarev1.VSphereCluster doesn't set Cluster.Status.Ready until the API endpoint is available.
 		if !machineCtx.GetCluster().Status.InfrastructureReady {
 			log.Info("Cluster infrastructure is not ready yet")
 			conditions.MarkFalse(machineCtx.GetVSphereMachine(), infrav1.VMProvisionedCondition, infrav1.WaitingForClusterInfrastructureReason, clusterv1.ConditionSeverityInfo, "")
 			return reconcile.Result{}, nil
+		}
+	} else {
+		if err := r.setVMModifiers(ctx, machineCtx); err != nil {
+			return reconcile.Result{}, err
 		}
 	}
 

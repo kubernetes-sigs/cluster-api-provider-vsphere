@@ -34,8 +34,8 @@ func TestVsphereFailureDomain_Default(t *testing.T) {
 	webhook := &VSphereFailureDomainWebhook{}
 	g.Expect(webhook.Default(context.Background(), m)).ToNot(HaveOccurred())
 
-	g.Expect(*m.Spec.Zone.AutoConfigure).To(BeFalse())   //nolint:staticcheck
-	g.Expect(*m.Spec.Region.AutoConfigure).To(BeFalse()) //nolint:staticcheck
+	g.Expect(*m.Spec.Zone.AutoConfigure).To(BeFalse())
+	g.Expect(*m.Spec.Region.AutoConfigure).To(BeFalse())
 }
 
 func TestVSphereFailureDomain_ValidateCreate(t *testing.T) {

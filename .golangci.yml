@@ -194,6 +194,9 @@ issues:
     - staticcheck
     text: "SA1019: .* is deprecated: This package will be removed in one of the next releases."
   - linters:
+    - staticcheck
+    text: "SA1019: .* is deprecated: This field is going to be removed in a future release."
+  - linters:
     - revive
     text: "exported: exported method .*\\.(Reconcile|SetupWithManager|SetupWebhookWithManager) should have comment or be unexported"
   - linters:

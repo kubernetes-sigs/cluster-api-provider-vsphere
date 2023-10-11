@@ -107,12 +107,12 @@ func (webhook *VSphereFailureDomainWebhook) Default(_ context.Context, obj runti
 	if !ok {
 		return apierrors.NewBadRequest(fmt.Sprintf("expected a VSphereFailureDomain but got a %T", obj))
 	}
-	if typedObj.Spec.Zone.AutoConfigure == nil { //nolint:staticcheck
-		typedObj.Spec.Zone.AutoConfigure = pointer.Bool(false) //nolint:staticcheck
+	if typedObj.Spec.Zone.AutoConfigure == nil {
+		typedObj.Spec.Zone.AutoConfigure = pointer.Bool(false)
 	}
 
-	if typedObj.Spec.Region.AutoConfigure == nil { //nolint:staticcheck
-		typedObj.Spec.Region.AutoConfigure = pointer.Bool(false) //nolint:staticcheck
+	if typedObj.Spec.Region.AutoConfigure == nil {
+		typedObj.Spec.Region.AutoConfigure = pointer.Bool(false)
 	}
 
 	return nil

@@ -45,6 +45,11 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 )
 
+const (
+	// VSphereClusterIdentityControllerName is the name of the vSphere cluster identity controller.
+	VSphereClusterIdentityControllerName = "vsphereclusteridentity-controller"
+)
+
 var (
 	identityControlledType     = &infrav1.VSphereClusterIdentity{}
 	identityControlledTypeName = reflect.TypeOf(identityControlledType).Elem().Name()
@@ -61,17 +66,14 @@ func AddVsphereClusterIdentityControllerToManager(ctx context.Context, controlle
 		controllerNameLong  = fmt.Sprintf("%s/%s/%s", controllerManagerCtx.Namespace, controllerManagerCtx.Name, controllerNameShort)
 	)
 
-	// Build the controller context.
-	controllerContext := &capvcontext.ControllerContext{
-		ControllerManagerContext: controllerManagerCtx,
-		Name:                     controllerNameShort,
-		Recorder:                 record.New(mgr.GetEventRecorderFor(controllerNameLong)),
-		Logger:                   controllerManagerCtx.Logger.WithName(controllerNameShort),
+	reconciler := clusterIdentityReconciler{
+		ControllerManagerCtx: controllerManagerCtx,
+		Client:               controllerManagerCtx.Client,
+		Recorder:             record.New(mgr.GetEventRecorderFor(controllerNameLong)),
 	}
 
-	reconciler := clusterIdentityReconciler{ControllerContext: controllerContext}
-
 	return ctrl.NewControllerManagedBy(mgr).
+		Named(VSphereClusterIdentityControllerName).
 		For(identityControlledType).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), controllerManagerCtx.WatchFilterValue)).
@@ -79,16 +81,22 @@ func AddVsphereClusterIdentityControllerToManager(ctx context.Context, controlle
 }
 
 type clusterIdentityReconciler struct {
-	*capvcontext.ControllerContext
+	ControllerManagerCtx *capvcontext.ControllerManagerContext
+	Client               client.Client
+	Recorder             record.Recorder
 }
 
 func (r clusterIdentityReconciler) Reconcile(ctx context.Context, req reconcile.Request) (_ reconcile.Result, reterr error) {
 	// TODO(gab-satchi) consider creating a context for the clusterIdentity
 	// Get VSphereClusterIdentity
+
+	log := ctrl.LoggerFrom(ctx)
+	log.V(4).Info("Starting Reconcile")
+
 	identity := &infrav1.VSphereClusterIdentity{}
 	if err := r.Client.Get(ctx, req.NamespacedName, identity); err != nil {
 		if apierrors.IsNotFound(err) {
-			r.Logger.V(4).Info("VSphereClusterIdentity not found, won't reconcile", "key", req.NamespacedName)
+			log.V(4).Info("VSphereClusterIdentity not found, won't reconcile", "key", req.NamespacedName)
 			return reconcile.Result{}, nil
 		}
 
@@ -127,7 +135,7 @@ func (r clusterIdentityReconciler) Reconcile(ctx context.Context, req reconcile.
 	// fetch secret
 	secret := &corev1.Secret{}
 	secretKey := client.ObjectKey{
-		Namespace: r.Namespace,
+		Namespace: r.ControllerManagerCtx.Namespace,
 		Name:      identity.Spec.SecretName,
 	}
 	if err := r.Client.Get(ctx, secretKey, secret); err != nil {
@@ -167,10 +175,11 @@ func (r clusterIdentityReconciler) Reconcile(ctx context.Context, req reconcile.
 }
 
 func (r clusterIdentityReconciler) reconcileDelete(ctx context.Context, identity *infrav1.VSphereClusterIdentity) error {
-	r.Logger.Info("Reconciling VSphereClusterIdentity delete")
+	log := ctrl.LoggerFrom(ctx)
+	log.Info("Reconciling VSphereClusterIdentity delete")
 	secret := &corev1.Secret{}
 	secretKey := client.ObjectKey{
-		Namespace: r.Namespace,
+		Namespace: r.ControllerManagerCtx.Namespace,
 		Name:      identity.Spec.SecretName,
 	}
 	err := r.Client.Get(ctx, secretKey, secret)
@@ -182,7 +191,7 @@ func (r clusterIdentityReconciler) reconcileDelete(ctx context.Context, identity
 		}
 		return err
 	}
-	r.Logger.Info(fmt.Sprintf("Removing finalizer from Secret %s/%s", secret.Namespace, secret.Name))
+	log.Info(fmt.Sprintf("Removing finalizer from Secret %s/%s", secret.Namespace, secret.Name))
 	// Check if the old finalizer(from v0.7) is present, if yes, delete it
 	// For more context, please refer: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/1482
 	if ctrlutil.ContainsFinalizer(secret, legacyIdentityFinalizer) {

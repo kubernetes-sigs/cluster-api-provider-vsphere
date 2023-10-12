@@ -30,7 +30,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	clusterutil1v1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -38,7 +37,6 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/identity"
-	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers"
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers/vcsim"
 )
 
@@ -538,130 +536,7 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 			})
 		})
 	})
-
-	Context("For VSphereMachines belonging to the cluster", func() {
-		var (
-			namespace string
-			testNs    *corev1.Namespace
-		)
-
-		BeforeEach(func() {
-			var err error
-			testNs, err = testEnv.CreateNamespace(ctx, "vsm-owner-ref")
-			Expect(err).NotTo(HaveOccurred())
-			namespace = testNs.Name
-		})
-
-		AfterEach(func() {
-			Expect(testEnv.Delete(ctx, testNs)).To(Succeed())
-		})
-
-		It("sets owner references to those machines", func() {
-			// Create the VSphereCluster object
-			instance := &infrav1.VSphereCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					GenerateName: "test1-",
-					Namespace:    namespace,
-				},
-				Spec: infrav1.VSphereClusterSpec{
-					Server: testEnv.Simulator.ServerURL().Host,
-				},
-			}
-			Expect(testEnv.Create(ctx, instance)).To(Succeed())
-
-			capiCluster := &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					GenerateName: "capi-test1-",
-					Namespace:    namespace,
-				},
-				Spec: clusterv1.ClusterSpec{
-					InfrastructureRef: &corev1.ObjectReference{
-						APIVersion: infrav1.GroupVersion.String(),
-						Kind:       "VsphereCluster",
-						Name:       instance.Name,
-					},
-				},
-			}
-			Expect(testEnv.Create(ctx, capiCluster)).To(Succeed())
-
-			// Make sure the VSphereCluster exists.
-			key := client.ObjectKey{Namespace: namespace, Name: instance.Name}
-			Eventually(func() error {
-				return testEnv.Get(ctx, key, instance)
-			}, timeout).Should(BeNil())
-
-			machineCount := 3
-			for i := 0; i < machineCount; i++ {
-				Expect(createVsphereMachine(ctx, testEnv, namespace, capiCluster.Name)).To(Succeed())
-			}
-
-			Eventually(func() bool {
-				ph, err := patch.NewHelper(instance, testEnv)
-				Expect(err).ShouldNot(HaveOccurred())
-				instance.OwnerReferences = append(instance.OwnerReferences, metav1.OwnerReference{
-					Kind:       "Cluster",
-					APIVersion: clusterv1.GroupVersion.String(),
-					Name:       capiCluster.Name,
-					UID:        "blah",
-				})
-				Expect(ph.Patch(ctx, instance, patch.WithStatusObservedGeneration{})).ShouldNot(HaveOccurred())
-				return true
-			}, timeout).Should(BeTrue())
-
-			By("checking for presence of VSphereMachine objects")
-			Eventually(func() int {
-				machines := &infrav1.VSphereMachineList{}
-				if err := testEnv.List(ctx, machines, client.InNamespace(namespace),
-					client.MatchingLabels(map[string]string{clusterv1.ClusterNameLabel: capiCluster.Name})); err != nil {
-					return -1
-				}
-				return len(machines.Items)
-			}, timeout).Should(Equal(machineCount))
-
-			By("checking VSphereMachine owner refs")
-			Eventually(func() int {
-				machines := &infrav1.VSphereMachineList{}
-				if err := testEnv.List(ctx, machines, client.InNamespace(namespace),
-					client.MatchingLabels(map[string]string{clusterv1.ClusterNameLabel: capiCluster.Name})); err != nil {
-					return 0
-				}
-				ownerRefSet := 0
-				for _, m := range machines.Items {
-					if len(m.OwnerReferences) >= 1 && clusterutil1v1.HasOwnerRef(m.OwnerReferences, metav1.OwnerReference{
-						APIVersion: infrav1.GroupVersion.String(),
-						Kind:       instance.Kind,
-						Name:       instance.Name,
-						UID:        instance.UID,
-					}) {
-						ownerRefSet++
-					}
-				}
-				return ownerRefSet
-			}, timeout).Should(Equal(machineCount))
-		})
-	})
 })
-
-func createVsphereMachine(ctx context.Context, env *helpers.TestEnvironment, namespace, clusterName string) error {
-	vsphereMachine := &infrav1.VSphereMachine{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "test-vsp",
-			Namespace:    namespace,
-			Labels:       map[string]string{clusterv1.ClusterNameLabel: clusterName},
-		},
-		Spec: infrav1.VSphereMachineSpec{
-			VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
-				Template: "ubuntu-k9s-1.19",
-				Network: infrav1.NetworkSpec{
-					Devices: []infrav1.NetworkDeviceSpec{
-						{NetworkName: "network-1", DHCP4: true},
-					},
-				},
-			},
-		},
-	}
-	return env.Create(ctx, vsphereMachine)
-}
 
 func TestClusterReconciler_ReconcileDeploymentZones(t *testing.T) {
 	server := "vcenter123.foo.com"

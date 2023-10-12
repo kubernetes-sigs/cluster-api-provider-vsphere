@@ -17,15 +17,19 @@ limitations under the License.
 package controllers
 
 import (
+	"testing"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	capiutil "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 )
@@ -64,7 +68,7 @@ var _ = Describe("VsphereMachineReconciler", func() {
 			},
 			Spec: clusterv1.ClusterSpec{
 				InfrastructureRef: &corev1.ObjectReference{
-					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
+					APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 					Kind:       "VSphereCluster",
 					Name:       "vsphere-test1",
 				},
@@ -78,7 +82,7 @@ var _ = Describe("VsphereMachineReconciler", func() {
 				Namespace: testNs.Name,
 				OwnerReferences: []metav1.OwnerReference{
 					{
-						APIVersion: "cluster.x-k8s.io/v1alpha4",
+						APIVersion: "cluster.x-k8s.io/v1beta1",
 						Kind:       "Cluster",
 						Name:       capiCluster.Name,
 						UID:        "blah",
@@ -101,7 +105,7 @@ var _ = Describe("VsphereMachineReconciler", func() {
 			Spec: clusterv1.MachineSpec{
 				ClusterName: capiCluster.Name,
 				InfrastructureRef: corev1.ObjectReference{
-					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
+					APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 					Kind:       "VSphereMachine",
 					Name:       "vsphere-machine-1",
 				},
@@ -205,3 +209,142 @@ var _ = Describe("VsphereMachineReconciler", func() {
 		})
 	})
 })
+
+func Test_machineReconciler_Metadata(t *testing.T) {
+	g := NewWithT(t)
+	ns, err := testEnv.CreateNamespace(ctx, "vsphere-machine-reconciler")
+	g.Expect(err).NotTo(HaveOccurred())
+
+	defer func() {
+		if err := testEnv.Delete(ctx, ns); err != nil {
+			g.Expect(err).NotTo(HaveOccurred())
+		}
+	}()
+	capiCluster := &clusterv1.Cluster{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Cluster",
+			APIVersion: clusterv1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "cluster1",
+			Namespace: ns.Name,
+		},
+		Spec: clusterv1.ClusterSpec{
+			InfrastructureRef: &corev1.ObjectReference{
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				Kind:       "VSphereCluster",
+				Name:       "vsphere-test1",
+			},
+		},
+	}
+
+	vSphereCluster := &infrav1.VSphereCluster{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "VSphereCluster",
+			APIVersion: infrav1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "vsphere-test1",
+			Namespace: ns.Name,
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: "cluster.x-k8s.io/v1beta1",
+					Kind:       "Cluster",
+					Name:       capiCluster.Name,
+					UID:        "blah",
+				},
+			},
+		},
+		Spec: infrav1.VSphereClusterSpec{},
+	}
+
+	capiMachine := &clusterv1.Machine{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Machine",
+			APIVersion: clusterv1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "machine1",
+			Namespace:  ns.Name,
+			Finalizers: []string{clusterv1.MachineFinalizer},
+			Labels: map[string]string{
+				clusterv1.ClusterNameLabel: capiCluster.Name,
+			},
+		},
+		Spec: clusterv1.MachineSpec{
+			ClusterName: capiCluster.Name,
+			InfrastructureRef: corev1.ObjectReference{
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				Kind:       "VSphereMachine",
+				Name:       "vsphere-machine-1",
+			},
+		},
+	}
+	vSphereMachine := &infrav1.VSphereMachine{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "VSphereMachine",
+			APIVersion: infrav1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "vsphere-machine-1",
+			Namespace: ns.Name,
+			Labels: map[string]string{
+				clusterv1.ClusterNameLabel:         capiCluster.Name,
+				clusterv1.MachineControlPlaneLabel: "",
+			},
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: clusterv1.GroupVersion.String(),
+					Kind:       "Machine",
+					Name:       capiMachine.Name,
+					UID:        "blah",
+				},
+				// This ownerReference should be removed by the reconciler as it's no longer needed.
+				// These ownerReferences were previously added by CAPV to prevent machines becoming orphaned.
+				{
+					APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+					Kind:       "VSphereCluster",
+					Name:       vSphereCluster.Name,
+					UID:        "blah",
+				},
+			},
+		},
+		Spec: infrav1.VSphereMachineSpec{
+			VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
+				Template: "ubuntu-k9s-1.19",
+				Network: infrav1.NetworkSpec{
+					Devices: []infrav1.NetworkDeviceSpec{
+						{NetworkName: "network-1", DHCP4: true},
+					},
+				},
+			},
+		},
+	}
+
+	t.Run("Should set finalizer and remove unnecessary ownerReference", func(t *testing.T) {
+		g := NewWithT(t)
+
+		// Create the Machine, Cluster, VSphereCluster object and expect the Reconcile and Deployment to be created
+		g.Expect(testEnv.Create(ctx, vSphereCluster)).To(Succeed())
+		g.Expect(testEnv.Create(ctx, capiCluster)).To(Succeed())
+		g.Expect(testEnv.Create(ctx, capiMachine)).To(Succeed())
+
+		g.Expect(testEnv.Create(ctx, vSphereMachine)).To(Succeed())
+
+		key := client.ObjectKey{Namespace: vSphereMachine.Namespace, Name: vSphereMachine.Name}
+		defer func() {
+			err := testEnv.Delete(ctx, vSphereMachine)
+			g.Expect(err).ToNot(HaveOccurred())
+		}()
+
+		// Make sure the VSphereMachine has a finalizer and the correct ownerReferences.
+		g.Eventually(func() bool {
+			if err := testEnv.Get(ctx, key, vSphereMachine); err != nil {
+				return false
+			}
+			return ctrlutil.ContainsFinalizer(vSphereMachine, infrav1.MachineFinalizer) &&
+				capiutil.HasOwner(vSphereMachine.GetOwnerReferences(), clusterv1.GroupVersion.String(), []string{"Machine"}) &&
+				!capiutil.HasOwner(vSphereMachine.GetOwnerReferences(), infrav1.GroupVersion.String(), []string{"VSphereCluster"})
+		}, timeout).Should(BeTrue())
+	})
+}

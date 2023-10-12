@@ -242,6 +242,23 @@ func (r *machineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 		return reconcile.Result{}, nil
 	}
 
+	// If the VSphereCluster has been previously set as an ownerReference remove it. This may have been set in an older
+	// version of CAPV to prevent VSphereMachines from being orphaned, but is no longer needed.
+	// For more info see: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/2054
+	// TODO: This should be removed in a future release of CAPV.
+	if cluster.Spec.InfrastructureRef != nil {
+		machineContext.GetVSphereMachine().SetOwnerReferences(
+			clusterutilv1.RemoveOwnerRef(
+				machineContext.GetVSphereMachine().GetOwnerReferences(),
+				metav1.OwnerReference{
+					Name:       cluster.Spec.InfrastructureRef.Name,
+					APIVersion: cluster.Spec.InfrastructureRef.APIVersion,
+					Kind:       cluster.Spec.InfrastructureRef.Kind,
+				},
+			),
+		)
+	}
+
 	// Fetch the VSphereCluster and update the machine context
 	machineContext, err = r.VMService.FetchVSphereCluster(ctx, cluster, machineContext)
 	if err != nil {
@@ -255,6 +272,7 @@ func (r *machineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 		ctrlutil.AddFinalizer(machineContext.GetVSphereMachine(), infrav1.MachineFinalizer)
 		return reconcile.Result{}, nil
 	}
+
 	// Handle non-deleted machines
 	return r.reconcileNormal(ctx, machineContext)
 }

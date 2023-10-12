@@ -361,7 +361,7 @@ func setupVAPIControllers(ctx context.Context, controllerCtx *capvcontext.Contro
 	if err := controllers.AddMachineControllerToManager(ctx, controllerCtx, mgr, &infrav1.VSphereMachine{}, concurrency(vSphereMachineConcurrency)); err != nil {
 		return err
 	}
-	if err := controllers.AddVMControllerToManager(controllerCtx, mgr, tracker, concurrency(vSphereVMConcurrency)); err != nil {
+	if err := controllers.AddVMControllerToManager(ctx, controllerCtx, mgr, tracker, concurrency(vSphereVMConcurrency)); err != nil {
 		return err
 	}
 	if err := controllers.AddVsphereClusterIdentityControllerToManager(ctx, controllerCtx, mgr, concurrency(vSphereClusterIdentityConcurrency)); err != nil {

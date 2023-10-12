@@ -80,7 +80,7 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 			g := gomega.NewWithT(t)
 
 			testCtx := setup(vsphereVM)
-			err := vmReconciler{}.reconcileIPAddressClaims(testCtx)
+			err := vmReconciler{}.reconcileIPAddressClaims(ctx, testCtx)
 			g.Expect(err).ToNot(gomega.HaveOccurred())
 
 			ipAddrClaimList := &ipamv1.IPAddressClaimList{}
@@ -123,7 +123,7 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 				ipAddrClaim(util.IPAddressClaimName(name, 1, 0), "my-pool-2"),
 				ipAddrClaim(util.IPAddressClaimName(name, 1, 1), "my-pool-3"),
 			)
-			err := vmReconciler{}.reconcileIPAddressClaims(testCtx)
+			err := vmReconciler{}.reconcileIPAddressClaims(ctx, testCtx)
 			g.Expect(err).ToNot(gomega.HaveOccurred())
 
 			claimedCondition := conditions.Get(testCtx.VSphereVM, infrav1.IPAddressClaimedCondition)
@@ -159,7 +159,7 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 			realizedIPAddrClaimThree.Status.AddressRef.Name = "blah-three"
 
 			testCtx := setup(vsphereVM, realizedIPAddrClaimOne, realizedIPAddrClaimTwo, realizedIPAddrClaimThree)
-			err := vmReconciler{}.reconcileIPAddressClaims(testCtx)
+			err := vmReconciler{}.reconcileIPAddressClaims(ctx, testCtx)
 			g.Expect(err).ToNot(gomega.HaveOccurred())
 
 			claimedCondition := conditions.Get(testCtx.VSphereVM, infrav1.IPAddressClaimedCondition)
@@ -203,7 +203,7 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 				ipAddrClaimWithReadyConditionFalse,
 				secondIPAddrClaimWithReadyConditionTrue,
 			)
-			err := vmReconciler{}.reconcileIPAddressClaims(testCtx)
+			err := vmReconciler{}.reconcileIPAddressClaims(ctx, testCtx)
 			g.Expect(err).ToNot(gomega.HaveOccurred())
 
 			claimedCondition := conditions.Get(testCtx.VSphereVM, infrav1.IPAddressClaimedCondition)
@@ -232,7 +232,7 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 				ipAddrClaimWithReadyConditionFalse,
 				iPAddrClaimWithNoReadyCondition,
 			)
-			err := vmReconciler{}.reconcileIPAddressClaims(testCtx)
+			err := vmReconciler{}.reconcileIPAddressClaims(ctx, testCtx)
 			g.Expect(err).ToNot(gomega.HaveOccurred())
 
 			claimedCondition := conditions.Get(testCtx.VSphereVM, infrav1.IPAddressClaimedCondition)

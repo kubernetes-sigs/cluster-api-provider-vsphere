@@ -29,41 +29,40 @@ import (
 )
 
 type tplContext interface {
-	context.Context
 	GetLogger() logr.Logger
 	GetSession() *session.Session
 }
 
 // FindTemplate finds a template based either on a UUID or name.
-func FindTemplate(ctx tplContext, templateID string) (*object.VirtualMachine, error) {
-	tpl, err := findTemplateByInstanceUUID(ctx, templateID)
+func FindTemplate(ctx context.Context, tplctx tplContext, templateID string) (*object.VirtualMachine, error) {
+	tpl, err := findTemplateByInstanceUUID(ctx, tplctx, templateID)
 	if err != nil {
 		return nil, err
 	}
 	if tpl != nil {
 		return tpl, nil
 	}
-	return findTemplateByName(ctx, templateID)
+	return findTemplateByName(ctx, tplctx, templateID)
 }
 
-func findTemplateByInstanceUUID(ctx tplContext, templateID string) (*object.VirtualMachine, error) {
+func findTemplateByInstanceUUID(ctx context.Context, tplctx tplContext, templateID string) (*object.VirtualMachine, error) {
 	if !isValidUUID(templateID) {
 		return nil, nil
 	}
-	ctx.GetLogger().V(6).Info("find template by instance uuid", "instance-uuid", templateID)
-	ref, err := ctx.GetSession().FindByInstanceUUID(ctx, templateID)
+	tplctx.GetLogger().V(6).Info("find template by instance uuid", "instance-uuid", templateID)
+	ref, err := tplctx.GetSession().FindByInstanceUUID(ctx, templateID)
 	if err != nil {
 		return nil, errors.Wrap(err, "error querying template by instance UUID")
 	}
 	if ref != nil {
-		return object.NewVirtualMachine(ctx.GetSession().Client.Client, ref.Reference()), nil
+		return object.NewVirtualMachine(tplctx.GetSession().Client.Client, ref.Reference()), nil
 	}
 	return nil, nil
 }
 
-func findTemplateByName(ctx tplContext, templateID string) (*object.VirtualMachine, error) {
-	ctx.GetLogger().V(6).Info("find template by name", "name", templateID)
-	tpl, err := ctx.GetSession().Finder.VirtualMachine(ctx, templateID)
+func findTemplateByName(ctx context.Context, tplctx tplContext, templateID string) (*object.VirtualMachine, error) {
+	tplctx.GetLogger().V(6).Info("find template by name", "name", templateID)
+	tpl, err := tplctx.GetSession().Finder.VirtualMachine(ctx, templateID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to find template by name %q", templateID)
 	}

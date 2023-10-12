@@ -30,6 +30,7 @@ import (
 )
 
 func Test_FetchControlPlaneOwnerObject(t *testing.T) {
+	ctx := context.Background()
 	kcpName, kcpNs := "test-control-plane", "testing"
 	kcp := func(version string) *controlplanev1.KubeadmControlPlane {
 		return &controlplanev1.KubeadmControlPlane{
@@ -93,10 +94,9 @@ func Test_FetchControlPlaneOwnerObject(t *testing.T) {
 			}
 			client := fake.NewControllerManagerContext(objectsToFetch...).Client
 
-			obj, err := FetchControlPlaneOwnerObject(FetchObjectInput{
-				Context: context.Background(),
-				Client:  client,
-				Object:  machine(tt.kcpOwnerRefAPIVersion),
+			obj, err := FetchControlPlaneOwnerObject(ctx, FetchObjectInput{
+				Client: client,
+				Object: machine(tt.kcpOwnerRefAPIVersion),
 			})
 			if tt.hasError {
 				g.Expect(err).To(gomega.HaveOccurred())

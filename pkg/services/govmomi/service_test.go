@@ -86,7 +86,7 @@ func Test_reconcilePCIDevices(t *testing.T) {
 				},
 			}
 
-			g.Expect(vms.reconcilePCIDevices(vmCtx)).ToNot(HaveOccurred())
+			g.Expect(vms.reconcilePCIDevices(ctx, vmCtx)).ToNot(HaveOccurred())
 
 			// get the VM's virtual device list
 			devices, err := vm.Device(ctx)

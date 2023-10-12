@@ -165,7 +165,7 @@ func TestTriggerSoftPowerOff(t *testing.T) {
 				},
 			}
 
-			pending, err := vms.triggerSoftPowerOff(vmCtx)
+			pending, err := vms.triggerSoftPowerOff(ctx, vmCtx)
 			g.Expect(pending).To(BeFalse())
 			g.Expect(err).ToNot(HaveOccurred())
 			return nil
@@ -203,7 +203,7 @@ func TestTriggerSoftPowerOff(t *testing.T) {
 				},
 			}
 
-			pending, err := vms.triggerSoftPowerOff(vmCtx)
+			pending, err := vms.triggerSoftPowerOff(ctx, vmCtx)
 			g.Expect(pending).To(BeTrue())
 			g.Expect(err).ToNot(HaveOccurred())
 			return nil
@@ -240,7 +240,7 @@ func TestTriggerSoftPowerOff(t *testing.T) {
 				},
 			}
 
-			pending, err := vms.triggerSoftPowerOff(vmCtx)
+			pending, err := vms.triggerSoftPowerOff(ctx, vmCtx)
 			g.Expect(pending).To(BeTrue())
 			g.Expect(err).ToNot(HaveOccurred())
 			return nil
@@ -277,7 +277,7 @@ func TestTriggerSoftPowerOff(t *testing.T) {
 				},
 			}
 
-			pending, err := vms.triggerSoftPowerOff(vmCtx)
+			pending, err := vms.triggerSoftPowerOff(ctx, vmCtx)
 			g.Expect(pending).To(BeFalse())
 			g.Expect(err).ToNot(HaveOccurred())
 			return nil
@@ -305,7 +305,7 @@ func TestTriggerSoftPowerOff(t *testing.T) {
 				},
 			}
 
-			pending, err := vms.triggerSoftPowerOff(vmCtx)
+			pending, err := vms.triggerSoftPowerOff(ctx, vmCtx)
 			g.Expect(pending).To(BeTrue())
 			g.Expect(err).ToNot(HaveOccurred())
 			return nil
@@ -342,7 +342,7 @@ func TestTriggerSoftPowerOff(t *testing.T) {
 				},
 			}
 
-			pending, err := vms.triggerSoftPowerOff(vmCtx)
+			pending, err := vms.triggerSoftPowerOff(ctx, vmCtx)
 			g.Expect(pending).To(BeFalse())
 			g.Expect(err).ToNot(HaveOccurred())
 			return nil

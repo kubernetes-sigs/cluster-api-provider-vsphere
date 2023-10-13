@@ -111,10 +111,6 @@ linters-settings:
       # CAPV
       - pkg: sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1
         alias: infrav1
-      - pkg: sigs.k8s.io/cluster-api-provider-vsphere/apis/v1alpha3
-        alias: infrav1alpha3
-      - pkg: sigs.k8s.io/cluster-api-provider-vsphere/apis/v1alpha4
-        alias: infrav1alpha4
       - pkg: sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1
         alias: vmwarev1
       # VMware Operator
@@ -264,25 +260,3 @@ issues:
     - stylecheck
     text: "ST1016: methods on the same type should have the same receiver name"
     path: ^apis\/.*\/.*conversion.*\.go$
-    # missing comments on v1alpha3 and v1alpha4 packages. These rules should be removed when those packages are removed.
-  - linters:
-      - revive
-    text: "package-comments"
-    path: ^(apis/(v1alpha3|v1alpha4)\/.*)\.go$
-  - linters:
-      - stylecheck
-    text: "ST1000"
-    path: ^(apis/(v1alpha3|v1alpha4)\/.*)\.go$
-  - linters:
-      - revive
-    text: exported (.*) should have comment (.*)or be unexported
-    path: ^(apis/(v1alpha3|v1alpha4)\/.*)\.go$
-    # wrong comment
-  - linters:
-      - revive
-    text: comment on exported (.*) should be of the form (.*)
-    path: ^(apis/(v1alpha3|v1alpha4)\/.*)\.go$
-  - linters:
-      - stylecheck
-    text: ST1021|ST1020
-    path: ^(apis/(v1alpha3|v1alpha4)\/.*)\.go$

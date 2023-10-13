@@ -75,3 +75,6 @@ _releasenotes
 *~
 *.tmp
 .DS_Store
+
+# Ginkgo logs from test runs
+*ginkgo-log.txt

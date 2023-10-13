@@ -44,7 +44,7 @@ func unitTestsReconcileNormal() {
 	)
 
 	JustBeforeEach(func() {
-		controllerCtx = helpers.NewUnitTestContextForController(namespace, vsphereCluster, false, initObjects, nil)
+		controllerCtx = helpers.NewUnitTestContextForController(ctx, namespace, vsphereCluster, false, initObjects, nil)
 		// Note: The service account provider requires a reference to the vSphereCluster hence the need to create
 		// a fake vSphereCluster in the test and pass it to during context setup.
 		reconciler = ServiceAccountReconciler{
@@ -128,7 +128,7 @@ func unitTestsReconcileNormal() {
 				initObjects = append(initObjects, getTestRoleBindingWithInvalidRoleRef(namespace, vsphereCluster.GetName()))
 			})
 			It("Should update rolebinding", func() {
-				assertRoleBinding(controllerCtx, controllerCtx.ControllerContext.Client, namespace, vsphereCluster.GetName())
+				assertRoleBinding(ctx, controllerCtx.ControllerContext.Client, namespace, vsphereCluster.GetName())
 				assertProviderServiceAccountsCondition(controllerCtx.VSphereCluster, corev1.ConditionTrue, "", "", "")
 			})
 		})

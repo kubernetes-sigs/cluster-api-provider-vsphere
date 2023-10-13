@@ -370,7 +370,7 @@ func TestVmReconciler_WaitingForStaticIPAllocation(t *testing.T) {
 	}
 
 	controllerCtx := fake.NewControllerContext(fake.NewControllerManagerContext())
-	vmContext := fake.NewVMContext(controllerCtx)
+	vmContext := fake.NewVMContext(context.Background(), controllerCtx)
 	r := vmReconciler{ControllerContext: controllerCtx}
 
 	for _, tt := range tests {

@@ -93,31 +93,31 @@ func setup() {
 		panic(fmt.Sprintf("unable to create ClusterCacheReconciler controller: %v", err))
 	}
 
-	if err := AddClusterControllerToManager(ctx, testEnv.GetContext(), testEnv.Manager, &infrav1.VSphereCluster{}, controllerOpts); err != nil {
+	if err := AddClusterControllerToManager(ctx, testEnv.GetControllerManagerContext(), testEnv.Manager, &infrav1.VSphereCluster{}, controllerOpts); err != nil {
 		panic(fmt.Sprintf("unable to setup VsphereCluster controller: %v", err))
 	}
-	if err := AddMachineControllerToManager(ctx, testEnv.GetContext(), testEnv.Manager, &infrav1.VSphereMachine{}, controllerOpts); err != nil {
+	if err := AddMachineControllerToManager(ctx, testEnv.GetControllerManagerContext(), testEnv.Manager, &infrav1.VSphereMachine{}, controllerOpts); err != nil {
 		panic(fmt.Sprintf("unable to setup VsphereMachine controller: %v", err))
 	}
-	if err := AddVMControllerToManager(ctx, testEnv.GetContext(), testEnv.Manager, tracker, controllerOpts); err != nil {
+	if err := AddVMControllerToManager(ctx, testEnv.GetControllerManagerContext(), testEnv.Manager, tracker, controllerOpts); err != nil {
 		panic(fmt.Sprintf("unable to setup VsphereVM controller: %v", err))
 	}
-	if err := AddVsphereClusterIdentityControllerToManager(ctx, testEnv.GetContext(), testEnv.Manager, controllerOpts); err != nil {
+	if err := AddVsphereClusterIdentityControllerToManager(ctx, testEnv.GetControllerManagerContext(), testEnv.Manager, controllerOpts); err != nil {
 		panic(fmt.Sprintf("unable to setup VSphereClusterIdentity controller: %v", err))
 	}
-	if err := AddVSphereDeploymentZoneControllerToManager(ctx, testEnv.GetContext(), testEnv.Manager, controllerOpts); err != nil {
+	if err := AddVSphereDeploymentZoneControllerToManager(ctx, testEnv.GetControllerManagerContext(), testEnv.Manager, controllerOpts); err != nil {
 		panic(fmt.Sprintf("unable to setup VSphereDeploymentZone controller: %v", err))
 	}
-	if err := AddServiceAccountProviderControllerToManager(ctx, testEnv.GetContext(), testEnv.Manager, tracker, controllerOpts); err != nil {
+	if err := AddServiceAccountProviderControllerToManager(ctx, testEnv.GetControllerManagerContext(), testEnv.Manager, tracker, controllerOpts); err != nil {
 		panic(fmt.Sprintf("unable to setup ServiceAccount controller: %v", err))
 	}
-	if err := AddServiceDiscoveryControllerToManager(ctx, testEnv.GetContext(), testEnv.Manager, tracker, controllerOpts); err != nil {
+	if err := AddServiceDiscoveryControllerToManager(ctx, testEnv.GetControllerManagerContext(), testEnv.Manager, tracker, controllerOpts); err != nil {
 		panic(fmt.Sprintf("unable to setup SvcDiscovery controller: %v", err))
 	}
 
 	go func() {
 		fmt.Println("Starting the manager")
-		if err := testEnv.StartManager(testEnv.GetContext()); err != nil {
+		if err := testEnv.StartManager(ctx); err != nil {
 			panic(fmt.Sprintf("failed to start the envtest manager: %v", err))
 		}
 	}()
@@ -132,7 +132,7 @@ func setup() {
 			Name: manager.DefaultPodNamespace,
 		},
 	}
-	if err := testEnv.Create(testEnv.GetContext(), ns); err != nil {
+	if err := testEnv.Create(ctx, ns); err != nil {
 		panic("unable to create controller namespace")
 	}
 }

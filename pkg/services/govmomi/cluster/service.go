@@ -27,9 +27,6 @@ import (
 )
 
 type computeClusterContext interface {
-	// TODO(zhanggbj): remove context.Context in this interface after refactoring context for all controllers.
-	context.Context
-
 	GetSession() *session.Session
 }
 

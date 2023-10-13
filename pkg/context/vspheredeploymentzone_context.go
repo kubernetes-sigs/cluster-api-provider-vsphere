@@ -17,6 +17,7 @@ limitations under the License.
 package context
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/go-logr/logr"
@@ -37,7 +38,7 @@ type VSphereDeploymentZoneContext struct {
 }
 
 // Patch patches the VSphereDeploymentZone.
-func (c *VSphereDeploymentZoneContext) Patch() error {
+func (c *VSphereDeploymentZoneContext) Patch(ctx context.Context) error {
 	conditions.SetSummary(c.VSphereDeploymentZone,
 		conditions.WithConditions(
 			infrav1.VCenterAvailableCondition,
@@ -45,7 +46,7 @@ func (c *VSphereDeploymentZoneContext) Patch() error {
 			infrav1.PlacementConstraintMetCondition,
 		),
 	)
-	return c.PatchHelper.Patch(c, c.VSphereDeploymentZone)
+	return c.PatchHelper.Patch(ctx, c.VSphereDeploymentZone)
 }
 
 // String returns a string with the GroupVersionKind and name of the VSphereDeploymentZone.

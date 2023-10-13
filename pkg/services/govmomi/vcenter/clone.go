@@ -302,7 +302,7 @@ func Clone(ctx context.Context, vmCtx *capvcontext.VMContext, bootstrapData []by
 	// patch the vsphereVM early to ensure that the task is
 	// reflected in the status right away, this avoid situations
 	// of concurrent clones
-	if err := vmCtx.Patch(); err != nil {
+	if err := vmCtx.Patch(ctx); err != nil {
 		vmCtx.Logger.Error(err, "patch failed", "vspherevm", vmCtx.VSphereVM)
 	}
 	return nil

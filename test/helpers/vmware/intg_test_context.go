@@ -40,7 +40,6 @@ import (
 // IntegrationTestContext is used for integration testing
 // Supervisor controllers.
 type IntegrationTestContext struct {
-	context.Context   //nolint:containedctx
 	Client            client.Client
 	GuestClient       client.Client
 	Namespace         string
@@ -63,7 +62,7 @@ func (ctx *IntegrationTestContext) AfterEach() {
 		},
 	}
 	By("Destroying integration test namespace")
-	Expect(ctx.Client.Delete(ctx, namespace)).To(Succeed())
+	Expect(ctx.Client.Delete(context.Background(), namespace)).To(Succeed())
 
 	if ctx.envTest != nil {
 		By("Shutting down guest cluster control plane")
@@ -84,8 +83,7 @@ func (ctx *IntegrationTestContext) AfterEach() {
 // with the IntegrationTestContext returned by this function.
 func NewIntegrationTestContextWithClusters(ctx context.Context, integrationTestClient client.Client) *IntegrationTestContext {
 	testCtx := &IntegrationTestContext{
-		Context: ctx,
-		Client:  integrationTestClient,
+		Client: integrationTestClient,
 	}
 
 	By("Creating a temporary namespace", func() {

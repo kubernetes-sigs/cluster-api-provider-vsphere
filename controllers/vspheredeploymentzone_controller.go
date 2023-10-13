@@ -129,7 +129,7 @@ func (r vsphereDeploymentZoneReconciler) Reconcile(ctx context.Context, request 
 		PatchHelper:           patchHelper,
 	}
 	defer func() {
-		if err := vsphereDeploymentZoneContext.Patch(); err != nil {
+		if err := vsphereDeploymentZoneContext.Patch(ctx); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
 	}()
@@ -233,7 +233,7 @@ func (r vsphereDeploymentZoneReconciler) getVCenterSession(ctx context.Context, 
 		}
 		logger.Info("using server credentials to create the authenticated session")
 		params = params.WithUserInfo(creds.Username, creds.Password)
-		return session.GetOrCreate(r.Context,
+		return session.GetOrCreate(ctx,
 			params)
 	}
 

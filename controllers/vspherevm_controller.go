@@ -258,7 +258,7 @@ func (r vmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.R
 		)
 
 		// Patch the VSphereVM resource.
-		if err := vmContext.Patch(); err != nil {
+		if err := vmContext.Patch(ctx); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
 	}()

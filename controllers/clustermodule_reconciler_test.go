@@ -410,7 +410,7 @@ func TestReconciler_Reconcile(t *testing.T) {
 				tt.beforeFn(md)
 			}
 			controllerCtx := fake.NewControllerContext(fake.NewControllerManagerContext(kcp, md))
-			clusterCtx := fake.NewClusterContext(controllerCtx)
+			clusterCtx := fake.NewClusterContext(ctx, controllerCtx)
 			clusterCtx.VSphereCluster.Spec.ClusterModules = tt.clusterModules
 			clusterCtx.VSphereCluster.Status = infrav1.VSphereClusterStatus{VCenterVersion: infrav1.NewVCenterVersion("7.0.0")}
 
@@ -486,7 +486,7 @@ func TestReconciler_fetchMachineOwnerObjects(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := gomega.NewWithT(t)
 			controllerCtx := fake.NewControllerContext(fake.NewControllerManagerContext(tt.initObjs...))
-			clusterCtx := fake.NewClusterContext(controllerCtx)
+			clusterCtx := fake.NewClusterContext(ctx, controllerCtx)
 			r := Reconciler{Client: controllerCtx.Client}
 			objMap, err := r.fetchMachineOwnerObjects(ctx, clusterCtx)
 			if tt.hasError {
@@ -511,7 +511,7 @@ func TestReconciler_fetchMachineOwnerObjects(t *testing.T) {
 			machineDeployment("foo", metav1.NamespaceDefault, fake.Clusterv1a2Name),
 			mdToBeDeleted,
 		))
-		clusterCtx := fake.NewClusterContext(controllerCtx)
+		clusterCtx := fake.NewClusterContext(ctx, controllerCtx)
 		objMap, err := Reconciler{Client: controllerCtx.Client}.fetchMachineOwnerObjects(ctx, clusterCtx)
 		g.Expect(err).NotTo(gomega.HaveOccurred())
 		g.Expect(objMap).To(gomega.HaveLen(2))

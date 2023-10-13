@@ -43,8 +43,7 @@ func Test_VMGroup(t *testing.T) {
 	finder.SetDatacenter(dc)
 
 	computeClusterCtx := testComputeClusterCtx{
-		Context: context.Background(),
-		finder:  finder,
+		finder: finder,
 	}
 
 	computeClusterName := "DC0_C0"
@@ -62,7 +61,7 @@ func Test_VMGroup(t *testing.T) {
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(hasVM).To(BeFalse())
 
-	task, err := vmGrp.Add(computeClusterCtx, vmRef)
+	task, err := vmGrp.Add(ctx, vmRef)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(task.Wait(ctx)).To(Succeed())
 	g.Expect(vmGrp.listVMs()).To(HaveLen(3))

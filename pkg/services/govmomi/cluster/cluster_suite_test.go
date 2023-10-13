@@ -17,7 +17,6 @@ limitations under the License.
 package cluster
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -33,8 +32,7 @@ func TestCluster(t *testing.T) {
 }
 
 type testComputeClusterCtx struct {
-	context.Context //nolint:containedctx
-	finder          *find.Finder
+	finder *find.Finder
 }
 
 func (t testComputeClusterCtx) GetSession() *session.Session {

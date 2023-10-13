@@ -19,17 +19,17 @@ package fake
 import (
 	clientrecord "k8s.io/client-go/tools/record"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 )
 
 // NewControllerContext returns a fake ControllerContext for unit testing
 // reconcilers with a fake client.
-func NewControllerContext(ctx *context.ControllerManagerContext) *context.ControllerContext {
-	return &context.ControllerContext{
-		ControllerManagerContext: ctx,
+func NewControllerContext(controllerManagerCtx *capvcontext.ControllerManagerContext) *capvcontext.ControllerContext {
+	return &capvcontext.ControllerContext{
+		ControllerManagerContext: controllerManagerCtx,
 		Name:                     ControllerName,
-		Logger:                   ctx.Logger.WithName(ControllerName),
+		Logger:                   controllerManagerCtx.Logger.WithName(ControllerName),
 		Recorder:                 record.New(clientrecord.NewFakeRecorder(1024)),
 	}
 }

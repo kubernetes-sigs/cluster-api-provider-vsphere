@@ -17,8 +17,6 @@ limitations under the License.
 package util
 
 import (
-	"context"
-
 	netopv1 "github.com/vmware-tanzu/net-operator-api/api/v1alpha1"
 	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha1"
 	ncpv1 "github.com/vmware-tanzu/vm-operator/external/ncp/api/v1alpha1"
@@ -152,9 +150,8 @@ func createScheme() *runtime.Scheme {
 func CreateClusterContext(cluster *clusterv1.Cluster, vsphereCluster *vmwarev1.VSphereCluster) (*vmware.ClusterContext, *capvcontext.ControllerContext) {
 	scheme := createScheme()
 	controllerManagerContext := &capvcontext.ControllerManagerContext{
-		Context: context.Background(),
-		Logger:  klog.Background().WithName("controller-manager-logger"),
-		Scheme:  scheme,
+		Logger: klog.Background().WithName("controller-manager-logger"),
+		Scheme: scheme,
 		Client: testclient.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(
 			&vmoprv1.VirtualMachineService{},
 			&vmoprv1.VirtualMachine{},

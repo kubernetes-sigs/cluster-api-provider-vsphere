@@ -54,7 +54,7 @@ var (
 )
 
 var _ = BeforeSuite(func() {
-	Expect(configureSimulatorAndContext()).To(Succeed())
+	Expect(configureSimulatorAndContext(ctx)).To(Succeed())
 	Expect(createTagsAndCategories()).To(Succeed())
 })
 
@@ -135,13 +135,13 @@ var _ = Describe("Metadata_CreateTag", func() {
 	})
 })
 
-func configureSimulatorAndContext() (err error) {
+func configureSimulatorAndContext(ctx context.Context) (err error) {
 	sim, err = vcsim.NewBuilder().Build()
 	if err != nil {
 		return
 	}
 
-	vmCtx = fake.NewVMContext(fake.NewControllerContext(fake.NewControllerManagerContext()))
+	vmCtx = fake.NewVMContext(ctx, fake.NewControllerContext(fake.NewControllerManagerContext()))
 	vmCtx.VSphereVM.Spec.Server = sim.ServerURL().Host
 
 	authSession, err := session.GetOrCreate(

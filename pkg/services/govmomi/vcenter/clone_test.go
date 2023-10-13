@@ -27,7 +27,7 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 )
 
@@ -120,7 +120,7 @@ func TestGetDiskSpec(t *testing.T) {
 					VirtualMachineCloneSpec: cloneSpec,
 				},
 			}
-			vmContext := &context.VMContext{VSphereVM: vsphereVM}
+			vmContext := &capvcontext.VMContext{VSphereVM: vsphereVM}
 			devices, err := getDiskSpec(vmContext, tc.disks)
 			if (tc.err != "" && err == nil) || (tc.err == "" && err != nil) || (err != nil && tc.err != err.Error()) {
 				t.Fatalf("Expected to get '%v' error from getDiskSpec, got: '%v'", tc.err, err)

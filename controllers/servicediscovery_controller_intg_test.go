@@ -42,17 +42,17 @@ var _ = Describe("Service Discovery controller integration tests", func() {
 			initObjects = []client.Object{
 				newTestSupervisorLBServiceWithIPStatus(),
 			}
-			createObjects(intCtx, intCtx.Client, initObjects)
+			createObjects(ctx, intCtx.Client, initObjects)
 			Expect(intCtx.Client.Status().Update(ctx, newTestSupervisorLBServiceWithIPStatus())).To(Succeed())
 		})
 		AfterEach(func() {
-			deleteObjects(intCtx, intCtx.Client, initObjects)
+			deleteObjects(ctx, intCtx.Client, initObjects)
 		})
 		It("Should reconcile headless svc", func() {
 			By("creating a service and endpoints using the VIP in the guest cluster")
 			headlessSvc := &corev1.Service{}
-			assertEventuallyExistsInNamespace(intCtx, intCtx.Client, "kube-system", "kube-apiserver-lb-svc", headlessSvc)
-			assertHeadlessSvcWithVIPEndpoints(intCtx, intCtx.GuestClient, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
+			assertEventuallyExistsInNamespace(ctx, intCtx.Client, "kube-system", "kube-apiserver-lb-svc", headlessSvc)
+			assertHeadlessSvcWithVIPEndpoints(ctx, intCtx.GuestClient, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
 		})
 	})
 
@@ -60,33 +60,33 @@ var _ = Describe("Service Discovery controller integration tests", func() {
 		BeforeEach(func() {
 			initObjects = []client.Object{
 				newTestConfigMapWithHost(testSupervisorAPIServerFIP)}
-			createObjects(intCtx, intCtx.Client, initObjects)
+			createObjects(ctx, intCtx.Client, initObjects)
 		})
 		AfterEach(func() {
-			deleteObjects(intCtx, intCtx.Client, initObjects)
+			deleteObjects(ctx, intCtx.Client, initObjects)
 		})
 		It("Should reconcile headless svc", func() {
 			By("creating a service and endpoints using the FIP in the guest cluster")
-			assertHeadlessSvcWithFIPEndpoints(intCtx, intCtx.GuestClient, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
+			assertHeadlessSvcWithFIPEndpoints(ctx, intCtx.GuestClient, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
 		})
 	})
 	Context("When headless svc and endpoints already exists", func() {
 		BeforeEach(func() {
 			// Create the svc & endpoint objects in guest cluster
-			createObjects(intCtx, intCtx.GuestClient, newTestHeadlessSvcEndpoints())
+			createObjects(ctx, intCtx.GuestClient, newTestHeadlessSvcEndpoints())
 			// Init objects in the supervisor cluster
 			initObjects = []client.Object{
 				newTestSupervisorLBServiceWithIPStatus()}
-			createObjects(intCtx, intCtx.Client, initObjects)
+			createObjects(ctx, intCtx.Client, initObjects)
 			Expect(intCtx.Client.Status().Update(ctx, newTestSupervisorLBServiceWithIPStatus())).To(Succeed())
 		})
 		AfterEach(func() {
-			deleteObjects(intCtx, intCtx.Client, initObjects)
+			deleteObjects(ctx, intCtx.Client, initObjects)
 			// Note: No need to delete guest cluster objects as a new guest cluster testenv endpoint is created for each test.
 		})
 		It("Should reconcile headless svc", func() {
 			By("updating the service and endpoints using the VIP in the guest cluster")
-			assertHeadlessSvcWithUpdatedVIPEndpoints(intCtx, intCtx.GuestClient, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
+			assertHeadlessSvcWithUpdatedVIPEndpoints(ctx, intCtx.GuestClient, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
 		})
 	})
 })

@@ -23,7 +23,7 @@ import (
 	"github.com/onsi/gomega"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 )
 
 func Test_IsCompatible(t *testing.T) {
@@ -65,7 +65,7 @@ func Test_IsCompatible(t *testing.T) {
 			}
 
 			g := gomega.NewWithT(t)
-			isCompatible := IsClusterCompatible(&context.ClusterContext{
+			isCompatible := IsClusterCompatible(&capvcontext.ClusterContext{
 				VSphereCluster: cluster,
 			})
 			g.Expect(isCompatible).To(gomega.Equal(tt.isCompatible))

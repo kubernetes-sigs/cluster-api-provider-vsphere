@@ -32,7 +32,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
-	helpers "sigs.k8s.io/cluster-api-provider-vsphere/test/helpers/vmware"
 )
 
 const (
@@ -140,12 +139,12 @@ func assertRoleWithGetPVC(ctx context.Context, ctrlClient client.Client, namespa
 	}))
 }
 
-func assertRoleBinding(_ *helpers.UnitTestContextForController, ctrlClient client.Client, namespace, name string) {
+func assertRoleBinding(ctx context.Context, ctrlClient client.Client, namespace, name string) {
 	var roleBindingList rbacv1.RoleBindingList
 	opts := &client.ListOptions{
 		Namespace: namespace,
 	}
-	err := ctrlClient.List(context.TODO(), &roleBindingList, opts)
+	err := ctrlClient.List(ctx, &roleBindingList, opts)
 	Expect(err).ShouldNot(HaveOccurred())
 	Expect(roleBindingList.Items).To(HaveLen(1))
 	Expect(roleBindingList.Items[0].Name).To(Equal(name))

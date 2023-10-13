@@ -32,6 +32,7 @@ import (
 
 func TestService_Create(t *testing.T) {
 	t.Run("creation is skipped", func(t *testing.T) {
+		ctx := context.Background()
 		t.Run("when wrapper points to template != VSphereMachineTemplate", func(t *testing.T) {
 			md := machineDeployment("md", fake.Namespace, fake.Clusterv1a2Name)
 			md.Spec.Template.Spec.InfrastructureRef = corev1.ObjectReference{
@@ -42,10 +43,10 @@ func TestService_Create(t *testing.T) {
 
 			g := gomega.NewWithT(t)
 			controllerCtx := fake.NewControllerContext(fake.NewControllerManagerContext(md))
-			clusterCtx := fake.NewClusterContext(controllerCtx)
+			clusterCtx := fake.NewClusterContext(ctx, controllerCtx)
 			svc := NewService(controllerCtx.ControllerManagerContext, controllerCtx.Client)
 
-			moduleUUID, err := svc.Create(context.Background(), clusterCtx, mdWrapper{md})
+			moduleUUID, err := svc.Create(ctx, clusterCtx, mdWrapper{md})
 			g.Expect(err).ToNot(gomega.HaveOccurred())
 			g.Expect(moduleUUID).To(gomega.BeEmpty())
 		})
@@ -73,10 +74,10 @@ func TestService_Create(t *testing.T) {
 
 			g := gomega.NewWithT(t)
 			controllerCtx := fake.NewControllerContext(fake.NewControllerManagerContext(md, machineTemplate))
-			clusterCtx := fake.NewClusterContext(controllerCtx)
+			clusterCtx := fake.NewClusterContext(ctx, controllerCtx)
 			svc := NewService(controllerCtx.ControllerManagerContext, controllerCtx.Client)
 
-			moduleUUID, err := svc.Create(context.Background(), clusterCtx, mdWrapper{md})
+			moduleUUID, err := svc.Create(ctx, clusterCtx, mdWrapper{md})
 			g.Expect(err).ToNot(gomega.HaveOccurred())
 			g.Expect(moduleUUID).To(gomega.BeEmpty())
 		})

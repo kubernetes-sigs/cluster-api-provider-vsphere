@@ -22,7 +22,7 @@ import (
 	"github.com/blang/semver"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 )
 
 // Compare returns whether both the cluster module slices are the same.
@@ -50,8 +50,8 @@ func Compare(oldMods, newMods []infrav1.ClusterModule) bool {
 }
 
 // IsClusterCompatible checks if the VCenterVersion is compatibly with CAPV. Only version 7 and over are supported.
-func IsClusterCompatible(ctx *context.ClusterContext) bool {
-	version := ctx.VSphereCluster.Status.VCenterVersion
+func IsClusterCompatible(clusterCtx *capvcontext.ClusterContext) bool {
+	version := clusterCtx.VSphereCluster.Status.VCenterVersion
 	if version == "" {
 		return false
 	}

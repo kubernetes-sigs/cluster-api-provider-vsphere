@@ -25,6 +25,7 @@ import (
 
 	"github.com/onsi/gomega/gbytes"
 	"github.com/vmware/govmomi/simulator"
+	_ "github.com/vmware/govmomi/vapi/cluster/simulator" // import this to register cluster module service test endpoint
 )
 
 type Builder struct {

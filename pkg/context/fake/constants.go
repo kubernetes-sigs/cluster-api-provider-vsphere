@@ -50,6 +50,9 @@ const (
 	// Clusterv1a2UUID is the UID of the fake CAPI v1alpha3 Cluster resource.
 	Clusterv1a2UUID = "00000000-0000-0000-0000-000000000000"
 
+	// InfrastructureRefName is the name of the InfrastructureRef in fake CAPI Cluster resource.
+	InfrastructureRefName = "fake-cluster-infrastructure-ref"
+
 	VSphereClusterName = "fake-vsphere-cluster"
 
 	// VSphereClusterUUID is the UID of the fake VSphereCluster resource.

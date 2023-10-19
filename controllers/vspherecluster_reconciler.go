@@ -51,12 +51,6 @@ import (
 	infrautilv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
-// legacyIdentityFinalizer is deprecated and should be used only while upgrading the cluster
-// from v1alpha3(v.0.7).
-//
-// Deprecated: legacyIdentityFinalizer will be removed in a future release.
-const legacyIdentityFinalizer string = "identity/infrastructure.cluster.x-k8s.io"
-
 type clusterReconciler struct {
 	ControllerManagerContext *capvcontext.ControllerManagerContext
 	Client                   client.Client
@@ -210,11 +204,6 @@ func (r *clusterReconciler) reconcileDelete(ctx context.Context, clusterCtx *cap
 		log.Info(fmt.Sprintf("Removing finalizer from Secret %s/%s having finalizers %v", secret.Namespace, secret.Name, secret.Finalizers))
 		ctrlutil.RemoveFinalizer(secret, infrav1.SecretIdentitySetFinalizer)
 
-		// Check if the old finalizer(from v0.7) is present, if yes, delete it
-		// For more context, please refer: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/1482
-		if ctrlutil.ContainsFinalizer(secret, legacyIdentityFinalizer) {
-			ctrlutil.RemoveFinalizer(secret, legacyIdentityFinalizer)
-		}
 		if err := r.Client.Update(ctx, secret); err != nil {
 			return reconcile.Result{}, err
 		}

@@ -49,10 +49,6 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 		}
 		_, err := reconciler.ReconcileNormal(ctx, controllerCtx.GuestClusterContext)
 		Expect(err).NotTo(HaveOccurred())
-
-		// Update the VSphereCluster and its status in the fake client.
-		Expect(controllerCtx.ControllerContext.Client.Update(ctx, controllerCtx.VSphereCluster)).To(Succeed())
-		Expect(controllerCtx.ControllerContext.Client.Status().Update(ctx, controllerCtx.VSphereCluster)).To(Succeed())
 	})
 	JustAfterEach(func() {
 		controllerCtx = nil

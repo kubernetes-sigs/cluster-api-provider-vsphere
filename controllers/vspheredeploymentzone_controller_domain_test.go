@@ -48,7 +48,7 @@ func TestVsphereDeploymentZoneReconciler_Reconcile_VerifyFailureDomain_ComputeCl
 			"tags.attach k8s-region-west-2 /DC0/host/DC0_C0").
 		Build()
 	if err != nil {
-		t.Fatalf("failed to create VC simulator")
+		t.Fatalf("failed to create VC simulator %s", err)
 	}
 	t.Cleanup(simr.Destroy)
 

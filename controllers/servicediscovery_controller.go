@@ -91,7 +91,7 @@ func AddServiceDiscoveryControllerToManager(ctx context.Context, controllerManag
 		Mapper: mgr.GetRESTMapper(),
 		// TODO: Reintroduce the cache sync period
 		// Resync:    ctx.SyncPeriod,
-		Namespaces: []string{metav1.NamespacePublic},
+		DefaultNamespaces: map[string]cache.Config{metav1.NamespacePublic: {}},
 	})
 	if err != nil {
 		return errors.Wrapf(err, "failed to create configmap cache")

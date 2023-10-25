@@ -52,7 +52,7 @@ func getReconciledVM(ctx context.Context, vmService VmopMachineService, supervis
 	return vm
 }
 
-func updateReconciledVM(ctx context.Context, vmService VmopMachineService, vm *vmoprv1.VirtualMachine) {
+func updateReconciledVMStatus(ctx context.Context, vmService VmopMachineService, vm *vmoprv1.VirtualMachine) {
 	err := vmService.Client.Status().Update(ctx, vm)
 	Expect(err).ShouldNot(HaveOccurred())
 }
@@ -219,7 +219,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			By("vSphere VM is created")
 			vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
 			vmopVM.Status.Phase = vmoprv1.Created
-			updateReconciledVM(ctx, vmService, vmopVM)
+			updateReconciledVMStatus(ctx, vmService, vmopVM)
 			expectedState = vmwarev1.VirtualMachineStateCreated
 			// we expect the reconciliation waiting for VM to be powered on
 			expectedConditions[0].Reason = vmwarev1.PoweringOnReason
@@ -230,7 +230,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			By("VirtualMachine is powered on")
 			vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
 			vmopVM.Status.PowerState = vmoprv1.VirtualMachinePoweredOn
-			updateReconciledVM(ctx, vmService, vmopVM)
+			updateReconciledVMStatus(ctx, vmService, vmopVM)
 			expectedState = vmwarev1.VirtualMachineStatePoweredOn
 			// we expect the reconciliation waiting for VM to have an IP
 			expectedConditions[0].Reason = vmwarev1.WaitingForNetworkAddressReason
@@ -241,7 +241,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			By("VirtualMachine has an IP address")
 			vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
 			vmopVM.Status.VmIp = vmIP
-			updateReconciledVM(ctx, vmService, vmopVM)
+			updateReconciledVMStatus(ctx, vmService, vmopVM)
 			// we expect the reconciliation waiting for VM to have a BIOS UUID
 			expectedConditions[0].Reason = vmwarev1.WaitingForBIOSUUIDReason
 			requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
@@ -257,7 +257,7 @@ var _ = Describe("VirtualMachine tests", func() {
 
 			vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
 			vmopVM.Status.BiosUUID = biosUUID
-			updateReconciledVM(ctx, vmService, vmopVM)
+			updateReconciledVMStatus(ctx, vmService, vmopVM)
 			// we expect the reconciliation succeeds
 			expectedConditions[0].Status = corev1.ConditionTrue
 			expectedConditions[0].Reason = ""
@@ -319,7 +319,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			By("vSphere VM is created")
 			vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
 			vmopVM.Status.Phase = vmoprv1.Created
-			updateReconciledVM(ctx, vmService, vmopVM)
+			updateReconciledVMStatus(ctx, vmService, vmopVM)
 			expectedState = vmwarev1.VirtualMachineStateCreated
 			expectedConditions[0].Reason = vmwarev1.PoweringOnReason
 			requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
@@ -329,7 +329,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			By("VirtualMachine is powered on")
 			vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
 			vmopVM.Status.PowerState = vmoprv1.VirtualMachinePoweredOn
-			updateReconciledVM(ctx, vmService, vmopVM)
+			updateReconciledVMStatus(ctx, vmService, vmopVM)
 			expectedState = vmwarev1.VirtualMachineStatePoweredOn
 			expectedConditions[0].Reason = vmwarev1.WaitingForNetworkAddressReason
 			requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
@@ -339,7 +339,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			By("VirtualMachine has an IP address")
 			vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
 			vmopVM.Status.VmIp = vmIP
-			updateReconciledVM(ctx, vmService, vmopVM)
+			updateReconciledVMStatus(ctx, vmService, vmopVM)
 			expectedConditions[0].Reason = vmwarev1.WaitingForBIOSUUIDReason
 			requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
 			verifyOutput(supervisorMachineContext)
@@ -355,7 +355,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			expectedConditions[0].Reason = ""
 			vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
 			vmopVM.Status.BiosUUID = biosUUID
-			updateReconciledVM(ctx, vmService, vmopVM)
+			updateReconciledVMStatus(ctx, vmService, vmopVM)
 			requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
 			verifyOutput(supervisorMachineContext)
 
@@ -367,7 +367,7 @@ var _ = Describe("VirtualMachine tests", func() {
 
 			vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
 			vmopVM.Status.VmIp = vmIP
-			updateReconciledVM(ctx, vmService, vmopVM)
+			updateReconciledVMStatus(ctx, vmService, vmopVM)
 			requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
 			verifyOutput(supervisorMachineContext)
 
@@ -416,7 +416,7 @@ var _ = Describe("VirtualMachine tests", func() {
 				Message:  errMessage,
 			})
 
-			updateReconciledVM(ctx, vmService, vmopVM)
+			updateReconciledVMStatus(ctx, vmService, vmopVM)
 			requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
 
 			expectedImageName = imageName
@@ -468,7 +468,8 @@ var _ = Describe("VirtualMachine tests", func() {
 			By("Updating the Volumes field")
 			vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
 			vmopVM.Spec.Volumes = []vmoprv1.VirtualMachineVolume{vmVolume}
-			updateReconciledVM(ctx, vmService, vmopVM)
+			Expect(vmService.Client.Update(ctx, vmopVM)).To(Succeed())
+
 			requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
 			verifyOutput(supervisorMachineContext)
 

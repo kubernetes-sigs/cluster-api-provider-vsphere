@@ -17,6 +17,8 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -29,6 +31,12 @@ import (
 )
 
 var _ = Describe("VSphereClusterIdentity Reconciler", func() {
+	var ctx context.Context
+
+	BeforeEach(func() {
+		ctx = context.Background()
+	})
+
 	controllerNamespace := testEnv.Manager.GetControllerManagerContext().Namespace
 
 	Context("Reconcile Normal", func() {

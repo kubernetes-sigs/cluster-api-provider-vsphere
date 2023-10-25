@@ -17,6 +17,8 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -34,6 +36,7 @@ var _ = Describe("ServiceDiscoveryReconciler ReconcileNormal", serviceDiscoveryU
 
 func serviceDiscoveryUnitTestsReconcileNormal() {
 	var (
+		ctx            context.Context
 		controllerCtx  *helpers.UnitTestContextForController
 		vsphereCluster vmwarev1.VSphereCluster
 		initObjects    []client.Object
@@ -41,6 +44,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 	)
 	namespace := capiutil.RandomString(6)
 	JustBeforeEach(func() {
+		ctx = context.Background()
 		vsphereCluster = fake.NewVSphereCluster(namespace)
 		controllerCtx = helpers.NewUnitTestContextForController(ctx, namespace, &vsphereCluster, false, initObjects, nil)
 		reconciler = serviceDiscoveryReconciler{

@@ -17,6 +17,7 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
 	"testing"
 
 	"github.com/go-logr/logr"
@@ -33,6 +34,7 @@ import (
 )
 
 func TestVsphereDeploymentZoneReconciler_Reconcile_VerifyFailureDomain_ComputeClusterZone(t *testing.T) {
+	ctx := context.Background()
 	g := NewWithT(t)
 
 	model := simulator.VPX()
@@ -114,6 +116,7 @@ func TestVsphereDeploymentZoneReconciler_Reconcile_VerifyFailureDomain_ComputeCl
 }
 
 func TestVsphereDeploymentZoneReconciler_Reconcile_VerifyFailureDomain_HostGroupZone(t *testing.T) {
+	ctx := context.Background()
 	g := NewWithT(t)
 
 	model := simulator.VPX()
@@ -195,6 +198,7 @@ func TestVsphereDeploymentZoneReconciler_Reconcile_VerifyFailureDomain_HostGroup
 }
 
 func TestVsphereDeploymentZoneReconciler_Reconcile_CreateAndAttachMetadata(t *testing.T) {
+	ctx := context.Background()
 	simr, err := vcsim.NewBuilder().
 		WithOperations("cluster.group.create -cluster DC0_C0 -name group-one -host DC0_C0_H0 DC0_C0_H1",
 			"cluster.group.create -cluster DC0_C0 -name group-two -host DC0_C0_H2").

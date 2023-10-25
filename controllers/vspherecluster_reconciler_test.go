@@ -47,7 +47,11 @@ const (
 )
 
 var _ = Describe("VIM based VSphere ClusterReconciler", func() {
-	BeforeEach(func() {})
+	var ctx context.Context
+
+	BeforeEach(func() {
+		ctx = context.Background()
+	})
 	AfterEach(func() {})
 
 	Context("Reconcile an VSphereCluster", func() {
@@ -161,7 +165,6 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 		})
 
 		It("should error if secret is already owned by a different cluster", func() {
-			ctx := context.Background()
 			capiCluster := &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					GenerateName: "test1-",
@@ -245,7 +248,6 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 	})
 
 	It("should remove vspherecluster finalizer if the secret does not exist", func() {
-		ctx := context.Background()
 		capiCluster := &clusterv1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: "test1-",
@@ -552,6 +554,7 @@ func createVsphereMachine(ctx context.Context, env *helpers.TestEnvironment, nam
 
 func TestClusterReconciler_ReconcileDeploymentZones(t *testing.T) {
 	server := "vcenter123.foo.com"
+	ctx := context.Background()
 
 	t.Run("with nil selectors", func(t *testing.T) {
 		g := NewWithT(t)

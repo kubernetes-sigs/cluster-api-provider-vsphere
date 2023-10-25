@@ -36,6 +36,7 @@ var _ = Describe("ServiceAccountReconciler ReconcileNormal", unitTestsReconcileN
 
 func unitTestsReconcileNormal() {
 	var (
+		ctx            context.Context
 		controllerCtx  *helpers.UnitTestContextForController
 		vsphereCluster *vmwarev1.VSphereCluster
 		initObjects    []client.Object
@@ -44,7 +45,9 @@ func unitTestsReconcileNormal() {
 	)
 
 	JustBeforeEach(func() {
+		ctx = context.Background()
 		controllerCtx = helpers.NewUnitTestContextForController(ctx, namespace, vsphereCluster, false, initObjects, nil)
+
 		// Note: The service account provider requires a reference to the vSphereCluster hence the need to create
 		// a fake vSphereCluster in the test and pass it to during context setup.
 		reconciler = ServiceAccountReconciler{

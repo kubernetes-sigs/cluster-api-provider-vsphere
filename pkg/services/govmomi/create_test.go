@@ -40,11 +40,12 @@ func TestCreate(t *testing.T) {
 	}
 	defer simr.Destroy()
 
-	vmContext := fake.NewVMContext(fake.NewControllerContext(fake.NewControllerManagerContext()))
+	ctx := context.Background()
+	vmContext := fake.NewVMContext(ctx, fake.NewControllerContext(fake.NewControllerManagerContext()))
 	vmContext.VSphereVM.Spec.Server = simr.ServerURL().Host
 
 	authSession, err := session.GetOrCreate(
-		vmContext.Context,
+		ctx,
 		session.NewParams().
 			WithServer(vmContext.VSphereVM.Spec.Server).
 			WithUserInfo(simr.Username(), simr.Password()).
@@ -63,7 +64,6 @@ func TestCreate(t *testing.T) {
 
 	disk := object.VirtualDeviceList(vm.Config.Hardware.Device).SelectByType((*types.VirtualDisk)(nil))[0].(*types.VirtualDisk)
 	disk.CapacityInKB = int64(vmContext.VSphereVM.Spec.DiskGiB) * 1024 * 1024
-	ctx := context.Background()
 
 	if err := createVM(ctx, vmContext, []byte(""), ""); err != nil {
 		t.Fatal(err)
@@ -73,12 +73,12 @@ func TestCreate(t *testing.T) {
 		Type:  morefTypeTask,
 		Value: vmContext.VSphereVM.Status.TaskRef,
 	}
-	vimClient, err := vim25.NewClient(vmContext, vmContext.Session.RoundTripper)
+	vimClient, err := vim25.NewClient(ctx, vmContext.Session.RoundTripper)
 	if err != nil {
 		t.Fatal("could not make vim25 client.")
 	}
 	task := object.NewTask(vimClient, taskRef)
-	err = task.Wait(vmContext)
+	err = task.Wait(ctx)
 	if err != nil {
 		t.Fatal("error waiting for task:", err)
 	}

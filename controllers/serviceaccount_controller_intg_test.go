@@ -46,7 +46,7 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 		intCtx = helpers.NewIntegrationTestContextWithClusters(ctx, testEnv.Manager.GetClient())
 		testSystemSvcAcctCM := "test-system-svc-acct-cm"
 		cfgMap := getSystemServiceAccountsConfigMap(intCtx.VSphereCluster.Namespace, testSystemSvcAcctCM)
-		Expect(intCtx.Client.Create(intCtx, cfgMap)).To(Succeed())
+		Expect(intCtx.Client.Create(ctx, cfgMap)).To(Succeed())
 		_ = os.Setenv("SERVICE_ACCOUNTS_CM_NAMESPACE", intCtx.VSphereCluster.Namespace)
 		_ = os.Setenv("SERVICE_ACCOUNTS_CM_NAME", testSystemSvcAcctCM)
 	})
@@ -62,13 +62,13 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 		)
 		BeforeEach(func() {
 			pSvcAccount = getTestProviderServiceAccount(intCtx.Namespace, intCtx.VSphereCluster)
-			createTestResource(intCtx, intCtx.Client, pSvcAccount)
-			assertEventuallyExistsInNamespace(intCtx, intCtx.Client, intCtx.Namespace, pSvcAccount.GetName(), pSvcAccount)
+			createTestResource(ctx, intCtx.Client, pSvcAccount)
+			assertEventuallyExistsInNamespace(ctx, intCtx.Client, intCtx.Namespace, pSvcAccount.GetName(), pSvcAccount)
 		})
 		AfterEach(func() {
 			// Deleting the provider service account is not strictly required as the context itself
 			// gets teared down but keeping it for clarity.
-			deleteTestResource(intCtx, intCtx.Client, pSvcAccount)
+			deleteTestResource(ctx, intCtx.Client, pSvcAccount)
 		})
 
 		Context("When serviceaccount secret is created", func() {
@@ -77,7 +77,7 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 				// to create a secret containing the bearer token, cert etc for a service account. We need to
 				// simulate the job of the token controller by waiting for the service account creation and then updating it
 				// with a prototype secret.
-				assertServiceAccountAndUpdateSecret(intCtx, intCtx.Client, intCtx.Namespace, pSvcAccount.GetName())
+				assertServiceAccountAndUpdateSecret(ctx, intCtx.Client, intCtx.Namespace, pSvcAccount.GetName())
 			})
 
 			It("should create the role and role binding", func() {
@@ -102,7 +102,7 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 
 			It("Should reconcile", func() {
 				By("Creating the target secret in the target namespace")
-				assertTargetSecret(intCtx, intCtx.GuestClient, pSvcAccount.Spec.TargetNamespace, testTargetSecret)
+				assertTargetSecret(ctx, intCtx.GuestClient, pSvcAccount.Spec.TargetNamespace, testTargetSecret)
 			})
 		})
 
@@ -113,16 +113,16 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 						Name: pSvcAccount.Spec.TargetNamespace,
 					},
 				}
-				Expect(intCtx.GuestClient.Create(intCtx, targetNSObj)).To(Succeed())
-				createTargetSecretWithInvalidToken(intCtx, intCtx.GuestClient, pSvcAccount.Spec.TargetNamespace)
-				assertServiceAccountAndUpdateSecret(intCtx, intCtx.Client, intCtx.Namespace, pSvcAccount.GetName())
+				Expect(intCtx.GuestClient.Create(ctx, targetNSObj)).To(Succeed())
+				createTargetSecretWithInvalidToken(ctx, intCtx.GuestClient, pSvcAccount.Spec.TargetNamespace)
+				assertServiceAccountAndUpdateSecret(ctx, intCtx.Client, intCtx.Namespace, pSvcAccount.GetName())
 			})
 			AfterEach(func() {
-				deleteTestResource(intCtx, intCtx.GuestClient, targetNSObj)
+				deleteTestResource(ctx, intCtx.GuestClient, targetNSObj)
 			})
 			It("Should reconcile", func() {
 				By("Updating the target secret in the target namespace")
-				assertTargetSecret(intCtx, intCtx.GuestClient, pSvcAccount.Spec.TargetNamespace, testTargetSecret)
+				assertTargetSecret(ctx, intCtx.GuestClient, pSvcAccount.Spec.TargetNamespace, testTargetSecret)
 			})
 		})
 	})
@@ -134,20 +134,20 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 				Expect(ok).To(BeTrue())
 				cluster := &clusterv1.Cluster{}
 				key := client.ObjectKey{Namespace: intCtx.Namespace, Name: clusterName}
-				Expect(intCtx.Client.Get(intCtx, key, cluster)).To(Succeed())
-				Expect(intCtx.Client.Delete(intCtx, cluster)).To(Succeed())
+				Expect(intCtx.Client.Get(ctx, key, cluster)).To(Succeed())
+				Expect(intCtx.Client.Delete(ctx, cluster)).To(Succeed())
 			})
 
 			By("Creating the ProviderServiceAccount", func() {
 				pSvcAccount := getTestProviderServiceAccount(intCtx.Namespace, intCtx.VSphereCluster)
-				createTestResource(intCtx, intCtx.Client, pSvcAccount)
-				assertEventuallyExistsInNamespace(intCtx, intCtx.Client, intCtx.Namespace, pSvcAccount.GetName(), pSvcAccount)
+				createTestResource(ctx, intCtx.Client, pSvcAccount)
+				assertEventuallyExistsInNamespace(ctx, intCtx.Client, intCtx.Namespace, pSvcAccount.GetName(), pSvcAccount)
 			})
 
 			By("ProviderServiceAccountsReady Condition is not set", func() {
 				vsphereCluster := &vmwarev1.VSphereCluster{}
 				key := client.ObjectKey{Namespace: intCtx.Namespace, Name: intCtx.VSphereCluster.GetName()}
-				Expect(intCtx.Client.Get(intCtx, key, vsphereCluster)).To(Succeed())
+				Expect(intCtx.Client.Get(ctx, key, vsphereCluster)).To(Succeed())
 				Expect(conditions.Has(vsphereCluster, vmwarev1.ProviderServiceAccountsReadyCondition)).To(BeFalse())
 			})
 		})
@@ -164,19 +164,19 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 						Name:      fmt.Sprintf("%s-kubeconfig", clusterName),
 					},
 				}
-				Expect(intCtx.Client.Delete(intCtx, secret)).To(Succeed())
+				Expect(intCtx.Client.Delete(ctx, secret)).To(Succeed())
 			})
 
 			By("Creating the ProviderServiceAccount", func() {
 				pSvcAccount := getTestProviderServiceAccount(intCtx.Namespace, intCtx.VSphereCluster)
-				createTestResource(intCtx, intCtx.Client, pSvcAccount)
-				assertEventuallyExistsInNamespace(intCtx, intCtx.Client, intCtx.Namespace, pSvcAccount.GetName(), pSvcAccount)
+				createTestResource(ctx, intCtx.Client, pSvcAccount)
+				assertEventuallyExistsInNamespace(ctx, intCtx.Client, intCtx.Namespace, pSvcAccount.GetName(), pSvcAccount)
 			})
 
 			By("ProviderServiceAccountsReady Condition is not set", func() {
 				vsphereCluster := &vmwarev1.VSphereCluster{}
 				key := client.ObjectKey{Namespace: intCtx.Namespace, Name: intCtx.VSphereCluster.GetName()}
-				Expect(intCtx.Client.Get(intCtx, key, vsphereCluster)).To(Succeed())
+				Expect(intCtx.Client.Get(ctx, key, vsphereCluster)).To(Succeed())
 				Expect(conditions.Has(vsphereCluster, vmwarev1.ProviderServiceAccountsReadyCondition)).To(BeFalse())
 			})
 		})
@@ -193,7 +193,7 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 			pSvcAccount.ObjectMeta.Annotations = map[string]string{
 				"cluster.x-k8s.io/paused": "true",
 			}
-			createTestResource(intCtx, intCtx.Client, pSvcAccount)
+			createTestResource(ctx, intCtx.Client, pSvcAccount)
 			oldOwnerUID := uuid.New().String()
 
 			role = &rbacv1.Role{
@@ -246,9 +246,9 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 				},
 			}
 
-			createTestResource(intCtx, intCtx.Client, role)
-			createTestResource(intCtx, intCtx.Client, roleBinding)
-			assertEventuallyExistsInNamespace(intCtx, intCtx.Client, intCtx.Namespace, pSvcAccount.GetName(), pSvcAccount)
+			createTestResource(ctx, intCtx.Client, role)
+			createTestResource(ctx, intCtx.Client, roleBinding)
+			assertEventuallyExistsInNamespace(ctx, intCtx.Client, intCtx.Namespace, pSvcAccount.GetName(), pSvcAccount)
 			svcAccountPatcher, err := patch.NewHelper(pSvcAccount, intCtx.Client)
 			Expect(err).ToNot(HaveOccurred())
 			// Unpause the ProviderServiceAccount so we can reconcile
@@ -256,9 +256,9 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 			Expect(svcAccountPatcher.Patch(ctx, pSvcAccount)).To(Succeed())
 		})
 		AfterEach(func() {
-			deleteTestResource(intCtx, intCtx.Client, pSvcAccount)
-			deleteTestResource(intCtx, intCtx.Client, role)
-			deleteTestResource(intCtx, intCtx.Client, roleBinding)
+			deleteTestResource(ctx, intCtx.Client, pSvcAccount)
+			deleteTestResource(ctx, intCtx.Client, role)
+			deleteTestResource(ctx, intCtx.Client, roleBinding)
 		})
 
 		It("should fully reconciles dependent resources", func() {

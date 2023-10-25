@@ -180,7 +180,6 @@ func checkAndRetryTask(vmCtx *capvcontext.VMContext, task *mo.Task) (bool, error
 
 func reconcileVSphereVMWhenNetworkIsReady(ctx context.Context, virtualMachineCtx *virtualMachineContext, powerOnTask *object.Task) {
 	reconcileVSphereVMOnChannel(
-		ctx,
 		&virtualMachineCtx.VMContext,
 		func() (<-chan []interface{}, <-chan error, error) {
 			// Wait for the VM to be powered on.
@@ -296,7 +295,7 @@ func reconcileVSphereVMOnFuncCompletion(_ context.Context, vmCtx *capvcontext.VM
 	}()
 }
 
-func reconcileVSphereVMOnChannel(_ context.Context, vmCtx *capvcontext.VMContext, waitFn func() (<-chan []interface{}, <-chan error, error)) {
+func reconcileVSphereVMOnChannel(vmCtx *capvcontext.VMContext, waitFn func() (<-chan []interface{}, <-chan error, error)) {
 	obj := vmCtx.VSphereVM.DeepCopy()
 	gvk := obj.GetObjectKind().GroupVersionKind()
 
@@ -328,8 +327,6 @@ func reconcileVSphereVMOnChannel(_ context.Context, vmCtx *capvcontext.VMContext
 				if err != nil {
 					vmCtx.Logger.Error(err, "error occurred while waiting to trigger a generic event")
 				}
-				return
-			case <-vmCtx.Done():
 				return
 			}
 		}

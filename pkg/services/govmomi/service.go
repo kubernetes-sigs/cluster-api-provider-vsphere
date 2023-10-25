@@ -245,7 +245,7 @@ func (vms *VMService) DestroyVM(ctx context.Context, vmCtx *capvcontext.VMContex
 		}
 
 		virtualMachineCtx.VSphereVM.Status.TaskRef = task.Reference().Value
-		if err = virtualMachineCtx.Patch(); err != nil {
+		if err = virtualMachineCtx.Patch(ctx); err != nil {
 			vmCtx.Logger.Error(err, "patch failed", "vm", virtualMachineCtx.String())
 			return reconcile.Result{}, vm, err
 		}
@@ -351,7 +351,7 @@ func (vms *VMService) reconcilePowerState(ctx context.Context, virtualMachineCtx
 
 		// Update the VSphereVM.Status.TaskRef to track the power-on task.
 		virtualMachineCtx.VSphereVM.Status.TaskRef = task.Reference().Value
-		if err = virtualMachineCtx.Patch(); err != nil {
+		if err = virtualMachineCtx.Patch(ctx); err != nil {
 			virtualMachineCtx.Logger.Error(err, "patch failed", "vm", virtualMachineCtx.String())
 			return false, err
 		}

@@ -53,30 +53,31 @@ func TestGetSession(t *testing.T) {
 		WithUserInfo(simr.Username(), simr.Password()).WithDatacenter("*")
 
 	// Get first session
-	s, err := GetOrCreate(context.Background(), params)
+	ctx := context.Background()
+	s, err := GetOrCreate(ctx, params)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(s).ToNot(BeNil())
 	assertSessionCountEqualTo(g, simr, 1)
 
 	// Get session key
-	sessionInfo, err := s.SessionManager.UserSession(context.Background())
+	sessionInfo, err := s.SessionManager.UserSession(ctx)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(sessionInfo).ToNot(BeNil())
 	firstSession := sessionInfo.Key
 
 	// remove session expect no session
-	g.Expect(s.TagManager.Logout(context.Background())).To(Succeed())
+	g.Expect(s.TagManager.Logout(ctx)).To(Succeed())
 	g.Expect(simr.Run(fmt.Sprintf("session.rm %s", firstSession))).To(Succeed())
 	assertSessionCountEqualTo(g, simr, 0)
 
-	// request sesion again should be a new and different session
-	s, err = GetOrCreate(context.Background(), params)
+	// request session again should be a new and different session
+	s, err = GetOrCreate(ctx, params)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(s).ToNot(BeNil())
 
 	// Get session info, session key should be different from
 	// last session
-	sessionInfo, err = s.SessionManager.UserSession(context.Background())
+	sessionInfo, err = s.SessionManager.UserSession(ctx)
 	g.Expect(sessionInfo).ToNot(BeNil())
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(sessionInfo.Key).ToNot(BeEquivalentTo(firstSession))
@@ -132,13 +133,14 @@ func TestGetSessionWithKeepAlive(t *testing.T) {
 		WithDatacenter("*")
 
 	// Get first Session
-	s, err := GetOrCreate(context.Background(), params)
+	ctx := context.Background()
+	s, err := GetOrCreate(ctx, params)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(s).ToNot(BeNil())
 	assertSessionCountEqualTo(g, simr, 1)
 
 	// Get session key
-	sessionInfo, err := s.SessionManager.UserSession(context.Background())
+	sessionInfo, err := s.SessionManager.UserSession(ctx)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(sessionInfo).ToNot(BeNil())
 	firstSession := sessionInfo.Key
@@ -146,25 +148,25 @@ func TestGetSessionWithKeepAlive(t *testing.T) {
 	// Get the session again
 	// as keep alive is enabled and session is
 	// not expired we must get the same cached session
-	s, err = GetOrCreate(context.Background(), params)
+	s, err = GetOrCreate(ctx, params)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(s).ToNot(BeNil())
-	sessionInfo, err = s.SessionManager.UserSession(context.Background())
+	sessionInfo, err = s.SessionManager.UserSession(ctx)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(sessionInfo).ToNot(BeNil())
 	g.Expect(sessionInfo.Key).To(BeEquivalentTo(firstSession))
 	assertSessionCountEqualTo(g, simr, 1)
 
 	// Try to remove vim session
-	g.Expect(s.Logout(context.Background())).To(Succeed())
+	g.Expect(s.Logout(ctx)).To(Succeed())
 
 	// after logging out old session must be deleted,
 	// we must get a new different session
 	// total session count must remain 1
-	s, err = GetOrCreate(context.Background(), params)
+	s, err = GetOrCreate(ctx, params)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(s).ToNot(BeNil())
-	sessionInfo, err = s.SessionManager.UserSession(context.Background())
+	sessionInfo, err = s.SessionManager.UserSession(ctx)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(sessionInfo).ToNot(BeNil())
 	g.Expect(sessionInfo.Key).ToNot(BeEquivalentTo(firstSession))

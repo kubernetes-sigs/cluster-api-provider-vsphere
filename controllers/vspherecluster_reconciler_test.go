@@ -162,7 +162,6 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 
 		It("should error if secret is already owned by a different cluster", func() {
 			ctx := context.Background()
-
 			capiCluster := &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					GenerateName: "test1-",
@@ -246,7 +245,6 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 	})
 	Context("Reconcile delete", func() {
 		var (
-			ctx             context.Context
 			secret          *corev1.Secret
 			capiCluster     *clusterv1.Cluster
 			instance        *infrav1.VSphereCluster
@@ -254,7 +252,7 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 			key             client.ObjectKey
 		)
 		It("should remove legacy finalizer if present during the cluster deletion", func() {
-			ctx = context.Background()
+			ctx := context.Background()
 			capiCluster = &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					GenerateName: "test1-",
@@ -358,7 +356,6 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 
 	It("should remove vspherecluster finalizer if the secret does not exist", func() {
 		ctx := context.Background()
-
 		capiCluster := &clusterv1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: "test1-",
@@ -700,7 +697,7 @@ func TestClusterReconciler_ReconcileDeploymentZones(t *testing.T) {
 			t.Run(tt.name, func(t *testing.T) {
 				g := NewWithT(t)
 				controllerCtx := fake.NewControllerContext(fake.NewControllerManagerContext(tt.initObjs...))
-				clusterCtx := fake.NewClusterContext(controllerCtx)
+				clusterCtx := fake.NewClusterContext(ctx, controllerCtx)
 				clusterCtx.VSphereCluster.Spec.Server = server
 
 				r := clusterReconciler{
@@ -772,7 +769,7 @@ func TestClusterReconciler_ReconcileDeploymentZones(t *testing.T) {
 			t.Run(tt.name, func(t *testing.T) {
 				g := NewWithT(t)
 				controllerCtx := fake.NewControllerContext(fake.NewControllerManagerContext(tt.initObjs...))
-				clusterCtx := fake.NewClusterContext(controllerCtx)
+				clusterCtx := fake.NewClusterContext(ctx, controllerCtx)
 				clusterCtx.VSphereCluster.Spec.Server = server
 				clusterCtx.VSphereCluster.Spec.FailureDomainSelector = &metav1.LabelSelector{MatchLabels: map[string]string{}}
 
@@ -808,7 +805,7 @@ func TestClusterReconciler_ReconcileDeploymentZones(t *testing.T) {
 
 		assertNumberOfZones := func(selector *metav1.LabelSelector, selectedZones int) {
 			controllerCtx := fake.NewControllerContext(fake.NewControllerManagerContext(zoneOne, zoneTwo, zoneThree))
-			clusterCtx := fake.NewClusterContext(controllerCtx)
+			clusterCtx := fake.NewClusterContext(ctx, controllerCtx)
 			clusterCtx.VSphereCluster.Spec.Server = server
 			clusterCtx.VSphereCluster.Spec.FailureDomainSelector = selector
 

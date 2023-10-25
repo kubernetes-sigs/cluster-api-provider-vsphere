@@ -42,7 +42,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 	namespace := capiutil.RandomString(6)
 	JustBeforeEach(func() {
 		vsphereCluster = fake.NewVSphereCluster(namespace)
-		controllerCtx = helpers.NewUnitTestContextForController(namespace, &vsphereCluster, false, initObjects, nil)
+		controllerCtx = helpers.NewUnitTestContextForController(ctx, namespace, &vsphereCluster, false, initObjects, nil)
 		reconciler = serviceDiscoveryReconciler{
 			Client:   controllerCtx.ControllerContext.Client,
 			Recorder: controllerCtx.ControllerContext.Recorder,

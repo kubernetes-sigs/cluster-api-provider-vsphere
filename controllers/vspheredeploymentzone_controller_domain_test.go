@@ -62,7 +62,7 @@ func TestVsphereDeploymentZoneReconciler_Reconcile_VerifyFailureDomain_ComputeCl
 		WithServer(simr.ServerURL().Host).
 		WithUserInfo(simr.Username(), simr.Password()).
 		WithDatacenter("*")
-	authSession, err := session.GetOrCreate(controllerCtx, params)
+	authSession, err := session.GetOrCreate(ctx, params)
 	g.Expect(err).NotTo(HaveOccurred())
 
 	vsphereFailureDomain := &infrav1.VSphereFailureDomain{

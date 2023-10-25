@@ -44,8 +44,8 @@ import (
 type Manager interface {
 	ctrl.Manager
 
-	// GetContext returns the controller manager's context.
-	GetContext() *capvcontext.ControllerManagerContext
+	// GetControllerManagerContext returns the controller manager's context.
+	GetControllerManagerContext() *capvcontext.ControllerManagerContext
 }
 
 // New returns a new CAPV controller manager.
@@ -78,7 +78,6 @@ func New(ctx context.Context, opts Options) (Manager, error) {
 
 	// Build the controller manager context.
 	controllerManagerContext := &capvcontext.ControllerManagerContext{
-		Context:                 context.Background(),
 		WatchNamespaces:         opts.Cache.Namespaces,
 		Namespace:               opts.PodNamespace,
 		Name:                    opts.PodName,
@@ -102,18 +101,18 @@ func New(ctx context.Context, opts Options) (Manager, error) {
 	}
 
 	return &manager{
-		Manager:       mgr,
-		controllerCtx: controllerManagerContext,
+		Manager:              mgr,
+		controllerManagerCtx: controllerManagerContext,
 	}, nil
 }
 
 type manager struct {
 	ctrl.Manager
-	controllerCtx *capvcontext.ControllerManagerContext
+	controllerManagerCtx *capvcontext.ControllerManagerContext
 }
 
-func (m *manager) GetContext() *capvcontext.ControllerManagerContext {
-	return m.controllerCtx
+func (m *manager) GetControllerManagerContext() *capvcontext.ControllerManagerContext {
+	return m.controllerManagerCtx
 }
 
 // UpdateCredentials reads and updates credentials from the credentials file.

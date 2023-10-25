@@ -256,7 +256,7 @@ func main() {
 
 	// Create a function that adds all the controllers and webhooks to the manager.
 	addToManager := func(ctx context.Context, controllerCtx *capvcontext.ControllerManagerContext, mgr ctrlmgr.Manager) error {
-		tracker, err := setupRemoteClusterCacheTracker(controllerCtx, mgr)
+		tracker, err := setupRemoteClusterCacheTracker(ctx, mgr)
 		if err != nil {
 			return perrors.Wrapf(err, "unable to create remote cluster cache tracker")
 		}
@@ -319,7 +319,7 @@ func main() {
 	}
 
 	// initialize notifier for capv-manager-bootstrap-credentials
-	watch, err := manager.InitializeWatch(mgr.GetContext(), &managerOpts)
+	watch, err := manager.InitializeWatch(mgr.GetControllerManagerContext(), &managerOpts)
 	if err != nil {
 		setupLog.Error(err, "failed to initialize watch on CAPV credentials file")
 		os.Exit(1)
@@ -422,7 +422,7 @@ func concurrency(c int) controller.Options {
 	return controller.Options{MaxConcurrentReconciles: c}
 }
 
-func setupRemoteClusterCacheTracker(controllerCtx *capvcontext.ControllerManagerContext, mgr ctrlmgr.Manager) (*remote.ClusterCacheTracker, error) {
+func setupRemoteClusterCacheTracker(ctx context.Context, mgr ctrlmgr.Manager) (*remote.ClusterCacheTracker, error) {
 	secretCachingClient, err := client.New(mgr.GetConfig(), client.Options{
 		HTTPClient: mgr.GetHTTPClient(),
 		Cache: &client.CacheOptions{
@@ -452,7 +452,7 @@ func setupRemoteClusterCacheTracker(controllerCtx *capvcontext.ControllerManager
 		Client:           mgr.GetClient(),
 		Tracker:          tracker,
 		WatchFilterValue: managerOpts.WatchFilterValue,
-	}).SetupWithManager(controllerCtx, mgr, concurrency(clusterCacheTrackerConcurrency)); err != nil {
+	}).SetupWithManager(ctx, mgr, concurrency(clusterCacheTrackerConcurrency)); err != nil {
 		return nil, perrors.Wrapf(err, "unable to create ClusterCacheReconciler controller")
 	}
 

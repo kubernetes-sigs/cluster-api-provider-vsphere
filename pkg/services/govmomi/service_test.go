@@ -39,9 +39,7 @@ func emptyVirtualMachineContext() *virtualMachineContext {
 		VMContext: capvcontext.VMContext{
 			Logger: logr.Discard(),
 			ControllerContext: &capvcontext.ControllerContext{
-				ControllerManagerContext: &capvcontext.ControllerManagerContext{
-					Context: context.TODO(),
-				},
+				ControllerManagerContext: &capvcontext.ControllerManagerContext{},
 			},
 		},
 	}

@@ -17,7 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	"context"
 	"testing"
 
 	"github.com/go-logr/logr"
@@ -617,7 +616,7 @@ func TestVsphereDeploymentZone_Failed_ReconcilePlacementConstraint(t *testing.T)
 			mgmtContext.Password = pass
 
 			controllerCtx := fake.NewControllerContext(mgmtContext)
-			Expect(controllerCtx.Client.Create(controllerCtx, &infrav1.VSphereFailureDomain{
+			Expect(controllerCtx.Client.Create(ctx, &infrav1.VSphereFailureDomain{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "blah",
 				},
@@ -792,7 +791,7 @@ func TestVSphereDeploymentZoneReconciler_ReconcileDelete(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 
 			fetchedFailureDomain := &infrav1.VSphereFailureDomain{}
-			g.Expect(mgmtContext.Client.Get(context.Background(), client.ObjectKey{Name: vsphereFailureDomain.Name}, fetchedFailureDomain)).To(Succeed())
+			g.Expect(mgmtContext.Client.Get(ctx, client.ObjectKey{Name: vsphereFailureDomain.Name}, fetchedFailureDomain)).To(Succeed())
 			g.Expect(fetchedFailureDomain.OwnerReferences).To(HaveLen(1))
 		})
 	})

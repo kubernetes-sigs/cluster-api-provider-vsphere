@@ -49,20 +49,20 @@ type UnitTestContextForController struct {
 // NewUnitTestContextForController returns a new UnitTestContextForController
 // with an optional prototype cluster for unit testing controllers that do not
 // invoke the VSphereCluster spec controller.
-func NewUnitTestContextForController( /*newReconcilerFn NewReconcilerFunc, */ namespace string, vSphereCluster *vmwarev1.VSphereCluster,
+func NewUnitTestContextForController(ctx context.Context, namespace string, vSphereCluster *vmwarev1.VSphereCluster,
 	prototypeCluster bool, initObjects, gcInitObjects []client.Object) *UnitTestContextForController {
 	controllerCtx := fake.NewControllerContext(fake.NewControllerManagerContext(initObjects...))
 
-	ctx := &UnitTestContextForController{
-		GuestClusterContext: fake.NewGuestClusterContext(context.TODO(), fake.NewVmwareClusterContext(controllerCtx, namespace, vSphereCluster),
+	unitTestCtx := &UnitTestContextForController{
+		GuestClusterContext: fake.NewGuestClusterContext(ctx, fake.NewVmwareClusterContext(ctx, controllerCtx, namespace, vSphereCluster),
 			controllerCtx, prototypeCluster, gcInitObjects...),
 		ControllerContext: controllerCtx,
 	}
-	ctx.Key = client.ObjectKey{Namespace: ctx.VSphereCluster.Namespace, Name: ctx.VSphereCluster.Name}
+	unitTestCtx.Key = client.ObjectKey{Namespace: unitTestCtx.VSphereCluster.Namespace, Name: unitTestCtx.VSphereCluster.Name}
 
-	CreatePrototypePrereqs(context.TODO(), controllerCtx.Client)
+	CreatePrototypePrereqs(ctx, controllerCtx.Client)
 
-	return ctx
+	return unitTestCtx
 }
 
 func CreatePrototypePrereqs(ctx context.Context, c client.Client) {

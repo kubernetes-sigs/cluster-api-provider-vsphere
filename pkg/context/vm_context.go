@@ -18,6 +18,7 @@ limitations under the License.
 package context
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/go-logr/logr"
@@ -44,8 +45,8 @@ func (c *VMContext) String() string {
 }
 
 // Patch updates the object and its status on the API server.
-func (c *VMContext) Patch() error {
-	return c.PatchHelper.Patch(c, c.VSphereVM)
+func (c *VMContext) Patch(ctx context.Context) error {
+	return c.PatchHelper.Patch(ctx, c.VSphereVM)
 }
 
 // GetLogger returns this context's logger.

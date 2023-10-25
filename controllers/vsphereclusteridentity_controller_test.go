@@ -29,7 +29,7 @@ import (
 )
 
 var _ = Describe("VSphereClusterIdentity Reconciler", func() {
-	controllerNamespace := testEnv.Manager.GetContext().Namespace
+	controllerNamespace := testEnv.Manager.GetControllerManagerContext().Namespace
 
 	Context("Reconcile Normal", func() {
 		It("should set the ownerRef on a secret and set Ready condition", func() {

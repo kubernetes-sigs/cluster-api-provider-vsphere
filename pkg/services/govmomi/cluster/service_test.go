@@ -38,24 +38,25 @@ func TestListHostsFromGroup(t *testing.T) {
 	}
 	defer sim.Destroy()
 
-	client, _ := govmomi.NewClient(context.Background(), sim.ServerURL(), true)
+	ctx := context.Background()
+	client, _ := govmomi.NewClient(ctx, sim.ServerURL(), true)
 	finder := find.NewFinder(client.Client, false)
 
-	dc, _ := finder.DatacenterOrDefault(context.Background(), "DC0")
+	dc, _ := finder.DatacenterOrDefault(ctx, "DC0")
 	finder.SetDatacenter(dc)
 
-	ccr, err := finder.ClusterComputeResource(context.Background(), "DC0_C0")
+	ccr, err := finder.ClusterComputeResource(ctx, "DC0_C0")
 	g.Expect(err).NotTo(HaveOccurred())
 
-	refs, err := ListHostsFromGroup(context.Background(), ccr, "test_grp_1")
+	refs, err := ListHostsFromGroup(ctx, ccr, "test_grp_1")
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(refs).To(HaveLen(2))
 
-	refs, err = ListHostsFromGroup(context.Background(), ccr, "test_grp_2")
+	refs, err = ListHostsFromGroup(ctx, ccr, "test_grp_2")
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(refs).To(HaveLen(1))
 
-	refs, err = ListHostsFromGroup(context.Background(), ccr, "blah")
+	refs, err = ListHostsFromGroup(ctx, ccr, "blah")
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(refs).To(BeEmpty())
 }

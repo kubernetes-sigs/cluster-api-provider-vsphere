@@ -27,7 +27,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
+	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
 )
 
@@ -60,14 +60,14 @@ var _ = Describe("VimMachineService_GenerateOverrideFunc", func() {
 		}
 	}
 	var (
-		controllerCtx     *context.ControllerContext
-		machineCtx        *context.VIMMachineContext
+		controllerCtx     *capvcontext.ControllerContext
+		machineCtx        *capvcontext.VIMMachineContext
 		vimMachineService *VimMachineService
 	)
 
 	BeforeEach(func() {
 		controllerCtx = fake.NewControllerContext(fake.NewControllerManagerContext(deplZone("one"), deplZone("two"), failureDomain("one"), failureDomain("two")))
-		machineCtx = fake.NewMachineContext(fake.NewClusterContext(controllerCtx), controllerCtx)
+		machineCtx = fake.NewMachineContext(ctx, fake.NewClusterContext(ctx, controllerCtx), controllerCtx)
 		vimMachineService = &VimMachineService{controllerCtx.Client}
 	})
 
@@ -188,8 +188,8 @@ var _ = Describe("VimMachineService_GenerateOverrideFunc", func() {
 
 var _ = Describe("VimMachineService_GetHostInfo", func() {
 	var (
-		controllerCtx     *context.ControllerContext
-		machineCtx        *context.VIMMachineContext
+		controllerCtx     *capvcontext.ControllerContext
+		machineCtx        *capvcontext.VIMMachineContext
 		vimMachineService = &VimMachineService{}
 		hostAddr          = "1.2.3.4"
 	)
@@ -215,7 +215,7 @@ var _ = Describe("VimMachineService_GetHostInfo", func() {
 	Context("When VMProvisioned Condition is set", func() {
 		BeforeEach(func() {
 			controllerCtx = fake.NewControllerContext(fake.NewControllerManagerContext(getVSphereVM(hostAddr, corev1.ConditionTrue)))
-			machineCtx = fake.NewMachineContext(fake.NewClusterContext(controllerCtx), controllerCtx)
+			machineCtx = fake.NewMachineContext(ctx, fake.NewClusterContext(ctx, controllerCtx), controllerCtx)
 			vimMachineService = &VimMachineService{controllerCtx.Client}
 		})
 		It("Fetches host address from the VSphereVM object", func() {
@@ -228,7 +228,7 @@ var _ = Describe("VimMachineService_GetHostInfo", func() {
 	Context("When VMProvisioned Condition is unset", func() {
 		BeforeEach(func() {
 			controllerCtx = fake.NewControllerContext(fake.NewControllerManagerContext(getVSphereVM(hostAddr, corev1.ConditionFalse)))
-			machineCtx = fake.NewMachineContext(fake.NewClusterContext(controllerCtx), controllerCtx)
+			machineCtx = fake.NewMachineContext(ctx, fake.NewClusterContext(ctx, controllerCtx), controllerCtx)
 			vimMachineService = &VimMachineService{controllerCtx.Client}
 		})
 		It("returns empty string", func() {
@@ -242,8 +242,8 @@ var _ = Describe("VimMachineService_GetHostInfo", func() {
 
 var _ = Describe("VimMachineService_createOrPatchVSphereVM", func() {
 	var (
-		controllerCtx       *context.ControllerContext
-		machineCtx          *context.VIMMachineContext
+		controllerCtx       *capvcontext.ControllerContext
+		machineCtx          *capvcontext.VIMMachineContext
 		vimMachineService   *VimMachineService
 		hostAddr            = "1.2.3.4"
 		fakeLongClusterName = "fake-long-clustername"
@@ -268,7 +268,7 @@ var _ = Describe("VimMachineService_createOrPatchVSphereVM", func() {
 	}
 
 	controllerCtx = fake.NewControllerContext(fake.NewControllerManagerContext(getVSphereVM(hostAddr, corev1.ConditionTrue)))
-	machineCtx = fake.NewMachineContext(fake.NewClusterContext(controllerCtx), controllerCtx)
+	machineCtx = fake.NewMachineContext(ctx, fake.NewClusterContext(ctx, controllerCtx), controllerCtx)
 	machineCtx.Machine.SetName(fakeLongClusterName)
 	vimMachineService = &VimMachineService{controllerCtx.Client}
 

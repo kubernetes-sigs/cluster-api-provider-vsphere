@@ -40,13 +40,14 @@ import (
 func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 	name, namespace := "test-vm", "my-namespace"
 	setup := func(vsphereVM *infrav1.VSphereVM, initObjects ...client.Object) *capvcontext.VMContext {
-		ctx := fake.NewControllerContext(fake.NewControllerManagerContext(initObjects...))
+		controllerCtx := fake.NewControllerContext(fake.NewControllerManagerContext(initObjects...))
 		return &capvcontext.VMContext{
-			ControllerContext: ctx,
+			ControllerContext: controllerCtx,
 			VSphereVM:         vsphereVM,
 			Logger:            logr.Discard(),
 		}
 	}
+	ctx := context.Background()
 
 	t.Run("when VSphereVM Spec has address pool references", func(t *testing.T) {
 		vsphereVM := &infrav1.VSphereVM{
@@ -84,7 +85,7 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 			g.Expect(err).ToNot(gomega.HaveOccurred())
 
 			ipAddrClaimList := &ipamv1.IPAddressClaimList{}
-			g.Expect(testCtx.Client.List(context.TODO(), ipAddrClaimList)).To(gomega.Succeed())
+			g.Expect(testCtx.Client.List(ctx, ipAddrClaimList)).To(gomega.Succeed())
 			g.Expect(ipAddrClaimList.Items).To(gomega.HaveLen(3))
 
 			for idx := range ipAddrClaimList.Items {
@@ -133,7 +134,7 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 			g.Expect(claimedCondition.Message).To(gomega.Equal("3/3 claims being processed"))
 
 			ipAddrClaimList := &ipamv1.IPAddressClaimList{}
-			g.Expect(testCtx.Client.List(context.TODO(), ipAddrClaimList)).To(gomega.Succeed())
+			g.Expect(testCtx.Client.List(ctx, ipAddrClaimList)).To(gomega.Succeed())
 
 			for idx := range ipAddrClaimList.Items {
 				claim := ipAddrClaimList.Items[idx]
@@ -167,7 +168,7 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 			g.Expect(claimedCondition.Status).To(gomega.Equal(corev1.ConditionTrue))
 
 			ipAddrClaimList := &ipamv1.IPAddressClaimList{}
-			g.Expect(testCtx.Client.List(context.TODO(), ipAddrClaimList)).To(gomega.Succeed())
+			g.Expect(testCtx.Client.List(ctx, ipAddrClaimList)).To(gomega.Succeed())
 
 			for idx := range ipAddrClaimList.Items {
 				claim := ipAddrClaimList.Items[idx]

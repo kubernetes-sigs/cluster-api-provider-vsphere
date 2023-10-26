@@ -192,11 +192,6 @@ func (r clusterIdentityReconciler) reconcileDelete(ctx context.Context, identity
 		return err
 	}
 	log.Info(fmt.Sprintf("Removing finalizer from Secret %s/%s", secret.Namespace, secret.Name))
-	// Check if the old finalizer(from v0.7) is present, if yes, delete it
-	// For more context, please refer: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/1482
-	if ctrlutil.ContainsFinalizer(secret, legacyIdentityFinalizer) {
-		ctrlutil.RemoveFinalizer(secret, legacyIdentityFinalizer)
-	}
 	ctrlutil.RemoveFinalizer(secret, infrav1.SecretIdentitySetFinalizer)
 	if err := r.Client.Update(ctx, secret); err != nil {
 		return err

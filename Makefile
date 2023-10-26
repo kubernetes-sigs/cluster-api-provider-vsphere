@@ -247,7 +247,7 @@ generate: ## Run all generate targets
 
 .PHONY: generate-manifests
 generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
-	$(MAKE) clean-generated-yaml SRC_DIRS="$(CRD_ROOT),$(SUPERVISOR_CRD_ROOT),$(VMOP_CRD_ROOT)"
+	$(MAKE) clean-generated-yaml SRC_DIRS="$(CRD_ROOT),$(SUPERVISOR_CRD_ROOT),$(VMOP_CRD_ROOT),./config/webhook/manifests.yaml"
 	$(CONTROLLER_GEN) \
 		paths=./apis/v1beta1 \
 		paths=./internal/webhooks \

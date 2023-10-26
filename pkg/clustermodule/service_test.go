@@ -28,6 +28,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
+	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers/vcsim"
 )
 
 func TestService_Create(t *testing.T) {
@@ -81,6 +82,52 @@ func TestService_Create(t *testing.T) {
 			g.Expect(err).ToNot(gomega.HaveOccurred())
 			g.Expect(moduleUUID).To(gomega.BeEmpty())
 		})
+	})
+
+	t.Run("Create, DoesExist and Remove works", func(t *testing.T) {
+		g := gomega.NewWithT(t)
+		simr, err := vcsim.NewBuilder().Build()
+		defer simr.Destroy()
+		g.Expect(err).ToNot(gomega.HaveOccurred())
+		md := machineDeployment("md", fake.Namespace, fake.Clusterv1a2Name)
+		md.Spec.Template.Spec.InfrastructureRef = corev1.ObjectReference{
+			Kind:      "VSphereMachineTemplate",
+			Namespace: fake.Namespace,
+			Name:      "blah-template",
+		}
+
+		machineTemplate := &infrav1.VSphereMachineTemplate{
+			TypeMeta: metav1.TypeMeta{Kind: "VSphereMachineTemplate"},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "blah-template",
+				Namespace: fake.Namespace,
+			},
+			Spec: infrav1.VSphereMachineTemplateSpec{
+				Template: infrav1.VSphereMachineTemplateResource{Spec: infrav1.VSphereMachineSpec{
+					VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
+						Server:       simr.ServerURL().Host,
+						Datacenter:   "*",
+						ResourcePool: "/DC0/host/DC0_C0/Resources",
+					},
+				}},
+			},
+		}
+
+		controllerCtx := fake.NewControllerContext(fake.NewControllerManagerContext(md, machineTemplate))
+		clusterCtx := fake.NewClusterContext(context.Background(), controllerCtx)
+		clusterCtx.VSphereCluster.Spec.Server = simr.ServerURL().Host
+		controllerCtx.ControllerManagerContext.Username = simr.Username()
+		controllerCtx.ControllerManagerContext.Password = simr.Password()
+
+		svc := NewService(controllerCtx.ControllerManagerContext, controllerCtx.Client)
+		moduleUUID, err := svc.Create(context.Background(), clusterCtx, mdWrapper{md})
+		g.Expect(err).ToNot(gomega.HaveOccurred())
+		g.Expect(moduleUUID).NotTo(gomega.BeEmpty())
+		exists, err := svc.DoesExist(context.Background(), clusterCtx, mdWrapper{md}, moduleUUID)
+		g.Expect(exists).To(gomega.BeTrue())
+		g.Expect(err).NotTo(gomega.HaveOccurred())
+		err = svc.Remove(context.Background(), clusterCtx, moduleUUID)
+		g.Expect(err).ToNot(gomega.HaveOccurred())
 	})
 }
 

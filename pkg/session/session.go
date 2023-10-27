@@ -29,6 +29,7 @@ import (
 	"github.com/blang/semver"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
@@ -40,9 +41,22 @@ import (
 	"github.com/vmware/govmomi/vim25/methods"
 	"github.com/vmware/govmomi/vim25/soap"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/metrics"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/constants"
+)
+
+const (
+	metricNameSpace            = "session"
+	metricLabelServer          = "server"
+	metricLabelDC              = "dc"
+	metricLabelUsername        = "username"
+	metricLabelOperationType   = "operation"
+	metricLabelGetOperation    = "get"
+	metricLabelCreateOperation = "create"
+	metricLabelDeleteOperation = "delete"
+	metricLabelSessionKey      = "sessionKey"
 )
 
 var (
@@ -52,6 +66,34 @@ var (
 	// mutex to control access to the GetOrCreate function to avoid duplicate
 	// session creations on startup.
 	sessionMU sync.Mutex
+
+	// sessionCacheMetric represents a Prometheus GaugeVec (vector of gauges) to track
+	// the number of cached sessions. This metric provides information about the current
+	// count of cached sessions.
+	sessionCacheMetric = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: metricNameSpace,
+			Name:      "cached_num",
+		},
+		[]string{},
+	)
+
+	// sessionOperationMetric represents a Prometheus CounterVec (vector of counters) to track
+	// various session-related operations. This metric provides detailed information about
+	// different operations, including the server, data center, username, and the type of operation.
+	// It is useful for monitoring and analyzing the frequency of different session operations in the system.
+	sessionOperationMetric = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: metricNameSpace,
+			Name:      "operation",
+		},
+		[]string{
+			metricLabelServer,        // Label for the server involved in the session operation.
+			metricLabelDC,            // Label for the data center where the operation occurred.
+			metricLabelUsername,      // Label for the username associated with the session operation.
+			metricLabelOperationType, // Label for the type of session operation (e.g., get, create, delete).
+		},
+	)
 )
 
 // Session is a vSphere session with a configured Finder.
@@ -82,6 +124,22 @@ type Params struct {
 	userinfo   *url.Userinfo
 	thumbprint string
 	feature    Feature
+}
+
+func init() {
+	metrics.Registry.MustRegister(sessionCacheMetric, sessionOperationMetric)
+	ticker := time.NewTicker(1 * time.Minute)
+
+	go func() {
+		for range ticker.C {
+			size := 0
+			sessionCache.Range(func(key, value interface{}) bool {
+				size++
+				return true
+			})
+			sessionCacheMetric.With(prometheus.Labels{}).Set(float64(size))
+		}
+	}()
 }
 
 // NewParams returns an empty set of parameters with default features.
@@ -139,6 +197,12 @@ func GetOrCreate(ctx context.Context, params *Params) (*Session, error) {
 	hashedUserPassword := h.Sum(nil)
 	sessionKey := fmt.Sprintf("%s#%s#%s#%x", params.server, params.datacenter, params.userinfo.Username(),
 		hashedUserPassword)
+	sessionOperationMetric.With(prometheus.Labels{
+		metricLabelServer:        params.server,
+		metricLabelDC:            params.datacenter,
+		metricLabelUsername:      params.userinfo.Username(),
+		metricLabelOperationType: metricLabelGetOperation,
+	}).Inc()
 	if cachedSession, ok := sessionCache.Load(sessionKey); ok {
 		s := cachedSession.(*Session)
 
@@ -166,6 +230,13 @@ func GetOrCreate(ctx context.Context, params *Params) (*Session, error) {
 			logger.Info("logout session succeed")
 		}
 	}
+
+	sessionOperationMetric.With(prometheus.Labels{
+		metricLabelServer:        params.server,
+		metricLabelDC:            params.datacenter,
+		metricLabelUsername:      params.userinfo.Username(),
+		metricLabelOperationType: metricLabelCreateOperation,
+	}).Inc()
 
 	// soap.ParseURL expects a valid URL. In the case of a bare, unbracketed
 	// IPv6 address (e.g fd00::1) ParseURL will fail. Surround unbracketed IPv6
@@ -243,6 +314,10 @@ func newClient(ctx context.Context, logger logr.Logger, sessionKey string, url *
 			if err != nil {
 				logger.Error(err, "failed to keep alive govmomi client")
 				logger.Info("clearing the session")
+				sessionOperationMetric.With(prometheus.Labels{
+					metricLabelSessionKey:    sessionKey,
+					metricLabelOperationType: metricLabelDeleteOperation,
+				}).Inc()
 				sessionCache.Delete(sessionKey)
 			}
 			return err
@@ -270,6 +345,10 @@ func newManager(ctx context.Context, logger logr.Logger, sessionKey string, clie
 			}
 
 			logger.Info("rest client session expired, clearing session")
+			sessionOperationMetric.With(prometheus.Labels{
+				metricLabelSessionKey:    sessionKey,
+				metricLabelOperationType: metricLabelDeleteOperation,
+			}).Inc()
 			sessionCache.Delete(sessionKey)
 			return errors.New("rest client session expired")
 		})

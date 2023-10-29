@@ -1297,6 +1297,11 @@ func (in *VirtualMachine) DeepCopy() *VirtualMachine {
 func (in *VirtualMachineCloneSpec) DeepCopyInto(out *VirtualMachineCloneSpec) {
 	*out = *in
 	in.Network.DeepCopyInto(&out.Network)
+	if in.MemoryReservationLockedToMax != nil {
+		in, out := &in.MemoryReservationLockedToMax, &out.MemoryReservationLockedToMax
+		*out = new(bool)
+		**out = **in
+	}
 	if in.AdditionalDisksGiB != nil {
 		in, out := &in.AdditionalDisksGiB, &out.AdditionalDisksGiB
 		*out = make([]int32, len(*in))

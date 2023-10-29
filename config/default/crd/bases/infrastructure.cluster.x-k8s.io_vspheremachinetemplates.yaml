@@ -443,6 +443,12 @@ spec:
                           description: PCIDeviceSpec defines virtual machine's PCI
                             configuration.
                           properties:
+                            customLabel:
+                              description: CustomLabel is the hardware label of a
+                                virtual machine's PCI device. Defaults to the eponymous
+                                property value in the template from which the virtual
+                                machine is cloned.
+                              type: string
                             deviceId:
                               description: DeviceID is the device ID of a virtual
                                 machine's PCI, in integer. Defaults to the eponymous

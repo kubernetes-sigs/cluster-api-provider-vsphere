@@ -136,6 +136,7 @@ func (v *VimMachineService) ReconcileNormal(ctx context.Context, machineCtx capv
 	vm, err := v.createOrPatchVSphereVM(ctx, vimMachineCtx, vsphereVM)
 	if err != nil {
 		log.Error(err, "error creating or patching VM")
+		return false, err
 	}
 
 	// Waits the VM's ready state.

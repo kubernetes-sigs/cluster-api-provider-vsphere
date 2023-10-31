@@ -117,7 +117,7 @@ func (t *TestEnvironment) WaitForWebhooks() {
 			continue
 		}
 		if err := conn.Close(); err != nil {
-			klog.V(2).Info("Webhook port could not be closed. Continuing with tests...")
+			klog.V(2).Info("Connection to webhook port could not be closed. Continuing with tests...")
 		}
 		klog.V(2).Info("Webhook port is now open. Continuing with tests...")
 		return

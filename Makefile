@@ -333,7 +333,6 @@ apidiff: $(GO_APIDIFF) ## Check for API differences
 	$(GO_APIDIFF) $(APIDIFF_OLD_COMMIT) --print-compatible
 
 ALL_VERIFY_CHECKS = licenses boilerplate shellcheck modules gen doctoc flavors import-restrictions
-ALL_VERIFY_CHECKS = licenses boilerplate shellcheck modules gen doctoc flavors import-restrictions
 
 .PHONY: verify
 verify: $(addprefix verify-,$(ALL_VERIFY_CHECKS)) ## Run all verify-* targets

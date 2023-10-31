@@ -123,10 +123,6 @@ linters-settings:
       - pkg: sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1
         alias: controlplanev1
       # CAPI
-      - pkg: sigs.k8s.io/cluster-api/api/v1alpha3
-        alias: clusterv1alpha3
-      - pkg: sigs.k8s.io/cluster-api/api/v1alpha4
-        alias: clusterv1alpha4
       - pkg: sigs.k8s.io/cluster-api/api/v1beta1
         alias: clusterv1
       # CAPI exp
@@ -182,10 +178,8 @@ issues:
   # changes in PRs and avoid nitpicking.
   exclude-use-default: false
   exclude-rules:
-  # Specific exclude rules for deprecated fields that are still part of the codebase. These
+  # Specific exclude rules for deprecated items that are still part of the codebase. These
   # should be removed as the referenced deprecated item is removed from the project.
-  # Specific exclude rules for deprecated packages that are still part of the codebase. These
-  # should be removed as the referenced deprecated packages are removed from the project.
   - linters:
     - staticcheck
     text: "SA1019: .* is deprecated: This package will be removed in one of the next releases."

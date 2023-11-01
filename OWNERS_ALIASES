@@ -28,6 +28,7 @@ aliases:
     - maxrink
     - vrabbi
     - zhanggbj
+    - rvanderp3
   cluster-api-vsphere-emeritus-maintainers:
     - akutz
     - andrewsykim

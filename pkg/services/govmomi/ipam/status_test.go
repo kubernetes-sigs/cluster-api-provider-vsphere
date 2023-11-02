@@ -50,7 +50,7 @@ func Test_buildIPAMDeviceConfigs(t *testing.T) {
 
 	before := func() {
 		ctx = context.Background()
-		vmCtx = *fake.NewVMContext(ctx, fake.NewControllerContext(fake.NewControllerManagerContext()))
+		vmCtx = *fake.NewVMContext(ctx, fake.NewControllerManagerContext())
 		networkStatus = []infrav1.NetworkStatus{
 			{Connected: true, MACAddr: devMAC},
 		}
@@ -251,7 +251,7 @@ func Test_BuildState(t *testing.T) {
 
 	before := func() {
 		ctx = context.Background()
-		vmCtx = *fake.NewVMContext(ctx, fake.NewControllerContext(fake.NewControllerManagerContext()))
+		vmCtx = *fake.NewVMContext(ctx, fake.NewControllerManagerContext())
 		networkStatus = []infrav1.NetworkStatus{
 			{Connected: true, MACAddr: devMAC},
 		}

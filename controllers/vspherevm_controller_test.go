@@ -37,7 +37,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
@@ -203,13 +202,8 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 		controllerMgrContext.Password = password
 		controllerMgrContext.Username = simr.ServerURL().User.Username()
 
-		controllerContext := &capvcontext.ControllerContext{
-			ControllerManagerContext: controllerMgrContext,
-			Recorder:                 record.New(apirecord.NewFakeRecorder(100)),
-			Logger:                   log.Log,
-		}
 		return vmReconciler{
-			ControllerContext:         controllerContext,
+			ControllerManagerContext:  controllerMgrContext,
 			VMService:                 vmService,
 			remoteClusterCacheTracker: tracker,
 		}
@@ -369,9 +363,9 @@ func TestVmReconciler_WaitingForStaticIPAllocation(t *testing.T) {
 		},
 	}
 
-	controllerCtx := fake.NewControllerContext(fake.NewControllerManagerContext())
-	vmContext := fake.NewVMContext(context.Background(), controllerCtx)
-	r := vmReconciler{ControllerContext: controllerCtx}
+	controllerManagerCtx := fake.NewControllerManagerContext()
+	vmContext := fake.NewVMContext(context.Background(), controllerManagerCtx)
+	r := vmReconciler{ControllerManagerContext: controllerManagerCtx}
 
 	for _, tt := range tests {
 		// Need to explicitly reinitialize test variable, looks odd, but needed
@@ -483,12 +477,10 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 		initObjs = append(initObjs, secret, vsphereVM, vsphereMachine, machine, cluster, vsphereCluster)
 		controllerMgrContext := fake.NewControllerManagerContext(initObjs...)
 
-		controllerContext := &capvcontext.ControllerContext{
-			ControllerManagerContext: controllerMgrContext,
+		r := vmReconciler{
 			Recorder:                 record.New(apirecord.NewFakeRecorder(100)),
-			Logger:                   log.Log,
+			ControllerManagerContext: controllerMgrContext,
 		}
-		r := vmReconciler{ControllerContext: controllerContext}
 
 		_, err = r.Reconcile(context.Background(), ctrl.Request{NamespacedName: util.ObjectKey(vsphereVM)})
 		g := NewWithT(t)
@@ -519,12 +511,10 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 		initObjs = append(initObjs, secret, vsphereVM, vsphereMachine, machine, cluster, vsphereCluster)
 		controllerMgrContext := fake.NewControllerManagerContext(initObjs...)
 
-		controllerContext := &capvcontext.ControllerContext{
-			ControllerManagerContext: controllerMgrContext,
+		r := vmReconciler{
 			Recorder:                 record.New(apirecord.NewFakeRecorder(100)),
-			Logger:                   log.Log,
+			ControllerManagerContext: controllerMgrContext,
 		}
-		r := vmReconciler{ControllerContext: controllerContext}
 
 		_, err = r.Reconcile(context.Background(), ctrl.Request{NamespacedName: util.ObjectKey(vsphereVM)})
 		g := NewWithT(t)
@@ -570,12 +560,9 @@ func Test_reconcile(t *testing.T) {
 
 	setupReconciler := func(vmService services.VirtualMachineService, initObjs ...client.Object) vmReconciler {
 		return vmReconciler{
-			ControllerContext: &capvcontext.ControllerContext{
-				ControllerManagerContext: fake.NewControllerManagerContext(initObjs...),
-				Recorder:                 record.New(apirecord.NewFakeRecorder(100)),
-				Logger:                   log.Log,
-			},
-			VMService: vmService,
+			Recorder:                 record.New(apirecord.NewFakeRecorder(100)),
+			ControllerManagerContext: fake.NewControllerManagerContext(initObjs...),
+			VMService:                vmService,
 		}
 	}
 
@@ -591,9 +578,8 @@ func Test_reconcile(t *testing.T) {
 				}, nil)
 				r := setupReconciler(fakeVMSvc, initObjs...)
 				_, err := r.reconcile(ctx, &capvcontext.VMContext{
-					ControllerContext: r.ControllerContext,
-					VSphereVM:         vsphereVM,
-					Logger:            r.Logger,
+					ControllerManagerContext: r.ControllerManagerContext,
+					VSphereVM:                vsphereVM,
 				}, fetchClusterModuleInput{
 					VSphereCluster: vsphereCluster,
 					Machine:        machine,
@@ -607,9 +593,8 @@ func Test_reconcile(t *testing.T) {
 				_ = feature.MutableGates.Set("NodeAntiAffinity=true")
 				r := setupReconciler(new(fake_svc.VMService), initObjs...)
 				_, err := r.reconcile(ctx, &capvcontext.VMContext{
-					ControllerContext: r.ControllerContext,
-					VSphereVM:         vsphereVM,
-					Logger:            r.Logger,
+					ControllerManagerContext: r.ControllerManagerContext,
+					VSphereVM:                vsphereVM,
 				}, fetchClusterModuleInput{
 					VSphereCluster: vsphereCluster,
 					Machine:        machine,
@@ -633,9 +618,8 @@ func Test_reconcile(t *testing.T) {
 
 			r := setupReconciler(fakeVMSvc, objsWithHierarchy...)
 			_, err := r.reconcile(ctx, &capvcontext.VMContext{
-				ControllerContext: r.ControllerContext,
-				VSphereVM:         vsphereVM,
-				Logger:            r.Logger,
+				ControllerManagerContext: r.ControllerManagerContext,
+				VSphereVM:                vsphereVM,
 			}, fetchClusterModuleInput{
 				VSphereCluster: vsphereCluster,
 				Machine:        machine,
@@ -666,9 +650,8 @@ func Test_reconcile(t *testing.T) {
 
 			r := setupReconciler(fakeVMSvc, objsWithHierarchy...)
 			_, err := r.reconcile(ctx, &capvcontext.VMContext{
-				ControllerContext: r.ControllerContext,
-				VSphereVM:         deletedVM,
-				Logger:            r.Logger,
+				ControllerManagerContext: r.ControllerManagerContext,
+				VSphereVM:                deletedVM,
 			}, fetchClusterModuleInput{
 				VSphereCluster: vsphereCluster,
 				Machine:        machine,
@@ -681,9 +664,8 @@ func Test_reconcile(t *testing.T) {
 		t.Run("when info cannot be fetched", func(t *testing.T) {
 			r := setupReconciler(fakeVMSvc, initObjs...)
 			_, err := r.reconcile(ctx, &capvcontext.VMContext{
-				ControllerContext: r.ControllerContext,
-				VSphereVM:         deletedVM,
-				Logger:            r.Logger,
+				ControllerManagerContext: r.ControllerManagerContext,
+				VSphereVM:                deletedVM,
 			}, fetchClusterModuleInput{
 				VSphereCluster: vsphereCluster,
 				Machine:        machine,

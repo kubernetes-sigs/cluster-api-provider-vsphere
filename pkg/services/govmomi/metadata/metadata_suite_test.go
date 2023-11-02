@@ -141,7 +141,7 @@ func configureSimulatorAndContext(ctx context.Context) (err error) {
 		return
 	}
 
-	vmCtx = fake.NewVMContext(ctx, fake.NewControllerContext(fake.NewControllerManagerContext()))
+	vmCtx = fake.NewVMContext(ctx, fake.NewControllerManagerContext())
 	vmCtx.VSphereVM.Spec.Server = sim.ServerURL().Host
 
 	authSession, err := session.GetOrCreate(

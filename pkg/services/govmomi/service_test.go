@@ -45,10 +45,8 @@ const (
 func emptyVirtualMachineContext() *virtualMachineContext {
 	return &virtualMachineContext{
 		VMContext: capvcontext.VMContext{
-			Logger: logr.Discard(),
-			ControllerContext: &capvcontext.ControllerContext{
-				ControllerManagerContext: &capvcontext.ControllerManagerContext{},
-			},
+			Logger:                   logr.Discard(),
+			ControllerManagerContext: &capvcontext.ControllerManagerContext{},
 		},
 	}
 }

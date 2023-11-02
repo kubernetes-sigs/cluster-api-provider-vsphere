@@ -28,25 +28,24 @@ import (
 
 // NewVMContext returns a fake VMContext for unit testing
 // reconcilers with a fake client.
-func NewVMContext(ctx context.Context, controllerCtx *capvcontext.ControllerContext) *capvcontext.VMContext {
+func NewVMContext(ctx context.Context, controllerManagerCtx *capvcontext.ControllerManagerContext) *capvcontext.VMContext {
 	// Create the resources.
 	vsphereVM := newVSphereVM()
 
 	// Add the resources to the fake client.
-	if err := controllerCtx.Client.Create(ctx, &vsphereVM); err != nil {
+	if err := controllerManagerCtx.Client.Create(ctx, &vsphereVM); err != nil {
 		panic(err)
 	}
 
-	helper, err := patch.NewHelper(&vsphereVM, controllerCtx.Client)
+	helper, err := patch.NewHelper(&vsphereVM, controllerManagerCtx.Client)
 	if err != nil {
 		panic(err)
 	}
 
 	return &capvcontext.VMContext{
-		ControllerContext: controllerCtx,
-		VSphereVM:         &vsphereVM,
-		Logger:            controllerCtx.Logger.WithName(vsphereVM.Name),
-		PatchHelper:       helper,
+		ControllerManagerContext: controllerManagerCtx,
+		VSphereVM:                &vsphereVM,
+		PatchHelper:              helper,
 	}
 }
 

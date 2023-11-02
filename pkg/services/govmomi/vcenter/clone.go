@@ -48,11 +48,11 @@ const (
 // in VMContext.VSphereVM.Status.TaskRef.
 func Clone(ctx context.Context, vmCtx *capvcontext.VMContext, bootstrapData []byte, format bootstrapv1.Format) error {
 	vmCtx = &capvcontext.VMContext{
-		ControllerContext: vmCtx.ControllerContext,
-		VSphereVM:         vmCtx.VSphereVM,
-		Session:           vmCtx.Session,
-		Logger:            vmCtx.Logger.WithName("vcenter"),
-		PatchHelper:       vmCtx.PatchHelper,
+		ControllerManagerContext: vmCtx.ControllerManagerContext,
+		VSphereVM:                vmCtx.VSphereVM,
+		Session:                  vmCtx.Session,
+		Logger:                   vmCtx.Logger.WithName("vcenter"),
+		PatchHelper:              vmCtx.PatchHelper,
 	}
 	vmCtx.Logger.Info("starting clone process")
 

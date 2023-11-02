@@ -40,11 +40,10 @@ import (
 func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 	name, namespace := "test-vm", "my-namespace"
 	setup := func(vsphereVM *infrav1.VSphereVM, initObjects ...client.Object) *capvcontext.VMContext {
-		controllerCtx := fake.NewControllerContext(fake.NewControllerManagerContext(initObjects...))
 		return &capvcontext.VMContext{
-			ControllerContext: controllerCtx,
-			VSphereVM:         vsphereVM,
-			Logger:            logr.Discard(),
+			ControllerManagerContext: fake.NewControllerManagerContext(initObjects...),
+			VSphereVM:                vsphereVM,
+			Logger:                   logr.Discard(),
 		}
 	}
 	ctx := context.Background()

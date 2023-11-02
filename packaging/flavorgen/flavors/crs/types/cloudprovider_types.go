@@ -75,7 +75,9 @@ type CPIStorageConfig struct {
 	ControllerImage     string `json:"controllerImage,omitempty"`
 	NodeDriverImage     string `json:"nodeDriverImage,omitempty"`
 	AttacherImage       string `json:"attacherImage,omitempty"`
+	ResizerImage        string `json:"resizerImage,omitempty"`
 	ProvisionerImage    string `json:"provisionerImage,omitempty"`
+	SnapshotterImage    string `json:"snapshotterImage,omitempty"`
 	MetadataSyncerImage string `json:"metadataSyncerImage,omitempty"`
 	LivenessProbeImage  string `json:"livenessProbeImage,omitempty"`
 	RegistrarImage      string `json:"registrarImage,omitempty"`

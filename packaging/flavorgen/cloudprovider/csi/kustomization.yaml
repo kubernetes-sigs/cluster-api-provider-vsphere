@@ -1,0 +1,22 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: vmware-system-csi
+resources:
+  - namespace.yaml
+  - vsphere-csi-driver.yaml
+images:
+  - name: gcr.io/cloud-provider-vsphere/csi/ci/driver
+    newName: gcr.io/cloud-provider-vsphere/csi/release/driver
+    newTag: v3.1.0
+  - name: gcr.io/cloud-provider-vsphere/csi/ci/syncer
+    newName: gcr.io/cloud-provider-vsphere/csi/release/syncer
+    newTag: v3.1.0
+patches:
+- patch: |-
+    kind: Deployment
+    apiVersion: apps/v1
+    metadata:
+      name: vsphere-csi-controller
+      namespace: vmware-system-csi
+    spec:
+      replicas: 1

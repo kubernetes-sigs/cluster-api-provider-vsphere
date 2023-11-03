@@ -3,5 +3,6 @@ disable-log-dump: true
 ginkgo.focus: \[Serial\]|\[Disruptive\]
 ginkgo.skip: \[Driver:.gcepd\]|\[Flaky\]|\[Feature:.+\]
 minStartupPods: 8
+ginkgo.flake-attempts: 1
 
 ginkgo.trace: true

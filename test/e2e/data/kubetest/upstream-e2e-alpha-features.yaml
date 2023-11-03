@@ -3,5 +3,6 @@ disable-log-dump: true
 ginkgo.focus: \[Feature:(AdmissionWebhookMatchConditions|InPlacePodVerticalScaling|SidecarContainers|StorageVersionAPI|PodPreset|StatefulSetAutoDeletePVC)\]|Networking 
 ginkgo.skip: \[Feature:(SCTPConnectivity|Volumes|Networking-Performance)\]|IPv6|csi-hostpath-v0
 minStartupPods: 8
+ginkgo.flake-attempts: 1
 
 ginkgo.trace: true

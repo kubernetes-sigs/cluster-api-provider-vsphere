@@ -20,7 +20,7 @@ require (
 	github.com/vmware/govmomi v0.33.1
 	golang.org/x/crypto v0.14.0
 	golang.org/x/exp v0.0.0-20221002003631-540bb7301a08
-	golang.org/x/mod v0.13.0
+	golang.org/x/mod v0.14.0
 	golang.org/x/text v0.14.0
 	golang.org/x/tools v0.14.0
 	gopkg.in/yaml.v2 v2.4.0

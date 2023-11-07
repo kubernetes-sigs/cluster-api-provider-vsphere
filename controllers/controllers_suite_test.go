@@ -44,10 +44,7 @@ func TestControllers(t *testing.T) {
 	RunSpecs(t, "Controller Suite")
 }
 
-var (
-	testEnv *helpers.TestEnvironment
-	ctx     = ctrl.SetupSignalHandler()
-)
+var testEnv *helpers.TestEnvironment
 
 func TestMain(m *testing.M) {
 	setup()
@@ -61,6 +58,7 @@ func setup() {
 	utilruntime.Must(clusterv1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(vmwarev1.AddToScheme(scheme.Scheme))
 
+	ctx := ctrl.SetupSignalHandler()
 	testEnv = helpers.NewTestEnvironment(ctx)
 
 	secretCachingClient, err := client.New(testEnv.Manager.GetConfig(), client.Options{

@@ -17,6 +17,8 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -27,10 +29,12 @@ import (
 
 var _ = Describe("Service Discovery controller integration tests", func() {
 	var (
+		ctx         context.Context
 		intCtx      *helpers.IntegrationTestContext
 		initObjects []client.Object
 	)
 	BeforeEach(func() {
+		ctx = context.Background()
 		intCtx = helpers.NewIntegrationTestContextWithClusters(ctx, testEnv.Manager.GetClient())
 	})
 	AfterEach(func() {

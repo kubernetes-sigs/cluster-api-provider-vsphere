@@ -53,6 +53,7 @@ import (
 
 func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 	var (
+		ctx     context.Context
 		machine *clusterv1.Machine
 		cluster *clusterv1.Cluster
 
@@ -64,6 +65,7 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 		ipAddressClaim *ipamv1.IPAddressClaim
 	)
 
+	ctx = context.Background()
 	poolAPIGroup := "some.ipam.api.group"
 
 	// initializing a fake server to replace the vSphere endpoint
@@ -534,6 +536,7 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 }
 
 func Test_reconcile(t *testing.T) {
+	ctx := context.Background()
 	ns := "test"
 	vsphereCluster := &infrav1.VSphereCluster{
 		ObjectMeta: metav1.ObjectMeta{

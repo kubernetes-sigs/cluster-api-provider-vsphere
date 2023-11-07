@@ -17,6 +17,7 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
 	"testing"
 
 	"github.com/go-logr/logr"
@@ -41,6 +42,7 @@ import (
 
 var _ = Describe("VSphereDeploymentZoneReconciler", func() {
 	var (
+		ctx  context.Context
 		simr *vcsim.Simulator
 
 		failureDomainKey, deploymentZoneKey client.ObjectKey
@@ -75,6 +77,7 @@ var _ = Describe("VSphereDeploymentZoneReconciler", func() {
 	})
 
 	BeforeEach(func() {
+		ctx = context.Background()
 		vsphereFailureDomain = &infrav1.VSphereFailureDomain{
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: "blah-fd-",
@@ -301,6 +304,7 @@ var _ = Describe("VSphereDeploymentZoneReconciler", func() {
 })
 
 func TestVSphereDeploymentZone_Reconcile(t *testing.T) {
+	ctx := context.Background()
 	g := NewWithT(t)
 	model := simulator.VPX()
 	model.Pool = 1
@@ -592,6 +596,8 @@ func TestVsphereDeploymentZone_Failed_ReconcilePlacementConstraint(t *testing.T)
 		},
 	}
 
+	ctx := context.Background()
+
 	for _, tt := range tests {
 		// Looks odd, but need to reinitialize test variable
 		tt := tt
@@ -647,6 +653,7 @@ func TestVsphereDeploymentZone_Failed_ReconcilePlacementConstraint(t *testing.T)
 }
 
 func TestVSphereDeploymentZoneReconciler_ReconcileDelete(t *testing.T) {
+	ctx := context.Background()
 	vsphereDeploymentZone := &infrav1.VSphereDeploymentZone{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "VSphereDeploymentZone",

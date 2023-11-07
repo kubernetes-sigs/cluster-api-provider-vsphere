@@ -38,6 +38,7 @@ import (
 )
 
 func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
+	ctx := context.Background()
 	name, namespace := "test-vm", "my-namespace"
 	setup := func(vsphereVM *infrav1.VSphereVM, initObjects ...client.Object) *capvcontext.VMContext {
 		controllerCtx := fake.NewControllerContext(fake.NewControllerManagerContext(initObjects...))
@@ -47,7 +48,6 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 			Logger:            logr.Discard(),
 		}
 	}
-	ctx := context.Background()
 
 	t.Run("when VSphereVM Spec has address pool references", func(t *testing.T) {
 		vsphereVM := &infrav1.VSphereVM{

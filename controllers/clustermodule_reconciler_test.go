@@ -17,6 +17,7 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -38,6 +39,7 @@ import (
 )
 
 func TestReconciler_Reconcile(t *testing.T) {
+	ctx := context.Background()
 	kcpUUID, mdUUID := uuid.New().String(), uuid.New().String()
 	kcp := controlPlane("kcp", metav1.NamespaceDefault, fake.Clusterv1a2Name)
 	md := machineDeployment("md", metav1.NamespaceDefault, fake.Clusterv1a2Name)
@@ -437,6 +439,7 @@ func TestReconciler_Reconcile(t *testing.T) {
 }
 
 func TestReconciler_fetchMachineOwnerObjects(t *testing.T) {
+	ctx := context.Background()
 	tests := []struct {
 		name         string
 		numOfMDs     int

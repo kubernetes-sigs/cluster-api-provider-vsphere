@@ -17,6 +17,7 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"reflect"
@@ -40,9 +41,13 @@ import (
 )
 
 var _ = Describe("ProviderServiceAccount controller integration tests", func() {
-	var intCtx *helpers.IntegrationTestContext
+	var (
+		ctx    context.Context
+		intCtx *helpers.IntegrationTestContext
+	)
 
 	BeforeEach(func() {
+		ctx = context.Background()
 		intCtx = helpers.NewIntegrationTestContextWithClusters(ctx, testEnv.Manager.GetClient())
 		testSystemSvcAcctCM := "test-system-svc-acct-cm"
 		cfgMap := getSystemServiceAccountsConfigMap(intCtx.VSphereCluster.Namespace, testSystemSvcAcctCM)

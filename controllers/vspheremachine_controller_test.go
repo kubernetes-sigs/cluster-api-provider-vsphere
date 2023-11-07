@@ -17,6 +17,8 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -32,6 +34,7 @@ import (
 
 var _ = Describe("VsphereMachineReconciler", func() {
 	var (
+		ctx         context.Context
 		capiCluster *clusterv1.Cluster
 		capiMachine *clusterv1.Machine
 
@@ -54,6 +57,7 @@ var _ = Describe("VsphereMachineReconciler", func() {
 
 	BeforeEach(func() {
 		var err error
+		ctx = context.Background()
 		testNs, err = testEnv.CreateNamespace(ctx, "vsphere-machine-reconciler")
 		Expect(err).NotTo(HaveOccurred())
 

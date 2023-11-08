@@ -19,6 +19,9 @@ aliases:
     - randomvariable
     - srm09
     - yastij
+    - fabriziopandini
+    - killianmuldoon
+    - sbueringer
     - gab-satchi
     - chrischdi
   cluster-api-vsphere-reviewers:

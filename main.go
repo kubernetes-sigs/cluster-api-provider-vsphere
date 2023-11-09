@@ -32,7 +32,6 @@ import (
 	"gopkg.in/fsnotify.v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/discovery"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
 	logsv1 "k8s.io/component-base/logs/api/v1"
@@ -40,9 +39,11 @@ import (
 	"k8s.io/klog/v2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	"sigs.k8s.io/cluster-api/util/flags"
+	capiflags "sigs.k8s.io/cluster-api/util/flags"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -69,7 +70,6 @@ var (
 	leaderElectionRenewDeadline time.Duration
 	leaderElectionRetryPeriod   time.Duration
 	managerOpts                 manager.Options
-	profilerAddress             string
 	restConfigBurst             int
 	restConfigQPS               float32
 	syncPeriod                  time.Duration
@@ -85,7 +85,8 @@ var (
 	vSphereClusterIdentityConcurrency int
 	vSphereDeploymentZoneConcurrency  int
 
-	tlsOptions = flags.TLSOptions{}
+	tlsOptions         = capiflags.TLSOptions{}
+	diagnosticsOptions = capiflags.DiagnosticsOptions{}
 
 	defaultProfilerAddr      = os.Getenv("PROFILER_ADDR")
 	defaultSyncPeriod        = manager.DefaultSyncPeriod
@@ -164,9 +165,6 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	logsv1.AddFlags(logOptions, fs)
 
-	fs.StringVar(&managerOpts.MetricsBindAddress, "metrics-bind-addr", "localhost:8080",
-		"The address the metric endpoint binds to.")
-
 	fs.BoolVar(&managerOpts.LeaderElection, "leader-elect", true,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
 
@@ -210,10 +208,14 @@ func InitFlags(fs *pflag.FlagSet) {
 		"The address the health endpoint binds to.",
 	)
 
-	flags.AddTLSOptions(fs, &tlsOptions)
-
+	capiflags.AddTLSOptions(fs, &tlsOptions)
+	capiflags.AddDiagnosticsOptions(fs, &diagnosticsOptions)
 	feature.MutableGates.AddFlag(fs)
 }
+
+// Add RBAC for the authorized diagnostics endpoint.
+// +kubebuilder:rbac:groups=authentication.k8s.io,resources=tokenreviews,verbs=create
+// +kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create
 
 func main() {
 	InitFlags(pflag.CommandLine)
@@ -240,10 +242,12 @@ func main() {
 	managerOpts.KubeConfig.UserAgent = remote.DefaultClusterAPIUserAgent(controllerName)
 
 	if watchNamespace != "" {
-		managerOpts.Cache.Namespaces = []string{watchNamespace}
+		managerOpts.Cache.DefaultNamespaces = map[string]cache.Config{
+			watchNamespace: {},
+		}
 	}
 
-	if profilerAddress != "" && enableContentionProfiling {
+	if enableContentionProfiling {
 		goruntime.SetBlockProfileRate(1)
 	}
 
@@ -292,7 +296,7 @@ func main() {
 		return nil
 	}
 
-	tlsOptionOverrides, err := flags.GetTLSOptionOverrideFuncs(tlsOptions)
+	tlsOptionOverrides, err := capiflags.GetTLSOptionOverrideFuncs(tlsOptions)
 	if err != nil {
 		setupLog.Error(err, "unable to add TLS settings to the webhook server")
 		os.Exit(1)
@@ -300,6 +304,7 @@ func main() {
 	webhookOpts.TLSOpts = tlsOptionOverrides
 	managerOpts.WebhookServer = webhook.NewServer(webhookOpts)
 	managerOpts.AddToManager = addToManager
+	managerOpts.Metrics = capiflags.GetDiagnosticsOptions(diagnosticsOptions)
 
 	// Set up the context that's going to be used in controllers and for the manager.
 	ctx := ctrl.SetupSignalHandler()
@@ -402,11 +407,13 @@ func setupChecks(mgr ctrlmgr.Manager) {
 func isCRDDeployed(mgr ctrlmgr.Manager, gvr schema.GroupVersionResource) (bool, error) {
 	_, err := mgr.GetRESTMapper().KindFor(gvr)
 	if err != nil {
-		discoveryErr, ok := errors.Unwrap(err).(*discovery.ErrGroupDiscoveryFailed)
+		var discoveryErr *apiutil.ErrResourceDiscoveryFailed
+		ok := errors.As(errors.Unwrap(err), &discoveryErr)
 		if !ok {
 			return false, err
 		}
-		gvrErr, ok := discoveryErr.Groups[gvr.GroupVersion()]
+		discoveryErrs := *discoveryErr
+		gvrErr, ok := discoveryErrs[gvr.GroupVersion()]
 		if !ok {
 			return false, err
 		}

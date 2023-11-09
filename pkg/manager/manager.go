@@ -78,7 +78,7 @@ func New(ctx context.Context, opts Options) (Manager, error) {
 
 	// Build the controller manager context.
 	controllerManagerContext := &capvcontext.ControllerManagerContext{
-		WatchNamespaces:         opts.Cache.Namespaces,
+		WatchNamespaces:         opts.Cache.DefaultNamespaces,
 		Namespace:               opts.PodNamespace,
 		Name:                    opts.PodName,
 		LeaderElectionID:        opts.LeaderElectionID,

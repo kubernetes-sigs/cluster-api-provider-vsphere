@@ -20,9 +20,11 @@ package helpers
 import (
 	"context"
 	"fmt"
+	"os"
 	"path"
 	"path/filepath"
 	goruntime "runtime"
+	"strings"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/vmware/govmomi/simulator"
@@ -44,6 +46,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/internal/webhooks"
@@ -125,13 +129,30 @@ func NewTestEnvironment(ctx context.Context) *TestEnvironment {
 	if err != nil {
 		klog.Fatalf("unable to start vc simulator %s", err)
 	}
+	// Localhost is used on MacOS to avoid Firewall warning popups.
+	host := "localhost"
+	if strings.EqualFold(os.Getenv("USE_EXISTING_CLUSTER"), "true") {
+		// 0.0.0.0 is required on Linux when using kind because otherwise the kube-apiserver running in kind
+		// is unable to reach the webhook, because the webhook would be only listening on 127.0.0.1.
+		// Somehow that's not an issue on MacOS.
+		if goruntime.GOOS == "linux" {
+			host = "0.0.0.0"
+		}
+	}
 
 	managerOpts := manager.Options{
 		Options: ctrl.Options{
-			Scheme:             scheme,
-			Port:               env.WebhookInstallOptions.LocalServingPort,
-			CertDir:            env.WebhookInstallOptions.LocalServingCertDir,
-			MetricsBindAddress: "0",
+			Scheme: scheme,
+			Metrics: metricsserver.Options{
+				BindAddress: "0",
+			},
+			WebhookServer: webhook.NewServer(
+				webhook.Options{
+					Port:    env.WebhookInstallOptions.LocalServingPort,
+					CertDir: env.WebhookInstallOptions.LocalServingCertDir,
+					Host:    host,
+				},
+			),
 		},
 		KubeConfig: env.Config,
 		Username:   simr.Username(),

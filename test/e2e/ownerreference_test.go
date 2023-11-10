@@ -122,8 +122,7 @@ var (
 			return framework.HasExactOwners(owners, clusterClassOwner)
 		},
 		"VSphereMachine": func(owners []metav1.OwnerReference) error {
-			// The vSphereCluster takes ownership of all vSphereMachines in addition to the core Machine.
-			return framework.HasExactOwners(owners, vSphereClusterOwner, machineController)
+			return framework.HasExactOwners(owners, machineController)
 		},
 		"VSphereMachineTemplate": func(owners []metav1.OwnerReference) error {
 			// The vSphereMachineTemplate can be owned by the Cluster or the ClusterClass.

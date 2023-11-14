@@ -102,6 +102,13 @@ func AddMachineControllerToManager(ctx context.Context, controllerManagerContext
 		controllerNameLong = fmt.Sprintf("%s/%s/%s", controllerManagerContext.Namespace, controllerManagerContext.Name, controllerNameShort)
 	}
 
+	r := &machineReconciler{
+		Client:          controllerManagerContext.Client,
+		Recorder:        record.New(mgr.GetEventRecorderFor(controllerNameLong)),
+		VMService:       &services.VimMachineService{Client: controllerManagerContext.Client},
+		supervisorBased: supervisorBased,
+	}
+
 	builder := ctrl.NewControllerManagedBy(mgr).
 		Named(VSphereMachineControllerName).
 		// Watch the controlled, infrastructure resource.
@@ -111,6 +118,13 @@ func AddMachineControllerToManager(ctx context.Context, controllerManagerContext
 		Watches(
 			&clusterv1.Machine{},
 			handler.EnqueueRequestsFromMapFunc(clusterutilv1.MachineToInfrastructureMapFunc(controlledTypeGVK)),
+		).
+		Watches(
+			&clusterv1.Cluster{},
+			handler.EnqueueRequestsFromMapFunc(r.clusterToVSphereMachines),
+			ctrlbldr.WithPredicates(
+				predicates.ClusterUnpausedAndInfrastructureReady(ctrl.LoggerFrom(ctx)),
+			),
 		).
 		// Watch a GenericEvent channel for the controlled resource.
 		//
@@ -122,13 +136,6 @@ func AddMachineControllerToManager(ctx context.Context, controllerManagerContext
 			&handler.EnqueueRequestForObject{},
 		).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), controllerManagerContext.WatchFilterValue))
-
-	r := &machineReconciler{
-		Client:          controllerManagerContext.Client,
-		Recorder:        record.New(mgr.GetEventRecorderFor(controllerNameLong)),
-		VMService:       &services.VimMachineService{Client: controllerManagerContext.Client},
-		supervisorBased: supervisorBased,
-	}
 
 	if supervisorBased {
 		// Watch any VirtualMachine resources owned by this VSphereMachine
@@ -151,16 +158,6 @@ func AddMachineControllerToManager(ctx context.Context, controllerManagerContext
 					return false
 				},
 			}),
-		)
-	}
-
-	if !supervisorBased {
-		builder.Watches(
-			&clusterv1.Cluster{},
-			handler.EnqueueRequestsFromMapFunc(r.clusterToVSphereMachines),
-			ctrlbldr.WithPredicates(
-				predicates.ClusterUnpausedAndInfrastructureReady(ctrl.LoggerFrom(ctx)),
-			),
 		)
 	}
 
@@ -239,6 +236,12 @@ func (r *machineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 
 	// Checking whether cluster is nil here as we still want to allow delete even if cluster is not found.
 	if cluster == nil {
+		log.Info("Cluster could not be fetched")
+		return reconcile.Result{}, nil
+	}
+
+	if cluster.Spec.InfrastructureRef == nil {
+		log.Info("Cluster.spec.infrastructureRef is not yet set")
 		return reconcile.Result{}, nil
 	}
 
@@ -246,18 +249,16 @@ func (r *machineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 	// version of CAPV to prevent VSphereMachines from being orphaned, but is no longer needed.
 	// For more info see: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/2054
 	// TODO: This should be removed in a future release of CAPV.
-	if cluster.Spec.InfrastructureRef != nil {
-		machineContext.GetVSphereMachine().SetOwnerReferences(
-			clusterutilv1.RemoveOwnerRef(
-				machineContext.GetVSphereMachine().GetOwnerReferences(),
-				metav1.OwnerReference{
-					Name:       cluster.Spec.InfrastructureRef.Name,
-					APIVersion: cluster.Spec.InfrastructureRef.APIVersion,
-					Kind:       cluster.Spec.InfrastructureRef.Kind,
-				},
-			),
-		)
-	}
+	machineContext.GetVSphereMachine().SetOwnerReferences(
+		clusterutilv1.RemoveOwnerRef(
+			machineContext.GetVSphereMachine().GetOwnerReferences(),
+			metav1.OwnerReference{
+				Name:       cluster.Spec.InfrastructureRef.Name,
+				APIVersion: cluster.Spec.InfrastructureRef.APIVersion,
+				Kind:       cluster.Spec.InfrastructureRef.Kind,
+			},
+		),
+	)
 
 	// Fetch the VSphereCluster and update the machine context
 	machineContext, err = r.VMService.FetchVSphereCluster(ctx, cluster, machineContext)

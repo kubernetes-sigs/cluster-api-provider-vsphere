@@ -526,7 +526,7 @@ func (r *clusterReconciler) controlPlaneMachineToCluster(ctx context.Context, o 
 		log.Error(err, "VSphereMachine is missing cluster label or cluster does not exist")
 		return nil
 	}
-	log = log.WithValues("Cluster", klog.KObj(cluster), "VSphereCluster", klog.KRef(cluster.Namespace, cluster.Spec.InfrastructureRef.Name))
+	log = log.WithValues("Cluster", klog.KObj(cluster))
 	ctx = ctrl.LoggerInto(ctx, log)
 
 	if conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
@@ -536,6 +536,14 @@ func (r *clusterReconciler) controlPlaneMachineToCluster(ctx context.Context, o 
 	if !cluster.Spec.ControlPlaneEndpoint.IsZero() {
 		return nil
 	}
+
+	if cluster.Spec.InfrastructureRef == nil {
+		log.Info("Failed to get VSphereCluster: Cluster.spec.infrastructureRef is not yet set")
+		return nil
+	}
+
+	log = log.WithValues("VSphereCluster", klog.KRef(cluster.Namespace, cluster.Spec.InfrastructureRef.Name))
+	ctx = ctrl.LoggerInto(ctx, log)
 
 	// Fetch the VSphereCluster
 	vsphereCluster := &infrav1.VSphereCluster{}

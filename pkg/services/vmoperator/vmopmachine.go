@@ -270,6 +270,15 @@ func (v VmopMachineService) reconcileVMOperatorVM(ctx context.Context, superviso
 		dataSecretName = *dsn
 	}
 
+	var minHardwareVersion int32
+	if version := supervisorMachineCtx.VSphereMachine.Spec.MinHardwareVersion; version != "" {
+		hwVersion, err := infrautilv1.ParseHardwareVersion(version)
+		if err != nil {
+			return err
+		}
+		minHardwareVersion = int32(hwVersion)
+	}
+
 	_, err := ctrlutil.CreateOrPatch(ctx, v.Client, vmOperatorVM, func() error {
 		// Define a new VM Operator virtual machine.
 		// NOTE: Set field-by-field in order to preserve changes made directly
@@ -284,6 +293,7 @@ func (v VmopMachineService) reconcileVMOperatorVM(ctx context.Context, superviso
 			Transport:  vmoprv1.VirtualMachineMetadataCloudInitTransport,
 		}
 		vmOperatorVM.Spec.PowerOffMode = vmoprv1.VirtualMachinePowerOpMode(supervisorMachineCtx.VSphereMachine.Spec.PowerOffMode)
+		vmOperatorVM.Spec.MinHardwareVersion = minHardwareVersion
 
 		// VMOperator supports readiness probe and will add/remove endpoints to a
 		// VirtualMachineService based on the outcome of the readiness check.

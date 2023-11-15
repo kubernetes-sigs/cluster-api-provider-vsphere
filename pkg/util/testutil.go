@@ -122,9 +122,10 @@ func CreateVSphereMachine(machineName, clusterName, className, imageName, storag
 			},
 		},
 		Spec: vmwarev1.VSphereMachineSpec{
-			ClassName:    className,
-			ImageName:    imageName,
-			StorageClass: storageClass,
+			ClassName:          className,
+			ImageName:          imageName,
+			StorageClass:       storageClass,
+			MinHardwareVersion: "vmx-17",
 		},
 	}
 	if controlPlaneLabel {

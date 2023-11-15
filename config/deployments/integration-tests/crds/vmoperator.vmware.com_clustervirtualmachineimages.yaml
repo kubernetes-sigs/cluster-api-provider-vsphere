@@ -20,14 +20,8 @@ spec:
   scope: Cluster
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .spec.providerRef.name
-      name: Provider-Name
-      type: string
-    - jsonPath: .status.contentLibraryRef.name
-      name: Content-Library-Name
-      type: string
     - jsonPath: .status.imageName
-      name: Image-Name
+      name: Display-Name
       type: string
     - jsonPath: .spec.productInfo.version
       name: Version
@@ -256,7 +250,7 @@ spec:
                   eg: bios, efi.'
                 type: string
               imageName:
-                description: ImageName describes the display name of this VirtualMachineImage.
+                description: ImageName describes the display name of this image.
                 type: string
               imageSupported:
                 description: 'ImageSupported indicates whether the VirtualMachineImage
@@ -275,12 +269,12 @@ spec:
             type: object
         type: object
     served: true
-    storage: true
+    storage: false
     subresources:
       status: {}
   - additionalPrinterColumns:
     - jsonPath: .status.name
-      name: Image Name
+      name: Display Name
       type: string
     - jsonPath: .status.productInfo.version
       name: Image Version
@@ -439,8 +433,7 @@ spec:
                 format: int32
                 type: integer
               name:
-                description: Name describes the observed, "friendly" name for this
-                  image.
+                description: Name describes the display name of this image.
                 type: string
               osInfo:
                 description: "OSInfo describes the observed operating system information
@@ -509,9 +502,15 @@ spec:
                   of this image is a Content Library, this will be the version of
                   the corresponding Content Library item.
                 type: string
+              providerItemID:
+                description: ProviderItemID describes the ID of the provider item
+                  that this image corresponds to. If the provider of this image is
+                  a Content Library, this ID will be that of the corresponding Content
+                  Library item.
+                type: string
             type: object
         type: object
     served: true
-    storage: false
+    storage: true
     subresources:
       status: {}

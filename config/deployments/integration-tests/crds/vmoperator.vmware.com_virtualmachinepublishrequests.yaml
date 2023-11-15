@@ -89,8 +89,8 @@ spec:
                           published object.
                         type: string
                       name:
-                        description: "Name is the name of the published object. \n
-                          If the spec.target.location.apiVersion equals imageregistry.vmware.com/v1alpha1
+                        description: "Name is the display name of the published object.
+                          \n If the spec.target.location.apiVersion equals imageregistry.vmware.com/v1alpha1
                           and the spec.target.location.kind equals ContentLibrary,
                           then this should be the name that will show up in vCenter
                           Content Library, not the custom resource name in the namespace.
@@ -256,8 +256,8 @@ spec:
                           published object.
                         type: string
                       name:
-                        description: "Name is the name of the published object. \n
-                          If the spec.target.location.apiVersion equals imageregistry.vmware.com/v1alpha1
+                        description: "Name is the display name of the published object.
+                          \n If the spec.target.location.apiVersion equals imageregistry.vmware.com/v1alpha1
                           and the spec.target.location.kind equals ContentLibrary,
                           then this should be the name that will show up in vCenter
                           Content Library, not the custom resource name in the namespace.
@@ -291,7 +291,7 @@ spec:
             type: object
         type: object
     served: true
-    storage: true
+    storage: false
     subresources:
       status: {}
   - name: v1alpha2
@@ -594,6 +594,6 @@ spec:
             type: object
         type: object
     served: true
-    storage: false
+    storage: true
     subresources:
       status: {}

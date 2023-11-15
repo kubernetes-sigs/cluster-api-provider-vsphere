@@ -66,6 +66,7 @@ var _ = Describe("VirtualMachine tests", func() {
 		className                = "test-className"
 		imageName                = "test-imageName"
 		storageClass             = "test-storageClass"
+		minHardwareVersion       = int32(17)
 		vmIP                     = "127.0.0.1"
 		biosUUID                 = "test-biosUuid"
 		missingK8SVersionFailure = "missing kubernetes version"
@@ -139,6 +140,7 @@ var _ = Describe("VirtualMachine tests", func() {
 				Expect(vmopVM.Spec.ImageName).To(Equal(expectedImageName))
 				Expect(vmopVM.Spec.ClassName).To(Equal(className))
 				Expect(vmopVM.Spec.StorageClass).To(Equal(storageClass))
+				Expect(vmopVM.Spec.MinHardwareVersion).To(Equal(minHardwareVersion))
 				Expect(vmopVM.Spec.PowerState).To(Equal(vmoprv1.VirtualMachinePoweredOn))
 				Expect(vmopVM.ObjectMeta.Annotations[ClusterModuleNameAnnotationKey]).To(Equal(ControlPlaneVMClusterModuleGroupName))
 				Expect(vmopVM.ObjectMeta.Annotations[ProviderTagsAnnotationKey]).To(Equal(ControlPlaneVMVMAntiAffinityTagValue))

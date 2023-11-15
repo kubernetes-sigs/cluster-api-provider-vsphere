@@ -40,8 +40,13 @@ spec:
                 description: Name is the name of a VM in the same Namespace as this
                   web console request.
                 type: string
+              publicKey:
+                description: PublicKey is used to encrypt the status.response. This
+                  is expected to be a RSA OAEP public key in X.509 PEM format.
+                type: string
             required:
             - name
+            - publicKey
             type: object
           status:
             description: VirtualMachineWebConsoleRequestStatus describes the observed
@@ -63,6 +68,10 @@ spec:
                   \n In other words, the field may be set to any value that is parsable
                   by Go's https://pkg.go.dev/net#ResolveIPAddr and https://pkg.go.dev/net#ParseIP
                   functions."
+                type: string
+              response:
+                description: Response will be the authenticated ticket corresponding
+                  to this web console request.
                 type: string
             type: object
         type: object

@@ -41,7 +41,7 @@ func TestCreate(t *testing.T) {
 	defer simr.Destroy()
 
 	ctx := context.Background()
-	vmContext := fake.NewVMContext(ctx, fake.NewControllerContext(fake.NewControllerManagerContext()))
+	vmContext := fake.NewVMContext(ctx, fake.NewControllerManagerContext())
 	vmContext.VSphereVM.Spec.Server = simr.ServerURL().Host
 
 	authSession, err := session.GetOrCreate(

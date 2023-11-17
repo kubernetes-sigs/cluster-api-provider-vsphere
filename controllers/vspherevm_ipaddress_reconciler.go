@@ -30,6 +30,7 @@ import (
 	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1alpha1"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -46,6 +47,7 @@ import (
 func (r vmReconciler) reconcileIPAddressClaims(ctx context.Context, vmCtx *capvcontext.VMContext) error {
 	totalClaims, claimsCreated := 0, 0
 	claimsFulfilled := 0
+	log := ctrl.LoggerFrom(ctx)
 
 	var (
 		claims  []conditions.Getter
@@ -63,12 +65,12 @@ func (r vmReconciler) reconcileIPAddressClaims(ctx context.Context, vmCtx *capvc
 			}
 			err := vmCtx.Client.Get(ctx, ipAddrClaimKey, ipAddrClaim)
 			if err != nil && !apierrors.IsNotFound(err) {
-				vmCtx.Logger.Error(err, "fetching IPAddressClaim failed", "name", ipAddrClaimName)
+				log.Error(err, "fetching IPAddressClaim failed", "name", ipAddrClaimName)
 				return err
 			}
 			ipAddrClaim, created, err := createOrPatchIPAddressClaim(ctx, vmCtx, ipAddrClaimName, poolRef)
 			if err != nil {
-				vmCtx.Logger.Error(err, "createOrPatchIPAddressClaim failed", "name", ipAddrClaimName)
+				log.Error(err, "createOrPatchIPAddressClaim failed", "name", ipAddrClaimName)
 				errList = append(errList, err)
 				continue
 			}
@@ -159,10 +161,11 @@ func createOrPatchIPAddressClaim(ctx context.Context, vmCtx *capvcontext.VMConte
 		claim.Spec.PoolRef.Name = poolRef.Name
 		return nil
 	}
+	log := ctrl.LoggerFrom(ctx)
 
 	result, err := ctrlutil.CreateOrPatch(ctx, vmCtx.Client, claim, mutateFn)
 	if err != nil {
-		vmCtx.Logger.Error(
+		log.Error(
 			err,
 			"failed to CreateOrPatch IPAddressClaim",
 			"namespace",
@@ -178,20 +181,20 @@ func createOrPatchIPAddressClaim(ctx context.Context, vmCtx *capvcontext.VMConte
 	}
 	switch result {
 	case ctrlutil.OperationResultCreated:
-		vmCtx.Logger.Info(
+		log.Info(
 			"created claim",
 			"claim",
 			key,
 		)
 		return claim, true, nil
 	case ctrlutil.OperationResultUpdated:
-		vmCtx.Logger.Info(
+		log.Info(
 			"updated claim",
 			"claim",
 			key,
 		)
 	case ctrlutil.OperationResultNone, ctrlutil.OperationResultUpdatedStatus, ctrlutil.OperationResultUpdatedStatusOnly:
-		vmCtx.Logger.V(5).Info(
+		log.V(5).Info(
 			"no change required for claim",
 			"claim", key,
 			"operation", result,
@@ -203,12 +206,13 @@ func createOrPatchIPAddressClaim(ctx context.Context, vmCtx *capvcontext.VMConte
 // deleteIPAddressClaims removes the finalizers from the IPAddressClaim objects
 // thus freeing them up for garbage collection.
 func (r vmReconciler) deleteIPAddressClaims(ctx context.Context, vmCtx *capvcontext.VMContext) error {
+	log := ctrl.LoggerFrom(ctx)
 	for devIdx, device := range vmCtx.VSphereVM.Spec.Network.Devices {
 		for poolRefIdx := range device.AddressesFromPools {
 			// check if claim exists
 			ipAddrClaim := &ipamv1.IPAddressClaim{}
 			ipAddrClaimName := util.IPAddressClaimName(vmCtx.VSphereVM.Name, devIdx, poolRefIdx)
-			vmCtx.Logger.Info("removing finalizer", "IPAddressClaim", ipAddrClaimName)
+			log.Info("removing finalizer", "IPAddressClaim", ipAddrClaimName)
 			ipAddrClaimKey := client.ObjectKey{
 				Namespace: vmCtx.VSphereVM.Namespace,
 				Name:      ipAddrClaimName,

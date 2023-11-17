@@ -80,7 +80,8 @@ func Test_ShouldRetryTask(t *testing.T) {
 				{baseTask(types.TaskInfoStateRunning, ""), false},
 				{baseTask(types.TaskInfoStateSuccess, ""), true},
 			}
-			for _, tt := range tests {
+			for i := range tests {
+				tt := tests[i]
 				t.Run(fmt.Sprintf("state: %s", tt.task.Info.State), func(t *testing.T) {
 					g = NewWithT(t)
 					reconciled, err := checkAndRetryTask(vmCtx, &tt.task)

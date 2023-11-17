@@ -170,6 +170,8 @@ linters-settings:
 
   ginkgolinter:
     forbid-focus-container: true
+  goconst:
+    ignore-tests: true
 
 issues:
   max-same-issues: 0
@@ -211,7 +213,17 @@ issues:
   - linters:
     - revive
     - stylecheck
-    path: test/.*.go
+    path: _test\.go
+    text: should not use dot imports
+  - linters:
+    - revive
+    - stylecheck
+    path: test/e2e/.*.go
+    text: should not use dot imports
+  - linters:
+    - revive
+    - stylecheck
+    path: test/helpers/vmware/.*.go
     text: should not use dot imports
   # Append should be able to assign to a different var/slice.
   - linters:

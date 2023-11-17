@@ -571,7 +571,7 @@ func kubeVIPPodSpec() *corev1.Pod {
 			Containers: []corev1.Container{
 				{
 					Name:            "kube-vip",
-					Image:           "ghcr.io/kube-vip/kube-vip:v0.5.11",
+					Image:           "ghcr.io/kube-vip/kube-vip:v0.6.3",
 					ImagePullPolicy: corev1.PullIfNotPresent,
 					Args: []string{
 						"manager",
@@ -622,6 +622,16 @@ func kubeVIPPodSpec() *corev1.Pod {
 							// Number of times the leader will hold the lease for
 							Name:  "vip_retryperiod",
 							Value: "2",
+						},
+						{
+							// Enables kube-vip to watch Services of type LoadBalancer
+							Name:  "svc_enable",
+							Value: "true",
+						},
+						{
+							// Enables a leadership Election for each Service, allowing them to be distributed
+							Name:  "svc_election",
+							Value: "true",
 						},
 					},
 					SecurityContext: &corev1.SecurityContext{

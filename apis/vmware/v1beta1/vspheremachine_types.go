@@ -36,7 +36,7 @@ type VSphereMachineVolume struct {
 
 // VSphereMachineSpec defines the desired state of VSphereMachine.
 type VSphereMachineSpec struct {
-	// ProviderID is the virtual machine's BIOS UUID formated as
+	// ProviderID is the virtual machine's BIOS UUID formatted as
 	// vsphere://12345678-1234-1234-1234-123456789abc.
 	// This is required at runtime by CAPI. Do not remove this field.
 	// +optional
@@ -79,6 +79,14 @@ type VSphereMachineSpec struct {
 	// +optional
 	// +kubebuilder:default=hard
 	PowerOffMode VirtualMachinePowerOpMode `json:"powerOffMode,omitempty"`
+
+	// MinHardwareVersion specifies the desired minimum hardware version
+	// for this VM. Setting this field will ensure that the hardware version
+	// of the VM is at least set to the specified value.
+	// The expected format of the field is vmx-15.
+	//
+	// +optional
+	MinHardwareVersion string `json:"minHardwareVersion,omitempty"`
 }
 
 // VSphereMachineStatus defines the observed state of VSphereMachine.

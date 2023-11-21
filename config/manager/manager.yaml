@@ -18,6 +18,8 @@ spec:
       containers:
       - args:
         - --leader-elect
+        - "--diagnostics-address=${CAPI_DIAGNOSTICS_ADDRESS:=:8443}"
+        - "--insecure-diagnostics=${CAPI_INSECURE_DIAGNOSTICS:=false}"
         - --v=4
         - --enable-keep-alive
         - "--feature-gates=NodeAntiAffinity=${EXP_NODE_ANTI_AFFINITY:=false}"
@@ -27,6 +29,9 @@ spec:
         ports:
         - containerPort: 9440
           name: healthz
+          protocol: TCP
+        - containerPort: 8443
+          name: metrics
           protocol: TCP
         readinessProbe:
           httpGet:

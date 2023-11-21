@@ -187,7 +187,7 @@ func InitFlags(fs *pflag.FlagSet) {
 		"Bind address to expose the pprof profiler (e.g. localhost:6060)")
 
 	fs.BoolVar(&enableContentionProfiling, "contention-profiling", false,
-		"Enable block profiling, if profiler-address is set.")
+		"Enable block profiling.")
 
 	fs.DurationVar(&syncPeriod, "sync-period", defaultSyncPeriod,
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)")

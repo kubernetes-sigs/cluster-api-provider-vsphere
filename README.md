@@ -8,9 +8,11 @@ Kubernetes-native declarative infrastructure for vSphere.
 
 ## What is the Cluster API Provider vSphere
 
-The [Cluster API][cluster_api] brings declarative, Kubernetes-style APIs to cluster creation, configuration and management. Cluster API Provider for vSphere is a concrete implementation of Cluster API for vSphere.
+The [Cluster API][cluster_api] brings declarative, Kubernetes-style APIs to cluster creation, configuration and management. Cluster API Provider for vSphere is a concrete implementation of Cluster API
+for vSphere.
 
-The API itself is shared across multiple cloud providers allowing for true vSphere hybrid deployments of Kubernetes. It is built atop the lessons learned from previous cluster managers such as [kops][kops] and [kubicorn][kubicorn].
+The API itself is shared across multiple cloud providers allowing for true vSphere hybrid deployments of Kubernetes. It is built atop the lessons learned from previous cluster managers such
+as [kops][kops] and [kubicorn][kubicorn].
 
 ## Launching a Kubernetes cluster on vSphere
 
@@ -31,25 +33,29 @@ Check out the [getting started guide](./docs/getting_started.md) for launching a
 
 This provider's versions are compatible with the following versions of Cluster API:
 
-|                                  | Cluster API v1beta1 (v1.3) | Cluster API v1beta1 (v1.4) | Cluster API v1beta1 (v1.5) |
-|----------------------------------|:--------------------------:|:--------------------------:|:--------------------------:|
-| CAPV v1beta1 (v1.5)              |             ✓              |             ✓              |             ☓              |
-| CAPV v1beta1 (v1.6)              |             ✓              |             ✓              |             ☓              |
-| CAPV v1beta1 (v1.7)              |             ✓              |             ✓              |             ☓              |
-| CAPV v1beta1 (v1.8)              |             ☓              |             ☓              |             ✓              |
+|                     | Cluster API v1beta1 (v1.3) | Cluster API v1beta1 (v1.4) | Cluster API v1beta1 (v1.5) | Cluster API v1beta1 (v1.6) |
+|---------------------|:--------------------------:|:--------------------------:|:--------------------------:|:--------------------------:|
+| CAPV v1beta1 (v1.5) |             ✓              |             ✓              |             ☓              |             ☓              |
+| CAPV v1beta1 (v1.6) |             ✓              |             ✓              |             ☓              |             ☓              |
+| CAPV v1beta1 (v1.7) |             ✓              |             ✓              |             ☓              |             ☓              |
+| CAPV v1beta1 (v1.8) |             ☓              |             ☓              |             ✓              |             ☓              |
+| CAPV v1beta1 (v1.9) |             ☓              |             ☓              |             ☓              |             ✓              |
 
-As CAPV doesn't dictate supported K8s versions, and it supports whatever CAPI supported, about the provider's compatibility with K8s versions, please refer to [CAPI Supported Kubernetes Versions](https://cluster-api.sigs.k8s.io/reference/versions.html).
+As CAPV doesn't dictate supported K8s versions, and it supports whatever CAPI supported, about the provider's compatibility with K8s versions, please refer
+to [CAPI Supported Kubernetes Versions](https://cluster-api.sigs.k8s.io/reference/versions.html).
 
 Basically:
 
 - 4 Kubernetes minor releases for the management cluster (N - N-3)
 - 6 Kubernetes minor releases for the workload cluster (N - N-5)
 
-**NOTE:** As the versioning for this project is tied to the versioning of Cluster API, future modifications to this policy may be made to more closely align with other providers in the Cluster API ecosystem.
+**NOTE:** As the versioning for this project is tied to the versioning of Cluster API, future modifications to this policy may be made to more closely align with other providers in the Cluster API
+ecosystem.
 
 ## Kubernetes versions with published OVAs
 
-Note: These OVAs are not updated for security fixes and it is recommended to always use the latest patch version for the Kubernetes version you wish to run. For production-like environments, it is highly recommended to build and use your own custom images.
+Note: These OVAs are not updated for security fixes and it is recommended to always use the latest patch version for the Kubernetes version you wish to run. For production-like environments, it is
+highly recommended to build and use your own custom images.
 
 | Kubernetes |                                                                                            Ubuntu 18.04                                                                                            |                                                                                            Ubuntu 20.04                                                                                            |                                                                                          Ubuntu 22.04                                                                                          |                                                                                           Photon 3                                                                                           |                                                                                                       Flatcar Stable                                                                                                       |
 |:----------:|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
@@ -77,15 +83,18 @@ Further documentation is available in the `/docs` directory.
 
 ## Getting involved and contributing
 
-Are you interested in contributing to cluster-api-provider-vsphere? We, the maintainers and community, would love your suggestions, contributions, and help! Also, the maintainers can be contacted at any time to learn more about how to get involved.
+Are you interested in contributing to cluster-api-provider-vsphere? We, the maintainers and community, would love your suggestions, contributions, and help! Also, the maintainers can be contacted at
+any time to learn more about how to get involved.
 
-In the interest of getting more new people involved we tag issues with [`good first issue`][good_first_issue]. These are typically issues that have smaller scope but are good ways to start to get acquainted with the codebase.
+In the interest of getting more new people involved we tag issues with [`good first issue`][good_first_issue]. These are typically issues that have smaller scope but are good ways to start to get
+acquainted with the codebase.
 
-We also encourage ALL active community participants to act as if they are maintainers, even if you don't have "official" write permissions. This is a community effort, we are here to serve the Kubernetes community. If you have an active interest and you want to get involved, you have real power! Don't assume that the only people who can get things done around here are the "maintainers".
+We also encourage ALL active community participants to act as if they are maintainers, even if you don't have "official" write permissions. This is a community effort, we are here to serve the
+Kubernetes community. If you have an active interest and you want to get involved, you have real power! Don't assume that the only people who can get things done around here are the "maintainers".
 
 We also would love to add more "official" maintainers, so show us what you can do!
 
-This repository uses the Kubernetes bots.  See a full list of the commands [here][prow].
+This repository uses the Kubernetes bots. See a full list of the commands [here][prow].
 
 ## Code of conduct
 
@@ -121,22 +130,37 @@ We also use the issue tracker to track features. If you have an idea for a featu
 - Remember that users might be searching for your issue in the future, so please give it a meaningful title to help others.
 - Clearly define the use case, using concrete examples. EG: I type `this` and cluster-api-provider-vsphere does `that`.
 - Some of our larger features will require some design. If you would like to include a technical design for your feature please include it in the issue.
-- After the new feature is well understood, and the design agreed upon, we can start coding the feature. We would love for you to code it. So please open up a **WIP** *(work in progress)* pull request, and happy coding.
+- After the new feature is well understood, and the design agreed upon, we can start coding the feature. We would love for you to code it. So please open up a **WIP** *(work in progress)* pull
+  request, and happy coding.
 
 <!-- References -->
+
 [cluster_api]: https://github.com/kubernetes-sigs/cluster-api
+
 [code_of_conduct]: https://git.k8s.io/community/code-of-conduct.md
+
 [good_first_issue]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22
+
 [kops]: https://github.com/kubernetes/kops
+
 [kubicorn]: http://kubicorn.io/
+
 [mailint_list]: https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle
+
 [meeting_notes]: https://docs.google.com/document/d/1jQrQiOW75uWraPk4b_LWtCTHwT7EZwrWWwMdxeWOEvk/edit?usp=sharing
+
 [new_issue]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/new
+
 [prow]: https://prow.k8s.io/command-help?repo=kubernetes-sigs%2Fcluster-api-provider-vsphere
+
 [slack]: https://kubernetes.slack.com/messages/CKFGK3SSD
+
 [slack_info]: https://github.com/kubernetes/community/tree/master/communication#communication
+
 [troubleshooting]: ./docs/troubleshooting.md
+
 [zoom_meeting]: https://zoom.us/j/92253194848?pwd=cVVVNDMxeTl1QVJPUlpvLzNSVU1JZz09
+
 [time_zone_converter]: http://www.thetimezoneconverter.com/?t=08:00&tz=PT%20%28Pacific%20Time%29
 
 <!-- markdownlint-disable-file MD033 -->

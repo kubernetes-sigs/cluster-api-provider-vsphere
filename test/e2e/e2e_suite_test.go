@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
 	capiutil "sigs.k8s.io/cluster-api/util"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers"
@@ -61,6 +62,8 @@ var (
 
 // Test suite global vars.
 var (
+	ctx = ctrl.SetupSignalHandler()
+
 	// e2eConfig to be used for this test, read from configPath.
 	e2eConfig *clusterctl.E2EConfig
 
@@ -113,21 +116,21 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	Byf("Loading the e2e test configuration from %q", configPath)
 	var err error
-	e2eConfig, err = helpers.LoadE2EConfig(configPath)
+	e2eConfig, err = helpers.LoadE2EConfig(ctx, configPath)
 	Expect(err).NotTo(HaveOccurred())
 
 	By("Initializing the vSphere session to ensure credentials are working", initVSphereSession)
 
 	Byf("Creating a clusterctl local repository into %q", artifactFolder)
-	clusterctlConfigPath, err = helpers.CreateClusterctlLocalRepository(e2eConfig, filepath.Join(artifactFolder, "repository"), true)
+	clusterctlConfigPath, err = helpers.CreateClusterctlLocalRepository(ctx, e2eConfig, filepath.Join(artifactFolder, "repository"), true)
 	Expect(err).NotTo(HaveOccurred())
 
 	By("Setting up the bootstrap cluster")
-	bootstrapClusterProvider, bootstrapClusterProxy, err = helpers.SetupBootstrapCluster(e2eConfig, scheme, useExistingCluster)
+	bootstrapClusterProvider, bootstrapClusterProxy, err = helpers.SetupBootstrapCluster(ctx, e2eConfig, scheme, useExistingCluster)
 	Expect(err).NotTo(HaveOccurred())
 
 	By("Initializing the bootstrap cluster")
-	helpers.InitBootstrapCluster(bootstrapClusterProxy, e2eConfig, clusterctlConfigPath, artifactFolder)
+	helpers.InitBootstrapCluster(ctx, bootstrapClusterProxy, e2eConfig, clusterctlConfigPath, artifactFolder)
 	namespaces = map[*corev1.Namespace]context.CancelFunc{}
 	return []byte(
 		strings.Join([]string{
@@ -148,7 +151,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	kubeconfigPath := parts[3]
 
 	var err error
-	e2eConfig, err = helpers.LoadE2EConfig(configPath)
+	e2eConfig, err = helpers.LoadE2EConfig(ctx, configPath)
 	Expect(err).NotTo(HaveOccurred())
 	bootstrapClusterProxy = framework.NewClusterProxy("bootstrap", kubeconfigPath, initScheme(), framework.WithMachineLogCollector(LogCollector{}))
 })
@@ -164,7 +167,7 @@ var _ = SynchronizedAfterSuite(func() {
 	By("Cleaning up the vSphere session", terminateVSphereSession)
 	By("Tearing down the management cluster")
 	if !skipCleanup {
-		helpers.TearDown(bootstrapClusterProvider, bootstrapClusterProxy)
+		helpers.TearDown(ctx, bootstrapClusterProvider, bootstrapClusterProxy)
 	}
 })
 

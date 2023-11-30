@@ -28,24 +28,24 @@ import (
 
 // NewMachineContext returns a fake VIMMachineContext for unit testing
 // reconcilers with a fake client.
-func NewMachineContext(ctx context.Context, clusterCtx *capvcontext.ClusterContext, controllerCtx *capvcontext.ControllerContext) *capvcontext.VIMMachineContext {
+func NewMachineContext(ctx context.Context, clusterCtx *capvcontext.ClusterContext, controllerManagerCtx *capvcontext.ControllerManagerContext) *capvcontext.VIMMachineContext {
 	// Create the machine resources.
 	machine := newMachineV1a4()
 	vsphereMachine := newVSphereMachine(machine)
 
 	// Add the cluster resources to the fake cluster client.
-	if err := controllerCtx.Client.Create(ctx, &machine); err != nil {
+	if err := controllerManagerCtx.Client.Create(ctx, &machine); err != nil {
 		panic(err)
 	}
-	if err := controllerCtx.Client.Create(ctx, &vsphereMachine); err != nil {
+	if err := controllerManagerCtx.Client.Create(ctx, &vsphereMachine); err != nil {
 		panic(err)
 	}
 
 	return &capvcontext.VIMMachineContext{
 		BaseMachineContext: &capvcontext.BaseMachineContext{
-			ControllerContext: controllerCtx,
-			Cluster:           clusterCtx.Cluster,
-			Machine:           &machine,
+			ControllerManagerContext: controllerManagerCtx,
+			Cluster:                  clusterCtx.Cluster,
+			Machine:                  &machine,
 		},
 		VSphereCluster: clusterCtx.VSphereCluster,
 		VSphereMachine: &vsphereMachine,

@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/go-logr/logr"
 	. "github.com/onsi/gomega"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
@@ -45,7 +44,6 @@ const (
 func emptyVirtualMachineContext() *virtualMachineContext {
 	return &virtualMachineContext{
 		VMContext: capvcontext.VMContext{
-			Logger:                   logr.Discard(),
 			ControllerManagerContext: &capvcontext.ControllerManagerContext{},
 		},
 	}

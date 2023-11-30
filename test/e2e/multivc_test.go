@@ -124,7 +124,7 @@ func VerifyMultiVC(ctx context.Context, input MultiVCenterSpecInput) {
 	})
 
 	By("Initializing the workload cluster")
-	helpers.InitBootstrapCluster(mgmtClusterProxy, e2eConfig, clusterctlConfigPath, artifactFolder)
+	helpers.InitBootstrapCluster(ctx, mgmtClusterProxy, e2eConfig, clusterctlConfigPath, artifactFolder)
 
 	By("Ensure API servers are stable before doing move")
 	// Nb. This check was introduced to prevent doing move to self-hosted in an aggressive way and thus avoid flakes.

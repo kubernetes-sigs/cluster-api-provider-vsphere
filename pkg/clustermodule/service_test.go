@@ -43,9 +43,9 @@ func TestService_Create(t *testing.T) {
 			}
 
 			g := gomega.NewWithT(t)
-			controllerCtx := fake.NewControllerContext(fake.NewControllerManagerContext(md))
-			clusterCtx := fake.NewClusterContext(ctx, controllerCtx)
-			svc := NewService(controllerCtx.ControllerManagerContext, controllerCtx.Client)
+			controllerManagerContext := fake.NewControllerManagerContext(md)
+			clusterCtx := fake.NewClusterContext(ctx, controllerManagerContext)
+			svc := NewService(controllerManagerContext, controllerManagerContext.Client)
 
 			moduleUUID, err := svc.Create(ctx, clusterCtx, mdWrapper{md})
 			g.Expect(err).ToNot(gomega.HaveOccurred())
@@ -74,9 +74,9 @@ func TestService_Create(t *testing.T) {
 			}
 
 			g := gomega.NewWithT(t)
-			controllerCtx := fake.NewControllerContext(fake.NewControllerManagerContext(md, machineTemplate))
-			clusterCtx := fake.NewClusterContext(ctx, controllerCtx)
-			svc := NewService(controllerCtx.ControllerManagerContext, controllerCtx.Client)
+			controllerManagerContext := fake.NewControllerManagerContext(md, machineTemplate)
+			clusterCtx := fake.NewClusterContext(ctx, controllerManagerContext)
+			svc := NewService(controllerManagerContext, controllerManagerContext.Client)
 
 			moduleUUID, err := svc.Create(ctx, clusterCtx, mdWrapper{md})
 			g.Expect(err).ToNot(gomega.HaveOccurred())
@@ -113,13 +113,13 @@ func TestService_Create(t *testing.T) {
 			},
 		}
 
-		controllerCtx := fake.NewControllerContext(fake.NewControllerManagerContext(md, machineTemplate))
-		clusterCtx := fake.NewClusterContext(context.Background(), controllerCtx)
+		controllerManagerContext := fake.NewControllerManagerContext(md, machineTemplate)
+		clusterCtx := fake.NewClusterContext(context.Background(), controllerManagerContext)
 		clusterCtx.VSphereCluster.Spec.Server = simr.ServerURL().Host
-		controllerCtx.ControllerManagerContext.Username = simr.Username()
-		controllerCtx.ControllerManagerContext.Password = simr.Password()
+		controllerManagerContext.Username = simr.Username()
+		controllerManagerContext.Password = simr.Password()
 
-		svc := NewService(controllerCtx.ControllerManagerContext, controllerCtx.Client)
+		svc := NewService(controllerManagerContext, controllerManagerContext.Client)
 		moduleUUID, err := svc.Create(context.Background(), clusterCtx, mdWrapper{md})
 		g.Expect(err).ToNot(gomega.HaveOccurred())
 		g.Expect(moduleUUID).NotTo(gomega.BeEmpty())

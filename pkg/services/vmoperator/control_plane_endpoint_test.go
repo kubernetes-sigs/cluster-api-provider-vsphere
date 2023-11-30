@@ -103,12 +103,12 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 		expectedClusterRoleVMLabels map[string]string
 		expectedConditions          clusterv1.Conditions
 
-		cluster        *clusterv1.Cluster
-		vsphereCluster *vmwarev1.VSphereCluster
-		ctx            = context.Background()
-		clusterCtx     *vmware.ClusterContext
-		controllerCtx  *capvcontext.ControllerContext
-		c              ctrlclient.Client
+		cluster                  *clusterv1.Cluster
+		vsphereCluster           *vmwarev1.VSphereCluster
+		ctx                      = context.Background()
+		clusterCtx               *vmware.ClusterContext
+		controllerManagerContext *capvcontext.ControllerManagerContext
+		c                        ctrlclient.Client
 
 		apiEndpoint *clusterv1.APIEndpoint
 		vms         *vmoprv1.VirtualMachineService
@@ -126,8 +126,8 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 		// Create all necessary dependencies
 		cluster = util.CreateCluster(clusterName)
 		vsphereCluster = util.CreateVSphereCluster(clusterName)
-		clusterCtx, controllerCtx = util.CreateClusterContext(cluster, vsphereCluster)
-		c = controllerCtx.Client
+		clusterCtx, controllerManagerContext = util.CreateClusterContext(cluster, vsphereCluster)
+		c = controllerManagerContext.Client
 		expectedClusterRoleVMLabels = clusterRoleVMLabels(clusterCtx, true)
 		cpService = CPService{
 			Client: c,

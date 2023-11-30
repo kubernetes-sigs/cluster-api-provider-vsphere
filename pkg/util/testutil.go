@@ -148,28 +148,21 @@ func createScheme() *runtime.Scheme {
 	return scheme
 }
 
-func CreateClusterContext(cluster *clusterv1.Cluster, vsphereCluster *vmwarev1.VSphereCluster) (*vmware.ClusterContext, *capvcontext.ControllerContext) {
+func CreateClusterContext(cluster *clusterv1.Cluster, vsphereCluster *vmwarev1.VSphereCluster) (*vmware.ClusterContext, *capvcontext.ControllerManagerContext) {
 	scheme := createScheme()
-	controllerManagerContext := &capvcontext.ControllerManagerContext{
-		Logger: klog.Background().WithName("controller-manager-logger"),
-		Scheme: scheme,
-		Client: testclient.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(
-			&vmoprv1.VirtualMachineService{},
-			&vmoprv1.VirtualMachine{},
-		).Build(),
-	}
-
-	// Build the controller context.
-	controllerContext := &capvcontext.ControllerContext{
-		ControllerManagerContext: controllerManagerContext,
-		Logger:                   controllerManagerContext.Logger.WithName("controller-logger"),
-	}
 
 	// Build the cluster context.
 	return &vmware.ClusterContext{
-		Cluster:        cluster,
-		VSphereCluster: vsphereCluster,
-	}, controllerContext
+			Cluster:        cluster,
+			VSphereCluster: vsphereCluster,
+		}, &capvcontext.ControllerManagerContext{
+			Logger: klog.Background().WithName("controller-manager-logger"),
+			Scheme: scheme,
+			Client: testclient.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(
+				&vmoprv1.VirtualMachineService{},
+				&vmoprv1.VirtualMachine{},
+			).Build(),
+		}
 }
 
 func CreateMachineContext(clusterContext *vmware.ClusterContext, machine *clusterv1.Machine,

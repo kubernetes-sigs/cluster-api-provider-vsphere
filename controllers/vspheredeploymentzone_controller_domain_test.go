@@ -19,7 +19,6 @@ package controllers
 import (
 	"testing"
 
-	"github.com/go-logr/logr"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/vmware/govmomi/simulator"
@@ -52,11 +51,9 @@ func TestVsphereDeploymentZoneReconciler_Reconcile_VerifyFailureDomain_ComputeCl
 	}
 	t.Cleanup(simr.Destroy)
 
-	mgmtContext := fake.NewControllerManagerContext()
-	mgmtContext.Username = simr.Username()
-	mgmtContext.Password = simr.Password()
-
-	controllerCtx := fake.NewControllerContext(mgmtContext)
+	controllerManagerContext := fake.NewControllerManagerContext()
+	controllerManagerContext.Username = simr.Username()
+	controllerManagerContext.Password = simr.Password()
 
 	params := session.NewParams().
 		WithServer(simr.ServerURL().Host).
@@ -87,12 +84,11 @@ func TestVsphereDeploymentZoneReconciler_Reconcile_VerifyFailureDomain_ComputeCl
 	}
 
 	deploymentZoneCtx := &capvcontext.VSphereDeploymentZoneContext{
-		ControllerContext: controllerCtx,
-		Logger:            logr.Discard(),
-		AuthSession:       authSession,
+		ControllerManagerContext: controllerManagerContext,
+		AuthSession:              authSession,
 	}
 
-	reconciler := vsphereDeploymentZoneReconciler{controllerCtx}
+	reconciler := vsphereDeploymentZoneReconciler{controllerManagerContext}
 
 	g.Expect(reconciler.verifyFailureDomain(ctx, deploymentZoneCtx, vsphereFailureDomain, vsphereFailureDomain.Spec.Region)).To(Succeed())
 	stdout := gbytes.NewBuffer()
@@ -132,11 +128,9 @@ func TestVsphereDeploymentZoneReconciler_Reconcile_VerifyFailureDomain_HostGroup
 	}
 	t.Cleanup(simr.Destroy)
 
-	mgmtContext := fake.NewControllerManagerContext()
-	mgmtContext.Username = simr.Username()
-	mgmtContext.Password = simr.Password()
-
-	controllerCtx := fake.NewControllerContext(mgmtContext)
+	controllerManagerContext := fake.NewControllerManagerContext()
+	controllerManagerContext.Username = simr.Username()
+	controllerManagerContext.Password = simr.Password()
 
 	params := session.NewParams().
 		WithServer(simr.ServerURL().Host).
@@ -170,12 +164,11 @@ func TestVsphereDeploymentZoneReconciler_Reconcile_VerifyFailureDomain_HostGroup
 	}
 
 	deploymentZoneCtx := &capvcontext.VSphereDeploymentZoneContext{
-		ControllerContext: controllerCtx,
-		Logger:            logr.Discard(),
-		AuthSession:       authSession,
+		ControllerManagerContext: controllerManagerContext,
+		AuthSession:              authSession,
 	}
 
-	reconciler := vsphereDeploymentZoneReconciler{controllerCtx}
+	reconciler := vsphereDeploymentZoneReconciler{controllerManagerContext}
 
 	// Fails since no hosts are tagged
 	g.Expect(reconciler.verifyFailureDomain(ctx, deploymentZoneCtx, vsphereFailureDomain, vsphereFailureDomain.Spec.Zone)).To(HaveOccurred())
@@ -204,11 +197,10 @@ func TestVsphereDeploymentZoneReconciler_Reconcile_CreateAndAttachMetadata(t *te
 	}
 	t.Cleanup(simr.Destroy)
 
-	mgmtContext := fake.NewControllerManagerContext()
-	mgmtContext.Username = simr.Username()
-	mgmtContext.Password = simr.Password()
+	controllerManagerContext := fake.NewControllerManagerContext()
+	controllerManagerContext.Username = simr.Username()
+	controllerManagerContext.Password = simr.Password()
 
-	controllerCtx := fake.NewControllerContext(mgmtContext)
 	params := session.NewParams().
 		WithServer(simr.ServerURL().Host).
 		WithUserInfo(simr.Username(), simr.Password()).
@@ -216,7 +208,7 @@ func TestVsphereDeploymentZoneReconciler_Reconcile_CreateAndAttachMetadata(t *te
 	authSession, err := session.GetOrCreate(ctx, params)
 	NewWithT(t).Expect(err).NotTo(HaveOccurred())
 
-	reconciler := vsphereDeploymentZoneReconciler{controllerCtx}
+	reconciler := vsphereDeploymentZoneReconciler{controllerManagerContext}
 
 	tests := []struct {
 		name                     string
@@ -280,9 +272,8 @@ func TestVsphereDeploymentZoneReconciler_Reconcile_CreateAndAttachMetadata(t *te
 		}
 
 		deploymentZoneCtx := &capvcontext.VSphereDeploymentZoneContext{
-			ControllerContext: controllerCtx,
-			Logger:            logr.Discard(),
-			AuthSession:       authSession,
+			ControllerManagerContext: controllerManagerContext,
+			AuthSession:              authSession,
 		}
 
 		g.Expect(reconciler.createAndAttachMetadata(ctx, deploymentZoneCtx, vsphereFailureDomain, tests[0].vsphereFailureDomainSpec.Region)).NotTo(HaveOccurred())
@@ -300,9 +291,8 @@ func TestVsphereDeploymentZoneReconciler_Reconcile_CreateAndAttachMetadata(t *te
 		}
 
 		deploymentZoneCtx := &capvcontext.VSphereDeploymentZoneContext{
-			ControllerContext: controllerCtx,
-			Logger:            logr.Discard(),
-			AuthSession:       authSession,
+			ControllerManagerContext: controllerManagerContext,
+			AuthSession:              authSession,
 		}
 
 		g.Expect(reconciler.createAndAttachMetadata(ctx, deploymentZoneCtx, vsphereFailureDomain, tests[1].vsphereFailureDomainSpec.Zone)).NotTo(HaveOccurred())
@@ -320,9 +310,8 @@ func TestVsphereDeploymentZoneReconciler_Reconcile_CreateAndAttachMetadata(t *te
 		}
 
 		deploymentZoneCtx := &capvcontext.VSphereDeploymentZoneContext{
-			ControllerContext: controllerCtx,
-			Logger:            logr.Discard(),
-			AuthSession:       authSession,
+			ControllerManagerContext: controllerManagerContext,
+			AuthSession:              authSession,
 		}
 
 		g.Expect(reconciler.createAndAttachMetadata(ctx, deploymentZoneCtx, vsphereFailureDomain, tests[2].vsphereFailureDomainSpec.Zone)).NotTo(HaveOccurred())

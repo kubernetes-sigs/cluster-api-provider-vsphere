@@ -21,7 +21,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-logr/logr"
 	"sigs.k8s.io/cluster-api/util/patch"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
@@ -34,7 +33,6 @@ type VMContext struct {
 	ClusterModuleInfo    *string
 	VSphereVM            *infrav1.VSphereVM
 	PatchHelper          *patch.Helper
-	Logger               logr.Logger
 	Session              *session.Session
 	VSphereFailureDomain *infrav1.VSphereFailureDomain
 }
@@ -47,11 +45,6 @@ func (c *VMContext) String() string {
 // Patch updates the object and its status on the API server.
 func (c *VMContext) Patch(ctx context.Context) error {
 	return c.PatchHelper.Patch(ctx, c.VSphereVM)
-}
-
-// GetLogger returns this context's logger.
-func (c *VMContext) GetLogger() logr.Logger {
-	return c.Logger
 }
 
 // GetSession returns this context's session.

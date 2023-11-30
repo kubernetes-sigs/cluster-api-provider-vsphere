@@ -19,7 +19,6 @@ package controllers
 import (
 	"testing"
 
-	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -276,11 +275,7 @@ var _ = Describe("VSphereDeploymentZoneReconciler", func() {
 					Expect(testEnv.Delete(ctx, vsphereDeploymentZone)).To(Succeed())
 
 					Eventually(func() bool {
-						if err := testEnv.Get(ctx, deploymentZoneKey, vsphereDeploymentZone); err != nil {
-							return false
-						}
-						return !vsphereDeploymentZone.DeletionTimestamp.IsZero() &&
-							len(vsphereDeploymentZone.Finalizers) > 0
+						return apierrors.IsNotFound(testEnv.Get(ctx, deploymentZoneKey, vsphereDeploymentZone))
 					}, timeout).Should(BeTrue())
 				})
 			})
@@ -610,13 +605,12 @@ func TestVsphereDeploymentZone_Failed_ReconcilePlacementConstraint(t *testing.T)
 			}
 			defer simr.Destroy()
 
-			mgmtContext := fake.NewControllerManagerContext()
-			mgmtContext.Username = simr.ServerURL().User.Username()
+			controllerManagerContext := fake.NewControllerManagerContext()
+			controllerManagerContext.Username = simr.ServerURL().User.Username()
 			pass, _ := simr.ServerURL().User.Password()
-			mgmtContext.Password = pass
+			controllerManagerContext.Password = pass
 
-			controllerCtx := fake.NewControllerContext(mgmtContext)
-			Expect(controllerCtx.Client.Create(ctx, &infrav1.VSphereFailureDomain{
+			Expect(controllerManagerContext.Client.Create(ctx, &infrav1.VSphereFailureDomain{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "blah",
 				},
@@ -629,17 +623,16 @@ func TestVsphereDeploymentZone_Failed_ReconcilePlacementConstraint(t *testing.T)
 			})).To(Succeed())
 
 			deploymentZoneCtx := &capvcontext.VSphereDeploymentZoneContext{
-				ControllerContext: controllerCtx,
+				ControllerManagerContext: controllerManagerContext,
 				VSphereDeploymentZone: &infrav1.VSphereDeploymentZone{Spec: infrav1.VSphereDeploymentZoneSpec{
 					Server:              simr.ServerURL().Host,
 					FailureDomain:       "blah",
 					ControlPlane:        pointer.Bool(true),
 					PlacementConstraint: tt.placementConstraint,
 				}},
-				Logger: logr.Discard(),
 			}
 
-			reconciler := vsphereDeploymentZoneReconciler{controllerCtx}
+			reconciler := vsphereDeploymentZoneReconciler{controllerManagerContext}
 			err = reconciler.reconcileNormal(ctx, deploymentZoneCtx)
 			g.Expect(err).To(HaveOccurred())
 		})
@@ -678,16 +671,14 @@ func TestVSphereDeploymentZoneReconciler_ReconcileDelete(t *testing.T) {
 		machineUsingDeplZone.Spec.FailureDomain = pointer.String("blah")
 
 		t.Run("should block deletion", func(t *testing.T) {
-			mgmtContext := fake.NewControllerManagerContext(machineUsingDeplZone, vsphereFailureDomain)
-			controllerCtx := fake.NewControllerContext(mgmtContext)
+			controllerManagerContext := fake.NewControllerManagerContext(machineUsingDeplZone, vsphereFailureDomain)
 			deploymentZoneCtx := &capvcontext.VSphereDeploymentZoneContext{
-				ControllerContext:     controllerCtx,
-				VSphereDeploymentZone: vsphereDeploymentZone,
-				Logger:                logr.Discard(),
+				ControllerManagerContext: controllerManagerContext,
+				VSphereDeploymentZone:    vsphereDeploymentZone,
 			}
 
 			g := NewWithT(t)
-			reconciler := vsphereDeploymentZoneReconciler{controllerCtx}
+			reconciler := vsphereDeploymentZoneReconciler{controllerManagerContext}
 			err := reconciler.reconcileDelete(ctx, deploymentZoneCtx)
 			g.Expect(err).To(HaveOccurred())
 			g.Expect(err.Error()).To(MatchRegexp(".*[is currently in use]{1}.*"))
@@ -699,16 +690,14 @@ func TestVSphereDeploymentZoneReconciler_ReconcileDelete(t *testing.T) {
 			machineUsingDeplZone.DeletionTimestamp = &deletionTime
 			machineUsingDeplZone.Finalizers = append(machineUsingDeplZone.Finalizers, "keep-this-for-the-test")
 
-			mgmtContext := fake.NewControllerManagerContext(machineUsingDeplZone, vsphereFailureDomain)
-			controllerCtx := fake.NewControllerContext(mgmtContext)
+			controllerManagerContext := fake.NewControllerManagerContext(machineUsingDeplZone, vsphereFailureDomain)
 			deploymentZoneCtx := &capvcontext.VSphereDeploymentZoneContext{
-				ControllerContext:     controllerCtx,
-				VSphereDeploymentZone: vsphereDeploymentZone,
-				Logger:                logr.Discard(),
+				ControllerManagerContext: controllerManagerContext,
+				VSphereDeploymentZone:    vsphereDeploymentZone,
 			}
 
 			g := NewWithT(t)
-			reconciler := vsphereDeploymentZoneReconciler{controllerCtx}
+			reconciler := vsphereDeploymentZoneReconciler{controllerManagerContext}
 			err := reconciler.reconcileDelete(ctx, deploymentZoneCtx)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(vsphereDeploymentZone.Finalizers).To(BeEmpty())
@@ -717,32 +706,28 @@ func TestVSphereDeploymentZoneReconciler_ReconcileDelete(t *testing.T) {
 
 	t.Run("when machines are not using deployment zone", func(t *testing.T) {
 		machineNotUsingDeplZone := createMachine("machine-1", "cluster-1", "ns", false)
-		mgmtContext := fake.NewControllerManagerContext(machineNotUsingDeplZone, vsphereFailureDomain)
-		controllerCtx := fake.NewControllerContext(mgmtContext)
+		controllerManagerContext := fake.NewControllerManagerContext(machineNotUsingDeplZone, vsphereFailureDomain)
 		deploymentZoneCtx := &capvcontext.VSphereDeploymentZoneContext{
-			ControllerContext:     controllerCtx,
-			VSphereDeploymentZone: vsphereDeploymentZone,
-			Logger:                logr.Discard(),
+			ControllerManagerContext: controllerManagerContext,
+			VSphereDeploymentZone:    vsphereDeploymentZone,
 		}
 
 		g := NewWithT(t)
-		reconciler := vsphereDeploymentZoneReconciler{controllerCtx}
+		reconciler := vsphereDeploymentZoneReconciler{controllerManagerContext}
 		err := reconciler.reconcileDelete(ctx, deploymentZoneCtx)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(vsphereDeploymentZone.Finalizers).To(BeEmpty())
 	})
 
 	t.Run("when no machines are present", func(t *testing.T) {
-		mgmtContext := fake.NewControllerManagerContext(vsphereFailureDomain)
-		controllerCtx := fake.NewControllerContext(mgmtContext)
+		controllerManagerContext := fake.NewControllerManagerContext(vsphereFailureDomain)
 		deploymentZoneCtx := &capvcontext.VSphereDeploymentZoneContext{
-			ControllerContext:     controllerCtx,
-			VSphereDeploymentZone: vsphereDeploymentZone,
-			Logger:                logr.Discard(),
+			ControllerManagerContext: controllerManagerContext,
+			VSphereDeploymentZone:    vsphereDeploymentZone,
 		}
 
 		g := NewWithT(t)
-		reconciler := vsphereDeploymentZoneReconciler{controllerCtx}
+		reconciler := vsphereDeploymentZoneReconciler{controllerManagerContext}
 		err := reconciler.reconcileDelete(ctx, deploymentZoneCtx)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(vsphereDeploymentZone.Finalizers).To(BeEmpty())
@@ -756,16 +741,14 @@ func TestVSphereDeploymentZoneReconciler_ReconcileDelete(t *testing.T) {
 		}}
 
 		t.Run("when not used by other deployment zones", func(t *testing.T) {
-			mgmtContext := fake.NewControllerManagerContext(vsphereFailureDomain)
-			controllerCtx := fake.NewControllerContext(mgmtContext)
+			controllerManagerContext := fake.NewControllerManagerContext(vsphereFailureDomain)
 			deploymentZoneCtx := &capvcontext.VSphereDeploymentZoneContext{
-				ControllerContext:     controllerCtx,
-				VSphereDeploymentZone: vsphereDeploymentZone,
-				Logger:                logr.Discard(),
+				ControllerManagerContext: controllerManagerContext,
+				VSphereDeploymentZone:    vsphereDeploymentZone,
 			}
 
 			g := NewWithT(t)
-			reconciler := vsphereDeploymentZoneReconciler{controllerCtx}
+			reconciler := vsphereDeploymentZoneReconciler{controllerManagerContext}
 			err := reconciler.reconcileDelete(ctx, deploymentZoneCtx)
 			g.Expect(err).NotTo(HaveOccurred())
 		})
@@ -777,21 +760,19 @@ func TestVSphereDeploymentZoneReconciler_ReconcileDelete(t *testing.T) {
 				Name:       "another-deployment-zone",
 			})
 
-			mgmtContext := fake.NewControllerManagerContext(vsphereFailureDomain)
-			controllerCtx := fake.NewControllerContext(mgmtContext)
+			controllerManagerContext := fake.NewControllerManagerContext(vsphereFailureDomain)
 			deploymentZoneCtx := &capvcontext.VSphereDeploymentZoneContext{
-				ControllerContext:     controllerCtx,
-				VSphereDeploymentZone: vsphereDeploymentZone,
-				Logger:                logr.Discard(),
+				ControllerManagerContext: controllerManagerContext,
+				VSphereDeploymentZone:    vsphereDeploymentZone,
 			}
 
 			g := NewWithT(t)
-			reconciler := vsphereDeploymentZoneReconciler{controllerCtx}
+			reconciler := vsphereDeploymentZoneReconciler{controllerManagerContext}
 			err := reconciler.reconcileDelete(ctx, deploymentZoneCtx)
 			g.Expect(err).NotTo(HaveOccurred())
 
 			fetchedFailureDomain := &infrav1.VSphereFailureDomain{}
-			g.Expect(mgmtContext.Client.Get(ctx, client.ObjectKey{Name: vsphereFailureDomain.Name}, fetchedFailureDomain)).To(Succeed())
+			g.Expect(controllerManagerContext.Client.Get(ctx, client.ObjectKey{Name: vsphereFailureDomain.Name}, fetchedFailureDomain)).To(Succeed())
 			g.Expect(fetchedFailureDomain.OwnerReferences).To(HaveLen(1))
 		})
 	})

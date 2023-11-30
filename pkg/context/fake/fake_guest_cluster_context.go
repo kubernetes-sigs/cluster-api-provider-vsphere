@@ -30,10 +30,10 @@ import (
 
 // NewGuestClusterContext returns a fake GuestClusterContext for unit testing
 // guest cluster controllers with a fake client.
-func NewGuestClusterContext(ctx context.Context, clusterCtx *vmware.ClusterContext, controllerCtx *capvcontext.ControllerContext, prototypeCluster bool, gcInitObjects ...client.Object) *vmware.GuestClusterContext {
+func NewGuestClusterContext(ctx context.Context, clusterCtx *vmware.ClusterContext, controllerManagerCtx *capvcontext.ControllerManagerContext, prototypeCluster bool, gcInitObjects ...client.Object) *vmware.GuestClusterContext {
 	if prototypeCluster {
 		cluster := newCluster(clusterCtx.VSphereCluster)
-		if err := controllerCtx.Client.Create(ctx, cluster); err != nil {
+		if err := controllerManagerCtx.Client.Create(ctx, cluster); err != nil {
 			panic(err)
 		}
 	}

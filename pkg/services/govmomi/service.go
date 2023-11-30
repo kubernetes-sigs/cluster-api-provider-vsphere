@@ -34,6 +34,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
@@ -179,6 +180,8 @@ func (vms *VMService) ReconcileVM(ctx context.Context, vmCtx *capvcontext.VMCont
 
 // DestroyVM powers off and destroys a virtual machine.
 func (vms *VMService) DestroyVM(ctx context.Context, vmCtx *capvcontext.VMContext) (reconcile.Result, infrav1.VirtualMachine, error) {
+	log := ctrl.LoggerFrom(ctx)
+
 	vm := infrav1.VirtualMachine{
 		Name:  vmCtx.VSphereVM.Name,
 		State: infrav1.VirtualMachineStatePending,
@@ -246,11 +249,10 @@ func (vms *VMService) DestroyVM(ctx context.Context, vmCtx *capvcontext.VMContex
 
 		virtualMachineCtx.VSphereVM.Status.TaskRef = task.Reference().Value
 		if err = virtualMachineCtx.Patch(ctx); err != nil {
-			vmCtx.Logger.Error(err, "patch failed", "vm", virtualMachineCtx.String())
-			return reconcile.Result{}, vm, err
+			return reconcile.Result{}, vm, errors.Wrapf(err, "failed to patch VSphereVM")
 		}
 
-		virtualMachineCtx.Logger.Info("wait for VM to be powered off")
+		log.Info("Wait for VM to be powered off")
 		return reconcile.Result{}, vm, nil
 	}
 
@@ -259,8 +261,11 @@ func (vms *VMService) DestroyVM(ctx context.Context, vmCtx *capvcontext.VMContex
 		conditions.MarkTrue(virtualMachineCtx.VSphereVM, infrav1.GuestSoftPowerOffSucceededCondition)
 	}
 
-	vmCtx.Logger.Info("VM is powered off", "vmref", vmRef.Reference())
+	log.Info("VM is powered off")
 	if vmCtx.ClusterModuleInfo != nil {
+		log := log.WithValues("moduleUUID", *vmCtx.ClusterModuleInfo)
+		ctx := ctrl.LoggerInto(ctx, log)
+
 		provider := clustermodules.NewProvider(vmCtx.Session.TagManager.Client)
 		err := provider.RemoveMoRefFromModule(ctx, *vmCtx.ClusterModuleInfo, virtualMachineCtx.Ref)
 		if err != nil && !util.IsNotFoundError(err) {
@@ -271,13 +276,13 @@ func (vms *VMService) DestroyVM(ctx context.Context, vmCtx *capvcontext.VMContex
 
 	// At this point the VM is not powered on and can be destroyed. Store the
 	// destroy task's reference and return a requeue error.
-	vmCtx.Logger.Info("destroying vm")
+	log.Info("Destroying vm")
 	task, err := virtualMachineCtx.Obj.Destroy(ctx)
 	if err != nil {
 		return reconcile.Result{}, vm, err
 	}
 	vmCtx.VSphereVM.Status.TaskRef = task.Reference().Value
-	vmCtx.Logger.Info("wait for VM to be destroyed")
+	log.Info("Wait for VM to be destroyed")
 	return reconcile.Result{}, vm, nil
 }
 
@@ -308,6 +313,8 @@ func (vms *VMService) reconcileIPAddresses(ctx context.Context, virtualMachineCt
 }
 
 func (vms *VMService) reconcileMetadata(ctx context.Context, virtualMachineCtx *virtualMachineContext) (bool, error) {
+	log := ctrl.LoggerFrom(ctx)
+
 	existingMetadata, err := vms.getMetadata(ctx, virtualMachineCtx)
 	if err != nil {
 		return false, err
@@ -323,25 +330,27 @@ func (vms *VMService) reconcileMetadata(ctx context.Context, virtualMachineCtx *
 		return true, nil
 	}
 
-	virtualMachineCtx.Logger.Info("updating metadata")
+	log.Info("Updating VM metadata")
 	taskRef, err := vms.setMetadata(ctx, virtualMachineCtx, newMetadata)
 	if err != nil {
 		return false, errors.Wrapf(err, "unable to set metadata on vm %s", ctx)
 	}
 
 	virtualMachineCtx.VSphereVM.Status.TaskRef = taskRef
-	virtualMachineCtx.Logger.Info("wait for VM metadata to be updated")
+	log.Info("Wait for VM metadata to be updated")
 	return false, nil
 }
 
 func (vms *VMService) reconcilePowerState(ctx context.Context, virtualMachineCtx *virtualMachineContext) (bool, error) {
+	log := ctrl.LoggerFrom(ctx)
+
 	powerState, err := vms.getPowerState(ctx, virtualMachineCtx)
 	if err != nil {
 		return false, err
 	}
 	switch powerState {
 	case infrav1.VirtualMachinePowerStatePoweredOff:
-		virtualMachineCtx.Logger.Info("powering on")
+		log.Info("Powering on VM")
 		task, err := virtualMachineCtx.Obj.PowerOn(ctx)
 		if err != nil {
 			conditions.MarkFalse(virtualMachineCtx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.PoweringOnFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
@@ -352,18 +361,17 @@ func (vms *VMService) reconcilePowerState(ctx context.Context, virtualMachineCtx
 		// Update the VSphereVM.Status.TaskRef to track the power-on task.
 		virtualMachineCtx.VSphereVM.Status.TaskRef = task.Reference().Value
 		if err = virtualMachineCtx.Patch(ctx); err != nil {
-			virtualMachineCtx.Logger.Error(err, "patch failed", "vm", virtualMachineCtx.String())
-			return false, err
+			return false, errors.Wrapf(err, "failed to patch VSphereVM")
 		}
 
 		// Once the VM is successfully powered on, a reconcile request should be
 		// triggered once the VM reports IP addresses are available.
 		reconcileVSphereVMWhenNetworkIsReady(ctx, virtualMachineCtx, task)
 
-		virtualMachineCtx.Logger.Info("wait for VM to be powered on")
+		log.Info("Wait for VM to be powered on")
 		return false, nil
 	case infrav1.VirtualMachinePowerStatePoweredOn:
-		virtualMachineCtx.Logger.Info("powered on")
+		log.Info("VM is powered on")
 		return true, nil
 	default:
 		return false, errors.Errorf("unexpected power state %q for vm %s", powerState, ctx)
@@ -371,8 +379,10 @@ func (vms *VMService) reconcilePowerState(ctx context.Context, virtualMachineCtx
 }
 
 func (vms *VMService) reconcileStoragePolicy(ctx context.Context, virtualMachineCtx *virtualMachineContext) error {
+	log := ctrl.LoggerFrom(ctx)
+
 	if virtualMachineCtx.VSphereVM.Spec.StoragePolicyName == "" {
-		virtualMachineCtx.Logger.V(5).Info("storage policy not defined. skipping reconcile storage policy")
+		log.V(5).Info("Storage policy not defined. skipping reconcile storage policy")
 		return nil
 	}
 
@@ -382,7 +392,7 @@ func (vms *VMService) reconcileStoragePolicy(ctx context.Context, virtualMachine
 		return err
 	}
 	if powerState == infrav1.VirtualMachinePowerStatePoweredOn {
-		virtualMachineCtx.Logger.Info("VM powered on. skipping reconcile storage policy")
+		log.Info("VM powered on. Skipping reconcile storage policy")
 		return nil
 	}
 
@@ -432,7 +442,7 @@ func (vms *VMService) reconcileStoragePolicy(ctx context.Context, virtualMachine
 	// Ensure storage policy is set correctly for all disks of the VM
 	for k := range diskObjects {
 		if !isStoragePolicyIDPresent(storageProfileID, diskObjects[k]) {
-			virtualMachineCtx.Logger.V(5).Info("storage policy not found on disk, adding for reconciliation", "disk", diskObjects[k].Object.Key)
+			log.V(5).Info("Storage policy not found on disk, adding for reconciliation", "disk", diskObjects[k].Object.Key)
 			config := &types.VirtualDeviceConfigSpec{
 				Operation: types.VirtualDeviceConfigSpecOperationEdit,
 				Device:    diskMap[diskObjects[k].Object.Key],
@@ -465,6 +475,8 @@ func (vms *VMService) reconcileUUID(ctx context.Context, virtualMachineCtx *virt
 }
 
 func (vms *VMService) reconcileHardwareVersion(ctx context.Context, virtualMachineCtx *virtualMachineContext) (bool, error) {
+	log := ctrl.LoggerFrom(ctx)
+
 	if virtualMachineCtx.VSphereVM.Spec.HardwareVersion != "" {
 		var virtualMachine mo.VirtualMachine
 		if err := virtualMachineCtx.Obj.Properties(ctx, virtualMachineCtx.Obj.Reference(), []string{"config.version"}, &virtualMachine); err != nil {
@@ -475,9 +487,7 @@ func (vms *VMService) reconcileHardwareVersion(ctx context.Context, virtualMachi
 			return false, errors.Wrapf(err, "failed to parse hardware version")
 		}
 		if toUpgrade {
-			virtualMachineCtx.Logger.Info("upgrading hardware version",
-				"from", virtualMachine.Config.Version,
-				"to", virtualMachineCtx.VSphereVM.Spec.HardwareVersion)
+			log.Info("Upgrading hardware version", "fromVersion", virtualMachine.Config.Version, "toVersion", virtualMachineCtx.VSphereVM.Spec.HardwareVersion)
 			task, err := virtualMachineCtx.Obj.UpgradeVM(ctx, virtualMachineCtx.VSphereVM.Spec.HardwareVersion)
 			if err != nil {
 				return false, errors.Wrapf(err, "error trigging upgrade op for machine %s", ctx)
@@ -490,6 +500,8 @@ func (vms *VMService) reconcileHardwareVersion(ctx context.Context, virtualMachi
 }
 
 func (vms *VMService) reconcilePCIDevices(ctx context.Context, virtualMachineCtx *virtualMachineContext) error {
+	log := ctrl.LoggerFrom(ctx)
+
 	if expectedPciDevices := virtualMachineCtx.VSphereVM.Spec.VirtualMachineCloneSpec.PciDevices; len(expectedPciDevices) != 0 {
 		specsToBeAdded, err := pci.CalculateDevicesToBeAdded(ctx, virtualMachineCtx.Obj, expectedPciDevices)
 		if err != nil {
@@ -500,7 +512,7 @@ func (vms *VMService) reconcilePCIDevices(ctx context.Context, virtualMachineCtx
 			if conditions.Has(virtualMachineCtx.VSphereVM, infrav1.PCIDevicesDetachedCondition) {
 				conditions.Delete(virtualMachineCtx.VSphereVM, infrav1.PCIDevicesDetachedCondition)
 			}
-			virtualMachineCtx.Logger.V(5).Info("no new PCI devices to be added")
+			log.V(5).Info("No new PCI devices to be added")
 			return nil
 		}
 
@@ -511,7 +523,7 @@ func (vms *VMService) reconcilePCIDevices(ctx context.Context, virtualMachineCtx
 		if powerState == types.VirtualMachinePowerStatePoweredOn {
 			// This would arise only when the PCI device is manually removed from
 			// the VM post creation.
-			virtualMachineCtx.Logger.Info("PCI device cannot be attached in powered on state")
+			log.Info("PCI device cannot be attached in powered on state")
 			conditions.MarkFalse(virtualMachineCtx.VSphereVM,
 				infrav1.PCIDevicesDetachedCondition,
 				infrav1.NotFoundReason,
@@ -519,7 +531,7 @@ func (vms *VMService) reconcilePCIDevices(ctx context.Context, virtualMachineCtx
 				"PCI devices removed after VM was powered on")
 			return errors.Errorf("missing PCI devices")
 		}
-		virtualMachineCtx.Logger.Info("PCI devices to be added", "number", len(specsToBeAdded))
+		log.Info("PCI devices to be added", "number", len(specsToBeAdded))
 		if err := virtualMachineCtx.Obj.AddDevice(ctx, pci.ConstructDeviceSpecs(specsToBeAdded)...); err != nil {
 			return errors.Wrapf(err, "error adding pci devices for %q", ctx)
 		}
@@ -592,16 +604,18 @@ func (vms *VMService) setMetadata(ctx context.Context, virtualMachineCtx *virtua
 }
 
 func (vms *VMService) getNetworkStatus(ctx context.Context, virtualMachineCtx *virtualMachineContext) ([]infrav1.NetworkStatus, error) {
+	log := ctrl.LoggerFrom(ctx)
+
 	allNetStatus, err := govmominet.GetNetworkStatus(ctx, virtualMachineCtx.Session.Client.Client, virtualMachineCtx.Ref)
 	if err != nil {
 		return nil, err
 	}
-	virtualMachineCtx.Logger.V(4).Info("got allNetStatus", "status", allNetStatus)
+	log.V(4).Info("Got allNetStatus", "status", allNetStatus)
 	apiNetStatus := []infrav1.NetworkStatus{}
 	for _, s := range allNetStatus {
 		apiNetStatus = append(apiNetStatus, infrav1.NetworkStatus{
 			Connected:   s.Connected,
-			IPAddrs:     sanitizeIPAddrs(&virtualMachineCtx.VMContext, s.IPAddrs),
+			IPAddrs:     sanitizeIPAddrs(ctx, s.IPAddrs),
 			MACAddr:     s.MACAddr,
 			NetworkName: s.NetworkName,
 		})
@@ -612,8 +626,10 @@ func (vms *VMService) getNetworkStatus(ctx context.Context, virtualMachineCtx *v
 // getBootstrapData obtains a machine's bootstrap data from the relevant k8s secret and returns the
 // data and its format.
 func (vms *VMService) getBootstrapData(ctx context.Context, vmCtx *capvcontext.VMContext) ([]byte, bootstrapv1.Format, error) {
+	log := ctrl.LoggerFrom(ctx)
+
 	if vmCtx.VSphereVM.Spec.BootstrapRef == nil {
-		vmCtx.Logger.Info("VM has no bootstrap data")
+		log.Info("VM has no bootstrap data")
 		return nil, "", nil
 	}
 
@@ -623,7 +639,7 @@ func (vms *VMService) getBootstrapData(ctx context.Context, vmCtx *capvcontext.V
 		Name:      vmCtx.VSphereVM.Spec.BootstrapRef.Name,
 	}
 	if err := vmCtx.Client.Get(ctx, secretKey, secret); err != nil {
-		return nil, "", errors.Wrapf(err, "failed to retrieve bootstrap data secret for %s", ctx)
+		return nil, "", errors.Wrapf(err, "failed to get bootstrap data secret for %s", ctx)
 	}
 
 	format, ok := secret.Data["format"]
@@ -641,8 +657,10 @@ func (vms *VMService) getBootstrapData(ctx context.Context, vmCtx *capvcontext.V
 }
 
 func (vms *VMService) reconcileVMGroupInfo(ctx context.Context, virtualMachineCtx *virtualMachineContext) (bool, error) {
+	log := ctrl.LoggerFrom(ctx)
+
 	if virtualMachineCtx.VSphereFailureDomain == nil || virtualMachineCtx.VSphereFailureDomain.Spec.Topology.Hosts == nil {
-		virtualMachineCtx.Logger.V(5).Info("hosts topology in failure domain not defined. skipping reconcile VM group")
+		log.V(5).Info("Hosts topology in failure domain not defined. skipping reconcile VM group")
 		return true, nil
 	}
 
@@ -663,15 +681,17 @@ func (vms *VMService) reconcileVMGroupInfo(ctx context.Context, virtualMachineCt
 			return false, errors.Wrapf(err, "failed to add VM %s to VM group", virtualMachineCtx.VSphereVM.Name)
 		}
 		virtualMachineCtx.VSphereVM.Status.TaskRef = task.Reference().Value
-		virtualMachineCtx.Logger.Info("wait for VM to be added to group")
+		log.Info("Wait for VM to be added to group")
 		return false, nil
 	}
 	return true, nil
 }
 
 func (vms *VMService) reconcileTags(ctx context.Context, virtualMachineCtx *virtualMachineContext) error {
+	log := ctrl.LoggerFrom(ctx)
+
 	if len(virtualMachineCtx.VSphereVM.Spec.TagIDs) == 0 {
-		virtualMachineCtx.Logger.V(5).Info("no tags defined. skipping tags reconciliation")
+		log.V(5).Info("No tags defined. skipping tags reconciliation")
 		return nil
 	}
 
@@ -684,8 +704,12 @@ func (vms *VMService) reconcileTags(ctx context.Context, virtualMachineCtx *virt
 }
 
 func (vms *VMService) reconcileClusterModuleMembership(ctx context.Context, virtualMachineCtx *virtualMachineContext) error {
+	log := ctrl.LoggerFrom(ctx)
+
 	if virtualMachineCtx.ClusterModuleInfo != nil {
-		virtualMachineCtx.Logger.V(5).Info("add vm to module", "moduleUUID", *virtualMachineCtx.ClusterModuleInfo)
+		log := log.WithValues("moduleUUID", *virtualMachineCtx.ClusterModuleInfo)
+		ctx := ctrl.LoggerInto(ctx, log)
+
 		provider := clustermodules.NewProvider(virtualMachineCtx.Session.TagManager.Client)
 
 		if err := provider.AddMoRefToModule(ctx, *virtualMachineCtx.ClusterModuleInfo, virtualMachineCtx.Ref); err != nil {

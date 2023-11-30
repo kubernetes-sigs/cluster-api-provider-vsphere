@@ -17,11 +17,11 @@ limitations under the License.
 package govmomi
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
 
-	"github.com/go-logr/logr"
 	. "github.com/onsi/gomega"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
@@ -33,12 +33,14 @@ import (
 )
 
 func Test_ShouldRetryTask(t *testing.T) {
+	ctx := context.Background()
+
 	t.Run("when no task is present", func(t *testing.T) {
 		g := NewWithT(t)
 		vmCtx := &capvcontext.VMContext{
 			VSphereVM: &infrav1.VSphereVM{Status: infrav1.VSphereVMStatus{TaskRef: ""}},
 		}
-		reconciled, err := checkAndRetryTask(vmCtx, nil)
+		reconciled, err := checkAndRetryTask(ctx, vmCtx, nil)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(reconciled).To(BeFalse())
 		g.Expect(vmCtx.VSphereVM.Status.TaskRef).To(BeEmpty())
@@ -54,7 +56,7 @@ func Test_ShouldRetryTask(t *testing.T) {
 		}
 
 		// passing nil task since the task will not be reconciled
-		reconciled, err := checkAndRetryTask(vmCtx, nil)
+		reconciled, err := checkAndRetryTask(ctx, vmCtx, nil)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(reconciled).To(BeFalse())
 		g.Expect(vmCtx.VSphereVM.Status.TaskRef).To(BeEmpty())
@@ -64,7 +66,6 @@ func Test_ShouldRetryTask(t *testing.T) {
 		g := NewWithT(t)
 
 		vmCtx := &capvcontext.VMContext{
-			Logger: logr.Discard(),
 			VSphereVM: &infrav1.VSphereVM{Status: infrav1.VSphereVMStatus{
 				TaskRef:    "task-123",
 				RetryAfter: metav1.Time{Time: time.Now().Add(-1 * time.Minute)},
@@ -84,7 +85,7 @@ func Test_ShouldRetryTask(t *testing.T) {
 				tt := tests[i]
 				t.Run(fmt.Sprintf("state: %s", tt.task.Info.State), func(t *testing.T) {
 					g = NewWithT(t)
-					reconciled, err := checkAndRetryTask(vmCtx, &tt.task)
+					reconciled, err := checkAndRetryTask(ctx, vmCtx, &tt.task)
 					g.Expect(err).NotTo(HaveOccurred())
 					if tt.isRefEmpty {
 						g.Expect(reconciled).To(BeFalse())
@@ -100,7 +101,7 @@ func Test_ShouldRetryTask(t *testing.T) {
 		t.Run("for task in error state", func(t *testing.T) {
 			task := baseTask(types.TaskInfoStateError, "task is stuck")
 
-			reconciled, err := checkAndRetryTask(vmCtx, &task)
+			reconciled, err := checkAndRetryTask(ctx, vmCtx, &task)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(reconciled).To(BeTrue())
 			g.Expect(conditions.IsFalse(vmCtx.VSphereVM, infrav1.VMProvisionedCondition)).To(BeTrue())
@@ -112,7 +113,6 @@ func Test_ShouldRetryTask(t *testing.T) {
 	t.Run("when failed task was previously not checked", func(t *testing.T) {
 		g := NewWithT(t)
 		vmCtx := &capvcontext.VMContext{
-			Logger: logr.Discard(),
 			VSphereVM: &infrav1.VSphereVM{Status: infrav1.VSphereVMStatus{
 				// RetryAfter is not set since this is the first reconcile
 				TaskRef: "task-123",
@@ -120,7 +120,7 @@ func Test_ShouldRetryTask(t *testing.T) {
 		}
 		task := baseTask(types.TaskInfoStateError, "task is stuck")
 
-		reconciled, err := checkAndRetryTask(vmCtx, &task)
+		reconciled, err := checkAndRetryTask(ctx, vmCtx, &task)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(reconciled).To(BeTrue())
 		g.Expect(conditions.IsFalse(vmCtx.VSphereVM, infrav1.VMProvisionedCondition)).To(BeTrue())

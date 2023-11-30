@@ -29,10 +29,10 @@ import (
 
 // BaseMachineContext contains information about a CAPI Machine for VSphereMachine reconciliation.
 type BaseMachineContext struct {
-	ControllerContext *ControllerContext
-	Cluster           *clusterv1.Cluster
-	Machine           *clusterv1.Machine
-	PatchHelper       *patch.Helper
+	ControllerManagerContext *ControllerManagerContext
+	Cluster                  *clusterv1.Cluster
+	Machine                  *clusterv1.Machine
+	PatchHelper              *patch.Helper
 }
 
 // GetCluster returns the cluster for the BaseMachineContext.

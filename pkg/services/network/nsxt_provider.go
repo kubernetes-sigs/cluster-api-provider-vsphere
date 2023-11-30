@@ -90,8 +90,8 @@ func (np *nsxtNetworkProvider) ProvisionClusterNetwork(ctx context.Context, clus
 
 	cluster := clusterCtx.VSphereCluster
 
-	log.V(2).Info("Provisioning ", "vnet", GetNSXTVirtualNetworkName(cluster.Name))
-	defer log.V(2).Info("Finished provisioning", "vnet", GetNSXTVirtualNetworkName(cluster.Name))
+	log.Info("Provisioning ", "vnet", GetNSXTVirtualNetworkName(cluster.Name))
+	defer log.Info("Finished provisioning", "vnet", GetNSXTVirtualNetworkName(cluster.Name))
 
 	vnet := &ncpv1.VirtualNetwork{
 		ObjectMeta: metav1.ObjectMeta{
@@ -105,18 +105,16 @@ func (np *nsxtNetworkProvider) ProvisionClusterNetwork(ctx context.Context, clus
 		if np.disableFW != "true" && vnet.Spec.WhitelistSourceRanges == "" {
 			supportFW, err := util.NCPSupportFW(ctx, np.client)
 			if err != nil {
-				log.Error(err, "failed to check if NCP supports firewall rules enforcement on GC T1 router")
-				return err
+				return errors.Wrap(err, "failed to check if NCP supports firewall rules enforcement on GC T1 router")
 			}
 			// specify whitelist_source_ranges if needed and if NCP supports it
 			if supportFW {
 				// Find system namespace snat ip
 				systemNSSnatIP, err := util.GetNamespaceNetSnatIP(ctx, np.client, SystemNamespace)
 				if err != nil {
-					log.Error(err, "failed to get Snat IP for kube-system")
-					return err
+					return errors.Wrap(err, "failed to get Snat IP for kube-system")
 				}
-				log.V(4).Info("got system namespace snat ip", "ip", systemNSSnatIP)
+				log.V(4).Info("Got system namespace snat ip", "ip", systemNSSnatIP)
 
 				// WhitelistSourceRanges accept cidrs only
 				vnet.Spec.WhitelistSourceRanges = systemNSSnatIP + "/32"
@@ -142,8 +140,7 @@ func (np *nsxtNetworkProvider) ProvisionClusterNetwork(ctx context.Context, clus
 	})
 	if err != nil {
 		conditions.MarkFalse(clusterCtx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition, vmwarev1.ClusterNetworkProvisionFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
-		log.V(2).Info("Failed to provision network")
-		return err
+		return errors.Wrap(err, "Failed to provision network")
 	}
 
 	return np.verifyNSXTVirtualNetworkStatus(clusterCtx, vnet)

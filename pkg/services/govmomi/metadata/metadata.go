@@ -20,6 +20,7 @@ package metadata
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	"github.com/vmware/govmomi/vapi/tags"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -46,11 +47,11 @@ func getCategoryAssociableType(domainType infrav1.FailureDomainType) string {
 
 // CreateCategory either creates a new vSphere category or updates the associable type for an existing category.
 func CreateCategory(ctx context.Context, metadataCtx metadataContext, name string, failureDomainType infrav1.FailureDomainType) (string, error) {
-	logger := ctrl.LoggerFrom(ctx, "category", name)
+	log := ctrl.LoggerFrom(ctx)
 	manager := metadataCtx.GetSession().TagManager
 	category, err := manager.GetCategory(ctx, name)
 	if err != nil {
-		logger.V(4).Info("failed to find existing category, creating a new category")
+		log.Info("Failed to find existing category, creating a new category")
 		id, err := manager.CreateCategory(ctx, getCategoryObject(name, failureDomainType))
 		if err != nil {
 			return "", err
@@ -59,8 +60,7 @@ func CreateCategory(ctx context.Context, metadataCtx metadataContext, name strin
 	}
 	category.Patch(getCategoryObject(name, failureDomainType))
 	if err := manager.UpdateCategory(ctx, category); err != nil {
-		logger.V(4).Error(err, "failed to update existing category")
-		return "", err
+		return "", errors.Wrapf(err, "failed to update existing category")
 	}
 	return category.ID, nil
 }
@@ -76,11 +76,11 @@ func getCategoryObject(name string, failureDomainType infrav1.FailureDomainType)
 
 // CreateTag creates a new tag with the given with the given Name, and CategoryID.
 func CreateTag(ctx context.Context, metadataCtx metadataContext, name, categoryID string) error {
-	logger := ctrl.LoggerFrom(ctx, "tag", name, "category", categoryID)
+	logger := ctrl.LoggerFrom(ctx)
 	manager := metadataCtx.GetSession().TagManager
 	_, err := manager.GetTag(ctx, name)
 	if err != nil {
-		logger.V(4).Info("failed to find existing tag, creating a new tag")
+		logger.Info("Failed to find existing tag, creating a new tag")
 		_, err = manager.CreateTag(ctx, &tags.Tag{
 			Description: "CAPV generated tag for Failure Domain support",
 			Name:        name,

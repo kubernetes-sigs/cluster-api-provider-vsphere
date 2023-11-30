@@ -44,7 +44,6 @@ import (
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/identity"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services"
 	fake_svc "sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/fake"
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers/vcsim"
@@ -478,7 +477,7 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 		controllerMgrContext := fake.NewControllerManagerContext(initObjs...)
 
 		r := vmReconciler{
-			Recorder:                 record.New(apirecord.NewFakeRecorder(100)),
+			Recorder:                 apirecord.NewFakeRecorder(100),
 			ControllerManagerContext: controllerMgrContext,
 		}
 
@@ -512,7 +511,7 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 		controllerMgrContext := fake.NewControllerManagerContext(initObjs...)
 
 		r := vmReconciler{
-			Recorder:                 record.New(apirecord.NewFakeRecorder(100)),
+			Recorder:                 apirecord.NewFakeRecorder(100),
 			ControllerManagerContext: controllerMgrContext,
 		}
 
@@ -560,7 +559,7 @@ func Test_reconcile(t *testing.T) {
 
 	setupReconciler := func(vmService services.VirtualMachineService, initObjs ...client.Object) vmReconciler {
 		return vmReconciler{
-			Recorder:                 record.New(apirecord.NewFakeRecorder(100)),
+			Recorder:                 apirecord.NewFakeRecorder(100),
 			ControllerManagerContext: fake.NewControllerManagerContext(initObjs...),
 			VMService:                vmService,
 		}

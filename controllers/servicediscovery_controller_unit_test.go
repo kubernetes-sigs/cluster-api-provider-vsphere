@@ -30,7 +30,7 @@ import (
 	helpers "sigs.k8s.io/cluster-api-provider-vsphere/test/helpers/vmware"
 )
 
-var _ = Describe("ServiceDiscoveryReconciler ReconcileNormal", serviceDiscoveryUnitTestsReconcileNormal)
+var _ = Describe("ServiceDiscoveryReconciler reconcileNormal", serviceDiscoveryUnitTestsReconcileNormal)
 
 func serviceDiscoveryUnitTestsReconcileNormal() {
 	var (
@@ -44,10 +44,9 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 		vsphereCluster = fake.NewVSphereCluster(namespace)
 		controllerCtx = helpers.NewUnitTestContextForController(ctx, namespace, &vsphereCluster, false, initObjects, nil)
 		reconciler = serviceDiscoveryReconciler{
-			Client:   controllerCtx.ControllerContext.Client,
-			Recorder: controllerCtx.ControllerContext.Recorder,
+			Client: controllerCtx.ControllerManagerContext.Client,
 		}
-		_, err := reconciler.ReconcileNormal(ctx, controllerCtx.GuestClusterContext)
+		err := reconciler.reconcileNormal(ctx, controllerCtx.GuestClusterContext)
 		Expect(err).NotTo(HaveOccurred())
 	})
 	JustAfterEach(func() {
@@ -57,7 +56,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 		It("Should reconcile headless svc", func() {
 			By("creating a service and no endpoint in the guest cluster")
 			assertHeadlessSvcWithNoEndpoints(ctx, controllerCtx.GuestClient, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
-			assertServiceDiscoveryCondition(controllerCtx.VSphereCluster, corev1.ConditionFalse, "Unable to discover supervisor apiserver address",
+			assertServiceDiscoveryCondition(controllerCtx.VSphereCluster, corev1.ConditionFalse, "Failed to discover supervisor API server endpoint",
 				vmwarev1.SupervisorHeadlessServiceSetupFailedReason, clusterv1.ConditionSeverityWarning)
 		})
 	})
@@ -75,8 +74,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 		})
 		It("Should get supervisor master endpoint IP", func() {
 			r := &serviceDiscoveryReconciler{
-				Client:   controllerCtx.ControllerContext.Client,
-				Recorder: controllerCtx.ControllerContext.Recorder,
+				Client: controllerCtx.ControllerManagerContext.Client,
 			}
 			supervisorEndpointIP, err := r.getSupervisorAPIServerAddress(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -139,7 +137,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 		It("Should reconcile headless svc", func() {
 			By("creating a service and no endpoint in the guest cluster")
 			assertHeadlessSvcWithNoEndpoints(ctx, controllerCtx.GuestClient, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
-			assertServiceDiscoveryCondition(controllerCtx.VSphereCluster, corev1.ConditionFalse, "Unable to discover supervisor apiserver address",
+			assertServiceDiscoveryCondition(controllerCtx.VSphereCluster, corev1.ConditionFalse, "Failed to discover supervisor API server endpoint",
 				vmwarev1.SupervisorHeadlessServiceSetupFailedReason, clusterv1.ConditionSeverityWarning)
 		})
 	})
@@ -152,7 +150,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 		It("Should reconcile headless svc", func() {
 			By("creating a service and no endpoint in the guest cluster")
 			assertHeadlessSvcWithNoEndpoints(ctx, controllerCtx.GuestClient, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
-			assertServiceDiscoveryCondition(controllerCtx.VSphereCluster, corev1.ConditionFalse, "Unable to discover supervisor apiserver address",
+			assertServiceDiscoveryCondition(controllerCtx.VSphereCluster, corev1.ConditionFalse, "Failed to discover supervisor API server endpoint",
 				vmwarev1.SupervisorHeadlessServiceSetupFailedReason, clusterv1.ConditionSeverityWarning)
 		})
 	})
@@ -168,7 +166,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 		It("Should reconcile headless svc", func() {
 			By("creating a service and no endpoint in the guest cluster")
 			assertHeadlessSvcWithNoEndpoints(ctx, controllerCtx.GuestClient, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
-			assertServiceDiscoveryCondition(controllerCtx.VSphereCluster, corev1.ConditionFalse, "Unable to discover supervisor apiserver address",
+			assertServiceDiscoveryCondition(controllerCtx.VSphereCluster, corev1.ConditionFalse, "Failed to discover supervisor API server endpoint",
 				vmwarev1.SupervisorHeadlessServiceSetupFailedReason, clusterv1.ConditionSeverityWarning)
 		})
 	})
@@ -184,7 +182,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 		It("Should reconcile headless svc", func() {
 			By("creating a service and no endpoint in the guest cluster")
 			assertHeadlessSvcWithNoEndpoints(ctx, controllerCtx.GuestClient, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
-			assertServiceDiscoveryCondition(controllerCtx.VSphereCluster, corev1.ConditionFalse, "Unable to discover supervisor apiserver address",
+			assertServiceDiscoveryCondition(controllerCtx.VSphereCluster, corev1.ConditionFalse, "Failed to discover supervisor API server endpoint",
 				vmwarev1.SupervisorHeadlessServiceSetupFailedReason, clusterv1.ConditionSeverityWarning)
 		})
 	})

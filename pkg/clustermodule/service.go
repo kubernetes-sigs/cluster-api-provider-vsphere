@@ -22,7 +22,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/vim25/types"
-	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -47,82 +46,68 @@ func NewService(controllerManagerCtx *capvcontext.ControllerManagerContext, clie
 }
 
 func (s *service) Create(ctx context.Context, clusterCtx *capvcontext.ClusterContext, wrapper Wrapper) (string, error) {
-	log := ctrl.LoggerFrom(ctx).WithValues(wrapper.GetObjectKind().GroupVersionKind().Kind, klog.KObj(wrapper))
-	ctx = ctrl.LoggerInto(ctx, log)
+	log := ctrl.LoggerFrom(ctx)
 
 	templateRef, err := s.fetchTemplateRef(ctx, wrapper)
 	if err != nil {
-		log.V(4).Error(err, "error fetching template for object")
-		return "", errors.Wrapf(err, "error fetching machine template for object %s/%s", wrapper.GetNamespace(), wrapper.GetName())
+		return "", errors.Wrapf(err, "error fetching template ref for object %s/%s", wrapper.GetNamespace(), wrapper.GetName())
 	}
 	if templateRef.Kind != validMachineTemplate {
 		// since this is a heterogeneous cluster, we should skip cluster module creation for non VSphereMachine objects
-		log.V(4).Info("skipping module creation for object")
+		log.V(4).Info("Skipping module creation for non-VSphereMachine objects")
 		return "", nil
 	}
 
 	template, err := s.fetchMachineTemplate(ctx, wrapper, templateRef.Name)
 	if err != nil {
-		log.V(4).Error(err, "error fetching template")
-		return "", err
+		return "", errors.Wrapf(err, "error fetching machine template for object %s/%s", wrapper.GetNamespace(), wrapper.GetName())
 	}
 	if server := template.Spec.Template.Spec.Server; server != clusterCtx.VSphereCluster.Spec.Server {
-		log.V(4).Info("skipping module creation for object since template uses a different server", "server", server)
+		log.V(4).Info("Skipping module creation for object since template uses a different server", "server", server)
 		return "", nil
 	}
 
 	vCenterSession, err := s.fetchSessionForObject(ctx, clusterCtx, template)
 	if err != nil {
-		log.V(4).Error(err, "error fetching session")
-		return "", err
+		return "", errors.Wrapf(err, "error fetching session for object %s/%s", wrapper.GetNamespace(), wrapper.GetName())
 	}
 
 	// Fetch the compute cluster resource by tracing the owner of the resource pool in use.
 	// TODO (srm09): How do we support Multi AZ scenarios here
 	computeClusterRef, err := getComputeClusterResource(ctx, vCenterSession, template.Spec.Template.Spec.ResourcePool)
 	if err != nil {
-		log.V(4).Error(err, "error fetching compute cluster resource")
-		return "", err
+		return "", errors.Wrapf(err, "error fetching compute cluster resource")
 	}
 
 	provider := clustermodules.NewProvider(vCenterSession.TagManager.Client)
 	moduleUUID, err := provider.CreateModule(ctx, computeClusterRef)
 	if err != nil {
-		log.V(4).Error(err, "error creating cluster module")
-		return "", err
+		return "", errors.Wrapf(err, "error creating cluster module")
 	}
-	log.V(4).Info("created cluster module for object", "moduleUUID", moduleUUID)
 	return moduleUUID, nil
 }
 
 func (s *service) DoesExist(ctx context.Context, clusterCtx *capvcontext.ClusterContext, wrapper Wrapper, moduleUUID string) (bool, error) {
-	log := ctrl.LoggerFrom(ctx).WithValues(wrapper.GetObjectKind().GroupVersionKind().Kind, klog.KObj(wrapper))
-	ctx = ctrl.LoggerInto(ctx, log)
-
 	templateRef, err := s.fetchTemplateRef(ctx, wrapper)
 	if err != nil {
-		log.V(4).Error(err, "error fetching template for object")
-		return false, errors.Wrapf(err, "error fetching infrastructure machine template for object %s/%s", wrapper.GetNamespace(), wrapper.GetName())
+		return false, errors.Wrapf(err, "error fetching template ref for object %s/%s", wrapper.GetNamespace(), wrapper.GetName())
 	}
 
 	template, err := s.fetchMachineTemplate(ctx, wrapper, templateRef.Name)
 	if err != nil {
-		log.V(4).Error(err, "error fetching template")
-		return false, err
+		return false, errors.Wrapf(err, "error fetching machine template for object %s/%s", wrapper.GetNamespace(), wrapper.GetName())
 	}
 
 	vCenterSession, err := s.fetchSessionForObject(ctx, clusterCtx, template)
 	if err != nil {
-		log.V(4).Error(err, "error fetching session")
-		return false, err
+		return false, errors.Wrapf(err, "error fetching session for object %s/%s", wrapper.GetNamespace(), wrapper.GetName())
 	}
 
 	// Fetch the compute cluster resource by tracing the owner of the resource pool in use.
 	// TODO (srm09): How do we support Multi AZ scenarios here
 	computeClusterRef, err := getComputeClusterResource(ctx, vCenterSession, template.Spec.Template.Spec.ResourcePool)
 	if err != nil {
-		log.V(4).Error(err, "error fetching compute cluster resource")
-		return false, err
+		return false, errors.Wrapf(err, "error fetching compute cluster resource")
 	}
 
 	provider := clustermodules.NewProvider(vCenterSession.TagManager.Client)

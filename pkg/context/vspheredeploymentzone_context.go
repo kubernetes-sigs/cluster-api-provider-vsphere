@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-logr/logr"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 
@@ -30,9 +29,8 @@ import (
 
 // VSphereDeploymentZoneContext contains information for the VSphereDeploymentZone reconciliation.
 type VSphereDeploymentZoneContext struct {
-	*ControllerContext
+	*ControllerManagerContext
 	VSphereDeploymentZone *infrav1.VSphereDeploymentZone
-	Logger                logr.Logger
 	PatchHelper           *patch.Helper
 	AuthSession           *session.Session
 }

@@ -17,24 +17,24 @@ resources:
 patches:
 # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix.
 # patches here are for enabling the conversion webhook for each CRD
-- patches/webhook_in_vspheremachines.yaml
-- patches/webhook_in_vsphereclusters.yaml
-- patches/webhook_in_vspheremachinetemplates.yaml
-- patches/webhook_in_vspherevms.yaml
-- patches/webhook_in_vspherefailuredomains.yaml
-- patches/webhook_in_vspheredeploymentzones.yaml
-- patches/webhook_in_vsphereclustertemplates.yaml
+- path: patches/webhook_in_vspheremachines.yaml
+- path: patches/webhook_in_vsphereclusters.yaml
+- path: patches/webhook_in_vspheremachinetemplates.yaml
+- path: patches/webhook_in_vspherevms.yaml
+- path: patches/webhook_in_vspherefailuredomains.yaml
+- path: patches/webhook_in_vspheredeploymentzones.yaml
+- path: patches/webhook_in_vsphereclustertemplates.yaml
 # +kubebuilder:scaffold:crdkustomizewebhookpatch
 
 # [CERTMANAGER] To enable webhook, uncomment all the sections with [CERTMANAGER] prefix.
 # patches here are for enabling the CA injection for each CRD
-- patches/cainjection_in_vspheremachines.yaml
-- patches/cainjection_in_vsphereclusters.yaml
-- patches/cainjection_in_vspheremachinetemplates.yaml
-- patches/cainjection_in_vspherevms.yaml
-- patches/cainjection_in_vspherefailuredomains.yaml
-- patches/cainjection_in_vspheredeploymentzones.yaml
-- patches/cainjection_in_vsphereclustertemplates.yaml
+- path: patches/cainjection_in_vspheremachines.yaml
+- path: patches/cainjection_in_vsphereclusters.yaml
+- path: patches/cainjection_in_vspheremachinetemplates.yaml
+- path: patches/cainjection_in_vspherevms.yaml
+- path: patches/cainjection_in_vspherefailuredomains.yaml
+- path: patches/cainjection_in_vspheredeploymentzones.yaml
+- path: patches/cainjection_in_vsphereclustertemplates.yaml
 # +kubebuilder:scaffold:crdkustomizecainjectionpatch
 
 # the following config is for teaching kustomize how to do kustomization for CRDs.

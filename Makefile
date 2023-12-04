@@ -179,7 +179,7 @@ IMPORT_BOSS_VER := v0.28.1
 IMPORT_BOSS := $(abspath $(TOOLS_BIN_DIR)/$(IMPORT_BOSS_BIN))
 IMPORT_BOSS_PKG := k8s.io/code-generator/cmd/import-boss
 
-CAPI_HACK_TOOLS_VER := 02ab1365b6decdd8a9f61af17e6378d8a6d93c2e # Note: this is the commit ID of the dependend CAPI release tag, currently v1.6.0-rc.0
+CAPI_HACK_TOOLS_VER := cb515e4bfa8a8550b92bff579ac644e0144fedb9 # Note: this is the commit ID of the dependend CAPI release tag, currently v1.6.0-rc.1
 
 CONVERSION_VERIFIER_VER := $(CAPI_HACK_TOOLS_VER)
 CONVERSION_VERIFIER_BIN := conversion-verifier
@@ -189,7 +189,7 @@ CONVERSION_VERIFIER_PKG := sigs.k8s.io/cluster-api/hack/tools/conversion-verifie
 RELEASE_NOTES_VER := $(CAPI_HACK_TOOLS_VER)
 RELEASE_NOTES_BIN := release-notes
 RELEASE_NOTES := $(abspath $(TOOLS_BIN_DIR)/$(RELEASE_NOTES_BIN)-$(RELEASE_NOTES_VER))
-RELEASE_NOTES_PKG := sigs.k8s.io/cluster-api/hack/tools/release
+RELEASE_NOTES_PKG := sigs.k8s.io/cluster-api/hack/tools/release/notes
 
 # Define Docker related variables. Releases should modify and double check these vars.
 REGISTRY ?= gcr.io/$(shell gcloud config get-value project)

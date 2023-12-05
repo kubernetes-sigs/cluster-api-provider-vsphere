@@ -296,3 +296,49 @@ var _ = Describe("VimMachineService_createOrPatchVSphereVM", func() {
 		})
 	})
 })
+
+var _ = Describe("VimMachineService_reconcileNetwork", func() {
+	var (
+		controllerCtx       *capvcontext.ControllerContext
+		machineCtx          *capvcontext.VIMMachineContext
+		vimMachineService   *VimMachineService
+		hostAddr            = "1.2.3.4"
+		fakeLongClusterName = "fake-long-clustername"
+	)
+
+	getVSphereVM := func(hostAddr string, conditionStatus corev1.ConditionStatus) *infrav1.VSphereVM {
+		return &infrav1.VSphereVM{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: fake.Namespace,
+				Name:      fakeLongClusterName,
+			},
+			Status: infrav1.VSphereVMStatus{
+				Host: hostAddr,
+				Conditions: []clusterv1.Condition{
+					{
+						Type:   infrav1.VMProvisionedCondition,
+						Status: conditionStatus,
+					},
+				},
+			},
+		}
+	}
+
+	controllerCtx = fake.NewControllerContext(fake.NewControllerManagerContext(getVSphereVM(hostAddr, corev1.ConditionTrue)))
+	machineCtx = fake.NewMachineContext(ctx, fake.NewClusterContext(ctx, controllerCtx), controllerCtx)
+	machineCtx.Machine.SetName(fakeLongClusterName)
+	vimMachineService = &VimMachineService{controllerCtx.Client}
+
+	Context("When reconciling a VM network", func() {
+		It("contains a MachineInternalDNS type address in its Status", func() {
+			vm := getVSphereVM(hostAddr, corev1.ConditionTrue)
+			ok, err := vimMachineService.reconcileNetwork(ctx, machineCtx, vm)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(ok).To(BeTrue())
+			Expect(machineCtx.VSphereMachine.Status.Addresses).To(ContainElement(clusterv1.MachineAddress{
+				Type:    clusterv1.MachineInternalDNS,
+				Address: vm.Name,
+			}))
+		})
+	})
+})

@@ -189,7 +189,7 @@ func (r *serviceDiscoveryReconciler) Reconcile(ctx context.Context, req reconcil
 	if err != nil {
 		if errors.Is(err, remote.ErrClusterLocked) {
 			log.V(5).Info("Requeuing because another worker has the lock on the ClusterCacheTracker")
-			return ctrl.Result{Requeue: true}, nil
+			return ctrl.Result{RequeueAfter: time.Minute}, nil
 		}
 		log.Error(err, "The control plane is not ready yet")
 		return reconcile.Result{RequeueAfter: clusterNotReadyRequeueTime}, nil

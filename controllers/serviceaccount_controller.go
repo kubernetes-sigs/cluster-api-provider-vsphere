@@ -23,6 +23,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -210,7 +211,7 @@ func (r *ServiceAccountReconciler) Reconcile(ctx context.Context, req reconcile.
 	if err != nil {
 		if errors.Is(err, remote.ErrClusterLocked) {
 			log.V(5).Info("Requeuing because another worker has the lock on the ClusterCacheTracker")
-			return ctrl.Result{Requeue: true}, nil
+			return ctrl.Result{RequeueAfter: time.Minute}, nil
 		}
 		log.Error(err, "The control plane is not ready yet")
 		return reconcile.Result{RequeueAfter: clusterNotReadyRequeueTime}, nil

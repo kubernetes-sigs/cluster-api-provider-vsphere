@@ -146,6 +146,13 @@ func GetOrCreate(ctx context.Context, params *Params) (*Session, error) {
 			return s, nil
 		}
 
+		logger.V(2).Info("logout the rest session because it is inactive")
+		if err := s.TagManager.Logout(ctx); err != nil {
+			logger.Error(err, "unable to logout rest session")
+		} else {
+			logger.Info("logout rest session succeed")
+		}
+
 		logger.V(2).Info("logout the session because it is inactive")
 		if err := s.Client.Logout(ctx); err != nil {
 			logger.Error(err, "unable to logout session")
@@ -185,6 +192,11 @@ func GetOrCreate(ctx context.Context, params *Params) (*Session, error) {
 	// Assign tag manager to the session.
 	manager, err := newManager(ctx, logger, sessionKey, client.Client, soapURL.User, params.feature)
 	if err != nil {
+		logger.Error(err, "unable to get new Manager, will logout")
+		// Logout of previously logged session to not leak
+		if errLogout := client.Logout(ctx); errLogout != nil {
+			logger.Error(errLogout, "error logging out of leading client session")
+		}
 		return nil, errors.Wrap(err, "unable to create tags manager")
 	}
 	session.TagManager = manager
@@ -193,6 +205,14 @@ func GetOrCreate(ctx context.Context, params *Params) (*Session, error) {
 	if params.datacenter != "" {
 		dc, err := session.Finder.Datacenter(ctx, params.datacenter)
 		if err != nil {
+			logger.Error(err, "unable to get datacenter, will logout")
+			// Logout of previously logged session to not leak
+			if errLogout := manager.Logout(ctx); errLogout != nil {
+				logger.Error(errLogout, "error logging out of leading rest session")
+			}
+			if errLogout := client.Logout(ctx); errLogout != nil {
+				logger.Error(errLogout, "error logging out of leading client session")
+			}
 			return nil, errors.Wrapf(err, "unable to find datacenter %q", params.datacenter)
 		}
 		session.datacenter = dc
@@ -230,6 +250,9 @@ func newClient(ctx context.Context, logger logr.Logger, sessionKey string, url *
 			if err != nil {
 				logger.Error(err, "failed to keep alive govmomi client")
 				logger.Info("clearing the session")
+				if errLogout := c.Logout(ctx); errLogout != nil {
+					logger.Error(err, "failed to logout keepalive failed session")
+				}
 				sessionCache.Delete(sessionKey)
 			}
 			return err
@@ -249,14 +272,18 @@ func newManager(ctx context.Context, logger logr.Logger, sessionKey string, clie
 	if feature.EnableKeepAlive {
 		rc.Transport = keepalive.NewHandlerREST(rc, feature.KeepAliveDuration, func() error {
 			s, err := rc.Session(ctx)
-			if err != nil {
-				return err
-			}
-			if s != nil {
+			if s != nil && err == nil {
 				return nil
 			}
 
+			if err != nil {
+				logger.Error(err, "failed to keep alive rest client")
+			}
+
 			logger.Info("rest client session expired, clearing session")
+			if errLogout := rc.Logout(ctx); errLogout != nil {
+				logger.Error(err, "failed to logout keepalive failed rest session")
+			}
 			sessionCache.Delete(sessionKey)
 			return errors.New("rest client session expired")
 		})

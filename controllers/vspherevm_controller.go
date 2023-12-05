@@ -576,7 +576,7 @@ func (r vmReconciler) retrieveVcenterSession(ctx context.Context, vsphereVM *inf
 	}
 
 	if cluster.Spec.InfrastructureRef == nil {
-		return nil, errors.Errorf("cannot retrieve vCenter session for cluster %s: .spec.infrastructureRef is nil", klog.KObj(cluster))
+		return nil, errors.Errorf("cannot retrieve vCenter session for cluster %s: Cluster.spec.infrastructureRef is nil", klog.KObj(cluster))
 	}
 	key := ctrlclient.ObjectKey{
 		Namespace: cluster.Namespace,

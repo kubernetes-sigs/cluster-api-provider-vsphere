@@ -45,6 +45,11 @@ func GetVSphereClusterFromVMwareMachine(ctx context.Context, c client.Client, ma
 		return nil, err
 	}
 
+	if cluster.Spec.InfrastructureRef == nil {
+		return nil, errors.Errorf("error getting VSphereCluster name from VSphereMachine %s/%s: Cluster.spec.infrastructureRef not yet set",
+			machine.Namespace, machine.Name)
+	}
+
 	vsphereClusterKey := apitypes.NamespacedName{
 		Namespace: machine.Namespace,
 		Name:      cluster.Spec.InfrastructureRef.Name,
@@ -70,6 +75,10 @@ func GetVSphereClusterFromVSphereMachine(ctx context.Context, c client.Client, m
 		return nil, err
 	}
 
+	if cluster.Spec.InfrastructureRef == nil {
+		return nil, errors.Errorf("error getting VSphereCluster name from VSphereMachine %s/%s: Cluster.spec.infrastructureRef not yet set",
+			machine.Namespace, machine.Name)
+	}
 	vsphereClusterKey := apitypes.NamespacedName{
 		Namespace: machine.Namespace,
 		Name:      cluster.Spec.InfrastructureRef.Name,

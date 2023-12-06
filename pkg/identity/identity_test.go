@@ -115,7 +115,7 @@ var _ = Describe("GetCredentials", func() {
 			if labels == nil {
 				labels = map[string]string{}
 			}
-			labels["identity-authorized"] = "true" //nolint: goconst
+			labels["identity-authorized"] = "true"
 			ns.Labels = labels
 			Expect(k8sclient.Update(ctx, ns)).To(Succeed())
 

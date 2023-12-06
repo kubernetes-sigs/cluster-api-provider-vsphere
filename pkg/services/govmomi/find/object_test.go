@@ -29,9 +29,9 @@ import (
 	"k8s.io/utils/pointer"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vcsim"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/find"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
-	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers/vcsim"
 )
 
 const TestHostGroup = "host-group-alpha"

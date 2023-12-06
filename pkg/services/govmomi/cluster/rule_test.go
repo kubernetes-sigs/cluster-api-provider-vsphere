@@ -24,7 +24,7 @@ import (
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers/vcsim"
+	"sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vcsim"
 )
 
 func TestVerifyAffinityRule(t *testing.T) {

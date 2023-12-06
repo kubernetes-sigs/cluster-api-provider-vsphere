@@ -22,7 +22,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	helpers "sigs.k8s.io/cluster-api-provider-vsphere/test/helpers/vmware"
+	helpers "sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vmware"
 )
 
 var _ = Describe("Service Discovery controller integration tests", func() {

@@ -26,20 +26,24 @@ import (
 	_ "github.com/vmware/govmomi/vapi/simulator" // run init func to register the tagging API endpoints.
 )
 
+// Simulator binds together a vcsim model and its server.
 type Simulator struct {
 	model  *simulator.Model
 	server *simulator.Server
 }
 
+// Destroy a Simulator.
 func (s Simulator) Destroy() {
 	s.server.Close()
 	s.model.Remove()
 }
 
+// ServerURL returns Simulator's server url.
 func (s Simulator) ServerURL() *url.URL {
 	return s.server.URL
 }
 
+// Run a govc command on the Simulator.
 func (s Simulator) Run(commandStr string, buffers ...*gbytes.Buffer) error {
 	pwd, _ := s.server.URL.User.Password()
 	govcURL := fmt.Sprintf("https://%s:%s@%s", s.server.URL.User.Username(), pwd, s.server.URL.Host)
@@ -48,10 +52,12 @@ func (s Simulator) Run(commandStr string, buffers ...*gbytes.Buffer) error {
 	return cmd.Run()
 }
 
+// Username for the Simulator.
 func (s Simulator) Username() string {
 	return s.server.URL.User.Username()
 }
 
+// Password for the Simulator.
 func (s Simulator) Password() string {
 	pwd, _ := s.server.URL.User.Password()
 	return pwd

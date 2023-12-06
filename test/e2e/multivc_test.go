@@ -33,7 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers"
+	vsphereframework "sigs.k8s.io/cluster-api-provider-vsphere/test/framework"
 )
 
 type MultiVCenterSpecInput struct {
@@ -124,7 +124,7 @@ func VerifyMultiVC(ctx context.Context, input MultiVCenterSpecInput) {
 	})
 
 	By("Initializing the workload cluster")
-	helpers.InitBootstrapCluster(ctx, mgmtClusterProxy, e2eConfig, clusterctlConfigPath, artifactFolder)
+	vsphereframework.InitBootstrapCluster(ctx, mgmtClusterProxy, e2eConfig, clusterctlConfigPath, artifactFolder)
 
 	By("Ensure API servers are stable before doing move")
 	// Nb. This check was introduced to prevent doing move to self-hosted in an aggressive way and thus avoid flakes.

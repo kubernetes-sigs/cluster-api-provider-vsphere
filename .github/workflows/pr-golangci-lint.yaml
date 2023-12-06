@@ -11,6 +11,12 @@ jobs:
   golangci:
     name: lint
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        working-directory:
+          - ""
+          - test
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # tag=v4.1.1
       - name: Calculate go version
@@ -25,3 +31,4 @@ jobs:
         with:
           version: v1.55.2
           args: --out-format=colored-line-number
+          working-directory: ${{matrix.working-directory}}

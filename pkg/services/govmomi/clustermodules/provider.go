@@ -18,13 +18,12 @@ package clustermodules
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/vmware/govmomi/vapi/cluster"
 	"github.com/vmware/govmomi/vapi/rest"
 	"github.com/vmware/govmomi/vim25/types"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
 var log = logf.Log.V(5).WithName("govmomi").WithName("clustermodule")
@@ -34,7 +33,7 @@ var log = logf.Log.V(5).WithName("govmomi").WithName("clustermodule")
 type Provider interface {
 	CreateModule(ctx context.Context, clusterRef types.ManagedObjectReference) (string, error)
 	DeleteModule(ctx context.Context, moduleID string) error
-	DoesModuleExist(ctx context.Context, moduleID string, cluster types.ManagedObjectReference) (bool, error)
+	DoesModuleExist(ctx context.Context, moduleID string) (bool, error)
 
 	IsMoRefModuleMember(ctx context.Context, moduleID string, moRef types.ManagedObjectReference) (bool, error)
 	AddMoRefToModule(ctx context.Context, moduleID string, moRef types.ManagedObjectReference) error
@@ -67,7 +66,7 @@ func (cm *provider) DeleteModule(ctx context.Context, moduleID string) error {
 	log.Info("Deleting cluster module", "moduleID", moduleID)
 
 	err := cm.manager.DeleteModule(ctx, moduleID)
-	if err != nil && !util.IsNotFoundError(err) {
+	if err != nil && !rest.IsStatusError(err, http.StatusNotFound) {
 		return err
 	}
 
@@ -75,26 +74,25 @@ func (cm *provider) DeleteModule(ctx context.Context, moduleID string) error {
 	return nil
 }
 
-func (cm *provider) DoesModuleExist(ctx context.Context, moduleID string, clusterRef types.ManagedObjectReference) (bool, error) {
-	log.V(4).Info("Checking if cluster module exists", "moduleID", moduleID, "clusterRef", clusterRef)
+func (cm *provider) DoesModuleExist(ctx context.Context, moduleID string) (bool, error) {
+	log.V(4).Info("Checking if cluster module exists", "moduleID", moduleID)
 
 	if moduleID == "" {
 		return false, nil
 	}
 
-	modules, err := cm.manager.ListModules(ctx)
-	if err != nil {
-		return false, err
+	_, err := cm.manager.ListModuleMembers(ctx, moduleID)
+	if err == nil {
+		log.V(4).Info("Cluster module exists", "moduleID", moduleID)
+		return true, nil
 	}
 
-	for _, mod := range modules {
-		if mod.Cluster == clusterRef.Value && mod.Module == moduleID {
-			return true, nil
-		}
+	if rest.IsStatusError(err, http.StatusNotFound) {
+		log.V(4).Info("Cluster module doesn't exist", "moduleID", moduleID)
+		return false, nil
 	}
 
-	log.V(4).Info("Cluster module doesn't exist", "moduleID", moduleID, "clusterRef", clusterRef)
-	return false, nil
+	return false, err
 }
 
 func (cm *provider) IsMoRefModuleMember(ctx context.Context, moduleID string, moRef types.ManagedObjectReference) (bool, error) {

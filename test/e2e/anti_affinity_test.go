@@ -44,9 +44,7 @@ type AntiAffinitySpecInput struct {
 }
 
 var _ = Describe("Cluster creation with anti affined nodes", func() {
-	var (
-		namespace *corev1.Namespace
-	)
+	var namespace *corev1.Namespace
 
 	BeforeEach(func() {
 		Expect(bootstrapClusterProxy).NotTo(BeNil(), "BootstrapClusterProxy can't be nil")
@@ -123,7 +121,7 @@ func VerifyAntiAffinity(ctx context.Context, input AntiAffinitySpecInput) {
 	}
 
 	By("verifying presence of cluster modules")
-	verifyModuleInfo(ctx, input.Finder, modules, true)
+	verifyModuleInfo(ctx, modules, true)
 
 	By("verifying node anti-affinity for worker nodes")
 	workerVMs := FetchWorkerVMsForCluster(ctx, input.Global.BootstrapClusterProxy, clusterName, namespace.Name)
@@ -165,7 +163,7 @@ func VerifyAntiAffinity(ctx context.Context, input AntiAffinitySpecInput) {
 	}, input.Global.E2EConfig.GetIntervals("", "wait-delete-cluster")...)
 
 	By("confirming deletion of cluster module constructs")
-	verifyModuleInfo(ctx, input.Finder, modules, false)
+	verifyModuleInfo(ctx, modules, false)
 }
 
 func verifyAntiAffinityForVMs(ctx context.Context, finder *find.Finder, vms []infrav1.VSphereVM) error {
@@ -221,14 +219,11 @@ func FetchWorkerVMsForCluster(ctx context.Context, bootstrapClusterProxy framewo
 	return workerVMs
 }
 
-func verifyModuleInfo(ctx context.Context, finder *find.Finder, modules []infrav1.ClusterModule, toExist bool) {
+func verifyModuleInfo(ctx context.Context, modules []infrav1.ClusterModule, toExist bool) {
 	provider := clustermodules.NewProvider(restClient)
 
-	cc, err := finder.ClusterComputeResourceOrDefault(ctx, "")
-	Expect(err).ToNot(HaveOccurred())
-
 	for _, mod := range modules {
-		exists, err := provider.DoesModuleExist(ctx, mod.ModuleUUID, cc.Reference())
+		exists, err := provider.DoesModuleExist(ctx, mod.ModuleUUID)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(exists).To(Equal(toExist))
 	}

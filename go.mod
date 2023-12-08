@@ -7,7 +7,7 @@ replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.5.2
 require (
 	github.com/go-logr/logr v1.2.4
 	github.com/google/gofuzz v1.2.0
-	github.com/google/uuid v1.3.1
+	github.com/google/uuid v1.4.0
 	github.com/hashicorp/go-version v1.3.0
 	github.com/onsi/ginkgo/v2 v2.11.0
 	github.com/onsi/gomega v1.27.10
@@ -18,12 +18,12 @@ require (
 	github.com/vmware-tanzu/vm-operator/api v1.8.2
 	github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20211209213435-0f4ab286f64f
 	github.com/vmware-tanzu/vm-operator/external/tanzu-topology v0.0.0-20211209213435-0f4ab286f64f
-	github.com/vmware/govmomi v0.33.1
-	golang.org/x/crypto v0.14.0
-	golang.org/x/exp v0.0.0-20221002003631-540bb7301a08
-	golang.org/x/mod v0.12.0
-	golang.org/x/text v0.13.0
-	golang.org/x/tools v0.12.0
+	github.com/vmware/govmomi v0.34.0
+	golang.org/x/crypto v0.16.0
+	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
+	golang.org/x/mod v0.14.0
+	golang.org/x/text v0.14.0
+	golang.org/x/tools v0.16.0
 	gopkg.in/gcfg.v1 v1.2.3
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.27.4
@@ -58,10 +58,10 @@ require (
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
-	golang.org/x/net v0.17.0 // indirect
+	golang.org/x/net v0.19.0 // indirect
 	golang.org/x/oauth2 v0.10.0 // indirect
-	golang.org/x/sys v0.13.0 // indirect
-	golang.org/x/term v0.13.0 // indirect
+	golang.org/x/sys v0.15.0 // indirect
+	golang.org/x/term v0.15.0 // indirect
 )
 
 require (

@@ -19,6 +19,7 @@ package test
 import (
 	"context"
 	"encoding/json"
+	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
@@ -27,6 +28,7 @@ import (
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -57,7 +59,11 @@ func init() {
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
 
-	RunSpecs(t, "VMware Controllers Suite")
+	reporterConfig := types.NewDefaultReporterConfig()
+	if artifactFolder, exists := os.LookupEnv("ARTIFACTS"); exists {
+		reporterConfig.JUnitReport = filepath.Join(artifactFolder, "junit.ginkgo.controllers_vmware_test.xml")
+	}
+	RunSpecs(t, "VMware Controller Suite", reporterConfig)
 }
 
 func getTestEnv() (*envtest.Environment, *rest.Config) {

@@ -108,6 +108,7 @@ func getWorkersClass() clusterv1.WorkersClass {
 
 func getClusterClassPatches() []clusterv1.ClusterClassPatch {
 	return []clusterv1.ClusterClassPatch{
+		createFilesArrayPatch(),
 		enableSSHPatch(),
 		infraClusterPatch(),
 		kubeVipEnabledPatch(),
@@ -223,12 +224,6 @@ func newVSphereClusterTemplate() infrav1.VSphereClusterTemplate {
 }
 
 func newKubeadmControlPlaneTemplate(templateName string) controlplanev1.KubeadmControlPlaneTemplate {
-	files := []bootstrapv1.File{
-		{
-			Owner: "root:root",
-			Path:  "/etc/kubernetes/manifests/kube-vip.yaml",
-		},
-	}
 	return controlplanev1.KubeadmControlPlaneTemplate{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       util.TypeToKind(&controlplanev1.KubeadmControlPlaneTemplate{}),
@@ -241,7 +236,7 @@ func newKubeadmControlPlaneTemplate(templateName string) controlplanev1.KubeadmC
 		Spec: controlplanev1.KubeadmControlPlaneTemplateSpec{
 			Template: controlplanev1.KubeadmControlPlaneTemplateResource{
 				Spec: controlplanev1.KubeadmControlPlaneTemplateResourceSpec{
-					KubeadmConfigSpec: defaultKubeadmInitSpec(files),
+					KubeadmConfigSpec: defaultKubeadmInitSpec([]bootstrapv1.File{}),
 				},
 			},
 		},

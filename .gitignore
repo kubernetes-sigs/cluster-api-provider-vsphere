@@ -16,7 +16,8 @@ _artifacts/
 
 # E2E test templates
 test/e2e/data/infrastructure-vsphere/**/cluster-template*.yaml
-test/e2e/data/infrastructure-vsphere/main/clusterclass-quick-start.yaml
+test/e2e/data/infrastructure-vsphere/main/**/clusterclass-quick-start.yaml
+test/e2e/data/infrastructure-vsphere/*/clusterclass-quick-start.yaml
 
 # env vars file used in getting-started.md and manifests generation
 envvars.txt
@@ -75,6 +76,7 @@ _releasenotes
 *~
 *.tmp
 .DS_Store
+*.swp
 
 # Ginkgo logs from test runs
 *ginkgo-log.txt

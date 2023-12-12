@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../base/cluster-template-topology.yaml
+  - ../commons/cluster-resource-set.yaml
+patchesStrategicMerge:
+  - ../commons/cluster-resource-set-label.yaml
+  - ../commons/cluster-network-CIDR.yaml
+  - ../commons/cluster-resource-set-csi-insecure.yaml

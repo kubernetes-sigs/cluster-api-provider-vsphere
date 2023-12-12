@@ -1,0 +1,51 @@
+- op: add
+  path: /spec/patches/-
+  value:
+    definitions:
+    - jsonPatches:
+      - op: add
+        path: /spec/template/spec/kubeadmConfigSpec/preKubeadmCommands/-
+        value: "/opt/prekubeadmscript.sh"
+      - op: add
+        path: /spec/template/spec/kubeadmConfigSpec/files/-
+        valueFrom:
+          template: |
+            owner: root:root
+            path:  "/opt/prekubeadmscript.sh"
+            permissions: "0755"
+            content: {{ printf "%q" .preKubeadmScript }}
+      selector:
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        kind: KubeadmControlPlaneTemplate
+        matchResources:
+          controlPlane: true
+    - jsonPatches:
+      - op: add
+        path: /spec/template/spec/preKubeadmCommands/-
+        value: "/opt/prekubeadmscript.sh"
+      - op: add
+        path: /spec/template/spec/files/-
+        valueFrom:
+          template: |
+            owner: root:root
+            path:  "/opt/prekubeadmscript.sh"
+            permissions: "0755"
+            content: {{ printf "%q" .preKubeadmScript }}
+      selector:
+        apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+        kind: KubeadmConfigTemplate
+        matchResources:
+          machineDeploymentClass:
+            names:
+            - ${CLUSTER_CLASS_NAME}-worker
+    enabledIf: '{{ if .preKubeadmScript }}true{{ end }}'
+    name: preKubeadmScript
+- op: add
+  path: /spec/variables/-
+  value:
+    name: preKubeadmScript
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+        description: Script to run in preKubeadmCommands.

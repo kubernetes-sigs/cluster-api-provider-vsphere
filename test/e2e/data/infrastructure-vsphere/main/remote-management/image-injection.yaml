@@ -1,35 +1,8 @@
----
-apiVersion: controlplane.cluster.x-k8s.io/v1beta1
-kind: KubeadmControlPlane
-metadata:
-  name: '${CLUSTER_NAME}'
-  namespace: '${NAMESPACE}'
-spec:
-  kubeadmConfigSpec:
-    preKubeadmCommands:
-    - hostname "{{ ds.meta_data.hostname }}"
-    - echo "::1         ipv6-localhost ipv6-loopback" >/etc/hosts
-    - echo "127.0.0.1   localhost" >>/etc/hosts
-    - echo "127.0.0.1   {{ ds.meta_data.hostname }}" >>/etc/hosts
-    - echo "{{ ds.meta_data.hostname }}" >/etc/hostname
-    - mkdir -p /opt/cluster-api
-    - curl "https://storage.googleapis.com/capv-ci/${E2E_IMAGE_SHA}" -o /opt/cluster-api/image.tar
-    - ctr -n k8s.io images import /opt/cluster-api/image.tar
----
-apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
-kind: KubeadmConfigTemplate
-metadata:
-  name: '${CLUSTER_NAME}-md-0'
-  namespace: '${NAMESPACE}'
-spec:
-  template:
-    spec:
-      preKubeadmCommands:
-      - hostname "{{ ds.meta_data.hostname }}"
-      - echo "::1         ipv6-localhost ipv6-loopback" >/etc/hosts
-      - echo "127.0.0.1   localhost" >>/etc/hosts
-      - echo "127.0.0.1   {{ ds.meta_data.hostname }}" >>/etc/hosts
-      - echo "{{ ds.meta_data.hostname }}" >/etc/hostname
-      - mkdir -p /opt/cluster-api
-      - curl "https://storage.googleapis.com/capv-ci/${E2E_IMAGE_SHA}" -o /opt/cluster-api/image.tar
-      - ctr -n k8s.io images import /opt/cluster-api/image.tar
+- op: add
+  path: /spec/topology/variables/-
+  value:
+    name: preKubeadmScript
+    value: |
+      mkdir -p /opt/cluster-api
+      curl "https://storage.googleapis.com/capv-ci/${E2E_IMAGE_SHA}" -o /opt/cluster-api/image.tar
+      ctr -n k8s.io images import /opt/cluster-api/image.tar

@@ -17,9 +17,12 @@ limitations under the License.
 package vmware
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
 	topologyv1 "github.com/vmware-tanzu/vm-operator/external/tanzu-topology/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -39,7 +42,12 @@ import (
 
 func TestVSphereClusterReconciler(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "VSphereCluster reconciler test suite")
+
+	reporterConfig := types.NewDefaultReporterConfig()
+	if artifactFolder, exists := os.LookupEnv("ARTIFACTS"); exists {
+		reporterConfig.JUnitReport = filepath.Join(artifactFolder, "junit.ginkgo.controllers_vmware.xml")
+	}
+	RunSpecs(t, "VSphereCluster Controller Suite", reporterConfig)
 }
 
 var _ = Describe("Cluster Controller Tests", func() {

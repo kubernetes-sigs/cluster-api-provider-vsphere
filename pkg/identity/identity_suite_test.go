@@ -19,12 +19,14 @@ package identity
 import (
 	"context"
 	"fmt"
+	"os"
 	"path"
 	"path/filepath"
 	goruntime "runtime"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -68,7 +70,12 @@ func getTestEnv() *envtest.Environment {
 
 func TestIdentity(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Identity Suite")
+
+	reporterConfig := types.NewDefaultReporterConfig()
+	if artifactFolder, exists := os.LookupEnv("ARTIFACTS"); exists {
+		reporterConfig.JUnitReport = filepath.Join(artifactFolder, "junit.ginkgo.pkg_identity.xml")
+	}
+	RunSpecs(t, "Identity Suite", reporterConfig)
 }
 
 var _ = SynchronizedBeforeSuite(func() []byte {

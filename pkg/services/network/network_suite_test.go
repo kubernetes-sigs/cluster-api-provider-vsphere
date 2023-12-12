@@ -17,13 +17,21 @@ limitations under the License.
 package network_test
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
 )
 
 func TestNetworkProvider(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Network provider Suite")
+
+	reporterConfig := types.NewDefaultReporterConfig()
+	if artifactFolder, exists := os.LookupEnv("ARTIFACTS"); exists {
+		reporterConfig.JUnitReport = filepath.Join(artifactFolder, "junit.ginkgo.pkg_services_network.xml")
+	}
+	RunSpecs(t, "Network Services Suite", reporterConfig)
 }

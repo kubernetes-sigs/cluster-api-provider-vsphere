@@ -20,9 +20,12 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/pkg/errors"
@@ -36,7 +39,12 @@ import (
 
 func TestMetadata(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Metadata Suite")
+
+	reporterConfig := types.NewDefaultReporterConfig()
+	if artifactFolder, exists := os.LookupEnv("ARTIFACTS"); exists {
+		reporterConfig.JUnitReport = filepath.Join(artifactFolder, "junit.ginkgo.pkg_services_govmomi_metadata.xml")
+	}
+	RunSpecs(t, "Metadata Suite", reporterConfig)
 }
 
 const (

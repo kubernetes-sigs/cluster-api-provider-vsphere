@@ -17,7 +17,6 @@ limitations under the License.
 package e2e
 
 import (
-	"context"
 	"flag"
 	"net/url"
 	"os"
@@ -40,7 +39,6 @@ var (
 	vsphereServer     string
 	vsphereDatacenter string
 
-	ctx           = context.Background()
 	vsphereClient *govmomi.Client
 	restClient    *rest.Client
 	vsphereFinder *find.Finder

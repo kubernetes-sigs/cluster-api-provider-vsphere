@@ -17,7 +17,6 @@ limitations under the License.
 package integration
 
 import (
-	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -67,9 +66,9 @@ const (
 )
 
 var (
+	ctx                    = ctrl.SetupSignalHandler()
 	testClusterName        string
 	dummyKubernetesVersion = "1.15.0+vmware.1"
-	ctx                    context.Context
 	k8sClient              dynamic.Interface
 )
 
@@ -233,20 +232,19 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	scheme := initScheme()
 
 	Byf("Loading the e2e test configuration from %q", configPath)
-	e2eConfig, err = helpers.LoadE2EConfig(configPath)
+	e2eConfig, err = helpers.LoadE2EConfig(ctx, configPath)
 	Expect(err).NotTo(HaveOccurred())
 
 	Byf("Creating a clusterctl local repository into %q", artifactFolder)
-	clusterctlConfigPath, err = helpers.CreateClusterctlLocalRepository(e2eConfig, filepath.Join(artifactFolder, "repository"), false)
+	clusterctlConfigPath, err = helpers.CreateClusterctlLocalRepository(ctx, e2eConfig, filepath.Join(artifactFolder, "repository"), false)
 	Expect(err).NotTo(HaveOccurred())
 
 	By("Setting up the bootstrap cluster")
-	bootstrapClusterProvider, bootstrapClusterProxy, err = helpers.SetupBootstrapCluster(e2eConfig, scheme, useExistingCluster)
+	bootstrapClusterProvider, bootstrapClusterProxy, err = helpers.SetupBootstrapCluster(ctx, e2eConfig, scheme, useExistingCluster)
 	Expect(err).NotTo(HaveOccurred())
 
 	By("Initializing the bootstrap cluster")
-	helpers.InitBootstrapCluster(bootstrapClusterProxy, e2eConfig, clusterctlConfigPath, artifactFolder)
-	ctx = context.Background()
+	helpers.InitBootstrapCluster(ctx, bootstrapClusterProxy, e2eConfig, clusterctlConfigPath, artifactFolder)
 	return []byte(
 		strings.Join([]string{
 			artifactFolder,
@@ -266,7 +264,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	kubeconfigPath := parts[3]
 
 	var err error
-	e2eConfig, err = helpers.LoadE2EConfig(configPath)
+	e2eConfig, err = helpers.LoadE2EConfig(ctx, configPath)
 	Expect(err).NotTo(HaveOccurred())
 	bootstrapClusterProxy = framework.NewClusterProxy("bootstrap", kubeconfigPath, initScheme())
 	config := bootstrapClusterProxy.GetRESTConfig()
@@ -283,7 +281,7 @@ var _ = SynchronizedAfterSuite(func() {
 
 	By("Tearing down the management cluster")
 	if !skipCleanup {
-		helpers.TearDown(bootstrapClusterProvider, bootstrapClusterProxy)
+		helpers.TearDown(ctx, bootstrapClusterProvider, bootstrapClusterProxy)
 	}
 })
 

@@ -25,68 +25,9 @@ import (
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
 )
-
-type isSupervisorTestCase struct {
-	name         string
-	input        interface{}
-	expectedResp bool
-	expectErr    bool
-}
-
-func TestIsSupervisorType(t *testing.T) {
-	g := NewGomegaWithT(t)
-
-	cases := []isSupervisorTestCase{
-		{
-			name:         "VSphereCluster",
-			input:        &infrav1.VSphereCluster{},
-			expectedResp: false,
-			expectErr:    false,
-		},
-		{
-			name:         "VSphereMachine",
-			input:        &infrav1.VSphereMachine{},
-			expectedResp: false,
-			expectErr:    false,
-		},
-		{
-			name:         "vmwarev1.VSphereCluster",
-			input:        &vmwarev1.VSphereCluster{},
-			expectedResp: true,
-			expectErr:    false,
-		},
-		{
-			name:         "vmwarev1.VSphereMachine",
-			input:        &vmwarev1.VSphereMachine{},
-			expectedResp: true,
-			expectErr:    false,
-		},
-		{
-			name:         "bad type",
-			input:        "string",
-			expectedResp: false,
-			expectErr:    true,
-		},
-	}
-
-	for _, tc := range cases {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-			actualResp, actualErr := IsSupervisorType(tc.input)
-			if tc.expectErr {
-				g.Expect(actualErr).To(HaveOccurred())
-			} else {
-				g.Expect(actualErr).NotTo(HaveOccurred())
-			}
-
-			g.Expect(actualResp).To(Equal(tc.expectedResp))
-		})
-	}
-}
 
 type controllerReferenceTestCase struct {
 	name                   string
@@ -225,8 +166,8 @@ func TestSetControllerReferenceWithOverride(t *testing.T) {
 	for _, tc := range cases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			ctx := fake.NewControllerContext(fake.NewControllerManagerContext(tc.controlled))
-			actualErr := SetControllerReferenceWithOverride(tc.newOwner, tc.controlled, ctx.Scheme)
+			controllerManagerContext := fake.NewControllerManagerContext(tc.controlled)
+			actualErr := SetControllerReferenceWithOverride(tc.newOwner, tc.controlled, controllerManagerContext.Scheme)
 			if tc.expectErr {
 				g.Expect(actualErr).To(HaveOccurred())
 			} else {

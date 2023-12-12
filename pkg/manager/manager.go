@@ -19,7 +19,6 @@ package manager
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/pkg/errors"
 	netopv1 "github.com/vmware-tanzu/net-operator-api/api/v1alpha1"
@@ -37,7 +36,6 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 )
 
 // Manager is a CAPV controller manager.
@@ -65,11 +63,6 @@ func New(ctx context.Context, opts Options) (Manager, error) {
 	_ = topologyv1.AddToScheme(opts.Scheme)
 	_ = ipamv1.AddToScheme(opts.Scheme)
 
-	podName, err := os.Hostname()
-	if err != nil {
-		podName = DefaultPodName
-	}
-
 	// Build the controller manager.
 	mgr, err := ctrl.NewManager(opts.KubeConfig, opts.Options)
 	if err != nil {
@@ -84,8 +77,7 @@ func New(ctx context.Context, opts Options) (Manager, error) {
 		LeaderElectionID:        opts.LeaderElectionID,
 		LeaderElectionNamespace: opts.LeaderElectionNamespace,
 		Client:                  mgr.GetClient(),
-		Logger:                  opts.Logger.WithName(opts.PodName),
-		Recorder:                record.New(mgr.GetEventRecorderFor(fmt.Sprintf("%s/%s", opts.PodNamespace, podName))),
+		Logger:                  opts.Logger,
 		Scheme:                  opts.Scheme,
 		Username:                opts.Username,
 		Password:                opts.Password,
@@ -122,7 +114,7 @@ func UpdateCredentials(opts *Options) {
 
 // InitializeWatch adds a filesystem watcher for the capv credentials file.
 // In case of any update to the credentials file, the new credentials are passed to the capv manager context.
-func InitializeWatch(controllerCtx *capvcontext.ControllerManagerContext, managerOpts *Options) (watch *fsnotify.Watcher, err error) {
+func InitializeWatch(controllerManagerContext *capvcontext.ControllerManagerContext, managerOpts *Options) (watch *fsnotify.Watcher, err error) {
 	capvCredentialsFile := managerOpts.CredentialsFile
 	updateEventCh := make(chan bool)
 	watch, err = fsnotify.NewWatcher()
@@ -136,9 +128,9 @@ func InitializeWatch(controllerCtx *capvcontext.ControllerManagerContext, manage
 		for {
 			select {
 			case err := <-watch.Errors:
-				controllerCtx.Logger.Error(err, "received error on CAPV credential watcher")
+				controllerManagerContext.Logger.Error(err, "Received error on CAPV credential watcher")
 			case event := <-watch.Events:
-				controllerCtx.Logger.Info(fmt.Sprintf("received event %v on the credential file %s", event, capvCredentialsFile))
+				controllerManagerContext.Logger.Info(fmt.Sprintf("Received event %v on the credential file %s", event, capvCredentialsFile))
 				updateEventCh <- true
 			}
 		}

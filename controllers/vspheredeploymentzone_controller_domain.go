@@ -22,7 +22,6 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/klog/v2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -36,32 +35,26 @@ import (
 )
 
 func (r vsphereDeploymentZoneReconciler) reconcileFailureDomain(ctx context.Context, deploymentZoneCtx *capvcontext.VSphereDeploymentZoneContext, vsphereFailureDomain *infrav1.VSphereFailureDomain) error {
-	logger := ctrl.LoggerFrom(ctx).WithValues("VSphereFailureDomain", klog.KObj(vsphereFailureDomain))
-
 	// verify the failure domain for the region
 	if err := r.reconcileInfraFailureDomain(ctx, deploymentZoneCtx, vsphereFailureDomain, vsphereFailureDomain.Spec.Region); err != nil {
 		conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition, infrav1.RegionMisconfiguredReason, clusterv1.ConditionSeverityError, err.Error())
-		logger.Error(err, "region is not configured correctly")
-		return errors.Wrapf(err, "region is not configured correctly")
+		return errors.Wrapf(err, "failed to reconcile failure domain: region is not configured correctly")
 	}
 
 	// verify the failure domain for the zone
 	if err := r.reconcileInfraFailureDomain(ctx, deploymentZoneCtx, vsphereFailureDomain, vsphereFailureDomain.Spec.Zone); err != nil {
 		conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition, infrav1.ZoneMisconfiguredReason, clusterv1.ConditionSeverityError, err.Error())
-		logger.Error(err, "zone is not configured correctly")
-		return errors.Wrapf(err, "zone is not configured correctly")
+		return errors.Wrapf(err, "failed to reconcile failure domain: zone is not configured correctly")
 	}
 
 	if computeCluster := vsphereFailureDomain.Spec.Topology.ComputeCluster; computeCluster != nil {
 		if err := r.reconcileComputeCluster(ctx, deploymentZoneCtx, vsphereFailureDomain); err != nil {
-			logger.Error(err, "compute cluster is not configured correctly", "name", *computeCluster)
-			return errors.Wrap(err, "compute cluster is not configured correctly")
+			return errors.Wrapf(err, "failed to reconcile failure domain: compute cluster %s is not configured correctly", *computeCluster)
 		}
 	}
 
 	if err := r.reconcileTopology(ctx, deploymentZoneCtx, vsphereFailureDomain); err != nil {
-		logger.Error(err, "topology is not configured correctly")
-		return errors.Wrap(err, "topology is not configured correctly")
+		return errors.Wrap(err, "failed to reconcile failure domain: topology is not configured correctly")
 	}
 
 	// Ensure the VSphereDeploymentZone is marked as an owner of the VSphereFailureDomain.
@@ -114,7 +107,7 @@ func (r vsphereDeploymentZoneReconciler) reconcileTopology(ctx context.Context, 
 			conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition, infrav1.HostsMisconfiguredReason, clusterv1.ConditionSeverityError, "vm host affinity does not exist")
 			return err
 		case rule.Disabled():
-			ctrl.LoggerFrom(ctx).V(4).Info("warning: vm-host rule for the failure domain is disabled", "hostgroup", hostPlacementInfo.HostGroupName, "vmGroup", hostPlacementInfo.VMGroupName)
+			ctrl.LoggerFrom(ctx).V(4).Info("WARNING: vm-host rule for the failure domain is disabled", "hostGroup", hostPlacementInfo.HostGroupName, "vmGroup", hostPlacementInfo.VMGroupName)
 			conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition, infrav1.HostsAffinityMisconfiguredReason, clusterv1.ConditionSeverityWarning, "vm host affinity is disabled")
 		default:
 			conditions.MarkTrue(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition)
@@ -163,49 +156,44 @@ func (r vsphereDeploymentZoneReconciler) verifyFailureDomain(ctx context.Context
 
 	objects, err := taggable.GetObjects(ctx, deploymentZoneCtx, vsphereFailureDomain, failureDomain.Type)
 	if err != nil {
-		return errors.Wrapf(err, "failed to find object")
+		return errors.Wrapf(err, "failed to get objects of type %s", failureDomain.Type)
 	}
 
 	// All the objects should be associated to the tag
 	for _, obj := range objects {
 		hasTag, err := obj.HasTag(ctx, failureDomain.Name)
 		if err != nil {
-			return errors.Wrapf(err, "failed to verify tag association")
+			return errors.Wrapf(err, "failed to verify if object %s has tag %s", obj, failureDomain.Name)
 		}
 		if !hasTag {
-			return errors.Errorf("tag %s is not associated to object %s", failureDomain.Name, obj)
+			return errors.Errorf("object %s does not have tag %s", obj, failureDomain.Name)
 		}
 	}
 	return nil
 }
 
 func (r vsphereDeploymentZoneReconciler) createAndAttachMetadata(ctx context.Context, deploymentZoneCtx *capvcontext.VSphereDeploymentZoneContext, vsphereFailureDomain *infrav1.VSphereFailureDomain, failureDomain infrav1.FailureDomain) error {
-	logger := ctrl.LoggerFrom(ctx, "tag", failureDomain.Name, "category", failureDomain.TagCategory)
+	log := ctrl.LoggerFrom(ctx, "tagName", failureDomain.Name, "tagCategory", failureDomain.TagCategory, "failureDomainType", failureDomain.Type)
 	categoryID, err := metadata.CreateCategory(ctx, deploymentZoneCtx, failureDomain.TagCategory, failureDomain.Type)
 	if err != nil {
-		logger.V(4).Error(err, "category creation failed")
 		return errors.Wrapf(err, "failed to create category %s", failureDomain.TagCategory)
 	}
 	err = metadata.CreateTag(ctx, deploymentZoneCtx, failureDomain.Name, categoryID)
 	if err != nil {
-		logger.V(4).Error(err, "tag creation failed")
 		return errors.Wrapf(err, "failed to create tag %s", failureDomain.Name)
 	}
 
-	logger = logger.WithValues("type", failureDomain.Type)
 	objects, err := taggable.GetObjects(ctx, deploymentZoneCtx, vsphereFailureDomain, failureDomain.Type)
 	if err != nil {
-		logger.V(4).Error(err, "failed to find object")
-		return err
+		return errors.Wrapf(err, "failed to get objects of type %s", failureDomain.Type)
 	}
 
 	var errList []error
 	for _, obj := range objects {
-		logger.V(4).Info("attaching tag to object")
+		log.V(4).Info("Attaching tag to object")
 		err := obj.AttachTag(ctx, failureDomain.Name)
 		if err != nil {
-			logger.V(4).Error(err, "failed to find object")
-			errList = append(errList, errors.Wrapf(err, "failed to attach tag"))
+			errList = append(errList, errors.Wrapf(err, "failed to attach tag %s to object %s", failureDomain.Name, obj))
 		}
 	}
 	return kerrors.NewAggregate(errList)

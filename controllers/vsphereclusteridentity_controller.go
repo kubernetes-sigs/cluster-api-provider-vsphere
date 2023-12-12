@@ -19,14 +19,14 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"reflect"
-	"strings"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/client-go/tools/record"
+	"k8s.io/klog/v2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -42,17 +42,6 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	pkgidentity "sigs.k8s.io/cluster-api-provider-vsphere/pkg/identity"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
-)
-
-const (
-	// VSphereClusterIdentityControllerName is the name of the vSphere cluster identity controller.
-	VSphereClusterIdentityControllerName = "vsphereclusteridentity-controller"
-)
-
-var (
-	identityControlledType     = &infrav1.VSphereClusterIdentity{}
-	identityControlledTypeName = reflect.TypeOf(identityControlledType).Elem().Name()
 )
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=vsphereclusteridentities,verbs=get;list;watch;create;update;patch;delete
@@ -61,20 +50,14 @@ var (
 
 // AddVsphereClusterIdentityControllerToManager adds a VSphereClusterIdentity controller to the controller manager.
 func AddVsphereClusterIdentityControllerToManager(ctx context.Context, controllerManagerCtx *capvcontext.ControllerManagerContext, mgr manager.Manager, options controller.Options) error {
-	var (
-		controllerNameShort = fmt.Sprintf("%s-controller", strings.ToLower(identityControlledTypeName))
-		controllerNameLong  = fmt.Sprintf("%s/%s/%s", controllerManagerCtx.Namespace, controllerManagerCtx.Name, controllerNameShort)
-	)
-
 	reconciler := clusterIdentityReconciler{
 		ControllerManagerCtx: controllerManagerCtx,
 		Client:               controllerManagerCtx.Client,
-		Recorder:             record.New(mgr.GetEventRecorderFor(controllerNameLong)),
+		Recorder:             mgr.GetEventRecorderFor("vsphereclusteridentity-controller"),
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
-		Named(VSphereClusterIdentityControllerName).
-		For(identityControlledType).
+		For(&infrav1.VSphereClusterIdentity{}).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), controllerManagerCtx.WatchFilterValue)).
 		Complete(reconciler)
@@ -83,20 +66,13 @@ func AddVsphereClusterIdentityControllerToManager(ctx context.Context, controlle
 type clusterIdentityReconciler struct {
 	ControllerManagerCtx *capvcontext.ControllerManagerContext
 	Client               client.Client
-	Recorder             record.Recorder
+	Recorder             record.EventRecorder
 }
 
 func (r clusterIdentityReconciler) Reconcile(ctx context.Context, req reconcile.Request) (_ reconcile.Result, reterr error) {
-	// TODO(gab-satchi) consider creating a context for the clusterIdentity
-	// Get VSphereClusterIdentity
-
-	log := ctrl.LoggerFrom(ctx)
-	log.V(4).Info("Starting Reconcile")
-
 	identity := &infrav1.VSphereClusterIdentity{}
 	if err := r.Client.Get(ctx, req.NamespacedName, identity); err != nil {
 		if apierrors.IsNotFound(err) {
-			log.V(4).Info("VSphereClusterIdentity not found, won't reconcile", "key", req.NamespacedName)
 			return reconcile.Result{}, nil
 		}
 
@@ -106,12 +82,7 @@ func (r clusterIdentityReconciler) Reconcile(ctx context.Context, req reconcile.
 	// Create the patch helper.
 	patchHelper, err := patch.NewHelper(identity, r.Client)
 	if err != nil {
-		return reconcile.Result{}, errors.Wrapf(
-			err,
-			"failed to init patch helper for %s %s/%s",
-			identity.GroupVersionKind(),
-			identity.Namespace,
-			identity.Name)
+		return reconcile.Result{}, errors.Wrap(err, "failed to initialize patch helper")
 	}
 
 	defer func() {
@@ -140,7 +111,7 @@ func (r clusterIdentityReconciler) Reconcile(ctx context.Context, req reconcile.
 	}
 	if err := r.Client.Get(ctx, secretKey, secret); err != nil {
 		conditions.MarkFalse(identity, infrav1.CredentialsAvailableCondidtion, infrav1.SecretNotAvailableReason, clusterv1.ConditionSeverityWarning, err.Error())
-		return reconcile.Result{}, errors.Errorf("secret: %s not found in namespace: %s", secretKey.Name, secretKey.Namespace)
+		return reconcile.Result{}, errors.Wrapf(err, "failed to get Secret %s", klog.KRef(secretKey.Namespace, secretKey.Name))
 	}
 
 	// If this secret is owned by a different VSphereClusterIdentity or a VSphereCluster, mark the identity as not ready and return an error.
@@ -176,7 +147,6 @@ func (r clusterIdentityReconciler) Reconcile(ctx context.Context, req reconcile.
 
 func (r clusterIdentityReconciler) reconcileDelete(ctx context.Context, identity *infrav1.VSphereClusterIdentity) error {
 	log := ctrl.LoggerFrom(ctx)
-	log.Info("Reconciling VSphereClusterIdentity delete")
 	secret := &corev1.Secret{}
 	secretKey := client.ObjectKey{
 		Namespace: r.ControllerManagerCtx.Namespace,
@@ -191,14 +161,21 @@ func (r clusterIdentityReconciler) reconcileDelete(ctx context.Context, identity
 		}
 		return err
 	}
-	log.Info(fmt.Sprintf("Removing finalizer from Secret %s/%s", secret.Namespace, secret.Name))
-	ctrlutil.RemoveFinalizer(secret, infrav1.SecretIdentitySetFinalizer)
-	if err := r.Client.Update(ctx, secret); err != nil {
-		return err
+
+	if ctrlutil.RemoveFinalizer(secret, infrav1.SecretIdentitySetFinalizer) {
+		log.Info(fmt.Sprintf("Removing finalizer %s", infrav1.SecretIdentitySetFinalizer), "Secret", klog.KObj(secret))
+		if err := r.Client.Update(ctx, secret); err != nil {
+			return errors.Wrapf(err, fmt.Sprintf("failed to update Secret %s", klog.KObj(secret)))
+		}
 	}
-	if err := r.Client.Delete(ctx, secret); err != nil {
-		return err
+
+	if secret.DeletionTimestamp.IsZero() {
+		log.Info("Deleting Secret", "Secret", klog.KObj(secret))
+		if err := r.Client.Delete(ctx, secret); err != nil {
+			return errors.Wrapf(err, fmt.Sprintf("failed to delete Secret %s", klog.KObj(secret)))
+		}
 	}
+
 	// Remove the finalizer from the identity as all cleanup is complete.
 	ctrlutil.RemoveFinalizer(identity, infrav1.VSphereClusterIdentityFinalizer)
 	return nil

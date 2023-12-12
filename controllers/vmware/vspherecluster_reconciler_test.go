@@ -24,6 +24,7 @@ import (
 	topologyv1 "github.com/vmware-tanzu/vm-operator/external/tanzu-topology/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apirecord "k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -52,33 +53,33 @@ var _ = Describe("Cluster Controller Tests", func() {
 		testIP                = "127.0.0.1"
 	)
 	var (
-		cluster        *clusterv1.Cluster
-		vsphereCluster *vmwarev1.VSphereCluster
-		vsphereMachine *vmwarev1.VSphereMachine
-		ctx            = ctrl.SetupSignalHandler()
-		clusterCtx     *vmware.ClusterContext
-		controllerCtx  *capvcontext.ControllerContext
-		reconciler     *ClusterReconciler
+		cluster                  *clusterv1.Cluster
+		vsphereCluster           *vmwarev1.VSphereCluster
+		vsphereMachine           *vmwarev1.VSphereMachine
+		ctx                      = ctrl.SetupSignalHandler()
+		clusterCtx               *vmware.ClusterContext
+		controllerManagerContext *capvcontext.ControllerManagerContext
+		reconciler               *ClusterReconciler
 	)
 
 	BeforeEach(func() {
 		// Create all necessary dependencies
 		cluster = util.CreateCluster(clusterName)
 		vsphereCluster = util.CreateVSphereCluster(clusterName)
-		clusterCtx, controllerCtx = util.CreateClusterContext(cluster, vsphereCluster)
+		clusterCtx, controllerManagerContext = util.CreateClusterContext(cluster, vsphereCluster)
 		vsphereMachine = util.CreateVSphereMachine(machineName, clusterName, className, imageName, storageClass, controlPlaneLabelTrue)
 
 		reconciler = &ClusterReconciler{
-			Client:          controllerCtx.Client,
-			Recorder:        controllerCtx.Recorder,
+			Client:          controllerManagerContext.Client,
+			Recorder:        apirecord.NewFakeRecorder(100),
 			NetworkProvider: network.DummyNetworkProvider(),
 			ControlPlaneService: &vmoperator.CPService{
-				Client: controllerCtx.Client,
+				Client: controllerManagerContext.Client,
 			},
 		}
 
-		Expect(controllerCtx.Client.Create(ctx, cluster)).To(Succeed())
-		Expect(controllerCtx.Client.Create(ctx, vsphereCluster)).To(Succeed())
+		Expect(controllerManagerContext.Client.Create(ctx, cluster)).To(Succeed())
+		Expect(controllerManagerContext.Client.Create(ctx, vsphereCluster)).To(Succeed())
 	})
 
 	// Ensure that the mechanism for reconciling clusters when a control plane machine gets an IP works
@@ -101,7 +102,7 @@ var _ = Describe("Cluster Controller Tests", func() {
 		It("should mark specific resources to be in deleting conditions", func() {
 			clusterCtx.VSphereCluster.Status.Conditions = append(clusterCtx.VSphereCluster.Status.Conditions,
 				clusterv1.Condition{Type: vmwarev1.ResourcePolicyReadyCondition, Status: corev1.ConditionTrue})
-			reconciler.reconcileDelete(ctx, clusterCtx)
+			reconciler.reconcileDelete(clusterCtx)
 			c := conditions.Get(clusterCtx.VSphereCluster, vmwarev1.ResourcePolicyReadyCondition)
 			Expect(c).NotTo(BeNil())
 			Expect(c.Status).To(Equal(corev1.ConditionFalse))
@@ -112,7 +113,7 @@ var _ = Describe("Cluster Controller Tests", func() {
 			otherReady := clusterv1.ConditionType("OtherReady")
 			clusterCtx.VSphereCluster.Status.Conditions = append(clusterCtx.VSphereCluster.Status.Conditions,
 				clusterv1.Condition{Type: otherReady, Status: corev1.ConditionTrue})
-			reconciler.reconcileDelete(ctx, clusterCtx)
+			reconciler.reconcileDelete(clusterCtx)
 			c := conditions.Get(clusterCtx.VSphereCluster, otherReady)
 			Expect(c).NotTo(BeNil())
 			Expect(c.Status).NotTo(Equal(corev1.ConditionFalse))
@@ -150,7 +151,7 @@ var _ = Describe("Cluster Controller Tests", func() {
 					},
 				}
 
-				Expect(controllerCtx.Client.Create(ctx, zone)).To(Succeed())
+				Expect(controllerManagerContext.Client.Create(ctx, zone)).To(Succeed())
 			}
 
 			fds, err := reconciler.getFailureDomains(ctx)

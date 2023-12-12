@@ -109,10 +109,10 @@ var _ = Describe("VirtualMachine tests", func() {
 		vsphereCluster = util.CreateVSphereCluster(clusterName)
 		machine = util.CreateMachine(machineName, clusterName, k8sVersion, controlPlaneLabelTrue)
 		vsphereMachine = util.CreateVSphereMachine(machineName, clusterName, className, imageName, storageClass, controlPlaneLabelTrue)
-		clusterContext, controllerCtx := util.CreateClusterContext(cluster, vsphereCluster)
+		clusterContext, controllerManagerContext := util.CreateClusterContext(cluster, vsphereCluster)
 		supervisorMachineContext = util.CreateMachineContext(clusterContext, machine, vsphereMachine)
-		supervisorMachineContext.ControllerContext = controllerCtx
-		vmService = VmopMachineService{Client: controllerCtx.Client}
+		supervisorMachineContext.ControllerManagerContext = controllerManagerContext
+		vmService = VmopMachineService{Client: controllerManagerContext.Client}
 	})
 
 	Context("Reconcile VirtualMachine", func() {

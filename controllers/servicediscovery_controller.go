@@ -32,10 +32,13 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	"k8s.io/client-go/tools/record"
 	bootstrapapi "k8s.io/cluster-bootstrap/token/api"
+	"k8s.io/klog/v2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -52,13 +55,10 @@ import (
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	vmwarecontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 )
 
 const (
 	clusterNotReadyRequeueTime = time.Minute * 2
-	// ServiceDiscoveryControllerName is the name of the service discovery controller.
-	ServiceDiscoveryControllerName = "servicediscovery-controller"
 
 	supervisorLoadBalancerSvcNamespace = "kube-system"
 	supervisorLoadBalancerSvcName      = "kube-apiserver-lb-svc"
@@ -75,14 +75,9 @@ const (
 
 // AddServiceDiscoveryControllerToManager adds the ServiceDiscovery controller to the provided manager.
 func AddServiceDiscoveryControllerToManager(ctx context.Context, controllerManagerCtx *capvcontext.ControllerManagerContext, mgr manager.Manager, tracker *remote.ClusterCacheTracker, options controller.Options) error {
-	var (
-		controllerNameShort = ServiceDiscoveryControllerName
-		controllerNameLong  = fmt.Sprintf("%s/%s/%s", controllerManagerCtx.Namespace, controllerManagerCtx.Name, controllerNameShort)
-	)
-
 	r := &serviceDiscoveryReconciler{
 		Client:                    controllerManagerCtx.Client,
-		Recorder:                  record.New(mgr.GetEventRecorderFor(controllerNameLong)),
+		Recorder:                  mgr.GetEventRecorderFor("servicediscovery/vspherecluster-controller"),
 		remoteClusterCacheTracker: tracker,
 	}
 
@@ -94,15 +89,16 @@ func AddServiceDiscoveryControllerToManager(ctx context.Context, controllerManag
 		DefaultNamespaces: map[string]cache.Config{metav1.NamespacePublic: {}},
 	})
 	if err != nil {
-		return errors.Wrapf(err, "failed to create configmap cache")
+		return errors.Wrapf(err, "failed to create ConfigMap cache")
 	}
 	if err := mgr.Add(configMapCache); err != nil {
-		return errors.Wrapf(err, "failed to start configmap cache")
+		return errors.Wrapf(err, "failed to add ConfigMap cache")
 	}
 	src := source.Kind(configMapCache, &corev1.ConfigMap{})
 
+	clusterToInfraFn := clusterToVMwareInfrastructureMapFunc(ctx, controllerManagerCtx)
 	return ctrl.NewControllerManagedBy(mgr).For(&vmwarev1.VSphereCluster{}).
-		Named(ServiceDiscoveryControllerName).
+		Named("servicediscovery/vspherecluster").
 		WithOptions(options).
 		Watches(
 			&corev1.Service{},
@@ -115,25 +111,41 @@ func AddServiceDiscoveryControllerToManager(ctx context.Context, controllerManag
 		// watch the CAPI cluster
 		Watches(
 			&clusterv1.Cluster{},
-			handler.EnqueueRequestForOwner(
-				mgr.GetScheme(), mgr.GetRESTMapper(),
-				&vmwarev1.VSphereCluster{},
-				handler.OnlyControllerOwner(),
-			)).
+			handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, o client.Object) []reconcile.Request {
+				requests := clusterToInfraFn(ctx, o)
+				if len(requests) == 0 {
+					return nil
+				}
+
+				log := ctrl.LoggerFrom(ctx, "Cluster", klog.KObj(o), "VSphereCluster", klog.KRef(requests[0].Namespace, requests[0].Name))
+				ctx = ctrl.LoggerInto(ctx, log)
+
+				c := &vmwarev1.VSphereCluster{}
+				if err := r.Client.Get(ctx, requests[0].NamespacedName, c); err != nil {
+					log.V(4).Error(err, "Failed to get VSphereCluster")
+					return nil
+				}
+
+				if annotations.IsExternallyManaged(c) {
+					log.V(6).Info("VSphereCluster is externally managed, will not attempt to map resource")
+					return nil
+				}
+				return requests
+			}),
+		).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), controllerManagerCtx.WatchFilterValue)).
 		Complete(r)
 }
 
 type serviceDiscoveryReconciler struct {
 	Client   client.Client
-	Recorder record.Recorder
+	Recorder record.EventRecorder
 
 	remoteClusterCacheTracker *remote.ClusterCacheTracker
 }
 
 func (r *serviceDiscoveryReconciler) Reconcile(ctx context.Context, req reconcile.Request) (_ reconcile.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
-	log.V(4).Info("Starting Reconcile")
 
 	// Get the vspherecluster for this request.
 	vsphereCluster := &vmwarev1.VSphereCluster{}
@@ -141,7 +153,6 @@ func (r *serviceDiscoveryReconciler) Reconcile(ctx context.Context, req reconcil
 	// already adds the reconciled object (which is VSphereCluster).
 	if err := r.Client.Get(ctx, req.NamespacedName, vsphereCluster); err != nil {
 		if apierrors.IsNotFound(err) {
-			log.Info("VSphereCluster not found, won't reconcile")
 			return reconcile.Result{}, nil
 		}
 		return reconcile.Result{}, err
@@ -150,12 +161,7 @@ func (r *serviceDiscoveryReconciler) Reconcile(ctx context.Context, req reconcil
 	// Create the patch helper.
 	patchHelper, err := patch.NewHelper(vsphereCluster, r.Client)
 	if err != nil {
-		return reconcile.Result{}, errors.Wrapf(
-			err,
-			"failed to init patch helper for %s %s/%s",
-			vsphereCluster.GroupVersionKind(),
-			vsphereCluster.Namespace,
-			vsphereCluster.Name)
+		return reconcile.Result{}, errors.Wrapf(err, "failed to initialize patch helper")
 	}
 
 	// Create the cluster context for this request.
@@ -179,8 +185,7 @@ func (r *serviceDiscoveryReconciler) Reconcile(ctx context.Context, req reconcil
 
 	cluster, err := clusterutilv1.GetClusterFromMetadata(ctx, r.Client, vsphereCluster.ObjectMeta)
 	if err != nil {
-		log.Error(err, "unable to get Cluster from VSphereCluster")
-		return reconcile.Result{RequeueAfter: clusterNotReadyRequeueTime}, nil
+		return reconcile.Result{RequeueAfter: clusterNotReadyRequeueTime}, errors.Wrapf(err, "failed to get Cluster from VSphereCluster")
 	}
 
 	// We cannot proceed until we are able to access the target cluster. Until
@@ -196,49 +201,60 @@ func (r *serviceDiscoveryReconciler) Reconcile(ctx context.Context, req reconcil
 	}
 
 	// Defer to the Reconciler for reconciling a non-delete event.
-	return r.ReconcileNormal(ctx, &vmwarecontext.GuestClusterContext{
+	return reconcile.Result{}, r.reconcileNormal(ctx, &vmwarecontext.GuestClusterContext{
 		ClusterContext: clusterContext,
 		GuestClient:    guestClient,
 	})
 }
 
-func (r *serviceDiscoveryReconciler) ReconcileNormal(ctx context.Context, guestClusterCtx *vmwarecontext.GuestClusterContext) (reconcile.Result, error) {
-	log := ctrl.LoggerFrom(ctx)
-	log.V(4).Info("Reconciling Service Discovery")
-
+func (r *serviceDiscoveryReconciler) reconcileNormal(ctx context.Context, guestClusterCtx *vmwarecontext.GuestClusterContext) error {
 	if err := r.reconcileSupervisorHeadlessService(ctx, guestClusterCtx); err != nil {
 		conditions.MarkFalse(guestClusterCtx.VSphereCluster, vmwarev1.ServiceDiscoveryReadyCondition, vmwarev1.SupervisorHeadlessServiceSetupFailedReason,
 			clusterv1.ConditionSeverityWarning, err.Error())
-		return reconcile.Result{}, errors.Wrapf(err, "failed to configure supervisor headless service for %v", guestClusterCtx.VSphereCluster)
+		return errors.Wrapf(err, "failed to reconcile supervisor headless Service")
 	}
 
-	return reconcile.Result{}, nil
+	return nil
 }
 
-// Setup a local k8s service in the target cluster that proxies to the Supervisor Cluster API Server. The add-ons are
-// dependent on this local service to connect to the Supervisor Cluster.
+// reconcileSupervisorHeadlessService sets up a local k8s service in the workload cluster that
+// proxies to the Supervisor Cluster API Server. The add-ons are depend on this local service
+// to connect to the Supervisor Cluster.
 func (r *serviceDiscoveryReconciler) reconcileSupervisorHeadlessService(ctx context.Context, guestClusterCtx *vmwarecontext.GuestClusterContext) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Create the headless service to the supervisor api server on the target cluster.
 	supervisorPort := vmwarev1.SupervisorAPIServerPort
-	svc := NewSupervisorHeadlessService(vmwarev1.SupervisorHeadlessSvcPort, supervisorPort)
-	if err := guestClusterCtx.GuestClient.Create(ctx, svc); err != nil && !apierrors.IsAlreadyExists(err) {
-		return errors.Wrapf(err, "cannot create k8s service %s/%s in ", svc.Namespace, svc.Name)
+	svc := newSupervisorHeadlessService(vmwarev1.SupervisorHeadlessSvcPort, supervisorPort)
+
+	log = log.WithValues("Service", klog.KObj(svc))
+	ctx = ctrl.LoggerInto(ctx, log)
+
+	testObj := svc.DeepCopyObject().(client.Object)
+	if err := guestClusterCtx.GuestClient.Get(ctx, client.ObjectKeyFromObject(svc), testObj); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return errors.Wrapf(err, "failed to check if Service %s already exists", klog.KObj(svc))
+		}
+
+		// If Secret doesn't exist, create it
+		log.Info("Creating supervisor headless Service")
+		if err := guestClusterCtx.GuestClient.Create(ctx, svc); err != nil && !apierrors.IsAlreadyExists(err) {
+			return errors.Wrapf(err, "failed to create supervisor headless Service")
+		}
 	}
 
 	supervisorHost, err := r.getSupervisorAPIServerAddress(ctx)
 	if err != nil {
-		// Note: We have watches on the LB Svc (VIP) & the cluster-info configmap (FIP). There is no need to return an error to keep
-		// re-trying.
+		// Note: We have watches on the LB Svc (VIP) & the cluster-info configmap (FIP).
+		// There is no need to return an error to keep re-trying.
 		conditions.MarkFalse(guestClusterCtx.VSphereCluster, vmwarev1.ServiceDiscoveryReadyCondition, vmwarev1.SupervisorHeadlessServiceSetupFailedReason,
 			clusterv1.ConditionSeverityWarning, err.Error())
 		return nil
 	}
 
-	log.Info("Discovered supervisor apiserver address", "host", supervisorHost, "port", supervisorPort)
+	log.Info("Discovered supervisor API server endpoint", "host", supervisorHost, "port", supervisorPort)
 	// CreateOrPatch the newEndpoints with the discovered supervisor api server address
-	newEndpoints := NewSupervisorHeadlessServiceEndpoints(
+	newEndpoints := newSupervisorHeadlessServiceEndpoints(
 		supervisorHost,
 		supervisorPort,
 	)
@@ -246,12 +262,16 @@ func (r *serviceDiscoveryReconciler) reconcileSupervisorHeadlessService(ctx cont
 		Namespace: newEndpoints.Namespace,
 		Name:      newEndpoints.Name,
 	}
+	log = log.WithValues("Endpoints", klog.KRef(endpointsKey.Namespace, endpointsKey.Name))
+	ctx = ctrl.LoggerInto(ctx, log)
+
 	endpoints := &corev1.Endpoints{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: newEndpoints.Namespace,
 			Name:      newEndpoints.Name,
 		},
 	}
+
 	result, err := controllerutil.CreateOrPatch(
 		ctx,
 		guestClusterCtx.GuestClient,
@@ -261,51 +281,20 @@ func (r *serviceDiscoveryReconciler) reconcileSupervisorHeadlessService(ctx cont
 			return nil
 		})
 	if err != nil {
-		return errors.Wrapf(
-			err,
-			"cannot create k8s service endpoints %s",
-			endpointsKey,
-		)
+		return errors.Wrapf(err, "failed to create or patch service Endpoints")
 	}
 
 	endpointsSubsetsStr := fmt.Sprintf("%+v", endpoints.Subsets)
 
 	switch result {
 	case controllerutil.OperationResultNone:
-		log.Info(
-			"no update required for k8s service endpoints",
-			"endpointsKey",
-			endpointsKey,
-			"endpointsSubsets",
-			endpointsSubsetsStr,
-		)
+		log.V(3).Info("No update required for service Endpoints", "endpointsSubsets", endpointsSubsetsStr)
 	case controllerutil.OperationResultCreated:
-		log.Info(
-			"created k8s service endpoints",
-			"endpointsKey",
-			endpointsKey,
-			"endpointsSubsets",
-			endpointsSubsetsStr,
-		)
+		log.Info("Created service Endpoints", "endpointsSubsets", endpointsSubsetsStr)
 	case controllerutil.OperationResultUpdated:
-		log.Info(
-			"updated k8s service endpoints",
-			"endpointsKey",
-			endpointsKey,
-			"endpointsSubsets",
-			endpointsSubsetsStr,
-		)
+		log.Info("Updated service Endpoints", "endpointsSubsets", endpointsSubsetsStr)
 	default:
-		log.Error(
-			nil,
-			"unexpected result during createOrPatch k8s service endpoints",
-			"endpointsKey",
-			endpointsKey,
-			"endpointsSubsets",
-			endpointsSubsetsStr,
-			"result",
-			result,
-		)
+		log.Error(nil, "Unexpected result during createOrPatch service Endpoints", "endpointsSubsets", endpointsSubsetsStr, "operationResult", result)
 	}
 
 	conditions.MarkTrue(guestClusterCtx.VSphereCluster, vmwarev1.ServiceDiscoveryReadyCondition)
@@ -313,26 +302,24 @@ func (r *serviceDiscoveryReconciler) reconcileSupervisorHeadlessService(ctx cont
 }
 
 func (r *serviceDiscoveryReconciler) getSupervisorAPIServerAddress(ctx context.Context) (string, error) {
-	log := ctrl.LoggerFrom(ctx)
-
 	// Discover the supervisor api server address
 	// 1. Check if a k8s service "kube-system/kube-apiserver-lb-svc" is available, if so, fetch the loadbalancer IP.
 	// 2. If not, get the Supervisor Cluster Management Network Floating IP (FIP) from the cluster-info configmap. This is
-	// to support non-NSX-T development usecases only. If we are unable to find the cluster-info configmap for some reason,
+	// to support non-NSX-T development use cases only. If we are unable to find the cluster-info configmap for some reason,
 	// we log the error.
-	supervisorHost, err := GetSupervisorAPIServerVIP(r.Client)
-	if err != nil {
-		log.Error(err, "Unable to discover supervisor apiserver virtual ip, fallback to floating ip")
-		supervisorHost, err = GetSupervisorAPIServerFIP(r.Client)
-		if err != nil {
-			return "", errors.Wrapf(err, "Unable to discover supervisor apiserver address")
+	supervisorHost, vipErr := getSupervisorAPIServerVIP(ctx, r.Client)
+	if vipErr != nil {
+		var fipErr error
+		supervisorHost, fipErr = getSupervisorAPIServerFIP(ctx, r.Client)
+		if fipErr != nil {
+			return "", errors.Wrapf(kerrors.NewAggregate([]error{vipErr, fipErr}), "Failed to discover supervisor API server endpoint")
 		}
 	}
 	return supervisorHost, nil
 }
 
-// NewSupervisorHeadlessService returns a new Supervisor headless service.
-func NewSupervisorHeadlessService(port, targetPort int) *corev1.Service {
+// newSupervisorHeadlessService returns a new Supervisor headless service.
+func newSupervisorHeadlessService(port, targetPort int) *corev1.Service {
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      vmwarev1.SupervisorHeadlessSvcName,
@@ -351,8 +338,8 @@ func NewSupervisorHeadlessService(port, targetPort int) *corev1.Service {
 	}
 }
 
-// NewSupervisorHeadlessServiceEndpoints returns Kubernetes Endpoints for the supervisor apiserver address.
-func NewSupervisorHeadlessServiceEndpoints(targetHost string, targetPort int) *corev1.Endpoints {
+// newSupervisorHeadlessServiceEndpoints returns Kubernetes Endpoints for the supervisor apiserver address.
+func newSupervisorHeadlessServiceEndpoints(targetHost string, targetPort int) *corev1.Endpoints {
 	var endpointAddr corev1.EndpointAddress
 	if ip := net.ParseIP(targetHost); ip != nil {
 		endpointAddr.IP = ip.String()
@@ -379,12 +366,12 @@ func NewSupervisorHeadlessServiceEndpoints(targetHost string, targetPort int) *c
 	}
 }
 
-// GetSupervisorAPIServerVIP finds the load balancer IP of the Supervisor APIServer.
-func GetSupervisorAPIServerVIP(client client.Client) (string, error) {
+// getSupervisorAPIServerVIP finds the load balancer IP of the Supervisor APIServer.
+func getSupervisorAPIServerVIP(ctx context.Context, client client.Client) (string, error) {
 	svc := &corev1.Service{}
 	svcKey := types.NamespacedName{Name: vmwarev1.SupervisorLoadBalancerSvcName, Namespace: vmwarev1.SupervisorLoadBalancerSvcNamespace}
-	if err := client.Get(context.Background(), svcKey, svc); err != nil {
-		return "", errors.Wrapf(err, "unable to get supervisor loadbalancer svc %s", svcKey)
+	if err := client.Get(ctx, svcKey, svc); err != nil {
+		return "", errors.Wrapf(err, "unable to get supervisor loadbalancer Service %s", svcKey)
 	}
 	if len(svc.Status.LoadBalancer.Ingress) > 0 {
 		ingress := svc.Status.LoadBalancer.Ingress[0]
@@ -393,31 +380,31 @@ func GetSupervisorAPIServerVIP(client client.Client) (string, error) {
 		}
 		return ingress.Hostname, nil
 	}
-	return "", errors.Errorf("no VIP found in the supervisor loadbalancer svc %s", svcKey)
+	return "", errors.Errorf("no VIP found in the supervisor loadbalancer Service %s", svcKey)
 }
 
-// GetSupervisorAPIServerFIP finds the floating ip of the Supervisor APIServer.
-func GetSupervisorAPIServerFIP(client client.Client) (string, error) {
-	urlString, err := getSupervisorAPIServerURLWithFIP(client)
+// getSupervisorAPIServerFIP finds the floating ip of the Supervisor APIServer.
+func getSupervisorAPIServerFIP(ctx context.Context, client client.Client) (string, error) {
+	urlString, err := getSupervisorAPIServerURLWithFIP(ctx, client)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to get supervisor url")
+		return "", errors.Wrap(err, "unable to get supervisor URL")
 	}
 	urlVal, err := url.Parse(urlString)
 	if err != nil {
-		return "", errors.Wrapf(err, "unable to parse supervisor url from %s", urlString)
+		return "", errors.Wrapf(err, "unable to parse supervisor URL from %s", urlString)
 	}
 	host := urlVal.Hostname()
 	if host == "" {
-		return "", errors.Errorf("unable to get supervisor host from url %s", urlVal)
+		return "", errors.Errorf("unable to get supervisor host from URL %s", urlVal)
 	}
 	return host, nil
 }
 
-func getSupervisorAPIServerURLWithFIP(client client.Client) (string, error) {
+func getSupervisorAPIServerURLWithFIP(ctx context.Context, client client.Client) (string, error) {
 	cm := &corev1.ConfigMap{}
 	cmKey := types.NamespacedName{Name: bootstrapapi.ConfigMapClusterInfo, Namespace: metav1.NamespacePublic}
-	if err := client.Get(context.Background(), cmKey, cm); err != nil {
-		return "", err
+	if err := client.Get(ctx, cmKey, cm); err != nil {
+		return "", errors.Wrapf(err, "unable to get ConfigMap %s", cmKey)
 	}
 	kubeconfig, err := tryParseClusterInfoFromConfigMap(cm)
 	if err != nil {
@@ -427,7 +414,7 @@ func getSupervisorAPIServerURLWithFIP(client client.Client) (string, error) {
 	if clusterConfig != nil {
 		return clusterConfig.Server, nil
 	}
-	return "", errors.Errorf("unable to get cluster from kubeconfig in ConfigMap %s/%s", cm.Namespace, cm.Name)
+	return "", errors.Errorf("unable to get cluster from kubeconfig in ConfigMap %s", cmKey)
 }
 
 // tryParseClusterInfoFromConfigMap tries to parse a kubeconfig file from a ConfigMap key.

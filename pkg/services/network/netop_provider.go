@@ -62,7 +62,7 @@ func (np *netopNetworkProvider) getDefaultClusterNetwork(ctx context.Context, cl
 		return networkWithLabel, nil
 	}
 
-	log.Info("falling back to legacy label to identify default network", "label", legacyDefaultNetworkLabel)
+	log.Info("Falling back to legacy label to identify default network", "label", legacyDefaultNetworkLabel)
 	return np.getDefaultClusterNetworkWithLabel(ctx, clusterCtx, legacyDefaultNetworkLabel)
 }
 

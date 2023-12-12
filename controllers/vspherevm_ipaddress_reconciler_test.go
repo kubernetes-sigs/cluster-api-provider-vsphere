@@ -20,7 +20,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/go-logr/logr"
 	"github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,7 +42,6 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 		return &capvcontext.VMContext{
 			ControllerManagerContext: fake.NewControllerManagerContext(initObjects...),
 			VSphereVM:                vsphereVM,
-			Logger:                   logr.Discard(),
 		}
 	}
 	ctx := context.Background()

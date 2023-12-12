@@ -27,7 +27,6 @@ import (
 	"time"
 
 	"github.com/blang/semver"
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
@@ -124,11 +123,11 @@ func (p *Params) WithFeatures(feature Feature) *Params {
 // GetOrCreate gets a cached session or creates a new one if one does not
 // already exist.
 func GetOrCreate(ctx context.Context, params *Params) (*Session, error) {
-	logger := ctrl.LoggerFrom(ctx).WithName("session").WithValues(
+	log := ctrl.LoggerFrom(ctx).WithValues(
 		"server", params.server,
 		"datacenter", params.datacenter,
 		"username", params.userinfo.Username())
-	ctx = ctrl.LoggerInto(ctx, logger)
+	ctx = ctrl.LoggerInto(ctx, log)
 
 	sessionMU.Lock()
 	defer sessionMU.Unlock()
@@ -146,31 +145,31 @@ func GetOrCreate(ctx context.Context, params *Params) (*Session, error) {
 		// The userSession is active when the value is not nil.
 		userSession, err := s.SessionManager.UserSession(ctx)
 		if err != nil {
-			logger.Error(err, "unable to check if vim session is active")
+			log.Error(err, "Failed to check if vim session is active")
 		}
 
 		tagManagerSession, err := s.TagManager.Session(ctx)
 		if err != nil {
-			logger.Error(err, "unable to check if rest session is active")
+			log.Error(err, "Failed to check if REST session is active")
 		}
 
 		if userSession != nil && tagManagerSession != nil {
-			logger.V(2).Info("found active cached vSphere client session")
+			log.Info("Found active cached vSphere client session")
 			return s, nil
 		}
 
-		logger.V(2).Info("logout the rest session because it is inactive")
+		log.Info("Logout the REST session because it is inactive")
 		if err := s.TagManager.Logout(ctx); err != nil {
-			logger.Error(err, "unable to logout rest session")
+			log.Error(err, "Failed to logout REST session")
 		} else {
-			logger.Info("logout rest session succeed")
+			log.Info("Logout REST session succeed")
 		}
 
-		logger.V(2).Info("logout the session because it is inactive")
+		log.Info("Logout the session because it is inactive")
 		if err := s.Client.Logout(ctx); err != nil {
-			logger.Error(err, "unable to logout session")
+			log.Error(err, "Failed to logout session")
 		} else {
-			logger.Info("logout session succeed")
+			log.Info("Logout session succeed")
 		}
 	}
 
@@ -185,16 +184,16 @@ func GetOrCreate(ctx context.Context, params *Params) (*Session, error) {
 
 	soapURL, err := soap.ParseURL(urlSafeServer)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error parsing vSphere URL %q", params.server)
+		return nil, errors.Wrapf(err, "failed to create vCenter session: error parsing vSphere URL %q", params.server)
 	}
 	if soapURL == nil {
-		return nil, errors.Errorf("error parsing vSphere URL %q", params.server)
+		return nil, errors.Errorf("failed to create vCenter session: error parsing vSphere URL %q: URL is nil", params.server)
 	}
 
 	soapURL.User = params.userinfo
-	client, err := newClient(ctx, logger, sessionKey, soapURL, params.thumbprint, params.feature)
+	client, err := newClient(ctx, sessionKey, soapURL, params.thumbprint, params.feature)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create vCenter session")
 	}
 
 	session := Session{Client: client}
@@ -203,14 +202,14 @@ func GetOrCreate(ctx context.Context, params *Params) (*Session, error) {
 	// Assign the finder to the session.
 	session.Finder = find.NewFinder(session.Client.Client, false)
 	// Assign tag manager to the session.
-	manager, err := newManager(ctx, logger, sessionKey, client.Client, soapURL.User, params.feature)
+	manager, err := newManager(ctx, sessionKey, client.Client, soapURL.User, params.feature)
 	if err != nil {
-		logger.Error(err, "unable to get new Manager, will logout")
+		log.Error(err, "Failed to create tags manager, will logout")
 		// Logout of previously logged session to not leak
 		if errLogout := client.Logout(ctx); errLogout != nil {
-			logger.Error(errLogout, "error logging out of leading client session")
+			log.Error(errLogout, "Failed to logout of leading client session")
 		}
-		return nil, errors.Wrap(err, "unable to create tags manager")
+		return nil, errors.Wrap(err, "failed to create vCenter session: failed to create tags manager")
 	}
 	session.TagManager = manager
 
@@ -218,15 +217,15 @@ func GetOrCreate(ctx context.Context, params *Params) (*Session, error) {
 	if params.datacenter != "" {
 		dc, err := session.Finder.Datacenter(ctx, params.datacenter)
 		if err != nil {
-			logger.Error(err, "unable to get datacenter, will logout")
+			log.Error(err, "Failed to get datacenter, will logout")
 			// Logout of previously logged session to not leak
 			if errLogout := manager.Logout(ctx); errLogout != nil {
-				logger.Error(errLogout, "error logging out of leading rest session")
+				log.Error(errLogout, "Failed to logout of leading REST session")
 			}
 			if errLogout := client.Logout(ctx); errLogout != nil {
-				logger.Error(errLogout, "error logging out of leading client session")
+				log.Error(errLogout, "Failed to logout of leading client session")
 			}
-			return nil, errors.Wrapf(err, "unable to find datacenter %q", params.datacenter)
+			return nil, errors.Wrapf(err, "failed to create vCenter session: failed to find datacenter %q", params.datacenter)
 		}
 		session.datacenter = dc
 		session.Finder.SetDatacenter(dc)
@@ -234,12 +233,14 @@ func GetOrCreate(ctx context.Context, params *Params) (*Session, error) {
 	// Cache the session.
 	sessionCache.Store(sessionKey, &session)
 
-	logger.V(2).Info("cached vSphere client session", "server", params.server, "datacenter", params.datacenter)
+	log.Info("Created and cached vSphere client session")
 
 	return &session, nil
 }
 
-func newClient(ctx context.Context, logger logr.Logger, sessionKey string, url *url.URL, thumbprint string, feature Feature) (*govmomi.Client, error) {
+func newClient(ctx context.Context, sessionKey string, url *url.URL, thumbprint string, feature Feature) (*govmomi.Client, error) {
+	log := ctrl.LoggerFrom(ctx)
+
 	insecure := thumbprint == ""
 	soapClient := soap.NewClient(url, insecure)
 	if !insecure {
@@ -248,7 +249,7 @@ func newClient(ctx context.Context, logger logr.Logger, sessionKey string, url *
 
 	vimClient, err := vim25.NewClient(ctx, soapClient)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create client")
 	}
 	vimClient.UserAgent = "k8s-capv-useragent"
 
@@ -261,10 +262,9 @@ func newClient(ctx context.Context, logger logr.Logger, sessionKey string, url *
 		vimClient.RoundTripper = session.KeepAliveHandler(vimClient.RoundTripper, feature.KeepAliveDuration, func(tripper soap.RoundTripper) error {
 			_, err := methods.GetCurrentTime(ctx, tripper)
 			if err != nil {
-				logger.Error(err, "failed to keep alive govmomi client")
-				logger.Info("clearing the session")
+				log.Error(err, "Failed to keep alive govmomi client, Clearing the session now")
 				if errLogout := c.Logout(ctx); errLogout != nil {
-					logger.Error(err, "failed to logout keepalive failed session")
+					log.Error(err, "Failed to logout keepalive failed session")
 				}
 				sessionCache.Delete(sessionKey)
 			}
@@ -273,14 +273,16 @@ func newClient(ctx context.Context, logger logr.Logger, sessionKey string, url *
 	}
 
 	if err := c.Login(ctx, url.User); err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create client: failed to login")
 	}
 
 	return c, nil
 }
 
 // newManager creates a Manager that encompasses the REST Client for the VSphere tagging API.
-func newManager(ctx context.Context, logger logr.Logger, sessionKey string, client *vim25.Client, user *url.Userinfo, feature Feature) (*tags.Manager, error) {
+func newManager(ctx context.Context, sessionKey string, client *vim25.Client, user *url.Userinfo, feature Feature) (*tags.Manager, error) {
+	log := ctrl.LoggerFrom(ctx)
+
 	rc := rest.NewClient(client)
 	if feature.EnableKeepAlive {
 		rc.Transport = keepalive.NewHandlerREST(rc, feature.KeepAliveDuration, func() error {
@@ -290,19 +292,19 @@ func newManager(ctx context.Context, logger logr.Logger, sessionKey string, clie
 			}
 
 			if err != nil {
-				logger.Error(err, "failed to keep alive rest client")
+				log.Error(err, "Failed to keep alive REST client")
 			}
 
-			logger.Info("rest client session expired, clearing session")
+			log.Info("REST client session expired, clearing session")
 			if errLogout := rc.Logout(ctx); errLogout != nil {
-				logger.Error(err, "failed to logout keepalive failed rest session")
+				log.Error(err, "Failed to logout keepalive failed REST session")
 			}
 			sessionCache.Delete(sessionKey)
-			return errors.New("rest client session expired")
+			return errors.New("REST client session expired")
 		})
 	}
 	if err := rc.Login(ctx, user); err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create tags manager: failed to login REST client")
 	}
 	return tags.NewManager(rc), nil
 }

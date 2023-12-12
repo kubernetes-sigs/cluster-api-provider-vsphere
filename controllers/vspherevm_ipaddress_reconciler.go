@@ -24,8 +24,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/klog/v2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1alpha1"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
@@ -63,14 +63,17 @@ func (r vmReconciler) reconcileIPAddressClaims(ctx context.Context, vmCtx *capvc
 				Namespace: vmCtx.VSphereVM.Namespace,
 				Name:      ipAddrClaimName,
 			}
+
+			// Note: We have to use := here to create a new variable and not overwrite log & ctx outside the for loop.
+			log := log.WithValues("IPAddressClaim", klog.KRef(ipAddrClaimKey.Namespace, ipAddrClaimKey.Name))
+			ctx := ctrl.LoggerInto(ctx, log)
+
 			err := vmCtx.Client.Get(ctx, ipAddrClaimKey, ipAddrClaim)
 			if err != nil && !apierrors.IsNotFound(err) {
-				log.Error(err, "fetching IPAddressClaim failed", "name", ipAddrClaimName)
-				return err
+				return errors.Wrapf(err, "failed to get IPAddressClaim %s", klog.KRef(ipAddrClaimKey.Namespace, ipAddrClaimKey.Name))
 			}
 			ipAddrClaim, created, err := createOrPatchIPAddressClaim(ctx, vmCtx, ipAddrClaimName, poolRef)
 			if err != nil {
-				log.Error(err, "createOrPatchIPAddressClaim failed", "name", ipAddrClaimName)
 				errList = append(errList, err)
 				continue
 			}
@@ -165,40 +168,16 @@ func createOrPatchIPAddressClaim(ctx context.Context, vmCtx *capvcontext.VMConte
 
 	result, err := ctrlutil.CreateOrPatch(ctx, vmCtx.Client, claim, mutateFn)
 	if err != nil {
-		log.Error(
-			err,
-			"failed to CreateOrPatch IPAddressClaim",
-			"namespace",
-			claim.Namespace,
-			"name",
-			claim.Name,
-		)
-		return nil, false, err
-	}
-	key := types.NamespacedName{
-		Namespace: claim.Namespace,
-		Name:      claim.Name,
+		return nil, false, errors.Wrap(err, "failed to CreateOrPatch IPAddressClaim")
 	}
 	switch result {
 	case ctrlutil.OperationResultCreated:
-		log.Info(
-			"created claim",
-			"claim",
-			key,
-		)
+		log.Info("Created IPAddressClaim")
 		return claim, true, nil
 	case ctrlutil.OperationResultUpdated:
-		log.Info(
-			"updated claim",
-			"claim",
-			key,
-		)
+		log.Info("Updated IPAddressClaim")
 	case ctrlutil.OperationResultNone, ctrlutil.OperationResultUpdatedStatus, ctrlutil.OperationResultUpdatedStatusOnly:
-		log.V(5).Info(
-			"no change required for claim",
-			"claim", key,
-			"operation", result,
-		)
+		log.V(3).Info("No change required for IPAddressClaim", "operationResult", result)
 	}
 	return claim, false, nil
 }
@@ -212,7 +191,6 @@ func (r vmReconciler) deleteIPAddressClaims(ctx context.Context, vmCtx *capvcont
 			// check if claim exists
 			ipAddrClaim := &ipamv1.IPAddressClaim{}
 			ipAddrClaimName := util.IPAddressClaimName(vmCtx.VSphereVM.Name, devIdx, poolRefIdx)
-			log.Info("removing finalizer", "IPAddressClaim", ipAddrClaimName)
 			ipAddrClaimKey := client.ObjectKey{
 				Namespace: vmCtx.VSphereVM.Namespace,
 				Name:      ipAddrClaimName,
@@ -221,11 +199,13 @@ func (r vmReconciler) deleteIPAddressClaims(ctx context.Context, vmCtx *capvcont
 				if apierrors.IsNotFound(err) {
 					continue
 				}
-				return errors.Wrapf(err, fmt.Sprintf("failed to find IPAddressClaim %q to remove the finalizer", ipAddrClaimName))
+				return errors.Wrapf(err, fmt.Sprintf("failed to get IPAddressClaim %q to remove the finalizer", ipAddrClaimName))
 			}
+
 			if ctrlutil.RemoveFinalizer(ipAddrClaim, infrav1.IPAddressClaimFinalizer) {
+				log.Info(fmt.Sprintf("Removing finalizer %s", infrav1.IPAddressClaimFinalizer), "IPAddressClaim", klog.KObj(ipAddrClaim))
 				if err := vmCtx.Client.Update(ctx, ipAddrClaim); err != nil {
-					return errors.Wrapf(err, fmt.Sprintf("failed to update IPAddressClaim %q", ipAddrClaimName))
+					return errors.Wrapf(err, fmt.Sprintf("failed to update IPAddressClaim %s", klog.KObj(ipAddrClaim)))
 				}
 			}
 		}

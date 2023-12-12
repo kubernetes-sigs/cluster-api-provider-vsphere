@@ -42,8 +42,8 @@ type UnitTestContextForController struct {
 	// Key may be used to lookup Ctx.Cluster with Ctx.Client.Get.
 	Key client.ObjectKey
 
-	VirtualMachineImage *vmoprv1.VirtualMachineImage
-	ControllerContext   *capvcontext.ControllerContext
+	VirtualMachineImage      *vmoprv1.VirtualMachineImage
+	ControllerManagerContext *capvcontext.ControllerManagerContext
 }
 
 // NewUnitTestContextForController returns a new UnitTestContextForController
@@ -51,16 +51,16 @@ type UnitTestContextForController struct {
 // invoke the VSphereCluster spec controller.
 func NewUnitTestContextForController(ctx context.Context, namespace string, vSphereCluster *vmwarev1.VSphereCluster,
 	prototypeCluster bool, initObjects, gcInitObjects []client.Object) *UnitTestContextForController {
-	controllerCtx := fake.NewControllerContext(fake.NewControllerManagerContext(initObjects...))
+	controllerManagerCtx := fake.NewControllerManagerContext(initObjects...)
 
 	unitTestCtx := &UnitTestContextForController{
-		GuestClusterContext: fake.NewGuestClusterContext(ctx, fake.NewVmwareClusterContext(ctx, controllerCtx, namespace, vSphereCluster),
-			controllerCtx, prototypeCluster, gcInitObjects...),
-		ControllerContext: controllerCtx,
+		GuestClusterContext: fake.NewGuestClusterContext(ctx, fake.NewVmwareClusterContext(ctx, controllerManagerCtx, namespace, vSphereCluster),
+			controllerManagerCtx, prototypeCluster, gcInitObjects...),
+		ControllerManagerContext: controllerManagerCtx,
 	}
 	unitTestCtx.Key = client.ObjectKey{Namespace: unitTestCtx.VSphereCluster.Namespace, Name: unitTestCtx.VSphereCluster.Name}
 
-	CreatePrototypePrereqs(ctx, controllerCtx.Client)
+	CreatePrototypePrereqs(ctx, controllerManagerCtx.Client)
 
 	return unitTestCtx
 }

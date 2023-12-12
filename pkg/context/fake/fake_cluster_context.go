@@ -28,16 +28,16 @@ import (
 
 // NewClusterContext returns a fake ClusterContext for unit testing
 // reconcilers with a fake client.
-func NewClusterContext(ctx context.Context, controllerCtx *capvcontext.ControllerContext) *capvcontext.ClusterContext {
+func NewClusterContext(ctx context.Context, controllerManagerCtx *capvcontext.ControllerManagerContext) *capvcontext.ClusterContext {
 	// Create the cluster resources.
 	cluster := newClusterV1()
 	vsphereCluster := newVSphereCluster(cluster)
 
 	// Add the cluster resources to the fake cluster client.
-	if err := controllerCtx.Client.Create(ctx, &cluster); err != nil {
+	if err := controllerManagerCtx.Client.Create(ctx, &cluster); err != nil {
 		panic(err)
 	}
-	if err := controllerCtx.Client.Create(ctx, &vsphereCluster); err != nil {
+	if err := controllerManagerCtx.Client.Create(ctx, &vsphereCluster); err != nil {
 		panic(err)
 	}
 

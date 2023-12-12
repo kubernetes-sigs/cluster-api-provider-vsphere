@@ -26,8 +26,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
-
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 )
 
 // ControllerManagerContext is the context of the controller that owns the
@@ -57,9 +55,6 @@ type ControllerManagerContext struct {
 
 	// Logger is the controller manager's logger.
 	Logger logr.Logger
-
-	// Recorder is used to record events.
-	Recorder record.Recorder
 
 	// Scheme is the controller manager's API scheme.
 	Scheme *runtime.Scheme

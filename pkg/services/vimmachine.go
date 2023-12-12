@@ -135,13 +135,12 @@ func (v *VimMachineService) ReconcileNormal(ctx context.Context, machineCtx capv
 	ctx = ctrl.LoggerInto(ctx, log)
 	vm, err := v.createOrPatchVSphereVM(ctx, vimMachineCtx, vsphereVM)
 	if err != nil {
-		log.Error(err, "error creating or patching VM")
 		return false, err
 	}
 
 	// Waits the VM's ready state.
 	if !vm.Status.Ready {
-		log.Info("Waiting for ready state")
+		log.Info("Waiting for VSphereVM to become ready")
 		// VSphereMachine wraps a VMSphereVM, so we are mirroring status from the underlying VMSphereVM
 		// in order to provide evidences about machine provisioning while provisioning is actually happening.
 		conditions.SetMirror(vimMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, vm)
@@ -153,7 +152,6 @@ func (v *VimMachineService) ReconcileNormal(ctx context.Context, machineCtx capv
 		if err != nil {
 			return false, errors.Wrapf(err, "unexpected error while reconciling provider ID for %s", vimMachineCtx)
 		}
-		log.Info("Provider ID is not reconciled")
 		return true, nil
 	}
 
@@ -162,7 +160,6 @@ func (v *VimMachineService) ReconcileNormal(ctx context.Context, machineCtx capv
 		if err != nil {
 			return false, errors.Wrapf(err, "unexpected error while reconciling network for %s", vimMachineCtx)
 		}
-		log.Info("Network is not reconciled")
 		conditions.MarkFalse(vimMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, infrav1.WaitingForNetworkAddressesReason, clusterv1.ConditionSeverityInfo, "")
 		return true, nil
 	}
@@ -190,7 +187,7 @@ func (v *VimMachineService) GetHostInfo(ctx context.Context, machineCtx capvcont
 	if conditions.IsTrue(vsphereVM, infrav1.VMProvisionedCondition) {
 		return vsphereVM.Status.Host, nil
 	}
-	log.V(4).Info("VMProvisionedCondition is set to false", "vsphereVM", klog.KRef(vsphereVM.Namespace, vsphereVM.Name))
+	log.V(4).Info("Returning empty host info as VMProvisioned condition is not set to true")
 	return "", nil
 }
 
@@ -209,20 +206,20 @@ func (v *VimMachineService) findVSphereVM(ctx context.Context, vimMachineCtx *ca
 }
 
 func (v *VimMachineService) reconcileProviderID(ctx context.Context, vimMachineCtx *capvcontext.VIMMachineContext, vm *infrav1.VSphereVM) (bool, error) {
-	log := ctrl.LoggerFrom(ctx).WithValues("VSphereVM", klog.KRef(vm.Namespace, vm.Name))
+	log := ctrl.LoggerFrom(ctx)
 	biosUUID := vm.Spec.BiosUUID
 	if biosUUID == "" {
-		log.Info("spec.biosUUID is empty")
+		log.Info("providerID cannot be reconciled: VSphereVM.spec.biosUUID is empty")
 		return false, nil
 	}
 
 	providerID := infrautilv1.ConvertUUIDToProviderID(biosUUID)
 	if providerID == "" {
-		return false, errors.Errorf("invalid BIOS UUID %s for %s", biosUUID, vimMachineCtx)
+		return false, errors.Errorf("failed to reconcile providerID: invalid BIOS UUID %s for %s", biosUUID, vimMachineCtx)
 	}
 	if vimMachineCtx.VSphereMachine.Spec.ProviderID == nil || *vimMachineCtx.VSphereMachine.Spec.ProviderID != providerID {
 		vimMachineCtx.VSphereMachine.Spec.ProviderID = &providerID
-		log.Info("Updated provider ID", "providerID", providerID)
+		log.Info("Updating providerID on VSphereMachine", "providerID", providerID)
 	}
 
 	return true, nil
@@ -273,7 +270,7 @@ func (v *VimMachineService) reconcileNetwork(ctx context.Context, vimMachineCtx 
 	vimMachineCtx.VSphereMachine.Status.Addresses = machineAddresses
 
 	if len(vimMachineCtx.VSphereMachine.Status.Addresses) == 0 {
-		log.Info("Waiting on IP addresses")
+		log.Info("Network cannot be reconciled: waiting for IP addresses")
 		return false, kerrors.NewAggregate(errs)
 	}
 
@@ -355,20 +352,19 @@ func (v *VimMachineService) createOrPatchVSphereVM(ctx context.Context, vimMachi
 
 	result, err := ctrlutil.CreateOrPatch(ctx, v.Client, vm, mutateFn)
 	if err != nil {
-		log.Error(err, "failed to CreateOrPatch VSphereVM")
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to CreateOrPatch VSphereVM")
 	}
 	switch result {
 	case ctrlutil.OperationResultNone:
-		log.Info("No update required for vm")
+		log.V(3).Info("No update required for VSphereVM")
 	case ctrlutil.OperationResultCreated:
-		log.Info("Created vm")
+		log.Info("Created VSphereVM")
 	case ctrlutil.OperationResultUpdated:
-		log.Info("Updated vm")
+		log.Info("Updated VSphereVM")
 	case ctrlutil.OperationResultUpdatedStatus:
-		log.Info("Updated vm and vm status")
+		log.Info("Updated VSphereVM and VSphereVM status")
 	case ctrlutil.OperationResultUpdatedStatusOnly:
-		log.Info("Updated vm status")
+		log.Info("Updated VSphereVM status")
 	}
 
 	return vm, nil
@@ -396,13 +392,13 @@ func (v *VimMachineService) generateOverrideFunc(ctx context.Context, vimMachine
 	// Use the failureDomain name to fetch the vSphereDeploymentZone object
 	var vsphereDeploymentZone infrav1.VSphereDeploymentZone
 	if err := v.Client.Get(ctx, client.ObjectKey{Name: *failureDomainName}, &vsphereDeploymentZone); err != nil {
-		log.Error(err, "unable to fetch vsphere deployment zone", "VSphereDeploymentZone", klog.KRef(vsphereDeploymentZone.Namespace, vsphereDeploymentZone.Name), "name", *failureDomainName)
+		log.Error(err, "Failed to get VSphereDeploymentZone", "VSphereDeploymentZone", klog.KRef("", *failureDomainName))
 		return nil, false
 	}
 
 	var vsphereFailureDomain infrav1.VSphereFailureDomain
 	if err := v.Client.Get(ctx, client.ObjectKey{Name: vsphereDeploymentZone.Spec.FailureDomain}, &vsphereFailureDomain); err != nil {
-		log.Error(err, "unable to fetch failure domain", "VSphereFailureDomain", klog.KRef(vsphereFailureDomain.Namespace, vsphereFailureDomain.Name), "name", vsphereDeploymentZone.Spec.FailureDomain)
+		log.Error(err, "Failed to get VSphereFailureDomain", "VSphereFailureDomain", klog.KRef("", vsphereDeploymentZone.Spec.FailureDomain))
 		return nil, false
 	}
 

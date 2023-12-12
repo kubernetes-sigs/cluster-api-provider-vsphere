@@ -409,8 +409,8 @@ func TestReconciler_Reconcile(t *testing.T) {
 			if tt.beforeFn != nil {
 				tt.beforeFn(md)
 			}
-			controllerCtx := fake.NewControllerContext(fake.NewControllerManagerContext(kcp, md))
-			clusterCtx := fake.NewClusterContext(ctx, controllerCtx)
+			controllerManagerContext := fake.NewControllerManagerContext(kcp, md)
+			clusterCtx := fake.NewClusterContext(ctx, controllerManagerContext)
 			clusterCtx.VSphereCluster.Spec.ClusterModules = tt.clusterModules
 			clusterCtx.VSphereCluster.Status = infrav1.VSphereClusterStatus{VCenterVersion: infrav1.NewVCenterVersion("7.0.0")}
 
@@ -420,7 +420,7 @@ func TestReconciler_Reconcile(t *testing.T) {
 			}
 
 			r := Reconciler{
-				Client:               controllerCtx.Client,
+				Client:               controllerManagerContext.Client,
 				ClusterModuleService: svc,
 			}
 			_, err := r.Reconcile(ctx, clusterCtx)
@@ -485,9 +485,9 @@ func TestReconciler_fetchMachineOwnerObjects(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := gomega.NewWithT(t)
-			controllerCtx := fake.NewControllerContext(fake.NewControllerManagerContext(tt.initObjs...))
-			clusterCtx := fake.NewClusterContext(ctx, controllerCtx)
-			r := Reconciler{Client: controllerCtx.Client}
+			controllerManagerContext := fake.NewControllerManagerContext(tt.initObjs...)
+			clusterCtx := fake.NewClusterContext(ctx, controllerManagerContext)
+			r := Reconciler{Client: controllerManagerContext.Client}
 			objMap, err := r.fetchMachineOwnerObjects(ctx, clusterCtx)
 			if tt.hasError {
 				g.Expect(err).To(gomega.HaveOccurred())
@@ -506,13 +506,13 @@ func TestReconciler_fetchMachineOwnerObjects(t *testing.T) {
 		mdToBeDeleted := machineDeployment("foo-1", metav1.NamespaceDefault, fake.Clusterv1a2Name)
 		mdToBeDeleted.DeletionTimestamp = &currTime
 		mdToBeDeleted.ObjectMeta.Finalizers = append(mdToBeDeleted.ObjectMeta.Finalizers, "keep-this-for-the-test")
-		controllerCtx := fake.NewControllerContext(fake.NewControllerManagerContext(
+		controllerManagerContext := fake.NewControllerManagerContext(
 			controlPlane("foo", metav1.NamespaceDefault, fake.Clusterv1a2Name),
 			machineDeployment("foo", metav1.NamespaceDefault, fake.Clusterv1a2Name),
 			mdToBeDeleted,
-		))
-		clusterCtx := fake.NewClusterContext(ctx, controllerCtx)
-		objMap, err := Reconciler{Client: controllerCtx.Client}.fetchMachineOwnerObjects(ctx, clusterCtx)
+		)
+		clusterCtx := fake.NewClusterContext(ctx, controllerManagerContext)
+		objMap, err := Reconciler{Client: controllerManagerContext.Client}.fetchMachineOwnerObjects(ctx, clusterCtx)
 		g.Expect(err).NotTo(gomega.HaveOccurred())
 		g.Expect(objMap).To(gomega.HaveLen(2))
 	})

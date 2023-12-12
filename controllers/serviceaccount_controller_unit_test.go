@@ -32,7 +32,7 @@ import (
 	helpers "sigs.k8s.io/cluster-api-provider-vsphere/test/helpers/vmware"
 )
 
-var _ = Describe("ServiceAccountReconciler ReconcileNormal", unitTestsReconcileNormal)
+var _ = Describe("ServiceAccountReconciler reconcileNormal", unitTestsReconcileNormal)
 
 func unitTestsReconcileNormal() {
 	var (
@@ -48,10 +48,9 @@ func unitTestsReconcileNormal() {
 		// Note: The service account provider requires a reference to the vSphereCluster hence the need to create
 		// a fake vSphereCluster in the test and pass it to during context setup.
 		reconciler = ServiceAccountReconciler{
-			Client:   controllerCtx.ControllerContext.Client,
-			Recorder: controllerCtx.ControllerContext.Recorder,
+			Client: controllerCtx.ControllerManagerContext.Client,
 		}
-		_, err := reconciler.ReconcileNormal(ctx, controllerCtx.GuestClusterContext)
+		_, err := reconciler.reconcileNormal(ctx, controllerCtx.GuestClusterContext)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -63,7 +62,7 @@ func unitTestsReconcileNormal() {
 		namespace = capiutil.RandomString(6)
 		It("Should reconcile", func() {
 			By("Not creating any entities")
-			assertNoEntities(ctx, controllerCtx.ControllerContext.Client, namespace)
+			assertNoEntities(ctx, controllerCtx.ControllerManagerContext.Client, namespace)
 			assertProviderServiceAccountsCondition(controllerCtx.VSphereCluster, corev1.ConditionTrue, "", "", "")
 		})
 	})
@@ -81,14 +80,14 @@ func unitTestsReconcileNormal() {
 			}
 		})
 		It("should create a service account and a secret", func() {
-			_, err := reconciler.ReconcileNormal(ctx, controllerCtx.GuestClusterContext)
+			_, err := reconciler.reconcileNormal(ctx, controllerCtx.GuestClusterContext)
 			Expect(err).NotTo(HaveOccurred())
 
 			svcAccount := &corev1.ServiceAccount{}
-			assertEventuallyExistsInNamespace(ctx, controllerCtx.ControllerContext.Client, namespace, vsphereCluster.GetName(), svcAccount)
+			assertEventuallyExistsInNamespace(ctx, controllerCtx.ControllerManagerContext.Client, namespace, vsphereCluster.GetName(), svcAccount)
 
 			secret := &corev1.Secret{}
-			assertEventuallyExistsInNamespace(ctx, controllerCtx.ControllerContext.Client, namespace, fmt.Sprintf("%s-secret", vsphereCluster.GetName()), secret)
+			assertEventuallyExistsInNamespace(ctx, controllerCtx.ControllerManagerContext.Client, namespace, fmt.Sprintf("%s-secret", vsphereCluster.GetName()), secret)
 		})
 		Context("When serviceaccount secret is created", func() {
 			It("Should reconcile", func() {
@@ -115,7 +114,7 @@ func unitTestsReconcileNormal() {
 				initObjects = append(initObjects, getTestRoleWithGetPod(namespace, vsphereCluster.GetName()))
 			})
 			It("Should update role", func() {
-				assertRoleWithGetPVC(ctx, controllerCtx.ControllerContext.Client, namespace, vsphereCluster.GetName())
+				assertRoleWithGetPVC(ctx, controllerCtx.ControllerManagerContext.Client, namespace, vsphereCluster.GetName())
 				assertProviderServiceAccountsCondition(controllerCtx.VSphereCluster, corev1.ConditionTrue, "", "", "")
 			})
 		})
@@ -124,7 +123,7 @@ func unitTestsReconcileNormal() {
 				initObjects = append(initObjects, getTestRoleBindingWithInvalidRoleRef(namespace, vsphereCluster.GetName()))
 			})
 			It("Should update rolebinding", func() {
-				assertRoleBinding(ctx, controllerCtx.ControllerContext.Client, namespace, vsphereCluster.GetName())
+				assertRoleBinding(ctx, controllerCtx.ControllerManagerContext.Client, namespace, vsphereCluster.GetName())
 				assertProviderServiceAccountsCondition(controllerCtx.VSphereCluster, corev1.ConditionTrue, "", "", "")
 			})
 		})
@@ -134,7 +133,7 @@ func unitTestsReconcileNormal() {
 // Updates the service account secret similar to how a token controller would act upon a service account
 // and then re-invokes reconcileNormal.
 func updateServiceAccountSecretAndReconcileNormal(ctx context.Context, controllerCtx *helpers.UnitTestContextForController, reconciler ServiceAccountReconciler, object client.Object) {
-	assertServiceAccountAndUpdateSecret(ctx, controllerCtx.ControllerContext.Client, object.GetNamespace(), object.GetName())
-	_, err := reconciler.ReconcileNormal(ctx, controllerCtx.GuestClusterContext)
+	assertServiceAccountAndUpdateSecret(ctx, controllerCtx.ControllerManagerContext.Client, object.GetNamespace(), object.GetName())
+	_, err := reconciler.reconcileNormal(ctx, controllerCtx.GuestClusterContext)
 	Expect(err).NotTo(HaveOccurred())
 }

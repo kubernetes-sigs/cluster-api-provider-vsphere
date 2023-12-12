@@ -8,6 +8,8 @@ patchesStrategicMerge:
   - ../commons/cluster-network-CIDR.yaml
   - ../commons/cluster-resource-set-csi-insecure.yaml
 patches:
+  # We are dropping storage policy so we also have test coverage
+  # for normal provisioning via data stores.
   - target:
       kind: VSphereMachineTemplate
     path: ../commons/remove-storage-policy.yaml

@@ -19,13 +19,12 @@ package clustermodules
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/vmware/govmomi/vapi/cluster"
 	"github.com/vmware/govmomi/vapi/rest"
 	"github.com/vmware/govmomi/vim25/types"
 	ctrl "sigs.k8s.io/controller-runtime"
-
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
 // Provider exposes methods to interact with the cluster module vCenter API
@@ -33,7 +32,7 @@ import (
 type Provider interface {
 	CreateModule(ctx context.Context, clusterRef types.ManagedObjectReference) (string, error)
 	DeleteModule(ctx context.Context, moduleID string) error
-	DoesModuleExist(ctx context.Context, moduleID string, cluster types.ManagedObjectReference) (bool, error)
+	DoesModuleExist(ctx context.Context, moduleID string) (bool, error)
 
 	IsMoRefModuleMember(ctx context.Context, moduleID string, moRef types.ManagedObjectReference) (bool, error)
 	AddMoRefToModule(ctx context.Context, moduleID string, moRef types.ManagedObjectReference) error
@@ -71,7 +70,7 @@ func (cm *provider) DeleteModule(ctx context.Context, moduleUUID string) error {
 	log.Info("Deleting cluster module")
 
 	err := cm.manager.DeleteModule(ctx, moduleUUID)
-	if err != nil && !util.IsNotFoundError(err) {
+	if err != nil && !rest.IsStatusError(err, http.StatusNotFound) {
 		return err
 	}
 
@@ -79,29 +78,27 @@ func (cm *provider) DeleteModule(ctx context.Context, moduleUUID string) error {
 	return nil
 }
 
-// DoesModuleExist checks whether a module with a given name exists with the passed clusterRef and moduleUUID.
-func (cm *provider) DoesModuleExist(ctx context.Context, moduleUUID string, clusterRef types.ManagedObjectReference) (bool, error) {
+// DoesModuleExist checks whether a module with a given moduleUUID exists.
+func (cm *provider) DoesModuleExist(ctx context.Context, moduleUUID string) (bool, error) {
 	log := ctrl.LoggerFrom(ctx)
-	log.V(4).Info("Checking if cluster module exists", "computeClusterRef", clusterRef)
+	log.V(4).Info("Checking if cluster module exists")
 
 	if moduleUUID == "" {
 		return false, nil
 	}
 
-	modules, err := cm.manager.ListModules(ctx)
-	if err != nil {
-		return false, err
+	_, err := cm.manager.ListModuleMembers(ctx, moduleUUID)
+	if err == nil {
+		log.V(4).Info("Cluster module exists")
+		return true, nil
 	}
 
-	for _, mod := range modules {
-		if mod.Cluster == clusterRef.Value && mod.Module == moduleUUID {
-			log.V(4).Info("Cluster module does exist", "computeClusterRef", clusterRef)
-			return true, nil
-		}
+	if rest.IsStatusError(err, http.StatusNotFound) {
+		log.V(4).Info("Cluster module doesn't exist")
+		return false, nil
 	}
 
-	log.V(4).Info("Cluster module doesn't exist", "computeClusterRef", clusterRef)
-	return false, nil
+	return false, err
 }
 
 // IsMoRefModuleMember checks whether the passed managed object reference is in the ClusterModule.

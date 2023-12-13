@@ -103,15 +103,8 @@ func (s *service) DoesExist(ctx context.Context, clusterCtx *capvcontext.Cluster
 		return false, errors.Wrapf(err, "error fetching session for object %s/%s", wrapper.GetNamespace(), wrapper.GetName())
 	}
 
-	// Fetch the compute cluster resource by tracing the owner of the resource pool in use.
-	// TODO (srm09): How do we support Multi AZ scenarios here
-	computeClusterRef, err := getComputeClusterResource(ctx, vCenterSession, template.Spec.Template.Spec.ResourcePool)
-	if err != nil {
-		return false, errors.Wrapf(err, "error fetching compute cluster resource")
-	}
-
 	provider := clustermodules.NewProvider(vCenterSession.TagManager.Client)
-	return provider.DoesModuleExist(ctx, moduleUUID, computeClusterRef)
+	return provider.DoesModuleExist(ctx, moduleUUID)
 }
 
 func (s *service) Remove(ctx context.Context, clusterCtx *capvcontext.ClusterContext, moduleUUID string) error {

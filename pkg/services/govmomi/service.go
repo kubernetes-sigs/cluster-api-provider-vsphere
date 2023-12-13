@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/pkg/errors"
@@ -27,6 +28,7 @@ import (
 	"github.com/vmware/govmomi/pbm"
 	pbmTypes "github.com/vmware/govmomi/pbm/types"
 	"github.com/vmware/govmomi/property"
+	"github.com/vmware/govmomi/vapi/rest"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 	corev1 "k8s.io/api/core/v1"
@@ -268,7 +270,7 @@ func (vms *VMService) DestroyVM(ctx context.Context, vmCtx *capvcontext.VMContex
 
 		provider := clustermodules.NewProvider(vmCtx.Session.TagManager.Client)
 		err := provider.RemoveMoRefFromModule(ctx, *vmCtx.ClusterModuleInfo, virtualMachineCtx.Ref)
-		if err != nil && !util.IsNotFoundError(err) {
+		if err != nil && !rest.IsStatusError(err, http.StatusNotFound) {
 			return reconcile.Result{}, vm, err
 		}
 		vmCtx.VSphereVM.Status.ModuleUUID = nil

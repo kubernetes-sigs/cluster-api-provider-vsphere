@@ -573,6 +573,9 @@ func waitForIPAddresses(
 	// network device specs. However, every time a new IP is discovered,
 	// a reconcile request will be triggered for the VSphereVM.
 	go func() {
+		// Note: We intentionally don't use the context from the Reconcile
+		// so this go routine continues independent of the current Reconcile.
+		ctx := context.Background()
 		if err := property.Wait(
 			ctx, propCollector, virtualMachineCtx.Obj.Reference(),
 			[]string{"guest.net"}, onPropertyChange); err != nil {

@@ -7,9 +7,10 @@
       "main.go",
       "go.mod",
       "go.sum",
-      "api",
-      "contrib",
+      "apis",
       "controllers",
+      "feature",
+      "internal",
       "pkg"
     ],
     "label": "CAPV"

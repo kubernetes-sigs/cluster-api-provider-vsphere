@@ -105,16 +105,8 @@ func (s service) DoesExist(ctx *context.ClusterContext, wrapper Wrapper, moduleU
 		return false, err
 	}
 
-	// Fetch the compute cluster resource by tracing the owner of the resource pool in use.
-	// TODO (srm09): How do we support Multi AZ scenarios here
-	computeClusterRef, err := getComputeClusterResource(ctx, vCenterSession, template.Spec.Template.Spec.ResourcePool)
-	if err != nil {
-		logger.V(4).Error(err, "error fetching compute cluster resource")
-		return false, err
-	}
-
 	provider := clustermodules.NewProvider(vCenterSession.TagManager.Client)
-	return provider.DoesModuleExist(ctx, moduleUUID, computeClusterRef)
+	return provider.DoesModuleExist(ctx, moduleUUID)
 }
 
 func (s service) Remove(ctx *context.ClusterContext, moduleUUID string) error {

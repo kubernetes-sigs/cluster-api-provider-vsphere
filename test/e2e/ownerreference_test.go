@@ -264,6 +264,7 @@ func forcePeriodicReconcile(ctx context.Context, c ctrlclient.Client, namespace 
 	ticker := time.NewTicker(20 * time.Second)
 	stopTimer := time.NewTimer(5 * time.Minute)
 	go func() {
+		defer GinkgoRecover()
 		for {
 			select {
 			case <-ticker.C:

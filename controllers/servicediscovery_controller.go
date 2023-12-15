@@ -158,6 +158,18 @@ func (r *serviceDiscoveryReconciler) Reconcile(ctx context.Context, req reconcil
 		return reconcile.Result{}, err
 	}
 
+	cluster, err := clusterutilv1.GetClusterFromMetadata(ctx, r.Client, vsphereCluster.ObjectMeta)
+	if err != nil {
+		return reconcile.Result{RequeueAfter: clusterNotReadyRequeueTime}, errors.Wrapf(err, "failed to get Cluster from VSphereCluster")
+	}
+	log = log.WithValues("Cluster", klog.KObj(cluster))
+	ctx = ctrl.LoggerInto(ctx, log)
+
+	if annotations.IsPaused(cluster, vsphereCluster) {
+		log.Info("Reconciliation is paused for this object")
+		return ctrl.Result{}, nil
+	}
+
 	// Create the patch helper.
 	patchHelper, err := patch.NewHelper(vsphereCluster, r.Client)
 	if err != nil {
@@ -166,6 +178,7 @@ func (r *serviceDiscoveryReconciler) Reconcile(ctx context.Context, req reconcil
 
 	// Create the cluster context for this request.
 	clusterContext := &vmwarecontext.ClusterContext{
+		Cluster:        cluster,
 		VSphereCluster: vsphereCluster,
 		PatchHelper:    patchHelper,
 	}
@@ -181,11 +194,6 @@ func (r *serviceDiscoveryReconciler) Reconcile(ctx context.Context, req reconcil
 	// This type of controller doesn't care about delete events.
 	if !vsphereCluster.DeletionTimestamp.IsZero() {
 		return reconcile.Result{}, nil
-	}
-
-	cluster, err := clusterutilv1.GetClusterFromMetadata(ctx, r.Client, vsphereCluster.ObjectMeta)
-	if err != nil {
-		return reconcile.Result{RequeueAfter: clusterNotReadyRequeueTime}, errors.Wrapf(err, "failed to get Cluster from VSphereCluster")
 	}
 
 	// We cannot proceed until we are able to access the target cluster. Until

@@ -151,6 +151,23 @@ func (r vmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.R
 		return reconcile.Result{}, err
 	}
 
+	cluster, err := clusterutilv1.GetClusterFromMetadata(ctx, r.Client, vsphereVM.ObjectMeta)
+	if err != nil {
+		log.Error(err, "Failed to get Cluster from VSphereVM: Machine is missing cluster label or cluster does not exist")
+	}
+	if cluster != nil {
+		log = log.WithValues("Cluster", klog.KObj(cluster))
+		ctx = ctrl.LoggerInto(ctx, log)
+
+		if annotations.IsPaused(cluster, vsphereVM) {
+			log.Info("Reconciliation is paused for this object")
+			return reconcile.Result{}, nil
+		}
+	} else if annotations.HasPaused(vsphereVM) {
+		log.Info("Reconciliation is paused for this object")
+		return reconcile.Result{}, nil
+	}
+
 	// Create the patch helper.
 	patchHelper, err := patch.NewHelper(vsphereVM, r.Client)
 	if err != nil {
@@ -178,7 +195,7 @@ func (r vmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.R
 		return reconcile.Result{}, nil
 	}
 
-	log = log.WithValues("VSphereMachine", klog.KObj(vsphereMachine), "Cluster", klog.KRef(vsphereMachine.Namespace, vsphereMachine.Labels[clusterv1.ClusterNameLabel]))
+	log = log.WithValues("VSphereMachine", klog.KObj(vsphereMachine))
 	ctx = ctrl.LoggerInto(ctx, log)
 
 	vsphereCluster, err := util.GetVSphereClusterFromVSphereMachine(ctx, r.Client, vsphereMachine)
@@ -253,14 +270,6 @@ func (r vmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.R
 			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
 	}()
-
-	cluster, err := clusterutilv1.GetClusterFromMetadata(ctx, r.Client, vsphereVM.ObjectMeta)
-	if err == nil {
-		if annotations.IsPaused(cluster, vsphereVM) {
-			log.Info("Reconciliation is paused for this object")
-			return reconcile.Result{}, nil
-		}
-	}
 
 	if vsphereVM.ObjectMeta.DeletionTimestamp.IsZero() {
 		// If the VSphereVM doesn't have our finalizer, add it.

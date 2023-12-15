@@ -147,6 +147,20 @@ func (r *ServiceAccountReconciler) Reconcile(ctx context.Context, req reconcile.
 		return reconcile.Result{}, err
 	}
 
+	cluster, err := clusterutilv1.GetClusterFromMetadata(ctx, r.Client, vsphereCluster.ObjectMeta)
+	if err != nil {
+		return reconcile.Result{}, errors.Wrapf(err, "failed to get Cluster from VSphereCluster")
+	}
+	log = log.WithValues("Cluster", klog.KObj(cluster))
+	ctx = ctrl.LoggerInto(ctx, log)
+
+	// Pause reconciliation if entire VSphereCluster or Cluster is paused
+	// Note: Pause on the ProviderServiceAccount level is handled in ensureProviderServiceAccounts.
+	if annotations.IsPaused(cluster, vsphereCluster) {
+		log.Info("Reconciliation is paused for this object")
+		return reconcile.Result{}, nil
+	}
+
 	// Create the patch helper.
 	patchHelper, err := patch.NewHelper(vsphereCluster, r.Client)
 	if err != nil {
@@ -155,6 +169,7 @@ func (r *ServiceAccountReconciler) Reconcile(ctx context.Context, req reconcile.
 
 	// Create the cluster context for this request.
 	clusterContext := &vmwarecontext.ClusterContext{
+		Cluster:        cluster,
 		VSphereCluster: vsphereCluster,
 		PatchHelper:    patchHelper,
 	}
@@ -169,19 +184,6 @@ func (r *ServiceAccountReconciler) Reconcile(ctx context.Context, req reconcile.
 
 	if !vsphereCluster.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, r.reconcileDelete(ctx, clusterContext)
-	}
-
-	cluster, err := clusterutilv1.GetClusterFromMetadata(ctx, r.Client, vsphereCluster.ObjectMeta)
-	if err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to get Cluster from VSphereCluster")
-	}
-	log = log.WithValues("Cluster", klog.KObj(cluster))
-	ctx = ctrl.LoggerInto(ctx, log)
-
-	// Pause reconciliation if entire VSphereCluster or Cluster is paused
-	if annotations.IsPaused(cluster, vsphereCluster) {
-		log.Info("Reconciliation is paused for this object")
-		return reconcile.Result{}, nil
 	}
 
 	// We cannot proceed until we are able to access the target cluster. Until
@@ -257,8 +259,8 @@ func (r *ServiceAccountReconciler) ensureProviderServiceAccounts(ctx context.Con
 		log := log.WithValues("EnsureProviderServiceAccount", klog.KRef(pSvcAccount.Namespace, pSvcAccount.Name))
 		ctx := ctrl.LoggerInto(ctx, log)
 
-		if guestClusterCtx.Cluster != nil && annotations.IsPaused(guestClusterCtx.Cluster, &(pSvcAccounts[i])) {
-			log.V(4).Info("Skipping ensure ProviderServiceAccount as ProviderServiceAccount is paused or belongs to a cluster that is paused ")
+		if annotations.HasPaused(&(pSvcAccounts[i])) {
+			log.V(4).Info("Skipping ensure ProviderServiceAccount as ProviderServiceAccount is paused")
 			continue
 		}
 

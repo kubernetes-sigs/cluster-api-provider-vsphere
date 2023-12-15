@@ -221,9 +221,11 @@ func (r *machineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 
 		if annotations.IsPaused(cluster, machineContext.GetVSphereMachine()) {
 			log.Info("Reconciliation is paused for this object")
-			// Cluster is set to nil to continue for the delete case and return in the regular case.
-			cluster = nil
+			return reconcile.Result{}, nil
 		}
+	} else if annotations.HasPaused(machineContext.GetVSphereMachine()) {
+		log.Info("Reconciliation is paused for this object")
+		return reconcile.Result{}, nil
 	}
 
 	// Create the patch helper.

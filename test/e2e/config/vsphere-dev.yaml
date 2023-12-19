@@ -181,7 +181,7 @@ providers:
           - sourcePath: "../data/shared/v1.7/v1beta1_provider/metadata.yaml"
 
 variables:
-  KUBERNETES_VERSION: "v1.28.0"
+  KUBERNETES_VERSION: "v1.29.0"
   CPI_IMAGE_K8S_VERSION: "v1.28.0"
   CNI: "./data/cni/calico/calico.yaml"
   EXP_CLUSTER_RESOURCE_SET: "true"
@@ -200,8 +200,8 @@ variables:
   VSPHERE_DATASTORE: "WorkloadDatastore"
   VSPHERE_STORAGE_POLICY: "Cluster API vSphere Storage Policy"
   VSPHERE_NETWORK: "network-1"
-  VSPHERE_TEMPLATE: "ubuntu-2204-kube-v1.28.0"
-  FLATCAR_VSPHERE_TEMPLATE: "flatcar-stable-3510.2.6-kube-v1.28.0"
+  VSPHERE_TEMPLATE: "ubuntu-2204-kube-v1.29.0"
+  FLATCAR_VSPHERE_TEMPLATE: "flatcar-stable-3602.2.3-kube-v1.29.0"
   # WORKLOAD_CONTROL_PLANE_ENDPOINT_IP:
   # Also following variables are required but it is recommended to use env variables to avoid disclosure of sensitive data
   # VSPHERE_SSH_AUTHORIZED_KEY:
@@ -223,7 +223,7 @@ variables:
   VSPHERE2_SERVER: "vcenter2.vmware.com"
   VSPHERE2_TLS_THUMBPRINT: "AA:BB:CC:DD:11:22:33:44:EE:FF"
   VSPHERE2_RESOURCE_POOL: "ResourcePool"
-  VSPHERE2_TEMPLATE: "ubuntu-2204-kube-v1.28.0"
+  VSPHERE2_TEMPLATE: "ubuntu-2204-kube-v1.29.0"
   # Dedicated IP to be used by kube-vip
   VSPHERE2_CONTROL_PLANE_ENDPOINT_IP:
   # Following variables are also required and please use env variables to avoid disclosure of sensitive data

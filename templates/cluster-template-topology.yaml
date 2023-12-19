@@ -64,16 +64,18 @@ spec:
             volumeMounts:
             - mountPath: /etc/kubernetes/admin.conf
               name: kubeconfig
-          hostAliases:
-          - hostnames:
-            - kubernetes
-            ip: 127.0.0.1
+            - mountPath: /etc/hosts
+              name: etchosts
           hostNetwork: true
           volumes:
           - hostPath:
               path: /etc/kubernetes/admin.conf
-              type: FileOrCreate
+              type: File
             name: kubeconfig
+          - hostPath:
+              path: /etc/kube-vip.hosts
+              type: File
+            name: etchosts
     - name: controlPlaneIpAddr
       value: ${CONTROL_PLANE_ENDPOINT_IP}
     - name: credsSecretName

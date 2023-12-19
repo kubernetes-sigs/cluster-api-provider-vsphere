@@ -30,9 +30,9 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/util"
 )
 
-func createFilesArrayPatch() clusterv1.ClusterClassPatch {
+func createEmptyArraysPatch() clusterv1.ClusterClassPatch {
 	return clusterv1.ClusterClassPatch{
-		Name: "createFilesArray",
+		Name: "createEmptyArrays",
 		Definitions: []clusterv1.PatchDefinition{
 			{
 				Selector: clusterv1.PatchSelector{
@@ -46,6 +46,13 @@ func createFilesArrayPatch() clusterv1.ClusterClassPatch {
 					{
 						Op:   "add",
 						Path: "/spec/template/spec/kubeadmConfigSpec/files",
+						Value: &apiextensionsv1.JSON{
+							Raw: []byte("[]"),
+						},
+					},
+					{
+						Op:   "add",
+						Path: "/spec/template/spec/kubeadmConfigSpec/postKubeadmCommands",
 						Value: &apiextensionsv1.JSON{
 							Raw: []byte("[]"),
 						},
@@ -66,6 +73,13 @@ func createFilesArrayPatch() clusterv1.ClusterClassPatch {
 					{
 						Op:   "add",
 						Path: "/spec/template/spec/files",
+						Value: &apiextensionsv1.JSON{
+							Raw: []byte("[]"),
+						},
+					},
+					{
+						Op:   "add",
+						Path: "/spec/template/spec/postKubeadmCommands",
 						Value: &apiextensionsv1.JSON{
 							Raw: []byte("[]"),
 						},
@@ -163,36 +177,6 @@ func infraClusterPatch() clusterv1.ClusterClassPatch {
 						Path: "/spec/template/spec/thumbprint",
 						ValueFrom: &clusterv1.JSONPatchValue{
 							Variable: pointer.String("infraServer.thumbprint"),
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
-func kubeVipEnabledPatch() clusterv1.ClusterClassPatch {
-	return clusterv1.ClusterClassPatch{
-		Name: "kubeVipPodManifest",
-		Definitions: []clusterv1.PatchDefinition{
-			{
-				Selector: clusterv1.PatchSelector{
-					APIVersion: controlplanev1.GroupVersion.String(),
-					Kind:       util.TypeToKind(&controlplanev1.KubeadmControlPlaneTemplate{}),
-					MatchResources: clusterv1.PatchSelectorMatch{
-						ControlPlane: true,
-					},
-				},
-				JSONPatches: []clusterv1.JSONPatch{
-					{
-						Op:   "add",
-						Path: "/spec/template/spec/kubeadmConfigSpec/files/-",
-						ValueFrom: &clusterv1.JSONPatchValue{
-							// This patch ensures that the ControlPlaneIP which is set as variable `controlPlaneIPAddr` is also set
-							// in the kube-vip static pod manifest.
-							Template: pointer.String(`owner: root:root
-path:  "/etc/kubernetes/manifests/kube-vip.yaml"
-content: {{ printf "%q" (regexReplaceAll "(name: address\n +value:).*" .kubeVipPodManifest (printf "$1 %s" .controlPlaneIpAddr)) }}`),
 						},
 					},
 				},

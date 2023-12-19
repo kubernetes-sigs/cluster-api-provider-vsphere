@@ -294,6 +294,7 @@ generate-e2e-templates: $(KUSTOMIZE) $(addprefix generate-e2e-templates-, v1.7 v
 generate-e2e-templates-main: $(KUSTOMIZE) ## Generate test templates for the main branch
 	$(MAKE) e2e-flavors-main
 	cp "$(RELEASE_DIR)/main/cluster-template.yaml" "$(E2E_TEMPLATE_DIR)/main/base/cluster-template.yaml"
+	cp "$(RELEASE_DIR)/main/cluster-template-ignition.yaml" "$(E2E_TEMPLATE_DIR)/main/base/cluster-template-ignition.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_TEMPLATE_DIR)/main/base" > "$(E2E_TEMPLATE_DIR)/main/cluster-template.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_TEMPLATE_DIR)/main/hw-upgrade" > "$(E2E_TEMPLATE_DIR)/main/cluster-template-hw-upgrade.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_TEMPLATE_DIR)/main/storage-policy" > "$(E2E_TEMPLATE_DIR)/main/cluster-template-storage-policy.yaml"

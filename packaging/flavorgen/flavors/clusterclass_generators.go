@@ -29,6 +29,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/env"
+	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/kubevip"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/util"
 )
 
@@ -108,10 +109,10 @@ func getWorkersClass() clusterv1.WorkersClass {
 
 func getClusterClassPatches() []clusterv1.ClusterClassPatch {
 	return []clusterv1.ClusterClassPatch{
-		createFilesArrayPatch(),
+		createEmptyArraysPatch(),
 		enableSSHPatch(),
 		infraClusterPatch(),
-		kubeVipEnabledPatch(),
+		kubevip.TopologyPatch(),
 	}
 }
 

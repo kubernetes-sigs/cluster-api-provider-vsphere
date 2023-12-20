@@ -28,25 +28,30 @@ import (
 	_ "github.com/vmware/govmomi/vapi/cluster/simulator" // import this to register cluster module service test endpoint
 )
 
+// Builder helps in creating a vcsim simulator.
 type Builder struct {
 	model      *simulator.Model
 	operations []string
 }
 
+// NewBuilder returns a new a Builder.
 func NewBuilder() *Builder {
 	return &Builder{model: simulator.VPX()}
 }
 
+// WithModel defines the model to be used by the Builder when creating the vcsim instance.
 func (b *Builder) WithModel(model *simulator.Model) *Builder {
 	b.model = model
 	return b
 }
 
+// WithOperations defines the operation that the Builder should executed on the newly created vcsim instance.
 func (b *Builder) WithOperations(ops ...string) *Builder {
 	b.operations = append(b.operations, ops...)
 	return b
 }
 
+// Build the vcsim instance.
 func (b *Builder) Build() (*Simulator, error) {
 	err := b.model.Create()
 	if err != nil {

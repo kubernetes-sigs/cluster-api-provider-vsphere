@@ -37,8 +37,8 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
-	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers"
 )
 
 func TestControllers(t *testing.T) {

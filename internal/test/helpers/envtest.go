@@ -50,10 +50,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vcsim"
 	"sigs.k8s.io/cluster-api-provider-vsphere/internal/webhooks"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
-	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers/vcsim"
 )
 
 func init() {
@@ -80,7 +80,7 @@ func init() {
 	if !ok {
 		klog.Fatalf("Failed to get information for current file from runtime")
 	}
-	root := path.Join(path.Dir(filename), "..", "..")
+	root := path.Join(path.Dir(filename), "..", "..", "..")
 
 	crdPaths := []string{
 		filepath.Join(root, "config", "default", "crd", "bases"),
@@ -195,18 +195,21 @@ func NewTestEnvironment(ctx context.Context) *TestEnvironment {
 	}
 }
 
+// StartManager starts the TestEnvironment's controller runtime manager.
 func (t *TestEnvironment) StartManager(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	t.cancel = cancel
 	return t.Manager.Start(ctx)
 }
 
+// Stop stops the TestEnvironment's controller runtime manager.
 func (t *TestEnvironment) Stop() error {
 	t.cancel()
 	t.Simulator.Destroy()
 	return env.Stop()
 }
 
+// Cleanup removes objects from the TestEnvironment.
 func (t *TestEnvironment) Cleanup(ctx context.Context, objs ...client.Object) error {
 	errs := make([]error, 0, len(objs))
 	for _, o := range objs {
@@ -222,6 +225,7 @@ func (t *TestEnvironment) Cleanup(ctx context.Context, objs ...client.Object) er
 	return kerrors.NewAggregate(errs)
 }
 
+// CreateNamespace creates a new namespace in the TestEnvironment.
 func (t *TestEnvironment) CreateNamespace(ctx context.Context, generateName string) (*corev1.Namespace, error) {
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
@@ -238,6 +242,7 @@ func (t *TestEnvironment) CreateNamespace(ctx context.Context, generateName stri
 	return ns, nil
 }
 
+// CreateKubeconfigSecret creates a secret with the KubeConfig to access a cluster in the TestEnvironment.
 func (t *TestEnvironment) CreateKubeconfigSecret(ctx context.Context, cluster *clusterv1.Cluster) error {
 	return t.Create(ctx, kubeconfig.GenerateSecret(cluster, kubeconfig.FromEnvTestConfig(t.Config, cluster)))
 }

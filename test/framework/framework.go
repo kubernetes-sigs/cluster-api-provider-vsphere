@@ -14,7 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package helpers
+// Package framework implements utils for CAPV e2e tests.
+package framework
 
 import (
 	"context"

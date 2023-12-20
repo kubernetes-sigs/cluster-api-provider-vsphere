@@ -65,6 +65,7 @@ func NewUnitTestContextForController(ctx context.Context, namespace string, vSph
 	return unitTestCtx
 }
 
+// CreatePrototypePrereqs creates a prototype VirtualMachineClass.
 func CreatePrototypePrereqs(ctx context.Context, c client.Client) {
 	By("Creating a prototype VirtualMachineClass", func() {
 		virtualMachineClass := FakeVirtualMachineClass()

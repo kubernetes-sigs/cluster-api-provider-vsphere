@@ -36,7 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
-	helpers "sigs.k8s.io/cluster-api-provider-vsphere/test/helpers/vmware"
+	helpers "sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vmware"
 )
 
 var _ = Describe("ProviderServiceAccount controller integration tests", func() {

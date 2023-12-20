@@ -24,11 +24,13 @@ import (
 	"golang.org/x/mod/modfile"
 )
 
+// Mod wraps a go.mod file.
 type Mod struct {
 	path    string
 	content []byte
 }
 
+// NewMod created a new Mod reading a go.mod file.
 func NewMod(path string) (Mod, error) {
 	var mod Mod
 	content, err := os.ReadFile(filepath.Clean(path))
@@ -41,6 +43,7 @@ func NewMod(path string) (Mod, error) {
 	}, nil
 }
 
+// FindDependencyVersion return the version of a go.mod dependency.
 func (m Mod) FindDependencyVersion(dependency string) (string, error) {
 	f, err := modfile.Parse(m.path, m.content, nil)
 	if err != nil {

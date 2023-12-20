@@ -25,7 +25,7 @@ import (
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/vapi/rest"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 )
@@ -62,8 +62,8 @@ func defaultConfigCluster(clusterName, namespace, flavor string, controlPlaneNod
 		Namespace:                namespace,
 		ClusterName:              clusterName,
 		KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
-		ControlPlaneMachineCount: pointer.Int64(controlPlaneNodeCount),
-		WorkerMachineCount:       pointer.Int64(workerNodeCount),
+		ControlPlaneMachineCount: ptr.To(controlPlaneNodeCount),
+		WorkerMachineCount:       ptr.To(workerNodeCount),
 	}
 	if flavor != "" {
 		configClusterInput.Flavor = flavor

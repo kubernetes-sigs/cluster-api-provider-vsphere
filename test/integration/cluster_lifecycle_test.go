@@ -23,7 +23,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 // The purpose of this test is to start up a CAPI controller against a real API
@@ -79,8 +79,8 @@ var _ = Describe("Cluster lifecycle tests", func() {
 			// Cluster.
 			cluster := assertEventuallyExists(clustersResource, mf.ClusterComponents.Cluster.Name, testNamespace, nil)
 			clusterOwnerRef := toOwnerRef(cluster)
-			clusterOwnerRef.Controller = pointer.Bool(true)
-			clusterOwnerRef.BlockOwnerDeletion = pointer.Bool(true)
+			clusterOwnerRef.Controller = ptr.To(true)
+			clusterOwnerRef.BlockOwnerDeletion = ptr.To(true)
 			assertEventuallyExists(vsphereclustersResource, mf.ClusterComponents.Cluster.Name, testNamespace, clusterOwnerRef)
 		})
 
@@ -124,8 +124,8 @@ var _ = Describe("Cluster lifecycle tests", func() {
 				// controller OwnerRef that points to the VSphereMachine.
 				machine := assertEventuallyExists(machinesResource, controlPlane.Machine.Name, testNamespace, nil)
 				machineOwnerRef := toOwnerRef(machine)
-				machineOwnerRef.Controller = pointer.Bool(true)
-				machineOwnerRef.BlockOwnerDeletion = pointer.Bool(true)
+				machineOwnerRef.Controller = ptr.To(true)
+				machineOwnerRef.BlockOwnerDeletion = ptr.To(true)
 				assertEventuallyExists(kubeadmconfigResources, controlPlane.Machine.Name, testNamespace, machineOwnerRef)
 
 				assertEventuallyExists(virtualmachinesResource, controlPlane.Machine.Name, testNamespace, nil)

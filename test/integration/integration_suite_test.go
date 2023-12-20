@@ -47,7 +47,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/test/helpers"
+	vsphereframework "sigs.k8s.io/cluster-api-provider-vsphere/test/framework"
 )
 
 const (
@@ -232,19 +232,19 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	scheme := initScheme()
 
 	Byf("Loading the e2e test configuration from %q", configPath)
-	e2eConfig, err = helpers.LoadE2EConfig(ctx, configPath)
+	e2eConfig, err = vsphereframework.LoadE2EConfig(ctx, configPath)
 	Expect(err).NotTo(HaveOccurred())
 
 	Byf("Creating a clusterctl local repository into %q", artifactFolder)
-	clusterctlConfigPath, err = helpers.CreateClusterctlLocalRepository(ctx, e2eConfig, filepath.Join(artifactFolder, "repository"), false)
+	clusterctlConfigPath, err = vsphereframework.CreateClusterctlLocalRepository(ctx, e2eConfig, filepath.Join(artifactFolder, "repository"), false)
 	Expect(err).NotTo(HaveOccurred())
 
 	By("Setting up the bootstrap cluster")
-	bootstrapClusterProvider, bootstrapClusterProxy, err = helpers.SetupBootstrapCluster(ctx, e2eConfig, scheme, useExistingCluster)
+	bootstrapClusterProvider, bootstrapClusterProxy, err = vsphereframework.SetupBootstrapCluster(ctx, e2eConfig, scheme, useExistingCluster)
 	Expect(err).NotTo(HaveOccurred())
 
 	By("Initializing the bootstrap cluster")
-	helpers.InitBootstrapCluster(ctx, bootstrapClusterProxy, e2eConfig, clusterctlConfigPath, artifactFolder)
+	vsphereframework.InitBootstrapCluster(ctx, bootstrapClusterProxy, e2eConfig, clusterctlConfigPath, artifactFolder)
 	return []byte(
 		strings.Join([]string{
 			artifactFolder,
@@ -264,7 +264,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	kubeconfigPath := parts[3]
 
 	var err error
-	e2eConfig, err = helpers.LoadE2EConfig(ctx, configPath)
+	e2eConfig, err = vsphereframework.LoadE2EConfig(ctx, configPath)
 	Expect(err).NotTo(HaveOccurred())
 	bootstrapClusterProxy = framework.NewClusterProxy("bootstrap", kubeconfigPath, initScheme())
 	config := bootstrapClusterProxy.GetRESTConfig()
@@ -281,7 +281,7 @@ var _ = SynchronizedAfterSuite(func() {
 
 	By("Tearing down the management cluster")
 	if !skipCleanup {
-		helpers.TearDown(ctx, bootstrapClusterProvider, bootstrapClusterProxy)
+		vsphereframework.TearDown(ctx, bootstrapClusterProvider, bootstrapClusterProxy)
 	}
 })
 

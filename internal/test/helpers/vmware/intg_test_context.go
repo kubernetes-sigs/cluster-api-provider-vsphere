@@ -49,6 +49,7 @@ type IntegrationTestContext struct {
 	envTest           *envtest.Environment
 }
 
+// GetLogger returns a no-op logger.
 func (*IntegrationTestContext) GetLogger() logr.Logger {
 	return logr.Discard()
 }

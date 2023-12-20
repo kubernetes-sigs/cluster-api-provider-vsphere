@@ -13,10 +13,10 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.8.4
-	github.com/vmware-tanzu/net-operator-api v0.0.0-20210401185409-b0dc6c297707
-	github.com/vmware-tanzu/vm-operator/api v1.8.3-0.20231114230806-852c1641447a
-	github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20211209213435-0f4ab286f64f
-	github.com/vmware-tanzu/vm-operator/external/tanzu-topology v0.0.0-20211209213435-0f4ab286f64f
+	github.com/vmware-tanzu/net-operator-api v0.0.0-20231019160108-42131d6e8360
+	github.com/vmware-tanzu/vm-operator/api v1.8.5
+	github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20231214185006-5477585eebfd
+	github.com/vmware-tanzu/vm-operator/external/tanzu-topology v0.0.0-20231214185006-5477585eebfd
 	github.com/vmware/govmomi v0.34.0
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
 	golang.org/x/mod v0.14.0

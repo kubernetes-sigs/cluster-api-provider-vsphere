@@ -77,7 +77,7 @@ endif
 #
 GINKGO_FOCUS ?=
 GINKGO_SKIP ?=
-GINKGO_TIMEOUT ?= 2h
+GINKGO_TIMEOUT ?= 3h
 E2E_CONF_FILE ?= $(abspath test/e2e/config/vsphere-dev.yaml)
 INTEGRATION_CONF_FILE ?= $(abspath test/integration/integration-dev.yaml)
 E2E_TEMPLATE_DIR := $(abspath test/e2e/data/infrastructure-vsphere/)

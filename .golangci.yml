@@ -203,6 +203,10 @@ issues:
     - revive
     text: exported (.+) (.+) should have comment (.*)or be unexported
     path: "^(test/|packaging/|pkg/.*/fake/|pkg/util/testutil).*.go"
+  - linters:
+    - revive
+    text: a blank import should be only in a main or test package, or have a comment justifying it
+    path: "^packaging/.*.go"
   # Disable unparam "always receives" which might not be really
   # useful when building libraries.
   - linters:

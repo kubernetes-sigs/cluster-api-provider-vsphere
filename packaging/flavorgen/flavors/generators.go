@@ -29,10 +29,10 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
-	"sigs.k8s.io/yaml"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/env"
+	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/kubevip"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/util"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/identity"
 )
@@ -147,10 +147,10 @@ func clusterTopologyVariables() ([]clusterv1.ClusterVariable, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to json-encode variable ClusterNameVar: %q", env.ClusterNameVar)
 	}
-	kubeVipPodYaml := kubeVIPPodYaml()
-	kubeVipPod, err := json.Marshal(kubeVipPodYaml)
+
+	kubeVipVariable, err := kubevip.TopologyVariable()
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to json-encode variable kubeVipPod: %q", kubeVipPodYaml)
+		return nil, err
 	}
 	infraServerValue, err := getInfraServerValue()
 	if err != nil {
@@ -169,13 +169,7 @@ func clusterTopologyVariables() ([]clusterv1.ClusterVariable, error) {
 				Raw: infraServerValue,
 			},
 		},
-		{
-			Name: "kubeVipPodManifest",
-			Value: apiextensionsv1.JSON{
-
-				Raw: kubeVipPod,
-			},
-		},
+		*kubeVipVariable,
 		{
 			Name: "controlPlaneIpAddr",
 			Value: apiextensionsv1.JSON{
@@ -556,142 +550,6 @@ func flatcarPreKubeadmCommands() []string {
 	}
 }
 
-func kubeVIPPodSpec() *corev1.Pod {
-	hostPathType := corev1.HostPathFileOrCreate
-	pod := &corev1.Pod{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "v1",
-			Kind:       util.TypeToKind(&corev1.Pod{}),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "kube-vip",
-			Namespace: "kube-system",
-		},
-		Spec: corev1.PodSpec{
-			Containers: []corev1.Container{
-				{
-					Name:            "kube-vip",
-					Image:           "ghcr.io/kube-vip/kube-vip:v0.6.3",
-					ImagePullPolicy: corev1.PullIfNotPresent,
-					Args: []string{
-						"manager",
-					},
-					Env: []corev1.EnvVar{
-						{
-							// Enables kube-vip control-plane functionality
-							Name:  "cp_enable",
-							Value: "true",
-						},
-						{
-							// Interface that the vip should bind to
-							Name:  "vip_interface",
-							Value: env.VipNetworkInterfaceVar,
-						},
-						{
-							// VIP IP address
-							// 'vip_address' was replaced by 'address'
-							Name:  "address",
-							Value: env.ControlPlaneEndpointVar,
-						},
-						{
-							// VIP TCP port
-							Name:  "port",
-							Value: "6443",
-						},
-						{
-							// Enables ARP brodcasts from Leader (requires L2 connectivity)
-							Name:  "vip_arp",
-							Value: "true",
-						},
-						{
-							// Kubernetes algorithm to be used.
-							Name:  "vip_leaderelection",
-							Value: "true",
-						},
-						{
-							// Seconds a lease is held for
-							Name:  "vip_leaseduration",
-							Value: "15",
-						},
-						{
-							// Seconds a leader can attempt to renew the lease
-							Name:  "vip_renewdeadline",
-							Value: "10",
-						},
-						{
-							// Number of times the leader will hold the lease for
-							Name:  "vip_retryperiod",
-							Value: "2",
-						},
-						{
-							// Enables kube-vip to watch Services of type LoadBalancer
-							Name:  "svc_enable",
-							Value: "true",
-						},
-						{
-							// Enables a leadership Election for each Service, allowing them to be distributed
-							Name:  "svc_election",
-							Value: "true",
-						},
-					},
-					SecurityContext: &corev1.SecurityContext{
-						Capabilities: &corev1.Capabilities{
-							Add: []corev1.Capability{
-								"NET_ADMIN",
-								"NET_RAW",
-							},
-						},
-					},
-					VolumeMounts: []corev1.VolumeMount{
-						{
-							MountPath: "/etc/kubernetes/admin.conf",
-							Name:      "kubeconfig",
-						},
-					},
-				},
-			},
-			HostNetwork: true,
-			HostAliases: []corev1.HostAlias{
-				{
-					IP: "127.0.0.1",
-					Hostnames: []string{
-						"kubernetes",
-					},
-				},
-			},
-			Volumes: []corev1.Volume{
-				{
-					Name: "kubeconfig",
-					VolumeSource: corev1.VolumeSource{
-						HostPath: &corev1.HostPathVolumeSource{
-							Path: "/etc/kubernetes/admin.conf",
-							Type: &hostPathType,
-						},
-					},
-				},
-			},
-		},
-	}
-	return pod
-}
-
-// kubeVIPPodYaml converts the KubeVip pod spec to a `printable` yaml
-// this is needed for the file contents of KubeadmConfig.
-func kubeVIPPodYaml() string {
-	pod := kubeVIPPodSpec()
-	podYaml := util.GenerateObjectYAML(pod, []util.Replacement{})
-	return podYaml
-}
-
-func kubeVIPPod() string {
-	pod := kubeVIPPodSpec()
-	podBytes, err := yaml.Marshal(pod)
-	if err != nil {
-		panic(err)
-	}
-	return string(podBytes)
-}
-
 func newClusterResourceSet(cluster clusterv1.Cluster) addonsv1.ClusterResourceSet {
 	crs := addonsv1.ClusterResourceSet{
 		TypeMeta: metav1.TypeMeta{
@@ -764,16 +622,6 @@ func newMachineDeployment(cluster clusterv1.Cluster, machineTemplate infrav1.VSp
 					},
 				},
 			},
-		},
-	}
-}
-
-func newKubeVIPFiles() []bootstrapv1.File {
-	return []bootstrapv1.File{
-		{
-			Owner:   "root:root",
-			Path:    "/etc/kubernetes/manifests/kube-vip.yaml",
-			Content: kubeVIPPod(),
 		},
 	}
 }

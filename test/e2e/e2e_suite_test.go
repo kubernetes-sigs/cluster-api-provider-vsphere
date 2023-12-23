@@ -29,6 +29,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -99,6 +100,8 @@ func TestE2E(t *testing.T) {
 	w, err := ginkgoextensions.EnableFileLogging(filepath.Join(artifactFolder, "ginkgo-log.txt"))
 	NewWithT(t).Expect(err).ToNot(HaveOccurred())
 	defer w.Close()
+
+	ctrl.SetLogger(klog.Background())
 
 	RunSpecs(t, "capv-e2e")
 }

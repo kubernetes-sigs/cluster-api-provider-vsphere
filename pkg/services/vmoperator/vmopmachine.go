@@ -146,8 +146,18 @@ func (v *VmopMachineService) ReconcileNormal(c context.MachineContext) (bool, er
 	// Set the VM state. Will get reset throughout the reconcile
 	ctx.VSphereMachine.Status.VMStatus = vmwarev1.VirtualMachineStatePending
 
-	// Define the VM Operator VirtualMachine resource to reconcile.
-	vmOperatorVM := v.newVMOperatorVM(ctx)
+	// Check for the presence of an existing object
+	vmOperatorVM := &vmoprv1.VirtualMachine{}
+	if err := ctx.Client.Get(ctx, client.ObjectKey{
+		Namespace: ctx.Machine.Namespace,
+		Name:      ctx.Machine.Name,
+	}, vmOperatorVM); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return false, err
+		}
+		// Define the VM Operator VirtualMachine resource to reconcile.
+		vmOperatorVM = v.newVMOperatorVM(ctx)
+	}
 
 	// Reconcile the VM Operator VirtualMachine.
 	if err := v.reconcileVMOperatorVM(ctx, vmOperatorVM); err != nil {
@@ -243,10 +253,6 @@ func (v VmopMachineService) newVMOperatorVM(ctx *vmware.SupervisorMachineContext
 			Name:      ctx.Machine.Name,
 			Namespace: ctx.Machine.Namespace,
 		},
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: vmoprv1.SchemeGroupVersion.String(),
-			Kind:       "VirtualMachine",
-		},
 	}
 }
 
@@ -269,9 +275,15 @@ func (v VmopMachineService) reconcileVMOperatorVM(ctx *vmware.SupervisorMachineC
 		// Define a new VM Operator virtual machine.
 		// NOTE: Set field-by-field in order to preserve changes made directly
 		//  to the VirtualMachine spec by other sources (e.g. the cloud provider)
-		vmOperatorVM.Spec.ImageName = ctx.VSphereMachine.Spec.ImageName
-		vmOperatorVM.Spec.ClassName = ctx.VSphereMachine.Spec.ClassName
-		vmOperatorVM.Spec.StorageClass = ctx.VSphereMachine.Spec.StorageClass
+		if vmOperatorVM.Spec.ImageName == "" {
+			vmOperatorVM.Spec.ImageName = ctx.VSphereMachine.Spec.ImageName
+		}
+		if vmOperatorVM.Spec.ClassName == "" {
+			vmOperatorVM.Spec.ClassName = ctx.VSphereMachine.Spec.ClassName
+		}
+		if vmOperatorVM.Spec.StorageClass == "" {
+			vmOperatorVM.Spec.StorageClass = ctx.VSphereMachine.Spec.StorageClass
+		}
 		vmOperatorVM.Spec.PowerState = vmoprv1.VirtualMachinePoweredOn
 		vmOperatorVM.Spec.ResourcePolicyName = ctx.VSphereCluster.Status.ResourcePolicyName
 		vmOperatorVM.Spec.VmMetadata = &vmoprv1.VirtualMachineMetadata{

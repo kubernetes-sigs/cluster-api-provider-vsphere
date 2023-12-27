@@ -108,7 +108,7 @@ func AddMachineControllerToManager(ctx context.Context, controllerManagerContext
 			).
 			Watches(
 				&clusterv1.Cluster{},
-				handler.EnqueueRequestsFromMapFunc(r.clusterToVMwareMachines),
+				handler.EnqueueRequestsFromMapFunc(r.enqueueClusterToMachineRequests),
 				ctrlbldr.WithPredicates(
 					predicates.ClusterUnpausedAndInfrastructureReady(ctrl.LoggerFrom(ctx)),
 				),
@@ -161,7 +161,7 @@ func AddMachineControllerToManager(ctx context.Context, controllerManagerContext
 		).
 		Watches(
 			&clusterv1.Cluster{},
-			handler.EnqueueRequestsFromMapFunc(r.clusterToVSphereMachines),
+			handler.EnqueueRequestsFromMapFunc(r.enqueueClusterToMachineRequests),
 			ctrlbldr.WithPredicates(
 				predicates.ClusterUnpausedAndInfrastructureReady(ctrl.LoggerFrom(ctx)),
 			),
@@ -410,42 +410,6 @@ func (r *machineReconciler) patchMachineLabelsWithHostInfo(ctx context.Context, 
 	return patchHelper.Patch(ctx, machine)
 }
 
-func (r *machineReconciler) clusterToVSphereMachines(ctx context.Context, a client.Object) []reconcile.Request {
-	requests := []reconcile.Request{}
-	machines, err := util.GetVSphereMachinesInCluster(ctx, r.Client, a.GetNamespace(), a.GetName())
-	if err != nil {
-		return requests
-	}
-	for _, m := range machines {
-		r := reconcile.Request{
-			NamespacedName: apitypes.NamespacedName{
-				Name:      m.Name,
-				Namespace: m.Namespace,
-			},
-		}
-		requests = append(requests, r)
-	}
-	return requests
-}
-
-func (r *machineReconciler) clusterToVMwareMachines(ctx context.Context, a client.Object) []reconcile.Request {
-	requests := []reconcile.Request{}
-	machines, err := util.GetVMwareMachinesInCluster(ctx, r.Client, a.GetNamespace(), a.GetName())
-	if err != nil {
-		return requests
-	}
-	for _, m := range machines {
-		r := reconcile.Request{
-			NamespacedName: apitypes.NamespacedName{
-				Name:      m.Name,
-				Namespace: m.Namespace,
-			},
-		}
-		requests = append(requests, r)
-	}
-	return requests
-}
-
 // Return hooks that will be invoked when a VirtualMachine is created.
 func (r *machineReconciler) setVMModifiers(ctx context.Context, machineCtx capvcontext.MachineContext) error {
 	log := ctrl.LoggerFrom(ctx)
@@ -466,4 +430,24 @@ func (r *machineReconciler) setVMModifiers(ctx context.Context, machineCtx capvc
 	}
 	supervisorMachineCtx.VMModifiers = []vmware.VMModifier{networkModifier}
 	return nil
+}
+
+// enqueueClusterToMachineRequests returns a list of VSphereMachine reconcile requests
+// belonging to the cluster.
+func (r *machineReconciler) enqueueClusterToMachineRequests(ctx context.Context, a client.Object) []reconcile.Request {
+	requests := []reconcile.Request{}
+	machines, err := r.VMService.GetMachinesInCluster(ctx, a.GetNamespace(), a.GetName())
+	if err != nil {
+		return requests
+	}
+	for _, m := range machines {
+		r := reconcile.Request{
+			NamespacedName: apitypes.NamespacedName{
+				Name:      m.GetName(),
+				Namespace: m.GetNamespace(),
+			},
+		}
+		requests = append(requests, r)
+	}
+	return requests
 }

@@ -26,7 +26,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
+	apitypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -46,8 +46,30 @@ type VmopMachineService struct {
 	Client client.Client
 }
 
+// GetMachinesInCluster returns a list of VSphereMachine objects belonging to the cluster.
+func (v *VmopMachineService) GetMachinesInCluster(
+	ctx context.Context,
+	namespace, clusterName string) ([]client.Object, error) {
+	labels := map[string]string{clusterv1.ClusterNameLabel: clusterName}
+	machineList := &vmwarev1.VSphereMachineList{}
+
+	if err := v.Client.List(
+		ctx, machineList,
+		client.InNamespace(namespace),
+		client.MatchingLabels(labels)); err != nil {
+		return nil, err
+	}
+
+	objects := []client.Object{}
+	for _, machine := range machineList.Items {
+		m := machine
+		objects = append(objects, &m)
+	}
+	return objects, nil
+}
+
 // FetchVSphereMachine returns a MachineContext with a VSphereMachine for the passed NamespacedName.
-func (v *VmopMachineService) FetchVSphereMachine(ctx context.Context, name types.NamespacedName) (capvcontext.MachineContext, error) {
+func (v *VmopMachineService) FetchVSphereMachine(ctx context.Context, name apitypes.NamespacedName) (capvcontext.MachineContext, error) {
 	vsphereMachine := &vmwarev1.VSphereMachine{}
 	err := v.Client.Get(ctx, name, vsphereMachine)
 	return &vmware.SupervisorMachineContext{VSphereMachine: vsphereMachine}, err
@@ -92,7 +114,7 @@ func (v *VmopMachineService) ReconcileDelete(ctx context.Context, machineCtx cap
 
 	// First, check to see if it's already deleted
 	vmopVM := vmoprv1.VirtualMachine{}
-	if err := v.Client.Get(ctx, types.NamespacedName{Namespace: supervisorMachineCtx.Machine.Namespace, Name: supervisorMachineCtx.Machine.Name}, &vmopVM); err != nil {
+	if err := v.Client.Get(ctx, apitypes.NamespacedName{Namespace: supervisorMachineCtx.Machine.Namespace, Name: supervisorMachineCtx.Machine.Name}, &vmopVM); err != nil {
 		// If debug logging is enabled, report the number of vms in the cluster before and after the reconcile
 		if apierrors.IsNotFound(err) {
 			supervisorMachineCtx.VSphereMachine.Status.VMStatus = vmwarev1.VirtualMachineStateNotFound

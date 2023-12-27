@@ -36,52 +36,6 @@ import (
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 )
 
-// GetVSphereMachinesInCluster gets a cluster's VSphereMachine resources.
-func GetVSphereMachinesInCluster(
-	ctx context.Context,
-	controllerClient client.Client,
-	namespace, clusterName string) ([]*infrav1.VSphereMachine, error) {
-	labels := map[string]string{clusterv1.ClusterNameLabel: clusterName}
-	machineList := &infrav1.VSphereMachineList{}
-
-	if err := controllerClient.List(
-		ctx, machineList,
-		client.InNamespace(namespace),
-		client.MatchingLabels(labels)); err != nil {
-		return nil, err
-	}
-
-	machines := make([]*infrav1.VSphereMachine, len(machineList.Items))
-	for i := range machineList.Items {
-		machines[i] = &machineList.Items[i]
-	}
-
-	return machines, nil
-}
-
-// GetVMwareMachinesInCluster gets a cluster's vmware VSphereMachine resources.
-func GetVMwareMachinesInCluster(
-	ctx context.Context,
-	controllerClient client.Client,
-	namespace, clusterName string) ([]*vmwarev1.VSphereMachine, error) {
-	labels := map[string]string{clusterv1.ClusterNameLabel: clusterName}
-	machineList := &vmwarev1.VSphereMachineList{}
-
-	if err := controllerClient.List(
-		ctx, machineList,
-		client.InNamespace(namespace),
-		client.MatchingLabels(labels)); err != nil {
-		return nil, err
-	}
-
-	machines := make([]*vmwarev1.VSphereMachine, len(machineList.Items))
-	for i := range machineList.Items {
-		machines[i] = &machineList.Items[i]
-	}
-
-	return machines, nil
-}
-
 // GetVSphereMachine gets a vmware.infrastructure.cluster.x-k8s.io.VSphereMachine resource for the given CAPI Machine.
 func GetVSphereMachine(
 	ctx context.Context,

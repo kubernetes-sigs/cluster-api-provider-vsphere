@@ -47,6 +47,28 @@ type VimMachineService struct {
 	Client client.Client
 }
 
+// GetMachinesInCluster returns a list of VSphereMachine objects belonging to the cluster.
+func (v *VimMachineService) GetMachinesInCluster(
+	ctx context.Context,
+	namespace, clusterName string) ([]client.Object, error) {
+	labels := map[string]string{clusterv1.ClusterNameLabel: clusterName}
+	machineList := &infrav1.VSphereMachineList{}
+
+	if err := v.Client.List(
+		ctx, machineList,
+		client.InNamespace(namespace),
+		client.MatchingLabels(labels)); err != nil {
+		return nil, err
+	}
+
+	objects := []client.Object{}
+	for _, machine := range machineList.Items {
+		m := machine
+		objects = append(objects, &m)
+	}
+	return objects, nil
+}
+
 // FetchVSphereMachine returns a new MachineContext containing the vsphereMachine.
 func (v *VimMachineService) FetchVSphereMachine(ctx context.Context, name types.NamespacedName) (capvcontext.MachineContext, error) {
 	vsphereMachine := &infrav1.VSphereMachine{}

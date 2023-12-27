@@ -31,9 +31,11 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
@@ -57,20 +59,22 @@ func updateReconciledVMStatus(ctx context.Context, vmService VmopMachineService,
 	Expect(err).ShouldNot(HaveOccurred())
 }
 
+const (
+	machineName              = "test-machine"
+	clusterName              = "test-cluster"
+	controlPlaneLabelTrue    = true
+	k8sVersion               = "test-k8sVersion"
+	className                = "test-className"
+	imageName                = "test-imageName"
+	storageClass             = "test-storageClass"
+	minHardwareVersion       = int32(17)
+	vmIP                     = "127.0.0.1"
+	biosUUID                 = "test-biosUuid"
+	missingK8SVersionFailure = "missing kubernetes version"
+)
+
 var _ = Describe("VirtualMachine tests", func() {
-	const (
-		machineName              = "test-machine"
-		clusterName              = "test-cluster"
-		controlPlaneLabelTrue    = true
-		k8sVersion               = "test-k8sVersion"
-		className                = "test-className"
-		imageName                = "test-imageName"
-		storageClass             = "test-storageClass"
-		minHardwareVersion       = int32(17)
-		vmIP                     = "127.0.0.1"
-		biosUUID                 = "test-biosUuid"
-		missingK8SVersionFailure = "missing kubernetes version"
-	)
+
 	var (
 		bootstrapData = "test-bootstrap-data"
 
@@ -91,7 +95,6 @@ var _ = Describe("VirtualMachine tests", func() {
 		vsphereMachine           *vmwarev1.VSphereMachine
 		supervisorMachineContext *vmware.SupervisorMachineContext
 
-		// vm     vmwarev1.VirtualMachine
 		vmopVM    *vmoprv1.VirtualMachine
 		vmService VmopMachineService
 	)
@@ -593,5 +596,25 @@ var _ = Describe("VirtualMachine tests", func() {
 				Expect(vmopVM.GetDeletionTimestamp()).To(Equal(deleteTimestamp))
 			})
 		})
+	})
+})
+
+var _ = Describe("GetMachinesInCluster", func() {
+
+	initObjs := []client.Object{
+		util.CreateVSphereMachine(machineName, clusterName, className, imageName, storageClass, controlPlaneLabelTrue),
+	}
+
+	controllerManagerContext := fake.NewControllerManagerContext(initObjs...)
+	vmService := VmopMachineService{Client: controllerManagerContext.Client}
+
+	It("returns a list of VMs belonging to the cluster", func() {
+		objs, err := vmService.GetMachinesInCluster(context.TODO(),
+			corev1.NamespaceDefault,
+			clusterName)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(objs).To(HaveLen(1))
+		Expect(objs[0].GetName()).To(Equal(machineName))
 	})
 })

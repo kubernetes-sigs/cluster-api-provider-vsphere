@@ -45,6 +45,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/identity"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 	infrautilv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
@@ -53,6 +54,7 @@ type clusterReconciler struct {
 	ControllerManagerContext *capvcontext.ControllerManagerContext
 	Client                   client.Client
 
+	vmService               services.VimMachineService
 	clusterModuleReconciler Reconciler
 }
 
@@ -126,7 +128,7 @@ func (r *clusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 func (r *clusterReconciler) reconcileDelete(ctx context.Context, clusterCtx *capvcontext.ClusterContext) (reconcile.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	vsphereMachines, err := infrautilv1.GetVSphereMachinesInCluster(ctx, r.Client, clusterCtx.Cluster.Namespace, clusterCtx.Cluster.Name)
+	vsphereMachines, err := r.vmService.GetMachinesInCluster(ctx, clusterCtx.Cluster.Namespace, clusterCtx.Cluster.Name)
 	if err != nil {
 		return reconcile.Result{}, pkgerrors.Wrapf(err,
 			"unable to list VSphereMachines part of VSphereCluster %s/%s", clusterCtx.VSphereCluster.Namespace, clusterCtx.VSphereCluster.Name)

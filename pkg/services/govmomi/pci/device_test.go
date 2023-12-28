@@ -24,7 +24,7 @@ import (
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/simulator"
 	"github.com/vmware/govmomi/vim25"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 )
@@ -74,8 +74,8 @@ func Test_CalculateDevicesToBeAdded(t *testing.T) {
 				name:        "when adding a single PCI device of each type",
 				expectedLen: 2,
 				pciDeviceSpecs: []infrav1.PCIDeviceSpec{
-					{DeviceID: pointer.Int32(1234), VendorID: pointer.Int32(5678)},
-					{DeviceID: pointer.Int32(4321), VendorID: pointer.Int32(8765)},
+					{DeviceID: ptr.To[int32](1234), VendorID: ptr.To[int32](5678)},
+					{DeviceID: ptr.To[int32](4321), VendorID: ptr.To[int32](8765)},
 				},
 				assertFunc: func(g *gomega.WithT, actual []infrav1.PCIDeviceSpec) {
 					g.Expect(*actual[0].DeviceID).To(gomega.Equal(int32(1234)))
@@ -88,8 +88,8 @@ func Test_CalculateDevicesToBeAdded(t *testing.T) {
 				name:        "when adding multiple PCI devices of a type",
 				expectedLen: 2,
 				pciDeviceSpecs: []infrav1.PCIDeviceSpec{
-					{DeviceID: pointer.Int32(1234), VendorID: pointer.Int32(5678)},
-					{DeviceID: pointer.Int32(1234), VendorID: pointer.Int32(5678)},
+					{DeviceID: ptr.To[int32](1234), VendorID: ptr.To[int32](5678)},
+					{DeviceID: ptr.To[int32](1234), VendorID: ptr.To[int32](5678)},
 				},
 				assertFunc: func(g *gomega.WithT, actual []infrav1.PCIDeviceSpec) {
 					g.Expect(*actual[0].DeviceID).To(gomega.Equal(int32(1234)))
@@ -110,8 +110,8 @@ func Test_CalculateDevicesToBeAdded(t *testing.T) {
 				name:        "when adding a single PCI device of each type",
 				expectedLen: 0,
 				pciDeviceSpecs: []infrav1.PCIDeviceSpec{
-					{DeviceID: pointer.Int32(1234), VendorID: pointer.Int32(5678)},
-					{DeviceID: pointer.Int32(4321), VendorID: pointer.Int32(8765)},
+					{DeviceID: ptr.To[int32](1234), VendorID: ptr.To[int32](5678)},
+					{DeviceID: ptr.To[int32](4321), VendorID: ptr.To[int32](8765)},
 				},
 				existingDeviceSpecIndexes: []int{0, 1},
 			},
@@ -119,8 +119,8 @@ func Test_CalculateDevicesToBeAdded(t *testing.T) {
 				name:        "when adding multiple PCI devices of a type",
 				expectedLen: 0,
 				pciDeviceSpecs: []infrav1.PCIDeviceSpec{
-					{DeviceID: pointer.Int32(1234), VendorID: pointer.Int32(5678)},
-					{DeviceID: pointer.Int32(1234), VendorID: pointer.Int32(5678)},
+					{DeviceID: ptr.To[int32](1234), VendorID: ptr.To[int32](5678)},
+					{DeviceID: ptr.To[int32](1234), VendorID: ptr.To[int32](5678)},
 				},
 				existingDeviceSpecIndexes: []int{0, 1},
 			},
@@ -136,8 +136,8 @@ func Test_CalculateDevicesToBeAdded(t *testing.T) {
 				name:        "when adding a single PCI device of each type",
 				expectedLen: 1,
 				pciDeviceSpecs: []infrav1.PCIDeviceSpec{
-					{DeviceID: pointer.Int32(1234), VendorID: pointer.Int32(5678)},
-					{DeviceID: pointer.Int32(4321), VendorID: pointer.Int32(8765)},
+					{DeviceID: ptr.To[int32](1234), VendorID: ptr.To[int32](5678)},
+					{DeviceID: ptr.To[int32](4321), VendorID: ptr.To[int32](8765)},
 				},
 				existingDeviceSpecIndexes: []int{0},
 				assertFunc: func(g *gomega.WithT, actual []infrav1.PCIDeviceSpec) {
@@ -149,9 +149,9 @@ func Test_CalculateDevicesToBeAdded(t *testing.T) {
 				name:        "when adding multiple PCI devices of a type",
 				expectedLen: 2,
 				pciDeviceSpecs: []infrav1.PCIDeviceSpec{
-					{DeviceID: pointer.Int32(1234), VendorID: pointer.Int32(5678)},
-					{DeviceID: pointer.Int32(1234), VendorID: pointer.Int32(5678)},
-					{DeviceID: pointer.Int32(4321), VendorID: pointer.Int32(8765)},
+					{DeviceID: ptr.To[int32](1234), VendorID: ptr.To[int32](5678)},
+					{DeviceID: ptr.To[int32](1234), VendorID: ptr.To[int32](5678)},
+					{DeviceID: ptr.To[int32](4321), VendorID: ptr.To[int32](8765)},
 				},
 				existingDeviceSpecIndexes: []int{0},
 				assertFunc: func(g *gomega.WithT, actual []infrav1.PCIDeviceSpec) {

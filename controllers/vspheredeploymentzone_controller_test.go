@@ -26,7 +26,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -83,17 +83,17 @@ var _ = Describe("VSphereDeploymentZoneReconciler", func() {
 					Name:          "k8s-region-west",
 					Type:          infrav1.DatacenterFailureDomain,
 					TagCategory:   "k8s-region",
-					AutoConfigure: pointer.Bool(false),
+					AutoConfigure: ptr.To(false),
 				},
 				Zone: infrav1.FailureDomain{
 					Name:          "k8s-zone-west-1",
 					Type:          infrav1.ComputeClusterFailureDomain,
 					TagCategory:   "k8s-zone",
-					AutoConfigure: pointer.Bool(false),
+					AutoConfigure: ptr.To(false),
 				},
 				Topology: infrav1.Topology{
 					Datacenter:     "DC0",
-					ComputeCluster: pointer.String("DC0_C0"),
+					ComputeCluster: ptr.To("DC0_C0"),
 					Datastore:      "LocalDS_0",
 					Networks:       []string{"VM Network"},
 				},
@@ -108,7 +108,7 @@ var _ = Describe("VSphereDeploymentZoneReconciler", func() {
 			Spec: infrav1.VSphereDeploymentZoneSpec{
 				Server:        simr.ServerURL().Host,
 				FailureDomain: vsphereFailureDomain.Name,
-				ControlPlane:  pointer.Bool(true),
+				ControlPlane:  ptr.To(true),
 				PlacementConstraint: infrav1.PlacementConstraint{
 					ResourcePool: "DC0_C0_RP1",
 					Folder:       "/",
@@ -164,17 +164,17 @@ var _ = Describe("VSphereDeploymentZoneReconciler", func() {
 						Name:          "k8s-region-west",
 						Type:          infrav1.DatacenterFailureDomain,
 						TagCategory:   "k8s-region",
-						AutoConfigure: pointer.Bool(false),
+						AutoConfigure: ptr.To(false),
 					},
 					Zone: infrav1.FailureDomain{
 						Name:          "k8s-zone-west-1",
 						Type:          infrav1.ComputeClusterFailureDomain,
 						TagCategory:   "k8s-zone",
-						AutoConfigure: pointer.Bool(false),
+						AutoConfigure: ptr.To(false),
 					},
 					Topology: infrav1.Topology{
 						Datacenter:     "DC0",
-						ComputeCluster: pointer.String("DC0_C0"),
+						ComputeCluster: ptr.To("DC0_C0"),
 						Datastore:      "LocalDS_0",
 						Networks:       []string{"VM Network"},
 					},
@@ -189,7 +189,7 @@ var _ = Describe("VSphereDeploymentZoneReconciler", func() {
 				Spec: infrav1.VSphereDeploymentZoneSpec{
 					Server:        simr.ServerURL().Host,
 					FailureDomain: vsphereFailureDomain.Name,
-					ControlPlane:  pointer.Bool(true),
+					ControlPlane:  ptr.To(true),
 					PlacementConstraint: infrav1.PlacementConstraint{
 						ResourcePool: "DC0_C1_RP1",
 						Folder:       "/",
@@ -250,7 +250,7 @@ var _ = Describe("VSphereDeploymentZoneReconciler", func() {
 			Context("when machines are using Deployment Zone", func() {
 				It("should block deletion", func() {
 					machineUsingDeplZone := createMachine("machine-using-zone", "cluster-using-zone", machineNamespace.Name, false)
-					machineUsingDeplZone.Spec.FailureDomain = pointer.String(vsphereDeploymentZone.Name)
+					machineUsingDeplZone.Spec.FailureDomain = ptr.To(vsphereDeploymentZone.Name)
 					Expect(testEnv.Create(ctx, machineUsingDeplZone)).To(Succeed())
 
 					Expect(testEnv.Delete(ctx, vsphereDeploymentZone)).To(Succeed())
@@ -266,7 +266,7 @@ var _ = Describe("VSphereDeploymentZoneReconciler", func() {
 
 				It("should not block deletion if machines are being deleted", func() {
 					machineBeingDeleted := createMachine("machine-deleted", "cluster-deleted", machineNamespace.Name, false)
-					machineBeingDeleted.Spec.FailureDomain = pointer.String(vsphereDeploymentZone.Name)
+					machineBeingDeleted.Spec.FailureDomain = ptr.To(vsphereDeploymentZone.Name)
 					machineBeingDeleted.Finalizers = []string{clusterv1.MachineFinalizer}
 					Expect(testEnv.Create(ctx, machineBeingDeleted)).To(Succeed())
 
@@ -333,17 +333,17 @@ func TestVSphereDeploymentZone_Reconcile(t *testing.T) {
 					Name:          "k8s-region-west",
 					Type:          infrav1.DatacenterFailureDomain,
 					TagCategory:   "k8s-region",
-					AutoConfigure: pointer.Bool(false),
+					AutoConfigure: ptr.To(false),
 				},
 				Zone: infrav1.FailureDomain{
 					Name:          "k8s-zone-west-1",
 					Type:          infrav1.ComputeClusterFailureDomain,
 					TagCategory:   "k8s-zone",
-					AutoConfigure: pointer.Bool(false),
+					AutoConfigure: ptr.To(false),
 				},
 				Topology: infrav1.Topology{
 					Datacenter:     "DC0",
-					ComputeCluster: pointer.String("DC0_C0"),
+					ComputeCluster: ptr.To("DC0_C0"),
 					Datastore:      "LocalDS_0",
 					Networks:       []string{"VM Network"},
 				},
@@ -358,7 +358,7 @@ func TestVSphereDeploymentZone_Reconcile(t *testing.T) {
 			Spec: infrav1.VSphereDeploymentZoneSpec{
 				Server:        simr.ServerURL().Host,
 				FailureDomain: vsphereFailureDomain.Name,
-				ControlPlane:  pointer.Bool(true),
+				ControlPlane:  ptr.To(true),
 				PlacementConstraint: infrav1.PlacementConstraint{
 					ResourcePool: "DC0_C0_RP1",
 					Folder:       "/",
@@ -405,17 +405,17 @@ func TestVSphereDeploymentZone_Reconcile(t *testing.T) {
 					Name:          "k8s-region-west",
 					Type:          infrav1.DatacenterFailureDomain,
 					TagCategory:   "k8s-region",
-					AutoConfigure: pointer.Bool(false),
+					AutoConfigure: ptr.To(false),
 				},
 				Zone: infrav1.FailureDomain{
 					Name:          "k8s-zone-west-1",
 					Type:          infrav1.ComputeClusterFailureDomain,
 					TagCategory:   "k8s-zone",
-					AutoConfigure: pointer.Bool(false),
+					AutoConfigure: ptr.To(false),
 				},
 				Topology: infrav1.Topology{
 					Datacenter:     "DC0",
-					ComputeCluster: pointer.String("DC0_C0"),
+					ComputeCluster: ptr.To("DC0_C0"),
 					Datastore:      "LocalDS_0",
 					Networks:       []string{"VM Network"},
 				},
@@ -430,7 +430,7 @@ func TestVSphereDeploymentZone_Reconcile(t *testing.T) {
 			Spec: infrav1.VSphereDeploymentZoneSpec{
 				Server:        simr.ServerURL().Host,
 				FailureDomain: vsphereFailureDomain.Name,
-				ControlPlane:  pointer.Bool(true),
+				ControlPlane:  ptr.To(true),
 				PlacementConstraint: infrav1.PlacementConstraint{
 					ResourcePool: "DC0_C0_RP1",
 					Folder:       "/",
@@ -468,7 +468,7 @@ func TestVSphereDeploymentZone_Reconcile(t *testing.T) {
 			Spec: infrav1.VSphereDeploymentZoneSpec{
 				Server:        simr.ServerURL().Host,
 				FailureDomain: "fd1",
-				ControlPlane:  pointer.Bool(true),
+				ControlPlane:  ptr.To(true),
 				PlacementConstraint: infrav1.PlacementConstraint{
 					ResourcePool: "DC0_C0_RP1",
 					Folder:       "/",
@@ -503,7 +503,7 @@ func TestVSphereDeploymentZone_Reconcile(t *testing.T) {
 			Spec: infrav1.VSphereDeploymentZoneSpec{
 				Server:        simr.ServerURL().Host,
 				FailureDomain: "fd1",
-				ControlPlane:  pointer.Bool(true),
+				ControlPlane:  ptr.To(true),
 				PlacementConstraint: infrav1.PlacementConstraint{
 					ResourcePool: "DC0_C0_RP1",
 					Folder:       "/",
@@ -545,7 +545,7 @@ func createMachine(machineName, clusterName, namespace string, isControlPlane bo
 			},
 		},
 		Spec: clusterv1.MachineSpec{
-			Version: pointer.String("v1.22.0"),
+			Version: ptr.To("v1.22.0"),
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: &corev1.ObjectReference{
 					APIVersion: bootstrapv1.GroupVersion.String(),
@@ -617,7 +617,7 @@ func TestVsphereDeploymentZone_Failed_ReconcilePlacementConstraint(t *testing.T)
 				Spec: infrav1.VSphereFailureDomainSpec{
 					Topology: infrav1.Topology{
 						Datacenter:     "DC0",
-						ComputeCluster: pointer.String("DC0_C0"),
+						ComputeCluster: ptr.To("DC0_C0"),
 					},
 				},
 			})).To(Succeed())
@@ -627,7 +627,7 @@ func TestVsphereDeploymentZone_Failed_ReconcilePlacementConstraint(t *testing.T)
 				VSphereDeploymentZone: &infrav1.VSphereDeploymentZone{Spec: infrav1.VSphereDeploymentZoneSpec{
 					Server:              simr.ServerURL().Host,
 					FailureDomain:       "blah",
-					ControlPlane:        pointer.Bool(true),
+					ControlPlane:        ptr.To(true),
 					PlacementConstraint: tt.placementConstraint,
 				}},
 			}
@@ -661,14 +661,14 @@ func TestVSphereDeploymentZoneReconciler_ReconcileDelete(t *testing.T) {
 		Spec: infrav1.VSphereFailureDomainSpec{
 			Topology: infrav1.Topology{
 				Datacenter:     "DC0",
-				ComputeCluster: pointer.String("DC0_C0"),
+				ComputeCluster: ptr.To("DC0_C0"),
 			},
 		},
 	}
 
 	t.Run("when machines are using deployment zone", func(t *testing.T) {
 		machineUsingDeplZone := createMachine("machine-1", "cluster-1", "ns", false)
-		machineUsingDeplZone.Spec.FailureDomain = pointer.String("blah")
+		machineUsingDeplZone.Spec.FailureDomain = ptr.To("blah")
 
 		t.Run("should block deletion", func(t *testing.T) {
 			controllerManagerContext := fake.NewControllerManagerContext(machineUsingDeplZone, vsphereFailureDomain)

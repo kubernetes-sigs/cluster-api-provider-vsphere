@@ -29,7 +29,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1alpha1"
@@ -627,7 +627,7 @@ func (r vmReconciler) fetchClusterModuleInfo(ctx context.Context, clusterModInpu
 	for _, mod := range clusterModInput.VSphereCluster.Spec.ClusterModules {
 		if mod.TargetObjectName == owner.GetName() {
 			log.V(4).Info("Cluster module found", "moduleUUID", mod.ModuleUUID)
-			return pointer.String(mod.ModuleUUID), nil
+			return ptr.To(mod.ModuleUUID), nil
 		}
 	}
 	log.V(4).Info("No cluster module found")

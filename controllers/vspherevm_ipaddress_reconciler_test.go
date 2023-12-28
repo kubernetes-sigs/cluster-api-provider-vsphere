@@ -23,7 +23,7 @@ import (
 	"github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -244,7 +244,7 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 
 func poolRef(name string) corev1.TypedLocalObjectReference {
 	return corev1.TypedLocalObjectReference{
-		APIGroup: pointer.String("test.ipam.provider.io/v1"),
+		APIGroup: ptr.To("test.ipam.provider.io/v1"),
 		Name:     name,
 		Kind:     "my-pool-kind",
 	}

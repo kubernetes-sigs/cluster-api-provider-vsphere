@@ -30,7 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -331,14 +331,14 @@ func (r *clusterReconciler) reconcileDeploymentZones(ctx context.Context, cluste
 		if zone.Status.Ready == nil {
 			readyNotReported++
 			failureDomains[zone.Name] = clusterv1.FailureDomainSpec{
-				ControlPlane: pointer.BoolDeref(zone.Spec.ControlPlane, true),
+				ControlPlane: ptr.Deref(zone.Spec.ControlPlane, true),
 			}
 			continue
 		}
 
 		if *zone.Status.Ready {
 			failureDomains[zone.Name] = clusterv1.FailureDomainSpec{
-				ControlPlane: pointer.BoolDeref(zone.Spec.ControlPlane, true),
+				ControlPlane: ptr.Deref(zone.Spec.ControlPlane, true),
 			}
 			continue
 		}

@@ -22,7 +22,7 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
@@ -50,7 +50,7 @@ func (webhook *VSphereDeploymentZoneWebhook) Default(_ context.Context, obj runt
 		return apierrors.NewBadRequest(fmt.Sprintf("expected a VSphereDeploymentZone but got a %T", obj))
 	}
 	if typedObj.Spec.ControlPlane == nil {
-		typedObj.Spec.ControlPlane = pointer.Bool(true)
+		typedObj.Spec.ControlPlane = ptr.To(true)
 	}
 
 	return nil

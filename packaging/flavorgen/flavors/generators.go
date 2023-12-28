@@ -24,7 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
@@ -117,14 +117,14 @@ func newClusterTopologyCluster() (clusterv1.Cluster, error) {
 				Class:   env.ClusterClassNameVar,
 				Version: env.KubernetesVersionVar,
 				ControlPlane: clusterv1.ControlPlaneTopology{
-					Replicas: pointer.Int32(1),
+					Replicas: ptr.To[int32](1),
 				},
 				Workers: &clusterv1.WorkersTopology{
 					MachineDeployments: []clusterv1.MachineDeploymentTopology{
 						{
 							Class:    fmt.Sprintf("%s-worker", env.ClusterClassNameVar),
 							Name:     "md-0",
-							Replicas: pointer.Int32(3),
+							Replicas: ptr.To[int32](3),
 						},
 					},
 				},
@@ -349,7 +349,7 @@ func nodeIPAMVirtualMachineCloneSpec() infrav1.VirtualMachineCloneSpec {
 					DHCP6:       false,
 					AddressesFromPools: []corev1.TypedLocalObjectReference{
 						{
-							APIGroup: pointer.String(env.NodeIPAMPoolAPIGroup),
+							APIGroup: ptr.To(env.NodeIPAMPoolAPIGroup),
 							Kind:     env.NodeIPAMPoolKind,
 							Name:     env.NodeIPAMPoolName,
 						},
@@ -499,7 +499,7 @@ func defaultUsers() []bootstrapv1.User {
 	return []bootstrapv1.User{
 		{
 			Name: "capv",
-			Sudo: pointer.String("ALL=(ALL) NOPASSWD:ALL"),
+			Sudo: ptr.To("ALL=(ALL) NOPASSWD:ALL"),
 			SSHAuthorizedKeys: []string{
 				env.VSphereSSHAuthorizedKeysVar,
 			},
@@ -511,7 +511,7 @@ func flatcarUsers() []bootstrapv1.User {
 	return []bootstrapv1.User{
 		{
 			Name: "core",
-			Sudo: pointer.String("ALL=(ALL) NOPASSWD:ALL"),
+			Sudo: ptr.To("ALL=(ALL) NOPASSWD:ALL"),
 			SSHAuthorizedKeys: []string{
 				env.VSphereSSHAuthorizedKeysVar,
 			},
@@ -600,13 +600,13 @@ func newMachineDeployment(cluster clusterv1.Cluster, machineTemplate infrav1.VSp
 		},
 		Spec: clusterv1.MachineDeploymentSpec{
 			ClusterName: env.ClusterNameVar,
-			Replicas:    pointer.Int32(int32(555)),
+			Replicas:    ptr.To[int32](555),
 			Template: clusterv1.MachineTemplateSpec{
 				ObjectMeta: clusterv1.ObjectMeta{
 					Labels: clusterLabels(),
 				},
 				Spec: clusterv1.MachineSpec{
-					Version:     pointer.String(env.KubernetesVersionVar),
+					Version:     ptr.To(env.KubernetesVersionVar),
 					ClusterName: cluster.Name,
 					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: &corev1.ObjectReference{

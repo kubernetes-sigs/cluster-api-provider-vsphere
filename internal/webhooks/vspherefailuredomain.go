@@ -24,7 +24,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -108,11 +108,11 @@ func (webhook *VSphereFailureDomainWebhook) Default(_ context.Context, obj runti
 		return apierrors.NewBadRequest(fmt.Sprintf("expected a VSphereFailureDomain but got a %T", obj))
 	}
 	if typedObj.Spec.Zone.AutoConfigure == nil {
-		typedObj.Spec.Zone.AutoConfigure = pointer.Bool(false)
+		typedObj.Spec.Zone.AutoConfigure = ptr.To(false)
 	}
 
 	if typedObj.Spec.Region.AutoConfigure == nil {
-		typedObj.Spec.Region.AutoConfigure = pointer.Bool(false)
+		typedObj.Spec.Region.AutoConfigure = ptr.To(false)
 	}
 
 	return nil

@@ -26,7 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -143,26 +143,26 @@ func (r vsphereDeploymentZoneReconciler) reconcileNormal(ctx context.Context, de
 	authSession, err := r.getVCenterSession(ctx, deploymentZoneCtx, failureDomain.Spec.Topology.Datacenter)
 	if err != nil {
 		conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VCenterAvailableCondition, infrav1.VCenterUnreachableReason, clusterv1.ConditionSeverityError, err.Error())
-		deploymentZoneCtx.VSphereDeploymentZone.Status.Ready = pointer.Bool(false)
+		deploymentZoneCtx.VSphereDeploymentZone.Status.Ready = ptr.To(false)
 		return err
 	}
 	deploymentZoneCtx.AuthSession = authSession
 	conditions.MarkTrue(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VCenterAvailableCondition)
 
 	if err := r.reconcilePlacementConstraint(ctx, deploymentZoneCtx); err != nil {
-		deploymentZoneCtx.VSphereDeploymentZone.Status.Ready = pointer.Bool(false)
+		deploymentZoneCtx.VSphereDeploymentZone.Status.Ready = ptr.To(false)
 		return err
 	}
 	conditions.MarkTrue(deploymentZoneCtx.VSphereDeploymentZone, infrav1.PlacementConstraintMetCondition)
 
 	// reconcile the failure domain
 	if err := r.reconcileFailureDomain(ctx, deploymentZoneCtx, failureDomain); err != nil {
-		deploymentZoneCtx.VSphereDeploymentZone.Status.Ready = pointer.Bool(false)
+		deploymentZoneCtx.VSphereDeploymentZone.Status.Ready = ptr.To(false)
 		return err
 	}
 
 	// Mark the deployment zone as ready.
-	deploymentZoneCtx.VSphereDeploymentZone.Status.Ready = pointer.Bool(true)
+	deploymentZoneCtx.VSphereDeploymentZone.Status.Ready = ptr.To(true)
 	return nil
 }
 

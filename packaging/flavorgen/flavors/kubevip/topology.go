@@ -24,7 +24,7 @@ import (
 
 	"github.com/pkg/errors"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
@@ -79,13 +79,13 @@ func TopologyPatch() clusterv1.ClusterClassPatch {
 				`content: {{ printf "%q" (regexReplaceAll "(name: address\n +value:).*" .kubeVipPodManifest (printf "$1 %s" .controlPlaneIpAddr)) }}`,
 				fmt.Sprintf("permissions: %q", f.Permissions),
 			}
-			p.ValueFrom.Template = pointer.String(strings.Join(lines, "\n"))
+			p.ValueFrom.Template = ptr.To(strings.Join(lines, "\n"))
 			patches = append(patches, p)
 			continue
 		}
 
 		tpl, _ := fileToTemplate(f)
-		p.ValueFrom.Template = pointer.String(tpl)
+		p.ValueFrom.Template = ptr.To(tpl)
 		patches = append(patches, p)
 	}
 
@@ -94,12 +94,12 @@ func TopologyPatch() clusterv1.ClusterClassPatch {
 		clusterv1.JSONPatch{
 			Op:        "add",
 			Path:      "/spec/template/spec/kubeadmConfigSpec/preKubeadmCommands/-",
-			ValueFrom: &clusterv1.JSONPatchValue{Template: pointer.String("/etc/kube-vip-prepare.sh")},
+			ValueFrom: &clusterv1.JSONPatchValue{Template: ptr.To("/etc/kube-vip-prepare.sh")},
 		},
 		clusterv1.JSONPatch{
 			Op:        "add",
 			Path:      "/spec/template/spec/kubeadmConfigSpec/postKubeadmCommands/-",
-			ValueFrom: &clusterv1.JSONPatchValue{Template: pointer.String("/etc/kube-vip-cleanup.sh")},
+			ValueFrom: &clusterv1.JSONPatchValue{Template: ptr.To("/etc/kube-vip-cleanup.sh")},
 		},
 	)
 

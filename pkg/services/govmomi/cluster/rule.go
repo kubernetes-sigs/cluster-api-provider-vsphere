@@ -21,7 +21,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/vmware/govmomi/vim25/types"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 // Rule is a role for host affinity.
@@ -36,7 +36,7 @@ type vmHostAffinityRule struct {
 }
 
 func (v vmHostAffinityRule) IsMandatory() bool {
-	return pointer.BoolDeref(v.Mandatory, false)
+	return ptr.Deref(v.Mandatory, false)
 }
 
 func (v vmHostAffinityRule) Disabled() bool {

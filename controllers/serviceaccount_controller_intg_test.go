@@ -29,7 +29,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -206,7 +206,7 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 							Kind:       "ProviderServiceAccount",
 							Name:       pSvcAccount.GetName(),
 							UID:        types.UID(oldOwnerUID),
-							Controller: pointer.Bool(true),
+							Controller: ptr.To(true),
 						},
 					},
 				},
@@ -227,7 +227,7 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 							APIVersion: "incorrect.api.com/v1beta1",
 							Kind:       "ProviderServiceAccount",
 							Name:       pSvcAccount.GetName(),
-							Controller: pointer.Bool(true),
+							Controller: ptr.To(true),
 							UID:        types.UID(oldOwnerUID),
 						},
 					},
@@ -267,7 +267,7 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 				Kind:       pSvcAccount.Kind,
 				Name:       pSvcAccount.GetName(),
 				UID:        pSvcAccount.UID,
-				Controller: pointer.Bool(true),
+				Controller: ptr.To(true),
 			}
 			By("Taking ownership of the role and reconciling the rules", func() {
 				Eventually(func() error {

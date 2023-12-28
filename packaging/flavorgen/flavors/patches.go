@@ -20,7 +20,7 @@ import (
 	"fmt"
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
@@ -93,7 +93,7 @@ func createEmptyArraysPatch() clusterv1.ClusterClassPatch {
 func enableSSHPatch() clusterv1.ClusterClassPatch {
 	return clusterv1.ClusterClassPatch{
 		Name:      "enableSSHIntoNodes",
-		EnabledIf: pointer.String("{{ if .sshKey }}true{{end}}"),
+		EnabledIf: ptr.To("{{ if .sshKey }}true{{end}}"),
 		Definitions: []clusterv1.PatchDefinition{
 			{
 				Selector: clusterv1.PatchSelector{
@@ -169,14 +169,14 @@ func infraClusterPatch() clusterv1.ClusterClassPatch {
 						Op:   "add",
 						Path: "/spec/template/spec/server",
 						ValueFrom: &clusterv1.JSONPatchValue{
-							Variable: pointer.String("infraServer.url"),
+							Variable: ptr.To("infraServer.url"),
 						},
 					},
 					{
 						Op:   "add",
 						Path: "/spec/template/spec/thumbprint",
 						ValueFrom: &clusterv1.JSONPatchValue{
-							Variable: pointer.String("infraServer.thumbprint"),
+							Variable: ptr.To("infraServer.thumbprint"),
 						},
 					},
 				},

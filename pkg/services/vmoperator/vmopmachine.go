@@ -154,8 +154,18 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 	// Set the VM state. Will get reset throughout the reconcile
 	supervisorMachineCtx.VSphereMachine.Status.VMStatus = vmwarev1.VirtualMachineStatePending
 
-	// Define the VM Operator VirtualMachine resource to reconcile.
-	vmOperatorVM := v.newVMOperatorVM(supervisorMachineCtx)
+	// Check for the presence of an existing object
+	vmOperatorVM := &vmoprv1.VirtualMachine{}
+	if err := v.Client.Get(ctx, client.ObjectKey{
+		Namespace: supervisorMachineCtx.Machine.Namespace,
+		Name:      supervisorMachineCtx.Machine.Name,
+	}, vmOperatorVM); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return false, err
+		}
+		// Define the VM Operator VirtualMachine resource to reconcile.
+		vmOperatorVM = v.newVMOperatorVM(supervisorMachineCtx)
+	}
 
 	// Reconcile the VM Operator VirtualMachine.
 	if err := v.reconcileVMOperatorVM(ctx, supervisorMachineCtx, vmOperatorVM); err != nil {
@@ -252,10 +262,6 @@ func (v *VmopMachineService) newVMOperatorVM(supervisorMachineCtx *vmware.Superv
 			Name:      supervisorMachineCtx.Machine.Name,
 			Namespace: supervisorMachineCtx.Machine.Namespace,
 		},
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: vmoprv1.SchemeGroupVersion.String(),
-			Kind:       "VirtualMachine",
-		},
 	}
 }
 
@@ -287,9 +293,15 @@ func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervis
 		// Define a new VM Operator virtual machine.
 		// NOTE: Set field-by-field in order to preserve changes made directly
 		//  to the VirtualMachine spec by other sources (e.g. the cloud provider)
-		vmOperatorVM.Spec.ImageName = supervisorMachineCtx.VSphereMachine.Spec.ImageName
-		vmOperatorVM.Spec.ClassName = supervisorMachineCtx.VSphereMachine.Spec.ClassName
-		vmOperatorVM.Spec.StorageClass = supervisorMachineCtx.VSphereMachine.Spec.StorageClass
+		if vmOperatorVM.Spec.ImageName == "" {
+			vmOperatorVM.Spec.ImageName = supervisorMachineCtx.VSphereMachine.Spec.ImageName
+		}
+		if vmOperatorVM.Spec.ClassName == "" {
+			vmOperatorVM.Spec.ClassName = supervisorMachineCtx.VSphereMachine.Spec.ClassName
+		}
+		if vmOperatorVM.Spec.StorageClass == "" {
+			vmOperatorVM.Spec.StorageClass = supervisorMachineCtx.VSphereMachine.Spec.StorageClass
+		}
 		vmOperatorVM.Spec.PowerState = vmoprv1.VirtualMachinePoweredOn
 		vmOperatorVM.Spec.ResourcePolicyName = supervisorMachineCtx.VSphereCluster.Status.ResourcePolicyName
 		vmOperatorVM.Spec.VmMetadata = &vmoprv1.VirtualMachineMetadata{
@@ -297,7 +309,9 @@ func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervis
 			Transport:  vmoprv1.VirtualMachineMetadataCloudInitTransport,
 		}
 		vmOperatorVM.Spec.PowerOffMode = vmoprv1.VirtualMachinePowerOpMode(supervisorMachineCtx.VSphereMachine.Spec.PowerOffMode)
-		vmOperatorVM.Spec.MinHardwareVersion = minHardwareVersion
+		if vmOperatorVM.Spec.MinHardwareVersion == 0 {
+			vmOperatorVM.Spec.MinHardwareVersion = minHardwareVersion
+		}
 
 		// VMOperator supports readiness probe and will add/remove endpoints to a
 		// VirtualMachineService based on the outcome of the readiness check.

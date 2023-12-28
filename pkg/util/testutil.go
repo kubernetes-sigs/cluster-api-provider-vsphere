@@ -50,7 +50,8 @@ func CreateCluster(clusterName string) *clusterv1.Cluster {
 			Kind:       clusterKind,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: clusterName,
+			Name:      clusterName,
+			Namespace: corev1.NamespaceDefault,
 		},
 		Spec: clusterv1.ClusterSpec{
 			InfrastructureRef: &corev1.ObjectReference{
@@ -69,7 +70,8 @@ func CreateVSphereCluster(clusterName string) *vmwarev1.VSphereCluster {
 			Kind:       infraClusterKind,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: clusterName,
+			Name:      clusterName,
+			Namespace: corev1.NamespaceDefault,
 		},
 	}
 }
@@ -81,7 +83,8 @@ func CreateMachine(machineName, clusterName, k8sVersion string, controlPlaneLabe
 			Kind:       machineKind,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: machineName,
+			Name:      machineName,
+			Namespace: corev1.NamespaceDefault,
 			Labels: map[string]string{
 				clusterNameLabelName: clusterName,
 			},
@@ -116,7 +119,8 @@ func CreateVSphereMachine(machineName, clusterName, className, imageName, storag
 			Kind:       infraMachineKind,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: machineName,
+			Name:      machineName,
+			Namespace: corev1.NamespaceDefault,
 			Labels: map[string]string{
 				clusterv1.ClusterNameLabel: clusterName,
 			},

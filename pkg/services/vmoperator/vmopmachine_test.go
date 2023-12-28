@@ -282,6 +282,14 @@ var _ = Describe("VirtualMachine tests", func() {
 			}
 			requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
 			verifyOutput(supervisorMachineContext)
+
+			By("Updates to immutable VMOp fields are dropped", func() {
+				vsphereMachine.Spec.ImageName = "new-image"
+				vsphereMachine.Spec.ClassName = "new-class"
+
+				requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
+				verifyOutput(supervisorMachineContext)
+			})
 		})
 
 		Specify("Reconcile will add a probe once the cluster reports that the control plane is ready", func() {

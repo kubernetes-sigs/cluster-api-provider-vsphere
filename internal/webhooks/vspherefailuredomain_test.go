@@ -21,7 +21,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 )
@@ -53,7 +53,7 @@ func TestVSphereFailureDomain_ValidateCreate(t *testing.T) {
 					Name:          "foo",
 					Type:          infrav1.HostGroupFailureDomain,
 					TagCategory:   "k8s-bar",
-					AutoConfigure: pointer.Bool(true),
+					AutoConfigure: ptr.To(true),
 				},
 			}},
 		},
@@ -85,7 +85,7 @@ func TestVSphereFailureDomain_ValidateCreate(t *testing.T) {
 				},
 				Topology: infrav1.Topology{
 					Datacenter:     "/blah",
-					ComputeCluster: pointer.String("blah2"),
+					ComputeCluster: ptr.To("blah2"),
 					Hosts:          nil,
 				},
 			}},

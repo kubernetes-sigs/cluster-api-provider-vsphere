@@ -29,7 +29,7 @@ import (
 	"github.com/vmware/govmomi/vim25"
 	"github.com/vmware/govmomi/vim25/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
@@ -81,8 +81,8 @@ func Test_reconcilePCIDevices(t *testing.T) {
 				Spec: infrav1.VSphereVMSpec{
 					VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
 						PciDevices: []infrav1.PCIDeviceSpec{
-							{DeviceID: pointer.Int32(1234), VendorID: pointer.Int32(5678)},
-							{DeviceID: pointer.Int32(1234), VendorID: pointer.Int32(5678)},
+							{DeviceID: ptr.To[int32](1234), VendorID: ptr.To[int32](5678)},
+							{DeviceID: ptr.To[int32](1234), VendorID: ptr.To[int32](5678)},
 						},
 					},
 				},

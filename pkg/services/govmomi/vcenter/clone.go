@@ -29,7 +29,7 @@ import (
 	pbmTypes "github.com/vmware/govmomi/pbm/types"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -204,7 +204,7 @@ func Clone(ctx context.Context, vmCtx *capvcontext.VMContext, bootstrapData []by
 	// We can replace this once we have another way of reserving memory option
 	// exposed via the API types.
 	if len(vmCtx.VSphereVM.Spec.PciDevices) > 0 {
-		spec.Config.MemoryReservationLockedToMax = pointer.Bool(true)
+		spec.Config.MemoryReservationLockedToMax = ptr.To(true)
 	}
 
 	var datastoreRef *types.ManagedObjectReference

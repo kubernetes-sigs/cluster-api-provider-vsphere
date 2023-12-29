@@ -21,7 +21,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 )
@@ -41,7 +41,7 @@ func TestVSphereDeploymentZone_Default(t *testing.T) {
 		},
 		{
 			name:        "when control plane is set",
-			boolPtr:     pointer.Bool(false),
+			boolPtr:     ptr.To(false),
 			expectedVal: false,
 		},
 	}

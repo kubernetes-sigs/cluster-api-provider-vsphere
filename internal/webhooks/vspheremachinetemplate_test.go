@@ -22,7 +22,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	admissionv1 "k8s.io/api/admission/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
@@ -96,35 +96,35 @@ func TestVSphereMachineTemplate_ValidateUpdate(t *testing.T) {
 			name:              "ProviderID cannot be updated",
 			oldVSphereMachine: createVSphereMachineTemplate("foo.com", "", nil, "", []string{"192.168.0.1/32"}),
 			vsphereMachine:    createVSphereMachineTemplate("foo.com", "", &someProviderID, "", []string{"192.168.0.1/32"}),
-			req:               &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: pointer.Bool(false)}},
+			req:               &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(false)}},
 			wantErr:           true,
 		},
 		{
 			name:              "ip addresses cannot be updated",
 			oldVSphereMachine: createVSphereMachineTemplate("foo.com", "", nil, "", []string{"192.168.0.1/32"}),
 			vsphereMachine:    createVSphereMachineTemplate("foo.com", "", &someProviderID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}),
-			req:               &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: pointer.Bool(false)}},
+			req:               &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(false)}},
 			wantErr:           true,
 		},
 		{
 			name:              "server cannot be updated",
 			oldVSphereMachine: createVSphereMachineTemplate("foo.com", "", nil, "", []string{"192.168.0.1/32"}),
 			vsphereMachine:    createVSphereMachineTemplate("baz.com", "", &someProviderID, "", []string{"192.168.0.1/32", "192.168.0.10/32"}),
-			req:               &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: pointer.Bool(false)}},
+			req:               &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(false)}},
 			wantErr:           true,
 		},
 		{
 			name:              "hardware version cannot be updated",
 			oldVSphereMachine: createVSphereMachineTemplate("foo.com", "vmx-16", nil, "", []string{"192.168.0.1/32"}),
 			vsphereMachine:    createVSphereMachineTemplate("baz.com", "vmx-17", nil, "", []string{"192.168.0.1/32"}),
-			req:               &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: pointer.Bool(false)}},
+			req:               &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(false)}},
 			wantErr:           true,
 		},
 		{
 			name:              "with hardware version set and not updated",
 			oldVSphereMachine: createVSphereMachineTemplate("foo.com", "vmx-16", nil, "", []string{"192.168.0.1/32"}),
 			vsphereMachine:    createVSphereMachineTemplate("foo.com", "vmx-16", nil, "", []string{"192.168.0.1/32"}),
-			req:               &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: pointer.Bool(false)}},
+			req:               &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(false)}},
 			wantErr:           false, // explicitly calling out that this is a valid scenario.
 		},
 	}

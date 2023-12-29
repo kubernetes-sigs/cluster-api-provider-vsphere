@@ -96,11 +96,6 @@ func TopologyPatch() clusterv1.ClusterClassPatch {
 			Path:      "/spec/template/spec/kubeadmConfigSpec/preKubeadmCommands/-",
 			ValueFrom: &clusterv1.JSONPatchValue{Template: ptr.To("/etc/kube-vip-prepare.sh")},
 		},
-		clusterv1.JSONPatch{
-			Op:        "add",
-			Path:      "/spec/template/spec/kubeadmConfigSpec/postKubeadmCommands/-",
-			ValueFrom: &clusterv1.JSONPatchValue{Template: ptr.To("/etc/kube-vip-cleanup.sh")},
-		},
 	)
 
 	return clusterv1.ClusterClassPatch{

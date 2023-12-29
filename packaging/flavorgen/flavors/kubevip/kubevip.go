@@ -161,10 +161,6 @@ func PatchControlPlane(cp *controlplanev1.KubeadmControlPlane) {
 		cp.Spec.KubeadmConfigSpec.PreKubeadmCommands,
 		"/etc/kube-vip-prepare.sh",
 	)
-	cp.Spec.KubeadmConfigSpec.PostKubeadmCommands = append(
-		cp.Spec.KubeadmConfigSpec.PostKubeadmCommands,
-		"/etc/kube-vip-cleanup.sh",
-	)
 }
 
 // kubeVIPPodYaml converts the KubeVip pod spec to a `printable` yaml

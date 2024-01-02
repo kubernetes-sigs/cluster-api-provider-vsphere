@@ -27,8 +27,6 @@ var (
 
 	//go:embed kube-vip-prepare.sh
 	kubeVipPrepare string
-	//go:embed kube-vip-cleanup.sh
-	kubeVipCleanup string
 )
 
 func newKubeVIPFiles() []bootstrapv1.File {
@@ -52,12 +50,6 @@ func newKubeVIPFiles() []bootstrapv1.File {
 			Path:        "/etc/kube-vip-prepare.sh",
 			Permissions: "0700",
 			Content:     kubeVipPrepare,
-		},
-		{
-			Owner:       "root:root",
-			Path:        "/etc/kube-vip-cleanup.sh",
-			Permissions: "0700",
-			Content:     kubeVipCleanup,
 		},
 	}
 }

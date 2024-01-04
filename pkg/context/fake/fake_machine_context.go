@@ -76,8 +76,8 @@ func newVSphereMachine(owner clusterv1.Machine) infrav1.VSphereMachine {
 			UID:       VSphereMachineUUID,
 			OwnerReferences: []metav1.OwnerReference{
 				{
-					APIVersion:         owner.APIVersion,
-					Kind:               owner.Kind,
+					APIVersion:         clusterv1.GroupVersion.String(),
+					Kind:               "Machine",
 					Name:               owner.Name,
 					UID:                owner.UID,
 					BlockOwnerDeletion: &boolTrue,

@@ -736,7 +736,7 @@ func TestVSphereDeploymentZoneReconciler_ReconcileDelete(t *testing.T) {
 	t.Run("delete failure domain", func(t *testing.T) {
 		vsphereFailureDomain.OwnerReferences = []metav1.OwnerReference{{
 			APIVersion: infrav1.GroupVersion.String(),
-			Kind:       vsphereDeploymentZone.Kind,
+			Kind:       "VSphereDeploymentZone",
 			Name:       vsphereDeploymentZone.Name,
 		}}
 
@@ -756,7 +756,7 @@ func TestVSphereDeploymentZoneReconciler_ReconcileDelete(t *testing.T) {
 		t.Run("when used by other deployment zones", func(t *testing.T) {
 			vsphereFailureDomain.OwnerReferences = append(vsphereFailureDomain.OwnerReferences, metav1.OwnerReference{
 				APIVersion: infrav1.GroupVersion.String(),
-				Kind:       vsphereDeploymentZone.Kind,
+				Kind:       "VSphereDeploymentZone",
 				Name:       "another-deployment-zone",
 			})
 

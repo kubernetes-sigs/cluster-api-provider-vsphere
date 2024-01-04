@@ -146,8 +146,8 @@ func createOrPatchIPAddressClaim(ctx context.Context, vmCtx *capvcontext.VMConte
 		claim.SetOwnerReferences(clusterutilv1.EnsureOwnerRef(
 			claim.OwnerReferences,
 			metav1.OwnerReference{
-				APIVersion: vmCtx.VSphereVM.APIVersion,
-				Kind:       vmCtx.VSphereVM.Kind,
+				APIVersion: infrav1.GroupVersion.String(),
+				Kind:       "VSphereVM",
 				Name:       vmCtx.VSphereVM.Name,
 				UID:        vmCtx.VSphereVM.UID,
 			}))

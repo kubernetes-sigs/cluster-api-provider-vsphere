@@ -181,7 +181,7 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 					Finalizers: []string{
 						infrav1.IPAddressClaimFinalizer,
 					},
-					OwnerReferences: []metav1.OwnerReference{{APIVersion: infrav1.GroupVersion.String(), Kind: vsphereVM.Kind, Name: "foo"}},
+					OwnerReferences: []metav1.OwnerReference{{APIVersion: infrav1.GroupVersion.String(), Kind: "VSphereVM", Name: "foo"}},
 				},
 				Spec: ipamv1.IPAddressClaimSpec{
 					PoolRef: corev1.TypedLocalObjectReference{

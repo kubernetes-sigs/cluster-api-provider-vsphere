@@ -64,7 +64,7 @@ func (r vsphereDeploymentZoneReconciler) reconcileFailureDomain(ctx context.Cont
 				vsphereFailureDomain.OwnerReferences,
 				metav1.OwnerReference{
 					APIVersion: infrav1.GroupVersion.String(),
-					Kind:       deploymentZoneCtx.VSphereDeploymentZone.Kind,
+					Kind:       "VSphereDeploymentZone",
 					Name:       deploymentZoneCtx.VSphereDeploymentZone.Name,
 					UID:        deploymentZoneCtx.VSphereDeploymentZone.UID,
 				})

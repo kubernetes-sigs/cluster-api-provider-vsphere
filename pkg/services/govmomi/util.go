@@ -283,7 +283,7 @@ func reconcileVSphereVMOnFuncCompletion(ctx context.Context, vmCtx *capvcontext.
 	log := ctrl.LoggerFrom(ctx)
 
 	obj := vmCtx.VSphereVM.DeepCopy()
-	gvk := obj.GetObjectKind().GroupVersionKind()
+	gvk := infrav1.GroupVersion.WithKind("VSphereVM")
 
 	// Wait on the function to complete in a background goroutine.
 	go func() {

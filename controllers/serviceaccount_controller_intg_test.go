@@ -263,8 +263,8 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 
 		It("should fully reconciles dependent resources", func() {
 			correctOwnership := metav1.OwnerReference{
-				APIVersion: pSvcAccount.APIVersion,
-				Kind:       pSvcAccount.Kind,
+				APIVersion: vmwarev1.GroupVersion.String(),
+				Kind:       "ProviderServiceAccount",
 				Name:       pSvcAccount.GetName(),
 				UID:        pSvcAccount.UID,
 				Controller: ptr.To(true),

@@ -291,8 +291,8 @@ func (v *VimMachineService) createOrPatchVSphereVM(ctx context.Context, vimMachi
 		vm.SetOwnerReferences(clusterutilv1.EnsureOwnerRef(
 			vm.OwnerReferences,
 			metav1.OwnerReference{
-				APIVersion: vimMachineCtx.VSphereMachine.APIVersion,
-				Kind:       vimMachineCtx.VSphereMachine.Kind,
+				APIVersion: infrav1.GroupVersion.String(),
+				Kind:       "VSphereMachine",
 				Name:       vimMachineCtx.VSphereMachine.Name,
 				UID:        vimMachineCtx.VSphereMachine.UID,
 			}))

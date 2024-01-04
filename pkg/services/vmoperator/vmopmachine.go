@@ -594,6 +594,10 @@ func getVMLabels(supervisorMachineCtx *vmware.SupervisorMachineContext, vmLabels
 		vmLabels[k] = v
 	}
 
+	// Ensure the VM has a label that can be used when searching for
+	// resources associated with the target cluster.
+	vmLabels[clusterv1.ClusterNameLabel] = supervisorMachineCtx.GetClusterContext().Cluster.Name
+
 	return vmLabels
 }
 

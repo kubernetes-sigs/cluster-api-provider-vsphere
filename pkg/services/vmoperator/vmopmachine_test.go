@@ -71,6 +71,7 @@ const (
 	vmIP                     = "127.0.0.1"
 	biosUUID                 = "test-biosUuid"
 	missingK8SVersionFailure = "missing kubernetes version"
+	clusterNameLabel         = clusterv1.ClusterNameLabel
 )
 
 var _ = Describe("VirtualMachine tests", func() {
@@ -148,6 +149,7 @@ var _ = Describe("VirtualMachine tests", func() {
 				Expect(vmopVM.ObjectMeta.Annotations[ClusterModuleNameAnnotationKey]).To(Equal(ControlPlaneVMClusterModuleGroupName))
 				Expect(vmopVM.ObjectMeta.Annotations[ProviderTagsAnnotationKey]).To(Equal(ControlPlaneVMVMAntiAffinityTagValue))
 
+				Expect(vmopVM.Labels[clusterNameLabel]).To(Equal(clusterName))
 				Expect(vmopVM.Labels[clusterSelectorKey]).To(Equal(clusterName))
 				Expect(vmopVM.Labels[nodeSelectorKey]).To(Equal(roleControlPlane))
 				// for backward compatibility, will be removed in the future

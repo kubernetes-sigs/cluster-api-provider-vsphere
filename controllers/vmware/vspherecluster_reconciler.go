@@ -72,10 +72,9 @@ type ClusterReconciler struct {
 func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	// Fetch the vsphereCluster instance
+	// Fetch the vsphereCluster instance.
 	vsphereCluster := &vmwarev1.VSphereCluster{}
-	err := r.Client.Get(ctx, req.NamespacedName, vsphereCluster)
-	if err != nil {
+	if err := r.Client.Get(ctx, req.NamespacedName, vsphereCluster); err != nil {
 		if apierrors.IsNotFound(err) {
 			return reconcile.Result{}, nil
 		}

@@ -40,6 +40,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	inframanager "sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/vmoperator"
 )
 
@@ -86,6 +87,7 @@ func AddClusterControllerToManager(ctx context.Context, controllerManagerCtx *ca
 		ControllerManagerContext: controllerManagerCtx,
 		Client:                   controllerManagerCtx.Client,
 		clusterModuleReconciler:  NewReconciler(controllerManagerCtx),
+		vmService:                services.VimMachineService{Client: controllerManagerCtx.Client},
 	}
 	clusterToInfraFn := clusterToInfrastructureMapFunc(ctx, controllerManagerCtx)
 	c, err := ctrl.NewControllerManagedBy(mgr).

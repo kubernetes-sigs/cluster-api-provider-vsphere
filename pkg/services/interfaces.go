@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
@@ -32,6 +33,7 @@ import (
 
 // VSphereMachineService is used for vsphere VM lifecycle and syncing with VSphereMachine types.
 type VSphereMachineService interface {
+	GetMachinesInCluster(ctx context.Context, namespace, clusterName string) ([]client.Object, error)
 	FetchVSphereMachine(ctx context.Context, name types.NamespacedName) (capvcontext.MachineContext, error)
 	FetchVSphereCluster(ctx context.Context, cluster *clusterv1.Cluster, machineContext capvcontext.MachineContext) (capvcontext.MachineContext, error)
 	ReconcileDelete(ctx context.Context, machineCtx capvcontext.MachineContext) error

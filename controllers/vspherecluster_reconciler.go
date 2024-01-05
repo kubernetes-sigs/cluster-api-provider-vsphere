@@ -254,7 +254,7 @@ func (r *clusterReconciler) reconcileIdentitySecret(ctx context.Context, cluster
 	secret.SetOwnerReferences(clusterutilv1.EnsureOwnerRef(secret.GetOwnerReferences(),
 		metav1.OwnerReference{
 			APIVersion: infrav1.GroupVersion.String(),
-			Kind:       vsphereCluster.Kind,
+			Kind:       "VSphereCluster",
 			Name:       vsphereCluster.Name,
 			UID:        vsphereCluster.UID,
 		},

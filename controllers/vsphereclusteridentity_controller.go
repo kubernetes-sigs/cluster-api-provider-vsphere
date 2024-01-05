@@ -134,7 +134,7 @@ func (r clusterIdentityReconciler) Reconcile(ctx context.Context, req reconcile.
 		clusterutilv1.EnsureOwnerRef(secret.GetOwnerReferences(),
 			metav1.OwnerReference{
 				APIVersion: infrav1.GroupVersion.String(),
-				Kind:       identity.Kind,
+				Kind:       "VSphereClusterIdentity",
 				Name:       identity.Name,
 				UID:        identity.UID,
 			}))

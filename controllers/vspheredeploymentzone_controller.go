@@ -264,7 +264,7 @@ func (r vsphereDeploymentZoneReconciler) reconcileDelete(ctx context.Context, de
 	if err := updateOwnerReferences(ctx, failureDomain, r.Client, func() []metav1.OwnerReference {
 		return clusterutilv1.RemoveOwnerRef(failureDomain.OwnerReferences, metav1.OwnerReference{
 			APIVersion: infrav1.GroupVersion.String(),
-			Kind:       deploymentZoneCtx.VSphereDeploymentZone.Kind,
+			Kind:       "VSphereDeploymentZone",
 			Name:       deploymentZoneCtx.VSphereDeploymentZone.Name,
 		})
 	}); err != nil {

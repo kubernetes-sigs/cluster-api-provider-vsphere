@@ -81,8 +81,8 @@ func newVSphereCluster(owner clusterv1.Cluster) infrav1.VSphereCluster {
 			Labels:    map[string]string{clusterv1.ClusterNameLabel: owner.Name},
 			OwnerReferences: []metav1.OwnerReference{
 				{
-					APIVersion:         owner.APIVersion,
-					Kind:               owner.Kind,
+					APIVersion:         clusterv1.GroupVersion.String(),
+					Kind:               "Cluster",
 					Name:               owner.Name,
 					UID:                owner.UID,
 					BlockOwnerDeletion: &boolTrue,

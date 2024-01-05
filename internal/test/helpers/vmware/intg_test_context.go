@@ -132,8 +132,8 @@ func NewIntegrationTestContextWithClusters(ctx context.Context, integrationTestC
 				Name:      fmt.Sprintf("%s-kubeconfig", testCtx.Cluster.Name),
 				OwnerReferences: []metav1.OwnerReference{
 					{
-						APIVersion: testCtx.Cluster.APIVersion,
-						Kind:       testCtx.Cluster.Kind,
+						APIVersion: clusterv1.GroupVersion.String(),
+						Kind:       "Cluster",
 						Name:       testCtx.Cluster.Name,
 						UID:        testCtx.Cluster.UID,
 					},

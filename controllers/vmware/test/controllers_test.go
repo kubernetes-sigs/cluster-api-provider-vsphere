@@ -135,8 +135,8 @@ func deployCluster(namespace string, k8sClient client.Client) (client.ObjectKey,
 	infraCluster := newInfraCluster(namespace, cluster)
 	infraCluster.SetOwnerReferences([]metav1.OwnerReference{
 		{
-			APIVersion: cluster.APIVersion,
-			Kind:       cluster.Kind,
+			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       "Cluster",
 			Name:       cluster.Name,
 			UID:        cluster.UID,
 		},
@@ -162,8 +162,8 @@ func deployCAPIMachine(namespace string, cluster *clusterv1.Cluster, k8sClient c
 			},
 			OwnerReferences: []metav1.OwnerReference{
 				{
-					APIVersion: cluster.APIVersion,
-					Kind:       cluster.Kind,
+					APIVersion: clusterv1.GroupVersion.String(),
+					Kind:       "Cluster",
 					Name:       cluster.Name,
 					UID:        cluster.UID,
 				},
@@ -184,8 +184,8 @@ func deployInfraMachine(namespace string, machine *clusterv1.Machine, finalizers
 	infraMachine := newInfraMachine(namespace, machine)
 	infraMachine.SetOwnerReferences([]metav1.OwnerReference{
 		{
-			APIVersion: machine.APIVersion,
-			Kind:       machine.Kind,
+			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       "Machine",
 			Name:       machine.Name,
 			UID:        machine.UID,
 		},

@@ -45,8 +45,8 @@ func newCluster(vSphereCluster *vmwarev1.VSphereCluster) *clusterv1.Cluster {
 			Namespace: vSphereCluster.Namespace,
 			OwnerReferences: []metav1.OwnerReference{
 				{
-					APIVersion:         vSphereCluster.APIVersion,
-					Kind:               vSphereCluster.Kind,
+					APIVersion:         vmwarev1.GroupVersion.String(),
+					Kind:               "VSphereCluster",
 					Name:               vSphereCluster.Name,
 					UID:                vSphereCluster.UID,
 					BlockOwnerDeletion: &boolTrue,

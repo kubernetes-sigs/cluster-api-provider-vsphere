@@ -7,5 +7,5 @@ spec:
   template:
     spec:
       containers:
-      - image: gcr.io/cluster-api-provider-vsphere/release/manager:latest
+      - image: gcr.io/k8s-staging-capi-vsphere/cluster-api-vsphere-controller:main
         name: manager

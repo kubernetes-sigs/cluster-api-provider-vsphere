@@ -75,19 +75,27 @@ func AddServiceAccountProviderControllerToManager(ctx context.Context, controlle
 
 	clusterToInfraFn := clusterToSupervisorInfrastructureMapFunc(ctx, controllerManagerCtx.Client)
 
-	return ctrl.NewControllerManagedBy(mgr).For(&vmwarev1.ProviderServiceAccount{}).
+	// Note: The ProviderServiceAccount reconciler is watching on VSphereCluster in For() instead of
+	// ProviderServiceAccount because we want to reconcile all ProviderServiceAccounts of a Cluster
+	// sequentially in a single Reconcile.
+	// If we get events of multiple ProviderServiceAccounts of a VSphereCluster at the same time,
+	// controller-runtime will deduplicate the reconcile request for us.
+	return ctrl.NewControllerManagedBy(mgr).For(&vmwarev1.VSphereCluster{}).
+		// We have to set the Name specifically here. Otherwise the name of the controller
+		// would be "vspherecluster" (the controller name will show up in logs and workqueue metrics).
+		Named("providerserviceaccount").
 		WithOptions(options).
-		// Watch a ProviderServiceAccount
+		// Watch ProviderServiceAccounts.
 		Watches(
 			&vmwarev1.ProviderServiceAccount{},
 			handler.EnqueueRequestsFromMapFunc(r.providerServiceAccountToVSphereCluster),
 		).
-		// Watches the secrets to re-enqueue once the service account token is set
+		// Watches the secrets to re-enqueue once the service account token is set.
 		Watches(
 			&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(r.secretToVSphereCluster),
 		).
-		// Watches clusters and reconciles the vSphereCluster
+		// Watches clusters and reconciles the vSphereCluster.
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, o client.Object) []reconcile.Request {
@@ -131,17 +139,10 @@ type ServiceAccountReconciler struct {
 func (r *ServiceAccountReconciler) Reconcile(ctx context.Context, req reconcile.Request) (_ reconcile.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	vsphereClusterKey := client.ObjectKey{Namespace: req.Namespace, Name: req.Name}
-
-	// Note: This reconciler reconciles ProviderServiceAccounts so we have to add VSphereCluster ourselves.
-	log = log.WithValues("VSphereCluster", klog.KRef(vsphereClusterKey.Namespace, vsphereClusterKey.Name))
-	ctx = ctrl.LoggerInto(ctx, log)
-
 	// Get the vSphereCluster for this request.
 	vsphereCluster := &vmwarev1.VSphereCluster{}
-	if err := r.Client.Get(ctx, vsphereClusterKey, vsphereCluster); err != nil {
+	if err := r.Client.Get(ctx, req.NamespacedName, vsphereCluster); err != nil {
 		if apierrors.IsNotFound(err) {
-			log.Info("Corresponding VSphereCluster not found, won't reconcile")
 			return reconcile.Result{}, nil
 		}
 		return reconcile.Result{}, err
@@ -209,12 +210,18 @@ func (r *ServiceAccountReconciler) Reconcile(ctx context.Context, req reconcile.
 
 // reconcileDelete handles delete events for ProviderServiceAccounts.
 func (r *ServiceAccountReconciler) reconcileDelete(ctx context.Context, clusterCtx *vmwarecontext.ClusterContext) error {
+	log := ctrl.LoggerFrom(ctx)
+
 	pSvcAccounts, err := r.getProviderServiceAccounts(ctx, clusterCtx)
 	if err != nil {
 		return errors.Wrap(err, "failed to get ProviderServiceAccounts")
 	}
 
 	for _, pSvcAccount := range pSvcAccounts {
+		// Note: We have to use := here to not overwrite log & ctx outside the for loop.
+		log := log.WithValues("ProviderServiceAccount", klog.KRef(pSvcAccount.Namespace, pSvcAccount.Name))
+		ctx := ctrl.LoggerInto(ctx, log)
+
 		// Delete entries for configmap with serviceaccount
 		if err := r.deleteServiceAccountConfigMap(ctx, pSvcAccount); err != nil {
 			return errors.Wrapf(err, "failed to delete ServiceAccount %s from ServiceAccounts ConfigMap", pSvcAccount.Name)
@@ -254,9 +261,7 @@ func (r *ServiceAccountReconciler) ensureProviderServiceAccounts(ctx context.Con
 
 	for i, pSvcAccount := range pSvcAccounts {
 		// Note: We have to use := here to not overwrite log & ctx outside the for loop.
-		// Note: EnsuredProviderServiceAccount is used as an additional key as we iterate over multiple
-		// ProviderServiceAccounts and not only the one ProviderServiceAccount that triggered the reconcile.
-		log := log.WithValues("EnsureProviderServiceAccount", klog.KRef(pSvcAccount.Namespace, pSvcAccount.Name))
+		log := log.WithValues("ProviderServiceAccount", klog.KRef(pSvcAccount.Namespace, pSvcAccount.Name))
 		ctx := ctrl.LoggerInto(ctx, log)
 
 		if annotations.HasPaused(&(pSvcAccounts[i])) {

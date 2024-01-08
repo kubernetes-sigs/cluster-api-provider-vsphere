@@ -79,7 +79,7 @@ providers:
         files:
           - sourcePath: "../e2e/data/shared/main/v1beta1_provider/metadata.yaml"
         replacements:
-          - old: gcr.io/cluster-api-provider-vsphere/release/manager:latest
+          - old: gcr.io/k8s-staging-capi-vsphere/cluster-api-vsphere-controller:main
             new: gcr.io/k8s-staging-cluster-api/capv-manager:e2e
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"

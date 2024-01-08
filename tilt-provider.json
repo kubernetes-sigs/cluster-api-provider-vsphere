@@ -2,7 +2,7 @@
   "name": "vsphere",
   "config": {
     "version": "v1.9.99",
-    "image": "gcr.io/cluster-api-provider-vsphere/release/manager",
+    "image": "gcr.io/k8s-staging-capi-vsphere/cluster-api-vsphere-controller",
     "live_reload_deps": [
       "main.go",
       "go.mod",

@@ -65,6 +65,7 @@ var _ = Describe("VirtualMachine tests", func() {
 		className                = "test-className"
 		imageName                = "test-imageName"
 		storageClass             = "test-storageClass"
+		resourcePolicyName       = "test-resourcePolicy"
 		vmIP                     = "127.0.0.1"
 		biosUUID                 = "test-biosUuid"
 		missingK8SVersionFailure = "missing kubernetes version"
@@ -106,6 +107,7 @@ var _ = Describe("VirtualMachine tests", func() {
 		// Create all necessary dependencies
 		cluster = util.CreateCluster(clusterName)
 		vsphereCluster = util.CreateVSphereCluster(clusterName)
+		vsphereCluster.Status.ResourcePolicyName = resourcePolicyName
 		machine = util.CreateMachine(machineName, clusterName, k8sVersion, controlPlaneLabelTrue)
 		vsphereMachine = util.CreateVSphereMachine(machineName, clusterName, className, imageName, storageClass, controlPlaneLabelTrue)
 		clusterContext := util.CreateClusterContext(cluster, vsphereCluster)
@@ -138,6 +140,7 @@ var _ = Describe("VirtualMachine tests", func() {
 				Expect(vmopVM.Spec.ImageName).To(Equal(expectedImageName))
 				Expect(vmopVM.Spec.ClassName).To(Equal(className))
 				Expect(vmopVM.Spec.StorageClass).To(Equal(storageClass))
+				Expect(vmopVM.Spec.ResourcePolicyName).To(Equal(resourcePolicyName))
 				Expect(vmopVM.Spec.PowerState).To(Equal(vmoprv1.VirtualMachinePoweredOn))
 				Expect(vmopVM.ObjectMeta.Annotations[ClusterModuleNameAnnotationKey]).To(Equal(ControlPlaneVMClusterModuleGroupName))
 				Expect(vmopVM.ObjectMeta.Annotations[ProviderTagsAnnotationKey]).To(Equal(ControlPlaneVMVMAntiAffinityTagValue))
@@ -283,6 +286,8 @@ var _ = Describe("VirtualMachine tests", func() {
 			By("Updates to immutable VMOp fields are dropped", func() {
 				vsphereMachine.Spec.ImageName = "new-image"
 				vsphereMachine.Spec.ClassName = "new-class"
+				vsphereMachine.Spec.StorageClass = "new-storageclass"
+				vsphereCluster.Status.ResourcePolicyName = "new-resourcepolicy"
 
 				requeue, err = vmService.ReconcileNormal(ctx)
 				verifyOutput(ctx)

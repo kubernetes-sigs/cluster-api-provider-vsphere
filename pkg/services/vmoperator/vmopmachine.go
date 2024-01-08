@@ -325,7 +325,9 @@ func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervis
 			vmOperatorVM.Spec.StorageClass = supervisorMachineCtx.VSphereMachine.Spec.StorageClass
 		}
 		vmOperatorVM.Spec.PowerState = vmoprv1.VirtualMachinePoweredOn
-		vmOperatorVM.Spec.ResourcePolicyName = supervisorMachineCtx.VSphereCluster.Status.ResourcePolicyName
+		if vmOperatorVM.Spec.ResourcePolicyName == "" {
+			vmOperatorVM.Spec.ResourcePolicyName = supervisorMachineCtx.VSphereCluster.Status.ResourcePolicyName
+		}
 		vmOperatorVM.Spec.VmMetadata = &vmoprv1.VirtualMachineMetadata{
 			SecretName: dataSecretName,
 			Transport:  vmoprv1.VirtualMachineMetadataCloudInitTransport,

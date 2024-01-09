@@ -145,6 +145,7 @@ providers:
         files:
           # Add a cluster template
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-conformance.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-install-on-bootstrap.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-dhcp-overrides.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-hw-upgrade.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-ignition.yaml"
@@ -181,9 +182,11 @@ providers:
           - sourcePath: "../data/shared/v1.7/v1beta1_provider/metadata.yaml"
 
 variables:
+  # Ensure all Kubernetes versions used here are covered in patch-vsphere-template.yaml
   KUBERNETES_VERSION: "v1.29.0"
   KUBERNETES_VERSION_UPGRADE_FROM: "v1.28.0"
   KUBERNETES_VERSION_UPGRADE_TO: "v1.29.0"
+  KUBERNETES_VERSION_LATEST_CI: "ci/latest-1.30"
   CPI_IMAGE_K8S_VERSION: "v1.29.0"
   CNI: "./data/cni/calico/calico.yaml"
   EXP_CLUSTER_RESOURCE_SET: "true"

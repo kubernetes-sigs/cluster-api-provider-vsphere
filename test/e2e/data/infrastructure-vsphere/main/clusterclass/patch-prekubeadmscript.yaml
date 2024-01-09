@@ -13,7 +13,7 @@
             owner: root:root
             path:  "/opt/prekubeadmscript.sh"
             permissions: "0755"
-            content: {{ printf "%q" .preKubeadmScript }}
+            content: {{ printf "%q" (regexReplaceAll "(KUBERNETES_VERSION=.*)" .preKubeadmScript (printf "KUBERNETES_VERSION=%s" .builtin.controlPlane.version)) }}
       selector:
         apiVersion: controlplane.cluster.x-k8s.io/v1beta1
         kind: KubeadmControlPlaneTemplate
@@ -30,7 +30,7 @@
             owner: root:root
             path:  "/opt/prekubeadmscript.sh"
             permissions: "0755"
-            content: {{ printf "%q" .preKubeadmScript }}
+            content: {{ printf "%q" (regexReplaceAll "(KUBERNETES_VERSION=.*)" .preKubeadmScript (printf "KUBERNETES_VERSION=%s" .builtin.machineDeployment.version)) }}
       selector:
         apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
         kind: KubeadmConfigTemplate

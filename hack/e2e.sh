@@ -59,7 +59,7 @@ export VSPHERE_SSH_AUTHORIZED_KEY="${VM_SSH_PUB_KEY}"
 export VSPHERE_SSH_PRIVATE_KEY="/root/ssh/.private-key/private-key"
 export E2E_CONF_FILE="${REPO_ROOT}/test/e2e/config/vsphere-ci.yaml"
 export ARTIFACTS="${ARTIFACTS:-${REPO_ROOT}/_artifacts}"
-export DOCKER_IMAGE_TAR="${ARTIFACTS}/tempContainers/image.tar"
+export DOCKER_IMAGE_TAR="/tmp/images/image.tar"
 export GC_KIND="false"
 
 # Run the vpn client in container
@@ -123,14 +123,14 @@ echo "Acquired Workload Cluster Control Plane IP: $WORKLOAD_CONTROL_PLANE_ENDPOI
 
 # save the docker image locally
 make e2e-image
-mkdir -p "$ARTIFACTS"/tempContainers
+mkdir -p /tmp/images
 docker save gcr.io/k8s-staging-cluster-api/capv-manager:e2e -o "$DOCKER_IMAGE_TAR"
 
 # store the image on gcs
 login
 E2E_IMAGE_SHA=$(docker inspect --format='{{index .Id}}' gcr.io/k8s-staging-cluster-api/capv-manager:e2e)
 export E2E_IMAGE_SHA
-gsutil cp "$ARTIFACTS"/tempContainers/image.tar gs://capv-ci/"$E2E_IMAGE_SHA"
+gsutil cp ${DOCKER_IMAGE_TAR} gs://capv-ci/"$E2E_IMAGE_SHA"
 
 # Run e2e tests
 make e2e

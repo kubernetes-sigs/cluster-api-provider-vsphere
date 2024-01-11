@@ -18,14 +18,28 @@ package e2e
 
 import (
 	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
+
+	"sigs.k8s.io/cluster-api-provider-vsphere/test/e2e/ipam"
 )
 
 var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.9=>current, CAPI 1.6=>1.6) [ClusterClass]", func() {
+	var (
+		testSpecificClusterctlConfigPath string
+		testSpecificIPAddressClaims      ipam.IPAddressClaims
+	)
+	BeforeEach(func() {
+		testSpecificClusterctlConfigPath, testSpecificIPAddressClaims = ipamHelper.ClaimIPs(ctx, clusterctlConfigPath, "WORKLOAD_CONTROL_PLANE_ENDPOINT_IP")
+	})
+	defer AfterEach(func() {
+		Expect(ipamHelper.Cleanup(ctx, testSpecificIPAddressClaims)).To(Succeed())
+	})
+
 	capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
 		return capi_e2e.ClusterctlUpgradeSpecInput{
 			E2EConfig:                         e2eConfig,
-			ClusterctlConfigPath:              clusterctlConfigPath,
+			ClusterctlConfigPath:              testSpecificClusterctlConfigPath,
 			BootstrapClusterProxy:             bootstrapClusterProxy,
 			ArtifactFolder:                    artifactFolder,
 			SkipCleanup:                       skipCleanup,
@@ -46,10 +60,21 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.9=
 })
 
 var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.8=>current, CAPI 1.5=>1.6) [ClusterClass]", func() {
+	var (
+		testSpecificClusterctlConfigPath string
+		testSpecificIPAddressClaims      ipam.IPAddressClaims
+	)
+	BeforeEach(func() {
+		testSpecificClusterctlConfigPath, testSpecificIPAddressClaims = ipamHelper.ClaimIPs(ctx, clusterctlConfigPath, "WORKLOAD_CONTROL_PLANE_ENDPOINT_IP")
+	})
+	defer AfterEach(func() {
+		Expect(ipamHelper.Cleanup(ctx, testSpecificIPAddressClaims)).To(Succeed())
+	})
+
 	capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
 		return capi_e2e.ClusterctlUpgradeSpecInput{
 			E2EConfig:                         e2eConfig,
-			ClusterctlConfigPath:              clusterctlConfigPath,
+			ClusterctlConfigPath:              testSpecificClusterctlConfigPath,
 			BootstrapClusterProxy:             bootstrapClusterProxy,
 			ArtifactFolder:                    artifactFolder,
 			SkipCleanup:                       skipCleanup,

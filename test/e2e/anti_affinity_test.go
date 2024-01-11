@@ -34,6 +34,8 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/clustermodules"
+	. "sigs.k8s.io/cluster-api-provider-vsphere/test/e2e/helper"
+	"sigs.k8s.io/cluster-api-provider-vsphere/test/e2e/ipam"
 )
 
 type AntiAffinitySpecInput struct {
@@ -45,6 +47,17 @@ type AntiAffinitySpecInput struct {
 
 var _ = Describe("Cluster creation with anti affined nodes", func() {
 	var namespace *corev1.Namespace
+
+	var (
+		testSpecificClusterctlConfigPath string
+		testSpecificIPAddressClaims      ipam.IPAddressClaims
+	)
+	BeforeEach(func() {
+		testSpecificClusterctlConfigPath, testSpecificIPAddressClaims = ipamHelper.ClaimIPs(ctx, clusterctlConfigPath)
+	})
+	defer AfterEach(func() {
+		Expect(ipamHelper.Cleanup(ctx, testSpecificIPAddressClaims)).To(Succeed())
+	})
 
 	BeforeEach(func() {
 		Expect(bootstrapClusterProxy).NotTo(BeNil(), "BootstrapClusterProxy can't be nil")
@@ -66,7 +79,7 @@ var _ = Describe("Cluster creation with anti affined nodes", func() {
 			},
 			Global: GlobalInput{
 				BootstrapClusterProxy: bootstrapClusterProxy,
-				ClusterctlConfigPath:  clusterctlConfigPath,
+				ClusterctlConfigPath:  testSpecificClusterctlConfigPath,
 				E2EConfig:             e2eConfig,
 				ArtifactFolder:        artifactFolder,
 			},

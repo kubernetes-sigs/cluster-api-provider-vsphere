@@ -38,6 +38,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	. "sigs.k8s.io/cluster-api-provider-vsphere/test/e2e/helper"
+	"sigs.k8s.io/cluster-api-provider-vsphere/test/e2e/ipam"
 	vsphereframework "sigs.k8s.io/cluster-api-provider-vsphere/test/framework"
 )
 
@@ -84,6 +86,13 @@ var (
 	bootstrapClusterProxy framework.ClusterProxy
 
 	namespaces map[*corev1.Namespace]context.CancelFunc
+
+	// e2eIPAMKubeconfig is a kubeconfig to a cluster which provides IP address management via an in-cluster
+	// IPAM provider to claim IPs for the control plane IPs of created clusters.
+	e2eIPAMKubeconfig string
+
+	// ipamHelper is used to claim and cleanup IP addresses used for kubernetes control plane API Servers.
+	ipamHelper ipam.Helper
 )
 
 func init() {
@@ -92,6 +101,7 @@ func init() {
 	flag.BoolVar(&alsoLogToFile, "e2e.also-log-to-file", true, "if true, ginkgo logs are additionally written to the `ginkgo-log.txt` file in the artifacts folder (including timestamps)")
 	flag.BoolVar(&skipCleanup, "e2e.skip-resource-cleanup", false, "if true, the resource cleanup after tests will be skipped")
 	flag.BoolVar(&useExistingCluster, "e2e.use-existing-cluster", false, "if true, the test uses the current cluster instead of creating a new one (default discovery rules apply)")
+	flag.StringVar(&e2eIPAMKubeconfig, "e2e.ipam-kubeconfig", "", "path to the kubeconfig for the IPAM cluster")
 }
 
 func TestE2E(t *testing.T) {
@@ -134,8 +144,6 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	e2eConfig, err = vsphereframework.LoadE2EConfig(ctx, configPath)
 	Expect(err).NotTo(HaveOccurred())
 
-	By("Initializing the vSphere session to ensure credentials are working", initVSphereSession)
-
 	Byf("Creating a clusterctl local repository into %q", artifactFolder)
 	clusterctlConfigPath, err = vsphereframework.CreateClusterctlLocalRepository(ctx, e2eConfig, filepath.Join(artifactFolder, "repository"), true)
 	Expect(err).NotTo(HaveOccurred())
@@ -146,29 +154,51 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	By("Initializing the bootstrap cluster")
 	vsphereframework.InitBootstrapCluster(ctx, bootstrapClusterProxy, e2eConfig, clusterctlConfigPath, artifactFolder)
-	namespaces = map[*corev1.Namespace]context.CancelFunc{}
+
+	ipamLabels := ipam.GetIPAddressClaimLabels()
+	var ipamLabelsRaw []string
+	for k, v := range ipamLabels {
+		ipamLabelsRaw = append(ipamLabelsRaw, fmt.Sprintf("%s=%s", k, v))
+	}
+
 	return []byte(
 		strings.Join([]string{
 			artifactFolder,
 			configPath,
 			clusterctlConfigPath,
 			bootstrapClusterProxy.GetKubeconfigPath(),
+			strings.Join(ipamLabelsRaw, ";"),
 		}, ","),
 	)
 }, func(data []byte) {
 	// Before each ParallelNode.
 	parts := strings.Split(string(data), ",")
-	Expect(parts).To(HaveLen(4))
+	Expect(parts).To(HaveLen(5))
 
 	artifactFolder = parts[0]
 	configPath = parts[1]
 	clusterctlConfigPath = parts[2]
 	kubeconfigPath := parts[3]
+	ipamLabelsRaw := parts[4]
+
+	namespaces = map[*corev1.Namespace]context.CancelFunc{}
+
+	By("Initializing the vSphere session to ensure credentials are working", initVSphereSession)
 
 	var err error
 	e2eConfig, err = vsphereframework.LoadE2EConfig(ctx, configPath)
 	Expect(err).NotTo(HaveOccurred())
 	bootstrapClusterProxy = framework.NewClusterProxy("bootstrap", kubeconfigPath, initScheme(), framework.WithMachineLogCollector(LogCollector{}))
+
+	ipamLabels := map[string]string{}
+	for _, s := range strings.Split(ipamLabelsRaw, ";") {
+		splittedLabel := strings.Split(s, "=")
+		Expect(splittedLabel).To(HaveLen(2))
+
+		ipamLabels[splittedLabel[0]] = splittedLabel[1]
+	}
+	ipamHelper, err = ipam.New(e2eIPAMKubeconfig, ipamLabels, skipCleanup)
+	Expect(err).ToNot(HaveOccurred())
 })
 
 // Using a SynchronizedAfterSuite for controlling how to delete resources shared across ParallelNodes (~ginkgo threads).
@@ -178,10 +208,16 @@ var _ = SynchronizedAfterSuite(func() {
 	// After each ParallelNode.
 }, func() {
 	// After all ParallelNodes.
+	if !skipCleanup {
+		By("Cleaning up orphaned IPAddressClaims")
+		vSphereFolderName, err := getClusterctlConfigVariable(clusterctlConfigPath, "VSPHERE_FOLDER")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(ipamHelper.Teardown(ctx, vSphereFolderName, vsphereClient)).To(Succeed())
+	}
 
 	By("Cleaning up the vSphere session", terminateVSphereSession)
-	By("Tearing down the management cluster")
 	if !skipCleanup {
+		By("Tearing down the management cluster")
 		vsphereframework.TearDown(ctx, bootstrapClusterProvider, bootstrapClusterProxy)
 	}
 })

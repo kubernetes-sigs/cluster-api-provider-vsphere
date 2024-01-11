@@ -18,14 +18,28 @@ package e2e
 
 import (
 	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
+
+	"sigs.k8s.io/cluster-api-provider-vsphere/test/e2e/ipam"
 )
 
 var _ = Describe("When testing node drain timeout", func() {
+	var (
+		testSpecificClusterctlConfigPath string
+		testSpecificIPAddressClaims      ipam.IPAddressClaims
+	)
+	BeforeEach(func() {
+		testSpecificClusterctlConfigPath, testSpecificIPAddressClaims = ipamHelper.ClaimIPs(ctx, clusterctlConfigPath)
+	})
+	defer AfterEach(func() {
+		Expect(ipamHelper.Cleanup(ctx, testSpecificIPAddressClaims)).To(Succeed())
+	})
+
 	capi_e2e.NodeDrainTimeoutSpec(ctx, func() capi_e2e.NodeDrainTimeoutSpecInput {
 		return capi_e2e.NodeDrainTimeoutSpecInput{
 			E2EConfig:             e2eConfig,
-			ClusterctlConfigPath:  clusterctlConfigPath,
+			ClusterctlConfigPath:  testSpecificClusterctlConfigPath,
 			BootstrapClusterProxy: bootstrapClusterProxy,
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,

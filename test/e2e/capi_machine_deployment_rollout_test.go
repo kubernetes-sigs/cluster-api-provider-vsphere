@@ -18,15 +18,29 @@ package e2e
 
 import (
 	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
+
+	"sigs.k8s.io/cluster-api-provider-vsphere/test/e2e/ipam"
 )
 
 var _ = Describe("ClusterAPI Machine Deployment Tests", func() {
 	Context("Running the MachineDeployment rollout spec", func() {
+		var (
+			testSpecificClusterctlConfigPath string
+			testSpecificIPAddressClaims      ipam.IPAddressClaims
+		)
+		BeforeEach(func() {
+			testSpecificClusterctlConfigPath, testSpecificIPAddressClaims = ipamHelper.ClaimIPs(ctx, clusterctlConfigPath)
+		})
+		defer AfterEach(func() {
+			Expect(ipamHelper.Cleanup(ctx, testSpecificIPAddressClaims)).To(Succeed())
+		})
+
 		capi_e2e.MachineDeploymentRolloutSpec(ctx, func() capi_e2e.MachineDeploymentRolloutSpecInput {
 			return capi_e2e.MachineDeploymentRolloutSpecInput{
 				E2EConfig:             e2eConfig,
-				ClusterctlConfigPath:  clusterctlConfigPath,
+				ClusterctlConfigPath:  testSpecificClusterctlConfigPath,
 				BootstrapClusterProxy: bootstrapClusterProxy,
 				ArtifactFolder:        artifactFolder,
 				SkipCleanup:           skipCleanup,

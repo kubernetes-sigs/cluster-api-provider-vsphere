@@ -39,9 +39,21 @@ import (
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/test/e2e/ipam"
 )
 
 var _ = Describe("OwnerReference checks with FailureDomains and ClusterIdentity", func() {
+	var (
+		testSpecificClusterctlConfigPath string
+		testSpecificIPAddressClaims      ipam.IPAddressClaims
+	)
+	BeforeEach(func() {
+		testSpecificClusterctlConfigPath, testSpecificIPAddressClaims = ipamHelper.ClaimIPs(ctx, clusterctlConfigPath)
+	})
+	defer AfterEach(func() {
+		Expect(ipamHelper.Cleanup(ctx, testSpecificIPAddressClaims)).To(Succeed())
+	})
+
 	// Before running the test create the secret used by the VSphereClusterIdentity to connect to the vCenter.
 	BeforeEach(func() {
 		createVsphereIdentitySecret(ctx, bootstrapClusterProxy)
@@ -50,7 +62,7 @@ var _ = Describe("OwnerReference checks with FailureDomains and ClusterIdentity"
 	capi_e2e.QuickStartSpec(ctx, func() capi_e2e.QuickStartSpecInput {
 		return capi_e2e.QuickStartSpecInput{
 			E2EConfig:             e2eConfig,
-			ClusterctlConfigPath:  clusterctlConfigPath,
+			ClusterctlConfigPath:  testSpecificClusterctlConfigPath,
 			BootstrapClusterProxy: bootstrapClusterProxy,
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,

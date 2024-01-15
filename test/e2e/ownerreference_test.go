@@ -80,6 +80,8 @@ var _ = Describe("OwnerReference checks with FailureDomains and ClusterIdentity"
 					VSphereKubernetesReferenceAssertions,
 					VSphereReferenceAssertions,
 				)
+
+				watchVSphereComponentLogs(ctx, artifactFolder, bootstrapClusterProxy, namespace, clusterName)
 			},
 		}
 	})

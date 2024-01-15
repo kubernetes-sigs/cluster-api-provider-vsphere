@@ -156,40 +156,44 @@ func readPrivateKey() ([]byte, error) {
 	return os.ReadFile(filepath.Clean(privateKeyFilePath))
 }
 
+func watchVSphereComponentLogs(ctx context.Context, artifactFolder string, managementClusterProxy framework.ClusterProxy, workloadClusterNamespace, workloadClusterName string) {
+	workloadClusterProxy := managementClusterProxy.GetWorkloadCluster(ctx, workloadClusterNamespace, workloadClusterName)
+	// CPI
+	framework.WatchDaemonSetLogsByLabelSelector(ctx, framework.WatchDaemonSetLogsByLabelSelectorInput{
+		GetLister: workloadClusterProxy.GetClient(),
+		Cache:     workloadClusterProxy.GetCache(ctx),
+		ClientSet: workloadClusterProxy.GetClientSet(),
+		Labels: map[string]string{
+			"component": "cloud-controller-manager",
+		},
+		LogPath: filepath.Join(artifactFolder, "clusters", workloadClusterName, "logs"),
+	})
+
+	// CSI Deployment
+	framework.WatchDeploymentLogsByLabelSelector(ctx, framework.WatchDeploymentLogsByLabelSelectorInput{
+		GetLister: workloadClusterProxy.GetClient(),
+		Cache:     workloadClusterProxy.GetCache(ctx),
+		ClientSet: workloadClusterProxy.GetClientSet(),
+		Labels: map[string]string{
+			"component": "vsphere-csi",
+		},
+		LogPath: filepath.Join(artifactFolder, "clusters", workloadClusterName, "logs"),
+	})
+
+	// CSI Daemonset
+	framework.WatchDaemonSetLogsByLabelSelector(ctx, framework.WatchDaemonSetLogsByLabelSelectorInput{
+		GetLister: workloadClusterProxy.GetClient(),
+		Cache:     workloadClusterProxy.GetCache(ctx),
+		ClientSet: workloadClusterProxy.GetClientSet(),
+		Labels: map[string]string{
+			"component": "vsphere-csi",
+		},
+		LogPath: filepath.Join(artifactFolder, "clusters", workloadClusterName, "logs"),
+	})
+}
+
 func watchVSphereComponentLogsFunc(ctx context.Context, artifactFolder string) func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace, workloadClusterName string) {
 	return func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace, workloadClusterName string) {
-		workloadClusterProxy := managementClusterProxy.GetWorkloadCluster(ctx, workloadClusterNamespace, workloadClusterName)
-		// CPI
-		framework.WatchDaemonSetLogsByLabelSelector(ctx, framework.WatchDaemonSetLogsByLabelSelectorInput{
-			GetLister: workloadClusterProxy.GetClient(),
-			Cache:     workloadClusterProxy.GetCache(ctx),
-			ClientSet: workloadClusterProxy.GetClientSet(),
-			Labels: map[string]string{
-				"component": "cloud-controller-manager",
-			},
-			LogPath: filepath.Join(artifactFolder, "clusters", workloadClusterName, "logs"),
-		})
-
-		// CSI Deployment
-		framework.WatchDeploymentLogsByLabelSelector(ctx, framework.WatchDeploymentLogsByLabelSelectorInput{
-			GetLister: workloadClusterProxy.GetClient(),
-			Cache:     workloadClusterProxy.GetCache(ctx),
-			ClientSet: workloadClusterProxy.GetClientSet(),
-			Labels: map[string]string{
-				"component": "vsphere-csi",
-			},
-			LogPath: filepath.Join(artifactFolder, "clusters", workloadClusterName, "logs"),
-		})
-
-		// CSI Daemonset
-		framework.WatchDaemonSetLogsByLabelSelector(ctx, framework.WatchDaemonSetLogsByLabelSelectorInput{
-			GetLister: workloadClusterProxy.GetClient(),
-			Cache:     workloadClusterProxy.GetCache(ctx),
-			ClientSet: workloadClusterProxy.GetClientSet(),
-			Labels: map[string]string{
-				"component": "vsphere-csi",
-			},
-			LogPath: filepath.Join(artifactFolder, "clusters", workloadClusterName, "logs"),
-		})
+		watchVSphereComponentLogs(ctx, artifactFolder, managementClusterProxy, workloadClusterNamespace, workloadClusterName)
 	}
 }

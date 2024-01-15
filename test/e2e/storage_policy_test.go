@@ -85,7 +85,7 @@ func VerifyStoragePolicy(ctx context.Context, input StoragePolicySpecInput) {
 
 	By("creating a workload cluster")
 	configCluster := defaultConfigCluster(clusterName, namespace.Name, specName, 1, 0, GlobalInput{
-		BootstrapClusterProxy: bootstrapClusterProxy,
+		BootstrapClusterProxy: input.Global.BootstrapClusterProxy,
 		ClusterctlConfigPath:  clusterctlConfigPath,
 		E2EConfig:             e2eConfig,
 		ArtifactFolder:        artifactFolder,
@@ -97,6 +97,9 @@ func VerifyStoragePolicy(ctx context.Context, input StoragePolicySpecInput) {
 		WaitForClusterIntervals:      input.Global.E2EConfig.GetIntervals("", "wait-cluster"),
 		WaitForControlPlaneIntervals: input.Global.E2EConfig.GetIntervals("", "wait-control-plane"),
 		WaitForMachineDeployments:    input.Global.E2EConfig.GetIntervals("", "wait-worker-nodes"),
+		PostMachinesProvisioned: func() {
+			watchVSphereComponentLogs(ctx, artifactFolder, input.Global.BootstrapClusterProxy, namespace.Name, clusterName)
+		},
 	}, clusterResources)
 
 	pbmClient, err := pbm.NewClient(ctx, input.Client.Client)

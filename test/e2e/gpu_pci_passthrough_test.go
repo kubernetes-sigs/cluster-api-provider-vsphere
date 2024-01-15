@@ -61,6 +61,9 @@ var _ = Describe("Cluster creation with GPU devices as PCI passthrough [speciali
 			WaitForClusterIntervals:      e2eConfig.GetIntervals("", "wait-cluster"),
 			WaitForControlPlaneIntervals: e2eConfig.GetIntervals("", "wait-control-plane"),
 			WaitForMachineDeployments:    e2eConfig.GetIntervals("", "wait-worker-nodes"),
+			PostMachinesProvisioned: func() {
+				watchVSphereComponentLogs(ctx, artifactFolder, bootstrapClusterProxy, namespace.Name, clusterName)
+			},
 		}, &clusterctl.ApplyClusterTemplateAndWaitResult{})
 
 		By("Verifying that the PCI device is attached to the worker node")

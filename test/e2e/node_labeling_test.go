@@ -84,6 +84,9 @@ func VerifyNodeLabeling(ctx context.Context, input NodeLabelingSpecInput) {
 		WaitForClusterIntervals:      input.Global.E2EConfig.GetIntervals("", "wait-cluster"),
 		WaitForControlPlaneIntervals: input.Global.E2EConfig.GetIntervals("", "wait-control-plane"),
 		WaitForMachineDeployments:    input.Global.E2EConfig.GetIntervals("", "wait-worker-nodes"),
+		PostMachinesProvisioned: func() {
+			watchVSphereComponentLogs(ctx, artifactFolder, input.Global.BootstrapClusterProxy, namespace.Name, clusterName)
+		},
 	}, clusterResources)
 	workloadProxy := input.Global.BootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, clusterResources.Cluster.Name)
 

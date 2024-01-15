@@ -29,6 +29,7 @@ import (
 	"golang.org/x/crypto/ssh"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	kinderrors "sigs.k8s.io/kind/pkg/errors"
 )
@@ -153,4 +154,42 @@ func readPrivateKey() ([]byte, error) {
 	}
 
 	return os.ReadFile(filepath.Clean(privateKeyFilePath))
+}
+
+func watchVSphereComponentLogsFunc(ctx context.Context, artifactFolder string) func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace, workloadClusterName string) {
+	return func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace, workloadClusterName string) {
+		workloadClusterProxy := managementClusterProxy.GetWorkloadCluster(ctx, workloadClusterNamespace, workloadClusterName)
+		// CPI
+		framework.WatchDaemonSetLogsByLabelSelector(ctx, framework.WatchDaemonSetLogsByLabelSelectorInput{
+			GetLister: workloadClusterProxy.GetClient(),
+			Cache:     workloadClusterProxy.GetCache(ctx),
+			ClientSet: workloadClusterProxy.GetClientSet(),
+			Labels: map[string]string{
+				"component": "cloud-controller-manager",
+			},
+			LogPath: filepath.Join(artifactFolder, "clusters", workloadClusterName, "logs"),
+		})
+
+		// CSI Deployment
+		framework.WatchDeploymentLogsByLabelSelector(ctx, framework.WatchDeploymentLogsByLabelSelectorInput{
+			GetLister: workloadClusterProxy.GetClient(),
+			Cache:     workloadClusterProxy.GetCache(ctx),
+			ClientSet: workloadClusterProxy.GetClientSet(),
+			Labels: map[string]string{
+				"component": "vsphere-csi",
+			},
+			LogPath: filepath.Join(artifactFolder, "clusters", workloadClusterName, "logs"),
+		})
+
+		// CSI Daemonset
+		framework.WatchDaemonSetLogsByLabelSelector(ctx, framework.WatchDaemonSetLogsByLabelSelectorInput{
+			GetLister: workloadClusterProxy.GetClient(),
+			Cache:     workloadClusterProxy.GetCache(ctx),
+			ClientSet: workloadClusterProxy.GetClientSet(),
+			Labels: map[string]string{
+				"component": "vsphere-csi",
+			},
+			LogPath: filepath.Join(artifactFolder, "clusters", workloadClusterName, "logs"),
+		})
+	}
 }

@@ -2,7 +2,7 @@ module sigs.k8s.io/cluster-api-provider-vsphere
 
 go 1.20
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.6.0
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.6.1
 
 require (
 	github.com/blang/semver/v4 v4.0.0

@@ -713,6 +713,8 @@ data:
     apiVersion: apps/v1
     kind: Deployment
     metadata:
+      labels:
+        component: vsphere-csi
       name: vsphere-csi-controller
       namespace: vmware-system-csi
     spec:
@@ -1082,6 +1084,8 @@ data:
     apiVersion: apps/v1
     kind: DaemonSet
     metadata:
+      labels:
+        component: vsphere-csi
       name: vsphere-csi-node-windows
       namespace: vmware-system-csi
     spec:

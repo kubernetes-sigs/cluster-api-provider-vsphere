@@ -193,6 +193,8 @@ apiVersion: apps/v1
 metadata:
   name: vsphere-csi-controller
   namespace: vmware-system-csi
+  labels:
+    component: "vsphere-csi"
 spec:
   replicas: 3
   strategy:
@@ -579,6 +581,8 @@ apiVersion: apps/v1
 metadata:
   name: vsphere-csi-node-windows
   namespace: vmware-system-csi
+  labels:
+    component: "vsphere-csi"
 spec:
   selector:
     matchLabels:

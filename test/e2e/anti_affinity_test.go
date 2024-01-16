@@ -105,6 +105,9 @@ func VerifyAntiAffinity(ctx context.Context, input AntiAffinitySpecInput) {
 		WaitForClusterIntervals:      input.Global.E2EConfig.GetIntervals("", "wait-cluster"),
 		WaitForControlPlaneIntervals: input.Global.E2EConfig.GetIntervals("", "wait-control-plane"),
 		WaitForMachineDeployments:    input.Global.E2EConfig.GetIntervals("", "wait-worker-nodes"),
+		PostMachinesProvisioned: func() {
+			watchVSphereComponentLogs(ctx, artifactFolder, input.Global.BootstrapClusterProxy, namespace.Name, clusterName)
+		},
 	}, clusterResources)
 
 	vsphereCluster := FetchVSphereClusterObject(ctx, input.Global.BootstrapClusterProxy, client.ObjectKey{

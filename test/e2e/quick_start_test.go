@@ -37,12 +37,13 @@ var _ = Describe("Cluster Creation using Cluster API quick-start test", func() {
 var _ = Describe("ClusterClass Creation using Cluster API quick-start test [PR-Blocking] [ClusterClass]", func() {
 	capi_e2e.QuickStartSpec(ctx, func() capi_e2e.QuickStartSpecInput {
 		return capi_e2e.QuickStartSpecInput{
-			E2EConfig:             e2eConfig,
-			ClusterctlConfigPath:  clusterctlConfigPath,
-			BootstrapClusterProxy: bootstrapClusterProxy,
-			ArtifactFolder:        artifactFolder,
-			SkipCleanup:           skipCleanup,
-			Flavor:                ptr.To("topology"),
+			E2EConfig:               e2eConfig,
+			ClusterctlConfigPath:    clusterctlConfigPath,
+			BootstrapClusterProxy:   bootstrapClusterProxy,
+			ArtifactFolder:          artifactFolder,
+			SkipCleanup:             skipCleanup,
+			Flavor:                  ptr.To("topology"),
+			PostMachinesProvisioned: watchVSphereComponentLogsFunc(ctx, artifactFolder),
 		}
 	})
 })
@@ -50,12 +51,13 @@ var _ = Describe("ClusterClass Creation using Cluster API quick-start test [PR-B
 var _ = Describe("Cluster creation with [Ignition] bootstrap [PR-Blocking]", func() {
 	capi_e2e.QuickStartSpec(ctx, func() capi_e2e.QuickStartSpecInput {
 		return capi_e2e.QuickStartSpecInput{
-			E2EConfig:             e2eConfig,
-			ClusterctlConfigPath:  clusterctlConfigPath,
-			BootstrapClusterProxy: bootstrapClusterProxy,
-			ArtifactFolder:        artifactFolder,
-			SkipCleanup:           skipCleanup,
-			Flavor:                ptr.To("ignition"),
+			E2EConfig:               e2eConfig,
+			ClusterctlConfigPath:    clusterctlConfigPath,
+			BootstrapClusterProxy:   bootstrapClusterProxy,
+			ArtifactFolder:          artifactFolder,
+			SkipCleanup:             skipCleanup,
+			Flavor:                  ptr.To("ignition"),
+			PostMachinesProvisioned: watchVSphereComponentLogsFunc(ctx, artifactFolder),
 		}
 	})
 })

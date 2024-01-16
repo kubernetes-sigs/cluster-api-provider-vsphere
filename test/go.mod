@@ -4,7 +4,7 @@ go 1.20
 
 replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.6.0
 
-replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.6.1-0.20240108181656-eb46d086f417
+replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.6.1-0.20240112150242-70716332b487
 
 replace sigs.k8s.io/cluster-api-provider-vsphere => ../
 

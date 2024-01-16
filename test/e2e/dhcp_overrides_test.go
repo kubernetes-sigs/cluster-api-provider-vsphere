@@ -85,7 +85,9 @@ var _ = Describe("DHCPOverrides configuration test", func() {
 				WaitForClusterIntervals:      e2eConfig.GetIntervals(specName, "wait-cluster"),
 				WaitForControlPlaneIntervals: e2eConfig.GetIntervals(specName, "wait-control-plane"),
 				WaitForMachineDeployments:    e2eConfig.GetIntervals(specName, "wait-worker-nodes"),
-			}, clusterResources)
+				PostMachinesProvisioned: func() {
+					watchVSphereComponentLogs(ctx, artifactFolder, bootstrapClusterProxy, namespace.Name, clusterName)
+				}}, clusterResources)
 
 			list := getVSphereVMsForCluster(clusterName, namespace.Name)
 			for _, vm := range list.Items {

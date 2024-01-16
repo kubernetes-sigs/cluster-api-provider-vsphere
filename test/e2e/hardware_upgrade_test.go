@@ -96,6 +96,9 @@ func VerifyHardwareUpgrade(ctx context.Context, input HardwareUpgradeSpecInput) 
 		WaitForClusterIntervals:      input.Global.E2EConfig.GetIntervals(specName, "wait-cluster"),
 		WaitForControlPlaneIntervals: input.Global.E2EConfig.GetIntervals(specName, "wait-control-plane"),
 		WaitForMachineDeployments:    input.Global.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+		PostMachinesProvisioned: func() {
+			watchVSphereComponentLogs(ctx, artifactFolder, bootstrapClusterProxy, namespace.Name, clusterName)
+		},
 	}, clusterResources)
 
 	Byf("Fetching the VSphereVM objects for the cluster %s", clusterName)

@@ -49,8 +49,9 @@ Basically:
 - 4 Kubernetes minor releases for the management cluster (N - N-3)
 - 6 Kubernetes minor releases for the workload cluster (N - N-5)
 
-**NOTE:** As the versioning for this project is tied to the versioning of Cluster API, future modifications to this policy may be made to more closely align with other providers in the Cluster API
-ecosystem.
+**NOTES:**
+* We aim to cut a CAPV minor release approximately one week after the corresponding CAPI minor release is out.
+* We aim to cut a CAPV minor or patch release with support for a new Kubernetes minor version approximately 3 business days after releases for CAPI and CPI that support the new Kubernetes version are available.
 
 ## Kubernetes versions with published OVAs
 

@@ -60,7 +60,7 @@ The following steps may be used to adjust the CAPI manager's log level:
         - -v=6
         command:
         - /manager
-        image: us.gcr.io/k8s-artifacts-prod/cluster-api/cluster-api-controller:v0.1.7
+        image: registry.k8s.io/cluster-api/cluster-api-controller:v1.6.0
         name: manager
     ```
 
@@ -85,7 +85,7 @@ A log level of six should provided additional information useful for figuring ou
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
-        image: gcr.io/cluster-api-provider-vsphere/ci/manager:latest
+        image: registry.k8s.io/cluster-api-vsphere/cluster-api-vsphere-controller:v1.8.7
         name: manager
     ```
 

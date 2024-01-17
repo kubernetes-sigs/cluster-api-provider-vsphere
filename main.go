@@ -377,6 +377,9 @@ func setupVAPIControllers(ctx context.Context, controllerCtx *capvcontext.Contro
 }
 
 func setupSupervisorControllers(ctx context.Context, controllerCtx *capvcontext.ControllerManagerContext, mgr ctrlmgr.Manager, tracker *remote.ClusterCacheTracker) error {
+	if err := (&webhooks.ProviderServiceAccountWebhook{}).SetupWebhookWithManager(mgr); err != nil {
+		return err
+	}
 	if err := controllers.AddClusterControllerToManager(ctx, controllerCtx, mgr, true, concurrency(vSphereClusterConcurrency)); err != nil {
 		return err
 	}

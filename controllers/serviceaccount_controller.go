@@ -582,9 +582,17 @@ func (r *ServiceAccountReconciler) getProviderServiceAccounts(ctx context.Contex
 		if pSvcAccount.DeletionTimestamp != nil {
 			continue
 		}
-		ref := pSvcAccount.Spec.Ref
-		if ref != nil && ref.Name == clusterCtx.VSphereCluster.Name {
-			pSvcAccounts = append(pSvcAccounts, pSvcAccount)
+		// take ClusterName as higher precedence temporally before Ref was deprecated.
+		if pSvcAccount.Spec.ClusterName != nil && *pSvcAccount.Spec.ClusterName != "" {
+			clusterName := *pSvcAccount.Spec.ClusterName
+			if clusterName == clusterCtx.VSphereCluster.Name {
+				pSvcAccounts = append(pSvcAccounts, pSvcAccount)
+			}
+		} else if pSvcAccount.Spec.Ref != nil { //nolint:staticcheck
+			ref := pSvcAccount.Spec.Ref //nolint:staticcheck
+			if ref.Name == clusterCtx.VSphereCluster.Name {
+				pSvcAccounts = append(pSvcAccounts, pSvcAccount)
+			}
 		}
 	}
 	return pSvcAccounts, nil
@@ -678,11 +686,20 @@ func (r *ServiceAccountReconciler) providerServiceAccountToVSphereCluster(_ cont
 }
 
 func toVSphereClusterRequest(providerServiceAccount *vmwarev1.ProviderServiceAccount) []reconcile.Request {
-	vsphereClusterRef := providerServiceAccount.Spec.Ref
-	if vsphereClusterRef == nil || vsphereClusterRef.Name == "" {
-		return nil
+	// take ClusterName as higher precedence temporally before Ref was deprecated.
+	if providerServiceAccount.Spec.ClusterName != nil && *providerServiceAccount.Spec.ClusterName != "" {
+		clusterName := *providerServiceAccount.Spec.ClusterName
+		return []reconcile.Request{
+			{NamespacedName: client.ObjectKey{Namespace: providerServiceAccount.Namespace, Name: clusterName}},
+		}
+	} else if providerServiceAccount.Spec.Ref != nil { //nolint:staticcheck
+		vsphereClusterRef := providerServiceAccount.Spec.Ref //nolint:staticcheck
+		if vsphereClusterRef.Name != "" {
+			return []reconcile.Request{
+				{NamespacedName: client.ObjectKey{Namespace: providerServiceAccount.Namespace, Name: vsphereClusterRef.Name}},
+			}
+		}
 	}
-	return []reconcile.Request{
-		{NamespacedName: client.ObjectKey{Namespace: providerServiceAccount.Namespace, Name: vsphereClusterRef.Name}},
-	}
+
+	return nil
 }

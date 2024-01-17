@@ -24,7 +24,13 @@ import (
 
 // ProviderServiceAccountSpec defines the desired state of ProviderServiceAccount.
 type ProviderServiceAccountSpec struct {
+	// ClusterName is the name of the Cluster this object belongs to.
+	// +optional
+	ClusterName *string `json:"clusterName,omitempty"`
+
+	// Deprecated: Ref will be removed in a future release.
 	// Ref specifies the reference to the VSphereCluster for which the ProviderServiceAccount needs to be realized.
+	// +optional
 	Ref *corev1.ObjectReference `json:"ref"`
 
 	// Rules specifies the privileges that need to be granted to the service account.

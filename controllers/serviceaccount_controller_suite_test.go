@@ -221,7 +221,7 @@ func getTestProviderServiceAccount(namespace string, vSphereCluster *vmwarev1.VS
 				Controller: &truePointer,
 			},
 		}
-		pSvcAccount.Spec.Ref = &corev1.ObjectReference{
+		pSvcAccount.Spec.Ref = &corev1.ObjectReference{ //nolint:staticcheck
 			Name: vSphereCluster.Name,
 		}
 	}

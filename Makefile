@@ -180,7 +180,7 @@ IMPORT_BOSS_VER := v0.28.1
 IMPORT_BOSS := $(abspath $(TOOLS_BIN_DIR)/$(IMPORT_BOSS_BIN))
 IMPORT_BOSS_PKG := k8s.io/code-generator/cmd/import-boss
 
-CAPI_HACK_TOOLS_VER := 14efefeb46dbe8d0cd0f5b7d1718e00ec58fc079 # Note: this is the commit ID of the dependend CAPI release tag, currently v1.6.0
+CAPI_HACK_TOOLS_VER := a150f715f5a607ef172dbe96615ffdf1d51220b3 # Note: this is the commit ID of the dependend CAPI release tag, currently v1.6.1
 
 CONVERSION_VERIFIER_VER := $(CAPI_HACK_TOOLS_VER)
 CONVERSION_VERIFIER_BIN := conversion-verifier

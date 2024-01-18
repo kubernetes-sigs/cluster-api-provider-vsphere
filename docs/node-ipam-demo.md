@@ -168,7 +168,7 @@ export CONTROL_PLANE_ENDPOINT_IP="1.2.3.4"
 The CAPV README.md file includes links to ovas.
 
 ```bash
-govc import.ova https://storage.googleapis.com/capv-templates/v1.26.2/ubuntu-2004-kube-v1.26.2.ova
+govc import.ova https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.26.2/ubuntu-2004-kube-v1.26.2.ova
 govc vm.markastemplate ubuntu-2004-kube-v1.26.2
 ```
 

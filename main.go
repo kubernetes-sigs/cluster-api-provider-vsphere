@@ -263,11 +263,11 @@ func main() {
 
 		// Check for non-supervisor VSphereCluster and start controller if found
 		gvr := v1beta1.GroupVersion.WithResource(reflect.TypeOf(&v1beta1.VSphereCluster{}).Elem().Name())
-		isLoaded, err := isCRDDeployed(mgr, gvr)
+		isNonSupervisorCRDDeployed, err := isCRDDeployed(mgr, gvr)
 		if err != nil {
 			return err
 		}
-		if isLoaded {
+		if isNonSupervisorCRDDeployed {
 			if err := setupVAPIControllers(ctx, mgr, tracker); err != nil {
 				return fmt.Errorf("setupVAPIControllers: %w", err)
 			}
@@ -277,16 +277,21 @@ func main() {
 
 		// Check for supervisor VSphereCluster and start controller if found
 		gvr = vmwarev1b1.GroupVersion.WithResource(reflect.TypeOf(&vmwarev1b1.VSphereCluster{}).Elem().Name())
-		isLoaded, err = isCRDDeployed(mgr, gvr)
+		isSupervisorCRDDeployed, err := isCRDDeployed(mgr, gvr)
 		if err != nil {
 			return err
 		}
-		if isLoaded {
+		if isSupervisorCRDDeployed {
 			if err := setupSupervisorControllers(ctx, mgr, tracker); err != nil {
 				return fmt.Errorf("setupSupervisorControllers: %w", err)
 			}
 		} else {
 			setupLog.Info(fmt.Sprintf("CRD for %s not loaded, skipping.", gvr.String()))
+		}
+
+		// Continuing startup does not make sense without having managers added.
+		if !isSupervisorCRDDeployed && !isNonSupervisorCRDDeployed {
+			return errors.New("neither supervisor nor non-supervisor CRDs detected")
 		}
 
 		return nil

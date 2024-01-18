@@ -15,7 +15,7 @@
 all: build
 
 VERSION ?= $(shell git describe --always --dirty)
-IMAGE_NAME ?= gcr.io/cluster-api-provider-vsphere/extra/openvpn
+IMAGE_NAME ?= gcr.io/k8s-staging-capi-vsphere/extra/openvpn
 IMAGE_TAG ?= $(IMAGE_NAME):$(VERSION)
 
 build:

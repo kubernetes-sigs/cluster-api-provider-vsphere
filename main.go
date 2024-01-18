@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"math/rand"
@@ -192,9 +193,11 @@ func main() {
 	addToManager := func(ctx *context.ControllerManagerContext, mgr ctrlmgr.Manager) error {
 		cluster := &v1beta1.VSphereCluster{}
 		gvr := v1beta1.GroupVersion.WithResource(reflect.TypeOf(cluster).Elem().Name())
+		isNonSupervisorCRDDeployed := true
 		_, err := mgr.GetRESTMapper().KindFor(gvr)
 		if err != nil {
 			if meta.IsNoMatchError(err) {
+				isNonSupervisorCRDDeployed = false
 				setupLog.Info(fmt.Sprintf("CRD for %s not loaded, skipping.", gvr.String()))
 			} else {
 				return err
@@ -207,9 +210,11 @@ func main() {
 
 		supervisorCluster := &vmwarev1b1.VSphereCluster{}
 		gvr = vmwarev1b1.GroupVersion.WithResource(reflect.TypeOf(supervisorCluster).Elem().Name())
+		isSupervisorCRDDeployed := true
 		_, err = mgr.GetRESTMapper().KindFor(gvr)
 		if err != nil {
 			if meta.IsNoMatchError(err) {
+				isSupervisorCRDDeployed = false
 				setupLog.Info(fmt.Sprintf("CRD for %s not loaded, skipping.", gvr.String()))
 			} else {
 				return err
@@ -218,6 +223,11 @@ func main() {
 			if err := setupSupervisorControllers(ctx, mgr); err != nil {
 				return err
 			}
+		}
+
+		// Continuing startup does not make sense without having managers added.
+		if !isSupervisorCRDDeployed && !isNonSupervisorCRDDeployed {
+			return errors.New("neither supervisor nor non-supervisor CRDs detected")
 		}
 
 		return nil

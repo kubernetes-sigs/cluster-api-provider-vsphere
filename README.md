@@ -57,6 +57,8 @@ Basically:
 
 Note: These OVAs are not updated for security fixes and it is recommended to always use the latest patch version for the Kubernetes version you wish to run. For production-like environments, it is
 highly recommended to build and use your own custom images.
+Note: We recently moved the OVAs from a VMware-owned GCP project (https://storage.googleapis.com/capv-templates/) to the community-owned CAPV GCP project
+(https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/). Going forward new OVAs will only be uploaded to the community-owned CAPV GCP project.
 
 <table>
 <tr>
@@ -71,62 +73,62 @@ highly recommended to build and use your own custom images.
 
 <tr>
   <td>v1.24.11</td>
-  <td><a href="https://storage.googleapis.com/capv-templates/v1.24.11/ubuntu-1804-kube-v1.24.11.ova">ova</a>, <a href="https://storage.googleapis.com/capv-templates/v1.24.11/ubuntu-1804-kube-v1.24.11.ova.sha256">sha256</a></td>
-  <td><a href="https://storage.googleapis.com/capv-templates/v1.24.11/ubuntu-2004-kube-v1.24.11.ova">ova</a>, <a href="https://storage.googleapis.com/capv-templates/v1.24.11/ubuntu-2004-kube-v1.24.11.ova.sha256">sha256</a></td>
+  <td><a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.24.11/ubuntu-1804-kube-v1.24.11.ova">ova</a>, <a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.24.11/ubuntu-1804-kube-v1.24.11.ova.sha256">sha256</a></td>
+  <td><a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.24.11/ubuntu-2004-kube-v1.24.11.ova">ova</a>, <a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.24.11/ubuntu-2004-kube-v1.24.11.ova.sha256">sha256</a></td>
   <td>N/A</td>
-  <td><a href="https://storage.googleapis.com/capv-templates/v1.24.11/photon-3-kube-v1.24.11.ova">ova</a>, <a href="https://storage.googleapis.com/capv-templates/v1.24.11/photon-3-kube-v1.24.11.ova.sha256">sha256</a></td>
+  <td><a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.24.11/photon-3-kube-v1.24.11.ova">ova</a>, <a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.24.11/photon-3-kube-v1.24.11.ova.sha256">sha256</a></td>
   <td>N/A</td>
-  <td><a href="https://storage.googleapis.com/capv-templates/v1.24.11/flatcar-stable-3374.2.5-kube-v1.24.11.ova">ova</a>, <a href="https://storage.googleapis.com/capv-templates/v1.24.11/flatcar-stable-3374.2.5-kube-v1.24.11.ova.sha256">sha256</a></td>
+  <td><a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.24.11/flatcar-stable-3374.2.5-kube-v1.24.11.ova">ova</a>, <a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.24.11/flatcar-stable-3374.2.5-kube-v1.24.11.ova.sha256">sha256</a></td>
 </tr>
 
 <tr>
   <td>v1.25.7</td>
-  <td><a href="https://storage.googleapis.com/capv-templates/v1.25.7/ubuntu-1804-kube-v1.25.7.ova">ova</a>, <a href="https://storage.googleapis.com/capv-templates/v1.25.7/ubuntu-1804-kube-v1.25.7.ova.sha256">sha256</a></td>
-  <td><a href="https://storage.googleapis.com/capv-templates/v1.25.7/ubuntu-2004-kube-v1.25.7.ova">ova</a>, <a href="https://storage.googleapis.com/capv-templates/v1.25.7/ubuntu-2004-kube-v1.25.7.ova.sha256">sha256</a></td>
+  <td><a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.25.7/ubuntu-1804-kube-v1.25.7.ova">ova</a>, <a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.25.7/ubuntu-1804-kube-v1.25.7.ova.sha256">sha256</a></td>
+  <td><a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.25.7/ubuntu-2004-kube-v1.25.7.ova">ova</a>, <a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.25.7/ubuntu-2004-kube-v1.25.7.ova.sha256">sha256</a></td>
   <td>N/A</td>
-  <td><a href="https://storage.googleapis.com/capv-templates/v1.25.7/photon-3-kube-v1.25.7.ova">ova</a>, <a href="https://storage.googleapis.com/capv-templates/v1.25.7/photon-3-kube-v1.25.7.ova.sha256">sha256</a></td>
+  <td><a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.25.7/photon-3-kube-v1.25.7.ova">ova</a>, <a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.25.7/photon-3-kube-v1.25.7.ova.sha256">sha256</a></td>
   <td>N/A</td>
-  <td><a href="https://storage.googleapis.com/capv-templates/v1.25.7/flatcar-stable-3374.2.5-kube-v1.25.7.ova">ova</a>, <a href="https://storage.googleapis.com/capv-templates/v1.25.7/flatcar-stable-3374.2.5-kube-v1.25.7.ova.sha256">sha256</a></td>
+  <td><a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.25.7/flatcar-stable-3374.2.5-kube-v1.25.7.ova">ova</a>, <a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.25.7/flatcar-stable-3374.2.5-kube-v1.25.7.ova.sha256">sha256</a></td>
 </tr>
 
 <tr>
   <td>v1.26.2</td>
-  <td><a href="https://storage.googleapis.com/capv-templates/v1.26.2/ubuntu-1804-kube-v1.26.2.ova">ova</a>, <a href="https://storage.googleapis.com/capv-templates/v1.26.2/ubuntu-1804-kube-v1.26.2.ova.sha256">sha256</a></td>
-  <td><a href="https://storage.googleapis.com/capv-templates/v1.26.2/ubuntu-2004-kube-v1.26.2.ova">ova</a>, <a href="https://storage.googleapis.com/capv-templates/v1.26.2/ubuntu-2004-kube-v1.26.2.ova.sha256">sha256</a></td>
+  <td><a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.26.2/ubuntu-1804-kube-v1.26.2.ova">ova</a>, <a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.26.2/ubuntu-1804-kube-v1.26.2.ova.sha256">sha256</a></td>
+  <td><a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.26.2/ubuntu-2004-kube-v1.26.2.ova">ova</a>, <a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.26.2/ubuntu-2004-kube-v1.26.2.ova.sha256">sha256</a></td>
   <td>N/A</td>
-  <td><a href="https://storage.googleapis.com/capv-templates/v1.26.2/photon-3-kube-v1.26.2.ova">ova</a>, <a href="https://storage.googleapis.com/capv-templates/v1.26.2/photon-3-kube-v1.26.2.ova.sha256">sha256</a></td>
+  <td><a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.26.2/photon-3-kube-v1.26.2.ova">ova</a>, <a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.26.2/photon-3-kube-v1.26.2.ova.sha256">sha256</a></td>
   <td>N/A</td>
-  <td><a href="https://storage.googleapis.com/capv-templates/v1.26.2/flatcar-stable-3374.2.5-kube-v1.26.2.ova">ova</a>, <a href="https://storage.googleapis.com/capv-templates/v1.26.2/flatcar-stable-3374.2.5-kube-v1.26.2.ova.sha256">sha256</a></td>
+  <td><a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.26.2/flatcar-stable-3374.2.5-kube-v1.26.2.ova">ova</a>, <a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.26.2/flatcar-stable-3374.2.5-kube-v1.26.2.ova.sha256">sha256</a></td>
 </tr>
 
 <tr>
   <td>v1.27.3</td>
-  <td><a href="https://storage.googleapis.com/capv-templates/v1.27.3/ubuntu-1804-kube-v1.27.3.ova">ova</a>, <a href="https://storage.googleapis.com/capv-templates/v1.27.3/ubuntu-1804-kube-v1.27.3.ova.sha256">sha256</a></td>
-  <td><a href="https://storage.googleapis.com/capv-templates/v1.27.3/ubuntu-2004-kube-v1.27.3.ova">ova</a>, <a href="https://storage.googleapis.com/capv-templates/v1.27.3/ubuntu-2004-kube-v1.27.3.ova.sha256">sha256</a></td>
-  <td><a href="https://storage.googleapis.com/capv-templates/v1.27.3/ubuntu-2204-kube-v1.27.3.ova">ova</a>, <a href="https://storage.googleapis.com/capv-templates/v1.27.3/ubuntu-2204-kube-v1.27.3.ova.sha256">sha256</a></td>
-  <td><a href="https://storage.googleapis.com/capv-templates/v1.27.3/photon-3-kube-v1.27.3.ova">ova</a>, <a href="https://storage.googleapis.com/capv-templates/v1.27.3/photon-3-kube-v1.27.3.ova.sha256">sha256</a></td>
+  <td><a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.27.3/ubuntu-1804-kube-v1.27.3.ova">ova</a>, <a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.27.3/ubuntu-1804-kube-v1.27.3.ova.sha256">sha256</a></td>
+  <td><a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.27.3/ubuntu-2004-kube-v1.27.3.ova">ova</a>, <a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.27.3/ubuntu-2004-kube-v1.27.3.ova.sha256">sha256</a></td>
+  <td><a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.27.3/ubuntu-2204-kube-v1.27.3.ova">ova</a>, <a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.27.3/ubuntu-2204-kube-v1.27.3.ova.sha256">sha256</a></td>
+  <td><a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.27.3/photon-3-kube-v1.27.3.ova">ova</a>, <a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.27.3/photon-3-kube-v1.27.3.ova.sha256">sha256</a></td>
   <td>N/A</td>
-  <td><a href="https://storage.googleapis.com/capv-templates/v1.27.3/flatcar-stable-3510.2.4-kube-v1.27.3.ova">ova</a>, <a href="https://storage.googleapis.com/capv-templates/v1.27.3/flatcar-stable-3510.2.4-kube-v1.27.3.ova.sha256">sha256</a></td>
+  <td><a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.27.3/flatcar-stable-3510.2.4-kube-v1.27.3.ova">ova</a>, <a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.27.3/flatcar-stable-3510.2.4-kube-v1.27.3.ova.sha256">sha256</a></td>
 </tr>
 
 <tr>
   <td>v1.28.0</td>
-  <td><a href="https://storage.googleapis.com/capv-templates/v1.28.0/ubuntu-1804-kube-v1.28.0.ova">ova</a>, <a href="https://storage.googleapis.com/capv-templates/v1.28.0/ubuntu-1804-kube-v1.28.0.ova.sha256">sha256</a></td>
-  <td><a href="https://storage.googleapis.com/capv-templates/v1.28.0/ubuntu-2004-kube-v1.28.0.ova">ova</a>, <a href="https://storage.googleapis.com/capv-templates/v1.28.0/ubuntu-2004-kube-v1.28.0.ova.sha256">sha256</a></td>
-  <td><a href="https://storage.googleapis.com/capv-templates/v1.28.0/ubuntu-2204-kube-v1.28.0.ova">ova</a>, <a href="https://storage.googleapis.com/capv-templates/v1.28.0/ubuntu-2204-kube-v1.28.0.ova.sha256">sha256</a></td>
-  <td><a href="https://storage.googleapis.com/capv-templates/v1.28.0/photon-3-kube-v1.28.0.ova">ova</a>, <a href="https://storage.googleapis.com/capv-templates/v1.28.0/photon-3-kube-v1.28.0.ova.sha256">sha256</a></td>
+  <td><a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.28.0/ubuntu-1804-kube-v1.28.0.ova">ova</a>, <a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.28.0/ubuntu-1804-kube-v1.28.0.ova.sha256">sha256</a></td>
+  <td><a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.28.0/ubuntu-2004-kube-v1.28.0.ova">ova</a>, <a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.28.0/ubuntu-2004-kube-v1.28.0.ova.sha256">sha256</a></td>
+  <td><a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.28.0/ubuntu-2204-kube-v1.28.0.ova">ova</a>, <a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.28.0/ubuntu-2204-kube-v1.28.0.ova.sha256">sha256</a></td>
+  <td><a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.28.0/photon-3-kube-v1.28.0.ova">ova</a>, <a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.28.0/photon-3-kube-v1.28.0.ova.sha256">sha256</a></td>
   <td>N/A</td>
-  <td><a href="https://storage.googleapis.com/capv-templates/v1.28.0/flatcar-stable-3510.2.6-kube-v1.28.0.ova">ova</a>, <a href="https://storage.googleapis.com/capv-templates/v1.28.0/flatcar-stable-3510.2.6-kube-v1.28.0.ova.sha256">sha256</a></td>
+  <td><a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.28.0/flatcar-stable-3510.2.6-kube-v1.28.0.ova">ova</a>, <a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.28.0/flatcar-stable-3510.2.6-kube-v1.28.0.ova.sha256">sha256</a></td>
 </tr>
 
 <tr>
   <td>v1.29.0</td>
   <td>N/A</td>
   <td>N/A</td>
-  <td><a href="https://storage.googleapis.com/capv-templates/v1.29.0/ubuntu-2204-kube-v1.29.0.ova">ova</a>, <a href="https://storage.googleapis.com/capv-templates/v1.29.0/ubuntu-2204-kube-v1.29.0.ova.sha256">sha256</a></td>
-  <td><a href="https://storage.googleapis.com/capv-templates/v1.29.0/photon-3-kube-v1.29.0.ova">ova</a>, <a href="https://storage.googleapis.com/capv-templates/v1.29.0/photon-3-kube-v1.29.0.ova.sha256">sha256</a></td>
-  <td><a href="https://storage.googleapis.com/capv-templates/v1.29.0/photon-5-kube-v1.29.0.ova">ova</a>, <a href="https://storage.googleapis.com/capv-templates/v1.29.0/photon-5-kube-v1.29.0.ova.sha256">sha256</a></td>
-  <td><a href="https://storage.googleapis.com/capv-templates/v1.29.0/flatcar-stable-3602.2.3-kube-v1.29.0.ova">ova</a>, <a href="https://storage.googleapis.com/capv-templates/v1.29.0/flatcar-stable-3602.2.3-kube-v1.29.0.ova.sha256">sha256</a></td>
+  <td><a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.29.0/ubuntu-2204-kube-v1.29.0.ova">ova</a>, <a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.29.0/ubuntu-2204-kube-v1.29.0.ova.sha256">sha256</a></td>
+  <td><a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.29.0/photon-3-kube-v1.29.0.ova">ova</a>, <a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.29.0/photon-3-kube-v1.29.0.ova.sha256">sha256</a></td>
+  <td><a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.29.0/photon-5-kube-v1.29.0.ova">ova</a>, <a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.29.0/photon-5-kube-v1.29.0.ova.sha256">sha256</a></td>
+  <td><a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.29.0/flatcar-stable-3602.2.3-kube-v1.29.0.ova">ova</a>, <a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.29.0/flatcar-stable-3602.2.3-kube-v1.29.0.ova.sha256">sha256</a></td>
 </tr>
 
 </table>

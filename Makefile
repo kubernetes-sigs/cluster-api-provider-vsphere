@@ -293,7 +293,7 @@ generate-doctoc:
 	TRACE=$(TRACE) ./hack/generate-doctoc.sh
 
 .PHONY: generate-e2e-templates
-generate-e2e-templates: $(KUSTOMIZE) $(addprefix generate-e2e-templates-, v1.7 v1.8 main) ## Generate test templates for all branches
+generate-e2e-templates: $(KUSTOMIZE) $(addprefix generate-e2e-templates-, v1.8 v1.9 main) ## Generate test templates for all branches
 
 .PHONY: generate-e2e-templates-main
 generate-e2e-templates-main: $(KUSTOMIZE) ## Generate test templates for the main branch
@@ -321,16 +321,16 @@ generate-e2e-templates-main: $(KUSTOMIZE) ## Generate test templates for the mai
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_TEMPLATE_DIR)/main/dhcp-overrides" > "$(E2E_TEMPLATE_DIR)/main/cluster-template-dhcp-overrides.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_TEMPLATE_DIR)/main/ownerreferences" > "$(E2E_TEMPLATE_DIR)/main/cluster-template-ownerreferences.yaml"
 
+.PHONY: generate-e2e-templates-v1.9
+generate-e2e-templates-v1.9: $(KUSTOMIZE)
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_TEMPLATE_DIR)/v1.9/clusterclass" > "$(E2E_TEMPLATE_DIR)/v1.9/clusterclass-quick-start.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_TEMPLATE_DIR)/v1.9/workload" > "$(E2E_TEMPLATE_DIR)/v1.9/cluster-template-workload.yaml"
+
 .PHONY: generate-e2e-templates-v1.8
 generate-e2e-templates-v1.8: $(KUSTOMIZE)
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_TEMPLATE_DIR)/v1.8/clusterclass" > "$(E2E_TEMPLATE_DIR)/v1.8/clusterclass-quick-start.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_TEMPLATE_DIR)/v1.8/workload" > "$(E2E_TEMPLATE_DIR)/v1.8/cluster-template-workload.yaml"
 
-.PHONY: generate-e2e-templates-v1.7
-generate-e2e-templates-v1.7: $(KUSTOMIZE)
-	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_TEMPLATE_DIR)/v1.7/clusterclass" > "$(E2E_TEMPLATE_DIR)/v1.7/clusterclass-quick-start.yaml"
-	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_TEMPLATE_DIR)/v1.7/workload" > "$(E2E_TEMPLATE_DIR)/v1.7/cluster-template-workload.yaml"
-	
 .PHONY: generate-test-infra-prowjobs
 generate-test-infra-prowjobs: $(PROWJOB_GEN) ## Generates the prowjob configurations in test-infra
 	@if [ -z "${TEST_INFRA_DIR}" ]; then echo "TEST_INFRA_DIR is not set"; exit 1; fi

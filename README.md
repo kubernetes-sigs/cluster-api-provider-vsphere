@@ -136,13 +136,13 @@ Note: We recently moved the OVAs from a VMware-owned GCP project (https://storag
 A full list of the published machine images for CAPV may be obtained with the following command:
 
 ```shell
-gsutil ls gs://capv-templates/*
+gsutil ls "gs://artifacts.k8s-staging-capi-vsphere.appspot.com/templates/*"
 ```
 
 Or, to produce a list of URLs for the same image files (and their checksums), the following command may be used:
 
 ```shell
-gsutil ls gs://capv-templates/*/*.{ova,sha256} | sed 's~^gs://~https://storage.googleapis.com/~'
+gsutil ls "gs://artifacts.k8s-staging-capi-vsphere.appspot.com/templates/*" | grep -e ".ova" -e ".sha256" | sed 's~^gs://~https://storage.googleapis.com/~'
 ```
 
 ## Documentation

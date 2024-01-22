@@ -17,9 +17,9 @@ require (
 	github.com/vmware/govmomi v0.34.2
 	golang.org/x/crypto v0.18.0
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/api v0.28.5
-	k8s.io/apimachinery v0.28.5
-	k8s.io/client-go v0.28.5
+	k8s.io/api v0.28.6
+	k8s.io/apimachinery v0.28.6
+	k8s.io/client-go v0.28.6
 	k8s.io/klog/v2 v2.110.1
 	k8s.io/utils v0.0.0-20231127182322-b307cd553661
 	sigs.k8s.io/cluster-api v0.0.0-00010101000000-000000000000
@@ -131,10 +131,10 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/apiextensions-apiserver v0.28.5 // indirect
-	k8s.io/apiserver v0.28.5 // indirect
-	k8s.io/cluster-bootstrap v0.28.5 // indirect
-	k8s.io/component-base v0.28.5 // indirect
+	k8s.io/apiextensions-apiserver v0.28.6 // indirect
+	k8s.io/apiserver v0.28.6 // indirect
+	k8s.io/cluster-bootstrap v0.28.6 // indirect
+	k8s.io/component-base v0.28.6 // indirect
 	k8s.io/kube-openapi v0.0.0-20230717233707-2695361300d9 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect

@@ -95,7 +95,7 @@ func (webhook *VSphereVMWebhook) ValidateCreate(_ context.Context, raw runtime.O
 			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "guestSoftPowerOffTimeout"), spec.GuestSoftPowerOffTimeout, "should be greater than 0"))
 		}
 	}
-	return nil, aggregateObjErrors(objValue.GroupVersionKind().GroupKind(), objValue.Name, allErrs)
+	return nil, AggregateObjErrors(objValue.GroupVersionKind().GroupKind(), objValue.Name, allErrs)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
@@ -156,7 +156,7 @@ func (webhook *VSphereVMWebhook) ValidateUpdate(_ context.Context, oldRaw runtim
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec"), "cannot be modified"))
 	}
 
-	return nil, aggregateObjErrors(newTyped.GroupVersionKind().GroupKind(), newTyped.Name, allErrs)
+	return nil, AggregateObjErrors(newTyped.GroupVersionKind().GroupKind(), newTyped.Name, allErrs)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.

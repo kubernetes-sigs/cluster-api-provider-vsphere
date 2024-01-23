@@ -53,6 +53,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/controllers"
 	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
 	"sigs.k8s.io/cluster-api-provider-vsphere/internal/webhooks"
+	vmopwebhooks "sigs.k8s.io/cluster-api-provider-vsphere/internal/webhooks/vmoperator"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/constants"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
@@ -382,6 +383,9 @@ func setupVAPIControllers(ctx context.Context, controllerCtx *capvcontext.Contro
 }
 
 func setupSupervisorControllers(ctx context.Context, controllerCtx *capvcontext.ControllerManagerContext, mgr ctrlmgr.Manager, tracker *remote.ClusterCacheTracker) error {
+	if err := (&vmopwebhooks.VSphereMachineWebhook{}).SetupWebhookWithManager(mgr); err != nil {
+		return err
+	}
 	if err := controllers.AddClusterControllerToManager(ctx, controllerCtx, mgr, true, concurrency(vSphereClusterConcurrency)); err != nil {
 		return err
 	}

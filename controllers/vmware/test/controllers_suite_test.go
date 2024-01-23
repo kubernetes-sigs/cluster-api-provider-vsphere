@@ -40,6 +40,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers"
 )
 
 var (
@@ -77,12 +78,15 @@ func getTestEnv() (*envtest.Environment, *rest.Config) {
 
 	localTestEnv := &envtest.Environment{
 		CRDDirectoryPaths: []string{
-			filepath.Join(root, "config", "supervisor", "crd"),
+			filepath.Join(root, "config", "supervisor", "crd", "bases"),
 			filepath.Join(root, "config", "deployments", "integration-tests", "crds"),
 			filepath.Join(clusterAPIDir, "config", "crd", "bases"),
 		},
 		ControlPlaneStopTimeout: 60 * time.Second,
 	}
+
+	configPath := filepath.Clean(filepath.Join(root, "config", "supervisor", "webhook", "manifests.yaml"))
+	helpers.InitializeWebhookInEnvironment(localTestEnv, configPath)
 
 	localCfg, err := localTestEnv.Start()
 	Expect(err).ToNot(HaveOccurred())

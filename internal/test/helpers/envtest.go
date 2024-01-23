@@ -84,7 +84,7 @@ func init() {
 
 	crdPaths := []string{
 		filepath.Join(root, "config", "default", "crd", "bases"),
-		filepath.Join(root, "config", "supervisor", "crd"),
+		filepath.Join(root, "config", "supervisor", "crd", "bases"),
 	}
 
 	// append CAPI CRDs path
@@ -113,8 +113,16 @@ type (
 
 // NewTestEnvironment creates a new environment spinning up a local api-server.
 func NewTestEnvironment(ctx context.Context) *TestEnvironment {
+	// Get the root of the current file to use in CRD paths.
+	_, filename, _, ok := goruntime.Caller(0)
+	if !ok {
+		klog.Fatalf("Failed to get information for current file from runtime")
+	}
+	root := path.Join(path.Dir(filename), "..", "..", "..")
+	configPath := filepath.Join(root, "config", "govmomi", "webhook", "manifests.yaml")
+
 	// initialize webhook here to be able to test the envtest install via webhookOptions
-	initializeWebhookInEnvironment()
+	InitializeWebhookInEnvironment(env, configPath)
 
 	if _, err := env.Start(); err != nil {
 		err = kerrors.NewAggregate([]error{err, env.Stop()})

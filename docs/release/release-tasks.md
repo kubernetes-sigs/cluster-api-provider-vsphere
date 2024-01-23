@@ -44,12 +44,13 @@ This comes down to changing occurrences of the old version to the new version, e
       1. Create a new `v1.7` folder. It should be created based on the `main` folder and only contain the templates
         we use in the clusterctl upgrade tests (as of today `remote-management`).
       2. Remove old folders that are not used anymore in clusterctl upgrade tests.
-   5. Modify the test specs in `test/e2e/capi_clusterctl_upgrade_test.go` (according to the versions we want to test described above).
+      3. Copy over the workload folder from a previous release.
+   5. Modify the test specs in `test/e2e/clusterctl_upgrade_test.go` (according to the versions we want to test described above).
       Please note that both `InitWithKubernetesVersion` and `WorkloadKubernetesVersion` should be the highest mgmt cluster version supported by the respective Cluster API version.
 2. Update `clusterctl-settings.json`: `v1.7.99` => `v1.8.99`.
 3. Make sure all tests are green (also run `pull-cluster-api-provider-vsphere-e2e-full-main` and `pull-cluster-api-provider-vsphere-conformance-main`).
 
-Prior art: TODO(sbueringer): link example PR
+Prior art: [🌱 Prepare main for development of the new release](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/pull/2643)
 
 ## Remove previously deprecated code
 

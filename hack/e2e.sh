@@ -90,11 +90,11 @@ make envsubst
 # Save the docker image locally
 make e2e-image
 mkdir -p /tmp/images
-docker save gcr.io/k8s-staging-cluster-api/capv-manager:e2e -o "$DOCKER_IMAGE_TAR"
+docker save gcr.io/k8s-staging-capi-vsphere/cluster-api-vsphere-controller:dev -o "$DOCKER_IMAGE_TAR"
 
 # Store the image on gcs
 login
-E2E_IMAGE_SHA=$(docker inspect --format='{{index .Id}}' gcr.io/k8s-staging-cluster-api/capv-manager:e2e)
+E2E_IMAGE_SHA=$(docker inspect --format='{{index .Id}}' gcr.io/k8s-staging-capi-vsphere/cluster-api-vsphere-controller:dev)
 export E2E_IMAGE_SHA
 gsutil cp ${DOCKER_IMAGE_TAR} gs://capv-ci/"$E2E_IMAGE_SHA"
 

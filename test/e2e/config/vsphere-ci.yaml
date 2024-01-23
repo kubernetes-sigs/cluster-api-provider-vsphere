@@ -14,7 +14,7 @@ images:
     loadBehavior: tryLoad
   - name: registry.k8s.io/cluster-api/kubeadm-control-plane-controller:v1.6.1
     loadBehavior: tryLoad
-  - name: gcr.io/k8s-staging-cluster-api/capv-manager:e2e
+  - name: gcr.io/k8s-staging-capi-vsphere/cluster-api-vsphere-controller:dev
     loadBehavior: mustLoad
   - name: quay.io/jetstack/cert-manager-cainjector:v1.12.2
     loadBehavior: tryLoad
@@ -106,7 +106,7 @@ providers:
         contract: v1beta1
         replacements:
           - old: gcr.io/k8s-staging-capi-vsphere/cluster-api-vsphere-controller:main
-            new: gcr.io/k8s-staging-cluster-api/capv-manager:e2e
+            new: gcr.io/k8s-staging-capi-vsphere/cluster-api-vsphere-controller:dev
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
         files:

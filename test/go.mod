@@ -9,7 +9,7 @@ replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.6.1
 replace sigs.k8s.io/cluster-api-provider-vsphere => ../
 
 require (
-	github.com/google/uuid v1.5.0
+	github.com/google/uuid v1.6.0
 	github.com/onsi/ginkgo/v2 v2.15.0
 	github.com/onsi/gomega v1.31.1
 	github.com/pkg/errors v0.9.1

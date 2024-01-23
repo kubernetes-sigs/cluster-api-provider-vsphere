@@ -21,9 +21,7 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	rbac "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
@@ -45,11 +43,6 @@ func addCPILabels(o metav1.Object, cpiInfraLabelValue string) {
 // CreateCrsResourceObjectsCPI creates the api objects necessary for CSI to function.
 // Also appends the resources to the CRS.
 func CreateCrsResourceObjectsCPI(crs *addonsv1.ClusterResourceSet) []runtime.Object {
-	serviceAccount := cloudprovider.CloudControllerManagerServiceAccount()
-	addCPILabels(serviceAccount, "service-account")
-	serviceAccountSecret := newSecret(serviceAccount.Name, serviceAccount)
-	appendSecretToCrsResource(crs, serviceAccountSecret)
-
 	credentials := map[string]string{}
 	credentials[fmt.Sprintf("%s.username", env.VSphereServerVar)] = env.VSphereUsername
 	credentials[fmt.Sprintf("%s.password", env.VSphereServerVar)] = env.VSpherePassword
@@ -58,22 +51,12 @@ func CreateCrsResourceObjectsCPI(crs *addonsv1.ClusterResourceSet) []runtime.Obj
 	cpiSecretWrapper := newSecret(cpiSecret.Name, cpiSecret)
 	appendSecretToCrsResource(crs, cpiSecretWrapper)
 
-	cpiObjects := []runtime.Object{}
-	clusterRole := cloudprovider.CloudControllerManagerClusterRole()
-	clusterRole.TypeMeta = metav1.TypeMeta{
-		Kind:       "ClusterRole",
-		APIVersion: rbac.SchemeGroupVersion.String(),
+	cpiManifests, err := cloudprovider.CloudControllerManagerManifests()
+	if err != nil {
+		panic(errors.Wrapf(err, "creating cloudcontrollermanager manifests"))
 	}
-	addCPILabels(clusterRole, "role")
-	cpiObjects = append(cpiObjects, clusterRole)
 
-	clusterRoleBinding := cloudprovider.CloudControllerManagerClusterRoleBinding()
-	clusterRoleBinding.TypeMeta = metav1.TypeMeta{
-		Kind:       "ClusterRoleBinding",
-		APIVersion: rbac.SchemeGroupVersion.String(),
-	}
-	addCPILabels(clusterRoleBinding, "cluster-role-binding")
-	cpiObjects = append(cpiObjects, clusterRoleBinding)
+	cpiObjects := []runtime.Object{}
 
 	cloudConfig, err := CPIConfigString()
 	if err != nil {
@@ -87,32 +70,13 @@ func CreateCrsResourceObjectsCPI(crs *addonsv1.ClusterResourceSet) []runtime.Obj
 	}
 	cpiObjects = append(cpiObjects, cloudConfigConfigMap)
 
-	roleBinding := cloudprovider.CloudControllerManagerRoleBinding()
-	roleBinding.TypeMeta = metav1.TypeMeta{
-		Kind:       "RoleBinding",
-		APIVersion: rbac.SchemeGroupVersion.String(),
-	}
-	addCPILabels(roleBinding, "role-binding")
-	cpiObjects = append(cpiObjects, roleBinding)
-
-	extraArgs := []string{
-		"--v=2",
-		"--cloud-provider=vsphere",
-		"--cloud-config=/etc/cloud/vsphere.conf",
-	}
-	cpiDaemonSet := cloudprovider.CloudControllerManagerDaemonSet(extraArgs)
-	cpiDaemonSet.TypeMeta = metav1.TypeMeta{
-		Kind:       "DaemonSet",
-		APIVersion: appsv1.SchemeGroupVersion.String(),
-	}
-	cpiObjects = append(cpiObjects, cpiDaemonSet)
-
 	manifestsCm := newConfigMapManifests("cpi-manifests", cpiObjects)
+	manifestsCm.Data["data"] = cpiManifests + manifestsCm.Data["data"]
+
 	appendConfigMapToCrsResource(crs, manifestsCm)
 	// Define the kubeconfig secret for the target cluster.
 
 	return []runtime.Object{
-		serviceAccountSecret,
 		cpiSecretWrapper,
 		manifestsCm,
 	}

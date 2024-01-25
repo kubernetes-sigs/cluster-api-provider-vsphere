@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/test/e2e/ipam"
 )
 
 type GuestInfoMetadata struct {
@@ -52,6 +53,17 @@ type DHCPOverrides struct {
 
 var _ = Describe("DHCPOverrides configuration test", func() {
 	When("Creating a cluster with DHCPOverrides configured", func() {
+		var (
+			testSpecificClusterctlConfigPath string
+			testSpecificIPAddressClaims      ipam.IPAddressClaims
+		)
+		BeforeEach(func() {
+			testSpecificClusterctlConfigPath, testSpecificIPAddressClaims = ipamHelper.ClaimIPs(ctx, clusterctlConfigPath)
+		})
+		defer AfterEach(func() {
+			Expect(ipamHelper.Cleanup(ctx, testSpecificIPAddressClaims)).To(Succeed())
+		})
+
 		const specName = "dhcp-overrides"
 		var namespace *corev1.Namespace
 
@@ -72,7 +84,7 @@ var _ = Describe("DHCPOverrides configuration test", func() {
 				ClusterProxy: bootstrapClusterProxy,
 				ConfigCluster: clusterctl.ConfigClusterInput{
 					LogFolder:                filepath.Join(artifactFolder, "clusters", bootstrapClusterProxy.GetName()),
-					ClusterctlConfigPath:     clusterctlConfigPath,
+					ClusterctlConfigPath:     testSpecificClusterctlConfigPath,
 					KubeconfigPath:           bootstrapClusterProxy.GetKubeconfigPath(),
 					InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
 					Flavor:                   "dhcp-overrides",

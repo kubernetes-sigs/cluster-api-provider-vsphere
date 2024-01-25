@@ -27,6 +27,8 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/constants"
+	. "sigs.k8s.io/cluster-api-provider-vsphere/test/e2e/helper"
+	"sigs.k8s.io/cluster-api-provider-vsphere/test/e2e/ipam"
 )
 
 type NodeLabelingSpecInput struct {
@@ -39,6 +41,17 @@ var _ = Describe("Label nodes with ESXi host info", func() {
 	var (
 		namespace *corev1.Namespace
 	)
+
+	var (
+		testSpecificClusterctlConfigPath string
+		testSpecificIPAddressClaims      ipam.IPAddressClaims
+	)
+	BeforeEach(func() {
+		testSpecificClusterctlConfigPath, testSpecificIPAddressClaims = ipamHelper.ClaimIPs(ctx, clusterctlConfigPath)
+	})
+	defer AfterEach(func() {
+		Expect(ipamHelper.Cleanup(ctx, testSpecificIPAddressClaims)).To(Succeed())
+	})
 
 	BeforeEach(func() {
 		Expect(bootstrapClusterProxy).NotTo(BeNil(), "BootstrapClusterProxy can't be nil")
@@ -59,7 +72,7 @@ var _ = Describe("Label nodes with ESXi host info", func() {
 			},
 			Global: GlobalInput{
 				BootstrapClusterProxy: bootstrapClusterProxy,
-				ClusterctlConfigPath:  clusterctlConfigPath,
+				ClusterctlConfigPath:  testSpecificClusterctlConfigPath,
 				E2EConfig:             e2eConfig,
 				ArtifactFolder:        artifactFolder,
 			},

@@ -25,11 +25,6 @@ REPO_ROOT=$(git rev-parse --show-toplevel)
 source "${REPO_ROOT}/hack/ensure-kubectl.sh"
 
 on_exit() {
-  # release IPClaim
-  echo "Releasing IP claims"
-  kubectl --kubeconfig="${KUBECONFIG}" delete "ipaddressclaim.ipam.cluster.x-k8s.io" "${CONTROL_PLANE_IPCLAIM_NAME}" || true
-  kubectl --kubeconfig="${KUBECONFIG}" delete "ipaddressclaim.ipam.cluster.x-k8s.io" "${WORKLOAD_IPCLAIM_NAME}" || true
-
   # kill the VPN
   docker kill vpn
 
@@ -62,6 +57,12 @@ export ARTIFACTS="${ARTIFACTS:-${REPO_ROOT}/_artifacts}"
 export DOCKER_IMAGE_TAR="/tmp/images/image.tar"
 export GC_KIND="false"
 
+# Make tests run in-parallel
+export GINKGO_NODES=5
+# Set the kubeconfig to the IPAM cluster so the e2e tests can claim ip addresses
+# for kube-vip.
+export E2E_IPAM_KUBECONFIG="/root/ipam-conf/capv-services.conf"
+
 # Run the vpn client in container
 docker run --rm -d --name vpn -v "${HOME}/.openvpn/:${HOME}/.openvpn/" \
   -w "${HOME}/.openvpn/" --cap-add=NET_ADMIN --net=host --device=/dev/net/tun \
@@ -70,63 +71,28 @@ docker run --rm -d --name vpn -v "${HOME}/.openvpn/:${HOME}/.openvpn/" \
 # Tail the vpn logs
 docker logs vpn
 
-# Sleep to allow vpn container to start running
-sleep 30
-
-
-function kubectl_get_jsonpath() {
-  local OBJECT_KIND="${1}"
-  local OBJECT_NAME="${2}"
-  local JSON_PATH="${3}"
+# Wait until the VPN connection is active and we are able to reach the ipam cluster
+function wait_for_ipam_reachable() {
   local n=0
   until [ $n -ge 30 ]; do
-    OUTPUT=$(kubectl --kubeconfig="${KUBECONFIG}" get "${OBJECT_KIND}.ipam.cluster.x-k8s.io" "${OBJECT_NAME}" -o=jsonpath="${JSON_PATH}")
-    if [[ "${OUTPUT}" != "" ]]; then
+    kubectl --kubeconfig="${E2E_IPAM_KUBECONFIG}" --request-timeout=2s  cluster-info && RET=$? || RET=$?
+    if [[ "$RET" -eq 0 ]]; then
       break
     fi
     n=$((n + 1))
     sleep 1
   done
-
-  if [[ "${OUTPUT}" == "" ]]; then
-    echo "Received empty output getting ${JSON_PATH} from ${OBJECT_KIND}/${OBJECT_NAME}" 1>&2
-    return 1
-  else
-    echo "${OUTPUT}"
-    return 0
-  fi
 }
-
-function claim_ip() {
-  IPCLAIM_NAME="$1"
-  export IPCLAIM_NAME
-  envsubst < "${REPO_ROOT}/hack/ipclaim-template.yaml" | kubectl --kubeconfig="${KUBECONFIG}" create -f - 1>&2
-  IPADDRESS_NAME=$(kubectl_get_jsonpath ipaddressclaim "${IPCLAIM_NAME}" '{@.status.addressRef.name}')
-  kubectl --kubeconfig="${KUBECONFIG}" get "ipaddresses.ipam.cluster.x-k8s.io" "${IPADDRESS_NAME}" -o=jsonpath='{@.spec.address}'
-}
-
-export KUBECONFIG="/root/ipam-conf/capv-services.conf"
+wait_for_ipam_reachable
 
 make envsubst
 
-# Retrieve an IP to be used as the kube-vip IP
-CONTROL_PLANE_IPCLAIM_NAME="ip-claim-$(openssl rand -hex 20)"
-CONTROL_PLANE_ENDPOINT_IP=$(claim_ip "${CONTROL_PLANE_IPCLAIM_NAME}")
-export CONTROL_PLANE_ENDPOINT_IP
-echo "Acquired Control Plane IP: $CONTROL_PLANE_ENDPOINT_IP"
-
-# Retrieve an IP to be used for the workload cluster in v1a3/v1a4 -> v1b1 upgrade tests
-WORKLOAD_IPCLAIM_NAME="workload-ip-claim-$(openssl rand -hex 20)"
-WORKLOAD_CONTROL_PLANE_ENDPOINT_IP=$(claim_ip "${WORKLOAD_IPCLAIM_NAME}")
-export WORKLOAD_CONTROL_PLANE_ENDPOINT_IP
-echo "Acquired Workload Cluster Control Plane IP: $WORKLOAD_CONTROL_PLANE_ENDPOINT_IP"
-
-# save the docker image locally
+# Save the docker image locally
 make e2e-image
 mkdir -p /tmp/images
 docker save gcr.io/k8s-staging-cluster-api/capv-manager:e2e -o "$DOCKER_IMAGE_TAR"
 
-# store the image on gcs
+# Store the image on gcs
 login
 E2E_IMAGE_SHA=$(docker inspect --format='{{index .Id}}' gcr.io/k8s-staging-cluster-api/capv-manager:e2e)
 export E2E_IMAGE_SHA

@@ -77,6 +77,7 @@ endif
 #
 GINKGO_FOCUS ?=
 GINKGO_SKIP ?=
+GINKGO_NODES ?= 1
 GINKGO_TIMEOUT ?= 3h
 E2E_CONF_FILE ?= $(abspath test/e2e/config/vsphere-dev.yaml)
 INTEGRATION_CONF_FILE ?= $(abspath test/integration/integration-dev.yaml)
@@ -84,6 +85,7 @@ E2E_TEMPLATE_DIR := $(abspath test/e2e/data/infrastructure-vsphere/)
 SKIP_RESOURCE_CLEANUP ?= false
 USE_EXISTING_CLUSTER ?= false
 GINKGO_NOCOLOR ?= false
+E2E_IPAM_KUBECONFIG ?=
 
 # to set multiple ginkgo skip flags, if any
 ifneq ($(strip $(GINKGO_SKIP)),)
@@ -524,12 +526,13 @@ e2e: $(GINKGO) $(KUSTOMIZE) $(KIND) $(GOVC) ## Run e2e tests
 	@echo Contents of $(TOOLS_BIN_DIR):
 	@ls $(TOOLS_BIN_DIR)
 	@echo
-	time $(GINKGO) -v --trace -focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) -timeout=$(GINKGO_TIMEOUT) \
+	time $(GINKGO) -v --trace -focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) --nodes=$(GINKGO_NODES) -timeout=$(GINKGO_TIMEOUT) \
 		--output-dir="$(ARTIFACTS)" --junit-report="junit.e2e_suite.1.xml" ./test/e2e -- \
 		--e2e.config="$(E2E_CONF_FILE)" \
 		--e2e.artifacts-folder="$(ARTIFACTS)" \
 		--e2e.skip-resource-cleanup=$(SKIP_RESOURCE_CLEANUP) \
-		--e2e.use-existing-cluster="$(USE_EXISTING_CLUSTER)"
+		--e2e.use-existing-cluster="$(USE_EXISTING_CLUSTER)" \
+		--e2e.ipam-kubeconfig="$(E2E_IPAM_KUBECONFIG)"
 
 ## --------------------------------------
 ## Release

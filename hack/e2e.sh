@@ -75,13 +75,14 @@ docker logs vpn
 function wait_for_ipam_reachable() {
   local n=0
   until [ $n -ge 30 ]; do
-    kubectl --kubeconfig="${E2E_IPAM_KUBECONFIG}" --request-timeout=2s  cluster-info && RET=$? || RET=$?
+    kubectl --kubeconfig="${E2E_IPAM_KUBECONFIG}" --request-timeout=2s  get inclusterippools.ipam.cluster.x-k8s.io && RET=$? || RET=$?
     if [[ "$RET" -eq 0 ]]; then
       break
     fi
     n=$((n + 1))
     sleep 1
   done
+  return "$RET"
 }
 wait_for_ipam_reachable
 

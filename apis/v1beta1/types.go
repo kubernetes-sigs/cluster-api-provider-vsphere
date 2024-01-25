@@ -275,6 +275,8 @@ type NetworkSpec struct {
 	// PreferredAPIServeCIDR is the preferred CIDR for the Kubernetes API
 	// server endpoint on this machine
 	// +optional
+	//
+	// Deprecated: This field is going to be removed in a future release.
 	PreferredAPIServerCIDR string `json:"preferredAPIServerCidr,omitempty"`
 }
 

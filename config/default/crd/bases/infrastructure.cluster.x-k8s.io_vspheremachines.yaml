@@ -359,8 +359,9 @@ spec:
                       type: object
                     type: array
                   preferredAPIServerCidr:
-                    description: PreferredAPIServeCIDR is the preferred CIDR for the
-                      Kubernetes API server endpoint on this machine
+                    description: "PreferredAPIServeCIDR is the preferred CIDR for
+                      the Kubernetes API server endpoint on this machine \n Deprecated:
+                      This field is going to be removed in a future release."
                     type: string
                   routes:
                     description: Routes is a list of optional, static routes applied

@@ -1,18 +1,39 @@
-{
-  "name": "vsphere",
-  "config": {
-    "version": "v1.10.99",
-    "image": "gcr.io/k8s-staging-capi-vsphere/cluster-api-vsphere-controller",
-    "live_reload_deps": [
-      "main.go",
-      "go.mod",
-      "go.sum",
-      "apis",
-      "controllers",
-      "feature",
-      "internal",
-      "pkg"
-    ],
-    "label": "CAPV"
+[
+  {
+    "name": "vsphere",
+    "config": {
+      "version": "v1.10.99",
+      "image": "gcr.io/k8s-staging-capi-vsphere/cluster-api-vsphere-controller",
+      "live_reload_deps": [
+        "main.go",
+        "go.mod",
+        "go.sum",
+        "apis",
+        "controllers",
+        "feature",
+        "internal",
+        "pkg"
+      ],
+      "label": "CAPV"
+    }
+  },
+  {
+    "name": "vsphere-supervisor",
+    "config": {
+      "version": "v1.10.99",
+      "image": "gcr.io/k8s-staging-capi-vsphere/cluster-api-vsphere-controller",
+      "live_reload_deps": [
+        "main.go",
+        "go.mod",
+        "go.sum",
+        "apis",
+        "controllers",
+        "feature",
+        "internal",
+        "pkg"
+      ],
+      "label": "CAPV",
+      "kustomize_folder": "/config/supervisor"
+    }
   }
-}
+]

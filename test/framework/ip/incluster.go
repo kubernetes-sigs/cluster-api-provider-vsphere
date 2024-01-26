@@ -253,7 +253,9 @@ func getVirtualMachineIPAddresses(ctx context.Context, folderName string, vSpher
 	for _, mobj := range managedObjects {
 		// Get guest.net properties for mobj.
 		if err := vSphereClient.RetrieveOne(ctx, mobj.Object.Reference(), []string{"guest.net"}, &vm); err != nil {
-			return nil, errors.Wrapf(err, "get properties of VM %s", mobj.Object.Reference())
+			// We cannot get the properties e.g. when the machine already got deleted or is getting deleted.
+			Byf("Ignoring VirtualMachine %s during ipam Teardown due to error retrieving properties: %v", mobj.Path, err)
+			continue
 		}
 		// Iterate over all nics and add IP addresses to virtualMachineIPAddresses.
 		for _, nic := range vm.Guest.Net {

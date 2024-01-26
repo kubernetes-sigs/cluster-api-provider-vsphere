@@ -225,6 +225,11 @@ issues:
     path: test/e2e/.*.go
     text: should not use dot imports
   - linters:
+      - revive
+      - stylecheck
+    path: test/framework/.*.go
+    text: should not use dot imports
+  - linters:
     - revive
     - stylecheck
     path: test/helpers/vmware/.*.go

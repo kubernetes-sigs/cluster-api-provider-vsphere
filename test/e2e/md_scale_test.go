@@ -18,31 +18,20 @@ package e2e
 
 import (
 	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
-
-	"sigs.k8s.io/cluster-api-provider-vsphere/test/e2e/ipam"
 )
 
 var _ = Describe("When testing MachineDeployment scale out/in", func() {
-	var (
-		testSpecificClusterctlConfigPath string
-		testSpecificIPAddressClaims      ipam.IPAddressClaims
-	)
-	BeforeEach(func() {
-		testSpecificClusterctlConfigPath, testSpecificIPAddressClaims = ipamHelper.ClaimIPs(ctx, clusterctlConfigPath)
-	})
-	defer AfterEach(func() {
-		Expect(ipamHelper.Cleanup(ctx, testSpecificIPAddressClaims)).To(Succeed())
-	})
-
-	capi_e2e.MachineDeploymentScaleSpec(ctx, func() capi_e2e.MachineDeploymentScaleSpecInput {
-		return capi_e2e.MachineDeploymentScaleSpecInput{
-			E2EConfig:             e2eConfig,
-			ClusterctlConfigPath:  testSpecificClusterctlConfigPath,
-			BootstrapClusterProxy: bootstrapClusterProxy,
-			ArtifactFolder:        artifactFolder,
-			SkipCleanup:           skipCleanup,
-		}
+	const specName = "md-scale" // copied from CAPI
+	Setup(specName, func(testSpecificClusterctlConfigPathGetter func() string) {
+		capi_e2e.MachineDeploymentScaleSpec(ctx, func() capi_e2e.MachineDeploymentScaleSpecInput {
+			return capi_e2e.MachineDeploymentScaleSpecInput{
+				E2EConfig:             e2eConfig,
+				ClusterctlConfigPath:  testSpecificClusterctlConfigPathGetter(),
+				BootstrapClusterProxy: bootstrapClusterProxy,
+				ArtifactFolder:        artifactFolder,
+				SkipCleanup:           skipCleanup,
+			}
+		})
 	})
 })

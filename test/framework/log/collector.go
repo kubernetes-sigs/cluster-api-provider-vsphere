@@ -14,7 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package e2e
+// Package log provides utils for collecting logs from VMs.
+package log
 
 import (
 	"bytes"
@@ -38,13 +39,13 @@ const (
 	VSpherePrivateKeyFilePath = "VSPHERE_SSH_PRIVATE_KEY"
 )
 
-type LogCollector struct{}
+type MachineLogCollector struct{}
 
-func (collector LogCollector) CollectMachinePoolLog(_ context.Context, _ client.Client, _ *expv1.MachinePool, _ string) error {
+func (collector MachineLogCollector) CollectMachinePoolLog(_ context.Context, _ client.Client, _ *expv1.MachinePool, _ string) error {
 	return nil
 }
 
-func (collector LogCollector) CollectMachineLog(_ context.Context, _ client.Client, m *clusterv1.Machine, outputPath string) error {
+func (collector MachineLogCollector) CollectMachineLog(_ context.Context, _ client.Client, m *clusterv1.Machine, outputPath string) error {
 	var hostIPAddr string
 	for _, address := range m.Status.Addresses {
 		if address.Type != clusterv1.MachineExternalIP {
@@ -77,7 +78,7 @@ func (collector LogCollector) CollectMachineLog(_ context.Context, _ client.Clie
 	})
 }
 
-func (collector LogCollector) CollectInfrastructureLogs(_ context.Context, _ client.Client, _ *clusterv1.Cluster, _ string) error {
+func (collector MachineLogCollector) CollectInfrastructureLogs(_ context.Context, _ client.Client, _ *clusterv1.Cluster, _ string) error {
 	return nil
 }
 

@@ -33,14 +33,14 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
-	"sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
+	. "sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
 	capiutil "sigs.k8s.io/cluster-api/util"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
-	. "sigs.k8s.io/cluster-api-provider-vsphere/test/e2e/helper"
-	"sigs.k8s.io/cluster-api-provider-vsphere/test/e2e/ipam"
 	vsphereframework "sigs.k8s.io/cluster-api-provider-vsphere/test/framework"
+	vsphereip "sigs.k8s.io/cluster-api-provider-vsphere/test/framework/ip"
+	vspherelog "sigs.k8s.io/cluster-api-provider-vsphere/test/framework/log"
 )
 
 const (
@@ -91,8 +91,8 @@ var (
 	// IPAM provider to claim IPs for the control plane IPs of created clusters.
 	e2eIPAMKubeconfig string
 
-	// ipamHelper is used to claim and cleanup IP addresses used for kubernetes control plane API Servers.
-	ipamHelper ipam.Helper
+	// ipAddressManager is used to claim and cleanup IP addresses used for kubernetes control plane API Servers.
+	ipAddressManager vsphereip.AddressManager
 )
 
 func init() {
@@ -120,7 +120,7 @@ func TestE2E(t *testing.T) {
 	RegisterFailHandler(Fail)
 
 	if alsoLogToFile {
-		w, err := ginkgoextensions.EnableFileLogging(filepath.Join(artifactFolder, "ginkgo-log.txt"))
+		w, err := EnableFileLogging(filepath.Join(artifactFolder, "ginkgo-log.txt"))
 		NewWithT(t).Expect(err).ToNot(HaveOccurred())
 		defer w.Close()
 	}
@@ -155,7 +155,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	By("Initializing the bootstrap cluster")
 	vsphereframework.InitBootstrapCluster(ctx, bootstrapClusterProxy, e2eConfig, clusterctlConfigPath, artifactFolder)
 
-	ipamLabels := ipam.GetIPAddressClaimLabels()
+	ipamLabels := vsphereip.GetIPAddressClaimLabels()
 	var ipamLabelsRaw []string
 	for k, v := range ipamLabels {
 		ipamLabelsRaw = append(ipamLabelsRaw, fmt.Sprintf("%s=%s", k, v))
@@ -188,7 +188,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	var err error
 	e2eConfig, err = vsphereframework.LoadE2EConfig(ctx, configPath)
 	Expect(err).NotTo(HaveOccurred())
-	bootstrapClusterProxy = framework.NewClusterProxy("bootstrap", kubeconfigPath, initScheme(), framework.WithMachineLogCollector(LogCollector{}))
+	bootstrapClusterProxy = framework.NewClusterProxy("bootstrap", kubeconfigPath, initScheme(), framework.WithMachineLogCollector(vspherelog.MachineLogCollector{}))
 
 	ipamLabels := map[string]string{}
 	for _, s := range strings.Split(ipamLabelsRaw, ";") {
@@ -197,7 +197,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 		ipamLabels[splittedLabel[0]] = splittedLabel[1]
 	}
-	ipamHelper, err = ipam.New(e2eIPAMKubeconfig, ipamLabels, skipCleanup)
+	ipAddressManager, err = vsphereip.InClusterAddressManager(e2eIPAMKubeconfig, ipamLabels, skipCleanup)
 	Expect(err).ToNot(HaveOccurred())
 })
 
@@ -212,7 +212,7 @@ var _ = SynchronizedAfterSuite(func() {
 		By("Cleaning up orphaned IPAddressClaims")
 		vSphereFolderName, err := getClusterctlConfigVariable(clusterctlConfigPath, "VSPHERE_FOLDER")
 		Expect(err).ToNot(HaveOccurred())
-		Expect(ipamHelper.Teardown(ctx, vSphereFolderName, vsphereClient)).To(Succeed())
+		Expect(ipAddressManager.Teardown(ctx, vSphereFolderName, vsphereClient)).To(Succeed())
 	}
 
 	By("Cleaning up the vSphere session", terminateVSphereSession)

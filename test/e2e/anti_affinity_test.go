@@ -30,67 +30,60 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
+	. "sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/govmomi/clustermodules"
-	. "sigs.k8s.io/cluster-api-provider-vsphere/test/e2e/helper"
-	"sigs.k8s.io/cluster-api-provider-vsphere/test/e2e/ipam"
 )
 
 type AntiAffinitySpecInput struct {
 	InfraClients
 	Global      GlobalInput
+	SpecName    string
 	Namespace   *corev1.Namespace
 	SkipCleanup bool
 }
 
 var _ = Describe("Cluster creation with anti affined nodes", func() {
-	var namespace *corev1.Namespace
+	const specName = "anti-affinity"
+	Setup(specName, func(testSpecificClusterctlConfigPathGetter func() string) {
+		var namespace *corev1.Namespace
 
-	var (
-		testSpecificClusterctlConfigPath string
-		testSpecificIPAddressClaims      ipam.IPAddressClaims
-	)
-	BeforeEach(func() {
-		testSpecificClusterctlConfigPath, testSpecificIPAddressClaims = ipamHelper.ClaimIPs(ctx, clusterctlConfigPath)
-	})
-	defer AfterEach(func() {
-		Expect(ipamHelper.Cleanup(ctx, testSpecificIPAddressClaims)).To(Succeed())
-	})
+		BeforeEach(func() {
+			Expect(bootstrapClusterProxy).NotTo(BeNil(), "BootstrapClusterProxy can't be nil")
+			namespace = setupSpecNamespace("anti-affinity-e2e")
+		})
 
-	BeforeEach(func() {
-		Expect(bootstrapClusterProxy).NotTo(BeNil(), "BootstrapClusterProxy can't be nil")
-		namespace = setupSpecNamespace("anti-affinity-e2e")
-	})
+		AfterEach(func() {
+			cleanupSpecNamespace(namespace)
+		})
 
-	AfterEach(func() {
-		cleanupSpecNamespace(namespace)
-	})
-
-	It("should create a cluster with anti-affined nodes", func() {
-		// Since the upstream CI has four nodes, worker node count is set to 4.
-		VerifyAntiAffinity(ctx, AntiAffinitySpecInput{
-			Namespace: namespace,
-			InfraClients: InfraClients{
-				Client:     vsphereClient,
-				RestClient: restClient,
-				Finder:     vsphereFinder,
-			},
-			Global: GlobalInput{
-				BootstrapClusterProxy: bootstrapClusterProxy,
-				ClusterctlConfigPath:  testSpecificClusterctlConfigPath,
-				E2EConfig:             e2eConfig,
-				ArtifactFolder:        artifactFolder,
-			},
+		It("should create a cluster with anti-affined nodes", func() {
+			// Since the upstream CI has four nodes, worker node count is set to 4.
+			VerifyAntiAffinity(ctx, AntiAffinitySpecInput{
+				SpecName:  specName,
+				Namespace: namespace,
+				InfraClients: InfraClients{
+					Client:     vsphereClient,
+					RestClient: restClient,
+					Finder:     vsphereFinder,
+				},
+				Global: GlobalInput{
+					BootstrapClusterProxy: bootstrapClusterProxy,
+					ClusterctlConfigPath:  testSpecificClusterctlConfigPathGetter(),
+					E2EConfig:             e2eConfig,
+					ArtifactFolder:        artifactFolder,
+				},
+			})
 		})
 	})
 })
 
 func VerifyAntiAffinity(ctx context.Context, input AntiAffinitySpecInput) {
 	var (
-		specName         = "anti-affinity"
+		specName         = input.SpecName
 		namespace        = input.Namespace
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	)

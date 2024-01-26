@@ -234,7 +234,7 @@ spec:
                 RemainAfterExit=yes
                 Environment=OUTPUT=/run/metadata/coreos
                 ExecStart=/usr/bin/mkdir --parent /run/metadata
-                ExecStart=/usr/bin/bash -cv 'VMTOOLSD_PATH=$(find /usr -iname 'vmtoolsd' -executable); if [[ -n "$vmtoolsd_path" ]]; then echo "COREOS_CUSTOM_HOSTNAME=$("$VMTOOLSD_PATH" --cmd "info-get guestinfo.metadata" | base64 -d | grep local-hostname | awk {\'print $2\'} | tr -d \'"\').eitco.de" > $${OUTPUT}; else echo "vmtoolsd not found in /usr/share/oem/bin/ or /usr/bin/"; fi'
+                ExecStart=/usr/bin/bash -cv 'VMTOOLSD_PATH=$(find /usr -iname 'vmtoolsd' -executable); if [[ -n "$vmtoolsd_path" ]]; then echo "COREOS_CUSTOM_HOSTNAME=$("$VMTOOLSD_PATH" --cmd "info-get guestinfo.metadata" | base64 -d | grep local-hostname | awk {\'print $2\'} | tr -d \'"\')" > $${OUTPUT}; else echo "vmtoolsd not found in /usr/share/oem/bin/ or /usr/bin/"; fi'
             - name: set-hostname.service
               enabled: true
               contents: |
@@ -332,7 +332,7 @@ spec:
                   RemainAfterExit=yes
                   Environment=OUTPUT=/run/metadata/coreos
                   ExecStart=/usr/bin/mkdir --parent /run/metadata
-                  ExecStart=/usr/bin/bash -cv 'VMTOOLSD_PATH=$(find /usr -iname 'vmtoolsd' -executable); if [[ -n "$vmtoolsd_path" ]]; then echo "COREOS_CUSTOM_HOSTNAME=$("$VMTOOLSD_PATH" --cmd "info-get guestinfo.metadata" | base64 -d | grep local-hostname | awk {\'print $2\'} | tr -d \'"\').eitco.de" > $${OUTPUT}; else echo "vmtoolsd not found in /usr/share/oem/bin/ or /usr/bin/"; fi'
+                  ExecStart=/usr/bin/bash -cv 'VMTOOLSD_PATH=$(find /usr -iname 'vmtoolsd' -executable); if [[ -n "$vmtoolsd_path" ]]; then echo "COREOS_CUSTOM_HOSTNAME=$("$VMTOOLSD_PATH" --cmd "info-get guestinfo.metadata" | base64 -d | grep local-hostname | awk {\'print $2\'} | tr -d \'"\')" > $${OUTPUT}; else echo "vmtoolsd not found in /usr/share/oem/bin/ or /usr/bin/"; fi'
               - name: set-hostname.service
                 enabled: true
                 contents: |

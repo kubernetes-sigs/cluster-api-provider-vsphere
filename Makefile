@@ -516,7 +516,7 @@ test-integration: $(GINKGO) $(KUSTOMIZE) $(KIND)
 .PHONY: e2e-image
 e2e-image: ## Build the e2e manager image
 	docker buildx build --platform linux/$(ARCH) --output=type=docker \
-		--build-arg ldflags="$(LDFLAGS)" --tag="gcr.io/k8s-staging-cluster-api/capv-manager:e2e" .
+		--build-arg ldflags="$(LDFLAGS)" --tag="gcr.io/k8s-staging-capi-vsphere/cluster-api-vsphere-controller:dev" .
 
 .PHONY: e2e
 e2e: e2e-image generate-e2e-templates

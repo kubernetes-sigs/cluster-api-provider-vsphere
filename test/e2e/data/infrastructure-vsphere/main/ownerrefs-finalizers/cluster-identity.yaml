@@ -2,9 +2,9 @@
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: VSphereClusterIdentity
 metadata:
-  name: ownerreferences
+  name: ownerrefs-finalizers
 spec:
-  secretName: ownerreferences
+  secretName: ownerrefs-finalizers
   allowedNamespaces:
     selector:
       matchLabels:

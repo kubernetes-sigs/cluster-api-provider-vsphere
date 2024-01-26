@@ -25,6 +25,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	"github.com/vmware/govmomi/find"
+	"github.com/vmware/govmomi/vim25/mo"
 	corev1 "k8s.io/api/core/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
@@ -38,16 +39,13 @@ import (
 
 type AntiAffinitySpecInput struct {
 	InfraClients
-	Global          GlobalInput
-	Namespace       *corev1.Namespace
-	WorkerNodeCount int64
-	SkipCleanup     bool
+	Global      GlobalInput
+	Namespace   *corev1.Namespace
+	SkipCleanup bool
 }
 
 var _ = Describe("Cluster creation with anti affined nodes", func() {
-	var (
-		namespace *corev1.Namespace
-	)
+	var namespace *corev1.Namespace
 
 	BeforeEach(func() {
 		Expect(bootstrapClusterProxy).NotTo(BeNil(), "BootstrapClusterProxy can't be nil")
@@ -61,8 +59,7 @@ var _ = Describe("Cluster creation with anti affined nodes", func() {
 	It("should create a cluster with anti-affined nodes", func() {
 		// Since the upstream CI has four nodes, worker node count is set to 4.
 		VerifyAntiAffinity(ctx, AntiAffinitySpecInput{
-			WorkerNodeCount: 4,
-			Namespace:       namespace,
+			Namespace: namespace,
 			InfraClients: InfraClients{
 				Client:     vsphereClient,
 				RestClient: restClient,
@@ -89,12 +86,21 @@ func VerifyAntiAffinity(ctx context.Context, input AntiAffinitySpecInput) {
 	Expect(namespace).NotTo(BeNil())
 
 	By("checking if the target system has enough hosts")
-	hostSystems, err := input.Finder.HostSystemList(ctx, "*")
+	computeResource, err := input.Finder.ComputeResourceOrDefault(ctx, "")
 	Expect(err).ToNot(HaveOccurred())
-	Expect(len(hostSystems) >= int(input.WorkerNodeCount)).To(BeTrue(), "This test requires more or equal number of hosts compared to the WorkerNodeCount. Expected at least %d but only got %d hosts.", input.WorkerNodeCount, len(hostSystems))
+	computeCluster := mo.ComputeResource{}
+	Expect(input.Client.RetrieveOne(ctx, computeResource.Reference(), []string{"summary"}, &computeCluster)).To(Succeed())
 
-	Byf("creating a workload cluster %s", clusterName)
-	configCluster := defaultConfigCluster(clusterName, namespace.Name, "", 1, input.WorkerNodeCount,
+	// Setting the number of worker nodes to the number of hosts.
+	// Later in the test we check that all worker nodes are located on different hosts.
+	workerNodeCount := int(computeCluster.Summary.GetComputeResourceSummary().NumEffectiveHosts)
+	// Limit size to not create too much VMs when running in a big environment.
+	if workerNodeCount > 10 {
+		workerNodeCount = 10
+	}
+
+	Byf("creating a workload cluster %s having %d worker nodes", clusterName, workerNodeCount)
+	configCluster := defaultConfigCluster(clusterName, namespace.Name, "", 1, int64(workerNodeCount),
 		input.Global)
 
 	clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
@@ -123,30 +129,30 @@ func VerifyAntiAffinity(ctx context.Context, input AntiAffinitySpecInput) {
 
 	By("verifying node anti-affinity for worker nodes")
 	workerVMs := FetchWorkerVMsForCluster(ctx, input.Global.BootstrapClusterProxy, clusterName, namespace.Name)
-	Expect(workerVMs).To(HaveLen(int(input.WorkerNodeCount)))
+	Expect(workerVMs).To(HaveLen(workerNodeCount))
 	Expect(verifyAntiAffinityForVMs(ctx, input.Finder, workerVMs)).To(Succeed())
 
-	Byf("Scaling the MachineDeployment out to > %d nodes", input.WorkerNodeCount)
+	Byf("Scaling the MachineDeployment out to > %d nodes", workerNodeCount)
 	framework.ScaleAndWaitMachineDeployment(ctx, framework.ScaleAndWaitMachineDeploymentInput{
 		ClusterProxy:              input.Global.BootstrapClusterProxy,
 		Cluster:                   clusterResources.Cluster,
 		MachineDeployment:         clusterResources.MachineDeployments[0],
-		Replicas:                  int32(input.WorkerNodeCount + 2),
+		Replicas:                  int32(workerNodeCount + 2),
 		WaitForMachineDeployments: input.Global.E2EConfig.GetIntervals("", "wait-worker-nodes"),
 	})
 
-	Byf("Scaling the MachineDeployment down to %d nodes", input.WorkerNodeCount)
+	Byf("Scaling the MachineDeployment down to %d nodes", workerNodeCount)
 	framework.ScaleAndWaitMachineDeployment(ctx, framework.ScaleAndWaitMachineDeploymentInput{
 		ClusterProxy:              input.Global.BootstrapClusterProxy,
 		Cluster:                   clusterResources.Cluster,
 		MachineDeployment:         clusterResources.MachineDeployments[0],
-		Replicas:                  int32(input.WorkerNodeCount),
+		Replicas:                  int32(workerNodeCount),
 		WaitForMachineDeployments: input.Global.E2EConfig.GetIntervals("", "wait-worker-nodes"),
 	})
 
 	// Refetch the updated list of worker VMs
 	workerVMs = FetchWorkerVMsForCluster(ctx, input.Global.BootstrapClusterProxy, clusterName, namespace.Name)
-	Expect(workerVMs).To(HaveLen(int(input.WorkerNodeCount)))
+	Expect(workerVMs).To(HaveLen(workerNodeCount))
 
 	By("worker nodes should be anti-affined again since enough hosts are available")
 	Eventually(func() error {

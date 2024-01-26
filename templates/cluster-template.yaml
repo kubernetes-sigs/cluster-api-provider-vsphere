@@ -195,7 +195,7 @@ spec:
         # Nothing to do for kubernetes < v1.29
         KUBEADM_MINOR="$(kubeadm version -o short | cut -d '.' -f 2)"
         if [[ "$KUBEADM_MINOR" -lt "29" ]]; then
-          return
+          exit 0
         fi
 
         IS_KUBEADM_INIT="false"

@@ -121,7 +121,7 @@ providers:
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-kcp-remediation.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-md-remediation.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-node-drain.yaml"
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-ownerreferences.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-ownerrefs-finalizers.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-pci.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-remote-management.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-storage-policy.yaml"

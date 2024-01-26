@@ -42,7 +42,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/e2e/ipam"
 )
 
-var _ = Describe("OwnerReference checks with FailureDomains and ClusterIdentity", func() {
+var _ = Describe("Ensure OwnerReferences and Finalizers are resilient with FailureDomains and ClusterIdentity", func() {
 	var (
 		testSpecificClusterctlConfigPath string
 		testSpecificIPAddressClaims      ipam.IPAddressClaims
@@ -66,7 +66,7 @@ var _ = Describe("OwnerReference checks with FailureDomains and ClusterIdentity"
 			BootstrapClusterProxy: bootstrapClusterProxy,
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,
-			Flavor:                ptr.To("ownerreferences"),
+			Flavor:                ptr.To("ownerrefs-finalizers"),
 			PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 				// Inject a client to use for checkClusterIdentitySecretOwnerRef
 				checkClusterIdentitySecretOwnerRef(ctx, proxy.GetClient())
@@ -91,6 +91,13 @@ var _ = Describe("OwnerReference checks with FailureDomains and ClusterIdentity"
 					framework.ExpOwnerReferenceAssertions,
 					VSphereKubernetesReferenceAssertions,
 					VSphereReferenceAssertions,
+				)
+				// This check ensures that finalizers are resilient - i.e. correctly re-reconciled, when removed.
+				framework.ValidateFinalizersResilience(ctx, proxy, namespace, clusterName,
+					framework.CoreFinalizersAssertion,
+					framework.KubeadmControlPlaneFinalizersAssertion,
+					framework.ExpFinalizersAssertion,
+					vSphereFinalizers,
 				)
 			},
 		}
@@ -182,14 +189,25 @@ var (
 
 // The following names are hardcoded in templates to make cleanup easier.
 var (
-	clusterIdentityName            = "ownerreferences"
+	clusterIdentityName            = "ownerrefs-finalizers"
 	clusterIdentitySecretNamespace = "capv-system"
-	deploymentZoneName             = "ownerreferences"
+	deploymentZoneName             = "ownerrefs-finalizers"
 )
+
+// vSphereFinalizers maps VSphere infrastructure resource types to their expected finalizers.
+var vSphereFinalizers = map[string][]string{
+	"VSphereVM":              {infrav1.VMFinalizer},
+	"Secret":                 {infrav1.SecretIdentitySetFinalizer},
+	"VSphereClusterIdentity": {infrav1.VSphereClusterIdentityFinalizer},
+	"VSphereDeploymentZone":  {infrav1.DeploymentZoneFinalizer},
+	"VSphereMachine":         {infrav1.MachineFinalizer},
+	"IPAddressClaim":         {infrav1.IPAddressClaimFinalizer},
+	"VSphereCluster":         {infrav1.ClusterFinalizer},
+}
 
 // cleanupVSphereObjects deletes the Secret, VSphereClusterIdentity, and VSphereDeploymentZone created for this test.
 // The VSphereFailureDomain, and the Secret for the VSphereClusterIdentity should be deleted as a result of the above.
-func cleanupVSphereObjects(ctx context.Context, bootstrapClusterProxy framework.ClusterProxy) bool {
+func cleanupVSphereObjects(ctx context.Context, bootstrapClusterProxy framework.ClusterProxy) {
 	Eventually(func() error {
 		if err := bootstrapClusterProxy.GetClient().Delete(ctx,
 			&infrav1.VSphereClusterIdentity{
@@ -209,7 +227,6 @@ func cleanupVSphereObjects(ctx context.Context, bootstrapClusterProxy framework.
 		}
 		return nil
 	}).Should(Succeed())
-	return true
 }
 
 func createVsphereIdentitySecret(ctx context.Context, bootstrapClusterProxy framework.ClusterProxy) {

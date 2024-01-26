@@ -2,7 +2,7 @@
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: VSphereFailureDomain
 metadata:
-  name: "ownerreferences"
+  name: ownerrefs-finalizers
 spec:
   region:
     name: '${VSPHERE_DATACENTER}'
@@ -23,9 +23,9 @@ spec:
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: VSphereDeploymentZone
 metadata:
-  name: "ownerreferences"
+  name: ownerrefs-finalizers
 spec:
   server: '${VSPHERE_SERVER}'
-  failureDomain: "ownerreferences"
+  failureDomain: "ownerrefs-finalizers"
   placementConstraint:
     resourcePool: '${VSPHERE_RESOURCE_POOL}'

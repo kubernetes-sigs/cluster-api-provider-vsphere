@@ -25,6 +25,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	"github.com/vmware/govmomi/find"
+	"github.com/vmware/govmomi/vim25/mo"
 	corev1 "k8s.io/api/core/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
@@ -85,17 +86,20 @@ func VerifyAntiAffinity(ctx context.Context, input AntiAffinitySpecInput) {
 	Expect(namespace).NotTo(BeNil())
 
 	By("checking if the target system has enough hosts")
-	hostSystems, err := input.Finder.HostSystemList(ctx, "*")
+	computeResource, err := input.Finder.ComputeResourceOrDefault(ctx, "")
 	Expect(err).ToNot(HaveOccurred())
+	computeCluster := mo.ComputeResource{}
+	Expect(input.Client.RetrieveOne(ctx, computeResource.Reference(), []string{"summary"}, &computeCluster)).To(Succeed())
+
 	// Setting the number of worker nodes to the number of hosts.
 	// Later in the test we check that all worker nodes are located on different hosts.
-	workerNodeCount := len(hostSystems)
+	workerNodeCount := int(computeCluster.Summary.GetComputeResourceSummary().NumEffectiveHosts)
 	// Limit size to not create too much VMs when running in a big environment.
 	if workerNodeCount > 10 {
 		workerNodeCount = 10
 	}
 
-	Byf("creating a workload cluster %s", clusterName)
+	Byf("creating a workload cluster %s having %d worker nodes", clusterName, workerNodeCount)
 	configCluster := defaultConfigCluster(clusterName, namespace.Name, "", 1, int64(workerNodeCount),
 		input.Global)
 

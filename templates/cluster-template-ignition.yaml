@@ -223,7 +223,7 @@ spec:
                 RemainAfterExit=yes
                 Environment=OUTPUT=/run/metadata/coreos
                 ExecStart=/usr/bin/mkdir --parent /run/metadata
-                ExecStart=/usr/bin/bash -cv 'echo "COREOS_CUSTOM_HOSTNAME=$(vmtoolsd --cmd "info-get guestinfo.metadata" | base64 -d | grep local-hostname | awk {\'print $2\'} | tr -d \'"\')" > $${OUTPUT}'
+                ExecStart=/usr/bin/bash -cv 'echo "COREOS_CUSTOM_HOSTNAME=$(/usr/bin/vmtoolsd --cmd "info-get guestinfo.metadata" | base64 -d | grep local-hostname | awk {\'print $2\'} | tr -d \'"\')" > $${OUTPUT}'
             - name: set-hostname.service
               enabled: true
               contents: |
@@ -321,7 +321,7 @@ spec:
                   RemainAfterExit=yes
                   Environment=OUTPUT=/run/metadata/coreos
                   ExecStart=/usr/bin/mkdir --parent /run/metadata
-                  ExecStart=/usr/bin/bash -cv 'echo "COREOS_CUSTOM_HOSTNAME=$(vmtoolsd --cmd "info-get guestinfo.metadata" | base64 -d | grep local-hostname | awk {\'print $2\'} | tr -d \'"\')" > $${OUTPUT}'
+                  ExecStart=/usr/bin/bash -cv 'echo "COREOS_CUSTOM_HOSTNAME=$(/usr/bin/vmtoolsd --cmd "info-get guestinfo.metadata" | base64 -d | grep local-hostname | awk {\'print $2\'} | tr -d \'"\')" > $${OUTPUT}'
               - name: set-hostname.service
                 enabled: true
                 contents: |

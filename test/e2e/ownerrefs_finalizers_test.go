@@ -39,75 +39,65 @@ import (
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/test/e2e/ipam"
 )
 
 var _ = Describe("Ensure OwnerReferences and Finalizers are resilient with FailureDomains and ClusterIdentity", func() {
-	var (
-		testSpecificClusterctlConfigPath string
-		testSpecificIPAddressClaims      ipam.IPAddressClaims
-	)
-	BeforeEach(func() {
-		testSpecificClusterctlConfigPath, testSpecificIPAddressClaims = ipamHelper.ClaimIPs(ctx, clusterctlConfigPath)
+	const specName = "owner-reference"
+	Setup(specName, func(testSpecificClusterctlConfigPathGetter func() string) {
+		// Before running the test create the secret used by the VSphereClusterIdentity to connect to the vCenter.
+		BeforeEach(func() {
+			createVsphereIdentitySecret(ctx, bootstrapClusterProxy)
+		})
+
+		capi_e2e.QuickStartSpec(ctx, func() capi_e2e.QuickStartSpecInput {
+			return capi_e2e.QuickStartSpecInput{
+				E2EConfig:             e2eConfig,
+				ClusterctlConfigPath:  testSpecificClusterctlConfigPathGetter(),
+				BootstrapClusterProxy: bootstrapClusterProxy,
+				ArtifactFolder:        artifactFolder,
+				SkipCleanup:           skipCleanup,
+				Flavor:                ptr.To("ownerrefs-finalizers"),
+				PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+					// Inject a client to use for checkClusterIdentitySecretOwnerRef
+					checkClusterIdentitySecretOwnerRef(ctx, proxy.GetClient())
+
+					// Set up a periodic patch to ensure the DeploymentZone is reconciled.
+					forcePeriodicReconcile(ctx, proxy.GetClient(), namespace)
+
+					// This check ensures that owner references are resilient - i.e. correctly re-reconciled - when removed.
+					framework.ValidateOwnerReferencesResilience(ctx, proxy, namespace, clusterName,
+						framework.CoreOwnerReferenceAssertion,
+						framework.KubeadmBootstrapOwnerReferenceAssertions,
+						framework.KubeadmControlPlaneOwnerReferenceAssertions,
+						framework.ExpOwnerReferenceAssertions,
+						VSphereKubernetesReferenceAssertions,
+						VSphereReferenceAssertions,
+					)
+					// This check ensures that owner references are always updated to the most recent apiVersion.
+					framework.ValidateOwnerReferencesOnUpdate(ctx, proxy, namespace, clusterName,
+						framework.CoreOwnerReferenceAssertion,
+						framework.KubeadmBootstrapOwnerReferenceAssertions,
+						framework.KubeadmControlPlaneOwnerReferenceAssertions,
+						framework.ExpOwnerReferenceAssertions,
+						VSphereKubernetesReferenceAssertions,
+						VSphereReferenceAssertions,
+					)
+					// This check ensures that finalizers are resilient - i.e. correctly re-reconciled, when removed.
+					framework.ValidateFinalizersResilience(ctx, proxy, namespace, clusterName,
+						framework.CoreFinalizersAssertion,
+						framework.KubeadmControlPlaneFinalizersAssertion,
+						framework.ExpFinalizersAssertion,
+						vSphereFinalizers,
+					)
+				},
+			}
+		})
+
+		// Delete objects created by the test which are not in the test namespace.
+		AfterEach(func() {
+			cleanupVSphereObjects(ctx, bootstrapClusterProxy)
+		})
 	})
-	defer AfterEach(func() {
-		Expect(ipamHelper.Cleanup(ctx, testSpecificIPAddressClaims)).To(Succeed())
-	})
-
-	// Before running the test create the secret used by the VSphereClusterIdentity to connect to the vCenter.
-	BeforeEach(func() {
-		createVsphereIdentitySecret(ctx, bootstrapClusterProxy)
-	})
-
-	capi_e2e.QuickStartSpec(ctx, func() capi_e2e.QuickStartSpecInput {
-		return capi_e2e.QuickStartSpecInput{
-			E2EConfig:             e2eConfig,
-			ClusterctlConfigPath:  testSpecificClusterctlConfigPath,
-			BootstrapClusterProxy: bootstrapClusterProxy,
-			ArtifactFolder:        artifactFolder,
-			SkipCleanup:           skipCleanup,
-			Flavor:                ptr.To("ownerrefs-finalizers"),
-			PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
-				// Inject a client to use for checkClusterIdentitySecretOwnerRef
-				checkClusterIdentitySecretOwnerRef(ctx, proxy.GetClient())
-
-				// Set up a periodic patch to ensure the DeploymentZone is reconciled.
-				forcePeriodicReconcile(ctx, proxy.GetClient(), namespace)
-
-				// This check ensures that owner references are resilient - i.e. correctly re-reconciled - when removed.
-				framework.ValidateOwnerReferencesResilience(ctx, proxy, namespace, clusterName,
-					framework.CoreOwnerReferenceAssertion,
-					framework.KubeadmBootstrapOwnerReferenceAssertions,
-					framework.KubeadmControlPlaneOwnerReferenceAssertions,
-					framework.ExpOwnerReferenceAssertions,
-					VSphereKubernetesReferenceAssertions,
-					VSphereReferenceAssertions,
-				)
-				// This check ensures that owner references are always updated to the most recent apiVersion.
-				framework.ValidateOwnerReferencesOnUpdate(ctx, proxy, namespace, clusterName,
-					framework.CoreOwnerReferenceAssertion,
-					framework.KubeadmBootstrapOwnerReferenceAssertions,
-					framework.KubeadmControlPlaneOwnerReferenceAssertions,
-					framework.ExpOwnerReferenceAssertions,
-					VSphereKubernetesReferenceAssertions,
-					VSphereReferenceAssertions,
-				)
-				// This check ensures that finalizers are resilient - i.e. correctly re-reconciled, when removed.
-				framework.ValidateFinalizersResilience(ctx, proxy, namespace, clusterName,
-					framework.CoreFinalizersAssertion,
-					framework.KubeadmControlPlaneFinalizersAssertion,
-					framework.ExpFinalizersAssertion,
-					vSphereFinalizers,
-				)
-			},
-		}
-	})
-
-	// Delete objects created by the test which are not in the test namespace.
-	AfterEach(func() {
-		cleanupVSphereObjects(ctx, bootstrapClusterProxy)
-	})
-
 })
 
 var (

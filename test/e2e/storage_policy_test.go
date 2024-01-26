@@ -24,7 +24,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/pbm"
-	"github.com/vmware/govmomi/pbm/types"
+	pbmypes "github.com/vmware/govmomi/pbm/types"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -33,61 +33,54 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/test/e2e/ipam"
 )
 
 type StoragePolicySpecInput struct {
 	InfraClients
 	Global     GlobalInput
+	SpecName   string
 	Namespace  *corev1.Namespace
 	Datacenter string
 }
 
 var _ = Describe("Cluster creation with storage policy", func() {
-	var namespace *corev1.Namespace
+	const specName = "storage-policy"
+	Setup(specName, func(testSpecificClusterctlConfigPathGetter func() string) {
+		var namespace *corev1.Namespace
 
-	var (
-		testSpecificClusterctlConfigPath string
-		testSpecificIPAddressClaims      ipam.IPAddressClaims
-	)
-	BeforeEach(func() {
-		testSpecificClusterctlConfigPath, testSpecificIPAddressClaims = ipamHelper.ClaimIPs(ctx, clusterctlConfigPath)
-	})
-	defer AfterEach(func() {
-		Expect(ipamHelper.Cleanup(ctx, testSpecificIPAddressClaims)).To(Succeed())
-	})
+		BeforeEach(func() {
+			Expect(bootstrapClusterProxy).NotTo(BeNil(), "BootstrapClusterProxy can't be nil")
+			namespace = setupSpecNamespace("capv-e2e")
+		})
 
-	BeforeEach(func() {
-		Expect(bootstrapClusterProxy).NotTo(BeNil(), "BootstrapClusterProxy can't be nil")
-		namespace = setupSpecNamespace("capv-e2e")
-	})
+		AfterEach(func() {
+			cleanupSpecNamespace(namespace)
+		})
 
-	AfterEach(func() {
-		cleanupSpecNamespace(namespace)
-	})
-
-	It("should create a cluster successfully", func() {
-		VerifyStoragePolicy(ctx, StoragePolicySpecInput{
-			Namespace:  namespace,
-			Datacenter: vsphereDatacenter,
-			InfraClients: InfraClients{
-				Client:     vsphereClient,
-				RestClient: restClient,
-				Finder:     vsphereFinder,
-			},
-			Global: GlobalInput{
-				BootstrapClusterProxy: bootstrapClusterProxy,
-				ClusterctlConfigPath:  testSpecificClusterctlConfigPath,
-				E2EConfig:             e2eConfig,
-				ArtifactFolder:        artifactFolder,
-			},
+		It("should create a cluster successfully", func() {
+			VerifyStoragePolicy(ctx, StoragePolicySpecInput{
+				SpecName:   specName,
+				Namespace:  namespace,
+				Datacenter: vsphereDatacenter,
+				InfraClients: InfraClients{
+					Client:     vsphereClient,
+					RestClient: restClient,
+					Finder:     vsphereFinder,
+				},
+				Global: GlobalInput{
+					BootstrapClusterProxy: bootstrapClusterProxy,
+					ClusterctlConfigPath:  testSpecificClusterctlConfigPathGetter(),
+					E2EConfig:             e2eConfig,
+					ArtifactFolder:        artifactFolder,
+				},
+			})
 		})
 	})
 })
 
 func VerifyStoragePolicy(ctx context.Context, input StoragePolicySpecInput) {
 	var (
-		specName         = "storage-policy"
+		specName         = input.SpecName
 		namespace        = input.Namespace
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	)
@@ -113,7 +106,7 @@ func VerifyStoragePolicy(ctx context.Context, input StoragePolicySpecInput) {
 
 	pbmClient, err := pbm.NewClient(ctx, input.Client.Client)
 	Expect(err).NotTo(HaveOccurred())
-	var res []types.PbmServerObjectRef
+	var res []pbmypes.PbmServerObjectRef
 	if pbmClient != nil {
 		spName := input.Global.E2EConfig.GetVariable(VsphereStoragePolicy)
 		if spName == "" {
@@ -123,7 +116,7 @@ func VerifyStoragePolicy(ctx context.Context, input StoragePolicySpecInput) {
 		spID, err := pbmClient.ProfileIDByName(ctx, spName)
 		Expect(err).NotTo(HaveOccurred())
 
-		res, err = pbmClient.QueryAssociatedEntity(ctx, types.PbmProfileId{UniqueId: spID}, "virtualMachine")
+		res, err = pbmClient.QueryAssociatedEntity(ctx, pbmypes.PbmProfileId{UniqueId: spID}, "virtualMachine")
 		Expect(err).NotTo(HaveOccurred())
 	}
 	Expect(res).ToNot(BeEmpty())

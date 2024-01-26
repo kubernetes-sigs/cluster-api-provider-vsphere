@@ -18,38 +18,27 @@ package e2e
 
 import (
 	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	"k8s.io/utils/ptr"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
-
-	"sigs.k8s.io/cluster-api-provider-vsphere/test/e2e/ipam"
 )
 
 var _ = Describe("When upgrading a workload cluster using ClusterClass [ClusterClass]", func() {
-	var (
-		testSpecificClusterctlConfigPath string
-		testSpecificIPAddressClaims      ipam.IPAddressClaims
-	)
-	BeforeEach(func() {
-		testSpecificClusterctlConfigPath, testSpecificIPAddressClaims = ipamHelper.ClaimIPs(ctx, clusterctlConfigPath)
-	})
-	defer AfterEach(func() {
-		Expect(ipamHelper.Cleanup(ctx, testSpecificIPAddressClaims)).To(Succeed())
-	})
-
-	capi_e2e.ClusterUpgradeConformanceSpec(ctx, func() capi_e2e.ClusterUpgradeConformanceSpecInput {
-		return capi_e2e.ClusterUpgradeConformanceSpecInput{
-			E2EConfig:             e2eConfig,
-			ClusterctlConfigPath:  testSpecificClusterctlConfigPath,
-			BootstrapClusterProxy: bootstrapClusterProxy,
-			ArtifactFolder:        artifactFolder,
-			SkipCleanup:           skipCleanup,
-			Flavor:                ptr.To("topology"),
-			// This test is run in CI in parallel with other tests. To keep the test duration reasonable
-			// the conformance tests are skipped.
-			ControlPlaneMachineCount: ptr.To[int64](1),
-			WorkerMachineCount:       ptr.To[int64](2),
-			SkipConformanceTests:     true,
-		}
+	const specName = "k8s-upgrade-and-conformance" // copied from CAPI
+	Setup(specName, func(testSpecificClusterctlConfigPathGetter func() string) {
+		capi_e2e.ClusterUpgradeConformanceSpec(ctx, func() capi_e2e.ClusterUpgradeConformanceSpecInput {
+			return capi_e2e.ClusterUpgradeConformanceSpecInput{
+				E2EConfig:             e2eConfig,
+				ClusterctlConfigPath:  testSpecificClusterctlConfigPathGetter(),
+				BootstrapClusterProxy: bootstrapClusterProxy,
+				ArtifactFolder:        artifactFolder,
+				SkipCleanup:           skipCleanup,
+				Flavor:                ptr.To("topology"),
+				// This test is run in CI in parallel with other tests. To keep the test duration reasonable
+				// the conformance tests are skipped.
+				ControlPlaneMachineCount: ptr.To[int64](1),
+				WorkerMachineCount:       ptr.To[int64](2),
+				SkipConformanceTests:     true,
+			}
+		})
 	})
 })

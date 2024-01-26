@@ -27,71 +27,64 @@ import (
 	"github.com/vmware/govmomi/vim25/mo"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
+	. "sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
 	capiutil "sigs.k8s.io/cluster-api/util"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
-	. "sigs.k8s.io/cluster-api-provider-vsphere/test/e2e/helper"
-	"sigs.k8s.io/cluster-api-provider-vsphere/test/e2e/ipam"
 )
 
 type HardwareUpgradeSpecInput struct {
 	InfraClients
 	Global    GlobalInput
+	SpecName  string
 	Namespace *corev1.Namespace
 	Template  string
 	ToVersion string
 }
 
 var _ = Describe("Hardware version upgrade", func() {
-	var (
-		namespace *corev1.Namespace
-	)
+	const specName = "hw-upgrade"
+	Setup(specName, func(testSpecificClusterctlConfigPathGetter func() string) {
+		var (
+			namespace *corev1.Namespace
+		)
 
-	var (
-		testSpecificClusterctlConfigPath string
-		testSpecificIPAddressClaims      ipam.IPAddressClaims
-	)
-	BeforeEach(func() {
-		testSpecificClusterctlConfigPath, testSpecificIPAddressClaims = ipamHelper.ClaimIPs(ctx, clusterctlConfigPath)
-	})
-	defer AfterEach(func() {
-		Expect(ipamHelper.Cleanup(ctx, testSpecificIPAddressClaims)).To(Succeed())
-	})
+		BeforeEach(func() {
+			Expect(bootstrapClusterProxy).NotTo(BeNil(), "BootstrapClusterProxy can't be nil")
+			namespace = setupSpecNamespace(specName)
+		})
 
-	BeforeEach(func() {
-		Expect(bootstrapClusterProxy).NotTo(BeNil(), "BootstrapClusterProxy can't be nil")
-		namespace = setupSpecNamespace("hw-upgrade-e2e")
-	})
+		AfterEach(func() {
+			cleanupSpecNamespace(namespace)
+		})
 
-	AfterEach(func() {
-		cleanupSpecNamespace(namespace)
-	})
+		It("creates a cluster with VM hardware versions upgraded", func() {
+			Expect(e2eConfig.GetVariable("VSPHERE_TEMPLATE")).NotTo(BeEmpty())
 
-	It("creates a cluster with VM hardware versions upgraded", func() {
-		Expect(e2eConfig.GetVariable("VSPHERE_TEMPLATE")).NotTo(BeEmpty())
-
-		VerifyHardwareUpgrade(ctx, HardwareUpgradeSpecInput{
-			Namespace: namespace,
-			Template:  e2eConfig.GetVariable("VSPHERE_TEMPLATE"),
-			ToVersion: "vmx-17",
-			InfraClients: InfraClients{
-				Client:     vsphereClient,
-				RestClient: restClient,
-				Finder:     vsphereFinder,
-			},
-			Global: GlobalInput{
-				BootstrapClusterProxy: bootstrapClusterProxy,
-				ClusterctlConfigPath:  testSpecificClusterctlConfigPath,
-				E2EConfig:             e2eConfig,
-				ArtifactFolder:        artifactFolder,
-			},
+			VerifyHardwareUpgrade(ctx, HardwareUpgradeSpecInput{
+				SpecName:  specName,
+				Namespace: namespace,
+				Template:  e2eConfig.GetVariable("VSPHERE_TEMPLATE"),
+				ToVersion: "vmx-17",
+				InfraClients: InfraClients{
+					Client:     vsphereClient,
+					RestClient: restClient,
+					Finder:     vsphereFinder,
+				},
+				Global: GlobalInput{
+					BootstrapClusterProxy: bootstrapClusterProxy,
+					ClusterctlConfigPath:  testSpecificClusterctlConfigPathGetter(),
+					E2EConfig:             e2eConfig,
+					ArtifactFolder:        artifactFolder,
+				},
+			})
 		})
 	})
 })
 
 func VerifyHardwareUpgrade(ctx context.Context, input HardwareUpgradeSpecInput) {
 	var (
-		specName         = "hw-upgrade"
+		specName         = input.SpecName
 		namespace        = input.Namespace
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	)

@@ -14,8 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package ipam is a helper to claim ip addresses from an IPAM provider cluster.
-package ipam
+package ip
 
 import (
 	"context"
@@ -24,18 +23,20 @@ import (
 	"github.com/vmware/govmomi"
 )
 
-type noopHelper struct{}
+var _ AddressManager = &noop{}
 
-func (h *noopHelper) ClaimIPs(_ context.Context, _ string, _ ...string) (string, IPAddressClaims) {
-	return "", nil
+type noop struct{}
+
+func (h *noop) ClaimIPs(_ context.Context, _ ...string) (AddressClaims, map[string]string) {
+	return nil, nil
 }
 
-func (h *noopHelper) Cleanup(_ context.Context, _ IPAddressClaims) error {
-	By("Skipping cleanup of IPAddressClaims because of using ipam.noopHelper")
+func (h *noop) Cleanup(_ context.Context, _ AddressClaims) error {
+	By("Skipping cleanup of IPAddressClaims because of using ip.noop")
 	return nil
 }
 
-func (*noopHelper) Teardown(_ context.Context, _ string, _ *govmomi.Client) error {
-	By("Skipping teardown of IPAddressClaims because of using ipam.noopHelper")
+func (*noop) Teardown(_ context.Context, _ string, _ *govmomi.Client) error {
+	By("Skipping teardown of IPAddressClaims because of using ip.noop")
 	return nil
 }

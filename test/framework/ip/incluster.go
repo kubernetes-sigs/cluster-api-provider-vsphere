@@ -309,7 +309,7 @@ func (h *inCluster) claimIPAddress(ctx context.Context) (_ string, _ *ipamv1.IPA
 		}
 
 		if claim.Status.AddressRef.Name == "" {
-			retryError = errors.Wrap(err, "IPAddressClaim.Status.AddressRef.Name is not set")
+			retryError = errors.New("IPAddressClaim.Status.AddressRef.Name is not set")
 			return false, nil
 		}
 
@@ -318,7 +318,7 @@ func (h *inCluster) claimIPAddress(ctx context.Context) (_ string, _ *ipamv1.IPA
 			return false, nil
 		}
 		if ip.Spec.Address == "" {
-			retryError = errors.Wrap(err, "IPAddress.Spec.Address is not set")
+			retryError = errors.New("IPAddress.Spec.Address is not set")
 			return false, nil
 		}
 
@@ -326,6 +326,8 @@ func (h *inCluster) claimIPAddress(ctx context.Context) (_ string, _ *ipamv1.IPA
 		return true, nil
 	})
 	if retryError != nil {
+		// Try best effort deletion of the unused claim before returning an error.
+		_ = h.client.Delete(ctx, claim)
 		return "", nil, retryError
 	}
 

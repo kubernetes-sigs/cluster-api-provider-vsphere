@@ -36,6 +36,7 @@ import (
 	. "sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
 	capiutil "sigs.k8s.io/cluster-api/util"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/yaml"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vsphereframework "sigs.k8s.io/cluster-api-provider-vsphere/test/framework"
@@ -47,10 +48,33 @@ const (
 	VsphereStoragePolicy = "VSPHERE_STORAGE_POLICY"
 )
 
+const (
+	// GovmomiTestMode identify tests run with CAPV using govmomi to access vCenter.
+	GovmomiTestMode string = "govmomi"
+
+	// SupervisorTestMode identify tests run with CAPV in supervisor mode (delegating to vm-operator all the interaction with vCenter).
+	SupervisorTestMode string = "supervisor"
+)
+
+const (
+	// VMCTestTarget identify tests targeting VMC infrastructure used for CAPV CI.
+	VMCTestTarget string = "vmc"
+
+	// VCenterTestTarget identify tests targeting a user provided vCenter instance.
+	VCenterTestTarget string = "vcenter"
+
+	// VCSimTestTarget identify tests targeting a vcsim instance (instead of a real vCenter).
+	VCSimTestTarget string = "vcsim"
+)
+
 // Test suite flags.
 var (
 	// configPath is the path to the e2e config file.
 	configPath string
+
+	// configOverridesPath is the path to the e2e config file containing overrides to the content of configPath config file.
+	// Only variables and intervals are considered.
+	configOverridesPath string
 
 	// useExistingCluster instructs the test to use the current cluster instead
 	// of creating a new one (default discovery rules apply).
@@ -65,6 +89,12 @@ var (
 
 	// skipCleanup prevents cleanup of test resources e.g. for debug purposes.
 	skipCleanup bool
+
+	// defines how CAPV should behave during this test.
+	testMode string
+
+	// defines which type of infrastructure this test targets.
+	testTarget string
 )
 
 // Test suite global vars.
@@ -95,13 +125,21 @@ var (
 	ipAddressManager vsphereip.AddressManager
 )
 
+type configOverrides struct {
+	Variables map[string]string   `json:"variables,omitempty"`
+	Intervals map[string][]string `json:"intervals,omitempty"`
+}
+
 func init() {
 	flag.StringVar(&configPath, "e2e.config", "", "path to the e2e config file")
+	flag.StringVar(&configOverridesPath, "e2e.config-overrides", "", "path to the e2e config file containing overrides to the e2e config file")
 	flag.StringVar(&artifactFolder, "e2e.artifacts-folder", "", "folder where e2e test artifact should be stored")
 	flag.BoolVar(&alsoLogToFile, "e2e.also-log-to-file", true, "if true, ginkgo logs are additionally written to the `ginkgo-log.txt` file in the artifacts folder (including timestamps)")
 	flag.BoolVar(&skipCleanup, "e2e.skip-resource-cleanup", false, "if true, the resource cleanup after tests will be skipped")
 	flag.BoolVar(&useExistingCluster, "e2e.use-existing-cluster", false, "if true, the test uses the current cluster instead of creating a new one (default discovery rules apply)")
 	flag.StringVar(&e2eIPAMKubeconfig, "e2e.ipam-kubeconfig", "", "path to the kubeconfig for the IPAM cluster")
+	flag.StringVar(&testMode, "e2e.capv-mode", GovmomiTestMode, "defines how CAPV should behave during this test, one of govmomi|supervisor")
+	flag.StringVar(&testTarget, "e2e.target-type", VMCTestTarget, "defines which type of infrastructure this test targets, one of vmc|vcenter|vcsim")
 }
 
 func TestE2E(t *testing.T) {
@@ -143,6 +181,24 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	var err error
 	e2eConfig, err = vsphereframework.LoadE2EConfig(ctx, configPath)
 	Expect(err).NotTo(HaveOccurred())
+	if configOverridesPath != "" {
+		Expect(configOverridesPath).To(BeAnExistingFile(), "Invalid test suite argument. e2e.config-overrides should be an existing file.")
+
+		Byf("Merging with e2e config overrides from %q", configOverridesPath)
+		configData, err := os.ReadFile(configOverridesPath) //nolint:gosec
+		Expect(err).ToNot(HaveOccurred(), "Failed to read e2e config overrides")
+		Expect(configData).ToNot(BeEmpty(), "The e2e config overrides should not be empty")
+
+		configOverrides := &configOverrides{}
+		Expect(yaml.Unmarshal(configData, configOverrides)).To(Succeed(), "Failed to convert e2e config overrides to yaml")
+
+		for k, v := range configOverrides.Variables {
+			e2eConfig.Variables[k] = v
+		}
+		for k, v := range configOverrides.Intervals {
+			e2eConfig.Intervals[k] = v
+		}
+	}
 
 	Byf("Creating a clusterctl local repository into %q", artifactFolder)
 	clusterctlConfigPath, err = vsphereframework.CreateClusterctlLocalRepository(ctx, e2eConfig, filepath.Join(artifactFolder, "repository"), true)

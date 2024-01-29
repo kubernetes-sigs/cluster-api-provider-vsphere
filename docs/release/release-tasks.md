@@ -30,7 +30,7 @@ This comes down to changing occurrences of the old version to the new version, e
    1. Goal is that our clusterctl upgrade tests are testing the right versions. For `v1.8` this means:
       - v1beta1: `v1.8` (will change with each new release)
       - v1beta1: `v1.7` (will change with each new release)
-   2. Update providers in `vsphere-ci.yaml`, `vsphere-dev.yaml`, `integration-dev.yaml`:
+   2. Update providers in `vsphere.yaml`, `integration-dev.yaml`:
       1. Add a new `v1.7.0` entry.
       2. Remove providers that are not used anymore in clusterctl upgrade tests.
       3. Change `v1.7.99` to `v1.8.99`.

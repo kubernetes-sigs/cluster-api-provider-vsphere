@@ -28,6 +28,7 @@ import (
 	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -217,9 +218,12 @@ func getManager(cfg *rest.Config, networkProvider string) manager.Manager {
 	_, err = tmpFile.Write([]byte(content))
 	Expect(err).NotTo(HaveOccurred())
 
+	localScheme := runtime.NewScheme()
+	Expect(scheme.AddToScheme(localScheme)).To(Succeed())
+
 	opts := manager.Options{
 		Options: ctrlmgr.Options{
-			Scheme: scheme.Scheme,
+			Scheme: localScheme,
 			NewCache: func(config *rest.Config, opts cache.Options) (cache.Cache, error) {
 				syncPeriod := 1 * time.Second
 				opts.Resync = &syncPeriod

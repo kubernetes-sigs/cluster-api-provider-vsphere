@@ -145,8 +145,8 @@ func GetIPAddressClaimLabels() map[string]string {
 	if val := os.Getenv("BUILD_ID"); val != "" {
 		labels["prow.k8s.io/build-id"] = val
 	}
-	if val := os.Getenv("JOB_NAME"); val != "" {
-		labels["prow.k8s.io/job"] = val
+	if val := os.Getenv("REPO_NAME"); val != "" {
+		labels["prow.k8s.io/repo-name"] = val
 	}
 	if len(labels) == 0 {
 		// Adding a custom label so we don't accidentally cleanup other IPAddressClaims
@@ -274,9 +274,10 @@ func getVirtualMachineIPAddresses(ctx context.Context, folderName string, vSpher
 func (h *inCluster) claimIPAddress(ctx context.Context) (_ string, _ *ipamv1.IPAddressClaim, err error) {
 	claim := &ipamv1.IPAddressClaim{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "ipclaim-" + rand.String(32),
-			Namespace: metav1.NamespaceDefault,
-			Labels:    h.labels,
+			Name:        "ipclaim-" + rand.String(32),
+			Namespace:   metav1.NamespaceDefault,
+			Labels:      h.labels,
+			Annotations: map[string]string{},
 		},
 		Spec: ipamv1.IPAddressClaimSpec{
 			PoolRef: corev1.TypedLocalObjectReference{
@@ -285,6 +286,10 @@ func (h *inCluster) claimIPAddress(ctx context.Context) (_ string, _ *ipamv1.IPA
 				Name:     "capv-e2e-ippool",
 			},
 		},
+	}
+	// Set job name as annotation if environment variable is set.
+	if val := os.Getenv("JOB_NAME"); val != "" {
+		claim.ObjectMeta.Annotations["prow.k8s.io/job"] = val
 	}
 
 	// Create an IPAddressClaim

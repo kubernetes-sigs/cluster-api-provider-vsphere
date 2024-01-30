@@ -72,9 +72,9 @@ func (collector MachineLogCollector) CollectMachineLog(_ context.Context, _ clie
 		captureLogs("containerd.log",
 			"sudo journalctl", "--no-pager", "--output=short-precise", "-u", "containerd.service"),
 		captureLogs("cloud-init.log",
-			"cat", "/var/log/cloud-init.log"),
+			"sudo", "cat", "/var/log/cloud-init.log"),
 		captureLogs("cloud-init-output.log",
-			"cat", "/var/log/cloud-init-output.log"),
+			"sudo", "cat", "/var/log/cloud-init-output.log"),
 	})
 }
 

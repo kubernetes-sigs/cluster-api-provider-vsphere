@@ -27,6 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apitypes "k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
@@ -252,6 +253,7 @@ func (r vmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.R
 	defer func() {
 		log.V(4).Info("VSphereVM.Status.TaskRef OnExit", "taskRef", vmContext.VSphereVM.Status.TaskRef)
 	}()
+	originalTaskRef := vmContext.VSphereVM.Status.TaskRef
 
 	// Always issue a patch when exiting this function so changes to the
 	// resource are patched back to the API server.
@@ -267,6 +269,23 @@ func (r vmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.R
 
 		// Patch the VSphereVM resource.
 		if err := vmContext.Patch(ctx); err != nil {
+			reterr = kerrors.NewAggregate([]error{reterr, err})
+		}
+
+		// Wait until VSphereVM is updated in the cache if the `.Status.TaskRef` field changes.
+		// Note: We have to do this because otherwise using a cached client in current state could
+		// return a stale state of a VSphereVM we just patched (because the cache might be stale).
+		// This can lead to duplicate tasks being triggered (e.g. VM deletion) and make the controller
+		// wait for longer then required.
+		if vmContext.VSphereVM.Status.TaskRef != originalTaskRef {
+			err = wait.PollUntilContextTimeout(ctx, 5*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
+				key := ctrlclient.ObjectKey{Namespace: vmContext.VSphereVM.GetNamespace(), Name: vmContext.VSphereVM.GetName()}
+				cachedVSphereVM := &infrav1.VSphereVM{}
+				if err := r.Client.Get(ctx, key, cachedVSphereVM); err != nil {
+					return false, err
+				}
+				return originalTaskRef != cachedVSphereVM.Status.TaskRef, nil
+			})
 			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
 	}()

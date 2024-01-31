@@ -48,7 +48,9 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass and testi
 				BootstrapClusterProxy: bootstrapClusterProxy,
 				ArtifactFolder:        artifactFolder,
 				SkipCleanup:           skipCleanup,
-				Flavor:                ptr.To("topology"),
+				// Note: install-on-bootstrap will install Kubernetes on bootstrap if the correct Kubernetes version
+				// cannot be detected. This is required to install versions we don't have images for (e.g. ci/latest-1.30).
+				Flavor: ptr.To("install-on-bootstrap"),
 			}
 		})
 	})

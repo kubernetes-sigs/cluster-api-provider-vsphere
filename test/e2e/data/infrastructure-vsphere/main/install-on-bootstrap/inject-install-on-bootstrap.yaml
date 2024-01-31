@@ -40,6 +40,12 @@
       KUBERNETES_VERSION=$${KUBERNETES_VERSION}
       ##
       
+      # Note: We assume if kubectl has the right version, everything else has as well
+      if [[ $(kubectl version --client=true -o json | jq '.clientVersion.gitVersion' -r) = "$${KUBERNETES_VERSION}" ]]; then
+        echo "Detected Kubernetes $${KUBERNETES_VERSION} via kubectl version, nothing to do"
+        exit 0
+      fi
+      
       if [[ "$${KUBERNETES_VERSION}" != "" ]]; then
         CI_DIR=/tmp/k8s-ci
         mkdir -p "$${CI_DIR}"
@@ -96,6 +102,6 @@
       echo "* checking binary versions"
       echo "ctr version: " "$(ctr version)"
       echo "kubeadm version: " "$(kubeadm version -o=short)"
-      echo "kubectl version: " "$(kubectl version --client=true --short=true)"
+      echo "kubectl version: " "$(kubectl version --client=true)"
       echo "kubelet version: " "$(kubelet --version)"
       echo "$${LINE_SEPARATOR}"

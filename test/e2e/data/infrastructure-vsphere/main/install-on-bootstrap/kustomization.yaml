@@ -5,4 +5,4 @@ resources:
 patches:
   - target:
       kind: Cluster
-    path: ./inject-install-ci-latest.yaml
+    path: ./inject-install-on-bootstrap.yaml

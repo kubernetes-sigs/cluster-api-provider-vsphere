@@ -59,7 +59,9 @@ var _ = Describe("When testing K8S conformance with K8S latest ci [Conformance] 
 				BootstrapClusterProxy: bootstrapClusterProxy,
 				ArtifactFolder:        artifactFolder,
 				SkipCleanup:           skipCleanup,
-				Flavor:                "conformance-latest-ci",
+				// Note: install-on-bootstrap will install Kubernetes on bootstrap if the correct Kubernetes version
+				// cannot be detected. This is required to install versions we don't have images for (e.g. ci/latest-1.30).
+				Flavor: "install-on-bootstrap",
 			}
 		})
 	})

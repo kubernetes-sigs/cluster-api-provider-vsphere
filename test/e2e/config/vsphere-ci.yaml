@@ -112,7 +112,7 @@ providers:
         files:
           # Add a cluster template
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-conformance.yaml"
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-conformance-latest-ci.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-install-on-bootstrap.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-dhcp-overrides.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-hw-upgrade.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-ignition.yaml"

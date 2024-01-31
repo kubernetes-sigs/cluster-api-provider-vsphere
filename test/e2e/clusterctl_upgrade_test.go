@@ -40,6 +40,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.9=
 				InitWithRuntimeExtensionProviders: []string{},
 				// InitWithKubernetesVersion should be the highest kubernetes version supported by the init Cluster API version.
 				// This is to guarantee that both, the old and new CAPI version, support the defined version.
+				// Ensure all Kubernetes versions used here are covered in patch-vsphere-template.yaml
 				InitWithKubernetesVersion: "v1.29.0",
 				WorkloadKubernetesVersion: "v1.29.0",
 				WorkloadFlavor:            "workload",
@@ -67,6 +68,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.8=
 				InitWithRuntimeExtensionProviders: []string{},
 				// InitWithKubernetesVersion should be the highest kubernetes version supported by the init Cluster API version.
 				// This is to guarantee that both, the old and new CAPI version, support the defined version.
+				// Ensure all Kubernetes versions used here are covered in patch-vsphere-template.yaml
 				InitWithKubernetesVersion: "v1.28.0",
 				WorkloadKubernetesVersion: "v1.28.0",
 				WorkloadFlavor:            "workload",

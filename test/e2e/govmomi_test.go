@@ -20,7 +20,6 @@ import (
 	"flag"
 	"net/url"
 	"os"
-	"path/filepath"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -32,7 +31,6 @@ import (
 	"github.com/vmware/govmomi/vapi/rest"
 	"github.com/vmware/govmomi/vim25"
 	"github.com/vmware/govmomi/vim25/soap"
-	"sigs.k8s.io/yaml"
 )
 
 var (
@@ -93,27 +91,4 @@ func initVSphereSession() {
 
 func terminateVSphereSession() {
 	Expect(vsphereClient.Logout(ctx)).To(Succeed())
-}
-
-func getClusterctlConfigVariable(clusterctlConfigPath, configVariable string) (string, error) {
-	// Environment variable overwrite takes priority.
-	if val := os.Getenv(configVariable); val != "" {
-		return val, nil
-	}
-
-	data, err := os.ReadFile(filepath.Clean(clusterctlConfigPath))
-	if err != nil {
-		return "", err
-	}
-
-	type clusterctlConfig struct {
-		Variables map[string]string `json:"variables"`
-	}
-
-	config := clusterctlConfig{}
-	if err := yaml.Unmarshal(data, &config); err != nil {
-		return "", err
-	}
-
-	return config.Variables[configVariable], nil
 }

@@ -266,8 +266,7 @@ var _ = SynchronizedAfterSuite(func() {
 	// After all ParallelNodes.
 	if !skipCleanup {
 		By("Cleaning up orphaned IPAddressClaims")
-		vSphereFolderName, err := getClusterctlConfigVariable(clusterctlConfigPath, "VSPHERE_FOLDER")
-		Expect(err).ToNot(HaveOccurred())
+		vSphereFolderName := e2eConfig.GetVariable("VSPHERE_FOLDER")
 		Expect(ipAddressManager.Teardown(ctx, vSphereFolderName, vsphereClient)).To(Succeed())
 	}
 

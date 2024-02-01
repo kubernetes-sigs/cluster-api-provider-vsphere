@@ -310,6 +310,7 @@ generate-e2e-templates-main: $(KUSTOMIZE) ## Generate test templates for the mai
 	cp "$(RELEASE_DIR)/main/cluster-template-topology.yaml" "$(E2E_TEMPLATE_DIR)/main/topology/cluster-template-topology.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_TEMPLATE_DIR)/main/topology" > "$(E2E_TEMPLATE_DIR)/main/cluster-template-topology.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_TEMPLATE_DIR)/main/remote-management" > "$(E2E_TEMPLATE_DIR)/main/cluster-template-remote-management.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_TEMPLATE_DIR)/main/install-on-bootstrap" > "$(E2E_TEMPLATE_DIR)/main/cluster-template-install-on-bootstrap.yaml"
 	# for PCI passthrough template
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_TEMPLATE_DIR)/main/pci" > "$(E2E_TEMPLATE_DIR)/main/cluster-template-pci.yaml"
 	# for DHCP overrides

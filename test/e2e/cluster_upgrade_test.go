@@ -17,12 +17,45 @@ limitations under the License.
 package e2e
 
 import (
+	"os"
+
 	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	"k8s.io/utils/ptr"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
+	"sigs.k8s.io/cluster-api/test/framework/kubernetesversions"
 )
 
+var _ = Describe("When upgrading a workload cluster using ClusterClass and testing K8S conformance [Conformance] [K8s-Upgrade] [ClusterClass]", func() {
+	// Note: This installs a cluster based on KUBERNETES_VERSION_UPGRADE_FROM and then upgrades to
+	// KUBERNETES_VERSION_UPGRADE_TO and runs conformance tests.
+	// Note: We are resolving KUBERNETES_VERSION_UPGRADE_FROM and KUBERNETES_VERSION_UPGRADE_TO and then setting
+	// the resolved versions as env vars. This only works without side effects on other tests because we are
+	// running this test in its separate job.
+	capi_e2e.ClusterUpgradeConformanceSpec(ctx, func() capi_e2e.ClusterUpgradeConformanceSpecInput {
+		// The Kubernetes versions have to be resolved as they can be defined like this: stable-1.29, ci/latest-1.30.
+		kubernetesVersionUpgradeFrom, err := kubernetesversions.ResolveVersion(ctx, e2eConfig.GetVariable("KUBERNETES_VERSION_UPGRADE_FROM"))
+		Expect(err).NotTo(HaveOccurred())
+		kubernetesVersionUpgradeTo, err := kubernetesversions.ResolveVersion(ctx, e2eConfig.GetVariable("KUBERNETES_VERSION_UPGRADE_TO"))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(os.Setenv("KUBERNETES_VERSION_UPGRADE_FROM", kubernetesVersionUpgradeFrom)).To(Succeed())
+		Expect(os.Setenv("KUBERNETES_VERSION_UPGRADE_TO", kubernetesVersionUpgradeTo)).To(Succeed())
+		return capi_e2e.ClusterUpgradeConformanceSpecInput{
+			E2EConfig:             e2eConfig,
+			ClusterctlConfigPath:  clusterctlConfigPath,
+			BootstrapClusterProxy: bootstrapClusterProxy,
+			ArtifactFolder:        artifactFolder,
+			SkipCleanup:           skipCleanup,
+			// Note: install-on-bootstrap will install Kubernetes on bootstrap if the correct Kubernetes version
+			// cannot be detected. This is required to install versions we don't have images for (e.g. ci/latest-1.30).
+			Flavor: ptr.To("install-on-bootstrap"),
+		}
+	})
+})
+
 var _ = Describe("When upgrading a workload cluster using ClusterClass [ClusterClass]", func() {
+	// Note: This installs a cluster based on KUBERNETES_VERSION_UPGRADE_FROM and then upgrades to
+	// KUBERNETES_VERSION_UPGRADE_TO.
 	capi_e2e.ClusterUpgradeConformanceSpec(ctx, func() capi_e2e.ClusterUpgradeConformanceSpecInput {
 		return capi_e2e.ClusterUpgradeConformanceSpecInput{
 			E2EConfig:             e2eConfig,

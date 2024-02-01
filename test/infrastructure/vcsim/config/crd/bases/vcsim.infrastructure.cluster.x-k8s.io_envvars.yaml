@@ -1,0 +1,98 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.13.0
+  name: envvars.vcsim.infrastructure.cluster.x-k8s.io
+spec:
+  group: vcsim.infrastructure.cluster.x-k8s.io
+  names:
+    categories:
+    - cluster-api
+    kind: EnvVar
+    listKind: EnvVarList
+    plural: envvars
+    singular: envvar
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: EnvVar is the schema for a EnvVar generator.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: EnvVarSpec defines the desired state of the EnvVar.
+            properties:
+              cluster:
+                description: ClusterEnvVarSpec defines the spec for the EnvVar generator
+                  targeting a specific Cluster API cluster.
+                properties:
+                  cluster:
+                    description: 'Cluster specifies the VCenter Cluster for the Cluster
+                      API cluster. Default: 0 (C0)'
+                    type: integer
+                  controlPlaneMachines:
+                    description: 'The number of the control plane machines in the
+                      Cluster API cluster. NOTE: This variable isn''t related to the
+                      vcsim controller, but we are handling it here in order to have
+                      a single point of control for all the variables related to a
+                      Cluster API template. Default: 1'
+                    type: integer
+                  datacenter:
+                    description: 'Datacenter specifies the Datacenter for the Cluster
+                      API cluster. Default: 0 (DC0)'
+                    type: integer
+                  datastore:
+                    description: 'Datastore specifies the Datastore for the Cluster
+                      API cluster. Default: 0 (LocalDS_0)'
+                    type: integer
+                  kubernetesVersion:
+                    description: 'The Kubernetes version of the Cluster API cluster.
+                      NOTE: This variable isn''t related to the vcsim controller,
+                      but we are handling it here in order to have a single point
+                      of control for all the variables related to a Cluster API template.
+                      Default: v1.28.0'
+                    type: string
+                  name:
+                    description: The name of the Cluster API cluster.
+                    type: string
+                  workerMachines:
+                    description: 'The number of the worker machines in the Cluster
+                      API cluster. NOTE: This variable isn''t related to the vcsim
+                      controller, but we are handling it here in order to have a single
+                      point of control for all the variables related to a Cluster
+                      API template. Default: 1'
+                    type: integer
+                required:
+                - name
+                type: object
+              vCenterSimulator:
+                type: string
+            type: object
+          status:
+            description: EnvVarStatus defines the observed state of the EnvVar.
+            properties:
+              variables:
+                additionalProperties:
+                  type: string
+                description: variables to use when creating the Cluster API cluster.
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

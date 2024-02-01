@@ -213,6 +213,10 @@ STAGING_BUCKET ?= artifacts.k8s-staging-capi-vsphere.appspot.com
 IMAGE_NAME ?= cluster-api-vsphere-controller
 CONTROLLER_IMG ?= $(REGISTRY)/$(IMAGE_NAME)
 
+# vcsim controller
+VCSIM_IMAGE_NAME ?= cluster-api-vcsim-controller
+VCSIM_CONTROLLER_IMG ?= $(REGISTRY)/$(VCSIM_IMAGE_NAME)
+
 # It is set by Prow GIT_TAG, a git-based tag of the form vYYYYMMDD-hash, e.g., v20210120-v0.3.10-308-gc61521971
 
 TAG ?= dev
@@ -238,8 +242,10 @@ MANIFEST_ROOT ?= ./config
 CRD_ROOT ?= $(MANIFEST_ROOT)/default/crd/bases
 SUPERVISOR_CRD_ROOT ?= $(MANIFEST_ROOT)/supervisor/crd
 VMOP_CRD_ROOT ?= $(MANIFEST_ROOT)/deployments/integration-tests/crds
+VCSIM_CRD_ROOT ?= test/infrastructure/vcsim/config/crd/bases
 WEBHOOK_ROOT ?= $(MANIFEST_ROOT)/webhook
 RBAC_ROOT ?= $(MANIFEST_ROOT)/rbac
+VCSIM_RBAC_ROOT ?= test/infrastructure/vcsim/config/rbac
 VERSION ?= $(shell cat clusterctl-settings.json | jq .config.nextVersion -r)
 OVERRIDES_DIR := $(HOME)/.cluster-api/overrides/infrastructure-vsphere/$(VERSION)
 
@@ -280,6 +286,15 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 		paths=github.com/vmware-tanzu/vm-operator/api/v1alpha1/... \
 		crd:crdVersions=v1 \
 		output:crd:dir=$(VMOP_CRD_ROOT)
+	# vcsim crds are used for tests.
+	$(CONTROLLER_GEN) \
+    		paths=./test/infrastructure/vcsim/api/v1alpha1 \
+    		crd:crdVersions=v1 \
+    		output:crd:dir=$(VCSIM_CRD_ROOT)
+	$(CONTROLLER_GEN) \
+		paths=./test/infrastructure/vcsim/controllers/... \
+		output:rbac:dir=$(VCSIM_RBAC_ROOT) \
+		rbac:roleName=manager-role
 
 .PHONY: generate-go-deepcopy
 generate-go-deepcopy: $(CONTROLLER_GEN) ## Generate deepcopy go code for core
@@ -287,6 +302,9 @@ generate-go-deepcopy: $(CONTROLLER_GEN) ## Generate deepcopy go code for core
 	$(CONTROLLER_GEN) \
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
 		paths=./apis/...
+	$(CONTROLLER_GEN) \
+    		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
+    		paths=./test/infrastructure/vcsim/api/...
 
 .PHONY: generate-modules
 generate-modules: ## Run go mod tidy to ensure modules are up to date
@@ -474,6 +492,14 @@ docker-build: docker-pull-prerequisites ## Build the docker image for vsphere co
 	@if [ "${DOCKER_BUILD_MODIFY_MANIFESTS}" = "true" ]; then \
   		$(MAKE) set-manifest-image MANIFEST_IMG=$(CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./config/base/manager_image_patch.yaml"; \
 		$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./config/base/manager_pull_policy.yaml"; \
+    fi
+
+.PHONY: docker-build-vcsim
+docker-build-vcsim: docker-pull-prerequisites ## Build the docker image for vcsim controller manager
+	DOCKER_BUILDKIT=1 docker build --platform linux/$(ARCH) --build-arg GOLANG_VERSION=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ldflags="$(LDFLAGS)" . -t $(VCSIM_CONTROLLER_IMG)-$(ARCH):$(TAG)
+	@if [ "${DOCKER_BUILD_MODIFY_MANIFESTS}" = "true" ]; then \
+  		$(MAKE) set-manifest-image MANIFEST_IMG=$(VCSIM_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./test/infrastructure/vcsim/config/default/manager_image_patch.yaml"; \
+		$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./test/infrastructure/vcsim/config/default/manager_pull_policy.yaml"; \
     fi
 
 ## --------------------------------------

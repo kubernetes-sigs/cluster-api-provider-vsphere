@@ -1,0 +1,104 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.13.0
+  name: vcentersimulators.vcsim.infrastructure.cluster.x-k8s.io
+spec:
+  group: vcsim.infrastructure.cluster.x-k8s.io
+  names:
+    categories:
+    - cluster-api
+    kind: VCenterSimulator
+    listKind: VCenterSimulatorList
+    plural: vcentersimulators
+    singular: vcentersimulator
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: VCenterSimulator is the schema for a VCenter simulator server.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: VCenterSimulatorSpec defines the desired state of the VCenterSimulator.
+            properties:
+              model:
+                description: VCenterSimulatorModel defines the model to be used by
+                  the VCenterSimulator.
+                properties:
+                  cluster:
+                    description: 'Cluster specifies the number of ClusterComputeResource
+                      entities to create per Datacenter Name prefix: C, vcsim flag:
+                      -cluster Default: 1'
+                    type: integer
+                  clusterHost:
+                    description: 'ClusterHost specifies the number of HostSystems
+                      entities to create within a Cluster Name prefix: H, vcsim flag:
+                      -host Default: 3'
+                    type: integer
+                  datacenter:
+                    description: 'Datacenter specifies the number of Datacenter entities
+                      to create Name prefix: DC, vcsim flag: -dc Default: 1'
+                    type: integer
+                  datastore:
+                    description: 'Datastore specifies the number of Datastore entities
+                      to create Each Datastore will have temporary local file storage
+                      and will be mounted on every HostSystem created by the ModelConfig
+                      Name prefix: LocalDS, vcsim flag: -ds Default: 1'
+                    type: integer
+                  pool:
+                    description: 'Pool specifies the number of ResourcePool entities
+                      to create per Cluster Note that every cluster has a root ResourcePool
+                      named "Resources", as real vCenter does. For example: /DC0/host/DC0_C0/Resources
+                      The root ResourcePool is named "RP0" within other object names.
+                      When Model.Pool is set to 1 or higher, this creates child ResourcePools
+                      under the root pool. Note that this flag is not effective on
+                      standalone hosts (ESXi without vCenter). For example: /DC0/host/DC0_C0/Resources/DC0_C0_RP1
+                      Name prefix: RP, vcsim flag: -pool Default: 0 TODO: model pool
+                      selection for each cluster; for now ResourcePool named "Resources"
+                      will be always used but ideally we should use RPx as per documentation
+                      above.'
+                    type: integer
+                  vsphereVersion:
+                    description: 'VSphereVersion specifies the VSphere version to
+                      use Default: 7.0.0 (the minimal vCenter version required by
+                      CAPV, vcsim default is 6.5)'
+                    type: string
+                type: object
+            type: object
+          status:
+            description: VCenterSimulatorStatus defines the observed state of the
+              VCenterSimulator.
+            properties:
+              host:
+                description: The vcsim server  url's host.
+                type: string
+              password:
+                description: The vcsim server password.
+                type: string
+              thumbprint:
+                description: The vcsim server thumbprint.
+                type: string
+              username:
+                description: The vcsim server username.
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

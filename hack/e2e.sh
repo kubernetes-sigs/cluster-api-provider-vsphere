@@ -121,16 +121,19 @@ WORKLOAD_CONTROL_PLANE_ENDPOINT_IP=$(claim_ip "${WORKLOAD_IPCLAIM_NAME}")
 export WORKLOAD_CONTROL_PLANE_ENDPOINT_IP
 echo "Acquired Workload Cluster Control Plane IP: $WORKLOAD_CONTROL_PLANE_ENDPOINT_IP"
 
-# save the docker image locally
-make e2e-image
-mkdir -p /tmp/images
-docker save gcr.io/k8s-staging-cluster-api/capv-manager:e2e -o "$DOCKER_IMAGE_TAR"
+# Only build and upload the image if we run tests which require it to save some $.
+if [[ -z "${GINKGO_FOCUS+x}" ]]; then
+  # save the docker image locally
+  make e2e-image
+  mkdir -p /tmp/images
+  docker save gcr.io/k8s-staging-cluster-api/capv-manager:e2e -o "$DOCKER_IMAGE_TAR"
 
-# store the image on gcs
-login
-E2E_IMAGE_SHA=$(docker inspect --format='{{index .Id}}' gcr.io/k8s-staging-cluster-api/capv-manager:e2e)
-export E2E_IMAGE_SHA
-gsutil cp ${DOCKER_IMAGE_TAR} gs://capv-ci/"$E2E_IMAGE_SHA"
+  # store the image on gcs
+  login
+  E2E_IMAGE_SHA=$(docker inspect --format='{{index .Id}}' gcr.io/k8s-staging-cluster-api/capv-manager:e2e)
+  export E2E_IMAGE_SHA
+  gsutil cp ${DOCKER_IMAGE_TAR} gs://capv-ci/"$E2E_IMAGE_SHA"
+fi
 
 # Run e2e tests
 make e2e

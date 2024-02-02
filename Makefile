@@ -57,6 +57,7 @@ ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 BIN_DIR := bin
 BUILD_DIR := .build
 TEST_DIR := test
+VCSIM_DIR := test/infrastructure/vcsim
 TOOLS_DIR := hack/tools
 TOOLS_BIN_DIR := $(abspath $(TOOLS_DIR)/$(BIN_DIR))
 FLAVOR_DIR := $(ROOT_DIR)/templates
@@ -242,10 +243,10 @@ MANIFEST_ROOT ?= ./config
 CRD_ROOT ?= $(MANIFEST_ROOT)/default/crd/bases
 SUPERVISOR_CRD_ROOT ?= $(MANIFEST_ROOT)/supervisor/crd
 VMOP_CRD_ROOT ?= $(MANIFEST_ROOT)/deployments/integration-tests/crds
-VCSIM_CRD_ROOT ?= test/infrastructure/vcsim/config/crd/bases
+VCSIM_CRD_ROOT ?= $(VCSIM_DIR)/config/crd/bases
 WEBHOOK_ROOT ?= $(MANIFEST_ROOT)/webhook
 RBAC_ROOT ?= $(MANIFEST_ROOT)/rbac
-VCSIM_RBAC_ROOT ?= test/infrastructure/vcsim/config/rbac
+VCSIM_RBAC_ROOT ?= $(VCSIM_DIR)/config/rbac
 VERSION ?= $(shell cat clusterctl-settings.json | jq .config.nextVersion -r)
 OVERRIDES_DIR := $(HOME)/.cluster-api/overrides/infrastructure-vsphere/$(VERSION)
 
@@ -288,11 +289,11 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 		output:crd:dir=$(VMOP_CRD_ROOT)
 	# vcsim crds are used for tests.
 	$(CONTROLLER_GEN) \
-    		paths=./test/infrastructure/vcsim/api/v1alpha1 \
+    		paths=./$(VCSIM_DIR)/api/v1alpha1 \
     		crd:crdVersions=v1 \
     		output:crd:dir=$(VCSIM_CRD_ROOT)
 	$(CONTROLLER_GEN) \
-		paths=./test/infrastructure/vcsim/controllers/... \
+		paths=./$(VCSIM_DIR)/controllers/... \
 		output:rbac:dir=$(VCSIM_RBAC_ROOT) \
 		rbac:roleName=manager-role
 
@@ -304,7 +305,7 @@ generate-go-deepcopy: $(CONTROLLER_GEN) ## Generate deepcopy go code for core
 		paths=./apis/...
 	$(CONTROLLER_GEN) \
     		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
-    		paths=./test/infrastructure/vcsim/api/...
+    		paths=./$(VCSIM_DIR)/api/...
 
 .PHONY: generate-modules
 generate-modules: ## Run go mod tidy to ensure modules are up to date
@@ -488,7 +489,8 @@ DOCKER_BUILD_MODIFY_MANIFESTS ?= true
 
 .PHONY: docker-build
 docker-build: docker-pull-prerequisites ## Build the docker image for vsphere controller manager
-	DOCKER_BUILDKIT=1 docker build --platform linux/$(ARCH) --build-arg GOLANG_VERSION=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ldflags="$(LDFLAGS)" . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG)
+## reads Dockerfile from stdin to avoid an incorrectly cached Dockerfile (https://github.com/moby/buildkit/issues/1368)
+	cat ./Dockerfile | DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)" . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG) --file -
 	@if [ "${DOCKER_BUILD_MODIFY_MANIFESTS}" = "true" ]; then \
   		$(MAKE) set-manifest-image MANIFEST_IMG=$(CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./config/base/manager_image_patch.yaml"; \
 		$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./config/base/manager_pull_policy.yaml"; \
@@ -496,10 +498,11 @@ docker-build: docker-pull-prerequisites ## Build the docker image for vsphere co
 
 .PHONY: docker-build-vcsim
 docker-build-vcsim: docker-pull-prerequisites ## Build the docker image for vcsim controller manager
-	DOCKER_BUILDKIT=1 docker build --platform linux/$(ARCH) --build-arg GOLANG_VERSION=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ldflags="$(LDFLAGS)" . -t $(VCSIM_CONTROLLER_IMG)-$(ARCH):$(TAG)
+## reads Dockerfile from stdin to avoid an incorrectly cached Dockerfile (https://github.com/moby/buildkit/issues/1368)
+	cat $(VCSIM_DIR)/Dockerfile | DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)" . -t $(VCSIM_CONTROLLER_IMG)-$(ARCH):$(TAG) --file -
 	@if [ "${DOCKER_BUILD_MODIFY_MANIFESTS}" = "true" ]; then \
-  		$(MAKE) set-manifest-image MANIFEST_IMG=$(VCSIM_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./test/infrastructure/vcsim/config/default/manager_image_patch.yaml"; \
-		$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./test/infrastructure/vcsim/config/default/manager_pull_policy.yaml"; \
+  		$(MAKE) set-manifest-image MANIFEST_IMG=$(VCSIM_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./$(VCSIM_DIR)/config/default/manager_image_patch.yaml"; \
+		$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./$(VCSIM_DIR)/config/default/manager_pull_policy.yaml"; \
     fi
 
 ## --------------------------------------
@@ -539,17 +542,19 @@ test-cover: ## Run unit tests and generate a coverage report
 	go tool cover -html=coverage.out -o coverage.html
 
 .PHONY: test-integration
-test-integration: e2e-image ## Run integration tests
+test-integration: e2e-images ## Run integration tests
 test-integration: $(GINKGO) $(KUSTOMIZE) $(KIND)
 	time $(GINKGO) --output-dir="$(ARTIFACTS)" --junit-report="junit.integration_suite.1.xml" -v ./test/integration -- --config=$(INTEGRATION_CONF_FILE) --artifacts-folder="$(ARTIFACTS)"
 
-.PHONY: e2e-image
-e2e-image: ## Build the e2e manager image
-	docker buildx build --platform linux/$(ARCH) --output=type=docker \
-		--build-arg ldflags="$(LDFLAGS)" --tag="gcr.io/k8s-staging-capi-vsphere/cluster-api-vsphere-controller:dev" .
+.PHONY: e2e-images
+e2e-images: ## Build the e2e manager image
+	# please ensure the generated image name matches image names used in the E2E_CONF_FILE;
+    # also the same settings must exist in e2e.sh
+	$(MAKE) REGISTRY=gcr.io/k8s-staging-capi-vsphere PULL_POLICY=IfNotPresent TAG=dev docker-build
+	$(MAKE) REGISTRY=gcr.io/k8s-staging-capi-vsphere PULL_POLICY=IfNotPresent TAG=dev docker-build-vcsim
 
 .PHONY: e2e
-e2e: e2e-image generate-e2e-templates
+e2e: e2e-images generate-e2e-templates
 e2e: $(GINKGO) $(KUSTOMIZE) $(KIND) $(GOVC) ## Run e2e tests
 	@echo PATH="$(PATH)"
 	@echo

@@ -43,6 +43,7 @@ spec:
                   cluster:
                     description: 'Cluster specifies the VCenter Cluster for the Cluster
                       API cluster. Default: 0 (C0)'
+                    format: int32
                     type: integer
                   controlPlaneMachines:
                     description: 'The number of the control plane machines in the
@@ -50,14 +51,17 @@ spec:
                       vcsim controller, but we are handling it here in order to have
                       a single point of control for all the variables related to a
                       Cluster API template. Default: 1'
+                    format: int32
                     type: integer
                   datacenter:
                     description: 'Datacenter specifies the Datacenter for the Cluster
                       API cluster. Default: 0 (DC0)'
+                    format: int32
                     type: integer
                   datastore:
                     description: 'Datastore specifies the Datastore for the Cluster
                       API cluster. Default: 0 (LocalDS_0)'
+                    format: int32
                     type: integer
                   kubernetesVersion:
                     description: 'The Kubernetes version of the Cluster API cluster.
@@ -75,6 +79,7 @@ spec:
                       controller, but we are handling it here in order to have a single
                       point of control for all the variables related to a Cluster
                       API template. Default: 1'
+                    format: int32
                     type: integer
                 required:
                 - name

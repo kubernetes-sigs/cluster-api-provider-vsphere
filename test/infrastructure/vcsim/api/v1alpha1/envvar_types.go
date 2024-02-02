@@ -41,25 +41,25 @@ type ClusterEnvVarSpec struct {
 	// NOTE: This variable isn't related to the vcsim controller, but we are handling it here
 	// in order to have a single point of control for all the variables related to a Cluster API template.
 	// Default: 1
-	ControlPlaneMachines *int `json:"controlPlaneMachines,omitempty"`
+	ControlPlaneMachines *int32 `json:"controlPlaneMachines,omitempty"`
 
 	// The number of the worker machines in the Cluster API cluster.
 	// NOTE: This variable isn't related to the vcsim controller, but we are handling it here
 	// in order to have a single point of control for all the variables related to a Cluster API template.
 	// Default: 1
-	WorkerMachines *int `json:"workerMachines,omitempty"`
+	WorkerMachines *int32 `json:"workerMachines,omitempty"`
 
 	// Datacenter specifies the Datacenter for the Cluster API cluster.
 	// Default: 0 (DC0)
-	Datacenter *int `json:"datacenter,omitempty"`
+	Datacenter *int32 `json:"datacenter,omitempty"`
 
 	// Cluster specifies the VCenter Cluster for the Cluster API cluster.
 	// Default: 0 (C0)
-	Cluster *int `json:"cluster,omitempty"`
+	Cluster *int32 `json:"cluster,omitempty"`
 
 	// Datastore specifies the Datastore for the Cluster API cluster.
 	// Default: 0 (LocalDS_0)
-	Datastore *int `json:"datastore,omitempty"`
+	Datastore *int32 `json:"datastore,omitempty"`
 }
 
 // EnvVarStatus defines the observed state of the EnvVar.

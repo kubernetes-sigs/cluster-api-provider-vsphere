@@ -40,17 +40,17 @@ type VCenterSimulatorModel struct {
 	// Datacenter specifies the number of Datacenter entities to create
 	// Name prefix: DC, vcsim flag: -dc
 	// Default: 1
-	Datacenter *int `json:"datacenter,omitempty"`
+	Datacenter *int32 `json:"datacenter,omitempty"`
 
 	// Cluster specifies the number of ClusterComputeResource entities to create per Datacenter
 	// Name prefix: C, vcsim flag: -cluster
 	// Default: 1
-	Cluster *int `json:"cluster,omitempty"`
+	Cluster *int32 `json:"cluster,omitempty"`
 
 	// ClusterHost specifies the number of HostSystems entities to create within a Cluster
 	// Name prefix: H, vcsim flag: -host
 	// Default: 3
-	ClusterHost *int `json:"clusterHost,omitempty"`
+	ClusterHost *int32 `json:"clusterHost,omitempty"`
 
 	// Pool specifies the number of ResourcePool entities to create per Cluster
 	// Note that every cluster has a root ResourcePool named "Resources", as real vCenter does.
@@ -63,14 +63,14 @@ type VCenterSimulatorModel struct {
 	// Default: 0
 	// TODO: model pool selection for each cluster; for now ResourcePool named "Resources" will be always used
 	//   but ideally we should use RPx as per documentation above.
-	Pool *int `json:"pool,omitempty"`
+	Pool *int32 `json:"pool,omitempty"`
 
 	// Datastore specifies the number of Datastore entities to create
 	// Each Datastore will have temporary local file storage and will be mounted
 	// on every HostSystem created by the ModelConfig
 	// Name prefix: LocalDS, vcsim flag: -ds
 	// Default: 1
-	Datastore *int `json:"datastore,omitempty"`
+	Datastore *int32 `json:"datastore,omitempty"`
 
 	// TODO: consider if to add options for creating more folders, networks, custom storage policies
 }

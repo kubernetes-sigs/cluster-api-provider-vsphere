@@ -34,27 +34,27 @@ func (in *ClusterEnvVarSpec) DeepCopyInto(out *ClusterEnvVarSpec) {
 	}
 	if in.ControlPlaneMachines != nil {
 		in, out := &in.ControlPlaneMachines, &out.ControlPlaneMachines
-		*out = new(int)
+		*out = new(int32)
 		**out = **in
 	}
 	if in.WorkerMachines != nil {
 		in, out := &in.WorkerMachines, &out.WorkerMachines
-		*out = new(int)
+		*out = new(int32)
 		**out = **in
 	}
 	if in.Datacenter != nil {
 		in, out := &in.Datacenter, &out.Datacenter
-		*out = new(int)
+		*out = new(int32)
 		**out = **in
 	}
 	if in.Cluster != nil {
 		in, out := &in.Cluster, &out.Cluster
-		*out = new(int)
+		*out = new(int32)
 		**out = **in
 	}
 	if in.Datastore != nil {
 		in, out := &in.Datastore, &out.Datastore
-		*out = new(int)
+		*out = new(int32)
 		**out = **in
 	}
 }
@@ -324,27 +324,27 @@ func (in *VCenterSimulatorModel) DeepCopyInto(out *VCenterSimulatorModel) {
 	}
 	if in.Datacenter != nil {
 		in, out := &in.Datacenter, &out.Datacenter
-		*out = new(int)
+		*out = new(int32)
 		**out = **in
 	}
 	if in.Cluster != nil {
 		in, out := &in.Cluster, &out.Cluster
-		*out = new(int)
+		*out = new(int32)
 		**out = **in
 	}
 	if in.ClusterHost != nil {
 		in, out := &in.ClusterHost, &out.ClusterHost
-		*out = new(int)
+		*out = new(int32)
 		**out = **in
 	}
 	if in.Pool != nil {
 		in, out := &in.Pool, &out.Pool
-		*out = new(int)
+		*out = new(int32)
 		**out = **in
 	}
 	if in.Datastore != nil {
 		in, out := &in.Datastore, &out.Datastore
-		*out = new(int)
+		*out = new(int32)
 		**out = **in
 	}
 }

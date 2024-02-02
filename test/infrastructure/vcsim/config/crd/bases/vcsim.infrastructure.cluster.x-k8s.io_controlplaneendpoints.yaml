@@ -48,6 +48,7 @@ spec:
                 type: string
               port:
                 description: The control plane port.
+                format: int32
                 type: integer
             type: object
         type: object

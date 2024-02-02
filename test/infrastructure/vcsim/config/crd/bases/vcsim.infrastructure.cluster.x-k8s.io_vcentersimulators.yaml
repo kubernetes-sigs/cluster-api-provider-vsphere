@@ -44,21 +44,25 @@ spec:
                     description: 'Cluster specifies the number of ClusterComputeResource
                       entities to create per Datacenter Name prefix: C, vcsim flag:
                       -cluster Default: 1'
+                    format: int32
                     type: integer
                   clusterHost:
                     description: 'ClusterHost specifies the number of HostSystems
                       entities to create within a Cluster Name prefix: H, vcsim flag:
                       -host Default: 3'
+                    format: int32
                     type: integer
                   datacenter:
                     description: 'Datacenter specifies the number of Datacenter entities
                       to create Name prefix: DC, vcsim flag: -dc Default: 1'
+                    format: int32
                     type: integer
                   datastore:
                     description: 'Datastore specifies the number of Datastore entities
                       to create Each Datastore will have temporary local file storage
                       and will be mounted on every HostSystem created by the ModelConfig
                       Name prefix: LocalDS, vcsim flag: -ds Default: 1'
+                    format: int32
                     type: integer
                   pool:
                     description: 'Pool specifies the number of ResourcePool entities
@@ -72,6 +76,7 @@ spec:
                       selection for each cluster; for now ResourcePool named "Resources"
                       will be always used but ideally we should use RPx as per documentation
                       above.'
+                    format: int32
                     type: integer
                   vsphereVersion:
                     description: 'VSphereVersion specifies the VSphere version to

@@ -36,7 +36,7 @@ type ControlPlaneEndpointStatus struct {
 	Host string `json:"host,omitempty"`
 
 	// The control plane port.
-	Port int `json:"port,omitempty"`
+	Port int32 `json:"port,omitempty"`
 }
 
 // +kubebuilder:resource:path=controlplaneendpoints,scope=Namespaced,categories=cluster-api

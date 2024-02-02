@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package vcsim
 
 import (
 	"testing"
@@ -29,16 +29,14 @@ func Test_vcsim_NamesAndPath(t *testing.T) {
 	cluster := 3
 	datastore := 7
 
-	g.Expect(vcsimDatacenterName(datacenter)).To(Equal("DC5"))
-	g.Expect(vcsimClusterName(datacenter, cluster)).To(Equal("DC5_C3"))
-	g.Expect(vcsimClusterPath(datacenter, cluster)).To(Equal("/DC5/host/DC5_C3"))
-	g.Expect(vcsimDatastoreName(datastore)).To(Equal("LocalDS_7"))
-	g.Expect(vcsimDatastorePath(datacenter, datastore)).To(Equal("/DC5/datastore/LocalDS_7"))
-	g.Expect(vcsimResourcePoolPath(datacenter, cluster)).To(Equal("/DC5/host/DC5_C3/Resources"))
-	g.Expect(vcsimVMFolderName(datacenter)).To(Equal("DC5/vm"))
-	g.Expect(vcsimVMPath(datacenter, "my-mv")).To(Equal("/DC5/vm/my-mv"))
-}
-
-func Test_createVMTemplate(_ *testing.T) {
-	// TODO: implement
+	g.Expect(DatacenterName(datacenter)).To(Equal("DC5"))
+	g.Expect(ClusterName(datacenter, cluster)).To(Equal("DC5_C3"))
+	g.Expect(ClusterPath(datacenter, cluster)).To(Equal("/DC5/host/DC5_C3"))
+	g.Expect(DatastoreName(datastore)).To(Equal("LocalDS_7"))
+	g.Expect(DatastorePath(datacenter, datastore)).To(Equal("/DC5/datastore/LocalDS_7"))
+	g.Expect(ResourcePoolPath(datacenter, cluster)).To(Equal("/DC5/host/DC5_C3/Resources"))
+	g.Expect(VMFolderName(datacenter)).To(Equal("DC5/vm"))
+	g.Expect(VMPath(datacenter, "my-mv")).To(Equal("/DC5/vm/my-mv"))
+	g.Expect(NetworkFolderName(datacenter)).To(Equal("DC5/network"))
+	g.Expect(NetworkPath(datacenter, "my-network")).To(Equal("/DC5/network/my-network"))
 }

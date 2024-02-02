@@ -41,6 +41,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	vcsimhelpers "sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vcsim"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/framework/vmoperator"
@@ -242,7 +243,7 @@ func (r *VirtualMachineReconciler) getVMIpReconciler(cluster *clusterv1.Cluster,
 		GetVMPath: func() string {
 			// The vm operator always create VMs under a sub-folder with named like the cluster.
 			datacenter := 0
-			return vcsimVMPath(datacenter, path.Join(cluster.Name, virtualMachine.Name))
+			return vcsimhelpers.VMPath(datacenter, path.Join(cluster.Name, virtualMachine.Name))
 		},
 	}
 }

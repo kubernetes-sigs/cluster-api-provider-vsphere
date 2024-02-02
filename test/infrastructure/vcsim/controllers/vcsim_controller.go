@@ -29,6 +29,7 @@ import (
 
 	_ "github.com/dougm/pretty" // NOTE: this is required to add commands vm.* to cli.Run
 	"github.com/pkg/errors"
+	"github.com/vmware/govmomi/govc/cli"
 	_ "github.com/vmware/govmomi/govc/vm" // NOTE: this is required to add commands vm.* to cli.Run
 	pbmsimulator "github.com/vmware/govmomi/pbm/simulator"
 	"github.com/vmware/govmomi/simulator"
@@ -46,13 +47,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vcsim"
+	vcsimhelpers "sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vcsim"
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/framework/vmoperator"
 	vcsimv1 "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/api/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/controllers/images"
 )
 
 const (
+	vcsimMinVersionForCAPV = "7.0.0"
+
 	// vmIP reconciler secret.
 
 	netConfigMapName       = "vsphere.provider.config.netoperator.vmware.com"
@@ -67,7 +70,7 @@ type VCenterSimulatorReconciler struct {
 	Client         client.Client
 	SupervisorMode bool
 
-	vcsimInstances map[string]*vcsim.Simulator
+	vcsimInstances map[string]*vcsimhelpers.Simulator
 	lock           sync.RWMutex
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
@@ -136,7 +139,7 @@ func (r *VCenterSimulatorReconciler) reconcileNormal(ctx context.Context, vCente
 	defer r.lock.Unlock()
 
 	if r.vcsimInstances == nil {
-		r.vcsimInstances = map[string]*vcsim.Simulator{}
+		r.vcsimInstances = map[string]*vcsimhelpers.Simulator{}
 	}
 
 	key := klog.KObj(vCenterSimulator).String()
@@ -176,7 +179,7 @@ func (r *VCenterSimulatorReconciler) reconcileNormal(ctx context.Context, vCente
 		}
 
 		// Start the vcsim instance
-		vcsimInstance, err := vcsim.NewBuilder().
+		vcsimInstance, err := vcsimhelpers.NewBuilder().
 			WithModel(model).
 			SkipModelCreate().
 			WithURL(vcsimURL).
@@ -236,16 +239,16 @@ func (r *VCenterSimulatorReconciler) reconcileNormal(ctx context.Context, vCente
 				Username:        vCenterSimulator.Status.Username,
 				Password:        vCenterSimulator.Status.Password,
 				Thumbprint:      vCenterSimulator.Status.Thumbprint,
-				Datacenter:      vcsimDatacenterName(datacenter),
-				Cluster:         vcsimClusterPath(datacenter, cluster),
-				Folder:          vcsimVMFolderName(datacenter),
-				ResourcePool:    vcsimResourcePoolPath(datacenter, cluster),
-				StoragePolicyID: vcsimDefaultStoragePolicyName,
+				Datacenter:      vcsimhelpers.DatacenterName(datacenter),
+				Cluster:         vcsimhelpers.ClusterPath(datacenter, cluster),
+				Folder:          vcsimhelpers.VMFolderName(datacenter),
+				ResourcePool:    vcsimhelpers.ResourcePoolPath(datacenter, cluster),
+				StoragePolicyID: vcsimhelpers.DefaultStoragePolicyName,
 
 				// Those are settings for a fake content library we are going to create given that it doesn't exists in vcsim by default.
 				ContentLibrary: vmoperator.ContentLibraryConfig{
 					Name:      "kubernetes",
-					Datastore: vcsimDatastorePath(datacenter, datastore),
+					Datastore: vcsimhelpers.DatastorePath(datacenter, datastore),
 					Item: vmoperator.ContentLibraryItemConfig{
 						Name: "test-image-ovf",
 						Files: []vmoperator.ContentLibraryItemFilesConfig{ // TODO: check if we really need both
@@ -283,6 +286,34 @@ func (r *VCenterSimulatorReconciler) reconcileNormal(ctx context.Context, vCente
 		}
 	}
 
+	return nil
+}
+
+func createVMTemplate(ctx context.Context, vCenterSimulator *vcsimv1.VCenterSimulator) error {
+	log := ctrl.LoggerFrom(ctx)
+	govcURL := fmt.Sprintf("https://%s:%s@%s/sdk", vCenterSimulator.Status.Username, vCenterSimulator.Status.Password, vCenterSimulator.Status.Host)
+
+	// TODO: Investigate how template are supposed to work
+	//  we create a template in a datastore, what if many?
+	//  we create a template in a cluster, but the generated vm doesn't have the cluster in the path. What if I have many clusters?
+	cluster := 0
+	datastore := 0
+	datacenters := 1
+	if vCenterSimulator.Spec.Model != nil {
+		datacenters = int(ptr.Deref(vCenterSimulator.Spec.Model.Datacenter, int32(simulator.VPX().Datacenter))) // VPX is the same base model used when creating vcsim
+	}
+	for dc := 0; dc < datacenters; dc++ {
+		exit := cli.Run([]string{"vm.create", fmt.Sprintf("-ds=%s", vcsimhelpers.DatastoreName(datastore)), fmt.Sprintf("-cluster=%s", vcsimhelpers.ClusterName(dc, cluster)), fmt.Sprintf("-net=%s", vcsimhelpers.DefaultNetworkName), "-disk=20G", "-on=false", "-k=true", fmt.Sprintf("-u=%s", govcURL), vcsimhelpers.DefaultVMTemplateName})
+		if exit != 0 {
+			return errors.New("failed to create vm template")
+		}
+
+		exit = cli.Run([]string{"vm.markastemplate", "-k=true", fmt.Sprintf("-u=%s", govcURL), vcsimhelpers.VMPath(dc, vcsimhelpers.DefaultVMTemplateName)})
+		if exit != 0 {
+			return errors.New("failed to mark vm template")
+		}
+		log.Info("Created VM template", "name", vcsimhelpers.DefaultVMTemplateName)
+	}
 	return nil
 }
 

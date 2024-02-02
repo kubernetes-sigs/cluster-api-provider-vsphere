@@ -84,7 +84,7 @@ func createVMTemplate(ctx context.Context, vCenterSimulator *vcsimv1.VCenterSimu
 	datastore := 0
 	datacenters := 1
 	if vCenterSimulator.Spec.Model != nil {
-		datacenters = ptr.Deref(vCenterSimulator.Spec.Model.Datacenter, simulator.VPX().Datacenter) // VPX is the same base model used when creating vcsim
+		datacenters = int(ptr.Deref(vCenterSimulator.Spec.Model.Datacenter, int32(simulator.VPX().Datacenter))) // VPX is the same base model used when creating vcsim
 	}
 	for dc := 0; dc < datacenters; dc++ {
 		exit := cli.Run([]string{"vm.create", fmt.Sprintf("-ds=%s", vcsimDatastoreName(datastore)), fmt.Sprintf("-cluster=%s", vcsimClusterName(dc, cluster)), fmt.Sprintf("-net=%s", vcsimDefaultNetworkName), "-disk=20G", "-on=false", "-k=true", fmt.Sprintf("-u=%s", govcURL), vcsimDefaultVMTemplateName})

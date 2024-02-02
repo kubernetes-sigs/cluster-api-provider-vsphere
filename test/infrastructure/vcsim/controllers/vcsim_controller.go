@@ -149,11 +149,11 @@ func (r *VCenterSimulatorReconciler) reconcileNormal(ctx context.Context, vCente
 		model.ServiceContent.About.Version = vcsimMinVersionForCAPV
 		if vCenterSimulator.Spec.Model != nil {
 			model.ServiceContent.About.Version = ptr.Deref(vCenterSimulator.Spec.Model.VSphereVersion, model.ServiceContent.About.Version)
-			model.Datacenter = ptr.Deref(vCenterSimulator.Spec.Model.Datacenter, model.Datacenter)
-			model.Cluster = ptr.Deref(vCenterSimulator.Spec.Model.Cluster, model.Cluster)
-			model.ClusterHost = ptr.Deref(vCenterSimulator.Spec.Model.ClusterHost, model.ClusterHost)
-			model.Pool = ptr.Deref(vCenterSimulator.Spec.Model.Pool, model.Pool)
-			model.Datastore = ptr.Deref(vCenterSimulator.Spec.Model.Datastore, model.Datastore)
+			model.Datacenter = int(ptr.Deref(vCenterSimulator.Spec.Model.Datacenter, int32(model.Datacenter)))
+			model.Cluster = int(ptr.Deref(vCenterSimulator.Spec.Model.Cluster, int32(model.Cluster)))
+			model.ClusterHost = int(ptr.Deref(vCenterSimulator.Spec.Model.ClusterHost, int32(model.ClusterHost)))
+			model.Pool = int(ptr.Deref(vCenterSimulator.Spec.Model.Pool, int32(model.Pool)))
+			model.Datastore = int(ptr.Deref(vCenterSimulator.Spec.Model.Datastore, int32(model.Datastore)))
 		}
 		if err := model.Create(); err != nil {
 			return errors.Wrapf(err, "failed to create vcsim server model")

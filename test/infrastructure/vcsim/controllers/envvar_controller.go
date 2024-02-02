@@ -163,18 +163,19 @@ func (r *EnvVarReconciler) reconcileNormal(ctx context.Context, envVar *vcsimv1.
 		"NAMESPACE":                   vCenterSimulator.Namespace,
 		"CLUSTER_NAME":                envVar.Spec.Cluster.Name,
 		"KUBERNETES_VERSION":          ptr.Deref(envVar.Spec.Cluster.KubernetesVersion, "v1.28.0"),
-		"CONTROL_PLANE_MACHINE_COUNT": strconv.Itoa(ptr.Deref(envVar.Spec.Cluster.ControlPlaneMachines, 1)),
-		"WORKER_MACHINE_COUNT":        strconv.Itoa(ptr.Deref(envVar.Spec.Cluster.WorkerMachines, 1)),
+		"CONTROL_PLANE_MACHINE_COUNT": strconv.Itoa(int(ptr.Deref(envVar.Spec.Cluster.ControlPlaneMachines, 1))),
+		"WORKER_MACHINE_COUNT":        strconv.Itoa(int(ptr.Deref(envVar.Spec.Cluster.WorkerMachines, 1))),
 
 		// variables for the fake APIServer endpoint
 		"CONTROL_PLANE_ENDPOINT_IP":   controlPlaneEndpoint.Status.Host,
-		"CONTROL_PLANE_ENDPOINT_PORT": strconv.Itoa(controlPlaneEndpoint.Status.Port),
+		"CONTROL_PLANE_ENDPOINT_PORT": strconv.Itoa(int(controlPlaneEndpoint.Status.Port)),
 
 		// variables to set up govc for working with the vcsim instance.
 		"GOVC_URL":      fmt.Sprintf("https://%s:%s@%s/sdk", vCenterSimulator.Status.Username, vCenterSimulator.Status.Password, strings.Replace(vCenterSimulator.Status.Host, r.PodIP, "127.0.0.1", 1)), // NOTE: reverting back to local host because the assumption is that the vcsim pod will be port-forwarded on local host
 		"GOVC_INSECURE": "true",
 	}
 
+	// Variables below are generated using the same utilities used both also for E2E tests setup.
 	if r.SupervisorMode {
 		// Variables used only in supervisor mode
 		envVar.Status.Variables["VSPHERE_STORAGE_POLICY"] = "vcsim-default"
@@ -190,8 +191,8 @@ func (r *EnvVarReconciler) reconcileNormal(ctx context.Context, envVar *vcsimv1.
 	// cluster template variables about the vcsim instance.
 	envVar.Status.Variables["VSPHERE_SERVER"] = fmt.Sprintf("https://%s", vCenterSimulator.Status.Host)
 	envVar.Status.Variables["VSPHERE_TLS_THUMBPRINT"] = vCenterSimulator.Status.Thumbprint
-	envVar.Status.Variables["VSPHERE_DATACENTER"] = vcsimDatacenterName(ptr.Deref(envVar.Spec.Cluster.Datacenter, 0))
-	envVar.Status.Variables["VSPHERE_DATASTORE"] = vcsimDatastoreName(ptr.Deref(envVar.Spec.Cluster.Datastore, 0))
+	envVar.Status.Variables["VSPHERE_DATACENTER"] = vcsimDatacenterName(int(ptr.Deref(envVar.Spec.Cluster.Datacenter, 0)))
+	envVar.Status.Variables["VSPHERE_DATASTORE"] = vcsimDatastoreName(int(ptr.Deref(envVar.Spec.Cluster.Datastore, 0)))
 	envVar.Status.Variables["VSPHERE_FOLDER"] = fmt.Sprintf("/DC%d/vm", ptr.Deref(envVar.Spec.Cluster.Datacenter, 0))
 	envVar.Status.Variables["VSPHERE_NETWORK"] = fmt.Sprintf("/DC%d/network/VM Network", ptr.Deref(envVar.Spec.Cluster.Datacenter, 0))
 	envVar.Status.Variables["VSPHERE_RESOURCE_POOL"] = fmt.Sprintf("/DC%d/host/DC%[1]d_C%d/Resources", ptr.Deref(envVar.Spec.Cluster.Datacenter, 0), ptr.Deref(envVar.Spec.Cluster.Cluster, 0))

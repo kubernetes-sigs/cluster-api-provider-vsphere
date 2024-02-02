@@ -73,6 +73,10 @@ spec:
                   name:
                     description: The name of the Cluster API cluster.
                     type: string
+                  powerOffMode:
+                    description: 'The PowerOffMode for the machines in the cluster.
+                      Default: trySoft'
+                    type: string
                   workerMachines:
                     description: 'The number of the worker machines in the Cluster
                       API cluster. NOTE: This variable isn''t related to the vcsim

@@ -60,6 +60,10 @@ type ClusterEnvVarSpec struct {
 	// Datastore specifies the Datastore for the Cluster API cluster.
 	// Default: 0 (LocalDS_0)
 	Datastore *int32 `json:"datastore,omitempty"`
+
+	// The PowerOffMode for the machines in the cluster.
+	// Default: trySoft
+	PowerOffMode *string `json:"powerOffMode,omitempty"`
 }
 
 // EnvVarStatus defines the observed state of the EnvVar.

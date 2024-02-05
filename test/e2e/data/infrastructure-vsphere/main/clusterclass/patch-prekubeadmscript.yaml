@@ -4,7 +4,7 @@
     definitions:
     - jsonPatches:
       - op: add
-        path: /spec/template/spec/kubeadmConfigSpec/preKubeadmCommands/-
+        path: /spec/template/spec/kubeadmConfigSpec/preKubeadmCommands/0
         value: "/opt/prekubeadmscript.sh"
       - op: add
         path: /spec/template/spec/kubeadmConfigSpec/files/-
@@ -21,7 +21,7 @@
           controlPlane: true
     - jsonPatches:
       - op: add
-        path: /spec/template/spec/preKubeadmCommands/-
+        path: /spec/template/spec/preKubeadmCommands/0
         value: "/opt/prekubeadmscript.sh"
       - op: add
         path: /spec/template/spec/files/-

@@ -21,7 +21,7 @@ set -o pipefail
 # MIN_GO_VERSION is the minimum, supported Go version.
 # Note: Enforce only the minor version as we can't guarantee that
 # the images we use in ProwJobs already use the latest patch version.
-MIN_GO_VERSION="go${MIN_GO_VERSION:-1.20}"
+MIN_GO_VERSION="go${MIN_GO_VERSION:-1.21}"
 
 # Ensure the go tool exists and is a viable version.
 verify_go_version() {

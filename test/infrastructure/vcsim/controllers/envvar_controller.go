@@ -37,6 +37,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
+	vcsimhelpers "sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vcsim"
 	vcsimv1 "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/api/v1alpha1"
 )
 
@@ -191,13 +192,13 @@ func (r *EnvVarReconciler) reconcileNormal(ctx context.Context, envVar *vcsimv1.
 	// cluster template variables about the vcsim instance.
 	envVar.Status.Variables["VSPHERE_SERVER"] = fmt.Sprintf("https://%s", vCenterSimulator.Status.Host)
 	envVar.Status.Variables["VSPHERE_TLS_THUMBPRINT"] = vCenterSimulator.Status.Thumbprint
-	envVar.Status.Variables["VSPHERE_DATACENTER"] = vcsimDatacenterName(int(ptr.Deref(envVar.Spec.Cluster.Datacenter, 0)))
-	envVar.Status.Variables["VSPHERE_DATASTORE"] = vcsimDatastoreName(int(ptr.Deref(envVar.Spec.Cluster.Datastore, 0)))
+	envVar.Status.Variables["VSPHERE_DATACENTER"] = vcsimhelpers.DatacenterName(int(ptr.Deref(envVar.Spec.Cluster.Datacenter, 0)))
+	envVar.Status.Variables["VSPHERE_DATASTORE"] = vcsimhelpers.DatastoreName(int(ptr.Deref(envVar.Spec.Cluster.Datastore, 0)))
 	envVar.Status.Variables["VSPHERE_FOLDER"] = fmt.Sprintf("/DC%d/vm", ptr.Deref(envVar.Spec.Cluster.Datacenter, 0))
 	envVar.Status.Variables["VSPHERE_NETWORK"] = fmt.Sprintf("/DC%d/network/VM Network", ptr.Deref(envVar.Spec.Cluster.Datacenter, 0))
 	envVar.Status.Variables["VSPHERE_RESOURCE_POOL"] = fmt.Sprintf("/DC%d/host/DC%[1]d_C%d/Resources", ptr.Deref(envVar.Spec.Cluster.Datacenter, 0), ptr.Deref(envVar.Spec.Cluster.Cluster, 0))
-	envVar.Status.Variables["VSPHERE_STORAGE_POLICY"] = vcsimDefaultStoragePolicyName
-	envVar.Status.Variables["VSPHERE_TEMPLATE"] = fmt.Sprintf("/DC%d/vm/%s", ptr.Deref(envVar.Spec.Cluster.Datacenter, 0), vcsimDefaultVMTemplateName)
+	envVar.Status.Variables["VSPHERE_STORAGE_POLICY"] = vcsimhelpers.DefaultStoragePolicyName
+	envVar.Status.Variables["VSPHERE_TEMPLATE"] = fmt.Sprintf("/DC%d/vm/%s", ptr.Deref(envVar.Spec.Cluster.Datacenter, 0), vcsimhelpers.DefaultVMTemplateName)
 
 	return nil
 }

@@ -117,7 +117,7 @@ func (np *nsxtNetworkProvider) ProvisionClusterNetwork(ctx *vmware.ClusterContex
 					"cluster", clusterKey, "ip", systemNSSnatIP)
 
 				// WhitelistSourceRanges accept cidrs only
-				vnet.Spec.WhitelistSourceRanges = systemNSSnatIP + "/32"
+				vnet.Spec.WhitelistSourceRanges = systemNSSnatIP + "/32" //nolint:goconst
 			}
 		}
 

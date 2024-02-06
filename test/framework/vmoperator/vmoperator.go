@@ -41,7 +41,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/util"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 )
 
@@ -343,7 +342,7 @@ func ReconcileDependencies(ctx context.Context, c client.Client, config *Depende
 		},
 		ClassRef: vmoprv1.ClassReference{
 			APIVersion: vmoprv1.SchemeGroupVersion.String(),
-			Kind:       util.TypeToKind(&vmoprv1.VirtualMachineClass{}),
+			Kind:       "VirtualMachineClass",
 			Name:       vmClass.Name,
 		},
 	}
@@ -431,7 +430,7 @@ func ReconcileDependencies(ctx context.Context, c client.Client, config *Depende
 		},
 		ContentSourceRef: vmoprv1.ContentSourceReference{
 			APIVersion: vmoprv1.SchemeGroupVersion.String(),
-			Kind:       util.TypeToKind(&vmoprv1.ContentSource{}),
+			Kind:       "ContentSource",
 			Name:       contentSource.Name,
 		},
 	}

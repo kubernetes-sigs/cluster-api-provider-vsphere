@@ -94,7 +94,7 @@ make envsubst
 # Only build and upload the image if we run tests which require it to save some $.
 if [[ -z "${GINKGO_FOCUS+x}" ]]; then
   # Save the docker image locally
-  make e2e-image
+  make e2e-images
   mkdir -p /tmp/images
   docker save gcr.io/k8s-staging-capi-vsphere/cluster-api-vsphere-controller:dev -o "$DOCKER_IMAGE_TAR"
 

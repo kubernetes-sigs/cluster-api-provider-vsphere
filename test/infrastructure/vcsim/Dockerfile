@@ -49,7 +49,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 # This needs to build with the entire Cluster API context
 WORKDIR /workspace
-# Copy the sources (which includes the test/infrastructure/inmemory subdirectory)
+# Copy the sources (which includes the test/infrastructure/vcsim subdirectory)
 COPY ./ ./
 
 # Essentially, change directories into vcsim
@@ -61,6 +61,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     go build .
 
 # Build
+ARG package=.
 ARG ARCH
 ARG ldflags
 
@@ -69,12 +70,12 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
     CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} \
     go build -trimpath -ldflags "${ldflags} -extldflags '-static'" \
-    -o /workspace/manager .
+    -o manager ${package}
 
 
 FROM gcr.io/distroless/static:nonroot-${ARCH}
 WORKDIR /
-COPY --from=builder /workspace/manager .
+COPY --from=builder /workspace/test/infrastructure/vcsim/manager .
 # Use uid of nonroot user (65532) because kubernetes expects numeric user when applying pod security policies
 USER 65532
 ENTRYPOINT ["/manager"]

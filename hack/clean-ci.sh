@@ -58,5 +58,8 @@ function wait_for_ipam_reachable() {
 }
 wait_for_ipam_reachable
 
+# Set kubeconfig for IPAM cleanup
+export KUBECONFIG="${E2E_IPAM_KUBECONFIG}"
+
 # Run e2e tests
 make clean-ci

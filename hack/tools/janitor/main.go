@@ -92,7 +92,10 @@ func run(ctx context.Context) error {
 	defer vSphereClients.logout(ctx)
 
 	// Create controller-runtime client for IPAM.
-	restConfig := ctrl.GetConfigOrDie()
+	restConfig, err := ctrl.GetConfig()
+	if err != nil {
+		return errors.Wrap(err, "unable to get kubeconfig")
+	}
 	ipamClient, err := client.New(restConfig, client.Options{Scheme: ipamScheme})
 	if err != nil {
 		return errors.Wrap(err, "creating IPAM client")

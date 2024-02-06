@@ -92,17 +92,18 @@ type VCenterClusterConfig struct {
 	Thumbprint string
 
 	// supervisor is based on a single vCenter cluster
-	Datacenter      string
-	Cluster         string
-	Folder          string
-	ResourcePool    string
-	StoragePolicyID string
-	ContentLibrary  ContentLibraryConfig
+	Datacenter     string
+	Cluster        string
+	Folder         string
+	ResourcePool   string
+	StoragePolicy  string
+	ContentLibrary ContentLibraryConfig
 }
 
 type UserNamespaceConfig struct {
-	Name         string
-	StorageClass string
+	Name                string
+	StorageClass        string
+	VirtualMachineClass string
 }
 
 // Dependencies models dependencies for the vm-operator.
@@ -120,7 +121,7 @@ type Dependencies struct {
 // ReconcileDependencies reconciles dependencies for the vm-operator.
 // NOTE: This func is idempotent, it creates objects if missing otherwise it uses existing ones
 // (this will allow e.g. to update images once and re-use for many test run).
-func ReconcileDependencies(ctx context.Context, c client.Client, config Dependencies) error {
+func ReconcileDependencies(ctx context.Context, c client.Client, config *Dependencies) error {
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Reconciling dependencies for the VMOperator Deployment")
 
@@ -165,9 +166,9 @@ func ReconcileDependencies(ctx context.Context, c client.Client, config Dependen
 		return errors.Wrap(err, "failed to get storage policy client")
 	}
 
-	storagePolicyID, err := pbmClient.ProfileIDByName(ctx, config.VCenterCluster.StoragePolicyID)
+	storagePolicyID, err := pbmClient.ProfileIDByName(ctx, config.VCenterCluster.StoragePolicy)
 	if err != nil {
-		return errors.Wrapf(err, "failed to get storage policy profile %s", config.VCenterCluster.StoragePolicyID)
+		return errors.Wrapf(err, "failed to get storage policy profile %s", config.VCenterCluster.StoragePolicy)
 	}
 
 	// Create StorageClass & bind it to the user namespace via a ResourceQuota
@@ -316,7 +317,7 @@ func ReconcileDependencies(ctx context.Context, c client.Client, config Dependen
 	// TODO: figure out if to add more vm classes / if to make them configurable via config
 	vmClass := &vmoprv1.VirtualMachineClass{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "best-effort-2xlarge",
+			Name: config.UserNamespace.VirtualMachineClass,
 		},
 		Spec: vmoprv1.VirtualMachineClassSpec{
 			Hardware: vmoprv1.VirtualMachineClassHardware{

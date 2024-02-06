@@ -223,54 +223,8 @@ func (r *VCenterSimulatorReconciler) reconcileNormal(ctx context.Context, vCente
 		// - A set of Kubernetes object the vm-operator relies on
 
 		// To mimic the supervisor cluster, there will be only one vm-operator instance for each management cluster;
-		// also, the logic below should consider that the instance of the vm-operator is bound to a specific vCenterSimulator cluster.
-
-		// Those are config for vCenterSimulator cluster DC0/C0, datastore LocalDS_0 in vcsim.
-		datacenter := 0
-		cluster := 0
-		datastore := 0
-
-		config := vmoperator.Dependencies{
-			// This is where tilt deploys the vm-operator
-			Namespace: vmoperator.DefaultNamespace,
-
-			VCenterCluster: vmoperator.VCenterClusterConfig{
-				ServerURL:       vCenterSimulator.Status.Host,
-				Username:        vCenterSimulator.Status.Username,
-				Password:        vCenterSimulator.Status.Password,
-				Thumbprint:      vCenterSimulator.Status.Thumbprint,
-				Datacenter:      vcsimhelpers.DatacenterName(datacenter),
-				Cluster:         vcsimhelpers.ClusterPath(datacenter, cluster),
-				Folder:          vcsimhelpers.VMFolderName(datacenter),
-				ResourcePool:    vcsimhelpers.ResourcePoolPath(datacenter, cluster),
-				StoragePolicyID: vcsimhelpers.DefaultStoragePolicyName,
-
-				// Those are settings for a fake content library we are going to create given that it doesn't exists in vcsim by default.
-				ContentLibrary: vmoperator.ContentLibraryConfig{
-					Name:      "kubernetes",
-					Datastore: vcsimhelpers.DatastorePath(datacenter, datastore),
-					Item: vmoperator.ContentLibraryItemConfig{
-						Name: "test-image-ovf",
-						Files: []vmoperator.ContentLibraryItemFilesConfig{ // TODO: check if we really need both
-							{
-								Name:    "ttylinux-pc_i486-16.1.ovf",
-								Content: images.SampleOVF,
-							},
-						},
-						ItemType:    "ovf",
-						ProductInfo: "dummy-productInfo",
-						OSInfo:      "dummy-OSInfo",
-					},
-				},
-			},
-
-			// The users are expected to store Cluster API clusters to be managed by the vm-operator
-			// in the default namespace and to use the "vcsim-default" storage class.
-			UserNamespace: vmoperator.UserNamespaceConfig{
-				Name:         corev1.NamespaceDefault,
-				StorageClass: "vcsim-default",
-			},
-		}
+		// also, the logic below should consider that the instance of the vm-operator is bound to a specific vCenterSimulator cluster/user namespace.
+		config := dependenciesForVCenterSimulator(vCenterSimulator)
 
 		if err := vmoperator.ReconcileDependencies(ctx, r.Client, config); err != nil {
 			return err
@@ -317,7 +271,61 @@ func createVMTemplate(ctx context.Context, vCenterSimulator *vcsimv1.VCenterSimu
 	return nil
 }
 
-func addPreRequisitesForVMIPreconciler(ctx context.Context, c client.Client, config vmoperator.Dependencies) error {
+// dependenciesForVCenterSimulator return a dependency config for a vCenterSimulator.
+// Note: This config uses cluster DC0/C0, datastore LocalDS_0 in vcsim; it also sets up content library
+// and the default namespace (the namespace where workload cluster are going to be deployed) with just
+// what is required to reconcile VirtualMachines with the vm-operator.
+func dependenciesForVCenterSimulator(vCenterSimulator *vcsimv1.VCenterSimulator) *vmoperator.Dependencies {
+	datacenter := 0
+	cluster := 0
+	datastore := 0
+
+	config := &vmoperator.Dependencies{
+		// This is where tilt deploys the vm-operator
+		Namespace: vmoperator.DefaultNamespace,
+
+		VCenterCluster: vmoperator.VCenterClusterConfig{
+			ServerURL:     vCenterSimulator.Status.Host,
+			Username:      vCenterSimulator.Status.Username,
+			Password:      vCenterSimulator.Status.Password,
+			Thumbprint:    vCenterSimulator.Status.Thumbprint,
+			Datacenter:    vcsimhelpers.DatacenterName(datacenter),
+			Cluster:       vcsimhelpers.ClusterPath(datacenter, cluster),
+			Folder:        vcsimhelpers.VMFolderName(datacenter),
+			ResourcePool:  vcsimhelpers.ResourcePoolPath(datacenter, cluster),
+			StoragePolicy: vcsimhelpers.DefaultStoragePolicyName,
+
+			// Those are settings for a fake content library we are going to create given that it doesn't exists in vcsim by default.
+			ContentLibrary: vmoperator.ContentLibraryConfig{
+				Name:      "kubernetes",
+				Datastore: vcsimhelpers.DatastorePath(datacenter, datastore),
+				Item: vmoperator.ContentLibraryItemConfig{
+					Name: "test-image",
+					Files: []vmoperator.ContentLibraryItemFilesConfig{ // TODO: check if we really need both
+						{
+							Name:    "ttylinux-pc_i486-16.1.ovf",
+							Content: images.SampleOVF,
+						},
+					},
+					ItemType:    "ovf",
+					ProductInfo: "dummy-productInfo",
+					OSInfo:      "dummy-OSInfo",
+				},
+			},
+		},
+
+		// The users are expected to store Cluster API clusters to be managed by the vm-operator
+		// in the default namespace and to use the "vcsim-default" storage class.
+		UserNamespace: vmoperator.UserNamespaceConfig{
+			Name:                corev1.NamespaceDefault,
+			StorageClass:        "test-storage-class",
+			VirtualMachineClass: "test-virtual-machine-class",
+		},
+	}
+	return config
+}
+
+func addPreRequisitesForVMIPreconciler(ctx context.Context, c client.Client, config *vmoperator.Dependencies) error {
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Reconciling requirements for the Fake net-operator Deployment")
 

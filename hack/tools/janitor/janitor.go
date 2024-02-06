@@ -128,7 +128,7 @@ func (s *janitor) deleteVSphereVMs(ctx context.Context, folder string) error {
 		if err != nil {
 			return err
 		}
-		log.Info("Created PowerOff task for VM", "vm", vm.managedObject.Config.Name, "task", task.Name())
+		log.Info("Created PowerOff task for VM", "vm", vm.managedObject.Config.Name, "task", task.Reference().Value)
 		poweroffTasks = append(poweroffTasks, task)
 	}
 	// Wait for all PowerOff tasks to be finished. We intentionally ignore errors here
@@ -151,7 +151,7 @@ func (s *janitor) deleteVSphereVMs(ctx context.Context, folder string) error {
 		if err != nil {
 			return err
 		}
-		log.Info("Created Destroy task for VM", "vm", vm.managedObject.Config.Name, "task", task.Name())
+		log.Info("Created Destroy task for VM", "vm", vm.managedObject.Config.Name, "task", task.Reference().Value)
 		destroyTasks = append(destroyTasks, task)
 	}
 	// Wait for all destroy tasks to succeed.

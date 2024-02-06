@@ -178,12 +178,16 @@ func (r *EnvVarReconciler) reconcileNormal(ctx context.Context, envVar *vcsimv1.
 
 	// Variables below are generated using the same utilities used both also for E2E tests setup.
 	if r.SupervisorMode {
+		config := dependenciesForVCenterSimulator(vCenterSimulator)
+
 		// Variables used only in supervisor mode
-		envVar.Status.Variables["VSPHERE_STORAGE_POLICY"] = "vcsim-default"
-		envVar.Status.Variables["VSPHERE_MACHINE_CLASS_NAME"] = "best-effort-2xlarge"
 		envVar.Status.Variables["VSPHERE_POWER_OFF_MODE"] = ptr.Deref(envVar.Spec.Cluster.PowerOffMode, "trySoft")
-		envVar.Status.Variables["VSPHERE_IMAGE_NAME"] = "test-image-ovf"
-		envVar.Status.Variables["VSPHERE_STORAGE_CLASS"] = "vcsim-default"
+
+		envVar.Status.Variables["VSPHERE_STORAGE_POLICY"] = config.VCenterCluster.StoragePolicy
+		envVar.Status.Variables["VSPHERE_IMAGE_NAME"] = config.VCenterCluster.ContentLibrary.Item.Name
+		envVar.Status.Variables["VSPHERE_STORAGE_CLASS"] = config.UserNamespace.StorageClass
+		envVar.Status.Variables["VSPHERE_MACHINE_CLASS_NAME"] = config.UserNamespace.VirtualMachineClass
+
 		return nil
 	}
 

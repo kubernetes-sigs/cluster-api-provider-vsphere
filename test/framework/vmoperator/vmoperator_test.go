@@ -75,7 +75,7 @@ func Test_reconcileVMOperatorDeployment(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(yaml.Unmarshal(testbedData, &vcenterClusterConfig)).ToNot(HaveOccurred())
 
-	config := Dependencies{
+	config := &Dependencies{
 		Namespace: "vmware-system-vmop",
 		UserNamespace: UserNamespaceConfig{
 			Name:         "default", // namespace where we deploy a cluster

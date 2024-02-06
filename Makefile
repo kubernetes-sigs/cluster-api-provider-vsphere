@@ -250,6 +250,8 @@ VCSIM_RBAC_ROOT ?= $(VCSIM_DIR)/config/rbac
 VERSION ?= $(shell cat clusterctl-settings.json | jq .config.nextVersion -r)
 OVERRIDES_DIR := $(HOME)/.cluster-api/overrides/infrastructure-vsphere/$(VERSION)
 
+JANITOR_DIR ?= ./$(TOOLS_DIR)/janitor
+
 help:  # Display this help
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[0-9A-Za-z_-]+:.*?##/ { printf "  \033[36m%-50s\033[0m %s\n", $$1, $$2 } /^\$$\([0-9A-Za-z_-]+\):.*?##/ { gsub("_","-", $$1); printf "  \033[36m%-50s\033[0m %s\n", tolower(substr($$1, 3, length($$1)-7)), $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
@@ -759,6 +761,19 @@ clean-build:
 clean-bin: ## Remove all generated binaries
 	rm -rf $(BIN_DIR)
 	rm -rf $(TOOLS_BIN_DIR)
+
+.PHONY: clean-ci
+clean-ci: ## Cleanup orphaned objects in CI
+	@if [ -z "${GOVC_USERNAME}" ]; then echo "GOVC_USERNAME is not set"; exit 1; fi
+	@if [ -z "${GOVC_PASSWORD}" ]; then echo "GOVC_PASSWORD is not set"; exit 1; fi
+	@if [ -z "${GOVC_URL}" ]; then echo "GOVC_URL is not set"; exit 1; fi
+	go run $(JANITOR_DIR) \
+		--dry-run=false \
+		--max-age=12h \
+		--ipam-namespace=default \
+		--folder=/SDDC-Datacenter/vm/Workloads/cluster-api-provider-vsphere \
+		--folder=/SDDC-Datacenter/vm/Workloads/cloud-provider-vsphere \
+		--folder=/SDDC-Datacenter/vm/Workloads/image-builder
 
 .PHONY: clean-temporary
 clean-temporary: ## Remove all temporary files and folders

@@ -13,7 +13,6 @@ stringData:
     stringData:
       csi-vsphere.conf: |+
         [Global]
-        cluster-id = "${NAMESPACE}/${CLUSTER_NAME}"
 
         [VirtualCenter "${VSPHERE_SERVER}"]
         insecure-flag = "${VSPHERE_INSECURE_CSI}"

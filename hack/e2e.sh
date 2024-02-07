@@ -21,6 +21,16 @@ set -o pipefail # any non-zero exit code in a piped command causes the pipeline 
 export PATH=${PWD}/hack/tools/bin:${PATH}
 REPO_ROOT=$(git rev-parse --show-toplevel)
 
+# In CI, ARTIFACTS is set to a different directory. This stores the value of
+# ARTIFACTS i1n ORIGINAL_ARTIFACTS and replaces ARTIFACTS by a temporary directory
+# which gets cleaned up from credentials at the end of the test.
+export ORIGINAL_ARTIFACTS=""
+export ARTIFACTS="${ARTIFACTS:-${REPO_ROOT}/_artifacts}"
+if [[ "${ARTIFACTS}" != "${REPO_ROOT}/_artifacts" ]]; then
+  ORIGINAL_ARTIFACTS="${ARTIFACTS}"
+  ARTIFACTS=$(mktemp -d)
+fi
+
 # shellcheck source=./hack/ensure-kubectl.sh
 source "${REPO_ROOT}/hack/ensure-kubectl.sh"
 
@@ -31,6 +41,17 @@ on_exit() {
   # logout of gcloud
   if [ "${AUTH}" ]; then
     gcloud auth revoke
+  fi
+
+  # Cleanup VSPHERE_PASSWORD from temporary artifacts directory.
+  if [[ "${ORIGINAL_ARTIFACTS}" != "" ]]; then
+    grep -r -l -e "${VSPHERE_PASSWORD}" "${ARTIFACTS}" | while IFS= read -r file
+    do
+      echo "Cleaning up VSPHERE_PASSWORD from file ${file}"
+      sed -i "s/${VSPHERE_PASSWORD}/REDACTED/g" "${file}"
+    done
+    # Move all artifacts to the original artifacts location.
+    mv "${ARTIFACTS}"/* "${ORIGINAL_ARTIFACTS}/"
   fi
 }
 

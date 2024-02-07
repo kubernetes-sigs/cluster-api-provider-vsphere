@@ -91,16 +91,18 @@ wait_for_ipam_reachable
 
 make envsubst
 
+ARCH="$(go env GOARCH)"
+
 # Only build and upload the image if we run tests which require it to save some $.
 if [[ -z "${GINKGO_FOCUS+x}" ]]; then
   # Save the docker image locally
   make e2e-images
   mkdir -p /tmp/images
-  docker save gcr.io/k8s-staging-capi-vsphere/cluster-api-vsphere-controller:dev -o "$DOCKER_IMAGE_TAR"
+  docker save "gcr.io/k8s-staging-capi-vsphere/cluster-api-vsphere-controller-${ARCH}:dev" -o "$DOCKER_IMAGE_TAR"
 
   # Store the image on gcs
   login
-  E2E_IMAGE_SHA=$(docker inspect --format='{{index .Id}}' gcr.io/k8s-staging-capi-vsphere/cluster-api-vsphere-controller:dev)
+  E2E_IMAGE_SHA=$(docker inspect --format='{{index .Id}}' "gcr.io/k8s-staging-capi-vsphere/cluster-api-vsphere-controller-${ARCH}:dev")
   export E2E_IMAGE_SHA
   gsutil cp ${DOCKER_IMAGE_TAR} gs://capv-ci/"$E2E_IMAGE_SHA"
 fi

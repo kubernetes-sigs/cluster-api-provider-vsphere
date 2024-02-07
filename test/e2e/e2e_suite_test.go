@@ -17,18 +17,25 @@ limitations under the License.
 package e2e
 
 import (
+	"bufio"
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
@@ -36,6 +43,7 @@ import (
 	. "sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
 	capiutil "sigs.k8s.io/cluster-api/util"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
@@ -308,6 +316,13 @@ func cleanupSpecNamespace(namespace *corev1.Namespace) {
 		LogPath:   filepath.Join(artifactFolder, "clusters", bootstrapClusterProxy.GetName(), "resources"),
 	})
 
+	dumpDeploymentLogsByName(ctx, dumpDeploymentLogsByNameInput{
+		LogPath:    filepath.Join(artifactFolder, "clusters", bootstrapClusterProxy.GetName(), "logs"),
+		GetLister:  bootstrapClusterProxy.GetClient(),
+		Deployment: types.NamespacedName{Namespace: "vmware-system-csi", Name: "vsphere-csi-controller"},
+		ClientSet:  bootstrapClusterProxy.GetClientSet(),
+	})
+
 	Byf("cleaning up namespace: %s", namespace.Name)
 	cancelWatches := namespaces[namespace]
 
@@ -326,4 +341,79 @@ func cleanupSpecNamespace(namespace *corev1.Namespace) {
 
 	cancelWatches()
 	delete(namespaces, namespace)
+}
+
+const (
+	retryableOperationTimeout  = 3 * time.Minute
+	retryableOperationInterval = 3 * time.Second
+)
+
+// dumpDeploymentLogsByNameInput is the input for dumpDeploymentLogsByName.
+type dumpDeploymentLogsByNameInput struct {
+	Deployment types.NamespacedName
+	ClientSet  *kubernetes.Clientset
+	GetLister  framework.GetLister
+	LogPath    string
+}
+
+func dumpDeploymentLogsByName(ctx context.Context, input dumpDeploymentLogsByNameInput) {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for WatchDeploymentLogsByName")
+	Expect(input.ClientSet).NotTo(BeNil(), "input.ClientSet is required for WatchDeploymentLogsByName")
+	Expect(input.Deployment).NotTo(BeNil(), "input.Deployment is required for WatchDeploymentLogsByName")
+
+	deployment := &appsv1.Deployment{}
+	Eventually(func() error {
+		return input.GetLister.Get(ctx, input.Deployment, deployment)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get deployment %s", input.Deployment)
+
+	pods := &corev1.PodList{}
+	Eventually(func() error {
+		return input.GetLister.List(ctx, pods, client.MatchingLabels(deployment.Spec.Selector.MatchLabels))
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list pods for deployment %s", input.Deployment)
+
+	for _, pod := range pods.Items {
+		dumpPodLogs(ctx, dumpPodLogsInput{
+			ClientSet:            input.ClientSet,
+			Pod:                  &pod,
+			ManagingResourceName: deployment.Name,
+			LogPath:              input.LogPath,
+		})
+	}
+}
+
+type dumpPodLogsInput struct {
+	ClientSet            *kubernetes.Clientset
+	Pod                  *corev1.Pod
+	ManagingResourceName string
+	LogPath              string
+}
+
+func dumpPodLogs(ctx context.Context, input dumpPodLogsInput) {
+	pod := &corev1.Pod{}
+
+	for _, container := range input.Pod.Spec.Containers {
+		logFile := filepath.Clean(path.Join(input.LogPath, input.ManagingResourceName, pod.Name, container.Name+".log"))
+		Expect(os.MkdirAll(filepath.Dir(logFile), 0750)).To(Succeed())
+
+		f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+		Expect(err).ToNot(HaveOccurred())
+		defer f.Close()
+
+		opts := &corev1.PodLogOptions{
+			Container: container.Name,
+			Follow:    true,
+		}
+
+		podLogs, err := input.ClientSet.CoreV1().Pods(input.Pod.GetNamespace()).GetLogs(input.Pod.GetName(), opts).Stream(ctx)
+		Expect(err).ToNot(HaveOccurred())
+		defer podLogs.Close()
+
+		out := bufio.NewWriter(f)
+		defer out.Flush()
+
+		_, err = out.ReadFrom(podLogs)
+		if err != nil && err != io.ErrUnexpectedEOF {
+			Expect(err).ToNot(HaveOccurred())
+		}
+	}
 }

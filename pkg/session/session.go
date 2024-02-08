@@ -327,7 +327,7 @@ func (s *Session) GetVersion() (infrav1.VCenterVersion, error) {
 
 // Clear is meant to destroy all the cached sessions.
 func Clear() {
-	sessionCache.Range(func(key, s any) bool {
+	sessionCache.Range(func(_, s any) bool {
 		cachedSession := s.(*Session)
 		_ = cachedSession.Logout(context.Background())
 		return true

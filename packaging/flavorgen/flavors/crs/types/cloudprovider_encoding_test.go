@@ -261,7 +261,7 @@ folder = "kubernetes"
 
 	for _, tc := range testcases {
 		tc := tc
-		t.Run(tc.testName, func(t *testing.T) {
+		t.Run(tc.testName, func(*testing.T) {
 			buf, err := tc.configObj.MarshalINI()
 			if err != nil {
 				if tc.expectedError == nil {

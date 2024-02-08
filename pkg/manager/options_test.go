@@ -72,7 +72,7 @@ password: '%s'
 			t.Fatal(err)
 		}
 
-		t.Run(test.name, func(t *testing.T) {
+		t.Run(test.name, func(*testing.T) {
 			o := &Options{
 				// needs an object ref to be present
 				KubeConfig:      &rest.Config{},

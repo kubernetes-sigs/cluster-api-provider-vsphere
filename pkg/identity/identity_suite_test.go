@@ -98,7 +98,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	Expect(k8sclient.Create(ctx, ns)).NotTo(HaveOccurred())
 
 	return nil
-}, func(data []byte) {})
+}, func([]byte) {})
 
 var _ = SynchronizedAfterSuite(func() {}, func() {
 	if err := env.Stop(); err != nil {

@@ -316,7 +316,7 @@ type NetworkDeviceSpec struct {
 	// IPAddrs is a list of one or more IPv4 and/or IPv6 addresses to assign
 	// to this device.  IP addresses must also specify the segment length in
 	// CIDR notation.
-	// Required when DHCP4 and DHCP6 are both false.
+	// Required when DHCP4, DHCP6 and IPConfigurationNotMandatory are false.
 	// +optional
 	IPAddrs []string `json:"ipAddrs,omitempty"`
 
@@ -370,6 +370,10 @@ type NetworkDeviceSpec struct {
 	// For more information see the netplan reference (https://netplan.io/reference#dhcp-overrides)
 	// +optional
 	DHCP6Overrides *DHCPOverrides `json:"dhcp6Overrides,omitempty"`
+
+	// IPConfigurationNotMandatory allows for the device to not have IP address or DHCP configured.
+	// +optional
+	IPConfigurationNotMandatory bool `json:"ipConfigurationNotMandatory,omitempty"`
 }
 
 // DHCPOverrides allows for the control over several DHCP behaviors.

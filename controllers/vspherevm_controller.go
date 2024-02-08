@@ -473,7 +473,7 @@ func (r vmReconciler) reconcileNormal(ctx context.Context, vmCtx *capvcontext.VM
 func (r vmReconciler) isWaitingForStaticIPAllocation(vmCtx *capvcontext.VMContext) bool {
 	devices := vmCtx.VSphereVM.Spec.Network.Devices
 	for _, dev := range devices {
-		if !dev.DHCP4 && !dev.DHCP6 && len(dev.IPAddrs) == 0 && len(dev.AddressesFromPools) == 0 {
+		if !dev.DHCP4 && !dev.DHCP6 && len(dev.IPAddrs) == 0 && len(dev.AddressesFromPools) == 0 && !dev.IPConfigurationNotMandatory {
 			// Static IP is not available yet
 			return true
 		}

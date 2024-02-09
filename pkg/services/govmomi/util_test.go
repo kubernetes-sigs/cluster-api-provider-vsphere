@@ -98,7 +98,7 @@ func Test_ShouldRetryTask(t *testing.T) {
 			}
 		})
 
-		t.Run("for task in error state", func(t *testing.T) {
+		t.Run("for task in error state", func(*testing.T) {
 			task := baseTask(types.TaskInfoStateError, "task is stuck")
 
 			reconciled, err := checkAndRetryTask(ctx, vmCtx, &task)

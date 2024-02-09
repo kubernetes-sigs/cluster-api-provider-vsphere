@@ -311,7 +311,7 @@ func TestReconciler_Reconcile(t *testing.T) {
 		},
 		{
 			name: "when machine deployment is being deleted",
-			beforeFn: func(object client.Object) {
+			beforeFn: func(client.Object) {
 				tym := metav1.NewTime(time.Now())
 				md.ObjectMeta.DeletionTimestamp = &tym
 				md.ObjectMeta.Finalizers = append(md.ObjectMeta.Finalizers, "keep-this-for-the-test")
@@ -335,7 +335,7 @@ func TestReconciler_Reconcile(t *testing.T) {
 		},
 		{
 			name: "when machine deployment is being deleted & cluster module info is set in object",
-			beforeFn: func(object client.Object) {
+			beforeFn: func(client.Object) {
 				tym := metav1.NewTime(time.Now())
 				md.ObjectMeta.DeletionTimestamp = &tym
 				md.ObjectMeta.Finalizers = append(md.ObjectMeta.Finalizers, "keep-this-for-the-test")
@@ -365,7 +365,7 @@ func TestReconciler_Reconcile(t *testing.T) {
 		},
 		{
 			name: "when control plane & machine deployment are being deleted & cluster module info is set in object",
-			beforeFn: func(object client.Object) {
+			beforeFn: func(client.Object) {
 				tym := metav1.NewTime(time.Now())
 				kcp.ObjectMeta.DeletionTimestamp = &tym
 				kcp.ObjectMeta.Finalizers = append(kcp.ObjectMeta.Finalizers, "keep-this-for-the-test")
@@ -392,7 +392,7 @@ func TestReconciler_Reconcile(t *testing.T) {
 		},
 		{
 			name: "when control plane & machine deployment are being deleted & cluster module info is not set",
-			beforeFn: func(object client.Object) {
+			beforeFn: func(client.Object) {
 				tym := metav1.NewTime(time.Now())
 				kcp.ObjectMeta.DeletionTimestamp = &tym
 				kcp.ObjectMeta.Finalizers = append(kcp.ObjectMeta.Finalizers, "keep-this-for-the-test")

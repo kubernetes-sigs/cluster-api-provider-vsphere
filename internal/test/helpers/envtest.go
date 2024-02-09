@@ -158,7 +158,7 @@ func NewTestEnvironment(ctx context.Context) *TestEnvironment {
 		Username:   simr.Username(),
 		Password:   simr.Password(),
 	}
-	managerOpts.AddToManager = func(ctx context.Context, controllerCtx *capvcontext.ControllerManagerContext, mgr ctrlmgr.Manager) error {
+	managerOpts.AddToManager = func(_ context.Context, _ *capvcontext.ControllerManagerContext, mgr ctrlmgr.Manager) error {
 		if err := (&webhooks.VSphereClusterTemplateWebhook{}).SetupWebhookWithManager(mgr); err != nil {
 			return err
 		}

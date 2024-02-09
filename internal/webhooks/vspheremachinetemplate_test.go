@@ -71,7 +71,7 @@ func TestVSphereMachineTemplate_ValidateCreate(t *testing.T) {
 		},
 	}
 	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(*testing.T) {
 			webhook := &VSphereMachineTemplateWebhook{}
 			_, err := webhook.ValidateCreate(context.Background(), tc.vsphereMachine)
 			if tc.wantErr {
@@ -129,7 +129,7 @@ func TestVSphereMachineTemplate_ValidateUpdate(t *testing.T) {
 		},
 	}
 	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(*testing.T) {
 			webhook := &VSphereMachineTemplateWebhook{}
 			ctx := context.Background()
 			if tc.req != nil {

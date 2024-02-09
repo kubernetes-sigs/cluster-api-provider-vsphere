@@ -58,7 +58,7 @@ func RootCmd() *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:   "flavorgen",
 		Short: "flavorgen generates clusterctl templates for Cluster API Provider vSphere",
-		RunE: func(command *cobra.Command, args []string) error {
+		RunE: func(command *cobra.Command, _ []string) error {
 			return RunRoot(command)
 		},
 		SilenceUsage: true,

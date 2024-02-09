@@ -120,9 +120,9 @@ func AddVMControllerToManager(ctx context.Context, controllerManagerCtx *capvcon
 						newCluster := e.ObjectNew.(*infrav1.VSphereCluster)
 						return !clustermodule.Compare(oldCluster.Spec.ClusterModules, newCluster.Spec.ClusterModules)
 					},
-					CreateFunc:  func(e event.CreateEvent) bool { return false },
-					DeleteFunc:  func(e event.DeleteEvent) bool { return false },
-					GenericFunc: func(e event.GenericEvent) bool { return false },
+					CreateFunc:  func(event.CreateEvent) bool { return false },
+					DeleteFunc:  func(event.DeleteEvent) bool { return false },
+					GenericFunc: func(event.GenericEvent) bool { return false },
 				}),
 		).
 		Watches(

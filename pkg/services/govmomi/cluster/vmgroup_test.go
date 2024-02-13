@@ -63,7 +63,7 @@ func Test_VMGroup(t *testing.T) {
 
 	task, err := vmGrp.Add(ctx, vmRef)
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(task.Wait(ctx)).To(Succeed())
+	g.Expect(task.WaitEx(ctx)).To(Succeed())
 	g.Expect(vmGrp.listVMs()).To(HaveLen(3))
 
 	hasVM, err = vmGrp.HasVM(vmRef)

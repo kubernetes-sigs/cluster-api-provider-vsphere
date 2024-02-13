@@ -78,7 +78,7 @@ func TestCreate(t *testing.T) {
 		t.Fatal("could not make vim25 client.")
 	}
 	task := object.NewTask(vimClient, taskRef)
-	err = task.Wait(ctx)
+	err = task.WaitEx(ctx)
 	if err != nil {
 		t.Fatal("error waiting for task:", err)
 	}

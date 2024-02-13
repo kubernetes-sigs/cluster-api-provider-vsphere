@@ -192,7 +192,7 @@ func reconcileVSphereVMWhenNetworkIsReady(ctx context.Context, virtualMachineCtx
 		&virtualMachineCtx.VMContext,
 		func() (<-chan []interface{}, <-chan error, error) {
 			// Wait for the VM to be powered on.
-			powerOnTaskInfo, err := powerOnTask.WaitForResult(ctx)
+			powerOnTaskInfo, err := powerOnTask.WaitForResultEx(ctx)
 			if err != nil && powerOnTaskInfo == nil {
 				return nil, nil, errors.Wrapf(err, "failed to wait for power on op for vm %s", ctx)
 			}
@@ -255,7 +255,7 @@ func reconcileVSphereVMOnTaskCompletion(ctx context.Context, vmCtx *capvcontext.
 		"taskDescriptionID", task.Info.DescriptionId)
 
 	reconcileVSphereVMOnFuncCompletion(ctx, vmCtx, func() ([]interface{}, error) {
-		taskInfo, err := taskHelper.WaitForResult(ctx)
+		taskInfo, err := taskHelper.WaitForResultEx(ctx)
 
 		// An error is only returned if the process of waiting for the result
 		// failed, *not* if the task itself failed.

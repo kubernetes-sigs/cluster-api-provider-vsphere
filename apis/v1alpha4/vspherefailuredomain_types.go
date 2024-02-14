@@ -90,6 +90,7 @@ type FailureDomainHosts struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:unservedversion
 // +kubebuilder:deprecatedversion
 // +kubebuilder:resource:path=vspherefailuredomains,scope=Cluster,categories=cluster-api
 

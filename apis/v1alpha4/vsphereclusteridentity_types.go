@@ -78,6 +78,7 @@ func (c *VSphereClusterIdentity) SetConditions(conditions Conditions) {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:unservedversion
 // +kubebuilder:deprecatedversion
 // +kubebuilder:resource:path=vsphereclusteridentities,scope=Cluster,categories=cluster-api
 // +kubebuilder:subresource:status

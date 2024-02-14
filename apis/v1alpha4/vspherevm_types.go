@@ -125,6 +125,7 @@ type VSphereVMStatus struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:unservedversion
 // +kubebuilder:deprecatedversion
 // +kubebuilder:resource:path=vspherevms,scope=Namespaced,categories=cluster-api
 // +kubebuilder:subresource:status

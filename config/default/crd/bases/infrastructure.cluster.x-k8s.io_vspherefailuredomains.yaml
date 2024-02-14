@@ -136,7 +136,7 @@ spec:
             - zone
             type: object
         type: object
-    served: true
+    served: false
     storage: false
   - deprecated: true
     name: v1alpha4
@@ -258,7 +258,7 @@ spec:
             - zone
             type: object
         type: object
-    served: true
+    served: false
     storage: false
   - name: v1beta1
     schema:

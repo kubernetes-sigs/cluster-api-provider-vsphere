@@ -27,6 +27,7 @@ type VSphereMachineTemplateSpec struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:unservedversion
 // +kubebuilder:deprecatedversion
 // +kubebuilder:resource:path=vspheremachinetemplates,scope=Namespaced,categories=cluster-api
 

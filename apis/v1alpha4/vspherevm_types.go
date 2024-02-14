@@ -20,7 +20,6 @@ package v1alpha4
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/errors"
 )
 
@@ -122,7 +121,7 @@ type VSphereVMStatus struct {
 
 	// Conditions defines current service state of the VSphereVM.
 	// +optional
-	Conditions clusterv1alpha4.Conditions `json:"conditions,omitempty"`
+	Conditions Conditions `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -141,11 +140,11 @@ type VSphereVM struct {
 	Status VSphereVMStatus `json:"status,omitempty"`
 }
 
-func (r *VSphereVM) GetConditions() clusterv1alpha4.Conditions {
+func (r *VSphereVM) GetConditions() Conditions {
 	return r.Status.Conditions
 }
 
-func (r *VSphereVM) SetConditions(conditions clusterv1alpha4.Conditions) {
+func (r *VSphereVM) SetConditions(conditions Conditions) {
 	r.Status.Conditions = conditions
 }
 

@@ -19,7 +19,6 @@ package v1alpha3
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
 const (
@@ -78,10 +77,10 @@ type VSphereClusterStatus struct {
 
 	// Conditions defines current service state of the VSphereCluster.
 	// +optional
-	Conditions clusterv1alpha3.Conditions `json:"conditions,omitempty"`
+	Conditions Conditions `json:"conditions,omitempty"`
 
 	// FailureDomains is a list of failure domain objects synced from the infrastructure provider.
-	FailureDomains clusterv1alpha3.FailureDomains `json:"failureDomains,omitempty"`
+	FailureDomains FailureDomains `json:"failureDomains,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -104,11 +103,11 @@ type VSphereCluster struct {
 	Status VSphereClusterStatus `json:"status,omitempty"`
 }
 
-func (m *VSphereCluster) GetConditions() clusterv1alpha3.Conditions {
+func (m *VSphereCluster) GetConditions() Conditions {
 	return m.Status.Conditions
 }
 
-func (m *VSphereCluster) SetConditions(conditions clusterv1alpha3.Conditions) {
+func (m *VSphereCluster) SetConditions(conditions Conditions) {
 	m.Status.Conditions = conditions
 }
 

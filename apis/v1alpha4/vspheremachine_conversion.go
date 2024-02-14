@@ -52,7 +52,17 @@ func (src *VSphereMachine) ConvertTo(dstRaw conversion.Hub) error {
 // ConvertFrom converts from the Hub version (v1beta1) to this VSphereMachine.
 func (dst *VSphereMachine) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.VSphereMachine)
-	return Convert_v1beta1_VSphereMachine_To_v1alpha4_VSphereMachine(src, dst, nil)
+
+	if err := Convert_v1beta1_VSphereMachine_To_v1alpha4_VSphereMachine(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Preserve Hub data on down-conversion except for metadata
+	if err := utilconversion.MarshalData(src, dst); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // ConvertTo converts this VSphereMachineList to the Hub version (v1beta1).

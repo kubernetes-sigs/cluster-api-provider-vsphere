@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha3
+package v1alpha4
 
 import (
 	"testing"
@@ -40,7 +40,6 @@ func TestFuzzyConversion(t *testing.T) {
 		Hub:    &infrav1.VSphereCluster{},
 		Spoke:  &VSphereCluster{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{
-			overrideVSphereClusterDeprecatedFieldsFuncs,
 			overrideVSphereClusterSpecFieldsFuncs,
 			overrideVSphereClusterStatusFieldsFuncs,
 		},
@@ -55,7 +54,7 @@ func TestFuzzyConversion(t *testing.T) {
 		Scheme:      scheme,
 		Hub:         &infrav1.VSphereMachineTemplate{},
 		Spoke:       &VSphereMachineTemplate{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{CustomObjectMetaFuzzFunc, CustomNewFieldFuzzFunc},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{CustomNewFieldFuzzFunc},
 	}))
 	t.Run("for VSphereVM", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme:      scheme,
@@ -63,14 +62,6 @@ func TestFuzzyConversion(t *testing.T) {
 		Spoke:       &VSphereVM{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{CustomNewFieldFuzzFunc},
 	}))
-}
-
-func overrideVSphereClusterDeprecatedFieldsFuncs(runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
-		func(vsphereClusterSpec *VSphereClusterSpec, _ fuzz.Continue) {
-			vsphereClusterSpec.CloudProviderConfiguration = CPIConfig{}
-		},
-	}
 }
 
 func overrideVSphereClusterSpecFieldsFuncs(runtimeserializer.CodecFactory) []interface{} {
@@ -90,23 +81,6 @@ func overrideVSphereClusterStatusFieldsFuncs(runtimeserializer.CodecFactory) []i
 			in.VCenterVersion = ""
 		},
 	}
-}
-
-func CustomObjectMetaFuzzFunc(runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
-		CustomObjectMetaFuzzer,
-	}
-}
-
-func CustomObjectMetaFuzzer(in *ObjectMeta, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
-
-	// These fields have been removed in v1alpha4
-	// data is going to be lost, so we're forcing zero values here.
-	in.Name = ""
-	in.GenerateName = ""
-	in.Namespace = ""
-	in.OwnerReferences = nil
 }
 
 func CustomNewFieldFuzzFunc(runtimeserializer.CodecFactory) []interface{} {

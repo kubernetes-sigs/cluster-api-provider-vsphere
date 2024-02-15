@@ -55,9 +55,11 @@ Basically:
 
 ## Kubernetes versions with published OVAs
 
-Note: These OVAs are not updated for security fixes and it is recommended to always use the latest patch version for the Kubernetes version you wish to run. For production-like environments, it is
-highly recommended to build and use your own custom images.
-Note: We recently moved the OVAs from a VMware-owned GCP project (https://storage.googleapis.com/capv-templates/) to the community-owned CAPV GCP project
+**Note:** These OVAs are **not updated for security fixes** and it is recommended to always use the latest 
+versions for distribution packages and patch version for the Kubernetes version you wish to run. For
+production-like environments, it is highly recommended to build and use your own custom images.
+
+**Note:** We recently moved the OVAs from a VMware-owned GCP project (https://storage.googleapis.com/capv-templates/) to the community-owned CAPV GCP project
 (https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/). Going forward new OVAs will only be uploaded to the community-owned CAPV GCP project.
 
 <table>

@@ -33,6 +33,8 @@ import (
 	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1alpha1"
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	infrav1alpha3 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1alpha3"
+	infrav1alpha4 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1alpha4"
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
@@ -53,6 +55,8 @@ func New(ctx context.Context, opts Options) (Manager, error) {
 
 	_ = clientgoscheme.AddToScheme(opts.Scheme)
 	_ = clusterv1.AddToScheme(opts.Scheme)
+	_ = infrav1alpha3.AddToScheme(opts.Scheme)
+	_ = infrav1alpha4.AddToScheme(opts.Scheme)
 	_ = infrav1.AddToScheme(opts.Scheme)
 	_ = controlplanev1.AddToScheme(opts.Scheme)
 	_ = bootstrapv1.AddToScheme(opts.Scheme)

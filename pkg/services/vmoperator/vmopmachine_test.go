@@ -196,7 +196,7 @@ var _ = Describe("VirtualMachine tests", func() {
 
 			// Provide valid bootstrap data.
 			By("bootstrap data is created")
-			secretName := machine.GetName() + "-data"
+			secretName := machine.GetName() + "-data" //nolint:goconst
 			secret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      secretName,

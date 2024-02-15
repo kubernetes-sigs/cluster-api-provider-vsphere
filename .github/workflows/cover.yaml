@@ -20,7 +20,7 @@ jobs:
     - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
     - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
       with:
-        go-version: '1.20'
+        go-version: '1.21'
     - run: "PATH=/usr/local/go/bin:$PATH make test-cover"
     - uses: Wandalen/wretry.action@a163f62ae554a8f3cbe27b23db15b60c0ae2e93c # v1.3.0 Retry codecov upload. It is flaky due to a known issue https://community.codecov.com/t/upload-issues-unable-to-locate-build-via-github-actions-api/3954
       with:

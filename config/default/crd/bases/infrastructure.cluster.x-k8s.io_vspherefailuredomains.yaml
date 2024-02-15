@@ -16,6 +16,250 @@ spec:
     singular: vspherefailuredomain
   scope: Cluster
   versions:
+  - deprecated: true
+    name: v1alpha3
+    schema:
+      openAPIV3Schema:
+        description: "VSphereFailureDomain is the Schema for the vspherefailuredomains
+          API \n Deprecated: This type will be removed in one of the next releases."
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: VSphereFailureDomainSpec defines the desired state of VSphereFailureDomain
+            properties:
+              region:
+                description: Region defines the name and type of a region
+                properties:
+                  autoConfigure:
+                    description: AutoConfigure tags the Type which is specified in
+                      the Topology
+                    type: boolean
+                  name:
+                    description: Name is the name of the tag that represents this
+                      failure domain
+                    type: string
+                  tagCategory:
+                    description: TagCategory is the category used for the tag
+                    type: string
+                  type:
+                    description: Type is the type of failure domain, the current values
+                      are "Datacenter", "ComputeCluster" and "HostGroup"
+                    enum:
+                    - Datacenter
+                    - ComputeCluster
+                    - HostGroup
+                    type: string
+                required:
+                - name
+                - tagCategory
+                - type
+                type: object
+              topology:
+                description: Topology is the what describes a given failure domain
+                  using vSphere constructs
+                properties:
+                  computeCluster:
+                    description: ComputeCluster as the failure domain
+                    type: string
+                  datacenter:
+                    description: The underlying infrastructure for this failure domain
+                      Datacenter as the failure domain
+                    type: string
+                  datastore:
+                    description: Datastore is the name or inventory path of the datastore
+                      in which the virtual machine is created/located.
+                    type: string
+                  hosts:
+                    description: Hosts has information required for placement of machines
+                      on VSphere hosts.
+                    properties:
+                      hostGroupName:
+                        description: HostGroupName is the name of the Host group
+                        type: string
+                      vmGroupName:
+                        description: VMGroupName is the name of the VM group
+                        type: string
+                    required:
+                    - hostGroupName
+                    - vmGroupName
+                    type: object
+                  networks:
+                    description: Networks is the list of networks within this failure
+                      domain
+                    items:
+                      type: string
+                    type: array
+                required:
+                - datacenter
+                type: object
+              zone:
+                description: Zone defines the name and type of a zone
+                properties:
+                  autoConfigure:
+                    description: AutoConfigure tags the Type which is specified in
+                      the Topology
+                    type: boolean
+                  name:
+                    description: Name is the name of the tag that represents this
+                      failure domain
+                    type: string
+                  tagCategory:
+                    description: TagCategory is the category used for the tag
+                    type: string
+                  type:
+                    description: Type is the type of failure domain, the current values
+                      are "Datacenter", "ComputeCluster" and "HostGroup"
+                    enum:
+                    - Datacenter
+                    - ComputeCluster
+                    - HostGroup
+                    type: string
+                required:
+                - name
+                - tagCategory
+                - type
+                type: object
+            required:
+            - region
+            - topology
+            - zone
+            type: object
+        type: object
+    served: false
+    storage: false
+  - deprecated: true
+    name: v1alpha4
+    schema:
+      openAPIV3Schema:
+        description: "VSphereFailureDomain is the Schema for the vspherefailuredomains
+          API \n Deprecated: This type will be removed in one of the next releases."
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: VSphereFailureDomainSpec defines the desired state of VSphereFailureDomain
+            properties:
+              region:
+                description: Region defines the name and type of a region
+                properties:
+                  autoConfigure:
+                    description: AutoConfigure tags the Type which is specified in
+                      the Topology
+                    type: boolean
+                  name:
+                    description: Name is the name of the tag that represents this
+                      failure domain
+                    type: string
+                  tagCategory:
+                    description: TagCategory is the category used for the tag
+                    type: string
+                  type:
+                    description: Type is the type of failure domain, the current values
+                      are "Datacenter", "ComputeCluster" and "HostGroup"
+                    enum:
+                    - Datacenter
+                    - ComputeCluster
+                    - HostGroup
+                    type: string
+                required:
+                - name
+                - tagCategory
+                - type
+                type: object
+              topology:
+                description: Topology describes a given failure domain using vSphere
+                  constructs
+                properties:
+                  computeCluster:
+                    description: ComputeCluster as the failure domain
+                    type: string
+                  datacenter:
+                    description: The underlying infrastructure for this failure domain
+                      Datacenter as the failure domain
+                    type: string
+                  datastore:
+                    description: Datastore is the name or inventory path of the datastore
+                      in which the virtual machine is created/located.
+                    type: string
+                  hosts:
+                    description: Hosts has information required for placement of machines
+                      on VSphere hosts.
+                    properties:
+                      hostGroupName:
+                        description: HostGroupName is the name of the Host group
+                        type: string
+                      vmGroupName:
+                        description: VMGroupName is the name of the VM group
+                        type: string
+                    required:
+                    - hostGroupName
+                    - vmGroupName
+                    type: object
+                  networks:
+                    description: Networks is the list of networks within this failure
+                      domain
+                    items:
+                      type: string
+                    type: array
+                required:
+                - datacenter
+                type: object
+              zone:
+                description: Zone defines the name and type of a zone
+                properties:
+                  autoConfigure:
+                    description: AutoConfigure tags the Type which is specified in
+                      the Topology
+                    type: boolean
+                  name:
+                    description: Name is the name of the tag that represents this
+                      failure domain
+                    type: string
+                  tagCategory:
+                    description: TagCategory is the category used for the tag
+                    type: string
+                  type:
+                    description: Type is the type of failure domain, the current values
+                      are "Datacenter", "ComputeCluster" and "HostGroup"
+                    enum:
+                    - Datacenter
+                    - ComputeCluster
+                    - HostGroup
+                    type: string
+                required:
+                - name
+                - tagCategory
+                - type
+                type: object
+            required:
+            - region
+            - topology
+            - zone
+            type: object
+        type: object
+    served: false
+    storage: false
   - name: v1beta1
     schema:
       openAPIV3Schema:

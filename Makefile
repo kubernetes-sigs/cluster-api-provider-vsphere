@@ -568,7 +568,7 @@ e2e-images: ## Build the e2e manager image
 	$(MAKE) REGISTRY=gcr.io/k8s-staging-capi-vsphere PULL_POLICY=IfNotPresent TAG=dev docker-build-vcsim
 
 .PHONY: e2e
-e2e: e2e-images generate-e2e-templates
+e2e: generate-e2e-templates
 e2e: $(GINKGO) $(KUSTOMIZE) $(KIND) $(GOVC) ## Run e2e tests
 	@echo PATH="$(PATH)"
 	@echo

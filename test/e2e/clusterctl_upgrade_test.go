@@ -22,9 +22,9 @@ import (
 )
 
 var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.9=>current, CAPI 1.6=>1.6) [ClusterClass]", func() {
-	Skip("Will fail due to not existing CAPI versions in config")
 	const specName = "clusterctl-upgrade-1.9-current" // prefix (clusterctl-upgrade) copied from CAPI
 	Setup(specName, func(testSpecificClusterctlConfigPathGetter func() string) {
+		Skip("Will fail due to not existing CAPI versions in config")
 		capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
 			return capi_e2e.ClusterctlUpgradeSpecInput{
 				E2EConfig:                         e2eConfig,
@@ -51,9 +51,9 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.9=
 })
 
 var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.8=>current, CAPI 1.5=>1.6) [ClusterClass]", func() {
-	Skip("Will fail due to not existing CAPI versions in config")
 	const specName = "clusterctl-upgrade-1.8-current" // prefix (clusterctl-upgrade) copied from CAPI
 	Setup(specName, func(testSpecificClusterctlConfigPathGetter func() string) {
+		Skip("Will fail due to not existing CAPI versions in config")
 		capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
 			return capi_e2e.ClusterctlUpgradeSpecInput{
 				E2EConfig:                         e2eConfig,

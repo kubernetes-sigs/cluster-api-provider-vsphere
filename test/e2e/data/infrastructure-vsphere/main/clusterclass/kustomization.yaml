@@ -9,6 +9,6 @@ patches:
   - target:
       kind: ClusterClass
     path: ./patch-prekubeadmscript.yaml
-  - target:
-      kind: ClusterClass
-    path: ./patch-namingstrategy.yaml
+  # - target:
+  #     kind: ClusterClass
+  #   path: ./patch-namingstrategy.yaml

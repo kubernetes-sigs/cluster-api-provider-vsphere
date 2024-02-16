@@ -91,11 +91,8 @@ func InitBootstrapCluster(ctx context.Context, bootstrapClusterProxy framework.C
 	clusterctl.InitManagementClusterAndWatchControllerLogs(ctx, clusterctl.InitManagementClusterAndWatchControllerLogsInput{
 		ClusterProxy:            bootstrapClusterProxy,
 		ClusterctlConfigPath:    clusterctlConfig,
-		InfrastructureProviders: []string{"vsphere:v1.7.1"},
+		InfrastructureProviders: config.InfrastructureProviders(),
 		LogFolder:               filepath.Join(artifactFolder, "clusters", bootstrapClusterProxy.GetName()),
-		CoreProvider:            "cluster-api:v1.4.5",
-		BootstrapProviders:      []string{"kubeadm:v1.4.5"},
-		ControlPlaneProviders:   []string{"kubeadm:v1.4.5"},
 	}, config.GetIntervals(bootstrapClusterProxy.GetName(), "wait-controllers")...)
 }
 

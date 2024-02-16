@@ -34,7 +34,7 @@ providers:
         type: "url"
         contract: v1beta1
         files:
-          - sourcePath: "../data/shared/v1.9/v1beta1/metadata.yaml"
+          - sourcePath: "../data/shared/v1.7/v1beta1/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -48,7 +48,7 @@ providers:
         type: "url"
         contract: v1beta1
         files:
-          - sourcePath: "../data/shared/v1.9/v1beta1/metadata.yaml"
+          - sourcePath: "../data/shared/v1.7/v1beta1/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -62,7 +62,7 @@ providers:
         type: "url"
         contract: v1beta1
         files:
-          - sourcePath: "../data/shared/v1.9/v1beta1/metadata.yaml"
+          - sourcePath: "../data/shared/v1.7/v1beta1/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -93,6 +93,9 @@ providers:
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/clusterclass-quick-start.yaml"
           - sourcePath: "../data/shared/v1.7/v1beta1_provider/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
 
 variables:
   # Ensure all Kubernetes versions used here are covered in patch-vsphere-template.yaml

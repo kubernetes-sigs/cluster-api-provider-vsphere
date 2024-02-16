@@ -66,7 +66,7 @@ function login() {
 }
 
 AUTH=
-E2E_IMAGE_SHA=
+# E2E_IMAGE_SHA=
 GCR_KEY_FILE="${GCR_KEY_FILE:-}"
 export VSPHERE_SERVER="${GOVC_URL}"
 export VSPHERE_USERNAME="${GOVC_USERNAME}"
@@ -112,7 +112,7 @@ wait_for_ipam_reachable
 
 make envsubst
 
-ARCH="$(go env GOARCH)"
+# ARCH="$(go env GOARCH)"
 
 # # Only build and upload the image if we run tests which require it to save some $.
 # if [[ -z "${GINKGO_FOCUS+x}" ]]; then

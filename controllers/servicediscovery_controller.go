@@ -230,15 +230,15 @@ func (r *serviceDiscoveryReconciler) reconcileNormal(ctx context.Context, guestC
 // to connect to the Supervisor Cluster.
 func (r *serviceDiscoveryReconciler) reconcileSupervisorHeadlessService(ctx context.Context, guestClusterCtx *vmwarecontext.GuestClusterContext) error {
 	log := ctrl.LoggerFrom(ctx)
-
 	// Create the headless service to the supervisor api server on the target cluster.
 	supervisorPort := vmwarev1.SupervisorAPIServerPort
 	svc := newSupervisorHeadlessService(vmwarev1.SupervisorHeadlessSvcPort, supervisorPort)
 
 	log = log.WithValues("Service", klog.KObj(svc))
+	log.Info("reconcileSupervisorHeadlessService to create service")
 	ctx = ctrl.LoggerInto(ctx, log)
 
-	testObj := svc.DeepCopyObject().(client.Object)
+	testObj := svc.DeepCopy()
 	if err := guestClusterCtx.GuestClient.Get(ctx, client.ObjectKeyFromObject(svc), testObj); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return errors.Wrapf(err, "failed to check if Service %s already exists", klog.KObj(svc))
@@ -249,10 +249,14 @@ func (r *serviceDiscoveryReconciler) reconcileSupervisorHeadlessService(ctx cont
 		if err := guestClusterCtx.GuestClient.Create(ctx, svc); err != nil && !apierrors.IsAlreadyExists(err) {
 			return errors.Wrapf(err, "failed to create supervisor headless Service")
 		}
+		log = log.WithValues("guestClusterSVC.uid", svc.UID)
+	} else {
+		log = log.WithValues("guestClusterSVC.uid", testObj.UID)
 	}
 
 	supervisorHost, err := r.getSupervisorAPIServerAddress(ctx)
 	if err != nil {
+		log.Error(err, "got error but return nil because we have watches")
 		// Note: We have watches on the LB Svc (VIP) & the cluster-info configmap (FIP).
 		// There is no need to return an error to keep re-trying.
 		conditions.MarkFalse(guestClusterCtx.VSphereCluster, vmwarev1.ServiceDiscoveryReadyCondition, vmwarev1.SupervisorHeadlessServiceSetupFailedReason,

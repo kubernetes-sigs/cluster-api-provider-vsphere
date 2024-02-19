@@ -25,7 +25,9 @@ import (
 	helpers "sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vmware"
 )
 
-var _ = Describe("Service Discovery controller integration tests", func() {
+var iterations = 10
+
+var _ = Describe("Service Discovery controller integration tests", Label("FOO"), func() {
 	var (
 		intCtx      *helpers.IntegrationTestContext
 		initObjects []client.Object
@@ -48,12 +50,14 @@ var _ = Describe("Service Discovery controller integration tests", func() {
 		AfterEach(func() {
 			deleteObjects(ctx, intCtx.Client, initObjects)
 		})
-		It("Should reconcile headless svc", func() {
-			By("creating a service and endpoints using the VIP in the guest cluster")
-			headlessSvc := &corev1.Service{}
-			assertEventuallyExistsInNamespace(ctx, testEnv.Manager.GetAPIReader(), "kube-system", "kube-apiserver-lb-svc", headlessSvc)
-			assertHeadlessSvcWithVIPEndpoints(ctx, intCtx.GuestAPIReader, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
-		})
+		for i := 0; i < iterations; i++ {
+			It("Should reconcile headless svc", func() {
+				By("creating a service and endpoints using the VIP in the guest cluster")
+				headlessSvc := &corev1.Service{}
+				assertEventuallyExistsInNamespace(ctx, testEnv.Manager.GetAPIReader(), "kube-system", "kube-apiserver-lb-svc", headlessSvc)
+				assertHeadlessSvcWithVIPEndpoints(ctx, intCtx.GuestAPIReader, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
+			})
+		}
 	})
 
 	Context("When FIP is available", func() {
@@ -65,10 +69,12 @@ var _ = Describe("Service Discovery controller integration tests", func() {
 		AfterEach(func() {
 			deleteObjects(ctx, intCtx.Client, initObjects)
 		})
-		It("Should reconcile headless svc", func() {
-			By("creating a service and endpoints using the FIP in the guest cluster")
-			assertHeadlessSvcWithFIPEndpoints(ctx, intCtx.GuestAPIReader, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
-		})
+		for i := 0; i < iterations; i++ {
+			It("Should reconcile headless svc", func() {
+				By("creating a service and endpoints using the FIP in the guest cluster")
+				assertHeadlessSvcWithFIPEndpoints(ctx, intCtx.GuestAPIReader, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
+			})
+		}
 	})
 	Context("When headless svc and endpoints already exists", func() {
 		BeforeEach(func() {
@@ -84,9 +90,11 @@ var _ = Describe("Service Discovery controller integration tests", func() {
 			deleteObjects(ctx, intCtx.Client, initObjects)
 			// Note: No need to delete guest cluster objects as a new guest cluster testenv endpoint is created for each test.
 		})
-		It("Should reconcile headless svc", func() {
-			By("updating the service and endpoints using the VIP in the guest cluster")
-			assertHeadlessSvcWithUpdatedVIPEndpoints(ctx, intCtx.GuestAPIReader, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
-		})
+		for i := 0; i < iterations; i++ {
+			It("Should reconcile headless svc", func() {
+				By("updating the service and endpoints using the VIP in the guest cluster")
+				assertHeadlessSvcWithUpdatedVIPEndpoints(ctx, intCtx.GuestAPIReader, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
+			})
+		}
 	})
 })

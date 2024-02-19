@@ -77,7 +77,7 @@ func assertHeadlessSvc(ctx context.Context, guestClient client.Client, namespace
 	Eventually(func() error {
 		key := client.ObjectKey{Namespace: namespace, Name: name}
 		return guestClient.Get(ctx, key, headlessSvc)
-	}, time.Second*3).Should(Succeed())
+	}).Should(Succeed())
 	Expect(headlessSvc.Spec.Ports[0].Port).To(Equal(int32(supervisorHeadlessSvcPort)))
 	Expect(headlessSvc.Spec.Ports[0].TargetPort.IntVal).To(Equal(int32(supervisorAPIServerPort)))
 }

@@ -457,6 +457,11 @@ func waitForIPAddresses(
 				// Look at each IP and determine whether a reconcile has
 				// been triggered for the IP.
 				for _, discoveredIPInfo := range nic.IpConfig.IpAddress {
+					// Ignore device if SkipIPAllocation is set.
+					if deviceSpec.SkipIPAllocation {
+						continue
+					}
+
 					discoveredIP := discoveredIPInfo.IpAddress
 
 					// Ignore link-local addresses.
@@ -525,6 +530,11 @@ func waitForIPAddresses(
 		// Determine whether or not the wait operation is over by whether
 		// or not the VM has all of the requested IP addresses.
 		for i, deviceSpec := range virtualMachineCtx.VSphereVM.Spec.Network.Devices {
+			// Ignore device if SkipIPAllocation is set.
+			if deviceSpec.SkipIPAllocation {
+				continue
+			}
+
 			mac, ok := deviceToMacIndex[i]
 			if !ok {
 				chanErrs <- errors.Errorf("invalid mac index %d waiting for ip addresses for vm %s", i, virtualMachineCtx)

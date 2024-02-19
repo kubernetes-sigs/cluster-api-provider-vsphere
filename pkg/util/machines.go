@@ -109,10 +109,21 @@ func GetMachineMetadata(hostname string, vsphereVM infrav1.VSphereVM, ipamState 
 			devices[i].Gateway6 = state.Gateway6
 		}
 
+		// Ignore device if SkipIPAllocation is set
+		if vsphereVM.Spec.Network.Devices[i].SkipIPAllocation {
+			continue
+		}
+
 		if waitForIPv4 && waitForIPv6 {
 			// break early as we already wait for ipv4 and ipv6
 			continue
 		}
+
+		if vsphereVM.Spec.Network.Devices[i].SkipIPAllocation {
+			// device should be ignored as IP allocation is possibly handled externally
+			continue
+		}
+
 		// check static IPs
 		for _, ipStr := range vsphereVM.Spec.Network.Devices[i].IPAddrs {
 			ip := net.ParseIP(ipStr)

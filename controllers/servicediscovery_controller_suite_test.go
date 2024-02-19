@@ -20,7 +20,6 @@ import (
 	"context"
 	"strconv"
 	"strings"
-	"time"
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -74,7 +73,7 @@ func assertEventuallyDoesNotExistInNamespace(ctx context.Context, guestClient cl
 
 func assertHeadlessSvc(ctx context.Context, guestClient client.Client, namespace, name string) {
 	headlessSvc := &corev1.Service{}
-	Eventually(func() error {
+	EventuallyWithOffset(4, func() error {
 		key := client.ObjectKey{Namespace: namespace, Name: name}
 		return guestClient.Get(ctx, key, headlessSvc)
 	}).Should(Succeed())
@@ -138,7 +137,7 @@ func assertHeadlessSvcWithUpdatedVIPEndpoints(ctx context.Context, guestClient c
 	assertHeadlessSvc(ctx, guestClient, namespace, name)
 	headlessEndpoints := &corev1.Endpoints{}
 	assertEventuallyExistsInNamespace(ctx, guestClient, namespace, name, headlessEndpoints)
-	Eventually(func() string {
+	EventuallyWithOffset(2, func() string {
 		key := client.ObjectKey{Namespace: namespace, Name: name}
 		Expect(guestClient.Get(ctx, key, headlessEndpoints)).Should(Succeed())
 		return headlessEndpoints.Subsets[0].Addresses[0].IP

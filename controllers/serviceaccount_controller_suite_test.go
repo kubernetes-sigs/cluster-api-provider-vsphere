@@ -62,7 +62,7 @@ func assertEventuallyExistsInNamespace(ctx context.Context, c client.Reader, nam
 	EventuallyWithOffset(2, func() error {
 		key := client.ObjectKey{Namespace: namespace, Name: name}
 		return c.Get(ctx, key, obj)
-	}).Should(Succeed())
+	}, time.Second*3).Should(Succeed())
 }
 
 func assertNoEntities(ctx context.Context, ctrlClient client.Client, namespace string) {

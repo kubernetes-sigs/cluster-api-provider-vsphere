@@ -58,11 +58,11 @@ func createTargetSecretWithInvalidToken(ctx context.Context, guestClient client.
 	Expect(guestClient.Create(ctx, secret)).To(Succeed())
 }
 
-func assertEventuallyExistsInNamespace(ctx context.Context, c client.Client, namespace, name string, obj client.Object) {
+func assertEventuallyExistsInNamespace(ctx context.Context, c client.Reader, namespace, name string, obj client.Object) {
 	EventuallyWithOffset(2, func() error {
 		key := client.ObjectKey{Namespace: namespace, Name: name}
 		return c.Get(ctx, key, obj)
-	}).Should(Succeed())
+	}, time.Second*3).Should(Succeed())
 }
 
 func assertNoEntities(ctx context.Context, ctrlClient client.Client, namespace string) {

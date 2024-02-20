@@ -14,6 +14,8 @@ images:
     loadBehavior: tryLoad
   - name: registry.k8s.io/cluster-api/kubeadm-control-plane-controller:v1.6.1
     loadBehavior: tryLoad
+  - name: registry.k8s.io/capi-ipam-ic/cluster-api-ipam-in-cluster-controller:v0.1.0
+    loadBehavior: tryLoad
   - name: gcr.io/k8s-staging-capi-vsphere/cluster-api-vsphere-controller-{ARCH}:dev
     loadBehavior: mustLoad
   - name: quay.io/jetstack/cert-manager-cainjector:v1.12.2
@@ -97,6 +99,20 @@ providers:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
 
+  - name: in-cluster
+    type: IPAMProvider
+    versions:
+      - name: v0.1.0
+        # Use manifest from source files
+        value: "https://github.com/kubernetes-sigs/cluster-api-ipam-provider-in-cluster/releases/download/v0.1.0/ipam-components.yaml"
+        type: "url"
+        contract: v1beta1
+        files:
+          - sourcePath: "../data/shared/v1.9/v1beta1_ipam/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+
   - name: vsphere
     type: InfrastructureProvider
     versions:
@@ -107,10 +123,11 @@ providers:
         files:
           # Add a cluster template
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-conformance.yaml"
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-install-on-bootstrap.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-dhcp-overrides.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-hw-upgrade.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-ignition.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-install-on-bootstrap.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-ipam.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-kcp-remediation.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-md-remediation.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-node-drain.yaml"

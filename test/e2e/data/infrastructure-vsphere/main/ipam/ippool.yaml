@@ -1,0 +1,12 @@
+---
+apiVersion: ipam.cluster.x-k8s.io/v1alpha2
+kind: InClusterIPPool
+metadata:
+  name: ${CLUSTER_NAME}
+  namespace: ${NAMESPACE}
+spec:
+  prefix: ${IPAM_PREFIX:-24}
+  gateway: ${IPAM_GATEWAY}
+  addresses:
+  - ${IPAM_IP_1}
+  - ${IPAM_IP_2}

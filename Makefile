@@ -359,6 +359,8 @@ generate-e2e-templates-main: $(KUSTOMIZE) ## Generate test templates for the mai
 	# for DHCP overrides
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_TEMPLATE_DIR)/main/dhcp-overrides" > "$(E2E_TEMPLATE_DIR)/main/cluster-template-dhcp-overrides.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_TEMPLATE_DIR)/main/ownerrefs-finalizers" > "$(E2E_TEMPLATE_DIR)/main/cluster-template-ownerrefs-finalizers.yaml"
+	# for IPAM tests
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_TEMPLATE_DIR)/main/ipam" > "$(E2E_TEMPLATE_DIR)/main/cluster-template-ipam.yaml"
 
 .PHONY: generate-e2e-templates-v1.9
 generate-e2e-templates-v1.9: $(KUSTOMIZE)

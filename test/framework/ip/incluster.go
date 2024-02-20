@@ -84,21 +84,30 @@ func InClusterAddressManager(e2eIPAMKubeconfig string, labels map[string]string,
 	}, nil
 }
 
-func (h *inCluster) ClaimIPs(ctx context.Context, additionalIPVariableNames ...string) (AddressClaims, map[string]string) {
+func (h *inCluster) ClaimIPs(ctx context.Context, opts ...ClaimOption) (AddressClaims, map[string]string) {
+	options := &claimOptions{}
+	for _, o := range opts {
+		o(options)
+	}
+
 	variables := map[string]string{}
 
 	ipAddressClaims := AddressClaims{}
 
 	// Claim an IP per variable.
-	for _, variable := range append(additionalIPVariableNames, controlPlaneEndpointVariable) {
+	for _, variable := range append(options.additionalIPVariableNames, controlPlaneEndpointVariable) {
 		ip, ipAddressClaim, err := h.claimIPAddress(ctx)
 		Expect(err).ToNot(HaveOccurred())
 		ipAddressClaims = append(ipAddressClaims, types.NamespacedName{
 			Namespace: ipAddressClaim.Namespace,
 			Name:      ipAddressClaim.Name,
 		})
-		Byf("Setting clusterctl variable %s to %s", variable, ip)
-		variables[variable] = ip
+		Byf("Setting clusterctl variable %s to %s", variable, ip.Spec.Address)
+		variables[variable] = ip.Spec.Address
+		if variable == controlPlaneEndpointVariable && options.gatewayIPVariableName != "" {
+			Byf("Setting clusterctl variable %s to %s", variable, ip.Spec.Gateway)
+			variables[options.gatewayIPVariableName] = ip.Spec.Gateway
+		}
 	}
 
 	return ipAddressClaims, variables
@@ -271,7 +280,7 @@ func getVirtualMachineIPAddresses(ctx context.Context, folderName string, vSpher
 	return virtualMachineIPAddresses, nil
 }
 
-func (h *inCluster) claimIPAddress(ctx context.Context) (_ string, _ *ipamv1.IPAddressClaim, err error) {
+func (h *inCluster) claimIPAddress(ctx context.Context) (_ *ipamv1.IPAddress, _ *ipamv1.IPAddressClaim, err error) {
 	claim := &ipamv1.IPAddressClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "ipclaim-" + rand.String(32),
@@ -295,7 +304,7 @@ func (h *inCluster) claimIPAddress(ctx context.Context) (_ string, _ *ipamv1.IPA
 	// Create an IPAddressClaim
 	Byf("Creating IPAddressClaim %s", klog.KObj(claim))
 	if err := h.client.Create(ctx, claim); err != nil {
-		return "", nil, err
+		return nil, nil, err
 	}
 	// Store claim inside the service so the cleanup function knows what to delete.
 	ip := &ipamv1.IPAddress{}
@@ -328,8 +337,8 @@ func (h *inCluster) claimIPAddress(ctx context.Context) (_ string, _ *ipamv1.IPA
 	if retryError != nil {
 		// Try best effort deletion of the unused claim before returning an error.
 		_ = h.client.Delete(ctx, claim)
-		return "", nil, retryError
+		return nil, nil, retryError
 	}
 
-	return ip.Spec.Address, claim, nil
+	return ip, claim, nil
 }

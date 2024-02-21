@@ -483,8 +483,8 @@ func (r vmReconciler) isWaitingForStaticIPAllocation(vmCtx *capvcontext.VMContex
 			continue
 		}
 
-		// Static IP is not available yet.
 		if len(dev.IPAddrs) == 0 && len(dev.AddressesFromPools) == 0 {
+			// One or more IPs are expected for the device but are not set yet.
 			return true
 		}
 	}

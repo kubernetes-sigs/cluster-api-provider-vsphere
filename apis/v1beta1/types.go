@@ -316,7 +316,7 @@ type NetworkDeviceSpec struct {
 	// IPAddrs is a list of one or more IPv4 and/or IPv6 addresses to assign
 	// to this device. IP addresses must also specify the segment length in
 	// CIDR notation.
-	// Required when DHCP4, DHCP6 and IPConfigurationNotMandatory are false.
+	// Required when DHCP4, DHCP6 and SkipIPAllocation are false.
 	// +optional
 	IPAddrs []string `json:"ipAddrs,omitempty"`
 

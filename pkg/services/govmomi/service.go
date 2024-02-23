@@ -538,6 +538,40 @@ func (vms *VMService) reconcilePCIDevices(ctx context.Context, virtualMachineCtx
 			return errors.Wrapf(err, "error adding pci devices for %q", ctx)
 		}
 	}
+	if expectedVGPUs := virtualMachineCtx.VSphereVM.Spec.VirtualMachineCloneSpec.VGPUDevices; len(expectedVGPUs) != 0 {
+		specsToBeAdded, err := pci.CalculateVGPUsToBeAdded(ctx, virtualMachineCtx.Obj, expectedVGPUs)
+		if err != nil {
+			return err
+		}
+
+		if len(specsToBeAdded) == 0 {
+			if conditions.Has(virtualMachineCtx.VSphereVM, infrav1.PCIDevicesDetachedCondition) {
+				conditions.Delete(virtualMachineCtx.VSphereVM, infrav1.PCIDevicesDetachedCondition)
+			}
+			log.V(5).Info("No new PCI devices to be added")
+			return nil
+		}
+
+		powerState, err := virtualMachineCtx.Obj.PowerState(ctx)
+		if err != nil {
+			return err
+		}
+		if powerState == types.VirtualMachinePowerStatePoweredOn {
+			// This would arise only when the PCI device is manually removed from
+			// the VM post creation.
+			log.Info("vGPU device cannot be attached in powered on state")
+			conditions.MarkFalse(virtualMachineCtx.VSphereVM,
+				infrav1.PCIDevicesDetachedCondition,
+				infrav1.NotFoundReason,
+				clusterv1.ConditionSeverityWarning,
+				"vGPU devices removed after VM was powered on")
+			return errors.Errorf("missing vGPU devices")
+		}
+		log.Info("vGPU devices to be added", "number", len(specsToBeAdded))
+		if err := virtualMachineCtx.Obj.AddDevice(ctx, pci.ConstructDeviceSpecsVGPU(specsToBeAdded)...); err != nil {
+			return errors.Wrapf(err, "error adding vGPU devices for %q", ctx)
+		}
+	}
 	return nil
 }
 

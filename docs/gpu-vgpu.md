@@ -56,7 +56,6 @@ We are using NVIDIA Tesla V100 32GB cards for this example and will use the `gri
 
 ```shell
 $ make dev-flavors
-/Applications/Xcode.app/Contents/Developer/usr/bin/make generate-flavors FLAVOR_DIR=/Users/pkatyal/.cluster-api/overrides/infrastructure-vsphere/v0.0.0
 go run ./packaging/flavorgen --output-dir /Users/pkatyal/.cluster-api/overrides/infrastructure-vsphere/v0.0.0
 ```
 
@@ -91,7 +90,7 @@ spec:
       template: '${VSPHERE_TEMPLATE}'
       thumbprint: '${VSPHERE_TLS_THUMBPRINT}'
       vgpuDevices:
-        - profileName: "grid_v100d-4c"    <============ value from above
+        - profileName: "grid_v100d-4c"  # value from above
 ```
 
 Set the required values for the other fields and the cluster template is ready for use. The similar changes can be made to a template generated using clusterctl generate cluster command as well.

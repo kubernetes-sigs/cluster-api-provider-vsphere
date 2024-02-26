@@ -30,7 +30,7 @@ type AddressManager interface {
 	// ClaimIPs claims IP addresses with the variable name `CONTROL_PLANE_ENDPOINT_IP` and whatever is passed as
 	// additionalIPVariableNames.
 	// It returns a slice of IPAddressClaims namespaced names and corresponding variables.
-	ClaimIPs(ctx context.Context, additionalIPVariableNames ...string) (claims AddressClaims, variables map[string]string)
+	ClaimIPs(ctx context.Context, opts ...ClaimOption) (claims AddressClaims, variables map[string]string)
 
 	// Cleanup deletes the given IPAddressClaims.
 	Cleanup(ctx context.Context, claims AddressClaims) error
@@ -38,4 +38,26 @@ type AddressManager interface {
 	// Teardown tries to cleanup orphaned IPAddressClaims by checking if the corresponding IPs are still in use in vSphere.
 	// It identifies IPAddressClaims via labels.
 	Teardown(ctx context.Context, folderName string, vSphereClient *govmomi.Client) error
+}
+
+type claimOptions struct {
+	additionalIPVariableNames []string
+	gatewayIPVariableName     string
+}
+
+type ClaimOption func(*claimOptions)
+
+// WithIP instructs Setup to allocate another IP and store it into the provided variableName
+// NOTE: Setup always allocate an IP for CONTROL_PLANE_ENDPOINT_IP.
+func WithIP(variableName ...string) ClaimOption {
+	return func(o *claimOptions) {
+		o.additionalIPVariableNames = append(o.additionalIPVariableNames, variableName...)
+	}
+}
+
+// WithGateway instructs Setup to store the Gateway IP from IPAM into the provided variableName.
+func WithGateway(variableName string) ClaimOption {
+	return func(o *claimOptions) {
+		o.gatewayIPVariableName = variableName
+	}
 }

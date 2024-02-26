@@ -1,0 +1,37 @@
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: VSphereMachineTemplate
+metadata:
+  name: '${CLUSTER_NAME}'
+  namespace: '${NAMESPACE}'
+spec:
+  template:
+    spec:
+      network:
+        devices:
+        - addressesFromPools:
+          - apiGroup: ipam.cluster.x-k8s.io
+            kind: InClusterIPPool
+            name: ${CLUSTER_NAME}
+          nameservers:
+          # Note: using 8.8.8.8 may require to set an IP as VSPHERE_SERVER
+          - ${IPAM_NAMESERVER:-8.8.8.8}
+          networkName: '${VSPHERE_NETWORK}'
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: VSphereMachineTemplate
+metadata:
+  name: '${CLUSTER_NAME}-worker'
+  namespace: '${NAMESPACE}'
+spec:
+  template:
+    spec:
+      network:
+        devices:
+        - addressesFromPools:
+          - apiGroup: ipam.cluster.x-k8s.io
+            kind: InClusterIPPool
+            name: ${CLUSTER_NAME}
+          nameservers:
+          # Note: using 8.8.8.8 may require to set an IP as VSPHERE_SERVER
+          - ${IPAM_NAMESERVER:-8.8.8.8}
+          networkName: '${VSPHERE_NETWORK}'

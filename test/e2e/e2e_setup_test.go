@@ -27,10 +27,13 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	. "sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
 	"sigs.k8s.io/yaml"
+
+	"sigs.k8s.io/cluster-api-provider-vsphere/test/framework/ip"
 )
 
 type setupOptions struct {
 	additionalIPVariableNames []string
+	gatewayIPVariableName     string
 }
 
 // SetupOption is a configuration option supplied to Setup.
@@ -41,6 +44,13 @@ type SetupOption func(*setupOptions)
 func WithIP(variableName string) SetupOption {
 	return func(o *setupOptions) {
 		o.additionalIPVariableNames = append(o.additionalIPVariableNames, variableName)
+	}
+}
+
+// WithGateway instructs Setup to store the Gateway IP from IPAM into the provided variableName.
+func WithGateway(variableName string) SetupOption {
+	return func(o *setupOptions) {
+		o.gatewayIPVariableName = variableName
 	}
 }
 
@@ -60,7 +70,7 @@ func Setup(specName string, f func(testSpecificClusterctlConfigPathGetter func()
 		Byf("Setting up test env for %s", specName)
 
 		Byf("Getting IP for %s", strings.Join(append([]string{"CONTROL_PLANE_ENDPOINT_IP"}, options.additionalIPVariableNames...), ","))
-		testSpecificIPAddressClaims, testSpecificVariables = ipAddressManager.ClaimIPs(ctx, options.additionalIPVariableNames...)
+		testSpecificIPAddressClaims, testSpecificVariables = ipAddressManager.ClaimIPs(ctx, ip.WithGateway(options.gatewayIPVariableName), ip.WithIP(options.additionalIPVariableNames...))
 
 		// Create a new clusterctl config file based on the passed file and add the new variables for the IPs.
 		testSpecificClusterctlConfigPath = fmt.Sprintf("%s-%s.yaml", strings.TrimSuffix(clusterctlConfigPath, ".yaml"), specName)

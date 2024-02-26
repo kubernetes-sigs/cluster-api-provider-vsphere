@@ -27,7 +27,7 @@ var _ AddressManager = &noop{}
 
 type noop struct{}
 
-func (h *noop) ClaimIPs(_ context.Context, _ ...string) (AddressClaims, map[string]string) {
+func (h *noop) ClaimIPs(_ context.Context, _ ...ClaimOption) (AddressClaims, map[string]string) {
 	return nil, nil
 }
 

@@ -38,6 +38,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.9=
 				InitWithControlPlaneProviders:     []string{"kubeadm:v1.6.1"},
 				InitWithInfrastructureProviders:   []string{"vsphere:v1.9.0"},
 				InitWithRuntimeExtensionProviders: []string{},
+				InitWithIPAMProviders:             []string{},
 				// InitWithKubernetesVersion should be the highest kubernetes version supported by the init Cluster API version.
 				// This is to guarantee that both, the old and new CAPI version, support the defined version.
 				// Ensure all Kubernetes versions used here are covered in patch-vsphere-template.yaml
@@ -66,6 +67,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.8=
 				InitWithControlPlaneProviders:     []string{"kubeadm:v1.5.4"},
 				InitWithInfrastructureProviders:   []string{"vsphere:v1.8.4"},
 				InitWithRuntimeExtensionProviders: []string{},
+				InitWithIPAMProviders:             []string{},
 				// InitWithKubernetesVersion should be the highest kubernetes version supported by the init Cluster API version.
 				// This is to guarantee that both, the old and new CAPI version, support the defined version.
 				// Ensure all Kubernetes versions used here are covered in patch-vsphere-template.yaml

@@ -186,7 +186,7 @@ IMPORT_BOSS_VER := v0.28.1
 IMPORT_BOSS := $(abspath $(TOOLS_BIN_DIR)/$(IMPORT_BOSS_BIN))
 IMPORT_BOSS_PKG := k8s.io/code-generator/cmd/import-boss
 
-CAPI_HACK_TOOLS_VER := 8ed14d7cb6f90f614266342e7f80421c53dd977a # Note: this is the commit ID of CAPI
+CAPI_HACK_TOOLS_VER := 4061a478b1610b308207da434e4eb4fc7af55de7 # Note: this is the commit ID of CAPI
 
 CONVERSION_VERIFIER_VER := $(CAPI_HACK_TOOLS_VER)
 CONVERSION_VERIFIER_BIN := conversion-verifier
@@ -714,7 +714,7 @@ generate-release-notes: $(RELEASE_NOTES_DIR) $(RELEASE_NOTES)
 	if [ -n "${PRE_RELEASE}" ]; then \
 	echo -e ":rotating_light: This is a RELEASE CANDIDATE. Use it only for testing purposes. If you find any bugs, file an [issue](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/new/choose).\n" >> $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md; \
 	fi
-	"$(RELEASE_NOTES)" --from=$(PREVIOUS_TAG) --prefix-area-label=false --add-kubernetes-version-support=false >> $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md
+	"$(RELEASE_NOTES)" --release=$(RELEASE_TAG) --repository kubernetes-sigs/cluster-api-provider-vsphere >> $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md
 
 .PHONY: promote-images
 promote-images: $(KPROMO)

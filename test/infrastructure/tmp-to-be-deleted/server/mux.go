@@ -260,9 +260,9 @@ func (m *WorkloadClustersMux) HotRestart(clusters *infrav1.InMemoryClusterList) 
 			return errors.Errorf("unable to restart the WorkloadClustersMux, there are two or more clusters using port %d", c.Spec.ControlPlaneEndpoint.Port)
 		}
 
-		resourceGroup, ok := c.Annotations[infrav1.ResourceGroupAnnotationName]
+		resourceGroup, ok := c.Annotations[infrav1.ListenerAnnotationName]
 		if !ok {
-			return errors.Errorf("unable to restart the WorkloadClustersMux, cluster %s doesn't have the %s annotation", klog.KRef(c.Namespace, c.Name), infrav1.ResourceGroupAnnotationName)
+			return errors.Errorf("unable to restart the WorkloadClustersMux, cluster %s doesn't have the %s annotation", klog.KRef(c.Namespace, c.Name), infrav1.ListenerAnnotationName)
 		}
 
 		m.initWorkloadClusterListenerWithPortLocked(resourceGroup, c.Spec.ControlPlaneEndpoint.Port)

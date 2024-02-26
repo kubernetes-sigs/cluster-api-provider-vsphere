@@ -105,6 +105,9 @@ func (h *inCluster) ClaimIPs(ctx context.Context, opts ...ClaimOption) (AddressC
 		Byf("Setting clusterctl variable %s to %s", variable, ip.Spec.Address)
 		variables[variable] = ip.Spec.Address
 		if variable == controlPlaneEndpointVariable && options.gatewayIPVariableName != "" {
+			// Set the gateway variable if requested to the gateway of the control plane IP.
+			// This is required in ipam scenarios, otherwise the VMs will not be able to
+			// connect to the public internet to pull images.
 			Byf("Setting clusterctl variable %s to %s", variable, ip.Spec.Gateway)
 			variables[options.gatewayIPVariableName] = ip.Spec.Gateway
 		}

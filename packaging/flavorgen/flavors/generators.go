@@ -139,9 +139,13 @@ func clusterTopologyVariables() ([]clusterv1.ClusterVariable, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to json-encode variable VSphereSSHAuthorizedKeysVar: %q", env.VSphereSSHAuthorizedKeysVar)
 	}
-	controlPlaneIP, err := json.Marshal(env.ControlPlaneEndpointVar)
+	controlPlaneIP, err := json.Marshal(env.ControlPlaneEndpointHostVar)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to json-encode variable ControlPlaneEndpointVar: %q", env.ControlPlaneEndpointVar)
+		return nil, errors.Wrapf(err, "failed to json-encode variable ControlPlaneEndpointHostVar: %q", env.ControlPlaneEndpointHostVar)
+	}
+	controlPlanePort, err := json.Marshal(env.ControlPlaneEndpointPortVar)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to json-encode variable ControlPlaneEndpointPortVar: %q", env.ControlPlaneEndpointPortVar)
 	}
 	secretName, err := json.Marshal(env.ClusterNameVar)
 	if err != nil {
@@ -174,6 +178,12 @@ func clusterTopologyVariables() ([]clusterv1.ClusterVariable, error) {
 			Name: "controlPlaneIpAddr",
 			Value: apiextensionsv1.JSON{
 				Raw: controlPlaneIP,
+			},
+		},
+		{
+			Name: "controlPlanePort",
+			Value: apiextensionsv1.JSON{
+				Raw: controlPlanePort,
 			},
 		},
 		{
@@ -215,7 +225,7 @@ func newVSphereCluster() infrav1.VSphereCluster {
 				Kind: infrav1.SecretKind,
 			},
 			ControlPlaneEndpoint: infrav1.APIEndpoint{
-				Host: env.ControlPlaneEndpointVar,
+				Host: env.ControlPlaneEndpointHostVar,
 				Port: 6443,
 			},
 		},

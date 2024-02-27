@@ -28,7 +28,7 @@ metadata:
 spec:
   controlPlaneEndpoint:
     host: ${CONTROL_PLANE_ENDPOINT_IP}
-    port: 6443
+    port: ${CONTROL_PLANE_ENDPOINT_PORT:=6443}
   identityRef:
     kind: Secret
     name: '${CLUSTER_NAME}'

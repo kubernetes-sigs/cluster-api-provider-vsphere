@@ -18,6 +18,7 @@ package flavors
 
 import (
 	"fmt"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -128,10 +129,13 @@ func getCredSecretNameTemplate() *string {
 func getControlPlaneEndpointTemplate() *string {
 	template := map[string]interface{}{
 		"host": "{{ .controlPlaneIpAddr }}",
-		"port": 6443,
+		"port": "{{ .controlPlanePort }}",
 	}
 	templateStr, _ := yaml.Marshal(template)
-	return ptr.To(string(templateStr))
+
+	fixTemplateStr := string(templateStr)
+	fixTemplateStr = strings.Replace(fixTemplateStr, "'{{ .controlPlanePort }}'", "{{ .controlPlanePort }}", -1)
+	return ptr.To(fixTemplateStr)
 }
 
 func getEnableSSHIntoNodesTemplate() *string {
@@ -180,6 +184,16 @@ func getClusterClassVariables() []clusterv1.ClusterClassVariable {
 				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 					Type:        "string",
 					Description: "Floating VIP for the control plane.",
+				},
+			},
+		},
+		{
+			Name:     "controlPlanePort",
+			Required: true,
+			Schema: clusterv1.VariableSchema{
+				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+					Type:        "integer",
+					Description: "Port for the control plane endpoint.",
 				},
 			},
 		},

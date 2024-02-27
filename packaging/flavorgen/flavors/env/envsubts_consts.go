@@ -45,7 +45,8 @@ const (
 	VSphereStoragePolicyVar      = "${VSPHERE_STORAGE_POLICY}"
 	VSphereTemplateVar           = "${VSPHERE_TEMPLATE}"
 	WorkerMachineCountVar        = "${WORKER_MACHINE_COUNT}"
-	ControlPlaneEndpointVar      = "${CONTROL_PLANE_ENDPOINT_IP}"
+	ControlPlaneEndpointHostVar  = "${CONTROL_PLANE_ENDPOINT_IP}"
+	ControlPlaneEndpointPortVar  = "${CONTROL_PLANE_ENDPOINT_PORT:=6443}"
 	// VipNetworkInterfaceVar defaults to an empty string to let kube-vip autodetect the interface.
 	VipNetworkInterfaceVar = "${VIP_NETWORK_INTERFACE:=\"\"}"
 	VSphereUsername        = "${VSPHERE_USERNAME}"

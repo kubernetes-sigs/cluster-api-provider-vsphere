@@ -62,6 +62,12 @@ var (
 			Value:     map[string]interface{}{},
 			FieldPath: []string{"spec", "template", "spec"},
 		},
+		{
+			Kind:      "VSphereCluster",
+			Name:      "${CLUSTER_NAME}",
+			Value:     env.ControlPlaneEndpointPortVar,
+			FieldPath: []string{"spec", "controlPlaneEndpoint", "port"},
+		},
 	}
 
 	stringVars = []string{

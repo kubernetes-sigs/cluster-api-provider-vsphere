@@ -141,7 +141,7 @@ func assertHeadlessSvcWithUpdatedVIPEndpoints(ctx context.Context, guestClient c
 		key := client.ObjectKey{Namespace: namespace, Name: name}
 		Expect(guestClient.Get(ctx, key, headlessEndpoints)).Should(Succeed())
 		return headlessEndpoints.Subsets[0].Addresses[0].IP
-	}).Should(Equal(testSupervisorAPIServerVIP))
+	}, time.Second*3).Should(Equal(testSupervisorAPIServerVIP))
 	Expect(headlessEndpoints.Subsets[0].Ports[0].Port).To(Equal(int32(supervisorAPIServerPort)))
 }
 

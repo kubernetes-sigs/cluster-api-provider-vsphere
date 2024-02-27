@@ -373,8 +373,7 @@ type NetworkDeviceSpec struct {
 
 	// SkipIPAllocation allows the device to not have IP address or DHCP configured.
 	// This is suitable for devices for which IP allocation is handled externally, eg. using Multus CNI.
-	// If true, both static IP address allocation and DHCP allocation will be skipped,
-	// and provider will not verify IP address allocation.
+	// If true, CAPV will not verify IP address allocation.
 	// +optional
 	SkipIPAllocation bool `json:"skipIPAllocation,omitempty"`
 }

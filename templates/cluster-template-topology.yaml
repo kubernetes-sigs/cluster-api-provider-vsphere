@@ -91,6 +91,8 @@ spec:
         status: {}
     - name: controlPlaneIpAddr
       value: ${CONTROL_PLANE_ENDPOINT_IP}
+    - name: controlPlanePort
+      value: ${CONTROL_PLANE_ENDPOINT_PORT:=6443}
     - name: credsSecretName
       value: '${CLUSTER_NAME}'
     version: '${KUBERNETES_VERSION}'

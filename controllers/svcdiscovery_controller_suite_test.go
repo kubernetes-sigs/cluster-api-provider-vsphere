@@ -20,6 +20,7 @@ import (
 	"context"
 	"strconv"
 	"strings"
+	"time"
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -73,10 +74,10 @@ func assertEventuallyDoesNotExistInNamespace(ctx context.Context, guestClient cl
 
 func assertHeadlessSvc(ctx context.Context, guestClient client.Client, namespace, name string) {
 	headlessSvc := &corev1.Service{}
-	EventuallyWithOffset(4, func() error {
+	Eventually(func() error {
 		key := client.ObjectKey{Namespace: namespace, Name: name}
 		return guestClient.Get(ctx, key, headlessSvc)
-	}).Should(Succeed())
+	}, time.Second*3).Should(Succeed())
 	Expect(headlessSvc.Spec.Ports[0].Port).To(Equal(int32(supervisorHeadlessSvcPort)))
 	Expect(headlessSvc.Spec.Ports[0].TargetPort.IntVal).To(Equal(int32(supervisorAPIServerPort)))
 }
@@ -137,11 +138,11 @@ func assertHeadlessSvcWithUpdatedVIPEndpoints(ctx context.Context, guestClient c
 	assertHeadlessSvc(ctx, guestClient, namespace, name)
 	headlessEndpoints := &corev1.Endpoints{}
 	assertEventuallyExistsInNamespace(ctx, guestClient, namespace, name, headlessEndpoints)
-	EventuallyWithOffset(2, func() string {
+	Eventually(func() string {
 		key := client.ObjectKey{Namespace: namespace, Name: name}
 		Expect(guestClient.Get(ctx, key, headlessEndpoints)).Should(Succeed())
 		return headlessEndpoints.Subsets[0].Addresses[0].IP
-	}).Should(Equal(testSupervisorAPIServerVIP))
+	}, time.Second*3).Should(Equal(testSupervisorAPIServerVIP))
 	Expect(headlessEndpoints.Subsets[0].Ports[0].Port).To(Equal(int32(supervisorAPIServerPort)))
 }
 

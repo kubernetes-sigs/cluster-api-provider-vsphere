@@ -51,8 +51,8 @@ var _ = Describe("Service Discovery controller integration tests", func() {
 		It("Should reconcile headless svc", func() {
 			By("creating a service and endpoints using the VIP in the guest cluster")
 			headlessSvc := &corev1.Service{}
-			assertEventuallyExistsInNamespace(intCtx, intCtx.Client, "kube-system", "kube-apiserver-lb-svc", headlessSvc)
-			assertHeadlessSvcWithVIPEndpoints(intCtx, intCtx.GuestClient, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
+			assertEventuallyExistsInNamespace(intCtx, testEnv.Manager.GetAPIReader(), "kube-system", "kube-apiserver-lb-svc", headlessSvc)
+			assertHeadlessSvcWithVIPEndpoints(intCtx, intCtx.GuestAPIReader, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
 		})
 	})
 
@@ -67,7 +67,7 @@ var _ = Describe("Service Discovery controller integration tests", func() {
 		})
 		It("Should reconcile headless svc", func() {
 			By("creating a service and endpoints using the FIP in the guest cluster")
-			assertHeadlessSvcWithFIPEndpoints(intCtx, intCtx.GuestClient, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
+			assertHeadlessSvcWithFIPEndpoints(intCtx, intCtx.GuestAPIReader, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
 		})
 	})
 	Context("When headless svc and endpoints already exists", func() {
@@ -86,7 +86,7 @@ var _ = Describe("Service Discovery controller integration tests", func() {
 		})
 		It("Should reconcile headless svc", func() {
 			By("updating the service and endpoints using the VIP in the guest cluster")
-			assertHeadlessSvcWithUpdatedVIPEndpoints(intCtx, intCtx.GuestClient, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
+			assertHeadlessSvcWithUpdatedVIPEndpoints(intCtx, intCtx.GuestAPIReader, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
 		})
 	})
 })

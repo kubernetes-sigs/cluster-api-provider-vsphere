@@ -10,7 +10,7 @@ replace sigs.k8s.io/cluster-api-provider-vsphere => ../
 
 require (
 	github.com/dougm/pretty v0.0.0-20171025230240-2ee9d7453c02
-	github.com/emicklei/go-restful/v3 v3.11.2
+	github.com/emicklei/go-restful/v3 v3.11.3
 	github.com/evanphx/json-patch/v5 v5.9.0
 	github.com/go-logr/logr v1.4.1
 	github.com/google/uuid v1.6.0

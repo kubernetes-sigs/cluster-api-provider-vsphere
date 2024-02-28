@@ -44,6 +44,7 @@ type IntegrationTestContext struct {
 	context.Context
 	Client            client.Client
 	GuestClient       client.Client
+	GuestAPIReader    client.Client
 	Namespace         string
 	VSphereCluster    *vmwarev1.VSphereCluster
 	VSphereClusterKey client.ObjectKey
@@ -102,11 +103,6 @@ func NewIntegrationTestContextWithClusters(goctx context.Context, integrationTes
 	vsphereClusterName := capiutil.RandomString(6)
 	cluster := createCluster(goctx, integrationTestClient, ctx.Namespace, vsphereClusterName)
 
-	By("Create a vsphere cluster and wait for it to exist", func() {
-		ctx.VSphereCluster = createVSphereCluster(goctx, integrationTestClient, ctx.Namespace, vsphereClusterName, cluster.GetName())
-		ctx.VSphereClusterKey = client.ObjectKeyFromObject(ctx.VSphereCluster)
-	})
-
 	var config *rest.Config
 	By("Creating guest cluster control plane", func() {
 		// Initialize a test environment to simulate the control plane of the guest cluster.
@@ -127,6 +123,13 @@ func NewIntegrationTestContextWithClusters(goctx context.Context, integrationTes
 		ctx.GuestClient, err = client.New(config, client.Options{})
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(ctx.GuestClient).ShouldNot(BeNil())
+
+		// Create the API Reader, a client with no cache.
+		ctx.GuestAPIReader, err = client.New(config, client.Options{
+			Scheme: ctx.GuestClient.Scheme(),
+			Mapper: ctx.GuestClient.RESTMapper(),
+		})
+		Expect(err).ShouldNot(HaveOccurred())
 
 		ctx.envTest = envTest
 	})
@@ -154,6 +157,11 @@ func NewIntegrationTestContextWithClusters(goctx context.Context, integrationTes
 		Eventually(func() error {
 			return integrationTestClient.Get(goctx, client.ObjectKeyFromObject(secret), secret)
 		}).Should(Succeed())
+	})
+
+	By("Create a vsphere cluster and wait for it to exist", func() {
+		ctx.VSphereCluster = createVSphereCluster(goctx, integrationTestClient, ctx.Namespace, vsphereClusterName, cluster.GetName())
+		ctx.VSphereClusterKey = client.ObjectKeyFromObject(ctx.VSphereCluster)
 	})
 
 	return ctx

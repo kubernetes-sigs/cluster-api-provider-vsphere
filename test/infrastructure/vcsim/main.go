@@ -45,6 +45,8 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/feature"
+	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
+	inmemoryserver "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
 	"sigs.k8s.io/cluster-api/util/flags"
 	"sigs.k8s.io/cluster-api/version"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -57,8 +59,6 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/constants"
-	inmemoryruntime "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/tmp-to-be-deleted/runtime"
-	inmemoryserver "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/tmp-to-be-deleted/server"
 	vcsimv1 "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/api/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/controllers"
 )

@@ -23,6 +23,8 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
+	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
+	inmemoryserver "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -30,8 +32,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	inmemoryruntime "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/tmp-to-be-deleted/runtime"
-	inmemoryserver "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/tmp-to-be-deleted/server"
 	vcsimv1 "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/api/v1alpha1"
 )
 

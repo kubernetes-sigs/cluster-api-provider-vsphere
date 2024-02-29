@@ -28,6 +28,8 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
+	inmemoryserver "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
 	capiutil "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -43,8 +45,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/identity"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
-	inmemoryruntime "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/tmp-to-be-deleted/runtime"
-	inmemoryserver "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/tmp-to-be-deleted/server"
 )
 
 // TODO: implement support for CAPV deployed in arbitrary ns (TBD if we need this).

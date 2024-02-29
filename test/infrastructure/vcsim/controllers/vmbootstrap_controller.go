@@ -33,6 +33,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
+	inmemoryserver "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
 	capiutil "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -44,8 +46,6 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
-	inmemoryruntime "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/tmp-to-be-deleted/runtime"
-	inmemoryserver "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/tmp-to-be-deleted/server"
 )
 
 // TODO: investigate if we can share this code with the CAPI in memory provider.

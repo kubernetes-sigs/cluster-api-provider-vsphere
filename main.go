@@ -30,7 +30,7 @@ import (
 	perrors "github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	"gopkg.in/fsnotify.v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
@@ -43,7 +43,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -412,17 +411,7 @@ func setupChecks(mgr ctrlmgr.Manager) {
 func isCRDDeployed(mgr ctrlmgr.Manager, gvr schema.GroupVersionResource) (bool, error) {
 	_, err := mgr.GetRESTMapper().KindFor(gvr)
 	if err != nil {
-		var discoveryErr *apiutil.ErrResourceDiscoveryFailed
-		ok := errors.As(errors.Unwrap(err), &discoveryErr)
-		if !ok {
-			return false, err
-		}
-		discoveryErrs := *discoveryErr
-		gvrErr, ok := discoveryErrs[gvr.GroupVersion()]
-		if !ok {
-			return false, err
-		}
-		if apierrors.IsNotFound(gvrErr) {
+		if meta.IsNoMatchError(err) {
 			return false, nil
 		}
 		return false, err

@@ -98,7 +98,7 @@ endif
 
 # Helper function to get dependency version from go.mod
 get_go_version = $(shell go list -m $1 | awk '{print $$NF}')
-get_test_go_version = $(shell cd test; go list -m $1 | awk '{print $$NF}')
+get_test_go_version = $(shell cat test/go.mod | grep $1 | awk '{print $$NF}')
 
 #
 # Binaries.
@@ -217,6 +217,13 @@ CONTROLLER_IMG ?= $(REGISTRY)/$(IMAGE_NAME)
 # vcsim controller
 VCSIM_IMAGE_NAME ?= cluster-api-vcsim-controller
 VCSIM_CONTROLLER_IMG ?= $(REGISTRY)/$(VCSIM_IMAGE_NAME)
+
+# vmoperator controller
+VM_OPERATOR_IMAGE_NAME ?= extra/vm-operator
+VM_OPERATOR_CONTROLLER_IMG ?= $(STAGING_REGISTRY)/$(VM_OPERATOR_IMAGE_NAME)
+VM_OPERATOR_DIR ?= vm-operator.tmp
+VM_OPERATOR_VERSION ?= v1.8.1
+VM_OPERATOR_ALL_ARCH = amd64 arm64
 
 # It is set by Prow GIT_TAG, a git-based tag of the form vYYYYMMDD-hash, e.g., v20210120-v0.3.10-308-gc61521971
 
@@ -752,6 +759,55 @@ set-manifest-pull-policy:
 set-manifest-image:
 	$(info Updating kustomize image patch file for manager resource)
 	sed -i'' -e 's@image: .*@image: '"${MANIFEST_IMG}:$(MANIFEST_TAG)"'@' $(TARGET_RESOURCE)
+
+## --------------------------------------
+## vm-operator
+## --------------------------------------
+
+.PHONY: docker-vm-operator-checkout
+docker-vm-operator-checkout:
+	@if [ -z "${VM_OPERATOR_VERSION}" ]; then echo "VM_OPERATOR_VERSION is not set"; exit 1; fi
+	@if [ -d "$(VM_OPERATOR_DIR)" ]; then \
+		echo "$(VM_OPERATOR_DIR) exists, skipping clone"; \
+		cd "$(VM_OPERATOR_DIR)"; \
+		if [ "$$(git describe --match "v[0-9]*")" != "$(VM_OPERATOR_VERSION)" ]; then \
+			echo "ERROR: checked out version $$(git describe --match "v[0-9]*") does not match expected version $(VM_OPERATOR_VERSION)"; \
+			exit 1; \
+		fi \
+	else \
+		git clone --depth 1 --branch "$(VM_OPERATOR_VERSION)" "https://github.com/vmware-tanzu/vm-operator.git" "$(VM_OPERATOR_DIR)"; \
+	fi
+
+.PHONY: docker-vm-operator-build-all
+docker-vm-operator-build-all: $(addprefix docker-vm-operator-build-,$(VM_OPERATOR_ALL_ARCH)) ## Build docker images for all architectures
+
+docker-vm-operator-build-%:
+	$(MAKE) ARCH=$* docker-build-vm-operator
+
+.PHONY: docker-build-vm-operator
+docker-build-vm-operator: docker-vm-operator-checkout ## Build the docker image for vmoperator
+	@if [ -z "${VM_OPERATOR_VERSION}" ]; then echo "VM_OPERATOR_VERSION is not set"; exit 1; fi
+	cd $(VM_OPERATOR_DIR) && \
+	$(MAKE) IMAGE=$(VM_OPERATOR_CONTROLLER_IMG)-$(ARCH) IMAGE_TAG=$(VM_OPERATOR_VERSION) GOARCH=$(ARCH) docker-build
+
+.PHONY: docker-vm-operator-push-all
+docker-vm-operator-push-all: $(addprefix docker-vm-operator-push-,$(VM_OPERATOR_ALL_ARCH))  ## Push the docker images to be included in the release for all architectures + related multiarch manifests
+	$(MAKE) docker-vm-operator-push-manifest
+
+docker-vm-operator-push-%:
+	$(MAKE) ARCH=$* docker-vm-operator-push
+
+.PHONY: docker-vm-operator-push
+docker-vm-operator-push: ## Push the docker images to be included in the release
+	@if [ -z "${VM_OPERATOR_VERSION}" ]; then echo "VM_OPERATOR_VERSION is not set"; exit 1; fi
+	docker push $(VM_OPERATOR_CONTROLLER_IMG)-$(ARCH):$(VM_OPERATOR_VERSION)
+
+.PHONY: docker-vm-operator-push-manifest
+docker-vm-operator-push-manifest: ## Push the multiarch manifest for the vsphere docker images
+	@if [ -z "${VM_OPERATOR_VERSION}" ]; then echo "VM_OPERATOR_VERSION is not set"; exit 1; fi
+	docker manifest create --amend $(VM_OPERATOR_CONTROLLER_IMG):$(VM_OPERATOR_VERSION) $(shell echo $(VM_OPERATOR_ALL_ARCH) | sed -e "s~[^ ]*~$(VM_OPERATOR_CONTROLLER_IMG)\-&:$(VM_OPERATOR_VERSION)~g")
+	@for arch in $(VM_OPERATOR_ALL_ARCH); do docker manifest annotate --arch $${arch} ${VM_OPERATOR_CONTROLLER_IMG}:${VM_OPERATOR_VERSION} ${VM_OPERATOR_CONTROLLER_IMG}-$${arch}:${VM_OPERATOR_VERSION}; done
+	docker manifest push --purge $(VM_OPERATOR_CONTROLLER_IMG):$(VM_OPERATOR_VERSION)
 
 ## --------------------------------------
 ## Cleanup

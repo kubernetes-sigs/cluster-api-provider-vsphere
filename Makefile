@@ -221,7 +221,8 @@ VCSIM_CONTROLLER_IMG ?= $(REGISTRY)/$(VCSIM_IMAGE_NAME)
 # vmoperator controller
 VM_OPERATOR_IMAGE_NAME ?= extra/vm-operator
 VM_OPERATOR_CONTROLLER_IMG ?= $(STAGING_REGISTRY)/$(VM_OPERATOR_IMAGE_NAME)
-VM_OPERATOR_DIR ?= vm-operator.tmp
+VM_OPERATOR_DIR := test/infrastructure/vm-operator
+VM_OPERATOR_TMP_DIR ?= vm-operator.tmp
 VM_OPERATOR_VERSION ?= v1.8.1
 VM_OPERATOR_ALL_ARCH = amd64 arm64
 
@@ -764,19 +765,35 @@ set-manifest-image:
 ## vm-operator
 ## --------------------------------------
 
-.PHONY: docker-vm-operator-checkout
-docker-vm-operator-checkout:
+
+.PHONY: release-vm-operator
+release-vm-operator: docker-vm-operator-build-all vm-operator-manifest-build docker-vm-operator-push-all ## Build and push the vm-operator image and manifest for usage in CI
+
+.PHONY: vm-operator-checkout
+vm-operator-checkout:
 	@if [ -z "${VM_OPERATOR_VERSION}" ]; then echo "VM_OPERATOR_VERSION is not set"; exit 1; fi
-	@if [ -d "$(VM_OPERATOR_DIR)" ]; then \
-		echo "$(VM_OPERATOR_DIR) exists, skipping clone"; \
-		cd "$(VM_OPERATOR_DIR)"; \
+	@if [ -d "$(VM_OPERATOR_TMP_DIR)" ]; then \
+		echo "$(VM_OPERATOR_TMP_DIR) exists, skipping clone"; \
+		cd "$(VM_OPERATOR_TMP_DIR)"; \
 		if [ "$$(git describe --match "v[0-9]*")" != "$(VM_OPERATOR_VERSION)" ]; then \
 			echo "ERROR: checked out version $$(git describe --match "v[0-9]*") does not match expected version $(VM_OPERATOR_VERSION)"; \
 			exit 1; \
 		fi \
 	else \
-		git clone --depth 1 --branch "$(VM_OPERATOR_VERSION)" "https://github.com/vmware-tanzu/vm-operator.git" "$(VM_OPERATOR_DIR)"; \
+		git clone --depth 1 --branch "$(VM_OPERATOR_VERSION)" "https://github.com/vmware-tanzu/vm-operator.git" "$(VM_OPERATOR_TMP_DIR)"; \
 	fi
+
+.PHONY: vm-operator-manifest-build
+vm-operator-manifest-build: $(RELEASE_DIR) $(KUSTOMIZE) vm-operator-checkout
+	kustomize build --load-restrictor LoadRestrictionsNone "$(VM_OPERATOR_TMP_DIR)/config/local" > "$(VM_OPERATOR_DIR)/vm-operator.yaml"
+	sed -i'' -e 's@image: vmoperator.*@image: '"$(VM_OPERATOR_CONTROLLER_IMG):$(VM_OPERATOR_VERSION)"'@' "$(VM_OPERATOR_DIR)/vm-operator.yaml"
+	kustomize build "$(VM_OPERATOR_DIR)" > "$(RELEASE_DIR)/vm-operator-$(VM_OPERATOR_VERSION).yaml"
+
+.PHONY: vm-operator-manifest-push
+vm-operator-manifest-push:
+	gsutil cp \
+		"$(RELEASE_DIR)/vm-operator-$(VM_OPERATOR_VERSION).yaml" \
+		"gs://artifacts.k8s-staging-capi-vsphere.appspot.com/vm-operator/$(VM_OPERATOR_VERSION).yaml"
 
 .PHONY: docker-vm-operator-build-all
 docker-vm-operator-build-all: $(addprefix docker-vm-operator-build-,$(VM_OPERATOR_ALL_ARCH)) ## Build docker images for all architectures
@@ -785,9 +802,9 @@ docker-vm-operator-build-%:
 	$(MAKE) ARCH=$* docker-build-vm-operator
 
 .PHONY: docker-build-vm-operator
-docker-build-vm-operator: docker-vm-operator-checkout ## Build the docker image for vmoperator
+docker-build-vm-operator: vm-operator-checkout ## Build the docker image for vmoperator
 	@if [ -z "${VM_OPERATOR_VERSION}" ]; then echo "VM_OPERATOR_VERSION is not set"; exit 1; fi
-	cd $(VM_OPERATOR_DIR) && \
+	cd $(VM_OPERATOR_TMP_DIR) && \
 	$(MAKE) IMAGE=$(VM_OPERATOR_CONTROLLER_IMG)-$(ARCH) IMAGE_TAG=$(VM_OPERATOR_VERSION) GOARCH=$(ARCH) docker-build
 
 .PHONY: docker-vm-operator-push-all

@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
@@ -86,14 +85,8 @@ func Test_Reconcile_ControlPlaneEndpoint(t *testing.T) {
 	g.Expect(controlPlaneEndpoint.Status.Port).ToNot(BeZero())
 
 	// Check manager and server internal status
-	resourceGroup := klog.KObj(controlPlaneEndpoint).String()
-	foo := &corev1.Node{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "foo",
-		},
-	}
-	g.Expect(workloadClustersManager.GetResourceGroup(resourceGroup).GetClient().Create(ctx, foo)).To(Succeed()) // the operation succeed if the resource group has been created as expected
-	g.Expect(workloadClustersMux.ListListeners()).To(HaveKey(resourceGroup))
+	listenerName := klog.KObj(controlPlaneEndpoint).String()
+	g.Expect(workloadClustersMux.ListListeners()).To(HaveKey(listenerName))
 
 	// PART 2: Should delete a ControlPlaneEndpoint
 
@@ -106,8 +99,4 @@ func Test_Reconcile_ControlPlaneEndpoint(t *testing.T) {
 	}})
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(res).To(Equal(ctrl.Result{}))
-
-	// Check manager and server internal status
-	g.Expect(workloadClustersManager.GetResourceGroup(resourceGroup).GetClient().Create(ctx, foo)).ToNot(Succeed()) // the operation fails if the resource group has been deleted as expected
-	g.Expect(workloadClustersMux.ListListeners()).ToNot(HaveKey(resourceGroup))
 }

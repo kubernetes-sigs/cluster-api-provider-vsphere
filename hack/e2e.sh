@@ -49,7 +49,7 @@ on_exit() {
     do
       echo "Cleaning up VSPHERE_PASSWORD from file ${file}"
       sed -i "s/${VSPHERE_PASSWORD}/REDACTED/g" "${file}"
-    done
+    done || true
     # Move all artifacts to the original artifacts location.
     mv "${ARTIFACTS}"/* "${ORIGINAL_ARTIFACTS}/"
   fi
@@ -76,7 +76,6 @@ export VSPHERE_SSH_PRIVATE_KEY="/root/ssh/.private-key/private-key"
 export E2E_CONF_FILE="${REPO_ROOT}/test/e2e/config/vsphere.yaml"
 export E2E_CONF_OVERRIDE_FILE=""
 export E2E_CAPV_MODE="${CAPV_MODE:-govmomi}"
-export E2E_TARGET_TYPE="${TARGET_TYPE:-vmc}"
 export ARTIFACTS="${ARTIFACTS:-${REPO_ROOT}/_artifacts}"
 export DOCKER_IMAGE_TAR="/tmp/images/image.tar"
 export GC_KIND="false"

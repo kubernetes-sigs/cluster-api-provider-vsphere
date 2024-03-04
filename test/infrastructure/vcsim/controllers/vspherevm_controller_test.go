@@ -146,12 +146,30 @@ func Test_Reconcile_VSphereVM(t *testing.T) {
 		err := inmemoryMgr.Start(ctx)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		inmemoryMgr.AddResourceGroup(klog.KObj(cluster).String())
-		inmemoryClient := inmemoryMgr.GetResourceGroup(klog.KObj(cluster).String()).GetClient()
+		resourceGroupName := klog.KObj(cluster).String()
+		inmemoryMgr.AddResourceGroup(resourceGroupName)
+		inmemoryClient := inmemoryMgr.GetResourceGroup(resourceGroupName).GetClient()
+
+		host := "127.0.0.1"
+		wcmux, err := inmemoryserver.NewWorkloadClustersMux(inmemoryMgr, host, inmemoryserver.CustomPorts{
+			// NOTE: make sure to use ports different than other tests, so we can run tests in parallel
+			MinPort:   inmemoryserver.DefaultMinPort + 400,
+			MaxPort:   inmemoryserver.DefaultMinPort + 499,
+			DebugPort: inmemoryserver.DefaultDebugPort + 4,
+		})
+		g.Expect(err).ToNot(HaveOccurred())
+
+		listenerName := "foo/bar"
+		_, err = wcmux.InitWorkloadClusterListener(listenerName)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		err = wcmux.RegisterResourceGroup(listenerName, resourceGroupName)
+		g.Expect(err).ToNot(HaveOccurred())
 
 		r := VSphereVMReconciler{
 			Client:          crclient,
 			InMemoryManager: inmemoryMgr,
+			APIServerMux:    wcmux,
 		}
 
 		// Reconcile
@@ -263,8 +281,9 @@ func Test_Reconcile_VSphereVM(t *testing.T) {
 		err := inmemoryMgr.Start(ctx)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		inmemoryMgr.AddResourceGroup(klog.KObj(cluster).String())
-		inmemoryClient := inmemoryMgr.GetResourceGroup(klog.KObj(cluster).String()).GetClient()
+		resourceGroupName := klog.KObj(cluster).String()
+		inmemoryMgr.AddResourceGroup(resourceGroupName)
+		inmemoryClient := inmemoryMgr.GetResourceGroup(resourceGroupName).GetClient()
 
 		// Start an http server
 		apiServerMux, err := inmemoryserver.NewWorkloadClustersMux(inmemoryMgr, "127.0.0.1", inmemoryserver.CustomPorts{
@@ -273,6 +292,13 @@ func Test_Reconcile_VSphereVM(t *testing.T) {
 			MaxPort:   inmemoryserver.DefaultMinPort + 399,
 			DebugPort: inmemoryserver.DefaultDebugPort + 3,
 		})
+		g.Expect(err).ToNot(HaveOccurred())
+
+		listenerName := "foo/bar"
+		_, err = apiServerMux.InitWorkloadClusterListener(listenerName)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		err = apiServerMux.RegisterResourceGroup(listenerName, resourceGroupName)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		r := VSphereVMReconciler{

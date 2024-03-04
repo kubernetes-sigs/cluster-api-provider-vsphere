@@ -32,7 +32,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -43,10 +42,6 @@ import (
 	. "sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
-
-var ipamScheme *runtime.Scheme
-
-const controlPlaneEndpointVariable = "CONTROL_PLANE_ENDPOINT_IP"
 
 func init() {
 	ipamScheme = runtime.NewScheme()
@@ -91,20 +86,19 @@ func (h *inCluster) ClaimIPs(ctx context.Context, opts ...ClaimOption) (AddressC
 	}
 
 	variables := map[string]string{}
-
 	ipAddressClaims := AddressClaims{}
 
 	// Claim an IP per variable.
-	for _, variable := range append(options.additionalIPVariableNames, controlPlaneEndpointVariable) {
+	for _, variable := range append(options.additionalIPVariableNames, ControlPlaneEndpointIPVariable) {
 		ip, ipAddressClaim, err := h.claimIPAddress(ctx)
 		Expect(err).ToNot(HaveOccurred())
-		ipAddressClaims = append(ipAddressClaims, types.NamespacedName{
+		ipAddressClaims = append(ipAddressClaims, AddressClaim{
 			Namespace: ipAddressClaim.Namespace,
 			Name:      ipAddressClaim.Name,
 		})
 		Byf("Setting clusterctl variable %s to %s", variable, ip.Spec.Address)
 		variables[variable] = ip.Spec.Address
-		if variable == controlPlaneEndpointVariable && options.gatewayIPVariableName != "" {
+		if variable == ControlPlaneEndpointIPVariable && options.gatewayIPVariableName != "" {
 			// Set the gateway variable if requested to the gateway of the control plane IP.
 			// This is required in ipam scenarios, otherwise the VMs will not be able to
 			// connect to the public internet to pull images.
@@ -169,13 +163,18 @@ func GetIPAddressClaimLabels() map[string]string {
 
 // Teardown lists all IPAddressClaims matching the passed labels and deletes the IPAddressClaim
 // if there are no VirtualMachines in vCenter using the IP address.
-func (h *inCluster) Teardown(ctx context.Context, folderName string, vSphereClient *govmomi.Client) error {
+func (h *inCluster) Teardown(ctx context.Context, opts ...TearDownOption) error {
+	options := &teardownOptions{}
+	for _, o := range opts {
+		o(options)
+	}
+
 	if h.skipCleanup {
 		By("Skipping cleanup of IPAddressClaims because skipCleanup is set to true")
 		return nil
 	}
 
-	virtualMachineIPAddresses, err := getVirtualMachineIPAddresses(ctx, folderName, vSphereClient)
+	virtualMachineIPAddresses, err := getVirtualMachineIPAddresses(ctx, options.folderName, options.vSphereClient)
 	if err != nil {
 		return err
 	}
@@ -188,7 +187,7 @@ func (h *inCluster) Teardown(ctx context.Context, folderName string, vSphereClie
 		return err
 	}
 
-	ipAddressClaimsToDelete := []types.NamespacedName{}
+	ipAddressClaimsToDelete := AddressClaims{}
 	// Collect errors and skip these ip address claims, but report at the end.
 	var errList []error
 
@@ -209,7 +208,7 @@ func (h *inCluster) Teardown(ctx context.Context, folderName string, vSphereClie
 			continue
 		}
 
-		ipAddressClaimsToDelete = append(ipAddressClaimsToDelete, types.NamespacedName{
+		ipAddressClaimsToDelete = append(ipAddressClaimsToDelete, AddressClaim{
 			Namespace: ipAddressClaim.Namespace,
 			Name:      ipAddressClaim.Name,
 		})

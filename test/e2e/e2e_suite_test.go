@@ -26,6 +26,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -42,6 +43,8 @@ import (
 	vsphereframework "sigs.k8s.io/cluster-api-provider-vsphere/test/framework"
 	vsphereip "sigs.k8s.io/cluster-api-provider-vsphere/test/framework/ip"
 	vspherelog "sigs.k8s.io/cluster-api-provider-vsphere/test/framework/log"
+	vspherevcsim "sigs.k8s.io/cluster-api-provider-vsphere/test/framework/vcsim"
+	vcsimv1 "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/api/v1alpha1"
 )
 
 const (
@@ -57,10 +60,7 @@ const (
 )
 
 const (
-	// VMCTestTarget identify tests targeting VMC infrastructure used for CAPV CI.
-	VMCTestTarget string = "vmc"
-
-	// VCenterTestTarget identify tests targeting a user provided vCenter instance.
+	// VCenterTestTarget identify tests targeting a real vCenter instance, including also the VMC infrastructure used for CAPV CI.
 	VCenterTestTarget string = "vcenter"
 
 	// VCSimTestTarget identify tests targeting a vcsim instance (instead of a real vCenter).
@@ -121,8 +121,11 @@ var (
 	// IPAM provider to claim IPs for the control plane IPs of created clusters.
 	e2eIPAMKubeconfig string
 
-	// ipAddressManager is used to claim and cleanup IP addresses used for kubernetes control plane API Servers.
-	ipAddressManager vsphereip.AddressManager
+	// inClusterAddressManager is used to claim and cleanup IP addresses used for kubernetes control plane API Servers.
+	inClusterAddressManager vsphereip.AddressManager
+
+	// vcsimAddressManager is used to claim and cleanup IP addresses used for kubernetes control plane API Servers.
+	vcsimAddressManager vsphereip.AddressManager
 )
 
 type configOverrides struct {
@@ -139,7 +142,6 @@ func init() {
 	flag.BoolVar(&useExistingCluster, "e2e.use-existing-cluster", false, "if true, the test uses the current cluster instead of creating a new one (default discovery rules apply)")
 	flag.StringVar(&e2eIPAMKubeconfig, "e2e.ipam-kubeconfig", "", "path to the kubeconfig for the IPAM cluster")
 	flag.StringVar(&testMode, "e2e.capv-mode", GovmomiTestMode, "defines how CAPV should behave during this test, one of govmomi|supervisor")
-	flag.StringVar(&testTarget, "e2e.target-type", VMCTestTarget, "defines which type of infrastructure this test targets, one of vmc|vcenter|vcsim")
 }
 
 func TestE2E(t *testing.T) {
@@ -163,7 +165,37 @@ func TestE2E(t *testing.T) {
 		defer w.Close()
 	}
 
-	RunSpecs(t, "capv-e2e")
+	// fetch the current config
+	suiteConfig, reporterConfig := GinkgoConfiguration()
+
+	// vcsim testd currently have a couple of limitations:
+	// - they can't be run together with other tests, because the vcsim controller will interfere with objects
+	//   created by other tests.
+	// - in order to trick clusterctl to install the vcsim controller, it is defined as another infra provider,
+	//   and thus the tests needs to be explicit about using vsphere as target infra provider, but not all the
+	//   tests allows this option.
+	//
+	// In order to deal with this nicely, we detect if we are running a vcsim test or not, and edit the test suite and
+	// how do we setup the test accordingly.
+	testTarget = VCenterTestTarget
+	if strings.Contains(strings.Join(suiteConfig.FocusStrings, " "), "\\[vcsim\\]") {
+		testTarget = VCSimTestTarget
+	}
+
+	// Automatically skip vcsim tests if not explicitly required.
+	// NOTE: This prevents to edit all the job configurations for non vcsim tests adding skip [vcsim]
+	if testTarget != VCSimTestTarget {
+		suiteConfig.SkipStrings = append(suiteConfig.SkipStrings, "\\[vcsim\\]")
+	}
+
+	report := PreviewSpecs("capv-e2e", suiteConfig, reporterConfig)
+	for _, s := range report.SpecReports {
+		if s.State == types.SpecStatePassed {
+			fmt.Println(s.LeafNodeText, s.ContainerHierarchyTexts)
+		}
+	}
+
+	RunSpecs(t, "capv-e2e", suiteConfig, reporterConfig)
 }
 
 // Using a SynchronizedBeforeSuite for controlling how to create resources shared across ParallelNodes (~ginkgo threads).
@@ -181,6 +213,143 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	var err error
 	e2eConfig, err = vsphereframework.LoadE2EConfig(ctx, configPath)
 	Expect(err).NotTo(HaveOccurred())
+
+	// Add config overrides + drop vcsim relates provider/image if not necessary.
+	amendE2EConfig()
+
+	Byf("Creating a clusterctl local repository into %q", artifactFolder)
+	clusterctlConfigPath, err = vsphereframework.CreateClusterctlLocalRepository(ctx, e2eConfig, filepath.Join(artifactFolder, "repository"), true)
+	Expect(err).NotTo(HaveOccurred())
+
+	By("Setting up the bootstrap cluster")
+	bootstrapClusterProvider, bootstrapClusterProxy, err = vsphereframework.SetupBootstrapCluster(ctx, e2eConfig, scheme, useExistingCluster)
+	Expect(err).NotTo(HaveOccurred())
+
+	By("Initializing the bootstrap cluster")
+	vsphereframework.InitBootstrapCluster(ctx, bootstrapClusterProxy, e2eConfig, clusterctlConfigPath, artifactFolder)
+
+	if testTarget == VCSimTestTarget {
+		Byf("Creating a vcsim server")
+		err := vspherevcsim.Create(ctx, bootstrapClusterProxy.GetClient())
+		Expect(err).ToNot(HaveOccurred(), "Failed to create VCenterSimulator")
+	}
+
+	By("Getting AddressClaim labels")
+	ipClaimLabels := vsphereip.GetIPAddressClaimLabels()
+	var ipClaimLabelsRaw []string
+	for k, v := range ipClaimLabels {
+		ipClaimLabelsRaw = append(ipClaimLabelsRaw, fmt.Sprintf("%s=%s", k, v))
+	}
+
+	return []byte(
+		strings.Join([]string{
+			artifactFolder,
+			configPath,
+			clusterctlConfigPath,
+			bootstrapClusterProxy.GetKubeconfigPath(),
+			strings.Join(ipClaimLabelsRaw, ";"),
+			testTarget,
+		}, ","),
+	)
+}, func(data []byte) {
+	// Before each ParallelNode.
+
+	parts := strings.Split(string(data), ",")
+	Expect(parts).To(HaveLen(6))
+
+	artifactFolder = parts[0]
+	configPath = parts[1]
+	clusterctlConfigPath = parts[2]
+	kubeconfigPath := parts[3]
+	ipClaimLabelsRaw := parts[4]
+	testTarget = parts[5]
+
+	namespaces = map[*corev1.Namespace]context.CancelFunc{}
+
+	if testTarget == VCenterTestTarget {
+		// Some of the tests targeting VCenter relies on an additional VSphere session to check test progress;
+		// such session is create once, and shared across many tests.
+		// Some changes will be requires to get this working with vcsim e.g. about how to get the credentials/vCenter info,
+		// but we are deferring this to future work (if an and when necessary).
+		By("Initializing the vSphere session to ensure credentials are working", initVSphereSession)
+	}
+
+	var err error
+	e2eConfig, err = vsphereframework.LoadE2EConfig(ctx, configPath)
+	Expect(err).NotTo(HaveOccurred())
+
+	// Add config overrides + drop vcsim relates provider/image if not necessary.
+	amendE2EConfig()
+
+	bootstrapClusterProxy = framework.NewClusterProxy("bootstrap", kubeconfigPath, initScheme(), framework.WithMachineLogCollector(vspherelog.MachineLogCollector{}))
+
+	ipClaimLabels := map[string]string{}
+	for _, s := range strings.Split(ipClaimLabelsRaw, ";") {
+		splittedLabel := strings.Split(s, "=")
+		Expect(splittedLabel).To(HaveLen(2))
+
+		ipClaimLabels[splittedLabel[0]] = splittedLabel[1]
+	}
+
+	// Setup the in cluster address manager
+	switch testTarget {
+	case VCenterTestTarget:
+		// Create the in cluster address manager
+		inClusterAddressManager, err = vsphereip.InClusterAddressManager(e2eIPAMKubeconfig, ipClaimLabels, skipCleanup)
+		Expect(err).ToNot(HaveOccurred())
+
+	case VCSimTestTarget:
+		// Create the in vcsim address manager
+		vcsimAddressManager, err = vsphereip.VCSIMAddressManager(bootstrapClusterProxy.GetClient(), ipClaimLabels, skipCleanup)
+		Expect(err).ToNot(HaveOccurred())
+	}
+})
+
+// Using a SynchronizedAfterSuite for controlling how to delete resources shared across ParallelNodes (~ginkgo threads).
+// The bootstrap cluster is shared across all the tests, so it should be deleted only after all ParallelNodes completes.
+// The local clusterctl repository is preserved like everything else created into the artifact folder.
+var _ = SynchronizedAfterSuite(func() {
+	// After each ParallelNode.
+}, func() {
+	// After all ParallelNodes.
+	if !skipCleanup {
+		By("Cleaning up orphaned IPAddressClaims")
+		switch testTarget {
+		case VCenterTestTarget:
+			// Cleanup the in cluster address manager
+			vSphereFolderName := e2eConfig.GetVariable("VSPHERE_FOLDER")
+			Expect(inClusterAddressManager.Teardown(ctx, vsphereip.MachineFolder(vSphereFolderName), vsphereip.VSphereClient(vsphereClient))).To(Succeed())
+
+		case VCSimTestTarget:
+			// Cleanup the vcsim address manager
+			Expect(vcsimAddressManager.Teardown(ctx)).To(Succeed())
+
+			// cleanup the vcsim server
+			Expect(vspherevcsim.Delete(ctx, bootstrapClusterProxy.GetClient(), skipCleanup)).To(Succeed())
+		}
+	}
+
+	if testTarget == VCenterTestTarget {
+		By("Cleaning up the vSphere session", terminateVSphereSession)
+	}
+
+	if !skipCleanup {
+		By("Tearing down the management cluster")
+		vsphereframework.TearDown(ctx, bootstrapClusterProvider, bootstrapClusterProxy)
+	}
+})
+
+func initScheme() *runtime.Scheme {
+	sc := runtime.NewScheme()
+	framework.TryAddDefaultSchemes(sc)
+	_ = infrav1.AddToScheme(sc)
+	_ = vcsimv1.AddToScheme(sc)
+	return sc
+}
+
+func amendE2EConfig() {
+	// If defined, load configOverrides.
+	// This can be used e.g. when working with a custom vCenter server for local testing (instead of the one in VMC used in CI).
 	if configOverridesPath != "" {
 		Expect(configOverridesPath).To(BeAnExistingFile(), "Invalid test suite argument. e2e.config-overrides should be an existing file.")
 
@@ -200,88 +369,23 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		}
 	}
 
-	Byf("Creating a clusterctl local repository into %q", artifactFolder)
-	clusterctlConfigPath, err = vsphereframework.CreateClusterctlLocalRepository(ctx, e2eConfig, filepath.Join(artifactFolder, "repository"), true)
-	Expect(err).NotTo(HaveOccurred())
+	if testTarget == VCenterTestTarget {
+		// In case we are not testing vcsim, then drop the vcsim controller from providers and images.
+		// This ensures that all the tests not yet allowing to explicitly set vsphere as target infra provider keep working.
+		for i := range e2eConfig.Providers {
+			if e2eConfig.Providers[i].Name == "vcsim" {
+				e2eConfig.Providers = append(e2eConfig.Providers[:i], e2eConfig.Providers[i+1:]...)
+				break
+			}
+		}
 
-	By("Setting up the bootstrap cluster")
-	bootstrapClusterProvider, bootstrapClusterProxy, err = vsphereframework.SetupBootstrapCluster(ctx, e2eConfig, scheme, useExistingCluster)
-	Expect(err).NotTo(HaveOccurred())
-
-	By("Initializing the bootstrap cluster")
-	vsphereframework.InitBootstrapCluster(ctx, bootstrapClusterProxy, e2eConfig, clusterctlConfigPath, artifactFolder)
-
-	ipamLabels := vsphereip.GetIPAddressClaimLabels()
-	var ipamLabelsRaw []string
-	for k, v := range ipamLabels {
-		ipamLabelsRaw = append(ipamLabelsRaw, fmt.Sprintf("%s=%s", k, v))
+		for i := range e2eConfig.Images {
+			if strings.Contains(e2eConfig.Images[i].Name, "cluster-api-vcsim-controller") {
+				e2eConfig.Images = append(e2eConfig.Images[:i], e2eConfig.Images[i+1:]...)
+				break
+			}
+		}
 	}
-
-	return []byte(
-		strings.Join([]string{
-			artifactFolder,
-			configPath,
-			clusterctlConfigPath,
-			bootstrapClusterProxy.GetKubeconfigPath(),
-			strings.Join(ipamLabelsRaw, ";"),
-		}, ","),
-	)
-}, func(data []byte) {
-	// Before each ParallelNode.
-	parts := strings.Split(string(data), ",")
-	Expect(parts).To(HaveLen(5))
-
-	artifactFolder = parts[0]
-	configPath = parts[1]
-	clusterctlConfigPath = parts[2]
-	kubeconfigPath := parts[3]
-	ipamLabelsRaw := parts[4]
-
-	namespaces = map[*corev1.Namespace]context.CancelFunc{}
-
-	By("Initializing the vSphere session to ensure credentials are working", initVSphereSession)
-
-	var err error
-	e2eConfig, err = vsphereframework.LoadE2EConfig(ctx, configPath)
-	Expect(err).NotTo(HaveOccurred())
-	bootstrapClusterProxy = framework.NewClusterProxy("bootstrap", kubeconfigPath, initScheme(), framework.WithMachineLogCollector(vspherelog.MachineLogCollector{}))
-
-	ipamLabels := map[string]string{}
-	for _, s := range strings.Split(ipamLabelsRaw, ";") {
-		splittedLabel := strings.Split(s, "=")
-		Expect(splittedLabel).To(HaveLen(2))
-
-		ipamLabels[splittedLabel[0]] = splittedLabel[1]
-	}
-	ipAddressManager, err = vsphereip.InClusterAddressManager(e2eIPAMKubeconfig, ipamLabels, skipCleanup)
-	Expect(err).ToNot(HaveOccurred())
-})
-
-// Using a SynchronizedAfterSuite for controlling how to delete resources shared across ParallelNodes (~ginkgo threads).
-// The bootstrap cluster is shared across all the tests, so it should be deleted only after all ParallelNodes completes.
-// The local clusterctl repository is preserved like everything else created into the artifact folder.
-var _ = SynchronizedAfterSuite(func() {
-	// After each ParallelNode.
-}, func() {
-	// After all ParallelNodes.
-	if !skipCleanup {
-		By("Cleaning up orphaned IPAddressClaims")
-		vSphereFolderName := e2eConfig.GetVariable("VSPHERE_FOLDER")
-		Expect(ipAddressManager.Teardown(ctx, vSphereFolderName, vsphereClient)).To(Succeed())
-	}
-
-	By("Cleaning up the vSphere session", terminateVSphereSession)
-	if !skipCleanup {
-		By("Tearing down the management cluster")
-		vsphereframework.TearDown(ctx, bootstrapClusterProvider, bootstrapClusterProxy)
-	}
-})
-
-func initScheme() *runtime.Scheme {
-	sc := runtime.NewScheme()
-	framework.TryAddDefaultSchemes(sc)
-	_ = infrav1.AddToScheme(sc)
-	return sc
 }
 
 func setupSpecNamespace(specName string) *corev1.Namespace {

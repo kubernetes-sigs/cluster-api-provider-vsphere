@@ -20,9 +20,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
-	"fmt"
 	"strconv"
-	"strings"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -37,7 +35,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
-	vcsimhelpers "sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vcsim"
 	vcsimv1 "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/api/v1alpha1"
 )
 
@@ -117,12 +114,19 @@ func (r *EnvVarReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ c
 	}
 
 	// Handle non-deleted EnvSubst
-	return ctrl.Result{}, r.reconcileNormal(ctx, envVar, vCenterSimulator, controlPlaneEndpoint)
+	return r.reconcileNormal(ctx, envVar, vCenterSimulator, controlPlaneEndpoint)
 }
 
-func (r *EnvVarReconciler) reconcileNormal(ctx context.Context, envVar *vcsimv1.EnvVar, vCenterSimulator *vcsimv1.VCenterSimulator, controlPlaneEndpoint *vcsimv1.ControlPlaneEndpoint) error {
+func (r *EnvVarReconciler) reconcileNormal(ctx context.Context, envVar *vcsimv1.EnvVar, vCenterSimulator *vcsimv1.VCenterSimulator, controlPlaneEndpoint *vcsimv1.ControlPlaneEndpoint) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Reconciling VCSim EnvVar")
+
+	if controlPlaneEndpoint.Status.Host == "" {
+		return ctrl.Result{Requeue: true}, nil
+	}
+	if vCenterSimulator.Status.Host == "" {
+		return ctrl.Result{Requeue: true}, nil
+	}
 
 	r.lock.Lock()
 	defer r.lock.Unlock()
@@ -138,12 +142,12 @@ func (r *EnvVarReconciler) reconcileNormal(ctx context.Context, envVar *vcsimv1.
 
 		privateKey, err := generatePrivateKey(bitSize)
 		if err != nil {
-			return errors.Wrapf(err, "failed to generate private key")
+			return ctrl.Result{}, errors.Wrapf(err, "failed to generate private key")
 		}
 
 		publicKeyBytes, err := generatePublicKey(&privateKey.PublicKey)
 		if err != nil {
-			return errors.Wrapf(err, "failed to generate public key")
+			return ctrl.Result{}, errors.Wrapf(err, "failed to generate public key")
 		}
 
 		sshKey = string(publicKeyBytes)
@@ -151,12 +155,8 @@ func (r *EnvVarReconciler) reconcileNormal(ctx context.Context, envVar *vcsimv1.
 		log.Info("Created ssh authorized key")
 	}
 
-	// Common variables (used both in supervisor and govmomi mode)
+	// Variables required only when the vcsim controller is used in combination with Tilt (E2E tests provide this value in other ways)
 	envVar.Status.Variables = map[string]string{
-		// cluster template variables about the vcsim instance.
-		"VSPHERE_PASSWORD": vCenterSimulator.Status.Password,
-		"VSPHERE_USERNAME": vCenterSimulator.Status.Username,
-
 		// Variables for machines ssh key
 		"VSPHERE_SSH_AUTHORIZED_KEY": sshKey,
 
@@ -170,41 +170,37 @@ func (r *EnvVarReconciler) reconcileNormal(ctx context.Context, envVar *vcsimv1.
 		// variables for the fake APIServer endpoint
 		"CONTROL_PLANE_ENDPOINT_IP":   controlPlaneEndpoint.Status.Host,
 		"CONTROL_PLANE_ENDPOINT_PORT": strconv.Itoa(int(controlPlaneEndpoint.Status.Port)),
-
-		// variables to set up govc for working with the vcsim instance.
-		"GOVC_URL":      fmt.Sprintf("https://%s:%s@%s/sdk", vCenterSimulator.Status.Username, vCenterSimulator.Status.Password, strings.Replace(vCenterSimulator.Status.Host, r.PodIP, "127.0.0.1", 1)), // NOTE: reverting back to local host because the assumption is that the vcsim pod will be port-forwarded on local host
-		"GOVC_INSECURE": "true",
 	}
 
 	// Variables below are generated using the same utilities used both also for E2E tests setup.
 	if r.SupervisorMode {
-		config := dependenciesForVCenterSimulator(vCenterSimulator)
+		// variables for supervisor mode derived from the vCenterSimulator
+		for k, v := range vCenterSimulator.SupervisorVariables() {
+			envVar.Status.Variables[k] = v
+		}
 
-		// Variables used only in supervisor mode
-		envVar.Status.Variables["VSPHERE_POWER_OFF_MODE"] = ptr.Deref(envVar.Spec.Cluster.PowerOffMode, "trySoft")
+		// Variables for supervisor mode derived from how do we setup dependency for vm-operator
+		for k, v := range dependenciesForVCenterSimulator(vCenterSimulator).Variables() {
+			envVar.Status.Variables[k] = v
+		}
 
-		envVar.Status.Variables["VSPHERE_STORAGE_POLICY"] = config.VCenterCluster.StoragePolicy
-		envVar.Status.Variables["VSPHERE_IMAGE_NAME"] = config.VCenterCluster.ContentLibrary.Item.Name
-		envVar.Status.Variables["VSPHERE_STORAGE_CLASS"] = config.UserNamespace.StorageClass
-		envVar.Status.Variables["VSPHERE_MACHINE_CLASS_NAME"] = config.UserNamespace.VirtualMachineClass
-
-		return nil
+		// variables for supervisor mode derived from envVar.Spec.Cluster
+		for k, v := range envVar.Spec.Cluster.SupervisorVariables() {
+			envVar.Status.Variables[k] = v
+		}
+		return ctrl.Result{}, nil
 	}
 
-	// Variables used only in govmomi mode
+	// variables for govmomi mode derived from the vCenterSimulator
+	for k, v := range vCenterSimulator.GovmomiVariables() {
+		envVar.Status.Variables[k] = v
+	}
 
-	// cluster template variables about the vcsim instance.
-	envVar.Status.Variables["VSPHERE_SERVER"] = fmt.Sprintf("https://%s", vCenterSimulator.Status.Host)
-	envVar.Status.Variables["VSPHERE_TLS_THUMBPRINT"] = vCenterSimulator.Status.Thumbprint
-	envVar.Status.Variables["VSPHERE_DATACENTER"] = vcsimhelpers.DatacenterName(int(ptr.Deref(envVar.Spec.Cluster.Datacenter, 0)))
-	envVar.Status.Variables["VSPHERE_DATASTORE"] = vcsimhelpers.DatastoreName(int(ptr.Deref(envVar.Spec.Cluster.Datastore, 0)))
-	envVar.Status.Variables["VSPHERE_FOLDER"] = fmt.Sprintf("/DC%d/vm", ptr.Deref(envVar.Spec.Cluster.Datacenter, 0))
-	envVar.Status.Variables["VSPHERE_NETWORK"] = fmt.Sprintf("/DC%d/network/VM Network", ptr.Deref(envVar.Spec.Cluster.Datacenter, 0))
-	envVar.Status.Variables["VSPHERE_RESOURCE_POOL"] = fmt.Sprintf("/DC%d/host/DC%[1]d_C%d/Resources", ptr.Deref(envVar.Spec.Cluster.Datacenter, 0), ptr.Deref(envVar.Spec.Cluster.Cluster, 0))
-	envVar.Status.Variables["VSPHERE_STORAGE_POLICY"] = vcsimhelpers.DefaultStoragePolicyName
-	envVar.Status.Variables["VSPHERE_TEMPLATE"] = fmt.Sprintf("/DC%d/vm/%s", ptr.Deref(envVar.Spec.Cluster.Datacenter, 0), vcsimhelpers.DefaultVMTemplateName)
-
-	return nil
+	// variables for govmomi mode derived from envVar.Spec.Cluster
+	for k, v := range envVar.Spec.Cluster.GovmomiVariables() {
+		envVar.Status.Variables[k] = v
+	}
+	return ctrl.Result{}, nil
 }
 
 func (r *EnvVarReconciler) reconcileDelete(_ context.Context, _ *vcsimv1.EnvVar, _ *vcsimv1.VCenterSimulator, _ *vcsimv1.ControlPlaneEndpoint) (ctrl.Result, error) {

@@ -17,7 +17,12 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"fmt"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
+
+	vcsimhelpers "sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vcsim"
 )
 
 // EnvVarSpec defines the desired state of the EnvVar.
@@ -97,4 +102,40 @@ type EnvVarList struct {
 
 func init() {
 	objectTypes = append(objectTypes, &EnvVar{}, &EnvVarList{})
+}
+
+func (c *ClusterEnvVarSpec) commonVariables() map[string]string {
+	return map[string]string{
+		"VSPHERE_POWER_OFF_MODE": ptr.Deref(c.PowerOffMode, "trySoft"),
+	}
+}
+
+// SupervisorVariables returns name/value pairs for a ClusterEnvVarSpec to be used for clusterctl templates when testing supervisor mode.
+func (c *ClusterEnvVarSpec) SupervisorVariables() map[string]string {
+	return c.commonVariables()
+}
+
+// GovmomiVariables returns name/value pairs for a ClusterEnvVarSpec to be used for clusterctl templates when testing govmomi mode.
+func (c *ClusterEnvVarSpec) GovmomiVariables() map[string]string {
+	vars := c.commonVariables()
+
+	datacenter := int(ptr.Deref(c.Datacenter, 0))
+	datastore := int(ptr.Deref(c.Datastore, 0))
+	cluster := int(ptr.Deref(c.Cluster, 0))
+
+	// Pick the template for the given Kubernetes version if any, otherwise the template for the latest
+	// version defined in the model.
+	template := vcsimhelpers.DefaultVMTemplates[len(vcsimhelpers.DefaultVMTemplates)-1]
+	if c.KubernetesVersion != nil {
+		template = fmt.Sprintf("ubuntu-2204-kube-%s", *c.KubernetesVersion)
+	}
+
+	// NOTE: omitting cluster Name intentionally because E2E tests provide this value in other ways
+	vars["VSPHERE_DATACENTER"] = vcsimhelpers.DatacenterName(datacenter)
+	vars["VSPHERE_DATASTORE"] = vcsimhelpers.DatastoreName(datastore)
+	vars["VSPHERE_FOLDER"] = vcsimhelpers.VMFolderName(datacenter)
+	vars["VSPHERE_NETWORK"] = vcsimhelpers.NetworkPath(datacenter, vcsimhelpers.DefaultNetworkName)
+	vars["VSPHERE_RESOURCE_POOL"] = vcsimhelpers.ResourcePoolPath(datacenter, cluster)
+	vars["VSPHERE_TEMPLATE"] = vcsimhelpers.VMPath(datacenter, template)
+	return vars
 }

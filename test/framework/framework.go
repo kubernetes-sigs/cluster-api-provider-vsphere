@@ -31,6 +31,8 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 )
 
+type ProviderConfig clusterctl.ProviderConfig
+
 // Util functions to interact with the clusterctl e2e framework.
 
 func LoadE2EConfig(ctx context.Context, configPath string) (*clusterctl.E2EConfig, error) {

@@ -20,7 +20,6 @@ import (
 	"context"
 
 	. "github.com/onsi/ginkgo/v2"
-	"github.com/vmware/govmomi"
 )
 
 var _ AddressManager = &noop{}
@@ -36,7 +35,7 @@ func (h *noop) Cleanup(_ context.Context, _ AddressClaims) error {
 	return nil
 }
 
-func (*noop) Teardown(_ context.Context, _ string, _ *govmomi.Client) error {
+func (*noop) Teardown(_ context.Context, _ ...TearDownOption) error {
 	By("Skipping teardown of IPAddressClaims because of using ip.noop")
 	return nil
 }

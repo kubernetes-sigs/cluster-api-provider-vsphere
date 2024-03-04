@@ -117,6 +117,15 @@ type Dependencies struct {
 	UserNamespace UserNamespaceConfig
 }
 
+func (d *Dependencies) Variables() map[string]string {
+	return map[string]string{
+		"VSPHERE_STORAGE_POLICY":     d.VCenterCluster.StoragePolicy,
+		"VSPHERE_IMAGE_NAME":         d.VCenterCluster.ContentLibrary.Item.Name,
+		"VSPHERE_STORAGE_CLASS":      d.UserNamespace.StorageClass,
+		"VSPHERE_MACHINE_CLASS_NAME": d.UserNamespace.VirtualMachineClass,
+	}
+}
+
 // ReconcileDependencies reconciles dependencies for the vm-operator.
 // NOTE: This func is idempotent, it creates objects if missing otherwise it uses existing ones
 // (this will allow e.g. to update images once and re-use for many test run).

@@ -225,7 +225,6 @@ func (r *vmBootstrapReconciler) reconcileBoostrapNode(ctx context.Context, clust
 	}
 
 	// Compute the resource group unique name.
-	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
 	resourceGroup := klog.KObj(cluster).String()
 	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
@@ -299,7 +298,6 @@ func (r *vmBootstrapReconciler) reconcileBoostrapETCD(ctx context.Context, clust
 	}
 
 	// Compute the resource group unique name.
-	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
 	resourceGroup := klog.KObj(cluster).String()
 	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
@@ -376,7 +374,11 @@ func (r *vmBootstrapReconciler) reconcileBoostrapETCD(ctx context.Context, clust
 	}
 
 	// If there is not yet an etcd member listener for this machine, add it to the server.
-	if !r.APIServerMux.HasEtcdMember(resourceGroup, etcdMember) {
+	listenerName, err := r.APIServerMux.WorkloadClusterByResourceGroup(resourceGroup)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if !r.APIServerMux.HasEtcdMember(listenerName, etcdMember) {
 		// Getting the etcd CA
 		s, err := secret.Get(ctx, r.Client, client.ObjectKeyFromObject(cluster), secret.EtcdCA)
 		if err != nil {
@@ -402,7 +404,7 @@ func (r *vmBootstrapReconciler) reconcileBoostrapETCD(ctx context.Context, clust
 			return ctrl.Result{}, errors.Wrapf(err, "invalid etcd CA: invalid %s", secret.TLSKeyDataName)
 		}
 
-		if err := r.APIServerMux.AddEtcdMember(resourceGroup, etcdMember, cert, key.(*rsa.PrivateKey)); err != nil {
+		if err := r.APIServerMux.AddEtcdMember(listenerName, etcdMember, cert, key.(*rsa.PrivateKey)); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to start etcd member")
 		}
 	}
@@ -440,7 +442,6 @@ func (r *vmBootstrapReconciler) reconcileBoostrapAPIServer(ctx context.Context, 
 	}
 
 	// Compute the resource group unique name.
-	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
 	resourceGroup := klog.KObj(cluster).String()
 	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
@@ -480,7 +481,11 @@ func (r *vmBootstrapReconciler) reconcileBoostrapAPIServer(ctx context.Context, 
 	}
 
 	// If there is not yet an API server listener for this machine.
-	if !r.APIServerMux.HasAPIServer(resourceGroup, apiServer) {
+	listenerName, err := r.APIServerMux.WorkloadClusterByResourceGroup(resourceGroup)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if !r.APIServerMux.HasAPIServer(listenerName, apiServer) {
 		// Getting the Kubernetes CA
 		s, err := secret.Get(ctx, r.Client, client.ObjectKeyFromObject(cluster), secret.ClusterCA)
 		if err != nil {
@@ -508,7 +513,7 @@ func (r *vmBootstrapReconciler) reconcileBoostrapAPIServer(ctx context.Context, 
 
 		// Adding the APIServer.
 		// NOTE: When the first APIServer is added, the workload cluster listener is started.
-		if err := r.APIServerMux.AddAPIServer(resourceGroup, apiServer, cert, key.(*rsa.PrivateKey)); err != nil {
+		if err := r.APIServerMux.AddAPIServer(listenerName, apiServer, cert, key.(*rsa.PrivateKey)); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to start API server")
 		}
 	}
@@ -533,7 +538,6 @@ func (r *vmBootstrapReconciler) reconcileBoostrapScheduler(ctx context.Context, 
 	}
 
 	// Compute the resource group unique name.
-	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
 	resourceGroup := klog.KObj(cluster).String()
 	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
@@ -581,7 +585,6 @@ func (r *vmBootstrapReconciler) reconcileBoostrapControllerManager(ctx context.C
 	}
 
 	// Compute the resource group unique name.
-	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
 	resourceGroup := klog.KObj(cluster).String()
 	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
@@ -621,7 +624,6 @@ func (r *vmBootstrapReconciler) reconcileBoostrapKubeadmObjects(ctx context.Cont
 	}
 
 	// Compute the resource group unique name.
-	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
 	resourceGroup := klog.KObj(cluster).String()
 	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
@@ -691,7 +693,6 @@ func (r *vmBootstrapReconciler) reconcileBoostrapKubeProxy(ctx context.Context, 
 	// TODO: Add provisioning time for KubeProxy.
 
 	// Compute the resource group unique name.
-	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
 	resourceGroup := klog.KObj(cluster).String()
 	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
@@ -738,7 +739,6 @@ func (r *vmBootstrapReconciler) reconcileBoostrapCoredns(ctx context.Context, cl
 	// TODO: Add provisioning time for CoreDNS.
 
 	// Compute the resource group unique name.
-	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
 	resourceGroup := klog.KObj(cluster).String()
 	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
@@ -824,7 +824,6 @@ func (r *vmBootstrapReconciler) reconcileDelete(ctx context.Context, cluster *cl
 
 func (r *vmBootstrapReconciler) reconcileDeleteNode(ctx context.Context, cluster *clusterv1.Cluster, _ *clusterv1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
 	// Compute the resource group unique name.
-	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
 	resourceGroup := klog.KObj(cluster).String()
 	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
@@ -850,7 +849,6 @@ func (r *vmBootstrapReconciler) reconcileDeleteETCD(ctx context.Context, cluster
 	}
 
 	// Compute the resource group unique name.
-	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
 	resourceGroup := klog.KObj(cluster).String()
 	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
@@ -864,7 +862,12 @@ func (r *vmBootstrapReconciler) reconcileDeleteETCD(ctx context.Context, cluster
 	if err := inmemoryClient.Delete(ctx, etcdPod); err != nil && !apierrors.IsNotFound(err) {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to delete etcd Pod")
 	}
-	if err := r.APIServerMux.DeleteEtcdMember(resourceGroup, etcdMember); err != nil {
+
+	listenerName, err := r.APIServerMux.WorkloadClusterByResourceGroup(resourceGroup)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if err := r.APIServerMux.DeleteEtcdMember(listenerName, etcdMember); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -883,7 +886,6 @@ func (r *vmBootstrapReconciler) reconcileDeleteAPIServer(ctx context.Context, cl
 	}
 
 	// Compute the resource group unique name.
-	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
 	resourceGroup := klog.KObj(cluster).String()
 	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
@@ -897,7 +899,12 @@ func (r *vmBootstrapReconciler) reconcileDeleteAPIServer(ctx context.Context, cl
 	if err := inmemoryClient.Delete(ctx, apiServerPod); err != nil && !apierrors.IsNotFound(err) {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to delete apiServer Pod")
 	}
-	if err := r.APIServerMux.DeleteAPIServer(resourceGroup, apiServer); err != nil {
+
+	listenerName, err := r.APIServerMux.WorkloadClusterByResourceGroup(resourceGroup)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if err := r.APIServerMux.DeleteAPIServer(listenerName, apiServer); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -911,7 +918,6 @@ func (r *vmBootstrapReconciler) reconcileDeleteScheduler(ctx context.Context, cl
 	}
 
 	// Compute the resource group unique name.
-	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
 	resourceGroup := klog.KObj(cluster).String()
 	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
@@ -935,7 +941,6 @@ func (r *vmBootstrapReconciler) reconcileDeleteControllerManager(ctx context.Con
 	}
 
 	// Compute the resource group unique name.
-	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
 	resourceGroup := klog.KObj(cluster).String()
 	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 

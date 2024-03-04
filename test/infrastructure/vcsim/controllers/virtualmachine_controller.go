@@ -47,6 +47,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/framework/vmoperator"
+	vcsimv1 "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/api/v1alpha1"
 )
 
 type VirtualMachineReconciler struct {
@@ -138,8 +139,34 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	ctx = ctrl.LoggerInto(ctx, log)
 
 	// Compute the resource group unique name.
-	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
 	resourceGroup := klog.KObj(cluster).String()
+	r.InMemoryManager.AddResourceGroup(resourceGroup)
+
+	if _, err := r.APIServerMux.WorkloadClusterByResourceGroup(resourceGroup); err != nil {
+		l := &vcsimv1.ControlPlaneEndpointList{}
+		if err := r.Client.List(ctx, l); err != nil {
+			return ctrl.Result{}, err
+		}
+		found := false
+		for _, c := range l.Items {
+			c := c
+			if c.Status.Host != cluster.Spec.ControlPlaneEndpoint.Host || c.Status.Port != cluster.Spec.ControlPlaneEndpoint.Port {
+				continue
+			}
+
+			listenerName := klog.KObj(&c).String()
+			log.Info("Registering ResourceGroup for ControlPlaneEndpoint", "ResourceGroup", resourceGroup, "ControlPlaneEndpoint", listenerName)
+			err := r.APIServerMux.RegisterResourceGroup(listenerName, resourceGroup)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			found = true
+			break
+		}
+		if !found {
+			return ctrl.Result{}, errors.Errorf("unable to find a ControlPlaneEndpoint for host %s, port %d", cluster.Spec.ControlPlaneEndpoint.Host, cluster.Spec.ControlPlaneEndpoint.Port)
+		}
+	}
 
 	// Check if there is a conditionsTracker in the resource group.
 	// The conditionsTracker is an object stored in memory with the scope of storing conditions used for keeping

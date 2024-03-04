@@ -18,6 +18,8 @@ images:
     loadBehavior: tryLoad
   - name: gcr.io/k8s-staging-capi-vsphere/cluster-api-vsphere-controller-{ARCH}:dev
     loadBehavior: mustLoad
+  - name: gcr.io/k8s-staging-capi-vsphere/cluster-api-vcsim-controller-{ARCH}:dev
+    loadBehavior: mustLoad
   - name: quay.io/jetstack/cert-manager-cainjector:v1.12.2
     loadBehavior: tryLoad
   - name: quay.io/jetstack/cert-manager-webhook:v1.12.2
@@ -159,6 +161,17 @@ providers:
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/v1.8/cluster-template-workload.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/v1.8/clusterclass-quick-start.yaml"
           - sourcePath: "../data/shared/v1.8/v1beta1_provider/metadata.yaml"
+
+  - name: vcsim
+    type: InfrastructureProvider
+    versions:
+      - name: v1.10.99
+        # Use manifest from source files
+        value: ../../../../cluster-api-provider-vsphere/test/infrastructure/vcsim/config/default
+        contract: v1beta1
+        files:
+          # Add cluster templates
+          - sourcePath: "../data/shared/main/v1beta1_provider/metadata.yaml"
 
 variables:
   # Ensure all Kubernetes versions used here are covered in patch-vsphere-template.yaml

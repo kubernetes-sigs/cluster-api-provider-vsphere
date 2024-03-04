@@ -92,20 +92,14 @@ func (r *ControlPlaneEndpointReconciler) reconcileNormal(ctx context.Context, co
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Reconciling VCSim ControlPlaneEndpoint")
 
-	// NOTE: The name of the ControlPlaneEndpoint should match the name of the Cluster.
-	resourceGroup := klog.KObj(controlPlaneEndpoint).String()
-
 	// Initialize a listener for the workload cluster.
 	// IMPORTANT: The fact that both the listener and the resourceGroup for a workload cluster have
 	// the same name is used as assumptions in other part of the implementation.
-	listener, err := r.APIServerMux.InitWorkloadClusterListener(resourceGroup)
+	listenerName := klog.KObj(controlPlaneEndpoint).String()
+	listener, err := r.APIServerMux.InitWorkloadClusterListener(listenerName)
 	if err != nil {
 		return errors.Wrapf(err, "failed to init the listener for the control plane endpoint")
 	}
-
-	// Create a resource group for all the resources belonging the workload cluster.
-	// NOTE: We are storing in this resource group all the Kubernetes resources that are expected to exist on the workload cluster (e.g Nodes).
-	r.InMemoryManager.AddResourceGroup(resourceGroup)
 
 	controlPlaneEndpoint.Status.Host = r.PodIP // NOTE: we are replacing the listener ip with the pod ip so it will be accessible from other pods as well
 	controlPlaneEndpoint.Status.Port = int32(listener.Port())
@@ -116,17 +110,17 @@ func (r *ControlPlaneEndpointReconciler) reconcileNormal(ctx context.Context, co
 func (r *ControlPlaneEndpointReconciler) reconcileDelete(ctx context.Context, controlPlaneEndpoint *vcsimv1.ControlPlaneEndpoint) error {
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Reconciling delete VCSim ControlPlaneEndpoint")
-
-	// NOTE: The name of the ControlPlaneEndpoint should match the name of the Cluster.
-	resourceGroup := klog.KObj(controlPlaneEndpoint).String()
-
-	// Delete the listener for the workload cluster;
-	if err := r.APIServerMux.DeleteWorkloadClusterListener(resourceGroup); err != nil {
-		return errors.Wrapf(err, "failed to delete the listener for the control plane endpoint")
-	}
+	listenerName := klog.KObj(controlPlaneEndpoint).String()
 
 	// Delete the resource group hosting all the cloud resources belonging the workload cluster;
-	r.InMemoryManager.DeleteResourceGroup(resourceGroup)
+	if resourceGroup, err := r.APIServerMux.ResourceGroupByWorkloadCluster(listenerName); err == nil {
+		r.InMemoryManager.DeleteResourceGroup(resourceGroup)
+	}
+
+	// Delete the listener for the workload cluster;
+	if err := r.APIServerMux.DeleteWorkloadClusterListener(listenerName); err != nil {
+		return errors.Wrapf(err, "failed to delete the listener for the control plane endpoint")
+	}
 
 	controllerutil.RemoveFinalizer(controlPlaneEndpoint, vcsimv1.ControlPlaneEndpointFinalizer)
 

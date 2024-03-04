@@ -195,10 +195,10 @@ func (r *VCenterSimulatorReconciler) reconcileNormal(ctx context.Context, vCente
 		vCenterSimulator.Status.Username = vcsimInstance.Username()
 		vCenterSimulator.Status.Password = vcsimInstance.Password()
 
-		// Add a VM template
+		// Add a VM templates
 		// Note: for the sake of testing with vcsim the template doesn't really matter (nor the version of K8s hosted on it)
-		// so we create only a VM template with a well-known name.
-		if err := createVMTemplate(ctx, vCenterSimulator); err != nil {
+		// but we must provide at least the templates that are expected by test cluster classes.
+		if err := createVMTemplates(ctx, vCenterSimulator); err != nil {
 			return err
 		}
 	}
@@ -223,7 +223,7 @@ func (r *VCenterSimulatorReconciler) reconcileNormal(ctx context.Context, vCente
 		// - A set of Kubernetes object the vm-operator relies on
 
 		// To mimic the supervisor cluster, there will be only one vm-operator instance for each management cluster;
-		// also, the logic below should consider that the instance of the vm-operator is bound to a specific vCenterSimulator cluster/user namespace.
+		// also, the logic below should consider that the instance of the vm-operator is bound to a specific vCenterSimulator cluster.
 		config := dependenciesForVCenterSimulator(vCenterSimulator)
 
 		if err := vmoperator.ReconcileDependencies(ctx, r.Client, config); err != nil {
@@ -243,7 +243,7 @@ func (r *VCenterSimulatorReconciler) reconcileNormal(ctx context.Context, vCente
 	return nil
 }
 
-func createVMTemplate(ctx context.Context, vCenterSimulator *vcsimv1.VCenterSimulator) error {
+func createVMTemplates(ctx context.Context, vCenterSimulator *vcsimv1.VCenterSimulator) error {
 	log := ctrl.LoggerFrom(ctx)
 	govcURL := fmt.Sprintf("https://%s:%s@%s/sdk", vCenterSimulator.Status.Username, vCenterSimulator.Status.Password, vCenterSimulator.Status.Host)
 
@@ -256,17 +256,20 @@ func createVMTemplate(ctx context.Context, vCenterSimulator *vcsimv1.VCenterSimu
 	if vCenterSimulator.Spec.Model != nil {
 		datacenters = int(ptr.Deref(vCenterSimulator.Spec.Model.Datacenter, int32(simulator.VPX().Datacenter))) // VPX is the same base model used when creating vcsim
 	}
-	for dc := 0; dc < datacenters; dc++ {
-		exit := cli.Run([]string{"vm.create", fmt.Sprintf("-ds=%s", vcsimhelpers.DatastoreName(datastore)), fmt.Sprintf("-cluster=%s", vcsimhelpers.ClusterName(dc, cluster)), fmt.Sprintf("-net=%s", vcsimhelpers.DefaultNetworkName), "-disk=20G", "-on=false", "-k=true", fmt.Sprintf("-u=%s", govcURL), vcsimhelpers.DefaultVMTemplateName})
-		if exit != 0 {
-			return errors.New("failed to create vm template")
-		}
 
-		exit = cli.Run([]string{"vm.markastemplate", "-k=true", fmt.Sprintf("-u=%s", govcURL), vcsimhelpers.VMPath(dc, vcsimhelpers.DefaultVMTemplateName)})
-		if exit != 0 {
-			return errors.New("failed to mark vm template")
+	for _, t := range vcsimhelpers.DefaultVMTemplates {
+		for dc := 0; dc < datacenters; dc++ {
+			exit := cli.Run([]string{"vm.create", fmt.Sprintf("-ds=%s", vcsimhelpers.DatastoreName(datastore)), fmt.Sprintf("-cluster=%s", vcsimhelpers.ClusterName(dc, cluster)), fmt.Sprintf("-net=%s", vcsimhelpers.DefaultNetworkName), "-disk=20G", "-on=false", "-k=true", fmt.Sprintf("-u=%s", govcURL), t})
+			if exit != 0 {
+				return errors.New("failed to create vm template")
+			}
+
+			exit = cli.Run([]string{"vm.markastemplate", "-k=true", fmt.Sprintf("-u=%s", govcURL), vcsimhelpers.VMPath(dc, t)})
+			if exit != 0 {
+				return errors.New("failed to mark vm template")
+			}
+			log.Info("Created VM template", "name", t)
 		}
-		log.Info("Created VM template", "name", vcsimhelpers.DefaultVMTemplateName)
 	}
 	return nil
 }
@@ -296,11 +299,12 @@ func dependenciesForVCenterSimulator(vCenterSimulator *vcsimv1.VCenterSimulator)
 			StoragePolicy: vcsimhelpers.DefaultStoragePolicyName,
 
 			// Those are settings for a fake content library we are going to create given that it doesn't exists in vcsim by default.
+			// It contains a single dummy image.
 			ContentLibrary: vmoperator.ContentLibraryConfig{
-				Name:      "kubernetes",
+				Name:      "vcsim",
 				Datastore: vcsimhelpers.DatastorePath(datacenter, datastore),
 				Item: vmoperator.ContentLibraryItemConfig{
-					Name: "test-image",
+					Name: "vcsim-default-image",
 					Files: []vmoperator.ContentLibraryItemFilesConfig{ // TODO: check if we really need both
 						{
 							Name:    "ttylinux-pc_i486-16.1.ovf",
@@ -318,8 +322,8 @@ func dependenciesForVCenterSimulator(vCenterSimulator *vcsimv1.VCenterSimulator)
 		// in the default namespace and to use the "vcsim-default" storage class.
 		UserNamespace: vmoperator.UserNamespaceConfig{
 			Name:                corev1.NamespaceDefault,
-			StorageClass:        "test-storage-class",
-			VirtualMachineClass: "test-virtual-machine-class",
+			StorageClass:        "vcsim-default-storage-class",
+			VirtualMachineClass: "vcsim-default-vm-class",
 		},
 	}
 	return config

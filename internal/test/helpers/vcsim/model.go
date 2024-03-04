@@ -24,12 +24,20 @@ const (
 
 	// DefaultStoragePolicyName is the name of the default storage policy that exists when starting a new vcsim instance.
 	DefaultStoragePolicyName = "vSAN Default Storage Policy"
+)
 
-	// DefaultVMTemplateName is the name of the default VM template the vcsim controller adds to new vcsim instance.
+var (
+	// DefaultVMTemplates is the name of the default VM templates the vcsim controller adds to new vcsim instance.
 	// Note: There are no default templates when starting a new vcsim instance.
 	// Note: For the sake of testing with vcsim the template doesn't really matter (nor the version of K8s hosted on it)
-	// so the vcsim controller creates only a VM template with a well-known name.
-	DefaultVMTemplateName = "ubuntu-2204-kube-vX"
+	// but we must provide at least the templates that are expected by test cluster classes.
+	DefaultVMTemplates = []string{
+		// NOTE: this list must be kept in sync with templates we are using in cluster classes.
+		// IMPORTANT: keep this list sorted from oldest to newest.
+		// TODO: consider if we want to make this extensible via the vCenterSimulator CR.
+		"ubuntu-2204-kube-v1.28.0",
+		"ubuntu-2204-kube-v1.29.0",
+	}
 )
 
 // DatacenterName provide a function to compute vcsim datacenter names given its index.

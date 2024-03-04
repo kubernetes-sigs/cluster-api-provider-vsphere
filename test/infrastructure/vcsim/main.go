@@ -34,7 +34,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	storagev1 "k8s.io/api/storage/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
@@ -52,7 +52,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
 
@@ -259,9 +258,9 @@ func main() {
 
 	// Check for non-supervisor VSphereCluster and start controller if found
 	gvr := infrav1.GroupVersion.WithResource(reflect.TypeOf(&infrav1.VSphereCluster{}).Elem().Name())
-	nonSupervisorMode, err := isCRDDeployed(mgr, gvr)
+	govmomiMode, err := isCRDDeployed(mgr, gvr)
 	if err != nil {
-		setupLog.Error(err, "unable to detect supervisor mode")
+		setupLog.Error(err, "unable to detect govmomi mode")
 		os.Exit(1)
 	}
 
@@ -274,8 +273,8 @@ func main() {
 	}
 
 	// Continuing startup does not make sense without having managers added.
-	if !nonSupervisorMode && !supervisorMode {
-		err := errors.New("neither supervisor nor non-supervisor CRDs detected")
+	if !govmomiMode && !supervisorMode {
+		err := errors.New("neither supervisor nor govmomi CRDs detected")
 		setupLog.Error(err, "CAPV CRDs are not deployed yet, restarting")
 		os.Exit(1)
 	}
@@ -391,17 +390,7 @@ func concurrency(c int) controller.Options {
 func isCRDDeployed(mgr ctrlmgr.Manager, gvr schema.GroupVersionResource) (bool, error) {
 	_, err := mgr.GetRESTMapper().KindFor(gvr)
 	if err != nil {
-		var discoveryErr *apiutil.ErrResourceDiscoveryFailed
-		ok := errors.As(errors.Unwrap(err), &discoveryErr)
-		if !ok {
-			return false, err
-		}
-		discoveryErrs := *discoveryErr
-		gvrErr, ok := discoveryErrs[gvr.GroupVersion()]
-		if !ok {
-			return false, err
-		}
-		if apierrors.IsNotFound(gvrErr) {
+		if meta.IsNoMatchError(err) {
 			return false, nil
 		}
 		return false, err

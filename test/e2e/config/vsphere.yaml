@@ -122,22 +122,25 @@ providers:
         contract: v1beta1
         files:
           # Add a cluster template
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-conformance.yaml"
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-dhcp-overrides.yaml"
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-hw-upgrade.yaml"
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-ignition.yaml"
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-install-on-bootstrap.yaml"
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-ipam.yaml"
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-kcp-remediation.yaml"
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-md-remediation.yaml"
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-node-drain.yaml"
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-ownerrefs-finalizers.yaml"
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-pci.yaml"
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-remote-management.yaml"
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-storage-policy.yaml"
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template-topology.yaml"
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/cluster-template.yaml"
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/main/clusterclass-quick-start.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/cluster-template-conformance.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/cluster-template-dhcp-overrides.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/cluster-template-hw-upgrade.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/cluster-template-ignition.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/cluster-template-install-on-bootstrap.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/cluster-template-ipam.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/cluster-template-kcp-remediation.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/cluster-template-md-remediation.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/cluster-template-node-drain.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/cluster-template-ownerrefs-finalizers.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/cluster-template-pci.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/cluster-template-remote-management.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/cluster-template-storage-policy.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/cluster-template-topology.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/cluster-template.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/clusterclass-quick-start.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/main/cluster-template-topology-supervisor.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/main/cluster-template-supervisor.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/main/clusterclass-quick-start-supervisor.yaml"
           - sourcePath: "../data/shared/main/v1beta1_provider/metadata.yaml"
       - name: v1.9.0
         # Use manifest from source files
@@ -146,8 +149,8 @@ providers:
         contract: v1beta1
         files:
           # Add a cluster template
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/v1.9/cluster-template-workload.yaml"
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/v1.9/clusterclass-quick-start.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/v1.9/cluster-template-workload.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/v1.9/clusterclass-quick-start.yaml"
           - sourcePath: "../data/shared/v1.9/v1beta1_provider/metadata.yaml"
       - name: v1.8.4
         # Use manifest from source files
@@ -156,8 +159,8 @@ providers:
         contract: v1beta1
         files:
           # Add a cluster template
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/v1.8/cluster-template-workload.yaml"
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere/v1.8/clusterclass-quick-start.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/v1.8/cluster-template-workload.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/v1.8/clusterclass-quick-start.yaml"
           - sourcePath: "../data/shared/v1.8/v1beta1_provider/metadata.yaml"
 
 variables:

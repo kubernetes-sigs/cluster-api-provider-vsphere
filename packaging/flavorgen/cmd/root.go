@@ -36,12 +36,15 @@ const outputDirFlag = "output-dir"
 
 var (
 	flavorMappings = map[string]string{
-		flavors.VIP:                  "cluster-template.yaml",
-		flavors.ExternalLoadBalancer: "cluster-template-external-loadbalancer.yaml",
-		flavors.ClusterClass:         "clusterclass-template.yaml",
-		flavors.ClusterTopology:      "cluster-template-topology.yaml",
-		flavors.Ignition:             "cluster-template-ignition.yaml",
-		flavors.NodeIPAM:             "cluster-template-node-ipam.yaml",
+		flavors.VIP:                       "cluster-template.yaml",
+		flavors.ExternalLoadBalancer:      "cluster-template-external-loadbalancer.yaml",
+		flavors.ClusterClass:              "clusterclass-template.yaml",
+		flavors.ClusterTopology:           "cluster-template-topology.yaml",
+		flavors.Ignition:                  "cluster-template-ignition.yaml",
+		flavors.NodeIPAM:                  "cluster-template-node-ipam.yaml",
+		flavors.Supervisor:                "cluster-template-supervisor.yaml",
+		flavors.ClusterClassSupervisor:    "clusterclass-template-supervisor.yaml",
+		flavors.ClusterTopologySupervisor: "cluster-template-topology-supervisor.yaml",
 	}
 
 	allFlavors = []string{
@@ -51,6 +54,9 @@ var (
 		flavors.Ignition,
 		flavors.NodeIPAM,
 		flavors.ClusterTopology,
+		flavors.Supervisor,
+		flavors.ClusterClassSupervisor,
+		flavors.ClusterTopologySupervisor,
 	}
 )
 
@@ -164,6 +170,26 @@ func generateSingle(flavor string) (string, error) {
 		if err != nil {
 			return "", err
 		}
+	case flavors.Supervisor:
+		var err error
+		objs, err = flavors.MultiNodeTemplateSupervisor()
+		if err != nil {
+			return "", err
+		}
+	case flavors.ClusterClassSupervisor:
+		objs = flavors.ClusterClassTemplateSupervisor()
+	case flavors.ClusterTopologySupervisor:
+		var err error
+		objs, err = flavors.ClusterTopologyTemplateSupervisor()
+		if err != nil {
+			return "", err
+		}
+		replacements = append(replacements, util.Replacement{
+			Kind:      "Cluster",
+			Name:      "${CLUSTER_NAME}",
+			Value:     env.ControlPlaneMachineCountVar,
+			FieldPath: []string{"spec", "topology", "controlPlane", "replicas"},
+		})
 	default:
 		return "", errors.Errorf("invalid flavor")
 	}

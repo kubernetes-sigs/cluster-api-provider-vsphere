@@ -26,6 +26,7 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/env"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/util"
 )
@@ -177,6 +178,32 @@ func infraClusterPatch() clusterv1.ClusterClassPatch {
 						Path: "/spec/template/spec/thumbprint",
 						ValueFrom: &clusterv1.JSONPatchValue{
 							Variable: ptr.To("infraServer.thumbprint"),
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func vmWareInfraClusterPatch() clusterv1.ClusterClassPatch {
+	return clusterv1.ClusterClassPatch{
+		Name: "infraClusterSubstitutions",
+		Definitions: []clusterv1.PatchDefinition{
+			{
+				Selector: clusterv1.PatchSelector{
+					APIVersion: vmwarev1.GroupVersion.String(),
+					Kind:       util.TypeToKind(&vmwarev1.VSphereClusterTemplate{}),
+					MatchResources: clusterv1.PatchSelectorMatch{
+						InfrastructureCluster: true,
+					},
+				},
+				JSONPatches: []clusterv1.JSONPatch{
+					{
+						Op:   "add",
+						Path: "/spec/template/spec/controlPlaneEndpoint",
+						ValueFrom: &clusterv1.JSONPatchValue{
+							Template: getControlPlaneEndpointTemplate(),
 						},
 					},
 				},

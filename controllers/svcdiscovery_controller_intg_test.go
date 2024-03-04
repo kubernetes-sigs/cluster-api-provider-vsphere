@@ -20,6 +20,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	helpers "sigs.k8s.io/cluster-api-provider-vsphere/test/helpers/vmware"
@@ -72,8 +73,17 @@ var _ = Describe("Service Discovery controller integration tests", func() {
 	})
 	Context("When headless svc and endpoints already exists", func() {
 		BeforeEach(func() {
-			// Create the svc & endpoint objects in guest cluster
-			createObjects(intCtx, intCtx.GuestClient, newTestHeadlessSvcEndpoints())
+			// Create or update the svc & endpoint objects in guest cluster
+			for _, obj := range newTestHeadlessSvcEndpoints() {
+				if err := intCtx.GuestClient.Create(ctx, obj); err != nil {
+					// The controller may have already created it so, update the object in that case.
+					if apierrors.IsAlreadyExists(err) {
+						err = intCtx.GuestClient.Update(ctx, obj)
+					}
+					Expect(err).ToNot(HaveOccurred())
+				}
+			}
+
 			// Init objects in the supervisor cluster
 			initObjects = []client.Object{
 				newTestSupervisorLBServiceWithIPStatus()}

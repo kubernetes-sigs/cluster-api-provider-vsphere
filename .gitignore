@@ -21,6 +21,9 @@ test/e2e/data/infrastructure-vsphere/main/**/cluster-template*.yaml
 test/e2e/data/infrastructure-vsphere/*/cluster-template*.yaml
 test/e2e/data/infrastructure-vsphere/*/clusterclass-quick-start.yaml
 
+# vm-operator related
+test/infrastructure/vm-operator/vm-operator.yaml
+
 # env vars file used in getting-started.md and manifests generation
 envvars.txt
 

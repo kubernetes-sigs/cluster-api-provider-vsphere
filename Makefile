@@ -86,7 +86,9 @@ E2E_CAPV_MODE ?= govmomi
 E2E_TARGET_TYPE ?= vcenter
 E2E_IPAM_KUBECONFIG ?=
 INTEGRATION_CONF_FILE ?= $(abspath test/integration/integration-dev.yaml)
-E2E_TEMPLATE_DIR := $(abspath test/e2e/data/infrastructure-vsphere/)
+E2E_TEMPLATE_DIR := $(abspath test/e2e/data/)
+E2E_GOVMOMI_TEMPLATE_DIR := $(E2E_TEMPLATE_DIR)/infrastructure-vsphere-govmomi
+E2E_SUPERVISOR_TEMPLATE_DIR := $(E2E_TEMPLATE_DIR)/infrastructure-vsphere-supervisor
 SKIP_RESOURCE_CLEANUP ?= false
 USE_EXISTING_CLUSTER ?= false
 GINKGO_NOCOLOR ?= false
@@ -336,41 +338,48 @@ generate-e2e-templates: $(KUSTOMIZE) $(addprefix generate-e2e-templates-, v1.8 v
 .PHONY: generate-e2e-templates-main
 generate-e2e-templates-main: $(KUSTOMIZE) ## Generate test templates for the main branch
 	$(MAKE) e2e-flavors-main
-	cp "$(RELEASE_DIR)/main/cluster-template.yaml" "$(E2E_TEMPLATE_DIR)/main/base/cluster-template.yaml"
-	cp "$(RELEASE_DIR)/main/cluster-template-ignition.yaml" "$(E2E_TEMPLATE_DIR)/main/base/cluster-template-ignition.yaml"
-	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_TEMPLATE_DIR)/main/base" > "$(E2E_TEMPLATE_DIR)/main/cluster-template.yaml"
-	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_TEMPLATE_DIR)/main/hw-upgrade" > "$(E2E_TEMPLATE_DIR)/main/cluster-template-hw-upgrade.yaml"
-	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_TEMPLATE_DIR)/main/storage-policy" > "$(E2E_TEMPLATE_DIR)/main/cluster-template-storage-policy.yaml"
-	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_TEMPLATE_DIR)/main/conformance" > "$(E2E_TEMPLATE_DIR)/main/cluster-template-conformance.yaml"
+	cp "$(RELEASE_DIR)/main/cluster-template.yaml" "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/base/cluster-template.yaml"
+	cp "$(RELEASE_DIR)/main/cluster-template-ignition.yaml" "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/base/cluster-template-ignition.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/base" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/cluster-template.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/hw-upgrade" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/cluster-template-hw-upgrade.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/storage-policy" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/cluster-template-storage-policy.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/conformance" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/cluster-template-conformance.yaml"
 	# Since CAPI uses different flavor names for KCP and MD remediation using MHC
-	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_TEMPLATE_DIR)/main/mhc-remediation/kcp" > "$(E2E_TEMPLATE_DIR)/main/cluster-template-kcp-remediation.yaml"
-	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_TEMPLATE_DIR)/main/mhc-remediation/md" > "$(E2E_TEMPLATE_DIR)/main/cluster-template-md-remediation.yaml"
-	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_TEMPLATE_DIR)/main/node-drain" > "$(E2E_TEMPLATE_DIR)/main/cluster-template-node-drain.yaml"
-	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_TEMPLATE_DIR)/main/ignition" > "$(E2E_TEMPLATE_DIR)/main/cluster-template-ignition.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/mhc-remediation/kcp" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/cluster-template-kcp-remediation.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/mhc-remediation/md" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/cluster-template-md-remediation.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/node-drain" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/cluster-template-node-drain.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/ignition" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/cluster-template-ignition.yaml"
 	# generate clusterclass and cluster topology
-	cp "$(RELEASE_DIR)/main/clusterclass-template.yaml" "$(E2E_TEMPLATE_DIR)/main/clusterclass/clusterclass-quick-start.yaml"
-	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_TEMPLATE_DIR)/main/clusterclass" > "$(E2E_TEMPLATE_DIR)/main/clusterclass-quick-start.yaml"
-	cp "$(RELEASE_DIR)/main/cluster-template-topology.yaml" "$(E2E_TEMPLATE_DIR)/main/topology/cluster-template-topology.yaml"
-	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_TEMPLATE_DIR)/main/topology" > "$(E2E_TEMPLATE_DIR)/main/cluster-template-topology.yaml"
-	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_TEMPLATE_DIR)/main/remote-management" > "$(E2E_TEMPLATE_DIR)/main/cluster-template-remote-management.yaml"
-	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_TEMPLATE_DIR)/main/install-on-bootstrap" > "$(E2E_TEMPLATE_DIR)/main/cluster-template-install-on-bootstrap.yaml"
+	cp "$(RELEASE_DIR)/main/clusterclass-template.yaml" "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/clusterclass/clusterclass-quick-start.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/clusterclass" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/clusterclass-quick-start.yaml"
+	cp "$(RELEASE_DIR)/main/cluster-template-topology.yaml" "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/topology/cluster-template-topology.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/topology" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/cluster-template-topology.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/remote-management" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/cluster-template-remote-management.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/install-on-bootstrap" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/cluster-template-install-on-bootstrap.yaml"
 	# for PCI passthrough template
-	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_TEMPLATE_DIR)/main/pci" > "$(E2E_TEMPLATE_DIR)/main/cluster-template-pci.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/pci" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/cluster-template-pci.yaml"
 	# for DHCP overrides
-	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_TEMPLATE_DIR)/main/dhcp-overrides" > "$(E2E_TEMPLATE_DIR)/main/cluster-template-dhcp-overrides.yaml"
-	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_TEMPLATE_DIR)/main/ownerrefs-finalizers" > "$(E2E_TEMPLATE_DIR)/main/cluster-template-ownerrefs-finalizers.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/dhcp-overrides" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/cluster-template-dhcp-overrides.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/ownerrefs-finalizers" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/cluster-template-ownerrefs-finalizers.yaml"
 	# for IPAM tests
-	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_TEMPLATE_DIR)/main/ipam" > "$(E2E_TEMPLATE_DIR)/main/cluster-template-ipam.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/ipam" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/cluster-template-ipam.yaml"
+	# generate supervisor templates
+	cp "$(RELEASE_DIR)/main/cluster-template-supervisor.yaml" "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/base/cluster-template-supervisor.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/base" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/cluster-template-supervisor.yaml"
+	cp "$(RELEASE_DIR)/main/clusterclass-template-supervisor.yaml" "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/clusterclass/clusterclass-quick-start-supervisor.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/clusterclass" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/clusterclass-quick-start-supervisor.yaml"
+	cp "$(RELEASE_DIR)/main/cluster-template-topology-supervisor.yaml" "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/topology/cluster-template-topology-supervisor.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/topology" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/cluster-template-topology-supervisor.yaml"
 
 .PHONY: generate-e2e-templates-v1.9
 generate-e2e-templates-v1.9: $(KUSTOMIZE)
-	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_TEMPLATE_DIR)/v1.9/clusterclass" > "$(E2E_TEMPLATE_DIR)/v1.9/clusterclass-quick-start.yaml"
-	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_TEMPLATE_DIR)/v1.9/workload" > "$(E2E_TEMPLATE_DIR)/v1.9/cluster-template-workload.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/v1.9/clusterclass" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/v1.9/clusterclass-quick-start.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/v1.9/workload" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/v1.9/cluster-template-workload.yaml"
 
 .PHONY: generate-e2e-templates-v1.8
 generate-e2e-templates-v1.8: $(KUSTOMIZE)
-	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_TEMPLATE_DIR)/v1.8/clusterclass" > "$(E2E_TEMPLATE_DIR)/v1.8/clusterclass-quick-start.yaml"
-	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_TEMPLATE_DIR)/v1.8/workload" > "$(E2E_TEMPLATE_DIR)/v1.8/cluster-template-workload.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/v1.8/clusterclass" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/v1.8/clusterclass-quick-start.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/v1.8/workload" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/v1.8/cluster-template-workload.yaml"
 
 .PHONY: generate-test-infra-prowjobs
 generate-test-infra-prowjobs: $(PROWJOB_GEN) ## Generates the prowjob configurations in test-infra

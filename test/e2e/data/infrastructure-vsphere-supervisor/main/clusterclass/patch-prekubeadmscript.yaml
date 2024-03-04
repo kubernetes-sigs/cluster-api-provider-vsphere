@@ -1,0 +1,51 @@
+- op: add
+  path: /spec/patches/-
+  value:
+    definitions:
+    - jsonPatches:
+      - op: add
+        path: /spec/template/spec/kubeadmConfigSpec/preKubeadmCommands/0
+        value: "/opt/prekubeadmscript.sh"
+      - op: add
+        path: /spec/template/spec/kubeadmConfigSpec/files/-
+        valueFrom:
+          template: |
+            owner: root:root
+            path:  "/opt/prekubeadmscript.sh"
+            permissions: "0755"
+            content: {{ printf "%q" (regexReplaceAll "(KUBERNETES_VERSION=.*)" .preKubeadmScript (printf "KUBERNETES_VERSION=%s" .builtin.controlPlane.version)) }}
+      selector:
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        kind: KubeadmControlPlaneTemplate
+        matchResources:
+          controlPlane: true
+    - jsonPatches:
+      - op: add
+        path: /spec/template/spec/preKubeadmCommands/0
+        value: "/opt/prekubeadmscript.sh"
+      - op: add
+        path: /spec/template/spec/files/-
+        valueFrom:
+          template: |
+            owner: root:root
+            path:  "/opt/prekubeadmscript.sh"
+            permissions: "0755"
+            content: {{ printf "%q" (regexReplaceAll "(KUBERNETES_VERSION=.*)" .preKubeadmScript (printf "KUBERNETES_VERSION=%s" .builtin.machineDeployment.version)) }}
+      selector:
+        apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+        kind: KubeadmConfigTemplate
+        matchResources:
+          machineDeploymentClass:
+            names:
+            - ${CLUSTER_CLASS_NAME}-worker
+    enabledIf: '{{ if .preKubeadmScript }}true{{ end }}'
+    name: preKubeadmScript
+- op: add
+  path: /spec/variables/-
+  value:
+    name: preKubeadmScript
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+        description: Script to run in preKubeadmCommands.

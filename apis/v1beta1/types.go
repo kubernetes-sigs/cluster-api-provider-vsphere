@@ -314,9 +314,9 @@ type NetworkDeviceSpec struct {
 	Gateway6 string `json:"gateway6,omitempty"`
 
 	// IPAddrs is a list of one or more IPv4 and/or IPv6 addresses to assign
-	// to this device.  IP addresses must also specify the segment length in
+	// to this device. IP addresses must also specify the segment length in
 	// CIDR notation.
-	// Required when DHCP4 and DHCP6 are both false.
+	// Required when DHCP4, DHCP6 and SkipIPAllocation are false.
 	// +optional
 	IPAddrs []string `json:"ipAddrs,omitempty"`
 
@@ -370,6 +370,12 @@ type NetworkDeviceSpec struct {
 	// For more information see the netplan reference (https://netplan.io/reference#dhcp-overrides)
 	// +optional
 	DHCP6Overrides *DHCPOverrides `json:"dhcp6Overrides,omitempty"`
+
+	// SkipIPAllocation allows the device to not have IP address or DHCP configured.
+	// This is suitable for devices for which IP allocation is handled externally, eg. using Multus CNI.
+	// If true, CAPV will not verify IP address allocation.
+	// +optional
+	SkipIPAllocation bool `json:"skipIPAllocation,omitempty"`
 }
 
 // DHCPOverrides allows for the control over several DHCP behaviors.

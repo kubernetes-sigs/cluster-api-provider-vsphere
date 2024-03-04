@@ -360,6 +360,29 @@ func TestVmReconciler_WaitingForStaticIPAllocation(t *testing.T) {
 			},
 			shouldWait: true,
 		},
+		{
+			name: "for one n/w devices with SkipIPAllocation set",
+			devices: []infrav1.NetworkDeviceSpec{
+				{NetworkName: "nw-1", SkipIPAllocation: true},
+			},
+			shouldWait: false,
+		},
+		{
+			name: "for multiple n/w devices with SkipIPAllocation set for the second one",
+			devices: []infrav1.NetworkDeviceSpec{
+				{NetworkName: "nw-1", IPAddrs: []string{"192.168.1.2/32"}},
+				{NetworkName: "nw-2", SkipIPAllocation: true},
+			},
+			shouldWait: false,
+		},
+		{
+			name: "for multiple n/w devices with SkipIPAllocation set only for one",
+			devices: []infrav1.NetworkDeviceSpec{
+				{NetworkName: "nw-1"},
+				{NetworkName: "nw-2", SkipIPAllocation: true},
+			},
+			shouldWait: true,
+		},
 	}
 
 	controllerManagerCtx := fake.NewControllerManagerContext()

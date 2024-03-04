@@ -113,6 +113,7 @@ func GetMachineMetadata(hostname string, vsphereVM infrav1.VSphereVM, ipamState 
 			// break early as we already wait for ipv4 and ipv6
 			continue
 		}
+
 		// check static IPs
 		for _, ipStr := range vsphereVM.Spec.Network.Devices[i].IPAddrs {
 			ip := net.ParseIP(ipStr)

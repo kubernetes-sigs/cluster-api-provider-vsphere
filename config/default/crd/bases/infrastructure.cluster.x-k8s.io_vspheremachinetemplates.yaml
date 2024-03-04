@@ -994,10 +994,10 @@ spec:
                                   type: string
                                 ipAddrs:
                                   description: IPAddrs is a list of one or more IPv4
-                                    and/or IPv6 addresses to assign to this device.  IP
-                                    addresses must also specify the segment length
-                                    in CIDR notation. Required when DHCP4 and DHCP6
-                                    are both false.
+                                    and/or IPv6 addresses to assign to this device.
+                                    IP addresses must also specify the segment length
+                                    in CIDR notation. Required when DHCP4, DHCP6 and
+                                    SkipIPAllocation are false.
                                   items:
                                     type: string
                                   type: array
@@ -1055,6 +1055,13 @@ spec:
                                   items:
                                     type: string
                                   type: array
+                                skipIPAllocation:
+                                  description: SkipIPAllocation allows the device
+                                    to not have IP address or DHCP configured. This
+                                    is suitable for devices for which IP allocation
+                                    is handled externally, eg. using Multus CNI. If
+                                    true, CAPV will not verify IP address allocation.
+                                  type: boolean
                               required:
                               - networkName
                               type: object

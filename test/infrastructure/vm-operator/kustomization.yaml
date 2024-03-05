@@ -8,3 +8,15 @@ commonLabels:
 
 resources:
 - vm-operator.yaml
+
+patchesStrategicMerge:
+- vm-operator-replicas.yaml
+
+patches:
+- target:
+    labelSelector: app=web-console-validator
+  patch: |
+    $patch: delete
+    kind: Deployment
+    metadata:
+      name: web-console-validator

@@ -775,7 +775,7 @@ set-manifest-image:
 ##@ vm-operator:
 
 .PHONY: release-vm-operator
-release-vm-operator: docker-vm-operator-build-all vm-operator-manifest-build docker-vm-operator-push-all ## Build and push the vm-operator image and manifest for usage in CI
+release-vm-operator: docker-vm-operator-build-all vm-operator-manifest-build docker-vm-operator-push-all vm-operator-manifest-push ## Build and push the vm-operator image and manifest for usage in CI
 
 .PHONY: vm-operator-checkout
 vm-operator-checkout:

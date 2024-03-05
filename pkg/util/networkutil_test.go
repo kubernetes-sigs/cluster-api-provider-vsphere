@@ -63,6 +63,12 @@ func TestNCPSupportFW(t *testing.T) {
 			false,
 		},
 		{
+			"compatible version with more than 3 segments",
+			fake.NewClientBuilder().WithScheme(scheme).WithObjects(newNCPConfigMap("3.0.1.1.1")).Build(),
+			true,
+			false,
+		},
+		{
 			"incompatible version lower end",
 			fake.NewClientBuilder().WithScheme(scheme).WithObjects(newNCPConfigMap("3.0.0")).Build(),
 			false,
@@ -71,6 +77,12 @@ func TestNCPSupportFW(t *testing.T) {
 		{
 			"incompatible version upper end",
 			fake.NewClientBuilder().WithScheme(scheme).WithObjects(newNCPConfigMap(NCPVersionSupportFWEnded)).Build(),
+			false,
+			false,
+		},
+		{
+			"incompatible version with more than 3 segments",
+			fake.NewClientBuilder().WithScheme(scheme).WithObjects(newNCPConfigMap("3.1.0.1")).Build(),
 			false,
 			false,
 		},

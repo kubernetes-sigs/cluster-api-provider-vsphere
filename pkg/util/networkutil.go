@@ -18,6 +18,7 @@ package util
 
 import (
 	"context"
+	"strings"
 
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
@@ -78,6 +79,7 @@ func GetNamespaceNetSnatIP(ctx context.Context, controllerClient client.Client, 
 }
 
 // GetNCPVersion finds out the running ncp's version from its configmap.
+// If the version contains more than 3 segments, it will get trimmed down to 3.
 func GetNCPVersion(ctx context.Context, controllerClient client.Client) (string, error) {
 	configmapObj := &corev1.ConfigMap{}
 	namespacedName := apitypes.NamespacedName{
@@ -90,6 +92,13 @@ func GetNCPVersion(ctx context.Context, controllerClient client.Client) (string,
 	}
 
 	version := configmapObj.Data[NCPVersionKey]
+
+	// NSX doesn't stritcly follow SemVer and there are versions like 4.0.1.3
+	// This will cause an error if directly used in semver.Parse() and prevent the cluster from reconciling.
+	// Since GetNCPVersion is only used to check >= 3.0.1 and < 3.1.0, it's safe to trim the last segment
+	if segments := strings.Split(version, "."); len(segments) > 3 {
+		return strings.Join(segments[:3], "."), nil
+	}
 	return version, nil
 }
 

@@ -20,7 +20,7 @@ require (
 	github.com/vmware-tanzu/vm-operator/external/tanzu-topology v0.0.0-20231214185006-5477585eebfd
 	github.com/vmware/govmomi v0.35.0
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
-	golang.org/x/mod v0.15.0
+	golang.org/x/mod v0.16.0
 	golang.org/x/tools v0.18.0
 	gopkg.in/gcfg.v1 v1.2.3
 	gopkg.in/yaml.v2 v2.4.0

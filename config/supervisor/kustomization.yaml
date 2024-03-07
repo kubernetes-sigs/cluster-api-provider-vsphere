@@ -10,11 +10,24 @@ commonLabels:
   cluster.x-k8s.io/v1beta1: v1beta1
 resources:
   - ../base
-  - crd/vmware.infrastructure.cluster.x-k8s.io_vspheremachines.yaml
-  - crd/vmware.infrastructure.cluster.x-k8s.io_vsphereclusters.yaml
-  - crd/vmware.infrastructure.cluster.x-k8s.io_vspheremachinetemplates.yaml
-  - crd/vmware.infrastructure.cluster.x-k8s.io_vsphereclustertemplates.yaml
-  - crd/vmware.infrastructure.cluster.x-k8s.io_providerserviceaccounts.yaml
+  - crd/bases/vmware.infrastructure.cluster.x-k8s.io_vspheremachines.yaml
+  - crd/bases/vmware.infrastructure.cluster.x-k8s.io_vsphereclusters.yaml
+  - crd/bases/vmware.infrastructure.cluster.x-k8s.io_vspheremachinetemplates.yaml
+  - crd/bases/vmware.infrastructure.cluster.x-k8s.io_vsphereclustertemplates.yaml
+  - crd/bases/vmware.infrastructure.cluster.x-k8s.io_providerserviceaccounts.yaml
+  - ./webhook
+
+patches:
+  # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix.
+  # patches here are for enabling the conversion webhook for each CRD
+  - path: crd/patches/webhook_in_vspheremachines.yaml
+# +kubebuilder:scaffold:crdkustomizewebhookpatch
+
+  # [CERTMANAGER] To enable webhook, uncomment all the sections with [CERTMANAGER] prefix.
+  # patches here are for enabling the CA injection for each CRD
+  - path: crd/patches/cainjection_in_vspheremachines.yaml
+# +kubebuilder:scaffold:crdkustomizecainjectionpatch
 
 patchesStrategicMerge:
   - add-configmap-env-vars.yaml
+

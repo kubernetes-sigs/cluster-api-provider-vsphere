@@ -250,10 +250,11 @@ LDFLAGS ?= $(shell hack/version.sh)
 # Allow overriding manifest generation destination directory
 MANIFEST_ROOT ?= ./config
 CRD_ROOT ?= $(MANIFEST_ROOT)/default/crd/bases
-SUPERVISOR_CRD_ROOT ?= $(MANIFEST_ROOT)/supervisor/crd
+SUPERVISOR_CRD_ROOT ?= $(MANIFEST_ROOT)/supervisor/crd/bases
 VMOP_CRD_ROOT ?= $(MANIFEST_ROOT)/deployments/integration-tests/crds
 VCSIM_CRD_ROOT ?= $(VCSIM_DIR)/config/crd/bases
 WEBHOOK_ROOT ?= $(MANIFEST_ROOT)/webhook
+SUPERVISOR_WEBHOOK_ROOT ?= $(MANIFEST_ROOT)/supervisor/webhook
 RBAC_ROOT ?= $(MANIFEST_ROOT)/rbac
 VCSIM_RBAC_ROOT ?= $(VCSIM_DIR)/config/rbac
 VERSION ?= $(shell cat clusterctl-settings.json | jq .config.nextVersion -r)
@@ -276,7 +277,7 @@ generate: ## Run all generate targets
 
 .PHONY: generate-manifests
 generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
-	$(MAKE) clean-generated-yaml SRC_DIRS="$(CRD_ROOT),$(SUPERVISOR_CRD_ROOT),$(VMOP_CRD_ROOT),./config/webhook/manifests.yaml"
+	$(MAKE) clean-generated-yaml SRC_DIRS="$(CRD_ROOT),$(SUPERVISOR_CRD_ROOT),$(VMOP_CRD_ROOT),./config/webhook/manifests.yaml,./config/supervisor/webhook/manifests.yaml"
 	$(CONTROLLER_GEN) \
 		paths=./apis/v1alpha3 \
 		paths=./apis/v1alpha4 \
@@ -285,6 +286,11 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 		crd:crdVersions=v1 \
 		output:crd:dir=$(CRD_ROOT) \
 		output:webhook:dir=$(WEBHOOK_ROOT) \
+		webhook
+	# Generate webhook manifests for supervisor mode separately.
+	$(CONTROLLER_GEN) \
+		paths=./internal/webhooks/vmoperator \
+		output:webhook:dir=$(SUPERVISOR_WEBHOOK_ROOT) \
 		webhook
 	$(CONTROLLER_GEN) \
 		paths=./ \

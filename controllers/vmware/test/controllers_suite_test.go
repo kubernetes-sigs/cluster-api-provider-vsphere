@@ -77,7 +77,7 @@ func getTestEnv() (*envtest.Environment, *rest.Config) {
 
 	localTestEnv := &envtest.Environment{
 		CRDDirectoryPaths: []string{
-			filepath.Join(root, "config", "supervisor", "crd"),
+			filepath.Join(root, "config", "supervisor", "crd", "bases"),
 			filepath.Join(root, "config", "deployments", "integration-tests", "crds"),
 			filepath.Join(clusterAPIDir, "config", "crd", "bases"),
 		},

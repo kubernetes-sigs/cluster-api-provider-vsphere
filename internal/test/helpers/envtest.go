@@ -52,6 +52,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vcsim"
 	"sigs.k8s.io/cluster-api-provider-vsphere/internal/webhooks"
+	vmopwebhooks "sigs.k8s.io/cluster-api-provider-vsphere/internal/webhooks/vmoperator"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
 )
@@ -84,7 +85,7 @@ func init() {
 
 	crdPaths := []string{
 		filepath.Join(root, "config", "default", "crd", "bases"),
-		filepath.Join(root, "config", "supervisor", "crd"),
+		filepath.Join(root, "config", "supervisor", "crd", "bases"),
 	}
 
 	// append CAPI CRDs path
@@ -159,6 +160,9 @@ func NewTestEnvironment(ctx context.Context) *TestEnvironment {
 		Password:   simr.Password(),
 	}
 	managerOpts.AddToManager = func(_ context.Context, _ *capvcontext.ControllerManagerContext, mgr ctrlmgr.Manager) error {
+		if err := (&vmopwebhooks.VSphereMachineWebhook{}).SetupWebhookWithManager(mgr); err != nil {
+			return err
+		}
 		if err := (&webhooks.VSphereClusterTemplateWebhook{}).SetupWebhookWithManager(mgr); err != nil {
 			return err
 		}

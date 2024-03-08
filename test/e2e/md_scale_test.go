@@ -19,18 +19,21 @@ package e2e
 import (
 	. "github.com/onsi/ginkgo/v2"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
+	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 )
 
 var _ = Describe("When testing MachineDeployment scale out/in", func() {
 	const specName = "md-scale" // copied from CAPI
-	Setup(specName, func(testSpecificClusterctlConfigPathGetter func() string) {
+	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		capi_e2e.MachineDeploymentScaleSpec(ctx, func() capi_e2e.MachineDeploymentScaleSpecInput {
 			return capi_e2e.MachineDeploymentScaleSpecInput{
 				E2EConfig:             e2eConfig,
-				ClusterctlConfigPath:  testSpecificClusterctlConfigPathGetter(),
+				ClusterctlConfigPath:  testSpecificSettingsGetter().ClusterctlConfigPath,
 				BootstrapClusterProxy: bootstrapClusterProxy,
 				ArtifactFolder:        artifactFolder,
 				SkipCleanup:           skipCleanup,
+				Flavor:                testSpecificSettingsGetter().FlavorForMode(clusterctl.DefaultFlavor),
+				PostNamespaceCreated:  testSpecificSettingsGetter().PostNamespaceCreatedFunc,
 			}
 		})
 	})

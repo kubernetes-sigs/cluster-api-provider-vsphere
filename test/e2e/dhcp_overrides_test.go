@@ -53,7 +53,7 @@ type DHCPOverrides struct {
 var _ = Describe("DHCPOverrides configuration test", func() {
 	When("Creating a cluster with DHCPOverrides configured", func() {
 		const specName = "dhcp-overrides"
-		Setup("dhcp-overrides", func(testSpecificClusterctlConfigPathGetter func() string) {
+		Setup("dhcp-overrides", func(testSpecificSettingsGetter func() testSettings) {
 			var namespace *corev1.Namespace
 
 			BeforeEach(func() {
@@ -73,10 +73,10 @@ var _ = Describe("DHCPOverrides configuration test", func() {
 					ClusterProxy: bootstrapClusterProxy,
 					ConfigCluster: clusterctl.ConfigClusterInput{
 						LogFolder:                filepath.Join(artifactFolder, "clusters", bootstrapClusterProxy.GetName()),
-						ClusterctlConfigPath:     testSpecificClusterctlConfigPathGetter(),
+						ClusterctlConfigPath:     testSpecificSettingsGetter().ClusterctlConfigPath,
 						KubeconfigPath:           bootstrapClusterProxy.GetKubeconfigPath(),
 						InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
-						Flavor:                   "dhcp-overrides",
+						Flavor:                   testSpecificSettingsGetter().FlavorForMode("dhcp-overrides"),
 						Namespace:                namespace.Name,
 						ClusterName:              clusterName,
 						KubernetesVersion:        e2eConfig.GetVariable(KubernetesVersion),

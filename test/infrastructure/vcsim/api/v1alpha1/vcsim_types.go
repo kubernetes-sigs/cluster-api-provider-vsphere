@@ -17,12 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"fmt"
-	"net"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	vcsimhelpers "sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vcsim"
 )
 
 const (
@@ -120,37 +115,4 @@ type VCenterSimulatorList struct {
 
 func init() {
 	objectTypes = append(objectTypes, &VCenterSimulator{}, &VCenterSimulatorList{})
-}
-
-func (v *VCenterSimulator) commonVariables() map[string]string {
-	host := v.Status.Host
-
-	// NOTE: best effort reverting back to local host because the assumption is that the vcsim controller pod will be port-forwarded on local host
-	_, port, err := net.SplitHostPort(host)
-	if err == nil {
-		host = net.JoinHostPort("127.0.0.1", port)
-	}
-
-	return map[string]string{
-		"VSPHERE_PASSWORD":       v.Status.Password,
-		"VSPHERE_USERNAME":       v.Status.Username,
-		"VSPHERE_STORAGE_POLICY": vcsimhelpers.DefaultStoragePolicyName,
-
-		// variables to set up govc for working with the vcsim instance.
-		"GOVC_URL":      fmt.Sprintf("https://%s:%s@%s/sdk", v.Status.Username, v.Status.Password, host),
-		"GOVC_INSECURE": "true",
-	}
-}
-
-// SupervisorVariables returns name/value pairs for a VCenterSimulator to be used for clusterctl templates when testing supervisor mode.
-func (v *VCenterSimulator) SupervisorVariables() map[string]string {
-	return v.commonVariables()
-}
-
-// GovmomiVariables returns name/value pairs for a VCenterSimulator to be used for clusterctl templates when testing govmomi mode.
-func (v *VCenterSimulator) GovmomiVariables() map[string]string {
-	vars := v.commonVariables()
-	vars["VSPHERE_SERVER"] = fmt.Sprintf("https://%s", v.Status.Host)
-	vars["VSPHERE_TLS_THUMBPRINT"] = v.Status.Thumbprint
-	return vars
 }

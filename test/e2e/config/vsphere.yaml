@@ -20,6 +20,8 @@ images:
     loadBehavior: mustLoad
   - name: gcr.io/k8s-staging-capi-vsphere/cluster-api-vcsim-controller-{ARCH}:dev
     loadBehavior: mustLoad
+  - name: gcr.io/k8s-staging-capi-vsphere/extra/vm-operator:v1.8.1
+    loadBehavior: tryLoad
   - name: quay.io/jetstack/cert-manager-cainjector:v1.12.2
     loadBehavior: tryLoad
   - name: quay.io/jetstack/cert-manager-webhook:v1.12.2
@@ -166,7 +168,7 @@ providers:
           - sourcePath: "../data/shared/v1.8/v1beta1_provider/metadata.yaml"
 
   - name: vcsim
-    type: InfrastructureProvider
+    type: RuntimeExtensionProvider # vcsim isn't a provider, but we fake it is so it can be handled by the clusterctl machinery.
     versions:
       - name: v1.10.99
         # Use manifest from source files
@@ -175,6 +177,20 @@ providers:
         files:
           # Add cluster templates
           - sourcePath: "../data/shared/main/v1beta1_provider/metadata.yaml"
+
+  - name: vm-operator
+    type: RuntimeExtensionProvider # vm-operator isn't a provider, but we fake it is so it can be handled by the clusterctl machinery.
+    versions:
+      - name: v1.8.1
+        # Use manifest from source files
+        value: "https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/vm-operator/v1.8.1.yaml"
+        type: "url"
+        contract: v1beta1
+        files:
+          - sourcePath: "../data/shared/main/v1beta1_operator/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
 
 variables:
   # Ensure all Kubernetes versions used here are covered in patch-vsphere-template.yaml
@@ -210,6 +226,8 @@ variables:
   EXP_NODE_ANTI_AFFINITY: "true"
   CAPI_DIAGNOSTICS_ADDRESS: ":8080"
   CAPI_INSECURE_DIAGNOSTICS: "true"
+  SERVICE_ACCOUNTS_CM_NAME: ""
+  SERVICE_ACCOUNTS_CM_NAMESPACE: ""
 
 intervals:
   default/wait-controllers: ["5m", "10s"]

@@ -20,34 +20,38 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	"k8s.io/utils/ptr"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
+	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 )
 
-var _ = Describe("Cluster Creation using Cluster API quick-start test", func() {
+var _ = Describe("Cluster Creation using Cluster API quick-start test [vcsim] [supervisor]", func() {
 	const specName = "quick-start" // copied from CAPI
-	Setup(specName, func(testSpecificClusterctlConfigPathGetter func() string) {
+	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		capi_e2e.QuickStartSpec(ctx, func() capi_e2e.QuickStartSpecInput {
 			return capi_e2e.QuickStartSpecInput{
 				E2EConfig:             e2eConfig,
-				ClusterctlConfigPath:  testSpecificClusterctlConfigPathGetter(),
+				ClusterctlConfigPath:  testSpecificSettingsGetter().ClusterctlConfigPath,
 				BootstrapClusterProxy: bootstrapClusterProxy,
 				ArtifactFolder:        artifactFolder,
 				SkipCleanup:           skipCleanup,
+				Flavor:                ptr.To(testSpecificSettingsGetter().FlavorForMode(clusterctl.DefaultFlavor)),
+				PostNamespaceCreated:  testSpecificSettingsGetter().PostNamespaceCreatedFunc,
 			}
 		})
 	})
 })
 
-var _ = Describe("ClusterClass Creation using Cluster API quick-start test [PR-Blocking] [ClusterClass]", func() {
+var _ = Describe("ClusterClass Creation using Cluster API quick-start test [PR-Blocking] [ClusterClass] [vcsim] [supervisor]", func() {
 	const specName = "quick-start-cluster-class" // prefix (quick-start) copied from CAPI
-	Setup(specName, func(testSpecificClusterctlConfigPathGetter func() string) {
+	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		capi_e2e.QuickStartSpec(ctx, func() capi_e2e.QuickStartSpecInput {
 			return capi_e2e.QuickStartSpecInput{
 				E2EConfig:             e2eConfig,
-				ClusterctlConfigPath:  testSpecificClusterctlConfigPathGetter(),
+				ClusterctlConfigPath:  testSpecificSettingsGetter().ClusterctlConfigPath,
 				BootstrapClusterProxy: bootstrapClusterProxy,
 				ArtifactFolder:        artifactFolder,
 				SkipCleanup:           skipCleanup,
-				Flavor:                ptr.To("topology"),
+				Flavor:                ptr.To(testSpecificSettingsGetter().FlavorForMode("topology")),
+				PostNamespaceCreated:  testSpecificSettingsGetter().PostNamespaceCreatedFunc,
 			}
 		})
 	})
@@ -55,48 +59,16 @@ var _ = Describe("ClusterClass Creation using Cluster API quick-start test [PR-B
 
 var _ = Describe("Cluster creation with [Ignition] bootstrap [PR-Blocking]", func() {
 	const specName = "quick-start-ignition" // prefix (quick-start) copied from CAPI
-	Setup(specName, func(testSpecificClusterctlConfigPathGetter func() string) {
+	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		capi_e2e.QuickStartSpec(ctx, func() capi_e2e.QuickStartSpecInput {
 			return capi_e2e.QuickStartSpecInput{
 				E2EConfig:             e2eConfig,
-				ClusterctlConfigPath:  testSpecificClusterctlConfigPathGetter(),
+				ClusterctlConfigPath:  testSpecificSettingsGetter().ClusterctlConfigPath,
 				BootstrapClusterProxy: bootstrapClusterProxy,
 				ArtifactFolder:        artifactFolder,
 				SkipCleanup:           skipCleanup,
-				Flavor:                ptr.To("ignition"),
-			}
-		})
-	})
-})
-
-var _ = Describe("Cluster Creation using Cluster API quick-start test on vcsim [vcsim]", func() {
-	const specName = "quick-start-vcsim" // prefix (quick-start) copied from CAPI
-	Setup(specName, func(testSpecificClusterctlConfigPathGetter func() string) {
-		capi_e2e.QuickStartSpec(ctx, func() capi_e2e.QuickStartSpecInput {
-			return capi_e2e.QuickStartSpecInput{
-				E2EConfig:              e2eConfig,
-				ClusterctlConfigPath:   testSpecificClusterctlConfigPathGetter(),
-				BootstrapClusterProxy:  bootstrapClusterProxy,
-				ArtifactFolder:         artifactFolder,
-				SkipCleanup:            skipCleanup,
-				InfrastructureProvider: ptr.To("vsphere"),
-			}
-		})
-	})
-})
-
-var _ = Describe("ClusterClass  Creation using Cluster API quick-start test on vcsim [vcsim] [ClusterClass]", func() {
-	const specName = "quick-start-cluster-class-vcsim" // prefix (quick-start) copied from CAPI
-	Setup(specName, func(testSpecificClusterctlConfigPathGetter func() string) {
-		capi_e2e.QuickStartSpec(ctx, func() capi_e2e.QuickStartSpecInput {
-			return capi_e2e.QuickStartSpecInput{
-				E2EConfig:              e2eConfig,
-				ClusterctlConfigPath:   testSpecificClusterctlConfigPathGetter(),
-				BootstrapClusterProxy:  bootstrapClusterProxy,
-				ArtifactFolder:         artifactFolder,
-				SkipCleanup:            skipCleanup,
-				Flavor:                 ptr.To("topology"),
-				InfrastructureProvider: ptr.To("vsphere"),
+				Flavor:                ptr.To(testSpecificSettingsGetter().FlavorForMode("ignition")),
+				PostNamespaceCreated:  testSpecificSettingsGetter().PostNamespaceCreatedFunc,
 			}
 		})
 	})

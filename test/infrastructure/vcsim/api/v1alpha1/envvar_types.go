@@ -17,24 +17,46 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"fmt"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
-
-	vcsimhelpers "sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vcsim"
 )
 
 // EnvVarSpec defines the desired state of the EnvVar.
 type EnvVarSpec struct {
-	VCenterSimulator string            `json:"vCenterSimulator,omitempty"`
-	Cluster          ClusterEnvVarSpec `json:"cluster,omitempty"`
+	// Name of the VCenterSimulator instance to use as source for EnvVar values.
+	VCenterSimulator *NamespacedRef `json:"vCenterSimulator,omitempty"`
+
+	// Name of the ControlPlaneEndpoint instance to use as source for EnvVar values.
+	ControlPlaneEndpoint NamespacedRef `json:"controlPlaneEndpoint,omitempty"`
+
+	// Cluster specific values to use as source for EnvVar values.
+	Cluster ClusterEnvVarSpec `json:"cluster,omitempty"`
+
+	// Name of the VMOperatorDependencies instance to use as source for EnvVar values.
+	// If not specified, a default dependenciesConfig that works for vcsim is used.
+	// NOTE: this is required only for supervisor mode; also:
+	// - the system automatically picks the first StorageClass defined in the VMOperatorDependencies
+	// - the system automatically picks the first VirtualMachine class defined in the VMOperatorDependencies
+	// - the system automatically picks the first Image from the content library defined in the VMOperatorDependencies
+	VMOperatorDependencies *NamespacedRef `json:"vmOperatorDependencies,omitempty"`
+}
+
+// NamespacedRef defines a reference to an object of a well known API Group and kind.
+type NamespacedRef struct {
+	// Namespace of the referenced object.
+	// If empty, it defaults to the namespace of the parent object.
+	Namespace string `json:"namespace,omitempty"`
+
+	// Name of the referenced object.
+	Name string `json:"name,omitempty"`
 }
 
 // ClusterEnvVarSpec defines the spec for the EnvVar generator targeting a specific Cluster API cluster.
 type ClusterEnvVarSpec struct {
 	// The name of the Cluster API cluster.
 	Name string `json:"name"`
+
+	// The namespace of the Cluster API cluster.
+	Namespace string `json:"namespace"`
 
 	// The Kubernetes version of the Cluster API cluster.
 	// NOTE: This variable isn't related to the vcsim controller, but we are handling it here
@@ -102,40 +124,4 @@ type EnvVarList struct {
 
 func init() {
 	objectTypes = append(objectTypes, &EnvVar{}, &EnvVarList{})
-}
-
-func (c *ClusterEnvVarSpec) commonVariables() map[string]string {
-	return map[string]string{
-		"VSPHERE_POWER_OFF_MODE": ptr.Deref(c.PowerOffMode, "trySoft"),
-	}
-}
-
-// SupervisorVariables returns name/value pairs for a ClusterEnvVarSpec to be used for clusterctl templates when testing supervisor mode.
-func (c *ClusterEnvVarSpec) SupervisorVariables() map[string]string {
-	return c.commonVariables()
-}
-
-// GovmomiVariables returns name/value pairs for a ClusterEnvVarSpec to be used for clusterctl templates when testing govmomi mode.
-func (c *ClusterEnvVarSpec) GovmomiVariables() map[string]string {
-	vars := c.commonVariables()
-
-	datacenter := int(ptr.Deref(c.Datacenter, 0))
-	datastore := int(ptr.Deref(c.Datastore, 0))
-	cluster := int(ptr.Deref(c.Cluster, 0))
-
-	// Pick the template for the given Kubernetes version if any, otherwise the template for the latest
-	// version defined in the model.
-	template := vcsimhelpers.DefaultVMTemplates[len(vcsimhelpers.DefaultVMTemplates)-1]
-	if c.KubernetesVersion != nil {
-		template = fmt.Sprintf("ubuntu-2204-kube-%s", *c.KubernetesVersion)
-	}
-
-	// NOTE: omitting cluster Name intentionally because E2E tests provide this value in other ways
-	vars["VSPHERE_DATACENTER"] = vcsimhelpers.DatacenterName(datacenter)
-	vars["VSPHERE_DATASTORE"] = vcsimhelpers.DatastoreName(datastore)
-	vars["VSPHERE_FOLDER"] = vcsimhelpers.VMFolderName(datacenter)
-	vars["VSPHERE_NETWORK"] = vcsimhelpers.NetworkPath(datacenter, vcsimhelpers.DefaultNetworkName)
-	vars["VSPHERE_RESOURCE_POOL"] = vcsimhelpers.ResourcePoolPath(datacenter, cluster)
-	vars["VSPHERE_TEMPLATE"] = vcsimhelpers.VMPath(datacenter, template)
-	return vars
 }

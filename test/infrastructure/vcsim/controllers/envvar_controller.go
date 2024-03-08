@@ -20,12 +20,16 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
+	"fmt"
+	"net"
 	"strconv"
 	"sync"
 
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
@@ -35,6 +39,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
+	vcsimhelpers "sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vcsim"
 	vcsimv1 "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/api/v1alpha1"
 )
 
@@ -64,31 +69,43 @@ func (r *EnvVarReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ c
 		}
 		return ctrl.Result{}, err
 	}
+	if envVar.Spec.Cluster.Namespace == "" {
+		envVar.Spec.Cluster.Namespace = envVar.Namespace
+	}
 
 	// Fetch the VCenterSimulator instance
-	if envVar.Spec.VCenterSimulator == "" {
-		return ctrl.Result{}, errors.New("Spec.VCenter cannot be empty")
-	}
+	var vCenterSimulator *vcsimv1.VCenterSimulator
+	if envVar.Spec.VCenterSimulator != nil {
+		if envVar.Spec.VCenterSimulator.Name == "" {
+			return ctrl.Result{}, errors.New("Spec.VCenterSimulator.Name cannot be empty")
+		}
+		if envVar.Spec.VCenterSimulator.Namespace == "" {
+			envVar.Spec.VCenterSimulator.Namespace = envVar.Namespace
+		}
 
-	vCenterSimulator := &vcsimv1.VCenterSimulator{}
-	if err := r.Client.Get(ctx, client.ObjectKey{
-		Namespace: envVar.Namespace,
-		Name:      envVar.Spec.VCenterSimulator,
-	}, vCenterSimulator); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to get VCenter")
+		vCenterSimulator = &vcsimv1.VCenterSimulator{}
+		if err := r.Client.Get(ctx, client.ObjectKey{
+			Namespace: envVar.Spec.VCenterSimulator.Namespace,
+			Name:      envVar.Spec.VCenterSimulator.Name,
+		}, vCenterSimulator); err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to get VCenter")
+		}
+		log = log.WithValues("VCenter", klog.KObj(vCenterSimulator))
+		ctx = ctrl.LoggerInto(ctx, log)
 	}
-	log = log.WithValues("VCenter", klog.KObj(vCenterSimulator))
-	ctx = ctrl.LoggerInto(ctx, log)
 
 	// Fetch the ControlPlaneEndpoint instance
-	if envVar.Spec.Cluster.Name == "" {
-		return ctrl.Result{}, errors.New("Spec.Cluster.Name cannot be empty")
+	if envVar.Spec.ControlPlaneEndpoint.Name == "" {
+		return ctrl.Result{}, errors.New("Spec.ControlPlaneEndpoint.Name cannot be empty")
+	}
+	if envVar.Spec.ControlPlaneEndpoint.Namespace == "" {
+		envVar.Spec.ControlPlaneEndpoint.Namespace = envVar.Namespace
 	}
 
 	controlPlaneEndpoint := &vcsimv1.ControlPlaneEndpoint{}
 	if err := r.Client.Get(ctx, client.ObjectKey{
-		Namespace: envVar.Namespace,
-		Name:      envVar.Spec.Cluster.Name,
+		Namespace: envVar.Spec.ControlPlaneEndpoint.Namespace,
+		Name:      envVar.Spec.ControlPlaneEndpoint.Name,
 	}, controlPlaneEndpoint); err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to get ControlPlaneEndpoint")
 	}
@@ -124,7 +141,7 @@ func (r *EnvVarReconciler) reconcileNormal(ctx context.Context, envVar *vcsimv1.
 	if controlPlaneEndpoint.Status.Host == "" {
 		return ctrl.Result{Requeue: true}, nil
 	}
-	if vCenterSimulator.Status.Host == "" {
+	if vCenterSimulator != nil && vCenterSimulator.Status.Host == "" {
 		return ctrl.Result{Requeue: true}, nil
 	}
 
@@ -135,7 +152,7 @@ func (r *EnvVarReconciler) reconcileNormal(ctx context.Context, envVar *vcsimv1.
 		r.sshKeys = map[string]string{}
 	}
 
-	key := klog.KObj(vCenterSimulator).String()
+	key := klog.KObj(envVar).String()
 	sshKey, ok := r.sshKeys[key]
 	if !ok {
 		bitSize := 4096
@@ -161,7 +178,7 @@ func (r *EnvVarReconciler) reconcileNormal(ctx context.Context, envVar *vcsimv1.
 		"VSPHERE_SSH_AUTHORIZED_KEY": sshKey,
 
 		// other variables required by the cluster template.
-		"NAMESPACE":                   vCenterSimulator.Namespace,
+		"NAMESPACE":                   envVar.Spec.Cluster.Namespace,
 		"CLUSTER_NAME":                envVar.Spec.Cluster.Name,
 		"KUBERNETES_VERSION":          ptr.Deref(envVar.Spec.Cluster.KubernetesVersion, "v1.28.0"),
 		"CONTROL_PLANE_MACHINE_COUNT": strconv.Itoa(int(ptr.Deref(envVar.Spec.Cluster.ControlPlaneMachines, 1))),
@@ -175,32 +192,130 @@ func (r *EnvVarReconciler) reconcileNormal(ctx context.Context, envVar *vcsimv1.
 	// Variables below are generated using the same utilities used both also for E2E tests setup.
 	if r.SupervisorMode {
 		// variables for supervisor mode derived from the vCenterSimulator
-		for k, v := range vCenterSimulator.SupervisorVariables() {
+		for k, v := range vCenterSimulatorCommonVariables(vCenterSimulator) {
 			envVar.Status.Variables[k] = v
 		}
 
 		// Variables for supervisor mode derived from how do we setup dependency for vm-operator
-		for k, v := range dependenciesForVCenterSimulator(vCenterSimulator).Variables() {
+		// NOTE: if the VMOperatorDependencies to use is not specified, we use a default dependenciesConfig that works for vcsim.
+		dependenciesConfig := &vcsimv1.VMOperatorDependencies{ObjectMeta: metav1.ObjectMeta{Namespace: corev1.NamespaceDefault}}
+		dependenciesConfig.SetVCenterFromVCenterSimulator(vCenterSimulator)
+
+		if envVar.Spec.VMOperatorDependencies != nil {
+			if err := r.Client.Get(ctx, client.ObjectKey{
+				Namespace: envVar.Spec.VMOperatorDependencies.Namespace,
+				Name:      envVar.Spec.VMOperatorDependencies.Name,
+			}, dependenciesConfig); err != nil {
+				return ctrl.Result{}, errors.Wrapf(err, "failed to get VMOperatorDependencies")
+			}
+		}
+
+		for k, v := range vmOperatorDependenciesSupervisorVariables(dependenciesConfig) {
 			envVar.Status.Variables[k] = v
 		}
 
 		// variables for supervisor mode derived from envVar.Spec.Cluster
-		for k, v := range envVar.Spec.Cluster.SupervisorVariables() {
+		for k, v := range clusterEnvVarSpecSupervisorVariables(&envVar.Spec.Cluster) {
 			envVar.Status.Variables[k] = v
 		}
 		return ctrl.Result{}, nil
 	}
 
 	// variables for govmomi mode derived from the vCenterSimulator
-	for k, v := range vCenterSimulator.GovmomiVariables() {
+	for k, v := range vCenterSimulatorCommonVariables(vCenterSimulator) {
 		envVar.Status.Variables[k] = v
 	}
 
 	// variables for govmomi mode derived from envVar.Spec.Cluster
-	for k, v := range envVar.Spec.Cluster.GovmomiVariables() {
+	for k, v := range clusterEnvVarSpecGovmomiVariables(&envVar.Spec.Cluster) {
 		envVar.Status.Variables[k] = v
 	}
 	return ctrl.Result{}, nil
+}
+
+// vCenterSimulatorSupervisorVariables returns name/value pairs for a VCenterSimulator to be used for clusterctl templates when testing both in supervisor and govmomi mode.
+func vCenterSimulatorCommonVariables(v *vcsimv1.VCenterSimulator) map[string]string {
+	if v == nil {
+		return nil
+	}
+	host := v.Status.Host
+
+	// NOTE: best effort reverting back to local host because the assumption is that the vcsim controller pod will be port-forwarded on local host
+	_, port, err := net.SplitHostPort(host)
+	if err == nil {
+		host = net.JoinHostPort("127.0.0.1", port)
+	}
+
+	return map[string]string{
+		"VSPHERE_SERVER":         fmt.Sprintf("https://%s", v.Status.Host),
+		"VSPHERE_USERNAME":       v.Status.Username,
+		"VSPHERE_PASSWORD":       v.Status.Password,
+		"VSPHERE_TLS_THUMBPRINT": v.Status.Thumbprint,
+		"VSPHERE_STORAGE_POLICY": vcsimhelpers.DefaultStoragePolicyName,
+
+		// variables to set up govc for working with the vcsim instance.
+		"GOVC_URL":      fmt.Sprintf("https://%s:%s@%s/sdk", v.Status.Username, v.Status.Password, host),
+		"GOVC_INSECURE": "true",
+	}
+}
+
+// clusterEnvVarSpecCommonVariables returns name/value pairs for a ClusterEnvVarSpec to be used for clusterctl templates when testing both in supervisor and govmomi mode.
+func clusterEnvVarSpecCommonVariables(c *vcsimv1.ClusterEnvVarSpec) map[string]string {
+	return map[string]string{
+		"VSPHERE_POWER_OFF_MODE": ptr.Deref(c.PowerOffMode, "trySoft"),
+	}
+}
+
+// clusterEnvVarSpecSupervisorVariables returns name/value pairs for a ClusterEnvVarSpec to be used for clusterctl templates when testing supervisor mode.
+func clusterEnvVarSpecSupervisorVariables(c *vcsimv1.ClusterEnvVarSpec) map[string]string {
+	return clusterEnvVarSpecCommonVariables(c)
+}
+
+// clusterEnvVarSpecGovmomiVariables returns name/value pairs for a ClusterEnvVarSpec to be used for clusterctl templates when testing govmomi mode.
+func clusterEnvVarSpecGovmomiVariables(c *vcsimv1.ClusterEnvVarSpec) map[string]string {
+	vars := clusterEnvVarSpecCommonVariables(c)
+
+	datacenter := int(ptr.Deref(c.Datacenter, 0))
+	datastore := int(ptr.Deref(c.Datastore, 0))
+	cluster := int(ptr.Deref(c.Cluster, 0))
+
+	// Pick the template for the given Kubernetes version if any, otherwise the template for the latest
+	// version defined in the model.
+	template := vcsimhelpers.DefaultVMTemplates[len(vcsimhelpers.DefaultVMTemplates)-1]
+	if c.KubernetesVersion != nil {
+		template = fmt.Sprintf("ubuntu-2204-kube-%s", *c.KubernetesVersion)
+	}
+
+	// NOTE: omitting cluster Name intentionally because E2E tests provide this value in other ways
+	vars["VSPHERE_DATACENTER"] = vcsimhelpers.DatacenterName(datacenter)
+	vars["VSPHERE_DATASTORE"] = vcsimhelpers.DatastoreName(datastore)
+	vars["VSPHERE_FOLDER"] = vcsimhelpers.VMFolderName(datacenter)
+	vars["VSPHERE_NETWORK"] = vcsimhelpers.NetworkPath(datacenter, vcsimhelpers.DefaultNetworkName)
+	vars["VSPHERE_RESOURCE_POOL"] = vcsimhelpers.ResourcePoolPath(datacenter, cluster)
+	vars["VSPHERE_TEMPLATE"] = vcsimhelpers.VMPath(datacenter, template)
+	return vars
+}
+
+// vmOperatorDependenciesSupervisorVariables returns name/value pairs for a VCenterSimulator to be used for VMOperatorDependencies templates when testing supervisor mode.
+// NOTE:
+// - the system automatically picks the first StorageClass defined in the VMOperatorDependencies.
+// - the system automatically picks the first VirtualMachine class defined in the VMOperatorDependencies.
+// - the system automatically picks the first Image from the content library defined in the VMOperatorDependencies.
+func vmOperatorDependenciesSupervisorVariables(d *vcsimv1.VMOperatorDependencies) map[string]string {
+	vars := map[string]string{}
+	if d.Spec.VCenter != nil {
+		vars["VSPHERE_STORAGE_POLICY"] = d.Spec.VCenter.StoragePolicy
+	}
+	if len(d.Spec.StorageClasses) > 0 {
+		vars["VSPHERE_STORAGE_CLASS"] = d.Spec.StorageClasses[0]
+	}
+	if len(d.Spec.VirtualMachineClasses) > 0 {
+		vars["VSPHERE_MACHINE_CLASS_NAME"] = d.Spec.VirtualMachineClasses[0]
+	}
+	if len(d.Spec.VCenter.ContentLibrary.Items) > 0 {
+		vars["VSPHERE_IMAGE_NAME"] = d.Spec.VCenter.ContentLibrary.Items[0].Name
+	}
+	return vars
 }
 
 func (r *EnvVarReconciler) reconcileDelete(_ context.Context, _ *vcsimv1.EnvVar, _ *vcsimv1.VCenterSimulator, _ *vcsimv1.ControlPlaneEndpoint) (ctrl.Result, error) {

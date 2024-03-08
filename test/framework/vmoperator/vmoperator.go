@@ -42,6 +42,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
+	vcsimv1 "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/api/v1alpha1"
 )
 
 const DefaultNamespace = "vmware-system-vmop"
@@ -65,108 +66,68 @@ const (
 	caFilePathKey            = "CAFilePath"
 )
 
-type ContentLibraryItemFilesConfig struct {
-	Name    string
-	Content []byte
-}
-
-type ContentLibraryItemConfig struct {
-	Name        string
-	Files       []ContentLibraryItemFilesConfig
-	ItemType    string
-	ProductInfo string
-	OSInfo      string
-}
-
-type ContentLibraryConfig struct {
-	Name      string
-	Datastore string
-	Item      ContentLibraryItemConfig
-}
-
-type VCenterClusterConfig struct {
-	ServerURL  string
-	Username   string
-	Password   string
-	Thumbprint string
-
-	// supervisor is based on a single vCenter cluster
-	Datacenter     string
-	Cluster        string
-	Folder         string
-	ResourcePool   string
-	StoragePolicy  string
-	ContentLibrary ContentLibraryConfig
-}
-
-type UserNamespaceConfig struct {
-	Name                string
-	StorageClass        string
-	VirtualMachineClass string
-}
-
-// Dependencies models dependencies for the vm-operator.
-type Dependencies struct {
-	// This is the namespace where is deployed the vm-operator
-	Namespace string
-
-	// Info about the vCenter cluster the vm-operator is bound to
-	VCenterCluster VCenterClusterConfig
-
-	// Info about where the users are expected to store Cluster API clusters to be managed by the vm-operator
-	UserNamespace UserNamespaceConfig
-}
-
-func (d *Dependencies) Variables() map[string]string {
-	return map[string]string{
-		"VSPHERE_STORAGE_POLICY":     d.VCenterCluster.StoragePolicy,
-		"VSPHERE_IMAGE_NAME":         d.VCenterCluster.ContentLibrary.Item.Name,
-		"VSPHERE_STORAGE_CLASS":      d.UserNamespace.StorageClass,
-		"VSPHERE_MACHINE_CLASS_NAME": d.UserNamespace.VirtualMachineClass,
-	}
-}
-
 // ReconcileDependencies reconciles dependencies for the vm-operator.
 // NOTE: This func is idempotent, it creates objects if missing otherwise it uses existing ones
 // (this will allow e.g. to update images once and re-use for many test run).
-func ReconcileDependencies(ctx context.Context, c client.Client, config *Dependencies) error {
+func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesConfig *vcsimv1.VMOperatorDependencies) error {
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Reconciling dependencies for the VMOperator Deployment")
 
+	config := dependenciesConfig.DeepCopy()
+
+	// If we are using a VCenterSimulator, read it build a config.Spec.VCenter for it (so the code below can assume Spec.VCenter is always set).
+	// Also, add default storage and vm class for vcsim in not otherwise specified.
+	if config.Spec.VCenterSimulatorRef != nil {
+		vCenterSimulator := &vcsimv1.VCenterSimulator{}
+		if err := c.Get(ctx, client.ObjectKey{
+			Namespace: config.Spec.VCenterSimulatorRef.Namespace,
+			Name:      config.Spec.VCenterSimulatorRef.Name,
+		}, vCenterSimulator); err != nil {
+			return errors.Wrapf(err, "failed to get vCenterSimulator %s", klog.KRef(config.Spec.VCenterSimulatorRef.Namespace, config.Spec.VCenterSimulatorRef.Name))
+		}
+
+		config.SetVCenterFromVCenterSimulator(vCenterSimulator)
+	}
+
+	// default the OperatorRef if not specified.
+	if config.Spec.OperatorRef == nil {
+		config.Spec.OperatorRef = &vcsimv1.VMOperatorRef{Namespace: DefaultNamespace}
+	}
+
 	// Get a Client to VCenter and get holds on the relevant objects that should already exist
 	params := session.NewParams().
-		WithServer(config.VCenterCluster.ServerURL).
-		WithThumbprint(config.VCenterCluster.Thumbprint).
-		WithUserInfo(config.VCenterCluster.Username, config.VCenterCluster.Password)
+		WithServer(config.Spec.VCenter.ServerURL).
+		WithThumbprint(config.Spec.VCenter.Thumbprint).
+		WithUserInfo(config.Spec.VCenter.Username, config.Spec.VCenter.Password)
 
 	s, err := session.GetOrCreate(ctx, params)
 	if err != nil {
 		return errors.Wrapf(err, "failed to connect to vCenter Server instance to read dependency references")
 	}
 
-	datacenter, err := s.Finder.Datacenter(ctx, config.VCenterCluster.Datacenter)
+	datacenter, err := s.Finder.Datacenter(ctx, config.Spec.VCenter.Datacenter)
 	if err != nil {
-		return errors.Wrapf(err, "failed to get datacenter %s", config.VCenterCluster.Datacenter)
+		return errors.Wrapf(err, "failed to get datacenter %s", config.Spec.VCenter.Datacenter)
 	}
 
-	cluster, err := s.Finder.ClusterComputeResource(ctx, config.VCenterCluster.Cluster)
+	cluster, err := s.Finder.ClusterComputeResource(ctx, config.Spec.VCenter.Cluster)
 	if err != nil {
-		return errors.Wrapf(err, "failed to get cluster %s", config.VCenterCluster.Cluster)
+		return errors.Wrapf(err, "failed to get cluster %s", config.Spec.VCenter.Cluster)
 	}
 
-	folder, err := s.Finder.Folder(ctx, config.VCenterCluster.Folder)
+	folder, err := s.Finder.Folder(ctx, config.Spec.VCenter.Folder)
 	if err != nil {
-		return errors.Wrapf(err, "failed to get folder %s", config.VCenterCluster.Folder)
+		return errors.Wrapf(err, "failed to get folder %s", config.Spec.VCenter.Folder)
 	}
 
-	resourcePool, err := s.Finder.ResourcePool(ctx, config.VCenterCluster.ResourcePool)
+	resourcePool, err := s.Finder.ResourcePool(ctx, config.Spec.VCenter.ResourcePool)
 	if err != nil {
-		return errors.Wrapf(err, "failed to get resourcePool %s", config.VCenterCluster.ResourcePool)
+		return errors.Wrapf(err, "failed to get resourcePool %s", config.Spec.VCenter.ResourcePool)
 	}
 
-	contentLibraryDatastore, err := s.Finder.Datastore(ctx, config.VCenterCluster.ContentLibrary.Datastore)
+	contentLibraryDatastore, err := s.Finder.Datastore(ctx, config.Spec.VCenter.ContentLibrary.Datastore)
 	if err != nil {
-		return errors.Wrapf(err, "failed to get contentLibraryDatastore %s", config.VCenterCluster.ContentLibrary.Datastore)
+		return errors.Wrapf(err, "failed to get contentLibraryDatastore %s", config.Spec.VCenter.ContentLibrary.Datastore)
 	}
 
 	pbmClient, err := pbm.NewClient(ctx, s.Client.Client)
@@ -174,60 +135,60 @@ func ReconcileDependencies(ctx context.Context, c client.Client, config *Depende
 		return errors.Wrap(err, "failed to get storage policy client")
 	}
 
-	storagePolicyID, err := pbmClient.ProfileIDByName(ctx, config.VCenterCluster.StoragePolicy)
+	storagePolicyID, err := pbmClient.ProfileIDByName(ctx, config.Spec.VCenter.StoragePolicy)
 	if err != nil {
-		return errors.Wrapf(err, "failed to get storage policy profile %s", config.VCenterCluster.StoragePolicy)
+		return errors.Wrapf(err, "failed to get storage policy profile %s", config.Spec.VCenter.StoragePolicy)
 	}
 
-	// Create StorageClass & bind it to the user namespace via a ResourceQuota
+	// Create StorageClasses & bind them to the user namespace via a ResourceQuota
 	// NOTE: vm-operator is using the ResourceQuota to figure out which StorageClass can be used from a namespace
-	// TODO: consider if we want to support more than one storage class
-
-	storageClass := &storagev1.StorageClass{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: config.UserNamespace.StorageClass,
-		},
-		Provisioner: "kubernetes.io/vsphere-volume",
-		Parameters: map[string]string{
-			"storagePolicyID": storagePolicyID,
-		},
-	}
-
-	if err := c.Get(ctx, client.ObjectKeyFromObject(storageClass), storageClass); err != nil {
-		if !apierrors.IsNotFound(err) {
-			return errors.Wrapf(err, "failed to get vm-operator StorageClass %s", storageClass.Name)
-		}
-
-		if err := c.Create(ctx, storageClass); err != nil {
-			return errors.Wrapf(err, "failed to create vm-operator StorageClass %s", storageClass.Name)
-		}
-		log.Info("Created vm-operator StorageClass", "StorageClass", klog.KObj(storageClass))
-	}
-
-	// TODO: rethink about this, for now we are creating a ResourceQuota with the same name of the StorageClass, might be this is not ok when hooking into a real vCenter
-	resourceQuota := &corev1.ResourceQuota{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      config.UserNamespace.StorageClass,
-			Namespace: config.UserNamespace.Name,
-		},
-		Spec: corev1.ResourceQuotaSpec{
-			Hard: map[corev1.ResourceName]resource.Quantity{
-				corev1.ResourceName(fmt.Sprintf("%s.storageclass.storage.k8s.io/requests.storage", storageClass.Name)): resource.MustParse("1Gi"),
+	for _, sc := range config.Spec.StorageClasses {
+		storageClass := &storagev1.StorageClass{
+			TypeMeta: metav1.TypeMeta{},
+			ObjectMeta: metav1.ObjectMeta{
+				Name: sc,
 			},
-		},
-	}
-
-	if err := c.Get(ctx, client.ObjectKeyFromObject(resourceQuota), resourceQuota); err != nil {
-		if !apierrors.IsNotFound(err) {
-			return errors.Wrapf(err, "failed to get vm-operator ResourceQuota %s", resourceQuota.Name)
+			Provisioner: "kubernetes.io/vsphere-volume",
+			Parameters: map[string]string{
+				"storagePolicyID": storagePolicyID,
+			},
 		}
 
-		if err := c.Create(ctx, resourceQuota); err != nil {
-			return errors.Wrapf(err, "failed to create vm-operator ResourceQuota %s", resourceQuota.Name)
+		if err := c.Get(ctx, client.ObjectKeyFromObject(storageClass), storageClass); err != nil {
+			if !apierrors.IsNotFound(err) {
+				return errors.Wrapf(err, "failed to get vm-operator StorageClass %s", storageClass.Name)
+			}
+
+			if err := c.Create(ctx, storageClass); err != nil {
+				return errors.Wrapf(err, "failed to create vm-operator StorageClass %s", storageClass.Name)
+			}
+			log.Info("Created vm-operator StorageClass", "StorageClass", klog.KObj(storageClass))
 		}
-		log.Info("Created vm-operator ResourceQuota", "ResourceQuota", klog.KObj(resourceQuota))
+
+		// TODO: rethink about this, for now we are creating a ResourceQuota with the same name of the StorageClass, might be this is not ok when hooking into a real vCenter
+		resourceQuota := &corev1.ResourceQuota{
+			TypeMeta: metav1.TypeMeta{},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      sc,
+				Namespace: config.Namespace,
+			},
+			Spec: corev1.ResourceQuotaSpec{
+				Hard: map[corev1.ResourceName]resource.Quantity{
+					corev1.ResourceName(fmt.Sprintf("%s.storageclass.storage.k8s.io/requests.storage", storageClass.Name)): resource.MustParse("1Gi"),
+				},
+			},
+		}
+
+		if err := c.Get(ctx, client.ObjectKeyFromObject(resourceQuota), resourceQuota); err != nil {
+			if !apierrors.IsNotFound(err) {
+				return errors.Wrapf(err, "failed to get vm-operator ResourceQuota %s", resourceQuota.Name)
+			}
+
+			if err := c.Create(ctx, resourceQuota); err != nil {
+				return errors.Wrapf(err, "failed to create vm-operator ResourceQuota %s", resourceQuota.Name)
+			}
+			log.Info("Created vm-operator ResourceQuota", "ResourceQuota", klog.KObj(resourceQuota))
+		}
 	}
 
 	// Create Availability zones CR in K8s and bind them to the user namespace
@@ -236,12 +197,12 @@ func ReconcileDependencies(ctx context.Context, c client.Client, config *Depende
 
 	availabilityZone := &topologyv1.AvailabilityZone{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: strings.ReplaceAll(strings.ReplaceAll(strings.ToLower(strings.TrimPrefix(config.VCenterCluster.Cluster, "/")), "_", "-"), "/", "-"),
+			Name: strings.ReplaceAll(strings.ReplaceAll(strings.ToLower(strings.TrimPrefix(config.Spec.VCenter.Cluster, "/")), "_", "-"), "/", "-"),
 		},
 		Spec: topologyv1.AvailabilityZoneSpec{
 			ClusterComputeResourceMoId: cluster.Reference().Value,
 			Namespaces: map[string]topologyv1.NamespaceInfo{
-				config.UserNamespace.Name: {
+				config.Namespace: {
 					PoolMoId:   resourcePool.Reference().Value,
 					FolderMoId: folder.Reference().Value,
 				},
@@ -260,16 +221,27 @@ func ReconcileDependencies(ctx context.Context, c client.Client, config *Depende
 		log.Info("Created vm-operator AvailabilityZone", "AvailabilityZone", klog.KObj(availabilityZone))
 	}
 
+	if _, ok := availabilityZone.Spec.Namespaces[config.Namespace]; !ok {
+		availabilityZone.Spec.Namespaces[config.Namespace] = topologyv1.NamespaceInfo{
+			PoolMoId:   resourcePool.Reference().Value,
+			FolderMoId: folder.Reference().Value,
+		}
+		if err := c.Update(ctx, availabilityZone); err != nil {
+			return errors.Wrapf(err, "failed to update AvailabilityZone %s", availabilityZone.Name)
+		}
+		log.Info("Update vm-operator AvailabilityZone", "AvailabilityZone", klog.KObj(availabilityZone))
+	}
+
 	// Create vm-operator Secret in K8s
 	// This secret contains credentials to access vCenter the vm-operator acts on.
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      providerConfigMapName, // using the same name of the config map for consistency.
-			Namespace: config.Namespace,
+			Namespace: config.Spec.OperatorRef.Namespace,
 		},
 		Data: map[string][]byte{
-			"username": []byte(config.VCenterCluster.Username),
-			"password": []byte(config.VCenterCluster.Password),
+			"username": []byte(config.Spec.VCenter.Username),
+			"password": []byte(config.Spec.VCenter.Password),
 		},
 		Type: corev1.SecretTypeOpaque,
 	}
@@ -286,15 +258,15 @@ func ReconcileDependencies(ctx context.Context, c client.Client, config *Depende
 	// Create vm-operator ConfigMap in K8s
 	// This ConfigMap contains settings for the vm-operator instance.
 
-	host, port, err := net.SplitHostPort(config.VCenterCluster.ServerURL)
+	host, port, err := net.SplitHostPort(config.Spec.VCenter.ServerURL)
 	if err != nil {
-		return errors.Wrapf(err, "failed to split host %s", config.VCenterCluster.ServerURL)
+		return errors.Wrapf(err, "failed to split host %s", config.Spec.VCenter.ServerURL)
 	}
 
 	providerConfigMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      providerConfigMapName,
-			Namespace: config.Namespace,
+			Namespace: config.Spec.OperatorRef.Namespace,
 		},
 		Data: map[string]string{
 			caFilePathKey:            "", // Leaving this empty because we don't have (yet) a solution to inject a CA file into the vm-operator pod.
@@ -322,47 +294,49 @@ func ReconcileDependencies(ctx context.Context, c client.Client, config *Depende
 	}
 
 	// Create VirtualMachineClass in K8s and bind it to the user namespace
-	// TODO: figure out if to add more vm classes / if to make them configurable via config
-	vmClass := &vmoprv1.VirtualMachineClass{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: config.UserNamespace.VirtualMachineClass,
-		},
-		Spec: vmoprv1.VirtualMachineClassSpec{
-			Hardware: vmoprv1.VirtualMachineClassHardware{
-				Cpus:   8,
-				Memory: resource.MustParse("64G"),
+	for _, vmc := range config.Spec.VirtualMachineClasses {
+		vmClass := &vmoprv1.VirtualMachineClass{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: vmc,
 			},
-		},
-	}
-	if err := c.Get(ctx, client.ObjectKeyFromObject(vmClass), vmClass); err != nil {
-		if !apierrors.IsNotFound(err) {
-			return errors.Wrapf(err, "failed to get vm-operator VirtualMachineClass %s", vmClass.Name)
+			Spec: vmoprv1.VirtualMachineClassSpec{
+				// TODO: figure out if to make vm class configurable via API
+				Hardware: vmoprv1.VirtualMachineClassHardware{
+					Cpus:   2,
+					Memory: resource.MustParse("4G"),
+				},
+			},
 		}
-		if err := c.Create(ctx, vmClass); err != nil {
-			return errors.Wrapf(err, "failed to create vm-operator VirtualMachineClass %s", vmClass.Name)
+		if err := c.Get(ctx, client.ObjectKeyFromObject(vmClass), vmClass); err != nil {
+			if !apierrors.IsNotFound(err) {
+				return errors.Wrapf(err, "failed to get vm-operator VirtualMachineClass %s", vmClass.Name)
+			}
+			if err := c.Create(ctx, vmClass); err != nil {
+				return errors.Wrapf(err, "failed to create vm-operator VirtualMachineClass %s", vmClass.Name)
+			}
+			log.Info("Created vm-operator VirtualMachineClass", "VirtualMachineClass", klog.KObj(vmClass))
 		}
-		log.Info("Created vm-operator VirtualMachineClass", "VirtualMachineClass", klog.KObj(vmClass))
-	}
 
-	vmClassBinding := &vmoprv1.VirtualMachineClassBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      vmClass.Name,
-			Namespace: config.UserNamespace.Name,
-		},
-		ClassRef: vmoprv1.ClassReference{
-			APIVersion: vmoprv1.SchemeGroupVersion.String(),
-			Kind:       "VirtualMachineClass",
-			Name:       vmClass.Name,
-		},
-	}
-	if err := c.Get(ctx, client.ObjectKeyFromObject(vmClassBinding), vmClassBinding); err != nil {
-		if !apierrors.IsNotFound(err) {
-			return errors.Wrapf(err, "failed to get vm-operator VirtualMachineClassBinding %s", vmClassBinding.Name)
+		vmClassBinding := &vmoprv1.VirtualMachineClassBinding{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      vmClass.Name,
+				Namespace: config.Namespace,
+			},
+			ClassRef: vmoprv1.ClassReference{
+				APIVersion: vmoprv1.SchemeGroupVersion.String(),
+				Kind:       "VirtualMachineClass",
+				Name:       vmClass.Name,
+			},
 		}
-		if err := c.Create(ctx, vmClassBinding); err != nil {
-			return errors.Wrapf(err, "failed to create vm-operator VirtualMachineClassBinding %s", vmClassBinding.Name)
+		if err := c.Get(ctx, client.ObjectKeyFromObject(vmClassBinding), vmClassBinding); err != nil {
+			if !apierrors.IsNotFound(err) {
+				return errors.Wrapf(err, "failed to get vm-operator VirtualMachineClassBinding %s", vmClassBinding.Name)
+			}
+			if err := c.Create(ctx, vmClassBinding); err != nil {
+				return errors.Wrapf(err, "failed to create vm-operator VirtualMachineClassBinding %s", vmClassBinding.Name)
+			}
+			log.Info("Created vm-operator VirtualMachineClassBinding", "VirtualMachineClassBinding", klog.KObj(vmClassBinding))
 		}
-		log.Info("Created vm-operator VirtualMachineClassBinding", "VirtualMachineClassBinding", klog.KObj(vmClassBinding))
 	}
 
 	// Create a ContentLibrary in K8s and in vCenter, bind it to the K8s namespace
@@ -371,14 +345,14 @@ func ReconcileDependencies(ctx context.Context, c client.Client, config *Depende
 	// - k8s: ContentLibraryProvider, ContentSource (both representing the library), a VirtualMachineImage (representing the Item)
 
 	restClient := rest.NewClient(s.Client.Client)
-	if err := restClient.Login(ctx, url.UserPassword(config.VCenterCluster.Username, config.VCenterCluster.Password)); err != nil {
+	if err := restClient.Login(ctx, url.UserPassword(config.Spec.VCenter.Username, config.Spec.VCenter.Password)); err != nil {
 		return errors.Wrap(err, "failed to login using the rest client")
 	}
 
 	libMgr := library.NewManager(restClient)
 
 	contentLibrary := library.Library{
-		Name: config.VCenterCluster.ContentLibrary.Name,
+		Name: config.Spec.VCenter.ContentLibrary.Name,
 		Type: "LOCAL",
 		Storage: []library.StorageBackings{
 			{
@@ -435,7 +409,7 @@ func ReconcileDependencies(ctx context.Context, c client.Client, config *Depende
 	contentSourceBinding := &vmoprv1.ContentSourceBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      contentLibraryID,
-			Namespace: config.UserNamespace.Name,
+			Namespace: config.Namespace,
 		},
 		ContentSourceRef: vmoprv1.ContentSourceReference{
 			APIVersion: vmoprv1.SchemeGroupVersion.String(),
@@ -475,111 +449,114 @@ func ReconcileDependencies(ctx context.Context, c client.Client, config *Depende
 		log.Info("Created vm-operator ContentLibraryProvider", "ContentSource", klog.KObj(contentSource), "ContentLibraryProvider", klog.KObj(contentLibraryProvider))
 	}
 
-	libraryItem := library.Item{
-		Name:      config.VCenterCluster.ContentLibrary.Item.Name,
-		Type:      config.VCenterCluster.ContentLibrary.Item.ItemType,
-		LibraryID: contentLibraryID,
-	}
-
-	items, err := libMgr.GetLibraryItems(ctx, contentLibraryID)
-	if err != nil {
-		return errors.Wrap(err, "failed to get ContentLibraryItems")
-	}
-
-	var libraryItemID string
-	for _, item := range items {
-		if item.Name == libraryItem.Name {
-			libraryItemID = item.ID
-			break
+	for _, item := range config.Spec.VCenter.ContentLibrary.Items {
+		libraryItem := library.Item{
+			Name:      item.Name,
+			Type:      item.ItemType,
+			LibraryID: contentLibraryID,
 		}
-	}
 
-	if libraryItemID == "" {
-		id, err := libMgr.CreateLibraryItem(ctx, libraryItem)
+		items, err := libMgr.GetLibraryItems(ctx, contentLibraryID)
 		if err != nil {
-			return errors.Wrapf(err, "failed to create vm-operator ContentLibraryItem %s", libraryItem.Name)
-		}
-		log.Info("Created vm-operator LibraryItem in vCenter", "ContentLibrary", contentLibrary.Name, "LibraryItem", libraryItem.Name)
-		libraryItemID = id
-	}
-
-	virtualMachineImage := &vmoprv1.VirtualMachineImage{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: libraryItem.Name,
-		},
-		Spec: vmoprv1.VirtualMachineImageSpec{
-			ProductInfo: vmoprv1.VirtualMachineImageProductInfo{
-				FullVersion: config.VCenterCluster.ContentLibrary.Item.ProductInfo,
-			},
-			OSInfo: vmoprv1.VirtualMachineImageOSInfo{
-				Type: config.VCenterCluster.ContentLibrary.Item.OSInfo,
-			},
-		},
-	}
-
-	if err := controllerutil.SetOwnerReference(contentLibraryProvider, virtualMachineImage, c.Scheme()); err != nil {
-		return errors.Wrap(err, "failed to set VirtualMachineImage owner")
-	}
-	if err := c.Get(ctx, client.ObjectKeyFromObject(virtualMachineImage), virtualMachineImage); err != nil {
-		if !apierrors.IsNotFound(err) {
-			return errors.Wrapf(err, "failed to get vm-operator VirtualMachineImage %s", virtualMachineImage.Name)
-		}
-		if err := c.Create(ctx, virtualMachineImage); err != nil {
-			return errors.Wrapf(err, "failed to create vm-operator VirtualMachineImage %s", virtualMachineImage.Name)
-		}
-		log.Info("Created vm-operator VirtualMachineImage", "ContentSource", klog.KObj(contentSource), "ContentLibraryProvider", klog.KObj(contentLibraryProvider), "VirtualMachineImage", klog.KObj(virtualMachineImage))
-	}
-
-	existingFiles, err := libMgr.ListLibraryItemFiles(ctx, libraryItemID)
-	if err != nil {
-		return errors.Wrapf(err, "failed to list files for vm-operator libraryItem %s", libraryItem.Name)
-	}
-
-	uploadFunc := func(sessionID, file string, content []byte) error {
-		info := library.UpdateFile{
-			Name:       file,
-			SourceType: "PUSH",
-			Size:       int64(len(content)),
+			return errors.Wrap(err, "failed to get ContentLibraryItems")
 		}
 
-		update, err := libMgr.AddLibraryItemFile(ctx, sessionID, info)
-		if err != nil {
-			return err
-		}
-
-		u, err := url.Parse(update.UploadEndpoint.URI)
-		if err != nil {
-			return err
-		}
-
-		p := soap.DefaultUpload
-		p.ContentLength = info.Size
-
-		return libMgr.Client.Upload(ctx, bytes.NewReader(content), u, &p)
-	}
-
-	for _, file := range config.VCenterCluster.ContentLibrary.Item.Files {
-		exists := false
-		for _, existingFile := range existingFiles {
-			if file.Name == existingFile.Name {
-				exists = true
+		var libraryItemID string
+		for _, i := range items {
+			if i.Name == libraryItem.Name {
+				libraryItemID = i.ID
+				break
 			}
 		}
-		if exists {
-			continue
+
+		if libraryItemID == "" {
+			id, err := libMgr.CreateLibraryItem(ctx, libraryItem)
+			if err != nil {
+				return errors.Wrapf(err, "failed to create vm-operator ContentLibraryItem %s", libraryItem.Name)
+			}
+			log.Info("Created vm-operator LibraryItem in vCenter", "ContentLibrary", contentLibrary.Name, "LibraryItem", libraryItem.Name)
+			libraryItemID = id
 		}
 
-		sessionID, err := libMgr.CreateLibraryItemUpdateSession(ctx, library.Session{LibraryItemID: libraryItemID})
+		virtualMachineImage := &vmoprv1.VirtualMachineImage{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: libraryItem.Name,
+			},
+			Spec: vmoprv1.VirtualMachineImageSpec{
+				ProductInfo: vmoprv1.VirtualMachineImageProductInfo{
+					FullVersion: item.ProductInfo,
+				},
+				OSInfo: vmoprv1.VirtualMachineImageOSInfo{
+					Type: item.OSInfo,
+				},
+			},
+		}
+
+		if err := controllerutil.SetOwnerReference(contentLibraryProvider, virtualMachineImage, c.Scheme()); err != nil {
+			return errors.Wrap(err, "failed to set VirtualMachineImage owner")
+		}
+		if err := c.Get(ctx, client.ObjectKeyFromObject(virtualMachineImage), virtualMachineImage); err != nil {
+			if !apierrors.IsNotFound(err) {
+				return errors.Wrapf(err, "failed to get vm-operator VirtualMachineImage %s", virtualMachineImage.Name)
+			}
+			if err := c.Create(ctx, virtualMachineImage); err != nil {
+				return errors.Wrapf(err, "failed to create vm-operator VirtualMachineImage %s", virtualMachineImage.Name)
+			}
+			log.Info("Created vm-operator VirtualMachineImage", "ContentSource", klog.KObj(contentSource), "ContentLibraryProvider", klog.KObj(contentLibraryProvider), "VirtualMachineImage", klog.KObj(virtualMachineImage))
+		}
+
+		existingFiles, err := libMgr.ListLibraryItemFiles(ctx, libraryItemID)
 		if err != nil {
-			return errors.Wrapf(err, "failed to start update session for vm-operator libraryItem %s", libraryItem.Name)
+			return errors.Wrapf(err, "failed to list files for vm-operator libraryItem %s", libraryItem.Name)
 		}
-		if err := uploadFunc(sessionID, file.Name, file.Content); err != nil {
-			return errors.Wrapf(err, "failed to upload data for vm-operator libraryItem %s", libraryItem.Name)
+
+		uploadFunc := func(sessionID, file string, content []byte) error {
+			info := library.UpdateFile{
+				Name:       file,
+				SourceType: "PUSH",
+				Size:       int64(len(content)),
+			}
+
+			update, err := libMgr.AddLibraryItemFile(ctx, sessionID, info)
+			if err != nil {
+				return err
+			}
+
+			u, err := url.Parse(update.UploadEndpoint.URI)
+			if err != nil {
+				return err
+			}
+
+			p := soap.DefaultUpload
+			p.ContentLength = info.Size
+
+			return libMgr.Client.Upload(ctx, bytes.NewReader(content), u, &p)
 		}
-		if err := libMgr.CompleteLibraryItemUpdateSession(ctx, sessionID); err != nil {
-			return errors.Wrapf(err, "failed to complete update session for vm-operator libraryItem %s", libraryItem.Name)
+
+		for _, file := range item.Files {
+			exists := false
+			for _, existingFile := range existingFiles {
+				if file.Name == existingFile.Name {
+					exists = true
+				}
+			}
+			if exists {
+				continue
+			}
+
+			sessionID, err := libMgr.CreateLibraryItemUpdateSession(ctx, library.Session{LibraryItemID: libraryItemID})
+			if err != nil {
+				return errors.Wrapf(err, "failed to start update session for vm-operator libraryItem %s", libraryItem.Name)
+			}
+			if err := uploadFunc(sessionID, file.Name, file.Content); err != nil {
+				return errors.Wrapf(err, "failed to upload data for vm-operator libraryItem %s", libraryItem.Name)
+			}
+			if err := libMgr.CompleteLibraryItemUpdateSession(ctx, sessionID); err != nil {
+				return errors.Wrapf(err, "failed to complete update session for vm-operator libraryItem %s", libraryItem.Name)
+			}
+			log.Info("Uploaded vm-operator LibraryItemFile in vCenter", "ContentLibrary", contentLibrary.Name, "libraryItem", libraryItem.Name, "LibraryItemFile", file.Name)
 		}
-		log.Info("Uploaded vm-operator LibraryItemFile in vCenter", "ContentLibrary", contentLibrary.Name, "libraryItem", libraryItem.Name, "LibraryItemFile", file.Name)
 	}
+
 	return nil
 }

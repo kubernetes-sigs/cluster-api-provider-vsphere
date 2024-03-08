@@ -68,52 +68,76 @@ function login() {
 AUTH=
 E2E_IMAGE_SHA=
 GCR_KEY_FILE="${GCR_KEY_FILE:-}"
-export VSPHERE_SERVER="${GOVC_URL}"
-export VSPHERE_USERNAME="${GOVC_USERNAME}"
-export VSPHERE_PASSWORD="${GOVC_PASSWORD}"
-export VSPHERE_SSH_AUTHORIZED_KEY="${VM_SSH_PUB_KEY}"
+export VSPHERE_SERVER="${GOVC_URL:-}"
+export VSPHERE_USERNAME="${GOVC_USERNAME:-}"
+export VSPHERE_PASSWORD="${GOVC_PASSWORD:-}"
+export VSPHERE_SSH_AUTHORIZED_KEY="${VM_SSH_PUB_KEY:-}"
 export VSPHERE_SSH_PRIVATE_KEY="/root/ssh/.private-key/private-key"
 export E2E_CONF_FILE="${REPO_ROOT}/test/e2e/config/vsphere.yaml"
 export E2E_CONF_OVERRIDE_FILE=""
-export E2E_CAPV_MODE="${CAPV_MODE:-govmomi}"
+export E2E_VM_OPERATOR_VERSION="${VM_OPERATOR_VERSION:-v1.8.1}"
 export ARTIFACTS="${ARTIFACTS:-${REPO_ROOT}/_artifacts}"
 export DOCKER_IMAGE_TAR="/tmp/images/image.tar"
 export GC_KIND="false"
 
 # Make tests run in-parallel
 export GINKGO_NODES=5
+
 # Set the kubeconfig to the IPAM cluster so the e2e tests can claim ip addresses
 # for kube-vip.
 export E2E_IPAM_KUBECONFIG="/root/ipam-conf/capv-services.conf"
 
-# Run the vpn client in container
-docker run --rm -d --name vpn -v "${HOME}/.openvpn/:${HOME}/.openvpn/" \
-  -w "${HOME}/.openvpn/" --cap-add=NET_ADMIN --net=host --device=/dev/net/tun \
-  gcr.io/k8s-staging-capi-vsphere/extra/openvpn:latest
+# Only run the vpn/check for IPAM when we need them
+re='\[vcsim\]'
+if [[ ! "${GINKGO_FOCUS:-}" =~ $re ]]; then
+  # Run the vpn client in container
+  docker run --rm -d --name vpn -v "${HOME}/.openvpn/:${HOME}/.openvpn/" \
+    -w "${HOME}/.openvpn/" --cap-add=NET_ADMIN --net=host --device=/dev/net/tun \
+    gcr.io/k8s-staging-capi-vsphere/extra/openvpn:latest
 
-# Tail the vpn logs
-docker logs vpn
+  # Tail the vpn logs
+  docker logs vpn
 
-# Wait until the VPN connection is active and we are able to reach the ipam cluster
-function wait_for_ipam_reachable() {
-  local n=0
-  until [ $n -ge 30 ]; do
-    kubectl --kubeconfig="${E2E_IPAM_KUBECONFIG}" --request-timeout=2s  get inclusterippools.ipam.cluster.x-k8s.io && RET=$? || RET=$?
-    if [[ "$RET" -eq 0 ]]; then
-      break
-    fi
-    n=$((n + 1))
-    sleep 1
-  done
-  return "$RET"
-}
-wait_for_ipam_reachable
+  # Wait until the VPN connection is active and we are able to reach the ipam cluster
+  function wait_for_ipam_reachable() {
+    local n=0
+    until [ $n -ge 30 ]; do
+      kubectl --kubeconfig="${E2E_IPAM_KUBECONFIG}" --request-timeout=2s  get inclusterippools.ipam.cluster.x-k8s.io && RET=$? || RET=$?
+      if [[ "$RET" -eq 0 ]]; then
+        break
+      fi
+      n=$((n + 1))
+      sleep 1
+    done
+    return "$RET"
+  }
+  wait_for_ipam_reachable
+fi
 
 make envsubst
+
+# kind:prepullImage pre-pull a docker image if no already present locally.
+# The result will be available in the retVal value which is accessible from the caller.
+kind::prepullImage () {
+  local image=$1
+  image="${image//+/_}"
+
+  if [[ "$(docker images -q "$image" 2> /dev/null)" == "" ]]; then
+    echo "+ Pulling $image"
+    docker pull "$image"
+  else
+    echo "+ image $image already present in the system, skipping pre-pull"
+  fi
+}
+
+if [[ ${GINKGO_FOCUS:-} =~ \\\[supervisor\\\] ]]; then
+   kind::prepullImage "gcr.io/k8s-staging-capi-vsphere/extra/vm-operator:${E2E_VM_OPERATOR_VERSION}"
+fi
 
 ARCH="$(go env GOARCH)"
 
 # Only build and upload the image if we run tests which require it to save some $.
+# NOTE: the image is required for clusterctl upgrade tests, and those test are run only as part of the main e2e test job (without any focus)
 if [[ -z "${GINKGO_FOCUS+x}" ]]; then
   # Save the docker image locally
   make e2e-images

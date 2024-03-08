@@ -232,7 +232,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	scheme := initScheme()
 
 	Byf("Loading the e2e test configuration from %q", configPath)
-	e2eConfig, err = vsphereframework.LoadE2EConfig(ctx, configPath)
+	e2eConfig, err = vsphereframework.LoadE2EConfig(ctx, configPath, "", "vcenter", "govmomi") // NOTE: those test are not designed to use a standalone vm-operator.
 	Expect(err).NotTo(HaveOccurred())
 
 	Byf("Creating a clusterctl local repository into %q", artifactFolder)
@@ -264,7 +264,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	kubeconfigPath := parts[3]
 
 	var err error
-	e2eConfig, err = vsphereframework.LoadE2EConfig(ctx, configPath)
+	e2eConfig, err = vsphereframework.LoadE2EConfig(ctx, configPath, "", "vcenter", "govmomi") // NOTE: those test are not designed to use a standalone vm-operator.
 	Expect(err).NotTo(HaveOccurred())
 	bootstrapClusterProxy = framework.NewClusterProxy("bootstrap", kubeconfigPath, initScheme())
 	config := bootstrapClusterProxy.GetRESTConfig()

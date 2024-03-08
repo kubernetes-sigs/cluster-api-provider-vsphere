@@ -4,7 +4,7 @@
     definitions:
     - jsonPatches:
       - op: replace
-        path: /spec/template/spec/template
+        path: /spec/template/spec/imageName
         valueFrom:
           # We have to fall back to v1.29.0 for the conformance latest ci test which uses
           # versions without corresponding templates like "v1.30.0-alpha.0.525+09a5049ca78502".
@@ -17,13 +17,13 @@
             ubuntu-2204-kube-v1.29.0
             {{- end -}}{{- end -}}
       selector:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
         kind: VSphereMachineTemplate
         matchResources:
           controlPlane: true
     - jsonPatches:
       - op: replace
-        path: /spec/template/spec/template
+        path: /spec/template/spec/imageName
         valueFrom:
           # We have to fall back to v1.29.0 for the conformance latest ci test which uses
           # versions without corresponding templates like "v1.30.0-alpha.0.525+09a5049ca78502".
@@ -36,7 +36,7 @@
             ubuntu-2204-kube-v1.29.0
             {{- end -}}{{- end -}}
       selector:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
         kind: VSphereMachineTemplate
         matchResources:
           machineDeploymentClass:

@@ -33,7 +33,7 @@ import (
 
 var _ = Describe("Cluster creation with GPU devices as PCI passthrough [specialized-infra]", func() {
 	const specName = "gpu-pci"
-	Setup(specName, func(testSpecificClusterctlConfigPathGetter func() string) {
+	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		var (
 			namespace *corev1.Namespace
 		)
@@ -49,10 +49,10 @@ var _ = Describe("Cluster creation with GPU devices as PCI passthrough [speciali
 				ClusterProxy: bootstrapClusterProxy,
 				ConfigCluster: clusterctl.ConfigClusterInput{
 					LogFolder:                filepath.Join(artifactFolder, "clusters", bootstrapClusterProxy.GetName()),
-					ClusterctlConfigPath:     testSpecificClusterctlConfigPathGetter(),
+					ClusterctlConfigPath:     testSpecificSettingsGetter().ClusterctlConfigPath,
 					KubeconfigPath:           bootstrapClusterProxy.GetKubeconfigPath(),
 					InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
-					Flavor:                   "pci",
+					Flavor:                   testSpecificSettingsGetter().FlavorForMode("pci"),
 					Namespace:                namespace.Name,
 					ClusterName:              clusterName,
 					KubernetesVersion:        e2eConfig.GetVariable(KubernetesVersion),

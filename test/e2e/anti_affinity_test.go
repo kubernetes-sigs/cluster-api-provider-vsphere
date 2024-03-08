@@ -48,7 +48,7 @@ type AntiAffinitySpecInput struct {
 
 var _ = Describe("Cluster creation with anti affined nodes", func() {
 	const specName = "anti-affinity"
-	Setup(specName, func(testSpecificClusterctlConfigPathGetter func() string) {
+	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		var namespace *corev1.Namespace
 
 		BeforeEach(func() {
@@ -72,7 +72,7 @@ var _ = Describe("Cluster creation with anti affined nodes", func() {
 				},
 				Global: GlobalInput{
 					BootstrapClusterProxy: bootstrapClusterProxy,
-					ClusterctlConfigPath:  testSpecificClusterctlConfigPathGetter(),
+					ClusterctlConfigPath:  testSpecificSettingsGetter().ClusterctlConfigPath,
 					E2EConfig:             e2eConfig,
 					ArtifactFolder:        artifactFolder,
 				},

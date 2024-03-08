@@ -50,7 +50,6 @@ import (
 	vcsimhelpers "sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vcsim"
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/framework/vmoperator"
 	vcsimv1 "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/api/v1alpha1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/controllers/images"
 )
 
 const (
@@ -79,7 +78,7 @@ type VCenterSimulatorReconciler struct {
 
 // +kubebuilder:rbac:groups=vcsim.infrastructure.cluster.x-k8s.io,resources=vcentersimulators,verbs=get;list;watch;patch
 // +kubebuilder:rbac:groups=vcsim.infrastructure.cluster.x-k8s.io,resources=vcentersimulators/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=topology.tanzu.vmware.com,resources=availabilityzones,verbs=get;list;watch;create
+// +kubebuilder:rbac:groups=topology.tanzu.vmware.com,resources=availabilityzones,verbs=get;list;watch;create;update
 // +kubebuilder:rbac:groups=vmoperator.vmware.com,resources=virtualmachineclasses,verbs=get;list;watch;create
 // +kubebuilder:rbac:groups=vmoperator.vmware.com,resources=virtualmachineclassbindings,verbs=get;list;watch;create
 // +kubebuilder:rbac:groups=vmoperator.vmware.com,resources=contentlibraryproviders,verbs=get;list;watch;create
@@ -222,11 +221,14 @@ func (r *VCenterSimulatorReconciler) reconcileNormal(ctx context.Context, vCente
 		// - A set of objects/configurations in the vCenterSimulator cluster the vm-operator is pointing to
 		// - A set of Kubernetes object the vm-operator relies on
 
-		// To mimic the supervisor cluster, there will be only one vm-operator instance for each management cluster;
-		// also, the logic below should consider that the instance of the vm-operator is bound to a specific vCenterSimulator cluster.
-		config := dependenciesForVCenterSimulator(vCenterSimulator)
+		// Automatically configure the default namespace with dependencies required by the vm-operator to work with vcsim.
+		// if order to reconcile VirtualMachine objects (this simplifies setup when working the Tilt use case).
+		// NOTE: if necessary to reconcile VirtualMachine objects in different namespaces, it is required to
+		// manually create VMOperatorDependencies objects, one for each namespace.
+		dependenciesConfig := &vcsimv1.VMOperatorDependencies{ObjectMeta: metav1.ObjectMeta{Namespace: corev1.NamespaceDefault}}
+		dependenciesConfig.SetVCenterFromVCenterSimulator(vCenterSimulator)
 
-		if err := vmoperator.ReconcileDependencies(ctx, r.Client, config); err != nil {
+		if err := vmoperator.ReconcileDependencies(ctx, r.Client, dependenciesConfig); err != nil {
 			return err
 		}
 
@@ -235,7 +237,7 @@ func (r *VCenterSimulatorReconciler) reconcileNormal(ctx context.Context, vCente
 		// In order to make things to work in vcsim, there is the vmIP reconciler, which requires
 		// some info about the vcsim instance; in order to do so, we are creating a Secret.
 
-		if err := addPreRequisitesForVMIPreconciler(ctx, r.Client, config); err != nil {
+		if err := addPreRequisitesForVMIPReconciler(ctx, r.Client, dependenciesConfig); err != nil {
 			return err
 		}
 	}
@@ -274,76 +276,26 @@ func createVMTemplates(ctx context.Context, vCenterSimulator *vcsimv1.VCenterSim
 	return nil
 }
 
-// dependenciesForVCenterSimulator return a dependency config for a vCenterSimulator.
-// Note: This config uses cluster DC0/C0, datastore LocalDS_0 in vcsim; it also sets up content library
-// and the default namespace (the namespace where workload cluster are going to be deployed) with just
-// what is required to reconcile VirtualMachines with the vm-operator.
-func dependenciesForVCenterSimulator(vCenterSimulator *vcsimv1.VCenterSimulator) *vmoperator.Dependencies {
-	datacenter := 0
-	cluster := 0
-	datastore := 0
-
-	config := &vmoperator.Dependencies{
-		// This is where tilt deploys the vm-operator
-		Namespace: vmoperator.DefaultNamespace,
-
-		VCenterCluster: vmoperator.VCenterClusterConfig{
-			ServerURL:     vCenterSimulator.Status.Host,
-			Username:      vCenterSimulator.Status.Username,
-			Password:      vCenterSimulator.Status.Password,
-			Thumbprint:    vCenterSimulator.Status.Thumbprint,
-			Datacenter:    vcsimhelpers.DatacenterName(datacenter),
-			Cluster:       vcsimhelpers.ClusterPath(datacenter, cluster),
-			Folder:        vcsimhelpers.VMFolderName(datacenter),
-			ResourcePool:  vcsimhelpers.ResourcePoolPath(datacenter, cluster),
-			StoragePolicy: vcsimhelpers.DefaultStoragePolicyName,
-
-			// Those are settings for a fake content library we are going to create given that it doesn't exists in vcsim by default.
-			// It contains a single dummy image.
-			ContentLibrary: vmoperator.ContentLibraryConfig{
-				Name:      "vcsim",
-				Datastore: vcsimhelpers.DatastorePath(datacenter, datastore),
-				Item: vmoperator.ContentLibraryItemConfig{
-					Name: "vcsim-default-image",
-					Files: []vmoperator.ContentLibraryItemFilesConfig{ // TODO: check if we really need both
-						{
-							Name:    "ttylinux-pc_i486-16.1.ovf",
-							Content: images.SampleOVF,
-						},
-					},
-					ItemType:    "ovf",
-					ProductInfo: "dummy-productInfo",
-					OSInfo:      "dummy-OSInfo",
-				},
-			},
-		},
-
-		// The users are expected to store Cluster API clusters to be managed by the vm-operator
-		// in the default namespace and to use the "vcsim-default" storage class.
-		UserNamespace: vmoperator.UserNamespaceConfig{
-			Name:                corev1.NamespaceDefault,
-			StorageClass:        "vcsim-default-storage-class",
-			VirtualMachineClass: "vcsim-default-vm-class",
-		},
-	}
-	return config
-}
-
-func addPreRequisitesForVMIPreconciler(ctx context.Context, c client.Client, config *vmoperator.Dependencies) error {
+func addPreRequisitesForVMIPReconciler(ctx context.Context, c client.Client, config *vcsimv1.VMOperatorDependencies) error {
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Reconciling requirements for the Fake net-operator Deployment")
+
+	// default the OperatorRef if not specified.
+	if config.Spec.OperatorRef == nil {
+		config.Spec.OperatorRef = &vcsimv1.VMOperatorRef{Namespace: vmoperator.DefaultNamespace}
+	}
 
 	netOperatorSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      netConfigMapName,
-			Namespace: config.Namespace,
+			Namespace: config.Spec.OperatorRef.Namespace,
 		},
 		StringData: map[string]string{
-			netConfigServerURLKey:  config.VCenterCluster.ServerURL,
-			netConfigDatacenterKey: config.VCenterCluster.Datacenter,
-			netConfigUsernameKey:   config.VCenterCluster.Username,
-			netConfigPasswordKey:   config.VCenterCluster.Password,
-			netConfigThumbprintKey: config.VCenterCluster.Thumbprint,
+			netConfigServerURLKey:  config.Spec.VCenter.ServerURL,
+			netConfigDatacenterKey: config.Spec.VCenter.Datacenter,
+			netConfigUsernameKey:   config.Spec.VCenter.Username,
+			netConfigPasswordKey:   config.Spec.VCenter.Password,
+			netConfigThumbprintKey: config.Spec.VCenter.Thumbprint,
 		},
 		Type: corev1.SecretTypeOpaque,
 	}

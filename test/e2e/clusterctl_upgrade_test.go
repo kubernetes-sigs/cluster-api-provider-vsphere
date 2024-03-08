@@ -23,15 +23,16 @@ import (
 
 var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.9=>current, CAPI 1.6=>1.6) [ClusterClass]", func() {
 	const specName = "clusterctl-upgrade-1.9-current" // prefix (clusterctl-upgrade) copied from CAPI
-	Setup(specName, func(testSpecificClusterctlConfigPathGetter func() string) {
+	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
 			return capi_e2e.ClusterctlUpgradeSpecInput{
 				E2EConfig:                         e2eConfig,
-				ClusterctlConfigPath:              testSpecificClusterctlConfigPathGetter(),
+				ClusterctlConfigPath:              testSpecificSettingsGetter().ClusterctlConfigPath,
 				BootstrapClusterProxy:             bootstrapClusterProxy,
 				ArtifactFolder:                    artifactFolder,
 				SkipCleanup:                       skipCleanup,
-				MgmtFlavor:                        "remote-management",
+				MgmtFlavor:                        testSpecificSettingsGetter().FlavorForMode("remote-management"),
+				PostNamespaceCreated:              testSpecificSettingsGetter().PostNamespaceCreatedFunc,
 				InitWithBinary:                    "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.6.1/clusterctl-{OS}-{ARCH}",
 				InitWithCoreProvider:              "cluster-api:v1.6.1",
 				InitWithBootstrapProviders:        []string{"kubeadm:v1.6.1"},
@@ -44,7 +45,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.9=
 				// Ensure all Kubernetes versions used here are covered in patch-vsphere-template.yaml
 				InitWithKubernetesVersion: "v1.29.0",
 				WorkloadKubernetesVersion: "v1.29.0",
-				WorkloadFlavor:            "workload",
+				WorkloadFlavor:            testSpecificSettingsGetter().FlavorForMode("workload"),
 			}
 		})
 	}, WithIP("WORKLOAD_CONTROL_PLANE_ENDPOINT_IP"))
@@ -52,15 +53,16 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.9=
 
 var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.8=>current, CAPI 1.5=>1.6) [ClusterClass]", func() {
 	const specName = "clusterctl-upgrade-1.8-current" // prefix (clusterctl-upgrade) copied from CAPI
-	Setup(specName, func(testSpecificClusterctlConfigPathGetter func() string) {
+	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
 			return capi_e2e.ClusterctlUpgradeSpecInput{
 				E2EConfig:                         e2eConfig,
-				ClusterctlConfigPath:              testSpecificClusterctlConfigPathGetter(),
+				ClusterctlConfigPath:              testSpecificSettingsGetter().ClusterctlConfigPath,
 				BootstrapClusterProxy:             bootstrapClusterProxy,
 				ArtifactFolder:                    artifactFolder,
 				SkipCleanup:                       skipCleanup,
-				MgmtFlavor:                        "remote-management",
+				MgmtFlavor:                        testSpecificSettingsGetter().FlavorForMode("remote-management"),
+				PostNamespaceCreated:              testSpecificSettingsGetter().PostNamespaceCreatedFunc,
 				InitWithBinary:                    "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.5.4/clusterctl-{OS}-{ARCH}",
 				InitWithCoreProvider:              "cluster-api:v1.5.4",
 				InitWithBootstrapProviders:        []string{"kubeadm:v1.5.4"},
@@ -73,7 +75,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.8=
 				// Ensure all Kubernetes versions used here are covered in patch-vsphere-template.yaml
 				InitWithKubernetesVersion: "v1.28.0",
 				WorkloadKubernetesVersion: "v1.28.0",
-				WorkloadFlavor:            "workload",
+				WorkloadFlavor:            testSpecificSettingsGetter().FlavorForMode("workload"),
 			}
 		})
 	}, WithIP("WORKLOAD_CONTROL_PLANE_ENDPOINT_IP"))

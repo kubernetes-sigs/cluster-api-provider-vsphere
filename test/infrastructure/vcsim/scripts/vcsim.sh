@@ -61,13 +61,16 @@ fi
 if eval "kubectl get envvar $CLUSTER_NAME &> /dev/null"; then
   echo "using existing EnvVar $CLUSTER_NAME"
 else
-  kubectl apply -f - &> /dev/null <<EOF
+  kubectl apply -f - <<EOF
 apiVersion: vcsim.infrastructure.cluster.x-k8s.io/v1alpha1
 kind: EnvVar
 metadata:
   name: $CLUSTER_NAME
 spec:
-  vCenterSimulator: $VCENTERSIMULATOR_NAME
+  vCenterSimulator:
+    name: $VCENTERSIMULATOR_NAME
+  controlPlaneEndpoint:
+    name: $CLUSTER_NAME
   cluster:
     name: $CLUSTER_NAME
 EOF

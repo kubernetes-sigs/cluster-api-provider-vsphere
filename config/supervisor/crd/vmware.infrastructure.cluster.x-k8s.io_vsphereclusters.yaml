@@ -50,8 +50,6 @@ spec:
                 - host
                 - port
                 type: object
-            required:
-            - controlPlaneEndpoint
             type: object
           status:
             description: VSphereClusterStatus defines the observed state of VSphereClusterSpec.

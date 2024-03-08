@@ -37,8 +37,7 @@ spec:
             description: EnvVarSpec defines the desired state of the EnvVar.
             properties:
               cluster:
-                description: ClusterEnvVarSpec defines the spec for the EnvVar generator
-                  targeting a specific Cluster API cluster.
+                description: Cluster specific values to use as source for EnvVar values.
                 properties:
                   cluster:
                     description: 'Cluster specifies the VCenter Cluster for the Cluster
@@ -73,6 +72,9 @@ spec:
                   name:
                     description: The name of the Cluster API cluster.
                     type: string
+                  namespace:
+                    description: The namespace of the Cluster API cluster.
+                    type: string
                   powerOffMode:
                     description: 'The PowerOffMode for the machines in the cluster.
                       Default: trySoft'
@@ -87,9 +89,50 @@ spec:
                     type: integer
                 required:
                 - name
+                - namespace
+                type: object
+              controlPlaneEndpoint:
+                description: Name of the ControlPlaneEndpoint instance to use as source
+                  for EnvVar values.
+                properties:
+                  name:
+                    description: Name of the referenced object.
+                    type: string
+                  namespace:
+                    description: Namespace of the referenced object. If empty, it
+                      defaults to the namespace of the parent object.
+                    type: string
                 type: object
               vCenterSimulator:
-                type: string
+                description: Name of the VCenterSimulator instance to use as source
+                  for EnvVar values.
+                properties:
+                  name:
+                    description: Name of the referenced object.
+                    type: string
+                  namespace:
+                    description: Namespace of the referenced object. If empty, it
+                      defaults to the namespace of the parent object.
+                    type: string
+                type: object
+              vmOperatorDependencies:
+                description: 'Name of the VMOperatorDependencies instance to use as
+                  source for EnvVar values. If not specified, a default dependenciesConfig
+                  that works for vcsim is used. NOTE: this is required only for supervisor
+                  mode; also: - the system automatically picks the first StorageClass
+                  defined in the VMOperatorDependencies - the system automatically
+                  picks the first VirtualMachine class defined in the VMOperatorDependencies
+                  - the system automatically picks the first Image from the content
+                  library defined in the VMOperatorDependencies'
+                properties:
+                  name:
+                    description: Name of the referenced object.
+                    type: string
+                  namespace:
+                    description: Namespace of the referenced object. If empty, it
+                      defaults to the namespace of the parent object.
+                    type: string
+                type: object
             type: object
           status:
             description: EnvVarStatus defines the observed state of the EnvVar.

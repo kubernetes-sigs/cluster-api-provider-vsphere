@@ -82,7 +82,6 @@ GINKGO_NODES ?= 1
 GINKGO_TIMEOUT ?= 3h
 E2E_CONF_FILE ?= $(abspath test/e2e/config/vsphere.yaml)
 E2E_CONF_OVERRIDE_FILE ?= $(abspath test/e2e/config/config-overrides.yaml)
-E2E_CAPV_MODE ?= govmomi
 E2E_IPAM_KUBECONFIG ?=
 INTEGRATION_CONF_FILE ?= $(abspath test/integration/integration-dev.yaml)
 E2E_TEMPLATE_DIR := $(abspath test/e2e/data/)
@@ -600,7 +599,6 @@ e2e: $(GINKGO) $(KUSTOMIZE) $(KIND) $(GOVC) ## Run e2e tests
 		--e2e.artifacts-folder="$(ARTIFACTS)" \
 		--e2e.skip-resource-cleanup=$(SKIP_RESOURCE_CLEANUP) \
 		--e2e.use-existing-cluster="$(USE_EXISTING_CLUSTER)" \
-		--e2e.capv-mode="$(E2E_CAPV_MODE)" \
 		--e2e.ipam-kubeconfig="$(E2E_IPAM_KUBECONFIG)"
 
 ## --------------------------------------

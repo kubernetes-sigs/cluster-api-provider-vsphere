@@ -99,6 +99,7 @@ rules:
   - create
   - get
   - list
+  - update
   - watch
 - apiGroups:
   - vcsim.infrastructure.cluster.x-k8s.io
@@ -147,6 +148,23 @@ rules:
   - vcsim.infrastructure.cluster.x-k8s.io
   resources:
   - vcentersimulators/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - vcsim.infrastructure.cluster.x-k8s.io
+  resources:
+  - vmoperatordependencies
+  verbs:
+  - get
+  - list
+  - patch
+  - watch
+- apiGroups:
+  - vcsim.infrastructure.cluster.x-k8s.io
+  resources:
+  - vmoperatordependencies/status
   verbs:
   - get
   - patch

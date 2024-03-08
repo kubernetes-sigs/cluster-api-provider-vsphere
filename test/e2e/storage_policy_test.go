@@ -45,7 +45,7 @@ type StoragePolicySpecInput struct {
 
 var _ = Describe("Cluster creation with storage policy", func() {
 	const specName = "storage-policy"
-	Setup(specName, func(testSpecificClusterctlConfigPathGetter func() string) {
+	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		var namespace *corev1.Namespace
 
 		BeforeEach(func() {
@@ -69,7 +69,7 @@ var _ = Describe("Cluster creation with storage policy", func() {
 				},
 				Global: GlobalInput{
 					BootstrapClusterProxy: bootstrapClusterProxy,
-					ClusterctlConfigPath:  testSpecificClusterctlConfigPathGetter(),
+					ClusterctlConfigPath:  testSpecificSettingsGetter().ClusterctlConfigPath,
 					E2EConfig:             e2eConfig,
 					ArtifactFolder:        artifactFolder,
 				},

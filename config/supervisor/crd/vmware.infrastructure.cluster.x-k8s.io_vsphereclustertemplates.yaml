@@ -58,8 +58,6 @@ spec:
                         - host
                         - port
                         type: object
-                    required:
-                    - controlPlaneEndpoint
                     type: object
                 required:
                 - spec

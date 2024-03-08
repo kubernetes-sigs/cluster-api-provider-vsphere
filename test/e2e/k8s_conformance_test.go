@@ -28,15 +28,16 @@ import (
 var _ = Describe("When testing K8S conformance [Conformance] [K8s-Install]", func() {
 	// Note: This installs a cluster based on KUBERNETES_VERSION and runs conformance tests.
 	const specName = "k8s-conformance" // copied from CAPI
-	Setup(specName, func(testSpecificClusterctlConfigPathGetter func() string) {
+	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		capi_e2e.K8SConformanceSpec(ctx, func() capi_e2e.K8SConformanceSpecInput {
 			return capi_e2e.K8SConformanceSpecInput{
 				E2EConfig:             e2eConfig,
-				ClusterctlConfigPath:  testSpecificClusterctlConfigPathGetter(),
+				ClusterctlConfigPath:  testSpecificSettingsGetter().ClusterctlConfigPath,
 				BootstrapClusterProxy: bootstrapClusterProxy,
 				ArtifactFolder:        artifactFolder,
 				SkipCleanup:           skipCleanup,
-				Flavor:                "conformance",
+				Flavor:                testSpecificSettingsGetter().FlavorForMode("conformance"),
+				PostNamespaceCreated:  testSpecificSettingsGetter().PostNamespaceCreatedFunc,
 			}
 		})
 	})
@@ -48,20 +49,21 @@ var _ = Describe("When testing K8S conformance with K8S latest ci [Conformance] 
 	// KUBERNETES_VERSION env var. This only works without side effects on other tests because we are
 	// running this test in its separate job.
 	const specName = "k8s-conformance-ci-latest" // prefix copied from CAPI
-	Setup(specName, func(testSpecificClusterctlConfigPathGetter func() string) {
+	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		capi_e2e.K8SConformanceSpec(ctx, func() capi_e2e.K8SConformanceSpecInput {
 			kubernetesVersion, err := kubernetesversions.ResolveVersion(ctx, e2eConfig.GetVariable("KUBERNETES_VERSION_LATEST_CI"))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(os.Setenv("KUBERNETES_VERSION", kubernetesVersion)).To(Succeed())
 			return capi_e2e.K8SConformanceSpecInput{
 				E2EConfig:             e2eConfig,
-				ClusterctlConfigPath:  testSpecificClusterctlConfigPathGetter(),
+				ClusterctlConfigPath:  testSpecificSettingsGetter().ClusterctlConfigPath,
 				BootstrapClusterProxy: bootstrapClusterProxy,
 				ArtifactFolder:        artifactFolder,
 				SkipCleanup:           skipCleanup,
 				// Note: install-on-bootstrap will install Kubernetes on bootstrap if the correct Kubernetes version
 				// cannot be detected. This is required to install versions we don't have images for (e.g. ci/latest-1.30).
-				Flavor: "install-on-bootstrap",
+				Flavor:               testSpecificSettingsGetter().FlavorForMode("install-on-bootstrap"),
+				PostNamespaceCreated: testSpecificSettingsGetter().PostNamespaceCreatedFunc,
 			}
 		})
 	})

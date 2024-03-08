@@ -66,7 +66,8 @@ func (h *vcsim) ClaimIPs(ctx context.Context, opts ...ClaimOption) (AddressClaim
 	ipAddressClaims := AddressClaims{}
 
 	// Claim an IP per variable.
-	for _, variable := range append(options.additionalIPVariableNames, ControlPlaneEndpointIPVariable) {
+	// NOTE: the code calling this method assumes ControlPlaneEndpointIP is the first claim in the list.
+	for _, variable := range append([]string{ControlPlaneEndpointIPVariable}, options.additionalIPVariableNames...) {
 		ip, port, ipAddressClaim, err := h.claimIPAddress(ctx)
 		Expect(err).ToNot(HaveOccurred())
 		ipAddressClaims = append(ipAddressClaims, AddressClaim{

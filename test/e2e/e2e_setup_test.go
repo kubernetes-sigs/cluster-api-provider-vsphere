@@ -21,11 +21,16 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"k8s.io/utils/ptr"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/klog/v2"
+	"sigs.k8s.io/cluster-api/test/framework"
 	. "sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
+	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 
 	vsphereip "sigs.k8s.io/cluster-api-provider-vsphere/test/framework/ip"
@@ -56,8 +61,14 @@ func WithGateway(variableName string) SetupOption {
 	}
 }
 
+type testSettings struct {
+	ClusterctlConfigPath     string
+	PostNamespaceCreatedFunc func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
+	FlavorForMode            func(flavor string) string
+}
+
 // Setup for the specific test.
-func Setup(specName string, f func(testSpecificClusterctlConfigPathGetter func() string), opts ...SetupOption) {
+func Setup(specName string, f func(testSpecificSettings func() testSettings), opts ...SetupOption) {
 	options := &setupOptions{}
 	for _, o := range opts {
 		o(options)
@@ -67,6 +78,7 @@ func Setup(specName string, f func(testSpecificClusterctlConfigPathGetter func()
 		testSpecificClusterctlConfigPath string
 		testSpecificIPAddressClaims      vsphereip.AddressClaims
 		testSpecificVariables            map[string]string
+		postNamespaceCreatedFunc         func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
 	)
 	BeforeEach(func() {
 		Byf("Setting up test env for %s", specName)
@@ -76,18 +88,54 @@ func Setup(specName string, f func(testSpecificClusterctlConfigPathGetter func()
 			// get IPs from the in cluster address manager
 			testSpecificIPAddressClaims, testSpecificVariables = inClusterAddressManager.ClaimIPs(ctx, vsphereip.WithGateway(options.gatewayIPVariableName), vsphereip.WithIP(options.additionalIPVariableNames...))
 		case VCSimTestTarget:
-			Byf("Getting IP for %s", strings.Join(append([]string{vsphereip.ControlPlaneEndpointIPVariable}, options.additionalIPVariableNames...), ","))
+			c := bootstrapClusterProxy.GetClient()
 
 			// get IPs from the vcsim controller
+			// NOTE: ControlPlaneEndpointIP is the first claim in the returned list (this assumption is used below).
+			Byf("Getting IP for %s", strings.Join(append([]string{vsphereip.ControlPlaneEndpointIPVariable}, options.additionalIPVariableNames...), ","))
 			testSpecificIPAddressClaims, testSpecificVariables = vcsimAddressManager.ClaimIPs(ctx, vsphereip.WithIP(options.additionalIPVariableNames...))
 
-			Byf("Creating a vcsim server for %s", specName)
+			// variables derived from the vCenterSimulator
+			vCenterSimulator, err := vspherevcsim.Get(ctx, c)
+			Expect(err).ToNot(HaveOccurred(), "Failed to get VCenterSimulator")
 
-			// variables for govmomi mode derived from the vCenterSimulator
-			vCenterSimulator, err := vspherevcsim.Get(ctx, bootstrapClusterProxy.GetClient())
-			Expect(err).ToNot(HaveOccurred(), "Failed to create VCenterSimulator")
+			Byf("Creating EnvVar %s", klog.KRef(metav1.NamespaceDefault, specName))
+			envVar := &vcsimv1.EnvVar{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      specName,
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: vcsimv1.EnvVarSpec{
+					VCenterSimulator: &vcsimv1.NamespacedRef{
+						Namespace: vCenterSimulator.Namespace,
+						Name:      vCenterSimulator.Name,
+					},
+					ControlPlaneEndpoint: vcsimv1.NamespacedRef{
+						Namespace: testSpecificIPAddressClaims[0].Namespace,
+						Name:      testSpecificIPAddressClaims[0].Name,
+					},
+					// NOTE: we are omitting VMOperatorDependencies because it is not created yet (it will be created by the PostNamespaceCreated hook)
+					// But this is not a issue because a default dependenciesConfig that works for vcsim will be automatically used.
+				},
+			}
 
-			for k, v := range vCenterSimulator.GovmomiVariables() {
+			err = c.Create(ctx, envVar)
+			Expect(err).ToNot(HaveOccurred(), "Failed to create EnvVar")
+
+			Eventually(func() bool {
+				if err := c.Get(ctx, crclient.ObjectKeyFromObject(envVar), envVar); err != nil {
+					return false
+				}
+				return len(envVar.Status.Variables) > 0
+			}, 30*time.Second, 5*time.Second).Should(BeTrue(), "Failed to get EnvVar %s", klog.KObj(envVar))
+
+			Byf("Setting test variables for %s", specName)
+			for k, v := range envVar.Status.Variables {
+				// ignore variables that will be set later on by the test
+				if sets.New("NAMESPACE", "CLUSTER_NAME", "KUBERNETES_VERSION", "CONTROL_PLANE_MACHINE_COUNT", "WORKER_MACHINE_COUNT", "VSPHERE_SSH_AUTHORIZED_KEY").Has(k) {
+					continue
+				}
+
 				// unset corresponding env variable (that in CI contains VMC data), so we are sure we use the value for vcsim
 				if strings.HasPrefix(k, "VSPHERE_") {
 					Expect(os.Unsetenv(k)).To(Succeed())
@@ -95,17 +143,14 @@ func Setup(specName string, f func(testSpecificClusterctlConfigPathGetter func()
 
 				testSpecificVariables[k] = v
 			}
+		}
 
-			// variables for govmomi mode derived from envVar.Spec.Cluster
-			// NOTE: picking Datacenter, Cluster, Datastore that exists by default in vcsim
-			clusterEnvVarSpec := vcsimv1.ClusterEnvVarSpec{
-				Datacenter: ptr.To[int32](0), // DC0
-				Cluster:    ptr.To[int32](0), // C0
-				Datastore:  ptr.To[int32](0), // LocalDS_0
-			}
+		if testMode == SupervisorTestMode {
+			postNamespaceCreatedFunc = setupNamespaceWithVMOperatorDependencies
 
-			for k, v := range clusterEnvVarSpec.GovmomiVariables() {
-				testSpecificVariables[k] = v
+			// Update the CLUSTER_CLASS_NAME variable adding the supervisor suffix.
+			if e2eConfig.HasVariable("CLUSTER_CLASS_NAME") {
+				testSpecificVariables["CLUSTER_CLASS_NAME"] = fmt.Sprintf("%s-supervisor", e2eConfig.GetVariable("CLUSTER_CLASS_NAME"))
 			}
 		}
 
@@ -134,7 +179,52 @@ func Setup(specName string, f func(testSpecificClusterctlConfigPathGetter func()
 	// so when the test is executed the func could get the value set into the BeforeEach block above.
 	// If instead we pass the value directly, the test func will get the value at the moment of the initial parsing of
 	// the Ginkgo node tree, which is an empty string (the BeforeEach block above are not run during initial parsing).
-	f(func() string { return testSpecificClusterctlConfigPath })
+	f(func() testSettings {
+		return testSettings{
+			ClusterctlConfigPath:     testSpecificClusterctlConfigPath,
+			PostNamespaceCreatedFunc: postNamespaceCreatedFunc,
+			FlavorForMode: func(flavor string) string {
+				if testMode == SupervisorTestMode {
+					// This assumes all the supervisor flavors have the name of the corresponding govmomi flavor + "-supervisor" suffix
+					if flavor == "" {
+						return "supervisor"
+					}
+					return fmt.Sprintf("%s-supervisor", flavor)
+				}
+				return flavor
+			},
+		}
+	})
+}
+
+func setupNamespaceWithVMOperatorDependencies(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string) {
+	c := managementClusterProxy.GetClient()
+
+	vCenterSimulator, err := vspherevcsim.Get(ctx, bootstrapClusterProxy.GetClient())
+	Expect(err).ToNot(HaveOccurred(), "Failed to get VCenterSimulator")
+
+	Byf("Creating VMOperatorDependencies %s", klog.KRef(workloadClusterNamespace, "vcsim"))
+	dependenciesConfig := &vcsimv1.VMOperatorDependencies{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "vcsim",
+			Namespace: workloadClusterNamespace,
+		},
+		Spec: vcsimv1.VMOperatorDependenciesSpec{
+			VCenterSimulatorRef: &vcsimv1.NamespacedRef{
+				Namespace: vCenterSimulator.Namespace,
+				Name:      vCenterSimulator.Name,
+			},
+		},
+	}
+	err = c.Create(ctx, dependenciesConfig)
+	Expect(err).ToNot(HaveOccurred(), "Failed to create VMOperatorDependencies")
+
+	Eventually(func() bool {
+		if err := c.Get(ctx, crclient.ObjectKeyFromObject(dependenciesConfig), dependenciesConfig); err != nil {
+			return false
+		}
+		return dependenciesConfig.Status.Ready
+	}, 30*time.Second, 5*time.Second).Should(BeTrue(), "Failed to get VMOperatorDependencies on namespace %s", workloadClusterNamespace)
 }
 
 // Note: Copy-paste from CAPI below.

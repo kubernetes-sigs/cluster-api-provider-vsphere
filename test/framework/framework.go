@@ -23,23 +23,116 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
+	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/runtime"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
+	. "sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
+	"sigs.k8s.io/yaml"
 )
 
 type ProviderConfig clusterctl.ProviderConfig
 
 // Util functions to interact with the clusterctl e2e framework.
 
-func LoadE2EConfig(ctx context.Context, configPath string) (*clusterctl.E2EConfig, error) {
+type configOverrides struct {
+	Variables map[string]string   `json:"variables,omitempty"`
+	Intervals map[string][]string `json:"intervals,omitempty"`
+}
+
+func LoadE2EConfig(ctx context.Context, configPath string, configOverridesPath, testTarget, testMode string) (*clusterctl.E2EConfig, error) {
 	config := clusterctl.LoadE2EConfig(ctx, clusterctl.LoadE2EConfigInput{ConfigPath: configPath})
 	if config == nil {
 		return nil, fmt.Errorf("cannot load E2E config found at %s", configPath)
 	}
+
+	// If defined, load configOverrides.
+	// This can be used e.g. when working with a custom vCenter server for local testing (instead of the one in VMC used in CI).
+	if configOverridesPath != "" {
+		Expect(configOverridesPath).To(BeAnExistingFile(), "Invalid test suite argument. e2e.config-overrides should be an existing file.")
+
+		Byf("Merging with e2e config overrides from %q", configOverridesPath)
+		configData, err := os.ReadFile(configOverridesPath) //nolint:gosec
+		Expect(err).ToNot(HaveOccurred(), "Failed to read e2e config overrides")
+		Expect(configData).ToNot(BeEmpty(), "The e2e config overrides should not be empty")
+
+		configOverrides := &configOverrides{}
+		Expect(yaml.Unmarshal(configData, configOverrides)).To(Succeed(), "Failed to convert e2e config overrides to yaml")
+
+		for k, v := range configOverrides.Variables {
+			config.Variables[k] = v
+		}
+		for k, v := range configOverrides.Intervals {
+			config.Intervals[k] = v
+		}
+	}
+
+	if testTarget == "vcenter" {
+		// In case we are not testing vcsim, then drop the vcsim controller from providers and images.
+		// This ensures that all the tests not yet allowing to explicitly set vsphere as target infra provider keep working.
+		Byf("Dropping vcsim provider from the e2e config")
+		for i := range config.Providers {
+			if config.Providers[i].Name == "vcsim" {
+				config.Providers = append(config.Providers[:i], config.Providers[i+1:]...)
+				break
+			}
+		}
+
+		for i := range config.Images {
+			if strings.Contains(config.Images[i].Name, "cluster-api-vcsim-controller") {
+				config.Images = append(config.Images[:i], config.Images[i+1:]...)
+				break
+			}
+		}
+	} else {
+		// In case we are testing with vcsim, then drop the in-cluster ipam provider from providers and images.
+		Byf("Dropping in-cluster provider from the e2e config")
+		for i := range config.Providers {
+			if config.Providers[i].Name == "in-cluster" {
+				config.Providers = append(config.Providers[:i], config.Providers[i+1:]...)
+				break
+			}
+		}
+
+		for i := range config.Images {
+			if strings.Contains(config.Images[i].Name, "cluster-api-ipam-in-cluster-controller") {
+				config.Images = append(config.Images[:i], config.Images[i+1:]...)
+				break
+			}
+		}
+	}
+
+	if testMode == "govmomi" {
+		// In case we are not testing supervisor, then drop the vm-operator controller from providers and images.
+		Byf("Dropping vm-operator from the e2e config")
+		for i := range config.Providers {
+			if config.Providers[i].Name == "vm-operator" {
+				config.Providers = append(config.Providers[:i], config.Providers[i+1:]...)
+				break
+			}
+		}
+
+		for i := range config.Images {
+			if strings.Contains(config.Images[i].Name, "vm-operator") {
+				config.Images = append(config.Images[:i], config.Images[i+1:]...)
+				break
+			}
+		}
+	} else {
+		// In case we are testing supervisor, change the folder we build manifest from
+		Byf("Overriding source folder for vsphere provider to /config/supervisor in the e2e config")
+		for i := range config.Providers {
+			if config.Providers[i].Name == "vsphere" {
+				config.Providers[i].Versions[0].Value = strings.ReplaceAll(config.Providers[i].Versions[0].Value, "/config/default", "/config/supervisor")
+				break
+			}
+		}
+	}
+
 	return config, nil
 }
 
@@ -91,11 +184,12 @@ func SetupBootstrapCluster(ctx context.Context, config *clusterctl.E2EConfig, sc
 
 func InitBootstrapCluster(ctx context.Context, bootstrapClusterProxy framework.ClusterProxy, config *clusterctl.E2EConfig, clusterctlConfig, artifactFolder string) {
 	clusterctl.InitManagementClusterAndWatchControllerLogs(ctx, clusterctl.InitManagementClusterAndWatchControllerLogsInput{
-		ClusterProxy:            bootstrapClusterProxy,
-		ClusterctlConfigPath:    clusterctlConfig,
-		InfrastructureProviders: config.InfrastructureProviders(),
-		LogFolder:               filepath.Join(artifactFolder, "clusters", bootstrapClusterProxy.GetName()),
-		IPAMProviders:           config.IPAMProviders(),
+		ClusterProxy:              bootstrapClusterProxy,
+		ClusterctlConfigPath:      clusterctlConfig,
+		InfrastructureProviders:   config.InfrastructureProviders(),
+		LogFolder:                 filepath.Join(artifactFolder, "clusters", bootstrapClusterProxy.GetName()),
+		IPAMProviders:             config.IPAMProviders(),
+		RuntimeExtensionProviders: config.RuntimeExtensionProviders(),
 	}, config.GetIntervals(bootstrapClusterProxy.GetName(), "wait-controllers")...)
 }
 

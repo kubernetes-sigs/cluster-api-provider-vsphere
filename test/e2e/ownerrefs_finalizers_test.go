@@ -43,7 +43,7 @@ import (
 
 var _ = Describe("Ensure OwnerReferences and Finalizers are resilient with FailureDomains and ClusterIdentity", func() {
 	const specName = "owner-reference"
-	Setup(specName, func(testSpecificClusterctlConfigPathGetter func() string) {
+	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		// Before running the test create the secret used by the VSphereClusterIdentity to connect to the vCenter.
 		BeforeEach(func() {
 			createVsphereIdentitySecret(ctx, bootstrapClusterProxy)
@@ -52,11 +52,12 @@ var _ = Describe("Ensure OwnerReferences and Finalizers are resilient with Failu
 		capi_e2e.QuickStartSpec(ctx, func() capi_e2e.QuickStartSpecInput {
 			return capi_e2e.QuickStartSpecInput{
 				E2EConfig:             e2eConfig,
-				ClusterctlConfigPath:  testSpecificClusterctlConfigPathGetter(),
+				ClusterctlConfigPath:  testSpecificSettingsGetter().ClusterctlConfigPath,
 				BootstrapClusterProxy: bootstrapClusterProxy,
 				ArtifactFolder:        artifactFolder,
 				SkipCleanup:           skipCleanup,
-				Flavor:                ptr.To("ownerrefs-finalizers"),
+				Flavor:                ptr.To(testSpecificSettingsGetter().FlavorForMode("ownerrefs-finalizers")),
+				PostNamespaceCreated:  testSpecificSettingsGetter().PostNamespaceCreatedFunc,
 				PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 					// Inject a client to use for checkClusterIdentitySecretOwnerRef
 					checkClusterIdentitySecretOwnerRef(ctx, proxy.GetClient())

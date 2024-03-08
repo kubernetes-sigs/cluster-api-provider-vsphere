@@ -26,7 +26,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
-	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -37,7 +36,6 @@ import (
 	. "sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
 	capiutil "sigs.k8s.io/cluster-api/util"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/yaml"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vsphereframework "sigs.k8s.io/cluster-api-provider-vsphere/test/framework"
@@ -128,11 +126,6 @@ var (
 	vcsimAddressManager vsphereip.AddressManager
 )
 
-type configOverrides struct {
-	Variables map[string]string   `json:"variables,omitempty"`
-	Intervals map[string][]string `json:"intervals,omitempty"`
-}
-
 func init() {
 	flag.StringVar(&configPath, "e2e.config", "", "path to the e2e config file")
 	flag.StringVar(&configOverridesPath, "e2e.config-overrides", "", "path to the e2e config file containing overrides to the e2e config file")
@@ -141,7 +134,6 @@ func init() {
 	flag.BoolVar(&skipCleanup, "e2e.skip-resource-cleanup", false, "if true, the resource cleanup after tests will be skipped")
 	flag.BoolVar(&useExistingCluster, "e2e.use-existing-cluster", false, "if true, the test uses the current cluster instead of creating a new one (default discovery rules apply)")
 	flag.StringVar(&e2eIPAMKubeconfig, "e2e.ipam-kubeconfig", "", "path to the kubeconfig for the IPAM cluster")
-	flag.StringVar(&testMode, "e2e.capv-mode", GovmomiTestMode, "defines how CAPV should behave during this test, one of govmomi|supervisor")
 }
 
 func TestE2E(t *testing.T) {
@@ -168,31 +160,16 @@ func TestE2E(t *testing.T) {
 	// fetch the current config
 	suiteConfig, reporterConfig := GinkgoConfiguration()
 
-	// vcsim testd currently have a couple of limitations:
-	// - they can't be run together with other tests, because the vcsim controller will interfere with objects
-	//   created by other tests.
-	// - in order to trick clusterctl to install the vcsim controller, it is defined as another infra provider,
-	//   and thus the tests needs to be explicit about using vsphere as target infra provider, but not all the
-	//   tests allows this option.
-	//
-	// In order to deal with this nicely, we detect if we are running a vcsim test or not, and edit the test suite and
-	// how do we setup the test accordingly.
+	// Detect test target.
 	testTarget = VCenterTestTarget
 	if strings.Contains(strings.Join(suiteConfig.FocusStrings, " "), "\\[vcsim\\]") {
 		testTarget = VCSimTestTarget
 	}
 
-	// Automatically skip vcsim tests if not explicitly required.
-	// NOTE: This prevents to edit all the job configurations for non vcsim tests adding skip [vcsim]
-	if testTarget != VCSimTestTarget {
-		suiteConfig.SkipStrings = append(suiteConfig.SkipStrings, "\\[vcsim\\]")
-	}
-
-	report := PreviewSpecs("capv-e2e", suiteConfig, reporterConfig)
-	for _, s := range report.SpecReports {
-		if s.State == types.SpecStatePassed {
-			fmt.Println(s.LeafNodeText, s.ContainerHierarchyTexts)
-		}
+	// Detect test mode.
+	testMode = GovmomiTestMode
+	if strings.Contains(strings.Join(suiteConfig.FocusStrings, " "), "\\[supervisor\\]") {
+		testMode = SupervisorTestMode
 	}
 
 	RunSpecs(t, "capv-e2e", suiteConfig, reporterConfig)
@@ -202,6 +179,8 @@ func TestE2E(t *testing.T) {
 // The local clusterctl repository & the bootstrap cluster are created once and shared across all the tests.
 var _ = SynchronizedBeforeSuite(func() []byte {
 	// Before all ParallelNodes.
+	Byf("TestTarget: %s\n", testTarget)
+	Byf("TestMode: %s\n", testMode)
 
 	Expect(configPath).To(BeAnExistingFile(), "Invalid test suite argument. e2e.config should be an existing file.")
 	Expect(os.MkdirAll(artifactFolder, 0755)).To(Succeed(), "Invalid test suite argument. Can't create e2e.artifacts-folder %q", artifactFolder) //nolint:gosec // Non-production code
@@ -211,11 +190,8 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	Byf("Loading the e2e test configuration from %q", configPath)
 	var err error
-	e2eConfig, err = vsphereframework.LoadE2EConfig(ctx, configPath)
+	e2eConfig, err = vsphereframework.LoadE2EConfig(ctx, configPath, configOverridesPath, testTarget, testMode)
 	Expect(err).NotTo(HaveOccurred())
-
-	// Add config overrides + drop vcsim relates provider/image if not necessary.
-	amendE2EConfig()
 
 	Byf("Creating a clusterctl local repository into %q", artifactFolder)
 	clusterctlConfigPath, err = vsphereframework.CreateClusterctlLocalRepository(ctx, e2eConfig, filepath.Join(artifactFolder, "repository"), true)
@@ -245,24 +221,28 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		strings.Join([]string{
 			artifactFolder,
 			configPath,
+			configOverridesPath,
+			testTarget,
+			testMode,
 			clusterctlConfigPath,
 			bootstrapClusterProxy.GetKubeconfigPath(),
 			strings.Join(ipClaimLabelsRaw, ";"),
-			testTarget,
 		}, ","),
 	)
 }, func(data []byte) {
 	// Before each ParallelNode.
 
 	parts := strings.Split(string(data), ",")
-	Expect(parts).To(HaveLen(6))
+	Expect(parts).To(HaveLen(8))
 
 	artifactFolder = parts[0]
 	configPath = parts[1]
-	clusterctlConfigPath = parts[2]
-	kubeconfigPath := parts[3]
-	ipClaimLabelsRaw := parts[4]
-	testTarget = parts[5]
+	configOverridesPath = parts[2]
+	testTarget = parts[3]
+	testMode = parts[4]
+	clusterctlConfigPath = parts[5]
+	kubeconfigPath := parts[6]
+	ipClaimLabelsRaw := parts[7]
 
 	namespaces = map[*corev1.Namespace]context.CancelFunc{}
 
@@ -275,11 +255,8 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	}
 
 	var err error
-	e2eConfig, err = vsphereframework.LoadE2EConfig(ctx, configPath)
+	e2eConfig, err = vsphereframework.LoadE2EConfig(ctx, configPath, configOverridesPath, testTarget, testMode)
 	Expect(err).NotTo(HaveOccurred())
-
-	// Add config overrides + drop vcsim relates provider/image if not necessary.
-	amendE2EConfig()
 
 	bootstrapClusterProxy = framework.NewClusterProxy("bootstrap", kubeconfigPath, initScheme(), framework.WithMachineLogCollector(vspherelog.MachineLogCollector{}))
 
@@ -345,47 +322,6 @@ func initScheme() *runtime.Scheme {
 	_ = infrav1.AddToScheme(sc)
 	_ = vcsimv1.AddToScheme(sc)
 	return sc
-}
-
-func amendE2EConfig() {
-	// If defined, load configOverrides.
-	// This can be used e.g. when working with a custom vCenter server for local testing (instead of the one in VMC used in CI).
-	if configOverridesPath != "" {
-		Expect(configOverridesPath).To(BeAnExistingFile(), "Invalid test suite argument. e2e.config-overrides should be an existing file.")
-
-		Byf("Merging with e2e config overrides from %q", configOverridesPath)
-		configData, err := os.ReadFile(configOverridesPath) //nolint:gosec
-		Expect(err).ToNot(HaveOccurred(), "Failed to read e2e config overrides")
-		Expect(configData).ToNot(BeEmpty(), "The e2e config overrides should not be empty")
-
-		configOverrides := &configOverrides{}
-		Expect(yaml.Unmarshal(configData, configOverrides)).To(Succeed(), "Failed to convert e2e config overrides to yaml")
-
-		for k, v := range configOverrides.Variables {
-			e2eConfig.Variables[k] = v
-		}
-		for k, v := range configOverrides.Intervals {
-			e2eConfig.Intervals[k] = v
-		}
-	}
-
-	if testTarget == VCenterTestTarget {
-		// In case we are not testing vcsim, then drop the vcsim controller from providers and images.
-		// This ensures that all the tests not yet allowing to explicitly set vsphere as target infra provider keep working.
-		for i := range e2eConfig.Providers {
-			if e2eConfig.Providers[i].Name == "vcsim" {
-				e2eConfig.Providers = append(e2eConfig.Providers[:i], e2eConfig.Providers[i+1:]...)
-				break
-			}
-		}
-
-		for i := range e2eConfig.Images {
-			if strings.Contains(e2eConfig.Images[i].Name, "cluster-api-vcsim-controller") {
-				e2eConfig.Images = append(e2eConfig.Images[:i], e2eConfig.Images[i+1:]...)
-				break
-			}
-		}
-	}
 }
 
 func setupSpecNamespace(specName string) *corev1.Namespace {

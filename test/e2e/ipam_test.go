@@ -24,15 +24,16 @@ import (
 
 var _ = Describe("ClusterClass Creation using Cluster API quick-start test and IPAM Provider [ClusterClass]", func() {
 	const specName = "ipam-cluster-class"
-	Setup(specName, func(testSpecificClusterctlConfigPathGetter func() string) {
+	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		capi_e2e.QuickStartSpec(ctx, func() capi_e2e.QuickStartSpecInput {
 			return capi_e2e.QuickStartSpecInput{
 				E2EConfig:                e2eConfig,
-				ClusterctlConfigPath:     testSpecificClusterctlConfigPathGetter(),
+				ClusterctlConfigPath:     testSpecificSettingsGetter().ClusterctlConfigPath,
 				BootstrapClusterProxy:    bootstrapClusterProxy,
 				ArtifactFolder:           artifactFolder,
 				SkipCleanup:              skipCleanup,
-				Flavor:                   ptr.To("ipam"),
+				Flavor:                   ptr.To(testSpecificSettingsGetter().FlavorForMode("ipam")),
+				PostNamespaceCreated:     testSpecificSettingsGetter().PostNamespaceCreatedFunc,
 				ControlPlaneMachineCount: ptr.To[int64](1),
 				WorkerMachineCount:       ptr.To[int64](1),
 			}

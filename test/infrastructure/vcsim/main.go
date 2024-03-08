@@ -84,10 +84,12 @@ var (
 	diagnosticsOptions          = flags.DiagnosticsOptions{}
 	logOptions                  = logs.NewOptions()
 	// vcsim specific flags.
-	vmConcurrency            int
-	vCenterConcurrency       int
-	fakeAPIServerConcurrency int
-	envsubstConcurrency      int
+	vSphereVMConcurrency              int
+	virtualMachineConcurrency         int
+	vCenterSimulatorConcurrency       int
+	controlPlaneEndpointConcurrency   int
+	envsubstConcurrency               int
+	vmOperatorDependenciesConcurrency int
 	// vsphere session specific flags.
 	enableKeepAlive   bool
 	keepAliveDuration time.Duration
@@ -139,17 +141,23 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.BoolVar(&enableContentionProfiling, "contention-profiling", false,
 		"Enable block profiling")
 
-	fs.IntVar(&vmConcurrency, "vm-concurrency", 10,
-		"Number of vsphere VM to process simultaneously")
+	fs.IntVar(&vSphereVMConcurrency, "vsphere-vm-concurrency", 10,
+		"Number of VSphereVM to process simultaneously")
 
-	fs.IntVar(&vCenterConcurrency, "vcenter-concurrency", 10,
-		"Number of vcenter server to process simultaneously")
+	fs.IntVar(&virtualMachineConcurrency, "virtual-machine-concurrency", 10,
+		"Number of VirtualMachine to process simultaneously")
 
-	fs.IntVar(&fakeAPIServerConcurrency, "fake-apiserver-endpoint-concurrency", 10,
-		"Number of vcsim control plane endpoint to process simultaneously")
+	fs.IntVar(&vCenterSimulatorConcurrency, "vcenter-simulator-concurrency", 10,
+		"Number of VCenterSimulator to process simultaneously")
+
+	fs.IntVar(&controlPlaneEndpointConcurrency, "controlplane-endpoint-concurrency", 10,
+		"Number of ControlPlaneEndpoint to process simultaneously")
 
 	fs.IntVar(&envsubstConcurrency, "envsubst-concurrency", 10,
-		"Number of envsubst to process simultaneously")
+		"Number of Envsubst to process simultaneously")
+
+	fs.IntVar(&vmOperatorDependenciesConcurrency, "vm-operator-dependencies-concurrency", 10,
+		"Number of VMOperatorDependencies to process simultaneously")
 
 	fs.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)")
@@ -327,7 +335,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, supervisorMode bool
 		Client:           mgr.GetClient(),
 		SupervisorMode:   supervisorMode,
 		WatchFilterValue: watchFilterValue,
-	}).SetupWithManager(ctx, mgr, concurrency(vCenterConcurrency)); err != nil {
+	}).SetupWithManager(ctx, mgr, concurrency(vCenterSimulatorConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "VCenterSimulatorReconciler")
 		os.Exit(1)
 	}
@@ -338,7 +346,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, supervisorMode bool
 		APIServerMux:     apiServerMux,
 		PodIP:            podIP,
 		WatchFilterValue: watchFilterValue,
-	}).SetupWithManager(ctx, mgr, concurrency(fakeAPIServerConcurrency)); err != nil {
+	}).SetupWithManager(ctx, mgr, concurrency(controlPlaneEndpointConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ControlPlaneEndpointReconciler")
 		os.Exit(1)
 	}
@@ -351,8 +359,16 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, supervisorMode bool
 			EnableKeepAlive:   enableKeepAlive,
 			KeepAliveDuration: keepAliveDuration,
 			WatchFilterValue:  watchFilterValue,
-		}).SetupWithManager(ctx, mgr, concurrency(vmConcurrency)); err != nil {
+		}).SetupWithManager(ctx, mgr, concurrency(virtualMachineConcurrency)); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "VirtualMachineReconciler")
+			os.Exit(1)
+		}
+
+		if err := (&controllers.VMOperatorDependenciesReconciler{
+			Client:           mgr.GetClient(),
+			WatchFilterValue: watchFilterValue,
+		}).SetupWithManager(ctx, mgr, concurrency(vmOperatorDependenciesConcurrency)); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "VMOperatorDependenciesReconciler")
 			os.Exit(1)
 		}
 	} else {
@@ -363,7 +379,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, supervisorMode bool
 			EnableKeepAlive:   enableKeepAlive,
 			KeepAliveDuration: keepAliveDuration,
 			WatchFilterValue:  watchFilterValue,
-		}).SetupWithManager(ctx, mgr, concurrency(vmConcurrency)); err != nil {
+		}).SetupWithManager(ctx, mgr, concurrency(vSphereVMConcurrency)); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "VSphereVMReconciler")
 			os.Exit(1)
 		}

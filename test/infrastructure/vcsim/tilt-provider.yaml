@@ -1,0 +1,11 @@
+---
+- name: vcsim
+  config:
+    version: v1.10.99
+    image: gcr.io/k8s-staging-capi-vsphere/cluster-api-vcsim-controller
+    live_reload_deps:
+      - main.go
+      - api
+      - controllers
+      - server
+    label: VCSIM

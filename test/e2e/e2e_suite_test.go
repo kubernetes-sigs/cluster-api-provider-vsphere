@@ -258,7 +258,13 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	e2eConfig, err = vsphereframework.LoadE2EConfig(ctx, configPath, configOverridesPath, testTarget, testMode)
 	Expect(err).NotTo(HaveOccurred())
 
-	bootstrapClusterProxy = framework.NewClusterProxy("bootstrap", kubeconfigPath, initScheme(), framework.WithMachineLogCollector(vspherelog.MachineLogCollector{}))
+	clusterProxyOptions := []framework.Option{}
+	// vspherelog.MachineLogCollector tries to ssh to the machines to collect logs.
+	// This does not work when using vcsim because there are no real machines running ssh.
+	if testTarget != VCSimTestTarget {
+		clusterProxyOptions = append(clusterProxyOptions, framework.WithMachineLogCollector(vspherelog.MachineLogCollector{}))
+	}
+	bootstrapClusterProxy = framework.NewClusterProxy("bootstrap", kubeconfigPath, initScheme(), clusterProxyOptions...)
 
 	ipClaimLabels := map[string]string{}
 	for _, s := range strings.Split(ipClaimLabelsRaw, ";") {

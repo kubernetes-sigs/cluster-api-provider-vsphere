@@ -66,7 +66,9 @@ func ClusterClassTemplateSupervisor() []runtime.Object {
 	machineTemplate := newVMWareMachineTemplate(fmt.Sprintf("%s-template", env.ClusterClassNameVar))
 	workerMachineTemplate := newVMWareMachineTemplate(fmt.Sprintf("%s-worker-machinetemplate", env.ClusterClassNameVar))
 	controlPlaneTemplate := newKubeadmControlPlaneTemplate(fmt.Sprintf("%s-controlplane", env.ClusterClassNameVar))
+	controlPlaneTemplate.Spec.Template.Spec.KubeadmConfigSpec.PreKubeadmCommands = append([]string{"dhclient eth0"}, controlPlaneTemplate.Spec.Template.Spec.KubeadmConfigSpec.PreKubeadmCommands...)
 	kubeadmJoinTemplate := newKubeadmConfigTemplate(fmt.Sprintf("%s-worker-bootstrap-template", env.ClusterClassNameVar), false)
+	kubeadmJoinTemplate.Spec.Template.Spec.PreKubeadmCommands = append([]string{"dhclient eth0"}, kubeadmJoinTemplate.Spec.Template.Spec.PreKubeadmCommands...)
 
 	ClusterClassTemplate := []runtime.Object{
 		&vSphereClusterTemplate,
@@ -164,9 +166,11 @@ func MultiNodeTemplateSupervisor() ([]runtime.Object, error) {
 	cpMachineTemplate := newVMWareMachineTemplate(env.ClusterNameVar)
 	workerMachineTemplate := newVMWareMachineTemplate(fmt.Sprintf("%s-worker", env.ClusterNameVar))
 	controlPlane := newKubeadmControlplane(&cpMachineTemplate, nil)
+	controlPlane.Spec.KubeadmConfigSpec.PreKubeadmCommands = append([]string{"dhclient eth0"}, controlPlane.Spec.KubeadmConfigSpec.PreKubeadmCommands...)
 	kubevip.PatchControlPlane(&controlPlane)
 
 	kubeadmJoinTemplate := newKubeadmConfigTemplate(fmt.Sprintf("%s%s", env.ClusterNameVar, env.MachineDeploymentNameSuffix), true)
+	kubeadmJoinTemplate.Spec.Template.Spec.PreKubeadmCommands = append([]string{"dhclient eth0"}, kubeadmJoinTemplate.Spec.Template.Spec.PreKubeadmCommands...)
 	cluster := newCluster(&vsphereCluster, &controlPlane)
 	machineDeployment := newMachineDeployment(cluster, &workerMachineTemplate, kubeadmJoinTemplate)
 	clusterResourceSet := newClusterResourceSet(cluster)

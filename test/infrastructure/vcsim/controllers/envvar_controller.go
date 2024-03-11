@@ -303,14 +303,12 @@ func clusterEnvVarSpecGovmomiVariables(c *vcsimv1.ClusterEnvVarSpec) map[string]
 // - the system automatically picks the first Image from the content library defined in the VMOperatorDependencies.
 func vmOperatorDependenciesSupervisorVariables(d *vcsimv1.VMOperatorDependencies) map[string]string {
 	vars := map[string]string{}
-	if d.Spec.VCenter != nil {
-		vars["VSPHERE_STORAGE_POLICY"] = d.Spec.VCenter.StoragePolicy
-	}
 	if len(d.Spec.StorageClasses) > 0 {
-		vars["VSPHERE_STORAGE_CLASS"] = d.Spec.StorageClasses[0]
+		vars["VSPHERE_STORAGE_CLASS"] = d.Spec.StorageClasses[0].Name
+		vars["VSPHERE_STORAGE_POLICY"] = d.Spec.StorageClasses[0].StoragePolicy
 	}
 	if len(d.Spec.VirtualMachineClasses) > 0 {
-		vars["VSPHERE_MACHINE_CLASS_NAME"] = d.Spec.VirtualMachineClasses[0]
+		vars["VSPHERE_MACHINE_CLASS_NAME"] = d.Spec.VirtualMachineClasses[0].Name
 	}
 	if len(d.Spec.VCenter.ContentLibrary.Items) > 0 {
 		vars["VSPHERE_IMAGE_NAME"] = d.Spec.VCenter.ContentLibrary.Items[0].Name

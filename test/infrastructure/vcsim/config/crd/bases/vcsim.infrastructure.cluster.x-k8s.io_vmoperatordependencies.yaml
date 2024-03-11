@@ -49,7 +49,12 @@ spec:
                 description: StorageClasses defines a list of StorageClasses to be
                   bound to the namespace where this object is created.
                 items:
-                  type: string
+                  properties:
+                    name:
+                      type: string
+                    storagePolicy:
+                      type: string
+                  type: object
                 type: array
               vCenter:
                 description: VCenter defines info about the vCenter instance that
@@ -93,13 +98,13 @@ spec:
                     type: string
                   folder:
                     type: string
+                  networkName:
+                    type: string
                   password:
                     type: string
                   resourcePool:
                     type: string
                   serverURL:
-                    type: string
-                  storagePolicy:
                     type: string
                   thumbprint:
                     type: string
@@ -123,7 +128,19 @@ spec:
                 description: VirtualMachineClasses defines a list of VirtualMachineClasses
                   to be bound to the namespace where this object is created.
                 items:
-                  type: string
+                  properties:
+                    cpus:
+                      format: int64
+                      type: integer
+                    memory:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    name:
+                      type: string
+                  type: object
                 type: array
             type: object
           status:

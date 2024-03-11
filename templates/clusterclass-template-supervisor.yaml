@@ -255,7 +255,7 @@ spec:
     spec:
       className: ${VSPHERE_MACHINE_CLASS_NAME}
       imageName: ${VSPHERE_IMAGE_NAME}
-      powerOffMode: ${VSPHERE_POWER_OFF_MODE}
+      powerOffMode: ${VSPHERE_POWER_OFF_MODE:=trySoft}
       storageClass: ${VSPHERE_STORAGE_CLASS}
 ---
 apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
@@ -268,7 +268,7 @@ spec:
     spec:
       className: ${VSPHERE_MACHINE_CLASS_NAME}
       imageName: ${VSPHERE_IMAGE_NAME}
-      powerOffMode: ${VSPHERE_POWER_OFF_MODE}
+      powerOffMode: ${VSPHERE_POWER_OFF_MODE:=trySoft}
       storageClass: ${VSPHERE_STORAGE_CLASS}
 ---
 apiVersion: controlplane.cluster.x-k8s.io/v1beta1
@@ -300,6 +300,7 @@ spec:
               cloud-provider: external
             name: '{{ local_hostname }}'
         preKubeadmCommands:
+        - dhclient eth0
         - hostnamectl set-hostname "{{ ds.meta_data.hostname }}"
         - echo "::1         ipv6-localhost ipv6-loopback localhost6 localhost6.localdomain6"
           >/etc/hosts
@@ -326,6 +327,7 @@ spec:
             cloud-provider: external
           name: '{{ local_hostname }}'
       preKubeadmCommands:
+      - dhclient eth0
       - hostnamectl set-hostname "{{ ds.meta_data.hostname }}"
       - echo "::1         ipv6-localhost ipv6-loopback localhost6 localhost6.localdomain6"
         >/etc/hosts

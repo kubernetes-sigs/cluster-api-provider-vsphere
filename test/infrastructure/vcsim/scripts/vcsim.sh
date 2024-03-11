@@ -58,6 +58,8 @@ EOF
 fi
 
 # Check EnvVar exists or create it
+CURRENT_NAMESPACE=$(kubectl config view --minify --output 'jsonpath={..namespace}')
+CLUSTER_NAMESPACE=${CURRENT_NAMESPACE:-default}
 if eval "kubectl get envvar $CLUSTER_NAME &> /dev/null"; then
   echo "using existing EnvVar $CLUSTER_NAME"
 else
@@ -73,6 +75,7 @@ spec:
     name: $CLUSTER_NAME
   cluster:
     name: $CLUSTER_NAME
+    namespace: $CLUSTER_NAMESPACE
 EOF
   echo "created EnvVar $CLUSTER_NAME"
 fi

@@ -19,6 +19,7 @@ package v1alpha1
 import (
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	vcsimhelpers "sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vcsim"
@@ -40,10 +41,10 @@ type VMOperatorDependenciesSpec struct {
 	VCenterSimulatorRef *NamespacedRef `json:"vCenterSimulatorRef,omitempty"`
 
 	// StorageClasses defines a list of StorageClasses to be bound to the namespace where this object is created.
-	StorageClasses []string `json:"storageClasses,omitempty"`
+	StorageClasses []StorageClass `json:"storageClasses,omitempty"`
 
 	// VirtualMachineClasses defines a list of VirtualMachineClasses to be bound to the namespace where this object is created.
-	VirtualMachineClasses []string `json:"virtualMachineClasses,omitempty"`
+	VirtualMachineClasses []VirtualMachineClass `json:"virtualMachineClasses,omitempty"`
 }
 
 // VMOperatorRef provide a reference to the running instance of vm-operator.
@@ -64,8 +65,19 @@ type VCenterSpec struct {
 	Cluster        string               `json:"cluster,omitempty"`
 	Folder         string               `json:"folder,omitempty"`
 	ResourcePool   string               `json:"resourcePool,omitempty"`
-	StoragePolicy  string               `json:"storagePolicy,omitempty"`
 	ContentLibrary ContentLibraryConfig `json:"contentLibrary,omitempty"`
+	NetworkName    string               `json:"networkName,omitempty"`
+}
+
+type StorageClass struct {
+	Name          string `json:"name,omitempty"`
+	StoragePolicy string `json:"storagePolicy,omitempty"`
+}
+
+type VirtualMachineClass struct {
+	Name   string            `json:"name,omitempty"`
+	Cpus   int64             `json:"cpus,omitempty"`
+	Memory resource.Quantity `json:"memory,omitempty"`
 }
 
 type ContentLibraryItemFilesConfig struct {
@@ -129,15 +141,14 @@ func (d *VMOperatorDependencies) SetVCenterFromVCenterSimulator(vCenterSimulator
 	datastore := 0
 
 	d.Spec.VCenter = &VCenterSpec{
-		ServerURL:     vCenterSimulator.Status.Host,
-		Username:      vCenterSimulator.Status.Username,
-		Password:      vCenterSimulator.Status.Password,
-		Thumbprint:    vCenterSimulator.Status.Thumbprint,
-		Datacenter:    vcsimhelpers.DatacenterName(datacenter),
-		Cluster:       vcsimhelpers.ClusterPath(datacenter, cluster),
-		Folder:        vcsimhelpers.VMFolderName(datacenter),
-		ResourcePool:  vcsimhelpers.ResourcePoolPath(datacenter, cluster),
-		StoragePolicy: vcsimhelpers.DefaultStoragePolicyName,
+		ServerURL:    vCenterSimulator.Status.Host,
+		Username:     vCenterSimulator.Status.Username,
+		Password:     vCenterSimulator.Status.Password,
+		Thumbprint:   vCenterSimulator.Status.Thumbprint,
+		Datacenter:   vcsimhelpers.DatacenterName(datacenter),
+		Cluster:      vcsimhelpers.ClusterPath(datacenter, cluster),
+		Folder:       vcsimhelpers.VMFolderName(datacenter),
+		ResourcePool: vcsimhelpers.ResourcePoolPath(datacenter, cluster),
 		ContentLibrary: ContentLibraryConfig{
 			Name:      "vcsim",
 			Datastore: vcsimhelpers.DatastorePath(datacenter, datastore),
@@ -168,9 +179,20 @@ func (d *VMOperatorDependencies) SetVCenterFromVCenterSimulator(vCenterSimulator
 
 	//  Add default storage and vm class for vcsim in not otherwise specified.
 	if len(d.Spec.StorageClasses) == 0 {
-		d.Spec.StorageClasses = []string{"vcsim-default-storage-class"}
+		d.Spec.StorageClasses = []StorageClass{
+			{
+				Name:          "vcsim-default-storage-class",
+				StoragePolicy: vcsimhelpers.DefaultStoragePolicyName,
+			},
+		}
 	}
 	if len(d.Spec.VirtualMachineClasses) == 0 {
-		d.Spec.VirtualMachineClasses = []string{"vcsim-default-vm-class"}
+		d.Spec.VirtualMachineClasses = []VirtualMachineClass{
+			{
+				Name:   "vcsim-default-vm-class",
+				Cpus:   2,
+				Memory: resource.MustParse("4G"),
+			},
+		}
 	}
 }

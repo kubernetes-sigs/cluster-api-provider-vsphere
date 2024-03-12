@@ -17,7 +17,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/vmware-tanzu/vm-operator/api v1.8.5
 	github.com/vmware-tanzu/vm-operator/external/tanzu-topology v0.0.0-20231214185006-5477585eebfd
-	github.com/vmware/govmomi v0.35.0
+	github.com/vmware/govmomi v0.36.0
 	golang.org/x/crypto v0.21.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.29.2

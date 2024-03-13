@@ -305,6 +305,7 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
     		crd:crdVersions=v1 \
     		output:crd:dir=$(VCSIM_CRD_ROOT)
 	$(CONTROLLER_GEN) \
+		paths=./$(VCSIM_DIR)/ \
 		paths=./$(VCSIM_DIR)/controllers/... \
 		output:rbac:dir=$(VCSIM_RBAC_ROOT) \
 		rbac:roleName=manager-role

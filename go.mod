@@ -1,6 +1,6 @@
 module sigs.k8s.io/cluster-api-provider-vsphere
 
-go 1.21
+go 1.22.1
 
 replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.6.0-rc.0.0.20240228234447-4061a478b161
 
@@ -119,7 +119,7 @@ require (
 	golang.org/x/time v0.5.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/protobuf v1.31.0 // indirect
+	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/fsnotify.v1 v1.4.7
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

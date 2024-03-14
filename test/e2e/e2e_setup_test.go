@@ -19,12 +19,15 @@ package e2e
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
@@ -35,6 +38,7 @@ import (
 
 	vsphereip "sigs.k8s.io/cluster-api-provider-vsphere/test/framework/ip"
 	vspherevcsim "sigs.k8s.io/cluster-api-provider-vsphere/test/framework/vcsim"
+	"sigs.k8s.io/cluster-api-provider-vsphere/test/framework/vmoperator"
 	vcsimv1 "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/api/v1alpha1"
 )
 
@@ -132,7 +136,7 @@ func Setup(specName string, f func(testSpecificSettings func() testSettings), op
 			Byf("Setting test variables for %s", specName)
 			for k, v := range envVar.Status.Variables {
 				// ignore variables that will be set later on by the test
-				if sets.New("NAMESPACE", "CLUSTER_NAME", "KUBERNETES_VERSION", "CONTROL_PLANE_MACHINE_COUNT", "WORKER_MACHINE_COUNT", "VSPHERE_SSH_AUTHORIZED_KEY").Has(k) {
+				if sets.New("NAMESPACE", "CLUSTER_NAME", "KUBERNETES_VERSION", "CONTROL_PLANE_MACHINE_COUNT", "WORKER_MACHINE_COUNT").Has(k) {
 					continue
 				}
 
@@ -146,7 +150,14 @@ func Setup(specName string, f func(testSpecificSettings func() testSettings), op
 		}
 
 		if testMode == SupervisorTestMode {
-			postNamespaceCreatedFunc = setupNamespaceWithVMOperatorDependencies
+			postNamespaceCreatedFunc = setupNamespaceWithVMOperatorDependenciesVCenter
+			if testTarget == VCSimTestTarget {
+				postNamespaceCreatedFunc = setupNamespaceWithVMOperatorDependenciesVCSim
+			}
+
+			if testSpecificVariables == nil {
+				testSpecificVariables = map[string]string{}
+			}
 
 			// Update the CLUSTER_CLASS_NAME variable adding the supervisor suffix.
 			if e2eConfig.HasVariable("CLUSTER_CLASS_NAME") {
@@ -197,7 +208,7 @@ func Setup(specName string, f func(testSpecificSettings func() testSettings), op
 	})
 }
 
-func setupNamespaceWithVMOperatorDependencies(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string) {
+func setupNamespaceWithVMOperatorDependenciesVCSim(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string) {
 	c := managementClusterProxy.GetClient()
 
 	vCenterSimulator, err := vspherevcsim.Get(ctx, bootstrapClusterProxy.GetClient())
@@ -225,6 +236,63 @@ func setupNamespaceWithVMOperatorDependencies(managementClusterProxy framework.C
 		}
 		return dependenciesConfig.Status.Ready
 	}, 30*time.Second, 5*time.Second).Should(BeTrue(), "Failed to get VMOperatorDependencies on namespace %s", workloadClusterNamespace)
+}
+
+func setupNamespaceWithVMOperatorDependenciesVCenter(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string) {
+	c := managementClusterProxy.GetClient()
+
+	Byf("Creating VMOperatorDependencies %s", klog.KRef(workloadClusterNamespace, "vcsim"))
+	mustParseInt64 := func(s string) int64 {
+		i, err := strconv.Atoi(s)
+		if err != nil {
+			panic(fmt.Sprintf("%q must be a valid int64", s))
+		}
+		return int64(i)
+	}
+
+	dependenciesConfig := &vcsimv1.VMOperatorDependencies{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "vcenter",
+			Namespace: workloadClusterNamespace,
+		},
+		Spec: vcsimv1.VMOperatorDependenciesSpec{
+			VCenter: &vcsimv1.VCenterSpec{
+				// NOTE: variables from E2E.sh + presets (or variables overrides when running tests locally)
+				ServerURL:  net.JoinHostPort(e2eConfig.GetVariable("VSPHERE_SERVER"), "443"),
+				Username:   e2eConfig.GetVariable("VSPHERE_USERNAME"),
+				Password:   e2eConfig.GetVariable("VSPHERE_PASSWORD"),
+				Thumbprint: e2eConfig.GetVariable("VSPHERE_TLS_THUMBPRINT"),
+				// NOTE: variables from e2e config (or variables overrides when running tests locally)
+				Datacenter:   e2eConfig.GetVariable("VSPHERE_DATACENTER"),
+				Cluster:      e2eConfig.GetVariable("VSPHERE_COMPUTE_CLUSTER"),
+				Folder:       e2eConfig.GetVariable("VSPHERE_FOLDER"),
+				ResourcePool: e2eConfig.GetVariable("VSPHERE_RESOURCE_POOL"),
+				ContentLibrary: vcsimv1.ContentLibraryConfig{
+					Name:      e2eConfig.GetVariable("VSPHERE_CONTENT_LIBRARY"),
+					Datastore: e2eConfig.GetVariable("VSPHERE_DATASTORE"),
+					// NOTE: when running on vCenter the vm-operator automatically creates VirtualMachine objects for the content library.
+					Items: []vcsimv1.ContentLibraryItemConfig{},
+				},
+				NetworkName: e2eConfig.GetVariable("VSPHERE_NETWORK"),
+			},
+			StorageClasses: []vcsimv1.StorageClass{
+				{
+					Name:          e2eConfig.GetVariable("VSPHERE_STORAGE_CLASS"),
+					StoragePolicy: e2eConfig.GetVariable("VSPHERE_STORAGE_POLICY"),
+				},
+			},
+			VirtualMachineClasses: []vcsimv1.VirtualMachineClass{
+				{
+					Name:   e2eConfig.GetVariable("VSPHERE_MACHINE_CLASS_NAME"),
+					Cpus:   mustParseInt64(e2eConfig.GetVariable("VSPHERE_MACHINE_CLASS_CPU")),
+					Memory: resource.MustParse(e2eConfig.GetVariable("VSPHERE_MACHINE_CLASS_MEMORY")),
+				},
+			},
+		},
+	}
+
+	err := vmoperator.ReconcileDependencies(ctx, c, dependenciesConfig)
+	Expect(err).ToNot(HaveOccurred(), "Failed to reconcile VMOperatorDependencies")
 }
 
 // Note: Copy-paste from CAPI below.

@@ -21,6 +21,8 @@ set -o pipefail # any non-zero exit code in a piped command causes the pipeline 
 export PATH=${PWD}/hack/tools/bin:${PATH}
 REPO_ROOT=$(git rev-parse --show-toplevel)
 
+RE_VCSIM='\[vcsim\\]'
+
 # In CI, ARTIFACTS is set to a different directory. This stores the value of
 # ARTIFACTS i1n ORIGINAL_ARTIFACTS and replaces ARTIFACTS by a temporary directory
 # which gets cleaned up from credentials at the end of the test.
@@ -35,8 +37,10 @@ fi
 source "${REPO_ROOT}/hack/ensure-kubectl.sh"
 
 on_exit() {
-  # kill the VPN
-  docker kill vpn
+  # kill the VPN only when we started it (not vcsim)
+  if [[ ! "${GINKGO_FOCUS:-}" =~ $RE_VCSIM ]]; then
+    docker kill vpn
+  fi
 
   # logout of gcloud
   if [ "${AUTH}" ]; then
@@ -45,11 +49,13 @@ on_exit() {
 
   # Cleanup VSPHERE_PASSWORD from temporary artifacts directory.
   if [[ "${ORIGINAL_ARTIFACTS}" != "" ]]; then
-    grep -r -l -e "${VSPHERE_PASSWORD}" "${ARTIFACTS}" | while IFS= read -r file
-    do
-      echo "Cleaning up VSPHERE_PASSWORD from file ${file}"
-      sed -i "s/${VSPHERE_PASSWORD}/REDACTED/g" "${file}"
-    done || true
+    if [ -z "$VSPHERE_PASSWORD" ]; then
+      grep -r -l -e "${VSPHERE_PASSWORD}" "${ARTIFACTS}" | while IFS= read -r file
+      do
+        echo "Cleaning up VSPHERE_PASSWORD from file ${file}"
+        sed -i "s/${VSPHERE_PASSWORD}/REDACTED/g" "${file}"
+      done || true
+    fi
     # Move all artifacts to the original artifacts location.
     mv "${ARTIFACTS}"/* "${ORIGINAL_ARTIFACTS}/"
   fi
@@ -65,6 +71,8 @@ function login() {
   fi
 }
 
+# NOTE: when running on CI without presets, value for variables are missing: GOVC_URL, GOVC_USERNAME, GOVC_PASSWORD, VM_SSH_PUB_KEY),
+#  but this is not an issue when we are targeting vcsim (corresponding VSPHERE_ variables will be injected during test setup).
 AUTH=
 E2E_IMAGE_SHA=
 GCR_KEY_FILE="${GCR_KEY_FILE:-}"
@@ -87,9 +95,8 @@ export GINKGO_NODES=5
 # for kube-vip.
 export E2E_IPAM_KUBECONFIG="/root/ipam-conf/capv-services.conf"
 
-# Only run the vpn/check for IPAM when we need them
-re='\[vcsim\]'
-if [[ ! "${GINKGO_FOCUS:-}" =~ $re ]]; then
+# Only run the vpn/check for IPAM when we need them (not vcsim)
+if [[ ! "${GINKGO_FOCUS:-}" =~ $RE_VCSIM ]]; then
   # Run the vpn client in container
   docker run --rm -d --name vpn -v "${HOME}/.openvpn/:${HOME}/.openvpn/" \
     -w "${HOME}/.openvpn/" --cap-add=NET_ADMIN --net=host --device=/dev/net/tun \
@@ -116,21 +123,19 @@ fi
 
 make envsubst
 
-# kind:prepullImage pre-pull a docker image if no already present locally.
-# The result will be available in the retVal value which is accessible from the caller.
-kind::prepullImage () {
-  local image=$1
-  image="${image//+/_}"
-
-  if [[ "$(docker images -q "$image" 2> /dev/null)" == "" ]]; then
-    echo "+ Pulling $image"
-    docker pull "$image"
-  else
-    echo "+ image $image already present in the system, skipping pre-pull"
-  fi
-}
-
+# Only pre-pull vm-operator image where running in supervisor mode.
 if [[ ${GINKGO_FOCUS:-} =~ \\\[supervisor\\\] ]]; then
+  kind::prepullImage () {
+    local image=$1
+    image="${image//+/_}"
+
+    if [[ "$(docker images -q "$image" 2> /dev/null)" == "" ]]; then
+      echo "+ Pulling $image"
+      docker pull "$image"
+    else
+      echo "+ image $image already present in the system, skipping pre-pull"
+    fi
+  }
    kind::prepullImage "gcr.io/k8s-staging-capi-vsphere/extra/vm-operator:${E2E_VM_OPERATOR_VERSION}"
 fi
 

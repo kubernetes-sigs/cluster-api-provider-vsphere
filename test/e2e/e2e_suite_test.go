@@ -27,7 +27,10 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha1"
+	topologyv1 "github.com/vmware-tanzu/vm-operator/external/tanzu-topology/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/cluster-api/test/framework"
@@ -38,6 +41,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	vsphereframework "sigs.k8s.io/cluster-api-provider-vsphere/test/framework"
 	vsphereip "sigs.k8s.io/cluster-api-provider-vsphere/test/framework/ip"
 	vspherelog "sigs.k8s.io/cluster-api-provider-vsphere/test/framework/log"
@@ -325,8 +329,22 @@ var _ = SynchronizedAfterSuite(func() {
 func initScheme() *runtime.Scheme {
 	sc := runtime.NewScheme()
 	framework.TryAddDefaultSchemes(sc)
-	_ = infrav1.AddToScheme(sc)
-	_ = vcsimv1.AddToScheme(sc)
+
+	if testTarget == VCSimTestTarget {
+		_ = vcsimv1.AddToScheme(sc)
+	}
+
+	if testMode == GovmomiTestMode {
+		_ = infrav1.AddToScheme(sc)
+	}
+
+	if testMode == SupervisorTestMode {
+		_ = corev1.AddToScheme(sc)
+		_ = storagev1.AddToScheme(sc)
+		_ = topologyv1.AddToScheme(sc)
+		_ = vmoprv1.AddToScheme(sc)
+		_ = vmwarev1.AddToScheme(sc)
+	}
 	return sc
 }
 

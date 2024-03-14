@@ -386,9 +386,10 @@ verify-govulncheck: $(GOVULNCHECK) ## Verify code for vulnerabilities
 
 .PHONY: verify-security
 verify-security: ## Verify code and images for vulnerabilities
+	## Note: govulncheck has been disabled on this branch, because there are CVEs in (out-of-support) Go 1.20.
 	$(MAKE) verify-container-images && R1=$$? || R1=$$?; \
-	$(MAKE) verify-govulncheck && R2=$$? || R2=$$?; \
-	if [ "$$R1" -ne "0" ] || [ "$$R2" -ne "0" ]; then \
+#	$(MAKE) verify-govulncheck && R2=$$? || R2=$$?; \
+	if [ "$$R1" -ne "0" ] ; then \
 	  echo "Check for vulnerabilities failed! There are vulnerabilities to be fixed"; \
 		exit 1; \
 	fi

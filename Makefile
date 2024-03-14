@@ -612,6 +612,8 @@ e2e: $(GINKGO) $(KUSTOMIZE) $(KIND) $(GOVC) ## Run e2e tests
 RELEASE_TAG ?= $(shell git describe --abbrev=0 2>/dev/null)
 ifneq (,$(findstring -,$(RELEASE_TAG)))
     PRE_RELEASE=true
+else
+    PRE_RELEASE=false
 endif
 # the previous release tag, e.g., v0.3.9, excluding pre-release tags
 PREVIOUS_TAG ?= $(shell git tag -l | grep -E "^v[0-9]+\.[0-9]+\.[0-9]+$$" | sort -V | grep -B1 $(RELEASE_TAG) | head -n 1 2>/dev/null)
@@ -725,10 +727,7 @@ release-alias-tag: ## Add the release alias tag to the last build tag
 generate-release-notes: $(RELEASE_NOTES_DIR) $(RELEASE_NOTES)
 	# Reset the file
 	echo -n > $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md
-	if [ -n "${PRE_RELEASE}" ]; then \
-	echo -e ":rotating_light: This is a RELEASE CANDIDATE. Use it only for testing purposes. If you find any bugs, file an [issue](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/new/choose).\n" >> $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md; \
-	fi
-	"$(RELEASE_NOTES)" --release=$(RELEASE_TAG) --repository kubernetes-sigs/cluster-api-provider-vsphere >> $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md
+	"$(RELEASE_NOTES)" --release=$(RELEASE_TAG) --repository kubernetes-sigs/cluster-api-provider-vsphere --prefix-area-label=false --deprecation=false --add-kubernetes-version-support=false --pre-release-version=$(PRE_RELEASE) >> $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md
 
 .PHONY: promote-images
 promote-images: $(KPROMO)

@@ -32,6 +32,8 @@ jobs:
       - name: generate release notes
         run: |
           make generate-release-notes
+        env:
+          GH_TOKEN: ${{ github.token }}
       - name: Release
         uses: softprops/action-gh-release@3198ee18f814cdf787321b4a32a26ddbf37acc52 # tag=v2.0.3
         with:

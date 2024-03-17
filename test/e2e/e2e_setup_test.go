@@ -88,7 +88,7 @@ func Setup(specName string, f func(testSpecificSettings func() testSettings), op
 		Byf("Setting up test env for %s", specName)
 		switch testTarget {
 		case VCenterTestTarget:
-			Byf("Getting IP for %s", strings.Join(append([]string{"CONTROL_PLANE_ENDPOINT_IP"}, options.additionalIPVariableNames...), ","))
+			Byf("Getting IP for %s", strings.Join(append([]string{vsphereip.ControlPlaneEndpointIPVariable}, options.additionalIPVariableNames...), ","))
 			// get IPs from the in cluster address manager
 			testSpecificIPAddressClaims, testSpecificVariables = inClusterAddressManager.ClaimIPs(ctx, vsphereip.WithGateway(options.gatewayIPVariableName), vsphereip.WithIP(options.additionalIPVariableNames...))
 		case VCSimTestTarget:

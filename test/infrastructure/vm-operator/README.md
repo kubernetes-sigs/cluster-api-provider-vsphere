@@ -3,7 +3,7 @@
 In this folder we are maintaining code for building the vm-operator manifest.
 
 vm-operator is a component of vCenter supervisor.
-CAPV, when running in supervisor mode delegates to the vm-operator the responsibility to create and manage VMs.
+CAPV, when running in supervisor mode, delegates the responsibility to create and manage VMs to the vm-operator.
 
 **NOTE:** The vm-operator manifest in this folder and everything else described in this page is **not** designed for
 production use and is intended for CAPV development and test only.
@@ -13,12 +13,12 @@ production use and is intended for CAPV development and test only.
 This project has the requirement to test CAPV in supervisor mode using  all the supported versions of
 CAPI, CAPV and vCenter supervisor, and also for all the version built from open PRs.
 
-In order to achieve this without incurring on the cost/complexity of creating multiple, ad-hoc vCenter distributions, 
+In order to achieve this without incurring the cost/complexity of creating multiple, ad-hoc vCenter distributions, 
 we are using a "limited version of the supervisor", composed by the vm-operator only.
 
 This "limited version of the supervisor" is considered enough to provide a signal for CAPV development and test; 
 however, due to the necessary trade-offs required to get a simple and cheap test environment, the solution described below
-is not fit to use for other use cases.
+does not fit to use for other use cases.
 
 The picture explains how this works in detail:
 
@@ -30,10 +30,10 @@ described in following paragraphs.
 
 ## Building and pushing the VM-operator manifest
 
-Run `make release-vm-operator` to build vm-operator, manifests, and image to the VSphere staging bucket.
+Run `make release-vm-operator` to build build & publish vm-operator manifest and image to the CAPV staging bucket.
 
 Note: we are maintaining a copy of those artefacts to ensure CAPV test isolation and to allow small customizations
-that makes it easier to run the vm-operator in the "limited version of the supervisor", but this might change in future.
+that makes it easier to run the vm-operator in the "limited version of the supervisor", but this might change in the future.
 
 ## Tilt for CAPV in supervisor mode using vcsim
 
@@ -41,9 +41,9 @@ NOTE: As of today we are not supporting Tilt development of CAPV in supervisor m
 
 Before reading this paragraph, please familiarize with [vcsim](../vcsim/README.md) documentation.
 
-To use vsphere in supervisor mode it is required to add it the list of enabled providers in your `tilt-setting.yaml/json`
-(note that we are adding `vsphere-supervisor`, which is a variant that deployed the supervisor's CRDs);
-in this case, it is also require to add both the vm-operator and vcsim.
+To use vsphere in supervisor mode it is required to add it to the list of enabled providers in your `tilt-setting.yaml/json`
+(note that we are also adding `vsphere-supervisor`, which is a variant that deploys the supervisor's CRDs);
+in this case, it is also required to add both the `vm-operator` and `vcsim.
 
 ```yaml
 ...
@@ -74,7 +74,7 @@ all the pre requisites for the vm-operator to reconcile machines created in it.
 If there is the need to create machines in different namespace, it is required to create manually
 `VMOperatorDependencies` resource to instruct the vcsim controller to setup additional namespaces too.
 
-The following image summarizes all the moving part involved in this scenario.
+The following image summarizes all the moving parts involved in this scenario.
 
 ![Architecture](architecture-part2.drawio.svg)
 
@@ -98,5 +98,5 @@ A subset of CAPV E2E tests can be executed using the supervisor mode and vcsim a
 `GINKGO_FOCUS="\[vcsim\]\s+\[supervisor\]"`.
 
 Note: The code responsible for E2E tests setup will take care of creating the `VCenterSimulator`, the `ControlPlaneEndpoint`
-and to grab required variables from the corresponding `EnvSubst`. On top of that, the setup code will also 
+and to grab required variables from the corresponding `EnvVar`. On top of that, the setup code will also 
 create the required `VMOperatorDependencies` resource for configuring the test namespace.

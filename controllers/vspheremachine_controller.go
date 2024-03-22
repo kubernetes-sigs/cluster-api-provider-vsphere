@@ -90,12 +90,12 @@ func AddMachineControllerToManager(ctx context.Context, controllerManagerContext
 	}
 
 	if supervisorBased {
-		r.VMService = &vmoperator.VmopMachineService{Client: controllerManagerContext.Client}
 		networkProvider, err := inframanager.GetNetworkProvider(ctx, controllerManagerContext.Client, controllerManagerContext.NetworkProvider)
 		if err != nil {
 			return errors.Wrap(err, "failed to create a network provider")
 		}
 		r.networkProvider = networkProvider
+		r.VMService = &vmoperator.VmopMachineService{Client: controllerManagerContext.Client, ConfigureControlPlaneVMReadinessProbe: r.networkProvider.SupportsVMReadinessProbe()}
 
 		return ctrl.NewControllerManagedBy(mgr).
 			// Watch the controlled, infrastructure resource.

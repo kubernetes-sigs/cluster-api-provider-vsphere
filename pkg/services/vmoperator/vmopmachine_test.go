@@ -37,6 +37,7 @@ import (
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
+	network "sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/network"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
@@ -118,7 +119,7 @@ var _ = Describe("VirtualMachine tests", func() {
 		clusterContext, controllerManagerContext := util.CreateClusterContext(cluster, vsphereCluster)
 		supervisorMachineContext = util.CreateMachineContext(clusterContext, machine, vsphereMachine)
 		supervisorMachineContext.ControllerManagerContext = controllerManagerContext
-		vmService = VmopMachineService{Client: controllerManagerContext.Client}
+		vmService = VmopMachineService{Client: controllerManagerContext.Client, ConfigureControlPlaneVMReadinessProbe: network.DummyLBNetworkProvider().SupportsVMReadinessProbe()}
 	})
 
 	Context("Reconcile VirtualMachine", func() {
@@ -614,7 +615,7 @@ var _ = Describe("GetMachinesInCluster", func() {
 	}
 
 	controllerManagerContext := fake.NewControllerManagerContext(initObjs...)
-	vmService := VmopMachineService{Client: controllerManagerContext.Client}
+	vmService := VmopMachineService{Client: controllerManagerContext.Client, ConfigureControlPlaneVMReadinessProbe: network.DummyLBNetworkProvider().SupportsVMReadinessProbe()}
 
 	It("returns a list of VMs belonging to the cluster", func() {
 		objs, err := vmService.GetMachinesInCluster(context.TODO(),

@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	netopv1alpha1 "github.com/vmware-tanzu/net-operator-api/api/v1alpha1"
+	nsxopv1 "github.com/vmware-tanzu/nsx-operator/pkg/apis/v1alpha1"
 	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha1"
 	ncpv1 "github.com/vmware-tanzu/vm-operator/external/ncp/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -42,8 +43,8 @@ import (
 
 const (
 	// Mocked virtualnetwork status reason and message.
-	testVnetNotRealizedReason  = "Cannot realize network"
-	testVnetNotRealizedMessage = "NetworkNotRealized"
+	testNetworkNotRealizedReason  = "Cannot realize network"
+	testNetworkNotRealizedMessage = "NetworkNotRealized"
 )
 
 func createUnReadyNsxtVirtualNetwork(ctx *vmware.ClusterContext, status ncpv1.VirtualNetworkStatus) *ncpv1.VirtualNetwork {
@@ -195,6 +196,33 @@ var _ = Describe("Network provider", func() {
 				Expect(vm.Spec.NetworkInterfaces[0].NetworkType).To(Equal("nsx-t"))
 			})
 		})
+
+		Context("with nsx-vpc network provider", func() {
+			BeforeEach(func() {
+				scheme := runtime.NewScheme()
+				Expect(ncpv1.AddToScheme(scheme)).To(Succeed())
+				client := fake.NewClientBuilder().WithScheme(scheme).Build()
+				np = NSXTVpcNetworkProvider(client)
+			})
+
+			It("should add nsx-t-subnetset type network interface", func() {
+				err = np.ConfigureVirtualMachine(ctx, clusterCtx, vm)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(vm.Spec.NetworkInterfaces).To(HaveLen(1))
+			})
+
+			It("nsx-t-subnetset type network interface already exists", func() {
+				err = np.ConfigureVirtualMachine(ctx, clusterCtx, vm)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(vm.Spec.NetworkInterfaces).To(HaveLen(1))
+			})
+
+			AfterEach(func() {
+				Expect(err).ToNot(HaveOccurred())
+				Expect(vm.Spec.NetworkInterfaces[0].NetworkName).To(Equal(vSphereCluster.Name))
+				Expect(vm.Spec.NetworkInterfaces[0].NetworkType).To(Equal("nsx-t-subnetset"))
+			})
+		})
 	})
 
 	Context("ProvisionClusterNetwork", func() {
@@ -202,6 +230,7 @@ var _ = Describe("Network provider", func() {
 			scheme             *runtime.Scheme
 			client             runtimeclient.Client
 			nsxNp              *nsxtNetworkProvider
+			vpcNp              *nsxtVPCNetworkProvider
 			runtimeObjs        []runtime.Object
 			vnetObj            runtime.Object
 			configmapObj       runtime.Object
@@ -257,6 +286,7 @@ var _ = Describe("Network provider", func() {
 			Expect(ncpv1.AddToScheme(scheme)).To(Succeed())
 			Expect(corev1.AddToScheme(scheme)).To(Succeed())
 			Expect(vmwarev1.AddToScheme(scheme)).To(Succeed())
+			Expect(nsxopv1.AddToScheme(scheme)).To(Succeed())
 		})
 
 		Context("with dummy network provider", func() {
@@ -459,7 +489,7 @@ var _ = Describe("Network provider", func() {
 				By("create a cluster with virtual network in not ready status")
 				status := ncpv1.VirtualNetworkStatus{
 					Conditions: []ncpv1.VirtualNetworkCondition{
-						{Type: "Ready", Status: "False", Reason: testVnetNotRealizedReason, Message: testVnetNotRealizedMessage},
+						{Type: "Ready", Status: "False", Reason: testNetworkNotRealizedReason, Message: testNetworkNotRealizedMessage},
 					},
 				}
 				vnetObj = createUnReadyNsxtVirtualNetwork(clusterCtx, status)
@@ -470,7 +500,124 @@ var _ = Describe("Network provider", func() {
 				err = np.VerifyNetworkStatus(ctx, clusterCtx, vnetObj)
 
 				expectedErrorMessage := fmt.Sprintf("virtual network ready status is: '%s' in cluster %s. reason: %s, message: %s",
-					"False", apitypes.NamespacedName{Namespace: dummyNs, Name: dummyCluster}, testVnetNotRealizedReason, testVnetNotRealizedMessage)
+					"False", apitypes.NamespacedName{Namespace: dummyNs, Name: dummyCluster}, testNetworkNotRealizedReason, testNetworkNotRealizedMessage)
+				Expect(err).To(MatchError(expectedErrorMessage))
+				Expect(conditions.IsFalse(clusterCtx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition)).To(BeTrue())
+			})
+		})
+
+		Context("with nsx-vpc network provider and subnetset exists", func() {
+			BeforeEach(func() {
+				client = fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(configmapObj, systemNamespaceObj).Build()
+				vpcNp, _ = NSXTVpcNetworkProvider(client).(*nsxtVPCNetworkProvider)
+				np = vpcNp
+				err = np.ProvisionClusterNetwork(ctx, clusterCtx)
+			})
+
+			It("should not update subnetset", func() {
+				var initialSubnetSetSpec nsxopv1.SubnetSetSpec
+
+				// Fetch the SubnetSet before the operation
+				initialSubnetSet := &nsxopv1.SubnetSet{}
+				err = client.Get(ctx, apitypes.NamespacedName{
+					Name:      dummyCluster,
+					Namespace: dummyNs,
+				}, initialSubnetSet)
+				Expect(err).NotTo(HaveOccurred())
+				initialSubnetSetSpec = initialSubnetSet.Spec
+
+				// Presumably there's code here that might modify the SubnetSet...
+				Expect(err).ToNot(HaveOccurred())
+				subnetset, localerr := np.GetClusterNetworkName(ctx, clusterCtx)
+				Expect(localerr).ToNot(HaveOccurred())
+				Expect(subnetset).To(Equal(clusterCtx.VSphereCluster.Name))
+
+				createdSubnetSet := &nsxopv1.SubnetSet{}
+				err = client.Get(ctx, apitypes.NamespacedName{
+					Name:      dummyCluster,
+					Namespace: dummyNs,
+				}, createdSubnetSet)
+
+				Expect(err).ToNot(HaveOccurred())
+				// Check that the SubnetSetSpec was not changed
+				Expect(createdSubnetSet.Spec).To(Equal(initialSubnetSetSpec), "SubnetSetSpec should not have been modified")
+			})
+
+			It("should successfully retrieve VM service annotations and validate their content and network readiness", func() {
+				annotations, err := np.GetVMServiceAnnotations(ctx, clusterCtx)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(annotations).To(HaveKeyWithValue(NSXTVPCSubnetSetSelectorKey, clusterCtx.VSphereCluster.Name))
+				Expect(conditions.IsTrue(clusterCtx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition)).To(BeTrue())
+			})
+		})
+
+		Context("with nsx-vpc network provider and subnetset does not exist", func() {
+			var nsxvpcNp *nsxtVPCNetworkProvider
+
+			BeforeEach(func() {
+				client = fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(configmapObj, systemNamespaceObj).Build()
+				nsxvpcNp, _ = NSXTVpcNetworkProvider(client).(*nsxtVPCNetworkProvider)
+				np = nsxvpcNp
+				err = np.ProvisionClusterNetwork(ctx, clusterCtx)
+			})
+
+			It("should create subnetset with new spec", func() {
+				Expect(err).ToNot(HaveOccurred())
+				subnetset, localerr := np.GetClusterNetworkName(ctx, clusterCtx)
+				Expect(localerr).ToNot(HaveOccurred())
+				Expect(subnetset).To(Equal(clusterCtx.VSphereCluster.Name))
+
+				createdSubnetSet := &nsxopv1.SubnetSet{}
+				err = client.Get(ctx, apitypes.NamespacedName{
+					Name:      dummyCluster,
+					Namespace: dummyNs,
+				}, createdSubnetSet)
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(createdSubnetSet.Spec.AdvancedConfig.StaticIPAllocation.Enable).To(BeTrue())
+			})
+		})
+
+		Context("with nsx-vpc network provider failure", func() {
+			var (
+				client       runtimeclient.Client
+				nsxvpcNp     *nsxtVPCNetworkProvider
+				scheme       *runtime.Scheme
+				subnetsetObj runtime.Object
+			)
+
+			BeforeEach(func() {
+				scheme = runtime.NewScheme()
+				Expect(nsxopv1.AddToScheme(scheme)).To(Succeed())
+			})
+
+			It("should return error when subnetset ready status is false", func() {
+				By("create a cluster with subnetset in not ready status")
+				status := nsxopv1.SubnetSetStatus{
+					Conditions: []nsxopv1.Condition{
+						{
+							Type:    "Ready",
+							Status:  "False",
+							Reason:  testNetworkNotRealizedReason,
+							Message: testNetworkNotRealizedMessage,
+						},
+					},
+				}
+				subnetsetObj = &nsxopv1.SubnetSet{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: cluster.Namespace,
+						Name:      cluster.Name,
+					},
+					Status: status,
+				}
+				client = fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(subnetsetObj).Build()
+				nsxvpcNp, _ = NSXTVpcNetworkProvider(client).(*nsxtVPCNetworkProvider)
+				np = nsxvpcNp
+
+				err = np.VerifyNetworkStatus(ctx, clusterCtx, subnetsetObj)
+
+				expectedErrorMessage := fmt.Sprintf("subnetset ready status is: '%s' in cluster %s. reason: %s, message: %s",
+					"False", apitypes.NamespacedName{Namespace: dummyNs, Name: dummyCluster}, testNetworkNotRealizedReason, testNetworkNotRealizedMessage)
 				Expect(err).To(MatchError(expectedErrorMessage))
 				Expect(conditions.IsFalse(clusterCtx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition)).To(BeTrue())
 			})

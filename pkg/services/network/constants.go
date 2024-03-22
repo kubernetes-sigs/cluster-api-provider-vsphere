@@ -22,6 +22,11 @@ const (
 	NSXTTypeNetwork = "nsx-t"
 	// NSXTVNetSelectorKey is also defined in VM Operator.
 	NSXTVNetSelectorKey = "ncp.vmware.com/virtual-network-name"
+	// NSXTVPCSubnetSetNetworkType is the name of the NSX VPC network type. Please refer to:
+	// https://github.com/vmware-tanzu/vm-operator/blob/main/api/v1alpha1/virtualmachine_types.go#L149.
+	NSXTVPCSubnetSetNetworkType = "nsx-t-subnetset"
+	// NSXTVPCSubnetSetSelectorKey has to be aligned with VM Operator design.
+	NSXTVPCSubnetSetSelectorKey = "nsx-operator.vmware.com/subnetset-name"
 
 	// CAPVDefaultNetworkLabel is a label used to identify the default network.
 	CAPVDefaultNetworkLabel = "capv.vmware.com/is-default-network"

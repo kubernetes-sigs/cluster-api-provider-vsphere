@@ -1,4 +1,159 @@
 # vcsim controller
 
-vcsim controller provides one or more vcsim instances, as well as the fake API server / etcd running on the
-simulated machines.
+vcsim controller is a controller that provides one or more vcsim instances, as well as the VIP for control
+plane endpoints.
+
+## Architecture
+
+vcsim controller is a regular Kubernetes controller designed to be run aside to CAPV when you are planning to use vcsim
+as a target infrastructure instead of a real vCenter.
+
+It is also worth to notice that vcsim controller leverages several components from Cluster API's in-memory
+provider, and thus it is recommended to become familiar with this [document](https://github.com/kubernetes-sigs/cluster-api/blob/main/test/infrastructure/inmemory/README.md)
+before reading the following paragraphs.
+
+### Preparing a test environment (using vcsim)
+
+In order to understand the architecture of the vcsim controller, it is convenient to start looking only at 
+components that are involved in setting up a test environment that will use vcsim as a target infrastructure.
+
+A test environment for CAPV requires two main elements:
+
+- A vCenter, or in this case a vcsim instance simulating a vCenter.
+- A VIP for the control plane endpoint
+
+In order to create a vcsim instance it is possible to use the `VCenterSimulator` resource, and the corresponding
+VCenterSimulatorReconciler will take care of the provisioning process.
+
+Note: The vcsim instance will run inside the Pod that hosts the vcsim controller, and be accessible trough a port that
+will surface in the status of the `VCenterSimulator` resource.
+
+Note: As of today, given a limitation in the vcsim library, only a single instance vcsim instance can be active at any
+time.
+
+In order to get a VIP for the control plane endpoint it is possible to use the `ControlPlaneEndpoint` resource, 
+and the corresponding ControlPlaneEndpointReconciler will take care of the provisioning process.
+
+Note: The code for CAPI's in memory provider is used to create VIPs; they are implemented as a listener on a port
+in the range 20000-24000 on the vcsim controller Pod. The port will surface in the status of the `ControlPlaneEndpoint`
+resource.
+
+![Architecture](architecture-part1.drawio.svg)
+
+The vcsim controller also implement two additional CRDs:
+
+- The `EnvVar` CRD, that can be used to generate variables to be used with cluster templates.
+  Each `EnvVar` generates variables for a single workload cluster, using the VIP from a `ControlPlaneEndpoint` resource
+  and targeting a vCenter that can be originated by a `VCenterSimulator`. 
+
+- The `VMOperatorDependencies` CRD, that is explained in the [vm-operator](../vm-operator/README.md) documentation.
+
+Please also note that the [vcsim.sh](scripts/vcsim.sh) script provide a simplified way for creating `VCenterSimulator`,
+`ControlPlaneEndpoint`, a `EnvVar` referencing both, and finally copy all the variables to a .env file.
+With the env file, it is finally possible to create a cluster.
+
+```shell
+# vcsim1 is the name of the vcsim instance to be created
+# cluster1 is the name of the workload cluster to be created (and it used also as a name for the ControlPlaneEndpoint resource)
+$ test/infrastructure/vcsim/scripts/vcsim.sh vcsim1 cluster1
+created VCenterSimulator vcsim1
+created ControlPlaneEndpoint cluster1
+envvar.vcsim.infrastructure.cluster.x-k8s.io/cluster1 created
+created EnvVar cluster1
+done!
+GOVC_URL=https://user:pass@127.0.0.1:36401/sdk
+
+source vcsim.env
+
+# After this command completes you have to run the printed source command
+$ source vcsim.env
+
+# Then you are ready to create a workload cluster
+$ cat <your template> | envsubst | kubectl apply -f -
+```
+
+### Cluster provisioning with vcsim
+
+In the previous paragraph we explained the process and the components to setup a test environment with a 
+`VCenterSimulator` and a `ControlPlaneEndpoint`, and then create a cluster. 
+
+In this paragraph we are going to describe the components of the vcsim controller that oversee the actual provisioning
+of the cluster.
+
+The picture below explains how this works in detail:
+
+![Architecture](architecture-part2.drawio.svg)
+
+- When the cluster API controllers (KCP, MD controllers) create a `VSphereMachine`, the CAPV controllers first create
+  a `VSphereVM` resource. 
+- When reconciling the `VSphereVM`, the CAPV controllers use the govmomi library to connect to vCenter (in this case to vcsim)
+  to provision a VM.
+
+Given that VMs provisioned by vcsim are fake, there won't be cloud-init running on the machine, and thus it is responsibility 
+of the vmBootstrapReconciler component inside the vcsim controller to "mimic" the machine bootstrap process:
+NOTE: This process is implemented using the code for CAPI's in memory provider.
+
+- If the machine is a control plane machine, fake static pods are created for API server, etcd and other control plane
+  components (controller manager and scheduler are omitted from the picture for sake of simplicity).
+- API server fake pods are registered as "backend" for the cluster VIP, as well as etcd fake pods are registered as
+  "members" of a fake etcd cluster.
+
+Cluster VIP, fake API server pods and fake Etcd pods provide a minimal fake Kubernetes control plane, just capable of the
+operations required to trick Cluster API in believing a real K8s cluster is there.
+
+Finally, in order to complete the provisioning of the fake VM, it is necessary to assign an IP to it. This task is
+performed by the vmIPReconciler component inside the vcsim controller.
+
+Note: the documentation in this pager assumes you are using CAPV in govmomi mode, but it is also possible to use vcsim
+to work with CAPV in supervisor mode. See [vm-operator](../vm-operator/README.md) for more details.
+
+## Working with vcsim
+
+### Tilt
+
+vcsim can be used with Tilt for local development.
+
+To use vcsim it is required to add it to the list of enabled providers in your `tilt-setting.yaml/json`; you can also
+provide extra args or enable debugging for this provider e.g.
+
+```yaml
+...
+provider_repos:
+  - ../cluster-api-provider-vsphere
+enable_providers:
+  - kubeadm-bootstrap
+  - kubeadm-control-plane
+  - vsphere
+  - vcsim
+extra_args:
+  vcsim:
+    - "--v=2"
+    - "--logging-format=json"
+debug:
+  vcsim:
+    continue: true
+    port: 30040
+...
+```
+
+Note: vcsim is not a Cluster API provider, however, for sake of convenience we are "disguising" it as a Cluster API
+runtime extension, so it is possible to deploy it leveraging on the existing machinery in Tilt (as well as in E2E tests).
+
+After starting tilt with `make tilt-up`, you can use the [vcsim.sh](scripts/vcsim.sh) script and the instruction above
+to create a test cluster.
+
+See [Developing Cluster API with Tilt](https://cluster-api.sigs.k8s.io/developer/tilt) for more details.
+
+### E2E tests
+
+vsim can be used to run a subset of CAPV E2E tests that can be executed by setting `GINKGO_FOCUS="\[vcsim\]"`.
+
+See [Running the end-to-end tests locally](https://cluster-api.sigs.k8s.io/developer/testing#running-the-end-to-end-tests-locally) for more details.
+
+Note: The code for the E2E test setup will take care of creating the `VCenterSimulator`, the `ControlPlaneEndpoint`
+and to grab required variables from the corresponding `EnvVar`.
+
+### Clusterctl
+
+Even if technically possible, we are not providing an official way to run vcsim controller using clusterctl,
+and as of today there are no plans to do so.

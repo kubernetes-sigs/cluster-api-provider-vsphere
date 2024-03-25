@@ -187,6 +187,13 @@ func (r *ServiceAccountReconciler) Reconcile(ctx context.Context, req reconcile.
 		return ctrl.Result{}, r.reconcileDelete(ctx, clusterContext)
 	}
 
+	// Add finalizer first if not set to avoid the race condition between init and delete.
+	// Note: Finalizers in general can only be added when the deletionTimestamp is not set.
+	if !controllerutil.ContainsFinalizer(clusterContext.VSphereCluster, vmwarev1.ProviderServiceAccountFinalizer) {
+		controllerutil.AddFinalizer(clusterContext.VSphereCluster, vmwarev1.ProviderServiceAccountFinalizer)
+		return ctrl.Result{}, nil
+	}
+
 	// We cannot proceed until we are able to access the target cluster. Until
 	// then just return a no-op and wait for the next sync. This will occur when
 	// the Cluster's status is updated with a reference to the secret that has
@@ -228,6 +235,7 @@ func (r *ServiceAccountReconciler) reconcileDelete(ctx context.Context, clusterC
 		}
 	}
 
+	controllerutil.RemoveFinalizer(clusterCtx.VSphereCluster, vmwarev1.ProviderServiceAccountFinalizer)
 	return nil
 }
 
@@ -553,6 +561,9 @@ func (r *ServiceAccountReconciler) ensureServiceAccountConfigMap(ctx context.Con
 	configMapBuffer, configMap, err := r.getConfigMapAndBuffer(ctx)
 	if err != nil {
 		return err
+	}
+	if configMap.Data == nil {
+		configMap.Data = map[string]string{}
 	}
 	if valid, exist := configMap.Data[svcAccountName]; exist && valid == strconv.FormatBool(true) {
 		// Service account name is already in the config map

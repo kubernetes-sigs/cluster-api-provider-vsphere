@@ -98,6 +98,19 @@ func AddServiceAccountProviderControllerToManager(ctx *context.ControllerManager
 			&source.Kind{Type: &corev1.Secret{}},
 			handler.EnqueueRequestsFromMapFunc(r.secretToVSphereCluster),
 		).
+		Watches(
+			&vmwarev1.VSphereCluster{},
+			handler.EnqueueRequestsFromMapFunc(func(ctx goctx.Context, o client.Object) []reconcile.Request {
+				return []reconcile.Request{
+					{
+						NamespacedName: types.NamespacedName{
+							Namespace: o.GetNamespace(),
+							Name:      o.GetName(),
+						},
+					},
+				}
+			}),
+		).
 		// Watches clusters and reconciles the vSphereCluster
 		Watches(
 			&source.Kind{Type: &clusterv1.Cluster{}},

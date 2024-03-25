@@ -26,6 +26,10 @@ const (
 	// resources associated with VSphereCluster before removing it from the
 	// API server.
 	ClusterFinalizer = "vspherecluster.vmware.infrastructure.cluster.x-k8s.io"
+
+	// ProviderServiceAccountFinalizer allows ServiceAccountReconciler to clean up service accounts
+	// resources associated with VSphereCluster from the SERVICE_ACCOUNTS_CM (service accounts ConfigMap).
+	ProviderServiceAccountFinalizer = "providerserviceaccount.vmware.infrastructure.cluster.x-k8s.io"
 )
 
 // VSphereClusterSpec defines the desired state of VSphereCluster.

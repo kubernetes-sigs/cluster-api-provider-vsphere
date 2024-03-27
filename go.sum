@@ -550,6 +550,8 @@ github.com/tmc/grpc-websocket-proxy v0.0.0-20220101234140-673ab2c3ae75/go.mod h1
 github.com/urfave/cli v1.20.0/go.mod h1:70zkFmudgCuE/ngEzBv17Jvp/497gISqfk5gWijbERA=
 github.com/vmware-tanzu/net-operator-api v0.0.0-20231019160108-42131d6e8360 h1:yG158jviUd3wRqCTJcSDzp+prUZWtSA9dhfm/Rf8m9M=
 github.com/vmware-tanzu/net-operator-api v0.0.0-20231019160108-42131d6e8360/go.mod h1:dtVG693FvGuOSxJvTaKRVGU0EJR8yvLG3E2VaDDHILM=
+github.com/vmware-tanzu/nsx-operator/pkg/apis v0.1.0 h1:HdnQb/X9vJ8a5WQ03g/0nDr9igIIK1fF6wO5wOtkJT4=
+github.com/vmware-tanzu/nsx-operator/pkg/apis v0.1.0/go.mod h1:Q4JzNkNMvjo7pXtlB5/R3oME4Nhah7fAObWgghVmtxk=
 github.com/vmware-tanzu/vm-operator/api v1.8.5 h1:E8rpRdV8+cNp/eNZ/QUHvlrbpPh8uk6bKqwEEmGWe64=
 github.com/vmware-tanzu/vm-operator/api v1.8.5/go.mod h1:SXaSFtnw2502Tzy0bfQVHrvbFDijR96r1ihUYQWPOK8=
 github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20231214185006-5477585eebfd h1:qdfVf7KFW+XX7+D4xC/mlBpRA9+B+opdDPxGdqjxO+4=

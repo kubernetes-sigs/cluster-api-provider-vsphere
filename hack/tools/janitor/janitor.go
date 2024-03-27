@@ -164,7 +164,7 @@ func (s *janitor) deleteVSphereVMs(ctx context.Context, folder string) error {
 
 func waitForTasksFinished(ctx context.Context, tasks []*object.Task, ignoreErrors bool) error {
 	for _, t := range tasks {
-		if err := t.WaitEx(ctx); !ignoreErrors && err != nil {
+		if err := t.Wait(ctx); !ignoreErrors && err != nil { //nolint:staticcheck // deprecation on Wait is going to be removed, see https://github.com/vmware/govmomi/issues/3394
 			return err
 		}
 	}

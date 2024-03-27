@@ -263,10 +263,10 @@ func (r *vmBootstrapReconciler) reconcileBoostrapNode(ctx context.Context, clust
 		if err := inmemoryClient.Create(ctx, node); err != nil && !apierrors.IsAlreadyExists(err) {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to create Node")
 		}
+		log.Info("Node created", "Node", klog.KObj(node))
 	}
 
 	conditions.MarkTrue(conditionsTracker, NodeProvisionedCondition)
-	log.Info("Node created", "Node", klog.KObj(node))
 	return ctrl.Result{}, nil
 }
 
@@ -407,10 +407,10 @@ func (r *vmBootstrapReconciler) reconcileBoostrapETCD(ctx context.Context, clust
 		if err := r.APIServerMux.AddEtcdMember(listenerName, etcdMember, cert, key.(*rsa.PrivateKey)); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to start etcd member")
 		}
+		log.Info("etcd Pod started", "Pod", klog.KObj(etcdPod))
 	}
 
 	conditions.MarkTrue(conditionsTracker, EtcdProvisionedCondition)
-	log.Info("etcd Pod started", "Pod", klog.KObj(etcdPod))
 	return ctrl.Result{}, nil
 }
 
@@ -516,10 +516,10 @@ func (r *vmBootstrapReconciler) reconcileBoostrapAPIServer(ctx context.Context, 
 		if err := r.APIServerMux.AddAPIServer(listenerName, apiServer, cert, key.(*rsa.PrivateKey)); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to start API server")
 		}
+		log.Info("API server Pod started", "Pod", klog.KObj(apiServerPod))
 	}
 
 	conditions.MarkTrue(conditionsTracker, APIServerProvisionedCondition)
-	log.Info("API server Pod started", "Pod", klog.KObj(apiServerPod))
 	return ctrl.Result{}, nil
 }
 

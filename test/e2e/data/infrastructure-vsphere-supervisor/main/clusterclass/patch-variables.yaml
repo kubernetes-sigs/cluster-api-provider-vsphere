@@ -1,0 +1,6 @@
+# remove "infraServer"
+- op: remove
+  path: /spec/variables/1
+# remove "credsSecretName"
+- op: remove
+  path: /spec/variables/4

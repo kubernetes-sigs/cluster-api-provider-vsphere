@@ -33,6 +33,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -83,6 +84,8 @@ func AddServiceAccountProviderControllerToManager(ctx *context.ControllerManager
 		remoteClientGetter: remote.NewClusterClient,
 	}
 
+	clusterToInfraFn := clusterToSupervisorInfrastructureMapFunc(ctx)
+
 	return ctrl.NewControllerManagedBy(mgr).For(controlledType).
 		// Watch a ProviderServiceAccount
 		Watches(
@@ -94,7 +97,47 @@ func AddServiceAccountProviderControllerToManager(ctx *context.ControllerManager
 			&source.Kind{Type: &corev1.Secret{}},
 			handler.EnqueueRequestsFromMapFunc(r.secretToVSphereCluster),
 		).
+		Watches(
+			&source.Kind{Type: &vmwarev1.VSphereCluster{}},
+			handler.EnqueueRequestsFromMapFunc(func(o client.Object) []reconcile.Request {
+				return []reconcile.Request{
+					{
+						NamespacedName: types.NamespacedName{
+							Namespace: o.GetNamespace(),
+							Name:      o.GetName(),
+						},
+					},
+				}
+			}),
+		).
+		// Watches clusters and reconciles the vSphereCluster
+		Watches(
+			&source.Kind{Type: &clusterv1.Cluster{}},
+			handler.EnqueueRequestsFromMapFunc(func(o client.Object) []reconcile.Request {
+				requests := clusterToInfraFn(o)
+				if requests == nil {
+					return nil
+				}
+
+				c := &vmwarev1.VSphereCluster{}
+				if err := r.Client.Get(ctx, requests[0].NamespacedName, c); err != nil {
+					r.Logger.V(4).Error(err, "Failed to get VSphereCluster")
+					return nil
+				}
+
+				if annotations.IsExternallyManaged(c) {
+					r.Logger.V(4).Info("VSphereCluster is externally managed, skipping mapping.")
+					return nil
+				}
+				return requests
+			}),
+		).
 		Complete(r)
+}
+
+func clusterToSupervisorInfrastructureMapFunc(managerContext *context.ControllerManagerContext) handler.MapFunc {
+	gvk := vmwarev1.GroupVersion.WithKind(reflect.TypeOf(&vmwarev1.VSphereCluster{}).Elem().Name())
+	return clusterutilv1.ClusterToInfrastructureMapFunc(managerContext, gvk, managerContext.Client, &vmwarev1.VSphereCluster{})
 }
 
 type ServiceAccountReconciler struct {
@@ -157,6 +200,13 @@ func (r ServiceAccountReconciler) Reconcile(_ goctx.Context, req reconcile.Reque
 		return reconcile.Result{}, nil
 	}
 
+	// Add finalizer first if not set to avoid the race condition between init and delete.
+	// Note: Finalizers in general can only be added when the deletionTimestamp is not set.
+	if !controllerutil.ContainsFinalizer(clusterContext.VSphereCluster, vmwarev1.ProviderServiceAccountFinalizer) {
+		controllerutil.AddFinalizer(clusterContext.VSphereCluster, vmwarev1.ProviderServiceAccountFinalizer)
+		return ctrl.Result{}, nil
+	}
+
 	// We cannot proceed until we are able to access the target cluster. Until
 	// then just return a no-op and wait for the next sync. This will occur when
 	// the Cluster's status is updated with a reference to the secret that has
@@ -190,6 +240,7 @@ func (r ServiceAccountReconciler) ReconcileDelete(ctx *vmwarecontext.ClusterCont
 		}
 	}
 
+	controllerutil.RemoveFinalizer(ctx.VSphereCluster, vmwarev1.ProviderServiceAccountFinalizer)
 	return reconcile.Result{}, nil
 }
 
@@ -446,6 +497,9 @@ func (r ServiceAccountReconciler) ensureServiceAccountConfigMap(ctx *vmwareconte
 	configMapBuffer, configMap, err := r.getConfigMapAndBuffer(ctx)
 	if err != nil {
 		return err
+	}
+	if configMap.Data == nil {
+		configMap.Data = map[string]string{}
 	}
 	if valid, exist := configMap.Data[svcAccountName]; exist && valid == strconv.FormatBool(true) {
 		// Service account name is already in the config map

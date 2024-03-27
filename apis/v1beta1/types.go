@@ -258,6 +258,11 @@ type PCIDeviceSpec struct {
 	// virtual machine is cloned.
 	// +kubebuilder:validation:Required
 	VendorID *int32 `json:"vendorId,omitempty"`
+	// CustomLabel is the hardware label of a virtual machine's PCI device.
+	// Defaults to the eponymous property value in the template from which the
+	// virtual machine is cloned.
+	// +optional
+	CustomLabel string `json:"customLabel,omitempty"`
 }
 
 // NetworkSpec defines the virtual machine's network configuration.

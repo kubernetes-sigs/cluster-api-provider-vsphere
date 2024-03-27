@@ -78,7 +78,7 @@ func TestCreate(t *testing.T) {
 		t.Fatal("could not make vim25 client.")
 	}
 	task := object.NewTask(vimClient, taskRef)
-	err = task.WaitEx(ctx)
+	err = task.Wait(ctx) //nolint:staticcheck // deprecation on Wait is going to be removed, see https://github.com/vmware/govmomi/issues/3394
 	if err != nil {
 		t.Fatal("error waiting for task:", err)
 	}

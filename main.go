@@ -436,13 +436,12 @@ func setupRemoteClusterCacheTracker(ctx context.Context, mgr ctrlmgr.Manager) (*
 
 	// Set up a ClusterCacheTracker and ClusterCacheReconciler to provide to controllers
 	// requiring a connection to a remote cluster
-	log := ctrl.Log.WithValues("component", "remote/clustercachetracker")
 	tracker, err := remote.NewClusterCacheTracker(
 		mgr,
 		remote.ClusterCacheTrackerOptions{
 			SecretCachingClient: secretCachingClient,
 			ControllerName:      controllerName,
-			Log:                 &log,
+			Log:                 &ctrl.Log,
 		},
 	)
 	if err != nil {

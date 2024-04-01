@@ -556,8 +556,8 @@ github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20231214185006-5477585ee
 github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20231214185006-5477585eebfd/go.mod h1:5rqRJ9zGR+KnKbkGx373WgN8xJpvAj99kHnfoDYRO5I=
 github.com/vmware-tanzu/vm-operator/external/tanzu-topology v0.0.0-20231214185006-5477585eebfd h1:BleW2NxLCPbLvFoTzhoX/DsjCJuKyEdcmvYiY04k18U=
 github.com/vmware-tanzu/vm-operator/external/tanzu-topology v0.0.0-20231214185006-5477585eebfd/go.mod h1:dfYrWS8DMRN+XZfhu8M4LVHmeGvYB29Ipd7j4uIq+mU=
-github.com/vmware/govmomi v0.36.1 h1:+E/nlfteQ8JvC0xhuKAfpnMsuIeGeGj7rJwqENUcWm8=
-github.com/vmware/govmomi v0.36.1/go.mod h1:mtGWtM+YhTADHlCgJBiskSRPOZRsN9MSjPzaZLte/oQ=
+github.com/vmware/govmomi v0.36.2 h1:fFTicZmjwPCiBJGyKLZ5Ty9JbTgBPVSXJDv1Duw0r7c=
+github.com/vmware/govmomi v0.36.2/go.mod h1:mtGWtM+YhTADHlCgJBiskSRPOZRsN9MSjPzaZLte/oQ=
 github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2 h1:eY9dn8+vbi4tKz5Qo6v2eYzo7kUS51QINcR5jNpbZS8=
 github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2/go.mod h1:UETIi67q53MR2AWcXfiuqkDkRtnGDLqkBTpCHuJHxtU=
 github.com/xlab/treeprint v1.2.0 h1:HzHnuAF1plUN2zGlAFHbSQP2qJ0ZAD3XF5XD7OesXRQ=

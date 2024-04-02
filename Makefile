@@ -865,8 +865,10 @@ clean-ci: ## Cleanup orphaned objects in CI
 		--max-age=12h \
 		--ipam-namespace=default \
 		--folder=/SDDC-Datacenter/vm/Workloads/cluster-api-provider-vsphere \
-		--folder=/SDDC-Datacenter/vm/Workloads/cloud-provider-vsphere \
-		--folder=/SDDC-Datacenter/vm/Workloads/image-builder
+		--resource-pool=/SDDC-Datacenter/host/Cluster-1/Resources/Compute-ResourcePool/cluster-api-provider-vsphere \
+		--vm-folder=/SDDC-Datacenter/vm/Workloads/cluster-api-provider-vsphere \
+		--vm-folder=/SDDC-Datacenter/vm/Workloads/cloud-provider-vsphere \
+		--vm-folder=/SDDC-Datacenter/vm/Workloads/image-builder
 
 .PHONY: clean-temporary
 clean-temporary: ## Remove all temporary files and folders

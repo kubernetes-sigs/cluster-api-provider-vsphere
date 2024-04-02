@@ -164,7 +164,7 @@ func (s *janitor) deleteVSphereVMs(ctx context.Context, folder string) error {
 
 func waitForTasksFinished(ctx context.Context, tasks []*object.Task, ignoreErrors bool) error {
 	for _, t := range tasks {
-		if err := t.WaitEx(ctx); !ignoreErrors && err != nil {
+		if err := t.Wait(ctx); !ignoreErrors && err != nil {
 			return err
 		}
 	}

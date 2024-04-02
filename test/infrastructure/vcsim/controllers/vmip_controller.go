@@ -79,7 +79,7 @@ func (r *vmIPReconciler) ReconcileIP(ctx context.Context) (ctrl.Result, error) {
 	if err != nil {
 		return reconcile.Result{}, errors.Wrapf(err, "failed to PowerOff vm")
 	}
-	if err = task.WaitEx(ctx); err != nil {
+	if err = task.Wait(ctx); err != nil { // deprecation on Wait is going to be removed, see https://github.com/vmware/govmomi/issues/3394
 		return reconcile.Result{}, errors.Wrapf(err, "failed to PowerOff vm task to complete")
 	}
 
@@ -117,7 +117,7 @@ func (r *vmIPReconciler) ReconcileIP(ctx context.Context) (ctrl.Result, error) {
 	if err != nil {
 		return reconcile.Result{}, errors.Wrapf(err, "failed to Customize vm")
 	}
-	if err = task.WaitEx(ctx); err != nil {
+	if err = task.Wait(ctx); err != nil {
 		return reconcile.Result{}, errors.Wrapf(err, "failed to wait for Customize vm task to complete")
 	}
 
@@ -126,7 +126,7 @@ func (r *vmIPReconciler) ReconcileIP(ctx context.Context) (ctrl.Result, error) {
 	if err != nil {
 		return reconcile.Result{}, errors.Wrapf(err, "failed to PowerOn vm")
 	}
-	if err = task.WaitEx(ctx); err != nil {
+	if err = task.Wait(ctx); err != nil {
 		return reconcile.Result{}, errors.Wrapf(err, "failed to PowerOn vm task to complete")
 	}
 

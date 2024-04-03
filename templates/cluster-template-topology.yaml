@@ -14,10 +14,6 @@ spec:
     variables:
     - name: sshKey
       value: '${VSPHERE_SSH_AUTHORIZED_KEY}'
-    - name: infraServer
-      value:
-        thumbprint: '${VSPHERE_TLS_THUMBPRINT}'
-        url: '${VSPHERE_SERVER}'
     - name: kubeVipPodManifest
       value: |
         apiVersion: v1
@@ -93,6 +89,10 @@ spec:
       value: ${CONTROL_PLANE_ENDPOINT_IP}
     - name: controlPlanePort
       value: ${CONTROL_PLANE_ENDPOINT_PORT:=6443}
+    - name: infraServer
+      value:
+        thumbprint: '${VSPHERE_TLS_THUMBPRINT}'
+        url: '${VSPHERE_SERVER}'
     - name: credsSecretName
       value: '${CLUSTER_NAME}'
     version: '${KUBERNETES_VERSION}'

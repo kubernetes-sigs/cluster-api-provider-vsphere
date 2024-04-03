@@ -195,17 +195,6 @@ spec:
         description: Public key to SSH onto the cluster nodes.
         type: string
   - metadata: {}
-    name: infraServer
-    required: true
-    schema:
-      openAPIV3Schema:
-        properties:
-          thumbprint:
-            type: string
-          url:
-            type: string
-        type: object
-  - metadata: {}
     name: controlPlaneIpAddr
     required: true
     schema:
@@ -219,13 +208,6 @@ spec:
       openAPIV3Schema:
         description: Port for the control plane endpoint.
         type: integer
-  - metadata: {}
-    name: credsSecretName
-    required: true
-    schema:
-      openAPIV3Schema:
-        description: Secret containing the credentials for the infra cluster.
-        type: string
   - metadata: {}
     name: kubeVipPodManifest
     required: true

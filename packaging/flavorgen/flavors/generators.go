@@ -99,8 +99,8 @@ systemd:
         EnvironmentFile=/run/metadata/*`
 )
 
-func newClusterTopologyCluster() (clusterv1.Cluster, error) {
-	variables, err := clusterTopologyVariables()
+func newClusterTopologyCluster(supervisorMode bool) (clusterv1.Cluster, error) {
+	variables, err := clusterTopologyVariables(supervisorMode)
 	if err != nil {
 		return clusterv1.Cluster{}, errors.Wrap(err, "failed to create ClusterTopologyCluster template")
 	}
@@ -136,7 +136,7 @@ func newClusterTopologyCluster() (clusterv1.Cluster, error) {
 	}, nil
 }
 
-func clusterTopologyVariables() ([]clusterv1.ClusterVariable, error) {
+func clusterTopologyVariables(supervisorMode bool) ([]clusterv1.ClusterVariable, error) {
 	sshKey, err := json.Marshal(env.VSphereSSHAuthorizedKeysVar)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to json-encode variable VSphereSSHAuthorizedKeysVar: %q", env.VSphereSSHAuthorizedKeysVar)
@@ -149,30 +149,16 @@ func clusterTopologyVariables() ([]clusterv1.ClusterVariable, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to json-encode variable ControlPlaneEndpointPortVar: %q", env.ControlPlaneEndpointPortVar)
 	}
-	secretName, err := json.Marshal(env.ClusterNameVar)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to json-encode variable ClusterNameVar: %q", env.ClusterNameVar)
-	}
-
 	kubeVipVariable, err := kubevip.TopologyVariable()
 	if err != nil {
 		return nil, err
 	}
-	infraServerValue, err := getInfraServerValue()
-	if err != nil {
-		return nil, err
-	}
-	return []clusterv1.ClusterVariable{
+
+	variables := []clusterv1.ClusterVariable{
 		{
 			Name: "sshKey",
 			Value: apiextensionsv1.JSON{
 				Raw: sshKey,
-			},
-		},
-		{
-			Name: "infraServer",
-			Value: apiextensionsv1.JSON{
-				Raw: infraServerValue,
 			},
 		},
 		*kubeVipVariable,
@@ -188,13 +174,36 @@ func clusterTopologyVariables() ([]clusterv1.ClusterVariable, error) {
 				Raw: controlPlanePort,
 			},
 		},
-		{
-			Name: "credsSecretName",
-			Value: apiextensionsv1.JSON{
-				Raw: secretName,
+	}
+
+	if !supervisorMode {
+		infraServerValue, err := getInfraServerValue()
+		if err != nil {
+			return nil, err
+		}
+		secretName, err := json.Marshal(env.ClusterNameVar)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to json-encode variable ClusterNameVar: %q", env.ClusterNameVar)
+		}
+
+		varForNoneSupervisorMode := []clusterv1.ClusterVariable{
+			{
+				Name: "infraServer",
+				Value: apiextensionsv1.JSON{
+					Raw: infraServerValue,
+				},
 			},
-		},
-	}, nil
+			{
+				Name: "credsSecretName",
+				Value: apiextensionsv1.JSON{
+					Raw: secretName,
+				},
+			},
+		}
+
+		variables = append(variables, varForNoneSupervisorMode...)
+	}
+	return variables, nil
 }
 
 func getInfraServerValue() ([]byte, error) {

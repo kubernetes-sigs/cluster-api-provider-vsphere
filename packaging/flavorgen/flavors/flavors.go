@@ -82,7 +82,7 @@ func ClusterClassTemplateSupervisor() []runtime.Object {
 }
 
 func ClusterTopologyTemplateKubeVIP() ([]runtime.Object, error) {
-	cluster, err := newClusterTopologyCluster()
+	cluster, err := newClusterTopologyCluster(false)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +104,7 @@ func ClusterTopologyTemplateKubeVIP() ([]runtime.Object, error) {
 }
 
 func ClusterTopologyTemplateSupervisor() ([]runtime.Object, error) {
-	cluster, err := newClusterTopologyCluster()
+	cluster, err := newClusterTopologyCluster(true)
 	if err != nil {
 		return nil, err
 	}

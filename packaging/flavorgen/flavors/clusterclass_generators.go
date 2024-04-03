@@ -55,7 +55,7 @@ func newClusterClass() clusterv1.ClusterClass {
 			},
 			ControlPlane: getControlPlaneClass(),
 			Workers:      getWorkersClass(),
-			Variables:    getClusterClassVariables(),
+			Variables:    getClusterClassVariables(false),
 			Patches:      getClusterClassPatches(),
 		},
 	}
@@ -81,7 +81,7 @@ func newVMWareClusterClass() clusterv1.ClusterClass {
 			},
 			ControlPlane: getVMWareControlPlaneClass(),
 			Workers:      getVMWareWorkersClass(),
-			Variables:    getClusterClassVariables(),
+			Variables:    getClusterClassVariables(true),
 			Patches:      getVMWareClusterClassPatches(),
 		},
 	}
@@ -238,8 +238,8 @@ func getEnableSSHIntoNodesTemplate() *string {
 	return ptr.To(string(templateStr))
 }
 
-func getClusterClassVariables() []clusterv1.ClusterClassVariable {
-	return []clusterv1.ClusterClassVariable{
+func getClusterClassVariables(supervisorMode bool) []clusterv1.ClusterClassVariable {
+	variables := []clusterv1.ClusterClassVariable{
 		{
 			Name:     "sshKey",
 			Required: false,
@@ -247,19 +247,6 @@ func getClusterClassVariables() []clusterv1.ClusterClassVariable {
 				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 					Description: "Public key to SSH onto the cluster nodes.",
 					Type:        "string",
-				},
-			},
-		},
-		{
-			Name:     "infraServer",
-			Required: true,
-			Schema: clusterv1.VariableSchema{
-				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-					Type: "object",
-					Properties: map[string]clusterv1.JSONSchemaProps{
-						"url":        {Type: "string"},
-						"thumbprint": {Type: "string"},
-					},
 				},
 			},
 		},
@@ -284,16 +271,6 @@ func getClusterClassVariables() []clusterv1.ClusterClassVariable {
 			},
 		},
 		{
-			Name:     "credsSecretName",
-			Required: true,
-			Schema: clusterv1.VariableSchema{
-				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-					Type:        "string",
-					Description: "Secret containing the credentials for the infra cluster.",
-				},
-			},
-		},
-		{
 			Name:     "kubeVipPodManifest",
 			Required: true,
 			Schema: clusterv1.VariableSchema{
@@ -304,6 +281,38 @@ func getClusterClassVariables() []clusterv1.ClusterClassVariable {
 			},
 		},
 	}
+
+	if !supervisorMode {
+		varForNoneSupervisorMode := []clusterv1.ClusterClassVariable{
+			{
+				Name:     "infraServer",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"url":        {Type: "string"},
+							"thumbprint": {Type: "string"},
+						},
+					},
+				},
+			},
+			{
+				Name:     "credsSecretName",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type:        "string",
+						Description: "Secret containing the credentials for the infra cluster.",
+					},
+				},
+			},
+		}
+
+		variables = append(variables, varForNoneSupervisorMode...)
+	}
+
+	return variables
 }
 
 func newVSphereClusterTemplate() infrav1.VSphereClusterTemplate {

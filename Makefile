@@ -610,13 +610,16 @@ e2e: $(GINKGO) $(KUSTOMIZE) $(KIND) $(GOVC) ## Run e2e tests
 
 ## latest git tag for the commit, e.g., v0.3.10
 RELEASE_TAG ?= $(shell git describe --abbrev=0 2>/dev/null)
+## if we are on a pre-release, we have to determine the previous release for the release-notes generator.
 ifneq (,$(findstring -,$(RELEASE_TAG)))
-    PRE_RELEASE=true
-else
-    PRE_RELEASE=false
+	# extract the major and minor version from the RELEASE_TAG
+	_RELEASE_TAG_MAJOR ?= $(word 1,$(subst ., ,$(RELEASE_TAG:v%=%)))
+	_RELEASE_TAG_MINOR ?= $(word 2,$(subst ., ,$(RELEASE_TAG:v%=%)))
+	# Find the previous release of the same major + minor version (including pre-releases) or the previous .0 minor release.
+	_PREVIOUS_RELEASE_TAG ?= $(shell git tag -l | grep -E -e '^v[0-9]+\.[0-9]+\.0+$$|^v$(_RELEASE_TAG_MAJOR)\.$(_RELEASE_TAG_MINOR)\.' | sort -V | grep -B1 $(RELEASE_TAG) | head -n 1 2>/dev/null)
+	# Set the argument for release-notes generator to provide the for pre-releases mandatory `--previous-release-version` flag.
+	RELEASE_NOTES_PRE_RELEASE_ARG ?= "--previous-release-version=tags/$(_PREVIOUS_RELEASE_TAG)"
 endif
-# the previous release tag, e.g., v0.3.9, excluding pre-release tags
-PREVIOUS_TAG ?= $(shell git tag -l | grep -E "^v[0-9]+\.[0-9]+\.[0-9]+$$" | sort -V | grep -B1 $(RELEASE_TAG) | head -n 1 2>/dev/null)
 ## set by Prow, ref name of the base branch, e.g., main
 RELEASE_ALIAS_TAG := $(PULL_BASE_REF)
 RELEASE_DIR := out
@@ -727,7 +730,7 @@ release-alias-tag: ## Add the release alias tag to the last build tag
 generate-release-notes: $(RELEASE_NOTES_DIR) $(RELEASE_NOTES)
 	# Reset the file
 	echo -n > $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md
-	"$(RELEASE_NOTES)" --release=$(RELEASE_TAG) --repository kubernetes-sigs/cluster-api-provider-vsphere --prefix-area-label=false --deprecation=false --add-kubernetes-version-support=false --pre-release-version=$(PRE_RELEASE) >> $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md
+	"$(RELEASE_NOTES)" --release=$(RELEASE_TAG) $(RELEASE_NOTES_PRE_RELEASE_ARG) --repository kubernetes-sigs/cluster-api-provider-vsphere --prefix-area-label=false --deprecation=false --add-kubernetes-version-support=false >> $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md
 
 .PHONY: promote-images
 promote-images: $(KPROMO)

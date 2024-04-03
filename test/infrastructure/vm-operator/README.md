@@ -28,13 +28,6 @@ As you might notice, it is required to have an additional component taking care 
 and vCenter as required by the vm-operator. This component exist in different variants according to the use cases
 described in following paragraphs.
 
-## Building and pushing the VM-operator manifest
-
-Run `make release-vm-operator` to build build & publish vm-operator manifest and image to the CAPV staging bucket.
-
-Note: we are maintaining a copy of those artefacts to ensure CAPV test isolation and to allow small customizations
-that makes it easier to run the vm-operator in the "limited version of the supervisor", but this might change in the future.
-
 ## Tilt for CAPV in supervisor mode using vcsim
 
 NOTE: As of today we are not supporting Tilt development of CAPV in supervisor mode when targeting a real vCenter.
@@ -44,6 +37,8 @@ Before reading this paragraph, please familiarize with [vcsim](../vcsim/README.m
 To use vsphere in supervisor mode it is required to add it to the list of enabled providers in your `tilt-setting.yaml/json`
 (note that we are also adding `vsphere-supervisor`, which is a variant that deploys the supervisor's CRDs);
 in this case, it is also required to add both the `vm-operator` and `vcsim.
+
+NOTE: before using `vm-operator` for the first time, you have to run `make vm-operator-manifest-build` in the CAPV folder.
 
 ```yaml
 ...
@@ -100,3 +95,10 @@ A subset of CAPV E2E tests can be executed using the supervisor mode and vcsim a
 Note: The code responsible for E2E tests setup will take care of creating the `VCenterSimulator`, the `ControlPlaneEndpoint`
 and to grab required variables from the corresponding `EnvVar`. On top of that, the setup code will also 
 create the required `VMOperatorDependencies` resource for configuring the test namespace.
+
+## Building and pushing the VM-operator manifest
+
+Run `make release-vm-operator` to build & publish vm-operator manifest and image to the CAPV staging bucket.
+
+Note: we are maintaining a copy of those artefacts to ensure CAPV test isolation and to allow small customizations
+that makes it easier to run the vm-operator in the "limited version of the supervisor", but this might change in the future.

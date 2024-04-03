@@ -77,8 +77,9 @@ func run(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	log.Info("Configured settings", "dry-run", dryRun)
-	log.Info("Configured settings", "folders", vsphereVMFolders)
-	log.Info("Configured settings", "resource-pools", vsphereResourcePools)
+	log.Info("Configured settings", "folder", vsphereFolders)
+	log.Info("Configured settings", "vm-folder", vsphereVMFolders)
+	log.Info("Configured settings", "resource-pool", vsphereResourcePools)
 	log.Info("Configured settings", "ipam-namespace", ipamNamespace)
 	log.Info("Configured settings", "max-age", maxAge)
 

@@ -138,7 +138,6 @@ func getDeletionMarkerTimestamp(key int32, values []types.BaseCustomFieldValue) 
 	// Find the value for the key
 	var b *types.BaseCustomFieldValue
 	for i := range values {
-		// Find the
 		if values[i].GetCustomFieldValue().Key != key {
 			continue
 		}

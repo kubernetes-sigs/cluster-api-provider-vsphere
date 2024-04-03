@@ -252,7 +252,7 @@ func (s *janitor) deleteObjectChildren(ctx context.Context, inventoryPath string
 	// Get key for the deletion marker.
 	deletionMarkerKey, err := s.vSphereClients.FieldsManager.FindKey(ctx, vSphereDeletionMarkerName)
 	if err != nil && err != object.ErrKeyNameNotFound {
-		return err
+		return errors.Wrapf(err, "finding custom field %q", vSphereDeletionMarkerName)
 	}
 
 	// Only create the deletion marker if we are not on dryRun.
@@ -262,12 +262,12 @@ func (s *janitor) deleteObjectChildren(ctx context.Context, inventoryPath string
 		if !s.dryRun {
 			_, err := s.vSphereClients.FieldsManager.Add(ctx, vSphereDeletionMarkerName, "ManagedEntity", nil, nil)
 			if err != nil {
-				return err
+				return errors.Wrapf(err, "creating custom field %q", vSphereDeletionMarkerName)
 			}
 
 			deletionMarkerKey, err = s.vSphereClients.FieldsManager.FindKey(ctx, vSphereDeletionMarkerName)
 			if err != nil && err != object.ErrKeyNameNotFound {
-				return err
+				return errors.Wrapf(err, "finding custom field %q", vSphereDeletionMarkerName)
 			}
 		}
 	}
@@ -316,7 +316,7 @@ func (s *janitor) deleteObjectChildren(ctx context.Context, inventoryPath string
 		}
 
 		if err := s.vSphereClients.FieldsManager.Set(ctx, managedElement.entity.Reference(), deletionMarkerKey, time.Now().Format(time.RFC3339)); err != nil {
-			return err
+			return errors.Wrapf(err, "setting field %s on object %s", vSphereDeletionMarkerName, managedElement.element.Path)
 		}
 	}
 

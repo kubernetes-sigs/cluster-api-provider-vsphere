@@ -172,7 +172,7 @@ func (r vmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.R
 	// Create the patch helper.
 	patchHelper, err := patch.NewHelper(vsphereVM, r.Client)
 	if err != nil {
-		return reconcile.Result{}, errors.Wrap(err, "failed to initialize patch helper")
+		return reconcile.Result{}, err
 	}
 
 	authSession, err := r.retrieveVcenterSession(ctx, vsphereVM)

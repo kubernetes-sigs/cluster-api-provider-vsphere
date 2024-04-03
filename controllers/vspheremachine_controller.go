@@ -231,7 +231,7 @@ func (r *machineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 	// Create the patch helper.
 	patchHelper, err := patch.NewHelper(machineContext.GetVSphereMachine(), r.Client)
 	if err != nil {
-		return reconcile.Result{}, errors.Wrap(err, "failed to initialize patch helper")
+		return reconcile.Result{}, err
 	}
 	machineContext.SetBaseMachineContext(&capvcontext.BaseMachineContext{
 		Cluster:     cluster,

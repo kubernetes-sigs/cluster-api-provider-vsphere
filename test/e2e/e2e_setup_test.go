@@ -287,6 +287,11 @@ func setupNamespaceWithVMOperatorDependenciesVCenter(managementClusterProxy fram
 					Cpus:   mustParseInt64(e2eConfig.GetVariable("VSPHERE_MACHINE_CLASS_CPU")),
 					Memory: resource.MustParse(e2eConfig.GetVariable("VSPHERE_MACHINE_CLASS_MEMORY")),
 				},
+				{
+					Name:   e2eConfig.GetVariable("VSPHERE_MACHINE_CLASS_NAME_CONFORMANCE"),
+					Cpus:   mustParseInt64(e2eConfig.GetVariable("VSPHERE_MACHINE_CLASS_CPU_CONFORMANCE")),
+					Memory: resource.MustParse(e2eConfig.GetVariable("VSPHERE_MACHINE_CLASS_MEMORY_CONFORMANCE")),
+				},
 			},
 		},
 	}

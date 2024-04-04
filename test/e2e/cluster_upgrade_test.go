@@ -26,7 +26,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/kubernetesversions"
 )
 
-var _ = Describe("When upgrading a workload cluster using ClusterClass and testing K8S conformance [Conformance] [K8s-Upgrade] [ClusterClass]", func() {
+var _ = Describe("When upgrading a workload cluster using ClusterClass and testing K8S conformance [supervisor] [Conformance] [K8s-Upgrade] [ClusterClass]", func() {
 	// Note: This installs a cluster based on KUBERNETES_VERSION_UPGRADE_FROM and then upgrades to
 	// KUBERNETES_VERSION_UPGRADE_TO and runs conformance tests.
 	// Note: We are resolving KUBERNETES_VERSION_UPGRADE_FROM and KUBERNETES_VERSION_UPGRADE_TO and then setting
@@ -58,7 +58,7 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass and testi
 	})
 })
 
-var _ = Describe("When upgrading a workload cluster using ClusterClass [ClusterClass]", func() {
+var _ = Describe("When upgrading a workload cluster using ClusterClass [supervisor] [ClusterClass]", func() {
 	// Note: This installs a cluster based on KUBERNETES_VERSION_UPGRADE_FROM and then upgrades to
 	// KUBERNETES_VERSION_UPGRADE_TO.
 	const specName = "k8s-upgrade" // aligned to CAPI

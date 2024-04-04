@@ -1,0 +1,10 @@
+---
+apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+kind: VSphereMachineTemplate
+metadata:
+  name: ${CLUSTER_NAME}-worker
+  namespace: ${NAMESPACE}
+spec:
+  template:
+    spec:
+      className: ${VSPHERE_MACHINE_CLASS_NAME_CONFORMANCE}

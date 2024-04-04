@@ -30,8 +30,10 @@ jobs:
         run: |
           make release
       - name: generate release notes
+        # Ignore failures for release-notes generation so they could still get
+        # generated manually before publishing.
         run: |
-          make generate-release-notes
+          make generate-release-notes || echo "Failed to generate release notes" >> _releasenotes/${{ env.RELEASE_TAG }}.md
         env:
           GH_TOKEN: ${{ github.token }}
       - name: Release

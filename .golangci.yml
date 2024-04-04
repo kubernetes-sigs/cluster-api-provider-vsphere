@@ -67,3 +67,6 @@ issues:
         - stylecheck
       text: "ST1001"
       path: ".*test.*"
+    - linters:
+        - staticcheck
+      text: "\"k8s.io/utils/pointer\" is deprecated: Use functions in k8s.io/utils/ptr instead"

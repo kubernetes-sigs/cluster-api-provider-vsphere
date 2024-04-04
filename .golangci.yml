@@ -65,6 +65,9 @@ issues:
     - linters:
         - staticcheck
       text: "SA1019: .* is deprecated: This package will be removed in one of the next releases."
+    - linters:
+        - staticcheck
+      text: "\"k8s.io/utils/pointer\" is deprecated: Use functions in k8s.io/utils/ptr instead"
     - path: "test/e2e/*"
       linters:
         - gosec

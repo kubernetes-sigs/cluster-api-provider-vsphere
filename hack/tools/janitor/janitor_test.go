@@ -222,7 +222,7 @@ func Test_janitor_deleteObjectChildren(t *testing.T) {
 		want       map[string]bool
 	}{
 		{
-			name:       "should preserve resource pool if it contains a vm and deleting resource pools",
+			name:       "should preserve resource pool if it contains a vm and delete empty resource pools",
 			basePath:   resourcePoolBase,
 			objectType: "ResourcePool",
 			objects: []*simCreator{
@@ -238,7 +238,7 @@ func Test_janitor_deleteObjectChildren(t *testing.T) {
 			},
 		},
 		{
-			name:       "should preserve folder if it contains a vm and deleting folders",
+			name:       "should preserve folder if it contains a vm and delete empty folders",
 			basePath:   folderBase,
 			objectType: "Folder",
 			objects: []*simCreator{
@@ -370,7 +370,7 @@ func Test_janitor_CleanupVSphere(t *testing.T) {
 			wantAfterSecondRun: map[string]bool{},
 		},
 		{
-			name:               "no-op dryRun",
+			name:               "dryRun: no-op",
 			dryRun:             true,
 			maxCreationDate:    deleteAll,
 			objects:            nil,
@@ -397,7 +397,7 @@ func Test_janitor_CleanupVSphere(t *testing.T) {
 			wantAfterSecondRun: map[string]bool{},
 		},
 		{
-			name:            "delete everything dryrun",
+			name:            "dryRun: would delete everything",
 			dryRun:          true,
 			maxCreationDate: deleteAll,
 			objects: []*simCreator{

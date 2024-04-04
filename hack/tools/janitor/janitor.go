@@ -295,11 +295,13 @@ func (s *janitor) deleteObjectChildren(ctx context.Context, inventoryPath string
 
 		// Filter out objects we don't have to cleanup depending on s.maxCreationDate.
 		if timestamp.After(s.maxCreationDate) {
+			log.Info("Skipping deletion of object: marked timestamp does not exceed maxCreationDate", "timestamp", timestamp, "inventoryPath", managedEntity.element.Path)
 			continue
 		}
 
 		// Filter out objects which have children.
 		if hasChildren[managedEntity.element.Path] {
+			log.Info("Skipping deletion of object: object has child objects of a different type", "inventoryPath", managedEntity.element.Path)
 			continue
 		}
 
@@ -320,6 +322,7 @@ func (s *janitor) deleteObjectChildren(ctx context.Context, inventoryPath string
 		}
 	}
 
+	// sort objects to delete so children are deleted before parents
 	sort.Slice(objectsToDelete, func(i, j int) bool {
 		a := objectsToDelete[i]
 		b := objectsToDelete[j]

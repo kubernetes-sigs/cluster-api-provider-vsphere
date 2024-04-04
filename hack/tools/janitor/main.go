@@ -108,6 +108,8 @@ func run(ctx context.Context) error {
 
 	janitor := newJanitor(vSphereClients, ipamClient, maxAge, ipamNamespace, dryRun)
 
+	log.Info("Configured settings", "janitor.maxCreationDate", janitor.maxCreationDate)
+
 	// First cleanup old vms and other vSphere resources to free up IPAddressClaims or cluster modules which are still in-use.
 	if err := janitor.CleanupVSphere(ctx, vsphereFolders, vsphereResourcePools, vsphereVMFolders); err != nil {
 		return errors.Wrap(err, "cleaning up vSphere")

@@ -166,15 +166,15 @@ type managedElement struct {
 
 func recursiveList(ctx context.Context, inventoryPath string, govmomiClient *govmomi.Client, finder *find.Finder, viewManager *view.Manager, objectTypes ...string) ([]*managedElement, error) {
 	// Get the object at inventoryPath
-	objs, err := finder.ManagedObjectList(ctx, inventoryPath)
+	objList, err := finder.ManagedObjectList(ctx, inventoryPath)
 	if err != nil {
 		return nil, err
 	}
-	if len(objs) != 1 {
+	if len(objList) != 1 {
 		return nil, errors.Errorf("expected to find object at managed object at path: %s", inventoryPath)
 	}
 
-	root := objs[0].Object.Reference()
+	root := objList[0].Object.Reference()
 
 	v, err := viewManager.CreateContainerView(ctx, root, objectTypes, true)
 	if err != nil {
@@ -193,12 +193,12 @@ func recursiveList(ctx context.Context, inventoryPath string, govmomiClient *gov
 		return managedElements, nil
 	}
 
-	var objStuff []mo.ManagedEntity
-	if err := govmomiClient.Retrieve(ctx, managedObjects, []string{"availableField", "value"}, &objStuff); err != nil {
+	var objs []mo.ManagedEntity
+	if err := govmomiClient.Retrieve(ctx, managedObjects, []string{"availableField", "value"}, &objs); err != nil {
 		return nil, err
 	}
 
-	for _, entity := range objStuff {
+	for _, entity := range objs {
 		element, err := finder.Element(ctx, entity.Reference())
 		if err != nil {
 			return nil, err

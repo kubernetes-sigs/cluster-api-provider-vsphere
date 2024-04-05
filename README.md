@@ -217,7 +217,7 @@ We also use the issue tracker to track features. If you have an idea for a featu
 
 [mailint_list]: https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle
 
-[meeting_notes]: https://docs.google.com/document/d/1jQrQiOW75uWraPk4b_LWtCTHwT7EZwrWWwMdxeWOEvk/edit?usp=sharing
+[meeting_notes]: https://docs.google.com/document/d/15CD2VOdkCAEcq2mm5FVoPO8M4-0a2SA2ajHLFBYqz7c/edit?usp=sharing
 
 [new_issue]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/new
 

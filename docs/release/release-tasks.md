@@ -122,12 +122,15 @@ From this point forward changes which should land in the release have to be cher
       # Export the tag of the release to be cut, e.g.:
       export RELEASE_TAG=v1.8.0-beta.0
       # Create tags locally
-      # Warning: The test tag MUST NOT be an annotated tag.
       git tag -s -a ${RELEASE_TAG} -m ${RELEASE_TAG}
+      # Warning: The test tag MUST NOT be an annotated tag.
+      # Warning: only for >= release-1.9
+      git tag test/${RELEASE_TAG}
 
       # Push tags
       # Note: `upstream` must be the remote pointing to `github.com/kubernetes-sigs/cluster-api-provider-vsphere`.
       git push upstream ${RELEASE_TAG}
+      git push upstream test/${RELEASE_TAG}
    ```
 
    This will automatically trigger:

@@ -77,9 +77,9 @@ func run(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	log.Info("Configured settings", "dry-run", dryRun)
-	log.Info("Configured settings", "folder", vsphereFolders)
-	log.Info("Configured settings", "vm-folder", vsphereVMFolders)
-	log.Info("Configured settings", "resource-pool", vsphereResourcePools)
+	log.Info("Configured settings", "folders", vsphereFolders)
+	log.Info("Configured settings", "vm-folders", vsphereVMFolders)
+	log.Info("Configured settings", "resource-pools", vsphereResourcePools)
 	log.Info("Configured settings", "ipam-namespace", ipamNamespace)
 	log.Info("Configured settings", "max-age", maxAge)
 
@@ -111,7 +111,7 @@ func run(ctx context.Context) error {
 	log.Info("Configured settings", "janitor.maxCreationDate", janitor.maxCreationDate)
 
 	// First cleanup old vms and other vSphere resources to free up IPAddressClaims or cluster modules which are still in-use.
-	if err := janitor.CleanupVSphere(ctx, vsphereFolders, vsphereResourcePools, vsphereVMFolders); err != nil {
+	if err := janitor.cleanupVSphere(ctx, vsphereFolders, vsphereResourcePools, vsphereVMFolders); err != nil {
 		return errors.Wrap(err, "cleaning up vSphere")
 	}
 

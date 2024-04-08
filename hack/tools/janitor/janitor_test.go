@@ -78,7 +78,7 @@ func setup(ctx context.Context, t *testing.T) (*vSphereClients, *vcsim.Simulator
 	return clients, vcsim
 }
 
-func setupTestCase(g *gomega.WithT, sim *vcsim.Simulator, objects []*simCreator) (string, map[string]bool) {
+func setupTestCase(g *gomega.WithT, sim *vcsim.Simulator, objects []*vcsimObject) (string, map[string]bool) {
 	g.THelper()
 
 	relativePath := rand.String(10)
@@ -95,10 +95,7 @@ func setupTestCase(g *gomega.WithT, sim *vcsim.Simulator, objects []*simCreator)
 
 	// Create objects
 	for _, object := range objects {
-		splitted := strings.Split(object.Path(relativePath), relativePath+"/")
-		if len(splitted) == 2 {
-			createdObjects[path.Join(object.t, splitted[1])] = true
-		}
+		createdObjects[path.Join(object.objectType, object.pathSuffix)] = true
 		g.Expect(object.Create(sim, relativePath)).To(gomega.Succeed())
 	}
 
@@ -122,14 +119,14 @@ func Test_janitor_deleteVSphereVMs(t *testing.T) {
 
 	tests := []struct {
 		name            string
-		objects         []*simCreator
+		objects         []*vcsimObject
 		maxCreationDate time.Time
 		wantErr         bool
 		want            map[string]bool
 	}{
 		{
 			name: "delete all VMs",
-			objects: []*simCreator{
+			objects: []*vcsimObject{
 				vcsimVirtualMachine("foo"),
 			},
 			maxCreationDate: deleteAll,
@@ -138,7 +135,7 @@ func Test_janitor_deleteVSphereVMs(t *testing.T) {
 		},
 		{
 			name: "delete no VMs",
-			objects: []*simCreator{
+			objects: []*vcsimObject{
 				vcsimVirtualMachine("foo"),
 			},
 			maxCreationDate: deleteNone,
@@ -149,7 +146,7 @@ func Test_janitor_deleteVSphereVMs(t *testing.T) {
 		},
 		{
 			name: "recursive vm deletion",
-			objects: []*simCreator{
+			objects: []*vcsimObject{
 				vcsimResourcePool("a"),
 				vcsimFolder("a"),
 				vcsimResourcePool("a/b"),
@@ -217,7 +214,7 @@ func Test_janitor_deleteObjectChildren(t *testing.T) {
 		name       string
 		basePath   string
 		objectType string
-		objects    []*simCreator
+		objects    []*vcsimObject
 		wantErr    bool
 		want       map[string]bool
 	}{
@@ -225,7 +222,7 @@ func Test_janitor_deleteObjectChildren(t *testing.T) {
 			name:       "should preserve resource pool if it contains a vm and delete empty resource pools",
 			basePath:   resourcePoolBase,
 			objectType: "ResourcePool",
-			objects: []*simCreator{
+			objects: []*vcsimObject{
 				vcsimResourcePool("a"),
 				vcsimResourcePool("b"),
 				vcsimFolder("a"),
@@ -241,7 +238,7 @@ func Test_janitor_deleteObjectChildren(t *testing.T) {
 			name:       "should preserve folder if it contains a vm and delete empty folders",
 			basePath:   folderBase,
 			objectType: "Folder",
-			objects: []*simCreator{
+			objects: []*vcsimObject{
 				vcsimResourcePool("a"),
 				vcsimFolder("a"),
 				vcsimFolder("b"),
@@ -257,13 +254,13 @@ func Test_janitor_deleteObjectChildren(t *testing.T) {
 			name:       "no-op",
 			basePath:   resourcePoolBase,
 			objectType: "ResourcePool",
-			objects:    []*simCreator{},
+			objects:    []*vcsimObject{},
 		},
 		{
 			name:       "single resource pool",
 			basePath:   resourcePoolBase,
 			objectType: "ResourcePool",
-			objects: []*simCreator{
+			objects: []*vcsimObject{
 				vcsimResourcePool("a"),
 			},
 		},
@@ -271,7 +268,7 @@ func Test_janitor_deleteObjectChildren(t *testing.T) {
 			name:       "multiple nested resource pools",
 			basePath:   resourcePoolBase,
 			objectType: "ResourcePool",
-			objects: []*simCreator{
+			objects: []*vcsimObject{
 				vcsimResourcePool("a"),
 				vcsimResourcePool("a/b"),
 				vcsimResourcePool("a/b/c"),
@@ -284,13 +281,13 @@ func Test_janitor_deleteObjectChildren(t *testing.T) {
 			name:       "no-op",
 			basePath:   folderBase,
 			objectType: "Folder",
-			objects:    []*simCreator{},
+			objects:    []*vcsimObject{},
 		},
 		{
 			name:       "single folder",
 			basePath:   folderBase,
 			objectType: "Folder",
-			objects: []*simCreator{
+			objects: []*vcsimObject{
 				vcsimFolder("a"),
 			},
 		},
@@ -298,7 +295,7 @@ func Test_janitor_deleteObjectChildren(t *testing.T) {
 			name:       "multiple nested folders",
 			basePath:   folderBase,
 			objectType: "Folder",
-			objects: []*simCreator{
+			objects: []*vcsimObject{
 				vcsimFolder("a"),
 				vcsimFolder("a/b"),
 				vcsimFolder("a/b/c"),
@@ -357,7 +354,7 @@ func Test_janitor_CleanupVSphere(t *testing.T) {
 		name               string
 		dryRun             bool
 		maxCreationDate    time.Time
-		objects            []*simCreator
+		objects            []*vcsimObject
 		wantAfterFirstRun  map[string]bool
 		wantAfterSecondRun map[string]bool
 	}{
@@ -381,7 +378,7 @@ func Test_janitor_CleanupVSphere(t *testing.T) {
 			name:            "delete everything",
 			dryRun:          false,
 			maxCreationDate: deleteAll,
-			objects: []*simCreator{
+			objects: []*vcsimObject{
 				vcsimFolder("a"),
 				vcsimResourcePool("a"),
 				vcsimVirtualMachine("a/b"),
@@ -400,7 +397,7 @@ func Test_janitor_CleanupVSphere(t *testing.T) {
 			name:            "dryRun: would delete everything",
 			dryRun:          true,
 			maxCreationDate: deleteAll,
-			objects: []*simCreator{
+			objects: []*vcsimObject{
 				vcsimFolder("a"),
 				vcsimResourcePool("a"),
 				vcsimVirtualMachine("a/b"),
@@ -441,12 +438,12 @@ func Test_janitor_CleanupVSphere(t *testing.T) {
 			folders := []string{folder}
 			resourcePools := []string{resourcePool}
 
-			g.Expect(s.CleanupVSphere(ctx, folders, resourcePools, folders)).To(gomega.Succeed())
+			g.Expect(s.cleanupVSphere(ctx, folders, resourcePools, folders)).To(gomega.Succeed())
 			existingObjects, err := recursiveListFoldersAndResourcePools(ctx, relativePath, clients.Govmomi, clients.Finder, clients.ViewManager)
 			g.Expect(err).ToNot(gomega.HaveOccurred())
 			g.Expect(existingObjects).To(gomega.BeEquivalentTo(tt.wantAfterFirstRun))
 
-			g.Expect(s.CleanupVSphere(ctx, folders, resourcePools, folders)).To(gomega.Succeed())
+			g.Expect(s.cleanupVSphere(ctx, folders, resourcePools, folders)).To(gomega.Succeed())
 			existingObjects, err = recursiveListFoldersAndResourcePools(ctx, relativePath, clients.Govmomi, clients.Finder, clients.ViewManager)
 			g.Expect(err).ToNot(gomega.HaveOccurred())
 			g.Expect(existingObjects).To(gomega.BeEquivalentTo(tt.wantAfterSecondRun))
@@ -489,49 +486,49 @@ func recursiveListFoldersAndResourcePools(ctx context.Context, testPrefix string
 	return objects, nil
 }
 
-type simCreator struct {
-	p                string
-	t                string
+type vcsimObject struct {
+	pathSuffix       string
+	objectType       string
 	datastoreTempDir string
 }
 
-func (c simCreator) Path(testPrefix string) string {
-	var base string
+func (o vcsimObject) Path(testPrefix string) string {
+	var pathPrefix string
 
-	switch c.t {
+	switch o.objectType {
 	case "ResourcePool":
-		base = resourcePoolBase
+		pathPrefix = resourcePoolBase
 	case "Folder":
-		base = folderBase
+		pathPrefix = folderBase
 	case "VirtualMachine":
 		// VMs exist at the folders.
-		base = folderBase
+		pathPrefix = folderBase
 	case "Datastore":
-		base = "/DC0/datastore"
+		pathPrefix = "/DC0/datastore"
 	default:
 		panic("unimplemented")
 	}
 
-	return path.Join(base, testPrefix, c.p)
+	return path.Join(pathPrefix, testPrefix, o.pathSuffix)
 }
 
-func (c simCreator) Create(sim *vcsim.Simulator, testPrefix string) error {
+func (o vcsimObject) Create(sim *vcsim.Simulator, testPrefix string) error {
 	var cmd string
-	switch c.t {
+	switch o.objectType {
 	case "ResourcePool":
-		cmd = fmt.Sprintf("pool.create %s", c.Path(testPrefix))
+		cmd = fmt.Sprintf("pool.create %s", o.Path(testPrefix))
 	case "Folder":
-		cmd = fmt.Sprintf("folder.create %s", c.Path(testPrefix))
+		cmd = fmt.Sprintf("folder.create %s", o.Path(testPrefix))
 	case "Datastore":
-		tmpDir, err := os.MkdirTemp(c.datastoreTempDir, testPrefix)
+		tmpDir, err := os.MkdirTemp(o.datastoreTempDir, testPrefix)
 		if err != nil {
 			return err
 		}
 		cmd = fmt.Sprintf("datastore.create -type local -name %s -path %s /DC0/host/DC0_C0", testPrefix, tmpDir)
 	case "VirtualMachine":
-		fullPath := c.Path(testPrefix)
+		fullPath := o.Path(testPrefix)
 		folderPath := path.Dir(fullPath)
-		rpPath := vcsimResourcePool(path.Dir(c.p)).Path(testPrefix)
+		rpPath := vcsimResourcePool(path.Dir(o.pathSuffix)).Path(testPrefix)
 		name := path.Base(fullPath)
 		networkPath := "/DC0/network/DC0_DVPG0"
 		cmd = fmt.Sprintf("vm.create -on=true -pool %s -folder %s -net %s -ds /DC0/datastore/%s %s", rpPath, folderPath, networkPath, testPrefix, name)
@@ -549,18 +546,18 @@ func (c simCreator) Create(sim *vcsim.Simulator, testPrefix string) error {
 	return nil
 }
 
-func vcsimResourcePool(p string) *simCreator {
-	return &simCreator{p: p, t: "ResourcePool"}
+func vcsimResourcePool(p string) *vcsimObject {
+	return &vcsimObject{pathSuffix: p, objectType: "ResourcePool"}
 }
 
-func vcsimFolder(p string) *simCreator {
-	return &simCreator{p: p, t: "Folder"}
+func vcsimFolder(p string) *vcsimObject {
+	return &vcsimObject{pathSuffix: p, objectType: "Folder"}
 }
 
-func vcsimDatastore(p, datastoreTempDir string) *simCreator {
-	return &simCreator{p: p, t: "Datastore", datastoreTempDir: datastoreTempDir}
+func vcsimDatastore(p, datastoreTempDir string) *vcsimObject {
+	return &vcsimObject{pathSuffix: p, objectType: "Datastore", datastoreTempDir: datastoreTempDir}
 }
 
-func vcsimVirtualMachine(p string) *simCreator {
-	return &simCreator{p: p, t: "VirtualMachine"}
+func vcsimVirtualMachine(p string) *vcsimObject {
+	return &vcsimObject{pathSuffix: p, objectType: "VirtualMachine"}
 }

@@ -59,7 +59,7 @@ type virtualMachine struct {
 	object        *object.VirtualMachine
 }
 
-func (s *janitor) CleanupVSphere(ctx context.Context, folders, resourcePools, vmFolders []string) error {
+func (s *janitor) cleanupVSphere(ctx context.Context, folders, resourcePools, vmFolders []string) error {
 	errList := []error{}
 
 	// Delete vms to cleanup folders and resource pools.
@@ -251,24 +251,21 @@ func (s *janitor) deleteObjectChildren(ctx context.Context, inventoryPath string
 
 	// Get key for the deletion marker.
 	deletionMarkerKey, err := s.vSphereClients.FieldsManager.FindKey(ctx, vSphereDeletionMarkerName)
-	if err != nil && err != object.ErrKeyNameNotFound {
-		return errors.Wrapf(err, "finding custom field %q", vSphereDeletionMarkerName)
-	}
+	if err != nil {
+		if !errors.Is(err, object.ErrKeyNameNotFound) {
+			return errors.Wrapf(err, "finding custom field %q", vSphereDeletionMarkerName)
+		}
 
-	// Only create the deletion marker if we are not on dryRun.
-	if deletionMarkerKey == -1 {
+		// In case of ErrKeyNameNotFound we will create the deletionMarker but only if
+		// we are not on dryRun.
 		log.Info("Creating the deletion field")
 
 		if !s.dryRun {
-			_, err := s.vSphereClients.FieldsManager.Add(ctx, vSphereDeletionMarkerName, "ManagedEntity", nil, nil)
+			field, err := s.vSphereClients.FieldsManager.Add(ctx, vSphereDeletionMarkerName, "ManagedEntity", nil, nil)
 			if err != nil {
 				return errors.Wrapf(err, "creating custom field %q", vSphereDeletionMarkerName)
 			}
-
-			deletionMarkerKey, err = s.vSphereClients.FieldsManager.FindKey(ctx, vSphereDeletionMarkerName)
-			if err != nil && err != object.ErrKeyNameNotFound {
-				return errors.Wrapf(err, "finding custom field %q", vSphereDeletionMarkerName)
-			}
+			deletionMarkerKey = field.Key
 		}
 	}
 

@@ -171,7 +171,7 @@ func recursiveList(ctx context.Context, inventoryPath string, govmomiClient *gov
 		return nil, err
 	}
 	if len(objList) != 1 {
-		return nil, errors.Errorf("expected to find object at managed object at path: %s", inventoryPath)
+		return nil, errors.Errorf("expected to find exactly 1 object at managed object at path: %s", inventoryPath)
 	}
 
 	root := objList[0].Object.Reference()
@@ -182,6 +182,7 @@ func recursiveList(ctx context.Context, inventoryPath string, govmomiClient *gov
 	}
 	defer func() { _ = v.Destroy(ctx) }()
 
+	// Recursively find all objects.
 	managedObjects, err := v.Find(ctx, nil, property.Match{"name": "*"})
 	if err != nil {
 		return nil, err
@@ -193,6 +194,8 @@ func recursiveList(ctx context.Context, inventoryPath string, govmomiClient *gov
 		return managedElements, nil
 	}
 
+	// Retrieve the availableField and value attributes of the found object so we
+	// later can check for the deletion marker.
 	var objs []mo.ManagedEntity
 	if err := govmomiClient.Retrieve(ctx, managedObjects, []string{"availableField", "value"}, &objs); err != nil {
 		return nil, err

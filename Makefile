@@ -223,7 +223,8 @@ VM_OPERATOR_IMAGE_NAME ?= extra/vm-operator
 VM_OPERATOR_CONTROLLER_IMG ?= $(STAGING_REGISTRY)/$(VM_OPERATOR_IMAGE_NAME)
 VM_OPERATOR_DIR := test/infrastructure/vm-operator
 VM_OPERATOR_TMP_DIR ?= vm-operator.tmp
-VM_OPERATOR_VERSION ?= v1.8.1
+VM_OPERATOR_COMMIT ?= de75746a9505ef3161172d99b735d6593c54f0c5
+VM_OPERATOR_VERSION ?= v1.8.6-0-gde75746a-dirty
 VM_OPERATOR_ALL_ARCH = amd64 arm64
 
 # It is set by Prow GIT_TAG, a git-based tag of the form vYYYYMMDD-hash, e.g., v20210120-v0.3.10-308-gc61521971
@@ -783,14 +784,17 @@ vm-operator-checkout:
 	@if [ -z "${VM_OPERATOR_VERSION}" ]; then echo "VM_OPERATOR_VERSION is not set"; exit 1; fi
 	@if [ -d "$(VM_OPERATOR_TMP_DIR)" ]; then \
 		echo "$(VM_OPERATOR_TMP_DIR) exists, skipping clone"; \
-		cd "$(VM_OPERATOR_TMP_DIR)"; \
-		if [ "$$(git describe --match "v[0-9]*")" != "$(VM_OPERATOR_VERSION)" ]; then \
-			echo "ERROR: checked out version $$(git describe --match "v[0-9]*") does not match expected version $(VM_OPERATOR_VERSION)"; \
-			exit 1; \
-		fi \
 	else \
-		git clone --depth 1 --branch "$(VM_OPERATOR_VERSION)" "https://github.com/vmware-tanzu/vm-operator.git" "$(VM_OPERATOR_TMP_DIR)"; \
+		git clone "https://github.com/vmware-tanzu/vm-operator.git" "$(VM_OPERATOR_TMP_DIR)"; \
+		cd "$(VM_OPERATOR_TMP_DIR)"; \
+        git checkout "$(VM_OPERATOR_COMMIT)"; \
+        git apply "../test/infrastructure/vm-operator/Fix_defaulting_for_Named_networks.patch"; \
 	fi
+	@cd "$(ROOT_DIR)/$(VM_OPERATOR_TMP_DIR)"; \
+	if [ "$$(git describe --dirty 2> /dev/null)" != "$(VM_OPERATOR_VERSION)" ]; then \
+    	echo "ERROR: checked out version $$(git describe --dirty 2> /dev/null) does not match expected version $(VM_OPERATOR_VERSION)"; \
+    	exit 1; \
+    fi
 
 .PHONY: vm-operator-manifest-build
 vm-operator-manifest-build: $(RELEASE_DIR) $(KUSTOMIZE) vm-operator-checkout ## Build the vm-operator manifest yaml file

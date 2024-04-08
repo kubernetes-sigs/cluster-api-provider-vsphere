@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"sort"
 	"strings"
 	"time"
 
@@ -343,10 +344,10 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 	for _, vmc := range config.Spec.VirtualMachineClasses {
 		vmClass := &vmoprv1.VirtualMachineClass{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: vmc.Name,
+				Name:      vmc.Name,
+				Namespace: config.Namespace,
 			},
 			Spec: vmoprv1.VirtualMachineClassSpec{
-				// TODO: figure out if to make vm class configurable via API
 				Hardware: vmoprv1.VirtualMachineClassHardware{
 					Cpus:   vmc.Cpus,
 					Memory: vmc.Memory,
@@ -571,7 +572,8 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 
 		virtualMachineImage := &vmoprv1.VirtualMachineImage{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: libraryItem.Name,
+				Name:      libraryItem.Name,
+				Namespace: config.Namespace,
 			},
 			Spec: vmoprv1.VirtualMachineImageSpec{
 				ImageID:         libraryItemID,
@@ -579,9 +581,10 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 				Type:            "ovf",
 				ProviderRef: vmoprv1.ContentProviderReference{
 					APIVersion: vmoprv1.SchemeGroupVersion.String(),
-					Kind:       "ContentLibraryProvider",
-					Name:       contentLibraryProvider.Name,
-					Namespace:  contentLibraryProvider.Namespace,
+					Kind:       "ContentLibraryItem",
+					// Not 100% sure about following values now that Kind is required to be ContentLibraryItem, but this doesn't seem to be an issue
+					Name:      contentLibraryProvider.Name,
+					Namespace: contentLibraryProvider.Namespace,
 				},
 				ProductInfo: vmoprv1.VirtualMachineImageProductInfo{
 					FullVersion: item.ProductInfo,
@@ -608,6 +611,22 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 				}
 				log.Info("Created vm-operator VirtualMachineImage", "ContentSource", klog.KObj(contentSource), "ContentLibraryProvider", klog.KObj(contentLibraryProvider), "VirtualMachineImage", klog.KObj(virtualMachineImage))
 			}
+			return true, nil
+		})
+		if retryError != nil {
+			return retryError
+		}
+
+		// Fakes reconciliation of virtualMachineImage by setting required status field for the image to be considered ready.
+		virtualMachineImageReconciled := virtualMachineImage.DeepCopy()
+		virtualMachineImageReconciled.Status.ImageName = virtualMachineImage.Name
+		Set(virtualMachineImageReconciled, TrueCondition(ReadyConditionType))
+		_ = wait.PollUntilContextTimeout(ctx, 250*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
+			retryError = nil
+			if err := c.Status().Patch(ctx, virtualMachineImageReconciled, client.MergeFrom(virtualMachineImage)); err != nil {
+				retryError = errors.Wrapf(err, "failed to patch vm-operator VirtualMachineImage %s", virtualMachineImage.Name)
+			}
+			log.Info("Patched vm-operator VirtualMachineImage", "ContentSource", klog.KObj(contentSource), "ContentLibraryProvider", klog.KObj(contentLibraryProvider), "VirtualMachineImage", klog.KObj(virtualMachineImage))
 			return true, nil
 		})
 		if retryError != nil {
@@ -668,4 +687,83 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 	}
 
 	return nil
+}
+
+// NOTE: code below is a fork of vm-operator's pkg/conditions (so we can avoid to import the entire project)
+
+const (
+	ReadyConditionType = "Ready"
+)
+
+type Getter interface {
+	client.Object
+
+	// GetConditions returns the list of conditions for a cluster API object.
+	GetConditions() vmoprv1.Conditions
+}
+
+type Setter interface {
+	Getter
+	SetConditions(vmoprv1.Conditions)
+}
+
+func Set(to Setter, condition *vmoprv1.Condition) {
+	if to == nil || condition == nil {
+		return
+	}
+
+	// Check if the new conditions already exists, and change it only if there is a status
+	// transition (otherwise we should preserve the current last transition time)-
+	conditions := to.GetConditions()
+	exists := false
+	for i := range conditions {
+		existingCondition := conditions[i]
+		if existingCondition.Type == condition.Type {
+			exists = true
+			if !hasSameState(&existingCondition, condition) {
+				condition.LastTransitionTime = metav1.NewTime(time.Now().UTC().Truncate(time.Second))
+				conditions[i] = *condition
+				break
+			}
+			condition.LastTransitionTime = existingCondition.LastTransitionTime
+			break
+		}
+	}
+
+	// If the condition does not exist, add it, setting the transition time only if not already set
+	if !exists {
+		if condition.LastTransitionTime.IsZero() {
+			condition.LastTransitionTime = metav1.NewTime(time.Now().UTC().Truncate(time.Second))
+		}
+		conditions = append(conditions, *condition)
+	}
+
+	// Sorts conditions for convenience of the consumer, i.e. kubectl.
+	sort.Slice(conditions, func(i, j int) bool {
+		return lexicographicLess(&conditions[i], &conditions[j])
+	})
+
+	to.SetConditions(conditions)
+}
+
+func lexicographicLess(i, j *vmoprv1.Condition) bool {
+	return (i.Type == ReadyConditionType || i.Type < j.Type) && j.Type != ReadyConditionType
+}
+
+func hasSameState(i, j *vmoprv1.Condition) bool {
+	return i.Type == j.Type &&
+		i.Status == j.Status &&
+		i.Reason == j.Reason &&
+		i.Message == j.Message
+}
+
+func TrueCondition(t vmoprv1.ConditionType) *vmoprv1.Condition {
+	return &vmoprv1.Condition{
+		Type:   t,
+		Status: corev1.ConditionTrue,
+		// This is a non-empty field in metav1.Conditions, when it was not in our v1a1 Conditions. This
+		// really doesn't work with how we've defined our conditions so do something to make things
+		// work for now.
+		Reason: string(corev1.ConditionTrue),
+	}
 }

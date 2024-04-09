@@ -248,13 +248,13 @@ func getVirtualMachineIPAddresses(ctx context.Context, folderName string, vSpher
 	// Find the given folder.
 	folder, err := finder.FolderOrDefault(ctx, folderName)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "getting default folder")
 	}
 
 	// List all VirtualMachines in the folder.
 	managedObjects, err := finder.ManagedObjectListChildren(ctx, folder.InventoryPath+"/...", "VirtualMachine")
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "finding VirtualMachines")
 	}
 
 	var vm mo.VirtualMachine

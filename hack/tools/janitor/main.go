@@ -26,7 +26,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/runtime"
-	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
 	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -41,14 +40,18 @@ func init() {
 }
 
 var (
-	dryRun         bool
-	ipamNamespace  string
-	maxAge         time.Duration
-	vsphereFolders []string
+	dryRun               bool
+	ipamNamespace        string
+	maxAge               time.Duration
+	vsphereVMFolders     []string
+	vsphereFolders       []string
+	vsphereResourcePools []string
 )
 
 func initFlags(fs *pflag.FlagSet) {
-	fs.StringArrayVar(&vsphereFolders, "folder", []string{}, "Path to folders in vCenter to cleanup virtual machines.")
+	fs.StringArrayVar(&vsphereVMFolders, "vm-folder", []string{}, "Path to folders in vCenter to cleanup virtual machines.")
+	fs.StringArrayVar(&vsphereFolders, "folder", []string{}, "Path to a folder in vCenter to recursively cleanup empty subfolders.")
+	fs.StringArrayVar(&vsphereResourcePools, "resource-pool", []string{}, "Path to a resource pool in vCenter to recursively cleanup empty child resource pools.")
 	fs.StringVar(&ipamNamespace, "ipam-namespace", "", "Namespace for IPAddressClaim cleanup.")
 	fs.DurationVar(&maxAge, "max-age", time.Hour*12, "Maximum age of an object before it is getting deleted.")
 	fs.BoolVar(&dryRun, "dry-run", false, "dry-run results in not deleting anything but printing the actions.")
@@ -75,6 +78,8 @@ func run(ctx context.Context) error {
 
 	log.Info("Configured settings", "dry-run", dryRun)
 	log.Info("Configured settings", "folders", vsphereFolders)
+	log.Info("Configured settings", "vm-folders", vsphereVMFolders)
+	log.Info("Configured settings", "resource-pools", vsphereResourcePools)
 	log.Info("Configured settings", "ipam-namespace", ipamNamespace)
 	log.Info("Configured settings", "max-age", maxAge)
 
@@ -103,25 +108,16 @@ func run(ctx context.Context) error {
 
 	janitor := newJanitor(vSphereClients, ipamClient, maxAge, ipamNamespace, dryRun)
 
-	// First cleanup old vms to free up IPAddressClaims or cluster modules which are still in-use.
-	errList := []error{}
-	for _, folder := range vsphereFolders {
-		if err := janitor.deleteVSphereVMs(ctx, folder); err != nil {
-			errList = append(errList, errors.Wrapf(err, "cleaning up vSphereVMs for folder %q", folder))
-		}
-	}
-	if err := kerrors.NewAggregate(errList); err != nil {
-		return errors.Wrap(err, "cleaning up vSphereVMs")
+	log.Info("Configured settings", "janitor.maxCreationDate", janitor.maxCreationDate)
+
+	// First cleanup old vms and other vSphere resources to free up IPAddressClaims or cluster modules which are still in-use.
+	if err := janitor.cleanupVSphere(ctx, vsphereFolders, vsphereResourcePools, vsphereVMFolders); err != nil {
+		return errors.Wrap(err, "cleaning up vSphere")
 	}
 
 	// Second cleanup IPAddressClaims.
 	if err := janitor.deleteIPAddressClaims(ctx); err != nil {
 		return errors.Wrap(err, "cleaning up IPAddressClaims")
-	}
-
-	// Third cleanup cluster modules.
-	if err := janitor.deleteVSphereClusterModules(ctx); err != nil {
-		return errors.Wrap(err, "cleaning up vSphere cluster modules")
 	}
 
 	return nil

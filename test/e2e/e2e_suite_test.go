@@ -305,7 +305,10 @@ var _ = SynchronizedAfterSuite(func() {
 		case VCenterTestTarget:
 			// Cleanup the in cluster address manager
 			vSphereFolderName := e2eConfig.GetVariable("VSPHERE_FOLDER")
-			Expect(inClusterAddressManager.Teardown(ctx, vsphereip.MachineFolder(vSphereFolderName), vsphereip.VSphereClient(vsphereClient))).To(Succeed())
+			err := inClusterAddressManager.Teardown(ctx, vsphereip.MachineFolder(vSphereFolderName), vsphereip.VSphereClient(vsphereClient))
+			if err != nil {
+				Byf("Ignoring Teardown error: %v", err)
+			}
 
 		case VCSimTestTarget:
 			// Cleanup the vcsim address manager

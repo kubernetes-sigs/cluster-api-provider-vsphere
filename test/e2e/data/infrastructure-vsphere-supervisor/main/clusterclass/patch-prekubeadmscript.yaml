@@ -4,7 +4,8 @@
     definitions:
     - jsonPatches:
       - op: add
-        path: /spec/template/spec/kubeadmConfigSpec/preKubeadmCommands/0
+        # Note: We are adding prekubeadmscript.sh (install on bootstrap) at the end of the preKubeadmCommands because getting an ip for the machine (dhclient eth0) must always be executed as a first command.
+        path: /spec/template/spec/kubeadmConfigSpec/preKubeadmCommands/-
         value: "/opt/prekubeadmscript.sh"
       - op: add
         path: /spec/template/spec/kubeadmConfigSpec/files/-
@@ -21,7 +22,8 @@
           controlPlane: true
     - jsonPatches:
       - op: add
-        path: /spec/template/spec/preKubeadmCommands/0
+        # Note: We are adding prekubeadmscript.sh (install on bootstrap) at the end of the preKubeadmCommands because getting an ip for the machine (dhclient eth0) must always be executed as a first command.
+        path: /spec/template/spec/preKubeadmCommands/-
         value: "/opt/prekubeadmscript.sh"
       - op: add
         path: /spec/template/spec/files/-

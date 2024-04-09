@@ -146,7 +146,11 @@ func InitFlags(fs *pflag.FlagSet) {
 		&managerOpts.EnableKeepAlive,
 		"enable-keep-alive",
 		defaultEnableKeepAlive,
-		"feature to enable keep alive handler in vsphere sessions. This functionality is enabled by default.")
+		"feature to enable keep alive handler in vsphere sessions. This functionality is disabled by default.")
+	_ = fs.MarkDeprecated("enable-keep-alive", "This flag has been deprecated and will be removed in a "+
+		"future release. Note: This feature has been disabled per default because we determined that we already keep alive "+
+		"sessions just by our regular reconciles. So we don't need an additional keep alive handler. Enabling "+
+		"this feature may lead to a deadlock in controllers communicating with vCenter.")
 	fs.DurationVar(
 		&managerOpts.KeepAliveDuration,
 		"keep-alive-duration",

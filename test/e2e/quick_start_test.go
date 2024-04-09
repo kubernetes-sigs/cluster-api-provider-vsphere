@@ -40,7 +40,7 @@ var _ = Describe("Cluster Creation using Cluster API quick-start test [vcsim] [s
 	})
 })
 
-var _ = Describe("ClusterClass Creation using Cluster API quick-start test [PR-Blocking] [ClusterClass] [vcsim] [supervisor]", func() {
+var _ = Describe("ClusterClass Creation using Cluster API quick-start test [vcsim] [supervisor] [PR-Blocking] [ClusterClass]", func() {
 	const specName = "quick-start-cluster-class" // prefix (quick-start) copied from CAPI
 	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		capi_e2e.QuickStartSpec(ctx, func() capi_e2e.QuickStartSpecInput {

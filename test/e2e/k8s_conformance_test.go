@@ -25,7 +25,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/kubernetesversions"
 )
 
-var _ = Describe("When testing K8S conformance [Conformance] [K8s-Install]", func() {
+var _ = Describe("When testing K8S conformance [supervisor] [Conformance] [K8s-Install]", func() {
 	// Note: This installs a cluster based on KUBERNETES_VERSION and runs conformance tests.
 	const specName = "k8s-conformance" // copied from CAPI
 	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
@@ -43,7 +43,7 @@ var _ = Describe("When testing K8S conformance [Conformance] [K8s-Install]", fun
 	})
 })
 
-var _ = Describe("When testing K8S conformance with K8S latest ci [Conformance] [K8s-Install-ci-latest]", func() {
+var _ = Describe("When testing K8S conformance with K8S latest ci [supervisor] [Conformance] [K8s-Install-ci-latest]", func() {
 	// Note: This installs a cluster based on KUBERNETES_VERSION_LATEST_CI and runs conformance tests.
 	// Note: We are resolving KUBERNETES_VERSION_LATEST_CI and then setting the resolved version as
 	// KUBERNETES_VERSION env var. This only works without side effects on other tests because we are

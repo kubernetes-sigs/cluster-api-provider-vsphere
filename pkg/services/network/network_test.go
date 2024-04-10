@@ -49,8 +49,43 @@ const (
 )
 
 // MockNSXTVpcNetworkProvider is the mock.
+type MockNSXTNetworkProvider struct {
+	*nsxtNetworkProvider
+}
+
+func (m *MockNSXTNetworkProvider) ProvisionClusterNetwork(ctx context.Context, clusterCtx *vmware.ClusterContext) error {
+	err := m.nsxtNetworkProvider.ProvisionClusterNetwork(ctx, clusterCtx)
+
+	if err != nil {
+		// Check if the error contains the string "virtual network ready status"
+		if strings.Contains(err.Error(), "virtual network ready status") {
+			conditions.MarkTrue(clusterCtx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition)
+			return nil
+		}
+		// return the original error if it doesn't contain the specific string
+		return err
+	}
+	return nil
+}
+
+// MockNSXTVpcNetworkProvider is the mock.
 type MockNSXTVpcNetworkProvider struct {
 	*nsxtVPCNetworkProvider
+}
+
+func (m *MockNSXTVpcNetworkProvider) ProvisionClusterNetwork(ctx context.Context, clusterCtx *vmware.ClusterContext) error {
+	err := m.nsxtVPCNetworkProvider.ProvisionClusterNetwork(ctx, clusterCtx)
+
+	if err != nil {
+		// Check if the error contains the string "subnetset ready status"
+		if strings.Contains(err.Error(), "subnetset ready status") {
+			conditions.MarkTrue(clusterCtx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition)
+			return nil
+		}
+		// return the original error if it doesn't contain the specific string
+		return err
+	}
+	return nil
 }
 
 func createUnReadyNsxtVirtualNetwork(ctx *vmware.ClusterContext, status ncpv1.VirtualNetworkStatus) *ncpv1.VirtualNetwork {
@@ -63,20 +98,6 @@ func createUnReadyNsxtVirtualNetwork(ctx *vmware.ClusterContext, status ncpv1.Vi
 		},
 		Status: status,
 	}
-}
-
-func (m *MockNSXTVpcNetworkProvider) ProvisionClusterNetwork(ctx context.Context, clusterCtx *vmware.ClusterContext) error {
-	err := m.nsxtVPCNetworkProvider.ProvisionClusterNetwork(ctx, clusterCtx)
-
-	if err != nil {
-		// Check if the error contains the string "subnetset ready status"
-		if strings.Contains(err.Error(), "subnetset ready status") {
-			return nil
-		}
-		// return the original error if it doesn't contain the specific string
-		return err
-	}
-	return nil
 }
 
 var _ = Describe("Network provider", func() {
@@ -315,11 +336,11 @@ var _ = Describe("Network provider", func() {
 			})
 			JustBeforeEach(func() {
 				err = np.ProvisionClusterNetwork(ctx, clusterCtx)
+				Expect(err).ToNot(HaveOccurred())
 			})
 			It("should succeed", func() {
+				vnet, err := np.GetClusterNetworkName(ctx, clusterCtx)
 				Expect(err).ToNot(HaveOccurred())
-				vnet, localerr := np.GetClusterNetworkName(ctx, clusterCtx)
-				Expect(localerr).ToNot(HaveOccurred())
 				Expect(vnet).To(BeEmpty())
 			})
 		})
@@ -334,9 +355,9 @@ var _ = Describe("Network provider", func() {
 			JustBeforeEach(func() {
 				// noop for netop
 				err = np.ProvisionClusterNetwork(ctx, clusterCtx)
+				Expect(err).ToNot(HaveOccurred())
 			})
 			It("should succeed", func() {
-				Expect(err).ToNot(HaveOccurred())
 				Expect(conditions.IsTrue(clusterCtx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition)).To(BeTrue())
 			})
 		})
@@ -347,12 +368,12 @@ var _ = Describe("Network provider", func() {
 				nsxNp, _ = NsxtNetworkProvider(client, "true").(*nsxtNetworkProvider)
 				np = nsxNp
 				err = np.ProvisionClusterNetwork(ctx, clusterCtx)
+				Expect(err).ToNot(HaveOccurred())
 			})
 
 			It("should not update vnet with whitelist_source_ranges in spec", func() {
+				vnet, err := np.GetClusterNetworkName(ctx, clusterCtx)
 				Expect(err).ToNot(HaveOccurred())
-				vnet, localerr := np.GetClusterNetworkName(ctx, clusterCtx)
-				Expect(localerr).ToNot(HaveOccurred())
 				Expect(vnet).To(Equal(GetNSXTVirtualNetworkName(clusterCtx.VSphereCluster.Name)))
 
 				createdVNET := &ncpv1.VirtualNetwork{}
@@ -381,13 +402,18 @@ var _ = Describe("Network provider", func() {
 				client = fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(configmapObj, systemNamespaceObj).Build()
 				nsxNp, _ = NsxtNetworkProvider(client, "true").(*nsxtNetworkProvider)
 				np = nsxNp
-				err = np.ProvisionClusterNetwork(ctx, clusterCtx)
+				// The ProvisionClusterNetwork function would fail due to the absence of
+				// ncp to set the `virtual network ready` condition.
+				// We use the mock function to disregard this specific error.
+				// mocknp is an instance of MockNSXNetworkProvider initialized with nsxNp.
+				mocknp := &MockNSXTNetworkProvider{nsxNp}
+				err = mocknp.ProvisionClusterNetwork(ctx, clusterCtx)
+				Expect(err).ToNot(HaveOccurred())
 			})
 
 			It("should create vnet without whitelist_source_ranges in spec", func() {
+				vnet, err := np.GetClusterNetworkName(ctx, clusterCtx)
 				Expect(err).ToNot(HaveOccurred())
-				vnet, localerr := np.GetClusterNetworkName(ctx, clusterCtx)
-				Expect(localerr).ToNot(HaveOccurred())
 				Expect(vnet).To(Equal(GetNSXTVirtualNetworkName(clusterCtx.VSphereCluster.Name)))
 
 				createdVNET := &ncpv1.VirtualNetwork{}
@@ -408,12 +434,12 @@ var _ = Describe("Network provider", func() {
 				nsxNp, _ = NsxtNetworkProvider(client, "false").(*nsxtNetworkProvider)
 				np = nsxNp
 				err = np.ProvisionClusterNetwork(ctx, clusterCtx)
+				Expect(err).ToNot(HaveOccurred())
 			})
 
 			It("should update vnet with whitelist_source_ranges in spec", func() {
+				vnet, err := np.GetClusterNetworkName(ctx, clusterCtx)
 				Expect(err).ToNot(HaveOccurred())
-				vnet, localerr := np.GetClusterNetworkName(ctx, clusterCtx)
-				Expect(localerr).ToNot(HaveOccurred())
 				Expect(vnet).To(Equal(GetNSXTVirtualNetworkName(clusterCtx.VSphereCluster.Name)))
 
 				// Verify WhitelistSourceRanges have been updated
@@ -435,13 +461,18 @@ var _ = Describe("Network provider", func() {
 				client = fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(configmapObj, systemNamespaceObj).Build()
 				nsxNp, _ = NsxtNetworkProvider(client, "false").(*nsxtNetworkProvider)
 				np = nsxNp
-				err = np.ProvisionClusterNetwork(ctx, clusterCtx)
+				// The ProvisionClusterNetwork function would fail due to the absence of
+				// ncp to set the `virtual network ready` condition.
+				// We use the mock function to disregard this specific error.
+				// mocknp is an instance of MockNSXNetworkProvider initialized with nsxNp.
+				mocknp := &MockNSXTNetworkProvider{nsxNp}
+				err = mocknp.ProvisionClusterNetwork(ctx, clusterCtx)
+				Expect(err).ToNot(HaveOccurred())
 			})
 
 			It("should create new vnet with whitelist_source_ranges in spec", func() {
+				vnet, err := np.GetClusterNetworkName(ctx, clusterCtx)
 				Expect(err).ToNot(HaveOccurred())
-				vnet, localerr := np.GetClusterNetworkName(ctx, clusterCtx)
-				Expect(localerr).ToNot(HaveOccurred())
 				Expect(vnet).To(Equal(GetNSXTVirtualNetworkName(clusterCtx.VSphereCluster.Name)))
 
 				// Verify WhitelistSourceRanges have been updated
@@ -450,7 +481,7 @@ var _ = Describe("Network provider", func() {
 					Name:      GetNSXTVirtualNetworkName(dummyCluster),
 					Namespace: dummyNs,
 				}, createdVNET)
-
+				Expect(err).ToNot(HaveOccurred())
 				Expect(createdVNET.Spec.WhitelistSourceRanges).To(Equal(fakeSNATIP + "/32"))
 				// err is not empty, but it is because vnetObj does not have status mocked in this test
 
@@ -466,12 +497,12 @@ var _ = Describe("Network provider", func() {
 				nsxNp, _ = NsxtNetworkProvider(client, "false").(*nsxtNetworkProvider)
 				np = nsxNp
 				err = np.ProvisionClusterNetwork(ctx, clusterCtx)
+				Expect(err).ToNot(HaveOccurred())
 			})
 
 			It("should not update vnet with whitelist_source_ranges in spec", func() {
+				vnet, err := np.GetClusterNetworkName(ctx, clusterCtx)
 				Expect(err).ToNot(HaveOccurred())
-				vnet, localerr := np.GetClusterNetworkName(ctx, clusterCtx)
-				Expect(localerr).ToNot(HaveOccurred())
 				Expect(vnet).To(Equal(GetNSXTVirtualNetworkName(clusterCtx.VSphereCluster.Name)))
 
 				// Verify WhitelistSourceRanges is not included
@@ -480,7 +511,7 @@ var _ = Describe("Network provider", func() {
 					Name:      GetNSXTVirtualNetworkName(dummyCluster),
 					Namespace: dummyNs,
 				}, createdVNET)
-
+				Expect(err).ToNot(HaveOccurred())
 				Expect(createdVNET.Spec.WhitelistSourceRanges).To(BeEmpty())
 				// err is not empty, but it is because vnetObj does not have status mocked in this test
 
@@ -521,6 +552,23 @@ var _ = Describe("Network provider", func() {
 
 				expectedErrorMessage := fmt.Sprintf("virtual network ready status is: '%s' in cluster %s. reason: %s, message: %s",
 					"False", apitypes.NamespacedName{Namespace: dummyNs, Name: dummyCluster}, testNetworkNotRealizedReason, testNetworkNotRealizedMessage)
+				Expect(err).To(MatchError(expectedErrorMessage))
+				Expect(conditions.IsFalse(clusterCtx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition)).To(BeTrue())
+			})
+
+			It("should return error when vnet ready status is not set", func() {
+				By("create a cluster with virtual network has no ready status")
+				status := ncpv1.VirtualNetworkStatus{
+					Conditions: []ncpv1.VirtualNetworkCondition{},
+				}
+				vnetObj = createUnReadyNsxtVirtualNetwork(clusterCtx, status)
+				client = fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(vnetObj).Build()
+				nsxNp, _ = NsxtNetworkProvider(client, "false").(*nsxtNetworkProvider)
+				np = nsxNp
+
+				err = np.VerifyNetworkStatus(ctx, clusterCtx, vnetObj)
+
+				expectedErrorMessage := fmt.Sprintf("virtual network ready status in cluster %s has not been set", apitypes.NamespacedName{Namespace: dummyNs, Name: dummyCluster})
 				Expect(err).To(MatchError(expectedErrorMessage))
 				Expect(conditions.IsFalse(clusterCtx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition)).To(BeTrue())
 			})

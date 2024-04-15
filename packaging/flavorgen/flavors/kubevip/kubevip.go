@@ -24,10 +24,4 @@ import (
 // PatchControlPlane adds kube-vip to a KubeadmControlPlane object.
 func PatchControlPlane(cp *controlplanev1.KubeadmControlPlane) {
 	cp.Spec.KubeadmConfigSpec.Files = append(cp.Spec.KubeadmConfigSpec.Files, newKubeVIPFiles()...)
-
-	// This commands is part of the workaround for https://github.com/kube-vip/kube-vip/issues/684
-	cp.Spec.KubeadmConfigSpec.PreKubeadmCommands = append(
-		cp.Spec.KubeadmConfigSpec.PreKubeadmCommands,
-		"/etc/kube-vip-prepare.sh",
-	)
 }

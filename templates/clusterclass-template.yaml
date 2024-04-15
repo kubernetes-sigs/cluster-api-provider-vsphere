@@ -188,12 +188,8 @@ spec:
                   /etc/kubernetes/manifests/kube-vip.yaml
               fi
             owner: root:root
-            path: /etc/kube-vip-prepare.sh
+            path: /etc/pre-kubeadm-commands/50-kube-vip-prepare.sh
             permissions: "0700"
-      - op: add
-        path: /spec/template/spec/kubeadmConfigSpec/preKubeadmCommands/-
-        valueFrom:
-          template: /etc/kube-vip-prepare.sh
       selector:
         apiVersion: controlplane.cluster.x-k8s.io/v1beta1
         kind: KubeadmControlPlaneTemplate
@@ -353,6 +349,9 @@ spec:
           >/etc/hosts
         - echo "127.0.0.1   {{ ds.meta_data.hostname }} {{ local_hostname }} localhost
           localhost.localdomain localhost4 localhost4.localdomain4" >>/etc/hosts
+        - mkdir -p /etc/pre-kubeadm-commands
+        - for script in $(find /etc/pre-kubeadm-commands/ -name '*.sh' -type f | sort);
+          do echo "Running script $script"; "$script"; done
         users:
         - name: capv
           sshAuthorizedKeys:
@@ -379,3 +378,6 @@ spec:
         >/etc/hosts
       - echo "127.0.0.1   {{ ds.meta_data.hostname }} {{ local_hostname }} localhost
         localhost.localdomain localhost4 localhost4.localdomain4" >>/etc/hosts
+      - mkdir -p /etc/pre-kubeadm-commands
+      - for script in $(find /etc/pre-kubeadm-commands/ -name '*.sh' -type f | sort);
+        do echo "Running script $script"; "$script"; done

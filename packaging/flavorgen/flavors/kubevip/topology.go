@@ -77,15 +77,7 @@ func TopologyPatch() clusterv1.ClusterClassPatch {
 		patches = append(patches, p)
 	}
 
-	// This two patches are part of the workaround for https://github.com/kube-vip/kube-vip/issues/684
-	patches = append(patches,
-		clusterv1.JSONPatch{
-			Op:        "add",
-			Path:      "/spec/template/spec/kubeadmConfigSpec/preKubeadmCommands/-",
-			ValueFrom: &clusterv1.JSONPatchValue{Template: ptr.To("/etc/kube-vip-prepare.sh")},
-		},
-	)
-
+	// This two patches is part of the workaround for https://github.com/kube-vip/kube-vip/issues/684
 	return clusterv1.ClusterClassPatch{
 		Name: "kubeVipPodManifest",
 		Definitions: []clusterv1.PatchDefinition{

@@ -236,7 +236,7 @@ spec:
             /etc/kubernetes/manifests/kube-vip.yaml
         fi
       owner: root:root
-      path: /etc/kube-vip-prepare.sh
+      path: /etc/pre-kubeadm-commands/50-kube-vip-prepare.sh
       permissions: "0700"
     initConfiguration:
       nodeRegistration:
@@ -256,7 +256,8 @@ spec:
       >/etc/hosts
     - echo "127.0.0.1   {{ ds.meta_data.hostname }} {{ local_hostname }} localhost
       localhost.localdomain localhost4 localhost4.localdomain4" >>/etc/hosts
-    - /etc/kube-vip-prepare.sh
+    - mkdir -p /etc/pre-kubeadm-commands
+    - find /etc/pre-kubeadm-commands/ -name '*.sh' -type f | sort | sh
     users:
     - name: capv
       sshAuthorizedKeys:
@@ -290,6 +291,8 @@ spec:
         >/etc/hosts
       - echo "127.0.0.1   {{ ds.meta_data.hostname }} {{ local_hostname }} localhost
         localhost.localdomain localhost4 localhost4.localdomain4" >>/etc/hosts
+      - mkdir -p /etc/pre-kubeadm-commands
+      - find /etc/pre-kubeadm-commands/ -name '*.sh' -type f | sort | sh
       users:
       - name: capv
         sshAuthorizedKeys:

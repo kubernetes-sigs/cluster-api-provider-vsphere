@@ -4,15 +4,11 @@
     definitions:
     - jsonPatches:
       - op: add
-        # Note: We are adding prekubeadmscript.sh (install on bootstrap) at the end of the preKubeadmCommands because getting an ip for the machine (dhclient eth0) must always be executed as a first command.
-        path: /spec/template/spec/kubeadmConfigSpec/preKubeadmCommands/-
-        value: "/opt/prekubeadmscript.sh"
-      - op: add
         path: /spec/template/spec/kubeadmConfigSpec/files/-
         valueFrom:
           template: |
             owner: root:root
-            path:  "/opt/prekubeadmscript.sh"
+            path:  "/etc/pre-kubeadm-commands/10-prekubeadmscript.sh"
             permissions: "0755"
             content: {{ printf "%q" (regexReplaceAll "(KUBERNETES_VERSION=.*)" .preKubeadmScript (printf "KUBERNETES_VERSION=%s" .builtin.controlPlane.version)) }}
       selector:
@@ -22,15 +18,11 @@
           controlPlane: true
     - jsonPatches:
       - op: add
-        # Note: We are adding prekubeadmscript.sh (install on bootstrap) at the end of the preKubeadmCommands because getting an ip for the machine (dhclient eth0) must always be executed as a first command.
-        path: /spec/template/spec/preKubeadmCommands/-
-        value: "/opt/prekubeadmscript.sh"
-      - op: add
         path: /spec/template/spec/files/-
         valueFrom:
           template: |
             owner: root:root
-            path:  "/opt/prekubeadmscript.sh"
+            path:  "/etc/pre-kubeadm-commands/10-prekubeadmscript.sh"
             permissions: "0755"
             content: {{ printf "%q" (regexReplaceAll "(KUBERNETES_VERSION=.*)" .preKubeadmScript (printf "KUBERNETES_VERSION=%s" .builtin.machineDeployment.version)) }}
       selector:

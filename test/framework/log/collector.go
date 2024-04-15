@@ -28,6 +28,8 @@ import (
 
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh"
+	"k8s.io/apimachinery/pkg/types"
+	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -45,14 +47,15 @@ func (collector MachineLogCollector) CollectMachinePoolLog(_ context.Context, _ 
 	return nil
 }
 
-func (collector MachineLogCollector) CollectMachineLog(_ context.Context, _ client.Client, m *clusterv1.Machine, outputPath string) error {
-	var hostIPAddr string
-	for _, address := range m.Status.Addresses {
-		if address.Type != clusterv1.MachineExternalIP {
-			continue
-		}
-		hostIPAddr = address.Address
-		break
+func (collector MachineLogCollector) CollectMachineLog(ctx context.Context, c client.Client, m *clusterv1.Machine, outputPath string) error {
+	vsphereMachine := &vmwarev1.VSphereMachine{}
+	// r.Client.Get(ctx, client.ObjectKeyFromObject(svcAccount), testObj)
+	if err := c.Get(ctx, types.NamespacedName{Namespace: m.Spec.InfrastructureRef.Namespace, Name: m.Spec.InfrastructureRef.Name}, vsphereMachine); err != nil {
+		return err
+	}
+
+	if vsphereMachine.Status.IPAddr == "" {
+		return fmt.Errorf("ip address for machine %s not found")
 	}
 
 	captureLogs := func(hostFileName, command string, args ...string) func() error {
@@ -62,11 +65,13 @@ func (collector MachineLogCollector) CollectMachineLog(_ context.Context, _ clie
 				return err
 			}
 			defer f.Close()
-			return executeRemoteCommand(f, hostIPAddr, command, args...)
+			return executeRemoteCommand(f, vsphereMachine.Status.IPAddr, command, args...)
 		}
 	}
 
 	return kinderrors.AggregateConcurrent([]func() error{
+		captureLogs("crictl-ps.log",
+			"sudo crictl", "ps"),
 		captureLogs("kubelet.log",
 			"sudo journalctl", "--no-pager", "--output=short-precise", "-u", "kubelet.service"),
 		captureLogs("containerd.log",

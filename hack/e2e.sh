@@ -88,6 +88,11 @@ export ARTIFACTS="${ARTIFACTS:-${REPO_ROOT}/_artifacts}"
 export DOCKER_IMAGE_TAR="/tmp/images/image.tar"
 export GC_KIND="false"
 
+# TODO deleteme, just for faking on PR
+
+export KUBERNETES_VERSION_UPGRADE_FROM="stable-1.28"
+export KUBERNETES_VERSION_UPGRADE_TO="stable-1.29"
+
 # Make tests run in-parallel
 export GINKGO_NODES=5
 

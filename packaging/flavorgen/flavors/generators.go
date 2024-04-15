@@ -603,6 +603,9 @@ func defaultPreKubeadmCommands() []string {
 		"hostnamectl set-hostname \"{{ ds.meta_data.hostname }}\"",
 		"echo \"::1         ipv6-localhost ipv6-loopback localhost6 localhost6.localdomain6\" >/etc/hosts",
 		"echo \"127.0.0.1   {{ ds.meta_data.hostname }} {{ local_hostname }} localhost localhost.localdomain localhost4 localhost4.localdomain4\" >>/etc/hosts",
+		// Ensure the directory exists so the find does not fail if no files got created.
+		"mkdir -p /etc/pre-kubeadm-commands",
+		"for script in $(find /etc/pre-kubeadm-commands/ -name '*.sh' -type f | sort); do echo \"Running script $script\"; \"$script\"; done",
 	}
 }
 
@@ -610,6 +613,9 @@ func flatcarPreKubeadmCommands() []string {
 	return []string{
 		"envsubst < /etc/kubeadm.yml > /etc/kubeadm.yml.tmp",
 		"mv /etc/kubeadm.yml.tmp /etc/kubeadm.yml",
+		// Ensure the directory exists so the find does not fail if no files got created.
+		"mkdir -p /etc/pre-kubeadm-commands",
+		"for script in $(find /etc/pre-kubeadm-commands/ -name '*.sh' -type f | sort); do echo \"Running script $script\"; \"$script\"; done",
 	}
 }
 

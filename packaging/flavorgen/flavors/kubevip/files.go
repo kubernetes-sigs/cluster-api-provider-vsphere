@@ -53,10 +53,10 @@ func newKubeVIPFiles() []bootstrapv1.File {
 			Permissions: "0644",
 			Content:     "127.0.0.1 localhost kubernetes",
 		},
-		// This two files are part of the workaround for https://github.com/kube-vip/kube-vip/issues/684
+		// This file is part of the workaround for https://github.com/kube-vip/kube-vip/issues/684
 		{
 			Owner:       "root:root",
-			Path:        "/etc/kube-vip-prepare.sh",
+			Path:        "/etc/pre-kubeadm-commands/50-kube-vip-prepare.sh",
 			Permissions: "0700",
 			Content:     kubeVipPrepare,
 		},

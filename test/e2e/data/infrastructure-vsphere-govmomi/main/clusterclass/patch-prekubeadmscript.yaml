@@ -4,14 +4,11 @@
     definitions:
     - jsonPatches:
       - op: add
-        path: /spec/template/spec/kubeadmConfigSpec/preKubeadmCommands/0
-        value: "/opt/prekubeadmscript.sh"
-      - op: add
         path: /spec/template/spec/kubeadmConfigSpec/files/-
         valueFrom:
           template: |
             owner: root:root
-            path:  "/opt/prekubeadmscript.sh"
+            path:  "/etc/pre-kubeadm-commands/10-prekubeadmscript.sh"
             permissions: "0755"
             content: {{ printf "%q" (regexReplaceAll "(KUBERNETES_VERSION=.*)" .preKubeadmScript (printf "KUBERNETES_VERSION=%s" .builtin.controlPlane.version)) }}
       selector:
@@ -21,14 +18,11 @@
           controlPlane: true
     - jsonPatches:
       - op: add
-        path: /spec/template/spec/preKubeadmCommands/0
-        value: "/opt/prekubeadmscript.sh"
-      - op: add
         path: /spec/template/spec/files/-
         valueFrom:
           template: |
             owner: root:root
-            path:  "/opt/prekubeadmscript.sh"
+            path:  "/etc/pre-kubeadm-commands/10-prekubeadmscript.sh"
             permissions: "0755"
             content: {{ printf "%q" (regexReplaceAll "(KUBERNETES_VERSION=.*)" .preKubeadmScript (printf "KUBERNETES_VERSION=%s" .builtin.machineDeployment.version)) }}
       selector:

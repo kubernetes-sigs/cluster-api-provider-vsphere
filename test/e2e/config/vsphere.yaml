@@ -20,7 +20,9 @@ images:
     loadBehavior: mustLoad
   - name: gcr.io/k8s-staging-capi-vsphere/cluster-api-vcsim-controller-{ARCH}:dev
     loadBehavior: mustLoad
-  - name: gcr.io/k8s-staging-capi-vsphere/extra/vm-operator:v1.8.1
+  - name: gcr.io/k8s-staging-capi-vsphere/cluster-api-net-operator-{ARCH}:dev
+    loadBehavior: mustLoad
+  - name: gcr.io/k8s-staging-capi-vsphere/extra/vm-operator:v1.8.6-0-gde75746a
     loadBehavior: tryLoad
   - name: quay.io/jetstack/cert-manager-cainjector:v1.12.2
     loadBehavior: tryLoad
@@ -211,13 +213,26 @@ providers:
   - name: vm-operator
     type: RuntimeExtensionProvider # vm-operator isn't a provider, but we fake it is so it can be handled by the clusterctl machinery.
     versions:
-      - name: v1.8.1
+      - name: v1.8.6-0-gde75746a
         # Use manifest from source files
-        value: "https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/vm-operator/v1.8.1.yaml"
+        value: "https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/vm-operator/v1.8.6-0-gde75746a.yaml"
         type: "url"
         contract: v1beta1
         files:
           - sourcePath: "../data/shared/vmoperator/v1.8/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+
+  - name: net-operator
+    type: RuntimeExtensionProvider # net-operator isn't a provider, but we fake it is so it can be handled by the clusterctl machinery.
+    versions:
+      - name: v1.10.99
+        # Use manifest from source files
+        value: ../../../../cluster-api-provider-vsphere/test/infrastructure/net-operator/config/default
+        contract: v1beta1
+        files:
+          - sourcePath: "../data/shared/capv/main/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -249,6 +264,7 @@ variables:
   VSPHERE_CONTENT_LIBRARY: "capv"
   VSPHERE_IMAGE_NAME: "ubuntu-2204-kube-v1.29.0"
   VSPHERE_NETWORK: "sddc-cgw-network-6"
+  VSPHERE_DISTRIBUTED_PORT_GROUP: "/SDDC-Datacenter/network/sddc-cgw-network-6"
   VSPHERE_TEMPLATE: "ubuntu-2204-kube-v1.29.0"
   FLATCAR_VSPHERE_TEMPLATE: "flatcar-stable-3602.2.3-kube-v1.29.0"
   VSPHERE_INSECURE_CSI: "true"

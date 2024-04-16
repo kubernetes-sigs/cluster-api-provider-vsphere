@@ -32,7 +32,7 @@
 # IMPORTANT: run "make vm-operator-manifest-build" before using this "provider" with tilt
 - name: vm-operator
   config:
-    version: v1.8.1
+    version: v1.8.6
     label: VMOP
     kustomize_folder: "/test/infrastructure/vm-operator"
     kustomize_options:

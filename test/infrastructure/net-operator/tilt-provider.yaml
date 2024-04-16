@@ -1,0 +1,9 @@
+---
+- name: net-operator
+  config:
+    version: v1.10.99
+    image: gcr.io/k8s-staging-capi-vsphere/extra/net-operator
+    live_reload_deps:
+      - main.go
+      - controllers
+    label: NETOP

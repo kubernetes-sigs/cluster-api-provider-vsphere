@@ -12,6 +12,8 @@ resources:
 patchesStrategicMerge:
 - vm-operator-replicas.yaml
 - vm-operator-pull-policy.yaml
+- vm-operator-env-var-patch.yaml
+- net-operator-networkinterface-status.yaml
 
 patches:
 - target:

@@ -54,15 +54,6 @@ import (
 
 const (
 	vcsimMinVersionForCAPV = "7.0.0"
-
-	// vmIP reconciler secret.
-
-	netConfigMapName       = "vsphere.provider.config.netoperator.vmware.com"
-	netConfigServerURLKey  = "server"
-	netConfigDatacenterKey = "datacenter"
-	netConfigUsernameKey   = "username"
-	netConfigPasswordKey   = "password"
-	netConfigThumbprintKey = "thumbprint"
 )
 
 type VCenterSimulatorReconciler struct {
@@ -232,15 +223,6 @@ func (r *VCenterSimulatorReconciler) reconcileNormal(ctx context.Context, vCente
 		if err := vmoperator.ReconcileDependencies(ctx, r.Client, dependenciesConfig); err != nil {
 			return err
 		}
-
-		// The vm-operator doesn't take care of the networking part of the VM, which is usually
-		// managed by other components in the supervisor cluster.
-		// In order to make things to work in vcsim, there is the vmIP reconciler, which requires
-		// some info about the vcsim instance; in order to do so, we are creating a Secret.
-
-		if err := addPreRequisitesForVMIPReconciler(ctx, r.Client, dependenciesConfig); err != nil {
-			return err
-		}
 	}
 
 	return nil
@@ -274,42 +256,6 @@ func createVMTemplates(ctx context.Context, vCenterSimulator *vcsimv1.VCenterSim
 			log.Info("Created VM template", "name", t)
 		}
 	}
-	return nil
-}
-
-func addPreRequisitesForVMIPReconciler(ctx context.Context, c client.Client, config *vcsimv1.VMOperatorDependencies) error {
-	log := ctrl.LoggerFrom(ctx)
-	log.Info("Reconciling requirements for the Fake net-operator Deployment")
-
-	// default the OperatorRef if not specified.
-	if config.Spec.OperatorRef == nil {
-		config.Spec.OperatorRef = &vcsimv1.VMOperatorRef{Namespace: vmoperator.DefaultNamespace}
-	}
-
-	netOperatorSecret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      netConfigMapName,
-			Namespace: config.Spec.OperatorRef.Namespace,
-		},
-		StringData: map[string]string{
-			netConfigServerURLKey:  config.Spec.VCenter.ServerURL,
-			netConfigDatacenterKey: config.Spec.VCenter.Datacenter,
-			netConfigUsernameKey:   config.Spec.VCenter.Username,
-			netConfigPasswordKey:   config.Spec.VCenter.Password,
-			netConfigThumbprintKey: config.Spec.VCenter.Thumbprint,
-		},
-		Type: corev1.SecretTypeOpaque,
-	}
-	if err := c.Get(ctx, client.ObjectKeyFromObject(netOperatorSecret), netOperatorSecret); err != nil {
-		if !apierrors.IsNotFound(err) {
-			return errors.Wrapf(err, "failed to get net-operator Secret %s", netOperatorSecret.Name)
-		}
-		if err := c.Create(ctx, netOperatorSecret); err != nil {
-			return errors.Wrapf(err, "failed to create net-operator Secret %s", netOperatorSecret.Name)
-		}
-		log.Info("Created net-operator Secret", "Secret", klog.KObj(netOperatorSecret))
-	}
-
 	return nil
 }
 

@@ -21,7 +21,7 @@ jobs:
       with:
         go-version: '1.21'
     - run: "PATH=/usr/local/go/bin:$PATH make test-cover"
-    - uses: Wandalen/wretry.action@42af9d415b6e955870e984489d2c9b97aabc949f # v1.3.0 Retry codecov upload. It is flaky due to a known issue https://community.codecov.com/t/upload-issues-unable-to-locate-build-via-github-actions-api/3954
+    - uses: Wandalen/wretry.action@dfc978b430e81caf1a6cc5780ff47e895c0f618e # v1.3.0 Retry codecov upload. It is flaky due to a known issue https://community.codecov.com/t/upload-issues-unable-to-locate-build-via-github-actions-api/3954
       with:
         attempt_limit: 20
         action: codecov/codecov-action@7afa10ed9b269c561c2336fd862446844e0cbf71 # v4.2.0

@@ -296,6 +296,16 @@ func setupNamespaceWithVMOperatorDependenciesVCenter(managementClusterProxy fram
 		},
 	}
 
+	items := e2eConfig.GetVariable("VSPHERE_CONTENT_LIBRARY_ITEMS")
+	if items != "" {
+		for _, i := range strings.Split(e2eConfig.GetVariable("VSPHERE_CONTENT_LIBRARY_ITEMS"), ",") {
+			dependenciesConfig.Spec.VCenter.ContentLibrary.Items = append(dependenciesConfig.Spec.VCenter.ContentLibrary.Items, vcsimv1.ContentLibraryItemConfig{
+				Name:     i,
+				ItemType: "ovf",
+			})
+		}
+	}
+
 	err := vmoperator.ReconcileDependencies(ctx, c, dependenciesConfig)
 	Expect(err).ToNot(HaveOccurred(), "Failed to reconcile VMOperatorDependencies")
 }

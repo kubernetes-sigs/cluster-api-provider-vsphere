@@ -188,6 +188,8 @@ issues:
   # We are disabling default golangci exclusions because we want to help reviewers to focus on reviewing the most relevant
   # changes in PRs and avoid nitpicking.
   exclude-use-default: false
+  exclude-dirs:
+    - "test/infrastructure/net-operator/external"
   exclude-rules:
   # Specific exclude rules for deprecated items that are still part of the codebase. These
   # should be removed as the referenced deprecated item is removed from the project.

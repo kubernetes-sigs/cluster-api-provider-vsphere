@@ -51,22 +51,34 @@ import (
 const DefaultNamespace = "vmware-system-vmop"
 
 const (
-	// NOTE: const below are copied from pkg/vmprovider/providers/vsphere/config/config.go.
-	// int the vm-operator project.
+	// NOTE: ConfigMapName/ConfigMapKey values below must match what defined in pkg/vmprovider/providers/vsphere/config/config.go.
 
-	providerConfigMapName    = "vsphere.provider.config.vmoperator.vmware.com"
-	vcPNIDKey                = "VcPNID"
-	vcPortKey                = "VcPort"
-	vcCredsSecretNameKey     = "VcCredsSecretName" //nolint:gosec
-	datacenterKey            = "Datacenter"
-	resourcePoolKey          = "ResourcePool"
-	folderKey                = "Folder"
-	datastoreKey             = "Datastore"
-	networkNameKey           = "Network"
-	scRequiredKey            = "StorageClassRequired"
-	useInventoryKey          = "UseInventoryAsContentSource"
-	insecureSkipTLSVerifyKey = "InsecureSkipTLSVerify"
-	caFilePathKey            = "CAFilePath"
+	configMapName                     = "vsphere.provider.config.vmoperator.vmware.com"
+	hostConfigMapKey                  = "VcPNID" // vcenter host
+	portConfigMapKey                  = "VcPort"
+	credentialSecretNameConfigMapKey  = "VcCredsSecretName" //nolint:gosec
+	datacenterConfigMapKey            = "Datacenter"
+	resourcePoolConfigMapKey          = "ResourcePool"
+	folderConfigMapKey                = "Folder"
+	storageClassRequiredConfigMapKey  = "StorageClassRequired"
+	useInventoryConfigMapKey          = "UseInventoryAsContentSource"
+	insecureSkipTLSVerifyConfigMapKey = "InsecureSkipTLSVerify"
+
+	// Additional ConfigMapKey we are adding to the vm-operator config map for sake of convenience (not supported in vm-operator).
+
+	serverURLConfigMapKey            = "CAPV-TEST-Server"
+	datacenterNameConfigMapKey       = "CAPV-TEST-DatacenterName"
+	distributedPortGroupConfigMapKey = "CAPV-TEST-PortGroup"
+
+	// Const for the VcCredsSecret (hard-coded in vm-operator).
+	vmOperatorSecretName = "vsphere.provider.credentials.vmoperator.vmware.com"
+
+	usernameSecretKey = "username"
+	passwordSecretKey = "password"
+
+	// Additional key we are adding to the VcCredsSecret for sake of convenience (not supported in vm-operator).
+
+	thumbprintSecretKey = "CAPV-TEST-Thumbprint" //nolint:gosec
 )
 
 // ReconcileDependencies reconciles dependencies for the vm-operator.
@@ -265,12 +277,15 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 	// This secret contains credentials to access vCenter the vm-operator acts on.
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      providerConfigMapName, // using the same name of the config map for consistency.
+			Name:      vmOperatorSecretName,
 			Namespace: config.Spec.OperatorRef.Namespace,
 		},
 		Data: map[string][]byte{
-			"username": []byte(config.Spec.VCenter.Username),
-			"password": []byte(config.Spec.VCenter.Password),
+			usernameSecretKey: []byte(config.Spec.VCenter.Username),
+			passwordSecretKey: []byte(config.Spec.VCenter.Password),
+
+			// Additional key we are adding to the VcCredsSecret for sake of convenience (not supported in vm-operator)
+			thumbprintSecretKey: []byte(config.Spec.VCenter.Thumbprint),
 		},
 		Type: corev1.SecretTypeOpaque,
 	}
@@ -303,22 +318,27 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 
 	providerConfigMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      providerConfigMapName,
+			Name:      configMapName,
 			Namespace: config.Spec.OperatorRef.Namespace,
 		},
 		Data: map[string]string{
-			caFilePathKey:            "", // Leaving this empty because we don't have (yet) a solution to inject a CA file into the vm-operator pod.
-			datastoreKey:             "", // It seems it is ok to leave it empty.
-			datacenterKey:            datacenter.Reference().Value,
-			folderKey:                folder.Reference().Value,
-			insecureSkipTLSVerifyKey: "true",                          // Using this given that we don't have (yet) a solution to inject a CA file into the vm-operator pod.
-			networkNameKey:           config.Spec.VCenter.NetworkName, // It seems it is ok to leave it empty.
-			resourcePoolKey:          resourcePool.Reference().Value,
-			scRequiredKey:            "true",
-			useInventoryKey:          "false",
-			vcCredsSecretNameKey:     secret.Name,
-			vcPNIDKey:                host,
-			vcPortKey:                port,
+			// caFilePathConfigMapKey:            "", // Leaving this empty because we don't have (yet) a solution to inject a CA file into the vm-operator pod.
+			// datastoreConfigMapKey:             "", // It seems it is ok to leave it empty.
+			datacenterConfigMapKey:            datacenter.Reference().Value,
+			folderConfigMapKey:                folder.Reference().Value,
+			insecureSkipTLSVerifyConfigMapKey: "true", // Using this given that we don't have (yet) a solution to inject a CA file into the vm-operator pod.
+			// NetworkNameConfigMapKey:           config.Spec.VCenter.NetworkName, // It seems it is ok to leave it empty.
+			resourcePoolConfigMapKey:         resourcePool.Reference().Value,
+			storageClassRequiredConfigMapKey: "true",
+			useInventoryConfigMapKey:         "false",
+			credentialSecretNameConfigMapKey: secret.Name,
+			hostConfigMapKey:                 host,
+			portConfigMapKey:                 port,
+
+			// Additional key we are adding to the vm-operator config map for sake of convenience (not supported in vm-operator)
+			serverURLConfigMapKey:            config.Spec.VCenter.ServerURL,
+			datacenterNameConfigMapKey:       config.Spec.VCenter.Datacenter,
+			distributedPortGroupConfigMapKey: config.Spec.VCenter.DistributedPortGreoupName,
 		},
 	}
 	_ = wait.PollUntilContextTimeout(ctx, 250*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
@@ -689,7 +709,87 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 	return nil
 }
 
-// NOTE: code below is a fork of vm-operator's pkg/conditions (so we can avoid to import the entire project)
+// GetVCenterSession returns a VCenter session from vm-operator config.
+func GetVCenterSession(ctx context.Context, c client.Client, enableKeepAlive bool, keepAliveDuration time.Duration) (*session.Session, error) {
+	configMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      configMapName,
+			Namespace: DefaultNamespace, // This is where tilt deploys the vm-operator
+		},
+	}
+	if err := c.Get(ctx, client.ObjectKeyFromObject(configMap), configMap); err != nil {
+		return nil, errors.Wrapf(err, "failed to get vm-operator ConfigMap %s", configMap.Name)
+	}
+
+	serverURL := configMap.Data[serverURLConfigMapKey]
+	if serverURL == "" {
+		return nil, errors.Errorf("%s value is missing from the vm-operator ConfigMap %s", serverURLConfigMapKey, configMap.Name)
+	}
+	datacenter := configMap.Data[datacenterNameConfigMapKey]
+	if datacenter == "" {
+		return nil, errors.Errorf("%s value is missing from the vm-operator ConfigMap %s", datacenterNameConfigMapKey, configMap.Name)
+	}
+	secretName := configMap.Data[credentialSecretNameConfigMapKey]
+	if secretName == "" {
+		return nil, errors.Errorf("%s value is missing from the vm-operator ConfigMap %s", credentialSecretNameConfigMapKey, configMap.Name)
+	}
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secretName,
+			Namespace: configMap.Namespace, // This is where tilt deploys the vm-operator
+		},
+	}
+	if err := c.Get(ctx, client.ObjectKeyFromObject(secret), secret); err != nil {
+		return nil, errors.Wrapf(err, "failed to get vm-operator Credential Secret %s", secret.Name)
+	}
+	username := string(secret.Data[usernameSecretKey])
+	if username == "" {
+		return nil, errors.Errorf("%s value is missing from the vm-operator Secret %s", usernameSecretKey, secret.Name)
+	}
+	password := string(secret.Data[passwordSecretKey])
+	if password == "" {
+		return nil, errors.Errorf("%s value is missing from the vm-operator Secret %s", passwordSecretKey, secret.Name)
+	}
+	thumbprint := string(secret.Data[thumbprintSecretKey])
+	if thumbprint == "" {
+		return nil, errors.Errorf("%s value is missing from the vm-operator Secret %s", thumbprintSecretKey, secret.Name)
+	}
+
+	params := session.NewParams().
+		WithServer(serverURL).
+		WithDatacenter(datacenter).
+		WithUserInfo(username, password).
+		WithThumbprint(thumbprint).
+		WithFeatures(session.Feature{
+			EnableKeepAlive:   enableKeepAlive,
+			KeepAliveDuration: keepAliveDuration,
+		})
+
+	return session.GetOrCreate(ctx, params)
+}
+
+// GetDistributedPortGroup returns a the DistributedPortGroup from vm-operator config.
+func GetDistributedPortGroup(ctx context.Context, c client.Client) (string, error) {
+	configMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      configMapName,
+			Namespace: DefaultNamespace, // This is where tilt deploys the vm-operator
+		},
+	}
+	if err := c.Get(ctx, client.ObjectKeyFromObject(configMap), configMap); err != nil {
+		return "", errors.Wrapf(err, "failed to get vm-operator ConfigMap %s", configMap.Name)
+	}
+
+	distributedPortGroup := configMap.Data[distributedPortGroupConfigMapKey]
+	if distributedPortGroup == "" {
+		return "", errors.Errorf("%s value is missing from the vm-operator ConfigMap %s", distributedPortGroupConfigMapKey, configMap.Name)
+	}
+
+	return distributedPortGroup, nil
+}
+
+// NOTE: code below is a fork of vm-operator's pkg/conditions (so we can avoid to import the entire project).
 
 const (
 	ReadyConditionType = "Ready"

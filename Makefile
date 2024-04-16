@@ -58,6 +58,7 @@ BIN_DIR := bin
 BUILD_DIR := .build
 TEST_DIR := test
 VCSIM_DIR := test/infrastructure/vcsim
+NETOP_DIR := test/infrastructure/net-operator
 TOOLS_DIR := hack/tools
 TOOLS_BIN_DIR := $(abspath $(TOOLS_DIR)/$(BIN_DIR))
 FLAVOR_DIR := $(ROOT_DIR)/templates
@@ -224,8 +225,12 @@ VM_OPERATOR_CONTROLLER_IMG ?= $(STAGING_REGISTRY)/$(VM_OPERATOR_IMAGE_NAME)
 VM_OPERATOR_DIR := test/infrastructure/vm-operator
 VM_OPERATOR_TMP_DIR ?= vm-operator.tmp
 VM_OPERATOR_COMMIT ?= de75746a9505ef3161172d99b735d6593c54f0c5
-VM_OPERATOR_VERSION ?= v1.8.6-0-gde75746a-dirty
+VM_OPERATOR_VERSION ?= v1.8.6-0-gde75746a
 VM_OPERATOR_ALL_ARCH = amd64 arm64
+
+# net operator
+NET_OPERATOR_IMAGE_NAME ?= cluster-api-net-operator
+NET_OPERATOR_IMG ?= $(STAGING_REGISTRY)/$(NET_OPERATOR_IMAGE_NAME)
 
 # It is set by Prow GIT_TAG, a git-based tag of the form vYYYYMMDD-hash, e.g., v20210120-v0.3.10-308-gc61521971
 
@@ -256,6 +261,7 @@ VCSIM_CRD_ROOT ?= $(VCSIM_DIR)/config/crd/bases
 WEBHOOK_ROOT ?= $(MANIFEST_ROOT)/webhook
 RBAC_ROOT ?= $(MANIFEST_ROOT)/rbac
 VCSIM_RBAC_ROOT ?= $(VCSIM_DIR)/config/rbac
+NETOP_RBAC_ROOT ?= $(NETOP_DIR)/config/rbac
 VERSION ?= $(shell cat clusterctl-settings.json | jq .config.nextVersion -r)
 OVERRIDES_DIR := $(HOME)/.cluster-api/overrides/infrastructure-vsphere/$(VERSION)
 
@@ -295,16 +301,21 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 		paths=./apis/vmware/v1beta1 \
 		crd:crdVersions=v1 \
 		output:crd:dir=$(SUPERVISOR_CRD_ROOT)
-	# vm-operator crds are loaded to be used for integration tests.
+	# vm-operator crds are used for test.
 	$(CONTROLLER_GEN) \
 		paths=github.com/vmware-tanzu/vm-operator/api/v1alpha1/... \
 		crd:crdVersions=v1 \
 		output:crd:dir=$(VMOP_CRD_ROOT)
+	# net-operator crds are used for tests
+	$(CONTROLLER_GEN) \
+		paths=./$(NETOP_DIR)/controllers/... \
+        output:rbac:dir=$(NETOP_RBAC_ROOT) \
+        rbac:roleName=manager-role
 	# vcsim crds are used for tests.
 	$(CONTROLLER_GEN) \
-    		paths=./$(VCSIM_DIR)/api/v1alpha1 \
-    		crd:crdVersions=v1 \
-    		output:crd:dir=$(VCSIM_CRD_ROOT)
+		paths=./$(VCSIM_DIR)/api/v1alpha1 \
+		crd:crdVersions=v1 \
+		output:crd:dir=$(VCSIM_CRD_ROOT)
 	$(CONTROLLER_GEN) \
 		paths=./$(VCSIM_DIR)/ \
 		paths=./$(VCSIM_DIR)/controllers/... \
@@ -318,8 +329,9 @@ generate-go-deepcopy: $(CONTROLLER_GEN) ## Generate deepcopy go code for core
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
 		paths=./apis/...
 	$(CONTROLLER_GEN) \
-    		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
-    		paths=./$(VCSIM_DIR)/api/...
+    	object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
+    	paths=./$(VCSIM_DIR)/api/... \
+    	paths=./$(NETOP_DIR)/external/net-operator/api/...
 
 .PHONY: generate-go-conversions
 generate-go-conversions: $(CONTROLLER_GEN) $(CONVERSION_GEN) ## Runs Go related generate targets
@@ -540,6 +552,15 @@ docker-build-vcsim: docker-pull-prerequisites ## Build the docker image for vcsi
 		$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./$(VCSIM_DIR)/config/default/manager_pull_policy.yaml"; \
     fi
 
+.PHONY: docker-build-net-operator
+docker-build-net-operator: docker-pull-prerequisites ## Build the docker image for net-operator controller manager
+## reads Dockerfile from stdin to avoid an incorrectly cached Dockerfile (https://github.com/moby/buildkit/issues/1368)
+	cat $(NETOP_DIR)/Dockerfile | DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)" . -t $(NET_OPERATOR_IMG)-$(ARCH):$(TAG) --file -
+	@if [ "${DOCKER_BUILD_MODIFY_MANIFESTS}" = "true" ]; then \
+  		$(MAKE) set-manifest-image MANIFEST_IMG=$(NET_OPERATOR_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./$(NETOP_DIR)/config/default/manager_image_patch.yaml"; \
+		$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./$(NETOP_DIR)/config/default/manager_pull_policy.yaml"; \
+    fi
+
 ## --------------------------------------
 ## Testing
 ## --------------------------------------
@@ -587,6 +608,7 @@ e2e-images: ## Build the e2e manager image
     # also the same settings must exist in e2e.sh
 	$(MAKE) REGISTRY=gcr.io/k8s-staging-capi-vsphere PULL_POLICY=IfNotPresent TAG=dev docker-build
 	$(MAKE) REGISTRY=gcr.io/k8s-staging-capi-vsphere PULL_POLICY=IfNotPresent TAG=dev docker-build-vcsim
+	$(MAKE) REGISTRY=gcr.io/k8s-staging-capi-vsphere PULL_POLICY=IfNotPresent TAG=dev docker-build-net-operator
 
 .PHONY: e2e
 e2e: e2e-images generate-e2e-templates
@@ -790,7 +812,6 @@ vm-operator-checkout:
 		git clone "https://github.com/vmware-tanzu/vm-operator.git" "$(VM_OPERATOR_TMP_DIR)"; \
 		cd "$(VM_OPERATOR_TMP_DIR)"; \
         git checkout "$(VM_OPERATOR_COMMIT)"; \
-        git apply "../test/infrastructure/vm-operator/Fix_defaulting_for_Named_networks.patch"; \
 	fi
 	@cd "$(ROOT_DIR)/$(VM_OPERATOR_TMP_DIR)"; \
 	if [ "$$(git describe --dirty 2> /dev/null)" != "$(VM_OPERATOR_VERSION)" ]; then \

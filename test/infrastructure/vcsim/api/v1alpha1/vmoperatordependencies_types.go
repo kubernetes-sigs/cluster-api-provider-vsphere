@@ -61,12 +61,12 @@ type VCenterSpec struct {
 	Thumbprint string `json:"thumbprint,omitempty"`
 
 	// supervisor is based on a single vCenter cluster
-	Datacenter     string               `json:"datacenter,omitempty"`
-	Cluster        string               `json:"cluster,omitempty"`
-	Folder         string               `json:"folder,omitempty"`
-	ResourcePool   string               `json:"resourcePool,omitempty"`
-	ContentLibrary ContentLibraryConfig `json:"contentLibrary,omitempty"`
-	NetworkName    string               `json:"networkName,omitempty"`
+	Datacenter                string               `json:"datacenter,omitempty"`
+	Cluster                   string               `json:"cluster,omitempty"`
+	Folder                    string               `json:"folder,omitempty"`
+	ResourcePool              string               `json:"resourcePool,omitempty"`
+	ContentLibrary            ContentLibraryConfig `json:"contentLibrary,omitempty"`
+	DistributedPortGreoupName string               `json:"distributedPortGreoupName,omitempty"`
 }
 
 type StorageClass struct {
@@ -139,16 +139,18 @@ func (d *VMOperatorDependencies) SetVCenterFromVCenterSimulator(vCenterSimulator
 	datacenter := 0
 	cluster := 0
 	datastore := 0
+	distributedPortGroup := 0
 
 	d.Spec.VCenter = &VCenterSpec{
-		ServerURL:    vCenterSimulator.Status.Host,
-		Username:     vCenterSimulator.Status.Username,
-		Password:     vCenterSimulator.Status.Password,
-		Thumbprint:   vCenterSimulator.Status.Thumbprint,
-		Datacenter:   vcsimhelpers.DatacenterName(datacenter),
-		Cluster:      vcsimhelpers.ClusterPath(datacenter, cluster),
-		Folder:       vcsimhelpers.VMFolderName(datacenter),
-		ResourcePool: vcsimhelpers.ResourcePoolPath(datacenter, cluster),
+		ServerURL:                 vCenterSimulator.Status.Host,
+		Username:                  vCenterSimulator.Status.Username,
+		Password:                  vCenterSimulator.Status.Password,
+		Thumbprint:                vCenterSimulator.Status.Thumbprint,
+		Datacenter:                vcsimhelpers.DatacenterName(datacenter),
+		Cluster:                   vcsimhelpers.ClusterPath(datacenter, cluster),
+		Folder:                    vcsimhelpers.VMFolderName(datacenter),
+		DistributedPortGreoupName: vcsimhelpers.DistributedPortGroupName(datacenter, distributedPortGroup),
+		ResourcePool:              vcsimhelpers.ResourcePoolPath(datacenter, cluster),
 		ContentLibrary: ContentLibraryConfig{
 			Name:      "vcsim",
 			Datastore: vcsimhelpers.DatastorePath(datacenter, datastore),

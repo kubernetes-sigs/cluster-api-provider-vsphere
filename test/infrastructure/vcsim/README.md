@@ -168,6 +168,7 @@ provide extra args or enable debugging for this provider e.g.
 ...
 provider_repos:
   - ../cluster-api-provider-vsphere
+  - ../cluster-api-provider-vsphere/test/infrastructure/vcsim
 enable_providers:
   - kubeadm-bootstrap
   - kubeadm-control-plane

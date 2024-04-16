@@ -14,7 +14,7 @@ This project has the requirement to test CAPV in supervisor mode using  all the 
 CAPI, CAPV and vCenter supervisor, and also for all the version built from open PRs.
 
 In order to achieve this without incurring the cost/complexity of creating multiple, ad-hoc vCenter distributions, 
-we are using a "limited version of the supervisor", composed by the vm-operator only.
+we are using a "limited version of the supervisor", composed by the vm-operator and by a minimal version of the net-operator.
 
 This "limited version of the supervisor" is considered enough to provide a signal for CAPV development and test; 
 however, due to the necessary trade-offs required to get a simple and cheap test environment, the solution described below
@@ -23,6 +23,8 @@ does not fit to use for other use cases.
 The picture explains how this works in detail:
 
 ![Architecture](architecture-part1.drawio.svg)
+
+NOTE: net-operator is not represented for sake of simplicity, it is complementary to the vm-operator.
 
 As you might notice, it is required to have an additional component taking care of setting up the management cluster
 and vCenter as required by the vm-operator. This component exist in different variants according to the use cases
@@ -44,11 +46,14 @@ NOTE: before using `vm-operator` for the first time, you have to run `make vm-op
 ...
 provider_repos:
   - ../cluster-api-provider-vsphere
+  - ../cluster-api-provider-vsphere/test/infrastructure/net-operator
+  - ../cluster-api-provider-vsphere/test/infrastructure/vcsim
 enable_providers:
   - kubeadm-bootstrap
   - kubeadm-control-plane
   - vsphere-supervisor
   - vm-operator
+  - net-operator
   - vcsim
 extra_args:
   vcsim:
@@ -72,6 +77,8 @@ If there is the need to create machines in different namespace, it is required t
 The following image summarizes all the moving parts involved in this scenario.
 
 ![Architecture](architecture-part2.drawio.svg)
+
+NOTE: net-operator is not represented for sake of simplicity, it is complementary to the vm-operator.
 
 ## E2E tests for CAPV in supervisor mode
 

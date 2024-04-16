@@ -273,7 +273,7 @@ func setupNamespaceWithVMOperatorDependenciesVCenter(managementClusterProxy fram
 					// NOTE: when running on vCenter the vm-operator automatically creates VirtualMachine objects for the content library.
 					Items: []vcsimv1.ContentLibraryItemConfig{},
 				},
-				NetworkName: e2eConfig.GetVariable("VSPHERE_NETWORK"),
+				DistributedPortGreoupName: e2eConfig.GetVariable("VSPHERE_DISTRIBUTED_PORT_GROUP"),
 			},
 			StorageClasses: []vcsimv1.StorageClass{
 				{

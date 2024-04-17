@@ -122,6 +122,21 @@ func LoadE2EConfig(ctx context.Context, configPath string, configOverridesPath, 
 				break
 			}
 		}
+
+		Byf("Dropping net-operator from the e2e config")
+		for i := range config.Providers {
+			if config.Providers[i].Name == "net-operator" {
+				config.Providers = append(config.Providers[:i], config.Providers[i+1:]...)
+				break
+			}
+		}
+
+		for i := range config.Images {
+			if strings.Contains(config.Images[i].Name, "net-operator") {
+				config.Images = append(config.Images[:i], config.Images[i+1:]...)
+				break
+			}
+		}
 	} else {
 		// In case we are testing supervisor, change the folder we build manifest from
 		Byf("Overriding source folder for vsphere provider to /config/supervisor in the e2e config")

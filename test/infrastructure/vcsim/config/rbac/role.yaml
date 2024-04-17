@@ -238,6 +238,14 @@ rules:
 - apiGroups:
   - vmoperator.vmware.com
   resources:
+  - virtualmachineimages/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - vmoperator.vmware.com
+  resources:
   - virtualmachines
   verbs:
   - delete

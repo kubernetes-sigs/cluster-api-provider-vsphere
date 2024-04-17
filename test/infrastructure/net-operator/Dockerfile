@@ -50,11 +50,12 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 # This needs to build with the entire CAPV context
 WORKDIR /workspace
+
 # Copy the sources (which includes the test/infrastructure/vcsim subdirectory)
 COPY ./ ./
 
-# Change directories into vcsim
-WORKDIR /workspace/test/infrastructure/vcsim
+# Change directories into net-operator
+WORKDIR /workspace/test/infrastructure/net-operator
 
 # Cache the go build into the Go’s compiler cache folder so we take benefits of compiler caching across docker build calls
 RUN --mount=type=cache,target=/root/.cache/go-build \
@@ -76,7 +77,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 
 FROM gcr.io/distroless/static:nonroot-${ARCH}
 WORKDIR /
-COPY --from=builder /workspace/test/infrastructure/vcsim/manager .
+COPY --from=builder /workspace/test/infrastructure/net-operator/manager .
 # Use uid of nonroot user (65532) because kubernetes expects numeric user when applying pod security policies
 USER 65532
 ENTRYPOINT ["/manager"]

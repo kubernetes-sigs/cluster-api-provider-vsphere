@@ -1,0 +1,47 @@
+# This patch derives from vm-operator config/local, but it is now using NETWORK_PROVIDER = VSPHERE_NETWORK
+# as suggested by the vm-operator maintainers.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vmware-system-vmop-controller-manager
+  namespace: vmware-system-vmop
+spec:
+  template:
+    spec:
+      containers:
+        - name: manager
+          env:
+            - name: VSPHERE_NETWORKING
+              value: "true"
+            - name: NETWORK_PROVIDER
+              value: "VSPHERE_NETWORK"
+
+            - name: FSS_WCP_INSTANCE_STORAGE
+              value: "true"
+            - name: FSS_WCP_VMSERVICE_BACKUPRESTORE
+              value: "false"
+            - name: FSS_PODVMONSTRETCHEDSUPERVISOR
+              value: "false"
+            - name: FSS_WCP_TKG_Multiple_CL
+              value: "false"
+            #
+            # Feature state switch flags beneath this line are enabled on main and
+            # only retained in this file because it is used by internal testing to
+            # determine the state of the feature. Since this is used by older
+            # branches as well, the flags must remain, otherwise the absence of the
+            # flag indicates a feature is not present or disabled.
+            #
+            - name: FSS_WCP_Unified_TKG
+              value: "true"
+            - name: FSS_WCP_VMSERVICE_V1ALPHA2
+              value: "true"
+            - name: FSS_WCP_VM_CLASS_AS_CONFIG
+              value: "true"
+            - name: FSS_WCP_VM_CLASS_AS_CONFIG_DAYNDATE
+              value: "true"
+            - name: FSS_WCP_VM_IMAGE_REGISTRY
+              value: "true"
+            - name: FSS_WCP_NAMESPACED_VM_CLASS
+              value: "true"
+            - name: FSS_WCP_WINDOWS_SYSPREP
+              value: "true"

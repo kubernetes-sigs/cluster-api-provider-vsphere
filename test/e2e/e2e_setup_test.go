@@ -273,7 +273,7 @@ func setupNamespaceWithVMOperatorDependenciesVCenter(managementClusterProxy fram
 					// NOTE: when running on vCenter the vm-operator automatically creates VirtualMachine objects for the content library.
 					Items: []vcsimv1.ContentLibraryItemConfig{},
 				},
-				NetworkName: e2eConfig.GetVariable("VSPHERE_NETWORK"),
+				DistributedPortGroupName: e2eConfig.GetVariable("VSPHERE_DISTRIBUTED_PORT_GROUP"),
 			},
 			StorageClasses: []vcsimv1.StorageClass{
 				{
@@ -294,6 +294,16 @@ func setupNamespaceWithVMOperatorDependenciesVCenter(managementClusterProxy fram
 				},
 			},
 		},
+	}
+
+	items := e2eConfig.GetVariable("VSPHERE_CONTENT_LIBRARY_ITEMS")
+	if items != "" {
+		for _, i := range strings.Split(e2eConfig.GetVariable("VSPHERE_CONTENT_LIBRARY_ITEMS"), ",") {
+			dependenciesConfig.Spec.VCenter.ContentLibrary.Items = append(dependenciesConfig.Spec.VCenter.ContentLibrary.Items, vcsimv1.ContentLibraryItemConfig{
+				Name:     i,
+				ItemType: "ovf",
+			})
+		}
 	}
 
 	err := vmoperator.ReconcileDependencies(ctx, c, dependenciesConfig)

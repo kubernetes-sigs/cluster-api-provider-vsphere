@@ -24,7 +24,6 @@ import (
 
 	"github.com/pkg/errors"
 	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -295,48 +294,7 @@ func (r *VirtualMachineReconciler) getVMBootstrapReconciler(virtualMachine *vmop
 }
 
 func (r *VirtualMachineReconciler) getVCenterSession(ctx context.Context) (*session.Session, error) {
-	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      netConfigMapName,
-			Namespace: vmoperator.DefaultNamespace, // This is where tilt deploys the vm-operator
-		},
-	}
-	if err := r.Client.Get(ctx, client.ObjectKeyFromObject(secret), secret); err != nil {
-		return nil, errors.Wrapf(err, "failed to get vm-operator Secret %s", secret.Name)
-	}
-
-	serverURL := string(secret.Data[netConfigServerURLKey])
-	if serverURL == "" {
-		return nil, errors.Errorf("%s value is missing from the vm-operator Secret %s", netConfigServerURLKey, secret.Name)
-	}
-	datacenter := string(secret.Data[netConfigDatacenterKey])
-	if datacenter == "" {
-		return nil, errors.Errorf("%s value is missing from the vm-operator Secret %s", netConfigDatacenterKey, secret.Name)
-	}
-	username := string(secret.Data[netConfigUsernameKey])
-	if username == "" {
-		return nil, errors.Errorf("%s value is missing from the vm-operator Secret %s", netConfigUsernameKey, secret.Name)
-	}
-	password := string(secret.Data[netConfigPasswordKey])
-	if password == "" {
-		return nil, errors.Errorf("%s value is missing from the vm-operator Secret %s", netConfigPasswordKey, secret.Name)
-	}
-	thumbprint := string(secret.Data[netConfigThumbprintKey])
-	if thumbprint == "" {
-		return nil, errors.Errorf("%s value is missing from the vm-operator Secret %s", netConfigThumbprintKey, secret.Name)
-	}
-
-	params := session.NewParams().
-		WithServer(serverURL).
-		WithDatacenter(datacenter).
-		WithUserInfo(username, password).
-		WithThumbprint(thumbprint).
-		WithFeatures(session.Feature{
-			EnableKeepAlive:   r.EnableKeepAlive,
-			KeepAliveDuration: r.KeepAliveDuration,
-		})
-
-	return session.GetOrCreate(ctx, params)
+	return vmoperator.GetVCenterSession(ctx, r.Client, r.EnableKeepAlive, r.KeepAliveDuration)
 }
 
 // SetupWithManager will add watches for this controller.

@@ -14,7 +14,7 @@ This project has the requirement to test CAPV in supervisor mode using  all the 
 CAPI, CAPV and vCenter supervisor, and also for all the version built from open PRs.
 
 In order to achieve this without incurring the cost/complexity of creating multiple, ad-hoc vCenter distributions, 
-we are using a "limited version of the supervisor", composed by the vm-operator and by a minimal version of the net-operator.
+we are using a "limited version of the supervisor", composed by the vm-operator and a minimal version of the net-operator.
 
 This "limited version of the supervisor" is considered enough to provide a signal for CAPV development and test; 
 however, due to the necessary trade-offs required to get a simple and cheap test environment, the solution described below

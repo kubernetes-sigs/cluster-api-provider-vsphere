@@ -31,8 +31,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	netopv1alpha1 "github.com/vmware-tanzu/net-operator-api/api/v1alpha1"
+
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/framework/vmoperator"
-	netopv1alpha1 "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/net-operator/external/net-operator/api/v1alpha1"
 )
 
 type NetworkInterfaceReconciler struct {

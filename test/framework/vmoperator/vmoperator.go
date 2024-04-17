@@ -338,7 +338,7 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 			// Additional key we are adding to the vm-operator config map for sake of convenience (not supported in vm-operator)
 			serverURLConfigMapKey:            config.Spec.VCenter.ServerURL,
 			datacenterNameConfigMapKey:       config.Spec.VCenter.Datacenter,
-			distributedPortGroupConfigMapKey: config.Spec.VCenter.DistributedPortGreoupName,
+			distributedPortGroupConfigMapKey: config.Spec.VCenter.DistributedPortGroupName,
 		},
 	}
 	_ = wait.PollUntilContextTimeout(ctx, 250*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
@@ -714,7 +714,7 @@ func GetVCenterSession(ctx context.Context, c client.Client, enableKeepAlive boo
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      configMapName,
-			Namespace: DefaultNamespace, // This is where tilt deploys the vm-operator
+			Namespace: DefaultNamespace, // This is where tilt/E2E deploy the vm-operator
 		},
 	}
 	if err := c.Get(ctx, client.ObjectKeyFromObject(configMap), configMap); err != nil {
@@ -774,7 +774,7 @@ func GetDistributedPortGroup(ctx context.Context, c client.Client) (string, erro
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      configMapName,
-			Namespace: DefaultNamespace, // This is where tilt deploys the vm-operator
+			Namespace: DefaultNamespace, // This is where tilt/E2E deploy the vm-operator
 		},
 	}
 	if err := c.Get(ctx, client.ObjectKeyFromObject(configMap), configMap); err != nil {

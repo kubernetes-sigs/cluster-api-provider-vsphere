@@ -224,6 +224,7 @@ VM_OPERATOR_IMAGE_NAME ?= extra/vm-operator
 VM_OPERATOR_CONTROLLER_IMG ?= $(STAGING_REGISTRY)/$(VM_OPERATOR_IMAGE_NAME)
 VM_OPERATOR_DIR := test/infrastructure/vm-operator
 VM_OPERATOR_TMP_DIR ?= vm-operator.tmp
+# note: this is the commit from 1.8.6 tag
 VM_OPERATOR_COMMIT ?= de75746a9505ef3161172d99b735d6593c54f0c5
 VM_OPERATOR_VERSION ?= v1.8.6-0-gde75746a
 VM_OPERATOR_ALL_ARCH = amd64 arm64
@@ -306,7 +307,7 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 		paths=github.com/vmware-tanzu/vm-operator/api/v1alpha1/... \
 		crd:crdVersions=v1 \
 		output:crd:dir=$(VMOP_CRD_ROOT)
-	# net-operator crds are used for tests
+	# net-operator is used for tests
 	$(CONTROLLER_GEN) \
 		paths=./$(NETOP_DIR)/controllers/... \
         output:rbac:dir=$(NETOP_RBAC_ROOT) \
@@ -330,8 +331,7 @@ generate-go-deepcopy: $(CONTROLLER_GEN) ## Generate deepcopy go code for core
 		paths=./apis/...
 	$(CONTROLLER_GEN) \
     	object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
-    	paths=./$(VCSIM_DIR)/api/... \
-    	paths=./$(NETOP_DIR)/external/net-operator/api/...
+    	paths=./$(VCSIM_DIR)/api/...
 
 .PHONY: generate-go-conversions
 generate-go-conversions: $(CONTROLLER_GEN) $(CONVERSION_GEN) ## Runs Go related generate targets
@@ -555,9 +555,9 @@ docker-build-net-operator: docker-pull-prerequisites ## Build the docker image f
 ## reads Dockerfile from stdin to avoid an incorrectly cached Dockerfile (https://github.com/moby/buildkit/issues/1368)
 	cat $(NETOP_DIR)/Dockerfile | DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)" . -t $(NET_OPERATOR_IMG)-$(ARCH):$(TAG) --file -
 	@if [ "${DOCKER_BUILD_MODIFY_MANIFESTS}" = "true" ]; then \
-  		$(MAKE) set-manifest-image MANIFEST_IMG=$(NET_OPERATOR_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./$(NETOP_DIR)/config/default/manager_image_patch.yaml"; \
+		$(MAKE) set-manifest-image MANIFEST_IMG=$(NET_OPERATOR_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./$(NETOP_DIR)/config/default/manager_image_patch.yaml"; \
 		$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./$(NETOP_DIR)/config/default/manager_pull_policy.yaml"; \
-    fi
+	fi
 
 ## --------------------------------------
 ## Testing
@@ -809,13 +809,13 @@ vm-operator-checkout:
 	else \
 		git clone "https://github.com/vmware-tanzu/vm-operator.git" "$(VM_OPERATOR_TMP_DIR)"; \
 		cd "$(VM_OPERATOR_TMP_DIR)"; \
-        git checkout "$(VM_OPERATOR_COMMIT)"; \
+		git checkout "$(VM_OPERATOR_COMMIT)"; \
 	fi
 	@cd "$(ROOT_DIR)/$(VM_OPERATOR_TMP_DIR)"; \
 	if [ "$$(git describe --dirty 2> /dev/null)" != "$(VM_OPERATOR_VERSION)" ]; then \
-    	echo "ERROR: checked out version $$(git describe --dirty 2> /dev/null) does not match expected version $(VM_OPERATOR_VERSION)"; \
-    	exit 1; \
-    fi
+		echo "ERROR: checked out version $$(git describe --dirty 2> /dev/null) does not match expected version $(VM_OPERATOR_VERSION)"; \
+		exit 1; \
+	fi
 
 .PHONY: vm-operator-manifest-build
 vm-operator-manifest-build: $(RELEASE_DIR) $(KUSTOMIZE) vm-operator-checkout ## Build the vm-operator manifest yaml file

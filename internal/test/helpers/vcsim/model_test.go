@@ -28,6 +28,7 @@ func Test_vcsim_NamesAndPath(t *testing.T) {
 	datacenter := 5
 	cluster := 3
 	datastore := 7
+	distributedPortGroup := 4
 
 	g.Expect(DatacenterName(datacenter)).To(Equal("DC5"))
 	g.Expect(ClusterName(datacenter, cluster)).To(Equal("DC5_C3"))
@@ -39,4 +40,5 @@ func Test_vcsim_NamesAndPath(t *testing.T) {
 	g.Expect(VMPath(datacenter, "my-mv")).To(Equal("/DC5/vm/my-mv"))
 	g.Expect(NetworkFolderName(datacenter)).To(Equal("DC5/network"))
 	g.Expect(NetworkPath(datacenter, "my-network")).To(Equal("/DC5/network/my-network"))
+	g.Expect(DistributedPortGroupName(datacenter, distributedPortGroup)).To(Equal("DC5_DVPG4"))
 }

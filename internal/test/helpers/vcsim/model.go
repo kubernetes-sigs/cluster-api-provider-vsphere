@@ -89,3 +89,8 @@ func NetworkFolderName(datacenter int) string {
 func NetworkPath(datacenter int, network string) string {
 	return fmt.Sprintf("/%s/%s", NetworkFolderName(datacenter), network)
 }
+
+// DistributedPortGroupName provide a function to compute vcsim distribute port group names in a datacenter.
+func DistributedPortGroupName(datacenter int, distributedPortGroup int) string {
+	return fmt.Sprintf("%s_DVPG%d", DatacenterName(datacenter), distributedPortGroup)
+}

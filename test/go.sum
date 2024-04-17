@@ -632,8 +632,8 @@ github.com/vmware-tanzu/net-operator-api v0.0.0-20231019160108-42131d6e8360 h1:y
 github.com/vmware-tanzu/net-operator-api v0.0.0-20231019160108-42131d6e8360/go.mod h1:dtVG693FvGuOSxJvTaKRVGU0EJR8yvLG3E2VaDDHILM=
 github.com/vmware-tanzu/nsx-operator/pkg/apis v0.1.0 h1:HdnQb/X9vJ8a5WQ03g/0nDr9igIIK1fF6wO5wOtkJT4=
 github.com/vmware-tanzu/nsx-operator/pkg/apis v0.1.0/go.mod h1:Q4JzNkNMvjo7pXtlB5/R3oME4Nhah7fAObWgghVmtxk=
-github.com/vmware-tanzu/vm-operator/api v1.8.5 h1:E8rpRdV8+cNp/eNZ/QUHvlrbpPh8uk6bKqwEEmGWe64=
-github.com/vmware-tanzu/vm-operator/api v1.8.5/go.mod h1:SXaSFtnw2502Tzy0bfQVHrvbFDijR96r1ihUYQWPOK8=
+github.com/vmware-tanzu/vm-operator/api v1.8.6 h1:NIndORjcnSmIlQsCMIewpIwg/ocRVDh2lYjOroTVLrU=
+github.com/vmware-tanzu/vm-operator/api v1.8.6/go.mod h1:HHA2SNI9B5Yqtyp5t+Gt9WTWBi/fIkM6+MukDDSf11A=
 github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20231214185006-5477585eebfd h1:qdfVf7KFW+XX7+D4xC/mlBpRA9+B+opdDPxGdqjxO+4=
 github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20231214185006-5477585eebfd/go.mod h1:5rqRJ9zGR+KnKbkGx373WgN8xJpvAj99kHnfoDYRO5I=
 github.com/vmware-tanzu/vm-operator/external/tanzu-topology v0.0.0-20231214185006-5477585eebfd h1:BleW2NxLCPbLvFoTzhoX/DsjCJuKyEdcmvYiY04k18U=

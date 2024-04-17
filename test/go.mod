@@ -16,7 +16,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/pflag v1.0.5
 	github.com/vmware-tanzu/net-operator-api v0.0.0-20231019160108-42131d6e8360
-	github.com/vmware-tanzu/vm-operator/api v1.8.5
+	github.com/vmware-tanzu/vm-operator/api v1.8.6
 	github.com/vmware-tanzu/vm-operator/external/tanzu-topology v0.0.0-20231214185006-5477585eebfd
 	github.com/vmware/govmomi v0.37.0
 	golang.org/x/crypto v0.22.0

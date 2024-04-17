@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package main define main for the vcsim controller.
+// Package main define main for the net-operator controller.
 package main
 
 import (
@@ -48,10 +48,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
 
+	netopv1alpha1 "github.com/vmware-tanzu/net-operator-api/api/v1alpha1"
+
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/constants"
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/net-operator/controllers"
-	netopv1alpha1 "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/net-operator/external/net-operator/api/v1alpha1"
 )
 
 var (
@@ -185,7 +186,7 @@ func main() {
 	ctrlOptions := ctrl.Options{
 		Scheme:                     scheme,
 		LeaderElection:             enableLeaderElection,
-		LeaderElectionID:           "vcsim-controller-leader-election-capi",
+		LeaderElectionID:           "net-operator-leader-election-capi",
 		LeaseDuration:              &leaderElectionLeaseDuration,
 		RenewDeadline:              &leaderElectionRenewDeadline,
 		RetryPeriod:                &leaderElectionRetryPeriod,
@@ -271,7 +272,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, _ bool) {
 		EnableKeepAlive:   enableKeepAlive,
 		KeepAliveDuration: keepAliveDuration,
 		WatchFilterValue:  watchFilterValue,
-	}).SetupWithManager(ctx, mgr, concurrency(networkInterfaceConcurrency)); err != nil { // TODO: change
+	}).SetupWithManager(ctx, mgr, concurrency(networkInterfaceConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "NetworkInterfaceReconciler")
 		os.Exit(1)
 	}

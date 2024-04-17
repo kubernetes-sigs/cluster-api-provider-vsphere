@@ -96,7 +96,7 @@ spec:
                   datacenter:
                     description: supervisor is based on a single vCenter cluster
                     type: string
-                  distributedPortGreoupName:
+                  distributedPortGroupName:
                     type: string
                   folder:
                     type: string

@@ -1,3 +1,5 @@
+# This patch derives from vm-operator config/local, but it is now using NETWORK_PROVIDER = VSPHERE_NETWORK
+# as suggested by the vm-operator maintainers.
 apiVersion: apps/v1
 kind: Deployment
 metadata:

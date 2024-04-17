@@ -14,5 +14,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package controllers implements reconcilers for the vcsim controller.
+// Package controllers implements reconcilers for the net-operator controller.
 package controllers

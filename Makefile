@@ -84,7 +84,6 @@ GINKGO_TIMEOUT ?= 3h
 E2E_CONF_FILE ?= $(abspath test/e2e/config/vsphere.yaml)
 E2E_CONF_OVERRIDE_FILE ?= $(abspath test/e2e/config/config-overrides.yaml)
 E2E_IPAM_KUBECONFIG ?=
-INTEGRATION_CONF_FILE ?= $(abspath test/integration/integration-dev.yaml)
 E2E_TEMPLATE_DIR := $(abspath test/e2e/data/)
 E2E_GOVMOMI_TEMPLATE_DIR := $(E2E_TEMPLATE_DIR)/infrastructure-vsphere-govmomi
 E2E_SUPERVISOR_TEMPLATE_DIR := $(E2E_TEMPLATE_DIR)/infrastructure-vsphere-supervisor
@@ -257,7 +256,6 @@ LDFLAGS ?= $(shell hack/version.sh)
 MANIFEST_ROOT ?= ./config
 CRD_ROOT ?= $(MANIFEST_ROOT)/default/crd/bases
 SUPERVISOR_CRD_ROOT ?= $(MANIFEST_ROOT)/supervisor/crd
-VMOP_CRD_ROOT ?= $(MANIFEST_ROOT)/deployments/integration-tests/crds
 VCSIM_CRD_ROOT ?= $(VCSIM_DIR)/config/crd/bases
 WEBHOOK_ROOT ?= $(MANIFEST_ROOT)/webhook
 RBAC_ROOT ?= $(MANIFEST_ROOT)/rbac
@@ -283,7 +281,7 @@ generate: ## Run all generate targets
 
 .PHONY: generate-manifests
 generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
-	$(MAKE) clean-generated-yaml SRC_DIRS="$(CRD_ROOT),$(SUPERVISOR_CRD_ROOT),$(VMOP_CRD_ROOT),./config/webhook/manifests.yaml"
+	$(MAKE) clean-generated-yaml SRC_DIRS="$(CRD_ROOT),$(SUPERVISOR_CRD_ROOT),./config/webhook/manifests.yaml"
 	$(CONTROLLER_GEN) \
 		paths=./apis/v1alpha3 \
 		paths=./apis/v1alpha4 \
@@ -302,11 +300,6 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 		paths=./apis/vmware/v1beta1 \
 		crd:crdVersions=v1 \
 		output:crd:dir=$(SUPERVISOR_CRD_ROOT)
-	# vm-operator crds are used for test.
-	$(CONTROLLER_GEN) \
-		paths=github.com/vmware-tanzu/vm-operator/api/v1alpha1/... \
-		crd:crdVersions=v1 \
-		output:crd:dir=$(VMOP_CRD_ROOT)
 	# net-operator is used for tests
 	$(CONTROLLER_GEN) \
 		paths=./$(NETOP_DIR)/controllers/... \
@@ -596,11 +589,6 @@ test-cover: ## Run unit tests and generate a coverage report
 	./hack/codecov-ignore.sh
 	go tool cover -func=coverage.out -o coverage.txt
 	go tool cover -html=coverage.out -o coverage.html
-
-.PHONY: test-integration
-test-integration: e2e-images ## Run integration tests
-test-integration: $(GINKGO) $(KUSTOMIZE) $(KIND)
-	time $(GINKGO) --output-dir="$(ARTIFACTS)" --junit-report="junit.integration_suite.1.xml" -v ./test/integration -- --config=$(INTEGRATION_CONF_FILE) --artifacts-folder="$(ARTIFACTS)"
 
 .PHONY: e2e-images
 e2e-images: ## Build the e2e manager image

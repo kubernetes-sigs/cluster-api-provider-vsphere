@@ -98,11 +98,21 @@ spec:
                   description.
                 type: string
               imageName:
-                description: ImageName describes the name of a VirtualMachineImage
-                  that is to be used as the base Operating System image of the desired
-                  VirtualMachine instances.  The VirtualMachineImage resources can
-                  be introspected to discover identifying attributes that may help
-                  users to identify the desired image to use.
+                description: "ImageName describes the name of the image resource used
+                  to deploy this VM. \n This field may be used to specify the name
+                  of a VirtualMachineImage or ClusterVirtualMachineImage resource.
+                  The resolver first checks to see if there is a VirtualMachineImage
+                  with the specified name. If no such resource exists, the resolver
+                  then checks to see if there is a ClusterVirtualMachineImage resource
+                  with the specified name in the same Namespace as the VM being deployed.
+                  \n This field may also be used to specify the display name (vSphere
+                  name) of a VirtualMachineImage or ClusterVirtualMachineImage resource.
+                  If the display name unambiguously resolves to a distinct VM image
+                  (among all existing VirtualMachineImages in the VM's namespace and
+                  all existing ClusterVirtualMachineImages), then a mutation webhook
+                  updates this field with the VM image resource name. If the display
+                  name resolves to multiple or no VM images, then the mutation webhook
+                  denies the request and outputs an error message accordingly."
                 type: string
               minHardwareVersion:
                 description: "MinHardwareVersion specifies the desired minimum hardware
@@ -120,29 +130,30 @@ spec:
                   field's value is 13, then the VM will be upgraded to hardware version
                   13. However, if the observed hardware version is 17 and this field's
                   value is 13, no change will occur. \n Several features are hardware
-                  version dependent, for example: \n * NVMe Controllers        \t\t
-                  >= 14 * Dynamic Direct Path I/O devices >= 17 \n Please refer to
-                  https://kb.vmware.com/s/article/1003746 for a list of VM hardware
-                  versions. \n It is important to remember that a VM's hardware version
-                  may not be downgraded and upgrading a VM deployed from an image
-                  based on an older hardware version to a more recent one may result
-                  in unpredictable behavior. In other words, please be careful when
-                  choosing to upgrade a VM to a newer hardware version."
+                  version dependent, for example: \n * NVMe Controllers                >=
+                  14 * Dynamic Direct Path I/O devices >= 17 \n Please refer to https://kb.vmware.com/s/article/1003746
+                  for a list of VM hardware versions. \n It is important to remember
+                  that a VM's hardware version may not be downgraded and upgrading
+                  a VM deployed from an image based on an older hardware version to
+                  a more recent one may result in unpredictable behavior. In other
+                  words, please be careful when choosing to upgrade a VM to a newer
+                  hardware version."
                 format: int32
                 minimum: 13
                 type: integer
               networkInterfaces:
-                description: NetworkInterfaces describes a list of VirtualMachineNetworkInterfaces
+                description: "NetworkInterfaces describes a list of VirtualMachineNetworkInterfaces
                   to be configured on the VirtualMachine instance. Each of these VirtualMachineNetworkInterfaces
                   describes external network integration configurations that are to
                   be used by the VirtualMachine controller when integrating the VirtualMachine
-                  into one or more external networks.
+                  into one or more external networks. \n The maximum number of network
+                  interface allowed is 10 because of the limit built into vSphere."
                 items:
                   description: VirtualMachineNetworkInterface defines the properties
                     of a network interface to attach to a VirtualMachine instance.  A
                     VirtualMachineNetworkInterface describes network interface configuration
                     that is used by the VirtualMachine controller when integrating
-                    the VirtualMachine into a VirtualNetwork.  Currently, only NSX-T
+                    the VirtualMachine into a VirtualNetwork. Currently, only NSX-T
                     and vSphere Distributed Switch (VDS) type network integrations
                     are supported using this VirtualMachineNetworkInterface structure.
                   properties:
@@ -162,8 +173,9 @@ spec:
                       type: string
                     networkType:
                       description: NetworkType describes the type of VirtualNetwork
-                        that is referenced by the NetworkName.  Currently, the only
-                        supported NetworkTypes are "nsx-t" and "vsphere-distributed".
+                        that is referenced by the NetworkName. Currently, the supported
+                        NetworkTypes are "nsx-t", "nsx-t-subnet", "nsx-t-subnetset"
+                        and "vsphere-distributed".
                       type: string
                     providerRef:
                       description: ProviderRef is reference to a network interface
@@ -189,6 +201,7 @@ spec:
                       - name
                       type: object
                   type: object
+                maxItems: 10
                 type: array
               nextRestartTime:
                 description: "NextRestartTime may be used to restart the VM, in accordance
@@ -278,7 +291,10 @@ spec:
                     minimum: 1
                     type: integer
                   tcpSocket:
-                    description: TCPSocket specifies an action involving a TCP port.
+                    description: "TCPSocket specifies an action involving a TCP port.
+                      \n Deprecated: The TCPSocket action requires network connectivity
+                      that is not supported in all environments. This field will be
+                      removed in a later API version."
                     properties:
                       host:
                         description: Host is an optional host name to connect to.  Host

@@ -8,15 +8,17 @@ replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.7.0
 
 replace sigs.k8s.io/cluster-api-provider-vsphere => ../
 
+replace github.com/vmware-tanzu/vm-operator/pkg/constants/testlabels => github.com/vmware-tanzu/vm-operator/pkg/constants/testlabels v0.0.0-20240404200847-de75746a9505
+
 require (
 	github.com/dougm/pretty v0.0.0-20171025230240-2ee9d7453c02
 	github.com/onsi/ginkgo/v2 v2.17.1
 	github.com/onsi/gomega v1.32.0
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/pflag v1.0.5
-	github.com/vmware-tanzu/net-operator-api v0.0.0-20231019160108-42131d6e8360
-	github.com/vmware-tanzu/vm-operator/api v1.8.5
-	github.com/vmware-tanzu/vm-operator/external/tanzu-topology v0.0.0-20231214185006-5477585eebfd
+	github.com/vmware-tanzu/net-operator-api v0.0.0-20240326163340-1f32d6bf7f9d
+	github.com/vmware-tanzu/vm-operator/api v1.8.6
+	github.com/vmware-tanzu/vm-operator/external/tanzu-topology v0.0.0-20240404200847-de75746a9505
 	github.com/vmware/govmomi v0.37.0
 	golang.org/x/crypto v0.22.0
 	gopkg.in/yaml.v2 v2.4.0
@@ -125,7 +127,7 @@ require (
 	github.com/stoewer/go-strcase v1.2.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/valyala/fastjson v1.6.4 // indirect
-	github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20231214185006-5477585eebfd // indirect
+	github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20240404200847-de75746a9505 // indirect
 	go.etcd.io/etcd/api/v3 v3.5.13 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.5.13 // indirect
 	go.etcd.io/etcd/client/v3 v3.5.13 // indirect

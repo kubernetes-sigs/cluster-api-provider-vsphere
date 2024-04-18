@@ -4,6 +4,8 @@ go 1.21
 
 replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.7.0
 
+replace github.com/vmware-tanzu/vm-operator/pkg/constants/testlabels => github.com/vmware-tanzu/vm-operator/pkg/constants/testlabels v0.0.0-20240404200847-de75746a9505
+
 require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/go-logr/logr v1.4.1
@@ -14,11 +16,11 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.9.0
-	github.com/vmware-tanzu/net-operator-api v0.0.0-20231019160108-42131d6e8360
+	github.com/vmware-tanzu/net-operator-api v0.0.0-20240326163340-1f32d6bf7f9d
 	github.com/vmware-tanzu/nsx-operator/pkg/apis v0.1.0
-	github.com/vmware-tanzu/vm-operator/api v1.8.5
-	github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20231214185006-5477585eebfd
-	github.com/vmware-tanzu/vm-operator/external/tanzu-topology v0.0.0-20231214185006-5477585eebfd
+	github.com/vmware-tanzu/vm-operator/api v1.8.6
+	github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20240404200847-de75746a9505
+	github.com/vmware-tanzu/vm-operator/external/tanzu-topology v0.0.0-20240404200847-de75746a9505
 	github.com/vmware/govmomi v0.37.0
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
 	golang.org/x/mod v0.17.0

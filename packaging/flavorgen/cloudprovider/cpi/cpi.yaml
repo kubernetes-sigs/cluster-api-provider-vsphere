@@ -155,7 +155,7 @@ spec:
       priorityClassName: system-node-critical
       containers:
       - name: vsphere-cpi
-        image: gcr.io/cloud-provider-vsphere/cpi/release/manager:v1.29.0
+        image: gcr.io/cloud-provider-vsphere/cpi/release/manager:v1.30.0-rc.0
         imagePullPolicy: IfNotPresent
         args:
           - --cloud-provider=vsphere

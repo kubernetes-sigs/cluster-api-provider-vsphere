@@ -37,6 +37,7 @@ var (
 		// TODO: consider if we want to make this extensible via the vCenterSimulator CR.
 		"ubuntu-2204-kube-v1.28.0",
 		"ubuntu-2204-kube-v1.29.0",
+		"ubuntu-2204-kube-v1.30.0",
 	}
 )
 

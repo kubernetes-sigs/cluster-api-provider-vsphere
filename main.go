@@ -269,25 +269,25 @@ func main() {
 			return perrors.Wrapf(err, "unable to create remote cluster cache tracker")
 		}
 
-		govimomiGVR := infrav1.GroupVersion.WithResource(reflect.TypeOf(&infrav1.VSphereCluster{}).Elem().Name())
+		govmomiGVR := infrav1.GroupVersion.WithResource(reflect.TypeOf(&infrav1.VSphereCluster{}).Elem().Name())
 		supervisorGVR := vmwarev1.GroupVersion.WithResource(reflect.TypeOf(&vmwarev1.VSphereCluster{}).Elem().Name())
 
 		var isSupervisorCRDLoaded, isGovimoniCRDLoaded bool
-		if err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 30*time.Second, true, func(ctx context.Context) (bool, error) {
+		if err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 30*time.Second, true, func(_ context.Context) (bool, error) {
 			var errGovimomi, errSupervisor error
 
 			// Check for non-supervisor VSphereCluster and start controller if found
-			isGovimoniCRDLoaded, errGovimomi = isCRDDeployed(mgr, govimomiGVR)
+			isGovimoniCRDLoaded, errGovimomi = isCRDDeployed(mgr, govmomiGVR)
 
 			// Check for supervisor VSphereCluster and start controller if found
 			isSupervisorCRDLoaded, errSupervisor = isCRDDeployed(mgr, supervisorGVR)
 
-			if errGovimomi != nil || errSupervisor != nil {
-				return false, nil
+			if (isGovimoniCRDLoaded && errGovimomi == nil) || (isSupervisorCRDLoaded && errSupervisor == nil) {
+				return true, nil
 			}
-			return true, nil
+			return false, nil
 		}); err != nil {
-			return errors.New("failed to detect CRDs")
+			return fmt.Errorf("failed to detect CRDs: %w", err)
 		}
 
 		// Continuing startup does not make sense without having managers added.
@@ -300,7 +300,7 @@ func main() {
 				return fmt.Errorf("setupVAPIControllers: %w", err)
 			}
 		} else {
-			setupLog.Info(fmt.Sprintf("CRD for %s not loaded, skipping.", govimomiGVR.String()))
+			setupLog.Info(fmt.Sprintf("CRD for %s not loaded, skipping.", govmomiGVR.String()))
 		}
 
 		if isSupervisorCRDLoaded {

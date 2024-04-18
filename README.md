@@ -133,6 +133,17 @@ production-like environments, it is highly recommended to build and use your own
   <td><a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.29.0/flatcar-stable-3602.2.3-kube-v1.29.0.ova">ova</a>, <a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.29.0/flatcar-stable-3602.2.3-kube-v1.29.0.ova.sha256">sha256</a></td>
 </tr>
 
+<tr>
+  <td>v1.30.0</td>
+  <td>N/A</td>
+  <td>N/A</td>
+  <td><a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.30.0/ubuntu-2204-kube-v1.30.0.ova">ova</a>, <a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.30.0/ubuntu-2204-kube-v1.30.0.ova.sha256">sha256</a></td>
+  <td>N/A</td>
+  <td><a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.30.0/photon-5-kube-v1.30.0.ova">ova</a>, <a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.30.0/photon-5-kube-v1.30.0.ova.sha256">sha256</a></td>
+  <td><a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.30.0/flatcar-stable-3815.2.2-kube-v1.30.0.ova">ova</a>, <a href="https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/templates/v1.30.0/flatcar-stable-3815.2.2-kube-v1.30.0.ova.sha256">sha256</a></td>
+</tr>
+
+
 </table>
 
 A full list of the published machine images for CAPV may be obtained with the following command:

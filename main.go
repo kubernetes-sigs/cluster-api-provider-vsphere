@@ -32,6 +32,7 @@ import (
 	"gopkg.in/fsnotify.v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/wait"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
 	logsv1 "k8s.io/component-base/logs/api/v1"
@@ -268,37 +269,46 @@ func main() {
 			return perrors.Wrapf(err, "unable to create remote cluster cache tracker")
 		}
 
-		// Check for non-supervisor VSphereCluster and start controller if found
-		gvr := infrav1.GroupVersion.WithResource(reflect.TypeOf(&infrav1.VSphereCluster{}).Elem().Name())
-		isNonSupervisorCRDLoaded, err := isCRDDeployed(mgr, gvr)
-		if err != nil {
-			return err
+		govimomiGVR := infrav1.GroupVersion.WithResource(reflect.TypeOf(&infrav1.VSphereCluster{}).Elem().Name())
+		supervisorGVR := vmwarev1.GroupVersion.WithResource(reflect.TypeOf(&vmwarev1.VSphereCluster{}).Elem().Name())
+
+		var isSupervisorCRDLoaded, isGovimoniCRDLoaded bool
+		if err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 30*time.Second, true, func(ctx context.Context) (bool, error) {
+			var errGovimomi, errSupervisor error
+
+			// Check for non-supervisor VSphereCluster and start controller if found
+			isGovimoniCRDLoaded, errGovimomi = isCRDDeployed(mgr, govimomiGVR)
+
+			// Check for supervisor VSphereCluster and start controller if found
+			isSupervisorCRDLoaded, errSupervisor = isCRDDeployed(mgr, supervisorGVR)
+
+			if errGovimomi != nil || errSupervisor != nil {
+				return false, nil
+			}
+			return true, nil
+		}); err != nil {
+			return errors.New("failed to detect CRDs")
 		}
-		if isNonSupervisorCRDLoaded {
+
+		// Continuing startup does not make sense without having managers added.
+		if !isSupervisorCRDLoaded && !isGovimoniCRDLoaded {
+			return errors.New("neither supervisor nor govimomi CRDs detected")
+		}
+
+		if isGovimoniCRDLoaded {
 			if err := setupVAPIControllers(ctx, controllerCtx, mgr, tracker); err != nil {
 				return fmt.Errorf("setupVAPIControllers: %w", err)
 			}
 		} else {
-			setupLog.Info(fmt.Sprintf("CRD for %s not loaded, skipping.", gvr.String()))
+			setupLog.Info(fmt.Sprintf("CRD for %s not loaded, skipping.", govimomiGVR.String()))
 		}
 
-		// Check for supervisor VSphereCluster and start controller if found
-		gvr = vmwarev1.GroupVersion.WithResource(reflect.TypeOf(&vmwarev1.VSphereCluster{}).Elem().Name())
-		isSupervisorCRDLoaded, err := isCRDDeployed(mgr, gvr)
-		if err != nil {
-			return err
-		}
 		if isSupervisorCRDLoaded {
 			if err := setupSupervisorControllers(ctx, controllerCtx, mgr, tracker); err != nil {
 				return fmt.Errorf("setupSupervisorControllers: %w", err)
 			}
 		} else {
-			setupLog.Info(fmt.Sprintf("CRD for %s not loaded, skipping.", gvr.String()))
-		}
-
-		// Continuing startup does not make sense without having managers added.
-		if !isSupervisorCRDLoaded && !isNonSupervisorCRDLoaded {
-			return errors.New("neither supervisor nor non-supervisor CRDs detected")
+			setupLog.Info(fmt.Sprintf("CRD for %s not loaded, skipping.", supervisorGVR.String()))
 		}
 
 		return nil

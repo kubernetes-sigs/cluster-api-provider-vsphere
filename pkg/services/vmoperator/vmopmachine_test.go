@@ -37,7 +37,7 @@ import (
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
-	network "sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/network"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/network"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
@@ -393,7 +393,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
 			verifyOutput(supervisorMachineContext)
 
-			Expect(vmopVM.Spec.ReadinessProbe.TCPSocket.Port.IntValue()).To(Equal(defaultAPIBindPort))
+			Expect(vmopVM.Spec.ReadinessProbe.TCPSocket.Port.IntValue()).To(Equal(defaultAPIBindPort)) //nolint:staticcheck
 		})
 
 		Specify("Reconcile invalid Machine", func() {

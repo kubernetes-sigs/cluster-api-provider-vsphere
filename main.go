@@ -272,17 +272,17 @@ func main() {
 		govmomiGVR := infrav1.GroupVersion.WithResource(reflect.TypeOf(&infrav1.VSphereCluster{}).Elem().Name())
 		supervisorGVR := vmwarev1.GroupVersion.WithResource(reflect.TypeOf(&vmwarev1.VSphereCluster{}).Elem().Name())
 
-		var isSupervisorCRDLoaded, isGovimoniCRDLoaded bool
+		var isSupervisorCRDLoaded, isGovmomiCRDLoaded bool
 		if err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 30*time.Second, true, func(_ context.Context) (bool, error) {
-			var errGovimomi, errSupervisor error
+			var errGovmomi, errSupervisor error
 
 			// Check for non-supervisor VSphereCluster and start controller if found
-			isGovimoniCRDLoaded, errGovimomi = isCRDDeployed(mgr, govmomiGVR)
+			isGovmomiCRDLoaded, errGovmomi = isCRDDeployed(mgr, govmomiGVR)
 
 			// Check for supervisor VSphereCluster and start controller if found
 			isSupervisorCRDLoaded, errSupervisor = isCRDDeployed(mgr, supervisorGVR)
 
-			if (isGovimoniCRDLoaded && errGovimomi == nil) || (isSupervisorCRDLoaded && errSupervisor == nil) {
+			if (isGovmomiCRDLoaded && errGovmomi == nil) || (isSupervisorCRDLoaded && errSupervisor == nil) {
 				return true, nil
 			}
 			return false, nil
@@ -291,11 +291,11 @@ func main() {
 		}
 
 		// Continuing startup does not make sense without having managers added.
-		if !isSupervisorCRDLoaded && !isGovimoniCRDLoaded {
-			return errors.New("neither supervisor nor govimomi CRDs detected")
+		if !isSupervisorCRDLoaded && !isGovmomiCRDLoaded {
+			return errors.New("neither supervisor nor govmomi CRDs detected")
 		}
 
-		if isGovimoniCRDLoaded {
+		if isGovmomiCRDLoaded {
 			if err := setupVAPIControllers(ctx, controllerCtx, mgr, tracker); err != nil {
 				return fmt.Errorf("setupVAPIControllers: %w", err)
 			}

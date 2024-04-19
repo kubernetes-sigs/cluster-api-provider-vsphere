@@ -222,7 +222,7 @@ VCSIM_CONTROLLER_IMG ?= $(REGISTRY)/$(VCSIM_IMAGE_NAME)
 VM_OPERATOR_IMAGE_NAME ?= extra/vm-operator
 VM_OPERATOR_CONTROLLER_IMG ?= $(STAGING_REGISTRY)/$(VM_OPERATOR_IMAGE_NAME)
 VM_OPERATOR_DIR := test/infrastructure/vm-operator
-VM_OPERATOR_TMP_DIR ?= vm-operator.tmp
+VM_OPERATOR_TMP_DIR ?= $(VM_OPERATOR_DIR)/vm-operator.tmp
 # note: this is the commit from 1.8.6 tag
 VM_OPERATOR_COMMIT ?= de75746a9505ef3161172d99b735d6593c54f0c5
 VM_OPERATOR_VERSION ?= v1.8.6-0-gde75746a
@@ -789,10 +789,13 @@ set-manifest-image:
 ##@ vm-operator:
 
 .PHONY: release-vm-operator
-release-vm-operator: docker-vm-operator-build-all vm-operator-manifest-build docker-vm-operator-push-all ## Build and push the vm-operator image and manifest for usage in CI
+release-vm-operator: docker-build-all-vm-operator generate-manifests-vm-operator docker-push-all-vm-operator clean-vm-operator ## Build and push the vm-operator image and manifest for usage in CI
 
-.PHONY: vm-operator-checkout
-vm-operator-checkout:
+.PHONY: release-local-vm-operator
+release-local-vm-operator: docker-build-all-vm-operator generate-manifests-vm-operator clean-vm-operator ## Build and push the vm-operator image and manifest for local usage only
+
+.PHONY: checkout-vm-operator
+checkout-vm-operator:
 	@if [ -z "${VM_OPERATOR_VERSION}" ]; then echo "VM_OPERATOR_VERSION is not set"; exit 1; fi
 	@if [ -d "$(VM_OPERATOR_TMP_DIR)" ]; then \
 		echo "$(VM_OPERATOR_TMP_DIR) exists, skipping clone"; \
@@ -807,43 +810,46 @@ vm-operator-checkout:
 		exit 1; \
 	fi
 
-.PHONY: vm-operator-manifest-build
-vm-operator-manifest-build: $(RELEASE_DIR) $(KUSTOMIZE) vm-operator-checkout ## Build the vm-operator manifest yaml file
-	kustomize build --load-restrictor LoadRestrictionsNone "$(VM_OPERATOR_TMP_DIR)/config/local" > "$(VM_OPERATOR_DIR)/vm-operator.yaml"
-	sed -i'' -e 's@image: vmoperator.*@image: '"$(VM_OPERATOR_CONTROLLER_IMG):$(VM_OPERATOR_VERSION)"'@' "$(VM_OPERATOR_DIR)/vm-operator.yaml"
-	kustomize build "$(VM_OPERATOR_DIR)" > "$(VM_OPERATOR_DIR)/vm-operator-$(VM_OPERATOR_VERSION).yaml"
+.PHONY: generate-manifests-vm-operator
+generate-manifests-vm-operator: $(RELEASE_DIR) $(KUSTOMIZE) checkout-vm-operator ## Build the vm-operator manifest yaml file
+	kustomize build --load-restrictor LoadRestrictionsNone "$(VM_OPERATOR_TMP_DIR)/config/local" > "$(VM_OPERATOR_DIR)/config/vm-operator.yaml"
+	sed -i'' -e 's@image: vmoperator.*@image: '"$(VM_OPERATOR_CONTROLLER_IMG):$(VM_OPERATOR_VERSION)"'@' "$(VM_OPERATOR_DIR)/config/vm-operator.yaml"
+	kustomize build "$(VM_OPERATOR_DIR)/config" > "$(VM_OPERATOR_DIR)/vm-operator-$(VM_OPERATOR_VERSION).yaml"
 
-
-.PHONY: docker-vm-operator-build-all
-docker-vm-operator-build-all: $(addprefix docker-vm-operator-build-,$(VM_OPERATOR_ALL_ARCH)) ## Build docker images for all architectures
+.PHONY: docker-build-all-vm-operator
+docker-build-all-vm-operator: $(addprefix docker-vm-operator-build-,$(VM_OPERATOR_ALL_ARCH)) ## Build docker images for all architectures
 
 docker-vm-operator-build-%:
 	$(MAKE) ARCH=$* docker-build-vm-operator
 
 .PHONY: docker-build-vm-operator
-docker-build-vm-operator: vm-operator-checkout
+docker-build-vm-operator: checkout-vm-operator
 	@if [ -z "${VM_OPERATOR_VERSION}" ]; then echo "VM_OPERATOR_VERSION is not set"; exit 1; fi
 	cd $(VM_OPERATOR_TMP_DIR) && \
 	$(MAKE) IMAGE=$(VM_OPERATOR_CONTROLLER_IMG)-$(ARCH) IMAGE_TAG=$(VM_OPERATOR_VERSION) GOARCH=$(ARCH) docker-build
 
-.PHONY: docker-vm-operator-push-all
-docker-vm-operator-push-all: $(addprefix docker-vm-operator-push-,$(VM_OPERATOR_ALL_ARCH))  ## Push the docker images to be included in the release for all architectures + related multiarch manifests
-	$(MAKE) docker-vm-operator-push-manifest
+.PHONY: docker-push-all-vm-operator
+docker-push-all-vm-operator: $(addprefix docker-vm-operator-push-,$(VM_OPERATOR_ALL_ARCH))  ## Push the docker images to be included in the release for all architectures + related multiarch manifests
+	$(MAKE) docker-push-manifest-vm-operator
 
 docker-vm-operator-push-%:
-	$(MAKE) ARCH=$* docker-vm-operator-push
+	$(MAKE) ARCH=$* docker-push-vm-operator
 
-.PHONY: docker-vm-operator-push
-docker-vm-operator-push:
+.PHONY: docker-push-vm-operator
+docker-push-vm-operator:
 	@if [ -z "${VM_OPERATOR_VERSION}" ]; then echo "VM_OPERATOR_VERSION is not set"; exit 1; fi
 	docker push $(VM_OPERATOR_CONTROLLER_IMG)-$(ARCH):$(VM_OPERATOR_VERSION)
 
-.PHONY: docker-vm-operator-push-manifest
-docker-vm-operator-push-manifest:
+.PHONY: docker-push-manifest-vm-operator
+docker-push-manifest-vm-operator:
 	@if [ -z "${VM_OPERATOR_VERSION}" ]; then echo "VM_OPERATOR_VERSION is not set"; exit 1; fi
 	docker manifest create --amend $(VM_OPERATOR_CONTROLLER_IMG):$(VM_OPERATOR_VERSION) $(shell echo $(VM_OPERATOR_ALL_ARCH) | sed -e "s~[^ ]*~$(VM_OPERATOR_CONTROLLER_IMG)\-&:$(VM_OPERATOR_VERSION)~g")
 	@for arch in $(VM_OPERATOR_ALL_ARCH); do docker manifest annotate --arch $${arch} ${VM_OPERATOR_CONTROLLER_IMG}:${VM_OPERATOR_VERSION} ${VM_OPERATOR_CONTROLLER_IMG}-$${arch}:${VM_OPERATOR_VERSION}; done
 	docker manifest push --purge $(VM_OPERATOR_CONTROLLER_IMG):$(VM_OPERATOR_VERSION)
+
+.PHONY: clean-vm-operator
+clean-vm-operator:
+	rm -fr $(VM_OPERATOR_TMP_DIR)
 
 ## --------------------------------------
 ## Cleanup

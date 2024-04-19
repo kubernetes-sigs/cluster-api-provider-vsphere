@@ -19,7 +19,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -32,6 +31,7 @@ import (
 	"gopkg.in/fsnotify.v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
@@ -273,26 +273,26 @@ func main() {
 		supervisorGVR := vmwarev1.GroupVersion.WithResource(reflect.TypeOf(&vmwarev1.VSphereCluster{}).Elem().Name())
 
 		var isSupervisorCRDLoaded, isGovmomiCRDLoaded bool
+		var errGovmomi, errSupervisor error
 		if err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 30*time.Second, true, func(_ context.Context) (bool, error) {
-			var errGovmomi, errSupervisor error
-
 			// Check for non-supervisor VSphereCluster and start controller if found
 			isGovmomiCRDLoaded, errGovmomi = isCRDDeployed(mgr, govmomiGVR)
 
 			// Check for supervisor VSphereCluster and start controller if found
 			isSupervisorCRDLoaded, errSupervisor = isCRDDeployed(mgr, supervisorGVR)
 
+			// One of govmomi/supervisor mode should be detected, otherwise keep trying until timeout to handle
+			// race conditions during controllers startup right after install or upgrades, when also CRDs
+			// are installed in a short time frame.
 			if (isGovmomiCRDLoaded && errGovmomi == nil) || (isSupervisorCRDLoaded && errSupervisor == nil) {
 				return true, nil
 			}
 			return false, nil
 		}); err != nil {
-			return fmt.Errorf("failed to detect CRDs: %w", err)
-		}
-
-		// Continuing startup does not make sense without having managers added.
-		if !isSupervisorCRDLoaded && !isGovmomiCRDLoaded {
-			return errors.New("neither supervisor nor govmomi CRDs detected")
+			// Continuing startup does not make sense without one of govmomi/supervisor mode detected.
+			// The Pod goes in CrashLoopBack and eventually recover, but failing to detect CRD after 30s is usually
+			// a signal of some problem.
+			return fmt.Errorf("neither supervisor nor govmomi CRDs detected: %w", kerrors.NewAggregate([]error{err, errGovmomi, errSupervisor}))
 		}
 
 		if isGovmomiCRDLoaded {

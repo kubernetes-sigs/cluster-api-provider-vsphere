@@ -208,7 +208,7 @@ REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
 PROD_REGISTRY ?= registry.k8s.io/cluster-api-vsphere
 
 STAGING_REGISTRY ?= gcr.io/k8s-staging-capi-vsphere
-STAGING_BUCKET ?= artifacts.k8s-staging-capi-vsphere.appspot.com
+STAGING_BUCKET ?= k8s-staging-capi-vsphere
 
 # core
 IMAGE_NAME ?= cluster-api-vsphere-controller

@@ -217,7 +217,7 @@ providers:
     versions:
       - name: v1.8.6-0-gde75746a
         # Use manifest from source files
-        value: "https://storage.googleapis.com/artifacts.k8s-staging-capi-vsphere.appspot.com/vm-operator/v1.8.6-0-gde75746a.yaml"
+        value: "file://../../../../cluster-api-provider-vsphere/test/infrastructure/vm-operator/vm-operator-v1.8.6-0-gde75746a.yaml"
         type: "url"
         contract: v1beta1
         files:

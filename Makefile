@@ -790,7 +790,7 @@ set-manifest-image:
 ##@ vm-operator:
 
 .PHONY: release-vm-operator
-release-vm-operator: docker-vm-operator-build-all vm-operator-manifest-build docker-vm-operator-push-all vm-operator-manifest-push ## Build and push the vm-operator image and manifest for usage in CI
+release-vm-operator: docker-vm-operator-build-all vm-operator-manifest-build docker-vm-operator-push-all ## Build and push the vm-operator image and manifest for usage in CI
 
 .PHONY: vm-operator-checkout
 vm-operator-checkout:
@@ -812,13 +812,8 @@ vm-operator-checkout:
 vm-operator-manifest-build: $(RELEASE_DIR) $(KUSTOMIZE) vm-operator-checkout ## Build the vm-operator manifest yaml file
 	kustomize build --load-restrictor LoadRestrictionsNone "$(VM_OPERATOR_TMP_DIR)/config/local" > "$(VM_OPERATOR_DIR)/vm-operator.yaml"
 	sed -i'' -e 's@image: vmoperator.*@image: '"$(VM_OPERATOR_CONTROLLER_IMG):$(VM_OPERATOR_VERSION)"'@' "$(VM_OPERATOR_DIR)/vm-operator.yaml"
-	kustomize build "$(VM_OPERATOR_DIR)" > "$(RELEASE_DIR)/vm-operator-$(VM_OPERATOR_VERSION).yaml"
+	kustomize build "$(VM_OPERATOR_DIR)" > "$(VM_OPERATOR_DIR)/vm-operator-$(VM_OPERATOR_VERSION).yaml"
 
-.PHONY: vm-operator-manifest-push
-vm-operator-manifest-push: ## Push the vm-operator manifest yaml file to gcs
-	gsutil cp \
-		"$(RELEASE_DIR)/vm-operator-$(VM_OPERATOR_VERSION).yaml" \
-		"gs://artifacts.k8s-staging-capi-vsphere.appspot.com/vm-operator/$(VM_OPERATOR_VERSION).yaml"
 
 .PHONY: docker-vm-operator-build-all
 docker-vm-operator-build-all: $(addprefix docker-vm-operator-build-,$(VM_OPERATOR_ALL_ARCH)) ## Build docker images for all architectures

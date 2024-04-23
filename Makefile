@@ -683,7 +683,8 @@ release-staging-nightly: ## Re-tags container images to a nightly tag. Builds an
 	$(MAKE) manifest-modification REGISTRY=$(STAGING_REGISTRY) RELEASE_TAG=$(NEW_RELEASE_ALIAS_TAG) PULL_POLICY=IfNotPresent
 	## Build the manifests into $(RELEASE_DIR)
 	$(MAKE) release-manifests STAGE=release MANIFEST_DIR=$(RELEASE_DIR)
-	# Example manifest location: artifacts.k8s-staging-cluster-api-vsphere.appspot.com/components/nightly_main_20210121/*
+	# Example manifest location: https://storage.googleapis.com/k8s-staging-capi-vsphere/components/nightly_main_20240423/infrastructure-components.yaml
+	# Please note that these files are deleted after a certain period, at the time of this writing 60 days after file creation.
 	gsutil cp $(RELEASE_DIR)/* gs://$(STAGING_BUCKET)/components/$(NEW_RELEASE_ALIAS_TAG)
 
 .PHONY: dev-manifests

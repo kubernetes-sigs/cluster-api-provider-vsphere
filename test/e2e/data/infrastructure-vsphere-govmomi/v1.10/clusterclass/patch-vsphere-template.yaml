@@ -1,0 +1,45 @@
+- op: add
+  path: /spec/patches/-
+  value:
+    definitions:
+    - jsonPatches:
+      - op: replace
+        path: /spec/template/spec/template
+        valueFrom:
+          # We have to fall back to v1.30.0 for the conformance latest ci test which uses
+          # versions without corresponding templates like "v1.30.0-alpha.0.525+09a5049ca78502".
+          template: |-
+            {{- if eq .builtin.controlPlane.version "v1.28.0" -}}
+            ubuntu-2204-kube-v1.28.0
+            {{- else -}}{{- if eq .builtin.controlPlane.version "v1.29.0" -}}
+            ubuntu-2204-kube-v1.29.0
+            {{- else -}}
+            ubuntu-2204-kube-v1.30.0
+            {{- end -}}{{- end -}}
+      selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: VSphereMachineTemplate
+        matchResources:
+          controlPlane: true
+    - jsonPatches:
+      - op: replace
+        path: /spec/template/spec/template
+        valueFrom:
+          # We have to fall back to v1.30.0 for the conformance latest ci test which uses
+          # versions without corresponding templates like "v1.30.0-alpha.0.525+09a5049ca78502".
+          template: |-
+            {{- if eq .builtin.machineDeployment.version "v1.28.0" -}}
+            ubuntu-2204-kube-v1.28.0
+            {{- else -}}{{- if eq .builtin.machineDeployment.version "v1.29.0" -}}
+            ubuntu-2204-kube-v1.29.0
+            {{- else -}}
+            ubuntu-2204-kube-v1.30.0
+            {{- end -}}{{- end -}}
+      selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: VSphereMachineTemplate
+        matchResources:
+          machineDeploymentClass:
+            names:
+            - ${CLUSTER_CLASS_NAME}-worker
+    name: vSphereTemplate

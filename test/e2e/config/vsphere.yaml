@@ -152,7 +152,7 @@ providers:
   - name: vsphere
     type: InfrastructureProvider
     versions:
-      - name: v1.10.99 # next release
+      - name: v1.11.99 # next release
         # Use manifest from source files
         value: ../../../../cluster-api-provider-vsphere/config/default
         contract: v1beta1
@@ -180,6 +180,16 @@ providers:
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/main/cluster-template-install-on-bootstrap-supervisor.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/main/cluster-template-conformance-supervisor.yaml"
           - sourcePath: "../data/shared/capv/main/metadata.yaml"
+      - name: "{go://sigs.k8s.io/cluster-api-provider-vsphere@v1.10}" # supported release in the v1beta1 series
+        # Use manifest from source files
+        value: "https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/download/{go://sigs.k8s.io/cluster-api-provider-vsphere@v1.10}/infrastructure-components.yaml"
+        type: "url"
+        contract: v1beta1
+        files:
+          # Add a cluster template
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/v1.10/cluster-template-workload.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/v1.10/clusterclass-quick-start.yaml"
+          - sourcePath: "../data/shared/capv/v1.10/metadata.yaml"
       - name: "{go://sigs.k8s.io/cluster-api-provider-vsphere@v1.9}" # supported release in the v1beta1 series
         # Use manifest from source files
         value: "https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/download/{go://sigs.k8s.io/cluster-api-provider-vsphere@v1.9}/infrastructure-components.yaml"
@@ -190,21 +200,11 @@ providers:
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/v1.9/cluster-template-workload.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/v1.9/clusterclass-quick-start.yaml"
           - sourcePath: "../data/shared/capv/v1.9/metadata.yaml"
-      - name: "{go://sigs.k8s.io/cluster-api-provider-vsphere@v1.8}" # supported release in the v1beta1 series
-        # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/download/{go://sigs.k8s.io/cluster-api-provider-vsphere@v1.8}/infrastructure-components.yaml"
-        type: "url"
-        contract: v1beta1
-        files:
-          # Add a cluster template
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/v1.8/cluster-template-workload.yaml"
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/v1.8/clusterclass-quick-start.yaml"
-          - sourcePath: "../data/shared/capv/v1.8/metadata.yaml"
 
   - name: vcsim
     type: RuntimeExtensionProvider # vcsim isn't a provider, but we fake it is so it can be handled by the clusterctl machinery.
     versions:
-      - name: v1.10.99
+      - name: v1.11.99
         # Use manifest from source files
         value: ../../../../cluster-api-provider-vsphere/test/infrastructure/vcsim/config/default
         contract: v1beta1
@@ -229,7 +229,7 @@ providers:
   - name: net-operator
     type: RuntimeExtensionProvider # net-operator isn't a provider, but we fake it is so it can be handled by the clusterctl machinery.
     versions:
-      - name: v1.10.99
+      - name: v1.11.99
         # Use manifest from source files
         value: ../../../../cluster-api-provider-vsphere/test/infrastructure/net-operator/config/default
         contract: v1beta1

@@ -674,19 +674,6 @@ release-manifests-all: ## Builds release manifests into $(RELEASE_DIR)
 	## Build the manifests into $(RELEASE_DIR)
 	$(MAKE) release-manifests STAGE=release MANIFEST_DIR=$(RELEASE_DIR)
 
-.PHONY: release-staging-nightly
-release-staging-nightly: ## Re-tags container images to a nightly tag. Builds and pushes nightly manifests to the staging bucket.
-	$(eval NEW_RELEASE_ALIAS_TAG := nightly_$(RELEASE_ALIAS_TAG)_$(shell date +'%Y%m%d'))
-	echo $(NEW_RELEASE_ALIAS_TAG)
-	$(MAKE) release-alias-tag TAG=$(RELEASE_ALIAS_TAG) RELEASE_ALIAS_TAG=$(NEW_RELEASE_ALIAS_TAG)
-	# Set the manifest image to $(STAGING_REGISTRY)/$(IMAGE_NAME):$(NEW_RELEASE_ALIAS_TAG) and pull policy to IfNotPresent.
-	$(MAKE) manifest-modification REGISTRY=$(STAGING_REGISTRY) RELEASE_TAG=$(NEW_RELEASE_ALIAS_TAG) PULL_POLICY=IfNotPresent
-	## Build the manifests into $(RELEASE_DIR)
-	$(MAKE) release-manifests STAGE=release MANIFEST_DIR=$(RELEASE_DIR)
-	# Example manifest location: https://storage.googleapis.com/k8s-staging-capi-vsphere/components/nightly_main_20240423/infrastructure-components.yaml
-	# Please note that these files are deleted after a certain period, at the time of this writing 60 days after file creation.
-	gsutil cp $(RELEASE_DIR)/* gs://$(STAGING_BUCKET)/components/$(NEW_RELEASE_ALIAS_TAG)
-
 .PHONY: dev-manifests
 dev-manifests: ## Builds dev manifests based on $(REGISTRY) and $(TAG) into the $(OVERRIDES_DIR)
 	# Set the manifest image to $(REGISTRY)/$(IMAGE_NAME):$(TAG) and pull policy to Always.
@@ -734,7 +721,29 @@ generate-flavors: $(FLAVOR_DIR)
 
 .PHONY: release-staging
 release-staging: ## Build and push container images to the staging registry
-	REGISTRY=$(STAGING_REGISTRY) $(MAKE) docker-build-all docker-push-all release-alias-tag
+	REGISTRY=$(STAGING_REGISTRY) $(MAKE) docker-build-all docker-push-all
+	REGISTRY=$(STAGING_REGISTRY) $(MAKE) release-alias-tag
+	# Set the manifest image to $(STAGING_REGISTRY)/$(IMAGE_NAME):$(RELEASE_ALIAS_TAG) and pull policy to IfNotPresent.
+	$(MAKE) manifest-modification REGISTRY=$(STAGING_REGISTRY) RELEASE_TAG=$(RELEASE_ALIAS_TAG) PULL_POLICY=IfNotPresent
+	## Build the manifests into $(RELEASE_DIR)
+	$(MAKE) release-manifests STAGE=release MANIFEST_DIR=$(RELEASE_DIR)
+	# Example manifest location: https://storage.googleapis.com/k8s-staging-capi-vsphere/components/main/infrastructure-components.yaml
+	# Please note that these files are deleted after a certain period, at the time of this writing 60 days after file creation.
+	gsutil cp $(RELEASE_DIR)/* gs://$(STAGING_BUCKET)/components/$(RELEASE_ALIAS_TAG)
+
+
+.PHONY: release-staging-nightly
+release-staging-nightly: ## Re-tags container images to a nightly tag. Builds and pushes nightly manifests to the staging bucket.
+	$(eval NEW_RELEASE_ALIAS_TAG := nightly_$(RELEASE_ALIAS_TAG)_$(shell date +'%Y%m%d'))
+	echo $(NEW_RELEASE_ALIAS_TAG)
+	$(MAKE) release-alias-tag TAG=$(RELEASE_ALIAS_TAG) RELEASE_ALIAS_TAG=$(NEW_RELEASE_ALIAS_TAG)
+	# Set the manifest image to $(STAGING_REGISTRY)/$(IMAGE_NAME):$(NEW_RELEASE_ALIAS_TAG) and pull policy to IfNotPresent.
+	$(MAKE) manifest-modification REGISTRY=$(STAGING_REGISTRY) RELEASE_TAG=$(NEW_RELEASE_ALIAS_TAG) PULL_POLICY=IfNotPresent
+	## Build the manifests into $(RELEASE_DIR)
+	$(MAKE) release-manifests STAGE=release MANIFEST_DIR=$(RELEASE_DIR)
+	# Example manifest location: https://storage.googleapis.com/k8s-staging-capi-vsphere/components/nightly_main_20240423/infrastructure-components.yaml
+	# Please note that these files are deleted after a certain period, at the time of this writing 60 days after file creation.
+	gsutil cp $(RELEASE_DIR)/* gs://$(STAGING_BUCKET)/components/$(NEW_RELEASE_ALIAS_TAG)
 
 .PHONY: release-alias-tag
 release-alias-tag: ## Add the release alias tag to the last build tag

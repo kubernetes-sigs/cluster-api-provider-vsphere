@@ -13,7 +13,7 @@ replace github.com/vmware-tanzu/vm-operator/pkg/constants/testlabels => github.c
 require (
 	github.com/dougm/pretty v0.0.0-20171025230240-2ee9d7453c02
 	github.com/onsi/ginkgo/v2 v2.17.2
-	github.com/onsi/gomega v1.33.0
+	github.com/onsi/gomega v1.33.1
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/pflag v1.0.5
 	github.com/vmware-tanzu/net-operator-api v0.0.0-20240326163340-1f32d6bf7f9d

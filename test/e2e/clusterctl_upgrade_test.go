@@ -24,6 +24,8 @@ import (
 	. "github.com/onsi/gomega"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
+
+	vsphereframework "sigs.k8s.io/cluster-api-provider-vsphere/test/framework"
 )
 
 var (
@@ -51,8 +53,10 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.10
 				BootstrapClusterProxy:             bootstrapClusterProxy,
 				ArtifactFolder:                    artifactFolder,
 				SkipCleanup:                       skipCleanup,
-				MgmtFlavor:                        testSpecificSettingsGetter().FlavorForMode("remote-management"),
+				MgmtFlavor:                        testSpecificSettingsGetter().FlavorForMode("topology"),
 				PostNamespaceCreated:              testSpecificSettingsGetter().PostNamespaceCreatedFunc,
+				PreInit:                           vsphereframework.LoadImagesFunc(ctx),
+				PreUpgrade:                        vsphereframework.LoadImagesFunc(ctx),
 				InitWithBinary:                    fmt.Sprintf(clusterctlDownloadURL, capiStableRelease),
 				InitWithCoreProvider:              fmt.Sprintf(providerCAPIPrefix, capiStableRelease),
 				InitWithBootstrapProviders:        []string{fmt.Sprintf(providerKubeadmPrefix, capiStableRelease)},
@@ -87,8 +91,10 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.9=
 				BootstrapClusterProxy:             bootstrapClusterProxy,
 				ArtifactFolder:                    artifactFolder,
 				SkipCleanup:                       skipCleanup,
-				MgmtFlavor:                        testSpecificSettingsGetter().FlavorForMode("remote-management"),
+				MgmtFlavor:                        testSpecificSettingsGetter().FlavorForMode("topology"),
 				PostNamespaceCreated:              testSpecificSettingsGetter().PostNamespaceCreatedFunc,
+				PreInit:                           vsphereframework.LoadImagesFunc(ctx),
+				PreUpgrade:                        vsphereframework.LoadImagesFunc(ctx),
 				InitWithBinary:                    fmt.Sprintf(clusterctlDownloadURL, capiStableRelease),
 				InitWithCoreProvider:              fmt.Sprintf(providerCAPIPrefix, capiStableRelease),
 				InitWithBootstrapProviders:        []string{fmt.Sprintf(providerKubeadmPrefix, capiStableRelease)},

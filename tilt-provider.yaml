@@ -34,6 +34,6 @@
   config:
     version: v1.8.6
     label: VMOP
-    kustomize_folder: "/test/infrastructure/vm-operator"
+    kustomize_folder: "/test/infrastructure/vm-operator/config"
     kustomize_options:
       - "--load-restrictor=LoadRestrictionsNone"

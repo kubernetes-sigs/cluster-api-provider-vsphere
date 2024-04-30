@@ -801,8 +801,8 @@ set-manifest-image:
 .PHONY: release-vm-operator
 release-vm-operator: docker-build-all-vm-operator generate-manifests-vm-operator docker-push-all-vm-operator clean-vm-operator ## Build and push the vm-operator image and manifest for usage in CI
 
-.PHONY: release-local-vm-operator
-release-local-vm-operator: docker-build-all-vm-operator generate-manifests-vm-operator clean-vm-operator ## Build and push the vm-operator image and manifest for local usage only
+.PHONY: release-vm-operator-local
+release-vm-operator-local: docker-build-all-vm-operator generate-manifests-vm-operator clean-vm-operator ## Build the vm-operator image and manifest for local usage only
 
 .PHONY: checkout-vm-operator
 checkout-vm-operator:
@@ -822,7 +822,7 @@ checkout-vm-operator:
 
 .PHONY: generate-manifests-vm-operator
 generate-manifests-vm-operator: $(RELEASE_DIR) $(KUSTOMIZE) checkout-vm-operator ## Build the vm-operator manifest yaml file
-	kustomize build --load-restrictor LoadRestrictionsNone "$(VM_OPERATOR_TMP_DIR)/config/local" > "$(VM_OPERATOR_DIR)/config/vm-operator.yaml"
+	kustomize build --load-restrictor LoadRestrictionsNone "$(VM_OPERATOR_TMP_DIR)/config/wcp" > "$(VM_OPERATOR_DIR)/config/vm-operator.yaml"
 	sed -i'' -e 's@image: vmoperator.*@image: '"$(VM_OPERATOR_CONTROLLER_IMG):$(VM_OPERATOR_VERSION)"'@' "$(VM_OPERATOR_DIR)/config/vm-operator.yaml"
 	kustomize build "$(VM_OPERATOR_DIR)/config" > "$(VM_OPERATOR_DIR)/vm-operator-$(VM_OPERATOR_VERSION).yaml"
 

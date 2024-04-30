@@ -1,0 +1,264 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.14.0
+  name: contentlibraryitems.imageregistry.vmware.com
+spec:
+  group: imageregistry.vmware.com
+  names:
+    kind: ContentLibraryItem
+    listKind: ContentLibraryItemList
+    plural: contentlibraryitems
+    shortNames:
+    - clitem
+    singular: contentlibraryitem
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.name
+      name: vSphereName
+      type: string
+    - jsonPath: .status.contentLibraryRef.name
+      name: ContentLibraryRef
+      type: string
+    - jsonPath: .status.type
+      name: Type
+      type: string
+    - jsonPath: .status.conditions[?(.type=='Ready')].status
+      name: Ready
+      type: string
+    - jsonPath: .status.cached
+      name: Cached
+      type: boolean
+    - jsonPath: .status.sizeInBytes
+      name: SizeInBytes
+      type: string
+    - jsonPath: .status.securityCompliance
+      name: SecurityCompliant
+      type: boolean
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          ContentLibraryItem is the schema for the content library item API.
+          Currently, ContentLibraryItem is immutable to end users.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ContentLibraryItemSpec defines the desired state of a ContentLibraryItem.
+            properties:
+              uuid:
+                description: UUID is the identifier which uniquely identifies the
+                  library item in vCenter. This field is immutable.
+                type: string
+            required:
+            - uuid
+            type: object
+          status:
+            description: ContentLibraryItemStatus defines the observed state of ContentLibraryItem.
+            properties:
+              cached:
+                default: false
+                description: Cached indicates if the library item files are on storage
+                  in vCenter.
+                type: boolean
+              certificateVerificationInfo:
+                description: CertificateVerificationInfo shows the certificate verification
+                  status and the signing certificate.
+                properties:
+                  certChain:
+                    description: CertChain shows the signing certificate chain in
+                      base64 encoding if the library item is signed.
+                    items:
+                      type: string
+                    type: array
+                  status:
+                    description: Status shows the certificate verification status
+                      of the library item.
+                    enum:
+                    - NOT_AVAILABLE
+                    - VERIFIED
+                    - INTERNAL
+                    - VERIFICATION_FAILURE
+                    - VERIFICATION_IN_PROGRESS
+                    - UNTRUSTED
+                    type: string
+                type: object
+              conditions:
+                description: Conditions describes the current condition information
+                  of the ContentLibraryItem.
+                items:
+                  description: Condition defines an observation of an Image Registry
+                    Operator API resource operational state.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        Last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed. If that is not known, then using the time when
+                        the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        A human readable message indicating details about the transition.
+                        This field may be empty.
+                      type: string
+                    reason:
+                      description: |-
+                        The reason for the condition's last transition in CamelCase.
+                        The specific API may choose whether or not this field is considered a guaranteed API.
+                        This field may not be empty.
+                      type: string
+                    severity:
+                      description: |-
+                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        understand the current situation and act accordingly.
+                        The Severity field MUST be set only when Status=False.
+                      type: string
+                    status:
+                      description: Status of the condition, one of True, False, Unknown.
+                      type: string
+                    type:
+                      description: |-
+                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
+                        can be useful (see .node.status.conditions), the ability to deconflict is important.
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+              contentLibraryRef:
+                description: ContentLibraryRef refers to the ContentLibrary custom
+                  resource that this item belongs to.
+                properties:
+                  kind:
+                    description: |-
+                      Kind is a string value representing the kind of resource to which this
+                      object refers.
+                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+                    type: string
+                  name:
+                    description: |-
+                      Name refers to a unique resource in the current namespace.
+                      More info: http://kubernetes.io/docs/user-guide/identifiers#names
+                    type: string
+                required:
+                - name
+                type: object
+              contentVersion:
+                description: |-
+                  ContentVersion indicates the version of the library item content in vCenter.
+                  This value is incremented when the files comprising the content library item are changed in vCenter.
+                type: string
+              creationTime:
+                description: CreationTime indicates the date and time when this library
+                  item was created in vCenter.
+                format: date-time
+                type: string
+              description:
+                description: Description is a human-readable description for this
+                  library item.
+                type: string
+              fileInfo:
+                description: FileInfo represents zero, one or more files belonging
+                  to the content library item in vCenter.
+                items:
+                  description: FileInfo represents the information of a file in a
+                    content library item in vCenter.
+                  properties:
+                    cached:
+                      default: false
+                      description: Cached indicates if the library item file is on
+                        storage in vCenter.
+                      type: boolean
+                    name:
+                      description: Name specifies the name of the file in vCenter.
+                      type: string
+                    sizeInBytes:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      description: SizeInBytes indicates the library item file size
+                        in bytes on storage in vCenter.
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    version:
+                      description: |-
+                        Version indicates the version of the library item file in vCenter.
+                        This value is incremented when a new copy of the file is uploaded to vCenter.
+                      type: string
+                  required:
+                  - cached
+                  - name
+                  - sizeInBytes
+                  - version
+                  type: object
+                type: array
+              lastModifiedTime:
+                description: |-
+                  LastModifiedTime indicates the date and time when this library item was last updated in vCenter.
+                  This field is updated when the library item properties are changed or the file content is changed.
+                format: date-time
+                type: string
+              lastSyncTime:
+                description: |-
+                  LastSyncTime indicates the date and time when this library item was last synchronized in vCenter.
+                  This field applies only to the library items belonging to the library of Type=Subscribed.
+                format: date-time
+                type: string
+              metadataVersion:
+                description: |-
+                  MetadataVersion indicates the version of the library item metadata in vCenter.
+                  This value is incremented when the library item properties such as name or description are changed in vCenter.
+                type: string
+              name:
+                description: Name specifies the name of the content library item in
+                  vCenter specified by the user.
+                type: string
+              securityCompliance:
+                description: SecurityCompliance shows the security compliance of the
+                  library item.
+                type: boolean
+              sizeInBytes:
+                anyOf:
+                - type: integer
+                - type: string
+                description: SizeInBytes indicates the library item size in bytes
+                  on storage in vCenter.
+                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                x-kubernetes-int-or-string: true
+              type:
+                description: Type indicates the type of the library item in vCenter.
+                enum:
+                - OVF
+                - ISO
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

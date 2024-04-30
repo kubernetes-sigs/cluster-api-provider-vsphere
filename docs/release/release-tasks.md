@@ -35,24 +35,22 @@ This comes down to changing occurrences of the old version to the new version, e
       2. Remove providers that are not used anymore in clusterctl upgrade tests.
       3. Change `v1.10.99` to `v1.11.99`.
    4. Adjust `metadata.yaml`'s:
-      1. Add new release to the top-level `metadata.yaml`
-      2. Create a new `v1.10` `metadata.yaml` (`test/e2e/data/shared/capv/v1.10/metadata.yaml`) by copying
-        `test/e2e/data/shared/capv/main/metadata.yaml`
-      3. Add the new v1.11 release to the main `metadata.yaml` (`test/e2e/data/shared/main/v1beta1_provider/metadata.yaml`).
+      1. Create a new `v1.10` `metadata.yaml` (`test/e2e/data/shared/capv/v1.10/metadata.yaml`) by copying the top-level `metadata.yaml`.
+      2. Add new release to the top-level `metadata.yaml`
+      3. Add the new v1.11 release to the main `metadata.yaml` (`test/e2e/data/shared/capv/main/metadata.yaml`).
       4. Remove old `metadata.yaml`'s that are not used anymore in clusterctl upgrade tests.
    5. Adjust cluster templates in `test/e2e/data/infrastructure-vsphere-govmomi` and `test/e2e/data/infrastructure-vsphere-supervisor`:
       1. Regenerate templates via `make generate-e2e-templates`.
       2. Create a new `v1.10` folder. It should be created based on the `main` folder and only contain the templates
         we use in the clusterctl upgrade tests, as of today:
          - `clusterclass` (including `clusterclass-quick-start.yaml`)
-         - `commons` (excluding `vcpu.yaml`)
+         - `commons` (excluding `vcpu.yaml` and `remove-storage-policy.yaml`)
          - `topology` (including `cluster-template-topology.yaml`)
          - `workload`
       3. Remove old folders that are not used anymore in clusterctl upgrade tests.
       4. Add a `generate-e2e-templates-v1.10` target in `Makefile` and remove the old ones.
 2. Update `clusterctl-settings.json`: `v1.10.99` => `v1.11.99`.
-3. Make sure all tests are green (also run `pull-cluster-api-provider-vsphere-e2e-full-main` and `pull-cluster-api-provider-vsphere-conformance-main`).
-
+3. Make sure all tests are green.
 Prior art: [🌱 Prepare main for development of release v1.11](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/pull/2950)
 
 ## Remove previously deprecated code

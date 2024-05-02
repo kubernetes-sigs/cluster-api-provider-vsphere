@@ -1,0 +1,35 @@
+# This patch derives from vm-operator config/wcp/vmoperator/manager_env_var_patch.yaml, but with
+# - VSPHERE_NETWORKING = true and NETWORK_PROVIDER = VSPHERE_NETWORK as suggested by the vm-operator maintainers.
+# - Replace all the <..> placeholders as per config/local (including drop PRIVILEGED_USERS).
+# - Also make sure we are not overriding the KUBERNETES_SERVICE_HOST/PORT to use local host.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vmware-system-vmop-controller-manager
+  namespace: vmware-system-vmop
+spec:
+  template:
+    spec:
+      containers:
+        - name: manager
+          env:
+            - name: VSPHERE_NETWORKING
+              value: "true"
+            - name: NETWORK_PROVIDER
+              value: "VSPHERE_NETWORK"
+            - name: FSS_WCP_INSTANCE_STORAGE
+              value: "true"
+            - name: FSS_WCP_VMSERVICE_BACKUPRESTORE
+              value: "false"
+            - name: FSS_PODVMONSTRETCHEDSUPERVISOR
+              value: "false"
+            - name: FSS_WCP_TKG_Multiple_CL
+              value: "false"
+            - $patch: delete
+              name: PRIVILEGED_USERS
+            - name: FSS_WCP_NAMESPACED_VM_CLASS
+              value: "true"
+            - $patch: delete
+              name: KUBERNETES_SERVICE_HOST
+            - $patch: delete
+              name: KUBERNETES_SERVICE_PORT

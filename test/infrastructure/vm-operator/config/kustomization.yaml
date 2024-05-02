@@ -1,0 +1,70 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+commonLabels:
+  # vm-operator is not a provider, but by adding this label
+  # we can get this installed by Cluster APIs Tiltfile and by the clusterctl machinery we use in E2E tests.
+  cluster.x-k8s.io/provider: "runtime-extension-vm-operator"
+
+resources:
+  # This is the generated from config/wcp from the vm-operator project
+- vm-operator.yaml
+  # Those are copies of files from config/crd/external-crds in the vm-operator project
+  # IMPORTANT! networkinterfaces requires the addition the status subresource. As soon as this is fixed in the
+  # vm-operator code base, we can get rid of this manual change
+- external-crds/imageregistry.vmware.com_clustercontentlibraryitems.yaml
+- external-crds/imageregistry.vmware.com_contentlibraryitems.yaml
+- external-crds/netoperator.vmware.com_networkinterfaces.yaml
+- external-crds/cnsnodevmattachment-crd.yaml
+
+patchesStrategicMerge:
+# Set image names / version to use.
+# Note: we are not building vm-operator images with Tilt, so those images must be available in a public image repository.
+- vm-operator-image-names.yaml
+
+# Set replicas: 1 and imagePullPolicy: Always to make it easier working in Tilt
+- vm-operator-replicas.yaml
+- vm-operator-pull-policy.yaml
+
+# Set hostNetwork: false because we are running out of the supervisor
+# Note: this requires also to drop KUBERNETES_SERVICE_HOST/PORT variables, which is implemented in a patch below.
+- vm-operator-host-network.yaml
+
+# Drop VC cert bundle because we are running out of the supervisor
+- vm-operator-drop-certs-volume.yaml
+
+# This patch derives from vm-operator config/wcp/vmoperator/manager_env_var_patch.yaml, but with
+# - VSPHERE_NETWORKING = true and NETWORK_PROVIDER = VSPHERE_NETWORK as suggested by the vm-operator maintainers.
+# - Replace all the <..> placeholders as per config/local (including drop PRIVILEGED_USERS)
+# - Also make sure we are not overriding the KUBERNETES_SERVICE_HOST/PORT to use local host.
+- vm-operator-env-var-patch.yaml
+
+patches:
+# Drop web-console-validator deployment, not used in tilt
+- target:
+    labelSelector: app=web-console-validator
+  patch: |
+    $patch: delete
+    kind: Deployment
+    metadata:
+      name: web-console-validator
+
+# Drop vm-operator ConfigMaps, we are adding them back later via VMOperatorDependencies / vcsim or E2E test setup
+- target:
+    kind: ConfigMap
+    namespace: vmware-system-vmop
+    name: vsphere.provider.config.vmoperator.vmware.com
+  patch: |
+    $patch: delete
+    kind: ConfigMap
+    metadata:
+      name: vsphere.provider.config.vmoperator.vmware.com
+- target:
+    kind: ConfigMap
+    namespace: vmware-system-vmop
+    name:  vmoperator-network-config
+  patch: |
+    $patch: delete
+    kind: ConfigMap
+    metadata:
+      name: vmoperator-network-config

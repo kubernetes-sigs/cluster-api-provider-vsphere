@@ -27,32 +27,31 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// waitForDaemonSetAvailableInput is the input for WaitForDeploymentsAvailable.
+// waitForDaemonSetAvailableInput is the input for waitForDaemonSetAvailable.
 type waitForDaemonSetAvailableInput struct {
 	Getter    framework.Getter
 	Daemonset *appsv1.DaemonSet
 }
 
-// waitForDaemonSetAvailable waits until the Deployment has status.Available = True, that signals that
-// all the desired replicas are in place.
-// This can be used to check if Cluster API controllers installed in the management cluster are working.
-// xref: https://github.com/kubernetes/kubernetes/blob/bfa4188/staging/src/k8s.io/kubectl/pkg/polymorphichelpers/rollout_status.go#L95
+// waitForDaemonSetAvailable waits until the DaemonSet is rolled out:
+// * status.updatedNumberScheduled < status.DesiredNumberScheduled.
+// * status.NumberAvailable < status.DesiredNumberScheduled.
 func waitForDaemonSetAvailable(ctx context.Context, input waitForDaemonSetAvailableInput, intervals ...interface{}) {
 	Byf("Waiting for daemonset %s to be available", klog.KObj(input.Daemonset))
-	daemon := &appsv1.DaemonSet{}
+	daemonSet := &appsv1.DaemonSet{}
 	Eventually(func() bool {
 		key := client.ObjectKey{
 			Namespace: input.Daemonset.GetNamespace(),
 			Name:      input.Daemonset.GetName(),
 		}
-		if err := input.Getter.Get(ctx, key, daemon); err != nil {
+		if err := input.Getter.Get(ctx, key, daemonSet); err != nil {
 			return false
 		}
-		if daemon.Generation <= daemon.Status.ObservedGeneration {
-			if daemon.Status.UpdatedNumberScheduled < daemon.Status.DesiredNumberScheduled {
+		if daemonSet.Generation <= daemonSet.Status.ObservedGeneration {
+			if daemonSet.Status.UpdatedNumberScheduled < daemonSet.Status.DesiredNumberScheduled {
 				return false
 			}
-			if daemon.Status.NumberAvailable < daemon.Status.DesiredNumberScheduled {
+			if daemonSet.Status.NumberAvailable < daemonSet.Status.DesiredNumberScheduled {
 				return false
 			}
 			return true

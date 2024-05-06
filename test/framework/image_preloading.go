@@ -21,6 +21,7 @@ import (
 	"context"
 	"io"
 	"os"
+	"path/filepath"
 	"time"
 
 	. "github.com/onsi/gomega"
@@ -44,45 +45,37 @@ func LoadImagesFunc(ctx context.Context) func(clusterProxy framework.ClusterProx
 	sourceFile := os.Getenv("DOCKER_IMAGE_TAR")
 	Expect(sourceFile).ToNot(BeEmpty(), "DOCKER_IMAGE_TAR must be set")
 
-	loader := imagePreloader{
-		sourceFile: sourceFile,
-	}
-
 	return func(clusterProxy framework.ClusterProxy) {
-		loader.ImagesToCluster(ctx, clusterProxy)
+		loadImagesToCluster(ctx, sourceFile, clusterProxy)
 	}
 }
 
-type imagePreloader struct {
-	sourceFile string
-}
-
-// ImagesToCluster deploys a privileged daemonset and uses it to stream-load container images.
-func (loader *imagePreloader) ImagesToCluster(ctx context.Context, clusterProxy framework.ClusterProxy) {
-	daemon, daemonMutateFn, daemonLabels := getPreloadDaemonset()
+// loadImagesToCluster deploys a privileged daemonset and uses it to stream-load container images.
+func loadImagesToCluster(ctx context.Context, sourceFile string, clusterProxy framework.ClusterProxy) {
+	daemonSet, daemonSetMutateFn, daemonSetLabels := getPreloadDaemonset()
 	ctrlClient := clusterProxy.GetClient()
 
 	// Create Daemonset
-	_, err := controllerutil.CreateOrPatch(ctx, ctrlClient, daemon, daemonMutateFn)
+	_, err := controllerutil.CreateOrPatch(ctx, ctrlClient, daemonSet, daemonSetMutateFn)
 	Expect(err).ToNot(HaveOccurred())
 
 	// Wait for DaemonSet to be available.
-	waitForDaemonSetAvailable(ctx, waitForDaemonSetAvailableInput{Getter: ctrlClient, Daemonset: daemon}, time.Minute*3, time.Second*10)
+	waitForDaemonSetAvailable(ctx, waitForDaemonSetAvailableInput{Getter: ctrlClient, Daemonset: daemonSet}, time.Minute*3, time.Second*10)
 
 	// List all pods and load images via each found pod.
 	pods := &corev1.PodList{}
 	Expect(ctrlClient.List(
 		ctx,
 		pods,
-		client.InNamespace(daemon.Namespace),
-		client.MatchingLabels(daemonLabels),
+		client.InNamespace(daemonSet.Namespace),
+		client.MatchingLabels(daemonSetLabels),
 	)).To(Succeed())
 
 	errs := []error{}
 	for j := range pods.Items {
 		pod := pods.Items[j]
 		Byf("Loading images to node %s via pod %s", pod.Spec.NodeName, klog.KObj(&pod))
-		if err := loader.imagesViaPod(ctx, clusterProxy, pod.Namespace, pod.Name, pod.Spec.Containers[0].Name); err != nil {
+		if err := loadImagesViaPod(ctx, clusterProxy, sourceFile, pod.Namespace, pod.Name, pod.Spec.Containers[0].Name); err != nil {
 			errs = append(errs, err)
 		}
 	}
@@ -90,10 +83,10 @@ func (loader *imagePreloader) ImagesToCluster(ctx context.Context, clusterProxy 
 	Expect(kerrors.NewAggregate(errs)).ToNot(HaveOccurred())
 }
 
-func (loader *imagePreloader) imagesViaPod(ctx context.Context, clusterProxy framework.ClusterProxy, namespace, podName, containerName string) error {
+func loadImagesViaPod(ctx context.Context, clusterProxy framework.ClusterProxy, sourceFile, namespace, podName, containerName string) error {
 	// Open source tar file.
 	reader, writer := io.Pipe()
-	file, err := os.Open(loader.sourceFile)
+	file, err := os.Open(filepath.Clean(sourceFile))
 	if err != nil {
 		return err
 	}
@@ -102,15 +95,19 @@ func (loader *imagePreloader) imagesViaPod(ctx context.Context, clusterProxy fra
 	go func(file *os.File, writer io.WriteCloser) {
 		defer writer.Close()
 		defer file.Close()
+		// Ignoring the error here because the execPod command should fail in case of
+		// failure copying over the data.
 		_, _ = io.Copy(writer, file)
 	}(file, writer)
 
 	// Load the container images using ctr and delete the file.
 	loadCommand := "ctr -n k8s.io images import -"
-	return loader.execPod(ctx, clusterProxy, namespace, podName, containerName, loadCommand, reader)
+	return execPod(ctx, clusterProxy, namespace, podName, containerName, loadCommand, reader)
 }
 
-func (loader *imagePreloader) execPod(ctx context.Context, clusterProxy framework.ClusterProxy, namespace, podName, containerName, cmd string, stdin io.Reader) error {
+// execPod executes a command at a pod.
+// xref: https://github.com/kubernetes/kubernetes/blob/master/staging/src/k8s.io/kubectl/pkg/cmd/exec/exec.go#L123
+func execPod(ctx context.Context, clusterProxy framework.ClusterProxy, namespace, podName, containerName, cmd string, stdin io.Reader) error {
 	var hasStdin bool
 	if stdin != nil {
 		hasStdin = true
@@ -152,7 +149,6 @@ func (loader *imagePreloader) execPod(ctx context.Context, clusterProxy framewor
 		Stderr: &stderr,
 		Tty:    false,
 	})
-
 	if err != nil {
 		return errors.Wrapf(err, "running command %q stdout=%q, stderr=%q", cmd, stdout.String(), stderr.String())
 	}
@@ -171,7 +167,7 @@ func getPreloadDaemonset() (*appsv1.DaemonSet, controllerutil.MutateFn, map[stri
 			Labels:    labels,
 		},
 	}
-	muatetFn := func() error {
+	muatetFunc := func() error {
 		ds.Labels = labels
 		ds.Spec = appsv1.DaemonSetSpec{
 			Selector: &metav1.LabelSelector{
@@ -216,5 +212,5 @@ func getPreloadDaemonset() (*appsv1.DaemonSet, controllerutil.MutateFn, map[stri
 		}
 		return nil
 	}
-	return ds, muatetFn, labels
+	return ds, muatetFunc, labels
 }

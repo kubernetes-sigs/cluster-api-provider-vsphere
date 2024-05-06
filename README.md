@@ -60,7 +60,7 @@ Basically:
 versions for distribution packages and patch version for the Kubernetes version you wish to run. For
 production-like environments, it is highly recommended to build and use your own custom images.
 
-**Note:** We recently moved the OVAs from the community GCP project (https://storage.googleapis.com/capv-templates/) to [Github releases](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases). Going forward new OVAs will only be uploaded to a dedicated Github release with the name `templates/<Kubernetes Version>`.
+**Note:** We recently moved the OVAs from the community GCP project to [Github releases](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases). Going forward new OVAs will only be uploaded to a dedicated Github release with the name `templates/<Kubernetes Version>`.
 
 **Note:** Big OVAs will be split into multiple parts. To use them please download all parts and use `cat part1 part2 part3 > out.ova` to join them again.
 

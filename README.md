@@ -33,13 +33,14 @@ Check out the [getting started guide](./docs/getting_started.md) for launching a
 
 This provider's versions are compatible with the following versions of Cluster API:
 
-|                     | Cluster API v1beta1 (v1.3) | Cluster API v1beta1 (v1.4) | Cluster API v1beta1 (v1.5) | Cluster API v1beta1 (v1.6) |
-|---------------------|:--------------------------:|:--------------------------:|:--------------------------:|:--------------------------:|
-| CAPV v1beta1 (v1.5) |             ✓              |             ✓              |             ☓              |             ☓              |
-| CAPV v1beta1 (v1.6) |             ✓              |             ✓              |             ☓              |             ☓              |
-| CAPV v1beta1 (v1.7) |             ✓              |             ✓              |             ☓              |             ☓              |
-| CAPV v1beta1 (v1.8) |             ☓              |             ☓              |             ✓              |             ☓              |
-| CAPV v1beta1 (v1.9) |             ☓              |             ☓              |             ☓              |             ✓              |
+|                      | Cluster API v1beta1 (v1.4) | Cluster API v1beta1 (v1.5) | Cluster API v1beta1 (v1.6) | Cluster API v1beta1 (v1.7) |
+|----------------------|:--------------------------:|:--------------------------:|:--------------------------:|:--------------------------:|
+| CAPV v1beta1 (v1.5)  |             ✓              |             ☓              |             ☓              |             ☓              |
+| CAPV v1beta1 (v1.6)  |             ✓              |             ☓              |             ☓              |             ☓              |
+| CAPV v1beta1 (v1.7)  |             ✓              |             ☓              |             ☓              |             ☓              |
+| CAPV v1beta1 (v1.8)  |             ☓              |             ✓              |             ☓              |             ☓              |
+| CAPV v1beta1 (v1.9)  |             ☓              |             ☓              |             ✓              |             x              |
+| CAPV v1beta1 (v1.10) |             ☓              |             ☓              |             x              |             ✓              |
 
 As CAPV doesn't dictate supported K8s versions, and it supports whatever CAPI supported, about the provider's compatibility with K8s versions, please refer
 to [CAPI Supported Kubernetes Versions](https://cluster-api.sigs.k8s.io/reference/versions.html).

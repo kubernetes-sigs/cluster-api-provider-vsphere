@@ -19,11 +19,13 @@ package framework
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
@@ -99,7 +101,10 @@ func loadImagesViaPod(ctx context.Context, clusterProxy framework.ClusterProxy, 
 		defer file.Close()
 		// Ignoring the error here because the execPod command should fail in case of
 		// failure copying over the data.
-		_, _ = io.Copy(writer, file)
+		_, err := io.Copy(writer, file)
+		if err != nil {
+			fmt.Fprintf(ginkgo.GinkgoWriter, "Failed to copy file data to io.Pipe: %v\n", err)
+		}
 	}(file, writer)
 
 	// Load the container images using ctr and delete the file.

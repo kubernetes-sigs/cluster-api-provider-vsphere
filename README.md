@@ -89,7 +89,11 @@ on the repository having the prefix `templates/` and taking a look at the availa
 
 Further documentation is available in the `/docs` directory.
 
-## Getting involved and contributing
+[vSphere Custom Resource Definitions][vsphere_custom_resource_definitions]
+
+[Cluster API Custom Resource Definitions][capi_custom_resource_definitions]
+
+  ## Getting involved and contributing
 
 Are you interested in contributing to cluster-api-provider-vsphere? We, the maintainers and community, would love your suggestions, contributions, and help! Also, the maintainers can be contacted at
 any time to learn more about how to get involved.
@@ -170,5 +174,9 @@ We also use the issue tracker to track features. If you have an idea for a featu
 [zoom_meeting]: https://zoom.us/j/92253194848?pwd=cVVVNDMxeTl1QVJPUlpvLzNSVU1JZz09
 
 [time_zone_converter]: http://www.thetimezoneconverter.com/?t=08:00&tz=PT%20%28Pacific%20Time%29
+
+[vsphere_custom_resource_definitions]: https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api-provider-vsphere
+
+[capi_custom_resource_definitions]: https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api
 
 <!-- markdownlint-disable-file MD033 -->

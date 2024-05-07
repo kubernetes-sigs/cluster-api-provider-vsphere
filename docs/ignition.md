@@ -180,4 +180,4 @@ kind delete cluster
 [4]: https://cluster-api.sigs.k8s.io/user/quick-start.html#install-clusterctl
 [5]: https://image-builder.sigs.k8s.io/capi/providers/vsphere.html
 [6]: https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.vm_admin.doc/GUID-17BEDA21-43F6-41F4-8FB2-E01D275FE9B4.html
-[7]: https://storage.googleapis.com/capv-templates/v1.25.6/flatcar-stable-3374.2.4-kube-v1.25.6.ova
+[7]: ../README.md#kubernetes-versions-with-published-ovas

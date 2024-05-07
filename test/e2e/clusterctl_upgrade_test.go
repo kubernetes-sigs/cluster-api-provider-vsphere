@@ -55,7 +55,6 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.10
 				SkipCleanup:                       skipCleanup,
 				MgmtFlavor:                        testSpecificSettingsGetter().FlavorForMode("topology"),
 				PostNamespaceCreated:              testSpecificSettingsGetter().PostNamespaceCreatedFunc,
-				PreInit:                           vsphereframework.LoadImagesFunc(ctx),
 				PreUpgrade:                        vsphereframework.LoadImagesFunc(ctx),
 				InitWithBinary:                    fmt.Sprintf(clusterctlDownloadURL, capiStableRelease),
 				InitWithCoreProvider:              fmt.Sprintf(providerCAPIPrefix, capiStableRelease),

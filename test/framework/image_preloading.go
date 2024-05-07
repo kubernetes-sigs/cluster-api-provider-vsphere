@@ -55,7 +55,7 @@ func loadImagesToCluster(ctx context.Context, sourceFile string, clusterProxy fr
 	daemonSet, daemonSetMutateFn, daemonSetLabels := getPreloadDaemonset()
 	ctrlClient := clusterProxy.GetClient()
 
-	// Create Daemonset
+	// Create the DaemonSet.
 	_, err := controllerutil.CreateOrPatch(ctx, ctrlClient, daemonSet, daemonSetMutateFn)
 	Expect(err).ToNot(HaveOccurred())
 
@@ -79,8 +79,10 @@ func loadImagesToCluster(ctx context.Context, sourceFile string, clusterProxy fr
 			errs = append(errs, err)
 		}
 	}
-
 	Expect(kerrors.NewAggregate(errs)).ToNot(HaveOccurred())
+
+	// Delete the DaemonSet.
+	Expect(ctrlClient.Delete(ctx, daemonSet)).To(Succeed())
 }
 
 func loadImagesViaPod(ctx context.Context, clusterProxy framework.ClusterProxy, sourceFile, namespace, podName, containerName string) error {
@@ -205,6 +207,12 @@ func getPreloadDaemonset() (*appsv1.DaemonSet, controllerutil.MutateFn, map[stri
 									Type: ptr.To(corev1.HostPathDirectory),
 								},
 							},
+						},
+					},
+					Tolerations: []corev1.Toleration{
+						// Tolerate any taint.
+						{
+							Operator: corev1.TolerationOpExists,
 						},
 					},
 				},

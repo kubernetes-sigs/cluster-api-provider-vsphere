@@ -174,7 +174,7 @@ func getPreloadDaemonset() (*appsv1.DaemonSet, controllerutil.MutateFn, map[stri
 			Labels:    labels,
 		},
 	}
-	muatetFunc := func() error {
+	mutateFunc := func() error {
 		ds.Labels = labels
 		ds.Spec = appsv1.DaemonSetSpec{
 			Selector: &metav1.LabelSelector{
@@ -225,5 +225,5 @@ func getPreloadDaemonset() (*appsv1.DaemonSet, controllerutil.MutateFn, map[stri
 		}
 		return nil
 	}
-	return ds, muatetFunc, labels
+	return ds, mutateFunc, labels
 }

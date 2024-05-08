@@ -7,20 +7,27 @@ updates:
   directory: "/"
   schedule:
       interval: "weekly"
+  groups:
+    all-github-actions:
+      patterns: [ "*" ]
   commit-message:
       prefix: ":seedling:"
   labels:
     - "ok-to-test"
-# Main Go module
+
+# Go modules
 - package-ecosystem: "gomod"
-  directory: "/"
+  directories:
+  - "/"
+  - "/test"
   schedule:
     interval: "weekly"
     day: "monday"
   ## group all dependencies with a k8s.io prefix into a single PR.
   groups:
-    kubernetes:
-      patterns: [ "k8s.io/*" ]
+    all-go-mod-patch-and-minor:
+      patterns: [ "*" ]
+      update-types: [ "patch", "minor" ]
   ignore:
   # Ignore controller-runtime as its upgraded manually.
   - dependency-name: "sigs.k8s.io/controller-runtime"
@@ -28,29 +35,12 @@ updates:
   # Ignore k8s and its transitives modules as they are upgraded manually together with controller-runtime.
   - dependency-name: "k8s.io/*"
     update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
-  - dependency-name: "sigs.k8s.io/cluster-api/test"
+  - dependency-name: "go.etcd.io/*"
     update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
-  commit-message:
-    prefix: ":seedling:"
-  labels:
-    - "ok-to-test"
-
-# Test Go module
-- package-ecosystem: "gomod"
-  directory: "/test"
-  schedule:
-    interval: "weekly"
-    day: "tuesday"
-  ## group all dependencies with a k8s.io prefix into a single PR.
-  groups:
-    kubernetes:
-      patterns: [ "k8s.io/*" ]
-  ignore:
-  # Ignore controller-runtime as its upgraded manually.
-  - dependency-name: "sigs.k8s.io/controller-runtime"
+  - dependency-name: "google.golang.org/grpc"
     update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
-  # Ignore k8s and its transitives modules as they are upgraded manually together with controller-runtime.
-  - dependency-name: "k8s.io/*"
+    # Bumping the kustomize API independently can break compatibility with client-go as they share k8s.io/kube-openapi as a dependency.
+  - dependency-name: "sigs.k8s.io/kustomize/api"
     update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
   - dependency-name: "sigs.k8s.io/cluster-api/test"
     update-types: [ "version-update:semver-major", "version-update:semver-minor" ]

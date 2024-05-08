@@ -629,8 +629,8 @@ github.com/valyala/fastjson v1.6.4 h1:uAUNq9Z6ymTgGhcm0UynUAB6tlbakBrz6CQFax3BXV
 github.com/valyala/fastjson v1.6.4/go.mod h1:CLCAqky6SMuOcxStkYQvblddUtoRxhYMGLrsQns1aXY=
 github.com/vmware-tanzu/net-operator-api v0.0.0-20240326163340-1f32d6bf7f9d h1:cgx9UH/r53bKU/Gbv8IPsUZ34bj5+ItijA2JCUS3kVk=
 github.com/vmware-tanzu/net-operator-api v0.0.0-20240326163340-1f32d6bf7f9d/go.mod h1:JbFOh22iDsT5BowJe0GgpMI5e2/S7cWaJlv9LdURVQM=
-github.com/vmware-tanzu/nsx-operator/pkg/apis v0.1.0 h1:HdnQb/X9vJ8a5WQ03g/0nDr9igIIK1fF6wO5wOtkJT4=
-github.com/vmware-tanzu/nsx-operator/pkg/apis v0.1.0/go.mod h1:Q4JzNkNMvjo7pXtlB5/R3oME4Nhah7fAObWgghVmtxk=
+github.com/vmware-tanzu/nsx-operator/pkg/apis v1.0.0 h1:jmHI88hySjGqkpc/QUmSY5G5SsDvoXxmKFEK/GmcHWs=
+github.com/vmware-tanzu/nsx-operator/pkg/apis v1.0.0/go.mod h1:ZR/7rewflpAhnswQ6NVkFN0JmaqHgmvDyFVsJLmZ+pw=
 github.com/vmware-tanzu/vm-operator/api v1.8.6 h1:NIndORjcnSmIlQsCMIewpIwg/ocRVDh2lYjOroTVLrU=
 github.com/vmware-tanzu/vm-operator/api v1.8.6/go.mod h1:HHA2SNI9B5Yqtyp5t+Gt9WTWBi/fIkM6+MukDDSf11A=
 github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20240404200847-de75746a9505 h1:y4wXx1FUFqqSgJ/xUOEM1DLS2Uu0KaeLADWpzpioGTU=

@@ -12,7 +12,7 @@ replace github.com/vmware-tanzu/vm-operator/pkg/constants/testlabels => github.c
 
 require (
 	github.com/dougm/pretty v0.0.0-20171025230240-2ee9d7453c02
-	github.com/onsi/ginkgo/v2 v2.17.2
+	github.com/onsi/ginkgo/v2 v2.17.3
 	github.com/onsi/gomega v1.33.1
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/pflag v1.0.5
@@ -31,7 +31,7 @@ require (
 	sigs.k8s.io/cluster-api v0.0.0-00010101000000-000000000000
 	sigs.k8s.io/cluster-api-provider-vsphere v0.0.0-00010101000000-000000000000
 	sigs.k8s.io/cluster-api/test v0.0.0-00010101000000-000000000000
-	sigs.k8s.io/controller-runtime v0.17.4
+	sigs.k8s.io/controller-runtime v0.17.5
 	sigs.k8s.io/kind v0.22.0
 	sigs.k8s.io/yaml v1.4.0
 )

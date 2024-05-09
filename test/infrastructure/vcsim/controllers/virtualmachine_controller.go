@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"path"
-	"time"
 
 	"github.com/pkg/errors"
 	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha1"
@@ -50,11 +49,9 @@ import (
 )
 
 type VirtualMachineReconciler struct {
-	Client            client.Client
-	InMemoryManager   inmemoryruntime.Manager
-	APIServerMux      *inmemoryserver.WorkloadClustersMux
-	EnableKeepAlive   bool
-	KeepAliveDuration time.Duration
+	Client          client.Client
+	InMemoryManager inmemoryruntime.Manager
+	APIServerMux    *inmemoryserver.WorkloadClustersMux
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -252,9 +249,7 @@ func (r *VirtualMachineReconciler) reconcileDelete(ctx context.Context, cluster 
 
 func (r *VirtualMachineReconciler) getVMIpReconciler(cluster *clusterv1.Cluster, virtualMachine *vmoprv1.VirtualMachine) *vmIPReconciler {
 	return &vmIPReconciler{
-		Client:            r.Client,
-		EnableKeepAlive:   r.EnableKeepAlive,
-		KeepAliveDuration: r.KeepAliveDuration,
+		Client: r.Client,
 
 		// Type specific functions; those functions wraps the differences between govmomi and supervisor types,
 		// thus allowing to use the same vmIPReconciler in both scenarios.
@@ -294,7 +289,7 @@ func (r *VirtualMachineReconciler) getVMBootstrapReconciler(virtualMachine *vmop
 }
 
 func (r *VirtualMachineReconciler) getVCenterSession(ctx context.Context) (*session.Session, error) {
-	return vmoperator.GetVCenterSession(ctx, r.Client, r.EnableKeepAlive, r.KeepAliveDuration)
+	return vmoperator.GetVCenterSession(ctx, r.Client)
 }
 
 // SetupWithManager will add watches for this controller.

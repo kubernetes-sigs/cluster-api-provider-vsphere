@@ -710,7 +710,7 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 }
 
 // GetVCenterSession returns a VCenter session from vm-operator config.
-func GetVCenterSession(ctx context.Context, c client.Client, enableKeepAlive bool, keepAliveDuration time.Duration) (*session.Session, error) {
+func GetVCenterSession(ctx context.Context, c client.Client) (*session.Session, error) {
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      configMapName,
@@ -760,16 +760,12 @@ func GetVCenterSession(ctx context.Context, c client.Client, enableKeepAlive boo
 		WithServer(serverURL).
 		WithDatacenter(datacenter).
 		WithUserInfo(username, password).
-		WithThumbprint(thumbprint).
-		WithFeatures(session.Feature{
-			EnableKeepAlive:   enableKeepAlive,
-			KeepAliveDuration: keepAliveDuration,
-		})
+		WithThumbprint(thumbprint)
 
 	return session.GetOrCreate(ctx, params)
 }
 
-// GetDistributedPortGroup returns a the DistributedPortGroup from vm-operator config.
+// GetDistributedPortGroup returns a DistributedPortGroup from vm-operator config.
 func GetDistributedPortGroup(ctx context.Context, c client.Client) (string, error) {
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{

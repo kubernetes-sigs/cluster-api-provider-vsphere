@@ -191,11 +191,7 @@ func (r vsphereDeploymentZoneReconciler) getVCenterSession(ctx context.Context, 
 	params := session.NewParams().
 		WithServer(deploymentZoneCtx.VSphereDeploymentZone.Spec.Server).
 		WithDatacenter(datacenter).
-		WithUserInfo(r.ControllerManagerContext.Username, r.ControllerManagerContext.Password).
-		WithFeatures(session.Feature{
-			EnableKeepAlive:   r.EnableKeepAlive,
-			KeepAliveDuration: r.KeepAliveDuration,
-		})
+		WithUserInfo(r.ControllerManagerContext.Username, r.ControllerManagerContext.Password)
 
 	clusterList := &infrav1.VSphereClusterList{}
 	if err := r.Client.List(ctx, clusterList); err != nil {

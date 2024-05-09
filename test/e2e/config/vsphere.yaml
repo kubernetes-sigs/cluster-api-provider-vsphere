@@ -169,7 +169,6 @@ providers:
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/cluster-template-node-drain.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/cluster-template-ownerrefs-finalizers.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/cluster-template-pci.yaml"
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/cluster-template-remote-management.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/cluster-template-storage-policy.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/cluster-template-topology.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/cluster-template.yaml"

@@ -1,8 +1,0 @@
-- op: add
-  path: /spec/topology/variables/-
-  value:
-    name: preKubeadmScript
-    value: |
-      mkdir -p /opt/cluster-api
-      curl "https://storage.googleapis.com/capv-ci/${E2E_IMAGE_SHA}" -o /opt/cluster-api/image.tar
-      ctr -n k8s.io images import /opt/cluster-api/image.tar

@@ -74,7 +74,6 @@ function login() {
 # NOTE: when running on CI without presets, value for variables are missing: GOVC_URL, GOVC_USERNAME, GOVC_PASSWORD, VM_SSH_PUB_KEY),
 #  but this is not an issue when we are targeting vcsim (corresponding VSPHERE_ variables will be injected during test setup).
 AUTH=
-E2E_IMAGE_SHA=
 GCR_KEY_FILE="${GCR_KEY_FILE:-}"
 export VSPHERE_SERVER="${GOVC_URL:-}"
 export VSPHERE_USERNAME="${GOVC_USERNAME:-}"
@@ -144,16 +143,19 @@ ARCH="$(go env GOARCH)"
 # Only build and upload the image if we run tests which require it to save some $.
 # NOTE: the image is required for clusterctl upgrade tests, and those test are run only as part of the main e2e test job (without any focus)
 if [[ -z "${GINKGO_FOCUS+x}" ]]; then
-  # Save the docker image locally
+  # Save the docker images locally
   make e2e-images
   mkdir -p /tmp/images
-  docker save "gcr.io/k8s-staging-capi-vsphere/cluster-api-vsphere-controller-${ARCH}:dev" -o "$DOCKER_IMAGE_TAR"
-
-  # Store the image on gcs
-  login
-  E2E_IMAGE_SHA=$(docker inspect --format='{{index .Id}}' "gcr.io/k8s-staging-capi-vsphere/cluster-api-vsphere-controller-${ARCH}:dev")
-  export E2E_IMAGE_SHA
-  gsutil cp ${DOCKER_IMAGE_TAR} gs://capv-ci/"$E2E_IMAGE_SHA"
+  if [[ ${GINKGO_FOCUS:-} =~ \\\[supervisor\\\] ]]; then
+    docker save \
+      "gcr.io/k8s-staging-capi-vsphere/cluster-api-vsphere-controller-${ARCH}:dev" \
+      "gcr.io/k8s-staging-capi-vsphere/cluster-api-net-operator-${ARCH}:dev" \
+      > ${DOCKER_IMAGE_TAR}
+  else
+    docker save \
+      "gcr.io/k8s-staging-capi-vsphere/cluster-api-vsphere-controller-${ARCH}:dev" \
+      > ${DOCKER_IMAGE_TAR}
+  fi
 fi
 
 # Run e2e tests

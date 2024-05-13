@@ -19,6 +19,8 @@ package e2e
 import (
 	. "github.com/onsi/ginkgo/v2"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
+
+	vsphereframework "sigs.k8s.io/cluster-api-provider-vsphere/test/framework"
 )
 
 var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.8=>current, CAPI 1.5=>1.6) [ClusterClass]", func() {
@@ -29,7 +31,8 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.8=
 			BootstrapClusterProxy:             bootstrapClusterProxy,
 			ArtifactFolder:                    artifactFolder,
 			SkipCleanup:                       skipCleanup,
-			MgmtFlavor:                        "remote-management",
+			PreUpgrade:                        vsphereframework.LoadImagesFunc(ctx),
+			MgmtFlavor:                        "topology",
 			InitWithBinary:                    "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.5.4/clusterctl-{OS}-{ARCH}",
 			InitWithCoreProvider:              "cluster-api:v1.5.4",
 			InitWithBootstrapProviders:        []string{"kubeadm:v1.5.4"},
@@ -54,7 +57,8 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.7=
 			BootstrapClusterProxy:             bootstrapClusterProxy,
 			ArtifactFolder:                    artifactFolder,
 			SkipCleanup:                       skipCleanup,
-			MgmtFlavor:                        "remote-management",
+			MgmtFlavor:                        "topology",
+			PreUpgrade:                        vsphereframework.LoadImagesFunc(ctx),
 			InitWithBinary:                    "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.4.9/clusterctl-{OS}-{ARCH}",
 			InitWithCoreProvider:              "cluster-api:v1.4.9",
 			InitWithBootstrapProviders:        []string{"kubeadm:v1.4.9"},

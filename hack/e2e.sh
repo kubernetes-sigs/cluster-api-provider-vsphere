@@ -44,11 +44,26 @@ on_exit() {
 
   # Cleanup VSPHERE_PASSWORD from temporary artifacts directory.
   if [[ "${ORIGINAL_ARTIFACTS}" != "" ]]; then
-    if [ -z "$VSPHERE_PASSWORD" ]; then
-      grep -r -l -e "${VSPHERE_PASSWORD}" "${ARTIFACTS}" | while IFS= read -r file
+    # Delete non-text files from artifacts directory to not leak files accidentially
+    find "${ARTIFACTS}" -type f -exec file --mime-type {} \; | grep -v -E -e "text/plain|text/xml|application/json|inode/x-empty" | while IFS= read -r line
+    do
+      file="$(echo "${line}" | cut -d ':' -f1)"
+      mimetype="$(echo "${line}" | cut -d ':' -f2)"
+      echo "Deleting file ${file} of type ${mimetype}"
+      rm "${file}"
+    done || true
+    # Replace secret and base64 secret in all files.
+    if [ -n "$VSPHERE_PASSWORD" ]; then
+      grep -I -r -l -e "${VSPHERE_PASSWORD}" "${ARTIFACTS}" | while IFS= read -r file
       do
         echo "Cleaning up VSPHERE_PASSWORD from file ${file}"
         sed -i "s/${VSPHERE_PASSWORD}/REDACTED/g" "${file}"
+      done || true
+      VSPHERE_PASSWORD_B64=$(echo -n "${VSPHERE_PASSWORD}" | base64 --wrap=0)
+      grep -I -r -l -e "${VSPHERE_PASSWORD_B64}" "${ARTIFACTS}" | while IFS= read -r file
+      do
+        echo "Cleaning up VSPHERE_PASSWORD_B64 from file ${file}"
+        sed -i "s/${VSPHERE_PASSWORD_B64}/REDACTED/g" "${file}"
       done || true
     fi
     # Move all artifacts to the original artifacts location.

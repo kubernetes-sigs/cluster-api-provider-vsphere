@@ -17,7 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	"fmt"
 	"os"
 	"reflect"
 
@@ -30,7 +29,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -61,6 +59,12 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 			targetNSObj *corev1.Namespace
 		)
 		BeforeEach(func() {
+			By("Creating the Cluster, vSphereCluster and KubeconfigSecret", func() {
+				helpers.CreateAndWait(ctx, intCtx.Client, intCtx.Cluster)
+				helpers.CreateAndWait(ctx, intCtx.Client, intCtx.VSphereCluster)
+				helpers.CreateAndWait(ctx, intCtx.Client, intCtx.KubeconfigSecret)
+			})
+
 			pSvcAccount = getTestProviderServiceAccount(intCtx.Namespace, intCtx.VSphereCluster)
 			createTestResource(intCtx, intCtx.Client, pSvcAccount)
 			assertEventuallyExistsInNamespace(intCtx, intCtx.Client, intCtx.Namespace, pSvcAccount.GetName(), pSvcAccount)
@@ -129,13 +133,9 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 
 	Context("With non-existent Cluster object", func() {
 		It("cannot reconcile the ProviderServiceAccount object", func() {
-			By("Deleting the CAPI cluster object", func() {
-				clusterName, ok := intCtx.VSphereCluster.GetLabels()[clusterv1.ClusterNameLabel]
-				Expect(ok).To(BeTrue())
-				cluster := &clusterv1.Cluster{}
-				key := client.ObjectKey{Namespace: intCtx.Namespace, Name: clusterName}
-				Expect(intCtx.Client.Get(intCtx, key, cluster)).To(Succeed())
-				Expect(intCtx.Client.Delete(intCtx, cluster)).To(Succeed())
+			By("Creating the vSphereCluster and KubeconfigSecret only", func() {
+				helpers.CreateAndWait(intCtx, intCtx.Client, intCtx.VSphereCluster)
+				helpers.CreateAndWait(intCtx, intCtx.Client, intCtx.KubeconfigSecret)
 			})
 
 			By("Creating the ProviderServiceAccount", func() {
@@ -155,16 +155,9 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 
 	Context("With non-existent Cluster credentials secret", func() {
 		It("cannot reconcile the ProviderServiceAccount object", func() {
-			By("Deleting the CAPI kubeconfig secret object", func() {
-				clusterName, ok := intCtx.VSphereCluster.GetLabels()[clusterv1.ClusterNameLabel]
-				Expect(ok).To(BeTrue())
-				secret := &corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: intCtx.Namespace,
-						Name:      fmt.Sprintf("%s-kubeconfig", clusterName),
-					},
-				}
-				Expect(intCtx.Client.Delete(intCtx, secret)).To(Succeed())
+			By("Creating the Cluster and vSphereCluster only", func() {
+				helpers.CreateAndWait(intCtx, intCtx.Client, intCtx.Cluster)
+				helpers.CreateAndWait(intCtx, intCtx.Client, intCtx.VSphereCluster)
 			})
 
 			By("Creating the ProviderServiceAccount", func() {
@@ -187,6 +180,11 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 		var role *rbacv1.Role
 		var roleBinding *rbacv1.RoleBinding
 		BeforeEach(func() {
+			By("Creating the Cluster, vSphereCluster and KubeconfigSecret", func() {
+				helpers.CreateAndWait(ctx, intCtx.Client, intCtx.Cluster)
+				helpers.CreateAndWait(ctx, intCtx.Client, intCtx.VSphereCluster)
+				helpers.CreateAndWait(ctx, intCtx.Client, intCtx.KubeconfigSecret)
+			})
 			pSvcAccount = getTestProviderServiceAccount(intCtx.Namespace, intCtx.VSphereCluster)
 			pSvcAccount.Spec.TargetNamespace = "default"
 			// Pause the ProviderServiceAccount so we can create dependent but legacy resources

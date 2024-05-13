@@ -37,7 +37,7 @@ import (
 	helpers "sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vmware"
 )
 
-var _ = Describe("ProviderServiceAccount controller integration tests", Label("FOO"), func() {
+var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 	var intCtx *helpers.IntegrationTestContext
 
 	BeforeEach(func() {
@@ -131,7 +131,7 @@ var _ = Describe("ProviderServiceAccount controller integration tests", Label("F
 		})
 	})
 
-	Context("With non-existent Cluster object", Label("FOO"), func() {
+	Context("With non-existent Cluster object", func() {
 		It("cannot reconcile the ProviderServiceAccount object", func() {
 			By("Creating the vSphereCluster and KubeconfigSecret only", func() {
 				helpers.CreateAndWait(ctx, intCtx.Client, intCtx.VSphereCluster)

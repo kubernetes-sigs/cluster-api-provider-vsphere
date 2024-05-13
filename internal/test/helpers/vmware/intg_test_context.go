@@ -101,7 +101,7 @@ func NewIntegrationTestContextWithClusters(ctx context.Context, integrationTestC
 	})
 
 	vsphereClusterName := capiutil.RandomString(6)
-	testCtx.Cluster = createCluster(testCtx.Namespace, vsphereClusterName)
+	testCtx.Cluster = generateCluster(testCtx.Namespace, vsphereClusterName)
 
 	var config *rest.Config
 
@@ -127,8 +127,8 @@ func NewIntegrationTestContextWithClusters(ctx context.Context, integrationTestC
 
 		testCtx.envTest = envTest
 	})
-	By("Create the kubeconfig secret for the cluster", func() {
-		buf, err := writeKubeConfig(config)
+	By("Generating the kubeconfig secret for the cluster", func() {
+		buf, err := generateKubeConfig(config)
 		Expect(err).ToNot(HaveOccurred())
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
@@ -151,8 +151,8 @@ func NewIntegrationTestContextWithClusters(ctx context.Context, integrationTestC
 		testCtx.KubeconfigSecret = secret
 	})
 
-	By("Create a vsphere cluster and wait for it to exist", func() {
-		testCtx.VSphereCluster = createVSphereCluster(testCtx.Namespace, vsphereClusterName, testCtx.Cluster.GetName())
+	By("Generating a vsphere cluster", func() {
+		testCtx.VSphereCluster = generateVSphereCluster(testCtx.Namespace, vsphereClusterName, testCtx.Cluster.GetName())
 		testCtx.VSphereClusterKey = client.ObjectKeyFromObject(testCtx.VSphereCluster)
 	})
 
@@ -168,8 +168,8 @@ func CreateAndWait(ctx context.Context, integrationTestClient client.Client, obj
 	}).Should(Succeed())
 }
 
-func createCluster(namespace, name string) *clusterv1.Cluster {
-	By("Create the CAPI Cluster and wait for it to exist")
+func generateCluster(namespace, name string) *clusterv1.Cluster {
+	By("Generate the CAPI Cluster")
 	cluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
@@ -193,7 +193,7 @@ func createCluster(namespace, name string) *clusterv1.Cluster {
 	return cluster
 }
 
-func createVSphereCluster(namespace, name, capiClusterName string) *vmwarev1.VSphereCluster {
+func generateVSphereCluster(namespace, name, capiClusterName string) *vmwarev1.VSphereCluster {
 	vsphereCluster := &vmwarev1.VSphereCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
@@ -204,8 +204,8 @@ func createVSphereCluster(namespace, name, capiClusterName string) *vmwarev1.VSp
 	return vsphereCluster
 }
 
-// writeKubeConfig writes an existing *rest.Config out as the typical kubeconfig YAML data.
-func writeKubeConfig(config *rest.Config) ([]byte, error) {
+// generateKubeConfig writes an existing *rest.Config out as the typical kubeconfig YAML data.
+func generateKubeConfig(config *rest.Config) ([]byte, error) {
 	return clientcmd.Write(api.Config{
 		Clusters: map[string]*api.Cluster{
 			config.ServerName: {

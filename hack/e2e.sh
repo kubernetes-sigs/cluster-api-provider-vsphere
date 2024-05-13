@@ -42,11 +42,6 @@ on_exit() {
     docker kill vpn
   fi
 
-  # logout of gcloud
-  if [ "${AUTH}" ]; then
-    gcloud auth revoke
-  fi
-
   # Cleanup VSPHERE_PASSWORD from temporary artifacts directory.
   if [[ "${ORIGINAL_ARTIFACTS}" != "" ]]; then
     if [ -z "$VSPHERE_PASSWORD" ]; then
@@ -63,18 +58,8 @@ on_exit() {
 
 trap on_exit EXIT
 
-function login() {
-  # If GCR_KEY_FILE is set, use that service account to login
-  if [ "${GCR_KEY_FILE}" ]; then
-    gcloud auth activate-service-account --key-file "${GCR_KEY_FILE}" || fatal "unable to login"
-    AUTH=1
-  fi
-}
-
 # NOTE: when running on CI without presets, value for variables are missing: GOVC_URL, GOVC_USERNAME, GOVC_PASSWORD, VM_SSH_PUB_KEY),
 #  but this is not an issue when we are targeting vcsim (corresponding VSPHERE_ variables will be injected during test setup).
-AUTH=
-GCR_KEY_FILE="${GCR_KEY_FILE:-}"
 export VSPHERE_SERVER="${GOVC_URL:-}"
 export VSPHERE_USERNAME="${GOVC_USERNAME:-}"
 export VSPHERE_PASSWORD="${GOVC_PASSWORD:-}"

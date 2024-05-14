@@ -250,9 +250,6 @@ func newClient(ctx context.Context, logger logr.Logger, sessionKey string, url *
 			if err != nil {
 				logger.Error(err, "failed to keep alive govmomi client")
 				logger.Info("clearing the session")
-				if errLogout := c.Logout(ctx); errLogout != nil {
-					logger.Error(err, "failed to logout keepalive failed session")
-				}
 				sessionCache.Delete(sessionKey)
 			}
 			return err
@@ -281,9 +278,6 @@ func newManager(ctx context.Context, logger logr.Logger, sessionKey string, clie
 			}
 
 			logger.Info("rest client session expired, clearing session")
-			if errLogout := rc.Logout(ctx); errLogout != nil {
-				logger.Error(err, "failed to logout keepalive failed rest session")
-			}
 			sessionCache.Delete(sessionKey)
 			return errors.New("rest client session expired")
 		})

@@ -33,6 +33,11 @@ var _ = Describe("Service Discovery controller integration tests", func() {
 	)
 	BeforeEach(func() {
 		intCtx = helpers.NewIntegrationTestContextWithClusters(ctx, testEnv.Manager.GetClient())
+		By("Creating the Cluster, vSphereCluster and KubeconfigSecret", func() {
+			helpers.CreateAndWait(ctx, intCtx.Client, intCtx.Cluster)
+			helpers.CreateAndWait(ctx, intCtx.Client, intCtx.VSphereCluster)
+			helpers.CreateAndWait(ctx, intCtx.Client, intCtx.KubeconfigSecret)
+		})
 	})
 	AfterEach(func() {
 		intCtx.AfterEach()

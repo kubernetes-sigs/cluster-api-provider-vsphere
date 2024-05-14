@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"path"
-	"time"
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -52,11 +51,9 @@ import (
 const capvNamespace = "capv-system"
 
 type VSphereVMReconciler struct {
-	Client            client.Client
-	InMemoryManager   inmemoryruntime.Manager
-	APIServerMux      *inmemoryserver.WorkloadClustersMux
-	EnableKeepAlive   bool
-	KeepAliveDuration time.Duration
+	Client          client.Client
+	InMemoryManager inmemoryruntime.Manager
+	APIServerMux    *inmemoryserver.WorkloadClustersMux
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -254,9 +251,7 @@ func (r *VSphereVMReconciler) reconcileDelete(ctx context.Context, cluster *clus
 
 func (r *VSphereVMReconciler) getVMIpReconciler(vSphereCluster *infrav1.VSphereCluster, vSphereVM *infrav1.VSphereVM) *vmIPReconciler {
 	return &vmIPReconciler{
-		Client:            r.Client,
-		EnableKeepAlive:   r.EnableKeepAlive,
-		KeepAliveDuration: r.KeepAliveDuration,
+		Client: r.Client,
 
 		// Type specific functions; those functions wraps the differences between govmomi and supervisor types,
 		// thus allowing to use the same vmIPReconciler in both scenarios.
@@ -308,11 +303,7 @@ func (r *VSphereVMReconciler) getVCenterSession(ctx context.Context, vSphereClus
 		WithServer(vSphereVM.Spec.Server).
 		WithDatacenter(vSphereVM.Spec.Datacenter).
 		WithUserInfo(creds.Username, creds.Password).
-		WithThumbprint(vSphereVM.Spec.Thumbprint).
-		WithFeatures(session.Feature{
-			EnableKeepAlive:   r.EnableKeepAlive,
-			KeepAliveDuration: r.KeepAliveDuration,
-		})
+		WithThumbprint(vSphereVM.Spec.Thumbprint)
 
 	return session.GetOrCreate(ctx, params)
 }

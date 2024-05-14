@@ -57,7 +57,6 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/constants"
 	vcsimv1 "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/api/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/controllers"
 )
@@ -90,9 +89,6 @@ var (
 	controlPlaneEndpointConcurrency   int
 	envsubstConcurrency               int
 	vmOperatorDependenciesConcurrency int
-	// vsphere session specific flags.
-	enableKeepAlive   bool
-	keepAliveDuration time.Duration
 )
 
 func init() {
@@ -170,12 +166,6 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	fs.StringVar(&healthAddr, "health-addr", ":9440",
 		"The address the health endpoint binds to.")
-
-	fs.BoolVar(&enableKeepAlive, "enable-keep-alive", constants.DefaultEnableKeepAlive,
-		"feature to enable keep alive handler in vsphere sessions. This functionality is enabled by default.")
-
-	fs.DurationVar(&keepAliveDuration, "keep-alive-duration", constants.DefaultKeepAliveDuration,
-		"idle time interval(minutes) in between send() requests in keepalive handler")
 
 	flags.AddDiagnosticsOptions(fs, &diagnosticsOptions)
 
@@ -353,12 +343,10 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, supervisorMode bool
 
 	if supervisorMode {
 		if err := (&controllers.VirtualMachineReconciler{
-			Client:            mgr.GetClient(),
-			InMemoryManager:   inmemoryManager,
-			APIServerMux:      apiServerMux,
-			EnableKeepAlive:   enableKeepAlive,
-			KeepAliveDuration: keepAliveDuration,
-			WatchFilterValue:  watchFilterValue,
+			Client:           mgr.GetClient(),
+			InMemoryManager:  inmemoryManager,
+			APIServerMux:     apiServerMux,
+			WatchFilterValue: watchFilterValue,
 		}).SetupWithManager(ctx, mgr, concurrency(virtualMachineConcurrency)); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "VirtualMachineReconciler")
 			os.Exit(1)
@@ -373,12 +361,10 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, supervisorMode bool
 		}
 	} else {
 		if err := (&controllers.VSphereVMReconciler{
-			Client:            mgr.GetClient(),
-			InMemoryManager:   inmemoryManager,
-			APIServerMux:      apiServerMux,
-			EnableKeepAlive:   enableKeepAlive,
-			KeepAliveDuration: keepAliveDuration,
-			WatchFilterValue:  watchFilterValue,
+			Client:           mgr.GetClient(),
+			InMemoryManager:  inmemoryManager,
+			APIServerMux:     apiServerMux,
+			WatchFilterValue: watchFilterValue,
 		}).SetupWithManager(ctx, mgr, concurrency(vSphereVMConcurrency)); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "VSphereVMReconciler")
 			os.Exit(1)

@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"time"
 
 	"github.com/pkg/errors"
 	"github.com/vmware/govmomi/vim25/types"
@@ -31,9 +30,7 @@ import (
 )
 
 type vmIPReconciler struct {
-	Client            client.Client
-	EnableKeepAlive   bool
-	KeepAliveDuration time.Duration
+	Client client.Client
 
 	IsVMWaitingforIP  func() bool
 	GetVCenterSession func(ctx context.Context) (*session.Session, error)

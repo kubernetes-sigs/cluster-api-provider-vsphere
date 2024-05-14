@@ -53,7 +53,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/controllers"
 	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
 	"sigs.k8s.io/cluster-api-provider-vsphere/internal/webhooks"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/constants"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
@@ -88,13 +87,11 @@ var (
 	tlsOptions         = capiflags.TLSOptions{}
 	diagnosticsOptions = capiflags.DiagnosticsOptions{}
 
-	defaultProfilerAddr      = os.Getenv("PROFILER_ADDR")
-	defaultSyncPeriod        = manager.DefaultSyncPeriod
-	defaultLeaderElectionID  = manager.DefaultLeaderElectionID
-	defaultPodName           = manager.DefaultPodName
-	defaultWebhookPort       = manager.DefaultWebhookServiceContainerPort
-	defaultEnableKeepAlive   = constants.DefaultEnableKeepAlive
-	defaultKeepAliveDuration = constants.DefaultKeepAliveDuration
+	defaultProfilerAddr     = os.Getenv("PROFILER_ADDR")
+	defaultSyncPeriod       = manager.DefaultSyncPeriod
+	defaultLeaderElectionID = manager.DefaultLeaderElectionID
+	defaultPodName          = manager.DefaultPodName
+	defaultWebhookPort      = manager.DefaultWebhookServiceContainerPort
 )
 
 // InitFlags initializes the flags.
@@ -143,21 +140,7 @@ func InitFlags(fs *pflag.FlagSet) {
 		"/etc/capv/credentials.yaml",
 		"path to CAPV's credentials file",
 	)
-	fs.BoolVar(
-		&managerOpts.EnableKeepAlive,
-		"enable-keep-alive",
-		defaultEnableKeepAlive,
-		"feature to enable keep alive handler in vsphere sessions. This functionality is disabled by default.")
-	_ = fs.MarkDeprecated("enable-keep-alive", "This flag has been deprecated and will be removed in a "+
-		"future release. Note: This feature has been disabled per default because we determined that we already keep alive "+
-		"sessions just by our regular reconciles. So we don't need an additional keep alive handler. Enabling "+
-		"this feature may lead to a deadlock in controllers communicating with vCenter.")
-	fs.DurationVar(
-		&managerOpts.KeepAliveDuration,
-		"keep-alive-duration",
-		defaultKeepAliveDuration,
-		"idle time interval(minutes) in between send() requests in keepalive handler",
-	)
+
 	fs.StringVar(
 		&managerOpts.NetworkProvider,
 		"network-provider",

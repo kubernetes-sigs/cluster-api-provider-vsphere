@@ -87,8 +87,6 @@ func New(ctx context.Context, opts Options) (Manager, error) {
 		Scheme:                  opts.Scheme,
 		Username:                opts.Username,
 		Password:                opts.Password,
-		EnableKeepAlive:         opts.EnableKeepAlive,
-		KeepAliveDuration:       opts.KeepAliveDuration,
 		NetworkProvider:         opts.NetworkProvider,
 		WatchFilterValue:        opts.WatchFilterValue,
 	}

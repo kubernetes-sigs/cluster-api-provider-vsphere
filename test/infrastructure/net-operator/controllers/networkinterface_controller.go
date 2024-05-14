@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"time"
 
 	"github.com/pkg/errors"
 	netopv1alpha1 "github.com/vmware-tanzu/net-operator-api/api/v1alpha1"
@@ -36,9 +35,7 @@ import (
 )
 
 type NetworkInterfaceReconciler struct {
-	Client            client.Client
-	EnableKeepAlive   bool
-	KeepAliveDuration time.Duration
+	Client client.Client
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -76,7 +73,7 @@ func (r *NetworkInterfaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}()
 
 	if networkInterface.Status.NetworkID == "" {
-		s, err := vmoperator.GetVCenterSession(ctx, r.Client, r.EnableKeepAlive, r.KeepAliveDuration)
+		s, err := vmoperator.GetVCenterSession(ctx, r.Client)
 		if err != nil {
 			return reconcile.Result{}, errors.Wrapf(err, "failed to get vcenter session")
 		}

@@ -50,7 +50,6 @@ import (
 	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/constants"
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/net-operator/controllers"
 )
 
@@ -76,9 +75,6 @@ var (
 	logOptions                  = logs.NewOptions()
 	// net operator specific flags.
 	networkInterfaceConcurrency int
-	// vsphere session specific flags.
-	enableKeepAlive   bool
-	keepAliveDuration time.Duration
 )
 
 func init() {
@@ -129,12 +125,6 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	fs.StringVar(&healthAddr, "health-addr", ":9440",
 		"The address the health endpoint binds to.")
-
-	fs.BoolVar(&enableKeepAlive, "enable-keep-alive", constants.DefaultEnableKeepAlive,
-		"feature to enable keep alive handler in vsphere sessions. This functionality is enabled by default.")
-
-	fs.DurationVar(&keepAliveDuration, "keep-alive-duration", constants.DefaultKeepAliveDuration,
-		"idle time interval(minutes) in between send() requests in keepalive handler")
 
 	flags.AddDiagnosticsOptions(fs, &diagnosticsOptions)
 
@@ -205,13 +195,6 @@ func main() {
 				},
 			},
 		},
-		// WebhookServer: webhook.NewServer(
-		//	webhook.Options{
-		//		Port:    webhookPort,
-		//		CertDir: webhookCertDir,
-		//		TLSOpts: tlsOptionOverrides,
-		//	},
-		// ),
 	}
 
 	mgr, err := ctrl.NewManager(restConfig, ctrlOptions)
@@ -267,10 +250,8 @@ func setupIndexes(_ context.Context, _ ctrl.Manager, _ bool) {
 
 func setupReconcilers(ctx context.Context, mgr ctrl.Manager, _ bool) {
 	if err := (&controllers.NetworkInterfaceReconciler{
-		Client:            mgr.GetClient(),
-		EnableKeepAlive:   enableKeepAlive,
-		KeepAliveDuration: keepAliveDuration,
-		WatchFilterValue:  watchFilterValue,
+		Client:           mgr.GetClient(),
+		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr, concurrency(networkInterfaceConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "NetworkInterfaceReconciler")
 		os.Exit(1)

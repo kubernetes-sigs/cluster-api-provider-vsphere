@@ -43,18 +43,30 @@ on_exit() {
   # kill the VPN
   docker kill vpn
 
-  # logout of gcloud
-  if [ "${AUTH}" ]; then
-    gcloud auth revoke
-  fi
-
   # Cleanup VSPHERE_PASSWORD from temporary artifacts directory.
   if [[ "${ORIGINAL_ARTIFACTS}" != "" ]]; then
-    grep -r -l -e "${VSPHERE_PASSWORD}" "${ARTIFACTS}" | while IFS= read -r file
+    # Delete non-text files from artifacts directory to not leak files accidentially
+    find "${ARTIFACTS}" -type f -exec file --mime-type {} \; | grep -v -E -e "text/plain|text/xml|application/json|inode/x-empty" | while IFS= read -r line
     do
-      echo "Cleaning up VSPHERE_PASSWORD from file ${file}"
-      sed -i "s/${VSPHERE_PASSWORD}/REDACTED/g" "${file}"
-    done
+      file="$(echo "${line}" | cut -d ':' -f1)"
+      mimetype="$(echo "${line}" | cut -d ':' -f2)"
+      echo "Deleting file ${file} of type ${mimetype}"
+      rm "${file}"
+    done || true
+    # Replace secret and base64 secret in all files.
+    if [ -n "$VSPHERE_PASSWORD" ]; then
+      grep -I -r -l -e "${VSPHERE_PASSWORD}" "${ARTIFACTS}" | while IFS= read -r file
+      do
+        echo "Cleaning up VSPHERE_PASSWORD from file ${file}"
+        sed -i "s/${VSPHERE_PASSWORD}/REDACTED/g" "${file}"
+      done || true
+      VSPHERE_PASSWORD_B64=$(echo -n "${VSPHERE_PASSWORD}" | base64 --wrap=0)
+      grep -I -r -l -e "${VSPHERE_PASSWORD_B64}" "${ARTIFACTS}" | while IFS= read -r file
+      do
+        echo "Cleaning up VSPHERE_PASSWORD_B64 from file ${file}"
+        sed -i "s/${VSPHERE_PASSWORD_B64}/REDACTED/g" "${file}"
+      done || true
+    fi
     # Move all artifacts to the original artifacts location.
     mv "${ARTIFACTS}"/* "${ORIGINAL_ARTIFACTS}/"
   fi
@@ -62,16 +74,6 @@ on_exit() {
 
 trap on_exit EXIT
 
-function login() {
-  # If GCR_KEY_FILE is set, use that service account to login
-  if [ "${GCR_KEY_FILE}" ]; then
-    gcloud auth activate-service-account --key-file "${GCR_KEY_FILE}" || fatal "unable to login"
-    AUTH=1
-  fi
-}
-
-AUTH=
-GCR_KEY_FILE="${GCR_KEY_FILE:-}"
 export VSPHERE_SERVER="${GOVC_URL}"
 export VSPHERE_USERNAME="${GOVC_USERNAME}"
 export VSPHERE_PASSWORD="${GOVC_PASSWORD}"
@@ -89,10 +91,6 @@ docker run --rm -d --name vpn -v "${HOME}/.openvpn/:${HOME}/.openvpn/" \
 
 # Tail the vpn logs
 docker logs vpn
-
-# Sleep to allow vpn container to start running
-sleep 30
-
 
 function kubectl_get_jsonpath() {
   local OBJECT_KIND="${1}"
@@ -126,6 +124,21 @@ function claim_ip() {
 }
 
 export KUBECONFIG="/root/ipam-conf/capv-services.conf"
+
+# Wait until the VPN connection is active and we are able to reach the ipam cluster
+function wait_for_ipam_reachable() {
+  local n=0
+  until [ $n -ge 30 ]; do
+    kubectl --kubeconfig="${KUBECONFIG}" --request-timeout=2s  get inclusterippools.ipam.cluster.x-k8s.io && RET=$? || RET=$?
+    if [[ "$RET" -eq 0 ]]; then
+      break
+    fi
+    n=$((n + 1))
+    sleep 1
+  done
+  return "$RET"
+}
+wait_for_ipam_reachable
 
 make envsubst
 

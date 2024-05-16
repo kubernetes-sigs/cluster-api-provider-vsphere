@@ -9,7 +9,6 @@
 
 - [Prepare main branch for development of the new release](#prepare-main-branch-for-development-of-the-new-release)
 - [Remove previously deprecated code](#remove-previously-deprecated-code)
-- [[Optional] Bump the Kubernetes version](#optional-bump-the-kubernetes-version)
 - [Bump dependencies](#bump-dependencies)
 - [Create a release branch](#create-a-release-branch)
 - [Cut a release](#cut-a-release)
@@ -62,10 +61,6 @@ The goal of this task is to remove all previously deprecated code that can be no
    we have to keep the old code.
 
 Prior art: TODO(sbueringer): link example PR
-
-## [Optional] Bump the Kubernetes version
-
-TODO(sbueringer): Write this when we do it the next time
 
 ## Bump dependencies
 

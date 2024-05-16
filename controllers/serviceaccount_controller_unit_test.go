@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"os"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -72,10 +71,7 @@ func unitTestsReconcileNormal() {
 			namespace = capiutil.RandomString(6)
 			obj := fake.NewVSphereCluster(namespace)
 			vsphereCluster = &obj
-			_ = os.Setenv("SERVICE_ACCOUNTS_CM_NAMESPACE", testSystemSvcAcctNs)
-			_ = os.Setenv("SERVICE_ACCOUNTS_CM_NAME", testSystemSvcAcctCM)
 			initObjects = []client.Object{
-				getSystemServiceAccountsConfigMap(testSystemSvcAcctNs, testSystemSvcAcctCM),
 				getTestProviderServiceAccount(namespace, vsphereCluster, false),
 			}
 		})

@@ -35,10 +35,8 @@ import (
 )
 
 const (
-	testTargetNS        = "test-pvcsi-system"
-	testTargetSecret    = "test-pvcsi-secret" //nolint:gosec //Non-production code.
-	testSystemSvcAcctNs = "test-system-svc-acct-namespace"
-	testSystemSvcAcctCM = "test-system-svc-acct-cm"
+	testTargetNS     = "test-pvcsi-system"
+	testTargetSecret = "test-pvcsi-secret" //nolint:gosec //Non-production code.
 
 	testSecretToken = "ZXlKaGJHY2lPaUpTVXpJMU5pSXNJbXRwWkNJNklp" //nolint:gosec //Non-production code.
 )
@@ -226,19 +224,6 @@ func getTestProviderServiceAccount(namespace string, vSphereCluster *vmwarev1.VS
 		}
 	}
 	return pSvcAccount
-}
-
-func getSystemServiceAccountsConfigMap(namespace, name string) *corev1.ConfigMap {
-	return &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      name,
-		},
-		Data: map[string]string{
-			"system-account-1": "true",
-			"system-account-2": "true",
-		},
-	}
 }
 
 func getTestRoleWithGetPod(namespace, name string) *rbacv1.Role {

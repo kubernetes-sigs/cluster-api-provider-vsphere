@@ -22,12 +22,18 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/vmware/govmomi"
+	"github.com/vmware/govmomi/find"
+	"github.com/vmware/govmomi/vim25/mo"
 	"golang.org/x/crypto/ssh"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/klog/v2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -39,20 +45,19 @@ const (
 	VSpherePrivateKeyFilePath = "VSPHERE_SSH_PRIVATE_KEY"
 )
 
-type MachineLogCollector struct{}
+type MachineLogCollector struct {
+	Client *govmomi.Client
+	Finder *find.Finder
+}
 
-func (collector MachineLogCollector) CollectMachinePoolLog(_ context.Context, _ client.Client, _ *expv1.MachinePool, _ string) error {
+func (c *MachineLogCollector) CollectMachinePoolLog(_ context.Context, _ client.Client, _ *expv1.MachinePool, _ string) error {
 	return nil
 }
 
-func (collector MachineLogCollector) CollectMachineLog(_ context.Context, _ client.Client, m *clusterv1.Machine, outputPath string) error {
-	var hostIPAddr string
-	for _, address := range m.Status.Addresses {
-		if address.Type != clusterv1.MachineExternalIP {
-			continue
-		}
-		hostIPAddr = address.Address
-		break
+func (c *MachineLogCollector) CollectMachineLog(ctx context.Context, _ client.Client, m *clusterv1.Machine, outputPath string) error {
+	machineIPAddresses, err := c.machineIPAddresses(ctx, m)
+	if err != nil {
+		return err
 	}
 
 	captureLogs := func(hostFileName, command string, args ...string) func() error {
@@ -62,7 +67,20 @@ func (collector MachineLogCollector) CollectMachineLog(_ context.Context, _ clie
 				return err
 			}
 			defer f.Close()
-			return executeRemoteCommand(f, hostIPAddr, command, args...)
+			var errs []error
+			// Try with all available IPs unless it succeeded.
+			for _, machineIPAddress := range machineIPAddresses {
+				if err := executeRemoteCommand(f, machineIPAddress, command, args...); err != nil {
+					errs = append(errs, err)
+					continue
+				}
+				return nil
+			}
+
+			if err := kerrors.NewAggregate(errs); err != nil {
+				return errors.Wrapf(err, "failed to run command %s for machine %s on ips [%s]", command, klog.KObj(m), strings.Join(machineIPAddresses, ", "))
+			}
+			return nil
 		}
 	}
 
@@ -78,8 +96,51 @@ func (collector MachineLogCollector) CollectMachineLog(_ context.Context, _ clie
 	})
 }
 
-func (collector MachineLogCollector) CollectInfrastructureLogs(_ context.Context, _ client.Client, _ *clusterv1.Cluster, _ string) error {
+func (c *MachineLogCollector) CollectInfrastructureLogs(_ context.Context, _ client.Client, _ *clusterv1.Cluster, _ string) error {
 	return nil
+}
+
+func (c *MachineLogCollector) machineIPAddresses(ctx context.Context, m *clusterv1.Machine) ([]string, error) {
+	for _, address := range m.Status.Addresses {
+		if address.Type != clusterv1.MachineExternalIP {
+			continue
+		}
+		return []string{address.Address}, nil
+	}
+
+	vmObj, err := c.Finder.VirtualMachine(ctx, m.GetName())
+	if err != nil {
+		return nil, err
+	}
+
+	var vm mo.VirtualMachine
+
+	if err := c.Client.RetrieveOne(ctx, vmObj.Reference(), []string{"guest.net"}, &vm); err != nil {
+		// We cannot get the properties e.g. when the vm already got deleted or is getting deleted.
+		return nil, errors.Errorf("error retrieving properties for machine %s", klog.KObj(m))
+	}
+
+	addresses := []string{}
+
+	// Return all IPs so we can try each of them until one succeeded.
+	for _, nic := range vm.Guest.Net {
+		if nic.IpConfig == nil {
+			continue
+		}
+		for _, ip := range nic.IpConfig.IpAddress {
+			netIP := net.ParseIP(ip.IpAddress)
+			ipv4 := netIP.To4()
+			if ipv4 != nil {
+				addresses = append(addresses, ip.IpAddress)
+			}
+		}
+	}
+
+	if len(addresses) == 0 {
+		return nil, errors.Errorf("unable to find IP Addresses for Machine %s", klog.KObj(m))
+	}
+
+	return addresses, nil
 }
 
 func createOutputFile(path string) (*os.File, error) {

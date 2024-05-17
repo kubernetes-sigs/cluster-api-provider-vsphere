@@ -1,0 +1,3 @@
+- op: add
+  path: /spec/template/spec/users/0/name
+  value: "capv"

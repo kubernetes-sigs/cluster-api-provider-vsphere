@@ -266,7 +266,10 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	// vspherelog.MachineLogCollector tries to ssh to the machines to collect logs.
 	// This does not work when using vcsim because there are no real machines running ssh.
 	if testTarget != VCSimTestTarget {
-		clusterProxyOptions = append(clusterProxyOptions, framework.WithMachineLogCollector(vspherelog.MachineLogCollector{}))
+		clusterProxyOptions = append(clusterProxyOptions, framework.WithMachineLogCollector(&vspherelog.MachineLogCollector{
+			Client: vsphereClient,
+			Finder: vsphereFinder,
+		}))
 	}
 	bootstrapClusterProxy = framework.NewClusterProxy("bootstrap", kubeconfigPath, initScheme(), clusterProxyOptions...)
 

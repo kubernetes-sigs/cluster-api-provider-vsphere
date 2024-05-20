@@ -21,11 +21,11 @@ import (
 	capie2e "sigs.k8s.io/cluster-api/test/e2e"
 )
 
-var _ = Describe("When testing ClusterClass changes [ClusterClass]", func() {
+var _ = Describe("When testing ClusterClass changes [supervisor] [ClusterClass]", func() {
 	const specName = "clusterclass-changes" // copied from CAPI
 	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		capie2e.ClusterClassChangesSpec(ctx, func() capie2e.ClusterClassChangesSpecInput {
-			return capie2e.ClusterClassChangesSpecInput{
+			clusterClassChangesSpecInput := capie2e.ClusterClassChangesSpecInput{
 				E2EConfig:             e2eConfig,
 				ClusterctlConfigPath:  testSpecificSettingsGetter().ClusterctlConfigPath,
 				BootstrapClusterProxy: bootstrapClusterProxy,
@@ -34,15 +34,25 @@ var _ = Describe("When testing ClusterClass changes [ClusterClass]", func() {
 				Flavor:                testSpecificSettingsGetter().FlavorForMode("topology"),
 				PostNamespaceCreated:  testSpecificSettingsGetter().PostNamespaceCreatedFunc,
 				ModifyControlPlaneFields: map[string]interface{}{
-					"spec.machineTemplate.nodeDrainTimeout": "10s",
+					"spec.kubeadmConfigSpec.verbosity": int64(4),
 				},
 				ModifyMachineDeploymentBootstrapConfigTemplateFields: map[string]interface{}{
 					"spec.template.spec.verbosity": int64(4),
 				},
-				ModifyMachineDeploymentInfrastructureMachineTemplateFields: map[string]interface{}{
-					"spec.template.spec.numCPUs": int64(4),
-				},
 			}
+
+			if testMode == GovmomiTestMode {
+				clusterClassChangesSpecInput.ModifyMachineDeploymentInfrastructureMachineTemplateFields = map[string]interface{}{
+					"spec.template.spec.numCPUs": int64(4),
+				}
+			}
+
+			if testMode == SupervisorTestMode {
+				clusterClassChangesSpecInput.ModifyMachineDeploymentInfrastructureMachineTemplateFields = map[string]interface{}{
+					"spec.template.spec.powerOffMode": "trySoft",
+				}
+			}
+			return clusterClassChangesSpecInput
 		})
 	})
 })

@@ -25,6 +25,7 @@ SHELL:=/usr/bin/env bash
 #
 GO_VERSION ?= 1.21.9
 GO_CONTAINER_IMAGE ?= docker.io/library/golang:$(GO_VERSION)
+GO_DIRECTIVE_VERSION ?= 1.21.0
 
 # Use GOPROXY environment variable if set
 GOPROXY := $(shell go env GOPROXY)
@@ -424,10 +425,14 @@ APIDIFF_OLD_COMMIT ?= $(shell git rev-parse origin/main)
 apidiff: $(GO_APIDIFF) ## Check for API differences
 	$(GO_APIDIFF) $(APIDIFF_OLD_COMMIT) --print-compatible
 
-ALL_VERIFY_CHECKS = licenses boilerplate shellcheck modules gen conversions doctoc flavors import-restrictions
+ALL_VERIFY_CHECKS = licenses boilerplate shellcheck modules gen conversions doctoc flavors import-restrictions go-directive
 
 .PHONY: verify
 verify: $(addprefix verify-,$(ALL_VERIFY_CHECKS)) ## Run all verify-* targets
+
+.PHONY: verify-go-directive
+verify-go-directive:
+	TRACE=$(TRACE) ./hack/verify-go-directive.sh -g $(GO_DIRECTIVE_VERSION)
 
 .PHONY: verify-modules
 verify-modules: generate-modules  ## Verify go modules are up to date

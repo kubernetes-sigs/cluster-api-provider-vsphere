@@ -14,3 +14,10 @@ patches:
   - target:
       kind: VSphereMachineTemplate
     path: ../commons/remove-storage-policy.yaml
+  # Replace ssh user to match expected user by the e2e machine collector
+  - target:
+      kind: KubeadmControlPlane
+    path: patch-user-kcp.yaml
+  - target:
+      kind: KubeadmConfigTemplate
+    path: patch-user-md.yaml

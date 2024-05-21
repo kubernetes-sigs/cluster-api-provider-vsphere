@@ -26,6 +26,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/vmware/govmomi"
@@ -37,7 +38,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	kinderrors "sigs.k8s.io/kind/pkg/errors"
 )
 
 const (
@@ -84,7 +84,7 @@ func (c *MachineLogCollector) CollectMachineLog(ctx context.Context, _ client.Cl
 		}
 	}
 
-	return kinderrors.AggregateConcurrent([]func() error{
+	return aggregateConcurrent(
 		captureLogs("kubelet.log",
 			"sudo journalctl", "--no-pager", "--output=short-precise", "-u", "kubelet.service"),
 		captureLogs("containerd.log",
@@ -93,7 +93,7 @@ func (c *MachineLogCollector) CollectMachineLog(ctx context.Context, _ client.Cl
 			"sudo", "cat", "/var/log/cloud-init.log"),
 		captureLogs("cloud-init-output.log",
 			"sudo", "cat", "/var/log/cloud-init-output.log"),
-	})
+	)
 }
 
 func (c *MachineLogCollector) CollectInfrastructureLogs(_ context.Context, _ client.Client, _ *clusterv1.Cluster, _ string) error {
@@ -215,4 +215,29 @@ func readPrivateKey() ([]byte, error) {
 	}
 
 	return os.ReadFile(filepath.Clean(privateKeyFilePath))
+}
+
+// aggregateConcurrent runs fns concurrently, returning aggregated errors.
+func aggregateConcurrent(funcs ...func() error) error {
+	// run all fns concurrently
+	ch := make(chan error, len(funcs))
+	var wg sync.WaitGroup
+	for _, f := range funcs {
+		f := f
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			ch <- f()
+		}()
+	}
+	wg.Wait()
+	close(ch)
+	// collect up and return errors
+	errs := []error{}
+	for err := range ch {
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return kerrors.NewAggregate(errs)
 }

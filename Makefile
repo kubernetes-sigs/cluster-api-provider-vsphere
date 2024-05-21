@@ -98,7 +98,7 @@ endif
 
 # Helper function to get dependency version from go.mod
 get_go_version = $(shell go list -m $1 | awk '{print $$NF}')
-get_test_go_version = $(shell cat test/go.mod | grep $1 | awk '{print $$NF}')
+get_test_go_version = $(shell cat test/go.mod | grep $1 | awk '{print $$2}')
 
 #
 # Binaries.

@@ -17,7 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	"os"
 	"reflect"
 
 	"github.com/google/uuid"
@@ -42,11 +41,6 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 
 	BeforeEach(func() {
 		intCtx = helpers.NewIntegrationTestContextWithClusters(ctx, testEnv.Manager.GetClient())
-		testSystemSvcAcctCM := "test-system-svc-acct-cm"
-		cfgMap := getSystemServiceAccountsConfigMap(intCtx.VSphereCluster.Namespace, testSystemSvcAcctCM)
-		Expect(intCtx.Client.Create(ctx, cfgMap)).To(Succeed())
-		_ = os.Setenv("SERVICE_ACCOUNTS_CM_NAMESPACE", intCtx.VSphereCluster.Namespace)
-		_ = os.Setenv("SERVICE_ACCOUNTS_CM_NAME", testSystemSvcAcctCM)
 	})
 
 	AfterEach(func() {

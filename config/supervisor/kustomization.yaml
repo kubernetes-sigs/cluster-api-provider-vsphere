@@ -17,9 +17,6 @@ resources:
   - crd/bases/vmware.infrastructure.cluster.x-k8s.io_providerserviceaccounts.yaml
   - ./webhook
 
-patchesStrategicMerge:
-  - add-configmap-env-vars.yaml
-
 vars:
   - name: CERTIFICATE_NAMESPACE # namespace of the certificate CR
     objref:

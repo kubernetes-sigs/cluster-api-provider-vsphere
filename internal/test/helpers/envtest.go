@@ -179,6 +179,10 @@ func NewTestEnvironment(ctx context.Context) *TestEnvironment {
 			return err
 		}
 
+		if err := (&webhooks.ProviderServiceAccountWebhook{}).SetupWebhookWithManager(mgr); err != nil {
+			return err
+		}
+
 		return (&webhooks.VSphereFailureDomainWebhook{}).SetupWebhookWithManager(mgr)
 	}
 

@@ -76,7 +76,7 @@ webhooks:
       path: /mutate-infrastructure-cluster-x-k8s-io-v1beta1-vspherevm
   failurePolicy: Fail
   matchPolicy: Equivalent
-  name: default.vspherevm.infrastructure.x-k8s.io
+  name: default.vspherevm.infrastructure.cluster.x-k8s.io
   rules:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
@@ -103,7 +103,7 @@ webhooks:
       path: /validate-infrastructure-cluster-x-k8s-io-v1beta1-vsphereclustertemplate
   failurePolicy: Fail
   matchPolicy: Equivalent
-  name: validation.vsphereclustertemplate.infrastructure.x-k8s.io
+  name: validation.vsphereclustertemplate.infrastructure.cluster.x-k8s.io
   rules:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
@@ -145,7 +145,7 @@ webhooks:
       path: /validate-infrastructure-cluster-x-k8s-io-v1beta1-vspheremachine
   failurePolicy: Fail
   matchPolicy: Equivalent
-  name: validation.vspheremachine.infrastructure.x-k8s.io
+  name: validation.vspheremachine.infrastructure.cluster.x-k8s.io
   rules:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
@@ -166,7 +166,7 @@ webhooks:
       path: /validate-infrastructure-cluster-x-k8s-io-v1beta1-vspheremachinetemplate
   failurePolicy: Fail
   matchPolicy: Equivalent
-  name: validation.vspheremachinetemplate.infrastructure.x-k8s.io
+  name: validation.vspheremachinetemplate.infrastructure.cluster.x-k8s.io
   rules:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
@@ -187,7 +187,7 @@ webhooks:
       path: /validate-infrastructure-cluster-x-k8s-io-v1beta1-vspherevm
   failurePolicy: Fail
   matchPolicy: Equivalent
-  name: validation.vspherevm.infrastructure.x-k8s.io
+  name: validation.vspherevm.infrastructure.cluster.x-k8s.io
   rules:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io

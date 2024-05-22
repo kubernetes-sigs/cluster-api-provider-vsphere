@@ -19,7 +19,9 @@ package test
 import (
 	"context"
 	"fmt"
+	"net"
 	"reflect"
+	"strconv"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -30,16 +32,19 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"k8s.io/klog/v2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/controllers"
+	vmwarewebhooks "sigs.k8s.io/cluster-api-provider-vsphere/internal/webhooks/vmware"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
 )
@@ -223,6 +228,13 @@ func getManager(cfg *rest.Config, networkProvider string) manager.Manager {
 			Metrics: metricsserver.Options{
 				BindAddress: "0",
 			},
+			WebhookServer: webhook.NewServer(
+				webhook.Options{
+					Port:    testEnv.WebhookInstallOptions.LocalServingPort,
+					CertDir: testEnv.WebhookInstallOptions.LocalServingCertDir,
+					Host:    "0.0.0.0",
+				},
+			),
 		},
 		KubeConfig:      cfg,
 		NetworkProvider: networkProvider,
@@ -235,6 +247,9 @@ func getManager(cfg *rest.Config, networkProvider string) manager.Manager {
 			return err
 		}
 
+		if err := (&vmwarewebhooks.VSphereMachineWebhook{}).SetupWebhookWithManager(mgr); err != nil {
+			return err
+		}
 		return controllers.AddMachineControllerToManager(ctx, controllerCtx, mgr, true, controllerOpts)
 	}
 
@@ -256,9 +271,31 @@ func initManagerAndBuildClient(networkProvider string) (client.Client, context.C
 		if managerRuntimeError != nil {
 			_, _ = fmt.Fprintln(GinkgoWriter, "Manager failed at runtime")
 		}
+		// wait for webhook port to be open prior to running tests
+		waitForWebhooks()
 	}()
 
 	return k8sClient, managerCancel
+}
+
+func waitForWebhooks() {
+	port := testEnv.WebhookInstallOptions.LocalServingPort
+
+	klog.V(2).Infof("Waiting for webhook port %d to be open prior to running tests", port)
+	timeout := 1 * time.Second
+	for {
+		time.Sleep(1 * time.Second)
+		conn, err := net.DialTimeout("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(port)), timeout)
+		if err != nil {
+			klog.V(2).Infof("Webhook port is not ready, will retry in %v: %s", timeout, err)
+			continue
+		}
+		if err := conn.Close(); err != nil {
+			klog.V(2).Info("Connection to webhook port could not be closed. Continuing with tests...")
+		}
+		klog.V(2).Info("Webhook port is now open. Continuing with tests...")
+		return
+	}
 }
 
 func prepareClient(isLoadBalanced bool) (cli client.Client, cancelation context.CancelFunc) {

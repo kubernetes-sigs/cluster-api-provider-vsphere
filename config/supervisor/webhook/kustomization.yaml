@@ -1,0 +1,9 @@
+resources:
+- service.yaml
+- manifests.yaml
+
+configurations:
+  - kustomizeconfig.yaml
+
+patchesStrategicMerge:
+  - webhookcainjection_patch.yaml

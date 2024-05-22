@@ -19,9 +19,6 @@ package helpers
 import (
 	"net"
 	"os"
-	"path"
-	"path/filepath"
-	goruntime "runtime"
 	"strconv"
 	"time"
 
@@ -76,14 +73,12 @@ func appendWebhookConfiguration(configyamlFile []byte, tag string) ([]*v1.Mutati
 	return mutatingWebhooks, validatingWebhooks, err
 }
 
-func initializeWebhookInEnvironment() {
-	// Get the root of the current file to use in CRD paths.
-	_, filename, _, ok := goruntime.Caller(0)
-	if !ok {
-		klog.Fatalf("Failed to get information for current file from runtime")
+// InitializeWebhookInEnvironment initializes WebhookInstallOptions for the provided environment.
+func InitializeWebhookInEnvironment(e *envtest.Environment, configPath string) {
+	if configPath == "" {
+		klog.Fatalf("webhook configuration path is empty")
 	}
-	root := path.Join(path.Dir(filename), "..", "..", "..")
-	configyamlFile, err := os.ReadFile(filepath.Clean(filepath.Join(root, "config", "webhook", "manifests.yaml")))
+	configyamlFile, err := os.ReadFile(configPath) //nolint:gosec
 	if err != nil {
 		klog.Fatalf("Failed to read core webhook configuration file: %v ", err)
 	}
@@ -96,7 +91,7 @@ func initializeWebhookInEnvironment() {
 		klog.Fatalf("Failed to append core controller webhook config: %v", err)
 	}
 
-	env.WebhookInstallOptions = envtest.WebhookInstallOptions{
+	e.WebhookInstallOptions = envtest.WebhookInstallOptions{
 		MaxTime:            20 * time.Second,
 		PollInterval:       time.Second,
 		ValidatingWebhooks: validatingWebhooks,

@@ -1,0 +1,8 @@
+vsphere_password = ""
+vsphere_server = ""
+nsxt_user = ""
+nsxt_password = ""
+nsxt_server = ""
+vsphere_datacenter = ""
+vsphere_cluster = ""
+vsphere_datastorename = ""

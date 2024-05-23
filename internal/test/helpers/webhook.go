@@ -103,19 +103,19 @@ func InitializeWebhookInEnvironment(e *envtest.Environment, configPath string) {
 func (t *TestEnvironment) WaitForWebhooks() {
 	port := env.WebhookInstallOptions.LocalServingPort
 
-	klog.V(2).Infof("Waiting for webhook port %d to be open prior to running tests", port)
+	klog.Infof("Waiting for webhook port %d to be open prior to running tests", port)
 	timeout := 1 * time.Second
 	for {
 		time.Sleep(1 * time.Second)
 		conn, err := net.DialTimeout("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(port)), timeout)
 		if err != nil {
-			klog.V(2).Infof("Webhook port is not ready, will retry in %v: %s", timeout, err)
+			klog.Infof("Webhook port is not ready, will retry in %v: %s", timeout, err)
 			continue
 		}
 		if err := conn.Close(); err != nil {
-			klog.V(2).Info("Connection to webhook port could not be closed. Continuing with tests...")
+			klog.Info("Connection to webhook port could not be closed. Continuing with tests...")
 		}
-		klog.V(2).Info("Webhook port is now open. Continuing with tests...")
+		klog.Info("Webhook port is now open. Continuing with tests...")
 		return
 	}
 }

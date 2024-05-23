@@ -97,6 +97,9 @@ func getTestEnv() (*envtest.Environment, *rest.Config) {
 var _ = BeforeSuite(func() {
 	By("bootstrapping test environments")
 	testEnv, restConfig = getTestEnv()
+
+	By("starting manager to serve webhooks")
+	initManagerAndBuildClient("", true)
 })
 
 var _ = AfterSuite(func() {

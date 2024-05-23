@@ -213,7 +213,7 @@ func updateClusterInfraRef(cluster *clusterv1.Cluster, infraCluster client.Objec
 	Expect(k8sClient.Update(ctx, cluster)).To(Succeed())
 }
 
-func getManager(cfg *rest.Config, networkProvider string) manager.Manager {
+func getManager(cfg *rest.Config, networkProvider string, withWebhooks bool) manager.Manager {
 	localScheme := runtime.NewScheme()
 	Expect(scheme.AddToScheme(localScheme)).To(Succeed())
 
@@ -228,16 +228,19 @@ func getManager(cfg *rest.Config, networkProvider string) manager.Manager {
 			Metrics: metricsserver.Options{
 				BindAddress: "0",
 			},
-			WebhookServer: webhook.NewServer(
-				webhook.Options{
-					Port:    testEnv.WebhookInstallOptions.LocalServingPort,
-					CertDir: testEnv.WebhookInstallOptions.LocalServingCertDir,
-					Host:    "0.0.0.0",
-				},
-			),
 		},
 		KubeConfig:      cfg,
 		NetworkProvider: networkProvider,
+	}
+
+	if withWebhooks {
+		opts.WebhookServer = webhook.NewServer(
+			webhook.Options{
+				Port:    testEnv.WebhookInstallOptions.LocalServingPort,
+				CertDir: testEnv.WebhookInstallOptions.LocalServingCertDir,
+				Host:    "0.0.0.0",
+			},
+		)
 	}
 
 	controllerOpts := controller.Options{MaxConcurrentReconciles: 10}
@@ -247,8 +250,10 @@ func getManager(cfg *rest.Config, networkProvider string) manager.Manager {
 			return err
 		}
 
-		if err := (&vmwarewebhooks.VSphereMachineWebhook{}).SetupWebhookWithManager(mgr); err != nil {
-			return err
+		if withWebhooks {
+			if err := (&vmwarewebhooks.VSphereMachineWebhook{}).SetupWebhookWithManager(mgr); err != nil {
+				return err
+			}
 		}
 		return controllers.AddMachineControllerToManager(ctx, controllerCtx, mgr, true, controllerOpts)
 	}
@@ -258,9 +263,9 @@ func getManager(cfg *rest.Config, networkProvider string) manager.Manager {
 	return mgr
 }
 
-func initManagerAndBuildClient(networkProvider string) (client.Client, context.CancelFunc) {
+func initManagerAndBuildClient(networkProvider string, withWebhooks bool) (client.Client, context.CancelFunc) {
 	By("setting up a new manager")
-	mgr := getManager(restConfig, networkProvider)
+	mgr := getManager(restConfig, networkProvider, withWebhooks)
 	k8sClient := mgr.GetClient()
 
 	By("starting the manager")
@@ -271,8 +276,11 @@ func initManagerAndBuildClient(networkProvider string) (client.Client, context.C
 		if managerRuntimeError != nil {
 			_, _ = fmt.Fprintln(GinkgoWriter, "Manager failed at runtime")
 		}
-		// wait for webhook port to be open prior to running tests
-		waitForWebhooks()
+
+		if withWebhooks {
+			// wait for webhook port to be open prior to running tests
+			waitForWebhooks()
+		}
 	}()
 
 	return k8sClient, managerCancel
@@ -281,19 +289,19 @@ func initManagerAndBuildClient(networkProvider string) (client.Client, context.C
 func waitForWebhooks() {
 	port := testEnv.WebhookInstallOptions.LocalServingPort
 
-	klog.V(2).Infof("Waiting for webhook port %d to be open prior to running tests", port)
+	klog.Infof("Waiting for webhook port %d to be open prior to running tests", port)
 	timeout := 1 * time.Second
 	for {
 		time.Sleep(1 * time.Second)
 		conn, err := net.DialTimeout("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(port)), timeout)
 		if err != nil {
-			klog.V(2).Infof("Webhook port is not ready, will retry in %v: %s", timeout, err)
+			klog.Infof("Webhook port is not ready, will retry in %v: %s", timeout, err)
 			continue
 		}
 		if err := conn.Close(); err != nil {
-			klog.V(2).Info("Connection to webhook port could not be closed. Continuing with tests...")
+			klog.Info("Connection to webhook port could not be closed. Continuing with tests...")
 		}
-		klog.V(2).Info("Webhook port is now open. Continuing with tests...")
+		klog.Info("Webhook port is now open. Continuing with tests...")
 		return
 	}
 }
@@ -304,7 +312,7 @@ func prepareClient(isLoadBalanced bool) (cli client.Client, cancelation context.
 		networkProvider = manager.DummyLBNetworkProvider
 	}
 
-	cli, cancelation = initManagerAndBuildClient(networkProvider)
+	cli, cancelation = initManagerAndBuildClient(networkProvider, false)
 	return
 }
 

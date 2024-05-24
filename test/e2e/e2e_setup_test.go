@@ -74,10 +74,11 @@ func WithPrefix(variableName string) SetupOption {
 }
 
 type testSettings struct {
-	ClusterctlConfigPath     string
-	Variables                map[string]string
-	PostNamespaceCreatedFunc func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
-	FlavorForMode            func(flavor string) string
+	ClusterctlConfigPath      string
+	Variables                 map[string]string
+	PostNamespaceCreatedFunc  func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
+	FlavorForMode             func(flavor string) string
+	RuntimeExtensionProviders []string
 }
 
 // Setup for the specific test.
@@ -92,6 +93,7 @@ func Setup(specName string, f func(testSpecificSettings func() testSettings), op
 		testSpecificIPAddressClaims      vsphereip.AddressClaims
 		testSpecificVariables            map[string]string
 		postNamespaceCreatedFunc         func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
+		runtimeExtensionProviders        []string
 	)
 	BeforeEach(func() {
 		Byf("Setting up test env for %s", specName)
@@ -182,6 +184,14 @@ func Setup(specName string, f func(testSpecificSettings func() testSettings), op
 			OutputPath:           testSpecificClusterctlConfigPath,
 			Variables:            testSpecificVariables,
 		})
+
+		if testMode == SupervisorTestMode {
+			runtimeExtensionProviders = append(runtimeExtensionProviders, "vm-operator")
+		}
+
+		if testTarget == VCSimTestTarget {
+			runtimeExtensionProviders = append(runtimeExtensionProviders, "net-operator")
+		}
 	})
 	defer AfterEach(func() {
 		Byf("Cleaning up test env for %s", specName)
@@ -214,6 +224,7 @@ func Setup(specName string, f func(testSpecificSettings func() testSettings), op
 				}
 				return flavor
 			},
+			RuntimeExtensionProviders: runtimeExtensionProviders,
 		}
 	})
 }

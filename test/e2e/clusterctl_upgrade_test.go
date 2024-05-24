@@ -37,7 +37,7 @@ var (
 	capvReleaseMarkerPrefix = "go://sigs.k8s.io/cluster-api-provider-vsphere@v%s"
 )
 
-var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.10=>current, CAPI 1.7=>1.7) [ClusterClass]", func() {
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.10=>current, CAPI 1.7=>1.7) [supervisor] [ClusterClass]", func() {
 	const specName = "clusterctl-upgrade-1.10-current" // prefix (clusterctl-upgrade) copied from CAPI
 	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
@@ -61,7 +61,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.10
 				InitWithBootstrapProviders:        []string{fmt.Sprintf(providerKubeadmPrefix, capiStableRelease)},
 				InitWithControlPlaneProviders:     []string{fmt.Sprintf(providerKubeadmPrefix, capiStableRelease)},
 				InitWithInfrastructureProviders:   []string{fmt.Sprintf(providerVSpherePrefix, capvStableRelease)},
-				InitWithRuntimeExtensionProviders: []string{},
+				InitWithRuntimeExtensionProviders: testSpecificSettingsGetter().RuntimeExtensionProviders,
 				InitWithIPAMProviders:             []string{},
 				// InitWithKubernetesVersion should be the highest kubernetes version supported by the init Cluster API version.
 				// This is to guarantee that both, the old and new CAPI version, support the defined version.
@@ -69,13 +69,13 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.10
 				InitWithKubernetesVersion:   "v1.30.0",
 				WorkloadKubernetesVersion:   "v1.30.0",
 				WorkloadFlavor:              testSpecificSettingsGetter().FlavorForMode("workload"),
-				UseKindForManagementCluster: true,
+				UseKindForManagementCluster: false,
 			}
 		})
 	}, WithIP("WORKLOAD_CONTROL_PLANE_ENDPOINT_IP"))
 })
 
-var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.9=>current, CAPI 1.6=>1.7) [ClusterClass]", func() {
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.9=>current, CAPI 1.6=>1.7) [supervisor] [ClusterClass]", func() {
 	const specName = "clusterctl-upgrade-1.9-current" // prefix (clusterctl-upgrade) copied from CAPI
 	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
@@ -99,7 +99,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.9=
 				InitWithBootstrapProviders:        []string{fmt.Sprintf(providerKubeadmPrefix, capiStableRelease)},
 				InitWithControlPlaneProviders:     []string{fmt.Sprintf(providerKubeadmPrefix, capiStableRelease)},
 				InitWithInfrastructureProviders:   []string{fmt.Sprintf(providerVSpherePrefix, capvStableRelease)},
-				InitWithRuntimeExtensionProviders: []string{},
+				InitWithRuntimeExtensionProviders: testSpecificSettingsGetter().RuntimeExtensionProviders,
 				InitWithIPAMProviders:             []string{},
 				// InitWithKubernetesVersion should be the highest kubernetes version supported by the init Cluster API version.
 				// This is to guarantee that both, the old and new CAPI version, support the defined version.
@@ -107,7 +107,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.9=
 				InitWithKubernetesVersion:   "v1.29.0",
 				WorkloadKubernetesVersion:   "v1.29.0",
 				WorkloadFlavor:              testSpecificSettingsGetter().FlavorForMode("workload"),
-				UseKindForManagementCluster: true,
+				UseKindForManagementCluster: false,
 			}
 		})
 	}, WithIP("WORKLOAD_CONTROL_PLANE_ENDPOINT_IP"))

@@ -1,0 +1,5 @@
+- op: add
+  path: /spec/template/spec/controlPlaneEndpoint
+  value:
+    host: ""
+    port: 0

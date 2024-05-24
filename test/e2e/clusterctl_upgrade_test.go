@@ -23,9 +23,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
+	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
-
-	vsphereframework "sigs.k8s.io/cluster-api-provider-vsphere/test/framework"
 )
 
 var (
@@ -37,7 +36,7 @@ var (
 	capvReleaseMarkerPrefix = "go://sigs.k8s.io/cluster-api-provider-vsphere@v%s"
 )
 
-var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.10=>current, CAPI 1.7=>1.7) [ClusterClass]", func() {
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.10=>current, CAPI 1.7=>1.7) [supervisor] [ClusterClass]", func() {
 	const specName = "clusterctl-upgrade-1.10-current" // prefix (clusterctl-upgrade) copied from CAPI
 	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
@@ -55,27 +54,27 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.10
 				SkipCleanup:                       skipCleanup,
 				MgmtFlavor:                        testSpecificSettingsGetter().FlavorForMode("topology"),
 				PostNamespaceCreated:              testSpecificSettingsGetter().PostNamespaceCreatedFunc,
-				PreUpgrade:                        vsphereframework.LoadImagesFunc(ctx),
 				InitWithBinary:                    fmt.Sprintf(clusterctlDownloadURL, capiStableRelease),
 				InitWithCoreProvider:              fmt.Sprintf(providerCAPIPrefix, capiStableRelease),
 				InitWithBootstrapProviders:        []string{fmt.Sprintf(providerKubeadmPrefix, capiStableRelease)},
 				InitWithControlPlaneProviders:     []string{fmt.Sprintf(providerKubeadmPrefix, capiStableRelease)},
 				InitWithInfrastructureProviders:   []string{fmt.Sprintf(providerVSpherePrefix, capvStableRelease)},
-				InitWithRuntimeExtensionProviders: []string{},
+				InitWithRuntimeExtensionProviders: testSpecificSettingsGetter().RuntimeExtensionProviders,
 				InitWithIPAMProviders:             []string{},
 				// InitWithKubernetesVersion should be the highest kubernetes version supported by the init Cluster API version.
 				// This is to guarantee that both, the old and new CAPI version, support the defined version.
 				// Ensure all Kubernetes versions used here are covered in patch-vsphere-template.yaml
-				InitWithKubernetesVersion:   "v1.30.0",
-				WorkloadKubernetesVersion:   "v1.30.0",
-				WorkloadFlavor:              testSpecificSettingsGetter().FlavorForMode("workload"),
-				UseKindForManagementCluster: true,
+				InitWithKubernetesVersion:                "v1.30.0",
+				WorkloadKubernetesVersion:                "v1.30.0",
+				WorkloadFlavor:                           testSpecificSettingsGetter().FlavorForMode("workload"),
+				UseKindForManagementCluster:              true,
+				KindManagementClusterNewClusterProxyFunc: kindManagementClusterNewClusterProxyFunc,
 			}
 		})
 	}, WithIP("WORKLOAD_CONTROL_PLANE_ENDPOINT_IP"))
 })
 
-var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.9=>current, CAPI 1.6=>1.7) [ClusterClass]", func() {
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.9=>current, CAPI 1.6=>1.7) [supervisor] [ClusterClass]", func() {
 	const specName = "clusterctl-upgrade-1.9-current" // prefix (clusterctl-upgrade) copied from CAPI
 	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
@@ -93,21 +92,21 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.9=
 				SkipCleanup:                       skipCleanup,
 				MgmtFlavor:                        testSpecificSettingsGetter().FlavorForMode("topology"),
 				PostNamespaceCreated:              testSpecificSettingsGetter().PostNamespaceCreatedFunc,
-				PreUpgrade:                        vsphereframework.LoadImagesFunc(ctx),
 				InitWithBinary:                    fmt.Sprintf(clusterctlDownloadURL, capiStableRelease),
 				InitWithCoreProvider:              fmt.Sprintf(providerCAPIPrefix, capiStableRelease),
 				InitWithBootstrapProviders:        []string{fmt.Sprintf(providerKubeadmPrefix, capiStableRelease)},
 				InitWithControlPlaneProviders:     []string{fmt.Sprintf(providerKubeadmPrefix, capiStableRelease)},
 				InitWithInfrastructureProviders:   []string{fmt.Sprintf(providerVSpherePrefix, capvStableRelease)},
-				InitWithRuntimeExtensionProviders: []string{},
+				InitWithRuntimeExtensionProviders: testSpecificSettingsGetter().RuntimeExtensionProviders,
 				InitWithIPAMProviders:             []string{},
 				// InitWithKubernetesVersion should be the highest kubernetes version supported by the init Cluster API version.
 				// This is to guarantee that both, the old and new CAPI version, support the defined version.
 				// Ensure all Kubernetes versions used here are covered in patch-vsphere-template.yaml
-				InitWithKubernetesVersion:   "v1.29.0",
-				WorkloadKubernetesVersion:   "v1.29.0",
-				WorkloadFlavor:              testSpecificSettingsGetter().FlavorForMode("workload"),
-				UseKindForManagementCluster: true,
+				InitWithKubernetesVersion:                "v1.29.0",
+				WorkloadKubernetesVersion:                "v1.29.0",
+				WorkloadFlavor:                           testSpecificSettingsGetter().FlavorForMode("workload"),
+				UseKindForManagementCluster:              true,
+				KindManagementClusterNewClusterProxyFunc: kindManagementClusterNewClusterProxyFunc,
 			}
 		})
 	}, WithIP("WORKLOAD_CONTROL_PLANE_ENDPOINT_IP"))
@@ -117,4 +116,8 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.9=
 func getStableReleaseOfMinor(ctx context.Context, releaseMarkerPrefix, minorRelease string) (string, error) {
 	releaseMarker := fmt.Sprintf(releaseMarkerPrefix, minorRelease)
 	return clusterctl.ResolveRelease(ctx, releaseMarker)
+}
+
+func kindManagementClusterNewClusterProxyFunc(name string, kubeconfigPath string) framework.ClusterProxy {
+	return framework.NewClusterProxy(name, kubeconfigPath, initScheme())
 }

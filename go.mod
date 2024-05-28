@@ -8,10 +8,10 @@ replace github.com/vmware-tanzu/vm-operator/pkg/constants/testlabels => github.c
 
 require (
 	github.com/blang/semver/v4 v4.0.0
-	github.com/go-logr/logr v1.4.1
+	github.com/go-logr/logr v1.4.2
 	github.com/google/gofuzz v1.2.0
 	github.com/google/uuid v1.6.0
-	github.com/onsi/ginkgo/v2 v2.17.3
+	github.com/onsi/ginkgo/v2 v2.19.0
 	github.com/onsi/gomega v1.33.1
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.8.0
@@ -37,8 +37,8 @@ require (
 	k8s.io/utils v0.0.0-20231127182322-b307cd553661
 	sigs.k8s.io/cluster-api v0.0.0-00010101000000-000000000000
 	sigs.k8s.io/controller-runtime v0.17.5
-	sigs.k8s.io/kustomize/api v0.17.1
-	sigs.k8s.io/kustomize/kyaml v0.17.0
+	sigs.k8s.io/kustomize/api v0.17.2
+	sigs.k8s.io/kustomize/kyaml v0.17.1
 	sigs.k8s.io/yaml v1.4.0
 )
 

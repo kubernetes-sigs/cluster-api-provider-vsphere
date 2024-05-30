@@ -1,4 +1,3 @@
----
 # E2E test scenario using local dev images and manifests built from the source tree for following providers:
 # - cluster-api
 # - bootstrap kubeadm

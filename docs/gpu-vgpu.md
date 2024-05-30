@@ -59,7 +59,7 @@ $ make dev-flavors
 go run ./packaging/flavorgen --output-dir /home/user/.cluster-api/overrides/infrastructure-vsphere/v0.0.0
 ```
 
-Edit the generated Cluster template (`cluster-template.yaml`) to set the values for the `vgpuDevices` array. Here we are editing the VSphereMachineTemplate object for the worker nodes. This will create a worker node with a single NVIDIA 16GB vGPU device attached to the VM.
+Edit the generated Cluster template (`cluster-template.yaml`) to set the values for the `pciDevices` array. Here we are editing the VSphereMachineTemplate object for the worker nodes. This will create a worker node with a single NVIDIA 16GB vGPU device attached to the VM.
 
 ```yaml
 ---
@@ -89,8 +89,8 @@ spec:
       storagePolicyName: '${VSPHERE_STORAGE_POLICY}'
       template: '${VSPHERE_TEMPLATE}'
       thumbprint: '${VSPHERE_TLS_THUMBPRINT}'
-      vgpuDevices:
-        - profileName: "grid_v100d-4c"  # value from above
+      pciDevices:
+        - vgpuProfile: "grid_t4-1a" # value from above
 ```
 
 Set the required values for the other fields and the cluster template is ready for use. The similar changes can be made to a template generated using clusterctl generate cluster command as well.

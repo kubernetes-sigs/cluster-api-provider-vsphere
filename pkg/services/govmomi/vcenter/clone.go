@@ -196,10 +196,10 @@ func Clone(ctx context.Context, vmCtx *capvcontext.VMContext, bootstrapData []by
 		Snapshot: snapshotRef,
 	}
 
-	// For PCI and vGPU devices, the memory for the VM needs to be reserved
+	// For PCI devices, the memory for the VM needs to be reserved
 	// We can replace this once we have another way of reserving memory option
 	// exposed via the API types.
-	if len(vmCtx.VSphereVM.Spec.PciDevices) > 0 || len(vmCtx.VSphereVM.Spec.VGPUDevices) > 0 {
+	if len(vmCtx.VSphereVM.Spec.PciDevices) > 0 {
 		spec.Config.MemoryReservationLockedToMax = ptr.To(true)
 	}
 

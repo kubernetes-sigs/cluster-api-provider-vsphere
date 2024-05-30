@@ -72,30 +72,36 @@ func Test_CalculateDevicesToBeAdded(t *testing.T) {
 		inputs := []input{
 			{
 				name:        "when adding a single PCI device of each type",
-				expectedLen: 2,
+				expectedLen: 3,
 				pciDeviceSpecs: []infrav1.PCIDeviceSpec{
 					{DeviceID: ptr.To[int32](1234), VendorID: ptr.To[int32](5678)},
 					{DeviceID: ptr.To[int32](4321), VendorID: ptr.To[int32](8765)},
+					{VGPUProfile: "grid_t4-1a"},
 				},
 				assertFunc: func(g *gomega.WithT, actual []infrav1.PCIDeviceSpec) {
 					g.Expect(*actual[0].DeviceID).To(gomega.Equal(int32(1234)))
 					g.Expect(*actual[0].VendorID).To(gomega.Equal(int32(5678)))
 					g.Expect(*actual[1].DeviceID).To(gomega.Equal(int32(4321)))
 					g.Expect(*actual[1].VendorID).To(gomega.Equal(int32(8765)))
+					g.Expect(actual[2].VGPUProfile).To(gomega.Equal("grid_t4-1a"))
 				},
 			},
 			{
 				name:        "when adding multiple PCI devices of a type",
-				expectedLen: 2,
+				expectedLen: 4,
 				pciDeviceSpecs: []infrav1.PCIDeviceSpec{
 					{DeviceID: ptr.To[int32](1234), VendorID: ptr.To[int32](5678)},
 					{DeviceID: ptr.To[int32](1234), VendorID: ptr.To[int32](5678)},
+					{VGPUProfile: "grid_t4-1a"},
+					{VGPUProfile: "grid_t4-1a"},
 				},
 				assertFunc: func(g *gomega.WithT, actual []infrav1.PCIDeviceSpec) {
 					g.Expect(*actual[0].DeviceID).To(gomega.Equal(int32(1234)))
 					g.Expect(*actual[0].VendorID).To(gomega.Equal(int32(5678)))
 					g.Expect(*actual[1].DeviceID).To(gomega.Equal(int32(1234)))
 					g.Expect(*actual[1].VendorID).To(gomega.Equal(int32(5678)))
+					g.Expect(actual[2].VGPUProfile).To(gomega.Equal("grid_t4-1a"))
+					g.Expect(actual[3].VGPUProfile).To(gomega.Equal("grid_t4-1a"))
 				},
 			},
 		}
@@ -112,8 +118,9 @@ func Test_CalculateDevicesToBeAdded(t *testing.T) {
 				pciDeviceSpecs: []infrav1.PCIDeviceSpec{
 					{DeviceID: ptr.To[int32](1234), VendorID: ptr.To[int32](5678)},
 					{DeviceID: ptr.To[int32](4321), VendorID: ptr.To[int32](8765)},
+					{VGPUProfile: "grid_t4-1a"},
 				},
-				existingDeviceSpecIndexes: []int{0, 1},
+				existingDeviceSpecIndexes: []int{0, 1, 2},
 			},
 			{
 				name:        "when adding multiple PCI devices of a type",
@@ -121,8 +128,10 @@ func Test_CalculateDevicesToBeAdded(t *testing.T) {
 				pciDeviceSpecs: []infrav1.PCIDeviceSpec{
 					{DeviceID: ptr.To[int32](1234), VendorID: ptr.To[int32](5678)},
 					{DeviceID: ptr.To[int32](1234), VendorID: ptr.To[int32](5678)},
+					{VGPUProfile: "grid_t4-1a"},
+					{VGPUProfile: "grid_t4-1a"},
 				},
-				existingDeviceSpecIndexes: []int{0, 1},
+				existingDeviceSpecIndexes: []int{0, 1, 2, 3},
 			},
 		}
 		for _, tt := range inputs {
@@ -134,24 +143,27 @@ func Test_CalculateDevicesToBeAdded(t *testing.T) {
 		inputs := []input{
 			{
 				name:        "when adding a single PCI device of each type",
-				expectedLen: 1,
+				expectedLen: 2,
 				pciDeviceSpecs: []infrav1.PCIDeviceSpec{
 					{DeviceID: ptr.To[int32](1234), VendorID: ptr.To[int32](5678)},
 					{DeviceID: ptr.To[int32](4321), VendorID: ptr.To[int32](8765)},
+					{VGPUProfile: "grid_t4-1a"},
 				},
 				existingDeviceSpecIndexes: []int{0},
 				assertFunc: func(g *gomega.WithT, actual []infrav1.PCIDeviceSpec) {
 					g.Expect(*actual[0].DeviceID).To(gomega.Equal(int32(4321)))
 					g.Expect(*actual[0].VendorID).To(gomega.Equal(int32(8765)))
+					g.Expect(actual[1].VGPUProfile).To(gomega.Equal("grid_t4-1a"))
 				},
 			},
 			{
 				name:        "when adding multiple PCI devices of a type",
-				expectedLen: 2,
+				expectedLen: 3,
 				pciDeviceSpecs: []infrav1.PCIDeviceSpec{
 					{DeviceID: ptr.To[int32](1234), VendorID: ptr.To[int32](5678)},
 					{DeviceID: ptr.To[int32](1234), VendorID: ptr.To[int32](5678)},
 					{DeviceID: ptr.To[int32](4321), VendorID: ptr.To[int32](8765)},
+					{VGPUProfile: "grid_t4-1a"},
 				},
 				existingDeviceSpecIndexes: []int{0},
 				assertFunc: func(g *gomega.WithT, actual []infrav1.PCIDeviceSpec) {
@@ -159,6 +171,7 @@ func Test_CalculateDevicesToBeAdded(t *testing.T) {
 					g.Expect(*actual[0].VendorID).To(gomega.Equal(int32(5678)))
 					g.Expect(*actual[1].DeviceID).To(gomega.Equal(int32(4321)))
 					g.Expect(*actual[1].VendorID).To(gomega.Equal(int32(8765)))
+					g.Expect(actual[2].VGPUProfile).To(gomega.Equal("grid_t4-1a"))
 				},
 			},
 		}

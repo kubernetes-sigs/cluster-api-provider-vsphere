@@ -193,9 +193,6 @@ type VirtualMachineCloneSpec struct {
 	// PciDevices is the list of pci devices used by the virtual machine.
 	// +optional
 	PciDevices []PCIDeviceSpec `json:"pciDevices,omitempty"`
-	// VGPUDevices is the list of vGPUs used by the virtual machine.
-	// +optional
-	VGPUDevices []VGPUSpec `json:"vgpuDevices,omitempty"`
 	// OS is the Operating System of the virtual machine
 	// Defaults to Linux
 	// +optional
@@ -261,20 +258,16 @@ type PCIDeviceSpec struct {
 	// virtual machine is cloned.
 	// +kubebuilder:validation:Required
 	VendorID *int32 `json:"vendorId,omitempty"`
+	// VGPUProfile is the profile name of a virtual machine's vGPU, in string.
+	// Defaults to the eponymous property value in the template from which the
+	// virtual machine is cloned.
+	// +kubebuilder:validation:Required
+	VGPUProfile string `json:"vgpuProfile,omitempty"`
 	// CustomLabel is the hardware label of a virtual machine's PCI device.
 	// Defaults to the eponymous property value in the template from which the
 	// virtual machine is cloned.
 	// +optional
 	CustomLabel string `json:"customLabel,omitempty"`
-}
-
-// VGPUSpec defines virtual machine's VGPU configuration
-type VGPUSpec struct {
-	// ProfileName is the ProfileName of a virtual machine's vGPU, in string.
-	// Defaults to the eponymous property value in the template from which the
-	// virtual machine is cloned.
-	// +kubebuilder:validation:Required
-	ProfileName string `json:"profileName,omitempty"`
 }
 
 // NetworkSpec defines the virtual machine's network configuration.

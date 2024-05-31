@@ -251,16 +251,19 @@ type PCIDeviceSpec struct {
 	// DeviceID is the device ID of a virtual machine's PCI, in integer.
 	// Defaults to the eponymous property value in the template from which the
 	// virtual machine is cloned.
+	// Mutually exclusive with VGPUProfile.
 	// +kubebuilder:validation:Required
 	DeviceID *int32 `json:"deviceId,omitempty"`
 	// VendorId is the vendor ID of a virtual machine's PCI, in integer.
 	// Defaults to the eponymous property value in the template from which the
 	// virtual machine is cloned.
+	// Mutually exclusive with VGPUProfile.
 	// +kubebuilder:validation:Required
 	VendorID *int32 `json:"vendorId,omitempty"`
 	// VGPUProfile is the profile name of a virtual machine's vGPU, in string.
 	// Defaults to the eponymous property value in the template from which the
 	// virtual machine is cloned.
+	// Mutually exclusive with DeviceID and VendorID.
 	// +kubebuilder:validation:Required
 	VGPUProfile string `json:"vgpuProfile,omitempty"`
 	// CustomLabel is the hardware label of a virtual machine's PCI device.

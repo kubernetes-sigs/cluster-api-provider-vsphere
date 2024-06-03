@@ -22,7 +22,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha1"
+	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -147,9 +147,10 @@ var _ = Describe("VirtualMachine tests", func() {
 				Expect(vmopVM.Spec.ImageName).To(Equal(expectedImageName))
 				Expect(vmopVM.Spec.ClassName).To(Equal(className))
 				Expect(vmopVM.Spec.StorageClass).To(Equal(storageClass))
-				Expect(vmopVM.Spec.ResourcePolicyName).To(Equal(resourcePolicyName))
+				Expect(vmopVM.Spec.Reserved).ToNot(BeNil())
+				Expect(vmopVM.Spec.Reserved.ResourcePolicyName).To(Equal(resourcePolicyName))
 				Expect(vmopVM.Spec.MinHardwareVersion).To(Equal(minHardwareVersion))
-				Expect(vmopVM.Spec.PowerState).To(Equal(vmoprv1.VirtualMachinePoweredOn))
+				Expect(vmopVM.Spec.PowerState).To(Equal(vmoprv1.VirtualMachinePowerStateOn))
 				Expect(vmopVM.ObjectMeta.Annotations[ClusterModuleNameAnnotationKey]).To(Equal(ControlPlaneVMClusterModuleGroupName))
 				Expect(vmopVM.ObjectMeta.Annotations[ProviderTagsAnnotationKey]).To(Equal(ControlPlaneVMVMAntiAffinityTagValue))
 
@@ -229,7 +230,12 @@ var _ = Describe("VirtualMachine tests", func() {
 			// Simulate VMOperator creating a vSphere VM
 			By("vSphere VM is created")
 			vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
-			vmopVM.Status.Phase = vmoprv1.Created
+			vmopVM.Status.Conditions = append(vmopVM.Status.Conditions, metav1.Condition{
+				Type:               vmoprv1.VirtualMachineConditionCreated,
+				Status:             metav1.ConditionTrue,
+				LastTransitionTime: metav1.NewTime(time.Now().UTC().Truncate(time.Second)),
+				Reason:             string(metav1.ConditionTrue),
+			})
 			updateReconciledVMStatus(ctx, vmService, vmopVM)
 			expectedState = vmwarev1.VirtualMachineStateCreated
 			// we expect the reconciliation waiting for VM to be powered on
@@ -240,7 +246,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			// Simulate VMOperator powering on the VM
 			By("VirtualMachine is powered on")
 			vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
-			vmopVM.Status.PowerState = vmoprv1.VirtualMachinePoweredOn
+			vmopVM.Status.PowerState = vmoprv1.VirtualMachinePowerStateOn
 			updateReconciledVMStatus(ctx, vmService, vmopVM)
 			expectedState = vmwarev1.VirtualMachineStatePoweredOn
 			// we expect the reconciliation waiting for VM to have an IP
@@ -251,7 +257,10 @@ var _ = Describe("VirtualMachine tests", func() {
 			// Simulate VMOperator assigning an IP address
 			By("VirtualMachine has an IP address")
 			vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
-			vmopVM.Status.VmIp = vmIP
+			if vmopVM.Status.Network == nil {
+				vmopVM.Status.Network = &vmoprv1.VirtualMachineNetworkStatus{}
+			}
+			vmopVM.Status.Network.PrimaryIP4 = vmIP
 			updateReconciledVMStatus(ctx, vmService, vmopVM)
 			// we expect the reconciliation waiting for VM to have a BIOS UUID
 			expectedConditions[0].Reason = vmwarev1.WaitingForBIOSUUIDReason
@@ -340,7 +349,12 @@ var _ = Describe("VirtualMachine tests", func() {
 			// Simulate VMOperator creating a vSphere VM
 			By("vSphere VM is created")
 			vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
-			vmopVM.Status.Phase = vmoprv1.Created
+			vmopVM.Status.Conditions = append(vmopVM.Status.Conditions, metav1.Condition{
+				Type:               vmoprv1.VirtualMachineConditionCreated,
+				Status:             metav1.ConditionTrue,
+				LastTransitionTime: metav1.NewTime(time.Now().UTC().Truncate(time.Second)),
+				Reason:             string(metav1.ConditionTrue),
+			})
 			updateReconciledVMStatus(ctx, vmService, vmopVM)
 			expectedState = vmwarev1.VirtualMachineStateCreated
 			expectedConditions[0].Reason = vmwarev1.PoweringOnReason
@@ -350,7 +364,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			// Simulate VMOperator powering on the VM
 			By("VirtualMachine is powered on")
 			vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
-			vmopVM.Status.PowerState = vmoprv1.VirtualMachinePoweredOn
+			vmopVM.Status.PowerState = vmoprv1.VirtualMachinePowerStateOn
 			updateReconciledVMStatus(ctx, vmService, vmopVM)
 			expectedState = vmwarev1.VirtualMachineStatePoweredOn
 			expectedConditions[0].Reason = vmwarev1.WaitingForNetworkAddressReason
@@ -360,7 +374,10 @@ var _ = Describe("VirtualMachine tests", func() {
 			// Simulate VMOperator assigning an IP address
 			By("VirtualMachine has an IP address")
 			vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
-			vmopVM.Status.VmIp = vmIP
+			if vmopVM.Status.Network == nil {
+				vmopVM.Status.Network = &vmoprv1.VirtualMachineNetworkStatus{}
+			}
+			vmopVM.Status.Network.PrimaryIP4 = vmIP
 			updateReconciledVMStatus(ctx, vmService, vmopVM)
 			expectedConditions[0].Reason = vmwarev1.WaitingForBIOSUUIDReason
 			requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
@@ -388,7 +405,10 @@ var _ = Describe("VirtualMachine tests", func() {
 			cluster.Status.ControlPlaneReady = true
 
 			vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
-			vmopVM.Status.VmIp = vmIP
+			if vmopVM.Status.Network == nil {
+				vmopVM.Status.Network = &vmoprv1.VirtualMachineNetworkStatus{}
+			}
+			vmopVM.Status.Network.PrimaryIP4 = vmIP
 			updateReconciledVMStatus(ctx, vmService, vmopVM)
 			requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
 			verifyOutput(supervisorMachineContext)
@@ -430,12 +450,12 @@ var _ = Describe("VirtualMachine tests", func() {
 			requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
 			vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
 			errMessage := "TestVirtualMachineClassBinding not found"
-			vmopVM.Status.Conditions = append(vmopVM.Status.Conditions, vmoprv1.Condition{
-				Type:     vmoprv1.VirtualMachinePrereqReadyCondition,
-				Status:   corev1.ConditionFalse,
-				Reason:   vmoprv1.VirtualMachineClassBindingNotFoundReason,
-				Severity: vmoprv1.ConditionSeverityError,
-				Message:  errMessage,
+			vmopVM.Status.Conditions = append(vmopVM.Status.Conditions, metav1.Condition{
+				Type:               vmoprv1.VirtualMachineConditionClassReady,
+				Status:             metav1.ConditionFalse,
+				LastTransitionTime: metav1.NewTime(time.Now().UTC().Truncate(time.Second)),
+				Reason:             "NotFound",
+				Message:            errMessage,
 			})
 
 			updateReconciledVMStatus(ctx, vmService, vmopVM)
@@ -448,7 +468,7 @@ var _ = Describe("VirtualMachine tests", func() {
 				Type:     infrav1.VMProvisionedCondition,
 				Status:   corev1.ConditionFalse,
 				Severity: clusterv1.ConditionSeverityError,
-				Reason:   vmoprv1.VirtualMachineClassBindingNotFoundReason,
+				Reason:   "NotFound",
 				Message:  errMessage,
 			})
 			verifyOutput(supervisorMachineContext)
@@ -479,10 +499,12 @@ var _ = Describe("VirtualMachine tests", func() {
 
 			vmVolume := vmoprv1.VirtualMachineVolume{
 				Name: "test",
-				PersistentVolumeClaim: &vmoprv1.PersistentVolumeClaimVolumeSource{
-					PersistentVolumeClaimVolumeSource: corev1.PersistentVolumeClaimVolumeSource{
-						ClaimName: "test-pvc",
-						ReadOnly:  false,
+				VirtualMachineVolumeSource: vmoprv1.VirtualMachineVolumeSource{
+					PersistentVolumeClaim: &vmoprv1.PersistentVolumeClaimVolumeSource{
+						PersistentVolumeClaimVolumeSource: corev1.PersistentVolumeClaimVolumeSource{
+							ClaimName: "test-pvc",
+							ReadOnly:  false,
+						},
 					},
 				},
 			}
@@ -536,10 +558,12 @@ var _ = Describe("VirtualMachine tests", func() {
 				name := volumeName(vsphereMachine, volume)
 				vmVolume := vmoprv1.VirtualMachineVolume{
 					Name: name,
-					PersistentVolumeClaim: &vmoprv1.PersistentVolumeClaimVolumeSource{
-						PersistentVolumeClaimVolumeSource: corev1.PersistentVolumeClaimVolumeSource{
-							ClaimName: name,
-							ReadOnly:  false,
+					VirtualMachineVolumeSource: vmoprv1.VirtualMachineVolumeSource{
+						PersistentVolumeClaim: &vmoprv1.PersistentVolumeClaimVolumeSource{
+							PersistentVolumeClaimVolumeSource: corev1.PersistentVolumeClaimVolumeSource{
+								ClaimName: name,
+								ReadOnly:  false,
+							},
 						},
 					},
 				}

@@ -26,7 +26,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha1"
+	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -463,7 +463,7 @@ var _ = Describe("Reconciliation tests", func() {
 			Eventually(func() error {
 				return k8sClient.Get(ctx, rpKey, resourcePolicy)
 			}, time.Second*30).Should(Succeed())
-			Expect(len(resourcePolicy.Spec.ClusterModules)).To(BeEquivalentTo(2))
+			Expect(len(resourcePolicy.Spec.ClusterModuleGroups)).To(BeEquivalentTo(2))
 
 			By("Create the CAPI Machine and wait for it to exist")
 			machineKey, machine := deployCAPIMachine(ns.Name, cluster, k8sClient)
@@ -636,7 +636,12 @@ var _ = Describe("Reconciliation tests", func() {
 				}
 				// These two lines must be initialized as requirements of having valid Status
 				newVM.Status.Volumes = []vmoprv1.VirtualMachineVolumeStatus{}
-				newVM.Status.Phase = vmoprv1.Created
+				newVM.Status.Conditions = append(newVM.Status.Conditions, metav1.Condition{
+					Type:               vmoprv1.VirtualMachineConditionCreated,
+					Status:             metav1.ConditionTrue,
+					LastTransitionTime: metav1.NewTime(time.Now().UTC().Truncate(time.Second)),
+					Reason:             string(metav1.ConditionTrue),
+				})
 				return k8sClient.Status().Update(ctx, newVM)
 			}, time.Second*30).Should(Succeed())
 
@@ -649,7 +654,7 @@ var _ = Describe("Reconciliation tests", func() {
 				if err != nil {
 					return err
 				}
-				newVM.Status.PowerState = vmoprv1.VirtualMachinePoweredOn
+				newVM.Status.PowerState = vmoprv1.VirtualMachinePowerStateOn
 				return k8sClient.Status().Update(ctx, newVM)
 			}, time.Second*30).Should(Succeed())
 
@@ -662,7 +667,10 @@ var _ = Describe("Reconciliation tests", func() {
 				if err != nil {
 					return err
 				}
-				newVM.Status.VmIp = "1.2.3.4"
+				if newVM.Status.Network == nil {
+					newVM.Status.Network = &vmoprv1.VirtualMachineNetworkStatus{}
+				}
+				newVM.Status.Network.PrimaryIP4 = "1.2.3.4"
 				newVM.Status.BiosUUID = "test-bios-uuid"
 				return k8sClient.Status().Update(ctx, newVM)
 			}, time.Second*30).Should(Succeed())
@@ -675,7 +683,7 @@ var _ = Describe("Reconciliation tests", func() {
 			// control_plane_endpoint_test.go
 			if !isLB {
 				By("Expect the Cluster to have the IP from the VM as an APIEndpoint")
-				assertEventuallyControlPlaneEndpoint(infraClusterKey, infraCluster, newVM.Status.VmIp)
+				assertEventuallyControlPlaneEndpoint(infraClusterKey, infraCluster, newVM.Status.Network.PrimaryIP4)
 			}
 		},
 		Entry("With no load balancer", dontUseLoadBalancer),

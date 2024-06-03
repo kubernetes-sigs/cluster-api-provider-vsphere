@@ -47,6 +47,6 @@ func TestRPService(t *testing.T) {
 		resourcePolicy, err := rpService.getVirtualMachineSetResourcePolicy(ctx, clusterCtx)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(resourcePolicy.Spec.ResourcePool.Name).To(Equal(clusterName))
-		g.Expect(resourcePolicy.Spec.Folder.Name).To(Equal(clusterName))
+		g.Expect(resourcePolicy.Spec.Folder).To(Equal(clusterName))
 	})
 }

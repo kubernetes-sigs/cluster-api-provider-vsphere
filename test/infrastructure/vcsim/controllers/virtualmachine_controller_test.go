@@ -21,7 +21,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha1"
+	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -240,9 +240,11 @@ func Test_Reconcile_VirtualMachine(t *testing.T) {
 			},
 			Status: vmoprv1.VirtualMachineStatus{
 				// Those values are required to unblock provisioning of node
-				BiosUUID:   "foo",
-				VmIp:       "1.2.3.4",
-				PowerState: vmoprv1.VirtualMachinePoweredOn,
+				BiosUUID: "foo",
+				Network: &vmoprv1.VirtualMachineNetworkStatus{
+					PrimaryIP4: "1.2.3.4",
+				},
+				PowerState: vmoprv1.VirtualMachinePowerStateOn,
 			},
 		}
 

@@ -22,7 +22,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha1"
+	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"

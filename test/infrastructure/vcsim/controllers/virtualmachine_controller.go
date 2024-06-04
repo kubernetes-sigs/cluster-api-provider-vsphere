@@ -22,7 +22,7 @@ import (
 	"path"
 
 	"github.com/pkg/errors"
-	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha1"
+	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -259,7 +259,7 @@ func (r *VirtualMachineReconciler) getVMIpReconciler(cluster *clusterv1.Cluster,
 		},
 		IsVMWaitingforIP: func() bool {
 			// A virtualMachine is waiting for an IP when PoweredOn but without an Ip.
-			return virtualMachine.Status.PowerState == vmoprv1.VirtualMachinePoweredOn && virtualMachine.Status.VmIp == ""
+			return virtualMachine.Status.PowerState == vmoprv1.VirtualMachinePowerStateOn && (virtualMachine.Status.Network == nil || (virtualMachine.Status.Network.PrimaryIP4 == "" && virtualMachine.Status.Network.PrimaryIP6 == ""))
 		},
 		GetVMPath: func() string {
 			// The vm operator always create VMs under a sub-folder with named like the cluster.
@@ -279,7 +279,7 @@ func (r *VirtualMachineReconciler) getVMBootstrapReconciler(virtualMachine *vmop
 		// thus allowing to use the same vmBootstrapReconciler in both scenarios.
 		IsVMReady: func() bool {
 			// A virtualMachine is ready to provision fake objects hosted on it when PoweredOn, with a primary Ip assigned and BiosUUID is set (bios id is required when provisioning the node to compute the Provider ID).
-			return virtualMachine.Status.PowerState == vmoprv1.VirtualMachinePoweredOn && virtualMachine.Status.VmIp != "" && virtualMachine.Status.BiosUUID != ""
+			return virtualMachine.Status.PowerState == vmoprv1.VirtualMachinePowerStateOn && virtualMachine.Status.Network != nil && (virtualMachine.Status.Network.PrimaryIP4 != "" || virtualMachine.Status.Network.PrimaryIP6 != "") && virtualMachine.Status.BiosUUID != ""
 		},
 		GetProviderID: func() string {
 			// Computes the ProviderID for the node hosted on the virtualMachine

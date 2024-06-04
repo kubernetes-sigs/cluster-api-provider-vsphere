@@ -77,7 +77,7 @@ GINKGO_NODES ?= 1
 GINKGO_TIMEOUT ?= 3h
 E2E_CONF_FILE ?= $(abspath test/e2e/config/vsphere.yaml)
 E2E_CONF_OVERRIDE_FILE ?= $(abspath test/e2e/config/config-overrides.yaml)
-E2E_IPAM_KUBECONFIG ?=
+E2E_VSPHERE_IP_POOL ?=
 E2E_TEMPLATE_DIR := $(abspath test/e2e/data/)
 E2E_GOVMOMI_TEMPLATE_DIR := $(E2E_TEMPLATE_DIR)/infrastructure-vsphere-govmomi
 E2E_SUPERVISOR_TEMPLATE_DIR := $(E2E_TEMPLATE_DIR)/infrastructure-vsphere-supervisor
@@ -185,6 +185,9 @@ IMPORT_BOSS := $(abspath $(TOOLS_BIN_DIR)/$(IMPORT_BOSS_BIN))
 IMPORT_BOSS_PKG := k8s.io/code-generator/cmd/import-boss
 
 CAPI_HACK_TOOLS_VER := ef04465b2ba76214eea570e27e8146c96412e32a # Note: this is the commit ID of CAPI v1.7.1
+
+BOSKOSCTL_BIN := boskosctl
+BOSKOSCTL := $(abspath $(TOOLS_BIN_DIR)/$(BOSKOSCTL_BIN))
 
 CONVERSION_VERIFIER_VER := $(CAPI_HACK_TOOLS_VER)
 CONVERSION_VERIFIER_BIN := conversion-verifier
@@ -621,7 +624,7 @@ e2e: $(GINKGO) $(KUSTOMIZE) $(KIND) $(GOVC) ## Run e2e tests
 		--e2e.artifacts-folder="$(ARTIFACTS)" \
 		--e2e.skip-resource-cleanup=$(SKIP_RESOURCE_CLEANUP) \
 		--e2e.use-existing-cluster="$(USE_EXISTING_CLUSTER)" \
-		--e2e.ipam-kubeconfig="$(E2E_IPAM_KUBECONFIG)"
+		--e2e.ip-pool='$(E2E_VSPHERE_IP_POOL)'
 
 ## --------------------------------------
 ## Release
@@ -952,6 +955,9 @@ $(CONVERSION_GEN_BIN): $(CONVERSION_GEN) ## Build a local copy of conversion-gen
 .PHONY: $(PROWJOB_GEN_BIN)
 $(PROWJOB_GEN_BIN): $(PROWJOB_GEN) ## Build a local copy of prowjob-gen.
 
+.PHONY: $(BOSKOSCTL_BIN)
+$(BOSKOSCTL_BIN): $(BOSKOSCTL) ## Build a local copy of boskosctl.
+
 .PHONY: $(CONVERSION_VERIFIER_BIN)
 $(CONVERSION_VERIFIER_BIN): $(CONVERSION_VERIFIER) ## Build a local copy of conversion-verifier.
 
@@ -1005,6 +1011,9 @@ $(CONTROLLER_GEN): # Build controller-gen.
 .PHONY: $(CONVERSION_GEN)
 $(CONVERSION_GEN): # Build conversion-gen.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(CONVERSION_GEN_PKG) $(CONVERSION_GEN_BIN) $(CONVERSION_GEN_VER)
+
+$(BOSKOSCTL): # Build boskosctl from tools folder.
+	go build -o $(TOOLS_BIN_DIR)/$(BOSKOSCTL_BIN) ./hack/tools/boskosctl
 
 $(CONVERSION_VERIFIER): # Build conversion-verifier.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_TOOLS_BUILD) $(CONVERSION_VERIFIER_PKG) $(CONVERSION_VERIFIER_BIN) $(CONVERSION_VERIFIER_VER)

@@ -33,6 +33,7 @@ import (
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
+	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -119,9 +120,8 @@ var (
 
 	namespaces map[*corev1.Namespace]context.CancelFunc
 
-	// e2eIPAMKubeconfig is a kubeconfig to a cluster which provides IP address management via an in-cluster
-	// IPAM provider to claim IPs for the control plane IPs of created clusters.
-	e2eIPAMKubeconfig string
+	// e2eIPPool to be used for the e2e test.
+	e2eIPPool string
 
 	// inClusterAddressManager is used to claim and cleanup IP addresses used for kubernetes control plane API Servers.
 	inClusterAddressManager vsphereip.AddressManager
@@ -137,7 +137,7 @@ func init() {
 	flag.BoolVar(&alsoLogToFile, "e2e.also-log-to-file", true, "if true, ginkgo logs are additionally written to the `ginkgo-log.txt` file in the artifacts folder (including timestamps)")
 	flag.BoolVar(&skipCleanup, "e2e.skip-resource-cleanup", false, "if true, the resource cleanup after tests will be skipped")
 	flag.BoolVar(&useExistingCluster, "e2e.use-existing-cluster", false, "if true, the test uses the current cluster instead of creating a new one (default discovery rules apply)")
-	flag.StringVar(&e2eIPAMKubeconfig, "e2e.ipam-kubeconfig", "", "path to the kubeconfig for the IPAM cluster")
+	flag.StringVar(&e2eIPPool, "e2e.ip-pool", "", "IPPool to use for the e2e test. Supports the addresses, gateway and prefix fields from the InClusterIPPool CRD https://github.com/kubernetes-sigs/cluster-api-ipam-provider-in-cluster/blob/main/api/v1alpha2/inclusterippool_types.go")
 }
 
 func TestE2E(t *testing.T) {
@@ -285,7 +285,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	switch testTarget {
 	case VCenterTestTarget:
 		// Create the in cluster address manager
-		inClusterAddressManager, err = vsphereip.InClusterAddressManager(e2eIPAMKubeconfig, ipClaimLabels, skipCleanup)
+		inClusterAddressManager, err = vsphereip.InClusterAddressManager(ctx, bootstrapClusterProxy.GetClient(), e2eIPPool, ipClaimLabels, skipCleanup)
 		Expect(err).ToNot(HaveOccurred())
 
 	case VCSimTestTarget:
@@ -335,6 +335,8 @@ var _ = SynchronizedAfterSuite(func() {
 func initScheme() *runtime.Scheme {
 	sc := runtime.NewScheme()
 	framework.TryAddDefaultSchemes(sc)
+	// TODO: should probably be added to TryAddDefaultSchemes in core CAPI.
+	_ = ipamv1.AddToScheme(sc)
 
 	if testTarget == VCSimTestTarget {
 		_ = vcsimv1.AddToScheme(sc)

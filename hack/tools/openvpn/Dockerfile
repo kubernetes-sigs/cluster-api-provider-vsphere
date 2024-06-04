@@ -15,7 +15,6 @@
 # limitations under the License.
 
 FROM debian:buster-slim
-LABEL "maintainer" "Andrew Kutz <akutz@vmware.com>"
 
 RUN apt-get --assume-no  update && \
     apt-get --assume-yes install curl openvpn iputils-ping && \

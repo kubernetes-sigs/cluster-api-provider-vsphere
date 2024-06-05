@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.13.0
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: envvars.vcsim.infrastructure.cluster.x-k8s.io
 spec:
   group: vcsim.infrastructure.cluster.x-k8s.io
@@ -22,14 +22,19 @@ spec:
         description: EnvVar is the schema for a EnvVar generator.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -40,34 +45,37 @@ spec:
                 description: Cluster specific values to use as source for EnvVar values.
                 properties:
                   cluster:
-                    description: 'Cluster specifies the VCenter Cluster for the Cluster
-                      API cluster. Default: 0 (C0)'
+                    description: |-
+                      Cluster specifies the VCenter Cluster for the Cluster API cluster.
+                      Default: 0 (C0)
                     format: int32
                     type: integer
                   controlPlaneMachines:
-                    description: 'The number of the control plane machines in the
-                      Cluster API cluster. NOTE: This variable isn''t related to the
-                      vcsim controller, but we are handling it here in order to have
-                      a single point of control for all the variables related to a
-                      Cluster API template. Default: 1'
+                    description: |-
+                      The number of the control plane machines in the Cluster API cluster.
+                      NOTE: This variable isn't related to the vcsim controller, but we are handling it here
+                      in order to have a single point of control for all the variables related to a Cluster API template.
+                      Default: 1
                     format: int32
                     type: integer
                   datacenter:
-                    description: 'Datacenter specifies the Datacenter for the Cluster
-                      API cluster. Default: 0 (DC0)'
+                    description: |-
+                      Datacenter specifies the Datacenter for the Cluster API cluster.
+                      Default: 0 (DC0)
                     format: int32
                     type: integer
                   datastore:
-                    description: 'Datastore specifies the Datastore for the Cluster
-                      API cluster. Default: 0 (LocalDS_0)'
+                    description: |-
+                      Datastore specifies the Datastore for the Cluster API cluster.
+                      Default: 0 (LocalDS_0)
                     format: int32
                     type: integer
                   kubernetesVersion:
-                    description: 'The Kubernetes version of the Cluster API cluster.
-                      NOTE: This variable isn''t related to the vcsim controller,
-                      but we are handling it here in order to have a single point
-                      of control for all the variables related to a Cluster API template.
-                      Default: v1.28.0'
+                    description: |-
+                      The Kubernetes version of the Cluster API cluster.
+                      NOTE: This variable isn't related to the vcsim controller, but we are handling it here
+                      in order to have a single point of control for all the variables related to a Cluster API template.
+                      Default: v1.28.0
                     type: string
                   name:
                     description: The name of the Cluster API cluster.
@@ -76,15 +84,16 @@ spec:
                     description: The namespace of the Cluster API cluster.
                     type: string
                   powerOffMode:
-                    description: 'The PowerOffMode for the machines in the cluster.
-                      Default: trySoft'
+                    description: |-
+                      The PowerOffMode for the machines in the cluster.
+                      Default: trySoft
                     type: string
                   workerMachines:
-                    description: 'The number of the worker machines in the Cluster
-                      API cluster. NOTE: This variable isn''t related to the vcsim
-                      controller, but we are handling it here in order to have a single
-                      point of control for all the variables related to a Cluster
-                      API template. Default: 1'
+                    description: |-
+                      The number of the worker machines in the Cluster API cluster.
+                      NOTE: This variable isn't related to the vcsim controller, but we are handling it here
+                      in order to have a single point of control for all the variables related to a Cluster API template.
+                      Default: 1
                     format: int32
                     type: integer
                 required:
@@ -99,8 +108,9 @@ spec:
                     description: Name of the referenced object.
                     type: string
                   namespace:
-                    description: Namespace of the referenced object. If empty, it
-                      defaults to the namespace of the parent object.
+                    description: |-
+                      Namespace of the referenced object.
+                      If empty, it defaults to the namespace of the parent object.
                     type: string
                 type: object
               vCenterSimulator:
@@ -111,26 +121,27 @@ spec:
                     description: Name of the referenced object.
                     type: string
                   namespace:
-                    description: Namespace of the referenced object. If empty, it
-                      defaults to the namespace of the parent object.
+                    description: |-
+                      Namespace of the referenced object.
+                      If empty, it defaults to the namespace of the parent object.
                     type: string
                 type: object
               vmOperatorDependencies:
-                description: 'Name of the VMOperatorDependencies instance to use as
-                  source for EnvVar values. If not specified, a default dependenciesConfig
-                  that works for vcsim is used. NOTE: this is required only for supervisor
-                  mode; also: - the system automatically picks the first StorageClass
-                  defined in the VMOperatorDependencies - the system automatically
-                  picks the first VirtualMachine class defined in the VMOperatorDependencies
-                  - the system automatically picks the first Image from the content
-                  library defined in the VMOperatorDependencies'
+                description: |-
+                  Name of the VMOperatorDependencies instance to use as source for EnvVar values.
+                  If not specified, a default dependenciesConfig that works for vcsim is used.
+                  NOTE: this is required only for supervisor mode; also:
+                  - the system automatically picks the first StorageClass defined in the VMOperatorDependencies
+                  - the system automatically picks the first VirtualMachine class defined in the VMOperatorDependencies
+                  - the system automatically picks the first Image from the content library defined in the VMOperatorDependencies
                 properties:
                   name:
                     description: Name of the referenced object.
                     type: string
                   namespace:
-                    description: Namespace of the referenced object. If empty, it
-                      defaults to the namespace of the parent object.
+                    description: |-
+                      Namespace of the referenced object.
+                      If empty, it defaults to the namespace of the parent object.
                     type: string
                 type: object
             type: object

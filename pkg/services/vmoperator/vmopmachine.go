@@ -335,7 +335,7 @@ func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervis
 			vmOperatorVM.Spec.StorageClass = supervisorMachineCtx.VSphereMachine.Spec.StorageClass
 		}
 		vmOperatorVM.Spec.PowerState = vmoprv1.VirtualMachinePowerStateOn
-		if vmOperatorVM.Spec.Reserved == nil {
+		if vmOperatorVM.Spec.Reserved == nil && supervisorMachineCtx.VSphereCluster.Status.ResourcePolicyName != "" {
 			vmOperatorVM.Spec.Reserved = &vmoprv1.VirtualMachineReservedSpec{}
 		}
 		if vmOperatorVM.Spec.Reserved.ResourcePolicyName == "" {

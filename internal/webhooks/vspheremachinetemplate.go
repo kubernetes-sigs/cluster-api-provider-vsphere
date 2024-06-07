@@ -85,10 +85,14 @@ func (webhook *VSphereMachineTemplateWebhook) ValidateCreate(_ context.Context, 
 		}
 	}
 	for i, device := range spec.PciDevices {
-		hasVGPU := device.VGPUProfile != ""
-		hasPCI := device.DeviceID != nil && device.VendorID != nil
-		if (hasPCI && hasVGPU) || (!hasPCI && !hasVGPU) {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "template", "spec", "pciDevices", fmt.Sprintf("%d, i)), device, "should have either deviceID + vendorID or vgpuProfile"))
+		if device.VGPUProfile == "" {
+			if device.DeviceID == nil || device.VendorID == nil {
+				allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "template", "spec", "pciDevices", fmt.Sprintf("%d", i)), device, "should have both deviceId and vendorId set"))
+			}
+		} else {
+			if device.DeviceID != nil || device.VendorID != nil {
+				allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "template", "spec", "pciDevices", fmt.Sprintf("%d", i)), device, "should have either deviceId + vendorId or vgpuProfile"))
+			}
 		}
 	}
 	return nil, AggregateObjErrors(obj.GroupVersionKind().GroupKind(), obj.Name, allErrs)

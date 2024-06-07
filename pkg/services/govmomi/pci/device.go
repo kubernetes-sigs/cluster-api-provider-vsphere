@@ -77,20 +77,19 @@ func ConstructDeviceSpecs(pciDeviceSpecs []infrav1.PCIDeviceSpec) []types.BaseVi
 }
 
 func createBackingInfo(spec infrav1.PCIDeviceSpec) types.BaseVirtualDeviceBackingInfo {
-	if spec.DeviceID != nil && spec.VendorID != nil {
-		return &types.VirtualPCIPassthroughDynamicBackingInfo{
-			AllowedDevice: []types.VirtualPCIPassthroughAllowedDevice{
-				{
-					VendorId: *spec.VendorID,
-					DeviceId: *spec.DeviceID,
-				},
-			},
-			CustomLabel: spec.CustomLabel,
+	if spec.VGPUProfile != "" {
+		return &types.VirtualPCIPassthroughVmiopBackingInfo{
+			Vgpu: spec.VGPUProfile,
 		}
 	}
-
-	return &types.VirtualPCIPassthroughVmiopBackingInfo{
-		Vgpu: spec.VGPUProfile,
+	return &types.VirtualPCIPassthroughDynamicBackingInfo{
+		AllowedDevice: []types.VirtualPCIPassthroughAllowedDevice{
+			{
+				VendorId: *spec.VendorID,
+				DeviceId: *spec.DeviceID,
+			},
+		},
+		CustomLabel: spec.CustomLabel,
 	}
 }
 

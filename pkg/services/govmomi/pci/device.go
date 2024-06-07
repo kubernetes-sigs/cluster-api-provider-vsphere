@@ -94,9 +94,8 @@ func createBackingInfo(spec infrav1.PCIDeviceSpec) types.BaseVirtualDeviceBackin
 }
 
 func constructKey(pciDeviceSpec infrav1.PCIDeviceSpec) string {
-	if pciDeviceSpec.DeviceID != nil && pciDeviceSpec.VendorID != nil {
-		return fmt.Sprintf("%d-%d", *pciDeviceSpec.DeviceID, *pciDeviceSpec.VendorID)
+	if pciDeviceSpec.VGPUProfile != "" {
+		return pciDeviceSpec.VGPUProfile
 	}
-
-	return pciDeviceSpec.VGPUProfile
+	return fmt.Sprintf("%d-%d", *pciDeviceSpec.DeviceID, *pciDeviceSpec.VendorID)
 }

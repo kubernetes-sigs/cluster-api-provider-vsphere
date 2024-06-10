@@ -50,6 +50,8 @@ var _ = Describe("Ensure OwnerReferences and Finalizers are resilient with Failu
 	const specName = "owner-reference"
 	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		capi_e2e.QuickStartSpec(ctx, func() capi_e2e.QuickStartSpecInput {
+			// NOTE: we want to use test specific variables computed during setup, not the variables existing in the e2eConfig
+			// struct that was loaded when running the SynchronizedBeforeSuite.
 			input := testSpecificSettingsGetter()
 			username, ok := input.Variables["VSPHERE_USERNAME"]
 			if !ok {
@@ -74,11 +76,13 @@ var _ = Describe("Ensure OwnerReferences and Finalizers are resilient with Failu
 				PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 					// check the cluster identity secret has expected ownerReferences and finalizers, and they are resilient
 					// Note: identity secret is not part of the object graph, so it requires an ad-hoc test.
-					checkClusterIdentitySecretOwnerRefAndAnnotation(ctx, proxy.GetClient())
+					checkClusterIdentitySecretOwnerRefAndFinalizer(ctx, proxy.GetClient())
 
-					// Set up a periodic patch to ensure the DeploymentZone is reconciled.
+					// Set up a periodic patch to ensure the DeploymentZone anc ClusterResourceSets are reconciled.
 					// Note: this is required because DeploymentZone are not watching for clusters, and thus the DeploymentZone controller
 					// won't be triggered when we un-pause clusters after modifying objects ownerReferences & Finalizers to test resilience.
+					// WRT to ClusterResourceSets, we are forcing reconcile to avoid the issue described in https://github.com/kubernetes-sigs/cluster-api/pull/10656;
+					// we should reconsider if possible to drop force reconcile after this PR is merged.
 					forceCtx, forceCancelFunc := context.WithCancel(ctx)
 					forcePeriodicReconcile(forceCtx, proxy.GetClient(), namespace)
 
@@ -263,9 +267,10 @@ func createVsphereIdentitySecret(ctx context.Context, bootstrapClusterProxy fram
 		})).To(Succeed())
 }
 
-func checkClusterIdentitySecretOwnerRefAndAnnotation(ctx context.Context, c ctrlclient.Client) {
+func checkClusterIdentitySecretOwnerRefAndFinalizer(ctx context.Context, c ctrlclient.Client) {
 	s := &corev1.Secret{}
 
+	By("Check that the ownerReferences and finalizers for the ClusterIdentitySecret are as expected")
 	Eventually(func() error {
 		if err := c.Get(ctx, ctrlclient.ObjectKey{Namespace: clusterIdentitySecretNamespace, Name: clusterIdentityName}, s); err != nil {
 			return err
@@ -279,7 +284,8 @@ func checkClusterIdentitySecretOwnerRefAndAnnotation(ctx context.Context, c ctrl
 		return nil
 	}, 1*time.Minute).Should(Succeed())
 
-	// Patch the secret to have a wrong APIVersion in owmerRef and to remove finalizers.
+	// Patch the secret to have a wrong APIVersion in ownerRef and to remove finalizers.
+	By("Removing all the ownerReferences and finalizers for the ClusterIdentitySecret")
 	helper, err := patch.NewHelper(s, c)
 	Expect(err).ToNot(HaveOccurred())
 	newOwners := []metav1.OwnerReference{}
@@ -300,6 +306,7 @@ func checkClusterIdentitySecretOwnerRefAndAnnotation(ctx context.Context, c ctrl
 	Expect(c.Patch(ctx, &infrav1.VSphereClusterIdentity{ObjectMeta: metav1.ObjectMeta{Name: clusterIdentityName}}, annotationPatch)).To(Succeed())
 
 	// Check that the secret ownerReferences were correctly reconciled.
+	By("Check that the ownerReferences and finalizers for the ClusterIdentitySecret are rebuilt as expected")
 	Eventually(func() error {
 		if err := c.Get(ctx, ctrlclient.ObjectKey{Namespace: clusterIdentitySecretNamespace, Name: clusterIdentityName}, s); err != nil {
 			return err

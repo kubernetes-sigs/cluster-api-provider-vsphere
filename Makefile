@@ -233,6 +233,14 @@ VM_OPERATOR_ALL_ARCH = amd64 arm64
 NET_OPERATOR_IMAGE_NAME ?= cluster-api-net-operator
 NET_OPERATOR_IMG ?= $(STAGING_REGISTRY)/$(NET_OPERATOR_IMAGE_NAME)
 
+# boskosctl
+BOSKOSCTL_IMG ?= gcr.io/k8s-staging-capi-vsphere/extra/boskosctl
+BOSKOSCTL_IMG_TAG ?= $(shell git describe --always --dirty)
+
+# openvpn
+OPENVPN_IMG ?= gcr.io/k8s-staging-capi-vsphere/extra/openvpn
+OPENVPN_IMG_TAG ?= $(shell git describe --always --dirty)
+
 # It is set by Prow GIT_TAG, a git-based tag of the form vYYYYMMDD-hash, e.g., v20210120-v0.3.10-308-gc61521971
 
 TAG ?= dev
@@ -562,6 +570,28 @@ docker-build-net-operator: docker-pull-prerequisites ## Build the docker image f
 		$(MAKE) set-manifest-image MANIFEST_IMG=$(NET_OPERATOR_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./$(NETOP_DIR)/config/default/manager_image_patch.yaml"; \
 		$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./$(NETOP_DIR)/config/default/manager_pull_policy.yaml"; \
 	fi
+
+.PHONY: docker-build-boskosctl
+docker-build-boskosctl:
+	cat hack/tools/boskosctl/Dockerfile | DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) . -t $(BOSKOSCTL_IMG):$(BOSKOSCTL_IMG_TAG) --file -
+	docker tag $(BOSKOSCTL_IMG):$(BOSKOSCTL_IMG_TAG) $(BOSKOSCTL_IMG):latest
+.PHONY: build
+
+.PHONY: docker-push-boskosctl
+docker-push-boskosctl:
+	docker push $(BOSKOSCTL_IMG):$(BOSKOSCTL_IMG_TAG)
+	docker push $(BOSKOSCTL_IMG):latest
+
+.PHONY: docker-build-openvpn
+docker-build-openvpn:
+	cat hack/tools/openvpn/Dockerfile | DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) . -t $(OPENVPN_IMG):$(OPENVPN_IMG_TAG) --file -
+	docker tag $(OPENVPN_IMG):$(OPENVPN_IMG_TAG) $(OPENVPN_IMG):latest
+.PHONY: build
+
+.PHONY: docker-push-openvpn
+docker-push-openvpn:
+	docker push $(OPENVPN_IMG):$(OPENVPN_IMG_TAG)
+	docker push $(OPENVPN_IMG):latest
 
 ## --------------------------------------
 ## Testing

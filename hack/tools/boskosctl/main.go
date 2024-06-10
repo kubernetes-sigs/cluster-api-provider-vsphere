@@ -73,7 +73,7 @@ func setupCommands(ctx context.Context) *cobra.Command {
 		Short:        "boskosctl can be used to consume Boskos vSphere resources",
 	}
 	// Note: http://boskos.test-pods.svc.cluster.local is the URL of the service usually used in k8s.io clusters.
-	rootCmd.PersistentFlags().StringVar(&boskosHost, "boskos-host", getOrDefault(os.Getenv("BOSKOS_HOST"), "http://boskos.test-pods.svc.cluster.local"), "Boskos server URL.")
+	rootCmd.PersistentFlags().StringVar(&boskosHost, "boskos-host", getOrDefault(os.Getenv("BOSKOS_HOST"), "http://boskos.test-pods.svc.cluster.local"), "Boskos server URL. (can also be set via BOSKOS_HOST env var)")
 	rootCmd.PersistentFlags().StringVar(&resourceOwner, "resource-owner", "", "Owner for the resource.")
 
 	// acquire command
@@ -101,8 +101,8 @@ func setupCommands(ctx context.Context) *cobra.Command {
 		RunE: runCmd(ctx),
 	}
 	releaseCmd.PersistentFlags().StringVar(&resourceName, "resource-name", "", "Name of the resource.")
-	releaseCmd.PersistentFlags().StringVar(&vSphereUsername, "vsphere-username", os.Getenv("VSPHERE_USERNAME"), "vSphere username of the resource, required for cleanup before release")
-	releaseCmd.PersistentFlags().StringVar(&vSpherePassword, "vsphere-password", os.Getenv("VSPHERE_PASSWORD"), "vSphere password of the resource, required for cleanup before release")
+	releaseCmd.PersistentFlags().StringVar(&vSphereUsername, "vsphere-username", "", "vSphere username of the resource, required for cleanup before release (can also be set via VSPHERE_USERNAME env var)")
+	releaseCmd.PersistentFlags().StringVar(&vSpherePassword, "vsphere-password", "", "vSphere password of the resource, required for cleanup before release (can also be set via VSPHERE_PASSWORD env var)")
 	releaseCmd.PersistentFlags().StringVar(&vSphereServer, "vsphere-server", "", "vSphere server of the resource, required for cleanup before release")
 	releaseCmd.PersistentFlags().StringVar(&vSphereTLSThumbprint, "vsphere-tls-thumbprint", "", "vSphere TLS thumbprint of the resource, required for cleanup before release")
 	releaseCmd.PersistentFlags().StringVar(&vSphereFolder, "vsphere-folder", "", "vSphere folder of the resource, required for cleanup before release")
@@ -160,10 +160,16 @@ func runCmd(ctx context.Context) func(cmd *cobra.Command, _ []string) error {
 				return fmt.Errorf("--resource-name must be set")
 			}
 			if vSphereUsername == "" {
-				return fmt.Errorf("--vsphere-username must be set")
+				vSphereUsername = os.Getenv("VSPHERE_USERNAME")
+			}
+			if vSphereUsername == "" {
+				return fmt.Errorf("--vsphere-username or VSPHERE_USERNAME env var must be set")
 			}
 			if vSpherePassword == "" {
-				return fmt.Errorf("--vsphere-password must be set")
+				vSpherePassword = os.Getenv("VSPHERE_PASSWORD")
+			}
+			if vSpherePassword == "" {
+				return fmt.Errorf("--vsphere-password or VSPHERE_PASSWORD env var must be set")
 			}
 			if vSphereServer == "" {
 				return fmt.Errorf("--vsphere-server must be set")

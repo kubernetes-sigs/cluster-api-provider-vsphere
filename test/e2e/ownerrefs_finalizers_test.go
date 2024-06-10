@@ -19,15 +19,19 @@ package e2e
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
@@ -45,12 +49,20 @@ import (
 var _ = Describe("Ensure OwnerReferences and Finalizers are resilient with FailureDomains and ClusterIdentity", func() {
 	const specName = "owner-reference"
 	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
-		// Before running the test create the secret used by the VSphereClusterIdentity to connect to the vCenter.
-		BeforeEach(func() {
-			createVsphereIdentitySecret(ctx, bootstrapClusterProxy)
-		})
-
 		capi_e2e.QuickStartSpec(ctx, func() capi_e2e.QuickStartSpecInput {
+			input := testSpecificSettingsGetter()
+			username, ok := input.Variables["VSPHERE_USERNAME"]
+			if !ok {
+				username = os.Getenv("VSPHERE_USERNAME")
+			}
+			password, ok := input.Variables["VSPHERE_PASSWORD"]
+			if !ok {
+				password = os.Getenv("VSPHERE_PASSWORD")
+			}
+
+			// Before running the test create the secret used by the VSphereClusterIdentity to connect to the vCenter.
+			createVsphereIdentitySecret(ctx, bootstrapClusterProxy, username, password)
+
 			return capi_e2e.QuickStartSpecInput{
 				E2EConfig:             e2eConfig,
 				ClusterctlConfigPath:  testSpecificSettingsGetter().ClusterctlConfigPath,
@@ -60,11 +72,15 @@ var _ = Describe("Ensure OwnerReferences and Finalizers are resilient with Failu
 				Flavor:                ptr.To(testSpecificSettingsGetter().FlavorForMode("ownerrefs-finalizers")),
 				PostNamespaceCreated:  testSpecificSettingsGetter().PostNamespaceCreatedFunc,
 				PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
-					// Inject a client to use for checkClusterIdentitySecretOwnerRef
-					checkClusterIdentitySecretOwnerRef(ctx, proxy.GetClient())
+					// check the cluster identity secret has expected ownerReferences and finalizers, and they are resilient
+					// Note: identity secret is not part of the object graph, so it requires an ad-hoc test.
+					checkClusterIdentitySecretOwnerRefAndAnnotation(ctx, proxy.GetClient())
 
 					// Set up a periodic patch to ensure the DeploymentZone is reconciled.
-					forcePeriodicReconcile(ctx, proxy.GetClient(), namespace)
+					// Note: this is required because DeploymentZone are not watching for clusters, and thus the DeploymentZone controller
+					// won't be triggered when we un-pause clusters after modifying objects ownerReferences & Finalizers to test resilience.
+					forceCtx, forceCancelFunc := context.WithCancel(ctx)
+					forcePeriodicReconcile(forceCtx, proxy.GetClient(), namespace)
 
 					// This check ensures that owner references are resilient - i.e. correctly re-reconciled - when removed.
 					By("Checking that owner references are resilient")
@@ -94,6 +110,10 @@ var _ = Describe("Ensure OwnerReferences and Finalizers are resilient with Failu
 						framework.ExpFinalizersAssertion,
 						vSphereFinalizers,
 					)
+
+					// Stop periodic patch.
+					forceCancelFunc()
+
 					// This check ensures that the resourceVersions are stable, i.e. it verifies there are no
 					// continuous reconciles when everything should be stable.
 					By("Checking that resourceVersions are stable")
@@ -196,7 +216,6 @@ var (
 // vSphereFinalizers maps VSphere infrastructure resource types to their expected finalizers.
 var vSphereFinalizers = map[string]func(types.NamespacedName) []string{
 	"VSphereVM":              func(_ types.NamespacedName) []string { return []string{infrav1.VMFinalizer} },
-	"Secret":                 func(_ types.NamespacedName) []string { return []string{infrav1.SecretIdentitySetFinalizer} },
 	"VSphereClusterIdentity": func(_ types.NamespacedName) []string { return []string{infrav1.VSphereClusterIdentityFinalizer} },
 	"VSphereDeploymentZone":  func(_ types.NamespacedName) []string { return []string{infrav1.DeploymentZoneFinalizer} },
 	"VSphereMachine":         func(_ types.NamespacedName) []string { return []string{infrav1.MachineFinalizer} },
@@ -228,9 +247,7 @@ func cleanupVSphereObjects(ctx context.Context, bootstrapClusterProxy framework.
 	}).Should(Succeed())
 }
 
-func createVsphereIdentitySecret(ctx context.Context, bootstrapClusterProxy framework.ClusterProxy) {
-	username := e2eConfig.GetVariable("VSPHERE_USERNAME")
-	password := e2eConfig.GetVariable("VSPHERE_PASSWORD")
+func createVsphereIdentitySecret(ctx context.Context, bootstrapClusterProxy framework.ClusterProxy, username, password string) {
 	Expect(username).To(Not(BeEmpty()))
 	Expect(password).To(Not(BeEmpty()))
 	Expect(bootstrapClusterProxy.GetClient().Create(ctx,
@@ -246,17 +263,23 @@ func createVsphereIdentitySecret(ctx context.Context, bootstrapClusterProxy fram
 		})).To(Succeed())
 }
 
-func checkClusterIdentitySecretOwnerRef(ctx context.Context, c ctrlclient.Client) {
+func checkClusterIdentitySecretOwnerRefAndAnnotation(ctx context.Context, c ctrlclient.Client) {
 	s := &corev1.Secret{}
 
 	Eventually(func() error {
 		if err := c.Get(ctx, ctrlclient.ObjectKey{Namespace: clusterIdentitySecretNamespace, Name: clusterIdentityName}, s); err != nil {
 			return err
 		}
-		return framework.HasExactOwners(s.GetOwnerReferences(), vSphereClusterIdentityOwner)
+		if err := framework.HasExactOwners(s.GetOwnerReferences(), vSphereClusterIdentityOwner); err != nil {
+			return err
+		}
+		if !sets.NewString(s.GetFinalizers()...).Equal(sets.NewString(infrav1.SecretIdentitySetFinalizer)) {
+			return errors.Errorf("the ClusterIdentitySecret %s does not have finalizers", klog.KRef(clusterIdentitySecretNamespace, clusterIdentityName))
+		}
+		return nil
 	}, 1*time.Minute).Should(Succeed())
 
-	// Patch the secret to have a wrong APIVersion.
+	// Patch the secret to have a wrong APIVersion in owmerRef and to remove finalizers.
 	helper, err := patch.NewHelper(s, c)
 	Expect(err).ToNot(HaveOccurred())
 	newOwners := []metav1.OwnerReference{}
@@ -269,6 +292,7 @@ func checkClusterIdentitySecretOwnerRef(ctx context.Context, c ctrlclient.Client
 		newOwners = append(newOwners, owner)
 	}
 	s.SetOwnerReferences(newOwners)
+	s.SetFinalizers(nil)
 	Expect(helper.Patch(ctx, s)).To(Succeed())
 
 	// Force reconcile the ClusterIdentity which owns the secret.
@@ -280,7 +304,13 @@ func checkClusterIdentitySecretOwnerRef(ctx context.Context, c ctrlclient.Client
 		if err := c.Get(ctx, ctrlclient.ObjectKey{Namespace: clusterIdentitySecretNamespace, Name: clusterIdentityName}, s); err != nil {
 			return err
 		}
-		return framework.HasExactOwners(s.GetOwnerReferences(), vSphereClusterIdentityOwner)
+		if err := framework.HasExactOwners(s.GetOwnerReferences(), vSphereClusterIdentityOwner); err != nil {
+			return err
+		}
+		if !sets.NewString(s.GetFinalizers()...).Equal(sets.NewString(infrav1.SecretIdentitySetFinalizer)) {
+			return errors.Errorf("the ClusterIdentitySecret %s does not have finalizers", klog.KRef(clusterIdentitySecretNamespace, clusterIdentityName))
+		}
+		return nil
 	}, 5*time.Minute).Should(Succeed())
 }
 
@@ -301,6 +331,7 @@ func forcePeriodicReconcile(ctx context.Context, c ctrlclient.Client, namespace 
 					annotationPatch := ctrlclient.RawPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"metadata\":{\"annotations\":{\"cluster.x-k8s.io/modifiedAt\":\"%v\"}}}", time.Now().Format(time.RFC3339))))
 					Expect(c.Patch(ctx, zone.DeepCopy(), annotationPatch)).To(Succeed())
 				}
+				// TODO: check if this can be dropped after https://github.com/kubernetes-sigs/cluster-api/pull/10656 is merged
 				Expect(c.List(ctx, crsList, ctrlclient.InNamespace(namespace))).To(Succeed())
 				for _, crs := range crsList.Items {
 					annotationPatch := ctrlclient.RawPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"metadata\":{\"annotations\":{\"cluster.x-k8s.io/modifiedAt\":\"%v\"}}}", time.Now().Format(time.RFC3339))))

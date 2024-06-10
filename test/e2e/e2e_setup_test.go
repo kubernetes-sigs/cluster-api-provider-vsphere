@@ -67,6 +67,7 @@ func WithGateway(variableName string) SetupOption {
 
 type testSettings struct {
 	ClusterctlConfigPath     string
+	Variables                map[string]string
 	PostNamespaceCreatedFunc func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
 	FlavorForMode            func(flavor string) string
 }
@@ -193,6 +194,7 @@ func Setup(specName string, f func(testSpecificSettings func() testSettings), op
 	f(func() testSettings {
 		return testSettings{
 			ClusterctlConfigPath:     testSpecificClusterctlConfigPath,
+			Variables:                testSpecificVariables,
 			PostNamespaceCreatedFunc: postNamespaceCreatedFunc,
 			FlavorForMode: func(flavor string) string {
 				if testMode == SupervisorTestMode {

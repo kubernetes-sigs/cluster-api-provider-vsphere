@@ -139,8 +139,10 @@ func AddClusterControllerToManager(ctx context.Context, controllerManagerCtx *ca
 		// should cause a resource to be synchronized, such as a goroutine
 		// waiting on some asynchronous, external task to complete.
 		WatchesRawSource(
-			&source.Channel{Source: controllerManagerCtx.GetGenericEventChannelFor(infrav1.GroupVersion.WithKind("VSphereCluster"))},
-			&handler.EnqueueRequestForObject{},
+			source.Channel(
+				controllerManagerCtx.GetGenericEventChannelFor(infrav1.GroupVersion.WithKind("VSphereCluster")),
+				&handler.EnqueueRequestForObject{},
+			),
 		).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), controllerManagerCtx.WatchFilterValue)).
 		WithEventFilter(predicates.ResourceIsNotExternallyManaged(ctrl.LoggerFrom(ctx))).

@@ -119,8 +119,10 @@ func AddMachineControllerToManager(ctx context.Context, controllerManagerContext
 			// should cause a resource to be synchronized, such as a goroutine
 			// waiting on some asynchronous, external task to complete.
 			WatchesRawSource(
-				&source.Channel{Source: controllerManagerContext.GetGenericEventChannelFor(vmwarev1.GroupVersion.WithKind("VSphereMachine"))},
-				&handler.EnqueueRequestForObject{},
+				source.Channel(
+					controllerManagerContext.GetGenericEventChannelFor(vmwarev1.GroupVersion.WithKind("VSphereMachine")),
+					&handler.EnqueueRequestForObject{},
+				),
 			).
 			WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), controllerManagerContext.WatchFilterValue)).
 			// Watch any VirtualMachine resources owned by this VSphereMachine
@@ -143,8 +145,10 @@ func AddMachineControllerToManager(ctx context.Context, controllerManagerContext
 		// should cause a resource to be synchronized, such as a goroutine
 		// waiting on some asynchronous, external task to complete.
 		WatchesRawSource(
-			&source.Channel{Source: controllerManagerContext.GetGenericEventChannelFor(infrav1.GroupVersion.WithKind("VSphereMachine"))},
-			&handler.EnqueueRequestForObject{},
+			source.Channel(
+				controllerManagerContext.GetGenericEventChannelFor(infrav1.GroupVersion.WithKind("VSphereMachine")),
+				&handler.EnqueueRequestForObject{},
+			),
 		).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), controllerManagerContext.WatchFilterValue)).
 		// Watch any VSphereVM resources owned by the controlled type.

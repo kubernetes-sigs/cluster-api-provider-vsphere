@@ -19,18 +19,23 @@ package e2e
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	clusterctlcluster "sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
@@ -44,12 +49,22 @@ import (
 var _ = Describe("Ensure OwnerReferences and Finalizers are resilient with FailureDomains and ClusterIdentity", func() {
 	const specName = "owner-reference"
 	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
-		// Before running the test create the secret used by the VSphereClusterIdentity to connect to the vCenter.
-		BeforeEach(func() {
-			createVsphereIdentitySecret(ctx, bootstrapClusterProxy)
-		})
-
 		capi_e2e.QuickStartSpec(ctx, func() capi_e2e.QuickStartSpecInput {
+			// NOTE: When testing with vcsim VSPHERE_USERNAME and VSPHERE_PASSWORD are provided as a test specific variables,
+			// when running on CI same variables are provided as env variables.
+			input := testSpecificSettingsGetter()
+			username, ok := input.Variables["VSPHERE_USERNAME"]
+			if !ok {
+				username = os.Getenv("VSPHERE_USERNAME")
+			}
+			password, ok := input.Variables["VSPHERE_PASSWORD"]
+			if !ok {
+				password = os.Getenv("VSPHERE_PASSWORD")
+			}
+
+			// Before running the test create the secret used by the VSphereClusterIdentity to connect to the vCenter.
+			createVsphereIdentitySecret(ctx, bootstrapClusterProxy, username, password)
+
 			return capi_e2e.QuickStartSpecInput{
 				E2EConfig:             e2eConfig,
 				ClusterctlConfigPath:  testSpecificSettingsGetter().ClusterctlConfigPath,
@@ -59,14 +74,21 @@ var _ = Describe("Ensure OwnerReferences and Finalizers are resilient with Failu
 				Flavor:                ptr.To(testSpecificSettingsGetter().FlavorForMode("ownerrefs-finalizers")),
 				PostNamespaceCreated:  testSpecificSettingsGetter().PostNamespaceCreatedFunc,
 				PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
-					// Inject a client to use for checkClusterIdentitySecretOwnerRef
-					checkClusterIdentitySecretOwnerRef(ctx, proxy.GetClient())
+					// check the cluster identity secret has expected ownerReferences and finalizers, and they are resilient
+					// Note: identity secret is not part of the object graph, so it requires an ad-hoc test.
+					checkClusterIdentitySecretOwnerRefAndFinalizer(ctx, proxy.GetClient())
 
-					// Set up a periodic patch to ensure the DeploymentZone is reconciled.
-					forcePeriodicReconcile(ctx, proxy.GetClient(), namespace)
+					// Set up a periodic patch to ensure the DeploymentZone anc ClusterResourceSets are reconciled.
+					// Note: this is required because DeploymentZone are not watching for clusters, and thus the DeploymentZone controller
+					// won't be triggered when we un-pause clusters after modifying objects ownerReferences & Finalizers to test resilience.
+					// WRT to ClusterResourceSets, we are forcing reconcile to avoid the issue described in https://github.com/kubernetes-sigs/cluster-api/pull/10656;
+					// we should reconsider if possible to drop force reconcile after this PR is merged.
+					forceCtx, forceCancelFunc := context.WithCancel(ctx)
+					forcePeriodicReconcile(forceCtx, proxy.GetClient(), namespace)
 
 					// This check ensures that owner references are resilient - i.e. correctly re-reconciled - when removed.
-					framework.ValidateOwnerReferencesResilience(ctx, proxy, namespace, clusterName,
+					By("Checking that owner references are resilient")
+					framework.ValidateOwnerReferencesResilience(ctx, proxy, namespace, clusterName, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName),
 						framework.CoreOwnerReferenceAssertion,
 						framework.KubeadmBootstrapOwnerReferenceAssertions,
 						framework.KubeadmControlPlaneOwnerReferenceAssertions,
@@ -75,7 +97,8 @@ var _ = Describe("Ensure OwnerReferences and Finalizers are resilient with Failu
 						VSphereReferenceAssertions,
 					)
 					// This check ensures that owner references are always updated to the most recent apiVersion.
-					framework.ValidateOwnerReferencesOnUpdate(ctx, proxy, namespace, clusterName,
+					By("Checking that owner references are updated to the correct API version")
+					framework.ValidateOwnerReferencesOnUpdate(ctx, proxy, namespace, clusterName, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName),
 						framework.CoreOwnerReferenceAssertion,
 						framework.KubeadmBootstrapOwnerReferenceAssertions,
 						framework.KubeadmControlPlaneOwnerReferenceAssertions,
@@ -84,12 +107,21 @@ var _ = Describe("Ensure OwnerReferences and Finalizers are resilient with Failu
 						VSphereReferenceAssertions,
 					)
 					// This check ensures that finalizers are resilient - i.e. correctly re-reconciled, when removed.
-					framework.ValidateFinalizersResilience(ctx, proxy, namespace, clusterName,
-						framework.CoreFinalizersAssertion,
+					By("Checking that finalizers are resilient")
+					framework.ValidateFinalizersResilience(ctx, proxy, namespace, clusterName, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName),
+						framework.CoreFinalizersAssertionWithLegacyClusters,
 						framework.KubeadmControlPlaneFinalizersAssertion,
 						framework.ExpFinalizersAssertion,
 						vSphereFinalizers,
 					)
+
+					// Stop periodic patch.
+					forceCancelFunc()
+
+					// This check ensures that the resourceVersions are stable, i.e. it verifies there are no
+					// continuous reconciles when everything should be stable.
+					By("Checking that resourceVersions are stable")
+					framework.ValidateResourceVersionStable(ctx, proxy, namespace, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
 				},
 			}
 		})
@@ -102,9 +134,9 @@ var _ = Describe("Ensure OwnerReferences and Finalizers are resilient with Failu
 })
 
 var (
-	VSphereKubernetesReferenceAssertions = map[string]func([]metav1.OwnerReference) error{
+	VSphereKubernetesReferenceAssertions = map[string]func(types.NamespacedName, []metav1.OwnerReference) error{
 		// Need custom Kubernetes assertions for secrets. Secrets in the CAPV tests can also be owned by the vSphereCluster.
-		"Secret": func(owners []metav1.OwnerReference) error {
+		"Secret": func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
 			return framework.HasOneOfExactOwners(owners,
 				// Secrets for cluster certificates must be owned by the KubeadmControlPlane.
 				[]metav1.OwnerReference{kubeadmControlPlaneController},
@@ -116,7 +148,7 @@ var (
 				[]metav1.OwnerReference{vSphereClusterOwner},
 			)
 		},
-		"ConfigMap": func(owners []metav1.OwnerReference) error {
+		"ConfigMap": func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
 			// The only configMaps considered here are those owned by a ClusterResourceSet.
 			return framework.HasExactOwners(owners, clusterResourceSetOwner)
 		},
@@ -124,33 +156,33 @@ var (
 )
 
 var (
-	VSphereReferenceAssertions = map[string]func([]metav1.OwnerReference) error{
-		"VSphereCluster": func(owners []metav1.OwnerReference) error {
+	VSphereReferenceAssertions = map[string]func(types.NamespacedName, []metav1.OwnerReference) error{
+		"VSphereCluster": func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
 			return framework.HasExactOwners(owners, clusterController)
 		},
-		"VSphereClusterTemplate": func(owners []metav1.OwnerReference) error {
+		"VSphereClusterTemplate": func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
 			return framework.HasExactOwners(owners, clusterClassOwner)
 		},
-		"VSphereMachine": func(owners []metav1.OwnerReference) error {
+		"VSphereMachine": func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
 			return framework.HasExactOwners(owners, machineController)
 		},
-		"VSphereMachineTemplate": func(owners []metav1.OwnerReference) error {
+		"VSphereMachineTemplate": func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
 			// The vSphereMachineTemplate can be owned by the Cluster or the ClusterClass.
 			return framework.HasOneOfExactOwners(owners, []metav1.OwnerReference{clusterOwner}, []metav1.OwnerReference{clusterClassOwner})
 		},
-		"VSphereVM": func(owners []metav1.OwnerReference) error {
+		"VSphereVM": func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
 			return framework.HasExactOwners(owners, vSphereMachineOwner)
 		},
 		// VSphereClusterIdentity does not have any owners.
-		"VSphereClusterIdentity": func(owners []metav1.OwnerReference) error {
+		"VSphereClusterIdentity": func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
 			// The vSphereClusterIdentity does not have any owners.
 			return framework.HasExactOwners(owners)
 		},
-		"VSphereDeploymentZone": func(owners []metav1.OwnerReference) error {
+		"VSphereDeploymentZone": func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
 			// The vSphereDeploymentZone does not have any owners.
 			return framework.HasExactOwners(owners)
 		},
-		"VSphereFailureDomain": func(owners []metav1.OwnerReference) error {
+		"VSphereFailureDomain": func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
 			// The vSphereFailureDomain can be owned by one or more vSphereDeploymentZones.
 			return framework.HasOneOfExactOwners(owners, []metav1.OwnerReference{vSphereDeploymentZoneOwner}, []metav1.OwnerReference{vSphereDeploymentZoneOwner, vSphereDeploymentZoneOwner})
 		},
@@ -186,14 +218,13 @@ var (
 )
 
 // vSphereFinalizers maps VSphere infrastructure resource types to their expected finalizers.
-var vSphereFinalizers = map[string][]string{
-	"VSphereVM":              {infrav1.VMFinalizer},
-	"Secret":                 {infrav1.SecretIdentitySetFinalizer},
-	"VSphereClusterIdentity": {infrav1.VSphereClusterIdentityFinalizer},
-	"VSphereDeploymentZone":  {infrav1.DeploymentZoneFinalizer},
-	"VSphereMachine":         {infrav1.MachineFinalizer},
-	"IPAddressClaim":         {infrav1.IPAddressClaimFinalizer},
-	"VSphereCluster":         {infrav1.ClusterFinalizer},
+var vSphereFinalizers = map[string]func(types.NamespacedName) []string{
+	"VSphereVM":              func(_ types.NamespacedName) []string { return []string{infrav1.VMFinalizer} },
+	"VSphereClusterIdentity": func(_ types.NamespacedName) []string { return []string{infrav1.VSphereClusterIdentityFinalizer} },
+	"VSphereDeploymentZone":  func(_ types.NamespacedName) []string { return []string{infrav1.DeploymentZoneFinalizer} },
+	"VSphereMachine":         func(_ types.NamespacedName) []string { return []string{infrav1.MachineFinalizer} },
+	"IPAddressClaim":         func(_ types.NamespacedName) []string { return []string{infrav1.IPAddressClaimFinalizer} },
+	"VSphereCluster":         func(_ types.NamespacedName) []string { return []string{infrav1.ClusterFinalizer} },
 }
 
 // cleanupVSphereObjects deletes the Secret, VSphereClusterIdentity, and VSphereDeploymentZone created for this test.
@@ -220,9 +251,7 @@ func cleanupVSphereObjects(ctx context.Context, bootstrapClusterProxy framework.
 	}).Should(Succeed())
 }
 
-func createVsphereIdentitySecret(ctx context.Context, bootstrapClusterProxy framework.ClusterProxy) {
-	username := e2eConfig.GetVariable("VSPHERE_USERNAME")
-	password := e2eConfig.GetVariable("VSPHERE_PASSWORD")
+func createVsphereIdentitySecret(ctx context.Context, bootstrapClusterProxy framework.ClusterProxy, username, password string) {
 	Expect(username).To(Not(BeEmpty()))
 	Expect(password).To(Not(BeEmpty()))
 	Expect(bootstrapClusterProxy.GetClient().Create(ctx,
@@ -238,17 +267,25 @@ func createVsphereIdentitySecret(ctx context.Context, bootstrapClusterProxy fram
 		})).To(Succeed())
 }
 
-func checkClusterIdentitySecretOwnerRef(ctx context.Context, c ctrlclient.Client) {
+func checkClusterIdentitySecretOwnerRefAndFinalizer(ctx context.Context, c ctrlclient.Client) {
 	s := &corev1.Secret{}
 
+	By("Check that the ownerReferences and finalizers for the ClusterIdentitySecret are as expected")
 	Eventually(func() error {
 		if err := c.Get(ctx, ctrlclient.ObjectKey{Namespace: clusterIdentitySecretNamespace, Name: clusterIdentityName}, s); err != nil {
 			return err
 		}
-		return framework.HasExactOwners(s.GetOwnerReferences(), vSphereClusterIdentityOwner)
+		if err := framework.HasExactOwners(s.GetOwnerReferences(), vSphereClusterIdentityOwner); err != nil {
+			return err
+		}
+		if !sets.NewString(s.GetFinalizers()...).Equal(sets.NewString(infrav1.SecretIdentitySetFinalizer)) {
+			return errors.Errorf("the ClusterIdentitySecret %s does not have finalizers", klog.KRef(clusterIdentitySecretNamespace, clusterIdentityName))
+		}
+		return nil
 	}, 1*time.Minute).Should(Succeed())
 
-	// Patch the secret to have a wrong APIVersion.
+	// Patch the secret to have a wrong APIVersion in ownerRef and to remove finalizers.
+	By("Removing all the ownerReferences and finalizers for the ClusterIdentitySecret")
 	helper, err := patch.NewHelper(s, c)
 	Expect(err).ToNot(HaveOccurred())
 	newOwners := []metav1.OwnerReference{}
@@ -261,6 +298,7 @@ func checkClusterIdentitySecretOwnerRef(ctx context.Context, c ctrlclient.Client
 		newOwners = append(newOwners, owner)
 	}
 	s.SetOwnerReferences(newOwners)
+	s.SetFinalizers(nil)
 	Expect(helper.Patch(ctx, s)).To(Succeed())
 
 	// Force reconcile the ClusterIdentity which owns the secret.
@@ -268,11 +306,18 @@ func checkClusterIdentitySecretOwnerRef(ctx context.Context, c ctrlclient.Client
 	Expect(c.Patch(ctx, &infrav1.VSphereClusterIdentity{ObjectMeta: metav1.ObjectMeta{Name: clusterIdentityName}}, annotationPatch)).To(Succeed())
 
 	// Check that the secret ownerReferences were correctly reconciled.
+	By("Check that the ownerReferences and finalizers for the ClusterIdentitySecret are rebuilt as expected")
 	Eventually(func() error {
 		if err := c.Get(ctx, ctrlclient.ObjectKey{Namespace: clusterIdentitySecretNamespace, Name: clusterIdentityName}, s); err != nil {
 			return err
 		}
-		return framework.HasExactOwners(s.GetOwnerReferences(), vSphereClusterIdentityOwner)
+		if err := framework.HasExactOwners(s.GetOwnerReferences(), vSphereClusterIdentityOwner); err != nil {
+			return err
+		}
+		if !sets.NewString(s.GetFinalizers()...).Equal(sets.NewString(infrav1.SecretIdentitySetFinalizer)) {
+			return errors.Errorf("the ClusterIdentitySecret %s does not have finalizers", klog.KRef(clusterIdentitySecretNamespace, clusterIdentityName))
+		}
+		return nil
 	}, 5*time.Minute).Should(Succeed())
 }
 
@@ -293,6 +338,7 @@ func forcePeriodicReconcile(ctx context.Context, c ctrlclient.Client, namespace 
 					annotationPatch := ctrlclient.RawPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"metadata\":{\"annotations\":{\"cluster.x-k8s.io/modifiedAt\":\"%v\"}}}", time.Now().Format(time.RFC3339))))
 					Expect(c.Patch(ctx, zone.DeepCopy(), annotationPatch)).To(Succeed())
 				}
+				// TODO: check if this can be dropped after https://github.com/kubernetes-sigs/cluster-api/pull/10656 is merged
 				Expect(c.List(ctx, crsList, ctrlclient.InNamespace(namespace))).To(Succeed())
 				for _, crs := range crsList.Items {
 					annotationPatch := ctrlclient.RawPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"metadata\":{\"annotations\":{\"cluster.x-k8s.io/modifiedAt\":\"%v\"}}}", time.Now().Format(time.RFC3339))))

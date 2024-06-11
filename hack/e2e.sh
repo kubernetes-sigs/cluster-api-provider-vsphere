@@ -33,6 +33,9 @@ if [[ "${ARTIFACTS}" != "${REPO_ROOT}/_artifacts" ]]; then
   ARTIFACTS=$(mktemp -d)
 fi
 
+# shellcheck source=./hack/ensure-go.sh
+source "${REPO_ROOT}/hack/ensure-go.sh"
+
 # shellcheck source=./hack/ensure-kubectl.sh
 source "${REPO_ROOT}/hack/ensure-kubectl.sh"
 

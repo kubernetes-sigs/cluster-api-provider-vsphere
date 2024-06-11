@@ -584,6 +584,8 @@ test-verbose: ## Run unit tests with verbose flag
 
 .PHONY: test-junit
 test-junit: $(SETUP_ENVTEST) $(GOTESTSUM) $(GOVC) ## Run unit tests
+	# Note: running ensure.go to make sure tests run with the correct kube-kins image in CI
+	hack/ensure-go.sh
 	# Note: ARTIFACTS must be set so the ginkgo suites write junit reports to the ARTIFACTS folder
 	set +o errexit; (ARTIFACTS=$(ARTIFACTS) KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" GOVC_BIN_PATH=$(GOVC) go test -json ./apis/... ./controllers/... ./pkg/... ./internal/... $(TEST_ARGS); echo $$? > $(ARTIFACTS)/junit.exitcode) | tee $(ARTIFACTS)/junit.stdout
 	$(GOTESTSUM) --junitfile $(ARTIFACTS)/junit.xml --raw-command cat $(ARTIFACTS)/junit.stdout

@@ -260,8 +260,6 @@ SUPERVISOR_WEBHOOK_ROOT ?= $(MANIFEST_ROOT)/supervisor/webhook
 RBAC_ROOT ?= $(MANIFEST_ROOT)/rbac
 VCSIM_RBAC_ROOT ?= $(VCSIM_DIR)/config/rbac
 NETOP_RBAC_ROOT ?= $(NETOP_DIR)/config/rbac
-VERSION ?= $(shell cat clusterctl-settings.json | jq .config.nextVersion -r)
-OVERRIDES_DIR := $(HOME)/.cluster-api/overrides/infrastructure-vsphere/$(VERSION)
 
 JANITOR_DIR ?= ./$(TOOLS_DIR)/janitor
 
@@ -663,10 +661,6 @@ $(RELEASE_NOTES_DIR):
 $(BUILD_DIR):
 	@mkdir -p $(BUILD_DIR)
 
-.PHONY: $(OVERRIDES_DIR)
-$(OVERRIDES_DIR):
-	@mkdir -p $(OVERRIDES_DIR)
-
 .PHONY: release
 release: clean-release ## Builds release manifests based on $(PROD_REGISTRY) and $(RELEASE_TAG) into $(RELEASE_DIR)
 	@if [ -z "${RELEASE_TAG}" ]; then echo "RELEASE_TAG is not set"; exit 1; fi
@@ -681,13 +675,6 @@ release-manifests-all: ## Builds release manifests into $(RELEASE_DIR)
 	$(MAKE) manifest-modification REGISTRY=$(PROD_REGISTRY) RELEASE_TAG=$(RELEASE_TAG) PULL_POLICY=IfNotPresent
 	## Build the manifests into $(RELEASE_DIR)
 	$(MAKE) release-manifests STAGE=release MANIFEST_DIR=$(RELEASE_DIR)
-
-.PHONY: dev-manifests
-dev-manifests: ## Builds dev manifests based on $(REGISTRY) and $(TAG) into the $(OVERRIDES_DIR)
-	# Set the manifest image to $(REGISTRY)/$(IMAGE_NAME):$(TAG) and pull policy to Always.
-	$(MAKE) manifest-modification REGISTRY=$(REGISTRY) RELEASE_TAG=$(TAG) PULL_POLICY=Always
-	## Build the manifests into $(OVERRIDES_DIR)
-	$(MAKE) release-manifests STAGE=dev MANIFEST_DIR=$(OVERRIDES_DIR)
 
 .PHONY: manifest-modification
 manifest-modification: $(BUILD_DIR) # Set the manifest images to $(REGISTRY)/$(IMAGE_NAME):$(RELEASE_TAG) and pull policy to $(PULL_POLICY)
@@ -709,10 +696,6 @@ release-manifests: $(BUILD_DIR) $(MANIFEST_DIR) $(KUSTOMIZE) $(STAGE)-flavors ##
 .PHONY: release-flavors ## Create release flavor manifests
 release-flavors: $(RELEASE_DIR)
 	$(MAKE) generate-flavors FLAVOR_DIR=$(RELEASE_DIR)
-
-.PHONY: dev-flavors ## Create dev flavor manifests
-dev-flavors: $(OVERRIDES_DIR)
-	$(MAKE) generate-flavors FLAVOR_DIR=$(OVERRIDES_DIR)
 
 .PHONY: e2e-flavors ## Create dev flavor manifests for e2e testing
 e2e-flavors: $(KUSTOMIZE) $(addprefix e2e-flavors-, main)

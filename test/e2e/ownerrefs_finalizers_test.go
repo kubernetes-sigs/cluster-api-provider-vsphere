@@ -50,8 +50,8 @@ var _ = Describe("Ensure OwnerReferences and Finalizers are resilient with Failu
 	const specName = "owner-reference"
 	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		capi_e2e.QuickStartSpec(ctx, func() capi_e2e.QuickStartSpecInput {
-			// NOTE: we want to use test specific variables computed during setup, not the variables existing in the e2eConfig
-			// struct that was loaded when running the SynchronizedBeforeSuite.
+			// NOTE: When testing with vcsim VSPHERE_USERNAME and VSPHERE_PASSWORD are provided as a test specific variables,
+			// when running on CI same variables are provided as env variables.
 			input := testSpecificSettingsGetter()
 			username, ok := input.Variables["VSPHERE_USERNAME"]
 			if !ok {

@@ -83,7 +83,7 @@ GINKGO_NODES ?= 1
 GINKGO_TIMEOUT ?= 3h
 E2E_CONF_FILE ?= $(abspath test/e2e/config/vsphere.yaml)
 E2E_CONF_OVERRIDE_FILE ?= $(abspath test/e2e/config/config-overrides.yaml)
-E2E_IPAM_KUBECONFIG ?=
+E2E_VSPHERE_IP_POOL ?=
 E2E_TEMPLATE_DIR := $(abspath test/e2e/data/)
 E2E_GOVMOMI_TEMPLATE_DIR := $(E2E_TEMPLATE_DIR)/infrastructure-vsphere-govmomi
 E2E_SUPERVISOR_TEMPLATE_DIR := $(E2E_TEMPLATE_DIR)/infrastructure-vsphere-supervisor
@@ -616,7 +616,7 @@ e2e: $(GINKGO) $(KUSTOMIZE) $(KIND) $(GOVC) ## Run e2e tests
 		--e2e.artifacts-folder="$(ARTIFACTS)" \
 		--e2e.skip-resource-cleanup=$(SKIP_RESOURCE_CLEANUP) \
 		--e2e.use-existing-cluster="$(USE_EXISTING_CLUSTER)" \
-		--e2e.ipam-kubeconfig="$(E2E_IPAM_KUBECONFIG)"
+		--e2e.ip-pool='$(E2E_VSPHERE_IP_POOL)'
 
 ## --------------------------------------
 ## Release

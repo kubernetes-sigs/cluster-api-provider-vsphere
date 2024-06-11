@@ -45,6 +45,7 @@ import (
 type setupOptions struct {
 	additionalIPVariableNames []string
 	gatewayIPVariableName     string
+	prefixVariableName        string
 }
 
 // SetupOption is a configuration option supplied to Setup.
@@ -62,6 +63,13 @@ func WithIP(variableName string) SetupOption {
 func WithGateway(variableName string) SetupOption {
 	return func(o *setupOptions) {
 		o.gatewayIPVariableName = variableName
+	}
+}
+
+// WithPrefix instructs Setup to store the prefix from IPAM into the provided variableName.
+func WithPrefix(variableName string) SetupOption {
+	return func(o *setupOptions) {
+		o.prefixVariableName = variableName
 	}
 }
 
@@ -90,7 +98,7 @@ func Setup(specName string, f func(testSpecificSettings func() testSettings), op
 		case VCenterTestTarget:
 			Byf("Getting IP for %s", strings.Join(append([]string{vsphereip.ControlPlaneEndpointIPVariable}, options.additionalIPVariableNames...), ","))
 			// get IPs from the in cluster address manager
-			testSpecificIPAddressClaims, testSpecificVariables = inClusterAddressManager.ClaimIPs(ctx, vsphereip.WithGateway(options.gatewayIPVariableName), vsphereip.WithIP(options.additionalIPVariableNames...))
+			testSpecificIPAddressClaims, testSpecificVariables = inClusterAddressManager.ClaimIPs(ctx, vsphereip.WithGateway(options.gatewayIPVariableName), vsphereip.WithPrefix(options.prefixVariableName), vsphereip.WithIP(options.additionalIPVariableNames...))
 		case VCSimTestTarget:
 			c := bootstrapClusterProxy.GetClient()
 

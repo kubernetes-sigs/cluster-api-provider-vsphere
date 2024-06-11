@@ -23,7 +23,6 @@ import (
 	"slices"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/pkg/errors"
 	"github.com/vmware/govmomi/object"
@@ -31,30 +30,21 @@ import (
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/klog/v2"
-	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // NewJanitor creates a new Janitor.
-func NewJanitor(vSphereClients *VSphereClients, ipamClient client.Client, maxCreationDate time.Time, ipamNamespace string, dryRun bool) *Janitor {
+func NewJanitor(vSphereClients *VSphereClients, dryRun bool) *Janitor {
 	return &Janitor{
-		dryRun:          dryRun,
-		ipamClient:      ipamClient,
-		ipamNamespace:   ipamNamespace,
-		maxCreationDate: maxCreationDate,
-		vSphereClients:  vSphereClients,
+		dryRun:         dryRun,
+		vSphereClients: vSphereClients,
 	}
 }
 
 // Janitor implements a janitor for vSphere.
 type Janitor struct {
-	dryRun          bool
-	ipamClient      client.Client
-	ipamNamespace   string
-	maxCreationDate time.Time
-	vSphereClients  *VSphereClients
+	dryRun         bool
+	vSphereClients *VSphereClients
 }
 
 type virtualMachine struct {
@@ -108,8 +98,7 @@ func (s *Janitor) CleanupVSphere(ctx context.Context, folders, resourcePools, vm
 	return nil
 }
 
-// deleteVSphereVMs deletes all VSphereVMs in a given folder in vSphere if their creation
-// timestamp is before the janitor's configured maxCreationDate.
+// deleteVSphereVMs deletes all VSphereVMs in a given folder in vSphere.
 func (s *Janitor) deleteVSphereVMs(ctx context.Context, folder string) error {
 	log := ctrl.LoggerFrom(ctx).WithName("vSphereVMs").WithValues("folder", folder)
 	ctx = ctrl.LoggerInto(ctx, log)
@@ -143,14 +132,10 @@ func (s *Janitor) deleteVSphereVMs(ctx context.Context, folder string) error {
 	vmsToDeleteAndPoweroff := []*virtualMachine{}
 	vmsToDelete := []*virtualMachine{}
 
-	// Filter out vms we don't have to cleanup depending on s.maxCreationDate.
+	// Figure out which VMs to delete and which to power off and delete.
 	for _, managedObjectVM := range managedObjectVMs {
 		if managedObjectVM.Summary.Config.Template {
 			// Skip templates for deletion.
-			continue
-		}
-		if managedObjectVM.Config.CreateDate.After(s.maxCreationDate) {
-			// Ignore vms created after maxCreationDate
 			continue
 		}
 
@@ -216,7 +201,6 @@ func (s *Janitor) deleteVSphereVMs(ctx context.Context, folder string) error {
 // contain any virtual machine.
 // An object only gets deleted if:
 // * it does not have any children of a different type
-// * the timestamp field's value is before s.maxCreationDate
 // If an object does not yet have a field, the janitor will add the field to it with the current timestamp as value.
 func (s *Janitor) deleteObjectChildren(ctx context.Context, inventoryPath string, objectType string) error {
 	if !slices.Contains([]string{"ResourcePool", "Folder"}, objectType) {
@@ -257,52 +241,11 @@ func (s *Janitor) deleteObjectChildren(ctx context.Context, inventoryPath string
 		}
 	}
 
-	// Get key for the deletion marker.
-	deletionMarkerKey, err := s.vSphereClients.FieldsManager.FindKey(ctx, vSphereDeletionMarkerName)
-	if err != nil {
-		if !errors.Is(err, object.ErrKeyNameNotFound) {
-			return errors.Wrapf(err, "finding custom field %q", vSphereDeletionMarkerName)
-		}
-
-		// In case of ErrKeyNameNotFound we will create the deletionMarker but only if
-		// we are not on dryRun.
-		log.Info("Creating the deletion field")
-
-		if !s.dryRun {
-			field, err := s.vSphereClients.FieldsManager.Add(ctx, vSphereDeletionMarkerName, "ManagedEntity", nil, nil)
-			if err != nil {
-				return errors.Wrapf(err, "creating custom field %q", vSphereDeletionMarkerName)
-			}
-			deletionMarkerKey = field.Key
-		}
-	}
-
-	objectsToMark := []*managedElement{}
 	objectsToDelete := []*managedElement{}
 
-	// Filter elements and collect two groups:
-	// * objects to add the timestamp field
-	// * objects to destroy
+	// Filter elements and collect objects to destroy.
 	for i := range managedEntities {
 		managedEntity := managedEntities[i]
-
-		// We mark any object we find with a timestamp to determine the first time we did see this item.
-		// This is used as replacement for the non-existing CreationTimestamp on objects.
-		timestamp, err := getDeletionMarkerTimestamp(deletionMarkerKey, managedEntity.entity.Value)
-		if err != nil {
-			return err
-		}
-		// If no timestamp was found: queue it to get marked.
-		if timestamp == nil {
-			objectsToMark = append(objectsToMark, managedEntity)
-			continue
-		}
-
-		// Filter out objects we don't have to cleanup depending on s.maxCreationDate.
-		if timestamp.After(s.maxCreationDate) {
-			log.Info("Skipping deletion of object: marked timestamp does not exceed maxCreationDate", "timestamp", timestamp, "inventoryPath", managedEntity.element.Path)
-			continue
-		}
 
 		// Filter out objects which have children.
 		if hasChildren[managedEntity.element.Path] {
@@ -311,20 +254,6 @@ func (s *Janitor) deleteObjectChildren(ctx context.Context, inventoryPath string
 		}
 
 		objectsToDelete = append(objectsToDelete, managedEntity)
-	}
-
-	for i := range objectsToMark {
-		managedElement := objectsToMark[i]
-		log.Info("Marking resource object for deletion in vSphere", objectType, managedElement.element.Path)
-
-		if s.dryRun {
-			// Skipping actual mark on dryRun.
-			continue
-		}
-
-		if err := s.vSphereClients.FieldsManager.Set(ctx, managedElement.entity.Reference(), deletionMarkerKey, time.Now().Format(time.RFC3339)); err != nil {
-			return errors.Wrapf(err, "setting field %s on object %s", vSphereDeletionMarkerName, managedElement.element.Path)
-		}
 	}
 
 	// sort objects to delete so children are deleted before parents
@@ -356,44 +285,6 @@ func (s *Janitor) deleteObjectChildren(ctx context.Context, inventoryPath string
 	}
 
 	return nil
-}
-
-// DeleteIPAddressClaims deletes IPAddressClaims.
-func (s *Janitor) DeleteIPAddressClaims(ctx context.Context) error {
-	log := ctrl.LoggerFrom(ctx).WithName("IPAddressClaims")
-	ctrl.LoggerInto(ctx, log)
-	log.Info("Deleting IPAddressClaims")
-
-	// List all existing IPAddressClaims
-	ipAddressClaims := &ipamv1.IPAddressClaimList{}
-	if err := s.ipamClient.List(ctx, ipAddressClaims,
-		client.InNamespace(s.ipamNamespace),
-	); err != nil {
-		return err
-	}
-
-	errList := []error{}
-
-	for _, ipAddressClaim := range ipAddressClaims.Items {
-		ipAddressClaim := ipAddressClaim
-		// Skip IPAddressClaims which got created after maxCreationDate.
-		if ipAddressClaim.CreationTimestamp.After(s.maxCreationDate) {
-			continue
-		}
-
-		log.Info("Deleting IPAddressClaim", "IPAddressClaim", klog.KObj(&ipAddressClaim))
-
-		if s.dryRun {
-			// Skipping actual deletion on dryRun.
-			continue
-		}
-
-		if err := s.ipamClient.Delete(ctx, &ipAddressClaim); err != nil {
-			errList = append(errList, err)
-		}
-	}
-
-	return kerrors.NewAggregate(errList)
 }
 
 func (s *Janitor) deleteVSphereClusterModules(ctx context.Context) error {

@@ -930,15 +930,9 @@ clean-ci: ## Cleanup orphaned objects in CI
 	@if [ -z "${GOVC_USERNAME}" ]; then echo "GOVC_USERNAME is not set"; exit 1; fi
 	@if [ -z "${GOVC_PASSWORD}" ]; then echo "GOVC_PASSWORD is not set"; exit 1; fi
 	@if [ -z "${GOVC_URL}" ]; then echo "GOVC_URL is not set"; exit 1; fi
-	go run $(JANITOR_DIR) \
-		--dry-run=false \
-		--max-age=12h \
-		--ipam-namespace=default \
-		--folder=/SDDC-Datacenter/vm/Workloads/cluster-api-provider-vsphere \
-		--resource-pool=/SDDC-Datacenter/host/Cluster-1/Resources/Compute-ResourcePool/cluster-api-provider-vsphere \
-		--vm-folder=/SDDC-Datacenter/vm/Workloads/cluster-api-provider-vsphere \
-		--vm-folder=/SDDC-Datacenter/vm/Workloads/cloud-provider-vsphere \
-		--vm-folder=/SDDC-Datacenter/vm/Workloads/image-builder
+	@if [ -z "${VSPHERE_TLS_THUMBPRINT}" ]; then echo "VSPHERE_TLS_THUMBPRINT is not set"; exit 1; fi
+	@if [ -z "${BOSKOS_HOST}" ]; then echo "BOSKOS_HOST is not set"; exit 1; fi
+	go run $(JANITOR_DIR) --dry-run=false
 
 .PHONY: clean-temporary
 clean-temporary: ## Remove all temporary files and folders

@@ -14,7 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+// Package janitor implements a janitor for vSphere.
+package janitor
 
 import (
 	"context"
@@ -36,22 +37,24 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func newJanitor(vSphereClients *vSphereClients, ipamClient client.Client, maxAge time.Duration, ipamNamespace string, dryRun bool) *janitor {
-	return &janitor{
+// NewJanitor creates a new Janitor.
+func NewJanitor(vSphereClients *VSphereClients, ipamClient client.Client, maxCreationDate time.Time, ipamNamespace string, dryRun bool) *Janitor {
+	return &Janitor{
 		dryRun:          dryRun,
 		ipamClient:      ipamClient,
 		ipamNamespace:   ipamNamespace,
-		maxCreationDate: time.Now().Add(-maxAge),
+		maxCreationDate: maxCreationDate,
 		vSphereClients:  vSphereClients,
 	}
 }
 
-type janitor struct {
+// Janitor implements a janitor for vSphere.
+type Janitor struct {
 	dryRun          bool
 	ipamClient      client.Client
 	ipamNamespace   string
 	maxCreationDate time.Time
-	vSphereClients  *vSphereClients
+	vSphereClients  *VSphereClients
 }
 
 type virtualMachine struct {
@@ -59,7 +62,8 @@ type virtualMachine struct {
 	object        *object.VirtualMachine
 }
 
-func (s *janitor) cleanupVSphere(ctx context.Context, folders, resourcePools, vmFolders []string) error {
+// CleanupVSphere cleans up vSphere VMs, folders and resource pools.
+func (s *Janitor) CleanupVSphere(ctx context.Context, folders, resourcePools, vmFolders []string, skipClusterModule bool) error {
 	errList := []error{}
 
 	// Delete vms to cleanup folders and resource pools.
@@ -92,6 +96,10 @@ func (s *janitor) cleanupVSphere(ctx context.Context, folders, resourcePools, vm
 		return errors.Wrap(err, "cleaning up folders")
 	}
 
+	if skipClusterModule {
+		return nil
+	}
+
 	// Delete empty cluster modules.
 	if err := s.deleteVSphereClusterModules(ctx); err != nil {
 		return errors.Wrap(err, "cleaning up vSphere cluster modules")
@@ -102,7 +110,7 @@ func (s *janitor) cleanupVSphere(ctx context.Context, folders, resourcePools, vm
 
 // deleteVSphereVMs deletes all VSphereVMs in a given folder in vSphere if their creation
 // timestamp is before the janitor's configured maxCreationDate.
-func (s *janitor) deleteVSphereVMs(ctx context.Context, folder string) error {
+func (s *Janitor) deleteVSphereVMs(ctx context.Context, folder string) error {
 	log := ctrl.LoggerFrom(ctx).WithName("vSphereVMs").WithValues("folder", folder)
 	ctx = ctrl.LoggerInto(ctx, log)
 
@@ -210,7 +218,7 @@ func (s *janitor) deleteVSphereVMs(ctx context.Context, folder string) error {
 // * it does not have any children of a different type
 // * the timestamp field's value is before s.maxCreationDate
 // If an object does not yet have a field, the janitor will add the field to it with the current timestamp as value.
-func (s *janitor) deleteObjectChildren(ctx context.Context, inventoryPath string, objectType string) error {
+func (s *Janitor) deleteObjectChildren(ctx context.Context, inventoryPath string, objectType string) error {
 	if !slices.Contains([]string{"ResourcePool", "Folder"}, objectType) {
 		return fmt.Errorf("deleteObjectChildren is not implemented for objectType %s", objectType)
 	}
@@ -350,7 +358,8 @@ func (s *janitor) deleteObjectChildren(ctx context.Context, inventoryPath string
 	return nil
 }
 
-func (s *janitor) deleteIPAddressClaims(ctx context.Context) error {
+// DeleteIPAddressClaims deletes IPAddressClaims.
+func (s *Janitor) DeleteIPAddressClaims(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx).WithName("IPAddressClaims")
 	ctrl.LoggerInto(ctx, log)
 	log.Info("Deleting IPAddressClaims")
@@ -387,7 +396,7 @@ func (s *janitor) deleteIPAddressClaims(ctx context.Context) error {
 	return kerrors.NewAggregate(errList)
 }
 
-func (s *janitor) deleteVSphereClusterModules(ctx context.Context) error {
+func (s *Janitor) deleteVSphereClusterModules(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx).WithName("vSphere cluster modules")
 	ctrl.LoggerInto(ctx, log)
 	log.Info("Deleting vSphere cluster modules")

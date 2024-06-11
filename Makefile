@@ -77,7 +77,7 @@ GINKGO_NODES ?= 1
 GINKGO_TIMEOUT ?= 3h
 E2E_CONF_FILE ?= $(abspath test/e2e/config/vsphere.yaml)
 E2E_CONF_OVERRIDE_FILE ?= $(abspath test/e2e/config/config-overrides.yaml)
-E2E_IPAM_KUBECONFIG ?=
+E2E_VSPHERE_IP_POOL ?=
 E2E_TEMPLATE_DIR := $(abspath test/e2e/data/)
 E2E_GOVMOMI_TEMPLATE_DIR := $(E2E_TEMPLATE_DIR)/infrastructure-vsphere-govmomi
 E2E_SUPERVISOR_TEMPLATE_DIR := $(E2E_TEMPLATE_DIR)/infrastructure-vsphere-supervisor
@@ -186,6 +186,9 @@ IMPORT_BOSS_PKG := k8s.io/code-generator/cmd/import-boss
 
 CAPI_HACK_TOOLS_VER := ef04465b2ba76214eea570e27e8146c96412e32a # Note: this is the commit ID of CAPI v1.7.1
 
+BOSKOSCTL_BIN := boskosctl
+BOSKOSCTL := $(abspath $(TOOLS_BIN_DIR)/$(BOSKOSCTL_BIN))
+
 CONVERSION_VERIFIER_VER := $(CAPI_HACK_TOOLS_VER)
 CONVERSION_VERIFIER_BIN := conversion-verifier
 CONVERSION_VERIFIER := $(abspath $(TOOLS_BIN_DIR)/$(CONVERSION_VERIFIER_BIN)-$(CONVERSION_VERIFIER_VER))
@@ -229,6 +232,14 @@ VM_OPERATOR_ALL_ARCH = amd64 arm64
 # net operator
 NET_OPERATOR_IMAGE_NAME ?= cluster-api-net-operator
 NET_OPERATOR_IMG ?= $(STAGING_REGISTRY)/$(NET_OPERATOR_IMAGE_NAME)
+
+# boskosctl
+BOSKOSCTL_IMG ?= gcr.io/k8s-staging-capi-vsphere/extra/boskosctl
+BOSKOSCTL_IMG_TAG ?= $(shell git describe --always --dirty)
+
+# openvpn
+OPENVPN_IMG ?= gcr.io/k8s-staging-capi-vsphere/extra/openvpn
+OPENVPN_IMG_TAG ?= $(shell git describe --always --dirty)
 
 # It is set by Prow GIT_TAG, a git-based tag of the form vYYYYMMDD-hash, e.g., v20210120-v0.3.10-308-gc61521971
 
@@ -560,6 +571,28 @@ docker-build-net-operator: docker-pull-prerequisites ## Build the docker image f
 		$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./$(NETOP_DIR)/config/default/manager_pull_policy.yaml"; \
 	fi
 
+.PHONY: docker-build-boskosctl
+docker-build-boskosctl:
+	cat hack/tools/boskosctl/Dockerfile | DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) . -t $(BOSKOSCTL_IMG):$(BOSKOSCTL_IMG_TAG) --file -
+	docker tag $(BOSKOSCTL_IMG):$(BOSKOSCTL_IMG_TAG) $(BOSKOSCTL_IMG):latest
+.PHONY: build
+
+.PHONY: docker-push-boskosctl
+docker-push-boskosctl:
+	docker push $(BOSKOSCTL_IMG):$(BOSKOSCTL_IMG_TAG)
+	docker push $(BOSKOSCTL_IMG):latest
+
+.PHONY: docker-build-openvpn
+docker-build-openvpn:
+	cat hack/tools/openvpn/Dockerfile | DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) . -t $(OPENVPN_IMG):$(OPENVPN_IMG_TAG) --file -
+	docker tag $(OPENVPN_IMG):$(OPENVPN_IMG_TAG) $(OPENVPN_IMG):latest
+.PHONY: build
+
+.PHONY: docker-push-openvpn
+docker-push-openvpn:
+	docker push $(OPENVPN_IMG):$(OPENVPN_IMG_TAG)
+	docker push $(OPENVPN_IMG):latest
+
 ## --------------------------------------
 ## Testing
 ## --------------------------------------
@@ -621,7 +654,7 @@ e2e: $(GINKGO) $(KUSTOMIZE) $(KIND) $(GOVC) ## Run e2e tests
 		--e2e.artifacts-folder="$(ARTIFACTS)" \
 		--e2e.skip-resource-cleanup=$(SKIP_RESOURCE_CLEANUP) \
 		--e2e.use-existing-cluster="$(USE_EXISTING_CLUSTER)" \
-		--e2e.ipam-kubeconfig="$(E2E_IPAM_KUBECONFIG)"
+		--e2e.ip-pool='$(E2E_VSPHERE_IP_POOL)'
 
 ## --------------------------------------
 ## Release
@@ -952,6 +985,9 @@ $(CONVERSION_GEN_BIN): $(CONVERSION_GEN) ## Build a local copy of conversion-gen
 .PHONY: $(PROWJOB_GEN_BIN)
 $(PROWJOB_GEN_BIN): $(PROWJOB_GEN) ## Build a local copy of prowjob-gen.
 
+.PHONY: $(BOSKOSCTL_BIN)
+$(BOSKOSCTL_BIN): $(BOSKOSCTL) ## Build a local copy of boskosctl.
+
 .PHONY: $(CONVERSION_VERIFIER_BIN)
 $(CONVERSION_VERIFIER_BIN): $(CONVERSION_VERIFIER) ## Build a local copy of conversion-verifier.
 
@@ -1005,6 +1041,9 @@ $(CONTROLLER_GEN): # Build controller-gen.
 .PHONY: $(CONVERSION_GEN)
 $(CONVERSION_GEN): # Build conversion-gen.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(CONVERSION_GEN_PKG) $(CONVERSION_GEN_BIN) $(CONVERSION_GEN_VER)
+
+$(BOSKOSCTL): # Build boskosctl from tools folder.
+	go build -o $(TOOLS_BIN_DIR)/$(BOSKOSCTL_BIN) ./hack/tools/boskosctl
 
 $(CONVERSION_VERIFIER): # Build conversion-verifier.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_TOOLS_BUILD) $(CONVERSION_VERIFIER_PKG) $(CONVERSION_VERIFIER_BIN) $(CONVERSION_VERIFIER_VER)

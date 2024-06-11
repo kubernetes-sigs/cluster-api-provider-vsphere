@@ -66,9 +66,10 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.10
 				// InitWithKubernetesVersion should be the highest kubernetes version supported by the init Cluster API version.
 				// This is to guarantee that both, the old and new CAPI version, support the defined version.
 				// Ensure all Kubernetes versions used here are covered in patch-vsphere-template.yaml
-				InitWithKubernetesVersion: "v1.30.0",
-				WorkloadKubernetesVersion: "v1.30.0",
-				WorkloadFlavor:            testSpecificSettingsGetter().FlavorForMode("workload"),
+				InitWithKubernetesVersion:   "v1.30.0",
+				WorkloadKubernetesVersion:   "v1.30.0",
+				WorkloadFlavor:              testSpecificSettingsGetter().FlavorForMode("workload"),
+				UseKindForManagementCluster: true,
 			}
 		})
 	}, WithIP("WORKLOAD_CONTROL_PLANE_ENDPOINT_IP"))
@@ -103,9 +104,10 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.9=
 				// InitWithKubernetesVersion should be the highest kubernetes version supported by the init Cluster API version.
 				// This is to guarantee that both, the old and new CAPI version, support the defined version.
 				// Ensure all Kubernetes versions used here are covered in patch-vsphere-template.yaml
-				InitWithKubernetesVersion: "v1.29.0",
-				WorkloadKubernetesVersion: "v1.29.0",
-				WorkloadFlavor:            testSpecificSettingsGetter().FlavorForMode("workload"),
+				InitWithKubernetesVersion:   "v1.29.0",
+				WorkloadKubernetesVersion:   "v1.29.0",
+				WorkloadFlavor:              testSpecificSettingsGetter().FlavorForMode("workload"),
+				UseKindForManagementCluster: true,
 			}
 		})
 	}, WithIP("WORKLOAD_CONTROL_PLANE_ENDPOINT_IP"))

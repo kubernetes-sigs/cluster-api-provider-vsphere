@@ -22,7 +22,7 @@ export PATH=${PWD}/hack/tools/bin:${PATH}
 REPO_ROOT=$(git rev-parse --show-toplevel)
 
 # In CI, ARTIFACTS is set to a different directory. This stores the value of
-# ARTIFACTS i1n ORIGINAL_ARTIFACTS and replaces ARTIFACTS by a temporary directory
+# ARTIFACTS in ORIGINAL_ARTIFACTS and replaces ARTIFACTS by a temporary directory
 # which gets cleaned up from credentials at the end of the test.
 export ORIGINAL_ARTIFACTS=""
 export ARTIFACTS="${ARTIFACTS:-${REPO_ROOT}/_artifacts}"
@@ -31,16 +31,22 @@ if [[ "${ARTIFACTS}" != "${REPO_ROOT}/_artifacts" ]]; then
   ARTIFACTS=$(mktemp -d)
 fi
 
-# shellcheck source=./hack/ensure-kubectl.sh
-source "${REPO_ROOT}/hack/ensure-kubectl.sh"
+# shellcheck source=./hack/ensure-go.sh
+source "${REPO_ROOT}/hack/ensure-go.sh"
+
+export BOSKOS_RESOURCE_OWNER=cluster-api-provider-vsphere
+if [[ "${JOB_NAME}" != "" ]]; then
+  export BOSKOS_RESOURCE_OWNER="${JOB_NAME}/${BUILD_ID}"
+fi
+export BOSKOS_RESOURCE_TYPE=vsphere-project-cluster-api-provider
 
 on_exit() {
-  # release IPClaim
-  echo "Releasing IP claims"
-  kubectl --kubeconfig="${KUBECONFIG}" delete "ipaddressclaim.ipam.cluster.x-k8s.io" "${CONTROL_PLANE_IPCLAIM_NAME}" || true
-  kubectl --kubeconfig="${KUBECONFIG}" delete "ipaddressclaim.ipam.cluster.x-k8s.io" "${WORKLOAD_IPCLAIM_NAME}" || true
+  # Stop boskos heartbeat
+  [[ -z ${HEART_BEAT_PID:-} ]] || kill -9 "${HEART_BEAT_PID}"
 
-  # kill the VPN
+  # If Boskos is being used then release the vsphere project.
+  [ -z "${BOSKOS_HOST:-}" ] || docker run -e VSPHERE_USERNAME -e VSPHERE_PASSWORD gcr.io/k8s-staging-capi-vsphere/extra/boskosctl:latest release --boskos-host="${BOSKOS_HOST}" --resource-owner="${BOSKOS_RESOURCE_OWNER}" --resource-name="${BOSKOS_RESOURCE_NAME}" --vsphere-server="${VSPHERE_SERVER}" --vsphere-tls-thumbprint="${VSPHERE_TLS_THUMBPRINT}" --vsphere-folder="${BOSKOS_RESOURCE_FOLDER}" --vsphere-resource-pool="${BOSKOS_RESOURCE_POOL}"
+
   docker kill vpn
 
   # Cleanup VSPHERE_PASSWORD from temporary artifacts directory.
@@ -80,7 +86,6 @@ export VSPHERE_PASSWORD="${GOVC_PASSWORD}"
 export VSPHERE_SSH_AUTHORIZED_KEY="${VM_SSH_PUB_KEY}"
 export VSPHERE_SSH_PRIVATE_KEY="/root/ssh/.private-key/private-key"
 export E2E_CONF_FILE="${REPO_ROOT}/test/e2e/config/vsphere-ci.yaml"
-export ARTIFACTS="${ARTIFACTS:-${REPO_ROOT}/_artifacts}"
 export DOCKER_IMAGE_TAR="/tmp/images/image.tar"
 export GC_KIND="false"
 
@@ -92,44 +97,11 @@ docker run --rm -d --name vpn -v "${HOME}/.openvpn/:${HOME}/.openvpn/" \
 # Tail the vpn logs
 docker logs vpn
 
-function kubectl_get_jsonpath() {
-  local OBJECT_KIND="${1}"
-  local OBJECT_NAME="${2}"
-  local JSON_PATH="${3}"
+# Wait until the VPN connection is active.
+function wait_for_vpn_up() {
   local n=0
   until [ $n -ge 30 ]; do
-    OUTPUT=$(kubectl --kubeconfig="${KUBECONFIG}" get "${OBJECT_KIND}.ipam.cluster.x-k8s.io" "${OBJECT_NAME}" -o=jsonpath="${JSON_PATH}")
-    if [[ "${OUTPUT}" != "" ]]; then
-      break
-    fi
-    n=$((n + 1))
-    sleep 1
-  done
-
-  if [[ "${OUTPUT}" == "" ]]; then
-    echo "Received empty output getting ${JSON_PATH} from ${OBJECT_KIND}/${OBJECT_NAME}" 1>&2
-    return 1
-  else
-    echo "${OUTPUT}"
-    return 0
-  fi
-}
-
-function claim_ip() {
-  IPCLAIM_NAME="$1"
-  export IPCLAIM_NAME
-  envsubst < "${REPO_ROOT}/hack/ipclaim-template.yaml" | kubectl --kubeconfig="${KUBECONFIG}" create -f - 1>&2
-  IPADDRESS_NAME=$(kubectl_get_jsonpath ipaddressclaim "${IPCLAIM_NAME}" '{@.status.addressRef.name}')
-  kubectl --kubeconfig="${KUBECONFIG}" get "ipaddresses.ipam.cluster.x-k8s.io" "${IPADDRESS_NAME}" -o=jsonpath='{@.spec.address}'
-}
-
-export KUBECONFIG="/root/ipam-conf/capv-services.conf"
-
-# Wait until the VPN connection is active and we are able to reach the ipam cluster
-function wait_for_ipam_reachable() {
-  local n=0
-  until [ $n -ge 30 ]; do
-    kubectl --kubeconfig="${KUBECONFIG}" --request-timeout=2s  get inclusterippools.ipam.cluster.x-k8s.io && RET=$? || RET=$?
+    curl "https://${VSPHERE_SERVER}" --connect-timeout 2 -k && RET=$? || RET=$?
     if [[ "$RET" -eq 0 ]]; then
       break
     fi
@@ -138,21 +110,43 @@ function wait_for_ipam_reachable() {
   done
   return "$RET"
 }
-wait_for_ipam_reachable
+wait_for_vpn_up
+
+# If BOSKOS_HOST is set then acquire a vsphere-project from Boskos.
+if [ -n "${BOSKOS_HOST:-}" ]; then
+  # Check out the account from Boskos and store the produced environment
+  # variables in a temporary file.
+  account_env_var_file="$(mktemp)"
+  docker run gcr.io/k8s-staging-capi-vsphere/extra/boskosctl:latest acquire --boskos-host="${BOSKOS_HOST}" --resource-owner="${BOSKOS_RESOURCE_OWNER}" --resource-type="${BOSKOS_RESOURCE_TYPE}" 1>"${account_env_var_file}"
+  checkout_account_status="${?}"
+
+  # If the checkout process was a success then load the account's
+  # environment variables into this process.
+  # shellcheck disable=SC1090
+  [ "${checkout_account_status}" = "0" ] && . "${account_env_var_file}"
+  export BOSKOS_RESOURCE_NAME=${BOSKOS_RESOURCE_NAME}
+  export VSPHERE_FOLDER=${BOSKOS_RESOURCE_FOLDER}
+  export VSPHERE_RESOURCE_POOL=${BOSKOS_RESOURCE_POOL}
+  export E2E_VSPHERE_IP_POOL="${BOSKOS_RESOURCE_IP_POOL}"
+  export CONTROL_PLANE_ENDPOINT_IP="${BOSKOS_RESOURCE_IP_POOL_IP_0}"
+  export WORKLOAD_CONTROL_PLANE_ENDPOINT_IP="${BOSKOS_RESOURCE_IP_POOL_IP_1}"
+
+  # Always remove the account environment variable file. It contains
+  # sensitive information.
+  rm -f "${account_env_var_file}"
+
+  if [ ! "${checkout_account_status}" = "0" ]; then
+    echo "error getting vsphere project from Boskos" 1>&2
+    exit "${checkout_account_status}"
+  fi
+
+  # Run the heartbeat to tell boskos periodically that we are still
+  # using the checked out account.
+  docker run gcr.io/k8s-staging-capi-vsphere/extra/boskosctl:latest heartbeat --boskos-host="${BOSKOS_HOST}" --resource-owner="${BOSKOS_RESOURCE_OWNER}" --resource-name="${BOSKOS_RESOURCE_NAME}" >>"${ARTIFACTS}/boskos-heartbeat.log" 2>&1 &
+  HEART_BEAT_PID=$!
+fi
 
 make envsubst
-
-# Retrieve an IP to be used as the kube-vip IP
-CONTROL_PLANE_IPCLAIM_NAME="ip-claim-$(openssl rand -hex 20)"
-CONTROL_PLANE_ENDPOINT_IP=$(claim_ip "${CONTROL_PLANE_IPCLAIM_NAME}")
-export CONTROL_PLANE_ENDPOINT_IP
-echo "Acquired Control Plane IP: $CONTROL_PLANE_ENDPOINT_IP"
-
-# Retrieve an IP to be used for the workload cluster in v1a3/v1a4 -> v1b1 upgrade tests
-WORKLOAD_IPCLAIM_NAME="workload-ip-claim-$(openssl rand -hex 20)"
-WORKLOAD_CONTROL_PLANE_ENDPOINT_IP=$(claim_ip "${WORKLOAD_IPCLAIM_NAME}")
-export WORKLOAD_CONTROL_PLANE_ENDPOINT_IP
-echo "Acquired Workload Cluster Control Plane IP: $WORKLOAD_CONTROL_PLANE_ENDPOINT_IP"
 
 # Run e2e tests
 make e2e

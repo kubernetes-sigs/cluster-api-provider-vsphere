@@ -133,7 +133,7 @@ func Test_Reconcile_VSphereVM(t *testing.T) {
 					},
 				},
 				Finalizers: []string{
-					VMFinalizer, // Adding this to move past the first reconcile
+					vcsimv1.VMFinalizer, // Adding this to move past the first reconcile
 				},
 			},
 		}
@@ -262,7 +262,7 @@ func Test_Reconcile_VSphereVM(t *testing.T) {
 					},
 				},
 				Finalizers: []string{
-					VMFinalizer, // Adding this to move past the first reconcile
+					vcsimv1.VMFinalizer, // Adding this to move past the first reconcile
 				},
 			},
 			Spec: infrav1.VSphereVMSpec{

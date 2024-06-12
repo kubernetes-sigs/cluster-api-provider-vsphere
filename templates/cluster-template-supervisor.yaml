@@ -312,15 +312,6 @@ spec:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: '${CLUSTER_NAME}'
-  namespace: '${NAMESPACE}'
-stringData:
-  password: "${VSPHERE_PASSWORD}"
-  username: "${VSPHERE_USERNAME}"
----
-apiVersion: v1
-kind: Secret
-metadata:
   name: vsphere-config-secret
   namespace: '${NAMESPACE}'
 stringData:

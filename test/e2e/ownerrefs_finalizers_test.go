@@ -49,7 +49,7 @@ import (
 	vcsimv1 "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/api/v1alpha1"
 )
 
-var _ = Describe("Ensure OwnerReferences and Finalizers are resilient with FailureDomains and ClusterIdentity [vcsim] [supervisor]", func() {
+var _ = Describe("Ensure OwnerReferences and Finalizers are resilient [vcsim] [supervisor]", func() {
 	const specName = "owner-reference"
 	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		capi_e2e.QuickStartSpec(ctx, func() capi_e2e.QuickStartSpecInput {
@@ -79,21 +79,19 @@ var _ = Describe("Ensure OwnerReferences and Finalizers are resilient with Failu
 				Flavor:                ptr.To(testSpecificSettingsGetter().FlavorForMode("ownerrefs-finalizers")),
 				PostNamespaceCreated:  testSpecificSettingsGetter().PostNamespaceCreatedFunc,
 				PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
-					var forceCtx context.Context
-					var forceCancelFunc context.CancelFunc
 					if testMode == GovmomiTestMode {
 						// check the cluster identity secret has expected ownerReferences and finalizers, and they are resilient
 						// Note: identity secret is not part of the object graph, so it requires an ad-hoc test.
 						checkClusterIdentitySecretOwnerRefAndFinalizer(ctx, proxy.GetClient())
-
-						// Set up a periodic patch to ensure the DeploymentZone anc ClusterResourceSets are reconciled.
-						// Note: this is required because DeploymentZone are not watching for clusters, and thus the DeploymentZone controller
-						// won't be triggered when we un-pause clusters after modifying objects ownerReferences & Finalizers to test resilience.
-						// WRT to ClusterResourceSets, we are forcing reconcile to avoid the issue described in https://github.com/kubernetes-sigs/cluster-api/pull/10656;
-						// we should reconsider if possible to drop force reconcile after this PR is merged.
-						forceCtx, forceCancelFunc = context.WithCancel(ctx)
-						forcePeriodicReconcile(forceCtx, proxy.GetClient(), namespace)
 					}
+
+					// Set up a periodic patch to ensure the DeploymentZone anc ClusterResourceSets are reconciled.
+					// Note: this is required because DeploymentZone are not watching for clusters, and thus the DeploymentZone controller
+					// won't be triggered when we un-pause clusters after modifying objects ownerReferences & Finalizers to test resilience.
+					// WRT to ClusterResourceSets, we are forcing reconcile to avoid the issue described in https://github.com/kubernetes-sigs/cluster-api/pull/10656;
+					// we should reconsider if possible to drop force reconcile after this PR is merged.
+					forceCtx, forceCancelFunc := context.WithCancel(ctx)
+					forcePeriodicReconcile(forceCtx, proxy.GetClient(), namespace)
 
 					// This check ensures that owner references are resilient - i.e. correctly re-reconciled - when removed.
 					By("Checking that owner references are resilient")
@@ -420,10 +418,12 @@ func forcePeriodicReconcile(ctx context.Context, c ctrlclient.Client, namespace 
 		for {
 			select {
 			case <-ticker.C:
-				Expect(c.List(ctx, deploymentZoneList)).To(Succeed())
-				for _, zone := range deploymentZoneList.Items {
-					annotationPatch := ctrlclient.RawPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"metadata\":{\"annotations\":{\"cluster.x-k8s.io/modifiedAt\":\"%v\"}}}", time.Now().Format(time.RFC3339))))
-					Expect(c.Patch(ctx, zone.DeepCopy(), annotationPatch)).To(Succeed())
+				if testMode == GovmomiTestMode {
+					Expect(c.List(ctx, deploymentZoneList)).To(Succeed())
+					for _, zone := range deploymentZoneList.Items {
+						annotationPatch := ctrlclient.RawPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"metadata\":{\"annotations\":{\"cluster.x-k8s.io/modifiedAt\":\"%v\"}}}", time.Now().Format(time.RFC3339))))
+						Expect(c.Patch(ctx, zone.DeepCopy(), annotationPatch)).To(Succeed())
+					}
 				}
 				// TODO: check if this can be dropped after https://github.com/kubernetes-sigs/cluster-api/pull/10656 is merged
 				Expect(c.List(ctx, crsList, ctrlclient.InNamespace(namespace))).To(Succeed())

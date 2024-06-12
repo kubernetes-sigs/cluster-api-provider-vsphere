@@ -1370,6 +1370,7 @@ spec:
                         DeviceID is the device ID of a virtual machine's PCI, in integer.
                         Defaults to the eponymous property value in the template from which the
                         virtual machine is cloned.
+                        Mutually exclusive with VGPUProfile.
                       format: int32
                       type: integer
                     vendorId:
@@ -1377,12 +1378,14 @@ spec:
                         VendorId is the vendor ID of a virtual machine's PCI, in integer.
                         Defaults to the eponymous property value in the template from which the
                         virtual machine is cloned.
+                        Mutually exclusive with VGPUProfile.
                       format: int32
                       type: integer
                     vgpuProfile:
-                      description: VGPUProfile is the profile name of a virtual machine's
-                        vGPU, in string. Defaults to the eponymous property value
-                        in the template from which the virtual machine is cloned.
+                      description: |-
+                        VGPUProfile is the profile name of a virtual machine's vGPU, in string.
+                        Defaults to the eponymous property value in the template from which the
+                        virtual machine is cloned.
                         Mutually exclusive with DeviceID and VendorID.
                       type: string
                   type: object

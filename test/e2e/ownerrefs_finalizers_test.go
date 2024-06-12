@@ -31,6 +31,7 @@ import (
 	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	clusterctlcluster "sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
@@ -66,7 +67,7 @@ var _ = Describe("Ensure OwnerReferences and Finalizers are resilient with Failu
 					forcePeriodicReconcile(ctx, proxy.GetClient(), namespace)
 
 					// This check ensures that owner references are resilient - i.e. correctly re-reconciled - when removed.
-					framework.ValidateOwnerReferencesResilience(ctx, proxy, namespace, clusterName,
+					framework.ValidateOwnerReferencesResilience(ctx, proxy, namespace, clusterName, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName),
 						framework.CoreOwnerReferenceAssertion,
 						framework.KubeadmBootstrapOwnerReferenceAssertions,
 						framework.KubeadmControlPlaneOwnerReferenceAssertions,
@@ -75,7 +76,7 @@ var _ = Describe("Ensure OwnerReferences and Finalizers are resilient with Failu
 						VSphereReferenceAssertions,
 					)
 					// This check ensures that owner references are always updated to the most recent apiVersion.
-					framework.ValidateOwnerReferencesOnUpdate(ctx, proxy, namespace, clusterName,
+					framework.ValidateOwnerReferencesOnUpdate(ctx, proxy, namespace, clusterName, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName),
 						framework.CoreOwnerReferenceAssertion,
 						framework.KubeadmBootstrapOwnerReferenceAssertions,
 						framework.KubeadmControlPlaneOwnerReferenceAssertions,
@@ -84,7 +85,7 @@ var _ = Describe("Ensure OwnerReferences and Finalizers are resilient with Failu
 						VSphereReferenceAssertions,
 					)
 					// This check ensures that finalizers are resilient - i.e. correctly re-reconciled, when removed.
-					framework.ValidateFinalizersResilience(ctx, proxy, namespace, clusterName,
+					framework.ValidateFinalizersResilience(ctx, proxy, namespace, clusterName, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName),
 						framework.CoreFinalizersAssertion,
 						framework.KubeadmControlPlaneFinalizersAssertion,
 						framework.ExpFinalizersAssertion,

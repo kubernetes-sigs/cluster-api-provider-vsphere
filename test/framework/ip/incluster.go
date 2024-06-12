@@ -18,9 +18,10 @@ package ip
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
+	"strconv"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -30,12 +31,13 @@ import (
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/vim25/mo"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1"
@@ -43,40 +45,102 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func init() {
-	ipamScheme = runtime.NewScheme()
-	_ = ipamv1.AddToScheme(ipamScheme)
-}
-
 var _ AddressManager = &inCluster{}
+
+var ipPoolName = "capv-e2e-ippool"
 
 type inCluster struct {
 	client      client.Client
 	labels      map[string]string
 	skipCleanup bool
+	ipPool      *unstructured.Unstructured
+}
+
+// inClusterIPPoolSpec defines the desired state of InClusterIPPool.
+// Note: This is a copy of the relevant fields from: https://github.com/kubernetes-sigs/cluster-api-ipam-provider-in-cluster/blob/main/api/v1alpha2/inclusterippool_types.go
+// This was copied to avoid a go dependency on this provider.
+type inClusterIPPoolSpec struct {
+	// Addresses is a list of IP addresses that can be assigned. This set of
+	// addresses can be non-contiguous.
+	Addresses []string `json:"addresses"`
+
+	// Prefix is the network prefix to use.
+	// +kubebuilder:validation:Maximum=128
+	Prefix int `json:"prefix"`
+
+	// Gateway
+	// +optional
+	Gateway string `json:"gateway,omitempty"`
 }
 
 // InClusterAddressManager returns an ip.AddressManager implementation that leverage on the IPAM provider installed into the management cluster.
 // If e2eIPAMKubeconfig is an empty string it will return a noop AddressManager which does nothing so we can fallback on setting environment variables.
-func InClusterAddressManager(e2eIPAMKubeconfig string, labels map[string]string, skipCleanup bool) (AddressManager, error) {
+func InClusterAddressManager(ctx context.Context, client client.Client, e2eIPPool string, labels map[string]string, skipCleanup bool) (AddressManager, error) {
 	if len(labels) == 0 {
 		return nil, fmt.Errorf("expecting labels to be set to prevent deletion of other IPAddressClaims")
 	}
 
-	if e2eIPAMKubeconfig == "" {
+	if e2eIPPool == "" {
 		return &noop{}, nil
 	}
 
-	ipamClient, err := getClient(e2eIPAMKubeconfig)
+	ipPool, err := createIPPool(ctx, client, e2eIPPool)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create IPPool")
 	}
 
 	return &inCluster{
 		labels:      labels,
-		client:      ipamClient,
+		client:      client,
+		ipPool:      ipPool,
 		skipCleanup: skipCleanup,
 	}, nil
+}
+
+func createIPPool(ctx context.Context, c client.Client, e2eIPPool string) (*unstructured.Unstructured, error) {
+	ipPoolSpec := inClusterIPPoolSpec{}
+	if err := json.Unmarshal([]byte(e2eIPPool), &ipPoolSpec); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal IP Pool configuration")
+	}
+
+	ipPool := &unstructured.Unstructured{}
+	ipPool.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "ipam.cluster.x-k8s.io",
+		Version: "v1alpha2",
+		Kind:    "InClusterIPPool",
+	})
+	ipPool.SetNamespace(metav1.NamespaceDefault)
+	ipPool.SetName(ipPoolName)
+	// Note: We have to convert ipPoolSpec to a map[string]interface{}, otherwise SetNestedField panics in DeepCopyJSONValue.
+	addresses := []interface{}{}
+	for _, a := range ipPoolSpec.Addresses {
+		addresses = append(addresses, a)
+	}
+	spec := map[string]interface{}{
+		"addresses": addresses,
+		"prefix":    int64(ipPoolSpec.Prefix), // DeepCopyJSONValue only supports int64.
+		"gateway":   ipPoolSpec.Gateway,
+	}
+	if err := unstructured.SetNestedField(ipPool.Object, spec, "spec"); err != nil {
+		return nil, fmt.Errorf("failed to set InClusterIPPool spec")
+	}
+
+	// InClusterAddressManager is called on multiple ginkgo workers at the same time.
+	// So some of them will hit AlreadyExists errors.
+	// In this case we are just retrieving the already existing InClusterIPPool.
+	// Note: The InClusterIPPool is intentionally not deleted on TearDown, because at
+	// this time IPAddressClaim are still in deleting (so we would get an error when triggering deletion).
+	if err := c.Create(ctx, ipPool); err != nil {
+		if !apierrors.IsAlreadyExists(err) {
+			return nil, err
+		}
+
+		if err := c.Get(ctx, client.ObjectKey{Namespace: metav1.NamespaceDefault, Name: ipPoolName}, ipPool); err != nil {
+			return nil, err
+		}
+	}
+
+	return ipPool, nil
 }
 
 func (h *inCluster) ClaimIPs(ctx context.Context, opts ...ClaimOption) (AddressClaims, map[string]string) {
@@ -98,12 +162,19 @@ func (h *inCluster) ClaimIPs(ctx context.Context, opts ...ClaimOption) (AddressC
 		})
 		Byf("Setting clusterctl variable %s to %s", variable, ip.Spec.Address)
 		variables[variable] = ip.Spec.Address
-		if variable == ControlPlaneEndpointIPVariable && options.gatewayIPVariableName != "" {
-			// Set the gateway variable if requested to the gateway of the control plane IP.
-			// This is required in ipam scenarios, otherwise the VMs will not be able to
-			// connect to the public internet to pull images.
-			Byf("Setting clusterctl variable %s to %s", variable, ip.Spec.Gateway)
-			variables[options.gatewayIPVariableName] = ip.Spec.Gateway
+		if variable == ControlPlaneEndpointIPVariable {
+			if options.gatewayIPVariableName != "" {
+				// Set the gateway variable if requested to the gateway of the control plane IP.
+				// This is required in ipam scenarios, otherwise the VMs will not be able to
+				// connect to the public internet to pull images.
+				Byf("Setting clusterctl variable %s to %s", options.gatewayIPVariableName, ip.Spec.Gateway)
+				variables[options.gatewayIPVariableName] = ip.Spec.Gateway
+			}
+			if options.prefixVariableName != "" {
+				// Set the prefix variable if requested to the prefix of the control plane IP.
+				Byf("Setting clusterctl variable %s to %s", options.prefixVariableName, ip.Spec.Gateway)
+				variables[options.prefixVariableName] = strconv.Itoa(ip.Spec.Prefix)
+			}
 		}
 	}
 
@@ -225,20 +296,6 @@ func (h *inCluster) Teardown(ctx context.Context, opts ...TearDownOption) error 
 	return nil
 }
 
-func getClient(e2eIPAMKubeconfig string) (client.Client, error) {
-	kubeConfig, err := os.ReadFile(filepath.Clean(e2eIPAMKubeconfig))
-	if err != nil {
-		return nil, err
-	}
-
-	restConfig, err := clientcmd.RESTConfigFromKubeConfig(kubeConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	return client.New(restConfig, client.Options{Scheme: ipamScheme})
-}
-
 // getVirtualMachineIPAddresses lists all VirtualMachines in the given folder and
 // returns a map which contains the IP addresses of all machines.
 // If the given folder is not found it will return an error.
@@ -292,9 +349,9 @@ func (h *inCluster) claimIPAddress(ctx context.Context) (_ *ipamv1.IPAddress, _ 
 		},
 		Spec: ipamv1.IPAddressClaimSpec{
 			PoolRef: corev1.TypedLocalObjectReference{
-				APIGroup: ptr.To("ipam.cluster.x-k8s.io"),
-				Kind:     "InClusterIPPool",
-				Name:     "capv-e2e-ippool",
+				APIGroup: ptr.To(h.ipPool.GroupVersionKind().Group),
+				Kind:     h.ipPool.GroupVersionKind().Kind,
+				Name:     h.ipPool.GetName(),
 			},
 		},
 	}

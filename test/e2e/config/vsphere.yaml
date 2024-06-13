@@ -8,12 +8,6 @@
 # For creating local images, run ./hack/e2e.sh
 
 images:
-  - name: registry.k8s.io/cluster-api/cluster-api-controller:v1.7.1
-    loadBehavior: tryLoad
-  - name: registry.k8s.io/cluster-api/kubeadm-bootstrap-controller:v1.7.1
-    loadBehavior: tryLoad
-  - name: registry.k8s.io/cluster-api/kubeadm-control-plane-controller:v1.7.1
-    loadBehavior: tryLoad
   - name: registry.k8s.io/capi-ipam-ic/cluster-api-ipam-in-cluster-controller:v0.1.0
     loadBehavior: tryLoad
   - name: gcr.io/k8s-staging-capi-vsphere/cluster-api-vsphere-controller-{ARCH}:dev

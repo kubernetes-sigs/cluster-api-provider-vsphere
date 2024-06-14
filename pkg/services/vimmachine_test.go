@@ -23,7 +23,6 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
 	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -77,11 +76,11 @@ func Test_VimMachineService_GenerateOverrideFunc(t *testing.T) {
 					NetworkConfigurations: []infrav1.NetworkConfiguration{
 						{
 							NetworkName: fmt.Sprintf("nw-%s", suffix),
-							DHCP4:       pointer.Bool(true),
+							DHCP4:       ptr.To(true),
 						},
 						{
 							NetworkName: "another-nw",
-							DHCP6:       pointer.Bool(true),
+							DHCP6:       ptr.To(true),
 						},
 					},
 				},
@@ -335,21 +334,21 @@ func Test_mergeFailureDomainNetSpecToNetworkDeviceSpec(t *testing.T) {
 
 		mergeFailureDomainNetSpecToNetworkDeviceSpec(&device, infrav1.NetworkConfiguration{
 			NetworkName:   "nw-name",
-			DHCP4:         pointer.Bool(true),
-			DHCP6:         pointer.Bool(false),
+			DHCP4:         ptr.To(true),
+			DHCP6:         ptr.To(false),
 			Nameservers:   []string{"1.1.1.1"},
 			SearchDomains: []string{"vmware.ci"},
 			DHCP4Overrides: &infrav1.DHCPOverrides{
-				Hostname:    pointer.String("hal"),
-				RouteMetric: pointer.Int(12345),
+				Hostname:    ptr.To("hal"),
+				RouteMetric: ptr.To(12345),
 			},
 			DHCP6Overrides: &infrav1.DHCPOverrides{
-				Hostname:    pointer.String("hal"),
-				RouteMetric: pointer.Int(23456),
+				Hostname:    ptr.To("hal"),
+				RouteMetric: ptr.To(23456),
 			},
 			AddressesFromPools: []corev1.TypedLocalObjectReference{
 				{
-					APIGroup: pointer.String("api-group"),
+					APIGroup: ptr.To("api-group"),
 					Name:     "my-pool-1",
 					Kind:     "my-pool-kind",
 				},
@@ -363,16 +362,16 @@ func Test_mergeFailureDomainNetSpecToNetworkDeviceSpec(t *testing.T) {
 			Nameservers:   []string{"1.1.1.1"},
 			SearchDomains: []string{"vmware.ci"},
 			DHCP4Overrides: &infrav1.DHCPOverrides{
-				Hostname:    pointer.String("hal"),
-				RouteMetric: pointer.Int(12345),
+				Hostname:    ptr.To("hal"),
+				RouteMetric: ptr.To(12345),
 			},
 			DHCP6Overrides: &infrav1.DHCPOverrides{
-				Hostname:    pointer.String("hal"),
-				RouteMetric: pointer.Int(23456),
+				Hostname:    ptr.To("hal"),
+				RouteMetric: ptr.To(23456),
 			},
 			AddressesFromPools: []corev1.TypedLocalObjectReference{
 				{
-					APIGroup: pointer.String("api-group"),
+					APIGroup: ptr.To("api-group"),
 					Name:     "my-pool-1",
 					Kind:     "my-pool-kind",
 				},

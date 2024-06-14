@@ -192,10 +192,10 @@ func Test_VimMachineService_GenerateOverrideFunc(t *testing.T) {
 		devices := vm.Spec.Network.Devices
 		g.Expect(devices).To(HaveLen(2))
 		g.Expect(devices[0].NetworkName).To(Equal("nw-one"))
-		g.Expect(devices[0].DHCP4).To(Equal(true))
+		g.Expect(devices[0].DHCP4).To(BeTrue())
 
 		g.Expect(devices[1].NetworkName).To(Equal("another-nw"))
-		g.Expect(devices[1].DHCP6).To(Equal(true))
+		g.Expect(devices[1].DHCP6).To(BeTrue())
 	})
 
 	t.Run("appends the n/w names present in the networks list of the topology with number of devices in VMSpec < number of networks in the placement constraint", func(t *testing.T) {
@@ -248,10 +248,10 @@ func Test_VimMachineService_GenerateOverrideFunc(t *testing.T) {
 		devices := vm.Spec.Network.Devices
 		g.Expect(devices).To(HaveLen(2))
 		g.Expect(devices[0].NetworkName).To(Equal("nw-one"))
-		g.Expect(devices[0].DHCP4).To(Equal(true))
+		g.Expect(devices[0].DHCP4).To(BeTrue())
 
 		g.Expect(devices[1].NetworkName).To(Equal("another-nw"))
-		g.Expect(devices[1].DHCP6).To(Equal(true))
+		g.Expect(devices[1].DHCP6).To(BeTrue())
 	})
 
 	t.Run("only overrides the n/w names present in the networks list of the topology with number of devices in VMSpec > number of networks in the placement constraint", func(t *testing.T) {
@@ -306,13 +306,13 @@ func Test_VimMachineService_GenerateOverrideFunc(t *testing.T) {
 		devices := vm.Spec.Network.Devices
 		g.Expect(devices).To(HaveLen(3))
 		g.Expect(devices[0].NetworkName).To(Equal("nw-one"))
-		g.Expect(devices[0].DHCP4).To(Equal(true))
+		g.Expect(devices[0].DHCP4).To(BeTrue())
 
 		g.Expect(devices[1].NetworkName).To(Equal("another-nw"))
-		g.Expect(devices[1].DHCP6).To(Equal(true))
+		g.Expect(devices[1].DHCP6).To(BeTrue())
 
 		g.Expect(devices[2].NetworkName).To(Equal("baz"))
-		g.Expect(devices[2].DHCP6).To(Equal(false))
+		g.Expect(devices[2].DHCP6).To(BeFalse())
 	})
 }
 

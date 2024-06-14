@@ -271,7 +271,6 @@ var _ = Describe("Network provider", func() {
 				Expect(vm.Spec.Network.Interfaces[0].Network.Name).To(Equal(vSphereCluster.Name))
 				Expect(vm.Spec.Network.Interfaces[0].Network.TypeMeta.Kind).To(Equal("SubnetSet"))
 				Expect(vm.Spec.Network.Interfaces[0].Network.TypeMeta.APIVersion).To(Equal(nsxopv1.SchemeGroupVersion.String()))
-				// TODO(chrischdi): also assert group version
 			})
 		})
 	})

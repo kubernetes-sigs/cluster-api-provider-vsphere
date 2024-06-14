@@ -2,7 +2,7 @@
 
 The [crds](./crds/) are copied from the vm-operators version which is consumed as go module.
 
-These should get updated when bumping the dependency vm-operator dependency.
+These should get updated when bumping the vm-operator dependency.
 
 To sync the new CRD's use the following script **and** update `kustomization.yaml` accordingly.
 

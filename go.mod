@@ -7,6 +7,16 @@ replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.7.0-rc.0.0.2024061
 replace github.com/vmware-tanzu/vm-operator/pkg/constants/testlabels => github.com/vmware-tanzu/vm-operator/pkg/constants/testlabels v0.0.0-20240404200847-de75746a9505
 
 require (
+	github.com/vmware-tanzu/net-operator-api v0.0.0-20240326163340-1f32d6bf7f9d
+	github.com/vmware-tanzu/nsx-operator/pkg/apis v0.1.0
+	// The version of vm-operator should be kept in sync with the manifests at: config/deployments/integration-tests
+	github.com/vmware-tanzu/vm-operator/api v1.8.6
+	github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20240404200847-de75746a9505
+	github.com/vmware-tanzu/vm-operator/external/tanzu-topology v0.0.0-20240404200847-de75746a9505
+	github.com/vmware/govmomi v0.38.0
+)
+
+require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/go-logr/logr v1.4.2
 	github.com/google/gofuzz v1.2.0
@@ -16,12 +26,6 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.9.0
-	github.com/vmware-tanzu/net-operator-api v0.0.0-20240326163340-1f32d6bf7f9d
-	github.com/vmware-tanzu/nsx-operator/pkg/apis v0.1.0
-	github.com/vmware-tanzu/vm-operator/api v1.8.6
-	github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20240404200847-de75746a9505
-	github.com/vmware-tanzu/vm-operator/external/tanzu-topology v0.0.0-20240404200847-de75746a9505
-	github.com/vmware/govmomi v0.38.0
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
 	golang.org/x/mod v0.18.0

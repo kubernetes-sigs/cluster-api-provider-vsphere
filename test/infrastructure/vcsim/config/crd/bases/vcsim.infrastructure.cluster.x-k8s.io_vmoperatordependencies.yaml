@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.13.0
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: vmoperatordependencies.vcsim.infrastructure.cluster.x-k8s.io
 spec:
   group: vcsim.infrastructure.cluster.x-k8s.io
@@ -22,20 +22,26 @@ spec:
         description: VMOperatorDependencies is the schema for a VM operator dependencies.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
           spec:
-            description: VMOperatorDependenciesSpec defines the desired state of the
-              VMOperatorDependencies in the namespace where this object is created.
+            description: |-
+              VMOperatorDependenciesSpec defines the desired state of the VMOperatorDependencies in
+              the namespace where this object is created.
             properties:
               operatorRef:
                 description: OperatorRef provides a reference to the running instance
@@ -57,9 +63,9 @@ spec:
                   type: object
                 type: array
               vCenter:
-                description: VCenter defines info about the vCenter instance that
-                  the vm-operator interacts with. Only one between this field and
-                  VCenterSimulatorRef must be set.
+                description: |-
+                  VCenter defines info about the vCenter instance that the vm-operator interacts with.
+                  Only one between this field and VCenterSimulatorRef must be set.
                 properties:
                   cluster:
                     type: string
@@ -112,16 +118,17 @@ spec:
                     type: string
                 type: object
               vCenterSimulatorRef:
-                description: VCenterSimulatorRef defines info about the vCenter simulator
-                  instance that the vm-operator interacts with. Only one between this
-                  field and VCenter must be set.
+                description: |-
+                  VCenterSimulatorRef defines info about the vCenter simulator instance that the vm-operator interacts with.
+                  Only one between this field and VCenter must be set.
                 properties:
                   name:
                     description: Name of the referenced object.
                     type: string
                   namespace:
-                    description: Namespace of the referenced object. If empty, it
-                      defaults to the namespace of the parent object.
+                    description: |-
+                      Namespace of the referenced object.
+                      If empty, it defaults to the namespace of the parent object.
                     type: string
                 type: object
               virtualMachineClasses:

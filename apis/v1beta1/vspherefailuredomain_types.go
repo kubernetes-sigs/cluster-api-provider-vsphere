@@ -50,7 +50,7 @@ type VSphereFailureDomainSpec struct {
 	VMTemplate VirtualMachineTemplate `json:"vmTemplate"`
 }
 
-// VirtualMachineTemplate defines parameters for VM
+// VirtualMachineTemplate defines parameters for VM.
 type VirtualMachineTemplate struct {
 	// Template defines the name or inventory path of the template used to clone
 	// the virtual machine

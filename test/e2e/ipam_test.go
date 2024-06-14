@@ -42,6 +42,9 @@ var _ = Describe("ClusterClass Creation using Cluster API quick-start test and I
 		// Set the WithGateway option to write the gateway ip address to the variable.
 		// This variable is required for creating the InClusterIPPool for the ipam provider.
 		WithGateway("IPAM_GATEWAY"),
+		// Set the WithPrefix option to set the prefix to the variable.
+		// This variable is required for creating the InClusterIPPool for the ipam provider.
+		WithPrefix("IPAM_PREFIX"),
 		// Claim two IPs from the CI's IPAM provider to use in the InClusterIPPool of
 		// the ipam provider. The IPs then get claimed during provisioning to configure
 		// static IPs for the control-plane and worker node.

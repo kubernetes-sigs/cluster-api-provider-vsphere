@@ -1,4 +1,3 @@
----
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: Cluster
 metadata:
@@ -357,8 +356,8 @@ metadata:
   name: '${CLUSTER_NAME}'
   namespace: '${NAMESPACE}'
 stringData:
-  password: ${VSPHERE_PASSWORD}
-  username: ${VSPHERE_USERNAME}
+  password: "${VSPHERE_PASSWORD}"
+  username: "${VSPHERE_USERNAME}"
 ---
 apiVersion: v1
 kind: Secret
@@ -366,7 +365,7 @@ metadata:
   name: vsphere-config-secret
   namespace: '${NAMESPACE}'
 stringData:
-  data: |
+  data: |-
     apiVersion: v1
     kind: Secret
     metadata:
@@ -390,8 +389,7 @@ type: addons.cluster.x-k8s.io/resource-set
 ---
 apiVersion: v1
 data:
-  data: |
-    ---
+  data: |-
     apiVersion: v1
     kind: Namespace
     metadata:
@@ -1249,7 +1247,7 @@ metadata:
   name: cloud-provider-vsphere-credentials
   namespace: '${NAMESPACE}'
 stringData:
-  data: |
+  data: |-
     apiVersion: v1
     kind: Secret
     metadata:
@@ -1259,14 +1257,14 @@ stringData:
       name: cloud-provider-vsphere-credentials
       namespace: kube-system
     stringData:
-      ${VSPHERE_SERVER}.password: ${VSPHERE_PASSWORD}
-      ${VSPHERE_SERVER}.username: ${VSPHERE_USERNAME}
+      ${VSPHERE_SERVER}.password: "${VSPHERE_PASSWORD}"
+      ${VSPHERE_SERVER}.username: "${VSPHERE_USERNAME}"
     type: Opaque
 type: addons.cluster.x-k8s.io/resource-set
 ---
 apiVersion: v1
 data:
-  data: |
+  data: |-
     ---
     # Source: vsphere-cpi/templates/service-account.yaml
     apiVersion: v1

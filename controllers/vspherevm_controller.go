@@ -89,8 +89,10 @@ func AddVMControllerToManager(ctx context.Context, controllerManagerCtx *capvcon
 		// should cause a resource to be synchronized, such as a goroutine
 		// waiting on some asynchronous, external task to complete.
 		WatchesRawSource(
-			&source.Channel{Source: controllerManagerCtx.GetGenericEventChannelFor(infrav1.GroupVersion.WithKind("VSphereVM"))},
-			&handler.EnqueueRequestForObject{},
+			source.Channel(
+				controllerManagerCtx.GetGenericEventChannelFor(infrav1.GroupVersion.WithKind("VSphereVM")),
+				&handler.EnqueueRequestForObject{},
+			),
 		).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), controllerManagerCtx.WatchFilterValue)).
 		Watches(

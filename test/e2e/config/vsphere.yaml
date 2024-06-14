@@ -8,12 +8,6 @@
 # For creating local images, run ./hack/e2e.sh
 
 images:
-  - name: registry.k8s.io/cluster-api/cluster-api-controller:v1.7.1
-    loadBehavior: tryLoad
-  - name: registry.k8s.io/cluster-api/kubeadm-bootstrap-controller:v1.7.1
-    loadBehavior: tryLoad
-  - name: registry.k8s.io/cluster-api/kubeadm-control-plane-controller:v1.7.1
-    loadBehavior: tryLoad
   - name: registry.k8s.io/capi-ipam-ic/cluster-api-ipam-in-cluster-controller:v0.1.0
     loadBehavior: tryLoad
   - name: gcr.io/k8s-staging-capi-vsphere/cluster-api-vsphere-controller-{ARCH}:dev
@@ -23,12 +17,6 @@ images:
   - name: gcr.io/k8s-staging-capi-vsphere/cluster-api-net-operator-{ARCH}:dev
     loadBehavior: mustLoad
   - name: gcr.io/k8s-staging-capi-vsphere/extra/vm-operator:v1.8.6-0-gde75746a
-    loadBehavior: tryLoad
-  - name: quay.io/jetstack/cert-manager-cainjector:v1.12.2
-    loadBehavior: tryLoad
-  - name: quay.io/jetstack/cert-manager-webhook:v1.12.2
-    loadBehavior: tryLoad
-  - name: quay.io/jetstack/cert-manager-controller:v1.12.2
     loadBehavior: tryLoad
 
 providers:
@@ -254,8 +242,8 @@ variables:
   CLUSTER_CLASS_NAME: "quick-start"
   VSPHERE_COMPUTE_CLUSTER: "Cluster-1"
   VSPHERE_DATACENTER:  "SDDC-Datacenter"
-  VSPHERE_FOLDER: "cluster-api-provider-vsphere"
-  VSPHERE_RESOURCE_POOL: "cluster-api-provider-vsphere"
+  VSPHERE_FOLDER: "/SDDC-Datacenter/vm/Workloads/cluster-api-provider-vsphere"
+  VSPHERE_RESOURCE_POOL: "/SDDC-Datacenter/host/Cluster-1/Resources/Compute-ResourcePool/cluster-api-provider-vsphere"
   VSPHERE_DATASTORE: "WorkloadDatastore"
   VSPHERE_STORAGE_POLICY: "Cluster API vSphere Storage Policy"
   VSPHERE_STORAGE_CLASS: "test-storageclass"
@@ -268,8 +256,8 @@ variables:
   VSPHERE_CONTENT_LIBRARY: "capv"
   VSPHERE_CONTENT_LIBRARY_ITEMS: "ubuntu-2204-kube-v1.28.0,ubuntu-2204-kube-v1.29.0,ubuntu-2204-kube-v1.30.0"
   VSPHERE_IMAGE_NAME: "ubuntu-2204-kube-v1.30.0"
-  VSPHERE_NETWORK: "sddc-cgw-network-6"
-  VSPHERE_DISTRIBUTED_PORT_GROUP: "/SDDC-Datacenter/network/sddc-cgw-network-6"
+  VSPHERE_NETWORK: "sddc-cgw-network-10"
+  VSPHERE_DISTRIBUTED_PORT_GROUP: "/SDDC-Datacenter/network/sddc-cgw-network-10"
   VSPHERE_TEMPLATE: "ubuntu-2204-kube-v1.30.0"
   FLATCAR_VSPHERE_TEMPLATE: "flatcar-stable-3815.2.2-kube-v1.30.0"
   VSPHERE_INSECURE_CSI: "true"

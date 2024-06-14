@@ -45,6 +45,7 @@ import (
 type setupOptions struct {
 	additionalIPVariableNames []string
 	gatewayIPVariableName     string
+	prefixVariableName        string
 }
 
 // SetupOption is a configuration option supplied to Setup.
@@ -65,8 +66,16 @@ func WithGateway(variableName string) SetupOption {
 	}
 }
 
+// WithPrefix instructs Setup to store the prefix from IPAM into the provided variableName.
+func WithPrefix(variableName string) SetupOption {
+	return func(o *setupOptions) {
+		o.prefixVariableName = variableName
+	}
+}
+
 type testSettings struct {
 	ClusterctlConfigPath     string
+	Variables                map[string]string
 	PostNamespaceCreatedFunc func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
 	FlavorForMode            func(flavor string) string
 }
@@ -90,7 +99,7 @@ func Setup(specName string, f func(testSpecificSettings func() testSettings), op
 		case VCenterTestTarget:
 			Byf("Getting IP for %s", strings.Join(append([]string{vsphereip.ControlPlaneEndpointIPVariable}, options.additionalIPVariableNames...), ","))
 			// get IPs from the in cluster address manager
-			testSpecificIPAddressClaims, testSpecificVariables = inClusterAddressManager.ClaimIPs(ctx, vsphereip.WithGateway(options.gatewayIPVariableName), vsphereip.WithIP(options.additionalIPVariableNames...))
+			testSpecificIPAddressClaims, testSpecificVariables = inClusterAddressManager.ClaimIPs(ctx, vsphereip.WithGateway(options.gatewayIPVariableName), vsphereip.WithPrefix(options.prefixVariableName), vsphereip.WithIP(options.additionalIPVariableNames...))
 		case VCSimTestTarget:
 			c := bootstrapClusterProxy.GetClient()
 
@@ -193,6 +202,7 @@ func Setup(specName string, f func(testSpecificSettings func() testSettings), op
 	f(func() testSettings {
 		return testSettings{
 			ClusterctlConfigPath:     testSpecificClusterctlConfigPath,
+			Variables:                testSpecificVariables,
 			PostNamespaceCreatedFunc: postNamespaceCreatedFunc,
 			FlavorForMode: func(flavor string) string {
 				if testMode == SupervisorTestMode {

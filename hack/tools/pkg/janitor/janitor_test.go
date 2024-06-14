@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package janitor
 
 import (
 	"context"
@@ -39,7 +39,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vcsim"
 )
 
-func setup(ctx context.Context, t *testing.T) (*vSphereClients, *vcsim.Simulator) {
+func setup(ctx context.Context, t *testing.T) (*VSphereClients, *vcsim.Simulator) {
 	t.Helper()
 	model := &simulator.Model{
 		ServiceContent: vpx.ServiceContent,
@@ -63,7 +63,7 @@ func setup(ctx context.Context, t *testing.T) (*vSphereClients, *vcsim.Simulator
 	fmt.Printf(" export GOVC_PASSWORD=%s\n", vcsim.Password())
 	fmt.Printf(" export GOVC_INSECURE=true\n")
 
-	clients, err := newVSphereClients(ctx, getVSphereClientInput{
+	clients, err := NewVSphereClients(ctx, NewVSphereClientsInput{
 		Username:  vcsim.Username(),
 		Password:  vcsim.Password(),
 		Server:    vcsim.ServerURL().String(),
@@ -175,7 +175,7 @@ func Test_janitor_deleteVSphereVMs(t *testing.T) {
 
 			relativePath, _ := setupTestCase(g, sim, tt.objects)
 
-			s := &janitor{
+			s := &Janitor{
 				dryRun:          false,
 				maxCreationDate: tt.maxCreationDate,
 				vSphereClients:  clients,
@@ -313,7 +313,7 @@ func Test_janitor_deleteObjectChildren(t *testing.T) {
 
 			inventoryPath := path.Join(tt.basePath, relativePath)
 
-			s := &janitor{
+			s := &Janitor{
 				dryRun:          false,
 				maxCreationDate: time.Now().Add(time.Hour * 1),
 				vSphereClients:  clients,
@@ -426,7 +426,7 @@ func Test_janitor_CleanupVSphere(t *testing.T) {
 
 			relativePath, _ := setupTestCase(g, sim, tt.objects)
 
-			s := &janitor{
+			s := &Janitor{
 				dryRun:          tt.dryRun,
 				maxCreationDate: tt.maxCreationDate,
 				vSphereClients:  clients,
@@ -438,12 +438,12 @@ func Test_janitor_CleanupVSphere(t *testing.T) {
 			folders := []string{folder}
 			resourcePools := []string{resourcePool}
 
-			g.Expect(s.cleanupVSphere(ctx, folders, resourcePools, folders)).To(gomega.Succeed())
+			g.Expect(s.CleanupVSphere(ctx, folders, resourcePools, folders, false)).To(gomega.Succeed())
 			existingObjects, err := recursiveListFoldersAndResourcePools(ctx, relativePath, clients.Govmomi, clients.Finder, clients.ViewManager)
 			g.Expect(err).ToNot(gomega.HaveOccurred())
 			g.Expect(existingObjects).To(gomega.BeEquivalentTo(tt.wantAfterFirstRun))
 
-			g.Expect(s.cleanupVSphere(ctx, folders, resourcePools, folders)).To(gomega.Succeed())
+			g.Expect(s.CleanupVSphere(ctx, folders, resourcePools, folders, false)).To(gomega.Succeed())
 			existingObjects, err = recursiveListFoldersAndResourcePools(ctx, relativePath, clients.Govmomi, clients.Finder, clients.ViewManager)
 			g.Expect(err).ToNot(gomega.HaveOccurred())
 			g.Expect(existingObjects).To(gomega.BeEquivalentTo(tt.wantAfterSecondRun))

@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.13.0
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: vspheremachinetemplates.vmware.infrastructure.cluster.x-k8s.io
 spec:
   group: vmware.infrastructure.cluster.x-k8s.io
@@ -23,14 +23,19 @@ spec:
           API.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -46,50 +51,58 @@ spec:
                       of the machine.
                     properties:
                       className:
-                        description: ClassName is the name of the class used when
-                          specifying the underlying virtual machine
+                        description: |-
+                          ClassName is the name of the class used when specifying the underlying
+                          virtual machine
                         type: string
                       failureDomain:
-                        description: FailureDomain is the failure domain the machine
-                          will be created in. Must match a key in the FailureDomains
-                          map stored on the cluster object.
+                        description: |-
+                          FailureDomain is the failure domain the machine will be created in.
+                          Must match a key in the FailureDomains map stored on the cluster object.
                         type: string
                       imageName:
-                        description: ImageName is the name of the base image used
-                          when specifying the underlying virtual machine
+                        description: |-
+                          ImageName is the name of the base image used when specifying the
+                          underlying virtual machine
                         type: string
                       minHardwareVersion:
-                        description: MinHardwareVersion specifies the desired minimum
-                          hardware version for this VM. Setting this field will ensure
-                          that the hardware version of the VM is at least set to the
-                          specified value. The expected format of the field is vmx-15.
+                        description: |-
+                          MinHardwareVersion specifies the desired minimum hardware version
+                          for this VM. Setting this field will ensure that the hardware version
+                          of the VM is at least set to the specified value.
+                          The expected format of the field is vmx-15.
                         type: string
                       powerOffMode:
                         default: hard
-                        description: "PowerOffMode describes the desired behavior
-                          when powering off a VM. \n There are three, supported power
-                          off modes: hard, soft, and trySoft. The first mode, hard,
-                          is the equivalent of a physical system's power cord being
-                          ripped from the wall. The soft mode requires the VM's guest
-                          to have VM Tools installed and attempts to gracefully shut
-                          down the VM. Its variant, trySoft, first attempts a graceful
-                          shutdown, and if that fails or the VM is not in a powered
-                          off state after reaching 5 minutes timeout, the VM is halted.
-                          \n If omitted, the mode defaults to hard."
+                        description: |-
+                          PowerOffMode describes the desired behavior when powering off a VM.
+
+
+                          There are three, supported power off modes: hard, soft, and
+                          trySoft. The first mode, hard, is the equivalent of a physical
+                          system's power cord being ripped from the wall. The soft mode
+                          requires the VM's guest to have VM Tools installed and attempts to
+                          gracefully shut down the VM. Its variant, trySoft, first attempts
+                          a graceful shutdown, and if that fails or the VM is not in a powered off
+                          state after reaching 5 minutes timeout, the VM is halted.
+
+
+                          If omitted, the mode defaults to hard.
                         enum:
                         - hard
                         - soft
                         - trySoft
                         type: string
                       providerID:
-                        description: ProviderID is the virtual machine's BIOS UUID
-                          formatted as vsphere://12345678-1234-1234-1234-123456789abc.
-                          This is required at runtime by CAPI. Do not remove this
-                          field.
+                        description: |-
+                          ProviderID is the virtual machine's BIOS UUID formatted as
+                          vsphere://12345678-1234-1234-1234-123456789abc.
+                          This is required at runtime by CAPI. Do not remove this field.
                         type: string
                       storageClass:
-                        description: StorageClass is the name of the storage class
-                          used when specifying the underlying virtual machine.
+                        description: |-
+                          StorageClass is the name of the storage class used when specifying the
+                          underlying virtual machine.
                         type: string
                       volumes:
                         description: Volumes is the set of PVCs to be created and

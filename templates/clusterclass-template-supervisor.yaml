@@ -1,4 +1,3 @@
----
 apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
 kind: VSphereClusterTemplate
 metadata:

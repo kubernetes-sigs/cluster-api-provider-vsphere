@@ -71,7 +71,7 @@ func CreateCrsResourceObjectsCPI(crs *addonsv1.ClusterResourceSet) []runtime.Obj
 	cpiObjects = append(cpiObjects, cloudConfigConfigMap)
 
 	manifestsCm := newConfigMapManifests("cpi-manifests", cpiObjects)
-	manifestsCm.Data["data"] = cpiManifests + manifestsCm.Data["data"]
+	manifestsCm.Data["data"] = cpiManifests + "---\n" + manifestsCm.Data["data"]
 
 	appendConfigMapToCrsResource(crs, manifestsCm)
 	// Define the kubeconfig secret for the target cluster.

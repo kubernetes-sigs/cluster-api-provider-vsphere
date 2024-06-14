@@ -5,7 +5,6 @@
 .golangci.yml
 bin/
 **/*.yaml
-hack/
 out/
 docs/
 packaging/

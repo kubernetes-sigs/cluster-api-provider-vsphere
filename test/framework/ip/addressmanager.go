@@ -44,6 +44,7 @@ type AddressClaims []AddressClaim
 type claimOptions struct {
 	additionalIPVariableNames []string
 	gatewayIPVariableName     string
+	prefixVariableName        string
 }
 
 type ClaimOption func(*claimOptions)
@@ -60,6 +61,13 @@ func WithIP(variableName ...string) ClaimOption {
 func WithGateway(variableName string) ClaimOption {
 	return func(o *claimOptions) {
 		o.gatewayIPVariableName = variableName
+	}
+}
+
+// WithPrefix instructs Setup to store the prefix from IPAM into the provided variableName.
+func WithPrefix(variableName string) ClaimOption {
+	return func(o *claimOptions) {
+		o.prefixVariableName = variableName
 	}
 }
 

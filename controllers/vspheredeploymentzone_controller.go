@@ -72,8 +72,10 @@ func AddVSphereDeploymentZoneControllerToManager(ctx context.Context, controller
 		// should cause a resource to be synchronized, such as a goroutine
 		// waiting on some asynchronous, external task to complete.
 		WatchesRawSource(
-			&source.Channel{Source: controllerManagerCtx.GetGenericEventChannelFor(infrav1.GroupVersion.WithKind("VSphereDeploymentZone"))},
-			&handler.EnqueueRequestForObject{},
+			source.Channel(
+				controllerManagerCtx.GetGenericEventChannelFor(infrav1.GroupVersion.WithKind("VSphereDeploymentZone")),
+				&handler.EnqueueRequestForObject{},
+			),
 		).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), controllerManagerCtx.WatchFilterValue)).
 		Complete(reconciler)

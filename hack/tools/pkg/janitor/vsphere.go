@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package janitor
 
 import (
 	"context"
@@ -38,7 +38,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-type getVSphereClientInput struct {
+// NewVSphereClientsInput defines inputs for NewVSphereClients.
+type NewVSphereClientsInput struct {
 	Password   string
 	Server     string
 	Thumbprint string
@@ -46,8 +47,8 @@ type getVSphereClientInput struct {
 	Username   string
 }
 
-// vSphereClients is a collection of different clients for vSphere.
-type vSphereClients struct {
+// VSphereClients is a collection of different clients for vSphere.
+type VSphereClients struct {
 	Vim           *vim25.Client
 	Govmomi       *govmomi.Client
 	Rest          *rest.Client
@@ -56,8 +57,8 @@ type vSphereClients struct {
 	ViewManager   *view.Manager
 }
 
-// logout logs out all clients. It logs errors if the context contains a logger.
-func (v *vSphereClients) logout(ctx context.Context) {
+// Logout logs out all clients. It logs errors if the context contains a logger.
+func (v *VSphereClients) Logout(ctx context.Context) {
 	log := ctrl.LoggerFrom(ctx)
 	if err := v.Govmomi.Logout(ctx); err != nil {
 		log.Error(err, "logging out govmomi client")
@@ -68,8 +69,8 @@ func (v *vSphereClients) logout(ctx context.Context) {
 	}
 }
 
-// newVSphereClients creates a vSphereClients object from the given input.
-func newVSphereClients(ctx context.Context, input getVSphereClientInput) (*vSphereClients, error) {
+// NewVSphereClients creates a VSphereClients object from the given input.
+func NewVSphereClients(ctx context.Context, input NewVSphereClientsInput) (*VSphereClients, error) {
 	urlCredentials := url.UserPassword(input.Username, input.Password)
 
 	serverURL, err := soap.ParseURL(input.Server)
@@ -113,7 +114,7 @@ func newVSphereClients(ctx context.Context, input getVSphereClientInput) (*vSphe
 	viewManager := view.NewManager(vimClient)
 	finder := find.NewFinder(vimClient, false)
 
-	return &vSphereClients{
+	return &VSphereClients{
 		Vim:           vimClient,
 		Govmomi:       govmomiClient,
 		Rest:          restClient,

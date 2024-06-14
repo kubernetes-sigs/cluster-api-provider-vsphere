@@ -20,11 +20,11 @@ package util
 import (
 	"reflect"
 	"regexp"
-	"strings"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/yaml"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/env"
 )
@@ -85,8 +85,12 @@ var (
 		regexVar(env.VSphereServerVar),
 		regexVar(env.VSphereTemplateVar),
 		regexVar(env.VSphereStoragePolicyVar),
-		// TODO: Why was thumbprint not here?
 		regexVar(env.VSphereThumbprint),
+	}
+
+	stringVarsDouble = []string{
+		regexVar(env.VSphereUsername),
+		regexVar(env.VSpherePassword),
 	}
 )
 
@@ -134,19 +138,11 @@ func deleteZeroValues(o map[string]interface{}) map[string]interface{} {
 }
 
 func GenerateObjectYAML(obj runtime.Object, replacements []Replacement) string {
-	bytes, err := yaml.Marshal(obj)
-	if err != nil {
-		panic(err)
-	}
-	json, err := yaml.YAMLToJSONStrict(bytes)
+	data, err := toUnstructured(obj, obj.GetObjectKind().GroupVersionKind())
 	if err != nil {
 		panic(err)
 	}
 
-	data := unstructured.Unstructured{}
-	if err := data.UnmarshalJSON(json); err != nil {
-		panic(err)
-	}
 	data.Object = deleteZeroValues(data.Object)
 
 	for _, v := range replacements {
@@ -167,7 +163,8 @@ func GenerateObjectYAML(obj runtime.Object, replacements []Replacement) string {
 			_ = unstructured.SetNestedSlice(data.Object, slice, path...)
 		}
 	}
-	bytes, err = yaml.Marshal(data.Object)
+
+	bytes, err := utilyaml.FromUnstructured([]unstructured.Unstructured{*data})
 	if err != nil {
 		panic(err)
 	}
@@ -182,21 +179,46 @@ func GenerateObjectYAML(obj runtime.Object, replacements []Replacement) string {
 		}
 		str = regex.ReplaceAllString(str, "'$1'")
 	}
+	for _, s := range stringVarsDouble {
+		s := s
+		regex := regexp.MustCompile(s)
+		if err != nil {
+			panic(err)
+		}
+		str = regex.ReplaceAllString(str, "\"$1\"")
+	}
 
 	return str
 }
 
 func GenerateManifestYaml(objs []runtime.Object, replacements []Replacement) string {
-	var sb strings.Builder
-
+	bytes := [][]byte{}
 	for _, o := range objs {
-		sb.WriteString("---\n")
-		sb.WriteString(GenerateObjectYAML(o, replacements))
+		bytes = append(bytes, []byte(GenerateObjectYAML(o, replacements)))
 	}
 
-	return sb.String()
+	return string(utilyaml.JoinYaml(bytes...))
 }
 
 func TypeToKind(i interface{}) string {
 	return reflect.ValueOf(i).Elem().Type().Name()
+}
+
+// toUnstructured converts an object to Unstructured.
+// We have to pass in a gvk as we can't rely on GVK being set in a runtime.Object.
+func toUnstructured(obj runtime.Object, gvk schema.GroupVersionKind) (*unstructured.Unstructured, error) {
+	// If the incoming object is already unstructured, perform a deep copy first
+	// otherwise DefaultUnstructuredConverter ends up returning the inner map without
+	// making a copy.
+	if _, ok := obj.(runtime.Unstructured); ok {
+		obj = obj.DeepCopyObject()
+	}
+	rawMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
+	if err != nil {
+		return nil, err
+	}
+	u := &unstructured.Unstructured{Object: rawMap}
+	u.SetGroupVersionKind(gvk)
+
+	return u, nil
 }

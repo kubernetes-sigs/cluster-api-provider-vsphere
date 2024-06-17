@@ -33,7 +33,6 @@ import (
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
-	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -335,8 +334,6 @@ var _ = SynchronizedAfterSuite(func() {
 func initScheme() *runtime.Scheme {
 	sc := runtime.NewScheme()
 	framework.TryAddDefaultSchemes(sc)
-	// TODO: should probably be added to TryAddDefaultSchemes in core CAPI.
-	_ = ipamv1.AddToScheme(sc)
 
 	if testTarget == VCSimTestTarget {
 		_ = vcsimv1.AddToScheme(sc)

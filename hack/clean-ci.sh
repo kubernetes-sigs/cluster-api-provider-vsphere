@@ -31,10 +31,6 @@ on_exit() {
 
 trap on_exit EXIT
 
-# Set the kubeconfig to the IPAM cluster so the wait function is able to reach the kube-apiserver
-# to ensure the vpn connection works.
-export E2E_IPAM_KUBECONFIG="/root/ipam-conf/capv-services.conf"
-
 # Run the vpn client in container
 docker run --rm -d --name vpn -v "${HOME}/.openvpn/:${HOME}/.openvpn/" \
   -w "${HOME}/.openvpn/" --cap-add=NET_ADMIN --net=host --device=/dev/net/tun \
@@ -43,11 +39,11 @@ docker run --rm -d --name vpn -v "${HOME}/.openvpn/:${HOME}/.openvpn/" \
 # Tail the vpn logs
 docker logs vpn
 
-# Wait until the VPN connection is active and we are able to reach the ipam cluster
-function wait_for_ipam_reachable() {
+  # Wait until the VPN connection is active.
+function wait_for_vpn_up() {
   local n=0
   until [ $n -ge 30 ]; do
-    kubectl --kubeconfig="${E2E_IPAM_KUBECONFIG}" --request-timeout=2s  get inclusterippools.ipam.cluster.x-k8s.io && RET=$? || RET=$?
+    curl "https://${GOVC_URL}" --connect-timeout 2 -k && RET=$? || RET=$?
     if [[ "$RET" -eq 0 ]]; then
       break
     fi
@@ -56,10 +52,7 @@ function wait_for_ipam_reachable() {
   done
   return "$RET"
 }
-wait_for_ipam_reachable
-
-# Set kubeconfig for IPAM cleanup
-export KUBECONFIG="${E2E_IPAM_KUBECONFIG}"
+wait_for_vpn_up
 
 # Run e2e tests
 make clean-ci

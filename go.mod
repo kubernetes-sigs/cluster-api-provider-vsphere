@@ -2,7 +2,7 @@ module sigs.k8s.io/cluster-api-provider-vsphere
 
 go 1.22.0
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.7.0-rc.0.0.20240610140608-2e3860ac7408
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.7.0-rc.0.0.20240617064349-5b6043e1b6ec
 
 replace github.com/vmware-tanzu/vm-operator/pkg/constants/testlabels => github.com/vmware-tanzu/vm-operator/pkg/constants/testlabels v0.0.0-20240404200847-de75746a9505
 
@@ -37,7 +37,7 @@ require (
 	k8s.io/klog/v2 v2.120.1
 	k8s.io/utils v0.0.0-20231127182322-b307cd553661
 	sigs.k8s.io/cluster-api v1.7.0-rc.0.0.20240610140608-2e3860ac7408
-	sigs.k8s.io/controller-runtime v0.18.3
+	sigs.k8s.io/controller-runtime v0.18.4
 	sigs.k8s.io/kustomize/api v0.17.2
 	sigs.k8s.io/kustomize/kyaml v0.17.1
 	sigs.k8s.io/yaml v1.4.0
@@ -75,14 +75,14 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/net v0.26.0 // indirect
-	golang.org/x/oauth2 v0.20.0 // indirect
+	golang.org/x/oauth2 v0.21.0 // indirect
 	golang.org/x/sync v0.7.0 // indirect
 	golang.org/x/sys v0.21.0 // indirect
 	golang.org/x/term v0.21.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240311132316-a219d84964c2 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240314234333-6e1732d8331c // indirect
-	google.golang.org/grpc v1.62.1 // indirect
+	google.golang.org/grpc v1.62.2 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.30.0 // indirect

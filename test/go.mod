@@ -2,9 +2,9 @@ module sigs.k8s.io/cluster-api-provider-vsphere/test
 
 go 1.22.0
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.7.0-rc.0.0.20240610140608-2e3860ac7408
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.7.0-rc.0.0.20240617064349-5b6043e1b6ec
 
-replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.7.0-rc.0.0.20240610140608-2e3860ac7408
+replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.7.0-rc.0.0.20240617064349-5b6043e1b6ec
 
 replace sigs.k8s.io/cluster-api-provider-vsphere => ../
 
@@ -28,10 +28,10 @@ require (
 	k8s.io/component-base v0.30.1
 	k8s.io/klog/v2 v2.120.1
 	k8s.io/utils v0.0.0-20231127182322-b307cd553661
-	sigs.k8s.io/cluster-api v1.7.0-rc.0.0.20240610140608-2e3860ac7408
+	sigs.k8s.io/cluster-api v1.7.0-rc.0.0.20240617064349-5b6043e1b6ec
 	sigs.k8s.io/cluster-api-provider-vsphere v0.0.0-00010101000000-000000000000
 	sigs.k8s.io/cluster-api/test v0.0.0-00010101000000-000000000000
-	sigs.k8s.io/controller-runtime v0.18.3
+	sigs.k8s.io/controller-runtime v0.18.4
 	sigs.k8s.io/yaml v1.4.0
 )
 
@@ -58,7 +58,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/distribution/reference v0.6.0 // indirect
-	github.com/docker/docker v26.1.3+incompatible // indirect
+	github.com/docker/docker v26.1.4+incompatible // indirect
 	github.com/docker/go-connections v0.5.0 // indirect
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/drone/envsubst/v2 v2.0.0-20210730161058-179042472c46 // indirect
@@ -145,7 +145,7 @@ require (
 	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
 	golang.org/x/net v0.26.0 // indirect
-	golang.org/x/oauth2 v0.20.0 // indirect
+	golang.org/x/oauth2 v0.21.0 // indirect
 	golang.org/x/sync v0.7.0 // indirect
 	golang.org/x/sys v0.21.0 // indirect
 	golang.org/x/term v0.21.0 // indirect
@@ -155,7 +155,7 @@ require (
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240311132316-a219d84964c2 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240314234333-6e1732d8331c // indirect
-	google.golang.org/grpc v1.62.1 // indirect
+	google.golang.org/grpc v1.62.2 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect

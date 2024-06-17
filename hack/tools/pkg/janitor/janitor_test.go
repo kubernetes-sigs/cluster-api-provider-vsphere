@@ -23,7 +23,6 @@ import (
 	"path"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -78,7 +77,7 @@ func setup(ctx context.Context, t *testing.T) (*VSphereClients, *vcsim.Simulator
 	return clients, vcsim
 }
 
-func setupTestCase(g *gomega.WithT, sim *vcsim.Simulator, objects []*vcsimObject) (string, map[string]bool) {
+func setupTestCase(g *gomega.WithT, sim *vcsim.Simulator, objects []*vcsimObject) string {
 	g.THelper()
 
 	relativePath := rand.String(10)
@@ -91,15 +90,12 @@ func setupTestCase(g *gomega.WithT, sim *vcsim.Simulator, objects []*vcsimObject
 	g.Expect(baseFolder.Create(sim, relativePath)).To(gomega.Succeed())
 	g.Expect(baseDatastore.Create(sim, relativePath)).To(gomega.Succeed())
 
-	createdObjects := map[string]bool{}
-
 	// Create objects
 	for _, object := range objects {
-		createdObjects[path.Join(object.objectType, object.pathSuffix)] = true
 		g.Expect(object.Create(sim, relativePath)).To(gomega.Succeed())
 	}
 
-	return relativePath, createdObjects
+	return relativePath
 }
 
 const (
@@ -114,35 +110,19 @@ func Test_janitor_deleteVSphereVMs(t *testing.T) {
 	// Initialize and start vcsim
 	clients, sim := setup(ctx, t)
 
-	deleteAll := time.Now().Add(time.Hour * 1)
-	deleteNone := time.Now()
-
 	tests := []struct {
-		name            string
-		objects         []*vcsimObject
-		maxCreationDate time.Time
-		wantErr         bool
-		want            map[string]bool
+		name    string
+		objects []*vcsimObject
+		wantErr bool
+		want    map[string]bool
 	}{
 		{
 			name: "delete all VMs",
 			objects: []*vcsimObject{
 				vcsimVirtualMachine("foo"),
 			},
-			maxCreationDate: deleteAll,
-			wantErr:         false,
-			want:            nil,
-		},
-		{
-			name: "delete no VMs",
-			objects: []*vcsimObject{
-				vcsimVirtualMachine("foo"),
-			},
-			maxCreationDate: deleteNone,
-			wantErr:         false,
-			want: map[string]bool{
-				"VirtualMachine/foo": true,
-			},
+			wantErr: false,
+			want:    nil,
 		},
 		{
 			name: "recursive vm deletion",
@@ -157,8 +137,7 @@ func Test_janitor_deleteVSphereVMs(t *testing.T) {
 				vcsimVirtualMachine("a/bar"),
 				vcsimVirtualMachine("a/b/c/foobar"),
 			},
-			maxCreationDate: deleteAll,
-			wantErr:         false,
+			wantErr: false,
 			want: map[string]bool{
 				"ResourcePool/a":     true,
 				"ResourcePool/a/b":   true,
@@ -173,12 +152,11 @@ func Test_janitor_deleteVSphereVMs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := gomega.NewWithT(t)
 
-			relativePath, _ := setupTestCase(g, sim, tt.objects)
+			relativePath := setupTestCase(g, sim, tt.objects)
 
 			s := &Janitor{
-				dryRun:          false,
-				maxCreationDate: tt.maxCreationDate,
-				vSphereClients:  clients,
+				dryRun:         false,
+				vSphereClients: clients,
 			}
 
 			// use folder created for this test case as inventoryPath
@@ -224,7 +202,7 @@ func Test_janitor_deleteObjectChildren(t *testing.T) {
 			objectType: "ResourcePool",
 			objects: []*vcsimObject{
 				vcsimResourcePool("a"),
-				vcsimResourcePool("b"),
+				vcsimResourcePool("b"), // this one will be deleted
 				vcsimFolder("a"),
 				vcsimVirtualMachine("a/foo"),
 			},
@@ -241,7 +219,7 @@ func Test_janitor_deleteObjectChildren(t *testing.T) {
 			objects: []*vcsimObject{
 				vcsimResourcePool("a"),
 				vcsimFolder("a"),
-				vcsimFolder("b"),
+				vcsimFolder("b"), // this one will be deleted
 				vcsimVirtualMachine("a/foo"),
 			},
 			want: map[string]bool{
@@ -309,25 +287,17 @@ func Test_janitor_deleteObjectChildren(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := gomega.NewWithT(t)
 
-			relativePath, wantMarkedObjects := setupTestCase(g, sim, tt.objects)
+			relativePath := setupTestCase(g, sim, tt.objects)
 
 			inventoryPath := path.Join(tt.basePath, relativePath)
 
 			s := &Janitor{
-				dryRun:          false,
-				maxCreationDate: time.Now().Add(time.Hour * 1),
-				vSphereClients:  clients,
+				dryRun:         false,
+				vSphereClients: clients,
 			}
 
-			// Run first iteration which should only tag the resource pools with a timestamp.
 			g.Expect(s.deleteObjectChildren(ctx, inventoryPath, tt.objectType)).To(gomega.Succeed())
 			existingObjects, err := recursiveListFoldersAndResourcePools(ctx, relativePath, clients.Govmomi, clients.Finder, clients.ViewManager)
-			g.Expect(err).ToNot(gomega.HaveOccurred())
-			g.Expect(existingObjects).To(gomega.BeEquivalentTo(wantMarkedObjects))
-
-			// Run second iteration which should destroy the resource pools with a timestamp.
-			g.Expect(s.deleteObjectChildren(ctx, inventoryPath, tt.objectType)).To(gomega.Succeed())
-			existingObjects, err = recursiveListFoldersAndResourcePools(ctx, relativePath, clients.Govmomi, clients.Finder, clients.ViewManager)
 			g.Expect(err).ToNot(gomega.HaveOccurred())
 			if tt.want != nil {
 				g.Expect(existingObjects).To(gomega.BeEquivalentTo(tt.want))
@@ -348,36 +318,27 @@ func Test_janitor_CleanupVSphere(t *testing.T) {
 	// Initialize and start vcsim
 	clients, sim := setup(ctx, t)
 
-	deleteAll := time.Now().Add(time.Hour * 1)
-
 	tests := []struct {
-		name               string
-		dryRun             bool
-		maxCreationDate    time.Time
-		objects            []*vcsimObject
-		wantAfterFirstRun  map[string]bool
-		wantAfterSecondRun map[string]bool
+		name    string
+		dryRun  bool
+		objects []*vcsimObject
+		want    map[string]bool
 	}{
 		{
-			name:               "no-op",
-			dryRun:             false,
-			maxCreationDate:    deleteAll,
-			objects:            nil,
-			wantAfterFirstRun:  map[string]bool{},
-			wantAfterSecondRun: map[string]bool{},
+			name:    "no-op",
+			dryRun:  false,
+			objects: nil,
+			want:    map[string]bool{},
 		},
 		{
-			name:               "dryRun: no-op",
-			dryRun:             true,
-			maxCreationDate:    deleteAll,
-			objects:            nil,
-			wantAfterFirstRun:  map[string]bool{},
-			wantAfterSecondRun: map[string]bool{},
+			name:    "dryRun: no-op",
+			dryRun:  true,
+			objects: nil,
+			want:    map[string]bool{},
 		},
 		{
-			name:            "delete everything",
-			dryRun:          false,
-			maxCreationDate: deleteAll,
+			name:   "delete everything",
+			dryRun: false,
 			objects: []*vcsimObject{
 				vcsimFolder("a"),
 				vcsimResourcePool("a"),
@@ -385,18 +346,11 @@ func Test_janitor_CleanupVSphere(t *testing.T) {
 				vcsimFolder("c"),
 				vcsimResourcePool("c"),
 			},
-			wantAfterFirstRun: map[string]bool{
-				"Folder/a":       true,
-				"Folder/c":       true,
-				"ResourcePool/a": true,
-				"ResourcePool/c": true,
-			},
-			wantAfterSecondRun: map[string]bool{},
+			want: map[string]bool{},
 		},
 		{
-			name:            "dryRun: would delete everything",
-			dryRun:          true,
-			maxCreationDate: deleteAll,
+			name:   "dryRun: would delete everything",
+			dryRun: true,
 			objects: []*vcsimObject{
 				vcsimFolder("a"),
 				vcsimResourcePool("a"),
@@ -404,14 +358,7 @@ func Test_janitor_CleanupVSphere(t *testing.T) {
 				vcsimFolder("c"),
 				vcsimResourcePool("c"),
 			},
-			wantAfterFirstRun: map[string]bool{
-				"Folder/a":           true,
-				"Folder/c":           true,
-				"ResourcePool/a":     true,
-				"ResourcePool/c":     true,
-				"VirtualMachine/a/b": true,
-			},
-			wantAfterSecondRun: map[string]bool{
+			want: map[string]bool{
 				"Folder/a":           true,
 				"Folder/c":           true,
 				"ResourcePool/a":     true,
@@ -424,12 +371,11 @@ func Test_janitor_CleanupVSphere(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := gomega.NewWithT(t)
 
-			relativePath, _ := setupTestCase(g, sim, tt.objects)
+			relativePath := setupTestCase(g, sim, tt.objects)
 
 			s := &Janitor{
-				dryRun:          tt.dryRun,
-				maxCreationDate: tt.maxCreationDate,
-				vSphereClients:  clients,
+				dryRun:         tt.dryRun,
+				vSphereClients: clients,
 			}
 
 			folder := vcsimFolder("").Path(relativePath)
@@ -441,12 +387,7 @@ func Test_janitor_CleanupVSphere(t *testing.T) {
 			g.Expect(s.CleanupVSphere(ctx, folders, resourcePools, folders, false)).To(gomega.Succeed())
 			existingObjects, err := recursiveListFoldersAndResourcePools(ctx, relativePath, clients.Govmomi, clients.Finder, clients.ViewManager)
 			g.Expect(err).ToNot(gomega.HaveOccurred())
-			g.Expect(existingObjects).To(gomega.BeEquivalentTo(tt.wantAfterFirstRun))
-
-			g.Expect(s.CleanupVSphere(ctx, folders, resourcePools, folders, false)).To(gomega.Succeed())
-			existingObjects, err = recursiveListFoldersAndResourcePools(ctx, relativePath, clients.Govmomi, clients.Finder, clients.ViewManager)
-			g.Expect(err).ToNot(gomega.HaveOccurred())
-			g.Expect(existingObjects).To(gomega.BeEquivalentTo(tt.wantAfterSecondRun))
+			g.Expect(existingObjects).To(gomega.BeEquivalentTo(tt.want))
 
 			// Ensure the parent object still exists
 			assertObjectExists(ctx, g, clients.Finder, folder)

@@ -359,8 +359,7 @@ func release(ctx context.Context, client *boskos.Client, resourceName, vSphereUs
 	defer vSphereClients.Logout(ctx)
 
 	// Delete all VMs created up until now.
-	maxCreationDate := time.Now()
-	j := janitor.NewJanitor(vSphereClients, nil, maxCreationDate, "", false)
+	j := janitor.NewJanitor(vSphereClients, false)
 
 	log.Info("Cleaning up vSphere")
 	// Note: We intentionally want to skip clusterModule cleanup. If we run this too often we might hit race conditions

@@ -18,9 +18,7 @@ package janitor
 
 import (
 	"context"
-	"fmt"
 	"net/url"
-	"time"
 
 	"github.com/pkg/errors"
 	"github.com/vmware/govmomi"
@@ -34,7 +32,6 @@ import (
 	"github.com/vmware/govmomi/vim25"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/soap"
-	"github.com/vmware/govmomi/vim25/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -124,8 +121,6 @@ func NewVSphereClients(ctx context.Context, input NewVSphereClientsInput) (*VSph
 	}, nil
 }
 
-const vSphereDeletionMarkerName = "capv-janitor-deletion-marker"
-
 func waitForTasksFinished(ctx context.Context, tasks []*object.Task, ignoreErrors bool) error {
 	for _, t := range tasks {
 		if err := t.Wait(ctx); !ignoreErrors && err != nil {
@@ -133,31 +128,6 @@ func waitForTasksFinished(ctx context.Context, tasks []*object.Task, ignoreError
 		}
 	}
 	return nil
-}
-
-func getDeletionMarkerTimestamp(key int32, values []types.BaseCustomFieldValue) (*time.Time, error) {
-	// Find the value for the key
-	var b *types.BaseCustomFieldValue
-	for i := range values {
-		if values[i].GetCustomFieldValue().Key != key {
-			continue
-		}
-		b = &values[i]
-		break
-	}
-
-	// Key does not exist
-	if b == nil {
-		return nil, nil
-	}
-
-	value, ok := (*b).(*types.CustomFieldStringValue)
-	if !ok {
-		return nil, fmt.Errorf("cannot typecast %t to *types.CustomFieldStringValue", *b)
-	}
-
-	t, err := time.Parse(time.RFC3339, value.Value)
-	return &t, err
 }
 
 type managedElement struct {

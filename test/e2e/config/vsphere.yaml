@@ -279,6 +279,7 @@ intervals:
   default/wait-worker-nodes: ["10m", "10s"]
   default/wait-delete-cluster: ["5m", "10s"]
   default/wait-machine-upgrade: ["15m", "1m"]
+  default/wait-nodes-ready: ["10m", "10s"]
   default/wait-machine-remediation: ["15m", "10s"]
   mhc-remediation/mhc-remediation: ["30m", "10s"]
   node-drain/wait-deployment-available: ["3m", "10s"]

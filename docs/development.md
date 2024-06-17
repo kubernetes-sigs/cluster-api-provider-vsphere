@@ -80,10 +80,12 @@ make docker-push-all ALL_ARCH=$(go env GOARCH)
 
 Overrides need to be placed in `~/.cluster-api/overrides/infrastructure-vsphere/{version}`
 
-Running the following generates these overrides for you:
+Running the following re-generates the manifests for you and copies them over:
 
 ``` shell
-make dev-manifests
+mkdir -p "~/.cluster-api/overrides/infrastructure-vsphere/$(cat clusterctl-settings.json | jq .config.nextVersion -r)"
+make manifest-modification REGISTRY=$(REGISTRY) RELEASE_TAG=$(TAG) PULL_POLICY=Always
+make release-manifests STAGE=dev MANIFEST_DIR="~/.cluster-api/overrides/infrastructure-vsphere/$(cat clusterctl-settings.json | jq .config.nextVersion -r)"
 ```
 
 For development purposes, if you are using a `major.minor.x` version (see env variable VERSION) which is not present in the `metadata.yml`, include this version entry along with the API contract in the file.
@@ -95,8 +97,8 @@ After publishing your test image and generating the manifests, you can use
 
 #### Using custom cluster-templates  
 
-In order to generate a custom `custom-template.yaml`, run `make dev-flavors`.  
-This command will generate a `cluster-template.yaml` at and the logs will mention the path where this file is generated. On mac it will look something like this - `/Users/<user>/.cluster-api/overrides/infrastructure-vsphere/v0.x.0/cluster-template.yaml`.  
+In order to generate a custom `custom-template.yaml`, run `make generate-flavors`.  
+This command will generate all flavors in the `templates` directory.
 To create this custom cluster, use `clusterctl generate cluster --from="<cluster_template_path>" <cluster_name>`  
 
 ## Testing e2e

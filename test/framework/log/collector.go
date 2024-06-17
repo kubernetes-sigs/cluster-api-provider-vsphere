@@ -144,7 +144,7 @@ func (c *MachineLogCollector) machineIPAddresses(ctx context.Context, m *cluster
 }
 
 func createOutputFile(path string) (*os.File, error) {
-	if err := os.MkdirAll(filepath.Dir(path), os.ModePerm); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), 0750); err != nil {
 		return nil, err
 	}
 	return os.Create(filepath.Clean(path))

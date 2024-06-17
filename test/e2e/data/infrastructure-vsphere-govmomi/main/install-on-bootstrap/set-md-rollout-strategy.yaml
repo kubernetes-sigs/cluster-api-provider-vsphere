@@ -1,0 +1,7 @@
+- op: add
+  path: /spec/topology/workers/machineDeployments/0/strategy
+  value:
+    rollingUpdate:
+      maxUnavailable: "100%"
+      maxSurge: "100%"
+    type: RollingUpdate

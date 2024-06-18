@@ -442,9 +442,6 @@ func (v *VimMachineService) generateOverrideFunc(ctx context.Context, vimMachine
 		if len(vsphereFailureDomain.Spec.Topology.NetworkConfigurations) > 0 {
 			vm.Spec.Network.Devices = overrideNetworkDeviceSpecs(vm.Spec.Network.Devices, vsphereFailureDomain.Spec.Topology.NetworkConfigurations, mergeFailureDomainNetSpecToNetworkDeviceSpec)
 		}
-		if vsphereFailureDomain.Spec.VMTemplate.Template != "" {
-			vm.Spec.Template = vsphereFailureDomain.Spec.VMTemplate.Template
-		}
 	}
 	return overrideWithFailureDomainFunc, true
 }

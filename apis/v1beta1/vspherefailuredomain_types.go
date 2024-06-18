@@ -44,19 +44,6 @@ type VSphereFailureDomainSpec struct {
 
 	// Topology describes a given failure domain using vSphere constructs
 	Topology Topology `json:"topology"`
-
-	// VirtualMachineTemplate defines parameters for VM
-	// +optional
-	VMTemplate VirtualMachineTemplate `json:"vmTemplate"`
-}
-
-// VirtualMachineTemplate defines parameters for VM.
-type VirtualMachineTemplate struct {
-	// Template defines the name or inventory path of the template used to clone
-	// the virtual machine
-	// +kubebuilder:validation:MinLength=1
-	// +optional
-	Template string `json:"template,omitempty"`
 }
 
 // FailureDomain contains data to identify and configure a failure domain.

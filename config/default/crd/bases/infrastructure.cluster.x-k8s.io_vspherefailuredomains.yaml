@@ -553,16 +553,6 @@ spec:
                 required:
                 - datacenter
                 type: object
-              vmTemplate:
-                description: VirtualMachineTemplate defines parameters for VM
-                properties:
-                  template:
-                    description: |-
-                      Template defines the name or inventory path of the template used to clone
-                      the virtual machine
-                    minLength: 1
-                    type: string
-                type: object
               zone:
                 description: Zone defines the name and type of a zone
                 properties:

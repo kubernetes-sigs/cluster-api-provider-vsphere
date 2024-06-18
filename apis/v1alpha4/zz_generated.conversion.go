@@ -1437,7 +1437,6 @@ func autoConvert_v1beta1_VSphereFailureDomainSpec_To_v1alpha4_VSphereFailureDoma
 	if err := Convert_v1beta1_Topology_To_v1alpha4_Topology(&in.Topology, &out.Topology, s); err != nil {
 		return err
 	}
-	// WARNING: in.VMTemplate requires manual conversion: does not exist in peer-type
 	return nil
 }
 

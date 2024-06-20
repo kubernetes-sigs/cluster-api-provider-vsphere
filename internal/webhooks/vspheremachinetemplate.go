@@ -84,17 +84,9 @@ func (webhook *VSphereMachineTemplateWebhook) ValidateCreate(_ context.Context, 
 			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "template", "spec", "guestSoftPowerOffTimeout"), spec.GuestSoftPowerOffTimeout, "should be greater than 0"))
 		}
 	}
-	for i, device := range spec.PciDevices {
-		if device.VGPUProfile == "" {
-			if device.DeviceID == nil || device.VendorID == nil {
-				allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "template", "spec", "pciDevices", fmt.Sprintf("%d", i)), device, "should have both deviceId and vendorId set"))
-			}
-		} else {
-			if device.DeviceID != nil || device.VendorID != nil {
-				allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "template", "spec", "pciDevices", fmt.Sprintf("%d", i)), device, "should have either deviceId + vendorId or vgpuProfile"))
-			}
-		}
-	}
+	pciErrs := validatePCIDevices(spec.PciDevices)
+	allErrs = append(allErrs, pciErrs...)
+
 	return nil, AggregateObjErrors(obj.GroupVersionKind().GroupKind(), obj.Name, allErrs)
 }
 

@@ -92,17 +92,8 @@ func (webhook *VSphereMachineWebhook) ValidateCreate(_ context.Context, raw runt
 			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "guestSoftPowerOffTimeout"), spec.GuestSoftPowerOffTimeout, "should be greater than 0"))
 		}
 	}
-	for i, device := range spec.PciDevices {
-		if device.VGPUProfile == "" {
-			if device.DeviceID == nil || device.VendorID == nil {
-				allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "template", "spec", "pciDevices", fmt.Sprintf("%d", i)), device, "should have both deviceId and vendorId set"))
-			}
-		} else {
-			if device.DeviceID != nil || device.VendorID != nil {
-				allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "template", "spec", "pciDevices", fmt.Sprintf("%d", i)), device, "should have either deviceId + vendorId or vgpuProfile"))
-			}
-		}
-	}
+	pciErrs := validatePCIDevices(spec.PciDevices)
+	allErrs = append(allErrs, pciErrs...)
 
 	return nil, AggregateObjErrors(obj.GroupVersionKind().GroupKind(), obj.Name, allErrs)
 }
@@ -170,4 +161,21 @@ func (webhook *VSphereMachineWebhook) ValidateUpdate(_ context.Context, oldRaw r
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 func (webhook *VSphereMachineWebhook) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
+}
+
+func validatePCIDevices(devices []infrav1.PCIDeviceSpec) field.ErrorList {
+	var allErrs field.ErrorList
+
+	for i, device := range devices {
+		if device.VGPUProfile != "" && device.DeviceID == nil && device.VendorID == nil {
+			// Valid case for vGPU.
+			continue
+		}
+		if device.VGPUProfile == "" && device.DeviceID != nil && device.VendorID != nil {
+			// Valid case for PCI Passthrough.
+			continue
+		}
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "template", "spec", "pciDevices", fmt.Sprintf("%d", i)), device, "should have either deviceId + vendorId or vgpuProfile set"))
+	}
+	return allErrs
 }

@@ -90,7 +90,7 @@ spec:
       template: '${VSPHERE_TEMPLATE}'
       thumbprint: '${VSPHERE_TLS_THUMBPRINT}'
       pciDevices:
-        - vgpuProfile: "grid_t4-1a" # value from above
+        - vGPUProfile: "grid_t4-1a" # value from above
 ```
 
 Set the required values for the other fields and the cluster template is ready for use.

@@ -93,7 +93,8 @@ spec:
         - vgpuProfile: "grid_t4-1a" # value from above
 ```
 
-Set the required values for the other fields and the cluster template is ready for use. The similar changes can be made to a template generated using clusterctl generate cluster command as well.
+Set the required values for the other fields and the cluster template is ready for use.
+The similar changes can be made to a template generated using `clusterctl generate cluster` command as well.
 
 ### Create the cluster
 

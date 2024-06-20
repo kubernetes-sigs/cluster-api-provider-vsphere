@@ -265,7 +265,7 @@ type PCIDeviceSpec struct {
 	// virtual machine is cloned.
 	// Mutually exclusive with DeviceID and VendorID.
 	// +kubebuilder:validation:Required
-	VGPUProfile string `json:"vgpuProfile,omitempty"`
+	VGPUProfile string `json:"vGPUProfile,omitempty"`
 	// CustomLabel is the hardware label of a virtual machine's PCI device.
 	// Defaults to the eponymous property value in the template from which the
 	// virtual machine is cloned.

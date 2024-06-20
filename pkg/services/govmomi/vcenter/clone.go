@@ -69,7 +69,7 @@ func Clone(ctx context.Context, vmCtx *capvcontext.VMContext, bootstrapData []by
 		}
 	}
 	if vmCtx.VSphereVM.Spec.CustomVMXKeys != nil {
-		log.Info("Applied custom vmx keys to VM clone spec")
+		log.Info("Applied custom VMX keys to VM clone spec")
 		if err := extraConfig.SetCustomVMXKeys(vmCtx.VSphereVM.Spec.CustomVMXKeys); err != nil {
 			return err
 		}

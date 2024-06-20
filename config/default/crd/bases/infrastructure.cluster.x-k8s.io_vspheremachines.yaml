@@ -1370,7 +1370,8 @@ spec:
                         DeviceID is the device ID of a virtual machine's PCI, in integer.
                         Defaults to the eponymous property value in the template from which the
                         virtual machine is cloned.
-                        Mutually exclusive with VGPUProfile.
+                        Mutually exclusive with VGPUProfile as VGPUProfile and DeviceID + VendorID
+                        are two independent ways to define PCI devices.
                       format: int32
                       type: integer
                     vGPUProfile:
@@ -1378,14 +1379,16 @@ spec:
                         VGPUProfile is the profile name of a virtual machine's vGPU, in string.
                         Defaults to the eponymous property value in the template from which the
                         virtual machine is cloned.
-                        Mutually exclusive with DeviceID and VendorID.
+                        Mutually exclusive with DeviceID and VendorID as VGPUProfile and DeviceID + VendorID
+                        are two independent ways to define PCI devices.
                       type: string
                     vendorId:
                       description: |-
                         VendorId is the vendor ID of a virtual machine's PCI, in integer.
                         Defaults to the eponymous property value in the template from which the
                         virtual machine is cloned.
-                        Mutually exclusive with VGPUProfile.
+                        Mutually exclusive with VGPUProfile as VGPUProfile and DeviceID + VendorID
+                        are two independent ways to define PCI devices.
                       format: int32
                       type: integer
                   type: object

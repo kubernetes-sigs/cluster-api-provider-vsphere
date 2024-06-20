@@ -72,27 +72,27 @@ func TestVSphereMachineTemplate_ValidateCreate(t *testing.T) {
 		},
 		{
 			name:           "incorrect pciDevice",
-			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", nil, "", []string{}, []infrav1.PCIDeviceSpec{{VGPUProfile: "vgpu", DeviceID: new(int32)}}),
+			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", nil, "", []string{}, []infrav1.PCIDeviceSpec{{VGPUProfile: "vgpu", DeviceID: ptr.To[int32](1)}}),
 			wantErr:        true,
 		},
 		{
 			name:           "incorrect pciDevice",
-			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", nil, "", []string{}, []infrav1.PCIDeviceSpec{{VGPUProfile: "vgpu", DeviceID: new(int32), VendorID: new(int32)}}),
+			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", nil, "", []string{}, []infrav1.PCIDeviceSpec{{VGPUProfile: "vgpu", DeviceID: ptr.To[int32](1), VendorID: ptr.To[int32](1)}}),
 			wantErr:        true,
 		},
 		{
 			name:           "incomplete pciDevice",
-			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", nil, "", []string{}, []infrav1.PCIDeviceSpec{{DeviceID: new(int32)}}),
+			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", nil, "", []string{}, []infrav1.PCIDeviceSpec{{DeviceID: ptr.To[int32](1)}}),
 			wantErr:        true,
 		},
 		{
 			name:           "incomplete pciDevice",
-			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", nil, "", []string{}, []infrav1.PCIDeviceSpec{{VendorID: new(int32)}}),
+			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", nil, "", []string{}, []infrav1.PCIDeviceSpec{{VendorID: ptr.To[int32](1)}}),
 			wantErr:        true,
 		},
 		{
 			name:           "successful VSphereMachine creation with PCI device",
-			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", nil, "", []string{}, []infrav1.PCIDeviceSpec{{DeviceID: new(int32), VendorID: new(int32)}}),
+			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", nil, "", []string{}, []infrav1.PCIDeviceSpec{{DeviceID: ptr.To[int32](1), VendorID: ptr.To[int32](1)}}),
 		},
 		{
 			name:           "successful VSphereMachine creation with vgpu",

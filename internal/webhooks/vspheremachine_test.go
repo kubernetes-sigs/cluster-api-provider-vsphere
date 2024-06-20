@@ -22,6 +22,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 )
@@ -84,27 +85,27 @@ func TestVSphereMachine_ValidateCreate(t *testing.T) {
 		},
 		{
 			name:           "incorrect pciDevice",
-			vsphereMachine: createVSphereMachine("foo.com", nil, "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VirtualMachinePowerOpModeTrySoft, nil, []infrav1.PCIDeviceSpec{{VGPUProfile: "vgpu", DeviceID: new(int32)}}),
+			vsphereMachine: createVSphereMachine("foo.com", nil, "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VirtualMachinePowerOpModeTrySoft, nil, []infrav1.PCIDeviceSpec{{VGPUProfile: "vgpu", DeviceID: ptr.To[int32](1)}}),
 			wantErr:        true,
 		},
 		{
 			name:           "incorrect pciDevice",
-			vsphereMachine: createVSphereMachine("foo.com", nil, "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VirtualMachinePowerOpModeTrySoft, nil, []infrav1.PCIDeviceSpec{{VGPUProfile: "vgpu", DeviceID: new(int32), VendorID: new(int32)}}),
+			vsphereMachine: createVSphereMachine("foo.com", nil, "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VirtualMachinePowerOpModeTrySoft, nil, []infrav1.PCIDeviceSpec{{VGPUProfile: "vgpu", DeviceID: ptr.To[int32](1), VendorID: ptr.To[int32](1)}}),
 			wantErr:        true,
 		},
 		{
 			name:           "incomplete pciDevice",
-			vsphereMachine: createVSphereMachine("foo.com", nil, "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VirtualMachinePowerOpModeTrySoft, nil, []infrav1.PCIDeviceSpec{{DeviceID: new(int32)}}),
+			vsphereMachine: createVSphereMachine("foo.com", nil, "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VirtualMachinePowerOpModeTrySoft, nil, []infrav1.PCIDeviceSpec{{DeviceID: ptr.To[int32](1)}}),
 			wantErr:        true,
 		},
 		{
 			name:           "incomplete pciDevice",
-			vsphereMachine: createVSphereMachine("foo.com", nil, "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VirtualMachinePowerOpModeTrySoft, nil, []infrav1.PCIDeviceSpec{{VendorID: new(int32)}}),
+			vsphereMachine: createVSphereMachine("foo.com", nil, "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VirtualMachinePowerOpModeTrySoft, nil, []infrav1.PCIDeviceSpec{{VendorID: ptr.To[int32](1)}}),
 			wantErr:        true,
 		},
 		{
 			name:           "successful VSphereMachine creation with PCI device",
-			vsphereMachine: createVSphereMachine("foo.com", nil, "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VirtualMachinePowerOpModeTrySoft, nil, []infrav1.PCIDeviceSpec{{DeviceID: new(int32), VendorID: new(int32)}}),
+			vsphereMachine: createVSphereMachine("foo.com", nil, "", []string{"192.168.0.1/32", "192.168.0.3/32"}, infrav1.VirtualMachinePowerOpModeTrySoft, nil, []infrav1.PCIDeviceSpec{{DeviceID: ptr.To[int32](1), VendorID: ptr.To[int32](1)}}),
 		},
 		{
 			name:           "successful VSphereMachine creation with vgpu",

@@ -103,4 +103,4 @@ Note: For GPU nodes (PCI Passthrough or vGPU), all memory of the nodes must be r
 
 Apply the manifest from the previous step to your management cluster to have CAPV create a workload cluster with worker nodes that have vGPUs.
 
-From this point on, the setup is exactly the same as [GPU enabled clusters via PCI Passthrough](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/blob/main/docs/gpu-pci.md#create-the-cluster). 
+From this point on, the setup is exactly the same as [GPU enabled clusters via PCI Passthrough](./gpu-pci.md#create-the-cluster). 

@@ -1,0 +1,10 @@
+- op: replace
+  path: /spec/patches
+  value:
+  - name: test-patch
+    external:
+      generateExtension: generate-patches.capv-test-extension
+      validateExtension: validate-topology.capv-test-extension
+      discoverVariablesExtension: discover-variables.capv-test-extension
+- op: remove
+  path: /spec/variables

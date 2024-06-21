@@ -388,8 +388,10 @@ generate-e2e-templates-main: $(KUSTOMIZE) ## Generate test templates for the mai
 	# generate clusterclass and cluster topology
 	cp "$(RELEASE_DIR)/main/clusterclass-template.yaml" "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/clusterclass/clusterclass-quick-start.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/clusterclass" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/clusterclass-quick-start.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/clusterclass-runtimesdk" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/clusterclass-quick-start-runtimesdk.yaml"
 	cp "$(RELEASE_DIR)/main/cluster-template-topology.yaml" "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/topology/cluster-template-topology.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/topology" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/cluster-template-topology.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/topology-runtimesdk" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/cluster-template-topology-runtimesdk.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/install-on-bootstrap" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/cluster-template-install-on-bootstrap.yaml"
 	# for PCI passthrough template
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/pci" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/cluster-template-pci.yaml"
@@ -403,8 +405,10 @@ generate-e2e-templates-main: $(KUSTOMIZE) ## Generate test templates for the mai
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/base" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/cluster-template-supervisor.yaml"
 	cp "$(RELEASE_DIR)/main/clusterclass-template-supervisor.yaml" "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/clusterclass/clusterclass-quick-start-supervisor.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/clusterclass" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/clusterclass-quick-start-supervisor.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/clusterclass-runtimesdk" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/clusterclass-quick-start-runtimesdk-supervisor.yaml"
 	cp "$(RELEASE_DIR)/main/cluster-template-topology-supervisor.yaml" "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/topology/cluster-template-topology-supervisor.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/topology" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/cluster-template-topology-supervisor.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/topology-runtimesdk" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/cluster-template-topology-runtimesdk-supervisor.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/conformance" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/cluster-template-conformance-supervisor.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/install-on-bootstrap" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/cluster-template-install-on-bootstrap-supervisor.yaml"
 

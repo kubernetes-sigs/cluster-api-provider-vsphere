@@ -30,12 +30,13 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/yaml"
 
+	"sigs.k8s.io/cluster-api-provider-vsphere/internal/kubevip"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/util"
 )
 
 // TopologyVariable returns the ClusterClass variable for kube-vip.
 func TopologyVariable() (*clusterv1.ClusterVariable, error) {
-	out, err := json.Marshal(kubeVIPPodYAML())
+	out, err := json.Marshal(kubevip.PodYAML())
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to json-encode variable kubeVipPod")
 	}
@@ -52,7 +53,7 @@ func TopologyVariable() (*clusterv1.ClusterVariable, error) {
 func TopologyPatch() clusterv1.ClusterClassPatch {
 	patches := []clusterv1.JSONPatch{}
 
-	for _, f := range newKubeVIPFiles() {
+	for _, f := range kubevip.Files() {
 		p := clusterv1.JSONPatch{
 			Op:        "add",
 			Path:      "/spec/template/spec/kubeadmConfigSpec/files/-",

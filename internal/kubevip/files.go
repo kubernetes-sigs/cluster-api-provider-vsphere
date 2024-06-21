@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package kubevip provides the files required to run kube-vip in a cluster.
 package kubevip
 
 import (
@@ -38,12 +39,13 @@ var (
 	kubeVipPodRaw string
 )
 
-func newKubeVIPFiles() []bootstrapv1.File {
+// Files returns the files required for a control plane node to run kube-vip.
+func Files() []bootstrapv1.File {
 	return []bootstrapv1.File{
 		{
 			Owner:       "root:root",
 			Path:        "/etc/kubernetes/manifests/kube-vip.yaml",
-			Content:     kubeVIPPodYAML(),
+			Content:     PodYAML(),
 			Permissions: "0644",
 		},
 		// This file is part of the workaround for https://github.com/kube-vip/kube-vip/issues/692
@@ -63,7 +65,8 @@ func newKubeVIPFiles() []bootstrapv1.File {
 	}
 }
 
-func kubeVIPPodYAML() string {
+// PodYAML returns the static pod manifest required to run kube-vip.
+func PodYAML() string {
 	pod := &corev1.Pod{}
 
 	if err := yaml.Unmarshal([]byte(kubeVipPodRaw), pod); err != nil {

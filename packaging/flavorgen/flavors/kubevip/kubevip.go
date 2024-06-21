@@ -19,9 +19,11 @@ package kubevip
 
 import (
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+
+	"sigs.k8s.io/cluster-api-provider-vsphere/internal/kubevip"
 )
 
 // PatchControlPlane adds kube-vip to a KubeadmControlPlane object.
 func PatchControlPlane(cp *controlplanev1.KubeadmControlPlane) {
-	cp.Spec.KubeadmConfigSpec.Files = append(cp.Spec.KubeadmConfigSpec.Files, newKubeVIPFiles()...)
+	cp.Spec.KubeadmConfigSpec.Files = append(cp.Spec.KubeadmConfigSpec.Files, kubevip.Files()...)
 }

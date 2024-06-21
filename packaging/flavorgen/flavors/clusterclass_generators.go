@@ -30,6 +30,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/internal/clusterclass"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/env"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/kubevip"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/util"
@@ -55,7 +56,7 @@ func newClusterClass() clusterv1.ClusterClass {
 			},
 			ControlPlane: getControlPlaneClass(),
 			Workers:      getWorkersClass(),
-			Variables:    getClusterClassVariables(false),
+			Variables:    clusterclass.GetClusterClassVariables(true),
 			Patches:      getClusterClassPatches(),
 		},
 	}
@@ -81,7 +82,7 @@ func newVMWareClusterClass() clusterv1.ClusterClass {
 			},
 			ControlPlane: getVMWareControlPlaneClass(),
 			Workers:      getVMWareWorkersClass(),
-			Variables:    getClusterClassVariables(true),
+			Variables:    clusterclass.GetClusterClassVariables(false),
 			Patches:      getVMWareClusterClassPatches(),
 		},
 	}
@@ -236,83 +237,6 @@ func getEnableSSHIntoNodesTemplate() *string {
 	}
 	templateStr, _ := yaml.Marshal(template)
 	return ptr.To(string(templateStr))
-}
-
-func getClusterClassVariables(supervisorMode bool) []clusterv1.ClusterClassVariable {
-	variables := []clusterv1.ClusterClassVariable{
-		{
-			Name:     "sshKey",
-			Required: false,
-			Schema: clusterv1.VariableSchema{
-				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-					Description: "Public key to SSH onto the cluster nodes.",
-					Type:        "string",
-				},
-			},
-		},
-		{
-			Name:     "controlPlaneIpAddr",
-			Required: true,
-			Schema: clusterv1.VariableSchema{
-				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-					Type:        "string",
-					Description: "Floating VIP for the control plane.",
-				},
-			},
-		},
-		{
-			Name:     "controlPlanePort",
-			Required: true,
-			Schema: clusterv1.VariableSchema{
-				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-					Type:        "integer",
-					Description: "Port for the control plane endpoint.",
-				},
-			},
-		},
-		{
-			Name:     "kubeVipPodManifest",
-			Required: true,
-			Schema: clusterv1.VariableSchema{
-				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-					Type:        "string",
-					Description: "kube-vip manifest for the control plane.",
-				},
-			},
-		},
-	}
-
-	if !supervisorMode {
-		varForNoneSupervisorMode := []clusterv1.ClusterClassVariable{
-			{
-				Name:     "infraServer",
-				Required: true,
-				Schema: clusterv1.VariableSchema{
-					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-						Type: "object",
-						Properties: map[string]clusterv1.JSONSchemaProps{
-							"url":        {Type: "string"},
-							"thumbprint": {Type: "string"},
-						},
-					},
-				},
-			},
-			{
-				Name:     "credsSecretName",
-				Required: true,
-				Schema: clusterv1.VariableSchema{
-					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-						Type:        "string",
-						Description: "Secret containing the credentials for the infra cluster.",
-					},
-				},
-			},
-		}
-
-		variables = append(variables, varForNoneSupervisorMode...)
-	}
-
-	return variables
 }
 
 func newVSphereClusterTemplate() infrav1.VSphereClusterTemplate {

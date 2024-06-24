@@ -454,7 +454,7 @@ func FilterObjectsWithKindAndName(clusterName string) func(u unstructured.Unstru
 		}
 
 		// Following objects are for vm-operator (not managed by CAPV), so checking finalizers/resourceVersion is not relevant.
-		// Note: we are excluding also VirtualMachines, which instead are considered for the owenerReference tests.
+		// Note: we are excluding also VirtualMachines, which instead are considered for the ownerReference tests.
 		if testMode == SupervisorTestMode {
 			if sets.NewString("VirtualMachineImage", "NetworkInterface", "ContentSourceBinding", "VirtualMachineSetResourcePolicy", "VirtualMachineClass", "VMOperatorDependencies", "VirtualMachine").Has(u.GetKind()) {
 				return false

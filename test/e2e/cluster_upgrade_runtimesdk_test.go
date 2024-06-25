@@ -24,7 +24,7 @@ import (
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 )
 
-var _ = Describe("When upgrading a workload cluster using ClusterClass with RuntimeSDK [supervisor] [ClusterClass]", func() {
+var _ = Describe("When upgrading a workload cluster using ClusterClass with RuntimeSDK [vcsim] [supervisor] [ClusterClass]", func() {
 	const specName = "k8s-upgrade-with-runtimesdk" // aligned to CAPI
 	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		capi_e2e.ClusterUpgradeWithRuntimeSDKSpec(ctx, func() capi_e2e.ClusterUpgradeWithRuntimeSDKSpecInput {

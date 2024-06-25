@@ -240,6 +240,9 @@ func (r *vmBootstrapReconciler) reconcileBoostrapNode(ctx context.Context, clust
 			},
 		},
 	}
+	if machine.Spec.Version != nil {
+		node.Status.NodeInfo.KubeletVersion = *machine.Spec.Version
+	}
 	if util.IsControlPlaneMachine(machine) {
 		if node.Labels == nil {
 			node.Labels = map[string]string{}

@@ -272,7 +272,13 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 			Finder: vsphereFinder,
 		}))
 	}
-	bootstrapClusterProxy = framework.NewClusterProxy("bootstrap", kubeconfigPath, initScheme(), clusterProxyOptions...)
+	if testTarget == VCSimTestTarget {
+		// Use a custom cluster-proxy in VCSim mode to allow connections from the e2e test code (outside of the management cluster)
+		// to the fake kube-apiserver running in vcsim-controller.
+		bootstrapClusterProxy = vspherevcsim.NewClusterProxy("bootstrap", kubeconfigPath, initScheme(), clusterProxyOptions...)
+	} else {
+		bootstrapClusterProxy = framework.NewClusterProxy("bootstrap", kubeconfigPath, initScheme(), clusterProxyOptions...)
+	}
 
 	ipClaimLabels := map[string]string{}
 	for _, s := range strings.Split(ipClaimLabelsRaw, ";") {

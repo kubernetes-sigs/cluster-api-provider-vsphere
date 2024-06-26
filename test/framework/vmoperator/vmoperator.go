@@ -439,7 +439,7 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 	contentLibrary := library.Library{
 		Name: config.Spec.VCenter.ContentLibrary.Name,
 		Type: "LOCAL",
-		Storage: []library.StorageBackings{
+		Storage: []library.StorageBacking{
 			{
 				DatastoreID: contentLibraryDatastore.Reference().Value,
 				Type:        "DATASTORE",

@@ -2,7 +2,7 @@ module sigs.k8s.io/cluster-api-provider-vsphere
 
 go 1.22.0
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.7.0-rc.0.0.20240617064349-5b6043e1b6ec
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.7.0-rc.0.0.20240625054947-e63e0e9240a8
 
 replace github.com/vmware-tanzu/vm-operator/pkg/constants/testlabels => github.com/vmware-tanzu/vm-operator/pkg/constants/testlabels v0.0.0-20240404200847-de75746a9505
 

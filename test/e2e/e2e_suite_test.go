@@ -270,7 +270,11 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 			Finder: vsphereFinder,
 		}))
 	}
-	bootstrapClusterProxy = framework.NewClusterProxy("bootstrap", kubeconfigPath, initScheme(), clusterProxyOptions...)
+	if testTarget == VCSimTestTarget {
+		bootstrapClusterProxy = vspherevcsim.NewClusterProxy("bootstrap", kubeconfigPath, initScheme(), clusterProxyOptions...)
+	} else {
+		bootstrapClusterProxy = framework.NewClusterProxy("bootstrap", kubeconfigPath, initScheme(), clusterProxyOptions...)
+	}
 
 	ipClaimLabels := map[string]string{}
 	for _, s := range strings.Split(ipClaimLabelsRaw, ";") {

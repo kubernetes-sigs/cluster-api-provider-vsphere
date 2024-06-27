@@ -18,7 +18,7 @@ package controllers
 
 import (
 	"context"
-	"crypto/sha1" //nolint: gosec
+	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -206,7 +206,7 @@ func (r *VCenterSimulatorReconciler) reconcileNormal(ctx context.Context, vCente
 		defer conn.Close()
 
 		cert := conn.ConnectionState().PeerCertificates[0]
-		vCenterSimulator.Status.Thumbprint = ThumbprintSHA1(cert)
+		vCenterSimulator.Status.Thumbprint = ThumbprintSHA256(cert)
 	}
 
 	if r.SupervisorMode {
@@ -293,9 +293,9 @@ func (r *VCenterSimulatorReconciler) SetupWithManager(ctx context.Context, mgr c
 	return nil
 }
 
-// ThumbprintSHA1 returns the thumbprint of the given cert in the same format used by the SDK and Client.SetThumbprint.
-func ThumbprintSHA1(cert *x509.Certificate) string {
-	sum := sha1.Sum(cert.Raw) //nolint: gosec
+// ThumbprintSHA256 returns the thumbprint of the given cert in the same format used by the SDK and Client.SetThumbprint.
+func ThumbprintSHA256(cert *x509.Certificate) string {
+	sum := sha256.Sum256(cert.Raw)
 	hex := make([]string, len(sum))
 	for i, b := range sum {
 		hex[i] = fmt.Sprintf("%02X", b)

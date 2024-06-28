@@ -23,9 +23,9 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	netopv1alpha1 "github.com/vmware-tanzu/net-operator-api/api/v1alpha1"
+	netopv1 "github.com/vmware-tanzu/net-operator-api/api/v1alpha1"
 	nsxopv1 "github.com/vmware-tanzu/nsx-operator/pkg/apis/v1alpha1"
-	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha1"
+	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	ncpv1 "github.com/vmware-tanzu/vm-operator/external/ncp/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -165,23 +165,23 @@ var _ = Describe("Network provider", func() {
 			})
 			It("should not add network interface", func() {
 				Expect(err).ToNot(HaveOccurred())
-				Expect(vm.Spec.NetworkInterfaces).To(BeNil())
+				Expect(vm.Spec.Network).To(BeNil())
 			})
 		})
 
 		Context("with netop network provider", func() {
-			var defaultNetwork *netopv1alpha1.Network
+			var defaultNetwork *netopv1.Network
 
 			testWithLabelFunc := func(label string) {
 				BeforeEach(func() {
-					defaultNetwork = &netopv1alpha1.Network{
+					defaultNetwork = &netopv1.Network{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "dummy-network",
 							Namespace: dummyNs,
 							Labels:    map[string]string{label: "true"},
 						},
-						Spec: netopv1alpha1.NetworkSpec{
-							Type: netopv1alpha1.NetworkTypeVDS,
+						Spec: netopv1.NetworkSpec{
+							Type: netopv1.NetworkTypeVDS,
 						},
 					}
 				})
@@ -189,15 +189,17 @@ var _ = Describe("Network provider", func() {
 				Context("ConfigureVirtualMachine", func() {
 					BeforeEach(func() {
 						scheme := runtime.NewScheme()
-						Expect(netopv1alpha1.AddToScheme(scheme)).To(Succeed())
+						Expect(netopv1.AddToScheme(scheme)).To(Succeed())
 						client := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(defaultNetwork).Build()
 						np = NetOpNetworkProvider(client)
 					})
 
 					AfterEach(func() {
 						Expect(err).ToNot(HaveOccurred())
-						Expect(vm.Spec.NetworkInterfaces).To(HaveLen(1))
-						Expect(vm.Spec.NetworkInterfaces[0].NetworkType).To(Equal("vsphere-distributed"))
+						Expect(vm.Spec.Network).ToNot(BeNil())
+						Expect(vm.Spec.Network.Interfaces).To(HaveLen(1))
+						Expect(vm.Spec.Network.Interfaces[0].Network.TypeMeta.Kind).To(Equal("Network"))
+						Expect(vm.Spec.Network.Interfaces[0].Network.TypeMeta.APIVersion).To(Equal(netopv1.SchemeGroupVersion.String()))
 					})
 
 					It("should add vds type network interface", func() {
@@ -233,8 +235,11 @@ var _ = Describe("Network provider", func() {
 			})
 			AfterEach(func() {
 				Expect(err).ToNot(HaveOccurred())
-				Expect(vm.Spec.NetworkInterfaces[0].NetworkName).To(Equal(GetNSXTVirtualNetworkName(vSphereCluster.Name)))
-				Expect(vm.Spec.NetworkInterfaces[0].NetworkType).To(Equal("nsx-t"))
+				Expect(vm.Spec.Network).ToNot(BeNil())
+				Expect(vm.Spec.Network.Interfaces).To(HaveLen(1))
+				Expect(vm.Spec.Network.Interfaces[0].Network.Name).To(Equal(GetNSXTVirtualNetworkName(vSphereCluster.Name)))
+				Expect(vm.Spec.Network.Interfaces[0].Network.TypeMeta.Kind).To(Equal("VirtualNetwork"))
+				Expect(vm.Spec.Network.Interfaces[0].Network.TypeMeta.APIVersion).To(Equal(ncpv1.SchemeGroupVersion.String()))
 			})
 		})
 
@@ -249,19 +254,23 @@ var _ = Describe("Network provider", func() {
 			It("should add nsx-t-subnetset type network interface", func() {
 				err = np.ConfigureVirtualMachine(ctx, clusterCtx, vm)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(vm.Spec.NetworkInterfaces).To(HaveLen(1))
+				Expect(vm.Spec.Network.Interfaces).To(HaveLen(1))
 			})
 
 			It("nsx-t-subnetset type network interface already exists", func() {
 				err = np.ConfigureVirtualMachine(ctx, clusterCtx, vm)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(vm.Spec.NetworkInterfaces).To(HaveLen(1))
+				Expect(vm.Spec.Network).ToNot(BeNil())
+				Expect(vm.Spec.Network.Interfaces).To(HaveLen(1))
 			})
 
 			AfterEach(func() {
 				Expect(err).ToNot(HaveOccurred())
-				Expect(vm.Spec.NetworkInterfaces[0].NetworkName).To(Equal(vSphereCluster.Name))
-				Expect(vm.Spec.NetworkInterfaces[0].NetworkType).To(Equal("nsx-t-subnetset"))
+				Expect(vm.Spec.Network).ToNot(BeNil())
+				Expect(vm.Spec.Network.Interfaces).To(HaveLen(1))
+				Expect(vm.Spec.Network.Interfaces[0].Network.Name).To(Equal(vSphereCluster.Name))
+				Expect(vm.Spec.Network.Interfaces[0].Network.TypeMeta.Kind).To(Equal("SubnetSet"))
+				Expect(vm.Spec.Network.Interfaces[0].Network.TypeMeta.APIVersion).To(Equal(nsxopv1.SchemeGroupVersion.String()))
 			})
 		})
 	})
@@ -348,7 +357,7 @@ var _ = Describe("Network provider", func() {
 		Context("with netop network provider", func() {
 			BeforeEach(func() {
 				scheme := runtime.NewScheme()
-				Expect(netopv1alpha1.AddToScheme(scheme)).To(Succeed())
+				Expect(netopv1.AddToScheme(scheme)).To(Succeed())
 				client = fake.NewClientBuilder().WithScheme(scheme).Build()
 				np = NetOpNetworkProvider(client)
 			})
@@ -744,22 +753,22 @@ var _ = Describe("Network provider", func() {
 
 	Context("GetVMServiceAnnotations", func() {
 		Context("with netop network provider", func() {
-			var defaultNetwork *netopv1alpha1.Network
+			var defaultNetwork *netopv1.Network
 
 			testWithLabelFunc := func(label string) {
 				BeforeEach(func() {
-					defaultNetwork = &netopv1alpha1.Network{
+					defaultNetwork = &netopv1.Network{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "dummy-network",
 							Namespace: dummyNs,
 							Labels:    map[string]string{label: "true"},
 						},
-						Spec: netopv1alpha1.NetworkSpec{
-							Type: netopv1alpha1.NetworkTypeVDS,
+						Spec: netopv1.NetworkSpec{
+							Type: netopv1.NetworkTypeVDS,
 						},
 					}
 					scheme := runtime.NewScheme()
-					Expect(netopv1alpha1.AddToScheme(scheme)).To(Succeed())
+					Expect(netopv1.AddToScheme(scheme)).To(Succeed())
 					client := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(defaultNetwork).Build()
 					np = NetOpNetworkProvider(client)
 				})
@@ -810,7 +819,7 @@ var _ = Describe("Network provider", func() {
 		Context("with netop network provider", func() {
 			BeforeEach(func() {
 				scheme := runtime.NewScheme()
-				Expect(netopv1alpha1.AddToScheme(scheme)).To(Succeed())
+				Expect(netopv1.AddToScheme(scheme)).To(Succeed())
 				client := fake.NewClientBuilder().WithScheme(scheme).Build()
 				np = NetOpNetworkProvider(client)
 			})

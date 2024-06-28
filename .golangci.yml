@@ -120,7 +120,7 @@ linters-settings:
       - pkg: sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1
         alias: vmwarev1
       # VMware Operator
-      - pkg: "github.com/vmware-tanzu/vm-operator/api/v1alpha1"
+      - pkg: "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
         alias: vmoprv1 
       # CABPK
       - pkg: sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1

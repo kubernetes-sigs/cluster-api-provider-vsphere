@@ -11,15 +11,19 @@ replace sigs.k8s.io/cluster-api-provider-vsphere => ../
 replace github.com/vmware-tanzu/vm-operator/pkg/constants/testlabels => github.com/vmware-tanzu/vm-operator/pkg/constants/testlabels v0.0.0-20240404200847-de75746a9505
 
 require (
+	github.com/vmware-tanzu/net-operator-api v0.0.0-20240326163340-1f32d6bf7f9d
+	// The version of vm-operator should be kept in sync with the manifests at: config/deployments/integration-tests
+	github.com/vmware-tanzu/vm-operator/api v1.8.6
+	github.com/vmware-tanzu/vm-operator/external/tanzu-topology v0.0.0-20240404200847-de75746a9505
+	github.com/vmware/govmomi v0.38.0
+)
+
+require (
 	github.com/dougm/pretty v0.0.0-20171025230240-2ee9d7453c02
 	github.com/onsi/ginkgo/v2 v2.19.0
 	github.com/onsi/gomega v1.33.1
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/pflag v1.0.5
-	github.com/vmware-tanzu/net-operator-api v0.0.0-20240326163340-1f32d6bf7f9d
-	github.com/vmware-tanzu/vm-operator/api v1.8.6
-	github.com/vmware-tanzu/vm-operator/external/tanzu-topology v0.0.0-20240404200847-de75746a9505
-	github.com/vmware/govmomi v0.38.0
 	golang.org/x/crypto v0.24.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.30.2

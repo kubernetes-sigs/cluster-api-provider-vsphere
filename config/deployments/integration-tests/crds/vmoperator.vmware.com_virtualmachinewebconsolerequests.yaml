@@ -4,21 +4,22 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.14.0
-  name: webconsolerequests.vmoperator.vmware.com
+  name: virtualmachinewebconsolerequests.vmoperator.vmware.com
 spec:
   group: vmoperator.vmware.com
   names:
-    kind: WebConsoleRequest
-    listKind: WebConsoleRequestList
-    plural: webconsolerequests
-    singular: webconsolerequest
+    kind: VirtualMachineWebConsoleRequest
+    listKind: VirtualMachineWebConsoleRequestList
+    plural: virtualmachinewebconsolerequests
+    singular: virtualmachinewebconsolerequest
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - name: v1alpha2
     schema:
       openAPIV3Schema:
-        description: WebConsoleRequest allows the creation of a one-time web console
-          ticket that can be used to interact with the VM.
+        description: |-
+          VirtualMachineWebConsoleRequest allows the creation of a one-time, web
+          console connection to a VM.
         properties:
           apiVersion:
             description: |-
@@ -38,27 +39,30 @@ spec:
           metadata:
             type: object
           spec:
-            description: WebConsoleRequestSpec describes the specification for used
-              to request a web console request.
+            description: |-
+              VirtualMachineWebConsoleRequestSpec describes the desired state for a web
+              console request to a VM.
             properties:
+              name:
+                description: |-
+                  Name is the name of a VM in the same Namespace as this web console
+                  request.
+                type: string
               publicKey:
                 description: PublicKey is used to encrypt the status.response. This
                   is expected to be a RSA OAEP public key in X.509 PEM format.
                 type: string
-              virtualMachineName:
-                description: VirtualMachineName is the VM in the same namespace, for
-                  which the web console is requested.
-                type: string
             required:
+            - name
             - publicKey
-            - virtualMachineName
             type: object
           status:
-            description: WebConsoleRequestStatus defines the observed state, which
-              includes the web console request itself.
+            description: |-
+              VirtualMachineWebConsoleRequestStatus describes the observed state of the
+              request.
             properties:
               expiryTime:
-                description: ExpiryTime is when the ticket referenced in Response
+                description: ExpiryTime is the time at which access via this request
                   will expire.
                 format: date-time
                 type: string
@@ -66,6 +70,8 @@ spec:
                 description: |-
                   ProxyAddr describes the host address and optional port used to access
                   the VM's web console.
+
+
                   The value could be a DNS entry, IPv4, or IPv6 address, followed by an
                   optional port. For example, valid values include:
 

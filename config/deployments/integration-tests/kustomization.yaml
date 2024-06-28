@@ -2,13 +2,16 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
 - ../../supervisor
+- ./crds/vmoperator.vmware.com_clustervirtualmachineimages.yaml
 - ./crds/vmoperator.vmware.com_contentlibraryproviders.yaml
 - ./crds/vmoperator.vmware.com_contentsourcebindings.yaml
 - ./crds/vmoperator.vmware.com_contentsources.yaml
 - ./crds/vmoperator.vmware.com_virtualmachineclassbindings.yaml
 - ./crds/vmoperator.vmware.com_virtualmachineclasses.yaml
 - ./crds/vmoperator.vmware.com_virtualmachineimages.yaml
+- ./crds/vmoperator.vmware.com_virtualmachinepublishrequests.yaml
 - ./crds/vmoperator.vmware.com_virtualmachines.yaml
 - ./crds/vmoperator.vmware.com_virtualmachineservices.yaml
 - ./crds/vmoperator.vmware.com_virtualmachinesetresourcepolicies.yaml
+- ./crds/vmoperator.vmware.com_virtualmachinewebconsolerequests.yaml
 - ./crds/vmoperator.vmware.com_webconsolerequests.yaml

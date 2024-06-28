@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.13.0
+    controller-gen.kubebuilder.io/version: v0.14.0
   name: virtualmachines.vmoperator.vmware.com
 spec:
   group: vmoperator.vmware.com
@@ -38,20 +38,26 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: VirtualMachine is the Schema for the virtualmachines API. A VirtualMachine
-          represents the desired specification and the observed status of a VirtualMachine
-          instance.  A VirtualMachine is realized by the VirtualMachine controller
-          on a backing Virtual Infrastructure provider such as vSphere.
+        description: |-
+          VirtualMachine is the Schema for the virtualmachines API.
+          A VirtualMachine represents the desired specification and the observed status of a VirtualMachine instance.  A
+          VirtualMachine is realized by the VirtualMachine controller on a backing Virtual Infrastructure provider such as
+          vSphere.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -63,123 +69,140 @@ spec:
                   options for configuring a VirtualMachine
                 properties:
                   changeBlockTracking:
-                    description: ChangeBlockTracking specifies the enablement of incremental
-                      backup support for this VirtualMachine, which can be utilized
+                    description: |-
+                      ChangeBlockTracking specifies the enablement of incremental backup support for this VirtualMachine, which can be utilized
                       by external backup systems such as VMware Data Recovery.
                     type: boolean
                   defaultVolumeProvisioningOptions:
-                    description: DefaultProvisioningOptions specifies the provisioning
-                      type to be used by default for VirtualMachine volumes exclusively
-                      owned by this VirtualMachine. This does not apply to PersistentVolumeClaim
-                      volumes that are created and managed externally.
+                    description: |-
+                      DefaultProvisioningOptions specifies the provisioning type to be used by default for VirtualMachine volumes exclusively
+                      owned by this VirtualMachine. This does not apply to PersistentVolumeClaim volumes that are created and managed externally.
                     properties:
                       eagerZeroed:
-                        description: EagerZeroed specifies whether to use eager zero
-                          provisioning for the VirtualMachineVolume. An eager zeroed
-                          thick disk has all space allocated and wiped clean of any
-                          previous contents on the physical media at creation time.
-                          Such disks may take longer time during creation compared
-                          to other disk formats. EagerZeroed is only applicable if
-                          ThinProvisioned is false. This is validated by the webhook.
+                        description: |-
+                          EagerZeroed specifies whether to use eager zero provisioning for the VirtualMachineVolume.
+                          An eager zeroed thick disk has all space allocated and wiped clean of any previous contents
+                          on the physical media at creation time. Such disks may take longer time during creation
+                          compared to other disk formats.
+                          EagerZeroed is only applicable if ThinProvisioned is false. This is validated by the webhook.
                         type: boolean
                       thinProvisioned:
-                        description: ThinProvisioned specifies whether to use thin
-                          provisioning for the VirtualMachineVolume. This means a
-                          sparse (allocate on demand) format with additional space
-                          optimizations.
+                        description: |-
+                          ThinProvisioned specifies whether to use thin provisioning for the VirtualMachineVolume.
+                          This means a sparse (allocate on demand) format with additional space optimizations.
                         type: boolean
                     type: object
                 type: object
               className:
-                description: ClassName describes the name of a VirtualMachineClass
-                  that is to be used as the overlaid resource configuration of VirtualMachine.  A
-                  VirtualMachineClass is used to further customize the attributes
-                  of the VirtualMachine instance.  See VirtualMachineClass for more
-                  description.
+                description: |-
+                  ClassName describes the name of a VirtualMachineClass that is to be used as the overlaid resource configuration
+                  of VirtualMachine.  A VirtualMachineClass is used to further customize the attributes of the VirtualMachine
+                  instance.  See VirtualMachineClass for more description.
                 type: string
               imageName:
-                description: "ImageName describes the name of the image resource used
-                  to deploy this VM. \n This field may be used to specify the name
-                  of a VirtualMachineImage or ClusterVirtualMachineImage resource.
-                  The resolver first checks to see if there is a VirtualMachineImage
-                  with the specified name. If no such resource exists, the resolver
-                  then checks to see if there is a ClusterVirtualMachineImage resource
-                  with the specified name in the same Namespace as the VM being deployed.
-                  \n This field may also be used to specify the display name (vSphere
-                  name) of a VirtualMachineImage or ClusterVirtualMachineImage resource.
-                  If the display name unambiguously resolves to a distinct VM image
-                  (among all existing VirtualMachineImages in the VM's namespace and
-                  all existing ClusterVirtualMachineImages), then a mutation webhook
-                  updates this field with the VM image resource name. If the display
-                  name resolves to multiple or no VM images, then the mutation webhook
-                  denies the request and outputs an error message accordingly."
+                description: |-
+                  ImageName describes the name of the image resource used to deploy this
+                  VM.
+
+
+                  This field may be used to specify the name of a VirtualMachineImage
+                  or ClusterVirtualMachineImage resource. The resolver first checks to see
+                  if there is a VirtualMachineImage with the specified name. If no
+                  such resource exists, the resolver then checks to see if there is a
+                  ClusterVirtualMachineImage resource with the specified name in the same
+                  Namespace as the VM being deployed.
+
+
+                  This field may also be used to specify the display name (vSphere name) of
+                  a VirtualMachineImage or ClusterVirtualMachineImage resource. If the
+                  display name unambiguously resolves to a distinct VM image (among all
+                  existing VirtualMachineImages in the VM's namespace and all existing
+                  ClusterVirtualMachineImages), then a mutation webhook updates this field
+                  with the VM image resource name. If the display name resolves to multiple
+                  or no VM images, then the mutation webhook denies the request and outputs
+                  an error message accordingly.
                 type: string
               minHardwareVersion:
-                description: "MinHardwareVersion specifies the desired minimum hardware
-                  version for this VM. \n Usually the VM's hardware version is derived
-                  from: 1. the VirtualMachineClass used to deploy the VM provided
-                  by the ClassName field 2. the datacenter/cluster/host default hardware
-                  version Setting this field will ensure that the hardware version
-                  of the VM is at least set to the specified value. To enforce this,
-                  it will override the value from the VirtualMachineClass. \n This
-                  field is never updated to reflect the derived hardware version.
-                  Instead, VirtualMachineStatus.HardwareVersion surfaces the observed
-                  hardware version. \n Please note, setting this field's value to
-                  N ensures a VM's hardware version is equal to or greater than N.
-                  For example, if a VM's observed hardware version is 10 and this
-                  field's value is 13, then the VM will be upgraded to hardware version
-                  13. However, if the observed hardware version is 17 and this field's
-                  value is 13, no change will occur. \n Several features are hardware
-                  version dependent, for example: \n * NVMe Controllers                >=
-                  14 * Dynamic Direct Path I/O devices >= 17 \n Please refer to https://kb.vmware.com/s/article/1003746
-                  for a list of VM hardware versions. \n It is important to remember
-                  that a VM's hardware version may not be downgraded and upgrading
-                  a VM deployed from an image based on an older hardware version to
-                  a more recent one may result in unpredictable behavior. In other
-                  words, please be careful when choosing to upgrade a VM to a newer
-                  hardware version."
+                description: |-
+                  MinHardwareVersion specifies the desired minimum hardware version
+                  for this VM.
+
+
+                  Usually the VM's hardware version is derived from:
+                  1. the VirtualMachineClass used to deploy the VM provided by the ClassName field
+                  2. the datacenter/cluster/host default hardware version
+                  Setting this field will ensure that the hardware version of the VM
+                  is at least set to the specified value. To enforce this, it will override
+                  the value from the VirtualMachineClass.
+
+
+                  This field is never updated to reflect the derived hardware version.
+                  Instead, VirtualMachineStatus.HardwareVersion surfaces
+                  the observed hardware version.
+
+
+                  Please note, setting this field's value to N ensures a VM's hardware
+                  version is equal to or greater than N. For example, if a VM's observed
+                  hardware version is 10 and this field's value is 13, then the VM will be
+                  upgraded to hardware version 13. However, if the observed hardware
+                  version is 17 and this field's value is 13, no change will occur.
+
+
+                  Several features are hardware version dependent, for example:
+
+
+                  * NVMe Controllers                >= 14
+                  * Dynamic Direct Path I/O devices >= 17
+
+
+                  Please refer to https://kb.vmware.com/s/article/1003746 for a list of VM
+                  hardware versions.
+
+
+                  It is important to remember that a VM's hardware version may not be
+                  downgraded and upgrading a VM deployed from an image based on an older
+                  hardware version to a more recent one may result in unpredictable
+                  behavior. In other words, please be careful when choosing to upgrade a
+                  VM to a newer hardware version.
                 format: int32
                 minimum: 13
                 type: integer
               networkInterfaces:
-                description: "NetworkInterfaces describes a list of VirtualMachineNetworkInterfaces
-                  to be configured on the VirtualMachine instance. Each of these VirtualMachineNetworkInterfaces
-                  describes external network integration configurations that are to
-                  be used by the VirtualMachine controller when integrating the VirtualMachine
-                  into one or more external networks. \n The maximum number of network
-                  interface allowed is 10 because of the limit built into vSphere."
+                description: |-
+                  NetworkInterfaces describes a list of VirtualMachineNetworkInterfaces to be configured on the VirtualMachine instance.
+                  Each of these VirtualMachineNetworkInterfaces describes external network integration configurations that are to be
+                  used by the VirtualMachine controller when integrating the VirtualMachine into one or more external networks.
+
+
+                  The maximum number of network interface allowed is 10 because of the limit built into vSphere.
                 items:
-                  description: VirtualMachineNetworkInterface defines the properties
-                    of a network interface to attach to a VirtualMachine instance.  A
-                    VirtualMachineNetworkInterface describes network interface configuration
-                    that is used by the VirtualMachine controller when integrating
-                    the VirtualMachine into a VirtualNetwork. Currently, only NSX-T
-                    and vSphere Distributed Switch (VDS) type network integrations
-                    are supported using this VirtualMachineNetworkInterface structure.
+                  description: |-
+                    VirtualMachineNetworkInterface defines the properties of a network interface to attach to a VirtualMachine
+                    instance.  A VirtualMachineNetworkInterface describes network interface configuration that is used by the
+                    VirtualMachine controller when integrating the VirtualMachine into a VirtualNetwork. Currently, only NSX-T
+                    and vSphere Distributed Switch (VDS) type network integrations are supported using this VirtualMachineNetworkInterface
+                    structure.
                   properties:
                     ethernetCardType:
-                      description: EthernetCardType describes an optional ethernet
-                        card that should be used by the VirtualNetworkInterface (vNIC)
-                        associated with this network integration.  The default is
-                        "vmxnet3".
+                      description: |-
+                        EthernetCardType describes an optional ethernet card that should be used by the VirtualNetworkInterface (vNIC)
+                        associated with this network integration.  The default is "vmxnet3".
                       type: string
                     networkName:
-                      description: NetworkName describes the name of an existing virtual
-                        network that this interface should be added to. For "nsx-t"
-                        NetworkType, this is the name of a pre-existing NSX-T VirtualNetwork.
-                        If unspecified, the default network for the namespace will
-                        be used. For "vsphere-distributed" NetworkType, the NetworkName
-                        must be specified.
+                      description: |-
+                        NetworkName describes the name of an existing virtual network that this interface should be added to.
+                        For "nsx-t" NetworkType, this is the name of a pre-existing NSX-T VirtualNetwork. If unspecified,
+                        the default network for the namespace will be used. For "vsphere-distributed" NetworkType, the
+                        NetworkName must be specified.
                       type: string
                     networkType:
-                      description: NetworkType describes the type of VirtualNetwork
-                        that is referenced by the NetworkName. Currently, the supported
-                        NetworkTypes are "nsx-t", "nsx-t-subnet", "nsx-t-subnetset"
-                        and "vsphere-distributed".
+                      description: |-
+                        NetworkType describes the type of VirtualNetwork that is referenced by the NetworkName. Currently, the supported
+                        NetworkTypes are "nsx-t", "nsx-t-subnet", "nsx-t-subnetset" and "vsphere-distributed".
                       type: string
                     providerRef:
-                      description: ProviderRef is reference to a network interface
-                        provider object that specifies the network interface configuration.
+                      description: |-
+                        ProviderRef is reference to a network interface provider object that specifies the network interface configuration.
                         If unset, default configuration is assumed.
                       properties:
                         apiGroup:
@@ -204,14 +227,21 @@ spec:
                 maxItems: 10
                 type: array
               nextRestartTime:
-                description: "NextRestartTime may be used to restart the VM, in accordance
-                  with RestartMode, by setting the value of this field to \"now\"
-                  (case-insensitive). \n A mutating webhook changes this value to
-                  the current time (UTC), which the VM controller then uses to determine
-                  the VM should be restarted by comparing the value to the timestamp
-                  of the last time the VM was restarted. \n Please note it is not
-                  possible to schedule future restarts using this field. The only
-                  value that users may set is the string \"now\" (case-insensitive)."
+                description: |-
+                  NextRestartTime may be used to restart the VM, in accordance with
+                  RestartMode, by setting the value of this field to "now"
+                  (case-insensitive).
+
+
+                  A mutating webhook changes this value to the current time (UTC), which
+                  the VM controller then uses to determine the VM should be restarted by
+                  comparing the value to the timestamp of the last time the VM was
+                  restarted.
+
+
+                  Please note it is not possible to schedule future restarts using this
+                  field. The only value that users may set is the string "now"
+                  (case-insensitive).
                 type: string
               ports:
                 description: Ports is currently unused and can be considered deprecated.
@@ -237,38 +267,48 @@ spec:
                 type: array
               powerOffMode:
                 default: hard
-                description: "PowerOffMode describes the desired behavior when powering
-                  off a VM. \n There are three, supported power off modes: hard, soft,
-                  and trySoft. The first mode, hard, is the equivalent of a physical
-                  system's power cord being ripped from the wall. The soft mode requires
-                  the VM's guest to have VM Tools installed and attempts to gracefully
-                  shutdown the VM. Its variant, trySoft, first attempts a graceful
-                  shutdown, and if that fails or the VM is not in a powered off state
-                  after five minutes, the VM is halted. \n If omitted, the mode defaults
-                  to hard."
+                description: |-
+                  PowerOffMode describes the desired behavior when powering off a VM.
+
+
+                  There are three, supported power off modes: hard, soft, and
+                  trySoft. The first mode, hard, is the equivalent of a physical
+                  system's power cord being ripped from the wall. The soft mode
+                  requires the VM's guest to have VM Tools installed and attempts to
+                  gracefully shutdown the VM. Its variant, trySoft, first attempts
+                  a graceful shutdown, and if that fails or the VM is not in a powered off
+                  state after five minutes, the VM is halted.
+
+
+                  If omitted, the mode defaults to hard.
                 enum:
                 - hard
                 - soft
                 - trySoft
                 type: string
               powerState:
-                description: "PowerState describes the desired power state of a VirtualMachine.
-                  \n Please note this field may be omitted when creating a new VM
-                  and will default to \"poweredOn.\" However, once the field is set
-                  to a non-empty value, it may no longer be set to an empty value.
-                  \n Additionally, setting this value to \"suspended\" is not supported
-                  when creating a new VM. The valid values when creating a new VM
-                  are \"poweredOn\" and \"poweredOff.\" An empty value is also allowed
-                  on create since this value defaults to \"poweredOn\" for new VMs."
+                description: |-
+                  PowerState describes the desired power state of a VirtualMachine.
+
+
+                  Please note this field may be omitted when creating a new VM and will
+                  default to "poweredOn." However, once the field is set to a non-empty
+                  value, it may no longer be set to an empty value.
+
+
+                  Additionally, setting this value to "suspended" is not supported when
+                  creating a new VM. The valid values when creating a new VM are
+                  "poweredOn" and "poweredOff." An empty value is also allowed on create
+                  since this value defaults to "poweredOn" for new VMs.
                 enum:
                 - poweredOn
                 - poweredOff
                 - suspended
                 type: string
               readinessProbe:
-                description: ReadinessProbe describes a network probe that can be
-                  used to determine if the VirtualMachine is available and responding
-                  to the probe.
+                description: |-
+                  ReadinessProbe describes a network probe that can be used to determine if the VirtualMachine is available and
+                  responding to the probe.
                 properties:
                   guestHeartbeat:
                     description: GuestHeartbeat specifies an action involving the
@@ -276,25 +316,28 @@ spec:
                     properties:
                       thresholdStatus:
                         default: green
-                        description: ThresholdStatus is the value that the guest heartbeat
-                          status must be at or above to be considered successful.
+                        description: |-
+                          ThresholdStatus is the value that the guest heartbeat status must be at or above to be
+                          considered successful.
                         enum:
                         - yellow
                         - green
                         type: string
                     type: object
                   periodSeconds:
-                    description: PeriodSeconds specifics how often (in seconds) to
-                      perform the probe. Defaults to 10 seconds. Minimum value is
-                      1.
+                    description: |-
+                      PeriodSeconds specifics how often (in seconds) to perform the probe.
+                      Defaults to 10 seconds. Minimum value is 1.
                     format: int32
                     minimum: 1
                     type: integer
                   tcpSocket:
-                    description: "TCPSocket specifies an action involving a TCP port.
-                      \n Deprecated: The TCPSocket action requires network connectivity
-                      that is not supported in all environments. This field will be
-                      removed in a later API version."
+                    description: |-
+                      TCPSocket specifies an action involving a TCP port.
+
+
+                      Deprecated: The TCPSocket action requires network connectivity that is not supported in all environments.
+                      This field will be removed in a later API version.
                     properties:
                       host:
                         description: Host is an optional host name to connect to.  Host
@@ -304,59 +347,70 @@ spec:
                         anyOf:
                         - type: integer
                         - type: string
-                        description: Port specifies a number or name of the port to
-                          access on the VirtualMachine. If the format of port is a
-                          number, it must be in the range 1 to 65535. If the format
-                          of name is a string, it must be an IANA_SVC_NAME.
+                        description: |-
+                          Port specifies a number or name of the port to access on the VirtualMachine.
+                          If the format of port is a number, it must be in the range 1 to 65535.
+                          If the format of name is a string, it must be an IANA_SVC_NAME.
                         x-kubernetes-int-or-string: true
                     required:
                     - port
                     type: object
                   timeoutSeconds:
-                    description: TimeoutSeconds specifies a number of seconds after
-                      which the probe times out. Defaults to 10 seconds. Minimum value
-                      is 1.
+                    description: |-
+                      TimeoutSeconds specifies a number of seconds after which the probe times out.
+                      Defaults to 10 seconds. Minimum value is 1.
                     format: int32
                     maximum: 60
                     minimum: 1
                     type: integer
                 type: object
               resourcePolicyName:
-                description: ResourcePolicyName describes the name of a VirtualMachineSetResourcePolicy
-                  to be used when creating the VirtualMachine instance.
+                description: |-
+                  ResourcePolicyName describes the name of a VirtualMachineSetResourcePolicy to be used when creating the
+                  VirtualMachine instance.
                 type: string
               restartMode:
                 default: hard
-                description: "RestartMode describes the desired behavior for restarting
-                  a VM when spec.nextRestartTime is set to \"now\" (case-insensitive).
-                  \n There are three, supported suspend modes: hard, soft, and trySoft.
-                  The first mode, hard, is where vSphere resets the VM without any
-                  interaction inside of the guest. The soft mode requires the VM's
-                  guest to have VM Tools installed and asks the guest to restart the
-                  VM. Its variant, trySoft, first attempts a soft restart, and if
-                  that fails or does not complete within five minutes, the VM is hard
-                  reset. \n If omitted, the mode defaults to hard."
+                description: |-
+                  RestartMode describes the desired behavior for restarting a VM when
+                  spec.nextRestartTime is set to "now" (case-insensitive).
+
+
+                  There are three, supported suspend modes: hard, soft, and
+                  trySoft. The first mode, hard, is where vSphere resets the VM without any
+                  interaction inside of the guest. The soft mode requires the VM's guest to
+                  have VM Tools installed and asks the guest to restart the VM. Its
+                  variant, trySoft, first attempts a soft restart, and if that fails or
+                  does not complete within five minutes, the VM is hard reset.
+
+
+                  If omitted, the mode defaults to hard.
                 enum:
                 - hard
                 - soft
                 - trySoft
                 type: string
               storageClass:
-                description: StorageClass describes the name of a StorageClass that
-                  should be used to configure storage-related attributes of the VirtualMachine
+                description: |-
+                  StorageClass describes the name of a StorageClass that should be used to configure storage-related attributes of the VirtualMachine
                   instance.
                 type: string
               suspendMode:
                 default: hard
-                description: "SuspendMode describes the desired behavior when suspending
-                  a VM. \n There are three, supported suspend modes: hard, soft, and
-                  trySoft. The first mode, hard, is where vSphere suspends the VM
-                  to disk without any interaction inside of the guest. The soft mode
-                  requires the VM's guest to have VM Tools installed and attempts
-                  to gracefully suspend the VM. Its variant, trySoft, first attempts
-                  a graceful suspend, and if that fails or the VM is not in a put
-                  into standby by the guest after five minutes, the VM is suspended.
-                  \n If omitted, the mode defaults to hard."
+                description: |-
+                  SuspendMode describes the desired behavior when suspending a VM.
+
+
+                  There are three, supported suspend modes: hard, soft, and
+                  trySoft. The first mode, hard, is where vSphere suspends the VM to
+                  disk without any interaction inside of the guest. The soft mode
+                  requires the VM's guest to have VM Tools installed and attempts to
+                  gracefully suspend the VM. Its variant, trySoft, first attempts
+                  a graceful suspend, and if that fails or the VM is not in a put into
+                  standby by the guest after five minutes, the VM is suspended.
+
+
+                  If omitted, the mode defaults to hard.
                 enum:
                 - hard
                 - soft
@@ -367,27 +421,23 @@ spec:
                   be passed to the Guest OS.
                 properties:
                   configMapName:
-                    description: ConfigMapName describes the name of the ConfigMap,
-                      in the same Namespace as the VirtualMachine, that should be
-                      used for VirtualMachine metadata.  The contents of the Data
-                      field of the ConfigMap is used as the VM Metadata. The format
-                      of the contents of the VM Metadata are not parsed or interpreted
-                      by the VirtualMachine controller. Please note, this field and
-                      SecretName are mutually exclusive.
+                    description: |-
+                      ConfigMapName describes the name of the ConfigMap, in the same Namespace as the VirtualMachine, that should be
+                      used for VirtualMachine metadata.  The contents of the Data field of the ConfigMap is used as the VM Metadata.
+                      The format of the contents of the VM Metadata are not parsed or interpreted by the VirtualMachine controller.
+                      Please note, this field and SecretName are mutually exclusive.
                     type: string
                   secretName:
-                    description: SecretName describes the name of the Secret, in the
-                      same Namespace as the VirtualMachine, that should be used for
-                      VirtualMachine metadata. The contents of the Data field of the
-                      Secret is used as the VM Metadata. The format of the contents
-                      of the VM Metadata are not parsed or interpreted by the VirtualMachine
-                      controller. Please note, this field and ConfigMapName are mutually
-                      exclusive.
+                    description: |-
+                      SecretName describes the name of the Secret, in the same Namespace as the VirtualMachine, that should be used
+                      for VirtualMachine metadata. The contents of the Data field of the Secret is used as the VM Metadata.
+                      The format of the contents of the VM Metadata are not parsed or interpreted by the VirtualMachine controller.
+                      Please note, this field and ConfigMapName are mutually exclusive.
                     type: string
                   transport:
-                    description: Transport describes the name of a supported VirtualMachineMetadata
-                      transport protocol.  Currently, the only supported transport
-                      protocols are "ExtraConfig", "OvfEnv" and "CloudInit".
+                    description: |-
+                      Transport describes the name of a supported VirtualMachineMetadata transport protocol.  Currently, the only supported
+                      transport protocols are "ExtraConfig", "OvfEnv" and "CloudInit".
                     enum:
                     - ExtraConfig
                     - OvfEnv
@@ -397,32 +447,37 @@ spec:
                     type: string
                 type: object
               volumes:
-                description: Volumes describes the list of VirtualMachineVolumes that
-                  are desired to be attached to the VirtualMachine.  Each of these
-                  volumes specifies a volume identity that the VirtualMachine controller
-                  will attempt to satisfy, potentially with an external Volume Management
-                  service.
+                description: |-
+                  Volumes describes the list of VirtualMachineVolumes that are desired to be attached to the VirtualMachine.  Each of
+                  these volumes specifies a volume identity that the VirtualMachine controller will attempt to satisfy, potentially
+                  with an external Volume Management service.
                 items:
-                  description: VirtualMachineVolume describes a Volume that should
-                    be attached to a specific VirtualMachine. Only one of PersistentVolumeClaim,
-                    VsphereVolume should be specified.
+                  description: |-
+                    VirtualMachineVolume describes a Volume that should be attached to a specific VirtualMachine.
+                    Only one of PersistentVolumeClaim, VsphereVolume should be specified.
                   properties:
                     name:
-                      description: Name specifies the name of the VirtualMachineVolume.  Each
-                        volume within the scope of a VirtualMachine must have a unique
-                        name.
+                      description: |-
+                        Name specifies the name of the VirtualMachineVolume.  Each volume within the scope of a VirtualMachine must
+                        have a unique name.
                       type: string
                     persistentVolumeClaim:
-                      description: "PersistentVolumeClaim represents a reference to
-                        a PersistentVolumeClaim in the same namespace. The PersistentVolumeClaim
-                        must match one of the following: \n * A volume provisioned
-                        (either statically or dynamically) by the cluster's CSI provider.
-                        \n * An instance volume with a lifecycle coupled to the VM."
+                      description: |-
+                        PersistentVolumeClaim represents a reference to a PersistentVolumeClaim
+                        in the same namespace. The PersistentVolumeClaim must match one of the
+                        following:
+
+
+                          * A volume provisioned (either statically or dynamically) by the
+                            cluster's CSI provider.
+
+
+                          * An instance volume with a lifecycle coupled to the VM.
                       properties:
                         claimName:
-                          description: 'claimName is the name of a PersistentVolumeClaim
-                            in the same namespace as the pod using this volume. More
-                            info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistentvolumeclaims'
+                          description: |-
+                            claimName is the name of a PersistentVolumeClaim in the same namespace as the pod using this volume.
+                            More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistentvolumeclaims
                           type: string
                         instanceVolumeClaim:
                           description: InstanceVolumeClaim is set if the PVC is backed
@@ -437,24 +492,25 @@ spec:
                               pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                               x-kubernetes-int-or-string: true
                             storageClass:
-                              description: StorageClass is the name of the Kubernetes
-                                StorageClass that provides the backing storage for
-                                this instance storage volume.
+                              description: |-
+                                StorageClass is the name of the Kubernetes StorageClass that provides
+                                the backing storage for this instance storage volume.
                               type: string
                           required:
                           - size
                           - storageClass
                           type: object
                         readOnly:
-                          description: readOnly Will force the ReadOnly setting in
-                            VolumeMounts. Default false.
+                          description: |-
+                            readOnly Will force the ReadOnly setting in VolumeMounts.
+                            Default false.
                           type: boolean
                       required:
                       - claimName
                       type: object
                     vSphereVolume:
-                      description: VsphereVolume represents a reference to a VsphereVolumeSource
-                        in the same namespace. Only one of PersistentVolumeClaim or
+                      description: |-
+                        VsphereVolume represents a reference to a VsphereVolumeSource in the same namespace. Only one of PersistentVolumeClaim or
                         VsphereVolume can be specified. This is enforced via a webhook
                       properties:
                         capacity:
@@ -484,9 +540,9 @@ spec:
               instance.
             properties:
               biosUUID:
-                description: BiosUUID describes a unique identifier provided by the
-                  underlying infrastructure provider that is exposed to the Guest
-                  OS BIOS as a unique hardware identifier.
+                description: |-
+                  BiosUUID describes a unique identifier provided by the underlying infrastructure provider that is exposed to the
+                  Guest OS BIOS as a unique hardware identifier.
                 type: string
               changeBlockTracking:
                 description: ChangeBlockTracking describes the CBT enablement status
@@ -500,37 +556,37 @@ spec:
                     resource operational state.
                   properties:
                     lastTransitionTime:
-                      description: Last time the condition transitioned from one status
-                        to another. This should be when the underlying condition changed.
-                        If that is not known, then using the time when the API field
-                        changed is acceptable.
+                      description: |-
+                        Last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed. If that is not known, then using the time when
+                        the API field changed is acceptable.
                       format: date-time
                       type: string
                     message:
-                      description: A human readable message indicating details about
-                        the transition. This field may be empty.
+                      description: |-
+                        A human readable message indicating details about the transition.
+                        This field may be empty.
                       type: string
                     reason:
-                      description: The reason for the condition's last transition
-                        in CamelCase. The specific API may choose whether or not this
-                        field is considered a guaranteed API. This field may not be
-                        empty.
+                      description: |-
+                        The reason for the condition's last transition in CamelCase.
+                        The specific API may choose whether or not this field is considered a guaranteed API.
+                        This field may not be empty.
                       type: string
                     severity:
-                      description: Severity provides an explicit classification of
-                        Reason code, so the users or machines can immediately understand
-                        the current situation and act accordingly. The Severity field
-                        MUST be set only when Status=False.
+                      description: |-
+                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        understand the current situation and act accordingly.
+                        The Severity field MUST be set only when Status=False.
                       type: string
                     status:
                       description: Status of the condition, one of True, False, Unknown.
                       type: string
                     type:
-                      description: Type of condition in CamelCase or in foo.example.com/CamelCase.
-                        Many .condition.type values are consistent across resources
-                        like Available, but because arbitrary conditions can be useful
-                        (see .node.status.conditions), the ability to disambiguate
-                        is important.
+                      description: |-
+                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
+                        can be useful (see .node.status.conditions), the ability to disambiguate is important.
                       type: string
                   required:
                   - status
@@ -538,9 +594,13 @@ spec:
                   type: object
                 type: array
               hardwareVersion:
-                description: "HardwareVersion describes the VirtualMachine resource's
-                  observed hardware version. \n Please refer to VirtualMachineSpec.MinHardwareVersion
-                  for more information on the topic of a VM's hardware version."
+                description: |-
+                  HardwareVersion describes the VirtualMachine resource's observed
+                  hardware version.
+
+
+                  Please refer to VirtualMachineSpec.MinHardwareVersion for more
+                  information on the topic of a VM's hardware version.
                 format: int32
                 type: integer
               host:
@@ -556,22 +616,22 @@ spec:
                 format: date-time
                 type: string
               networkInterfaces:
-                description: NetworkInterfaces describes a list of current status
-                  information for each network interface that is desired to be attached
-                  to the VirtualMachine.
+                description: |-
+                  NetworkInterfaces describes a list of current status information for each network interface that is desired to
+                  be attached to the VirtualMachine.
                 items:
-                  description: NetworkInterfaceStatus defines the observed state of
-                    network interfaces attached to the VirtualMachine as seen by the
-                    Guest OS and VMware tools.
+                  description: |-
+                    NetworkInterfaceStatus defines the observed state of network interfaces attached to the VirtualMachine
+                    as seen by the Guest OS and VMware tools.
                   properties:
                     connected:
                       description: Connected represents whether the network interface
                         is connected or not.
                       type: boolean
                     ipAddresses:
-                      description: IpAddresses represents zero, one or more IP addresses
-                        assigned to the network interface in CIDR notation. For eg,
-                        "192.0.2.1/16".
+                      description: |-
+                        IpAddresses represents zero, one or more IP addresses assigned to the network interface in CIDR notation.
+                        For eg, "192.0.2.1/16".
                       items:
                         type: string
                       type: array
@@ -594,18 +654,20 @@ spec:
                 - suspended
                 type: string
               uniqueID:
-                description: UniqueID describes a unique identifier that is provided
-                  by the underlying infrastructure provider, such as vSphere.
+                description: |-
+                  UniqueID describes a unique identifier that is provided by the underlying infrastructure provider, such as
+                  vSphere.
                 type: string
               vmIp:
-                description: VmIp describes the Primary IP address assigned to the
-                  guest operating system, if known. Multiple IPs can be available
-                  for the VirtualMachine. Refer to networkInterfaces in the VirtualMachine
+                description: |-
+                  VmIp describes the Primary IP address assigned to the guest operating system, if known.
+                  Multiple IPs can be available for the VirtualMachine. Refer to networkInterfaces in the VirtualMachine
                   status for additional IPs
                 type: string
               volumes:
-                description: Volumes describes a list of current status information
-                  for each Volume that is desired to be attached to the VirtualMachine.
+                description: |-
+                  Volumes describes a list of current status information for each Volume that is desired to be attached to the
+                  VirtualMachine.
                 items:
                   description: VirtualMachineVolumeStatus defines the observed state
                     of a VirtualMachineVolume instance.
@@ -634,9 +696,2408 @@ spec:
                   type: object
                 type: array
               zone:
-                description: Zone describes the availability zone where the VirtualMachine
-                  has been scheduled. Please note this field may be empty when the
-                  cluster is not zone-aware.
+                description: |-
+                  Zone describes the availability zone where the VirtualMachine has been scheduled.
+                  Please note this field may be empty when the cluster is not zone-aware.
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: false
+    subresources:
+      status: {}
+  - additionalPrinterColumns:
+    - jsonPath: .status.powerState
+      name: Power-State
+      type: string
+    - jsonPath: .spec.className
+      name: Class
+      priority: 1
+      type: string
+    - jsonPath: .spec.imageName
+      name: Image
+      priority: 1
+      type: string
+    - jsonPath: .status.network.primaryIP4
+      name: Primary-IP4
+      priority: 1
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha2
+    schema:
+      openAPIV3Schema:
+        description: |-
+          VirtualMachine is the schema for the virtualmachines API and represents the
+          desired state and observed status of a virtualmachines resource.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: VirtualMachineSpec defines the desired state of a VirtualMachine.
+            properties:
+              advanced:
+                description: Advanced describes a set of optional, advanced VM configuration
+                  options.
+                properties:
+                  bootDiskCapacity:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: |-
+                      BootDiskCapacity is the capacity of the VM's boot disk -- the first disk
+                      from the VirtualMachineImage from which the VM was deployed.
+
+
+                      Please note it is not advised to change this value while the VM is
+                      running. Also, resizing the VM's boot disk may require actions inside of
+                      the guest to take advantage of the additional capacity. Finally, changing
+                      the size of the VM's boot disk, even increasing it, could adversely
+                      affect the VM.
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                  changeBlockTracking:
+                    description: |-
+                      ChangeBlockTracking is a flag that enables incremental backup support
+                      for this VM, a feature utilized by external backup systems such as
+                      VMware Data Recovery.
+                    type: boolean
+                  defaultVolumeProvisioningMode:
+                    description: |-
+                      DefaultVolumeProvisioningMode specifies the default provisioning mode for
+                      persistent volumes managed by this VM.
+                    enum:
+                    - Thin
+                    - Thick
+                    - ThickEagerZero
+                    type: string
+                type: object
+              bootstrap:
+                description: |-
+                  Bootstrap describes the desired state of the guest's bootstrap
+                  configuration.
+
+
+                  If omitted, a default bootstrap method may be selected based on the
+                  guest OS identifier. If Linux, then the LinuxPrep method is used.
+                properties:
+                  cloudInit:
+                    description: |-
+                      CloudInit may be used to bootstrap Linux guests with Cloud-Init or
+                      Windows guests that support Cloudbase-Init.
+
+
+                      The guest's networking stack is configured by Cloud-Init on Linux guests
+                      and Cloudbase-Init on Windows guests.
+
+
+                      Please note this bootstrap provider may not be used in conjunction with
+                      the other bootstrap providers.
+                    properties:
+                      cloudConfig:
+                        description: |-
+                          CloudConfig describes a subset of a Cloud-Init CloudConfig, used to
+                          bootstrap the VM.
+
+
+                          Please note this field and RawCloudConfig are mutually exclusive.
+                        properties:
+                          defaultUserEnabled:
+                            description: |-
+                              DefaultUserEnabled may be set to true to ensure even if the Users field
+                              is not empty, the default user is still created on systems that have one
+                              defined. By default, Cloud-Init ignores the default user if the
+                              CloudConfig provides one or more non-default users via the Users field.
+                            type: boolean
+                          runcmd:
+                            description: |-
+                              RunCmd allows running one or more commands on the guest.
+                              The entries in this list can adhere to two, different formats:
+
+
+                              Format 1 -- a string that contains the command and its arguments, ex.
+
+
+                                  runcmd:
+                                  - "ls -al"
+
+
+                              Format 2 -- a list of the command and its arguments, ex.
+
+
+                                  runcmd:
+                                  - - echo
+                                    - "Hello, world."
+                            x-kubernetes-preserve-unknown-fields: true
+                          ssh_pwauth:
+                            description: |-
+                              SSHPwdAuth sets whether or not to accept password authentication. ``true`` will enable password
+                              auth. ``false`` will disable. Default: leave the value unchanged. In order for this
+                              config to be applied, SSH may need to be restarted. On systemd systems, this restart will
+                              only happen if the SSH service has already been started. On non-systemd systems, a
+                              restart will be attempted regardless of the service state.
+                            type: boolean
+                          timezone:
+                            description: Timezone describes the timezone represented
+                              in /usr/share/zoneinfo.
+                            type: string
+                          users:
+                            description: Users allows adding/configuring one or more
+                              users on the guest.
+                            items:
+                              description: User is a CloudConfig user data structure.
+                              properties:
+                                create_groups:
+                                  description: |-
+                                    CreateGroups is a flag that may be set to false to disable creation of
+                                    specified user groups.
+
+
+                                    Defaults to true when Name is not "default".
+                                  type: boolean
+                                expiredate:
+                                  description: ExpireData is the date on which the
+                                    user's account will be disabled.
+                                  type: string
+                                gecos:
+                                  description: |-
+                                    Gecos is an optional comment about the user, usually a comma-separated
+                                    string of the user's real name and contact information.
+                                  type: string
+                                groups:
+                                  description: Groups is an optional list of groups
+                                    to add to the user.
+                                  items:
+                                    type: string
+                                  type: array
+                                hashed_passwd:
+                                  description: |-
+                                    HashedPasswd is a hash of the user's password that will be applied even
+                                    if the specified user already exists.
+                                  properties:
+                                    key:
+                                      description: Key is the key in the secret that
+                                        specifies the requested data.
+                                      type: string
+                                    name:
+                                      description: Name is the name of the secret.
+                                      type: string
+                                  required:
+                                  - key
+                                  - name
+                                  type: object
+                                homedir:
+                                  description: |-
+                                    Homedir is the optional home directory for the user.
+
+
+                                    Defaults to "/home/<username>" when Name is not "default".
+                                  type: string
+                                inactive:
+                                  description: |-
+                                    Inactive optionally represents the number of days until the user is
+                                    disabled.
+                                  format: int32
+                                  type: integer
+                                lock_passwd:
+                                  description: |-
+                                    LockPasswd disables password login.
+
+
+                                    Defaults to true when Name is not "default".
+                                  type: boolean
+                                name:
+                                  description: |-
+                                    Name is the user's login name.
+
+
+                                    Please note this field may be set to the special value of "default" when
+                                    this User is the first element in the Users list from the CloudConfig.
+                                    When set to "default", all other fields from this User must be nil.
+                                  type: string
+                                no_create_home:
+                                  description: |-
+                                    NoCreateHome prevents the creation of the home directory.
+
+
+                                    Defaults to false when Name is not "default".
+                                  type: boolean
+                                no_log_init:
+                                  description: |-
+                                    NoLogInit prevents the initialization of lastlog and faillog for the
+                                    user.
+
+
+                                    Defaults to false when Name is not "default".
+                                  type: boolean
+                                no_user_group:
+                                  description: |-
+                                    NoUserGroup prevents the creation of the group named after the user.
+
+
+                                    Defaults to false when Name is not "default".
+                                  type: boolean
+                                passwd:
+                                  description: |-
+                                    Passwd is a hash of the user's password that will be applied only to
+                                    a newly created user. To apply a new, hashed password to an existing user
+                                    please use HashedPasswd instead.
+                                  properties:
+                                    key:
+                                      description: Key is the key in the secret that
+                                        specifies the requested data.
+                                      type: string
+                                    name:
+                                      description: Name is the name of the secret.
+                                      type: string
+                                  required:
+                                  - key
+                                  - name
+                                  type: object
+                                primary_group:
+                                  description: |-
+                                    PrimaryGroup is the primary group for the user.
+
+
+                                    Defaults to the value of the Name field when it is not "default".
+                                  type: string
+                                selinux_user:
+                                  description: SELinuxUser is the SELinux user for
+                                    the user's login.
+                                  type: string
+                                shell:
+                                  description: |-
+                                    Shell is the path to the user's login shell.
+
+
+                                    Please note the default is to set no shell, which results in a
+                                    system-specific default being used.
+                                  type: string
+                                snapuser:
+                                  description: |-
+                                    SnapUser specifies an e-mail address to create the user as a Snappy user
+                                    through "snap create-user".
+
+
+                                    If an Ubuntu SSO account is associated with the address, the username and
+                                    SSH keys will be requested from there.
+                                  type: string
+                                ssh_authorized_keys:
+                                  description: |-
+                                    SSHAuthorizedKeys is a list of SSH keys to add to the user's authorized
+                                    keys file.
+
+
+                                    Please note this field may not be combined with SSHRedirectUser.
+                                  items:
+                                    type: string
+                                  type: array
+                                ssh_import_id:
+                                  description: |-
+                                    SSHImportID is a list of SSH IDs to import for the user.
+
+
+                                    Please note this field may not be combined with SSHRedirectUser.
+                                  items:
+                                    type: string
+                                  type: array
+                                ssh_redirect_user:
+                                  description: |-
+                                    SSHRedirectUser may be set to true to disable SSH logins for this user.
+
+
+                                    Please note that when specified, all SSH keys from cloud meta-data will
+                                    be configured in a disabled state for this user. Any SSH login as this
+                                    user will timeout with a message to login instead as the default user.
+
+
+                                    This field may not be combined with SSHAuthorizedKeys or SSHImportID.
+
+
+                                    Defaults to false when Name is not "default".
+                                  type: boolean
+                                sudo:
+                                  description: |-
+                                    Sudo is a sudo rule to apply to the user.
+
+
+                                    When omitted, no sudo rules will be applied to the user.
+                                  type: string
+                                system:
+                                  description: |-
+                                    System is an optional flag that indicates the user should be created as
+                                    a system user with no home directory.
+
+
+                                    Defaults to false when Name is not "default".
+                                  type: boolean
+                                uid:
+                                  description: |-
+                                    UID is the user's ID.
+
+
+                                    When omitted the guest will default to the next available number.
+                                  format: int64
+                                  type: integer
+                              required:
+                              - name
+                              type: object
+                            type: array
+                            x-kubernetes-list-map-keys:
+                            - name
+                            x-kubernetes-list-type: map
+                          write_files:
+                            description: WriteFiles
+                            items:
+                              description: |-
+                                WriteFile is a CloudConfig
+                                write_file data structure.
+                              properties:
+                                append:
+                                  description: |-
+                                    Append specifies whether or not to append the content to an existing file
+                                    if the file specified by Path already exists.
+                                  type: boolean
+                                content:
+                                  description: |-
+                                    Content is the optional content to write to the provided Path.
+
+
+                                    When omitted an empty file will be created or existing file will be
+                                    modified.
+
+
+                                    The value for this field can adhere to two, different formats:
+
+
+                                    Format 1 -- a string that contains the command and its arguments, ex.
+
+
+                                        content: Hello, world.
+
+
+                                    Please note that format 1 supports all of the manners of specifying a
+                                    YAML string.
+
+
+                                    Format 2 -- a secret reference with the name of the key that contains
+                                                the content for the file, ex.
+
+
+                                        content:
+                                          name: my-bootstrap-secret
+                                          key: my-file-content
+                                  x-kubernetes-preserve-unknown-fields: true
+                                defer:
+                                  description: |-
+                                    Defer indicates to defer writing the file until Cloud-Init's "final"
+                                    stage, after users are created and packages are installed.
+                                  type: boolean
+                                encoding:
+                                  default: text/plain
+                                  description: Encoding is an optional encoding type
+                                    of the content.
+                                  enum:
+                                  - b64
+                                  - base64
+                                  - gz
+                                  - gzip
+                                  - gz+b64
+                                  - gz+base64
+                                  - gzip+b64
+                                  - gzip+base64
+                                  - text/plain
+                                  type: string
+                                owner:
+                                  default: root:root
+                                  description: Owner is an optional "owner:group"
+                                    to chown the file.
+                                  type: string
+                                path:
+                                  description: Path is the path of the file to which
+                                    the content is decoded and written.
+                                  type: string
+                                permissions:
+                                  default: "0644"
+                                  description: |-
+                                    Permissions an optional set of file permissions to set.
+
+
+                                    Please note the permissions should be specified as an octal string, ex.
+                                    "0###".
+
+
+                                    When omitted the guest will default this value to "0644".
+                                  type: string
+                              required:
+                              - path
+                              type: object
+                            type: array
+                            x-kubernetes-list-map-keys:
+                            - path
+                            x-kubernetes-list-type: map
+                        type: object
+                      rawCloudConfig:
+                        description: |-
+                          RawCloudConfig describes a key in a Secret resource that contains the
+                          CloudConfig data used to bootstrap the VM.
+
+
+                          The CloudConfig data specified by the key may be plain-text,
+                          base64-encoded, or gzipped and base64-encoded.
+
+
+                          Please note this field and CloudConfig are mutually exclusive.
+                        properties:
+                          key:
+                            description: Key is the key in the secret that specifies
+                              the requested data.
+                            type: string
+                          name:
+                            description: Name is the name of the secret.
+                            type: string
+                        required:
+                        - key
+                        - name
+                        type: object
+                      sshAuthorizedKeys:
+                        description: |-
+                          SSHAuthorizedKeys is a list of public keys that CloudInit will apply to
+                          the guest's default user.
+                        items:
+                          type: string
+                        type: array
+                    type: object
+                  linuxPrep:
+                    description: |-
+                      LinuxPrep may be used to bootstrap Linux guests.
+
+
+                      The guest's networking stack is configured by Guest OS Customization
+                      (GOSC).
+
+
+                      Please note this bootstrap provider may be used in conjunction with the
+                      VAppConfig bootstrap provider when wanting to configure the guest's
+                      network with GOSC but also send vApp/OVF properties into the guest.
+
+
+                      This bootstrap provider may not be used in conjunction with the CloudInit
+                      or Sysprep bootstrap providers.
+                    properties:
+                      hardwareClockIsUTC:
+                        description: |-
+                          HardwareClockIsUTC specifies whether the hardware clock is in UTC or
+                          local time.
+                        type: boolean
+                      timeZone:
+                        description: |-
+                          TimeZone is a case-sensitive timezone, such as Europe/Sofia.
+
+
+                          Valid values are based on the tz (timezone) database used by Linux and
+                          other Unix systems. The values are strings in the form of
+                          "Area/Location," in which Area is a continent or ocean name, and
+                          Location is the city, island, or other regional designation.
+
+
+                          Please see https://kb.vmware.com/s/article/2145518 for a list of valid
+                          time zones for Linux systems.
+                        type: string
+                    type: object
+                  sysprep:
+                    description: |-
+                      Sysprep may be used to bootstrap Windows guests.
+
+
+                      The guest's networking stack is configured by Guest OS Customization
+                      (GOSC).
+
+
+                      Please note this bootstrap provider may be used in conjunction with the
+                      VAppConfig bootstrap provider when wanting to configure the guest's
+                      network with GOSC but also send vApp/OVF properties into the guest.
+
+
+                      This bootstrap provider may not be used in conjunction with the CloudInit
+                      or LinuxPrep bootstrap providers.
+                    properties:
+                      rawSysprep:
+                        description: |-
+                          RawSysprep describes a key in a Secret resource that contains an XML
+                          string of the Sysprep text used to bootstrap the VM.
+
+
+                          The data specified by the Secret key may be plain-text, base64-encoded,
+                          or gzipped and base64-encoded.
+
+
+                          Please note this field and Sysprep are mutually exclusive.
+                        properties:
+                          key:
+                            description: Key is the key in the secret that specifies
+                              the requested data.
+                            type: string
+                          name:
+                            description: Name is the name of the secret.
+                            type: string
+                        required:
+                        - key
+                        - name
+                        type: object
+                      sysprep:
+                        description: |-
+                          Sysprep is an object representation of a Windows sysprep.xml answer file.
+
+
+                          This field encloses all the individual keys listed in a sysprep.xml file.
+
+
+                          For more detailed information please see
+                          https://technet.microsoft.com/en-us/library/cc771830(v=ws.10).aspx.
+
+
+                          Please note this field and RawSysprep are mutually exclusive.
+                        properties:
+                          guiRunOnce:
+                            description: GUIRunOnce is a representation of the Sysprep
+                              GuiRunOnce key.
+                            properties:
+                              commands:
+                                description: |-
+                                  Commands is a list of commands to run at first user logon, after guest
+                                  customization.
+                                items:
+                                  type: string
+                                type: array
+                            type: object
+                          guiUnattended:
+                            description: GUIUnattended is a representation of the
+                              Sysprep GUIUnattended key.
+                            properties:
+                              autoLogon:
+                                description: |-
+                                  AutoLogon determine whether the machine automatically logs on as
+                                  Administrator.
+
+
+                                  Please note if AutoLogon is true, then Password must be set or guest
+                                  customization will fail.
+                                type: boolean
+                              autoLogonCount:
+                                description: |-
+                                  AutoLogonCount specifies the number of times the machine should
+                                  automatically log on as Administrator.
+
+
+                                  Generally it should be 1, but if your setup requires a number of reboots,
+                                  you may want to increase it. This number may be determined by the list of
+                                  commands executed by the GuiRunOnce command.
+
+
+                                  Please note this field must be specified with a non-zero positive integer if AutoLogon is true.
+                                format: int32
+                                type: integer
+                              password:
+                                description: |-
+                                  Password is the new administrator password for the machine.
+
+
+                                  To specify that the password should be set to blank (that is, no
+                                  password), set the password value to NULL. Because of encryption, "" is
+                                  NOT a valid value.
+
+
+                                  Please note if the password is set to blank and AutoLogon is true, the
+                                  guest customization will fail.
+
+
+                                  If the XML file is generated by the VirtualCenter Customization Wizard,
+                                  then the password is encrypted. Otherwise, the client should set the
+                                  plainText attribute to true, so that the customization process does not
+                                  attempt to decrypt the string.
+
+
+                                  When not explicitly specified, the Key field for the selector defaults to
+                                  `password`.
+                                properties:
+                                  key:
+                                    default: password
+                                    description: Key is the key in the secret that
+                                      specifies the requested data.
+                                    type: string
+                                  name:
+                                    description: Name is the name of the secret.
+                                    type: string
+                                required:
+                                - key
+                                - name
+                                type: object
+                              timeZone:
+                                description: |-
+                                  TimeZone is the time zone index for the virtual machine.
+
+
+                                  Please note that numbers correspond to time zones listed at
+                                  https://bit.ly/3Rzv8oL.
+                                format: int32
+                                type: integer
+                            type: object
+                          identification:
+                            description: Identification is a representation of the
+                              Sysprep Identification key.
+                            properties:
+                              domainAdmin:
+                                description: |-
+                                  DomainAdmin is the domain user account used for authentication if the
+                                  virtual machine is joining a domain. The user does not need to be a
+                                  domain administrator, but the account must have the privileges required
+                                  to add computers to the domain.
+                                type: string
+                              domainAdminPassword:
+                                description: |-
+                                  DomainAdminPassword is the password for the domain user account used for
+                                  authentication if the virtual machine is joining a domain.
+
+
+                                  When not explicitly specified, the Key field for the selector defaults to
+                                  `domain_admin_password`.
+                                properties:
+                                  key:
+                                    default: domain_admin_password
+                                    description: Key is the key in the secret that
+                                      specifies the requested data.
+                                    type: string
+                                  name:
+                                    description: Name is the name of the secret.
+                                    type: string
+                                required:
+                                - key
+                                - name
+                                type: object
+                              joinDomain:
+                                description: |-
+                                  JoinDomain is the domain that the virtual machine should join. If this
+                                  value is supplied, then DomainAdmin and DomainAdminPassword must also be
+                                  supplied, and the JoinWorkgroup name must be empty.
+                                type: string
+                              joinWorkgroup:
+                                description: |-
+                                  JoinWorkgroup is the workgroup that the virtual machine should join. If
+                                  this value is supplied, then the JoinDomain and the authentication fields
+                                  (DomainAdmin and DomainAdminPassword) must be empty.
+                                type: string
+                            type: object
+                          licenseFilePrintData:
+                            description: |-
+                              LicenseFilePrintData is a representation of the Sysprep
+                              LicenseFilePrintData key.
+
+
+                              Please note this is required only for Windows 2000 Server and Windows
+                              Server 2003.
+                            properties:
+                              autoMode:
+                                description: AutoMode specifies the server licensing
+                                  mode.
+                                enum:
+                                - perSeat
+                                - perServer
+                                type: string
+                              autoUsers:
+                                description: |-
+                                  AutoUsers indicates the number of client licenses purchased for the
+                                  VirtualCenter server being installed.
+
+
+                                  Please note this value is ignored unless AutoMode is PerServer.
+                                format: int32
+                                type: integer
+                            required:
+                            - autoMode
+                            type: object
+                          userData:
+                            description: UserData is a representation of the Sysprep
+                              UserData key.
+                            properties:
+                              fullName:
+                                description: FullName is the user's full name.
+                                type: string
+                              orgName:
+                                description: OrgName is the name of the user's organization.
+                                type: string
+                              productID:
+                                description: |-
+                                  ProductID is a valid serial number.
+
+
+                                  Please note unless the VirtualMachineImage was installed with a volume
+                                  license key, ProductID must be set or guest customization will fail.
+
+
+                                  When not explicitly specified, the Key field for the selector defaults to
+                                  `domain_admin_password`.
+                                properties:
+                                  key:
+                                    default: product_id
+                                    description: Key is the key in the secret that
+                                      specifies the requested data.
+                                    type: string
+                                  name:
+                                    description: Name is the name of the secret.
+                                    type: string
+                                required:
+                                - key
+                                - name
+                                type: object
+                            required:
+                            - fullName
+                            - orgName
+                            type: object
+                        required:
+                        - userData
+                        type: object
+                    type: object
+                  vAppConfig:
+                    description: |-
+                      VAppConfig may be used to bootstrap guests that rely on vApp properties
+                      (how VMware surfaces OVF properties on guests) to transport data into the
+                      guest.
+
+
+                      The guest's networking stack may be configured using either vApp
+                      properties or GOSC.
+
+
+                      Many OVFs define one or more properties that are used by the guest to
+                      bootstrap its networking stack. If the VirtualMachineImage defines one or
+                      more properties like this, then they can be configured to use the network
+                      data provided for this VM at runtime by setting these properties to Go
+                      template strings.
+
+
+                      It is also possible to use GOSC to bootstrap this VM's network stack by
+                      configuring either the LinuxPrep or Sysprep bootstrap providers.
+
+
+                      Please note the VAppConfig bootstrap provider in conjunction with the
+                      LinuxPrep bootstrap provider is the equivalent of setting the v1alpha1
+                      VM metadata transport to "OvfEnv".
+
+
+                      This bootstrap provider may not be used in conjunction with the CloudInit
+                      bootstrap provider.
+                    properties:
+                      properties:
+                        description: |-
+                          Properties is a list of vApp/OVF property key/value pairs.
+
+
+                          Please note this field and RawProperties are mutually exclusive.
+                        items:
+                          description: |-
+                            KeyValueOrSecretKeySelectorPair is useful when wanting to realize a map as a
+                            list of key/value pairs where each value could also reference data stored in
+                            a Secret resource.
+                          properties:
+                            key:
+                              description: Key is the key part of the key/value pair.
+                              type: string
+                            value:
+                              description: Value is the optional value part of the
+                                key/value pair.
+                              properties:
+                                from:
+                                  description: |-
+                                    From is specified to reference a value from a Secret resource.
+
+
+                                    Please note this field is mutually exclusive with the Value field.
+                                  properties:
+                                    key:
+                                      description: Key is the key in the secret that
+                                        specifies the requested data.
+                                      type: string
+                                    name:
+                                      description: Name is the name of the secret.
+                                      type: string
+                                  required:
+                                  - key
+                                  - name
+                                  type: object
+                                value:
+                                  description: |-
+                                    Value is used to directly specify a value.
+
+
+                                    Please note this field is mutually exclusive with the From field.
+                                  type: string
+                              type: object
+                          required:
+                          - key
+                          type: object
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - key
+                        x-kubernetes-list-type: map
+                      rawProperties:
+                        description: |-
+                          RawProperties is the name of a Secret resource in the same Namespace as
+                          this VM where each key/value pair from the Secret is used as a vApp
+                          key/value pair.
+
+
+                          Please note this field and Properties are mutually exclusive.
+                        type: string
+                    type: object
+                type: object
+              className:
+                description: |-
+                  ClassName describes the name of the VirtualMachineClass resource used to
+                  deploy this VM.
+                type: string
+              imageName:
+                description: |-
+                  ImageName describes the name of the image resource used to deploy this
+                  VM.
+
+
+                  This field may be used to specify the name of a VirtualMachineImage
+                  or ClusterVirtualMachineImage resource. The resolver first checks to see
+                  if there is a VirtualMachineImage with the specified name. If no
+                  such resource exists, the resolver then checks to see if there is a
+                  ClusterVirtualMachineImage resource with the specified name in the same
+                  Namespace as the VM being deployed.
+
+
+                  This field may also be used to specify the display name (vSphere name) of
+                  a VirtualMachineImage or ClusterVirtualMachineImage resource. If the
+                  display name unambiguously resolves to a distinct VM image (among all
+                  existing VirtualMachineImages in the VM's namespace and all existing
+                  ClusterVirtualMachineImages), then a mutation webhook updates this field
+                  with the VM image resource name. If the display name resolves to multiple
+                  or no VM images, then the mutation webhook denies the request and outputs
+                  an error message accordingly.
+                type: string
+              minHardwareVersion:
+                description: |-
+                  MinHardwareVersion describes the desired, minimum hardware version.
+
+
+                  The logic that determines the hardware version is as follows:
+
+
+                  1. If this field is set, then its value is used.
+                  2. Otherwise, if the VirtualMachineClass used to deploy the VM contains a
+                     non-empty hardware version, then it is used.
+                  3. Finally, if the hardware version is still undetermined, the value is
+                     set to the default hardware version for the Datacenter/Cluster/Host
+                     where the VM is provisioned.
+
+
+                  This field is never updated to reflect the derived hardware version.
+                  Instead, VirtualMachineStatus.HardwareVersion surfaces
+                  the observed hardware version.
+
+
+                  Please note, setting this field's value to N ensures a VM's hardware
+                  version is equal to or greater than N. For example, if a VM's observed
+                  hardware version is 10 and this field's value is 13, then the VM will be
+                  upgraded to hardware version 13. However, if the observed hardware
+                  version is 17 and this field's value is 13, no change will occur.
+
+
+                  Several features are hardware version dependent, for example:
+
+
+                  * NVMe Controllers                >= 14
+                  * Dynamic Direct Path I/O devices >= 17
+
+
+                  Please refer to https://kb.vmware.com/s/article/1003746 for a list of VM
+                  hardware versions.
+
+
+                  It is important to remember that a VM's hardware version may not be
+                  downgraded and upgrading a VM deployed from an image based on an older
+                  hardware version to a more recent one may result in unpredictable
+                  behavior. In other words, please be careful when choosing to upgrade a
+                  VM to a newer hardware version.
+                format: int32
+                minimum: 13
+                type: integer
+              network:
+                description: |-
+                  Network describes the desired network configuration for the VM.
+
+
+                  Please note this value may be omitted entirely and the VM will be
+                  assigned a single, virtual network interface that is connected to the
+                  Namespace's default network.
+                properties:
+                  disabled:
+                    description: |-
+                      Disabled is a flag that indicates whether or not to disable networking
+                      for this VM.
+
+
+                      When set to true, the VM is not configured with a default interface nor
+                      any specified from the Interfaces field.
+                    type: boolean
+                  hostName:
+                    description: |-
+                      HostName is the value the guest uses as its host name.
+                      If omitted then the name of the VM will be used.
+
+
+                      Please note this feature is available only with the following bootstrap
+                      providers: CloudInit, LinuxPrep, and Sysprep (except for RawSysprep).
+
+
+                      When the bootstrap provider is Sysprep (except for RawSysprep) this is
+                      used as the Computer Name.
+                    type: string
+                  interfaces:
+                    description: |-
+                      Interfaces is the list of network interfaces used by this VM.
+
+
+                      If the Interfaces field is empty and the Disabled field is false, then
+                      a default interface with the name eth0 will be created.
+
+
+                      The maximum number of network interface allowed is 10 because of the limit
+                      built into vSphere.
+                    items:
+                      description: |-
+                        VirtualMachineNetworkInterfaceSpec describes the desired state of a VM's
+                        network interface.
+                      properties:
+                        addresses:
+                          description: |-
+                            Addresses is an optional list of IP4 or IP6 addresses to assign to this
+                            interface.
+
+
+                            Please note this field is only supported if the connected network
+                            supports manual IP allocation.
+
+
+                            Please note IP4 and IP6 addresses must include the network prefix length,
+                            ex. 192.168.0.10/24 or 2001:db8:101::a/64.
+
+
+                            Please note this field may not contain IP4 addresses if DHCP4 is set
+                            to true or IP6 addresses if DHCP6 is set to true.
+
+
+                            Please note if the Interfaces field is non-empty then this field is
+                            ignored and should be specified on the elements in the Interfaces list.
+                          items:
+                            type: string
+                          type: array
+                        dhcp4:
+                          description: |-
+                            DHCP4 indicates whether or not this interface uses DHCP for IP4
+                            networking.
+
+
+                            Please note this field is only supported if the network connection
+                            supports DHCP.
+
+
+                            Please note this field is mutually exclusive with IP4 addresses in the
+                            Addresses field and the Gateway4 field.
+                          type: boolean
+                        dhcp6:
+                          description: |-
+                            DHCP6 indicates whether or not this interface uses DHCP for IP6
+                            networking.
+
+
+                            Please note this field is only supported if the network connection
+                            supports DHCP.
+
+
+                            Please note this field is mutually exclusive with IP6 addresses in the
+                            Addresses field and the Gateway6 field.
+                          type: boolean
+                        gateway4:
+                          description: |-
+                            Gateway4 is the default, IP4 gateway for this interface.
+
+
+                            Please note this field is only supported if the network connection
+                            supports manual IP allocation.
+
+
+                            If the network connection supports manual IP allocation and the
+                            Addresses field includes at least one IP4 address, then this field
+                            is required.
+
+
+                            Please note the IP address must include the network prefix length, ex.
+                            192.168.0.1/24.
+
+
+                            Please note this field is mutually exclusive with DHCP4.
+                          type: string
+                        gateway6:
+                          description: |-
+                            Gateway6 is the primary IP6 gateway for this interface.
+
+
+                            Please note this field is only supported if the network connection
+                            supports manual IP allocation.
+
+
+                            If the network connection supports manual IP allocation and the
+                            Addresses field includes at least one IP6 address, then this field
+                            is required.
+
+
+                            Please note the IP address must include the network prefix length, ex.
+                            2001:db8:101::1/64.
+
+
+                            Please note this field is mutually exclusive with DHCP6.
+                          type: string
+                        guestDeviceName:
+                          description: |-
+                            GuestDeviceName is used to rename the device inside the guest when the
+                            bootstrap provider is Cloud-Init. Please note it is up to the user to
+                            ensure the provided device name does not conflict with any other devices
+                            inside the guest, ex. dvd, cdrom, sda, etc.
+                          pattern: ^\w\w+$
+                          type: string
+                        mtu:
+                          description: |-
+                            MTU is the Maximum Transmission Unit size in bytes.
+
+
+                            Please note this feature is available only with the following bootstrap
+                            providers: CloudInit.
+                          format: int64
+                          type: integer
+                        name:
+                          description: |-
+                            Name describes the unique name of this network interface, used to
+                            distinguish it from other network interfaces attached to this VM.
+
+
+                            When the bootstrap provider is Cloud-Init and GuestDeviceName is not
+                            specified, the device inside the guest will be renamed to this value.
+                            Please note it is up to the user to ensure the provided name does not
+                            conflict with any other devices inside the guest, ex. dvd, cdrom, sda, etc.
+                          pattern: ^[a-z0-9]{2,}$
+                          type: string
+                        nameservers:
+                          description: |-
+                            Nameservers is a list of IP4 and/or IP6 addresses used as DNS
+                            nameservers.
+
+
+                            Please note this feature is available only with the following bootstrap
+                            providers: CloudInit and Sysprep.
+
+
+                            Please note that Linux allows only three nameservers
+                            (https://linux.die.net/man/5/resolv.conf).
+                          items:
+                            type: string
+                          type: array
+                        network:
+                          description: |-
+                            Network is the name of the network resource to which this interface is
+                            connected.
+
+
+                            If no network is provided, then this interface will be connected to the
+                            Namespace's default network.
+                          properties:
+                            apiVersion:
+                              description: |-
+                                APIVersion defines the versioned schema of this representation of an object.
+                                Servers should convert recognized schemas to the latest internal value, and
+                                may reject unrecognized values.
+                                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+                              type: string
+                            kind:
+                              description: |-
+                                Kind is a string value representing the REST resource this object represents.
+                                Servers may infer this from the endpoint the client submits requests to.
+                                Cannot be updated.
+                                In CamelCase.
+                                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+                              type: string
+                            name:
+                              description: |-
+                                Name refers to a unique resource in the current namespace.
+                                More info: http://kubernetes.io/docs/user-guide/identifiers#names
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        routes:
+                          description: |-
+                            Routes is a list of optional, static routes.
+
+
+                            Please note this feature is available only with the following bootstrap
+                            providers: CloudInit.
+                          items:
+                            description: VirtualMachineNetworkRouteSpec defines a
+                              static route for a guest.
+                            properties:
+                              metric:
+                                description: Metric is the weight/priority of the
+                                  route.
+                                format: int32
+                                type: integer
+                              to:
+                                description: To is an IP4 or IP6 address.
+                                type: string
+                              via:
+                                description: Via is an IP4 or IP6 address.
+                                type: string
+                            required:
+                            - metric
+                            - to
+                            - via
+                            type: object
+                          type: array
+                        searchDomains:
+                          description: |-
+                            SearchDomains is a list of search domains used when resolving IP
+                            addresses with DNS.
+
+
+                            Please note this feature is available only with the following bootstrap
+                            providers: CloudInit.
+                          items:
+                            type: string
+                          type: array
+                      required:
+                      - name
+                      type: object
+                    maxItems: 10
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - name
+                    x-kubernetes-list-type: map
+                  nameservers:
+                    description: |-
+                      Nameservers is a list of IP4 and/or IP6 addresses used as DNS
+                      nameservers. These are applied globally.
+
+
+                      Please note global nameservers are only available with the following
+                      bootstrap providers: LinuxPrep and Sysprep. The Cloud-Init bootstrap
+                      provider supports per-interface nameservers.
+
+
+                      Please note that Linux allows only three nameservers
+                      (https://linux.die.net/man/5/resolv.conf).
+                    items:
+                      type: string
+                    type: array
+                  searchDomains:
+                    description: |-
+                      SearchDomains is a list of search domains used when resolving IP
+                      addresses with DNS. These are applied globally.
+
+
+                      Please note global search domains are only available with the following
+                      bootstrap providers: LinuxPrep and Sysprep. The Cloud-Init bootstrap
+                      provider supports per-interface search domains.
+                    items:
+                      type: string
+                    type: array
+                type: object
+              nextRestartTime:
+                description: |-
+                  NextRestartTime may be used to restart the VM, in accordance with
+                  RestartMode, by setting the value of this field to "now"
+                  (case-insensitive).
+
+
+                  A mutating webhook changes this value to the current time (UTC), which
+                  the VM controller then uses to determine the VM should be restarted by
+                  comparing the value to the timestamp of the last time the VM was
+                  restarted.
+
+
+                  Please note it is not possible to schedule future restarts using this
+                  field. The only value that users may set is the string "now"
+                  (case-insensitive).
+                type: string
+              powerOffMode:
+                default: TrySoft
+                description: |-
+                  PowerOffMode describes the desired behavior when powering off a VM.
+
+
+                  There are three, supported power off modes: Hard, Soft, and
+                  TrySoft. The first mode, Hard, is the equivalent of a physical
+                  system's power cord being ripped from the wall. The Soft mode
+                  requires the VM's guest to have VM Tools installed and attempts to
+                  gracefully shutdown the VM. Its variant, TrySoft, first attempts
+                  a graceful shutdown, and if that fails or the VM is not in a powered off
+                  state after five minutes, the VM is halted.
+
+
+                  If omitted, the mode defaults to TrySoft.
+                enum:
+                - Hard
+                - Soft
+                - TrySoft
+                type: string
+              powerState:
+                description: |-
+                  PowerState describes the desired power state of a VirtualMachine.
+
+
+                  Please note this field may be omitted when creating a new VM and will
+                  default to "PoweredOn." However, once the field is set to a non-empty
+                  value, it may no longer be set to an empty value.
+
+
+                  Additionally, setting this value to "Suspended" is not supported when
+                  creating a new VM. The valid values when creating a new VM are
+                  "PoweredOn" and "PoweredOff." An empty value is also allowed on create
+                  since this value defaults to "PoweredOn" for new VMs.
+                enum:
+                - PoweredOff
+                - PoweredOn
+                - Suspended
+                type: string
+              readinessProbe:
+                description: ReadinessProbe describes a probe used to determine the
+                  VM's ready state.
+                properties:
+                  guestHeartbeat:
+                    description: GuestHeartbeat specifies an action involving the
+                      guest heartbeat status.
+                    properties:
+                      thresholdStatus:
+                        default: green
+                        description: |-
+                          ThresholdStatus is the value that the guest heartbeat status must be at or above to be
+                          considered successful.
+                        enum:
+                        - yellow
+                        - green
+                        type: string
+                    type: object
+                  guestInfo:
+                    description: |-
+                      GuestInfo specifies an action involving key/value pairs from GuestInfo.
+
+
+                      The elements are evaluated with the logical AND operator, meaning
+                      all expressions must evaluate as true for the probe to succeed.
+
+
+                      For example, a VM resource's probe definition could be specified as the
+                      following:
+
+
+                              guestInfo:
+                              - key:   ready
+                                value: true
+
+
+                      With the above configuration in place, the VM would not be considered
+                      ready until the GuestInfo key "ready" was set to the value "true".
+
+
+                      From within the guest operating system it is possible to set GuestInfo
+                      key/value pairs using the program "vmware-rpctool," which is included
+                      with VM Tools. For example, the following command will set the key
+                      "guestinfo.ready" to the value "true":
+
+
+                              vmware-rpctool "info-set guestinfo.ready true"
+
+
+                      Once executed, the VM's readiness probe will be signaled and the
+                      VM resource will be marked as ready.
+                    items:
+                      description: |-
+                        GuestInfoAction describes a key from GuestInfo that must match the associated
+                        value expression.
+                      properties:
+                        key:
+                          description: |-
+                            Key is the name of the GuestInfo key.
+
+
+                            The key is automatically prefixed with "guestinfo." before being
+                            evaluated. Thus if the key "guestinfo.mykey" is provided, it will be
+                            evaluated as "guestinfo.guestinfo.mykey".
+                          type: string
+                        value:
+                          description: |-
+                            Value is a regular expression that is matched against the value of the
+                            specified key.
+
+
+                            An empty value is the equivalent of "match any" or ".*".
+
+
+                            All values must adhere to the RE2 regular expression syntax as documented
+                            at https://golang.org/s/re2syntax. Invalid values may be rejected or
+                            ignored depending on the implementation of this API. Either way, invalid
+                            values will not be considered when evaluating the ready state of a VM.
+                          type: string
+                      required:
+                      - key
+                      type: object
+                    type: array
+                  periodSeconds:
+                    description: |-
+                      PeriodSeconds specifics how often (in seconds) to perform the probe.
+                      Defaults to 10 seconds. Minimum value is 1.
+                    format: int32
+                    minimum: 1
+                    type: integer
+                  tcpSocket:
+                    description: |-
+                      TCPSocket specifies an action involving a TCP port.
+
+
+                      Deprecated: The TCPSocket action requires network connectivity that is not supported in all environments.
+                      This field will be removed in a later API version.
+                    properties:
+                      host:
+                        description: Host is an optional host name to connect to.
+                          Host defaults to the VM IP.
+                        type: string
+                      port:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: |-
+                          Port specifies a number or name of the port to access on the VM.
+                          If the format of port is a number, it must be in the range 1 to 65535.
+                          If the format of name is a string, it must be an IANA_SVC_NAME.
+                        x-kubernetes-int-or-string: true
+                    required:
+                    - port
+                    type: object
+                  timeoutSeconds:
+                    description: |-
+                      TimeoutSeconds specifies a number of seconds after which the probe times out.
+                      Defaults to 10 seconds. Minimum value is 1.
+                    format: int32
+                    maximum: 60
+                    minimum: 1
+                    type: integer
+                type: object
+              reserved:
+                description: |-
+                  Reserved describes a set of VM configuration options reserved for system
+                  use.
+
+
+                  Please note attempts to modify the value of this field by a DevOps user
+                  will result in a validation error.
+                properties:
+                  resourcePolicyName:
+                    description: |-
+                      ResourcePolicyName describes the name of a
+                      VirtualMachineSetResourcePolicy resource used to configure the VM's
+                      resource policy.
+                    type: string
+                type: object
+              restartMode:
+                default: TrySoft
+                description: |-
+                  RestartMode describes the desired behavior for restarting a VM when
+                  spec.nextRestartTime is set to "now" (case-insensitive).
+
+
+                  There are three, supported suspend modes: Hard, Soft, and
+                  TrySoft. The first mode, Hard, is where vSphere resets the VM without any
+                  interaction inside of the guest. The Soft mode requires the VM's guest to
+                  have VM Tools installed and asks the guest to restart the VM. Its
+                  variant, TrySoft, first attempts a soft restart, and if that fails or
+                  does not complete within five minutes, the VM is hard reset.
+
+
+                  If omitted, the mode defaults to TrySoft.
+                enum:
+                - Hard
+                - Soft
+                - TrySoft
+                type: string
+              storageClass:
+                description: |-
+                  StorageClass describes the name of a Kubernetes StorageClass resource
+                  used to configure this VM's storage-related attributes.
+
+
+                  Please see https://kubernetes.io/docs/concepts/storage/storage-classes/
+                  for more information on Kubernetes storage classes.
+                type: string
+              suspendMode:
+                default: TrySoft
+                description: |-
+                  SuspendMode describes the desired behavior when suspending a VM.
+
+
+                  There are three, supported suspend modes: Hard, Soft, and
+                  TrySoft. The first mode, Hard, is where vSphere suspends the VM to
+                  disk without any interaction inside of the guest. The Soft mode
+                  requires the VM's guest to have VM Tools installed and attempts to
+                  gracefully suspend the VM. Its variant, TrySoft, first attempts
+                  a graceful suspend, and if that fails or the VM is not in a put into
+                  standby by the guest after five minutes, the VM is suspended.
+
+
+                  If omitted, the mode defaults to TrySoft.
+                enum:
+                - Hard
+                - Soft
+                - TrySoft
+                type: string
+              volumes:
+                description: Volumes describes a list of volumes that can be mounted
+                  to the VM.
+                items:
+                  description: VirtualMachineVolume represents a named volume in a
+                    VM.
+                  properties:
+                    name:
+                      description: |-
+                        Name represents the volume's name. Must be a DNS_LABEL and unique within
+                        the VM.
+                      type: string
+                    persistentVolumeClaim:
+                      description: |-
+                        PersistentVolumeClaim represents a reference to a PersistentVolumeClaim
+                        in the same namespace.
+
+
+                        More information is available at
+                        https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistentvolumeclaims.
+                      properties:
+                        claimName:
+                          description: |-
+                            claimName is the name of a PersistentVolumeClaim in the same namespace as the pod using this volume.
+                            More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistentvolumeclaims
+                          type: string
+                        instanceVolumeClaim:
+                          description: InstanceVolumeClaim is set if the PVC is backed
+                            by instance storage.
+                          properties:
+                            size:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              description: Size is the size of the requested instance
+                                storage volume.
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            storageClass:
+                              description: |-
+                                StorageClass is the name of the Kubernetes StorageClass that provides
+                                the backing storage for this instance storage volume.
+                              type: string
+                          required:
+                          - size
+                          - storageClass
+                          type: object
+                        readOnly:
+                          description: |-
+                            readOnly Will force the ReadOnly setting in VolumeMounts.
+                            Default false.
+                          type: boolean
+                      required:
+                      - claimName
+                      type: object
+                  required:
+                  - name
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - name
+                x-kubernetes-list-type: map
+            type: object
+          status:
+            description: VirtualMachineStatus defines the observed state of a VirtualMachine
+              instance.
+            properties:
+              biosUUID:
+                description: |-
+                  BiosUUID describes a unique identifier provided by the underlying
+                  infrastructure provider that is exposed to the Guest OS BIOS as a unique
+                  hardware identifier.
+                type: string
+              changeBlockTracking:
+                description: ChangeBlockTracking describes the CBT enablement status
+                  on the VM.
+                type: boolean
+              class:
+                description: |-
+                  Class is a reference to the VirtualMachineClass resource used to deploy
+                  this VM.
+                properties:
+                  apiVersion:
+                    description: |-
+                      APIVersion defines the versioned schema of this representation of an
+                      object. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+                    type: string
+                  kind:
+                    description: |-
+                      Kind is a string value representing the REST resource this object
+                      represents.
+                      Servers may infer this from the endpoint the client submits requests to.
+                      Cannot be updated.
+                      In CamelCase.
+                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+                    type: string
+                  name:
+                    description: |-
+                      Name refers to a unique resource in the current namespace.
+                      More info: http://kubernetes.io/docs/user-guide/identifiers#names
+                    type: string
+                required:
+                - apiVersion
+                - kind
+                - name
+                type: object
+              conditions:
+                description: Conditions describes the observed conditions of the VirtualMachine.
+                items:
+                  description: "Condition contains details for one aspect of the current
+                    state of this API Resource.\n---\nThis struct is intended for
+                    direct use as an array at the field path .status.conditions.  For
+                    example,\n\n\n\ttype FooStatus struct{\n\t    // Represents the
+                    observations of a foo's current state.\n\t    // Known .status.conditions.type
+                    are: \"Available\", \"Progressing\", and \"Degraded\"\n\t    //
+                    +patchMergeKey=type\n\t    // +patchStrategy=merge\n\t    // +listType=map\n\t
+                    \   // +listMapKey=type\n\t    Conditions []metav1.Condition `json:\"conditions,omitempty\"
+                    patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"`\n\n\n\t
+                    \   // other fields\n\t}"
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: |-
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
+                        ---
+                        Many .condition.type values are consistent across resources like Available, but because arbitrary conditions can be
+                        useful (see .node.status.conditions), the ability to deconflict is important.
+                        The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              hardwareVersion:
+                description: |-
+                  HardwareVersion describes the VirtualMachine resource's observed
+                  hardware version.
+
+
+                  Please refer to VirtualMachineSpec.MinHardwareVersion for more
+                  information on the topic of a VM's hardware version.
+                format: int32
+                type: integer
+              host:
+                description: |-
+                  Host describes the hostname or IP address of the infrastructure host
+                  where the VM is executed.
+                type: string
+              image:
+                description: |-
+                  Image is a reference to the VirtualMachineImage resource used to deploy
+                  this VM.
+                properties:
+                  apiVersion:
+                    description: |-
+                      APIVersion defines the versioned schema of this representation of an
+                      object. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+                    type: string
+                  kind:
+                    description: |-
+                      Kind is a string value representing the REST resource this object
+                      represents.
+                      Servers may infer this from the endpoint the client submits requests to.
+                      Cannot be updated.
+                      In CamelCase.
+                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+                    type: string
+                  name:
+                    description: |-
+                      Name refers to a unique resource in the current namespace.
+                      More info: http://kubernetes.io/docs/user-guide/identifiers#names
+                    type: string
+                required:
+                - apiVersion
+                - kind
+                - name
+                type: object
+              instanceUUID:
+                description: |-
+                  InstanceUUID describes the unique instance UUID provided by the
+                  underlying infrastructure provider, such as vSphere.
+                type: string
+              lastRestartTime:
+                description: LastRestartTime describes the last time the VM was restarted.
+                format: date-time
+                type: string
+              network:
+                description: |-
+                  Network describes the observed state of the VM's network configuration.
+                  Please note much of the network status information is only available if
+                  the guest has VM Tools installed.
+                properties:
+                  config:
+                    description: |-
+                      Config describes the resolved, configured network settings for the VM,
+                      such as an interface's IP address obtained from IPAM, or global DNS
+                      settings.
+
+
+                      Please note this information does *not* represent the *observed* network
+                      state of the VM, but is intended for situations where someone boots a VM
+                      with no appropriate bootstrap engine and needs to know the network config
+                      valid for the deployed VM.
+                    properties:
+                      dns:
+                        description: DNS describes the configured state of client-side
+                          DNS.
+                        properties:
+                          hostName:
+                            description: |-
+                              HostName is the host name portion of the DNS name. For example,
+                              the "my-vm" part of "my-vm.domain.local".
+                            type: string
+                          nameservers:
+                            description: |-
+                              Nameservers is a list of the IP addresses for the DNS servers to use.
+
+
+                              IP4 addresses are specified using dotted decimal notation. For example,
+                              "192.0.2.1".
+
+
+                              IP6 addresses are 128-bit addresses represented as eight fields of up to
+                              four hexadecimal digits. A colon separates each field (:). For example,
+                              2001:DB8:101::230:6eff:fe04:d9ff. The address can also consist of the
+                              symbol '::' to represent multiple 16-bit groups of contiguous 0's only
+                              once in an address as described in RFC 2373.
+                            items:
+                              type: string
+                            type: array
+                          searchDomains:
+                            description: |-
+                              SearchDomains is a list of domains in which to search for hosts, in the
+                              order of preference.
+                            items:
+                              type: string
+                            type: array
+                        type: object
+                      interfaces:
+                        description: Interfaces describes the configured state of
+                          the network interfaces.
+                        items:
+                          description: |-
+                            VirtualMachineNetworkConfigInterfaceStatus describes the configured state of
+                            network interface.
+                          properties:
+                            dns:
+                              description: DNS describes the interface's configured
+                                DNS information.
+                              properties:
+                                hostName:
+                                  description: |-
+                                    HostName is the host name portion of the DNS name. For example,
+                                    the "my-vm" part of "my-vm.domain.local".
+                                  type: string
+                                nameservers:
+                                  description: |-
+                                    Nameservers is a list of the IP addresses for the DNS servers to use.
+
+
+                                    IP4 addresses are specified using dotted decimal notation. For example,
+                                    "192.0.2.1".
+
+
+                                    IP6 addresses are 128-bit addresses represented as eight fields of up to
+                                    four hexadecimal digits. A colon separates each field (:). For example,
+                                    2001:DB8:101::230:6eff:fe04:d9ff. The address can also consist of the
+                                    symbol '::' to represent multiple 16-bit groups of contiguous 0's only
+                                    once in an address as described in RFC 2373.
+                                  items:
+                                    type: string
+                                  type: array
+                                searchDomains:
+                                  description: |-
+                                    SearchDomains is a list of domains in which to search for hosts, in the
+                                    order of preference.
+                                  items:
+                                    type: string
+                                  type: array
+                              type: object
+                            ip:
+                              description: IP describes the interface's configured
+                                IP information.
+                              properties:
+                                addresses:
+                                  description: |-
+                                    Addresses describes configured IP addresses for this interface.
+                                    Addresses include the network's prefix length, ex. 192.168.0.0/24 or
+                                    2001:DB8:101::230:6eff:fe04:d9ff::/64.
+                                  items:
+                                    type: string
+                                  type: array
+                                dhcp:
+                                  description: DHCP describes the interface's configured
+                                    DHCP options.
+                                  properties:
+                                    ip4:
+                                      description: IP4 describes the configured state
+                                        of the IP4 DHCP settings.
+                                      properties:
+                                        enabled:
+                                          description: Enabled describes whether DHCP
+                                            is enabled.
+                                          type: boolean
+                                      type: object
+                                    ip6:
+                                      description: IP6 describes the configured state
+                                        of the IP6 DHCP settings.
+                                      properties:
+                                        enabled:
+                                          description: Enabled describes whether DHCP
+                                            is enabled.
+                                          type: boolean
+                                      type: object
+                                  type: object
+                                gateway4:
+                                  description: |-
+                                    Gateway4 describes the interface's configured, default, IP4 gateway.
+
+
+                                    Please note the IP address include the network prefix length, ex.
+                                    192.168.0.1/24.
+                                  type: string
+                                gateway6:
+                                  description: |-
+                                    Gateway6 describes the interface's configured, default, IP6 gateway.
+
+
+                                    Please note the IP address includes the network prefix length, ex.
+                                    2001:db8:101::1/64.
+                                  type: string
+                              type: object
+                            name:
+                              description: |-
+                                Name describes the corresponding network interface with the same name
+                                in the VM's desired network interface list.
+
+
+                                Please note this name is not necessarily related to the name of the
+                                device as it is surfaced inside of the guest.
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        type: array
+                    type: object
+                  interfaces:
+                    description: Interfaces describes the status of the VM's network
+                      interfaces.
+                    items:
+                      description: |-
+                        VirtualMachineNetworkInterfaceStatus describes the observed state of a
+                        VM's network interface.
+                      properties:
+                        deviceKey:
+                          description: |-
+                            DeviceKey describes the unique hardware device key of this network
+                            interface.
+                          format: int32
+                          type: integer
+                        dns:
+                          description: DNS describes the observed state of the interface's
+                            DNS configuration.
+                          properties:
+                            dhcp:
+                              description: |-
+                                DHCP indicates whether or not dynamic host control protocol (DHCP) was
+                                used to configure DNS configuration.
+                              type: boolean
+                            domainName:
+                              description: |-
+                                DomainName is the domain name portion of the DNS name. For example,
+                                the "domain.local" part of "my-vm.domain.local".
+                              type: string
+                            hostName:
+                              description: |-
+                                HostName is the host name portion of the DNS name. For example,
+                                the "my-vm" part of "my-vm.domain.local".
+                              type: string
+                            nameservers:
+                              description: |-
+                                Nameservers is a list of the IP addresses for the DNS servers to use.
+
+
+                                IP4 addresses are specified using dotted decimal notation. For example,
+                                "192.0.2.1".
+
+
+                                IP6 addresses are 128-bit addresses represented as eight fields of up to
+                                four hexadecimal digits. A colon separates each field (:). For example,
+                                2001:DB8:101::230:6eff:fe04:d9ff. The address can also consist of the
+                                symbol '::' to represent multiple 16-bit groups of contiguous 0's only
+                                once in an address as described in RFC 2373.
+                              items:
+                                type: string
+                              type: array
+                            searchDomains:
+                              description: |-
+                                SearchDomains is a list of domains in which to search for hosts, in the
+                                order of preference.
+                              items:
+                                type: string
+                              type: array
+                          type: object
+                        ip:
+                          description: IP describes the observed state of the interface's
+                            IP configuration.
+                          properties:
+                            addresses:
+                              description: Addresses describes observed IP addresses
+                                for this interface.
+                              items:
+                                description: |-
+                                  VirtualMachineNetworkInterfaceIPAddrStatus describes information about a
+                                  specific IP address.
+                                properties:
+                                  address:
+                                    description: |-
+                                      Address is an IP4 or IP6 address and their network prefix length.
+
+
+                                      An IP4 address is specified using dotted decimal notation. For example,
+                                      "192.0.2.1".
+
+
+                                      IP6 addresses are 128-bit addresses represented as eight fields of up to
+                                      four hexadecimal digits. A colon separates each field (:). For example,
+                                      2001:DB8:101::230:6eff:fe04:d9ff. The address can also consist of the
+                                      symbol '::' to represent multiple 16-bit groups of contiguous 0's only
+                                      once in an address as described in RFC 2373.
+                                    type: string
+                                  lifetime:
+                                    description: Lifetime describes when this address
+                                      will expire.
+                                    format: date-time
+                                    type: string
+                                  origin:
+                                    description: Origin describes how this address
+                                      was configured.
+                                    enum:
+                                    - dhcp
+                                    - linklayer
+                                    - manual
+                                    - other
+                                    - random
+                                    type: string
+                                  state:
+                                    description: State describes the state of this
+                                      IP address.
+                                    enum:
+                                    - deprecated
+                                    - duplicate
+                                    - inaccessible
+                                    - invalid
+                                    - preferred
+                                    - tentative
+                                    - unknown
+                                    type: string
+                                required:
+                                - address
+                                type: object
+                              type: array
+                            autoConfigurationEnabled:
+                              description: |-
+                                AutoConfigurationEnabled describes whether or not ICMPv6 router
+                                solicitation requests are enabled or disabled from a given interface.
+
+
+                                These requests acquire an IP6 address and default gateway route from
+                                zero-to-many routers on the connected network.
+
+
+                                If not set then ICMPv6 is not available on this VM.
+                              type: boolean
+                            dhcp:
+                              description: |-
+                                DHCP describes the VM's observed, client-side, interface-specific DHCP
+                                options.
+                              properties:
+                                ip4:
+                                  description: IP4 describes the observed state of
+                                    the IP4 DHCP client settings.
+                                  properties:
+                                    config:
+                                      description: |-
+                                        Config describes platform-dependent settings for the DHCP client.
+
+
+                                        The key part is a unique number while the value part is the platform
+                                        specific configuration command. For example on Linux and BSD systems
+                                        using the file dhclient.conf output would be reported at system scope:
+                                        key='1', value='timeout 60;' key='2', value='reboot 10;'. The output
+                                        reported per interface would be:
+                                        key='1', value='prepend domain-name-servers 192.0.2.1;'
+                                        key='2', value='require subnet-mask, domain-name-servers;'.
+                                      items:
+                                        description: |-
+                                          KeyValuePair is useful when wanting to realize a map as a list of key/value
+                                          pairs.
+                                        properties:
+                                          key:
+                                            description: Key is the key part of the
+                                              key/value pair.
+                                            type: string
+                                          value:
+                                            description: Value is the optional value
+                                              part of the key/value pair.
+                                            type: string
+                                        required:
+                                        - key
+                                        type: object
+                                      type: array
+                                      x-kubernetes-list-map-keys:
+                                      - key
+                                      x-kubernetes-list-type: map
+                                    enabled:
+                                      description: Enabled reports the status of the
+                                        DHCP client services.
+                                      type: boolean
+                                  type: object
+                                ip6:
+                                  description: IP6 describes the observed state of
+                                    the IP6 DHCP client settings.
+                                  properties:
+                                    config:
+                                      description: |-
+                                        Config describes platform-dependent settings for the DHCP client.
+
+
+                                        The key part is a unique number while the value part is the platform
+                                        specific configuration command. For example on Linux and BSD systems
+                                        using the file dhclient.conf output would be reported at system scope:
+                                        key='1', value='timeout 60;' key='2', value='reboot 10;'. The output
+                                        reported per interface would be:
+                                        key='1', value='prepend domain-name-servers 192.0.2.1;'
+                                        key='2', value='require subnet-mask, domain-name-servers;'.
+                                      items:
+                                        description: |-
+                                          KeyValuePair is useful when wanting to realize a map as a list of key/value
+                                          pairs.
+                                        properties:
+                                          key:
+                                            description: Key is the key part of the
+                                              key/value pair.
+                                            type: string
+                                          value:
+                                            description: Value is the optional value
+                                              part of the key/value pair.
+                                            type: string
+                                        required:
+                                        - key
+                                        type: object
+                                      type: array
+                                      x-kubernetes-list-map-keys:
+                                      - key
+                                      x-kubernetes-list-type: map
+                                    enabled:
+                                      description: Enabled reports the status of the
+                                        DHCP client services.
+                                      type: boolean
+                                  type: object
+                              type: object
+                            macAddr:
+                              description: MACAddr describes the observed MAC address
+                                for this interface.
+                              type: string
+                          type: object
+                        name:
+                          description: |-
+                            Name describes the corresponding network interface with the same name
+                            in the VM's desired network interface list. If unset, then there is no
+                            corresponding entry for this interface.
+
+
+                            Please note this name is not necessarily related to the name of the
+                            device as it is surfaced inside of the guest.
+                          type: string
+                      type: object
+                    type: array
+                  ipStacks:
+                    description: |-
+                      IPStacks describes information about the guest's configured IP networking
+                      stacks.
+                    items:
+                      description: |-
+                        VirtualMachineNetworkIPStackStatus describes the observed state of a
+                        VM's IP stack.
+                      properties:
+                        dhcp:
+                          description: DHCP describes the VM's observed, client-side,
+                            system-wide DHCP options.
+                          properties:
+                            ip4:
+                              description: IP4 describes the observed state of the
+                                IP4 DHCP client settings.
+                              properties:
+                                config:
+                                  description: |-
+                                    Config describes platform-dependent settings for the DHCP client.
+
+
+                                    The key part is a unique number while the value part is the platform
+                                    specific configuration command. For example on Linux and BSD systems
+                                    using the file dhclient.conf output would be reported at system scope:
+                                    key='1', value='timeout 60;' key='2', value='reboot 10;'. The output
+                                    reported per interface would be:
+                                    key='1', value='prepend domain-name-servers 192.0.2.1;'
+                                    key='2', value='require subnet-mask, domain-name-servers;'.
+                                  items:
+                                    description: |-
+                                      KeyValuePair is useful when wanting to realize a map as a list of key/value
+                                      pairs.
+                                    properties:
+                                      key:
+                                        description: Key is the key part of the key/value
+                                          pair.
+                                        type: string
+                                      value:
+                                        description: Value is the optional value part
+                                          of the key/value pair.
+                                        type: string
+                                    required:
+                                    - key
+                                    type: object
+                                  type: array
+                                  x-kubernetes-list-map-keys:
+                                  - key
+                                  x-kubernetes-list-type: map
+                                enabled:
+                                  description: Enabled reports the status of the DHCP
+                                    client services.
+                                  type: boolean
+                              type: object
+                            ip6:
+                              description: IP6 describes the observed state of the
+                                IP6 DHCP client settings.
+                              properties:
+                                config:
+                                  description: |-
+                                    Config describes platform-dependent settings for the DHCP client.
+
+
+                                    The key part is a unique number while the value part is the platform
+                                    specific configuration command. For example on Linux and BSD systems
+                                    using the file dhclient.conf output would be reported at system scope:
+                                    key='1', value='timeout 60;' key='2', value='reboot 10;'. The output
+                                    reported per interface would be:
+                                    key='1', value='prepend domain-name-servers 192.0.2.1;'
+                                    key='2', value='require subnet-mask, domain-name-servers;'.
+                                  items:
+                                    description: |-
+                                      KeyValuePair is useful when wanting to realize a map as a list of key/value
+                                      pairs.
+                                    properties:
+                                      key:
+                                        description: Key is the key part of the key/value
+                                          pair.
+                                        type: string
+                                      value:
+                                        description: Value is the optional value part
+                                          of the key/value pair.
+                                        type: string
+                                    required:
+                                    - key
+                                    type: object
+                                  type: array
+                                  x-kubernetes-list-map-keys:
+                                  - key
+                                  x-kubernetes-list-type: map
+                                enabled:
+                                  description: Enabled reports the status of the DHCP
+                                    client services.
+                                  type: boolean
+                              type: object
+                          type: object
+                        dns:
+                          description: DNS describes the VM's observed, client-side
+                            DNS configuration.
+                          properties:
+                            dhcp:
+                              description: |-
+                                DHCP indicates whether or not dynamic host control protocol (DHCP) was
+                                used to configure DNS configuration.
+                              type: boolean
+                            domainName:
+                              description: |-
+                                DomainName is the domain name portion of the DNS name. For example,
+                                the "domain.local" part of "my-vm.domain.local".
+                              type: string
+                            hostName:
+                              description: |-
+                                HostName is the host name portion of the DNS name. For example,
+                                the "my-vm" part of "my-vm.domain.local".
+                              type: string
+                            nameservers:
+                              description: |-
+                                Nameservers is a list of the IP addresses for the DNS servers to use.
+
+
+                                IP4 addresses are specified using dotted decimal notation. For example,
+                                "192.0.2.1".
+
+
+                                IP6 addresses are 128-bit addresses represented as eight fields of up to
+                                four hexadecimal digits. A colon separates each field (:). For example,
+                                2001:DB8:101::230:6eff:fe04:d9ff. The address can also consist of the
+                                symbol '::' to represent multiple 16-bit groups of contiguous 0's only
+                                once in an address as described in RFC 2373.
+                              items:
+                                type: string
+                              type: array
+                            searchDomains:
+                              description: |-
+                                SearchDomains is a list of domains in which to search for hosts, in the
+                                order of preference.
+                              items:
+                                type: string
+                              type: array
+                          type: object
+                        ipRoutes:
+                          description: IPRoutes contain the VM's routing tables for
+                            all address families.
+                          items:
+                            description: |-
+                              VirtualMachineNetworkIPRouteStatus describes the observed state of a
+                              guest network's IP routes.
+                            properties:
+                              gateway:
+                                description: Gateway describes where to send the packets
+                                  to next.
+                                properties:
+                                  address:
+                                    description: Address is the IP4 or IP6 address
+                                      of the gateway.
+                                    type: string
+                                  device:
+                                    description: |-
+                                      Device is the name of the device in the guest for which this gateway
+                                      applies.
+                                    type: string
+                                type: object
+                              networkAddress:
+                                description: |-
+                                  NetworkAddress is the IP4 or IP6 address of the destination network.
+
+
+                                  Addresses include the network's prefix length, ex. 192.168.0.0/24 or
+                                  2001:DB8:101::230:6eff:fe04:d9ff::/64.
+
+
+                                  IP6 addresses are 128-bit addresses represented as eight fields of up to
+                                  four hexadecimal digits. A colon separates each field (:). For example,
+                                  2001:DB8:101::230:6eff:fe04:d9ff. The address can also consist of symbol
+                                  '::' to represent multiple 16-bit groups of contiguous 0's only once in
+                                  an address as described in RFC 2373.
+                                type: string
+                            required:
+                            - gateway
+                            - networkAddress
+                            type: object
+                          type: array
+                        kernelConfig:
+                          description: |-
+                            KernelConfig describes the observed state of the VM's kernel IP
+                            configuration settings.
+
+
+                            The key part contains a unique number while the value part contains the
+                            'key=value' as provided by the underlying provider. For example, on
+                            Linux and/or BSD, the systcl -a output would be reported as:
+                            key='5', value='net.ipv4.tcp_keepalive_time = 7200'.
+                          items:
+                            description: |-
+                              KeyValuePair is useful when wanting to realize a map as a list of key/value
+                              pairs.
+                            properties:
+                              key:
+                                description: Key is the key part of the key/value
+                                  pair.
+                                type: string
+                              value:
+                                description: Value is the optional value part of the
+                                  key/value pair.
+                                type: string
+                            required:
+                            - key
+                            type: object
+                          type: array
+                          x-kubernetes-list-map-keys:
+                          - key
+                          x-kubernetes-list-type: map
+                      type: object
+                    type: array
+                  primaryIP4:
+                    description: |-
+                      PrimaryIP4 describes the VM's primary IP4 address.
+
+
+                      If the bootstrap provider is CloudInit then this value is set to the
+                      value of the VM's "guestinfo.local-ipv4" property. Please see
+                      https://bit.ly/3NJB534 for more information on how this value is
+                      calculated.
+
+
+                      If the bootstrap provider is anything else then this field is set to the
+                      value of the infrastructure VM's "guest.ipAddress" field. Please see
+                      https://bit.ly/3Au0jM4 for more information.
+                    type: string
+                  primaryIP6:
+                    description: |-
+                      PrimaryIP6 describes the VM's primary IP6 address.
+
+
+                      If the bootstrap provider is CloudInit then this value is set to the
+                      value of the VM's "guestinfo.local-ipv6" property. Please see
+                      https://bit.ly/3NJB534 for more information on how this value is
+                      calculated.
+
+
+                      If the bootstrap provider is anything else then this field is set to the
+                      value of the infrastructure VM's "guest.ipAddress" field. Please see
+                      https://bit.ly/3Au0jM4 for more information.
+                    type: string
+                type: object
+              powerState:
+                description: PowerState describes the observed power state of the
+                  VirtualMachine.
+                enum:
+                - PoweredOff
+                - PoweredOn
+                - Suspended
+                type: string
+              uniqueID:
+                description: |-
+                  UniqueID describes a unique identifier that is provided by the underlying
+                  infrastructure provider, such as vSphere.
+                type: string
+              volumes:
+                description: |-
+                  Volumes describes a list of current status information for each Volume
+                  that is desired to be attached to the VM.
+                items:
+                  description: |-
+                    VirtualMachineVolumeStatus defines the observed state of a
+                    VirtualMachineVolume instance.
+                  properties:
+                    attached:
+                      description: |-
+                        Attached represents whether a volume has been successfully attached to
+                        the VirtualMachine or not.
+                      type: boolean
+                    diskUUID:
+                      description: |-
+                        DiskUUID represents the underlying virtual disk UUID and is present when
+                        attachment succeeds.
+                      type: string
+                    error:
+                      description: |-
+                        Error represents the last error seen when attaching or detaching a
+                        volume.  Error will be empty if attachment succeeds.
+                      type: string
+                    name:
+                      description: Name is the name of the attached volume.
+                      type: string
+                  required:
+                  - name
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - name
+                x-kubernetes-list-type: map
+              zone:
+                description: |-
+                  Zone describes the availability zone where the VirtualMachine has been
+                  scheduled.
+
+
+                  Please note this field may be empty when the cluster is not zone-aware.
                 type: string
             type: object
         type: object

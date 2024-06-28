@@ -14,7 +14,7 @@ require (
 	github.com/onsi/gomega v1.30.0
 	github.com/pkg/errors v0.9.1
 	github.com/vmware-tanzu/vm-operator/api v1.8.5
-	github.com/vmware/govmomi v0.34.2
+	github.com/vmware/govmomi v0.37.3
 	golang.org/x/crypto v0.21.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.28.5

@@ -22,12 +22,12 @@ import (
 	"fmt"
 	"net"
 	"net/url"
-	"sort"
 	"strings"
 	"time"
 
 	"github.com/pkg/errors"
-	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha1"
+	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
+	vmoprv1common "github.com/vmware-tanzu/vm-operator/api/v1alpha2/common"
 	topologyv1 "github.com/vmware-tanzu/vm-operator/external/tanzu-topology/api/v1alpha1"
 	"github.com/vmware/govmomi/pbm"
 	"github.com/vmware/govmomi/vapi/library"
@@ -36,13 +36,13 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 	vcsimv1 "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/api/v1alpha1"
@@ -360,7 +360,7 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 		return retryError
 	}
 
-	// Create VirtualMachineClass in K8s and bind it to the user namespace
+	// Create VirtualMachineClass in K8s
 	for _, vmc := range config.Spec.VirtualMachineClasses {
 		vmClass := &vmoprv1.VirtualMachineClass{
 			ObjectMeta: metav1.ObjectMeta{
@@ -392,42 +392,12 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 		if retryError != nil {
 			return retryError
 		}
-
-		vmClassBinding := &vmoprv1.VirtualMachineClassBinding{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      vmClass.Name,
-				Namespace: config.Namespace,
-			},
-			ClassRef: vmoprv1.ClassReference{
-				APIVersion: vmoprv1.SchemeGroupVersion.String(),
-				Kind:       "VirtualMachineClass",
-				Name:       vmClass.Name,
-			},
-		}
-		_ = wait.PollUntilContextTimeout(ctx, 250*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
-			retryError = nil
-			if err := c.Get(ctx, client.ObjectKeyFromObject(vmClassBinding), vmClassBinding); err != nil {
-				if !apierrors.IsNotFound(err) {
-					retryError = errors.Wrapf(err, "failed to get vm-operator VirtualMachineClassBinding %s", vmClassBinding.Name)
-					return false, nil
-				}
-				if err := c.Create(ctx, vmClassBinding); err != nil {
-					retryError = errors.Wrapf(err, "failed to create vm-operator VirtualMachineClassBinding %s", vmClassBinding.Name)
-					return false, nil
-				}
-				log.Info("Created vm-operator VirtualMachineClassBinding", "VirtualMachineClassBinding", klog.KObj(vmClassBinding))
-			}
-			return true, nil
-		})
-		if retryError != nil {
-			return retryError
-		}
 	}
 
-	// Create a ContentLibrary in K8s and in vCenter, bind it to the K8s namespace
+	// Create a ContentLibrary in K8s and in vCenter,
 	// This requires a set of objects in vCenter(or vcsim) as well as their mapping in K8s
 	// - vCenter: a Library containing an Item
-	// - k8s: ContentLibraryProvider, ContentSource (both representing the library), a VirtualMachineImage (representing the Item)
+	// - k8s: a VirtualMachineImage (representing the Item)
 
 	restClient := rest.NewClient(s.Client.Client)
 	if err := restClient.Login(ctx, url.UserPassword(config.Spec.VCenter.Username, config.Spec.VCenter.Password)); err != nil {
@@ -470,97 +440,6 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 		contentLibraryID = id
 	}
 
-	contentSource := &vmoprv1.ContentSource{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: contentLibraryID,
-		},
-		Spec: vmoprv1.ContentSourceSpec{
-			ProviderRef: vmoprv1.ContentProviderReference{
-				Name: contentLibraryID, // NOTE: this should match the ContentLibraryProvider name below
-				Kind: "ContentLibraryProvider",
-			},
-		},
-	}
-	_ = wait.PollUntilContextTimeout(ctx, 250*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
-		retryError = nil
-		if err := c.Get(ctx, client.ObjectKeyFromObject(contentSource), contentSource); err != nil {
-			if !apierrors.IsNotFound(err) {
-				retryError = errors.Wrapf(err, "failed to get vm-operator ContentSource %s", contentSource.Name)
-				return false, nil
-			}
-			if err := c.Create(ctx, contentSource); err != nil {
-				retryError = errors.Wrapf(err, "failed to create vm-operator ContentSource %s", contentSource.Name)
-				return false, nil
-			}
-			log.Info("Created vm-operator ContentSource", "ContentSource", klog.KObj(contentSource))
-		}
-		return true, nil
-	})
-	if retryError != nil {
-		return retryError
-	}
-
-	contentSourceBinding := &vmoprv1.ContentSourceBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      contentLibraryID,
-			Namespace: config.Namespace,
-		},
-		ContentSourceRef: vmoprv1.ContentSourceReference{
-			APIVersion: vmoprv1.SchemeGroupVersion.String(),
-			Kind:       "ContentSource",
-			Name:       contentSource.Name,
-		},
-	}
-	_ = wait.PollUntilContextTimeout(ctx, 250*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
-		retryError = nil
-		if err := c.Get(ctx, client.ObjectKeyFromObject(contentSourceBinding), contentSourceBinding); err != nil {
-			if !apierrors.IsNotFound(err) {
-				retryError = errors.Wrapf(err, "failed to get vm-operator ContentSourceBinding %s", contentSourceBinding.Name)
-				return false, nil
-			}
-			if err := c.Create(ctx, contentSourceBinding); err != nil {
-				retryError = errors.Wrapf(err, "failed to create vm-operator ContentSourceBinding %s", contentSourceBinding.Name)
-				return false, nil
-			}
-			log.Info("Created vm-operator ContentSourceBinding", "ContentSourceBinding", klog.KObj(contentSourceBinding))
-		}
-		return true, nil
-	})
-	if retryError != nil {
-		return retryError
-	}
-
-	contentLibraryProvider := &vmoprv1.ContentLibraryProvider{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: contentLibraryID,
-		},
-		Spec: vmoprv1.ContentLibraryProviderSpec{
-			UUID: contentLibraryID,
-		},
-	}
-
-	if err := controllerutil.SetOwnerReference(contentSource, contentLibraryProvider, c.Scheme()); err != nil {
-		return errors.Wrap(err, "failed to set ContentLibraryProvider owner")
-	}
-	_ = wait.PollUntilContextTimeout(ctx, 250*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
-		retryError = nil
-		if err := c.Get(ctx, client.ObjectKeyFromObject(contentSource), contentLibraryProvider); err != nil {
-			if !apierrors.IsNotFound(err) {
-				retryError = errors.Wrapf(err, "failed to get vm-operator ContentLibraryProvider %s", contentLibraryProvider.Name)
-				return false, nil
-			}
-			if err := c.Create(ctx, contentLibraryProvider); err != nil {
-				retryError = errors.Wrapf(err, "failed to create vm-operator ContentLibraryProvider %s", contentLibraryProvider.Name)
-				return false, nil
-			}
-			log.Info("Created vm-operator ContentLibraryProvider", "ContentSource", klog.KObj(contentSource), "ContentLibraryProvider", klog.KObj(contentLibraryProvider))
-		}
-		return true, nil
-	})
-	if retryError != nil {
-		return retryError
-	}
-
 	for _, item := range config.Spec.VCenter.ContentLibrary.Items {
 		libraryItem := library.Item{
 			Name:      item.Name,
@@ -596,28 +475,12 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 				Namespace: config.Namespace,
 			},
 			Spec: vmoprv1.VirtualMachineImageSpec{
-				ImageID:         libraryItemID,
-				ImageSourceType: "Content Library",
-				Type:            "ovf",
-				ProviderRef: vmoprv1.ContentProviderReference{
-					APIVersion: vmoprv1.SchemeGroupVersion.String(),
-					Kind:       "ContentLibraryItem",
-					// Not 100% sure about following values now that Kind is required to be ContentLibraryItem, but this doesn't seem to be an issue
-					Name:      contentLibraryProvider.Name,
-					Namespace: contentLibraryProvider.Namespace,
-				},
-				ProductInfo: vmoprv1.VirtualMachineImageProductInfo{
-					FullVersion: item.ProductInfo,
-				},
-				OSInfo: vmoprv1.VirtualMachineImageOSInfo{
-					Type: item.OSInfo,
+				ProviderRef: vmoprv1common.LocalObjectRef{
+					Kind: "ContentLibraryItem",
 				},
 			},
 		}
 
-		if err := controllerutil.SetOwnerReference(contentLibraryProvider, virtualMachineImage, c.Scheme()); err != nil {
-			return errors.Wrap(err, "failed to set VirtualMachineImage owner")
-		}
 		_ = wait.PollUntilContextTimeout(ctx, 250*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
 			retryError = nil
 			if err := c.Get(ctx, client.ObjectKeyFromObject(virtualMachineImage), virtualMachineImage); err != nil {
@@ -629,7 +492,7 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 					retryError = errors.Wrapf(err, "failed to create vm-operator VirtualMachineImage %s", virtualMachineImage.Name)
 					return false, nil
 				}
-				log.Info("Created vm-operator VirtualMachineImage", "ContentSource", klog.KObj(contentSource), "ContentLibraryProvider", klog.KObj(contentLibraryProvider), "VirtualMachineImage", klog.KObj(virtualMachineImage))
+				log.Info("Created vm-operator VirtualMachineImage", "VirtualMachineImage", klog.KObj(virtualMachineImage))
 			}
 			return true, nil
 		})
@@ -639,14 +502,25 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 
 		// Fakes reconciliation of virtualMachineImage by setting required status field for the image to be considered ready.
 		virtualMachineImageReconciled := virtualMachineImage.DeepCopy()
-		virtualMachineImageReconciled.Status.ImageName = virtualMachineImage.Name
-		Set(virtualMachineImageReconciled, TrueCondition(ReadyConditionType))
+		virtualMachineImageReconciled.Status.Name = virtualMachineImage.Name
+		virtualMachineImageReconciled.Status.ProviderItemID = libraryItemID
+		virtualMachineImageReconciled.Status.ProductInfo = vmoprv1.VirtualMachineImageProductInfo{
+			FullVersion: item.ProductInfo,
+		}
+		virtualMachineImageReconciled.Status.OSInfo = vmoprv1.VirtualMachineImageOSInfo{
+			Type: item.OSInfo,
+		}
+		meta.SetStatusCondition(&virtualMachineImageReconciled.Status.Conditions, metav1.Condition{
+			Type:   "Ready",
+			Status: metav1.ConditionTrue,
+			Reason: string(metav1.ConditionTrue),
+		})
 		_ = wait.PollUntilContextTimeout(ctx, 250*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
 			retryError = nil
 			if err := c.Status().Patch(ctx, virtualMachineImageReconciled, client.MergeFrom(virtualMachineImage)); err != nil {
 				retryError = errors.Wrapf(err, "failed to patch vm-operator VirtualMachineImage %s", virtualMachineImage.Name)
 			}
-			log.Info("Patched vm-operator VirtualMachineImage", "ContentSource", klog.KObj(contentSource), "ContentLibraryProvider", klog.KObj(contentLibraryProvider), "VirtualMachineImage", klog.KObj(virtualMachineImage))
+			log.Info("Patched vm-operator VirtualMachineImage", "VirtualMachineImage", klog.KObj(virtualMachineImage))
 			return true, nil
 		})
 		if retryError != nil {
@@ -783,83 +657,4 @@ func GetDistributedPortGroup(ctx context.Context, c client.Client) (string, erro
 	}
 
 	return distributedPortGroup, nil
-}
-
-// NOTE: code below is a fork of vm-operator's pkg/conditions (so we can avoid to import the entire project).
-
-const (
-	ReadyConditionType = "Ready"
-)
-
-type Getter interface {
-	client.Object
-
-	// GetConditions returns the list of conditions for a cluster API object.
-	GetConditions() vmoprv1.Conditions
-}
-
-type Setter interface {
-	Getter
-	SetConditions(vmoprv1.Conditions)
-}
-
-func Set(to Setter, condition *vmoprv1.Condition) {
-	if to == nil || condition == nil {
-		return
-	}
-
-	// Check if the new conditions already exists, and change it only if there is a status
-	// transition (otherwise we should preserve the current last transition time)-
-	conditions := to.GetConditions()
-	exists := false
-	for i := range conditions {
-		existingCondition := conditions[i]
-		if existingCondition.Type == condition.Type {
-			exists = true
-			if !hasSameState(&existingCondition, condition) {
-				condition.LastTransitionTime = metav1.NewTime(time.Now().UTC().Truncate(time.Second))
-				conditions[i] = *condition
-				break
-			}
-			condition.LastTransitionTime = existingCondition.LastTransitionTime
-			break
-		}
-	}
-
-	// If the condition does not exist, add it, setting the transition time only if not already set
-	if !exists {
-		if condition.LastTransitionTime.IsZero() {
-			condition.LastTransitionTime = metav1.NewTime(time.Now().UTC().Truncate(time.Second))
-		}
-		conditions = append(conditions, *condition)
-	}
-
-	// Sorts conditions for convenience of the consumer, i.e. kubectl.
-	sort.Slice(conditions, func(i, j int) bool {
-		return lexicographicLess(&conditions[i], &conditions[j])
-	})
-
-	to.SetConditions(conditions)
-}
-
-func lexicographicLess(i, j *vmoprv1.Condition) bool {
-	return (i.Type == ReadyConditionType || i.Type < j.Type) && j.Type != ReadyConditionType
-}
-
-func hasSameState(i, j *vmoprv1.Condition) bool {
-	return i.Type == j.Type &&
-		i.Status == j.Status &&
-		i.Reason == j.Reason &&
-		i.Message == j.Message
-}
-
-func TrueCondition(t vmoprv1.ConditionType) *vmoprv1.Condition {
-	return &vmoprv1.Condition{
-		Type:   t,
-		Status: corev1.ConditionTrue,
-		// This is a non-empty field in metav1.Conditions, when it was not in our v1a1 Conditions. This
-		// really doesn't work with how we've defined our conditions so do something to make things
-		// work for now.
-		Reason: string(corev1.ConditionTrue),
-	}
 }

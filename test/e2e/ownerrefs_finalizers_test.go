@@ -114,6 +114,8 @@ var _ = Describe("Ensure OwnerReferences and Finalizers are resilient [vcsim] [s
 						VSphereReferenceAssertions(),
 					)
 					// This check ensures that finalizers are resilient - i.e. correctly re-reconciled, when removed.
+					// Note: we are not checking finalizers on VirtualMachine (finalizers are added by VM-Operator / vcsim controller)
+					// as well as other VM Operaror related kinds.
 					By("Checking that finalizers are resilient")
 					framework.ValidateFinalizersResilience(ctx, proxy, namespace, clusterName, FilterObjectsWithKindAndName(clusterName),
 						framework.CoreFinalizersAssertionWithLegacyClusters,
@@ -129,6 +131,8 @@ var _ = Describe("Ensure OwnerReferences and Finalizers are resilient [vcsim] [s
 
 					// This check ensures that the resourceVersions are stable, i.e. it verifies there are no
 					// continuous reconciles when everything should be stable.
+					// Note: we are not checking resourceVersions on VirtualMachine (reconciled by VM-Operator)
+					// as well as other VM Operaror related kinds.
 					By("Checking that resourceVersions are stable")
 					framework.ValidateResourceVersionStable(ctx, proxy, namespace, FilterObjectsWithKindAndName(clusterName))
 				},
@@ -155,6 +159,7 @@ var (
 		// Need custom Kubernetes assertions for secrets. Secrets in the CAPV tests can also be owned by the vSphereCluster.
 		"Secret": func(s types.NamespacedName, owners []metav1.OwnerReference) error {
 			// When using vcsim CRS cannot be applied (not supported by the fake API server), so ignoring all the Secrets that should be deployed by CRS.
+			// TODO: re-validate/remove when we bump to CAPI 1.7.3 which includes https://github.com/kubernetes-sigs/cluster-api/pull/10756.
 			if testTarget == VCSimTestTarget {
 				if s.Name == csiConfigSecretName || s.Name == cpiCredentialSecretName {
 					return nil
@@ -174,6 +179,7 @@ var (
 		},
 		"ConfigMap": func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
 			// When using vcsim CRS cannot be applied (not supported by the fake API server), so ignoring all the ConfigMaps that should be deployed by CRS.
+			// TODO: re-validate/remove when we bump to CAPI 1.7.3 which includes https://github.com/kubernetes-sigs/cluster-api/pull/10756.
 			if testTarget == VCSimTestTarget {
 				return nil
 			}
@@ -446,13 +452,6 @@ func FilterObjectsWithKindAndName(clusterName string) func(u unstructured.Unstru
 	f := clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName)
 
 	return func(u unstructured.Unstructured) bool {
-		// When using vcsim CRS cannot be applied (not supported by the fake API server), so ignoring.
-		if testTarget == VCSimTestTarget {
-			if u.GetKind() == "ClusterResourceSet" {
-				return false
-			}
-		}
-
 		// Following objects are for vm-operator (not managed by CAPV), so checking finalizers/resourceVersion is not relevant.
 		// Note: we are excluding also VirtualMachines, which instead are considered for the ownerReference tests.
 		if testMode == SupervisorTestMode {

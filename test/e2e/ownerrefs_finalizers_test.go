@@ -85,13 +85,11 @@ var _ = Describe("Ensure OwnerReferences and Finalizers are resilient [vcsim] [s
 						checkClusterIdentitySecretOwnerRefAndFinalizer(ctx, proxy.GetClient())
 					}
 
-					// Set up a periodic patch to ensure the DeploymentZone anc ClusterResourceSets are reconciled.
+					// Set up a periodic patch to ensure the DeploymentZone are reconciled.
 					// Note: this is required because DeploymentZone are not watching for clusters, and thus the DeploymentZone controller
 					// won't be triggered when we un-pause clusters after modifying objects ownerReferences & Finalizers to test resilience.
-					// WRT to ClusterResourceSets, we are forcing reconcile to avoid the issue described in https://github.com/kubernetes-sigs/cluster-api/pull/10656;
-					// we should reconsider if possible to drop force reconcile after this PR is merged.
 					forceCtx, forceCancelFunc := context.WithCancel(ctx)
-					forcePeriodicReconcile(forceCtx, proxy.GetClient(), namespace)
+					forcePeriodicReconcile(forceCtx, proxy.GetClient())
 
 					// This check ensures that owner references are resilient - i.e. correctly re-reconciled - when removed.
 					By("Checking that owner references are resilient")
@@ -148,24 +146,10 @@ var _ = Describe("Ensure OwnerReferences and Finalizers are resilient [vcsim] [s
 	})
 })
 
-const (
-	// well know secret names from flavorgen / templates.
-	csiConfigSecretName     = "vsphere-config-secret" //nolint: gosec
-	cpiCredentialSecretName = "cloud-provider-vsphere-credentials"
-)
-
 var (
 	VSphereKubernetesReferenceAssertions = map[string]func(types.NamespacedName, []metav1.OwnerReference) error{
 		// Need custom Kubernetes assertions for secrets. Secrets in the CAPV tests can also be owned by the vSphereCluster.
-		"Secret": func(s types.NamespacedName, owners []metav1.OwnerReference) error {
-			// When using vcsim CRS cannot be applied (not supported by the fake API server), so ignoring all the Secrets that should be deployed by CRS.
-			// TODO: re-validate/remove when we bump to CAPI 1.7.3 which includes https://github.com/kubernetes-sigs/cluster-api/pull/10756.
-			if testTarget == VCSimTestTarget {
-				if s.Name == csiConfigSecretName || s.Name == cpiCredentialSecretName {
-					return nil
-				}
-			}
-
+		"Secret": func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
 			return framework.HasOneOfExactOwners(owners,
 				// Secrets for cluster certificates must be owned by the KubeadmControlPlane.
 				[]metav1.OwnerReference{kubeadmControlPlaneController},
@@ -178,12 +162,6 @@ var (
 			)
 		},
 		"ConfigMap": func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
-			// When using vcsim CRS cannot be applied (not supported by the fake API server), so ignoring all the ConfigMaps that should be deployed by CRS.
-			// TODO: re-validate/remove when we bump to CAPI 1.7.3 which includes https://github.com/kubernetes-sigs/cluster-api/pull/10756.
-			if testTarget == VCSimTestTarget {
-				return nil
-			}
-
 			// The only configMaps considered here are those owned by a ClusterResourceSet.
 			return framework.HasExactOwners(owners, clusterResourceSetOwner)
 		},
@@ -414,9 +392,8 @@ func checkClusterIdentitySecretOwnerRefAndFinalizer(ctx context.Context, c ctrlc
 
 // forcePeriodicReconcile forces the vSphereDeploymentZone and ClusterResourceSets to reconcile every 20 seconds.
 // This reduces the chance of race conditions resulting in flakes in the test.
-func forcePeriodicReconcile(ctx context.Context, c ctrlclient.Client, namespace string) {
+func forcePeriodicReconcile(ctx context.Context, c ctrlclient.Client) {
 	deploymentZoneList := &infrav1.VSphereDeploymentZoneList{}
-	crsList := &addonsv1.ClusterResourceSetList{}
 	ticker := time.NewTicker(20 * time.Second)
 	stopTimer := time.NewTimer(5 * time.Minute)
 	go func() {
@@ -430,12 +407,6 @@ func forcePeriodicReconcile(ctx context.Context, c ctrlclient.Client, namespace 
 						annotationPatch := ctrlclient.RawPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"metadata\":{\"annotations\":{\"cluster.x-k8s.io/modifiedAt\":\"%v\"}}}", time.Now().Format(time.RFC3339))))
 						Expect(c.Patch(ctx, zone.DeepCopy(), annotationPatch)).To(Succeed())
 					}
-				}
-				// TODO: check if this can be dropped after https://github.com/kubernetes-sigs/cluster-api/pull/10656 is merged
-				Expect(c.List(ctx, crsList, ctrlclient.InNamespace(namespace))).To(Succeed())
-				for _, crs := range crsList.Items {
-					annotationPatch := ctrlclient.RawPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"metadata\":{\"annotations\":{\"cluster.x-k8s.io/modifiedAt\":\"%v\"}}}", time.Now().Format(time.RFC3339))))
-					Expect(c.Patch(ctx, crs.DeepCopy(), annotationPatch)).To(Succeed())
 				}
 			case <-stopTimer.C:
 				ticker.Stop()
@@ -459,7 +430,6 @@ func FilterObjectsWithKindAndName(clusterName string) func(u unstructured.Unstru
 				return false
 			}
 		}
-
 		return f(u)
 	}
 }

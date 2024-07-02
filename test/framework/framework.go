@@ -142,7 +142,15 @@ func LoadE2EConfig(ctx context.Context, configPath string, configOverridesPath, 
 		Byf("Overriding source folder for vsphere provider to /config/supervisor in the e2e config")
 		for i := range config.Providers {
 			if config.Providers[i].Name == "vsphere" {
+				// Replace relativ path for latest version.
 				config.Providers[i].Versions[0].Value = strings.ReplaceAll(config.Providers[i].Versions[0].Value, "/config/default", "/config/supervisor")
+				// Replace target file in github.
+				for j, version := range config.Providers[i].Versions {
+					if strings.HasSuffix(version.Value, "infrastructure-components.yaml") {
+						version.Value = fmt.Sprintf("%s-supervisor.yaml", strings.TrimSuffix(version.Value, ".yaml"))
+						config.Providers[i].Versions[j] = version
+					}
+				}
 				break
 			}
 		}

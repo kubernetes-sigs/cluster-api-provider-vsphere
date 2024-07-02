@@ -55,7 +55,7 @@ func newClusterClass() clusterv1.ClusterClass {
 			},
 			ControlPlane: getControlPlaneClass(),
 			Workers:      getWorkersClass(),
-			Variables:    getClusterClassVariables(false),
+			Variables:    GetClusterClassVariables(false),
 			Patches:      getClusterClassPatches(),
 		},
 	}
@@ -81,7 +81,7 @@ func newVMWareClusterClass() clusterv1.ClusterClass {
 			},
 			ControlPlane: getVMWareControlPlaneClass(),
 			Workers:      getVMWareWorkersClass(),
-			Variables:    getClusterClassVariables(true),
+			Variables:    GetClusterClassVariables(true),
 			Patches:      getVMWareClusterClassPatches(),
 		},
 	}
@@ -238,7 +238,7 @@ func getEnableSSHIntoNodesTemplate() *string {
 	return ptr.To(string(templateStr))
 }
 
-func getClusterClassVariables(supervisorMode bool) []clusterv1.ClusterClassVariable {
+func GetClusterClassVariables(supervisorMode bool) []clusterv1.ClusterClassVariable {
 	variables := []clusterv1.ClusterClassVariable{
 		{
 			Name:     "sshKey",

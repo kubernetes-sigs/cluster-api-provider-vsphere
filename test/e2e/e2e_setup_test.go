@@ -221,7 +221,7 @@ func Setup(specName string, f func(testSpecificSettings func() testSettings), op
 func setupNamespaceWithVMOperatorDependenciesVCSim(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string) {
 	c := managementClusterProxy.GetClient()
 
-	vCenterSimulator, err := vspherevcsim.Get(ctx, bootstrapClusterProxy.GetClient())
+	vCenterSimulator, err := vspherevcsim.Get(ctx, c)
 	Expect(err).ToNot(HaveOccurred(), "Failed to get VCenterSimulator")
 
 	Byf("Creating VMOperatorDependencies %s", klog.KRef(workloadClusterNamespace, "vcsim"))

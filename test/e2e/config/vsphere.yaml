@@ -176,6 +176,8 @@ providers:
           # Add a cluster template
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/v1.10/cluster-template-workload.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/v1.10/clusterclass-quick-start.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/v1.10/cluster-template-workload-supervisor.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/v1.10/clusterclass-quick-start-supervisor.yaml"
           - sourcePath: "../data/shared/capv/v1.10/metadata.yaml"
       - name: "{go://sigs.k8s.io/cluster-api-provider-vsphere@v1.9}" # supported release in the v1beta1 series
         # Use manifest from source files
@@ -186,6 +188,8 @@ providers:
           # Add a cluster template
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/v1.9/cluster-template-workload.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/v1.9/clusterclass-quick-start.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/v1.9/cluster-template-workload-supervisor.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/v1.9/clusterclass-quick-start-supervisor.yaml"
           - sourcePath: "../data/shared/capv/v1.9/metadata.yaml"
 
   - name: vcsim

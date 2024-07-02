@@ -84,6 +84,9 @@ func (webhook *VSphereMachineTemplateWebhook) ValidateCreate(_ context.Context, 
 			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "template", "spec", "guestSoftPowerOffTimeout"), spec.GuestSoftPowerOffTimeout, "should be greater than 0"))
 		}
 	}
+	pciErrs := validatePCIDevices(spec.PciDevices)
+	allErrs = append(allErrs, pciErrs...)
+
 	return nil, AggregateObjErrors(obj.GroupVersionKind().GroupKind(), obj.Name, allErrs)
 }
 

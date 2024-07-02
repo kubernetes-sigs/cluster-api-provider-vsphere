@@ -186,11 +186,11 @@ func Setup(specName string, f func(testSpecificSettings func() testSettings), op
 		})
 
 		if testMode == SupervisorTestMode {
-			runtimeExtensionProviders = append(runtimeExtensionProviders, "vm-operator")
+			runtimeExtensionProviders = append(runtimeExtensionProviders, "vm-operator", "net-operator")
 		}
 
 		if testTarget == VCSimTestTarget {
-			runtimeExtensionProviders = append(runtimeExtensionProviders, "net-operator")
+			runtimeExtensionProviders = append(runtimeExtensionProviders, "vcsim")
 		}
 	})
 	defer AfterEach(func() {

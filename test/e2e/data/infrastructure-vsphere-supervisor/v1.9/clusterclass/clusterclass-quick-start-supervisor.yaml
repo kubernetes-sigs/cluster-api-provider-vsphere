@@ -94,7 +94,7 @@ spec:
     name: enableSSHIntoNodes
   - definitions:
     - jsonPatches:
-      - op: add
+      - op: replace
         path: /spec/template/spec/controlPlaneEndpoint
         valueFrom:
           template: |

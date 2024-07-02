@@ -43,7 +43,7 @@ func CSICloudConfigSecret(data string) *corev1.Secret {
 			APIVersion: corev1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "vsphere-config-secret",
+			Name:      "vsphere-config-secret", // NOTE: this name is used in E2E tests.
 			Namespace: CSINamespace,
 		},
 		Type: corev1.SecretTypeOpaque,

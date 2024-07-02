@@ -108,7 +108,6 @@ func ClusterTopologyTemplateSupervisor() ([]runtime.Object, error) {
 	if err != nil {
 		return nil, err
 	}
-	identitySecret := newIdentitySecret()
 	clusterResourceSet := newClusterResourceSet(cluster)
 	crsResourcesCSI, err := crs.CreateCrsResourceObjectsCSI(&clusterResourceSet)
 	if err != nil {
@@ -117,7 +116,6 @@ func ClusterTopologyTemplateSupervisor() ([]runtime.Object, error) {
 	crsResourcesCPI := crs.CreateCrsResourceObjectsCPI(&clusterResourceSet)
 	MultiNodeTemplate := []runtime.Object{
 		&cluster,
-		&identitySecret,
 		&clusterResourceSet,
 	}
 	MultiNodeTemplate = append(MultiNodeTemplate, crsResourcesCSI...)
@@ -179,7 +177,6 @@ func MultiNodeTemplateSupervisor() ([]runtime.Object, error) {
 		return nil, err
 	}
 	crsResourcesCPI := crs.CreateCrsResourceObjectsCPI(&clusterResourceSet)
-	identitySecret := newIdentitySecret()
 
 	MultiNodeTemplate := []runtime.Object{
 		&cluster,
@@ -190,7 +187,6 @@ func MultiNodeTemplateSupervisor() ([]runtime.Object, error) {
 		&kubeadmJoinTemplate,
 		&machineDeployment,
 		&clusterResourceSet,
-		&identitySecret,
 	}
 
 	MultiNodeTemplate = append(MultiNodeTemplate, crsResourcesCSI...)

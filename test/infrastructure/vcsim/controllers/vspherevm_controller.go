@@ -216,8 +216,8 @@ func (r *VSphereVMReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// Add finalizer first if not set to avoid the race condition between init and delete.
 	// Note: Finalizers in general can only be added when the deletionTimestamp is not set.
-	if !controllerutil.ContainsFinalizer(vSphereVM, VMFinalizer) {
-		controllerutil.AddFinalizer(vSphereVM, VMFinalizer)
+	if !controllerutil.ContainsFinalizer(vSphereVM, vcsimv1.VMFinalizer) {
+		controllerutil.AddFinalizer(vSphereVM, vcsimv1.VMFinalizer)
 		return ctrl.Result{}, nil
 	}
 
@@ -245,7 +245,7 @@ func (r *VSphereVMReconciler) reconcileDelete(ctx context.Context, cluster *clus
 		return ret, err
 	}
 
-	controllerutil.RemoveFinalizer(vSphereVM, VMFinalizer)
+	controllerutil.RemoveFinalizer(vSphereVM, vcsimv1.VMFinalizer)
 	return ctrl.Result{}, nil
 }
 

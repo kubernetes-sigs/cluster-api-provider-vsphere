@@ -99,7 +99,7 @@ func cpiCredentials(credentials map[string]string) *corev1.Secret {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: metav1.NamespaceSystem,
-			Name:      "cloud-provider-vsphere-credentials",
+			Name:      "cloud-provider-vsphere-credentials", // NOTE: this name is used in E2E tests.
 		},
 		Type:       corev1.SecretTypeOpaque,
 		StringData: credentials,

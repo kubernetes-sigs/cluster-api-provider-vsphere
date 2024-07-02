@@ -96,15 +96,6 @@ spec:
         name: md-0
         replicas: ${WORKER_MACHINE_COUNT}
 ---
-apiVersion: v1
-kind: Secret
-metadata:
-  name: '${CLUSTER_NAME}'
-  namespace: '${NAMESPACE}'
-stringData:
-  password: "${VSPHERE_PASSWORD}"
-  username: "${VSPHERE_USERNAME}"
----
 apiVersion: addons.cluster.x-k8s.io/v1beta1
 kind: ClusterResourceSet
 metadata:

@@ -24,6 +24,10 @@ const (
 	// VCenterFinalizer allows VCenterReconciler to clean up resources associated with VCenter before
 	// removing it from the API server.
 	VCenterFinalizer = "vcenter.vcsim.infrastructure.cluster.x-k8s.io"
+
+	// VMFinalizer allows this reconciler to cleanup resources before removing the
+	// VSphereVM from the API Server.
+	VMFinalizer = "vcsim.fake.infrastructure.cluster.x-k8s.io"
 )
 
 // VCenterSimulatorSpec defines the desired state of the VCenterSimulator.

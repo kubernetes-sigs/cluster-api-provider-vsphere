@@ -25,8 +25,7 @@ providers:
     type: CoreProvider
     versions:
       - name: "{go://sigs.k8s.io/cluster-api@v1.7}" # supported release in the v1beta1 series
-        # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.7}/core-components.yaml"
+        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20240701/core-components.yaml" # "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.7}/core-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -35,7 +34,6 @@ providers:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
       - name: "{go://sigs.k8s.io/cluster-api@v1.6}" # supported release in the v1beta1 series
-        # Use manifest from source files
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.6}/core-components.yaml"
         type: "url"
         contract: v1beta1
@@ -45,7 +43,6 @@ providers:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
       - name: "{go://sigs.k8s.io/cluster-api@v1.5}" # supported release in the v1beta1 series
-        # Use manifest from source files
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.5}/core-components.yaml"
         type: "url"
         contract: v1beta1
@@ -59,8 +56,7 @@ providers:
     type: BootstrapProvider
     versions:
       - name: "{go://sigs.k8s.io/cluster-api@v1.7}" # supported release in the v1beta1 series
-        # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.7}/bootstrap-components.yaml"
+        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20240701/bootstrap-components.yaml" # "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.7}/bootstrap-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -69,7 +65,6 @@ providers:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
       - name: "{go://sigs.k8s.io/cluster-api@v1.6}" # supported release in the v1beta1 series
-        # Use manifest from source files
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.6}/bootstrap-components.yaml"
         type: "url"
         contract: v1beta1
@@ -79,7 +74,6 @@ providers:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
       - name: "{go://sigs.k8s.io/cluster-api@v1.5}" # supported release in the v1beta1 series
-        # Use manifest from source files
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.5}/bootstrap-components.yaml"
         type: "url"
         contract: v1beta1
@@ -93,8 +87,7 @@ providers:
     type: ControlPlaneProvider
     versions:
       - name: "{go://sigs.k8s.io/cluster-api@v1.7}" # supported release in the v1beta1 series
-        # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.7}/control-plane-components.yaml"
+        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20240701/control-plane-components.yaml" # "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.7}/control-plane-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -103,7 +96,6 @@ providers:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
       - name: "{go://sigs.k8s.io/cluster-api@v1.6}" # supported release in the v1beta1 series
-        # Use manifest from source files
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.6}/control-plane-components.yaml"
         type: "url"
         contract: v1beta1
@@ -113,7 +105,6 @@ providers:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
       - name: "{go://sigs.k8s.io/cluster-api@v1.5}" # supported release in the v1beta1 series
-        # Use manifest from source files
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.5}/control-plane-components.yaml"
         type: "url"
         contract: v1beta1
@@ -127,7 +118,6 @@ providers:
     type: IPAMProvider
     versions:
       - name: "{go://sigs.k8s.io/cluster-api-ipam-provider-in-cluster@v0.1}" # supported release in the v1alpha2 series
-        # Use manifest from source files
         value: "https://github.com/kubernetes-sigs/cluster-api-ipam-provider-in-cluster/releases/download/{go://sigs.k8s.io/cluster-api-ipam-provider-in-cluster@v0.1}/ipam-components.yaml"
         type: "url"
         contract: v1beta1
@@ -166,9 +156,9 @@ providers:
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/main/clusterclass-quick-start-supervisor.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/main/cluster-template-install-on-bootstrap-supervisor.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/main/cluster-template-conformance-supervisor.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/main/cluster-template-ownerrefs-finalizers-supervisor.yaml"
           - sourcePath: "../data/shared/capv/main/metadata.yaml"
       - name: "{go://sigs.k8s.io/cluster-api-provider-vsphere@v1.10}" # supported release in the v1beta1 series
-        # Use manifest from source files
         value: "https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/download/{go://sigs.k8s.io/cluster-api-provider-vsphere@v1.10}/infrastructure-components.yaml"
         type: "url"
         contract: v1beta1
@@ -178,7 +168,6 @@ providers:
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/v1.10/clusterclass-quick-start.yaml"
           - sourcePath: "../data/shared/capv/v1.10/metadata.yaml"
       - name: "{go://sigs.k8s.io/cluster-api-provider-vsphere@v1.9}" # supported release in the v1beta1 series
-        # Use manifest from source files
         value: "https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/download/{go://sigs.k8s.io/cluster-api-provider-vsphere@v1.9}/infrastructure-components.yaml"
         type: "url"
         contract: v1beta1

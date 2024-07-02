@@ -24,6 +24,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -209,8 +210,9 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	if testTarget == VCSimTestTarget {
 		Byf("Creating a vcsim server")
-		err := vspherevcsim.Create(ctx, bootstrapClusterProxy.GetClient())
-		Expect(err).ToNot(HaveOccurred(), "Failed to create VCenterSimulator")
+		Eventually(func() error {
+			return vspherevcsim.Create(ctx, bootstrapClusterProxy.GetClient())
+		}, 30*time.Second, 3*time.Second).ShouldNot(HaveOccurred(), "Failed to create VCenterSimulator")
 	}
 
 	By("Getting AddressClaim labels")

@@ -79,17 +79,17 @@ var _ = Describe("Ensure OwnerReferences and Finalizers are resilient [vcsim] [s
 				Flavor:                ptr.To(testSpecificSettingsGetter().FlavorForMode("ownerrefs-finalizers")),
 				PostNamespaceCreated:  testSpecificSettingsGetter().PostNamespaceCreatedFunc,
 				PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+					forceCtx, forceCancelFunc := context.WithCancel(ctx)
 					if testMode == GovmomiTestMode {
 						// check the cluster identity secret has expected ownerReferences and finalizers, and they are resilient
 						// Note: identity secret is not part of the object graph, so it requires an ad-hoc test.
 						checkClusterIdentitySecretOwnerRefAndFinalizer(ctx, proxy.GetClient())
-					}
 
-					// Set up a periodic patch to ensure the DeploymentZone are reconciled.
-					// Note: this is required because DeploymentZone are not watching for clusters, and thus the DeploymentZone controller
-					// won't be triggered when we un-pause clusters after modifying objects ownerReferences & Finalizers to test resilience.
-					forceCtx, forceCancelFunc := context.WithCancel(ctx)
-					forcePeriodicReconcile(forceCtx, proxy.GetClient())
+						// Set up a periodic patch to ensure the DeploymentZone are reconciled.
+						// Note: this is required because DeploymentZone are not watching for clusters, and thus the DeploymentZone controller
+						// won't be triggered when we un-pause clusters after modifying objects ownerReferences & Finalizers to test resilience.
+						forcePeriodicDeploymentZoneReconcile(forceCtx, proxy.GetClient())
+					}
 
 					// This check ensures that owner references are resilient - i.e. correctly re-reconciled - when removed.
 					By("Checking that owner references are resilient")
@@ -113,7 +113,7 @@ var _ = Describe("Ensure OwnerReferences and Finalizers are resilient [vcsim] [s
 					)
 					// This check ensures that finalizers are resilient - i.e. correctly re-reconciled, when removed.
 					// Note: we are not checking finalizers on VirtualMachine (finalizers are added by VM-Operator / vcsim controller)
-					// as well as other VM Operaror related kinds.
+					// as well as other VM Operator related kinds.
 					By("Checking that finalizers are resilient")
 					framework.ValidateFinalizersResilience(ctx, proxy, namespace, clusterName, FilterObjectsWithKindAndName(clusterName),
 						framework.CoreFinalizersAssertionWithLegacyClusters,
@@ -130,7 +130,7 @@ var _ = Describe("Ensure OwnerReferences and Finalizers are resilient [vcsim] [s
 					// This check ensures that the resourceVersions are stable, i.e. it verifies there are no
 					// continuous reconciles when everything should be stable.
 					// Note: we are not checking resourceVersions on VirtualMachine (reconciled by VM-Operator)
-					// as well as other VM Operaror related kinds.
+					// as well as other VM Operator related kinds.
 					By("Checking that resourceVersions are stable")
 					framework.ValidateResourceVersionStable(ctx, proxy, namespace, FilterObjectsWithKindAndName(clusterName))
 				},
@@ -268,13 +268,6 @@ var (
 var vSphereFinalizers = func() map[string]func(types.NamespacedName) []string {
 	if testMode == SupervisorTestMode {
 		return map[string]func(types.NamespacedName) []string{
-			"VirtualMachine": func(_ types.NamespacedName) []string {
-				// When using vcsim additional finalizers are added.
-				if testTarget == VCSimTestTarget {
-					return []string{"virtualmachine.vmoperator.vmware.com", vcsimv1.VMFinalizer}
-				}
-				return []string{"virtualmachine.vmoperator.vmware.com"}
-			},
 			"VSphereMachine": func(_ types.NamespacedName) []string { return []string{infrav1.MachineFinalizer} },
 			"VSphereCluster": func(_ types.NamespacedName) []string { return []string{vmwarev1.ClusterFinalizer} },
 		}
@@ -390,9 +383,9 @@ func checkClusterIdentitySecretOwnerRefAndFinalizer(ctx context.Context, c ctrlc
 	}, 5*time.Minute).Should(Succeed())
 }
 
-// forcePeriodicReconcile forces the vSphereDeploymentZone and ClusterResourceSets to reconcile every 20 seconds.
+// forcePeriodicDeploymentZoneReconcile forces the vSphereDeploymentZone to reconcile every 20 seconds.
 // This reduces the chance of race conditions resulting in flakes in the test.
-func forcePeriodicReconcile(ctx context.Context, c ctrlclient.Client) {
+func forcePeriodicDeploymentZoneReconcile(ctx context.Context, c ctrlclient.Client) {
 	deploymentZoneList := &infrav1.VSphereDeploymentZoneList{}
 	ticker := time.NewTicker(20 * time.Second)
 	stopTimer := time.NewTimer(5 * time.Minute)
@@ -401,12 +394,10 @@ func forcePeriodicReconcile(ctx context.Context, c ctrlclient.Client) {
 		for {
 			select {
 			case <-ticker.C:
-				if testMode == GovmomiTestMode {
-					Expect(c.List(ctx, deploymentZoneList)).To(Succeed())
-					for _, zone := range deploymentZoneList.Items {
-						annotationPatch := ctrlclient.RawPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"metadata\":{\"annotations\":{\"cluster.x-k8s.io/modifiedAt\":\"%v\"}}}", time.Now().Format(time.RFC3339))))
-						Expect(c.Patch(ctx, zone.DeepCopy(), annotationPatch)).To(Succeed())
-					}
+				Expect(c.List(ctx, deploymentZoneList)).To(Succeed())
+				for _, zone := range deploymentZoneList.Items {
+					annotationPatch := ctrlclient.RawPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"metadata\":{\"annotations\":{\"cluster.x-k8s.io/modifiedAt\":\"%v\"}}}", time.Now().Format(time.RFC3339))))
+					Expect(c.Patch(ctx, zone.DeepCopy(), annotationPatch)).To(Succeed())
 				}
 			case <-stopTimer.C:
 				ticker.Stop()

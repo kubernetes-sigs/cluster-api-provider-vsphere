@@ -45,6 +45,7 @@ import (
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/controllers"
 	vmwarewebhooks "sigs.k8s.io/cluster-api-provider-vsphere/internal/webhooks/vmware"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/constants"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
 )
@@ -672,11 +673,25 @@ var _ = Describe("Reconciliation tests", func() {
 				}
 				newVM.Status.Network.PrimaryIP4 = "1.2.3.4"
 				newVM.Status.BiosUUID = "test-bios-uuid"
+				newVM.Status.Host = "some-esxi-host"
 				return k8sClient.Status().Update(ctx, newVM)
 			}, time.Second*30).Should(Succeed())
 
 			By("Expect the VSphereMachine VM status to reflect VM Ready status")
 			assertEventuallyVMStatus(infraMachineKey, infraMachine, vmwarev1.VirtualMachineStateReady)
+
+			By("Expect the Machine's label to reflect the ESXi host")
+			EventuallyWithOffset(1, func() (string, error) {
+				if err := k8sClient.Get(ctx, machineKey, machine); err != nil {
+					return "", err
+				}
+				v, ok := machine.GetLabels()[constants.ESXiHostInfoLabel]
+				if !ok {
+					return "", fmt.Errorf("expect machine to have label %s", constants.ESXiHostInfoLabel)
+				}
+
+				return v, nil
+			}, time.Second*30, time.Millisecond*500).Should(Equal("some-esxi-host"))
 
 			// In the case of a LoadBalanced endpoint, ControlPlaneEndpoint is a
 			// load-balancer Testing load-balanced endpoints is done in

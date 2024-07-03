@@ -1,0 +1,6 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  # Note: we need a template named cluster-template-ownerrefs-finalizers-supervisor because the corresponding govimomi template
+  # is different from the govimomi base template. However, in case of supervisor, this template matches the base one.
+  - ../base

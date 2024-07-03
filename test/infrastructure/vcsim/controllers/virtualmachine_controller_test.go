@@ -37,6 +37,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	vcsimv1 "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/api/v1alpha1"
 )
 
 func Test_Reconcile_VirtualMachine(t *testing.T) {
@@ -106,7 +107,7 @@ func Test_Reconcile_VirtualMachine(t *testing.T) {
 					},
 				},
 				Finalizers: []string{
-					VMFinalizer, // Adding this to move past the first reconcile
+					vcsimv1.VMFinalizer, // Adding this to move past the first reconcile
 				},
 			},
 		}
@@ -235,7 +236,7 @@ func Test_Reconcile_VirtualMachine(t *testing.T) {
 					},
 				},
 				Finalizers: []string{
-					VMFinalizer, // Adding this to move past the first reconcile
+					vcsimv1.VMFinalizer, // Adding this to move past the first reconcile
 				},
 			},
 			Status: vmoprv1.VirtualMachineStatus{

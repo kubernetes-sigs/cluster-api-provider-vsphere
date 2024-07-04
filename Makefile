@@ -23,7 +23,7 @@ SHELL:=/usr/bin/env bash
 #
 # Go.
 #
-GO_VERSION ?= 1.21.11
+GO_VERSION ?= 1.21.12
 GO_CONTAINER_IMAGE ?= docker.io/library/golang:$(GO_VERSION)
 
 # Use GOPROXY environment variable if set
@@ -776,7 +776,7 @@ $(RELEASE_NOTES_BIN): $(RELEASE_NOTES) ## Build a local copy of release-notes.
 
 $(CONTROLLER_GEN): # Build controller-gen.
 	# controller-gen 0.13 cannot be built with Go >= 1.22. We have to pin it to 1.21.
-	GOTOOLCHAIN=go1.21.11 GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(CONTROLLER_GEN_PKG) $(CONTROLLER_GEN_BIN) $(CONTROLLER_GEN_VER)
+	GOTOOLCHAIN=go1.21.12 GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(CONTROLLER_GEN_PKG) $(CONTROLLER_GEN_BIN) $(CONTROLLER_GEN_VER)
 
 ## We are forcing a rebuilt of conversion-gen via PHONY so that we're always using an up-to-date version.
 ## We can't use a versioned name for the binary, because that would be reflected in generated files.

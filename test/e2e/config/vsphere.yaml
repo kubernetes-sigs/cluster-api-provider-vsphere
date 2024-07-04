@@ -253,7 +253,6 @@ variables:
   VSPHERE_DISTRIBUTED_PORT_GROUP: "/SDDC-Datacenter/network/sddc-cgw-network-10"
   VSPHERE_TEMPLATE: "ubuntu-2204-kube-v1.30.0"
   FLATCAR_VSPHERE_TEMPLATE: "flatcar-stable-3815.2.2-kube-v1.30.0"
-  VSPHERE_INSECURE_CSI: "true"
   KUBETEST_CONFIGURATION: "./data/kubetest/conformance.yaml"
   NODE_DRAIN_TIMEOUT: "60s"
   CLUSTER_TOPOLOGY: "true"

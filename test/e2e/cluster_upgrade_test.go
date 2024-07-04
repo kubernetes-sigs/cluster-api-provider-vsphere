@@ -58,7 +58,7 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass and testi
 	})
 })
 
-var _ = Describe("When upgrading a workload cluster using ClusterClass [supervisor] [ClusterClass]", func() {
+var _ = Describe("When upgrading a workload cluster using ClusterClass [vcsim] [supervisor] [ClusterClass]", func() {
 	// Note: This installs a cluster based on KUBERNETES_VERSION_UPGRADE_FROM and then upgrades to
 	// KUBERNETES_VERSION_UPGRADE_TO.
 	const specName = "k8s-upgrade" // aligned to CAPI

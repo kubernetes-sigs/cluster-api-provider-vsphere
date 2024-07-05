@@ -263,7 +263,7 @@ variables:
   EXP_NODE_ANTI_AFFINITY: "true"
   CAPI_DIAGNOSTICS_ADDRESS: ":8080"
   CAPI_INSECURE_DIAGNOSTICS: "true"
-  # Required to be set to install capv-supervisor <= v1.10, but getting created.
+  # Required to be set to install capv-supervisor <= v1.10.
   SERVICE_ACCOUNTS_CM_NAMESPACE: "capv-system"
   SERVICE_ACCOUNTS_CM_NAME: "service-accounts-cm"
 

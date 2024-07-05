@@ -111,7 +111,7 @@ func Setup(specName string, f func(testSpecificSettings func() testSettings), op
 			testSpecificIPAddressClaims, testSpecificVariables = vcsimAddressManager.ClaimIPs(ctx, vsphereip.WithIP(options.additionalIPVariableNames...))
 
 			// variables derived from the vCenterSimulator
-			vCenterSimulator, err := vspherevcsim.Get(ctx, c)
+			vCenterSimulator, err := vspherevcsim.Get(ctx, bootstrapClusterProxy.GetClient())
 			Expect(err).ToNot(HaveOccurred(), "Failed to get VCenterSimulator")
 
 			Byf("Creating EnvVar %s", klog.KRef(metav1.NamespaceDefault, specName))

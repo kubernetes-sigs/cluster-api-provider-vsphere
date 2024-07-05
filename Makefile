@@ -403,10 +403,16 @@ generate-e2e-templates-v1.10: $(KUSTOMIZE)
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/v1.10/clusterclass" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/v1.10/clusterclass-quick-start.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/v1.10/workload" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/v1.10/cluster-template-workload.yaml"
 
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/v1.10/clusterclass" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/v1.10/clusterclass-quick-start-supervisor.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/v1.10/workload" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/v1.10/cluster-template-workload-supervisor.yaml"
+
 .PHONY: generate-e2e-templates-v1.9
 generate-e2e-templates-v1.9: $(KUSTOMIZE)
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/v1.9/clusterclass" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/v1.9/clusterclass-quick-start.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/v1.9/workload" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/v1.9/cluster-template-workload.yaml"
+
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/v1.9/clusterclass" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/v1.9/clusterclass-quick-start-supervisor.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/v1.9/workload" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/v1.9/cluster-template-workload-supervisor.yaml"
 
 .PHONY: generate-test-infra-prowjobs
 generate-test-infra-prowjobs: $(PROWJOB_GEN) ## Generates the prowjob configurations in test-infra

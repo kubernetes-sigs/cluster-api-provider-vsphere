@@ -631,20 +631,7 @@ data:
     ---
     apiVersion: v1
     data:
-      async-query-volume: "true"
-      block-volume-snapshot: "true"
-      cnsmgr-suspend-create-volume: "true"
-      csi-auth-check: "true"
-      csi-internal-generated-cluster-id: "true"
-      csi-migration: "true"
-      csi-windows-support: "true"
-      list-volumes: "true"
-      listview-tasks: "true"
-      max-pvscsi-targets-per-vm: "true"
-      multi-vcenter-csi-topology: "true"
-      online-volume-extend: "true"
       pv-to-backingdiskobjectid-mapping: "false"
-      topology-preferential-datastores: "true"
       trigger-csi-fullsync: "false"
     kind: ConfigMap
     metadata:
@@ -692,6 +679,18 @@ data:
             role: vsphere-csi
         spec:
           affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                - matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: Exists
+                - matchExpressions:
+                  - key: node-role.kubernetes.io/controlplane
+                    operator: Exists
+                - matchExpressions:
+                  - key: node-role.kubernetes.io/master
+                    operator: Exists
             podAntiAffinity:
               requiredDuringSchedulingIgnoredDuringExecution:
               - labelSelector:
@@ -715,7 +714,7 @@ data:
             env:
             - name: ADDRESS
               value: /csi/csi.sock
-            image: registry.k8s.io/sig-storage/csi-attacher:v4.3.0
+            image: registry.k8s.io/sig-storage/csi-attacher:v4.5.1
             name: csi-attacher
             volumeMounts:
             - mountPath: /csi
@@ -734,7 +733,7 @@ data:
             env:
             - name: ADDRESS
               value: /csi/csi.sock
-            image: registry.k8s.io/sig-storage/csi-resizer:v1.8.0
+            image: registry.k8s.io/sig-storage/csi-resizer:v1.10.1
             name: csi-resizer
             volumeMounts:
             - mountPath: /csi
@@ -763,7 +762,7 @@ data:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-            image: gcr.io/cloud-provider-vsphere/csi/release/driver:v3.1.0
+            image: gcr.io/cloud-provider-vsphere/csi/release/driver:v3.3.0
             imagePullPolicy: Always
             livenessProbe:
               failureThreshold: 3
@@ -794,7 +793,7 @@ data:
           - args:
             - --v=4
             - --csi-address=/csi/csi.sock
-            image: registry.k8s.io/sig-storage/livenessprobe:v2.10.0
+            image: registry.k8s.io/sig-storage/livenessprobe:v2.12.0
             name: liveness-probe
             volumeMounts:
             - mountPath: /csi
@@ -817,13 +816,11 @@ data:
               value: "100"
             - name: INCLUSTER_CLIENT_BURST
               value: "100"
-            - name: GODEBUG
-              value: x509sha1=1
             - name: CSI_NAMESPACE
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-            image: gcr.io/cloud-provider-vsphere/csi/release/syncer:v3.1.0
+            image: gcr.io/cloud-provider-vsphere/csi/release/syncer:v3.3.0
             imagePullPolicy: Always
             name: vsphere-syncer
             ports:
@@ -852,7 +849,7 @@ data:
             env:
             - name: ADDRESS
               value: /csi/csi.sock
-            image: registry.k8s.io/sig-storage/csi-provisioner:v3.5.0
+            image: registry.k8s.io/sig-storage/csi-provisioner:v4.0.1
             name: csi-provisioner
             volumeMounts:
             - mountPath: /csi
@@ -870,7 +867,7 @@ data:
             env:
             - name: ADDRESS
               value: /csi/csi.sock
-            image: registry.k8s.io/sig-storage/csi-snapshotter:v6.2.2
+            image: registry.k8s.io/sig-storage/csi-snapshotter:v7.0.2
             name: csi-snapshotter
             volumeMounts:
             - mountPath: /csi
@@ -917,7 +914,7 @@ data:
               value: /csi/csi.sock
             - name: DRIVER_REG_SOCK_PATH
               value: /var/lib/kubelet/plugins/csi.vsphere.vmware.com/csi.sock
-            image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.8.0
+            image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.10.1
             livenessProbe:
               exec:
                 command:
@@ -951,15 +948,13 @@ data:
               value: "true"
             - name: LOGGER_LEVEL
               value: PRODUCTION
-            - name: GODEBUG
-              value: x509sha1=1
             - name: CSI_NAMESPACE
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
             - name: NODEGETINFO_WATCH_TIMEOUT_MINUTES
               value: "1"
-            image: gcr.io/cloud-provider-vsphere/csi/release/driver:v3.1.0
+            image: gcr.io/cloud-provider-vsphere/csi/release/driver:v3.3.0
             imagePullPolicy: Always
             livenessProbe:
               failureThreshold: 3
@@ -995,7 +990,7 @@ data:
           - args:
             - --v=4
             - --csi-address=/csi/csi.sock
-            image: registry.k8s.io/sig-storage/livenessprobe:v2.10.0
+            image: registry.k8s.io/sig-storage/livenessprobe:v2.12.0
             name: liveness-probe
             volumeMounts:
             - mountPath: /csi
@@ -1065,7 +1060,7 @@ data:
               value: unix://C:\\csi\\csi.sock
             - name: DRIVER_REG_SOCK_PATH
               value: C:\\var\\lib\\kubelet\\plugins\\csi.vsphere.vmware.com\\csi.sock
-            image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.8.0
+            image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.10.0
             livenessProbe:
               exec:
                 command:
@@ -1108,7 +1103,7 @@ data:
                   fieldPath: metadata.namespace
             - name: NODEGETINFO_WATCH_TIMEOUT_MINUTES
               value: "1"
-            image: gcr.io/cloud-provider-vsphere/csi/release/driver:v3.1.0
+            image: gcr.io/cloud-provider-vsphere/csi/release/driver:v3.3.0
             imagePullPolicy: Always
             livenessProbe:
               failureThreshold: 3
@@ -1139,7 +1134,7 @@ data:
           - args:
             - --v=4
             - --csi-address=/csi/csi.sock
-            image: registry.k8s.io/sig-storage/livenessprobe:v2.10.0
+            image: registry.k8s.io/sig-storage/livenessprobe:v2.12.0
             name: liveness-probe
             volumeMounts:
             - mountPath: /csi

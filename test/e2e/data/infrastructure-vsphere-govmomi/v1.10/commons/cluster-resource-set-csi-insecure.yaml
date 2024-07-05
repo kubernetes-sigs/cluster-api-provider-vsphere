@@ -15,7 +15,7 @@ stringData:
         [Global]
 
         [VirtualCenter "${VSPHERE_SERVER}"]
-        insecure-flag = "${VSPHERE_INSECURE_CSI}"
+        insecure-flag = "true"
         user = "${VSPHERE_USERNAME}"
         password = "${VSPHERE_PASSWORD}"
         datacenters = "${VSPHERE_DATACENTER}"

@@ -7,6 +7,5 @@ resources:
 patchesStrategicMerge:
   - ../commons/cluster-resource-set-label.yaml
   - ../commons/cluster-network-CIDR.yaml
-  - ../commons/cluster-resource-set-csi-insecure.yaml
   - vsphereclusteridentity.yaml
   - drop-existing-identity-secret.yaml

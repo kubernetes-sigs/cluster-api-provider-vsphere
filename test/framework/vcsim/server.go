@@ -68,7 +68,7 @@ func Get(ctx context.Context, c client.Client) (*vcsimv1.VCenterSimulator, error
 
 	var retryError error
 	// Wait for the Server to report an address.
-	_ = wait.PollUntilContextTimeout(ctx, time.Second, time.Second*30, true, func(ctx context.Context) (done bool, err error) {
+	_ = wait.PollUntilContextTimeout(ctx, time.Second, time.Second*5, true, func(ctx context.Context) (done bool, err error) {
 		if err := c.Get(ctx, client.ObjectKeyFromObject(vcsim), vcsim); err != nil {
 			retryError = errors.Wrap(err, "getting VCenterSimulator")
 			return false, nil

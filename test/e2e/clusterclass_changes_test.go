@@ -21,7 +21,7 @@ import (
 	capie2e "sigs.k8s.io/cluster-api/test/e2e"
 )
 
-var _ = Describe("When testing ClusterClass changes [supervisor] [ClusterClass]", func() {
+var _ = Describe("When testing ClusterClass changes [vcsim] [supervisor] [ClusterClass]", func() {
 	const specName = "clusterclass-changes" // copied from CAPI
 	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		capie2e.ClusterClassChangesSpec(ctx, func() capie2e.ClusterClassChangesSpecInput {

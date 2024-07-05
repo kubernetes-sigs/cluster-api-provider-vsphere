@@ -212,7 +212,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		Byf("Creating a vcsim server")
 		Eventually(func() error {
 			return vspherevcsim.Create(ctx, bootstrapClusterProxy.GetClient())
-		}, 30*time.Second, 3*time.Second).ShouldNot(HaveOccurred(), "Failed to create VCenterSimulator")
+		}, time.Minute, 3*time.Second).ShouldNot(HaveOccurred(), "Failed to create VCenterSimulator")
 	}
 
 	By("Getting AddressClaim labels")

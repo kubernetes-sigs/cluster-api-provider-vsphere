@@ -12,3 +12,6 @@ patches:
   - target:
       kind: ClusterClass
     path: ./patch-namingstrategy.yaml
+  - target:
+      kind: VSphereMachineTemplate
+    path: ./patch-vm-namingstrategy.yaml

@@ -26,8 +26,6 @@ import (
 )
 
 func TestVSphereMachine_ValidateUpdate(t *testing.T) {
-	g := NewWithT(t)
-
 	fakeProviderID := "fake-000000"
 	tests := []struct {
 		name              string
@@ -67,7 +65,9 @@ func TestVSphereMachine_ValidateUpdate(t *testing.T) {
 		},
 	}
 	for _, tc := range tests {
-		t.Run(tc.name, func(_ *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			webhook := &VSphereMachineWebhook{}
 			_, err := webhook.ValidateUpdate(context.Background(), tc.oldVSphereMachine, tc.vsphereMachine)
 			if tc.wantErr {

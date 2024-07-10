@@ -55,11 +55,10 @@ We are using NVIDIA Tesla V100 32GB cards for this example and will use the `gri
 ### Create the cluster template
 
 ```shell
-$ make dev-flavors
-go run ./packaging/flavorgen --output-dir /home/user/.cluster-api/overrides/infrastructure-vsphere/v0.0.0
+$ make release-flavors
 ```
 
-Edit the generated Cluster template (`cluster-template.yaml`) to set the values for the `pciDevices` array. Here we are editing the VSphereMachineTemplate object for the worker nodes. This will create a worker node with a single NVIDIA 16GB vGPU device attached to the VM.
+Edit the generated Cluster template (e.g. `out/cluster-template.yaml`) to set the values for the `pciDevices` array. Here we are editing the VSphereMachineTemplate object for the worker nodes. This will create a worker node with a single NVIDIA 16GB vGPU device attached to the VM.
 
 ```yaml
 ---

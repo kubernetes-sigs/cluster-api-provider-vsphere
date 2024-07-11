@@ -17,9 +17,12 @@ limitations under the License.
 package vmoperator
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
+	"text/template"
 
 	"github.com/pkg/errors"
 	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
@@ -117,7 +120,11 @@ func (v *VmopMachineService) ReconcileDelete(ctx context.Context, machineCtx cap
 
 	// First, check to see if it's already deleted
 	vmopVM := vmoprv1.VirtualMachine{}
-	if err := v.Client.Get(ctx, apitypes.NamespacedName{Namespace: supervisorMachineCtx.Machine.Namespace, Name: supervisorMachineCtx.Machine.Name}, &vmopVM); err != nil {
+	key, err := virtualMachineObjectKey(supervisorMachineCtx.Machine.Name, supervisorMachineCtx.Machine.Namespace, supervisorMachineCtx.VSphereMachine.Spec.NamingStrategy)
+	if err != nil {
+		return err
+	}
+	if err := v.Client.Get(ctx, *key, &vmopVM); err != nil {
 		// If debug logging is enabled, report the number of vms in the cluster before and after the reconcile
 		if apierrors.IsNotFound(err) {
 			supervisorMachineCtx.VSphereMachine.Status.VMStatus = vmwarev1.VirtualMachineStateNotFound
@@ -181,15 +188,21 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 
 	// Check for the presence of an existing object
 	vmOperatorVM := &vmoprv1.VirtualMachine{}
-	if err := v.Client.Get(ctx, client.ObjectKey{
-		Namespace: supervisorMachineCtx.Machine.Namespace,
-		Name:      supervisorMachineCtx.Machine.Name,
-	}, vmOperatorVM); err != nil {
+	key, err := virtualMachineObjectKey(supervisorMachineCtx.Machine.Name, supervisorMachineCtx.Machine.Namespace, supervisorMachineCtx.VSphereMachine.Spec.NamingStrategy)
+	if err != nil {
+		return false, err
+	}
+	if err := v.Client.Get(ctx, *key, vmOperatorVM); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return false, err
 		}
 		// Define the VM Operator VirtualMachine resource to reconcile.
-		vmOperatorVM = v.newVMOperatorVM(supervisorMachineCtx)
+		vmOperatorVM = &vmoprv1.VirtualMachine{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      key.Name,
+				Namespace: key.Namespace,
+			},
+		}
 	}
 
 	// Reconcile the VM Operator VirtualMachine.
@@ -270,6 +283,76 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 	return false, nil
 }
 
+const (
+	maxNameLength = 63
+)
+
+// Note: Inlining these functions from sprig to avoid introducing a dependency.
+var nameTemplateFuncs = map[string]any{
+	"trimSuffix": func(a, b string) string { return strings.TrimSuffix(b, a) },
+	"trunc": func(c int, s string) string {
+		if c < 0 && len(s)+c > 0 {
+			return s[len(s)+c:]
+		}
+		if c >= 0 && len(s) > c {
+			return s[:c]
+		}
+		return s
+	},
+}
+
+var nameTpl = template.New("name generator").Funcs(nameTemplateFuncs).Option("missingkey=error")
+
+// virtualMachineObjectKey returns the object key of the VirtualMachine.
+// Part of this is generating the name of the VirtualMachine based on the naming strategy.
+func virtualMachineObjectKey(machineName, machineNamespace string, namingStrategy *vmwarev1.VirtualMachineNamingStrategy) (*client.ObjectKey, error) {
+	name, err := GenerateVirtualMachineName(machineName, namingStrategy)
+	if err != nil {
+		return nil, err
+	}
+
+	return &client.ObjectKey{
+		Namespace: machineNamespace,
+		Name:      name,
+	}, nil
+}
+
+// GenerateVirtualMachineName generates the name of a VirtualMachine based on the naming strategy.
+func GenerateVirtualMachineName(machineName string, namingStrategy *vmwarev1.VirtualMachineNamingStrategy) (string, error) {
+	// Per default the name of the VirtualMachine should be equal to the Machine name (this is the same as "{{ .machine.name }}")
+	if namingStrategy == nil || namingStrategy.Template == nil {
+		// Note: No need to trim to max length in this case as valid Machine names will also be valid VirtualMachine names.
+		return machineName, nil
+	}
+
+	nameTemplate := *namingStrategy.Template
+	data := map[string]interface{}{
+		"machine": map[string]interface{}{
+			"name": machineName,
+		},
+	}
+
+	tpl, err := nameTpl.Parse(nameTemplate)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to generate name for VirtualMachine: failed to parse namingStrategy.template %q", nameTemplate)
+	}
+
+	var buf bytes.Buffer
+	if err := tpl.Execute(&buf, data); err != nil {
+		return "", errors.Wrap(err, "failed to generate name for VirtualMachine")
+	}
+
+	name := buf.String()
+
+	// If the name exceeds the maxNameLength, trim to maxNameLength.
+	// Note: we're not adding a random suffix as the name has to be deterministic.
+	if len(name) > maxNameLength {
+		name = name[:maxNameLength]
+	}
+
+	return name, nil
+}
+
 // GetHostInfo returns the hostname or IP address of the infrastructure host for the VM Operator VM.
 func (v *VmopMachineService) GetHostInfo(ctx context.Context, machineCtx capvcontext.MachineContext) (string, error) {
 	supervisorMachineCtx, ok := machineCtx.(*vmware.SupervisorMachineContext)
@@ -278,23 +361,15 @@ func (v *VmopMachineService) GetHostInfo(ctx context.Context, machineCtx capvcon
 	}
 
 	vmOperatorVM := &vmoprv1.VirtualMachine{}
-	if err := v.Client.Get(ctx, client.ObjectKey{
-		Name:      supervisorMachineCtx.Machine.Name,
-		Namespace: supervisorMachineCtx.Machine.Namespace,
-	}, vmOperatorVM); err != nil {
+	key, err := virtualMachineObjectKey(supervisorMachineCtx.Machine.Name, supervisorMachineCtx.Machine.Namespace, supervisorMachineCtx.VSphereMachine.Spec.NamingStrategy)
+	if err != nil {
+		return "", err
+	}
+	if err := v.Client.Get(ctx, *key, vmOperatorVM); err != nil {
 		return "", err
 	}
 
 	return vmOperatorVM.Status.Host, nil
-}
-
-func (v *VmopMachineService) newVMOperatorVM(supervisorMachineCtx *vmware.SupervisorMachineContext) *vmoprv1.VirtualMachine {
-	return &vmoprv1.VirtualMachine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      supervisorMachineCtx.Machine.Name,
-			Namespace: supervisorMachineCtx.Machine.Namespace,
-		},
-	}
 }
 
 func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervisorMachineCtx *vmware.SupervisorMachineContext, vmOperatorVM *vmoprv1.VirtualMachine) error {

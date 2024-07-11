@@ -175,7 +175,7 @@ func validatePCIDevices(devices []infrav1.PCIDeviceSpec) field.ErrorList {
 			// Valid case for PCI Passthrough.
 			continue
 		}
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "template", "spec", "pciDevices", fmt.Sprintf("%d", i)), device, "should have either deviceId + vendorId or vGPUProfile set"))
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "template", "spec", "pciDevices").Index(i), device, "should have either deviceId + vendorId or vGPUProfile set"))
 	}
 	return allErrs
 }

@@ -216,14 +216,19 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 	// Update the VM's state to Pending
 	supervisorMachineCtx.VSphereMachine.Status.VMStatus = vmwarev1.VirtualMachineStatePending
 
-	// VM operator has four conditions which indicate pre-requirements for creation are done.
+	// VM operator has conditions which indicate pre-requirements for creation are done.
 	// If one of them is set to false then it hit an error case and the information bubbles up
 	// to the VMProvisionedCondition.
+	// NOTE: Following conditions do not get surfaced in any capacity unless they are relevant; if they show up at all, they become pre-reqs
+	// and must be true to proceed with VirtualMachine creation.
 	for _, condition := range []string{
 		vmoprv1.VirtualMachineConditionClassReady,
 		vmoprv1.VirtualMachineConditionImageReady,
 		vmoprv1.VirtualMachineConditionVMSetResourcePolicyReady,
 		vmoprv1.VirtualMachineConditionBootstrapReady,
+		vmoprv1.VirtualMachineConditionStorageReady,
+		vmoprv1.VirtualMachineConditionNetworkReady,
+		vmoprv1.VirtualMachineConditionPlacementReady,
 	} {
 		c := meta.FindStatusCondition(vmOperatorVM.Status.Conditions, condition)
 		// If the condition is not set to false then VM is still getting provisioned and the condition gets added at a later stage.

@@ -216,35 +216,37 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 	// Update the VM's state to Pending
 	supervisorMachineCtx.VSphereMachine.Status.VMStatus = vmwarev1.VirtualMachineStatePending
 
-	// VM operator has conditions which indicate pre-requirements for creation are done.
-	// If one of them is set to false then it hit an error case and the information bubbles up
-	// to the VMProvisionedCondition.
-	// NOTE: Following conditions do not get surfaced in any capacity unless they are relevant; if they show up at all, they become pre-reqs
-	// and must be true to proceed with VirtualMachine creation.
-	for _, condition := range []string{
-		vmoprv1.VirtualMachineConditionClassReady,
-		vmoprv1.VirtualMachineConditionImageReady,
-		vmoprv1.VirtualMachineConditionVMSetResourcePolicyReady,
-		vmoprv1.VirtualMachineConditionBootstrapReady,
-		vmoprv1.VirtualMachineConditionStorageReady,
-		vmoprv1.VirtualMachineConditionNetworkReady,
-		vmoprv1.VirtualMachineConditionPlacementReady,
-	} {
-		c := meta.FindStatusCondition(vmOperatorVM.Status.Conditions, condition)
-		// If the condition is not set to false then VM is still getting provisioned and the condition gets added at a later stage.
-		if c == nil || c.Status != metav1.ConditionFalse {
-			continue
-		}
-		conditions.MarkFalse(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, c.Reason, clusterv1.ConditionSeverityError, c.Message)
-		return false, errors.Errorf("vm prerequisites check failed for condition %s: %s", condition, supervisorMachineCtx)
-	}
-
 	// Requeue until the VM Operator VirtualMachine has:
 	// * Been created
 	// * Been powered on
 	// * An IP address
 	// * A BIOS UUID
+
 	if !meta.IsStatusConditionTrue(vmOperatorVM.Status.Conditions, vmoprv1.VirtualMachineConditionCreated) {
+		// VM operator has conditions which indicate pre-requirements for creation are done.
+		// If one of them is set to false then it hit an error case and the information must bubble up
+		// to the VMProvisionedCondition in CAPV.
+		// NOTE: Following conditions do not get surfaced in any capacity unless they are relevant; if they show up at all,
+		// they become pre-reqs and must be true to proceed with VirtualMachine creation.
+		for _, condition := range []string{
+			vmoprv1.VirtualMachineConditionClassReady,
+			vmoprv1.VirtualMachineConditionImageReady,
+			vmoprv1.VirtualMachineConditionVMSetResourcePolicyReady,
+			vmoprv1.VirtualMachineConditionBootstrapReady,
+			vmoprv1.VirtualMachineConditionStorageReady,
+			vmoprv1.VirtualMachineConditionNetworkReady,
+			vmoprv1.VirtualMachineConditionPlacementReady,
+		} {
+			c := meta.FindStatusCondition(vmOperatorVM.Status.Conditions, condition)
+			// If the condition is not set to false then VM is still getting provisioned and the condition gets added at a later stage.
+			if c == nil || c.Status != metav1.ConditionFalse {
+				continue
+			}
+			conditions.MarkFalse(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, c.Reason, clusterv1.ConditionSeverityError, c.Message)
+			return false, errors.Errorf("vm prerequisites check failed for condition %s: %s", condition, supervisorMachineCtx)
+		}
+
+		// All the pre-requisites are in place but the machines is not yet created, report it.
 		conditions.MarkFalse(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, vmwarev1.VMProvisionStartedReason, clusterv1.ConditionSeverityInfo, "")
 		log.Info(fmt.Sprintf("VM is not yet created: %s", supervisorMachineCtx))
 		return true, nil

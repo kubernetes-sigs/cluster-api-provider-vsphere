@@ -305,7 +305,7 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 		g := NewWithT(t)
 
 		_, err := r.Reconcile(context.Background(), ctrl.Request{NamespacedName: util.ObjectKey(vsphereVM)})
-		g.Expect(err).To(HaveOccurred())
+		g.Expect(err).ToNot(HaveOccurred())
 
 		vm := &infrav1.VSphereVM{}
 		vmKey := util.ObjectKey(vsphereVM)

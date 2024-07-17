@@ -1,0 +1,12 @@
+- op: replace
+  path: /spec/patches
+  value:
+  - name: test-patch
+    external:
+      generateExtension: generate-patches.k8s-upgrade-with-runtimesdk
+      validateExtension: validate-topology.k8s-upgrade-with-runtimesdk
+      discoverVariablesExtension: discover-variables.k8s-upgrade-with-runtimesdk
+      settings:
+        testMode: govmomi
+- op: remove
+  path: /spec/variables

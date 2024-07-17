@@ -60,6 +60,7 @@ BUILD_DIR := .build
 TEST_DIR := test
 VCSIM_DIR := test/infrastructure/vcsim
 NETOP_DIR := test/infrastructure/net-operator
+TEST_EXTENSION_DIR := test/extension
 TOOLS_DIR := hack/tools
 TOOLS_BIN_DIR := $(abspath $(TOOLS_DIR)/$(BIN_DIR))
 FLAVOR_DIR := $(ROOT_DIR)/templates
@@ -233,6 +234,10 @@ VM_OPERATOR_ALL_ARCH = amd64 arm64
 NET_OPERATOR_IMAGE_NAME ?= cluster-api-net-operator
 NET_OPERATOR_IMG ?= $(STAGING_REGISTRY)/$(NET_OPERATOR_IMAGE_NAME)
 
+# test-extension
+TEST_EXTENSION_IMAGE_NAME ?= cluster-api-vsphere-test-extension
+TEST_EXTENSION_IMG ?= $(STAGING_REGISTRY)/$(TEST_EXTENSION_IMAGE_NAME)
+
 # boskosctl
 BOSKOSCTL_IMG ?= gcr.io/k8s-staging-capi-vsphere/extra/boskosctl
 BOSKOSCTL_IMG_TAG ?= $(shell git describe --always --dirty)
@@ -271,6 +276,7 @@ SUPERVISOR_WEBHOOK_ROOT ?= $(MANIFEST_ROOT)/supervisor/webhook
 RBAC_ROOT ?= $(MANIFEST_ROOT)/rbac
 VCSIM_RBAC_ROOT ?= $(VCSIM_DIR)/config/rbac
 NETOP_RBAC_ROOT ?= $(NETOP_DIR)/config/rbac
+TEST_EXTENSION_RBAC_ROOT ?= $(TEST_EXTENSION_DIR)/config/rbac
 
 JANITOR_DIR ?= ./$(TOOLS_DIR)/janitor
 
@@ -317,6 +323,11 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 	$(CONTROLLER_GEN) \
 		paths=./$(NETOP_DIR)/controllers/... \
         output:rbac:dir=$(NETOP_RBAC_ROOT) \
+        rbac:roleName=manager-role
+	# test-extension is used for Runtime SDK tests
+	$(CONTROLLER_GEN) \
+		paths=./$(TEST_EXTENSION_DIR)/... \
+        output:rbac:dir=$(TEST_EXTENSION_RBAC_ROOT) \
         rbac:roleName=manager-role
 	# vcsim crds are used for tests.
 	$(CONTROLLER_GEN) \
@@ -377,8 +388,10 @@ generate-e2e-templates-main: $(KUSTOMIZE) ## Generate test templates for the mai
 	# generate clusterclass and cluster topology
 	cp "$(RELEASE_DIR)/main/clusterclass-template.yaml" "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/clusterclass/clusterclass-quick-start.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/clusterclass" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/clusterclass-quick-start.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/clusterclass-runtimesdk" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/clusterclass-quick-start-runtimesdk.yaml"
 	cp "$(RELEASE_DIR)/main/cluster-template-topology.yaml" "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/topology/cluster-template-topology.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/topology" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/cluster-template-topology.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/topology-runtimesdk" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/cluster-template-topology-runtimesdk.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/install-on-bootstrap" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/cluster-template-install-on-bootstrap.yaml"
 	# for PCI passthrough template
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/pci" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/cluster-template-pci.yaml"
@@ -392,8 +405,10 @@ generate-e2e-templates-main: $(KUSTOMIZE) ## Generate test templates for the mai
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/base" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/cluster-template-supervisor.yaml"
 	cp "$(RELEASE_DIR)/main/clusterclass-template-supervisor.yaml" "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/clusterclass/clusterclass-quick-start-supervisor.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/clusterclass" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/clusterclass-quick-start-supervisor.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/clusterclass-runtimesdk" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/clusterclass-quick-start-supervisor-runtimesdk.yaml"
 	cp "$(RELEASE_DIR)/main/cluster-template-topology-supervisor.yaml" "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/topology/cluster-template-topology-supervisor.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/topology" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/cluster-template-topology-supervisor.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/topology-runtimesdk" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/cluster-template-topology-runtimesdk-supervisor.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/conformance" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/cluster-template-conformance-supervisor.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/install-on-bootstrap" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/cluster-template-install-on-bootstrap-supervisor.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/ownerrefs-finalizers" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/cluster-template-ownerrefs-finalizers-supervisor.yaml"
@@ -576,6 +591,15 @@ docker-build-net-operator: docker-pull-prerequisites ## Build the docker image f
 		$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./$(NETOP_DIR)/config/default/manager_pull_policy.yaml"; \
 	fi
 
+.PHONY: docker-build-test-extension
+docker-build-test-extension: docker-pull-prerequisites ## Build the docker image for test-extension controller manager
+## reads Dockerfile from stdin to avoid an incorrectly cached Dockerfile (https://github.com/moby/buildkit/issues/1368)
+	cat $(TEST_EXTENSION_DIR)/Dockerfile | DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)" . -t $(TEST_EXTENSION_IMG)-$(ARCH):$(TAG) --file -
+	@if [ "${DOCKER_BUILD_MODIFY_MANIFESTS}" = "true" ]; then \
+		$(MAKE) set-manifest-image MANIFEST_IMG=$(TEST_EXTENSION_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./$(TEST_EXTENSION_DIR)/config/default/manager_image_patch.yaml"; \
+		$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./$(TEST_EXTENSION_DIR)/config/default/manager_pull_policy.yaml"; \
+	fi
+
 .PHONY: docker-build-boskosctl
 docker-build-boskosctl:
 	cat hack/tools/boskosctl/Dockerfile | DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) . -t $(BOSKOSCTL_IMG):$(BOSKOSCTL_IMG_TAG) --file -
@@ -643,6 +667,7 @@ e2e-images: ## Build the e2e manager image
 	$(MAKE) REGISTRY=gcr.io/k8s-staging-capi-vsphere PULL_POLICY=IfNotPresent TAG=dev docker-build
 	$(MAKE) REGISTRY=gcr.io/k8s-staging-capi-vsphere PULL_POLICY=IfNotPresent TAG=dev docker-build-vcsim
 	$(MAKE) REGISTRY=gcr.io/k8s-staging-capi-vsphere PULL_POLICY=IfNotPresent TAG=dev docker-build-net-operator
+	$(MAKE) REGISTRY=gcr.io/k8s-staging-capi-vsphere PULL_POLICY=IfNotPresent TAG=dev docker-build-test-extension
 
 .PHONY: e2e
 e2e: e2e-images generate-e2e-templates

@@ -16,6 +16,8 @@ images:
     loadBehavior: mustLoad
   - name: gcr.io/k8s-staging-capi-vsphere/cluster-api-net-operator-{ARCH}:dev
     loadBehavior: mustLoad
+  - name: gcr.io/k8s-staging-capi-vsphere/cluster-api-vsphere-test-extension-{ARCH}:dev
+    loadBehavior: mustLoad
   - name: gcr.io/k8s-staging-capi-vsphere/extra/vm-operator:v1.8.6-0-gde75746a
     loadBehavior: tryLoad
 
@@ -176,11 +178,15 @@ providers:
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/cluster-template-pci.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/cluster-template-storage-policy.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/cluster-template-topology.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/cluster-template-topology-runtimesdk.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/cluster-template.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/clusterclass-quick-start.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/clusterclass-quick-start-runtimesdk.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/main/cluster-template-topology-supervisor.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/main/cluster-template-topology-runtimesdk-supervisor.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/main/cluster-template-supervisor.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/main/clusterclass-quick-start-supervisor.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/main/clusterclass-quick-start-supervisor-runtimesdk.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/main/cluster-template-install-on-bootstrap-supervisor.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/main/cluster-template-conformance-supervisor.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/main/cluster-template-ownerrefs-finalizers-supervisor.yaml"
@@ -246,6 +252,19 @@ providers:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
 
+  - name: capv-test-extension
+    type: RuntimeExtensionProvider
+    versions:
+      - name: v1.11.99
+        # Use manifest from source files
+        value: ../../../../cluster-api-provider-vsphere/test/extension/config/default
+        contract: v1beta1
+        files:
+          - sourcePath: "../data/shared/capv/main/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+
 variables:
   # Ensure all Kubernetes versions used here are covered in patch-vsphere-template.yaml
   KUBERNETES_VERSION: "v1.30.0"
@@ -283,11 +302,13 @@ variables:
   KUBETEST_CONFIGURATION: "./data/kubetest/conformance.yaml"
   NODE_DRAIN_TIMEOUT: "60s"
   CLUSTER_TOPOLOGY: "true"
+  EXP_RUNTIME_SDK: "true"
   # These IDs correspond to Tesla T4s, they are the decimal representation of the hex values.
   DEVICE_ID: 7864
   VENDOR_ID: 4318
   # CAPV feature flags
   EXP_NODE_ANTI_AFFINITY: "true"
+  EXP_MACHINE_SET_PREFLIGHT_CHECKS: "true"
   CAPI_DIAGNOSTICS_ADDRESS: ":8080"
   CAPI_INSECURE_DIAGNOSTICS: "true"
   # Required to be set to install capv-supervisor <= v1.10.

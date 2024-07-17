@@ -16,7 +16,7 @@ images:
     loadBehavior: mustLoad
   - name: gcr.io/k8s-staging-capi-vsphere/cluster-api-net-operator-{ARCH}:dev
     loadBehavior: mustLoad
-  - name: gcr.io/k8s-staging-capi-vsphere/cluster-api-test-extension-{ARCH}:dev
+  - name: gcr.io/k8s-staging-capi-vsphere/cluster-api-vsphere-test-extension-{ARCH}:dev
     loadBehavior: mustLoad
   - name: gcr.io/k8s-staging-capi-vsphere/extra/vm-operator:v1.8.6-0-gde75746a
     loadBehavior: tryLoad

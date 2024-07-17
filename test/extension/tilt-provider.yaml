@@ -2,7 +2,7 @@
 - name: capv-test-extension
   config:
     version: v1.11.99
-    image: gcr.io/k8s-staging-capi-vsphere/cluster-api-test-extension
+    image: gcr.io/k8s-staging-capi-vsphere/cluster-api-vsphere-test-extension
     live_reload_deps:
       - main.go
       - handlers

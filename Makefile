@@ -235,7 +235,7 @@ NET_OPERATOR_IMAGE_NAME ?= cluster-api-net-operator
 NET_OPERATOR_IMG ?= $(STAGING_REGISTRY)/$(NET_OPERATOR_IMAGE_NAME)
 
 # test-extension
-TEST_EXTENSION_IMAGE_NAME ?= cluster-api-test-extension
+TEST_EXTENSION_IMAGE_NAME ?= cluster-api-vsphere-test-extension
 TEST_EXTENSION_IMG ?= $(STAGING_REGISTRY)/$(TEST_EXTENSION_IMAGE_NAME)
 
 # boskosctl

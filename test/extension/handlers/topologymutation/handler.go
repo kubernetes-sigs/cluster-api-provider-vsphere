@@ -77,50 +77,52 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 	// By using WalkTemplates it is possible to implement patches using typed API objects, which makes code
 	// easier to read and less error prone than using unstructured or working with raw json/yaml.
 	// IMPORTANT: by unit testing this func/nested func properly, it is possible to prevent unexpected rollouts when patches are modified.
-	topologymutation.WalkTemplates(ctx, h.decoder, req, resp, func(ctx context.Context, obj runtime.Object, variables map[string]apiextensionsv1.JSON, holderRef runtimehooksv1.HolderReference) error {
-		log := ctrl.LoggerFrom(ctx)
+	topologymutation.WalkTemplates(ctx, h.decoder, req, resp,
+		func(ctx context.Context, obj runtime.Object, variables map[string]apiextensionsv1.JSON, holderRef runtimehooksv1.HolderReference) error {
+			log := ctrl.LoggerFrom(ctx)
 
-		isControlPlane := holderRef.Kind == "KubeadmControlPlane"
+			isControlPlane := holderRef.Kind == "KubeadmControlPlane"
 
-		switch obj := obj.(type) {
-		case *controlplanev1.KubeadmControlPlaneTemplate:
-			if err := patchKubeadmControlPlaneTemplate(ctx, obj, variables); err != nil {
-				log.Error(err, "Error patching KubeadmControlPlaneTemplate")
-				return errors.Wrap(err, "error patching KubeadmControlPlaneTemplate")
+			switch obj := obj.(type) {
+			case *controlplanev1.KubeadmControlPlaneTemplate:
+				if err := patchKubeadmControlPlaneTemplate(ctx, obj, variables); err != nil {
+					log.Error(err, "Error patching KubeadmControlPlaneTemplate")
+					return errors.Wrap(err, "error patching KubeadmControlPlaneTemplate")
+				}
+			case *bootstrapv1.KubeadmConfigTemplate:
+				if err := patchKubeadmConfigTemplate(ctx, obj, variables); err != nil {
+					log.Error(err, "Error patching KubeadmConfigTemplate")
+					return errors.Wrap(err, "error patching KubeadmConfigTemplate")
+				}
+			case *infrav1.VSphereClusterTemplate:
+				if err := patchGovmomiClusterTemplate(ctx, obj, variables); err != nil {
+					log.Error(err, "Error patching VSphereClusterTemplate")
+					return errors.Wrap(err, "error patching VSphereClusterTemplate")
+				}
+			case *infrav1.VSphereMachineTemplate:
+				if err := patchGovmomiMachineTemplate(ctx, obj, variables, isControlPlane); err != nil {
+					log.Error(err, "Error patching VSphereMachineTemplate")
+					return errors.Wrap(err, "error patching VSphereMachineTemplate")
+				}
+			case *vmwarev1.VSphereClusterTemplate:
+				if err := patchSupervisorClusterTemplate(ctx, obj, variables); err != nil {
+					log.Error(err, "Error patching VSphereClusterTemplate")
+					return errors.Wrap(err, "error patching VSphereClusterTemplate")
+				}
+			case *vmwarev1.VSphereMachineTemplate:
+				if err := patchSupervisorMachineTemplate(ctx, obj, variables, isControlPlane); err != nil {
+					log.Error(err, "Error patching VSphereMachineTemplate")
+					return errors.Wrap(err, "error patching VSphereMachineTemplate")
+				}
 			}
-		case *bootstrapv1.KubeadmConfigTemplate:
-			if err := patchKubeadmConfigTemplate(ctx, obj, variables); err != nil {
-				log.Error(err, "Error patching KubeadmConfigTemplate")
-				return errors.Wrap(err, "error patching KubeadmConfigTemplate")
-			}
-		case *infrav1.VSphereClusterTemplate:
-			if err := patchGovmomiClusterTemplate(ctx, obj, variables); err != nil {
-				log.Error(err, "Error patching VSphereClusterTemplate")
-				return errors.Wrap(err, "error patching VSphereClusterTemplate")
-			}
-		case *infrav1.VSphereMachineTemplate:
-			if err := patchGovmomiMachineTemplate(ctx, obj, variables, isControlPlane); err != nil {
-				log.Error(err, "Error patching VSphereMachineTemplate")
-				return errors.Wrap(err, "error patching VSphereMachineTemplate")
-			}
-		case *vmwarev1.VSphereClusterTemplate:
-			if err := patchSupervisorClusterTemplate(ctx, obj, variables); err != nil {
-				log.Error(err, "Error patching VSphereClusterTemplate")
-				return errors.Wrap(err, "error patching VSphereClusterTemplate")
-			}
-		case *vmwarev1.VSphereMachineTemplate:
-			if err := patchSupervisorMachineTemplate(ctx, obj, variables, isControlPlane); err != nil {
-				log.Error(err, "Error patching VSphereMachineTemplate")
-				return errors.Wrap(err, "error patching VSphereMachineTemplate")
-			}
-		}
-		return nil
-	},
+			return nil
+		},
 		// Use a merge-patch instead of a JSON patch because WalkTemplates would create
 		// an incompatible patch for vmwarev1.VSphereClusterTemplate because we provide
 		// an empty template without a set `.spec` and due to omitempty
 		// `.spec.template.spec.controlPlaneEndpoint` does not exist.
-		topologymutation.PatchFormat{Format: runtimehooksv1.JSONMergePatchType})
+		topologymutation.PatchFormat{Format: runtimehooksv1.JSONMergePatchType},
+	)
 }
 
 // patchKubeadmControlPlaneTemplate patches the KubeadmControlPlaneTemplate.

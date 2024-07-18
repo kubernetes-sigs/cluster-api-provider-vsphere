@@ -43,9 +43,10 @@ import (
 )
 
 type setupOptions struct {
-	additionalIPVariableNames []string
-	gatewayIPVariableName     string
-	prefixVariableName        string
+	additionalIPVariableNames   []string
+	gatewayIPVariableName       string
+	prefixVariableName          string
+	useKindForManagementCluster bool
 }
 
 // SetupOption is a configuration option supplied to Setup.
@@ -73,6 +74,13 @@ func WithPrefix(variableName string) SetupOption {
 	}
 }
 
+// WithUseKindForManagementCluster instructs Setup to run extra steps for the separate kind management cluster.
+func WithUseKindForManagementCluster() SetupOption {
+	return func(o *setupOptions) {
+		o.useKindForManagementCluster = true
+	}
+}
+
 type testSettings struct {
 	ClusterctlConfigPath      string
 	Variables                 map[string]string
@@ -91,92 +99,34 @@ func Setup(specName string, f func(testSpecificSettings func() testSettings), op
 	var (
 		testSpecificClusterctlConfigPath string
 		testSpecificIPAddressClaims      vsphereip.AddressClaims
+		testSpecificIPAddressManager     vsphereip.AddressManager
 		testSpecificVariables            map[string]string
 		postNamespaceCreatedFunc         func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
 		runtimeExtensionProviders        []string
 	)
 	BeforeEach(func() {
 		Byf("Setting up test env for %s", specName)
-		switch testTarget {
-		case VCenterTestTarget:
-			Byf("Getting IP for %s", strings.Join(append([]string{vsphereip.ControlPlaneEndpointIPVariable}, options.additionalIPVariableNames...), ","))
-			// get IPs from the in cluster address manager
-			testSpecificIPAddressClaims, testSpecificVariables = inClusterAddressManager.ClaimIPs(ctx, vsphereip.WithGateway(options.gatewayIPVariableName), vsphereip.WithPrefix(options.prefixVariableName), vsphereip.WithIP(options.additionalIPVariableNames...))
-		case VCSimTestTarget:
-			c := bootstrapClusterProxy.GetClient()
-
-			// get IPs from the vcsim controller
-			// NOTE: ControlPlaneEndpointIP is the first claim in the returned list (this assumption is used below).
-			Byf("Getting IP for %s", strings.Join(append([]string{vsphereip.ControlPlaneEndpointIPVariable}, options.additionalIPVariableNames...), ","))
-			testSpecificIPAddressClaims, testSpecificVariables = vcsimAddressManager.ClaimIPs(ctx, vsphereip.WithIP(options.additionalIPVariableNames...))
-
-			// variables derived from the vCenterSimulator
-			vCenterSimulator, err := vspherevcsim.Get(ctx, bootstrapClusterProxy.GetClient())
-			Expect(err).ToNot(HaveOccurred(), "Failed to get VCenterSimulator")
-
-			Byf("Creating EnvVar %s", klog.KRef(metav1.NamespaceDefault, specName))
-			envVar := &vcsimv1.EnvVar{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      specName,
-					Namespace: metav1.NamespaceDefault,
-				},
-				Spec: vcsimv1.EnvVarSpec{
-					VCenterSimulator: &vcsimv1.NamespacedRef{
-						Namespace: vCenterSimulator.Namespace,
-						Name:      vCenterSimulator.Name,
-					},
-					ControlPlaneEndpoint: vcsimv1.NamespacedRef{
-						Namespace: testSpecificIPAddressClaims[0].Namespace,
-						Name:      testSpecificIPAddressClaims[0].Name,
-					},
-					// NOTE: we are omitting VMOperatorDependencies because it is not created yet (it will be created by the PostNamespaceCreated hook)
-					// But this is not a issue because a default dependenciesConfig that works for vcsim will be automatically used.
-				},
-			}
-
-			err = c.Create(ctx, envVar)
-			Expect(err).ToNot(HaveOccurred(), "Failed to create EnvVar")
-
-			Eventually(func() bool {
-				if err := c.Get(ctx, crclient.ObjectKeyFromObject(envVar), envVar); err != nil {
-					return false
-				}
-				return len(envVar.Status.Variables) > 0
-			}, 30*time.Second, 5*time.Second).Should(BeTrue(), "Failed to get EnvVar %s", klog.KObj(envVar))
-
-			Byf("Setting test variables for %s", specName)
-			for k, v := range envVar.Status.Variables {
-				// ignore variables that will be set later on by the test
-				if sets.New("NAMESPACE", "CLUSTER_NAME", "KUBERNETES_VERSION", "CONTROL_PLANE_MACHINE_COUNT", "WORKER_MACHINE_COUNT").Has(k) {
-					continue
-				}
-
-				// unset corresponding env variable (that in CI contains VMC data), so we are sure we use the value for vcsim
-				if strings.HasPrefix(k, "VSPHERE_") {
-					Expect(os.Unsetenv(k)).To(Succeed())
-				}
-
-				testSpecificVariables[k] = v
-			}
+		if testSpecificVariables == nil {
+			testSpecificVariables = map[string]string{}
 		}
 
+		// Update the CLUSTER_CLASS_NAME variable adding the supervisor suffix.
 		if testMode == SupervisorTestMode {
-			postNamespaceCreatedFunc = setupNamespaceWithVMOperatorDependenciesVCenter
-			if testTarget == VCSimTestTarget {
-				postNamespaceCreatedFunc = setupNamespaceWithVMOperatorDependenciesVCSim
-			}
-
-			if testSpecificVariables == nil {
-				testSpecificVariables = map[string]string{}
-			}
-
-			// Update the CLUSTER_CLASS_NAME variable adding the supervisor suffix.
 			if e2eConfig.HasVariable("CLUSTER_CLASS_NAME") {
 				testSpecificVariables["CLUSTER_CLASS_NAME"] = fmt.Sprintf("%s-supervisor", e2eConfig.GetVariable("CLUSTER_CLASS_NAME"))
 			}
 		}
 
-		// Create a new clusterctl config file based on the passed file and add the new variables for the IPs.
+		// Enable additional providers depending on testMode and testTarget.
+		if testMode == SupervisorTestMode {
+			runtimeExtensionProviders = append(runtimeExtensionProviders, "vm-operator", "net-operator")
+		}
+		if testTarget == VCSimTestTarget {
+			runtimeExtensionProviders = append(runtimeExtensionProviders, "vcsim")
+		}
+
+		// Create a new clusterctl config file based on the passed file. The postNamespaceCreatedFunc
+		// may re-write the file to add some variables, but it needs to exist already before that.
 		testSpecificClusterctlConfigPath = fmt.Sprintf("%s-%s.yaml", strings.TrimSuffix(clusterctlConfigPath, ".yaml"), specName)
 		Byf("Writing a new clusterctl config to %s", testSpecificClusterctlConfigPath)
 		copyAndAmendClusterctlConfig(ctx, copyAndAmendClusterctlConfigInput{
@@ -185,23 +135,126 @@ func Setup(specName string, f func(testSpecificSettings func() testSettings), op
 			Variables:            testSpecificVariables,
 		})
 
-		if testMode == SupervisorTestMode {
-			runtimeExtensionProviders = append(runtimeExtensionProviders, "vm-operator", "net-operator")
-		}
+		postNamespaceCreatedFunc = func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string) {
+			var ipVariables map[string]string
 
-		if testTarget == VCSimTestTarget {
-			runtimeExtensionProviders = append(runtimeExtensionProviders, "vcsim")
+			if testTarget == VCSimTestTarget && options.useKindForManagementCluster {
+				Byf("Creating a vcsim server")
+				Eventually(func() error {
+					return vspherevcsim.Create(ctx, managementClusterProxy.GetClient())
+				}, time.Minute, 3*time.Second).ShouldNot(HaveOccurred(), "Failed to create VCenterSimulator")
+			}
+
+			// IP Address Management
+			switch testTarget {
+			case VCenterTestTarget:
+				testSpecificIPAddressManager = inClusterAddressManager
+
+				Byf("Getting IP for %s", strings.Join(append([]string{vsphereip.ControlPlaneEndpointIPVariable}, options.additionalIPVariableNames...), ","))
+				// get IPs from the in cluster address manager
+				testSpecificIPAddressClaims, ipVariables = testSpecificIPAddressManager.ClaimIPs(ctx, vsphereip.WithGateway(options.gatewayIPVariableName), vsphereip.WithPrefix(options.prefixVariableName), vsphereip.WithIP(options.additionalIPVariableNames...))
+				for k, v := range ipVariables {
+					testSpecificVariables[k] = v
+				}
+
+			case VCSimTestTarget:
+				testSpecificIPAddressManager = vcsimAddressManager
+				// Use a new address manager when using VCSim in a separate kind management cluster.
+				if options.useKindForManagementCluster {
+					var err error
+					testSpecificIPAddressManager, err = vsphereip.VCSIMAddressManager(managementClusterProxy.GetClient(), map[string]string{}, skipCleanup)
+					Expect(err).ToNot(HaveOccurred())
+				}
+
+				// get IPs from the vcsim controller
+				// NOTE: ControlPlaneEndpointIP is the first claim in the returned list (this assumption is used below).
+				Byf("Getting IP for %s", strings.Join(append([]string{vsphereip.ControlPlaneEndpointIPVariable}, options.additionalIPVariableNames...), ","))
+				testSpecificIPAddressClaims, ipVariables = testSpecificIPAddressManager.ClaimIPs(ctx, vsphereip.WithIP(options.additionalIPVariableNames...))
+				for k, v := range ipVariables {
+					testSpecificVariables[k] = v
+				}
+			}
+
+			// Additional initialization required when running on VCSim.
+			if testTarget == VCSimTestTarget {
+				// variables derived from the vCenterSimulator
+				vCenterSimulator, err := vspherevcsim.Get(ctx, managementClusterProxy.GetClient())
+				Expect(err).ToNot(HaveOccurred(), "Failed to get VCenterSimulator")
+
+				Byf("Creating EnvVar %s", klog.KRef(metav1.NamespaceDefault, specName))
+				envVar := &vcsimv1.EnvVar{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      specName,
+						Namespace: metav1.NamespaceDefault,
+					},
+					Spec: vcsimv1.EnvVarSpec{
+						VCenterSimulator: &vcsimv1.NamespacedRef{
+							Namespace: vCenterSimulator.Namespace,
+							Name:      vCenterSimulator.Name,
+						},
+						ControlPlaneEndpoint: vcsimv1.NamespacedRef{
+							Namespace: testSpecificIPAddressClaims[0].Namespace,
+							Name:      testSpecificIPAddressClaims[0].Name,
+						},
+						// NOTE: we are omitting VMOperatorDependencies because it is not created yet (it will be created by the PostNamespaceCreated hook)
+						// But this is not a issue because a default dependenciesConfig that works for vcsim will be automatically used.
+					},
+				}
+
+				err = managementClusterProxy.GetClient().Create(ctx, envVar)
+				Expect(err).ToNot(HaveOccurred(), "Failed to create EnvVar")
+
+				Eventually(func() bool {
+					if err := managementClusterProxy.GetClient().Get(ctx, crclient.ObjectKeyFromObject(envVar), envVar); err != nil {
+						return false
+					}
+					return len(envVar.Status.Variables) > 0
+				}, 30*time.Second, 5*time.Second).Should(BeTrue(), "Failed to get EnvVar %s", klog.KObj(envVar))
+
+				Byf("Setting test variables for %s", specName)
+				for k, v := range envVar.Status.Variables {
+					// ignore variables that will be set later on by the test
+					if sets.New("NAMESPACE", "CLUSTER_NAME", "KUBERNETES_VERSION", "CONTROL_PLANE_MACHINE_COUNT", "WORKER_MACHINE_COUNT").Has(k) {
+						continue
+					}
+
+					// unset corresponding env variable (that in CI contains VMC data), so we are sure we use the value for vcsim
+					if strings.HasPrefix(k, "VSPHERE_") {
+						Expect(os.Unsetenv(k)).To(Succeed())
+					}
+
+					testSpecificVariables[k] = v
+				}
+			}
+
+			// Re-write the clusterctl config file and add the new variables.
+			testSpecificClusterctlConfigPath = fmt.Sprintf("%s-%s.yaml", strings.TrimSuffix(clusterctlConfigPath, ".yaml"), specName)
+			Byf("Writing a new clusterctl config to %s", testSpecificClusterctlConfigPath)
+			copyAndAmendClusterctlConfig(ctx, copyAndAmendClusterctlConfigInput{
+				ClusterctlConfigPath: testSpecificClusterctlConfigPath,
+				OutputPath:           testSpecificClusterctlConfigPath,
+				Variables:            testSpecificVariables,
+			})
+
+			// Run additional initialization required for supervisor.
+			if testMode == SupervisorTestMode {
+				switch testTarget {
+				case VCenterTestTarget:
+					setupNamespaceWithVMOperatorDependenciesVCenter(managementClusterProxy, workloadClusterNamespace)
+				case VCSimTestTarget:
+					setupNamespaceWithVMOperatorDependenciesVCSim(managementClusterProxy, workloadClusterNamespace)
+				}
+			}
 		}
 	})
 	defer AfterEach(func() {
-		Byf("Cleaning up test env for %s", specName)
-		switch testTarget {
-		case VCenterTestTarget:
-			// cleanup IPs/controlPlaneEndpoint created by the in cluster ipam provider.
-			Expect(inClusterAddressManager.Cleanup(ctx, testSpecificIPAddressClaims)).To(Succeed())
-		case VCSimTestTarget:
-			// cleanup IPs/controlPlaneEndpoint created by the vcsim controller manager.
-			Expect(vcsimAddressManager.Cleanup(ctx, testSpecificIPAddressClaims)).To(Succeed())
+		if !skipCleanup {
+			Byf("Cleaning up test env for %s", specName)
+			// We can't cleanup when a kind management cluster is used, because it won't exist anymore.
+			if !options.useKindForManagementCluster {
+				// cleanup IPs/controlPlaneEndpoint created by the IPAddressManager.
+				Expect(testSpecificIPAddressManager.Cleanup(ctx, testSpecificIPAddressClaims)).To(Succeed())
+			}
 		}
 	})
 
@@ -232,7 +285,7 @@ func Setup(specName string, f func(testSpecificSettings func() testSettings), op
 func setupNamespaceWithVMOperatorDependenciesVCSim(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string) {
 	c := managementClusterProxy.GetClient()
 
-	vCenterSimulator, err := vspherevcsim.Get(ctx, bootstrapClusterProxy.GetClient())
+	vCenterSimulator, err := vspherevcsim.Get(ctx, c)
 	Expect(err).ToNot(HaveOccurred(), "Failed to get VCenterSimulator")
 
 	Byf("Creating VMOperatorDependencies %s", klog.KRef(workloadClusterNamespace, "vcsim"))

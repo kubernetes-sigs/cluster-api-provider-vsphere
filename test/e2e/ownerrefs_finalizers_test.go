@@ -53,23 +53,6 @@ var _ = Describe("Ensure OwnerReferences and Finalizers are resilient [vcsim] [s
 	const specName = "owner-reference"
 	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		capi_e2e.QuickStartSpec(ctx, func() capi_e2e.QuickStartSpecInput {
-			if testMode == GovmomiTestMode {
-				// NOTE: When testing with vcsim VSPHERE_USERNAME and VSPHERE_PASSWORD are provided as a test specific variables,
-				// when running on CI same variables are provided as env variables.
-				input := testSpecificSettingsGetter()
-				username, ok := input.Variables["VSPHERE_USERNAME"]
-				if !ok {
-					username = os.Getenv("VSPHERE_USERNAME")
-				}
-				password, ok := input.Variables["VSPHERE_PASSWORD"]
-				if !ok {
-					password = os.Getenv("VSPHERE_PASSWORD")
-				}
-
-				// Before running the test create the secret used by the VSphereClusterIdentity to connect to the vCenter.
-				createVsphereIdentitySecret(ctx, bootstrapClusterProxy, username, password)
-			}
-
 			return capi_e2e.QuickStartSpecInput{
 				E2EConfig:             e2eConfig,
 				ClusterctlConfigPath:  testSpecificSettingsGetter().ClusterctlConfigPath,
@@ -77,7 +60,25 @@ var _ = Describe("Ensure OwnerReferences and Finalizers are resilient [vcsim] [s
 				ArtifactFolder:        artifactFolder,
 				SkipCleanup:           skipCleanup,
 				Flavor:                ptr.To(testSpecificSettingsGetter().FlavorForMode("ownerrefs-finalizers")),
-				PostNamespaceCreated:  testSpecificSettingsGetter().PostNamespaceCreatedFunc,
+				PostNamespaceCreated: func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string) {
+					testSpecificSettingsGetter().PostNamespaceCreatedFunc(managementClusterProxy, workloadClusterNamespace)
+					if testMode == GovmomiTestMode {
+						// NOTE: When testing with vcsim VSPHERE_USERNAME and VSPHERE_PASSWORD are provided as a test specific variables,
+						// when running on CI same variables are provided as env variables.
+						input := testSpecificSettingsGetter()
+						username, ok := input.Variables["VSPHERE_USERNAME"]
+						if !ok {
+							username = os.Getenv("VSPHERE_USERNAME")
+						}
+						password, ok := input.Variables["VSPHERE_PASSWORD"]
+						if !ok {
+							password = os.Getenv("VSPHERE_PASSWORD")
+						}
+
+						// Before running the test create the secret used by the VSphereClusterIdentity to connect to the vCenter.
+						createVsphereIdentitySecret(ctx, bootstrapClusterProxy, username, password)
+					}
+				},
 				PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 					forceCtx, forceCancelFunc := context.WithCancel(ctx)
 					if testMode == GovmomiTestMode {

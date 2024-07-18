@@ -1496,7 +1496,7 @@ data:
           priorityClassName: system-node-critical
           containers:
           - name: vsphere-cpi
-            image: gcr.io/cloud-provider-vsphere/cpi/release/manager:${CPI_IMAGE_K8S_VERSION}
+            image: registry.k8s.io/cloud-pv-vsphere/cloud-provider-vsphere:${CPI_IMAGE_K8S_VERSION}
             imagePullPolicy: IfNotPresent
             args:
               - --cloud-provider=vsphere

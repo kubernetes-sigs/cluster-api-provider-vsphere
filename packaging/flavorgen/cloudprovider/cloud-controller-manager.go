@@ -31,10 +31,6 @@ import (
 
 // NOTE: the contents of this file are derived from https://github.com/kubernetes/cloud-provider-vsphere/tree/master/manifests/controller-manager
 
-const (
-	CPIControllerImageURL = "gcr.io/cloud-provider-vsphere/cpi/release/manager"
-)
-
 // CloudControllerManagerManifests returns the yaml manifests generated via
 // `helm template` from https://github.com/kubernetes/cloud-provider-vsphere/tree/master/charts/vsphere-cpi
 func CloudControllerManagerManifests() (string, error) {

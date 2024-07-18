@@ -95,7 +95,7 @@ func (r vsphereDeploymentZoneReconciler) reconcileTopology(ctx context.Context, 
 
 	for _, network := range topology.Networks {
 		if _, err := deploymentZoneCtx.AuthSession.Finder.Network(ctx, network); err != nil {
-			conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition, infrav1.NetworkNotFoundReason, clusterv1.ConditionSeverityError, "network %s is misconfigured", network)
+			conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition, infrav1.NetworkNotFoundReason, clusterv1.ConditionSeverityError, "network %s is not found", network)
 			return errors.Wrapf(err, "unable to find network %s", network)
 		}
 	}
@@ -105,7 +105,7 @@ func (r vsphereDeploymentZoneReconciler) reconcileTopology(ctx context.Context, 
 			continue
 		}
 		if _, err := deploymentZoneCtx.AuthSession.Finder.Network(ctx, networkConfig.NetworkName); err != nil {
-			conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition, infrav1.NetworkNotFoundReason, clusterv1.ConditionSeverityError, "network %s is misconfigured", networkConfig.NetworkName)
+			conditions.MarkFalse(deploymentZoneCtx.VSphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition, infrav1.NetworkNotFoundReason, clusterv1.ConditionSeverityError, "network %s is not found", networkConfig.NetworkName)
 			return errors.Wrapf(err, "unable to find network %s", networkConfig.NetworkName)
 		}
 	}

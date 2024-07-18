@@ -22,12 +22,5 @@ import (
 )
 
 func Convert_v1beta1_Topology_To_v1alpha4_Topology(in *v1beta1.Topology, out *Topology, s conversion.Scope) error {
-	if len(in.NetworkConfigurations) > 0 {
-		networks := make([]string, len(in.NetworkConfigurations))
-		for i := range in.NetworkConfigurations {
-			networks[i] = in.NetworkConfigurations[i].NetworkName
-		}
-		out.Networks = networks
-	}
-	return nil
+	return autoConvert_v1beta1_Topology_To_v1alpha4_Topology(in, out, s)
 }

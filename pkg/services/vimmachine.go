@@ -440,7 +440,7 @@ func (v *VimMachineService) generateOverrideFunc(ctx context.Context, vimMachine
 			vm.Spec.Network.Devices = overrideNetworkDeviceSpecs(vm.Spec.Network.Devices, vsphereFailureDomain.Spec.Topology.Networks, mergeFailureDomainNetworkName)
 		}
 		if len(vsphereFailureDomain.Spec.Topology.NetworkConfigurations) > 0 {
-			vm.Spec.Network.Devices = overrideNetworkDeviceSpecs(vm.Spec.Network.Devices, vsphereFailureDomain.Spec.Topology.NetworkConfigurations, mergeFailureDomainNetSpecToNetworkDeviceSpec)
+			vm.Spec.Network.Devices = overrideNetworkDeviceSpecs(vm.Spec.Network.Devices, vsphereFailureDomain.Spec.Topology.NetworkConfigurations, mergeNetworkConfigurationInNetworkDeviceSpec)
 		}
 	}
 	return overrideWithFailureDomainFunc, true
@@ -477,39 +477,39 @@ func mergeFailureDomainNetworkName(device *infrav1.NetworkDeviceSpec, network st
 	device.NetworkName = network
 }
 
-func mergeFailureDomainNetSpecToNetworkDeviceSpec(device *infrav1.NetworkDeviceSpec, fd infrav1.NetworkConfiguration) {
+func mergeNetworkConfigurationInNetworkDeviceSpec(device *infrav1.NetworkDeviceSpec, nc infrav1.NetworkConfiguration) {
 	if device == nil {
 		return
 	}
-	if fd.NetworkName != "" {
-		device.NetworkName = fd.NetworkName
+	if nc.NetworkName != "" {
+		device.NetworkName = nc.NetworkName
 	}
-	if fd.DHCP4 != nil {
-		device.DHCP4 = *fd.DHCP4
+	if nc.DHCP4 != nil {
+		device.DHCP4 = *nc.DHCP4
 	}
-	if fd.DHCP6 != nil {
-		device.DHCP6 = *fd.DHCP6
+	if nc.DHCP6 != nil {
+		device.DHCP6 = *nc.DHCP6
 	}
-	if len(fd.Nameservers) > 0 {
-		device.Nameservers = make([]string, len(fd.Nameservers))
-		copy(device.Nameservers, fd.Nameservers)
-	}
-
-	if len(fd.SearchDomains) > 0 {
-		device.SearchDomains = make([]string, len(fd.SearchDomains))
-		copy(device.SearchDomains, fd.SearchDomains)
+	if len(nc.Nameservers) > 0 {
+		device.Nameservers = make([]string, len(nc.Nameservers))
+		copy(device.Nameservers, nc.Nameservers)
 	}
 
-	if fd.DHCP4Overrides != nil {
-		device.DHCP4Overrides = fd.DHCP4Overrides.DeepCopy()
+	if len(nc.SearchDomains) > 0 {
+		device.SearchDomains = make([]string, len(nc.SearchDomains))
+		copy(device.SearchDomains, nc.SearchDomains)
 	}
 
-	if fd.DHCP6Overrides != nil {
-		device.DHCP6Overrides = fd.DHCP6Overrides.DeepCopy()
+	if nc.DHCP4Overrides != nil {
+		device.DHCP4Overrides = nc.DHCP4Overrides.DeepCopy()
 	}
 
-	if len(fd.AddressesFromPools) > 0 {
-		device.AddressesFromPools = make([]corev1.TypedLocalObjectReference, len(fd.AddressesFromPools))
-		copy(device.AddressesFromPools, fd.AddressesFromPools)
+	if nc.DHCP6Overrides != nil {
+		device.DHCP6Overrides = nc.DHCP6Overrides.DeepCopy()
+	}
+
+	if len(nc.AddressesFromPools) > 0 {
+		device.AddressesFromPools = make([]corev1.TypedLocalObjectReference, len(nc.AddressesFromPools))
+		copy(device.AddressesFromPools, nc.AddressesFromPools)
 	}
 }

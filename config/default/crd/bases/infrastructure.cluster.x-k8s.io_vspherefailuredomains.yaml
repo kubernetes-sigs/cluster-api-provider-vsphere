@@ -366,8 +366,8 @@ spec:
                     - vmGroupName
                     type: object
                   networkConfigs:
-                    description: NetworkConfigurations is a list with new network
-                      configurations within this failure domain
+                    description: NetworkConfigurations is a list of network configurations
+                      within this failure domain.
                     items:
                       description: |-
                         NetworkConfiguration defines a network configuration that should be used when consuming
@@ -403,7 +403,7 @@ spec:
                           type: array
                         dhcp4:
                           description: DHCP4 is a flag that indicates whether or not
-                            to use DHCP for IPv4
+                            to use DHCP for IPv4.
                           type: boolean
                         dhcp4Overrides:
                           description: |-
@@ -464,7 +464,7 @@ spec:
                           type: object
                         dhcp6:
                           description: DHCP6 is a flag that indicates whether or not
-                            to use DHCP for IPv6
+                            to use DHCP for IPv6.
                           type: boolean
                         dhcp6Overrides:
                           description: |-

@@ -315,12 +315,12 @@ func Test_VimMachineService_GenerateOverrideFunc(t *testing.T) {
 	})
 }
 
-func Test_mergeFailureDomainNetSpecToNetworkDeviceSpec(t *testing.T) {
+func Test_mergeNetworkConfigurationToNetworkDeviceSpec(t *testing.T) {
 	t.Run("device is nil", func(t *testing.T) {
 		g := NewWithT(t)
 
 		var device *infrav1.NetworkDeviceSpec
-		mergeFailureDomainNetSpecToNetworkDeviceSpec(device, infrav1.NetworkConfiguration{
+		mergeNetworkConfigurationInNetworkDeviceSpec(device, infrav1.NetworkConfiguration{
 			NetworkName: "ignored",
 		})
 
@@ -332,7 +332,7 @@ func Test_mergeFailureDomainNetSpecToNetworkDeviceSpec(t *testing.T) {
 
 		device := infrav1.NetworkDeviceSpec{}
 
-		mergeFailureDomainNetSpecToNetworkDeviceSpec(&device, infrav1.NetworkConfiguration{
+		mergeNetworkConfigurationInNetworkDeviceSpec(&device, infrav1.NetworkConfiguration{
 			NetworkName:   "nw-name",
 			DHCP4:         ptr.To(true),
 			DHCP6:         ptr.To(false),

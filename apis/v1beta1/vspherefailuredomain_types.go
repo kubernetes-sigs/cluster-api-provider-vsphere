@@ -82,7 +82,7 @@ type Topology struct {
 	// +optional
 	Networks []string `json:"networks,omitempty"`
 
-	// NetworkConfigurations is a list with new network configurations within this failure domain
+	// NetworkConfigurations is a list of network configurations within this failure domain.
 	// +optional
 	NetworkConfigurations []NetworkConfiguration `json:"networkConfigs,omitempty"`
 
@@ -98,11 +98,11 @@ type NetworkConfiguration struct {
 	// NetworkName is the network name for this machine's VM.
 	NetworkName string `json:"name,omitempty"`
 
-	// DHCP4 is a flag that indicates whether or not to use DHCP for IPv4
+	// DHCP4 is a flag that indicates whether or not to use DHCP for IPv4.
 	// +optional
 	DHCP4 *bool `json:"dhcp4,omitempty"`
 
-	// DHCP6 is a flag that indicates whether or not to use DHCP for IPv6
+	// DHCP6 is a flag that indicates whether or not to use DHCP for IPv6.
 	// +optional
 	DHCP6 *bool `json:"dhcp6,omitempty"`
 

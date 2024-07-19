@@ -1,0 +1,5 @@
+- op: add
+  path: /spec/topology/variables/-
+  value:
+    name: controlPlanePort
+    value: ${CONTROL_PLANE_ENDPOINT_PORT:=6443}

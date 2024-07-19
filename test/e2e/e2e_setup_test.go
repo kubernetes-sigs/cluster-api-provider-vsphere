@@ -125,6 +125,13 @@ func Setup(specName string, f func(testSpecificSettings func() testSettings), op
 			runtimeExtensionProviders = append(runtimeExtensionProviders, "vcsim")
 		}
 
+		if testTarget == VCSimTestTarget {
+			// We have to set empty username and password to install capv <= v1.9 because it is in the infrastructure-components,
+			// but it is okay to be empty.
+			testSpecificVariables["VSPHERE_USERNAME"] = ""
+			testSpecificVariables["VSPHERE_PASSWORD"] = ""
+		}
+
 		// Create a new clusterctl config file based on the passed file. The postNamespaceCreatedFunc
 		// may re-write the file to add some variables, but it needs to exist already before that.
 		testSpecificClusterctlConfigPath = fmt.Sprintf("%s-%s.yaml", strings.TrimSuffix(clusterctlConfigPath, ".yaml"), specName)

@@ -25,6 +25,8 @@ import (
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
+
+	"sigs.k8s.io/cluster-api-provider-vsphere/test/framework/vcsim"
 )
 
 var (
@@ -67,11 +69,11 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.10
 				InitWithKubernetesVersion:                "v1.30.0",
 				WorkloadKubernetesVersion:                "v1.30.0",
 				WorkloadFlavor:                           testSpecificSettingsGetter().FlavorForMode("workload"),
-				UseKindForManagementCluster:              true,
+				UseKindForManagementCluster:              testSpecificSettingsGetter().UseKindForManagementCluster,
 				KindManagementClusterNewClusterProxyFunc: kindManagementClusterNewClusterProxyFunc,
 			}
 		})
-	}, WithIP("WORKLOAD_CONTROL_PLANE_ENDPOINT_IP"), WithUseKindForManagementCluster())
+	}, WithIP("WORKLOAD_CONTROL_PLANE_ENDPOINT_IP"), WithAdditionalVCSimServer(true))
 })
 
 var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.9=>current, CAPI 1.6=>1.8) [vcsim] [supervisor] [ClusterClass]", func() {
@@ -105,11 +107,11 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.9=
 				InitWithKubernetesVersion:                "v1.29.0",
 				WorkloadKubernetesVersion:                "v1.29.0",
 				WorkloadFlavor:                           testSpecificSettingsGetter().FlavorForMode("workload"),
-				UseKindForManagementCluster:              true,
+				UseKindForManagementCluster:              testSpecificSettingsGetter().UseKindForManagementCluster,
 				KindManagementClusterNewClusterProxyFunc: kindManagementClusterNewClusterProxyFunc,
 			}
 		})
-	}, WithIP("WORKLOAD_CONTROL_PLANE_ENDPOINT_IP"), WithUseKindForManagementCluster())
+	}, WithIP("WORKLOAD_CONTROL_PLANE_ENDPOINT_IP"), WithAdditionalVCSimServer(true))
 })
 
 // getStableReleaseOfMinor returns the latest stable version of minorRelease.
@@ -119,5 +121,8 @@ func getStableReleaseOfMinor(ctx context.Context, releaseMarkerPrefix, minorRele
 }
 
 func kindManagementClusterNewClusterProxyFunc(name string, kubeconfigPath string) framework.ClusterProxy {
+	if testTarget == VCSimTestTarget {
+		return vcsim.NewClusterProxy(name, kubeconfigPath, initScheme())
+	}
 	return framework.NewClusterProxy(name, kubeconfigPath, initScheme())
 }

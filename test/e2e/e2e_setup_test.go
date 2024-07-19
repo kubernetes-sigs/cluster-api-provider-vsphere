@@ -43,10 +43,10 @@ import (
 )
 
 type setupOptions struct {
-	additionalIPVariableNames   []string
-	gatewayIPVariableName       string
-	prefixVariableName          string
-	useKindForManagementCluster bool
+	additionalIPVariableNames []string
+	gatewayIPVariableName     string
+	prefixVariableName        string
+	additionalVCSimServer     bool
 }
 
 // SetupOption is a configuration option supplied to Setup.
@@ -74,19 +74,21 @@ func WithPrefix(variableName string) SetupOption {
 	}
 }
 
-// WithUseKindForManagementCluster instructs Setup to run extra steps for the separate kind management cluster.
-func WithUseKindForManagementCluster() SetupOption {
+// WithAdditionalVCSimServer instructs Setup to run extra steps for setting up VCSim
+// with a separate kind management cluster.
+func WithAdditionalVCSimServer(t bool) SetupOption {
 	return func(o *setupOptions) {
-		o.useKindForManagementCluster = true
+		o.additionalVCSimServer = t
 	}
 }
 
 type testSettings struct {
-	ClusterctlConfigPath      string
-	Variables                 map[string]string
-	PostNamespaceCreatedFunc  func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
-	FlavorForMode             func(flavor string) string
-	RuntimeExtensionProviders []string
+	ClusterctlConfigPath        string
+	Variables                   map[string]string
+	PostNamespaceCreatedFunc    func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
+	FlavorForMode               func(flavor string) string
+	RuntimeExtensionProviders   []string
+	UseKindForManagementCluster bool
 }
 
 // Setup for the specific test.
@@ -145,7 +147,7 @@ func Setup(specName string, f func(testSpecificSettings func() testSettings), op
 		postNamespaceCreatedFunc = func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string) {
 			var ipVariables map[string]string
 
-			if testTarget == VCSimTestTarget && options.useKindForManagementCluster {
+			if options.additionalVCSimServer && testTarget == VCSimTestTarget {
 				Byf("Creating a vcsim server")
 				Eventually(func() error {
 					return vspherevcsim.Create(ctx, managementClusterProxy.GetClient())
@@ -167,7 +169,7 @@ func Setup(specName string, f func(testSpecificSettings func() testSettings), op
 			case VCSimTestTarget:
 				testSpecificIPAddressManager = vcsimAddressManager
 				// Use a new address manager when using VCSim in a separate kind management cluster.
-				if options.useKindForManagementCluster {
+				if options.additionalVCSimServer {
 					var err error
 					testSpecificIPAddressManager, err = vsphereip.VCSIMAddressManager(managementClusterProxy.GetClient(), map[string]string{}, skipCleanup)
 					Expect(err).ToNot(HaveOccurred())
@@ -258,7 +260,7 @@ func Setup(specName string, f func(testSpecificSettings func() testSettings), op
 		if !skipCleanup {
 			Byf("Cleaning up test env for %s", specName)
 			// We can't cleanup when a kind management cluster is used, because it won't exist anymore.
-			if !options.useKindForManagementCluster {
+			if !options.additionalVCSimServer {
 				// cleanup IPs/controlPlaneEndpoint created by the IPAddressManager.
 				Expect(testSpecificIPAddressManager.Cleanup(ctx, testSpecificIPAddressClaims)).To(Succeed())
 			}
@@ -284,7 +286,8 @@ func Setup(specName string, f func(testSpecificSettings func() testSettings), op
 				}
 				return flavor
 			},
-			RuntimeExtensionProviders: runtimeExtensionProviders,
+			RuntimeExtensionProviders:   runtimeExtensionProviders,
+			UseKindForManagementCluster: options.additionalVCSimServer,
 		}
 	})
 }

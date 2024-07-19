@@ -144,6 +144,18 @@ func Setup(specName string, f func(testSpecificSettings func() testSettings), op
 			Variables:            testSpecificVariables,
 		})
 
+		// The setup done in `postNamespaceCreatedFunc` does
+		// 1. Create a VCSim Server (only for VCSim and separate management cluster / clusterctl upgrade)
+		// 2. Allocate IPs from the ip address manager
+		// 3. Create an VCSim related EnvVars object to add additional variables (only for VCSim)
+		// 4. Modify the clusterctl config file to add the IPs (and other variables for VCSim)
+		// 5. Create prerequisites for vm-operator (only for vm-operator)
+		//
+		// In case of running VCSim tests at a separate management cluster, this is the
+		// earliest moment where we can create the VCSim server, because the management
+		// cluster gets created at the beginning of the test. The other steps (except 5)
+		// rely in that case that VCSim is available which is why all of this needs to
+		// happen in the postNamespaceCreatedFunc.
 		postNamespaceCreatedFunc = func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string) {
 			var ipVariables map[string]string
 
@@ -259,7 +271,8 @@ func Setup(specName string, f func(testSpecificSettings func() testSettings), op
 	defer AfterEach(func() {
 		if !skipCleanup {
 			Byf("Cleaning up test env for %s", specName)
-			// We can't cleanup when a kind management cluster is used, because it won't exist anymore.
+			// We can't cleanup when a kind management cluster is used, because the test
+			// deletes the whole cluster before we would reach this code.
 			if !options.additionalVCSimServer {
 				// cleanup IPs/controlPlaneEndpoint created by the IPAddressManager.
 				Expect(testSpecificIPAddressManager.Cleanup(ctx, testSpecificIPAddressClaims)).To(Succeed())

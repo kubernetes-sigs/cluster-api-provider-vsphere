@@ -62,6 +62,9 @@ var _ = Describe("Ensure OwnerReferences and Finalizers are resilient [vcsim] [s
 				Flavor:                ptr.To(testSpecificSettingsGetter().FlavorForMode("ownerrefs-finalizers")),
 				PostNamespaceCreated: func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string) {
 					testSpecificSettingsGetter().PostNamespaceCreatedFunc(managementClusterProxy, workloadClusterNamespace)
+
+					// The PostNamespaceCreatedFunc adds the VSPHERE_USERNAME and VSPHERE_PASSWORD
+					// when testing on VCSim so we can only set them after running it.
 					if testMode == GovmomiTestMode {
 						// NOTE: When testing with vcsim VSPHERE_USERNAME and VSPHERE_PASSWORD are provided as a test specific variables,
 						// when running on CI same variables are provided as env variables.

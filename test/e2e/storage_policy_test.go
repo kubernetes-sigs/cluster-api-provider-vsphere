@@ -50,7 +50,7 @@ var _ = Describe("Cluster creation with storage policy", func() {
 
 		BeforeEach(func() {
 			Expect(bootstrapClusterProxy).NotTo(BeNil(), "BootstrapClusterProxy can't be nil")
-			namespace = setupSpecNamespace("capv-e2e")
+			namespace = setupSpecNamespace("capv-e2e", testSpecificSettingsGetter().PostNamespaceCreatedFunc)
 		})
 
 		AfterEach(func() {

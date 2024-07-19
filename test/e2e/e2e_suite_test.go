@@ -361,7 +361,7 @@ func initScheme() *runtime.Scheme {
 	return sc
 }
 
-func setupSpecNamespace(specName string) *corev1.Namespace {
+func setupSpecNamespace(specName string, postNamespaceCreatedFunc func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)) *corev1.Namespace {
 	Byf("Creating a namespace for hosting the %q test spec", specName)
 	namespace, cancelWatches := framework.CreateNamespaceAndWatchEvents(ctx, framework.CreateNamespaceAndWatchEventsInput{
 		Creator:   bootstrapClusterProxy.GetClient(),
@@ -371,6 +371,8 @@ func setupSpecNamespace(specName string) *corev1.Namespace {
 	})
 
 	namespaces[namespace] = cancelWatches
+
+	postNamespaceCreatedFunc(bootstrapClusterProxy, namespace.Name)
 
 	return namespace
 }

@@ -51,7 +51,7 @@ var _ = Describe("Hardware version upgrade", func() {
 
 		BeforeEach(func() {
 			Expect(bootstrapClusterProxy).NotTo(BeNil(), "BootstrapClusterProxy can't be nil")
-			namespace = setupSpecNamespace(specName)
+			namespace = setupSpecNamespace(specName, testSpecificSettingsGetter().PostNamespaceCreatedFunc)
 		})
 
 		AfterEach(func() {

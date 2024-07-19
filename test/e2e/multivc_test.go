@@ -46,32 +46,35 @@ type MultiVCenterSpecInput struct {
 }
 
 var _ = Describe("Cluster creation with multivc [specialized-infra]", func() {
-	var namespace *corev1.Namespace
+	const specName = "multi-vc"
+	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
+		var namespace *corev1.Namespace
 
-	BeforeEach(func() {
-		Expect(bootstrapClusterProxy).NotTo(BeNil(), "BootstrapClusterProxy can't be nil")
-		namespace = setupSpecNamespace("capv-e2e")
-	})
+		BeforeEach(func() {
+			Expect(bootstrapClusterProxy).NotTo(BeNil(), "BootstrapClusterProxy can't be nil")
+			namespace = setupSpecNamespace("capv-e2e", testSpecificSettingsGetter().PostNamespaceCreatedFunc)
+		})
 
-	AfterEach(func() {
-		cleanupSpecNamespace(namespace)
-	})
+		AfterEach(func() {
+			cleanupSpecNamespace(namespace)
+		})
 
-	It("should create a cluster successfully", func() {
-		VerifyMultiVC(ctx, MultiVCenterSpecInput{
-			Namespace:  namespace,
-			Datacenter: vsphereDatacenter,
-			InfraClients: InfraClients{
-				Client:     vsphereClient,
-				RestClient: restClient,
-				Finder:     vsphereFinder,
-			},
-			Global: GlobalInput{
-				BootstrapClusterProxy: bootstrapClusterProxy,
-				ClusterctlConfigPath:  clusterctlConfigPath,
-				E2EConfig:             e2eConfig,
-				ArtifactFolder:        artifactFolder,
-			},
+		It("should create a cluster successfully", func() {
+			VerifyMultiVC(ctx, MultiVCenterSpecInput{
+				Namespace:  namespace,
+				Datacenter: vsphereDatacenter,
+				InfraClients: InfraClients{
+					Client:     vsphereClient,
+					RestClient: restClient,
+					Finder:     vsphereFinder,
+				},
+				Global: GlobalInput{
+					BootstrapClusterProxy: bootstrapClusterProxy,
+					ClusterctlConfigPath:  clusterctlConfigPath,
+					E2EConfig:             e2eConfig,
+					ArtifactFolder:        artifactFolder,
+				},
+			})
 		})
 	})
 })

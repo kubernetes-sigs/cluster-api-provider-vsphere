@@ -39,7 +39,7 @@ var _ = Describe("Cluster creation with GPU devices as PCI passthrough [speciali
 		)
 		BeforeEach(func() {
 			Expect(bootstrapClusterProxy).NotTo(BeNil(), "BootstrapClusterProxy can't be nil")
-			namespace = setupSpecNamespace(specName)
+			namespace = setupSpecNamespace(specName, testSpecificSettingsGetter().PostNamespaceCreatedFunc)
 		})
 
 		It("should create the cluster with worker nodes having GPU cards added as PCI passthrough devices", func() {

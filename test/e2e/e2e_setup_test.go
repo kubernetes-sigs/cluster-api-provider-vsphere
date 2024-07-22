@@ -167,7 +167,6 @@ func Setup(specName string, f func(testSpecificSettings func() testSettings), op
 			}
 
 			// Re-write the clusterctl config file and add the new variables created above (ip addresses, VCSim variables).
-			testSpecificClusterctlConfigPath = fmt.Sprintf("%s-%s.yaml", strings.TrimSuffix(clusterctlConfigPath, ".yaml"), specName)
 			Byf("Writing a new clusterctl config to %s", testSpecificClusterctlConfigPath)
 			copyAndAmendClusterctlConfig(ctx, copyAndAmendClusterctlConfigInput{
 				ClusterctlConfigPath: testSpecificClusterctlConfigPath,

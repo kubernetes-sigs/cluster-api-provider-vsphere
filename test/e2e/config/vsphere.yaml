@@ -27,7 +27,7 @@ providers:
     type: CoreProvider
     versions:
       - name: "v1.8.0" # supported release in the v1beta1 series
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.8.0-beta.0/core-components.yaml"
+        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20240722/core-components.yaml"
         type: "url"
         contract: v1beta1
         files:

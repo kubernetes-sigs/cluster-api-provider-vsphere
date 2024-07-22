@@ -66,14 +66,20 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.10
 				// InitWithKubernetesVersion should be the highest kubernetes version supported by the init Cluster API version.
 				// This is to guarantee that both, the old and new CAPI version, support the defined version.
 				// Ensure all Kubernetes versions used here are covered in patch-vsphere-template.yaml
-				InitWithKubernetesVersion:                "v1.30.0",
-				WorkloadKubernetesVersion:                "v1.30.0",
-				WorkloadFlavor:                           testSpecificSettingsGetter().FlavorForMode("workload"),
-				UseKindForManagementCluster:              testSpecificSettingsGetter().UseKindForManagementCluster,
+				InitWithKubernetesVersion: "v1.30.0",
+				WorkloadKubernetesVersion: "v1.30.0",
+				WorkloadFlavor:            testSpecificSettingsGetter().FlavorForMode("workload"),
+				// We are using a separate management cluster. For running in VCSim we also have to pass WithAdditionalVCSimServer
+				// below otherwise there will be no VCSim instance created in the management cluster.
+				UseKindForManagementCluster:              true,
 				KindManagementClusterNewClusterProxyFunc: kindManagementClusterNewClusterProxyFunc,
 			}
 		})
-	}, WithIP("WORKLOAD_CONTROL_PLANE_ENDPOINT_IP"), WithAdditionalVCSimServer(true))
+	},
+		WithIP("WORKLOAD_CONTROL_PLANE_ENDPOINT_IP"),
+		// This is required because we are using a separate management cluster with kind by passing `UseKindForManagementCluster` above.
+		WithAdditionalVCSimServer(true),
+	)
 })
 
 var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.9=>current, CAPI 1.6=>1.8) [vcsim] [supervisor] [ClusterClass]", func() {
@@ -104,14 +110,20 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.9=
 				// InitWithKubernetesVersion should be the highest kubernetes version supported by the init Cluster API version.
 				// This is to guarantee that both, the old and new CAPI version, support the defined version.
 				// Ensure all Kubernetes versions used here are covered in patch-vsphere-template.yaml
-				InitWithKubernetesVersion:                "v1.29.0",
-				WorkloadKubernetesVersion:                "v1.29.0",
-				WorkloadFlavor:                           testSpecificSettingsGetter().FlavorForMode("workload"),
-				UseKindForManagementCluster:              testSpecificSettingsGetter().UseKindForManagementCluster,
+				InitWithKubernetesVersion: "v1.29.0",
+				WorkloadKubernetesVersion: "v1.29.0",
+				WorkloadFlavor:            testSpecificSettingsGetter().FlavorForMode("workload"),
+				// We are using a separate management cluster. For running in VCSim we also have to pass WithAdditionalVCSimServer
+				// below otherwise there will be no VCSim instance created in the management cluster.
+				UseKindForManagementCluster:              true,
 				KindManagementClusterNewClusterProxyFunc: kindManagementClusterNewClusterProxyFunc,
 			}
 		})
-	}, WithIP("WORKLOAD_CONTROL_PLANE_ENDPOINT_IP"), WithAdditionalVCSimServer(true))
+	},
+		WithIP("WORKLOAD_CONTROL_PLANE_ENDPOINT_IP"),
+		// This is required because we are using a separate management cluster with kind by passing `UseKindForManagementCluster` above.
+		WithAdditionalVCSimServer(true),
+	)
 })
 
 // getStableReleaseOfMinor returns the latest stable version of minorRelease.

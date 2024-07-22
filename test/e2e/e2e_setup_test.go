@@ -247,10 +247,12 @@ func allocateIPAddresses(managementClusterProxy framework.ClusterProxy, options 
 		}
 
 	case VCSimTestTarget:
+		testSpecificIPAddressManager = vcsimAddressManager
+
+		// Create a new address manager when using VCSim in a separate management cluster.
+		// Otherwise it allocates IPs in the wrong management cluster.
 		if options.additionalVCSimServer {
 			var err error
-			// Create a new address manager when using VCSim in a separate management cluster.
-			// Otherwise it allocates IPs in the wrong management cluster.
 			testSpecificIPAddressManager, err = vsphereip.VCSIMAddressManager(managementClusterProxy.GetClient(), map[string]string{}, skipCleanup)
 			Expect(err).ToNot(HaveOccurred())
 		}

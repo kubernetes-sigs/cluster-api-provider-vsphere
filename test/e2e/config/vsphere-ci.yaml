@@ -201,6 +201,7 @@ variables:
   VSPHERE_TEMPLATE: "ubuntu-2204-kube-v1.29.0"
   FLATCAR_VSPHERE_TEMPLATE: "flatcar-stable-3602.2.3-kube-v1.29.0"
   VSPHERE_INSECURE_CSI: "true"
+  VSPHERE_INSECURE_CPI: "true"
   KUBETEST_CONFIGURATION: "./data/kubetest/conformance.yaml"
   NODE_DRAIN_TIMEOUT: "60s"
   CLUSTER_TOPOLOGY: "true"

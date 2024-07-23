@@ -25,6 +25,8 @@ import (
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
+
+	"sigs.k8s.io/cluster-api-provider-vsphere/test/framework/vcsim"
 )
 
 var (
@@ -36,7 +38,7 @@ var (
 	capvReleaseMarkerPrefix = "go://sigs.k8s.io/cluster-api-provider-vsphere@v%s"
 )
 
-var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.10=>current, CAPI 1.7=>1.8) [supervisor] [ClusterClass]", func() {
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.10=>current, CAPI 1.7=>1.8) [vcsim] [supervisor] [ClusterClass]", func() {
 	const specName = "clusterctl-upgrade-1.10-current" // prefix (clusterctl-upgrade) copied from CAPI
 	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
@@ -64,17 +66,23 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.10
 				// InitWithKubernetesVersion should be the highest kubernetes version supported by the init Cluster API version.
 				// This is to guarantee that both, the old and new CAPI version, support the defined version.
 				// Ensure all Kubernetes versions used here are covered in patch-vsphere-template.yaml
-				InitWithKubernetesVersion:                "v1.30.0",
-				WorkloadKubernetesVersion:                "v1.30.0",
-				WorkloadFlavor:                           testSpecificSettingsGetter().FlavorForMode("workload"),
+				InitWithKubernetesVersion: "v1.30.0",
+				WorkloadKubernetesVersion: "v1.30.0",
+				WorkloadFlavor:            testSpecificSettingsGetter().FlavorForMode("workload"),
+				// We are using a separate management cluster. For running in VCSim we also have to pass WithAdditionalVCSimServer
+				// below otherwise there will be no VCSim instance created in the management cluster.
 				UseKindForManagementCluster:              true,
 				KindManagementClusterNewClusterProxyFunc: kindManagementClusterNewClusterProxyFunc,
 			}
 		})
-	}, WithIP("WORKLOAD_CONTROL_PLANE_ENDPOINT_IP"))
+	},
+		WithIP("WORKLOAD_CONTROL_PLANE_ENDPOINT_IP"),
+		// This is required because we are using a separate management cluster with kind by passing `UseKindForManagementCluster` above.
+		WithAdditionalVCSimServer(true),
+	)
 })
 
-var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.9=>current, CAPI 1.6=>1.8) [supervisor] [ClusterClass]", func() {
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.9=>current, CAPI 1.6=>1.8) [vcsim] [supervisor] [ClusterClass]", func() {
 	const specName = "clusterctl-upgrade-1.9-current" // prefix (clusterctl-upgrade) copied from CAPI
 	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
@@ -102,14 +110,20 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.9=
 				// InitWithKubernetesVersion should be the highest kubernetes version supported by the init Cluster API version.
 				// This is to guarantee that both, the old and new CAPI version, support the defined version.
 				// Ensure all Kubernetes versions used here are covered in patch-vsphere-template.yaml
-				InitWithKubernetesVersion:                "v1.29.0",
-				WorkloadKubernetesVersion:                "v1.29.0",
-				WorkloadFlavor:                           testSpecificSettingsGetter().FlavorForMode("workload"),
+				InitWithKubernetesVersion: "v1.29.0",
+				WorkloadKubernetesVersion: "v1.29.0",
+				WorkloadFlavor:            testSpecificSettingsGetter().FlavorForMode("workload"),
+				// We are using a separate management cluster. For running in VCSim we also have to pass WithAdditionalVCSimServer
+				// below otherwise there will be no VCSim instance created in the management cluster.
 				UseKindForManagementCluster:              true,
 				KindManagementClusterNewClusterProxyFunc: kindManagementClusterNewClusterProxyFunc,
 			}
 		})
-	}, WithIP("WORKLOAD_CONTROL_PLANE_ENDPOINT_IP"))
+	},
+		WithIP("WORKLOAD_CONTROL_PLANE_ENDPOINT_IP"),
+		// This is required because we are using a separate management cluster with kind by passing `UseKindForManagementCluster` above.
+		WithAdditionalVCSimServer(true),
+	)
 })
 
 // getStableReleaseOfMinor returns the latest stable version of minorRelease.
@@ -119,5 +133,8 @@ func getStableReleaseOfMinor(ctx context.Context, releaseMarkerPrefix, minorRele
 }
 
 func kindManagementClusterNewClusterProxyFunc(name string, kubeconfigPath string) framework.ClusterProxy {
+	if testTarget == VCSimTestTarget {
+		return vcsim.NewClusterProxy(name, kubeconfigPath, initScheme())
+	}
 	return framework.NewClusterProxy(name, kubeconfigPath, initScheme())
 }

@@ -57,7 +57,7 @@ var _ = Describe("DHCPOverrides configuration test", func() {
 			var namespace *corev1.Namespace
 
 			BeforeEach(func() {
-				namespace = setupSpecNamespace(specName)
+				namespace = setupSpecNamespace(specName, testSpecificSettingsGetter().PostNamespaceCreatedFunc)
 			})
 
 			AfterEach(func() {

@@ -100,7 +100,7 @@ spec:
         valueFrom:
           template: |
             host: '{{ .controlPlaneIpAddr }}'
-            port: 6443
+            port: {{ .controlPlanePort }}
       - op: add
         path: /spec/template/spec/identityRef
         valueFrom:
@@ -223,6 +223,13 @@ spec:
       openAPIV3Schema:
         description: Floating VIP for the control plane.
         type: string
+  - metadata: {}
+    name: controlPlanePort
+    required: true
+    schema:
+      openAPIV3Schema:
+        description: Port for the control plane endpoint.
+        type: integer
   - name: credsSecretName
     required: true
     schema:

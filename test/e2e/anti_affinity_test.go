@@ -53,7 +53,7 @@ var _ = Describe("Cluster creation with anti affined nodes", func() {
 
 		BeforeEach(func() {
 			Expect(bootstrapClusterProxy).NotTo(BeNil(), "BootstrapClusterProxy can't be nil")
-			namespace = setupSpecNamespace("anti-affinity-e2e")
+			namespace = setupSpecNamespace("anti-affinity-e2e", testSpecificSettingsGetter().PostNamespaceCreatedFunc)
 		})
 
 		AfterEach(func() {

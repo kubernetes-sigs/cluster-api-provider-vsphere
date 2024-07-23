@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	. "sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
 	"sigs.k8s.io/cluster-api/util"
@@ -35,6 +36,9 @@ type NodeLabelingSpecInput struct {
 	Global    GlobalInput
 	SpecName  string
 	Namespace *corev1.Namespace
+	// Allows to inject a function to be run after test namespace is created.
+	// If not specified, this is a no-op.
+	PostNamespaceCreated func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
 }
 
 var _ = Describe("Label nodes with ESXi host info", func() {
@@ -46,7 +50,7 @@ var _ = Describe("Label nodes with ESXi host info", func() {
 
 		BeforeEach(func() {
 			Expect(bootstrapClusterProxy).NotTo(BeNil(), "BootstrapClusterProxy can't be nil")
-			namespace = setupSpecNamespace("node-labeling-e2e")
+			namespace = setupSpecNamespace("node-labeling-e2e", testSpecificSettingsGetter().PostNamespaceCreatedFunc)
 		})
 
 		AfterEach(func() {

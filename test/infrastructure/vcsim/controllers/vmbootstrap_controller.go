@@ -234,8 +234,9 @@ func (r *vmBootstrapReconciler) reconcileBoostrapNode(ctx context.Context, clust
 		Status: corev1.NodeStatus{
 			Conditions: []corev1.NodeCondition{
 				{
-					Type:   corev1.NodeReady,
-					Status: corev1.ConditionTrue,
+					LastTransitionTime: metav1.Now(),
+					Type:               corev1.NodeReady,
+					Status:             corev1.ConditionTrue,
 				},
 			},
 		},

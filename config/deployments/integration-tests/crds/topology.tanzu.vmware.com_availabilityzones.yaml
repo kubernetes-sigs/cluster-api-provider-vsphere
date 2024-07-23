@@ -1,0 +1,94 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.6.1
+  creationTimestamp: null
+  name: availabilityzones.topology.tanzu.vmware.com
+spec:
+  group: topology.tanzu.vmware.com
+  names:
+    kind: AvailabilityZone
+    listKind: AvailabilityZoneList
+    plural: availabilityzones
+    shortNames:
+    - az
+    singular: availabilityzone
+  scope: Cluster
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: AvailabilityZone is the schema for the AvailabilityZone resource
+          for the vSphere topology API.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: AvailabilityZoneSpec defines the desired state of AvailabilityZone.
+            properties:
+              clusterComputeResourceMoIDs:
+                description: ClusterComputeResourceMoIDs are the managed object IDs
+                  of the vSphere ClusterComputeResources represented by this availability
+                  zone.
+                items:
+                  type: string
+                type: array
+              clusterComputeResourceMoId:
+                description: ClusterComputeResourceMoId is the managed object ID of
+                  the vSphere ClusterComputeResource represented by this availability
+                  zone.
+                type: string
+              namespaces:
+                additionalProperties:
+                  description: NamespaceInfo contains identifying information about
+                    the vSphere resources used to represent a Kubernetes namespace
+                    on individual vSphere Zones.
+                  properties:
+                    folderMoId:
+                      description: FolderMoId is the managed object ID of the vSphere
+                        Folder for a Namespace. Folders are global and not per-vSphere
+                        Cluster, but the FolderMoId is stored here, alongside the
+                        PoolMoId for convenience.
+                      type: string
+                    poolMoIDs:
+                      description: PoolMoIDs are the managed object ID of the vSphere
+                        ResourcePools for a Namespace in an individual vSphere Zone.
+                        A zone may be comprised of multiple ResourcePools.
+                      items:
+                        type: string
+                      type: array
+                    poolMoId:
+                      description: PoolMoId is the managed object ID of the vSphere
+                        ResourcePool for a Namespace on an individual vSphere Cluster.
+                      type: string
+                  type: object
+                description: Namespaces is a map that enables querying information
+                  about the vSphere objects that make up a Kubernetes Namespace based
+                  on its name.
+                type: object
+            type: object
+          status:
+            description: AvailabilityZoneStatus defines the observed state of AvailabilityZone.
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

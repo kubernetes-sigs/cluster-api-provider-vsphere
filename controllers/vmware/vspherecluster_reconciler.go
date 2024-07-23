@@ -20,7 +20,6 @@ package vmware
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/pkg/errors"
 	topologyv1 "github.com/vmware-tanzu/vm-operator/external/tanzu-topology/api/v1alpha1"
@@ -370,17 +369,9 @@ func (r *ClusterReconciler) VSphereMachineToCluster(ctx context.Context, o clien
 	}}
 }
 
-var isFaultDomainsFSSEnabled = func() bool {
-	return os.Getenv("FSS_WCP_FAULTDOMAINS") == "true"
-}
-
 // Returns the failure domain information discovered on the cluster
 // hosting this controller.
 func (r *ClusterReconciler) getFailureDomains(ctx context.Context) (clusterv1.FailureDomains, error) {
-	if !isFaultDomainsFSSEnabled() {
-		return nil, nil
-	}
-
 	availabilityZoneList := &topologyv1.AvailabilityZoneList{}
 	if err := r.Client.List(ctx, availabilityZoneList); err != nil {
 		return nil, err

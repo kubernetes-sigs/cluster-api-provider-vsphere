@@ -130,16 +130,6 @@ var _ = Describe("Cluster Controller Tests", func() {
 	})
 
 	Context("Test getFailureDomains", func() {
-		fss := isFaultDomainsFSSEnabled
-
-		BeforeEach(func() {
-			isFaultDomainsFSSEnabled = func() bool { return true }
-		})
-
-		AfterEach(func() {
-			isFaultDomainsFSSEnabled = fss
-		})
-
 		It("should not find FailureDomains", func() {
 			fds, err := reconciler.getFailureDomains(ctx)
 			Expect(err).ToNot(HaveOccurred())

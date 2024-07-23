@@ -35,6 +35,7 @@ const (
 	NodeIPAMPoolName             = "${NODE_IPAM_POOL_NAME}"
 	VSphereDataCenterVar         = "${VSPHERE_DATACENTER}"
 	VSphereThumbprint            = "${VSPHERE_TLS_THUMBPRINT}"
+	VSphereInsecureCPI           = "${VSPHERE_INSECURE_CPI:=false}"
 	VSphereDatastoreVar          = "${VSPHERE_DATASTORE}"
 	VSphereFolderVar             = "${VSPHERE_FOLDER}"
 	VSphereHaproxyTemplateVar    = "${VSPHERE_HAPROXY_TEMPLATE}"

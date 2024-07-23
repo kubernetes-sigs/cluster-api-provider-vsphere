@@ -26,7 +26,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/constants"
 )
 
-var _ = Describe("When testing ClusterClass rollouts [supervisor] [ClusterClass]", func() {
+var _ = Describe("When testing ClusterClass rollouts [vcsim] [supervisor] [ClusterClass]", func() {
 	const specName = "clusterclass-rollouts" // copied from CAPI
 	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		capie2e.ClusterClassRolloutSpec(ctx, func() capie2e.ClusterClassRolloutSpecInput {

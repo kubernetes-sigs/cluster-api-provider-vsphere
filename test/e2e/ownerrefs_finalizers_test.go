@@ -41,6 +41,7 @@ import (
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	"sigs.k8s.io/cluster-api/test/framework"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -130,6 +131,23 @@ var _ = Describe("Ensure OwnerReferences and Finalizers are resilient [vcsim] [s
 					if forceCancelFunc != nil {
 						forceCancelFunc()
 					}
+
+					// This check ensures that the rollout to the machines finished before
+					// checking resource version stability.
+					Eventually(func() error {
+						machineList := &clusterv1.MachineList{}
+						if err := proxy.GetClient().List(ctx, machineList, ctrlclient.InNamespace(namespace)); err != nil {
+							return errors.Wrap(err, "list machines")
+						}
+
+						for _, machine := range machineList.Items {
+							if !conditions.IsTrue(&machine, clusterv1.MachineNodeHealthyCondition) {
+								return errors.Errorf("machine %q does not have %q condition set to true", machine.GetName(), clusterv1.MachineNodeHealthyCondition)
+							}
+						}
+
+						return nil
+					}, 5*time.Minute, 15*time.Second).Should(Succeed(), "Waiting for nodes to be ready")
 
 					// This check ensures that the resourceVersions are stable, i.e. it verifies there are no
 					// continuous reconciles when everything should be stable.

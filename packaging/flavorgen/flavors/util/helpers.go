@@ -78,7 +78,6 @@ var (
 		regexVar(env.VSphereServerVar),
 		regexVar(env.VSphereTemplateVar),
 		regexVar(env.VSphereStoragePolicyVar),
-		// TODO: Why was thumbprint not here?
 		regexVar(env.VSphereThumbprint),
 	}
 )

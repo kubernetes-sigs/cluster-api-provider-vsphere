@@ -80,7 +80,10 @@ func newCPIConfig() ([]byte, error) {
 			"secretName":      "cloud-provider-vsphere-credentials",
 			"secretNamespace": metav1.NamespaceSystem,
 			"thumbprint":      env.VSphereThumbprint,
-			"port":            443,
+			// insecureFlag needs to be set to true in CI when using older CPI versions
+			// because old versions of CPI (<= v1.29.0) do not support SHA256 thumbprints.
+			"insecureFlag": env.VSphereInsecureCPI,
+			"port":         443,
 		},
 		"vcenter": map[string]interface{}{
 			env.VSphereServerVar: map[string]interface{}{

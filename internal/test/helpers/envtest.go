@@ -25,8 +25,10 @@ import (
 	"path/filepath"
 	goruntime "runtime"
 	"strings"
+	"time"
 
 	"github.com/onsi/ginkgo/v2"
+	"github.com/pkg/errors"
 	"github.com/vmware/govmomi/simulator"
 	"golang.org/x/tools/go/packages"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
@@ -37,6 +39,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
@@ -98,6 +101,15 @@ func init() {
 		CRDDirectoryPaths:     crdPaths,
 	}
 }
+
+var (
+	cacheSyncBackoff = wait.Backoff{
+		Duration: 100 * time.Millisecond,
+		Factor:   1.5,
+		Steps:    8,
+		Jitter:   0.4,
+	}
+)
 
 type (
 	// TestEnvironment encapsulates a Kubernetes local test environment.
@@ -229,6 +241,40 @@ func (t *TestEnvironment) Cleanup(ctx context.Context, objs ...client.Object) er
 			continue
 		}
 		errs = append(errs, err)
+	}
+	return kerrors.NewAggregate(errs)
+}
+
+// CleanupAndWait removes objects from the TestEnvironment and waits for them to be gone.
+func (t *TestEnvironment) CleanupAndWait(ctx context.Context, objs ...client.Object) error {
+	if err := t.Cleanup(ctx, objs...); err != nil {
+		return err
+	}
+
+	// Makes sure the cache is updated with the deleted object
+	errs := []error{}
+	for _, o := range objs {
+		// Ignoring namespaces because in testenv the namespace cleaner is not running.
+		if _, ok := o.(*corev1.Namespace); ok {
+			continue
+		}
+
+		oCopy := o.DeepCopyObject().(client.Object)
+		key := client.ObjectKeyFromObject(o)
+		err := wait.ExponentialBackoff(
+			cacheSyncBackoff,
+			func() (done bool, err error) {
+				if err := t.Get(ctx, key, oCopy); err != nil {
+					if apierrors.IsNotFound(err) {
+						return true, nil
+					}
+					return false, err
+				}
+				return false, nil
+			})
+		if err != nil {
+			errs = append(errs, errors.Wrapf(err, "key %s, %s is not being deleted from the testenv client cache", o.GetObjectKind().GroupVersionKind().String(), key))
+		}
 	}
 	return kerrors.NewAggregate(errs)
 }

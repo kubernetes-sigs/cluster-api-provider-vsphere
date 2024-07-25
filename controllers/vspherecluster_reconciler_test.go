@@ -358,7 +358,7 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 		})
 
 		AfterEach(func() {
-			Expect(testEnv.Cleanup(ctx, namespace, capiCluster, instance, zoneOne)).To(Succeed())
+			Expect(testEnv.CleanupAndWait(ctx, instance, zoneOne, capiCluster, namespace)).To(Succeed())
 		})
 
 		It("should reconcile a cluster", func() {

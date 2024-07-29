@@ -17,6 +17,8 @@ limitations under the License.
 package e2e
 
 import (
+	"path/filepath"
+
 	"github.com/blang/semver/v4"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -42,6 +44,12 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass with Runt
 				ArtifactFolder:        artifactFolder,
 				SkipCleanup:           skipCleanup,
 				PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+					// Dump all Cluster API related resources to artifacts before checking for resource versions being stable.
+					framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
+						Lister:    proxy.GetClient(),
+						Namespace: namespace,
+						LogPath:   filepath.Join(artifactFolder, "clusters-beforeValidateResourceVersions", proxy.GetName(), "resources")})
+
 					// This check ensures that the resourceVersions are stable, i.e. it verifies there are no
 					// continuous reconciles when everything should be stable.
 					framework.ValidateResourceVersionStable(ctx, proxy, namespace, FilterObjectsWithKindAndName(clusterName))

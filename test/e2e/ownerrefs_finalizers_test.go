@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -148,6 +149,12 @@ var _ = Describe("Ensure OwnerReferences and Finalizers are resilient [vcsim] [s
 
 						return nil
 					}, 5*time.Minute, 15*time.Second).Should(Succeed(), "Waiting for nodes to be ready")
+
+					// Dump all Cluster API related resources to artifacts before checking for resource versions being stable.
+					framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
+						Lister:    proxy.GetClient(),
+						Namespace: namespace,
+						LogPath:   filepath.Join(artifactFolder, "clusters-beforeValidateResourceVersions", proxy.GetName(), "resources")})
 
 					// This check ensures that the resourceVersions are stable, i.e. it verifies there are no
 					// continuous reconciles when everything should be stable.

@@ -37,7 +37,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.8=
 			InitWithCoreProvider:              "cluster-api:v1.5.4",
 			InitWithBootstrapProviders:        []string{"kubeadm:v1.5.4"},
 			InitWithControlPlaneProviders:     []string{"kubeadm:v1.5.4"},
-			InitWithInfrastructureProviders:   []string{"vsphere:v1.8.4"},
+			InitWithInfrastructureProviders:   []string{"vsphere:v1.8.10"},
 			InitWithRuntimeExtensionProviders: []string{},
 			// InitWithKubernetesVersion should be the highest kubernetes version supported by the init Cluster API version.
 			// This is to guarantee that both, the old and new CAPI version, support the defined version.
@@ -63,7 +63,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.7=
 			InitWithCoreProvider:              "cluster-api:v1.4.9",
 			InitWithBootstrapProviders:        []string{"kubeadm:v1.4.9"},
 			InitWithControlPlaneProviders:     []string{"kubeadm:v1.4.9"},
-			InitWithInfrastructureProviders:   []string{"vsphere:v1.7.4"},
+			InitWithInfrastructureProviders:   []string{"vsphere:v1.7.7"},
 			InitWithRuntimeExtensionProviders: []string{},
 			// InitWithKubernetesVersion should be the highest kubernetes version supported by the init Cluster API version.
 			// This is to guarantee that both, the old and new CAPI version, support the defined version.

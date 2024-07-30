@@ -65,16 +65,18 @@ var (
 	logOptions     = logs.NewOptions()
 	controllerName = "cluster-api-vsphere-manager"
 
-	enableContentionProfiling   bool
-	leaderElectionLeaseDuration time.Duration
-	leaderElectionRenewDeadline time.Duration
-	leaderElectionRetryPeriod   time.Duration
-	managerOpts                 manager.Options
-	restConfigBurst             int
-	restConfigQPS               float32
-	syncPeriod                  time.Duration
-	webhookOpts                 webhook.Options
-	watchNamespace              string
+	enableContentionProfiling      bool
+	leaderElectionLeaseDuration    time.Duration
+	leaderElectionRenewDeadline    time.Duration
+	leaderElectionRetryPeriod      time.Duration
+	managerOpts                    manager.Options
+	restConfigBurst                int
+	restConfigQPS                  float32
+	clusterCacheTrackerClientQPS   float32
+	clusterCacheTrackerClientBurst int
+	syncPeriod                     time.Duration
+	webhookOpts                    webhook.Options
+	watchNamespace                 string
 
 	clusterCacheTrackerConcurrency    int
 	vSphereClusterConcurrency         int
@@ -85,8 +87,7 @@ var (
 	vSphereClusterIdentityConcurrency int
 	vSphereDeploymentZoneConcurrency  int
 
-	tlsOptions         = capiflags.TLSOptions{}
-	diagnosticsOptions = capiflags.DiagnosticsOptions{}
+	managerOptions = capiflags.ManagerOptions{}
 
 	defaultProfilerAddr     = os.Getenv("PROFILER_ADDR")
 	defaultSyncPeriod       = manager.DefaultSyncPeriod
@@ -181,10 +182,16 @@ func InitFlags(fs *pflag.FlagSet) {
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)")
 
 	fs.Float32Var(&restConfigQPS, "kube-api-qps", 20,
-		"Maximum queries per second from the controller client to the Kubernetes API server. Defaults to 20")
+		"Maximum queries per second from the controller client to the Kubernetes API server.")
 
 	fs.IntVar(&restConfigBurst, "kube-api-burst", 30,
-		"Maximum number of queries that should be allowed in one burst from the controller client to the Kubernetes API server. Default 30")
+		"Maximum number of queries that should be allowed in one burst from the controller client to the Kubernetes API server.")
+
+	fs.Float32Var(&clusterCacheTrackerClientQPS, "clustercachetracker-client-qps", 20,
+		"Maximum queries per second from the cluster cache tracker clients to the Kubernetes API server of workload clusters.")
+
+	fs.IntVar(&clusterCacheTrackerClientBurst, "clustercachetracker-client-burst", 30,
+		"Maximum number of queries that should be allowed in one burst from the cluster cache tracker clients to the Kubernetes API server of workload clusters.")
 
 	fs.IntVar(&webhookOpts.Port, "webhook-port", defaultWebhookPort,
 		"Webhook Server port")
@@ -196,8 +203,7 @@ func InitFlags(fs *pflag.FlagSet) {
 		"The address the health endpoint binds to.",
 	)
 
-	capiflags.AddTLSOptions(fs, &tlsOptions)
-	capiflags.AddDiagnosticsOptions(fs, &diagnosticsOptions)
+	capiflags.AddManagerOptions(fs, &managerOptions)
 	feature.MutableGates.AddFlag(fs)
 }
 
@@ -298,15 +304,15 @@ func main() {
 		return nil
 	}
 
-	tlsOptionOverrides, err := capiflags.GetTLSOptionOverrideFuncs(tlsOptions)
+	tlsOptions, metricsOptions, err := capiflags.GetManagerOptions(managerOptions)
 	if err != nil {
-		setupLog.Error(err, "unable to add TLS settings to the webhook server")
+		setupLog.Error(err, "Unable to start manager: invalid flags")
 		os.Exit(1)
 	}
-	webhookOpts.TLSOpts = tlsOptionOverrides
+	webhookOpts.TLSOpts = tlsOptions
 	managerOpts.WebhookServer = webhook.NewServer(webhookOpts)
 	managerOpts.AddToManager = addToManager
-	managerOpts.Metrics = capiflags.GetDiagnosticsOptions(diagnosticsOptions)
+	managerOpts.Metrics = *metricsOptions
 
 	// Set up the context that's going to be used in controllers and for the manager.
 	ctx := ctrl.SetupSignalHandler()
@@ -446,6 +452,8 @@ func setupRemoteClusterCacheTracker(ctx context.Context, mgr ctrlmgr.Manager) (*
 			SecretCachingClient: secretCachingClient,
 			ControllerName:      controllerName,
 			Log:                 &ctrl.Log,
+			ClientQPS:           clusterCacheTrackerClientQPS,
+			ClientBurst:         clusterCacheTrackerClientBurst,
 		},
 	)
 	if err != nil {

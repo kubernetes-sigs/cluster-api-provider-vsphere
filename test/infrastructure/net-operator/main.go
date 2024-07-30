@@ -71,7 +71,7 @@ var (
 	restConfigQPS               float32
 	restConfigBurst             int
 	healthAddr                  string
-	diagnosticsOptions          = flags.DiagnosticsOptions{}
+	managerOptions              = flags.ManagerOptions{}
 	logOptions                  = logs.NewOptions()
 	// net operator specific flags.
 	networkInterfaceConcurrency int
@@ -118,15 +118,15 @@ func InitFlags(fs *pflag.FlagSet) {
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)")
 
 	fs.Float32Var(&restConfigQPS, "kube-api-qps", 20,
-		"Maximum queries per second from the controller client to the Kubernetes API server. Defaults to 20")
+		"Maximum queries per second from the controller client to the Kubernetes API server.")
 
 	fs.IntVar(&restConfigBurst, "kube-api-burst", 30,
-		"Maximum number of queries that should be allowed in one burst from the controller client to the Kubernetes API server. Default 30")
+		"Maximum number of queries that should be allowed in one burst from the controller client to the Kubernetes API server.")
 
 	fs.StringVar(&healthAddr, "health-addr", ":9440",
 		"The address the health endpoint binds to.")
 
-	flags.AddDiagnosticsOptions(fs, &diagnosticsOptions)
+	flags.AddManagerOptions(fs, &managerOptions)
 
 	feature.MutableGates.AddFlag(fs)
 }
@@ -159,7 +159,11 @@ func main() {
 	restConfig.Burst = restConfigBurst
 	restConfig.UserAgent = remote.DefaultClusterAPIUserAgent(controllerName)
 
-	diagnosticsOpts := flags.GetDiagnosticsOptions(diagnosticsOptions)
+	_, metricsOptions, err := flags.GetManagerOptions(managerOptions)
+	if err != nil {
+		setupLog.Error(err, "Unable to start manager: invalid flags")
+		os.Exit(1)
+	}
 
 	var watchNamespaces map[string]cache.Config
 	if watchNamespace != "" {
@@ -182,7 +186,7 @@ func main() {
 		LeaderElectionResourceLock: resourcelock.LeasesResourceLock,
 		HealthProbeBindAddress:     healthAddr,
 		PprofBindAddress:           profilerAddress,
-		Metrics:                    diagnosticsOpts,
+		Metrics:                    *metricsOptions,
 		Cache: cache.Options{
 			DefaultNamespaces: watchNamespaces,
 			SyncPeriod:        &syncPeriod,

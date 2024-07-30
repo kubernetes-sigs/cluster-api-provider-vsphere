@@ -20,6 +20,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	helpers "sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vmware"
@@ -37,8 +38,17 @@ var _ = Describe("Service Discovery controller integration tests", func() {
 			helpers.CreateAndWait(ctx, intCtx.Client, intCtx.VSphereCluster)
 			helpers.CreateAndWait(ctx, intCtx.Client, intCtx.KubeconfigSecret)
 		})
+
+		By("Verifying that the guest cluster client works")
+		guestClient, err := tracker.GetClient(ctx, client.ObjectKeyFromObject(intCtx.Cluster))
+		Expect(err).ToNot(HaveOccurred())
+		// Note: Create a Service informer, so the test later doesn't fail if this doesn't work.
+		Expect(guestClient.List(ctx, &corev1.ServiceList{}, client.InNamespace(metav1.NamespaceDefault))).To(Succeed())
 	})
 	AfterEach(func() {
+		deleteTestResource(ctx, intCtx.Client, intCtx.VSphereCluster)
+		deleteTestResource(ctx, intCtx.Client, intCtx.Cluster)
+		deleteTestResource(ctx, intCtx.Client, intCtx.KubeconfigSecret)
 		intCtx.AfterEach()
 	})
 

@@ -358,7 +358,11 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 		})
 
 		AfterEach(func() {
-			Expect(testEnv.CleanupAndWait(ctx, instance, zoneOne, capiCluster, namespace)).To(Succeed())
+			// Note: Make sure VSphereCluster is deleted before the Cluster is deleted.
+			// Otherwise reconcileDelete in VSphereCluster reconciler will fail because the Cluster cannot be found.
+			Expect(testEnv.CleanupAndWait(ctx, instance, zoneOne)).To(Succeed())
+			Expect(testEnv.CleanupAndWait(ctx, capiCluster)).To(Succeed())
+			Expect(testEnv.CleanupAndWait(ctx, namespace)).To(Succeed())
 		})
 
 		It("should reconcile a cluster", func() {

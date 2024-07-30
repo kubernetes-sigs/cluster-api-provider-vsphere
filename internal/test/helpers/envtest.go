@@ -42,6 +42,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"k8s.io/component-base/logs"
+	logsv1 "k8s.io/component-base/logs/api/v1"
 	"k8s.io/klog/v2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
@@ -60,7 +62,14 @@ import (
 )
 
 func init() {
+	// Set log level 5 as default for testing (default for prod is 2).
+	logOptions := logs.NewOptions()
+	logOptions.Verbosity = 5
+	if err := logsv1.ValidateAndApply(logOptions, nil); err != nil {
+		panic(err)
+	}
 	ctrl.SetLogger(klog.Background())
+
 	// add logger for ginkgo
 	klog.SetOutput(ginkgo.GinkgoWriter)
 }

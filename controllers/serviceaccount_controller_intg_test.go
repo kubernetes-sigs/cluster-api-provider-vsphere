@@ -59,14 +59,21 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 				helpers.CreateAndWait(ctx, intCtx.Client, intCtx.KubeconfigSecret)
 			})
 
+			By("Verifying that the guest cluster client works")
+			guestClient, err := tracker.GetClient(ctx, client.ObjectKeyFromObject(intCtx.Cluster))
+			Expect(err).ToNot(HaveOccurred())
+			// Note: Create a Service informer, so the test later doesn't fail if this doesn't work.
+			Expect(guestClient.List(ctx, &corev1.ServiceList{}, client.InNamespace(metav1.NamespaceDefault))).To(Succeed())
+
 			pSvcAccount = getTestProviderServiceAccount(intCtx.Namespace, intCtx.VSphereCluster)
 			createTestResource(ctx, intCtx.Client, pSvcAccount)
 			assertEventuallyExistsInNamespace(ctx, intCtx.Client, intCtx.Namespace, pSvcAccount.GetName(), pSvcAccount)
 		})
 		AfterEach(func() {
-			// Deleting the provider service account is not strictly required as the context itself
-			// gets teared down but keeping it for clarity.
 			deleteTestResource(ctx, intCtx.Client, pSvcAccount)
+			deleteTestResource(ctx, intCtx.Client, intCtx.VSphereCluster)
+			deleteTestResource(ctx, intCtx.Client, intCtx.Cluster)
+			deleteTestResource(ctx, intCtx.Client, intCtx.KubeconfigSecret)
 		})
 
 		Context("When serviceaccount secret is created", func() {

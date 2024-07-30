@@ -86,8 +86,7 @@ var (
 	webhookCertName             string
 	webhookKeyName              string
 	healthAddr                  string
-	tlsOptions                  = flags.TLSOptions{}
-	diagnosticsOptions          = flags.DiagnosticsOptions{}
+	managerOptions              = flags.ManagerOptions{}
 	logOptions                  = logs.NewOptions()
 )
 
@@ -136,10 +135,10 @@ func InitFlags(fs *pflag.FlagSet) {
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)")
 
 	fs.Float32Var(&restConfigQPS, "kube-api-qps", 20,
-		"Maximum queries per second from the controller client to the Kubernetes API server. Defaults to 20")
+		"Maximum queries per second from the controller client to the Kubernetes API server.")
 
 	fs.IntVar(&restConfigBurst, "kube-api-burst", 30,
-		"Maximum number of queries that should be allowed in one burst from the controller client to the Kubernetes API server. Default 30")
+		"Maximum number of queries that should be allowed in one burst from the controller client to the Kubernetes API server.")
 
 	fs.IntVar(&webhookPort, "webhook-port", 9443,
 		"Webhook Server port")
@@ -156,8 +155,7 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&healthAddr, "health-addr", ":9440",
 		"The address the health endpoint binds to.")
 
-	flags.AddDiagnosticsOptions(fs, &diagnosticsOptions)
-	flags.AddTLSOptions(fs, &tlsOptions)
+	flags.AddManagerOptions(fs, &managerOptions)
 
 	// Add test-extension specific flags
 	// NOTE: it is not mandatory to use the same flag names in all RuntimeExtension, but it is recommended when
@@ -200,13 +198,11 @@ func main() {
 	restConfig.Burst = restConfigBurst
 	restConfig.UserAgent = remote.DefaultClusterAPIUserAgent(controllerName)
 
-	tlsOptionOverrides, err := flags.GetTLSOptionOverrideFuncs(tlsOptions)
+	tlsOptions, metricsOptions, err := flags.GetManagerOptions(managerOptions)
 	if err != nil {
-		setupLog.Error(err, "Unable to add TLS settings to the webhook server")
+		setupLog.Error(err, "Unable to start manager: invalid flags")
 		os.Exit(1)
 	}
-
-	diagnosticsOpts := flags.GetDiagnosticsOptions(diagnosticsOptions)
 
 	if enableContentionProfiling {
 		goruntime.SetBlockProfileRate(1)
@@ -218,7 +214,7 @@ func main() {
 		CertDir:  webhookCertDir,
 		CertName: webhookCertName,
 		KeyName:  webhookKeyName,
-		TLSOpts:  tlsOptionOverrides,
+		TLSOpts:  tlsOptions,
 		Catalog:  catalog,
 	})
 	if err != nil {
@@ -236,7 +232,7 @@ func main() {
 		LeaderElectionResourceLock: resourcelock.LeasesResourceLock,
 		HealthProbeBindAddress:     healthAddr,
 		PprofBindAddress:           profilerAddress,
-		Metrics:                    diagnosticsOpts,
+		Metrics:                    *metricsOptions,
 		Cache: cache.Options{
 			SyncPeriod: &syncPeriod,
 		},

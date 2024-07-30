@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -241,6 +242,12 @@ func (r *ServiceAccountReconciler) reconcileNormal(ctx context.Context, guestClu
 // Ensure service accounts from provider spec is created.
 func (r *ServiceAccountReconciler) ensureProviderServiceAccounts(ctx context.Context, guestClusterCtx *vmwarecontext.GuestClusterContext, pSvcAccounts []vmwarev1.ProviderServiceAccount) error {
 	log := ctrl.LoggerFrom(ctx)
+
+	pSvcAccountNames := []string{}
+	for _, pSvcAccount := range pSvcAccounts {
+		pSvcAccountNames = append(pSvcAccountNames, pSvcAccount.Name)
+	}
+	log.V(5).Info(fmt.Sprintf("Reconcile ProviderServiceAccounts: %v", strings.Join(pSvcAccountNames, ",")))
 
 	for i, pSvcAccount := range pSvcAccounts {
 		// Note: We have to use := here to not overwrite log & ctx outside the for loop.

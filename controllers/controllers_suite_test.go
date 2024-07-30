@@ -53,6 +53,7 @@ func TestControllers(t *testing.T) {
 
 var (
 	testEnv *helpers.TestEnvironment
+	tracker *remote.ClusterCacheTracker
 	ctx     = ctrl.SetupSignalHandler()
 )
 
@@ -80,7 +81,7 @@ func setup() {
 		panic("unable to create secret caching client")
 	}
 
-	tracker, err := remote.NewClusterCacheTracker(
+	tracker, err = remote.NewClusterCacheTracker(
 		testEnv.Manager,
 		remote.ClusterCacheTrackerOptions{
 			SecretCachingClient: secretCachingClient,

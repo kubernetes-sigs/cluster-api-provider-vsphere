@@ -630,10 +630,10 @@ var _ = Describe("Network provider", func() {
 				Expect(createdSubnetSet.Spec).To(Equal(initialSubnetSet.Spec), "SubnetSetSpec should not have been modified")
 			})
 
-			It("should successfully retrieve VM service annotations, confirm they are empty", func() {
+			It("should successfully retrieve VM service annotations, including the annotation to enable LB healthcheck", func() {
 				annotations, err := np.GetVMServiceAnnotations(ctx, clusterCtx)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(annotations).To(Equal(make(map[string]string)))
+				Expect(annotations).To(HaveKey("lb.iaas.vmware.com/enable-endpoint-health-check"))
 			})
 
 		})

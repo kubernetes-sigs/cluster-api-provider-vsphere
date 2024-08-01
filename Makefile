@@ -400,6 +400,7 @@ generate-e2e-templates-main: $(KUSTOMIZE) ## Generate test templates for the mai
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/ownerrefs-finalizers" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/cluster-template-ownerrefs-finalizers.yaml"
 	# for IPAM tests
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/ipam" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/cluster-template-ipam.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/memory-reservation-locked" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/cluster-template-memory-reservation-locked.yaml"
 	# generate supervisor templates
 	cp "$(RELEASE_DIR)/main/cluster-template-supervisor.yaml" "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/base/cluster-template-supervisor.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/base" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/cluster-template-supervisor.yaml"

@@ -209,6 +209,7 @@ fi
 # Following variables are currently checked (if defined):
 # - KUBERNETES_VERSION_MANAGEMENT
 k8s::prepareKindestImagesVariables
+make kind
 k8s::prepareKindestImages
 
 # Run e2e tests

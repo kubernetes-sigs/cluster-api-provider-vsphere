@@ -267,6 +267,7 @@ providers:
 
 variables:
   # Ensure all Kubernetes versions used here are covered in patch-vsphere-template.yaml
+  KUBERNETES_VERSION_MANAGEMENT: "v1.30.0"
   KUBERNETES_VERSION: "v1.30.0"
   KUBERNETES_VERSION_UPGRADE_FROM: "v1.29.0"
   KUBERNETES_VERSION_UPGRADE_TO: "v1.30.0"

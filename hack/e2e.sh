@@ -21,6 +21,9 @@ set -o pipefail # any non-zero exit code in a piped command causes the pipeline 
 export PATH=${PWD}/hack/tools/bin:${PATH}
 REPO_ROOT=$(git rev-parse --show-toplevel)
 
+# shellcheck source=./hack/ci-e2e-lib.sh
+source "${REPO_ROOT}/hack/ci-e2e-lib.sh"
+
 RE_VCSIM='\[vcsim\\]'
 
 # In CI, ARTIFACTS is set to a different directory. This stores the value of
@@ -199,6 +202,14 @@ if [[ -z "${GINKGO_FOCUS+x}" ]]; then
       > ${DOCKER_IMAGE_TAR}
   fi
 fi
+
+# Prepare kindest/node images for all the required Kubernetes version; this implies
+# 1. Kubernetes version labels (e.g. latest) to the corresponding version numbers.
+# 2. Pre-pulling the corresponding kindest/node image if available; if not, building the image locally.
+# Following variables are currently checked (if defined):
+# - KUBERNETES_VERSION_MANAGEMENT
+k8s::prepareKindestImagesVariables
+k8s::prepareKindestImages
 
 # Run e2e tests
 make e2e

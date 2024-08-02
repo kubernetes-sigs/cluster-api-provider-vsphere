@@ -70,6 +70,9 @@ kind::prepareKindestImage() {
   # ALWAYS_BUILD_KIND_IMAGES will default to false if unset.
   ALWAYS_BUILD_KIND_IMAGES="${ALWAYS_BUILD_KIND_IMAGES:-"false"}"
 
+  # Note: this is needed compared to CAPI due to `set -o nounset` in the parent script.
+  retVal=0
+
   # Try to pre-pull the image
   kind::prepullImage "kindest/node:$version"
 

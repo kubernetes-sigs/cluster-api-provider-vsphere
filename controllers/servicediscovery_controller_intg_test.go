@@ -17,6 +17,9 @@ limitations under the License.
 package controllers
 
 import (
+	"fmt"
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -33,15 +36,19 @@ var _ = Describe("Service Discovery controller integration tests", func() {
 	)
 	BeforeEach(func() {
 		intCtx = helpers.NewIntegrationTestContextWithClusters(ctx, testEnv.Manager.GetClient())
-		By("Creating the Cluster, vSphereCluster and KubeconfigSecret", func() {
+		By(fmt.Sprintf("Creating the Cluster (%s), vSphereCluster (%s) and KubeconfigSecret", intCtx.Cluster.Name, intCtx.VSphereCluster.Name), func() {
 			helpers.CreateAndWait(ctx, intCtx.Client, intCtx.Cluster)
 			helpers.CreateAndWait(ctx, intCtx.Client, intCtx.VSphereCluster)
 			helpers.CreateAndWait(ctx, intCtx.Client, intCtx.KubeconfigSecret)
 		})
 
 		By("Verifying that the guest cluster client works")
-		guestClient, err := tracker.GetClient(ctx, client.ObjectKeyFromObject(intCtx.Cluster))
-		Expect(err).ToNot(HaveOccurred())
+		var guestClient client.Client
+		var err error
+		Eventually(func() error {
+			guestClient, err = tracker.GetClient(ctx, client.ObjectKeyFromObject(intCtx.Cluster))
+			return err
+		}, time.Minute, 5*time.Second).Should(Succeed())
 		// Note: Create a Service informer, so the test later doesn't fail if this doesn't work.
 		Expect(guestClient.List(ctx, &corev1.ServiceList{}, client.InNamespace(metav1.NamespaceDefault))).To(Succeed())
 	})

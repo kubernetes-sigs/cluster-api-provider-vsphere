@@ -17,7 +17,9 @@ limitations under the License.
 package controllers
 
 import (
+	"fmt"
 	"reflect"
+	"time"
 
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
@@ -53,15 +55,19 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 			targetNSObj *corev1.Namespace
 		)
 		BeforeEach(func() {
-			By("Creating the Cluster, vSphereCluster and KubeconfigSecret", func() {
+			By(fmt.Sprintf("Creating the Cluster (%s), vSphereCluster (%s) and KubeconfigSecret", intCtx.Cluster.Name, intCtx.VSphereCluster.Name), func() {
 				helpers.CreateAndWait(ctx, intCtx.Client, intCtx.Cluster)
 				helpers.CreateAndWait(ctx, intCtx.Client, intCtx.VSphereCluster)
 				helpers.CreateAndWait(ctx, intCtx.Client, intCtx.KubeconfigSecret)
 			})
 
 			By("Verifying that the guest cluster client works")
-			guestClient, err := tracker.GetClient(ctx, client.ObjectKeyFromObject(intCtx.Cluster))
-			Expect(err).ToNot(HaveOccurred())
+			var guestClient client.Client
+			var err error
+			Eventually(func() error {
+				guestClient, err = tracker.GetClient(ctx, client.ObjectKeyFromObject(intCtx.Cluster))
+				return err
+			}, time.Minute, 5*time.Second).Should(Succeed())
 			// Note: Create a Service informer, so the test later doesn't fail if this doesn't work.
 			Expect(guestClient.List(ctx, &corev1.ServiceList{}, client.InNamespace(metav1.NamespaceDefault))).To(Succeed())
 
@@ -181,7 +187,7 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 		var role *rbacv1.Role
 		var roleBinding *rbacv1.RoleBinding
 		BeforeEach(func() {
-			By("Creating the Cluster, vSphereCluster and KubeconfigSecret", func() {
+			By(fmt.Sprintf("Creating the Cluster (%s), vSphereCluster (%s) and KubeconfigSecret", intCtx.Cluster.Name, intCtx.VSphereCluster.Name), func() {
 				helpers.CreateAndWait(ctx, intCtx.Client, intCtx.Cluster)
 				helpers.CreateAndWait(ctx, intCtx.Client, intCtx.VSphereCluster)
 				helpers.CreateAndWait(ctx, intCtx.Client, intCtx.KubeconfigSecret)

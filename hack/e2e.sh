@@ -104,6 +104,21 @@ export E2E_VM_OPERATOR_VERSION="${VM_OPERATOR_VERSION:-v1.8.6-0-gde75746a}"
 export DOCKER_IMAGE_TAR="/tmp/images/image.tar"
 export GC_KIND="false"
 
+
+#TODO remove, for debugging
+set -x
+
+# Prepare kindest/node images for all the required Kubernetes version; this implies
+# 1. Kubernetes version labels (e.g. latest) to the corresponding version numbers.
+# 2. Pre-pulling the corresponding kindest/node image if available; if not, building the image locally.
+# Following variables are currently checked (if defined):
+# - KUBERNETES_VERSION_MANAGEMENT
+k8s::prepareKindestImagesVariables
+make kind
+k8s::prepareKindestImages
+
+set +x
+
 # Make tests run in-parallel
 export GINKGO_NODES=5
 
@@ -202,15 +217,6 @@ if [[ -z "${GINKGO_FOCUS+x}" ]]; then
       > ${DOCKER_IMAGE_TAR}
   fi
 fi
-
-# Prepare kindest/node images for all the required Kubernetes version; this implies
-# 1. Kubernetes version labels (e.g. latest) to the corresponding version numbers.
-# 2. Pre-pulling the corresponding kindest/node image if available; if not, building the image locally.
-# Following variables are currently checked (if defined):
-# - KUBERNETES_VERSION_MANAGEMENT
-k8s::prepareKindestImagesVariables
-make kind
-k8s::prepareKindestImages
 
 # Run e2e tests
 make e2e

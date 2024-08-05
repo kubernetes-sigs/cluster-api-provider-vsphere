@@ -21,6 +21,9 @@ set -o pipefail # any non-zero exit code in a piped command causes the pipeline 
 export PATH=${PWD}/hack/tools/bin:${PATH}
 REPO_ROOT=$(git rev-parse --show-toplevel)
 
+# shellcheck source=./hack/ci-e2e-lib.sh
+source "${REPO_ROOT}/hack/ci-e2e-lib.sh"
+
 RE_VCSIM='\[vcsim\\]'
 
 # In CI, ARTIFACTS is set to a different directory. This stores the value of
@@ -162,21 +165,18 @@ if [[ ! "${GINKGO_FOCUS:-}" =~ $RE_VCSIM ]]; then
   fi
 fi
 
-make envsubst
+make envsubst kind
+
+# Prepare kindest/node images for all the required Kubernetes version; this implies
+# 1. Kubernetes version labels (e.g. latest) to the corresponding version numbers.
+# 2. Pre-pulling the corresponding kindest/node image if available; if not, building the image locally.
+# Following variables are currently checked (if defined):
+# - KUBERNETES_VERSION_MANAGEMENT
+k8s::prepareKindestImagesVariables
+k8s::prepareKindestImages
 
 # Only pre-pull vm-operator image where running in supervisor mode.
 if [[ ${GINKGO_FOCUS:-} =~ \\\[supervisor\\\] ]]; then
-  kind::prepullImage () {
-    local image=$1
-    image="${image//+/_}"
-
-    if [[ "$(docker images -q "$image" 2> /dev/null)" == "" ]]; then
-      echo "+ Pulling $image"
-      docker pull "$image"
-    else
-      echo "+ image $image already present in the system, skipping pre-pull"
-    fi
-  }
    kind::prepullImage "gcr.io/k8s-staging-capi-vsphere/extra/vm-operator:${E2E_VM_OPERATOR_VERSION}"
 fi
 

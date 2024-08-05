@@ -35,6 +35,8 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
+          - old: "caBundle: Cg=="
+            new: ""
       - name: "{go://sigs.k8s.io/cluster-api@v1.7}" # supported release in the v1beta1 series
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.7}/core-components.yaml"
         type: "url"
@@ -75,6 +77,8 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
+          - old: "caBundle: Cg=="
+            new: ""
       - name: "{go://sigs.k8s.io/cluster-api@v1.7}" # supported release in the v1beta1 series
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.7}/bootstrap-components.yaml"
         type: "url"
@@ -115,6 +119,8 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
+          - old: "caBundle: Cg=="
+            new: ""
       - name: "{go://sigs.k8s.io/cluster-api@v1.7}" # supported release in the v1beta1 series
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.7}/control-plane-components.yaml"
         type: "url"

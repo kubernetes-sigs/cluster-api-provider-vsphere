@@ -26,6 +26,22 @@ k8s::prepareKindestImagesVariables() {
     KUBERNETES_VERSION_MANAGEMENT=$(grep KUBERNETES_VERSION_MANAGEMENT: < "$E2E_CONF_FILE" | awk -F'"' '{ print $2}')
     echo "Defaulting KUBERNETES_VERSION_MANAGEMENT to ${KUBERNETES_VERSION_MANAGEMENT} to trigger image build (because env var is not set)"
   fi
+
+  # Ensure kind image get's built full e2e tests.
+  if [[ "${GINKGO_SKIP:-}" == "\\[Conformance\\] \\[specialized-infra\\]" ]]; then
+    if [[ "${GINKGO_FOCUS:-}" == "\\[supervisor\\]" ]] || [[ "${GINKGO_FOCUS:-}" == "" ]]; then
+      KUBERNETES_VERSION_LATEST_CI=$(grep KUBERNETES_VERSION_LATEST_CI: < "$E2E_CONF_FILE" | awk -F'"' '{ print $2}')
+      echo "Defaulting KUBERNETES_VERSION_LATEST_CI to ${KUBERNETES_VERSION_LATEST_CI} to trigger image build (because env var is not set)"
+    fi
+  fi
+
+  # Ensure kind image get's built vcsim e2e tests.
+  if [[ -z "${GINKGO_SKIP:-}" ]]; then
+    if [[ "${GINKGO_FOCUS:-}" == "\\[vcsim\\]" ]] || [[ "${GINKGO_FOCUS:-}" == "\\[vcsim\\] \\[supervisor\\]" ]]; then
+      KUBERNETES_VERSION_LATEST_CI=$(grep KUBERNETES_VERSION_LATEST_CI: < "$E2E_CONF_FILE" | awk -F'"' '{ print $2}')
+      echo "Defaulting KUBERNETES_VERSION_LATEST_CI to ${KUBERNETES_VERSION_LATEST_CI} to trigger image build (because env var is not set)"
+    fi
+  fi
 }
 
 # k8s::prepareKindestImages checks all the e2e test variables representing a Kubernetes version,
@@ -34,6 +50,13 @@ k8s::prepareKindestImages() {
   if [ -n "${KUBERNETES_VERSION_MANAGEMENT:-}" ]; then
     k8s::resolveVersion "KUBERNETES_VERSION_MANAGEMENT" "$KUBERNETES_VERSION_MANAGEMENT"
     export KUBERNETES_VERSION_MANAGEMENT=$resolveVersion
+
+    kind::prepareKindestImage "$resolveVersion"
+  fi
+
+  if [ -n "${KUBERNETES_VERSION_LATEST_CI:-}" ]; then
+    k8s::resolveVersion "KUBERNETES_VERSION_LATEST_CI" "$KUBERNETES_VERSION_LATEST_CI"
+    export KUBERNETES_VERSION_LATEST_CI=$resolveVersion
 
     kind::prepareKindestImage "$resolveVersion"
   fi

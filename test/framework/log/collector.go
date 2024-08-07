@@ -38,6 +38,9 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/vmoperator"
 )
 
 const (
@@ -54,8 +57,8 @@ func (c *MachineLogCollector) CollectMachinePoolLog(_ context.Context, _ client.
 	return nil
 }
 
-func (c *MachineLogCollector) CollectMachineLog(ctx context.Context, _ client.Client, m *clusterv1.Machine, outputPath string) error {
-	machineIPAddresses, err := c.machineIPAddresses(ctx, m)
+func (c *MachineLogCollector) CollectMachineLog(ctx context.Context, ctrlClient client.Client, m *clusterv1.Machine, outputPath string) error {
+	machineIPAddresses, err := c.machineIPAddresses(ctx, ctrlClient, m)
 	if err != nil {
 		return err
 	}
@@ -100,7 +103,7 @@ func (c *MachineLogCollector) CollectInfrastructureLogs(_ context.Context, _ cli
 	return nil
 }
 
-func (c *MachineLogCollector) machineIPAddresses(ctx context.Context, m *clusterv1.Machine) ([]string, error) {
+func (c *MachineLogCollector) machineIPAddresses(ctx context.Context, ctrlClient client.Client, m *clusterv1.Machine) ([]string, error) {
 	for _, address := range m.Status.Addresses {
 		if address.Type != clusterv1.MachineExternalIP {
 			continue
@@ -108,7 +111,27 @@ func (c *MachineLogCollector) machineIPAddresses(ctx context.Context, m *cluster
 		return []string{address.Address}, nil
 	}
 
-	vmObj, err := c.Finder.VirtualMachine(ctx, m.GetName())
+	vmName := m.GetName()
+
+	// For supervisor mode it could be the case that the name of the virtual machine differs from the machine's name.
+	if m.Spec.InfrastructureRef.GroupVersionKind().Group == vmwarev1.GroupVersion.Group {
+		vsphereMachine := &vmwarev1.VSphereMachine{}
+		if err := ctrlClient.Get(ctx, client.ObjectKey{Namespace: m.Spec.InfrastructureRef.Namespace, Name: m.Spec.InfrastructureRef.Name}, vsphereMachine); err != nil {
+			return nil, errors.Wrapf(err, "getting vmwarev1.VSphereMachine %s/%s", m.Spec.InfrastructureRef.Namespace, m.Spec.InfrastructureRef.Name)
+		}
+
+		if vsphereMachine.Status.IPAddr != "" {
+			return []string{vsphereMachine.Status.IPAddr}, nil
+		}
+
+		var err error
+		vmName, err = vmoperator.GenerateVirtualMachineName(m.Name, vsphereMachine.Spec.NamingStrategy)
+		if err != nil {
+			return nil, errors.Wrapf(err, "generating VirtualMachine name for Machine %s/%s", m.Namespace, m.Name)
+		}
+	}
+
+	vmObj, err := c.Finder.VirtualMachine(ctx, vmName)
 	if err != nil {
 		return nil, err
 	}

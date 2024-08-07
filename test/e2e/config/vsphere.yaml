@@ -27,7 +27,7 @@ providers:
     type: CoreProvider
     versions:
       - name: "v1.8.0" # supported release in the v1beta1 series
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.8.0-rc.0/core-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.8.0-rc.1/core-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -35,8 +35,6 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-          - old: "caBundle: Cg=="
-            new: ""
       - name: "{go://sigs.k8s.io/cluster-api@v1.7}" # supported release in the v1beta1 series
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.7}/core-components.yaml"
         type: "url"
@@ -69,7 +67,7 @@ providers:
     type: BootstrapProvider
     versions:
       - name: "v1.8.0" # supported release in the v1beta1 series
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.8.0-rc.0/bootstrap-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.8.0-rc.1/bootstrap-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -77,8 +75,6 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-          - old: "caBundle: Cg=="
-            new: ""
       - name: "{go://sigs.k8s.io/cluster-api@v1.7}" # supported release in the v1beta1 series
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.7}/bootstrap-components.yaml"
         type: "url"
@@ -111,7 +107,7 @@ providers:
     type: ControlPlaneProvider
     versions:
       - name: "v1.8.0" # supported release in the v1beta1 series
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.8.0-rc.0/control-plane-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.8.0-rc.1/control-plane-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -119,8 +115,6 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-          - old: "caBundle: Cg=="
-            new: ""
       - name: "{go://sigs.k8s.io/cluster-api@v1.7}" # supported release in the v1beta1 series
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.7}/control-plane-components.yaml"
         type: "url"

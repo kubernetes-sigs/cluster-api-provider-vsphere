@@ -24,15 +24,18 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
-	topologyv1 "github.com/vmware-tanzu/vm-operator/external/tanzu-topology/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apirecord "k8s.io/client-go/tools/record"
+	utilfeature "k8s.io/component-base/featuregate/testing"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
+	topologyv1 "sigs.k8s.io/cluster-api-provider-vsphere/internal/apis/topology/v1alpha1"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/network"
@@ -130,32 +133,137 @@ var _ = Describe("Cluster Controller Tests", func() {
 	})
 
 	Context("Test getFailureDomains", func() {
-		It("should not find FailureDomains", func() {
-			fds, err := reconciler.getFailureDomains(ctx)
+		It("should not find any FailureDomains if neither AvailabilityZone nor Zone exists", func() {
+			fds, err := reconciler.getFailureDomains(ctx, clusterCtx.VSphereCluster.Namespace)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(fds).Should(BeEmpty())
 		})
 
-		It("should find FailureDomains", func() {
-			zoneNames := []string{"homer", "marge", "bart"}
-			for _, name := range zoneNames {
-				zone := &topologyv1.AvailabilityZone{
-					TypeMeta: metav1.TypeMeta{
-						APIVersion: topologyv1.GroupVersion.String(),
-						Kind:       "AvailabilityZone",
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						Name: name,
-					},
+		Context("when only AvailabilityZone exists", func() {
+			BeforeEach(func() {
+				azNames := []string{"az-1", "az-2", "az-3"}
+				for _, name := range azNames {
+					az := &topologyv1.AvailabilityZone{
+						TypeMeta: metav1.TypeMeta{
+							APIVersion: topologyv1.GroupVersion.String(),
+							Kind:       "AvailabilityZone",
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Name: name,
+						},
+					}
+
+					Expect(controllerManagerContext.Client.Create(ctx, az)).To(Succeed())
+				}
+			})
+
+			It("should discover FailureDomains using AvailabilityZone by default", func() {
+				fds, err := reconciler.getFailureDomains(ctx, clusterCtx.VSphereCluster.Namespace)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(fds).NotTo(BeNil())
+				Expect(fds).Should(HaveLen(3))
+			})
+
+			It("should return nil when NamespaceScopedZone is enabled", func() {
+				defer utilfeature.SetFeatureGateDuringTest(GinkgoTB(), feature.Gates, feature.NamespaceScopedZone, true)()
+				fds, err := reconciler.getFailureDomains(ctx, clusterCtx.VSphereCluster.Namespace)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(fds).To(BeNil())
+			})
+		})
+
+		Context("when AvailabilityZone and Zone co-exists", func() {
+			BeforeEach(func() {
+				azNames := []string{"az-1", "az-2"}
+				for _, name := range azNames {
+					az := &topologyv1.AvailabilityZone{
+						TypeMeta: metav1.TypeMeta{
+							APIVersion: topologyv1.GroupVersion.String(),
+							Kind:       "AvailabilityZone",
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Name: name,
+						},
+					}
+					Expect(controllerManagerContext.Client.Create(ctx, az)).To(Succeed())
+
+				}
+				zoneNames := []string{"zone-1", "zone-2", "zone-3"}
+				for _, name := range zoneNames {
+					zone := &topologyv1.Zone{
+						TypeMeta: metav1.TypeMeta{
+							APIVersion: topologyv1.GroupVersion.String(),
+							Kind:       "Zone",
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      name,
+							Namespace: clusterCtx.VSphereCluster.Namespace,
+						},
+					}
+
+					Expect(controllerManagerContext.Client.Create(ctx, zone)).To(Succeed())
+				}
+			})
+
+			It("should discover FailureDomains using AvailabilityZone by default", func() {
+				fds, err := reconciler.getFailureDomains(ctx, clusterCtx.VSphereCluster.Namespace)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(fds).NotTo(BeNil())
+				Expect(fds).Should(HaveLen(2))
+			})
+
+			It("should discover FailureDomains using Zone when NamespaceScopedZone is enabled", func() {
+				defer utilfeature.SetFeatureGateDuringTest(GinkgoTB(), feature.Gates, feature.NamespaceScopedZone, true)()
+
+				fds, err := reconciler.getFailureDomains(ctx, clusterCtx.VSphereCluster.Namespace)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(fds).NotTo(BeNil())
+				Expect(fds).Should(HaveLen(3))
+			})
+		})
+
+		Context("when Zone is marked for deleteion", func() {
+			BeforeEach(func() {
+				zoneNames := []string{"zone-1", "zone-2", "zone-3"}
+				zoneNamespace := clusterCtx.VSphereCluster.Namespace
+				for _, name := range zoneNames {
+					zone := &topologyv1.Zone{
+						TypeMeta: metav1.TypeMeta{
+							APIVersion: topologyv1.GroupVersion.String(),
+							Kind:       "Zone",
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Name:       name,
+							Namespace:  zoneNamespace,
+							Finalizers: []string{"zone.test.finalizer"},
+						},
+					}
+
+					Expect(controllerManagerContext.Client.Create(ctx, zone)).To(Succeed())
+
+					if name == "zone-3" {
+						// Delete the zone to set the deletion timestamp
+						Expect(controllerManagerContext.Client.Delete(ctx, zone)).To(Succeed())
+						Zone3 := &topologyv1.Zone{}
+						Expect(controllerManagerContext.Client.Get(ctx, client.ObjectKey{Namespace: zoneNamespace, Name: name}, Zone3)).To(Succeed())
+
+						// Validate the deletion timestamp
+						Expect(Zone3.DeletionTimestamp.IsZero()).To(BeFalse())
+					}
 				}
 
-				Expect(controllerManagerContext.Client.Create(ctx, zone)).To(Succeed())
-			}
+			})
 
-			fds, err := reconciler.getFailureDomains(ctx)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(fds).NotTo(BeNil())
-			Expect(fds).Should(HaveLen(3))
+			It("should discover FailureDomains using Zone and filter out Zone marked for deletion", func() {
+				defer utilfeature.SetFeatureGateDuringTest(GinkgoTB(), feature.Gates, feature.NamespaceScopedZone, true)()
+
+				fds, err := reconciler.getFailureDomains(ctx, clusterCtx.VSphereCluster.Namespace)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(fds).NotTo(BeNil())
+				Expect(fds).Should(HaveLen(2))
+			})
+
 		})
+
 	})
 })

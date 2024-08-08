@@ -310,6 +310,7 @@ variables:
   # CAPV feature flags
   EXP_NODE_ANTI_AFFINITY: "true"
   EXP_MACHINE_SET_PREFLIGHT_CHECKS: "true"
+  EXP_NAMESPACE_SCOPED_ZONE: "false"
   CAPI_DIAGNOSTICS_ADDRESS: ":8080"
   CAPI_INSECURE_DIAGNOSTICS: "true"
   # Required to be set to install capv-supervisor <= v1.10.

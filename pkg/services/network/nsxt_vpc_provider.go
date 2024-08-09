@@ -40,6 +40,11 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services"
 )
 
+const (
+	// AnnotationServiceEndpointHealthCheckEnabledKey is the key of the annotation that is used to enable health check on the VMService endpoint port.
+	AnnotationServiceEndpointHealthCheckEnabledKey = "virtualmachineservice.vmoperator.vmware.com/service.endpointHealthCheckEnabled"
+)
+
 // nsxtVPCNetworkProvider provisions nsx-vpc type cluster network.
 type nsxtVPCNetworkProvider struct {
 	client client.Client
@@ -168,7 +173,7 @@ func (vp *nsxtVPCNetworkProvider) GetClusterNetworkName(ctx context.Context, clu
 
 // The GetVMServiceAnnotations method always returns an empty map representing annotations.
 func (vp *nsxtVPCNetworkProvider) GetVMServiceAnnotations(_ context.Context, _ *vmware.ClusterContext) (map[string]string, error) {
-	return map[string]string{}, nil
+	return map[string]string{AnnotationServiceEndpointHealthCheckEnabledKey: ""}, nil
 }
 
 // ConfigureVirtualMachine configures a VirtualMachine object based on the networking configuration.

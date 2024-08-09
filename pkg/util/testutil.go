@@ -28,7 +28,7 @@ import (
 	"k8s.io/klog/v2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
-	testclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
@@ -162,7 +162,7 @@ func CreateClusterContext(cluster *clusterv1.Cluster, vsphereCluster *vmwarev1.V
 		}, &capvcontext.ControllerManagerContext{
 			Logger: klog.Background().WithName("controller-manager-logger"),
 			Scheme: scheme,
-			Client: testclient.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(
+			Client: fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(
 				&vmoprv1.VirtualMachineService{},
 				&vmoprv1.VirtualMachine{},
 			).Build(),

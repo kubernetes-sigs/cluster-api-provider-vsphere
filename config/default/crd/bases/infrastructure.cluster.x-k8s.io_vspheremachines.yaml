@@ -119,7 +119,7 @@ spec:
                   Defaults to the eponymous property value in the template from which the
                   virtual machine is cloned.
                 format: int64
-                type: integer
+                type: integer          
               network:
                 description: Network is the network configuration for this machine's
                   VM.
@@ -1042,6 +1042,14 @@ spec:
                   virtual machine is cloned.
                 format: int64
                 type: integer
+              memoryReservationLockedToMax:
+                description: |- 
+                  MemoryReservationLockedToMax is a flag that indicates
+                  whether or not the memory resource reservation for this virtual
+                  machine will always be equal to the virtual machine's memory size.
+                  Defaults to the eponymous property value in the template from which
+                  the virtual machine is cloned.
+                type: boolean      
               network:
                 description: Network is the network configuration for this machine's
                   VM.

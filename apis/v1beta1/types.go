@@ -172,6 +172,13 @@ type VirtualMachineCloneSpec struct {
 	// virtual machine is cloned.
 	// +optional
 	MemoryMiB int64 `json:"memoryMiB,omitempty"`
+	// MemoryReservationLockedToMax is a flag that indicates whether or not the
+	// memory resource reservation for this virtual machine will always be
+	// equal to the virtual machine's memory size.
+	// Defaults to the eponymous property value in the template from which the
+	// virtual machine is cloned.
+	// +optional
+	MemoryReservationLockedToMax *bool `json:"memoryReservationLockedToMax,omitempty"`
 	// DiskGiB is the size of a virtual machine's disk, in GiB.
 	// Defaults to the eponymous property value in the template from which the
 	// virtual machine is cloned.

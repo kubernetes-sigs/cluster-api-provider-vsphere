@@ -182,6 +182,7 @@ providers:
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/cluster-template.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/clusterclass-quick-start.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/clusterclass-quick-start-runtimesdk.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/cluster-template-memory-reservation-locked.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/main/cluster-template-topology-supervisor.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/main/cluster-template-topology-runtimesdk-supervisor.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/main/cluster-template-supervisor.yaml"

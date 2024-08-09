@@ -174,14 +174,15 @@ func Clone(ctx context.Context, vmCtx *capvcontext.VMContext, bootstrapData []by
 			// Assign the clone's InstanceUUID the value of the Kubernetes Machine
 			// object's UID. This allows lookup of the cloned VM prior to knowing
 			// the VM's UUID.
-			InstanceUuid:      string(vmCtx.VSphereVM.UID),
-			Flags:             newVMFlagInfo(),
-			DeviceChange:      deviceSpecs,
-			ExtraConfig:       extraConfig,
-			NumCPUs:           numCPUs,
-			NumCoresPerSocket: numCoresPerSocket,
-			MemoryMB:          memMiB,
-			VAppConfigRemoved: &vappConfigRemoved,
+			InstanceUuid:                 string(vmCtx.VSphereVM.UID),
+			Flags:                        newVMFlagInfo(),
+			DeviceChange:                 deviceSpecs,
+			ExtraConfig:                  extraConfig,
+			NumCPUs:                      numCPUs,
+			NumCoresPerSocket:            numCoresPerSocket,
+			MemoryMB:                     memMiB,
+			MemoryReservationLockedToMax: vmCtx.VSphereVM.Spec.MemoryReservationLockedToMax,
+			VAppConfigRemoved:            &vappConfigRemoved,
 		},
 		Location: types.VirtualMachineRelocateSpec{
 			DiskMoveType: string(diskMoveType),

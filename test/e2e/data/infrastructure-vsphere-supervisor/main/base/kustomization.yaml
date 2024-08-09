@@ -6,3 +6,10 @@ resources:
 patchesStrategicMerge:
   - ../commons/cluster-resource-set-label.yaml
   - ../commons/cluster-network-CIDR.yaml
+patches:
+  - target:
+      kind: KubeadmControlPlane
+    path: ./patch-k8s-install-script-kcp.yaml
+  - target:
+      kind: KubeadmConfigTemplate
+    path: ./patch-k8s-install-script-kct.yaml

@@ -188,6 +188,16 @@ func patchKubeadmConfigTemplate(_ context.Context, tpl *bootstrapv1.KubeadmConfi
 		return err
 	}
 
+	// always add a file so we don't have an empty array.
+	tpl.Spec.Template.Spec.Files = append(tpl.Spec.Template.Spec.Files,
+		bootstrapv1.File{
+			Owner:       "root:root",
+			Path:        "/etc/test-extension",
+			Permissions: "0755",
+			Content:     "injected from the test extension",
+		},
+	)
+
 	// patch preKubeadmScript
 	preKubeadmScript, err := topologymutation.GetStringVariable(templateVariables, "preKubeadmScript")
 	preKubeadmScriptNotFound := topologymutation.IsNotFoundError(err)

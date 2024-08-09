@@ -12,3 +12,9 @@ patches:
   - target:
       kind: VSphereMachineTemplate
     path: ../commons/remove-storage-policy.yaml
+  - target:
+      kind: KubeadmControlPlane
+    path: ./patch-k8s-install-script-kcp.yaml
+  - target:
+      kind: KubeadmConfigTemplate
+    path: ./patch-k8s-install-script-kct.yaml

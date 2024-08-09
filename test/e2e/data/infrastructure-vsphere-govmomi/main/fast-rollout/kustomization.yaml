@@ -5,7 +5,4 @@ resources:
 patches:
   - target:
       kind: Cluster
-    path: ./inject-install-on-bootstrap.yaml
-  - target:
-      kind: Cluster
     path: ./set-md-rollout-strategy.yaml

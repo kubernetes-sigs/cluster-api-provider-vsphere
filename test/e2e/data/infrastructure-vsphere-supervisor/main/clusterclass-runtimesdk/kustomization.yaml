@@ -9,3 +9,6 @@ patches:
   - target:
       kind: ClusterClass
     path: ./name.yaml
+  - target:
+      kind: ClusterClass
+    path: ../clusterclass/patch-k8s-install-script.yaml

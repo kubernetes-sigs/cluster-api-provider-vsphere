@@ -1,15 +1,25 @@
-# Note: Prior art: https://github.com/kubernetes-sigs/cluster-api/blob/21a350718f5e84a580bc677213bc25faec3291e7/test/framework/kubernetesversions/data/debian_injection_script.envsubst.sh.tpl
 - op: add
-  path: /spec/topology/variables/-
+  path: /spec/kubeadmConfigSpec/files/-
   value:
-    name: preKubeadmScript
-    # Note: This file has to be escaped as it is run through envsubst by clusterctl
-    value: |
+    owner: root:root
+    path:  "/etc/pre-kubeadm-commands/20-k8s-install.sh"
+    permissions: "0755"
+    content: |
       #!/bin/bash
 
       set -o nounset
       set -o pipefail
       set -o errexit
+
+      DISTRO="ubuntu"
+      KUBE_BINARY_DIR="/usr/bin"
+
+      source /etc/lsb-release
+      if [[ "$${DISTRIB_ID}" == *Flatcar* ]]; then
+        # Overrides for flatcar
+        DISTRO="flatcar"
+        KUBE_BINARY_DIR="/opt/bin"
+      fi
       
       function retry {
         attempt=0
@@ -36,8 +46,8 @@
       LINE_SEPARATOR="*************************************************"
       echo "$${LINE_SEPARATOR}"
       
-      ## Variables (replaced by JSON patching)
-      KUBERNETES_VERSION=$${KUBERNETES_VERSION}
+      ## Variables (replaced by envtest patching)
+      KUBERNETES_VERSION=${KUBERNETES_VERSION}
       ##
       
       # Note: We assume if kubectl has the right version, everything else has as well
@@ -55,7 +65,7 @@
         CONTAINER_EXT="tar"
         echo "* testing CI version $${KUBERNETES_VERSION}"
         # Check for semver
-        if [[ "$${KUBERNETES_VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        if [[ "$${DISTRO}" == "ubuntu" ]] && [[ "$${KUBERNETES_VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
           CI_URL="https://dl.k8s.io/release/$${KUBERNETES_VERSION}/bin/linux/amd64"
           VERSION_WITHOUT_PREFIX="$${KUBERNETES_VERSION#v}"
           export DEBIAN_FRONTEND=noninteractive
@@ -78,13 +88,16 @@
           systemctl restart kubelet
         else
           CI_URL="https://dl.k8s.io/ci/$${KUBERNETES_VERSION}/bin/linux/amd64"
+          if [[ "$${KUBERNETES_VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-(beta|rc).[0-9]+$ ]]; then
+            CI_URL="https://dl.k8s.io/release/$${KUBERNETES_VERSION}/bin/linux/amd64"
+          fi
           for CI_PACKAGE in "$${PACKAGES_TO_TEST[@]}"; do
             # Browser: https://console.cloud.google.com/storage/browser/k8s-release-dev?project=k8s-release-dev
             # e.g.: https://storage.googleapis.com/k8s-release-dev/ci/v1.21.0-beta.1.378+cf3374e43491c5/bin/linux/amd64/kubectl
             echo "* downloading binary: $${CI_URL}/$${CI_PACKAGE}"
             wget "$${CI_URL}/$${CI_PACKAGE}" -O "$${CI_DIR}/$${CI_PACKAGE}"
             chmod +x "$${CI_DIR}/$${CI_PACKAGE}"
-            mv "$${CI_DIR}/$${CI_PACKAGE}" "/usr/bin/$${CI_PACKAGE}"
+            mv "$${CI_DIR}/$${CI_PACKAGE}" "$${KUBE_BINARY_DIR}/$${CI_PACKAGE}"
           done
           systemctl restart kubelet
         fi

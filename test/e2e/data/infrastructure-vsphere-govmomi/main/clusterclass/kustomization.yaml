@@ -11,4 +11,7 @@ patches:
     path: ./patch-prekubeadmscript.yaml
   - target:
       kind: ClusterClass
+    path: ./patch-k8s-install-script.yaml
+  - target:
+      kind: ClusterClass
     path: ./patch-namingstrategy.yaml

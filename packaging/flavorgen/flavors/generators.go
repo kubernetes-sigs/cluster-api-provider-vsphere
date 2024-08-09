@@ -96,7 +96,10 @@ systemd:
         After=containerd.service
         [Service]
         # Make metadata environment variables available for pre-kubeadm commands.
-        EnvironmentFile=/run/metadata/*`
+        EnvironmentFile=/run/metadata/*
+        # Log to file
+        StandardOutput=append:/var/log/kubeadm-service.log
+        StandardError=inherit`
 )
 
 func newClusterTopologyCluster(supervisorMode bool) (clusterv1.Cluster, error) {

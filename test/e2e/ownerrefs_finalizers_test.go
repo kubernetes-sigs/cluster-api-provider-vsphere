@@ -48,6 +48,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	topologyv1 "sigs.k8s.io/cluster-api-provider-vsphere/internal/apis/topology/v1alpha1"
 	vcsimv1 "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/api/v1alpha1"
 )
 
@@ -85,6 +86,13 @@ var _ = Describe("Ensure OwnerReferences and Finalizers are resilient [vcsim] [s
 					}
 				},
 				PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+					By("Checking that failure domains got added to the Cluster")
+					if testMode == GovmomiTestMode {
+						checkGovmomiVSphereClusterFailureDomains(ctx, proxy, namespace, clusterName)
+					} else {
+						checkSupervisorVSphereClusterFailureDomains(ctx, proxy, namespace, clusterName)
+					}
+
 					forceCtx, forceCancelFunc := context.WithCancel(ctx)
 					if testMode == GovmomiTestMode {
 						// check the cluster identity secret has expected ownerReferences and finalizers, and they are resilient
@@ -356,6 +364,44 @@ func createVsphereIdentitySecret(ctx context.Context, bootstrapClusterProxy fram
 				"username": []byte(username),
 			},
 		})).To(Succeed())
+}
+
+func checkGovmomiVSphereClusterFailureDomains(ctx context.Context, proxy framework.ClusterProxy, namespace, clusterName string) {
+	vSphereCluster := &infrav1.VSphereCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      clusterName,
+		},
+	}
+	Expect(proxy.GetClient().Get(ctx, ctrlclient.ObjectKeyFromObject(vSphereCluster), vSphereCluster)).To(Succeed())
+
+	Expect(vSphereCluster.Status.FailureDomains).To(BeEquivalentTo(clusterv1.FailureDomains{
+		"ownerrefs-finalizers": clusterv1.FailureDomainSpec{
+			ControlPlane: true,
+		},
+	}))
+}
+
+func checkSupervisorVSphereClusterFailureDomains(ctx context.Context, proxy framework.ClusterProxy, namespace, clusterName string) {
+	avalabilityZones := &topologyv1.AvailabilityZoneList{}
+	Expect(proxy.GetClient().List(ctx, avalabilityZones)).To(Succeed())
+
+	wantFailureDomains := clusterv1.FailureDomains{}
+	for _, zone := range avalabilityZones.Items {
+		wantFailureDomains[zone.Name] = clusterv1.FailureDomainSpec{
+			ControlPlane: true,
+		}
+	}
+
+	vSphereCluster := &vmwarev1.VSphereCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      clusterName,
+		},
+	}
+	Expect(proxy.GetClient().Get(ctx, ctrlclient.ObjectKeyFromObject(vSphereCluster), vSphereCluster)).To(Succeed())
+
+	Expect(vSphereCluster.Status.FailureDomains).To(BeEquivalentTo(wantFailureDomains))
 }
 
 func checkClusterIdentitySecretOwnerRefAndFinalizer(ctx context.Context, c ctrlclient.Client) {

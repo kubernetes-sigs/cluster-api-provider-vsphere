@@ -22,7 +22,6 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-	topologyv1 "github.com/vmware-tanzu/vm-operator/external/tanzu-topology/api/v1alpha1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -40,6 +39,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
+	topologyv1 "sigs.k8s.io/cluster-api-provider-vsphere/internal/apis/topology/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
@@ -160,7 +161,7 @@ func (r *ClusterReconciler) reconcileDelete(clusterCtx *vmware.ClusterContext) {
 
 func (r *ClusterReconciler) reconcileNormal(ctx context.Context, clusterCtx *vmware.ClusterContext) error {
 	// Get any failure domains to report back to the CAPI core controller.
-	failureDomains, err := r.getFailureDomains(ctx)
+	failureDomains, err := r.getFailureDomains(ctx, clusterCtx.VSphereCluster.Namespace)
 	if err != nil {
 		return errors.Wrapf(
 			err,
@@ -371,7 +372,32 @@ func (r *ClusterReconciler) VSphereMachineToCluster(ctx context.Context, o clien
 
 // Returns the failure domain information discovered on the cluster
 // hosting this controller.
-func (r *ClusterReconciler) getFailureDomains(ctx context.Context) (clusterv1.FailureDomains, error) {
+func (r *ClusterReconciler) getFailureDomains(ctx context.Context, namespace string) (clusterv1.FailureDomains, error) {
+	failureDomains := clusterv1.FailureDomains{}
+	// Determine the source of failure domain based on feature gates NamespaceScopedZone.
+	// If NamespaceScopedZone is enabled, use Zone which is Namespace scoped,otherwise use
+	// Availability Zone which is Cluster scoped.
+	if feature.Gates.Enabled(feature.NamespaceScopedZone) {
+		zoneList := &topologyv1.ZoneList{}
+		listOptions := &client.ListOptions{Namespace: namespace}
+		if err := r.Client.List(ctx, zoneList, listOptions); err != nil {
+			return nil, err
+		}
+
+		for _, zone := range zoneList.Items {
+			// Skip zones which are in deletion
+			if !zone.DeletionTimestamp.IsZero() {
+				continue
+			}
+			failureDomains[zone.Name] = clusterv1.FailureDomainSpec{ControlPlane: true}
+		}
+
+		if len(failureDomains) == 0 {
+			return nil, nil
+		}
+
+		return failureDomains, nil
+	}
 	availabilityZoneList := &topologyv1.AvailabilityZoneList{}
 	if err := r.Client.List(ctx, availabilityZoneList); err != nil {
 		return nil, err
@@ -380,8 +406,6 @@ func (r *ClusterReconciler) getFailureDomains(ctx context.Context) (clusterv1.Fa
 	if len(availabilityZoneList.Items) == 0 {
 		return nil, nil
 	}
-
-	failureDomains := clusterv1.FailureDomains{}
 	for _, az := range availabilityZoneList.Items {
 		failureDomains[az.Name] = clusterv1.FailureDomainSpec{
 			ControlPlane: true,

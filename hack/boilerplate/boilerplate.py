@@ -150,7 +150,7 @@ def file_passes(filename, refs, regexs):
 def file_extension(filename):
     return os.path.splitext(filename)[1].split(".")[-1].lower()
 
-skipped_dirs = ['_output', '.git', "hack/boilerplate/test"]
+skipped_dirs = ['_output', '.git', "hack/boilerplate/test", "internal/apis/topology/v1alpha1"]
 
 # list all the files contain 'DO NOT EDIT', but are not generated
 skipped_ungenerated_files = [

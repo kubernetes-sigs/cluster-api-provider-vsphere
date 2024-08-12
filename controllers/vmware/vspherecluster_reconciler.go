@@ -370,18 +370,52 @@ func (r *ClusterReconciler) VSphereMachineToCluster(ctx context.Context, o clien
 	}}
 }
 
+// ZoneToVSphereClusters adds reconcile requests for VSphereClusters when Zone has an event.
+func (r *ClusterReconciler) ZoneToVSphereClusters(ctx context.Context, o client.Object) []reconcile.Request {
+	log := ctrl.LoggerFrom(ctx)
+
+	zone, ok := o.(*topologyv1.Zone)
+	if !ok {
+		log.Error(nil, fmt.Sprintf("Expected a Zone but got a %T", o))
+		return nil
+	}
+	log = log.WithValues("Zone", klog.KObj(zone))
+	ctx = ctrl.LoggerInto(ctx, log)
+
+	vsphereClusters := &vmwarev1.VSphereClusterList{}
+	err := r.Client.List(ctx, vsphereClusters, &client.ListOptions{Namespace: zone.Namespace})
+	if err != nil {
+		log.V(4).Error(err, "Failed to get VSphereClusters from Zone")
+		return nil
+	}
+
+	log.V(6).Info("Triggering VSphereCluster reconcile for Zone")
+	requests := []reconcile.Request{}
+	for _, c := range vsphereClusters.Items {
+		r := reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Name:      c.Name,
+				Namespace: c.Namespace,
+			},
+		}
+		requests = append(requests, r)
+	}
+
+	return requests
+}
+
 // Returns the failure domain information discovered on the cluster
 // hosting this controller.
 func (r *ClusterReconciler) getFailureDomains(ctx context.Context, namespace string) (clusterv1.FailureDomains, error) {
 	failureDomains := clusterv1.FailureDomains{}
-	// Determine the source of failure domain based on feature gates NamespaceScopedZone.
-	// If NamespaceScopedZone is enabled, use Zone which is Namespace scoped,otherwise use
+	// Determine the source of failure domain based on feature gates NamespaceScopedZones.
+	// If NamespaceScopedZones is enabled, use Zone which is Namespace scoped,otherwise use
 	// Availability Zone which is Cluster scoped.
-	if feature.Gates.Enabled(feature.NamespaceScopedZone) {
+	if feature.Gates.Enabled(feature.NamespaceScopedZones) {
 		zoneList := &topologyv1.ZoneList{}
 		listOptions := &client.ListOptions{Namespace: namespace}
 		if err := r.Client.List(ctx, zoneList, listOptions); err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "failed to list Zones in namespace %s", namespace)
 		}
 
 		for _, zone := range zoneList.Items {

@@ -377,6 +377,14 @@ rules:
   - list
   - watch
 - apiGroups:
+  - topology.tanzu.vmware.com
+  resources:
+  - zones
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - vmoperator.vmware.com
   resources:
   - virtualmachineimages

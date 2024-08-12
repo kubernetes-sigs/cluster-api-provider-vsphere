@@ -182,14 +182,14 @@ func TestClusterReconciler_getFailureDomains(t *testing.T) {
 		},
 		{
 			name:        "Namespaced: should not find any FailureDomains if only cluster-wide exist",
-			objects:     []client.Object{availabiltyZone("c-one")},
+			objects:     []client.Object{availabilityZone("c-one")},
 			want:        nil,
 			wantErr:     false,
 			featureGate: true,
 		},
 		{
 			name:        "Cluster-Wide: should find FailureDomains if only cluster-wide exist",
-			objects:     []client.Object{availabiltyZone("c-one")},
+			objects:     []client.Object{availabilityZone("c-one")},
 			want:        failureDomains("c-one"),
 			wantErr:     false,
 			featureGate: false,
@@ -203,14 +203,14 @@ func TestClusterReconciler_getFailureDomains(t *testing.T) {
 		},
 		{
 			name:        "Cluster-Wide: should only find cluster-wide FailureDomains if both types exist",
-			objects:     []client.Object{availabiltyZone("c-one"), zone(namespace.Name, "ns-one", false)},
+			objects:     []client.Object{availabilityZone("c-one"), zone(namespace.Name, "ns-one", false)},
 			want:        failureDomains("c-one"),
 			wantErr:     false,
 			featureGate: false,
 		},
 		{
 			name:        "Namespaced: should only find namespaced FailureDomains if both types exist",
-			objects:     []client.Object{availabiltyZone("c-one"), zone(namespace.Name, "ns-one", false)},
+			objects:     []client.Object{availabilityZone("c-one"), zone(namespace.Name, "ns-one", false)},
 			want:        failureDomains("ns-one"),
 			wantErr:     false,
 			featureGate: true,
@@ -218,7 +218,7 @@ func TestClusterReconciler_getFailureDomains(t *testing.T) {
 		{
 			name: "Namespaced: should only find non-deleting namespaced FailureDomains",
 			objects: []client.Object{
-				availabiltyZone("c-one"),
+				availabilityZone("c-one"),
 				zone(namespace.Name, "ns-one", false),
 				zone(namespace.Name, "ns-two", false),
 				zone(namespace.Name, "ns-three", false),
@@ -237,7 +237,7 @@ func TestClusterReconciler_getFailureDomains(t *testing.T) {
 					WithObjects(append([]client.Object{namespace}, tt.objects...)...).
 					Build(),
 			}
-			defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.NamespaceScopedZone, tt.featureGate)()
+			defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.NamespaceScopedZones, tt.featureGate)()
 			got, err := r.getFailureDomains(ctx, namespace.Name)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ClusterReconciler.getFailureDomains() error = %v, wantErr %v", err, tt.wantErr)
@@ -250,7 +250,7 @@ func TestClusterReconciler_getFailureDomains(t *testing.T) {
 	}
 }
 
-func availabiltyZone(name string) *topologyv1.AvailabilityZone {
+func availabilityZone(name string) *topologyv1.AvailabilityZone {
 	return &topologyv1.AvailabilityZone{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,

@@ -50,6 +50,7 @@
       echo "$${LINE_SEPARATOR}"
       
       ## Variables (replaced by envtest patching)
+      ## Note: this does not work for upgrades.
       KUBERNETES_VERSION=${KUBERNETES_VERSION}
       ##
       
@@ -66,44 +67,21 @@
         # Let's just also download the control plane images for worker nodes. It's easier then optimizing it.
         declare -a CONTAINERS_TO_TEST=("kube-apiserver" "kube-controller-manager" "kube-proxy" "kube-scheduler")
         CONTAINER_EXT="tar"
-        echo "* testing CI version $${KUBERNETES_VERSION}"
-        # Check for semver
-        if [[ "$${DISTRO}" == "ubuntu" ]] && [[ "$${KUBERNETES_VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        echo "* testing version $${KUBERNETES_VERSION}"
+        CI_URL="https://dl.k8s.io/ci/$${KUBERNETES_VERSION}/bin/linux/amd64"
+        # Set CI_URL to the released binaries for actually released versions.
+        if [[ "$${KUBERNETES_VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || [[ "$${KUBERNETES_VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-(beta|rc).[0-9]+$ ]]; then
           CI_URL="https://dl.k8s.io/release/$${KUBERNETES_VERSION}/bin/linux/amd64"
-          VERSION_WITHOUT_PREFIX="$${KUBERNETES_VERSION#v}"
-          export DEBIAN_FRONTEND=noninteractive
-          # sometimes the network is not immediately available, so we have to retry the apt-get update
-          retry 10 5 "apt-get update"
-          apt-get install -y apt-transport-https ca-certificates curl gpg
-          mkdir -p -m 755 /etc/apt/keyrings
-          curl -fsSL https://pkgs.k8s.io/core:/stable:/$${KUBERNETES_VERSION:0:5}/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
-          echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/$${KUBERNETES_VERSION:0:5}/deb/ /" | tee /etc/apt/sources.list.d/kubernetes.list
-          apt-get update
-          # replace . with \.
-          VERSION_REGEX="$${VERSION_WITHOUT_PREFIX//./\\.}"
-          PACKAGE_VERSION="$(apt-cache madison kubelet | grep "$${VERSION_REGEX}-" | head -n1 | cut -d '|' -f 2 | tr -d '[:space:]')"
-          for CI_PACKAGE in "$${PACKAGES_TO_TEST[@]}"; do
-            echo "* installing package: $${CI_PACKAGE} $${PACKAGE_VERSION}"
-            apt-mark unhold "$${CI_PACKAGE}"
-            apt-get install --allow-downgrades -y "$${CI_PACKAGE}=$${PACKAGE_VERSION}"
-            apt-mark hold "$${CI_PACKAGE}"
-          done
-          systemctl restart kubelet
-        else
-          CI_URL="https://dl.k8s.io/ci/$${KUBERNETES_VERSION}/bin/linux/amd64"
-          if [[ "$${KUBERNETES_VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-(beta|rc).[0-9]+$ ]]; then
-            CI_URL="https://dl.k8s.io/release/$${KUBERNETES_VERSION}/bin/linux/amd64"
-          fi
-          for CI_PACKAGE in "$${PACKAGES_TO_TEST[@]}"; do
-            # Browser: https://console.cloud.google.com/storage/browser/k8s-release-dev?project=k8s-release-dev
-            # e.g.: https://storage.googleapis.com/k8s-release-dev/ci/v1.21.0-beta.1.378+cf3374e43491c5/bin/linux/amd64/kubectl
-            echo "* downloading binary: $${CI_URL}/$${CI_PACKAGE}"
-            wget "$${CI_URL}/$${CI_PACKAGE}" -O "$${CI_DIR}/$${CI_PACKAGE}"
-            chmod +x "$${CI_DIR}/$${CI_PACKAGE}"
-            mv "$${CI_DIR}/$${CI_PACKAGE}" "$${KUBE_BINARY_DIR}/$${CI_PACKAGE}"
-          done
-          systemctl restart kubelet
         fi
+        for CI_PACKAGE in "$${PACKAGES_TO_TEST[@]}"; do
+          # Browser: https://console.cloud.google.com/storage/browser/k8s-release-dev?project=k8s-release-dev
+          # e.g.: https://storage.googleapis.com/k8s-release-dev/ci/v1.21.0-beta.1.378+cf3374e43491c5/bin/linux/amd64/kubectl
+          echo "* downloading binary: $${CI_URL}/$${CI_PACKAGE}"
+          wget "$${CI_URL}/$${CI_PACKAGE}" -O "$${CI_DIR}/$${CI_PACKAGE}"
+          chmod +x "$${CI_DIR}/$${CI_PACKAGE}"
+          mv "$${CI_DIR}/$${CI_PACKAGE}" "$${KUBE_BINARY_DIR}/$${CI_PACKAGE}"
+        done
+        systemctl restart kubelet
         IMAGE_REGISTRY_PREFIX=registry.k8s.io
         # Kubernetes builds from 1.20 through 1.24 are tagged with k8s.gcr.io
         if [[ "$${KUBERNETES_VERSION}" =~ ^v1\.(1[0-9]|2[0-4])[\.[0-9]+ ]]; then

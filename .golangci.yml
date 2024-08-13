@@ -5,6 +5,7 @@ run:
     - "zz_generated.*\\.go$"
     - "_conversion\\.go$"
     - "vendored_cluster_api\\.go$"
+    - "^internal/apis/topology/v1alpha1"
   allow-parallel-runners: true
 
 linters:

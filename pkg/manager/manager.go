@@ -25,7 +25,6 @@ import (
 	nsxopv1 "github.com/vmware-tanzu/nsx-operator/pkg/apis/v1alpha1"
 	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	ncpv1 "github.com/vmware-tanzu/vm-operator/external/ncp/api/v1alpha1"
-	topologyv1 "github.com/vmware-tanzu/vm-operator/external/tanzu-topology/api/v1alpha1"
 	"gopkg.in/fsnotify.v1"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -38,6 +37,7 @@ import (
 	infrav1alpha4 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1alpha4"
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	topologyv1 "sigs.k8s.io/cluster-api-provider-vsphere/internal/apis/topology/v1alpha1"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 )
 

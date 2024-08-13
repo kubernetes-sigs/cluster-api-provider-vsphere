@@ -29,7 +29,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
-	topologyv1 "github.com/vmware-tanzu/vm-operator/external/tanzu-topology/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -57,6 +56,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	topologyv1 "sigs.k8s.io/cluster-api-provider-vsphere/internal/apis/topology/v1alpha1"
 	vcsimv1 "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/api/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/controllers"
 )

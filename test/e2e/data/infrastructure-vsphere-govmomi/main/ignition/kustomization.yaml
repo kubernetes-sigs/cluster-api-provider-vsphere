@@ -20,3 +20,9 @@ patches:
   - target:
       kind: KubeadmConfigTemplate
     path: patch-user-md.yaml
+  - target:
+      kind: KubeadmControlPlane
+    path: ../base/patch-k8s-install-script-kcp.yaml
+  - target:
+      kind: KubeadmConfigTemplate
+    path: ../base/patch-k8s-install-script-kct.yaml

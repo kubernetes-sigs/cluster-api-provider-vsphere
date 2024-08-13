@@ -169,7 +169,7 @@ providers:
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/cluster-template-dhcp-overrides.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/cluster-template-hw-upgrade.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/cluster-template-ignition.yaml"
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/cluster-template-install-on-bootstrap.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/cluster-template-fast-rollout.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/cluster-template-ipam.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/cluster-template-kcp-remediation.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/main/cluster-template-md-remediation.yaml"
@@ -187,7 +187,7 @@ providers:
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/main/cluster-template-supervisor.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/main/clusterclass-quick-start-supervisor.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/main/clusterclass-quick-start-supervisor-runtimesdk.yaml"
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/main/cluster-template-install-on-bootstrap-supervisor.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/main/cluster-template-fast-rollout-supervisor.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/main/cluster-template-conformance-supervisor.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/main/cluster-template-ownerrefs-finalizers-supervisor.yaml"
           - sourcePath: "../data/shared/capv/main/metadata.yaml"
@@ -267,10 +267,10 @@ providers:
 
 variables:
   # Ensure all Kubernetes versions used here are covered in patch-vsphere-template.yaml
-  KUBERNETES_VERSION_MANAGEMENT: "v1.31.0-rc.0"
-  KUBERNETES_VERSION: "v1.30.0"
-  KUBERNETES_VERSION_UPGRADE_FROM: "v1.29.0"
-  KUBERNETES_VERSION_UPGRADE_TO: "v1.30.0"
+  KUBERNETES_VERSION_MANAGEMENT: "v1.31.0-rc.1"
+  KUBERNETES_VERSION: "v1.31.0-rc.1"
+  KUBERNETES_VERSION_UPGRADE_FROM: "v1.30.0"
+  KUBERNETES_VERSION_UPGRADE_TO: "v1.31.0-rc.1"
   KUBERNETES_VERSION_LATEST_CI: "ci/latest-1.31"
   CPI_IMAGE_K8S_VERSION: "v1.31.0-rc.1"
   CNI: "./data/cni/calico/calico.yaml"

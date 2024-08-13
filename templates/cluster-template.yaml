@@ -1383,21 +1383,25 @@ data:
             vsphere-cpi-infra: daemonset
         spec:
           tolerations:
-          - key: node.cloudprovider.kubernetes.io/uninitialized
-            value: "true"
-            effect: NoSchedule
-          - key: node-role.kubernetes.io/master
-            effect: NoSchedule
-            operator: Exists
-          - key: node-role.kubernetes.io/control-plane
-            effect: NoSchedule
-            operator: Exists
-          - key: node.kubernetes.io/not-ready
-            effect: NoSchedule
-            operator: Exists
-          - key: CriticalAddonsOnly
-            effect: NoExecute
-            operator: Exists
+            - effect: NoSchedule
+              key: node.cloudprovider.kubernetes.io/uninitialized
+              value: "true"
+            - effect: NoSchedule
+              key: node-role.kubernetes.io/control-plane
+              operator: Exists
+            - effect: NoSchedule
+              key: node.kubernetes.io/not-ready
+              operator: Exists
+            - effect: NoExecute
+              key: CriticalAddonsOnly
+              operator: Exists
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                - matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: Exists
           securityContext:
             fsGroup: 1001
             runAsUser: 1001
@@ -1421,16 +1425,6 @@ data:
             - name: vsphere-config-volume
               configMap:
                 name: cloud-config
-          affinity:
-            nodeAffinity:
-              requiredDuringSchedulingIgnoredDuringExecution:
-                nodeSelectorTerms:
-                - matchExpressions:
-                  - key: node-role.kubernetes.io/control-plane
-                    operator: Exists
-                - matchExpressions:
-                  - key: node-role.kubernetes.io/master
-                    operator: Exists
     ---
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding

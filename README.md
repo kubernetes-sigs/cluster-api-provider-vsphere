@@ -64,15 +64,16 @@ production-like environments, it is highly recommended to build and use your own
 
 **Note:** Big OVAs will be split into multiple parts. To use them please download all parts and use `cat part1 part2 part3 > out.ova` to join them again.
 
-| Kubernetes | Ubuntu 18.04 | Ubuntu 20.04 | Ubuntu 22.04 | Photon 3 | Photon 5 | Flatcar Stable |
-|:-----------|:------------:|:------------:|:------------:|:--------:|:--------:|:--------------:|
-| [v1.24.11] |      ✓       |      ✓       |              |    ✓     |          |       ✓        |
-| [v1.25.7]  |      ✓       |      ✓       |              |    ✓     |          |       ✓        |
-| [v1.26.2]  |      ✓       |      ✓       |              |    ✓     |          |       ✓        |
-| [v1.27.3]  |      ✓       |      ✓       |      ✓       |    ✓     |          |       ✓        |
-| [v1.28.0]  |      ✓       |      ✓       |      ✓       |    ✓     |          |       ✓        |
-| [v1.29.0]  |              |              |      ✓       |    ✓     |    ✓     |       ✓        |
-| [v1.30.0]  |              |              |      ✓       |          |    ✓     |       ✓        |
+| Kubernetes | Ubuntu 18.04 | Ubuntu 20.04 | Ubuntu 22.04 | Ubuntu 24.04 | Photon 3 | Photon 5 | Flatcar Stable |
+|:-----------|:------------:|:------------:|:------------:|:------------:|:--------:|:--------:|:--------------:|
+| [v1.24.11] |      ✓       |      ✓       |              |              |    ✓     |          |       ✓        |
+| [v1.25.7]  |      ✓       |      ✓       |              |              |    ✓     |          |       ✓        |
+| [v1.26.2]  |      ✓       |      ✓       |              |              |    ✓     |          |       ✓        |
+| [v1.27.3]  |      ✓       |      ✓       |      ✓       |              |    ✓     |          |       ✓        |
+| [v1.28.0]  |      ✓       |      ✓       |      ✓       |              |    ✓     |          |       ✓        |
+| [v1.29.0]  |              |              |      ✓       |              |    ✓     |    ✓     |       ✓        |
+| [v1.30.0]  |              |              |      ✓       |              |          |    ✓     |       ✓        |
+| [v1.31.0]  |              |              |      ✓       |      ✓       |          |    ✓     |       ✓        |
 
 [v1.24.11]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/tag/templates/v1.24.11
 [v1.25.7]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/tag/templates/v1.25.7
@@ -81,6 +82,7 @@ production-like environments, it is highly recommended to build and use your own
 [v1.28.0]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/tag/templates/v1.28.0
 [v1.29.0]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/tag/templates/v1.29.0
 [v1.30.0]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/tag/templates/v1.30.0
+[v1.31.0]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/tag/templates/v1.31.0
 
 A full list of the published machine images for CAPV can be found by [searching for releases](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases?q=templates%2F&expanded=true)
 on the repository having the prefix `templates/` and taking a look at the available assets.

@@ -19,7 +19,7 @@ package network
 
 import (
 	netopv1 "github.com/vmware-tanzu/net-operator-api/api/v1alpha1"
-	nsxopv1 "github.com/vmware-tanzu/nsx-operator/pkg/apis/v1alpha1"
+	vpcapisv1 "github.com/vmware-tanzu/nsx-operator/pkg/apis/vpc/v1alpha1"
 	ncpv1 "github.com/vmware-tanzu/vm-operator/external/ncp/api/v1alpha1"
 )
 
@@ -49,5 +49,5 @@ var (
 	NetworkGVKNSXT = ncpv1.SchemeGroupVersion.WithKind("VirtualNetwork")
 
 	// NetworkGVKNSXTVPC is the GVK used for networks in NSX-T VPC mode.
-	NetworkGVKNSXTVPC = nsxopv1.SchemeGroupVersion.WithKind("SubnetSet")
+	NetworkGVKNSXTVPC = vpcapisv1.SchemeGroupVersion.WithKind("SubnetSet")
 )

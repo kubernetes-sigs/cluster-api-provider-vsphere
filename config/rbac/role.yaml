@@ -188,6 +188,19 @@ rules:
   - update
   - watch
 - apiGroups:
+  - crd.nsx.vmware.com
+  resources:
+  - subnetsets
+  - subnetsets/status
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
   - vsphereclusteridentities
@@ -333,19 +346,6 @@ rules:
   verbs:
   - get
   - list
-  - watch
-- apiGroups:
-  - nsx.vmware.com
-  resources:
-  - subnetsets
-  - subnetsets/status
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
   - watch
 - apiGroups:
   - rbac.authorization.k8s.io

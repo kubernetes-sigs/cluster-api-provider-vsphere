@@ -24,21 +24,20 @@ is used for e.g. local development and e2e tests. We also modify tests so that t
 This comes down to changing occurrences of the old version to the new version, e.g. `v1.10` to `v1.11`:
 
 1. Setup E2E tests for the new release:
-   1. Goal is that our clusterctl upgrade tests are testing the right versions. For `v1.11` this means:
-      - v1beta1: `v1.10 => current` (will change with each new release)
-      - v1beta1: `v1.9 => current` (will change with each new release)
-   2. Modify the test specs in `test/e2e/clusterctl_upgrade_test.go` (according to the versions we want to test described above).
-      Please note that both `InitWithKubernetesVersion` and `WorkloadKubernetesVersion` should be the highest mgmt cluster version supported by the respective Cluster API version.
-   3. Update providers in `vsphere.yaml`:
+   1. Goal is that we have clusterctl upgrade tests for all relevant upgrade cases:
+      - Modify the test specs in `test/e2e/clusterctl_upgrade_test.go`. Please note the comments above each test case (look for `This test should be changed during "prepare main branch"`)
+        Please note that both `InitWithKubernetesVersion` and `WorkloadKubernetesVersion` should be the highest mgmt cluster version supported by the respective Cluster API version.
+      - Please ping maintainers after these changes are made for a first round of feedback before continuing with the steps below.
+   2. Update providers in `vsphere.yaml`:
       1. Add a new `v1.10` entry.
       2. Remove providers that are not used anymore in clusterctl upgrade tests.
       3. Change `v1.10.99` to `v1.11.99`.
-   4. Adjust `metadata.yaml`'s:
+   3. Adjust `metadata.yaml`'s:
       1. Create a new `v1.10` `metadata.yaml` (`test/e2e/data/shared/capv/v1.10/metadata.yaml`) by copying the top-level `metadata.yaml`.
       2. Add new release to the top-level `metadata.yaml`
       3. Add the new v1.11 release to the main `metadata.yaml` (`test/e2e/data/shared/capv/main/metadata.yaml`).
       4. Remove old `metadata.yaml`'s that are not used anymore in clusterctl upgrade tests.
-   5. Adjust cluster templates in `test/e2e/data/infrastructure-vsphere-govmomi` and `test/e2e/data/infrastructure-vsphere-supervisor`:
+   4. Adjust cluster templates in `test/e2e/data/infrastructure-vsphere-govmomi` and `test/e2e/data/infrastructure-vsphere-supervisor`:
       1. Regenerate templates via `make generate-e2e-templates`.
       2. Create a new `v1.10` folder. It should be created based on the `main` folder and only contain the templates
         we use in the clusterctl upgrade tests, as of today:
@@ -48,9 +47,9 @@ This comes down to changing occurrences of the old version to the new version, e
          - `workload`
       3. Remove old folders that are not used anymore in clusterctl upgrade tests.
       4. Add a `generate-e2e-templates-v1.10` target in `Makefile` and remove the old ones.
-2. Update `clusterctl-settings.json`: `v1.10.99` => `v1.11.99`.
+2. Update `clusterctl-settings.json` and all `tilt-provider.yaml`: `v1.10.99` => `v1.11.99`.
 3. Make sure all tests are green.
-Prior art: [🌱 Prepare main for development of release v1.11](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/pull/2950)
+Prior art: [🌱 Prepare main for development of release v1.12](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/pull/3159)
 
 ## Remove previously deprecated code
 

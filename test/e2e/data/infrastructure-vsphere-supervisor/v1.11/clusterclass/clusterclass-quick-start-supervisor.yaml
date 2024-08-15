@@ -1,0 +1,324 @@
+apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+kind: VSphereClusterTemplate
+metadata:
+  name: '${CLUSTER_CLASS_NAME}'
+  namespace: '${NAMESPACE}'
+spec:
+  template:
+    spec: {}
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: '${CLUSTER_CLASS_NAME}'
+spec:
+  controlPlane:
+    machineInfrastructure:
+      ref:
+        apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+        kind: VSphereMachineTemplate
+        name: ${CLUSTER_CLASS_NAME}-template
+        namespace: '${NAMESPACE}'
+    ref:
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+      kind: KubeadmControlPlaneTemplate
+      name: ${CLUSTER_CLASS_NAME}-controlplane
+      namespace: '${NAMESPACE}'
+  infrastructure:
+    ref:
+      apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+      kind: VSphereClusterTemplate
+      name: '${CLUSTER_CLASS_NAME}'
+      namespace: '${NAMESPACE}'
+  patches:
+  - definitions:
+    - jsonPatches:
+      - op: add
+        path: /spec/template/spec/kubeadmConfigSpec/files
+        value: []
+      - op: add
+        path: /spec/template/spec/kubeadmConfigSpec/postKubeadmCommands
+        value: []
+      selector:
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        kind: KubeadmControlPlaneTemplate
+        matchResources:
+          controlPlane: true
+    - jsonPatches:
+      - op: add
+        path: /spec/template/spec/files
+        value: []
+      - op: add
+        path: /spec/template/spec/postKubeadmCommands
+        value: []
+      selector:
+        apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+        kind: KubeadmConfigTemplate
+        matchResources:
+          machineDeploymentClass:
+            names:
+            - ${CLUSTER_CLASS_NAME}-worker
+    name: createEmptyArrays
+  - definitions:
+    - jsonPatches:
+      - op: add
+        path: /spec/template/spec/kubeadmConfigSpec/users
+        valueFrom:
+          template: |
+            - name: capv
+              sshAuthorizedKeys:
+              - '{{ .sshKey }}'
+              sudo: ALL=(ALL) NOPASSWD:ALL
+      selector:
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        kind: KubeadmControlPlaneTemplate
+        matchResources:
+          controlPlane: true
+    - jsonPatches:
+      - op: add
+        path: /spec/template/spec/users
+        valueFrom:
+          template: |
+            - name: capv
+              sshAuthorizedKeys:
+              - '{{ .sshKey }}'
+              sudo: ALL=(ALL) NOPASSWD:ALL
+      selector:
+        apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+        kind: KubeadmConfigTemplate
+        matchResources:
+          machineDeploymentClass:
+            names:
+            - ${CLUSTER_CLASS_NAME}-worker
+    enabledIf: '{{ if .sshKey }}true{{end}}'
+    name: enableSSHIntoNodes
+  - definitions:
+    - jsonPatches:
+      - op: add
+        path: /spec/template/spec/controlPlaneEndpoint
+        valueFrom:
+          template: |
+            host: '{{ .controlPlaneIpAddr }}'
+            port: {{ .controlPlanePort }}
+      selector:
+        apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+        kind: VSphereClusterTemplate
+        matchResources:
+          infrastructureCluster: true
+    name: infraClusterSubstitutions
+  - definitions:
+    - jsonPatches:
+      - op: add
+        path: /spec/template/spec/kubeadmConfigSpec/files/-
+        valueFrom:
+          template: |-
+            owner: "root:root"
+            path: "/etc/kubernetes/manifests/kube-vip.yaml"
+            content: {{ printf "%q" (regexReplaceAll "(name: address\n +value:).*" .kubeVipPodManifest (printf "$1 %s" .controlPlaneIpAddr)) }}
+            permissions: "0644"
+      - op: add
+        path: /spec/template/spec/kubeadmConfigSpec/files/-
+        valueFrom:
+          template: |
+            content: 127.0.0.1 localhost kubernetes
+            owner: root:root
+            path: /etc/kube-vip.hosts
+            permissions: "0644"
+      - op: add
+        path: /spec/template/spec/kubeadmConfigSpec/files/-
+        valueFrom:
+          template: |
+            content: |
+              #!/bin/bash
+
+              # Copyright 2020 The Kubernetes Authors.
+              #
+              # Licensed under the Apache License, Version 2.0 (the "License");
+              # you may not use this file except in compliance with the License.
+              # You may obtain a copy of the License at
+              #
+              #     http://www.apache.org/licenses/LICENSE-2.0
+              #
+              # Unless required by applicable law or agreed to in writing, software
+              # distributed under the License is distributed on an "AS IS" BASIS,
+              # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+              # See the License for the specific language governing permissions and
+              # limitations under the License.
+
+              set -e
+
+              # Configure the workaround required for kubeadm init with kube-vip:
+              # xref: https://github.com/kube-vip/kube-vip/issues/684
+
+              # Nothing to do for kubernetes < v1.29
+              KUBEADM_MINOR="$(kubeadm version -o short | cut -d '.' -f 2)"
+              if [[ "$KUBEADM_MINOR" -lt "29" ]]; then
+                exit 0
+              fi
+
+              IS_KUBEADM_INIT="false"
+
+              # cloud-init kubeadm init
+              if [[ -f /run/kubeadm/kubeadm.yaml ]]; then
+                IS_KUBEADM_INIT="true"
+              fi
+
+              # ignition kubeadm init
+              if [[ -f /etc/kubeadm.sh ]] && grep -q -e "kubeadm init" /etc/kubeadm.sh; then
+                IS_KUBEADM_INIT="true"
+              fi
+
+              if [[ "$IS_KUBEADM_INIT" == "true" ]]; then
+                sed -i 's#path: /etc/kubernetes/admin.conf#path: /etc/kubernetes/super-admin.conf#' \
+                  /etc/kubernetes/manifests/kube-vip.yaml
+              fi
+            owner: root:root
+            path: /etc/pre-kubeadm-commands/50-kube-vip-prepare.sh
+            permissions: "0700"
+      selector:
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        kind: KubeadmControlPlaneTemplate
+        matchResources:
+          controlPlane: true
+    name: kubeVipPodManifest
+  variables:
+  - metadata: {}
+    name: sshKey
+    required: false
+    schema:
+      openAPIV3Schema:
+        description: Public key to SSH onto the cluster nodes.
+        type: string
+  - metadata: {}
+    name: controlPlaneIpAddr
+    required: true
+    schema:
+      openAPIV3Schema:
+        description: Floating VIP for the control plane.
+        type: string
+  - metadata: {}
+    name: controlPlanePort
+    required: true
+    schema:
+      openAPIV3Schema:
+        description: Port for the control plane endpoint.
+        type: integer
+  - metadata: {}
+    name: kubeVipPodManifest
+    required: true
+    schema:
+      openAPIV3Schema:
+        description: kube-vip manifest for the control plane.
+        type: string
+  workers:
+    machineDeployments:
+    - class: ${CLUSTER_CLASS_NAME}-worker
+      template:
+        bootstrap:
+          ref:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            kind: KubeadmConfigTemplate
+            name: ${CLUSTER_CLASS_NAME}-worker-bootstrap-template
+            namespace: '${NAMESPACE}'
+        infrastructure:
+          ref:
+            apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+            kind: VSphereMachineTemplate
+            name: ${CLUSTER_CLASS_NAME}-worker-machinetemplate
+            namespace: '${NAMESPACE}'
+        metadata: {}
+---
+apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+kind: VSphereMachineTemplate
+metadata:
+  name: ${CLUSTER_CLASS_NAME}-template
+  namespace: '${NAMESPACE}'
+spec:
+  template:
+    spec:
+      className: ${VSPHERE_MACHINE_CLASS_NAME}
+      imageName: ${VSPHERE_IMAGE_NAME}
+      powerOffMode: ${VSPHERE_POWER_OFF_MODE:=trySoft}
+      storageClass: ${VSPHERE_STORAGE_CLASS}
+---
+apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+kind: VSphereMachineTemplate
+metadata:
+  name: ${CLUSTER_CLASS_NAME}-worker-machinetemplate
+  namespace: '${NAMESPACE}'
+spec:
+  template:
+    spec:
+      className: ${VSPHERE_MACHINE_CLASS_NAME}
+      imageName: ${VSPHERE_IMAGE_NAME}
+      powerOffMode: ${VSPHERE_POWER_OFF_MODE:=trySoft}
+      storageClass: ${VSPHERE_STORAGE_CLASS}
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+kind: KubeadmControlPlaneTemplate
+metadata:
+  name: ${CLUSTER_CLASS_NAME}-controlplane
+  namespace: '${NAMESPACE}'
+spec:
+  template:
+    spec:
+      kubeadmConfigSpec:
+        clusterConfiguration:
+          apiServer:
+            extraArgs:
+              cloud-provider: external
+          controllerManager:
+            extraArgs:
+              cloud-provider: external
+        initConfiguration:
+          nodeRegistration:
+            criSocket: /var/run/containerd/containerd.sock
+            kubeletExtraArgs:
+              cloud-provider: external
+            name: '{{ local_hostname }}'
+        joinConfiguration:
+          nodeRegistration:
+            criSocket: /var/run/containerd/containerd.sock
+            kubeletExtraArgs:
+              cloud-provider: external
+            name: '{{ local_hostname }}'
+        preKubeadmCommands:
+        - dhclient eth0
+        - hostnamectl set-hostname "{{ ds.meta_data.hostname }}"
+        - echo "::1         ipv6-localhost ipv6-loopback localhost6 localhost6.localdomain6"
+          >/etc/hosts
+        - echo "127.0.0.1   {{ ds.meta_data.hostname }} {{ local_hostname }} localhost
+          localhost.localdomain localhost4 localhost4.localdomain4" >>/etc/hosts
+        - mkdir -p /etc/pre-kubeadm-commands
+        - for script in $(find /etc/pre-kubeadm-commands/ -name '*.sh' -type f | sort);
+          do echo "Running script $script"; "$script"; done
+        users:
+        - name: capv
+          sshAuthorizedKeys:
+          - '${VSPHERE_SSH_AUTHORIZED_KEY}'
+          sudo: ALL=(ALL) NOPASSWD:ALL
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfigTemplate
+metadata:
+  name: ${CLUSTER_CLASS_NAME}-worker-bootstrap-template
+  namespace: '${NAMESPACE}'
+spec:
+  template:
+    spec:
+      joinConfiguration:
+        nodeRegistration:
+          criSocket: /var/run/containerd/containerd.sock
+          kubeletExtraArgs:
+            cloud-provider: external
+          name: '{{ local_hostname }}'
+      preKubeadmCommands:
+      - dhclient eth0
+      - hostnamectl set-hostname "{{ ds.meta_data.hostname }}"
+      - echo "::1         ipv6-localhost ipv6-loopback localhost6 localhost6.localdomain6"
+        >/etc/hosts
+      - echo "127.0.0.1   {{ ds.meta_data.hostname }} {{ local_hostname }} localhost
+        localhost.localdomain localhost4 localhost4.localdomain4" >>/etc/hosts
+      - mkdir -p /etc/pre-kubeadm-commands
+      - for script in $(find /etc/pre-kubeadm-commands/ -name '*.sh' -type f | sort);
+        do echo "Running script $script"; "$script"; done

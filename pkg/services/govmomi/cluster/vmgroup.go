@@ -84,3 +84,25 @@ func (vg VMGroup) HasVM(vmObj types.ManagedObjectReference) (bool, error) {
 func (vg VMGroup) listVMs() []types.ManagedObjectReference {
 	return vg.ClusterVmGroup.Vm
 }
+
+// Remove a VSphere VM object from the VM Group.
+func (vg VMGroup) Remove(ctx context.Context, vmObj types.ManagedObjectReference) (*object.Task, error) {
+	for i, vm := range vg.ClusterVmGroup.Vm {
+		if vm == vmObj {
+			vg.ClusterVmGroup.Vm = append(vg.ClusterVmGroup.Vm[:i], vg.ClusterVmGroup.Vm[i+1:]...)
+			break
+		}
+	}
+
+	spec := &types.ClusterConfigSpecEx{
+		GroupSpec: []types.ClusterGroupSpec{
+			{
+				ArrayUpdateSpec: types.ArrayUpdateSpec{
+					Operation: types.ArrayUpdateOperationEdit,
+				},
+				Info: vg.ClusterVmGroup,
+			},
+		},
+	}
+	return vg.ClusterComputeResource.Reconfigure(ctx, spec, true)
+}

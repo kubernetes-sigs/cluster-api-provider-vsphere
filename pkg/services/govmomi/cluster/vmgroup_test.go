@@ -70,6 +70,15 @@ func Test_VMGroup(t *testing.T) {
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(hasVM).To(BeTrue())
 
+	task, err = vmGrp.Remove(ctx, vmRef)
+	g.Expect(task.Wait(ctx)).To(Succeed())
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(vmGrp.listVMs()).To(HaveLen(2))
+
+	hasVM, err = vmGrp.HasVM(vmRef)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(hasVM).To(BeFalse())
+
 	vmGroupName = "incorrect-vm-group"
 	_, err = FindVMGroup(ctx, computeClusterCtx, computeClusterName, vmGroupName)
 	g.Expect(err).To(HaveOccurred())

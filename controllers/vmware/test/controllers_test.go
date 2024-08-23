@@ -44,6 +44,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/controllers"
+	"sigs.k8s.io/cluster-api-provider-vsphere/controllers/vmware"
 	vmwarewebhooks "sigs.k8s.io/cluster-api-provider-vsphere/internal/webhooks/vmware"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/constants"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
@@ -259,6 +260,10 @@ func getManager(cfg *rest.Config, networkProvider string, withWebhooks bool) man
 				return err
 			}
 		}
+		if err := vmware.AddVSphereMachineTemplateControllerToManager(ctx, controllerCtx, mgr, controllerOpts); err != nil {
+			return err
+		}
+
 		return controllers.AddMachineControllerToManager(ctx, controllerCtx, mgr, true, controllerOpts)
 	}
 

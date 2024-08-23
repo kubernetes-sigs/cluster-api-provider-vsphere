@@ -387,6 +387,14 @@ rules:
 - apiGroups:
   - vmoperator.vmware.com
   resources:
+  - virtualmachineclasses
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - vmoperator.vmware.com
+  resources:
   - virtualmachineimages
   - virtualmachineimages/status
   verbs:

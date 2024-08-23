@@ -408,6 +408,7 @@ generate-e2e-templates-main: $(KUSTOMIZE) ## Generate test templates for the mai
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/clusterclass-runtimesdk" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/clusterclass-quick-start-supervisor-runtimesdk.yaml"
 	cp "$(RELEASE_DIR)/main/cluster-template-topology-supervisor.yaml" "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/topology/cluster-template-topology-supervisor.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/topology" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/cluster-template-topology-supervisor.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/topology-autoscaler" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/cluster-template-topology-autoscaler-supervisor.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/topology-runtimesdk" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/cluster-template-topology-runtimesdk-supervisor.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/conformance" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/cluster-template-conformance-supervisor.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/fast-rollout" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/cluster-template-fast-rollout-supervisor.yaml"

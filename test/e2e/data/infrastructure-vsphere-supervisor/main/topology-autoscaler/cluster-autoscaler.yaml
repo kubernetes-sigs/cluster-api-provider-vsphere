@@ -1,0 +1,9 @@
+- op: replace
+  path: /spec/topology/workers/machineDeployments/0/metadata
+  value:
+    annotations:
+      cluster.x-k8s.io/cluster-api-autoscaler-node-group-max-size: "5"
+      cluster.x-k8s.io/cluster-api-autoscaler-node-group-min-size: "2"
+- op: remove
+  path: /spec/topology/workers/machineDeployments/0/replicas
+

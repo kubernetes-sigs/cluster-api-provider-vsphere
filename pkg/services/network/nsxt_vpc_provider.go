@@ -21,7 +21,7 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-	vpcapisv1 "github.com/vmware-tanzu/nsx-operator/pkg/apis/vpc/v1alpha1"
+	nsxvpcv1 "github.com/vmware-tanzu/nsx-operator/pkg/apis/vpc/v1alpha1"
 	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	vmoprv1common "github.com/vmware-tanzu/vm-operator/api/v1alpha2/common"
 	corev1 "k8s.io/api/core/v1"
@@ -38,11 +38,6 @@ import (
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services"
-)
-
-const (
-	// AnnotationEnableEndpointHealthCheckKey is the key of the annotation that is used to enable health check on the VMService endpoint port.
-	AnnotationEnableEndpointHealthCheckKey = "lb.iaas.vmware.com/enable-endpoint-health-check"
 )
 
 // nsxtVPCNetworkProvider provisions nsx-vpc type cluster network.
@@ -71,13 +66,13 @@ func (vp *nsxtVPCNetworkProvider) SupportsVMReadinessProbe() bool {
 // verifyNsxtVpcSubnetSetStatus checks the status conditions of a given SubnetSet within a cluster context.
 // If the subnet isn't ready, it is marked as false, and the function returns an error.
 // If the subnet is ready, the function updates the VSphereCluster with a "true" status and returns nil.
-func (vp *nsxtVPCNetworkProvider) verifyNsxtVpcSubnetSetStatus(vspherecluster *vmwarev1.VSphereCluster, subnetset *vpcapisv1.SubnetSet) error {
+func (vp *nsxtVPCNetworkProvider) verifyNsxtVpcSubnetSetStatus(vspherecluster *vmwarev1.VSphereCluster, subnetset *nsxvpcv1.SubnetSet) error {
 	clusterName := vspherecluster.Name
 	namespace := vspherecluster.Namespace
 	hasReadyCondition := false
 
 	for _, condition := range subnetset.Status.Conditions {
-		if condition.Type != vpcapisv1.Ready {
+		if condition.Type != nsxvpcv1.Ready {
 			continue
 		}
 		hasReadyCondition = true
@@ -101,7 +96,7 @@ func (vp *nsxtVPCNetworkProvider) verifyNsxtVpcSubnetSetStatus(vspherecluster *v
 // If it is, then it calls verifyNsxVpcSubnetSetStatus with the SubnetSet to verify its status.
 // If it's not, it returns an error.
 func (vp *nsxtVPCNetworkProvider) VerifyNetworkStatus(_ context.Context, clusterCtx *vmware.ClusterContext, obj runtime.Object) error {
-	subnetset, ok := obj.(*vpcapisv1.SubnetSet)
+	subnetset, ok := obj.(*nsxvpcv1.SubnetSet)
 	if !ok {
 		return fmt.Errorf("expected NSX VPC SubnetSet but got %T", obj)
 	}
@@ -124,14 +119,14 @@ func (vp *nsxtVPCNetworkProvider) ProvisionClusterNetwork(ctx context.Context, c
 	log.Info("Provisioning ")
 	defer log.Info("Finished provisioning")
 
-	subnetset := &vpcapisv1.SubnetSet{
+	subnetset := &nsxvpcv1.SubnetSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: networkNamespace,
 			Name:      networkName,
 		},
-		Spec: vpcapisv1.SubnetSetSpec{
-			AdvancedConfig: vpcapisv1.AdvancedConfig{
-				StaticIPAllocation: vpcapisv1.StaticIPAllocation{
+		Spec: nsxvpcv1.SubnetSetSpec{
+			AdvancedConfig: nsxvpcv1.AdvancedConfig{
+				StaticIPAllocation: nsxvpcv1.StaticIPAllocation{
 					Enable: true,
 				},
 			},
@@ -159,7 +154,7 @@ func (vp *nsxtVPCNetworkProvider) ProvisionClusterNetwork(ctx context.Context, c
 
 // GetClusterNetworkName returns the name of a valid cluster network if one exists.
 func (vp *nsxtVPCNetworkProvider) GetClusterNetworkName(ctx context.Context, clusterCtx *vmware.ClusterContext) (string, error) {
-	subnetset := &vpcapisv1.SubnetSet{}
+	subnetset := &nsxvpcv1.SubnetSet{}
 	cluster := clusterCtx.VSphereCluster
 	namespacedName := types.NamespacedName{
 		Namespace: cluster.Namespace,
@@ -173,6 +168,7 @@ func (vp *nsxtVPCNetworkProvider) GetClusterNetworkName(ctx context.Context, clu
 
 // The GetVMServiceAnnotations method always returns an empty map representing annotations.
 func (vp *nsxtVPCNetworkProvider) GetVMServiceAnnotations(_ context.Context, _ *vmware.ClusterContext) (map[string]string, error) {
+	// The value of the annotation lb.iaas.vmware.com/enable-endpoint-health-check is expected to be an empty string.
 	return map[string]string{AnnotationEnableEndpointHealthCheckKey: ""}, nil
 }
 

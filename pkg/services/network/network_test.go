@@ -24,7 +24,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	netopv1 "github.com/vmware-tanzu/net-operator-api/api/v1alpha1"
-	vpcapisv1 "github.com/vmware-tanzu/nsx-operator/pkg/apis/vpc/v1alpha1"
+	nsxvpcv1 "github.com/vmware-tanzu/nsx-operator/pkg/apis/vpc/v1alpha1"
 	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	ncpv1 "github.com/vmware-tanzu/vm-operator/external/ncp/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -270,7 +270,7 @@ var _ = Describe("Network provider", func() {
 				Expect(vm.Spec.Network.Interfaces).To(HaveLen(1))
 				Expect(vm.Spec.Network.Interfaces[0].Network.Name).To(Equal(vSphereCluster.Name))
 				Expect(vm.Spec.Network.Interfaces[0].Network.TypeMeta.Kind).To(Equal("SubnetSet"))
-				Expect(vm.Spec.Network.Interfaces[0].Network.TypeMeta.APIVersion).To(Equal(vpcapisv1.SchemeGroupVersion.String()))
+				Expect(vm.Spec.Network.Interfaces[0].Network.TypeMeta.APIVersion).To(Equal(nsxvpcv1.SchemeGroupVersion.String()))
 			})
 		})
 	})
@@ -336,7 +336,7 @@ var _ = Describe("Network provider", func() {
 			Expect(ncpv1.AddToScheme(scheme)).To(Succeed())
 			Expect(corev1.AddToScheme(scheme)).To(Succeed())
 			Expect(vmwarev1.AddToScheme(scheme)).To(Succeed())
-			Expect(vpcapisv1.AddToScheme(scheme)).To(Succeed())
+			Expect(nsxvpcv1.AddToScheme(scheme)).To(Succeed())
 		})
 
 		Context("with dummy network provider", func() {
@@ -599,14 +599,14 @@ var _ = Describe("Network provider", func() {
 
 			It("should not update subnetset", func() {
 				// Fetch the SubnetSet before the operation
-				initialSubnetSet := &vpcapisv1.SubnetSet{}
+				initialSubnetSet := &nsxvpcv1.SubnetSet{}
 				err = client.Get(ctx, apitypes.NamespacedName{
 					Name:      dummyCluster,
 					Namespace: dummyNs,
 				}, initialSubnetSet)
 				Expect(err).NotTo(HaveOccurred())
-				status := vpcapisv1.SubnetSetStatus{
-					Conditions: []vpcapisv1.Condition{
+				status := nsxvpcv1.SubnetSetStatus{
+					Conditions: []nsxvpcv1.Condition{
 						{
 							Type:   "Ready",
 							Status: "True",
@@ -620,7 +620,7 @@ var _ = Describe("Network provider", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(subnetset).To(Equal(clusterCtx.VSphereCluster.Name))
 
-				createdSubnetSet := &vpcapisv1.SubnetSet{}
+				createdSubnetSet := &nsxvpcv1.SubnetSet{}
 				err = client.Get(ctx, apitypes.NamespacedName{
 					Name:      dummyCluster,
 					Namespace: dummyNs,
@@ -633,7 +633,7 @@ var _ = Describe("Network provider", func() {
 			It("should successfully retrieve VM service annotations, including the annotation to enable LB healthcheck", func() {
 				annotations, err := np.GetVMServiceAnnotations(ctx, clusterCtx)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(annotations).To(HaveKey("lb.iaas.vmware.com/enable-endpoint-health-check"))
+				Expect(annotations).To(HaveKey(AnnotationEnableEndpointHealthCheckKey))
 			})
 
 		})
@@ -658,7 +658,7 @@ var _ = Describe("Network provider", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(subnetset).To(Equal(clusterCtx.VSphereCluster.Name))
 
-				createdSubnetSet := &vpcapisv1.SubnetSet{}
+				createdSubnetSet := &nsxvpcv1.SubnetSet{}
 				err = client.Get(ctx, apitypes.NamespacedName{
 					Name:      dummyCluster,
 					Namespace: dummyNs,
@@ -700,14 +700,14 @@ var _ = Describe("Network provider", func() {
 
 			BeforeEach(func() {
 				scheme = runtime.NewScheme()
-				Expect(vpcapisv1.AddToScheme(scheme)).To(Succeed())
+				Expect(nsxvpcv1.AddToScheme(scheme)).To(Succeed())
 				nsxvpcNp, _ = NSXTVpcNetworkProvider(client).(*nsxtVPCNetworkProvider)
 				np = nsxvpcNp
 			})
 
 			It("should return error when subnetset ready status is false", func() {
-				status := vpcapisv1.SubnetSetStatus{
-					Conditions: []vpcapisv1.Condition{
+				status := nsxvpcv1.SubnetSetStatus{
+					Conditions: []nsxvpcv1.Condition{
 						{
 							Type:    "Ready",
 							Status:  "False",
@@ -716,7 +716,7 @@ var _ = Describe("Network provider", func() {
 						},
 					},
 				}
-				subnetsetObj = &vpcapisv1.SubnetSet{
+				subnetsetObj = &nsxvpcv1.SubnetSet{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: cluster.Namespace,
 						Name:      cluster.Name,
@@ -732,10 +732,10 @@ var _ = Describe("Network provider", func() {
 			})
 
 			It("should return error when subnetset ready status is not set", func() {
-				status := vpcapisv1.SubnetSetStatus{
-					Conditions: []vpcapisv1.Condition{},
+				status := nsxvpcv1.SubnetSetStatus{
+					Conditions: []nsxvpcv1.Condition{},
 				}
-				subnetsetObj = &vpcapisv1.SubnetSet{
+				subnetsetObj = &nsxvpcv1.SubnetSet{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: cluster.Namespace,
 						Name:      cluster.Name,

@@ -20,7 +20,7 @@ require (
 require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/dougm/pretty v0.0.0-20171025230240-2ee9d7453c02
-	github.com/onsi/ginkgo/v2 v2.20.0
+	github.com/onsi/ginkgo/v2 v2.20.1
 	github.com/onsi/gomega v1.34.1
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/pflag v1.0.5

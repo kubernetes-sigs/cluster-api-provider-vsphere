@@ -51,6 +51,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/controllers"
+	"sigs.k8s.io/cluster-api-provider-vsphere/controllers/vmware"
 	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
 	"sigs.k8s.io/cluster-api-provider-vsphere/internal/webhooks"
 	vmwarewebhooks "sigs.k8s.io/cluster-api-provider-vsphere/internal/webhooks/vmware"
@@ -81,6 +82,7 @@ var (
 	clusterCacheTrackerConcurrency    int
 	vSphereClusterConcurrency         int
 	vSphereMachineConcurrency         int
+	vSphereMachineTemplateConcurrency int
 	providerServiceAccountConcurrency int
 	serviceDiscoveryConcurrency       int
 	vSphereVMConcurrency              int
@@ -114,6 +116,9 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	fs.IntVar(&vSphereMachineConcurrency, "vspheremachine-concurrency", 10,
 		"Number of vSphere machines to process simultaneously")
+
+	fs.IntVar(&vSphereMachineTemplateConcurrency, "vspheremachinetemplate-concurrency", 10,
+		"Number of vSphere machine templates to process simultaneously")
 
 	fs.IntVar(&providerServiceAccountConcurrency, "providerserviceaccount-concurrency", 10,
 		"Number of provider service accounts to process simultaneously")
@@ -396,6 +401,10 @@ func setupSupervisorControllers(ctx context.Context, controllerCtx *capvcontext.
 	}
 
 	if err := controllers.AddMachineControllerToManager(ctx, controllerCtx, mgr, true, concurrency(vSphereMachineConcurrency)); err != nil {
+		return err
+	}
+
+	if err := vmware.AddVSphereMachineTemplateControllerToManager(ctx, controllerCtx, mgr, concurrency(vSphereMachineTemplateConcurrency)); err != nil {
 		return err
 	}
 

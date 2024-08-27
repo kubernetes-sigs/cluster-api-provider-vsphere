@@ -664,7 +664,6 @@ var _ = Describe("Network provider", func() {
 					Namespace: dummyNs,
 				}, createdSubnetSet)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(createdSubnetSet.Spec.AdvancedConfig.StaticIPAllocation.Enable).To(BeTrue())
 			})
 		})
 

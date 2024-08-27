@@ -124,13 +124,7 @@ func (vp *nsxtVPCNetworkProvider) ProvisionClusterNetwork(ctx context.Context, c
 			Namespace: networkNamespace,
 			Name:      networkName,
 		},
-		Spec: nsxvpcv1.SubnetSetSpec{
-			AdvancedConfig: nsxvpcv1.AdvancedConfig{
-				StaticIPAllocation: nsxvpcv1.StaticIPAllocation{
-					Enable: true,
-				},
-			},
-		},
+		Spec: nsxvpcv1.SubnetSetSpec{},
 	}
 
 	_, err := ctrlutil.CreateOrPatch(ctx, vp.client, subnetset, func() error {

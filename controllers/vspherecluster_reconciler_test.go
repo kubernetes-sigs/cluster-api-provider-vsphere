@@ -60,14 +60,6 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					GenerateName: "secret-",
 					Namespace:    "default",
-					OwnerReferences: []metav1.OwnerReference{
-						{
-							APIVersion: "bitnami.com/v1alpha1",
-							Kind:       "SealedSecret",
-							Name:       "some-name",
-							UID:        "some-uid",
-						},
-					},
 				},
 				Data: map[string][]byte{
 					identity.UsernameKey: []byte(vcURL.User.Username()),
@@ -276,6 +268,13 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 
 		Expect(testEnv.Create(ctx, instance)).To(Succeed())
 		key := client.ObjectKey{Namespace: instance.Namespace, Name: instance.Name}
+
+		Eventually(func() bool {
+			if err := testEnv.Get(ctx, key, instance); err != nil {
+				return false
+			}
+			return len(instance.Finalizers) == 0
+		}, timeout).Should(BeTrue())
 
 		// Make sure the VSphereCluster exists.
 		Eventually(func() bool {

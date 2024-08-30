@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vcsim"
@@ -60,6 +61,14 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					GenerateName: "secret-",
 					Namespace:    "default",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: "bitnami.com/v1alpha1",
+							Kind:       "SealedSecret",
+							Name:       "some-name",
+							UID:        "some-uid",
+						},
+					},
 				},
 				Data: map[string][]byte{
 					identity.UsernameKey: []byte(vcURL.User.Username()),
@@ -129,7 +138,7 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 				if err := testEnv.Get(ctx, key, instance); err != nil {
 					return false
 				}
-				return len(instance.Finalizers) > 0
+				return ctrlutil.ContainsFinalizer(instance, infrav1.ClusterFinalizer)
 			}, timeout).Should(BeTrue())
 
 			// checking cluster is setting the ownerRef on the secret
@@ -138,7 +147,12 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 				if err := testEnv.Get(ctx, secretKey, secret); err != nil {
 					return false
 				}
-				return len(secret.OwnerReferences) > 0
+				for _, ref := range secret.OwnerReferences {
+					if ref.Name == instance.Name {
+						return true
+					}
+				}
+				return false
 			}, timeout).Should(BeTrue())
 
 			By("setting the VSphereCluster's VCenterAvailableCondition to true")
@@ -273,7 +287,7 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 			if err := testEnv.Get(ctx, key, instance); err != nil {
 				return false
 			}
-			return len(instance.Finalizers) == 0
+			return !ctrlutil.ContainsFinalizer(instance, infrav1.ClusterFinalizer)
 		}, timeout).Should(BeTrue())
 
 		// Make sure the VSphereCluster exists.

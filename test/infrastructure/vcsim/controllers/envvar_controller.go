@@ -288,6 +288,7 @@ func clusterEnvVarSpecGovmomiVariables(c *vcsimv1.ClusterEnvVarSpec) map[string]
 
 	// NOTE: omitting cluster Name intentionally because E2E tests provide this value in other ways
 	vars["VSPHERE_DATACENTER"] = vcsimhelpers.DatacenterName(datacenter)
+	vars["VSPHERE_COMPUTE_CLUSTER"] = vcsimhelpers.ClusterName(datacenter, cluster)
 	vars["VSPHERE_DATASTORE"] = vcsimhelpers.DatastoreName(datastore)
 	vars["VSPHERE_FOLDER"] = vcsimhelpers.VMFolderName(datacenter)
 	vars["VSPHERE_NETWORK"] = vcsimhelpers.NetworkPath(datacenter, vcsimhelpers.DefaultNetworkName)

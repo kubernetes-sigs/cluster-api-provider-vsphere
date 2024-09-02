@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vcsim"
@@ -137,7 +138,7 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 				if err := testEnv.Get(ctx, key, instance); err != nil {
 					return false
 				}
-				return len(instance.Finalizers) > 0
+				return ctrlutil.ContainsFinalizer(instance, infrav1.ClusterFinalizer)
 			}, timeout).Should(BeTrue())
 
 			// checking cluster is setting the ownerRef on the secret
@@ -146,7 +147,12 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 				if err := testEnv.Get(ctx, secretKey, secret); err != nil {
 					return false
 				}
-				return len(secret.OwnerReferences) > 0
+				for _, ref := range secret.OwnerReferences {
+					if ref.Name == instance.Name {
+						return true
+					}
+				}
+				return false
 			}, timeout).Should(BeTrue())
 
 			By("setting the VSphereCluster's VCenterAvailableCondition to true")
@@ -276,6 +282,13 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 
 		Expect(testEnv.Create(ctx, instance)).To(Succeed())
 		key := client.ObjectKey{Namespace: instance.Namespace, Name: instance.Name}
+
+		Eventually(func() bool {
+			if err := testEnv.Get(ctx, key, instance); err != nil {
+				return false
+			}
+			return !ctrlutil.ContainsFinalizer(instance, infrav1.ClusterFinalizer)
+		}, timeout).Should(BeTrue())
 
 		// Make sure the VSphereCluster exists.
 		Eventually(func() bool {

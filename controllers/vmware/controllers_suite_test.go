@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package vmware
 
 import (
 	"fmt"
@@ -46,9 +46,9 @@ func TestControllers(t *testing.T) {
 
 	reporterConfig := types.NewDefaultReporterConfig()
 	if artifactFolder, exists := os.LookupEnv("ARTIFACTS"); exists {
-		reporterConfig.JUnitReport = filepath.Join(artifactFolder, "junit.ginkgo.controllers.xml")
+		reporterConfig.JUnitReport = filepath.Join(artifactFolder, "junit.ginkgo.controllers_vmware.xml")
 	}
-	RunSpecs(t, "Controller Suite", reporterConfig)
+	RunSpecs(t, "VMware Controller Suite", reporterConfig)
 }
 
 var (
@@ -101,20 +101,11 @@ func setup() {
 		panic(fmt.Sprintf("unable to create ClusterCacheReconciler controller: %v", err))
 	}
 
-	if err := AddClusterControllerToManager(ctx, testEnv.GetControllerManagerContext(), testEnv.Manager, false, controllerOpts); err != nil {
-		panic(fmt.Sprintf("unable to setup VsphereCluster controller: %v", err))
+	if err := AddServiceAccountProviderControllerToManager(ctx, testEnv.GetControllerManagerContext(), testEnv.Manager, tracker, controllerOpts); err != nil {
+		panic(fmt.Sprintf("unable to setup ServiceAccount controller: %v", err))
 	}
-	if err := AddMachineControllerToManager(ctx, testEnv.GetControllerManagerContext(), testEnv.Manager, false, controllerOpts); err != nil {
-		panic(fmt.Sprintf("unable to setup VsphereMachine controller: %v", err))
-	}
-	if err := AddVMControllerToManager(ctx, testEnv.GetControllerManagerContext(), testEnv.Manager, tracker, controllerOpts); err != nil {
-		panic(fmt.Sprintf("unable to setup VsphereVM controller: %v", err))
-	}
-	if err := AddVsphereClusterIdentityControllerToManager(ctx, testEnv.GetControllerManagerContext(), testEnv.Manager, controllerOpts); err != nil {
-		panic(fmt.Sprintf("unable to setup VSphereClusterIdentity controller: %v", err))
-	}
-	if err := AddVSphereDeploymentZoneControllerToManager(ctx, testEnv.GetControllerManagerContext(), testEnv.Manager, controllerOpts); err != nil {
-		panic(fmt.Sprintf("unable to setup VSphereDeploymentZone controller: %v", err))
+	if err := AddServiceDiscoveryControllerToManager(ctx, testEnv.GetControllerManagerContext(), testEnv.Manager, tracker, controllerOpts); err != nil {
+		panic(fmt.Sprintf("unable to setup SvcDiscovery controller: %v", err))
 	}
 
 	go func() {

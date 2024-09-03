@@ -18,13 +18,10 @@ package vmware
 
 import (
 	"context"
-	"os"
-	"path/filepath"
 	"reflect"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
-	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,7 +31,6 @@ import (
 	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -47,16 +43,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/vmoperator"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
-
-func TestVSphereClusterReconciler(t *testing.T) {
-	RegisterFailHandler(Fail)
-
-	reporterConfig := types.NewDefaultReporterConfig()
-	if artifactFolder, exists := os.LookupEnv("ARTIFACTS"); exists {
-		reporterConfig.JUnitReport = filepath.Join(artifactFolder, "junit.ginkgo.controllers_vmware.xml")
-	}
-	RunSpecs(t, "VSphereCluster Controller Suite", reporterConfig)
-}
 
 var _ = Describe("Cluster Controller Tests", func() {
 	const (
@@ -72,7 +58,6 @@ var _ = Describe("Cluster Controller Tests", func() {
 		cluster                  *clusterv1.Cluster
 		vsphereCluster           *vmwarev1.VSphereCluster
 		vsphereMachine           *vmwarev1.VSphereMachine
-		ctx                      = ctrl.SetupSignalHandler()
 		clusterCtx               *vmware.ClusterContext
 		controllerManagerContext *capvcontext.ControllerManagerContext
 		reconciler               *ClusterReconciler

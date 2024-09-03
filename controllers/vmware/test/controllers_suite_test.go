@@ -64,7 +64,7 @@ func TestAPIs(t *testing.T) {
 	if artifactFolder, exists := os.LookupEnv("ARTIFACTS"); exists {
 		reporterConfig.JUnitReport = filepath.Join(artifactFolder, "junit.ginkgo.controllers_vmware_test.xml")
 	}
-	RunSpecs(t, "VMware Controller Suite", reporterConfig)
+	RunSpecs(t, "VMware Controller Suite test", reporterConfig)
 }
 
 func getTestEnv() (*envtest.Environment, *rest.Config) {

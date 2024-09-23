@@ -21,7 +21,7 @@ const (
 	ClusterNameVar               = "${CLUSTER_NAME}"
 	ClusterClassNameVar          = "${CLUSTER_CLASS_NAME}"
 	ControlPlaneMachineCountVar  = "${CONTROL_PLANE_MACHINE_COUNT}"
-	DefaultCloudProviderImage    = "gcr.io/cloud-provider-vsphere/cpi/release/manager:v1.2.1"
+	DefaultCloudProviderImage    = "registry.k8s.io/cloud-pv-vsphere/cloud-provider-vsphere:v1.2.1"
 	DefaultClusterCIDR           = "192.168.0.0/16"
 	DefaultDiskGiB               = 25
 	DefaultMemoryMiB             = 8192

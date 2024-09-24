@@ -32,7 +32,7 @@ import (
 // NOTE: the contents of this file are derived from https://github.com/kubernetes/cloud-provider-vsphere/tree/master/manifests/controller-manager
 
 const (
-	CPIControllerImageURL = "gcr.io/cloud-provider-vsphere/cpi/release/manager"
+	CPIControllerImageURL = "registry.k8s.io/cloud-pv-vsphere/cloud-provider-vsphere"
 )
 
 // CloudControllerManagerServiceAccount returns the ServiceAccount used for the cloud-controller-manager.

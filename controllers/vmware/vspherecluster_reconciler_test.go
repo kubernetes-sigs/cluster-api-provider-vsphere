@@ -222,7 +222,7 @@ func TestClusterReconciler_getFailureDomains(t *testing.T) {
 					WithObjects(append([]client.Object{namespace}, tt.objects...)...).
 					Build(),
 			}
-			defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.NamespaceScopedZones, tt.featureGate)()
+			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.NamespaceScopedZones, tt.featureGate)
 			got, err := r.getFailureDomains(ctx, namespace.Name)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ClusterReconciler.getFailureDomains() error = %v, wantErr %v", err, tt.wantErr)

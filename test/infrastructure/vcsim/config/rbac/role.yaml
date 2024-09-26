@@ -8,6 +8,8 @@ rules:
   - ""
   resources:
   - configmaps
+  - resourcequotas
+  - secrets
   verbs:
   - create
   - get
@@ -18,24 +20,6 @@ rules:
   resources:
   - namespaces
   verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - resourcequotas
-  verbs:
-  - create
-  - get
-  - list
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - secrets
-  verbs:
-  - create
   - get
   - list
   - watch
@@ -55,13 +39,6 @@ rules:
   - cluster.x-k8s.io
   resources:
   - clusters
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - cluster.x-k8s.io
-  resources:
   - machines
   verbs:
   - get
@@ -71,21 +48,7 @@ rules:
   - infrastructure.cluster.x-k8s.io
   resources:
   - vsphereclusteridentities
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
   - vsphereclusters
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
   - vspheremachines
   verbs:
   - get
@@ -125,56 +88,8 @@ rules:
   - vcsim.infrastructure.cluster.x-k8s.io
   resources:
   - controlplaneendpoints
-  verbs:
-  - get
-  - list
-  - patch
-  - watch
-- apiGroups:
-  - vcsim.infrastructure.cluster.x-k8s.io
-  resources:
-  - controlplaneendpoints/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - vcsim.infrastructure.cluster.x-k8s.io
-  resources:
   - envvars
-  verbs:
-  - get
-  - list
-  - patch
-  - watch
-- apiGroups:
-  - vcsim.infrastructure.cluster.x-k8s.io
-  resources:
-  - envvars/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - vcsim.infrastructure.cluster.x-k8s.io
-  resources:
   - vcentersimulators
-  verbs:
-  - get
-  - list
-  - patch
-  - watch
-- apiGroups:
-  - vcsim.infrastructure.cluster.x-k8s.io
-  resources:
-  - vcentersimulators/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - vcsim.infrastructure.cluster.x-k8s.io
-  resources:
   - vmoperatordependencies
   verbs:
   - get
@@ -184,6 +99,9 @@ rules:
 - apiGroups:
   - vcsim.infrastructure.cluster.x-k8s.io
   resources:
+  - controlplaneendpoints/status
+  - envvars/status
+  - vcentersimulators/status
   - vmoperatordependencies/status
   verbs:
   - get
@@ -193,14 +111,6 @@ rules:
   - vmoperator.vmware.com
   resources:
   - virtualmachineclasses
-  verbs:
-  - create
-  - get
-  - list
-  - watch
-- apiGroups:
-  - vmoperator.vmware.com
-  resources:
   - virtualmachineimages
   verbs:
   - create
@@ -230,13 +140,6 @@ rules:
   - vmware.infrastructure.cluster.x-k8s.io
   resources:
   - vsphereclusters
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - vmware.infrastructure.cluster.x-k8s.io
-  resources:
   - vspheremachines
   verbs:
   - get

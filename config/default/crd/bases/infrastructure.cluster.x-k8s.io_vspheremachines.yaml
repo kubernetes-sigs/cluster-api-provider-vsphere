@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.1
   name: vspheremachines.infrastructure.cluster.x-k8s.io
 spec:
   group: infrastructure.cluster.x-k8s.io
@@ -44,7 +44,6 @@ spec:
       openAPIV3Schema:
         description: |-
           VSphereMachine is the Schema for the vspheremachines API
-
 
           Deprecated: This type will be removed in one of the next releases.
         properties:
@@ -127,7 +126,6 @@ spec:
                   devices:
                     description: |-
                       Devices is the list of network devices used by the virtual machine.
-                      TODO(akutz) Make sure at least one network matches the
                                   ClusterSpec.CloudProviderConfiguration.Network.Name
                     items:
                       description: |-
@@ -381,6 +379,7 @@ spec:
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
                   required:
+                  - lastTransitionTime
                   - status
                   - type
                   type: object
@@ -391,7 +390,6 @@ spec:
                   reconciling the Machine and will contain a more verbose string suitable
                   for logging and human consumption.
 
-
                   This field should not be set for transitive errors that a controller
                   faces that are expected to be fixed automatically over
                   time (like service outages), but instead indicate that something is
@@ -400,7 +398,6 @@ spec:
                   of terminal errors would be invalid combinations of settings in the
                   spec, values that are unsupported by the controller, or the
                   responsible controller itself being critically misconfigured.
-
 
                   Any transient errors that occur during the reconciliation of Machines
                   can be added as events to the Machine object and/or logged in the
@@ -412,7 +409,6 @@ spec:
                   reconciling the Machine and will contain a succinct value suitable
                   for machine interpretation.
 
-
                   This field should not be set for transitive errors that a controller
                   faces that are expected to be fixed automatically over
                   time (like service outages), but instead indicate that something is
@@ -421,7 +417,6 @@ spec:
                   of terminal errors would be invalid combinations of settings in the
                   spec, values that are unsupported by the controller, or the
                   responsible controller itself being critically misconfigured.
-
 
                   Any transient errors that occur during the reconciliation of Machines
                   can be added as events to the Machine object and/or logged in the
@@ -494,7 +489,6 @@ spec:
         description: |-
           VSphereMachine is the Schema for the vspheremachines API
 
-
           Deprecated: This type will be removed in one of the next releases.
         properties:
           apiVersion:
@@ -576,7 +570,6 @@ spec:
                   devices:
                     description: |-
                       Devices is the list of network devices used by the virtual machine.
-                      TODO(akutz) Make sure at least one network matches the
                                   ClusterSpec.CloudProviderConfiguration.Network.Name
                     items:
                       description: |-
@@ -830,6 +823,7 @@ spec:
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
                   required:
+                  - lastTransitionTime
                   - status
                   - type
                   type: object
@@ -840,7 +834,6 @@ spec:
                   reconciling the Machine and will contain a more verbose string suitable
                   for logging and human consumption.
 
-
                   This field should not be set for transitive errors that a controller
                   faces that are expected to be fixed automatically over
                   time (like service outages), but instead indicate that something is
@@ -849,7 +842,6 @@ spec:
                   of terminal errors would be invalid combinations of settings in the
                   spec, values that are unsupported by the controller, or the
                   responsible controller itself being critically misconfigured.
-
 
                   Any transient errors that occur during the reconciliation of Machines
                   can be added as events to the Machine object and/or logged in the
@@ -861,7 +853,6 @@ spec:
                   reconciling the Machine and will contain a succinct value suitable
                   for machine interpretation.
 
-
                   This field should not be set for transitive errors that a controller
                   faces that are expected to be fixed automatically over
                   time (like service outages), but instead indicate that something is
@@ -870,7 +861,6 @@ spec:
                   of terminal errors would be invalid combinations of settings in the
                   spec, values that are unsupported by the controller, or the
                   responsible controller itself being critically misconfigured.
-
 
                   Any transient errors that occur during the reconciliation of Machines
                   can be added as events to the Machine object and/or logged in the
@@ -1022,9 +1012,7 @@ spec:
                   The VM will be powered off forcibly after the timeout if the VM is still
                   up and running when the PowerOffMode is set to trySoft.
 
-
                   This parameter only applies when the PowerOffMode is set to trySoft.
-
 
                   If omitted, the timeout defaults to 5 minutes.
                 type: string
@@ -1049,7 +1037,6 @@ spec:
                   devices:
                     description: |-
                       Devices is the list of network devices used by the virtual machine.
-                      TODO(akutz) Make sure at least one network matches the
                                   ClusterSpec.CloudProviderConfiguration.Network.Name
                     items:
                       description: |-
@@ -1304,7 +1291,6 @@ spec:
                       PreferredAPIServeCIDR is the preferred CIDR for the Kubernetes API
                       server endpoint on this machine
 
-
                       Deprecated: This field is going to be removed in a future release.
                     type: string
                   routes:
@@ -1398,7 +1384,6 @@ spec:
                 description: |-
                   PowerOffMode describes the desired behavior when powering off a VM.
 
-
                   There are three, supported power off modes: hard, soft, and
                   trySoft. The first mode, hard, is the equivalent of a physical
                   system's power cord being ripped from the wall. The soft mode
@@ -1406,7 +1391,6 @@ spec:
                   gracefully shut down the VM. Its variant, trySoft, first attempts
                   a graceful shutdown, and if that fails or the VM is not in a powered off
                   state after reaching the GuestSoftPowerOffTimeout, the VM is halted.
-
 
                   If omitted, the mode defaults to hard.
                 enum:
@@ -1507,7 +1491,7 @@ spec:
                       description: |-
                         The reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
-                        This field may not be empty.
+                        This field may be empty.
                       type: string
                     severity:
                       description: |-
@@ -1536,7 +1520,6 @@ spec:
                   reconciling the Machine and will contain a more verbose string suitable
                   for logging and human consumption.
 
-
                   This field should not be set for transitive errors that a controller
                   faces that are expected to be fixed automatically over
                   time (like service outages), but instead indicate that something is
@@ -1545,7 +1528,6 @@ spec:
                   of terminal errors would be invalid combinations of settings in the
                   spec, values that are unsupported by the controller, or the
                   responsible controller itself being critically misconfigured.
-
 
                   Any transient errors that occur during the reconciliation of Machines
                   can be added as events to the Machine object and/or logged in the
@@ -1557,7 +1539,6 @@ spec:
                   reconciling the Machine and will contain a succinct value suitable
                   for machine interpretation.
 
-
                   This field should not be set for transitive errors that a controller
                   faces that are expected to be fixed automatically over
                   time (like service outages), but instead indicate that something is
@@ -1566,7 +1547,6 @@ spec:
                   of terminal errors would be invalid combinations of settings in the
                   spec, values that are unsupported by the controller, or the
                   responsible controller itself being critically misconfigured.
-
 
                   Any transient errors that occur during the reconciliation of Machines
                   can be added as events to the Machine object and/or logged in the

@@ -71,7 +71,7 @@ providers:
         type: "url"
         contract: v1beta1
         files:
-          - sourcePath: "../data/shared/capi/v1.8/metadata.yaml"
+          - sourcePath: "../data/shared/capi/v1.9/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -111,7 +111,7 @@ providers:
         type: "url"
         contract: v1beta1
         files:
-          - sourcePath: "../data/shared/capi/v1.8/metadata.yaml"
+          - sourcePath: "../data/shared/capi/v1.9/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"

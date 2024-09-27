@@ -55,7 +55,7 @@ func AddVSphereMachineTemplateControllerToManager(ctx context.Context, controlle
 			&vmoprv1.VirtualMachineClass{},
 			handler.EnqueueRequestsFromMapFunc(r.enqueueVirtualMachineClassToVSphereMachineTemplateRequests),
 		).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), controllerManagerContext.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), ctrl.LoggerFrom(ctx), controllerManagerContext.WatchFilterValue)).
 		Complete(r)
 }
 

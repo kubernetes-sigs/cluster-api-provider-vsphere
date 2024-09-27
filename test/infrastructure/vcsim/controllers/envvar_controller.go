@@ -326,7 +326,7 @@ func (r *EnvVarReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manage
 	err := ctrl.NewControllerManagedBy(mgr).
 		For(&vcsimv1.EnvVar{}).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Complete(r)
 
 	if err != nil {

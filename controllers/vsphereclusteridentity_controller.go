@@ -60,7 +60,7 @@ func AddVsphereClusterIdentityControllerToManager(ctx context.Context, controlle
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.VSphereClusterIdentity{}).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), controllerManagerCtx.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), ctrl.LoggerFrom(ctx), controllerManagerCtx.WatchFilterValue)).
 		Complete(reconciler)
 }
 

@@ -135,7 +135,7 @@ func AddServiceDiscoveryControllerToManager(ctx context.Context, controllerManag
 				return requests
 			}),
 		).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), controllerManagerCtx.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), ctrl.LoggerFrom(ctx), controllerManagerCtx.WatchFilterValue)).
 		Complete(r)
 }
 

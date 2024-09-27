@@ -98,7 +98,7 @@ func (r *VMOperatorDependenciesReconciler) SetupWithManager(ctx context.Context,
 	err := ctrl.NewControllerManagedBy(mgr).
 		For(&vcsimv1.VMOperatorDependencies{}).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Complete(r)
 
 	if err != nil {

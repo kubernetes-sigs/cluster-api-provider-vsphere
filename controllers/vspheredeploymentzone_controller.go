@@ -77,7 +77,7 @@ func AddVSphereDeploymentZoneControllerToManager(ctx context.Context, controller
 				&handler.EnqueueRequestForObject{},
 			),
 		).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), controllerManagerCtx.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), ctrl.LoggerFrom(ctx), controllerManagerCtx.WatchFilterValue)).
 		Complete(reconciler)
 }
 

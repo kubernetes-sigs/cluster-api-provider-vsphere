@@ -398,7 +398,6 @@ spec:
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
                   required:
-                  - lastTransitionTime
                   - status
                   - type
                   type: object
@@ -871,7 +870,6 @@ spec:
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
                   required:
-                  - lastTransitionTime
                   - status
                   - type
                   type: object

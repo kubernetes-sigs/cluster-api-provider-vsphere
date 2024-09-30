@@ -60,25 +60,30 @@ func TestGetDiskSpec(t *testing.T) {
 		additionalCloneDiskSizes []int32
 		name                     string
 		disks                    object.VirtualDeviceList
+		dataDisks                []infrav1.VSphereDisk
+		expectedDiskCount        int
 		err                      string
 	}{
 		{
-			name:          "Successfully clone template with correct disk requirements",
-			disks:         defaultDisks,
-			cloneDiskSize: defaultSizeGiB,
-			expectDevice:  true,
+			name:              "Successfully clone template with correct disk requirements",
+			disks:             defaultDisks,
+			cloneDiskSize:     defaultSizeGiB,
+			expectDevice:      true,
+			expectedDiskCount: 1,
 		},
 		{
-			name:          "Successfully clone template and increase disk requirements",
-			disks:         defaultDisks,
-			cloneDiskSize: defaultSizeGiB + 1,
-			expectDevice:  true,
+			name:              "Successfully clone template and increase disk requirements",
+			disks:             defaultDisks,
+			cloneDiskSize:     defaultSizeGiB + 1,
+			expectDevice:      true,
+			expectedDiskCount: 1,
 		},
 		{
-			name:          "Successfully clone template with no explicit disk requirements",
-			disks:         defaultDisks,
-			cloneDiskSize: 0,
-			expectDevice:  true,
+			name:              "Successfully clone template with no explicit disk requirements",
+			disks:             defaultDisks,
+			cloneDiskSize:     0,
+			expectDevice:      true,
+			expectedDiskCount: 1,
 		},
 		{
 			name:          "Fail to clone template with lower disk requirements then on template",
@@ -98,6 +103,7 @@ func TestGetDiskSpec(t *testing.T) {
 			cloneDiskSize:            defaultSizeGiB + 1,
 			additionalCloneDiskSizes: []int32{defaultSizeGiB + 1},
 			expectDevice:             true,
+			expectedDiskCount:        2,
 		},
 		{
 			name:                     "Fails to clone template and decrease second disk size",
@@ -105,6 +111,45 @@ func TestGetDiskSpec(t *testing.T) {
 			cloneDiskSize:            defaultSizeGiB + 2,
 			additionalCloneDiskSizes: []int32{defaultSizeGiB},
 			err:                      "Error getting disk config spec for additional disk: can't resize template disk down, initial capacity is larger: 23068672KiB > 20971520KiB",
+		},
+		{
+			name:  "Successfully add data disk",
+			disks: devices,
+			dataDisks: []infrav1.VSphereDisk{
+				{
+					SizeGiB: 10,
+				},
+			},
+			expectDevice:      true,
+			expectedDiskCount: 2,
+		},
+		{
+			name:  "Successfully add multiple data disks",
+			disks: devices,
+			dataDisks: []infrav1.VSphereDisk{
+				{
+					SizeGiB: 10,
+				},
+				{
+					SizeGiB: 20,
+				},
+			},
+			expectDevice:      true,
+			expectedDiskCount: 3,
+		},
+		{
+			name:  "Successfully add multiple data disks when template has multiple disks",
+			disks: append(devices, defaultDisks...),
+			dataDisks: []infrav1.VSphereDisk{
+				{
+					SizeGiB: 10,
+				},
+				{
+					SizeGiB: 20,
+				},
+			},
+			expectDevice:      true,
+			expectedDiskCount: 4,
 		},
 	}
 
@@ -114,6 +159,7 @@ func TestGetDiskSpec(t *testing.T) {
 			cloneSpec := infrav1.VirtualMachineCloneSpec{
 				DiskGiB:            tc.cloneDiskSize,
 				AdditionalDisksGiB: tc.additionalCloneDiskSizes,
+				DataDisks:          tc.dataDisks,
 			}
 			vsphereVM := &infrav1.VSphereVM{
 				Spec: infrav1.VSphereVMSpec{
@@ -121,19 +167,24 @@ func TestGetDiskSpec(t *testing.T) {
 				},
 			}
 			vmContext := &capvcontext.VMContext{VSphereVM: vsphereVM}
-			devices, err := getDiskSpec(vmContext, tc.disks)
+			deviceResults, err := getDiskSpec(ctx.TODO(), vmContext, tc.disks)
 			if (tc.err != "" && err == nil) || (tc.err == "" && err != nil) || (err != nil && tc.err != err.Error()) {
 				t.Fatalf("Expected to get '%v' error from getDiskSpec, got: '%v'", tc.err, err)
 			}
-			if deviceFound := len(devices) != 0; tc.expectDevice != deviceFound {
-				t.Fatalf("Expected to get a device: %v, but got: '%#v'", tc.expectDevice, devices)
+			if deviceFound := len(deviceResults) != 0; tc.expectDevice != deviceFound {
+				t.Fatalf("Expected to get a device: %v, but got: '%#v'", tc.expectDevice, deviceResults)
 			}
 			if tc.expectDevice {
-				primaryDevice := devices[0]
+				primaryDevice := deviceResults[0]
 				validateDiskSpec(t, primaryDevice, tc.cloneDiskSize)
 				if len(tc.additionalCloneDiskSizes) != 0 {
-					secondaryDevice := devices[1]
+					secondaryDevice := deviceResults[1]
 					validateDiskSpec(t, secondaryDevice, tc.additionalCloneDiskSizes[0])
+				}
+
+				// Check number of disks present
+				if len(deviceResults) != tc.expectedDiskCount {
+					t.Fatalf("Expected device count to be %v, but found %v", tc.expectedDiskCount, len(deviceResults))
 				}
 			}
 		})

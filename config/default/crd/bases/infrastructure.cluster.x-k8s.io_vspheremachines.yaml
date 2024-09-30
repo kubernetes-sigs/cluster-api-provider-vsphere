@@ -974,6 +974,21 @@ spec:
                   CustomVMXKeys is a dictionary of advanced VMX options that can be set on VM
                   Defaults to empty map
                 type: object
+              dataDisks:
+                description: DataDisks holds information for additional disks to add
+                  to the VM that are not part of the VM's OVA template.
+                items:
+                  description: VSphereDisk describes additional disks for vSphere
+                    to be added to VM that are not part of the VM OVA template.
+                  properties:
+                    sizeGiB:
+                      description: SizeGiB is the size of the disk (in GiB).
+                      format: int32
+                      type: integer
+                  required:
+                  - sizeGiB
+                  type: object
+                type: array
               datacenter:
                 description: |-
                   Datacenter is the name or inventory path of the datacenter in which the

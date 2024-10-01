@@ -310,10 +310,12 @@ func (r *VSphereVMReconciler) getVCenterSession(ctx context.Context, vSphereClus
 
 // SetupWithManager will add watches for this controller.
 func (r *VSphereVMReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "vspherevm")
+
 	err := ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.VSphereVM{}).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
 		Complete(r)
 
 	if err != nil {

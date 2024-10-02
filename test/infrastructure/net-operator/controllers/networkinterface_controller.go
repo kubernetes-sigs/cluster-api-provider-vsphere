@@ -106,7 +106,7 @@ func (r *NetworkInterfaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 // SetupWithManager will add watches for this controller.
 func (r *NetworkInterfaceReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "net-operator")
+	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "networkinterface")
 
 	err := ctrl.NewControllerManagedBy(mgr).
 		For(&netopv1alpha1.NetworkInterface{}).

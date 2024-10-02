@@ -311,7 +311,7 @@ func (r *VCenterSimulatorReconciler) reconcileDelete(ctx context.Context, vCente
 
 // SetupWithManager will add watches for this controller.
 func (r *VCenterSimulatorReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "vcsim")
+	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "vcentersimulator")
 
 	err := ctrl.NewControllerManagedBy(mgr).
 		For(&vcsimv1.VCenterSimulator{}).

@@ -80,14 +80,54 @@ As an admin, I’d like my compute machine set to have an extra disk added to ea
 
 ### Overall Design
 
+The CAPV vsphere machine clone spec (VirtualMachineCloneSpec) contains a new array field to specify all additional data disks (dataDisks).  These disks will be created and added to the VM during the clone process.
+
+Once the machine has been created, any change to the DataDisks field will follow existing change behaviors for machine sets and single machine definitions.
+
+CAPV will not be responsible for any custom mounting of the data disks.  CAPV will create the disk and attach to the VM.  Each OS may assign them differently so admin will need to understand the OS image they are using for their template and then configure each node.
+
 #### For User Story 1
+
+CAPV will create the new disks for Control plane nodes during cluster creation.  
+
+The new disks will be placed in the same location as the primary disk (datastore) and will use the controller as the primary disk.  
+
+Creating new controllers is out of scope for the first pass of this enhancement.  The new disk will use the same controller as the primary disks.  The unit number for the disks on that controller will be in the order in which the disks are defined in the machine spec configuration.
 
 #### For User Story 2
 
+CAPV will treat all compute machine creation the same as the control plane machines.
+
 ### API Design
+
+The following new struct has been created to represent all configuration for a vSphere disk
+
+```go
+// VSphereDisk describes additional disks for vSphere to be added to VM that are not part of the VM OVA template.
+type VSphereDisk struct {
+	// SizeGiB is the size of the disk (in GiB).
+	// +kubebuilder:validation:Required
+	SizeGiB int64 `json:"sizeGiB"`
+}
+```
+
+The above type has been added to the machine spec section
+
+```go
+// VirtualMachineCloneSpec is information used to clone a virtual machine.
+type VirtualMachineCloneSpec struct {
+    ...
+    // DataDisks holds information for additional disks to add to the VM that are not part of the VM's OVA template.
+    // +optional
+    DataDisks []VSphereDisk `json:"dataDisks,omitempty"`
+}
+```
 
 ### Implementation Details
 
 ### Notes/Constraints
 
 ## Upgrade Strategy
+
+No Upgrade needed.
+Data disks are optional. Existing clusters do not have additional data disks configured, which will continue to work without changes.  Once upgraded, the new feature will be available for existing machines to be reconfigured / recreate.

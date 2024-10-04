@@ -70,6 +70,7 @@ func AddServiceAccountProviderControllerToManager(ctx context.Context, controlle
 		Recorder:                  mgr.GetEventRecorderFor("providerserviceaccount-controller"),
 		remoteClusterCacheTracker: tracker,
 	}
+	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "providerserviceaccount")
 
 	clusterToInfraFn := clusterToSupervisorInfrastructureMapFunc(ctx, controllerManagerCtx.Client)
 
@@ -118,7 +119,7 @@ func AddServiceAccountProviderControllerToManager(ctx context.Context, controlle
 				return requests
 			}),
 		).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), controllerManagerCtx.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, controllerManagerCtx.WatchFilterValue)).
 		Complete(r)
 }
 

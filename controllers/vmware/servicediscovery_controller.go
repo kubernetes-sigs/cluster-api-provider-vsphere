@@ -81,6 +81,7 @@ func AddServiceDiscoveryControllerToManager(ctx context.Context, controllerManag
 		Recorder:                  mgr.GetEventRecorderFor("servicediscovery/vspherecluster-controller"),
 		remoteClusterCacheTracker: tracker,
 	}
+	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "servicediscovery/vspherecluster")
 
 	configMapCache, err := cache.New(mgr.GetConfig(), cache.Options{
 		Scheme: mgr.GetScheme(),
@@ -135,7 +136,7 @@ func AddServiceDiscoveryControllerToManager(ctx context.Context, controllerManag
 				return requests
 			}),
 		).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), controllerManagerCtx.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, controllerManagerCtx.WatchFilterValue)).
 		Complete(r)
 }
 

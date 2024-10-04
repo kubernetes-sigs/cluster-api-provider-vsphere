@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.3
   name: vcentersimulators.vcsim.infrastructure.cluster.x-k8s.io
 spec:
   group: vcsim.infrastructure.cluster.x-k8s.io
@@ -76,7 +76,7 @@ spec:
                     format: int32
                     type: integer
                   pool:
-                    description: |-
+                    description: |
                       Pool specifies the number of ResourcePool entities to create per Cluster
                       Note that every cluster has a root ResourcePool named "Resources", as real vCenter does.
                       For example: /DC0/host/DC0_C0/Resources
@@ -86,8 +86,6 @@ spec:
                       For example: /DC0/host/DC0_C0/Resources/DC0_C0_RP1
                       Name prefix: RP, vcsim flag: -pool
                       Default: 0
-                      TODO: model pool selection for each cluster; for now ResourcePool named "Resources" will be always used
-                        but ideally we should use RPx as per documentation above.
                     format: int32
                     type: integer
                   vsphereVersion:

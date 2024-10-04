@@ -24,23 +24,23 @@ SHELL:=/usr/bin/env bash
 # Go.
 #
 GO_VERSION ?= 1.22.7
+GO_DIRECTIVE_VERSION ?= 1.22.0
 GO_CONTAINER_IMAGE ?= docker.io/library/golang:$(GO_VERSION)
-GO_DIRECTIVE_VERSION ?=  1.22.0
 
 # Use GOPROXY environment variable if set
 GOPROXY := $(shell go env GOPROXY)
-ifeq (,$(strip $(GOPROXY)))
+ifeq ($(GOPROXY),)
 GOPROXY := https://proxy.golang.org
 endif
 export GOPROXY
 
 # Active module mode, as we use go modules to manage dependencies
-export GO111MODULE := on
+export GO111MODULE=on
 
 #
 # Kubebuilder.
 #
-export KUBEBUILDER_ENVTEST_KUBERNETES_VERSION ?= 1.28.0
+export KUBEBUILDER_ENVTEST_KUBERNETES_VERSION ?= 1.31.0
 export KUBEBUILDER_CONTROLPLANE_START_TIMEOUT ?= 60s
 export KUBEBUILDER_CONTROLPLANE_STOP_TIMEOUT ?= 60s
 
@@ -104,16 +104,12 @@ KUSTOMIZE_BIN := kustomize
 KUSTOMIZE := $(abspath $(TOOLS_BIN_DIR)/$(KUSTOMIZE_BIN)-$(KUSTOMIZE_VER))
 KUSTOMIZE_PKG := sigs.k8s.io/kustomize/kustomize/v4
 
-# This is a commit from CR main (22.05.2024).
-# Intentionally using a commit from main to use a setup-envtest version
-# that uses binaries from controller-tools, not GCS.
-# CR PR: https://github.com/kubernetes-sigs/controller-runtime/pull/2811
-SETUP_ENVTEST_VER := v0.0.0-20240522175850-2e9781e9fc60
+SETUP_ENVTEST_VER := release-0.19
 SETUP_ENVTEST_BIN := setup-envtest
 SETUP_ENVTEST := $(abspath $(TOOLS_BIN_DIR)/$(SETUP_ENVTEST_BIN)-$(SETUP_ENVTEST_VER))
 SETUP_ENVTEST_PKG := sigs.k8s.io/controller-runtime/tools/setup-envtest
 
-CONTROLLER_GEN_VER := v0.15.0
+CONTROLLER_GEN_VER := v0.16.3
 CONTROLLER_GEN_BIN := controller-gen
 CONTROLLER_GEN := $(abspath $(TOOLS_BIN_DIR)/$(CONTROLLER_GEN_BIN)-$(CONTROLLER_GEN_VER))
 CONTROLLER_GEN_PKG := sigs.k8s.io/controller-tools/cmd/controller-gen
@@ -123,7 +119,7 @@ GOTESTSUM_BIN := gotestsum
 GOTESTSUM := $(abspath $(TOOLS_BIN_DIR)/$(GOTESTSUM_BIN)-$(GOTESTSUM_VER))
 GOTESTSUM_PKG := gotest.tools/gotestsum
 
-CONVERSION_GEN_VER := v0.30.0
+CONVERSION_GEN_VER := v0.31.0
 CONVERSION_GEN_BIN := conversion-gen
 # We are intentionally using the binary without version suffix, to avoid the version
 # in generated files.
@@ -142,7 +138,7 @@ GO_APIDIFF_PKG := github.com/joelanford/go-apidiff
 
 SHELLCHECK_VER := v0.9.0
 
-TRIVY_VER := 0.47.0
+TRIVY_VER := 0.49.1
 
 KPROMO_VER := v4.0.5
 KPROMO_BIN := kpromo
@@ -185,7 +181,7 @@ IMPORT_BOSS_VER := v0.28.1
 IMPORT_BOSS := $(abspath $(TOOLS_BIN_DIR)/$(IMPORT_BOSS_BIN))
 IMPORT_BOSS_PKG := k8s.io/code-generator/cmd/import-boss
 
-CAPI_HACK_TOOLS_VER := 02769254e95db17afbd6ec4036aacbd294d9424c # Note: this is the commit ID of CAPI v1.8.1
+CAPI_HACK_TOOLS_VER := 75c986db9e38190a2313eaf6e5f97d955fa96b65 # Note: this is the commit ID of CAPI 75c986db9e38190a2313eaf6e5f97d955fa96b65 from 2024-10-02
 
 BOSKOSCTL_BIN := boskosctl
 BOSKOSCTL := $(abspath $(TOOLS_BIN_DIR)/$(BOSKOSCTL_BIN))
@@ -263,7 +259,7 @@ ifeq ($(SELINUX_ENABLED),1)
 endif
 
 # Set build time variables including version details
-LDFLAGS ?= $(shell hack/version.sh)
+LDFLAGS := $(shell hack/version.sh)
 
 # Additional CAPV vars (everything else is ~ kept in sync with core CAPI)
 # Allow overriding manifest generation destination directory

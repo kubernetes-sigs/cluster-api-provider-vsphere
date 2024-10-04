@@ -78,6 +78,7 @@ func AddVMControllerToManager(ctx context.Context, controllerManagerCtx *capvcon
 		VMService:                 &govmomi.VMService{},
 		remoteClusterCacheTracker: tracker,
 	}
+	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "vspherevm")
 
 	return ctrl.NewControllerManagedBy(mgr).
 		// Watch the controlled, infrastructure resource.
@@ -94,7 +95,7 @@ func AddVMControllerToManager(ctx context.Context, controllerManagerCtx *capvcon
 				&handler.EnqueueRequestForObject{},
 			),
 		).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), controllerManagerCtx.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, controllerManagerCtx.WatchFilterValue)).
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(r.clusterToVSphereVMs),

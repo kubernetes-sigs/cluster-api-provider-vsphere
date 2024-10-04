@@ -29,6 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -92,7 +93,7 @@ func setup() {
 		panic(fmt.Sprintf("unable to setup ClusterCacheTracker: %v", err))
 	}
 
-	controllerOpts := controller.Options{MaxConcurrentReconciles: 10}
+	controllerOpts := controller.Options{MaxConcurrentReconciles: 10, SkipNameValidation: ptr.To(true)}
 
 	if err := (&remote.ClusterCacheReconciler{
 		Client:  testEnv.Manager.GetClient(),

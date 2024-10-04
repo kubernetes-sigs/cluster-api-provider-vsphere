@@ -203,6 +203,10 @@ issues:
   - linters:
     - staticcheck
     text: "SA1019: .*PreferredAPIServerCIDR is deprecated"
+  # Deprecations for FailureReason
+  - linters:
+    - staticcheck
+    text: "SA1019: \"sigs.k8s.io/cluster-api/errors\" is deprecated:"
   # Deprecations for old api groups
   - linters:
     - staticcheck

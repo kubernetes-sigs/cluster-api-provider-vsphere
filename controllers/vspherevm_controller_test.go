@@ -29,6 +29,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apirecord "k8s.io/client-go/tools/record"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1"
@@ -94,7 +95,7 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 		t.Fatalf("unable to setup ClusterCacheTracker: %v", err)
 	}
 
-	controllerOpts := controller.Options{MaxConcurrentReconciles: 10}
+	controllerOpts := controller.Options{MaxConcurrentReconciles: 10, SkipNameValidation: ptr.To(true)}
 
 	if err := (&remote.ClusterCacheReconciler{
 		Client:  testEnv.Manager.GetClient(),

@@ -181,6 +181,7 @@ func newTestSupervisorLBService() *corev1.Service {
 			Namespace: supervisorLoadBalancerSvcNamespace,
 		},
 		Spec: corev1.ServiceSpec{
+			Type: corev1.ServiceTypeLoadBalancer,
 			// Note: This will be service with no selectors. The endpoints will be manually created.
 			Ports: []corev1.ServicePort{
 				{

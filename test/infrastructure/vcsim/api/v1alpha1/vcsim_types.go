@@ -65,8 +65,8 @@ type VCenterSimulatorModel struct {
 	// For example: /DC0/host/DC0_C0/Resources/DC0_C0_RP1
 	// Name prefix: RP, vcsim flag: -pool
 	// Default: 0
-	// TODO: model pool selection for each cluster; for now ResourcePool named "Resources" will be always used
-	//   but ideally we should use RPx as per documentation above.
+	//
+	// TODO: model pool selection for each cluster; for now ResourcePool named "Resources" will be always used but ideally we should use RPx as per documentation above.
 	Pool *int32 `json:"pool,omitempty"`
 
 	// Datastore specifies the number of Datastore entities to create

@@ -343,7 +343,7 @@ func getDiskSpec(vmCtx *capvcontext.VMContext, devices object.VirtualDeviceList)
 	}
 
 	// There is at least one disk
-	var diskSpecs []types.BaseVirtualDeviceConfigSpec
+	diskSpecs := []types.BaseVirtualDeviceConfigSpec{}
 	primaryDisk := disks[0].(*types.VirtualDisk)
 	primaryCloneCapacityKB := int64(vmCtx.VSphereVM.Spec.DiskGiB) * 1024 * 1024
 	primaryDiskConfigSpec, err := getDiskConfigSpec(primaryDisk, primaryCloneCapacityKB)

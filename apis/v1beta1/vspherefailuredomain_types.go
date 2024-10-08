@@ -85,6 +85,11 @@ type Topology struct {
 	// virtual machine is created/located.
 	// +optional
 	Datastore string `json:"datastore,omitempty"`
+
+	// StoragePolicy is the name of the policy that is used to target a datastore
+	// in which the virtual machine is created/located.
+	// +optional
+	StoragePolicy string `json:"storagePolicy,omitempty"`
 }
 
 // FailureDomainHosts has information required for placement of machines on VSphere hosts.

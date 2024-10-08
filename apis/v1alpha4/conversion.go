@@ -46,3 +46,8 @@ func Convert_v1beta1_VSphereMachineSpec_To_v1alpha4_VSphereMachineSpec(in *infra
 func Convert_v1beta1_VSphereVMSpec_To_v1alpha4_VSphereVMSpec(in *infrav1.VSphereVMSpec, out *VSphereVMSpec, s conversion.Scope) error {
 	return autoConvert_v1beta1_VSphereVMSpec_To_v1alpha4_VSphereVMSpec(in, out, s)
 }
+
+// This is required as the v1beta1 topology has an additional `storagePolicy` field.
+func Convert_v1beta1_Topology_To_v1alpha4_Topology(in *infrav1.Topology, out *Topology, s conversion.Scope) error {
+	return autoConvert_v1beta1_Topology_To_v1alpha4_Topology(in, out, s)
+}

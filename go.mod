@@ -1,6 +1,7 @@
 module sigs.k8s.io/cluster-api-provider-vsphere
 
 go 1.22.0
+toolchain go1.22.8
 
 replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.8.0-rc.0.0.20241001133950-75c986db9e38
 
@@ -12,7 +13,7 @@ require (
 	// The version of vm-operator should be kept in sync with the manifests at: config/deployments/integration-tests
 	github.com/vmware-tanzu/vm-operator/api v1.8.6
 	github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20240404200847-de75746a9505
-	github.com/vmware/govmomi v0.43.0
+	github.com/vmware/govmomi v0.44.0
 )
 
 require (
@@ -28,7 +29,7 @@ require (
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
 	golang.org/x/mod v0.21.0
-	golang.org/x/tools v0.25.0
+	golang.org/x/tools v0.26.0
 	gopkg.in/gcfg.v1 v1.2.3
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.31.1
@@ -42,7 +43,7 @@ require (
 	sigs.k8s.io/cluster-api v0.0.0-00010101000000-000000000000
 	sigs.k8s.io/controller-runtime v0.19.0
 	sigs.k8s.io/kustomize/api v0.17.3
-	sigs.k8s.io/kustomize/kyaml v0.17.2
+	sigs.k8s.io/kustomize/kyaml v0.18.0
 	sigs.k8s.io/yaml v1.4.0
 )
 
@@ -76,15 +77,14 @@ require (
 	go.opentelemetry.io/otel/sdk v1.28.0 // indirect
 	go.opentelemetry.io/otel/trace v1.28.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.3.1 // indirect
-	go.starlark.net v0.0.0-20230525235612-a134d8f9ddca // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
-	golang.org/x/net v0.29.0 // indirect
+	golang.org/x/net v0.30.0 // indirect
 	golang.org/x/oauth2 v0.23.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect
-	golang.org/x/sys v0.25.0 // indirect
-	golang.org/x/term v0.24.0 // indirect
-	golang.org/x/text v0.18.0 // indirect
+	golang.org/x/sys v0.26.0 // indirect
+	golang.org/x/term v0.25.0 // indirect
+	golang.org/x/text v0.19.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240528184218-531527333157 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240701130421-f6361c86f094 // indirect
 	google.golang.org/grpc v1.65.0 // indirect

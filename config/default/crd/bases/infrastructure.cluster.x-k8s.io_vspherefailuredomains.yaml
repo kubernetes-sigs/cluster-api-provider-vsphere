@@ -109,6 +109,11 @@ spec:
                     items:
                       type: string
                     type: array
+                  storagePolicy:
+                    description: |-
+                      StoragePolicy is the name of the policy that is used to target a datastore
+                      in which the virtual machine is created/located
+                    type: string
                 required:
                 - datacenter
                 type: object
@@ -240,6 +245,11 @@ spec:
                     items:
                       type: string
                     type: array
+                  storagePolicy:
+                    description: |-
+                      StoragePolicy is the name of the policy that is used to target a datastore
+                      in which the virtual machine is created/located
+                    type: string
                 required:
                 - datacenter
                 type: object
@@ -368,6 +378,11 @@ spec:
                     items:
                       type: string
                     type: array
+                  storagePolicy:
+                    description: |-
+                      StoragePolicy is the name of the policy that is used to target a datastore
+                      in which the virtual machine is created/located
+                    type: string
                 required:
                 - datacenter
                 type: object

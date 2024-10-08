@@ -882,6 +882,7 @@ func autoConvert_v1alpha4_Topology_To_v1beta1_Topology(in *Topology, out *v1beta
 	out.Hosts = (*v1beta1.FailureDomainHosts)(unsafe.Pointer(in.Hosts))
 	out.Networks = *(*[]string)(unsafe.Pointer(&in.Networks))
 	out.Datastore = in.Datastore
+	out.StoragePolicy = in.StoragePolicy
 	return nil
 }
 
@@ -896,6 +897,7 @@ func autoConvert_v1beta1_Topology_To_v1alpha4_Topology(in *v1beta1.Topology, out
 	out.Hosts = (*FailureDomainHosts)(unsafe.Pointer(in.Hosts))
 	out.Networks = *(*[]string)(unsafe.Pointer(&in.Networks))
 	out.Datastore = in.Datastore
+	out.StoragePolicy = in.StoragePolicy
 	return nil
 }
 

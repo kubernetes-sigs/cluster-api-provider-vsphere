@@ -61,6 +61,11 @@ func (webhook *VSphereFailureDomainWebhook) ValidateCreate(_ context.Context, ra
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "Topology", "ComputeCluster"), "cannot be empty if Hosts is not empty"))
 	}
 
+	// We should either pass a datastore or a storage policy, not both at the same time
+	if obj.Spec.Topology.Datastore != "" && obj.Spec.Topology.StoragePolicy != "" {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "Topology", "Datastore"), "should be empty if StoragePolicy is not empty"))
+	}
+
 	if obj.Spec.Region.Type == infrav1.HostGroupFailureDomain {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "Region", "Type"), fmt.Sprintf("region's Failure Domain type cannot be %s", obj.Spec.Region.Type)))
 	}
@@ -92,6 +97,10 @@ func (webhook *VSphereFailureDomainWebhook) ValidateUpdate(_ context.Context, ol
 	}
 	if !reflect.DeepEqual(newTyped.Spec, oldTyped.Spec) {
 		return nil, field.Forbidden(field.NewPath("spec"), "VSphereFailureDomainSpec is immutable")
+	}
+	// We should either pass a datastore or a storage policy, not both at the same time
+	if newTyped.Spec.Topology.Datastore != "" && newTyped.Spec.Topology.StoragePolicy != "" {
+		return nil, field.Forbidden(field.NewPath("spec", "Topology", "Datastore"), "should be empty if StoragePolicy is not empty")
 	}
 	return nil, nil
 }

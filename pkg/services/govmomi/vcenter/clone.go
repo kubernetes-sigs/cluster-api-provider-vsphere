@@ -29,6 +29,7 @@ import (
 	pbmTypes "github.com/vmware/govmomi/pbm/types"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -142,6 +143,7 @@ func Clone(ctx context.Context, vmCtx *capvcontext.VMContext, bootstrapData []by
 		if err != nil {
 			return errors.Wrapf(err, "error getting disk spec for %q", ctx)
 		}
+		log.Info("Got the following disks", "disk", diskSpecs)
 		deviceSpecs = append(deviceSpecs, diskSpecs...)
 	}
 
@@ -341,7 +343,7 @@ func getDiskSpec(vmCtx *capvcontext.VMContext, devices object.VirtualDeviceList)
 	}
 
 	// There is at least one disk
-	var diskSpecs []types.BaseVirtualDeviceConfigSpec
+	diskSpecs := []types.BaseVirtualDeviceConfigSpec{}
 	primaryDisk := disks[0].(*types.VirtualDisk)
 	primaryCloneCapacityKB := int64(vmCtx.VSphereVM.Spec.DiskGiB) * 1024 * 1024
 	primaryDiskConfigSpec, err := getDiskConfigSpec(primaryDisk, primaryCloneCapacityKB)
@@ -369,6 +371,49 @@ func getDiskSpec(vmCtx *capvcontext.VMContext, devices object.VirtualDeviceList)
 			diskSpecs = append(diskSpecs, additionalDiskConfigSpec)
 		}
 	}
+
+	// Now if we have increased the disk size of any additional disks that were in the template, we can now add new disks
+	// that are present in the additionalDisks list.
+	for i, dataDisk := range vmCtx.VSphereVM.Spec.DataDisks {
+		klog.InfoS("Adding disk", "spec", dataDisk)
+
+		// Need storage policy
+		// Need scsi controller
+		controller, err := devices.FindDiskController("scsi")
+		if err != nil {
+			klog.Infof("Unable to get scsi controller")
+		}
+
+		unit := int32(i + 1)
+
+		dev := &types.VirtualDisk{
+			VirtualDevice: types.VirtualDevice{
+				Key: devices.NewKey() - int32(i),
+				Backing: &types.VirtualDiskFlatVer2BackingInfo{
+					DiskMode:        string(types.VirtualDiskModePersistent),
+					ThinProvisioned: types.NewBool(true),
+					VirtualDeviceFileBackingInfo: types.VirtualDeviceFileBackingInfo{
+						FileName: "",
+						//Datastore: types.NewReference(datastore.Reference()),
+					},
+				},
+				UnitNumber:    &unit,
+				ControllerKey: controller.GetVirtualController().Key,
+			},
+			CapacityInKB: dataDisk.SizeGiB * 1024 * 1024,
+		}
+
+		diskConfigSpec := types.VirtualDeviceConfigSpec{
+			Device:        dev,
+			Operation:     types.VirtualDeviceConfigSpecOperationAdd,
+			FileOperation: types.VirtualDeviceConfigSpecFileOperationCreate,
+		}
+
+		klog.InfoS("Generated device", "dev", dev)
+
+		diskSpecs = append(diskSpecs, &diskConfigSpec)
+	}
+
 	return diskSpecs, nil
 }
 

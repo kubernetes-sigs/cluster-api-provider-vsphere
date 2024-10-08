@@ -96,7 +96,6 @@ var (
 	defaultSyncPeriod       = manager.DefaultSyncPeriod
 	defaultLeaderElectionID = manager.DefaultLeaderElectionID
 	defaultPodName          = manager.DefaultPodName
-	defaultWebhookPort      = manager.DefaultWebhookServiceContainerPort
 )
 
 // InitFlags initializes the flags.
@@ -199,7 +198,7 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&clusterCacheTrackerClientBurst, "clustercachetracker-client-burst", 30,
 		"Maximum number of queries that should be allowed in one burst from the cluster cache tracker clients to the Kubernetes API server of workload clusters.")
 
-	fs.IntVar(&webhookOpts.Port, "webhook-port", defaultWebhookPort,
+	fs.IntVar(&webhookOpts.Port, "webhook-port", 9443,
 		"Webhook Server port.")
 
 	fs.StringVar(&webhookOpts.CertDir, "webhook-cert-dir", "/tmp/k8s-webhook-server/serving-certs/",

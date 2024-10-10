@@ -359,12 +359,7 @@ func (r *clusterReconciler) reconcileDeploymentZones(ctx context.Context, cluste
 }
 
 func (r *clusterReconciler) reconcileClusterModules(ctx context.Context, clusterCtx *capvcontext.ClusterContext) (reconcile.Result, error) {
-	// We want to enable cluster module only when NodeAntiAffinity flag is true and failure domains are not used.
-	// When failure domain is used and an empty value is passed for data center or the resource pool in a vm template,
-	// cluster module creation will fail as there are no values in dc or resource pool.
-	// These values in the vm template gets replaced at a later stage by the values in the failure domain.
-	// When failure domain is used, we do not need the cluster module
-	if feature.Gates.Enabled(feature.NodeAntiAffinity) && clusterCtx.VSphereCluster.Spec.FailureDomainSelector == nil {
+	if feature.Gates.Enabled(feature.NodeAntiAffinity) {
 		return r.clusterModuleReconciler.Reconcile(ctx, clusterCtx)
 	}
 	return reconcile.Result{}, nil

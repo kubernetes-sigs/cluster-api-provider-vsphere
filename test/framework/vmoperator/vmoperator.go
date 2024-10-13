@@ -243,7 +243,7 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 		},
 	}
 
-	_ = wait.PollUntilContextTimeout(ctx, 250*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
+	_ = wait.PollUntilContextTimeout(ctx, 1*time.Second, 20*time.Second, true, func(ctx context.Context) (bool, error) {
 		retryError = nil
 		if err := c.Get(ctx, client.ObjectKeyFromObject(availabilityZone), availabilityZone); err != nil {
 			if !apierrors.IsNotFound(err) {
@@ -256,21 +256,22 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 			}
 			log.Info("Created vm-operator AvailabilityZone", "AvailabilityZone", klog.KObj(availabilityZone))
 		}
+
+		if _, ok := availabilityZone.Spec.Namespaces[config.Namespace]; !ok {
+			availabilityZone.Spec.Namespaces[config.Namespace] = topologyv1.NamespaceInfo{
+				PoolMoId:   resourcePool.Reference().Value,
+				FolderMoId: folder.Reference().Value,
+			}
+			if err := c.Update(ctx, availabilityZone); err != nil {
+				retryError = errors.Wrapf(err, "failed to update AvailabilityZone %s", availabilityZone.Name)
+				return false, nil
+			}
+			log.Info("Update vm-operator AvailabilityZone", "AvailabilityZone", klog.KObj(availabilityZone))
+		}
 		return true, nil
 	})
 	if retryError != nil {
 		return retryError
-	}
-
-	if _, ok := availabilityZone.Spec.Namespaces[config.Namespace]; !ok {
-		availabilityZone.Spec.Namespaces[config.Namespace] = topologyv1.NamespaceInfo{
-			PoolMoId:   resourcePool.Reference().Value,
-			FolderMoId: folder.Reference().Value,
-		}
-		if err := c.Update(ctx, availabilityZone); err != nil {
-			return errors.Wrapf(err, "failed to update AvailabilityZone %s", availabilityZone.Name)
-		}
-		log.Info("Update vm-operator AvailabilityZone", "AvailabilityZone", klog.KObj(availabilityZone))
 	}
 
 	// Create vm-operator Secret in K8s

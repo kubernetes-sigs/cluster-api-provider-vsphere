@@ -1,6 +1,6 @@
 module sigs.k8s.io/cluster-api-provider-vsphere
 
-go 1.22.8
+go 1.22.7
 
 replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.8.0-rc.0.0.20241001133950-75c986db9e38
 

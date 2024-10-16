@@ -432,6 +432,9 @@ func (v *VimMachineService) generateOverrideFunc(ctx context.Context, vimMachine
 		if vsphereDeploymentZone.Spec.PlacementConstraint.ResourcePool != "" {
 			vm.Spec.ResourcePool = vsphereDeploymentZone.Spec.PlacementConstraint.ResourcePool
 		}
+		if vsphereFailureDomain.Spec.Topology.StoragePolicy != "" {
+			vm.Spec.StoragePolicyName = vsphereFailureDomain.Spec.Topology.StoragePolicy
+		}
 		if vsphereFailureDomain.Spec.Topology.Datastore != "" {
 			vm.Spec.Datastore = vsphereFailureDomain.Spec.Topology.Datastore
 		}

@@ -694,6 +694,12 @@ spec:
                 - host
                 - port
                 type: object
+              disableClusterModule:
+                description: |-
+                  DisableClusterModule is used to explicitly turn off the ClusterModule feature.
+                  This should work along side NodeAntiAffinity feature flag.
+                  If the NodeAntiAffinity feature flag is turned off, this will be disregarded.
+                type: boolean
               failureDomainSelector:
                 description: |-
                   FailureDomainSelector is the label selector to use for failure domain selection

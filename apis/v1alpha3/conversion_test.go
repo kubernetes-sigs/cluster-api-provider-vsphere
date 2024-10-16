@@ -79,6 +79,7 @@ func overrideVSphereClusterSpecFieldsFuncs(runtimeserializer.CodecFactory) []int
 			c.FuzzNoCustom(in)
 			in.ClusterModules = nil
 			in.FailureDomainSelector = nil
+			in.DisableClusterModule = false
 		},
 	}
 }

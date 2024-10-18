@@ -26,6 +26,7 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
+	"github.com/vmware/govmomi/object"
 	"golang.org/x/crypto/ssh"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -40,6 +41,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	vcsimhelpers "sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vcsim"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 	vcsimv1 "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/api/v1alpha1"
 )
 
@@ -227,7 +229,11 @@ func (r *EnvVarReconciler) reconcileNormal(ctx context.Context, envVar *vcsimv1.
 	}
 
 	// variables for govmomi mode derived from envVar.Spec.Cluster
-	for k, v := range clusterEnvVarSpecGovmomiVariables(&envVar.Spec.Cluster) {
+	replaceGovmomi, err := clusterEnvVarSpecGovmomiVariables(ctx, &envVar.Spec.Cluster, envVar.Spec.UseMOID, envVar.Status.Variables)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "error getting govmomi vars")
+	}
+	for k, v := range replaceGovmomi {
 		envVar.Status.Variables[k] = v
 	}
 	return ctrl.Result{}, nil
@@ -272,7 +278,7 @@ func clusterEnvVarSpecSupervisorVariables(c *vcsimv1.ClusterEnvVarSpec) map[stri
 }
 
 // clusterEnvVarSpecGovmomiVariables returns name/value pairs for a ClusterEnvVarSpec to be used for clusterctl templates when testing govmomi mode.
-func clusterEnvVarSpecGovmomiVariables(c *vcsimv1.ClusterEnvVarSpec) map[string]string {
+func clusterEnvVarSpecGovmomiVariables(ctx context.Context, c *vcsimv1.ClusterEnvVarSpec, moid bool, existing map[string]string) (map[string]string, error) {
 	vars := clusterEnvVarSpecCommonVariables(c)
 
 	datacenter := int(ptr.Deref(c.Datacenter, 0))
@@ -287,14 +293,74 @@ func clusterEnvVarSpecGovmomiVariables(c *vcsimv1.ClusterEnvVarSpec) map[string]
 	}
 
 	// NOTE: omitting cluster Name intentionally because E2E tests provide this value in other ways
-	vars["VSPHERE_DATACENTER"] = vcsimhelpers.DatacenterName(datacenter)
+	// Vars below can be named only so they should be used as is
 	vars["VSPHERE_COMPUTE_CLUSTER"] = vcsimhelpers.ClusterName(datacenter, cluster)
-	vars["VSPHERE_DATASTORE"] = vcsimhelpers.DatastoreName(datastore)
-	vars["VSPHERE_FOLDER"] = vcsimhelpers.VMFolderName(datacenter)
-	vars["VSPHERE_NETWORK"] = vcsimhelpers.NetworkPath(datacenter, vcsimhelpers.DefaultNetworkName)
-	vars["VSPHERE_RESOURCE_POOL"] = vcsimhelpers.ResourcePoolPath(datacenter, cluster)
-	vars["VSPHERE_TEMPLATE"] = vcsimhelpers.VMPath(datacenter, template)
-	return vars
+
+	if !moid {
+		vars["VSPHERE_DATACENTER"] = vcsimhelpers.DatacenterName(datacenter)
+		vars["VSPHERE_DATASTORE"] = vcsimhelpers.DatastoreName(datastore)
+		vars["VSPHERE_FOLDER"] = vcsimhelpers.VMFolderName(datacenter)
+		vars["VSPHERE_RESOURCE_POOL"] = vcsimhelpers.ResourcePoolPath(datacenter, cluster)
+		vars["VSPHERE_NETWORK"] = vcsimhelpers.NetworkPath(datacenter, vcsimhelpers.DefaultNetworkName)
+		vars["VSPHERE_TEMPLATE"] = vcsimhelpers.VMPath(datacenter, template)
+
+		return vars, nil
+	}
+
+	params := session.NewParams().
+		WithServer(existing["VSPHERE_SERVER"]).
+		WithThumbprint(existing["VSPHERE_TLS_THUMBPRINT"]).
+		WithUserInfo(existing["VSPHERE_USERNAME"], existing["VSPHERE_PASSWORD"])
+
+	s, err := session.GetOrCreate(ctx, params)
+	if err != nil {
+		return vars, err
+	}
+
+	var dc *object.Datacenter
+	dcRef := object.ReferenceFromString(vcsimhelpers.DatacenterName(datacenter))
+	if dcRef != nil {
+		dc = object.NewDatacenter(s.Client.Client, *dcRef)
+	} else {
+		dc, err = s.Finder.Datacenter(ctx, vcsimhelpers.DatacenterName(datacenter))
+		if err != nil {
+			return vars, fmt.Errorf("failed to locate datacenter reference: %w", err)
+		}
+	}
+	vars["VSPHERE_DATACENTER"] = dc.Reference().String()
+	s.Finder.SetDatacenter(dc)
+
+	dsRef, err := s.Finder.Datastore(ctx, vcsimhelpers.DatastoreName(datastore))
+	if err != nil {
+		return vars, fmt.Errorf("failed to locate datastore reference: %w", err)
+	}
+	vars["VSPHERE_DATASTORE"] = dsRef.Reference().String()
+
+	folderRef, err := s.Finder.Folder(ctx, vcsimhelpers.VMFolderName(datacenter))
+	if err != nil {
+		return vars, fmt.Errorf("failed to locate folder reference: %w", err)
+	}
+	vars["VSPHERE_FOLDER"] = folderRef.Reference().String()
+
+	rpRef, err := s.Finder.ResourcePool(ctx, vcsimhelpers.ResourcePoolPath(datacenter, cluster))
+	if err != nil {
+		return vars, fmt.Errorf("failed to locate resource pool reference: %w", err)
+	}
+	vars["VSPHERE_RESOURCE_POOL"] = rpRef.Reference().String()
+
+	networkRef, err := s.Finder.Network(ctx, vcsimhelpers.NetworkPath(datacenter, vcsimhelpers.DefaultNetworkName))
+	if err != nil {
+		return vars, fmt.Errorf("failed to locate network reference: %w", err)
+	}
+	vars["VSPHERE_NETWORK"] = networkRef.Reference().String()
+
+	templateRef, err := s.Finder.VirtualMachine(ctx, vcsimhelpers.VMPath(datacenter, template))
+	if err != nil {
+		return vars, fmt.Errorf("failed to locate template reference: %w", err)
+	}
+	vars["VSPHERE_TEMPLATE"] = templateRef.Reference().String()
+
+	return vars, nil
 }
 
 // vmOperatorDependenciesSupervisorVariables returns name/value pairs for a VCenterSimulator to be used for VMOperatorDependencies templates when testing supervisor mode.

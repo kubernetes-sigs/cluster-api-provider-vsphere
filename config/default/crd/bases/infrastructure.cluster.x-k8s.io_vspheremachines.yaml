@@ -976,13 +976,13 @@ spec:
                 type: object
               datacenter:
                 description: |-
-                  Datacenter is the name or inventory path of the datacenter in which the
+                  Datacenter is the name, inventory path or MOID of the datacenter in which the
                   virtual machine is created/located.
                   Defaults to * which selects the default datacenter.
                 type: string
               datastore:
                 description: |-
-                  Datastore is the name or inventory path of the datastore in which the
+                  Datastore is the name, inventory path or MOID of the datastore in which the
                   virtual machine is created/located.
                 type: string
               diskGiB:
@@ -999,7 +999,7 @@ spec:
                 type: string
               folder:
                 description: |-
-                  Folder is the name or inventory path of the folder in which the
+                  Folder is the name, inventory path or MOID of the folder in which the
                   virtual machine is created/located.
                 type: string
               guestSoftPowerOffTimeout:
@@ -1237,7 +1237,7 @@ spec:
                           type: array
                         networkName:
                           description: |-
-                            NetworkName is the name of the vSphere network to which the device
+                            NetworkName is the name or MOID of the vSphere network to which the device
                             will be connected.
                           type: string
                         routes:
@@ -1400,7 +1400,7 @@ spec:
                 type: string
               resourcePool:
                 description: |-
-                  ResourcePool is the name or inventory path of the resource pool in which
+                  ResourcePool is the name, inventory path or MOID of the resource pool in which
                   the virtual machine is created/located.
                 type: string
               server:
@@ -1428,7 +1428,7 @@ spec:
                 type: array
               template:
                 description: |-
-                  Template is the name or inventory path of the template used to clone
+                  Template is the name, inventory path or the MOID of the template used to clone
                   the virtual machine.
                 minLength: 1
                 type: string

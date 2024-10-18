@@ -48,6 +48,23 @@ var _ = Describe("Cluster Creation using Cluster API quick-start test [vcsim] [s
 	})
 })
 
+var _ = Describe("Cluster Creation using Cluster API quick-start test and MOID [vcsim]", func() {
+	const specName = "quick-start-moid"
+	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
+		capi_e2e.QuickStartSpec(ctx, func() capi_e2e.QuickStartSpecInput {
+			return capi_e2e.QuickStartSpecInput{
+				E2EConfig:             e2eConfig,
+				ClusterctlConfigPath:  testSpecificSettingsGetter().ClusterctlConfigPath,
+				BootstrapClusterProxy: bootstrapClusterProxy,
+				ArtifactFolder:        artifactFolder,
+				SkipCleanup:           skipCleanup,
+				Flavor:                ptr.To(testSpecificSettingsGetter().FlavorForMode(clusterctl.DefaultFlavor)),
+				PostNamespaceCreated:  testSpecificSettingsGetter().PostNamespaceCreatedFunc,
+			}
+		})
+	}, WithMOID(true))
+})
+
 var _ = Describe("ClusterClass Creation using Cluster API quick-start test [vcsim] [supervisor] [PR-Blocking] [ClusterClass]", func() {
 	const specName = "quick-start-cluster-class" // prefix (quick-start) copied from CAPI
 	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {

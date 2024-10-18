@@ -93,7 +93,7 @@ const (
 
 // VirtualMachineCloneSpec is information used to clone a virtual machine.
 type VirtualMachineCloneSpec struct {
-	// Template is the name or inventory path of the template used to clone
+	// Template is the name, inventory path or the MOID of the template used to clone
 	// the virtual machine.
 	// +kubebuilder:validation:MinLength=1
 	Template string `json:"template"`
@@ -127,18 +127,18 @@ type VirtualMachineCloneSpec struct {
 	// +optional
 	Thumbprint string `json:"thumbprint,omitempty"`
 
-	// Datacenter is the name or inventory path of the datacenter in which the
+	// Datacenter is the name, inventory path or MOID of the datacenter in which the
 	// virtual machine is created/located.
 	// Defaults to * which selects the default datacenter.
 	// +optional
 	Datacenter string `json:"datacenter,omitempty"`
 
-	// Folder is the name or inventory path of the folder in which the
+	// Folder is the name, inventory path or MOID of the folder in which the
 	// virtual machine is created/located.
 	// +optional
 	Folder string `json:"folder,omitempty"`
 
-	// Datastore is the name or inventory path of the datastore in which the
+	// Datastore is the name, inventory path or MOID of the datastore in which the
 	// virtual machine is created/located.
 	// +optional
 	Datastore string `json:"datastore,omitempty"`
@@ -148,7 +148,7 @@ type VirtualMachineCloneSpec struct {
 	// +optional
 	StoragePolicyName string `json:"storagePolicyName,omitempty"`
 
-	// ResourcePool is the name or inventory path of the resource pool in which
+	// ResourcePool is the name, inventory path or MOID of the resource pool in which
 	// the virtual machine is created/located.
 	// +optional
 	ResourcePool string `json:"resourcePool,omitempty"`
@@ -299,7 +299,7 @@ type NetworkSpec struct {
 // NetworkDeviceSpec defines the network configuration for a virtual machine's
 // network device.
 type NetworkDeviceSpec struct {
-	// NetworkName is the name of the vSphere network to which the device
+	// NetworkName is the name or MOID of the vSphere network to which the device
 	// will be connected.
 	NetworkName string `json:"networkName"`
 

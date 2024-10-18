@@ -54,7 +54,6 @@ func newVSphereVM() infrav1.VSphereVM {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: Namespace,
 			Name:      VSphereVMName,
-			UID:       VSphereVMUUID,
 		},
 		Spec: infrav1.VSphereVMSpec{
 			VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{

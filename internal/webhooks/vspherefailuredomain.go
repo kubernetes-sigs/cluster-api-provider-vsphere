@@ -78,12 +78,12 @@ func (webhook *VSphereFailureDomainWebhook) ValidateCreate(_ context.Context, ra
 	}
 
 	if len(obj.Spec.Topology.NetworkConfigurations) != 0 && len(obj.Spec.Topology.Networks) != 0 {
-		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "Topology", "Networks"), "cannot be set if spec.Topology.NetworkConfigs is already set"))
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "topology", "networks"), "cannot be set if spec.topology.networkConfigs is already set"))
 	}
 
 	for i, networkConfig := range obj.Spec.Topology.NetworkConfigurations {
 		if networkConfig.NetworkName == "" {
-			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "Topology", "NetworkConfigurations", fmt.Sprint(i), "name"), "cannot be empty"))
+			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "topology", "networkConfigurations", fmt.Sprint(i), "name"), "cannot be empty"))
 		}
 	}
 

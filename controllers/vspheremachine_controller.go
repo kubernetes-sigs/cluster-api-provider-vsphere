@@ -111,7 +111,7 @@ func AddMachineControllerToManager(ctx context.Context, controllerManagerContext
 				&clusterv1.Cluster{},
 				handler.EnqueueRequestsFromMapFunc(r.enqueueClusterToMachineRequests),
 				ctrlbldr.WithPredicates(
-					predicates.ClusterUnpausedAndInfrastructureReady(predicateLog),
+					predicates.ClusterUnpausedAndInfrastructureReady(mgr.GetScheme(), predicateLog),
 				),
 			).
 			// Watch a GenericEvent channel for the controlled resource.
@@ -168,7 +168,7 @@ func AddMachineControllerToManager(ctx context.Context, controllerManagerContext
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(r.enqueueClusterToMachineRequests),
 			ctrlbldr.WithPredicates(
-				predicates.ClusterUnpausedAndInfrastructureReady(predicateLog),
+				predicates.ClusterUnpausedAndInfrastructureReady(mgr.GetScheme(), predicateLog),
 			),
 		).Complete(r)
 }

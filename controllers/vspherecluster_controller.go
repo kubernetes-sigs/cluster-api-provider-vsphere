@@ -158,7 +158,7 @@ func AddClusterControllerToManager(ctx context.Context, controllerManagerCtx *ca
 			),
 		).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, controllerManagerCtx.WatchFilterValue)).
-		WithEventFilter(predicates.ResourceIsNotExternallyManaged(predicateLog)).
+		WithEventFilter(predicates.ResourceIsNotExternallyManaged(mgr.GetScheme(), predicateLog)).
 		Build(reconciler)
 	if err != nil {
 		return err

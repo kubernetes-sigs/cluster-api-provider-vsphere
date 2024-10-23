@@ -58,6 +58,7 @@ ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 BIN_DIR := bin
 BUILD_DIR := .build
 TEST_DIR := test
+PACKAGING_DIR := packaging
 VCSIM_DIR := test/infrastructure/vcsim
 NETOP_DIR := test/infrastructure/net-operator
 TEST_EXTENSION_DIR := test/extension
@@ -359,6 +360,7 @@ generate-go-conversions: $(CONTROLLER_GEN) $(CONVERSION_GEN) ## Runs Go related 
 generate-modules: ## Run go mod tidy to ensure modules are up to date
 	go mod tidy
 	cd $(TEST_DIR); go mod tidy
+	cd $(PACKAGING_DIR); go mod tidy
 
 .PHONY: generate-doctoc
 generate-doctoc:
@@ -460,6 +462,7 @@ generate-test-infra-prowjobs: $(PROWJOB_GEN) ## Generates the prowjob configurat
 lint: $(GOLANGCI_LINT) ## Lint the codebase
 	$(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS)
 	cd $(TEST_DIR); $(GOLANGCI_LINT) run --path-prefix $(TEST_DIR) --config $(ROOT_DIR)/.golangci.yml -v $(GOLANGCI_LINT_EXTRA_ARGS)
+	cd $(PACKAGING_DIR); $(GOLANGCI_LINT) run --path-prefix $(PACKAGING_DIR) --config $(ROOT_DIR)/.golangci.yml -v $(GOLANGCI_LINT_EXTRA_ARGS)
 
 .PHONY: lint-fix
 lint-fix: $(GOLANGCI_LINT) ## Lint the codebase and run auto-fixers if supported by the linter
@@ -483,6 +486,10 @@ verify-go-directive:
 .PHONY: verify-modules
 verify-modules: generate-modules  ## Verify go modules are up to date
 	@if !(git diff --quiet HEAD -- go.sum go.mod $(TEST_DIR)/go.mod $(TEST_DIR)/go.sum); then \
+		git diff; \
+		echo "go module files are out of date"; exit 1; \
+	fi
+	@if !(git diff --quiet HEAD -- go.sum go.mod $(PACKAGING_DIR)/go.mod $(PACKAGING_DIR)/go.sum); then \
 		git diff; \
 		echo "go module files are out of date"; exit 1; \
 	fi
@@ -529,6 +536,10 @@ verify-licenses: ## Verify licenses
 verify-govulncheck: $(GOVULNCHECK) ## Verify code for vulnerabilities
 	$(GOVULNCHECK) ./... && R1=$$? || R1=$$?; \
 	$(GOVULNCHECK) -C "$(TEST_DIR)" ./... && R2=$$? || R2=$$?; \
+	if [ "$$R1" -ne "0" ] || [ "$$R2" -ne "0" ]; then \
+		exit 1; \
+	fi
+	$(GOVULNCHECK) -C "$(PACKAGING_DIR)" ./... && R2=$$? || R2=$$?; \
 	if [ "$$R1" -ne "0" ] || [ "$$R2" -ne "0" ]; then \
 		exit 1; \
 	fi
@@ -786,7 +797,9 @@ e2e-flavors-main: $(RELEASE_DIR)
 
 .PHONY: generate-flavors
 generate-flavors: $(FLAVOR_DIR)
-	go run ./packaging/flavorgen --output-dir $(FLAVOR_DIR)
+	cd $(PACKAGING_DIR)/flavorgen; go build -o flavorgen ./
+	$(PACKAGING_DIR)/flavorgen/flavorgen --output-dir $(FLAVOR_DIR)
+	rm $(PACKAGING_DIR)/flavorgen/flavorgen
 
 .PHONY: release-staging
 release-staging: ## Build and push container images to the staging registry

@@ -790,7 +790,7 @@ e2e-flavors-main: $(RELEASE_DIR)
 
 .PHONY: generate-flavors
 generate-flavors: $(FLAVOR_DIR)
-	cd $(PACKAGING_DIR)/flavorgen; go build -o flavorgen ./
+	cd $(PACKAGING_DIR)/flavorgen; GOTOOLCHAIN=auto go build -o flavorgen ./
 	$(PACKAGING_DIR)/flavorgen/flavorgen --output-dir $(FLAVOR_DIR)
 	rm $(PACKAGING_DIR)/flavorgen/flavorgen
 

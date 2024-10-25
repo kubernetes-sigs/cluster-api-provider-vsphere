@@ -485,7 +485,7 @@ verify-go-directive:
 
 .PHONY: verify-modules
 verify-modules: generate-modules  ## Verify go modules are up to date
-	@if !(git diff --quiet HEAD -- go.sum go.mod $(TEST_DIR)/go.mod $(TEST_DIR)/go.sum) $(PACKAGING_DIR)/go.mod $(PACKAGING_DIR)/go.sum); then \
+	@if !(git diff --quiet HEAD -- go.sum go.mod $(TEST_DIR)/go.mod $(TEST_DIR)/go.sum $(PACKAGING_DIR)/go.mod $(PACKAGING_DIR)/go.sum); then \
 		git diff; \
 		echo "go module files are out of date"; exit 1; \
 	fi
@@ -532,9 +532,6 @@ verify-licenses: ## Verify licenses
 verify-govulncheck: $(GOVULNCHECK) ## Verify code for vulnerabilities
 	$(GOVULNCHECK) ./... && R1=$$? || R1=$$?; \
 	$(GOVULNCHECK) -C "$(TEST_DIR)" ./... && R2=$$? || R2=$$?; \
-	if [ "$$R1" -ne "0" ] || [ "$$R2" -ne "0" ]; then \
-		exit 1; \
-	fi
 	$(GOVULNCHECK) -C "$(PACKAGING_DIR)" ./... && R3=$$? || R3=$$?; \
 	if [ "$$R1" -ne "0" ] || [ "$$R2" -ne "0" ] || [ "$$R3" -ne "0" ]; then \
 		exit 1; \

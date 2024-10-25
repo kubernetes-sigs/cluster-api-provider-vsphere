@@ -49,6 +49,7 @@ func NewControllerManagerContext(initObjects ...client.Object) *capvcontext.Cont
 	clientWithObjects := fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(
 		&infrav1.VSphereVM{},
 		&vmwarev1.VSphereCluster{},
+		&clusterv1.Cluster{},
 	).WithObjects(initObjects...).Build()
 
 	return &capvcontext.ControllerManagerContext{

@@ -40,13 +40,14 @@ var _ = Describe("Service Discovery controller integration tests", func() {
 			helpers.CreateAndWait(ctx, intCtx.Client, intCtx.Cluster)
 			helpers.CreateAndWait(ctx, intCtx.Client, intCtx.VSphereCluster)
 			helpers.CreateAndWait(ctx, intCtx.Client, intCtx.KubeconfigSecret)
+			helpers.ClusterInfrastructureReady(ctx, intCtx.Client, clusterCache, intCtx.Cluster)
 		})
 
 		By("Verifying that the guest cluster client works")
 		var guestClient client.Client
 		var err error
 		Eventually(func() error {
-			guestClient, err = tracker.GetClient(ctx, client.ObjectKeyFromObject(intCtx.Cluster))
+			guestClient, err = clusterCache.GetClient(ctx, client.ObjectKeyFromObject(intCtx.Cluster))
 			return err
 		}, time.Minute, 5*time.Second).Should(Succeed())
 		// Note: Create a Service informer, so the test later doesn't fail if this doesn't work.

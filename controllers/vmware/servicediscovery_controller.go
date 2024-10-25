@@ -37,7 +37,7 @@ import (
 	bootstrapapi "k8s.io/cluster-bootstrap/token/api"
 	"k8s.io/klog/v2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -75,11 +75,11 @@ const (
 // +kubebuilder:rbac:groups="",resources=configmaps/status,verbs=get
 
 // AddServiceDiscoveryControllerToManager adds the ServiceDiscovery controller to the provided manager.
-func AddServiceDiscoveryControllerToManager(ctx context.Context, controllerManagerCtx *capvcontext.ControllerManagerContext, mgr manager.Manager, tracker *remote.ClusterCacheTracker, options controller.Options) error {
+func AddServiceDiscoveryControllerToManager(ctx context.Context, controllerManagerCtx *capvcontext.ControllerManagerContext, mgr manager.Manager, clusterCache clustercache.ClusterCache, options controller.Options) error {
 	r := &serviceDiscoveryReconciler{
-		Client:                    controllerManagerCtx.Client,
-		Recorder:                  mgr.GetEventRecorderFor("servicediscovery/vspherecluster-controller"),
-		remoteClusterCacheTracker: tracker,
+		Client:       controllerManagerCtx.Client,
+		Recorder:     mgr.GetEventRecorderFor("servicediscovery/vspherecluster-controller"),
+		clusterCache: clusterCache,
 	}
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "servicediscovery/vspherecluster")
 
@@ -96,7 +96,6 @@ func AddServiceDiscoveryControllerToManager(ctx context.Context, controllerManag
 	if err := mgr.Add(configMapCache); err != nil {
 		return errors.Wrapf(err, "failed to add ConfigMap cache")
 	}
-	clusterToInfraFn := clusterToVMwareInfrastructureMapFunc(ctx, controllerManagerCtx)
 	return ctrl.NewControllerManagedBy(mgr).For(&vmwarev1.VSphereCluster{}).
 		Named("servicediscovery/vspherecluster").
 		WithOptions(options).
@@ -114,37 +113,43 @@ func AddServiceDiscoveryControllerToManager(ctx context.Context, controllerManag
 		// watch the CAPI cluster
 		Watches(
 			&clusterv1.Cluster{},
-			handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, o client.Object) []reconcile.Request {
-				requests := clusterToInfraFn(ctx, o)
-				if len(requests) == 0 {
-					return nil
-				}
-
-				log := ctrl.LoggerFrom(ctx, "Cluster", klog.KObj(o), "VSphereCluster", klog.KRef(requests[0].Namespace, requests[0].Name))
-				ctx = ctrl.LoggerInto(ctx, log)
-
-				c := &vmwarev1.VSphereCluster{}
-				if err := r.Client.Get(ctx, requests[0].NamespacedName, c); err != nil {
-					log.V(4).Error(err, "Failed to get VSphereCluster")
-					return nil
-				}
-
-				if annotations.IsExternallyManaged(c) {
-					log.V(6).Info("VSphereCluster is externally managed, will not attempt to map resource")
-					return nil
-				}
-				return requests
-			}),
+			handler.EnqueueRequestsFromMapFunc(clusterToSupervisorVSphereClusterFunc(r.Client)),
 		).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, controllerManagerCtx.WatchFilterValue)).
+		WatchesRawSource(r.clusterCache.GetClusterSource("servicediscovery/vspherecluster", clusterToSupervisorVSphereClusterFunc(r.Client))).
 		Complete(r)
+}
+
+func clusterToSupervisorVSphereClusterFunc(ctrlclient client.Client) func(ctx context.Context, obj client.Object) []reconcile.Request {
+	return func(ctx context.Context, obj client.Object) []reconcile.Request {
+		gvk := vmwarev1.GroupVersion.WithKind(reflect.TypeOf(&vmwarev1.VSphereCluster{}).Elem().Name())
+		requests := clusterutilv1.ClusterToInfrastructureMapFunc(ctx, gvk, ctrlclient, &vmwarev1.VSphereCluster{})(ctx, obj)
+		if len(requests) == 0 {
+			return nil
+		}
+
+		log := ctrl.LoggerFrom(ctx, "Cluster", klog.KObj(obj), "VSphereCluster", klog.KRef(requests[0].Namespace, requests[0].Name))
+		ctx = ctrl.LoggerInto(ctx, log)
+
+		c := &vmwarev1.VSphereCluster{}
+		if err := ctrlclient.Get(ctx, requests[0].NamespacedName, c); err != nil {
+			log.V(4).Error(err, "Failed to get VSphereCluster")
+			return nil
+		}
+
+		if annotations.IsExternallyManaged(c) {
+			log.V(6).Info("VSphereCluster is externally managed, will not attempt to map resource")
+			return nil
+		}
+		return requests
+	}
 }
 
 type serviceDiscoveryReconciler struct {
 	Client   client.Client
 	Recorder record.EventRecorder
 
-	remoteClusterCacheTracker *remote.ClusterCacheTracker
+	clusterCache clustercache.ClusterCache
 }
 
 func (r *serviceDiscoveryReconciler) Reconcile(ctx context.Context, req reconcile.Request) (_ reconcile.Result, reterr error) {
@@ -201,10 +206,10 @@ func (r *serviceDiscoveryReconciler) Reconcile(ctx context.Context, req reconcil
 
 	// We cannot proceed until we are able to access the target cluster. Until
 	// then just return a no-op and wait for the next sync.
-	guestClient, err := r.remoteClusterCacheTracker.GetClient(ctx, client.ObjectKeyFromObject(cluster))
+	guestClient, err := r.clusterCache.GetClient(ctx, client.ObjectKeyFromObject(cluster))
 	if err != nil {
-		if errors.Is(err, remote.ErrClusterLocked) {
-			log.V(5).Info("Requeuing because another worker has the lock on the ClusterCacheTracker")
+		if errors.Is(err, clustercache.ErrClusterNotConnected) {
+			log.V(5).Info("Requeuing because connection to the workload cluster is down")
 			return ctrl.Result{RequeueAfter: time.Minute}, nil
 		}
 		log.Error(err, "The control plane is not ready yet")
@@ -486,9 +491,4 @@ func allClustersRequests(ctx context.Context, c client.Client) []reconcile.Reque
 		requests = append(requests, reconcile.Request{NamespacedName: key})
 	}
 	return requests
-}
-
-func clusterToVMwareInfrastructureMapFunc(ctx context.Context, controllerCtx *capvcontext.ControllerManagerContext) handler.MapFunc {
-	gvk := vmwarev1.GroupVersion.WithKind(reflect.TypeOf(&vmwarev1.VSphereCluster{}).Elem().Name())
-	return clusterutilv1.ClusterToInfrastructureMapFunc(ctx, gvk, controllerCtx.Client, &vmwarev1.VSphereCluster{})
 }

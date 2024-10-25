@@ -29,15 +29,13 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apirecord "k8s.io/client-go/tools/record"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
@@ -74,36 +72,6 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 	}
 	defer simr.Destroy()
 
-	secretCachingClient, err := client.New(testEnv.Manager.GetConfig(), client.Options{
-		HTTPClient: testEnv.Manager.GetHTTPClient(),
-		Cache: &client.CacheOptions{
-			Reader: testEnv.Manager.GetCache(),
-		},
-	})
-	if err != nil {
-		panic("unable to create secret caching client")
-	}
-
-	tracker, err := remote.NewClusterCacheTracker(
-		testEnv.Manager,
-		remote.ClusterCacheTrackerOptions{
-			SecretCachingClient: secretCachingClient,
-			ControllerName:      "testvspherevm-manager",
-		},
-	)
-	if err != nil {
-		t.Fatalf("unable to setup ClusterCacheTracker: %v", err)
-	}
-
-	controllerOpts := controller.Options{MaxConcurrentReconciles: 10, SkipNameValidation: ptr.To(true)}
-
-	if err := (&remote.ClusterCacheReconciler{
-		Client:  testEnv.Manager.GetClient(),
-		Tracker: tracker,
-	}).SetupWithManager(ctx, testEnv.Manager, controllerOpts); err != nil {
-		panic(fmt.Sprintf("unable to create ClusterCacheReconciler controller: %v", err))
-	}
-
 	create := func(netSpec infrav1.NetworkSpec) func() {
 		return func() {
 			vsphereCluster = &infrav1.VSphereCluster{
@@ -122,6 +90,9 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 					InfrastructureRef: &corev1.ObjectReference{
 						Name: vsphereCluster.Name,
 					},
+				},
+				Status: clusterv1.ClusterStatus{
+					InfrastructureReady: true,
 				},
 			}
 
@@ -203,9 +174,9 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 		controllerMgrContext.Username = simr.ServerURL().User.Username()
 
 		return vmReconciler{
-			ControllerManagerContext:  controllerMgrContext,
-			VMService:                 vmService,
-			remoteClusterCacheTracker: tracker,
+			ControllerManagerContext: controllerMgrContext,
+			VMService:                vmService,
+			clusterCache:             clustercache.NewFakeClusterCache(controllerMgrContext.Client, client.ObjectKeyFromObject(cluster)),
 		}
 	}
 

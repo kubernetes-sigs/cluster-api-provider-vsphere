@@ -29,6 +29,7 @@ import (
 	perrors "github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	"gopkg.in/fsnotify.v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -39,6 +40,7 @@ import (
 	_ "k8s.io/component-base/logs/json/register"
 	"k8s.io/klog/v2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util/apiwarnings"
 	capiflags "sigs.k8s.io/cluster-api/util/flags"
@@ -67,20 +69,20 @@ var (
 	logOptions     = logs.NewOptions()
 	controllerName = "cluster-api-vsphere-manager"
 
-	enableContentionProfiling      bool
-	leaderElectionLeaseDuration    time.Duration
-	leaderElectionRenewDeadline    time.Duration
-	leaderElectionRetryPeriod      time.Duration
-	managerOpts                    manager.Options
-	restConfigBurst                int
-	restConfigQPS                  float32
-	clusterCacheTrackerClientQPS   float32
-	clusterCacheTrackerClientBurst int
-	syncPeriod                     time.Duration
-	webhookOpts                    webhook.Options
-	watchNamespace                 string
+	enableContentionProfiling   bool
+	leaderElectionLeaseDuration time.Duration
+	leaderElectionRenewDeadline time.Duration
+	leaderElectionRetryPeriod   time.Duration
+	managerOpts                 manager.Options
+	restConfigBurst             int
+	restConfigQPS               float32
+	clusterCacheClientQPS       float32
+	clusterCacheClientBurst     int
+	syncPeriod                  time.Duration
+	webhookOpts                 webhook.Options
+	watchNamespace              string
 
-	clusterCacheTrackerConcurrency    int
+	clusterCacheConcurrency           int
 	vSphereClusterConcurrency         int
 	vSphereMachineConcurrency         int
 	vSphereMachineTemplateConcurrency int
@@ -108,7 +110,7 @@ func InitFlags(fs *pflag.FlagSet) {
 		defaultLeaderElectionID,
 		"Name of the config map to use as the locking resource when configuring leader election.")
 
-	fs.IntVar(&clusterCacheTrackerConcurrency, "clustercachetracker-concurrency", 10,
+	fs.IntVar(&clusterCacheConcurrency, "clustercache-concurrency", 100,
 		"Number of clusters to process simultaneously")
 
 	fs.IntVar(&vSphereClusterConcurrency, "vspherecluster-concurrency", 10,
@@ -192,11 +194,11 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&restConfigBurst, "kube-api-burst", 30,
 		"Maximum number of queries that should be allowed in one burst from the controller client to the Kubernetes API server.")
 
-	fs.Float32Var(&clusterCacheTrackerClientQPS, "clustercachetracker-client-qps", 20,
-		"Maximum queries per second from the cluster cache tracker clients to the Kubernetes API server of workload clusters.")
+	fs.Float32Var(&clusterCacheClientQPS, "clustercache-client-qps", 20,
+		"Maximum queries per second from the cluster cache clients to the Kubernetes API server of workload clusters.")
 
-	fs.IntVar(&clusterCacheTrackerClientBurst, "clustercachetracker-client-burst", 30,
-		"Maximum number of queries that should be allowed in one burst from the cluster cache tracker clients to the Kubernetes API server of workload clusters.")
+	fs.IntVar(&clusterCacheClientBurst, "clustercache-client-burst", 30,
+		"Maximum number of queries that should be allowed in one burst from the cluster cache clients to the Kubernetes API server of workload clusters.")
 
 	fs.IntVar(&webhookOpts.Port, "webhook-port", 9443,
 		"Webhook Server port.")
@@ -266,7 +268,7 @@ func main() {
 
 	// Create a function that adds all the controllers and webhooks to the manager.
 	addToManager := func(ctx context.Context, controllerCtx *capvcontext.ControllerManagerContext, mgr ctrlmgr.Manager) error {
-		tracker, err := setupRemoteClusterCacheTracker(ctx, mgr)
+		clusterCache, err := setupClusterCache(ctx, mgr)
 		if err != nil {
 			return perrors.Wrapf(err, "unable to create remote cluster cache tracker")
 		}
@@ -298,7 +300,7 @@ func main() {
 		}
 
 		if isGovmomiCRDLoaded {
-			if err := setupVAPIControllers(ctx, controllerCtx, mgr, tracker); err != nil {
+			if err := setupVAPIControllers(ctx, controllerCtx, mgr, clusterCache); err != nil {
 				return fmt.Errorf("setupVAPIControllers: %w", err)
 			}
 		} else {
@@ -306,7 +308,7 @@ func main() {
 		}
 
 		if isSupervisorCRDLoaded {
-			if err := setupSupervisorControllers(ctx, controllerCtx, mgr, tracker); err != nil {
+			if err := setupSupervisorControllers(ctx, controllerCtx, mgr, clusterCache); err != nil {
 				return fmt.Errorf("setupSupervisorControllers: %w", err)
 			}
 		} else {
@@ -355,7 +357,7 @@ func main() {
 	defer session.Clear()
 }
 
-func setupVAPIControllers(ctx context.Context, controllerCtx *capvcontext.ControllerManagerContext, mgr ctrlmgr.Manager, tracker *remote.ClusterCacheTracker) error {
+func setupVAPIControllers(ctx context.Context, controllerCtx *capvcontext.ControllerManagerContext, mgr ctrlmgr.Manager, clusterCache clustercache.ClusterCache) error {
 	if err := (&webhooks.VSphereClusterTemplateWebhook{}).SetupWebhookWithManager(mgr); err != nil {
 		return err
 	}
@@ -386,7 +388,7 @@ func setupVAPIControllers(ctx context.Context, controllerCtx *capvcontext.Contro
 	if err := controllers.AddMachineControllerToManager(ctx, controllerCtx, mgr, false, concurrency(vSphereMachineConcurrency)); err != nil {
 		return err
 	}
-	if err := controllers.AddVMControllerToManager(ctx, controllerCtx, mgr, tracker, concurrency(vSphereVMConcurrency)); err != nil {
+	if err := controllers.AddVMControllerToManager(ctx, controllerCtx, mgr, clusterCache, concurrency(vSphereVMConcurrency)); err != nil {
 		return err
 	}
 	if err := controllers.AddVsphereClusterIdentityControllerToManager(ctx, controllerCtx, mgr, concurrency(vSphereClusterIdentityConcurrency)); err != nil {
@@ -396,7 +398,7 @@ func setupVAPIControllers(ctx context.Context, controllerCtx *capvcontext.Contro
 	return controllers.AddVSphereDeploymentZoneControllerToManager(ctx, controllerCtx, mgr, concurrency(vSphereDeploymentZoneConcurrency))
 }
 
-func setupSupervisorControllers(ctx context.Context, controllerCtx *capvcontext.ControllerManagerContext, mgr ctrlmgr.Manager, tracker *remote.ClusterCacheTracker) error {
+func setupSupervisorControllers(ctx context.Context, controllerCtx *capvcontext.ControllerManagerContext, mgr ctrlmgr.Manager, clusterCache clustercache.ClusterCache) error {
 	if err := (&vmwarewebhooks.VSphereMachineTemplateWebhook{}).SetupWebhookWithManager(mgr); err != nil {
 		return err
 	}
@@ -415,11 +417,11 @@ func setupSupervisorControllers(ctx context.Context, controllerCtx *capvcontext.
 		return err
 	}
 
-	if err := vmware.AddServiceAccountProviderControllerToManager(ctx, controllerCtx, mgr, tracker, concurrency(providerServiceAccountConcurrency)); err != nil {
+	if err := vmware.AddServiceAccountProviderControllerToManager(ctx, controllerCtx, mgr, clusterCache, concurrency(providerServiceAccountConcurrency)); err != nil {
 		return err
 	}
 
-	return vmware.AddServiceDiscoveryControllerToManager(ctx, controllerCtx, mgr, tracker, concurrency(serviceDiscoveryConcurrency))
+	return vmware.AddServiceDiscoveryControllerToManager(ctx, controllerCtx, mgr, clusterCache, concurrency(serviceDiscoveryConcurrency))
 }
 
 func setupChecks(mgr ctrlmgr.Manager) {
@@ -449,7 +451,7 @@ func concurrency(c int) controller.Options {
 	return controller.Options{MaxConcurrentReconciles: c}
 }
 
-func setupRemoteClusterCacheTracker(ctx context.Context, mgr ctrlmgr.Manager) (*remote.ClusterCacheTracker, error) {
+func setupClusterCache(ctx context.Context, mgr ctrlmgr.Manager) (clustercache.ClusterCache, error) {
 	secretCachingClient, err := client.New(mgr.GetConfig(), client.Options{
 		HTTPClient: mgr.GetHTTPClient(),
 		Cache: &client.CacheOptions{
@@ -460,29 +462,26 @@ func setupRemoteClusterCacheTracker(ctx context.Context, mgr ctrlmgr.Manager) (*
 		return nil, perrors.Wrapf(err, "unable to create secret caching client")
 	}
 
-	// Set up a ClusterCacheTracker and ClusterCacheReconciler to provide to controllers
-	// requiring a connection to a remote cluster
-	tracker, err := remote.NewClusterCacheTracker(
-		mgr,
-		remote.ClusterCacheTrackerOptions{
-			SecretCachingClient: secretCachingClient,
-			ControllerName:      controllerName,
-			Log:                 &ctrl.Log,
-			ClientQPS:           clusterCacheTrackerClientQPS,
-			ClientBurst:         clusterCacheTrackerClientBurst,
+	clusterCache, err := clustercache.SetupWithManager(ctx, mgr, clustercache.Options{
+		SecretClient: secretCachingClient,
+		Cache:        clustercache.CacheOptions{},
+		Client: clustercache.ClientOptions{
+			QPS:       clusterCacheClientQPS,
+			Burst:     clusterCacheClientBurst,
+			UserAgent: remote.DefaultClusterAPIUserAgent(controllerName),
+			Cache: clustercache.ClientCacheOptions{
+				DisableFor: []client.Object{
+					// Don't cache ConfigMaps & Secrets.
+					&corev1.ConfigMap{},
+					&corev1.Secret{},
+				},
+			},
 		},
-	)
-	if err != nil {
-		return nil, perrors.Wrapf(err, "unable to create cluster cache tracker")
-	}
-
-	if err := (&remote.ClusterCacheReconciler{
-		Client:           mgr.GetClient(),
-		Tracker:          tracker,
 		WatchFilterValue: managerOpts.WatchFilterValue,
-	}).SetupWithManager(ctx, mgr, concurrency(clusterCacheTrackerConcurrency)); err != nil {
-		return nil, perrors.Wrapf(err, "unable to create ClusterCacheReconciler controller")
+	}, concurrency(clusterCacheConcurrency))
+	if err != nil {
+		return nil, perrors.Wrapf(err, "Unable to create ClusterCache")
 	}
 
-	return tracker, nil
+	return clusterCache, nil
 }

@@ -19,7 +19,6 @@ package vmware
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"strings"
 	"time"
 
@@ -33,7 +32,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -64,15 +63,13 @@ const (
 )
 
 // AddServiceAccountProviderControllerToManager adds this controller to the provided manager.
-func AddServiceAccountProviderControllerToManager(ctx context.Context, controllerManagerCtx *capvcontext.ControllerManagerContext, mgr manager.Manager, tracker *remote.ClusterCacheTracker, options controller.Options) error {
+func AddServiceAccountProviderControllerToManager(ctx context.Context, controllerManagerCtx *capvcontext.ControllerManagerContext, mgr manager.Manager, clusterCache clustercache.ClusterCache, options controller.Options) error {
 	r := &ServiceAccountReconciler{
-		Client:                    controllerManagerCtx.Client,
-		Recorder:                  mgr.GetEventRecorderFor("providerserviceaccount-controller"),
-		remoteClusterCacheTracker: tracker,
+		Client:       controllerManagerCtx.Client,
+		Recorder:     mgr.GetEventRecorderFor("providerserviceaccount-controller"),
+		clusterCache: clusterCache,
 	}
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "providerserviceaccount")
-
-	clusterToInfraFn := clusterToSupervisorInfrastructureMapFunc(ctx, controllerManagerCtx.Client)
 
 	// Note: The ProviderServiceAccount reconciler is watching on VSphereCluster in For() instead of
 	// ProviderServiceAccount because we want to reconcile all ProviderServiceAccounts of a Cluster
@@ -97,42 +94,18 @@ func AddServiceAccountProviderControllerToManager(ctx context.Context, controlle
 		// Watches clusters and reconciles the vSphereCluster.
 		Watches(
 			&clusterv1.Cluster{},
-			handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, o client.Object) []reconcile.Request {
-				requests := clusterToInfraFn(ctx, o)
-				if len(requests) == 0 {
-					return nil
-				}
-
-				log := ctrl.LoggerFrom(ctx, "Cluster", klog.KObj(o), "VSphereCluster", klog.KRef(requests[0].Namespace, requests[0].Name))
-				ctx = ctrl.LoggerInto(ctx, log)
-
-				c := &vmwarev1.VSphereCluster{}
-				if err := r.Client.Get(ctx, requests[0].NamespacedName, c); err != nil {
-					log.V(4).Error(err, "Failed to get VSphereCluster")
-					return nil
-				}
-
-				if annotations.IsExternallyManaged(c) {
-					log.V(6).Info("VSphereCluster is externally managed, will not attempt to map resource")
-					return nil
-				}
-				return requests
-			}),
+			handler.EnqueueRequestsFromMapFunc(clusterToSupervisorVSphereClusterFunc(r.Client)),
 		).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, controllerManagerCtx.WatchFilterValue)).
+		WatchesRawSource(r.clusterCache.GetClusterSource("providerserviceaccount", clusterToSupervisorVSphereClusterFunc(r.Client))).
 		Complete(r)
-}
-
-func clusterToSupervisorInfrastructureMapFunc(ctx context.Context, c client.Client) handler.MapFunc {
-	gvk := vmwarev1.GroupVersion.WithKind(reflect.TypeOf(&vmwarev1.VSphereCluster{}).Elem().Name())
-	return clusterutilv1.ClusterToInfrastructureMapFunc(ctx, gvk, c, &vmwarev1.VSphereCluster{})
 }
 
 // ServiceAccountReconciler reconciles changes to ProviderServiceAccounts.
 type ServiceAccountReconciler struct {
-	Client                    client.Client
-	Recorder                  record.EventRecorder
-	remoteClusterCacheTracker *remote.ClusterCacheTracker
+	Client       client.Client
+	Recorder     record.EventRecorder
+	clusterCache clustercache.ClusterCache
 }
 
 func (r *ServiceAccountReconciler) Reconcile(ctx context.Context, req reconcile.Request) (_ reconcile.Result, reterr error) {
@@ -198,10 +171,10 @@ func (r *ServiceAccountReconciler) Reconcile(ctx context.Context, req reconcile.
 	// then just return a no-op and wait for the next sync. This will occur when
 	// the Cluster's status is updated with a reference to the secret that has
 	// the Kubeconfig data used to access the target cluster.
-	guestClient, err := r.remoteClusterCacheTracker.GetClient(ctx, client.ObjectKeyFromObject(cluster))
+	guestClient, err := r.clusterCache.GetClient(ctx, client.ObjectKeyFromObject(cluster))
 	if err != nil {
-		if errors.Is(err, remote.ErrClusterLocked) {
-			log.V(5).Info("Requeuing because another worker has the lock on the ClusterCacheTracker")
+		if errors.Is(err, clustercache.ErrClusterNotConnected) {
+			log.V(5).Info("Requeuing because connection to the workload cluster is down")
 			return ctrl.Result{RequeueAfter: time.Minute}, nil
 		}
 		log.Error(err, "The control plane is not ready yet")

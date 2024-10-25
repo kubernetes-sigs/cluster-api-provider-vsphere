@@ -182,7 +182,7 @@ IMPORT_BOSS_VER := v0.28.1
 IMPORT_BOSS := $(abspath $(TOOLS_BIN_DIR)/$(IMPORT_BOSS_BIN))
 IMPORT_BOSS_PKG := k8s.io/code-generator/cmd/import-boss
 
-CAPI_HACK_TOOLS_VER := 5d54746e010854a1316e72733e13577d4d5695ec # Note: this is the commit ID of CAPI 5d54746e010854a1316e72733e13577d4d5695ec from 2024-10-02
+CAPI_HACK_TOOLS_VER := 5d54746e010854a1316e72733e13577d4d5695ec # Note: this is the commit ID of CAPI 5d54746e010854a1316e72733e13577d4d5695ec from 2024-10-23
 
 BOSKOSCTL_BIN := boskosctl
 BOSKOSCTL := $(abspath $(TOOLS_BIN_DIR)/$(BOSKOSCTL_BIN))
@@ -485,11 +485,7 @@ verify-go-directive:
 
 .PHONY: verify-modules
 verify-modules: generate-modules  ## Verify go modules are up to date
-	@if !(git diff --quiet HEAD -- go.sum go.mod $(TEST_DIR)/go.mod $(TEST_DIR)/go.sum); then \
-		git diff; \
-		echo "go module files are out of date"; exit 1; \
-	fi
-	@if !(git diff --quiet HEAD -- go.sum go.mod $(PACKAGING_DIR)/go.mod $(PACKAGING_DIR)/go.sum); then \
+	@if !(git diff --quiet HEAD -- go.sum go.mod $(TEST_DIR)/go.mod $(TEST_DIR)/go.sum) $(PACKAGING_DIR)/go.mod $(PACKAGING_DIR)/go.sum); then \
 		git diff; \
 		echo "go module files are out of date"; exit 1; \
 	fi
@@ -539,8 +535,8 @@ verify-govulncheck: $(GOVULNCHECK) ## Verify code for vulnerabilities
 	if [ "$$R1" -ne "0" ] || [ "$$R2" -ne "0" ]; then \
 		exit 1; \
 	fi
-	$(GOVULNCHECK) -C "$(PACKAGING_DIR)" ./... && R2=$$? || R2=$$?; \
-	if [ "$$R1" -ne "0" ] || [ "$$R2" -ne "0" ]; then \
+	$(GOVULNCHECK) -C "$(PACKAGING_DIR)" ./... && R3=$$? || R3=$$?; \
+	if [ "$$R1" -ne "0" ] || [ "$$R2" -ne "0" ] || [ "$$R3" -ne "0" ]; then \
 		exit 1; \
 	fi
 

@@ -275,6 +275,7 @@ network:
       wakeonlan: true
       dhcp4: true
       dhcp6: false
+      accept-ra: false
 `,
 		},
 		{
@@ -311,6 +312,7 @@ network:
       wakeonlan: true
       dhcp4: true
       dhcp6: false
+      accept-ra: false
 `,
 		},
 		{
@@ -346,6 +348,7 @@ network:
       wakeonlan: true
       dhcp4: false
       dhcp6: true
+      accept-ra: true
 `,
 		},
 		{
@@ -382,6 +385,7 @@ network:
       wakeonlan: true
       dhcp4: true
       dhcp6: true
+      accept-ra: true
 `,
 		},
 		{
@@ -439,6 +443,8 @@ network:
       set-name: "eth0"
       wakeonlan: true
       dhcp4: true
+      dhcp6: true
+      accept-ra: true
       dhcp4-overrides:
         hostname: "hal"
         route-metric: 12345
@@ -449,7 +455,6 @@ network:
         use-mtu: true
         use-ntp: true
         use-routes: "route"
-      dhcp6: true
       dhcp6-overrides:
         hostname: "hal"
         route-metric: 12345
@@ -498,6 +503,7 @@ network:
       wakeonlan: true
       dhcp4: true
       dhcp6: true
+      accept-ra: true
 `,
 		},
 		{
@@ -535,6 +541,7 @@ network:
       wakeonlan: true
       dhcp4: false
       dhcp6: true
+      accept-ra: true
       addresses:
       - "192.168.4.21"
       gateway4: "192.168.4.1"
@@ -582,6 +589,7 @@ network:
       wakeonlan: true
       dhcp4: false
       dhcp6: true
+      accept-ra: true
       addresses:
       - "192.168.4.21"
       gateway4: "192.168.4.1"
@@ -637,6 +645,7 @@ network:
       wakeonlan: true
       dhcp4: true
       dhcp6: false
+      accept-ra: false
       routes:
       - to: "192.168.5.1/24"
         via: "192.168.4.254"
@@ -648,6 +657,7 @@ network:
       wakeonlan: true
       dhcp4: false
       dhcp6: true
+      accept-ra: true
       mtu: 100
 `,
 		},
@@ -692,6 +702,9 @@ network:
         macaddress: "00:00:00:00:00"
       set-name: "eth0"
       wakeonlan: true
+      dhcp4: false
+      dhcp6: false
+      accept-ra: false
       addresses:
       - "192.168.4.21"
       gateway4: "192.168.4.1"
@@ -707,6 +720,7 @@ network:
       wakeonlan: true
       dhcp4: false
       dhcp6: true
+      accept-ra: true
       nameservers:
         search:
         - "vmware6.ci"
@@ -754,6 +768,7 @@ network:
       wakeonlan: true
       dhcp4: true
       dhcp6: false
+      accept-ra: false
     id1:
       match:
         macaddress: "00:00:00:00:cd"
@@ -761,6 +776,7 @@ network:
       wakeonlan: true
       dhcp4: false
       dhcp6: true
+      accept-ra: true
 `,
 		},
 		{
@@ -816,6 +832,9 @@ network:
         macaddress: "00:00:00:00:00"
       set-name: "eth0"
       wakeonlan: true
+      dhcp4: false
+      dhcp6: false
+      accept-ra: false
       addresses:
       - "10.10.50.50/24"
       gateway4: "10.10.50.1"
@@ -826,11 +845,15 @@ network:
       wakeonlan: true
       dhcp4: true
       dhcp6: false
+      accept-ra: false
     id2:
       match:
         macaddress: "00:00:00:00:02"
       set-name: "eth2"
       wakeonlan: true
+      dhcp4: false
+      dhcp6: false
+      accept-ra: false
       addresses:
       - "fe80::3/64"
       gateway6: "fe80::1"
@@ -879,6 +902,7 @@ network:
       wakeonlan: true
       dhcp4: true
       dhcp6: false
+      accept-ra: false
     id1:
       match:
         macaddress: "00:00:00:00:cd"
@@ -886,11 +910,15 @@ network:
       wakeonlan: true
       dhcp4: false
       dhcp6: true
+      accept-ra: true
     id2:
       match:
         macaddress: "00:00:00:00:ef"
       set-name: "eth2"
       wakeonlan: true
+      dhcp4: false
+      dhcp6: false
+      accept-ra: false
 `,
 		},
 	}

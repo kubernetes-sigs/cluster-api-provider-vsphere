@@ -314,7 +314,7 @@ func (r vmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.R
 // This logic was moved to a smaller function outside the main Reconcile() loop
 // for the ease of testing.
 func (r vmReconciler) reconcile(ctx context.Context, vmCtx *capvcontext.VMContext, input fetchClusterModuleInput) (reconcile.Result, error) {
-	if feature.Gates.Enabled(feature.NodeAntiAffinity) {
+	if feature.Gates.Enabled(feature.NodeAntiAffinity) && !input.VSphereCluster.Spec.DisableClusterModule {
 		clusterModuleInfo, err := r.fetchClusterModuleInfo(ctx, input)
 		// If cluster module information cannot be fetched for a VM being deleted,
 		// we should not block VM deletion since the cluster module is updated

@@ -379,7 +379,7 @@ func (r vmReconciler) reconcileDelete(ctx context.Context, vmCtx *capvcontext.VM
 }
 
 // deleteNode attempts to find and best effort delete the node corresponding to the VM
-// This is necessary since CAPI does not the nodeRef field on the owner Machine object
+// This is necessary since CAPI does not surface the nodeRef field on the owner Machine object
 // until the node moves to Ready state. Hence, on Machine deletion it is unable to delete
 // the kubernetes node corresponding to the VM.
 func (r vmReconciler) deleteNode(ctx context.Context, vmCtx *capvcontext.VMContext, name string) (reconcile.Result, error) {
@@ -389,6 +389,12 @@ func (r vmReconciler) deleteNode(ctx context.Context, vmCtx *capvcontext.VMConte
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+
+	// Skip deleting the Node if the cluster is being deleted.
+	if !cluster.DeletionTimestamp.IsZero() {
+		return ctrl.Result{}, nil
+	}
+
 	clusterClient, err := r.clusterCache.GetClient(ctx, ctrlclient.ObjectKeyFromObject(cluster))
 	if err != nil {
 		if errors.Is(err, clustercache.ErrClusterNotConnected) {

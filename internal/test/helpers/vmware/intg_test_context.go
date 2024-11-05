@@ -30,9 +30,11 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	capiutil "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 )
@@ -166,6 +168,20 @@ func CreateAndWait(ctx context.Context, integrationTestClient client.Client, obj
 	Eventually(func() error {
 		return integrationTestClient.Get(ctx, client.ObjectKeyFromObject(obj), obj)
 	}).Should(Succeed())
+}
+
+// ClusterInfrastructureReady sets InfrastructureReady to true so ClusterCache creates the clusterAccessor.
+func ClusterInfrastructureReady(ctx context.Context, c client.Client, clusterCache clustercache.ClusterCache, cluster *clusterv1.Cluster) {
+	GinkgoHelper()
+	patch := client.MergeFrom(cluster.DeepCopy())
+	cluster.Status.InfrastructureReady = true
+	Expect(c.Status().Patch(ctx, cluster, patch)).To(Succeed())
+
+	// Ensure the ClusterCache reconciled at least once (and if possible created a clusterAccessor).
+	_, err := clusterCache.(reconcile.Reconciler).Reconcile(ctx, reconcile.Request{
+		NamespacedName: client.ObjectKeyFromObject(cluster),
+	})
+	Expect(err).ToNot(HaveOccurred())
 }
 
 func generateCluster(namespace, name string) *clusterv1.Cluster {

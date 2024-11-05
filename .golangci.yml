@@ -211,10 +211,6 @@ issues:
   - linters:
     - staticcheck
     text: "SA1019: \"sigs.k8s.io/cluster-api-provider-vsphere/apis/(v1alpha3|v1alpha4)\" is deprecated: This package will be removed in one of the next releases."
-  # Deprecations for Cluster API's ClusterCacheTracker
-  - linters:
-    - staticcheck
-    text: "SA1019: remote.(ClusterCacheTracker|ClusterCacheReconciler|ClusterCacheTrackerOptions|NewClusterCacheTracker) is deprecated: This will be removed in Cluster API v1.10, use clustercache.(ClusterCache|SetupWithManager) instead."
   # Deprecations for Cluster API's predicates.ClusterUnpausedAndInfrastructureReady
   - linters:
     - staticcheck

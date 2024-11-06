@@ -21,8 +21,8 @@ github.com/ProtonMail/go-crypto v0.0.0-20230217124315-7d5c6f04bbb8 h1:wPbRQzjjwF
 github.com/ProtonMail/go-crypto v0.0.0-20230217124315-7d5c6f04bbb8/go.mod h1:I0gYDMZ6Z5GRU7l58bNFSkPTFN6Yl12dsUlAZ8xy98g=
 github.com/PuerkitoBio/purell v1.0.0/go.mod h1:c11w/QuzBsJSee3cPx9rAFu61PvFxuPbtSwDGJws/X0=
 github.com/PuerkitoBio/urlesc v0.0.0-20160726150825-5bd2802263f2/go.mod h1:uGdkoq3SwY9Y+13GIhn11/XLaGBb4BfwItxLd5jeuXE=
-github.com/adrg/xdg v0.5.1 h1:Im8iDbEFARltY09yOJlSGu4Asjk2vF85+3Dyru8uJ0U=
-github.com/adrg/xdg v0.5.1/go.mod h1:nlTsY+NNiCBGCK2tpm09vRqfVzrc2fLmXGpBLF0zlTQ=
+github.com/adrg/xdg v0.5.3 h1:xRnxJXne7+oWDatRhR1JLnvuccuIeCoBu2rtuLqQB78=
+github.com/adrg/xdg v0.5.3/go.mod h1:nlTsY+NNiCBGCK2tpm09vRqfVzrc2fLmXGpBLF0zlTQ=
 github.com/alessio/shellescape v1.4.2 h1:MHPfaU+ddJ0/bYWpgIeUnQUqKrlJ1S7BfEYPM4uEoM0=
 github.com/alessio/shellescape v1.4.2/go.mod h1:PZAiSCk0LJaZkiCSkPv8qIobYglO3FPpyFjDCtHLS30=
 github.com/antlr4-go/antlr/v4 v4.13.0 h1:lxCg3LAv+EUK6t1i0y1V6/SLeUi0eKEKdhQAlS8TVTI=
@@ -507,10 +507,10 @@ k8s.io/utils v0.0.0-20240711033017-18e509b52bc8 h1:pUdcCO1Lk/tbT5ztQWOBi5HBgbBP1
 k8s.io/utils v0.0.0-20240711033017-18e509b52bc8/go.mod h1:OLgZIPagt7ERELqWJFomSt595RzquPNLL48iOWgYOg0=
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.30.3 h1:2770sDpzrjjsAtVhSeUFseziht227YAWYHLGNM8QPwY=
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.30.3/go.mod h1:Ve9uj1L+deCXFrPOk1LpFXqTg7LCFzFso6PA48q/XZw=
-sigs.k8s.io/cluster-api v1.8.0-rc.0.0.20241022191051-5d54746e0108 h1:dq1LAkaJ3XIR8iPpLqgfpK+mSjnZZqqLsNZneGMmUd8=
-sigs.k8s.io/cluster-api v1.8.0-rc.0.0.20241022191051-5d54746e0108/go.mod h1:7GSFeeja8jIcDaMVNJgHdxm2YDNHiKeYAzvZDscodIQ=
-sigs.k8s.io/cluster-api/test v1.8.0-rc.0.0.20241022191051-5d54746e0108 h1:ZXwhzzAwn/L45gnxwUEp5/fSA4sIYy6LgPHMqzFCR+Q=
-sigs.k8s.io/cluster-api/test v1.8.0-rc.0.0.20241022191051-5d54746e0108/go.mod h1:SNYIhqJ4f5Cw9fO5zT7imaRi2laIgf8xVpyRAMJM/ak=
+sigs.k8s.io/cluster-api v1.9.0-beta.0 h1:mcaPkmnpPcN9NdMAmwzhFqZt+HoJfKkneAWiZeCp0Wc=
+sigs.k8s.io/cluster-api v1.9.0-beta.0/go.mod h1:LkFhFajMVWxyfuM4BShEKOSCN2lXBs/hDLQjbKoZ4XA=
+sigs.k8s.io/cluster-api/test v1.9.0-beta.0 h1:CNmLVsJckFqYP2UbtItv88hs/CANyAyubSq0PLE9gG4=
+sigs.k8s.io/cluster-api/test v1.9.0-beta.0/go.mod h1:c84DQYINLIni0NVy7QDePCT7lpPsLi0O4T2FhUIBV78=
 sigs.k8s.io/controller-runtime v0.19.1 h1:Son+Q40+Be3QWb+niBXAg2vFiYWolDjjRfO8hn/cxOk=
 sigs.k8s.io/controller-runtime v0.19.1/go.mod h1:iRmWllt8IlaLjvTTDLhRBXIEtkCK6hwVBJJsYS9Ajf4=
 sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd h1:EDPBXCAspyGV4jQlpZSudPeMmr1bNJefnuqLsRAsHZo=

@@ -2,9 +2,9 @@ module sigs.k8s.io/cluster-api-provider-vsphere/test
 
 go 1.22.0
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.8.0-rc.0.0.20241022191051-5d54746e0108
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.9.0-beta.0
 
-replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.8.0-rc.0.0.20241022191051-5d54746e0108
+replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.9.0-beta.0
 
 replace sigs.k8s.io/cluster-api-provider-vsphere => ../
 
@@ -50,7 +50,7 @@ require (
 	github.com/Microsoft/go-winio v0.5.0 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/ProtonMail/go-crypto v0.0.0-20230217124315-7d5c6f04bbb8 // indirect
-	github.com/adrg/xdg v0.5.1 // indirect
+	github.com/adrg/xdg v0.5.3 // indirect
 	github.com/alessio/shellescape v1.4.2 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect

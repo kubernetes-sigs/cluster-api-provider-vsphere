@@ -22,6 +22,7 @@ import (
 	"path"
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -141,6 +142,30 @@ func (r *VSphereVMReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	resourceGroup := klog.KObj(cluster).String()
 	r.InMemoryManager.AddResourceGroup(resourceGroup)
 
+	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
+
+	// Create default Namespaces.
+	for _, nsName := range []string{metav1.NamespaceDefault, metav1.NamespacePublic, metav1.NamespaceSystem} {
+		ns := &corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: nsName,
+				Labels: map[string]string{
+					"kubernetes.io/metadata.name": nsName,
+				},
+			},
+		}
+
+		if err := inmemoryClient.Get(ctx, client.ObjectKeyFromObject(ns), ns); err != nil {
+			if !apierrors.IsNotFound(err) {
+				return ctrl.Result{}, errors.Wrapf(err, "failed to get %s Namespace", nsName)
+			}
+
+			if err := inmemoryClient.Create(ctx, ns); err != nil && !apierrors.IsAlreadyExists(err) {
+				return ctrl.Result{}, errors.Wrapf(err, "failed to create %s Namespace", nsName)
+			}
+		}
+	}
+
 	if _, err := r.APIServerMux.WorkloadClusterByResourceGroup(resourceGroup); err != nil {
 		l := &vcsimv1.ControlPlaneEndpointList{}
 		if err := r.Client.List(ctx, l); err != nil {
@@ -171,7 +196,6 @@ func (r *VSphereVMReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// The conditionsTracker is an object stored in memory with the scope of storing conditions used for keeping
 	// track of the provisioning process of the fake node, etcd, api server, etc for this specific vSphereVM.
 	// (the process managed by this controller).
-	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 	// NOTE: The type of the in memory conditionsTracker object doesn't matter as soon as it implements Cluster API's conditions interfaces.
 	conditionsTracker := &infrav1.VSphereVM{}
 	if err := inmemoryClient.Get(ctx, client.ObjectKeyFromObject(vSphereVM), conditionsTracker); err != nil {

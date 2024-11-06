@@ -2,7 +2,7 @@ module sigs.k8s.io/cluster-api-provider-vsphere/packaging
 
 go 1.22.7
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.8.0-rc.0.0.20241022191051-5d54746e0108
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.9.0-beta.0
 
 replace sigs.k8s.io/cluster-api-provider-vsphere => ../
 

@@ -26,7 +26,6 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-	"github.com/vmware/govmomi/object"
 	"golang.org/x/crypto/ssh"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -293,7 +292,7 @@ func clusterEnvVarSpecGovmomiVariables(ctx context.Context, c *vcsimv1.ClusterEn
 	}
 
 	// NOTE: omitting cluster Name intentionally because E2E tests provide this value in other ways
-	// Vars below can be named only so they should be used as is
+	// The var VSPHERE_COMPUTE_CLUSTER cannot be used as moid during the tests.
 	vars["VSPHERE_COMPUTE_CLUSTER"] = vcsimhelpers.ClusterName(datacenter, cluster)
 
 	if !moid {
@@ -313,49 +312,44 @@ func clusterEnvVarSpecGovmomiVariables(ctx context.Context, c *vcsimv1.ClusterEn
 
 	s, err := session.GetOrCreate(ctx, params)
 	if err != nil {
-		return vars, err
+		return vars, errors.Errorf("error creating test session: %v", err)
 	}
 
-	var dc *object.Datacenter
-	dcRef := object.ReferenceFromString(vcsimhelpers.DatacenterName(datacenter))
-	if dcRef != nil {
-		dc = object.NewDatacenter(s.Client.Client, *dcRef)
-	} else {
-		dc, err = s.Finder.Datacenter(ctx, vcsimhelpers.DatacenterName(datacenter))
-		if err != nil {
-			return vars, fmt.Errorf("failed to locate datacenter reference: %w", err)
-		}
+	dc, err := s.Finder.Datacenter(ctx, vcsimhelpers.DatacenterName(datacenter))
+	if err != nil {
+		return vars, errors.Errorf("failed to locate datacenter reference: %v", err)
 	}
+
 	vars["VSPHERE_DATACENTER"] = dc.Reference().String()
 	s.Finder.SetDatacenter(dc)
 
 	dsRef, err := s.Finder.Datastore(ctx, vcsimhelpers.DatastoreName(datastore))
 	if err != nil {
-		return vars, fmt.Errorf("failed to locate datastore reference: %w", err)
+		return vars, errors.Errorf("failed to locate datastore reference: %v", err)
 	}
 	vars["VSPHERE_DATASTORE"] = dsRef.Reference().String()
 
 	folderRef, err := s.Finder.Folder(ctx, vcsimhelpers.VMFolderName(datacenter))
 	if err != nil {
-		return vars, fmt.Errorf("failed to locate folder reference: %w", err)
+		return vars, errors.Errorf("failed to locate folder reference: %v", err)
 	}
 	vars["VSPHERE_FOLDER"] = folderRef.Reference().String()
 
 	rpRef, err := s.Finder.ResourcePool(ctx, vcsimhelpers.ResourcePoolPath(datacenter, cluster))
 	if err != nil {
-		return vars, fmt.Errorf("failed to locate resource pool reference: %w", err)
+		return vars, errors.Errorf("failed to locate resource pool reference: %v", err)
 	}
 	vars["VSPHERE_RESOURCE_POOL"] = rpRef.Reference().String()
 
 	networkRef, err := s.Finder.Network(ctx, vcsimhelpers.NetworkPath(datacenter, vcsimhelpers.DefaultNetworkName))
 	if err != nil {
-		return vars, fmt.Errorf("failed to locate network reference: %w", err)
+		return vars, errors.Errorf("failed to locate network reference: %v", err)
 	}
 	vars["VSPHERE_NETWORK"] = networkRef.Reference().String()
 
 	templateRef, err := s.Finder.VirtualMachine(ctx, vcsimhelpers.VMPath(datacenter, template))
 	if err != nil {
-		return vars, fmt.Errorf("failed to locate template reference: %w", err)
+		return vars, errors.Errorf("failed to locate template reference: %v", err)
 	}
 	vars["VSPHERE_TEMPLATE"] = templateRef.Reference().String()
 

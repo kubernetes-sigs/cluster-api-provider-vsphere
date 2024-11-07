@@ -115,7 +115,7 @@ spec:
                 type: object
               useMOID:
                 description: UseMOID defines if envvar status should be filled with
-                  the name or MOID of objects
+                  the name or MOID of objects.
                 type: boolean
               vCenterSimulator:
                 description: Name of the VCenterSimulator instance to use as source

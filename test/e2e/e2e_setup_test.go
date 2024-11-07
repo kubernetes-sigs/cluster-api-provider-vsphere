@@ -83,8 +83,7 @@ func WithAdditionalVCSimServer(t bool) SetupOption {
 	}
 }
 
-// WithMOID instructs Setup to use the MOID of resources instead of
-// the real name.
+// WithMOID instructs Setup to use the MOID of resources instead of the real name.
 func WithMOID(t bool) SetupOption {
 	return func(o *setupOptions) {
 		o.useMOID = t

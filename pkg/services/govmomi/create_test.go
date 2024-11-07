@@ -72,7 +72,7 @@ func TestCreate(t *testing.T) {
 
 		vimClient, err := vim25.NewClient(ctx, vmContext.Session.RoundTripper)
 		if err != nil {
-			t.Fatal("could not make vim25 client.")
+			t.Fatalf("could not create vim25 client: %v", err)
 		}
 
 		if replaceFunc != nil {
@@ -89,9 +89,8 @@ func TestCreate(t *testing.T) {
 		}
 
 		task := object.NewTask(vimClient, taskRef)
-		err = task.Wait(ctx)
-		if err != nil {
-			t.Fatal("error waiting for task:", err)
+		if err := task.Wait(ctx); err != nil {
+			t.Fatalf("error waiting for task: %v", err)
 		}
 	}
 
@@ -101,7 +100,7 @@ func TestCreate(t *testing.T) {
 		t.Error("failed to clone vm")
 	}
 
-	t.Log("executing with moid")
+	t.Log("executing with MOID")
 	replaceFuncMOID := func(vmContext *vmcontext.VMContext, vimClient *vim25.Client) {
 		finderClient := find.NewFinder(vimClient)
 		dc, err := finderClient.DatacenterOrDefault(ctx, "")

@@ -303,7 +303,6 @@ func clusterEnvVarSpecGovmomiVariables(ctx context.Context, c *vcsimv1.ClusterEn
 		vars["VSPHERE_RESOURCE_POOL"] = vcsimhelpers.ResourcePoolPath(datacenter, cluster)
 		vars["VSPHERE_NETWORK"] = vcsimhelpers.NetworkPath(datacenter, vcsimhelpers.DefaultNetworkName)
 		vars["VSPHERE_TEMPLATE"] = vcsimhelpers.VMPath(datacenter, template)
-
 		return vars, nil
 	}
 

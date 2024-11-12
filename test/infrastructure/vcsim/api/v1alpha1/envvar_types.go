@@ -38,6 +38,9 @@ type EnvVarSpec struct {
 	// - the system automatically picks the first VirtualMachine class defined in the VMOperatorDependencies
 	// - the system automatically picks the first Image from the content library defined in the VMOperatorDependencies
 	VMOperatorDependencies *NamespacedRef `json:"vmOperatorDependencies,omitempty"`
+
+	// UseMOID defines if envvar status should be filled with the name or MOID of objects.
+	UseMOID bool `json:"useMOID,omitempty"`
 }
 
 // NamespacedRef defines a reference to an object of a well known API Group and kind.

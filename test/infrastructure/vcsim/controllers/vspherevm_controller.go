@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"path"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -288,8 +287,8 @@ func (r *VSphereVMReconciler) getVMIpReconciler(vSphereCluster *infrav1.VSphereC
 			return !vSphereVM.Status.Ready && conditions.IsFalse(vSphereVM, infrav1.VMProvisionedCondition) && conditions.GetReason(vSphereVM, infrav1.VMProvisionedCondition) == infrav1.WaitingForIPAllocationReason
 		},
 		GetVMPath: func() string {
-			// Return the path where the VM is stored.
-			return path.Join(vSphereVM.Spec.Folder, vSphereVM.Name)
+			// Return vmref of the VM as it is populated already by CAPV
+			return vSphereVM.Status.VMRef
 		},
 	}
 }

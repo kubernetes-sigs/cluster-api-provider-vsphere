@@ -1066,14 +1066,14 @@ spec:
                 type: object
               datacenter:
                 description: |-
-                  Datacenter is the name or inventory path of the datacenter in which the
-                  virtual machine is created/located.
+                  Datacenter is the name, inventory path, managed object reference or the managed
+                  object ID of the datacenter in which the virtual machine is created/located.
                   Defaults to * which selects the default datacenter.
                 type: string
               datastore:
                 description: |-
-                  Datastore is the name or inventory path of the datastore in which the
-                  virtual machine is created/located.
+                  Datastore is the name, inventory path, managed object reference or the managed
+                  object ID of the datastore in which the virtual machine is created/located.
                 type: string
               diskGiB:
                 description: |-
@@ -1084,8 +1084,8 @@ spec:
                 type: integer
               folder:
                 description: |-
-                  Folder is the name or inventory path of the folder in which the
-                  virtual machine is created/located.
+                  Folder is the name, inventory path, managed object reference or the managed
+                  object ID of the folder in which the virtual machine is created/located.
                 type: string
               guestSoftPowerOffTimeout:
                 description: |-
@@ -1322,8 +1322,8 @@ spec:
                           type: array
                         networkName:
                           description: |-
-                            NetworkName is the name of the vSphere network to which the device
-                            will be connected.
+                            NetworkName is the name, managed object reference or the managed
+                            object ID of the vSphere network to which the device will be connected.
                           type: string
                         routes:
                           description: Routes is a list of optional, static routes
@@ -1480,8 +1480,8 @@ spec:
                 type: string
               resourcePool:
                 description: |-
-                  ResourcePool is the name or inventory path of the resource pool in which
-                  the virtual machine is created/located.
+                  ResourcePool is the name, inventory path, managed object reference or the managed
+                  object ID in which the virtual machine is created/located.
                 type: string
               server:
                 description: |-
@@ -1508,8 +1508,8 @@ spec:
                 type: array
               template:
                 description: |-
-                  Template is the name or inventory path of the template used to clone
-                  the virtual machine.
+                  Template is the name, inventory path, managed object reference or the managed
+                  object ID of the template used to clone the virtual machine.
                 minLength: 1
                 type: string
               thumbprint:

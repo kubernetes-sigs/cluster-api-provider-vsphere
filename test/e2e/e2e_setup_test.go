@@ -47,6 +47,7 @@ type setupOptions struct {
 	gatewayIPVariableName     string
 	prefixVariableName        string
 	additionalVCSimServer     bool
+	useMOID                   bool
 }
 
 // SetupOption is a configuration option supplied to Setup.
@@ -79,6 +80,13 @@ func WithPrefix(variableName string) SetupOption {
 func WithAdditionalVCSimServer(t bool) SetupOption {
 	return func(o *setupOptions) {
 		o.additionalVCSimServer = t
+	}
+}
+
+// WithMOID instructs Setup to use the MOID of resources instead of the real name.
+func WithMOID(t bool) SetupOption {
+	return func(o *setupOptions) {
+		o.useMOID = t
 	}
 }
 
@@ -163,7 +171,7 @@ func Setup(specName string, f func(testSpecificSettings func() testSettings), op
 
 			// Get variables required when running on VCSim like VSphere Server address, user, etc.
 			if testTarget == VCSimTestTarget {
-				addVCSimTestVariables(managementClusterProxy, specName, testSpecificIPAddressClaims, testSpecificVariables)
+				addVCSimTestVariables(managementClusterProxy, specName, testSpecificIPAddressClaims, testSpecificVariables, options.useMOID)
 			}
 
 			// Re-write the clusterctl config file and add the new variables created above (ip addresses, VCSim variables).
@@ -268,7 +276,7 @@ func allocateIPAddresses(managementClusterProxy framework.ClusterProxy, options 
 	return testSpecificIPAddressManager, testSpecificIPAddressClaims, testSpecificVariables
 }
 
-func addVCSimTestVariables(managementClusterProxy framework.ClusterProxy, specName string, testSpecificIPAddressClaims vsphereip.AddressClaims, testSpecificVariables map[string]string) {
+func addVCSimTestVariables(managementClusterProxy framework.ClusterProxy, specName string, testSpecificIPAddressClaims vsphereip.AddressClaims, testSpecificVariables map[string]string, useMOID bool) {
 	// variables derived from the vCenterSimulator
 	vCenterSimulator, err := vspherevcsim.Get(ctx, managementClusterProxy.GetClient())
 	Expect(err).ToNot(HaveOccurred(), "Failed to get VCenterSimulator")
@@ -288,6 +296,7 @@ func addVCSimTestVariables(managementClusterProxy framework.ClusterProxy, specNa
 				Namespace: testSpecificIPAddressClaims[0].Namespace,
 				Name:      testSpecificIPAddressClaims[0].Name,
 			},
+			UseMOID: useMOID,
 			// NOTE: we are omitting VMOperatorDependencies because it is not created yet (it will be created by the PostNamespaceCreated hook)
 			// But this is not a issue because a default dependenciesConfig that works for vcsim will be automatically used.
 		},

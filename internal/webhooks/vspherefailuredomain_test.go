@@ -132,6 +132,27 @@ func TestVSphereFailureDomain_ValidateCreate(t *testing.T) {
 				},
 			}},
 		},
+		{
+			name: "topology.networks and topology.networkConfigurations set simultaneously",
+			failureDomain: infrav1.VSphereFailureDomain{Spec: infrav1.VSphereFailureDomainSpec{
+				Region: infrav1.FailureDomain{
+					Name:        "foo",
+					Type:        infrav1.DatacenterFailureDomain,
+					TagCategory: "k8s-bar",
+				},
+				Zone: infrav1.FailureDomain{
+					Name:        "foo",
+					Type:        infrav1.ComputeClusterFailureDomain,
+					TagCategory: "k8s-bar",
+				},
+				Topology: infrav1.Topology{
+					Datacenter:            "/blah",
+					ComputeCluster:        ptr.To("blah2"),
+					Networks:              []string{"nw-1"},
+					NetworkConfigurations: []infrav1.NetworkConfiguration{{NetworkName: "nw-1"}},
+				},
+			}},
+		},
 	}
 
 	for _, tt := range tests {
@@ -140,7 +161,7 @@ func TestVSphereFailureDomain_ValidateCreate(t *testing.T) {
 		t.Run(tt.name, func(*testing.T) {
 			webhook := &VSphereFailureDomainWebhook{}
 			_, err := webhook.ValidateCreate(context.Background(), &tt.failureDomain)
-			if tt.errExpected == nil || !*tt.errExpected {
+			if tt.errExpected == nil || *tt.errExpected {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(err).NotTo(HaveOccurred())

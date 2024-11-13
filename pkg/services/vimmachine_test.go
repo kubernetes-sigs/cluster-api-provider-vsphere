@@ -65,6 +65,28 @@ func Test_VimMachineService_GenerateOverrideFunc(t *testing.T) {
 		}
 	}
 
+	failureDomainWithNetworkConfigs := func(suffix string) *infrav1.VSphereFailureDomain {
+		return &infrav1.VSphereFailureDomain{
+			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("fd-%s", suffix)},
+			Spec: infrav1.VSphereFailureDomainSpec{
+				Topology: infrav1.Topology{
+					Datacenter: fmt.Sprintf("dc-%s", suffix),
+					Datastore:  fmt.Sprintf("ds-%s", suffix),
+					NetworkConfigurations: []infrav1.NetworkConfiguration{
+						{
+							NetworkName: fmt.Sprintf("nw-%s", suffix),
+							DHCP4:       ptr.To(true),
+						},
+						{
+							NetworkName: "another-nw",
+							DHCP6:       ptr.To(true),
+						},
+					},
+				},
+			},
+		}
+	}
+
 	t.Run("does not generate an override function when Failure Domain is not present", func(t *testing.T) {
 		g := NewWithT(t)
 		controllerManagerContext := fake.NewControllerManagerContext(deplZone("one"), deplZone("two"), failureDomain("one"), failureDomain("two"))
@@ -145,6 +167,35 @@ func Test_VimMachineService_GenerateOverrideFunc(t *testing.T) {
 		g.Expect(devices[1].NetworkName).To(Equal("another-nw"))
 	})
 
+	t.Run("overrides the n/w config from the network config list of the topology for equal number of networks", func(t *testing.T) {
+		g := NewWithT(t)
+		controllerManagerContext := fake.NewControllerManagerContext(deplZone("one"), deplZone("two"), failureDomainWithNetworkConfigs("one"), failureDomainWithNetworkConfigs("two"))
+		machineCtx := fake.NewMachineContext(ctx, fake.NewClusterContext(ctx, controllerManagerContext), controllerManagerContext)
+		machineCtx.Machine.Spec.FailureDomain = ptr.To("zone-one")
+		vimMachineService := &VimMachineService{controllerManagerContext.Client}
+
+		vm := &infrav1.VSphereVM{
+			Spec: infrav1.VSphereVMSpec{
+				VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
+					Network: infrav1.NetworkSpec{Devices: []infrav1.NetworkDeviceSpec{{NetworkName: "foo", DHCP4: false}, {NetworkName: "bar", DHCP6: false}}},
+				},
+			},
+		}
+
+		overrideFunc, ok := vimMachineService.generateOverrideFunc(ctx, machineCtx)
+		g.Expect(ok).To(BeTrue())
+
+		overrideFunc(vm)
+
+		devices := vm.Spec.Network.Devices
+		g.Expect(devices).To(HaveLen(2))
+		g.Expect(devices[0].NetworkName).To(Equal("nw-one"))
+		g.Expect(devices[0].DHCP4).To(BeTrue())
+
+		g.Expect(devices[1].NetworkName).To(Equal("another-nw"))
+		g.Expect(devices[1].DHCP6).To(BeTrue())
+	})
+
 	t.Run("appends the n/w names present in the networks list of the topology with number of devices in VMSpec < number of networks in the placement constraint", func(t *testing.T) {
 		g := NewWithT(t)
 		controllerManagerContext := fake.NewControllerManagerContext(deplZone("one"), deplZone("two"), failureDomain("one"), failureDomain("two"))
@@ -170,6 +221,35 @@ func Test_VimMachineService_GenerateOverrideFunc(t *testing.T) {
 		g.Expect(devices[0].NetworkName).To(Equal("nw-one"))
 
 		g.Expect(devices[1].NetworkName).To(Equal("another-nw"))
+	})
+
+	t.Run("appends the n/w configs present in the network config list of the topology with number of devices in VMSpec < number of networks in the placement constraint", func(t *testing.T) {
+		g := NewWithT(t)
+		controllerManagerContext := fake.NewControllerManagerContext(deplZone("one"), deplZone("two"), failureDomainWithNetworkConfigs("one"), failureDomainWithNetworkConfigs("two"))
+		machineCtx := fake.NewMachineContext(ctx, fake.NewClusterContext(ctx, controllerManagerContext), controllerManagerContext)
+		machineCtx.Machine.Spec.FailureDomain = ptr.To("zone-one")
+		vimMachineService := &VimMachineService{controllerManagerContext.Client}
+
+		vm := &infrav1.VSphereVM{
+			Spec: infrav1.VSphereVMSpec{
+				VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
+					Network: infrav1.NetworkSpec{Devices: []infrav1.NetworkDeviceSpec{{NetworkName: "foo", DHCP4: false}}},
+				},
+			},
+		}
+
+		overrideFunc, ok := vimMachineService.generateOverrideFunc(ctx, machineCtx)
+		g.Expect(ok).To(BeTrue())
+
+		overrideFunc(vm)
+
+		devices := vm.Spec.Network.Devices
+		g.Expect(devices).To(HaveLen(2))
+		g.Expect(devices[0].NetworkName).To(Equal("nw-one"))
+		g.Expect(devices[0].DHCP4).To(BeTrue())
+
+		g.Expect(devices[1].NetworkName).To(Equal("another-nw"))
+		g.Expect(devices[1].DHCP6).To(BeTrue())
 	})
 
 	t.Run("only overrides the n/w names present in the networks list of the topology with number of devices in VMSpec > number of networks in the placement constraint", func(t *testing.T) {
@@ -199,6 +279,92 @@ func Test_VimMachineService_GenerateOverrideFunc(t *testing.T) {
 		g.Expect(devices[1].NetworkName).To(Equal("another-nw"))
 
 		g.Expect(devices[2].NetworkName).To(Equal("baz"))
+	})
+
+	t.Run("only overrides the n/w configs present in the network config list of the topology with number of devices in VMSpec > number of networks in the placement constraint", func(t *testing.T) {
+		g := NewWithT(t)
+		controllerManagerContext := fake.NewControllerManagerContext(deplZone("one"), deplZone("two"), failureDomainWithNetworkConfigs("one"), failureDomainWithNetworkConfigs("two"))
+		machineCtx := fake.NewMachineContext(ctx, fake.NewClusterContext(ctx, controllerManagerContext), controllerManagerContext)
+		machineCtx.Machine.Spec.FailureDomain = ptr.To("zone-one")
+		vimMachineService := &VimMachineService{controllerManagerContext.Client}
+
+		vm := &infrav1.VSphereVM{
+			Spec: infrav1.VSphereVMSpec{
+				VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
+					Network: infrav1.NetworkSpec{Devices: []infrav1.NetworkDeviceSpec{{NetworkName: "foo", DHCP4: false}, {NetworkName: "bar", DHCP6: false}, {NetworkName: "baz", DHCP6: false}}},
+				},
+			},
+		}
+
+		overrideFunc, ok := vimMachineService.generateOverrideFunc(ctx, machineCtx)
+		g.Expect(ok).To(BeTrue())
+
+		overrideFunc(vm)
+
+		devices := vm.Spec.Network.Devices
+		g.Expect(devices).To(HaveLen(3))
+		g.Expect(devices[0].NetworkName).To(Equal("nw-one"))
+		g.Expect(devices[0].DHCP4).To(BeTrue())
+
+		g.Expect(devices[1].NetworkName).To(Equal("another-nw"))
+		g.Expect(devices[1].DHCP6).To(BeTrue())
+
+		g.Expect(devices[2].NetworkName).To(Equal("baz"))
+		g.Expect(devices[2].DHCP6).To(BeFalse())
+	})
+}
+
+func Test_mergeNetworkConfigurationToNetworkDeviceSpec(t *testing.T) {
+	t.Run("all fields from NetworkConfiguration are overridden", func(t *testing.T) {
+		g := NewWithT(t)
+
+		device := infrav1.NetworkDeviceSpec{}
+
+		mergeNetworkConfigurationInNetworkDeviceSpec(&device, infrav1.NetworkConfiguration{
+			NetworkName:   "nw-name",
+			DHCP4:         ptr.To(true),
+			DHCP6:         ptr.To(false),
+			Nameservers:   []string{"1.1.1.1"},
+			SearchDomains: []string{"vmware.ci"},
+			DHCP4Overrides: &infrav1.DHCPOverrides{
+				Hostname:    ptr.To("hal"),
+				RouteMetric: ptr.To(12345),
+			},
+			DHCP6Overrides: &infrav1.DHCPOverrides{
+				Hostname:    ptr.To("hal"),
+				RouteMetric: ptr.To(23456),
+			},
+			AddressesFromPools: []corev1.TypedLocalObjectReference{
+				{
+					APIGroup: ptr.To("api-group"),
+					Name:     "my-pool-1",
+					Kind:     "my-pool-kind",
+				},
+			},
+		})
+
+		g.Expect(device).To(Equal(infrav1.NetworkDeviceSpec{
+			NetworkName:   "nw-name",
+			DHCP4:         true,
+			DHCP6:         false,
+			Nameservers:   []string{"1.1.1.1"},
+			SearchDomains: []string{"vmware.ci"},
+			DHCP4Overrides: &infrav1.DHCPOverrides{
+				Hostname:    ptr.To("hal"),
+				RouteMetric: ptr.To(12345),
+			},
+			DHCP6Overrides: &infrav1.DHCPOverrides{
+				Hostname:    ptr.To("hal"),
+				RouteMetric: ptr.To(23456),
+			},
+			AddressesFromPools: []corev1.TypedLocalObjectReference{
+				{
+					APIGroup: ptr.To("api-group"),
+					Name:     "my-pool-1",
+					Kind:     "my-pool-kind",
+				},
+			},
+		}))
 	})
 }
 

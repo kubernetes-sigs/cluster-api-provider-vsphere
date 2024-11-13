@@ -85,8 +85,8 @@ type Topology struct {
 	// NetworkConfigurations is a list of network configurations within this failure domain.
 	// +optional
 	// +listType=map
-	// +listMapKey=name
-	NetworkConfigurations []NetworkConfiguration `json:"networkConfigs,omitempty"`
+	// +listMapKey=networkName
+	NetworkConfigurations []NetworkConfiguration `json:"networkConfigurations,omitempty"`
 
 	// Datastore is the name or inventory path of the datastore in which the
 	// virtual machine is created/located.
@@ -99,7 +99,7 @@ type Topology struct {
 type NetworkConfiguration struct {
 	// NetworkName is the network name for this machine's VM.
 	// +kubebuilder:validation:Required
-	NetworkName string `json:"name"`
+	NetworkName string `json:"networkName"`
 
 	// DHCP4 is a flag that indicates whether or not to use DHCP for IPv4.
 	// +optional

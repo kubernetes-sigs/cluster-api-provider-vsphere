@@ -72,7 +72,6 @@ func Test_VimMachineService_GenerateOverrideFunc(t *testing.T) {
 				Topology: infrav1.Topology{
 					Datacenter: fmt.Sprintf("dc-%s", suffix),
 					Datastore:  fmt.Sprintf("ds-%s", suffix),
-					Networks:   []string{fmt.Sprintf("nw-%s", suffix), "another-nw"},
 					NetworkConfigurations: []infrav1.NetworkConfiguration{
 						{
 							NetworkName: fmt.Sprintf("nw-%s", suffix),
@@ -316,18 +315,7 @@ func Test_VimMachineService_GenerateOverrideFunc(t *testing.T) {
 }
 
 func Test_mergeNetworkConfigurationToNetworkDeviceSpec(t *testing.T) {
-	t.Run("device is nil", func(t *testing.T) {
-		g := NewWithT(t)
-
-		var device *infrav1.NetworkDeviceSpec
-		mergeNetworkConfigurationInNetworkDeviceSpec(device, infrav1.NetworkConfiguration{
-			NetworkName: "ignored",
-		})
-
-		g.Expect(device).To(BeNil())
-	})
-
-	t.Run("all fields from NetworkConfiguration are overrided", func(t *testing.T) {
+	t.Run("all fields from NetworkConfiguration are overridden", func(t *testing.T) {
 		g := NewWithT(t)
 
 		device := infrav1.NetworkDeviceSpec{}

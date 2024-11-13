@@ -365,7 +365,7 @@ spec:
                     - hostGroupName
                     - vmGroupName
                     type: object
-                  networkConfigs:
+                  networkConfigurations:
                     description: NetworkConfigurations is a list of network configurations
                       within this failure domain.
                     items:
@@ -523,10 +523,6 @@ spec:
                                 in the routing table.
                               type: string
                           type: object
-                        name:
-                          description: NetworkName is the network name for this machine's
-                            VM.
-                          type: string
                         nameservers:
                           description: |-
                             Nameservers is a list of IPv4 and/or IPv6 addresses used as DNS
@@ -535,6 +531,10 @@ spec:
                           items:
                             type: string
                           type: array
+                        networkName:
+                          description: NetworkName is the network name for this machine's
+                            VM.
+                          type: string
                         searchDomains:
                           description: |-
                             SearchDomains is a list of search domains used when resolving IP
@@ -543,11 +543,11 @@ spec:
                             type: string
                           type: array
                       required:
-                      - name
+                      - networkName
                       type: object
                     type: array
                     x-kubernetes-list-map-keys:
-                    - name
+                    - networkName
                     x-kubernetes-list-type: map
                   networks:
                     description: Networks is the list of networks within this failure

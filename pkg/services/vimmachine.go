@@ -29,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/integer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -453,7 +452,7 @@ func (v *VimMachineService) generateOverrideFunc(ctx context.Context, vimMachine
 func overrideNetworkDeviceSpecs[T any](deviceSpecs []infrav1.NetworkDeviceSpec, networks []T, mergeFunc func(device *infrav1.NetworkDeviceSpec, network T)) []infrav1.NetworkDeviceSpec {
 	index, length := 0, len(networks)
 
-	devices := make([]infrav1.NetworkDeviceSpec, 0, integer.IntMax(length, len(deviceSpecs)))
+	devices := make([]infrav1.NetworkDeviceSpec, 0, max(length, len(deviceSpecs)))
 	// override the networks on the VM spec with placement constraint network definitions
 	for i := range deviceSpecs {
 		vmNetworkDeviceSpec := deviceSpecs[i]
@@ -478,9 +477,6 @@ func mergeFailureDomainNetworkName(device *infrav1.NetworkDeviceSpec, network st
 }
 
 func mergeNetworkConfigurationInNetworkDeviceSpec(device *infrav1.NetworkDeviceSpec, nc infrav1.NetworkConfiguration) {
-	if device == nil {
-		return
-	}
 	if nc.NetworkName != "" {
 		device.NetworkName = nc.NetworkName
 	}

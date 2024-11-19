@@ -193,7 +193,7 @@ vsphere-quickstart-9qtfd                                      Ready      master 
 
 ## Custom cluster templates
 
-the provided cluster templates are quickstarts. If you need anything specific that requires a more complex setup, we recommand to use custom templates:
+the provided cluster templates are quickstarts. If you need anything specific that requires a more complex setup, we recommend to use custom templates:
 
 ```shell
 $ clusterctl generate custom-cluster vsphere-quickstart \
@@ -209,7 +209,7 @@ $ clusterctl generate custom-cluster vsphere-quickstart \
 [cluster-api-book]: https://cluster-api.sigs.k8s.io/
 [glossary-bootstrapping]: https://cluster-api.sigs.k8s.io/reference/glossary.html#bootstrap
 [kind]: https://kind.sigs.k8s.io
-[glossary-management-cluster]: https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/book/GLOSSARY.md#management-cluster
+[glossary-management-cluster]: https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/book/src/reference/glossary.md#management-cluster
 [releases]: https://github.com/kubernetes-sigs/cluster-api/releases
 [docker]: https://docs.docker.com/glossary/?term=install
 [kubectl]: https://kubernetes.io/docs/tasks/tools/install-kubectl/

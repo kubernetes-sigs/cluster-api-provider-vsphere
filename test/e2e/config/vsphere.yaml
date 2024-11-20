@@ -27,7 +27,7 @@ providers:
     type: CoreProvider
     versions:
       - name: "v1.9.0"
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.9.0-beta.0/core-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.9.0-beta.1/core-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -67,7 +67,7 @@ providers:
     type: BootstrapProvider
     versions:
       - name: "v1.9.0"
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.9.0-beta.0/bootstrap-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.9.0-beta.1/bootstrap-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -107,7 +107,7 @@ providers:
     type: ControlPlaneProvider
     versions:
       - name: "v1.9.0"
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.9.0-beta.0/control-plane-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.9.0-beta.1/control-plane-components.yaml"
         type: "url"
         contract: v1beta1
         files:

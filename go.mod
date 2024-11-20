@@ -2,7 +2,7 @@ module sigs.k8s.io/cluster-api-provider-vsphere
 
 go 1.22.0
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.9.0-beta.0
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.9.0-beta.1
 
 replace github.com/vmware-tanzu/vm-operator/pkg/constants/testlabels => github.com/vmware-tanzu/vm-operator/pkg/constants/testlabels v0.0.0-20240404200847-de75746a9505
 
@@ -73,7 +73,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/net v0.31.0 // indirect
-	golang.org/x/oauth2 v0.23.0 // indirect
+	golang.org/x/oauth2 v0.24.0 // indirect
 	golang.org/x/sync v0.9.0 // indirect
 	golang.org/x/sys v0.27.0 // indirect
 	golang.org/x/term v0.26.0 // indirect

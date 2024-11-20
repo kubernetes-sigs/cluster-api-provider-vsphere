@@ -2,7 +2,7 @@ module sigs.k8s.io/cluster-api-provider-vsphere/packaging
 
 go 1.22.7
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.9.0-beta.0
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.9.0-beta.1
 
 replace sigs.k8s.io/cluster-api-provider-vsphere => ../
 
@@ -64,7 +64,7 @@ require (
 	github.com/xlab/treeprint v1.2.0 // indirect
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
 	golang.org/x/net v0.31.0 // indirect
-	golang.org/x/oauth2 v0.23.0 // indirect
+	golang.org/x/oauth2 v0.24.0 // indirect
 	golang.org/x/sys v0.27.0 // indirect
 	golang.org/x/term v0.26.0 // indirect
 	golang.org/x/text v0.20.0 // indirect

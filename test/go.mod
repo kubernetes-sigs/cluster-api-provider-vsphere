@@ -2,9 +2,9 @@ module sigs.k8s.io/cluster-api-provider-vsphere/test
 
 go 1.22.0
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.9.0-beta.1
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.9.0-rc.0
 
-replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.9.0-beta.1
+replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.9.0-rc.0
 
 replace sigs.k8s.io/cluster-api-provider-vsphere => ../
 
@@ -172,6 +172,6 @@ require (
 	k8s.io/kube-openapi v0.0.0-20240228011516-70dd3763d340 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.30.3 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
-	sigs.k8s.io/kind v0.24.0 // indirect
+	sigs.k8s.io/kind v0.25.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
 )

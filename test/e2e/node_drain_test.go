@@ -23,7 +23,7 @@ import (
 )
 
 var _ = Describe("When testing Node drain [supervisor] [PR-Blocking]", func() {
-	const specName = "quick-start" // copied from CAPI
+	const specName = "node-drain" // copied from CAPI
 	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		capi_e2e.NodeDrainTimeoutSpec(ctx, func() capi_e2e.NodeDrainTimeoutSpecInput {
 			return capi_e2e.NodeDrainTimeoutSpecInput{
@@ -34,6 +34,7 @@ var _ = Describe("When testing Node drain [supervisor] [PR-Blocking]", func() {
 				SkipCleanup:            skipCleanup,
 				Flavor:                 ptr.To(testSpecificSettingsGetter().FlavorForMode("topology")),
 				InfrastructureProvider: ptr.To("vsphere"),
+				PostNamespaceCreated:   testSpecificSettingsGetter().PostNamespaceCreatedFunc,
 			}
 		})
 	})

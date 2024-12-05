@@ -374,6 +374,7 @@ generate-e2e-templates-main: $(KUSTOMIZE) ## Generate test templates for the mai
 	cp "$(RELEASE_DIR)/main/cluster-template-ignition.yaml" "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/base/cluster-template-ignition.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/base" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/cluster-template.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/hw-upgrade" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/cluster-template-hw-upgrade.yaml"
+	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/multi-disk" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/cluster-template-multi-disk.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/storage-policy" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/cluster-template-storage-policy.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/conformance" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/main/cluster-template-conformance.yaml"
 	# Since CAPI uses different flavor names for KCP and MD remediation using MHC

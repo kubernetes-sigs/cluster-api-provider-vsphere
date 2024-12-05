@@ -203,6 +203,23 @@ type VirtualMachineCloneSpec struct {
 	// Check the compatibility with the ESXi version before setting the value.
 	// +optional
 	HardwareVersion string `json:"hardwareVersion,omitempty"`
+	// DataDisks are additional disks to add to the VM that are not part of the VM's OVA template.
+	// +optional
+	// +listType=map
+	// +listMapKey=name
+	// +kubebuilder:validation:MaxItems=29
+	DataDisks []VSphereDisk `json:"dataDisks,omitempty"`
+}
+
+// VSphereDisk is an additional disk to add to the VM that is not part of the VM OVA template.
+type VSphereDisk struct {
+	// Name is used to identify the disk definition. Name is required and needs to be unique so that it can be used to
+	// clearly identify purpose of the disk.
+	// +kubebuilder:validation:Required
+	Name string `json:"name,omitempty"`
+	// SizeGiB is the size of the disk in GiB.
+	// +kubebuilder:validation:Required
+	SizeGiB int32 `json:"sizeGiB"`
 }
 
 // VSphereMachineTemplateResource describes the data needed to create a VSphereMachine from a template.

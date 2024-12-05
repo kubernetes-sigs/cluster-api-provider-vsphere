@@ -844,6 +844,31 @@ spec:
                           CustomVMXKeys is a dictionary of advanced VMX options that can be set on VM
                           Defaults to empty map
                         type: object
+                      dataDisks:
+                        description: DataDisks are additional disks to add to the
+                          VM that are not part of the VM's OVA template.
+                        items:
+                          description: VSphereDisk is an additional disk to add to
+                            the VM that is not part of the VM OVA template.
+                          properties:
+                            name:
+                              description: |-
+                                Name is used to identify the disk definition. Name is required and needs to be unique so that it can be used to
+                                clearly identify purpose of the disk.
+                              type: string
+                            sizeGiB:
+                              description: SizeGiB is the size of the disk in GiB.
+                              format: int32
+                              type: integer
+                          required:
+                          - name
+                          - sizeGiB
+                          type: object
+                        maxItems: 29
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
                       datacenter:
                         description: |-
                           Datacenter is the name, inventory path, managed object reference or the managed

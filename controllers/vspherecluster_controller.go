@@ -83,6 +83,10 @@ func AddClusterControllerToManager(ctx context.Context, controllerManagerCtx *ca
 				&vmwarev1.VSphereMachine{},
 				handler.EnqueueRequestsFromMapFunc(reconciler.VSphereMachineToCluster),
 			).
+			Watches(
+				&clusterv1.MachineDeployment{},
+				handler.EnqueueRequestsFromMapFunc(reconciler.MachineDeploymentToCluster),
+			).
 			WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, controllerManagerCtx.WatchFilterValue))
 
 		// Conditionally add a Watch for topologyv1.Zone when the feature gate is enabled

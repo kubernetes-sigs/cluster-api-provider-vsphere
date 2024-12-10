@@ -8,7 +8,7 @@
 # For creating local images, run ./hack/e2e.sh
 
 images:
-  - name: registry.k8s.io/capi-ipam-ic/cluster-api-ipam-in-cluster-controller:v0.1.0
+  - name: registry.k8s.io/capi-ipam-ic/cluster-api-ipam-in-cluster-controller:v1.0.0
     loadBehavior: tryLoad
   - name: gcr.io/k8s-staging-capi-vsphere/cluster-api-vsphere-controller-{ARCH}:dev
     loadBehavior: mustLoad
@@ -146,12 +146,12 @@ providers:
   - name: in-cluster
     type: IPAMProvider
     versions:
-      - name: "{go://sigs.k8s.io/cluster-api-ipam-provider-in-cluster@v0.1}" # supported release in the v1alpha2 series
-        value: "https://github.com/kubernetes-sigs/cluster-api-ipam-provider-in-cluster/releases/download/{go://sigs.k8s.io/cluster-api-ipam-provider-in-cluster@v0.1}/ipam-components.yaml"
+      - name: "{go://sigs.k8s.io/cluster-api-ipam-provider-in-cluster@v1.0}" # supported release in the v1alpha2 series
+        value: "https://github.com/kubernetes-sigs/cluster-api-ipam-provider-in-cluster/releases/download/{go://sigs.k8s.io/cluster-api-ipam-provider-in-cluster@v1.0}/ipam-components.yaml"
         type: "url"
         contract: v1beta1
         files:
-          - sourcePath: "../data/shared/caipamic/v0.1/metadata.yaml"
+          - sourcePath: "../data/shared/caipamic/v1.0/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"

@@ -475,7 +475,9 @@ func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervis
 		// Assign the VM's labels.
 		vmOperatorVM.Labels = getVMLabels(supervisorMachineCtx, vmOperatorVM.Labels)
 
-		addResourcePolicyAnnotations(supervisorMachineCtx, vmOperatorVM)
+		if err := addResourcePolicyAnnotations(ctx, v.Client, supervisorMachineCtx, vmOperatorVM); err != nil {
+			return err
+		}
 
 		if err := v.addVolumes(ctx, supervisorMachineCtx, vmOperatorVM); err != nil {
 			return err
@@ -580,7 +582,7 @@ func (v *VmopMachineService) getVirtualMachinesInCluster(ctx context.Context, su
 
 // Helper function to add annotations to indicate which tag vm-operator should add as well as which clusterModule VM
 // should be associated.
-func addResourcePolicyAnnotations(supervisorMachineCtx *vmware.SupervisorMachineContext, vm *vmoprv1.VirtualMachine) {
+func addResourcePolicyAnnotations(ctx context.Context, ctrlClient client.Client, supervisorMachineCtx *vmware.SupervisorMachineContext, vm *vmoprv1.VirtualMachine) error {
 	annotations := vm.ObjectMeta.GetAnnotations()
 	if annotations == nil {
 		annotations = make(map[string]string)
@@ -591,10 +593,17 @@ func addResourcePolicyAnnotations(supervisorMachineCtx *vmware.SupervisorMachine
 		annotations[ClusterModuleNameAnnotationKey] = ControlPlaneVMClusterModuleGroupName
 	} else {
 		annotations[ProviderTagsAnnotationKey] = WorkerVMVMAntiAffinityTagValue
-		annotations[ClusterModuleNameAnnotationKey] = getMachineDeploymentNameForCluster(supervisorMachineCtx.Cluster)
+		clusterModuleName := getMachineDeploymentNameForMachine(supervisorMachineCtx.Machine)
+
+		if err := checkClusterModuleGroup(ctx, ctrlClient, supervisorMachineCtx.Cluster, clusterModuleName); err != nil {
+			return err
+		}
+
+		annotations[ClusterModuleNameAnnotationKey] = clusterModuleName
 	}
 
 	vm.ObjectMeta.SetAnnotations(annotations)
+	return nil
 }
 
 func volumeName(machine *vmwarev1.VSphereMachine, volume vmwarev1.VSphereMachineVolume) string {
@@ -742,8 +751,27 @@ func getTopologyLabels(supervisorMachineCtx *vmware.SupervisorMachineContext) ma
 	return nil
 }
 
-// getMachineDeploymentName returns the MachineDeployment name for a Cluster.
-// This is also the name used by VSphereMachineTemplate and KubeadmConfigTemplate.
-func getMachineDeploymentNameForCluster(cluster *clusterv1.Cluster) string {
-	return fmt.Sprintf("%s-workers-0", cluster.Name)
+func getMachineDeploymentNameForMachine(machine *clusterv1.Machine) string {
+	if mdName, ok := machine.Labels[clusterv1.MachineDeploymentNameLabel]; ok {
+		return mdName
+	}
+	return ""
+}
+
+func getMachineDeploymentNamesForCluster(ctx context.Context, ctrlClient client.Client, cluster *clusterv1.Cluster) ([]string, error) {
+	mdNames := []string{}
+	labels := map[string]string{clusterv1.ClusterNameLabel: cluster.GetName()}
+	mdList := &clusterv1.MachineDeploymentList{}
+	if err := ctrlClient.List(
+		ctx, mdList,
+		client.InNamespace(cluster.GetNamespace()),
+		client.MatchingLabels(labels)); err != nil {
+		return nil, errors.Wrapf(err, "failed to list MachineDeployment objects")
+	}
+	for _, md := range mdList.Items {
+		if md.DeletionTimestamp.IsZero() {
+			mdNames = append(mdNames, md.Name)
+		}
+	}
+	return mdNames, nil
 }

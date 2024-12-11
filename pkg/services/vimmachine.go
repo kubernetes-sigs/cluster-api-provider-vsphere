@@ -38,6 +38,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
+	utilrand "k8s.io/apimachinery/pkg/util/rand"
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	infrautilv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
@@ -424,6 +425,7 @@ func generateVMObjectName(vimMachineCtx *capvcontext.VIMMachineContext, machineN
 
 const (
 	maxNameLength = 63
+	randomLength  = 5
 )
 
 // Note: Inlining these functions from sprig to avoid introducing a dependency.
@@ -456,6 +458,7 @@ func GenerateVSphereVMName(machineName string, namingStrategy *infrav1.VSphereVM
 			"name": machineName,
 		},
 	}
+	data["random"] = utilrand.String(randomLength)
 
 	tpl, err := nameTpl.Parse(nameTemplate)
 	if err != nil {

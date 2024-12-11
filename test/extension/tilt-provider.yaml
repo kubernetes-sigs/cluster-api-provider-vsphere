@@ -9,3 +9,5 @@
     label: CAPV_EXTENSION
     additional_resources:
     - config/tilt/extensionconfig.yaml
+    resource_deps:
+    - "capi_controller"

@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+PR_NUMBER="${1:-}"
+
 if [ -z "${PR_NUMBER}" ]; then
   echo "PR_NUMBER must be set"
   exit 1
@@ -22,5 +24,4 @@ fi
 gh pr view "${PR_NUMBER}" \
   -R kubernetes-sigs/cluster-api-provider-vsphere \
   --json headRepository,headRepositoryOwner,headRefName,baseRefName \
-  -q '"https://github.com/team-cluster-api/cluster-api-provider-vsphere/compare/" \
-  + .baseRefName + "..." + .headRepositoryOwner.login + ":" + .headRepository.name + ":" + .headRefName'
+  -q '"https://github.com/team-cluster-api/cluster-api-provider-vsphere/compare/" + .baseRefName + "..." + .headRepositoryOwner.login + ":" + .headRepository.name + ":" + .headRefName'

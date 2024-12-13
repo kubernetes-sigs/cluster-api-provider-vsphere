@@ -357,13 +357,9 @@ func (r vmReconciler) reconcileDelete(ctx context.Context, vmCtx *capvcontext.VM
 	}
 
 	// Attempt to delete the node corresponding to the vsphere VM
-	result, err = r.deleteNode(ctx, vmCtx, vm.Name)
+	err = r.deleteNode(ctx, vmCtx, vm.Name)
 	if err != nil {
 		log.Error(err, "Failed to delete Node (best-effort)")
-	}
-	if !result.IsZero() {
-		// a non-zero value means we need to requeue the request before proceed.
-		return result, nil
 	}
 
 	if err := r.deleteIPAddressClaims(ctx, vmCtx); err != nil {
@@ -382,26 +378,27 @@ func (r vmReconciler) reconcileDelete(ctx context.Context, vmCtx *capvcontext.VM
 // This is necessary since CAPI does not surface the nodeRef field on the owner Machine object
 // until the node moves to Ready state. Hence, on Machine deletion it is unable to delete
 // the kubernetes node corresponding to the VM.
-func (r vmReconciler) deleteNode(ctx context.Context, vmCtx *capvcontext.VMContext, name string) (reconcile.Result, error) {
+// Note: If this fails, CPI normally cleans up orphaned nodes.
+func (r vmReconciler) deleteNode(ctx context.Context, vmCtx *capvcontext.VMContext, name string) error {
 	log := ctrl.LoggerFrom(ctx)
 	// Fetching the cluster object from the VSphereVM object to create a remote client to the cluster
 	cluster, err := clusterutilv1.GetClusterFromMetadata(ctx, r.Client, vmCtx.VSphereVM.ObjectMeta)
 	if err != nil {
-		return ctrl.Result{}, err
+		return err
 	}
 
 	// Skip deleting the Node if the cluster is being deleted.
 	if !cluster.DeletionTimestamp.IsZero() {
-		return ctrl.Result{}, nil
+		return nil
 	}
 
 	clusterClient, err := r.clusterCache.GetClient(ctx, ctrlclient.ObjectKeyFromObject(cluster))
 	if err != nil {
 		if errors.Is(err, clustercache.ErrClusterNotConnected) {
-			log.V(5).Info("Requeuing because connection to the workload cluster is down")
-			return ctrl.Result{RequeueAfter: time.Minute}, nil
+			log.V(2).Info("Skipping node deletion because connection to the workload cluster is down")
+			return nil
 		}
-		return ctrl.Result{}, err
+		return err
 	}
 
 	// Attempt to delete the corresponding node
@@ -410,7 +407,7 @@ func (r vmReconciler) deleteNode(ctx context.Context, vmCtx *capvcontext.VMConte
 			Name: name,
 		},
 	}
-	return ctrl.Result{}, clusterClient.Delete(ctx, node)
+	return clusterClient.Delete(ctx, node)
 }
 
 func (r vmReconciler) reconcileNormal(ctx context.Context, vmCtx *capvcontext.VMContext) (reconcile.Result, error) {

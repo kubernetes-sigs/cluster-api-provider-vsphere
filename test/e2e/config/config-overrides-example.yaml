@@ -13,8 +13,8 @@ variables:
   VSPHERE_DATASTORE: "WorkloadDatastore"
   VSPHERE_STORAGE_POLICY: "Cluster API vSphere Storage Policy"
   VSPHERE_NETWORK: "network-1"
-  VSPHERE_TEMPLATE: "ubuntu-2404-kube-v1.31.0"
-  FLATCAR_VSPHERE_TEMPLATE: "flatcar-stable-3975.2.0-kube-v1.31.0"
+  VSPHERE_TEMPLATE: "ubuntu-2404-kube-v1.32.0"
+  FLATCAR_VSPHERE_TEMPLATE: "flatcar-stable-3975.2.0-kube-v1.32.0"
   CONTROL_PLANE_ENDPOINT_IP: "10.0.0.10"
   # Only for clusterctl upgrade tests
   # WORKLOAD_CONTROL_PLANE_ENDPOINT_IP:
@@ -27,7 +27,7 @@ variables:
   VSPHERE2_SERVER: "vcenter2.vmware.com"
   VSPHERE2_TLS_THUMBPRINT: "AA:BB:CC:DD:11:22:33:44:EE:FF"
   VSPHERE2_RESOURCE_POOL: "ResourcePool"
-  VSPHERE2_TEMPLATE: "ubuntu-2404-kube-v1.31.0"
+  VSPHERE2_TEMPLATE: "ubuntu-2404-kube-v1.32.0"
   VSPHERE2_CONTROL_PLANE_ENDPOINT_IP: "10.0.0.11"
   # Also following variables are required but it is recommended to use env variables to avoid disclosure of sensitive data
   # VSPHERE2_USERNAME:

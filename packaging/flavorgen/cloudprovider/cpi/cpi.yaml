@@ -159,7 +159,7 @@ spec:
       priorityClassName: system-node-critical
       containers:
       - name: vsphere-cpi
-        image: registry.k8s.io/cloud-pv-vsphere/cloud-provider-vsphere:v1.31.0
+        image: registry.k8s.io/cloud-pv-vsphere/cloud-provider-vsphere:v1.32.1
         imagePullPolicy: IfNotPresent
         args:
           - --cloud-provider=vsphere

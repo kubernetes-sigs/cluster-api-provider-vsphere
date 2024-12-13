@@ -56,12 +56,12 @@ var _ = Describe("When testing the machinery for scale testing FP [vcsim] [super
 			BootstrapClusterProxy:             bootstrapClusterProxy,
 			ArtifactFolder:                    artifactFolder,
 			DeployClusterInSeparateNamespaces: true,
-			ClusterCount:                      ptr.To[int64](10),
-			Concurrency:                       ptr.To[int64](5),
+			ClusterCount:                      ptr.To[int64](100),
+			Concurrency:                       ptr.To[int64](20),
 			ControlPlaneMachineCount:          ptr.To[int64](1),
 			MachineDeploymentCount:            ptr.To[int64](1),
-			WorkerMachineCount:                ptr.To[int64](3),
-			Flavor:                            ptr.To("topology"),
+			WorkerMachineCount:                ptr.To[int64](1),
+			Flavor:                            ptr.To("topology-runtimesdk"),
 			SkipUpgrade:                       true,
 			SkipCleanup:                       skipCleanup,
 		}
@@ -679,14 +679,14 @@ func createClusterWorker(ctx context.Context, clusterProxy framework.ClusterProx
 				// * Adjust namespace in ClusterClass YAML.
 				// * Create new namespace.
 				if deployClusterInSeparateNamespaces {
-					logf("Create namespace %", namespaceName)
+					logf("Create namespace %s", namespaceName)
 					_ = framework.CreateNamespace(ctx, framework.CreateNamespaceInput{
 						Creator:             clusterProxy.GetClient(),
 						Name:                namespaceName,
 						IgnoreAlreadyExists: true,
 					}, "40s", "10s")
 
-					logf("Setup VMOperator and VCSim dependencies in namespace %", namespaceName)
+					logf("Setup VMOperator and VCSim dependencies in namespace %s", namespaceName)
 					setupNamespaceWithVMOperatorDependenciesVCSim(clusterProxy, namespaceName)
 				}
 

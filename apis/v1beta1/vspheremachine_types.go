@@ -80,7 +80,6 @@ type VSphereVMNamingStrategy struct {
 	// If not defined, it will fall back to `{{ .machine.name }}`.
 	// The templating has the following data available:
 	// * `.machine.name`: The name of the Machine object.
-	// * `.random`: random alphanumeric string, without vowels, of length 5
 	// The templating also has the following funcs available:
 	// * `trimSuffix`: same as strings.TrimSuffix
 	// * `trunc`: truncates a string, e.g. `trunc 2 "hello"` or `trunc -2 "hello"`

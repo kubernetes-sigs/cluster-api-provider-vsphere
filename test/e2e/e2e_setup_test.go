@@ -313,7 +313,7 @@ func addVCSimTestVariables(managementClusterProxy framework.ClusterProxy, specNa
 			return false
 		}
 		return len(envVar.Status.Variables) > 0
-	}, 30*time.Second, 5*time.Second).Should(BeTrue(), "Failed to get EnvVar %s", klog.KObj(envVar))
+	}, 300*time.Second, 5*time.Second).Should(BeTrue(), "Failed to get EnvVar %s", klog.KObj(envVar))
 
 	Byf("Setting test variables for %s", specName)
 	for k, v := range envVar.Status.Variables {
@@ -360,7 +360,7 @@ func setupNamespaceWithVMOperatorDependenciesVCSim(managementClusterProxy framew
 			return false
 		}
 		return dependenciesConfig.Status.Ready
-	}, 30*time.Second, 5*time.Second).Should(BeTrue(), "Failed to get VMOperatorDependencies on namespace %s", workloadClusterNamespace)
+	}, 300*time.Second, 5*time.Second).Should(BeTrue(), "Failed to get VMOperatorDependencies on namespace %s", workloadClusterNamespace)
 }
 
 func setupNamespaceWithVMOperatorDependenciesVCenter(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string) {

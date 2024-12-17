@@ -33,12 +33,12 @@ Check out the [getting started guide](./docs/getting_started.md) for launching a
 
 This provider's versions are compatible with the following versions of Cluster API:
 
-|                      | Cluster API v1beta1 (v1.5) | Cluster API v1beta1 (v1.6) | Cluster API v1beta1 (v1.7) | Cluster API v1beta1 (v1.8) |
+|                      | Cluster API v1beta1 (v1.6) | Cluster API v1beta1 (v1.7) | Cluster API v1beta1 (v1.8) | Cluster API v1beta1 (v1.9) |
 |----------------------|:--------------------------:|:--------------------------:|:--------------------------:|:--------------------------:|
-| CAPV v1beta1 (v1.8)  |             ✓              |             ☓              |             ☓              |             ☓              |
-| CAPV v1beta1 (v1.9)  |             ☓              |             ✓              |             x              |             x              |
-| CAPV v1beta1 (v1.10) |             ☓              |             x              |             ✓              |             x              |
-| CAPV v1beta1 (v1.11) |             ☓              |             x              |             x              |             ✓              |
+| CAPV v1beta1 (v1.9)  |             ✓              |             x              |             x              |             x              |
+| CAPV v1beta1 (v1.10) |             x              |             ✓              |             x              |             x              |
+| CAPV v1beta1 (v1.11) |             x              |             x              |             ✓              |             x              |
+| CAPV v1beta1 (v1.12) |             x              |             x              |             x              |             ✓              |
 
 As CAPV doesn't dictate supported K8s versions, and it supports whatever CAPI supported, about the provider's compatibility with K8s versions, please refer
 to [CAPI Supported Kubernetes Versions](https://cluster-api.sigs.k8s.io/reference/versions.html).
@@ -72,6 +72,7 @@ production-like environments, it is highly recommended to build and use your own
 | [v1.29.0]  |              |              |      ✓       |              |    ✓     |    ✓     |       ✓        |
 | [v1.30.0]  |              |              |      ✓       |              |          |    ✓     |       ✓        |
 | [v1.31.0]  |              |              |      ✓       |      ✓       |          |    ✓     |       ✓        |
+| [v1.32.0]  |              |              |      ✓       |      ✓       |          |    ✓     |       ✓        |
 
 [v1.24.11]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/tag/templates/v1.24.11
 [v1.25.7]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/tag/templates/v1.25.7
@@ -81,6 +82,7 @@ production-like environments, it is highly recommended to build and use your own
 [v1.29.0]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/tag/templates/v1.29.0
 [v1.30.0]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/tag/templates/v1.30.0
 [v1.31.0]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/tag/templates/v1.31.0
+[v1.32.0]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/tag/templates/v1.32.0
 
 A full list of the published machine images for CAPV can be found by [searching for releases](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases?q=templates%2F&expanded=true)
 on the repository having the prefix `templates/` and taking a look at the available assets.

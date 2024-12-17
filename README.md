@@ -72,6 +72,7 @@ production-like environments, it is highly recommended to build and use your own
 | [v1.29.0]  |              |              |      ✓       |              |    ✓     |    ✓     |       ✓        |
 | [v1.30.0]  |              |              |      ✓       |              |          |    ✓     |       ✓        |
 | [v1.31.0]  |              |              |      ✓       |      ✓       |          |    ✓     |       ✓        |
+| [v1.32.0]  |              |              |      ✓       |      ✓       |          |    ✓     |       ✓        |
 
 [v1.24.11]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/tag/templates/v1.24.11
 [v1.25.7]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/tag/templates/v1.25.7
@@ -81,6 +82,7 @@ production-like environments, it is highly recommended to build and use your own
 [v1.29.0]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/tag/templates/v1.29.0
 [v1.30.0]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/tag/templates/v1.30.0
 [v1.31.0]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/tag/templates/v1.31.0
+[v1.32.0]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/tag/templates/v1.32.0
 
 A full list of the published machine images for CAPV can be found by [searching for releases](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases?q=templates%2F&expanded=true)
 on the repository having the prefix `templates/` and taking a look at the available assets.

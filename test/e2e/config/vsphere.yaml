@@ -350,3 +350,7 @@ intervals:
   node-drain/wait-machine-deleted: ["10m", "10s"]
   node-drain/wait-statefulset-available: ["3m", "10s"]
   anti-affinity/wait-vm-redistribution: ["5m", "10s"]
+  #  Giving a bit more time during scale tests, we analyze independently if everything works quickly enough.
+  scale/wait-cluster: ["10m", "10s"]
+  scale/wait-control-plane: ["20m", "10s"]
+  scale/wait-worker-nodes: ["20m", "10s"]

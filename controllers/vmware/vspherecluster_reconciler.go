@@ -69,6 +69,7 @@ type ClusterReconciler struct {
 // +kubebuilder:rbac:groups=netoperator.vmware.com,resources=networks,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;update;create;delete
 // +kubebuilder:rbac:groups="",resources=persistentvolumeclaims/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinedeployments,verbs=get;list;watch
 
 func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
@@ -362,6 +363,34 @@ func (r *ClusterReconciler) VSphereMachineToCluster(ctx context.Context, o clien
 
 	// Can add further filters on Cluster state so that we don't keep reconciling Cluster
 	log.V(6).Info("Triggering VSphereCluster reconcile from VSphereMachine")
+	return []ctrl.Request{{
+		NamespacedName: types.NamespacedName{
+			Namespace: vsphereCluster.Namespace,
+			Name:      vsphereCluster.Name,
+		},
+	}}
+}
+
+// MachineDeploymentToCluster adds reconcile requests for a Cluster when one of its machineDeployments has an event.
+func (r *ClusterReconciler) MachineDeploymentToCluster(ctx context.Context, o client.Object) []reconcile.Request {
+	log := ctrl.LoggerFrom(ctx)
+
+	machineDeployment, ok := o.(*clusterv1.MachineDeployment)
+	if !ok {
+		log.Error(nil, fmt.Sprintf("Expected a MachineDeployment but got a %T", o))
+		return nil
+	}
+	log = log.WithValues("MachineDeployment", klog.KObj(machineDeployment))
+	ctx = ctrl.LoggerInto(ctx, log)
+
+	vsphereCluster, err := util.GetVMwareVSphereClusterFromMachineDeployment(ctx, r.Client, machineDeployment)
+	if err != nil {
+		log.V(4).Error(err, "Failed to get VSphereCluster from MachineDeployment")
+		return nil
+	}
+
+	// Can add further filters on Cluster state so that we don't keep reconciling Cluster
+	log.V(6).Info("Triggering VSphereCluster reconcile from MachineDeployment")
 	return []ctrl.Request{{
 		NamespacedName: types.NamespacedName{
 			Namespace: vsphereCluster.Namespace,

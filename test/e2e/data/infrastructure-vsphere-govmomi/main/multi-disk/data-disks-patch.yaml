@@ -1,0 +1,25 @@
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: VSphereMachineTemplate
+metadata:
+  name: '${CLUSTER_NAME}'
+  namespace: '${NAMESPACE}'
+spec:
+  template:
+    spec:
+      dataDisks:
+      - name: "disk_1"
+        sizeGiB: 10
+      - name: "disk_2"
+        sizeGiB: 20
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: VSphereMachineTemplate
+metadata:
+  name: '${CLUSTER_NAME}-worker'
+  namespace: '${NAMESPACE}'
+spec:
+  template:
+    spec:
+      dataDisks:
+      - name: "disk_1"
+        sizeGiB: 20

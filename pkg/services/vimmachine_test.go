@@ -30,7 +30,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	"sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
@@ -969,7 +968,7 @@ func Test_GenerateVSphereVMName(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			got, err := GenerateVSphereVMName(tt.machineName, &v1beta1.VSphereVMNamingStrategy{
+			got, err := GenerateVSphereVMName(tt.machineName, &infrav1.VSphereVMNamingStrategy{
 				Template: tt.template,
 			})
 

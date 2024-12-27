@@ -14,7 +14,7 @@ variables:
   VSPHERE_STORAGE_POLICY: "Cluster API vSphere Storage Policy"
   VSPHERE_NETWORK: "network-1"
   VSPHERE_TEMPLATE: "ubuntu-2404-kube-v1.32.0"
-  FLATCAR_VSPHERE_TEMPLATE: "flatcar-stable-3975.2.0-kube-v1.32.0"
+  FLATCAR_VSPHERE_TEMPLATE: "flatcar-stable-4081.2.0-kube-v1.32.0"
   CONTROL_PLANE_ENDPOINT_IP: "10.0.0.10"
   # Only for clusterctl upgrade tests
   # WORKLOAD_CONTROL_PLANE_ENDPOINT_IP:

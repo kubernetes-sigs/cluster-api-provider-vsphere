@@ -15,6 +15,9 @@ Early in the cycle:
 * [ ] [Prepare main branch for development of the new release](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/blob/main/docs/release/release-tasks.md#prepare-main-branch-for-development-of-the-new-release)
 * [ ] [Remove previously deprecated code](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/blob/main/docs/release/release-tasks.md#remove-previously-deprecated-code)
 
+Release-specific tasks:
+
+
 After the Kubernetes minor release:
 * [ ] Bump the Kubernetes version 
   * [ ] Publish new OVA images

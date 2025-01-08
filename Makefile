@@ -170,7 +170,7 @@ GOVULNCHECK_PKG := golang.org/x/vuln/cmd/govulncheck
 GOVC_VER := $(shell cat go.mod | grep "github.com/vmware/govmomi" | awk '{print $$NF}')
 GOVC_BIN := govc
 GOVC := $(abspath $(TOOLS_BIN_DIR)/$(GOVC_BIN)-$(GOVC_VER))
-GOVC_PKG := github.com/vmware/govmomi/govc
+GOVC_INSTALL := ./hack/govc-install.sh
 
 KIND_VER := $(call get_test_go_version,sigs.k8s.io/kind)
 KIND_BIN := kind
@@ -1111,7 +1111,7 @@ $(GOVULNCHECK): # Build govulncheck.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GOVULNCHECK_PKG) $(GOVULNCHECK_BIN) $(GOVULNCHECK_VER)
 
 $(GOVC): # Build GOVC.
-	CGO_ENABLED=0 GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GOVC_PKG) $(GOVC_BIN) $(GOVC_VER)
+	GOBIN=$(TOOLS_BIN_DIR) $(GOVC_INSTALL) $(GOVC_BIN) $(GOVC_VER)
 
 $(KIND): # Build kind.
 	cd $(TEST_DIR); GOBIN=$(TOOLS_BIN_DIR) ../$(GO_INSTALL) $(KIND_PKG) $(KIND_BIN) $(KIND_VER)

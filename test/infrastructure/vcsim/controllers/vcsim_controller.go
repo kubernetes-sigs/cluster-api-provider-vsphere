@@ -29,11 +29,11 @@ import (
 
 	_ "github.com/dougm/pretty" // NOTE: this is required to add commands vm.* to cli.Run
 	"github.com/pkg/errors"
-	"github.com/vmware/govmomi/govc/cli"
-	_ "github.com/vmware/govmomi/govc/tags"             // NOTE: this is required to add commands tags.* to cli.Run
-	_ "github.com/vmware/govmomi/govc/tags/association" // NOTE: this is required to add commands tags.attach.* to cli.Run
-	_ "github.com/vmware/govmomi/govc/tags/category"    // NOTE: this is required to add commands tags.category.* to cli.Run
-	_ "github.com/vmware/govmomi/govc/vm"               // NOTE: this is required to add commands vm.* to cli.Run
+	"github.com/vmware/govmomi/cli"
+	_ "github.com/vmware/govmomi/cli/tags"             // NOTE: this is required to add commands tags.* to cli.Run
+	_ "github.com/vmware/govmomi/cli/tags/association" // NOTE: this is required to add commands tags.attach.* to cli.Run
+	_ "github.com/vmware/govmomi/cli/tags/category"    // NOTE: this is required to add commands tags.category.* to cli.Run
+	_ "github.com/vmware/govmomi/cli/vm"               // NOTE: this is required to add commands vm.* to cli.Run
 	pbmsimulator "github.com/vmware/govmomi/pbm/simulator"
 	"github.com/vmware/govmomi/simulator"
 	_ "github.com/vmware/govmomi/vapi/simulator" // NOTE: this is required to content library & other vapi methods to the simulator

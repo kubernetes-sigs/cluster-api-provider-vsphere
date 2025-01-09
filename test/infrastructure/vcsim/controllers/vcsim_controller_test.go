@@ -21,7 +21,7 @@ import (
 
 	_ "github.com/dougm/pretty"
 	. "github.com/onsi/gomega"
-	_ "github.com/vmware/govmomi/govc/vm"
+	_ "github.com/vmware/govmomi/cli/vm"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"

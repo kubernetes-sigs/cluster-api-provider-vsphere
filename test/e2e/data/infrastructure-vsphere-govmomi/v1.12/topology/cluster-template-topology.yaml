@@ -1,4 +1,3 @@
----
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: Cluster
 metadata:
@@ -14,15 +13,12 @@ spec:
     variables:
     - name: sshKey
       value: '${VSPHERE_SSH_AUTHORIZED_KEY}'
-    - name: infraServer
-      value:
-        thumbprint: '${VSPHERE_TLS_THUMBPRINT}'
-        url: '${VSPHERE_SERVER}'
     - name: kubeVipPodManifest
       value: |
         apiVersion: v1
         kind: Pod
         metadata:
+          creationTimestamp: null
           name: kube-vip
           namespace: kube-system
         spec:
@@ -30,29 +26,41 @@ spec:
           - args:
             - manager
             env:
-            - name: cp_enable
+            - name: vip_arp
               value: "true"
-            - name: vip_interface
-              value: ${VIP_NETWORK_INTERFACE:=""}
-            - name: address
-              value: ${CONTROL_PLANE_ENDPOINT_IP}
             - name: port
               value: "6443"
-            - name: vip_arp
+            - name: vip_interface
+              value: ${VIP_NETWORK_INTERFACE:=""}
+            - name: vip_cidr
+              value: "32"
+            - name: cp_enable
+              value: "true"
+            - name: cp_namespace
+              value: kube-system
+            - name: vip_ddns
+              value: "false"
+            - name: svc_enable
+              value: "true"
+            - name: svc_leasename
+              value: plndr-svcs-lock
+            - name: svc_election
               value: "true"
             - name: vip_leaderelection
               value: "true"
+            - name: vip_leasename
+              value: plndr-cp-lock
             - name: vip_leaseduration
               value: "15"
             - name: vip_renewdeadline
               value: "10"
             - name: vip_retryperiod
               value: "2"
-            - name: svc_enable
-              value: "true"
-            - name: svc_election
-              value: "true"
-            image: ghcr.io/kube-vip/kube-vip:v0.6.3
+            - name: address
+              value: ${CONTROL_PLANE_ENDPOINT_IP}
+            - name: prometheus_server
+              value: :2112
+            image: ghcr.io/kube-vip/kube-vip:v0.6.4
             imagePullPolicy: IfNotPresent
             name: kube-vip
             resources: {}
@@ -70,16 +78,20 @@ spec:
           volumes:
           - hostPath:
               path: /etc/kubernetes/admin.conf
-              type: File
             name: kubeconfig
           - hostPath:
               path: /etc/kube-vip.hosts
               type: File
             name: etchosts
+        status: {}
     - name: controlPlaneIpAddr
       value: ${CONTROL_PLANE_ENDPOINT_IP}
     - name: controlPlanePort
       value: ${CONTROL_PLANE_ENDPOINT_PORT:=6443}
+    - name: infraServer
+      value:
+        thumbprint: '${VSPHERE_TLS_THUMBPRINT}'
+        url: '${VSPHERE_SERVER}'
     - name: credsSecretName
       value: '${CLUSTER_NAME}'
     version: '${KUBERNETES_VERSION}'
@@ -96,8 +108,8 @@ metadata:
   name: '${CLUSTER_NAME}'
   namespace: '${NAMESPACE}'
 stringData:
-  password: ${VSPHERE_PASSWORD}
-  username: ${VSPHERE_USERNAME}
+  password: "${VSPHERE_PASSWORD}"
+  username: "${VSPHERE_USERNAME}"
 ---
 apiVersion: addons.cluster.x-k8s.io/v1beta1
 kind: ClusterResourceSet
@@ -116,8 +128,6 @@ spec:
   - kind: ConfigMap
     name: csi-manifests
   - kind: Secret
-    name: cloud-controller-manager
-  - kind: Secret
     name: cloud-provider-vsphere-credentials
   - kind: ConfigMap
     name: cpi-manifests
@@ -128,7 +138,7 @@ metadata:
   name: vsphere-config-secret
   namespace: '${NAMESPACE}'
 stringData:
-  data: |
+  data: |-
     apiVersion: v1
     kind: Secret
     metadata:
@@ -152,8 +162,7 @@ type: addons.cluster.x-k8s.io/resource-set
 ---
 apiVersion: v1
 data:
-  data: |
-    ---
+  data: |-
     apiVersion: v1
     kind: Namespace
     metadata:
@@ -445,20 +454,7 @@ data:
     ---
     apiVersion: v1
     data:
-      async-query-volume: "true"
-      block-volume-snapshot: "true"
-      cnsmgr-suspend-create-volume: "true"
-      csi-auth-check: "true"
-      csi-internal-generated-cluster-id: "true"
-      csi-migration: "true"
-      csi-windows-support: "true"
-      list-volumes: "true"
-      listview-tasks: "true"
-      max-pvscsi-targets-per-vm: "true"
-      multi-vcenter-csi-topology: "true"
-      online-volume-extend: "true"
       pv-to-backingdiskobjectid-mapping: "false"
-      topology-preferential-datastores: "true"
       trigger-csi-fullsync: "false"
     kind: ConfigMap
     metadata:
@@ -506,6 +502,18 @@ data:
             role: vsphere-csi
         spec:
           affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                - matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: Exists
+                - matchExpressions:
+                  - key: node-role.kubernetes.io/controlplane
+                    operator: Exists
+                - matchExpressions:
+                  - key: node-role.kubernetes.io/master
+                    operator: Exists
             podAntiAffinity:
               requiredDuringSchedulingIgnoredDuringExecution:
               - labelSelector:
@@ -529,7 +537,7 @@ data:
             env:
             - name: ADDRESS
               value: /csi/csi.sock
-            image: registry.k8s.io/sig-storage/csi-attacher:v4.3.0
+            image: registry.k8s.io/sig-storage/csi-attacher:v4.5.1
             name: csi-attacher
             volumeMounts:
             - mountPath: /csi
@@ -548,7 +556,7 @@ data:
             env:
             - name: ADDRESS
               value: /csi/csi.sock
-            image: registry.k8s.io/sig-storage/csi-resizer:v1.8.0
+            image: registry.k8s.io/sig-storage/csi-resizer:v1.10.1
             name: csi-resizer
             volumeMounts:
             - mountPath: /csi
@@ -577,7 +585,7 @@ data:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-            image: registry.k8s.io/csi-vsphere/driver:v3.1.2
+            image: registry.k8s.io/csi-vsphere/driver:v3.3.1
             imagePullPolicy: Always
             livenessProbe:
               failureThreshold: 3
@@ -608,7 +616,7 @@ data:
           - args:
             - --v=4
             - --csi-address=/csi/csi.sock
-            image: registry.k8s.io/sig-storage/livenessprobe:v2.10.0
+            image: registry.k8s.io/sig-storage/livenessprobe:v2.12.0
             name: liveness-probe
             volumeMounts:
             - mountPath: /csi
@@ -631,13 +639,11 @@ data:
               value: "100"
             - name: INCLUSTER_CLIENT_BURST
               value: "100"
-            - name: GODEBUG
-              value: x509sha1=1
             - name: CSI_NAMESPACE
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-            image: registry.k8s.io/csi-vsphere/syncer:v3.1.2
+            image: registry.k8s.io/csi-vsphere/syncer:v3.3.1
             imagePullPolicy: Always
             name: vsphere-syncer
             ports:
@@ -666,7 +672,7 @@ data:
             env:
             - name: ADDRESS
               value: /csi/csi.sock
-            image: registry.k8s.io/sig-storage/csi-provisioner:v3.5.0
+            image: registry.k8s.io/sig-storage/csi-provisioner:v4.0.1
             name: csi-provisioner
             volumeMounts:
             - mountPath: /csi
@@ -684,7 +690,7 @@ data:
             env:
             - name: ADDRESS
               value: /csi/csi.sock
-            image: registry.k8s.io/sig-storage/csi-snapshotter:v6.2.2
+            image: registry.k8s.io/sig-storage/csi-snapshotter:v7.0.2
             name: csi-snapshotter
             volumeMounts:
             - mountPath: /csi
@@ -731,7 +737,7 @@ data:
               value: /csi/csi.sock
             - name: DRIVER_REG_SOCK_PATH
               value: /var/lib/kubelet/plugins/csi.vsphere.vmware.com/csi.sock
-            image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.8.0
+            image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.10.1
             livenessProbe:
               exec:
                 command:
@@ -765,15 +771,13 @@ data:
               value: "true"
             - name: LOGGER_LEVEL
               value: PRODUCTION
-            - name: GODEBUG
-              value: x509sha1=1
             - name: CSI_NAMESPACE
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
             - name: NODEGETINFO_WATCH_TIMEOUT_MINUTES
               value: "1"
-            image: registry.k8s.io/csi-vsphere/driver:v3.1.2
+            image: registry.k8s.io/csi-vsphere/driver:v3.3.1
             imagePullPolicy: Always
             livenessProbe:
               failureThreshold: 3
@@ -809,7 +813,7 @@ data:
           - args:
             - --v=4
             - --csi-address=/csi/csi.sock
-            image: registry.k8s.io/sig-storage/livenessprobe:v2.10.0
+            image: registry.k8s.io/sig-storage/livenessprobe:v2.12.0
             name: liveness-probe
             volumeMounts:
             - mountPath: /csi
@@ -879,7 +883,7 @@ data:
               value: unix://C:\\csi\\csi.sock
             - name: DRIVER_REG_SOCK_PATH
               value: C:\\var\\lib\\kubelet\\plugins\\csi.vsphere.vmware.com\\csi.sock
-            image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.8.0
+            image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.10.0
             livenessProbe:
               exec:
                 command:
@@ -922,7 +926,7 @@ data:
                   fieldPath: metadata.namespace
             - name: NODEGETINFO_WATCH_TIMEOUT_MINUTES
               value: "1"
-            image: registry.k8s.io/csi-vsphere/driver:v3.1.2
+            image: registry.k8s.io/csi-vsphere/driver:v3.3.1
             imagePullPolicy: Always
             livenessProbe:
               failureThreshold: 3
@@ -953,7 +957,7 @@ data:
           - args:
             - --v=4
             - --csi-address=/csi/csi.sock
-            image: registry.k8s.io/sig-storage/livenessprobe:v2.10.0
+            image: registry.k8s.io/sig-storage/livenessprobe:v2.12.0
             name: liveness-probe
             volumeMounts:
             - mountPath: /csi
@@ -1008,27 +1012,10 @@ metadata:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: cloud-controller-manager
-  namespace: '${NAMESPACE}'
-stringData:
-  data: |
-    apiVersion: v1
-    kind: ServiceAccount
-    metadata:
-      labels:
-        component: cloud-controller-manager
-        vsphere-cpi-infra: service-account
-      name: cloud-controller-manager
-      namespace: kube-system
-type: addons.cluster.x-k8s.io/resource-set
----
-apiVersion: v1
-kind: Secret
-metadata:
   name: cloud-provider-vsphere-credentials
   namespace: '${NAMESPACE}'
 stringData:
-  data: |
+  data: |-
     apiVersion: v1
     kind: Secret
     metadata:
@@ -1038,117 +1025,224 @@ stringData:
       name: cloud-provider-vsphere-credentials
       namespace: kube-system
     stringData:
-      ${VSPHERE_SERVER}.password: ${VSPHERE_PASSWORD}
-      ${VSPHERE_SERVER}.username: ${VSPHERE_USERNAME}
+      ${VSPHERE_SERVER}.password: "${VSPHERE_PASSWORD}"
+      ${VSPHERE_SERVER}.username: "${VSPHERE_USERNAME}"
     type: Opaque
 type: addons.cluster.x-k8s.io/resource-set
 ---
 apiVersion: v1
 data:
-  data: |
+  data: |-
     ---
+    # Source: vsphere-cpi/templates/service-account.yaml
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: cloud-controller-manager
+      labels:
+        app: vsphere-cpi
+        vsphere-cpi-infra: service-account
+        component: cloud-controller-manager
+      namespace: kube-system
+    ---
+    # Source: vsphere-cpi/templates/role.yaml
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
+      name: cloud-controller-manager
       labels:
-        component: cloud-controller-manager
+        app: vsphere-cpi
         vsphere-cpi-infra: role
-      name: system:cloud-controller-manager
+        component: cloud-controller-manager
     rules:
-    - apiGroups:
-      - ""
-      resources:
-      - events
-      verbs:
-      - create
-      - patch
-      - update
-    - apiGroups:
-      - ""
-      resources:
-      - nodes
-      verbs:
-      - '*'
-    - apiGroups:
-      - ""
-      resources:
-      - nodes/status
-      verbs:
-      - patch
-    - apiGroups:
-      - ""
-      resources:
-      - services
-      verbs:
-      - list
-      - patch
-      - update
-      - watch
-    - apiGroups:
-      - ""
-      resources:
-      - services/status
-      verbs:
-      - patch
-    - apiGroups:
-      - ""
-      resources:
-      - serviceaccounts
-      verbs:
-      - create
-      - get
-      - list
-      - watch
-      - update
-    - apiGroups:
-      - ""
-      resources:
-      - persistentvolumes
-      verbs:
-      - get
-      - list
-      - watch
-      - update
-    - apiGroups:
-      - ""
-      resources:
-      - endpoints
-      verbs:
-      - create
-      - get
-      - list
-      - watch
-      - update
-    - apiGroups:
-      - ""
-      resources:
-      - secrets
-      verbs:
-      - get
-      - list
-      - watch
-    - apiGroups:
-      - coordination.k8s.io
-      resources:
-      - leases
-      verbs:
-      - get
-      - watch
-      - list
-      - update
-      - create
+      - apiGroups:
+          - ""
+        resources:
+          - events
+        verbs:
+          - create
+          - patch
+          - update
+      - apiGroups:
+          - ""
+        resources:
+          - nodes
+        verbs:
+          - "*"
+      - apiGroups:
+          - ""
+        resources:
+          - nodes/status
+        verbs:
+          - patch
+      - apiGroups:
+          - ""
+        resources:
+          - services
+        verbs:
+          - list
+          - patch
+          - update
+          - watch
+      - apiGroups:
+          - ""
+        resources:
+          - services/status
+        verbs:
+          - patch
+      - apiGroups:
+          - ""
+        resources:
+          - serviceaccounts
+        verbs:
+          - create
+          - get
+          - list
+          - watch
+          - update
+      - apiGroups:
+          - ""
+        resources:
+          - persistentvolumes
+        verbs:
+          - get
+          - list
+          - update
+          - watch
+      - apiGroups:
+          - ""
+        resources:
+          - endpoints
+        verbs:
+          - create
+          - get
+          - list
+          - watch
+          - update
+      - apiGroups:
+          - ""
+        resources:
+          - secrets
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - "coordination.k8s.io"
+        resources:
+          - leases
+        verbs:
+          - create
+          - get
+          - list
+          - watch
+          - update
+    ---
+    # Source: vsphere-cpi/templates/daemonset.yaml
+    apiVersion: apps/v1
+    kind: DaemonSet
+    metadata:
+      name: vsphere-cpi
+      labels:
+        app: vsphere-cpi
+        vsphere-cpi-infra: daemonset
+        component: cloud-controller-manager
+        tier: control-plane
+      namespace: kube-system
+      annotations:
+    spec:
+      selector:
+        matchLabels:
+          app: vsphere-cpi
+      updateStrategy:
+        type: RollingUpdate
+      template:
+        metadata:
+          labels:
+            app: vsphere-cpi
+            component: cloud-controller-manager
+            tier: control-plane
+            release: release-name
+            vsphere-cpi-infra: daemonset
+        spec:
+          tolerations:
+            - effect: NoSchedule
+              key: node.cloudprovider.kubernetes.io/uninitialized
+              value: "true"
+            - effect: NoSchedule
+              key: node-role.kubernetes.io/control-plane
+              operator: Exists
+            - effect: NoSchedule
+              key: node.kubernetes.io/not-ready
+              operator: Exists
+            - effect: NoExecute
+              key: CriticalAddonsOnly
+              operator: Exists
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                - matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: Exists
+          securityContext:
+            fsGroup: 1001
+            runAsUser: 1001
+          serviceAccountName: cloud-controller-manager
+          hostNetwork: true
+          dnsPolicy: ClusterFirst
+          priorityClassName: system-node-critical
+          containers:
+          - name: vsphere-cpi
+            image: registry.k8s.io/cloud-pv-vsphere/cloud-provider-vsphere:${CPI_IMAGE_K8S_VERSION}
+            imagePullPolicy: IfNotPresent
+            args:
+              - --cloud-provider=vsphere
+              - --v=2
+              - --cloud-config=/etc/cloud/vsphere.conf
+            volumeMounts:
+              - mountPath: /etc/cloud
+                name: vsphere-config-volume
+                readOnly: true
+          volumes:
+            - name: vsphere-config-volume
+              configMap:
+                name: cloud-config
+    ---
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      labels:
+        app: vsphere-cpi
+        component: cloud-controller-manager
+        vsphere-cpi-infra: role-binding
+      name: servicecatalog.k8s.io:apiserver-authentication-reader
+      namespace: kube-system
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: Role
+      name: extension-apiserver-authentication-reader
+    subjects:
+    - apiGroup: ""
+      kind: ServiceAccount
+      name: cloud-controller-manager
+      namespace: kube-system
+    - apiGroup: ""
+      kind: User
+      name: cloud-controller-manager
     ---
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
       labels:
+        app: vsphere-cpi
         component: cloud-controller-manager
         vsphere-cpi-infra: cluster-role-binding
-      name: system:cloud-controller-manager
+      name: cloud-controller-manager
     roleRef:
       apiGroup: rbac.authorization.k8s.io
       kind: ClusterRole
-      name: system:cloud-controller-manager
+      name: cloud-controller-manager
     subjects:
     - kind: ServiceAccount
       name: cloud-controller-manager
@@ -1171,95 +1265,8 @@ data:
             server: '${VSPHERE_SERVER}'
     kind: ConfigMap
     metadata:
-      name: vsphere-cloud-config
+      name: cloud-config
       namespace: kube-system
-    ---
-    apiVersion: rbac.authorization.k8s.io/v1
-    kind: RoleBinding
-    metadata:
-      labels:
-        component: cloud-controller-manager
-        vsphere-cpi-infra: role-binding
-      name: servicecatalog.k8s.io:apiserver-authentication-reader
-      namespace: kube-system
-    roleRef:
-      apiGroup: rbac.authorization.k8s.io
-      kind: Role
-      name: extension-apiserver-authentication-reader
-    subjects:
-    - kind: ServiceAccount
-      name: cloud-controller-manager
-      namespace: kube-system
-    - kind: User
-      name: cloud-controller-manager
-    ---
-    apiVersion: apps/v1
-    kind: DaemonSet
-    metadata:
-      labels:
-        component: cloud-controller-manager
-        tier: control-plane
-      name: vsphere-cloud-controller-manager
-      namespace: kube-system
-    spec:
-      selector:
-        matchLabels:
-          name: vsphere-cloud-controller-manager
-      template:
-        metadata:
-          labels:
-            component: cloud-controller-manager
-            name: vsphere-cloud-controller-manager
-            tier: control-plane
-        spec:
-          affinity:
-            nodeAffinity:
-              requiredDuringSchedulingIgnoredDuringExecution:
-                nodeSelectorTerms:
-                - matchExpressions:
-                  - key: node-role.kubernetes.io/control-plane
-                    operator: Exists
-                - matchExpressions:
-                  - key: node-role.kubernetes.io/master
-                    operator: Exists
-          containers:
-          - args:
-            - --v=2
-            - --cloud-provider=vsphere
-            - --cloud-config=/etc/cloud/vsphere.conf
-            image: registry.k8s.io/cloud-pv-vsphere/cloud-provider-vsphere:${CPI_IMAGE_K8S_VERSION}
-            name: vsphere-cloud-controller-manager
-            resources:
-              requests:
-                cpu: 200m
-            volumeMounts:
-            - mountPath: /etc/cloud
-              name: vsphere-config-volume
-              readOnly: true
-          hostNetwork: true
-          priorityClassName: system-node-critical
-          securityContext:
-            runAsUser: 1001
-          serviceAccountName: cloud-controller-manager
-          tolerations:
-          - effect: NoSchedule
-            key: node.cloudprovider.kubernetes.io/uninitialized
-            value: "true"
-          - effect: NoSchedule
-            key: node-role.kubernetes.io/master
-            operator: Exists
-          - effect: NoSchedule
-            key: node-role.kubernetes.io/control-plane
-            operator: Exists
-          - effect: NoSchedule
-            key: node.kubernetes.io/not-ready
-            operator: Exists
-          volumes:
-          - configMap:
-              name: vsphere-cloud-config
-            name: vsphere-config-volume
-      updateStrategy:
-        type: RollingUpdate
 kind: ConfigMap
 metadata:
   name: cpi-manifests

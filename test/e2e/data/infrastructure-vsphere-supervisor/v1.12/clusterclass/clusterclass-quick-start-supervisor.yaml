@@ -1,5 +1,4 @@
----
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
 kind: VSphereClusterTemplate
 metadata:
   name: '${CLUSTER_CLASS_NAME}'
@@ -16,7 +15,7 @@ spec:
   controlPlane:
     machineInfrastructure:
       ref:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
         kind: VSphereMachineTemplate
         name: ${CLUSTER_CLASS_NAME}-template
         namespace: '${NAMESPACE}'
@@ -27,7 +26,7 @@ spec:
       namespace: '${NAMESPACE}'
   infrastructure:
     ref:
-      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
       kind: VSphereClusterTemplate
       name: '${CLUSTER_CLASS_NAME}'
       namespace: '${NAMESPACE}'
@@ -101,22 +100,8 @@ spec:
           template: |
             host: '{{ .controlPlaneIpAddr }}'
             port: {{ .controlPlanePort }}
-      - op: add
-        path: /spec/template/spec/identityRef
-        valueFrom:
-          template: |
-            kind: Secret
-            name: '{{ .credsSecretName }}'
-      - op: add
-        path: /spec/template/spec/server
-        valueFrom:
-          variable: infraServer.url
-      - op: add
-        path: /spec/template/spec/thumbprint
-        valueFrom:
-          variable: infraServer.thumbprint
       selector:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
         kind: VSphereClusterTemplate
         matchResources:
           infrastructureCluster: true
@@ -168,7 +153,7 @@ spec:
               # Nothing to do for kubernetes < v1.29
               KUBEADM_MINOR="$(kubeadm version -o short | cut -d '.' -f 2)"
               if [[ "$KUBEADM_MINOR" -lt "29" ]]; then
-                return
+                exit 0
               fi
 
               IS_KUBEADM_INIT="false"
@@ -188,12 +173,8 @@ spec:
                   /etc/kubernetes/manifests/kube-vip.yaml
               fi
             owner: root:root
-            path: /etc/kube-vip-prepare.sh
+            path: /etc/pre-kubeadm-commands/50-kube-vip-prepare.sh
             permissions: "0700"
-      - op: add
-        path: /spec/template/spec/kubeadmConfigSpec/preKubeadmCommands/-
-        valueFrom:
-          template: /etc/kube-vip-prepare.sh
       selector:
         apiVersion: controlplane.cluster.x-k8s.io/v1beta1
         kind: KubeadmControlPlaneTemplate
@@ -201,23 +182,15 @@ spec:
           controlPlane: true
     name: kubeVipPodManifest
   variables:
-  - name: sshKey
+  - metadata: {}
+    name: sshKey
     required: false
     schema:
       openAPIV3Schema:
         description: Public key to SSH onto the cluster nodes.
         type: string
-  - name: infraServer
-    required: true
-    schema:
-      openAPIV3Schema:
-        properties:
-          thumbprint:
-            type: string
-          url:
-            type: string
-        type: object
-  - name: controlPlaneIpAddr
+  - metadata: {}
+    name: controlPlaneIpAddr
     required: true
     schema:
       openAPIV3Schema:
@@ -230,13 +203,8 @@ spec:
       openAPIV3Schema:
         description: Port for the control plane endpoint.
         type: integer
-  - name: credsSecretName
-    required: true
-    schema:
-      openAPIV3Schema:
-        description: Secret containing the credentials for the infra cluster.
-        type: string
-  - name: kubeVipPodManifest
+  - metadata: {}
+    name: kubeVipPodManifest
     required: true
     schema:
       openAPIV3Schema:
@@ -254,13 +222,13 @@ spec:
             namespace: '${NAMESPACE}'
         infrastructure:
           ref:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
             kind: VSphereMachineTemplate
             name: ${CLUSTER_CLASS_NAME}-worker-machinetemplate
             namespace: '${NAMESPACE}'
         metadata: {}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
 kind: VSphereMachineTemplate
 metadata:
   name: ${CLUSTER_CLASS_NAME}-template
@@ -268,26 +236,12 @@ metadata:
 spec:
   template:
     spec:
-      cloneMode: linkedClone
-      datacenter: '${VSPHERE_DATACENTER}'
-      datastore: '${VSPHERE_DATASTORE}'
-      diskGiB: 25
-      folder: '${VSPHERE_FOLDER}'
-      memoryMiB: 8192
-      network:
-        devices:
-        - dhcp4: true
-          networkName: '${VSPHERE_NETWORK}'
-      numCPUs: 2
-      os: Linux
-      powerOffMode: trySoft
-      resourcePool: '${VSPHERE_RESOURCE_POOL}'
-      server: '${VSPHERE_SERVER}'
-      storagePolicyName: '${VSPHERE_STORAGE_POLICY}'
-      template: '${VSPHERE_TEMPLATE}'
-      thumbprint: '${VSPHERE_TLS_THUMBPRINT}'
+      className: ${VSPHERE_MACHINE_CLASS_NAME}
+      imageName: ${VSPHERE_IMAGE_NAME}
+      powerOffMode: ${VSPHERE_POWER_OFF_MODE:=trySoft}
+      storageClass: ${VSPHERE_STORAGE_CLASS}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
 kind: VSphereMachineTemplate
 metadata:
   name: ${CLUSTER_CLASS_NAME}-worker-machinetemplate
@@ -295,24 +249,10 @@ metadata:
 spec:
   template:
     spec:
-      cloneMode: linkedClone
-      datacenter: '${VSPHERE_DATACENTER}'
-      datastore: '${VSPHERE_DATASTORE}'
-      diskGiB: 25
-      folder: '${VSPHERE_FOLDER}'
-      memoryMiB: 8192
-      network:
-        devices:
-        - dhcp4: true
-          networkName: '${VSPHERE_NETWORK}'
-      numCPUs: 2
-      os: Linux
-      powerOffMode: trySoft
-      resourcePool: '${VSPHERE_RESOURCE_POOL}'
-      server: '${VSPHERE_SERVER}'
-      storagePolicyName: '${VSPHERE_STORAGE_POLICY}'
-      template: '${VSPHERE_TEMPLATE}'
-      thumbprint: '${VSPHERE_TLS_THUMBPRINT}'
+      className: ${VSPHERE_MACHINE_CLASS_NAME}
+      imageName: ${VSPHERE_IMAGE_NAME}
+      powerOffMode: ${VSPHERE_POWER_OFF_MODE:=trySoft}
+      storageClass: ${VSPHERE_STORAGE_CLASS}
 ---
 apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 kind: KubeadmControlPlaneTemplate
@@ -343,11 +283,15 @@ spec:
               cloud-provider: external
             name: '{{ local_hostname }}'
         preKubeadmCommands:
+        - dhclient eth0
         - hostnamectl set-hostname "{{ ds.meta_data.hostname }}"
         - echo "::1         ipv6-localhost ipv6-loopback localhost6 localhost6.localdomain6"
           >/etc/hosts
         - echo "127.0.0.1   {{ ds.meta_data.hostname }} {{ local_hostname }} localhost
           localhost.localdomain localhost4 localhost4.localdomain4" >>/etc/hosts
+        - mkdir -p /etc/pre-kubeadm-commands
+        - for script in $(find /etc/pre-kubeadm-commands/ -name '*.sh' -type f | sort);
+          do echo "Running script $script"; "$script"; done
         users:
         - name: capv
           sshAuthorizedKeys:
@@ -369,8 +313,12 @@ spec:
             cloud-provider: external
           name: '{{ local_hostname }}'
       preKubeadmCommands:
+      - dhclient eth0
       - hostnamectl set-hostname "{{ ds.meta_data.hostname }}"
       - echo "::1         ipv6-localhost ipv6-loopback localhost6 localhost6.localdomain6"
         >/etc/hosts
       - echo "127.0.0.1   {{ ds.meta_data.hostname }} {{ local_hostname }} localhost
         localhost.localdomain localhost4 localhost4.localdomain4" >>/etc/hosts
+      - mkdir -p /etc/pre-kubeadm-commands
+      - for script in $(find /etc/pre-kubeadm-commands/ -name '*.sh' -type f | sort);
+        do echo "Running script $script"; "$script"; done

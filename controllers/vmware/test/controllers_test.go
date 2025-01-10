@@ -473,7 +473,7 @@ var _ = Describe("Reconciliation tests", func() {
 			Eventually(func() error {
 				return k8sClient.Get(ctx, rpKey, resourcePolicy)
 			}, time.Second*30).Should(Succeed())
-			Expect(len(resourcePolicy.Spec.ClusterModuleGroups)).To(BeEquivalentTo(2))
+			Expect(len(resourcePolicy.Spec.ClusterModuleGroups)).To(BeEquivalentTo(1))
 
 			By("Create the CAPI Machine and wait for it to exist")
 			machineKey, machine := deployCAPIMachine(ns.Name, cluster, k8sClient)

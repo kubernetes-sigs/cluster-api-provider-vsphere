@@ -94,7 +94,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.12
 			capiVersion := "1.9"
 			capiStableRelease, err := getStableReleaseOfMinor(ctx, capiReleaseMarkerPrefix, capiVersion)
 			Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for minor release : %s", capiVersion)
-			capvVersion := "1.10"
+			capvVersion := "1.12"
 			capvStableRelease, err := getStableReleaseOfMinor(ctx, capvReleaseMarkerPrefix, capvVersion)
 			Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for minor release : %s", capvVersion)
 			return capi_e2e.ClusterctlUpgradeSpecInput{

@@ -21,9 +21,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"text/template"
 
+	"github.com/Masterminds/sprig/v3"
 	"github.com/pkg/errors"
 	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	vmoprv1common "github.com/vmware-tanzu/vm-operator/api/v1alpha2/common"
@@ -294,18 +294,9 @@ const (
 	maxNameLength = 63
 )
 
-// Note: Inlining these functions from sprig to avoid introducing a dependency.
 var nameTemplateFuncs = map[string]any{
-	"trimSuffix": func(a, b string) string { return strings.TrimSuffix(b, a) },
-	"trunc": func(c int, s string) string {
-		if c < 0 && len(s)+c > 0 {
-			return s[len(s)+c:]
-		}
-		if c >= 0 && len(s) > c {
-			return s[:c]
-		}
-		return s
-	},
+	"trimSuffix": sprig.GenericFuncMap()["trimSuffix"],
+	"trunc":      sprig.GenericFuncMap()["trunc"],
 }
 
 var nameTpl = template.New("name generator").Funcs(nameTemplateFuncs).Option("missingkey=error")

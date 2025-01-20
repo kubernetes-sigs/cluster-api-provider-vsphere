@@ -23,9 +23,13 @@ SHELL:=/usr/bin/env bash
 #
 # Go.
 #
-GO_VERSION ?= 1.22.12
+GO_VERSION ?= 1.23.8
 GO_CONTAINER_IMAGE ?= docker.io/library/golang:$(GO_VERSION)
 GO_DIRECTIVE_VERSION ?=  1.22.0
+
+# Ensure correct toolchain is used
+GOTOOLCHAIN = go$(GO_VERSION)
+export GOTOOLCHAIN
 
 # Use GOPROXY environment variable if set
 GOPROXY := $(shell go env GOPROXY)
@@ -528,7 +532,7 @@ verify-govulncheck: $(GOVULNCHECK) ## Verify code for vulnerabilities
 	if [ "$$R1" -ne "0" ] || [ "$$R2" -ne "0" ]; then \
 		exit 1; \
 	fi
-	git restore "test/framework/log/collector.go" 
+	git restore "test/framework/log/collector.go"
 
 .PHONY: verify-security
 verify-security: ## Verify code and images for vulnerabilities

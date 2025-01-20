@@ -26,6 +26,15 @@ providers:
   - name: cluster-api
     type: CoreProvider
     versions:
+      - name: "v1.10.99"
+        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20250119/core-components.yaml"
+        type: "url"
+        contract: v1beta1
+        files:
+          - sourcePath: "../data/shared/capi/v1.10/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
       - name: "{go://sigs.k8s.io/cluster-api@v1.9}"
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.9}/core-components.yaml"
         type: "url"
@@ -66,6 +75,15 @@ providers:
   - name: kubeadm
     type: BootstrapProvider
     versions:
+      - name: "v1.10.99"
+        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20250119/bootstrap-components.yaml"
+        type: "url"
+        contract: v1beta1
+        files:
+          - sourcePath: "../data/shared/capi/v1.10/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
       - name: "{go://sigs.k8s.io/cluster-api@v1.9}"
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.9}/bootstrap-components.yaml"
         type: "url"
@@ -106,6 +124,15 @@ providers:
   - name: kubeadm
     type: ControlPlaneProvider
     versions:
+      - name: "v1.10.99"
+        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20250119/control-plane-components.yaml"
+        type: "url"
+        contract: v1beta1
+        files:
+          - sourcePath: "../data/shared/capi/v1.10/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
       - name: "{go://sigs.k8s.io/cluster-api@v1.9}"
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.9}/control-plane-components.yaml"
         type: "url"

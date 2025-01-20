@@ -57,6 +57,10 @@ linters:
   - whitespace
 
 linters-settings:
+  gosec:
+    excludes:
+      # integer overflow conversion int -> int32
+      - G115
   gci:
     sections:
       - standard # Standard section: captures all standard packages.
@@ -310,3 +314,6 @@ issues:
     - stylecheck
     text: ST1021|ST1020
     path: ^(apis/(v1alpha3|v1alpha4)\/.*)\.go$
+  - linters:
+      - govet
+    text: "non-constant format string in call to sigs\\.k8s\\.io\\/cluster-api\\/util\\/conditions\\."

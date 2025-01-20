@@ -311,8 +311,6 @@ variables:
   CPI_IMAGE_K8S_VERSION: "v1.32.1"
   CNI: "./data/cni/calico/calico.yaml"
   AUTOSCALER_WORKLOAD: "./data/autoscaler/autoscaler-to-management-workload.yaml"
-  EXP_CLUSTER_RESOURCE_SET: "true"
-  EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION: "true"
   CONTROL_PLANE_MACHINE_COUNT: 1
   WORKER_MACHINE_COUNT: 1
   IP_FAMILY: "IPv4"
@@ -343,14 +341,17 @@ variables:
   FLATCAR_VSPHERE_TEMPLATE: "flatcar-stable-4081.2.0-kube-v1.32.0"
   KUBETEST_CONFIGURATION: "./data/kubetest/conformance.yaml"
   NODE_DRAIN_TIMEOUT: "60s"
+  EXP_CLUSTER_RESOURCE_SET: "true"
+  EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION: "true"
   CLUSTER_TOPOLOGY: "true"
   EXP_RUNTIME_SDK: "true"
+  EXP_MACHINE_SET_PREFLIGHT_CHECKS: "true"
+  EXP_PRIORITY_QUEUE: "false"
   # These IDs correspond to Tesla T4s, they are the decimal representation of the hex values.
   DEVICE_ID: 7864
   VENDOR_ID: 4318
   # CAPV feature flags
   EXP_NODE_ANTI_AFFINITY: "true"
-  EXP_MACHINE_SET_PREFLIGHT_CHECKS: "true"
   EXP_NAMESPACE_SCOPED_ZONE: "false"
   CAPI_DIAGNOSTICS_ADDRESS: ":8080"
   CAPI_INSECURE_DIAGNOSTICS: "true"

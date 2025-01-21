@@ -219,7 +219,7 @@ func newSSHConfig() (*ssh.ClientConfig, error) {
 
 	signer, err := ssh.ParsePrivateKey(sshPrivateKeyContent)
 	if err != nil {
-		return nil, errors.Wrapf(err, fmt.Sprintf("error parsing private key: %s", sshPrivateKeyContent))
+		return nil, errors.Wrapf(err, "error parsing private key: %s", sshPrivateKeyContent)
 	}
 
 	config := &ssh.ClientConfig{

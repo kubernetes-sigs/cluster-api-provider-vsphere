@@ -17,13 +17,10 @@ limitations under the License.
 package vmoperator
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"text/template"
 
-	"github.com/Masterminds/sprig/v3"
 	"github.com/pkg/errors"
 	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	vmoprv1common "github.com/vmware-tanzu/vm-operator/api/v1alpha2/common"
@@ -290,17 +287,6 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 	return false, nil
 }
 
-const (
-	maxNameLength = 63
-)
-
-var nameTemplateFuncs = map[string]any{
-	"trimSuffix": sprig.GenericFuncMap()["trimSuffix"],
-	"trunc":      sprig.GenericFuncMap()["trunc"],
-}
-
-var nameTpl = template.New("name generator").Funcs(nameTemplateFuncs).Option("missingkey=error")
-
 // virtualMachineObjectKey returns the object key of the VirtualMachine.
 // Part of this is generating the name of the VirtualMachine based on the naming strategy.
 func virtualMachineObjectKey(machineName, machineNamespace string, namingStrategy *vmwarev1.VirtualMachineNamingStrategy) (*client.ObjectKey, error) {
@@ -323,29 +309,9 @@ func GenerateVirtualMachineName(machineName string, namingStrategy *vmwarev1.Vir
 		return machineName, nil
 	}
 
-	nameTemplate := *namingStrategy.Template
-	data := map[string]interface{}{
-		"machine": map[string]interface{}{
-			"name": machineName,
-		},
-	}
-
-	tpl, err := nameTpl.Parse(nameTemplate)
+	name, err := infrautilv1.GenerateMachineNameFromTemplate(machineName, namingStrategy.Template)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to generate name for VirtualMachine: failed to parse namingStrategy.template %q", nameTemplate)
-	}
-
-	var buf bytes.Buffer
-	if err := tpl.Execute(&buf, data); err != nil {
 		return "", errors.Wrap(err, "failed to generate name for VirtualMachine")
-	}
-
-	name := buf.String()
-
-	// If the name exceeds the maxNameLength, trim to maxNameLength.
-	// Note: we're not adding a random suffix as the name has to be deterministic.
-	if len(name) > maxNameLength {
-		name = name[:maxNameLength]
 	}
 
 	return name, nil

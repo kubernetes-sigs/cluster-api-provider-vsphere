@@ -907,6 +907,8 @@ func Test_VimMachineService_SyncFailureReason(t *testing.T) {
 }
 
 func Test_GenerateVSphereVMName(t *testing.T) {
+	maxNameLength := 63
+
 	tests := []struct {
 		name        string
 		machineName string

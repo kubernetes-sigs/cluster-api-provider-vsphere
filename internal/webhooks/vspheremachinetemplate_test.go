@@ -99,11 +99,7 @@ func TestVSphereMachineTemplate_ValidateCreate(t *testing.T) {
 			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", nil, "", []string{}, []infrav1.PCIDeviceSpec{{VGPUProfile: "vgpu"}}, nil),
 		},
 		{
-			name:           "successful VSphereMachine creation with hardware version set",
-			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", nil, "", []string{}, nil, nil),
-		},
-		{
-			name:           "successful VSphereMachineTemplate creation with namingStrategy not set",
+			name:           "successful VSphereMachine creation with hardware version set and namingStrategy not set",
 			vsphereMachine: createVSphereMachineTemplate("foo.com", "vmx-17", nil, "", []string{}, nil, nil),
 		},
 		{

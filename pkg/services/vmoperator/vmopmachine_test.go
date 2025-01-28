@@ -655,6 +655,10 @@ var _ = Describe("GetMachinesInCluster", func() {
 	})
 })
 
+const (
+	maxNameLength = 63
+)
+
 func Test_virtualMachineObjectKey(t *testing.T) {
 	tests := []struct {
 		name        string

@@ -52,6 +52,7 @@ var _ = Describe("When testing the machinery for scale testing using vcsim provi
 				Flavor:                 ptr.To(testSpecificSettingsGetter().FlavorForMode("topology-runtimesdk")),
 				SkipUpgrade:            true,
 				SkipCleanup:            skipCleanup,
+				ClusterClassName:       testSpecificSettingsGetter().Variables["CLUSTER_CLASS_NAME"],
 
 				// ClusterCount can be overwritten via `CAPI_SCALE_CLUSTER_COUNT`.
 				ClusterCount: ptr.To[int64](5),

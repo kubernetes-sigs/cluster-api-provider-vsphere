@@ -36,7 +36,7 @@ const (
 )
 
 var _ = Describe("When testing the machinery for scale testing using vcsim provider [vcsim] [supervisor] [ClusterClass]", func() {
-	const specName = "quick-start-cluster-class" // prefix (quick-start) copied from CAPI
+	const specName = "quick-start-cluster-class-scale" // prefix (quick-start) copied from CAPI
 	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		capi_e2e.ScaleSpec(ctx, func() capi_e2e.ScaleSpecInput {
 			// For supporting real environments we would need to properly cleanup the namespaces and namespace specific ip allocations.

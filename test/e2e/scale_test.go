@@ -36,13 +36,14 @@ const (
 )
 
 var _ = Describe("When testing the machinery for scale testing using vcsim provider [vcsim] [supervisor] [ClusterClass]", func() {
-	const specName = "quick-start-cluster-class-scale" // prefix (quick-start) copied from CAPI
+	const specName = "quick-start-cluster-class-scale" // prefix must be uniq because this test re-writes the clusterctl config.
 	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		capi_e2e.ScaleSpec(ctx, func() capi_e2e.ScaleSpecInput {
 			// For supporting real environments we would need to properly cleanup the namespaces and namespace specific ip allocations.
 			if testTarget != VCSimTestTarget {
 				Skip("Test should only be run using vcsim provider")
 			}
+			gomega.Expect(testSpecificSettingsGetter().Variables["CLUSTER_CLASS_NAME"]).ToNot(gomega.BeEquivalentTo(""))
 			return capi_e2e.ScaleSpecInput{
 				E2EConfig:              e2eConfig,
 				ClusterctlConfigPath:   testSpecificSettingsGetter().ClusterctlConfigPath,

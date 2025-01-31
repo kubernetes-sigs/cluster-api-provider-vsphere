@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	"k8s.io/utils/ptr"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	"sigs.k8s.io/cluster-api/test/framework"
@@ -43,7 +44,7 @@ var _ = Describe("When testing the machinery for scale testing using vcsim provi
 			if testTarget != VCSimTestTarget {
 				Skip("Test should only be run using vcsim provider")
 			}
-			gomega.Expect(testSpecificSettingsGetter().Variables["CLUSTER_CLASS_NAME"]).ToNot(gomega.BeEquivalentTo(""))
+			Expect(testSpecificSettingsGetter().Variables["CLUSTER_CLASS_NAME"]).ToNot(BeEquivalentTo(""))
 			return capi_e2e.ScaleSpecInput{
 				E2EConfig:              e2eConfig,
 				ClusterctlConfigPath:   testSpecificSettingsGetter().ClusterctlConfigPath,

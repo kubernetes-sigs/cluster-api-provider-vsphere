@@ -21,7 +21,6 @@ import (
 	"fmt"
 
 	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	"k8s.io/utils/ptr"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	"sigs.k8s.io/cluster-api/test/framework"
@@ -34,6 +33,7 @@ const (
 	scaleClusterControlPlaneEndpointPortPlaceholder = "scale-cluster-controlplane-endpoint-Port-placeholder"
 	scaleClusterVSphereServerPlaceholder            = "scale-cluster-vsphere-server-placeholder"
 	scaleClusterVSphereTLSThumbprintPlaceholder     = "scale-cluster-vsphere-tls-thumbprint-placeholder"
+	scaleClusterNamePlaceholder                     = "scale-cluster-name-placeholder"
 )
 
 var _ = Describe("When testing the machinery for scale testing using vcsim provider [vcsim] [supervisor] [ClusterClass]", func() {
@@ -44,7 +44,7 @@ var _ = Describe("When testing the machinery for scale testing using vcsim provi
 			if testTarget != VCSimTestTarget {
 				Skip("Test should only be run using vcsim provider")
 			}
-			Expect(testSpecificSettingsGetter().Variables["CLUSTER_CLASS_NAME"]).ToNot(BeEquivalentTo(""))
+
 			return capi_e2e.ScaleSpecInput{
 				E2EConfig:              e2eConfig,
 				ClusterctlConfigPath:   testSpecificSettingsGetter().ClusterctlConfigPath,
@@ -54,7 +54,7 @@ var _ = Describe("When testing the machinery for scale testing using vcsim provi
 				Flavor:                 ptr.To(testSpecificSettingsGetter().FlavorForMode("topology-runtimesdk")),
 				SkipUpgrade:            true,
 				SkipCleanup:            skipCleanup,
-				ClusterClassName:       testSpecificSettingsGetter().Variables["CLUSTER_CLASS_NAME"],
+				ClusterClassName:       getVariableOrFallback(testSpecificSettingsGetter().Variables["CLUSTER_CLASS_NAME"], e2eConfig.GetVariable("CLUSTER_CLASS_NAME")),
 
 				// ClusterCount can be overwritten via `CAPI_SCALE_CLUSTER_COUNT`.
 				ClusterCount: ptr.To[int64](5),
@@ -129,9 +129,22 @@ var _ = Describe("When testing the machinery for scale testing using vcsim provi
 					clusterTemplateYAML = bytes.Replace(clusterTemplateYAML, []byte(scaleClusterVSphereServerPlaceholder), []byte(testSpecificVariables["VSPHERE_SERVER"]), -1)
 					clusterTemplateYAML = bytes.Replace(clusterTemplateYAML, []byte(scaleClusterVSphereTLSThumbprintPlaceholder), []byte(testSpecificVariables["VSPHERE_TLS_THUMBPRINT"]), -1)
 
+					if testMode == GovmomiTestMode {
+						clusterClassYAML = bytes.Replace(clusterClassYAML, []byte(scaleClusterNamePlaceholder), []byte(clusterName), -1)
+						clusterClassYAML = bytes.Replace(clusterClassYAML, []byte(scaleClusterVSphereServerPlaceholder), []byte(testSpecificVariables["VSPHERE_SERVER"]), -1)
+						clusterClassYAML = bytes.Replace(clusterClassYAML, []byte(scaleClusterVSphereTLSThumbprintPlaceholder), []byte(testSpecificVariables["VSPHERE_TLS_THUMBPRINT"]), -1)
+					}
+
 					return clusterClassYAML, clusterTemplateYAML
 				},
 			}
 		})
 	})
 })
+
+func getVariableOrFallback(value string, fallback string) string {
+	if value != "" {
+		return value
+	}
+	return fallback
+}

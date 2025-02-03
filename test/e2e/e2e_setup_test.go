@@ -17,7 +17,6 @@ limitations under the License.
 package e2e
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"os"
@@ -32,9 +31,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/cluster-api/test/framework"
+	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	. "sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/yaml"
 
 	vsphereip "sigs.k8s.io/cluster-api-provider-vsphere/test/framework/ip"
 	vspherevcsim "sigs.k8s.io/cluster-api-provider-vsphere/test/framework/vcsim"
@@ -145,11 +144,11 @@ func Setup(specName string, f func(testSpecificSettings func() testSettings), op
 		// may re-write the file to add some variables, but it needs to exist already before that.
 		testSpecificClusterctlConfigPath = fmt.Sprintf("%s-%s.yaml", strings.TrimSuffix(clusterctlConfigPath, ".yaml"), specName)
 		Byf("Writing a new clusterctl config to %s", testSpecificClusterctlConfigPath)
-		copyAndAmendClusterctlConfig(ctx, copyAndAmendClusterctlConfigInput{
+		Expect(clusterctl.CopyAndAmendClusterctlConfig(ctx, clusterctl.CopyAndAmendClusterctlConfigInput{
 			ClusterctlConfigPath: clusterctlConfigPath,
 			OutputPath:           testSpecificClusterctlConfigPath,
 			Variables:            testSpecificVariables,
-		})
+		})).To(Succeed())
 
 		// The setup done in `postNamespaceCreatedFunc` does
 		// 1. Create a VCSim Server (only for additional VCSim at separate management cluster)
@@ -176,11 +175,11 @@ func Setup(specName string, f func(testSpecificSettings func() testSettings), op
 
 			// Re-write the clusterctl config file and add the new variables created above (ip addresses, VCSim variables).
 			Byf("Writing a new clusterctl config to %s", testSpecificClusterctlConfigPath)
-			copyAndAmendClusterctlConfig(ctx, copyAndAmendClusterctlConfigInput{
+			Expect(clusterctl.CopyAndAmendClusterctlConfig(ctx, clusterctl.CopyAndAmendClusterctlConfigInput{
 				ClusterctlConfigPath: testSpecificClusterctlConfigPath,
 				OutputPath:           testSpecificClusterctlConfigPath,
 				Variables:            testSpecificVariables,
-			})
+			})).To(Succeed())
 
 			// Run additional initialization required for supervisor.
 			if testMode == SupervisorTestMode {
@@ -428,57 +427,4 @@ func setupNamespaceWithVMOperatorDependenciesVCenter(managementClusterProxy fram
 
 	err := vmoperator.ReconcileDependencies(ctx, c, dependenciesConfig)
 	Expect(err).ToNot(HaveOccurred(), "Failed to reconcile VMOperatorDependencies")
-}
-
-// Note: Copy-paste from CAPI below.
-
-// copyAndAmendClusterctlConfigInput is the input for copyAndAmendClusterctlConfig.
-type copyAndAmendClusterctlConfigInput struct {
-	ClusterctlConfigPath string
-	OutputPath           string
-	Variables            map[string]string
-}
-
-// copyAndAmendClusterctlConfig copies the clusterctl-config from ClusterctlConfigPath to
-// OutputPath and adds the given Variables.
-func copyAndAmendClusterctlConfig(_ context.Context, input copyAndAmendClusterctlConfigInput) {
-	// Read clusterctl config from ClusterctlConfigPath.
-	clusterctlConfigFile := &clusterctlConfig{
-		Path: input.ClusterctlConfigPath,
-	}
-	clusterctlConfigFile.read()
-
-	// Overwrite variables.
-	if clusterctlConfigFile.Values == nil {
-		clusterctlConfigFile.Values = map[string]interface{}{}
-	}
-	for key, value := range input.Variables {
-		clusterctlConfigFile.Values[key] = value
-	}
-
-	// Write clusterctl config to OutputPath.
-	clusterctlConfigFile.Path = input.OutputPath
-	clusterctlConfigFile.write()
-}
-
-type clusterctlConfig struct {
-	Path   string
-	Values map[string]interface{}
-}
-
-// write writes a clusterctl config file to disk.
-func (c *clusterctlConfig) write() {
-	data, err := yaml.Marshal(c.Values)
-	Expect(err).ToNot(HaveOccurred(), "Failed to marshal the clusterctl config file")
-
-	Expect(os.WriteFile(c.Path, data, 0600)).To(Succeed(), "Failed to write the clusterctl config file")
-}
-
-// read reads a clusterctl config file from disk.
-func (c *clusterctlConfig) read() {
-	data, err := os.ReadFile(c.Path)
-	Expect(err).ToNot(HaveOccurred())
-
-	err = yaml.Unmarshal(data, &c.Values)
-	Expect(err).ToNot(HaveOccurred(), "Failed to unmarshal the clusterctl config file")
 }

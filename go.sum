@@ -215,8 +215,9 @@ github.com/spf13/cast v1.7.0/go.mod h1:ancEpBxwJDODSW/UG4rDrAqiKolqNNh2DX3mk86cA
 github.com/spf13/cobra v1.8.1 h1:e5/vxKd/rZsfSJMUX1agtjeTDf+qv1/JdBF8gg5k9ZM=
 github.com/spf13/cobra v1.8.1/go.mod h1:wHxEcudfqmLYa8iTfL+OuZPbBZkmvliBWKIezN3kD9Y=
 github.com/spf13/pflag v0.0.0-20170130214245-9ff6c6923cff/go.mod h1:DYY7MBk1bdzusC3SYhjObp+wFpr4gzcvqqNjLnInEg4=
-github.com/spf13/pflag v1.0.5 h1:iy+VFUOCP1a+8yFto/drg2CJ5u0yRoB7fZw3DKv/JXA=
 github.com/spf13/pflag v1.0.5/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An2Bg=
+github.com/spf13/pflag v1.0.6 h1:jFzHGLGAlb3ruxLB8MhbI6A8+AQX/2eW4qeyNZXNp2o=
+github.com/spf13/pflag v1.0.6/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An2Bg=
 github.com/stoewer/go-strcase v1.3.0 h1:g0eASXYtp+yvN9fK8sH94oCIk0fau9uV1/ZdJ0AVEzs=
 github.com/stoewer/go-strcase v1.3.0/go.mod h1:fAH5hQ5pehh+j3nZfvwdk2RgEgQjAoM8wodgtPmh1xo=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
@@ -242,8 +243,8 @@ github.com/vmware-tanzu/vm-operator/api v1.8.6 h1:NIndORjcnSmIlQsCMIewpIwg/ocRVD
 github.com/vmware-tanzu/vm-operator/api v1.8.6/go.mod h1:HHA2SNI9B5Yqtyp5t+Gt9WTWBi/fIkM6+MukDDSf11A=
 github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20240404200847-de75746a9505 h1:y4wXx1FUFqqSgJ/xUOEM1DLS2Uu0KaeLADWpzpioGTU=
 github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20240404200847-de75746a9505/go.mod h1:5rqRJ9zGR+KnKbkGx373WgN8xJpvAj99kHnfoDYRO5I=
-github.com/vmware/govmomi v0.47.1 h1:6a2iNaqSS2/AFfvI8UMe0l787/TBKkK0KK9jCqCyYCE=
-github.com/vmware/govmomi v0.47.1/go.mod h1:bYwUHpGpisE4AOlDl5eph90T+cjJMIcKx/kaa5v5rQM=
+github.com/vmware/govmomi v0.48.0 h1:CP5bCvkDNGkmn29UlcJKTWMLwDg3iusP8anrZnedWrg=
+github.com/vmware/govmomi v0.48.0/go.mod h1:bYwUHpGpisE4AOlDl5eph90T+cjJMIcKx/kaa5v5rQM=
 github.com/x448/float16 v0.8.4 h1:qLwI1I70+NjRFUR3zs1JPUCgaCXSh3SW62uAKT1mSBM=
 github.com/x448/float16 v0.8.4/go.mod h1:14CWIYCyZA/cWjXOioeEpHeN/83MdbZDRQHoFcYsOfg=
 github.com/xiang90/probing v0.0.0-20221125231312-a49e3df8f510 h1:S2dVYn90KE98chqDkyE9Z4N61UnQd+KOfgp5Iu53llk=

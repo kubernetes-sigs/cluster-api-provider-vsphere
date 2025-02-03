@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/onsi/gomega"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/simulator"
 	_ "github.com/vmware/govmomi/vapi/simulator" // run init func to register the tagging API endpoints.
@@ -184,43 +185,71 @@ func TestCreateDataDisks(t *testing.T) {
 			name:               "Add data disk with 1 ova disk",
 			devices:            deviceList,
 			controller:         controller,
-			dataDisks:          createDataDiskDefinitions(1),
+			dataDisks:          createDataDiskDefinitions(1, nil),
 			expectedUnitNumber: []int{1},
 		},
 		{
 			name:               "Add data disk with 2 ova disk",
 			devices:            createAdditionalDisks(deviceList, controller, 1),
 			controller:         controller,
-			dataDisks:          createDataDiskDefinitions(1),
+			dataDisks:          createDataDiskDefinitions(1, nil),
 			expectedUnitNumber: []int{2},
 		},
 		{
 			name:               "Add multiple data disk with 1 ova disk",
 			devices:            deviceList,
 			controller:         controller,
-			dataDisks:          createDataDiskDefinitions(2),
+			dataDisks:          createDataDiskDefinitions(2, nil),
 			expectedUnitNumber: []int{1, 2},
 		},
 		{
 			name:       "Add too many data disks with 1 ova disk",
 			devices:    deviceList,
 			controller: controller,
-			dataDisks:  createDataDiskDefinitions(30),
+			dataDisks:  createDataDiskDefinitions(30, nil),
 			err:        "all unit numbers are already in-use",
 		},
 		{
 			name:       "Add data disk with no ova disk",
 			devices:    nil,
 			controller: nil,
-			dataDisks:  createDataDiskDefinitions(1),
+			dataDisks:  createDataDiskDefinitions(1, nil),
 			err:        "Invalid disk count: 0",
 		},
 		{
 			name:       "Add too many data disks with 1 ova disk",
 			devices:    deviceList,
 			controller: controller,
-			dataDisks:  createDataDiskDefinitions(40),
+			dataDisks:  createDataDiskDefinitions(40, nil),
 			err:        "all unit numbers are already in-use",
+		},
+		{
+			name:               "Create data disk with Thin provisioning",
+			devices:            deviceList,
+			controller:         controller,
+			dataDisks:          createDataDiskDefinitions(1, &infrav1.ThinProvisioningMode),
+			expectedUnitNumber: []int{1},
+		},
+		{
+			name:               "Create data disk with Thick provisioning",
+			devices:            deviceList,
+			controller:         controller,
+			dataDisks:          createDataDiskDefinitions(1, &infrav1.ThickProvisioningMode),
+			expectedUnitNumber: []int{1},
+		},
+		{
+			name:               "Create data disk with EagerZeroed provisioning",
+			devices:            deviceList,
+			controller:         controller,
+			dataDisks:          createDataDiskDefinitions(1, &infrav1.EagerlyZeroedProvisioningMode),
+			expectedUnitNumber: []int{1},
+		},
+		{
+			name:               "Create data disk without provisioning type set",
+			devices:            deviceList,
+			controller:         controller,
+			dataDisks:          createDataDiskDefinitions(1, nil),
+			expectedUnitNumber: []int{1},
 		},
 	}
 
@@ -228,6 +257,8 @@ func TestCreateDataDisks(t *testing.T) {
 		tc := test
 		t.Run(tc.name, func(t *testing.T) {
 			var funcError error
+
+			g := gomega.NewWithT(t)
 
 			// Create the data disks
 			newDisks, funcError := createDataDisks(ctx.TODO(), tc.dataDisks, tc.devices)
@@ -254,6 +285,24 @@ func TestCreateDataDisks(t *testing.T) {
 					unitNumber := *disk.GetVirtualDeviceConfigSpec().Device.GetVirtualDevice().UnitNumber
 					if tc.err == "" && unitNumber != int32(tc.expectedUnitNumber[index]) {
 						t.Fatalf("Expected to get unitNumber '%d' error from assignUnitNumber, got: '%d'", tc.expectedUnitNumber[index], unitNumber)
+					}
+
+					// Check to see if the provision type matches.
+					backingInfo := disk.GetVirtualDeviceConfigSpec().Device.GetVirtualDevice().Backing.(*types.VirtualDiskFlatVer2BackingInfo)
+					switch tc.dataDisks[index].ProvisioningMode {
+					case infrav1.ThinProvisioningMode:
+						g.Expect(backingInfo.ThinProvisioned).To(gomega.Equal(types.NewBool(true)))
+						g.Expect(backingInfo.EagerlyScrub).To(gomega.BeNil())
+					case infrav1.ThickProvisioningMode:
+						g.Expect(backingInfo.ThinProvisioned).To(gomega.Equal(types.NewBool(false)))
+						g.Expect(backingInfo.EagerlyScrub).To(gomega.BeNil())
+					case infrav1.EagerlyZeroedProvisioningMode:
+						g.Expect(backingInfo.ThinProvisioned).To(gomega.Equal(types.NewBool(false)))
+						g.Expect(backingInfo.EagerlyScrub).To(gomega.Equal(types.NewBool(true)))
+					default:
+						// Currently, if not set, GOVC will set default to false.  We may want to change this behavior to match what template image OS disk is to make them match if not set.
+						g.Expect(backingInfo.ThinProvisioned).To(gomega.BeNil())
+						g.Expect(backingInfo.EagerlyScrub).To(gomega.BeNil())
 					}
 				}
 			}
@@ -296,13 +345,16 @@ func createVirtualDisk(key int32, controller types.BaseVirtualController, diskSi
 	return dev
 }
 
-func createDataDiskDefinitions(numOfDataDisks int) []infrav1.VSphereDisk {
+func createDataDiskDefinitions(numOfDataDisks int, provisionType *infrav1.ProvisioningMode) []infrav1.VSphereDisk {
 	disks := []infrav1.VSphereDisk{}
 
 	for i := 0; i < numOfDataDisks; i++ {
 		disk := infrav1.VSphereDisk{
 			Name:    fmt.Sprintf("disk_%d", i),
 			SizeGiB: 10 * int32(i),
+		}
+		if provisionType != nil {
+			disk.ProvisioningMode = *provisionType
 		}
 		disks = append(disks, disk)
 	}

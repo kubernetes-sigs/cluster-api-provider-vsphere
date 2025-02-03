@@ -1076,6 +1076,15 @@ spec:
                         Name is used to identify the disk definition. Name is required and needs to be unique so that it can be used to
                         clearly identify purpose of the disk.
                       type: string
+                    provisioningMode:
+                      description: |-
+                        ProvisioningMode specifies the provisioning type to be used by this vSphere data disk.
+                        If not set, the setting will be provided by the default storage policy.
+                      enum:
+                      - Thin
+                      - Thick
+                      - EagerlyZeroed
+                      type: string
                     sizeGiB:
                       description: SizeGiB is the size of the disk in GiB.
                       format: int32

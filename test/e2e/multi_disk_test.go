@@ -27,6 +27,8 @@ import (
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	"sigs.k8s.io/cluster-api/test/framework"
 	. "sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 )
 
 type diskSpecInput struct {
@@ -83,7 +85,7 @@ func verifyDisks(ctx context.Context, input diskSpecInput) {
 	for _, vm := range vms.Items {
 		// vSphere machine object should have the data disks configured. We will add +1 to the count since the os image
 		// needs to be included for comparison.
-		Byf("VM %s Spec has %d DataDisks defined", vm.Name, len(vm.Spec.DataDisks))
+		Byf("VM %s Spec has %d DataDisk(s) defined", vm.Name, len(vm.Spec.DataDisks))
 		diskCount := 1 + len(vm.Spec.DataDisks)
 		Expect(diskCount).ToNot(Equal(1), "Total disk count should be larger than 1 for this test")
 
@@ -96,5 +98,40 @@ func verifyDisks(ctx context.Context, input diskSpecInput) {
 		// We expect control plane VMs to have 3 disks, and the compute VMs will have 2.
 		disks := devices.SelectByType((*types.VirtualDisk)(nil))
 		Expect(disks).To(HaveLen(diskCount), fmt.Sprintf("Disk count of VM should be %d", diskCount))
+
+		// Check each disk to see if its provisioning type matches the expected
+		var osDiskBackingInfo *types.VirtualDiskFlatVer2BackingInfo
+		for diskIndex, disk := range disks {
+			// Skip first disk since it is the OS
+			if diskIndex == 0 {
+				osDiskBackingInfo = disk.GetVirtualDevice().Backing.(*types.VirtualDiskFlatVer2BackingInfo)
+				continue
+			}
+
+			// Get the backing info and perform check
+			diskConfig := vm.Spec.DataDisks[diskIndex-1]
+			backingInfo := disk.GetVirtualDevice().Backing.(*types.VirtualDiskFlatVer2BackingInfo)
+			By(fmt.Sprintf("Checking provision type \"%v\"", diskConfig.ProvisioningMode))
+			switch diskConfig.ProvisioningMode {
+			case infrav1.ThinProvisioningMode:
+				Expect(backingInfo.ThinProvisioned).To(Equal(types.NewBool(true)), "ThinProvisioned should be true for resulting disk when data disk provisionType is ThinProvisioned")
+				Expect(backingInfo.EagerlyScrub).To(Equal(types.NewBool(false)), "EagerlyScrub should be false for resulting disk when data disk provisionType is ThinProvisioned")
+			case infrav1.ThickProvisioningMode:
+				Expect(backingInfo.ThinProvisioned).To(Equal(types.NewBool(false)), "ThinProvisioned should be false for resulting disk when data disk provisionType is ThickProvisioned")
+				Expect(backingInfo.EagerlyScrub).To(Equal(types.NewBool(false)), "EagerlyScrub should be false for resulting disk when data disk provisionType is ThickProvisioned")
+			case infrav1.EagerlyZeroedProvisioningMode:
+				Expect(backingInfo.ThinProvisioned).To(Equal(types.NewBool(false)), "ThinProvisioned should be false for resulting disk when data disk provisionType is EagerlyZeroed")
+				Expect(backingInfo.EagerlyScrub).To(Equal(types.NewBool(true)), "EagerlyScrub should be true for resulting disk when data disk provisionType is EagerlyZeroed")
+			default:
+				// Currently, the settings for default behavior of disks during clone can come from templates settings,
+				// the default storage policy, or the clone's settings.  Our tests will compare against os disk to make
+				// sure they are the same.
+				Expect(backingInfo.ThinProvisioned).To(Equal(osDiskBackingInfo.ThinProvisioned), "ThinProvisioned should match OS disk for resulting disk when data disk provisionType is not set")
+				Expect(backingInfo.EagerlyScrub).To(Equal(osDiskBackingInfo.EagerlyScrub), "EagerlyScrub should match OS disk for resulting disk when data disk provisionType is not set")
+			}
+
+			// Check disk size
+			Expect((disk.(*types.VirtualDisk)).CapacityInKB).To(Equal(int64(diskConfig.SizeGiB*1024*1024)), "Resulting disk size should match the size configured for that data disk")
+		}
 	}
 }

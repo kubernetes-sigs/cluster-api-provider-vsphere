@@ -6,7 +6,8 @@ title: CAPV Additional Data Disks When Creating New Machines
 authors:
   - "@vr4manta"
 reviewers:
-  - TBD
+  - "@chrischdi"
+  - "@neolit123"
 creation-date: 2024-10-03
 last-updated: 2024-10-03
 status: implementable
@@ -113,7 +114,31 @@ type VSphereDisk struct {
     // SizeGiB is the size of the disk (in GiB).
     // +kubebuilder:validation:Required
     SizeGiB int32 `json:"sizeGiB"`
+    // ProvisioningMode specifies the provisioning type to be used by this vSphere data disk.
+    // If not set, the setting will be provided by the default storage policy.
+    // +optional
+    ProvisioningMode ProvisioningMode `json:"provisioningMode,omitempty"`
 }
+```
+
+Provisioning type currently will be represented by the following configuration options:
+
+```go
+type ProvisioningType string
+
+var (
+    // ThinProvisioningMode creates the disk using thin provisioning. This means a sparse (allocate on demand)
+    // format with additional space optimizations.
+    ThinProvisioningMode ProvisioningMode = "Thin"
+	
+    // ThickProvisioningMode creates the disk with all space allocated.
+    ThickProvisioningMode ProvisioningMode = "Thick"
+
+    // EagerlyZeroedProvisioningMode creates the disk using eager zero provisioning. An eager zeroed thick disk
+    // has all space allocated and wiped clean of any previous contents on the physical media at
+    // creation time. Such disks may take longer time during creation compared to other disk formats.
+    EagerlyZeroedProvisioningMode ProvisioningMode = "EagerlyZeroed"
+)
 ```
 
 The above type has been added to the machine spec section
@@ -148,8 +173,10 @@ spec:
       dataDisks:
       - name: images
         sizeGiB: 50
+        provisioningType: Thin
       - name: swap
         sizeGiB: 90
+        provisioningType: Thick
       cloneMode: linkedClone
       datacenter: cidatacenter
       datastore: /cidatacenter/datastore/vsanDatastore
@@ -175,8 +202,10 @@ spec:
   dataDisks:
   - name: images
     sizeGiB: 50
+    provisioningType: Thin
   - name: swap
     sizeGiB: 90
+    provisioningType: Thick
   datacenter: cidatacenter
   datastore: /cidatacenter/datastore/vsanDatastore
   diskGiB: 128
@@ -193,7 +222,7 @@ spec:
 
 ```
 
-In the above examples, two data disks will be created during the clone process and placed after the OS disk.  The example shows a 50 GiB with name `images` and a 90 GiB disk with name `swap` being configured and added.
+In the above examples, two data disks will be created during the clone process and placed after the OS disk.  The example shows a 50 GiB with name `images` that will be thin provisioned and a 90 GiB disk with name `swap` that will be thick provisioned being configured and added.
 
 For each `dataDisks` definition, the clone procedure will attempt to generate a device VirtualDeviceConfigSpec that will be used to create the new disk device.  Each disk will be attached in the order in which they are defined in the template.  All disks defined in the vSphere OVA template will come first with the new disks being attached after.
 

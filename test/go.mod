@@ -14,7 +14,7 @@ require (
 	github.com/vmware-tanzu/net-operator-api v0.0.0-20240326163340-1f32d6bf7f9d
 	// The version of vm-operator should be kept in sync with the manifests at: config/deployments/integration-tests
 	github.com/vmware-tanzu/vm-operator/api v1.8.6
-	github.com/vmware/govmomi v0.47.1
+	github.com/vmware/govmomi v0.48.0
 )
 
 require (
@@ -23,7 +23,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.22.2
 	github.com/onsi/gomega v1.36.2
 	github.com/pkg/errors v0.9.1
-	github.com/spf13/pflag v1.0.5
+	github.com/spf13/pflag v1.0.6
 	golang.org/x/crypto v0.32.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.32.1

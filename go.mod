@@ -2,7 +2,7 @@ module sigs.k8s.io/cluster-api-provider-vsphere
 
 go 1.23.0
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.9.0-rc.0.0.20250120131036-3ebd3fe3749b
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.9.0-rc.0.0.20250204082500-5ccaeb33b142
 
 replace github.com/vmware-tanzu/vm-operator/pkg/constants/testlabels => github.com/vmware-tanzu/vm-operator/pkg/constants/testlabels v0.0.0-20240404200847-de75746a9505
 
@@ -94,7 +94,7 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
-	github.com/evanphx/json-patch/v5 v5.9.0 // indirect
+	github.com/evanphx/json-patch/v5 v5.9.11 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
 	github.com/go-openapi/jsonreference v0.20.2 // indirect

@@ -31,14 +31,14 @@ import (
 
 const (
 	scaleClusterControlPlaneEndpointIPPlaceholder   = "scale-cluster-controlplane-endpoint-ip-placeholder"
-	scaleClusterControlPlaneEndpointPortPlaceholder = "scale-cluster-controlplane-endpoint-Port-placeholder"
+	scaleClusterControlPlaneEndpointPortPlaceholder = "scale-cluster-controlplane-endpoint-port-placeholder"
 	scaleClusterVSphereServerPlaceholder            = "scale-cluster-vsphere-server-placeholder"
 	scaleClusterVSphereTLSThumbprintPlaceholder     = "scale-cluster-vsphere-tls-thumbprint-placeholder"
 	scaleClusterNamePlaceholder                     = "scale-cluster-name-placeholder"
 )
 
 var _ = Describe("When testing the machinery for scale testing using vcsim provider [vcsim] [supervisor] [ClusterClass]", func() {
-	const specName = "quick-start-cluster-class-scale" // prefix must be uniq because this test re-writes the clusterctl config.
+	const specName = "scale" // prefix must be uniq because this test re-writes the clusterctl config.
 	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		capi_e2e.ScaleSpec(ctx, func() capi_e2e.ScaleSpecInput {
 			// For supporting real environments we would need to properly cleanup the namespaces and namespace specific ip allocations.
@@ -53,20 +53,20 @@ var _ = Describe("When testing the machinery for scale testing using vcsim provi
 				BootstrapClusterProxy:  bootstrapClusterProxy,
 				ArtifactFolder:         artifactFolder,
 				Flavor:                 ptr.To(testSpecificSettingsGetter().FlavorForMode("topology-runtimesdk")),
-				SkipUpgrade:            true,
+				SkipUpgrade:            false,
 				SkipCleanup:            skipCleanup,
 				ClusterClassName:       getVariableOrFallback(testSpecificSettingsGetter().Variables["CLUSTER_CLASS_NAME"], e2eConfig.GetVariable("CLUSTER_CLASS_NAME")),
 
 				// ClusterCount can be overwritten via `CAPI_SCALE_CLUSTER_COUNT`.
-				ClusterCount: ptr.To[int64](5),
+				ClusterCount: ptr.To[int64](10),
 				// Concurrency can be overwritten via `CAPI_SCALE_CONCURRENCY`.
-				Concurrency: ptr.To[int64](20),
+				Concurrency: ptr.To[int64](5),
 				// ControlPlaneMachineCount can be overwritten via `CAPI_SCALE_CONTROL_PLANE_MACHINE_COUNT`.
-				ControlPlaneMachineCount: ptr.To[int64](3),
-				// WorkerPerMachineDeploymentCount can be overwritten via `CAPI_SCALE_WORKER_PER_MACHINE_DEPLOYMENT_COUNT`.
-				WorkerPerMachineDeploymentCount: ptr.To[int64](1),
+				ControlPlaneMachineCount: ptr.To[int64](1),
 				// MachineDeploymentCount can be overwritten via `CAPI_SCALE_MACHINE_DEPLOYMENT_COUNT`.
-				MachineDeploymentCount: ptr.To[int64](3),
+				MachineDeploymentCount: ptr.To[int64](1),
+				// WorkerPerMachineDeploymentCount can be overwritten via `CAPI_SCALE_WORKER_PER_MACHINE_DEPLOYMENT_COUNT`.
+				WorkerPerMachineDeploymentCount: ptr.To[int64](3),
 				// AdditionalClusterClassCount can be overwritten via `CAPI_SCALE_ADDITIONAL_CLUSTER_CLASS_COUNT`.
 				AdditionalClusterClassCount: ptr.To[int64](4),
 				// DeployClusterInSeparateNamespaces can be overwritten via `CAPI_SCALE_DEPLOY_CLUSTER_IN_SEPARATE_NAMESPACES`.

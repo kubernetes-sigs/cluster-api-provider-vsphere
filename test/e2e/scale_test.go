@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	"k8s.io/utils/ptr"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	"sigs.k8s.io/cluster-api/test/framework"
@@ -95,11 +96,11 @@ var _ = Describe("When testing the machinery for scale testing using vcsim provi
 					}
 					// Re-write the clusterctl config file and add the new variables created above.
 					Byf("Writing a new clusterctl config to %s", testSpecificSettingsGetter().ClusterctlConfigPath)
-					copyAndAmendClusterctlConfig(ctx, copyAndAmendClusterctlConfigInput{
+					Expect(clusterctl.CopyAndAmendClusterctlConfig(ctx, clusterctl.CopyAndAmendClusterctlConfigInput{
 						ClusterctlConfigPath: testSpecificSettingsGetter().ClusterctlConfigPath,
 						OutputPath:           testSpecificSettingsGetter().ClusterctlConfigPath,
 						Variables:            testSpecificVariables,
-					})
+					})).To(Succeed())
 				},
 
 				PostScaleClusterNamespaceCreated: func(clusterProxy framework.ClusterProxy, clusterNamespace string, clusterName string, clusterClassYAML []byte, clusterTemplateYAML []byte) ([]byte, []byte) {

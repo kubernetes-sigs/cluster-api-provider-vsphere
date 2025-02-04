@@ -312,7 +312,7 @@ func addVCSimTestVariables(managementClusterProxy framework.ClusterProxy, specNa
 			return false
 		}
 		return len(envVar.Status.Variables) > 0
-	}, 30*time.Second, 5*time.Second).Should(BeTrue(), "Failed to get EnvVar %s", klog.KObj(envVar))
+	}, 60*time.Second, 5*time.Second).Should(BeTrue(), "Failed to get EnvVar %s", klog.KObj(envVar))
 
 	Byf("Setting test variables for %s", specName)
 	for k, v := range envVar.Status.Variables {

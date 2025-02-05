@@ -27,7 +27,7 @@ providers:
     type: CoreProvider
     versions:
       - name: "v1.10.99"
-        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20250119/core-components.yaml"
+        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20250203/core-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -76,7 +76,7 @@ providers:
     type: BootstrapProvider
     versions:
       - name: "v1.10.99"
-        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20250119/bootstrap-components.yaml"
+        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20250203/bootstrap-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -125,7 +125,7 @@ providers:
     type: ControlPlaneProvider
     versions:
       - name: "v1.10.99"
-        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20250119/control-plane-components.yaml"
+        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20250203/control-plane-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -375,3 +375,7 @@ intervals:
   node-drain/wait-machine-deleted: ["10m", "10s"]
   node-drain/wait-statefulset-available: ["3m", "10s"]
   anti-affinity/wait-vm-redistribution: ["5m", "10s"]
+  #  Giving a bit more time during scale tests, we analyze independently if everything works quickly enough.
+  scale/wait-cluster: ["5m", "10s"]
+  scale/wait-control-plane: ["10m", "10s"]
+  scale/wait-worker-nodes: ["10m", "10s"]

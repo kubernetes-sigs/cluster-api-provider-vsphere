@@ -45,7 +45,7 @@ func Create(ctx context.Context, c client.Client) error {
 	}
 
 	Byf("Creating vcsim server %s", klog.KObj(vcsim))
-	if err := c.Create(ctx, vcsim); err != nil {
+	if err := c.Create(ctx, vcsim); err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}
 

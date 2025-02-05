@@ -55,7 +55,7 @@ func defaultConfigCluster(clusterName, namespace, flavor string, controlPlaneNod
 		Flavor:                   clusterctl.DefaultFlavor,
 		Namespace:                namespace,
 		ClusterName:              clusterName,
-		KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
+		KubernetesVersion:        input.E2EConfig.MustGetVariable(KubernetesVersion),
 		ControlPlaneMachineCount: ptr.To(controlPlaneNodeCount),
 		WorkerMachineCount:       ptr.To(workerNodeCount),
 	}

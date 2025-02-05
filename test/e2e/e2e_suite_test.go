@@ -310,7 +310,7 @@ var _ = SynchronizedAfterSuite(func() {
 		switch testTarget {
 		case VCenterTestTarget:
 			// Cleanup the in cluster address manager
-			vSphereFolderName := e2eConfig.GetVariable("VSPHERE_FOLDER")
+			vSphereFolderName := e2eConfig.MustGetVariable("VSPHERE_FOLDER")
 			err := inClusterAddressManager.Teardown(ctx, vsphereip.MachineFolder(vSphereFolderName), vsphereip.VSphereClient(vsphereClient))
 			if err != nil {
 				Byf("Ignoring Teardown error: %v", err)

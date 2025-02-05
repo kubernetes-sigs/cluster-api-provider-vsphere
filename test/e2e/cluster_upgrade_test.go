@@ -36,9 +36,9 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass and testi
 	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		capi_e2e.ClusterUpgradeConformanceSpec(ctx, func() capi_e2e.ClusterUpgradeConformanceSpecInput {
 			// The Kubernetes versions have to be resolved as they can be defined like this: stable-1.29, ci/latest-1.30.
-			kubernetesVersionUpgradeFrom, err := kubernetesversions.ResolveVersion(ctx, e2eConfig.GetVariable("KUBERNETES_VERSION_UPGRADE_FROM"))
+			kubernetesVersionUpgradeFrom, err := kubernetesversions.ResolveVersion(ctx, e2eConfig.MustGetVariable("KUBERNETES_VERSION_UPGRADE_FROM"))
 			Expect(err).NotTo(HaveOccurred())
-			kubernetesVersionUpgradeTo, err := kubernetesversions.ResolveVersion(ctx, e2eConfig.GetVariable("KUBERNETES_VERSION_UPGRADE_TO"))
+			kubernetesVersionUpgradeTo, err := kubernetesversions.ResolveVersion(ctx, e2eConfig.MustGetVariable("KUBERNETES_VERSION_UPGRADE_TO"))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(os.Setenv("KUBERNETES_VERSION_UPGRADE_FROM", kubernetesVersionUpgradeFrom)).To(Succeed())
 			Expect(os.Setenv("KUBERNETES_VERSION_UPGRADE_TO", kubernetesVersionUpgradeTo)).To(Succeed())

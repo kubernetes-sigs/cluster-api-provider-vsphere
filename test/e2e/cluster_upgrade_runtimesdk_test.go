@@ -31,7 +31,7 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass with Runt
 	const specName = "k8s-upgrade-with-runtimesdk" // aligned to CAPI
 	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		capi_e2e.ClusterUpgradeWithRuntimeSDKSpec(ctx, func() capi_e2e.ClusterUpgradeWithRuntimeSDKSpecInput {
-			version, err := semver.ParseTolerant(e2eConfig.GetVariable(capi_e2e.KubernetesVersionUpgradeFrom))
+			version, err := semver.ParseTolerant(e2eConfig.MustGetVariable(capi_e2e.KubernetesVersionUpgradeFrom))
 			Expect(err).ToNot(HaveOccurred(), "Invalid argument, KUBERNETES_VERSION_UPGRADE_FROM is not a valid version")
 			if version.LT(semver.MustParse("1.24.0")) {
 				Fail("This test only supports upgrades from Kubernetes >= v1.24.0")

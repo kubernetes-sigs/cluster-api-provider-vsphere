@@ -51,7 +51,7 @@ var _ = Describe("When testing K8S conformance with K8S latest ci [supervisor] [
 	const specName = "k8s-conformance-ci-latest" // prefix copied from CAPI
 	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		capi_e2e.K8SConformanceSpec(ctx, func() capi_e2e.K8SConformanceSpecInput {
-			kubernetesVersion, err := kubernetesversions.ResolveVersion(ctx, e2eConfig.GetVariable("KUBERNETES_VERSION_LATEST_CI"))
+			kubernetesVersion, err := kubernetesversions.ResolveVersion(ctx, e2eConfig.MustGetVariable("KUBERNETES_VERSION_LATEST_CI"))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(os.Setenv("KUBERNETES_VERSION", kubernetesVersion)).To(Succeed())
 			return capi_e2e.K8SConformanceSpecInput{

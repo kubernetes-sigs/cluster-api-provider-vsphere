@@ -3,9 +3,9 @@
   value:
   - name: test-patch
     external:
-      generateExtension: generate-patches.${RUNTIME_SDK_EXTENSIONCONFIG_NAME:=k8s-upgrade-with-runtimesdk}
-      validateExtension: validate-topology.${RUNTIME_SDK_EXTENSIONCONFIG_NAME:=k8s-upgrade-with-runtimesdk}
-      discoverVariablesExtension: discover-variables.${RUNTIME_SDK_EXTENSIONCONFIG_NAME:=k8s-upgrade-with-runtimesdk}
+      generateExtension: generate-patches.${EXTENSION_CONFIG_NAME:=k8s-upgrade-with-runtimesdk}
+      validateExtension: validate-topology.${EXTENSION_CONFIG_NAME:=k8s-upgrade-with-runtimesdk}
+      discoverVariablesExtension: discover-variables.${EXTENSION_CONFIG_NAME:=k8s-upgrade-with-runtimesdk}
       settings:
         testMode: govmomi
 - op: remove

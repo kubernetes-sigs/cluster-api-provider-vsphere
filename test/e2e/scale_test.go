@@ -91,8 +91,6 @@ var _ = Describe("When testing the machinery for scale testing using vcsim provi
 						"VSPHERE_TLS_THUMBPRINT":      scaleClusterVSphereTLSThumbprintPlaceholder,
 						"CONTROL_PLANE_ENDPOINT_IP":   scaleClusterControlPlaneEndpointIPPlaceholder,
 						"CONTROL_PLANE_ENDPOINT_PORT": scaleClusterControlPlaneEndpointPortPlaceholder,
-						// Cluster API uses a hard coded name for the ExtensionConfig.
-						"RUNTIME_SDK_EXTENSIONCONFIG_NAME": "capv-scale-test-extension",
 					}
 					// Re-write the clusterctl config file and add the new variables created above.
 					Byf("Writing a new clusterctl config to %s", testSpecificSettingsGetter().ClusterctlConfigPath)

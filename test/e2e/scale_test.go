@@ -53,7 +53,7 @@ var _ = Describe("When testing the machinery for scale testing using vcsim provi
 				BootstrapClusterProxy:  bootstrapClusterProxy,
 				ArtifactFolder:         artifactFolder,
 				Flavor:                 ptr.To(testSpecificSettingsGetter().FlavorForMode("topology-runtimesdk")),
-				SkipUpgrade:            false,
+				SkipUpgrade:            true,
 				SkipCleanup:            skipCleanup,
 				ClusterClassName:       getVariableOrFallback(testSpecificSettingsGetter().Variables["CLUSTER_CLASS_NAME"], e2eConfig.GetVariable("CLUSTER_CLASS_NAME")),
 

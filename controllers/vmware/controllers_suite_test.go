@@ -99,6 +99,10 @@ func setup() {
 	if err != nil {
 		panic(fmt.Sprintf("Unable to setup ClusterCache: %v", err))
 	}
+	go func() {
+		<-ctx.Done()
+		clusterCache.(interface{ Shutdown() }).Shutdown()
+	}()
 
 	controllerOpts := controller.Options{MaxConcurrentReconciles: 10, SkipNameValidation: ptr.To(true)}
 

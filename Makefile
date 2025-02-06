@@ -79,8 +79,12 @@ export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
 #
 GINKGO_FOCUS ?=
 GINKGO_SKIP ?=
+GINKGO_LABEL_FILTER ?=
 GINKGO_NODES ?= 1
 GINKGO_TIMEOUT ?= 3h
+GINKGO_ARGS ?=
+GINKGO_POLL_PROGRESS_AFTER ?= 60m
+GINKGO_POLL_PROGRESS_INTERVAL ?= 5m
 E2E_CONF_FILE ?= $(abspath test/e2e/config/vsphere.yaml)
 E2E_CONF_OVERRIDE_FILE ?= $(abspath test/e2e/config/config-overrides.yaml)
 E2E_VSPHERE_IP_POOL ?=
@@ -698,11 +702,16 @@ e2e: $(GINKGO) $(KUSTOMIZE) $(KIND) $(GOVC) ## Run e2e tests
 	@echo Contents of $(TOOLS_BIN_DIR):
 	@ls $(TOOLS_BIN_DIR)
 	@echo
-	time $(GINKGO) -v --trace -focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) --nodes=$(GINKGO_NODES) -timeout=$(GINKGO_TIMEOUT) \
-		--output-dir="$(ARTIFACTS)" --junit-report="junit.e2e_suite.1.xml" ./test/e2e -- \
+	time $(GINKGO) -v --trace \
+		--nodes=$(GINKGO_NODES) --timeout=$(GINKGO_TIMEOUT) \
+		--label-filter="$(GINKGO_LABEL_FILTER)" --focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) \
+		--poll-progress-after=$(GINKGO_POLL_PROGRESS_AFTER) --poll-progress-interval=$(GINKGO_POLL_PROGRESS_INTERVAL) \
+		--fail-on-pending --fail-on-empty \
+		--no-color=$(GINKGO_NOCOLOR) --output-dir="$(ARTIFACTS)" --junit-report="junit.e2e_suite.1.xml" \
+		$(GINKGO_ARGS) ./test/e2e -- \
+		--e2e.artifacts-folder="$(ARTIFACTS)" \
 		--e2e.config="$(E2E_CONF_FILE)" \
 		--e2e.config-overrides="$(E2E_CONF_OVERRIDE_FILE)" \
-		--e2e.artifacts-folder="$(ARTIFACTS)" \
 		--e2e.skip-resource-cleanup=$(SKIP_RESOURCE_CLEANUP) \
 		--e2e.use-existing-cluster="$(USE_EXISTING_CLUSTER)" \
 		--e2e.ip-pool='$(E2E_VSPHERE_IP_POOL)'

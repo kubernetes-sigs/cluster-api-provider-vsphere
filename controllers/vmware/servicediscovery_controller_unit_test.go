@@ -26,7 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
-	helpers "sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vmware"
+	vmwarehelpers "sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vmware"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
 )
 
@@ -34,7 +34,7 @@ var _ = Describe("ServiceDiscoveryReconciler reconcileNormal", serviceDiscoveryU
 
 func serviceDiscoveryUnitTestsReconcileNormal() {
 	var (
-		controllerCtx  *helpers.UnitTestContextForController
+		controllerCtx  *vmwarehelpers.UnitTestContextForController
 		vsphereCluster vmwarev1.VSphereCluster
 		initObjects    []client.Object
 		reconciler     serviceDiscoveryReconciler
@@ -42,7 +42,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 	namespace := capiutil.RandomString(6)
 	JustBeforeEach(func() {
 		vsphereCluster = fake.NewVSphereCluster(namespace)
-		controllerCtx = helpers.NewUnitTestContextForController(ctx, namespace, &vsphereCluster, false, initObjects, nil)
+		controllerCtx = vmwarehelpers.NewUnitTestContextForController(ctx, namespace, &vsphereCluster, false, initObjects, nil)
 		reconciler = serviceDiscoveryReconciler{
 			Client: controllerCtx.ControllerManagerContext.Client,
 		}

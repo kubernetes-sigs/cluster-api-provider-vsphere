@@ -27,7 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
-	helpers "sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vmware"
+	vmwarehelpers "sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vmware"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/fake"
 )
 
@@ -35,7 +35,7 @@ var _ = Describe("ServiceAccountReconciler reconcileNormal", unitTestsReconcileN
 
 func unitTestsReconcileNormal() {
 	var (
-		controllerCtx  *helpers.UnitTestContextForController
+		controllerCtx  *vmwarehelpers.UnitTestContextForController
 		vsphereCluster *vmwarev1.VSphereCluster
 		initObjects    []client.Object
 		namespace      string
@@ -43,7 +43,7 @@ func unitTestsReconcileNormal() {
 	)
 
 	JustBeforeEach(func() {
-		controllerCtx = helpers.NewUnitTestContextForController(ctx, namespace, vsphereCluster, false, initObjects, nil)
+		controllerCtx = vmwarehelpers.NewUnitTestContextForController(ctx, namespace, vsphereCluster, false, initObjects, nil)
 		// Note: The service account provider requires a reference to the vSphereCluster hence the need to create
 		// a fake vSphereCluster in the test and pass it to during context setup.
 		reconciler = ServiceAccountReconciler{
@@ -128,7 +128,7 @@ func unitTestsReconcileNormal() {
 
 // Updates the service account secret similar to how a token controller would act upon a service account
 // and then re-invokes reconcileNormal.
-func updateServiceAccountSecretAndReconcileNormal(ctx context.Context, controllerCtx *helpers.UnitTestContextForController, reconciler ServiceAccountReconciler, object client.Object) {
+func updateServiceAccountSecretAndReconcileNormal(ctx context.Context, controllerCtx *vmwarehelpers.UnitTestContextForController, reconciler ServiceAccountReconciler, object client.Object) {
 	assertServiceAccountAndUpdateSecret(ctx, controllerCtx.ControllerManagerContext.Client, object.GetNamespace(), object.GetName())
 	_, err := reconciler.reconcileNormal(ctx, controllerCtx.GuestClusterContext)
 	Expect(err).NotTo(HaveOccurred())

@@ -17,6 +17,7 @@ limitations under the License.
 package vmware
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -60,18 +61,18 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	setup()
+	testEnv, clusterCache = setup(ctx)
 	code := m.Run()
 	teardown()
 	os.Exit(code)
 }
 
-func setup() {
+func setup(ctx context.Context) (*helpers.TestEnvironment, clustercache.ClusterCache) {
 	utilruntime.Must(infrav1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(clusterv1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(vmwarev1.AddToScheme(scheme.Scheme))
 
-	testEnv = helpers.NewTestEnvironment(ctx)
+	testEnv := helpers.NewTestEnvironment(ctx)
 
 	secretCachingClient, err := client.New(testEnv.Manager.GetConfig(), client.Options{
 		HTTPClient: testEnv.Manager.GetHTTPClient(),
@@ -99,6 +100,10 @@ func setup() {
 	if err != nil {
 		panic(fmt.Sprintf("Unable to setup ClusterCache: %v", err))
 	}
+	go func() {
+		<-ctx.Done()
+		clusterCache.(interface{ Shutdown() }).Shutdown()
+	}()
 
 	controllerOpts := controller.Options{MaxConcurrentReconciles: 10, SkipNameValidation: ptr.To(true)}
 
@@ -127,8 +132,10 @@ func setup() {
 		},
 	}
 	if err := testEnv.Create(ctx, ns); err != nil {
-		panic("unable to create controller namespace")
+		panic(fmt.Sprintf("unable to create controller namespace: %v", err))
 	}
+
+	return testEnv, clusterCache
 }
 
 func teardown() {

@@ -101,7 +101,7 @@ func InitializeWebhookInEnvironment(e *envtest.Environment, configPath string) {
 
 // WaitForWebhooks waits for TestEnvironment's webhooks to accept connections.
 func (t *TestEnvironment) WaitForWebhooks() {
-	port := env.WebhookInstallOptions.LocalServingPort
+	port := t.env.WebhookInstallOptions.LocalServingPort
 
 	klog.Infof("Waiting for webhook port %d to be open prior to running tests", port)
 	timeout := 1 * time.Second

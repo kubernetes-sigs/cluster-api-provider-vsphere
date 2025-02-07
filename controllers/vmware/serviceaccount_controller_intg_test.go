@@ -17,6 +17,7 @@ limitations under the License.
 package vmware
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"time"
@@ -30,23 +31,40 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
-	helpers "sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vmware"
+	"sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers"
+	vmwarehelpers "sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vmware"
 )
 
 var _ = Describe("ProviderServiceAccount controller integration tests", func() {
-	var intCtx *helpers.IntegrationTestContext
+	// This test suite requires its own management cluster and controllers including clustercache.
+	// Otherwise the workload cluster's kube-apiserver would not shutdown due to the global
+	// test's clustercache still being running.
+	var (
+		intCtx             *vmwarehelpers.IntegrationTestContext
+		testEnv            *helpers.TestEnvironment
+		clusterCache       clustercache.ClusterCache
+		clusterCacheCancel context.CancelFunc
+	)
 
 	BeforeEach(func() {
-		intCtx = helpers.NewIntegrationTestContextWithClusters(ctx, testEnv.Manager.GetClient())
+		var clusterCacheCtx context.Context
+		clusterCacheCtx, clusterCacheCancel = context.WithCancel(ctx)
+		testEnv, clusterCache = setup(clusterCacheCtx)
+		intCtx = vmwarehelpers.NewIntegrationTestContextWithClusters(ctx, testEnv.Manager.GetClient())
 	})
 
 	AfterEach(func() {
+		// Stop clustercache
+		clusterCacheCancel()
+
 		intCtx.AfterEach()
+		Expect(testEnv.Stop()).To(Succeed())
 	})
 
 	Describe("When the ProviderServiceAccount is created", func() {
@@ -56,10 +74,10 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 		)
 		BeforeEach(func() {
 			By(fmt.Sprintf("Creating the Cluster (%s), vSphereCluster (%s) and KubeconfigSecret", intCtx.Cluster.Name, intCtx.VSphereCluster.Name), func() {
-				helpers.CreateAndWait(ctx, intCtx.Client, intCtx.Cluster)
-				helpers.CreateAndWait(ctx, intCtx.Client, intCtx.VSphereCluster)
-				helpers.CreateAndWait(ctx, intCtx.Client, intCtx.KubeconfigSecret)
-				helpers.ClusterInfrastructureReady(ctx, intCtx.Client, clusterCache, intCtx.Cluster)
+				vmwarehelpers.CreateAndWait(ctx, intCtx.Client, intCtx.Cluster)
+				vmwarehelpers.CreateAndWait(ctx, intCtx.Client, intCtx.VSphereCluster)
+				vmwarehelpers.CreateAndWait(ctx, intCtx.Client, intCtx.KubeconfigSecret)
+				vmwarehelpers.ClusterInfrastructureReady(ctx, intCtx.Client, clusterCache, intCtx.Cluster)
 			})
 
 			By("Verifying that the guest cluster client works")
@@ -142,8 +160,8 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 	Context("With non-existent Cluster object", func() {
 		It("cannot reconcile the ProviderServiceAccount object", func() {
 			By("Creating the vSphereCluster and KubeconfigSecret only", func() {
-				helpers.CreateAndWait(ctx, intCtx.Client, intCtx.VSphereCluster)
-				helpers.CreateAndWait(ctx, intCtx.Client, intCtx.KubeconfigSecret)
+				vmwarehelpers.CreateAndWait(ctx, intCtx.Client, intCtx.VSphereCluster)
+				vmwarehelpers.CreateAndWait(ctx, intCtx.Client, intCtx.KubeconfigSecret)
 			})
 
 			By("Creating the ProviderServiceAccount", func() {
@@ -164,8 +182,8 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 	Context("With non-existent Cluster credentials secret", func() {
 		It("cannot reconcile the ProviderServiceAccount object", func() {
 			By("Creating the Cluster and vSphereCluster only", func() {
-				helpers.CreateAndWait(ctx, intCtx.Client, intCtx.Cluster)
-				helpers.CreateAndWait(ctx, intCtx.Client, intCtx.VSphereCluster)
+				vmwarehelpers.CreateAndWait(ctx, intCtx.Client, intCtx.Cluster)
+				vmwarehelpers.CreateAndWait(ctx, intCtx.Client, intCtx.VSphereCluster)
 			})
 
 			By("Creating the ProviderServiceAccount", func() {
@@ -189,10 +207,10 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 		var roleBinding *rbacv1.RoleBinding
 		BeforeEach(func() {
 			By(fmt.Sprintf("Creating the Cluster (%s), vSphereCluster (%s) and KubeconfigSecret", intCtx.Cluster.Name, intCtx.VSphereCluster.Name), func() {
-				helpers.CreateAndWait(ctx, intCtx.Client, intCtx.Cluster)
-				helpers.CreateAndWait(ctx, intCtx.Client, intCtx.VSphereCluster)
-				helpers.CreateAndWait(ctx, intCtx.Client, intCtx.KubeconfigSecret)
-				helpers.ClusterInfrastructureReady(ctx, intCtx.Client, clusterCache, intCtx.Cluster)
+				vmwarehelpers.CreateAndWait(ctx, intCtx.Client, intCtx.Cluster)
+				vmwarehelpers.CreateAndWait(ctx, intCtx.Client, intCtx.VSphereCluster)
+				vmwarehelpers.CreateAndWait(ctx, intCtx.Client, intCtx.KubeconfigSecret)
+				vmwarehelpers.ClusterInfrastructureReady(ctx, intCtx.Client, clusterCache, intCtx.Cluster)
 			})
 			pSvcAccount = getTestProviderServiceAccount(intCtx.Namespace, intCtx.VSphereCluster)
 			pSvcAccount.Spec.TargetNamespace = "default"

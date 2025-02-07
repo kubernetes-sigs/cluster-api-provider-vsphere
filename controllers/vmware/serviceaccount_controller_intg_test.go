@@ -64,6 +64,7 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 		clusterCacheCancel()
 
 		intCtx.AfterEach()
+		testEnv.Stop()
 	})
 
 	Describe("When the ProviderServiceAccount is created", func() {

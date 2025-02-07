@@ -78,8 +78,8 @@ func init() {
 }
 
 var (
-	scheme = runtime.NewScheme()
-	env    *envtest.Environment
+	scheme   = runtime.NewScheme()
+	crdPaths []string
 )
 
 func init() {
@@ -97,7 +97,7 @@ func init() {
 	}
 	root := path.Join(path.Dir(filename), "..", "..", "..")
 
-	crdPaths := []string{
+	crdPaths = []string{
 		filepath.Join(root, "config", "default", "crd", "bases"),
 		filepath.Join(root, "config", "supervisor", "crd", "bases"),
 	}
@@ -105,12 +105,6 @@ func init() {
 	// append CAPI CRDs path
 	if capiPaths := getFilePathToCAPICRDs(); capiPaths != nil {
 		crdPaths = append(crdPaths, capiPaths...)
-	}
-
-	// Create the test environment.
-	env = &envtest.Environment{
-		ErrorIfCRDPathMissing: true,
-		CRDDirectoryPaths:     crdPaths,
 	}
 }
 
@@ -130,6 +124,7 @@ type (
 		client.Client
 		Config    *rest.Config
 		Simulator *vcsim.Simulator
+		env       *envtest.Environment
 
 		cancel context.CancelFunc
 	}
@@ -137,6 +132,12 @@ type (
 
 // NewTestEnvironment creates a new environment spinning up a local api-server.
 func NewTestEnvironment(ctx context.Context) *TestEnvironment {
+	// Create the test environment.
+	env := &envtest.Environment{
+		ErrorIfCRDPathMissing: true,
+		CRDDirectoryPaths:     crdPaths,
+	}
+
 	// Get the root of the current file to use in CRD paths.
 	_, filename, _, ok := goruntime.Caller(0)
 	if !ok {
@@ -227,6 +228,7 @@ func NewTestEnvironment(ctx context.Context) *TestEnvironment {
 		Client:    mgr.GetClient(),
 		Config:    mgr.GetConfig(),
 		Simulator: simr,
+		env:       env,
 	}
 }
 
@@ -241,7 +243,7 @@ func (t *TestEnvironment) StartManager(ctx context.Context) error {
 func (t *TestEnvironment) Stop() error {
 	t.cancel()
 	t.Simulator.Destroy()
-	return env.Stop()
+	return t.env.Stop()
 }
 
 // Cleanup removes objects from the TestEnvironment.

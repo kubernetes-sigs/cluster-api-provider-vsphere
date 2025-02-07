@@ -17,6 +17,7 @@ limitations under the License.
 package vmware
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -24,23 +25,35 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	helpers "sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vmware"
+	"sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers"
+	vmwareHelpers "sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vmware"
 )
 
 var _ = Describe("Service Discovery controller integration tests", func() {
+	// This test suite requires its own management cluster and controllers including clustercache.
+	// Otherwise the workload cluster's kube-apiserver would not shutdown due to the global
+	// test's clustercache still being running.
 	var (
-		intCtx      *helpers.IntegrationTestContext
-		initObjects []client.Object
+		intCtx             *vmwareHelpers.IntegrationTestContext
+		testEnv            *helpers.TestEnvironment
+		clusterCache       clustercache.ClusterCache
+		clusterCacheCancel context.CancelFunc
+		initObjects        []client.Object
 	)
 	BeforeEach(func() {
-		intCtx = helpers.NewIntegrationTestContextWithClusters(ctx, testEnv.Manager.GetClient())
+		var clusterCacheCtx context.Context
+		clusterCacheCtx, clusterCacheCancel = context.WithCancel(ctx)
+		testEnv, clusterCache = setup(clusterCacheCtx)
+		intCtx = vmwareHelpers.NewIntegrationTestContextWithClusters(ctx, testEnv.Manager.GetClient())
+
 		By(fmt.Sprintf("Creating the Cluster (%s), vSphereCluster (%s) and KubeconfigSecret", intCtx.Cluster.Name, intCtx.VSphereCluster.Name), func() {
-			helpers.CreateAndWait(ctx, intCtx.Client, intCtx.Cluster)
-			helpers.CreateAndWait(ctx, intCtx.Client, intCtx.VSphereCluster)
-			helpers.CreateAndWait(ctx, intCtx.Client, intCtx.KubeconfigSecret)
-			helpers.ClusterInfrastructureReady(ctx, intCtx.Client, clusterCache, intCtx.Cluster)
+			vmwareHelpers.CreateAndWait(ctx, intCtx.Client, intCtx.Cluster)
+			vmwareHelpers.CreateAndWait(ctx, intCtx.Client, intCtx.VSphereCluster)
+			vmwareHelpers.CreateAndWait(ctx, intCtx.Client, intCtx.KubeconfigSecret)
+			vmwareHelpers.ClusterInfrastructureReady(ctx, intCtx.Client, clusterCache, intCtx.Cluster)
 		})
 
 		By("Verifying that the guest cluster client works")
@@ -54,6 +67,9 @@ var _ = Describe("Service Discovery controller integration tests", func() {
 		Expect(guestClient.List(ctx, &corev1.ServiceList{}, client.InNamespace(metav1.NamespaceDefault))).To(Succeed())
 	})
 	AfterEach(func() {
+		// Stop clustercache
+		clusterCacheCancel()
+
 		deleteTestResource(ctx, intCtx.Client, intCtx.VSphereCluster)
 		deleteTestResource(ctx, intCtx.Client, intCtx.Cluster)
 		deleteTestResource(ctx, intCtx.Client, intCtx.KubeconfigSecret)

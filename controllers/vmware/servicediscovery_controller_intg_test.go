@@ -74,7 +74,7 @@ var _ = Describe("Service Discovery controller integration tests", func() {
 		deleteTestResource(ctx, intCtx.Client, intCtx.Cluster)
 		deleteTestResource(ctx, intCtx.Client, intCtx.KubeconfigSecret)
 		intCtx.AfterEach()
-		testEnv.Stop()
+		Expect(testEnv.Stop()).To(Succeed())
 	})
 
 	Context("When VIP is available", func() {

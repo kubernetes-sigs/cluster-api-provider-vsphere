@@ -209,6 +209,10 @@ type VirtualMachineCloneSpec struct {
 	// +listMapKey=name
 	// +kubebuilder:validation:MaxItems=29
 	DataDisks []VSphereDisk `json:"dataDisks,omitempty"`
+	// IdentityRef is a reference to either a Secret or VSphereClusterIdentity that contains
+	// the identity to use when reconciling the virtual machine.
+	// +optional
+	IdentityRef *VSphereIdentityReference `json:"identityRef,omitempty"`
 }
 
 // VSphereDisk is an additional disk to add to the VM that is not part of the VM OVA template.

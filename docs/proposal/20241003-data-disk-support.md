@@ -173,10 +173,10 @@ spec:
       dataDisks:
       - name: images
         sizeGiB: 50
-        provisioningType: Thin
+        provisioningMode: Thin
       - name: swap
         sizeGiB: 90
-        provisioningType: Thick
+        provisioningMode: Thick
       cloneMode: linkedClone
       datacenter: cidatacenter
       datastore: /cidatacenter/datastore/vsanDatastore
@@ -202,10 +202,10 @@ spec:
   dataDisks:
   - name: images
     sizeGiB: 50
-    provisioningType: Thin
+    provisioningMode: Thin
   - name: swap
     sizeGiB: 90
-    provisioningType: Thick
+    provisioningMode: Thick
   datacenter: cidatacenter
   datastore: /cidatacenter/datastore/vsanDatastore
   diskGiB: 128

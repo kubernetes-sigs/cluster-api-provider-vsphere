@@ -56,13 +56,66 @@ var _ = Describe("When testing Node drain [supervisor]", func() {
 				InfrastructureProvider: ptr.To("vsphere"),
 				PostNamespaceCreated:   testSpecificSettingsGetter().PostNamespaceCreatedFunc,
 				// Add verification for CSI blocking volume detachments.
-				VerifyNodeVolumeDetach:      true,
-				CreateAdditionalResources:   deployStatefulSetAndBlockCSI,
+				VerifyNodeVolumeDetach: true,
+				CreateAdditionalResources: func(ctx context.Context, clusterProxy framework.ClusterProxy, cluster *clusterv1.Cluster) {
+					// Add a MachineDrainRule to ensure kube-system pods get evicted first and don't mess up the condition assertions.
+					deployKubeSystemMachineDrainRule(ctx, clusterProxy, cluster)
+					// Add a statefulset which uses CSI.
+					deployStatefulSetAndBlockCSI(ctx, clusterProxy, cluster)
+				},
 				UnblockNodeVolumeDetachment: unblockNodeVolumeDetachment,
 			}
 		})
 	})
 })
+
+func deployKubeSystemMachineDrainRule(ctx context.Context, clusterProxy framework.ClusterProxy, cluster *clusterv1.Cluster) {
+	mdRule := &clusterv1.MachineDrainRule{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-kube-system", cluster.Name),
+			Namespace: cluster.Namespace,
+		},
+		Spec: clusterv1.MachineDrainRuleSpec{
+			Drain: clusterv1.MachineDrainRuleDrainConfig{
+				Behavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
+				Order:    ptr.To[int32](-20),
+			},
+			Machines: []clusterv1.MachineDrainRuleMachineSelector{
+				// Select all Machines with the ClusterNameLabel belonging to Clusters with the ClusterNameLabel.
+				{
+					Selector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							clusterv1.ClusterNameLabel: cluster.Name,
+						},
+					},
+					ClusterSelector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							clusterv1.ClusterNameLabel: cluster.Name,
+						},
+					},
+				},
+			},
+			Pods: []clusterv1.MachineDrainRulePodSelector{
+				// Select all Pods in namespace "kube-system".
+				{
+					NamespaceSelector: &metav1.LabelSelector{
+						MatchExpressions: []metav1.LabelSelectorRequirement{
+							{
+								Key:      "kubernetes.io/metadata.name",
+								Operator: metav1.LabelSelectorOpIn,
+								Values: []string{
+									metav1.NamespaceSystem,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	Expect(clusterProxy.GetClient().Create(ctx, mdRule)).To(Succeed())
+}
 
 func deployStatefulSetAndBlockCSI(ctx context.Context, bootstrapClusterProxy framework.ClusterProxy, cluster *clusterv1.Cluster) {
 	controlplane := framework.DiscoveryAndWaitForControlPlaneInitialized(ctx, framework.DiscoveryAndWaitForControlPlaneInitializedInput{

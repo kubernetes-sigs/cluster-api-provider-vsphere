@@ -169,14 +169,14 @@ func VerifyMultiVC(ctx context.Context, input MultiVCenterSpecInput) {
 
 	wlClusterName := fmt.Sprintf("%s-%s", "wlcluster", util.RandomString(6))
 
-	_ = os.Setenv("VSPHERE_SERVER", e2eConfig.GetVariable("VSPHERE2_SERVER"))
+	_ = os.Setenv("VSPHERE_SERVER", e2eConfig.MustGetVariable("VSPHERE2_SERVER"))
 
-	_ = os.Setenv("VSPHERE_TLS_THUMBPRINT", e2eConfig.GetVariable("VSPHERE2_TLS_THUMBPRINT"))
+	_ = os.Setenv("VSPHERE_TLS_THUMBPRINT", e2eConfig.MustGetVariable("VSPHERE2_TLS_THUMBPRINT"))
 	_ = os.Setenv("VSPHERE_USERNAME", os.Getenv("VSPHERE2_USERNAME"))
 	_ = os.Setenv("VSPHERE_PASSWORD", os.Getenv("VSPHERE2_PASSWORD"))
-	_ = os.Setenv("VSPHERE_RESOURCE_POOL", e2eConfig.GetVariable("VSPHERE2_RESOURCE_POOL"))
-	_ = os.Setenv("VSPHERE_TEMPLATE", e2eConfig.GetVariable("VSPHERE2_TEMPLATE"))
-	_ = os.Setenv(vsphereip.ControlPlaneEndpointIPVariable, e2eConfig.GetVariable("VSPHERE2_CONTROL_PLANE_ENDPOINT_IP"))
+	_ = os.Setenv("VSPHERE_RESOURCE_POOL", e2eConfig.MustGetVariable("VSPHERE2_RESOURCE_POOL"))
+	_ = os.Setenv("VSPHERE_TEMPLATE", e2eConfig.MustGetVariable("VSPHERE2_TEMPLATE"))
+	_ = os.Setenv(vsphereip.ControlPlaneEndpointIPVariable, e2eConfig.MustGetVariable("VSPHERE2_CONTROL_PLANE_ENDPOINT_IP"))
 
 	By("creating a workload cluster from vsphere hosted management cluster")
 	wlConfigCluster := defaultConfigCluster(wlClusterName, namespace.Name, specName, 1, 1, GlobalInput{

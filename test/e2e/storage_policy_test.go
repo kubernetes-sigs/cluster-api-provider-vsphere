@@ -108,7 +108,7 @@ func VerifyStoragePolicy(ctx context.Context, input StoragePolicySpecInput) {
 	Expect(err).NotTo(HaveOccurred())
 	var res []pbmypes.PbmServerObjectRef
 	if pbmClient != nil {
-		spName := input.Global.E2EConfig.GetVariable(VsphereStoragePolicy)
+		spName := input.Global.E2EConfig.MustGetVariable(VsphereStoragePolicy)
 		if spName == "" {
 			Fail("storage policy test run without setting VSPHERE_STORAGE_POLICY")
 		}

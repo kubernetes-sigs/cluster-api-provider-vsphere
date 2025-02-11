@@ -59,12 +59,12 @@ var _ = Describe("Hardware version upgrade", func() {
 		})
 
 		It("creates a cluster with VM hardware versions upgraded", func() {
-			Expect(e2eConfig.GetVariable("VSPHERE_TEMPLATE")).NotTo(BeEmpty())
+			Expect(e2eConfig.MustGetVariable("VSPHERE_TEMPLATE")).NotTo(BeEmpty())
 
 			VerifyHardwareUpgrade(ctx, HardwareUpgradeSpecInput{
 				SpecName:  specName,
 				Namespace: namespace,
-				Template:  e2eConfig.GetVariable("VSPHERE_TEMPLATE"),
+				Template:  e2eConfig.MustGetVariable("VSPHERE_TEMPLATE"),
 				ToVersion: "vmx-17",
 				InfraClients: InfraClients{
 					Client:     vsphereClient,

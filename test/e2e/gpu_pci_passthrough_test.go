@@ -55,7 +55,7 @@ var _ = Describe("Cluster creation with GPU devices as PCI passthrough [speciali
 					Flavor:                   testSpecificSettingsGetter().FlavorForMode("pci"),
 					Namespace:                namespace.Name,
 					ClusterName:              clusterName,
-					KubernetesVersion:        e2eConfig.GetVariable(KubernetesVersion),
+					KubernetesVersion:        e2eConfig.MustGetVariable(KubernetesVersion),
 					ControlPlaneMachineCount: ptr.To(int64(1)),
 					WorkerMachineCount:       ptr.To(int64(1)),
 				},

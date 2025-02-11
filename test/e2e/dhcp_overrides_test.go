@@ -79,7 +79,7 @@ var _ = Describe("DHCPOverrides configuration test", func() {
 						Flavor:                   testSpecificSettingsGetter().FlavorForMode("dhcp-overrides"),
 						Namespace:                namespace.Name,
 						ClusterName:              clusterName,
-						KubernetesVersion:        e2eConfig.GetVariable(KubernetesVersion),
+						KubernetesVersion:        e2eConfig.MustGetVariable(KubernetesVersion),
 						ControlPlaneMachineCount: ptr.To(int64(1)),
 						WorkerMachineCount:       ptr.To(int64(1)),
 					},

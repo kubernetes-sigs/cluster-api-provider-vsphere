@@ -191,7 +191,7 @@ func SetupBootstrapCluster(ctx context.Context, config *clusterctl.E2EConfig, sc
 		clusterProvider = bootstrap.CreateKindBootstrapClusterAndLoadImages(ctx, bootstrap.CreateKindBootstrapClusterAndLoadImagesInput{
 			Name:               config.ManagementClusterName,
 			RequiresDockerSock: config.HasDockerProvider(),
-			KubernetesVersion:  config.GetVariable(capi_e2e.KubernetesVersionManagement),
+			KubernetesVersion:  config.MustGetVariable(capi_e2e.KubernetesVersionManagement),
 			Images:             config.Images,
 		})
 

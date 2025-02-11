@@ -97,7 +97,7 @@ func deployStatefulSetAndBlockCSI(ctx context.Context, bootstrapClusterProxy fra
 		WorkloadClusterProxy:                workloadClusterProxy,
 		ControlPlane:                        controlplane,
 		StatefulSetName:                     "sts-cp",
-		Namespace:                           "evictable-workload",
+		Namespace:                           "volume-evictable-workload",
 		NodeSelector:                        map[string]string{nodeOwnerLabelKey: "KubeadmControlPlane-" + controlplane.Name},
 		WaitForStatefulSetAvailableInterval: e2eConfig.GetIntervals("node-drain", "wait-statefulset-available"),
 	})
@@ -106,7 +106,7 @@ func deployStatefulSetAndBlockCSI(ctx context.Context, bootstrapClusterProxy fra
 			WorkloadClusterProxy:                workloadClusterProxy,
 			MachineDeployment:                   md,
 			StatefulSetName:                     fmt.Sprintf("sts-%s", md.Name),
-			Namespace:                           "evictable-workload",
+			Namespace:                           "volume-evictable-workload",
 			NodeSelector:                        map[string]string{nodeOwnerLabelKey: "MachineDeployment-" + md.Name},
 			WaitForStatefulSetAvailableInterval: e2eConfig.GetIntervals("node-drain", "wait-statefulset-available"),
 		})

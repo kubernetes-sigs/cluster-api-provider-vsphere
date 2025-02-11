@@ -9,10 +9,10 @@ spec:
       dataDisks:
       - name: "disk_1"
         sizeGiB: 1
-        provisioningType: "Thin"
+        provisioningMode: "Thin"
       - name: "disk_2"
         sizeGiB: 2
-        provisioningType: "Thick"
+        provisioningMode: "Thick"
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: VSphereMachineTemplate
@@ -25,12 +25,12 @@ spec:
       dataDisks:
       - name: "disk_1"
         sizeGiB: 1
-        provisioningType: "Thin"
+        provisioningMode: "Thin"
       - name: "disk_2"
         sizeGiB: 2
-        provisioningType: "Thick"
+        provisioningMode: "Thick"
       - name: "disk_3"
         sizeGiB: 3
-        provisioningType: "EagerlyZeroed"
+        provisioningMode: "EagerlyZeroed"
       - name: "disk_4"
         sizeGiB: 4

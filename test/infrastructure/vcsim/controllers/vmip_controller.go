@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/vmware/govmomi/vim25/types"
@@ -71,6 +72,30 @@ func (r *vmIPReconciler) ReconcileIP(ctx context.Context) (ctrl.Result, error) {
 		return reconcile.Result{}, nil
 	}
 
+	var macAddress string
+	devices, err := vm.Device(ctx)
+	if err != nil {
+		return reconcile.Result{}, errors.Wrapf(err, "failed to get devices for vm")
+	}
+	for _, device := range devices {
+		if ethernetCard, ok := device.(types.BaseVirtualEthernetCard); ok {
+			macAddress = ethernetCard.GetVirtualEthernetCard().MacAddress
+		}
+	}
+	if macAddress == "" {
+		return reconcile.Result{}, errors.Wrapf(err, "failed to find mac address")
+	}
+
+	powerState, err := vm.PowerState(ctx)
+	if err != nil {
+		return reconcile.Result{}, errors.Wrapf(err, "failed to check Power State of vm")
+	}
+
+	if powerState != types.VirtualMachinePowerStatePoweredOn {
+		// Requeue to wait for the VM to get powered on by CAPV or Supervisor first.
+		return reconcile.Result{RequeueAfter: time.Second}, nil
+	}
+
 	log.Info("Powering Off the VM before applying an IP")
 	task, err := vm.PowerOff(ctx)
 	if err != nil {
@@ -84,6 +109,7 @@ func (r *vmIPReconciler) ReconcileIP(ctx context.Context) (ctrl.Result, error) {
 	spec := types.CustomizationSpec{
 		NicSettingMap: []types.CustomizationAdapterMapping{
 			{
+				MacAddress: macAddress,
 				Adapter: types.CustomizationIPSettings{
 					Ip: &types.CustomizationFixedIp{
 						IpAddress: "192.168.1.100",

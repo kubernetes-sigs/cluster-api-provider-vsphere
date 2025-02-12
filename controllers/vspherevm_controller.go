@@ -437,6 +437,9 @@ func (r vmReconciler) reconcileNormal(ctx context.Context, vmCtx *capvcontext.VM
 	// Do not proceed until the backend VM is marked ready.
 	if vm.State != infrav1.VirtualMachineStateReady {
 		log.Info(fmt.Sprintf("VM state is %q, waiting for %q", vm.State, infrav1.VirtualMachineStateReady))
+		if !vmCtx.VSphereVM.Status.RetryAfter.IsZero() {
+			return reconcile.Result{RequeueAfter: time.Until(vmCtx.VSphereVM.Status.RetryAfter.Time)}, nil
+		}
 		return reconcile.Result{}, nil
 	}
 

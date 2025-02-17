@@ -441,8 +441,6 @@ func createDataDisks(ctx context.Context, dataDiskDefs []infrav1.VSphereDisk, de
 		}
 
 		// Set provisioning type for the new data disk.
-		// Currently, if ThinProvisioned is not set, GOVC will set default to false.  We may want to change this behavior
-		// to match what template image OS disk has configured to make them match if not set.
 		switch dataDisk.ProvisioningMode {
 		case infrav1.ThinProvisioningMode:
 			backing.ThinProvisioned = types.NewBool(true)
@@ -452,7 +450,7 @@ func createDataDisks(ctx context.Context, dataDiskDefs []infrav1.VSphereDisk, de
 			backing.ThinProvisioned = types.NewBool(false)
 			backing.EagerlyScrub = types.NewBool(true)
 		default:
-			log.V(2).Info("No provisioning type detected.  Leaving configuration empty.")
+			log.V(2).Info("No provisioning type detected. Leaving configuration empty.")
 		}
 
 		dev := &types.VirtualDisk{

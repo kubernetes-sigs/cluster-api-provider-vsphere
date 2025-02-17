@@ -100,11 +100,9 @@ func verifyDisks(ctx context.Context, input diskSpecInput) {
 		Expect(disks).To(HaveLen(diskCount), fmt.Sprintf("Disk count of VM should be %d", diskCount))
 
 		// Check each disk to see if its provisioning type matches the expected
-		var osDiskBackingInfo *types.VirtualDiskFlatVer2BackingInfo
 		for diskIndex, disk := range disks {
 			// Skip first disk since it is the OS
 			if diskIndex == 0 {
-				osDiskBackingInfo = disk.GetVirtualDevice().Backing.(*types.VirtualDiskFlatVer2BackingInfo)
 				continue
 			}
 
@@ -123,11 +121,8 @@ func verifyDisks(ctx context.Context, input diskSpecInput) {
 				Expect(backingInfo.ThinProvisioned).To(Equal(types.NewBool(false)), "ThinProvisioned should be false for resulting disk when data disk provisionType is EagerlyZeroed")
 				Expect(backingInfo.EagerlyScrub).To(Equal(types.NewBool(true)), "EagerlyScrub should be true for resulting disk when data disk provisionType is EagerlyZeroed")
 			default:
-				// Currently, the settings for default behavior of disks during clone can come from templates settings,
-				// the default storage policy, or the clone's settings.  Our tests will compare against os disk to make
-				// sure they are the same.
-				Expect(backingInfo.ThinProvisioned).To(Equal(osDiskBackingInfo.ThinProvisioned), "ThinProvisioned should match OS disk for resulting disk when data disk provisionType is not set")
-				Expect(backingInfo.EagerlyScrub).To(Equal(osDiskBackingInfo.EagerlyScrub), "EagerlyScrub should match OS disk for resulting disk when data disk provisionType is not set")
+				// Currently, the settings for default behavior of new disks during clone can come from templates settings,
+				// the default storage policy, the clone's settings or the datastore configuration.
 			}
 
 			// Check disk size

@@ -56,13 +56,66 @@ var _ = Describe("When testing Node drain [supervisor]", func() {
 				InfrastructureProvider: ptr.To("vsphere"),
 				PostNamespaceCreated:   testSpecificSettingsGetter().PostNamespaceCreatedFunc,
 				// Add verification for CSI blocking volume detachments.
-				VerifyNodeVolumeDetach:      true,
-				CreateAdditionalResources:   deployStatefulSetAndBlockCSI,
+				VerifyNodeVolumeDetach: true,
+				CreateAdditionalResources: func(ctx context.Context, clusterProxy framework.ClusterProxy, cluster *clusterv1.Cluster) {
+					// Add a MachineDrainRule to ensure kube-system pods get evicted first and don't mess up the condition assertions.
+					deployKubeSystemMachineDrainRule(ctx, clusterProxy, cluster)
+					// Add a statefulset which uses CSI.
+					deployStatefulSetAndBlockCSI(ctx, clusterProxy, cluster)
+				},
 				UnblockNodeVolumeDetachment: unblockNodeVolumeDetachment,
 			}
 		})
 	})
 })
+
+func deployKubeSystemMachineDrainRule(ctx context.Context, clusterProxy framework.ClusterProxy, cluster *clusterv1.Cluster) {
+	mdRule := &clusterv1.MachineDrainRule{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-kube-system", cluster.Name),
+			Namespace: cluster.Namespace,
+		},
+		Spec: clusterv1.MachineDrainRuleSpec{
+			Drain: clusterv1.MachineDrainRuleDrainConfig{
+				Behavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
+				Order:    ptr.To[int32](-20),
+			},
+			Machines: []clusterv1.MachineDrainRuleMachineSelector{
+				// Select all Machines with the ClusterNameLabel belonging to Clusters with the ClusterNameLabel.
+				{
+					Selector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							clusterv1.ClusterNameLabel: cluster.Name,
+						},
+					},
+					ClusterSelector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							clusterv1.ClusterNameLabel: cluster.Name,
+						},
+					},
+				},
+			},
+			Pods: []clusterv1.MachineDrainRulePodSelector{
+				// Select all Pods in namespace "kube-system".
+				{
+					NamespaceSelector: &metav1.LabelSelector{
+						MatchExpressions: []metav1.LabelSelectorRequirement{
+							{
+								Key:      "kubernetes.io/metadata.name",
+								Operator: metav1.LabelSelectorOpIn,
+								Values: []string{
+									metav1.NamespaceSystem,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	Expect(clusterProxy.GetClient().Create(ctx, mdRule)).To(Succeed())
+}
 
 func deployStatefulSetAndBlockCSI(ctx context.Context, bootstrapClusterProxy framework.ClusterProxy, cluster *clusterv1.Cluster) {
 	controlplane := framework.DiscoveryAndWaitForControlPlaneInitialized(ctx, framework.DiscoveryAndWaitForControlPlaneInitializedInput{
@@ -94,19 +147,25 @@ func deployStatefulSetAndBlockCSI(ctx context.Context, bootstrapClusterProxy fra
 
 	By("Deploy StatefulSets with evictable Pods without finalizer on control plane and MachineDeployment Nodes.")
 	deployEvictablePod(ctx, deployEvictablePodInput{
-		WorkloadClusterProxy:                workloadClusterProxy,
-		ControlPlane:                        controlplane,
-		StatefulSetName:                     "sts-cp",
-		Namespace:                           "evictable-workload",
+		WorkloadClusterProxy: workloadClusterProxy,
+		ControlPlane:         controlplane,
+		StatefulSetName:      "sts-cp",
+		// The delete condition lists objects in status by alphabetical order. these pods are expected to get removed last so
+		// this namespace makes the pods to be listed after the ones used in capi (`evictable-workoad` / `unevictable-workload`)
+		// so the regex matching wokrs out.
+		Namespace:                           "volume-evictable-workload",
 		NodeSelector:                        map[string]string{nodeOwnerLabelKey: "KubeadmControlPlane-" + controlplane.Name},
 		WaitForStatefulSetAvailableInterval: e2eConfig.GetIntervals("node-drain", "wait-statefulset-available"),
 	})
 	for _, md := range mds {
 		deployEvictablePod(ctx, deployEvictablePodInput{
-			WorkloadClusterProxy:                workloadClusterProxy,
-			MachineDeployment:                   md,
-			StatefulSetName:                     fmt.Sprintf("sts-%s", md.Name),
-			Namespace:                           "evictable-workload",
+			WorkloadClusterProxy: workloadClusterProxy,
+			MachineDeployment:    md,
+			StatefulSetName:      fmt.Sprintf("sts-%s", md.Name),
+			// The delete condition lists objects in status by alphabetical order. these pods are expected to get removed last so
+			// this namespace makes the pods to be listed after the ones used in capi (`evictable-workoad` / `unevictable-workload`)
+			// so the regex matching wokrs out.
+			Namespace:                           "volume-evictable-workload",
 			NodeSelector:                        map[string]string{nodeOwnerLabelKey: "MachineDeployment-" + md.Name},
 			WaitForStatefulSetAvailableInterval: e2eConfig.GetIntervals("node-drain", "wait-statefulset-available"),
 		})

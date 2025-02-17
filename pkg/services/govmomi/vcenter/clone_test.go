@@ -300,9 +300,7 @@ func TestCreateDataDisks(t *testing.T) {
 						g.Expect(backingInfo.ThinProvisioned).To(gomega.Equal(types.NewBool(false)))
 						g.Expect(backingInfo.EagerlyScrub).To(gomega.Equal(types.NewBool(true)))
 					default:
-						// Currently, if not set, GOVC will set default to false.  We may want to change this behavior to match what template image OS disk is to make them match if not set.
-						g.Expect(backingInfo.ThinProvisioned).To(gomega.BeNil())
-						g.Expect(backingInfo.EagerlyScrub).To(gomega.BeNil())
+						// If not set, the behaviour may depend on the configuration of the backing datastore.
 					}
 				}
 			}

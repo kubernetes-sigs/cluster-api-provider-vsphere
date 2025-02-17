@@ -147,18 +147,24 @@ func deployStatefulSetAndBlockCSI(ctx context.Context, bootstrapClusterProxy fra
 
 	By("Deploy StatefulSets with evictable Pods without finalizer on control plane and MachineDeployment Nodes.")
 	deployEvictablePod(ctx, deployEvictablePodInput{
-		WorkloadClusterProxy:                workloadClusterProxy,
-		ControlPlane:                        controlplane,
-		StatefulSetName:                     "sts-cp",
+		WorkloadClusterProxy: workloadClusterProxy,
+		ControlPlane:         controlplane,
+		StatefulSetName:      "sts-cp",
+		// The delete condition lists objects in status by alphabetical order. these pods are expected to get removed last so
+		// this namespace makes the pods to be listed after the ones used in capi (`evictable-workoad` / `unevictable-workload`)
+		// so the regex matching wokrs out.
 		Namespace:                           "volume-evictable-workload",
 		NodeSelector:                        map[string]string{nodeOwnerLabelKey: "KubeadmControlPlane-" + controlplane.Name},
 		WaitForStatefulSetAvailableInterval: e2eConfig.GetIntervals("node-drain", "wait-statefulset-available"),
 	})
 	for _, md := range mds {
 		deployEvictablePod(ctx, deployEvictablePodInput{
-			WorkloadClusterProxy:                workloadClusterProxy,
-			MachineDeployment:                   md,
-			StatefulSetName:                     fmt.Sprintf("sts-%s", md.Name),
+			WorkloadClusterProxy: workloadClusterProxy,
+			MachineDeployment:    md,
+			StatefulSetName:      fmt.Sprintf("sts-%s", md.Name),
+			// The delete condition lists objects in status by alphabetical order. these pods are expected to get removed last so
+			// this namespace makes the pods to be listed after the ones used in capi (`evictable-workoad` / `unevictable-workload`)
+			// so the regex matching wokrs out.
 			Namespace:                           "volume-evictable-workload",
 			NodeSelector:                        map[string]string{nodeOwnerLabelKey: "MachineDeployment-" + md.Name},
 			WaitForStatefulSetAvailableInterval: e2eConfig.GetIntervals("node-drain", "wait-statefulset-available"),

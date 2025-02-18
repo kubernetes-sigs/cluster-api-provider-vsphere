@@ -162,7 +162,7 @@ func run(ctx context.Context) error {
 			j := janitor.NewJanitor(vSphereClients, false)
 
 			log.Info("Cleaning up vSphere")
-			if err := j.CleanupVSphere(ctx, []string{folder.(string)}, []string{resourcePool.(string)}, []string{folder.(string)}, false); err != nil {
+			if err := j.CleanupVSphere(ctx, []string{folder.(string)}, []string{resourcePool.(string)}, []string{folder.(string)}, res.Name, false); err != nil {
 				log.Info("Cleaning up vSphere failed")
 
 				// Intentionally keep this resource in cleaning state. The reaper will move it from cleaning to dirty

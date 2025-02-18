@@ -364,7 +364,7 @@ func release(ctx context.Context, client *boskos.Client, resourceName, vSphereUs
 	log.Info("Cleaning up vSphere")
 	// Note: We intentionally want to skip clusterModule cleanup. If we run this too often we might hit race conditions
 	// when other tests are creating cluster modules in parallel.
-	if err := j.CleanupVSphere(ctx, []string{vSphereFolder}, []string{vSphereResourcePool}, []string{vSphereFolder}, true); err != nil {
+	if err := j.CleanupVSphere(ctx, []string{vSphereFolder}, []string{vSphereResourcePool}, []string{vSphereFolder}, resourceName, true); err != nil {
 		log.Info("Cleaning up vSphere failed")
 
 		// Try to release resource as dirty.

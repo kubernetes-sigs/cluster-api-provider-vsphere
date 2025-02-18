@@ -25,11 +25,13 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	cnstypes "github.com/vmware/govmomi/cns/types"
 	"github.com/vmware/govmomi/object"
 	govmomicluster "github.com/vmware/govmomi/vapi/cluster"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -52,8 +54,12 @@ type virtualMachine struct {
 	object        *object.VirtualMachine
 }
 
+// boskosResourceLabel is used to identify volumes created in e2e tests.
+// The value should contain the boskos resource name.
+const boskosResourceLabel = "capv-e2e-test-boskos-resource"
+
 // CleanupVSphere cleans up vSphere VMs, folders and resource pools.
-func (s *Janitor) CleanupVSphere(ctx context.Context, folders, resourcePools, vmFolders []string, skipClusterModule bool) error {
+func (s *Janitor) CleanupVSphere(ctx context.Context, folders, resourcePools, vmFolders []string, boskosResourceName string, skipClusterModule bool) error {
 	errList := []error{}
 
 	// Delete vms to cleanup folders and resource pools.
@@ -84,6 +90,11 @@ func (s *Janitor) CleanupVSphere(ctx context.Context, folders, resourcePools, vm
 	}
 	if err := kerrors.NewAggregate(errList); err != nil {
 		return errors.Wrap(err, "cleaning up folders")
+	}
+
+	// Delete CNS volumes.
+	if err := s.DeleteCNSVolumes(ctx, boskosResourceName); err != nil {
+		return errors.Wrap(err, "cleaning up volumes")
 	}
 
 	if skipClusterModule {
@@ -192,6 +203,118 @@ func (s *Janitor) deleteVSphereVMs(ctx context.Context, folder string) error {
 	// Wait for all destroy tasks to succeed.
 	if err := waitForTasksFinished(ctx, destroyTasks, false); err != nil {
 		return errors.Wrap(err, "failed to wait for vm destroy task to finish")
+	}
+
+	return nil
+}
+
+// DeleteCNSVolumes deletes all volumes from tests.
+func (s *Janitor) DeleteCNSVolumes(ctx context.Context, boskosResourceName string) error {
+	log := ctrl.LoggerFrom(ctx).WithName("volumes")
+	ctx = ctrl.LoggerInto(ctx, log)
+
+	log.Info("Deleting volumes")
+
+	type cnsVolumeToDelete struct {
+		volumeID     cnstypes.CnsVolumeId
+		pvcName      string
+		pvcNamespace string
+	}
+	volumesToDelete := []cnsVolumeToDelete{}
+
+	queryFilter := cnstypes.CnsQueryFilter{
+		Labels: []types.KeyValue{
+			{
+				Key:   boskosResourceLabel,
+				Value: boskosResourceName,
+			},
+		},
+	}
+
+	for {
+		res, err := s.vSphereClients.CNS.QueryVolume(ctx, queryFilter)
+		if err != nil {
+			return err
+		}
+
+		for _, volume := range res.Volumes {
+			var pvcMetadata *cnstypes.CnsKubernetesEntityMetadata
+			for _, meta := range volume.Metadata.EntityMetadata {
+				k8sMetadata, ok := meta.(*cnstypes.CnsKubernetesEntityMetadata)
+				if !ok {
+					continue
+				}
+				if k8sMetadata.EntityType != string(cnstypes.CnsKubernetesEntityTypePVC) {
+					continue
+				}
+				pvcMetadata = k8sMetadata
+			}
+
+			if pvcMetadata == nil {
+				// Ignoring non-PVC volumes.
+				continue
+			}
+
+			var matchesBoskosResourcename bool
+			// Check again that the volume has a matching label.
+			for _, v := range pvcMetadata.Labels {
+				if v.Key != boskosResourceLabel {
+					continue
+				}
+				if v.Value != boskosResourceName {
+					continue
+				}
+				matchesBoskosResourcename = true
+			}
+
+			// Ignore not matching volume.
+			if !matchesBoskosResourcename {
+				continue
+			}
+
+			volumesToDelete = append(volumesToDelete, cnsVolumeToDelete{
+				volumeID:     volume.VolumeId,
+				pvcName:      pvcMetadata.EntityName,
+				pvcNamespace: pvcMetadata.Namespace,
+			})
+		}
+
+		if res.Cursor.Offset == res.Cursor.TotalRecords || len(res.Volumes) == 0 {
+			break
+		}
+
+		queryFilter.Cursor = &res.Cursor
+	}
+
+	if len(volumesToDelete) == 0 {
+		log.Info("No CNS Volumes to delete")
+		return nil
+	}
+
+	deleteTasks := []*object.Task{}
+	for _, volume := range volumesToDelete {
+		log := log.WithValues("volumeID", volume.volumeID, "PersistentVolumeClaim", klog.KRef(volume.pvcNamespace, volume.pvcName))
+
+		log.Info("Deleting CNS Volume in vSphere")
+
+		if s.dryRun {
+			// Skipping actual delete on dryRun.
+			continue
+		}
+
+		// Trigger deletion of the CNS Volume
+		task, err := s.vSphereClients.CNS.DeleteVolume(ctx, []cnstypes.CnsVolumeId{volume.volumeID}, true)
+		if err != nil {
+			return errors.Wrap(err, "failed to create CNS Volume deletion task")
+		}
+
+		log.Info("Created CNS Volume deletion task", "task", task.Reference().Value)
+		deleteTasks = append(deleteTasks, task)
+	}
+
+	// Wait for all delete tasks to succeed.
+	if err := waitForTasksFinished(ctx, deleteTasks, false); err != nil {
+		return errors.Wrap(err, "failed to wait for CNS Volume deletion tasks to finish")
 	}
 
 	return nil

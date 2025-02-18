@@ -24,13 +24,19 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/vmware/govmomi"
+	"github.com/vmware/govmomi/cns"
+	cnssimulator "github.com/vmware/govmomi/cns/simulator"
+	cnstypes "github.com/vmware/govmomi/cns/types"
 	"github.com/vmware/govmomi/find"
+	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/simulator"
 	"github.com/vmware/govmomi/simulator/vpx"
 	"github.com/vmware/govmomi/view"
+	"github.com/vmware/govmomi/vim25/types"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -57,6 +63,8 @@ func setup(ctx context.Context, t *testing.T) (*VSphereClients, *vcsim.Simulator
 		panic(fmt.Sprintf("unable to create simulator %s", err))
 	}
 
+	model.Service.RegisterSDK(cnssimulator.New())
+
 	fmt.Printf(" export GOVC_URL=%s\n", vcsim.ServerURL())
 	fmt.Printf(" export GOVC_USERNAME=%s\n", vcsim.Username())
 	fmt.Printf(" export GOVC_PASSWORD=%s\n", vcsim.Password())
@@ -77,7 +85,7 @@ func setup(ctx context.Context, t *testing.T) (*VSphereClients, *vcsim.Simulator
 	return clients, vcsim
 }
 
-func setupTestCase(g *gomega.WithT, sim *vcsim.Simulator, objects []*vcsimObject) string {
+func setupTestCase(ctx context.Context, g *gomega.WithT, sim *vcsim.Simulator, clients *VSphereClients, objects []vcsimObject) string {
 	g.THelper()
 
 	relativePath := rand.String(10)
@@ -86,13 +94,13 @@ func setupTestCase(g *gomega.WithT, sim *vcsim.Simulator, objects []*vcsimObject
 	baseFolder := vcsimFolder("")
 	baseDatastore := vcsimDatastore("", os.TempDir())
 	// Create base objects for the test case
-	g.Expect(baseRP.Create(sim, relativePath)).To(gomega.Succeed())
-	g.Expect(baseFolder.Create(sim, relativePath)).To(gomega.Succeed())
-	g.Expect(baseDatastore.Create(sim, relativePath)).To(gomega.Succeed())
+	g.Expect(baseRP.Create(ctx, sim, clients, relativePath)).To(gomega.Succeed())
+	g.Expect(baseFolder.Create(ctx, sim, clients, relativePath)).To(gomega.Succeed())
+	g.Expect(baseDatastore.Create(ctx, sim, clients, relativePath)).To(gomega.Succeed())
 
 	// Create objects
 	for _, object := range objects {
-		g.Expect(object.Create(sim, relativePath)).To(gomega.Succeed())
+		g.Expect(object.Create(ctx, sim, clients, relativePath)).To(gomega.Succeed())
 	}
 
 	return relativePath
@@ -109,16 +117,17 @@ func Test_janitor_deleteVSphereVMs(t *testing.T) {
 
 	// Initialize and start vcsim
 	clients, sim := setup(ctx, t)
+	defer sim.Destroy()
 
 	tests := []struct {
 		name    string
-		objects []*vcsimObject
+		objects []vcsimObject
 		wantErr bool
 		want    map[string]bool
 	}{
 		{
 			name: "delete all VMs",
-			objects: []*vcsimObject{
+			objects: []vcsimObject{
 				vcsimVirtualMachine("foo"),
 			},
 			wantErr: false,
@@ -126,7 +135,7 @@ func Test_janitor_deleteVSphereVMs(t *testing.T) {
 		},
 		{
 			name: "recursive vm deletion",
-			objects: []*vcsimObject{
+			objects: []vcsimObject{
 				vcsimResourcePool("a"),
 				vcsimFolder("a"),
 				vcsimResourcePool("a/b"),
@@ -152,7 +161,7 @@ func Test_janitor_deleteVSphereVMs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := gomega.NewWithT(t)
 
-			relativePath := setupTestCase(g, sim, tt.objects)
+			relativePath := setupTestCase(ctx, g, sim, clients, tt.objects)
 
 			s := &Janitor{
 				dryRun:         false,
@@ -187,12 +196,13 @@ func Test_janitor_deleteObjectChildren(t *testing.T) {
 
 	// Initialize and start vcsim
 	clients, sim := setup(ctx, t)
+	defer sim.Destroy()
 
 	tests := []struct {
 		name       string
 		basePath   string
 		objectType string
-		objects    []*vcsimObject
+		objects    []vcsimObject
 		wantErr    bool
 		want       map[string]bool
 	}{
@@ -200,7 +210,7 @@ func Test_janitor_deleteObjectChildren(t *testing.T) {
 			name:       "should preserve resource pool if it contains a vm and delete empty resource pools",
 			basePath:   resourcePoolBase,
 			objectType: "ResourcePool",
-			objects: []*vcsimObject{
+			objects: []vcsimObject{
 				vcsimResourcePool("a"),
 				vcsimResourcePool("b"), // this one will be deleted
 				vcsimFolder("a"),
@@ -216,7 +226,7 @@ func Test_janitor_deleteObjectChildren(t *testing.T) {
 			name:       "should preserve folder if it contains a vm and delete empty folders",
 			basePath:   folderBase,
 			objectType: "Folder",
-			objects: []*vcsimObject{
+			objects: []vcsimObject{
 				vcsimResourcePool("a"),
 				vcsimFolder("a"),
 				vcsimFolder("b"), // this one will be deleted
@@ -232,13 +242,13 @@ func Test_janitor_deleteObjectChildren(t *testing.T) {
 			name:       "no-op",
 			basePath:   resourcePoolBase,
 			objectType: "ResourcePool",
-			objects:    []*vcsimObject{},
+			objects:    []vcsimObject{},
 		},
 		{
 			name:       "single resource pool",
 			basePath:   resourcePoolBase,
 			objectType: "ResourcePool",
-			objects: []*vcsimObject{
+			objects: []vcsimObject{
 				vcsimResourcePool("a"),
 			},
 		},
@@ -246,7 +256,7 @@ func Test_janitor_deleteObjectChildren(t *testing.T) {
 			name:       "multiple nested resource pools",
 			basePath:   resourcePoolBase,
 			objectType: "ResourcePool",
-			objects: []*vcsimObject{
+			objects: []vcsimObject{
 				vcsimResourcePool("a"),
 				vcsimResourcePool("a/b"),
 				vcsimResourcePool("a/b/c"),
@@ -259,13 +269,13 @@ func Test_janitor_deleteObjectChildren(t *testing.T) {
 			name:       "no-op",
 			basePath:   folderBase,
 			objectType: "Folder",
-			objects:    []*vcsimObject{},
+			objects:    []vcsimObject{},
 		},
 		{
 			name:       "single folder",
 			basePath:   folderBase,
 			objectType: "Folder",
-			objects: []*vcsimObject{
+			objects: []vcsimObject{
 				vcsimFolder("a"),
 			},
 		},
@@ -273,7 +283,7 @@ func Test_janitor_deleteObjectChildren(t *testing.T) {
 			name:       "multiple nested folders",
 			basePath:   folderBase,
 			objectType: "Folder",
-			objects: []*vcsimObject{
+			objects: []vcsimObject{
 				vcsimFolder("a"),
 				vcsimFolder("a/b"),
 				vcsimFolder("a/b/c"),
@@ -287,7 +297,7 @@ func Test_janitor_deleteObjectChildren(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := gomega.NewWithT(t)
 
-			relativePath := setupTestCase(g, sim, tt.objects)
+			relativePath := setupTestCase(ctx, g, sim, clients, tt.objects)
 
 			inventoryPath := path.Join(tt.basePath, relativePath)
 
@@ -311,52 +321,127 @@ func Test_janitor_deleteObjectChildren(t *testing.T) {
 	}
 }
 
+func TestJanitor_deleteCNSVolumes(t *testing.T) {
+	ctx := context.Background()
+	ctx = ctrl.LoggerInto(ctx, klog.Background())
+
+	// Initialize and start vcsim
+	clients, sim := setup(ctx, t)
+	defer sim.Destroy()
+
+	_ = sim
+	tests := []struct {
+		name        string
+		objects     []vcsimObject
+		wantVolumes int
+	}{
+		{
+			name:        "noop",
+			objects:     []vcsimObject{},
+			wantVolumes: 0,
+		},
+		{
+			name: "Keep other volumes",
+			objects: []vcsimObject{
+				vcsimCNSVolume("this", true),
+				vcsimCNSVolume("this", true),
+				vcsimCNSVolume("other", true),
+			},
+			wantVolumes: 1,
+		},
+		{
+			name: "Ignore volume without PVC metadata",
+			objects: []vcsimObject{
+				vcsimCNSVolume("this", true),
+				vcsimCNSVolume("this", true),
+				vcsimCNSVolume("this", false),
+			},
+			wantVolumes: 1,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := gomega.NewWithT(t)
+
+			s := &Janitor{
+				dryRun:         false,
+				vSphereClients: clients,
+			}
+
+			relativePath := setupTestCase(ctx, g, sim, clients, tt.objects)
+
+			boskosResource := relativePath + "-this"
+
+			// Check that all volumes exist.
+			cnsVolumes, err := queryTestCNSVolumes(ctx, clients.CNS, relativePath)
+			g.Expect(err).ToNot(gomega.HaveOccurred())
+			g.Expect(cnsVolumes).To(gomega.HaveLen(len(tt.objects)))
+
+			// Run deletion but only for the given boskosResource.
+			g.Expect(s.DeleteCNSVolumes(ctx, boskosResource)).To(gomega.Succeed())
+
+			// Check that the expected number of volumes are preserved.
+			cnsVolumes, err = queryTestCNSVolumes(ctx, clients.CNS, relativePath)
+			g.Expect(err).ToNot(gomega.HaveOccurred())
+			g.Expect(cnsVolumes).To(gomega.HaveLen(tt.wantVolumes))
+		})
+	}
+}
+
 func Test_janitor_CleanupVSphere(t *testing.T) {
 	ctx := context.Background()
 	ctx = ctrl.LoggerInto(ctx, klog.Background())
 
 	// Initialize and start vcsim
 	clients, sim := setup(ctx, t)
+	defer sim.Destroy()
 
 	tests := []struct {
-		name    string
-		dryRun  bool
-		objects []*vcsimObject
-		want    map[string]bool
+		name        string
+		dryRun      bool
+		objects     []vcsimObject
+		want        map[string]bool
+		wantVolumes int
 	}{
 		{
-			name:    "no-op",
-			dryRun:  false,
-			objects: nil,
-			want:    map[string]bool{},
+			name:        "no-op",
+			dryRun:      false,
+			objects:     nil,
+			want:        map[string]bool{},
+			wantVolumes: 0,
 		},
 		{
-			name:    "dryRun: no-op",
-			dryRun:  true,
-			objects: nil,
-			want:    map[string]bool{},
+			name:        "dryRun: no-op",
+			dryRun:      true,
+			objects:     nil,
+			want:        map[string]bool{},
+			wantVolumes: 0,
 		},
 		{
 			name:   "delete everything",
 			dryRun: false,
-			objects: []*vcsimObject{
+			objects: []vcsimObject{
 				vcsimFolder("a"),
 				vcsimResourcePool("a"),
 				vcsimVirtualMachine("a/b"),
 				vcsimFolder("c"),
 				vcsimResourcePool("c"),
+				vcsimCNSVolume("this", true),
+				vcsimCNSVolume("other", true),
 			},
-			want: map[string]bool{},
+			want:        map[string]bool{},
+			wantVolumes: 1,
 		},
 		{
 			name:   "dryRun: would delete everything",
 			dryRun: true,
-			objects: []*vcsimObject{
+			objects: []vcsimObject{
 				vcsimFolder("a"),
 				vcsimResourcePool("a"),
 				vcsimVirtualMachine("a/b"),
 				vcsimFolder("c"),
 				vcsimResourcePool("c"),
+				vcsimCNSVolume("this", true),
 			},
 			want: map[string]bool{
 				"Folder/a":           true,
@@ -365,18 +450,21 @@ func Test_janitor_CleanupVSphere(t *testing.T) {
 				"ResourcePool/c":     true,
 				"VirtualMachine/a/b": true,
 			},
+			wantVolumes: 1,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := gomega.NewWithT(t)
 
-			relativePath := setupTestCase(g, sim, tt.objects)
+			relativePath := setupTestCase(ctx, g, sim, clients, tt.objects)
 
 			s := &Janitor{
 				dryRun:         tt.dryRun,
 				vSphereClients: clients,
 			}
+
+			boskosResource := relativePath + "-this"
 
 			folder := vcsimFolder("").Path(relativePath)
 			resourcePool := vcsimResourcePool("").Path(relativePath)
@@ -384,7 +472,7 @@ func Test_janitor_CleanupVSphere(t *testing.T) {
 			folders := []string{folder}
 			resourcePools := []string{resourcePool}
 
-			g.Expect(s.CleanupVSphere(ctx, folders, resourcePools, folders, false)).To(gomega.Succeed())
+			g.Expect(s.CleanupVSphere(ctx, folders, resourcePools, folders, boskosResource, false)).To(gomega.Succeed())
 			existingObjects, err := recursiveListFoldersAndResourcePools(ctx, relativePath, clients.Govmomi, clients.Finder, clients.ViewManager)
 			g.Expect(err).ToNot(gomega.HaveOccurred())
 			g.Expect(existingObjects).To(gomega.BeEquivalentTo(tt.want))
@@ -392,8 +480,30 @@ func Test_janitor_CleanupVSphere(t *testing.T) {
 			// Ensure the parent object still exists
 			assertObjectExists(ctx, g, clients.Finder, folder)
 			assertObjectExists(ctx, g, clients.Finder, resourcePool)
+
+			cnsVolumes, err := queryTestCNSVolumes(ctx, clients.CNS, relativePath)
+			g.Expect(err).ToNot(gomega.HaveOccurred())
+			g.Expect(cnsVolumes).To(gomega.HaveLen(tt.wantVolumes))
 		})
 	}
+}
+
+func queryTestCNSVolumes(ctx context.Context, client *cns.Client, testPrefix string) ([]cnstypes.CnsVolume, error) {
+	// VCSim only implements queryfilters on volume IDs.
+	res, err := client.QueryVolume(ctx, cnstypes.CnsQueryFilter{})
+	if err != nil {
+		return nil, err
+	}
+
+	volumes := []cnstypes.CnsVolume{}
+
+	for _, volume := range res.Volumes {
+		if strings.HasPrefix(volume.Name, testPrefix) {
+			volumes = append(volumes, volume)
+		}
+	}
+
+	return volumes, nil
 }
 
 func assertObjectExists(ctx context.Context, g *gomega.WithT, finder *find.Finder, inventoryPath string) {
@@ -427,13 +537,17 @@ func recursiveListFoldersAndResourcePools(ctx context.Context, testPrefix string
 	return objects, nil
 }
 
-type vcsimObject struct {
+type vcsimObject interface {
+	Create(ctx context.Context, sim *vcsim.Simulator, vsphereClients *VSphereClients, testPrefix string) error
+}
+
+type vcsimInventoryObject struct {
 	pathSuffix       string
 	objectType       string
 	datastoreTempDir string
 }
 
-func (o vcsimObject) Path(testPrefix string) string {
+func (o vcsimInventoryObject) Path(testPrefix string) string {
 	var pathPrefix string
 
 	switch o.objectType {
@@ -453,7 +567,7 @@ func (o vcsimObject) Path(testPrefix string) string {
 	return path.Join(pathPrefix, testPrefix, o.pathSuffix)
 }
 
-func (o vcsimObject) Create(sim *vcsim.Simulator, testPrefix string) error {
+func (o vcsimInventoryObject) Create(_ context.Context, sim *vcsim.Simulator, _ *VSphereClients, testPrefix string) error {
 	var cmd string
 	switch o.objectType {
 	case "ResourcePool":
@@ -487,18 +601,69 @@ func (o vcsimObject) Create(sim *vcsim.Simulator, testPrefix string) error {
 	return nil
 }
 
-func vcsimResourcePool(p string) *vcsimObject {
-	return &vcsimObject{pathSuffix: p, objectType: "ResourcePool"}
+type vcsimCNSVolumeObject struct {
+	boskosResourceName string
+	hasPVCMetadata     bool
 }
 
-func vcsimFolder(p string) *vcsimObject {
-	return &vcsimObject{pathSuffix: p, objectType: "Folder"}
+func (v vcsimCNSVolumeObject) Create(ctx context.Context, _ *vcsim.Simulator, vsphereClients *VSphereClients, testPrefix string) error {
+	ds, err := vsphereClients.Finder.Datastore(ctx, testPrefix)
+	if err != nil {
+		return err
+	}
+
+	spec := cnstypes.CnsVolumeCreateSpec{
+		Name:       fmt.Sprintf("%s-pvc-%s", testPrefix, uuid.New().String()),
+		VolumeType: string(cnstypes.CnsVolumeTypeBlock),
+		Datastores: []types.ManagedObjectReference{ds.Reference()},
+		Metadata: cnstypes.CnsVolumeMetadata{
+			EntityMetadata: []cnstypes.BaseCnsEntityMetadata{},
+		},
+		BackingObjectDetails: &cnstypes.CnsBlockBackingDetails{
+			CnsBackingObjectDetails: cnstypes.CnsBackingObjectDetails{
+				CapacityInMb: 5120,
+			},
+		},
+	}
+
+	if v.hasPVCMetadata {
+		spec.Metadata.EntityMetadata = append(spec.Metadata.EntityMetadata, &cnstypes.CnsKubernetesEntityMetadata{
+			EntityType: string(cnstypes.CnsKubernetesEntityTypePVC),
+			CnsEntityMetadata: cnstypes.CnsEntityMetadata{
+				Labels: []types.KeyValue{
+					{
+						Key:   boskosResourceLabel,
+						Value: testPrefix + "-" + v.boskosResourceName,
+					},
+				},
+			},
+		})
+	}
+
+	task, err := vsphereClients.CNS.CreateVolume(ctx, []cnstypes.CnsVolumeCreateSpec{spec})
+	if err != nil {
+		return err
+	}
+
+	return waitForTasksFinished(ctx, []*object.Task{task}, false)
 }
 
-func vcsimDatastore(p, datastoreTempDir string) *vcsimObject {
-	return &vcsimObject{pathSuffix: p, objectType: "Datastore", datastoreTempDir: datastoreTempDir}
+func vcsimResourcePool(p string) *vcsimInventoryObject {
+	return &vcsimInventoryObject{pathSuffix: p, objectType: "ResourcePool"}
 }
 
-func vcsimVirtualMachine(p string) *vcsimObject {
-	return &vcsimObject{pathSuffix: p, objectType: "VirtualMachine"}
+func vcsimFolder(p string) *vcsimInventoryObject {
+	return &vcsimInventoryObject{pathSuffix: p, objectType: "Folder"}
+}
+
+func vcsimDatastore(p, datastoreTempDir string) *vcsimInventoryObject {
+	return &vcsimInventoryObject{pathSuffix: p, objectType: "Datastore", datastoreTempDir: datastoreTempDir}
+}
+
+func vcsimVirtualMachine(p string) *vcsimInventoryObject {
+	return &vcsimInventoryObject{pathSuffix: p, objectType: "VirtualMachine"}
+}
+
+func vcsimCNSVolume(boskosResourceName string, hasPVCMetadata bool) *vcsimCNSVolumeObject {
+	return &vcsimCNSVolumeObject{boskosResourceName: boskosResourceName, hasPVCMetadata: hasPVCMetadata}
 }

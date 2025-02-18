@@ -22,6 +22,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/vmware/govmomi"
+	"github.com/vmware/govmomi/cns"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/list"
 	"github.com/vmware/govmomi/object"
@@ -52,6 +53,7 @@ type VSphereClients struct {
 	FieldsManager *object.CustomFieldsManager
 	Finder        *find.Finder
 	ViewManager   *view.Manager
+	CNS           *cns.Client
 }
 
 // Logout logs out all clients. It logs errors if the context contains a logger.
@@ -110,6 +112,16 @@ func NewVSphereClients(ctx context.Context, input NewVSphereClientsInput) (*VSph
 
 	viewManager := view.NewManager(vimClient)
 	finder := find.NewFinder(vimClient, false)
+	dc, err := finder.Datacenter(ctx, "*")
+	if err != nil {
+		return nil, err
+	}
+	finder.SetDatacenter(dc)
+
+	cnsClient, err := cns.NewClient(ctx, vimClient)
+	if err != nil {
+		return nil, err
+	}
 
 	return &VSphereClients{
 		Vim:           vimClient,
@@ -118,6 +130,7 @@ func NewVSphereClients(ctx context.Context, input NewVSphereClientsInput) (*VSph
 		FieldsManager: fieldsManager,
 		Finder:        finder,
 		ViewManager:   viewManager,
+		CNS:           cnsClient,
 	}, nil
 }
 

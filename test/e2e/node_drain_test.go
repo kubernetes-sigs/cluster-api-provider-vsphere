@@ -19,6 +19,7 @@ package e2e
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -41,6 +42,8 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+const boskosResourceLabel = "capv-e2e-test-boskos-resource"
 
 var _ = Describe("When testing Node drain [supervisor]", func() {
 	const specName = "node-drain" // copied from CAPI
@@ -293,6 +296,10 @@ func generateStatefulset(input generateStatefulsetInput) *appsv1.StatefulSet {
 				MatchLabels: map[string]string{
 					"app":         "nonstop",
 					"statefulset": input.Name,
+					"e2e-test":    "node-drain",
+					// All labels get propagated down to CNS Volumes in vSphere.
+					// This label will be used by the janitor to cleanup orphaned CNS volumes.
+					boskosResourceLabel: os.Getenv("BOSKOS_RESOURCE_NAME"),
 				},
 			},
 			Template: corev1.PodTemplateSpec{
@@ -300,6 +307,10 @@ func generateStatefulset(input generateStatefulsetInput) *appsv1.StatefulSet {
 					Labels: map[string]string{
 						"app":         "nonstop",
 						"statefulset": input.Name,
+						"e2e-test":    "node-drain",
+						// All labels get propagated down to CNS Volumes in vSphere.
+						// This label will be used by the janitor to cleanup orphaned CNS volumes.
+						boskosResourceLabel: os.Getenv("BOSKOS_RESOURCE_NAME"),
 					},
 				},
 				Spec: corev1.PodSpec{

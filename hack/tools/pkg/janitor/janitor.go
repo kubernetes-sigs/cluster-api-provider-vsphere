@@ -31,6 +31,7 @@ import (
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -292,9 +293,9 @@ func (s *Janitor) DeleteCNSVolumes(ctx context.Context, boskosResourceName strin
 
 	deleteTasks := []*object.Task{}
 	for _, volume := range volumesToDelete {
-		log := log.WithValues("volumeID", volume.volumeID, "pvcName", volume.pvcName, "pvcNamespace", volume.pvcNamespace)
+		log := log.WithValues("volumeID", volume.volumeID, "PersistentVolumeClaim", klog.KRef(volume.pvcName, volume.pvcNamespace))
 
-		log.Info("Deleting CNS Volume in vSphere", "volumeID", volume.volumeID)
+		log.Info("Deleting CNS Volume in vSphere")
 
 		if s.dryRun {
 			// Skipping actual delete on dryRun.
@@ -313,7 +314,7 @@ func (s *Janitor) DeleteCNSVolumes(ctx context.Context, boskosResourceName strin
 
 	// Wait for all delete tasks to succeed.
 	if err := waitForTasksFinished(ctx, deleteTasks, false); err != nil {
-		return errors.Wrap(err, "failed to wait for CNS Volume deletion task to finish")
+		return errors.Wrap(err, "failed to wait for CNS Volume deletion tasks to finish")
 	}
 
 	return nil

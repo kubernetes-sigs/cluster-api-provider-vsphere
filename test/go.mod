@@ -14,7 +14,7 @@ require (
 	github.com/vmware-tanzu/net-operator-api v0.0.0-20240326163340-1f32d6bf7f9d
 	// The version of vm-operator should be kept in sync with the manifests at: config/deployments/integration-tests
 	github.com/vmware-tanzu/vm-operator/api v1.8.6
-	github.com/vmware/govmomi v0.48.0
+	github.com/vmware/govmomi v0.48.1
 )
 
 require (
@@ -128,7 +128,7 @@ require (
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.7.0 // indirect
-	github.com/spf13/cobra v1.8.1 // indirect
+	github.com/spf13/cobra v1.9.1 // indirect
 	github.com/spf13/viper v1.19.0 // indirect
 	github.com/stoewer/go-strcase v1.3.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect

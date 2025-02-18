@@ -12,7 +12,7 @@ require (
 	// The version of vm-operator should be kept in sync with the manifests at: config/deployments/integration-tests
 	github.com/vmware-tanzu/vm-operator/api v1.8.6
 	github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20240404200847-de75746a9505
-	github.com/vmware/govmomi v0.48.0
+	github.com/vmware/govmomi v0.48.1
 )
 
 require (
@@ -24,7 +24,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.22.2
 	github.com/onsi/gomega v1.36.2
 	github.com/pkg/errors v0.9.1
-	github.com/spf13/cobra v1.8.1
+	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56

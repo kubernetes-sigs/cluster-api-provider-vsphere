@@ -44,9 +44,76 @@ type Credentials struct {
 	Password string
 }
 
-// GetCredentials returns the VCenter credentials for the VSphereCluster.
+func GetCredentialsFromVshpereVM(ctx context.Context, c client.Client, machine *infrav1.VSphereVM, controllerNamespace string) (*Credentials, error) {
+	if err := validateInputs(c, machine.Namespace, machine.Spec.IdentityRef); err != nil {
+		return nil, err
+	}
+
+	ref := machine.Spec.IdentityRef
+	secret := &corev1.Secret{}
+	var secretKey client.ObjectKey
+
+	switch ref.Kind {
+	case infrav1.SecretKind:
+		secretKey = client.ObjectKey{
+			Namespace: machine.Namespace,
+			Name:      ref.Name,
+		}
+	case infrav1.VSphereClusterIdentityKind:
+		identity := &infrav1.VSphereClusterIdentity{}
+		key := client.ObjectKey{
+			Name: ref.Name,
+		}
+		if err := c.Get(ctx, key, identity); err != nil {
+			return nil, err
+		}
+
+		if !identity.Status.Ready {
+			return nil, errors.New("identity isn't ready to be used yet")
+		}
+
+		if identity.Spec.AllowedNamespaces == nil {
+			return nil, errors.New("allowedNamespaces set to nil, no namespaces are allowed to use this identity")
+		}
+
+		selector, err := metav1.LabelSelectorAsSelector(&identity.Spec.AllowedNamespaces.Selector)
+		if err != nil {
+			return nil, errors.New("failed to build selector")
+		}
+
+		ns := &corev1.Namespace{}
+		nsKey := client.ObjectKey{
+			Name: machine.Namespace,
+		}
+		if err := c.Get(ctx, nsKey, ns); err != nil {
+			return nil, err
+		}
+		if !selector.Matches(labels.Set(ns.GetLabels())) {
+			return nil, fmt.Errorf("namespace %s is not allowed to use specifified identity", machine.Namespace)
+		}
+
+		secretKey = client.ObjectKey{
+			Name:      identity.Spec.SecretName,
+			Namespace: controllerNamespace,
+		}
+	default:
+		return nil, fmt.Errorf("unknown type %s used for Identity", ref.Kind)
+	}
+
+	if err := c.Get(ctx, secretKey, secret); err != nil {
+		return nil, err
+	}
+
+	credentials := &Credentials{
+		Username: getData(secret, UsernameKey),
+		Password: getData(secret, PasswordKey),
+	}
+
+	return credentials, nil
+}
+
 func GetCredentials(ctx context.Context, c client.Client, cluster *infrav1.VSphereCluster, controllerNamespace string) (*Credentials, error) {
-	if err := validateInputs(c, cluster); err != nil {
+	if err := validateInputs(c, cluster.Namespace, cluster.Spec.IdentityRef); err != nil {
 		return nil, err
 	}
 
@@ -113,15 +180,14 @@ func GetCredentials(ctx context.Context, c client.Client, cluster *infrav1.VSphe
 	return credentials, nil
 }
 
-func validateInputs(c client.Client, cluster *infrav1.VSphereCluster) error {
+func validateInputs(c client.Client, namespace string, identityRef *infrav1.VSphereIdentityReference) error {
 	if c == nil {
 		return errors.New("kubernetes client is required")
 	}
-	if cluster == nil {
+	if namespace == "" {
 		return errors.New("vsphere cluster is required")
 	}
-	ref := cluster.Spec.IdentityRef
-	if ref == nil {
+	if identityRef == nil {
 		return errors.New("IdentityRef is required")
 	}
 	return nil

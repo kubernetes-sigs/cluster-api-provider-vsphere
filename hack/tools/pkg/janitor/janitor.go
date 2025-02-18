@@ -293,7 +293,7 @@ func (s *Janitor) DeleteCNSVolumes(ctx context.Context, boskosResourceName strin
 
 	deleteTasks := []*object.Task{}
 	for _, volume := range volumesToDelete {
-		log := log.WithValues("volumeID", volume.volumeID, "PersistentVolumeClaim", klog.KRef(volume.pvcName, volume.pvcNamespace))
+		log := log.WithValues("volumeID", volume.volumeID, "PersistentVolumeClaim", klog.KRef(volume.pvcNamespace, volume.pvcName))
 
 		log.Info("Deleting CNS Volume in vSphere")
 

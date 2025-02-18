@@ -19,6 +19,7 @@ package e2e
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -41,6 +42,8 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+const boskosResourceLabel = "capv-e2e-test-boskos-resource"
 
 var _ = Describe("When testing Node drain [supervisor]", func() {
 	const specName = "node-drain" // copied from CAPI
@@ -170,6 +173,7 @@ func deployStatefulSetAndBlockCSI(ctx context.Context, bootstrapClusterProxy fra
 			WaitForStatefulSetAvailableInterval: e2eConfig.GetIntervals("node-drain", "wait-statefulset-available"),
 		})
 	}
+	Expect(true).To(BeFalse())
 
 	By("Scaling down the CSI controller to block lifecycle of PVC's")
 	csiController := &appsv1.Deployment{}
@@ -291,15 +295,19 @@ func generateStatefulset(input generateStatefulsetInput) *appsv1.StatefulSet {
 		Spec: appsv1.StatefulSetSpec{
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					"app":         "nonstop",
-					"statefulset": input.Name,
+					"app":               "nonstop",
+					"e2e-test":          "node-drain",
+					boskosResourceLabel: os.Getenv("BOSKOS_RESOURCE_NAME"),
+					"statefulset":       input.Name,
 				},
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"app":         "nonstop",
-						"statefulset": input.Name,
+						"app":               "nonstop",
+						"e2e-test":          "node-drain",
+						boskosResourceLabel: os.Getenv("BOSKOS_RESOURCE_NAME"),
+						"statefulset":       input.Name,
 					},
 				},
 				Spec: corev1.PodSpec{

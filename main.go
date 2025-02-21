@@ -404,6 +404,9 @@ func setupVAPIControllers(ctx context.Context, controllerCtx *capvcontext.Contro
 }
 
 func setupSupervisorControllers(ctx context.Context, controllerCtx *capvcontext.ControllerManagerContext, mgr ctrlmgr.Manager, clusterCache clustercache.ClusterCache) error {
+	if err := (&vmwarewebhooks.VSphereClusterWebhook{}).SetupWebhookWithManager(mgr); err != nil {
+		return err
+	}
 	if err := (&vmwarewebhooks.VSphereMachineTemplateWebhook{}).SetupWebhookWithManager(mgr); err != nil {
 		return err
 	}

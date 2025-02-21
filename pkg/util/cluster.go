@@ -59,6 +59,36 @@ func GetVSphereClusterFromVMwareMachine(ctx context.Context, c client.Client, ma
 	return vsphereCluster, err
 }
 
+// GetVMwareVSphereClusterFromMachineDeployment gets the vmware.infrastructure.cluster.x-k8s.io.VSphereCluster resource for the given MachineDeployment$.
+func GetVMwareVSphereClusterFromMachineDeployment(ctx context.Context, c client.Client, machineDeployment *clusterv1.MachineDeployment) (*vmwarev1.VSphereCluster, error) {
+	clusterName := machineDeployment.Labels[clusterv1.ClusterNameLabel]
+	if clusterName == "" {
+		return nil, errors.Errorf("error getting VSphereCluster name from MachineDeployment %s/%s",
+			machineDeployment.Namespace, machineDeployment.Name)
+	}
+	namespacedName := apitypes.NamespacedName{
+		Namespace: machineDeployment.Namespace,
+		Name:      clusterName,
+	}
+	cluster := &clusterv1.Cluster{}
+	if err := c.Get(ctx, namespacedName, cluster); err != nil {
+		return nil, err
+	}
+
+	if cluster.Spec.InfrastructureRef == nil {
+		return nil, errors.Errorf("error getting VSphereCluster name from MachineDeployment %s/%s: Cluster.spec.infrastructureRef not yet set",
+			machineDeployment.Namespace, machineDeployment.Name)
+	}
+
+	vsphereClusterKey := apitypes.NamespacedName{
+		Namespace: machineDeployment.Namespace,
+		Name:      cluster.Spec.InfrastructureRef.Name,
+	}
+	vsphereCluster := &vmwarev1.VSphereCluster{}
+	err := c.Get(ctx, vsphereClusterKey, vsphereCluster)
+	return vsphereCluster, err
+}
+
 // GetVSphereClusterFromVSphereMachine gets the infrastructure.cluster.x-k8s.io.VSphereCluster resource for the given VSphereMachine.
 func GetVSphereClusterFromVSphereMachine(ctx context.Context, c client.Client, machine *infrav1.VSphereMachine) (*infrav1.VSphereCluster, error) {
 	clusterName := machine.Labels[clusterv1.ClusterNameLabel]

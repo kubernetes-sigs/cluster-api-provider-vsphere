@@ -451,10 +451,11 @@ func defaultKubeadmInitSpec(files []bootstrapv1.File) bootstrapv1.KubeadmConfigS
 			NodeRegistration: defaultNodeRegistrationOptions(),
 		},
 		ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
-			APIServer: bootstrapv1.APIServer{
-				ControlPlaneComponent: defaultControlPlaneComponent(),
+			ControllerManager: bootstrapv1.ControlPlaneComponent{
+				ExtraArgs: map[string]string{
+					"cloud-provider": "external",
+				},
 			},
-			ControllerManager: defaultControlPlaneComponent(),
 		},
 		Users:              defaultUsers(),
 		PreKubeadmCommands: defaultPreKubeadmCommands(),
@@ -480,10 +481,11 @@ func ignitionKubeadmInitSpec(files []bootstrapv1.File) bootstrapv1.KubeadmConfig
 			NodeRegistration: nro,
 		},
 		ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
-			APIServer: bootstrapv1.APIServer{
-				ControlPlaneComponent: defaultControlPlaneComponent(),
+			ControllerManager: bootstrapv1.ControlPlaneComponent{
+				ExtraArgs: map[string]string{
+					"cloud-provider": "external",
+				},
 			},
-			ControllerManager: defaultControlPlaneComponent(),
 		},
 		Users:              flatcarUsers(),
 		PreKubeadmCommands: flatcarPreKubeadmCommands(),
@@ -555,9 +557,11 @@ func newIgnitionKubeadmConfigTemplate() bootstrapv1.KubeadmConfigTemplate {
 
 func defaultNodeRegistrationOptions() bootstrapv1.NodeRegistrationOptions {
 	return bootstrapv1.NodeRegistrationOptions{
-		Name:             "{{ local_hostname }}",
-		CRISocket:        "/var/run/containerd/containerd.sock",
-		KubeletExtraArgs: defaultExtraArgs(),
+		Name:      "{{ local_hostname }}",
+		CRISocket: "/var/run/containerd/containerd.sock",
+		KubeletExtraArgs: map[string]string{
+			"cloud-provider": "external",
+		},
 	}
 }
 
@@ -585,20 +589,8 @@ func flatcarUsers() []bootstrapv1.User {
 	}
 }
 
-func defaultControlPlaneComponent() bootstrapv1.ControlPlaneComponent {
-	return bootstrapv1.ControlPlaneComponent{
-		ExtraArgs: defaultExtraArgs(),
-	}
-}
-
 func defaultCustomVMXKeys() map[string]string {
 	return map[string]string{}
-}
-
-func defaultExtraArgs() map[string]string {
-	return map[string]string{
-		"cloud-provider": "external",
-	}
 }
 
 func defaultPreKubeadmCommands() []string {

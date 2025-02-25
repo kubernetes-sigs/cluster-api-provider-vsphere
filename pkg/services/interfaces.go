@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
 )
@@ -63,7 +64,7 @@ type ControlPlaneEndpointService interface {
 type ResourcePolicyService interface {
 	// ReconcileResourcePolicy ensures that a VirtualMachineSetResourcePolicy exists for the cluster
 	// Returns the name of a policy if it exists, otherwise returns an error
-	ReconcileResourcePolicy(ctx context.Context, clusterCtx *vmware.ClusterContext) (string, error)
+	ReconcileResourcePolicy(ctx context.Context, cluster *clusterv1.Cluster, vSphereCluster *vmwarev1.VSphereCluster) (string, error)
 }
 
 // NetworkProvider provision network resources and configures VM based on network type.

@@ -318,7 +318,9 @@ var _ = SynchronizedAfterSuite(func() {
 
 		case VCSimTestTarget:
 			// Cleanup the vcsim address manager
-			Expect(vcsimAddressManager.Teardown(ctx)).To(Succeed())
+			if vcsimAddressManager != nil {
+				Expect(vcsimAddressManager.Teardown(ctx)).To(Succeed())
+			}
 
 			// cleanup the vcsim server
 			Expect(vspherevcsim.Delete(ctx, bootstrapClusterProxy.GetClient(), skipCleanup)).To(Succeed())

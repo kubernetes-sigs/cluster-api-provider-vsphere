@@ -685,18 +685,45 @@ func getVMLabels(supervisorMachineCtx *vmware.SupervisorMachineContext, vmLabels
 }
 
 // getTopologyLabels returns the labels related to a VM's topology.
-//
-// TODO(akutz): Currently this function just returns the availability zone,
-//
-//	and thus the code is optimized as such. However, in the future
-//	this function may return a more diverse topology.
 func getTopologyLabels(supervisorMachineCtx *vmware.SupervisorMachineContext) map[string]string {
 	if fd := supervisorMachineCtx.VSphereMachine.Spec.FailureDomain; fd != nil && *fd != "" {
 		return map[string]string{
 			kubeTopologyZoneLabelKey: *fd,
 		}
 	}
-	return nil
+
+	// if the machine is not explicitly assigned to a zone, we rely on zone placement groups (ZPG) and
+	// zone placement organizations (ZPO), both managed by VM Operator. This ensures:
+	//
+	// - all VMs in a ZPG should be in same zone
+	// - all ZPGs in a ZPO should best effort be spread across zones
+	//
+	// In CAPV:
+	//
+	// - the cluster is a ZPO
+	// - each machine deployment is a ZPG
+
+	labels := map[string]string{
+		ZonePlacementOrgLabelKey: supervisorMachineCtx.Cluster.Name,
+	}
+
+	if mdName, ok := supervisorMachineCtx.Machine.Labels[clusterv1.MachineDeploymentNameLabel]; ok {
+		labels[ZonePlacementGroupLabelKey] = mdName
+	} else {
+		// In theory there might be cases where the machine do not belong to a machine deployment (and don't have a specific zone assigned):
+		// - Standalone worker machines
+		// - Machines controlled by standalone machine sets
+		// - Control plane machines (either standalone or controller by a ControlPlane component)
+		//
+		// The first two cases can't happen when using a cluster with spec.topology set (with ClusterClasses);
+		// the last case (control plane machines) should never happen because in a supervisor cluster the is always
+		// at least one zone defined, the default zone.
+		//
+		// However, for sake of defensive programming, we put all the exception into a ZPG named like the cluster
+		// thus enforcing that VM and related PVC ends up in the same zone.
+		labels[ZonePlacementGroupLabelKey] = supervisorMachineCtx.Cluster.Name
+	}
+	return labels
 }
 
 // getMachineDeploymentName returns the MachineDeployment name for a Cluster.

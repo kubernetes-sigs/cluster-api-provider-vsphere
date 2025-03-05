@@ -19,9 +19,13 @@ package e2e
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterctlcluster "sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -67,6 +71,15 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.12
 				InitWithInfrastructureProviders:   []string{fmt.Sprintf(providerVSpherePrefix, capvStableRelease)},
 				InitWithRuntimeExtensionProviders: testSpecificSettingsGetter().RuntimeExtensionProviders,
 				InitWithIPAMProviders:             []string{},
+				Upgrades: []capi_e2e.ClusterctlUpgradeSpecInputUpgrade{
+					{ // Upgrade to latest v1beta1.
+						Contract: clusterv1.GroupVersion.Version,
+						PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+							framework.ValidateCRDMigration(ctx, proxy, namespace, clusterName,
+								crdShouldBeMigrated, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
+						},
+					},
+				},
 				// InitWithKubernetesVersion should be the highest kubernetes version supported by the init Cluster API version.
 				// This is to guarantee that both, the old and new CAPI version, support the defined version.
 				// Ensure all Kubernetes versions used here are covered in patch-vsphere-template.yaml
@@ -112,6 +125,15 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.12
 				InitWithInfrastructureProviders:   []string{fmt.Sprintf(providerVSpherePrefix, capvStableRelease)},
 				InitWithRuntimeExtensionProviders: testSpecificSettingsGetter().RuntimeExtensionProviders,
 				InitWithIPAMProviders:             []string{},
+				Upgrades: []capi_e2e.ClusterctlUpgradeSpecInputUpgrade{
+					{ // Upgrade to latest v1beta1.
+						Contract: clusterv1.GroupVersion.Version,
+						PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+							framework.ValidateCRDMigration(ctx, proxy, namespace, clusterName,
+								crdShouldBeMigrated, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
+						},
+					},
+				},
 				// InitWithKubernetesVersion should be the highest kubernetes version supported by the init Cluster API version.
 				// This is to guarantee that both, the old and new CAPI version, support the defined version.
 				// Ensure all Kubernetes versions used here are covered in patch-vsphere-template.yaml
@@ -157,6 +179,15 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.11
 				InitWithInfrastructureProviders:   []string{fmt.Sprintf(providerVSpherePrefix, capvStableRelease)},
 				InitWithRuntimeExtensionProviders: testSpecificSettingsGetter().RuntimeExtensionProviders,
 				InitWithIPAMProviders:             []string{},
+				Upgrades: []capi_e2e.ClusterctlUpgradeSpecInputUpgrade{
+					{ // Upgrade to latest v1beta1.
+						Contract: clusterv1.GroupVersion.Version,
+						PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+							framework.ValidateCRDMigration(ctx, proxy, namespace, clusterName,
+								crdShouldBeMigrated, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
+						},
+					},
+				},
 				// InitWithKubernetesVersion should be the highest kubernetes version supported by the init Cluster API version.
 				// This is to guarantee that both, the old and new CAPI version, support the defined version.
 				// Ensure all Kubernetes versions used here are covered in patch-vsphere-template.yaml
@@ -202,6 +233,15 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.10
 				InitWithInfrastructureProviders:   []string{fmt.Sprintf(providerVSpherePrefix, capvStableRelease)},
 				InitWithRuntimeExtensionProviders: testSpecificSettingsGetter().RuntimeExtensionProviders,
 				InitWithIPAMProviders:             []string{},
+				Upgrades: []capi_e2e.ClusterctlUpgradeSpecInputUpgrade{
+					{ // Upgrade to latest v1beta1.
+						Contract: clusterv1.GroupVersion.Version,
+						PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+							framework.ValidateCRDMigration(ctx, proxy, namespace, clusterName,
+								crdShouldBeMigrated, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
+						},
+					},
+				},
 				// InitWithKubernetesVersion should be the highest kubernetes version supported by the init Cluster API version.
 				// This is to guarantee that both, the old and new CAPI version, support the defined version.
 				// Ensure all Kubernetes versions used here are covered in patch-vsphere-template.yaml
@@ -232,4 +272,9 @@ func kindManagementClusterNewClusterProxyFunc(name string, kubeconfigPath string
 		return vcsim.NewClusterProxy(name, kubeconfigPath, initScheme())
 	}
 	return framework.NewClusterProxy(name, kubeconfigPath, initScheme())
+}
+
+func crdShouldBeMigrated(crd apiextensionsv1.CustomResourceDefinition) bool {
+	return strings.HasSuffix(crd.Name, ".infrastructure.cluster.x-k8s.io") && // govmomi & supervisor
+		!strings.HasSuffix(crd.Name, ".vcsim.infrastructure.cluster.x-k8s.io") // !vcsim
 }

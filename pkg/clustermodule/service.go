@@ -62,7 +62,7 @@ func (s *service) Create(ctx context.Context, clusterCtx *capvcontext.ClusterCon
 	if err != nil {
 		return "", errors.Wrapf(err, "error fetching machine template for object %s/%s", wrapper.GetNamespace(), wrapper.GetName())
 	}
-	if server := template.Spec.Template.Spec.Server; server != clusterCtx.VSphereCluster.Spec.Server {
+	if server := template.Spec.Template.Spec.Server; server != "" && server != clusterCtx.VSphereCluster.Spec.Server {
 		log.V(4).Info("Skipping module creation for object since template uses a different server", "server", server)
 		return "", nil
 	}

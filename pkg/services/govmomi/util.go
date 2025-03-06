@@ -161,15 +161,22 @@ func checkAndRetryTask(ctx context.Context, vmCtx *capvcontext.VMContext, task *
 		vmCtx.VSphereVM.Status.TaskRef = ""
 		return false, nil
 	case types.TaskInfoStateError:
-		log.Info("Task found: Task failed")
-
 		// NOTE: When a task fails there is no simple way to understand which operation is failing (e.g. cloning or powering on)
 		// so we are reporting failures using a dedicated reason until we find a better solution.
 		var errorMessage string
 
 		if task.Info.Error != nil {
+			// If the result is InvalidPowerState and the VM's current and expected state are the same, it means the VM already
+			// was in the state we wanted it to be.
+			if isInvalidPowerStateAndExpectedPowerState(task.Info.Error.Fault) {
+				log.Info("Task found: Task failed to power vm, but VM is already in expected state")
+				vmCtx.VSphereVM.Status.TaskRef = ""
+				return false, nil
+			}
 			errorMessage = task.Info.Error.LocalizedMessage
 		}
+
+		log.Info("Task found: Task failed")
 		conditions.MarkFalse(vmCtx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.TaskFailure, clusterv1.ConditionSeverityInfo, errorMessage)
 
 		// Instead of directly requeuing the failed task, wait for the RetryAfter duration to pass
@@ -184,6 +191,15 @@ func checkAndRetryTask(ctx context.Context, vmCtx *capvcontext.VMContext, task *
 	default:
 		return false, errors.Errorf("unknown task state %q for %q", task.Info.State, vmCtx)
 	}
+}
+
+func isInvalidPowerStateAndExpectedPowerState(f types.BaseMethodFault) bool {
+	invalidPowerState, ok := f.(*types.InvalidPowerState)
+	if !ok {
+		return false
+	}
+
+	return invalidPowerState.ExistingState == invalidPowerState.RequestedState
 }
 
 func reconcileVSphereVMWhenNetworkIsReady(ctx context.Context, virtualMachineCtx *virtualMachineContext, powerOnTask *object.Task) {

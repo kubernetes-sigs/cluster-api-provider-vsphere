@@ -21,8 +21,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/pkg/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/patch"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
@@ -50,5 +52,39 @@ func (c *ClusterContext) Patch(ctx context.Context) error {
 			vmwarev1.LoadBalancerReadyCondition,
 		),
 	)
-	return c.PatchHelper.Patch(ctx, c.VSphereCluster)
+
+	if err := v1beta2conditions.SetSummaryCondition(c.VSphereCluster, c.VSphereCluster, vmwarev1.VSphereClusterReadyV1Beta2Condition,
+		v1beta2conditions.ForConditionTypes{
+			vmwarev1.VSphereClusterResourcePolicyReadyV1Beta2Condition,
+			vmwarev1.VSphereClusterNetworkNotReadyV1Beta2Reason,
+			vmwarev1.VSphereClusterLoadBalancerReadyV1Beta2Condition,
+		},
+		// Using a custom merge strategy to override reasons applied during merge.
+		v1beta2conditions.CustomMergeStrategy{
+			MergeStrategy: v1beta2conditions.DefaultMergeStrategy(
+				// Use custom reasons.
+				v1beta2conditions.ComputeReasonFunc(v1beta2conditions.GetDefaultComputeMergeReasonFunc(
+					vmwarev1.VSphereClusterNotReadyV1Beta2Reason,
+					vmwarev1.VSphereClusterReadyUnknownV1Beta2Reason,
+					vmwarev1.VSphereClusterReadyV1Beta2Reason,
+				)),
+			),
+		},
+	); err != nil {
+		return errors.Wrapf(err, "failed to set %s condition", vmwarev1.VSphereClusterReadyV1Beta2Condition)
+	}
+
+	return c.PatchHelper.Patch(ctx, c.VSphereCluster,
+		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			vmwarev1.ResourcePolicyReadyCondition,
+			vmwarev1.ClusterNetworkReadyCondition,
+			vmwarev1.LoadBalancerReadyCondition,
+		}},
+		patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			vmwarev1.VSphereClusterReadyV1Beta2Condition,
+			vmwarev1.VSphereClusterResourcePolicyReadyV1Beta2Condition,
+			vmwarev1.VSphereClusterNetworkNotReadyV1Beta2Reason,
+			vmwarev1.VSphereClusterLoadBalancerReadyV1Beta2Condition,
+		}},
+	)
 }

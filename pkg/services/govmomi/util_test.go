@@ -126,6 +126,28 @@ func Test_ShouldRetryTask(t *testing.T) {
 		g.Expect(conditions.IsFalse(vmCtx.VSphereVM, infrav1.VMProvisionedCondition)).To(BeTrue())
 		g.Expect(vmCtx.VSphereVM.Status.RetryAfter.Unix()).To(BeNumerically("<=", metav1.Now().Add(1*time.Minute).Unix()))
 	})
+
+	t.Run("when failed task failed and is InvalidPowerstate and VM already in expected state, handle as success", func(t *testing.T) {
+		g := NewWithT(t)
+		vmCtx := &capvcontext.VMContext{
+			VSphereVM: &infrav1.VSphereVM{Status: infrav1.VSphereVMStatus{
+				// RetryAfter is not set since this is the first reconcile
+				TaskRef: "task-123",
+			}},
+		}
+		task := baseTask(types.TaskInfoStateError, "InvalidPowerState")
+		task.Info.Error = &types.LocalizedMethodFault{
+			Fault: &types.InvalidPowerState{
+				RequestedState: types.VirtualMachinePowerStatePoweredOn,
+				ExistingState:  types.VirtualMachinePowerStatePoweredOn,
+			},
+		}
+
+		reconciled, err := checkAndRetryTask(ctx, vmCtx, &task)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(reconciled).To(BeFalse())
+		g.Expect(vmCtx.VSphereVM.Status.TaskRef).To(BeEmpty())
+	})
 }
 
 func baseTask(state types.TaskInfoState, errorDescription string) mo.Task {

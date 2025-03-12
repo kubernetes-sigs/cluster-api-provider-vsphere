@@ -44,6 +44,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/cluster-api/util/finalizers"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -93,6 +94,11 @@ func (r *VCenterSimulatorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, err
 	}
 
+	// Add finalizer first if not set to avoid the race condition between init and delete.
+	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, vCenterSimulator, vcsimv1.VCenterFinalizer); err != nil || finalizerAdded {
+		return ctrl.Result{}, err
+	}
+
 	// Initialize the patch helper
 	patchHelper, err := patch.NewHelper(vCenterSimulator, r.Client)
 	if err != nil {
@@ -109,13 +115,6 @@ func (r *VCenterSimulatorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	// Handle deleted machines
 	if !vCenterSimulator.DeletionTimestamp.IsZero() {
 		r.reconcileDelete(ctx, vCenterSimulator)
-		return ctrl.Result{}, nil
-	}
-
-	// Add finalizer first if not set to avoid the race condition between init and delete.
-	// Note: Finalizers in general can only be added when the deletionTimestamp is not set.
-	if !controllerutil.ContainsFinalizer(vCenterSimulator, vcsimv1.VCenterFinalizer) {
-		controllerutil.AddFinalizer(vCenterSimulator, vcsimv1.VCenterFinalizer)
 		return ctrl.Result{}, nil
 	}
 

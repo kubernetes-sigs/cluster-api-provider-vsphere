@@ -25,6 +25,7 @@ import (
 	"k8s.io/klog/v2"
 	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
 	inmemoryserver "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
+	"sigs.k8s.io/cluster-api/util/finalizers"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -59,6 +60,11 @@ func (r *ControlPlaneEndpointReconciler) Reconcile(ctx context.Context, req ctrl
 		return ctrl.Result{}, err
 	}
 
+	// Add finalizer first if not set to avoid the race condition between init and delete.
+	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, controlPlaneEndpoint, vcsimv1.ControlPlaneEndpointFinalizer); err != nil || finalizerAdded {
+		return ctrl.Result{}, err
+	}
+
 	// Initialize the patch helper
 	patchHelper, err := patch.NewHelper(controlPlaneEndpoint, r.Client)
 	if err != nil {
@@ -75,13 +81,6 @@ func (r *ControlPlaneEndpointReconciler) Reconcile(ctx context.Context, req ctrl
 	// Handle deleted machines
 	if !controlPlaneEndpoint.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, r.reconcileDelete(ctx, controlPlaneEndpoint)
-	}
-
-	// Add finalizer first if not set to avoid the race condition between init and delete.
-	// Note: Finalizers in general can only be added when the deletionTimestamp is not set.
-	if !controllerutil.ContainsFinalizer(controlPlaneEndpoint, vcsimv1.ControlPlaneEndpointFinalizer) {
-		controllerutil.AddFinalizer(controlPlaneEndpoint, vcsimv1.ControlPlaneEndpointFinalizer)
-		return ctrl.Result{}, nil
 	}
 
 	// Handle non-deleted machines

@@ -31,6 +31,7 @@ import (
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/finalizers"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -83,6 +84,11 @@ func (r clusterIdentityReconciler) Reconcile(ctx context.Context, req reconcile.
 		return reconcile.Result{}, err
 	}
 
+	// Add finalizer first if not set to avoid the race condition between init and delete.
+	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, identity, infrav1.VSphereClusterIdentityFinalizer); err != nil || finalizerAdded {
+		return ctrl.Result{}, err
+	}
+
 	if annotations.HasPaused(identity) {
 		log.Info("Reconciliation is paused for this object")
 		return reconcile.Result{}, nil
@@ -104,12 +110,6 @@ func (r clusterIdentityReconciler) Reconcile(ctx context.Context, req reconcile.
 
 	if !identity.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, r.reconcileDelete(ctx, identity)
-	}
-
-	// Add a finalizer and requeue to ensure that the secret is deleted when the identity is deleted.
-	if !ctrlutil.ContainsFinalizer(identity, infrav1.VSphereClusterIdentityFinalizer) {
-		ctrlutil.AddFinalizer(identity, infrav1.VSphereClusterIdentityFinalizer)
-		return reconcile.Result{}, nil
 	}
 
 	// fetch secret

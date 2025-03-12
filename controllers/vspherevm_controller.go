@@ -37,6 +37,7 @@ import (
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/finalizers"
 	clog "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -154,6 +155,11 @@ func (r vmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.R
 			return reconcile.Result{}, nil
 		}
 		return reconcile.Result{}, err
+	}
+
+	// Add finalizer first if not set to avoid the race condition between init and delete.
+	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, vsphereVM, infrav1.VMFinalizer); err != nil || finalizerAdded {
+		return ctrl.Result{}, err
 	}
 
 	cluster, err := clusterutilv1.GetClusterFromMetadata(ctx, r.Client, vsphereVM.ObjectMeta)
@@ -293,15 +299,6 @@ func (r vmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.R
 			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
 	}()
-
-	if vsphereVM.ObjectMeta.DeletionTimestamp.IsZero() {
-		// If the VSphereVM doesn't have our finalizer, add it.
-		// Requeue immediately to avoid the race condition between init and delete
-		if !ctrlutil.ContainsFinalizer(vsphereVM, infrav1.VMFinalizer) {
-			ctrlutil.AddFinalizer(vsphereVM, infrav1.VMFinalizer)
-			return reconcile.Result{}, nil
-		}
-	}
 
 	return r.reconcile(ctx, vmContext, fetchClusterModuleInput{
 		VSphereCluster: vsphereCluster,

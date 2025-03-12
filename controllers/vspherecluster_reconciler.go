@@ -35,6 +35,7 @@ import (
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/finalizers"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -69,6 +70,11 @@ func (r *clusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 			return reconcile.Result{}, nil
 		}
 		return reconcile.Result{}, err
+	}
+
+	// Add finalizer first if not set to avoid the race condition between init and delete.
+	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, vsphereCluster, infrav1.ClusterFinalizer); err != nil || finalizerAdded {
+		return ctrl.Result{}, err
 	}
 
 	// Fetch the CAPI Cluster.
@@ -112,13 +118,6 @@ func (r *clusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 	// Handle deleted clusters
 	if !vsphereCluster.DeletionTimestamp.IsZero() {
 		return r.reconcileDelete(ctx, clusterContext)
-	}
-
-	// If the VSphereCluster doesn't have our finalizer, add it.
-	// Requeue immediately after adding finalizer to avoid the race condition between init and delete
-	if !ctrlutil.ContainsFinalizer(vsphereCluster, infrav1.ClusterFinalizer) {
-		ctrlutil.AddFinalizer(vsphereCluster, infrav1.ClusterFinalizer)
-		return reconcile.Result{}, nil
 	}
 
 	// Handle non-deleted clusters

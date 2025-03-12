@@ -75,6 +75,9 @@ func newInfraCluster(namespace string, cluster *clusterv1.Cluster) client.Object
 func newAnonInfraCluster(namespace string) client.Object {
 	return &vmwarev1.VSphereCluster{
 		ObjectMeta: metav1.ObjectMeta{
+			Finalizers: []string{
+				vmwarev1.ClusterFinalizer,
+			},
 			GenerateName: "test-",
 			Namespace:    namespace,
 		},

@@ -433,6 +433,9 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "test",
+			Finalizers: []string{
+				infrav1.VMFinalizer,
+			},
 			Labels: map[string]string{
 				clusterv1.ClusterNameLabel: "valid-cluster",
 			},

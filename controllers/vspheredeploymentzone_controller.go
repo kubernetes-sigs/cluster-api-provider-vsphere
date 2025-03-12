@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/finalizers"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -101,6 +102,11 @@ func (r vsphereDeploymentZoneReconciler) Reconcile(ctx context.Context, request 
 	log = log.WithValues("VSphereFailureDomain", klog.KRef("", vsphereDeploymentZone.Spec.FailureDomain))
 	ctx = ctrl.LoggerInto(ctx, log)
 
+	// Add finalizer first if not set to avoid the race condition between init and delete.
+	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, vsphereDeploymentZone, infrav1.DeploymentZoneFinalizer); err != nil || finalizerAdded {
+		return ctrl.Result{}, err
+	}
+
 	if annotations.HasPaused(vsphereDeploymentZone) {
 		log.Info("Reconciliation is paused for this object")
 		return reconcile.Result{}, nil
@@ -124,13 +130,6 @@ func (r vsphereDeploymentZoneReconciler) Reconcile(ctx context.Context, request 
 
 	if !vsphereDeploymentZone.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, r.reconcileDelete(ctx, vsphereDeploymentZoneContext)
-	}
-
-	// If the VSphereDeploymentZone doesn't have our finalizer, add it.
-	// Requeue immediately after adding finalizer to avoid the race condition between init and delete
-	if !ctrlutil.ContainsFinalizer(vsphereDeploymentZone, infrav1.DeploymentZoneFinalizer) {
-		ctrlutil.AddFinalizer(vsphereDeploymentZone, infrav1.DeploymentZoneFinalizer)
-		return ctrl.Result{}, nil
 	}
 
 	return ctrl.Result{}, r.reconcileNormal(ctx, vsphereDeploymentZoneContext)

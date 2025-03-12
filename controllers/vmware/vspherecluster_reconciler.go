@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/finalizers"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -82,6 +83,11 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 		return reconcile.Result{}, err
 	}
 
+	// Add finalizer first if not set to avoid the race condition between init and delete.
+	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, vsphereCluster, vmwarev1.ClusterFinalizer); err != nil || finalizerAdded {
+		return ctrl.Result{}, err
+	}
+
 	// Fetch the Cluster.
 	cluster, err := clusterutilv1.GetOwnerCluster(ctx, r.Client, vsphereCluster.ObjectMeta)
 	if err != nil {
@@ -129,13 +135,6 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 	if cluster == nil {
 		log.Info("Waiting for Cluster controller to set OwnerRef on VSphereCluster")
 		return reconcile.Result{}, nil
-	}
-
-	// If the VSphereCluster doesn't have our finalizer, add it.
-	// Requeue immediately after adding finalizer to avoid the race condition between init and delete
-	if !controllerutil.ContainsFinalizer(vsphereCluster, vmwarev1.ClusterFinalizer) {
-		controllerutil.AddFinalizer(vsphereCluster, vmwarev1.ClusterFinalizer)
-		return ctrl.Result{}, nil
 	}
 
 	// Handle non-deleted clusters

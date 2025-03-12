@@ -10,6 +10,8 @@ spec:
       name: capv-test-extension-webhook-service
       namespace: capv-test-extension # Note: this assumes the test extension get deployed in the default namespace defined in its own runtime-extensions-components.yaml
       port: 443
+  settings:
+    extensionConfigName: capv-test-extension
   namespaceSelector:
     matchExpressions:
       - key: kubernetes.io/metadata.name

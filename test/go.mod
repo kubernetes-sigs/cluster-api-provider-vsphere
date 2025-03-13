@@ -2,9 +2,9 @@ module sigs.k8s.io/cluster-api-provider-vsphere/test
 
 go 1.23.0
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.9.0-rc.0.0.20250303134942-c9261b079e0b
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.9.0-rc.0.0.20250312112746-ccaea78cdbf0
 
-replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.9.0-rc.0.0.20250303134942-c9261b079e0b
+replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.9.0-rc.0.0.20250312112746-ccaea78cdbf0
 
 replace sigs.k8s.io/cluster-api-provider-vsphere => ../
 
@@ -64,11 +64,11 @@ require (
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/distribution/reference v0.6.0 // indirect
-	github.com/docker/docker v28.0.0+incompatible // indirect
+	github.com/docker/docker v28.0.1+incompatible // indirect
 	github.com/docker/go-connections v0.5.0 // indirect
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/drone/envsubst/v2 v2.0.0-20210730161058-179042472c46 // indirect
-	github.com/emicklei/go-restful/v3 v3.12.1 // indirect
+	github.com/emicklei/go-restful/v3 v3.12.2 // indirect
 	github.com/evanphx/json-patch/v5 v5.9.11 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
@@ -135,9 +135,9 @@ require (
 	github.com/valyala/fastjson v1.6.4 // indirect
 	github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20240404200847-de75746a9505 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
-	go.etcd.io/etcd/api/v3 v3.5.18 // indirect
-	go.etcd.io/etcd/client/pkg/v3 v3.5.18 // indirect
-	go.etcd.io/etcd/client/v3 v3.5.18 // indirect
+	go.etcd.io/etcd/api/v3 v3.5.19 // indirect
+	go.etcd.io/etcd/client/pkg/v3 v3.5.19 // indirect
+	go.etcd.io/etcd/client/v3 v3.5.19 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.53.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.53.0 // indirect
 	go.opentelemetry.io/otel v1.28.0 // indirect
@@ -151,14 +151,14 @@ require (
 	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
 	golang.org/x/net v0.37.0 // indirect
-	golang.org/x/oauth2 v0.27.0 // indirect
+	golang.org/x/oauth2 v0.28.0 // indirect
 	golang.org/x/sync v0.12.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/term v0.30.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
 	golang.org/x/time v0.7.0 // indirect
 	golang.org/x/tools v0.31.0 // indirect
-	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
+	gomodules.xyz/jsonpatch/v2 v2.5.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240826202546-f6391c0de4c7 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240826202546-f6391c0de4c7 // indirect
 	google.golang.org/grpc v1.65.1 // indirect

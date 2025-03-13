@@ -138,7 +138,7 @@ func (s *CPService) ReconcileControlPlaneEndpointService(ctx context.Context, cl
 		conditions.MarkFalse(clusterCtx.VSphereCluster, vmwarev1.LoadBalancerReadyCondition, vmwarev1.WaitingForLoadBalancerIPReason, clusterv1.ConditionSeverityWarning, err.Error())
 		v1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 			Type:    vmwarev1.VSphereClusterLoadBalancerReadyV1Beta2Condition,
-			Status:  metav1.ConditionTrue,
+			Status:  metav1.ConditionFalse,
 			Reason:  vmwarev1.VSphereClusterLoadBalancerWaitingForIPV1Beta2Reason,
 			Message: err.Error(),
 		})

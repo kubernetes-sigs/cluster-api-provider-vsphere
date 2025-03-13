@@ -68,16 +68,16 @@ const (
 
 // VSphereCluster's NetworkReady condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// VSphereClusterNetworkReadyV1Beta2Condition documents the status of the ClusterNetwork for a VSphereCluster.
+	// VSphereClusterNetworkReadyV1Beta2Condition documents the status of the network for a VSphereCluster.
 	VSphereClusterNetworkReadyV1Beta2Condition = "NetworkReady"
 
-	// VSphereClusterNetworkReadyV1Beta2Reason surfaces when the ClusterNetwork for a VSphereCluster is ready.
+	// VSphereClusterNetworkReadyV1Beta2Reason surfaces when the network for a VSphereCluster is ready.
 	VSphereClusterNetworkReadyV1Beta2Reason = clusterv1.ReadyV1Beta2Reason
 
-	// VSphereClusterNetworkNotReadyV1Beta2Reason surfaces when the ClusterNetwork for a VSphereCluster is not ready.
+	// VSphereClusterNetworkNotReadyV1Beta2Reason surfaces when the network for a VSphereCluster is not ready.
 	VSphereClusterNetworkNotReadyV1Beta2Reason = clusterv1.NotReadyV1Beta2Reason
 
-	// VSphereClusterNetworkReadyDeletingV1Beta2Reason surfaces when the cluster network for a VSphereCluster is being deleted.
+	// VSphereClusterNetworkReadyDeletingV1Beta2Reason surfaces when the network for a VSphereCluster is being deleted.
 	VSphereClusterNetworkReadyDeletingV1Beta2Reason = clusterv1.DeletingV1Beta2Reason
 )
 
@@ -92,11 +92,35 @@ const (
 	// VSphereClusterLoadBalancerNotReadyV1Beta2Reason surfaces when the LoadBalancer for a VSphereCluster is not ready.
 	VSphereClusterLoadBalancerNotReadyV1Beta2Reason = clusterv1.NotReadyV1Beta2Reason
 
-	// VSphereClusterLoadBalancerWaitingForIPV1Beta2Reason surfaces when the LoadBalancer for a VSphereCluster is waiting for an IP to be assigned deleted.
+	// VSphereClusterLoadBalancerWaitingForIPV1Beta2Reason surfaces when the LoadBalancer for a VSphereCluster is waiting for an IP to be assigned.
 	VSphereClusterLoadBalancerWaitingForIPV1Beta2Reason = "WaitingForIP"
 
 	// VSphereClusterLoadBalancerDeletingV1Beta2Reason surfaces when the LoadBalancer for a VSphereCluster is being deleted.
 	VSphereClusterLoadBalancerDeletingV1Beta2Reason = clusterv1.DeletingV1Beta2Reason
+)
+
+// VSphereCluster's ProviderServiceAccountsReady condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// VSphereClusterProviderServiceAccountsReadyV1Beta2Condition documents the status of the provider service accounts for a VSphereCluster.
+	VSphereClusterProviderServiceAccountsReadyV1Beta2Condition = "ProviderServiceAccountsReady"
+
+	// VSphereClusterProviderServiceAccountsReadyV1Beta2Reason surfaces when the provider service accounts for a VSphereCluster is ready.
+	VSphereClusterProviderServiceAccountsReadyV1Beta2Reason = clusterv1.ReadyV1Beta2Reason
+
+	// VSphereClusterProviderServiceAccountsNotReadyV1Beta2Reason surfaces when the provider service accounts for a VSphereCluster is not ready.
+	VSphereClusterProviderServiceAccountsNotReadyV1Beta2Reason = clusterv1.NotReadyV1Beta2Reason
+)
+
+// VSphereCluster's ServiceDiscoveryReady condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// VSphereClusterServiceDiscoveryReadyV1Beta2Condition documents the status of the service discovery for a VSphereCluster.
+	VSphereClusterServiceDiscoveryReadyV1Beta2Condition = "ServiceDiscoveryReady"
+
+	// VSphereClusterServiceDiscoveryReadyV1Beta2Reason surfaces when the service discovery for a VSphereCluster is ready.
+	VSphereClusterServiceDiscoveryReadyV1Beta2Reason = clusterv1.ReadyV1Beta2Reason
+
+	// VSphereClusterServiceDiscoveryNotReadyV1Beta2Reason surfaces when the service discovery for a VSphereCluster is not ready.
+	VSphereClusterServiceDiscoveryNotReadyV1Beta2Reason = clusterv1.NotReadyV1Beta2Reason
 )
 
 // VSphereClusterSpec defines the desired state of VSphereCluster.
@@ -134,7 +158,8 @@ type VSphereClusterStatus struct {
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type VSphereClusterV1Beta2Status struct {
 	// conditions represents the observations of a VSphereCluster's current state.
-	// Known condition types are ResourcePolicyReady, NetworkReady and LoadBalancerReady conditions.
+	// Known condition types are Ready, ResourcePolicyReady, NetworkReady, LoadBalancerReady,
+	// ProviderServiceAccountsReady and ServiceDiscoveryReady conditions.
 	// +optional
 	// +listType=map
 	// +listMapKey=type

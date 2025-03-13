@@ -112,12 +112,10 @@ var _ = Describe("Service Discovery controller integration tests", func() {
 	})
 	Context("When headless svc and endpoints already exists", func() {
 		BeforeEach(func() {
-			// Waits for the svc & endpoint objects to be created in the guest cluster
-			headlessSvc := &corev1.Service{}
-			Eventually(func() error {
-				key := client.ObjectKey{Namespace: supervisorHeadlessSvcNamespace, Name: supervisorHeadlessSvcName}
-				return intCtx.GuestClient.Get(ctx, key, headlessSvc)
-			}, time.Second*10).Should(Succeed())
+			// Create the svc & endpoint objects in guest cluster
+			// NOTE: the service account controller is not creating this service because it gets re-queued for 2 minutes
+			// after being created - when the cluster cache client is not ready.
+			createObjects(ctx, intCtx.GuestClient, newTestHeadlessSvcEndpoints())
 
 			// Init objects in the supervisor cluster
 			initObjects = []client.Object{

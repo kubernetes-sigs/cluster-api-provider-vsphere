@@ -54,3 +54,13 @@ func Convert_v1beta1_VSphereMachineStatus_To_v1alpha3_VSphereMachineStatus(in *i
 	// V1Beta2 was added in v1beta1
 	return autoConvert_v1beta1_VSphereMachineStatus_To_v1alpha3_VSphereMachineStatus(in, out, s)
 }
+
+func Convert_v1beta1_VSphereDeploymentZoneStatus_To_v1alpha3_VSphereDeploymentZoneStatus(in *infrav1.VSphereDeploymentZoneStatus, out *VSphereDeploymentZoneStatus, s conversion.Scope) error {
+	// V1Beta2 was added in v1beta1
+	return autoConvert_v1beta1_VSphereDeploymentZoneStatus_To_v1alpha3_VSphereDeploymentZoneStatus(in, out, s)
+}
+
+func Convert_v1beta1_VSphereClusterIdentityStatus_To_v1alpha3_VSphereClusterIdentityStatus(in *infrav1.VSphereClusterIdentityStatus, out *VSphereClusterIdentityStatus, s conversion.Scope) error {
+	// V1Beta2 was added in v1beta1
+	return autoConvert_v1beta1_VSphereClusterIdentityStatus_To_v1alpha3_VSphereClusterIdentityStatus(in, out, s)
+}

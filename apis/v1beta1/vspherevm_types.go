@@ -178,6 +178,22 @@ type VSphereVMStatus struct {
 	// This field is set once the machine is created and should not be changed
 	// +optional
 	VMRef string `json:"vmRef,omitempty"`
+
+	// v1beta2 groups all the fields that will be added or modified in VSphereMachine's status with the V1Beta2 version.
+	// +optional
+	V1Beta2 *VSphereVMV1Beta2Status `json:"v1beta2,omitempty"`
+}
+
+// VSphereVMV1Beta2Status groups all the fields that will be added or modified in VSphereVMStatus with the V1Beta2 version.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type VSphereVMV1Beta2Status struct {
+	// conditions represents the observations of a VSphereVM's current state.
+	// Known condition types are ResourcePolicyReady, NetworkReady and LoadBalancerReady conditions.
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MaxItems=32
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -202,6 +218,22 @@ func (r *VSphereVM) GetConditions() clusterv1.Conditions {
 // SetConditions sets the conditions on a VSphereVM.
 func (r *VSphereVM) SetConditions(conditions clusterv1.Conditions) {
 	r.Status.Conditions = conditions
+}
+
+// GetV1Beta2Conditions returns the set of conditions for this object.
+func (r *VSphereVM) GetV1Beta2Conditions() []metav1.Condition {
+	if r.Status.V1Beta2 == nil {
+		return nil
+	}
+	return r.Status.V1Beta2.Conditions
+}
+
+// SetV1Beta2Conditions sets conditions for an API object.
+func (r *VSphereVM) SetV1Beta2Conditions(conditions []metav1.Condition) {
+	if r.Status.V1Beta2 == nil {
+		r.Status.V1Beta2 = &VSphereVMV1Beta2Status{}
+	}
+	r.Status.V1Beta2.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true

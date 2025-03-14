@@ -528,7 +528,7 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 		g := NewWithT(t)
 		// First reconcile should add the paused condition
 		_, err = r.Reconcile(context.Background(), ctrl.Request{NamespacedName: util.ObjectKey(vsphereVM)})
-		g.Expect(err).To(HaveOccurred())
+		g.Expect(err).ToNot(HaveOccurred())
 		_, err = r.Reconcile(context.Background(), ctrl.Request{NamespacedName: util.ObjectKey(vsphereVM)})
 		g.Expect(err).To(HaveOccurred())
 	},

@@ -142,7 +142,8 @@ spec:
                   conditions:
                     description: |-
                       conditions represents the observations of a VSphereCluster's current state.
-                      Known condition types are ResourcePolicyReady, NetworkReady and LoadBalancerReady conditions.
+                      Known condition types are Ready, ResourcePolicyReady, NetworkReady, LoadBalancerReady,
+                      ProviderServiceAccountsReady and ServiceDiscoveryReady conditions.
                     items:
                       description: Condition contains details for one aspect of the
                         current state of this API Resource.

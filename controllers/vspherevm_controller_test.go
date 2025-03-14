@@ -195,8 +195,11 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 			Network:  nil,
 		}, nil)
 		r := setupReconciler(fakeVMSvc)
-		_, err = r.Reconcile(context.Background(), ctrl.Request{NamespacedName: util.ObjectKey(vsphereVM)})
 		g := NewWithT(t)
+		// First reconcile should add the paused condition
+		_, err = r.Reconcile(context.Background(), ctrl.Request{NamespacedName: util.ObjectKey(vsphereVM)})
+		g.Expect(err).NotTo(HaveOccurred())
+		_, err = r.Reconcile(context.Background(), ctrl.Request{NamespacedName: util.ObjectKey(vsphereVM)})
 		g.Expect(err).NotTo(HaveOccurred())
 
 		vm := &infrav1.VSphereVM{}
@@ -228,8 +231,11 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 			}},
 		}, nil)
 		r := setupReconciler(fakeVMSvc)
-		_, err = r.Reconcile(context.Background(), ctrl.Request{NamespacedName: util.ObjectKey(vsphereVM)})
 		g := NewWithT(t)
+		// First reconcile should add the paused condition
+		_, err = r.Reconcile(context.Background(), ctrl.Request{NamespacedName: util.ObjectKey(vsphereVM)})
+		g.Expect(err).NotTo(HaveOccurred())
+		_, err = r.Reconcile(context.Background(), ctrl.Request{NamespacedName: util.ObjectKey(vsphereVM)})
 		g.Expect(err).NotTo(HaveOccurred())
 
 		vm := &infrav1.VSphereVM{}
@@ -276,7 +282,10 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 
 		g := NewWithT(t)
 
+		// First reconcile should add the paused condition
 		_, err := r.Reconcile(context.Background(), ctrl.Request{NamespacedName: util.ObjectKey(vsphereVM)})
+		g.Expect(err).ToNot(HaveOccurred())
+		_, err = r.Reconcile(context.Background(), ctrl.Request{NamespacedName: util.ObjectKey(vsphereVM)})
 		g.Expect(err).ToNot(HaveOccurred())
 
 		vm := &infrav1.VSphereVM{}
@@ -479,8 +488,11 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 			ControllerManagerContext: controllerMgrContext,
 		}
 
-		_, err = r.Reconcile(context.Background(), ctrl.Request{NamespacedName: util.ObjectKey(vsphereVM)})
 		g := NewWithT(t)
+		// First reconcile should add the paused condition
+		_, err = r.Reconcile(context.Background(), ctrl.Request{NamespacedName: util.ObjectKey(vsphereVM)})
+		g.Expect(err).NotTo(HaveOccurred())
+		_, err = r.Reconcile(context.Background(), ctrl.Request{NamespacedName: util.ObjectKey(vsphereVM)})
 		g.Expect(err).NotTo(HaveOccurred())
 
 		vm := &infrav1.VSphereVM{}
@@ -513,8 +525,11 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 			ControllerManagerContext: controllerMgrContext,
 		}
 
-		_, err = r.Reconcile(context.Background(), ctrl.Request{NamespacedName: util.ObjectKey(vsphereVM)})
 		g := NewWithT(t)
+		// First reconcile should add the paused condition
+		_, err = r.Reconcile(context.Background(), ctrl.Request{NamespacedName: util.ObjectKey(vsphereVM)})
+		g.Expect(err).ToNot(HaveOccurred())
+		_, err = r.Reconcile(context.Background(), ctrl.Request{NamespacedName: util.ObjectKey(vsphereVM)})
 		g.Expect(err).To(HaveOccurred())
 	},
 	)

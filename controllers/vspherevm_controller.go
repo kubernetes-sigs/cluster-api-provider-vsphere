@@ -35,11 +35,11 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	clog "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlbldr "sigs.k8s.io/controller-runtime/pkg/builder"
@@ -96,23 +96,13 @@ func AddVMControllerToManager(ctx context.Context, controllerManagerCtx *capvcon
 				&handler.EnqueueRequestForObject{},
 			),
 		).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, controllerManagerCtx.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, controllerManagerCtx.WatchFilterValue)).
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(r.clusterToVSphereVMs),
 			ctrlbldr.WithPredicates(
-				predicate.Funcs{
-					UpdateFunc: func(e event.UpdateEvent) bool {
-						newCluster := e.ObjectNew.(*clusterv1.Cluster)
-						// check whether cluster has either spec.paused or pasued annotation
-						return !annotations.IsPaused(newCluster, newCluster)
-					},
-					CreateFunc: func(e event.CreateEvent) bool {
-						cluster := e.Object.(*clusterv1.Cluster)
-						// check whether cluster has either spec.paused or pasued annotation
-						return annotations.IsPaused(cluster, cluster)
-					},
-				}),
+				predicates.ClusterPausedTransitionsOrInfrastructureReady(mgr.GetScheme(), predicateLog),
+			),
 		).
 		Watches(
 			&infrav1.VSphereCluster{},
@@ -166,17 +156,9 @@ func (r vmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.R
 	if err != nil {
 		log.Error(err, "Failed to get Cluster from VSphereVM: Machine is missing cluster label or cluster does not exist")
 	}
-	if cluster != nil {
-		log = log.WithValues("Cluster", klog.KObj(cluster))
-		ctx = ctrl.LoggerInto(ctx, log)
 
-		if annotations.IsPaused(cluster, vsphereVM) {
-			log.Info("Reconciliation is paused for this object")
-			return reconcile.Result{}, nil
-		}
-	} else if annotations.HasPaused(vsphereVM) {
-		log.Info("Reconciliation is paused for this object")
-		return reconcile.Result{}, nil
+	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, vsphereVM); err != nil || isPaused || conditionChanged {
+		return ctrl.Result{}, err
 	}
 
 	// Create the patch helper.

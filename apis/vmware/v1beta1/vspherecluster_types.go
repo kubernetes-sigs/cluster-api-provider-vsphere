@@ -59,6 +59,23 @@ type VSphereClusterStatus struct {
 	// FailureDomains is a list of failure domain objects synced from the
 	// infrastructure provider.
 	FailureDomains clusterv1.FailureDomains `json:"failureDomains,omitempty"`
+
+	// v1beta2 groups all the fields that will be added or modified in VSphereCluster's status with the V1Beta2 version.
+	// +optional
+	V1Beta2 *VSphereClusterV1Beta2Status `json:"v1beta2,omitempty"`
+}
+
+// VSphereClusterV1Beta2Status groups all the fields that will be added or modified in VSphereClusterStatus with the V1Beta2 version.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type VSphereClusterV1Beta2Status struct {
+	// conditions represents the observations of a VSphereCluster's current state.
+	// Known condition types are Ready, ResourcePolicyReady, NetworkReady, LoadBalancerReady,
+	// ProviderServiceAccountsReady and ServiceDiscoveryReady conditions.
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MaxItems=32
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -92,6 +109,22 @@ func (r *VSphereCluster) GetConditions() clusterv1.Conditions {
 // SetConditions sets conditions on the VSphereCluster.
 func (r *VSphereCluster) SetConditions(conditions clusterv1.Conditions) {
 	r.Status.Conditions = conditions
+}
+
+// GetV1Beta2Conditions returns the set of conditions for this object.
+func (r *VSphereCluster) GetV1Beta2Conditions() []metav1.Condition {
+	if r.Status.V1Beta2 == nil {
+		return nil
+	}
+	return r.Status.V1Beta2.Conditions
+}
+
+// SetV1Beta2Conditions sets conditions for an API object.
+func (r *VSphereCluster) SetV1Beta2Conditions(conditions []metav1.Condition) {
+	if r.Status.V1Beta2 == nil {
+		r.Status.V1Beta2 = &VSphereClusterV1Beta2Status{}
+	}
+	r.Status.V1Beta2.Conditions = conditions
 }
 
 func init() {

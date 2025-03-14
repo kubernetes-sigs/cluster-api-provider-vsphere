@@ -533,8 +533,9 @@ var _ = Describe("Reconciliation tests", func() {
 			// there was no Cluster OwnerRef, but there _was_ a finalizer. This
 			// _shouldn't_ ever happen during normal operation, but it can happen
 			// if users muck with things.
+			original := infraCluster.DeepCopyObject().(*vmwarev1.VSphereCluster)
 			infraCluster.SetFinalizers([]string{vmwarev1.ClusterFinalizer})
-			Expect(k8sClient.Update(ctx, infraCluster)).To(Succeed())
+			Expect(k8sClient.Patch(ctx, infraCluster, client.MergeFrom(original))).To(Succeed())
 			assertEventuallyFinalizers(infraClusterKey, infraCluster)
 
 			By("Deleting the infrastructure cluster and waiting for it to be removed")

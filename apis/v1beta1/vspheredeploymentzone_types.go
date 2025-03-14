@@ -83,6 +83,21 @@ type VSphereDeploymentZoneStatus struct {
 	// Conditions defines current service state of the VSphereMachine.
 	// +optional
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+
+	// v1beta2 groups all the fields that will be added or modified in VSphereCluster's status with the V1Beta2 version.
+	// +optional
+	V1Beta2 *VSphereDeploymentZoneV1Beta2Status `json:"v1beta2,omitempty"`
+}
+
+// VSphereDeploymentZoneV1Beta2Status groups all the fields that will be added or modified in VSphereDeploymentZoneStatus with the V1Beta2 version.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type VSphereDeploymentZoneV1Beta2Status struct {
+	// conditions represents the observations of a VSphereDeploymentZone's current state.
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MaxItems=32
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -107,6 +122,22 @@ func (z *VSphereDeploymentZone) GetConditions() clusterv1.Conditions {
 // SetConditions sets the conditions on the VSphereDeploymentZone.
 func (z *VSphereDeploymentZone) SetConditions(conditions clusterv1.Conditions) {
 	z.Status.Conditions = conditions
+}
+
+// GetV1Beta2Conditions returns the set of conditions for this object.
+func (z *VSphereDeploymentZone) GetV1Beta2Conditions() []metav1.Condition {
+	if z.Status.V1Beta2 == nil {
+		return nil
+	}
+	return z.Status.V1Beta2.Conditions
+}
+
+// SetV1Beta2Conditions sets conditions for an API object.
+func (z *VSphereDeploymentZone) SetV1Beta2Conditions(conditions []metav1.Condition) {
+	if z.Status.V1Beta2 == nil {
+		z.Status.V1Beta2 = &VSphereDeploymentZoneV1Beta2Status{}
+	}
+	z.Status.V1Beta2.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true

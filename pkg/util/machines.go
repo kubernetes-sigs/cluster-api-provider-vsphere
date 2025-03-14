@@ -66,9 +66,6 @@ func GetMachinePreferredIPAddress(machine *infrav1.VSphereMachine) (string, erro
 	}
 
 	for _, machineAddr := range machine.Status.Addresses {
-		if machineAddr.Type != clusterv1.MachineExternalIP {
-			continue
-		}
 		if cidr == nil {
 			return machineAddr.Address, nil
 		}
@@ -257,4 +254,42 @@ func MachinesAsString(machines []*clusterv1.Machine) string {
 		count++
 	}
 	return message
+}
+
+// IsInternalIP checks if the IP is private/internal.
+func IsInternalIP(ip string) bool {
+	netIP := net.ParseIP(ip)
+	if netIP == nil {
+		return false
+	}
+
+	privateBlocks := []*net.IPNet{
+		{IP: net.IPv4(10, 0, 0, 0), Mask: net.CIDRMask(8, 32)},     // 10.0.0.0/8
+		{IP: net.IPv4(172, 16, 0, 0), Mask: net.CIDRMask(12, 32)},  // 172.16.0.0/12
+		{IP: net.IPv4(192, 168, 0, 0), Mask: net.CIDRMask(16, 32)}, // 192.168.0.0/16
+		{IP: net.IPv4(127, 0, 0, 1), Mask: net.CIDRMask(8, 32)},    // 127.0.0.0/8 (loopback)
+		{IP: net.IPv4(169, 254, 0, 0), Mask: net.CIDRMask(16, 32)}, // 169.254.0.0/16 (link-local)
+	}
+
+	// Check IPv4 private ranges
+	for _, block := range privateBlocks {
+		if block.Contains(netIP) {
+			return true
+		}
+	}
+
+	// Check IPv6 private ranges
+	privateIPv6Blocks := []*net.IPNet{
+		{IP: net.ParseIP("::1"), Mask: net.CIDRMask(128, 128)},   // Loopback
+		{IP: net.ParseIP("fc00::"), Mask: net.CIDRMask(7, 128)},  // Unique Local Addresses (ULA)
+		{IP: net.ParseIP("fe80::"), Mask: net.CIDRMask(10, 128)}, // Link-local
+	}
+
+	for _, block := range privateIPv6Blocks {
+		if block.Contains(netIP) {
+			return true
+		}
+	}
+
+	return false
 }

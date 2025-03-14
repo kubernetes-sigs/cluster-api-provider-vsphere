@@ -289,8 +289,13 @@ func (v *VimMachineService) reconcileNetwork(ctx context.Context, vimMachineCtx 
 	addresses := vm.Status.Addresses
 	machineAddresses := make([]clusterv1.MachineAddress, 0, len(addresses))
 	for _, addr := range addresses {
+		var addrType = clusterv1.MachineInternalIP
+		if !infrautilv1.IsInternalIP(addr) {
+			addrType = clusterv1.MachineExternalIP
+		}
+
 		machineAddresses = append(machineAddresses, clusterv1.MachineAddress{
-			Type:    clusterv1.MachineExternalIP,
+			Type:    addrType,
 			Address: addr,
 		})
 	}

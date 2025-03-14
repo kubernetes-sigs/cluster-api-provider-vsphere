@@ -588,14 +588,25 @@ func (r vmReconciler) ipAddressClaimToVSphereVM(_ context.Context, a ctrlclient.
 
 func (r vmReconciler) retrieveVcenterSession(ctx context.Context, vsphereVM *infrav1.VSphereVM) (*session.Session, error) {
 	log := ctrl.LoggerFrom(ctx)
-	// Get cluster object and then get VSphereCluster object
 
 	params := session.NewParams().
 		WithServer(vsphereVM.Spec.Server).
 		WithDatacenter(vsphereVM.Spec.Datacenter).
-		WithUserInfo(r.ControllerManagerContext.Username, r.ControllerManagerContext.Password).
 		WithThumbprint(vsphereVM.Spec.Thumbprint)
 
+	// if there is an identityref coming with the vsphereVM, we use that regardless of the state/existence of the cluster & vspherecluster
+	if vsphereVM.Spec.IdentityRef != nil {
+		creds, err := identity.GetCredentialsFromVshpereVM(ctx, r.Client, vsphereVM, r.Namespace)
+		if err != nil {
+			return nil, err
+		}
+		params = params.WithUserInfo(creds.Username, creds.Password)
+		log.V(4).Info("Using credentials attached to the VsphereVM")
+		return session.GetOrCreate(ctx, params)
+	} else {
+		// if the vsphereVM doesn't have an identityRef, set the default user identity to that provided by the ControllerManager
+		params = params.WithUserInfo(r.ControllerManagerContext.Username, r.ControllerManagerContext.Password)
+	}
 	cluster, err := clusterutilv1.GetClusterFromMetadata(ctx, r.Client, vsphereVM.ObjectMeta)
 	if err != nil {
 		log.V(4).Info("Using credentials provided to the manager to create the authenticated session, VSphereVM is missing cluster label or cluster does not exist")

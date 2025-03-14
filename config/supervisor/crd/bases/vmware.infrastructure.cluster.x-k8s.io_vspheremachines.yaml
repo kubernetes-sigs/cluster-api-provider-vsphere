@@ -272,9 +272,8 @@ spec:
                   in VSphereMachine's status with the V1Beta2 version.
                 properties:
                   conditions:
-                    description: |-
-                      conditions represents the observations of a VSphereMachine's current state.
-                      Known condition types are ResourcePolicyReady, NetworkReady and LoadBalancerReady conditions.
+                    description: conditions represents the observations of a VSphereMachine's
+                      current state.
                     items:
                       description: Condition contains details for one aspect of the
                         current state of this API Resource.

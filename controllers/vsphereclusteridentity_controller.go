@@ -29,10 +29,10 @@ import (
 	"k8s.io/klog/v2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -73,8 +73,6 @@ type clusterIdentityReconciler struct {
 }
 
 func (r clusterIdentityReconciler) Reconcile(ctx context.Context, req reconcile.Request) (_ reconcile.Result, reterr error) {
-	log := ctrl.LoggerFrom(ctx)
-
 	identity := &infrav1.VSphereClusterIdentity{}
 	if err := r.Client.Get(ctx, req.NamespacedName, identity); err != nil {
 		if apierrors.IsNotFound(err) {
@@ -89,9 +87,8 @@ func (r clusterIdentityReconciler) Reconcile(ctx context.Context, req reconcile.
 		return ctrl.Result{}, err
 	}
 
-	if annotations.HasPaused(identity) {
-		log.Info("Reconciliation is paused for this object")
-		return reconcile.Result{}, nil
+	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, nil, identity); err != nil || isPaused || conditionChanged {
+		return ctrl.Result{}, err
 	}
 
 	// Create the patch helper.

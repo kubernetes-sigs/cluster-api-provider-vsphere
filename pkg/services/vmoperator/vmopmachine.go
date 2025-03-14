@@ -38,6 +38,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
 	infrautilv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
@@ -432,7 +433,9 @@ func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervis
 		// Assign the VM's labels.
 		vmOperatorVM.Labels = getVMLabels(supervisorMachineCtx, vmOperatorVM.Labels)
 
-		addResourcePolicyAnnotations(supervisorMachineCtx, vmOperatorVM)
+		if err := addResourcePolicyAnnotations(ctx, v.Client, supervisorMachineCtx, vmOperatorVM); err != nil {
+			return err
+		}
 
 		if err := v.addVolumes(ctx, supervisorMachineCtx, vmOperatorVM); err != nil {
 			return err
@@ -537,7 +540,7 @@ func (v *VmopMachineService) getVirtualMachinesInCluster(ctx context.Context, su
 
 // Helper function to add annotations to indicate which tag vm-operator should add as well as which clusterModule VM
 // should be associated.
-func addResourcePolicyAnnotations(supervisorMachineCtx *vmware.SupervisorMachineContext, vm *vmoprv1.VirtualMachine) {
+func addResourcePolicyAnnotations(ctx context.Context, ctrlClient client.Client, supervisorMachineCtx *vmware.SupervisorMachineContext, vm *vmoprv1.VirtualMachine) error {
 	annotations := vm.ObjectMeta.GetAnnotations()
 	if annotations == nil {
 		annotations = make(map[string]string)
@@ -548,10 +551,49 @@ func addResourcePolicyAnnotations(supervisorMachineCtx *vmware.SupervisorMachine
 		annotations[ClusterModuleNameAnnotationKey] = ControlPlaneVMClusterModuleGroupName
 	} else {
 		annotations[ProviderTagsAnnotationKey] = WorkerVMVMAntiAffinityTagValue
-		annotations[ClusterModuleNameAnnotationKey] = getMachineDeploymentNameForCluster(supervisorMachineCtx.Cluster)
+
+		// Only set the ClusterModuleGroup annotation if not already set
+		if _, ok := annotations[ClusterModuleNameAnnotationKey]; !ok {
+			var clusterModuleGroupName string
+			// Set ClusterModuleGroupName depending on the configured mode from VSphereCluster.Spec.Placement.WorkerAntiAffinity.Mode
+			// and the WorkerAntiAffinity feature-gate
+			switch mode := getWorkerAntiAffinityMode(supervisorMachineCtx.VSphereCluster); mode {
+			case vmwarev1.VSphereClusterWorkerAntiAffinityModeNone:
+				// Nothing to set.
+			case vmwarev1.VSphereClusterWorkerAntiAffinityModeCluster:
+				if feature.Gates.Enabled(feature.WorkerAntiAffinity) {
+					// Set the cluster-wide group name.
+					clusterModuleGroupName = ClusterWorkerVMClusterModuleGroupName
+				} else {
+					// Fallback to old name.
+					clusterModuleGroupName = getFallbackWorkerClusterModuleGroupName(supervisorMachineCtx.Cluster.Name)
+				}
+			case vmwarev1.VSphereClusterWorkerAntiAffinityModeMachineDeployment:
+				if !feature.Gates.Enabled(feature.WorkerAntiAffinity) {
+					// This should not be possible because MachineDeployment mode is only allowed with the feature enabled.
+					return errors.New("failed to set ClusterModuleGroup in mode MachineDeployment with WorkerAntiAffinity disabled")
+				}
+				// Set the MachineDeployment name as ClusterModuleGroup.
+				var ok bool
+				clusterModuleGroupName, ok = supervisorMachineCtx.Machine.Labels[clusterv1.MachineDeploymentNameLabel]
+				if !ok {
+					return errors.Errorf("failed to set ClusterModuleGroup because of missing label %s on Machine", clusterv1.MachineDeploymentNameLabel)
+				}
+			default:
+				return errors.Errorf("unknown mode %q configured for WorkerAntiAffinity", mode)
+			}
+
+			if clusterModuleGroupName != "" {
+				if err := checkClusterModuleGroup(ctx, ctrlClient, supervisorMachineCtx.Cluster, clusterModuleGroupName); err != nil {
+					return err
+				}
+				annotations[ClusterModuleNameAnnotationKey] = clusterModuleGroupName
+			}
+		}
 	}
 
 	vm.ObjectMeta.SetAnnotations(annotations)
+	return nil
 }
 
 func volumeName(machine *vmwarev1.VSphereMachine, volume vmwarev1.VSphereMachineVolume) string {
@@ -699,8 +741,20 @@ func getTopologyLabels(supervisorMachineCtx *vmware.SupervisorMachineContext) ma
 	return nil
 }
 
-// getMachineDeploymentName returns the MachineDeployment name for a Cluster.
-// This is also the name used by VSphereMachineTemplate and KubeadmConfigTemplate.
-func getMachineDeploymentNameForCluster(cluster *clusterv1.Cluster) string {
-	return fmt.Sprintf("%s-workers-0", cluster.Name)
+func getMachineDeploymentNamesForCluster(ctx context.Context, ctrlClient client.Client, cluster *clusterv1.Cluster) ([]string, error) {
+	mdNames := []string{}
+	labels := map[string]string{clusterv1.ClusterNameLabel: cluster.GetName()}
+	mdList := &clusterv1.MachineDeploymentList{}
+	if err := ctrlClient.List(
+		ctx, mdList,
+		client.InNamespace(cluster.GetNamespace()),
+		client.MatchingLabels(labels)); err != nil {
+		return nil, errors.Wrapf(err, "failed to list MachineDeployment objects")
+	}
+	for _, md := range mdList.Items {
+		if md.DeletionTimestamp.IsZero() {
+			mdNames = append(mdNames, md.Name)
+		}
+	}
+	return mdNames, nil
 }

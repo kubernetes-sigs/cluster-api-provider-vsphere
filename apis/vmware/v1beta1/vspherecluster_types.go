@@ -38,7 +38,42 @@ const (
 type VSphereClusterSpec struct {
 	// +optional
 	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
+	// placement allows to configure the placement of machines of a VSphereCluster.
+	// +optional
+	Placement *VSphereClusterPlacement `json:"placement,omitempty"`
 }
+
+// VSphereClusterPlacement defines a placement strategy for machines of a VSphereCluster.
+// +kubebuilder:validation:MinProperties=1
+type VSphereClusterPlacement struct {
+	// workerAntiAffinity configures soft anti-affinity for workers.
+	// +optional
+	WorkerAntiAffinity *VSphereClusterWorkerAntiAffinity `json:"workerAntiAffinity,omitempty"`
+}
+
+// VSphereClusterWorkerAntiAffinity defines the anti-affinity configuration for workers.
+// +kubebuilder:validation:MinProperties=1
+type VSphereClusterWorkerAntiAffinity struct {
+	// mode allows to set the grouping of (soft) anti-affinity for worker nodes.
+	// Defaults to `Cluster`.
+	// +kubebuilder:validation:Enum=Cluster;None;MachineDeployment
+	// +optional
+	Mode VSphereClusterWorkerAntiAffinityMode `json:"mode,omitempty"`
+}
+
+// VSphereClusterWorkerAntiAffinityMode describes the soft anti-affinity mode used across a for distributing virtual machines.
+type VSphereClusterWorkerAntiAffinityMode string
+
+const (
+	// VSphereClusterWorkerAntiAffinityModeCluster means to use all workers as a single group for soft anti-affinity.
+	VSphereClusterWorkerAntiAffinityModeCluster VSphereClusterWorkerAntiAffinityMode = "Cluster"
+
+	// VSphereClusterWorkerAntiAffinityModeNone means to not configure any soft anti-affinity for workers.
+	VSphereClusterWorkerAntiAffinityModeNone VSphereClusterWorkerAntiAffinityMode = "None"
+
+	// VSphereClusterWorkerAntiAffinityModeMachineDeployment means to configure soft anti-affinity for all workers per MachineDeployment.
+	VSphereClusterWorkerAntiAffinityModeMachineDeployment VSphereClusterWorkerAntiAffinityMode = "MachineDeployment"
+)
 
 // VSphereClusterStatus defines the observed state of VSphereClusterSpec.
 type VSphereClusterStatus struct {

@@ -82,14 +82,13 @@ func (r *clusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 	if err != nil {
 		return reconcile.Result{}, err
 	}
-	if cluster == nil {
-		log.Info("Waiting for Cluster controller to set OwnerRef on VSphereCluster")
-		return reconcile.Result{}, nil
-	}
-	log = log.WithValues("Cluster", klog.KObj(cluster))
-	ctx = ctrl.LoggerInto(ctx, log)
 
-	if annotations.IsPaused(cluster, vsphereCluster) {
+	if cluster != nil {
+		log = log.WithValues("Cluster", klog.KObj(cluster))
+		ctx = ctrl.LoggerInto(ctx, log)
+	}
+
+	if cluster != nil && cluster.Spec.Paused || annotations.HasPaused(vsphereCluster) {
 		log.Info("Reconciliation is paused for this object")
 		return reconcile.Result{}, nil
 	}
@@ -120,6 +119,11 @@ func (r *clusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 		return r.reconcileDelete(ctx, clusterContext)
 	}
 
+	if cluster == nil {
+		log.Info("Waiting for Cluster controller to set OwnerRef on VSphereCluster")
+		return reconcile.Result{}, nil
+	}
+
 	// Handle non-deleted clusters
 	return r.reconcileNormal(ctx, clusterContext)
 }
@@ -127,10 +131,14 @@ func (r *clusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 func (r *clusterReconciler) reconcileDelete(ctx context.Context, clusterCtx *capvcontext.ClusterContext) (reconcile.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	vsphereMachines, err := r.vmService.GetMachinesInCluster(ctx, clusterCtx.Cluster.Namespace, clusterCtx.Cluster.Name)
-	if err != nil {
-		return reconcile.Result{}, pkgerrors.Wrapf(err,
-			"unable to list VSphereMachines part of VSphereCluster %s/%s", clusterCtx.VSphereCluster.Namespace, clusterCtx.VSphereCluster.Name)
+	var vsphereMachines []client.Object
+	var err error
+	if clusterCtx.Cluster != nil {
+		vsphereMachines, err = r.vmService.GetMachinesInCluster(ctx, clusterCtx.Cluster.Namespace, clusterCtx.Cluster.Name)
+		if err != nil {
+			return reconcile.Result{}, pkgerrors.Wrapf(err,
+				"unable to list VSphereMachines part of VSphereCluster %s/%s", clusterCtx.VSphereCluster.Namespace, clusterCtx.VSphereCluster.Name)
+		}
 	}
 
 	if len(vsphereMachines) > 0 {

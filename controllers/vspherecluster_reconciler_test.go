@@ -271,6 +271,13 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "vsphere-test1",
 				Namespace: "default",
+				OwnerReferences: []metav1.OwnerReference{{
+					APIVersion: clusterv1.GroupVersion.String(),
+					Kind:       "Cluster",
+					Name:       capiCluster.Name,
+					UID:        capiCluster.UID,
+					Controller: ptr.To(true),
+				}},
 			},
 			Spec: infrav1.VSphereClusterSpec{
 				IdentityRef: &infrav1.VSphereIdentityReference{
@@ -283,20 +290,50 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 		Expect(testEnv.Create(ctx, instance)).To(Succeed())
 		key := client.ObjectKey{Namespace: instance.Namespace, Name: instance.Name}
 
+		// Make sure the VSphereCluster exists and has its finalizer set.
 		Eventually(func() bool {
 			if err := testEnv.Get(ctx, key, instance); err != nil {
 				return false
 			}
-			return !ctrlutil.ContainsFinalizer(instance, infrav1.ClusterFinalizer)
+			return ctrlutil.ContainsFinalizer(instance, infrav1.ClusterFinalizer)
 		}, timeout).Should(BeTrue())
 
-		// Make sure the VSphereCluster exists.
+		By("deleting the VSphereCluster while the secret is gone")
 		Eventually(func() bool {
-			err := testEnv.Get(ctx, key, instance)
+			err := testEnv.Delete(ctx, instance)
 			return err == nil
 		}, timeout).Should(BeTrue())
 
-		By("deleting the vspherecluster while the secret is gone")
+		Eventually(func() bool {
+			err := testEnv.Get(ctx, key, instance)
+			return apierrors.IsNotFound(err)
+		}, timeout).Should(BeTrue())
+	})
+
+	It("should be able to delete VSphereCluster if the Cluster does not exist", func() {
+		ctx := context.Background()
+
+		// Create the VSphereCluster object
+		instance := &infrav1.VSphereCluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Finalizers: []string{infrav1.ClusterFinalizer},
+				Name:       "vsphere-test1",
+				Namespace:  "default",
+			},
+		}
+
+		Expect(testEnv.Create(ctx, instance)).To(Succeed())
+		key := client.ObjectKey{Namespace: instance.Namespace, Name: instance.Name}
+
+		// Make sure the VSphereCluster exists and has its finalizer set.
+		Eventually(func() bool {
+			if err := testEnv.Get(ctx, key, instance); err != nil {
+				return false
+			}
+			return ctrlutil.ContainsFinalizer(instance, infrav1.ClusterFinalizer)
+		}, timeout).Should(BeTrue())
+
+		By("deleting the VSphereCluster when no Cluster exists")
 		Eventually(func() bool {
 			err := testEnv.Delete(ctx, instance)
 			return err == nil

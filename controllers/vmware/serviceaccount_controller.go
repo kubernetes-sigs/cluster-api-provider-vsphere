@@ -97,7 +97,7 @@ func AddServiceAccountProviderControllerToManager(ctx context.Context, controlle
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToSupervisorVSphereClusterFunc(r.Client)),
 		).
-		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, controllerManagerCtx.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, controllerManagerCtx.WatchFilterValue)).
 		WatchesRawSource(r.clusterCache.GetClusterSource("providerserviceaccount", clusterToSupervisorVSphereClusterFunc(r.Client))).
 		Complete(r)
 }

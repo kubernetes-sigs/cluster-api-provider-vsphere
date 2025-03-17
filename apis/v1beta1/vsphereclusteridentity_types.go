@@ -50,7 +50,7 @@ type VSphereClusterIdentityStatus struct {
 	// +optional
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 
-	// v1beta2 groups all the fields that will be added or modified in VSphereCluster's status with the V1Beta2 version.
+	// v1beta2 groups all the fields that will be added or modified in VSphereClusterIdentity's status with the V1Beta2 version.
 	// +optional
 	V1Beta2 *VSphereClusterIdentityV1Beta2Status `json:"v1beta2,omitempty"`
 }

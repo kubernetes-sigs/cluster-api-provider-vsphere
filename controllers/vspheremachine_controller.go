@@ -224,6 +224,14 @@ func (r *machineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 		log.Error(err, "Failed to get Cluster from VSphereCluster: Machine is missing cluster label or cluster does not exist")
 	}
 
+	if cluster != nil {
+		log = log.WithValues("Cluster", klog.KObj(cluster))
+		if cluster.Spec.InfrastructureRef != nil {
+			log = log.WithValues("VSphereCluster", klog.KRef(cluster.Namespace, cluster.Spec.InfrastructureRef.Name))
+		}
+		ctx = ctrl.LoggerInto(ctx, log)
+	}
+
 	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, machineContext.GetVSphereMachine()); err != nil || isPaused || conditionChanged {
 		return ctrl.Result{}, err
 	}

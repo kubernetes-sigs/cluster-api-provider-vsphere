@@ -179,7 +179,7 @@ type VSphereVMStatus struct {
 	// +optional
 	VMRef string `json:"vmRef,omitempty"`
 
-	// v1beta2 groups all the fields that will be added or modified in VSphereMachine's status with the V1Beta2 version.
+	// v1beta2 groups all the fields that will be added or modified in VSphereVM's status with the V1Beta2 version.
 	// +optional
 	V1Beta2 *VSphereVMV1Beta2Status `json:"v1beta2,omitempty"`
 }

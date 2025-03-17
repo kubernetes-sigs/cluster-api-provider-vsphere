@@ -23,6 +23,7 @@ import (
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
@@ -32,6 +33,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -121,7 +123,7 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 
 	// Always close the context when exiting this function so we can persist any vsphereCluster changes.
 	defer func() {
-		if err := clusterContext.Patch(ctx); err != nil {
+		if err := r.patch(ctx, clusterContext); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
 	}()
@@ -141,6 +143,61 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 	return ctrl.Result{}, r.reconcileNormal(ctx, clusterContext)
 }
 
+func (r *ClusterReconciler) patch(ctx context.Context, clusterCtx *vmware.ClusterContext) error {
+	// always update the readyCondition.
+	conditions.SetSummary(clusterCtx.VSphereCluster,
+		conditions.WithConditions(
+			vmwarev1.ResourcePolicyReadyCondition,
+			vmwarev1.ClusterNetworkReadyCondition,
+			vmwarev1.LoadBalancerReadyCondition,
+		),
+	)
+
+	if err := v1beta2conditions.SetSummaryCondition(clusterCtx.VSphereCluster, clusterCtx.VSphereCluster, vmwarev1.VSphereClusterReadyV1Beta2Condition,
+		v1beta2conditions.ForConditionTypes{
+			vmwarev1.VSphereClusterResourcePolicyReadyV1Beta2Condition,
+			vmwarev1.VSphereClusterNetworkReadyV1Beta2Condition,
+			vmwarev1.VSphereClusterLoadBalancerReadyV1Beta2Condition,
+			// ProviderServiceAccountsReady and ServiceDiscoveryReady will be set by other controllers after
+			// the API server in the workload cluster is up and running.
+			vmwarev1.VSphereClusterProviderServiceAccountsReadyV1Beta2Condition,
+			vmwarev1.VSphereClusterServiceDiscoveryReadyV1Beta2Condition,
+		},
+		v1beta2conditions.IgnoreTypesIfMissing{
+			vmwarev1.VSphereClusterProviderServiceAccountsReadyV1Beta2Condition,
+			vmwarev1.VSphereClusterServiceDiscoveryReadyV1Beta2Condition,
+		},
+		// Using a custom merge strategy to override reasons applied during merge.
+		v1beta2conditions.CustomMergeStrategy{
+			MergeStrategy: v1beta2conditions.DefaultMergeStrategy(
+				// Use custom reasons.
+				v1beta2conditions.ComputeReasonFunc(v1beta2conditions.GetDefaultComputeMergeReasonFunc(
+					vmwarev1.VSphereClusterNotReadyV1Beta2Reason,
+					vmwarev1.VSphereClusterReadyUnknownV1Beta2Reason,
+					vmwarev1.VSphereClusterReadyV1Beta2Reason,
+				)),
+			),
+		},
+	); err != nil {
+		return errors.Wrapf(err, "failed to set %s condition", vmwarev1.VSphereClusterReadyV1Beta2Condition)
+	}
+
+	return clusterCtx.PatchHelper.Patch(ctx, clusterCtx.VSphereCluster,
+		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			vmwarev1.ResourcePolicyReadyCondition,
+			vmwarev1.ClusterNetworkReadyCondition,
+			vmwarev1.LoadBalancerReadyCondition,
+		}},
+		patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			vmwarev1.VSphereClusterReadyV1Beta2Condition,
+			vmwarev1.VSphereClusterResourcePolicyReadyV1Beta2Condition,
+			vmwarev1.VSphereClusterNetworkReadyV1Beta2Condition,
+			vmwarev1.VSphereClusterLoadBalancerReadyV1Beta2Condition,
+			// NOTE: ProviderServiceAccountsReady and ServiceDiscoveryReady are not owned by this controller
+		}},
+	)
+}
+
 func (r *ClusterReconciler) reconcileDelete(clusterCtx *vmware.ClusterContext) {
 	deletingConditionTypes := []clusterv1.ConditionType{
 		vmwarev1.ResourcePolicyReadyCondition,
@@ -153,6 +210,24 @@ func (r *ClusterReconciler) reconcileDelete(clusterCtx *vmware.ClusterContext) {
 			conditions.MarkFalse(clusterCtx.VSphereCluster, t, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
 		}
 	}
+
+	v1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
+		Type:   vmwarev1.VSphereClusterResourcePolicyReadyV1Beta2Condition,
+		Status: metav1.ConditionFalse,
+		Reason: vmwarev1.VSphereClusterResourcePolicyReadyDeletingV1Beta2Reason,
+	})
+
+	v1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
+		Type:   vmwarev1.VSphereClusterNetworkReadyV1Beta2Condition,
+		Status: metav1.ConditionFalse,
+		Reason: vmwarev1.VSphereClusterNetworkReadyDeletingV1Beta2Reason,
+	})
+
+	v1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
+		Type:   vmwarev1.VSphereClusterLoadBalancerReadyV1Beta2Condition,
+		Status: metav1.ConditionFalse,
+		Reason: vmwarev1.VSphereClusterLoadBalancerDeletingV1Beta2Reason,
+	})
 
 	// Cluster is deleted so remove the finalizer.
 	controllerutil.RemoveFinalizer(clusterCtx.VSphereCluster, vmwarev1.ClusterFinalizer)
@@ -174,11 +249,23 @@ func (r *ClusterReconciler) reconcileNormal(ctx context.Context, clusterCtx *vmw
 	resourcePolicyName, err := r.ResourcePolicyService.ReconcileResourcePolicy(ctx, clusterCtx)
 	if err != nil {
 		conditions.MarkFalse(clusterCtx.VSphereCluster, vmwarev1.ResourcePolicyReadyCondition, vmwarev1.ResourcePolicyCreationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+		v1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
+			Type:    vmwarev1.VSphereClusterResourcePolicyReadyV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  vmwarev1.VSphereClusterResourcePolicyNotReadyV1Beta2Reason,
+			Message: err.Error(),
+		})
 		return errors.Wrapf(err,
 			"failed to configure resource policy for vsphereCluster %s/%s",
 			clusterCtx.VSphereCluster.Namespace, clusterCtx.VSphereCluster.Name)
 	}
 	conditions.MarkTrue(clusterCtx.VSphereCluster, vmwarev1.ResourcePolicyReadyCondition)
+	v1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
+		Type:   vmwarev1.VSphereClusterResourcePolicyReadyV1Beta2Condition,
+		Status: metav1.ConditionTrue,
+		Reason: vmwarev1.VSphereClusterResourcePolicyReadyV1Beta2Reason,
+	})
+
 	clusterCtx.VSphereCluster.Status.ResourcePolicyName = resourcePolicyName
 
 	// Configure the cluster for the cluster network
@@ -203,6 +290,11 @@ func (r *ClusterReconciler) reconcileControlPlaneEndpoint(ctx context.Context, c
 	if !clusterCtx.Cluster.Spec.ControlPlaneEndpoint.IsZero() {
 		clusterCtx.VSphereCluster.Spec.ControlPlaneEndpoint.Host = clusterCtx.Cluster.Spec.ControlPlaneEndpoint.Host
 		clusterCtx.VSphereCluster.Spec.ControlPlaneEndpoint.Port = clusterCtx.Cluster.Spec.ControlPlaneEndpoint.Port
+		v1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
+			Type:   vmwarev1.VSphereClusterLoadBalancerReadyV1Beta2Condition,
+			Status: metav1.ConditionTrue,
+			Reason: vmwarev1.VSphereClusterLoadBalancerReadyV1Beta2Reason,
+		})
 		if r.NetworkProvider.HasLoadBalancer() {
 			conditions.MarkTrue(clusterCtx.VSphereCluster, vmwarev1.LoadBalancerReadyCondition)
 		}
@@ -213,6 +305,11 @@ func (r *ClusterReconciler) reconcileControlPlaneEndpoint(ctx context.Context, c
 	}
 
 	if !clusterCtx.VSphereCluster.Spec.ControlPlaneEndpoint.IsZero() {
+		v1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
+			Type:   vmwarev1.VSphereClusterLoadBalancerReadyV1Beta2Condition,
+			Status: metav1.ConditionTrue,
+			Reason: vmwarev1.VSphereClusterLoadBalancerReadyV1Beta2Reason,
+		})
 		if r.NetworkProvider.HasLoadBalancer() {
 			conditions.MarkTrue(clusterCtx.VSphereCluster, vmwarev1.LoadBalancerReadyCondition)
 		}

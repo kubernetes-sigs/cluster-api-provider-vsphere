@@ -37,7 +37,7 @@ const (
 // VSphereCluster's Ready condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
 	// VSphereClusterReadyV1Beta2Condition is true if the VSphereCluster's deletionTimestamp is not set, VSphereCluster's
-	// ResourcePolicyReady, NetworkReady and LoadBalancerReady conditions are true.
+	// ResourcePolicyReady, NetworkReady, LoadBalancerReady, ProviderServiceAccountsReady and ServiceDiscoveryReady conditions are true.
 	VSphereClusterReadyV1Beta2Condition = clusterv1.ReadyV1Beta2Condition
 
 	// VSphereClusterReadyV1Beta2Reason surfaces when the VSphereCluster readiness criteria is met.

@@ -274,7 +274,7 @@ func (s *Session) GetVersion() (infrav1.VCenterVersion, error) {
 	if version.Major >= 6 {
 		return infrav1.NewVCenterVersion(svcVersion), nil
 	}
-	return "", errors.Errorf("version %q lower than 7", svcVersion)
+	return "", errors.Errorf("version %q lower than 6", svcVersion)
 }
 
 // Clear is meant to destroy all the cached sessions.

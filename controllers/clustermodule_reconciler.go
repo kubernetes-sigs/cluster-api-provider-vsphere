@@ -183,6 +183,7 @@ func (r Reconciler) Reconcile(ctx context.Context, clusterCtx *capvcontext.Clust
 			Reason:  infrav1.VSphereClusterClusterModulesNotReadyV1Beta2Reason,
 			Message: generateClusterModuleErrorMessage(modErrs),
 		})
+		return reconcile.Result{}, err
 	case len(modErrs) == 0 && len(clusterModuleSpecs) > 0:
 		conditions.MarkTrue(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)
 	default:
@@ -337,7 +338,7 @@ type clusterModError struct {
 
 func generateClusterModuleErrorMessage(errList []clusterModError) string {
 	sb := strings.Builder{}
-	sb.WriteString("failed to create cluster modules for: ")
+	sb.WriteString("Failed to create cluster modules for: ")
 
 	for _, e := range errList {
 		sb.WriteString(fmt.Sprintf("%s %s, ", e.name, e.err.Error()))

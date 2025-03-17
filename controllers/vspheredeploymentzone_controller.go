@@ -107,13 +107,13 @@ func (r vsphereDeploymentZoneReconciler) Reconcile(ctx context.Context, request 
 		return ctrl.Result{}, err
 	}
 
-	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, nil, vsphereDeploymentZone); err != nil || isPaused || conditionChanged {
-		return ctrl.Result{}, err
-	}
-
 	patchHelper, err := patch.NewHelper(vsphereDeploymentZone, r.Client)
 	if err != nil {
 		return reconcile.Result{}, err
+	}
+
+	if isPaused, requeue, err := paused.EnsurePausedCondition(ctx, r.Client, nil, vsphereDeploymentZone); err != nil || isPaused || requeue {
+		return ctrl.Result{}, err
 	}
 
 	vsphereDeploymentZoneContext := &capvcontext.VSphereDeploymentZoneContext{

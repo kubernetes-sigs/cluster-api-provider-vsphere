@@ -232,15 +232,16 @@ func (r *machineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 		ctx = ctrl.LoggerInto(ctx, log)
 	}
 
-	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, machineContext.GetVSphereMachine()); err != nil || isPaused || conditionChanged {
-		return ctrl.Result{}, err
-	}
-
 	// Create the patch helper.
 	patchHelper, err := patch.NewHelper(machineContext.GetVSphereMachine(), r.Client)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
+
+	if isPaused, requeue, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, machineContext.GetVSphereMachine()); err != nil || isPaused || requeue {
+		return ctrl.Result{}, err
+	}
+
 	machineContext.SetBaseMachineContext(&capvcontext.BaseMachineContext{
 		Cluster:     cluster,
 		Machine:     machine,

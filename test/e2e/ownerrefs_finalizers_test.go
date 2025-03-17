@@ -35,11 +35,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
+	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	clusterctlcluster "sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
-	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -160,9 +160,12 @@ var _ = Describe("Ensure OwnerReferences and Finalizers are resilient [vcsim] [s
 
 					// Dump all Cluster API related resources to artifacts before checking for resource versions being stable.
 					framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
-						Lister:    proxy.GetClient(),
-						Namespace: namespace,
-						LogPath:   filepath.Join(artifactFolder, "clusters-beforeValidateResourceVersions", proxy.GetName(), "resources")})
+						Lister:               proxy.GetClient(),
+						KubeConfigPath:       proxy.GetKubeconfigPath(),
+						ClusterctlConfigPath: clusterctlConfigPath,
+						Namespace:            namespace,
+						LogPath:              filepath.Join(artifactFolder, "clusters-beforeValidateResourceVersions", proxy.GetName(), "resources"),
+					})
 
 					// This check ensures that the resourceVersions are stable, i.e. it verifies there are no
 					// continuous reconciles when everything should be stable.

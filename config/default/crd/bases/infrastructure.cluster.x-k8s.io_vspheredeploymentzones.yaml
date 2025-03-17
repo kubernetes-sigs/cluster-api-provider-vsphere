@@ -362,8 +362,9 @@ spec:
                   in VSphereDeploymentZone's status with the V1Beta2 version.
                 properties:
                   conditions:
-                    description: conditions represents the observations of a VSphereDeploymentZone's
-                      current state.
+                    description: |-
+                      conditions represents the observations of a VSphereDeploymentZone's current state.
+                      Known condition types are Paused.
                     items:
                       description: Condition contains details for one aspect of the
                         current state of this API Resource.

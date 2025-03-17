@@ -1640,8 +1640,9 @@ spec:
                   in VSphereMachine's status with the V1Beta2 version.
                 properties:
                   conditions:
-                    description: conditions represents the observations of a VSphereMachine's
-                      current state.
+                    description: |-
+                      conditions represents the observations of a VSphereMachine's current state.
+                      Known condition types are Paused.
                     items:
                       description: Condition contains details for one aspect of the
                         current state of this API Resource.

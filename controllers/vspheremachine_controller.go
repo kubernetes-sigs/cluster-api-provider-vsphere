@@ -34,11 +34,11 @@ import (
 	"k8s.io/klog/v2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	clog "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlbldr "sigs.k8s.io/controller-runtime/pkg/builder"
@@ -112,7 +112,7 @@ func AddMachineControllerToManager(ctx context.Context, controllerManagerContext
 				&clusterv1.Cluster{},
 				handler.EnqueueRequestsFromMapFunc(r.enqueueClusterToMachineRequests),
 				ctrlbldr.WithPredicates(
-					predicates.ClusterUnpausedAndInfrastructureReady(mgr.GetScheme(), predicateLog),
+					predicates.ClusterPausedTransitionsOrInfrastructureReady(mgr.GetScheme(), predicateLog),
 				),
 			).
 			// Watch a GenericEvent channel for the controlled resource.
@@ -126,7 +126,7 @@ func AddMachineControllerToManager(ctx context.Context, controllerManagerContext
 					&handler.EnqueueRequestForObject{},
 				),
 			).
-			WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, controllerManagerContext.WatchFilterValue)).
+			WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, controllerManagerContext.WatchFilterValue)).
 			// Watch any VirtualMachine resources owned by this VSphereMachine
 			Owns(&vmoprv1.VirtualMachine{}).
 			Complete(r)
@@ -152,7 +152,7 @@ func AddMachineControllerToManager(ctx context.Context, controllerManagerContext
 				&handler.EnqueueRequestForObject{},
 			),
 		).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, controllerManagerContext.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, controllerManagerContext.WatchFilterValue)).
 		// Watch any VSphereVM resources owned by the controlled type.
 		Watches(
 			&infrav1.VSphereVM{},
@@ -169,7 +169,7 @@ func AddMachineControllerToManager(ctx context.Context, controllerManagerContext
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(r.enqueueClusterToMachineRequests),
 			ctrlbldr.WithPredicates(
-				predicates.ClusterUnpausedAndInfrastructureReady(mgr.GetScheme(), predicateLog),
+				predicates.ClusterPausedTransitionsOrInfrastructureReady(mgr.GetScheme(), predicateLog),
 			),
 		).Complete(r)
 }
@@ -223,20 +223,17 @@ func (r *machineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 	if err != nil {
 		log.Error(err, "Failed to get Cluster from VSphereCluster: Machine is missing cluster label or cluster does not exist")
 	}
+
 	if cluster != nil {
 		log = log.WithValues("Cluster", klog.KObj(cluster))
 		if cluster.Spec.InfrastructureRef != nil {
 			log = log.WithValues("VSphereCluster", klog.KRef(cluster.Namespace, cluster.Spec.InfrastructureRef.Name))
 		}
 		ctx = ctrl.LoggerInto(ctx, log)
+	}
 
-		if annotations.IsPaused(cluster, machineContext.GetVSphereMachine()) {
-			log.Info("Reconciliation is paused for this object")
-			return reconcile.Result{}, nil
-		}
-	} else if annotations.HasPaused(machineContext.GetVSphereMachine()) {
-		log.Info("Reconciliation is paused for this object")
-		return reconcile.Result{}, nil
+	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, machineContext.GetVSphereMachine()); err != nil || isPaused || conditionChanged {
+		return ctrl.Result{}, err
 	}
 
 	// Create the patch helper.

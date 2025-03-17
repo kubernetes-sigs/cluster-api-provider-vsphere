@@ -174,6 +174,7 @@ func (r *serviceDiscoveryReconciler) Reconcile(ctx context.Context, req reconcil
 	log = log.WithValues("Cluster", klog.KObj(cluster))
 	ctx = ctrl.LoggerInto(ctx, log)
 
+	// In future we might consider to surface a separate paused condition for this controller.
 	if annotations.IsPaused(cluster, vsphereCluster) {
 		log.Info("Reconciliation is paused for this object")
 		return ctrl.Result{}, nil

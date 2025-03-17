@@ -29,11 +29,11 @@ import (
 	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -79,7 +79,7 @@ func AddVSphereDeploymentZoneControllerToManager(ctx context.Context, controller
 				&handler.EnqueueRequestForObject{},
 			),
 		).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, controllerManagerCtx.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, controllerManagerCtx.WatchFilterValue)).
 		Complete(reconciler)
 }
 
@@ -107,9 +107,8 @@ func (r vsphereDeploymentZoneReconciler) Reconcile(ctx context.Context, request 
 		return ctrl.Result{}, err
 	}
 
-	if annotations.HasPaused(vsphereDeploymentZone) {
-		log.Info("Reconciliation is paused for this object")
-		return reconcile.Result{}, nil
+	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, nil, vsphereDeploymentZone); err != nil || isPaused || conditionChanged {
+		return ctrl.Result{}, err
 	}
 
 	patchHelper, err := patch.NewHelper(vsphereDeploymentZone, r.Client)

@@ -130,6 +130,7 @@ func (r *ServiceAccountReconciler) Reconcile(ctx context.Context, req reconcile.
 
 	// Pause reconciliation if entire VSphereCluster or Cluster is paused
 	// Note: Pause on the ProviderServiceAccount level is handled in ensureProviderServiceAccounts.
+	// In future we might consider to surface a separate paused condition for this controller.
 	if annotations.IsPaused(cluster, vsphereCluster) {
 		log.Info("Reconciliation is paused for this object")
 		return reconcile.Result{}, nil

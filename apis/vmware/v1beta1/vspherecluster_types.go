@@ -159,7 +159,7 @@ type VSphereClusterStatus struct {
 type VSphereClusterV1Beta2Status struct {
 	// conditions represents the observations of a VSphereCluster's current state.
 	// Known condition types are Ready, ResourcePolicyReady, NetworkReady, LoadBalancerReady,
-	// ProviderServiceAccountsReady and ServiceDiscoveryReady conditions.
+	// ProviderServiceAccountsReady, ServiceDiscoveryReady and Paused.
 	// +optional
 	// +listType=map
 	// +listMapKey=type

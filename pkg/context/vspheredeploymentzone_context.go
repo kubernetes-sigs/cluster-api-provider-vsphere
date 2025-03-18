@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 
@@ -44,7 +45,9 @@ func (c *VSphereDeploymentZoneContext) Patch(ctx context.Context) error {
 			infrav1.PlacementConstraintMetCondition,
 		),
 	)
-	return c.PatchHelper.Patch(ctx, c.VSphereDeploymentZone)
+	return c.PatchHelper.Patch(ctx, c.VSphereDeploymentZone, patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+		clusterv1.PausedV1Beta2Condition,
+	}})
 }
 
 // String returns a string with the GroupVersionKind and name of the VSphereDeploymentZone.

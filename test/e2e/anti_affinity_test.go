@@ -168,8 +168,10 @@ func VerifyAntiAffinity(ctx context.Context, input AntiAffinitySpecInput) {
 	Byf("Deleting the cluster %s in namespace %s",
 		clusterName, namespace.Name)
 	framework.DeleteAllClustersAndWait(ctx, framework.DeleteAllClustersAndWaitInput{
-		Client:    input.Global.BootstrapClusterProxy.GetClient(),
-		Namespace: namespace.Name,
+		ClusterProxy:         input.Global.BootstrapClusterProxy,
+		ClusterctlConfigPath: clusterctlConfigPath,
+		Namespace:            namespace.Name,
+		ArtifactFolder:       artifactFolder,
 	}, input.Global.E2EConfig.GetIntervals("", "wait-delete-cluster")...)
 
 	By("confirming deletion of cluster module constructs")

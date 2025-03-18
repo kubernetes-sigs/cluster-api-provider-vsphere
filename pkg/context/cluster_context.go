@@ -48,5 +48,7 @@ func (c *ClusterContext) Patch(ctx context.Context) error {
 		),
 	)
 
-	return c.PatchHelper.Patch(ctx, c.VSphereCluster)
+	return c.PatchHelper.Patch(ctx, c.VSphereCluster, patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+		clusterv1.PausedV1Beta2Condition,
+	}})
 }

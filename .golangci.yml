@@ -138,7 +138,7 @@ linters-settings:
       - pkg: sigs.k8s.io/cluster-api/exp/api/v1beta1
         alias: expv1
       # CAPI exp addons
-      - pkg: sigs.k8s.io/cluster-api/exp/addons/api/v1beta1
+      - pkg: sigs.k8s.io/cluster-api/api/addons/v1beta1
         alias: addonsv1
       # CAPI IPAM 
       - pkg: sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1

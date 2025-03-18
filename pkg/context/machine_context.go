@@ -59,7 +59,9 @@ func (c *VIMMachineContext) String() string {
 
 // Patch updates the object and its status on the API server.
 func (c *VIMMachineContext) Patch(ctx context.Context) error {
-	return c.PatchHelper.Patch(ctx, c.VSphereMachine)
+	return c.PatchHelper.Patch(ctx, c.VSphereMachine, patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+		clusterv1.PausedV1Beta2Condition,
+	}})
 }
 
 // GetVSphereMachine sets the VSphereMachine for the VIMMachineContext.

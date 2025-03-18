@@ -46,9 +46,12 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass with Runt
 				PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 					// Dump all Cluster API related resources to artifacts before checking for resource versions being stable.
 					framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
-						Lister:    proxy.GetClient(),
-						Namespace: namespace,
-						LogPath:   filepath.Join(artifactFolder, "clusters-beforeValidateResourceVersions", proxy.GetName(), "resources")})
+						Lister:               proxy.GetClient(),
+						KubeConfigPath:       proxy.GetKubeconfigPath(),
+						ClusterctlConfigPath: clusterctlConfigPath,
+						Namespace:            namespace,
+						LogPath:              filepath.Join(artifactFolder, "clusters-beforeValidateResourceVersions", proxy.GetName(), "resources"),
+					})
 
 					// This check ensures that the resourceVersions are stable, i.e. it verifies there are no
 					// continuous reconciles when everything should be stable.

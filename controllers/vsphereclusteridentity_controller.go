@@ -87,20 +87,22 @@ func (r clusterIdentityReconciler) Reconcile(ctx context.Context, req reconcile.
 		return ctrl.Result{}, err
 	}
 
-	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, nil, identity); err != nil || isPaused || conditionChanged {
-		return ctrl.Result{}, err
-	}
-
 	// Create the patch helper.
 	patchHelper, err := patch.NewHelper(identity, r.Client)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
 
+	if isPaused, requeue, err := paused.EnsurePausedCondition(ctx, r.Client, nil, identity); err != nil || isPaused || requeue {
+		return ctrl.Result{}, err
+	}
+
 	defer func() {
 		conditions.SetSummary(identity, conditions.WithConditions(infrav1.CredentialsAvailableCondidtion))
 
-		if err := patchHelper.Patch(ctx, identity); err != nil {
+		if err := patchHelper.Patch(ctx, identity, patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			clusterv1.PausedV1Beta2Condition,
+		}}); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
 	}()

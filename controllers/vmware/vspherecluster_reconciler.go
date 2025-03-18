@@ -100,14 +100,14 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 		ctx = ctrl.LoggerInto(ctx, log)
 	}
 
-	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, vsphereCluster); err != nil || isPaused || conditionChanged {
-		return ctrl.Result{}, err
-	}
-
 	// Build the patch helper.
 	patchHelper, err := patch.NewHelper(vsphereCluster, r.Client)
 	if err != nil {
 		return reconcile.Result{}, err
+	}
+
+	if isPaused, requeue, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, vsphereCluster); err != nil || isPaused || requeue {
+		return ctrl.Result{}, err
 	}
 
 	// Build the cluster context.
@@ -185,6 +185,7 @@ func (r *ClusterReconciler) patch(ctx context.Context, clusterCtx *vmware.Cluste
 			vmwarev1.LoadBalancerReadyCondition,
 		}},
 		patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			clusterv1.PausedV1Beta2Condition,
 			vmwarev1.VSphereClusterReadyV1Beta2Condition,
 			vmwarev1.VSphereClusterResourcePolicyReadyV1Beta2Condition,
 			vmwarev1.VSphereClusterNetworkReadyV1Beta2Condition,

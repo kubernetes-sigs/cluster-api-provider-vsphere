@@ -55,6 +55,7 @@ spec:
                           host:
                             description: host is the hostname on which the API server
                               is serving.
+                            maxLength: 512
                             type: string
                           port:
                             description: port is the port on which the API server

@@ -380,9 +380,11 @@ func cleanupSpecNamespace(namespace *corev1.Namespace) {
 
 	// Dump all Cluster API related resources to artifacts before deleting them.
 	framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
-		Lister:    bootstrapClusterProxy.GetClient(),
-		Namespace: namespace.Name,
-		LogPath:   filepath.Join(artifactFolder, "clusters", bootstrapClusterProxy.GetName(), "resources"),
+		Lister:               bootstrapClusterProxy.GetClient(),
+		KubeConfigPath:       bootstrapClusterProxy.GetKubeconfigPath(),
+		ClusterctlConfigPath: clusterctlConfigPath,
+		Namespace:            namespace.Name,
+		LogPath:              filepath.Join(artifactFolder, "clusters", bootstrapClusterProxy.GetName(), "resources"),
 	})
 
 	Byf("cleaning up namespace: %s", namespace.Name)
@@ -390,8 +392,10 @@ func cleanupSpecNamespace(namespace *corev1.Namespace) {
 
 	if !skipCleanup {
 		framework.DeleteAllClustersAndWait(ctx, framework.DeleteAllClustersAndWaitInput{
-			Client:    bootstrapClusterProxy.GetClient(),
-			Namespace: namespace.Name,
+			ClusterProxy:         bootstrapClusterProxy,
+			ClusterctlConfigPath: clusterctlConfigPath,
+			Namespace:            namespace.Name,
+			ArtifactFolder:       artifactFolder,
 		}, e2eConfig.GetIntervals("", "wait-delete-cluster")...)
 
 		By("Deleting namespace used for hosting test spec")

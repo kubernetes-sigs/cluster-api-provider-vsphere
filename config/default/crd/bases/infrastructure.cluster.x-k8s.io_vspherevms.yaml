@@ -1726,7 +1726,7 @@ spec:
                   conditions:
                     description: |-
                       conditions represents the observations of a VSphereVM's current state.
-                      Known condition types are Paused.
+                      Known condition types are VirtualMachineProvisioned, VCenterAvailable and IPAddressClaimsFulfilled and Paused.
                     items:
                       description: Condition contains details for one aspect of the
                         current state of this API Resource.

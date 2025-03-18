@@ -186,7 +186,7 @@ type VSphereMachineStatus struct {
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type VSphereMachineV1Beta2Status struct {
 	// conditions represents the observations of a VSphereMachine's current state.
-	// Known condition types are Paused.
+	// Known condition types are Ready, VirtualMachineProvisioned and Paused.
 	// +optional
 	// +listType=map
 	// +listMapKey=type

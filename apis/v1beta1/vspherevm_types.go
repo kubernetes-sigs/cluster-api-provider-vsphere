@@ -78,7 +78,7 @@ const (
 	// VSphereVMVirtualMachineWaitingForIPAllocationV1Beta2Reason documents the VirtualMachine that is controlled
 	// by the VSphereVM waiting for the allocation of an IP address.
 	// This is used when the dhcp4 or dhcp6 for a VirtualMachine is set and the VirtualMachine is waiting for the
-	// relevant IP address  to show up on the VM.
+	// relevant IP address to show up on the VM.
 	VSphereVMVirtualMachineWaitingForIPAllocationV1Beta2Reason = "WaitingForIPAllocation"
 
 	// VSphereVMVirtualMachinePoweringOnV1Beta2Reason surfaces when the VirtualMachine that is controlled
@@ -89,16 +89,16 @@ const (
 	// by the VSphereVM is provisioned.
 	VSphereVMVirtualMachineProvisionedV1Beta2Reason = clusterv1.ProvisionedV1Beta2Reason
 
-	// VSphereVMVirtualMachineTaskFailureV1Beta2Reason surfaces when a task for the VirtualMachine that is controlled
+	// VSphereVMVirtualMachineTaskFailedV1Beta2Reason surfaces when a task for the VirtualMachine that is controlled
 	// by the VSphereVM failed; the reconcile look will automatically retry the operation,
 	// but a user intervention might be required to fix the problem.
-	VSphereVMVirtualMachineTaskFailureV1Beta2Reason = "TaskFailure"
+	VSphereVMVirtualMachineTaskFailedV1Beta2Reason = "TaskFailed"
 
 	// VSphereVMVirtualMachineNotFoundByBIOSUUIDV1Beta2Reason surfaces when the VirtualMachine that is controlled
 	// by the VSphereVM can't be found by BIOS UUID.
 	// Those kind of errors could be transient sometimes and failed VSphereVM are automatically
 	// reconciled by the controller.
-	VSphereVMVirtualMachineNotFoundByBIOSUUIDV1Beta2Reason = "NotFoundByBIOSUUIDReason"
+	VSphereVMVirtualMachineNotFoundByBIOSUUIDV1Beta2Reason = "NotFoundByBIOSUUID"
 
 	// VSphereVMVirtualMachineNotProvisionedV1Beta2Reason surfaces when the VirtualMachine that is controlled
 	// by the VSphereVM is not provisioned.
@@ -134,7 +134,7 @@ const (
 	VSphereVMIPAddressClaimsBeingCreatedV1Beta2Reason = "IPAddressClaimsBeingCreated"
 
 	// VSphereVMIPAddressClaimsWaitingForIPAddressV1Beta2Reason documents that claims for the
-	// IP addresses required by the VSphereVM are being created.
+	// IP addresses required by the VSphereVM are waiting for IP addresses.
 	VSphereVMIPAddressClaimsWaitingForIPAddressV1Beta2Reason = "WaitingForIPAddress"
 
 	// VSphereVMIPAddressClaimsFulfilledV1Beta2Reason documents that claims for the
@@ -144,6 +144,37 @@ const (
 	// VSphereVMIPAddressClaimsNotFulfilledV1Beta2Reason documents that claims for the
 	// IP addresses required by the VSphereVM are not fulfilled.
 	VSphereVMIPAddressClaimsNotFulfilledV1Beta2Reason = "NotFulfilled"
+)
+
+// VSphereVM's GuestSoftPowerOffSucceeded condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// VSphereVMGuestSoftPowerOffSucceededV1Beta2Condition documents the status of performing guest initiated
+	// graceful shutdown.
+	VSphereVMGuestSoftPowerOffSucceededV1Beta2Condition string = "GuestSoftPowerOffSucceeded"
+
+	// VSphereVMGuestSoftPowerOffInProgressV1Beta2Reason documents that the guest receives
+	// a graceful shutdown request.
+	VSphereVMGuestSoftPowerOffInProgressV1Beta2Reason = "InProgress"
+
+	// GuestSoftPowerOffFailedV1Beta2Reason documents that the graceful
+	// shutdown request fails.
+	VSphereVMGuestSoftPowerOffFailedV1Beta2Reason = "Failed"
+
+	// GuestSoftPowerOffSucceededV1Beta2Reason documents that the graceful
+	// shutdown request fails.
+	VSphereVMGuestSoftPowerOffSucceededV1Beta2Reason = "Succeeded"
+)
+
+// VSphereVM's PCIDevicesDetached condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// VSphereVMPCIDevicesDetachedConditionV1Beta2Condition documents the status of the attached PCI devices on the VSphereVM.
+	// It is a negative condition to notify the user that the device(s) is no longer attached to
+	// the underlying VM and would require manual intervention to fix the situation.
+	VSphereVMPCIDevicesDetachedConditionV1Beta2Condition string = "PCIDevicesDetached"
+
+	// VSpherePCIDevicesDetachedNotFoundReasonV1Beta2Reason documents the VSphereVM not having the PCI device attached during VM startup.
+	// This would indicate that the PCI devices were removed out of band by an external entity.
+	VSpherePCIDevicesDetachedNotFoundReasonV1Beta2Reason = "NotFound"
 )
 
 // VSphereVMSpec defines the desired state of VSphereVM.
@@ -294,7 +325,8 @@ type VSphereVMStatus struct {
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type VSphereVMV1Beta2Status struct {
 	// conditions represents the observations of a VSphereVM's current state.
-	// Known condition types are VirtualMachineProvisioned, VCenterAvailable and IPAddressClaimsFulfilled and Paused.
+	// Known condition types are Ready, VirtualMachineProvisioned, VCenterAvailable and IPAddressClaimsFulfilled,
+	// GuestSoftPowerOffSucceeded, PCIDevicesDetached and Paused.
 	// +optional
 	// +listType=map
 	// +listMapKey=type

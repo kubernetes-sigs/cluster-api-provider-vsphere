@@ -297,7 +297,6 @@ func (r *machineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 		}
 
 		// Patch the VSphereMachine resource.
-		// TODO: investigate why there are two implementations, add owned conditions
 		if err := machineContext.Patch(ctx); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}

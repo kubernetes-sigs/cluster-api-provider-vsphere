@@ -292,6 +292,11 @@ func (vms *VMService) DestroyVM(ctx context.Context, vmCtx *capvcontext.VMContex
 	// Only set the GuestPowerOffCondition to true when the guest shutdown has been initiated.
 	if conditions.Has(virtualMachineCtx.VSphereVM, infrav1.GuestSoftPowerOffSucceededCondition) {
 		conditions.MarkTrue(virtualMachineCtx.VSphereVM, infrav1.GuestSoftPowerOffSucceededCondition)
+		v1beta2conditions.Set(virtualMachineCtx.VSphereVM, metav1.Condition{
+			Type:   infrav1.VSphereVMGuestSoftPowerOffSucceededV1Beta2Condition,
+			Status: metav1.ConditionTrue,
+			Reason: infrav1.VSphereVMGuestSoftPowerOffSucceededV1Beta2Reason,
+		})
 	}
 
 	log.Info("VM is powered off")
@@ -561,6 +566,8 @@ func (vms *VMService) reconcilePCIDevices(ctx context.Context, virtualMachineCtx
 		if len(specsToBeAdded) == 0 {
 			if conditions.Has(virtualMachineCtx.VSphereVM, infrav1.PCIDevicesDetachedCondition) {
 				conditions.Delete(virtualMachineCtx.VSphereVM, infrav1.PCIDevicesDetachedCondition)
+
+				v1beta2conditions.Delete(virtualMachineCtx.VSphereVM, infrav1.VSphereVMPCIDevicesDetachedConditionV1Beta2Condition)
 			}
 			log.V(5).Info("No new PCI devices to be added")
 			return nil
@@ -579,6 +586,13 @@ func (vms *VMService) reconcilePCIDevices(ctx context.Context, virtualMachineCtx
 				infrav1.NotFoundReason,
 				clusterv1.ConditionSeverityWarning,
 				"PCI devices removed after VM was powered on")
+
+			v1beta2conditions.Set(virtualMachineCtx.VSphereVM, metav1.Condition{
+				Type:    infrav1.VSphereVMPCIDevicesDetachedConditionV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  infrav1.VSpherePCIDevicesDetachedNotFoundReasonV1Beta2Reason,
+				Message: "PCI devices removed after VM was powered on",
+			})
 			return errors.Errorf("missing PCI devices")
 		}
 		log.Info("PCI devices to be added", "number", len(specsToBeAdded))

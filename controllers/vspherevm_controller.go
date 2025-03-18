@@ -267,18 +267,18 @@ func (r vmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.R
 		// Before computing ready condition, make sure that VirtualMachineProvisioned is always set.
 		// NOTE: This is required because v1beta2 conditions comply to guideline requiring conditions to be set at the
 		// first reconcile.
-		if c := v1beta2conditions.Get(vmContext.VSphereVM, infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition); c != nil {
+		if c := v1beta2conditions.Get(vmContext.VSphereVM, infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition); c != nil {
 			if vmContext.VSphereVM.Status.Ready {
 				v1beta2conditions.Set(vmContext.VSphereVM, metav1.Condition{
-					Type:   infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
+					Type:   infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
 					Status: metav1.ConditionTrue,
-					Reason: infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Reason,
+					Reason: infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Reason,
 				})
 			} else {
 				v1beta2conditions.Set(vmContext.VSphereVM, metav1.Condition{
-					Type:   infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
+					Type:   infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
 					Status: metav1.ConditionFalse,
-					Reason: infrav1.VSphereMachineVirtualMachineNotProvisionedV1Beta2Reason,
+					Reason: infrav1.VSphereVMVirtualMachineNotProvisionedV1Beta2Reason,
 				})
 			}
 		}
@@ -292,7 +292,6 @@ func (r vmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.R
 			),
 		)
 
-		// TODO: Implement a fallback mode in case VSphereMachineVirtualMachineProvisionedV1Beta2Condition does not exist
 		if err := v1beta2conditions.SetSummaryCondition(vmContext.VSphereVM, vmContext.VSphereVM, infrav1.VSphereVMReadyV1Beta2Condition,
 			v1beta2conditions.ForConditionTypes{
 				infrav1.VSphereVMVCenterAvailableV1Beta2Condition,
@@ -320,7 +319,6 @@ func (r vmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.R
 		}
 
 		// Patch the VSphereVM resource.
-		// TODO: add owned conditions
 		if err := vmContext.Patch(ctx); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}

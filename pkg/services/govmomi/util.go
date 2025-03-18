@@ -182,7 +182,7 @@ func checkAndRetryTask(ctx context.Context, vmCtx *capvcontext.VMContext, task *
 		v1beta2conditions.Set(vmCtx.VSphereVM, metav1.Condition{
 			Type:   infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
 			Status: metav1.ConditionFalse,
-			Reason: infrav1.VSphereVMVirtualMachineTaskFailureV1Beta2Reason,
+			Reason: infrav1.VSphereVMVirtualMachineTaskFailedV1Beta2Reason,
 		})
 
 		// Instead of directly requeuing the failed task, wait for the RetryAfter duration to pass

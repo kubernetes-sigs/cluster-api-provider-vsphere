@@ -51,7 +51,7 @@ const (
 // NOTE:
 //   - In supervisor mode, before creating the VM the VirtualMachine goes trough a series of preflight checks; if one is failing, the
 //     reason for this failure and the message are surfaced in the VSphereMachine's VirtualMachineProvisioned condition.
-//   - In govmomi mode, in some cases, reason and message are surfaced from the VSphereVM are surfaced in the VSphereMachine's
+//   - In govmomi mode, in some cases, reason and message from the VSphereVM are surfaced in the VSphereMachine's
 //     VirtualMachineProvisioned condition.
 const (
 	// VSphereMachineVirtualMachineProvisionedV1Beta2Condition documents the status of the VirtualMachine that is controlled
@@ -233,7 +233,7 @@ type VSphereMachineStatus struct {
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type VSphereMachineV1Beta2Status struct {
 	// conditions represents the observations of a VSphereMachine's current state.
-	// Known condition types are VirtualMachineProvisioned and Paused.
+	// Known condition types are Ready, VirtualMachineProvisioned and Paused.
 	// +optional
 	// +listType=map
 	// +listMapKey=type

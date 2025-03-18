@@ -451,7 +451,7 @@ func (r *clusterReconciler) reconcileDeploymentZones(ctx context.Context, cluste
 		conditions.MarkFalse(clusterCtx.VSphereCluster, infrav1.FailureDomainsAvailableCondition, infrav1.WaitingForFailureDomainStatusReason, clusterv1.ConditionSeverityInfo, "waiting for failure domains to report ready status")
 		v1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 			Type:    infrav1.VSphereClusterFailureDomainsReadyV1Beta2Condition,
-			Status:  metav1.ConditionTrue,
+			Status:  metav1.ConditionFalse,
 			Reason:  infrav1.VSphereClusterFailureDomainsNotReadyV1Beta2Reason,
 			Message: "Waiting for failure domains to report ready status",
 		})
@@ -463,7 +463,7 @@ func (r *clusterReconciler) reconcileDeploymentZones(ctx context.Context, cluste
 			conditions.MarkFalse(clusterCtx.VSphereCluster, infrav1.FailureDomainsAvailableCondition, infrav1.FailureDomainsSkippedReason, clusterv1.ConditionSeverityInfo, "one or more failure domains are not ready")
 			v1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 				Type:    infrav1.VSphereClusterFailureDomainsReadyV1Beta2Condition,
-				Status:  metav1.ConditionTrue,
+				Status:  metav1.ConditionFalse,
 				Reason:  infrav1.VSphereClusterFailureDomainsNotReadyV1Beta2Reason,
 				Message: "One or more failure domains are not ready",
 			})

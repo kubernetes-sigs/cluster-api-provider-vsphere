@@ -28,6 +28,27 @@ const (
 	VSphereClusterIdentityFinalizer = "vsphereclusteridentity/infrastructure.cluster.x-k8s.io"
 )
 
+// VSphereClusterIdentity's CredentialsAvailable condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// VSphereClusterIdentityCredentialsAvailableV1Beta2Condition documents the status of the credentials for a VSphereClusterIdentity.
+	VSphereClusterIdentityCredentialsAvailableV1Beta2Condition = "CredentialsAvailable"
+
+	// VSphereClusterIdentityCredentialsAvailableV1Beta2Reason surfaces when the VSphereClusterIdentity credentials are available.
+	VSphereClusterIdentityCredentialsAvailableV1Beta2Reason = clusterv1.AvailableV1Beta2Reason
+
+	// VSphereClusterIdentityCredentialsSecretNotAvailableV1Beta2Reason surfaces when the VSphereClusterIdentity secret is not available.
+	VSphereClusterIdentityCredentialsSecretNotAvailableV1Beta2Reason = "SecretNotAvailable"
+
+	// VSphereClusterIdentityCredentialsAvailableV1Beta2Reason surfaces when the VSphereClusterIdentity secret is already in use.
+	VSphereClusterIdentityCredentialsSecretAlreadyInUseV1Beta2Reason = "SecretAlreadyInUse"
+
+	// VSphereClusterIdentityCredentialsAvailableV1Beta2Reason surfaces when setting the owner reference on the VSphereClusterIdentity secret failed.
+	VSphereClusterIdentityCredentialsSecretOwnerReferenceFailedV1Beta2Reason = "SecretOwnerReferenceFailed"
+
+	// VSphereClusterIdentityCredentialsDeletingV1Beta2Reason surfaces when the credentials for a VSphereClusterIdentity are being deleted.
+	VSphereClusterIdentityCredentialsDeletingV1Beta2Reason = clusterv1.DeletingV1Beta2Reason
+)
+
 // VSphereClusterIdentitySpec contains a secret reference and a group of allowed namespaces.
 type VSphereClusterIdentitySpec struct {
 	// SecretName references a Secret inside the controller namespace with the credentials to use

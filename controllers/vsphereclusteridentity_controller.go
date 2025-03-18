@@ -162,7 +162,7 @@ func (r clusterIdentityReconciler) Reconcile(ctx context.Context, req reconcile.
 		v1beta2conditions.Set(identity, metav1.Condition{
 			Type:    infrav1.VSphereClusterIdentityCredentialsAvailableV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
-			Reason:  infrav1.VSphereClusterIdentityCredentialsSecretOwnerReferenceFailedV1Beta2Reason,
+			Reason:  infrav1.VSphereClusterIdentityCredentialsSettingSecretOwnerReferenceFailedV1Beta2Reason,
 			Message: err.Error(),
 		})
 		return reconcile.Result{}, err

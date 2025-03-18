@@ -68,14 +68,10 @@ const (
 	// VSphereDeploymentZonePlacementConstraintReadyV1Beta2Reason surfaces when the placement status for a VSphereDeploymentZone is ready.
 	VSphereDeploymentZonePlacementConstraintReadyV1Beta2Reason = clusterv1.ReadyV1Beta2Reason
 
-	// VSphereDeploymentZonePlacementConstraintVCenterNotAvailableV1Beta2Reason surfaces when the placement constraint for a VSphereDeploymentZone
-	// can't be verified because of no connectivity to VCenter.
-	VSphereDeploymentZonePlacementConstraintVCenterNotAvailableV1Beta2Reason = "VCenterNotAvailable"
-
 	// VSphereDeploymentZonePlacementConstraintResourcePoolNotFoundV1Beta2Reason surfaces when the resource pool for a VSphereDeploymentZone is not found.
 	VSphereDeploymentZonePlacementConstraintResourcePoolNotFoundV1Beta2Reason = "ResourcePoolNotFound"
 
-	// VSphereDeploymentZonePlacementConstraintFolderNotFoundV1Beta2Reason surfaces when the resource pool for a VSphereDeploymentZone is not found.
+	// VSphereDeploymentZonePlacementConstraintFolderNotFoundV1Beta2Reason surfaces when the folder for a VSphereDeploymentZone is not found.
 	VSphereDeploymentZonePlacementConstraintFolderNotFoundV1Beta2Reason = "FolderNotFound"
 
 	// VSphereDeploymentZonePlacementConstraintDeletingV1Beta2Reason surfaces when the VSphereDeploymentZone is being deleted.
@@ -90,10 +86,6 @@ const (
 	// VSphereDeploymentZoneFailureDomainValidatedV1Beta2Reason surfaces when the failure domain for a VSphereDeploymentZone is validated.
 	VSphereDeploymentZoneFailureDomainValidatedV1Beta2Reason = "Validated"
 
-	// VSphereDeploymentZoneFailureDomainVCenterNotAvailableV1Beta2Reason surfaces when the failure domain for a VSphereDeploymentZone
-	// can't be validated because of no connectivity to VCenter.
-	VSphereDeploymentZoneFailureDomainVCenterNotAvailableV1Beta2Reason = "VCenterNotAvailable"
-
 	// VSphereDeploymentZoneFailureDomainValidationFailedV1Beta2Reason surfaces when the failure domain's validation for a VSphereDeploymentZone failed.
 	VSphereDeploymentZoneFailureDomainValidationFailedV1Beta2Reason = "ValidationFailed"
 
@@ -103,22 +95,22 @@ const (
 	// VSphereDeploymentZoneFailureDomainZoneMisconfiguredV1Beta2Reason surfaces when the failure domain's zone for a VSphereDeploymentZone is misconfigured.
 	VSphereDeploymentZoneFailureDomainZoneMisconfiguredV1Beta2Reason = "ZoneMisconfigured"
 
-	// VSphereDeploymentZoneFailureDomainZoneMisconfiguredV1Beta2Reason surfaces when the failure domain's hosts for a VSphereDeploymentZone are misconfigured.
+	// VSphereDeploymentZoneFailureDomainHostsMisconfiguredV1Beta2Reason surfaces when the failure domain's hosts for a VSphereDeploymentZone are misconfigured.
 	VSphereDeploymentZoneFailureDomainHostsMisconfiguredV1Beta2Reason = "HostsMisconfigured"
 
 	// VSphereDeploymentZoneFailureDomainHostsAffinityMisconfiguredV1Beta2Reason surfaces when the failure domain's hosts for a VSphereDeploymentZone are misconfigured.
 	VSphereDeploymentZoneFailureDomainHostsAffinityMisconfiguredV1Beta2Reason = "HostsAffinityMisconfigured"
 
-	// VSphereDeploymentZoneFailureDomainZoneMisconfiguredV1Beta2Reason surfaces when the failure domain's datastore for a VSphereDeploymentZone is not found.
+	// VSphereDeploymentZoneFailureDomainDatastoreNotFoundV1Beta2Reason surfaces when the failure domain's datastore for a VSphereDeploymentZone is not found.
 	VSphereDeploymentZoneFailureDomainDatastoreNotFoundV1Beta2Reason = "DatastoreNotFound"
 
-	// VSphereDeploymentZoneFailureDomainZoneMisconfiguredV1Beta2Reason surfaces when the failure domain's network for a VSphereDeploymentZone is not found.
+	// VSphereDeploymentZoneFailureDomainNetworkNotFoundV1Beta2Reason surfaces when the failure domain's network for a VSphereDeploymentZone is not found.
 	VSphereDeploymentZoneFailureDomainNetworkNotFoundV1Beta2Reason = "NetworkNotFound"
 
-	// VSphereDeploymentZoneFailureDomainComputeClusterNotFoundV1Beta2Reason surfaces when the failure domain's compute cluster for a VSphereDeploymentZone failed.
+	// VSphereDeploymentZoneFailureDomainComputeClusterNotFoundV1Beta2Reason surfaces when the failure domain's compute cluster for a VSphereDeploymentZone is not found.
 	VSphereDeploymentZoneFailureDomainComputeClusterNotFoundV1Beta2Reason = "ComputeClusterNotFound"
 
-	// VSphereDeploymentZoneFailureDomainValidationFailedV1Beta2Reason surfaces when the failure domain's resource pool for a VSphereDeploymentZone failed.
+	// VSphereDeploymentZoneFailureDomainResourcePoolNotFoundV1Beta2Reason surfaces when the failure domain's resource pool for a VSphereDeploymentZone is not found.
 	VSphereDeploymentZoneFailureDomainResourcePoolNotFoundV1Beta2Reason = "ResourcePoolNotFound"
 
 	// VSphereDeploymentZoneFailureDomainDeletingV1Beta2Reason surfaces when the VSphereDeploymentZone is being deleted.

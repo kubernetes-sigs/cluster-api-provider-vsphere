@@ -39,7 +39,7 @@ func TestGetDiskSpec(t *testing.T) {
 	model, session, server := initSimulator(t)
 	t.Cleanup(model.Remove)
 	t.Cleanup(server.Close)
-	vm := simulator.Map.Any("VirtualMachine").(*simulator.VirtualMachine)
+	vm := model.Map().Any("VirtualMachine").(*simulator.VirtualMachine)
 	machine := object.NewVirtualMachine(session.Client.Client, vm.Reference())
 
 	devices, err := machine.Device(ctx.TODO())
@@ -157,7 +157,7 @@ func TestCreateDataDisks(t *testing.T) {
 	model, session, server := initSimulator(t)
 	t.Cleanup(model.Remove)
 	t.Cleanup(server.Close)
-	vm := simulator.Map.Any("VirtualMachine").(*simulator.VirtualMachine)
+	vm := model.Map().Any("VirtualMachine").(*simulator.VirtualMachine)
 	machine := object.NewVirtualMachine(session.Client.Client, vm.Reference())
 
 	deviceList, err := machine.Device(ctx.TODO())

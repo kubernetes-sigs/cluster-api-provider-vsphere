@@ -58,6 +58,11 @@ func (c *SupervisorMachineContext) GetVSphereMachine() capvcontext.VSphereMachin
 	return c.VSphereMachine
 }
 
+// GetReady return when the VSphereMachine is ready.
+func (c *SupervisorMachineContext) GetReady() bool {
+	return c.VSphereMachine.Status.Ready
+}
+
 // GetObjectMeta returns the metadata for the VSphereMachine from the SupervisorMachineContext.
 func (c *SupervisorMachineContext) GetObjectMeta() metav1.ObjectMeta {
 	return c.VSphereMachine.ObjectMeta

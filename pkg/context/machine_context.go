@@ -69,6 +69,11 @@ func (c *VIMMachineContext) GetVSphereMachine() VSphereMachine {
 	return c.VSphereMachine
 }
 
+// GetReady return when the VSphereMachine is ready.
+func (c *VIMMachineContext) GetReady() bool {
+	return c.VSphereMachine.Status.Ready
+}
+
 // GetObjectMeta returns the ObjectMeta for the VSphereMachine in the VIMMachineContext.
 func (c *VIMMachineContext) GetObjectMeta() metav1.ObjectMeta {
 	return c.VSphereMachine.ObjectMeta

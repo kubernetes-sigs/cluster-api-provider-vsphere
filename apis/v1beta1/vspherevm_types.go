@@ -40,6 +40,112 @@ const (
 	GuestSoftPowerOffDefaultTimeout = 5 * time.Minute
 )
 
+// VSphereVM's Ready condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// VSphereVMReadyV1Beta2Condition is true if the VSphereVM's deletionTimestamp is not set, VSphereVM's
+	// VirtualMachineProvisioned, VCenterAvailable and IPAddressClaimsFulfilled are true.
+	VSphereVMReadyV1Beta2Condition = clusterv1.ReadyV1Beta2Condition
+
+	// VSphereVMReadyV1Beta2Reason surfaces when the VSphereVM readiness criteria is met.
+	VSphereVMReadyV1Beta2Reason = clusterv1.ReadyV1Beta2Reason
+
+	// VSphereVMNotReadyV1Beta2Reason surfaces when the VSphereVM readiness criteria is not met.
+	VSphereVMNotReadyV1Beta2Reason = clusterv1.NotReadyV1Beta2Reason
+
+	// VSphereVMReadyUnknownV1Beta2Reason surfaces when at least one VSphereVM readiness criteria is unknown
+	// and no VSphereVM readiness criteria is not met.
+	VSphereVMReadyUnknownV1Beta2Reason = clusterv1.ReadyUnknownV1Beta2Reason
+)
+
+// VSphereVM's VirtualMachineProvisioned condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// VSphereVMVirtualMachineProvisionedV1Beta2Condition documents the status of the VirtualMachine that is controlled
+	// by the VSphereVM.
+	VSphereVMVirtualMachineProvisionedV1Beta2Condition = "VirtualMachineProvisioned"
+
+	// VSphereVMVirtualMachineWaitingForCloneV1Beta2Reason documents the VirtualMachine that is controlled
+	// by the VSphereVM waiting for the clone operation to complete.
+	VSphereVMVirtualMachineWaitingForCloneV1Beta2Reason = "WaitingForClone"
+
+	// VSphereVMVirtualMachineWaitingForStaticIPAllocationV1Beta2Reason documents the VirtualMachine that is controlled
+	// by the VSphereVM waiting for the allocation of a static IP address.
+	VSphereVMVirtualMachineWaitingForStaticIPAllocationV1Beta2Reason = "WaitingForStaticIPAllocation"
+
+	// VSphereVMVirtualMachineWaitingForIPAddressV1Beta2Reason documents the VirtualMachine that is controlled
+	// by the VSphereVM waiting for an IP address to be provisioned from the IPAM provider.
+	VSphereVMVirtualMachineWaitingForIPAddressV1Beta2Reason = "WaitingForIPAddress"
+
+	// VSphereVMVirtualMachineWaitingForIPAllocationV1Beta2Reason documents the VirtualMachine that is controlled
+	// by the VSphereVM waiting for the allocation of an IP address.
+	// This is used when the dhcp4 or dhcp6 for a VirtualMachine is set and the VirtualMachine is waiting for the
+	// relevant IP address  to show up on the VM.
+	VSphereVMVirtualMachineWaitingForIPAllocationV1Beta2Reason = "WaitingForIPAllocation"
+
+	// VSphereVMVirtualMachinePoweringOnV1Beta2Reason surfaces when the VirtualMachine that is controlled
+	// by the VSphereVM is executing the power on sequence.
+	VSphereVMVirtualMachinePoweringOnV1Beta2Reason = "PoweringOn"
+
+	// VSphereVMVirtualMachineProvisionedV1Beta2Reason surfaces when the VirtualMachine that is controlled
+	// by the VSphereVM is provisioned.
+	VSphereVMVirtualMachineProvisionedV1Beta2Reason = clusterv1.ProvisionedV1Beta2Reason
+
+	// VSphereVMVirtualMachineTaskFailureV1Beta2Reason surfaces when a task for the VirtualMachine that is controlled
+	// by the VSphereVM failed; the reconcile look will automatically retry the operation,
+	// but a user intervention might be required to fix the problem.
+	VSphereVMVirtualMachineTaskFailureV1Beta2Reason = "TaskFailure"
+
+	// VSphereVMVirtualMachineNotFoundByBIOSUUIDV1Beta2Reason surfaces when the VirtualMachine that is controlled
+	// by the VSphereVM can't be found by BIOS UUID.
+	// Those kind of errors could be transient sometimes and failed VSphereVM are automatically
+	// reconciled by the controller.
+	VSphereVMVirtualMachineNotFoundByBIOSUUIDV1Beta2Reason = "NotFoundByBIOSUUIDReason"
+
+	// VSphereVMVirtualMachineNotProvisionedV1Beta2Reason surfaces when the VirtualMachine that is controlled
+	// by the VSphereVM is not provisioned.
+	VSphereVMVirtualMachineNotProvisionedV1Beta2Reason = clusterv1.NotProvisionedV1Beta2Reason
+
+	// VSphereVMVirtualMachineDeletingV1Beta2Reason surfaces when the VirtualMachine that is controlled
+	// by the VSphereVM is being deleted.
+	VSphereVMVirtualMachineDeletingV1Beta2Reason = clusterv1.DeletingV1Beta2Reason
+)
+
+// VSphereVM's VCenterAvailable condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// VSphereVMVCenterAvailableV1Beta2Condition documents the availability of the VCenter hosting the VSphereVM.
+	VSphereVMVCenterAvailableV1Beta2Condition = "VCenterAvailable"
+
+	// VSphereVMVCenterAvailableV1Beta2Reason documents the VCenter hosting the VSphereVM
+	// being available.
+	VSphereVMVCenterAvailableV1Beta2Reason = clusterv1.AvailableV1Beta2Reason
+
+	// VSphereVMVCenterNotAvailableV1Beta2Reason documents the VCenter hosting the VSphereVM
+	// being not available.
+	VSphereVMVCenterNotAvailableV1Beta2Reason = clusterv1.NotAvailableV1Beta2Reason
+)
+
+// VSphereVM's IPAddressClaimsFulfilled condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// VSphereVMIPAddressClaimsFulfilledV1Beta2Condition documents the status of claiming an IP address
+	// from an IPAM provider.
+	VSphereVMIPAddressClaimsFulfilledV1Beta2Condition = "IPAddressClaimsFulfilled"
+
+	// VSphereVMIPAddressClaimsBeingCreatedV1Beta2Reason documents that claims for the
+	// IP addresses required by the VSphereVM are being created.
+	VSphereVMIPAddressClaimsBeingCreatedV1Beta2Reason = "IPAddressClaimsBeingCreated"
+
+	// VSphereVMIPAddressClaimsWaitingForIPAddressV1Beta2Reason documents that claims for the
+	// IP addresses required by the VSphereVM are being created.
+	VSphereVMIPAddressClaimsWaitingForIPAddressV1Beta2Reason = "WaitingForIPAddress"
+
+	// VSphereVMIPAddressClaimsFulfilledV1Beta2Reason documents that claims for the
+	// IP addresses required by the VSphereVM are fulfilled.
+	VSphereVMIPAddressClaimsFulfilledV1Beta2Reason = "Fulfilled"
+
+	// VSphereVMIPAddressClaimsNotFulfilledV1Beta2Reason documents that claims for the
+	// IP addresses required by the VSphereVM are not fulfilled.
+	VSphereVMIPAddressClaimsNotFulfilledV1Beta2Reason = "NotFulfilled"
+)
+
 // VSphereVMSpec defines the desired state of VSphereVM.
 type VSphereVMSpec struct {
 	VirtualMachineCloneSpec `json:",inline"`
@@ -188,7 +294,7 @@ type VSphereVMStatus struct {
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type VSphereVMV1Beta2Status struct {
 	// conditions represents the observations of a VSphereVM's current state.
-	// Known condition types are Paused.
+	// Known condition types are VirtualMachineProvisioned, VCenterAvailable and IPAddressClaimsFulfilled and Paused.
 	// +optional
 	// +listType=map
 	// +listMapKey=type

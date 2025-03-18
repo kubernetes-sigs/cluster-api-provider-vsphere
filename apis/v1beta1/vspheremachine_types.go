@@ -29,6 +29,80 @@ const (
 	MachineFinalizer = "vspheremachine.infrastructure.cluster.x-k8s.io"
 )
 
+// VSphereMachine's Ready condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// VSphereMachineReadyV1Beta2Condition is true if the VSphereMachine's deletionTimestamp is not set, VSphereMachine's
+	// VirtualMachineProvisioned is true.
+	VSphereMachineReadyV1Beta2Condition = clusterv1.ReadyV1Beta2Condition
+
+	// VSphereMachineReadyV1Beta2Reason surfaces when the VSphereMachine readiness criteria is met.
+	VSphereMachineReadyV1Beta2Reason = clusterv1.ReadyV1Beta2Reason
+
+	// VSphereMachineNotReadyV1Beta2Reason surfaces when the VSphereMachine readiness criteria is not met.
+	VSphereMachineNotReadyV1Beta2Reason = clusterv1.NotReadyV1Beta2Reason
+
+	// VSphereMachineReadyUnknownV1Beta2Reason surfaces when at least one VSphereMachine readiness criteria is unknown
+	// and no VSphereMachine readiness criteria is not met.
+	VSphereMachineReadyUnknownV1Beta2Reason = clusterv1.ReadyUnknownV1Beta2Reason
+)
+
+// VSphereMachine's VirtualMachineProvisioned condition and corresponding reasons that will be used in v1Beta2 API version.
+//
+// NOTE:
+//   - In supervisor mode, before creating the VM the VirtualMachine goes trough a series of preflight checks; if one is failing, the
+//     reason for this failure and the message are surfaced in the VSphereMachine's VirtualMachineProvisioned condition.
+//   - In govmomi mode, in some cases, reason and message are surfaced from the VSphereVM are surfaced in the VSphereMachine's
+//     VirtualMachineProvisioned condition.
+const (
+	// VSphereMachineVirtualMachineProvisionedV1Beta2Condition documents the status of the VirtualMachine that is controlled
+	// by the VSphereMachine.
+	VSphereMachineVirtualMachineProvisionedV1Beta2Condition = "VirtualMachineProvisioned"
+
+	// VSphereMachineVirtualMachineWaitingForClusterInfrastructureReadyV1Beta2Reason documents the VirtualMachine that is controlled
+	// by the VSphereMachine waiting for the cluster infrastructure to be ready.
+	// Note: This reason is used only in govmomi mode.
+	VSphereMachineVirtualMachineWaitingForClusterInfrastructureReadyV1Beta2Reason = clusterv1.WaitingForClusterInfrastructureReadyV1Beta2Reason
+
+	// VSphereMachineVirtualMachineWaitingForControlPlaneInitializedV1Beta2Reason documents the VirtualMachine that is controlled
+	// by the VSphereMachine waiting for the control plane to be initialized.
+	VSphereMachineVirtualMachineWaitingForControlPlaneInitializedV1Beta2Reason = clusterv1.WaitingForControlPlaneInitializedV1Beta2Reason
+
+	// VSphereMachineVirtualMachineWaitingForBootstrapDataV1Beta2Reason documents the VirtualMachine that is controlled
+	// by the VSphereMachine waiting for the bootstrap data to be ready.
+	VSphereMachineVirtualMachineWaitingForBootstrapDataV1Beta2Reason = clusterv1.WaitingForBootstrapDataV1Beta2Reason
+
+	// VSphereMachineVirtualMachineProvisioningV1Beta2Reason surfaces when the VirtualMachine that is controlled
+	// by the VSphereMachine is provisioning.
+	// Note: This reason is used only in supervisor mode.
+	VSphereMachineVirtualMachineProvisioningV1Beta2Reason = "Provisioning"
+
+	// VSphereMachineVirtualMachinePoweringOnV1Beta2Reason surfaces when the VirtualMachine that is controlled
+	// by the VSphereMachine is executing the power on sequence.
+	// Note: This reason is used only in supervisor mode.
+	VSphereMachineVirtualMachinePoweringOnV1Beta2Reason = "PoweringOn"
+
+	// VSphereMachineVirtualMachineWaitingForNetworkAddressV1Beta2Reason surfaces when the VirtualMachine that is controlled
+	// by the VSphereMachine waiting for the machine network settings to be reported after machine being powered on.
+	VSphereMachineVirtualMachineWaitingForNetworkAddressV1Beta2Reason = "WaitingForNetworkAddress"
+
+	// VSphereMachineVirtualMachineWaitingForBIOSUUIDV1Beta2Reason surfaces when the VirtualMachine that is controlled
+	// by the VSphereMachine waiting for the machine to have a BIOS UUID.
+	// Note: This reason is used only in supervisor mode.
+	VSphereMachineVirtualMachineWaitingForBIOSUUIDV1Beta2Reason = "WaitingForBIOSUUID"
+
+	// VSphereMachineVirtualMachineProvisionedV1Beta2Reason surfaces when the VirtualMachine that is controlled
+	// by the VSphereMachine is provisioned.
+	VSphereMachineVirtualMachineProvisionedV1Beta2Reason = clusterv1.ProvisionedV1Beta2Reason
+
+	// VSphereMachineVirtualMachineNotProvisionedV1Beta2Reason surfaces when the VirtualMachine that is controlled
+	// by the VSphereMachine is not provisioned.
+	VSphereMachineVirtualMachineNotProvisionedV1Beta2Reason = clusterv1.NotProvisionedV1Beta2Reason
+
+	// VSphereMachineVirtualMachineDeletingV1Beta2Reason surfaces when the VirtualMachine that is controlled
+	// by the VSphereMachine is being deleted.
+	VSphereMachineVirtualMachineDeletingV1Beta2Reason = clusterv1.DeletingV1Beta2Reason
+)
+
 // VSphereMachineSpec defines the desired state of VSphereMachine.
 type VSphereMachineSpec struct {
 	VirtualMachineCloneSpec `json:",inline"`
@@ -159,7 +233,7 @@ type VSphereMachineStatus struct {
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type VSphereMachineV1Beta2Status struct {
 	// conditions represents the observations of a VSphereMachine's current state.
-	// Known condition types are Paused.
+	// Known condition types are VirtualMachineProvisioned and Paused.
 	// +optional
 	// +listType=map
 	// +listMapKey=type

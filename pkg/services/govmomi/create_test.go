@@ -43,7 +43,7 @@ func TestCreate(t *testing.T) {
 		t.Fatalf("unable to create simulator: %s", err)
 	}
 	defer simr.Destroy()
-	vmRef := simulator.Map.Any("VirtualMachine")
+	vmRef := model.Map().Any("VirtualMachine")
 	vm, ok := vmRef.(*simulator.VirtualMachine)
 	if !ok {
 		t.Fatal("failed to get reference to an existing VM on the vcsim instance")

@@ -363,7 +363,8 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 	}
 
 	// Create the supervisor service in kube-system for the servicediscovery controller to discover and set an IP address
-	// for the headless service.
+	// for the headless service. When using kind as management cluster, the cluster-info configmap in kube-public contains a
+	// hostname instead of an IP address which does not work for the servicediscovery controller.
 	supervisorAPIServerVIPService := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      vmwarev1.SupervisorLoadBalancerSvcName,
@@ -400,7 +401,8 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 	}
 	supervisorAPIServerVIPService.Status = corev1.ServiceStatus{
 		LoadBalancer: corev1.LoadBalancerStatus{Ingress: []corev1.LoadBalancerIngress{
-			{IP: "192.168.1.99"},
+			// Note: this creates a unusable service. During test no application should try to reach out to this.
+			{IP: "127.0.0.255"},
 		}},
 	}
 	_ = wait.PollUntilContextTimeout(ctx, 250*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {

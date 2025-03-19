@@ -336,20 +336,20 @@ func main() {
 		// with the CRDs that should be migrated by this provider.
 		crdMigratorConfig := map[client.Object]crdmigrator.ByObjectConfig{}
 		if isGovmomiCRDLoaded {
-			crdMigratorConfig[&infrav1.VSphereCluster{}] = crdmigrator.ByObjectConfig{UseCache: true}
+			crdMigratorConfig[&infrav1.VSphereCluster{}] = crdmigrator.ByObjectConfig{UseCache: true, UseStatusForStorageVersionMigration: true}
 			crdMigratorConfig[&infrav1.VSphereClusterTemplate{}] = crdmigrator.ByObjectConfig{UseCache: false}
-			crdMigratorConfig[&infrav1.VSphereMachine{}] = crdmigrator.ByObjectConfig{UseCache: true}
+			crdMigratorConfig[&infrav1.VSphereMachine{}] = crdmigrator.ByObjectConfig{UseCache: true, UseStatusForStorageVersionMigration: true}
 			crdMigratorConfig[&infrav1.VSphereMachineTemplate{}] = crdmigrator.ByObjectConfig{UseCache: true}
-			crdMigratorConfig[&infrav1.VSphereVM{}] = crdmigrator.ByObjectConfig{UseCache: true}
-			crdMigratorConfig[&infrav1.VSphereClusterIdentity{}] = crdmigrator.ByObjectConfig{UseCache: true}
-			crdMigratorConfig[&infrav1.VSphereDeploymentZone{}] = crdmigrator.ByObjectConfig{UseCache: true}
+			crdMigratorConfig[&infrav1.VSphereVM{}] = crdmigrator.ByObjectConfig{UseCache: true, UseStatusForStorageVersionMigration: true}
+			crdMigratorConfig[&infrav1.VSphereClusterIdentity{}] = crdmigrator.ByObjectConfig{UseCache: true, UseStatusForStorageVersionMigration: true}
+			crdMigratorConfig[&infrav1.VSphereDeploymentZone{}] = crdmigrator.ByObjectConfig{UseCache: true, UseStatusForStorageVersionMigration: true}
 			crdMigratorConfig[&infrav1.VSphereFailureDomain{}] = crdmigrator.ByObjectConfig{UseCache: true}
 		}
 		if isSupervisorCRDLoaded {
-			crdMigratorConfig[&vmwarev1.VSphereCluster{}] = crdmigrator.ByObjectConfig{UseCache: true}
+			crdMigratorConfig[&vmwarev1.VSphereCluster{}] = crdmigrator.ByObjectConfig{UseCache: true, UseStatusForStorageVersionMigration: true}
 			crdMigratorConfig[&vmwarev1.VSphereClusterTemplate{}] = crdmigrator.ByObjectConfig{UseCache: false}
-			crdMigratorConfig[&vmwarev1.VSphereMachine{}] = crdmigrator.ByObjectConfig{UseCache: true}
-			crdMigratorConfig[&vmwarev1.VSphereMachineTemplate{}] = crdmigrator.ByObjectConfig{UseCache: true}
+			crdMigratorConfig[&vmwarev1.VSphereMachine{}] = crdmigrator.ByObjectConfig{UseCache: true, UseStatusForStorageVersionMigration: true}
+			crdMigratorConfig[&vmwarev1.VSphereMachineTemplate{}] = crdmigrator.ByObjectConfig{UseCache: true, UseStatusForStorageVersionMigration: true}
 			crdMigratorConfig[&vmwarev1.ProviderServiceAccount{}] = crdmigrator.ByObjectConfig{UseCache: true}
 		}
 

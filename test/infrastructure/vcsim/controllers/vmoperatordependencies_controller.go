@@ -41,6 +41,7 @@ type VMOperatorDependenciesReconciler struct {
 
 // +kubebuilder:rbac:groups=vcsim.infrastructure.cluster.x-k8s.io,resources=vmoperatordependencies,verbs=get;list;watch;patch
 // +kubebuilder:rbac:groups=vcsim.infrastructure.cluster.x-k8s.io,resources=vmoperatordependencies/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups="",resources=services;services/status,verbs=get;list;watch;create;update;patch
 
 func (r *VMOperatorDependenciesReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	// Fetch the VMOperatorDependencies instance

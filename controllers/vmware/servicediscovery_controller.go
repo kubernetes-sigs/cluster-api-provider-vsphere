@@ -62,9 +62,7 @@ import (
 const (
 	clusterNotReadyRequeueTime = time.Minute * 2
 
-	supervisorLoadBalancerSvcNamespace = "kube-system"
-	supervisorLoadBalancerSvcName      = "kube-apiserver-lb-svc"
-	supervisorAPIServerPort            = 6443
+	supervisorAPIServerPort = 6443
 
 	supervisorHeadlessSvcNamespace = "default"
 	supervisorHeadlessSvcName      = "supervisor"

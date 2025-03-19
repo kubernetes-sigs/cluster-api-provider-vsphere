@@ -567,7 +567,7 @@ func (vms *VMService) reconcilePCIDevices(ctx context.Context, virtualMachineCtx
 			if conditions.Has(virtualMachineCtx.VSphereVM, infrav1.PCIDevicesDetachedCondition) {
 				conditions.Delete(virtualMachineCtx.VSphereVM, infrav1.PCIDevicesDetachedCondition)
 
-				v1beta2conditions.Delete(virtualMachineCtx.VSphereVM, infrav1.VSphereVMPCIDevicesDetachedConditionV1Beta2Condition)
+				v1beta2conditions.Delete(virtualMachineCtx.VSphereVM, infrav1.VSphereVMPCIDevicesDetachedV1Beta2Condition)
 			}
 			log.V(5).Info("No new PCI devices to be added")
 			return nil
@@ -588,9 +588,9 @@ func (vms *VMService) reconcilePCIDevices(ctx context.Context, virtualMachineCtx
 				"PCI devices removed after VM was powered on")
 
 			v1beta2conditions.Set(virtualMachineCtx.VSphereVM, metav1.Condition{
-				Type:    infrav1.VSphereVMPCIDevicesDetachedConditionV1Beta2Condition,
+				Type:    infrav1.VSphereVMPCIDevicesDetachedV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
-				Reason:  infrav1.VSpherePCIDevicesDetachedNotFoundReasonV1Beta2Reason,
+				Reason:  infrav1.VSphereVMPCIDevicesDetachedNotFoundV1Beta2Reason,
 				Message: "PCI devices removed after VM was powered on",
 			})
 			return errors.Errorf("missing PCI devices")

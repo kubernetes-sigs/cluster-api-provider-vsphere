@@ -118,9 +118,9 @@ const (
 	// being available.
 	VSphereVMVCenterAvailableV1Beta2Reason = clusterv1.AvailableV1Beta2Reason
 
-	// VSphereVMVCenterNotAvailableV1Beta2Reason documents the VCenter hosting the VSphereVM
-	// being not available.
-	VSphereVMVCenterNotAvailableV1Beta2Reason = clusterv1.NotAvailableV1Beta2Reason
+	// VSphereVMVCenterUnreachableV1Beta2Reason documents the VCenter hosting the VSphereVM
+	// cannot be reached.
+	VSphereVMVCenterUnreachableV1Beta2Reason = "VCenterUnreachable"
 )
 
 // VSphereVM's IPAddressClaimsFulfilled condition and corresponding reasons that will be used in v1Beta2 API version.
@@ -157,24 +157,24 @@ const (
 	VSphereVMGuestSoftPowerOffInProgressV1Beta2Reason = "InProgress"
 
 	// GuestSoftPowerOffFailedV1Beta2Reason documents that the graceful
-	// shutdown request fails.
+	// shutdown request failed.
 	VSphereVMGuestSoftPowerOffFailedV1Beta2Reason = "Failed"
 
 	// GuestSoftPowerOffSucceededV1Beta2Reason documents that the graceful
-	// shutdown request fails.
+	// shutdown request succeeded.
 	VSphereVMGuestSoftPowerOffSucceededV1Beta2Reason = "Succeeded"
 )
 
 // VSphereVM's PCIDevicesDetached condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// VSphereVMPCIDevicesDetachedConditionV1Beta2Condition documents the status of the attached PCI devices on the VSphereVM.
+	// VSphereVMPCIDevicesDetachedV1Beta2Condition documents the status of the attached PCI devices on the VSphereVM.
 	// It is a negative condition to notify the user that the device(s) is no longer attached to
 	// the underlying VM and would require manual intervention to fix the situation.
-	VSphereVMPCIDevicesDetachedConditionV1Beta2Condition string = "PCIDevicesDetached"
+	VSphereVMPCIDevicesDetachedV1Beta2Condition string = "PCIDevicesDetached"
 
-	// VSpherePCIDevicesDetachedNotFoundReasonV1Beta2Reason documents the VSphereVM not having the PCI device attached during VM startup.
+	// VSphereVMPCIDevicesDetachedNotFoundV1Beta2Reason documents the VSphereVM not having the PCI device attached during VM startup.
 	// This would indicate that the PCI devices were removed out of band by an external entity.
-	VSpherePCIDevicesDetachedNotFoundReasonV1Beta2Reason = "NotFound"
+	VSphereVMPCIDevicesDetachedNotFoundV1Beta2Reason = "NotFound"
 )
 
 // VSphereVMSpec defines the desired state of VSphereVM.

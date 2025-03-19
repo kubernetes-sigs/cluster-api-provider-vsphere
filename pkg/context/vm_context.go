@@ -50,6 +50,8 @@ func (c *VMContext) Patch(ctx context.Context) error {
 		infrav1.VSphereVMVCenterAvailableV1Beta2Condition,
 		infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
 		infrav1.VSphereVMIPAddressClaimsFulfilledV1Beta2Condition,
+		infrav1.VSphereVMGuestSoftPowerOffSucceededV1Beta2Condition,
+		infrav1.VSphereVMPCIDevicesDetachedV1Beta2Condition,
 		clusterv1.PausedV1Beta2Condition,
 	}})
 }

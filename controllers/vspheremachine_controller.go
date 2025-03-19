@@ -365,7 +365,7 @@ func (r *machineReconciler) reconcileDelete(ctx context.Context, machineCtx capv
 			Type:    infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  infrav1.VSphereMachineVirtualMachineDeletingV1Beta2Reason,
-			Message: err.Error(),
+			Message: "Please check controller logs for errors",
 		})
 
 		return reconcile.Result{}, err

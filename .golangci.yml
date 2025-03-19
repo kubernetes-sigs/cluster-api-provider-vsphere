@@ -214,10 +214,6 @@ issues:
   - linters:
     - staticcheck
     text: "SA1019: \"sigs.k8s.io/cluster-api-provider-vsphere/apis/(v1alpha3|v1alpha4)\" is deprecated: This package will be removed in one of the next releases."
-  # Deprecations for Cluster API's predicates.ClusterUnpausedAndInfrastructureReady
-  - linters:
-    - staticcheck
-    text: "SA1019: predicates.ClusterUnpausedAndInfrastructureReady is deprecated: This predicate is deprecated and will be removed in a future version, use ClusterPausedTransitionsOrInfrastructureReady instead."
   - linters:
     - revive
     text: "exported: exported method .*\\.(Reconcile|SetupWithManager|SetupWebhookWithManager) should have comment or be unexported"

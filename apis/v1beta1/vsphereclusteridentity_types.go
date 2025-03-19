@@ -28,6 +28,27 @@ const (
 	VSphereClusterIdentityFinalizer = "vsphereclusteridentity/infrastructure.cluster.x-k8s.io"
 )
 
+// VSphereClusterIdentity's Available condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// VSphereClusterIdentityAvailableV1Beta2Condition documents the availability for a VSphereClusterIdentity.
+	VSphereClusterIdentityAvailableV1Beta2Condition = clusterv1.AvailableV1Beta2Condition
+
+	// VSphereClusterIdentityAvailableV1Beta2Reason surfaces when the VSphereClusterIdentity is available.
+	VSphereClusterIdentityAvailableV1Beta2Reason = clusterv1.AvailableV1Beta2Reason
+
+	// VSphereClusterIdentitySecretNotAvailableV1Beta2Reason surfaces when the VSphereClusterIdentity secret is not available.
+	VSphereClusterIdentitySecretNotAvailableV1Beta2Reason = "SecretNotAvailable"
+
+	// VSphereClusterIdentitySecretAlreadyInUseV1Beta2Reason surfaces when the VSphereClusterIdentity secret is already in use.
+	VSphereClusterIdentitySecretAlreadyInUseV1Beta2Reason = "SecretAlreadyInUse"
+
+	// VSphereClusterIdentitySettingSecretOwnerReferenceFailedV1Beta2Reason surfaces when setting the owner reference on the VSphereClusterIdentity secret failed.
+	VSphereClusterIdentitySettingSecretOwnerReferenceFailedV1Beta2Reason = "SettingSecretOwnerReferenceFailed"
+
+	// VSphereClusterIdentityDeletingV1Beta2Reason surfaces when the VSphereClusterIdentity is being deleted.
+	VSphereClusterIdentityDeletingV1Beta2Reason = clusterv1.DeletingV1Beta2Reason
+)
+
 // VSphereClusterIdentitySpec contains a secret reference and a group of allowed namespaces.
 type VSphereClusterIdentitySpec struct {
 	// SecretName references a Secret inside the controller namespace with the credentials to use
@@ -59,7 +80,7 @@ type VSphereClusterIdentityStatus struct {
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type VSphereClusterIdentityV1Beta2Status struct {
 	// conditions represents the observations of a VSphereClusterIdentity's current state.
-	// Known condition types are Paused.
+	// Known condition types are Available and Paused.
 	// +optional
 	// +listType=map
 	// +listMapKey=type

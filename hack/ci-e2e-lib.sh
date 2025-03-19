@@ -41,8 +41,8 @@ k8s::prepareKindestImagesVariables() {
   # Ensure kind image get's built vcsim e2e tests.
   if [[ -z "${GINKGO_SKIP:-}" ]]; then
     if [[ "${GINKGO_FOCUS:-}" == "\\[vcsim\\]" ]] || [[ "${GINKGO_FOCUS:-}" == "\\[vcsim\\] \\[supervisor\\]" ]]; then
-      KUBERNETES_VERSION_MANAGEMENT_LATEST_CI=$(grep KUBERNETES_VERSION_MANAGEMENT_LATEST_CI: < "$E2E_CONF_FILE" | awk -F'"' '{ print $2}')
-      echo "Defaulting KUBERNETES_VERSION_MANAGEMENT_LATEST_CI to ${KUBERNETES_VERSION_MANAGEMENT_LATEST_CI} to trigger image build (because env var is not set)"
+      KUBERNETES_VERSION_LATEST_CI=$(grep KUBERNETES_VERSION_LATEST_CI: < "$E2E_CONF_FILE" | awk -F'"' '{ print $2}')
+      echo "Defaulting KUBERNETES_VERSION_LATEST_CI to ${KUBERNETES_VERSION_LATEST_CI} to trigger image build (because env var is not set)"
 
       KUBERNETES_VERSION_MANAGEMENT_LATEST_CI=$(grep KUBERNETES_VERSION_MANAGEMENT_LATEST_CI: < "$E2E_CONF_FILE" | awk -F'"' '{ print $2}')
       echo "Defaulting KUBERNETES_VERSION_MANAGEMENT_LATEST_CI to ${KUBERNETES_VERSION_MANAGEMENT_LATEST_CI} to trigger image build (because env var is not set)"

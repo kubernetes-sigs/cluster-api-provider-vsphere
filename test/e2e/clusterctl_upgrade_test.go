@@ -54,7 +54,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.12
 			capvVersion := "1.12"
 			capvStableRelease, err := getStableReleaseOfMinor(ctx, capvReleaseMarkerPrefix, capvVersion)
 			Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for minor release : %s", capvVersion)
-			initKubernetesVersion, err := kubernetesversions.ResolveVersion(ctx, e2eConfig.MustGetVariable("KUBERNETES_VERSION_LATEST_CI"))
+			initKubernetesVersion, err := kubernetesversions.ResolveVersion(ctx, e2eConfig.MustGetVariable("KUBERNETES_VERSION_MANAGEMENT_LATEST_CI"))
 			Expect(err).ToNot(HaveOccurred())
 			return capi_e2e.ClusterctlUpgradeSpecInput{
 				E2EConfig:                         e2eConfig,

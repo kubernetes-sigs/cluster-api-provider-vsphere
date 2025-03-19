@@ -28,25 +28,25 @@ const (
 	VSphereClusterIdentityFinalizer = "vsphereclusteridentity/infrastructure.cluster.x-k8s.io"
 )
 
-// VSphereClusterIdentity's CredentialsAvailable condition and corresponding reasons that will be used in v1Beta2 API version.
+// VSphereClusterIdentity's Available condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// VSphereClusterIdentityCredentialsAvailableV1Beta2Condition documents the status of the credentials for a VSphereClusterIdentity.
-	VSphereClusterIdentityCredentialsAvailableV1Beta2Condition = "CredentialsAvailable"
+	// VSphereClusterIdentityAvailableV1Beta2Condition documents the availability for a VSphereClusterIdentity.
+	VSphereClusterIdentityAvailableV1Beta2Condition = clusterv1.AvailableV1Beta2Condition
 
-	// VSphereClusterIdentityCredentialsAvailableV1Beta2Reason surfaces when the VSphereClusterIdentity credentials are available.
-	VSphereClusterIdentityCredentialsAvailableV1Beta2Reason = clusterv1.AvailableV1Beta2Reason
+	// VSphereClusterIdentityAvailableV1Beta2Reason surfaces when the VSphereClusterIdentity is available.
+	VSphereClusterIdentityAvailableV1Beta2Reason = clusterv1.AvailableV1Beta2Reason
 
-	// VSphereClusterIdentityCredentialsSecretNotAvailableV1Beta2Reason surfaces when the VSphereClusterIdentity secret is not available.
-	VSphereClusterIdentityCredentialsSecretNotAvailableV1Beta2Reason = "SecretNotAvailable"
+	// VSphereClusterIdentitySecretNotAvailableV1Beta2Reason surfaces when the VSphereClusterIdentity secret is not available.
+	VSphereClusterIdentitySecretNotAvailableV1Beta2Reason = "SecretNotAvailable"
 
-	// VSphereClusterIdentityCredentialsSecretAlreadyInUseV1Beta2Reason surfaces when the VSphereClusterIdentity secret is already in use.
-	VSphereClusterIdentityCredentialsSecretAlreadyInUseV1Beta2Reason = "SecretAlreadyInUse"
+	// VSphereClusterIdentitySecretAlreadyInUseV1Beta2Reason surfaces when the VSphereClusterIdentity secret is already in use.
+	VSphereClusterIdentitySecretAlreadyInUseV1Beta2Reason = "SecretAlreadyInUse"
 
-	// VSphereClusterIdentityCredentialsSettingSecretOwnerReferenceFailedV1Beta2Reason surfaces when setting the owner reference on the VSphereClusterIdentity secret failed.
-	VSphereClusterIdentityCredentialsSettingSecretOwnerReferenceFailedV1Beta2Reason = "SettingSecretOwnerReferenceFailed"
+	// VSphereClusterIdentitySettingSecretOwnerReferenceFailedV1Beta2Reason surfaces when setting the owner reference on the VSphereClusterIdentity secret failed.
+	VSphereClusterIdentitySettingSecretOwnerReferenceFailedV1Beta2Reason = "SettingSecretOwnerReferenceFailed"
 
-	// VSphereClusterIdentityCredentialsDeletingV1Beta2Reason surfaces when the credentials for a VSphereClusterIdentity are being deleted.
-	VSphereClusterIdentityCredentialsDeletingV1Beta2Reason = clusterv1.DeletingV1Beta2Reason
+	// VSphereClusterIdentityDeletingV1Beta2Reason surfaces when the VSphereClusterIdentity is being deleted.
+	VSphereClusterIdentityDeletingV1Beta2Reason = clusterv1.DeletingV1Beta2Reason
 )
 
 // VSphereClusterIdentitySpec contains a secret reference and a group of allowed namespaces.
@@ -80,7 +80,7 @@ type VSphereClusterIdentityStatus struct {
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type VSphereClusterIdentityV1Beta2Status struct {
 	// conditions represents the observations of a VSphereClusterIdentity's current state.
-	// Known condition types are CredentialsAvailable and Paused.
+	// Known condition types are Available and Paused.
 	// +optional
 	// +listType=map
 	// +listMapKey=type

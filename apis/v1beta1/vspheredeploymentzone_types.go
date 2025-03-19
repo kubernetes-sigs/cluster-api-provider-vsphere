@@ -98,9 +98,6 @@ const (
 	// VSphereDeploymentZoneFailureDomainHostsMisconfiguredV1Beta2Reason surfaces when the failure domain's hosts for a VSphereDeploymentZone are misconfigured.
 	VSphereDeploymentZoneFailureDomainHostsMisconfiguredV1Beta2Reason = "HostsMisconfigured"
 
-	// VSphereDeploymentZoneFailureDomainHostsAffinityMisconfiguredV1Beta2Reason surfaces when the failure domain's hosts for a VSphereDeploymentZone are misconfigured.
-	VSphereDeploymentZoneFailureDomainHostsAffinityMisconfiguredV1Beta2Reason = "HostsAffinityMisconfigured"
-
 	// VSphereDeploymentZoneFailureDomainDatastoreNotFoundV1Beta2Reason surfaces when the failure domain's datastore for a VSphereDeploymentZone is not found.
 	VSphereDeploymentZoneFailureDomainDatastoreNotFoundV1Beta2Reason = "DatastoreNotFound"
 

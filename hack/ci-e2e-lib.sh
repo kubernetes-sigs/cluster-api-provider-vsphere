@@ -197,10 +197,14 @@ EOL
 kind::prepullImage () {
   local image=$1
   image="${image//+/_}"
+  mirrored_image="gcr.io/k8s-staging-capi-vsphere/extra/${image}"
 
   retVal=0
   if [[ "$(docker images -q "$image" 2> /dev/null)" == "" ]]; then
-    echo "+ Pulling $image"
+    echo "+ Trying to pull $image from mirror first"
+    docker pull "$mirrored_image" && docker tag $mirrored_image $image && return || retval=$?
+
+    echo "+ Falling pack to pull from original registry $image"
     docker pull "$image" || retVal=$?
   else
     echo "+ image $image already present in the system, skipping pre-pull"

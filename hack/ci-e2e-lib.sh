@@ -208,7 +208,7 @@ kind::prepullImage () {
   retVal=0
   if [[ "$(docker images -q "$image" 2> /dev/null)" == "" ]]; then
     echo "+ Trying to pull $image from mirror first"
-    docker pull "$mirrored_image" && docker tag $mirrored_image $image && return || retval=$?
+    docker pull "$mirrored_image" && docker tag "$mirrored_image" "$image" && return
 
     echo "+ Falling pack to pull from original registry $image"
     docker pull "$image" || retVal=$?

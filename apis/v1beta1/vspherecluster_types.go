@@ -74,9 +74,6 @@ const (
 	// VSphereClusterVCenterUnreachableV1Beta2Reason surfaces when the vCenter for a VSphereCluster is unreachable.
 	VSphereClusterVCenterUnreachableV1Beta2Reason = "VCenterUnreachable"
 
-	// VSphereClusterVCenterNotAvailableV1Beta2Reason surfaces when the vCenter for a VSphereCluster is not available.
-	VSphereClusterVCenterNotAvailableV1Beta2Reason = clusterv1.NotAvailableV1Beta2Reason
-
 	// VSphereClusterVCenterAvailableDeletingV1Beta2Reason surfaces when the VSphereCluster is being deleted.
 	VSphereClusterVCenterAvailableDeletingV1Beta2Reason = clusterv1.DeletingV1Beta2Reason
 )

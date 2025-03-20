@@ -43,6 +43,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	topologyv1 "sigs.k8s.io/cluster-api-provider-vsphere/internal/apis/topology/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 	vcsimv1 "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/api/v1alpha1"
@@ -355,6 +356,63 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 			}
 			log.Info("Created vm-operator ConfigMap", "ConfigMap", klog.KObj(providerConfigMap))
 		}
+		return true, nil
+	})
+	if retryError != nil {
+		return retryError
+	}
+
+	// Create the supervisor service in kube-system for the servicediscovery controller to discover and set an IP address
+	// for the headless service. When using kind as management cluster, the cluster-info configmap in kube-public contains a
+	// hostname instead of an IP address which does not work for the servicediscovery controller.
+	supervisorAPIServerVIPService := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      vmwarev1.SupervisorLoadBalancerSvcName,
+			Namespace: vmwarev1.SupervisorLoadBalancerSvcNamespace,
+		},
+		Spec: corev1.ServiceSpec{
+			Type: corev1.ServiceTypeLoadBalancer,
+			Ports: []corev1.ServicePort{
+				{
+					Name:     "kube-apiserver",
+					Protocol: corev1.ProtocolTCP,
+					Port:     6443,
+				},
+			},
+		},
+	}
+	_ = wait.PollUntilContextTimeout(ctx, 250*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
+		retryError = nil
+		if err := c.Get(ctx, client.ObjectKeyFromObject(supervisorAPIServerVIPService), supervisorAPIServerVIPService); err != nil {
+			if !apierrors.IsNotFound(err) {
+				retryError = errors.Wrapf(err, "failed to get vm-operator service %s", klog.KObj(supervisorAPIServerVIPService))
+				return false, nil
+			}
+			if err := c.Create(ctx, supervisorAPIServerVIPService); err != nil {
+				retryError = errors.Wrapf(err, "failed to create vm-operator service %s", klog.KObj(supervisorAPIServerVIPService))
+				return false, nil
+			}
+			log.Info("Created vm-operator service", "Service", klog.KObj(supervisorAPIServerVIPService))
+		}
+		return true, nil
+	})
+	if retryError != nil {
+		return retryError
+	}
+	supervisorAPIServerVIPService.Status = corev1.ServiceStatus{
+		LoadBalancer: corev1.LoadBalancerStatus{Ingress: []corev1.LoadBalancerIngress{
+			// Note: this creates a unusable service. During test no application should try to reach out to this.
+			// 192.0.2.2 is part of the link-local subnet 192.0.2.0/24 which is reserved for documentation and testing.
+			{IP: "192.0.2.2"},
+		}},
+	}
+	_ = wait.PollUntilContextTimeout(ctx, 250*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
+		retryError = nil
+		if err := c.Status().Update(ctx, supervisorAPIServerVIPService); err != nil {
+			retryError = errors.Wrapf(err, "failed to update vm-operator service status %s", klog.KObj(supervisorAPIServerVIPService))
+			return false, nil
+		}
+		log.Info("Updated vm-operator service status", "Service", klog.KObj(supervisorAPIServerVIPService))
 		return true, nil
 	})
 	if retryError != nil {

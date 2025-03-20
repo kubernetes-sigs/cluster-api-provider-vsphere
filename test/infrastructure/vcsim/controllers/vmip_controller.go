@@ -112,11 +112,11 @@ func (r *vmIPReconciler) ReconcileIP(ctx context.Context) (ctrl.Result, error) {
 				MacAddress: macAddress,
 				Adapter: types.CustomizationIPSettings{
 					Ip: &types.CustomizationFixedIp{
-						IpAddress: "192.168.1.100",
+						IpAddress: "192.0.2.100",
 					},
 					SubnetMask:    "255.255.255.0",
-					Gateway:       []string{"192.168.1.1"},
-					DnsServerList: []string{"192.168.1.1"},
+					Gateway:       []string{"192.0.2.1"},
+					DnsServerList: []string{"192.0.2.1"},
 					DnsDomain:     "ad.domain",
 				},
 			},

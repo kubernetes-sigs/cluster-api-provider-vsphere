@@ -402,8 +402,8 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 	supervisorAPIServerVIPService.Status = corev1.ServiceStatus{
 		LoadBalancer: corev1.LoadBalancerStatus{Ingress: []corev1.LoadBalancerIngress{
 			// Note: this creates a unusable service. During test no application should try to reach out to this.
-			// 169.254.0.1 is part of the link-local subnet	169.254.0.0/16.
-			{IP: "169.254.0.1"},
+			// 192.0.2.2 is part of the link-local subnet 192.0.2.0/24 which is reserved for documentation and testing.
+			{IP: "192.0.2.2"},
 		}},
 	}
 	_ = wait.PollUntilContextTimeout(ctx, 250*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {

@@ -19,6 +19,7 @@ package util
 import (
 	"bytes"
 	"fmt"
+	"hash/fnv"
 	"text/template"
 
 	sprig "github.com/go-task/slim-sprig/v3"
@@ -26,7 +27,8 @@ import (
 )
 
 const (
-	maxNameLength = 63
+	maxNameLength          = 63
+	maxGeneratedNameLength = maxNameLength - 10 // 32bit integer, which is what's used by the hash, can at most take up 10 characters.
 )
 
 var nameTemplateFuncs = map[string]any{
@@ -72,4 +74,18 @@ func GenerateMachineNameFromTemplate(machineName string, nameTemplate *string) (
 	}
 
 	return name, nil
+}
+
+// GenerateResourceName will trim and add a hashed value to the end of the provided name if it exceeds max length.
+// Provided name is returned unmodified otherwise.
+func GenerateResourceName(name string) string {
+	// If the name exceeds the maxNameLength: trim to maxGeneratedNameLength and add
+	// hash of name as a suffix.
+	if len(name) > maxNameLength {
+		hasher := fnv.New32a()
+		_, _ = hasher.Write([]byte(name))
+		name = fmt.Sprintf("%s%d", name[:maxGeneratedNameLength], hasher.Sum32())
+	}
+
+	return name
 }

@@ -35,6 +35,7 @@ import (
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
 const (
@@ -155,7 +156,7 @@ func (s *CPService) ReconcileControlPlaneEndpointService(ctx context.Context, cl
 }
 
 func controlPlaneVMServiceName(ctx *vmware.ClusterContext) string {
-	return fmt.Sprintf("%s-control-plane-service", ctx.Cluster.Name)
+	return util.GenerateResourceName(fmt.Sprintf("%s-control-plane-service", ctx.Cluster.Name))
 }
 
 // ClusterRoleVMLabels returns labels applied to a VirtualMachine in the cluster. The Control Plane

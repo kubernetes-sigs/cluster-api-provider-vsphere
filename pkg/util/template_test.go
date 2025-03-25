@@ -103,3 +103,35 @@ func Test_GenerateMachineNameFromTemplate(t *testing.T) {
 		})
 	}
 }
+
+func Test_GenerateResourceName(t *testing.T) {
+	tests := []struct {
+		testName     string
+		providedName string
+		expectedName string
+	}{
+		{
+			testName:     "should return unmodified name if less than max number of characters",
+			providedName: "less-than-max-characters", // 24 characters
+			expectedName: "less-than-max-characters",
+		},
+		{
+			testName:     "should return with a hash suffix when provided name exceeds maximum",
+			providedName: "more-than-max-more-than-max-more-than-max-more-than-max-more-than-max-more-than-max", // 84 characters
+			expectedName: "more-than-max-more-than-max-more-than-max-more-than-m3260568934",
+		},
+		{
+			testName:     "should return a unique name with a different suffix even if the generated prefix is the same",
+			providedName: "more-than-max-more-than-max-more-than-max-more-than-max-more-than-max-more-than", // 80 characters
+			expectedName: "more-than-max-more-than-max-more-than-max-more-than-m1990406901",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.testName, func(t *testing.T) {
+			g := NewWithT(t)
+			actualName := GenerateResourceName(tt.providedName)
+			g.Expect(actualName).To(Equal(tt.expectedName))
+		})
+	}
+}

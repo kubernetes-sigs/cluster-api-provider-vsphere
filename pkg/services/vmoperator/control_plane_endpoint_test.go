@@ -27,7 +27,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -39,17 +38,12 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
-func getVirtualMachineService(ctx context.Context, clusterCtx *vmware.ClusterContext, c ctrlclient.Client, _ CPService) *vmoprv1.VirtualMachineService {
-	vms := newVirtualMachineService(clusterCtx)
-	nsname := types.NamespacedName{
-		Namespace: vms.Namespace,
-		Name:      vms.Name,
-	}
-	err := c.Get(ctx, nsname, vms)
+func getVirtualMachineService(ctx context.Context, clusterCtx *vmware.ClusterContext, _ ctrlclient.Client, cpService CPService) *vmoprv1.VirtualMachineService {
+	vms, err := cpService.getVMControlPlaneService(ctx, clusterCtx)
 	if apierrors.IsNotFound(err) {
 		return nil
 	}
-	Expect(err).ShouldNot(HaveOccurred())
+	Expect(err).ToNot(HaveOccurred())
 	return vms
 }
 
@@ -184,10 +178,33 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 
 		Specify("DummyLBNetworkProvider has a LoadBalancer", func() {
 			expectReconcileError = true // VirtualMachineService LB does not yet have VIP assigned
+			expectAPIEndpoint = false
 			expectVMS = true
 			expectedType = vmoprv1.VirtualMachineServiceTypeLoadBalancer
 			apiEndpoint, err = cpService.ReconcileControlPlaneEndpointService(ctx, clusterCtx, network.DummyLBNetworkProvider())
 			verifyOutput()
+
+			// Set a VIP and reconcile again.
+			expectReconcileError = false
+			expectAPIEndpoint = true
+			updateVMServiceWithVIP(ctx, clusterCtx, c, cpService, vip)
+			expectedPort = defaultAPIBindPort
+			expectedHost = vip
+			apiEndpoint, err = cpService.ReconcileControlPlaneEndpointService(ctx, clusterCtx, network.DummyLBNetworkProvider())
+			verifyOutput()
+			vmService := getVirtualMachineService(ctx, clusterCtx, c, cpService)
+			Expect(vmService.Name).To(Equal(controlPlaneVMServiceName(clusterCtx.Cluster.Name)))
+
+			// Delete the apiservice and recreate using the legacy name and reconcile again.
+			Expect(c.Delete(ctx, vmService.DeepCopy())).To(Succeed())
+			vmService.Name = legacyControlPlaneVMServiceName(clusterCtx.Cluster.Name)
+			vmService.ResourceVersion = ""
+			Expect(c.Create(ctx, vmService)).To(Succeed())
+			updateVMServiceWithVIP(ctx, clusterCtx, c, cpService, vip)
+			apiEndpoint, err = cpService.ReconcileControlPlaneEndpointService(ctx, clusterCtx, network.DummyLBNetworkProvider())
+			verifyOutput()
+			vmService = getVirtualMachineService(ctx, clusterCtx, c, cpService)
+			Expect(vmService.Name).To(Equal(legacyControlPlaneVMServiceName(clusterCtx.Cluster.Name)))
 		})
 
 		Specify("Reconcile VirtualMachineService for NetOp", func() {

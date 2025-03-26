@@ -267,7 +267,7 @@ func (s *CPService) getVMControlPlaneService(ctx context.Context, clusterCtx *vm
 		}
 		if fallbackErr := s.Client.Get(ctx, fallbackVMServiceKey, vmService); fallbackErr != nil {
 			if !apierrors.IsNotFound(fallbackErr) {
-				return nil, fmt.Errorf("failed to get VirtualMachineService %s: %v", vmServiceKey.Name, fallbackErr)
+				return nil, fmt.Errorf("failed to get VirtualMachineService %s: %v", fallbackVMServiceKey.Name, fallbackErr)
 			}
 
 			log.Info("VirtualMachineService was not found", "VirtualMachineService", klog.KRef(vmServiceKey.Namespace, vmServiceKey.Name))

@@ -154,8 +154,14 @@ func (s *CPService) ReconcileControlPlaneEndpointService(ctx context.Context, cl
 	return cpEndpoint, nil
 }
 
-func controlPlaneVMServiceName(ctx *vmware.ClusterContext) string {
-	return fmt.Sprintf("%s-control-plane-service", ctx.Cluster.Name)
+func controlPlaneVMServiceName(clusterName string) string {
+	return clusterName
+}
+
+// legacyControlPlaneVMServiceName was used for creating the ControlPlane VirtualMachineService prior to
+// v1.13.0. It resulted in limiting the name of a Cluster to 41 characters (besides other places).
+func legacyControlPlaneVMServiceName(clusterName string) string {
+	return fmt.Sprintf("%s-control-plane-service", clusterName)
 }
 
 // ClusterRoleVMLabels returns labels applied to a VirtualMachine in the cluster. The Control Plane
@@ -179,7 +185,7 @@ func clusterRoleVMLabels(ctx *vmware.ClusterContext, controlPlane bool) map[stri
 func newVirtualMachineService(ctx *vmware.ClusterContext) *vmoprv1.VirtualMachineService {
 	return &vmoprv1.VirtualMachineService{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      controlPlaneVMServiceName(ctx),
+			Name:      controlPlaneVMServiceName(ctx.Cluster.Name),
 			Namespace: ctx.Cluster.Namespace,
 		},
 		TypeMeta: metav1.TypeMeta{
@@ -247,15 +253,26 @@ func (s *CPService) getVMControlPlaneService(ctx context.Context, clusterCtx *vm
 	vmService := &vmoprv1.VirtualMachineService{}
 	vmServiceKey := client.ObjectKey{
 		Namespace: clusterCtx.Cluster.Namespace,
-		Name:      controlPlaneVMServiceName(clusterCtx),
+		Name:      controlPlaneVMServiceName(clusterCtx.Cluster.Name),
 	}
 	if err := s.Client.Get(ctx, vmServiceKey, vmService); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return nil, fmt.Errorf("failed to get VirtualMachineService %s: %v", vmServiceKey.Name, err)
 		}
 
-		log.Info("VirtualMachineService was not found", "VirtualMachineService", klog.KRef(vmServiceKey.Namespace, vmServiceKey.Name))
-		return nil, err
+		// In case of not finding the ControlPlane VirtualMachineService: fallback to try the legacy name.
+		fallbackVMServiceKey := client.ObjectKey{
+			Namespace: vmServiceKey.Namespace,
+			Name:      legacyControlPlaneVMServiceName(clusterCtx.Cluster.Name),
+		}
+		if fallbackErr := s.Client.Get(ctx, fallbackVMServiceKey, vmService); fallbackErr != nil {
+			if !apierrors.IsNotFound(fallbackErr) {
+				return nil, fmt.Errorf("failed to get VirtualMachineService %s: %v", vmServiceKey.Name, fallbackErr)
+			}
+
+			log.Info("VirtualMachineService was not found", "VirtualMachineService", klog.KRef(vmServiceKey.Namespace, vmServiceKey.Name))
+			return nil, err
+		}
 	}
 
 	return vmService, nil

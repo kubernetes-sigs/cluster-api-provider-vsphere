@@ -71,18 +71,20 @@ spec:
                               description: matchLabelKeys TODO.
                               items:
                                 maxLength: 256
+                                pattern: ^cluster\.x-k8s\.io\/(deployment|cluster)-name$
                                 type: string
                               maxItems: 2
+                              minItems: 0
                               type: array
-                            suspend:
-                              description: suspend TODO.
-                              type: boolean
                             topologyKey:
                               description: topologyKey TODO.
+                              enum:
+                              - node.cluster.x-k8s.io/esxi-host
                               maxLength: 256
                               minLength: 1
                               type: string
                           required:
+                          - matchLabelKeys
                           - topologyKey
                           type: object
                         maxItems: 1

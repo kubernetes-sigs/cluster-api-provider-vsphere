@@ -139,15 +139,15 @@ type VSphereMachinePreferredDuringSchedulingPreferredDuringExecution struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
+	// +kubebuilder:validation:Enum=node.cluster.x-k8s.io/esxi-host
 	TopologyKey string `json:"topologyKey"`
 	// matchLabelKeys TODO.
-	// +optional
+	// +required
+	// +kubebuilder:validation:MinItems=0
 	// +kubebuilder:validation:MaxItems=2
 	// +kubebuilder:validation:items:MaxLength=256
-	MatchLabelKeys []string `json:"matchLabelKeys,omitempty"`
-	// suspend TODO.
-	// +optional
-	Suspend bool `json:"suspend,omitempty"`
+	// +kubebuilder:validation:items:Pattern=`^cluster\.x-k8s\.io\/(deployment|cluster)-name$`
+	MatchLabelKeys []string `json:"matchLabelKeys"`
 }
 
 // VSphereMachineStatus defines the observed state of VSphereMachine.

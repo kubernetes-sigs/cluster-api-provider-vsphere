@@ -54,6 +54,42 @@ spec:
           spec:
             description: VSphereMachineSpec defines the desired state of VSphereMachine.
             properties:
+              affinity:
+                description: affinity TODO.
+                properties:
+                  machineDeploymentMachineAntiAffinity:
+                    description: machineDeploymentMachineAntiAffinity TODO.
+                    properties:
+                      preferredDuringSchedulingPreferredDuringExecution:
+                        description: preferredDuringSchedulingPreferredDuringExecution
+                          TODO.
+                        items:
+                          description: VSphereMachinePreferredDuringSchedulingPreferredDuringExecution
+                            TODO.
+                          properties:
+                            matchLabelKeys:
+                              description: matchLabelKeys TODO.
+                              items:
+                                maxLength: 256
+                                type: string
+                              maxItems: 2
+                              type: array
+                            suspend:
+                              description: suspend TODO.
+                              type: boolean
+                            topologyKey:
+                              description: topologyKey TODO.
+                              maxLength: 256
+                              minLength: 1
+                              type: string
+                          required:
+                          - topologyKey
+                          type: object
+                        maxItems: 1
+                        minItems: 1
+                        type: array
+                    type: object
+                type: object
               className:
                 description: |-
                   ClassName is the name of the class used when specifying the underlying

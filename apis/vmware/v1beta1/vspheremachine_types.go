@@ -91,6 +91,10 @@ type VSphereMachineSpec struct {
 	// NamingStrategy allows configuring the naming strategy used when calculating the name of the VirtualMachine.
 	// +optional
 	NamingStrategy *VirtualMachineNamingStrategy `json:"namingStrategy,omitempty"`
+
+	// affinity TODO.
+	// +optional
+	Affinity *VSphereMachineAffinity `json:"affinity,omitempty"`
 }
 
 // VirtualMachineNamingStrategy defines the naming strategy for the VirtualMachines.
@@ -111,6 +115,39 @@ type VirtualMachineNamingStrategy struct {
 	//   so we highly recommend to use a template which leads to a name shorter than 63 characters.
 	// +optional
 	Template *string `json:"template,omitempty"`
+}
+
+// VSphereMachineAffinity TODO.
+type VSphereMachineAffinity struct {
+	// machineDeploymentMachineAntiAffinity TODO.
+	// +optional
+	MachineDeploymentMachineAntiAffinity *VSphereMachineMachineDeploymentMachineAntiAffinity `json:"machineDeploymentMachineAntiAffinity,omitempty"`
+}
+
+// VSphereMachineMachineDeploymentMachineAntiAffinity TODO.
+type VSphereMachineMachineDeploymentMachineAntiAffinity struct {
+	// preferredDuringSchedulingPreferredDuringExecution TODO.
+	// +optional
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=1
+	PreferredDuringSchedulingPreferredDuringExecution []VSphereMachinePreferredDuringSchedulingPreferredDuringExecution `json:"preferredDuringSchedulingPreferredDuringExecution,omitempty"`
+}
+
+// VSphereMachinePreferredDuringSchedulingPreferredDuringExecution TODO.
+type VSphereMachinePreferredDuringSchedulingPreferredDuringExecution struct {
+	// topologyKey TODO.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
+	TopologyKey string `json:"topologyKey"`
+	// matchLabelKeys TODO.
+	// +optional
+	// +kubebuilder:validation:MaxItems=2
+	// +kubebuilder:validation:items:MaxLength=256
+	MatchLabelKeys []string `json:"matchLabelKeys,omitempty"`
+	// suspend TODO.
+	// +optional
+	Suspend bool `json:"suspend,omitempty"`
 }
 
 // VSphereMachineStatus defines the observed state of VSphereMachine.

@@ -72,6 +72,7 @@ type ClusterReconciler struct {
 // +kubebuilder:rbac:groups=netoperator.vmware.com,resources=networks,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;update;create;delete
 // +kubebuilder:rbac:groups="",resources=persistentvolumeclaims/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines,verbs=get;list;watch
 
 func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
@@ -243,7 +244,7 @@ func (r *ClusterReconciler) reconcileNormal(ctx context.Context, clusterCtx *vmw
 	// Reconcile ResourcePolicy before we create the machines. If the ResourcePolicy is not reconciled before we create the Node VMs,
 	// it will be handled by vm operator by relocating the VMs to the ResourcePool and Folder specified by the ResourcePolicy.
 	// Reconciling the ResourcePolicy early potentially saves us the extra relocate operation.
-	resourcePolicyName, err := r.ResourcePolicyService.ReconcileResourcePolicy(ctx, clusterCtx)
+	resourcePolicyName, err := r.ResourcePolicyService.ReconcileResourcePolicy(ctx, clusterCtx.Cluster, clusterCtx.VSphereCluster)
 	if err != nil {
 		conditions.MarkFalse(clusterCtx.VSphereCluster, vmwarev1.ResourcePolicyReadyCondition, vmwarev1.ResourcePolicyCreationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 		v1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{

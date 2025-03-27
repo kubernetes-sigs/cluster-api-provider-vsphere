@@ -470,7 +470,9 @@ func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervis
 		// Assign the VM's labels.
 		vmOperatorVM.Labels = getVMLabels(supervisorMachineCtx, vmOperatorVM.Labels)
 
-		addResourcePolicyAnnotations(supervisorMachineCtx, vmOperatorVM)
+		if err := addResourcePolicyAnnotations(ctx, v.Client, supervisorMachineCtx, vmOperatorVM); err != nil {
+			return err
+		}
 
 		if err := v.addVolumes(ctx, supervisorMachineCtx, vmOperatorVM); err != nil {
 			return err
@@ -575,7 +577,7 @@ func (v *VmopMachineService) getVirtualMachinesInCluster(ctx context.Context, su
 
 // Helper function to add annotations to indicate which tag vm-operator should add as well as which clusterModule VM
 // should be associated.
-func addResourcePolicyAnnotations(supervisorMachineCtx *vmware.SupervisorMachineContext, vm *vmoprv1.VirtualMachine) {
+func addResourcePolicyAnnotations(ctx context.Context, ctrlClient client.Client, supervisorMachineCtx *vmware.SupervisorMachineContext, vm *vmoprv1.VirtualMachine) error {
 	annotations := vm.ObjectMeta.GetAnnotations()
 	if annotations == nil {
 		annotations = make(map[string]string)
@@ -586,10 +588,25 @@ func addResourcePolicyAnnotations(supervisorMachineCtx *vmware.SupervisorMachine
 		annotations[ClusterModuleNameAnnotationKey] = ControlPlaneVMClusterModuleGroupName
 	} else {
 		annotations[ProviderTagsAnnotationKey] = WorkerVMVMAntiAffinityTagValue
-		annotations[ClusterModuleNameAnnotationKey] = getMachineDeploymentNameForCluster(supervisorMachineCtx.Cluster)
+
+		// Only set the ClusterModuleGroup annotation if not already set
+		if _, ok := annotations[ClusterModuleNameAnnotationKey]; !ok {
+			clusterModuleGroupName, err := getClusterModuleName(supervisorMachineCtx.Cluster.Name, supervisorMachineCtx.Machine, supervisorMachineCtx.VSphereMachine)
+			if err != nil {
+				return errors.Wrap(err, "failed to get cluster module name")
+			}
+
+			if clusterModuleGroupName != "" {
+				if err := checkClusterModuleGroup(ctx, ctrlClient, supervisorMachineCtx.Cluster, clusterModuleGroupName); err != nil {
+					return err
+				}
+				annotations[ClusterModuleNameAnnotationKey] = clusterModuleGroupName
+			}
+		}
 	}
 
 	vm.ObjectMeta.SetAnnotations(annotations)
+	return nil
 }
 
 func volumeName(machine *vmwarev1.VSphereMachine, volume vmwarev1.VSphereMachineVolume) string {
@@ -735,10 +752,4 @@ func getTopologyLabels(supervisorMachineCtx *vmware.SupervisorMachineContext) ma
 		}
 	}
 	return nil
-}
-
-// getMachineDeploymentName returns the MachineDeployment name for a Cluster.
-// This is also the name used by VSphereMachineTemplate and KubeadmConfigTemplate.
-func getMachineDeploymentNameForCluster(cluster *clusterv1.Cluster) string {
-	return fmt.Sprintf("%s-workers-0", cluster.Name)
 }

@@ -22,6 +22,8 @@ const (
 
 	// ControlPlaneVMClusterModuleGroupName is the name used for the control plane Cluster Module.
 	ControlPlaneVMClusterModuleGroupName = "control-plane-group"
+	// ClusterWorkerVMClusterModuleGroupName is the name used for the worker Cluster Module when using mode Cluster.
+	ClusterWorkerVMClusterModuleGroupName = "workers-group"
 	// ClusterModuleNameAnnotationKey is key for the Cluster Module annotation.
 	ClusterModuleNameAnnotationKey = "vsphere-cluster-module-group"
 	// ProviderTagsAnnotationKey is the key used for the provider tags annotation.

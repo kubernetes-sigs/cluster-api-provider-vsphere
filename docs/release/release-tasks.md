@@ -96,14 +96,18 @@ From this point forward changes which should land in the release have to be cher
    1. Copy the `.branches.main` section in `config/jobs/kubernetes-sigs/cluster-api-provider-vsphere/cluster-api-provider-vsphere-prowjob-gen.yaml` over to a new branch specific section (e.g. `.branches.release-1.8`).
    2. Run `TEST_INFRA_DIR=../../k8s.io/test-infra make generate-test-infra-prowjobs` to regenerate the prowjob files.
 5. Verify the jobs and dashboards a day later by taking a look at [testgrid](https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api-provider-vsphere)
-6. Update `.github/workflows/weekly-security-scan.yaml` - to setup Trivy and govulncheck scanning - `.github/workflows/weekly-md-link-check.yaml` - to setup link checking in the CAPI book - and `.github/workflows/weekly-test-release.yaml` - to verify the release target is working - for the currently supported branches.
-7. Update the [PR markdown link checker](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/blob/main/.github/workflows/pr-md-link-check.yaml) accordingly (e.g. `main` -> `release-1.8`).
-   - Prior art: [Update branch for link checker](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/pull/2242)
+6. Update for the currently supported branches:
+   * `.github/workflows/weekly-security-scan.yaml`: to setup Trivy and govulncheck scanning
+   * `.github/workflows/weekly-md-link-check.yaml`: to setup link checking in the CAPI book
+   * `.github/workflows/weekly-test-release.yaml`: to verify the release target is working
 
 After the release is cut:
 
 1. Remove tests for old release branches if necessary by removing the release-branch from `cluster-api-provider-vsphere-prowjob-gen.yaml` and regenerating the prowjob files.
-2. Update `.github/workflows/weekly-security-scan.yaml` - to setup Trivy and govulncheck scanning - `.github/workflows/weekly-md-link-check.yaml` - to setup link checking in the CAPI book - and `.github/workflows/weekly-test-release.yaml` - to verify the release target is working - to remove the not supported release-branch.
+2. Update to remove the not supported release-branch:
+  * `.github/workflows/weekly-security-scan.yaml`: to setup Trivy and govulncheck scanning
+  * `.github/workflows/weekly-md-link-check.yaml`: to setup link checking in the CAPI book
+  * `.github/workflows/weekly-test-release.yaml`: to verify the release target is working
 
 ## Cut a release
 

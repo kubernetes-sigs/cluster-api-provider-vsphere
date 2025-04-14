@@ -26,6 +26,7 @@ import (
 	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -133,6 +134,71 @@ func getFallbackWorkerClusterModuleGroupName(clusterName string) string {
 	return fmt.Sprintf("%s-workers-0", clusterName)
 }
 
+func getTargetClusterModuleGroups(ctx context.Context, ctrlClient client.Client, cluster *clusterv1.Cluster) ([]string, error) {
+	if !feature.Gates.Enabled(feature.WorkerAntiAffinity) {
+		// Fallback to old behaviour
+		return []string{
+			ControlPlaneVMClusterModuleGroupName,
+			getFallbackWorkerClusterModuleGroupName(cluster.Name),
+		}, nil
+	}
+
+	// Always add a cluster module for control plane machines.
+	modules := sets.New(ControlPlaneVMClusterModuleGroupName)
+
+	// Get all worker related cluster modules by listing all machines and reading from their VSphereMachine objects.
+	clusterModules, err := getWorkerVSphereMachineClusterModuleNamesForCluster(ctx, ctrlClient, cluster)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get cluster module names for workers")
+	}
+
+	modules.Insert(clusterModules...)
+	modulesList := modules.UnsortedList()
+	// Sort elements to have deterministic output.
+	sort.Strings(modulesList)
+
+	return modulesList, nil
+}
+
+func getWorkerVSphereMachineClusterModuleNamesForCluster(ctx context.Context, ctrlClient client.Client, cluster *clusterv1.Cluster) ([]string, error) {
+	log := ctrl.LoggerFrom(ctx)
+	// Get all worker CAPI machines for the cluster.
+	machines, err := collections.GetFilteredMachinesForCluster(ctx, ctrlClient, cluster, func(machine *clusterv1.Machine) bool {
+		return !collections.ControlPlaneMachines(cluster.Name)(machine)
+	})
+	if err != nil {
+		return nil, errors.Wrapf(err,
+			"failed to get Machines for Cluster %s/%s",
+			cluster.Namespace, cluster.Name)
+	}
+
+	// Collect all resulting Cluster Module names for the cluster.
+	clusterModuleNames := []string{}
+	for _, machine := range machines {
+		// Note: We have to use := here to create a new variable and not overwrite log & ctx outside the for loop.
+		log := log.WithValues("Machine", klog.KObj(machine))
+		ctx := ctrl.LoggerInto(ctx, log)
+
+		// Get the vSphereMachine for the CAPI Machine resource.
+		vSphereMachine, err := util.GetVSphereMachine(ctx, ctrlClient, machine.Namespace, machine.Name)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get VSphereMachine for Machine %s/%s", machine.Namespace, machine.Name)
+		}
+		log = log.WithValues("VSphereMachine", klog.KObj(vSphereMachine))
+		ctx = ctrl.LoggerInto(ctx, log) //nolint:ineffassign,staticcheck // ensure the logger is up-to-date in ctx, even if we currently don't use ctx below.
+
+		clusterModuleName, err := getClusterModuleName(cluster.Name, machine, vSphereMachine)
+		if err != nil {
+			return nil, err
+		}
+		if clusterModuleName != "" {
+			clusterModuleNames = append(clusterModuleNames, clusterModuleName)
+		}
+	}
+
+	return clusterModuleNames, nil
+}
+
 func getClusterModuleName(clusterName string, machine *clusterv1.Machine, vSphereMachine *vmwarev1.VSphereMachine) (string, error) {
 	// Fallback to cluster-wide module name if nothing is configured.
 	if vSphereMachine.Spec.Affinity == nil || vSphereMachine.Spec.Affinity.MachineDeploymentMachineAntiAffinity == nil || len(vSphereMachine.Spec.Affinity.MachineDeploymentMachineAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution) == 0 {
@@ -144,7 +210,7 @@ func getClusterModuleName(clusterName string, machine *clusterv1.Machine, vSpher
 	}
 
 	if len(vSphereMachine.Spec.Affinity.MachineDeploymentMachineAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution) > 1 {
-		// This should never happen because we block this during validation
+		// This should never happen because we block this during validation.
 		return "", fmt.Errorf("VSphereMachine %s has more then one item set at preferredDuringSchedulingPreferredDuringExecution", klog.KObj(vSphereMachine))
 	}
 
@@ -182,83 +248,4 @@ func getClusterModuleName(clusterName string, machine *clusterv1.Machine, vSpher
 	}
 
 	return strings.Join(values, "_"), nil
-}
-
-func getWorkerVSphereMachineClusterModuleNamesForCluster(ctx context.Context, ctrlClient client.Client, cluster *clusterv1.Cluster) ([]string, error) {
-	log := ctrl.LoggerFrom(ctx)
-	machines, err := collections.GetFilteredMachinesForCluster(ctx, ctrlClient, cluster, func(machine *clusterv1.Machine) bool {
-		return !collections.ControlPlaneMachines(cluster.Name)(machine)
-	})
-	if err != nil {
-		return nil, errors.Wrapf(err,
-			"failed to get Machines for Cluster %s/%s",
-			cluster.Namespace, cluster.Name)
-	}
-
-	clusterModuleNames := []string{}
-	// Iterate over the cluster's worker CAPI machines.
-	for _, machine := range machines {
-		// Note: We have to use := here to create a new variable and not overwrite log & ctx outside the for loop.
-		log := log.WithValues("Machine", klog.KObj(machine))
-		ctx := ctrl.LoggerInto(ctx, log)
-
-		// Get the vSphereMachine for the CAPI Machine resource.
-		vSphereMachine, err := util.GetVSphereMachine(ctx, ctrlClient, machine.Namespace, machine.Name)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get VSphereMachine for Machine %s/%s", machine.Namespace, machine.Name)
-		}
-		log = log.WithValues("VSphereMachine", klog.KObj(vSphereMachine))
-		ctx = ctrl.LoggerInto(ctx, log) //nolint:ineffassign,staticcheck // ensure the logger is up-to-date in ctx, even if we currently don't use ctx below.
-
-		clusterModuleName, err := getClusterModuleName(cluster.Name, machine, vSphereMachine)
-		if err != nil {
-			return nil, err
-		}
-		if clusterModuleName != "" {
-			clusterModuleNames = append(clusterModuleNames, clusterModuleName)
-		}
-	}
-
-	return clusterModuleNames, nil
-}
-
-func getTargetClusterModuleGroups(ctx context.Context, ctrlClient client.Client, cluster *clusterv1.Cluster) ([]string, error) {
-	if !feature.Gates.Enabled(feature.WorkerAntiAffinity) {
-		// Fallback to old behaviour
-		return []string{
-			ControlPlaneVMClusterModuleGroupName,
-			getFallbackWorkerClusterModuleGroupName(cluster.Name),
-		}, nil
-	}
-
-	// Always add a cluster module for control plane machines.
-	modules := []string{
-		ControlPlaneVMClusterModuleGroupName,
-	}
-
-	clusterModules, err := getWorkerVSphereMachineClusterModuleNamesForCluster(ctx, ctrlClient, cluster)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get cluster module names for workers")
-	}
-
-	modules = append(modules, clusterModules...)
-	// Sort elements to have deterministic output.
-	sort.Strings(modules)
-
-	return modules, nil
-}
-
-func checkClusterModuleGroup(ctx context.Context, ctrlClient client.Client, cluster *clusterv1.Cluster, clusterModuleGroupName string) error {
-	resourcePolicy, err := getVirtualMachineSetResourcePolicy(ctx, ctrlClient, cluster)
-	if err != nil {
-		return err
-	}
-
-	for _, cm := range resourcePolicy.Status.ClusterModules {
-		if cm.GroupName == clusterModuleGroupName {
-			return nil
-		}
-	}
-
-	return errors.Errorf("VirtualMachineSetResourcePolicy's .status.clusterModules does not yet contain group %q", clusterModuleGroupName)
 }

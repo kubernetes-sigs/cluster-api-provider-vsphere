@@ -753,3 +753,18 @@ func getTopologyLabels(supervisorMachineCtx *vmware.SupervisorMachineContext) ma
 	}
 	return nil
 }
+
+func checkClusterModuleGroup(ctx context.Context, ctrlClient client.Client, cluster *clusterv1.Cluster, clusterModuleGroupName string) error {
+	resourcePolicy, err := getVirtualMachineSetResourcePolicy(ctx, ctrlClient, cluster)
+	if err != nil {
+		return err
+	}
+
+	for _, cm := range resourcePolicy.Status.ClusterModules {
+		if cm.GroupName == clusterModuleGroupName {
+			return nil
+		}
+	}
+
+	return errors.Errorf("VirtualMachineSetResourcePolicy's .status.clusterModules does not yet contain group %q", clusterModuleGroupName)
+}

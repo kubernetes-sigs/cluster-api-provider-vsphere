@@ -51,20 +51,39 @@ spec:
                       of the machine.
                     properties:
                       affinity:
-                        description: affinity TODO.
+                        description: affinity defines scheduling rules for the VSphereMachine.
                         properties:
                           machineDeploymentMachineAntiAffinity:
-                            description: machineDeploymentMachineAntiAffinity TODO.
+                            description: |-
+                              machineDeploymentMachineAntiAffinity describes VSphereMachine anti-affinity
+                              rules to other machinedeployment machines (workers).
                             properties:
                               preferredDuringSchedulingPreferredDuringExecution:
-                                description: preferredDuringSchedulingPreferredDuringExecution
-                                  TODO.
+                                description: |-
+                                  preferredDuringSchedulingPreferredDuringExecution defines rules to schedule the
+                                  VSphereMachine to a ESXi host that satisfies the anti-affinity expressions
+                                  specified by this field, but may choose an ESXi host that violates these if they
+                                  cannot be fulfilled.
+                                  If not defined, anti-affinity will be applied by grouping all worker machines of
+                                  a cluster. This is equal to defining preferredDuringSchedulingPreferredDuringExecution
+                                  with a topologyKey of `node.cluster.x-k8s.io/esxi-host` and matchLabelKeys set to
+                                  `[cluster.x-k8s.io/cluster-name]`.
                                 items:
-                                  description: VSphereMachinePreferredDuringSchedulingPreferredDuringExecution
-                                    TODO.
+                                  description: |-
+                                    TopologyMachineDeploymentAffinityTerm defines a set of machinedeployments (namely
+                                    those matching the labelSelector) that this VSphereMachine should be co-located
+                                    (affinity) or not co-located (anti-affinity) with, where co-located is defined as
+                                    scheduled on a ESXi host whose value of topologyKey matches that of any ESXi hosts
+                                    on which a machine of the set of machinedeployments is running.
                                   properties:
                                     matchLabelKeys:
-                                      description: matchLabelKeys TODO.
+                                      description: |-
+                                        matchLabelKeys is a set of machinedeployment label keys to select which machinedeployment's
+                                        machines will be taken into consideration for the incoming machine's (anti-) affinity.
+                                        Valid values for (anti-) affinity are leaving it empty for disabling,
+                                        `[cluster.x-k8s.io/cluster-name]` for all worker nodes belonging to the same cluster
+                                        or `[cluster.x-k8s.io/cluster-name, cluster.x-k8s.io/deployment-name]` for all worker
+                                        nodes of the same machinedeployment.-
                                       items:
                                         maxLength: 256
                                         pattern: ^cluster\.x-k8s\.io\/(deployment|cluster)-name$
@@ -73,14 +92,16 @@ spec:
                                       minItems: 0
                                       type: array
                                     topologyKey:
-                                      description: topologyKey TODO.
+                                      description: |-
+                                        topologyKey identifies the matcher for ESXi hosts to apply for affinity or anti-affinity to.
+                                        The only valid value is `node.cluster.x-k8s.io/esxi-host` which means co-locating (affinity)
+                                        or not co-locating (anti-affinity) on ESXi hosts.
                                       enum:
                                       - node.cluster.x-k8s.io/esxi-host
                                       maxLength: 256
                                       minLength: 1
                                       type: string
                                   required:
-                                  - matchLabelKeys
                                   - topologyKey
                                   type: object
                                 maxItems: 1

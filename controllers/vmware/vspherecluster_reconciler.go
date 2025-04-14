@@ -437,14 +437,8 @@ func (r *ClusterReconciler) VSphereMachineToCluster(ctx context.Context, o clien
 	log = log.WithValues("VSphereMachine", klog.KObj(vsphereMachine))
 	ctx = ctrl.LoggerInto(ctx, log)
 
-	if !util.IsControlPlaneMachine(vsphereMachine) {
-		log.V(6).Info("Skipping VSphereCluster reconcile as Machine is not a control plane Machine")
-		return nil
-	}
-
-	// Only currently interested in updating Cluster from VSphereMachines with IP addresses
-	if vsphereMachine.Status.IPAddr == "" {
-		log.V(6).Info("Skipping VSphereCluster reconcile as Machine does not have an IP address")
+	if util.IsControlPlaneMachine(vsphereMachine) && vsphereMachine.Status.IPAddr == "" {
+		log.V(6).Info("Skipping VSphereCluster reconcile because the control plane machine does not have an IP address")
 		return nil
 	}
 

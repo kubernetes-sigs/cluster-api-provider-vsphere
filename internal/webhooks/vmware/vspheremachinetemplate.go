@@ -100,17 +100,18 @@ func (webhook *VSphereMachineTemplateWebhook) validate(_ context.Context, _, new
 	// Validate affinity
 	affinity := newVSphereMachineTemplate.Spec.Template.Spec.Affinity
 	if affinity != nil && affinity.MachineDeploymentMachineAntiAffinity != nil {
-		if !feature.Gates.Enabled(feature.WorkerAntiAffinity) {
-			p := field.NewPath("spec", "template", "spec", "affinity", "machineDeploymentMachineAntiAffinity", "preferredDuringSchedulingPreferredDuringExecution")
-			if len(affinity.MachineDeploymentMachineAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution) > 0 {
-				for i, v := range affinity.MachineDeploymentMachineAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution {
-					for j, key := range v.MatchLabelKeys {
-						if key == "cluster.x-k8s.io/deployment-name" {
+		p := field.NewPath("spec", "template", "spec", "affinity", "machineDeploymentMachineAntiAffinity", "preferredDuringSchedulingPreferredDuringExecution")
+		if len(affinity.MachineDeploymentMachineAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution) > 0 {
+			if !feature.Gates.Enabled(feature.WorkerAntiAffinity) {
+				// Check that `cluster.x-k8s.io/deployment-name` is not set as matchLabelKey when the feature-gate is disabled.
+				for i, affinityTerm := range affinity.MachineDeploymentMachineAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution {
+					for j, matchLabelKey := range affinityTerm.MatchLabelKeys {
+						if matchLabelKey == "cluster.x-k8s.io/deployment-name" {
 							allErrs = append(allErrs,
 								field.Invalid(
 									p.Index(i).Child("matchLabelKeys").Index(j),
-									key,
-									fmt.Sprintf("matchLabelKey %q is not allowed when %s feature-gate is disabled", key, feature.WorkerAntiAffinity),
+									matchLabelKey,
+									fmt.Sprintf("matchLabelKey %q is not allowed when %s feature-gate is disabled", matchLabelKey, feature.WorkerAntiAffinity),
 								))
 						}
 					}

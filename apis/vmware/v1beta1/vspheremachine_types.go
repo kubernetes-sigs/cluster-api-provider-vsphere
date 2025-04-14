@@ -23,6 +23,12 @@ import (
 	"sigs.k8s.io/cluster-api/errors"
 )
 
+const (
+	// TopologyKeyESXIHost is a topology key usable for soft Machine Anti Affinity
+	// based on ESXi hosts for VSphereMachines.
+	TopologyKeyESXIHost = "node.cluster.x-k8s.io/esxi-host"
+)
+
 // VSphereMachineVolume defines a PVC attachment.
 type VSphereMachineVolume struct {
 	// Name is suffix used to name this PVC as: VSphereMachine.Name + "-" + Name
@@ -92,7 +98,7 @@ type VSphereMachineSpec struct {
 	// +optional
 	NamingStrategy *VirtualMachineNamingStrategy `json:"namingStrategy,omitempty"`
 
-	// affinity TODO.
+	// affinity defines scheduling rules for the VSphereMachine.
 	// +optional
 	Affinity *VSphereMachineAffinity `json:"affinity,omitempty"`
 }
@@ -117,37 +123,58 @@ type VirtualMachineNamingStrategy struct {
 	Template *string `json:"template,omitempty"`
 }
 
-// VSphereMachineAffinity TODO.
+// VSphereMachineAffinity is a group of affinity scheduling rules.
 type VSphereMachineAffinity struct {
-	// machineDeploymentMachineAntiAffinity TODO.
+	// machineDeploymentMachineAntiAffinity describes VSphereMachine anti-affinity
+	// rules to other machinedeployment machines (workers).
 	// +optional
 	MachineDeploymentMachineAntiAffinity *VSphereMachineMachineDeploymentMachineAntiAffinity `json:"machineDeploymentMachineAntiAffinity,omitempty"`
 }
 
-// VSphereMachineMachineDeploymentMachineAntiAffinity TODO.
+// VSphereMachineMachineDeploymentMachineAntiAffinity defines anti-affinity rules
+// to other machinedeployment machines (workers).
 type VSphereMachineMachineDeploymentMachineAntiAffinity struct {
-	// preferredDuringSchedulingPreferredDuringExecution TODO.
+	// preferredDuringSchedulingPreferredDuringExecution defines rules to schedule the
+	// VSphereMachine to a ESXi host that satisfies the anti-affinity expressions
+	// specified by this field, but may choose an ESXi host that violates these if they
+	// cannot be fulfilled.
+	// If not defined, anti-affinity will be applied by grouping all worker machines of
+	// a cluster. This is equal to defining preferredDuringSchedulingPreferredDuringExecution
+	// with a topologyKey of `node.cluster.x-k8s.io/esxi-host` and matchLabelKeys set to
+	// `[cluster.x-k8s.io/cluster-name]`.
 	// +optional
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=1
-	PreferredDuringSchedulingPreferredDuringExecution []VSphereMachinePreferredDuringSchedulingPreferredDuringExecution `json:"preferredDuringSchedulingPreferredDuringExecution,omitempty"`
+	PreferredDuringSchedulingPreferredDuringExecution []TopologyMachineDeploymentAffinityTerm `json:"preferredDuringSchedulingPreferredDuringExecution,omitempty"`
 }
 
-// VSphereMachinePreferredDuringSchedulingPreferredDuringExecution TODO.
-type VSphereMachinePreferredDuringSchedulingPreferredDuringExecution struct {
-	// topologyKey TODO.
+// TopologyMachineDeploymentAffinityTerm defines a set of machinedeployments (namely
+// those matching the labelSelector) that this VSphereMachine should be co-located
+// (affinity) or not co-located (anti-affinity) with, where co-located is defined as
+// scheduled on a ESXi host whose value of topologyKey matches that of any ESXi hosts
+// on which a machine of the set of machinedeployments is running.
+type TopologyMachineDeploymentAffinityTerm struct {
+	// topologyKey identifies the matcher for ESXi hosts to apply for affinity or anti-affinity to.
+	// The only valid value is `node.cluster.x-k8s.io/esxi-host` which means co-locating (affinity)
+	// or not co-locating (anti-affinity) on ESXi hosts.
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
 	// +kubebuilder:validation:Enum=node.cluster.x-k8s.io/esxi-host
 	TopologyKey string `json:"topologyKey"`
-	// matchLabelKeys TODO.
-	// +required
+
+	// matchLabelKeys is a set of machinedeployment label keys to select which machinedeployment's
+	// machines will be taken into consideration for the incoming machine's (anti-) affinity.
+	// Valid values for (anti-) affinity are leaving it empty for disabling,
+	// `[cluster.x-k8s.io/cluster-name]` for all worker nodes belonging to the same cluster
+	// or `[cluster.x-k8s.io/cluster-name, cluster.x-k8s.io/deployment-name]` for all worker
+	// nodes of the same machinedeployment.-
+	// +optional
 	// +kubebuilder:validation:MinItems=0
 	// +kubebuilder:validation:MaxItems=2
 	// +kubebuilder:validation:items:MaxLength=256
 	// +kubebuilder:validation:items:Pattern=`^cluster\.x-k8s\.io\/(deployment|cluster)-name$`
-	MatchLabelKeys []string `json:"matchLabelKeys"`
+	MatchLabelKeys []string `json:"matchLabelKeys,omitempty"`
 }
 
 // VSphereMachineStatus defines the observed state of VSphereMachine.

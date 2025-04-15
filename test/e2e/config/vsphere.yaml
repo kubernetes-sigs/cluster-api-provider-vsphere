@@ -27,7 +27,7 @@ providers:
     type: CoreProvider
     versions:
       - name: "v1.10.99"
-        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/v1.10.0-rc.0/core-components.yaml"
+        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/v1.10.0-rc.1/core-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -76,7 +76,7 @@ providers:
     type: BootstrapProvider
     versions:
       - name: "v1.10.99"
-        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/v1.10.0-rc.0/bootstrap-components.yaml"
+        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/v1.10.0-rc.1/bootstrap-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -125,7 +125,7 @@ providers:
     type: ControlPlaneProvider
     versions:
       - name: "v1.10.99"
-        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/v1.10.0-rc.0/control-plane-components.yaml"
+        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/v1.10.0-rc.1/control-plane-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -303,14 +303,14 @@ providers:
 
 variables:
   # Ensure all Kubernetes versions used here are covered in patch-vsphere-template.yaml
-  KUBERNETES_VERSION_MANAGEMENT: "v1.33.0-beta.0"
+  KUBERNETES_VERSION_MANAGEMENT: "v1.33.0-rc.0"
   # Note: currently not ci/latest-1.33 because of rate-limiting issues.
-  KUBERNETES_VERSION_MANAGEMENT_LATEST_CI: "v1.33.0-beta.0"
-  KUBERNETES_VERSION: "v1.33.0-beta.0"
+  KUBERNETES_VERSION_MANAGEMENT_LATEST_CI: "v1.33.0-rc.0"
+  KUBERNETES_VERSION: "v1.33.0-rc.0"
   KUBERNETES_VERSION_UPGRADE_FROM: "v1.32.0"
-  KUBERNETES_VERSION_UPGRADE_TO: "v1.33.0-beta.0"
+  KUBERNETES_VERSION_UPGRADE_TO: "v1.33.0-rc.0"
   KUBERNETES_VERSION_LATEST_CI: "ci/latest-1.33"
-  CPI_IMAGE_K8S_VERSION: "v1.33.0-beta.0"
+  CPI_IMAGE_K8S_VERSION: "v1.33.0-rc.0"
   CNI: "./data/cni/calico/calico.yaml"
   AUTOSCALER_WORKLOAD: "./data/autoscaler/autoscaler-to-management-workload.yaml"
   CONTROL_PLANE_MACHINE_COUNT: 1

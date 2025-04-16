@@ -18,6 +18,7 @@ package vmoperator
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -65,6 +66,7 @@ func updateReconciledVMStatus(ctx context.Context, vmService VmopMachineService,
 
 const (
 	machineName              = "test-machine"
+	failureDomain            = "test-zone"
 	clusterName              = "test-cluster"
 	controlPlaneLabelTrue    = true
 	k8sVersion               = "test-k8sVersion"
@@ -118,6 +120,7 @@ var _ = Describe("VirtualMachine tests", func() {
 		vsphereCluster = util.CreateVSphereCluster(clusterName)
 		vsphereCluster.Status.ResourcePolicyName = resourcePolicyName
 		machine = util.CreateMachine(machineName, clusterName, k8sVersion, controlPlaneLabelTrue)
+		machine.Spec.FailureDomain = ptr.To(failureDomain)
 		vsphereMachine = util.CreateVSphereMachine(machineName, clusterName, className, imageName, storageClass, controlPlaneLabelTrue)
 		clusterContext, controllerManagerContext := util.CreateClusterContext(cluster, vsphereCluster)
 		supervisorMachineContext = util.CreateMachineContext(clusterContext, machine, vsphereMachine)
@@ -125,7 +128,7 @@ var _ = Describe("VirtualMachine tests", func() {
 		vmService = VmopMachineService{Client: controllerManagerContext.Client, ConfigureControlPlaneVMReadinessProbe: network.DummyLBNetworkProvider().SupportsVMReadinessProbe()}
 	})
 
-	Context("Reconcile VirtualMachine", func() {
+	Context("Reconcile VirtualMachine for a controlPlane with a failure domain set", func() {
 		verifyOutput := func(machineContext *vmware.SupervisorMachineContext) {
 			Expect(err != nil).Should(Equal(expectReconcileError))
 			Expect(requeue).Should(Equal(expectedRequeue))
@@ -160,6 +163,9 @@ var _ = Describe("VirtualMachine tests", func() {
 				Expect(vmopVM.Labels[clusterNameLabel]).To(Equal(clusterName))
 				Expect(vmopVM.Labels[clusterSelectorKey]).To(Equal(clusterName))
 				Expect(vmopVM.Labels[nodeSelectorKey]).To(Equal(roleControlPlane))
+				Expect(vmopVM.Labels[kubeTopologyZoneLabelKey]).To(Equal(failureDomain))
+				Expect(vmopVM.Labels).ToNot(HaveKey(ZonePlacementOrgLabelKey))
+				Expect(vmopVM.Labels).ToNot(HaveKey(ZonePlacementGroupLabelKey))
 				// for backward compatibility, will be removed in the future
 				Expect(vmopVM.Labels[legacyClusterSelectorKey]).To(Equal(clusterName))
 				Expect(vmopVM.Labels[legacyNodeSelectorKey]).To(Equal(roleControlPlane))
@@ -572,6 +578,75 @@ var _ = Describe("VirtualMachine tests", func() {
 				}
 
 				Expect(vmopVM.Spec.Volumes[i]).To(BeEquivalentTo(vmVolume))
+			}
+		})
+	})
+
+	Context("Reconcile a VirtualMachine for a worker Machine without a failure domain", func() {
+
+		Specify("Reconcile valid Machine", func() {
+			const (
+				machineName            = "test-machine2"
+				machineDeploymentName  = "test-machine-deployment"
+				controlPlaneLabelFalse = false
+				expectedRequeue        = true
+			)
+			var (
+				workersClusterModule = fmt.Sprintf("%s-workers-0", cluster.Name)
+			)
+
+			machine2 := util.CreateMachine(machineName, clusterName, k8sVersion, controlPlaneLabelFalse)
+			machine2.Labels[clusterv1.MachineDeploymentNameLabel] = machineDeploymentName
+			vsphereMachine2 := util.CreateVSphereMachine(machineName, clusterName, className, imageName, storageClass, controlPlaneLabelFalse)
+			clusterContext, controllerManagerContext := util.CreateClusterContext(cluster, vsphereCluster)
+			supervisorMachineContext = util.CreateMachineContext(clusterContext, machine2, vsphereMachine2)
+			supervisorMachineContext.ControllerManagerContext = controllerManagerContext
+			vmService = VmopMachineService{Client: controllerManagerContext.Client, ConfigureControlPlaneVMReadinessProbe: network.DummyLBNetworkProvider().SupportsVMReadinessProbe()}
+
+			// Do the bare minimum that will cause a vmoperator VirtualMachine to be created
+			// Note that the VM returned is not a vmoperator type, but is intentionally implementation agnostic
+			By("VirtualMachine is created")
+			requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
+
+			Expect(err != nil).Should(Equal(expectReconcileError))
+			Expect(requeue).Should(Equal(expectedRequeue))
+			vsphereMachine := supervisorMachineContext.VSphereMachine
+
+			Expect(vsphereMachine).ShouldNot(BeNil())
+			Expect(vsphereMachine.Name).Should(Equal(machineName))
+			if expectedBiosUUID == "" {
+				Expect(vsphereMachine.Status.ID).To(BeNil())
+			} else {
+				Expect(*vsphereMachine.Status.ID).Should(Equal(expectedBiosUUID))
+			}
+			Expect(vsphereMachine.Status.IPAddr).Should(Equal(expectedVMIP))
+			Expect(vsphereMachine.Status.VMStatus).Should(Equal(expectedState))
+
+			vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
+			Expect(vmopVM != nil).Should(Equal(expectVMOpVM))
+
+			if vmopVM != nil {
+				vms, _ := vmService.getVirtualMachinesInCluster(ctx, supervisorMachineContext)
+				Expect(vms).Should(HaveLen(1))
+				Expect(vmopVM.Spec.ImageName).To(Equal(expectedImageName))
+				Expect(vmopVM.Spec.ClassName).To(Equal(className))
+				Expect(vmopVM.Spec.StorageClass).To(Equal(storageClass))
+				Expect(vmopVM.Spec.Reserved).ToNot(BeNil())
+				Expect(vmopVM.Spec.Reserved.ResourcePolicyName).To(Equal(resourcePolicyName))
+				Expect(vmopVM.Spec.MinHardwareVersion).To(Equal(minHardwareVersion))
+				Expect(vmopVM.Spec.PowerState).To(Equal(vmoprv1.VirtualMachinePowerStateOn))
+				Expect(vmopVM.ObjectMeta.Annotations[ClusterModuleNameAnnotationKey]).To(Equal(workersClusterModule))
+				Expect(vmopVM.ObjectMeta.Annotations[ProviderTagsAnnotationKey]).To(Equal(WorkerVMVMAntiAffinityTagValue))
+
+				Expect(vmopVM.Labels[clusterNameLabel]).To(Equal(clusterName))
+				Expect(vmopVM.Labels[clusterSelectorKey]).To(Equal(clusterName))
+				Expect(vmopVM.Labels[nodeSelectorKey]).To(Equal(roleNode))
+				Expect(vmopVM.Labels).ToNot(HaveKey(kubeTopologyZoneLabelKey))
+				Expect(vmopVM.Labels[ZonePlacementOrgLabelKey]).To(Equal(clusterName))
+				Expect(vmopVM.Labels[ZonePlacementGroupLabelKey]).To(Equal(machineDeploymentName))
+				// for backward compatibility, will be removed in the future
+				Expect(vmopVM.Labels[legacyClusterSelectorKey]).To(Equal(clusterName))
+				Expect(vmopVM.Labels[legacyNodeSelectorKey]).To(Equal(roleNode))
 			}
 		})
 	})

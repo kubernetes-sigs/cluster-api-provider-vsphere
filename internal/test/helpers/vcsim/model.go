@@ -40,6 +40,7 @@ var (
 		"ubuntu-2204-kube-v1.30.0",
 		"ubuntu-2404-kube-v1.31.0",
 		"ubuntu-2404-kube-v1.32.0",
+		"ubuntu-2404-kube-v1.33.0",
 	}
 )
 

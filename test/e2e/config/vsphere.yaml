@@ -304,11 +304,11 @@ providers:
 variables:
   # Ensure all Kubernetes versions used here are covered in patch-vsphere-template.yaml
   KUBERNETES_VERSION_MANAGEMENT: "v1.33.0"
-  KUBERNETES_VERSION_MANAGEMENT_LATEST_CI: "ci/latest-1.33"
+  KUBERNETES_VERSION_MANAGEMENT_LATEST_CI: "ci/latest-1.34"
   KUBERNETES_VERSION: "v1.33.0"
   KUBERNETES_VERSION_UPGRADE_FROM: "v1.32.0"
   KUBERNETES_VERSION_UPGRADE_TO: "v1.33.0"
-  KUBERNETES_VERSION_LATEST_CI: "ci/latest-1.33"
+  KUBERNETES_VERSION_LATEST_CI: "ci/latest-1.34"
   CPI_IMAGE_K8S_VERSION: "v1.33.0-rc.0"
   CNI: "./data/cni/calico/calico.yaml"
   AUTOSCALER_WORKLOAD: "./data/autoscaler/autoscaler-to-management-workload.yaml"

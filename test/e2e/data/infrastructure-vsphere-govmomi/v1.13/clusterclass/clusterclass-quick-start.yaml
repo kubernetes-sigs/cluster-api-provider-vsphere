@@ -1,4 +1,3 @@
----
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: VSphereClusterTemplate
 metadata:
@@ -286,7 +285,6 @@ spec:
       server: '${VSPHERE_SERVER}'
       storagePolicyName: '${VSPHERE_STORAGE_POLICY}'
       template: '${VSPHERE_TEMPLATE}'
-      thumbprint: '${VSPHERE_TLS_THUMBPRINT}'
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: VSphereMachineTemplate
@@ -313,7 +311,6 @@ spec:
       server: '${VSPHERE_SERVER}'
       storagePolicyName: '${VSPHERE_STORAGE_POLICY}'
       template: '${VSPHERE_TEMPLATE}'
-      thumbprint: '${VSPHERE_TLS_THUMBPRINT}'
 ---
 apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 kind: KubeadmControlPlaneTemplate
@@ -325,9 +322,6 @@ spec:
     spec:
       kubeadmConfigSpec:
         clusterConfiguration:
-          apiServer:
-            extraArgs:
-              cloud-provider: external
           controllerManager:
             extraArgs:
               cloud-provider: external

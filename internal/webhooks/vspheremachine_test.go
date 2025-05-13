@@ -34,7 +34,7 @@ func TestVsphereMachine_Default(t *testing.T) {
 	m := &infrav1.VSphereMachine{
 		Spec: infrav1.VSphereMachineSpec{},
 	}
-	webhook := &VSphereMachineWebhook{}
+	webhook := &VSphereMachine{}
 	g.Expect(webhook.Default(context.Background(), m)).ToNot(HaveOccurred())
 
 	g.Expect(m.Spec.Datacenter).To(Equal("*"))
@@ -134,7 +134,7 @@ func TestVSphereMachine_ValidateCreate(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(*testing.T) {
-			webhook := &VSphereMachineWebhook{}
+			webhook := &VSphereMachine{}
 			_, err := webhook.ValidateCreate(context.Background(), tc.vsphereMachine)
 			if tc.wantErr {
 				g.Expect(err).To(HaveOccurred())
@@ -211,7 +211,7 @@ func TestVSphereMachine_ValidateUpdate(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(*testing.T) {
-			webhook := &VSphereMachineWebhook{}
+			webhook := &VSphereMachine{}
 			_, err := webhook.ValidateUpdate(context.Background(), tc.oldVSphereMachine, tc.vsphereMachine)
 			if tc.wantErr {
 				g.Expect(err).To(HaveOccurred())

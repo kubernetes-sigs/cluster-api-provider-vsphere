@@ -55,7 +55,7 @@ func TestVSphereDeploymentZone_Default(t *testing.T) {
 					ControlPlane: tt.boolPtr,
 				},
 			}
-			webhook := VSphereDeploymentZoneWebhook{}
+			webhook := VSphereDeploymentZone{}
 			g.Expect(webhook.Default(context.Background(), &vdz)).NotTo(HaveOccurred())
 			g.Expect(vdz.Spec.ControlPlane).NotTo(BeNil())
 			g.Expect(*vdz.Spec.ControlPlane).To(Equal(tt.expectedVal))

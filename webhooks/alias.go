@@ -22,50 +22,50 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/internal/webhooks"
 )
 
-// VSphereClusterTemplateWebhook implements a validation and defaulting webhook for VSphereClusterTemplate.
-type VSphereClusterTemplateWebhook struct{}
+// VSphereClusterTemplate implements a validation webhook for VSphereClusterTemplate.
+type VSphereClusterTemplate struct{}
 
 // SetupWebhookWithManager sets up VSphereClusterTemplate webhooks.
-func (webhook *VSphereClusterTemplateWebhook) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return (&webhooks.VSphereClusterTemplateWebhook{}).SetupWebhookWithManager(mgr)
+func (webhook *VSphereClusterTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return (&webhooks.VSphereClusterTemplate{}).SetupWebhookWithManager(mgr)
 }
 
-// VSphereDeploymentZoneWebhook implements a validation and defaulting webhook for VSphereDeploymentZone.
-type VSphereDeploymentZoneWebhook struct{}
+// VSphereDeploymentZone implements a defaulting webhook for VSphereDeploymentZone.
+type VSphereDeploymentZone struct{}
 
 // SetupWebhookWithManager sets up VSphereDeploymentZone webhooks.
-func (webhook *VSphereDeploymentZoneWebhook) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return (&webhooks.VSphereDeploymentZoneWebhook{}).SetupWebhookWithManager(mgr)
+func (webhook *VSphereDeploymentZone) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return (&webhooks.VSphereDeploymentZone{}).SetupWebhookWithManager(mgr)
 }
 
-// VSphereFailureDomainWebhook implements a validation and defaulting webhook for VSphereFailureDomain.
-type VSphereFailureDomainWebhook struct{}
+// VSphereFailureDomain implements a validation and defaulting webhook for VSphereFailureDomain.
+type VSphereFailureDomain struct{}
 
 // SetupWebhookWithManager sets up VSphereFailureDomain webhooks.
-func (webhook *VSphereFailureDomainWebhook) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return (&webhooks.VSphereFailureDomainWebhook{}).SetupWebhookWithManager(mgr)
+func (webhook *VSphereFailureDomain) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return (&webhooks.VSphereFailureDomain{}).SetupWebhookWithManager(mgr)
 }
 
-// VSphereMachineWebhook implements a validation and defaulting webhook for VSphereMachine.
-type VSphereMachineWebhook struct{}
+// VSphereMachine implements a validation and defaulting webhook for VSphereMachine.
+type VSphereMachine struct{}
 
 // SetupWebhookWithManager sets up VSphereMachine webhooks.
-func (webhook *VSphereMachineWebhook) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return (&webhooks.VSphereMachineWebhook{}).SetupWebhookWithManager(mgr)
+func (webhook *VSphereMachine) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return (&webhooks.VSphereMachine{}).SetupWebhookWithManager(mgr)
 }
 
-// VSphereMachineTemplateWebhook implements a validation and defaulting webhook for VSphereMachineTemplate.
-type VSphereMachineTemplateWebhook struct{}
+// VSphereMachineTemplate implements a validation webhook for VSphereMachineTemplate.
+type VSphereMachineTemplate struct{}
 
 // SetupWebhookWithManager sets up VSphereMachineTemplate webhooks.
-func (webhook *VSphereMachineTemplateWebhook) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return (&webhooks.VSphereMachineTemplateWebhook{}).SetupWebhookWithManager(mgr)
+func (webhook *VSphereMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return (&webhooks.VSphereMachineTemplate{}).SetupWebhookWithManager(mgr)
 }
 
-// VSphereVMWebhook implements a validation and defaulting webhook for VSphereVM.
-type VSphereVMWebhook struct{}
+// VSphereVM implements a validation and defaulting webhook for VSphereVM.
+type VSphereVM struct{}
 
 // SetupWebhookWithManager sets up VSphereVM webhooks.
-func (webhook *VSphereVMWebhook) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return (&webhooks.VSphereVMWebhook{}).SetupWebhookWithManager(mgr)
+func (webhook *VSphereVM) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return (&webhooks.VSphereVM{}).SetupWebhookWithManager(mgr)
 }

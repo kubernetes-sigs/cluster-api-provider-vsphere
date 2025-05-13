@@ -1,7 +1,7 @@
 ---
 - name: net-operator
   config:
-    version: v1.13.99
+    version: v1.14.99
     image: gcr.io/k8s-staging-capi-vsphere/cluster-api-net-operator
     live_reload_deps:
       - main.go

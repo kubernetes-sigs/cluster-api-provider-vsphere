@@ -87,7 +87,7 @@ func TestVSphereMachineTemplate_Validate(t *testing.T) {
 				},
 			}
 
-			webhook := &VSphereMachineTemplateWebhook{}
+			webhook := &VSphereMachineTemplate{}
 			_, err := webhook.validate(context.Background(), nil, vSphereMachineTemplate)
 			if tc.wantErr {
 				g.Expect(err).To(HaveOccurred())

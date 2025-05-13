@@ -31,7 +31,7 @@ func TestVsphereFailureDomain_Default(t *testing.T) {
 	m := &infrav1.VSphereFailureDomain{
 		Spec: infrav1.VSphereFailureDomainSpec{},
 	}
-	webhook := &VSphereFailureDomainWebhook{}
+	webhook := &VSphereFailureDomain{}
 	g.Expect(webhook.Default(context.Background(), m)).ToNot(HaveOccurred())
 
 	g.Expect(*m.Spec.Zone.AutoConfigure).To(BeFalse())
@@ -159,7 +159,7 @@ func TestVSphereFailureDomain_ValidateCreate(t *testing.T) {
 		// Need to reinit the test variable
 		tt := tt
 		t.Run(tt.name, func(*testing.T) {
-			webhook := &VSphereFailureDomainWebhook{}
+			webhook := &VSphereFailureDomain{}
 			_, err := webhook.ValidateCreate(context.Background(), &tt.failureDomain)
 			if tt.errExpected == nil || *tt.errExpected {
 				g.Expect(err).To(HaveOccurred())

@@ -68,7 +68,7 @@ func TestVSphereMachine_ValidateUpdate(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			webhook := &VSphereMachineWebhook{}
+			webhook := &VSphereMachine{}
 			_, err := webhook.ValidateUpdate(context.Background(), tc.oldVSphereMachine, tc.vsphereMachine)
 			if tc.wantErr {
 				g.Expect(err).To(HaveOccurred())

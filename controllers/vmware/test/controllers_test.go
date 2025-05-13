@@ -262,10 +262,10 @@ func getManager(cfg *rest.Config, networkProvider string, withWebhooks bool) man
 		}
 
 		if withWebhooks {
-			if err := (&vmwarewebhooks.VSphereMachineTemplateWebhook{}).SetupWebhookWithManager(mgr); err != nil {
+			if err := (&vmwarewebhooks.VSphereMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 				return err
 			}
-			if err := (&vmwarewebhooks.VSphereMachineWebhook{}).SetupWebhookWithManager(mgr); err != nil {
+			if err := (&vmwarewebhooks.VSphereMachine{}).SetupWebhookWithManager(mgr); err != nil {
 				return err
 			}
 		}

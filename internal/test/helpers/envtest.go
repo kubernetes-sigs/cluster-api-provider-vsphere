@@ -195,27 +195,27 @@ func NewTestEnvironment(ctx context.Context) *TestEnvironment {
 		Password:   simr.Password(),
 	}
 	managerOpts.AddToManager = func(_ context.Context, _ *capvcontext.ControllerManagerContext, mgr ctrlmgr.Manager) error {
-		if err := (&webhooks.VSphereClusterTemplateWebhook{}).SetupWebhookWithManager(mgr); err != nil {
+		if err := (&webhooks.VSphereClusterTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 			return err
 		}
 
-		if err := (&webhooks.VSphereMachineWebhook{}).SetupWebhookWithManager(mgr); err != nil {
+		if err := (&webhooks.VSphereMachine{}).SetupWebhookWithManager(mgr); err != nil {
 			return err
 		}
 
-		if err := (&webhooks.VSphereMachineTemplateWebhook{}).SetupWebhookWithManager(mgr); err != nil {
+		if err := (&webhooks.VSphereMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 			return err
 		}
 
-		if err := (&webhooks.VSphereVMWebhook{}).SetupWebhookWithManager(mgr); err != nil {
+		if err := (&webhooks.VSphereVM{}).SetupWebhookWithManager(mgr); err != nil {
 			return err
 		}
 
-		if err := (&webhooks.VSphereDeploymentZoneWebhook{}).SetupWebhookWithManager(mgr); err != nil {
+		if err := (&webhooks.VSphereDeploymentZone{}).SetupWebhookWithManager(mgr); err != nil {
 			return err
 		}
 
-		return (&webhooks.VSphereFailureDomainWebhook{}).SetupWebhookWithManager(mgr)
+		return (&webhooks.VSphereFailureDomain{}).SetupWebhookWithManager(mgr)
 	}
 
 	mgr, err := manager.New(ctx, managerOpts)

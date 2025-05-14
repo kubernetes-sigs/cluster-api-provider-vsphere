@@ -22,18 +22,18 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/internal/webhooks/vmware"
 )
 
-// VSphereMachineWebhook implements a validation and defaulting webhook for VSphereMachine.
-type VSphereMachineWebhook struct{}
+// VSphereMachine implements a validation and defaulting webhook for VSphereMachine.
+type VSphereMachine struct{}
 
 // SetupWebhookWithManager sets up VSphereMachine webhooks.
-func (webhook *VSphereMachineWebhook) SetupWebhookWithManager(mgr ctrl.Manager) error {
+func (webhook *VSphereMachine) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return (&vmware.VSphereMachineWebhook{}).SetupWebhookWithManager(mgr)
 }
 
-// VSphereMachineTemplateWebhook implements a validation and defaulting webhook for VSphereMachineTemplate.
-type VSphereMachineTemplateWebhook struct{}
+// VSphereMachineTemplate implements a validation webhook for VSphereMachineTemplate.
+type VSphereMachineTemplate struct{}
 
 // SetupWebhookWithManager sets up VSphereMachineTemplate webhooks.
-func (webhook *VSphereMachineTemplateWebhook) SetupWebhookWithManager(mgr ctrl.Manager) error {
+func (webhook *VSphereMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return (&vmware.VSphereMachineTemplateWebhook{}).SetupWebhookWithManager(mgr)
 }

@@ -32,6 +32,7 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
@@ -99,7 +100,7 @@ func AddVMControllerToManager(ctx context.Context, controllerManagerCtx *capvcon
 		).
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, controllerManagerCtx.WatchFilterValue)).
 		Watches(
-			&clusterv1beta1.Cluster{},
+			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(r.clusterToVSphereVMs),
 		).
 		Watches(
@@ -580,7 +581,7 @@ func (r vmReconciler) clusterToVSphereVMs(ctx context.Context, a ctrlclient.Obje
 	vms := &infrav1.VSphereVMList{}
 	err := r.Client.List(ctx, vms, ctrlclient.MatchingLabels(
 		map[string]string{
-			clusterv1beta1.ClusterNameLabel: a.GetName(),
+			clusterv1.ClusterNameLabel: a.GetName(),
 		},
 	))
 	if err != nil {
@@ -603,7 +604,7 @@ func (r vmReconciler) vsphereClusterToVSphereVMs(ctx context.Context, a ctrlclie
 	if !ok {
 		return nil
 	}
-	clusterName, ok := vsphereCluster.Labels[clusterv1beta1.ClusterNameLabel]
+	clusterName, ok := vsphereCluster.Labels[clusterv1.ClusterNameLabel]
 	if !ok {
 		return nil
 	}
@@ -612,7 +613,7 @@ func (r vmReconciler) vsphereClusterToVSphereVMs(ctx context.Context, a ctrlclie
 	vms := &infrav1.VSphereVMList{}
 	err := r.Client.List(ctx, vms, ctrlclient.MatchingLabels(
 		map[string]string{
-			clusterv1beta1.ClusterNameLabel: clusterName,
+			clusterv1.ClusterNameLabel: clusterName,
 		},
 	))
 	if err != nil {
@@ -736,5 +737,5 @@ func (r vmReconciler) fetchClusterModuleInfo(ctx context.Context, clusterModInpu
 
 type fetchClusterModuleInput struct {
 	VSphereCluster *infrav1.VSphereCluster
-	Machine        *clusterv1beta1.Machine
+	Machine        *clusterv1.Machine
 }

@@ -32,6 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
@@ -106,14 +107,14 @@ func AddMachineControllerToManager(ctx context.Context, controllerManagerContext
 			WithOptions(options).
 			// Watch the CAPI resource that owns this infrastructure resource.
 			Watches(
-				&clusterv1beta1.Machine{},
+				&clusterv1.Machine{},
 				handler.EnqueueRequestsFromMapFunc(clusterutilv1.MachineToInfrastructureMapFunc(vmwarev1.GroupVersion.WithKind("VSphereMachine"))),
 			).
 			Watches(
-				&clusterv1beta1.Cluster{},
+				&clusterv1.Cluster{},
 				handler.EnqueueRequestsFromMapFunc(r.enqueueClusterToMachineRequests),
 				ctrlbldr.WithPredicates(
-					predicates.ClusterPausedTransitionsOrInfrastructureReady(mgr.GetScheme(), predicateLog),
+					predicates.ClusterPausedTransitionsOrInfrastructureProvisioned(mgr.GetScheme(), predicateLog),
 				),
 			).
 			// Watch a GenericEvent channel for the controlled resource.
@@ -139,7 +140,7 @@ func AddMachineControllerToManager(ctx context.Context, controllerManagerContext
 		WithOptions(options).
 		// Watch the CAPI resource that owns this infrastructure resource.
 		Watches(
-			&clusterv1beta1.Machine{},
+			&clusterv1.Machine{},
 			handler.EnqueueRequestsFromMapFunc(clusterutilv1.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("VSphereMachine"))),
 		).
 		// Watch a GenericEvent channel for the controlled resource.
@@ -167,10 +168,10 @@ func AddMachineControllerToManager(ctx context.Context, controllerManagerContext
 			}),
 		).
 		Watches(
-			&clusterv1beta1.Cluster{},
+			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(r.enqueueClusterToMachineRequests),
 			ctrlbldr.WithPredicates(
-				predicates.ClusterPausedTransitionsOrInfrastructureReady(mgr.GetScheme(), predicateLog),
+				predicates.ClusterPausedTransitionsOrInfrastructureProvisioned(mgr.GetScheme(), predicateLog),
 			),
 		).Complete(r)
 }

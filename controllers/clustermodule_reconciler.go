@@ -25,6 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
@@ -259,13 +260,13 @@ func (r Reconciler) PopulateWatchesOnController(mgr manager.Manager, controller 
 	return controller.Watch(
 		source.Kind(
 			mgr.GetCache(),
-			&clusterv1beta1.MachineDeployment{},
-			handler.TypedEnqueueRequestsFromMapFunc(toAffinityInput[*clusterv1beta1.MachineDeployment](r.Client)),
-			predicate.TypedFuncs[*clusterv1beta1.MachineDeployment]{
-				GenericFunc: func(event.TypedGenericEvent[*clusterv1beta1.MachineDeployment]) bool {
+			&clusterv1.MachineDeployment{},
+			handler.TypedEnqueueRequestsFromMapFunc(toAffinityInput[*clusterv1.MachineDeployment](r.Client)),
+			predicate.TypedFuncs[*clusterv1.MachineDeployment]{
+				GenericFunc: func(event.TypedGenericEvent[*clusterv1.MachineDeployment]) bool {
 					return false
 				},
-				UpdateFunc: func(event.TypedUpdateEvent[*clusterv1beta1.MachineDeployment]) bool {
+				UpdateFunc: func(event.TypedUpdateEvent[*clusterv1.MachineDeployment]) bool {
 					return false
 				},
 			},

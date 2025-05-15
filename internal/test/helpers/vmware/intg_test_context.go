@@ -30,6 +30,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	capiutil "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -47,7 +48,7 @@ type IntegrationTestContext struct {
 	GuestAPIReader    client.Client
 	Namespace         string
 	VSphereCluster    *vmwarev1.VSphereCluster
-	Cluster           *clusterv1beta1.Cluster
+	Cluster           *clusterv1.Cluster
 	KubeconfigSecret  *corev1.Secret
 	VSphereClusterKey client.ObjectKey
 	envTest           *envtest.Environment
@@ -170,11 +171,11 @@ func CreateAndWait(ctx context.Context, integrationTestClient client.Client, obj
 	}).Should(Succeed())
 }
 
-// ClusterInfrastructureReady sets InfrastructureReady to true so ClusterCache creates the clusterAccessor.
-func ClusterInfrastructureReady(ctx context.Context, c client.Client, clusterCache clustercache.ClusterCache, cluster *clusterv1beta1.Cluster) {
+// ClusterInfrastructureProvisioned sets InfrastructureReady to true so ClusterCache creates the clusterAccessor.
+func ClusterInfrastructureProvisioned(ctx context.Context, c client.Client, clusterCache clustercache.ClusterCache, cluster *clusterv1.Cluster) {
 	GinkgoHelper()
 	patch := client.MergeFrom(cluster.DeepCopy())
-	cluster.Status.InfrastructureReady = true
+	cluster.Status.Initialization.InfrastructureProvisioned = true
 	Expect(c.Status().Patch(ctx, cluster, patch)).To(Succeed())
 
 	// Ensure the ClusterCache reconciled at least once (and if possible created a clusterAccessor).
@@ -184,19 +185,19 @@ func ClusterInfrastructureReady(ctx context.Context, c client.Client, clusterCac
 	Expect(err).ToNot(HaveOccurred())
 }
 
-func generateCluster(namespace, name string) *clusterv1beta1.Cluster {
+func generateCluster(namespace, name string) *clusterv1.Cluster {
 	By("Generate the CAPI Cluster")
-	cluster := &clusterv1beta1.Cluster{
+	cluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      fmt.Sprintf("%s-%s", name, capiutil.RandomString(6)),
 		},
-		Spec: clusterv1beta1.ClusterSpec{
-			ClusterNetwork: &clusterv1beta1.ClusterNetwork{
-				Pods: &clusterv1beta1.NetworkRanges{
+		Spec: clusterv1.ClusterSpec{
+			ClusterNetwork: &clusterv1.ClusterNetwork{
+				Pods: &clusterv1.NetworkRanges{
 					CIDRBlocks: []string{"1.0.0.0/16"},
 				},
-				Services: &clusterv1beta1.NetworkRanges{
+				Services: &clusterv1.NetworkRanges{
 					CIDRBlocks: []string{"2.0.0.0/16"},
 				},
 			},
@@ -214,7 +215,7 @@ func generateVSphereCluster(namespace, name, capiClusterName string) *vmwarev1.V
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      name,
-			Labels:    map[string]string{clusterv1beta1.ClusterNameLabel: capiClusterName},
+			Labels:    map[string]string{clusterv1.ClusterNameLabel: capiClusterName},
 		},
 	}
 	return vsphereCluster

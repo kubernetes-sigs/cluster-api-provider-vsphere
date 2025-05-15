@@ -77,7 +77,7 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 				vmwarehelpers.CreateAndWait(ctx, intCtx.Client, intCtx.Cluster)
 				vmwarehelpers.CreateAndWait(ctx, intCtx.Client, intCtx.VSphereCluster)
 				vmwarehelpers.CreateAndWait(ctx, intCtx.Client, intCtx.KubeconfigSecret)
-				vmwarehelpers.ClusterInfrastructureReady(ctx, intCtx.Client, clusterCache, intCtx.Cluster)
+				vmwarehelpers.ClusterInfrastructureProvisioned(ctx, intCtx.Client, clusterCache, intCtx.Cluster)
 			})
 
 			By("Verifying that the guest cluster client works")
@@ -210,7 +210,7 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 				vmwarehelpers.CreateAndWait(ctx, intCtx.Client, intCtx.Cluster)
 				vmwarehelpers.CreateAndWait(ctx, intCtx.Client, intCtx.VSphereCluster)
 				vmwarehelpers.CreateAndWait(ctx, intCtx.Client, intCtx.KubeconfigSecret)
-				vmwarehelpers.ClusterInfrastructureReady(ctx, intCtx.Client, clusterCache, intCtx.Cluster)
+				vmwarehelpers.ClusterInfrastructureProvisioned(ctx, intCtx.Client, clusterCache, intCtx.Cluster)
 			})
 			pSvcAccount = getTestProviderServiceAccount(intCtx.Namespace, intCtx.VSphereCluster)
 			pSvcAccount.Spec.TargetNamespace = "default"

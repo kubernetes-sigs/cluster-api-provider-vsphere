@@ -25,6 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	capiutil "sigs.k8s.io/cluster-api/util"
 	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
@@ -36,8 +37,8 @@ import (
 
 var _ = Describe("VsphereMachineReconciler", func() {
 	var (
-		capiCluster *clusterv1beta1.Cluster
-		capiMachine *clusterv1beta1.Machine
+		capiCluster *clusterv1.Cluster
+		capiMachine *clusterv1.Machine
 
 		infraCluster *infrav1.VSphereCluster
 		infraMachine *infrav1.VSphereMachine
@@ -61,12 +62,12 @@ var _ = Describe("VsphereMachineReconciler", func() {
 		testNs, err = testEnv.CreateNamespace(ctx, "vsphere-machine-reconciler")
 		Expect(err).NotTo(HaveOccurred())
 
-		capiCluster = &clusterv1beta1.Cluster{
+		capiCluster = &clusterv1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: "test1-",
 				Namespace:    testNs.Name,
 			},
-			Spec: clusterv1beta1.ClusterSpec{
+			Spec: clusterv1.ClusterSpec{
 				InfrastructureRef: &corev1.ObjectReference{
 					APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 					Kind:       "VSphereCluster",
@@ -93,7 +94,7 @@ var _ = Describe("VsphereMachineReconciler", func() {
 		}
 		Expect(testEnv.Create(ctx, infraCluster)).To(Succeed())
 
-		capiMachine = &clusterv1beta1.Machine{
+		capiMachine = &clusterv1.Machine{
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: "machine-created-",
 				Namespace:    testNs.Name,
@@ -102,7 +103,7 @@ var _ = Describe("VsphereMachineReconciler", func() {
 					clusterv1beta1.ClusterNameLabel: capiCluster.Name,
 				},
 			},
-			Spec: clusterv1beta1.MachineSpec{
+			Spec: clusterv1.MachineSpec{
 				ClusterName: capiCluster.Name,
 				InfrastructureRef: corev1.ObjectReference{
 					APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
@@ -164,7 +165,7 @@ var _ = Describe("VsphereMachineReconciler", func() {
 		Eventually(func() error {
 			ph, err := patch.NewHelper(capiCluster, testEnv)
 			Expect(err).ShouldNot(HaveOccurred())
-			capiCluster.Status.InfrastructureReady = true
+			capiCluster.Status.Initialization.InfrastructureProvisioned = true
 			return ph.Patch(ctx, capiCluster, patch.WithStatusObservedGeneration{})
 		}, timeout).Should(Succeed())
 
@@ -177,7 +178,7 @@ var _ = Describe("VsphereMachineReconciler", func() {
 		BeforeEach(func() {
 			ph, err := patch.NewHelper(capiCluster, testEnv)
 			Expect(err).ShouldNot(HaveOccurred())
-			capiCluster.Status.InfrastructureReady = true
+			capiCluster.Status.Initialization.InfrastructureProvisioned = true
 			Expect(ph.Patch(ctx, capiCluster, patch.WithStatusObservedGeneration{})).To(Succeed())
 		})
 
@@ -195,7 +196,7 @@ var _ = Describe("VsphereMachineReconciler", func() {
 			Eventually(func() error {
 				ph, err := patch.NewHelper(capiMachine, testEnv)
 				Expect(err).ShouldNot(HaveOccurred())
-				capiMachine.Spec.Bootstrap = clusterv1beta1.Bootstrap{
+				capiMachine.Spec.Bootstrap = clusterv1.Bootstrap{
 					DataSecretName: ptr.To("some-secret"),
 				}
 				return ph.Patch(ctx, capiMachine, patch.WithStatusObservedGeneration{})

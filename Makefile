@@ -23,8 +23,8 @@ SHELL:=/usr/bin/env bash
 #
 # Go.
 #
-GO_VERSION ?= 1.23.8
-GO_DIRECTIVE_VERSION ?= 1.23.0
+GO_VERSION ?= 1.24.3
+GO_DIRECTIVE_VERSION ?= 1.24.0
 GO_CONTAINER_IMAGE ?= docker.io/library/golang:$(GO_VERSION)
 
 # Ensure correct toolchain is used
@@ -190,7 +190,7 @@ IMPORT_BOSS_VER := v0.28.1
 IMPORT_BOSS := $(abspath $(TOOLS_BIN_DIR)/$(IMPORT_BOSS_BIN))
 IMPORT_BOSS_PKG := k8s.io/code-generator/cmd/import-boss
 
-CAPI_HACK_TOOLS_VER := 647a1b741bc86dd759583a44b50a3ba8dbd326c4 # Note: this the commit ID of CAPI v1.10.1
+CAPI_HACK_TOOLS_VER := 6eabd27569883a81c8965f509718c9b323cd32f5 # Note: this the commit ID of CAPI on main at 15th May 2025
 
 BOSKOSCTL_BIN := boskosctl
 BOSKOSCTL := $(abspath $(TOOLS_BIN_DIR)/$(BOSKOSCTL_BIN))

@@ -32,7 +32,9 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
+	conditionsv1beta1 "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	deprecatedv1beta2conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
@@ -535,7 +537,7 @@ func (r *clusterReconciler) controlPlaneMachineToCluster(ctx context.Context, o 
 	}
 	ctx = ctrl.LoggerInto(ctx, log)
 
-	if deprecatedconditions.IsTrue(cluster, clusterv1beta1.ControlPlaneInitializedCondition) {
+	if conditionsv1beta1.IsTrue(cluster, clusterv1.ControlPlaneInitializedV1Beta1Condition) {
 		log.V(6).Info("Skipping VSphereCluster reconcile as control plane is already initialized")
 		return nil
 	}

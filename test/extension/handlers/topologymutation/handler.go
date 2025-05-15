@@ -32,7 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/utils/ptr"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	controlplanev1beta1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/runtime/topologymutation"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -61,7 +61,7 @@ func NewExtensionHandlers(scheme *runtime.Scheme) *ExtensionHandlers {
 		decoder: serializer.NewCodecFactory(scheme).UniversalDecoder(
 			infrav1.GroupVersion,
 			vmwarev1.GroupVersion,
-			controlplanev1.GroupVersion,
+			controlplanev1beta1.GroupVersion,
 			bootstrapv1.GroupVersion,
 		),
 	}
@@ -84,7 +84,7 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 			isControlPlane := holderRef.Kind == "KubeadmControlPlane"
 
 			switch obj := obj.(type) {
-			case *controlplanev1.KubeadmControlPlaneTemplate:
+			case *controlplanev1beta1.KubeadmControlPlaneTemplate:
 				if err := patchKubeadmControlPlaneTemplate(ctx, obj, variables); err != nil {
 					log.Error(err, "Error patching KubeadmControlPlaneTemplate")
 					return errors.Wrap(err, "error patching KubeadmControlPlaneTemplate")
@@ -126,7 +126,7 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 }
 
 // patchKubeadmControlPlaneTemplate patches the KubeadmControlPlaneTemplate.
-func patchKubeadmControlPlaneTemplate(_ context.Context, tpl *controlplanev1.KubeadmControlPlaneTemplate, templateVariables map[string]apiextensionsv1.JSON) error {
+func patchKubeadmControlPlaneTemplate(_ context.Context, tpl *controlplanev1beta1.KubeadmControlPlaneTemplate, templateVariables map[string]apiextensionsv1.JSON) error {
 	// patch enableSSHIntoNodes
 	if err := patchUsers(&tpl.Spec.Template.Spec.KubeadmConfigSpec, templateVariables); err != nil {
 		return err

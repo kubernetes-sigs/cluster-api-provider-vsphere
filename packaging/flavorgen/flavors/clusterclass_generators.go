@@ -221,7 +221,7 @@ func getControlPlaneEndpointTemplate() *string {
 	templateStr, _ := yaml.Marshal(template)
 
 	fixTemplateStr := string(templateStr)
-	fixTemplateStr = strings.Replace(fixTemplateStr, "'{{ .controlPlanePort }}'", "{{ .controlPlanePort }}", -1)
+	fixTemplateStr = strings.ReplaceAll(fixTemplateStr, "'{{ .controlPlanePort }}'", "{{ .controlPlanePort }}")
 	return ptr.To(fixTemplateStr)
 }
 

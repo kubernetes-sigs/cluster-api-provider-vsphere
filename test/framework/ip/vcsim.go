@@ -88,7 +88,7 @@ func (h *vcsim) ClaimIPs(ctx context.Context, opts ...ClaimOption) (AddressClaim
 				// might be we want to shift to a better error management here, but for now this should be enough to point in the right direction
 				panic(fmt.Sprintf("unable to claim vcsim controlPlaneEndpoint for variable name %s. variable name must end with _IP", variables))
 			}
-			variables[strings.Replace(variable, "_IP", "_PORT", -1)] = port
+			variables[strings.ReplaceAll(variable, "_IP", "_PORT")] = port
 		}
 	}
 

@@ -123,15 +123,15 @@ var _ = Describe("When testing the machinery for scale testing using vcsim provi
 						addVCSimTestVariables(clusterProxy, fmt.Sprintf("scale-%s", clusterName), testSpecificIPAddressClaims, testSpecificVariables, false)
 					}
 
-					clusterTemplateYAML = bytes.Replace(clusterTemplateYAML, []byte(scaleClusterControlPlaneEndpointIPPlaceholder), []byte(testSpecificVariables["CONTROL_PLANE_ENDPOINT_IP"]), -1)
-					clusterTemplateYAML = bytes.Replace(clusterTemplateYAML, []byte(scaleClusterControlPlaneEndpointPortPlaceholder), []byte(testSpecificVariables["CONTROL_PLANE_ENDPOINT_PORT"]), -1)
-					clusterTemplateYAML = bytes.Replace(clusterTemplateYAML, []byte(scaleClusterVSphereServerPlaceholder), []byte(testSpecificVariables["VSPHERE_SERVER"]), -1)
-					clusterTemplateYAML = bytes.Replace(clusterTemplateYAML, []byte(scaleClusterVSphereTLSThumbprintPlaceholder), []byte(testSpecificVariables["VSPHERE_TLS_THUMBPRINT"]), -1)
+					clusterTemplateYAML = bytes.ReplaceAll(clusterTemplateYAML, []byte(scaleClusterControlPlaneEndpointIPPlaceholder), []byte(testSpecificVariables["CONTROL_PLANE_ENDPOINT_IP"]))
+					clusterTemplateYAML = bytes.ReplaceAll(clusterTemplateYAML, []byte(scaleClusterControlPlaneEndpointPortPlaceholder), []byte(testSpecificVariables["CONTROL_PLANE_ENDPOINT_PORT"]))
+					clusterTemplateYAML = bytes.ReplaceAll(clusterTemplateYAML, []byte(scaleClusterVSphereServerPlaceholder), []byte(testSpecificVariables["VSPHERE_SERVER"]))
+					clusterTemplateYAML = bytes.ReplaceAll(clusterTemplateYAML, []byte(scaleClusterVSphereTLSThumbprintPlaceholder), []byte(testSpecificVariables["VSPHERE_TLS_THUMBPRINT"]))
 
 					if testMode == GovmomiTestMode {
-						clusterClassYAML = bytes.Replace(clusterClassYAML, []byte(scaleClusterNamePlaceholder), []byte(clusterName), -1)
-						clusterClassYAML = bytes.Replace(clusterClassYAML, []byte(scaleClusterVSphereServerPlaceholder), []byte(testSpecificVariables["VSPHERE_SERVER"]), -1)
-						clusterClassYAML = bytes.Replace(clusterClassYAML, []byte(scaleClusterVSphereTLSThumbprintPlaceholder), []byte(testSpecificVariables["VSPHERE_TLS_THUMBPRINT"]), -1)
+						clusterClassYAML = bytes.ReplaceAll(clusterClassYAML, []byte(scaleClusterNamePlaceholder), []byte(clusterName))
+						clusterClassYAML = bytes.ReplaceAll(clusterClassYAML, []byte(scaleClusterVSphereServerPlaceholder), []byte(testSpecificVariables["VSPHERE_SERVER"]))
+						clusterClassYAML = bytes.ReplaceAll(clusterClassYAML, []byte(scaleClusterVSphereTLSThumbprintPlaceholder), []byte(testSpecificVariables["VSPHERE_TLS_THUMBPRINT"]))
 					}
 
 					return clusterClassYAML, clusterTemplateYAML

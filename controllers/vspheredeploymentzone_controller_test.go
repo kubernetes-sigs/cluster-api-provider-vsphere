@@ -27,7 +27,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -267,7 +267,7 @@ var _ = Describe("VSphereDeploymentZoneReconciler", func() {
 				It("should not block deletion if machines are being deleted", func() {
 					machineBeingDeleted := createMachine("machine-deleted", "cluster-deleted", machineNamespace.Name, false)
 					machineBeingDeleted.Spec.FailureDomain = ptr.To(vsphereDeploymentZone.Name)
-					machineBeingDeleted.Finalizers = []string{clusterv1.MachineFinalizer}
+					machineBeingDeleted.Finalizers = []string{clusterv1beta1.MachineFinalizer}
 					Expect(testEnv.Create(ctx, machineBeingDeleted)).To(Succeed())
 
 					Expect(testEnv.Delete(ctx, machineBeingDeleted)).To(Succeed())
@@ -531,22 +531,22 @@ func TestVSphereDeploymentZone_Reconcile(t *testing.T) {
 	})
 }
 
-func createMachine(machineName, clusterName, namespace string, isControlPlane bool) *clusterv1.Machine {
-	m := &clusterv1.Machine{
+func createMachine(machineName, clusterName, namespace string, isControlPlane bool) *clusterv1beta1.Machine {
+	m := &clusterv1beta1.Machine{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1.GroupVersion.String(),
+			APIVersion: clusterv1beta1.GroupVersion.String(),
 			Kind:       "Machine",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      machineName,
 			Namespace: namespace,
 			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: clusterName,
+				clusterv1beta1.ClusterNameLabel: clusterName,
 			},
 		},
-		Spec: clusterv1.MachineSpec{
+		Spec: clusterv1beta1.MachineSpec{
 			Version: ptr.To("v1.22.0"),
-			Bootstrap: clusterv1.Bootstrap{
+			Bootstrap: clusterv1beta1.Bootstrap{
 				ConfigRef: &corev1.ObjectReference{
 					APIVersion: bootstrapv1.GroupVersion.String(),
 					Name:       machineName,
@@ -561,7 +561,7 @@ func createMachine(machineName, clusterName, namespace string, isControlPlane bo
 		},
 	}
 	if isControlPlane {
-		m.Labels[clusterv1.MachineControlPlaneLabel] = ""
+		m.Labels[clusterv1beta1.MachineControlPlaneLabel] = ""
 	}
 	return m
 }

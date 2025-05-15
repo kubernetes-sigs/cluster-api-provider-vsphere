@@ -25,7 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog/v2"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -43,17 +43,17 @@ const (
 	clusterNameLabelName = "cluster.x-k8s.io/cluster-name"
 )
 
-func CreateCluster(clusterName string) *clusterv1.Cluster {
-	return &clusterv1.Cluster{
+func CreateCluster(clusterName string) *clusterv1beta1.Cluster {
+	return &clusterv1beta1.Cluster{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1.GroupVersion.String(),
+			APIVersion: clusterv1beta1.GroupVersion.String(),
 			Kind:       clusterKind,
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      clusterName,
 			Namespace: corev1.NamespaceDefault,
 		},
-		Spec: clusterv1.ClusterSpec{
+		Spec: clusterv1beta1.ClusterSpec{
 			InfrastructureRef: &corev1.ObjectReference{
 				APIVersion: vmwarev1.GroupVersion.String(),
 				Kind:       infraClusterKind,
@@ -76,10 +76,10 @@ func CreateVSphereCluster(clusterName string) *vmwarev1.VSphereCluster {
 	}
 }
 
-func CreateMachine(machineName, clusterName, k8sVersion string, controlPlaneLabel bool) *clusterv1.Machine {
-	machine := &clusterv1.Machine{
+func CreateMachine(machineName, clusterName, k8sVersion string, controlPlaneLabel bool) *clusterv1beta1.Machine {
+	machine := &clusterv1beta1.Machine{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1.GroupVersion.String(),
+			APIVersion: clusterv1beta1.GroupVersion.String(),
 			Kind:       machineKind,
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -89,9 +89,9 @@ func CreateMachine(machineName, clusterName, k8sVersion string, controlPlaneLabe
 				clusterNameLabelName: clusterName,
 			},
 		},
-		Spec: clusterv1.MachineSpec{
+		Spec: clusterv1beta1.MachineSpec{
 			Version: &k8sVersion,
-			Bootstrap: clusterv1.Bootstrap{
+			Bootstrap: clusterv1beta1.Bootstrap{
 				ConfigRef: &corev1.ObjectReference{
 					APIVersion: bootstrapv1.GroupVersion.String(),
 					Name:       machineName,
@@ -106,7 +106,7 @@ func CreateMachine(machineName, clusterName, k8sVersion string, controlPlaneLabe
 	}
 	if controlPlaneLabel {
 		labels := machine.GetLabels()
-		labels[clusterv1.MachineControlPlaneLabel] = ""
+		labels[clusterv1beta1.MachineControlPlaneLabel] = ""
 		machine.SetLabels(labels)
 	}
 	return machine
@@ -122,7 +122,7 @@ func CreateVSphereMachine(machineName, clusterName, className, imageName, storag
 			Name:      machineName,
 			Namespace: corev1.NamespaceDefault,
 			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: clusterName,
+				clusterv1beta1.ClusterNameLabel: clusterName,
 			},
 		},
 		Spec: vmwarev1.VSphereMachineSpec{
@@ -134,7 +134,7 @@ func CreateVSphereMachine(machineName, clusterName, className, imageName, storag
 	}
 	if controlPlaneLabel {
 		labels := vsphereMachine.GetLabels()
-		labels[clusterv1.MachineControlPlaneLabel] = ""
+		labels[clusterv1beta1.MachineControlPlaneLabel] = ""
 		vsphereMachine.SetLabels(labels)
 	}
 	return vsphereMachine
@@ -144,7 +144,7 @@ func createScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = vmwarev1.AddToScheme(scheme)
-	_ = clusterv1.AddToScheme(scheme)
+	_ = clusterv1beta1.AddToScheme(scheme)
 	_ = topologyv1.AddToScheme(scheme)
 	_ = vmoprv1.AddToScheme(scheme)
 	_ = netopv1.AddToScheme(scheme)
@@ -152,7 +152,7 @@ func createScheme() *runtime.Scheme {
 	return scheme
 }
 
-func CreateClusterContext(cluster *clusterv1.Cluster, vsphereCluster *vmwarev1.VSphereCluster) (*vmware.ClusterContext, *capvcontext.ControllerManagerContext) {
+func CreateClusterContext(cluster *clusterv1beta1.Cluster, vsphereCluster *vmwarev1.VSphereCluster) (*vmware.ClusterContext, *capvcontext.ControllerManagerContext) {
 	scheme := createScheme()
 
 	// Build the cluster context.
@@ -169,7 +169,7 @@ func CreateClusterContext(cluster *clusterv1.Cluster, vsphereCluster *vmwarev1.V
 		}
 }
 
-func CreateMachineContext(clusterContext *vmware.ClusterContext, machine *clusterv1.Machine,
+func CreateMachineContext(clusterContext *vmware.ClusterContext, machine *clusterv1beta1.Machine,
 	vsphereMachine *vmwarev1.VSphereMachine) *vmware.SupervisorMachineContext {
 	// Build the machine context.
 	return &vmware.SupervisorMachineContext{

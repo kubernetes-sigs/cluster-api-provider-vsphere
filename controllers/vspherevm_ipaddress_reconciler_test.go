@@ -24,7 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -52,7 +52,7 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 				Name:      name,
 				Namespace: namespace,
 				Labels: map[string]string{
-					clusterv1.ClusterNameLabel: "my-cluster",
+					clusterv1beta1.ClusterNameLabel: "my-cluster",
 				},
 			},
 			Spec: infrav1.VSphereVMSpec{
@@ -92,7 +92,7 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 
 				g.Expect(claim.OwnerReferences).To(gomega.HaveLen(1))
 				g.Expect(claim.OwnerReferences[0].Name).To(gomega.Equal(vsphereVM.Name))
-				g.Expect(claim.Labels).To(gomega.HaveKeyWithValue(clusterv1.ClusterNameLabel, "my-cluster"))
+				g.Expect(claim.Labels).To(gomega.HaveKeyWithValue(clusterv1beta1.ClusterNameLabel, "my-cluster"))
 			}
 
 			claimedCondition := conditions.Get(testCtx.VSphereVM, infrav1.IPAddressClaimedCondition)
@@ -140,7 +140,7 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 
 				g.Expect(claim.OwnerReferences).To(gomega.HaveLen(1))
 				g.Expect(claim.OwnerReferences[0].Name).To(gomega.Equal(vsphereVM.Name))
-				g.Expect(claim.Labels).To(gomega.HaveKeyWithValue(clusterv1.ClusterNameLabel, "my-cluster"))
+				g.Expect(claim.Labels).To(gomega.HaveKeyWithValue(clusterv1beta1.ClusterNameLabel, "my-cluster"))
 			}
 		})
 
@@ -174,7 +174,7 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 
 				g.Expect(claim.OwnerReferences).To(gomega.HaveLen(1))
 				g.Expect(claim.OwnerReferences[0].Name).To(gomega.Equal(vsphereVM.Name))
-				g.Expect(claim.Labels).To(gomega.HaveKeyWithValue(clusterv1.ClusterNameLabel, "my-cluster"))
+				g.Expect(claim.Labels).To(gomega.HaveKeyWithValue(clusterv1beta1.ClusterNameLabel, "my-cluster"))
 			}
 		})
 
@@ -182,18 +182,18 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 			g := gomega.NewWithT(t)
 
 			ipAddrClaimWithReadyConditionTrue := ipAddrClaim(util.IPAddressClaimName(name, 0, 0), "my-pool-1")
-			ipAddrClaimWithReadyConditionTrue.Status.Conditions = clusterv1.Conditions{
-				*conditions.TrueCondition(clusterv1.ReadyCondition),
+			ipAddrClaimWithReadyConditionTrue.Status.Conditions = clusterv1beta1.Conditions{
+				*conditions.TrueCondition(clusterv1beta1.ReadyCondition),
 			}
 
 			ipAddrClaimWithReadyConditionFalse := ipAddrClaim(util.IPAddressClaimName(name, 1, 0), "my-pool-2")
-			ipAddrClaimWithReadyConditionFalse.Status.Conditions = clusterv1.Conditions{
-				*conditions.FalseCondition(clusterv1.ReadyCondition, "IPAddressFetchProgress", clusterv1.ConditionSeverityInfo, ""),
+			ipAddrClaimWithReadyConditionFalse.Status.Conditions = clusterv1beta1.Conditions{
+				*conditions.FalseCondition(clusterv1beta1.ReadyCondition, "IPAddressFetchProgress", clusterv1beta1.ConditionSeverityInfo, ""),
 			}
 
 			secondIPAddrClaimWithReadyConditionTrue := ipAddrClaim(util.IPAddressClaimName(name, 1, 1), "my-pool-3")
-			secondIPAddrClaimWithReadyConditionTrue.Status.Conditions = clusterv1.Conditions{
-				*conditions.TrueCondition(clusterv1.ReadyCondition),
+			secondIPAddrClaimWithReadyConditionTrue.Status.Conditions = clusterv1beta1.Conditions{
+				*conditions.TrueCondition(clusterv1beta1.ReadyCondition),
 			}
 
 			testCtx := setup(vsphereVM,
@@ -213,14 +213,14 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 			g := gomega.NewWithT(t)
 
 			ipAddrClaimWithReadyConditionTrue := ipAddrClaim(util.IPAddressClaimName(name, 0, 0), "my-pool-1")
-			ipAddrClaimWithReadyConditionTrue.Status.Conditions = clusterv1.Conditions{
-				*conditions.TrueCondition(clusterv1.ReadyCondition),
+			ipAddrClaimWithReadyConditionTrue.Status.Conditions = clusterv1beta1.Conditions{
+				*conditions.TrueCondition(clusterv1beta1.ReadyCondition),
 			}
 			ipAddrClaimWithReadyConditionTrue.Status.AddressRef.Name = "blah-one"
 
 			ipAddrClaimWithReadyConditionFalse := ipAddrClaim(util.IPAddressClaimName(name, 1, 0), "my-pool-2")
-			ipAddrClaimWithReadyConditionFalse.Status.Conditions = clusterv1.Conditions{
-				*conditions.FalseCondition(clusterv1.ReadyCondition, "IPAddressFetchProgress", clusterv1.ConditionSeverityInfo, ""),
+			ipAddrClaimWithReadyConditionFalse.Status.Conditions = clusterv1beta1.Conditions{
+				*conditions.FalseCondition(clusterv1beta1.ReadyCondition, "IPAddressFetchProgress", clusterv1beta1.ConditionSeverityInfo, ""),
 			}
 
 			iPAddrClaimWithNoReadyCondition := ipAddrClaim(util.IPAddressClaimName(name, 1, 1), "my-pool-3")

@@ -27,7 +27,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -95,16 +95,16 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 		expectedPort                int
 		expectedAnnotations         map[string]string
 		expectedClusterRoleVMLabels map[string]string
-		expectedConditions          clusterv1.Conditions
+		expectedConditions          clusterv1beta1.Conditions
 
-		cluster                  *clusterv1.Cluster
+		cluster                  *clusterv1beta1.Cluster
 		vsphereCluster           *vmwarev1.VSphereCluster
 		ctx                      = context.Background()
 		clusterCtx               *vmware.ClusterContext
 		controllerManagerContext *capvcontext.ControllerManagerContext
 		c                        ctrlclient.Client
 
-		apiEndpoint *clusterv1.APIEndpoint
+		apiEndpoint *clusterv1beta1.APIEndpoint
 		vms         *vmoprv1.VirtualMachineService
 
 		cpService CPService
@@ -220,7 +220,7 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 			By("NetOp NetworkProvider has no Network")
 			netOpProvider := network.NetOpNetworkProvider(c)
 			// we expect the reconciliation fail because lack of bootstrap data
-			expectedConditions = append(expectedConditions, clusterv1.Condition{
+			expectedConditions = append(expectedConditions, clusterv1beta1.Condition{
 				Type:    vmwarev1.LoadBalancerReadyCondition,
 				Status:  corev1.ConditionFalse,
 				Reason:  vmwarev1.LoadBalancerCreationFailedReason,
@@ -262,7 +262,7 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 			// A VirtualMachineService is only created once all prerequisites have been met
 			expectVMS = false
 			expectedType = vmoprv1.VirtualMachineServiceTypeLoadBalancer
-			expectedConditions = append(expectedConditions, clusterv1.Condition{
+			expectedConditions = append(expectedConditions, clusterv1beta1.Condition{
 				Type:    vmwarev1.LoadBalancerReadyCondition,
 				Status:  corev1.ConditionFalse,
 				Reason:  vmwarev1.LoadBalancerCreationFailedReason,

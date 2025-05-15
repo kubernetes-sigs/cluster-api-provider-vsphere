@@ -30,7 +30,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apitypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -54,7 +54,7 @@ type VmopMachineService struct {
 func (v *VmopMachineService) GetMachinesInCluster(
 	ctx context.Context,
 	namespace, clusterName string) ([]client.Object, error) {
-	labels := map[string]string{clusterv1.ClusterNameLabel: clusterName}
+	labels := map[string]string{clusterv1beta1.ClusterNameLabel: clusterName}
 	machineList := &vmwarev1.VSphereMachineList{}
 
 	if err := v.Client.List(
@@ -80,7 +80,7 @@ func (v *VmopMachineService) FetchVSphereMachine(ctx context.Context, name apity
 }
 
 // FetchVSphereCluster adds the VSphereCluster for the cluster to the MachineContext.
-func (v *VmopMachineService) FetchVSphereCluster(ctx context.Context, cluster *clusterv1.Cluster, machineContext capvcontext.MachineContext) (capvcontext.MachineContext, error) {
+func (v *VmopMachineService) FetchVSphereCluster(ctx context.Context, cluster *clusterv1beta1.Cluster, machineContext capvcontext.MachineContext) (capvcontext.MachineContext, error) {
 	machineCtx, ok := machineContext.(*vmware.SupervisorMachineContext)
 	if !ok {
 		return nil, errors.New("received unexpected SupervisorMachineContext type")
@@ -205,7 +205,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 
 	// Reconcile the VM Operator VirtualMachine.
 	if err := v.reconcileVMOperatorVM(ctx, supervisorMachineCtx, vmOperatorVM); err != nil {
-		conditions.MarkFalse(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, vmwarev1.VMCreationFailedReason, clusterv1.ConditionSeverityWarning,
+		conditions.MarkFalse(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, vmwarev1.VMCreationFailedReason, clusterv1beta1.ConditionSeverityWarning,
 			fmt.Sprintf("failed to create or update VirtualMachine: %v", err))
 		v1beta2conditions.Set(supervisorMachineCtx.VSphereMachine, metav1.Condition{
 			Type:    infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
@@ -246,7 +246,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 			if c == nil || c.Status != metav1.ConditionFalse {
 				continue
 			}
-			conditions.MarkFalse(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, c.Reason, clusterv1.ConditionSeverityError, c.Message)
+			conditions.MarkFalse(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, c.Reason, clusterv1beta1.ConditionSeverityError, c.Message)
 			v1beta2conditions.Set(supervisorMachineCtx.VSphereMachine, metav1.Condition{
 				Type:    infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
@@ -257,7 +257,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 		}
 
 		// All the pre-requisites are in place but the machines is not yet created, report it.
-		conditions.MarkFalse(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, vmwarev1.VMProvisionStartedReason, clusterv1.ConditionSeverityInfo, "")
+		conditions.MarkFalse(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, vmwarev1.VMProvisionStartedReason, clusterv1beta1.ConditionSeverityInfo, "")
 		v1beta2conditions.Set(supervisorMachineCtx.VSphereMachine, metav1.Condition{
 			Type:   infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
 			Status: metav1.ConditionFalse,
@@ -270,7 +270,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 	supervisorMachineCtx.VSphereMachine.Status.VMStatus = vmwarev1.VirtualMachineStateCreated
 
 	if vmOperatorVM.Status.PowerState != vmoprv1.VirtualMachinePowerStateOn {
-		conditions.MarkFalse(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, vmwarev1.PoweringOnReason, clusterv1.ConditionSeverityInfo, "")
+		conditions.MarkFalse(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, vmwarev1.PoweringOnReason, clusterv1beta1.ConditionSeverityInfo, "")
 		v1beta2conditions.Set(supervisorMachineCtx.VSphereMachine, metav1.Condition{
 			Type:   infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
 			Status: metav1.ConditionFalse,
@@ -283,7 +283,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 	supervisorMachineCtx.VSphereMachine.Status.VMStatus = vmwarev1.VirtualMachineStatePoweredOn
 
 	if vmOperatorVM.Status.Network == nil || (vmOperatorVM.Status.Network.PrimaryIP4 == "" && vmOperatorVM.Status.Network.PrimaryIP6 == "") {
-		conditions.MarkFalse(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, vmwarev1.WaitingForNetworkAddressReason, clusterv1.ConditionSeverityInfo, "")
+		conditions.MarkFalse(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, vmwarev1.WaitingForNetworkAddressReason, clusterv1beta1.ConditionSeverityInfo, "")
 		v1beta2conditions.Set(supervisorMachineCtx.VSphereMachine, metav1.Condition{
 			Type:   infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
 			Status: metav1.ConditionFalse,
@@ -294,7 +294,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 	}
 
 	if vmOperatorVM.Status.BiosUUID == "" {
-		conditions.MarkFalse(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, vmwarev1.WaitingForBIOSUUIDReason, clusterv1.ConditionSeverityInfo, "")
+		conditions.MarkFalse(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, vmwarev1.WaitingForBIOSUUIDReason, clusterv1beta1.ConditionSeverityInfo, "")
 		v1beta2conditions.Set(supervisorMachineCtx.VSphereMachine, metav1.Condition{
 			Type:   infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
 			Status: metav1.ConditionFalse,
@@ -717,7 +717,7 @@ func getVMLabels(supervisorMachineCtx *vmware.SupervisorMachineContext, vmLabels
 
 	// Ensure the VM has a label that can be used when searching for
 	// resources associated with the target cluster.
-	vmLabels[clusterv1.ClusterNameLabel] = supervisorMachineCtx.GetClusterContext().Cluster.Name
+	vmLabels[clusterv1beta1.ClusterNameLabel] = supervisorMachineCtx.GetClusterContext().Cluster.Name
 
 	return vmLabels
 }
@@ -739,6 +739,6 @@ func getTopologyLabels(supervisorMachineCtx *vmware.SupervisorMachineContext) ma
 
 // getMachineDeploymentName returns the MachineDeployment name for a Cluster.
 // This is also the name used by VSphereMachineTemplate and KubeadmConfigTemplate.
-func getMachineDeploymentNameForCluster(cluster *clusterv1.Cluster) string {
+func getMachineDeploymentNameForCluster(cluster *clusterv1beta1.Cluster) string {
 	return fmt.Sprintf("%s-workers-0", cluster.Name)
 }

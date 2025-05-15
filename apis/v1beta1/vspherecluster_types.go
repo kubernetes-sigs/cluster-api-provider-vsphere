@@ -18,7 +18,7 @@ package v1beta1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 const (
@@ -32,17 +32,17 @@ const (
 const (
 	// VSphereClusterReadyV1Beta2Condition is true if the VSphereCluster's deletionTimestamp is not set, VSphereCluster's
 	// FailureDomainsReady, VCenterAvailable and ClusterModulesReady conditions are true.
-	VSphereClusterReadyV1Beta2Condition = clusterv1.ReadyV1Beta2Condition
+	VSphereClusterReadyV1Beta2Condition = clusterv1beta1.ReadyV1Beta2Condition
 
 	// VSphereClusterReadyV1Beta2Reason surfaces when the VSphereCluster readiness criteria is met.
-	VSphereClusterReadyV1Beta2Reason = clusterv1.ReadyV1Beta2Reason
+	VSphereClusterReadyV1Beta2Reason = clusterv1beta1.ReadyV1Beta2Reason
 
 	// VSphereClusterNotReadyV1Beta2Reason surfaces when the VSphereCluster readiness criteria is not met.
-	VSphereClusterNotReadyV1Beta2Reason = clusterv1.NotReadyV1Beta2Reason
+	VSphereClusterNotReadyV1Beta2Reason = clusterv1beta1.NotReadyV1Beta2Reason
 
 	// VSphereClusterReadyUnknownV1Beta2Reason surfaces when at least one VSphereCluster readiness criteria is unknown
 	// and no VSphereCluster readiness criteria is not met.
-	VSphereClusterReadyUnknownV1Beta2Reason = clusterv1.ReadyUnknownV1Beta2Reason
+	VSphereClusterReadyUnknownV1Beta2Reason = clusterv1beta1.ReadyUnknownV1Beta2Reason
 )
 
 // VSphereCluster's FailureDomainsReady condition and corresponding reasons that will be used in v1Beta2 API version.
@@ -51,16 +51,16 @@ const (
 	VSphereClusterFailureDomainsReadyV1Beta2Condition = "FailureDomainsReady"
 
 	// VSphereClusterFailureDomainsReadyV1Beta2Reason surfaces when the failure domains for a VSphereCluster are ready.
-	VSphereClusterFailureDomainsReadyV1Beta2Reason = clusterv1.ReadyV1Beta2Reason
+	VSphereClusterFailureDomainsReadyV1Beta2Reason = clusterv1beta1.ReadyV1Beta2Reason
 
 	// VSphereClusterFailureDomainsWaitingForFailureDomainStatusV1Beta2Reason surfaces when not all VSphereFailureDomains for a VSphereCluster are ready.
 	VSphereClusterFailureDomainsWaitingForFailureDomainStatusV1Beta2Reason = "WaitingForFailureDomainStatus"
 
 	// VSphereClusterFailureDomainsNotReadyV1Beta2Reason surfaces when the failure domains for a VSphereCluster are not ready.
-	VSphereClusterFailureDomainsNotReadyV1Beta2Reason = clusterv1.NotReadyV1Beta2Reason
+	VSphereClusterFailureDomainsNotReadyV1Beta2Reason = clusterv1beta1.NotReadyV1Beta2Reason
 
 	// VSphereClusterFailureDomainsDeletingV1Beta2Reason surfaces when the failure domains for a VSphereCluster are being deleted.
-	VSphereClusterFailureDomainsDeletingV1Beta2Reason = clusterv1.DeletingV1Beta2Reason
+	VSphereClusterFailureDomainsDeletingV1Beta2Reason = clusterv1beta1.DeletingV1Beta2Reason
 )
 
 // VSphereCluster's VCenterAvailable condition and corresponding reasons that will be used in v1Beta2 API version.
@@ -69,13 +69,13 @@ const (
 	VSphereClusterVCenterAvailableV1Beta2Condition = "VCenterAvailable"
 
 	// VSphereClusterVCenterAvailableV1Beta2Reason surfaces when the vCenter for a VSphereCluster is available.
-	VSphereClusterVCenterAvailableV1Beta2Reason = clusterv1.AvailableV1Beta2Reason
+	VSphereClusterVCenterAvailableV1Beta2Reason = clusterv1beta1.AvailableV1Beta2Reason
 
 	// VSphereClusterVCenterUnreachableV1Beta2Reason surfaces when the vCenter for a VSphereCluster is unreachable.
 	VSphereClusterVCenterUnreachableV1Beta2Reason = "VCenterUnreachable"
 
 	// VSphereClusterVCenterAvailableDeletingV1Beta2Reason surfaces when the VSphereCluster is being deleted.
-	VSphereClusterVCenterAvailableDeletingV1Beta2Reason = clusterv1.DeletingV1Beta2Reason
+	VSphereClusterVCenterAvailableDeletingV1Beta2Reason = clusterv1beta1.DeletingV1Beta2Reason
 )
 
 // VSphereCluster's ClusterModulesReady condition and corresponding reasons that will be used in v1Beta2 API version.
@@ -84,17 +84,17 @@ const (
 	VSphereClusterClusterModulesReadyV1Beta2Condition = "ClusterModulesReady"
 
 	// VSphereClusterClusterModulesReadyV1Beta2Reason surfaces when the cluster modules for a VSphereCluster are ready.
-	VSphereClusterClusterModulesReadyV1Beta2Reason = clusterv1.ReadyV1Beta2Reason
+	VSphereClusterClusterModulesReadyV1Beta2Reason = clusterv1beta1.ReadyV1Beta2Reason
 
 	// VSphereClusterModulesInvalidVCenterVersionV1Beta2Reason surfaces when the cluster modules for a VSphereCluster can't be reconciled
 	// due to an invalid vCenter version.
 	VSphereClusterModulesInvalidVCenterVersionV1Beta2Reason = "InvalidVCenterVersion"
 
 	// VSphereClusterClusterModulesNotReadyV1Beta2Reason surfaces when the cluster modules for a VSphereCluster are not ready.
-	VSphereClusterClusterModulesNotReadyV1Beta2Reason = clusterv1.NotReadyV1Beta2Reason
+	VSphereClusterClusterModulesNotReadyV1Beta2Reason = clusterv1beta1.NotReadyV1Beta2Reason
 
 	// VSphereClusterClusterModulesDeletingV1Beta2Reason surfaces when the cluster modules for a VSphereCluster are being deleted.
-	VSphereClusterClusterModulesDeletingV1Beta2Reason = clusterv1.DeletingV1Beta2Reason
+	VSphereClusterClusterModulesDeletingV1Beta2Reason = clusterv1beta1.DeletingV1Beta2Reason
 )
 
 // VCenterVersion conveys the API version of the vCenter instance.
@@ -166,10 +166,10 @@ type VSphereClusterStatus struct {
 
 	// Conditions defines current service state of the VSphereCluster.
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
 
 	// FailureDomains is a list of failure domain objects synced from the infrastructure provider.
-	FailureDomains clusterv1.FailureDomains `json:"failureDomains,omitempty"`
+	FailureDomains clusterv1beta1.FailureDomains `json:"failureDomains,omitempty"`
 
 	// VCenterVersion defines the version of the vCenter server defined in the spec.
 	VCenterVersion VCenterVersion `json:"vCenterVersion,omitempty"`
@@ -210,12 +210,12 @@ type VSphereCluster struct {
 }
 
 // GetConditions returns the conditions for the VSphereCluster.
-func (c *VSphereCluster) GetConditions() clusterv1.Conditions {
+func (c *VSphereCluster) GetConditions() clusterv1beta1.Conditions {
 	return c.Status.Conditions
 }
 
 // SetConditions sets conditions on the VSphereCluster.
-func (c *VSphereCluster) SetConditions(conditions clusterv1.Conditions) {
+func (c *VSphereCluster) SetConditions(conditions clusterv1beta1.Conditions) {
 	c.Status.Conditions = conditions
 }
 

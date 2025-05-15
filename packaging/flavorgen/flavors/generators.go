@@ -26,7 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -102,30 +102,30 @@ systemd:
         StandardError=inherit`
 )
 
-func newClusterTopologyCluster(supervisorMode bool) (clusterv1.Cluster, error) {
+func newClusterTopologyCluster(supervisorMode bool) (clusterv1beta1.Cluster, error) {
 	variables, err := clusterTopologyVariables(supervisorMode)
 	if err != nil {
-		return clusterv1.Cluster{}, errors.Wrap(err, "failed to create ClusterTopologyCluster template")
+		return clusterv1beta1.Cluster{}, errors.Wrap(err, "failed to create ClusterTopologyCluster template")
 	}
-	return clusterv1.Cluster{
+	return clusterv1beta1.Cluster{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       util.TypeToKind(&clusterv1.Cluster{}),
+			APIVersion: clusterv1beta1.GroupVersion.String(),
+			Kind:       util.TypeToKind(&clusterv1beta1.Cluster{}),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      env.ClusterNameVar,
 			Namespace: env.NamespaceVar,
 			Labels:    clusterLabels(),
 		},
-		Spec: clusterv1.ClusterSpec{
-			Topology: &clusterv1.Topology{
+		Spec: clusterv1beta1.ClusterSpec{
+			Topology: &clusterv1beta1.Topology{
 				Class:   env.ClusterClassNameVar,
 				Version: env.KubernetesVersionVar,
-				ControlPlane: clusterv1.ControlPlaneTopology{
+				ControlPlane: clusterv1beta1.ControlPlaneTopology{
 					Replicas: ptr.To[int32](1),
 				},
-				Workers: &clusterv1.WorkersTopology{
-					MachineDeployments: []clusterv1.MachineDeploymentTopology{
+				Workers: &clusterv1beta1.WorkersTopology{
+					MachineDeployments: []clusterv1beta1.MachineDeploymentTopology{
 						{
 							Class:    fmt.Sprintf("%s-worker", env.ClusterClassNameVar),
 							Name:     "md-0",
@@ -139,7 +139,7 @@ func newClusterTopologyCluster(supervisorMode bool) (clusterv1.Cluster, error) {
 	}, nil
 }
 
-func clusterTopologyVariables(supervisorMode bool) ([]clusterv1.ClusterVariable, error) {
+func clusterTopologyVariables(supervisorMode bool) ([]clusterv1beta1.ClusterVariable, error) {
 	sshKey, err := json.Marshal(env.VSphereSSHAuthorizedKeysVar)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to json-encode variable VSphereSSHAuthorizedKeysVar: %q", env.VSphereSSHAuthorizedKeysVar)
@@ -157,7 +157,7 @@ func clusterTopologyVariables(supervisorMode bool) ([]clusterv1.ClusterVariable,
 		return nil, err
 	}
 
-	variables := []clusterv1.ClusterVariable{
+	variables := []clusterv1beta1.ClusterVariable{
 		{
 			Name: "sshKey",
 			Value: apiextensionsv1.JSON{
@@ -189,7 +189,7 @@ func clusterTopologyVariables(supervisorMode bool) ([]clusterv1.ClusterVariable,
 			return nil, errors.Wrapf(err, "failed to json-encode variable ClusterNameVar: %q", env.ClusterNameVar)
 		}
 
-		varForNoneSupervisorMode := []clusterv1.ClusterVariable{
+		varForNoneSupervisorMode := []clusterv1beta1.ClusterVariable{
 			{
 				Name: "infraServer",
 				Value: apiextensionsv1.JSON{
@@ -257,7 +257,7 @@ func newVMWareCluster() vmwarev1.VSphereCluster {
 			Namespace: env.NamespaceVar,
 		},
 		Spec: vmwarev1.VSphereClusterSpec{
-			ControlPlaneEndpoint: clusterv1.APIEndpoint{
+			ControlPlaneEndpoint: clusterv1beta1.APIEndpoint{
 				Host: env.ControlPlaneEndpointHostVar,
 				Port: 6443,
 			},
@@ -265,20 +265,20 @@ func newVMWareCluster() vmwarev1.VSphereCluster {
 	}
 }
 
-func newCluster(vsphereCluster client.Object, controlPlane *controlplanev1.KubeadmControlPlane) clusterv1.Cluster {
-	cluster := clusterv1.Cluster{
+func newCluster(vsphereCluster client.Object, controlPlane *controlplanev1.KubeadmControlPlane) clusterv1beta1.Cluster {
+	cluster := clusterv1beta1.Cluster{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       util.TypeToKind(&clusterv1.Cluster{}),
+			APIVersion: clusterv1beta1.GroupVersion.String(),
+			Kind:       util.TypeToKind(&clusterv1beta1.Cluster{}),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      env.ClusterNameVar,
 			Namespace: env.NamespaceVar,
 			Labels:    clusterLabels(),
 		},
-		Spec: clusterv1.ClusterSpec{
-			ClusterNetwork: &clusterv1.ClusterNetwork{
-				Pods: &clusterv1.NetworkRanges{
+		Spec: clusterv1beta1.ClusterSpec{
+			ClusterNetwork: &clusterv1beta1.ClusterNetwork{
+				Pods: &clusterv1beta1.NetworkRanges{
 					CIDRBlocks: []string{env.DefaultClusterCIDR},
 				},
 			},
@@ -612,7 +612,7 @@ func flatcarPreKubeadmCommands() []string {
 	}
 }
 
-func newClusterResourceSet(cluster clusterv1.Cluster) addonsv1.ClusterResourceSet {
+func newClusterResourceSet(cluster clusterv1beta1.Cluster) addonsv1.ClusterResourceSet {
 	crs := addonsv1.ClusterResourceSet{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       util.TypeToKind(&addonsv1.ClusterResourceSet{}),
@@ -649,28 +649,28 @@ func newIdentitySecret() corev1.Secret {
 	}
 }
 
-func newMachineDeployment(cluster clusterv1.Cluster, machineTemplate client.Object, bootstrapTemplate bootstrapv1.KubeadmConfigTemplate) clusterv1.MachineDeployment {
-	return clusterv1.MachineDeployment{
+func newMachineDeployment(cluster clusterv1beta1.Cluster, machineTemplate client.Object, bootstrapTemplate bootstrapv1.KubeadmConfigTemplate) clusterv1beta1.MachineDeployment {
+	return clusterv1beta1.MachineDeployment{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       util.TypeToKind(&clusterv1.MachineDeployment{}),
+			APIVersion: clusterv1beta1.GroupVersion.String(),
+			Kind:       util.TypeToKind(&clusterv1beta1.MachineDeployment{}),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      env.ClusterNameVar + env.MachineDeploymentNameSuffix,
 			Labels:    clusterLabels(),
 			Namespace: env.NamespaceVar,
 		},
-		Spec: clusterv1.MachineDeploymentSpec{
+		Spec: clusterv1beta1.MachineDeploymentSpec{
 			ClusterName: env.ClusterNameVar,
 			Replicas:    ptr.To[int32](555),
-			Template: clusterv1.MachineTemplateSpec{
-				ObjectMeta: clusterv1.ObjectMeta{
+			Template: clusterv1beta1.MachineTemplateSpec{
+				ObjectMeta: clusterv1beta1.ObjectMeta{
 					Labels: clusterLabels(),
 				},
-				Spec: clusterv1.MachineSpec{
+				Spec: clusterv1beta1.MachineSpec{
 					Version:     ptr.To(env.KubernetesVersionVar),
 					ClusterName: cluster.Name,
-					Bootstrap: clusterv1.Bootstrap{
+					Bootstrap: clusterv1beta1.Bootstrap{
 						ConfigRef: &corev1.ObjectReference{
 							APIVersion: bootstrapTemplate.GroupVersionKind().GroupVersion().String(),
 							Kind:       bootstrapTemplate.Kind,

@@ -25,7 +25,7 @@ import (
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -102,7 +102,7 @@ func (vms *VMService) triggerSoftPowerOff(ctx context.Context, virtualMachineCtx
 			return false, nil
 		}
 
-		conditions.MarkFalse(virtualMachineCtx.VSphereVM, infrav1.GuestSoftPowerOffSucceededCondition, infrav1.GuestSoftPowerOffFailedReason, clusterv1.ConditionSeverityWarning,
+		conditions.MarkFalse(virtualMachineCtx.VSphereVM, infrav1.GuestSoftPowerOffSucceededCondition, infrav1.GuestSoftPowerOffFailedReason, clusterv1beta1.ConditionSeverityWarning,
 			"VMware Tools not installed on VM %s", client.ObjectKeyFromObject(virtualMachineCtx.VSphereVM))
 		v1beta2conditions.Set(virtualMachineCtx.VSphereVM, metav1.Condition{
 			Type:    infrav1.VSphereVMGuestSoftPowerOffSucceededV1Beta2Condition,
@@ -125,7 +125,7 @@ func (vms *VMService) triggerSoftPowerOff(ctx context.Context, virtualMachineCtx
 			return false, nil
 		}
 
-		conditions.MarkFalse(virtualMachineCtx.VSphereVM, infrav1.GuestSoftPowerOffSucceededCondition, infrav1.GuestSoftPowerOffFailedReason, clusterv1.ConditionSeverityWarning,
+		conditions.MarkFalse(virtualMachineCtx.VSphereVM, infrav1.GuestSoftPowerOffSucceededCondition, infrav1.GuestSoftPowerOffFailedReason, clusterv1beta1.ConditionSeverityWarning,
 			"unable to trigger soft power off because guest state change is not supported on VM %s.", client.ObjectKeyFromObject(virtualMachineCtx.VSphereVM))
 		v1beta2conditions.Set(virtualMachineCtx.VSphereVM, metav1.Condition{
 			Type:    infrav1.VSphereVMGuestSoftPowerOffSucceededV1Beta2Condition,
@@ -142,7 +142,7 @@ func (vms *VMService) triggerSoftPowerOff(ctx context.Context, virtualMachineCtx
 		return false, err
 	}
 
-	conditions.MarkFalse(virtualMachineCtx.VSphereVM, infrav1.GuestSoftPowerOffSucceededCondition, infrav1.GuestSoftPowerOffInProgressReason, clusterv1.ConditionSeverityInfo,
+	conditions.MarkFalse(virtualMachineCtx.VSphereVM, infrav1.GuestSoftPowerOffSucceededCondition, infrav1.GuestSoftPowerOffInProgressReason, clusterv1beta1.ConditionSeverityInfo,
 		"guest soft power off initiated on VM %s", client.ObjectKeyFromObject(virtualMachineCtx.VSphereVM))
 	v1beta2conditions.Set(virtualMachineCtx.VSphereVM, metav1.Condition{
 		Type:    infrav1.VSphereVMGuestSoftPowerOffSucceededV1Beta2Condition,

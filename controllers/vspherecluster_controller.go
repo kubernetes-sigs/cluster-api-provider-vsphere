@@ -22,7 +22,7 @@ import (
 
 	"github.com/pkg/errors"
 	"k8s.io/klog/v2"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -109,7 +109,7 @@ func AddClusterControllerToManager(ctx context.Context, controllerManagerCtx *ca
 		WithOptions(options).
 		// Watch the CAPI resource that owns this infrastructure resource.
 		Watches(
-			&clusterv1.Cluster{},
+			&clusterv1beta1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, o client.Object) []reconcile.Request {
 				requests := clusterToInfraFn(ctx, o)
 				if len(requests) == 0 {

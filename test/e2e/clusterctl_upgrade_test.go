@@ -24,7 +24,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterctlcluster "sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	"sigs.k8s.io/cluster-api/test/framework"
@@ -73,7 +73,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.13
 				InitWithIPAMProviders:             []string{},
 				Upgrades: []capi_e2e.ClusterctlUpgradeSpecInputUpgrade{
 					{ // Upgrade to latest v1beta1.
-						Contract: clusterv1.GroupVersion.Version,
+						Contract: clusterv1beta1.GroupVersion.Version,
 						PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 							framework.ValidateCRDMigration(ctx, proxy, namespace, clusterName,
 								crdShouldBeMigrated, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
@@ -127,7 +127,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.13
 				InitWithIPAMProviders:             []string{},
 				Upgrades: []capi_e2e.ClusterctlUpgradeSpecInputUpgrade{
 					{ // Upgrade to latest v1beta1.
-						Contract: clusterv1.GroupVersion.Version,
+						Contract: clusterv1beta1.GroupVersion.Version,
 						PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 							framework.ValidateCRDMigration(ctx, proxy, namespace, clusterName,
 								crdShouldBeMigrated, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
@@ -181,7 +181,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.12
 				InitWithIPAMProviders:             []string{},
 				Upgrades: []capi_e2e.ClusterctlUpgradeSpecInputUpgrade{
 					{ // Upgrade to latest v1beta1.
-						Contract: clusterv1.GroupVersion.Version,
+						Contract: clusterv1beta1.GroupVersion.Version,
 						PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 							framework.ValidateCRDMigration(ctx, proxy, namespace, clusterName,
 								crdShouldBeMigrated, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
@@ -235,7 +235,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.11
 				InitWithIPAMProviders:             []string{},
 				Upgrades: []capi_e2e.ClusterctlUpgradeSpecInputUpgrade{
 					{ // Upgrade to latest v1beta1.
-						Contract: clusterv1.GroupVersion.Version,
+						Contract: clusterv1beta1.GroupVersion.Version,
 						PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 							framework.ValidateCRDMigration(ctx, proxy, namespace, clusterName,
 								crdShouldBeMigrated, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))

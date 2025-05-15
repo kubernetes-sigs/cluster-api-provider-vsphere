@@ -22,7 +22,7 @@ import (
 	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -35,7 +35,7 @@ import (
 type VSphereMachineService interface {
 	GetMachinesInCluster(ctx context.Context, namespace, clusterName string) ([]client.Object, error)
 	FetchVSphereMachine(ctx context.Context, name types.NamespacedName) (capvcontext.MachineContext, error)
-	FetchVSphereCluster(ctx context.Context, cluster *clusterv1.Cluster, machineContext capvcontext.MachineContext) (capvcontext.MachineContext, error)
+	FetchVSphereCluster(ctx context.Context, cluster *clusterv1beta1.Cluster, machineContext capvcontext.MachineContext) (capvcontext.MachineContext, error)
 	ReconcileDelete(ctx context.Context, machineCtx capvcontext.MachineContext) error
 	SyncFailureReason(ctx context.Context, machineCtx capvcontext.MachineContext) (bool, error)
 	ReconcileNormal(ctx context.Context, machineCtx capvcontext.MachineContext) (bool, error)
@@ -56,7 +56,7 @@ type VirtualMachineService interface {
 type ControlPlaneEndpointService interface {
 	// ReconcileControlPlaneEndpointService manages the lifecycle of a
 	// control plane endpoint managed by a vmoperator VirtualMachineService
-	ReconcileControlPlaneEndpointService(ctx context.Context, clusterCtx *vmware.ClusterContext, netProvider NetworkProvider) (*clusterv1.APIEndpoint, error)
+	ReconcileControlPlaneEndpointService(ctx context.Context, clusterCtx *vmware.ClusterContext, netProvider NetworkProvider) (*clusterv1beta1.APIEndpoint, error)
 }
 
 // ResourcePolicyService is a service for reconciling a VirtualMachineSetResourcePolicy for a cluster.

@@ -25,7 +25,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/mock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -518,15 +518,15 @@ func TestReconciler_fetchMachineOwnerObjects(t *testing.T) {
 	})
 }
 
-func machineDeployment(name, namespace, cluster string) *clusterv1.MachineDeployment {
-	return &clusterv1.MachineDeployment{
+func machineDeployment(name, namespace, cluster string) *clusterv1beta1.MachineDeployment {
+	return &clusterv1beta1.MachineDeployment{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "MachineDeployment",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
-			Labels:    map[string]string{clusterv1.ClusterNameLabel: cluster},
+			Labels:    map[string]string{clusterv1beta1.ClusterNameLabel: cluster},
 		},
 	}
 }
@@ -539,7 +539,7 @@ func controlPlane(name, namespace, cluster string) *controlplanev1.KubeadmContro
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
-			Labels:    map[string]string{clusterv1.ClusterNameLabel: cluster},
+			Labels:    map[string]string{clusterv1beta1.ClusterNameLabel: cluster},
 		},
 	}
 }

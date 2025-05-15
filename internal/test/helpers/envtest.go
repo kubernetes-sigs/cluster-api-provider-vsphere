@@ -46,7 +46,7 @@ import (
 	logsv1 "k8s.io/component-base/logs/api/v1"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -87,7 +87,7 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(apiextensionsv1.AddToScheme(scheme))
 	utilruntime.Must(admissionv1.AddToScheme(scheme))
-	utilruntime.Must(clusterv1.AddToScheme(scheme))
+	utilruntime.Must(clusterv1beta1.AddToScheme(scheme))
 	utilruntime.Must(infrav1.AddToScheme(scheme))
 
 	// Get the root of the current file to use in CRD paths.
@@ -314,7 +314,7 @@ func (t *TestEnvironment) CreateNamespace(ctx context.Context, generateName stri
 }
 
 // CreateKubeconfigSecret creates a secret with the KubeConfig to access a cluster in the TestEnvironment.
-func (t *TestEnvironment) CreateKubeconfigSecret(ctx context.Context, cluster *clusterv1.Cluster) error {
+func (t *TestEnvironment) CreateKubeconfigSecret(ctx context.Context, cluster *clusterv1beta1.Cluster) error {
 	return t.Create(ctx, kubeconfig.GenerateSecret(cluster, kubeconfig.FromEnvTestConfig(t.Config, cluster)))
 }
 

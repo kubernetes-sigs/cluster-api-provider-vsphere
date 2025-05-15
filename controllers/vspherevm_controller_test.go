@@ -29,7 +29,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apirecord "k8s.io/client-go/tools/record"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
@@ -50,8 +50,8 @@ import (
 
 func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 	var (
-		machine *clusterv1.Machine
-		cluster *clusterv1.Cluster
+		machine *clusterv1beta1.Machine
+		cluster *clusterv1beta1.Cluster
 
 		vsphereVM      *infrav1.VSphereVM
 		vsphereMachine *infrav1.VSphereMachine
@@ -81,27 +81,27 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 				},
 			}
 
-			cluster = &clusterv1.Cluster{
+			cluster = &clusterv1beta1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "valid-cluster",
 					Namespace: "test",
 				},
-				Spec: clusterv1.ClusterSpec{
+				Spec: clusterv1beta1.ClusterSpec{
 					InfrastructureRef: &corev1.ObjectReference{
 						Name: vsphereCluster.Name,
 					},
 				},
-				Status: clusterv1.ClusterStatus{
+				Status: clusterv1beta1.ClusterStatus{
 					InfrastructureReady: true,
 				},
 			}
 
-			machine = &clusterv1.Machine{
+			machine = &clusterv1beta1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "foo",
 					Namespace: "test",
 					Labels: map[string]string{
-						clusterv1.ClusterNameLabel: "valid-cluster",
+						clusterv1beta1.ClusterNameLabel: "valid-cluster",
 					},
 				},
 			}
@@ -112,9 +112,9 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 					Name:      "foo-vm",
 					Namespace: "test",
 					Labels: map[string]string{
-						clusterv1.ClusterNameLabel: "valid-cluster",
+						clusterv1beta1.ClusterNameLabel: "valid-cluster",
 					},
-					OwnerReferences: []metav1.OwnerReference{{APIVersion: clusterv1.GroupVersion.String(), Kind: "Machine", Name: "foo"}},
+					OwnerReferences: []metav1.OwnerReference{{APIVersion: clusterv1beta1.GroupVersion.String(), Kind: "Machine", Name: "foo"}},
 				},
 			}
 
@@ -126,7 +126,7 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 						infrav1.VMFinalizer,
 					},
 					Labels: map[string]string{
-						clusterv1.ClusterNameLabel: "valid-cluster",
+						clusterv1beta1.ClusterNameLabel: "valid-cluster",
 					},
 					OwnerReferences: []metav1.OwnerReference{{APIVersion: infrav1.GroupVersion.String(), Kind: "VSphereMachine", Name: "foo-vm"}},
 					// To make sure PatchHelper does not error out
@@ -417,12 +417,12 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 		},
 	}
 
-	machine := &clusterv1.Machine{
+	machine := &clusterv1beta1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "test",
 			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: "valid-cluster",
+				clusterv1beta1.ClusterNameLabel: "valid-cluster",
 			},
 		},
 	}
@@ -432,9 +432,9 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 			Name:      "foo-vm",
 			Namespace: "test",
 			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: "valid-cluster",
+				clusterv1beta1.ClusterNameLabel: "valid-cluster",
 			},
-			OwnerReferences: []metav1.OwnerReference{{APIVersion: clusterv1.GroupVersion.String(), Kind: "Machine", Name: "foo"}},
+			OwnerReferences: []metav1.OwnerReference{{APIVersion: clusterv1beta1.GroupVersion.String(), Kind: "Machine", Name: "foo"}},
 		},
 	}
 
@@ -446,7 +446,7 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 				infrav1.VMFinalizer,
 			},
 			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: "valid-cluster",
+				clusterv1beta1.ClusterNameLabel: "valid-cluster",
 			},
 			OwnerReferences: []metav1.OwnerReference{{APIVersion: infrav1.GroupVersion.String(), Kind: "VSphereMachine", Name: "foo-vm"}},
 			// To make sure PatchHelper does not error out
@@ -467,12 +467,12 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 	}
 
 	t.Run("Retrieve credentials from cluster", func(t *testing.T) {
-		cluster := &clusterv1.Cluster{
+		cluster := &clusterv1beta1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "valid-cluster",
 				Namespace: "test",
 			},
-			Spec: clusterv1.ClusterSpec{
+			Spec: clusterv1beta1.ClusterSpec{
 				InfrastructureRef: &corev1.ObjectReference{
 					Name: vsphereCluster.Name,
 				},
@@ -505,14 +505,14 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 	)
 
 	t.Run("Error if cluster infrastructureRef is nil", func(t *testing.T) {
-		cluster := &clusterv1.Cluster{
+		cluster := &clusterv1beta1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "valid-cluster",
 				Namespace: "test",
 			},
 
 			// InfrastructureRef is nil so we should get an error.
-			Spec: clusterv1.ClusterSpec{
+			Spec: clusterv1beta1.ClusterSpec{
 				InfrastructureRef: nil,
 			},
 		}
@@ -544,12 +544,12 @@ func Test_reconcile(t *testing.T) {
 		},
 		Spec: infrav1.VSphereClusterSpec{},
 	}
-	machine := &clusterv1.Machine{
+	machine := &clusterv1beta1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: ns,
 			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: "valid-cluster",
+				clusterv1beta1.ClusterNameLabel: "valid-cluster",
 			},
 		},
 	}
@@ -562,7 +562,7 @@ func Test_reconcile(t *testing.T) {
 			Name:      "foo",
 			Namespace: ns,
 			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: "valid-cluster",
+				clusterv1beta1.ClusterNameLabel: "valid-cluster",
 			},
 			OwnerReferences: []metav1.OwnerReference{{APIVersion: infrav1.GroupVersion.String(), Kind: "VSphereMachine", Name: "foo-vm"}},
 			Finalizers:      []string{infrav1.VMFinalizer},
@@ -690,10 +690,10 @@ func Test_reconcile(t *testing.T) {
 	})
 }
 
-func createMachineOwnerHierarchy(machine *clusterv1.Machine) []client.Object {
+func createMachineOwnerHierarchy(machine *clusterv1beta1.Machine) []client.Object {
 	machine.OwnerReferences = []metav1.OwnerReference{
 		{
-			APIVersion: clusterv1.GroupVersion.String(),
+			APIVersion: clusterv1beta1.GroupVersion.String(),
 			Kind:       "MachineSet",
 			Name:       fmt.Sprintf("%s-ms", machine.Name),
 		},
@@ -701,33 +701,33 @@ func createMachineOwnerHierarchy(machine *clusterv1.Machine) []client.Object {
 
 	var (
 		objs           []client.Object
-		clusterName, _ = machine.Labels[clusterv1.ClusterNameLabel]
+		clusterName, _ = machine.Labels[clusterv1beta1.ClusterNameLabel]
 	)
 
 	objs = append(
 		objs,
-		&clusterv1.MachineSet{
+		&clusterv1beta1.MachineSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      fmt.Sprintf("%s-ms", machine.Name),
 				Namespace: machine.Namespace,
 				Labels: map[string]string{
-					clusterv1.ClusterNameLabel: clusterName,
+					clusterv1beta1.ClusterNameLabel: clusterName,
 				},
 				OwnerReferences: []metav1.OwnerReference{
 					{
-						APIVersion: clusterv1.GroupVersion.String(),
+						APIVersion: clusterv1beta1.GroupVersion.String(),
 						Kind:       "MachineDeployment",
 						Name:       fmt.Sprintf("%s-md", machine.Name),
 					},
 				},
 			},
 		},
-		&clusterv1.MachineDeployment{
+		&clusterv1beta1.MachineDeployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      fmt.Sprintf("%s-md", machine.Name),
 				Namespace: machine.Namespace,
 				Labels: map[string]string{
-					clusterv1.ClusterNameLabel: clusterName,
+					clusterv1beta1.ClusterNameLabel: clusterName,
 				},
 			},
 		})

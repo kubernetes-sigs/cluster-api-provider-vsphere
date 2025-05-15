@@ -28,7 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	apitypes "k8s.io/apimachinery/pkg/types"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
@@ -66,7 +66,7 @@ func GetMachinePreferredIPAddress(machine *infrav1.VSphereMachine) (string, erro
 	}
 
 	for _, machineAddr := range machine.Status.Addresses {
-		if machineAddr.Type != clusterv1.MachineExternalIP {
+		if machineAddr.Type != clusterv1beta1.MachineExternalIP {
 			continue
 		}
 		if cidr == nil {
@@ -83,7 +83,7 @@ func GetMachinePreferredIPAddress(machine *infrav1.VSphereMachine) (string, erro
 // IsControlPlaneMachine returns true if the provided resource is
 // a member of the control plane.
 func IsControlPlaneMachine(machine metav1.Object) bool {
-	_, ok := machine.GetLabels()[clusterv1.MachineControlPlaneLabel]
+	_, ok := machine.GetLabels()[clusterv1beta1.MachineControlPlaneLabel]
 	return ok
 }
 
@@ -239,7 +239,7 @@ func ConvertUUIDToProviderID(uuid string) string {
 
 // MachinesAsString constructs a string (with correct punctuations) to be
 // used in logging and error messages.
-func MachinesAsString(machines []*clusterv1.Machine) string {
+func MachinesAsString(machines []*clusterv1beta1.Machine) string {
 	var message string
 	count := 1
 	for _, m := range machines {

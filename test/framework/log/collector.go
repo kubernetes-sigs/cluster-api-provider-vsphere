@@ -35,7 +35,7 @@ import (
 	"golang.org/x/crypto/ssh"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -57,7 +57,7 @@ func (c *MachineLogCollector) CollectMachinePoolLog(_ context.Context, _ client.
 	return nil
 }
 
-func (c *MachineLogCollector) CollectMachineLog(ctx context.Context, ctrlClient client.Client, m *clusterv1.Machine, outputPath string) error {
+func (c *MachineLogCollector) CollectMachineLog(ctx context.Context, ctrlClient client.Client, m *clusterv1beta1.Machine, outputPath string) error {
 	machineIPAddresses, err := c.machineIPAddresses(ctx, ctrlClient, m)
 	if err != nil {
 		return err
@@ -101,13 +101,13 @@ func (c *MachineLogCollector) CollectMachineLog(ctx context.Context, ctrlClient 
 	)
 }
 
-func (c *MachineLogCollector) CollectInfrastructureLogs(_ context.Context, _ client.Client, _ *clusterv1.Cluster, _ string) error {
+func (c *MachineLogCollector) CollectInfrastructureLogs(_ context.Context, _ client.Client, _ *clusterv1beta1.Cluster, _ string) error {
 	return nil
 }
 
-func (c *MachineLogCollector) machineIPAddresses(ctx context.Context, ctrlClient client.Client, m *clusterv1.Machine) ([]string, error) {
+func (c *MachineLogCollector) machineIPAddresses(ctx context.Context, ctrlClient client.Client, m *clusterv1beta1.Machine) ([]string, error) {
 	for _, address := range m.Status.Addresses {
-		if address.Type != clusterv1.MachineExternalIP {
+		if address.Type != clusterv1beta1.MachineExternalIP {
 			continue
 		}
 		return []string{address.Address}, nil

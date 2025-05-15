@@ -20,7 +20,7 @@ import (
 	"context"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
@@ -52,23 +52,23 @@ func NewMachineContext(ctx context.Context, clusterCtx *capvcontext.ClusterConte
 	}
 }
 
-func newMachineV1a4() clusterv1.Machine {
+func newMachineV1a4() clusterv1beta1.Machine {
 	dataSecretName := "fake-name"
-	return clusterv1.Machine{
+	return clusterv1beta1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: Namespace,
 			Name:      Clusterv1a2Name,
 			UID:       Clusterv1a2UUID,
 		},
-		Spec: clusterv1.MachineSpec{
-			Bootstrap: clusterv1.Bootstrap{
+		Spec: clusterv1beta1.MachineSpec{
+			Bootstrap: clusterv1beta1.Bootstrap{
 				DataSecretName: &dataSecretName,
 			},
 		},
 	}
 }
 
-func newVSphereMachine(owner clusterv1.Machine) infrav1.VSphereMachine {
+func newVSphereMachine(owner clusterv1beta1.Machine) infrav1.VSphereMachine {
 	return infrav1.VSphereMachine{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: owner.Namespace,
@@ -76,7 +76,7 @@ func newVSphereMachine(owner clusterv1.Machine) infrav1.VSphereMachine {
 			UID:       VSphereMachineUUID,
 			OwnerReferences: []metav1.OwnerReference{
 				{
-					APIVersion:         clusterv1.GroupVersion.String(),
+					APIVersion:         clusterv1beta1.GroupVersion.String(),
 					Kind:               "Machine",
 					Name:               owner.Name,
 					UID:                owner.UID,

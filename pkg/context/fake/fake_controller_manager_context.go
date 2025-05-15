@@ -20,7 +20,7 @@ import (
 	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -39,7 +39,7 @@ import (
 func NewControllerManagerContext(initObjects ...client.Object) *capvcontext.ControllerManagerContext {
 	scheme := runtime.NewScheme()
 	_ = clientgoscheme.AddToScheme(scheme)
-	_ = clusterv1.AddToScheme(scheme)
+	_ = clusterv1beta1.AddToScheme(scheme)
 	_ = controlplanev1.AddToScheme(scheme)
 	_ = infrav1.AddToScheme(scheme)
 	_ = vmwarev1.AddToScheme(scheme)
@@ -49,7 +49,7 @@ func NewControllerManagerContext(initObjects ...client.Object) *capvcontext.Cont
 	clientWithObjects := fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(
 		&infrav1.VSphereVM{},
 		&vmwarev1.VSphereCluster{},
-		&clusterv1.Cluster{},
+		&clusterv1beta1.Cluster{},
 	).WithObjects(initObjects...).Build()
 
 	return &capvcontext.ControllerManagerContext{

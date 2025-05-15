@@ -31,7 +31,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
@@ -99,7 +99,7 @@ func AddVMControllerToManager(ctx context.Context, controllerManagerCtx *capvcon
 		).
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, controllerManagerCtx.WatchFilterValue)).
 		Watches(
-			&clusterv1.Cluster{},
+			&clusterv1beta1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(r.clusterToVSphereVMs),
 		).
 		Watches(
@@ -172,7 +172,7 @@ func (r vmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.R
 
 	authSession, err := r.retrieveVcenterSession(ctx, vsphereVM)
 	if err != nil {
-		conditions.MarkFalse(vsphereVM, infrav1.VCenterAvailableCondition, infrav1.VCenterUnreachableReason, clusterv1.ConditionSeverityError, err.Error())
+		conditions.MarkFalse(vsphereVM, infrav1.VCenterAvailableCondition, infrav1.VCenterUnreachableReason, clusterv1beta1.ConditionSeverityError, err.Error())
 		v1beta2conditions.Set(vsphereVM, metav1.Condition{
 			Type:    infrav1.VSphereVMVCenterAvailableV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
@@ -376,7 +376,7 @@ func (r vmReconciler) reconcile(ctx context.Context, vmCtx *capvcontext.VMContex
 func (r vmReconciler) reconcileDelete(ctx context.Context, vmCtx *capvcontext.VMContext) (reconcile.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	conditions.MarkFalse(vmCtx.VSphereVM, infrav1.VMProvisionedCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+	conditions.MarkFalse(vmCtx.VSphereVM, infrav1.VMProvisionedCondition, clusterv1beta1.DeletingReason, clusterv1beta1.ConditionSeverityInfo, "")
 	v1beta2conditions.Set(vmCtx.VSphereVM, metav1.Condition{
 		Type:   infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
 		Status: metav1.ConditionFalse,
@@ -384,7 +384,7 @@ func (r vmReconciler) reconcileDelete(ctx context.Context, vmCtx *capvcontext.VM
 	})
 	result, vm, err := r.VMService.DestroyVM(ctx, vmCtx)
 	if err != nil {
-		conditions.MarkFalse(vmCtx.VSphereVM, infrav1.VMProvisionedCondition, "DeletionFailed", clusterv1.ConditionSeverityWarning, err.Error())
+		conditions.MarkFalse(vmCtx.VSphereVM, infrav1.VMProvisionedCondition, "DeletionFailed", clusterv1beta1.ConditionSeverityWarning, err.Error())
 		v1beta2conditions.Set(vmCtx.VSphereVM, metav1.Condition{
 			Type:    infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
@@ -468,7 +468,7 @@ func (r vmReconciler) reconcileNormal(ctx context.Context, vmCtx *capvcontext.VM
 	}
 
 	if r.isWaitingForStaticIPAllocation(vmCtx) {
-		conditions.MarkFalse(vmCtx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.WaitingForStaticIPAllocationReason, clusterv1.ConditionSeverityInfo, "")
+		conditions.MarkFalse(vmCtx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.WaitingForStaticIPAllocationReason, clusterv1beta1.ConditionSeverityInfo, "")
 		v1beta2conditions.Set(vmCtx.VSphereVM, metav1.Condition{
 			Type:   infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
 			Status: metav1.ConditionFalse,
@@ -519,7 +519,7 @@ func (r vmReconciler) reconcileNormal(ctx context.Context, vmCtx *capvcontext.VM
 
 	// we didn't get any addresses, requeue
 	if len(vmCtx.VSphereVM.Status.Addresses) == 0 {
-		conditions.MarkFalse(vmCtx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.WaitingForIPAllocationReason, clusterv1.ConditionSeverityInfo, "")
+		conditions.MarkFalse(vmCtx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.WaitingForIPAllocationReason, clusterv1beta1.ConditionSeverityInfo, "")
 		v1beta2conditions.Set(vmCtx.VSphereVM, metav1.Condition{
 			Type:   infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
 			Status: metav1.ConditionFalse,
@@ -580,7 +580,7 @@ func (r vmReconciler) clusterToVSphereVMs(ctx context.Context, a ctrlclient.Obje
 	vms := &infrav1.VSphereVMList{}
 	err := r.Client.List(ctx, vms, ctrlclient.MatchingLabels(
 		map[string]string{
-			clusterv1.ClusterNameLabel: a.GetName(),
+			clusterv1beta1.ClusterNameLabel: a.GetName(),
 		},
 	))
 	if err != nil {
@@ -603,7 +603,7 @@ func (r vmReconciler) vsphereClusterToVSphereVMs(ctx context.Context, a ctrlclie
 	if !ok {
 		return nil
 	}
-	clusterName, ok := vsphereCluster.Labels[clusterv1.ClusterNameLabel]
+	clusterName, ok := vsphereCluster.Labels[clusterv1beta1.ClusterNameLabel]
 	if !ok {
 		return nil
 	}
@@ -612,7 +612,7 @@ func (r vmReconciler) vsphereClusterToVSphereVMs(ctx context.Context, a ctrlclie
 	vms := &infrav1.VSphereVMList{}
 	err := r.Client.List(ctx, vms, ctrlclient.MatchingLabels(
 		map[string]string{
-			clusterv1.ClusterNameLabel: clusterName,
+			clusterv1beta1.ClusterNameLabel: clusterName,
 		},
 	))
 	if err != nil {
@@ -736,5 +736,5 @@ func (r vmReconciler) fetchClusterModuleInfo(ctx context.Context, clusterModInpu
 
 type fetchClusterModuleInput struct {
 	VSphereCluster *infrav1.VSphereCluster
-	Machine        *clusterv1.Machine
+	Machine        *clusterv1beta1.Machine
 }

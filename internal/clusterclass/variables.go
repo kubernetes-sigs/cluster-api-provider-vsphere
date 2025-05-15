@@ -18,18 +18,18 @@ limitations under the License.
 package clusterclass
 
 import (
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // GetClusterClassVariables provides the variables for the clusterclass.
 // In govmomi mode it has additional variables.
-func GetClusterClassVariables(govmomiMode bool) []clusterv1.ClusterClassVariable {
-	variables := []clusterv1.ClusterClassVariable{
+func GetClusterClassVariables(govmomiMode bool) []clusterv1beta1.ClusterClassVariable {
+	variables := []clusterv1beta1.ClusterClassVariable{
 		{
 			Name:     "sshKey",
 			Required: false,
-			Schema: clusterv1.VariableSchema{
-				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+			Schema: clusterv1beta1.VariableSchema{
+				OpenAPIV3Schema: clusterv1beta1.JSONSchemaProps{
 					Description: "Public key to SSH onto the cluster nodes.",
 					Type:        "string",
 				},
@@ -38,8 +38,8 @@ func GetClusterClassVariables(govmomiMode bool) []clusterv1.ClusterClassVariable
 		{
 			Name:     "controlPlaneIpAddr",
 			Required: true,
-			Schema: clusterv1.VariableSchema{
-				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+			Schema: clusterv1beta1.VariableSchema{
+				OpenAPIV3Schema: clusterv1beta1.JSONSchemaProps{
 					Type:        "string",
 					Description: "Floating VIP for the control plane.",
 				},
@@ -48,8 +48,8 @@ func GetClusterClassVariables(govmomiMode bool) []clusterv1.ClusterClassVariable
 		{
 			Name:     "controlPlanePort",
 			Required: true,
-			Schema: clusterv1.VariableSchema{
-				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+			Schema: clusterv1beta1.VariableSchema{
+				OpenAPIV3Schema: clusterv1beta1.JSONSchemaProps{
 					Type:        "integer",
 					Description: "Port for the control plane endpoint.",
 				},
@@ -58,8 +58,8 @@ func GetClusterClassVariables(govmomiMode bool) []clusterv1.ClusterClassVariable
 		{
 			Name:     "kubeVipPodManifest",
 			Required: true,
-			Schema: clusterv1.VariableSchema{
-				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+			Schema: clusterv1beta1.VariableSchema{
+				OpenAPIV3Schema: clusterv1beta1.JSONSchemaProps{
 					Type:        "string",
 					Description: "kube-vip manifest for the control plane.",
 				},
@@ -68,14 +68,14 @@ func GetClusterClassVariables(govmomiMode bool) []clusterv1.ClusterClassVariable
 	}
 
 	if govmomiMode {
-		varForNoneSupervisorMode := []clusterv1.ClusterClassVariable{
+		varForNoneSupervisorMode := []clusterv1beta1.ClusterClassVariable{
 			{
 				Name:     "infraServer",
 				Required: true,
-				Schema: clusterv1.VariableSchema{
-					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+				Schema: clusterv1beta1.VariableSchema{
+					OpenAPIV3Schema: clusterv1beta1.JSONSchemaProps{
 						Type: "object",
-						Properties: map[string]clusterv1.JSONSchemaProps{
+						Properties: map[string]clusterv1beta1.JSONSchemaProps{
 							"url":        {Type: "string"},
 							"thumbprint": {Type: "string"},
 						},
@@ -85,8 +85,8 @@ func GetClusterClassVariables(govmomiMode bool) []clusterv1.ClusterClassVariable
 			{
 				Name:     "credsSecretName",
 				Required: true,
-				Schema: clusterv1.VariableSchema{
-					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+				Schema: clusterv1beta1.VariableSchema{
+					OpenAPIV3Schema: clusterv1beta1.JSONSchemaProps{
 						Type:        "string",
 						Description: "Secret containing the credentials for the infra cluster.",
 					},

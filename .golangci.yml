@@ -123,8 +123,10 @@ linters:
         - pkg: sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1
           alias: controlplanev1
         # CAPI
-        - pkg: sigs.k8s.io/cluster-api/api/v1beta1
+        - pkg: sigs.k8s.io/cluster-api/api/v1beta2
           alias: clusterv1
+        - pkg: sigs.k8s.io/cluster-api/api/v1beta1
+          alias: clusterv1beta1
         # CAPI exp
         - pkg: sigs.k8s.io/cluster-api/exp/api/v1beta1
           alias: expv1

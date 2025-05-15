@@ -29,7 +29,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -97,12 +97,12 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 				Expect(testEnv.Delete(ctx, instance)).To(Succeed())
 			}()
 
-			capiCluster := &clusterv1.Cluster{
+			capiCluster := &clusterv1beta1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					GenerateName: "test1-",
 					Namespace:    "default",
 				},
-				Spec: clusterv1.ClusterSpec{
+				Spec: clusterv1beta1.ClusterSpec{
 					InfrastructureRef: &corev1.ObjectReference{
 						APIVersion: infrav1.GroupVersion.String(),
 						Kind:       "VsphereCluster",
@@ -127,7 +127,7 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				instance.OwnerReferences = append(instance.OwnerReferences, metav1.OwnerReference{
 					Kind:       "Cluster",
-					APIVersion: clusterv1.GroupVersion.String(),
+					APIVersion: clusterv1beta1.GroupVersion.String(),
 					Name:       capiCluster.Name,
 					UID:        "blah",
 				})
@@ -166,12 +166,12 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 
 		It("should error if secret is already owned by a different cluster", func() {
 			ctx := context.Background()
-			capiCluster := &clusterv1.Cluster{
+			capiCluster := &clusterv1beta1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					GenerateName: "test1-",
 					Namespace:    "default",
 				},
-				Spec: clusterv1.ClusterSpec{
+				Spec: clusterv1beta1.ClusterSpec{
 					InfrastructureRef: &corev1.ObjectReference{
 						APIVersion: infrav1.GroupVersion.String(),
 						Kind:       "VsphereCluster",
@@ -223,7 +223,7 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 			Eventually(func() bool {
 				ph, err := patch.NewHelper(instance, testEnv)
 				Expect(err).ShouldNot(HaveOccurred())
-				instance.OwnerReferences = append(instance.OwnerReferences, metav1.OwnerReference{Kind: "Cluster", APIVersion: clusterv1.GroupVersion.String(), Name: capiCluster.Name, UID: "blah"})
+				instance.OwnerReferences = append(instance.OwnerReferences, metav1.OwnerReference{Kind: "Cluster", APIVersion: clusterv1beta1.GroupVersion.String(), Name: capiCluster.Name, UID: "blah"})
 				Expect(ph.Patch(ctx, instance, patch.WithStatusObservedGeneration{})).ShouldNot(HaveOccurred())
 				return true
 			}, timeout).Should(BeTrue())
@@ -238,10 +238,10 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 					return false
 				}
 				actual.Message = ""
-				return Expect(actual).Should(conditions.HaveSameStateOf(&clusterv1.Condition{
+				return Expect(actual).Should(conditions.HaveSameStateOf(&clusterv1beta1.Condition{
 					Type:     infrav1.VCenterAvailableCondition,
 					Status:   corev1.ConditionFalse,
-					Severity: clusterv1.ConditionSeverityError,
+					Severity: clusterv1beta1.ConditionSeverityError,
 					Reason:   infrav1.VCenterUnreachableReason,
 				}))
 			}, timeout).Should(BeTrue())
@@ -250,12 +250,12 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 
 	It("should remove vspherecluster finalizer if the secret does not exist", func() {
 		ctx := context.Background()
-		capiCluster := &clusterv1.Cluster{
+		capiCluster := &clusterv1beta1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: "test1-",
 				Namespace:    "default",
 			},
-			Spec: clusterv1.ClusterSpec{
+			Spec: clusterv1beta1.ClusterSpec{
 				InfrastructureRef: &corev1.ObjectReference{
 					APIVersion: infrav1.GroupVersion.String(),
 					Kind:       "VsphereCluster",
@@ -272,7 +272,7 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 				Name:      "vsphere-test1",
 				Namespace: "default",
 				OwnerReferences: []metav1.OwnerReference{{
-					APIVersion: clusterv1.GroupVersion.String(),
+					APIVersion: clusterv1beta1.GroupVersion.String(),
 					Kind:       "Cluster",
 					Name:       capiCluster.Name,
 					UID:        capiCluster.UID,
@@ -348,7 +348,7 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 	Context("With Deployment Zones", func() {
 		var (
 			namespace   *corev1.Namespace
-			capiCluster *clusterv1.Cluster
+			capiCluster *clusterv1beta1.Cluster
 			instance    *infrav1.VSphereCluster
 			zoneOne     *infrav1.VSphereDeploymentZone
 		)
@@ -358,12 +358,12 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 			namespace, err = testEnv.CreateNamespace(ctx, "dz-test")
 			Expect(err).NotTo(HaveOccurred())
 
-			capiCluster = &clusterv1.Cluster{
+			capiCluster = &clusterv1beta1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					GenerateName: "test1-",
 					Namespace:    namespace.Name,
 				},
-				Spec: clusterv1.ClusterSpec{
+				Spec: clusterv1beta1.ClusterSpec{
 					InfrastructureRef: &corev1.ObjectReference{
 						APIVersion: infrav1.GroupVersion.String(),
 						Kind:       "VSphereCluster",
@@ -394,7 +394,7 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 					Namespace: namespace.Name,
 					OwnerReferences: []metav1.OwnerReference{{
 						Kind:       "Cluster",
-						APIVersion: clusterv1.GroupVersion.String(),
+						APIVersion: clusterv1beta1.GroupVersion.String(),
 						Name:       capiCluster.Name,
 						UID:        "blah",
 					}},

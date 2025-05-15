@@ -26,7 +26,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	. "sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
@@ -147,12 +147,12 @@ func VerifyMultiVC(ctx context.Context, input MultiVCenterSpecInput) {
 	// Get the machines of the workloadCluster before it is moved to become self-hosted to make sure that the move did not trigger
 	// any unexpected rollouts.
 	preMoveMachineList := &unstructured.UnstructuredList{}
-	preMoveMachineList.SetGroupVersionKind(clusterv1.GroupVersion.WithKind("MachineList"))
+	preMoveMachineList.SetGroupVersionKind(clusterv1beta1.GroupVersion.WithKind("MachineList"))
 	err = input.Global.BootstrapClusterProxy.GetClient().List(
 		ctx,
 		preMoveMachineList,
 		client.InNamespace(namespace.Name),
-		client.MatchingLabels{clusterv1.ClusterNameLabel: clusterName},
+		client.MatchingLabels{clusterv1beta1.ClusterNameLabel: clusterName},
 	)
 	Expect(err).NotTo(HaveOccurred(), "Failed to list machines before move")
 
@@ -207,7 +207,7 @@ func getVSphereVMs(clusterProxy framework.ClusterProxy, clusterName, namespace s
 		&vms,
 		client.InNamespace(namespace),
 		client.MatchingLabels{
-			clusterv1.ClusterNameLabel: clusterName,
+			clusterv1beta1.ClusterNameLabel: clusterName,
 		},
 	)
 	Expect(err).NotTo(HaveOccurred())

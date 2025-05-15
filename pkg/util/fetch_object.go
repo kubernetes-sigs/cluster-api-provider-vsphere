@@ -22,7 +22,7 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -45,14 +45,14 @@ func FetchControlPlaneOwnerObject(ctx context.Context, input FetchObjectInput) (
 
 // FetchMachineDeploymentOwnerObject returns the MachineDeployment owner for a Machine.
 func FetchMachineDeploymentOwnerObject(ctx context.Context, input FetchObjectInput) (ctrlclient.Object, error) {
-	gvk := clusterv1.GroupVersion
+	gvk := clusterv1beta1.GroupVersion
 
-	ms := &clusterv1.MachineSet{}
+	ms := &clusterv1beta1.MachineSet{}
 	if err := fetchOwnerOfKindInto(ctx, input.Client, gvk, "MachineSet", input.Object, ms); err != nil {
 		return nil, err
 	}
 
-	md := &clusterv1.MachineDeployment{}
+	md := &clusterv1beta1.MachineDeployment{}
 	if err := fetchOwnerOfKindInto(ctx, input.Client, gvk, "MachineDeployment", ms, md); err != nil {
 		return nil, err
 	}

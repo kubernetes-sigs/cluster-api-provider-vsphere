@@ -32,7 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
@@ -106,11 +106,11 @@ func AddMachineControllerToManager(ctx context.Context, controllerManagerContext
 			WithOptions(options).
 			// Watch the CAPI resource that owns this infrastructure resource.
 			Watches(
-				&clusterv1.Machine{},
+				&clusterv1beta1.Machine{},
 				handler.EnqueueRequestsFromMapFunc(clusterutilv1.MachineToInfrastructureMapFunc(vmwarev1.GroupVersion.WithKind("VSphereMachine"))),
 			).
 			Watches(
-				&clusterv1.Cluster{},
+				&clusterv1beta1.Cluster{},
 				handler.EnqueueRequestsFromMapFunc(r.enqueueClusterToMachineRequests),
 				ctrlbldr.WithPredicates(
 					predicates.ClusterPausedTransitionsOrInfrastructureReady(mgr.GetScheme(), predicateLog),
@@ -139,7 +139,7 @@ func AddMachineControllerToManager(ctx context.Context, controllerManagerContext
 		WithOptions(options).
 		// Watch the CAPI resource that owns this infrastructure resource.
 		Watches(
-			&clusterv1.Machine{},
+			&clusterv1beta1.Machine{},
 			handler.EnqueueRequestsFromMapFunc(clusterutilv1.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("VSphereMachine"))),
 		).
 		// Watch a GenericEvent channel for the controlled resource.
@@ -167,7 +167,7 @@ func AddMachineControllerToManager(ctx context.Context, controllerManagerContext
 			}),
 		).
 		Watches(
-			&clusterv1.Cluster{},
+			&clusterv1beta1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(r.enqueueClusterToMachineRequests),
 			ctrlbldr.WithPredicates(
 				predicates.ClusterPausedTransitionsOrInfrastructureReady(mgr.GetScheme(), predicateLog),
@@ -345,7 +345,7 @@ func (r *machineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 func (r *machineReconciler) reconcileDelete(ctx context.Context, machineCtx capvcontext.MachineContext) (reconcile.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	conditions.MarkFalse(machineCtx.GetVSphereMachine(), infrav1.VMProvisionedCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+	conditions.MarkFalse(machineCtx.GetVSphereMachine(), infrav1.VMProvisionedCondition, clusterv1beta1.DeletingReason, clusterv1beta1.ConditionSeverityInfo, "")
 	v1beta2conditions.Set(machineCtx.GetVSphereMachine(), metav1.Condition{
 		Type:   infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
 		Status: metav1.ConditionFalse,
@@ -360,7 +360,7 @@ func (r *machineReconciler) reconcileDelete(ctx context.Context, machineCtx capv
 			}
 			return reconcile.Result{}, nil
 		}
-		conditions.MarkFalse(machineCtx.GetVSphereMachine(), infrav1.VMProvisionedCondition, clusterv1.DeletionFailedReason, clusterv1.ConditionSeverityWarning, "")
+		conditions.MarkFalse(machineCtx.GetVSphereMachine(), infrav1.VMProvisionedCondition, clusterv1beta1.DeletionFailedReason, clusterv1beta1.ConditionSeverityWarning, "")
 		v1beta2conditions.Set(machineCtx.GetVSphereMachine(), metav1.Condition{
 			Type:    infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
@@ -396,7 +396,7 @@ func (r *machineReconciler) reconcileNormal(ctx context.Context, machineCtx capv
 		// vmwarev1.VSphereCluster doesn't set Cluster.Status.Ready until the API endpoint is available.
 		if !machineCtx.GetCluster().Status.InfrastructureReady {
 			log.Info("Cluster infrastructure is not ready yet, skipping reconciliation")
-			conditions.MarkFalse(machineCtx.GetVSphereMachine(), infrav1.VMProvisionedCondition, infrav1.WaitingForClusterInfrastructureReason, clusterv1.ConditionSeverityInfo, "")
+			conditions.MarkFalse(machineCtx.GetVSphereMachine(), infrav1.VMProvisionedCondition, infrav1.WaitingForClusterInfrastructureReason, clusterv1beta1.ConditionSeverityInfo, "")
 			v1beta2conditions.Set(machineCtx.GetVSphereMachine(), metav1.Condition{
 				Type:   infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
 				Status: metav1.ConditionFalse,
@@ -412,9 +412,9 @@ func (r *machineReconciler) reconcileNormal(ctx context.Context, machineCtx capv
 
 	// Make sure bootstrap data is available and populated.
 	if machineCtx.GetMachine().Spec.Bootstrap.DataSecretName == nil {
-		if !util.IsControlPlaneMachine(machineCtx.GetVSphereMachine()) && !conditions.IsTrue(machineCtx.GetCluster(), clusterv1.ControlPlaneInitializedCondition) {
+		if !util.IsControlPlaneMachine(machineCtx.GetVSphereMachine()) && !conditions.IsTrue(machineCtx.GetCluster(), clusterv1beta1.ControlPlaneInitializedCondition) {
 			log.Info("Waiting for the control plane to be initialized, skipping reconciliation")
-			conditions.MarkFalse(machineCtx.GetVSphereMachine(), infrav1.VMProvisionedCondition, clusterv1.WaitingForControlPlaneAvailableReason, clusterv1.ConditionSeverityInfo, "")
+			conditions.MarkFalse(machineCtx.GetVSphereMachine(), infrav1.VMProvisionedCondition, clusterv1beta1.WaitingForControlPlaneAvailableReason, clusterv1beta1.ConditionSeverityInfo, "")
 			v1beta2conditions.Set(machineCtx.GetVSphereMachine(), metav1.Condition{
 				Type:   infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
 				Status: metav1.ConditionFalse,
@@ -423,7 +423,7 @@ func (r *machineReconciler) reconcileNormal(ctx context.Context, machineCtx capv
 			return ctrl.Result{}, nil
 		}
 		log.Info("Waiting for bootstrap data to be ready, skipping reconciliation")
-		conditions.MarkFalse(machineCtx.GetVSphereMachine(), infrav1.VMProvisionedCondition, infrav1.WaitingForBootstrapDataReason, clusterv1.ConditionSeverityInfo, "")
+		conditions.MarkFalse(machineCtx.GetVSphereMachine(), infrav1.VMProvisionedCondition, infrav1.WaitingForBootstrapDataReason, clusterv1beta1.ConditionSeverityInfo, "")
 		v1beta2conditions.Set(machineCtx.GetVSphereMachine(), metav1.Condition{
 			Type:   infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
 			Status: metav1.ConditionFalse,

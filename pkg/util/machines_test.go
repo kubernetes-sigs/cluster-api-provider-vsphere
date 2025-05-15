@@ -25,7 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -45,9 +45,9 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 			name: "single IPv4 address, no preferred CIDR",
 			machine: &infrav1.VSphereMachine{
 				Status: infrav1.VSphereMachineStatus{
-					Addresses: []clusterv1.MachineAddress{
+					Addresses: []clusterv1beta1.MachineAddress{
 						{
-							Type:    clusterv1.MachineExternalIP,
+							Type:    clusterv1beta1.MachineExternalIP,
 							Address: "192.168.0.1",
 						},
 					},
@@ -60,9 +60,9 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 			name: "single IPv6 address, no preferred CIDR",
 			machine: &infrav1.VSphereMachine{
 				Status: infrav1.VSphereMachineStatus{
-					Addresses: []clusterv1.MachineAddress{
+					Addresses: []clusterv1beta1.MachineAddress{
 						{
-							Type:    clusterv1.MachineExternalIP,
+							Type:    clusterv1beta1.MachineExternalIP,
 							Address: "fdf3:35b5:9dad:6e09::0001",
 						},
 					},
@@ -75,17 +75,17 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 			name: "multiple IPv4 addresses, only 1 internal, no preferred CIDR",
 			machine: &infrav1.VSphereMachine{
 				Status: infrav1.VSphereMachineStatus{
-					Addresses: []clusterv1.MachineAddress{
+					Addresses: []clusterv1beta1.MachineAddress{
 						{
-							Type:    clusterv1.MachineExternalIP,
+							Type:    clusterv1beta1.MachineExternalIP,
 							Address: "192.168.0.1",
 						},
 						{
-							Type:    clusterv1.MachineExternalIP,
+							Type:    clusterv1beta1.MachineExternalIP,
 							Address: "1.1.1.1",
 						},
 						{
-							Type:    clusterv1.MachineExternalIP,
+							Type:    clusterv1beta1.MachineExternalIP,
 							Address: "2.2.2.2",
 						},
 					},
@@ -105,13 +105,13 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 					},
 				},
 				Status: infrav1.VSphereMachineStatus{
-					Addresses: []clusterv1.MachineAddress{
+					Addresses: []clusterv1beta1.MachineAddress{
 						{
-							Type:    clusterv1.MachineExternalIP,
+							Type:    clusterv1beta1.MachineExternalIP,
 							Address: "192.168.0.1",
 						},
 						{
-							Type:    clusterv1.MachineExternalIP,
+							Type:    clusterv1beta1.MachineExternalIP,
 							Address: "172.17.0.1",
 						},
 					},
@@ -131,13 +131,13 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 					},
 				},
 				Status: infrav1.VSphereMachineStatus{
-					Addresses: []clusterv1.MachineAddress{
+					Addresses: []clusterv1beta1.MachineAddress{
 						{
-							Type:    clusterv1.MachineExternalIP,
+							Type:    clusterv1beta1.MachineExternalIP,
 							Address: "192.168.0.1",
 						},
 						{
-							Type:    clusterv1.MachineExternalIP,
+							Type:    clusterv1beta1.MachineExternalIP,
 							Address: "fdf3:35b5:9dad:6e09::0001",
 						},
 					},
@@ -158,13 +158,13 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 				},
 				Status: infrav1.VSphereMachineStatus{
 
-					Addresses: []clusterv1.MachineAddress{
+					Addresses: []clusterv1beta1.MachineAddress{
 						{
-							Type:    clusterv1.MachineExternalIP,
+							Type:    clusterv1beta1.MachineExternalIP,
 							Address: "192.168.0.1",
 						},
 						{
-							Type:    clusterv1.MachineExternalIP,
+							Type:    clusterv1beta1.MachineExternalIP,
 							Address: "fdf3:35b5:9dad:6e09::0001",
 						},
 					},
@@ -184,7 +184,7 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 					},
 				},
 				Status: infrav1.VSphereMachineStatus{
-					Addresses: []clusterv1.MachineAddress{},
+					Addresses: []clusterv1beta1.MachineAddress{},
 				},
 			},
 			ipAddr:      "",
@@ -202,9 +202,9 @@ func Test_GetMachinePreferredIPAddress(t *testing.T) {
 				},
 				Status: infrav1.VSphereMachineStatus{
 
-					Addresses: []clusterv1.MachineAddress{
+					Addresses: []clusterv1beta1.MachineAddress{
 						{
-							Type:    clusterv1.MachineExternalIP,
+							Type:    clusterv1beta1.MachineExternalIP,
 							Address: "10.0.0.1",
 						},
 					},
@@ -1038,24 +1038,24 @@ func TestConvertUUIDtoProviderID(t *testing.T) {
 
 func Test_MachinesAsString(t *testing.T) {
 	tests := []struct {
-		machines     []*clusterv1.Machine
+		machines     []*clusterv1beta1.Machine
 		errorMessage string
 	}{
 		{
-			machines: []*clusterv1.Machine{
+			machines: []*clusterv1beta1.Machine{
 				{ObjectMeta: metav1.ObjectMeta{Name: "m1", Namespace: "m1-ns"}},
 			},
 			errorMessage: "m1-ns/m1",
 		},
 		{
-			machines: []*clusterv1.Machine{
+			machines: []*clusterv1beta1.Machine{
 				{ObjectMeta: metav1.ObjectMeta{Name: "m1", Namespace: "m1-ns"}},
 				{ObjectMeta: metav1.ObjectMeta{Name: "m2", Namespace: "m2-ns"}},
 			},
 			errorMessage: "m1-ns/m1 and m2-ns/m2",
 		},
 		{
-			machines: []*clusterv1.Machine{
+			machines: []*clusterv1beta1.Machine{
 				{ObjectMeta: metav1.ObjectMeta{Name: "m1", Namespace: "m1-ns"}},
 				{ObjectMeta: metav1.ObjectMeta{Name: "m2", Namespace: "m2-ns"}},
 				{ObjectMeta: metav1.ObjectMeta{Name: "m3", Namespace: "m3-ns"}},
@@ -1074,7 +1074,7 @@ func Test_MachinesAsString(t *testing.T) {
 func Test_GetVSphereClusterFromVSphereMachine(t *testing.T) {
 	scheme := runtime.NewScheme()
 	_ = clientgoscheme.AddToScheme(scheme)
-	_ = clusterv1.AddToScheme(scheme)
+	_ = clusterv1beta1.AddToScheme(scheme)
 	_ = vmwarev1.AddToScheme(scheme)
 
 	ns := "util-test"
@@ -1084,17 +1084,17 @@ func Test_GetVSphereClusterFromVSphereMachine(t *testing.T) {
 	}
 	machine := &vmwarev1.VSphereMachine{
 		ObjectMeta: metav1.ObjectMeta{
-			Labels:    map[string]string{clusterv1.ClusterNameLabel: "foo"},
+			Labels:    map[string]string{clusterv1beta1.ClusterNameLabel: "foo"},
 			Name:      "foo-machine-1",
 			Namespace: ns,
 		},
 	}
-	cluster := &clusterv1.Cluster{
+	cluster := &clusterv1beta1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: ns,
 		},
-		Spec: clusterv1.ClusterSpec{
+		Spec: clusterv1beta1.ClusterSpec{
 			InfrastructureRef: &corev1.ObjectReference{
 				Name: "foo-abcdef", // auto generated name
 			},

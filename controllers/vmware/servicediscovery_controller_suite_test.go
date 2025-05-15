@@ -28,7 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	bootstrapapi "k8s.io/cluster-bootstrap/token/api"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -121,7 +121,7 @@ func assertHeadlessSvcWithFIPHostNameEndpoints(ctx context.Context, guestClient 
 }
 
 func assertServiceDiscoveryCondition(vsphereCluster *vmwarev1.VSphereCluster, status corev1.ConditionStatus,
-	message string, reason string, severity clusterv1.ConditionSeverity) {
+	message string, reason string, severity clusterv1beta1.ConditionSeverity) {
 	c := conditions.Get(vsphereCluster, vmwarev1.ServiceDiscoveryReadyCondition)
 	Expect(c).NotTo(BeNil())
 	if message == "" {

@@ -26,7 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
@@ -88,7 +88,7 @@ func (r vmReconciler) reconcileIPAddressClaims(ctx context.Context, vmCtx *capvc
 
 			// Since this is eventually used to calculate the status of the
 			// IPAddressClaimed condition for the VSphereVM object.
-			if conditions.Has(ipAddrClaim, clusterv1.ReadyCondition) {
+			if conditions.Has(ipAddrClaim, clusterv1beta1.ReadyCondition) {
 				claims = append(claims, ipAddrClaim)
 				v1beta2Claims = append(v1beta2Claims, ipAddrClaim)
 			}
@@ -100,7 +100,7 @@ func (r vmReconciler) reconcileIPAddressClaims(ctx context.Context, vmCtx *capvc
 		conditions.MarkFalse(vmCtx.VSphereVM,
 			infrav1.IPAddressClaimedCondition,
 			infrav1.IPAddressClaimNotFoundReason,
-			clusterv1.ConditionSeverityError,
+			clusterv1beta1.ConditionSeverityError,
 			aggregatedErr.Error())
 		v1beta2conditions.Set(vmCtx.VSphereVM, metav1.Condition{
 			Type:    infrav1.VSphereVMIPAddressClaimsFulfilledV1Beta2Condition,
@@ -123,7 +123,7 @@ func (r vmReconciler) reconcileIPAddressClaims(ctx context.Context, vmCtx *capvc
 			conditions.WithStepCounter())
 
 		if len(v1beta2Claims) > 0 {
-			if err := v1beta2conditions.SetAggregateCondition(v1beta2Claims, vmCtx.VSphereVM, clusterv1.ReadyV1Beta2Condition, v1beta2conditions.TargetConditionType(infrav1.VSphereVMIPAddressClaimsFulfilledV1Beta2Condition)); err != nil {
+			if err := v1beta2conditions.SetAggregateCondition(v1beta2Claims, vmCtx.VSphereVM, clusterv1beta1.ReadyV1Beta2Condition, v1beta2conditions.TargetConditionType(infrav1.VSphereVMIPAddressClaimsFulfilledV1Beta2Condition)); err != nil {
 				return errors.Wrap(err, "failed to aggregate Ready condition from IPAddressClaims")
 			}
 		} else {
@@ -147,7 +147,7 @@ func (r vmReconciler) reconcileIPAddressClaims(ctx context.Context, vmCtx *capvc
 		})
 	case claimsFulfilled < totalClaims && claimsCreated > 0:
 		conditions.MarkFalse(vmCtx.VSphereVM, infrav1.IPAddressClaimedCondition,
-			infrav1.IPAddressClaimsBeingCreatedReason, clusterv1.ConditionSeverityInfo,
+			infrav1.IPAddressClaimsBeingCreatedReason, clusterv1beta1.ConditionSeverityInfo,
 			"%d/%d claims being created", claimsCreated, totalClaims)
 		v1beta2conditions.Set(vmCtx.VSphereVM, metav1.Condition{
 			Type:    infrav1.VSphereVMIPAddressClaimsFulfilledV1Beta2Condition,
@@ -157,7 +157,7 @@ func (r vmReconciler) reconcileIPAddressClaims(ctx context.Context, vmCtx *capvc
 		})
 	case claimsFulfilled < totalClaims && claimsCreated == 0:
 		conditions.MarkFalse(vmCtx.VSphereVM, infrav1.IPAddressClaimedCondition,
-			infrav1.WaitingForIPAddressReason, clusterv1.ConditionSeverityInfo,
+			infrav1.WaitingForIPAddressReason, clusterv1beta1.ConditionSeverityInfo,
 			"%d/%d claims being processed", totalClaims-claimsFulfilled, totalClaims)
 		v1beta2conditions.Set(vmCtx.VSphereVM, metav1.Condition{
 			Type:    infrav1.VSphereVMIPAddressClaimsFulfilledV1Beta2Condition,
@@ -195,7 +195,7 @@ func createOrPatchIPAddressClaim(ctx context.Context, vmCtx *capvcontext.VMConte
 		if claim.Labels == nil {
 			claim.Labels = make(map[string]string)
 		}
-		claim.Labels[clusterv1.ClusterNameLabel] = vmCtx.VSphereVM.Labels[clusterv1.ClusterNameLabel]
+		claim.Labels[clusterv1beta1.ClusterNameLabel] = vmCtx.VSphereVM.Labels[clusterv1beta1.ClusterNameLabel]
 
 		claim.Spec.PoolRef.APIGroup = poolRef.APIGroup
 		claim.Spec.PoolRef.Kind = poolRef.Kind

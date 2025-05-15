@@ -27,7 +27,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	inmemoryproxy "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server/proxy"
@@ -104,12 +104,12 @@ func (p *vcSimClusterProxy) CollectWorkloadClusterLogs(ctx context.Context, name
 
 type noopLogCollector struct{}
 
-func (*noopLogCollector) CollectMachineLog(_ context.Context, _ client.Client, _ *clusterv1.Machine, _ string) error {
+func (*noopLogCollector) CollectMachineLog(_ context.Context, _ client.Client, _ *clusterv1beta1.Machine, _ string) error {
 	return nil
 }
 func (*noopLogCollector) CollectMachinePoolLog(_ context.Context, _ client.Client, _ *expv1.MachinePool, _ string) error {
 	return nil
 }
-func (*noopLogCollector) CollectInfrastructureLogs(_ context.Context, _ client.Client, _ *clusterv1.Cluster, _ string) error {
+func (*noopLogCollector) CollectInfrastructureLogs(_ context.Context, _ client.Client, _ *clusterv1beta1.Cluster, _ string) error {
 	return nil
 }

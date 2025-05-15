@@ -31,7 +31,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -94,7 +94,7 @@ func AddServiceAccountProviderControllerToManager(ctx context.Context, controlle
 		).
 		// Watches clusters and reconciles the vSphereCluster.
 		Watches(
-			&clusterv1.Cluster{},
+			&clusterv1beta1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToSupervisorVSphereClusterFunc(r.Client)),
 		).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, controllerManagerCtx.WatchFilterValue)).
@@ -193,7 +193,7 @@ func (r *ServiceAccountReconciler) Reconcile(ctx context.Context, req reconcile.
 func (r *ServiceAccountReconciler) patch(ctx context.Context, clusterCtx *vmwarecontext.ClusterContext) error {
 	// NOTE: this controller only owns the ProviderServiceAccountsReady condition on the VSphereCluster object.
 	return clusterCtx.PatchHelper.Patch(ctx, clusterCtx.VSphereCluster,
-		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+		patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
 			vmwarev1.ProviderServiceAccountsReadyCondition,
 		}},
 		patch.WithOwnedV1Beta2Conditions{Conditions: []string{
@@ -207,7 +207,7 @@ func (r *ServiceAccountReconciler) reconcileNormal(ctx context.Context, guestClu
 	defer func() {
 		if reterr != nil {
 			conditions.MarkFalse(guestClusterCtx.VSphereCluster, vmwarev1.ProviderServiceAccountsReadyCondition, vmwarev1.ProviderServiceAccountsReconciliationFailedReason,
-				clusterv1.ConditionSeverityWarning, reterr.Error())
+				clusterv1beta1.ConditionSeverityWarning, reterr.Error())
 			v1beta2conditions.Set(guestClusterCtx.VSphereCluster, metav1.Condition{
 				Type:    vmwarev1.VSphereClusterProviderServiceAccountsReadyV1Beta2Condition,
 				Status:  metav1.ConditionFalse,

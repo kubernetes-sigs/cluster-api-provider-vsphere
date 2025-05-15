@@ -24,7 +24,7 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
@@ -68,7 +68,7 @@ func (r Reconciler) Reconcile(ctx context.Context, clusterCtx *capvcontext.Clust
 	log := ctrl.LoggerFrom(ctx)
 
 	if !clustermodule.IsClusterCompatible(clusterCtx) {
-		conditions.MarkFalse(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition, infrav1.VCenterVersionIncompatibleReason, clusterv1.ConditionSeverityInfo,
+		conditions.MarkFalse(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition, infrav1.VCenterVersionIncompatibleReason, clusterv1beta1.ConditionSeverityInfo,
 			"vCenter version %s does not support cluster modules", clusterCtx.VSphereCluster.Status.VCenterVersion)
 		v1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 			Type:    infrav1.VSphereClusterClusterModulesReadyV1Beta2Condition,
@@ -176,7 +176,7 @@ func (r Reconciler) Reconcile(ctx context.Context, clusterCtx *capvcontext.Clust
 			err = errors.New(generateClusterModuleErrorMessage(modErrs))
 		}
 		conditions.MarkFalse(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition, infrav1.ClusterModuleSetupFailedReason,
-			clusterv1.ConditionSeverityWarning, generateClusterModuleErrorMessage(modErrs))
+			clusterv1beta1.ConditionSeverityWarning, generateClusterModuleErrorMessage(modErrs))
 		v1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 			Type:    infrav1.VSphereClusterClusterModulesReadyV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
@@ -259,13 +259,13 @@ func (r Reconciler) PopulateWatchesOnController(mgr manager.Manager, controller 
 	return controller.Watch(
 		source.Kind(
 			mgr.GetCache(),
-			&clusterv1.MachineDeployment{},
-			handler.TypedEnqueueRequestsFromMapFunc(toAffinityInput[*clusterv1.MachineDeployment](r.Client)),
-			predicate.TypedFuncs[*clusterv1.MachineDeployment]{
-				GenericFunc: func(event.TypedGenericEvent[*clusterv1.MachineDeployment]) bool {
+			&clusterv1beta1.MachineDeployment{},
+			handler.TypedEnqueueRequestsFromMapFunc(toAffinityInput[*clusterv1beta1.MachineDeployment](r.Client)),
+			predicate.TypedFuncs[*clusterv1beta1.MachineDeployment]{
+				GenericFunc: func(event.TypedGenericEvent[*clusterv1beta1.MachineDeployment]) bool {
 					return false
 				},
-				UpdateFunc: func(event.TypedUpdateEvent[*clusterv1.MachineDeployment]) bool {
+				UpdateFunc: func(event.TypedUpdateEvent[*clusterv1beta1.MachineDeployment]) bool {
 					return false
 				},
 			},
@@ -276,12 +276,12 @@ func (r Reconciler) PopulateWatchesOnController(mgr manager.Manager, controller 
 func (r Reconciler) fetchMachineOwnerObjects(ctx context.Context, clusterCtx *capvcontext.ClusterContext) (map[string]clustermodule.Wrapper, error) {
 	objects := map[string]clustermodule.Wrapper{}
 
-	name, ok := clusterCtx.VSphereCluster.GetLabels()[clusterv1.ClusterNameLabel]
+	name, ok := clusterCtx.VSphereCluster.GetLabels()[clusterv1beta1.ClusterNameLabel]
 	if !ok {
 		return nil, errors.Errorf("failed to get Cluster name from VSphereCluster: missing cluster name label")
 	}
 
-	labels := map[string]string{clusterv1.ClusterNameLabel: name}
+	labels := map[string]string{clusterv1beta1.ClusterNameLabel: name}
 	kcpList := &controlplanev1.KubeadmControlPlaneList{}
 	if err := r.Client.List(
 		ctx, kcpList,
@@ -299,7 +299,7 @@ func (r Reconciler) fetchMachineOwnerObjects(ctx context.Context, clusterCtx *ca
 		}
 	}
 
-	mdList := &clusterv1.MachineDeploymentList{}
+	mdList := &clusterv1beta1.MachineDeploymentList{}
 	if err := r.Client.List(
 		ctx, mdList,
 		client.InNamespace(clusterCtx.VSphereCluster.GetNamespace()),

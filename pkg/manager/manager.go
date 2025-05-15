@@ -28,7 +28,7 @@ import (
 	"gopkg.in/fsnotify.v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1"
@@ -57,7 +57,7 @@ func New(ctx context.Context, opts Options) (Manager, error) {
 
 	_ = apiextensionsv1.AddToScheme(opts.Scheme)
 	_ = clientgoscheme.AddToScheme(opts.Scheme)
-	_ = clusterv1.AddToScheme(opts.Scheme)
+	_ = clusterv1beta1.AddToScheme(opts.Scheme)
 	_ = infrav1alpha3.AddToScheme(opts.Scheme)
 	_ = infrav1alpha4.AddToScheme(opts.Scheme)
 	_ = infrav1.AddToScheme(opts.Scheme)

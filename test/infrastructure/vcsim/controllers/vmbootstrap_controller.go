@@ -32,7 +32,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
 	inmemoryserver "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
 	capiutil "sigs.k8s.io/cluster-api/util"
@@ -53,7 +53,7 @@ import (
 const (
 	// VMProvisionedCondition documents the status of VM provisioning,
 	// which includes the VM being provisioned and with a boostrap secret available.
-	VMProvisionedCondition clusterv1.ConditionType = "VMProvisioned"
+	VMProvisionedCondition clusterv1beta1.ConditionType = "VMProvisioned"
 
 	// WaitingForVMInfrastructureReason (Severity=Info) documents provisioning waiting for the VM
 	// infrastructure to be ready.
@@ -75,7 +75,7 @@ var ( // TODO: make this configurable
 
 const (
 	// NodeProvisionedCondition documents the status of the provisioning of the Kubernetes node.
-	NodeProvisionedCondition clusterv1.ConditionType = "NodeProvisioned"
+	NodeProvisionedCondition clusterv1beta1.ConditionType = "NodeProvisioned"
 
 	// NodeWaitingForStartupTimeoutReason (Severity=Info) documents the Kubernetes Node provisioning.
 	NodeWaitingForStartupTimeoutReason = "WaitingForStartupTimeout"
@@ -88,7 +88,7 @@ var ( // TODO: make this configurable
 
 const (
 	// EtcdProvisionedCondition documents the status of the provisioning of the etcd member.
-	EtcdProvisionedCondition clusterv1.ConditionType = "EtcdProvisioned"
+	EtcdProvisionedCondition clusterv1beta1.ConditionType = "EtcdProvisioned"
 
 	// EtcdWaitingForStartupTimeoutReason (Severity=Info) documents the etcd pod provisioning.
 	EtcdWaitingForStartupTimeoutReason = "WaitingForStartupTimeout"
@@ -101,7 +101,7 @@ var ( // TODO: make this configurable
 
 const (
 	// APIServerProvisionedCondition documents the status of the provisioning of the APIServer instance.
-	APIServerProvisionedCondition clusterv1.ConditionType = "APIServerProvisioned"
+	APIServerProvisionedCondition clusterv1beta1.ConditionType = "APIServerProvisioned"
 
 	// APIServerWaitingForStartupTimeoutReason (Severity=Info) documents the API server pod provisioning.
 	APIServerWaitingForStartupTimeoutReason = "WaitingForStartupTimeout"
@@ -145,23 +145,23 @@ type vmBootstrapReconciler struct {
 	GetProviderID func() string
 }
 
-func (r *vmBootstrapReconciler) reconcileBoostrap(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
+func (r *vmBootstrapReconciler) reconcileBoostrap(ctx context.Context, cluster *clusterv1beta1.Cluster, machine *clusterv1beta1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	if !conditions.Has(conditionsTracker, VMProvisionedCondition) {
-		conditions.MarkFalse(conditionsTracker, VMProvisionedCondition, WaitingForVMInfrastructureReason, clusterv1.ConditionSeverityInfo, "")
+		conditions.MarkFalse(conditionsTracker, VMProvisionedCondition, WaitingForVMInfrastructureReason, clusterv1beta1.ConditionSeverityInfo, "")
 	}
 
 	// Make sure bootstrap data is available and populated.
 	// NOTE: we are not using bootstrap data, but we wait for it in order to simulate a real machine provisioning workflow.
 	if machine.Spec.Bootstrap.DataSecretName == nil {
-		if !util.IsControlPlaneMachine(machine) && !conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
-			conditions.MarkFalse(conditionsTracker, VMProvisionedCondition, WaitingControlPlaneInitializedReason, clusterv1.ConditionSeverityInfo, "")
+		if !util.IsControlPlaneMachine(machine) && !conditions.IsTrue(cluster, clusterv1beta1.ControlPlaneInitializedCondition) {
+			conditions.MarkFalse(conditionsTracker, VMProvisionedCondition, WaitingControlPlaneInitializedReason, clusterv1beta1.ConditionSeverityInfo, "")
 			log.Info("Waiting for the control plane to be initialized")
 			return reconcile.Result{RequeueAfter: 5 * time.Second}, nil // keep requeueing since we don't have a watch on machines // TODO: check if we can avoid this
 		}
 
-		conditions.MarkFalse(conditionsTracker, VMProvisionedCondition, WaitingForBootstrapDataReason, clusterv1.ConditionSeverityInfo, "")
+		conditions.MarkFalse(conditionsTracker, VMProvisionedCondition, WaitingForBootstrapDataReason, clusterv1beta1.ConditionSeverityInfo, "")
 		log.Info("Waiting for the Bootstrap provider controller to set bootstrap data")
 		return reconcile.Result{RequeueAfter: 5 * time.Second}, nil // keep requeueing since we don't have a watch on machines // TODO: check if we can avoid this
 	}
@@ -176,7 +176,7 @@ func (r *vmBootstrapReconciler) reconcileBoostrap(ctx context.Context, cluster *
 	}
 
 	// Call the inner reconciliation methods.
-	phases := []func(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error){
+	phases := []func(ctx context.Context, cluster *clusterv1beta1.Cluster, machine *clusterv1beta1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error){
 		r.reconcileBoostrapNode,
 		r.reconcileBoostrapETCD,
 		r.reconcileBoostrapAPIServer,
@@ -202,7 +202,7 @@ func (r *vmBootstrapReconciler) reconcileBoostrap(ctx context.Context, cluster *
 	return res, kerrors.NewAggregate(errs)
 }
 
-func (r *vmBootstrapReconciler) reconcileBoostrapNode(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
+func (r *vmBootstrapReconciler) reconcileBoostrapNode(ctx context.Context, cluster *clusterv1beta1.Cluster, machine *clusterv1beta1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	nodeName := conditionsTracker.GetName()
 
@@ -212,7 +212,7 @@ func (r *vmBootstrapReconciler) reconcileBoostrapNode(ctx context.Context, clust
 	start := conditions.Get(conditionsTracker, VMProvisionedCondition).LastTransitionTime
 	now := time.Now()
 	if now.Before(start.Add(provisioningDuration)) {
-		conditions.MarkFalse(conditionsTracker, NodeProvisionedCondition, NodeWaitingForStartupTimeoutReason, clusterv1.ConditionSeverityInfo, "")
+		conditions.MarkFalse(conditionsTracker, NodeProvisionedCondition, NodeWaitingForStartupTimeoutReason, clusterv1beta1.ConditionSeverityInfo, "")
 		remainingTime := start.Add(provisioningDuration).Sub(now)
 		log.Info("Waiting for Node to start", "Start", start, "Duration", provisioningDuration, "RemainingTime", remainingTime, "Node", nodeName)
 		return ctrl.Result{RequeueAfter: remainingTime}, nil
@@ -287,7 +287,7 @@ func (r *vmBootstrapReconciler) reconcileBoostrapNode(ctx context.Context, clust
 	return ctrl.Result{}, nil
 }
 
-func (r *vmBootstrapReconciler) reconcileBoostrapETCD(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
+func (r *vmBootstrapReconciler) reconcileBoostrapETCD(ctx context.Context, cluster *clusterv1beta1.Cluster, machine *clusterv1beta1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	etcdMember := fmt.Sprintf("etcd-%s", conditionsTracker.GetName())
 
@@ -308,7 +308,7 @@ func (r *vmBootstrapReconciler) reconcileBoostrapETCD(ctx context.Context, clust
 	start := conditions.Get(conditionsTracker, NodeProvisionedCondition).LastTransitionTime
 	now := time.Now()
 	if now.Before(start.Add(provisioningDuration)) {
-		conditions.MarkFalse(conditionsTracker, EtcdProvisionedCondition, EtcdWaitingForStartupTimeoutReason, clusterv1.ConditionSeverityInfo, "")
+		conditions.MarkFalse(conditionsTracker, EtcdProvisionedCondition, EtcdWaitingForStartupTimeoutReason, clusterv1beta1.ConditionSeverityInfo, "")
 		remainingTime := start.Add(provisioningDuration).Sub(now)
 		log.Info("Waiting for etcd Pod to start", "Start", start, "Duration", provisioningDuration, "RemainingTime", remainingTime, "Pod", klog.KRef(metav1.NamespaceSystem, etcdMember))
 		return ctrl.Result{RequeueAfter: remainingTime}, nil
@@ -431,7 +431,7 @@ func (r *vmBootstrapReconciler) reconcileBoostrapETCD(ctx context.Context, clust
 	return ctrl.Result{}, nil
 }
 
-func (r *vmBootstrapReconciler) reconcileBoostrapAPIServer(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
+func (r *vmBootstrapReconciler) reconcileBoostrapAPIServer(ctx context.Context, cluster *clusterv1beta1.Cluster, machine *clusterv1beta1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	apiServer := fmt.Sprintf("kube-apiserver-%s", conditionsTracker.GetName())
 
@@ -452,7 +452,7 @@ func (r *vmBootstrapReconciler) reconcileBoostrapAPIServer(ctx context.Context, 
 	start := conditions.Get(conditionsTracker, NodeProvisionedCondition).LastTransitionTime
 	now := time.Now()
 	if now.Before(start.Add(provisioningDuration)) {
-		conditions.MarkFalse(conditionsTracker, APIServerProvisionedCondition, APIServerWaitingForStartupTimeoutReason, clusterv1.ConditionSeverityInfo, "")
+		conditions.MarkFalse(conditionsTracker, APIServerProvisionedCondition, APIServerWaitingForStartupTimeoutReason, clusterv1beta1.ConditionSeverityInfo, "")
 		remainingTime := start.Add(provisioningDuration).Sub(now)
 		log.Info("Waiting for API server Pod to start", "Start", start, "Duration", provisioningDuration, "RemainingTime", remainingTime, "Pod", klog.KRef(metav1.NamespaceSystem, apiServer))
 		return ctrl.Result{RequeueAfter: remainingTime}, nil
@@ -540,7 +540,7 @@ func (r *vmBootstrapReconciler) reconcileBoostrapAPIServer(ctx context.Context, 
 	return ctrl.Result{}, nil
 }
 
-func (r *vmBootstrapReconciler) reconcileBoostrapScheduler(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
+func (r *vmBootstrapReconciler) reconcileBoostrapScheduler(ctx context.Context, cluster *clusterv1beta1.Cluster, machine *clusterv1beta1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
 	// No-op if the machine is not a control plane machine.
 	if !util.IsControlPlaneMachine(machine) {
 		return ctrl.Result{}, nil
@@ -587,7 +587,7 @@ func (r *vmBootstrapReconciler) reconcileBoostrapScheduler(ctx context.Context, 
 	return ctrl.Result{}, nil
 }
 
-func (r *vmBootstrapReconciler) reconcileBoostrapControllerManager(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
+func (r *vmBootstrapReconciler) reconcileBoostrapControllerManager(ctx context.Context, cluster *clusterv1beta1.Cluster, machine *clusterv1beta1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
 	// No-op if the machine is not a control plane machine.
 	if !util.IsControlPlaneMachine(machine) {
 		return ctrl.Result{}, nil
@@ -634,7 +634,7 @@ func (r *vmBootstrapReconciler) reconcileBoostrapControllerManager(ctx context.C
 	return ctrl.Result{}, nil
 }
 
-func (r *vmBootstrapReconciler) reconcileBoostrapKubeadmObjects(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, _ ConditionsTracker) (ctrl.Result, error) {
+func (r *vmBootstrapReconciler) reconcileBoostrapKubeadmObjects(ctx context.Context, cluster *clusterv1beta1.Cluster, machine *clusterv1beta1.Machine, _ ConditionsTracker) (ctrl.Result, error) {
 	// No-op if the machine is not a control plane machine.
 	if !util.IsControlPlaneMachine(machine) {
 		return ctrl.Result{}, nil
@@ -701,7 +701,7 @@ func (r *vmBootstrapReconciler) reconcileBoostrapKubeadmObjects(ctx context.Cont
 	return ctrl.Result{}, nil
 }
 
-func (r *vmBootstrapReconciler) reconcileBoostrapKubeProxy(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, _ ConditionsTracker) (ctrl.Result, error) {
+func (r *vmBootstrapReconciler) reconcileBoostrapKubeProxy(ctx context.Context, cluster *clusterv1beta1.Cluster, machine *clusterv1beta1.Machine, _ ConditionsTracker) (ctrl.Result, error) {
 	// No-op if the machine is not a control plane machine.
 	if !util.IsControlPlaneMachine(machine) {
 		return ctrl.Result{}, nil
@@ -747,7 +747,7 @@ func (r *vmBootstrapReconciler) reconcileBoostrapKubeProxy(ctx context.Context, 
 	return ctrl.Result{}, nil
 }
 
-func (r *vmBootstrapReconciler) reconcileBoostrapCoredns(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, _ ConditionsTracker) (ctrl.Result, error) {
+func (r *vmBootstrapReconciler) reconcileBoostrapCoredns(ctx context.Context, cluster *clusterv1beta1.Cluster, machine *clusterv1beta1.Machine, _ ConditionsTracker) (ctrl.Result, error) {
 	// No-op if the machine is not a control plane machine.
 	if !util.IsControlPlaneMachine(machine) {
 		return ctrl.Result{}, nil
@@ -810,9 +810,9 @@ func (r *vmBootstrapReconciler) reconcileBoostrapCoredns(ctx context.Context, cl
 	return ctrl.Result{}, nil
 }
 
-func (r *vmBootstrapReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
+func (r *vmBootstrapReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1beta1.Cluster, machine *clusterv1beta1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
 	// Call the inner reconciliation methods.
-	phases := []func(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error){
+	phases := []func(ctx context.Context, cluster *clusterv1beta1.Cluster, machine *clusterv1beta1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error){
 		r.reconcileDeleteNode,
 		r.reconcileDeleteETCD,
 		r.reconcileDeleteAPIServer,
@@ -839,7 +839,7 @@ func (r *vmBootstrapReconciler) reconcileDelete(ctx context.Context, cluster *cl
 	return res, kerrors.NewAggregate(errs)
 }
 
-func (r *vmBootstrapReconciler) reconcileDeleteNode(ctx context.Context, cluster *clusterv1.Cluster, _ *clusterv1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
+func (r *vmBootstrapReconciler) reconcileDeleteNode(ctx context.Context, cluster *clusterv1beta1.Cluster, _ *clusterv1beta1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
 	// Compute the resource group unique name.
 	resourceGroup := klog.KObj(cluster).String()
 	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
@@ -859,7 +859,7 @@ func (r *vmBootstrapReconciler) reconcileDeleteNode(ctx context.Context, cluster
 	return ctrl.Result{}, nil
 }
 
-func (r *vmBootstrapReconciler) reconcileDeleteETCD(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
+func (r *vmBootstrapReconciler) reconcileDeleteETCD(ctx context.Context, cluster *clusterv1beta1.Cluster, machine *clusterv1beta1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
 	// No-op if the machine is not a control plane machine.
 	if !util.IsControlPlaneMachine(machine) {
 		return ctrl.Result{}, nil
@@ -896,7 +896,7 @@ func (r *vmBootstrapReconciler) reconcileDeleteETCD(ctx context.Context, cluster
 	return ctrl.Result{}, nil
 }
 
-func (r *vmBootstrapReconciler) reconcileDeleteAPIServer(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
+func (r *vmBootstrapReconciler) reconcileDeleteAPIServer(ctx context.Context, cluster *clusterv1beta1.Cluster, machine *clusterv1beta1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
 	// No-op if the machine is not a control plane machine.
 	if !util.IsControlPlaneMachine(machine) {
 		return ctrl.Result{}, nil
@@ -928,7 +928,7 @@ func (r *vmBootstrapReconciler) reconcileDeleteAPIServer(ctx context.Context, cl
 	return ctrl.Result{}, nil
 }
 
-func (r *vmBootstrapReconciler) reconcileDeleteScheduler(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
+func (r *vmBootstrapReconciler) reconcileDeleteScheduler(ctx context.Context, cluster *clusterv1beta1.Cluster, machine *clusterv1beta1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
 	// No-op if the machine is not a control plane machine.
 	if !util.IsControlPlaneMachine(machine) {
 		return ctrl.Result{}, nil
@@ -951,7 +951,7 @@ func (r *vmBootstrapReconciler) reconcileDeleteScheduler(ctx context.Context, cl
 	return ctrl.Result{}, nil
 }
 
-func (r *vmBootstrapReconciler) reconcileDeleteControllerManager(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
+func (r *vmBootstrapReconciler) reconcileDeleteControllerManager(ctx context.Context, cluster *clusterv1beta1.Cluster, machine *clusterv1beta1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
 	// No-op if the machine is not a control plane machine.
 	if !util.IsControlPlaneMachine(machine) {
 		return ctrl.Result{}, nil

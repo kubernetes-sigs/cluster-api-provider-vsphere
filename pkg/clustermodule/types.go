@@ -17,8 +17,8 @@ limitations under the License.
 package clustermodule
 
 import (
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	controlplanev1beta1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -39,15 +39,15 @@ type Wrapper interface {
 // NewWrapper returns the correct wrapper for the passed in object.
 func NewWrapper(obj client.Object) Wrapper {
 	if obj.GetObjectKind().GroupVersionKind().Kind == "KubeadmControlPlane" {
-		kcp, _ := obj.(*controlplanev1.KubeadmControlPlane)
+		kcp, _ := obj.(*controlplanev1beta1.KubeadmControlPlane)
 		return kcpWrapper{kcp}
 	}
-	md, _ := obj.(*clusterv1.MachineDeployment)
+	md, _ := obj.(*clusterv1beta1.MachineDeployment)
 	return mdWrapper{md}
 }
 
 type kcpWrapper struct {
-	*controlplanev1.KubeadmControlPlane
+	*controlplanev1beta1.KubeadmControlPlane
 }
 
 func (w kcpWrapper) GetTemplatePath() []string {
@@ -59,7 +59,7 @@ func (w kcpWrapper) IsControlPlane() bool {
 }
 
 type mdWrapper struct {
-	*clusterv1.MachineDeployment
+	*clusterv1beta1.MachineDeployment
 }
 
 func (w mdWrapper) GetTemplatePath() []string {

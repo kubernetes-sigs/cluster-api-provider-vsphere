@@ -19,7 +19,7 @@ package context
 import (
 	"fmt"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
@@ -27,7 +27,7 @@ import (
 
 // ClusterContext is a Go context used with a VSphereCluster.
 type ClusterContext struct {
-	Cluster        *clusterv1.Cluster
+	Cluster        *clusterv1beta1.Cluster
 	VSphereCluster *infrav1.VSphereCluster
 	PatchHelper    *patch.Helper
 }

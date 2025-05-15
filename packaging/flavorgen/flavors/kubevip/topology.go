@@ -25,7 +25,7 @@ import (
 	"github.com/pkg/errors"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/utils/ptr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/yaml"
@@ -35,13 +35,13 @@ import (
 )
 
 // TopologyVariable returns the ClusterClass variable for kube-vip.
-func TopologyVariable() (*clusterv1.ClusterVariable, error) {
+func TopologyVariable() (*clusterv1beta1.ClusterVariable, error) {
 	out, err := json.Marshal(kubevip.PodYAML())
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to json-encode variable kubeVipPod")
 	}
 
-	return &clusterv1.ClusterVariable{
+	return &clusterv1beta1.ClusterVariable{
 		Name: "kubeVipPodManifest",
 		Value: apiextensionsv1.JSON{
 			Raw: out,
@@ -50,14 +50,14 @@ func TopologyVariable() (*clusterv1.ClusterVariable, error) {
 }
 
 // TopologyPatch returns the ClusterClass patch for kube-vip.
-func TopologyPatch() clusterv1.ClusterClassPatch {
-	patches := []clusterv1.JSONPatch{}
+func TopologyPatch() clusterv1beta1.ClusterClassPatch {
+	patches := []clusterv1beta1.JSONPatch{}
 
 	for _, f := range kubevip.Files() {
-		p := clusterv1.JSONPatch{
+		p := clusterv1beta1.JSONPatch{
 			Op:        "add",
 			Path:      "/spec/template/spec/kubeadmConfigSpec/files/-",
-			ValueFrom: &clusterv1.JSONPatchValue{},
+			ValueFrom: &clusterv1beta1.JSONPatchValue{},
 		}
 
 		// Special handling to make this patch work
@@ -79,14 +79,14 @@ func TopologyPatch() clusterv1.ClusterClassPatch {
 	}
 
 	// This two patches is part of the workaround for https://github.com/kube-vip/kube-vip/issues/684
-	return clusterv1.ClusterClassPatch{
+	return clusterv1beta1.ClusterClassPatch{
 		Name: "kubeVipPodManifest",
-		Definitions: []clusterv1.PatchDefinition{
+		Definitions: []clusterv1beta1.PatchDefinition{
 			{
-				Selector: clusterv1.PatchSelector{
+				Selector: clusterv1beta1.PatchSelector{
 					APIVersion: controlplanev1.GroupVersion.String(),
 					Kind:       util.TypeToKind(&controlplanev1.KubeadmControlPlaneTemplate{}),
-					MatchResources: clusterv1.PatchSelectorMatch{
+					MatchResources: clusterv1beta1.PatchSelectorMatch{
 						ControlPlane: true,
 					},
 				},

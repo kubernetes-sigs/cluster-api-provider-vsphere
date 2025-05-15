@@ -33,7 +33,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -206,8 +206,8 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 		vmKey := util.ObjectKey(vsphereVM)
 		g.Expect(r.Client.Get(context.Background(), vmKey, vm)).NotTo(HaveOccurred())
 
-		g.Expect(conditions.Has(vm, infrav1.VMProvisionedCondition)).To(BeTrue())
-		vmProvisionCondition := conditions.Get(vm, infrav1.VMProvisionedCondition)
+		g.Expect(deprecatedconditions.Has(vm, infrav1.VMProvisionedCondition)).To(BeTrue())
+		vmProvisionCondition := deprecatedconditions.Get(vm, infrav1.VMProvisionedCondition)
 		g.Expect(vmProvisionCondition.Status).To(Equal(corev1.ConditionFalse))
 		g.Expect(vmProvisionCondition.Reason).To(Equal(infrav1.WaitingForStaticIPAllocationReason))
 	})
@@ -242,8 +242,8 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 		vmKey := util.ObjectKey(vsphereVM)
 		g.Expect(r.Client.Get(context.Background(), vmKey, vm)).NotTo(HaveOccurred())
 
-		g.Expect(conditions.Has(vm, infrav1.VMProvisionedCondition)).To(BeTrue())
-		vmProvisionCondition := conditions.Get(vm, infrav1.VMProvisionedCondition)
+		g.Expect(deprecatedconditions.Has(vm, infrav1.VMProvisionedCondition)).To(BeTrue())
+		vmProvisionCondition := deprecatedconditions.Get(vm, infrav1.VMProvisionedCondition)
 		g.Expect(vmProvisionCondition.Status).To(Equal(corev1.ConditionFalse))
 		g.Expect(vmProvisionCondition.Reason).To(Equal(infrav1.WaitingForIPAllocationReason))
 	})
@@ -498,8 +498,8 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 		vm := &infrav1.VSphereVM{}
 		vmKey := util.ObjectKey(vsphereVM)
 		g.Expect(r.Client.Get(context.Background(), vmKey, vm)).NotTo(HaveOccurred())
-		g.Expect(conditions.Has(vm, infrav1.VCenterAvailableCondition)).To(BeTrue())
-		vCenterCondition := conditions.Get(vm, infrav1.VCenterAvailableCondition)
+		g.Expect(deprecatedconditions.Has(vm, infrav1.VCenterAvailableCondition)).To(BeTrue())
+		vCenterCondition := deprecatedconditions.Get(vm, infrav1.VCenterAvailableCondition)
 		g.Expect(vCenterCondition.Status).To(Equal(corev1.ConditionTrue))
 	},
 	)

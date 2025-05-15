@@ -28,7 +28,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
@@ -155,7 +155,7 @@ func assertRoleBinding(ctx context.Context, ctrlClient client.Client, namespace,
 
 // assertProviderServiceAccountsCondition asserts the condition on the ProviderServiceAccount CR.
 func assertProviderServiceAccountsCondition(vCluster *vmwarev1.VSphereCluster, status corev1.ConditionStatus, message string, reason string, severity clusterv1beta1.ConditionSeverity) {
-	c := conditions.Get(vCluster, vmwarev1.ProviderServiceAccountsReadyCondition)
+	c := deprecatedconditions.Get(vCluster, vmwarev1.ProviderServiceAccountsReadyCondition)
 	Expect(c).NotTo(BeNil())
 	Expect(c.Status).To(Equal(status))
 	Expect(c.Reason).To(Equal(reason))

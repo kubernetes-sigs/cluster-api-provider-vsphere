@@ -26,7 +26,7 @@ import (
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
@@ -104,7 +104,7 @@ func Test_ShouldRetryTask(t *testing.T) {
 			reconciled, err := checkAndRetryTask(ctx, vmCtx, &task)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(reconciled).To(BeTrue())
-			g.Expect(conditions.IsFalse(vmCtx.VSphereVM, infrav1.VMProvisionedCondition)).To(BeTrue())
+			g.Expect(deprecatedconditions.IsFalse(vmCtx.VSphereVM, infrav1.VMProvisionedCondition)).To(BeTrue())
 			g.Expect(vmCtx.VSphereVM.Status.TaskRef).To(BeEmpty())
 			g.Expect(vmCtx.VSphereVM.Status.RetryAfter.IsZero()).To(BeTrue())
 		})
@@ -123,7 +123,7 @@ func Test_ShouldRetryTask(t *testing.T) {
 		reconciled, err := checkAndRetryTask(ctx, vmCtx, &task)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(reconciled).To(BeTrue())
-		g.Expect(conditions.IsFalse(vmCtx.VSphereVM, infrav1.VMProvisionedCondition)).To(BeTrue())
+		g.Expect(deprecatedconditions.IsFalse(vmCtx.VSphereVM, infrav1.VMProvisionedCondition)).To(BeTrue())
 		g.Expect(vmCtx.VSphereVM.Status.RetryAfter.Unix()).To(BeNumerically("<=", metav1.Now().Add(1*time.Minute).Unix()))
 	})
 

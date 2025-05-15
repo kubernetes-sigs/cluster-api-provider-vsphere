@@ -31,7 +31,7 @@ import (
 	inmemoryserver "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
 	capiutil "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -283,7 +283,7 @@ func (r *VSphereVMReconciler) getVMIpReconciler(vSphereCluster *infrav1.VSphereC
 		},
 		IsVMWaitingforIP: func() bool {
 			// A vSphereVM is waiting for an IP when not ready VMProvisioned condition is false with reason WaitingForIPAllocation
-			return !vSphereVM.Status.Ready && conditions.IsFalse(vSphereVM, infrav1.VMProvisionedCondition) && conditions.GetReason(vSphereVM, infrav1.VMProvisionedCondition) == infrav1.WaitingForIPAllocationReason
+			return !vSphereVM.Status.Ready && deprecatedconditions.IsFalse(vSphereVM, infrav1.VMProvisionedCondition) && deprecatedconditions.GetReason(vSphereVM, infrav1.VMProvisionedCondition) == infrav1.WaitingForIPAllocationReason
 		},
 		GetVMPath: func() string {
 			// Return vmref of the VM as it is populated already by CAPV

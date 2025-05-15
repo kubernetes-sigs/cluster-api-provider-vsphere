@@ -28,8 +28,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
+	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	deprecatedv1beta2conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -78,8 +78,8 @@ func (np *nsxtNetworkProvider) verifyNSXTVirtualNetworkStatus(vspherecluster *vm
 		}
 		hasReadyCondition = true
 		if condition.Status != "True" {
-			conditions.MarkFalse(vspherecluster, vmwarev1.ClusterNetworkReadyCondition, vmwarev1.ClusterNetworkProvisionFailedReason, clusterv1beta1.ConditionSeverityWarning, condition.Message)
-			v1beta2conditions.Set(vspherecluster, metav1.Condition{
+			deprecatedconditions.MarkFalse(vspherecluster, vmwarev1.ClusterNetworkReadyCondition, vmwarev1.ClusterNetworkProvisionFailedReason, clusterv1beta1.ConditionSeverityWarning, condition.Message)
+			deprecatedv1beta2conditions.Set(vspherecluster, metav1.Condition{
 				Type:    vmwarev1.VSphereClusterNetworkReadyV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  vmwarev1.VSphereClusterNetworkNotReadyV1Beta2Reason,
@@ -91,8 +91,8 @@ func (np *nsxtNetworkProvider) verifyNSXTVirtualNetworkStatus(vspherecluster *vm
 	}
 
 	if !hasReadyCondition {
-		conditions.MarkFalse(vspherecluster, vmwarev1.ClusterNetworkReadyCondition, vmwarev1.ClusterNetworkProvisionFailedReason, clusterv1beta1.ConditionSeverityWarning, "No Ready status for virtual network")
-		v1beta2conditions.Set(vspherecluster, metav1.Condition{
+		deprecatedconditions.MarkFalse(vspherecluster, vmwarev1.ClusterNetworkReadyCondition, vmwarev1.ClusterNetworkProvisionFailedReason, clusterv1beta1.ConditionSeverityWarning, "No Ready status for virtual network")
+		deprecatedv1beta2conditions.Set(vspherecluster, metav1.Condition{
 			Type:    vmwarev1.VSphereClusterNetworkReadyV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  vmwarev1.VSphereClusterNetworkNotReadyV1Beta2Reason,
@@ -101,8 +101,8 @@ func (np *nsxtNetworkProvider) verifyNSXTVirtualNetworkStatus(vspherecluster *vm
 		return errors.Errorf("virtual network ready status in cluster %s has not been set", types.NamespacedName{Namespace: namespace, Name: clusterName})
 	}
 
-	conditions.MarkTrue(vspherecluster, vmwarev1.ClusterNetworkReadyCondition)
-	v1beta2conditions.Set(vspherecluster, metav1.Condition{
+	deprecatedconditions.MarkTrue(vspherecluster, vmwarev1.ClusterNetworkReadyCondition)
+	deprecatedv1beta2conditions.Set(vspherecluster, metav1.Condition{
 		Type:   vmwarev1.VSphereClusterNetworkReadyV1Beta2Condition,
 		Status: metav1.ConditionTrue,
 		Reason: vmwarev1.VSphereClusterNetworkReadyV1Beta2Reason,
@@ -173,8 +173,8 @@ func (np *nsxtNetworkProvider) ProvisionClusterNetwork(ctx context.Context, clus
 		return nil
 	})
 	if err != nil {
-		conditions.MarkFalse(clusterCtx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition, vmwarev1.ClusterNetworkProvisionFailedReason, clusterv1beta1.ConditionSeverityWarning, err.Error())
-		v1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
+		deprecatedconditions.MarkFalse(clusterCtx.VSphereCluster, vmwarev1.ClusterNetworkReadyCondition, vmwarev1.ClusterNetworkProvisionFailedReason, clusterv1beta1.ConditionSeverityWarning, err.Error())
+		deprecatedv1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 			Type:    vmwarev1.VSphereClusterNetworkReadyV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  vmwarev1.VSphereClusterNetworkNotReadyV1Beta2Reason,

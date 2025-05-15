@@ -37,7 +37,7 @@ import (
 	inmemoryserver "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
 	capiutil "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/certs"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	"sigs.k8s.io/cluster-api/util/secret"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -132,8 +132,8 @@ const (
 
 type ConditionsTracker interface {
 	client.Object
-	conditions.Getter
-	conditions.Setter
+	deprecatedconditions.Getter
+	deprecatedconditions.Setter
 }
 
 type vmBootstrapReconciler struct {
@@ -148,20 +148,20 @@ type vmBootstrapReconciler struct {
 func (r *vmBootstrapReconciler) reconcileBoostrap(ctx context.Context, cluster *clusterv1beta1.Cluster, machine *clusterv1beta1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	if !conditions.Has(conditionsTracker, VMProvisionedCondition) {
-		conditions.MarkFalse(conditionsTracker, VMProvisionedCondition, WaitingForVMInfrastructureReason, clusterv1beta1.ConditionSeverityInfo, "")
+	if !deprecatedconditions.Has(conditionsTracker, VMProvisionedCondition) {
+		deprecatedconditions.MarkFalse(conditionsTracker, VMProvisionedCondition, WaitingForVMInfrastructureReason, clusterv1beta1.ConditionSeverityInfo, "")
 	}
 
 	// Make sure bootstrap data is available and populated.
 	// NOTE: we are not using bootstrap data, but we wait for it in order to simulate a real machine provisioning workflow.
 	if machine.Spec.Bootstrap.DataSecretName == nil {
-		if !util.IsControlPlaneMachine(machine) && !conditions.IsTrue(cluster, clusterv1beta1.ControlPlaneInitializedCondition) {
-			conditions.MarkFalse(conditionsTracker, VMProvisionedCondition, WaitingControlPlaneInitializedReason, clusterv1beta1.ConditionSeverityInfo, "")
+		if !util.IsControlPlaneMachine(machine) && !deprecatedconditions.IsTrue(cluster, clusterv1beta1.ControlPlaneInitializedCondition) {
+			deprecatedconditions.MarkFalse(conditionsTracker, VMProvisionedCondition, WaitingControlPlaneInitializedReason, clusterv1beta1.ConditionSeverityInfo, "")
 			log.Info("Waiting for the control plane to be initialized")
 			return reconcile.Result{RequeueAfter: 5 * time.Second}, nil // keep requeueing since we don't have a watch on machines // TODO: check if we can avoid this
 		}
 
-		conditions.MarkFalse(conditionsTracker, VMProvisionedCondition, WaitingForBootstrapDataReason, clusterv1beta1.ConditionSeverityInfo, "")
+		deprecatedconditions.MarkFalse(conditionsTracker, VMProvisionedCondition, WaitingForBootstrapDataReason, clusterv1beta1.ConditionSeverityInfo, "")
 		log.Info("Waiting for the Bootstrap provider controller to set bootstrap data")
 		return reconcile.Result{RequeueAfter: 5 * time.Second}, nil // keep requeueing since we don't have a watch on machines // TODO: check if we can avoid this
 	}
@@ -171,8 +171,8 @@ func (r *vmBootstrapReconciler) reconcileBoostrap(ctx context.Context, cluster *
 		log.Info("Waiting for machine infrastructure to become ready")
 		return reconcile.Result{}, nil // TODO: check if we can avoid this
 	}
-	if !conditions.IsTrue(conditionsTracker, VMProvisionedCondition) {
-		conditions.MarkTrue(conditionsTracker, VMProvisionedCondition)
+	if !deprecatedconditions.IsTrue(conditionsTracker, VMProvisionedCondition) {
+		deprecatedconditions.MarkTrue(conditionsTracker, VMProvisionedCondition)
 	}
 
 	// Call the inner reconciliation methods.
@@ -209,10 +209,10 @@ func (r *vmBootstrapReconciler) reconcileBoostrapNode(ctx context.Context, clust
 	provisioningDuration := nodeStartupDuration
 	provisioningDuration += time.Duration(rand.Float64() * nodeStartupJitter * float64(provisioningDuration)) //nolint:gosec // Intentionally using a weak random number generator here.
 
-	start := conditions.Get(conditionsTracker, VMProvisionedCondition).LastTransitionTime
+	start := deprecatedconditions.Get(conditionsTracker, VMProvisionedCondition).LastTransitionTime
 	now := time.Now()
 	if now.Before(start.Add(provisioningDuration)) {
-		conditions.MarkFalse(conditionsTracker, NodeProvisionedCondition, NodeWaitingForStartupTimeoutReason, clusterv1beta1.ConditionSeverityInfo, "")
+		deprecatedconditions.MarkFalse(conditionsTracker, NodeProvisionedCondition, NodeWaitingForStartupTimeoutReason, clusterv1beta1.ConditionSeverityInfo, "")
 		remainingTime := start.Add(provisioningDuration).Sub(now)
 		log.Info("Waiting for Node to start", "Start", start, "Duration", provisioningDuration, "RemainingTime", remainingTime, "Node", nodeName)
 		return ctrl.Result{RequeueAfter: remainingTime}, nil
@@ -283,7 +283,7 @@ func (r *vmBootstrapReconciler) reconcileBoostrapNode(ctx context.Context, clust
 		log.Info("Node created", "Node", klog.KObj(node))
 	}
 
-	conditions.MarkTrue(conditionsTracker, NodeProvisionedCondition)
+	deprecatedconditions.MarkTrue(conditionsTracker, NodeProvisionedCondition)
 	return ctrl.Result{}, nil
 }
 
@@ -297,7 +297,7 @@ func (r *vmBootstrapReconciler) reconcileBoostrapETCD(ctx context.Context, clust
 	}
 
 	// No-op if the Node is not provisioned yet
-	if !conditions.IsTrue(conditionsTracker, NodeProvisionedCondition) {
+	if !deprecatedconditions.IsTrue(conditionsTracker, NodeProvisionedCondition) {
 		return ctrl.Result{}, nil
 	}
 
@@ -305,10 +305,10 @@ func (r *vmBootstrapReconciler) reconcileBoostrapETCD(ctx context.Context, clust
 	provisioningDuration := etcdStartupDuration
 	provisioningDuration += time.Duration(rand.Float64() * etcdStartupJitter * float64(provisioningDuration)) //nolint:gosec // Intentionally using a weak random number generator here.
 
-	start := conditions.Get(conditionsTracker, NodeProvisionedCondition).LastTransitionTime
+	start := deprecatedconditions.Get(conditionsTracker, NodeProvisionedCondition).LastTransitionTime
 	now := time.Now()
 	if now.Before(start.Add(provisioningDuration)) {
-		conditions.MarkFalse(conditionsTracker, EtcdProvisionedCondition, EtcdWaitingForStartupTimeoutReason, clusterv1beta1.ConditionSeverityInfo, "")
+		deprecatedconditions.MarkFalse(conditionsTracker, EtcdProvisionedCondition, EtcdWaitingForStartupTimeoutReason, clusterv1beta1.ConditionSeverityInfo, "")
 		remainingTime := start.Add(provisioningDuration).Sub(now)
 		log.Info("Waiting for etcd Pod to start", "Start", start, "Duration", provisioningDuration, "RemainingTime", remainingTime, "Pod", klog.KRef(metav1.NamespaceSystem, etcdMember))
 		return ctrl.Result{RequeueAfter: remainingTime}, nil
@@ -427,7 +427,7 @@ func (r *vmBootstrapReconciler) reconcileBoostrapETCD(ctx context.Context, clust
 		log.Info("etcd Pod started", "Pod", klog.KObj(etcdPod))
 	}
 
-	conditions.MarkTrue(conditionsTracker, EtcdProvisionedCondition)
+	deprecatedconditions.MarkTrue(conditionsTracker, EtcdProvisionedCondition)
 	return ctrl.Result{}, nil
 }
 
@@ -441,7 +441,7 @@ func (r *vmBootstrapReconciler) reconcileBoostrapAPIServer(ctx context.Context, 
 	}
 
 	// No-op if the Node is not provisioned yet
-	if !conditions.IsTrue(conditionsTracker, NodeProvisionedCondition) {
+	if !deprecatedconditions.IsTrue(conditionsTracker, NodeProvisionedCondition) {
 		return ctrl.Result{}, nil
 	}
 
@@ -449,10 +449,10 @@ func (r *vmBootstrapReconciler) reconcileBoostrapAPIServer(ctx context.Context, 
 	provisioningDuration := apiServerStartupDuration
 	provisioningDuration += time.Duration(rand.Float64() * apiServerStartupJitter * float64(provisioningDuration)) //nolint:gosec // Intentionally using a weak random number generator here.
 
-	start := conditions.Get(conditionsTracker, NodeProvisionedCondition).LastTransitionTime
+	start := deprecatedconditions.Get(conditionsTracker, NodeProvisionedCondition).LastTransitionTime
 	now := time.Now()
 	if now.Before(start.Add(provisioningDuration)) {
-		conditions.MarkFalse(conditionsTracker, APIServerProvisionedCondition, APIServerWaitingForStartupTimeoutReason, clusterv1beta1.ConditionSeverityInfo, "")
+		deprecatedconditions.MarkFalse(conditionsTracker, APIServerProvisionedCondition, APIServerWaitingForStartupTimeoutReason, clusterv1beta1.ConditionSeverityInfo, "")
 		remainingTime := start.Add(provisioningDuration).Sub(now)
 		log.Info("Waiting for API server Pod to start", "Start", start, "Duration", provisioningDuration, "RemainingTime", remainingTime, "Pod", klog.KRef(metav1.NamespaceSystem, apiServer))
 		return ctrl.Result{RequeueAfter: remainingTime}, nil
@@ -536,7 +536,7 @@ func (r *vmBootstrapReconciler) reconcileBoostrapAPIServer(ctx context.Context, 
 		log.Info("API server Pod started", "Pod", klog.KObj(apiServerPod))
 	}
 
-	conditions.MarkTrue(conditionsTracker, APIServerProvisionedCondition)
+	deprecatedconditions.MarkTrue(conditionsTracker, APIServerProvisionedCondition)
 	return ctrl.Result{}, nil
 }
 
@@ -550,7 +550,7 @@ func (r *vmBootstrapReconciler) reconcileBoostrapScheduler(ctx context.Context, 
 	// specific behaviour for this component because they are not relevant for stress tests.
 	// As a current approximation, we create the scheduler as soon as the API server is provisioned;
 	// also, the scheduler is immediately marked as ready.
-	if !conditions.IsTrue(conditionsTracker, APIServerProvisionedCondition) {
+	if !deprecatedconditions.IsTrue(conditionsTracker, APIServerProvisionedCondition) {
 		return ctrl.Result{}, nil
 	}
 
@@ -597,7 +597,7 @@ func (r *vmBootstrapReconciler) reconcileBoostrapControllerManager(ctx context.C
 	// specific behaviour for this component because they are not relevant for stress tests.
 	// As a current approximation, we create the controller manager as soon as the API server is provisioned;
 	// also, the controller manager is immediately marked as ready.
-	if !conditions.IsTrue(conditionsTracker, APIServerProvisionedCondition) {
+	if !deprecatedconditions.IsTrue(conditionsTracker, APIServerProvisionedCondition) {
 		return ctrl.Result{}, nil
 	}
 

@@ -28,7 +28,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
@@ -154,7 +154,7 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 			}
 
 			for _, expectedCondition := range expectedConditions {
-				c := conditions.Get(clusterCtx.VSphereCluster, expectedCondition.Type)
+				c := deprecatedconditions.Get(clusterCtx.VSphereCluster, expectedCondition.Type)
 				Expect(c).NotTo(BeNil())
 				Expect(c.Status).To(Equal(expectedCondition.Status))
 				Expect(c.Reason).To(Equal(expectedCondition.Reason))
@@ -172,7 +172,7 @@ var _ = Describe("ControlPlaneEndpoint Tests", func() {
 			expectAPIEndpoint = false
 			expectVMS = false
 			apiEndpoint, err = cpService.ReconcileControlPlaneEndpointService(ctx, clusterCtx, network.DummyNetworkProvider())
-			Expect(conditions.Get(clusterCtx.VSphereCluster, vmwarev1.LoadBalancerReadyCondition)).To(BeNil())
+			Expect(deprecatedconditions.Get(clusterCtx.VSphereCluster, vmwarev1.LoadBalancerReadyCondition)).To(BeNil())
 			verifyOutput()
 		})
 

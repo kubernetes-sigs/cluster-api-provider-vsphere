@@ -567,10 +567,7 @@ func (r *clusterReconciler) controlPlaneMachineToCluster(ctx context.Context, o 
 	}
 
 	return []ctrl.Request{{
-		NamespacedName: types.NamespacedName{
-			Namespace: vsphereClusterKey.Namespace,
-			Name:      vsphereClusterKey.Name,
-		},
+		NamespacedName: vsphereClusterKey,
 	}}
 }
 

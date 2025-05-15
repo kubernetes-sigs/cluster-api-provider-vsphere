@@ -55,7 +55,7 @@ type VmopMachineService struct {
 func (v *VmopMachineService) GetMachinesInCluster(
 	ctx context.Context,
 	namespace, clusterName string) ([]client.Object, error) {
-	labels := map[string]string{clusterv1beta1.ClusterNameLabel: clusterName}
+	labels := map[string]string{clusterv1.ClusterNameLabel: clusterName}
 	machineList := &vmwarev1.VSphereMachineList{}
 
 	if err := v.Client.List(
@@ -81,7 +81,7 @@ func (v *VmopMachineService) FetchVSphereMachine(ctx context.Context, name apity
 }
 
 // FetchVSphereCluster adds the VSphereCluster for the cluster to the MachineContext.
-func (v *VmopMachineService) FetchVSphereCluster(ctx context.Context, cluster *clusterv1beta1.Cluster, machineContext capvcontext.MachineContext) (capvcontext.MachineContext, error) {
+func (v *VmopMachineService) FetchVSphereCluster(ctx context.Context, cluster *clusterv1.Cluster, machineContext capvcontext.MachineContext) (capvcontext.MachineContext, error) {
 	machineCtx, ok := machineContext.(*vmware.SupervisorMachineContext)
 	if !ok {
 		return nil, errors.New("received unexpected SupervisorMachineContext type")
@@ -718,7 +718,7 @@ func getVMLabels(supervisorMachineCtx *vmware.SupervisorMachineContext, vmLabels
 
 	// Ensure the VM has a label that can be used when searching for
 	// resources associated with the target cluster.
-	vmLabels[clusterv1beta1.ClusterNameLabel] = supervisorMachineCtx.GetClusterContext().Cluster.Name
+	vmLabels[clusterv1.ClusterNameLabel] = supervisorMachineCtx.GetClusterContext().Cluster.Name
 
 	return vmLabels
 }

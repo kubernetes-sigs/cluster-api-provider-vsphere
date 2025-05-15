@@ -30,6 +30,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	deprecatedv1beta2conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
@@ -51,7 +52,7 @@ type VimMachineService struct {
 func (v *VimMachineService) GetMachinesInCluster(
 	ctx context.Context,
 	namespace, clusterName string) ([]client.Object, error) {
-	labels := map[string]string{clusterv1beta1.ClusterNameLabel: clusterName}
+	labels := map[string]string{clusterv1.ClusterNameLabel: clusterName}
 	machineList := &infrav1.VSphereMachineList{}
 
 	if err := v.Client.List(
@@ -78,7 +79,7 @@ func (v *VimMachineService) FetchVSphereMachine(ctx context.Context, name types.
 }
 
 // FetchVSphereCluster adds the VSphereCluster associated with the passed cluster to the machineContext.
-func (v *VimMachineService) FetchVSphereCluster(ctx context.Context, cluster *clusterv1beta1.Cluster, machineContext capvcontext.MachineContext) (capvcontext.MachineContext, error) {
+func (v *VimMachineService) FetchVSphereCluster(ctx context.Context, cluster *clusterv1.Cluster, machineContext capvcontext.MachineContext) (capvcontext.MachineContext, error) {
 	vimMachineCtx, ok := machineContext.(*capvcontext.VIMMachineContext)
 	if !ok {
 		return nil, errors.New("received unexpected VIMMachineContext type")
@@ -359,12 +360,12 @@ func (v *VimMachineService) createOrPatchVSphereVM(ctx context.Context, vimMachi
 
 		// Ensure the VSphereVM has a label that can be used when searching for
 		// resources associated with the target cluster.
-		vm.Labels[clusterv1beta1.ClusterNameLabel] = vimMachineCtx.Machine.Labels[clusterv1beta1.ClusterNameLabel]
+		vm.Labels[clusterv1.ClusterNameLabel] = vimMachineCtx.Machine.Labels[clusterv1.ClusterNameLabel]
 
 		// For convenience, add a label that makes it easy to figure out if the
 		// VSphereVM resource is part of some control plane.
-		if val, ok := vimMachineCtx.Machine.Labels[clusterv1beta1.MachineControlPlaneLabel]; ok {
-			vm.Labels[clusterv1beta1.MachineControlPlaneLabel] = val
+		if val, ok := vimMachineCtx.Machine.Labels[clusterv1.MachineControlPlaneLabel]; ok {
+			vm.Labels[clusterv1.MachineControlPlaneLabel] = val
 		}
 
 		// Copy the VSphereMachine's VM clone spec into the VSphereVM's

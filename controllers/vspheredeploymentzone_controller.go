@@ -28,6 +28,7 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
 	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
@@ -318,12 +319,12 @@ func (r vsphereDeploymentZoneReconciler) reconcileDelete(ctx context.Context, de
 		Reason: infrav1.VSphereDeploymentZoneFailureDomainDeletingV1Beta2Reason,
 	})
 
-	machines := &clusterv1beta1.MachineList{}
+	machines := &clusterv1.MachineList{}
 	if err := r.Client.List(ctx, machines); err != nil {
 		return errors.Wrapf(err, "failed to list Machines")
 	}
 
-	machinesUsingDeploymentZone := collections.FromMachineList(machines).Filter(collections.ActiveMachines, func(machine *clusterv1beta1.Machine) bool {
+	machinesUsingDeploymentZone := collections.FromMachineList(machines).Filter(collections.ActiveMachines, func(machine *clusterv1.Machine) bool {
 		if machine.Spec.FailureDomain != nil {
 			return *machine.Spec.FailureDomain == deploymentZoneCtx.VSphereDeploymentZone.Name
 		}

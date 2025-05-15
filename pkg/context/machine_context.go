@@ -21,7 +21,7 @@ import (
 	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
@@ -30,18 +30,18 @@ import (
 // BaseMachineContext contains information about a CAPI Machine for VSphereMachine reconciliation.
 type BaseMachineContext struct {
 	ControllerManagerContext *ControllerManagerContext
-	Cluster                  *clusterv1beta1.Cluster
-	Machine                  *clusterv1beta1.Machine
+	Cluster                  *clusterv1.Cluster
+	Machine                  *clusterv1.Machine
 	PatchHelper              *patch.Helper
 }
 
 // GetCluster returns the cluster for the BaseMachineContext.
-func (c *BaseMachineContext) GetCluster() *clusterv1beta1.Cluster {
+func (c *BaseMachineContext) GetCluster() *clusterv1.Cluster {
 	return c.Cluster
 }
 
 // GetMachine returns the Machine for the BaseMachineContext.
-func (c *BaseMachineContext) GetMachine() *clusterv1beta1.Machine {
+func (c *BaseMachineContext) GetMachine() *clusterv1.Machine {
 	return c.Machine
 }
 
@@ -62,7 +62,7 @@ func (c *VIMMachineContext) Patch(ctx context.Context) error {
 	return c.PatchHelper.Patch(ctx, c.VSphereMachine, patch.WithOwnedV1Beta2Conditions{Conditions: []string{
 		infrav1.VSphereMachineReadyV1Beta2Condition,
 		infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
-		clusterv1beta1.PausedV1Beta2Condition,
+		clusterv1.PausedCondition,
 	}})
 }
 

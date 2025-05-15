@@ -20,7 +20,7 @@ package vmware
 import (
 	"fmt"
 
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
@@ -28,7 +28,7 @@ import (
 
 // ClusterContext is a Go context used with a CAPI cluster.
 type ClusterContext struct {
-	Cluster        *clusterv1beta1.Cluster
+	Cluster        *clusterv1.Cluster
 	VSphereCluster *vmwarev1.VSphereCluster
 	PatchHelper    *patch.Helper
 }

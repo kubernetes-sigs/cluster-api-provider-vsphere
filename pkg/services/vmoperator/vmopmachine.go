@@ -31,6 +31,7 @@ import (
 	apitypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -459,7 +460,7 @@ func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervis
 		// Not all network providers (for example, NSX-VPC) provide support for VM
 		// readiness probes. The flag PerformsVMReadinessProbe is used to determine
 		// whether a VM readiness probe should be conducted.
-		if v.ConfigureControlPlaneVMReadinessProbe && infrautilv1.IsControlPlaneMachine(supervisorMachineCtx.Machine) && supervisorMachineCtx.Cluster.Status.ControlPlaneReady {
+		if v.ConfigureControlPlaneVMReadinessProbe && infrautilv1.IsControlPlaneMachine(supervisorMachineCtx.Machine) && supervisorMachineCtx.Cluster.Status.Initialization.ControlPlaneInitialized {
 			vmOperatorVM.Spec.ReadinessProbe = &vmoprv1.VirtualMachineReadinessProbeSpec{
 				TCPSocket: &vmoprv1.TCPSocketAction{
 					Port: intstr.FromInt(defaultAPIBindPort),
@@ -739,6 +740,6 @@ func getTopologyLabels(supervisorMachineCtx *vmware.SupervisorMachineContext) ma
 
 // getMachineDeploymentName returns the MachineDeployment name for a Cluster.
 // This is also the name used by VSphereMachineTemplate and KubeadmConfigTemplate.
-func getMachineDeploymentNameForCluster(cluster *clusterv1beta1.Cluster) string {
+func getMachineDeploymentNameForCluster(cluster *clusterv1.Cluster) string {
 	return fmt.Sprintf("%s-workers-0", cluster.Name)
 }

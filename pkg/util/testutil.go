@@ -26,6 +26,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog/v2"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -152,7 +153,7 @@ func createScheme() *runtime.Scheme {
 	return scheme
 }
 
-func CreateClusterContext(cluster *clusterv1beta1.Cluster, vsphereCluster *vmwarev1.VSphereCluster) (*vmware.ClusterContext, *capvcontext.ControllerManagerContext) {
+func CreateClusterContext(cluster *clusterv1.Cluster, vsphereCluster *vmwarev1.VSphereCluster) (*vmware.ClusterContext, *capvcontext.ControllerManagerContext) {
 	scheme := createScheme()
 
 	// Build the cluster context.
@@ -169,7 +170,7 @@ func CreateClusterContext(cluster *clusterv1beta1.Cluster, vsphereCluster *vmwar
 		}
 }
 
-func CreateMachineContext(clusterContext *vmware.ClusterContext, machine *clusterv1beta1.Machine,
+func CreateMachineContext(clusterContext *vmware.ClusterContext, machine *clusterv1.Machine,
 	vsphereMachine *vmwarev1.VSphereMachine) *vmware.SupervisorMachineContext {
 	// Build the machine context.
 	return &vmware.SupervisorMachineContext{

@@ -300,7 +300,7 @@ func (r Reconciler) fetchMachineOwnerObjects(ctx context.Context, clusterCtx *ca
 		}
 	}
 
-	mdList := &clusterv1beta1.MachineDeploymentList{}
+	mdList := &clusterv1.MachineDeploymentList{}
 	if err := r.Client.List(
 		ctx, mdList,
 		client.InNamespace(clusterCtx.VSphereCluster.GetNamespace()),

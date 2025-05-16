@@ -396,7 +396,7 @@ func (r *machineReconciler) reconcileNormal(ctx context.Context, machineCtx capv
 	// 2) If the Cluster is supervisor-based continue to reconcile as InfrastructureProvisioned is not set to true until after the kube apiserver is available.
 	if !r.supervisorBased {
 		// vmwarev1.VSphereCluster doesn't set Cluster.Status.Ready until the API endpoint is available.
-		if !machineCtx.GetCluster().Status.Initialization.InfrastructureProvisioned {
+		if machineCtx.GetCluster().Status.Initialization == nil || !machineCtx.GetCluster().Status.Initialization.InfrastructureProvisioned {
 			log.Info("Cluster infrastructure is not ready yet, skipping reconciliation")
 			deprecatedconditions.MarkFalse(machineCtx.GetVSphereMachine(), infrav1.VMProvisionedCondition, infrav1.WaitingForClusterInfrastructureReason, clusterv1beta1.ConditionSeverityInfo, "")
 			deprecatedv1beta2conditions.Set(machineCtx.GetVSphereMachine(), metav1.Condition{

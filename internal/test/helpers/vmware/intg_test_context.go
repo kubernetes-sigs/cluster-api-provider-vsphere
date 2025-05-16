@@ -174,6 +174,9 @@ func CreateAndWait(ctx context.Context, integrationTestClient client.Client, obj
 func ClusterInfrastructureProvisioned(ctx context.Context, c client.Client, clusterCache clustercache.ClusterCache, cluster *clusterv1.Cluster) {
 	GinkgoHelper()
 	patch := client.MergeFrom(cluster.DeepCopy())
+	if cluster.Status.Initialization == nil {
+		cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{}
+	}
 	cluster.Status.Initialization.InfrastructureProvisioned = true
 	Expect(c.Status().Patch(ctx, cluster, patch)).To(Succeed())
 

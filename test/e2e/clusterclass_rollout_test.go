@@ -19,7 +19,7 @@ package e2e
 import (
 	. "github.com/onsi/ginkgo/v2"
 	"k8s.io/utils/ptr"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	capie2e "sigs.k8s.io/cluster-api/test/e2e"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -45,14 +45,14 @@ var _ = Describe("When testing ClusterClass rollouts [vcsim] [supervisor] [Clust
 	})
 })
 
-func filterMetadataBeforeValidation(object client.Object) clusterv1beta1.ObjectMeta {
+func filterMetadataBeforeValidation(object client.Object) clusterv1.ObjectMeta {
 	// CAPV adds an extra label node.cluster.x-k8s.io/esxi-host on Machine, we need to filter it out to pass the
 	// clusterclass rollout test
-	if machine, ok := object.(*clusterv1beta1.Machine); ok {
+	if machine, ok := object.(*clusterv1.Machine); ok {
 		delete(machine.Labels, constants.ESXiHostInfoLabel)
-		return clusterv1beta1.ObjectMeta{Labels: machine.Labels, Annotations: machine.Annotations}
+		return clusterv1.ObjectMeta{Labels: machine.Labels, Annotations: machine.Annotations}
 	}
 
 	// If the object is not a Machine, just return the default labels and annotations of the object
-	return clusterv1beta1.ObjectMeta{Labels: object.GetLabels(), Annotations: object.GetAnnotations()}
+	return clusterv1.ObjectMeta{Labels: object.GetLabels(), Annotations: object.GetAnnotations()}
 }

@@ -20,7 +20,7 @@ import (
 	"context"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
@@ -30,7 +30,7 @@ import (
 // reconcilers with a fake client.
 func NewMachineContext(ctx context.Context, clusterCtx *capvcontext.ClusterContext, controllerManagerCtx *capvcontext.ControllerManagerContext) *capvcontext.VIMMachineContext {
 	// Create the machine resources.
-	machine := newMachineV1a4()
+	machine := newMachineV1()
 	vsphereMachine := newVSphereMachine(machine)
 
 	// Add the cluster resources to the fake cluster client.
@@ -52,23 +52,23 @@ func NewMachineContext(ctx context.Context, clusterCtx *capvcontext.ClusterConte
 	}
 }
 
-func newMachineV1a4() clusterv1beta1.Machine {
+func newMachineV1() clusterv1.Machine {
 	dataSecretName := "fake-name"
-	return clusterv1beta1.Machine{
+	return clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: Namespace,
 			Name:      Clusterv1a2Name,
 			UID:       Clusterv1a2UUID,
 		},
-		Spec: clusterv1beta1.MachineSpec{
-			Bootstrap: clusterv1beta1.Bootstrap{
+		Spec: clusterv1.MachineSpec{
+			Bootstrap: clusterv1.Bootstrap{
 				DataSecretName: &dataSecretName,
 			},
 		},
 	}
 }
 
-func newVSphereMachine(owner clusterv1beta1.Machine) infrav1.VSphereMachine {
+func newVSphereMachine(owner clusterv1.Machine) infrav1.VSphereMachine {
 	return infrav1.VSphereMachine{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: owner.Namespace,
@@ -76,7 +76,7 @@ func newVSphereMachine(owner clusterv1beta1.Machine) infrav1.VSphereMachine {
 			UID:       VSphereMachineUUID,
 			OwnerReferences: []metav1.OwnerReference{
 				{
-					APIVersion:         clusterv1beta1.GroupVersion.String(),
+					APIVersion:         clusterv1.GroupVersion.String(),
 					Kind:               "Machine",
 					Name:               owner.Name,
 					UID:                owner.UID,

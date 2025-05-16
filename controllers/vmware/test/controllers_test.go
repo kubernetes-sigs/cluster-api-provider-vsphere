@@ -34,7 +34,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/config"
@@ -62,7 +62,7 @@ const (
 
 // newInfraCluster returns an Infra cluster with the same name as the target
 // cluster.
-func newInfraCluster(namespace string, cluster *clusterv1beta1.Cluster) client.Object {
+func newInfraCluster(namespace string, cluster *clusterv1.Cluster) client.Object {
 	return &vmwarev1.VSphereCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cluster.Name,
@@ -86,7 +86,7 @@ func newAnonInfraCluster(namespace string) client.Object {
 
 // newInfraMachine creates an Infra machine with the same name as the target
 // machine.
-func newInfraMachine(namespace string, machine *clusterv1beta1.Machine) client.Object {
+func newInfraMachine(namespace string, machine *clusterv1.Machine) client.Object {
 	return &vmwarev1.VSphereMachine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      machine.Name,
@@ -127,16 +127,16 @@ func dropNamespace(namespace *corev1.Namespace, k8sClient client.Client) {
 
 // Creates and deploys a Cluster and VSphereCluster in order. Function does not
 // block on VSphereCluster creation.
-func deployCluster(namespace string, k8sClient client.Client) (client.ObjectKey, *clusterv1beta1.Cluster, client.Object) {
+func deployCluster(namespace string, k8sClient client.Client) (client.ObjectKey, *clusterv1.Cluster, client.Object) {
 	// A finalizer is added to prevent it from being deleted until its
 	// dependents are removed.
-	cluster := &clusterv1beta1.Cluster{
+	cluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "test-",
 			Namespace:    namespace,
 			Finalizers:   []string{"test"},
 		},
-		Spec: clusterv1beta1.ClusterSpec{},
+		Spec: clusterv1.ClusterSpec{},
 	}
 	Expect(k8sClient.Create(ctx, cluster)).To(Succeed())
 
@@ -149,7 +149,7 @@ func deployCluster(namespace string, k8sClient client.Client) (client.ObjectKey,
 	infraCluster := newInfraCluster(namespace, cluster)
 	infraCluster.SetOwnerReferences([]metav1.OwnerReference{
 		{
-			APIVersion: clusterv1beta1.GroupVersion.String(),
+			APIVersion: clusterv1.GroupVersion.String(),
 			Kind:       "Cluster",
 			Name:       cluster.Name,
 			UID:        cluster.UID,
@@ -162,28 +162,28 @@ func deployCluster(namespace string, k8sClient client.Client) (client.ObjectKey,
 
 // Creates and deploys a CAPI Machine. Function does not block on Machine
 // creation.
-func deployCAPIMachine(namespace string, cluster *clusterv1beta1.Cluster, k8sClient client.Client) (client.ObjectKey, *clusterv1beta1.Machine) {
+func deployCAPIMachine(namespace string, cluster *clusterv1.Cluster, k8sClient client.Client) (client.ObjectKey, *clusterv1.Machine) {
 	// A finalizer is added to prevent it from being deleted until its
 	// dependents are removed.
-	machine := &clusterv1beta1.Machine{
+	machine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "test-",
 			Namespace:    namespace,
 			Finalizers:   []string{"test"},
 			Labels: map[string]string{
-				clusterv1beta1.ClusterNameLabel:         cluster.Name,
-				clusterv1beta1.MachineControlPlaneLabel: "",
+				clusterv1.ClusterNameLabel:         cluster.Name,
+				clusterv1.MachineControlPlaneLabel: "",
 			},
 			OwnerReferences: []metav1.OwnerReference{
 				{
-					APIVersion: clusterv1beta1.GroupVersion.String(),
+					APIVersion: clusterv1.GroupVersion.String(),
 					Kind:       "Cluster",
 					Name:       cluster.Name,
 					UID:        cluster.UID,
 				},
 			},
 		},
-		Spec: clusterv1beta1.MachineSpec{
+		Spec: clusterv1.MachineSpec{
 			ClusterName: cluster.Name,
 		},
 	}
@@ -194,11 +194,11 @@ func deployCAPIMachine(namespace string, cluster *clusterv1beta1.Cluster, k8sCli
 
 // Creates and deploys a VSphereMachine. Function does not block on Machine
 // creation.
-func deployInfraMachine(namespace string, machine *clusterv1beta1.Machine, finalizers []string, k8sClient client.Client) (client.ObjectKey, client.Object) {
+func deployInfraMachine(namespace string, machine *clusterv1.Machine, finalizers []string, k8sClient client.Client) (client.ObjectKey, client.Object) {
 	infraMachine := newInfraMachine(namespace, machine)
 	infraMachine.SetOwnerReferences([]metav1.OwnerReference{
 		{
-			APIVersion: clusterv1beta1.GroupVersion.String(),
+			APIVersion: clusterv1.GroupVersion.String(),
 			Kind:       "Machine",
 			Name:       machine.Name,
 			UID:        machine.UID,
@@ -212,7 +212,7 @@ func deployInfraMachine(namespace string, machine *clusterv1beta1.Machine, final
 
 // Updates the InfrastructureRef of a CAPI Cluster to a VSphereCluster. Function
 // does not block on update success.
-func updateClusterInfraRef(cluster *clusterv1beta1.Cluster, infraCluster client.Object, k8sClient client.Client) {
+func updateClusterInfraRef(cluster *clusterv1.Cluster, infraCluster client.Object, k8sClient client.Client) {
 	cluster.Spec.InfrastructureRef = &corev1.ObjectReference{
 		APIVersion: infraCluster.GetObjectKind().GroupVersionKind().GroupVersion().String(),
 		Kind:       infraCluster.GetObjectKind().GroupVersionKind().Kind,
@@ -551,13 +551,13 @@ var _ = Describe("Reconciliation tests", func() {
 			By("Create the CAPI Machine and wait for it to exist")
 			// A finalizer is added to prevent it from being deleted until its
 			// dependents are removed.
-			machine := &clusterv1beta1.Machine{
+			machine := &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					GenerateName: "test-",
 					Namespace:    ns.Name,
 					Finalizers:   []string{"test"},
 				},
-				Spec: clusterv1beta1.MachineSpec{
+				Spec: clusterv1.MachineSpec{
 					ClusterName: "crud",
 				},
 			}

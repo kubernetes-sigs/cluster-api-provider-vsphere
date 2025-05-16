@@ -34,7 +34,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	"sigs.k8s.io/cluster-api/test/framework"
@@ -60,7 +60,7 @@ var _ = Describe("When testing Node drain [supervisor]", func() {
 				PostNamespaceCreated:   testSpecificSettingsGetter().PostNamespaceCreatedFunc,
 				// Add verification for CSI blocking volume detachments.
 				VerifyNodeVolumeDetach: true,
-				CreateAdditionalResources: func(ctx context.Context, clusterProxy framework.ClusterProxy, cluster *clusterv1beta1.Cluster) {
+				CreateAdditionalResources: func(ctx context.Context, clusterProxy framework.ClusterProxy, cluster *clusterv1.Cluster) {
 					// Add a MachineDrainRule to ensure kube-system pods get evicted first and don't mess up the condition assertions.
 					deployKubeSystemMachineDrainRule(ctx, clusterProxy, cluster)
 					// Add a statefulset which uses CSI.
@@ -72,33 +72,33 @@ var _ = Describe("When testing Node drain [supervisor]", func() {
 	})
 })
 
-func deployKubeSystemMachineDrainRule(ctx context.Context, clusterProxy framework.ClusterProxy, cluster *clusterv1beta1.Cluster) {
-	mdRule := &clusterv1beta1.MachineDrainRule{
+func deployKubeSystemMachineDrainRule(ctx context.Context, clusterProxy framework.ClusterProxy, cluster *clusterv1.Cluster) {
+	mdRule := &clusterv1.MachineDrainRule{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-kube-system", cluster.Name),
 			Namespace: cluster.Namespace,
 		},
-		Spec: clusterv1beta1.MachineDrainRuleSpec{
-			Drain: clusterv1beta1.MachineDrainRuleDrainConfig{
-				Behavior: clusterv1beta1.MachineDrainRuleDrainBehaviorDrain,
+		Spec: clusterv1.MachineDrainRuleSpec{
+			Drain: clusterv1.MachineDrainRuleDrainConfig{
+				Behavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
 				Order:    ptr.To[int32](-20),
 			},
-			Machines: []clusterv1beta1.MachineDrainRuleMachineSelector{
+			Machines: []clusterv1.MachineDrainRuleMachineSelector{
 				// Select all Machines with the ClusterNameLabel belonging to Clusters with the ClusterNameLabel.
 				{
 					Selector: &metav1.LabelSelector{
 						MatchLabels: map[string]string{
-							clusterv1beta1.ClusterNameLabel: cluster.Name,
+							clusterv1.ClusterNameLabel: cluster.Name,
 						},
 					},
 					ClusterSelector: &metav1.LabelSelector{
 						MatchLabels: map[string]string{
-							clusterv1beta1.ClusterNameLabel: cluster.Name,
+							clusterv1.ClusterNameLabel: cluster.Name,
 						},
 					},
 				},
 			},
-			Pods: []clusterv1beta1.MachineDrainRulePodSelector{
+			Pods: []clusterv1.MachineDrainRulePodSelector{
 				// Select all Pods in namespace "kube-system".
 				{
 					NamespaceSelector: &metav1.LabelSelector{
@@ -120,7 +120,7 @@ func deployKubeSystemMachineDrainRule(ctx context.Context, clusterProxy framewor
 	Expect(clusterProxy.GetClient().Create(ctx, mdRule)).To(Succeed())
 }
 
-func deployStatefulSetAndBlockCSI(ctx context.Context, bootstrapClusterProxy framework.ClusterProxy, cluster *clusterv1beta1.Cluster) {
+func deployStatefulSetAndBlockCSI(ctx context.Context, bootstrapClusterProxy framework.ClusterProxy, cluster *clusterv1.Cluster) {
 	controlplane := framework.DiscoveryAndWaitForControlPlaneInitialized(ctx, framework.DiscoveryAndWaitForControlPlaneInitializedInput{
 		Lister:  bootstrapClusterProxy.GetClient(),
 		Cluster: cluster,
@@ -188,7 +188,7 @@ func deployStatefulSetAndBlockCSI(ctx context.Context, bootstrapClusterProxy fra
 	waitForDeploymentScaledDown(ctx, workloadClusterProxy.GetClient(), csiControllerKey, e2eConfig.GetIntervals("node-drain", "wait-deployment-available")...)
 }
 
-func unblockNodeVolumeDetachment(ctx context.Context, bootstrapClusterProxy framework.ClusterProxy, cluster *clusterv1beta1.Cluster) {
+func unblockNodeVolumeDetachment(ctx context.Context, bootstrapClusterProxy framework.ClusterProxy, cluster *clusterv1.Cluster) {
 	workloadClusterProxy := bootstrapClusterProxy.GetWorkloadCluster(ctx, cluster.Namespace, cluster.Name)
 
 	By("Scaling up the CSI controller to unblock lifecycle of PVC's")
@@ -230,7 +230,7 @@ const (
 type deployEvictablePodInput struct {
 	WorkloadClusterProxy framework.ClusterProxy
 	ControlPlane         *controlplanev1.KubeadmControlPlane
-	MachineDeployment    *clusterv1beta1.MachineDeployment
+	MachineDeployment    *clusterv1.MachineDeployment
 	StatefulSetName      string
 	Namespace            string
 	NodeSelector         map[string]string
@@ -279,7 +279,7 @@ func deployEvictablePod(ctx context.Context, input deployEvictablePodInput) {
 
 type generateStatefulsetInput struct {
 	ControlPlane      *controlplanev1.KubeadmControlPlane
-	MachineDeployment *clusterv1beta1.MachineDeployment
+	MachineDeployment *clusterv1.MachineDeployment
 	Name              string
 	Namespace         string
 	NodeSelector      map[string]string

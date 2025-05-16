@@ -22,7 +22,7 @@ import (
 
 	"github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -45,8 +45,8 @@ func Test_FetchControlPlaneOwnerObject(t *testing.T) {
 		}
 	}
 
-	machine := func(ownerRefVersion string) *clusterv1beta1.Machine {
-		return &clusterv1beta1.Machine{
+	machine := func(ownerRefVersion string) *clusterv1.Machine {
+		return &clusterv1.Machine{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-machine",
 				Namespace: kcpNs,

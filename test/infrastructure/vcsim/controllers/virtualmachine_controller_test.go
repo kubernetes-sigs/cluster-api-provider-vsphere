@@ -28,6 +28,7 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
 	inmemoryserver "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
 	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
@@ -52,13 +53,13 @@ func Test_Reconcile_VirtualMachine(t *testing.T) {
 			},
 		}
 
-		cluster := &clusterv1beta1.Cluster{
+		cluster := &clusterv1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "foo",
 				Name:      "bar",
 				UID:       "bar",
 			},
-			Spec: clusterv1beta1.ClusterSpec{
+			Spec: clusterv1.ClusterSpec{
 				InfrastructureRef: &corev1.ObjectReference{
 					APIVersion: vmwarev1.GroupVersion.String(),
 					Kind:       "VSphereCluster",
@@ -69,12 +70,12 @@ func Test_Reconcile_VirtualMachine(t *testing.T) {
 			},
 		}
 
-		machine := &clusterv1beta1.Machine{
+		machine := &clusterv1.Machine{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "foo",
 				Name:      "bar",
 				Labels: map[string]string{
-					clusterv1beta1.ClusterNameLabel: cluster.Name,
+					clusterv1.ClusterNameLabel: cluster.Name,
 				},
 			},
 		}
@@ -85,7 +86,7 @@ func Test_Reconcile_VirtualMachine(t *testing.T) {
 				Name:      "baz",
 				OwnerReferences: []metav1.OwnerReference{
 					{
-						APIVersion: clusterv1beta1.GroupVersion.String(),
+						APIVersion: clusterv1.GroupVersion.String(),
 						Kind:       "Machine",
 						Name:       machine.Name,
 						UID:        machine.UID,
@@ -176,13 +177,13 @@ func Test_Reconcile_VirtualMachine(t *testing.T) {
 			},
 		}
 
-		cluster := &clusterv1beta1.Cluster{
+		cluster := &clusterv1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "foo",
 				Name:      "bar",
 				UID:       "bar",
 			},
-			Spec: clusterv1beta1.ClusterSpec{
+			Spec: clusterv1.ClusterSpec{
 				InfrastructureRef: &corev1.ObjectReference{
 					APIVersion: vmwarev1.GroupVersion.String(),
 					Kind:       "VSphereCluster",
@@ -193,16 +194,16 @@ func Test_Reconcile_VirtualMachine(t *testing.T) {
 			},
 		}
 
-		machine := &clusterv1beta1.Machine{
+		machine := &clusterv1.Machine{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "foo",
 				Name:      "bar",
 				Labels: map[string]string{
-					clusterv1beta1.ClusterNameLabel: cluster.Name,
+					clusterv1.ClusterNameLabel: cluster.Name,
 				},
 			},
-			Spec: clusterv1beta1.MachineSpec{
-				Bootstrap: clusterv1beta1.Bootstrap{
+			Spec: clusterv1.MachineSpec{
+				Bootstrap: clusterv1.Bootstrap{
 					DataSecretName: ptr.To("foo"), // this unblocks node provisioning
 				},
 			},
@@ -214,7 +215,7 @@ func Test_Reconcile_VirtualMachine(t *testing.T) {
 				Name:      "bar",
 				OwnerReferences: []metav1.OwnerReference{
 					{
-						APIVersion: clusterv1beta1.GroupVersion.String(),
+						APIVersion: clusterv1.GroupVersion.String(),
 						Kind:       "Machine",
 						Name:       machine.Name,
 						UID:        machine.UID,

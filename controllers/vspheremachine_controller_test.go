@@ -98,9 +98,9 @@ var _ = Describe("VsphereMachineReconciler", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: "machine-created-",
 				Namespace:    testNs.Name,
-				Finalizers:   []string{clusterv1beta1.MachineFinalizer},
+				Finalizers:   []string{clusterv1.MachineFinalizer},
 				Labels: map[string]string{
-					clusterv1beta1.ClusterNameLabel: capiCluster.Name,
+					clusterv1.ClusterNameLabel: capiCluster.Name,
 				},
 			},
 			Spec: clusterv1.MachineSpec{
@@ -119,12 +119,12 @@ var _ = Describe("VsphereMachineReconciler", func() {
 				Name:      "vsphere-machine-1",
 				Namespace: testNs.Name,
 				Labels: map[string]string{
-					clusterv1beta1.ClusterNameLabel:         capiCluster.Name,
-					clusterv1beta1.MachineControlPlaneLabel: "",
+					clusterv1.ClusterNameLabel:         capiCluster.Name,
+					clusterv1.MachineControlPlaneLabel: "",
 				},
 				OwnerReferences: []metav1.OwnerReference{
 					{
-						APIVersion: clusterv1beta1.GroupVersion.String(),
+						APIVersion: clusterv1.GroupVersion.String(),
 						Kind:       "Machine",
 						Name:       capiMachine.Name,
 						UID:        "blah",
@@ -186,7 +186,7 @@ var _ = Describe("VsphereMachineReconciler", func() {
 			Eventually(func() bool {
 				vms := infrav1.VSphereVMList{}
 				Expect(testEnv.List(ctx, &vms, client.InNamespace(testNs.Name), client.MatchingLabels{
-					clusterv1beta1.ClusterNameLabel: capiCluster.Name,
+					clusterv1.ClusterNameLabel: capiCluster.Name,
 				})).To(Succeed())
 				return isPresentAndFalseWithReason(infraMachine, infrav1.VMProvisionedCondition, infrav1.WaitingForBootstrapDataReason) &&
 					len(vms.Items) == 0
@@ -221,16 +221,16 @@ func Test_machineReconciler_Metadata(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 		}
 	}()
-	capiCluster := &clusterv1beta1.Cluster{
+	capiCluster := &clusterv1.Cluster{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Cluster",
-			APIVersion: clusterv1beta1.GroupVersion.String(),
+			APIVersion: clusterv1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "cluster1",
 			Namespace: ns.Name,
 		},
-		Spec: clusterv1beta1.ClusterSpec{
+		Spec: clusterv1.ClusterSpec{
 			InfrastructureRef: &corev1.ObjectReference{
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 				Kind:       "VSphereCluster",
@@ -259,20 +259,20 @@ func Test_machineReconciler_Metadata(t *testing.T) {
 		Spec: infrav1.VSphereClusterSpec{},
 	}
 
-	capiMachine := &clusterv1beta1.Machine{
+	capiMachine := &clusterv1.Machine{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Machine",
-			APIVersion: clusterv1beta1.GroupVersion.String(),
+			APIVersion: clusterv1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "machine1",
 			Namespace:  ns.Name,
-			Finalizers: []string{clusterv1beta1.MachineFinalizer},
+			Finalizers: []string{clusterv1.MachineFinalizer},
 			Labels: map[string]string{
-				clusterv1beta1.ClusterNameLabel: capiCluster.Name,
+				clusterv1.ClusterNameLabel: capiCluster.Name,
 			},
 		},
-		Spec: clusterv1beta1.MachineSpec{
+		Spec: clusterv1.MachineSpec{
 			ClusterName: capiCluster.Name,
 			InfrastructureRef: corev1.ObjectReference{
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
@@ -290,12 +290,12 @@ func Test_machineReconciler_Metadata(t *testing.T) {
 			Name:      "vsphere-machine-1",
 			Namespace: ns.Name,
 			Labels: map[string]string{
-				clusterv1beta1.ClusterNameLabel:         capiCluster.Name,
-				clusterv1beta1.MachineControlPlaneLabel: "",
+				clusterv1.ClusterNameLabel:         capiCluster.Name,
+				clusterv1.MachineControlPlaneLabel: "",
 			},
 			OwnerReferences: []metav1.OwnerReference{
 				{
-					APIVersion: clusterv1beta1.GroupVersion.String(),
+					APIVersion: clusterv1.GroupVersion.String(),
 					Kind:       "Machine",
 					Name:       capiMachine.Name,
 					UID:        "blah",
@@ -344,7 +344,7 @@ func Test_machineReconciler_Metadata(t *testing.T) {
 				return false
 			}
 			return ctrlutil.ContainsFinalizer(vSphereMachine, infrav1.MachineFinalizer) &&
-				capiutil.HasOwner(vSphereMachine.GetOwnerReferences(), clusterv1beta1.GroupVersion.String(), []string{"Machine"}) &&
+				capiutil.HasOwner(vSphereMachine.GetOwnerReferences(), clusterv1.GroupVersion.String(), []string{"Machine"}) &&
 				!capiutil.HasOwner(vSphereMachine.GetOwnerReferences(), infrav1.GroupVersion.String(), []string{"VSphereCluster"})
 		}, timeout).Should(BeTrue())
 	})

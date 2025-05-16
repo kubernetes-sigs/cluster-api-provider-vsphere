@@ -26,7 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
 	inmemoryserver "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
 	capiutil "sigs.k8s.io/cluster-api/util"
@@ -118,7 +118,7 @@ func (r *VSphereVMReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 	if cluster == nil {
-		log.Info(fmt.Sprintf("Please associate this machine with a cluster using the label %s: <name of cluster>", clusterv1beta1.ClusterNameLabel))
+		log.Info(fmt.Sprintf("Please associate this machine with a cluster using the label %s: <name of cluster>", clusterv1.ClusterNameLabel))
 		return ctrl.Result{}, nil
 	}
 	log = log.WithValues("Cluster", klog.KObj(cluster))
@@ -247,7 +247,7 @@ func (r *VSphereVMReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	return r.reconcileNormal(ctx, cluster, vSphereCluster, machine, vSphereVM, conditionsTracker)
 }
 
-func (r *VSphereVMReconciler) reconcileNormal(ctx context.Context, cluster *clusterv1beta1.Cluster, vSphereCluster *infrav1.VSphereCluster, machine *clusterv1beta1.Machine, vSphereVM *infrav1.VSphereVM, conditionsTracker *infrav1.VSphereVM) (ctrl.Result, error) {
+func (r *VSphereVMReconciler) reconcileNormal(ctx context.Context, cluster *clusterv1.Cluster, vSphereCluster *infrav1.VSphereCluster, machine *clusterv1.Machine, vSphereVM *infrav1.VSphereVM, conditionsTracker *infrav1.VSphereVM) (ctrl.Result, error) {
 	ipReconciler := r.getVMIpReconciler(vSphereCluster, vSphereVM)
 	if ret, err := ipReconciler.ReconcileIP(ctx); !ret.IsZero() || err != nil {
 		return ret, err
@@ -261,7 +261,7 @@ func (r *VSphereVMReconciler) reconcileNormal(ctx context.Context, cluster *clus
 	return ctrl.Result{}, nil
 }
 
-func (r *VSphereVMReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1beta1.Cluster, _ *infrav1.VSphereCluster, machine *clusterv1beta1.Machine, vSphereVM *infrav1.VSphereVM, conditionsTracker *infrav1.VSphereVM) (ctrl.Result, error) {
+func (r *VSphereVMReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, _ *infrav1.VSphereCluster, machine *clusterv1.Machine, vSphereVM *infrav1.VSphereVM, conditionsTracker *infrav1.VSphereVM) (ctrl.Result, error) {
 	bootstrapReconciler := r.getVMBootstrapReconciler(vSphereVM)
 	if ret, err := bootstrapReconciler.reconcileDelete(ctx, cluster, machine, conditionsTracker); !ret.IsZero() || err != nil {
 		return ret, err

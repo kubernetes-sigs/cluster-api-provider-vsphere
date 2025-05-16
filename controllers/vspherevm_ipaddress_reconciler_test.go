@@ -25,6 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1"
 	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -52,7 +53,7 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 				Name:      name,
 				Namespace: namespace,
 				Labels: map[string]string{
-					clusterv1beta1.ClusterNameLabel: "my-cluster",
+					clusterv1.ClusterNameLabel: "my-cluster",
 				},
 			},
 			Spec: infrav1.VSphereVMSpec{
@@ -92,7 +93,7 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 
 				g.Expect(claim.OwnerReferences).To(gomega.HaveLen(1))
 				g.Expect(claim.OwnerReferences[0].Name).To(gomega.Equal(vsphereVM.Name))
-				g.Expect(claim.Labels).To(gomega.HaveKeyWithValue(clusterv1beta1.ClusterNameLabel, "my-cluster"))
+				g.Expect(claim.Labels).To(gomega.HaveKeyWithValue(clusterv1.ClusterNameLabel, "my-cluster"))
 			}
 
 			claimedCondition := deprecatedconditions.Get(testCtx.VSphereVM, infrav1.IPAddressClaimedCondition)
@@ -140,7 +141,7 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 
 				g.Expect(claim.OwnerReferences).To(gomega.HaveLen(1))
 				g.Expect(claim.OwnerReferences[0].Name).To(gomega.Equal(vsphereVM.Name))
-				g.Expect(claim.Labels).To(gomega.HaveKeyWithValue(clusterv1beta1.ClusterNameLabel, "my-cluster"))
+				g.Expect(claim.Labels).To(gomega.HaveKeyWithValue(clusterv1.ClusterNameLabel, "my-cluster"))
 			}
 		})
 
@@ -174,7 +175,7 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 
 				g.Expect(claim.OwnerReferences).To(gomega.HaveLen(1))
 				g.Expect(claim.OwnerReferences[0].Name).To(gomega.Equal(vsphereVM.Name))
-				g.Expect(claim.Labels).To(gomega.HaveKeyWithValue(clusterv1beta1.ClusterNameLabel, "my-cluster"))
+				g.Expect(claim.Labels).To(gomega.HaveKeyWithValue(clusterv1.ClusterNameLabel, "my-cluster"))
 			}
 		})
 

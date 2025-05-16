@@ -277,12 +277,12 @@ func (r Reconciler) PopulateWatchesOnController(mgr manager.Manager, controller 
 func (r Reconciler) fetchMachineOwnerObjects(ctx context.Context, clusterCtx *capvcontext.ClusterContext) (map[string]clustermodule.Wrapper, error) {
 	objects := map[string]clustermodule.Wrapper{}
 
-	name, ok := clusterCtx.VSphereCluster.GetLabels()[clusterv1beta1.ClusterNameLabel]
+	name, ok := clusterCtx.VSphereCluster.GetLabels()[clusterv1.ClusterNameLabel]
 	if !ok {
 		return nil, errors.Errorf("failed to get Cluster name from VSphereCluster: missing cluster name label")
 	}
 
-	labels := map[string]string{clusterv1beta1.ClusterNameLabel: name}
+	labels := map[string]string{clusterv1.ClusterNameLabel: name}
 	kcpList := &controlplanev1.KubeadmControlPlaneList{}
 	if err := r.Client.List(
 		ctx, kcpList,

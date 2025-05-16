@@ -23,7 +23,7 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	kcfg "sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -33,7 +33,7 @@ import (
 func NewKubeClient(
 	ctx context.Context,
 	controllerClient client.Client,
-	cluster *clusterv1beta1.Cluster) (kubernetes.Interface, error) {
+	cluster *clusterv1.Cluster) (kubernetes.Interface, error) {
 	clusterKey := client.ObjectKey{Namespace: cluster.Namespace, Name: cluster.Name}
 	kubeconfig, err := kcfg.FromSecret(ctx, controllerClient, clusterKey)
 	if err != nil {

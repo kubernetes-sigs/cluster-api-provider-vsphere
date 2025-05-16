@@ -18,7 +18,7 @@ package fake
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 )
@@ -38,8 +38,8 @@ func NewVSphereCluster(namespace string) vmwarev1.VSphereCluster {
 	}
 }
 
-func newCluster(vSphereCluster *vmwarev1.VSphereCluster) *clusterv1beta1.Cluster {
-	return &clusterv1beta1.Cluster{
+func newCluster(vSphereCluster *vmwarev1.VSphereCluster) *clusterv1.Cluster {
+	return &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      vSphereCluster.Name,
 			Namespace: vSphereCluster.Namespace,
@@ -55,12 +55,12 @@ func newCluster(vSphereCluster *vmwarev1.VSphereCluster) *clusterv1beta1.Cluster
 			},
 			UID: ClusterUUID,
 		},
-		Spec: clusterv1beta1.ClusterSpec{
-			ClusterNetwork: &clusterv1beta1.ClusterNetwork{
-				Pods: &clusterv1beta1.NetworkRanges{
+		Spec: clusterv1.ClusterSpec{
+			ClusterNetwork: &clusterv1.ClusterNetwork{
+				Pods: &clusterv1.NetworkRanges{
 					CIDRBlocks: []string{PodCIDR},
 				},
-				Services: &clusterv1beta1.NetworkRanges{
+				Services: &clusterv1.NetworkRanges{
 					CIDRBlocks: []string{ServiceCIDR},
 				},
 			},

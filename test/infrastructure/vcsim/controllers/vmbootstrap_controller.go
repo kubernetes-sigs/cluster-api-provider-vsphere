@@ -147,7 +147,7 @@ type vmBootstrapReconciler struct {
 	GetProviderID func() string
 }
 
-func (r *vmBootstrapReconciler) reconcileBoostrap(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1beta1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
+func (r *vmBootstrapReconciler) reconcileBoostrap(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	if !deprecatedconditions.Has(conditionsTracker, VMProvisionedCondition) {
@@ -178,7 +178,7 @@ func (r *vmBootstrapReconciler) reconcileBoostrap(ctx context.Context, cluster *
 	}
 
 	// Call the inner reconciliation methods.
-	phases := []func(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1beta1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error){
+	phases := []func(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error){
 		r.reconcileBoostrapNode,
 		r.reconcileBoostrapETCD,
 		r.reconcileBoostrapAPIServer,
@@ -204,7 +204,7 @@ func (r *vmBootstrapReconciler) reconcileBoostrap(ctx context.Context, cluster *
 	return res, kerrors.NewAggregate(errs)
 }
 
-func (r *vmBootstrapReconciler) reconcileBoostrapNode(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1beta1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
+func (r *vmBootstrapReconciler) reconcileBoostrapNode(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	nodeName := conditionsTracker.GetName()
 
@@ -289,7 +289,7 @@ func (r *vmBootstrapReconciler) reconcileBoostrapNode(ctx context.Context, clust
 	return ctrl.Result{}, nil
 }
 
-func (r *vmBootstrapReconciler) reconcileBoostrapETCD(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1beta1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
+func (r *vmBootstrapReconciler) reconcileBoostrapETCD(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	etcdMember := fmt.Sprintf("etcd-%s", conditionsTracker.GetName())
 
@@ -433,7 +433,7 @@ func (r *vmBootstrapReconciler) reconcileBoostrapETCD(ctx context.Context, clust
 	return ctrl.Result{}, nil
 }
 
-func (r *vmBootstrapReconciler) reconcileBoostrapAPIServer(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1beta1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
+func (r *vmBootstrapReconciler) reconcileBoostrapAPIServer(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	apiServer := fmt.Sprintf("kube-apiserver-%s", conditionsTracker.GetName())
 
@@ -542,7 +542,7 @@ func (r *vmBootstrapReconciler) reconcileBoostrapAPIServer(ctx context.Context, 
 	return ctrl.Result{}, nil
 }
 
-func (r *vmBootstrapReconciler) reconcileBoostrapScheduler(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1beta1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
+func (r *vmBootstrapReconciler) reconcileBoostrapScheduler(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
 	// No-op if the machine is not a control plane machine.
 	if !util.IsControlPlaneMachine(machine) {
 		return ctrl.Result{}, nil
@@ -589,7 +589,7 @@ func (r *vmBootstrapReconciler) reconcileBoostrapScheduler(ctx context.Context, 
 	return ctrl.Result{}, nil
 }
 
-func (r *vmBootstrapReconciler) reconcileBoostrapControllerManager(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1beta1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
+func (r *vmBootstrapReconciler) reconcileBoostrapControllerManager(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
 	// No-op if the machine is not a control plane machine.
 	if !util.IsControlPlaneMachine(machine) {
 		return ctrl.Result{}, nil
@@ -636,7 +636,7 @@ func (r *vmBootstrapReconciler) reconcileBoostrapControllerManager(ctx context.C
 	return ctrl.Result{}, nil
 }
 
-func (r *vmBootstrapReconciler) reconcileBoostrapKubeadmObjects(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1beta1.Machine, _ ConditionsTracker) (ctrl.Result, error) {
+func (r *vmBootstrapReconciler) reconcileBoostrapKubeadmObjects(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, _ ConditionsTracker) (ctrl.Result, error) {
 	// No-op if the machine is not a control plane machine.
 	if !util.IsControlPlaneMachine(machine) {
 		return ctrl.Result{}, nil
@@ -703,7 +703,7 @@ func (r *vmBootstrapReconciler) reconcileBoostrapKubeadmObjects(ctx context.Cont
 	return ctrl.Result{}, nil
 }
 
-func (r *vmBootstrapReconciler) reconcileBoostrapKubeProxy(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1beta1.Machine, _ ConditionsTracker) (ctrl.Result, error) {
+func (r *vmBootstrapReconciler) reconcileBoostrapKubeProxy(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, _ ConditionsTracker) (ctrl.Result, error) {
 	// No-op if the machine is not a control plane machine.
 	if !util.IsControlPlaneMachine(machine) {
 		return ctrl.Result{}, nil
@@ -749,7 +749,7 @@ func (r *vmBootstrapReconciler) reconcileBoostrapKubeProxy(ctx context.Context, 
 	return ctrl.Result{}, nil
 }
 
-func (r *vmBootstrapReconciler) reconcileBoostrapCoredns(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1beta1.Machine, _ ConditionsTracker) (ctrl.Result, error) {
+func (r *vmBootstrapReconciler) reconcileBoostrapCoredns(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, _ ConditionsTracker) (ctrl.Result, error) {
 	// No-op if the machine is not a control plane machine.
 	if !util.IsControlPlaneMachine(machine) {
 		return ctrl.Result{}, nil
@@ -812,9 +812,9 @@ func (r *vmBootstrapReconciler) reconcileBoostrapCoredns(ctx context.Context, cl
 	return ctrl.Result{}, nil
 }
 
-func (r *vmBootstrapReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1beta1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
+func (r *vmBootstrapReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
 	// Call the inner reconciliation methods.
-	phases := []func(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1beta1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error){
+	phases := []func(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error){
 		r.reconcileDeleteNode,
 		r.reconcileDeleteETCD,
 		r.reconcileDeleteAPIServer,
@@ -841,7 +841,7 @@ func (r *vmBootstrapReconciler) reconcileDelete(ctx context.Context, cluster *cl
 	return res, kerrors.NewAggregate(errs)
 }
 
-func (r *vmBootstrapReconciler) reconcileDeleteNode(ctx context.Context, cluster *clusterv1.Cluster, _ *clusterv1beta1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
+func (r *vmBootstrapReconciler) reconcileDeleteNode(ctx context.Context, cluster *clusterv1.Cluster, _ *clusterv1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
 	// Compute the resource group unique name.
 	resourceGroup := klog.KObj(cluster).String()
 	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
@@ -861,7 +861,7 @@ func (r *vmBootstrapReconciler) reconcileDeleteNode(ctx context.Context, cluster
 	return ctrl.Result{}, nil
 }
 
-func (r *vmBootstrapReconciler) reconcileDeleteETCD(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1beta1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
+func (r *vmBootstrapReconciler) reconcileDeleteETCD(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
 	// No-op if the machine is not a control plane machine.
 	if !util.IsControlPlaneMachine(machine) {
 		return ctrl.Result{}, nil
@@ -898,7 +898,7 @@ func (r *vmBootstrapReconciler) reconcileDeleteETCD(ctx context.Context, cluster
 	return ctrl.Result{}, nil
 }
 
-func (r *vmBootstrapReconciler) reconcileDeleteAPIServer(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1beta1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
+func (r *vmBootstrapReconciler) reconcileDeleteAPIServer(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
 	// No-op if the machine is not a control plane machine.
 	if !util.IsControlPlaneMachine(machine) {
 		return ctrl.Result{}, nil
@@ -930,7 +930,7 @@ func (r *vmBootstrapReconciler) reconcileDeleteAPIServer(ctx context.Context, cl
 	return ctrl.Result{}, nil
 }
 
-func (r *vmBootstrapReconciler) reconcileDeleteScheduler(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1beta1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
+func (r *vmBootstrapReconciler) reconcileDeleteScheduler(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
 	// No-op if the machine is not a control plane machine.
 	if !util.IsControlPlaneMachine(machine) {
 		return ctrl.Result{}, nil
@@ -953,7 +953,7 @@ func (r *vmBootstrapReconciler) reconcileDeleteScheduler(ctx context.Context, cl
 	return ctrl.Result{}, nil
 }
 
-func (r *vmBootstrapReconciler) reconcileDeleteControllerManager(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1beta1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
+func (r *vmBootstrapReconciler) reconcileDeleteControllerManager(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, conditionsTracker ConditionsTracker) (ctrl.Result, error) {
 	// No-op if the machine is not a control plane machine.
 	if !util.IsControlPlaneMachine(machine) {
 		return ctrl.Result{}, nil

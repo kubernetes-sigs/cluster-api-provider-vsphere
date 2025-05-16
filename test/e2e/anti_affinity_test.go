@@ -28,6 +28,7 @@ import (
 	"github.com/vmware/govmomi/vim25/mo"
 	corev1 "k8s.io/api/core/v1"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	. "sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
@@ -218,7 +219,7 @@ func FetchWorkerVMsForCluster(ctx context.Context, bootstrapClusterProxy framewo
 		vms,
 		client.InNamespace(ns),
 		client.MatchingLabels{
-			clusterv1beta1.ClusterNameLabel: clusterName,
+			clusterv1.ClusterNameLabel: clusterName,
 		})
 	Expect(err).ToNot(HaveOccurred())
 

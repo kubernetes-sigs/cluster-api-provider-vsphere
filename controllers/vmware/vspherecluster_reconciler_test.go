@@ -30,6 +30,7 @@ import (
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -55,7 +56,7 @@ var _ = Describe("Cluster Controller Tests", func() {
 		testIP                = "127.0.0.1"
 	)
 	var (
-		cluster                  *clusterv1beta1.Cluster
+		cluster                  *clusterv1.Cluster
 		vsphereCluster           *vmwarev1.VSphereCluster
 		vsphereMachine           *vmwarev1.VSphereMachine
 		clusterCtx               *vmware.ClusterContext

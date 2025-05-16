@@ -22,7 +22,7 @@ import (
 	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
+	deprecatedv1beta2conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
@@ -46,7 +46,7 @@ func (np *dummyNetworkProvider) SupportsVMReadinessProbe() bool {
 }
 
 func (np *dummyNetworkProvider) ProvisionClusterNetwork(_ context.Context, clusterCtx *vmware.ClusterContext) error {
-	v1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
+	deprecatedv1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 		Type:   vmwarev1.VSphereClusterNetworkReadyV1Beta2Condition,
 		Status: metav1.ConditionTrue,
 		Reason: vmwarev1.VSphereClusterNetworkReadyV1Beta2Reason,

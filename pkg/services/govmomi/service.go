@@ -35,7 +35,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apitypes "k8s.io/apimachinery/pkg/types"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	bootstrapv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	deprecatedv1beta2conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -689,7 +689,7 @@ func (vms *VMService) getNetworkStatus(ctx context.Context, virtualMachineCtx *v
 
 // getBootstrapData obtains a machine's bootstrap data from the relevant k8s secret and returns the
 // data and its format.
-func (vms *VMService) getBootstrapData(ctx context.Context, vmCtx *capvcontext.VMContext) ([]byte, bootstrapv1.Format, error) {
+func (vms *VMService) getBootstrapData(ctx context.Context, vmCtx *capvcontext.VMContext) ([]byte, bootstrapv1beta1.Format, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	if vmCtx.VSphereVM.Spec.BootstrapRef == nil {
@@ -709,7 +709,7 @@ func (vms *VMService) getBootstrapData(ctx context.Context, vmCtx *capvcontext.V
 	format, ok := secret.Data["format"]
 	if !ok || len(format) == 0 {
 		// Bootstrap data format is missing or empty - assume cloud-config.
-		format = []byte(bootstrapv1.CloudConfig)
+		format = []byte(bootstrapv1beta1.CloudConfig)
 	}
 
 	value, ok := secret.Data["value"]
@@ -717,7 +717,7 @@ func (vms *VMService) getBootstrapData(ctx context.Context, vmCtx *capvcontext.V
 		return nil, "", errors.New("error retrieving bootstrap data: secret value key is missing")
 	}
 
-	return value, bootstrapv1.Format(format), nil
+	return value, bootstrapv1beta1.Format(format), nil
 }
 
 func (vms *VMService) reconcileVMGroupInfo(ctx context.Context, virtualMachineCtx *virtualMachineContext) (bool, error) {

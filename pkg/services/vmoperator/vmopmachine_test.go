@@ -33,6 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -76,7 +77,7 @@ const (
 	vmIP                     = "127.0.0.1"
 	biosUUID                 = "test-biosUuid"
 	missingK8SVersionFailure = "missing kubernetes version"
-	clusterNameLabel         = clusterv1beta1.ClusterNameLabel
+	clusterNameLabel         = clusterv1.ClusterNameLabel
 )
 
 var _ = Describe("VirtualMachine tests", func() {
@@ -95,9 +96,9 @@ var _ = Describe("VirtualMachine tests", func() {
 		expectedConditions   clusterv1beta1.Conditions
 		expectedRequeue      bool
 
-		cluster                  *clusterv1beta1.Cluster
+		cluster                  *clusterv1.Cluster
 		vsphereCluster           *vmwarev1.VSphereCluster
-		machine                  *clusterv1beta1.Machine
+		machine                  *clusterv1.Machine
 		vsphereMachine           *vmwarev1.VSphereMachine
 		supervisorMachineContext *vmware.SupervisorMachineContext
 
@@ -405,7 +406,7 @@ var _ = Describe("VirtualMachine tests", func() {
 
 			By("Setting cluster.Status.ControlPlaneReady to true")
 			// Set the control plane to be ready so that the new VM will have a probe
-			cluster.Status.ControlPlaneReady = true
+			cluster.Status.Initialization.ControlPlaneInitialized = true
 
 			vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
 			if vmopVM.Status.Network == nil {

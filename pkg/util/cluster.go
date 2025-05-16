@@ -21,7 +21,7 @@ import (
 
 	"github.com/pkg/errors"
 	apitypes "k8s.io/apimachinery/pkg/types"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
@@ -31,7 +31,7 @@ import (
 // GetVSphereClusterFromVMwareMachine gets the vmware.infrastructure.cluster.x-k8s.io.VSphereCluster resource for the given VSphereMachine.
 // TODO (srm09): Rename this to a more appropriate name.
 func GetVSphereClusterFromVMwareMachine(ctx context.Context, c client.Client, machine *vmwarev1.VSphereMachine) (*vmwarev1.VSphereCluster, error) {
-	clusterName := machine.Labels[clusterv1beta1.ClusterNameLabel]
+	clusterName := machine.Labels[clusterv1.ClusterNameLabel]
 	if clusterName == "" {
 		return nil, errors.Errorf("error getting VSphereCluster name from VSphereMachine %s/%s",
 			machine.Namespace, machine.Name)
@@ -40,7 +40,7 @@ func GetVSphereClusterFromVMwareMachine(ctx context.Context, c client.Client, ma
 		Namespace: machine.Namespace,
 		Name:      clusterName,
 	}
-	cluster := &clusterv1beta1.Cluster{}
+	cluster := &clusterv1.Cluster{}
 	if err := c.Get(ctx, namespacedName, cluster); err != nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func GetVSphereClusterFromVMwareMachine(ctx context.Context, c client.Client, ma
 
 // GetVSphereClusterFromVSphereMachine gets the infrastructure.cluster.x-k8s.io.VSphereCluster resource for the given VSphereMachine.
 func GetVSphereClusterFromVSphereMachine(ctx context.Context, c client.Client, machine *infrav1.VSphereMachine) (*infrav1.VSphereCluster, error) {
-	clusterName := machine.Labels[clusterv1beta1.ClusterNameLabel]
+	clusterName := machine.Labels[clusterv1.ClusterNameLabel]
 	if clusterName == "" {
 		return nil, errors.Errorf("error getting VSphereCluster name from VSphereMachine %s/%s",
 			machine.Namespace, machine.Name)
@@ -70,7 +70,7 @@ func GetVSphereClusterFromVSphereMachine(ctx context.Context, c client.Client, m
 		Namespace: machine.Namespace,
 		Name:      clusterName,
 	}
-	cluster := &clusterv1beta1.Cluster{}
+	cluster := &clusterv1.Cluster{}
 	if err := c.Get(ctx, namespacedName, cluster); err != nil {
 		return nil, err
 	}

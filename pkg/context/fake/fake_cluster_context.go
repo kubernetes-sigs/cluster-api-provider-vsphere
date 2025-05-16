@@ -21,7 +21,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
@@ -48,19 +48,19 @@ func NewClusterContext(ctx context.Context, controllerManagerCtx *capvcontext.Co
 	}
 }
 
-func newClusterV1() clusterv1beta1.Cluster {
-	return clusterv1beta1.Cluster{
+func newClusterV1() clusterv1.Cluster {
+	return clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: Namespace,
 			Name:      Clusterv1a2Name,
 			UID:       Clusterv1a2UUID,
 		},
-		Spec: clusterv1beta1.ClusterSpec{
-			ClusterNetwork: &clusterv1beta1.ClusterNetwork{
-				Pods: &clusterv1beta1.NetworkRanges{
+		Spec: clusterv1.ClusterSpec{
+			ClusterNetwork: &clusterv1.ClusterNetwork{
+				Pods: &clusterv1.NetworkRanges{
 					CIDRBlocks: []string{PodCIDR},
 				},
-				Services: &clusterv1beta1.NetworkRanges{
+				Services: &clusterv1.NetworkRanges{
 					CIDRBlocks: []string{ServiceCIDR},
 				},
 			},
@@ -72,16 +72,16 @@ func newClusterV1() clusterv1beta1.Cluster {
 	}
 }
 
-func newVSphereCluster(owner clusterv1beta1.Cluster) infrav1.VSphereCluster {
+func newVSphereCluster(owner clusterv1.Cluster) infrav1.VSphereCluster {
 	return infrav1.VSphereCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: owner.Namespace,
 			Name:      owner.Name,
 			UID:       VSphereClusterUUID,
-			Labels:    map[string]string{clusterv1beta1.ClusterNameLabel: owner.Name},
+			Labels:    map[string]string{clusterv1.ClusterNameLabel: owner.Name},
 			OwnerReferences: []metav1.OwnerReference{
 				{
-					APIVersion:         clusterv1beta1.GroupVersion.String(),
+					APIVersion:         clusterv1.GroupVersion.String(),
 					Kind:               "Cluster",
 					Name:               owner.Name,
 					UID:                owner.UID,

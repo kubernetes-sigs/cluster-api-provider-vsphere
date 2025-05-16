@@ -24,7 +24,7 @@ import (
 	"github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vcsim"
@@ -131,16 +131,16 @@ func TestService_Create(t *testing.T) {
 	})
 }
 
-func machineDeployment(name, namespace, cluster string) *clusterv1beta1.MachineDeployment {
-	return &clusterv1beta1.MachineDeployment{
+func machineDeployment(name, namespace, cluster string) *clusterv1.MachineDeployment {
+	return &clusterv1.MachineDeployment{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1beta1.GroupVersion.String(),
+			APIVersion: clusterv1.GroupVersion.String(),
 			Kind:       "MachineDeployment",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
-			Labels:    map[string]string{clusterv1beta1.ClusterNameLabel: cluster},
+			Labels:    map[string]string{clusterv1.ClusterNameLabel: cluster},
 		},
 	}
 }

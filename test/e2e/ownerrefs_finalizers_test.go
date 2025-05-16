@@ -35,14 +35,15 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
-	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta1"
+	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta2"
 	clusterctlcluster "sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	"sigs.k8s.io/cluster-api/test/framework"
-	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -144,14 +145,14 @@ var _ = Describe("Ensure OwnerReferences and Finalizers are resilient [vcsim] [s
 					// This check ensures that the rollout to the machines finished before
 					// checking resource version stability.
 					Eventually(func() error {
-						machineList := &clusterv1beta1.MachineList{}
+						machineList := &clusterv1.MachineList{}
 						if err := proxy.GetClient().List(ctx, machineList, ctrlclient.InNamespace(namespace)); err != nil {
 							return errors.Wrap(err, "list machines")
 						}
 
 						for _, machine := range machineList.Items {
-							if !deprecatedconditions.IsTrue(&machine, clusterv1beta1.MachineNodeHealthyCondition) {
-								return errors.Errorf("machine %q does not have %q condition set to true", machine.GetName(), clusterv1beta1.MachineNodeHealthyCondition)
+							if !v1beta1conditions.IsTrue(&machine, clusterv1.MachineNodeHealthyV1Beta1Condition) {
+								return errors.Errorf("machine %q does not have %q condition set to true", machine.GetName(), clusterv1.MachineNodeHealthyV1Beta1Condition)
 							}
 						}
 
@@ -284,10 +285,10 @@ var (
 	vmwareVSphereMachineController = metav1.OwnerReference{Kind: "VSphereMachine", APIVersion: vmwarev1.GroupVersion.String(), Controller: ptr.To(true)}
 
 	// CAPI owners.
-	clusterClassOwner       = metav1.OwnerReference{Kind: "ClusterClass", APIVersion: clusterv1beta1.GroupVersion.String()}
-	clusterOwner            = metav1.OwnerReference{Kind: "Cluster", APIVersion: clusterv1beta1.GroupVersion.String()}
-	clusterController       = metav1.OwnerReference{Kind: "Cluster", APIVersion: clusterv1beta1.GroupVersion.String(), Controller: ptr.To(true)}
-	machineController       = metav1.OwnerReference{Kind: "Machine", APIVersion: clusterv1beta1.GroupVersion.String(), Controller: ptr.To(true)}
+	clusterClassOwner       = metav1.OwnerReference{Kind: "ClusterClass", APIVersion: clusterv1.GroupVersion.String()}
+	clusterOwner            = metav1.OwnerReference{Kind: "Cluster", APIVersion: clusterv1.GroupVersion.String()}
+	clusterController       = metav1.OwnerReference{Kind: "Cluster", APIVersion: clusterv1.GroupVersion.String(), Controller: ptr.To(true)}
+	machineController       = metav1.OwnerReference{Kind: "Machine", APIVersion: clusterv1.GroupVersion.String(), Controller: ptr.To(true)}
 	clusterResourceSetOwner = metav1.OwnerReference{Kind: "ClusterResourceSet", APIVersion: addonsv1.GroupVersion.String()}
 
 	// KCP owner.

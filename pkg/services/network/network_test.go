@@ -31,7 +31,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	apitypes "k8s.io/apimachinery/pkg/types"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -112,22 +112,22 @@ var _ = Describe("Network provider", func() {
 		clusterCtx       *vmware.ClusterContext
 		err              error
 		np               services.NetworkProvider
-		cluster          *clusterv1beta1.Cluster
+		cluster          *clusterv1.Cluster
 		vSphereCluster   *vmwarev1.VSphereCluster
 		vm               *vmoprv1.VirtualMachine
 		hasLB            bool
 	)
 	BeforeEach(func() {
-		cluster = &clusterv1beta1.Cluster{
+		cluster = &clusterv1.Cluster{
 			TypeMeta: metav1.TypeMeta{
-				APIVersion: clusterv1beta1.GroupVersion.String(),
+				APIVersion: clusterv1.GroupVersion.String(),
 				Kind:       clusterKind,
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      dummyCluster,
 				Namespace: dummyNs,
 			},
-			Spec: clusterv1beta1.ClusterSpec{
+			Spec: clusterv1.ClusterSpec{
 				InfrastructureRef: &corev1.ObjectReference{
 					APIVersion: vmwarev1.GroupVersion.String(),
 					Kind:       infraClusterKind,

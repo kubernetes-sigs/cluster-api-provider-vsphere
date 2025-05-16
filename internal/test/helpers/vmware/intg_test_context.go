@@ -29,7 +29,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	capiutil "sigs.k8s.io/cluster-api/util"
@@ -139,7 +138,7 @@ func NewIntegrationTestContextWithClusters(ctx context.Context, integrationTestC
 				Name:      fmt.Sprintf("%s-kubeconfig", testCtx.Cluster.Name),
 				OwnerReferences: []metav1.OwnerReference{
 					{
-						APIVersion: clusterv1beta1.GroupVersion.String(),
+						APIVersion: clusterv1.GroupVersion.String(),
 						Kind:       "Cluster",
 						Name:       testCtx.Cluster.Name,
 						// Using a random id in this case is okay because we don't rely on it to be the correct uid.

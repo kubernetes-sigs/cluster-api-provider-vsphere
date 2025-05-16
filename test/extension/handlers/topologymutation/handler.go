@@ -31,7 +31,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/utils/ptr"
-	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	bootstrapv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	controlplanev1beta1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/runtime/topologymutation"
@@ -62,7 +63,7 @@ func NewExtensionHandlers(scheme *runtime.Scheme) *ExtensionHandlers {
 			infrav1.GroupVersion,
 			vmwarev1.GroupVersion,
 			controlplanev1beta1.GroupVersion,
-			bootstrapv1.GroupVersion,
+			bootstrapv1beta1.GroupVersion,
 		),
 	}
 }
@@ -89,7 +90,7 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 					log.Error(err, "Error patching KubeadmControlPlaneTemplate")
 					return errors.Wrap(err, "error patching KubeadmControlPlaneTemplate")
 				}
-			case *bootstrapv1.KubeadmConfigTemplate:
+			case *bootstrapv1beta1.KubeadmConfigTemplate:
 				if err := patchKubeadmConfigTemplate(ctx, obj, variables); err != nil {
 					log.Error(err, "Error patching KubeadmConfigTemplate")
 					return errors.Wrap(err, "error patching KubeadmConfigTemplate")
@@ -150,7 +151,11 @@ func patchKubeadmControlPlaneTemplate(_ context.Context, tpl *controlplanev1beta
 			if file.Path == "/etc/kubernetes/manifests/kube-vip.yaml" {
 				file.Content = kubeVipPodManifestModified
 			}
-			tpl.Spec.Template.Spec.KubeadmConfigSpec.Files = append(tpl.Spec.Template.Spec.KubeadmConfigSpec.Files, file)
+			out := &bootstrapv1beta1.File{}
+			if err := bootstrapv1beta1.Convert_v1beta2_File_To_v1beta1_File(&file, out, nil); err != nil {
+				return err
+			}
+			tpl.Spec.Template.Spec.KubeadmConfigSpec.Files = append(tpl.Spec.Template.Spec.KubeadmConfigSpec.Files, *out)
 		}
 	}
 
@@ -169,7 +174,7 @@ func patchKubeadmControlPlaneTemplate(_ context.Context, tpl *controlplanev1beta
 
 		versionRegex := regexp.MustCompile("(KUBERNETES_VERSION=.*)")
 		tpl.Spec.Template.Spec.KubeadmConfigSpec.Files = append(tpl.Spec.Template.Spec.KubeadmConfigSpec.Files,
-			bootstrapv1.File{
+			bootstrapv1beta1.File{
 				Owner:       "root:root",
 				Path:        "/etc/pre-kubeadm-commands/10-prekubeadmscript.sh",
 				Permissions: "0755",
@@ -182,7 +187,7 @@ func patchKubeadmControlPlaneTemplate(_ context.Context, tpl *controlplanev1beta
 }
 
 // KubeadmConfigTemplate patches the KubeadmConfigTemplate.
-func patchKubeadmConfigTemplate(_ context.Context, tpl *bootstrapv1.KubeadmConfigTemplate, templateVariables map[string]apiextensionsv1.JSON) error {
+func patchKubeadmConfigTemplate(_ context.Context, tpl *bootstrapv1beta1.KubeadmConfigTemplate, templateVariables map[string]apiextensionsv1.JSON) error {
 	// patch enableSSHIntoNodes
 	if err := patchUsers(&tpl.Spec.Template.Spec, templateVariables); err != nil {
 		return err
@@ -190,7 +195,7 @@ func patchKubeadmConfigTemplate(_ context.Context, tpl *bootstrapv1.KubeadmConfi
 
 	// always add a file so we don't have an empty array.
 	tpl.Spec.Template.Spec.Files = append(tpl.Spec.Template.Spec.Files,
-		bootstrapv1.File{
+		bootstrapv1beta1.File{
 			Owner:       "root:root",
 			Path:        "/etc/test-extension",
 			Permissions: "0755",
@@ -212,7 +217,7 @@ func patchKubeadmConfigTemplate(_ context.Context, tpl *bootstrapv1.KubeadmConfi
 
 		versionRegex := regexp.MustCompile("(KUBERNETES_VERSION=.*)")
 		tpl.Spec.Template.Spec.Files = append(tpl.Spec.Template.Spec.Files,
-			bootstrapv1.File{
+			bootstrapv1beta1.File{
 				Owner:       "root:root",
 				Path:        "/etc/pre-kubeadm-commands/10-prekubeadmscript.sh",
 				Permissions: "0755",
@@ -224,7 +229,7 @@ func patchKubeadmConfigTemplate(_ context.Context, tpl *bootstrapv1.KubeadmConfi
 	return nil
 }
 
-func patchUsers(kubeadmConfigSpec *bootstrapv1.KubeadmConfigSpec, templateVariables map[string]apiextensionsv1.JSON) error {
+func patchUsers(kubeadmConfigSpec *bootstrapv1beta1.KubeadmConfigSpec, templateVariables map[string]apiextensionsv1.JSON) error {
 	sshKey, err := topologymutation.GetStringVariable(templateVariables, "sshKey")
 	if err != nil {
 		// Skip patch if sshKey variable is not set
@@ -235,7 +240,7 @@ func patchUsers(kubeadmConfigSpec *bootstrapv1.KubeadmConfigSpec, templateVariab
 	}
 
 	kubeadmConfigSpec.Users = append(kubeadmConfigSpec.Users,
-		bootstrapv1.User{
+		bootstrapv1beta1.User{
 			Name:              "capv",
 			SSHAuthorizedKeys: []string{sshKey},
 			Sudo:              ptr.To("ALL=(ALL) NOPASSWD:ALL"),
@@ -363,7 +368,18 @@ func (h *ExtensionHandlers) DiscoverVariables(ctx context.Context, req *runtimeh
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("DiscoverVariables called")
 
-	resp.Status = runtimehooksv1.ResponseStatusSuccess
+	vars := []clusterv1beta1.ClusterClassVariable{}
 
-	resp.Variables = clusterclass.GetClusterClassVariables(req.Settings["testMode"] == "govmomi")
+	for _, in := range clusterclass.GetClusterClassVariables(req.Settings["testMode"] == "govmomi") {
+		out := clusterv1beta1.ClusterClassVariable{}
+		if err := clusterv1beta1.Convert_v1beta2_ClusterClassVariable_To_v1beta1_ClusterClassVariable(&in, &out, nil); err != nil {
+			resp.Status = runtimehooksv1.ResponseStatusFailure
+			resp.Message = fmt.Sprintf("Failed to Convert ClusterClass variable %q to v1beta1", in.Name)
+			return
+		}
+		vars = append(resp.Variables, out)
+	}
+
+	resp.Status = runtimehooksv1.ResponseStatusSuccess
+	resp.Variables = vars
 }

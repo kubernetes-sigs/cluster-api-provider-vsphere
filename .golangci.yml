@@ -117,10 +117,12 @@ linters:
         - pkg: github.com/vmware-tanzu/nsx-operator/pkg/apis/vpc/v1alpha1
           alias: nsxvpcv1
         # CABPK
-        - pkg: sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1
+        - pkg: sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta2
           alias: bootstrapv1
+        - pkg: sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1
+          alias: bootstrapv1beta1
         # KCP
-        - pkg: sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1
+        - pkg: sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2
           alias: controlplanev1
         # CAPI
         - pkg: sigs.k8s.io/cluster-api/api/v1beta2
@@ -201,6 +203,9 @@ linters:
       - linters:
           - staticcheck
         text: 'SA1019: "sigs.k8s.io/cluster-api-provider-vsphere/apis/(v1alpha3|v1alpha4)" is deprecated: This package will be removed in one of the next releases.'
+      - linters:
+          - staticcheck
+        text: 'SA1019: "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/.*" is deprecated'
       - linters:
           - revive
         text: 'exported: exported method .*\.(Reconcile|SetupWithManager|SetupWebhookWithManager) should have comment or be unexported'

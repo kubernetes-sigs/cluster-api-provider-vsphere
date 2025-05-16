@@ -31,7 +31,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/ptr"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -69,7 +69,7 @@ func TestMain(m *testing.M) {
 
 func setup(ctx context.Context) (*helpers.TestEnvironment, clustercache.ClusterCache) {
 	utilruntime.Must(infrav1.AddToScheme(scheme.Scheme))
-	utilruntime.Must(clusterv1beta1.AddToScheme(scheme.Scheme))
+	utilruntime.Must(clusterv1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(vmwarev1.AddToScheme(scheme.Scheme))
 
 	testEnv := helpers.NewTestEnvironment(ctx)

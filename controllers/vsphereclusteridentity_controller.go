@@ -120,7 +120,7 @@ func (r clusterIdentityReconciler) Reconcile(ctx context.Context, req reconcile.
 		Name:      identity.Spec.SecretName,
 	}
 	if err := r.Client.Get(ctx, secretKey, secret); err != nil {
-		deprecatedconditions.MarkFalse(identity, infrav1.CredentialsAvailableCondidtion, infrav1.SecretNotAvailableReason, clusterv1beta1.ConditionSeverityWarning, err.Error())
+		deprecatedconditions.MarkFalse(identity, infrav1.CredentialsAvailableCondidtion, infrav1.SecretNotAvailableReason, clusterv1beta1.ConditionSeverityWarning, "%v", err)
 		deprecatedv1beta2conditions.Set(identity, metav1.Condition{
 			Type:    infrav1.VSphereClusterIdentityAvailableV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
@@ -158,7 +158,7 @@ func (r clusterIdentityReconciler) Reconcile(ctx context.Context, req reconcile.
 	}
 	err = r.Client.Update(ctx, secret)
 	if err != nil {
-		deprecatedconditions.MarkFalse(identity, infrav1.CredentialsAvailableCondidtion, infrav1.SecretOwnerReferenceFailedReason, clusterv1beta1.ConditionSeverityWarning, err.Error())
+		deprecatedconditions.MarkFalse(identity, infrav1.CredentialsAvailableCondidtion, infrav1.SecretOwnerReferenceFailedReason, clusterv1beta1.ConditionSeverityWarning, "%v", err)
 		deprecatedv1beta2conditions.Set(identity, metav1.Condition{
 			Type:    infrav1.VSphereClusterIdentityAvailableV1Beta2Condition,
 			Status:  metav1.ConditionFalse,

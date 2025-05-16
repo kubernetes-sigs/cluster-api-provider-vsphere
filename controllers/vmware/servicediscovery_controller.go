@@ -239,7 +239,7 @@ func (r *serviceDiscoveryReconciler) patch(ctx context.Context, clusterCtx *vmwa
 func (r *serviceDiscoveryReconciler) reconcileNormal(ctx context.Context, guestClusterCtx *vmwarecontext.GuestClusterContext) error {
 	if err := r.reconcileSupervisorHeadlessService(ctx, guestClusterCtx); err != nil {
 		deprecatedconditions.MarkFalse(guestClusterCtx.VSphereCluster, vmwarev1.ServiceDiscoveryReadyCondition, vmwarev1.SupervisorHeadlessServiceSetupFailedReason,
-			clusterv1beta1.ConditionSeverityWarning, err.Error())
+			clusterv1beta1.ConditionSeverityWarning, "%v", err)
 		deprecatedv1beta2conditions.Set(guestClusterCtx.VSphereCluster, metav1.Condition{
 			Type:    vmwarev1.VSphereClusterServiceDiscoveryReadyV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
@@ -283,7 +283,7 @@ func (r *serviceDiscoveryReconciler) reconcileSupervisorHeadlessService(ctx cont
 		// Note: We have watches on the LB Svc (VIP) & the cluster-info configmap (FIP).
 		// There is no need to return an error to keep re-trying.
 		deprecatedconditions.MarkFalse(guestClusterCtx.VSphereCluster, vmwarev1.ServiceDiscoveryReadyCondition, vmwarev1.SupervisorHeadlessServiceSetupFailedReason,
-			clusterv1beta1.ConditionSeverityWarning, err.Error())
+			clusterv1beta1.ConditionSeverityWarning, "%v", err)
 		deprecatedv1beta2conditions.Set(guestClusterCtx.VSphereCluster, metav1.Condition{
 			Type:    vmwarev1.VSphereClusterServiceDiscoveryReadyV1Beta2Condition,
 			Status:  metav1.ConditionFalse,

@@ -315,10 +315,6 @@ linters:
           - staticcheck
         path: ^(apis/(v1alpha3|v1alpha4)\/.*)\.go$
         text: ST1021|ST1020
-        # Ignore non-constant format string in call to condition utils
-      - linters:
-          - govet
-        text: non-constant format string in call to sigs\.k8s\.io\/cluster-api\/util\/conditions\.
       - linters:
           - goconst
         path: (.+)_test\.go

@@ -90,7 +90,7 @@ func (vms *VMService) ReconcileVM(ctx context.Context, vmCtx *capvcontext.VMCont
 		// but sometimes this error is transient, for instance, if the storage was temporarily disconnected but
 		// later recovered, the machine will recover from this error.
 		if wasNotFoundByBIOSUUID(err) {
-			deprecatedconditions.MarkFalse(vmCtx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.NotFoundByBIOSUUIDReason, clusterv1beta1.ConditionSeverityWarning, err.Error())
+			deprecatedconditions.MarkFalse(vmCtx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.NotFoundByBIOSUUIDReason, clusterv1beta1.ConditionSeverityWarning, "%v", err)
 			deprecatedv1beta2conditions.Set(vmCtx.VSphereVM, metav1.Condition{
 				Type:    infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
@@ -116,7 +116,7 @@ func (vms *VMService) ReconcileVM(ctx context.Context, vmCtx *capvcontext.VMCont
 		// Get the bootstrap data.
 		bootstrapData, format, err := vms.getBootstrapData(ctx, vmCtx)
 		if err != nil {
-			deprecatedconditions.MarkFalse(vmCtx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.CloningFailedReason, clusterv1beta1.ConditionSeverityWarning, err.Error())
+			deprecatedconditions.MarkFalse(vmCtx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.CloningFailedReason, clusterv1beta1.ConditionSeverityWarning, "%v", err)
 			deprecatedv1beta2conditions.Set(vmCtx.VSphereVM, metav1.Condition{
 				Type:    infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
@@ -129,7 +129,7 @@ func (vms *VMService) ReconcileVM(ctx context.Context, vmCtx *capvcontext.VMCont
 		// Create the VM.
 		err = createVM(ctx, vmCtx, bootstrapData, format)
 		if err != nil {
-			deprecatedconditions.MarkFalse(vmCtx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.CloningFailedReason, clusterv1beta1.ConditionSeverityWarning, err.Error())
+			deprecatedconditions.MarkFalse(vmCtx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.CloningFailedReason, clusterv1beta1.ConditionSeverityWarning, "%v", err)
 			deprecatedv1beta2conditions.Set(vmCtx.VSphereVM, metav1.Condition{
 				Type:    infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
@@ -197,7 +197,7 @@ func (vms *VMService) ReconcileVM(ctx context.Context, vmCtx *capvcontext.VMCont
 	}
 
 	if err := vms.reconcileTags(ctx, virtualMachineCtx); err != nil {
-		deprecatedconditions.MarkFalse(vmCtx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.TagsAttachmentFailedReason, clusterv1beta1.ConditionSeverityError, err.Error())
+		deprecatedconditions.MarkFalse(vmCtx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.TagsAttachmentFailedReason, clusterv1beta1.ConditionSeverityError, "%v", err)
 		deprecatedv1beta2conditions.Set(vmCtx.VSphereVM, metav1.Condition{
 			Type:    infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
@@ -343,7 +343,7 @@ func (vms *VMService) reconcileIPAddresses(ctx context.Context, virtualMachineCt
 		return false, err
 	}
 	if errors.Is(err, ipam.ErrWaitingForIPAddr) {
-		deprecatedconditions.MarkFalse(virtualMachineCtx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.WaitingForIPAddressReason, clusterv1beta1.ConditionSeverityInfo, err.Error())
+		deprecatedconditions.MarkFalse(virtualMachineCtx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.WaitingForIPAddressReason, clusterv1beta1.ConditionSeverityInfo, "%v", err)
 		deprecatedv1beta2conditions.Set(virtualMachineCtx.VSphereVM, metav1.Condition{
 			Type:    infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
@@ -397,7 +397,7 @@ func (vms *VMService) reconcilePowerState(ctx context.Context, virtualMachineCtx
 		log.Info("Powering on VM")
 		task, err := virtualMachineCtx.Obj.PowerOn(ctx)
 		if err != nil {
-			deprecatedconditions.MarkFalse(virtualMachineCtx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.PoweringOnFailedReason, clusterv1beta1.ConditionSeverityWarning, err.Error())
+			deprecatedconditions.MarkFalse(virtualMachineCtx.VSphereVM, infrav1.VMProvisionedCondition, infrav1.PoweringOnFailedReason, clusterv1beta1.ConditionSeverityWarning, "%v", err)
 			deprecatedv1beta2conditions.Set(virtualMachineCtx.VSphereVM, metav1.Condition{
 				Type:    infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
 				Status:  metav1.ConditionFalse,

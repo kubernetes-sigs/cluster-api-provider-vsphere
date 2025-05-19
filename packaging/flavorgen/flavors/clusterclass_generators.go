@@ -46,12 +46,14 @@ func newClusterClass() clusterv1.ClusterClass {
 			Name: env.ClusterClassNameVar,
 		},
 		Spec: clusterv1.ClusterClassSpec{
-			Infrastructure: clusterv1.LocalObjectTemplate{
-				Ref: &corev1.ObjectReference{
-					APIVersion: infrav1.GroupVersion.String(),
-					Kind:       util.TypeToKind(&infrav1.VSphereClusterTemplate{}),
-					Namespace:  env.NamespaceVar,
-					Name:       env.ClusterClassNameVar,
+			Infrastructure: clusterv1.InfrastructureClass{
+				LocalObjectTemplate: clusterv1.LocalObjectTemplate{
+					Ref: &corev1.ObjectReference{
+						APIVersion: infrav1.GroupVersion.String(),
+						Kind:       util.TypeToKind(&infrav1.VSphereClusterTemplate{}),
+						Namespace:  env.NamespaceVar,
+						Name:       env.ClusterClassNameVar,
+					},
 				},
 			},
 			ControlPlane: getControlPlaneClass(),
@@ -72,12 +74,14 @@ func newVMWareClusterClass() clusterv1.ClusterClass {
 			Name: env.ClusterClassNameVar,
 		},
 		Spec: clusterv1.ClusterClassSpec{
-			Infrastructure: clusterv1.LocalObjectTemplate{
-				Ref: &corev1.ObjectReference{
-					APIVersion: vmwarev1.GroupVersion.String(),
-					Kind:       util.TypeToKind(&vmwarev1.VSphereClusterTemplate{}),
-					Namespace:  env.NamespaceVar,
-					Name:       env.ClusterClassNameVar,
+			Infrastructure: clusterv1.InfrastructureClass{
+				LocalObjectTemplate: clusterv1.LocalObjectTemplate{
+					Ref: &corev1.ObjectReference{
+						APIVersion: vmwarev1.GroupVersion.String(),
+						Kind:       util.TypeToKind(&vmwarev1.VSphereClusterTemplate{}),
+						Namespace:  env.NamespaceVar,
+						Name:       env.ClusterClassNameVar,
+					},
 				},
 			},
 			ControlPlane: getVMWareControlPlaneClass(),

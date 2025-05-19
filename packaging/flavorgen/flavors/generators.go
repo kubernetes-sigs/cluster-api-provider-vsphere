@@ -488,9 +488,7 @@ func ignitionKubeadmInitSpec(files []bootstrapv1.File) bootstrapv1.KubeadmConfig
 		},
 		Users:              flatcarUsers(),
 		PreKubeadmCommands: flatcarPreKubeadmCommands(),
-		// UseExperimentalRetryJoin isn't supported with Ignition bootstrap.
-		UseExperimentalRetryJoin: false,
-		Files:                    files,
+		Files:              files,
 	}
 }
 

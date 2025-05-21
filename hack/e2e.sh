@@ -100,7 +100,7 @@ export VSPHERE_SSH_AUTHORIZED_KEY="${VM_SSH_PUB_KEY:-}"
 export VSPHERE_SSH_PRIVATE_KEY="/root/ssh/.private-key/private-key"
 export E2E_CONF_FILE="${REPO_ROOT}/test/e2e/config/vsphere.yaml"
 export E2E_CONF_OVERRIDE_FILE=""
-export E2E_VM_OPERATOR_VERSION="${VM_OPERATOR_VERSION:-v1.8.6-0-gde75746a}"
+export E2E_VM_OPERATOR_VERSION="${VM_OPERATOR_VERSION:-v1.8.6-0-gde75746a-dd82946}"
 export DOCKER_IMAGE_TAR="/tmp/images/image.tar"
 export GC_KIND="false"
 

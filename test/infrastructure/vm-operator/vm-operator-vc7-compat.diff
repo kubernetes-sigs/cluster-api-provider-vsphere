@@ -1,0 +1,27 @@
+diff --git a/pkg/vmprovider/providers/vsphere2/vmlifecycle/create_contentlibrary.go b/pkg/vmprovider/providers/vsphere2/vmlifecycle/create_contentlibrary.go
+index f900efbb..9e96f80c 100644
+--- a/pkg/vmprovider/providers/vsphere2/vmlifecycle/create_contentlibrary.go
++++ b/pkg/vmprovider/providers/vsphere2/vmlifecycle/create_contentlibrary.go
+@@ -47,6 +47,9 @@ func deployOVF(
+ 			Provider: constants.ConfigSpecProviderXML,
+ 			XML:      base64.StdEncoding.EncodeToString(configSpecXML),
+ 		}
++
++		// deploymentSpec.VmConfigSpec cannot be set when using vCenter 7.0.3.01700
++		deploymentSpec.VmConfigSpec = nil
+ 	}
+ 
+ 	deploy := vcenter.Deploy{
+diff --git a/pkg/vmprovider/providers/vsphere2/vmprovider_vm.go b/pkg/vmprovider/providers/vsphere2/vmprovider_vm.go
+index 9fbd88e3..508286c2 100644
+--- a/pkg/vmprovider/providers/vsphere2/vmprovider_vm.go
++++ b/pkg/vmprovider/providers/vsphere2/vmprovider_vm.go
+@@ -70,7 +70,7 @@ var (
+ 	// SkipVMImageCLProviderCheck skips the checks that a VM Image has a Content Library item provider
+ 	// since a VirtualMachineImage created for a VM template won't have either. This has been broken for
+ 	// a long time but was otherwise masked on how the tests used to be organized.
+-	SkipVMImageCLProviderCheck = false
++	SkipVMImageCLProviderCheck = true
+ )
+ 
+ func (vs *vSphereVMProvider) CreateOrUpdateVirtualMachine(

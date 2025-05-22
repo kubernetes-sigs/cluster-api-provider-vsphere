@@ -43,7 +43,11 @@ export BOSKOS_RESOURCE_OWNER=cluster-api-provider-vsphere
 if [[ "${JOB_NAME}" != "" ]]; then
   export BOSKOS_RESOURCE_OWNER="${JOB_NAME}/${BUILD_ID}"
 fi
-export BOSKOS_RESOURCE_TYPE=vsphere-project-cluster-api-provider
+export BOSKOS_RESOURCE_TYPE="gcve-vsphere-project"
+# Fallback for mirror-prow.
+if [[ "$GOVC_URL" == "10.2.224.4" ]]; then
+  BOSKOS_RESOURCE_TYPE=vsphere-project-cluster-api-provider
+fi
 
 on_exit() {
   # Only handle Boskos when we have to (not for vcsim)

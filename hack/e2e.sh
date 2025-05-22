@@ -107,6 +107,13 @@ export VSPHERE_SSH_PRIVATE_KEY="${SSH_KEY_DIR}/ssh-key"
 ssh-keygen -t ed25519 -f "${VSPHERE_SSH_PRIVATE_KEY}" -N ""
 export VSPHERE_SSH_AUTHORIZED_KEY="$(cat "${VSPHERE_SSH_PRIVATE_KEY}.pub")"
 
+# Fallback for mirror-prow.
+if [[ "$GOVC_URL" == "10.2.224.4" ]]; then
+  VSPHERE_SSH_PRIVATE_KEY="${VM_SSH_PUB_KEY:-}"
+  VSPHERE_SSH_PRIVATE_KEY="/root/ssh/.private-key/private-key"
+  E2E_CONF_OVERRIDE_FILE="$(pwd)/test/e2e/config/config-overrides-mirror-prow.yaml"
+fi
+
 # Make tests run in-parallel
 export GINKGO_NODES=5
 

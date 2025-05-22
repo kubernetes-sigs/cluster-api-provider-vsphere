@@ -103,9 +103,11 @@ export DOCKER_IMAGE_TAR="/tmp/images/image.tar"
 export GC_KIND="false"
 
 SSH_KEY_DIR=$(mktemp -d)
-export VSPHERE_SSH_PRIVATE_KEY="${SSH_KEY_DIR}/ssh-key"
+export VSPHERE_SSH_PRIVATE_KEY
+VSPHERE_SSH_PRIVATE_KEY="${SSH_KEY_DIR}/ssh-key"
 ssh-keygen -t ed25519 -f "${VSPHERE_SSH_PRIVATE_KEY}" -N ""
-export VSPHERE_SSH_AUTHORIZED_KEY="$(cat "${VSPHERE_SSH_PRIVATE_KEY}.pub")"
+export VSPHERE_SSH_AUTHORIZED_KEY
+VSPHERE_SSH_AUTHORIZED_KEY="$(cat "${VSPHERE_SSH_PRIVATE_KEY}.pub")"
 
 # Fallback for mirror-prow.
 if [[ "$GOVC_URL" == "10.2.224.4" ]]; then

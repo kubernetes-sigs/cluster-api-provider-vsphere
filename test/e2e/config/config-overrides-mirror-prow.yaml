@@ -1,0 +1,15 @@
+---
+# This e2e config file contains an example of overrides for a tests targeting a user provided vCenter instance.
+# Those overrides will be applied on top of the content of the config file used for CI (only variables and intervals are considered)
+
+variables:
+  VSPHERE_COMPUTE_CLUSTER: "Cluster-1"
+  VSPHERE_DATACENTER:  "SDDC-Datacenter"
+  VSPHERE_FOLDER: "/SDDC-Datacenter/vm/Workloads/cluster-api-provider-vsphere"
+  VSPHERE_RESOURCE_POOL: "/SDDC-Datacenter/host/Cluster-1/Resources/Compute-ResourcePool/cluster-api-provider-vsphere"
+  VSPHERE_DATASTORE: "WorkloadDatastore"
+  VSPHERE_STORAGE_POLICY: "Cluster API vSphere Storage Policy"
+  VSPHERE_NETWORK: "sddc-cgw-network-10"
+  VSPHERE_DISTRIBUTED_PORT_GROUP: "/SDDC-Datacenter/network/sddc-cgw-network-10"
+
+intervals:

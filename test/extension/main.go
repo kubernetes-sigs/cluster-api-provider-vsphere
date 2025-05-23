@@ -40,7 +40,7 @@ import (
 	_ "k8s.io/component-base/logs/json/register"
 	"k8s.io/klog/v2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
-	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta2"
+	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"

@@ -233,9 +233,9 @@ VM_OPERATOR_TMP_DIR ?= $(VM_OPERATOR_DIR)/vm-operator.tmp
 # note: this is the commit from 1.8.6 tag
 VM_OPERATOR_COMMIT ?= de75746a9505ef3161172d99b735d6593c54f0c5
 # sha256 sum diff of the applied patches on-top, it should match the output of `git diff | sha256`.
-VM_OPERATOR_DIFF ?= 929a1fa159fb3daa3026b26308222e0dc3852f23f9d3fdd20b6d1f7cedd82946
+VM_OPERATOR_DIFF ?= 65e87004a530fdf98ae636d6b3700db086a8f356066fb15996bd8f5abe9f236c
 VM_OPERATOR_VERSION ?= v1.8.6-0-gde75746a
-VM_OPERATOR_IMAGE_TAG ?= $(VM_OPERATOR_VERSION)-$(shell echo $(VM_OPERATOR_DIFF) | tail -c 8)
+VM_OPERATOR_IMAGE_TAG ?= $(VM_OPERATOR_VERSION)-$(shell echo $(VM_OPERATOR_DIFF) | head -c 8)
 VM_OPERATOR_ALL_ARCH = amd64 arm64
 
 # net operator
@@ -917,6 +917,7 @@ checkout-vm-operator:
 .PHONY: generate-manifests-vm-operator
 generate-manifests-vm-operator: $(RELEASE_DIR) $(KUSTOMIZE) checkout-vm-operator ## Build the vm-operator manifest yaml file
 	kustomize build --load-restrictor LoadRestrictionsNone "$(VM_OPERATOR_TMP_DIR)/config/wcp" > "$(VM_OPERATOR_DIR)/config/vm-operator.yaml"
+	sed -i'' -e 's@image: gcr.io/k8s-staging-capi-vsphere/extra/vm-operator.*@image: '"$(VM_OPERATOR_CONTROLLER_IMG):$(VM_OPERATOR_IMAGE_TAG)"'@' "$(VM_OPERATOR_DIR)/config/vm-operator-image-names.yaml"
 	kustomize build "$(VM_OPERATOR_DIR)/config" > "$(VM_OPERATOR_DIR)/vm-operator-$(VM_OPERATOR_IMAGE_TAG).yaml"
 
 .PHONY: docker-build-all-vm-operator

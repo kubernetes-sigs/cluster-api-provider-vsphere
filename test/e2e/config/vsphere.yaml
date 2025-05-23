@@ -18,7 +18,7 @@ images:
     loadBehavior: mustLoad
   - name: gcr.io/k8s-staging-capi-vsphere/cluster-api-vsphere-test-extension-{ARCH}:dev
     loadBehavior: mustLoad
-  - name: gcr.io/k8s-staging-capi-vsphere/extra/vm-operator:v1.8.6-0-gde75746a-dd82946
+  - name: gcr.io/k8s-staging-capi-vsphere/extra/vm-operator:v1.8.6-0-gde75746a-65e87004
     loadBehavior: tryLoad
 
 providers:
@@ -237,9 +237,9 @@ providers:
   - name: vm-operator
     type: RuntimeExtensionProvider # vm-operator isn't a provider, but we fake it is so it can be handled by the clusterctl machinery.
     versions:
-      - name: v1.8.6-0-gde75746a-dd82946
+      - name: v1.8.6-0-gde75746a-65e87004
         # Use manifest from source files
-        value: "file://../../../../cluster-api-provider-vsphere/test/infrastructure/vm-operator/vm-operator-v1.8.6-0-gde75746a-dd82946.yaml"
+        value: "file://../../../../cluster-api-provider-vsphere/test/infrastructure/vm-operator/vm-operator-v1.8.6-0-gde75746a-65e87004.yaml"
         type: "url"
         contract: v1beta1
         files:

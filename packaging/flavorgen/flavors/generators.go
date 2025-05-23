@@ -26,10 +26,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta1"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
@@ -120,7 +120,9 @@ func newClusterTopologyCluster(supervisorMode bool) (clusterv1.Cluster, error) {
 		},
 		Spec: clusterv1.ClusterSpec{
 			Topology: &clusterv1.Topology{
-				Class:   env.ClusterClassNameVar,
+				ClassRef: clusterv1.ClusterClassRef{
+					Name: env.ClusterClassNameVar,
+				},
 				Version: env.KubernetesVersionVar,
 				ControlPlane: clusterv1.ControlPlaneTopology{
 					Replicas: ptr.To[int32](1),

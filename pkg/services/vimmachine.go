@@ -29,10 +29,11 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/conditions"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
+	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	deprecatedv1beta2conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -117,9 +118,9 @@ func (v *VimMachineService) ReconcileDelete(ctx context.Context, machineCtx capv
 
 	// VSphereMachine wraps a VMSphereVM, so we are mirroring status from the underlying VMSphereVM
 	// in order to provide evidences about machine deletion.
-	conditions.SetMirror(vimMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, vm)
-	v1beta2conditions.SetMirrorCondition(vm, vimMachineCtx.VSphereMachine, infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
-		v1beta2conditions.TargetConditionType(infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition))
+	deprecatedconditions.SetMirror(vimMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, vm)
+	deprecatedv1beta2conditions.SetMirrorCondition(vm, vimMachineCtx.VSphereMachine, infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
+		deprecatedv1beta2conditions.TargetConditionType(infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition))
 	return nil
 }
 
@@ -167,9 +168,9 @@ func (v *VimMachineService) ReconcileNormal(ctx context.Context, machineCtx capv
 		log.Info("Waiting for VSphereVM to become ready")
 		// VSphereMachine wraps a VMSphereVM, so we are mirroring status from the underlying VMSphereVM
 		// in order to provide evidences about machine provisioning while provisioning is actually happening.
-		conditions.SetMirror(vimMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, vm)
-		v1beta2conditions.SetMirrorCondition(vm, vimMachineCtx.VSphereMachine, infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
-			v1beta2conditions.TargetConditionType(infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition))
+		deprecatedconditions.SetMirror(vimMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, vm)
+		deprecatedv1beta2conditions.SetMirrorCondition(vm, vimMachineCtx.VSphereMachine, infrav1.VSphereVMVirtualMachineProvisionedV1Beta2Condition,
+			deprecatedv1beta2conditions.TargetConditionType(infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition))
 		return true, nil
 	}
 
@@ -186,8 +187,8 @@ func (v *VimMachineService) ReconcileNormal(ctx context.Context, machineCtx capv
 		if err != nil {
 			return false, errors.Wrapf(err, "unexpected error while reconciling network for %s", vimMachineCtx)
 		}
-		conditions.MarkFalse(vimMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, infrav1.WaitingForNetworkAddressesReason, clusterv1.ConditionSeverityInfo, "")
-		v1beta2conditions.Set(vimMachineCtx.VSphereMachine, metav1.Condition{
+		deprecatedconditions.MarkFalse(vimMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, infrav1.WaitingForNetworkAddressesReason, clusterv1beta1.ConditionSeverityInfo, "")
+		deprecatedv1beta2conditions.Set(vimMachineCtx.VSphereMachine, metav1.Condition{
 			Type:   infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
 			Status: metav1.ConditionFalse,
 			Reason: infrav1.VSphereMachineVirtualMachineWaitingForNetworkAddressV1Beta2Reason,
@@ -220,7 +221,7 @@ func (v *VimMachineService) GetHostInfo(ctx context.Context, machineCtx capvcont
 		return "", err
 	}
 
-	if conditions.IsTrue(vsphereVM, infrav1.VMProvisionedCondition) {
+	if deprecatedconditions.IsTrue(vsphereVM, infrav1.VMProvisionedCondition) {
 		return vsphereVM.Status.Host, nil
 	}
 	log.V(4).Info("Returning empty host info as VMProvisioned condition is not set to true")
@@ -297,15 +298,15 @@ func (v *VimMachineService) reconcileNetwork(ctx context.Context, vimMachineCtx 
 	vimMachineCtx.VSphereMachine.Status.Network = networkStatusList
 
 	addresses := vm.Status.Addresses
-	machineAddresses := make([]clusterv1.MachineAddress, 0, len(addresses))
+	machineAddresses := make([]clusterv1beta1.MachineAddress, 0, len(addresses))
 	for _, addr := range addresses {
-		machineAddresses = append(machineAddresses, clusterv1.MachineAddress{
-			Type:    clusterv1.MachineExternalIP,
+		machineAddresses = append(machineAddresses, clusterv1beta1.MachineAddress{
+			Type:    clusterv1beta1.MachineExternalIP,
 			Address: addr,
 		})
 	}
-	machineAddresses = append(machineAddresses, clusterv1.MachineAddress{
-		Type:    clusterv1.MachineInternalDNS,
+	machineAddresses = append(machineAddresses, clusterv1beta1.MachineAddress{
+		Type:    clusterv1beta1.MachineInternalDNS,
 		Address: vm.GetName(),
 	})
 	vimMachineCtx.VSphereMachine.Status.Addresses = machineAddresses

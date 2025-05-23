@@ -21,7 +21,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	"sigs.k8s.io/cluster-api/errors"
 )
 
@@ -44,17 +44,17 @@ const (
 const (
 	// VSphereVMReadyV1Beta2Condition is true if the VSphereVM's deletionTimestamp is not set, VSphereVM's
 	// VirtualMachineProvisioned, VCenterAvailable and IPAddressClaimsFulfilled are true.
-	VSphereVMReadyV1Beta2Condition = clusterv1.ReadyV1Beta2Condition
+	VSphereVMReadyV1Beta2Condition = clusterv1beta1.ReadyV1Beta2Condition
 
 	// VSphereVMReadyV1Beta2Reason surfaces when the VSphereVM readiness criteria is met.
-	VSphereVMReadyV1Beta2Reason = clusterv1.ReadyV1Beta2Reason
+	VSphereVMReadyV1Beta2Reason = clusterv1beta1.ReadyV1Beta2Reason
 
 	// VSphereVMNotReadyV1Beta2Reason surfaces when the VSphereVM readiness criteria is not met.
-	VSphereVMNotReadyV1Beta2Reason = clusterv1.NotReadyV1Beta2Reason
+	VSphereVMNotReadyV1Beta2Reason = clusterv1beta1.NotReadyV1Beta2Reason
 
 	// VSphereVMReadyUnknownV1Beta2Reason surfaces when at least one VSphereVM readiness criteria is unknown
 	// and no VSphereVM readiness criteria is not met.
-	VSphereVMReadyUnknownV1Beta2Reason = clusterv1.ReadyUnknownV1Beta2Reason
+	VSphereVMReadyUnknownV1Beta2Reason = clusterv1beta1.ReadyUnknownV1Beta2Reason
 )
 
 // VSphereVM's VirtualMachineProvisioned condition and corresponding reasons that will be used in v1Beta2 API version.
@@ -87,7 +87,7 @@ const (
 
 	// VSphereVMVirtualMachineProvisionedV1Beta2Reason surfaces when the VirtualMachine that is controlled
 	// by the VSphereVM is provisioned.
-	VSphereVMVirtualMachineProvisionedV1Beta2Reason = clusterv1.ProvisionedV1Beta2Reason
+	VSphereVMVirtualMachineProvisionedV1Beta2Reason = clusterv1beta1.ProvisionedV1Beta2Reason
 
 	// VSphereVMVirtualMachineTaskFailedV1Beta2Reason surfaces when a task for the VirtualMachine that is controlled
 	// by the VSphereVM failed; the reconcile look will automatically retry the operation,
@@ -102,11 +102,11 @@ const (
 
 	// VSphereVMVirtualMachineNotProvisionedV1Beta2Reason surfaces when the VirtualMachine that is controlled
 	// by the VSphereVM is not provisioned.
-	VSphereVMVirtualMachineNotProvisionedV1Beta2Reason = clusterv1.NotProvisionedV1Beta2Reason
+	VSphereVMVirtualMachineNotProvisionedV1Beta2Reason = clusterv1beta1.NotProvisionedV1Beta2Reason
 
 	// VSphereVMVirtualMachineDeletingV1Beta2Reason surfaces when the VirtualMachine that is controlled
 	// by the VSphereVM is being deleted.
-	VSphereVMVirtualMachineDeletingV1Beta2Reason = clusterv1.DeletingV1Beta2Reason
+	VSphereVMVirtualMachineDeletingV1Beta2Reason = clusterv1beta1.DeletingV1Beta2Reason
 )
 
 // VSphereVM's VCenterAvailable condition and corresponding reasons that will be used in v1Beta2 API version.
@@ -116,7 +116,7 @@ const (
 
 	// VSphereVMVCenterAvailableV1Beta2Reason documents the VCenter hosting the VSphereVM
 	// being available.
-	VSphereVMVCenterAvailableV1Beta2Reason = clusterv1.AvailableV1Beta2Reason
+	VSphereVMVCenterAvailableV1Beta2Reason = clusterv1beta1.AvailableV1Beta2Reason
 
 	// VSphereVMVCenterUnreachableV1Beta2Reason documents the VCenter hosting the VSphereVM
 	// cannot be reached.
@@ -301,7 +301,7 @@ type VSphereVMStatus struct {
 
 	// Conditions defines current service state of the VSphereVM.
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
 
 	// ModuleUUID is the unique identifier for the vCenter cluster module construct
 	// which is used to configure anti-affinity. Objects with the same ModuleUUID
@@ -349,12 +349,12 @@ type VSphereVM struct {
 }
 
 // GetConditions returns the conditions for a VSphereVM.
-func (r *VSphereVM) GetConditions() clusterv1.Conditions {
+func (r *VSphereVM) GetConditions() clusterv1beta1.Conditions {
 	return r.Status.Conditions
 }
 
 // SetConditions sets the conditions on a VSphereVM.
-func (r *VSphereVM) SetConditions(conditions clusterv1.Conditions) {
+func (r *VSphereVM) SetConditions(conditions clusterv1beta1.Conditions) {
 	r.Status.Conditions = conditions
 }
 

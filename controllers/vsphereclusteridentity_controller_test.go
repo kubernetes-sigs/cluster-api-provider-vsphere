@@ -22,7 +22,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
@@ -157,7 +157,7 @@ var _ = Describe("VSphereClusterIdentity Reconciler", func() {
 					return false
 				}
 
-				if !i.Status.Ready && conditions.GetReason(i, infrav1.CredentialsAvailableCondidtion) == infrav1.SecretAlreadyInUseReason {
+				if !i.Status.Ready && deprecatedconditions.GetReason(i, infrav1.CredentialsAvailableCondidtion) == infrav1.SecretAlreadyInUseReason {
 					return true
 				}
 				return false
@@ -181,7 +181,7 @@ var _ = Describe("VSphereClusterIdentity Reconciler", func() {
 					return false
 				}
 
-				if !i.Status.Ready && conditions.GetReason(i, infrav1.CredentialsAvailableCondidtion) == infrav1.SecretNotAvailableReason {
+				if !i.Status.Ready && deprecatedconditions.GetReason(i, infrav1.CredentialsAvailableCondidtion) == infrav1.SecretNotAvailableReason {
 					return true
 				}
 				return false

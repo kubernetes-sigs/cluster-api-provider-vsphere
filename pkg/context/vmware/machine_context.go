@@ -22,8 +22,8 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/util/patch"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
@@ -52,7 +52,7 @@ func (c *SupervisorMachineContext) Patch(ctx context.Context) error {
 	return c.PatchHelper.Patch(ctx, c.VSphereMachine, patch.WithOwnedV1Beta2Conditions{Conditions: []string{
 		infrav1.VSphereMachineReadyV1Beta2Condition,
 		infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
-		clusterv1.PausedV1Beta2Condition,
+		clusterv1beta1.PausedV1Beta2Condition,
 	}})
 }
 

@@ -32,8 +32,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
@@ -92,7 +93,7 @@ var _ = Describe("VirtualMachine tests", func() {
 		expectReconcileError bool
 		expectVMOpVM         bool
 		expectedState        vmwarev1.VirtualMachineState
-		expectedConditions   clusterv1.Conditions
+		expectedConditions   clusterv1beta1.Conditions
 		expectedRequeue      bool
 
 		cluster                  *clusterv1.Cluster
@@ -166,7 +167,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			}
 
 			for _, expectedCondition := range expectedConditions {
-				c := conditions.Get(machineContext.VSphereMachine, expectedCondition.Type)
+				c := deprecatedconditions.Get(machineContext.VSphereMachine, expectedCondition.Type)
 				Expect(c).NotTo(BeNil())
 				Expect(c.Status).To(Equal(expectedCondition.Status))
 				Expect(c.Reason).To(Equal(expectedCondition.Reason))
@@ -193,7 +194,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			//             bootstrap data resource, but VM Operator is not
 			//             running in this test domain, and so the condition
 			//             will not be set on the VM Operator VM.
-			expectedConditions = append(expectedConditions, clusterv1.Condition{
+			expectedConditions = append(expectedConditions, clusterv1beta1.Condition{
 				Type:    infrav1.VMProvisionedCondition,
 				Status:  corev1.ConditionFalse,
 				Reason:  vmwarev1.VMProvisionStartedReason,
@@ -340,7 +341,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			Expect(vmService.Client.Create(ctx, secret)).To(Succeed())
 
 			machine.Spec.Bootstrap.DataSecretName = &secretName
-			expectedConditions = append(expectedConditions, clusterv1.Condition{
+			expectedConditions = append(expectedConditions, clusterv1beta1.Condition{
 				Type:    infrav1.VMProvisionedCondition,
 				Status:  corev1.ConditionFalse,
 				Reason:  vmwarev1.VMProvisionStartedReason,
@@ -405,7 +406,10 @@ var _ = Describe("VirtualMachine tests", func() {
 
 			By("Setting cluster.Status.ControlPlaneReady to true")
 			// Set the control plane to be ready so that the new VM will have a probe
-			cluster.Status.ControlPlaneReady = true
+			if cluster.Status.Initialization == nil {
+				cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{}
+			}
+			cluster.Status.Initialization.ControlPlaneInitialized = true
 
 			vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
 			if vmopVM.Status.Network == nil {
@@ -426,7 +430,7 @@ var _ = Describe("VirtualMachine tests", func() {
 
 			By("Machine doens't have a K8S version")
 			machine.Spec.Version = nil
-			expectedConditions = append(expectedConditions, clusterv1.Condition{
+			expectedConditions = append(expectedConditions, clusterv1beta1.Condition{
 				Type:    infrav1.VMProvisionedCondition,
 				Status:  corev1.ConditionFalse,
 				Reason:  vmwarev1.VMCreationFailedReason,
@@ -467,10 +471,10 @@ var _ = Describe("VirtualMachine tests", func() {
 			expectedImageName = imageName
 			expectReconcileError = true
 			expectVMOpVM = true
-			expectedConditions = append(expectedConditions, clusterv1.Condition{
+			expectedConditions = append(expectedConditions, clusterv1beta1.Condition{
 				Type:     infrav1.VMProvisionedCondition,
 				Status:   corev1.ConditionFalse,
-				Severity: clusterv1.ConditionSeverityError,
+				Severity: clusterv1beta1.ConditionSeverityError,
 				Reason:   "NotFound",
 				Message:  errMessage,
 			})

@@ -32,8 +32,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
-	"sigs.k8s.io/cluster-api/util/conditions"
-	"sigs.k8s.io/cluster-api/util/patch"
+	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
@@ -77,7 +77,7 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 				vmwarehelpers.CreateAndWait(ctx, intCtx.Client, intCtx.Cluster)
 				vmwarehelpers.CreateAndWait(ctx, intCtx.Client, intCtx.VSphereCluster)
 				vmwarehelpers.CreateAndWait(ctx, intCtx.Client, intCtx.KubeconfigSecret)
-				vmwarehelpers.ClusterInfrastructureReady(ctx, intCtx.Client, clusterCache, intCtx.Cluster)
+				vmwarehelpers.ClusterInfrastructureProvisioned(ctx, intCtx.Client, clusterCache, intCtx.Cluster)
 			})
 
 			By("Verifying that the guest cluster client works")
@@ -174,7 +174,7 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 				vsphereCluster := &vmwarev1.VSphereCluster{}
 				key := client.ObjectKey{Namespace: intCtx.Namespace, Name: intCtx.VSphereCluster.GetName()}
 				Expect(intCtx.Client.Get(ctx, key, vsphereCluster)).To(Succeed())
-				Expect(conditions.Has(vsphereCluster, vmwarev1.ProviderServiceAccountsReadyCondition)).To(BeFalse())
+				Expect(deprecatedconditions.Has(vsphereCluster, vmwarev1.ProviderServiceAccountsReadyCondition)).To(BeFalse())
 			})
 		})
 	})
@@ -196,7 +196,7 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 				vsphereCluster := &vmwarev1.VSphereCluster{}
 				key := client.ObjectKey{Namespace: intCtx.Namespace, Name: intCtx.VSphereCluster.GetName()}
 				Expect(intCtx.Client.Get(ctx, key, vsphereCluster)).To(Succeed())
-				Expect(conditions.Has(vsphereCluster, vmwarev1.ProviderServiceAccountsReadyCondition)).To(BeFalse())
+				Expect(deprecatedconditions.Has(vsphereCluster, vmwarev1.ProviderServiceAccountsReadyCondition)).To(BeFalse())
 			})
 		})
 	})
@@ -210,7 +210,7 @@ var _ = Describe("ProviderServiceAccount controller integration tests", func() {
 				vmwarehelpers.CreateAndWait(ctx, intCtx.Client, intCtx.Cluster)
 				vmwarehelpers.CreateAndWait(ctx, intCtx.Client, intCtx.VSphereCluster)
 				vmwarehelpers.CreateAndWait(ctx, intCtx.Client, intCtx.KubeconfigSecret)
-				vmwarehelpers.ClusterInfrastructureReady(ctx, intCtx.Client, clusterCache, intCtx.Cluster)
+				vmwarehelpers.ClusterInfrastructureProvisioned(ctx, intCtx.Client, clusterCache, intCtx.Cluster)
 			})
 			pSvcAccount = getTestProviderServiceAccount(intCtx.Namespace, intCtx.VSphereCluster)
 			pSvcAccount.Spec.TargetNamespace = "default"

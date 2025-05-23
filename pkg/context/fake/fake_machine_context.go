@@ -20,7 +20,7 @@ import (
 	"context"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
@@ -30,7 +30,7 @@ import (
 // reconcilers with a fake client.
 func NewMachineContext(ctx context.Context, clusterCtx *capvcontext.ClusterContext, controllerManagerCtx *capvcontext.ControllerManagerContext) *capvcontext.VIMMachineContext {
 	// Create the machine resources.
-	machine := newMachineV1a4()
+	machine := newMachineV1()
 	vsphereMachine := newVSphereMachine(machine)
 
 	// Add the cluster resources to the fake cluster client.
@@ -52,7 +52,7 @@ func NewMachineContext(ctx context.Context, clusterCtx *capvcontext.ClusterConte
 	}
 }
 
-func newMachineV1a4() clusterv1.Machine {
+func newMachineV1() clusterv1.Machine {
 	dataSecretName := "fake-name"
 	return clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{

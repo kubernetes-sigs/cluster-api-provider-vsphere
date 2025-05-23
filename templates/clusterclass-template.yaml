@@ -7,7 +7,7 @@ spec:
   template:
     spec: {}
 ---
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: ClusterClass
 metadata:
   name: '${CLUSTER_CLASS_NAME}'
@@ -20,7 +20,7 @@ spec:
         name: ${CLUSTER_CLASS_NAME}-template
         namespace: '${NAMESPACE}'
     ref:
-      apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta2
       kind: KubeadmControlPlaneTemplate
       name: ${CLUSTER_CLASS_NAME}-controlplane
       namespace: '${NAMESPACE}'
@@ -40,7 +40,7 @@ spec:
         path: /spec/template/spec/kubeadmConfigSpec/postKubeadmCommands
         value: []
       selector:
-        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta2
         kind: KubeadmControlPlaneTemplate
         matchResources:
           controlPlane: true
@@ -52,7 +52,7 @@ spec:
         path: /spec/template/spec/postKubeadmCommands
         value: []
       selector:
-        apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+        apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
         kind: KubeadmConfigTemplate
         matchResources:
           machineDeploymentClass:
@@ -70,7 +70,7 @@ spec:
               - '{{ .sshKey }}'
               sudo: ALL=(ALL) NOPASSWD:ALL
       selector:
-        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta2
         kind: KubeadmControlPlaneTemplate
         matchResources:
           controlPlane: true
@@ -84,7 +84,7 @@ spec:
               - '{{ .sshKey }}'
               sudo: ALL=(ALL) NOPASSWD:ALL
       selector:
-        apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+        apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
         kind: KubeadmConfigTemplate
         matchResources:
           machineDeploymentClass:
@@ -190,41 +190,41 @@ spec:
             path: /etc/pre-kubeadm-commands/50-kube-vip-prepare.sh
             permissions: "0700"
       selector:
-        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta2
         kind: KubeadmControlPlaneTemplate
         matchResources:
           controlPlane: true
     name: kubeVipPodManifest
   variables:
-  - metadata: {}
+  - deprecatedV1Beta1Metadata: {}
     name: sshKey
     required: false
     schema:
       openAPIV3Schema:
         description: Public key to SSH onto the cluster nodes.
         type: string
-  - metadata: {}
+  - deprecatedV1Beta1Metadata: {}
     name: controlPlaneIpAddr
     required: true
     schema:
       openAPIV3Schema:
         description: Floating VIP for the control plane.
         type: string
-  - metadata: {}
+  - deprecatedV1Beta1Metadata: {}
     name: controlPlanePort
     required: true
     schema:
       openAPIV3Schema:
         description: Port for the control plane endpoint.
         type: integer
-  - metadata: {}
+  - deprecatedV1Beta1Metadata: {}
     name: kubeVipPodManifest
     required: true
     schema:
       openAPIV3Schema:
         description: kube-vip manifest for the control plane.
         type: string
-  - metadata: {}
+  - deprecatedV1Beta1Metadata: {}
     name: infraServer
     required: true
     schema:
@@ -235,7 +235,7 @@ spec:
           url:
             type: string
         type: object
-  - metadata: {}
+  - deprecatedV1Beta1Metadata: {}
     name: credsSecretName
     required: true
     schema:
@@ -248,7 +248,7 @@ spec:
       template:
         bootstrap:
           ref:
-            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
             kind: KubeadmConfigTemplate
             name: ${CLUSTER_CLASS_NAME}-worker-bootstrap-template
             namespace: '${NAMESPACE}'
@@ -312,7 +312,7 @@ spec:
       storagePolicyName: '${VSPHERE_STORAGE_POLICY}'
       template: '${VSPHERE_TEMPLATE}'
 ---
-apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
 kind: KubeadmControlPlaneTemplate
 metadata:
   name: ${CLUSTER_CLASS_NAME}-controlplane
@@ -352,7 +352,7 @@ spec:
           - '${VSPHERE_SSH_AUTHORIZED_KEY}'
           sudo: ALL=(ALL) NOPASSWD:ALL
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 kind: KubeadmConfigTemplate
 metadata:
   name: ${CLUSTER_CLASS_NAME}-worker-bootstrap-template

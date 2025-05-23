@@ -53,7 +53,7 @@ var _ = Describe("Service Discovery controller integration tests", func() {
 			vmwarehelpers.CreateAndWait(ctx, intCtx.Client, intCtx.Cluster)
 			vmwarehelpers.CreateAndWait(ctx, intCtx.Client, intCtx.VSphereCluster)
 			vmwarehelpers.CreateAndWait(ctx, intCtx.Client, intCtx.KubeconfigSecret)
-			vmwarehelpers.ClusterInfrastructureReady(ctx, intCtx.Client, clusterCache, intCtx.Cluster)
+			vmwarehelpers.ClusterInfrastructureProvisioned(ctx, intCtx.Client, clusterCache, intCtx.Cluster)
 		})
 
 		By("Verifying that the guest cluster client works")

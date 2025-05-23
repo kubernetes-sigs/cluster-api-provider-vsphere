@@ -8,6 +8,9 @@ kind: Metadata
 releaseSeries:
   - major: 1
     minor: 10
+    contract: v1beta2
+  - major: 1
+    minor: 10
     contract: v1beta1
   - major: 1
     minor: 9

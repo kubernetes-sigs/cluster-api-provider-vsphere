@@ -41,6 +41,7 @@ import (
 	"k8s.io/component-base/logs"
 	logsv1 "k8s.io/component-base/logs/api/v1"
 	"k8s.io/klog/v2"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/feature"
@@ -95,7 +96,7 @@ var (
 func init() {
 	// scheme used for operating on the management cluster.
 	_ = corev1.AddToScheme(scheme)
-	_ = clusterv1.AddToScheme(scheme)
+	_ = clusterv1beta1.AddToScheme(scheme)
 	_ = infrav1.AddToScheme(scheme)
 	_ = vcsimv1.AddToScheme(scheme)
 	_ = topologyv1.AddToScheme(scheme)

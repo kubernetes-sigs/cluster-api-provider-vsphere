@@ -40,7 +40,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
-	ipamv1beta1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
+	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
 	. "sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -196,7 +196,7 @@ func (h *inCluster) Cleanup(ctx context.Context, ipAddressClaims AddressClaims) 
 	var errList []error
 
 	for _, ipAddressClaim := range ipAddressClaims {
-		claim := &ipamv1beta1.IPAddressClaim{
+		claim := &ipamv1.IPAddressClaim{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      ipAddressClaim.Name,
 				Namespace: ipAddressClaim.Namespace,
@@ -250,7 +250,7 @@ func (h *inCluster) Teardown(ctx context.Context, opts ...TearDownOption) error 
 		return err
 	}
 	// List all IPAddressClaims created matching the labels.
-	ipAddressClaims := &ipamv1beta1.IPAddressClaimList{}
+	ipAddressClaims := &ipamv1.IPAddressClaimList{}
 	if err := h.client.List(ctx, ipAddressClaims,
 		client.MatchingLabels(h.labels),
 		client.InNamespace(metav1.NamespaceDefault),
@@ -262,7 +262,7 @@ func (h *inCluster) Teardown(ctx context.Context, opts ...TearDownOption) error 
 	// Collect errors and skip these ip address claims, but report at the end.
 	var errList []error
 
-	ip := &ipamv1beta1.IPAddress{}
+	ip := &ipamv1.IPAddress{}
 	for _, ipAddressClaim := range ipAddressClaims.Items {
 		ipAddressClaim := ipAddressClaim
 		if ipAddressClaim.Status.AddressRef.Name == "" {
@@ -339,15 +339,15 @@ func getVirtualMachineIPAddresses(ctx context.Context, folderName string, vSpher
 	return virtualMachineIPAddresses, nil
 }
 
-func (h *inCluster) claimIPAddress(ctx context.Context) (_ *ipamv1beta1.IPAddress, _ *ipamv1beta1.IPAddressClaim, err error) {
-	claim := &ipamv1beta1.IPAddressClaim{
+func (h *inCluster) claimIPAddress(ctx context.Context) (_ *ipamv1.IPAddress, _ *ipamv1.IPAddressClaim, err error) {
+	claim := &ipamv1.IPAddressClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "ipclaim-" + rand.String(32),
 			Namespace:   metav1.NamespaceDefault,
 			Labels:      h.labels,
 			Annotations: map[string]string{},
 		},
-		Spec: ipamv1beta1.IPAddressClaimSpec{
+		Spec: ipamv1.IPAddressClaimSpec{
 			PoolRef: corev1.TypedLocalObjectReference{
 				APIGroup: ptr.To(h.ipPool.GroupVersionKind().Group),
 				Kind:     h.ipPool.GroupVersionKind().Kind,
@@ -366,7 +366,7 @@ func (h *inCluster) claimIPAddress(ctx context.Context) (_ *ipamv1beta1.IPAddres
 		return nil, nil, err
 	}
 	// Store claim inside the service so the cleanup function knows what to delete.
-	ip := &ipamv1beta1.IPAddress{}
+	ip := &ipamv1.IPAddress{}
 
 	var retryError error
 	// Wait for the IPAddressClaim to refer an IPAddress.

@@ -33,7 +33,7 @@ import (
 	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
+	ipamv1beta1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
@@ -119,7 +119,7 @@ func AddVMControllerToManager(ctx context.Context, controllerManagerCtx *capvcon
 				}),
 		).
 		Watches(
-			&ipamv1.IPAddressClaim{},
+			&ipamv1beta1.IPAddressClaim{},
 			handler.EnqueueRequestsFromMapFunc(r.ipAddressClaimToVSphereVM),
 		).
 		WatchesRawSource(r.clusterCache.GetClusterSource("vspherevm", r.clusterToVSphereVMs)).
@@ -632,7 +632,7 @@ func (r vmReconciler) vsphereClusterToVSphereVMs(ctx context.Context, a ctrlclie
 }
 
 func (r vmReconciler) ipAddressClaimToVSphereVM(_ context.Context, a ctrlclient.Object) []reconcile.Request {
-	ipAddressClaim, ok := a.(*ipamv1.IPAddressClaim)
+	ipAddressClaim, ok := a.(*ipamv1beta1.IPAddressClaim)
 	if !ok {
 		return nil
 	}

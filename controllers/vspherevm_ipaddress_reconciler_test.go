@@ -26,7 +26,7 @@ import (
 	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
+	ipamv1beta1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
 	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -82,7 +82,7 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 			err := vmReconciler{}.reconcileIPAddressClaims(ctx, testCtx)
 			g.Expect(err).ToNot(gomega.HaveOccurred())
 
-			ipAddrClaimList := &ipamv1.IPAddressClaimList{}
+			ipAddrClaimList := &ipamv1beta1.IPAddressClaimList{}
 			g.Expect(testCtx.Client.List(ctx, ipAddrClaimList)).To(gomega.Succeed())
 			g.Expect(ipAddrClaimList.Items).To(gomega.HaveLen(3))
 
@@ -103,14 +103,14 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 			g.Expect(claimedCondition.Message).To(gomega.Equal("3/3 claims being created"))
 		})
 
-		ipAddrClaim := func(name, poolName string) *ipamv1.IPAddressClaim {
-			return &ipamv1.IPAddressClaim{
+		ipAddrClaim := func(name, poolName string) *ipamv1beta1.IPAddressClaim {
+			return &ipamv1beta1.IPAddressClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      name,
 					Namespace: namespace,
 				},
-				Spec:   ipamv1.IPAddressClaimSpec{PoolRef: poolRef(poolName)},
-				Status: ipamv1.IPAddressClaimStatus{},
+				Spec:   ipamv1beta1.IPAddressClaimSpec{PoolRef: poolRef(poolName)},
+				Status: ipamv1beta1.IPAddressClaimStatus{},
 			}
 		}
 
@@ -131,7 +131,7 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 			g.Expect(claimedCondition.Reason).To(gomega.Equal(infrav1.WaitingForIPAddressReason))
 			g.Expect(claimedCondition.Message).To(gomega.Equal("3/3 claims being processed"))
 
-			ipAddrClaimList := &ipamv1.IPAddressClaimList{}
+			ipAddrClaimList := &ipamv1beta1.IPAddressClaimList{}
 			g.Expect(testCtx.Client.List(ctx, ipAddrClaimList)).To(gomega.Succeed())
 
 			for idx := range ipAddrClaimList.Items {
@@ -165,7 +165,7 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 			g.Expect(claimedCondition).NotTo(gomega.BeNil())
 			g.Expect(claimedCondition.Status).To(gomega.Equal(corev1.ConditionTrue))
 
-			ipAddrClaimList := &ipamv1.IPAddressClaimList{}
+			ipAddrClaimList := &ipamv1beta1.IPAddressClaimList{}
 			g.Expect(testCtx.Client.List(ctx, ipAddrClaimList)).To(gomega.Succeed())
 
 			for idx := range ipAddrClaimList.Items {

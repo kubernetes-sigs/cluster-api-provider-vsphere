@@ -134,11 +134,15 @@ linters:
         - pkg: sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2
           alias: deprecatedv1beta2conditions
         # CAPI addons
-        - pkg: sigs.k8s.io/cluster-api/api/addons/v1beta1
+        - pkg: sigs.k8s.io/cluster-api/api/addons/v1beta2
           alias: addonsv1
+        - pkg: sigs.k8s.io/cluster-api/api/addons/v1beta1
+          alias: addonsv1beta1
         # CAPI IPAM 
-        - pkg: sigs.k8s.io/cluster-api/api/ipam/v1beta1
+        - pkg: sigs.k8s.io/cluster-api/api/ipam/v1beta2
           alias: ipamv1
+        - pkg: sigs.k8s.io/cluster-api/api/ipam/v1beta1
+          alias: ipamv1beta1
     nolintlint:
       require-specific: true
       allow-unused: false
@@ -212,6 +216,9 @@ linters:
       - linters:
           - staticcheck
         text: 'SA1019: "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta1" is deprecated: This package is deprecated and is going to be removed when support for v1beta1 will be dropped.'
+      - linters:
+          - staticcheck
+        text: 'SA1019: "sigs.k8s.io/cluster-api/api/addons/v1beta1" is deprecated: This package is deprecated and is going to be removed when support for v1beta1 will be dropped.'
       - linters:
           - staticcheck
         text: 'SA1019: "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/.*" is deprecated'

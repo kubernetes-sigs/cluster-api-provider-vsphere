@@ -22,7 +22,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
+	ipamv1beta1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
@@ -44,7 +44,7 @@ func NewControllerManagerContext(initObjects ...client.Object) *capvcontext.Cont
 	_ = infrav1.AddToScheme(scheme)
 	_ = vmwarev1.AddToScheme(scheme)
 	_ = vmoprv1.AddToScheme(scheme)
-	_ = ipamv1.AddToScheme(scheme)
+	_ = ipamv1beta1.AddToScheme(scheme)
 
 	clientWithObjects := fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(
 		&infrav1.VSphereVM{},

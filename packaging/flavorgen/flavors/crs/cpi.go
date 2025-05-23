@@ -24,7 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta1"
+	addonsv1beta1 "sigs.k8s.io/cluster-api/api/addons/v1beta1"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/cloudprovider"
 	"sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/flavors/env"
@@ -42,7 +42,7 @@ func addCPILabels(o metav1.Object, cpiInfraLabelValue string) {
 
 // CreateCrsResourceObjectsCPI creates the api objects necessary for CSI to function.
 // Also appends the resources to the CRS.
-func CreateCrsResourceObjectsCPI(crs *addonsv1.ClusterResourceSet) []runtime.Object {
+func CreateCrsResourceObjectsCPI(crs *addonsv1beta1.ClusterResourceSet) []runtime.Object {
 	credentials := map[string]string{}
 	credentials[fmt.Sprintf("%s.username", env.VSphereServerVar)] = env.VSphereUsername
 	credentials[fmt.Sprintf("%s.password", env.VSphereServerVar)] = env.VSpherePassword

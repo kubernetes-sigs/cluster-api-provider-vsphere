@@ -23,7 +23,7 @@ import (
 	"github.com/vmware/govmomi"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
+	ipamv1beta1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
 )
 
 var ipamScheme *runtime.Scheme
@@ -35,7 +35,7 @@ const (
 
 func init() {
 	ipamScheme = runtime.NewScheme()
-	_ = ipamv1.AddToScheme(ipamScheme)
+	_ = ipamv1beta1.AddToScheme(ipamScheme)
 }
 
 type AddressClaim types.NamespacedName

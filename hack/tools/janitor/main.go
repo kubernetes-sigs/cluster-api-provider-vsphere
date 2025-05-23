@@ -28,7 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
-	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
+	ipamv1beta1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/hack/tools/pkg/boskos"
@@ -39,7 +39,7 @@ var ipamScheme *runtime.Scheme
 
 func init() {
 	ipamScheme = runtime.NewScheme()
-	_ = ipamv1.AddToScheme(ipamScheme)
+	_ = ipamv1beta1.AddToScheme(ipamScheme)
 }
 
 var (

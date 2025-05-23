@@ -28,7 +28,7 @@ import (
 	"k8s.io/klog/v2"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	ipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
+	ipamv1beta1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	deprecatedv1beta2conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
@@ -61,7 +61,7 @@ func (r vmReconciler) reconcileIPAddressClaims(ctx context.Context, vmCtx *capvc
 		for poolRefIdx, poolRef := range device.AddressesFromPools {
 			totalClaims++
 			ipAddrClaimName := util.IPAddressClaimName(vmCtx.VSphereVM.Name, devIdx, poolRefIdx)
-			ipAddrClaim := &ipamv1.IPAddressClaim{}
+			ipAddrClaim := &ipamv1beta1.IPAddressClaim{}
 			ipAddrClaimKey := client.ObjectKey{
 				Namespace: vmCtx.VSphereVM.Namespace,
 				Name:      ipAddrClaimName,
@@ -175,8 +175,8 @@ func (r vmReconciler) reconcileIPAddressClaims(ctx context.Context, vmCtx *capvc
 // from an externally managed IPPool. Ensures that the claim has a reference to the cluster of the VM to
 // support pausing reconciliation.
 // The responsibility of the IP address resolution is handled by an external IPAM provider.
-func createOrPatchIPAddressClaim(ctx context.Context, vmCtx *capvcontext.VMContext, name string, poolRef corev1.TypedLocalObjectReference) (*ipamv1.IPAddressClaim, bool, error) {
-	claim := &ipamv1.IPAddressClaim{
+func createOrPatchIPAddressClaim(ctx context.Context, vmCtx *capvcontext.VMContext, name string, poolRef corev1.TypedLocalObjectReference) (*ipamv1beta1.IPAddressClaim, bool, error) {
+	claim := &ipamv1beta1.IPAddressClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: vmCtx.VSphereVM.Namespace,
@@ -229,7 +229,7 @@ func (r vmReconciler) deleteIPAddressClaims(ctx context.Context, vmCtx *capvcont
 	for devIdx, device := range vmCtx.VSphereVM.Spec.Network.Devices {
 		for poolRefIdx := range device.AddressesFromPools {
 			// check if claim exists
-			ipAddrClaim := &ipamv1.IPAddressClaim{}
+			ipAddrClaim := &ipamv1beta1.IPAddressClaim{}
 			ipAddrClaimName := util.IPAddressClaimName(vmCtx.VSphereVM.Name, devIdx, poolRefIdx)
 			ipAddrClaimKey := client.ObjectKey{
 				Namespace: vmCtx.VSphereVM.Namespace,

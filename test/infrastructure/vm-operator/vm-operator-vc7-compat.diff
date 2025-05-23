@@ -1,3 +1,17 @@
+diff --git a/hack/build-container.sh b/hack/build-container.sh
+index 39a0d9bd..b3f8440d 100755
+--- a/hack/build-container.sh
++++ b/hack/build-container.sh
+@@ -25,7 +25,8 @@ build() {
+         --build-arg BUILD_NUMBER="${BUILD_NUMBER}" \
+         --build-arg BUILD_VERSION="${BUILD_VERSION}" \
+         --build-arg TARGETOS="${GOOS}" \
+-        --build-arg TARGETARCH="${GOARCH}"
++        --build-arg TARGETARCH="${GOARCH}" \
++        --platform "${GOOS}/${GOARCH}"
+ }
+ 
+ while getopts ":i:t:n:c:b:v:" opt ; do
 diff --git a/pkg/vmprovider/providers/vsphere2/vmlifecycle/create_contentlibrary.go b/pkg/vmprovider/providers/vsphere2/vmlifecycle/create_contentlibrary.go
 index f900efbb..9e96f80c 100644
 --- a/pkg/vmprovider/providers/vsphere2/vmlifecycle/create_contentlibrary.go

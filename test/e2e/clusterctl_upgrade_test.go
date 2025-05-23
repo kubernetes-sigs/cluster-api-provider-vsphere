@@ -25,6 +25,7 @@ import (
 	. "github.com/onsi/gomega"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta2"
 	clusterctlcluster "sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	"sigs.k8s.io/cluster-api/test/framework"
@@ -73,7 +74,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.13
 				InitWithIPAMProviders:             []string{},
 				Upgrades: []capi_e2e.ClusterctlUpgradeSpecInputUpgrade{
 					{ // Upgrade to latest v1beta1.
-						Contract: clusterv1beta1.GroupVersion.Version,
+						Contract: clusterv1.GroupVersion.Version,
 						PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 							framework.ValidateCRDMigration(ctx, proxy, namespace, clusterName,
 								crdShouldBeMigrated, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
@@ -127,7 +128,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.13
 				InitWithIPAMProviders:             []string{},
 				Upgrades: []capi_e2e.ClusterctlUpgradeSpecInputUpgrade{
 					{ // Upgrade to latest v1beta1.
-						Contract: clusterv1beta1.GroupVersion.Version,
+						Contract: clusterv1.GroupVersion.Version,
 						PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 							framework.ValidateCRDMigration(ctx, proxy, namespace, clusterName,
 								crdShouldBeMigrated, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
@@ -181,7 +182,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.12
 				InitWithIPAMProviders:             []string{},
 				Upgrades: []capi_e2e.ClusterctlUpgradeSpecInputUpgrade{
 					{ // Upgrade to latest v1beta1.
-						Contract: clusterv1beta1.GroupVersion.Version,
+						Contract: clusterv1.GroupVersion.Version,
 						PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 							framework.ValidateCRDMigration(ctx, proxy, namespace, clusterName,
 								crdShouldBeMigrated, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
@@ -235,7 +236,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.11
 				InitWithIPAMProviders:             []string{},
 				Upgrades: []capi_e2e.ClusterctlUpgradeSpecInputUpgrade{
 					{ // Upgrade to latest v1beta1.
-						Contract: clusterv1beta1.GroupVersion.Version,
+						Contract: clusterv1.GroupVersion.Version,
 						PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 							framework.ValidateCRDMigration(ctx, proxy, namespace, clusterName,
 								crdShouldBeMigrated, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
@@ -268,10 +269,14 @@ func getStableReleaseOfMinor(ctx context.Context, releaseMarkerPrefix, minorRele
 }
 
 func kindManagementClusterNewClusterProxyFunc(name string, kubeconfigPath string) framework.ClusterProxy {
+	scheme := initScheme()
+	// The scheme for v1beta1 is still required as long as we upgrade from v1beta1 Cluster's.
+	_ = clusterv1beta1.AddToScheme(scheme)
+
 	if testTarget == VCSimTestTarget {
-		return vcsim.NewClusterProxy(name, kubeconfigPath, initScheme())
+		return vcsim.NewClusterProxy(name, kubeconfigPath, scheme)
 	}
-	return framework.NewClusterProxy(name, kubeconfigPath, initScheme())
+	return framework.NewClusterProxy(name, kubeconfigPath, scheme)
 }
 
 func crdShouldBeMigrated(crd apiextensionsv1.CustomResourceDefinition) bool {

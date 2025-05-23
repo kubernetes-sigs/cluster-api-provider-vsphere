@@ -196,35 +196,35 @@ spec:
           controlPlane: true
     name: kubeVipPodManifest
   variables:
-  - metadata: {}
+  - deprecatedV1Beta1Metadata: {}
     name: sshKey
     required: false
     schema:
       openAPIV3Schema:
         description: Public key to SSH onto the cluster nodes.
         type: string
-  - metadata: {}
+  - deprecatedV1Beta1Metadata: {}
     name: controlPlaneIpAddr
     required: true
     schema:
       openAPIV3Schema:
         description: Floating VIP for the control plane.
         type: string
-  - metadata: {}
+  - deprecatedV1Beta1Metadata: {}
     name: controlPlanePort
     required: true
     schema:
       openAPIV3Schema:
         description: Port for the control plane endpoint.
         type: integer
-  - metadata: {}
+  - deprecatedV1Beta1Metadata: {}
     name: kubeVipPodManifest
     required: true
     schema:
       openAPIV3Schema:
         description: kube-vip manifest for the control plane.
         type: string
-  - metadata: {}
+  - deprecatedV1Beta1Metadata: {}
     name: infraServer
     required: true
     schema:
@@ -235,7 +235,7 @@ spec:
           url:
             type: string
         type: object
-  - metadata: {}
+  - deprecatedV1Beta1Metadata: {}
     name: credsSecretName
     required: true
     schema:

@@ -20,7 +20,7 @@ import (
 	"unsafe"
 
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 

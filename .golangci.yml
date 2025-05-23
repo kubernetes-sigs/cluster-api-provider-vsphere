@@ -117,30 +117,27 @@ linters:
         - pkg: github.com/vmware-tanzu/nsx-operator/pkg/apis/vpc/v1alpha1
           alias: nsxvpcv1
         # CABPK
-        - pkg: sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta2
+        - pkg: sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2
           alias: bootstrapv1
-        - pkg: sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1
+        - pkg: sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1
           alias: bootstrapv1beta1
         # KCP
-        - pkg: sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta2
+        - pkg: sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2
           alias: controlplanev1
         # CAPI
-        - pkg: sigs.k8s.io/cluster-api/api/v1beta2
+        - pkg: sigs.k8s.io/cluster-api/api/core/v1beta2
           alias: clusterv1
-        - pkg: sigs.k8s.io/cluster-api/api/v1beta1
+        - pkg: sigs.k8s.io/cluster-api/api/core/v1beta1
           alias: clusterv1beta1
         - pkg: sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions
           alias: deprecatedconditions
         - pkg: sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2
           alias: deprecatedv1beta2conditions
-        # CAPI exp
-        - pkg: sigs.k8s.io/cluster-api/exp/api/v1beta1
-          alias: expv1
         # CAPI exp addons
         - pkg: sigs.k8s.io/cluster-api/api/addons/v1beta1
           alias: addonsv1
         # CAPI IPAM 
-        - pkg: sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1
+        - pkg: sigs.k8s.io/cluster-api/api/ipam/v1beta1
           alias: ipamv1
     nolintlint:
       require-specific: true

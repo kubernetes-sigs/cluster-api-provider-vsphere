@@ -287,6 +287,7 @@ NETOP_RBAC_ROOT ?= $(NETOP_DIR)/config/rbac
 TEST_EXTENSION_RBAC_ROOT ?= $(TEST_EXTENSION_DIR)/config/rbac
 
 JANITOR_DIR ?= ./$(TOOLS_DIR)/janitor
+JANITOR_ARGS ?= "--resource-type=gcve-vsphere-project"
 
 help:  # Display this help
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[0-9A-Za-z_-]+:.*?##/ { printf "  \033[36m%-50s\033[0m %s\n", $$1, $$2 } /^\$$\([0-9A-Za-z_-]+\):.*?##/ { gsub("_","-", $$1); printf "  \033[36m%-50s\033[0m %s\n", tolower(substr($$1, 3, length($$1)-7)), $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
@@ -985,7 +986,7 @@ clean-ci: ## Cleanup orphaned objects in CI
 	@if [ -z "${GOVC_URL}" ]; then echo "GOVC_URL is not set"; exit 1; fi
 	@if [ -z "${VSPHERE_TLS_THUMBPRINT}" ]; then echo "VSPHERE_TLS_THUMBPRINT is not set"; exit 1; fi
 	@if [ -z "${BOSKOS_HOST}" ]; then echo "BOSKOS_HOST is not set"; exit 1; fi
-	go run $(JANITOR_DIR) --dry-run=false
+	go run $(JANITOR_DIR) --dry-run=false $(JANITOR_ARGS)
 
 .PHONY: clean-temporary
 clean-temporary: ## Remove all temporary files and folders

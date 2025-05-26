@@ -115,7 +115,7 @@ VSPHERE_SSH_AUTHORIZED_KEY="$(cat "${VSPHERE_SSH_PRIVATE_KEY}.pub")"
 
 # Fallback for mirror-prow.
 if [[ "${GOVC_URL:-}" == "10.2.224.4" ]]; then
-  VSPHERE_SSH_PRIVATE_KEY="${VM_SSH_PUB_KEY:-}"
+  VSPHERE_SSH_AUTHORIZED_KEY="${VM_SSH_PUB_KEY:-}"
   VSPHERE_SSH_PRIVATE_KEY="/root/ssh/.private-key/private-key"
   E2E_CONF_OVERRIDE_FILE="$(pwd)/test/e2e/config/config-overrides-mirror-prow.yaml"
 fi

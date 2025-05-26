@@ -25,7 +25,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
-	addonsv1beta1 "sigs.k8s.io/cluster-api/api/addons/v1beta1"
+	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
@@ -613,20 +613,20 @@ func flatcarPreKubeadmCommands() []string {
 	}
 }
 
-func newClusterResourceSet(cluster clusterv1.Cluster) addonsv1beta1.ClusterResourceSet {
-	crs := addonsv1beta1.ClusterResourceSet{
+func newClusterResourceSet(cluster clusterv1.Cluster) addonsv1.ClusterResourceSet {
+	crs := addonsv1.ClusterResourceSet{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       util.TypeToKind(&addonsv1beta1.ClusterResourceSet{}),
-			APIVersion: addonsv1beta1.GroupVersion.String(),
+			Kind:       util.TypeToKind(&addonsv1.ClusterResourceSet{}),
+			APIVersion: addonsv1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cluster.Name + env.ClusterResourceSetNameSuffix,
 			Labels:    clusterLabels(),
 			Namespace: cluster.Namespace,
 		},
-		Spec: addonsv1beta1.ClusterResourceSetSpec{
+		Spec: addonsv1.ClusterResourceSetSpec{
 			ClusterSelector: metav1.LabelSelector{MatchLabels: clusterLabels()},
-			Resources:       []addonsv1beta1.ResourceRef{},
+			Resources:       []addonsv1.ResourceRef{},
 		},
 	}
 

@@ -136,8 +136,6 @@ linters:
         # CAPI addons
         - pkg: sigs.k8s.io/cluster-api/api/addons/v1beta2
           alias: addonsv1
-        - pkg: sigs.k8s.io/cluster-api/api/addons/v1beta1
-          alias: addonsv1beta1
         # CAPI IPAM 
         - pkg: sigs.k8s.io/cluster-api/api/ipam/v1beta2
           alias: ipamv1

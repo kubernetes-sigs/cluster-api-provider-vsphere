@@ -21,7 +21,7 @@ import (
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	addonsv1beta1 "sigs.k8s.io/cluster-api/api/addons/v1beta1"
+	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
 	"sigs.k8s.io/cluster-api/util/yaml"
 	"sigs.k8s.io/kustomize/api/krusty"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
@@ -33,7 +33,7 @@ import (
 
 // CreateCrsResourceObjectsCSI creates the api objects necessary for CSI to function.
 // Also appends the resources to the CRS.
-func CreateCrsResourceObjectsCSI(crs *addonsv1beta1.ClusterResourceSet) ([]runtime.Object, error) {
+func CreateCrsResourceObjectsCSI(crs *addonsv1.ClusterResourceSet) ([]runtime.Object, error) {
 	// Load kustomization.yaml from disk
 	fSys := filesys.MakeFsInMemory()
 	entries, err := cloudprovider.CSIKustomizationTemplates.ReadDir("csi")

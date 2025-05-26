@@ -115,6 +115,10 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 					log.Error(err, "Error patching VSphereMachineTemplate")
 					return errors.Wrap(err, "error patching VSphereMachineTemplate")
 				}
+			default:
+				err := errors.Errorf("Unexpected object type: %s", obj.GetObjectKind())
+				log.Error(err, "error patching object")
+				return err
 			}
 			return nil
 		},

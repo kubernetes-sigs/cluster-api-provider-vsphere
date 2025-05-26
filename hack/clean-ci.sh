@@ -24,5 +24,12 @@ if [[ "${GOVC_URL:-}" == "10.2.224.4" ]]; then
   JANITOR_ARGS="--resource-type=vsphere-project-cluster-api-provider --resource-type=vsphere-project-cloud-provider --resource-type=vsphere-project-image-builder"
 fi
 
+# Sanitize input envvars to not contain newline
+GOVC_USERNAME=$(echo "${GOVC_USERNAME}" | tr -d "\n")
+GOVC_PASSWORD=$(echo "${GOVC_PASSWORD}" | tr -d "\n")
+GOVC_URL=$(echo "${GOVC_URL}" | tr -d "\n")
+VSPHERE_TLS_THUMBPRINT=$(echo "${VSPHERE_TLS_THUMBPRINT}" | tr -d "\n")
+BOSKOS_HOST=$(echo "${BOSKOS_HOST}" | tr -d "\n")
+
 # Run e2e tests
 make clean-ci

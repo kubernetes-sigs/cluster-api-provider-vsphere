@@ -30,7 +30,7 @@ import (
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 	"k8s.io/utils/ptr"
-	bootstrapv1beta1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1"
+	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
@@ -52,7 +52,7 @@ const (
 // Clone kicks off a clone operation on vCenter to create a new virtual machine. This function does not wait for
 // the virtual machine to be created on the vCenter, which can be resolved by waiting on the task reference stored
 // in VMContext.VSphereVM.Status.TaskRef.
-func Clone(ctx context.Context, vmCtx *capvcontext.VMContext, bootstrapData []byte, format bootstrapv1beta1.Format) error {
+func Clone(ctx context.Context, vmCtx *capvcontext.VMContext, bootstrapData []byte, format bootstrapv1.Format) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	vmCtx = &capvcontext.VMContext{
@@ -67,9 +67,9 @@ func Clone(ctx context.Context, vmCtx *capvcontext.VMContext, bootstrapData []by
 	if len(bootstrapData) > 0 {
 		log.Info("Applied bootstrap data to VM clone spec")
 		switch format {
-		case bootstrapv1beta1.CloudConfig:
+		case bootstrapv1.CloudConfig:
 			extraConfig.SetCloudInitUserData(bootstrapData)
-		case bootstrapv1beta1.Ignition:
+		case bootstrapv1.Ignition:
 			extraConfig.SetIgnitionUserData(bootstrapData)
 		}
 	}

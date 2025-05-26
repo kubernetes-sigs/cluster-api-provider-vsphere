@@ -211,6 +211,7 @@ linters:
       - linters:
           - staticcheck
         text: 'SA1019: "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1" is deprecated: This package is deprecated and is going to be removed when support for v1beta1 will be dropped.'
+        path: test/extension/handlers/topologymutation
       - linters:
           - staticcheck
         text: 'SA1019: "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta1" is deprecated: This package is deprecated and is going to be removed when support for v1beta1 will be dropped.'

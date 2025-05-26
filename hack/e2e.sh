@@ -90,6 +90,13 @@ on_exit() {
 
 trap on_exit EXIT
 
+# Sanitize input envvars to not contain newline
+GOVC_USERNAME=$(echo "${GOVC_USERNAME}" | tr -d "\n")
+GOVC_PASSWORD=$(echo "${GOVC_PASSWORD}" | tr -d "\n")
+GOVC_URL=$(echo "${GOVC_URL}" | tr -d "\n")
+VSPHERE_TLS_THUMBPRINT=$(echo "${VSPHERE_TLS_THUMBPRINT}" | tr -d "\n")
+BOSKOS_HOST=$(echo "${BOSKOS_HOST}" | tr -d "\n")
+
 # NOTE: when running on CI without presets, value for variables are missing: GOVC_URL, GOVC_USERNAME, GOVC_PASSWORD),
 #  but this is not an issue when we are targeting vcsim (corresponding VSPHERE_ variables will be injected during test setup).
 export VSPHERE_SERVER="${GOVC_URL:-}"

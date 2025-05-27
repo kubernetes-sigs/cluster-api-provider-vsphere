@@ -222,6 +222,12 @@ linters:
           - staticcheck
         text: 'SA1019: "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/.*" is deprecated'
       - linters:
+          - staticcheck
+        text: 'SA1019: corev1.Endpoints is deprecated: This API is deprecated in v1.33\+. Use discoveryv1.EndpointSlice.'
+      - linters:
+          - staticcheck
+        text: 'SA1019: corev1.EndpointSubset is deprecated: This API is deprecated in v1.33\+.'
+      - linters:
           - revive
         text: 'exported: exported method .*\.(Reconcile|SetupWithManager|SetupWebhookWithManager) should have comment or be unexported'
       - linters:

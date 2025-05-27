@@ -347,6 +347,8 @@ func (r *VSphereVMReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Man
 	return nil
 }
 
+// Reimplementation of some functions at "sigs.k8s.io/cluster-api/util" to be compatible to v1beta1.
+
 // getClusterV1Beta1FromMetadata returns the Cluster object (if present) using the object metadata.
 func getClusterV1Beta1FromMetadata(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*clusterv1beta1.Cluster, error) {
 	if obj.Labels[clusterv1beta1.ClusterNameLabel] == "" {

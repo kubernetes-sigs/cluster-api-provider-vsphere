@@ -32,7 +32,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/utils/ptr"
 	bootstrapv1beta1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1"
+	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1beta1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta1"
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/runtime/topologymutation"
@@ -85,12 +87,12 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 			isControlPlane := holderRef.Kind == "KubeadmControlPlane"
 
 			switch obj := obj.(type) {
-			case *controlplanev1beta1.KubeadmControlPlaneTemplate:
+			case *controlplanev1.KubeadmControlPlaneTemplate:
 				if err := patchKubeadmControlPlaneTemplate(ctx, obj, variables); err != nil {
 					log.Error(err, "Error patching KubeadmControlPlaneTemplate")
 					return errors.Wrap(err, "error patching KubeadmControlPlaneTemplate")
 				}
-			case *bootstrapv1beta1.KubeadmConfigTemplate:
+			case *bootstrapv1.KubeadmConfigTemplate:
 				if err := patchKubeadmConfigTemplate(ctx, obj, variables); err != nil {
 					log.Error(err, "Error patching KubeadmConfigTemplate")
 					return errors.Wrap(err, "error patching KubeadmConfigTemplate")
@@ -128,7 +130,7 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 }
 
 // patchKubeadmControlPlaneTemplate patches the KubeadmControlPlaneTemplate.
-func patchKubeadmControlPlaneTemplate(_ context.Context, tpl *controlplanev1beta1.KubeadmControlPlaneTemplate, templateVariables map[string]apiextensionsv1.JSON) error {
+func patchKubeadmControlPlaneTemplate(_ context.Context, tpl *controlplanev1.KubeadmControlPlaneTemplate, templateVariables map[string]apiextensionsv1.JSON) error {
 	// patch enableSSHIntoNodes
 	if err := patchUsers(&tpl.Spec.Template.Spec.KubeadmConfigSpec, templateVariables); err != nil {
 		return err
@@ -152,11 +154,7 @@ func patchKubeadmControlPlaneTemplate(_ context.Context, tpl *controlplanev1beta
 			if file.Path == "/etc/kubernetes/manifests/kube-vip.yaml" {
 				file.Content = kubeVipPodManifestModified
 			}
-			out := &bootstrapv1beta1.File{}
-			if err := bootstrapv1beta1.Convert_v1beta2_File_To_v1beta1_File(&file, out, nil); err != nil {
-				return err
-			}
-			tpl.Spec.Template.Spec.KubeadmConfigSpec.Files = append(tpl.Spec.Template.Spec.KubeadmConfigSpec.Files, *out)
+			tpl.Spec.Template.Spec.KubeadmConfigSpec.Files = append(tpl.Spec.Template.Spec.KubeadmConfigSpec.Files, file)
 		}
 	}
 
@@ -175,7 +173,7 @@ func patchKubeadmControlPlaneTemplate(_ context.Context, tpl *controlplanev1beta
 
 		versionRegex := regexp.MustCompile("(KUBERNETES_VERSION=.*)")
 		tpl.Spec.Template.Spec.KubeadmConfigSpec.Files = append(tpl.Spec.Template.Spec.KubeadmConfigSpec.Files,
-			bootstrapv1beta1.File{
+			bootstrapv1.File{
 				Owner:       "root:root",
 				Path:        "/etc/pre-kubeadm-commands/10-prekubeadmscript.sh",
 				Permissions: "0755",
@@ -188,7 +186,7 @@ func patchKubeadmControlPlaneTemplate(_ context.Context, tpl *controlplanev1beta
 }
 
 // KubeadmConfigTemplate patches the KubeadmConfigTemplate.
-func patchKubeadmConfigTemplate(_ context.Context, tpl *bootstrapv1beta1.KubeadmConfigTemplate, templateVariables map[string]apiextensionsv1.JSON) error {
+func patchKubeadmConfigTemplate(_ context.Context, tpl *bootstrapv1.KubeadmConfigTemplate, templateVariables map[string]apiextensionsv1.JSON) error {
 	// patch enableSSHIntoNodes
 	if err := patchUsers(&tpl.Spec.Template.Spec, templateVariables); err != nil {
 		return err
@@ -196,7 +194,7 @@ func patchKubeadmConfigTemplate(_ context.Context, tpl *bootstrapv1beta1.Kubeadm
 
 	// always add a file so we don't have an empty array.
 	tpl.Spec.Template.Spec.Files = append(tpl.Spec.Template.Spec.Files,
-		bootstrapv1beta1.File{
+		bootstrapv1.File{
 			Owner:       "root:root",
 			Path:        "/etc/test-extension",
 			Permissions: "0755",
@@ -218,7 +216,7 @@ func patchKubeadmConfigTemplate(_ context.Context, tpl *bootstrapv1beta1.Kubeadm
 
 		versionRegex := regexp.MustCompile("(KUBERNETES_VERSION=.*)")
 		tpl.Spec.Template.Spec.Files = append(tpl.Spec.Template.Spec.Files,
-			bootstrapv1beta1.File{
+			bootstrapv1.File{
 				Owner:       "root:root",
 				Path:        "/etc/pre-kubeadm-commands/10-prekubeadmscript.sh",
 				Permissions: "0755",
@@ -230,7 +228,7 @@ func patchKubeadmConfigTemplate(_ context.Context, tpl *bootstrapv1beta1.Kubeadm
 	return nil
 }
 
-func patchUsers(kubeadmConfigSpec *bootstrapv1beta1.KubeadmConfigSpec, templateVariables map[string]apiextensionsv1.JSON) error {
+func patchUsers(kubeadmConfigSpec *bootstrapv1.KubeadmConfigSpec, templateVariables map[string]apiextensionsv1.JSON) error {
 	sshKey, err := topologymutation.GetStringVariable(templateVariables, "sshKey")
 	if err != nil {
 		// Skip patch if sshKey variable is not set
@@ -241,7 +239,7 @@ func patchUsers(kubeadmConfigSpec *bootstrapv1beta1.KubeadmConfigSpec, templateV
 	}
 
 	kubeadmConfigSpec.Users = append(kubeadmConfigSpec.Users,
-		bootstrapv1beta1.User{
+		bootstrapv1.User{
 			Name:              "capv",
 			SSHAuthorizedKeys: []string{sshKey},
 			Sudo:              ptr.To("ALL=(ALL) NOPASSWD:ALL"),

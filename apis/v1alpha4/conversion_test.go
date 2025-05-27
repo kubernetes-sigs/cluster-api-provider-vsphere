@@ -19,12 +19,12 @@ package v1alpha4
 import (
 	"testing"
 
-	fuzz "github.com/google/gofuzz"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	"k8s.io/apimachinery/pkg/runtime"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
+	"sigs.k8s.io/randfill"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 )
@@ -66,8 +66,8 @@ func TestFuzzyConversion(t *testing.T) {
 
 func overrideVSphereClusterSpecFieldsFuncs(runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
-		func(in *infrav1.VSphereClusterSpec, c fuzz.Continue) {
-			c.FuzzNoCustom(in)
+		func(in *infrav1.VSphereClusterSpec, c randfill.Continue) {
+			c.FillNoCustom(in)
 			in.ClusterModules = nil
 			in.FailureDomainSelector = nil
 			in.DisableClusterModule = false
@@ -77,8 +77,8 @@ func overrideVSphereClusterSpecFieldsFuncs(runtimeserializer.CodecFactory) []int
 
 func overrideVSphereClusterStatusFieldsFuncs(runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
-		func(in *infrav1.VSphereClusterStatus, c fuzz.Continue) {
-			c.FuzzNoCustom(in)
+		func(in *infrav1.VSphereClusterStatus, c randfill.Continue) {
+			c.FillNoCustom(in)
 			in.VCenterVersion = ""
 		},
 	}
@@ -91,8 +91,8 @@ func CustomNewFieldFuzzFunc(runtimeserializer.CodecFactory) []interface{} {
 	}
 }
 
-func CustomSpecNewFieldFuzzer(in *infrav1.VirtualMachineCloneSpec, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
+func CustomSpecNewFieldFuzzer(in *infrav1.VirtualMachineCloneSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
 
 	in.PciDevices = nil
 	in.AdditionalDisksGiB = nil
@@ -100,8 +100,8 @@ func CustomSpecNewFieldFuzzer(in *infrav1.VirtualMachineCloneSpec, c fuzz.Contin
 	in.HardwareVersion = ""
 }
 
-func CustomStatusNewFieldFuzzer(in *infrav1.VSphereVMStatus, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
+func CustomStatusNewFieldFuzzer(in *infrav1.VSphereVMStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
 
 	in.Host = ""
 	in.ModuleUUID = nil

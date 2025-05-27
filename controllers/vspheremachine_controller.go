@@ -35,7 +35,7 @@ import (
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
-	conditionsv1beta1 "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	deprecatedv1beta2conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
@@ -414,7 +414,7 @@ func (r *machineReconciler) reconcileNormal(ctx context.Context, machineCtx capv
 
 	// Make sure bootstrap data is available and populated.
 	if machineCtx.GetMachine().Spec.Bootstrap.DataSecretName == nil {
-		if !util.IsControlPlaneMachine(machineCtx.GetVSphereMachine()) && !conditionsv1beta1.IsTrue(machineCtx.GetCluster(), clusterv1.ControlPlaneInitializedV1Beta1Condition) {
+		if !util.IsControlPlaneMachine(machineCtx.GetVSphereMachine()) && !conditions.IsTrue(machineCtx.GetCluster(), clusterv1.ClusterControlPlaneInitializedCondition) {
 			log.Info("Waiting for the control plane to be initialized, skipping reconciliation")
 			deprecatedconditions.MarkFalse(machineCtx.GetVSphereMachine(), infrav1.VMProvisionedCondition, clusterv1beta1.WaitingForControlPlaneAvailableReason, clusterv1beta1.ConditionSeverityInfo, "")
 			deprecatedv1beta2conditions.Set(machineCtx.GetVSphereMachine(), metav1.Condition{

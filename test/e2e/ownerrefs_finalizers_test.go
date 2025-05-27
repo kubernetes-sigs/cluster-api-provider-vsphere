@@ -43,7 +43,7 @@ import (
 	clusterctlcluster "sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	"sigs.k8s.io/cluster-api/test/framework"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -151,7 +151,7 @@ var _ = Describe("Ensure OwnerReferences and Finalizers are resilient [vcsim] [s
 						}
 
 						for _, machine := range machineList.Items {
-							if !v1beta1conditions.IsTrue(&machine, clusterv1.MachineNodeHealthyV1Beta1Condition) {
+							if !conditions.IsTrue(&machine, clusterv1.MachineNodeHealthyCondition) {
 								return errors.Errorf("machine %q does not have %q condition set to true", machine.GetName(), clusterv1.MachineNodeHealthyV1Beta1Condition)
 							}
 						}

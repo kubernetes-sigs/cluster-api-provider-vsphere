@@ -115,10 +115,6 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 					log.Error(err, "Error patching VSphereMachineTemplate")
 					return errors.Wrap(err, "error patching VSphereMachineTemplate")
 				}
-			default:
-				err := errors.Errorf("Unexpected object type: %s", obj.GetObjectKind())
-				log.Error(err, "error patching object")
-				return err
 			}
 			return nil
 		},
@@ -127,6 +123,7 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 		// an empty template without a set `.spec` and due to omitempty
 		// `.spec.template.spec.controlPlaneEndpoint` does not exist.
 		topologymutation.PatchFormat{Format: runtimehooksv1.JSONMergePatchType},
+		topologymutation.FailForUnknownTypes{},
 	)
 }
 

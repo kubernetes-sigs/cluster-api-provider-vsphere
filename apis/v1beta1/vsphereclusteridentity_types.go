@@ -18,7 +18,7 @@ package v1beta1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 )
 
 const (
@@ -31,10 +31,10 @@ const (
 // VSphereClusterIdentity's Available condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
 	// VSphereClusterIdentityAvailableV1Beta2Condition documents the availability for a VSphereClusterIdentity.
-	VSphereClusterIdentityAvailableV1Beta2Condition = clusterv1.AvailableV1Beta2Condition
+	VSphereClusterIdentityAvailableV1Beta2Condition = clusterv1beta1.AvailableV1Beta2Condition
 
 	// VSphereClusterIdentityAvailableV1Beta2Reason surfaces when the VSphereClusterIdentity is available.
-	VSphereClusterIdentityAvailableV1Beta2Reason = clusterv1.AvailableV1Beta2Reason
+	VSphereClusterIdentityAvailableV1Beta2Reason = clusterv1beta1.AvailableV1Beta2Reason
 
 	// VSphereClusterIdentitySecretNotAvailableV1Beta2Reason surfaces when the VSphereClusterIdentity secret is not available.
 	VSphereClusterIdentitySecretNotAvailableV1Beta2Reason = "SecretNotAvailable"
@@ -46,7 +46,7 @@ const (
 	VSphereClusterIdentitySettingSecretOwnerReferenceFailedV1Beta2Reason = "SettingSecretOwnerReferenceFailed"
 
 	// VSphereClusterIdentityDeletingV1Beta2Reason surfaces when the VSphereClusterIdentity is being deleted.
-	VSphereClusterIdentityDeletingV1Beta2Reason = clusterv1.DeletingV1Beta2Reason
+	VSphereClusterIdentityDeletingV1Beta2Reason = clusterv1beta1.DeletingV1Beta2Reason
 )
 
 // VSphereClusterIdentitySpec contains a secret reference and a group of allowed namespaces.
@@ -69,7 +69,7 @@ type VSphereClusterIdentityStatus struct {
 
 	// Conditions defines current service state of the VSphereCluster.
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
 
 	// v1beta2 groups all the fields that will be added or modified in VSphereClusterIdentity's status with the V1Beta2 version.
 	// +optional
@@ -117,12 +117,12 @@ type VSphereIdentityReference struct {
 }
 
 // GetConditions returns the conditions for the VSphereClusterIdentity.
-func (c *VSphereClusterIdentity) GetConditions() clusterv1.Conditions {
+func (c *VSphereClusterIdentity) GetConditions() clusterv1beta1.Conditions {
 	return c.Status.Conditions
 }
 
 // SetConditions sets the conditions on the VSphereClusterIdentity.
-func (c *VSphereClusterIdentity) SetConditions(conditions clusterv1.Conditions) {
+func (c *VSphereClusterIdentity) SetConditions(conditions clusterv1beta1.Conditions) {
 	c.Status.Conditions = conditions
 }
 

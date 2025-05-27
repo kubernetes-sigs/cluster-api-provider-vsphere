@@ -29,7 +29,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	capiutil "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -170,11 +170,14 @@ func CreateAndWait(ctx context.Context, integrationTestClient client.Client, obj
 	}).Should(Succeed())
 }
 
-// ClusterInfrastructureReady sets InfrastructureReady to true so ClusterCache creates the clusterAccessor.
-func ClusterInfrastructureReady(ctx context.Context, c client.Client, clusterCache clustercache.ClusterCache, cluster *clusterv1.Cluster) {
+// ClusterInfrastructureProvisioned sets InfrastructureReady to true so ClusterCache creates the clusterAccessor.
+func ClusterInfrastructureProvisioned(ctx context.Context, c client.Client, clusterCache clustercache.ClusterCache, cluster *clusterv1.Cluster) {
 	GinkgoHelper()
 	patch := client.MergeFrom(cluster.DeepCopy())
-	cluster.Status.InfrastructureReady = true
+	if cluster.Status.Initialization == nil {
+		cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{}
+	}
+	cluster.Status.Initialization.InfrastructureProvisioned = true
 	Expect(c.Status().Patch(ctx, cluster, patch)).To(Succeed())
 
 	// Ensure the ClusterCache reconciled at least once (and if possible created a clusterAccessor).

@@ -35,15 +35,16 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
-	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
+	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	clusterctlcluster "sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
@@ -151,7 +152,7 @@ var _ = Describe("Ensure OwnerReferences and Finalizers are resilient [vcsim] [s
 
 						for _, machine := range machineList.Items {
 							if !conditions.IsTrue(&machine, clusterv1.MachineNodeHealthyCondition) {
-								return errors.Errorf("machine %q does not have %q condition set to true", machine.GetName(), clusterv1.MachineNodeHealthyCondition)
+								return errors.Errorf("machine %q does not have %q condition set to true", machine.GetName(), clusterv1.MachineNodeHealthyV1Beta1Condition)
 							}
 						}
 
@@ -378,8 +379,8 @@ func checkGovmomiVSphereClusterFailureDomains(ctx context.Context, proxy framewo
 	}
 	Expect(proxy.GetClient().Get(ctx, ctrlclient.ObjectKeyFromObject(vSphereCluster), vSphereCluster)).To(Succeed())
 
-	Expect(vSphereCluster.Status.FailureDomains).To(BeEquivalentTo(clusterv1.FailureDomains{
-		"ownerrefs-finalizers": clusterv1.FailureDomainSpec{
+	Expect(vSphereCluster.Status.FailureDomains).To(BeEquivalentTo(clusterv1beta1.FailureDomains{
+		"ownerrefs-finalizers": clusterv1beta1.FailureDomainSpec{
 			ControlPlane: true,
 		},
 	}))
@@ -389,9 +390,9 @@ func checkSupervisorVSphereClusterFailureDomains(ctx context.Context, proxy fram
 	avalabilityZones := &topologyv1.AvailabilityZoneList{}
 	Expect(proxy.GetClient().List(ctx, avalabilityZones)).To(Succeed())
 
-	wantFailureDomains := clusterv1.FailureDomains{}
+	wantFailureDomains := clusterv1beta1.FailureDomains{}
 	for _, zone := range avalabilityZones.Items {
-		wantFailureDomains[zone.Name] = clusterv1.FailureDomainSpec{
+		wantFailureDomains[zone.Name] = clusterv1beta1.FailureDomainSpec{
 			ControlPlane: true,
 		}
 	}

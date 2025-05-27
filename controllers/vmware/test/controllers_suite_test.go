@@ -34,7 +34,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -110,14 +110,14 @@ var _ = AfterSuite(func() {
 })
 
 func findModuleDir(module string) string {
-	cmd := exec.Command("go", "mod", "download", "-json", module)
+	cmd := exec.Command("go", "list", "-json", "-m", module)
 	out, err := cmd.Output()
 	if err != nil {
-		klog.Fatalf("Failed to run go mod to find module %q directory", module)
+		klog.Fatalf("Failed to run go list to find module %q directory", module)
 	}
 	info := struct{ Dir string }{}
 	if err := json.Unmarshal(out, &info); err != nil {
-		klog.Fatalf("Failed to unmarshal output from go mod command: %v", err)
+		klog.Fatalf("Failed to unmarshal output from go list command: %v", err)
 	} else if info.Dir == "" {
 		klog.Fatalf("Failed to find go module %q directory, received %v", module, string(out))
 	}

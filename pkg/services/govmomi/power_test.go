@@ -26,7 +26,7 @@ import (
 	"github.com/vmware/govmomi/simulator"
 	"github.com/vmware/govmomi/vim25"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
@@ -64,7 +64,7 @@ func TestIsSoftPowerOffTimeoutExceeded(t *testing.T) {
 				GuestSoftPowerOffTimeout: nil,
 			},
 			Status: infrav1.VSphereVMStatus{
-				Conditions: []clusterv1.Condition{
+				Conditions: []clusterv1beta1.Condition{
 					{
 						Type:               infrav1.GuestSoftPowerOffSucceededCondition,
 						Status:             infrav1.GuestSoftPowerOffInProgressReason,
@@ -90,7 +90,7 @@ func TestIsSoftPowerOffTimeoutExceeded(t *testing.T) {
 				GuestSoftPowerOffTimeout: &metav1.Duration{Duration: 0},
 			},
 			Status: infrav1.VSphereVMStatus{
-				Conditions: []clusterv1.Condition{
+				Conditions: []clusterv1beta1.Condition{
 					{
 						Type:               infrav1.GuestSoftPowerOffSucceededCondition,
 						Status:             infrav1.GuestSoftPowerOffInProgressReason,
@@ -116,7 +116,7 @@ func TestIsSoftPowerOffTimeoutExceeded(t *testing.T) {
 				GuestSoftPowerOffTimeout: &metav1.Duration{Duration: time.Minute},
 			},
 			Status: infrav1.VSphereVMStatus{
-				Conditions: []clusterv1.Condition{
+				Conditions: []clusterv1beta1.Condition{
 					{
 						Type:               infrav1.GuestSoftPowerOffSucceededCondition,
 						Status:             infrav1.GuestSoftPowerOffInProgressReason,
@@ -193,7 +193,7 @@ func TestTriggerSoftPowerOff(t *testing.T) {
 					GuestSoftPowerOffTimeout: nil,
 				},
 				Status: infrav1.VSphereVMStatus{
-					Conditions: []clusterv1.Condition{
+					Conditions: []clusterv1beta1.Condition{
 						{
 							Type:               infrav1.GuestSoftPowerOffSucceededCondition,
 							Status:             infrav1.GuestSoftPowerOffInProgressReason,
@@ -230,7 +230,7 @@ func TestTriggerSoftPowerOff(t *testing.T) {
 					GuestSoftPowerOffTimeout: &metav1.Duration{Duration: 3 * time.Minute},
 				},
 				Status: infrav1.VSphereVMStatus{
-					Conditions: []clusterv1.Condition{
+					Conditions: []clusterv1beta1.Condition{
 						{
 							Type:               infrav1.GuestSoftPowerOffSucceededCondition,
 							Status:             infrav1.GuestSoftPowerOffInProgressReason,
@@ -267,7 +267,7 @@ func TestTriggerSoftPowerOff(t *testing.T) {
 					GuestSoftPowerOffTimeout: &metav1.Duration{Duration: 1 * time.Minute},
 				},
 				Status: infrav1.VSphereVMStatus{
-					Conditions: []clusterv1.Condition{
+					Conditions: []clusterv1beta1.Condition{
 						{
 							Type:               infrav1.GuestSoftPowerOffSucceededCondition,
 							Status:             infrav1.GuestSoftPowerOffInProgressReason,
@@ -332,7 +332,7 @@ func TestTriggerSoftPowerOff(t *testing.T) {
 					GuestSoftPowerOffTimeout: &metav1.Duration{Duration: 1 * time.Minute},
 				},
 				Status: infrav1.VSphereVMStatus{
-					Conditions: []clusterv1.Condition{
+					Conditions: []clusterv1beta1.Condition{
 						{
 							Type:               infrav1.GuestSoftPowerOffSucceededCondition,
 							Status:             infrav1.GuestSoftPowerOffInProgressReason,

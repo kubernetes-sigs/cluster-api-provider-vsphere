@@ -21,7 +21,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	bootstrapapi "k8s.io/cluster-bootstrap/token/api"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	capiutil "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -57,7 +57,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 			By("creating a service and no endpoint in the guest cluster")
 			assertHeadlessSvcWithNoEndpoints(ctx, controllerCtx.GuestClient, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
 			assertServiceDiscoveryCondition(controllerCtx.VSphereCluster, corev1.ConditionFalse, "Failed to discover supervisor API server endpoint",
-				vmwarev1.SupervisorHeadlessServiceSetupFailedReason, clusterv1.ConditionSeverityWarning)
+				vmwarev1.SupervisorHeadlessServiceSetupFailedReason, clusterv1beta1.ConditionSeverityWarning)
 		})
 	})
 	Context("When VIP is available", func() {
@@ -138,7 +138,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 			By("creating a service and no endpoint in the guest cluster")
 			assertHeadlessSvcWithNoEndpoints(ctx, controllerCtx.GuestClient, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
 			assertServiceDiscoveryCondition(controllerCtx.VSphereCluster, corev1.ConditionFalse, "Failed to discover supervisor API server endpoint",
-				vmwarev1.SupervisorHeadlessServiceSetupFailedReason, clusterv1.ConditionSeverityWarning)
+				vmwarev1.SupervisorHeadlessServiceSetupFailedReason, clusterv1beta1.ConditionSeverityWarning)
 		})
 	})
 	Context("When FIP is an invalid host", func() {
@@ -151,7 +151,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 			By("creating a service and no endpoint in the guest cluster")
 			assertHeadlessSvcWithNoEndpoints(ctx, controllerCtx.GuestClient, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
 			assertServiceDiscoveryCondition(controllerCtx.VSphereCluster, corev1.ConditionFalse, "Failed to discover supervisor API server endpoint",
-				vmwarev1.SupervisorHeadlessServiceSetupFailedReason, clusterv1.ConditionSeverityWarning)
+				vmwarev1.SupervisorHeadlessServiceSetupFailedReason, clusterv1beta1.ConditionSeverityWarning)
 		})
 	})
 	Context("When FIP config map has invalid kubeconfig data", func() {
@@ -167,7 +167,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 			By("creating a service and no endpoint in the guest cluster")
 			assertHeadlessSvcWithNoEndpoints(ctx, controllerCtx.GuestClient, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
 			assertServiceDiscoveryCondition(controllerCtx.VSphereCluster, corev1.ConditionFalse, "Failed to discover supervisor API server endpoint",
-				vmwarev1.SupervisorHeadlessServiceSetupFailedReason, clusterv1.ConditionSeverityWarning)
+				vmwarev1.SupervisorHeadlessServiceSetupFailedReason, clusterv1beta1.ConditionSeverityWarning)
 		})
 	})
 	Context("When FIP config map has invalid kubeconfig key", func() {
@@ -183,7 +183,7 @@ func serviceDiscoveryUnitTestsReconcileNormal() {
 			By("creating a service and no endpoint in the guest cluster")
 			assertHeadlessSvcWithNoEndpoints(ctx, controllerCtx.GuestClient, supervisorHeadlessSvcNamespace, supervisorHeadlessSvcName)
 			assertServiceDiscoveryCondition(controllerCtx.VSphereCluster, corev1.ConditionFalse, "Failed to discover supervisor API server endpoint",
-				vmwarev1.SupervisorHeadlessServiceSetupFailedReason, clusterv1.ConditionSeverityWarning)
+				vmwarev1.SupervisorHeadlessServiceSetupFailedReason, clusterv1beta1.ConditionSeverityWarning)
 		})
 	})
 }

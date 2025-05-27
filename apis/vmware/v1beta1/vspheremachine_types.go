@@ -19,7 +19,7 @@ package v1beta1
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	"sigs.k8s.io/cluster-api/errors"
 )
 
@@ -175,7 +175,7 @@ type VSphereMachineStatus struct {
 
 	// Conditions defines current service state of the VSphereMachine.
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
 
 	// v1beta2 groups all the fields that will be added or modified in VSphereMachine's status with the V1Beta2 version.
 	// +optional
@@ -221,12 +221,12 @@ type VSphereMachineList struct {
 }
 
 // GetConditions returns the conditions for the VSphereMachine.
-func (r *VSphereMachine) GetConditions() clusterv1.Conditions {
+func (r *VSphereMachine) GetConditions() clusterv1beta1.Conditions {
 	return r.Status.Conditions
 }
 
 // SetConditions sets conditions on the VSphereMachine.
-func (r *VSphereMachine) SetConditions(conditions clusterv1.Conditions) {
+func (r *VSphereMachine) SetConditions(conditions clusterv1beta1.Conditions) {
 	r.Status.Conditions = conditions
 }
 

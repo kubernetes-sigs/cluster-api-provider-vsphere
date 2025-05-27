@@ -29,8 +29,9 @@ import (
 	apirecord "k8s.io/client-go/tools/record"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -102,23 +103,23 @@ var _ = Describe("Cluster Controller Tests", func() {
 	Context("Test reconcileDelete", func() {
 		It("should mark specific resources to be in deleting conditions", func() {
 			clusterCtx.VSphereCluster.Status.Conditions = append(clusterCtx.VSphereCluster.Status.Conditions,
-				clusterv1.Condition{Type: vmwarev1.ResourcePolicyReadyCondition, Status: corev1.ConditionTrue})
+				clusterv1beta1.Condition{Type: vmwarev1.ResourcePolicyReadyCondition, Status: corev1.ConditionTrue})
 			reconciler.reconcileDelete(clusterCtx)
-			c := conditions.Get(clusterCtx.VSphereCluster, vmwarev1.ResourcePolicyReadyCondition)
+			c := deprecatedconditions.Get(clusterCtx.VSphereCluster, vmwarev1.ResourcePolicyReadyCondition)
 			Expect(c).NotTo(BeNil())
 			Expect(c.Status).To(Equal(corev1.ConditionFalse))
-			Expect(c.Reason).To(Equal(clusterv1.DeletingReason))
+			Expect(c.Reason).To(Equal(clusterv1beta1.DeletingReason))
 		})
 
 		It("should not mark other resources to be in deleting conditions", func() {
-			otherReady := clusterv1.ConditionType("OtherReady")
+			otherReady := clusterv1beta1.ConditionType("OtherReady")
 			clusterCtx.VSphereCluster.Status.Conditions = append(clusterCtx.VSphereCluster.Status.Conditions,
-				clusterv1.Condition{Type: otherReady, Status: corev1.ConditionTrue})
+				clusterv1beta1.Condition{Type: otherReady, Status: corev1.ConditionTrue})
 			reconciler.reconcileDelete(clusterCtx)
-			c := conditions.Get(clusterCtx.VSphereCluster, otherReady)
+			c := deprecatedconditions.Get(clusterCtx.VSphereCluster, otherReady)
 			Expect(c).NotTo(BeNil())
 			Expect(c.Status).NotTo(Equal(corev1.ConditionFalse))
-			Expect(c.Reason).NotTo(Equal(clusterv1.DeletingReason))
+			Expect(c.Reason).NotTo(Equal(clusterv1beta1.DeletingReason))
 		})
 	})
 })
@@ -140,7 +141,7 @@ func TestClusterReconciler_getFailureDomains(t *testing.T) {
 	tests := []struct {
 		name        string
 		objects     []client.Object
-		want        clusterv1.FailureDomains
+		want        clusterv1beta1.FailureDomains
 		wantErr     bool
 		featureGate bool
 	}{
@@ -258,10 +259,10 @@ func zone(namespace, name string, deleting bool) *topologyv1.Zone {
 	return z
 }
 
-func failureDomains(names ...string) clusterv1.FailureDomains {
-	fds := clusterv1.FailureDomains{}
+func failureDomains(names ...string) clusterv1beta1.FailureDomains {
+	fds := clusterv1beta1.FailureDomains{}
 	for _, name := range names {
-		fds[name] = clusterv1.FailureDomainSpec{
+		fds[name] = clusterv1beta1.FailureDomainSpec{
 			ControlPlane: true,
 		}
 	}

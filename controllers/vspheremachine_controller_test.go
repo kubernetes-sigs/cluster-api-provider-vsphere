@@ -24,10 +24,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	capiutil "sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/conditions"
-	"sigs.k8s.io/cluster-api/util/patch"
+	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -46,12 +47,12 @@ var _ = Describe("VsphereMachineReconciler", func() {
 		key    client.ObjectKey
 	)
 
-	isPresentAndFalseWithReason := func(getter conditions.Getter, condition clusterv1.ConditionType, reason string) bool {
+	isPresentAndFalseWithReason := func(getter deprecatedconditions.Getter, condition clusterv1beta1.ConditionType, reason string) bool {
 		ExpectWithOffset(1, testEnv.Get(ctx, key, getter)).To(Succeed())
-		if !conditions.Has(getter, condition) {
+		if !deprecatedconditions.Has(getter, condition) {
 			return false
 		}
-		objectCondition := conditions.Get(getter, condition)
+		objectCondition := deprecatedconditions.Get(getter, condition)
 		return objectCondition.Status == corev1.ConditionFalse &&
 			objectCondition.Reason == reason
 	}
@@ -164,7 +165,10 @@ var _ = Describe("VsphereMachineReconciler", func() {
 		Eventually(func() error {
 			ph, err := patch.NewHelper(capiCluster, testEnv)
 			Expect(err).ShouldNot(HaveOccurred())
-			capiCluster.Status.InfrastructureReady = true
+			if capiCluster.Status.Initialization == nil {
+				capiCluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{}
+			}
+			capiCluster.Status.Initialization.InfrastructureProvisioned = true
 			return ph.Patch(ctx, capiCluster, patch.WithStatusObservedGeneration{})
 		}, timeout).Should(Succeed())
 
@@ -177,7 +181,10 @@ var _ = Describe("VsphereMachineReconciler", func() {
 		BeforeEach(func() {
 			ph, err := patch.NewHelper(capiCluster, testEnv)
 			Expect(err).ShouldNot(HaveOccurred())
-			capiCluster.Status.InfrastructureReady = true
+			if capiCluster.Status.Initialization == nil {
+				capiCluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{}
+			}
+			capiCluster.Status.Initialization.InfrastructureProvisioned = true
 			Expect(ph.Patch(ctx, capiCluster, patch.WithStatusObservedGeneration{})).To(Succeed())
 		})
 

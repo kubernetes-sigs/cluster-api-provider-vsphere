@@ -31,9 +31,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/utils/ptr"
-	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
-	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
+	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/runtime/topologymutation"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -49,13 +50,18 @@ import (
 // this is convenient because in Cluster API's E2E tests all of them are using a decoder for working with typed
 // API objects, which makes code easier to read and less error prone than using unstructured or working with raw json/yaml.
 // NOTE: it is not mandatory to use a ExtensionHandlers in custom RuntimeExtension, what is important
-// is to expose HandlerFunc with the signature defined in sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.
+// is to expose HandlerFunc with the signature defined in sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.
 type ExtensionHandlers struct {
 	decoder runtime.Decoder
 }
 
 // NewExtensionHandlers returns a new ExtensionHandlers for the topology mutation hook handlers.
-func NewExtensionHandlers(scheme *runtime.Scheme) *ExtensionHandlers {
+func NewExtensionHandlers() *ExtensionHandlers {
+	scheme := runtime.NewScheme()
+	_ = infrav1.AddToScheme(scheme)
+	_ = vmwarev1.AddToScheme(scheme)
+	_ = bootstrapv1.AddToScheme(scheme)
+	_ = controlplanev1.AddToScheme(scheme)
 	return &ExtensionHandlers{
 		// Add the apiGroups being handled to the decoder
 		decoder: serializer.NewCodecFactory(scheme).UniversalDecoder(
@@ -122,6 +128,7 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 		// an empty template without a set `.spec` and due to omitempty
 		// `.spec.template.spec.controlPlaneEndpoint` does not exist.
 		topologymutation.PatchFormat{Format: runtimehooksv1.JSONMergePatchType},
+		topologymutation.FailForUnknownTypes{},
 	)
 }
 
@@ -363,7 +370,18 @@ func (h *ExtensionHandlers) DiscoverVariables(ctx context.Context, req *runtimeh
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("DiscoverVariables called")
 
-	resp.Status = runtimehooksv1.ResponseStatusSuccess
+	vars := []clusterv1beta1.ClusterClassVariable{}
 
-	resp.Variables = clusterclass.GetClusterClassVariables(req.Settings["testMode"] == "govmomi")
+	for _, in := range clusterclass.GetClusterClassVariables(req.Settings["testMode"] == "govmomi") {
+		out := clusterv1beta1.ClusterClassVariable{}
+		if err := clusterv1beta1.Convert_v1beta2_ClusterClassVariable_To_v1beta1_ClusterClassVariable(&in, &out, nil); err != nil {
+			resp.Status = runtimehooksv1.ResponseStatusFailure
+			resp.Message = fmt.Sprintf("Failed to Convert ClusterClass variable %q to v1beta1", in.Name)
+			return
+		}
+		vars = append(resp.Variables, out)
+	}
+
+	resp.Status = runtimehooksv1.ResponseStatusSuccess
+	resp.Variables = vars
 }

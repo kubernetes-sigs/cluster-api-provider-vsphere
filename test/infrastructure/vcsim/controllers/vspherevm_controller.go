@@ -24,16 +24,17 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
 	inmemoryserver "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
 	capiutil "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	"sigs.k8s.io/cluster-api/util/finalizers"
-	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -100,7 +101,7 @@ func (r *VSphereVMReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	ctx = ctrl.LoggerInto(ctx, log)
 
 	// Fetch the Machine.
-	machine, err := capiutil.GetOwnerMachine(ctx, r.Client, vSphereMachine.ObjectMeta)
+	machine, err := getOwnerMachineV1Beta1(ctx, r.Client, vSphereMachine.ObjectMeta)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -112,20 +113,20 @@ func (r *VSphereVMReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	ctx = ctrl.LoggerInto(ctx, log)
 
 	// Fetch the Cluster.
-	cluster, err := capiutil.GetClusterFromMetadata(ctx, r.Client, machine.ObjectMeta)
+	cluster, err := getClusterV1Beta1FromMetadata(ctx, r.Client, machine.ObjectMeta)
 	if err != nil {
 		log.Info("VSphereVM owner Machine is missing cluster label or cluster does not exist")
 		return ctrl.Result{}, err
 	}
 	if cluster == nil {
-		log.Info(fmt.Sprintf("Please associate this machine with a cluster using the label %s: <name of cluster>", clusterv1.ClusterNameLabel))
+		log.Info(fmt.Sprintf("Please associate this machine with a cluster using the label %s: <name of cluster>", clusterv1beta1.ClusterNameLabel))
 		return ctrl.Result{}, nil
 	}
 	log = log.WithValues("Cluster", klog.KObj(cluster))
 	ctx = ctrl.LoggerInto(ctx, log)
 
 	// Return early if the object or Cluster is paused.
-	if annotations.IsPaused(cluster, vSphereVM) {
+	if cluster.Spec.Paused || annotations.HasPaused(vSphereVM) {
 		log.Info("Reconciliation is paused for this object")
 		return ctrl.Result{}, nil
 	}
@@ -247,7 +248,7 @@ func (r *VSphereVMReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	return r.reconcileNormal(ctx, cluster, vSphereCluster, machine, vSphereVM, conditionsTracker)
 }
 
-func (r *VSphereVMReconciler) reconcileNormal(ctx context.Context, cluster *clusterv1.Cluster, vSphereCluster *infrav1.VSphereCluster, machine *clusterv1.Machine, vSphereVM *infrav1.VSphereVM, conditionsTracker *infrav1.VSphereVM) (ctrl.Result, error) {
+func (r *VSphereVMReconciler) reconcileNormal(ctx context.Context, cluster *clusterv1beta1.Cluster, vSphereCluster *infrav1.VSphereCluster, machine *clusterv1beta1.Machine, vSphereVM *infrav1.VSphereVM, conditionsTracker *infrav1.VSphereVM) (ctrl.Result, error) {
 	ipReconciler := r.getVMIpReconciler(vSphereCluster, vSphereVM)
 	if ret, err := ipReconciler.ReconcileIP(ctx); !ret.IsZero() || err != nil {
 		return ret, err
@@ -261,7 +262,7 @@ func (r *VSphereVMReconciler) reconcileNormal(ctx context.Context, cluster *clus
 	return ctrl.Result{}, nil
 }
 
-func (r *VSphereVMReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, _ *infrav1.VSphereCluster, machine *clusterv1.Machine, vSphereVM *infrav1.VSphereVM, conditionsTracker *infrav1.VSphereVM) (ctrl.Result, error) {
+func (r *VSphereVMReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1beta1.Cluster, _ *infrav1.VSphereCluster, machine *clusterv1beta1.Machine, vSphereVM *infrav1.VSphereVM, conditionsTracker *infrav1.VSphereVM) (ctrl.Result, error) {
 	bootstrapReconciler := r.getVMBootstrapReconciler(vSphereVM)
 	if ret, err := bootstrapReconciler.reconcileDelete(ctx, cluster, machine, conditionsTracker); !ret.IsZero() || err != nil {
 		return ret, err
@@ -283,7 +284,7 @@ func (r *VSphereVMReconciler) getVMIpReconciler(vSphereCluster *infrav1.VSphereC
 		},
 		IsVMWaitingforIP: func() bool {
 			// A vSphereVM is waiting for an IP when not ready VMProvisioned condition is false with reason WaitingForIPAllocation
-			return !vSphereVM.Status.Ready && conditions.IsFalse(vSphereVM, infrav1.VMProvisionedCondition) && conditions.GetReason(vSphereVM, infrav1.VMProvisionedCondition) == infrav1.WaitingForIPAllocationReason
+			return !vSphereVM.Status.Ready && deprecatedconditions.IsFalse(vSphereVM, infrav1.VMProvisionedCondition) && deprecatedconditions.GetReason(vSphereVM, infrav1.VMProvisionedCondition) == infrav1.WaitingForIPAllocationReason
 		},
 		GetVMPath: func() string {
 			// Return vmref of the VM as it is populated already by CAPV
@@ -344,4 +345,53 @@ func (r *VSphereVMReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Man
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
 	return nil
+}
+
+// Reimplementation of some functions at "sigs.k8s.io/cluster-api/util" to be compatible to v1beta1.
+
+// getClusterV1Beta1FromMetadata returns the Cluster object (if present) using the object metadata.
+func getClusterV1Beta1FromMetadata(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*clusterv1beta1.Cluster, error) {
+	if obj.Labels[clusterv1beta1.ClusterNameLabel] == "" {
+		return nil, errors.WithStack(capiutil.ErrNoCluster)
+	}
+	return getClusterV1Beta1ByName(ctx, c, obj.Namespace, obj.Labels[clusterv1beta1.ClusterNameLabel])
+}
+
+// getClusterV1Beta1ByName finds and return a Cluster object using the specified params.
+func getClusterV1Beta1ByName(ctx context.Context, c client.Client, namespace, name string) (*clusterv1beta1.Cluster, error) {
+	cluster := &clusterv1beta1.Cluster{}
+	key := client.ObjectKey{
+		Namespace: namespace,
+		Name:      name,
+	}
+
+	if err := c.Get(ctx, key, cluster); err != nil {
+		return nil, errors.Wrapf(err, "failed to get Cluster/%s", name)
+	}
+
+	return cluster, nil
+}
+
+// getOwnerMachineV1Beta1 returns the Machine object owning the current resource.
+func getOwnerMachineV1Beta1(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*clusterv1beta1.Machine, error) {
+	for _, ref := range obj.GetOwnerReferences() {
+		gv, err := schema.ParseGroupVersion(ref.APIVersion)
+		if err != nil {
+			return nil, err
+		}
+		if ref.Kind == "Machine" && gv.Group == clusterv1beta1.GroupVersion.Group {
+			return getMachineByName(ctx, c, obj.Namespace, ref.Name)
+		}
+	}
+	return nil, nil
+}
+
+// getMachineByName finds and return a Machine object using the specified params.
+func getMachineByName(ctx context.Context, c client.Client, namespace, name string) (*clusterv1beta1.Machine, error) {
+	m := &clusterv1beta1.Machine{}
+	key := client.ObjectKey{Name: name, Namespace: namespace}
+	if err := c.Get(ctx, key, m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }

@@ -1,7 +1,7 @@
 version: "2"
 run:
   timeout: 10m
-  go: "1.23"
+  go: "1.24"
   allow-parallel-runners: true
 linters:
   default: none
@@ -117,23 +117,30 @@ linters:
         - pkg: github.com/vmware-tanzu/nsx-operator/pkg/apis/vpc/v1alpha1
           alias: nsxvpcv1
         # CABPK
-        - pkg: sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1
+        - pkg: sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2
           alias: bootstrapv1
+        - pkg: sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1
+          alias: bootstrapv1beta1
         # KCP
-        - pkg: sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1
+        - pkg: sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2
           alias: controlplanev1
         # CAPI
-        - pkg: sigs.k8s.io/cluster-api/api/v1beta1
+        - pkg: sigs.k8s.io/cluster-api/api/core/v1beta2
           alias: clusterv1
-        # CAPI exp
-        - pkg: sigs.k8s.io/cluster-api/exp/api/v1beta1
-          alias: expv1
-        # CAPI exp addons
-        - pkg: sigs.k8s.io/cluster-api/api/addons/v1beta1
+        - pkg: sigs.k8s.io/cluster-api/api/core/v1beta1
+          alias: clusterv1beta1
+        - pkg: sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions
+          alias: deprecatedconditions
+        - pkg: sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2
+          alias: deprecatedv1beta2conditions
+        # CAPI addons
+        - pkg: sigs.k8s.io/cluster-api/api/addons/v1beta2
           alias: addonsv1
         # CAPI IPAM 
-        - pkg: sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1
+        - pkg: sigs.k8s.io/cluster-api/api/ipam/v1beta2
           alias: ipamv1
+        - pkg: sigs.k8s.io/cluster-api/api/ipam/v1beta1
+          alias: ipamv1beta1
     nolintlint:
       require-specific: true
       allow-unused: false
@@ -195,6 +202,22 @@ linters:
       - linters:
           - staticcheck
         text: 'SA1019: "sigs.k8s.io/cluster-api-provider-vsphere/apis/(v1alpha3|v1alpha4)" is deprecated: This package will be removed in one of the next releases.'
+      - linters:
+          - staticcheck
+        text: 'SA1019: "sigs.k8s.io/cluster-api/api/core/v1beta1" is deprecated: This package is deprecated and is going to be removed when support for v1beta1 will be dropped.'
+        # CAPV Govmomi aggregates from IPAddressClaims to v1beta1 conditions
+      - linters:
+          - staticcheck
+        text: 'SA1019: "sigs.k8s.io/cluster-api/api/ipam/v1beta1" is deprecated: This package is deprecated and is going to be removed when support for v1beta1 will be dropped.'
+      - linters:
+          - staticcheck
+        text: 'SA1019: "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/.*" is deprecated'
+      - linters:
+          - staticcheck
+        text: 'SA1019: corev1.Endpoints is deprecated: This API is deprecated in v1.33\+. Use discoveryv1.EndpointSlice.'
+      - linters:
+          - staticcheck
+        text: 'SA1019: corev1.EndpointSubset is deprecated: This API is deprecated in v1.33\+.'
       - linters:
           - revive
         text: 'exported: exported method .*\.(Reconcile|SetupWithManager|SetupWebhookWithManager) should have comment or be unexported'
@@ -304,10 +327,6 @@ linters:
           - staticcheck
         path: ^(apis/(v1alpha3|v1alpha4)\/.*)\.go$
         text: ST1021|ST1020
-        # Ignore non-constant format string in call to condition utils
-      - linters:
-          - govet
-        text: non-constant format string in call to sigs\.k8s\.io\/cluster-api\/util\/conditions\.
       - linters:
           - goconst
         path: (.+)_test\.go

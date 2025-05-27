@@ -29,7 +29,7 @@ import (
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	v1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
-	apiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	corev1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	errors "sigs.k8s.io/cluster-api/errors"
 )
 
@@ -465,8 +465,8 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*ObjectMeta)(nil), (*apiv1beta1.ObjectMeta)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_ObjectMeta_To_v1beta1_ObjectMeta(a.(*ObjectMeta), b.(*apiv1beta1.ObjectMeta), scope)
+	if err := s.AddConversionFunc((*ObjectMeta)(nil), (*corev1beta1.ObjectMeta)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_ObjectMeta_To_v1beta1_ObjectMeta(a.(*ObjectMeta), b.(*corev1beta1.ObjectMeta), scope)
 	}); err != nil {
 		return err
 	}
@@ -475,8 +475,8 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*apiv1beta1.ObjectMeta)(nil), (*ObjectMeta)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_ObjectMeta_To_v1alpha4_ObjectMeta(a.(*apiv1beta1.ObjectMeta), b.(*ObjectMeta), scope)
+	if err := s.AddConversionFunc((*corev1beta1.ObjectMeta)(nil), (*ObjectMeta)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_ObjectMeta_To_v1alpha4_ObjectMeta(a.(*corev1beta1.ObjectMeta), b.(*ObjectMeta), scope)
 	}); err != nil {
 		return err
 	}
@@ -1030,7 +1030,7 @@ func Convert_v1beta1_VSphereClusterIdentitySpec_To_v1alpha4_VSphereClusterIdenti
 
 func autoConvert_v1alpha4_VSphereClusterIdentityStatus_To_v1beta1_VSphereClusterIdentityStatus(in *VSphereClusterIdentityStatus, out *v1beta1.VSphereClusterIdentityStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
-	out.Conditions = *(*apiv1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
+	out.Conditions = *(*corev1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
 	return nil
 }
 
@@ -1118,8 +1118,8 @@ func autoConvert_v1beta1_VSphereClusterSpec_To_v1alpha4_VSphereClusterSpec(in *v
 
 func autoConvert_v1alpha4_VSphereClusterStatus_To_v1beta1_VSphereClusterStatus(in *VSphereClusterStatus, out *v1beta1.VSphereClusterStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
-	out.Conditions = *(*apiv1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
-	out.FailureDomains = *(*apiv1beta1.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
+	out.Conditions = *(*corev1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
+	out.FailureDomains = *(*corev1beta1.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
 	return nil
 }
 
@@ -1359,7 +1359,7 @@ func Convert_v1beta1_VSphereDeploymentZoneSpec_To_v1alpha4_VSphereDeploymentZone
 
 func autoConvert_v1alpha4_VSphereDeploymentZoneStatus_To_v1beta1_VSphereDeploymentZoneStatus(in *VSphereDeploymentZoneStatus, out *v1beta1.VSphereDeploymentZoneStatus, s conversion.Scope) error {
 	out.Ready = (*bool)(unsafe.Pointer(in.Ready))
-	out.Conditions = *(*apiv1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
+	out.Conditions = *(*corev1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
 	return nil
 }
 
@@ -1603,11 +1603,11 @@ func autoConvert_v1beta1_VSphereMachineSpec_To_v1alpha4_VSphereMachineSpec(in *v
 
 func autoConvert_v1alpha4_VSphereMachineStatus_To_v1beta1_VSphereMachineStatus(in *VSphereMachineStatus, out *v1beta1.VSphereMachineStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
-	out.Addresses = *(*[]apiv1beta1.MachineAddress)(unsafe.Pointer(&in.Addresses))
+	out.Addresses = *(*[]corev1beta1.MachineAddress)(unsafe.Pointer(&in.Addresses))
 	out.Network = *(*[]v1beta1.NetworkStatus)(unsafe.Pointer(&in.Network))
 	out.FailureReason = (*errors.MachineStatusError)(unsafe.Pointer(in.FailureReason))
 	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
-	out.Conditions = *(*apiv1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
+	out.Conditions = *(*corev1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
 	return nil
 }
 
@@ -1858,7 +1858,7 @@ func autoConvert_v1alpha4_VSphereVMStatus_To_v1beta1_VSphereVMStatus(in *VSphere
 	out.Network = *(*[]v1beta1.NetworkStatus)(unsafe.Pointer(&in.Network))
 	out.FailureReason = (*errors.MachineStatusError)(unsafe.Pointer(in.FailureReason))
 	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
-	out.Conditions = *(*apiv1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
+	out.Conditions = *(*corev1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
 	return nil
 }
 

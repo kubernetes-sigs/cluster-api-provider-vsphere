@@ -23,9 +23,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/yaml"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
@@ -46,12 +46,14 @@ func newClusterClass() clusterv1.ClusterClass {
 			Name: env.ClusterClassNameVar,
 		},
 		Spec: clusterv1.ClusterClassSpec{
-			Infrastructure: clusterv1.LocalObjectTemplate{
-				Ref: &corev1.ObjectReference{
-					APIVersion: infrav1.GroupVersion.String(),
-					Kind:       util.TypeToKind(&infrav1.VSphereClusterTemplate{}),
-					Namespace:  env.NamespaceVar,
-					Name:       env.ClusterClassNameVar,
+			Infrastructure: clusterv1.InfrastructureClass{
+				LocalObjectTemplate: clusterv1.LocalObjectTemplate{
+					Ref: &corev1.ObjectReference{
+						APIVersion: infrav1.GroupVersion.String(),
+						Kind:       util.TypeToKind(&infrav1.VSphereClusterTemplate{}),
+						Namespace:  env.NamespaceVar,
+						Name:       env.ClusterClassNameVar,
+					},
 				},
 			},
 			ControlPlane: getControlPlaneClass(),
@@ -72,12 +74,14 @@ func newVMWareClusterClass() clusterv1.ClusterClass {
 			Name: env.ClusterClassNameVar,
 		},
 		Spec: clusterv1.ClusterClassSpec{
-			Infrastructure: clusterv1.LocalObjectTemplate{
-				Ref: &corev1.ObjectReference{
-					APIVersion: vmwarev1.GroupVersion.String(),
-					Kind:       util.TypeToKind(&vmwarev1.VSphereClusterTemplate{}),
-					Namespace:  env.NamespaceVar,
-					Name:       env.ClusterClassNameVar,
+			Infrastructure: clusterv1.InfrastructureClass{
+				LocalObjectTemplate: clusterv1.LocalObjectTemplate{
+					Ref: &corev1.ObjectReference{
+						APIVersion: vmwarev1.GroupVersion.String(),
+						Kind:       util.TypeToKind(&vmwarev1.VSphereClusterTemplate{}),
+						Namespace:  env.NamespaceVar,
+						Name:       env.ClusterClassNameVar,
+					},
 				},
 			},
 			ControlPlane: getVMWareControlPlaneClass(),

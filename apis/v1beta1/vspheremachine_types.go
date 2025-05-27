@@ -18,7 +18,7 @@ package v1beta1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	"sigs.k8s.io/cluster-api/errors"
 )
 
@@ -33,17 +33,17 @@ const (
 const (
 	// VSphereMachineReadyV1Beta2Condition is true if the VSphereMachine's deletionTimestamp is not set, VSphereMachine's
 	// VirtualMachineProvisioned is true.
-	VSphereMachineReadyV1Beta2Condition = clusterv1.ReadyV1Beta2Condition
+	VSphereMachineReadyV1Beta2Condition = clusterv1beta1.ReadyV1Beta2Condition
 
 	// VSphereMachineReadyV1Beta2Reason surfaces when the VSphereMachine readiness criteria is met.
-	VSphereMachineReadyV1Beta2Reason = clusterv1.ReadyV1Beta2Reason
+	VSphereMachineReadyV1Beta2Reason = clusterv1beta1.ReadyV1Beta2Reason
 
 	// VSphereMachineNotReadyV1Beta2Reason surfaces when the VSphereMachine readiness criteria is not met.
-	VSphereMachineNotReadyV1Beta2Reason = clusterv1.NotReadyV1Beta2Reason
+	VSphereMachineNotReadyV1Beta2Reason = clusterv1beta1.NotReadyV1Beta2Reason
 
 	// VSphereMachineReadyUnknownV1Beta2Reason surfaces when at least one VSphereMachine readiness criteria is unknown
 	// and no VSphereMachine readiness criteria is not met.
-	VSphereMachineReadyUnknownV1Beta2Reason = clusterv1.ReadyUnknownV1Beta2Reason
+	VSphereMachineReadyUnknownV1Beta2Reason = clusterv1beta1.ReadyUnknownV1Beta2Reason
 )
 
 // VSphereMachine's VirtualMachineProvisioned condition and corresponding reasons that will be used in v1Beta2 API version.
@@ -61,15 +61,15 @@ const (
 	// VSphereMachineVirtualMachineWaitingForClusterInfrastructureReadyV1Beta2Reason documents the VirtualMachine that is controlled
 	// by the VSphereMachine waiting for the cluster infrastructure to be ready.
 	// Note: This reason is used only in govmomi mode.
-	VSphereMachineVirtualMachineWaitingForClusterInfrastructureReadyV1Beta2Reason = clusterv1.WaitingForClusterInfrastructureReadyV1Beta2Reason
+	VSphereMachineVirtualMachineWaitingForClusterInfrastructureReadyV1Beta2Reason = clusterv1beta1.WaitingForClusterInfrastructureReadyV1Beta2Reason
 
 	// VSphereMachineVirtualMachineWaitingForControlPlaneInitializedV1Beta2Reason documents the VirtualMachine that is controlled
 	// by the VSphereMachine waiting for the control plane to be initialized.
-	VSphereMachineVirtualMachineWaitingForControlPlaneInitializedV1Beta2Reason = clusterv1.WaitingForControlPlaneInitializedV1Beta2Reason
+	VSphereMachineVirtualMachineWaitingForControlPlaneInitializedV1Beta2Reason = clusterv1beta1.WaitingForControlPlaneInitializedV1Beta2Reason
 
 	// VSphereMachineVirtualMachineWaitingForBootstrapDataV1Beta2Reason documents the VirtualMachine that is controlled
 	// by the VSphereMachine waiting for the bootstrap data to be ready.
-	VSphereMachineVirtualMachineWaitingForBootstrapDataV1Beta2Reason = clusterv1.WaitingForBootstrapDataV1Beta2Reason
+	VSphereMachineVirtualMachineWaitingForBootstrapDataV1Beta2Reason = clusterv1beta1.WaitingForBootstrapDataV1Beta2Reason
 
 	// VSphereMachineVirtualMachineProvisioningV1Beta2Reason surfaces when the VirtualMachine that is controlled
 	// by the VSphereMachine is provisioning.
@@ -92,15 +92,15 @@ const (
 
 	// VSphereMachineVirtualMachineProvisionedV1Beta2Reason surfaces when the VirtualMachine that is controlled
 	// by the VSphereMachine is provisioned.
-	VSphereMachineVirtualMachineProvisionedV1Beta2Reason = clusterv1.ProvisionedV1Beta2Reason
+	VSphereMachineVirtualMachineProvisionedV1Beta2Reason = clusterv1beta1.ProvisionedV1Beta2Reason
 
 	// VSphereMachineVirtualMachineNotProvisionedV1Beta2Reason surfaces when the VirtualMachine that is controlled
 	// by the VSphereMachine is not provisioned.
-	VSphereMachineVirtualMachineNotProvisionedV1Beta2Reason = clusterv1.NotProvisionedV1Beta2Reason
+	VSphereMachineVirtualMachineNotProvisionedV1Beta2Reason = clusterv1beta1.NotProvisionedV1Beta2Reason
 
 	// VSphereMachineVirtualMachineDeletingV1Beta2Reason surfaces when the VirtualMachine that is controlled
 	// by the VSphereMachine is being deleted.
-	VSphereMachineVirtualMachineDeletingV1Beta2Reason = clusterv1.DeletingV1Beta2Reason
+	VSphereMachineVirtualMachineDeletingV1Beta2Reason = clusterv1beta1.DeletingV1Beta2Reason
 )
 
 // VSphereMachineSpec defines the desired state of VSphereMachine.
@@ -175,7 +175,7 @@ type VSphereMachineStatus struct {
 	Ready bool `json:"ready"`
 
 	// Addresses contains the VSphere instance associated addresses.
-	Addresses []clusterv1.MachineAddress `json:"addresses,omitempty"`
+	Addresses []clusterv1beta1.MachineAddress `json:"addresses,omitempty"`
 
 	// Network returns the network status for each of the machine's configured
 	// network interfaces.
@@ -222,7 +222,7 @@ type VSphereMachineStatus struct {
 
 	// Conditions defines current service state of the VSphereMachine.
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
 
 	// v1beta2 groups all the fields that will be added or modified in VSphereMachine's status with the V1Beta2 version.
 	// +optional
@@ -261,12 +261,12 @@ type VSphereMachine struct {
 }
 
 // GetConditions returns the conditions for a VSphereMachine.
-func (m *VSphereMachine) GetConditions() clusterv1.Conditions {
+func (m *VSphereMachine) GetConditions() clusterv1beta1.Conditions {
 	return m.Status.Conditions
 }
 
 // SetConditions sets the conditions on a VSphereMachine.
-func (m *VSphereMachine) SetConditions(conditions clusterv1.Conditions) {
+func (m *VSphereMachine) SetConditions(conditions clusterv1beta1.Conditions) {
 	m.Status.Conditions = conditions
 }
 

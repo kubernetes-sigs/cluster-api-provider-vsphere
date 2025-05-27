@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 
@@ -62,7 +63,7 @@ func (c *VIMMachineContext) Patch(ctx context.Context) error {
 	return c.PatchHelper.Patch(ctx, c.VSphereMachine, patch.WithOwnedV1Beta2Conditions{Conditions: []string{
 		infrav1.VSphereMachineReadyV1Beta2Condition,
 		infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
-		clusterv1.PausedCondition,
+		clusterv1beta1.PausedV1Beta2Condition,
 	}})
 }
 

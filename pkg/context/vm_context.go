@@ -21,7 +21,7 @@ import (
 	"context"
 	"fmt"
 
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
@@ -52,7 +52,7 @@ func (c *VMContext) Patch(ctx context.Context) error {
 		infrav1.VSphereVMIPAddressClaimsFulfilledV1Beta2Condition,
 		infrav1.VSphereVMGuestSoftPowerOffSucceededV1Beta2Condition,
 		infrav1.VSphereVMPCIDevicesDetachedV1Beta2Condition,
-		clusterv1beta1.PausedV1Beta2Condition,
+		clusterv1.PausedCondition,
 	}})
 }
 

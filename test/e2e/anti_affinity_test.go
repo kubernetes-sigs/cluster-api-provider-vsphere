@@ -27,7 +27,6 @@ import (
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/vim25/mo"
 	corev1 "k8s.io/api/core/v1"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -225,7 +224,7 @@ func FetchWorkerVMsForCluster(ctx context.Context, bootstrapClusterProxy framewo
 
 	workerVMs := []infrav1.VSphereVM{}
 	for _, vm := range vms.Items {
-		if _, ok := vm.Labels[clusterv1beta1.MachineControlPlaneLabel]; !ok {
+		if _, ok := vm.Labels[clusterv1.MachineControlPlaneLabel]; !ok {
 			workerVMs = append(workerVMs, vm)
 		}
 	}

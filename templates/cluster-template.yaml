@@ -96,7 +96,8 @@ spec:
     clusterConfiguration:
       controllerManager:
         extraArgs:
-          cloud-provider: external
+        - name: cloud-provider
+          value: external
     files:
     - content: |
         apiVersion: v1
@@ -226,13 +227,15 @@ spec:
       nodeRegistration:
         criSocket: /var/run/containerd/containerd.sock
         kubeletExtraArgs:
-          cloud-provider: external
+        - name: cloud-provider
+          value: external
         name: '{{ local_hostname }}'
     joinConfiguration:
       nodeRegistration:
         criSocket: /var/run/containerd/containerd.sock
         kubeletExtraArgs:
-          cloud-provider: external
+        - name: cloud-provider
+          value: external
         name: '{{ local_hostname }}'
     preKubeadmCommands:
     - hostnamectl set-hostname "{{ ds.meta_data.hostname }}"
@@ -268,7 +271,8 @@ spec:
         nodeRegistration:
           criSocket: /var/run/containerd/containerd.sock
           kubeletExtraArgs:
-            cloud-provider: external
+          - name: cloud-provider
+            value: external
           name: '{{ local_hostname }}'
       preKubeadmCommands:
       - hostnamectl set-hostname "{{ ds.meta_data.hostname }}"

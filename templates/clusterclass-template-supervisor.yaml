@@ -266,18 +266,21 @@ spec:
         clusterConfiguration:
           controllerManager:
             extraArgs:
-              cloud-provider: external
+            - name: cloud-provider
+              value: external
         initConfiguration:
           nodeRegistration:
             criSocket: /var/run/containerd/containerd.sock
             kubeletExtraArgs:
-              cloud-provider: external
+            - name: cloud-provider
+              value: external
             name: '{{ local_hostname }}'
         joinConfiguration:
           nodeRegistration:
             criSocket: /var/run/containerd/containerd.sock
             kubeletExtraArgs:
-              cloud-provider: external
+            - name: cloud-provider
+              value: external
             name: '{{ local_hostname }}'
         preKubeadmCommands:
         - dhclient eth0
@@ -307,7 +310,8 @@ spec:
         nodeRegistration:
           criSocket: /var/run/containerd/containerd.sock
           kubeletExtraArgs:
-            cloud-provider: external
+          - name: cloud-provider
+            value: external
           name: '{{ local_hostname }}'
       preKubeadmCommands:
       - dhclient eth0

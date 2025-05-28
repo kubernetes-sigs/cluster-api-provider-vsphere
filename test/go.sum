@@ -523,10 +523,10 @@ k8s.io/utils v0.0.0-20241104100929-3ea5e8cea738 h1:M3sRQVHv7vB20Xc2ybTt7ODCeFj6J
 k8s.io/utils v0.0.0-20241104100929-3ea5e8cea738/go.mod h1:OLgZIPagt7ERELqWJFomSt595RzquPNLL48iOWgYOg0=
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.31.2 h1:jpcvIRr3GLoUoEKRkHKSmGjxb6lWwrBlJsXc+eUYQHM=
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.31.2/go.mod h1:Ve9uj1L+deCXFrPOk1LpFXqTg7LCFzFso6PA48q/XZw=
-sigs.k8s.io/cluster-api v1.10.0-beta.0.0.20250527052821-4642e1497262 h1:GcAHcaAycWzdtTRwW/rcQwcABVoCxyh+lJ6l2paqMoU=
-sigs.k8s.io/cluster-api v1.10.0-beta.0.0.20250527052821-4642e1497262/go.mod h1:UmipfrOBTqjRNX7X4zuJCInq28/Fh6xq9RklOJ/DMR4=
-sigs.k8s.io/cluster-api/test v1.10.0-beta.0.0.20250527052821-4642e1497262 h1:DCj/L/gmmi6q0pB8LY5k+2Yw69/T3CnZxs9Wn5k3vaY=
-sigs.k8s.io/cluster-api/test v1.10.0-beta.0.0.20250527052821-4642e1497262/go.mod h1:jXu1hsMVlAHHBtKbRwxtBEkUR0q+f5/eiSNOXYHR1Lk=
+sigs.k8s.io/cluster-api v1.11.0-alpha.0 h1:QyU9uGq2fAee+LC+/q3Q5QxCLnAUzMFYzIiIAM/sCfU=
+sigs.k8s.io/cluster-api v1.11.0-alpha.0/go.mod h1:UmipfrOBTqjRNX7X4zuJCInq28/Fh6xq9RklOJ/DMR4=
+sigs.k8s.io/cluster-api/test v1.11.0-alpha.0 h1:0On2A+zHyxhVQLN3Wq4mrmElDB7KZiKy5onHbpZUr+M=
+sigs.k8s.io/cluster-api/test v1.11.0-alpha.0/go.mod h1:jXu1hsMVlAHHBtKbRwxtBEkUR0q+f5/eiSNOXYHR1Lk=
 sigs.k8s.io/controller-runtime v0.21.0 h1:CYfjpEuicjUecRk+KAeyYh+ouUBn4llGyDYytIGcJS8=
 sigs.k8s.io/controller-runtime v0.21.0/go.mod h1:OSg14+F65eWqIu4DceX7k/+QRAbTTvxeQSNSOQpukWM=
 sigs.k8s.io/json v0.0.0-20241010143419-9aa6b5e7a4b3 h1:/Rv+M11QRah1itp8VhT6HoVx1Ray9eB4DBr+K+/sCJ8=

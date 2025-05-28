@@ -453,8 +453,11 @@ func defaultKubeadmInitSpec(files []bootstrapv1.File) bootstrapv1.KubeadmConfigS
 		},
 		ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
 			ControllerManager: bootstrapv1.ControlPlaneComponent{
-				ExtraArgs: map[string]string{
-					"cloud-provider": "external",
+				ExtraArgs: []bootstrapv1.Arg{
+					{
+						Name:  "cloud-provider",
+						Value: "external",
+					},
 				},
 			},
 		},
@@ -483,8 +486,11 @@ func ignitionKubeadmInitSpec(files []bootstrapv1.File) bootstrapv1.KubeadmConfig
 		},
 		ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
 			ControllerManager: bootstrapv1.ControlPlaneComponent{
-				ExtraArgs: map[string]string{
-					"cloud-provider": "external",
+				ExtraArgs: []bootstrapv1.Arg{
+					{
+						Name:  "cloud-provider",
+						Value: "external",
+					},
 				},
 			},
 		},
@@ -558,8 +564,11 @@ func defaultNodeRegistrationOptions() bootstrapv1.NodeRegistrationOptions {
 	return bootstrapv1.NodeRegistrationOptions{
 		Name:      "{{ local_hostname }}",
 		CRISocket: "/var/run/containerd/containerd.sock",
-		KubeletExtraArgs: map[string]string{
-			"cloud-provider": "external",
+		KubeletExtraArgs: []bootstrapv1.Arg{
+			{
+				Name:  "cloud-provider",
+				Value: "external",
+			},
 		},
 	}
 }

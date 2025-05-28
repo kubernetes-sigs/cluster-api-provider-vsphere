@@ -232,7 +232,10 @@ VM_OPERATOR_DIR := test/infrastructure/vm-operator
 VM_OPERATOR_TMP_DIR ?= $(VM_OPERATOR_DIR)/vm-operator.tmp
 # note: this is the commit from 1.8.6 tag
 VM_OPERATOR_COMMIT ?= de75746a9505ef3161172d99b735d6593c54f0c5
+# sha256 sum diff of the applied patches on-top, it should match the output of `git diff | sha256`.
+VM_OPERATOR_DIFF ?= 65e87004a530fdf98ae636d6b3700db086a8f356066fb15996bd8f5abe9f236c
 VM_OPERATOR_VERSION ?= v1.8.6-0-gde75746a
+VM_OPERATOR_IMAGE_TAG ?= $(VM_OPERATOR_VERSION)-$(shell echo $(VM_OPERATOR_DIFF) | head -c 8)
 VM_OPERATOR_ALL_ARCH = amd64 arm64
 
 # net operator
@@ -284,6 +287,7 @@ NETOP_RBAC_ROOT ?= $(NETOP_DIR)/config/rbac
 TEST_EXTENSION_RBAC_ROOT ?= $(TEST_EXTENSION_DIR)/config/rbac
 
 JANITOR_DIR ?= ./$(TOOLS_DIR)/janitor
+JANITOR_ARGS ?= --resource-type=gcve-vsphere-project
 
 help:  # Display this help
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[0-9A-Za-z_-]+:.*?##/ { printf "  \033[36m%-50s\033[0m %s\n", $$1, $$2 } /^\$$\([0-9A-Za-z_-]+\):.*?##/ { gsub("_","-", $$1); printf "  \033[36m%-50s\033[0m %s\n", tolower(substr($$1, 3, length($$1)-7)), $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
@@ -448,18 +452,11 @@ generate-e2e-templates-v1.11: $(KUSTOMIZE)
 .PHONY: generate-test-infra-prowjobs
 generate-test-infra-prowjobs: $(PROWJOB_GEN) ## Generates the prowjob configurations in test-infra
 	@if [ -z "${TEST_INFRA_DIR}" ]; then echo "TEST_INFRA_DIR is not set"; exit 1; fi
-	mkdir -p "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere/downstream"
 	$(PROWJOB_GEN) \
 		-config "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere/cluster-api-provider-vsphere-prowjob-gen.yaml" \
 		-templates-dir "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere/templates" \
-		-output-dir "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere/downstream"
-	@for f in "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere/downstream/"*periodics*; do \
-		cat "$${f}" | yq '.periodics |= map(select(.cluster != null))' > "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere/$$(basename $${f})"; \
-		cat "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere/$$(basename $${f})" | grep -q 'periodics: \[\]' && rm "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere/$$(basename $${f})" || true; \
-	done
-	@for f in "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere/downstream/"*presubmits*; do \
-		cat "$${f}" | yq '.presubmits."kubernetes-sigs/cluster-api-provider-vsphere" |= map(select(.cluster != null))' > "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere/$$(basename $${f})";\
-	done
+		-output-dir "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere"
+
 ## --------------------------------------
 ## Lint / Verify
 ## --------------------------------------
@@ -901,18 +898,23 @@ checkout-vm-operator:
 		git clone "https://github.com/vmware-tanzu/vm-operator.git" "$(VM_OPERATOR_TMP_DIR)"; \
 		cd "$(VM_OPERATOR_TMP_DIR)"; \
 		git checkout "$(VM_OPERATOR_COMMIT)"; \
+		git apply ../vm-operator-vc7-compat.diff; \
 	fi
 	@cd "$(ROOT_DIR)/$(VM_OPERATOR_TMP_DIR)"; \
-	if [ "$$(git describe --dirty 2> /dev/null)" != "$(VM_OPERATOR_VERSION)" ]; then \
-		echo "ERROR: checked out version $$(git describe --dirty 2> /dev/null) does not match expected version $(VM_OPERATOR_VERSION)"; \
+	if [ "$$(git describe 2> /dev/null)" != "$(VM_OPERATOR_VERSION)" ]; then \
+		echo "ERROR: checked out version $$(git describe 2> /dev/null) does not match expected version $(VM_OPERATOR_VERSION)"; \
+		exit 1; \
+	fi; \
+	if [ "$$(git diff | sha256)" != "$(VM_OPERATOR_DIFF)" ]; then \
+		echo "ERROR: existing git diff $$(git diff | sha256) does not match the expected diff $(VM_OPERATOR_DIFF)"; \
 		exit 1; \
 	fi
 
 .PHONY: generate-manifests-vm-operator
 generate-manifests-vm-operator: $(RELEASE_DIR) $(KUSTOMIZE) checkout-vm-operator ## Build the vm-operator manifest yaml file
 	kustomize build --load-restrictor LoadRestrictionsNone "$(VM_OPERATOR_TMP_DIR)/config/wcp" > "$(VM_OPERATOR_DIR)/config/vm-operator.yaml"
-	sed -i'' -e 's@image: vmoperator.*@image: '"$(VM_OPERATOR_CONTROLLER_IMG):$(VM_OPERATOR_VERSION)"'@' "$(VM_OPERATOR_DIR)/config/vm-operator.yaml"
-	kustomize build "$(VM_OPERATOR_DIR)/config" > "$(VM_OPERATOR_DIR)/vm-operator-$(VM_OPERATOR_VERSION).yaml"
+	sed -i'' -e 's@image: gcr.io/k8s-staging-capi-vsphere/extra/vm-operator.*@image: '"$(VM_OPERATOR_CONTROLLER_IMG):$(VM_OPERATOR_IMAGE_TAG)"'@' "$(VM_OPERATOR_DIR)/config/vm-operator-image-names.yaml"
+	kustomize build "$(VM_OPERATOR_DIR)/config" > "$(VM_OPERATOR_DIR)/vm-operator-$(VM_OPERATOR_IMAGE_TAG).yaml"
 
 .PHONY: docker-build-all-vm-operator
 docker-build-all-vm-operator: $(addprefix docker-vm-operator-build-,$(VM_OPERATOR_ALL_ARCH)) ## Build docker images for all architectures
@@ -924,7 +926,7 @@ docker-vm-operator-build-%:
 docker-build-vm-operator: checkout-vm-operator
 	@if [ -z "${VM_OPERATOR_VERSION}" ]; then echo "VM_OPERATOR_VERSION is not set"; exit 1; fi
 	cd $(VM_OPERATOR_TMP_DIR) && \
-	$(MAKE) IMAGE=$(VM_OPERATOR_CONTROLLER_IMG)-$(ARCH) IMAGE_TAG=$(VM_OPERATOR_VERSION) GOARCH=$(ARCH) docker-build
+	$(MAKE) IMAGE=$(VM_OPERATOR_CONTROLLER_IMG)-$(ARCH) IMAGE_TAG=$(VM_OPERATOR_IMAGE_TAG) GOARCH=$(ARCH) docker-build
 
 .PHONY: docker-push-all-vm-operator
 docker-push-all-vm-operator: $(addprefix docker-vm-operator-push-,$(VM_OPERATOR_ALL_ARCH))  ## Push the docker images to be included in the release for all architectures + related multiarch manifests
@@ -936,14 +938,14 @@ docker-vm-operator-push-%:
 .PHONY: docker-push-vm-operator
 docker-push-vm-operator:
 	@if [ -z "${VM_OPERATOR_VERSION}" ]; then echo "VM_OPERATOR_VERSION is not set"; exit 1; fi
-	docker push $(VM_OPERATOR_CONTROLLER_IMG)-$(ARCH):$(VM_OPERATOR_VERSION)
+	docker push $(VM_OPERATOR_CONTROLLER_IMG)-$(ARCH):$(VM_OPERATOR_IMAGE_TAG)
 
 .PHONY: docker-push-manifest-vm-operator
 docker-push-manifest-vm-operator:
 	@if [ -z "${VM_OPERATOR_VERSION}" ]; then echo "VM_OPERATOR_VERSION is not set"; exit 1; fi
-	docker manifest create --amend $(VM_OPERATOR_CONTROLLER_IMG):$(VM_OPERATOR_VERSION) $(shell echo $(VM_OPERATOR_ALL_ARCH) | sed -e "s~[^ ]*~$(VM_OPERATOR_CONTROLLER_IMG)\-&:$(VM_OPERATOR_VERSION)~g")
-	@for arch in $(VM_OPERATOR_ALL_ARCH); do docker manifest annotate --arch $${arch} ${VM_OPERATOR_CONTROLLER_IMG}:${VM_OPERATOR_VERSION} ${VM_OPERATOR_CONTROLLER_IMG}-$${arch}:${VM_OPERATOR_VERSION}; done
-	docker manifest push --purge $(VM_OPERATOR_CONTROLLER_IMG):$(VM_OPERATOR_VERSION)
+	docker manifest create --amend $(VM_OPERATOR_CONTROLLER_IMG):$(VM_OPERATOR_IMAGE_TAG) $(shell echo $(VM_OPERATOR_ALL_ARCH) | sed -e "s~[^ ]*~$(VM_OPERATOR_CONTROLLER_IMG)\-&:$(VM_OPERATOR_IMAGE_TAG)~g")
+	@for arch in $(VM_OPERATOR_ALL_ARCH); do docker manifest annotate --arch $${arch} ${VM_OPERATOR_CONTROLLER_IMG}:${VM_OPERATOR_IMAGE_TAG} ${VM_OPERATOR_CONTROLLER_IMG}-$${arch}:${VM_OPERATOR_IMAGE_TAG}; done
+	docker manifest push --purge $(VM_OPERATOR_CONTROLLER_IMG):$(VM_OPERATOR_IMAGE_TAG)
 
 .PHONY: clean-vm-operator
 clean-vm-operator:
@@ -979,7 +981,7 @@ clean-ci: ## Cleanup orphaned objects in CI
 	@if [ -z "${GOVC_URL}" ]; then echo "GOVC_URL is not set"; exit 1; fi
 	@if [ -z "${VSPHERE_TLS_THUMBPRINT}" ]; then echo "VSPHERE_TLS_THUMBPRINT is not set"; exit 1; fi
 	@if [ -z "${BOSKOS_HOST}" ]; then echo "BOSKOS_HOST is not set"; exit 1; fi
-	go run $(JANITOR_DIR) --dry-run=false
+	go run $(JANITOR_DIR) --dry-run=false $(JANITOR_ARGS)
 
 .PHONY: clean-temporary
 clean-temporary: ## Remove all temporary files and folders

@@ -18,41 +18,18 @@ set -o errexit  # exits immediately on any unexpected error (does not bypass tra
 set -o nounset  # will error if variables are used without first being defined
 set -o pipefail # any non-zero exit code in a piped command causes the pipeline to fail with that code
 
-export PATH=${PWD}/hack/tools/bin:${PATH}
-REPO_ROOT=$(git rev-parse --show-toplevel)
+# Fallback for mirror-prow.
+if [[ "${GOVC_URL:-}" == "10.2.224.4" ]]; then
+  export JANITOR_ARGS
+  JANITOR_ARGS="--resource-type=vsphere-project-cluster-api-provider --resource-type=vsphere-project-cloud-provider --resource-type=vsphere-project-image-builder"
+fi
 
-# shellcheck source=./hack/ensure-kubectl.sh
-source "${REPO_ROOT}/hack/ensure-kubectl.sh"
-
-on_exit() {
-  # kill the VPN
-  docker kill vpn
-}
-
-trap on_exit EXIT
-
-# Run the vpn client in container
-docker run --rm -d --name vpn -v "${HOME}/.openvpn/:${HOME}/.openvpn/" \
-  -w "${HOME}/.openvpn/" --cap-add=NET_ADMIN --net=host --device=/dev/net/tun \
-  gcr.io/k8s-staging-capi-vsphere/extra/openvpn:latest
-
-# Tail the vpn logs
-docker logs vpn
-
-  # Wait until the VPN connection is active.
-function wait_for_vpn_up() {
-  local n=0
-  until [ $n -ge 30 ]; do
-    curl "https://${GOVC_URL}" --connect-timeout 2 -k && RET=$? || RET=$?
-    if [[ "$RET" -eq 0 ]]; then
-      break
-    fi
-    n=$((n + 1))
-    sleep 1
-  done
-  return "$RET"
-}
-wait_for_vpn_up
+# Sanitize input envvars to not contain newline
+GOVC_USERNAME=$(echo "${GOVC_USERNAME}" | tr -d "\n")
+GOVC_PASSWORD=$(echo "${GOVC_PASSWORD}" | tr -d "\n")
+GOVC_URL=$(echo "${GOVC_URL}" | tr -d "\n")
+VSPHERE_TLS_THUMBPRINT=$(echo "${VSPHERE_TLS_THUMBPRINT}" | tr -d "\n")
+BOSKOS_HOST=$(echo "${BOSKOS_HOST}" | tr -d "\n")
 
 # Run e2e tests
 make clean-ci

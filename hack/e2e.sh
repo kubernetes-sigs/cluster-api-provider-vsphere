@@ -43,7 +43,11 @@ export BOSKOS_RESOURCE_OWNER=cluster-api-provider-vsphere
 if [[ "${JOB_NAME}" != "" ]]; then
   export BOSKOS_RESOURCE_OWNER="${JOB_NAME}/${BUILD_ID}"
 fi
-export BOSKOS_RESOURCE_TYPE=vsphere-project-cluster-api-provider
+export BOSKOS_RESOURCE_TYPE="gcve-vsphere-project"
+# Fallback for mirror-prow.
+if [[ "${GOVC_URL:-}" == "10.2.224.4" ]]; then
+  BOSKOS_RESOURCE_TYPE=vsphere-project-cluster-api-provider
+fi
 
 on_exit() {
   # Only handle Boskos when we have to (not for vcsim)
@@ -53,11 +57,6 @@ on_exit() {
 
     # If Boskos is being used then release the vsphere project.
     [ -z "${BOSKOS_HOST:-}" ] || docker run -e VSPHERE_USERNAME -e VSPHERE_PASSWORD gcr.io/k8s-staging-capi-vsphere/extra/boskosctl:latest release --boskos-host="${BOSKOS_HOST}" --resource-owner="${BOSKOS_RESOURCE_OWNER}" --resource-name="${BOSKOS_RESOURCE_NAME}" --vsphere-server="${VSPHERE_SERVER}" --vsphere-tls-thumbprint="${VSPHERE_TLS_THUMBPRINT}" --vsphere-folder="${BOSKOS_RESOURCE_FOLDER}" --vsphere-resource-pool="${BOSKOS_RESOURCE_POOL}"
-  fi
-
-  # kill the VPN only when we started it (not vcsim)
-  if [[ ! "${GINKGO_FOCUS:-}" =~ $RE_VCSIM ]]; then
-    docker kill vpn
   fi
 
   # Cleanup VSPHERE_PASSWORD from temporary artifacts directory.
@@ -91,47 +90,43 @@ on_exit() {
 
 trap on_exit EXIT
 
-# NOTE: when running on CI without presets, value for variables are missing: GOVC_URL, GOVC_USERNAME, GOVC_PASSWORD, VM_SSH_PUB_KEY),
+# Sanitize input envvars to not contain newline
+GOVC_USERNAME=$(echo "${GOVC_USERNAME:-}" | tr -d "\n")
+GOVC_PASSWORD=$(echo "${GOVC_PASSWORD:-}" | tr -d "\n")
+GOVC_URL=$(echo "${GOVC_URL:-}" | tr -d "\n")
+VSPHERE_TLS_THUMBPRINT=$(echo "${VSPHERE_TLS_THUMBPRINT:-}" | tr -d "\n")
+BOSKOS_HOST=$(echo "${BOSKOS_HOST:-}" | tr -d "\n")
+
+# NOTE: when running on CI without presets, value for variables are missing: GOVC_URL, GOVC_USERNAME, GOVC_PASSWORD),
 #  but this is not an issue when we are targeting vcsim (corresponding VSPHERE_ variables will be injected during test setup).
 export VSPHERE_SERVER="${GOVC_URL:-}"
 export VSPHERE_USERNAME="${GOVC_USERNAME:-}"
 export VSPHERE_PASSWORD="${GOVC_PASSWORD:-}"
-export VSPHERE_SSH_AUTHORIZED_KEY="${VM_SSH_PUB_KEY:-}"
-export VSPHERE_SSH_PRIVATE_KEY="/root/ssh/.private-key/private-key"
 export E2E_CONF_FILE="${REPO_ROOT}/test/e2e/config/vsphere.yaml"
 export E2E_CONF_OVERRIDE_FILE=""
-export E2E_VM_OPERATOR_VERSION="${VM_OPERATOR_VERSION:-v1.8.6-0-gde75746a}"
+export E2E_VM_OPERATOR_VERSION="${VM_OPERATOR_VERSION:-v1.8.6-0-gde75746a-65e87004}"
 export DOCKER_IMAGE_TAR="/tmp/images/image.tar"
 export GC_KIND="false"
+
+SSH_KEY_DIR=$(mktemp -d)
+export VSPHERE_SSH_PRIVATE_KEY
+VSPHERE_SSH_PRIVATE_KEY="${SSH_KEY_DIR}/ssh-key"
+ssh-keygen -t ed25519 -f "${VSPHERE_SSH_PRIVATE_KEY}" -N ""
+export VSPHERE_SSH_AUTHORIZED_KEY
+VSPHERE_SSH_AUTHORIZED_KEY="$(cat "${VSPHERE_SSH_PRIVATE_KEY}.pub")"
+
+# Fallback for mirror-prow.
+if [[ "${GOVC_URL:-}" == "10.2.224.4" ]]; then
+  VSPHERE_SSH_AUTHORIZED_KEY="${VM_SSH_PUB_KEY:-}"
+  VSPHERE_SSH_PRIVATE_KEY="/root/ssh/.private-key/private-key"
+  E2E_CONF_OVERRIDE_FILE="$(pwd)/test/e2e/config/config-overrides-mirror-prow.yaml"
+fi
 
 # Make tests run in-parallel
 export GINKGO_NODES=5
 
-# Only run the vpn/check for IPAM when we need them (not for vcsim)
+# Only run the boskos/check for IPAM when we need them (not for vcsim)
 if [[ ! "${GINKGO_FOCUS:-}" =~ $RE_VCSIM ]]; then
-  # Run the vpn client in container
-  docker run --rm -d --name vpn -v "${HOME}/.openvpn/:${HOME}/.openvpn/" \
-    -w "${HOME}/.openvpn/" --cap-add=NET_ADMIN --net=host --device=/dev/net/tun \
-    gcr.io/k8s-staging-capi-vsphere/extra/openvpn:latest
-
-  # Tail the vpn logs
-  docker logs vpn
-
-  # Wait until the VPN connection is active.
-  function wait_for_vpn_up() {
-    local n=0
-    until [ $n -ge 30 ]; do
-      curl "https://${VSPHERE_SERVER}" --connect-timeout 2 -k && RET=$? || RET=$?
-      if [[ "$RET" -eq 0 ]]; then
-        break
-      fi
-      n=$((n + 1))
-      sleep 1
-    done
-    return "$RET"
-  }
-  wait_for_vpn_up
-
   # If BOSKOS_HOST is set then acquire a vsphere-project from Boskos.
   if [ -n "${BOSKOS_HOST:-}" ]; then
     # Check out the account from Boskos and store the produced environment

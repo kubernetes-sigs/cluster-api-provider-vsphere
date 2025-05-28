@@ -44,7 +44,7 @@ func initFlags(fs *pflag.FlagSet) {
 	// Note: Intentionally not adding a fallback value, so it is still possible to not use Boskos.
 	fs.StringVar(&boskosHost, "boskos-host", os.Getenv("BOSKOS_HOST"), "Boskos server URL. Boskos is only used to retrieve resources if this flag is set.")
 	fs.StringVar(&resourceOwner, "resource-owner", "gcve-janitor", "Owner for the resource during cleanup.")
-	fs.StringArrayVar(&resourceTypes, "resource-type", []string{"gcve-vsphere-project", "vsphere-project-cluster-api-provider", "vsphere-project-cloud-provider", "vsphere-project-image-builder"}, "Types of the resources")
+	fs.StringArrayVar(&resourceTypes, "resource-type", []string{"gcve-vsphere-project"}, "Types of the resources")
 	fs.BoolVar(&dryRun, "dry-run", false, "dry-run results in not deleting anything but printing the actions.")
 }
 

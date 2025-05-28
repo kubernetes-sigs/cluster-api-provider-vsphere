@@ -452,16 +452,11 @@ generate-e2e-templates-v1.10: $(KUSTOMIZE)
 .PHONY: generate-test-infra-prowjobs
 generate-test-infra-prowjobs: $(PROWJOB_GEN) ## Generates the prowjob configurations in test-infra
 	@if [ -z "${TEST_INFRA_DIR}" ]; then echo "TEST_INFRA_DIR is not set"; exit 1; fi
-	mkdir -p "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere/downstream"
-	$(PROWJOB_GEN) \
-		-config "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere/cluster-api-provider-vsphere-prowjob-gen.yaml" \
-		-templates-dir "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere/templates" \
-		-output-dir "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere/downstream"
 	$(PROWJOB_GEN) \
 		-config "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere/cluster-api-provider-vsphere-prowjob-gen.yaml" \
 		-templates-dir "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere/templates" \
 		-output-dir "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere"
-	rm $(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere/cluster-api-provider-vsphere-main-periodics-kubetest.yaml
+
 ## --------------------------------------
 ## Lint / Verify
 ## --------------------------------------

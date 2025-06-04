@@ -232,10 +232,7 @@ VM_OPERATOR_DIR := test/infrastructure/vm-operator
 VM_OPERATOR_TMP_DIR ?= $(VM_OPERATOR_DIR)/vm-operator.tmp
 # note: this is the commit from 1.8.6 tag
 VM_OPERATOR_COMMIT ?= de75746a9505ef3161172d99b735d6593c54f0c5
-# sha256 sum diff of the applied patches on-top, it should match the output of `git diff | sha256`.
-VM_OPERATOR_DIFF ?= 65e87004a530fdf98ae636d6b3700db086a8f356066fb15996bd8f5abe9f236c
 VM_OPERATOR_VERSION ?= v1.8.6-0-gde75746a
-VM_OPERATOR_IMAGE_TAG ?= $(VM_OPERATOR_VERSION)-$(shell echo $(VM_OPERATOR_DIFF) | head -c 8)
 VM_OPERATOR_ALL_ARCH = amd64 arm64
 
 # net operator
@@ -898,23 +895,18 @@ checkout-vm-operator:
 		git clone "https://github.com/vmware-tanzu/vm-operator.git" "$(VM_OPERATOR_TMP_DIR)"; \
 		cd "$(VM_OPERATOR_TMP_DIR)"; \
 		git checkout "$(VM_OPERATOR_COMMIT)"; \
-		git apply ../vm-operator-vc7-compat.diff; \
 	fi
 	@cd "$(ROOT_DIR)/$(VM_OPERATOR_TMP_DIR)"; \
-	if [ "$$(git describe 2> /dev/null)" != "$(VM_OPERATOR_VERSION)" ]; then \
-		echo "ERROR: checked out version $$(git describe 2> /dev/null) does not match expected version $(VM_OPERATOR_VERSION)"; \
-		exit 1; \
-	fi; \
-	if [ "$$(git diff | sha256)" != "$(VM_OPERATOR_DIFF)" ]; then \
-		echo "ERROR: existing git diff $$(git diff | sha256) does not match the expected diff $(VM_OPERATOR_DIFF)"; \
+	if [ "$$(git describe --dirty 2> /dev/null)" != "$(VM_OPERATOR_VERSION)" ]; then \
+		echo "ERROR: checked out version $$(git describe --dirty 2> /dev/null) does not match expected version $(VM_OPERATOR_VERSION)"; \
 		exit 1; \
 	fi
 
 .PHONY: generate-manifests-vm-operator
 generate-manifests-vm-operator: $(RELEASE_DIR) $(KUSTOMIZE) checkout-vm-operator ## Build the vm-operator manifest yaml file
 	kustomize build --load-restrictor LoadRestrictionsNone "$(VM_OPERATOR_TMP_DIR)/config/wcp" > "$(VM_OPERATOR_DIR)/config/vm-operator.yaml"
-	sed -i'' -e 's@image: gcr.io/k8s-staging-capi-vsphere/extra/vm-operator.*@image: '"$(VM_OPERATOR_CONTROLLER_IMG):$(VM_OPERATOR_IMAGE_TAG)"'@' "$(VM_OPERATOR_DIR)/config/vm-operator-image-names.yaml"
-	kustomize build "$(VM_OPERATOR_DIR)/config" > "$(VM_OPERATOR_DIR)/vm-operator-$(VM_OPERATOR_IMAGE_TAG).yaml"
+	sed -i'' -e 's@image: vmoperator.*@image: '"$(VM_OPERATOR_CONTROLLER_IMG):$(VM_OPERATOR_VERSION)"'@' "$(VM_OPERATOR_DIR)/config/vm-operator.yaml"
+	kustomize build "$(VM_OPERATOR_DIR)/config" > "$(VM_OPERATOR_DIR)/vm-operator-$(VM_OPERATOR_VERSION).yaml"
 
 .PHONY: docker-build-all-vm-operator
 docker-build-all-vm-operator: $(addprefix docker-vm-operator-build-,$(VM_OPERATOR_ALL_ARCH)) ## Build docker images for all architectures
@@ -938,14 +930,14 @@ docker-vm-operator-push-%:
 .PHONY: docker-push-vm-operator
 docker-push-vm-operator:
 	@if [ -z "${VM_OPERATOR_VERSION}" ]; then echo "VM_OPERATOR_VERSION is not set"; exit 1; fi
-	docker push $(VM_OPERATOR_CONTROLLER_IMG)-$(ARCH):$(VM_OPERATOR_IMAGE_TAG)
+	docker push $(VM_OPERATOR_CONTROLLER_IMG)-$(ARCH):$(VM_OPERATOR_VERSION)
 
 .PHONY: docker-push-manifest-vm-operator
 docker-push-manifest-vm-operator:
 	@if [ -z "${VM_OPERATOR_VERSION}" ]; then echo "VM_OPERATOR_VERSION is not set"; exit 1; fi
-	docker manifest create --amend $(VM_OPERATOR_CONTROLLER_IMG):$(VM_OPERATOR_IMAGE_TAG) $(shell echo $(VM_OPERATOR_ALL_ARCH) | sed -e "s~[^ ]*~$(VM_OPERATOR_CONTROLLER_IMG)\-&:$(VM_OPERATOR_IMAGE_TAG)~g")
-	@for arch in $(VM_OPERATOR_ALL_ARCH); do docker manifest annotate --arch $${arch} ${VM_OPERATOR_CONTROLLER_IMG}:${VM_OPERATOR_IMAGE_TAG} ${VM_OPERATOR_CONTROLLER_IMG}-$${arch}:${VM_OPERATOR_IMAGE_TAG}; done
-	docker manifest push --purge $(VM_OPERATOR_CONTROLLER_IMG):$(VM_OPERATOR_IMAGE_TAG)
+	docker manifest create --amend $(VM_OPERATOR_CONTROLLER_IMG):$(VM_OPERATOR_VERSION) $(shell echo $(VM_OPERATOR_ALL_ARCH) | sed -e "s~[^ ]*~$(VM_OPERATOR_CONTROLLER_IMG)\-&:$(VM_OPERATOR_VERSION)~g")
+	@for arch in $(VM_OPERATOR_ALL_ARCH); do docker manifest annotate --arch $${arch} ${VM_OPERATOR_CONTROLLER_IMG}:${VM_OPERATOR_VERSION} ${VM_OPERATOR_CONTROLLER_IMG}-$${arch}:${VM_OPERATOR_VERSION}; done
+	docker manifest push --purge $(VM_OPERATOR_CONTROLLER_IMG):$(VM_OPERATOR_VERSION)
 
 .PHONY: clean-vm-operator
 clean-vm-operator:

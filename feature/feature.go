@@ -44,6 +44,14 @@ const (
 	//
 	// alpha: v1.10
 	PriorityQueue featuregate.Feature = "PriorityQueue"
+
+	// WorkerAntiAffinity allows configuring how soft anti-affinity should be done for worker nodes.
+	// If disabled it disallows:
+	// * Setting `cluster.x-k8s.io/deployment-name` in `matchLabelKeys` for `VSphereMachine.spec.affinity.machineDeploymentMachineAntiAffinity.preferredDuringSchedulingPreferredDuringExecution`.
+	// Note: the feature requires a version of vm-operator which allows mutation of `VirtualMachineSetResourcePolicy's`.
+	//
+	// alpha: v1.13
+	WorkerAntiAffinity featuregate.Feature = "WorkerAntiAffinity"
 )
 
 func init() {
@@ -57,4 +65,7 @@ var defaultCAPVFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	NodeAntiAffinity:     {Default: false, PreRelease: featuregate.Alpha},
 	NamespaceScopedZones: {Default: false, PreRelease: featuregate.Alpha},
 	PriorityQueue:        {Default: false, PreRelease: featuregate.Alpha},
+
+	// Feature gates specific to supervisor mode:
+	WorkerAntiAffinity: {Default: false, PreRelease: featuregate.Alpha},
 }

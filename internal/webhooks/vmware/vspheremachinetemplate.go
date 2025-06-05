@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/vmoperator"
 )
 
@@ -92,6 +93,29 @@ func (webhook *VSphereMachineTemplate) validate(_ context.Context, _, newVSphere
 						fmt.Sprintf("invalid VirtualMachine name template, generated name is not a valid Kubernetes object name: %v", err),
 					),
 				)
+			}
+		}
+	}
+
+	// Validate affinity
+	affinity := newVSphereMachineTemplate.Spec.Template.Spec.Affinity
+	if affinity != nil && affinity.MachineDeploymentMachineAntiAffinity != nil {
+		p := field.NewPath("spec", "template", "spec", "affinity", "machineDeploymentMachineAntiAffinity", "preferredDuringSchedulingPreferredDuringExecution")
+		if len(affinity.MachineDeploymentMachineAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution) > 0 {
+			if !feature.Gates.Enabled(feature.WorkerAntiAffinity) {
+				// Check that `cluster.x-k8s.io/deployment-name` is not set as matchLabelKey when the feature-gate is disabled.
+				for i, affinityTerm := range affinity.MachineDeploymentMachineAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution {
+					for j, matchLabelKey := range affinityTerm.MatchLabelKeys {
+						if matchLabelKey == "cluster.x-k8s.io/deployment-name" {
+							allErrs = append(allErrs,
+								field.Invalid(
+									p.Index(i).Child("matchLabelKeys").Index(j),
+									matchLabelKey,
+									fmt.Sprintf("matchLabelKey %q is not allowed when %s feature-gate is disabled", matchLabelKey, feature.WorkerAntiAffinity),
+								))
+						}
+					}
+				}
 			}
 		}
 	}

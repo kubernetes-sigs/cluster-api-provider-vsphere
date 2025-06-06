@@ -28,8 +28,8 @@ import (
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
-	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
-	deprecatedv1beta2conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	v1beta2conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -69,9 +69,9 @@ func (r Reconciler) Reconcile(ctx context.Context, clusterCtx *capvcontext.Clust
 	log := ctrl.LoggerFrom(ctx)
 
 	if !clustermodule.IsClusterCompatible(clusterCtx) {
-		deprecatedconditions.MarkFalse(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition, infrav1.VCenterVersionIncompatibleReason, clusterv1beta1.ConditionSeverityInfo,
+		v1beta1conditions.MarkFalse(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition, infrav1.VCenterVersionIncompatibleReason, clusterv1beta1.ConditionSeverityInfo,
 			"vCenter version %s does not support cluster modules", clusterCtx.VSphereCluster.Status.VCenterVersion)
-		deprecatedv1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
+		v1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 			Type:    infrav1.VSphereClusterClusterModulesReadyV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  infrav1.VSphereClusterModulesInvalidVCenterVersionV1Beta2Reason,
@@ -176,9 +176,9 @@ func (r Reconciler) Reconcile(ctx context.Context, clusterCtx *capvcontext.Clust
 		} else {
 			err = errors.New(generateClusterModuleErrorMessage(modErrs))
 		}
-		deprecatedconditions.MarkFalse(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition, infrav1.ClusterModuleSetupFailedReason,
+		v1beta1conditions.MarkFalse(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition, infrav1.ClusterModuleSetupFailedReason,
 			clusterv1beta1.ConditionSeverityWarning, "%s", generateClusterModuleErrorMessage(modErrs))
-		deprecatedv1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
+		v1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 			Type:    infrav1.VSphereClusterClusterModulesReadyV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  infrav1.VSphereClusterClusterModulesNotReadyV1Beta2Reason,
@@ -186,11 +186,11 @@ func (r Reconciler) Reconcile(ctx context.Context, clusterCtx *capvcontext.Clust
 		})
 		return reconcile.Result{}, err
 	case len(modErrs) == 0 && len(clusterModuleSpecs) > 0:
-		deprecatedconditions.MarkTrue(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)
+		v1beta1conditions.MarkTrue(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)
 	default:
-		deprecatedconditions.Delete(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)
+		v1beta1conditions.Delete(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition)
 	}
-	deprecatedv1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
+	v1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 		Type:   infrav1.VSphereClusterClusterModulesReadyV1Beta2Condition,
 		Status: metav1.ConditionTrue,
 		Reason: infrav1.VSphereClusterClusterModulesReadyV1Beta2Reason,

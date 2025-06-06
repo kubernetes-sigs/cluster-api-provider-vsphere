@@ -27,7 +27,7 @@ import (
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ipamv1beta1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
-	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -96,7 +96,7 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 				g.Expect(claim.Labels).To(gomega.HaveKeyWithValue(clusterv1.ClusterNameLabel, "my-cluster"))
 			}
 
-			claimedCondition := deprecatedconditions.Get(testCtx.VSphereVM, infrav1.IPAddressClaimedCondition)
+			claimedCondition := v1beta1conditions.Get(testCtx.VSphereVM, infrav1.IPAddressClaimedCondition)
 			g.Expect(claimedCondition).NotTo(gomega.BeNil())
 			g.Expect(claimedCondition.Status).To(gomega.Equal(corev1.ConditionFalse))
 			g.Expect(claimedCondition.Reason).To(gomega.Equal(infrav1.IPAddressClaimsBeingCreatedReason))
@@ -125,7 +125,7 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 			err := vmReconciler{}.reconcileIPAddressClaims(ctx, testCtx)
 			g.Expect(err).ToNot(gomega.HaveOccurred())
 
-			claimedCondition := deprecatedconditions.Get(testCtx.VSphereVM, infrav1.IPAddressClaimedCondition)
+			claimedCondition := v1beta1conditions.Get(testCtx.VSphereVM, infrav1.IPAddressClaimedCondition)
 			g.Expect(claimedCondition).NotTo(gomega.BeNil())
 			g.Expect(claimedCondition.Status).To(gomega.Equal(corev1.ConditionFalse))
 			g.Expect(claimedCondition.Reason).To(gomega.Equal(infrav1.WaitingForIPAddressReason))
@@ -161,7 +161,7 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 			err := vmReconciler{}.reconcileIPAddressClaims(ctx, testCtx)
 			g.Expect(err).ToNot(gomega.HaveOccurred())
 
-			claimedCondition := deprecatedconditions.Get(testCtx.VSphereVM, infrav1.IPAddressClaimedCondition)
+			claimedCondition := v1beta1conditions.Get(testCtx.VSphereVM, infrav1.IPAddressClaimedCondition)
 			g.Expect(claimedCondition).NotTo(gomega.BeNil())
 			g.Expect(claimedCondition.Status).To(gomega.Equal(corev1.ConditionTrue))
 
@@ -184,17 +184,17 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 
 			ipAddrClaimWithReadyConditionTrue := ipAddrClaim(util.IPAddressClaimName(name, 0, 0), "my-pool-1")
 			ipAddrClaimWithReadyConditionTrue.Status.Conditions = clusterv1beta1.Conditions{
-				*deprecatedconditions.TrueCondition(clusterv1beta1.ReadyCondition),
+				*v1beta1conditions.TrueCondition(clusterv1beta1.ReadyCondition),
 			}
 
 			ipAddrClaimWithReadyConditionFalse := ipAddrClaim(util.IPAddressClaimName(name, 1, 0), "my-pool-2")
 			ipAddrClaimWithReadyConditionFalse.Status.Conditions = clusterv1beta1.Conditions{
-				*deprecatedconditions.FalseCondition(clusterv1beta1.ReadyCondition, "IPAddressFetchProgress", clusterv1beta1.ConditionSeverityInfo, ""),
+				*v1beta1conditions.FalseCondition(clusterv1beta1.ReadyCondition, "IPAddressFetchProgress", clusterv1beta1.ConditionSeverityInfo, ""),
 			}
 
 			secondIPAddrClaimWithReadyConditionTrue := ipAddrClaim(util.IPAddressClaimName(name, 1, 1), "my-pool-3")
 			secondIPAddrClaimWithReadyConditionTrue.Status.Conditions = clusterv1beta1.Conditions{
-				*deprecatedconditions.TrueCondition(clusterv1beta1.ReadyCondition),
+				*v1beta1conditions.TrueCondition(clusterv1beta1.ReadyCondition),
 			}
 
 			testCtx := setup(vsphereVM,
@@ -205,7 +205,7 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 			err := vmReconciler{}.reconcileIPAddressClaims(ctx, testCtx)
 			g.Expect(err).ToNot(gomega.HaveOccurred())
 
-			claimedCondition := deprecatedconditions.Get(testCtx.VSphereVM, infrav1.IPAddressClaimedCondition)
+			claimedCondition := v1beta1conditions.Get(testCtx.VSphereVM, infrav1.IPAddressClaimedCondition)
 			g.Expect(claimedCondition).NotTo(gomega.BeNil())
 			g.Expect(claimedCondition.Status).To(gomega.Equal(corev1.ConditionFalse))
 		})
@@ -215,13 +215,13 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 
 			ipAddrClaimWithReadyConditionTrue := ipAddrClaim(util.IPAddressClaimName(name, 0, 0), "my-pool-1")
 			ipAddrClaimWithReadyConditionTrue.Status.Conditions = clusterv1beta1.Conditions{
-				*deprecatedconditions.TrueCondition(clusterv1beta1.ReadyCondition),
+				*v1beta1conditions.TrueCondition(clusterv1beta1.ReadyCondition),
 			}
 			ipAddrClaimWithReadyConditionTrue.Status.AddressRef.Name = "blah-one"
 
 			ipAddrClaimWithReadyConditionFalse := ipAddrClaim(util.IPAddressClaimName(name, 1, 0), "my-pool-2")
 			ipAddrClaimWithReadyConditionFalse.Status.Conditions = clusterv1beta1.Conditions{
-				*deprecatedconditions.FalseCondition(clusterv1beta1.ReadyCondition, "IPAddressFetchProgress", clusterv1beta1.ConditionSeverityInfo, ""),
+				*v1beta1conditions.FalseCondition(clusterv1beta1.ReadyCondition, "IPAddressFetchProgress", clusterv1beta1.ConditionSeverityInfo, ""),
 			}
 
 			iPAddrClaimWithNoReadyCondition := ipAddrClaim(util.IPAddressClaimName(name, 1, 1), "my-pool-3")
@@ -234,7 +234,7 @@ func Test_vmReconciler_reconcileIPAddressClaims(t *testing.T) {
 			err := vmReconciler{}.reconcileIPAddressClaims(ctx, testCtx)
 			g.Expect(err).ToNot(gomega.HaveOccurred())
 
-			claimedCondition := deprecatedconditions.Get(testCtx.VSphereVM, infrav1.IPAddressClaimedCondition)
+			claimedCondition := v1beta1conditions.Get(testCtx.VSphereVM, infrav1.IPAddressClaimedCondition)
 			g.Expect(claimedCondition).NotTo(gomega.BeNil())
 			g.Expect(claimedCondition.Status).To(gomega.Equal(corev1.ConditionFalse))
 			g.Expect(claimedCondition.Reason).To(gomega.Equal(infrav1.WaitingForIPAddressReason))

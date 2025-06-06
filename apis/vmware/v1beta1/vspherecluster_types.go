@@ -123,10 +123,28 @@ const (
 	VSphereClusterServiceDiscoveryNotReadyV1Beta2Reason = clusterv1beta1.NotReadyV1Beta2Reason
 )
 
+// NSXVPC defines the configuration when network provider is NSX-VPC.
+// +kubebuilder:validation:XValidation:rule="has(self.createSubnetSet) == has(oldSelf.createSubnetSet) && self.createSubnetSet == oldSelf.createSubnetSet",message="CreateSubnetSet value cannot be changed after creation"
+type NSXVPC struct {
+	// CreateSubnetSet is a flag to indicate whether to create a SubnetSet or not as the primary network. If not set, the default is true.
+	// +kubebuilder:validation:Optional
+	CreateSubnetSet *bool `json:"createSubnetSet,omitempty"`
+}
+
+// Network defines the network configuration for the cluster with different network providers.
+// +kubebuilder:validation:XValidation:rule="has(self.nsxVPC) == has(oldSelf.nsxVPC)",message="field 'nsxVPC' cannot be added or removed after creation"
+type Network struct {
+	// +kubebuilder:validation:Optional
+	NsxVPC *NSXVPC `json:"nsxVPC,omitempty"`
+}
+
 // VSphereClusterSpec defines the desired state of VSphereCluster.
+// +kubebuilder:validation:XValidation:rule="has(self.network) == has(oldSelf.network)",message="field 'network' cannot be added or removed after creation"
 type VSphereClusterSpec struct {
 	// +optional
 	ControlPlaneEndpoint clusterv1beta1.APIEndpoint `json:"controlPlaneEndpoint"`
+	// +kubebuilder:validation:Optional
+	Network *Network `json:"network,omitempty"`
 }
 
 // VSphereClusterStatus defines the observed state of VSphereClusterSpec.

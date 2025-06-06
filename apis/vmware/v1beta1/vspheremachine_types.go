@@ -20,6 +20,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/errors"
 )
 
@@ -34,7 +35,95 @@ type VSphereMachineVolume struct {
 	StorageClass string `json:"storageClass,omitempty"`
 }
 
+// RouteSpec defines a static route for a guest.
+type RouteSpec struct {
+	// To is either "default", or an IP4 address. IP6 is not supported yet.
+	//
+	// +kubebuilder:validation:Pattern=`^(default|([0-9]{1,3}\.){3}[0-9]{1,3}(\/[0-9]{1,2})?)$`
+	To string `json:"to"`
+
+	// Via is an IP4 address. IP6 is not supported yet.
+	//
+	// +kubebuilder:validation:Pattern=`^([0-9]{1,3}\.){3}[0-9]{1,3}$`
+	Via string `json:"via"`
+}
+
+// PartialObjectRef describes a reference to another object in the same
+// namespace as the referrer. The reference can be just a name but may also
+// include the referred resource's APIVersion and Kind.
+type PartialObjectRef struct {
+	metav1.TypeMeta `json:",inline"`
+
+	// Name refers to a unique resource in the current namespace.
+	Name string `json:"name"`
+}
+
+// InterfaceProperty defines properties of a network interface.
+type InterfaceProperty struct {
+	// Network is the name of the network resource to which this interface is
+	// connected.
+	Network PartialObjectRef `json:"network"`
+
+	// MTU is the Maximum Transmission Unit size in bytes.
+	//
+	// +kubebuilder:validation:Optional
+	MTU *int64 `json:"mtu,omitempty"`
+
+	// Routes is a list of optional, static routes.
+	//
+	// Please note this feature is available only with the following bootstrap
+	// providers: CloudInit.
+	//
+	// +kubebuilder:validation:Optional
+	Routes []RouteSpec `json:"routes,omitempty"`
+}
+
+// InterfaceSpec defines a network interface for a VSphereMachine.
+type InterfaceSpec struct {
+	// Name describes the unique name of this network interface, used to
+	// distinguish it from other network interfaces attached to this VSphereMachine.
+	//
+	// +kubebuilder:validation:Pattern="^[a-z0-9]{2,}$"
+	Name string `json:"name"`
+
+	InterfaceProperty `json:",inline"`
+}
+
+// InterfacesSpec defines all the network interfaces of a VSphereMachine from Kubernetes perspective.
+// +kubebuilder:validation:XValidation:rule="has(self.primary) == has(oldSelf.primary)",message="field 'primary' cannot be added or removed after creation"
+type InterfacesSpec struct {
+	// Primary is the primary network interface.
+	//
+	// It is used to connect the Kubernetes primary network for Load balancer,
+	// Service discovery, Pod traffic and management traffic etc.
+	// Leave it unset if you don't want to customize the primary network and interface.
+	// Customization is only supported with network provider NSX-VPC.
+	// It should be set only when VSphereCluster spec.network.nsxVPC.createSubnetSet is set to false.
+	//
+	// +kubebuilder:validation:Optional
+	Primary *InterfaceProperty `json:"primary,omitempty"`
+
+	// Secondary is the secondary network interface.
+	//
+	// It is used for any purpose like deploying Antrea secondary network,
+	// Multus, mounting NFS etc.
+	// Secondary network is supported with network provider NSX-VPC and vsphere-network.
+	//
+	// +kubebuilder:validation:Optional
+	Secondary []InterfaceSpec `json:"secondary,omitempty"`
+}
+
+// VSphereMachineNetworkSpec defines the network configuration of a VSphereMachine.
+// +kubebuilder:validation:XValidation:rule="has(self.interfaces) == has(oldSelf.interfaces)",message="field 'interfaces' cannot be added or removed after creation"
+type VSphereMachineNetworkSpec struct {
+	// Interfaces is the list of network interfaces attached to this VSphereMachine.
+	//
+	// +kubebuilder:validation:Optional
+	Interfaces *InterfacesSpec `json:"interfaces,omitempty"`
+}
+
 // VSphereMachineSpec defines the desired state of VSphereMachine.
+// +kubebuilder:validation:XValidation:rule="has(self.network) == has(oldSelf.network)",message="field 'network' cannot be added or removed after creation"
 type VSphereMachineSpec struct {
 	// ProviderID is the virtual machine's BIOS UUID formatted as
 	// vsphere://12345678-1234-1234-1234-123456789abc.
@@ -63,6 +152,10 @@ type VSphereMachineSpec struct {
 	// Volumes is the set of PVCs to be created and attached to the VSphereMachine
 	// +optional
 	Volumes []VSphereMachineVolume `json:"volumes,omitempty"`
+
+	// Network is the network configuration for the VSphereMachine
+	// +kubebuilder:validation:Optional
+	Network *VSphereMachineNetworkSpec `json:"network,omitempty"`
 
 	// PowerOffMode describes the desired behavior when powering off a VM.
 	//
@@ -121,7 +214,7 @@ type VSphereMachineStatus struct {
 	Ready bool `json:"ready"`
 
 	// Addresses contains the instance associated addresses.
-	Addresses []corev1.NodeAddress `json:"addresses,omitempty"`
+	Addresses []clusterv1.MachineAddress `json:"addresses,omitempty"`
 
 	// ID is used to identify the virtual machine.
 	// +optional
@@ -180,6 +273,12 @@ type VSphereMachineStatus struct {
 	// v1beta2 groups all the fields that will be added or modified in VSphereMachine's status with the V1Beta2 version.
 	// +optional
 	V1Beta2 *VSphereMachineV1Beta2Status `json:"v1beta2,omitempty"`
+
+	// Network describes the observed state of the VM's network configuration.
+	// Please note much of the network status information is only available if
+	// the guest has VM Tools installed.
+	// +optional
+	Network *VSphereMachineNetworkStatus `json:"network,omitempty"`
 }
 
 // VSphereMachineV1Beta2Status groups all the fields that will be added or modified in VSphereMachineStatus with the V1Beta2 version.

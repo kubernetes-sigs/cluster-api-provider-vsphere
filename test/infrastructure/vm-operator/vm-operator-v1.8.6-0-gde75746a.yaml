@@ -8390,7 +8390,7 @@ spec:
           value: "true"
         - name: FSS_WCP_WINDOWS_SYSPREP
           value: "true"
-        image: gcr.io/k8s-staging-capi-vsphere/extra/vm-operator:v1.8.6-0-gde75746a-65e87004
+        image: gcr.io/k8s-staging-capi-vsphere/extra/vm-operator:v1.8.6-0-gde75746a
         imagePullPolicy: Always
         name: manager
         ports:

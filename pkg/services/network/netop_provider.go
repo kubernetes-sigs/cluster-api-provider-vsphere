@@ -125,24 +125,17 @@ func (np *netopNetworkProvider) GetVMServiceAnnotations(ctx context.Context, clu
 }
 
 // ConfigureVirtualMachine configures the NetworkInterfaces on a VM Operator virtual machine.
-func (np *netopNetworkProvider) ConfigureVirtualMachine(ctx context.Context, clusterCtx *vmware.ClusterContext, vm *vmoprv1.VirtualMachine) error {
+func (np *netopNetworkProvider) ConfigureVirtualMachine(ctx context.Context, clusterCtx *vmware.ClusterContext, machine *vmwarev1.VSphereMachine, vm *vmoprv1.VirtualMachine) error {
 	network, err := np.getClusterNetwork(ctx, clusterCtx)
 	if err != nil {
 		return err
 	}
 
-	if vm.Spec.Network == nil {
-		vm.Spec.Network = &vmoprv1.VirtualMachineNetworkSpec{}
-	}
-	for _, vnif := range vm.Spec.Network.Interfaces {
-		if vnif.Network.TypeMeta.GroupVersionKind() == NetworkGVKNetOperator && vnif.Network.Name == network.Name {
-			// Expected network interface already exists.
-			return nil
-		}
-	}
+	vm.Spec.Network = &vmoprv1.VirtualMachineNetworkSpec{}
 
+	// Set the VM primary interface
 	vm.Spec.Network.Interfaces = append(vm.Spec.Network.Interfaces, vmoprv1.VirtualMachineNetworkInterfaceSpec{
-		Name: fmt.Sprintf("eth%d", len(vm.Spec.Network.Interfaces)),
+		Name: PrimaryInterfaceName,
 		Network: vmoprv1common.PartialObjectRef{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       NetworkGVKNetOperator.Kind,
@@ -151,6 +144,9 @@ func (np *netopNetworkProvider) ConfigureVirtualMachine(ctx context.Context, clu
 			Name: network.Name,
 		},
 	})
+
+	// Set the VM secondary interfaces
+	setVMSecondaryInterfaces(machine, vm)
 
 	return nil
 }

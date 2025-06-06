@@ -58,7 +58,7 @@ func (np *dummyNetworkProvider) GetClusterNetworkName(_ context.Context, _ *vmwa
 	return "", nil
 }
 
-func (np *dummyNetworkProvider) ConfigureVirtualMachine(_ context.Context, _ *vmware.ClusterContext, _ *vmoprv1.VirtualMachine) error {
+func (np *dummyNetworkProvider) ConfigureVirtualMachine(_ context.Context, _ *vmware.ClusterContext, _ *vmwarev1.VSphereMachine, _ *vmoprv1.VirtualMachine) error {
 	return nil
 }
 

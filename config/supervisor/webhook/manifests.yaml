@@ -37,6 +37,27 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /validate-vmware-infrastructure-cluster-x-k8s-io-v1beta1-vspherecluster
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.vspherecluster.vmware.infrastructure.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - vmware.infrastructure.cluster.x-k8s.io
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - vsphereclusters
+  sideEffects: None
+- admissionReviewVersions:
+  - v1beta1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
       path: /validate-vmware-infrastructure-cluster-x-k8s-io-v1beta1-vspheremachine
   failurePolicy: Fail
   matchPolicy: Equivalent

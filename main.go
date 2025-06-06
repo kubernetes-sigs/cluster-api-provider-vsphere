@@ -456,10 +456,13 @@ func setupVAPIControllers(ctx context.Context, controllerCtx *capvcontext.Contro
 }
 
 func setupSupervisorControllers(ctx context.Context, controllerCtx *capvcontext.ControllerManagerContext, mgr ctrlmgr.Manager, clusterCache clustercache.ClusterCache) error {
-	if err := (&vmwarewebhooks.VSphereMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&vmwarewebhooks.VSphereMachineTemplate{}).SetupWebhookWithManager(mgr, controllerCtx.NetworkProvider); err != nil {
 		return err
 	}
-	if err := (&vmwarewebhooks.VSphereMachine{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&vmwarewebhooks.VSphereMachine{}).SetupWebhookWithManager(mgr, controllerCtx.NetworkProvider); err != nil {
+		return err
+	}
+	if err := (&vmwarewebhooks.VSphereCluster{}).SetupWebhookWithManager(mgr, controllerCtx.NetworkProvider); err != nil {
 		return err
 	}
 	if err := controllers.AddClusterControllerToManager(ctx, controllerCtx, mgr, true, concurrency(vSphereClusterConcurrency)); err != nil {

@@ -20,6 +20,7 @@ package vmware
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -29,14 +30,20 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
 	"sigs.k8s.io/cluster-api-provider-vsphere/internal/webhooks"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
+	pkgnetwork "sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/network"
 )
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-vmware-infrastructure-cluster-x-k8s-io-v1beta1-vspheremachine,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=vmware.infrastructure.cluster.x-k8s.io,resources=vspheremachines,versions=v1beta1,name=validation.vspheremachine.vmware.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1beta1
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-vmware-infrastructure-cluster-x-k8s-io-v1beta1-vspheremachine,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=vmware.infrastructure.cluster.x-k8s.io,resources=vspheremachines,versions=v1beta1,name=default.vspheremachine.vmware.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1beta1
 
 // VSphereMachine implements a validation and defaulting webhook for VSphereMachine.
-type VSphereMachine struct{}
+type VSphereMachine struct {
+	// NetworkProvider is the network provider used by Supervisor based clusters
+	NetworkProvider string
+}
 
 var _ webhook.CustomValidator = &VSphereMachine{}
 var _ webhook.CustomDefaulter = &VSphereMachine{}
@@ -55,8 +62,15 @@ func (webhook *VSphereMachine) Default(_ context.Context, _ runtime.Object) erro
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *VSphereMachine) ValidateCreate(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
-	return nil, nil
+func (webhook *VSphereMachine) ValidateCreate(_ context.Context, object runtime.Object) (admission.Warnings, error) {
+	objTyped, ok := object.(*vmwarev1.VSphereMachine)
+	if !ok {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a VSphereMachine but got a %T", object))
+	}
+
+	allErrs := validateInterfaces(webhook.NetworkProvider, objTyped.Spec.Network, []string{})
+
+	return nil, webhooks.AggregateObjErrors(objTyped.GroupVersionKind().GroupKind(), objTyped.Name, allErrs)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
@@ -96,10 +110,88 @@ func (webhook *VSphereMachine) ValidateUpdate(_ context.Context, oldRaw runtime.
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "minHardwareVersion"), "cannot be modified"))
 	}
 
+	if oldSpec.Network != nil && oldSpec.Network.Interfaces != nil &&
+		newSpec.Network != nil && newSpec.Network.Interfaces != nil &&
+		!reflect.DeepEqual(newSpec.Network.Interfaces, oldSpec.Network.Interfaces) {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "network", "interfaces"), "cannot be modified"))
+	}
+
+	allErrs = append(allErrs, validateInterfaces(webhook.NetworkProvider, newSpec.Network, []string{})...)
+
 	return nil, webhooks.AggregateObjErrors(newTyped.GroupVersionKind().GroupKind(), newTyped.Name, allErrs)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 func (webhook *VSphereMachine) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
+}
+
+func validateInterfaces(networkProvider string, network *vmwarev1.VSphereMachineNetworkSpec, pathPrefix []string) field.ErrorList {
+	var allErrs field.ErrorList
+
+	interfacesPath := append(pathPrefix, "spec", "network", "interfaces")
+	primaryPath := append(interfacesPath, "primary")
+	primaryNetworkPath := append(primaryPath, "primary", "network")
+
+	if network != nil && network.Interfaces != nil {
+		if !feature.Gates.Enabled(feature.MultiNetworks) {
+			allErrs = append(allErrs, field.Forbidden(
+				field.NewPath(interfacesPath[0], interfacesPath[1:]...),
+				"interfaces can only be set when feature gate MultiNetworks is enabled"))
+		} else {
+			// Validate network type is supported
+			switch networkProvider {
+			case manager.NSXVPCNetworkProvider:
+				primary := network.Interfaces.Primary
+				if primary != nil && primary.Network.TypeMeta.GroupVersionKind() != pkgnetwork.NetworkGVKNSXTVPCSubnetSet {
+					allErrs = append(allErrs, field.Invalid(
+						field.NewPath(primaryNetworkPath[0], primaryNetworkPath[1:]...),
+						primary.Network.TypeMeta.GroupVersionKind(),
+						fmt.Sprintf("only support %s", pkgnetwork.NetworkGVKNSXTVPCSubnetSet)))
+				}
+				for i, secondaryInterface := range network.Interfaces.Secondary {
+					if secondaryInterface.Network.TypeMeta.GroupVersionKind() != pkgnetwork.NetworkGVKNSXTVPCSubnetSet &&
+						secondaryInterface.Network.TypeMeta.GroupVersionKind() != pkgnetwork.NetworkGVKNSXTVPCSubnet {
+						secondaryNetworkPath := append(interfacesPath, fmt.Sprintf("secondary[%d]", i), "network")
+						allErrs = append(allErrs, field.Invalid(
+							field.NewPath(secondaryNetworkPath[0], secondaryNetworkPath[1:]...),
+							secondaryInterface.Network.TypeMeta.GroupVersionKind(),
+							fmt.Sprintf("only support %s or %s", pkgnetwork.NetworkGVKNSXTVPCSubnetSet, pkgnetwork.NetworkGVKNSXTVPCSubnet)))
+					}
+				}
+			case manager.VDSNetworkProvider:
+				if network.Interfaces.Primary != nil {
+					allErrs = append(allErrs, field.Forbidden(
+						field.NewPath(primaryPath[0], primaryPath[1:]...),
+						"primary interface can not be set when network provider is vsphere-network"))
+				}
+				for i, secondaryInterface := range network.Interfaces.Secondary {
+					if secondaryInterface.Network.TypeMeta.GroupVersionKind() != pkgnetwork.NetworkGVKNetOperator {
+						secondaryNetworkPath := append(interfacesPath, fmt.Sprintf("secondary[%d]", i), "network")
+						allErrs = append(allErrs, field.Invalid(
+							field.NewPath(secondaryNetworkPath[0], secondaryNetworkPath[1:]...),
+							secondaryInterface.Network.TypeMeta.GroupVersionKind(),
+							fmt.Sprintf("only support %s", pkgnetwork.NetworkGVKNetOperator)))
+					}
+				}
+			default:
+				allErrs = append(allErrs, field.Forbidden(field.NewPath(interfacesPath[0], interfacesPath[1:]...), fmt.Sprintf("interfaces can not be set when network provider is %s", networkProvider)))
+			}
+
+			// Validate interface names are unique
+			interfaceNames := map[string]struct{}{pkgnetwork.PrimaryInterfaceName: {}}
+			for i, secondaryInterface := range network.Interfaces.Secondary {
+				if _, ok := interfaceNames[secondaryInterface.Name]; ok {
+					secondaryInterfaceNamePath := append(interfacesPath, "secondary", fmt.Sprintf("[%d]", i), "name")
+					allErrs = append(allErrs, field.Invalid(
+						field.NewPath(secondaryInterfaceNamePath[0], secondaryInterfaceNamePath[1:]...),
+						secondaryInterface.Name,
+						"interface name is already in use"))
+				} else {
+					interfaceNames[secondaryInterface.Name] = struct{}{}
+				}
+			}
+		}
+	}
+	return allErrs
 }

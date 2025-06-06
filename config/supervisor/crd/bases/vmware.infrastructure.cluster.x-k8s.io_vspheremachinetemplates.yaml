@@ -94,6 +94,174 @@ spec:
                                 so we highly recommend to use a template which leads to a name shorter than 63 characters.
                             type: string
                         type: object
+                      network:
+                        description: Network is the network configuration for the
+                          VSphereMachine
+                        properties:
+                          interfaces:
+                            description: Interfaces is the list of network interfaces
+                              attached to this VSphereMachine.
+                            properties:
+                              primary:
+                                description: |-
+                                  Primary is the primary network interface.
+
+                                  It is used to connect the Kubernetes primary network for Load balancer,
+                                  Service discovery, Pod traffic and management traffic etc.
+                                  Leave it unset if you don't want to customize the primary network and interface.
+                                  Customization is only supported with network provider NSX-VPC.
+                                  It should be set only when VSphereCluster spec.network.nsxVPC.createSubnetSet is set to false.
+                                properties:
+                                  mtu:
+                                    description: MTU is the Maximum Transmission Unit
+                                      size in bytes.
+                                    format: int64
+                                    type: integer
+                                  network:
+                                    description: |-
+                                      Network is the name of the network resource to which this interface is
+                                      connected.
+                                    properties:
+                                      apiVersion:
+                                        description: |-
+                                          APIVersion defines the versioned schema of this representation of an object.
+                                          Servers should convert recognized schemas to the latest internal value, and
+                                          may reject unrecognized values.
+                                          More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+                                        type: string
+                                      kind:
+                                        description: |-
+                                          Kind is a string value representing the REST resource this object represents.
+                                          Servers may infer this from the endpoint the client submits requests to.
+                                          Cannot be updated.
+                                          In CamelCase.
+                                          More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+                                        type: string
+                                      name:
+                                        description: Name refers to a unique resource
+                                          in the current namespace.
+                                        type: string
+                                    required:
+                                    - name
+                                    type: object
+                                  routes:
+                                    description: |-
+                                      Routes is a list of optional, static routes.
+
+                                      Please note this feature is available only with the following bootstrap
+                                      providers: CloudInit.
+                                    items:
+                                      description: RouteSpec defines a static route
+                                        for a guest.
+                                      properties:
+                                        to:
+                                          description: To is either "default", or
+                                            an IP4 address. IP6 is not supported yet.
+                                          pattern: ^(default|([0-9]{1,3}\.){3}[0-9]{1,3}(\/[0-9]{1,2})?)$
+                                          type: string
+                                        via:
+                                          description: Via is an IP4 address. IP6
+                                            is not supported yet.
+                                          pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}$
+                                          type: string
+                                      required:
+                                      - to
+                                      - via
+                                      type: object
+                                    type: array
+                                required:
+                                - network
+                                type: object
+                              secondary:
+                                description: |-
+                                  Secondary is the secondary network interface.
+
+                                  It is used for any purpose like deploying Antrea secondary network,
+                                  Multus, mounting NFS etc.
+                                  Secondary network is supported with network provider NSX-VPC and vsphere-network.
+                                items:
+                                  description: InterfaceSpec defines a network interface
+                                    for a VSphereMachine.
+                                  properties:
+                                    mtu:
+                                      description: MTU is the Maximum Transmission
+                                        Unit size in bytes.
+                                      format: int64
+                                      type: integer
+                                    name:
+                                      description: |-
+                                        Name describes the unique name of this network interface, used to
+                                        distinguish it from other network interfaces attached to this VSphereMachine.
+                                      pattern: ^[a-z0-9]{2,}$
+                                      type: string
+                                    network:
+                                      description: |-
+                                        Network is the name of the network resource to which this interface is
+                                        connected.
+                                      properties:
+                                        apiVersion:
+                                          description: |-
+                                            APIVersion defines the versioned schema of this representation of an object.
+                                            Servers should convert recognized schemas to the latest internal value, and
+                                            may reject unrecognized values.
+                                            More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+                                          type: string
+                                        kind:
+                                          description: |-
+                                            Kind is a string value representing the REST resource this object represents.
+                                            Servers may infer this from the endpoint the client submits requests to.
+                                            Cannot be updated.
+                                            In CamelCase.
+                                            More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+                                          type: string
+                                        name:
+                                          description: Name refers to a unique resource
+                                            in the current namespace.
+                                          type: string
+                                      required:
+                                      - name
+                                      type: object
+                                    routes:
+                                      description: |-
+                                        Routes is a list of optional, static routes.
+
+                                        Please note this feature is available only with the following bootstrap
+                                        providers: CloudInit.
+                                      items:
+                                        description: RouteSpec defines a static route
+                                          for a guest.
+                                        properties:
+                                          to:
+                                            description: To is either "default", or
+                                              an IP4 address. IP6 is not supported
+                                              yet.
+                                            pattern: ^(default|([0-9]{1,3}\.){3}[0-9]{1,3}(\/[0-9]{1,2})?)$
+                                            type: string
+                                          via:
+                                            description: Via is an IP4 address. IP6
+                                              is not supported yet.
+                                            pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}$
+                                            type: string
+                                        required:
+                                        - to
+                                        - via
+                                        type: object
+                                      type: array
+                                  required:
+                                  - name
+                                  - network
+                                  type: object
+                                type: array
+                            type: object
+                            x-kubernetes-validations:
+                            - message: field 'primary' cannot be added or removed
+                                after creation
+                              rule: has(self.primary) == has(oldSelf.primary)
+                        type: object
+                        x-kubernetes-validations:
+                        - message: field 'interfaces' cannot be added or removed after
+                            creation
+                          rule: has(self.interfaces) == has(oldSelf.interfaces)
                       powerOffMode:
                         default: hard
                         description: |-
@@ -155,6 +323,9 @@ spec:
                     - className
                     - imageName
                     type: object
+                    x-kubernetes-validations:
+                    - message: field 'network' cannot be added or removed after creation
+                      rule: has(self.network) == has(oldSelf.network)
                 required:
                 - spec
                 type: object

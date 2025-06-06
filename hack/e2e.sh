@@ -61,6 +61,13 @@ on_exit() {
 
   # Cleanup VSPHERE_PASSWORD from temporary artifacts directory.
   if [[ "${ORIGINAL_ARTIFACTS}" != "" ]]; then
+    # unpack pod-logs.tar.gz files to replace secrets in them
+    find "${ARTIFACTS}" -type f -name pod-logs.tar.gz | while IFS= read -r tarball; do
+      echo "Unpacking ${tarball} for secrets replacement"
+      mkdir -p "${tarball}-unpacked"
+      tar -xzf "${tarball}" -C "${tarball}-unpacked"
+      rm "${tarball}"
+    done
     # Delete non-text files from artifacts directory to not leak files accidentially
     find "${ARTIFACTS}" -type f -exec file --mime-type {} \; | grep -v -E -e "text/plain|text/xml|application/json|inode/x-empty" | while IFS= read -r line
     do
@@ -83,6 +90,13 @@ on_exit() {
         sed -i "s/${VSPHERE_PASSWORD_B64}/REDACTED/g" "${file}"
       done || true
     fi
+    # re-packing pod-logs.tar.gz-unpacked
+    find "${ARTIFACTS}" -type d -name pod-logs.tar.gz-unpacked | while IFS= read -r tarballDirectory; do
+      tarball="${tarballDirectory%-unpacked}"
+      echo "Packing ${tarballDirectory} to ${tarball} after secrets replacement"
+      tar -czf "${tarball}" -C . "${tarballDirectory}"
+      rm -r "${tarballDirectory}"
+    done
     # Move all artifacts to the original artifacts location.
     mv "${ARTIFACTS}"/* "${ORIGINAL_ARTIFACTS}/"
   fi
@@ -104,7 +118,7 @@ export VSPHERE_USERNAME="${GOVC_USERNAME:-}"
 export VSPHERE_PASSWORD="${GOVC_PASSWORD:-}"
 export E2E_CONF_FILE="${REPO_ROOT}/test/e2e/config/vsphere.yaml"
 export E2E_CONF_OVERRIDE_FILE=""
-export E2E_VM_OPERATOR_VERSION="${VM_OPERATOR_VERSION:-v1.8.6-0-gde75746a}"
+export E2E_VM_OPERATOR_VERSION="${VM_OPERATOR_VERSION:-v1.8.6-0-gde75746a-65e87004}"
 export DOCKER_IMAGE_TAR="/tmp/images/image.tar"
 export GC_KIND="false"
 

@@ -29,7 +29,7 @@ import (
 	"k8s.io/utils/ptr"
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
@@ -137,9 +137,9 @@ var _ = Describe("VSphereDeploymentZoneReconciler", func() {
 			if err := testEnv.Get(ctx, deploymentZoneKey, vsphereDeploymentZone); err != nil {
 				return false
 			}
-			return deprecatedconditions.IsTrue(vsphereDeploymentZone, infrav1.VCenterAvailableCondition) &&
-				deprecatedconditions.IsTrue(vsphereDeploymentZone, infrav1.PlacementConstraintMetCondition) &&
-				deprecatedconditions.IsTrue(vsphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition)
+			return v1beta1conditions.IsTrue(vsphereDeploymentZone, infrav1.VCenterAvailableCondition) &&
+				v1beta1conditions.IsTrue(vsphereDeploymentZone, infrav1.PlacementConstraintMetCondition) &&
+				v1beta1conditions.IsTrue(vsphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition)
 		}, timeout).Should(BeTrue())
 
 		Expect(testEnv.Get(ctx, failureDomainKey, vsphereFailureDomain)).To(Succeed())
@@ -204,7 +204,7 @@ var _ = Describe("VSphereDeploymentZoneReconciler", func() {
 				if err := testEnv.Get(ctx, deploymentZoneKey, vsphereDeploymentZone); err != nil {
 					return false
 				}
-				return deprecatedconditions.IsFalse(vsphereDeploymentZone, infrav1.PlacementConstraintMetCondition)
+				return v1beta1conditions.IsFalse(vsphereDeploymentZone, infrav1.PlacementConstraintMetCondition)
 			}, timeout).Should(BeTrue())
 		})
 	})
@@ -381,9 +381,9 @@ func TestVSphereDeploymentZone_Reconcile(t *testing.T) {
 			if err := testEnv.Get(ctx, client.ObjectKeyFromObject(vsphereDeploymentZone), vsphereDeploymentZone); err != nil {
 				return false
 			}
-			return deprecatedconditions.IsTrue(vsphereDeploymentZone, infrav1.VCenterAvailableCondition) &&
-				deprecatedconditions.IsTrue(vsphereDeploymentZone, infrav1.PlacementConstraintMetCondition) &&
-				deprecatedconditions.IsTrue(vsphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition)
+			return v1beta1conditions.IsTrue(vsphereDeploymentZone, infrav1.VCenterAvailableCondition) &&
+				v1beta1conditions.IsTrue(vsphereDeploymentZone, infrav1.PlacementConstraintMetCondition) &&
+				v1beta1conditions.IsTrue(vsphereDeploymentZone, infrav1.VSphereFailureDomainValidatedCondition)
 		}, timeout).Should(BeTrue())
 
 		g.Expect(testEnv.Get(ctx, client.ObjectKeyFromObject(vsphereFailureDomain), vsphereFailureDomain)).To(Succeed())

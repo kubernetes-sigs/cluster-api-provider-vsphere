@@ -35,7 +35,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
 	inmemoryserver "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
-	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -186,7 +186,7 @@ func Test_Reconcile_VSphereVM(t *testing.T) {
 		err = inmemoryClient.Get(ctx, client.ObjectKeyFromObject(vSphereVM), conditionsTracker)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		c := deprecatedconditions.Get(conditionsTracker, VMProvisionedCondition)
+		c := v1beta1conditions.Get(conditionsTracker, VMProvisionedCondition)
 		g.Expect(c.Status).To(Equal(corev1.ConditionFalse))
 		g.Expect(c.Severity).To(Equal(clusterv1beta1.ConditionSeverityInfo))
 		g.Expect(c.Reason).To(Equal(WaitingControlPlaneInitializedReason))
@@ -324,7 +324,7 @@ func Test_Reconcile_VSphereVM(t *testing.T) {
 		err = inmemoryClient.Get(ctx, client.ObjectKeyFromObject(vSphereVM), conditionsTracker)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		c := deprecatedconditions.Get(conditionsTracker, NodeProvisionedCondition)
+		c := v1beta1conditions.Get(conditionsTracker, NodeProvisionedCondition)
 		g.Expect(c.Status).To(Equal(corev1.ConditionTrue))
 	})
 }

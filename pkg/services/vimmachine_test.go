@@ -26,7 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
-	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -780,7 +780,7 @@ func Test_VimMachineService_ReconcileDelete(t *testing.T) {
 		g := NewWithT(t)
 		err := vimMachineService.ReconcileDelete(ctx, machineCtx)
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(deprecatedconditions.Get(machineCtx.VSphereMachine, infrav1.VMProvisionedCondition).Status).To(Equal(deprecatedconditions.Get(vsphereVM, clusterv1beta1.ReadyCondition).Status))
+		g.Expect(v1beta1conditions.Get(machineCtx.VSphereMachine, infrav1.VMProvisionedCondition).Status).To(Equal(v1beta1conditions.Get(vsphereVM, clusterv1beta1.ReadyCondition).Status))
 	})
 }
 

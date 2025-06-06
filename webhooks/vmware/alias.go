@@ -26,14 +26,22 @@ import (
 type VSphereMachine struct{}
 
 // SetupWebhookWithManager sets up VSphereMachine webhooks.
-func (webhook *VSphereMachine) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return (&vmware.VSphereMachine{}).SetupWebhookWithManager(mgr)
+func (webhook *VSphereMachine) SetupWebhookWithManager(mgr ctrl.Manager, networkProvider string) error {
+	return (&vmware.VSphereMachine{NetworkProvider: networkProvider}).SetupWebhookWithManager(mgr)
 }
 
 // VSphereMachineTemplate implements a validation webhook for VSphereMachineTemplate.
 type VSphereMachineTemplate struct{}
 
 // SetupWebhookWithManager sets up VSphereMachineTemplate webhooks.
-func (webhook *VSphereMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return (&vmware.VSphereMachineTemplate{}).SetupWebhookWithManager(mgr)
+func (webhook *VSphereMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager, networkProvider string) error {
+	return (&vmware.VSphereMachineTemplate{NetworkProvider: networkProvider}).SetupWebhookWithManager(mgr)
+}
+
+// VSphereCluster implements a validation and defaulting webhook for VSphereCluster.
+type VSphereCluster struct{}
+
+// SetupWebhookWithManager sets up VSphereCluster webhooks.
+func (webhook *VSphereCluster) SetupWebhookWithManager(mgr ctrl.Manager, networkProvider string) error {
+	return (&vmware.VSphereCluster{NetworkProvider: networkProvider}).SetupWebhookWithManager(mgr)
 }

@@ -104,7 +104,7 @@ export VSPHERE_USERNAME="${GOVC_USERNAME:-}"
 export VSPHERE_PASSWORD="${GOVC_PASSWORD:-}"
 export E2E_CONF_FILE="${REPO_ROOT}/test/e2e/config/vsphere.yaml"
 export E2E_CONF_OVERRIDE_FILE=""
-export E2E_VM_OPERATOR_VERSION="${VM_OPERATOR_VERSION:-v1.8.6-0-gde75746a-65e87004}"
+export E2E_VM_OPERATOR_VERSION="${VM_OPERATOR_VERSION:-v1.8.6-0-gde75746a}"
 export DOCKER_IMAGE_TAR="/tmp/images/image.tar"
 export GC_KIND="false"
 

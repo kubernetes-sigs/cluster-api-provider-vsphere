@@ -280,6 +280,9 @@ func getManager(cfg *rest.Config, networkProvider string, withWebhooks bool) man
 			if err := (&vmwarewebhooks.VSphereMachine{}).SetupWebhookWithManager(mgr); err != nil {
 				return err
 			}
+			if err := (&vmwarewebhooks.VSphereCluster{}).SetupWebhookWithManager(mgr); err != nil {
+				return err
+			}
 		}
 		if err := vmware.AddVSphereMachineTemplateControllerToManager(ctx, controllerCtx, mgr, controllerOpts); err != nil {
 			return err

@@ -510,7 +510,74 @@ func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervis
 	return err
 }
 
+func convertKeyValueSlice(pairs []vmoprv1common.KeyValuePair) []vmwarev1.KeyValuePair {
+	converted := make([]vmwarev1.KeyValuePair, 0, len(pairs))
+	for _, pair := range pairs {
+		converted = append(converted, vmwarev1.KeyValuePair{
+			Key:   pair.Key,
+			Value: pair.Value,
+		})
+	}
+	return converted
+}
+
 func (v *VmopMachineService) reconcileNetwork(supervisorMachineCtx *vmware.SupervisorMachineContext, vm *vmoprv1.VirtualMachine) bool {
+	// Propagate VM status.network.interfaces to VSphereMachine.Status.NetworkInterfaces
+	if vm.Status.Network != nil {
+		interfaces := make([]vmwarev1.VSphereMachineNetworkInterfaceStatus, 0, len(vm.Status.Network.Interfaces))
+		for _, vmIface := range vm.Status.Network.Interfaces {
+			iface := vmwarev1.VSphereMachineNetworkInterfaceStatus{
+				Name:      vmIface.Name,
+				DeviceKey: vmIface.DeviceKey,
+			}
+			// set IP
+			if vmIface.IP != nil {
+				var dhcp *vmwarev1.VSphereMachineNetworkDHCPStatus
+				if vmIface.IP.DHCP != nil {
+					dhcp = &vmwarev1.VSphereMachineNetworkDHCPStatus{
+						IP4: vmwarev1.VSphereMachineNetworkDHCPOptionsStatus{
+							Enabled: vmIface.IP.DHCP.IP4.Enabled,
+							Config:  convertKeyValueSlice(vmIface.IP.DHCP.IP4.Config),
+						},
+						IP6: vmwarev1.VSphereMachineNetworkDHCPOptionsStatus{
+							Enabled: vmIface.IP.DHCP.IP6.Enabled,
+							Config:  convertKeyValueSlice(vmIface.IP.DHCP.IP6.Config),
+						},
+					}
+				}
+				var addresses []vmwarev1.VSphereMachineNetworkInterfaceIPAddrStatus
+				for _, addr := range vmIface.IP.Addresses {
+					addresses = append(addresses, vmwarev1.VSphereMachineNetworkInterfaceIPAddrStatus{
+						Address:  addr.Address,
+						Lifetime: addr.Lifetime,
+						Origin:   addr.Origin,
+						State:    addr.State,
+					})
+				}
+				iface.IP = &vmwarev1.VSphereMachineNetworkInterfaceIPStatus{
+					AutoConfigurationEnabled: vmIface.IP.AutoConfigurationEnabled,
+					MACAddr:                  vmIface.IP.MACAddr,
+					DHCP:                     dhcp,
+					Addresses:                addresses,
+				}
+			}
+			// set DNS
+			if vmIface.DNS != nil {
+				iface.DNS = &vmwarev1.VSphereMachineNetworkDNSStatus{
+					DHCP:          vmIface.DNS.DHCP,
+					DomainName:    vmIface.DNS.DomainName,
+					HostName:      vmIface.DNS.HostName,
+					Nameservers:   vmIface.DNS.Nameservers,
+					SearchDomains: vmIface.DNS.SearchDomains,
+				}
+			}
+			interfaces = append(interfaces, iface)
+		}
+		supervisorMachineCtx.VSphereMachine.Status.Network = &vmwarev1.VSphereMachineNetworkStatus{
+			Interfaces: interfaces,
+		}
+	}
+
 	if vm.Status.Network.PrimaryIP4 == "" && vm.Status.Network.PrimaryIP6 == "" {
 		return false
 	}
@@ -518,6 +585,16 @@ func (v *VmopMachineService) reconcileNetwork(supervisorMachineCtx *vmware.Super
 	supervisorMachineCtx.VSphereMachine.Status.IPAddr = vm.Status.Network.PrimaryIP4
 	if supervisorMachineCtx.VSphereMachine.Status.IPAddr == "" {
 		supervisorMachineCtx.VSphereMachine.Status.IPAddr = vm.Status.Network.PrimaryIP6
+	}
+
+	// Cluster API requires InfrastructureMachineStatus.Addresses to be set
+	if supervisorMachineCtx.VSphereMachine.Status.IPAddr != "" {
+		supervisorMachineCtx.VSphereMachine.Status.Addresses = []clusterv1.MachineAddress{
+			{
+				Type:    clusterv1.MachineInternalIP,
+				Address: supervisorMachineCtx.VSphereMachine.Status.IPAddr,
+			},
+		}
 	}
 
 	return true

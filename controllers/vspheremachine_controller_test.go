@@ -27,7 +27,7 @@ import (
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	capiutil "sigs.k8s.io/cluster-api/util"
-	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -47,12 +47,12 @@ var _ = Describe("VsphereMachineReconciler", func() {
 		key    client.ObjectKey
 	)
 
-	isPresentAndFalseWithReason := func(getter deprecatedconditions.Getter, condition clusterv1beta1.ConditionType, reason string) bool {
+	isPresentAndFalseWithReason := func(getter v1beta1conditions.Getter, condition clusterv1beta1.ConditionType, reason string) bool {
 		ExpectWithOffset(1, testEnv.Get(ctx, key, getter)).To(Succeed())
-		if !deprecatedconditions.Has(getter, condition) {
+		if !v1beta1conditions.Has(getter, condition) {
 			return false
 		}
-		objectCondition := deprecatedconditions.Get(getter, condition)
+		objectCondition := v1beta1conditions.Get(getter, condition)
 		return objectCondition.Status == corev1.ConditionFalse &&
 			objectCondition.Reason == reason
 	}

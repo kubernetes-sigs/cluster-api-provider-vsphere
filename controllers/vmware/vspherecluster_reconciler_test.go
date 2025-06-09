@@ -31,7 +31,7 @@ import (
 	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -105,7 +105,7 @@ var _ = Describe("Cluster Controller Tests", func() {
 			clusterCtx.VSphereCluster.Status.Conditions = append(clusterCtx.VSphereCluster.Status.Conditions,
 				clusterv1beta1.Condition{Type: vmwarev1.ResourcePolicyReadyCondition, Status: corev1.ConditionTrue})
 			reconciler.reconcileDelete(clusterCtx)
-			c := deprecatedconditions.Get(clusterCtx.VSphereCluster, vmwarev1.ResourcePolicyReadyCondition)
+			c := v1beta1conditions.Get(clusterCtx.VSphereCluster, vmwarev1.ResourcePolicyReadyCondition)
 			Expect(c).NotTo(BeNil())
 			Expect(c.Status).To(Equal(corev1.ConditionFalse))
 			Expect(c.Reason).To(Equal(clusterv1beta1.DeletingReason))
@@ -116,7 +116,7 @@ var _ = Describe("Cluster Controller Tests", func() {
 			clusterCtx.VSphereCluster.Status.Conditions = append(clusterCtx.VSphereCluster.Status.Conditions,
 				clusterv1beta1.Condition{Type: otherReady, Status: corev1.ConditionTrue})
 			reconciler.reconcileDelete(clusterCtx)
-			c := deprecatedconditions.Get(clusterCtx.VSphereCluster, otherReady)
+			c := v1beta1conditions.Get(clusterCtx.VSphereCluster, otherReady)
 			Expect(c).NotTo(BeNil())
 			Expect(c.Status).NotTo(Equal(corev1.ConditionFalse))
 			Expect(c.Reason).NotTo(Equal(clusterv1beta1.DeletingReason))

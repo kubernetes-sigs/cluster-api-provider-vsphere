@@ -35,8 +35,8 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
-	deprecatedv1beta2conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	v1beta2conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/paused"
 	"sigs.k8s.io/cluster-api/util/finalizers"
@@ -132,28 +132,28 @@ func (r *clusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 // patch updates the VSphereCluster and its status on the API server.
 func (r *clusterReconciler) patch(ctx context.Context, clusterCtx *capvcontext.ClusterContext) error {
 	// always update the readyCondition.
-	deprecatedconditions.SetSummary(clusterCtx.VSphereCluster,
-		deprecatedconditions.WithConditions(
+	v1beta1conditions.SetSummary(clusterCtx.VSphereCluster,
+		v1beta1conditions.WithConditions(
 			infrav1.VCenterAvailableCondition,
 		),
 	)
 
-	if err := deprecatedv1beta2conditions.SetSummaryCondition(clusterCtx.VSphereCluster, clusterCtx.VSphereCluster, infrav1.VSphereClusterReadyV1Beta2Condition,
-		deprecatedv1beta2conditions.ForConditionTypes{
+	if err := v1beta2conditions.SetSummaryCondition(clusterCtx.VSphereCluster, clusterCtx.VSphereCluster, infrav1.VSphereClusterReadyV1Beta2Condition,
+		v1beta2conditions.ForConditionTypes{
 			infrav1.VSphereClusterVCenterAvailableV1Beta2Condition,
 			// FailureDomainsReady and ClusterModuelsReady may not be always set.
 			infrav1.VSphereClusterFailureDomainsReadyV1Beta2Condition,
 			infrav1.VSphereClusterClusterModulesReadyV1Beta2Condition,
 		},
-		deprecatedv1beta2conditions.IgnoreTypesIfMissing{
+		v1beta2conditions.IgnoreTypesIfMissing{
 			infrav1.VSphereClusterFailureDomainsReadyV1Beta2Condition,
 			infrav1.VSphereClusterClusterModulesReadyV1Beta2Condition,
 		},
 		// Using a custom merge strategy to override reasons applied during merge.
-		deprecatedv1beta2conditions.CustomMergeStrategy{
-			MergeStrategy: deprecatedv1beta2conditions.DefaultMergeStrategy(
+		v1beta2conditions.CustomMergeStrategy{
+			MergeStrategy: v1beta2conditions.DefaultMergeStrategy(
 				// Use custom reasons.
-				deprecatedv1beta2conditions.ComputeReasonFunc(deprecatedv1beta2conditions.GetDefaultComputeMergeReasonFunc(
+				v1beta2conditions.ComputeReasonFunc(v1beta2conditions.GetDefaultComputeMergeReasonFunc(
 					infrav1.VSphereClusterNotReadyV1Beta2Reason,
 					infrav1.VSphereClusterReadyUnknownV1Beta2Reason,
 					infrav1.VSphereClusterReadyV1Beta2Reason,
@@ -178,17 +178,17 @@ func (r *clusterReconciler) patch(ctx context.Context, clusterCtx *capvcontext.C
 func (r *clusterReconciler) reconcileDelete(ctx context.Context, clusterCtx *capvcontext.ClusterContext) (reconcile.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	deprecatedv1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
+	v1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 		Type:   infrav1.VSphereClusterVCenterAvailableV1Beta2Condition,
 		Status: metav1.ConditionFalse,
 		Reason: infrav1.VSphereClusterVCenterAvailableDeletingV1Beta2Reason,
 	})
-	deprecatedv1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
+	v1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 		Type:   infrav1.VSphereClusterClusterModulesReadyV1Beta2Condition,
 		Status: metav1.ConditionFalse,
 		Reason: infrav1.VSphereClusterClusterModulesDeletingV1Beta2Reason,
 	})
-	deprecatedv1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
+	v1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 		Type:   infrav1.VSphereClusterFailureDomainsReadyV1Beta2Condition,
 		Status: metav1.ConditionFalse,
 		Reason: infrav1.VSphereClusterFailureDomainsDeletingV1Beta2Reason,
@@ -259,7 +259,7 @@ func (r *clusterReconciler) reconcileNormal(ctx context.Context, clusterCtx *cap
 	// Reconcile failure domains.
 	ok, err := r.reconcileDeploymentZones(ctx, clusterCtx)
 	if err != nil {
-		deprecatedv1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
+		v1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 			Type:    infrav1.VSphereClusterFailureDomainsReadyV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  infrav1.VSphereClusterFailureDomainsNotReadyV1Beta2Reason,
@@ -273,8 +273,8 @@ func (r *clusterReconciler) reconcileNormal(ctx context.Context, clusterCtx *cap
 
 	// Reconcile vCenter availability.
 	if err := r.reconcileIdentitySecret(ctx, clusterCtx); err != nil {
-		deprecatedconditions.MarkFalse(clusterCtx.VSphereCluster, infrav1.VCenterAvailableCondition, infrav1.VCenterUnreachableReason, clusterv1beta1.ConditionSeverityError, "%v", err)
-		deprecatedv1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
+		v1beta1conditions.MarkFalse(clusterCtx.VSphereCluster, infrav1.VCenterAvailableCondition, infrav1.VCenterUnreachableReason, clusterv1beta1.ConditionSeverityError, "%v", err)
+		v1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 			Type:    infrav1.VSphereClusterVCenterAvailableV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  infrav1.VSphereClusterVCenterUnreachableV1Beta2Reason,
@@ -285,8 +285,8 @@ func (r *clusterReconciler) reconcileNormal(ctx context.Context, clusterCtx *cap
 
 	vcenterSession, err := r.reconcileVCenterConnectivity(ctx, clusterCtx)
 	if err != nil {
-		deprecatedconditions.MarkFalse(clusterCtx.VSphereCluster, infrav1.VCenterAvailableCondition, infrav1.VCenterUnreachableReason, clusterv1beta1.ConditionSeverityError, "%v", err)
-		deprecatedv1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
+		v1beta1conditions.MarkFalse(clusterCtx.VSphereCluster, infrav1.VCenterAvailableCondition, infrav1.VCenterUnreachableReason, clusterv1beta1.ConditionSeverityError, "%v", err)
+		v1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 			Type:    infrav1.VSphereClusterVCenterAvailableV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  infrav1.VSphereClusterVCenterUnreachableV1Beta2Reason,
@@ -295,8 +295,8 @@ func (r *clusterReconciler) reconcileNormal(ctx context.Context, clusterCtx *cap
 		return reconcile.Result{}, pkgerrors.Wrapf(err,
 			"unexpected error while probing vcenter for %s", clusterCtx)
 	}
-	deprecatedconditions.MarkTrue(clusterCtx.VSphereCluster, infrav1.VCenterAvailableCondition)
-	deprecatedv1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
+	v1beta1conditions.MarkTrue(clusterCtx.VSphereCluster, infrav1.VCenterAvailableCondition)
+	v1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 		Type:   infrav1.VSphereClusterVCenterAvailableV1Beta2Condition,
 		Status: metav1.ConditionTrue,
 		Reason: infrav1.VSphereClusterVCenterAvailableV1Beta2Reason,
@@ -305,8 +305,8 @@ func (r *clusterReconciler) reconcileNormal(ctx context.Context, clusterCtx *cap
 	// Reconcile cluster modules.
 	err = r.reconcileVCenterVersion(clusterCtx, vcenterSession)
 	if err != nil || clusterCtx.VSphereCluster.Status.VCenterVersion == "" {
-		deprecatedconditions.MarkFalse(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition, infrav1.MissingVCenterVersionReason, clusterv1beta1.ConditionSeverityWarning, "%v", err)
-		deprecatedv1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
+		v1beta1conditions.MarkFalse(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition, infrav1.MissingVCenterVersionReason, clusterv1beta1.ConditionSeverityWarning, "%v", err)
+		v1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 			Type:    infrav1.VSphereClusterClusterModulesReadyV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  infrav1.VSphereClusterModulesInvalidVCenterVersionV1Beta2Reason,
@@ -317,8 +317,8 @@ func (r *clusterReconciler) reconcileNormal(ctx context.Context, clusterCtx *cap
 
 	affinityReconcileResult, err := r.reconcileClusterModules(ctx, clusterCtx)
 	if err != nil {
-		deprecatedconditions.MarkFalse(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition, infrav1.ClusterModuleSetupFailedReason, clusterv1beta1.ConditionSeverityWarning, "%v", err)
-		deprecatedv1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
+		v1beta1conditions.MarkFalse(clusterCtx.VSphereCluster, infrav1.ClusterModulesAvailableCondition, infrav1.ClusterModuleSetupFailedReason, clusterv1beta1.ConditionSeverityWarning, "%v", err)
+		v1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 			Type:    infrav1.VSphereClusterClusterModulesReadyV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  infrav1.VSphereClusterClusterModulesNotReadyV1Beta2Reason,
@@ -450,8 +450,8 @@ func (r *clusterReconciler) reconcileDeploymentZones(ctx context.Context, cluste
 	clusterCtx.VSphereCluster.Status.FailureDomains = failureDomains
 	if readyNotReported > 0 {
 		log.Info("Waiting for failure domains to be reconciled")
-		deprecatedconditions.MarkFalse(clusterCtx.VSphereCluster, infrav1.FailureDomainsAvailableCondition, infrav1.WaitingForFailureDomainStatusReason, clusterv1beta1.ConditionSeverityInfo, "waiting for failure domains to report ready status")
-		deprecatedv1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
+		v1beta1conditions.MarkFalse(clusterCtx.VSphereCluster, infrav1.FailureDomainsAvailableCondition, infrav1.WaitingForFailureDomainStatusReason, clusterv1beta1.ConditionSeverityInfo, "waiting for failure domains to report ready status")
+		v1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 			Type:    infrav1.VSphereClusterFailureDomainsReadyV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  infrav1.VSphereClusterFailureDomainsNotReadyV1Beta2Reason,
@@ -462,16 +462,16 @@ func (r *clusterReconciler) reconcileDeploymentZones(ctx context.Context, cluste
 
 	if len(failureDomains) > 0 {
 		if notReady > 0 {
-			deprecatedconditions.MarkFalse(clusterCtx.VSphereCluster, infrav1.FailureDomainsAvailableCondition, infrav1.FailureDomainsSkippedReason, clusterv1beta1.ConditionSeverityInfo, "one or more failure domains are not ready")
-			deprecatedv1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
+			v1beta1conditions.MarkFalse(clusterCtx.VSphereCluster, infrav1.FailureDomainsAvailableCondition, infrav1.FailureDomainsSkippedReason, clusterv1beta1.ConditionSeverityInfo, "one or more failure domains are not ready")
+			v1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 				Type:    infrav1.VSphereClusterFailureDomainsReadyV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  infrav1.VSphereClusterFailureDomainsNotReadyV1Beta2Reason,
 				Message: "One or more failure domains are not ready",
 			})
 		} else {
-			deprecatedconditions.MarkTrue(clusterCtx.VSphereCluster, infrav1.FailureDomainsAvailableCondition)
-			deprecatedv1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
+			v1beta1conditions.MarkTrue(clusterCtx.VSphereCluster, infrav1.FailureDomainsAvailableCondition)
+			v1beta2conditions.Set(clusterCtx.VSphereCluster, metav1.Condition{
 				Type:   infrav1.VSphereClusterFailureDomainsReadyV1Beta2Condition,
 				Status: metav1.ConditionTrue,
 				Reason: infrav1.VSphereClusterFailureDomainsReadyV1Beta2Reason,
@@ -479,7 +479,7 @@ func (r *clusterReconciler) reconcileDeploymentZones(ctx context.Context, cluste
 		}
 	} else {
 		// Remove the condition if failure domains do not exist
-		deprecatedconditions.Delete(clusterCtx.VSphereCluster, infrav1.FailureDomainsAvailableCondition)
+		v1beta1conditions.Delete(clusterCtx.VSphereCluster, infrav1.FailureDomainsAvailableCondition)
 	}
 	return true, nil
 }

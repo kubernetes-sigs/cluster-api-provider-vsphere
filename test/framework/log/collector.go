@@ -97,6 +97,8 @@ func (c *MachineLogCollector) CollectMachineLog(ctx context.Context, ctrlClient 
 			"sudo", "cat", "/var/log/cloud-init-output.log"),
 		captureLogs("kubeadm-service.log",
 			"sudo", "cat", "/var/log/kubeadm-service.log"),
+		captureLogs("pod-logs.tar.gz",
+			"sudo", "tar", "-czf", "-", "-C", "/var/log", "pods"),
 	)
 }
 

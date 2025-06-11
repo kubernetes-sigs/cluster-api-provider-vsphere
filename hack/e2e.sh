@@ -61,6 +61,14 @@ on_exit() {
 
   # Cleanup VSPHERE_PASSWORD from temporary artifacts directory.
   if [[ "${ORIGINAL_ARTIFACTS}" != "" ]]; then
+    # unpack pod-logs.tar.gz files to replace secrets in them
+    find "${ARTIFACTS}" -type f -name pod-logs.tar.gz | while IFS= read -r tarball; do
+      echo "Unpacking ${tarball} for secrets replacement"
+      mkdir -p "${tarball}-unpacked"
+      # on_exit should not fail due to broken tarballs
+      tar -xzf "${tarball}" -C "${tarball}-unpacked" || true
+      rm "${tarball}"
+    done
     # Delete non-text files from artifacts directory to not leak files accidentially
     find "${ARTIFACTS}" -type f -exec file --mime-type {} \; | grep -v -E -e "text/plain|text/xml|application/json|inode/x-empty" | while IFS= read -r line
     do
@@ -83,6 +91,13 @@ on_exit() {
         sed -i "s/${VSPHERE_PASSWORD_B64}/REDACTED/g" "${file}"
       done || true
     fi
+    # re-packing pod-logs.tar.gz-unpacked
+    find "${ARTIFACTS}" -type d -name pod-logs.tar.gz-unpacked | while IFS= read -r tarballDirectory; do
+      tarball="${tarballDirectory%-unpacked}"
+      echo "Packing ${tarballDirectory} to ${tarball} after secrets replacement"
+      tar -czf "${tarball}" -C "${tarballDirectory}" .
+      rm -r "${tarballDirectory}"
+    done
     # Move all artifacts to the original artifacts location.
     mv "${ARTIFACTS}"/* "${ORIGINAL_ARTIFACTS}/"
   fi

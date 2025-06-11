@@ -454,7 +454,10 @@ generate-test-infra-prowjobs: $(PROWJOB_GEN) ## Generates the prowjob configurat
 		-templates-dir "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere/templates" \
 		-output-dir "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere"; \
 		sed -i'' -e 's#0 19 \* \* \*#0 23 * * *#g' "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere/cluster-api-provider-vsphere-main-periodics-upgrades.yaml" "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere/cluster-api-provider-vsphere-main-periodics.yaml"; \
-		sed -i'' -e 's#0 21 \* \* \*#0 1 * * *#g' "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere/cluster-api-provider-vsphere-main-periodics-upgrades.yaml" "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere/cluster-api-provider-vsphere-main-periodics.yaml"
+		sed -i'' -e 's#0 21 \* \* \*#0 1 * * *#g' "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere/cluster-api-provider-vsphere-main-periodics-upgrades.yaml" "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere/cluster-api-provider-vsphere-main-periodics.yaml"; \
+		LATEST_RELEASE="$$(cat "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere/cluster-api-provider-vsphere-prowjob-gen.yaml" | yq '.prow_ignored.branches | keys | .[1]' | tr '.' '-')"; \
+		sed -i'' -e 's#0 19 \* \* \*#0 3 * * *#g' "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere/cluster-api-provider-vsphere-$${LATEST_RELEASE}-periodics-upgrades.yaml" "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere/cluster-api-provider-vsphere-$${LATEST_RELEASE}-periodics.yaml"; \
+		sed -i'' -e 's#0 21 \* \* \*#0 5 * * *#g' "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere/cluster-api-provider-vsphere-$${LATEST_RELEASE}-periodics-upgrades.yaml" "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api-provider-vsphere/cluster-api-provider-vsphere-$${LATEST_RELEASE}-periodics.yaml"
 
 ## --------------------------------------
 ## Lint / Verify

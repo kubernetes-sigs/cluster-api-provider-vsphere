@@ -65,7 +65,8 @@ on_exit() {
     find "${ARTIFACTS}" -type f -name pod-logs.tar.gz | while IFS= read -r tarball; do
       echo "Unpacking ${tarball} for secrets replacement"
       mkdir -p "${tarball}-unpacked"
-      tar -xzf "${tarball}" -C "${tarball}-unpacked"
+      # on_exit should not fail due to broken tarballs
+      tar -xzf "${tarball}" -C "${tarball}-unpacked" || true
       rm "${tarball}"
     done
     # Delete non-text files from artifacts directory to not leak files accidentially

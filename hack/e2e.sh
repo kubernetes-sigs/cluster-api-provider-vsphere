@@ -94,7 +94,7 @@ on_exit() {
     find "${ARTIFACTS}" -type d -name pod-logs.tar.gz-unpacked | while IFS= read -r tarballDirectory; do
       tarball="${tarballDirectory%-unpacked}"
       echo "Packing ${tarballDirectory} to ${tarball} after secrets replacement"
-      tar -czf "${tarball}" -C . "${tarballDirectory}"
+      tar -czf "${tarball}" -C "${tarballDirectory}" .
       rm -r "${tarballDirectory}"
     done
     # Move all artifacts to the original artifacts location.

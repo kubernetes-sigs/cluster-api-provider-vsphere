@@ -17,7 +17,6 @@ limitations under the License.
 package vmware
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -36,7 +35,7 @@ import (
 
 func Test_vSphereMachineTemplateReconciler_Reconcile(t *testing.T) {
 	g := NewWithT(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	scheme := runtime.NewScheme()
 	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())

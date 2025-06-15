@@ -17,7 +17,6 @@ limitations under the License.
 package webhooks
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -40,7 +39,7 @@ func TestVSphereVM_Default(t *testing.T) {
 	LinuxVM := createVSphereVM(linuxVMName, "foo.com", "", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, nil, infrav1.Linux, infrav1.VirtualMachinePowerOpModeTrySoft, nil)
 	NoOSVM := createVSphereVM(linuxVMName, "foo.com", "", "", "", []string{"192.168.0.1/32", "192.168.0.3/32"}, nil, "", infrav1.VirtualMachinePowerOpModeTrySoft, nil)
 
-	ctx := context.Background()
+	ctx := t.Context()
 	webhook := &VSphereVM{}
 	g.Expect(webhook.Default(ctx, WindowsVM)).ToNot(HaveOccurred())
 	g.Expect(webhook.Default(ctx, LinuxVM)).ToNot(HaveOccurred())
@@ -118,7 +117,7 @@ func TestVSphereVM_ValidateCreate(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(*testing.T) {
 			webhook := &VSphereVM{}
-			_, err := webhook.ValidateCreate(context.Background(), tc.vSphereVM)
+			_, err := webhook.ValidateCreate(t.Context(), tc.vSphereVM)
 			if tc.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -213,7 +212,7 @@ func TestVSphereVM_ValidateUpdate(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(*testing.T) {
 			webhook := &VSphereVM{}
-			_, err := webhook.ValidateUpdate(context.Background(), tc.oldVSphereVM, tc.vSphereVM)
+			_, err := webhook.ValidateUpdate(t.Context(), tc.oldVSphereVM, tc.vSphereVM)
 			if tc.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {

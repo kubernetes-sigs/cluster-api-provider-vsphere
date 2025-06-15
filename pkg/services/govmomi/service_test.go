@@ -128,7 +128,7 @@ func Test_ReconcileStoragePolicy(t *testing.T) {
 				VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{},
 			},
 		}
-		g.Expect(vms.reconcileStoragePolicy(context.Background(), vmCtx)).ToNot(HaveOccurred())
+		g.Expect(vms.reconcileStoragePolicy(t.Context(), vmCtx)).ToNot(HaveOccurred())
 		g.Expect(vmCtx.VSphereVM.Status.TaskRef).To(BeEmpty())
 	})
 
@@ -157,7 +157,7 @@ func Test_ReconcileStoragePolicy(t *testing.T) {
 					},
 				},
 			}
-			err = vms.reconcileStoragePolicy(context.Background(), vmCtx)
+			err = vms.reconcileStoragePolicy(t.Context(), vmCtx)
 			g.Expect(err.Error()).To(ContainSubstring("no pbm profile found with name"))
 			return nil
 		}, model)
@@ -190,7 +190,7 @@ func Test_ReconcileStoragePolicy(t *testing.T) {
 					},
 				},
 			}
-			err = vms.reconcileStoragePolicy(context.Background(), vmCtx)
+			err = vms.reconcileStoragePolicy(t.Context(), vmCtx)
 			g.Expect(err).ToNot(HaveOccurred())
 			return nil
 		}, model)

@@ -17,7 +17,6 @@ limitations under the License.
 package util
 
 import (
-	"context"
 	"testing"
 
 	"github.com/onsi/gomega"
@@ -30,7 +29,7 @@ import (
 )
 
 func Test_FetchControlPlaneOwnerObject(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	kcpName, kcpNs := "test-control-plane", "testing"
 	kcp := func(version string) *controlplanev1.KubeadmControlPlane {
 		return &controlplanev1.KubeadmControlPlane{

@@ -17,7 +17,6 @@ limitations under the License.
 package webhooks
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -128,7 +127,7 @@ func TestVSphereMachineTemplate_ValidateCreate(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(*testing.T) {
 			webhook := &VSphereMachineTemplate{}
-			_, err := webhook.ValidateCreate(context.Background(), tc.vsphereMachine)
+			_, err := webhook.ValidateCreate(t.Context(), tc.vsphereMachine)
 			if tc.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -200,7 +199,7 @@ func TestVSphereMachineTemplate_ValidateUpdate(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(*testing.T) {
 			webhook := &VSphereMachineTemplate{}
-			ctx := context.Background()
+			ctx := t.Context()
 			if tc.req != nil {
 				ctx = admission.NewContextWithRequest(ctx, *tc.req)
 			}

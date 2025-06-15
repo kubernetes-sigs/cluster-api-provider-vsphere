@@ -18,7 +18,6 @@ package session
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"io"
 	"testing"
@@ -53,7 +52,7 @@ func TestGetSession(t *testing.T) {
 		WithUserInfo(simr.Username(), simr.Password()).WithDatacenter("*")
 
 	// Get first session
-	ctx := context.Background()
+	ctx := t.Context()
 	s, err := GetOrCreate(ctx, params)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(s).ToNot(BeNil())

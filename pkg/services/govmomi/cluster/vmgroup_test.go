@@ -17,7 +17,6 @@ limitations under the License.
 package cluster
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -35,7 +34,7 @@ func Test_VMGroup(t *testing.T) {
 	g.Expect(err).NotTo(HaveOccurred())
 	defer sim.Destroy()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	client, _ := govmomi.NewClient(ctx, sim.ServerURL(), true)
 	finder := find.NewFinder(client.Client, false)
 

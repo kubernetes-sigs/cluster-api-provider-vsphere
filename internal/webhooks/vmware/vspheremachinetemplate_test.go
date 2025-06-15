@@ -17,7 +17,6 @@ limitations under the License.
 package vmware
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -88,7 +87,7 @@ func TestVSphereMachineTemplate_Validate(t *testing.T) {
 			}
 
 			webhook := &VSphereMachineTemplate{}
-			_, err := webhook.validate(context.Background(), nil, vSphereMachineTemplate)
+			_, err := webhook.validate(t.Context(), nil, vSphereMachineTemplate)
 			if tc.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {

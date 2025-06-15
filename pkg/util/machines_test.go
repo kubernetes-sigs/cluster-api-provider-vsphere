@@ -17,7 +17,6 @@ limitations under the License.
 package util_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/onsi/gomega"
@@ -1142,7 +1141,7 @@ func Test_GetVSphereClusterFromVSphereMachine(t *testing.T) {
 			g := gomega.NewGomegaWithT(t)
 
 			client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.initObjects...).Build()
-			_, err := util.GetVSphereClusterFromVMwareMachine(context.Background(), client, tt.inputMachine)
+			_, err := util.GetVSphereClusterFromVMwareMachine(t.Context(), client, tt.inputMachine)
 			if tt.hasError {
 				g.Expect(err).To(gomega.HaveOccurred())
 			} else {

@@ -112,7 +112,7 @@ const (
 )
 
 func Test_janitor_deleteVSphereVMs(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	ctx = ctrl.LoggerInto(ctx, klog.Background())
 
 	// Initialize and start vcsim
@@ -191,7 +191,7 @@ func Test_janitor_deleteVSphereVMs(t *testing.T) {
 }
 
 func Test_janitor_deleteObjectChildren(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	ctx = ctrl.LoggerInto(ctx, klog.Background())
 
 	// Initialize and start vcsim
@@ -322,7 +322,7 @@ func Test_janitor_deleteObjectChildren(t *testing.T) {
 }
 
 func TestJanitor_deleteCNSVolumes(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	ctx = ctrl.LoggerInto(ctx, klog.Background())
 
 	// Initialize and start vcsim
@@ -389,7 +389,7 @@ func TestJanitor_deleteCNSVolumes(t *testing.T) {
 }
 
 func Test_janitor_CleanupVSphere(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	ctx = ctrl.LoggerInto(ctx, klog.Background())
 
 	// Initialize and start vcsim

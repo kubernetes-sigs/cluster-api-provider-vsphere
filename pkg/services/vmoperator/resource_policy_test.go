@@ -17,7 +17,6 @@ limitations under the License.
 package vmoperator
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
@@ -33,7 +32,7 @@ func TestRPService(t *testing.T) {
 	cluster := util.CreateCluster(clusterName)
 	vsphereCluster := util.CreateVSphereCluster(vsphereClusterName)
 	clusterCtx, controllerCtx := util.CreateClusterContext(cluster, vsphereCluster)
-	ctx := context.Background()
+	ctx := t.Context()
 	rpService := RPService{
 		Client: controllerCtx.Client,
 	}

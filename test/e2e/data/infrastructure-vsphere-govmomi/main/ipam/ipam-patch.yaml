@@ -12,6 +12,7 @@ spec:
           - apiGroup: ipam.cluster.x-k8s.io
             kind: InClusterIPPool
             name: ${CLUSTER_NAME}
+          mtu: 1360
           nameservers:
           # Note: using 8.8.8.8 may require to set an IP as VSPHERE_SERVER
           - ${IPAM_NAMESERVER:-8.8.8.8}
@@ -31,6 +32,7 @@ spec:
           - apiGroup: ipam.cluster.x-k8s.io
             kind: InClusterIPPool
             name: ${CLUSTER_NAME}
+          mtu: 1360
           nameservers:
           # Note: using 8.8.8.8 may require to set an IP as VSPHERE_SERVER
           - ${IPAM_NAMESERVER:-8.8.8.8}

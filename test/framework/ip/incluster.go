@@ -342,10 +342,10 @@ func getVirtualMachineIPAddresses(ctx context.Context, folderName string, vSpher
 func (h *inCluster) claimIPAddress(ctx context.Context) (_ *ipamv1.IPAddress, _ *ipamv1.IPAddressClaim, err error) {
 	claim := &ipamv1.IPAddressClaim{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        "ipclaim-" + rand.String(32),
-			Namespace:   metav1.NamespaceDefault,
-			Labels:      h.labels,
-			Annotations: map[string]string{},
+			GenerateName: "ipclaim-",
+			Namespace:    metav1.NamespaceDefault,
+			Labels:       h.labels,
+			Annotations:  map[string]string{},
 		},
 		Spec: ipamv1.IPAddressClaimSpec{
 			PoolRef: corev1.TypedLocalObjectReference{

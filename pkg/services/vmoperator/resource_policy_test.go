@@ -22,7 +22,9 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	capi_util "sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
@@ -44,7 +46,11 @@ func TestRPService(t *testing.T) {
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(name).To(Equal(clusterName))
 
-		resourcePolicy, err := rpService.getVirtualMachineSetResourcePolicy(ctx, clusterCtx)
+		resourcePolicy := &vmoprv1.VirtualMachineSetResourcePolicy{}
+		err = rpService.Client.Get(ctx, client.ObjectKey{
+			Namespace: clusterCtx.Cluster.Namespace,
+			Name:      clusterCtx.Cluster.Name,
+		}, resourcePolicy)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(resourcePolicy.Spec.ResourcePool.Name).To(Equal(clusterName))
 		g.Expect(resourcePolicy.Spec.Folder).To(Equal(clusterName))

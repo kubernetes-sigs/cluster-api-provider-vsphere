@@ -45,7 +45,7 @@ data:
   # Configure the MTU to use for workload interfaces and tunnels.
   # By default, MTU is auto-detected, and explicitly setting this field should not be required.
   # You can override auto-detection by providing a non-zero value.
-  veth_mtu: "1360"
+  veth_mtu: "0"
 
   # The CNI network configuration to install on each node. The special
   # values in this config will be automatically populated.
@@ -4381,6 +4381,19 @@ spec:
       terminationGracePeriodSeconds: 0
       priorityClassName: system-node-critical
       initContainers:
+      # This container sets a mtu so containers which are starting up before cni finished to setup get the right mtu set on their interfaces.
+      # This is required for the GCVE environment because we need a smaller mtu then what gets defaulted to otherwise and due to
+      # calico issue https://github.com/projectcalico/calico/issues/9718.
+        - name: set-mtu
+          image: quay.io/calico/node:v3.24.0
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/bash", "-c", "echo 1340 > /var/lib/calico/mtu"]
+          volumeMounts:
+            - mountPath: /var/lib/calico
+              name: var-lib-calico
+              readOnly: false
+          securityContext:
+            privileged: true
         # This container performs upgrade from host-local IPAM to calico-ipam.
         # It can be deleted if this is a fresh installation, or if you have already
         # upgraded to use calico-ipam.

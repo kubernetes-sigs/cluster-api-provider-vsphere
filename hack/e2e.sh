@@ -141,11 +141,12 @@ fi
 function wait_for_vsphere_reachable() {
   local n=0
   until [ $n -ge 30 ]; do
-    curl "https://${VSPHERE_SERVER}" --connect-timeout 2 -k && RET=$? || RET=$?
+    curl -s -v "https://${VSPHERE_SERVER}/sdk" --connect-timeout 2 -k && RET=$? || RET=$?
     if [[ "$RET" -eq 0 ]]; then
       break
     fi
     n=$((n + 1))
+    echo "Failed to reach https://${VSPHERE_SERVER}/sdk. Retrying in 1s ($n/30)"
     sleep 1
   done
   return "$RET"
@@ -156,7 +157,7 @@ if [[ ! "${GINKGO_FOCUS:-}" =~ $RE_VCSIM ]]; then
 fi
 
 # Make tests run in-parallel
-export GINKGO_NODES=5
+export GINKGO_NODES=4
 
 # Only run the boskos/check for IPAM when we need them (not for vcsim)
 if [[ ! "${GINKGO_FOCUS:-}" =~ $RE_VCSIM ]]; then

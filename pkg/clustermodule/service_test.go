@@ -17,7 +17,6 @@ limitations under the License.
 package clustermodule
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
@@ -33,7 +32,7 @@ import (
 
 func TestService_Create(t *testing.T) {
 	t.Run("creation is skipped", func(t *testing.T) {
-		ctx := context.Background()
+		ctx := t.Context()
 		t.Run("when wrapper points to template != VSphereMachineTemplate", func(t *testing.T) {
 			md := machineDeployment("md", fake.Namespace, fake.Clusterv1a2Name)
 			md.Spec.Template.Spec.InfrastructureRef = corev1.ObjectReference{
@@ -114,19 +113,19 @@ func TestService_Create(t *testing.T) {
 		}
 
 		controllerManagerContext := fake.NewControllerManagerContext(md, machineTemplate)
-		clusterCtx := fake.NewClusterContext(context.Background(), controllerManagerContext)
+		clusterCtx := fake.NewClusterContext(t.Context(), controllerManagerContext)
 		clusterCtx.VSphereCluster.Spec.Server = simr.ServerURL().Host
 		controllerManagerContext.Username = simr.Username()
 		controllerManagerContext.Password = simr.Password()
 
 		svc := NewService(controllerManagerContext, controllerManagerContext.Client)
-		moduleUUID, err := svc.Create(context.Background(), clusterCtx, mdWrapper{md})
+		moduleUUID, err := svc.Create(t.Context(), clusterCtx, mdWrapper{md})
 		g.Expect(err).ToNot(gomega.HaveOccurred())
 		g.Expect(moduleUUID).NotTo(gomega.BeEmpty())
-		exists, err := svc.DoesExist(context.Background(), clusterCtx, mdWrapper{md}, moduleUUID)
+		exists, err := svc.DoesExist(t.Context(), clusterCtx, mdWrapper{md}, moduleUUID)
 		g.Expect(exists).To(gomega.BeTrue())
 		g.Expect(err).NotTo(gomega.HaveOccurred())
-		err = svc.Remove(context.Background(), clusterCtx, moduleUUID)
+		err = svc.Remove(t.Context(), clusterCtx, moduleUUID)
 		g.Expect(err).ToNot(gomega.HaveOccurred())
 	})
 }

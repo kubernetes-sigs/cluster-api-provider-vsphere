@@ -43,7 +43,7 @@ username: '%s'
 password: '%s'
 `
 	t.Run("update username & password for CAPV credentials", func(t *testing.T) {
-		tmpFile, err := os.CreateTemp("", "creds")
+		tmpFile, err := os.CreateTemp(t.TempDir(), "creds")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -76,7 +76,7 @@ password: '%s'
 	})
 
 	t.Run("send an error on watch error channel", func(t *testing.T) {
-		tmpFile, err := os.CreateTemp("", "creds")
+		tmpFile, err := os.CreateTemp(t.TempDir(), "creds")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -112,7 +112,7 @@ password: '%s'
 	})
 
 	t.Run("force fail the watch", func(t *testing.T) {
-		_, err := os.CreateTemp("", "creds")
+		_, err := os.CreateTemp(t.TempDir(), "creds")
 		if err != nil {
 			t.Fatal(err)
 		}

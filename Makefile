@@ -190,7 +190,7 @@ IMPORT_BOSS_VER := v0.28.1
 IMPORT_BOSS := $(abspath $(TOOLS_BIN_DIR)/$(IMPORT_BOSS_BIN))
 IMPORT_BOSS_PKG := k8s.io/code-generator/cmd/import-boss
 
-CAPI_HACK_TOOLS_VER := 5eee55a4d0ddf653535c1a9235001735861ba4c2 # Note: this the commit ID for CAPI v1.11.0-alpha.0
+CAPI_HACK_TOOLS_VER := abcc6d85c72aeaa652976f7f7bb341f0db9f4073 # Note: this the commit ID for CAPI v1.11.0-alpha.1
 
 BOSKOSCTL_BIN := boskosctl
 BOSKOSCTL := $(abspath $(TOOLS_BIN_DIR)/$(BOSKOSCTL_BIN))
@@ -510,7 +510,8 @@ verify-gen: generate  ## Verify go generated files are up to date
 
 .PHONY: verify-conversions
 verify-conversions: $(CONVERSION_VERIFIER)  ## Verifies expected API conversion are in place
-	$(CONVERSION_VERIFIER)
+	$(CONVERSION_VERIFIER) \
+		./apis/...
 
 .PHONY: verify-doctoc
 verify-doctoc: generate-doctoc

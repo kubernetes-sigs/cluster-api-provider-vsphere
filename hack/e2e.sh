@@ -140,7 +140,7 @@ fi
 # Ensure vSphere is reachable
 function wait_for_vsphere_reachable() {
   local n=0
-  until [ $n -ge 30 ]; do
+  until [ $n -ge 300 ]; do
     curl -s -v "https://${VSPHERE_SERVER}/sdk" --connect-timeout 2 -k && RET=$? || RET=$?
     if [[ "$RET" -eq 0 ]]; then
       break

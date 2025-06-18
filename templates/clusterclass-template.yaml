@@ -18,18 +18,15 @@ spec:
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
         kind: VSphereMachineTemplate
         name: ${CLUSTER_CLASS_NAME}-template
-        namespace: '${NAMESPACE}'
     ref:
       apiVersion: controlplane.cluster.x-k8s.io/v1beta2
       kind: KubeadmControlPlaneTemplate
       name: ${CLUSTER_CLASS_NAME}-controlplane
-      namespace: '${NAMESPACE}'
   infrastructure:
     ref:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
       kind: VSphereClusterTemplate
       name: '${CLUSTER_CLASS_NAME}'
-      namespace: '${NAMESPACE}'
   patches:
   - definitions:
     - jsonPatches:
@@ -251,13 +248,11 @@ spec:
             apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
             kind: KubeadmConfigTemplate
             name: ${CLUSTER_CLASS_NAME}-worker-bootstrap-template
-            namespace: '${NAMESPACE}'
         infrastructure:
           ref:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
             kind: VSphereMachineTemplate
             name: ${CLUSTER_CLASS_NAME}-worker-machinetemplate
-            namespace: '${NAMESPACE}'
         metadata: {}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1

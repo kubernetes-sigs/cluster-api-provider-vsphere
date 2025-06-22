@@ -140,7 +140,7 @@ fi
 # Ensure vSphere is reachable
 function wait_for_vsphere_reachable() {
   local n=0
-  until [ $n -ge 30 ]; do
+  until [ $n -ge 300 ]; do
     curl -s -v "https://${VSPHERE_SERVER}/sdk" --connect-timeout 2 -k && RET=$? || RET=$?
     if [[ "$RET" -eq 0 ]]; then
       break
@@ -149,6 +149,15 @@ function wait_for_vsphere_reachable() {
     echo "Failed to reach https://${VSPHERE_SERVER}/sdk. Retrying in 1s ($n/30)"
     sleep 1
   done
+  if [ "$RET" -ne 0 ]; then
+    # Output some debug information in case of failing connectivity.
+    echo "$ ip link" 
+    ip link
+    echo "# installing tcptraceroute to check route"
+    apt-get update && apt-get install -y tcptraceroute
+    echo "$ tcptraceroute ${VSPHERE_SERVER} 443"
+    tcptraceroute "${VSPHERE_SERVER}" 443
+  fi
   return "$RET"
 }
 # Only run the boskos/check for IPAM when we need them (not for vcsim)

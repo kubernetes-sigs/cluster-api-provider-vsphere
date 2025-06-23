@@ -5465,7 +5465,7 @@ spec:
       serviceAccountName: antrea-agent
       initContainers:
         - name: install-cni
-          image: "antrea/antrea-agent-ubuntu:v2.3.0"
+          image: "gcr.io/k8s-staging-capi-vsphere/extra/antrea-agent-ubuntu:v2.3.0"
           imagePullPolicy: IfNotPresent
           resources:
             requests:
@@ -5498,7 +5498,7 @@ spec:
             mountPath: /var/run/antrea
       containers:
         - name: antrea-agent
-          image: "antrea/antrea-agent-ubuntu:v2.3.0"
+          image: "gcr.io/k8s-staging-capi-vsphere/extra/antrea-agent-ubuntu:v2.3.0"
           imagePullPolicy: IfNotPresent
           command: ["antrea-agent"]
           # Log to both "/var/log/antrea/" and stderr (so "kubectl logs" can work).-
@@ -5591,7 +5591,7 @@ spec:
           - name: host-pod-resources
             mountPath: /var/lib/kubelet/pod-resources
         - name: antrea-ovs
-          image: "antrea/antrea-agent-ubuntu:v2.3.0"
+          image: "gcr.io/k8s-staging-capi-vsphere/extra/antrea-agent-ubuntu:v2.3.0"
           imagePullPolicy: IfNotPresent
           resources:
             requests:
@@ -5711,7 +5711,7 @@ spec:
       serviceAccountName: antrea-controller
       containers:
         - name: antrea-controller
-          image: "antrea/antrea-controller-ubuntu:v2.3.0"
+          image: "gcr.io/k8s-staging-capi-vsphere/extra/antrea-controller-ubuntu:v2.3.0"
           imagePullPolicy: IfNotPresent
           resources:
             requests:

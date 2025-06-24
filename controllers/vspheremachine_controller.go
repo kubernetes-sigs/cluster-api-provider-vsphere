@@ -323,12 +323,16 @@ func (r *machineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 	// version of CAPV to prevent VSphereMachines from being orphaned, but is no longer needed.
 	// For more info see: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/2054
 	// TODO: This should be removed in a future release of CAPV.
+	apiVersion := infrav1.GroupVersion.String()
+	if r.supervisorBased {
+		apiVersion = vmwarev1.GroupVersion.String()
+	}
 	machineContext.GetVSphereMachine().SetOwnerReferences(
 		clusterutilv1.RemoveOwnerRef(
 			machineContext.GetVSphereMachine().GetOwnerReferences(),
 			metav1.OwnerReference{
 				Name:       cluster.Spec.InfrastructureRef.Name,
-				APIVersion: cluster.Spec.InfrastructureRef.APIVersion,
+				APIVersion: apiVersion,
 				Kind:       cluster.Spec.InfrastructureRef.Kind,
 			},
 		),

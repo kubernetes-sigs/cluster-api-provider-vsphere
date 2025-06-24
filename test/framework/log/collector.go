@@ -117,10 +117,10 @@ func (c *MachineLogCollector) machineIPAddresses(ctx context.Context, ctrlClient
 	vmName := m.GetName()
 
 	// For supervisor mode it could be the case that the name of the virtual machine differs from the machine's name.
-	if m.Spec.InfrastructureRef.GroupVersionKind().Group == vmwarev1.GroupVersion.Group {
+	if m.Spec.InfrastructureRef.APIGroup == vmwarev1.GroupVersion.Group {
 		vsphereMachine := &vmwarev1.VSphereMachine{}
-		if err := ctrlClient.Get(ctx, client.ObjectKey{Namespace: m.Spec.InfrastructureRef.Namespace, Name: m.Spec.InfrastructureRef.Name}, vsphereMachine); err != nil {
-			return nil, errors.Wrapf(err, "getting vmwarev1.VSphereMachine %s/%s", m.Spec.InfrastructureRef.Namespace, m.Spec.InfrastructureRef.Name)
+		if err := ctrlClient.Get(ctx, client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.InfrastructureRef.Name}, vsphereMachine); err != nil {
+			return nil, errors.Wrapf(err, "getting vmwarev1.VSphereMachine %s/%s", m.Namespace, m.Spec.InfrastructureRef.Name)
 		}
 
 		if vsphereMachine.Status.IPAddr != "" {

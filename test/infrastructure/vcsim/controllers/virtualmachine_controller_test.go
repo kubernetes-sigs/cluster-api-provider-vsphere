@@ -60,12 +60,10 @@ func Test_Reconcile_VirtualMachine(t *testing.T) {
 				UID:       "bar",
 			},
 			Spec: clusterv1.ClusterSpec{
-				InfrastructureRef: &corev1.ObjectReference{
-					APIVersion: vmwarev1.GroupVersion.String(),
-					Kind:       "VSphereCluster",
-					Namespace:  vsphereCluster.Namespace,
-					Name:       vsphereCluster.Name,
-					UID:        vsphereCluster.UID,
+				InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+					APIGroup: vmwarev1.GroupVersion.Group,
+					Kind:     "VSphereCluster",
+					Name:     vsphereCluster.Name,
 				},
 			},
 		}
@@ -184,12 +182,10 @@ func Test_Reconcile_VirtualMachine(t *testing.T) {
 				UID:       "bar",
 			},
 			Spec: clusterv1.ClusterSpec{
-				InfrastructureRef: &corev1.ObjectReference{
-					APIVersion: vmwarev1.GroupVersion.String(),
-					Kind:       "VSphereCluster",
-					Namespace:  vsphereCluster.Namespace,
-					Name:       vsphereCluster.Name,
-					UID:        vsphereCluster.UID,
+				InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+					APIGroup: vmwarev1.GroupVersion.Group,
+					Kind:     "VSphereCluster",
+					Name:     vsphereCluster.Name,
 				},
 			},
 		}

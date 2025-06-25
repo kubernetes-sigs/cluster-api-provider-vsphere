@@ -9869,7 +9869,6 @@ spec:
                 configMapKeyRef:
                   name: calico-config
                   key: calico_backend
-            # Disable usage reporting to ensure this does not block startup in any way.
             - name: FELIX_USAGEREPORTINGENABLED
               value: "false"
           volumeMounts:

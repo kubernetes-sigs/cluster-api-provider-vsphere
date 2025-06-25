@@ -9869,7 +9869,6 @@ spec:
                 configMapKeyRef:
                   name: calico-config
                   key: calico_backend
-              value: "false"
           volumeMounts:
             - mountPath: /var/lib/cni/networks
               name: host-local-net-dir

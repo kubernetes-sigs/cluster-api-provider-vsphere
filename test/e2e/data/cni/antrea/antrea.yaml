@@ -4541,12 +4541,12 @@ data:
 
     nodeIPAM:
       # Enable the integrated Node IPAM controller within the Antrea controller.
-      enableNodeIPAM: true
+      enableNodeIPAM: false
       # CIDR ranges for Pods in cluster. String array containing single CIDR range, or multiple ranges.
       # The CIDRs could be either IPv4 or IPv6. At most one CIDR may be specified for each IP family.
       # Value ignored when enableNodeIPAM is false.
       clusterCIDRs:
-      - 192.168.128.0/24
+      - 192.168.128.0/17
       # CIDR ranges for Services in cluster. It is not necessary to specify it when there is no overlap with clusterCIDRs.
       # Value ignored when enableNodeIPAM is false.
       serviceCIDR: ""

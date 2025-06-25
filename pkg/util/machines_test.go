@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	"github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -1096,7 +1095,7 @@ func Test_GetVSphereClusterFromVSphereMachine(t *testing.T) {
 			Namespace: ns,
 		},
 		Spec: clusterv1.ClusterSpec{
-			InfrastructureRef: &corev1.ObjectReference{
+			InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
 				Name: "foo-abcdef", // auto generated name
 			},
 		},

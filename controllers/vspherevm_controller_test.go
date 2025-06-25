@@ -87,7 +87,7 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 					Namespace: "test",
 				},
 				Spec: clusterv1.ClusterSpec{
-					InfrastructureRef: &corev1.ObjectReference{
+					InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
 						Name: vsphereCluster.Name,
 					},
 				},
@@ -475,7 +475,7 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 				Namespace: "test",
 			},
 			Spec: clusterv1.ClusterSpec{
-				InfrastructureRef: &corev1.ObjectReference{
+				InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
 					Name: vsphereCluster.Name,
 				},
 			},

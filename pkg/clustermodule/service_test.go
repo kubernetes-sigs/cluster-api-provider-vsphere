@@ -22,7 +22,6 @@ import (
 	"testing"
 
 	"github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 
@@ -36,10 +35,9 @@ func TestService_Create(t *testing.T) {
 		ctx := context.Background()
 		t.Run("when wrapper points to template != VSphereMachineTemplate", func(t *testing.T) {
 			md := machineDeployment("md", fake.Namespace, fake.Clusterv1a2Name)
-			md.Spec.Template.Spec.InfrastructureRef = corev1.ObjectReference{
-				Kind:      "NonVSphereMachineTemplate",
-				Namespace: fake.Namespace,
-				Name:      "blah",
+			md.Spec.Template.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{
+				Kind: "NonVSphereMachineTemplate",
+				Name: "blah",
 			}
 
 			g := gomega.NewWithT(t)
@@ -54,10 +52,9 @@ func TestService_Create(t *testing.T) {
 
 		t.Run("when template uses a different vCenter URL", func(t *testing.T) {
 			md := machineDeployment("md", fake.Namespace, fake.Clusterv1a2Name)
-			md.Spec.Template.Spec.InfrastructureRef = corev1.ObjectReference{
-				Kind:      "VSphereMachineTemplate",
-				Namespace: fake.Namespace,
-				Name:      "blah-template",
+			md.Spec.Template.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{
+				Kind: "VSphereMachineTemplate",
+				Name: "blah-template",
 			}
 
 			machineTemplate := &infrav1.VSphereMachineTemplate{
@@ -90,10 +87,9 @@ func TestService_Create(t *testing.T) {
 		defer simr.Destroy()
 		g.Expect(err).ToNot(gomega.HaveOccurred())
 		md := machineDeployment("md", fake.Namespace, fake.Clusterv1a2Name)
-		md.Spec.Template.Spec.InfrastructureRef = corev1.ObjectReference{
-			Kind:      "VSphereMachineTemplate",
-			Namespace: fake.Namespace,
-			Name:      "blah-template",
+		md.Spec.Template.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{
+			Kind: "VSphereMachineTemplate",
+			Name: "blah-template",
 		}
 
 		machineTemplate := &infrav1.VSphereMachineTemplate{

@@ -285,18 +285,18 @@ func newCluster(vsphereCluster client.Object, controlPlane *controlplanev1.Kubea
 					CIDRBlocks: []string{env.DefaultClusterCIDR},
 				},
 			},
-			InfrastructureRef: &corev1.ObjectReference{
-				APIVersion: vsphereCluster.GetObjectKind().GroupVersionKind().GroupVersion().String(),
-				Kind:       vsphereCluster.GetObjectKind().GroupVersionKind().Kind,
-				Name:       vsphereCluster.GetName(),
+			InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+				APIGroup: vsphereCluster.GetObjectKind().GroupVersionKind().Group,
+				Kind:     vsphereCluster.GetObjectKind().GroupVersionKind().Kind,
+				Name:     vsphereCluster.GetName(),
 			},
 		},
 	}
 	if controlPlane != nil {
-		cluster.Spec.ControlPlaneRef = &corev1.ObjectReference{
-			APIVersion: controlPlane.GroupVersionKind().GroupVersion().String(),
-			Kind:       controlPlane.Kind,
-			Name:       controlPlane.Name,
+		cluster.Spec.ControlPlaneRef = &clusterv1.ContractVersionedObjectReference{
+			APIGroup: controlPlane.GroupVersionKind().Group,
+			Kind:     controlPlane.Kind,
+			Name:     controlPlane.Name,
 		}
 	}
 	return cluster
@@ -681,16 +681,16 @@ func newMachineDeployment(cluster clusterv1.Cluster, machineTemplate client.Obje
 					Version:     ptr.To(env.KubernetesVersionVar),
 					ClusterName: cluster.Name,
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
-							APIVersion: bootstrapTemplate.GroupVersionKind().GroupVersion().String(),
-							Kind:       bootstrapTemplate.Kind,
-							Name:       bootstrapTemplate.Name,
+						ConfigRef: &clusterv1.ContractVersionedObjectReference{
+							APIGroup: bootstrapTemplate.GroupVersionKind().Group,
+							Kind:     bootstrapTemplate.Kind,
+							Name:     bootstrapTemplate.Name,
 						},
 					},
-					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: machineTemplate.GetObjectKind().GroupVersionKind().GroupVersion().String(),
-						Kind:       machineTemplate.GetObjectKind().GroupVersionKind().Kind,
-						Name:       machineTemplate.GetName(),
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: machineTemplate.GetObjectKind().GroupVersionKind().Group,
+						Kind:     machineTemplate.GetObjectKind().GroupVersionKind().Kind,
+						Name:     machineTemplate.GetName(),
 					},
 				},
 			},
@@ -711,10 +711,10 @@ func newKubeadmControlplane(infraTemplate client.Object, files []bootstrapv1.Fil
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: env.KubernetesVersionVar,
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: corev1.ObjectReference{
-					APIVersion: infraTemplate.GetObjectKind().GroupVersionKind().GroupVersion().String(),
-					Kind:       infraTemplate.GetObjectKind().GroupVersionKind().Kind,
-					Name:       infraTemplate.GetName(),
+				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+					APIGroup: infraTemplate.GetObjectKind().GroupVersionKind().Group,
+					Kind:     infraTemplate.GetObjectKind().GroupVersionKind().Kind,
+					Name:     infraTemplate.GetName(),
 				},
 			},
 			KubeadmConfigSpec: defaultKubeadmInitSpec(files),
@@ -735,10 +735,10 @@ func newIgnitionKubeadmControlplane(infraTemplate infrav1.VSphereMachineTemplate
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: env.KubernetesVersionVar,
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: corev1.ObjectReference{
-					APIVersion: infraTemplate.GroupVersionKind().GroupVersion().String(),
-					Kind:       infraTemplate.Kind,
-					Name:       infraTemplate.Name,
+				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+					APIGroup: infraTemplate.GroupVersionKind().Group,
+					Kind:     infraTemplate.Kind,
+					Name:     infraTemplate.Name,
 				},
 			},
 			KubeadmConfigSpec: ignitionKubeadmInitSpec(files),

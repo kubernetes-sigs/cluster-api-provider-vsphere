@@ -35,6 +35,7 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/config"
@@ -165,11 +166,12 @@ func deployCluster(namespace string, k8sClient client.Client) (client.ObjectKey,
 func deployCAPIMachine(namespace string, cluster *clusterv1.Cluster, k8sClient client.Client) (client.ObjectKey, *clusterv1.Machine) {
 	// A finalizer is added to prevent it from being deleted until its
 	// dependents are removed.
+	name := "test-" + util.RandomString(5)
 	machine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "test-",
-			Namespace:    namespace,
-			Finalizers:   []string{"test"},
+			Name:       name,
+			Namespace:  namespace,
+			Finalizers: []string{"test"},
 			Labels: map[string]string{
 				clusterv1.ClusterNameLabel:         cluster.Name,
 				clusterv1.MachineControlPlaneLabel: "",
@@ -185,6 +187,11 @@ func deployCAPIMachine(namespace string, cluster *clusterv1.Cluster, k8sClient c
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: cluster.Name,
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				Kind:     "VSphereMachine",
+				Name:     name, // We know that the infra machine is going to be called like the machine.
+				APIGroup: vmwarev1.GroupVersion.Group,
+			},
 		},
 	}
 	Expect(k8sClient.Create(ctx, machine)).To(Succeed())
@@ -213,10 +220,10 @@ func deployInfraMachine(namespace string, machine *clusterv1.Machine, finalizers
 // Updates the InfrastructureRef of a CAPI Cluster to a VSphereCluster. Function
 // does not block on update success.
 func updateClusterInfraRef(cluster *clusterv1.Cluster, infraCluster client.Object, k8sClient client.Client) {
-	cluster.Spec.InfrastructureRef = &corev1.ObjectReference{
-		APIVersion: infraCluster.GetObjectKind().GroupVersionKind().GroupVersion().String(),
-		Kind:       infraCluster.GetObjectKind().GroupVersionKind().Kind,
-		Name:       infraCluster.GetName(),
+	cluster.Spec.InfrastructureRef = &clusterv1.ContractVersionedObjectReference{
+		APIGroup: vmwarev1.GroupVersion.Group,
+		Kind:     "VSphereCluster",
+		Name:     infraCluster.GetName(),
 	}
 	Expect(k8sClient.Update(ctx, cluster)).To(Succeed())
 }
@@ -551,14 +558,20 @@ var _ = Describe("Reconciliation tests", func() {
 			By("Create the CAPI Machine and wait for it to exist")
 			// A finalizer is added to prevent it from being deleted until its
 			// dependents are removed.
+			name := "test-" + util.RandomString(5)
 			machine := &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
-					GenerateName: "test-",
-					Namespace:    ns.Name,
-					Finalizers:   []string{"test"},
+					Name:       name,
+					Namespace:  ns.Name,
+					Finalizers: []string{"test"},
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "crud",
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "VSphereMachine",
+						Name:     name, // We know that the infra machine is going to be called like the machine.
+						APIGroup: vmwarev1.GroupVersion.Group,
+					},
 				},
 			}
 			Expect(k8sClient.Create(ctx, machine)).To(Succeed())

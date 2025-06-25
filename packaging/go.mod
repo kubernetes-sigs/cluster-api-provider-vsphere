@@ -2,7 +2,7 @@ module sigs.k8s.io/cluster-api-provider-vsphere/packaging
 
 go 1.24.0
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.11.0-alpha.1
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.11.0-alpha.1.0.20250624163428-4852b676b3ff
 
 replace sigs.k8s.io/cluster-api-provider-vsphere => ../
 
@@ -37,7 +37,6 @@ require (
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
 	github.com/go-openapi/jsonreference v0.20.2 // indirect
 	github.com/go-openapi/swag v0.23.0 // indirect
-	github.com/gobuffalo/flect v1.0.3 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/gnostic-models v0.6.9 // indirect

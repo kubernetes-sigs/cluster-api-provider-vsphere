@@ -547,15 +547,16 @@ func createMachine(machineName, clusterName, namespace string, isControlPlane bo
 		Spec: clusterv1.MachineSpec{
 			Version: ptr.To("v1.22.0"),
 			Bootstrap: clusterv1.Bootstrap{
-				ConfigRef: &corev1.ObjectReference{
-					APIVersion: bootstrapv1.GroupVersion.String(),
-					Name:       machineName,
+				ConfigRef: &clusterv1.ContractVersionedObjectReference{
+					APIGroup: bootstrapv1.GroupVersion.Group,
+					Kind:     "KubeadmConfig",
+					Name:     machineName,
 				},
 			},
-			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: infrav1.GroupVersion.String(),
-				Kind:       "VSphereMachine",
-				Name:       machineName,
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: infrav1.GroupVersion.Group,
+				Kind:     "VSphereMachine",
+				Name:     machineName,
 			},
 			ClusterName: clusterName,
 		},

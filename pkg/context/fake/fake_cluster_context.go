@@ -19,7 +19,6 @@ package fake
 import (
 	"context"
 
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 
@@ -64,9 +63,8 @@ func newClusterV1() clusterv1.Cluster {
 					CIDRBlocks: []string{ServiceCIDR},
 				},
 			},
-			InfrastructureRef: &corev1.ObjectReference{
-				Namespace: Namespace,
-				Name:      InfrastructureRefName,
+			InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+				Name: InfrastructureRefName,
 			},
 		},
 	}

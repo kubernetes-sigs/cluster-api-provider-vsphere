@@ -68,10 +68,10 @@ var _ = Describe("VsphereMachineReconciler", func() {
 				Namespace:    testNs.Name,
 			},
 			Spec: clusterv1.ClusterSpec{
-				InfrastructureRef: &corev1.ObjectReference{
-					APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
-					Kind:       "VSphereCluster",
-					Name:       "vsphere-test1",
+				InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+					APIGroup: "infrastructure.cluster.x-k8s.io",
+					Kind:     "VSphereCluster",
+					Name:     "vsphere-test1",
 				},
 			},
 		}
@@ -105,10 +105,10 @@ var _ = Describe("VsphereMachineReconciler", func() {
 			},
 			Spec: clusterv1.MachineSpec{
 				ClusterName: capiCluster.Name,
-				InfrastructureRef: corev1.ObjectReference{
-					APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
-					Kind:       "VSphereMachine",
-					Name:       "vsphere-machine-1",
+				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+					APIGroup: "infrastructure.cluster.x-k8s.io",
+					Kind:     "VSphereMachine",
+					Name:     "vsphere-machine-1",
 				},
 			},
 		}
@@ -237,10 +237,10 @@ func Test_machineReconciler_Metadata(t *testing.T) {
 			Namespace: ns.Name,
 		},
 		Spec: clusterv1.ClusterSpec{
-			InfrastructureRef: &corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
-				Kind:       "VSphereCluster",
-				Name:       "vsphere-test1",
+			InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+				APIGroup: "infrastructure.cluster.x-k8s.io",
+				Kind:     "VSphereCluster",
+				Name:     "vsphere-test1",
 			},
 		},
 	}
@@ -280,10 +280,10 @@ func Test_machineReconciler_Metadata(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: capiCluster.Name,
-			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
-				Kind:       "VSphereMachine",
-				Name:       "vsphere-machine-1",
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: "infrastructure.cluster.x-k8s.io",
+				Kind:     "VSphereMachine",
+				Name:     "vsphere-machine-1",
 			},
 		},
 	}

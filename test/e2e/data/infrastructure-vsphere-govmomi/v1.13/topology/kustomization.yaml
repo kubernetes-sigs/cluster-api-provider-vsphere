@@ -5,4 +5,4 @@ resources:
   - ../commons/cluster-resource-set.yaml
 patchesStrategicMerge:
   - ../commons/cluster-resource-set-label.yaml
-  # - ../commons/cluster-network-CIDR.yaml
+  - ../commons/cluster-network-CIDR.yaml

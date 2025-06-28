@@ -210,7 +210,7 @@ func (np *nsxtNetworkProvider) GetVMServiceAnnotations(ctx context.Context, clus
 }
 
 // ConfigureVirtualMachine configures a VirtualMachine object based on the networking configuration.
-func (np *nsxtNetworkProvider) ConfigureVirtualMachine(_ context.Context, clusterCtx *vmware.ClusterContext, vm *vmoprv1.VirtualMachine) error {
+func (np *nsxtNetworkProvider) ConfigureVirtualMachine(_ context.Context, clusterCtx *vmware.ClusterContext, _ *vmwarev1.VSphereMachine, vm *vmoprv1.VirtualMachine) error {
 	nsxtClusterNetworkName := GetNSXTVirtualNetworkName(clusterCtx.VSphereCluster.Name)
 	if vm.Spec.Network == nil {
 		vm.Spec.Network = &vmoprv1.VirtualMachineNetworkSpec{}

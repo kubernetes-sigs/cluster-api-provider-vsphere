@@ -56,7 +56,32 @@ spec:
                 - host
                 - port
                 type: object
+              network:
+                description: Network defines the network configuration for the cluster
+                  with different network providers.
+                properties:
+                  nsxVPC:
+                    description: NSXVPC defines the configuration when network provider
+                      is NSX-VPC.
+                    properties:
+                      createSubnetSet:
+                        description: CreateSubnetSet is a flag to indicate whether
+                          to create a SubnetSet or not as the primary network. If
+                          not set, the default is true.
+                        type: boolean
+                    type: object
+                    x-kubernetes-validations:
+                    - message: CreateSubnetSet value cannot be changed after creation
+                      rule: has(self.createSubnetSet) == has(oldSelf.createSubnetSet)
+                        && self.createSubnetSet == oldSelf.createSubnetSet
+                type: object
+                x-kubernetes-validations:
+                - message: field 'nsxVPC' cannot be added or removed after creation
+                  rule: has(self.nsxVPC) == has(oldSelf.nsxVPC)
             type: object
+            x-kubernetes-validations:
+            - message: field 'network' cannot be added or removed after creation
+              rule: has(self.network) == has(oldSelf.network)
           status:
             description: VSphereClusterStatus defines the observed state of VSphereClusterSpec.
             properties:

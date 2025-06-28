@@ -161,7 +161,7 @@ type VirtualMachineCloneSpec struct {
 	// virtual machine is cloned.
 	// +optional
 	NumCPUs int32 `json:"numCPUs,omitempty"`
-	// NumCPUs is the number of cores among which to distribute CPUs in this
+	// NumCoresPerSocket is the number of cores among which to distribute CPUs in this
 	// virtual machine.
 	// Defaults to the eponymous property value in the template from which the
 	// virtual machine is cloned.

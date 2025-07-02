@@ -2,9 +2,9 @@ module sigs.k8s.io/cluster-api-provider-vsphere/test
 
 go 1.24.0
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.11.0-alpha.1.0.20250624163428-4852b676b3ff
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.11.0-alpha.2
 
-replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.11.0-alpha.1.0.20250624163428-4852b676b3ff
+replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.11.0-alpha.2
 
 replace sigs.k8s.io/cluster-api-provider-vsphere => ../
 
@@ -61,7 +61,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/distribution/reference v0.6.0 // indirect
-	github.com/docker/docker v28.2.2+incompatible // indirect
+	github.com/docker/docker v28.3.0+incompatible // indirect
 	github.com/docker/go-connections v0.5.0 // indirect
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/drone/envsubst/v2 v2.0.0-20210730161058-179042472c46 // indirect
@@ -78,7 +78,7 @@ require (
 	github.com/go-openapi/jsonreference v0.20.2 // indirect
 	github.com/go-openapi/swag v0.23.0 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
-	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
+	github.com/go-viper/mapstructure/v2 v2.3.0 // indirect
 	github.com/gobuffalo/flect v1.0.3 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect

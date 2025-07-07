@@ -179,29 +179,25 @@ spec:
           controlPlane: true
     name: kubeVipPodManifest
   variables:
-  - deprecatedV1Beta1Metadata: {}
-    name: sshKey
+  - name: sshKey
     required: false
     schema:
       openAPIV3Schema:
         description: Public key to SSH onto the cluster nodes.
         type: string
-  - deprecatedV1Beta1Metadata: {}
-    name: controlPlaneIpAddr
+  - name: controlPlaneIpAddr
     required: true
     schema:
       openAPIV3Schema:
         description: Floating VIP for the control plane.
         type: string
-  - deprecatedV1Beta1Metadata: {}
-    name: controlPlanePort
+  - name: controlPlanePort
     required: true
     schema:
       openAPIV3Schema:
         description: Port for the control plane endpoint.
         type: integer
-  - deprecatedV1Beta1Metadata: {}
-    name: kubeVipPodManifest
+  - name: kubeVipPodManifest
     required: true
     schema:
       openAPIV3Schema:
@@ -221,7 +217,6 @@ spec:
             apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
             kind: VSphereMachineTemplate
             name: ${CLUSTER_CLASS_NAME}-worker-machinetemplate
-        metadata: {}
 ---
 apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
 kind: VSphereMachineTemplate

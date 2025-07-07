@@ -84,7 +84,7 @@ NOTE: net-operator is not represented for sake of simplicity, it is complementar
 
 A subset of CAPV E2E tests can be executed using the supervisor mode by setting `GINKGO_FOCUS="\[supervisor\]"`.
 
-See [Running the end-to-end tests locally](https://cluster-api.sigs.k8s.io/developer/testing#running-the-end-to-end-tests-locally) for more details.
+See [Running the end-to-end tests locally](https://cluster-api.sigs.k8s.io/developer/core/testing#running-the-end-to-end-tests-locally) for more details.
 
 Note: The code responsible for E2E tests setup will take care of ensuring the management cluster
 and vCenter have all the dependencies required by the vm-operator; The only exception is the Content Library with

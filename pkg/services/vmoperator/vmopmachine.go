@@ -30,6 +30,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apitypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
@@ -170,7 +171,9 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 		return false, errors.New("received unexpected SupervisorMachineContext type")
 	}
 
-	supervisorMachineCtx.VSphereMachine.Spec.FailureDomain = supervisorMachineCtx.Machine.Spec.FailureDomain
+	if supervisorMachineCtx.Machine.Spec.FailureDomain != "" {
+		supervisorMachineCtx.VSphereMachine.Spec.FailureDomain = ptr.To(supervisorMachineCtx.Machine.Spec.FailureDomain)
+	}
 
 	// If debug logging is enabled, report the number of vms in the cluster before and after the reconcile
 	if log.V(5).Enabled() {
@@ -377,7 +380,7 @@ func (v *VmopMachineService) GetHostInfo(ctx context.Context, machineCtx capvcon
 
 func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervisorMachineCtx *vmware.SupervisorMachineContext, vmOperatorVM *vmoprv1.VirtualMachine) error {
 	// All Machine resources should define the version of Kubernetes to use.
-	if supervisorMachineCtx.Machine.Spec.Version == nil || *supervisorMachineCtx.Machine.Spec.Version == "" {
+	if supervisorMachineCtx.Machine.Spec.Version == "" {
 		return errors.Errorf(
 			"missing kubernetes version for %s %s/%s",
 			supervisorMachineCtx.Machine.GroupVersionKind(),
@@ -460,7 +463,7 @@ func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervis
 		// Not all network providers (for example, NSX-VPC) provide support for VM
 		// readiness probes. The flag PerformsVMReadinessProbe is used to determine
 		// whether a VM readiness probe should be conducted.
-		if v.ConfigureControlPlaneVMReadinessProbe && infrautilv1.IsControlPlaneMachine(supervisorMachineCtx.Machine) && supervisorMachineCtx.Cluster.Status.Initialization != nil && supervisorMachineCtx.Cluster.Status.Initialization.ControlPlaneInitialized {
+		if v.ConfigureControlPlaneVMReadinessProbe && infrautilv1.IsControlPlaneMachine(supervisorMachineCtx.Machine) && supervisorMachineCtx.Cluster.Status.Initialization != nil && ptr.Deref(supervisorMachineCtx.Cluster.Status.Initialization.ControlPlaneInitialized, false) {
 			vmOperatorVM.Spec.ReadinessProbe = &vmoprv1.VirtualMachineReadinessProbeSpec{
 				TCPSocket: &vmoprv1.TCPSocketAction{
 					Port: intstr.FromInt(defaultAPIBindPort),

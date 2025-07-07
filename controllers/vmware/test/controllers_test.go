@@ -137,7 +137,11 @@ func deployCluster(namespace string, k8sClient client.Client) (client.ObjectKey,
 			Namespace:    namespace,
 			Finalizers:   []string{"test"},
 		},
-		Spec: clusterv1.ClusterSpec{},
+		Spec: clusterv1.ClusterSpec{
+			ClusterNetwork: &clusterv1.ClusterNetwork{
+				ServiceDomain: "service.domain",
+			},
+		},
 	}
 	Expect(k8sClient.Create(ctx, cluster)).To(Succeed())
 
@@ -187,6 +191,7 @@ func deployCAPIMachine(namespace string, cluster *clusterv1.Cluster, k8sClient c
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: cluster.Name,
+			Bootstrap:   clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 				Kind:     "VSphereMachine",
 				Name:     name, // We know that the infra machine is going to be called like the machine.
@@ -567,6 +572,7 @@ var _ = Describe("Reconciliation tests", func() {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "crud",
+					Bootstrap:   clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 						Kind:     "VSphereMachine",
 						Name:     name, // We know that the infra machine is going to be called like the machine.
@@ -638,7 +644,7 @@ var _ = Describe("Reconciliation tests", func() {
 			}
 			Expect(k8sClient.Create(ctx, secret)).To(Succeed())
 
-			machine.Spec.Version = &version
+			machine.Spec.Version = version
 			machine.Spec.Bootstrap.DataSecretName = &secretName
 			Expect(k8sClient.Update(ctx, machine)).To(Succeed())
 

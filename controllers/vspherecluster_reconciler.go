@@ -141,7 +141,7 @@ func (r *clusterReconciler) patch(ctx context.Context, clusterCtx *capvcontext.C
 	if err := v1beta2conditions.SetSummaryCondition(clusterCtx.VSphereCluster, clusterCtx.VSphereCluster, infrav1.VSphereClusterReadyV1Beta2Condition,
 		v1beta2conditions.ForConditionTypes{
 			infrav1.VSphereClusterVCenterAvailableV1Beta2Condition,
-			// FailureDomainsReady and ClusterModuelsReady may not be always set.
+			// FailureDomainsReady and ClusterModulesReady may not be always set.
 			infrav1.VSphereClusterFailureDomainsReadyV1Beta2Condition,
 			infrav1.VSphereClusterClusterModulesReadyV1Beta2Condition,
 		},

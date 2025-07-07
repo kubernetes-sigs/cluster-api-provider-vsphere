@@ -102,7 +102,7 @@ func Test_VimMachineService_GenerateOverrideFunc(t *testing.T) {
 		g := NewWithT(t)
 		controllerManagerContext := fake.NewControllerManagerContext(deplZone("one"), deplZone("two"), failureDomain("one"), failureDomain("two"))
 		machineCtx := fake.NewMachineContext(ctx, fake.NewClusterContext(ctx, controllerManagerContext), controllerManagerContext)
-		machineCtx.Machine.Spec.FailureDomain = ptr.To("zone-one")
+		machineCtx.Machine.Spec.FailureDomain = "zone-one"
 		vimMachineService := &VimMachineService{controllerManagerContext.Client}
 
 		_, ok := vimMachineService.generateOverrideFunc(ctx, machineCtx)
@@ -113,7 +113,7 @@ func Test_VimMachineService_GenerateOverrideFunc(t *testing.T) {
 		g := NewWithT(t)
 		controllerManagerContext := fake.NewControllerManagerContext(deplZone("one"), deplZone("two"), failureDomain("one"), failureDomain("two"))
 		machineCtx := fake.NewMachineContext(ctx, fake.NewClusterContext(ctx, controllerManagerContext), controllerManagerContext)
-		machineCtx.Machine.Spec.FailureDomain = ptr.To("zone-one")
+		machineCtx.Machine.Spec.FailureDomain = "zone-one"
 		vimMachineService := &VimMachineService{controllerManagerContext.Client}
 
 		overrideFunc, ok := vimMachineService.generateOverrideFunc(ctx, machineCtx)
@@ -133,7 +133,7 @@ func Test_VimMachineService_GenerateOverrideFunc(t *testing.T) {
 		g := NewWithT(t)
 		controllerManagerContext := fake.NewControllerManagerContext(deplZone("one"), deplZone("two"), failureDomain("one"), failureDomain("two"))
 		machineCtx := fake.NewMachineContext(ctx, fake.NewClusterContext(ctx, controllerManagerContext), controllerManagerContext)
-		machineCtx.Machine.Spec.FailureDomain = ptr.To("non-existent-zone")
+		machineCtx.Machine.Spec.FailureDomain = "non-existent-zone"
 		vimMachineService := &VimMachineService{controllerManagerContext.Client}
 
 		overrideFunc, ok := vimMachineService.generateOverrideFunc(ctx, machineCtx)
@@ -145,7 +145,7 @@ func Test_VimMachineService_GenerateOverrideFunc(t *testing.T) {
 		g := NewWithT(t)
 		controllerManagerContext := fake.NewControllerManagerContext(deplZone("one"), deplZone("two"), failureDomain("one"), failureDomain("two"))
 		machineCtx := fake.NewMachineContext(ctx, fake.NewClusterContext(ctx, controllerManagerContext), controllerManagerContext)
-		machineCtx.Machine.Spec.FailureDomain = ptr.To("zone-one")
+		machineCtx.Machine.Spec.FailureDomain = "zone-one"
 		vimMachineService := &VimMachineService{controllerManagerContext.Client}
 
 		vm := &infrav1.VSphereVM{
@@ -172,7 +172,7 @@ func Test_VimMachineService_GenerateOverrideFunc(t *testing.T) {
 		g := NewWithT(t)
 		controllerManagerContext := fake.NewControllerManagerContext(deplZone("one"), deplZone("two"), failureDomainWithNetworkConfigs("one"), failureDomainWithNetworkConfigs("two"))
 		machineCtx := fake.NewMachineContext(ctx, fake.NewClusterContext(ctx, controllerManagerContext), controllerManagerContext)
-		machineCtx.Machine.Spec.FailureDomain = ptr.To("zone-one")
+		machineCtx.Machine.Spec.FailureDomain = "zone-one"
 		vimMachineService := &VimMachineService{controllerManagerContext.Client}
 
 		vm := &infrav1.VSphereVM{
@@ -201,7 +201,7 @@ func Test_VimMachineService_GenerateOverrideFunc(t *testing.T) {
 		g := NewWithT(t)
 		controllerManagerContext := fake.NewControllerManagerContext(deplZone("one"), deplZone("two"), failureDomain("one"), failureDomain("two"))
 		machineCtx := fake.NewMachineContext(ctx, fake.NewClusterContext(ctx, controllerManagerContext), controllerManagerContext)
-		machineCtx.Machine.Spec.FailureDomain = ptr.To("zone-one")
+		machineCtx.Machine.Spec.FailureDomain = "zone-one"
 		vimMachineService := &VimMachineService{controllerManagerContext.Client}
 
 		vm := &infrav1.VSphereVM{
@@ -228,7 +228,7 @@ func Test_VimMachineService_GenerateOverrideFunc(t *testing.T) {
 		g := NewWithT(t)
 		controllerManagerContext := fake.NewControllerManagerContext(deplZone("one"), deplZone("two"), failureDomainWithNetworkConfigs("one"), failureDomainWithNetworkConfigs("two"))
 		machineCtx := fake.NewMachineContext(ctx, fake.NewClusterContext(ctx, controllerManagerContext), controllerManagerContext)
-		machineCtx.Machine.Spec.FailureDomain = ptr.To("zone-one")
+		machineCtx.Machine.Spec.FailureDomain = "zone-one"
 		vimMachineService := &VimMachineService{controllerManagerContext.Client}
 
 		vm := &infrav1.VSphereVM{
@@ -257,7 +257,7 @@ func Test_VimMachineService_GenerateOverrideFunc(t *testing.T) {
 		g := NewWithT(t)
 		controllerManagerContext := fake.NewControllerManagerContext(deplZone("one"), deplZone("two"), failureDomain("one"), failureDomain("two"))
 		machineCtx := fake.NewMachineContext(ctx, fake.NewClusterContext(ctx, controllerManagerContext), controllerManagerContext)
-		machineCtx.Machine.Spec.FailureDomain = ptr.To("zone-one")
+		machineCtx.Machine.Spec.FailureDomain = "zone-one"
 		vimMachineService := &VimMachineService{controllerManagerContext.Client}
 
 		vm := &infrav1.VSphereVM{
@@ -286,7 +286,7 @@ func Test_VimMachineService_GenerateOverrideFunc(t *testing.T) {
 		g := NewWithT(t)
 		controllerManagerContext := fake.NewControllerManagerContext(deplZone("one"), deplZone("two"), failureDomainWithNetworkConfigs("one"), failureDomainWithNetworkConfigs("two"))
 		machineCtx := fake.NewMachineContext(ctx, fake.NewClusterContext(ctx, controllerManagerContext), controllerManagerContext)
-		machineCtx.Machine.Spec.FailureDomain = ptr.To("zone-one")
+		machineCtx.Machine.Spec.FailureDomain = "zone-one"
 		vimMachineService := &VimMachineService{controllerManagerContext.Client}
 
 		vm := &infrav1.VSphereVM{
@@ -473,7 +473,7 @@ func Test_VimMachineService_createOrPatchVSphereVM(t *testing.T) {
 		machineCtx.Machine.SetName(fakeLongClusterName)
 		machineCtx.Machine.SetLabels(map[string]string{clusterv1beta1.MachineControlPlaneLabel: "fake-control-plane"})
 		failureDomain := "zone-one"
-		machineCtx.Machine.Spec.FailureDomain = &failureDomain
+		machineCtx.Machine.Spec.FailureDomain = failureDomain
 		vimMachineService := &VimMachineService{controllerManagerContext.Client}
 
 		vm, err := vimMachineService.createOrPatchVSphereVM(ctx, machineCtx, getVSphereVM(hostAddr, corev1.ConditionTrue))

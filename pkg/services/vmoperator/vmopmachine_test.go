@@ -409,7 +409,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			if cluster.Status.Initialization == nil {
 				cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{}
 			}
-			cluster.Status.Initialization.ControlPlaneInitialized = true
+			cluster.Status.Initialization.ControlPlaneInitialized = ptr.To(true)
 
 			vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
 			if vmopVM.Status.Network == nil {
@@ -429,7 +429,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			expectedImageName = imageName
 
 			By("Machine doens't have a K8S version")
-			machine.Spec.Version = nil
+			machine.Spec.Version = ""
 			expectedConditions = append(expectedConditions, clusterv1beta1.Condition{
 				Type:    infrav1.VMProvisionedCondition,
 				Status:  corev1.ConditionFalse,

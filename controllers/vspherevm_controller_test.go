@@ -29,6 +29,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apirecord "k8s.io/client-go/tools/record"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ipamv1beta1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
@@ -93,7 +94,7 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 				},
 				Status: clusterv1.ClusterStatus{
 					Initialization: &clusterv1.ClusterInitializationStatus{
-						InfrastructureProvisioned: true,
+						InfrastructureProvisioned: ptr.To(true),
 					},
 				},
 			}

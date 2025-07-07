@@ -14,16 +14,16 @@ metadata:
 spec:
   controlPlane:
     machineInfrastructure:
-      ref:
+      templateRef:
         apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
         kind: VSphereMachineTemplate
         name: ${CLUSTER_CLASS_NAME}-template
-    ref:
+    templateRef:
       apiVersion: controlplane.cluster.x-k8s.io/v1beta2
       kind: KubeadmControlPlaneTemplate
       name: ${CLUSTER_CLASS_NAME}-controlplane
   infrastructure:
-    ref:
+    templateRef:
       apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
       kind: VSphereClusterTemplate
       name: '${CLUSTER_CLASS_NAME}'
@@ -212,12 +212,12 @@ spec:
     - class: ${CLUSTER_CLASS_NAME}-worker
       template:
         bootstrap:
-          ref:
+          templateRef:
             apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
             kind: KubeadmConfigTemplate
             name: ${CLUSTER_CLASS_NAME}-worker-bootstrap-template
         infrastructure:
-          ref:
+          templateRef:
             apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
             kind: VSphereMachineTemplate
             name: ${CLUSTER_CLASS_NAME}-worker-machinetemplate

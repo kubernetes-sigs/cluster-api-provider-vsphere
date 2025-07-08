@@ -2,7 +2,7 @@
 
 ## Using Tilt for rapid iteration
 
-Follow the instructions to use [Tilt with Cluster API](https://cluster-api.sigs.k8s.io/developer/tilt.html)
+Follow the instructions to use [Tilt with Cluster API](https://cluster-api.sigs.k8s.io/developer/core/tilt.html)
 
 For example, given a directory layout of
 

@@ -9,7 +9,7 @@ vcsim controller is a regular Kubernetes controller designed to be run aside to 
 as a target infrastructure instead of a real vCenter.
 
 It is also worth to notice that vcsim controller leverages several components from Cluster API's in-memory
-provider, and thus it is recommended to become familiar with this [document](https://github.com/kubernetes-sigs/cluster-api/blob/main/test/infrastructure/inmemory/README.md)
+provider, and thus it is recommended to become familiar with this [document](https://github.com/kubernetes-sigs/cluster-api/blob/main/test/infrastructure/docker/internal/controllers/backends/inmemory/README.md)
 before reading the following paragraphs.
 
 ### Preparing a test environment (using vcsim)
@@ -191,13 +191,13 @@ runtime extension, so it is possible to deploy it leveraging on the existing mac
 After starting tilt with `make tilt-up`, you can use the [vcsim.sh](scripts/vcsim.sh) script and the instruction above
 to create a test cluster.
 
-See [Developing Cluster API with Tilt](https://cluster-api.sigs.k8s.io/developer/tilt) for more details.
+See [Developing Cluster API with Tilt](https://cluster-api.sigs.k8s.io/developer/core/tilt) for more details.
 
 ### E2E tests
 
 vsim can be used to run a subset of CAPV E2E tests that can be executed by setting `GINKGO_FOCUS="\[vcsim\]"`.
 
-See [Running the end-to-end tests locally](https://cluster-api.sigs.k8s.io/developer/testing#running-the-end-to-end-tests-locally) for more details.
+See [Running the end-to-end tests locally](https://cluster-api.sigs.k8s.io/developer/core/testing#running-the-end-to-end-tests-locally) for more details.
 
 Note: The code for the E2E test setup will take care of creating the `VCenterSimulator`, the `ControlPlaneEndpoint`
 and to grab required variables from the corresponding `EnvVar`.

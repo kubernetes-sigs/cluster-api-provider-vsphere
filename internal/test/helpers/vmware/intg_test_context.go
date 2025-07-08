@@ -29,6 +29,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	capiutil "sigs.k8s.io/cluster-api/util"
@@ -177,7 +178,7 @@ func ClusterInfrastructureProvisioned(ctx context.Context, c client.Client, clus
 	if cluster.Status.Initialization == nil {
 		cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{}
 	}
-	cluster.Status.Initialization.InfrastructureProvisioned = true
+	cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 	Expect(c.Status().Patch(ctx, cluster, patch)).To(Succeed())
 
 	// Ensure the ClusterCache reconciled at least once (and if possible created a clusterAccessor).

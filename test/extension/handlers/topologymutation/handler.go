@@ -30,7 +30,6 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
-	"k8s.io/utils/ptr"
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
@@ -245,7 +244,7 @@ func patchUsers(kubeadmConfigSpec *bootstrapv1.KubeadmConfigSpec, templateVariab
 		bootstrapv1.User{
 			Name:              "capv",
 			SSHAuthorizedKeys: []string{sshKey},
-			Sudo:              ptr.To("ALL=(ALL) NOPASSWD:ALL"),
+			Sudo:              "ALL=(ALL) NOPASSWD:ALL",
 		})
 	return nil
 }

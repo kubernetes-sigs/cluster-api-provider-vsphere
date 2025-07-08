@@ -19,7 +19,6 @@ spec:
         apiVersion: v1
         kind: Pod
         metadata:
-          creationTimestamp: null
           name: kube-vip
           namespace: kube-system
         spec:
@@ -99,7 +98,6 @@ spec:
     workers:
       machineDeployments:
       - class: ${CLUSTER_CLASS_NAME}-worker
-        metadata: {}
         name: md-0
         replicas: ${WORKER_MACHINE_COUNT}
 ---

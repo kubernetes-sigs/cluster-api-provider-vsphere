@@ -250,7 +250,7 @@ var _ = Describe("VSphereDeploymentZoneReconciler", func() {
 			Context("when machines are using Deployment Zone", func() {
 				It("should block deletion", func() {
 					machineUsingDeplZone := createMachine("machine-using-zone", "cluster-using-zone", machineNamespace.Name, false)
-					machineUsingDeplZone.Spec.FailureDomain = ptr.To(vsphereDeploymentZone.Name)
+					machineUsingDeplZone.Spec.FailureDomain = vsphereDeploymentZone.Name
 					Expect(testEnv.Create(ctx, machineUsingDeplZone)).To(Succeed())
 
 					Expect(testEnv.Delete(ctx, vsphereDeploymentZone)).To(Succeed())
@@ -266,7 +266,7 @@ var _ = Describe("VSphereDeploymentZoneReconciler", func() {
 
 				It("should not block deletion if machines are being deleted", func() {
 					machineBeingDeleted := createMachine("machine-deleted", "cluster-deleted", machineNamespace.Name, false)
-					machineBeingDeleted.Spec.FailureDomain = ptr.To(vsphereDeploymentZone.Name)
+					machineBeingDeleted.Spec.FailureDomain = vsphereDeploymentZone.Name
 					machineBeingDeleted.Finalizers = []string{clusterv1.MachineFinalizer}
 					Expect(testEnv.Create(ctx, machineBeingDeleted)).To(Succeed())
 
@@ -545,7 +545,7 @@ func createMachine(machineName, clusterName, namespace string, isControlPlane bo
 			},
 		},
 		Spec: clusterv1.MachineSpec{
-			Version: ptr.To("v1.22.0"),
+			Version: "v1.22.0",
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: &clusterv1.ContractVersionedObjectReference{
 					APIGroup: bootstrapv1.GroupVersion.Group,
@@ -669,7 +669,7 @@ func TestVSphereDeploymentZoneReconciler_ReconcileDelete(t *testing.T) {
 
 	t.Run("when machines are using deployment zone", func(t *testing.T) {
 		machineUsingDeplZone := createMachine("machine-1", "cluster-1", "ns", false)
-		machineUsingDeplZone.Spec.FailureDomain = ptr.To("blah")
+		machineUsingDeplZone.Spec.FailureDomain = "blah"
 
 		t.Run("should block deletion", func(t *testing.T) {
 			controllerManagerContext := fake.NewControllerManagerContext(machineUsingDeplZone, vsphereFailureDomain)

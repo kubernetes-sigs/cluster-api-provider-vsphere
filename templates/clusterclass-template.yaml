@@ -14,16 +14,16 @@ metadata:
 spec:
   controlPlane:
     machineInfrastructure:
-      ref:
+      templateRef:
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
         kind: VSphereMachineTemplate
         name: ${CLUSTER_CLASS_NAME}-template
-    ref:
+    templateRef:
       apiVersion: controlplane.cluster.x-k8s.io/v1beta2
       kind: KubeadmControlPlaneTemplate
       name: ${CLUSTER_CLASS_NAME}-controlplane
   infrastructure:
-    ref:
+    templateRef:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
       kind: VSphereClusterTemplate
       name: '${CLUSTER_CLASS_NAME}'
@@ -193,36 +193,31 @@ spec:
           controlPlane: true
     name: kubeVipPodManifest
   variables:
-  - deprecatedV1Beta1Metadata: {}
-    name: sshKey
+  - name: sshKey
     required: false
     schema:
       openAPIV3Schema:
         description: Public key to SSH onto the cluster nodes.
         type: string
-  - deprecatedV1Beta1Metadata: {}
-    name: controlPlaneIpAddr
+  - name: controlPlaneIpAddr
     required: true
     schema:
       openAPIV3Schema:
         description: Floating VIP for the control plane.
         type: string
-  - deprecatedV1Beta1Metadata: {}
-    name: controlPlanePort
+  - name: controlPlanePort
     required: true
     schema:
       openAPIV3Schema:
         description: Port for the control plane endpoint.
         type: integer
-  - deprecatedV1Beta1Metadata: {}
-    name: kubeVipPodManifest
+  - name: kubeVipPodManifest
     required: true
     schema:
       openAPIV3Schema:
         description: kube-vip manifest for the control plane.
         type: string
-  - deprecatedV1Beta1Metadata: {}
-    name: infraServer
+  - name: infraServer
     required: true
     schema:
       openAPIV3Schema:
@@ -232,8 +227,7 @@ spec:
           url:
             type: string
         type: object
-  - deprecatedV1Beta1Metadata: {}
-    name: credsSecretName
+  - name: credsSecretName
     required: true
     schema:
       openAPIV3Schema:
@@ -244,16 +238,15 @@ spec:
     - class: ${CLUSTER_CLASS_NAME}-worker
       template:
         bootstrap:
-          ref:
+          templateRef:
             apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
             kind: KubeadmConfigTemplate
             name: ${CLUSTER_CLASS_NAME}-worker-bootstrap-template
         infrastructure:
-          ref:
+          templateRef:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
             kind: VSphereMachineTemplate
             name: ${CLUSTER_CLASS_NAME}-worker-machinetemplate
-        metadata: {}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: VSphereMachineTemplate

@@ -90,7 +90,7 @@ func CreateMachine(machineName, clusterName, k8sVersion string, controlPlaneLabe
 			},
 		},
 		Spec: clusterv1.MachineSpec{
-			Version: &k8sVersion,
+			Version: k8sVersion,
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: &clusterv1.ContractVersionedObjectReference{
 					APIGroup: bootstrapv1.GroupVersion.Group,

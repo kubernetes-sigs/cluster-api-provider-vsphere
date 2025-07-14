@@ -68,13 +68,13 @@ func TopologyPatch() clusterv1.ClusterClassPatch {
 				`content: {{ printf "%q" (regexReplaceAll "(name: address\n +value:).*" .kubeVipPodManifest (printf "$1 %s" .controlPlaneIpAddr)) }}`,
 				fmt.Sprintf("permissions: %q", f.Permissions),
 			}
-			p.ValueFrom.Template = ptr.To(strings.Join(lines, "\n"))
+			p.ValueFrom.Template = strings.Join(lines, "\n")
 			patches = append(patches, p)
 			continue
 		}
 
 		tpl, _ := fileToTemplate(f)
-		p.ValueFrom.Template = ptr.To(tpl)
+		p.ValueFrom.Template = tpl
 		patches = append(patches, p)
 	}
 
@@ -87,7 +87,7 @@ func TopologyPatch() clusterv1.ClusterClassPatch {
 					APIVersion: controlplanev1.GroupVersion.String(),
 					Kind:       util.TypeToKind(&controlplanev1.KubeadmControlPlaneTemplate{}),
 					MatchResources: clusterv1.PatchSelectorMatch{
-						ControlPlane: true,
+						ControlPlane: ptr.To(true),
 					},
 				},
 				JSONPatches: patches,

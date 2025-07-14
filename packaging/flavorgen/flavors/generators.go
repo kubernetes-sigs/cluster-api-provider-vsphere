@@ -452,7 +452,7 @@ func defaultKubeadmInitSpec(files []bootstrapv1.File) bootstrapv1.KubeadmConfigS
 			NodeRegistration: defaultNodeRegistrationOptions(),
 		},
 		ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
-			ControllerManager: bootstrapv1.ControlPlaneComponent{
+			ControllerManager: bootstrapv1.ControllerManager{
 				ExtraArgs: []bootstrapv1.Arg{
 					{
 						Name:  "cloud-provider",
@@ -485,7 +485,7 @@ func ignitionKubeadmInitSpec(files []bootstrapv1.File) bootstrapv1.KubeadmConfig
 			NodeRegistration: nro,
 		},
 		ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
-			ControllerManager: bootstrapv1.ControlPlaneComponent{
+			ControllerManager: bootstrapv1.ControllerManager{
 				ExtraArgs: []bootstrapv1.Arg{
 					{
 						Name:  "cloud-provider",
@@ -577,7 +577,7 @@ func defaultUsers() []bootstrapv1.User {
 	return []bootstrapv1.User{
 		{
 			Name: "capv",
-			Sudo: ptr.To("ALL=(ALL) NOPASSWD:ALL"),
+			Sudo: "ALL=(ALL) NOPASSWD:ALL",
 			SSHAuthorizedKeys: []string{
 				env.VSphereSSHAuthorizedKeysVar,
 			},
@@ -589,7 +589,7 @@ func flatcarUsers() []bootstrapv1.User {
 	return []bootstrapv1.User{
 		{
 			Name: "core",
-			Sudo: ptr.To("ALL=(ALL) NOPASSWD:ALL"),
+			Sudo: "ALL=(ALL) NOPASSWD:ALL",
 			SSHAuthorizedKeys: []string{
 				env.VSphereSSHAuthorizedKeysVar,
 			},
@@ -678,7 +678,7 @@ func newMachineDeployment(cluster clusterv1.Cluster, machineTemplate client.Obje
 					Labels: clusterLabels(),
 				},
 				Spec: clusterv1.MachineSpec{
-					Version:     ptr.To(env.KubernetesVersionVar),
+					Version:     env.KubernetesVersionVar,
 					ClusterName: cluster.Name,
 					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: &clusterv1.ContractVersionedObjectReference{

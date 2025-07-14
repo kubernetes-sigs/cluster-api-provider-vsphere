@@ -105,6 +105,13 @@ var _ = Describe("VsphereMachineReconciler", func() {
 			},
 			Spec: clusterv1.MachineSpec{
 				ClusterName: capiCluster.Name,
+				Bootstrap: clusterv1.Bootstrap{
+					ConfigRef: &clusterv1.ContractVersionedObjectReference{
+						APIGroup: "bootstrap.cluster.x-k8s.io",
+						Kind:     "BootstrapConfig",
+						Name:     "does-no-ext", // Does not have to exist for these tests.
+					},
+				},
 				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 					APIGroup: "infrastructure.cluster.x-k8s.io",
 					Kind:     "VSphereMachine",
@@ -168,7 +175,7 @@ var _ = Describe("VsphereMachineReconciler", func() {
 			if capiCluster.Status.Initialization == nil {
 				capiCluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{}
 			}
-			capiCluster.Status.Initialization.InfrastructureProvisioned = true
+			capiCluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 			return ph.Patch(ctx, capiCluster, patch.WithStatusObservedGeneration{})
 		}, timeout).Should(Succeed())
 
@@ -184,7 +191,7 @@ var _ = Describe("VsphereMachineReconciler", func() {
 			if capiCluster.Status.Initialization == nil {
 				capiCluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{}
 			}
-			capiCluster.Status.Initialization.InfrastructureProvisioned = true
+			capiCluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 			Expect(ph.Patch(ctx, capiCluster, patch.WithStatusObservedGeneration{})).To(Succeed())
 		})
 
@@ -280,6 +287,7 @@ func Test_machineReconciler_Metadata(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: capiCluster.Name,
+			Bootstrap:   clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: "infrastructure.cluster.x-k8s.io",
 				Kind:     "VSphereMachine",

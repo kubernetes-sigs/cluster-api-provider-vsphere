@@ -234,10 +234,10 @@ func (r vmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.R
 	}
 
 	var vsphereFailureDomain *infrav1.VSphereFailureDomain
-	if failureDomain := machine.Spec.FailureDomain; failureDomain != nil {
+	if failureDomain := machine.Spec.FailureDomain; failureDomain != "" {
 		vsphereDeploymentZone := &infrav1.VSphereDeploymentZone{}
-		if err := r.Client.Get(ctx, apitypes.NamespacedName{Name: *failureDomain}, vsphereDeploymentZone); err != nil {
-			return reconcile.Result{}, errors.Wrapf(err, "failed to get VSphereDeploymentZone %s", *failureDomain)
+		if err := r.Client.Get(ctx, apitypes.NamespacedName{Name: failureDomain}, vsphereDeploymentZone); err != nil {
+			return reconcile.Result{}, errors.Wrapf(err, "failed to get VSphereDeploymentZone %s", failureDomain)
 		}
 
 		vsphereFailureDomain = &infrav1.VSphereFailureDomain{}

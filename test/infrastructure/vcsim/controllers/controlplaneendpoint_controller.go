@@ -101,7 +101,7 @@ func (r *ControlPlaneEndpointReconciler) reconcileNormal(ctx context.Context, co
 	}
 
 	controlPlaneEndpoint.Status.Host = r.PodIP // NOTE: we are replacing the listener ip with the pod ip so it will be accessible from other pods as well
-	controlPlaneEndpoint.Status.Port = int32(listener.Port())
+	controlPlaneEndpoint.Status.Port = listener.Port()
 
 	return nil
 }

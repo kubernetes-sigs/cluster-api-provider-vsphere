@@ -93,7 +93,7 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 					},
 				},
 				Status: clusterv1.ClusterStatus{
-					Initialization: &clusterv1.ClusterInitializationStatus{
+					Initialization: clusterv1.ClusterInitializationStatus{
 						InfrastructureProvisioned: ptr.To(true),
 					},
 				},

@@ -406,9 +406,6 @@ var _ = Describe("VirtualMachine tests", func() {
 
 			By("Setting cluster.Status.ControlPlaneReady to true")
 			// Set the control plane to be ready so that the new VM will have a probe
-			if cluster.Status.Initialization == nil {
-				cluster.Status.Initialization = &clusterv1.ClusterInitializationStatus{}
-			}
 			cluster.Status.Initialization.ControlPlaneInitialized = ptr.To(true)
 
 			vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)

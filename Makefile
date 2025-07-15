@@ -190,7 +190,7 @@ IMPORT_BOSS_VER := v0.28.1
 IMPORT_BOSS := $(abspath $(TOOLS_BIN_DIR)/$(IMPORT_BOSS_BIN))
 IMPORT_BOSS_PKG := k8s.io/code-generator/cmd/import-boss
 
-CAPI_HACK_TOOLS_VER := afb1afee283a959e0a633198517422351f77b0e4 # Note: this the commit ID for CAPI main 07.07.2025.
+CAPI_HACK_TOOLS_VER := 724130883ae32b68251a749981f6ba2b1cbfd3ce # Note: this the commit ID for CAPI v1.11.0-beta.0.
 
 BOSKOSCTL_BIN := boskosctl
 BOSKOSCTL := $(abspath $(TOOLS_BIN_DIR)/$(BOSKOSCTL_BIN))

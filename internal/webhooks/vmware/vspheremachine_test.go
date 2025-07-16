@@ -17,7 +17,6 @@ limitations under the License.
 package vmware
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -69,7 +68,7 @@ func TestVSphereMachine_ValidateUpdate(t *testing.T) {
 			g := NewWithT(t)
 
 			webhook := &VSphereMachine{}
-			_, err := webhook.ValidateUpdate(context.Background(), tc.oldVSphereMachine, tc.vsphereMachine)
+			_, err := webhook.ValidateUpdate(t.Context(), tc.oldVSphereMachine, tc.vsphereMachine)
 			if tc.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {

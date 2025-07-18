@@ -56,11 +56,11 @@ func newCluster(vSphereCluster *vmwarev1.VSphereCluster) *clusterv1.Cluster {
 			UID: ClusterUUID,
 		},
 		Spec: clusterv1.ClusterSpec{
-			ClusterNetwork: &clusterv1.ClusterNetwork{
-				Pods: &clusterv1.NetworkRanges{
+			ClusterNetwork: clusterv1.ClusterNetwork{
+				Pods: clusterv1.NetworkRanges{
 					CIDRBlocks: []string{PodCIDR},
 				},
-				Services: &clusterv1.NetworkRanges{
+				Services: clusterv1.NetworkRanges{
 					CIDRBlocks: []string{ServiceCIDR},
 				},
 			},

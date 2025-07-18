@@ -113,7 +113,7 @@ func (webhook *VSphereMachineTemplate) ValidateUpdate(ctx context.Context, oldRa
 	}
 
 	var allErrs field.ErrorList
-	if !topology.ShouldSkipImmutabilityChecks(req, newTyped) &&
+	if !topology.IsDryRunRequest(req, newTyped) &&
 		!reflect.DeepEqual(newTyped.Spec.Template.Spec, oldTyped.Spec.Template.Spec) {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "template", "spec"), newTyped, machineTemplateImmutableMsg))
 	}

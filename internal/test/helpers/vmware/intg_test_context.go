@@ -193,11 +193,11 @@ func generateCluster(namespace, name string) *clusterv1.Cluster {
 			Name:      fmt.Sprintf("%s-%s", name, capiutil.RandomString(6)),
 		},
 		Spec: clusterv1.ClusterSpec{
-			ClusterNetwork: &clusterv1.ClusterNetwork{
-				Pods: &clusterv1.NetworkRanges{
+			ClusterNetwork: clusterv1.ClusterNetwork{
+				Pods: clusterv1.NetworkRanges{
 					CIDRBlocks: []string{"1.0.0.0/16"},
 				},
-				Services: &clusterv1.NetworkRanges{
+				Services: clusterv1.NetworkRanges{
 					CIDRBlocks: []string{"2.0.0.0/16"},
 				},
 			},

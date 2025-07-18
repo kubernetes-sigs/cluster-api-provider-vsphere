@@ -55,11 +55,11 @@ func newClusterV1() clusterv1.Cluster {
 			UID:       Clusterv1a2UUID,
 		},
 		Spec: clusterv1.ClusterSpec{
-			ClusterNetwork: &clusterv1.ClusterNetwork{
-				Pods: &clusterv1.NetworkRanges{
+			ClusterNetwork: clusterv1.ClusterNetwork{
+				Pods: clusterv1.NetworkRanges{
 					CIDRBlocks: []string{PodCIDR},
 				},
-				Services: &clusterv1.NetworkRanges{
+				Services: clusterv1.NetworkRanges{
 					CIDRBlocks: []string{ServiceCIDR},
 				},
 			},

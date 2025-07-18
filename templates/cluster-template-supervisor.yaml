@@ -221,10 +221,11 @@ spec:
       - '${VSPHERE_SSH_AUTHORIZED_KEY}'
       sudo: ALL=(ALL) NOPASSWD:ALL
   machineTemplate:
-    infrastructureRef:
-      apiGroup: vmware.infrastructure.cluster.x-k8s.io
-      kind: VSphereMachineTemplate
-      name: '${CLUSTER_NAME}'
+    spec:
+      infrastructureRef:
+        apiGroup: vmware.infrastructure.cluster.x-k8s.io
+        kind: VSphereMachineTemplate
+        name: '${CLUSTER_NAME}'
   replicas: ${CONTROL_PLANE_MACHINE_COUNT}
   version: '${KUBERNETES_VERSION}'
 ---

@@ -43,7 +43,7 @@ var _ = Describe("When using the autoscaler with Cluster API using ClusterClass 
 				},
 				InfrastructureAPIGroup:            "vmware.infrastructure.cluster.x-k8s.io",
 				InfrastructureMachineTemplateKind: "vspheremachinetemplates",
-				AutoscalerVersion:                 "v1.31.0",
+				AutoscalerVersion:                 "v1.32.1",
 				ScaleToAndFromZero:                true,
 				// We have no connectivity from the workload cluster to the kind management cluster in CI so we
 				// can't deploy the autoscaler to the workload cluster.

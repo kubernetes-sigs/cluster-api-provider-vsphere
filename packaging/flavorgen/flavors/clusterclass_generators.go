@@ -123,20 +123,18 @@ func getWorkersClass() clusterv1.WorkersClass {
 		MachineDeployments: []clusterv1.MachineDeploymentClass{
 			{
 				Class: fmt.Sprintf("%s-worker", env.ClusterClassNameVar),
-				Template: clusterv1.MachineDeploymentClassTemplate{
-					Bootstrap: clusterv1.MachineDeploymentClassBootstrapTemplate{
-						TemplateRef: clusterv1.ClusterClassTemplateReference{
-							APIVersion: bootstrapv1.GroupVersion.String(),
-							Kind:       util.TypeToKind(&bootstrapv1.KubeadmConfigTemplate{}),
-							Name:       fmt.Sprintf("%s-worker-bootstrap-template", env.ClusterClassNameVar),
-						},
+				Bootstrap: clusterv1.MachineDeploymentClassBootstrapTemplate{
+					TemplateRef: clusterv1.ClusterClassTemplateReference{
+						APIVersion: bootstrapv1.GroupVersion.String(),
+						Kind:       util.TypeToKind(&bootstrapv1.KubeadmConfigTemplate{}),
+						Name:       fmt.Sprintf("%s-worker-bootstrap-template", env.ClusterClassNameVar),
 					},
-					Infrastructure: clusterv1.MachineDeploymentClassInfrastructureTemplate{
-						TemplateRef: clusterv1.ClusterClassTemplateReference{
-							Kind:       util.TypeToKind(&infrav1.VSphereMachineTemplate{}),
-							Name:       fmt.Sprintf("%s-worker-machinetemplate", env.ClusterClassNameVar),
-							APIVersion: infrav1.GroupVersion.String(),
-						},
+				},
+				Infrastructure: clusterv1.MachineDeploymentClassInfrastructureTemplate{
+					TemplateRef: clusterv1.ClusterClassTemplateReference{
+						Kind:       util.TypeToKind(&infrav1.VSphereMachineTemplate{}),
+						Name:       fmt.Sprintf("%s-worker-machinetemplate", env.ClusterClassNameVar),
+						APIVersion: infrav1.GroupVersion.String(),
 					},
 				},
 			},
@@ -149,20 +147,18 @@ func getVMWareWorkersClass() clusterv1.WorkersClass {
 		MachineDeployments: []clusterv1.MachineDeploymentClass{
 			{
 				Class: fmt.Sprintf("%s-worker", env.ClusterClassNameVar),
-				Template: clusterv1.MachineDeploymentClassTemplate{
-					Bootstrap: clusterv1.MachineDeploymentClassBootstrapTemplate{
-						TemplateRef: clusterv1.ClusterClassTemplateReference{
-							APIVersion: bootstrapv1.GroupVersion.String(),
-							Kind:       util.TypeToKind(&bootstrapv1.KubeadmConfigTemplate{}),
-							Name:       fmt.Sprintf("%s-worker-bootstrap-template", env.ClusterClassNameVar),
-						},
+				Bootstrap: clusterv1.MachineDeploymentClassBootstrapTemplate{
+					TemplateRef: clusterv1.ClusterClassTemplateReference{
+						APIVersion: bootstrapv1.GroupVersion.String(),
+						Kind:       util.TypeToKind(&bootstrapv1.KubeadmConfigTemplate{}),
+						Name:       fmt.Sprintf("%s-worker-bootstrap-template", env.ClusterClassNameVar),
 					},
-					Infrastructure: clusterv1.MachineDeploymentClassInfrastructureTemplate{
-						TemplateRef: clusterv1.ClusterClassTemplateReference{
-							Kind:       util.TypeToKind(&vmwarev1.VSphereMachineTemplate{}),
-							Name:       fmt.Sprintf("%s-worker-machinetemplate", env.ClusterClassNameVar),
-							APIVersion: vmwarev1.GroupVersion.String(),
-						},
+				},
+				Infrastructure: clusterv1.MachineDeploymentClassInfrastructureTemplate{
+					TemplateRef: clusterv1.ClusterClassTemplateReference{
+						Kind:       util.TypeToKind(&vmwarev1.VSphereMachineTemplate{}),
+						Name:       fmt.Sprintf("%s-worker-machinetemplate", env.ClusterClassNameVar),
+						APIVersion: vmwarev1.GroupVersion.String(),
 					},
 				},
 			},

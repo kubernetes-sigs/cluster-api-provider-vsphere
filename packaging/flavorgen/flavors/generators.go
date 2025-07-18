@@ -127,7 +127,7 @@ func newClusterTopologyCluster(supervisorMode bool) (clusterv1.Cluster, error) {
 				ControlPlane: clusterv1.ControlPlaneTopology{
 					Replicas: ptr.To[int32](1),
 				},
-				Workers: &clusterv1.WorkersTopology{
+				Workers: clusterv1.WorkersTopology{
 					MachineDeployments: []clusterv1.MachineDeploymentTopology{
 						{
 							Class:    fmt.Sprintf("%s-worker", env.ClusterClassNameVar),
@@ -280,8 +280,8 @@ func newCluster(vsphereCluster client.Object, controlPlane *controlplanev1.Kubea
 			Labels:    clusterLabels(),
 		},
 		Spec: clusterv1.ClusterSpec{
-			ClusterNetwork: &clusterv1.ClusterNetwork{
-				Pods: &clusterv1.NetworkRanges{
+			ClusterNetwork: clusterv1.ClusterNetwork{
+				Pods: clusterv1.NetworkRanges{
 					CIDRBlocks: []string{env.DefaultClusterCIDR},
 				},
 			},
@@ -711,10 +711,12 @@ func newKubeadmControlplane(infraTemplate client.Object, files []bootstrapv1.Fil
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: env.KubernetesVersionVar,
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
-					APIGroup: infraTemplate.GetObjectKind().GroupVersionKind().Group,
-					Kind:     infraTemplate.GetObjectKind().GroupVersionKind().Kind,
-					Name:     infraTemplate.GetName(),
+				Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: infraTemplate.GetObjectKind().GroupVersionKind().Group,
+						Kind:     infraTemplate.GetObjectKind().GroupVersionKind().Kind,
+						Name:     infraTemplate.GetName(),
+					},
 				},
 			},
 			KubeadmConfigSpec: defaultKubeadmInitSpec(files),
@@ -735,10 +737,12 @@ func newIgnitionKubeadmControlplane(infraTemplate infrav1.VSphereMachineTemplate
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: env.KubernetesVersionVar,
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
-					APIGroup: infraTemplate.GroupVersionKind().Group,
-					Kind:     infraTemplate.Kind,
-					Name:     infraTemplate.Name,
+				Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: infraTemplate.GroupVersionKind().Group,
+						Kind:     infraTemplate.Kind,
+						Name:     infraTemplate.Name,
+					},
 				},
 			},
 			KubeadmConfigSpec: ignitionKubeadmInitSpec(files),

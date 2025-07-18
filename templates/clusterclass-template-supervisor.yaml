@@ -205,18 +205,17 @@ spec:
         type: string
   workers:
     machineDeployments:
-    - class: ${CLUSTER_CLASS_NAME}-worker
-      template:
-        bootstrap:
-          templateRef:
-            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
-            kind: KubeadmConfigTemplate
-            name: ${CLUSTER_CLASS_NAME}-worker-bootstrap-template
-        infrastructure:
-          templateRef:
-            apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
-            kind: VSphereMachineTemplate
-            name: ${CLUSTER_CLASS_NAME}-worker-machinetemplate
+    - bootstrap:
+        templateRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+          kind: KubeadmConfigTemplate
+          name: ${CLUSTER_CLASS_NAME}-worker-bootstrap-template
+      class: ${CLUSTER_CLASS_NAME}-worker
+      infrastructure:
+        templateRef:
+          apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+          kind: VSphereMachineTemplate
+          name: ${CLUSTER_CLASS_NAME}-worker-machinetemplate
 ---
 apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
 kind: VSphereMachineTemplate

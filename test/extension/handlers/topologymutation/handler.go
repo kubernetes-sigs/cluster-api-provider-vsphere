@@ -378,7 +378,7 @@ func (h *ExtensionHandlers) DiscoverVariables(ctx context.Context, req *runtimeh
 			resp.Message = fmt.Sprintf("Failed to Convert ClusterClass variable %q to v1beta1", in.Name)
 			return
 		}
-		vars = append(resp.Variables, out)
+		vars = append(vars, out)
 	}
 
 	resp.Status = runtimehooksv1.ResponseStatusSuccess

@@ -138,7 +138,7 @@ func deployCluster(namespace string, k8sClient client.Client) (client.ObjectKey,
 			Finalizers:   []string{"test"},
 		},
 		Spec: clusterv1.ClusterSpec{
-			ClusterNetwork: &clusterv1.ClusterNetwork{
+			ClusterNetwork: clusterv1.ClusterNetwork{
 				ServiceDomain: "service.domain",
 			},
 		},

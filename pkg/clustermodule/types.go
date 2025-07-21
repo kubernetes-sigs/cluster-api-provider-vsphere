@@ -51,7 +51,7 @@ type kcpWrapper struct {
 }
 
 func (w kcpWrapper) GetTemplatePath() []string {
-	return []string{"spec", "machineTemplate", "infrastructureRef"}
+	return []string{"spec", "machineTemplate", "spec", "infrastructureRef"}
 }
 
 func (w kcpWrapper) IsControlPlane() bool {

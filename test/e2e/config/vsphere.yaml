@@ -27,7 +27,7 @@ providers:
     type: CoreProvider
     versions:
       - name: "v1.11.99"
-        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20250718/core-components.yaml"
+        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/v1.11.0-beta.1/core-components.yaml"
         type: "url"
         contract: v1beta2
         files:
@@ -67,7 +67,7 @@ providers:
     type: BootstrapProvider
     versions:
       - name: "v1.11.99"
-        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20250718/bootstrap-components.yaml"
+        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/v1.11.0-beta.1/bootstrap-components.yaml"
         type: "url"
         contract: v1beta2
         files:
@@ -107,7 +107,7 @@ providers:
     type: ControlPlaneProvider
     versions:
       - name: "v1.11.99"
-        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20250718/control-plane-components.yaml"
+        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/v1.11.0-beta.1/control-plane-components.yaml"
         type: "url"
         contract: v1beta2
         files:

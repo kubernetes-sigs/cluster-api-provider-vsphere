@@ -7,7 +7,7 @@ replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.11.0-beta.1
 replace sigs.k8s.io/cluster-api-provider-vsphere => ../
 
 require (
-	github.com/onsi/gomega v1.37.0
+	github.com/onsi/gomega v1.38.0
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.9.1
 	k8s.io/api v0.34.0-alpha.2
@@ -19,7 +19,7 @@ require (
 	sigs.k8s.io/controller-runtime v0.21.0
 	sigs.k8s.io/kustomize/api v0.18.0
 	sigs.k8s.io/kustomize/kyaml v0.18.1
-	sigs.k8s.io/yaml v1.5.0
+	sigs.k8s.io/yaml v1.6.0
 )
 
 require (
@@ -71,7 +71,7 @@ require (
 	golang.org/x/text v0.27.0 // indirect
 	golang.org/x/time v0.9.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.5.0 // indirect
-	google.golang.org/protobuf v1.36.5 // indirect
+	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

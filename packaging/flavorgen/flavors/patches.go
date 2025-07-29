@@ -51,13 +51,6 @@ func createEmptyArraysPatch() clusterv1.ClusterClassPatch {
 							Raw: []byte("[]"),
 						},
 					},
-					{
-						Op:   "add",
-						Path: "/spec/template/spec/kubeadmConfigSpec/postKubeadmCommands",
-						Value: &apiextensionsv1.JSON{
-							Raw: []byte("[]"),
-						},
-					},
 				},
 			},
 			{
@@ -74,13 +67,6 @@ func createEmptyArraysPatch() clusterv1.ClusterClassPatch {
 					{
 						Op:   "add",
 						Path: "/spec/template/spec/files",
-						Value: &apiextensionsv1.JSON{
-							Raw: []byte("[]"),
-						},
-					},
-					{
-						Op:   "add",
-						Path: "/spec/template/spec/postKubeadmCommands",
 						Value: &apiextensionsv1.JSON{
 							Raw: []byte("[]"),
 						},

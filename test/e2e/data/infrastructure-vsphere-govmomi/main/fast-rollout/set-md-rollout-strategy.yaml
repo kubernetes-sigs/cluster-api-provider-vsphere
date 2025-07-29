@@ -1,7 +1,8 @@
 - op: add
-  path: /spec/topology/workers/machineDeployments/0/strategy
+  path: /spec/topology/workers/machineDeployments/0/rollout
   value:
-    rollingUpdate:
-      maxUnavailable: "100%"
-      maxSurge: "100%"
-    type: RollingUpdate
+    strategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxUnavailable: "100%"
+        maxSurge: "100%"

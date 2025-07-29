@@ -7,4 +7,5 @@ metadata:
   namespace: '${NAMESPACE}'
 spec:
   machineTemplate:
-    nodeDrainTimeout: ${NODE_DRAIN_TIMEOUT}
+    delete:
+      nodeDrainTimeout: ${NODE_DRAIN_TIMEOUT}

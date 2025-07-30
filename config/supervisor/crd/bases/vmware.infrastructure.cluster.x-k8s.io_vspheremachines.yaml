@@ -98,6 +98,170 @@ spec:
                         so we highly recommend to use a template which leads to a name shorter than 63 characters.
                     type: string
                 type: object
+              network:
+                description: Network is the network configuration for the VSphereMachine
+                properties:
+                  interfaces:
+                    description: Interfaces is the list of network interfaces attached
+                      to this VSphereMachine.
+                    properties:
+                      primary:
+                        description: |-
+                          Primary is the primary network interface.
+
+                          It is used to connect the Kubernetes primary network for Load balancer,
+                          Service discovery, Pod traffic and management traffic etc.
+                          Leave it unset if you don't want to customize the primary network and interface.
+                          Customization is only supported with network provider NSX-VPC.
+                          It should be set only when VSphereCluster spec.network.nsxVPC.createSubnetSet is set to false.
+                        properties:
+                          mtu:
+                            description: MTU is the Maximum Transmission Unit size
+                              in bytes.
+                            format: int64
+                            type: integer
+                          network:
+                            description: |-
+                              Network is the name of the network resource to which this interface is
+                              connected.
+                            properties:
+                              apiVersion:
+                                description: |-
+                                  APIVersion defines the versioned schema of this representation of an object.
+                                  Servers should convert recognized schemas to the latest internal value, and
+                                  may reject unrecognized values.
+                                  More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+                                type: string
+                              kind:
+                                description: |-
+                                  Kind is a string value representing the REST resource this object represents.
+                                  Servers may infer this from the endpoint the client submits requests to.
+                                  Cannot be updated.
+                                  In CamelCase.
+                                  More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+                                type: string
+                              name:
+                                description: Name refers to a unique resource in the
+                                  current namespace.
+                                type: string
+                            required:
+                            - name
+                            type: object
+                          routes:
+                            description: |-
+                              Routes is a list of optional, static routes.
+
+                              Please note this feature is available only with the following bootstrap
+                              providers: CloudInit.
+                            items:
+                              description: RouteSpec defines a static route for a
+                                guest.
+                              properties:
+                                to:
+                                  description: To is either "default", or an IP4 address.
+                                    IP6 is not supported yet.
+                                  pattern: ^(default|([0-9]{1,3}\.){3}[0-9]{1,3}(\/[0-9]{1,2})?)$
+                                  type: string
+                                via:
+                                  description: Via is an IP4 address. IP6 is not supported
+                                    yet.
+                                  pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}$
+                                  type: string
+                              required:
+                              - to
+                              - via
+                              type: object
+                            type: array
+                        required:
+                        - network
+                        type: object
+                      secondary:
+                        description: |-
+                          Secondary is the secondary network interface.
+
+                          It is used for any purpose like deploying Antrea secondary network,
+                          Multus, mounting NFS etc.
+                          Secondary network is supported with network provider NSX-VPC and vsphere-network.
+                        items:
+                          description: InterfaceSpec defines a network interface for
+                            a VSphereMachine.
+                          properties:
+                            mtu:
+                              description: MTU is the Maximum Transmission Unit size
+                                in bytes.
+                              format: int64
+                              type: integer
+                            name:
+                              description: |-
+                                Name describes the unique name of this network interface, used to
+                                distinguish it from other network interfaces attached to this VSphereMachine.
+                              pattern: ^[a-z0-9]{2,}$
+                              type: string
+                            network:
+                              description: |-
+                                Network is the name of the network resource to which this interface is
+                                connected.
+                              properties:
+                                apiVersion:
+                                  description: |-
+                                    APIVersion defines the versioned schema of this representation of an object.
+                                    Servers should convert recognized schemas to the latest internal value, and
+                                    may reject unrecognized values.
+                                    More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+                                  type: string
+                                kind:
+                                  description: |-
+                                    Kind is a string value representing the REST resource this object represents.
+                                    Servers may infer this from the endpoint the client submits requests to.
+                                    Cannot be updated.
+                                    In CamelCase.
+                                    More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+                                  type: string
+                                name:
+                                  description: Name refers to a unique resource in
+                                    the current namespace.
+                                  type: string
+                              required:
+                              - name
+                              type: object
+                            routes:
+                              description: |-
+                                Routes is a list of optional, static routes.
+
+                                Please note this feature is available only with the following bootstrap
+                                providers: CloudInit.
+                              items:
+                                description: RouteSpec defines a static route for
+                                  a guest.
+                                properties:
+                                  to:
+                                    description: To is either "default", or an IP4
+                                      address. IP6 is not supported yet.
+                                    pattern: ^(default|([0-9]{1,3}\.){3}[0-9]{1,3}(\/[0-9]{1,2})?)$
+                                    type: string
+                                  via:
+                                    description: Via is an IP4 address. IP6 is not
+                                      supported yet.
+                                    pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}$
+                                    type: string
+                                required:
+                                - to
+                                - via
+                                type: object
+                              type: array
+                          required:
+                          - name
+                          - network
+                          type: object
+                        type: array
+                    type: object
+                    x-kubernetes-validations:
+                    - message: field 'primary' cannot be added or removed after creation
+                      rule: has(self.primary) == has(oldSelf.primary)
+                type: object
+                x-kubernetes-validations:
+                - message: field 'interfaces' cannot be added or removed after creation
+                  rule: has(self.interfaces) == has(oldSelf.interfaces)
               powerOffMode:
                 default: hard
                 description: |-
@@ -159,20 +323,32 @@ spec:
             - className
             - imageName
             type: object
+            x-kubernetes-validations:
+            - message: field 'network' cannot be added or removed after creation
+              rule: has(self.network) == has(oldSelf.network)
           status:
             description: VSphereMachineStatus defines the observed state of VSphereMachine.
             properties:
               addresses:
                 description: Addresses contains the instance associated addresses.
                 items:
-                  description: NodeAddress contains information for the node's address.
+                  description: MachineAddress contains information for the node's
+                    address.
                   properties:
                     address:
-                      description: The node address.
+                      description: address is the machine address.
+                      maxLength: 256
+                      minLength: 1
                       type: string
                     type:
-                      description: Node address type, one of Hostname, ExternalIP
-                        or InternalIP.
+                      description: type is the machine address type, one of Hostname,
+                        ExternalIP, InternalIP, ExternalDNS or InternalDNS.
+                      enum:
+                      - Hostname
+                      - ExternalIP
+                      - InternalIP
+                      - ExternalDNS
+                      - InternalDNS
                       type: string
                   required:
                   - address
@@ -269,6 +445,237 @@ spec:
                   can be added as events to the Machine object and/or logged in the
                   controller's output.
                 type: string
+              network:
+                description: |-
+                  Network describes the observed state of the VM's network configuration.
+                  Please note much of the network status information is only available if
+                  the guest has VM Tools installed.
+                properties:
+                  interfaces:
+                    description: Interfaces describes the status of the VM's network
+                      interfaces.
+                    items:
+                      description: |-
+                        VSphereMachineNetworkInterfaceStatus describes the observed state of a
+                        VM's network interface.
+                      properties:
+                        deviceKey:
+                          description: |-
+                            DeviceKey describes the unique hardware device key of this network
+                            interface.
+                          format: int32
+                          type: integer
+                        dns:
+                          description: DNS describes the observed state of the interface's
+                            DNS configuration.
+                          properties:
+                            dhcp:
+                              description: |-
+                                DHCP indicates whether or not dynamic host control protocol (DHCP) was
+                                used to configure DNS configuration.
+                              type: boolean
+                            domainName:
+                              description: |-
+                                DomainName is the domain name portion of the DNS name. For example,
+                                the "domain.local" part of "my-vm.domain.local".
+                              type: string
+                            hostName:
+                              description: |-
+                                HostName is the host name portion of the DNS name. For example,
+                                the "my-vm" part of "my-vm.domain.local".
+                              type: string
+                            nameservers:
+                              description: |-
+                                Nameservers is a list of the IP addresses for the DNS servers to use.
+
+                                IP4 addresses are specified using dotted decimal notation. For example,
+                                "192.0.2.1".
+
+                                IP6 addresses are 128-bit addresses represented as eight fields of up to
+                                four hexadecimal digits. A colon separates each field (:). For example,
+                                2001:DB8:101::230:6eff:fe04:d9ff. The address can also consist of the
+                                symbol '::' to represent multiple 16-bit groups of contiguous 0's only
+                                once in an address as described in RFC 2373.
+                              items:
+                                type: string
+                              type: array
+                            searchDomains:
+                              description: |-
+                                SearchDomains is a list of domains in which to search for hosts, in the
+                                order of preference.
+                              items:
+                                type: string
+                              type: array
+                          type: object
+                        ip:
+                          description: IP describes the observed state of the interface's
+                            IP configuration.
+                          properties:
+                            addresses:
+                              description: Addresses describes observed IP addresses
+                                for this interface.
+                              items:
+                                description: |-
+                                  VSphereMachineNetworkInterfaceIPAddrStatus describes information about a
+                                  specific IP address.
+                                properties:
+                                  address:
+                                    description: |-
+                                      Address is an IP4 or IP6 address and their network prefix length.
+
+                                      An IP4 address is specified using dotted decimal notation. For example,
+                                      "192.0.2.1".
+
+                                      IP6 addresses are 128-bit addresses represented as eight fields of up to
+                                      four hexadecimal digits. A colon separates each field (:). For example,
+                                      2001:DB8:101::230:6eff:fe04:d9ff. The address can also consist of the
+                                      symbol '::' to represent multiple 16-bit groups of contiguous 0's only
+                                      once in an address as described in RFC 2373.
+                                    type: string
+                                  lifetime:
+                                    description: Lifetime describes when this address
+                                      will expire.
+                                    format: date-time
+                                    type: string
+                                  origin:
+                                    description: Origin describes how this address
+                                      was configured.
+                                    enum:
+                                    - dhcp
+                                    - linklayer
+                                    - manual
+                                    - other
+                                    - random
+                                    type: string
+                                  state:
+                                    description: State describes the state of this
+                                      IP address.
+                                    enum:
+                                    - deprecated
+                                    - duplicate
+                                    - inaccessible
+                                    - invalid
+                                    - preferred
+                                    - tentative
+                                    - unknown
+                                    type: string
+                                required:
+                                - address
+                                type: object
+                              type: array
+                            autoConfigurationEnabled:
+                              description: |-
+                                AutoConfigurationEnabled describes whether or not ICMPv6 router
+                                solicitation requests are enabled or disabled from a given interface.
+
+                                These requests acquire an IP6 address and default gateway route from
+                                zero-to-many routers on the connected network.
+
+                                If not set then ICMPv6 is not available on this VM.
+                              type: boolean
+                            dhcp:
+                              description: |-
+                                DHCP describes the VM's observed, client-side, interface-specific DHCP
+                                options.
+                              properties:
+                                ip4:
+                                  description: IP4 describes the observed state of
+                                    the IP4 DHCP client settings.
+                                  properties:
+                                    config:
+                                      description: |-
+                                        Config describes platform-dependent settings for the DHCP client.
+
+                                        The key part is a unique number while the value part is the platform
+                                        specific configuration command. For example on Linux and BSD systems
+                                        using the file dhclient.conf output would be reported at system scope:
+                                        key='1', value='timeout 60;' key='2', value='reboot 10;'. The output
+                                        reported per interface would be:
+                                        key='1', value='prepend domain-name-servers 192.0.2.1;'
+                                        key='2', value='require subnet-mask, domain-name-servers;'.
+                                      items:
+                                        description: |-
+                                          KeyValuePair is useful when wanting to realize a map as a list of key/value
+                                          pairs.
+                                        properties:
+                                          key:
+                                            description: Key is the key part of the
+                                              key/value pair.
+                                            type: string
+                                          value:
+                                            description: Value is the optional value
+                                              part of the key/value pair.
+                                            type: string
+                                        required:
+                                        - key
+                                        type: object
+                                      type: array
+                                      x-kubernetes-list-map-keys:
+                                      - key
+                                      x-kubernetes-list-type: map
+                                    enabled:
+                                      description: Enabled reports the status of the
+                                        DHCP client services.
+                                      type: boolean
+                                  type: object
+                                ip6:
+                                  description: IP6 describes the observed state of
+                                    the IP6 DHCP client settings.
+                                  properties:
+                                    config:
+                                      description: |-
+                                        Config describes platform-dependent settings for the DHCP client.
+
+                                        The key part is a unique number while the value part is the platform
+                                        specific configuration command. For example on Linux and BSD systems
+                                        using the file dhclient.conf output would be reported at system scope:
+                                        key='1', value='timeout 60;' key='2', value='reboot 10;'. The output
+                                        reported per interface would be:
+                                        key='1', value='prepend domain-name-servers 192.0.2.1;'
+                                        key='2', value='require subnet-mask, domain-name-servers;'.
+                                      items:
+                                        description: |-
+                                          KeyValuePair is useful when wanting to realize a map as a list of key/value
+                                          pairs.
+                                        properties:
+                                          key:
+                                            description: Key is the key part of the
+                                              key/value pair.
+                                            type: string
+                                          value:
+                                            description: Value is the optional value
+                                              part of the key/value pair.
+                                            type: string
+                                        required:
+                                        - key
+                                        type: object
+                                      type: array
+                                      x-kubernetes-list-map-keys:
+                                      - key
+                                      x-kubernetes-list-type: map
+                                    enabled:
+                                      description: Enabled reports the status of the
+                                        DHCP client services.
+                                      type: boolean
+                                  type: object
+                              type: object
+                            macAddr:
+                              description: MACAddr describes the observed MAC address
+                                for this interface.
+                              type: string
+                          type: object
+                        name:
+                          description: |-
+                            Name describes the corresponding network interface with the same name
+                            in the VM's desired network interface list. If unset, then there is no
+                            corresponding entry for this interface.
+
+                            Please note this name is not necessarily related to the name of the
+                            device as it is surfaced inside of the guest.
+                          type: string
+                      type: object
+                    type: array
+                type: object
               ready:
                 description: |-
                   Ready is true when the provider resource is ready.

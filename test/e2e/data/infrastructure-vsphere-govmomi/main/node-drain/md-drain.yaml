@@ -6,5 +6,5 @@ metadata:
 spec:
   template:
     spec:
-      delete:
-        nodeDrainTimeout: "${NODE_DRAIN_TIMEOUT}"
+      deletion:
+        nodeDrainTimeoutSeconds: "${NODE_DRAIN_TIMEOUT_SECONDS}"

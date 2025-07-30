@@ -27,7 +27,7 @@ providers:
     type: CoreProvider
     versions:
       - name: "v1.11.99"
-        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/v1.11.0-beta.1/core-components.yaml"
+        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/v1.11.0-beta.2/core-components.yaml"
         type: "url"
         contract: v1beta2
         files:
@@ -67,7 +67,7 @@ providers:
     type: BootstrapProvider
     versions:
       - name: "v1.11.99"
-        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/v1.11.0-beta.1/bootstrap-components.yaml"
+        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/v1.11.0-beta.2/bootstrap-components.yaml"
         type: "url"
         contract: v1beta2
         files:
@@ -107,7 +107,7 @@ providers:
     type: ControlPlaneProvider
     versions:
       - name: "v1.11.99"
-        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/v1.11.0-beta.1/control-plane-components.yaml"
+        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/v1.11.0-beta.2/control-plane-components.yaml"
         type: "url"
         contract: v1beta2
         files:
@@ -314,7 +314,7 @@ variables:
   VSPHERE_TEMPLATE: "ubuntu-2404-kube-v1.33.0"
   FLATCAR_VSPHERE_TEMPLATE: "flatcar-stable-4152.2.2-kube-v1.33.0"
   KUBETEST_CONFIGURATION: "./data/kubetest/conformance.yaml"
-  NODE_DRAIN_TIMEOUT: "60s"
+  NODE_DRAIN_TIMEOUT_SECONDS: "60"
   EXP_CLUSTER_RESOURCE_SET: "true"
   EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION: "true"
   CLUSTER_TOPOLOGY: "true"

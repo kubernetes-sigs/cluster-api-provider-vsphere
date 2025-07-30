@@ -33,9 +33,6 @@ spec:
       - op: add
         path: /spec/template/spec/kubeadmConfigSpec/files
         value: []
-      - op: add
-        path: /spec/template/spec/kubeadmConfigSpec/postKubeadmCommands
-        value: []
       selector:
         apiVersion: controlplane.cluster.x-k8s.io/v1beta2
         kind: KubeadmControlPlaneTemplate
@@ -44,9 +41,6 @@ spec:
     - jsonPatches:
       - op: add
         path: /spec/template/spec/files
-        value: []
-      - op: add
-        path: /spec/template/spec/postKubeadmCommands
         value: []
       selector:
         apiVersion: bootstrap.cluster.x-k8s.io/v1beta2

@@ -24,6 +24,7 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -110,9 +111,7 @@ func (webhook *VSphereMachine) ValidateUpdate(_ context.Context, oldRaw runtime.
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "minHardwareVersion"), "cannot be modified"))
 	}
 
-	if oldSpec.Network != nil && oldSpec.Network.Interfaces != nil &&
-		newSpec.Network != nil && newSpec.Network.Interfaces != nil &&
-		!reflect.DeepEqual(newSpec.Network.Interfaces, oldSpec.Network.Interfaces) {
+	if !reflect.DeepEqual(newSpec.Network.Interfaces, oldSpec.Network.Interfaces) {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "network", "interfaces"), "cannot be modified"))
 	}
 
@@ -126,14 +125,14 @@ func (webhook *VSphereMachine) ValidateDelete(_ context.Context, _ runtime.Objec
 	return nil, nil
 }
 
-func validateInterfaces(networkProvider string, network *vmwarev1.VSphereMachineNetworkSpec, pathPrefix []string) field.ErrorList {
+func validateInterfaces(networkProvider string, network vmwarev1.VSphereMachineNetworkSpec, pathPrefix []string) field.ErrorList {
 	var allErrs field.ErrorList
 
 	interfacesPath := append(pathPrefix, "spec", "network", "interfaces")
 	primaryPath := append(interfacesPath, "primary")
 	primaryNetworkPath := append(primaryPath, "primary", "network")
 
-	if network != nil && network.Interfaces != nil {
+	if network.Interfaces.IsDefined() {
 		if !feature.Gates.Enabled(feature.MultiNetworks) {
 			allErrs = append(allErrs, field.Forbidden(
 				field.NewPath(interfacesPath[0], interfacesPath[1:]...),
@@ -143,34 +142,38 @@ func validateInterfaces(networkProvider string, network *vmwarev1.VSphereMachine
 			switch networkProvider {
 			case manager.NSXVPCNetworkProvider:
 				primary := network.Interfaces.Primary
-				if primary != nil && primary.Network.TypeMeta.GroupVersionKind() != pkgnetwork.NetworkGVKNSXTVPCSubnetSet {
-					allErrs = append(allErrs, field.Invalid(
-						field.NewPath(primaryNetworkPath[0], primaryNetworkPath[1:]...),
-						primary.Network.TypeMeta.GroupVersionKind(),
-						fmt.Sprintf("only support %s", pkgnetwork.NetworkGVKNSXTVPCSubnetSet)))
+				if primary.IsDefined() {
+					primaryNetGVK := schema.FromAPIVersionAndKind(primary.Network.APIVersion, primary.Network.Kind)
+					if primaryNetGVK != pkgnetwork.NetworkGVKNSXTVPCSubnetSet {
+						allErrs = append(allErrs, field.Invalid(
+							field.NewPath(primaryNetworkPath[0], primaryNetworkPath[1:]...),
+							primaryNetGVK,
+							fmt.Sprintf("only support %s", pkgnetwork.NetworkGVKNSXTVPCSubnetSet)))
+					}
 				}
 				for i, secondaryInterface := range network.Interfaces.Secondary {
-					if secondaryInterface.Network.TypeMeta.GroupVersionKind() != pkgnetwork.NetworkGVKNSXTVPCSubnetSet &&
-						secondaryInterface.Network.TypeMeta.GroupVersionKind() != pkgnetwork.NetworkGVKNSXTVPCSubnet {
+					secondaryNetGVK := schema.FromAPIVersionAndKind(secondaryInterface.Network.APIVersion, secondaryInterface.Network.Kind)
+					if secondaryNetGVK != pkgnetwork.NetworkGVKNSXTVPCSubnetSet && secondaryNetGVK != pkgnetwork.NetworkGVKNSXTVPCSubnet {
 						secondaryNetworkPath := append(interfacesPath, fmt.Sprintf("secondary[%d]", i), "network")
 						allErrs = append(allErrs, field.Invalid(
 							field.NewPath(secondaryNetworkPath[0], secondaryNetworkPath[1:]...),
-							secondaryInterface.Network.TypeMeta.GroupVersionKind(),
+							secondaryNetGVK,
 							fmt.Sprintf("only support %s or %s", pkgnetwork.NetworkGVKNSXTVPCSubnetSet, pkgnetwork.NetworkGVKNSXTVPCSubnet)))
 					}
 				}
 			case manager.VDSNetworkProvider:
-				if network.Interfaces.Primary != nil {
+				if network.Interfaces.Primary.IsDefined() {
 					allErrs = append(allErrs, field.Forbidden(
 						field.NewPath(primaryPath[0], primaryPath[1:]...),
 						"primary interface can not be set when network provider is vsphere-network"))
 				}
 				for i, secondaryInterface := range network.Interfaces.Secondary {
-					if secondaryInterface.Network.TypeMeta.GroupVersionKind() != pkgnetwork.NetworkGVKNetOperator {
+					secondaryNetGVK := schema.FromAPIVersionAndKind(secondaryInterface.Network.APIVersion, secondaryInterface.Network.Kind)
+					if secondaryNetGVK != pkgnetwork.NetworkGVKNetOperator {
 						secondaryNetworkPath := append(interfacesPath, fmt.Sprintf("secondary[%d]", i), "network")
 						allErrs = append(allErrs, field.Invalid(
 							field.NewPath(secondaryNetworkPath[0], secondaryNetworkPath[1:]...),
-							secondaryInterface.Network.TypeMeta.GroupVersionKind(),
+							secondaryNetGVK,
 							fmt.Sprintf("only support %s", pkgnetwork.NetworkGVKNetOperator)))
 					}
 				}

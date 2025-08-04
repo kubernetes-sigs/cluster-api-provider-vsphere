@@ -228,20 +228,18 @@ var _ = Describe("Network provider", func() {
 
 					BeforeEach(func() {
 						// Set up VSphereMachine with network interfaces
-						machine.Spec.Network = &vmwarev1.VSphereMachineNetworkSpec{
-							Interfaces: &vmwarev1.InterfacesSpec{
-								Secondary: []vmwarev1.InterfaceSpec{
+						machine.Spec.Network = vmwarev1.VSphereMachineNetworkSpec{
+							Interfaces: vmwarev1.InterfacesSpec{
+								Secondary: []vmwarev1.SecondaryInterfaceSpec{
 									{
 										Name: "eth1",
-										InterfaceProperty: vmwarev1.InterfaceProperty{
-											Network: vmwarev1.PartialObjectRef{
-												TypeMeta: metav1.TypeMeta{
-													Kind:       "Network",
-													APIVersion: netopv1.SchemeGroupVersion.String(),
-												},
-												Name: "one-secondary-network",
+										InterfaceSpec: vmwarev1.InterfaceSpec{
+											Network: vmwarev1.InterfaceNetworkRefeference{
+												Kind:       "Network",
+												APIVersion: netopv1.SchemeGroupVersion.String(),
+												Name:       "one-secondary-network",
 											},
-											MTU: &[]int64{1500}[0],
+											MTU: int32(1500),
 											Routes: []vmwarev1.RouteSpec{
 												{
 													To:  "10.0.0.0/24",
@@ -252,13 +250,11 @@ var _ = Describe("Network provider", func() {
 									},
 									{
 										Name: "eth2",
-										InterfaceProperty: vmwarev1.InterfaceProperty{
-											Network: vmwarev1.PartialObjectRef{
-												TypeMeta: metav1.TypeMeta{
-													Kind:       "Network",
-													APIVersion: netopv1.SchemeGroupVersion.String(),
-												},
-												Name: "another-secondary-network",
+										InterfaceSpec: vmwarev1.InterfaceSpec{
+											Network: vmwarev1.InterfaceNetworkRefeference{
+												Kind:       "Network",
+												APIVersion: netopv1.SchemeGroupVersion.String(),
+												Name:       "another-secondary-network",
 											},
 										},
 									},
@@ -393,23 +389,21 @@ var _ = Describe("Network provider", func() {
 				})
 			})
 
-			Context("ConfigureVirtualMachine with network.interfaces set in vSphereMachine spec", func() {
+			Context("ConfigureVirtualMachine with only secondary network.interfaces set in vSphereMachine spec", func() {
 				BeforeEach(func() {
 					// Set up VSphereMachine with network interfaces
-					machine.Spec.Network = &vmwarev1.VSphereMachineNetworkSpec{
-						Interfaces: &vmwarev1.InterfacesSpec{
-							Secondary: []vmwarev1.InterfaceSpec{
+					machine.Spec.Network = vmwarev1.VSphereMachineNetworkSpec{
+						Interfaces: vmwarev1.InterfacesSpec{
+							Secondary: []vmwarev1.SecondaryInterfaceSpec{
 								{
 									Name: "eth1",
-									InterfaceProperty: vmwarev1.InterfaceProperty{
-										Network: vmwarev1.PartialObjectRef{
-											TypeMeta: metav1.TypeMeta{
-												Kind:       "SubnetSet",
-												APIVersion: nsxvpcv1.SchemeGroupVersion.String(),
-											},
-											Name: "secondary-subnetset",
+									InterfaceSpec: vmwarev1.InterfaceSpec{
+										Network: vmwarev1.InterfaceNetworkRefeference{
+											Kind:       "SubnetSet",
+											APIVersion: nsxvpcv1.SchemeGroupVersion.String(),
+											Name:       "secondary-subnetset",
 										},
-										MTU: &[]int64{1500}[0],
+										MTU: int32(1500),
 										Routes: []vmwarev1.RouteSpec{
 											{
 												To:  "10.0.0.0/24",
@@ -420,13 +414,11 @@ var _ = Describe("Network provider", func() {
 								},
 								{
 									Name: "eth2",
-									InterfaceProperty: vmwarev1.InterfaceProperty{
-										Network: vmwarev1.PartialObjectRef{
-											TypeMeta: metav1.TypeMeta{
-												Kind:       "SubnetSet",
-												APIVersion: nsxvpcv1.SchemeGroupVersion.String(),
-											},
-											Name: "another-secondary-subnetset",
+									InterfaceSpec: vmwarev1.InterfaceSpec{
+										Network: vmwarev1.InterfaceNetworkRefeference{
+											Kind:       "SubnetSet",
+											APIVersion: nsxvpcv1.SchemeGroupVersion.String(),
+											Name:       "another-secondary-subnetset",
 										},
 									},
 								},
@@ -488,24 +480,22 @@ var _ = Describe("Network provider", func() {
 			Context("ConfigureVirtualMachine with createSubnetSet=false and custom primary interface", func() {
 				BeforeEach(func() {
 					// Set createSubnetSet to false
-					vSphereCluster.Spec.Network = &vmwarev1.Network{
-						NsxVPC: &vmwarev1.NSXVPC{
+					vSphereCluster.Spec.Network = vmwarev1.Network{
+						NSXVPC: vmwarev1.NSXVPC{
 							CreateSubnetSet: &[]bool{false}[0],
 						},
 					}
 
 					// Set up VSphereMachine with custom primary interface and secondary interfaces
-					machine.Spec.Network = &vmwarev1.VSphereMachineNetworkSpec{
-						Interfaces: &vmwarev1.InterfacesSpec{
-							Primary: &vmwarev1.InterfaceProperty{
-								Network: vmwarev1.PartialObjectRef{
-									TypeMeta: metav1.TypeMeta{
-										Kind:       "SubnetSet",
-										APIVersion: nsxvpcv1.SchemeGroupVersion.String(),
-									},
-									Name: "custom-primary-subnetset",
+					machine.Spec.Network = vmwarev1.VSphereMachineNetworkSpec{
+						Interfaces: vmwarev1.InterfacesSpec{
+							Primary: vmwarev1.InterfaceSpec{
+								Network: vmwarev1.InterfaceNetworkRefeference{
+									Kind:       "SubnetSet",
+									APIVersion: nsxvpcv1.SchemeGroupVersion.String(),
+									Name:       "custom-primary-subnetset",
 								},
-								MTU: &[]int64{9000}[0],
+								MTU: int32(9000),
 								Routes: []vmwarev1.RouteSpec{
 									{
 										To:  "default",
@@ -513,18 +503,16 @@ var _ = Describe("Network provider", func() {
 									},
 								},
 							},
-							Secondary: []vmwarev1.InterfaceSpec{
+							Secondary: []vmwarev1.SecondaryInterfaceSpec{
 								{
 									Name: "eth1",
-									InterfaceProperty: vmwarev1.InterfaceProperty{
-										Network: vmwarev1.PartialObjectRef{
-											TypeMeta: metav1.TypeMeta{
-												Kind:       "SubnetSet",
-												APIVersion: nsxvpcv1.SchemeGroupVersion.String(),
-											},
-											Name: "secondary-subnetset",
+									InterfaceSpec: vmwarev1.InterfaceSpec{
+										Network: vmwarev1.InterfaceNetworkRefeference{
+											Kind:       "SubnetSet",
+											APIVersion: nsxvpcv1.SchemeGroupVersion.String(),
+											Name:       "secondary-subnetset",
 										},
-										MTU: &[]int64{1500}[0],
+										MTU: int32(1500),
 										Routes: []vmwarev1.RouteSpec{
 											{
 												To:  "10.0.0.0/24",
@@ -1059,8 +1047,8 @@ var _ = Describe("Network provider", func() {
 		Context("with NSX-VPC network provider and createSubnetSet is false", func() {
 			BeforeEach(func() {
 				// Set createSubnetSet to false on the cluster spec
-				vSphereCluster.Spec.Network = &vmwarev1.Network{
-					NsxVPC: &vmwarev1.NSXVPC{
+				vSphereCluster.Spec.Network = vmwarev1.Network{
+					NSXVPC: vmwarev1.NSXVPC{
 						CreateSubnetSet: &[]bool{false}[0],
 					},
 				}

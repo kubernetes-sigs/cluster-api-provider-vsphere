@@ -75,17 +75,15 @@ func (webhook *VSphereCluster) ValidateDelete(_ context.Context, _ runtime.Objec
 }
 
 func (webhook *VSphereCluster) validateClusterNetwork(cluster *vmwarev1.VSphereCluster) (admission.Warnings, error) {
-	if cluster.Spec.Network != nil && cluster.Spec.Network.NsxVPC != nil {
-		if !feature.Gates.Enabled(feature.MultiNetworks) && cluster.Spec.Network.NsxVPC.CreateSubnetSet != nil {
-			return nil, apierrors.NewInvalid(cluster.GroupVersionKind().GroupKind(), cluster.Name, field.ErrorList{
-				field.Forbidden(field.NewPath("spec", "network", "nsxVPC", "createSubnetSet"), "createSubnetSet can only be set when MultiNetworks feature gate is enabled"),
-			})
-		}
-		if webhook.NetworkProvider != manager.NSXVPCNetworkProvider {
-			return nil, apierrors.NewInvalid(cluster.GroupVersionKind().GroupKind(), cluster.Name, field.ErrorList{
-				field.Forbidden(field.NewPath("spec", "network", "nsxVPC"), "nsxVPC can only be set when network provider is NSX-VPC"),
-			})
-		}
+	if !feature.Gates.Enabled(feature.MultiNetworks) && cluster.Spec.Network.NSXVPC.CreateSubnetSet != nil {
+		return nil, apierrors.NewInvalid(cluster.GroupVersionKind().GroupKind(), cluster.Name, field.ErrorList{
+			field.Forbidden(field.NewPath("spec", "network", "nsxVPC", "createSubnetSet"), "createSubnetSet can only be set when MultiNetworks feature gate is enabled"),
+		})
+	}
+	if cluster.Spec.Network.NSXVPC.IsDefined() && webhook.NetworkProvider != manager.NSXVPCNetworkProvider {
+		return nil, apierrors.NewInvalid(cluster.GroupVersionKind().GroupKind(), cluster.Name, field.ErrorList{
+			field.Forbidden(field.NewPath("spec", "network", "nsxVPC"), "nsxVPC can only be set when network provider is NSX-VPC"),
+		})
 	}
 	return nil, nil
 }

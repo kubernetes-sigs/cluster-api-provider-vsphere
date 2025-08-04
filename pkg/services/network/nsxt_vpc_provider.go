@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
@@ -113,10 +114,8 @@ func (vp *nsxtVPCNetworkProvider) verifyNsxtVpcSubnetSetStatus(vspherecluster *v
 func createSubnetSet(clusterCtx *vmware.ClusterContext) bool {
 	cluster := clusterCtx.VSphereCluster
 	isCreate := true
-	if cluster.Spec.Network != nil &&
-		cluster.Spec.Network.NsxVPC != nil &&
-		cluster.Spec.Network.NsxVPC.CreateSubnetSet != nil {
-		isCreate = *cluster.Spec.Network.NsxVPC.CreateSubnetSet
+	if cluster.Spec.Network.NSXVPC.CreateSubnetSet != nil {
+		isCreate = *cluster.Spec.Network.NSXVPC.CreateSubnetSet
 	}
 	return isCreate
 }
@@ -224,7 +223,7 @@ func (vp *nsxtVPCNetworkProvider) ConfigureVirtualMachine(_ context.Context, clu
 
 	// Set the VM primary interface
 	if createSubnetSet(clusterCtx) {
-		if machine.Spec.Network != nil && machine.Spec.Network.Interfaces != nil && machine.Spec.Network.Interfaces.Primary != nil {
+		if machine.Spec.Network.Interfaces.Primary.IsDefined() {
 			return errors.New("primary interface can not be configured when createSubnetSet is true")
 		}
 		networkName := clusterCtx.VSphereCluster.Name
@@ -239,10 +238,14 @@ func (vp *nsxtVPCNetworkProvider) ConfigureVirtualMachine(_ context.Context, clu
 			},
 		})
 	} else {
-		if machine.Spec.Network == nil || machine.Spec.Network.Interfaces == nil || machine.Spec.Network.Interfaces.Primary == nil {
+		if !machine.Spec.Network.Interfaces.Primary.IsDefined() {
 			return errors.New("primary interface must be configured when createSubnetSet is false")
 		}
 		primary := machine.Spec.Network.Interfaces.Primary
+		var mtu *int64
+		if primary.MTU != 0 {
+			mtu = ptr.To(int64(primary.MTU))
+		}
 		vmInterface := vmoprv1.VirtualMachineNetworkInterfaceSpec{
 			Name: PrimaryInterfaceName,
 			Network: vmoprv1common.PartialObjectRef{
@@ -252,7 +255,7 @@ func (vp *nsxtVPCNetworkProvider) ConfigureVirtualMachine(_ context.Context, clu
 				},
 				Name: primary.Network.Name,
 			},
-			MTU: primary.MTU,
+			MTU: mtu,
 		}
 		setRoutes(&vmInterface, primary.Routes)
 		vm.Spec.Network.Interfaces = append(vm.Spec.Network.Interfaces, vmInterface)
@@ -273,10 +276,14 @@ func setRoutes(vmInterface *vmoprv1.VirtualMachineNetworkInterfaceSpec, routes [
 }
 
 func setVMSecondaryInterfaces(machine *vmwarev1.VSphereMachine, vm *vmoprv1.VirtualMachine) {
-	if machine.Spec.Network == nil || machine.Spec.Network.Interfaces == nil || machine.Spec.Network.Interfaces.Secondary == nil {
+	if len(machine.Spec.Network.Interfaces.Secondary) == 0 {
 		return
 	}
 	for _, secondaryInterface := range machine.Spec.Network.Interfaces.Secondary {
+		var mtu *int64
+		if secondaryInterface.MTU != 0 {
+			mtu = ptr.To(int64(secondaryInterface.MTU))
+		}
 		vmInterface := vmoprv1.VirtualMachineNetworkInterfaceSpec{
 			Name: secondaryInterface.Name,
 			Network: vmoprv1common.PartialObjectRef{
@@ -286,7 +293,7 @@ func setVMSecondaryInterfaces(machine *vmwarev1.VSphereMachine, vm *vmoprv1.Virt
 				},
 				Name: secondaryInterface.Network.Name,
 			},
-			MTU:      secondaryInterface.MTU,
+			MTU:      mtu,
 			Gateway4: "None",
 			Gateway6: "None",
 		}

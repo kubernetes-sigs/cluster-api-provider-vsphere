@@ -17,6 +17,8 @@ limitations under the License.
 package v1beta1
 
 import (
+	"reflect"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
@@ -37,62 +39,103 @@ type VSphereMachineVolume struct {
 
 // RouteSpec defines a static route for a guest.
 type RouteSpec struct {
-	// To is either "default", or an IP4 address. IP6 is not supported yet.
+	// to is either "default", or an IP4 address. IP6 is not supported yet.
 	//
 	// +kubebuilder:validation:Pattern=`^(default|([0-9]{1,3}\.){3}[0-9]{1,3}(\/[0-9]{1,2})?)$`
-	To string `json:"to"`
+	// +kubebuilder:validation:MinLength=9
+	// +kubebuilder:validation:MaxLength=18
+	// +required
+	To string `json:"to,omitempty"`
 
-	// Via is an IP4 address. IP6 is not supported yet.
+	// via is an IP4 address. IP6 is not supported yet.
 	//
 	// +kubebuilder:validation:Pattern=`^([0-9]{1,3}\.){3}[0-9]{1,3}$`
-	Via string `json:"via"`
+	// +kubebuilder:validation:MinLength=7
+	// +kubebuilder:validation:MaxLength=15
+	// +required
+	Via string `json:"via,omitempty"`
 }
 
-// PartialObjectRef describes a reference to another object in the same
+// InterfaceNetworkRefeference describes a reference to another object in the same
 // namespace as the referrer. The reference can be just a name but may also
 // include the referred resource's APIVersion and Kind.
-type PartialObjectRef struct {
-	metav1.TypeMeta `json:",inline"`
+type InterfaceNetworkRefeference struct {
+	// kind of the remediation template.
+	// kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:Pattern=`^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$`
+	Kind string `json:"kind,omitempty"`
 
-	// Name refers to a unique resource in the current namespace.
-	Name string `json:"name"`
+	// name of the remediation template.
+	// name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
+	Name string `json:"name,omitempty"`
+
+	// apiVersion of the remediation template.
+	// apiVersion must be fully qualified domain name followed by / and a version.
+	// NOTE: This field must be kept in sync with the APIVersion of the remediation template.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=317
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\/[a-z]([-a-z0-9]*[a-z0-9])?$`
+	APIVersion string `json:"apiVersion,omitempty"`
 }
 
-// InterfaceProperty defines properties of a network interface.
-type InterfaceProperty struct {
-	// Network is the name of the network resource to which this interface is
+// InterfaceSpec defines properties of a network interface.
+type InterfaceSpec struct {
+	// network is the name of the network resource to which this interface is
 	// connected.
-	Network PartialObjectRef `json:"network"`
+	// +required
+	Network InterfaceNetworkRefeference `json:"network,omitempty,omitzero"`
 
-	// MTU is the Maximum Transmission Unit size in bytes.
+	// mtu is the Maximum Transmission Unit size in bytes.
 	//
-	// +kubebuilder:validation:Optional
-	MTU *int64 `json:"mtu,omitempty"`
+	// +kubebuilder:validation:Minimum=68
+	// +kubebuilder:validation:Maximum=9000
+	// +optional
+	MTU int32 `json:"mtu,omitempty"`
 
-	// Routes is a list of optional, static routes.
+	// routes is a list of optional, static routes.
 	//
 	// Please note this feature is available only with the following bootstrap
 	// providers: CloudInit.
 	//
-	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
+	// +listType=atomic
+	// +optional
 	Routes []RouteSpec `json:"routes,omitempty"`
 }
 
-// InterfaceSpec defines a network interface for a VSphereMachine.
-type InterfaceSpec struct {
-	// Name describes the unique name of this network interface, used to
+// IsDefined returns true if the InterfaceSpec is defined.
+func (r *InterfaceSpec) IsDefined() bool {
+	return !reflect.DeepEqual(r, &InterfaceSpec{})
+}
+
+// SecondaryInterfaceSpec defines a secondary network interface for a VSphereMachine.
+type SecondaryInterfaceSpec struct {
+	// name describes the unique name of this network interface, used to
 	// distinguish it from other network interfaces attached to this VSphereMachine.
 	//
 	// +kubebuilder:validation:Pattern="^[a-z0-9]{2,}$"
-	Name string `json:"name"`
+	// +kubebuilder:validation:MinLength=2
+	// +kubebuilder:validation:MaxLength=15
+	// +required
+	Name string `json:"name,omitempty"`
 
-	InterfaceProperty `json:",inline"`
+	InterfaceSpec `json:",inline"`
 }
 
 // InterfacesSpec defines all the network interfaces of a VSphereMachine from Kubernetes perspective.
 // +kubebuilder:validation:XValidation:rule="has(self.primary) == has(oldSelf.primary)",message="field 'primary' cannot be added or removed after creation"
+// +kubebuilder:validation:MinProperties=1
 type InterfacesSpec struct {
-	// Primary is the primary network interface.
+	// primary is the primary network interface.
 	//
 	// It is used to connect the Kubernetes primary network for Load balancer,
 	// Service discovery, Pod traffic and management traffic etc.
@@ -100,26 +143,40 @@ type InterfacesSpec struct {
 	// Customization is only supported with network provider NSX-VPC.
 	// It should be set only when VSphereCluster spec.network.nsxVPC.createSubnetSet is set to false.
 	//
-	// +kubebuilder:validation:Optional
-	Primary *InterfaceProperty `json:"primary,omitempty"`
+	// +optional
+	Primary InterfaceSpec `json:"primary,omitempty,omitzero"`
 
-	// Secondary is the secondary network interface.
+	// secondary is the secondary network interface.
 	//
 	// It is used for any purpose like deploying Antrea secondary network,
 	// Multus, mounting NFS etc.
 	// Secondary network is supported with network provider NSX-VPC and vsphere-network.
 	//
-	// +kubebuilder:validation:Optional
-	Secondary []InterfaceSpec `json:"secondary,omitempty"`
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=9
+	// +listType=atomic
+	// +optional
+	Secondary []SecondaryInterfaceSpec `json:"secondary,omitempty"`
+}
+
+// IsDefined returns true if the InterfacesSpec is defined.
+func (r *InterfacesSpec) IsDefined() bool {
+	return !reflect.DeepEqual(r, &InterfacesSpec{})
 }
 
 // VSphereMachineNetworkSpec defines the network configuration of a VSphereMachine.
 // +kubebuilder:validation:XValidation:rule="has(self.interfaces) == has(oldSelf.interfaces)",message="field 'interfaces' cannot be added or removed after creation"
+// +kubebuilder:validation:MinProperties=1
 type VSphereMachineNetworkSpec struct {
-	// Interfaces is the list of network interfaces attached to this VSphereMachine.
+	// interfaces is the list of network interfaces attached to this VSphereMachine.
 	//
-	// +kubebuilder:validation:Optional
-	Interfaces *InterfacesSpec `json:"interfaces,omitempty"`
+	// +optional
+	Interfaces InterfacesSpec `json:"interfaces,omitempty,omitzero"`
+}
+
+// IsDefined returns true if the VSphereMachineNetworkSpec is defined.
+func (r *VSphereMachineNetworkSpec) IsDefined() bool {
+	return !reflect.DeepEqual(r, &VSphereMachineNetworkSpec{})
 }
 
 // VSphereMachineSpec defines the desired state of VSphereMachine.
@@ -153,9 +210,9 @@ type VSphereMachineSpec struct {
 	// +optional
 	Volumes []VSphereMachineVolume `json:"volumes,omitempty"`
 
-	// Network is the network configuration for the VSphereMachine
-	// +kubebuilder:validation:Optional
-	Network *VSphereMachineNetworkSpec `json:"network,omitempty"`
+	// network is the network configuration for the VSphereMachine
+	// +optional
+	Network VSphereMachineNetworkSpec `json:"network,omitempty,omitzero"`
 
 	// PowerOffMode describes the desired behavior when powering off a VM.
 	//
@@ -214,6 +271,10 @@ type VSphereMachineStatus struct {
 	Ready bool `json:"ready"`
 
 	// Addresses contains the instance associated addresses.
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=10
+	// +listType=atomic
+	// +optional
 	Addresses []clusterv1.MachineAddress `json:"addresses,omitempty"`
 
 	// ID is used to identify the virtual machine.
@@ -274,11 +335,11 @@ type VSphereMachineStatus struct {
 	// +optional
 	V1Beta2 *VSphereMachineV1Beta2Status `json:"v1beta2,omitempty"`
 
-	// Network describes the observed state of the VM's network configuration.
+	// network describes the observed state of the VM's network configuration.
 	// Please note much of the network status information is only available if
 	// the guest has VM Tools installed.
 	// +optional
-	Network *VSphereMachineNetworkStatus `json:"network,omitempty"`
+	Network VSphereMachineNetworkStatus `json:"network,omitempty,omitzero"`
 }
 
 // VSphereMachineV1Beta2Status groups all the fields that will be added or modified in VSphereMachineStatus with the V1Beta2 version.

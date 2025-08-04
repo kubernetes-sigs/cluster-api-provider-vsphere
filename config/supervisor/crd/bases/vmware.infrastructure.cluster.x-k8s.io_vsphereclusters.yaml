@@ -57,15 +57,17 @@ spec:
                 - port
                 type: object
               network:
-                description: Network defines the network configuration for the cluster
+                description: network defines the network configuration for the cluster
                   with different network providers.
+                minProperties: 1
                 properties:
                   nsxVPC:
-                    description: NSXVPC defines the configuration when network provider
-                      is NSX-VPC.
+                    description: nsxVPC defines the configuration when the network
+                      provider is NSX-VPC.
+                    minProperties: 1
                     properties:
                       createSubnetSet:
-                        description: CreateSubnetSet is a flag to indicate whether
+                        description: createSubnetSet is a flag to indicate whether
                           to create a SubnetSet or not as the primary network. If
                           not set, the default is true.
                         type: boolean

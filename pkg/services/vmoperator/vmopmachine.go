@@ -532,15 +532,15 @@ func (v *VmopMachineService) reconcileNetwork(supervisorMachineCtx *vmware.Super
 			}
 			// set IP
 			if vmIface.IP != nil {
-				var dhcp *vmwarev1.VSphereMachineNetworkDHCPStatus
+				var dhcp vmwarev1.VSphereMachineNetworkDHCPStatus
 				if vmIface.IP.DHCP != nil {
-					dhcp = &vmwarev1.VSphereMachineNetworkDHCPStatus{
+					dhcp = vmwarev1.VSphereMachineNetworkDHCPStatus{
 						IP4: vmwarev1.VSphereMachineNetworkDHCPOptionsStatus{
-							Enabled: vmIface.IP.DHCP.IP4.Enabled,
+							Enabled: ptr.To(vmIface.IP.DHCP.IP4.Enabled),
 							Config:  convertKeyValueSlice(vmIface.IP.DHCP.IP4.Config),
 						},
 						IP6: vmwarev1.VSphereMachineNetworkDHCPOptionsStatus{
-							Enabled: vmIface.IP.DHCP.IP6.Enabled,
+							Enabled: ptr.To(vmIface.IP.DHCP.IP6.Enabled),
 							Config:  convertKeyValueSlice(vmIface.IP.DHCP.IP6.Config),
 						},
 					}
@@ -554,7 +554,7 @@ func (v *VmopMachineService) reconcileNetwork(supervisorMachineCtx *vmware.Super
 						State:    addr.State,
 					})
 				}
-				iface.IP = &vmwarev1.VSphereMachineNetworkInterfaceIPStatus{
+				iface.IP = vmwarev1.VSphereMachineNetworkInterfaceIPStatus{
 					AutoConfigurationEnabled: vmIface.IP.AutoConfigurationEnabled,
 					MACAddr:                  vmIface.IP.MACAddr,
 					DHCP:                     dhcp,
@@ -563,8 +563,8 @@ func (v *VmopMachineService) reconcileNetwork(supervisorMachineCtx *vmware.Super
 			}
 			// set DNS
 			if vmIface.DNS != nil {
-				iface.DNS = &vmwarev1.VSphereMachineNetworkDNSStatus{
-					DHCP:          vmIface.DNS.DHCP,
+				iface.DNS = vmwarev1.VSphereMachineNetworkDNSStatus{
+					DHCP:          ptr.To(vmIface.DNS.DHCP),
 					DomainName:    vmIface.DNS.DomainName,
 					HostName:      vmIface.DNS.HostName,
 					Nameservers:   vmIface.DNS.Nameservers,
@@ -573,7 +573,7 @@ func (v *VmopMachineService) reconcileNetwork(supervisorMachineCtx *vmware.Super
 			}
 			interfaces = append(interfaces, iface)
 		}
-		supervisorMachineCtx.VSphereMachine.Status.Network = &vmwarev1.VSphereMachineNetworkStatus{
+		supervisorMachineCtx.VSphereMachine.Status.Network = vmwarev1.VSphereMachineNetworkStatus{
 			Interfaces: interfaces,
 		}
 	}

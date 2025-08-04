@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	featuregatetesting "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 
@@ -109,7 +108,7 @@ func TestVSphereMachineTemplate_ValidateInterfaces(t *testing.T) {
 		name            string
 		featureGate     *bool
 		networkProvider string
-		network         *vmwarev1.VSphereMachineNetworkSpec
+		network         vmwarev1.VSphereMachineNetworkSpec
 		wantErr         bool
 		wantErrMsg      string
 	}{
@@ -117,15 +116,13 @@ func TestVSphereMachineTemplate_ValidateInterfaces(t *testing.T) {
 			name:            "interfaces set but feature gate disabled",
 			featureGate:     ptrToBool(false),
 			networkProvider: manager.NSXVPCNetworkProvider,
-			network: &vmwarev1.VSphereMachineNetworkSpec{
-				Interfaces: &vmwarev1.InterfacesSpec{
-					Primary: &vmwarev1.InterfaceProperty{
-						Network: vmwarev1.PartialObjectRef{
-							TypeMeta: metav1.TypeMeta{
-								Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnetSet.Kind,
-								APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnetSet.GroupVersion().String(),
-							},
-							Name: "primary-subnetset",
+			network: vmwarev1.VSphereMachineNetworkSpec{
+				Interfaces: vmwarev1.InterfacesSpec{
+					Primary: vmwarev1.InterfaceSpec{
+						Network: vmwarev1.InterfaceNetworkRefeference{
+							Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnetSet.Kind,
+							APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnetSet.GroupVersion().String(),
+							Name:       "primary-subnetset",
 						},
 					},
 				},
@@ -136,15 +133,13 @@ func TestVSphereMachineTemplate_ValidateInterfaces(t *testing.T) {
 		{
 			name:            "primary interface with wrong type for NSX-VPC",
 			networkProvider: manager.NSXVPCNetworkProvider,
-			network: &vmwarev1.VSphereMachineNetworkSpec{
-				Interfaces: &vmwarev1.InterfacesSpec{
-					Primary: &vmwarev1.InterfaceProperty{
-						Network: vmwarev1.PartialObjectRef{
-							TypeMeta: metav1.TypeMeta{
-								Kind:       pkgnetwork.NetworkGVKNetOperator.Kind,
-								APIVersion: pkgnetwork.NetworkGVKNetOperator.GroupVersion().String(),
-							},
-							Name: "primary-wrong",
+			network: vmwarev1.VSphereMachineNetworkSpec{
+				Interfaces: vmwarev1.InterfacesSpec{
+					Primary: vmwarev1.InterfaceSpec{
+						Network: vmwarev1.InterfaceNetworkRefeference{
+							Kind:       pkgnetwork.NetworkGVKNetOperator.Kind,
+							APIVersion: pkgnetwork.NetworkGVKNetOperator.GroupVersion().String(),
+							Name:       "primary-wrong",
 						},
 					},
 				},
@@ -155,17 +150,15 @@ func TestVSphereMachineTemplate_ValidateInterfaces(t *testing.T) {
 		{
 			name:            "secondary interface with wrong type for NSX-VPC",
 			networkProvider: manager.NSXVPCNetworkProvider,
-			network: &vmwarev1.VSphereMachineNetworkSpec{
-				Interfaces: &vmwarev1.InterfacesSpec{
-					Secondary: []vmwarev1.InterfaceSpec{{
+			network: vmwarev1.VSphereMachineNetworkSpec{
+				Interfaces: vmwarev1.InterfacesSpec{
+					Secondary: []vmwarev1.SecondaryInterfaceSpec{{
 						Name: "eth1",
-						InterfaceProperty: vmwarev1.InterfaceProperty{
-							Network: vmwarev1.PartialObjectRef{
-								TypeMeta: metav1.TypeMeta{
-									Kind:       pkgnetwork.NetworkGVKNetOperator.Kind,
-									APIVersion: pkgnetwork.NetworkGVKNetOperator.GroupVersion().String(),
-								},
-								Name: "secondary-wrong",
+						InterfaceSpec: vmwarev1.InterfaceSpec{
+							Network: vmwarev1.InterfaceNetworkRefeference{
+								Kind:       pkgnetwork.NetworkGVKNetOperator.Kind,
+								APIVersion: pkgnetwork.NetworkGVKNetOperator.GroupVersion().String(),
+								Name:       "secondary-wrong",
 							},
 						},
 					}},
@@ -177,15 +170,13 @@ func TestVSphereMachineTemplate_ValidateInterfaces(t *testing.T) {
 		{
 			name:            "primary interface set for VDS provider",
 			networkProvider: manager.VDSNetworkProvider,
-			network: &vmwarev1.VSphereMachineNetworkSpec{
-				Interfaces: &vmwarev1.InterfacesSpec{
-					Primary: &vmwarev1.InterfaceProperty{
-						Network: vmwarev1.PartialObjectRef{
-							TypeMeta: metav1.TypeMeta{
-								Kind:       pkgnetwork.NetworkGVKNetOperator.Kind,
-								APIVersion: pkgnetwork.NetworkGVKNetOperator.GroupVersion().String(),
-							},
-							Name: "primary-netop",
+			network: vmwarev1.VSphereMachineNetworkSpec{
+				Interfaces: vmwarev1.InterfacesSpec{
+					Primary: vmwarev1.InterfaceSpec{
+						Network: vmwarev1.InterfaceNetworkRefeference{
+							Kind:       pkgnetwork.NetworkGVKNetOperator.Kind,
+							APIVersion: pkgnetwork.NetworkGVKNetOperator.GroupVersion().String(),
+							Name:       "primary-netop",
 						},
 					},
 				},
@@ -196,17 +187,15 @@ func TestVSphereMachineTemplate_ValidateInterfaces(t *testing.T) {
 		{
 			name:            "secondary interface with wrong type for VDS provider",
 			networkProvider: manager.VDSNetworkProvider,
-			network: &vmwarev1.VSphereMachineNetworkSpec{
-				Interfaces: &vmwarev1.InterfacesSpec{
-					Secondary: []vmwarev1.InterfaceSpec{{
+			network: vmwarev1.VSphereMachineNetworkSpec{
+				Interfaces: vmwarev1.InterfacesSpec{
+					Secondary: []vmwarev1.SecondaryInterfaceSpec{{
 						Name: "eth1",
-						InterfaceProperty: vmwarev1.InterfaceProperty{
-							Network: vmwarev1.PartialObjectRef{
-								TypeMeta: metav1.TypeMeta{
-									Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnetSet.Kind,
-									APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnetSet.GroupVersion().String(),
-								},
-								Name: "secondary-wrong",
+						InterfaceSpec: vmwarev1.InterfaceSpec{
+							Network: vmwarev1.InterfaceNetworkRefeference{
+								Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnetSet.Kind,
+								APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnetSet.GroupVersion().String(),
+								Name:       "secondary-wrong",
 							},
 						},
 					}},
@@ -218,17 +207,15 @@ func TestVSphereMachineTemplate_ValidateInterfaces(t *testing.T) {
 		{
 			name:            "duplicate interface names",
 			networkProvider: manager.NSXVPCNetworkProvider,
-			network: &vmwarev1.VSphereMachineNetworkSpec{
-				Interfaces: &vmwarev1.InterfacesSpec{
-					Secondary: []vmwarev1.InterfaceSpec{{
+			network: vmwarev1.VSphereMachineNetworkSpec{
+				Interfaces: vmwarev1.InterfacesSpec{
+					Secondary: []vmwarev1.SecondaryInterfaceSpec{{
 						Name: pkgnetwork.PrimaryInterfaceName,
-						InterfaceProperty: vmwarev1.InterfaceProperty{
-							Network: vmwarev1.PartialObjectRef{
-								TypeMeta: metav1.TypeMeta{
-									Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnet.Kind,
-									APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnet.GroupVersion().String(),
-								},
-								Name: "secondary-dup",
+						InterfaceSpec: vmwarev1.InterfaceSpec{
+							Network: vmwarev1.InterfaceNetworkRefeference{
+								Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnet.Kind,
+								APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnet.GroupVersion().String(),
+								Name:       "secondary-dup",
 							},
 						},
 					}},
@@ -240,26 +227,22 @@ func TestVSphereMachineTemplate_ValidateInterfaces(t *testing.T) {
 		{
 			name:            "valid NSX-VPC interfaces",
 			networkProvider: manager.NSXVPCNetworkProvider,
-			network: &vmwarev1.VSphereMachineNetworkSpec{
-				Interfaces: &vmwarev1.InterfacesSpec{
-					Primary: &vmwarev1.InterfaceProperty{
-						Network: vmwarev1.PartialObjectRef{
-							TypeMeta: metav1.TypeMeta{
-								Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnetSet.Kind,
-								APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnetSet.GroupVersion().String(),
-							},
-							Name: "primary-subnetset",
+			network: vmwarev1.VSphereMachineNetworkSpec{
+				Interfaces: vmwarev1.InterfacesSpec{
+					Primary: vmwarev1.InterfaceSpec{
+						Network: vmwarev1.InterfaceNetworkRefeference{
+							Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnetSet.Kind,
+							APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnetSet.GroupVersion().String(),
+							Name:       "primary-subnetset",
 						},
 					},
-					Secondary: []vmwarev1.InterfaceSpec{{
+					Secondary: []vmwarev1.SecondaryInterfaceSpec{{
 						Name: "eth1",
-						InterfaceProperty: vmwarev1.InterfaceProperty{
-							Network: vmwarev1.PartialObjectRef{
-								TypeMeta: metav1.TypeMeta{
-									Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnetSet.Kind,
-									APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnetSet.GroupVersion().String(),
-								},
-								Name: "secondary-subnetset",
+						InterfaceSpec: vmwarev1.InterfaceSpec{
+							Network: vmwarev1.InterfaceNetworkRefeference{
+								Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnetSet.Kind,
+								APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnetSet.GroupVersion().String(),
+								Name:       "secondary-subnetset",
 							},
 						},
 					}},
@@ -270,17 +253,15 @@ func TestVSphereMachineTemplate_ValidateInterfaces(t *testing.T) {
 		{
 			name:            "valid VDS secondary interface",
 			networkProvider: manager.VDSNetworkProvider,
-			network: &vmwarev1.VSphereMachineNetworkSpec{
-				Interfaces: &vmwarev1.InterfacesSpec{
-					Secondary: []vmwarev1.InterfaceSpec{{
+			network: vmwarev1.VSphereMachineNetworkSpec{
+				Interfaces: vmwarev1.InterfacesSpec{
+					Secondary: []vmwarev1.SecondaryInterfaceSpec{{
 						Name: "eth1",
-						InterfaceProperty: vmwarev1.InterfaceProperty{
-							Network: vmwarev1.PartialObjectRef{
-								TypeMeta: metav1.TypeMeta{
-									Kind:       pkgnetwork.NetworkGVKNetOperator.Kind,
-									APIVersion: pkgnetwork.NetworkGVKNetOperator.GroupVersion().String(),
-								},
-								Name: "secondary-netop",
+						InterfaceSpec: vmwarev1.InterfaceSpec{
+							Network: vmwarev1.InterfaceNetworkRefeference{
+								Kind:       pkgnetwork.NetworkGVKNetOperator.Kind,
+								APIVersion: pkgnetwork.NetworkGVKNetOperator.GroupVersion().String(),
+								Name:       "secondary-netop",
 							},
 						},
 					}},

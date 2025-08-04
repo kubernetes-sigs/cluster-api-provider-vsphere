@@ -17,6 +17,8 @@ limitations under the License.
 package v1beta1
 
 import (
+	"reflect"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 )
@@ -123,19 +125,30 @@ const (
 	VSphereClusterServiceDiscoveryNotReadyV1Beta2Reason = clusterv1beta1.NotReadyV1Beta2Reason
 )
 
-// NSXVPC defines the configuration when network provider is NSX-VPC.
 // +kubebuilder:validation:XValidation:rule="has(self.createSubnetSet) == has(oldSelf.createSubnetSet) && self.createSubnetSet == oldSelf.createSubnetSet",message="CreateSubnetSet value cannot be changed after creation"
+// +kubebuilder:validation:MinProperties=1
 type NSXVPC struct {
-	// CreateSubnetSet is a flag to indicate whether to create a SubnetSet or not as the primary network. If not set, the default is true.
-	// +kubebuilder:validation:Optional
+	// createSubnetSet is a flag to indicate whether to create a SubnetSet or not as the primary network. If not set, the default is true.
+	// +optional
 	CreateSubnetSet *bool `json:"createSubnetSet,omitempty"`
 }
 
-// Network defines the network configuration for the cluster with different network providers.
+// IsDefined returns true if the NSXVPC is defined.
+func (r *NSXVPC) IsDefined() bool {
+	return !reflect.DeepEqual(r, &NSXVPC{})
+}
+
 // +kubebuilder:validation:XValidation:rule="has(self.nsxVPC) == has(oldSelf.nsxVPC)",message="field 'nsxVPC' cannot be added or removed after creation"
+// +kubebuilder:validation:MinProperties=1
 type Network struct {
-	// +kubebuilder:validation:Optional
-	NsxVPC *NSXVPC `json:"nsxVPC,omitempty"`
+	// nsxVPC defines the configuration when the network provider is NSX-VPC.
+	// +optional
+	NSXVPC NSXVPC `json:"nsxVPC,omitempty,omitzero"`
+}
+
+// IsDefined returns true if the Network is defined.
+func (r *Network) IsDefined() bool {
+	return !reflect.DeepEqual(r, &Network{})
 }
 
 // VSphereClusterSpec defines the desired state of VSphereCluster.
@@ -143,8 +156,9 @@ type Network struct {
 type VSphereClusterSpec struct {
 	// +optional
 	ControlPlaneEndpoint clusterv1beta1.APIEndpoint `json:"controlPlaneEndpoint"`
-	// +kubebuilder:validation:Optional
-	Network *Network `json:"network,omitempty"`
+	// network defines the network configuration for the cluster with different network providers.
+	// +optional
+	Network Network `json:"network,omitempty,omitzero"`
 }
 
 // VSphereClusterStatus defines the observed state of VSphereClusterSpec.

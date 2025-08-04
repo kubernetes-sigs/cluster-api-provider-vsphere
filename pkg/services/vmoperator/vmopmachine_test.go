@@ -337,17 +337,15 @@ var _ = Describe("VirtualMachine tests", func() {
 			Expect(iface.DeviceKey).To(Equal(int32(4000)))
 
 			// Verify IP configuration
-			Expect(iface.IP).NotTo(BeNil())
 			Expect(*iface.IP.AutoConfigurationEnabled).To(BeTrue())
 			Expect(iface.IP.MACAddr).To(Equal("00:50:56:00:00:01"))
 
 			// Verify DHCP configuration
-			Expect(iface.IP.DHCP).NotTo(BeNil())
-			Expect(iface.IP.DHCP.IP4.Enabled).To(BeTrue())
+			Expect(*iface.IP.DHCP.IP4.Enabled).To(BeTrue())
 			Expect(iface.IP.DHCP.IP4.Config).To(HaveLen(2))
 			Expect(iface.IP.DHCP.IP4.Config[0].Key).To(Equal("1"))
 			Expect(iface.IP.DHCP.IP4.Config[0].Value).To(Equal("timeout 60;"))
-			Expect(iface.IP.DHCP.IP6.Enabled).To(BeFalse())
+			Expect(*iface.IP.DHCP.IP6.Enabled).To(BeFalse())
 
 			// Verify IP addresses
 			Expect(iface.IP.Addresses).To(HaveLen(1))
@@ -356,8 +354,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			Expect(iface.IP.Addresses[0].State).To(Equal("preferred"))
 
 			// Verify DNS configuration
-			Expect(iface.DNS).NotTo(BeNil())
-			Expect(iface.DNS.DHCP).To(BeTrue())
+			Expect(*iface.DNS.DHCP).To(BeTrue())
 			Expect(iface.DNS.DomainName).To(Equal("test.local"))
 			Expect(iface.DNS.HostName).To(Equal("test-vm"))
 			Expect(iface.DNS.Nameservers).To(Equal([]string{"8.8.8.8", "8.8.4.4"}))

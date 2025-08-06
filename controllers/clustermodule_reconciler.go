@@ -214,7 +214,7 @@ func toAffinityInput[T client.Object](c client.Client) handler.TypedMapFunc[T, c
 		log = log.WithValues("Cluster", klog.KObj(cluster))
 		ctx = ctrl.LoggerInto(ctx, log)
 
-		if cluster.Spec.InfrastructureRef == nil {
+		if !cluster.Spec.InfrastructureRef.IsDefined() {
 			log.V(4).Error(err, "Failed to get VSphereCluster: Cluster.spec.infrastructureRef not set")
 			return nil
 		}

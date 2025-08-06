@@ -88,7 +88,7 @@ func TestReconcileNormal_WaitingForIPAddrAllocation(t *testing.T) {
 					Namespace: "test",
 				},
 				Spec: clusterv1.ClusterSpec{
-					InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 						Name: vsphereCluster.Name,
 					},
 				},
@@ -476,7 +476,7 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 				Namespace: "test",
 			},
 			Spec: clusterv1.ClusterSpec{
-				InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 					Name: vsphereCluster.Name,
 				},
 			},
@@ -514,9 +514,9 @@ func TestRetrievingVCenterCredentialsFromCluster(t *testing.T) {
 				Namespace: "test",
 			},
 
-			// InfrastructureRef is nil so we should get an error.
+			// InfrastructureRef is not set so we should get an error.
 			Spec: clusterv1.ClusterSpec{
-				InfrastructureRef: nil,
+				// InfrastructureRef not set.
 			},
 		}
 		initObjs := createMachineOwnerHierarchy(machine)

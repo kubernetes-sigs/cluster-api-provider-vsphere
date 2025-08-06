@@ -18,6 +18,7 @@ limitations under the License.
 package clusterclass
 
 import (
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
@@ -27,7 +28,7 @@ func GetClusterClassVariables(govmomiMode bool) []clusterv1.ClusterClassVariable
 	variables := []clusterv1.ClusterClassVariable{
 		{
 			Name:     "sshKey",
-			Required: false,
+			Required: ptr.To(false),
 			Schema: clusterv1.VariableSchema{
 				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 					Description: "Public key to SSH onto the cluster nodes.",
@@ -37,7 +38,7 @@ func GetClusterClassVariables(govmomiMode bool) []clusterv1.ClusterClassVariable
 		},
 		{
 			Name:     "controlPlaneIpAddr",
-			Required: true,
+			Required: ptr.To(true),
 			Schema: clusterv1.VariableSchema{
 				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 					Type:        "string",
@@ -47,7 +48,7 @@ func GetClusterClassVariables(govmomiMode bool) []clusterv1.ClusterClassVariable
 		},
 		{
 			Name:     "controlPlanePort",
-			Required: true,
+			Required: ptr.To(true),
 			Schema: clusterv1.VariableSchema{
 				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 					Type:        "integer",
@@ -57,7 +58,7 @@ func GetClusterClassVariables(govmomiMode bool) []clusterv1.ClusterClassVariable
 		},
 		{
 			Name:     "kubeVipPodManifest",
-			Required: true,
+			Required: ptr.To(true),
 			Schema: clusterv1.VariableSchema{
 				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 					Type:        "string",
@@ -71,7 +72,7 @@ func GetClusterClassVariables(govmomiMode bool) []clusterv1.ClusterClassVariable
 		varForNoneSupervisorMode := []clusterv1.ClusterClassVariable{
 			{
 				Name:     "infraServer",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "object",
@@ -84,7 +85,7 @@ func GetClusterClassVariables(govmomiMode bool) []clusterv1.ClusterClassVariable
 			},
 			{
 				Name:     "credsSecretName",
-				Required: true,
+				Required: ptr.To(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type:        "string",

@@ -104,7 +104,7 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 					Namespace:    "default",
 				},
 				Spec: clusterv1.ClusterSpec{
-					InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 						APIGroup: infrav1.GroupVersion.Group,
 						Kind:     "VsphereCluster",
 						Name:     instance.Name,
@@ -173,7 +173,7 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 					Namespace:    "default",
 				},
 				Spec: clusterv1.ClusterSpec{
-					InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 						APIGroup: infrav1.GroupVersion.Group,
 						Kind:     "VsphereCluster",
 						Name:     "vsphere-test1",
@@ -257,7 +257,7 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 				Namespace:    "default",
 			},
 			Spec: clusterv1.ClusterSpec{
-				InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 					APIGroup: infrav1.GroupVersion.Group,
 					Kind:     "VsphereCluster",
 					Name:     "vsphere-test1",
@@ -365,7 +365,7 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 					Namespace:    namespace.Name,
 				},
 				Spec: clusterv1.ClusterSpec{
-					InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 						APIGroup: infrav1.GroupVersion.Group,
 						Kind:     "VSphereCluster",
 						Name:     "vsphere-test2",

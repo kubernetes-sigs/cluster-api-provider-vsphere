@@ -1095,7 +1095,7 @@ func Test_GetVSphereClusterFromVSphereMachine(t *testing.T) {
 			Namespace: ns,
 		},
 		Spec: clusterv1.ClusterSpec{
-			InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 				Name: "foo-abcdef", // auto generated name
 			},
 		},

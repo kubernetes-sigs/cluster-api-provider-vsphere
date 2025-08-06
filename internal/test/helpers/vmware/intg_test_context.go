@@ -201,7 +201,7 @@ func generateCluster(namespace, name string) *clusterv1.Cluster {
 					CIDRBlocks: []string{"2.0.0.0/16"},
 				},
 			},
-			InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: vmwarev1.GroupVersion.Group,
 				Kind:     "VSphereCluster",
 				Name:     name,

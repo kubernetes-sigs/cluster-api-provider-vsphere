@@ -68,7 +68,7 @@ var _ = Describe("VsphereMachineReconciler", func() {
 				Namespace:    testNs.Name,
 			},
 			Spec: clusterv1.ClusterSpec{
-				InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 					APIGroup: "infrastructure.cluster.x-k8s.io",
 					Kind:     "VSphereCluster",
 					Name:     "vsphere-test1",
@@ -106,7 +106,7 @@ var _ = Describe("VsphereMachineReconciler", func() {
 			Spec: clusterv1.MachineSpec{
 				ClusterName: capiCluster.Name,
 				Bootstrap: clusterv1.Bootstrap{
-					ConfigRef: &clusterv1.ContractVersionedObjectReference{
+					ConfigRef: clusterv1.ContractVersionedObjectReference{
 						APIGroup: "bootstrap.cluster.x-k8s.io",
 						Kind:     "BootstrapConfig",
 						Name:     "does-no-ext", // Does not have to exist for these tests.
@@ -238,7 +238,7 @@ func Test_machineReconciler_Metadata(t *testing.T) {
 			Namespace: ns.Name,
 		},
 		Spec: clusterv1.ClusterSpec{
-			InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: "infrastructure.cluster.x-k8s.io",
 				Kind:     "VSphereCluster",
 				Name:     "vsphere-test1",

@@ -532,7 +532,7 @@ func (r *clusterReconciler) controlPlaneMachineToCluster(ctx context.Context, o 
 		return nil
 	}
 	log = log.WithValues("Cluster", klog.KObj(cluster))
-	if cluster.Spec.InfrastructureRef != nil {
+	if cluster.Spec.InfrastructureRef.IsDefined() {
 		log = log.WithValues("VSphereCluster", klog.KRef(cluster.Namespace, cluster.Spec.InfrastructureRef.Name))
 	}
 	ctx = ctrl.LoggerInto(ctx, log)
@@ -547,7 +547,7 @@ func (r *clusterReconciler) controlPlaneMachineToCluster(ctx context.Context, o 
 		return nil
 	}
 
-	if cluster.Spec.InfrastructureRef == nil {
+	if !cluster.Spec.InfrastructureRef.IsDefined() {
 		log.Error(nil, "Failed to get VSphereCluster: Cluster.spec.infrastructureRef is not yet set")
 		return nil
 	}

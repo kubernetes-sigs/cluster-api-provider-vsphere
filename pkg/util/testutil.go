@@ -54,7 +54,7 @@ func CreateCluster(clusterName string) *clusterv1.Cluster {
 			Namespace: corev1.NamespaceDefault,
 		},
 		Spec: clusterv1.ClusterSpec{
-			InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: vmwarev1.GroupVersion.Group,
 				Kind:     infraClusterKind,
 				Name:     clusterName,
@@ -92,7 +92,7 @@ func CreateMachine(machineName, clusterName, k8sVersion string, controlPlaneLabe
 		Spec: clusterv1.MachineSpec{
 			Version: k8sVersion,
 			Bootstrap: clusterv1.Bootstrap{
-				ConfigRef: &clusterv1.ContractVersionedObjectReference{
+				ConfigRef: clusterv1.ContractVersionedObjectReference{
 					APIGroup: bootstrapv1.GroupVersion.Group,
 					Name:     machineName,
 				},

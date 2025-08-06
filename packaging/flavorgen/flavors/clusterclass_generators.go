@@ -91,7 +91,7 @@ func getControlPlaneClass() clusterv1.ControlPlaneClass {
 			Name:       fmt.Sprintf("%s-controlplane", env.ClusterClassNameVar),
 			APIVersion: controlplanev1.GroupVersion.String(),
 		},
-		MachineInfrastructure: &clusterv1.ControlPlaneClassMachineInfrastructureTemplate{
+		MachineInfrastructure: clusterv1.ControlPlaneClassMachineInfrastructureTemplate{
 			TemplateRef: clusterv1.ClusterClassTemplateReference{
 				APIVersion: infrav1.GroupVersion.String(),
 				Kind:       util.TypeToKind(&infrav1.VSphereMachineTemplate{}),
@@ -108,7 +108,7 @@ func getVMWareControlPlaneClass() clusterv1.ControlPlaneClass {
 			Name:       fmt.Sprintf("%s-controlplane", env.ClusterClassNameVar),
 			APIVersion: controlplanev1.GroupVersion.String(),
 		},
-		MachineInfrastructure: &clusterv1.ControlPlaneClassMachineInfrastructureTemplate{
+		MachineInfrastructure: clusterv1.ControlPlaneClassMachineInfrastructureTemplate{
 			TemplateRef: clusterv1.ClusterClassTemplateReference{
 				APIVersion: vmwarev1.GroupVersion.String(),
 				Kind:       util.TypeToKind(&vmwarev1.VSphereMachineTemplate{}),

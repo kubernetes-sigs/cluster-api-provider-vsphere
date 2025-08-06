@@ -670,7 +670,7 @@ func (r vmReconciler) retrieveVcenterSession(ctx context.Context, vsphereVM *inf
 		return session.GetOrCreate(ctx, params)
 	}
 
-	if cluster.Spec.InfrastructureRef == nil {
+	if !cluster.Spec.InfrastructureRef.IsDefined() {
 		return nil, errors.Errorf("cannot retrieve vCenter session for cluster %s: Cluster.spec.infrastructureRef is nil", klog.KObj(cluster))
 	}
 	key := ctrlclient.ObjectKey{

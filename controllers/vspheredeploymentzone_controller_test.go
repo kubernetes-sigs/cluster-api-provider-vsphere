@@ -547,7 +547,7 @@ func createMachine(machineName, clusterName, namespace string, isControlPlane bo
 		Spec: clusterv1.MachineSpec{
 			Version: "v1.22.0",
 			Bootstrap: clusterv1.Bootstrap{
-				ConfigRef: &clusterv1.ContractVersionedObjectReference{
+				ConfigRef: clusterv1.ContractVersionedObjectReference{
 					APIGroup: bootstrapv1.GroupVersion.Group,
 					Kind:     "KubeadmConfig",
 					Name:     machineName,

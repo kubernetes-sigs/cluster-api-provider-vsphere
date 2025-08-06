@@ -225,7 +225,7 @@ func deployInfraMachine(namespace string, machine *clusterv1.Machine, finalizers
 // Updates the InfrastructureRef of a CAPI Cluster to a VSphereCluster. Function
 // does not block on update success.
 func updateClusterInfraRef(cluster *clusterv1.Cluster, infraCluster client.Object, k8sClient client.Client) {
-	cluster.Spec.InfrastructureRef = &clusterv1.ContractVersionedObjectReference{
+	cluster.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{
 		APIGroup: vmwarev1.GroupVersion.Group,
 		Kind:     "VSphereCluster",
 		Name:     infraCluster.GetName(),

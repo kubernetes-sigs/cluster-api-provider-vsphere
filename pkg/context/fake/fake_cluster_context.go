@@ -63,7 +63,7 @@ func newClusterV1() clusterv1.Cluster {
 					CIDRBlocks: []string{ServiceCIDR},
 				},
 			},
-			InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 				Name: InfrastructureRefName,
 			},
 		},

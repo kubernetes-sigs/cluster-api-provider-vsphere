@@ -119,7 +119,7 @@ func newClusterTopologyCluster(supervisorMode bool) (clusterv1.Cluster, error) {
 			Labels:    clusterLabels(),
 		},
 		Spec: clusterv1.ClusterSpec{
-			Topology: &clusterv1.Topology{
+			Topology: clusterv1.Topology{
 				ClassRef: clusterv1.ClusterClassRef{
 					Name: env.ClusterClassNameVar,
 				},
@@ -285,7 +285,7 @@ func newCluster(vsphereCluster client.Object, controlPlane *controlplanev1.Kubea
 					CIDRBlocks: []string{env.DefaultClusterCIDR},
 				},
 			},
-			InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: vsphereCluster.GetObjectKind().GroupVersionKind().Group,
 				Kind:     vsphereCluster.GetObjectKind().GroupVersionKind().Kind,
 				Name:     vsphereCluster.GetName(),
@@ -293,7 +293,7 @@ func newCluster(vsphereCluster client.Object, controlPlane *controlplanev1.Kubea
 		},
 	}
 	if controlPlane != nil {
-		cluster.Spec.ControlPlaneRef = &clusterv1.ContractVersionedObjectReference{
+		cluster.Spec.ControlPlaneRef = clusterv1.ContractVersionedObjectReference{
 			APIGroup: controlPlane.GroupVersionKind().Group,
 			Kind:     controlPlane.Kind,
 			Name:     controlPlane.Name,
@@ -445,18 +445,18 @@ func nodeIPAMVirtualMachineCloneSpec() infrav1.VirtualMachineCloneSpec {
 
 func defaultKubeadmInitSpec(files []bootstrapv1.File) bootstrapv1.KubeadmConfigSpec {
 	return bootstrapv1.KubeadmConfigSpec{
-		InitConfiguration: &bootstrapv1.InitConfiguration{
+		InitConfiguration: bootstrapv1.InitConfiguration{
 			NodeRegistration: defaultNodeRegistrationOptions(),
 		},
-		JoinConfiguration: &bootstrapv1.JoinConfiguration{
+		JoinConfiguration: bootstrapv1.JoinConfiguration{
 			NodeRegistration: defaultNodeRegistrationOptions(),
 		},
-		ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+		ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 			ControllerManager: bootstrapv1.ControllerManager{
 				ExtraArgs: []bootstrapv1.Arg{
 					{
 						Name:  "cloud-provider",
-						Value: "external",
+						Value: ptr.To("external"),
 					},
 				},
 			},
@@ -473,23 +473,23 @@ func ignitionKubeadmInitSpec(files []bootstrapv1.File) bootstrapv1.KubeadmConfig
 
 	return bootstrapv1.KubeadmConfigSpec{
 		Format: bootstrapv1.Ignition,
-		Ignition: &bootstrapv1.IgnitionSpec{
-			ContainerLinuxConfig: &bootstrapv1.ContainerLinuxConfig{
+		Ignition: bootstrapv1.IgnitionSpec{
+			ContainerLinuxConfig: bootstrapv1.ContainerLinuxConfig{
 				AdditionalConfig: AdditionalIgnitionConfig,
 			},
 		},
-		InitConfiguration: &bootstrapv1.InitConfiguration{
+		InitConfiguration: bootstrapv1.InitConfiguration{
 			NodeRegistration: nro,
 		},
-		JoinConfiguration: &bootstrapv1.JoinConfiguration{
+		JoinConfiguration: bootstrapv1.JoinConfiguration{
 			NodeRegistration: nro,
 		},
-		ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+		ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 			ControllerManager: bootstrapv1.ControllerManager{
 				ExtraArgs: []bootstrapv1.Arg{
 					{
 						Name:  "cloud-provider",
-						Value: "external",
+						Value: ptr.To("external"),
 					},
 				},
 			},
@@ -513,7 +513,7 @@ func newKubeadmConfigTemplate(templateName string, addUsers bool) bootstrapv1.Ku
 		Spec: bootstrapv1.KubeadmConfigTemplateSpec{
 			Template: bootstrapv1.KubeadmConfigTemplateResource{
 				Spec: bootstrapv1.KubeadmConfigSpec{
-					JoinConfiguration: &bootstrapv1.JoinConfiguration{
+					JoinConfiguration: bootstrapv1.JoinConfiguration{
 						NodeRegistration: defaultNodeRegistrationOptions(),
 					},
 					PreKubeadmCommands: defaultPreKubeadmCommands(),
@@ -544,12 +544,12 @@ func newIgnitionKubeadmConfigTemplate() bootstrapv1.KubeadmConfigTemplate {
 			Template: bootstrapv1.KubeadmConfigTemplateResource{
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Format: bootstrapv1.Ignition,
-					Ignition: &bootstrapv1.IgnitionSpec{
-						ContainerLinuxConfig: &bootstrapv1.ContainerLinuxConfig{
+					Ignition: bootstrapv1.IgnitionSpec{
+						ContainerLinuxConfig: bootstrapv1.ContainerLinuxConfig{
 							AdditionalConfig: AdditionalIgnitionConfig,
 						},
 					},
-					JoinConfiguration: &bootstrapv1.JoinConfiguration{
+					JoinConfiguration: bootstrapv1.JoinConfiguration{
 						NodeRegistration: nro,
 					},
 					Users:              flatcarUsers(),
@@ -567,7 +567,7 @@ func defaultNodeRegistrationOptions() bootstrapv1.NodeRegistrationOptions {
 		KubeletExtraArgs: []bootstrapv1.Arg{
 			{
 				Name:  "cloud-provider",
-				Value: "external",
+				Value: ptr.To("external"),
 			},
 		},
 	}
@@ -681,7 +681,7 @@ func newMachineDeployment(cluster clusterv1.Cluster, machineTemplate client.Obje
 					Version:     env.KubernetesVersionVar,
 					ClusterName: cluster.Name,
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &clusterv1.ContractVersionedObjectReference{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
 							APIGroup: bootstrapTemplate.GroupVersionKind().Group,
 							Kind:     bootstrapTemplate.Kind,
 							Name:     bootstrapTemplate.Name,

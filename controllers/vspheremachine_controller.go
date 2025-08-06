@@ -230,7 +230,7 @@ func (r *machineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 
 	if cluster != nil {
 		log = log.WithValues("Cluster", klog.KObj(cluster))
-		if cluster.Spec.InfrastructureRef != nil {
+		if cluster.Spec.InfrastructureRef.IsDefined() {
 			log = log.WithValues("VSphereCluster", klog.KRef(cluster.Namespace, cluster.Spec.InfrastructureRef.Name))
 		}
 		ctx = ctrl.LoggerInto(ctx, log)
@@ -315,7 +315,7 @@ func (r *machineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 		return reconcile.Result{}, nil
 	}
 
-	if cluster.Spec.InfrastructureRef == nil {
+	if !cluster.Spec.InfrastructureRef.IsDefined() {
 		log.Info("Cluster.spec.infrastructureRef is not yet set")
 		return reconcile.Result{}, nil
 	}

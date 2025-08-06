@@ -128,7 +128,7 @@ var _ = Describe("Network provider", func() {
 				Namespace: dummyNs,
 			},
 			Spec: clusterv1.ClusterSpec{
-				InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 					APIGroup: vmwarev1.GroupVersion.Group,
 					Kind:     infraClusterKind,
 					Name:     dummyCluster,

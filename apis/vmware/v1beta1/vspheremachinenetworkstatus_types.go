@@ -1,5 +1,5 @@
 /*
-Copyright 2021 The Kubernetes Authors.
+Copyright 2025 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -274,7 +274,7 @@ type VSphereMachineNetworkInterfaceStatus struct {
 //
 // This a mirror of the v1alpha2 VirtualMachineNetworkStatus. See
 // https://github.com/vmware-tanzu/vm-operator/blob/main/api/v1alpha2/virtualmachine_network_types.go
-// for more information. When vm-operator v1alpha2 is updated, this type need to be synchronized.
+// for more information.
 // +kubebuilder:validation:MinProperties=1
 type VSphereMachineNetworkStatus struct {
 	// interfaces describes the status of the VM's network interfaces.

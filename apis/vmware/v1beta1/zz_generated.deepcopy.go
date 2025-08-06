@@ -26,7 +26,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	corev1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
-	"sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/errors"
 )
 
@@ -766,7 +765,7 @@ func (in *VSphereMachineStatus) DeepCopyInto(out *VSphereMachineStatus) {
 	*out = *in
 	if in.Addresses != nil {
 		in, out := &in.Addresses, &out.Addresses
-		*out = make([]v1beta2.MachineAddress, len(*in))
+		*out = make([]v1.NodeAddress, len(*in))
 		copy(*out, *in)
 	}
 	if in.ID != nil {

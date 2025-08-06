@@ -73,7 +73,7 @@ spec:
                         type: boolean
                     type: object
                     x-kubernetes-validations:
-                    - message: CreateSubnetSet value cannot be changed after creation
+                    - message: createSubnetSet value cannot be changed after creation
                       rule: has(self.createSubnetSet) == has(oldSelf.createSubnetSet)
                         && self.createSubnetSet == oldSelf.createSubnetSet
                 type: object

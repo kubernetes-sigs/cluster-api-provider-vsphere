@@ -126,7 +126,7 @@ func createSubnetSet(clusterCtx *vmware.ClusterContext) bool {
 func (vp *nsxtVPCNetworkProvider) VerifyNetworkStatus(ctx context.Context, clusterCtx *vmware.ClusterContext, obj runtime.Object) error {
 	log := ctrl.LoggerFrom(ctx)
 	if !createSubnetSet(clusterCtx) {
-		log.Info("Skipping SubnetSet status check as CreateSubnetSet is false")
+		log.V(5).Info("Skipping SubnetSet status check as CreateSubnetSet is false")
 		return nil
 	}
 	subnetset, ok := obj.(*nsxvpcv1.SubnetSet)

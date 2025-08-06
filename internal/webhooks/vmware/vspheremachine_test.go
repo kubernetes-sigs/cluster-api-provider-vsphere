@@ -98,11 +98,9 @@ func createVSphereMachine(providerID *string, imageName, className, storageClass
 }
 
 func TestVSphereMachine_ValidateCreate_MultiNetwork(t *testing.T) {
-	// Explicitly enable the feature gate for all tests except the negative one
-	featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.MultiNetworks, true)
 	tests := []struct {
 		name            string
-		featureGate     *bool // nil means default (enabled)
+		featureGate     bool
 		networkProvider string
 		network         vmwarev1.VSphereMachineNetworkSpec
 		wantErr         bool
@@ -110,7 +108,7 @@ func TestVSphereMachine_ValidateCreate_MultiNetwork(t *testing.T) {
 	}{
 		{
 			name:            "interfaces set but feature gate disabled",
-			featureGate:     ptrToBool(false),
+			featureGate:     false,
 			networkProvider: manager.NSXVPCNetworkProvider,
 			network: vmwarev1.VSphereMachineNetworkSpec{
 				Interfaces: vmwarev1.InterfacesSpec{
@@ -128,7 +126,7 @@ func TestVSphereMachine_ValidateCreate_MultiNetwork(t *testing.T) {
 		},
 		{
 			name:            "primary interface with wrong type for NSX-VPC",
-			featureGate:     nil,
+			featureGate:     true,
 			networkProvider: manager.NSXVPCNetworkProvider,
 			network: vmwarev1.VSphereMachineNetworkSpec{
 				Interfaces: vmwarev1.InterfacesSpec{
@@ -142,11 +140,11 @@ func TestVSphereMachine_ValidateCreate_MultiNetwork(t *testing.T) {
 				},
 			},
 			wantErr:    true,
-			wantErrMsg: "only support crd.nsx.vmware.com/v1alpha1, Kind=SubnetSet",
+			wantErrMsg: "only supports crd.nsx.vmware.com/v1alpha1, Kind=SubnetSet",
 		},
 		{
 			name:            "secondary interface with wrong type for NSX-VPC",
-			featureGate:     nil,
+			featureGate:     true,
 			networkProvider: manager.NSXVPCNetworkProvider,
 			network: vmwarev1.VSphereMachineNetworkSpec{
 				Interfaces: vmwarev1.InterfacesSpec{
@@ -163,11 +161,11 @@ func TestVSphereMachine_ValidateCreate_MultiNetwork(t *testing.T) {
 				},
 			},
 			wantErr:    true,
-			wantErrMsg: "only support crd.nsx.vmware.com/v1alpha1, Kind=SubnetSet",
+			wantErrMsg: "only supports crd.nsx.vmware.com/v1alpha1, Kind=SubnetSet or crd.nsx.vmware.com/v1alpha1, Kind=Subnet",
 		},
 		{
 			name:            "primary interface set for VDS provider",
-			featureGate:     nil,
+			featureGate:     true,
 			networkProvider: manager.VDSNetworkProvider,
 			network: vmwarev1.VSphereMachineNetworkSpec{
 				Interfaces: vmwarev1.InterfacesSpec{
@@ -185,7 +183,7 @@ func TestVSphereMachine_ValidateCreate_MultiNetwork(t *testing.T) {
 		},
 		{
 			name:            "secondary interface with wrong type for VDS provider",
-			featureGate:     nil,
+			featureGate:     true,
 			networkProvider: manager.VDSNetworkProvider,
 			network: vmwarev1.VSphereMachineNetworkSpec{
 				Interfaces: vmwarev1.InterfacesSpec{
@@ -202,11 +200,11 @@ func TestVSphereMachine_ValidateCreate_MultiNetwork(t *testing.T) {
 				},
 			},
 			wantErr:    true,
-			wantErrMsg: "only support netoperator.vmware.com/v1alpha1, Kind=Network",
+			wantErrMsg: "only supports netoperator.vmware.com/v1alpha1, Kind=Network",
 		},
 		{
 			name:            "duplicate interface names",
-			featureGate:     nil,
+			featureGate:     true,
 			networkProvider: manager.NSXVPCNetworkProvider,
 			network: vmwarev1.VSphereMachineNetworkSpec{
 				Interfaces: vmwarev1.InterfacesSpec{
@@ -227,7 +225,7 @@ func TestVSphereMachine_ValidateCreate_MultiNetwork(t *testing.T) {
 		},
 		{
 			name:            "valid NSX-VPC interfaces",
-			featureGate:     nil,
+			featureGate:     true,
 			networkProvider: manager.NSXVPCNetworkProvider,
 			network: vmwarev1.VSphereMachineNetworkSpec{
 				Interfaces: vmwarev1.InterfacesSpec{
@@ -263,7 +261,7 @@ func TestVSphereMachine_ValidateCreate_MultiNetwork(t *testing.T) {
 		},
 		{
 			name:            "valid VDS secondary interface",
-			featureGate:     nil,
+			featureGate:     true,
 			networkProvider: manager.VDSNetworkProvider,
 			network: vmwarev1.VSphereMachineNetworkSpec{
 				Interfaces: vmwarev1.InterfacesSpec{
@@ -292,7 +290,7 @@ func TestVSphereMachine_ValidateCreate_MultiNetwork(t *testing.T) {
 		},
 		{
 			name:            "two secondary interfaces with duplicate names",
-			featureGate:     nil,
+			featureGate:     true,
 			networkProvider: manager.NSXVPCNetworkProvider,
 			network: vmwarev1.VSphereMachineNetworkSpec{
 				Interfaces: vmwarev1.InterfacesSpec{
@@ -328,9 +326,7 @@ func TestVSphereMachine_ValidateCreate_MultiNetwork(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
-			if tc.featureGate != nil {
-				featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.MultiNetworks, *tc.featureGate)
-			}
+			featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.MultiNetworks, tc.featureGate)
 			webhook := &VSphereMachine{NetworkProvider: tc.networkProvider}
 			obj := &vmwarev1.VSphereMachine{Spec: vmwarev1.VSphereMachineSpec{Network: tc.network}}
 			_, err := webhook.ValidateCreate(context.Background(), obj)
@@ -385,8 +381,4 @@ func TestVSphereMachine_ValidateUpdate_MultiNetwork(t *testing.T) {
 	_, err := webhook.ValidateUpdate(context.Background(), oldVSphereMachine, newVSphereMachine)
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.Error()).To(ContainSubstring("cannot be modified"))
-}
-
-func ptrToBool(b bool) *bool {
-	return &b
 }

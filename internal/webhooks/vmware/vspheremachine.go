@@ -24,7 +24,6 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -69,7 +68,7 @@ func (webhook *VSphereMachine) ValidateCreate(_ context.Context, object runtime.
 		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a VSphereMachine but got a %T", object))
 	}
 
-	allErrs := validateInterfaces(webhook.NetworkProvider, objTyped.Spec.Network, []string{})
+	allErrs := validateNetwork(webhook.NetworkProvider, objTyped.Spec.Network, field.NewPath("spec", "network"))
 
 	return nil, webhooks.AggregateObjErrors(objTyped.GroupVersionKind().GroupKind(), objTyped.Name, allErrs)
 }
@@ -115,7 +114,7 @@ func (webhook *VSphereMachine) ValidateUpdate(_ context.Context, oldRaw runtime.
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "network", "interfaces"), "cannot be modified"))
 	}
 
-	allErrs = append(allErrs, validateInterfaces(webhook.NetworkProvider, newSpec.Network, []string{})...)
+	allErrs = append(allErrs, validateNetwork(webhook.NetworkProvider, newSpec.Network, field.NewPath("spec", "network"))...)
 
 	return nil, webhooks.AggregateObjErrors(newTyped.GroupVersionKind().GroupKind(), newTyped.Name, allErrs)
 }
@@ -125,17 +124,13 @@ func (webhook *VSphereMachine) ValidateDelete(_ context.Context, _ runtime.Objec
 	return nil, nil
 }
 
-func validateInterfaces(networkProvider string, network vmwarev1.VSphereMachineNetworkSpec, pathPrefix []string) field.ErrorList {
+func validateNetwork(networkProvider string, network vmwarev1.VSphereMachineNetworkSpec, fildPath *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
-
-	interfacesPath := append(pathPrefix, "spec", "network", "interfaces")
-	primaryPath := append(interfacesPath, "primary")
-	primaryNetworkPath := append(primaryPath, "primary", "network")
 
 	if network.Interfaces.IsDefined() {
 		if !feature.Gates.Enabled(feature.MultiNetworks) {
 			allErrs = append(allErrs, field.Forbidden(
-				field.NewPath(interfacesPath[0], interfacesPath[1:]...),
+				fildPath.Child("interfaces"),
 				"interfaces can only be set when feature gate MultiNetworks is enabled"))
 		} else {
 			// Validate network type is supported
@@ -143,51 +138,48 @@ func validateInterfaces(networkProvider string, network vmwarev1.VSphereMachineN
 			case manager.NSXVPCNetworkProvider:
 				primary := network.Interfaces.Primary
 				if primary.IsDefined() {
-					primaryNetGVK := schema.FromAPIVersionAndKind(primary.Network.APIVersion, primary.Network.Kind)
+					primaryNetGVK := primary.Network.GroupVersionKind()
 					if primaryNetGVK != pkgnetwork.NetworkGVKNSXTVPCSubnetSet {
 						allErrs = append(allErrs, field.Invalid(
-							field.NewPath(primaryNetworkPath[0], primaryNetworkPath[1:]...),
+							fildPath.Child("interfaces", "primary", "network"),
 							primaryNetGVK,
-							fmt.Sprintf("only support %s", pkgnetwork.NetworkGVKNSXTVPCSubnetSet)))
+							fmt.Sprintf("only supports %s", pkgnetwork.NetworkGVKNSXTVPCSubnetSet)))
 					}
 				}
 				for i, secondaryInterface := range network.Interfaces.Secondary {
-					secondaryNetGVK := schema.FromAPIVersionAndKind(secondaryInterface.Network.APIVersion, secondaryInterface.Network.Kind)
+					secondaryNetGVK := secondaryInterface.Network.GroupVersionKind()
 					if secondaryNetGVK != pkgnetwork.NetworkGVKNSXTVPCSubnetSet && secondaryNetGVK != pkgnetwork.NetworkGVKNSXTVPCSubnet {
-						secondaryNetworkPath := append(interfacesPath, fmt.Sprintf("secondary[%d]", i), "network")
 						allErrs = append(allErrs, field.Invalid(
-							field.NewPath(secondaryNetworkPath[0], secondaryNetworkPath[1:]...),
+							fildPath.Child("interfaces", "secondary").Index(i).Child("network"),
 							secondaryNetGVK,
-							fmt.Sprintf("only support %s or %s", pkgnetwork.NetworkGVKNSXTVPCSubnetSet, pkgnetwork.NetworkGVKNSXTVPCSubnet)))
+							fmt.Sprintf("only supports %s or %s", pkgnetwork.NetworkGVKNSXTVPCSubnetSet, pkgnetwork.NetworkGVKNSXTVPCSubnet)))
 					}
 				}
 			case manager.VDSNetworkProvider:
 				if network.Interfaces.Primary.IsDefined() {
 					allErrs = append(allErrs, field.Forbidden(
-						field.NewPath(primaryPath[0], primaryPath[1:]...),
+						fildPath.Child("interfaces", "primary"),
 						"primary interface can not be set when network provider is vsphere-network"))
 				}
 				for i, secondaryInterface := range network.Interfaces.Secondary {
-					secondaryNetGVK := schema.FromAPIVersionAndKind(secondaryInterface.Network.APIVersion, secondaryInterface.Network.Kind)
+					secondaryNetGVK := secondaryInterface.Network.GroupVersionKind()
 					if secondaryNetGVK != pkgnetwork.NetworkGVKNetOperator {
-						secondaryNetworkPath := append(interfacesPath, fmt.Sprintf("secondary[%d]", i), "network")
 						allErrs = append(allErrs, field.Invalid(
-							field.NewPath(secondaryNetworkPath[0], secondaryNetworkPath[1:]...),
+							fildPath.Child("interfaces", "secondary").Index(i).Child("network"),
 							secondaryNetGVK,
-							fmt.Sprintf("only support %s", pkgnetwork.NetworkGVKNetOperator)))
+							fmt.Sprintf("only supports %s", pkgnetwork.NetworkGVKNetOperator)))
 					}
 				}
 			default:
-				allErrs = append(allErrs, field.Forbidden(field.NewPath(interfacesPath[0], interfacesPath[1:]...), fmt.Sprintf("interfaces can not be set when network provider is %s", networkProvider)))
+				allErrs = append(allErrs, field.Forbidden(fildPath.Child("interfaces"), fmt.Sprintf("interfaces can not be set when network provider is %s", networkProvider)))
 			}
 
 			// Validate interface names are unique
 			interfaceNames := map[string]struct{}{pkgnetwork.PrimaryInterfaceName: {}}
 			for i, secondaryInterface := range network.Interfaces.Secondary {
 				if _, ok := interfaceNames[secondaryInterface.Name]; ok {
-					secondaryInterfaceNamePath := append(interfacesPath, "secondary", fmt.Sprintf("[%d]", i), "name")
 					allErrs = append(allErrs, field.Invalid(
-						field.NewPath(secondaryInterfaceNamePath[0], secondaryInterfaceNamePath[1:]...),
+						fildPath.Child("interfaces", "secondary").Index(i).Child("name"),
 						secondaryInterface.Name,
 						"interface name is already in use"))
 				} else {

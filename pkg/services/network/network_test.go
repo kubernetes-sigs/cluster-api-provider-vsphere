@@ -32,6 +32,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	apitypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
@@ -310,7 +311,7 @@ var _ = Describe("Network provider", func() {
 					It("should add primary and secondary network interfaces", func() {
 					})
 
-					It("should handle multiple secondary interfaces", func() {
+					It("after multiple reconciles we don't end up with duplicate interfaces", func() {
 						// Test that calling ConfigureVirtualMachine again doesn't duplicate interfaces
 						err = np.ConfigureVirtualMachine(ctx, clusterCtx, machine, vm)
 						Expect(err).ToNot(HaveOccurred())
@@ -469,7 +470,7 @@ var _ = Describe("Network provider", func() {
 				It("should add primary and secondary network interfaces", func() {
 				})
 
-				It("should handle multiple secondary interfaces", func() {
+				It("after multiple reconciles we don't end up with duplicate interfaces", func() {
 					// Test that calling ConfigureVirtualMachine again doesn't duplicate interfaces
 					err = np.ConfigureVirtualMachine(ctx, clusterCtx, machine, vm)
 					Expect(err).ToNot(HaveOccurred())
@@ -482,7 +483,7 @@ var _ = Describe("Network provider", func() {
 					// Set createSubnetSet to false
 					vSphereCluster.Spec.Network = vmwarev1.Network{
 						NSXVPC: vmwarev1.NSXVPC{
-							CreateSubnetSet: &[]bool{false}[0],
+							CreateSubnetSet: ptr.To(false),
 						},
 					}
 
@@ -1049,7 +1050,7 @@ var _ = Describe("Network provider", func() {
 				// Set createSubnetSet to false on the cluster spec
 				vSphereCluster.Spec.Network = vmwarev1.Network{
 					NSXVPC: vmwarev1.NSXVPC{
-						CreateSubnetSet: &[]bool{false}[0],
+						CreateSubnetSet: ptr.To(false),
 					},
 				}
 				// No SubnetSet exists in the cluster

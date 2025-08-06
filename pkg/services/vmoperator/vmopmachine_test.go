@@ -345,6 +345,8 @@ var _ = Describe("VirtualMachine tests", func() {
 			Expect(iface.IP.DHCP.IP4.Config).To(HaveLen(2))
 			Expect(iface.IP.DHCP.IP4.Config[0].Key).To(Equal("1"))
 			Expect(iface.IP.DHCP.IP4.Config[0].Value).To(Equal("timeout 60;"))
+			Expect(iface.IP.DHCP.IP4.Config[1].Key).To(Equal("2"))
+			Expect(iface.IP.DHCP.IP4.Config[1].Value).To(Equal("reboot 10;"))
 			Expect(*iface.IP.DHCP.IP6.Enabled).To(BeFalse())
 
 			// Verify IP addresses
@@ -363,7 +365,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			// Verify that Cluster API addresses are set
 			By("Verify Cluster API addresses")
 			Expect(supervisorMachineContext.VSphereMachine.Status.Addresses).To(HaveLen(1))
-			Expect(supervisorMachineContext.VSphereMachine.Status.Addresses[0].Type).To(Equal(clusterv1.MachineInternalIP))
+			Expect(supervisorMachineContext.VSphereMachine.Status.Addresses[0].Type).To(Equal(corev1.NodeInternalIP))
 			Expect(supervisorMachineContext.VSphereMachine.Status.Addresses[0].Address).To(Equal(vmIP))
 
 			Expect(vmopVM.Spec.ReadinessProbe).To(BeNil())

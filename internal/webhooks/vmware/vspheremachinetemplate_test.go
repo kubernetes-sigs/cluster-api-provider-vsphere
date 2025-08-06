@@ -103,10 +103,9 @@ func TestVSphereMachineTemplate_Validate(t *testing.T) {
 }
 
 func TestVSphereMachineTemplate_ValidateInterfaces(t *testing.T) {
-	featuregatetesting.SetFeatureGateDuringTest(t, feature.MutableGates, feature.MultiNetworks, true)
 	tests := []struct {
 		name            string
-		featureGate     *bool
+		featureGate     bool
 		networkProvider string
 		network         vmwarev1.VSphereMachineNetworkSpec
 		wantErr         bool
@@ -114,7 +113,7 @@ func TestVSphereMachineTemplate_ValidateInterfaces(t *testing.T) {
 	}{
 		{
 			name:            "interfaces set but feature gate disabled",
-			featureGate:     ptrToBool(false),
+			featureGate:     false,
 			networkProvider: manager.NSXVPCNetworkProvider,
 			network: vmwarev1.VSphereMachineNetworkSpec{
 				Interfaces: vmwarev1.InterfacesSpec{
@@ -132,6 +131,7 @@ func TestVSphereMachineTemplate_ValidateInterfaces(t *testing.T) {
 		},
 		{
 			name:            "primary interface with wrong type for NSX-VPC",
+			featureGate:     true,
 			networkProvider: manager.NSXVPCNetworkProvider,
 			network: vmwarev1.VSphereMachineNetworkSpec{
 				Interfaces: vmwarev1.InterfacesSpec{
@@ -145,10 +145,11 @@ func TestVSphereMachineTemplate_ValidateInterfaces(t *testing.T) {
 				},
 			},
 			wantErr:    true,
-			wantErrMsg: "only support",
+			wantErrMsg: "only supports crd.nsx.vmware.com/v1alpha1, Kind=SubnetSet",
 		},
 		{
 			name:            "secondary interface with wrong type for NSX-VPC",
+			featureGate:     true,
 			networkProvider: manager.NSXVPCNetworkProvider,
 			network: vmwarev1.VSphereMachineNetworkSpec{
 				Interfaces: vmwarev1.InterfacesSpec{
@@ -165,10 +166,11 @@ func TestVSphereMachineTemplate_ValidateInterfaces(t *testing.T) {
 				},
 			},
 			wantErr:    true,
-			wantErrMsg: "only support",
+			wantErrMsg: "only supports crd.nsx.vmware.com/v1alpha1, Kind=SubnetSet or crd.nsx.vmware.com/v1alpha1, Kind=Subnet",
 		},
 		{
 			name:            "primary interface set for VDS provider",
+			featureGate:     true,
 			networkProvider: manager.VDSNetworkProvider,
 			network: vmwarev1.VSphereMachineNetworkSpec{
 				Interfaces: vmwarev1.InterfacesSpec{
@@ -186,6 +188,7 @@ func TestVSphereMachineTemplate_ValidateInterfaces(t *testing.T) {
 		},
 		{
 			name:            "secondary interface with wrong type for VDS provider",
+			featureGate:     true,
 			networkProvider: manager.VDSNetworkProvider,
 			network: vmwarev1.VSphereMachineNetworkSpec{
 				Interfaces: vmwarev1.InterfacesSpec{
@@ -202,10 +205,11 @@ func TestVSphereMachineTemplate_ValidateInterfaces(t *testing.T) {
 				},
 			},
 			wantErr:    true,
-			wantErrMsg: "only support",
+			wantErrMsg: "only supports netoperator.vmware.com/v1alpha1, Kind=Network",
 		},
 		{
 			name:            "duplicate interface names",
+			featureGate:     true,
 			networkProvider: manager.NSXVPCNetworkProvider,
 			network: vmwarev1.VSphereMachineNetworkSpec{
 				Interfaces: vmwarev1.InterfacesSpec{
@@ -226,6 +230,7 @@ func TestVSphereMachineTemplate_ValidateInterfaces(t *testing.T) {
 		},
 		{
 			name:            "valid NSX-VPC interfaces",
+			featureGate:     true,
 			networkProvider: manager.NSXVPCNetworkProvider,
 			network: vmwarev1.VSphereMachineNetworkSpec{
 				Interfaces: vmwarev1.InterfacesSpec{
@@ -252,6 +257,7 @@ func TestVSphereMachineTemplate_ValidateInterfaces(t *testing.T) {
 		},
 		{
 			name:            "valid VDS secondary interface",
+			featureGate:     true,
 			networkProvider: manager.VDSNetworkProvider,
 			network: vmwarev1.VSphereMachineNetworkSpec{
 				Interfaces: vmwarev1.InterfacesSpec{
@@ -274,9 +280,7 @@ func TestVSphereMachineTemplate_ValidateInterfaces(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
-			if tc.featureGate != nil {
-				featuregatetesting.SetFeatureGateDuringTest(t, feature.MutableGates, feature.MultiNetworks, *tc.featureGate)
-			}
+			featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.MultiNetworks, tc.featureGate)
 			webhook := &VSphereMachineTemplate{NetworkProvider: tc.networkProvider}
 			obj := &vmwarev1.VSphereMachineTemplate{
 				Spec: vmwarev1.VSphereMachineTemplateSpec{

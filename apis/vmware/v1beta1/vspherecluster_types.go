@@ -125,7 +125,7 @@ const (
 	VSphereClusterServiceDiscoveryNotReadyV1Beta2Reason = clusterv1beta1.NotReadyV1Beta2Reason
 )
 
-// +kubebuilder:validation:XValidation:rule="has(self.createSubnetSet) == has(oldSelf.createSubnetSet) && self.createSubnetSet == oldSelf.createSubnetSet",message="CreateSubnetSet value cannot be changed after creation"
+// +kubebuilder:validation:XValidation:rule="has(self.createSubnetSet) == has(oldSelf.createSubnetSet) && self.createSubnetSet == oldSelf.createSubnetSet",message="createSubnetSet value cannot be changed after creation"
 // +kubebuilder:validation:MinProperties=1
 type NSXVPC struct {
 	// createSubnetSet is a flag to indicate whether to create a SubnetSet or not as the primary network. If not set, the default is true.

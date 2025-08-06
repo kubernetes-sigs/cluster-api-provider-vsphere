@@ -125,6 +125,7 @@ const (
 	VSphereClusterServiceDiscoveryNotReadyV1Beta2Reason = clusterv1beta1.NotReadyV1Beta2Reason
 )
 
+// NSXVPC defines the configuration when the network provider is NSX-VPC.
 // +kubebuilder:validation:XValidation:rule="has(self.createSubnetSet) == has(oldSelf.createSubnetSet) && self.createSubnetSet == oldSelf.createSubnetSet",message="createSubnetSet value cannot be changed after creation"
 // +kubebuilder:validation:MinProperties=1
 type NSXVPC struct {
@@ -138,6 +139,7 @@ func (r *NSXVPC) IsDefined() bool {
 	return !reflect.DeepEqual(r, &NSXVPC{})
 }
 
+// Network defines the network configuration for the cluster with different network providers.
 // +kubebuilder:validation:XValidation:rule="has(self.nsxVPC) == has(oldSelf.nsxVPC)",message="field 'nsxVPC' cannot be added or removed after creation"
 // +kubebuilder:validation:MinProperties=1
 type Network struct {

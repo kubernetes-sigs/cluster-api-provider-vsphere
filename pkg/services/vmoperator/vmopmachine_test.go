@@ -25,6 +25,7 @@ import (
 	. "github.com/onsi/gomega"
 	gomegatypes "github.com/onsi/gomega/types"
 	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
+	vmoprv1common "github.com/vmware-tanzu/vm-operator/api/v1alpha2/common"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -258,13 +259,51 @@ var _ = Describe("VirtualMachine tests", func() {
 			requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
 			verifyOutput(supervisorMachineContext)
 
-			// Simulate VMOperator assigning an IP address
-			By("VirtualMachine has an IP address")
+			// Simulate VMOperator assigning an IP address with detailed network information
+			By("VirtualMachine has an IP address and detailed network information")
 			vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
 			if vmopVM.Status.Network == nil {
 				vmopVM.Status.Network = &vmoprv1.VirtualMachineNetworkStatus{}
 			}
 			vmopVM.Status.Network.PrimaryIP4 = vmIP
+			vmopVM.Status.Network.Interfaces = []vmoprv1.VirtualMachineNetworkInterfaceStatus{
+				{
+					Name:      "eth0",
+					DeviceKey: 4000,
+					IP: &vmoprv1.VirtualMachineNetworkInterfaceIPStatus{
+						AutoConfigurationEnabled: ptr.To(true),
+						MACAddr:                  "00:50:56:00:00:01",
+						DHCP: &vmoprv1.VirtualMachineNetworkDHCPStatus{
+							IP4: vmoprv1.VirtualMachineNetworkDHCPOptionsStatus{
+								Enabled: true,
+								Config: []vmoprv1common.KeyValuePair{
+									{Key: "1", Value: "timeout 60;"},
+									{Key: "2", Value: "reboot 10;"},
+								},
+							},
+							IP6: vmoprv1.VirtualMachineNetworkDHCPOptionsStatus{
+								Enabled: false,
+								Config:  []vmoprv1common.KeyValuePair{},
+							},
+						},
+						Addresses: []vmoprv1.VirtualMachineNetworkInterfaceIPAddrStatus{
+							{
+								Address:  vmIP + "/24",
+								Lifetime: metav1.NewTime(time.Now().UTC().Truncate(time.Second)),
+								Origin:   "dhcp",
+								State:    "preferred",
+							},
+						},
+					},
+					DNS: &vmoprv1.VirtualMachineNetworkDNSStatus{
+						DHCP:          true,
+						DomainName:    "test.local",
+						HostName:      "test-vm",
+						Nameservers:   []string{"8.8.8.8", "8.8.4.4"},
+						SearchDomains: []string{"test.local", "local"},
+					},
+				},
+			}
 			updateReconciledVMStatus(ctx, vmService, vmopVM)
 			// we expect the reconciliation waiting for VM to have a BIOS UUID
 			expectedConditions[0].Reason = vmwarev1.WaitingForBIOSUUIDReason
@@ -287,6 +326,47 @@ var _ = Describe("VirtualMachine tests", func() {
 			expectedConditions[0].Reason = ""
 			requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
 			verifyOutput(supervisorMachineContext)
+
+			// Verify that the network status was properly propagated
+			By("Verify network status propagation")
+			Expect(supervisorMachineContext.VSphereMachine.Status.Network).NotTo(BeNil())
+			Expect(supervisorMachineContext.VSphereMachine.Status.Network.Interfaces).To(HaveLen(1))
+
+			iface := supervisorMachineContext.VSphereMachine.Status.Network.Interfaces[0]
+			Expect(iface.Name).To(Equal("eth0"))
+			Expect(iface.DeviceKey).To(Equal(int32(4000)))
+
+			// Verify IP configuration
+			Expect(*iface.IP.AutoConfigurationEnabled).To(BeTrue())
+			Expect(iface.IP.MACAddr).To(Equal("00:50:56:00:00:01"))
+
+			// Verify DHCP configuration
+			Expect(*iface.IP.DHCP.IP4.Enabled).To(BeTrue())
+			Expect(iface.IP.DHCP.IP4.Config).To(HaveLen(2))
+			Expect(iface.IP.DHCP.IP4.Config[0].Key).To(Equal("1"))
+			Expect(iface.IP.DHCP.IP4.Config[0].Value).To(Equal("timeout 60;"))
+			Expect(iface.IP.DHCP.IP4.Config[1].Key).To(Equal("2"))
+			Expect(iface.IP.DHCP.IP4.Config[1].Value).To(Equal("reboot 10;"))
+			Expect(*iface.IP.DHCP.IP6.Enabled).To(BeFalse())
+
+			// Verify IP addresses
+			Expect(iface.IP.Addresses).To(HaveLen(1))
+			Expect(iface.IP.Addresses[0].Address).To(Equal(vmIP + "/24"))
+			Expect(iface.IP.Addresses[0].Origin).To(Equal("dhcp"))
+			Expect(iface.IP.Addresses[0].State).To(Equal("preferred"))
+
+			// Verify DNS configuration
+			Expect(*iface.DNS.DHCP).To(BeTrue())
+			Expect(iface.DNS.DomainName).To(Equal("test.local"))
+			Expect(iface.DNS.HostName).To(Equal("test-vm"))
+			Expect(iface.DNS.Nameservers).To(Equal([]string{"8.8.8.8", "8.8.4.4"}))
+			Expect(iface.DNS.SearchDomains).To(Equal([]string{"test.local", "local"}))
+
+			// Verify that Cluster API addresses are set
+			By("Verify Cluster API addresses")
+			Expect(supervisorMachineContext.VSphereMachine.Status.Addresses).To(HaveLen(1))
+			Expect(supervisorMachineContext.VSphereMachine.Status.Addresses[0].Type).To(Equal(corev1.NodeInternalIP))
+			Expect(supervisorMachineContext.VSphereMachine.Status.Addresses[0].Address).To(Equal(vmIP))
 
 			Expect(vmopVM.Spec.ReadinessProbe).To(BeNil())
 

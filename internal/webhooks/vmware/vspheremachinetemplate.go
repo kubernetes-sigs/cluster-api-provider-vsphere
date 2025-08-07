@@ -36,7 +36,10 @@ import (
 // +kubebuilder:webhook:verbs=create;update,path=/validate-vmware-infrastructure-cluster-x-k8s-io-v1beta1-vspheremachinetemplate,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=vmware.infrastructure.cluster.x-k8s.io,resources=vspheremachinetemplates,versions=v1beta1,name=validation.vspheremachinetemplate.vmware.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1beta1
 
 // VSphereMachineTemplate implements a validation webhook for VSphereMachineTemplate.
-type VSphereMachineTemplate struct{}
+type VSphereMachineTemplate struct {
+	// NetworkProvider is the network provider used by Supervisor based clusters
+	NetworkProvider string
+}
 
 var _ webhook.CustomValidator = &VSphereMachineTemplate{}
 
@@ -66,7 +69,7 @@ func (webhook *VSphereMachineTemplate) ValidateUpdate(ctx context.Context, _, ne
 }
 
 func (webhook *VSphereMachineTemplate) validate(_ context.Context, _, newVSphereMachineTemplate *vmwarev1.VSphereMachineTemplate) (admission.Warnings, error) {
-	var allErrs field.ErrorList
+	allErrs := validateNetwork(webhook.NetworkProvider, newVSphereMachineTemplate.Spec.Template.Spec.Network, field.NewPath("spec", "template", "spec", "network"))
 
 	// Validate namingStrategy
 	namingStrategy := newVSphereMachineTemplate.Spec.Template.Spec.NamingStrategy

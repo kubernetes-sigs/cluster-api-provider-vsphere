@@ -50,22 +50,6 @@ func TestVSphereCluster_ValidateCreate(t *testing.T) {
 			wantErr:         false,
 		},
 		{
-			name:            "successful VSphereCluster creation with network but no nsxVPC",
-			vsphereCluster:  createVSphereCluster("test-cluster", vmwarev1.Network{}),
-			networkProvider: manager.NSXVPCNetworkProvider,
-			featureGates:    map[string]bool{"MultiNetworks": false},
-			wantErr:         false,
-		},
-		{
-			name: "successful VSphereCluster creation with nsxVPC when network provider is NSX-VPC",
-			vsphereCluster: createVSphereCluster("test-cluster", vmwarev1.Network{
-				NSXVPC: vmwarev1.NSXVPC{},
-			}),
-			networkProvider: manager.NSXVPCNetworkProvider,
-			featureGates:    map[string]bool{"MultiNetworks": true},
-			wantErr:         false,
-		},
-		{
 			name: "successful VSphereCluster creation with nsxVPC and createSubnetSet is true and MultiNetworks enabled",
 			vsphereCluster: createVSphereCluster("test-cluster", vmwarev1.Network{
 				NSXVPC: vmwarev1.NSXVPC{

@@ -124,13 +124,13 @@ func (webhook *VSphereMachine) ValidateDelete(_ context.Context, _ runtime.Objec
 	return nil, nil
 }
 
-func validateNetwork(networkProvider string, network vmwarev1.VSphereMachineNetworkSpec, fildPath *field.Path) field.ErrorList {
+func validateNetwork(networkProvider string, network vmwarev1.VSphereMachineNetworkSpec, fldPath *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
 	if network.Interfaces.IsDefined() {
 		if !feature.Gates.Enabled(feature.MultiNetworks) {
 			allErrs = append(allErrs, field.Forbidden(
-				fildPath.Child("interfaces"),
+				fldPath.Child("interfaces"),
 				"interfaces can only be set when feature gate MultiNetworks is enabled"))
 		} else {
 			// Validate network type is supported
@@ -141,7 +141,7 @@ func validateNetwork(networkProvider string, network vmwarev1.VSphereMachineNetw
 					primaryNetGVK := primary.Network.GroupVersionKind()
 					if primaryNetGVK != pkgnetwork.NetworkGVKNSXTVPCSubnetSet {
 						allErrs = append(allErrs, field.Invalid(
-							fildPath.Child("interfaces", "primary", "network"),
+							fldPath.Child("interfaces", "primary", "network"),
 							primaryNetGVK,
 							fmt.Sprintf("only supports %s", pkgnetwork.NetworkGVKNSXTVPCSubnetSet)))
 					}
@@ -150,7 +150,7 @@ func validateNetwork(networkProvider string, network vmwarev1.VSphereMachineNetw
 					secondaryNetGVK := secondaryInterface.Network.GroupVersionKind()
 					if secondaryNetGVK != pkgnetwork.NetworkGVKNSXTVPCSubnetSet && secondaryNetGVK != pkgnetwork.NetworkGVKNSXTVPCSubnet {
 						allErrs = append(allErrs, field.Invalid(
-							fildPath.Child("interfaces", "secondary").Index(i).Child("network"),
+							fldPath.Child("interfaces", "secondary").Index(i).Child("network"),
 							secondaryNetGVK,
 							fmt.Sprintf("only supports %s or %s", pkgnetwork.NetworkGVKNSXTVPCSubnetSet, pkgnetwork.NetworkGVKNSXTVPCSubnet)))
 					}
@@ -158,20 +158,20 @@ func validateNetwork(networkProvider string, network vmwarev1.VSphereMachineNetw
 			case manager.VDSNetworkProvider:
 				if network.Interfaces.Primary.IsDefined() {
 					allErrs = append(allErrs, field.Forbidden(
-						fildPath.Child("interfaces", "primary"),
+						fldPath.Child("interfaces", "primary"),
 						"primary interface can not be set when network provider is vsphere-network"))
 				}
 				for i, secondaryInterface := range network.Interfaces.Secondary {
 					secondaryNetGVK := secondaryInterface.Network.GroupVersionKind()
 					if secondaryNetGVK != pkgnetwork.NetworkGVKNetOperator {
 						allErrs = append(allErrs, field.Invalid(
-							fildPath.Child("interfaces", "secondary").Index(i).Child("network"),
+							fldPath.Child("interfaces", "secondary").Index(i).Child("network"),
 							secondaryNetGVK,
 							fmt.Sprintf("only supports %s", pkgnetwork.NetworkGVKNetOperator)))
 					}
 				}
 			default:
-				allErrs = append(allErrs, field.Forbidden(fildPath.Child("interfaces"), fmt.Sprintf("interfaces can not be set when network provider is %s", networkProvider)))
+				allErrs = append(allErrs, field.Forbidden(fldPath.Child("interfaces"), fmt.Sprintf("interfaces can not be set when network provider is %s", networkProvider)))
 			}
 
 			// Validate interface names are unique
@@ -179,7 +179,7 @@ func validateNetwork(networkProvider string, network vmwarev1.VSphereMachineNetw
 			for i, secondaryInterface := range network.Interfaces.Secondary {
 				if _, ok := interfaceNames[secondaryInterface.Name]; ok {
 					allErrs = append(allErrs, field.Invalid(
-						fildPath.Child("interfaces", "secondary").Index(i).Child("name"),
+						fldPath.Child("interfaces", "secondary").Index(i).Child("name"),
 						secondaryInterface.Name,
 						"interface name is already in use"))
 				} else {

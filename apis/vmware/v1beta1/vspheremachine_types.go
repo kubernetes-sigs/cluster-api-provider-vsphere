@@ -131,7 +131,7 @@ type InterfacesSpec struct {
 	// +optional
 	Primary InterfaceSpec `json:"primary,omitempty,omitzero"`
 
-	// secondary is the secondary network interface.
+	// secondary are the secondary network interfaces.
 	//
 	// It is used for any purpose like deploying Antrea secondary network,
 	// Multus, mounting NFS etc.
@@ -168,7 +168,7 @@ type InterfaceSpec struct {
 	// network is the name of the network resource to which this interface is
 	// connected.
 	// +required
-	Network InterfaceNetworkRefeference `json:"network,omitempty,omitzero"`
+	Network InterfaceNetworkReference `json:"network,omitempty,omitzero"`
 
 	// mtu is the Maximum Transmission Unit size in bytes.
 	//
@@ -194,10 +194,9 @@ func (r *InterfaceSpec) IsDefined() bool {
 	return !reflect.DeepEqual(r, &InterfaceSpec{})
 }
 
-// InterfaceNetworkRefeference describes a reference to another object in the same
-// namespace as the referrer. The reference can be just a name but may also
-// include the referred resource's APIVersion and Kind.
-type InterfaceNetworkRefeference struct {
+// InterfaceNetworkReference describes a reference to another object in the same
+// namespace as the referrer.
+type InterfaceNetworkReference struct {
 	// kind of the remediation template.
 	// kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
 	// +required
@@ -224,16 +223,17 @@ type InterfaceNetworkRefeference struct {
 	APIVersion string `json:"apiVersion,omitempty"`
 }
 
-// GroupVersionKind gets the GroupVersionKind for an InterfaceNetworkRefeference.
-func (r *InterfaceNetworkRefeference) GroupVersionKind() schema.GroupVersionKind {
+// GroupVersionKind gets the GroupVersionKind for an InterfaceNetworkReference.
+func (r *InterfaceNetworkReference) GroupVersionKind() schema.GroupVersionKind {
 	return schema.FromAPIVersionAndKind(r.APIVersion, r.Kind)
 }
 
 // RouteSpec defines a static route for a guest.
 type RouteSpec struct {
-	// to is either "default", or an IP4 address. IP6 is not supported yet.
+	// to is an IP4 CIDR. IP6 is not supported yet.
+	// Examples: 192.168.1.0/24, 192.168.100.100/32, 0.0.0.0/0
 	//
-	// +kubebuilder:validation:Pattern=`^(default|([0-9]{1,3}\.){3}[0-9]{1,3}(\/[0-9]{1,2})?)$`
+	// +kubebuilder:validation:Pattern=`^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]{1,2}$`
 	// +kubebuilder:validation:MinLength=9
 	// +kubebuilder:validation:MaxLength=18
 	// +required

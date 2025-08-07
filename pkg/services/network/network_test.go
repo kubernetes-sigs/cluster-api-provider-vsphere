@@ -235,7 +235,7 @@ var _ = Describe("Network provider", func() {
 									{
 										Name: "eth1",
 										InterfaceSpec: vmwarev1.InterfaceSpec{
-											Network: vmwarev1.InterfaceNetworkRefeference{
+											Network: vmwarev1.InterfaceNetworkReference{
 												Kind:       "Network",
 												APIVersion: netopv1.SchemeGroupVersion.String(),
 												Name:       "one-secondary-network",
@@ -252,7 +252,7 @@ var _ = Describe("Network provider", func() {
 									{
 										Name: "eth2",
 										InterfaceSpec: vmwarev1.InterfaceSpec{
-											Network: vmwarev1.InterfaceNetworkRefeference{
+											Network: vmwarev1.InterfaceNetworkReference{
 												Kind:       "Network",
 												APIVersion: netopv1.SchemeGroupVersion.String(),
 												Name:       "another-secondary-network",
@@ -399,7 +399,7 @@ var _ = Describe("Network provider", func() {
 								{
 									Name: "eth1",
 									InterfaceSpec: vmwarev1.InterfaceSpec{
-										Network: vmwarev1.InterfaceNetworkRefeference{
+										Network: vmwarev1.InterfaceNetworkReference{
 											Kind:       "SubnetSet",
 											APIVersion: nsxvpcv1.SchemeGroupVersion.String(),
 											Name:       "secondary-subnetset",
@@ -416,7 +416,7 @@ var _ = Describe("Network provider", func() {
 								{
 									Name: "eth2",
 									InterfaceSpec: vmwarev1.InterfaceSpec{
-										Network: vmwarev1.InterfaceNetworkRefeference{
+										Network: vmwarev1.InterfaceNetworkReference{
 											Kind:       "SubnetSet",
 											APIVersion: nsxvpcv1.SchemeGroupVersion.String(),
 											Name:       "another-secondary-subnetset",
@@ -491,7 +491,7 @@ var _ = Describe("Network provider", func() {
 					machine.Spec.Network = vmwarev1.VSphereMachineNetworkSpec{
 						Interfaces: vmwarev1.InterfacesSpec{
 							Primary: vmwarev1.InterfaceSpec{
-								Network: vmwarev1.InterfaceNetworkRefeference{
+								Network: vmwarev1.InterfaceNetworkReference{
 									Kind:       "SubnetSet",
 									APIVersion: nsxvpcv1.SchemeGroupVersion.String(),
 									Name:       "custom-primary-subnetset",
@@ -508,7 +508,7 @@ var _ = Describe("Network provider", func() {
 								{
 									Name: "eth1",
 									InterfaceSpec: vmwarev1.InterfaceSpec{
-										Network: vmwarev1.InterfaceNetworkRefeference{
+										Network: vmwarev1.InterfaceNetworkReference{
 											Kind:       "SubnetSet",
 											APIVersion: nsxvpcv1.SchemeGroupVersion.String(),
 											Name:       "secondary-subnetset",

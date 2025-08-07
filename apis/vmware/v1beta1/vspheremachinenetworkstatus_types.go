@@ -114,8 +114,7 @@ type VSphereMachineNetworkDHCPOptionsStatus struct {
 	// key='2', value='require subnet-mask, domain-name-servers;'.
 	//
 	// +optional
-	// +listType=map
-	// +listMapKey=key
+	// +listType=atomic
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	Config []KeyValuePair `json:"config,omitempty"`
@@ -178,16 +177,12 @@ type VSphereMachineNetworkInterfaceIPAddrStatus struct {
 	// origin describes how this address was configured.
 	//
 	// +optional
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=512
 	// +kubebuilder:validation:Enum=dhcp;linklayer;manual;other;random
 	Origin string `json:"origin,omitempty"`
 
 	// state describes the state of this IP address.
 	//
 	// +optional
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=20
 	// +kubebuilder:validation:Enum=deprecated;duplicate;inaccessible;invalid;preferred;tentative;unknown
 	State string `json:"state,omitempty"`
 }

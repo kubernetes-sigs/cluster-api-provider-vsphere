@@ -112,12 +112,7 @@ func (vp *nsxtVPCNetworkProvider) verifyNsxtVpcSubnetSetStatus(vspherecluster *v
 }
 
 func createSubnetSet(clusterCtx *vmware.ClusterContext) bool {
-	cluster := clusterCtx.VSphereCluster
-	isCreate := true
-	if cluster.Spec.Network.NSXVPC.CreateSubnetSet != nil {
-		isCreate = *cluster.Spec.Network.NSXVPC.CreateSubnetSet
-	}
-	return isCreate
+	return ptr.Deref(clusterCtx.VSphereCluster.Spec.Network.NSXVPC.CreateSubnetSet, true)
 }
 
 // VerifyNetworkStatus checks if the given runtime object is of type SubnetSet.

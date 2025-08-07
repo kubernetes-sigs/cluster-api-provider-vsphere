@@ -118,7 +118,7 @@ func TestVSphereMachineTemplate_ValidateInterfaces(t *testing.T) {
 			network: vmwarev1.VSphereMachineNetworkSpec{
 				Interfaces: vmwarev1.InterfacesSpec{
 					Primary: vmwarev1.InterfaceSpec{
-						Network: vmwarev1.InterfaceNetworkRefeference{
+						Network: vmwarev1.InterfaceNetworkReference{
 							Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnetSet.Kind,
 							APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnetSet.GroupVersion().String(),
 							Name:       "primary-subnetset",
@@ -136,7 +136,7 @@ func TestVSphereMachineTemplate_ValidateInterfaces(t *testing.T) {
 			network: vmwarev1.VSphereMachineNetworkSpec{
 				Interfaces: vmwarev1.InterfacesSpec{
 					Primary: vmwarev1.InterfaceSpec{
-						Network: vmwarev1.InterfaceNetworkRefeference{
+						Network: vmwarev1.InterfaceNetworkReference{
 							Kind:       pkgnetwork.NetworkGVKNetOperator.Kind,
 							APIVersion: pkgnetwork.NetworkGVKNetOperator.GroupVersion().String(),
 							Name:       "primary-wrong",
@@ -156,7 +156,7 @@ func TestVSphereMachineTemplate_ValidateInterfaces(t *testing.T) {
 					Secondary: []vmwarev1.SecondaryInterfaceSpec{{
 						Name: "eth1",
 						InterfaceSpec: vmwarev1.InterfaceSpec{
-							Network: vmwarev1.InterfaceNetworkRefeference{
+							Network: vmwarev1.InterfaceNetworkReference{
 								Kind:       pkgnetwork.NetworkGVKNetOperator.Kind,
 								APIVersion: pkgnetwork.NetworkGVKNetOperator.GroupVersion().String(),
 								Name:       "secondary-wrong",
@@ -175,7 +175,7 @@ func TestVSphereMachineTemplate_ValidateInterfaces(t *testing.T) {
 			network: vmwarev1.VSphereMachineNetworkSpec{
 				Interfaces: vmwarev1.InterfacesSpec{
 					Primary: vmwarev1.InterfaceSpec{
-						Network: vmwarev1.InterfaceNetworkRefeference{
+						Network: vmwarev1.InterfaceNetworkReference{
 							Kind:       pkgnetwork.NetworkGVKNetOperator.Kind,
 							APIVersion: pkgnetwork.NetworkGVKNetOperator.GroupVersion().String(),
 							Name:       "primary-netop",
@@ -195,7 +195,7 @@ func TestVSphereMachineTemplate_ValidateInterfaces(t *testing.T) {
 					Secondary: []vmwarev1.SecondaryInterfaceSpec{{
 						Name: "eth1",
 						InterfaceSpec: vmwarev1.InterfaceSpec{
-							Network: vmwarev1.InterfaceNetworkRefeference{
+							Network: vmwarev1.InterfaceNetworkReference{
 								Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnetSet.Kind,
 								APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnetSet.GroupVersion().String(),
 								Name:       "secondary-wrong",
@@ -216,7 +216,7 @@ func TestVSphereMachineTemplate_ValidateInterfaces(t *testing.T) {
 					Secondary: []vmwarev1.SecondaryInterfaceSpec{{
 						Name: pkgnetwork.PrimaryInterfaceName,
 						InterfaceSpec: vmwarev1.InterfaceSpec{
-							Network: vmwarev1.InterfaceNetworkRefeference{
+							Network: vmwarev1.InterfaceNetworkReference{
 								Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnet.Kind,
 								APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnet.GroupVersion().String(),
 								Name:       "secondary-dup",
@@ -235,7 +235,7 @@ func TestVSphereMachineTemplate_ValidateInterfaces(t *testing.T) {
 			network: vmwarev1.VSphereMachineNetworkSpec{
 				Interfaces: vmwarev1.InterfacesSpec{
 					Primary: vmwarev1.InterfaceSpec{
-						Network: vmwarev1.InterfaceNetworkRefeference{
+						Network: vmwarev1.InterfaceNetworkReference{
 							Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnetSet.Kind,
 							APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnetSet.GroupVersion().String(),
 							Name:       "primary-subnetset",
@@ -244,7 +244,7 @@ func TestVSphereMachineTemplate_ValidateInterfaces(t *testing.T) {
 					Secondary: []vmwarev1.SecondaryInterfaceSpec{{
 						Name: "eth1",
 						InterfaceSpec: vmwarev1.InterfaceSpec{
-							Network: vmwarev1.InterfaceNetworkRefeference{
+							Network: vmwarev1.InterfaceNetworkReference{
 								Kind:       pkgnetwork.NetworkGVKNSXTVPCSubnetSet.Kind,
 								APIVersion: pkgnetwork.NetworkGVKNSXTVPCSubnetSet.GroupVersion().String(),
 								Name:       "secondary-subnetset",
@@ -264,7 +264,7 @@ func TestVSphereMachineTemplate_ValidateInterfaces(t *testing.T) {
 					Secondary: []vmwarev1.SecondaryInterfaceSpec{{
 						Name: "eth1",
 						InterfaceSpec: vmwarev1.InterfaceSpec{
-							Network: vmwarev1.InterfaceNetworkRefeference{
+							Network: vmwarev1.InterfaceNetworkReference{
 								Kind:       pkgnetwork.NetworkGVKNetOperator.Kind,
 								APIVersion: pkgnetwork.NetworkGVKNetOperator.GroupVersion().String(),
 								Name:       "secondary-netop",

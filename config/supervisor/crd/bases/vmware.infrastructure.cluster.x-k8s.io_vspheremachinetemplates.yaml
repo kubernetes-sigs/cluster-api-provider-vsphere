@@ -167,11 +167,12 @@ spec:
                                         for a guest.
                                       properties:
                                         to:
-                                          description: to is either "default", or
-                                            an IP4 address. IP6 is not supported yet.
+                                          description: |-
+                                            to is an IP4 CIDR. IP6 is not supported yet.
+                                            Examples: 192.168.1.0/24, 192.168.100.100/32, 0.0.0.0/0
                                           maxLength: 18
                                           minLength: 9
-                                          pattern: ^(default|([0-9]{1,3}\.){3}[0-9]{1,3}(\/[0-9]{1,2})?)$
+                                          pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]{1,2}$
                                           type: string
                                         via:
                                           description: via is an IP4 address. IP6
@@ -193,7 +194,7 @@ spec:
                                 type: object
                               secondary:
                                 description: |-
-                                  secondary is the secondary network interface.
+                                  secondary are the secondary network interfaces.
 
                                   It is used for any purpose like deploying Antrea secondary network,
                                   Multus, mounting NFS etc.
@@ -263,12 +264,12 @@ spec:
                                           for a guest.
                                         properties:
                                           to:
-                                            description: to is either "default", or
-                                              an IP4 address. IP6 is not supported
-                                              yet.
+                                            description: |-
+                                              to is an IP4 CIDR. IP6 is not supported yet.
+                                              Examples: 192.168.1.0/24, 192.168.100.100/32, 0.0.0.0/0
                                             maxLength: 18
                                             minLength: 9
-                                            pattern: ^(default|([0-9]{1,3}\.){3}[0-9]{1,3}(\/[0-9]{1,2})?)$
+                                            pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]{1,2}$
                                             type: string
                                           via:
                                             description: via is an IP4 address. IP6

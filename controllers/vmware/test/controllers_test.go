@@ -661,7 +661,9 @@ var _ = Describe("Reconciliation tests", func() {
 
 			By("Expect the VM to have been successfully created")
 			newVM := &vmoprv1.VirtualMachine{}
-			Expect(k8sClient.Get(ctx, machineKey, newVM)).Should(Succeed())
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, machineKey, newVM)).Should(Succeed())
+			}, time.Second*10).Should(Succeed())
 
 			By("Modifying the VM to simulate it having been created")
 			Eventually(func() error {

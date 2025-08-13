@@ -233,6 +233,12 @@ func (r vmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.R
 		return ctrl.Result{}, err
 	}
 
+	if vsphereMachine.Spec.FailureDomain != nil && *vsphereMachine.Spec.FailureDomain != "" {
+		if machine.Spec.FailureDomain == "" {
+			machine.Spec.FailureDomain = *vsphereMachine.Spec.FailureDomain
+		}
+	}
+
 	var vsphereFailureDomain *infrav1.VSphereFailureDomain
 	if failureDomain := machine.Spec.FailureDomain; failureDomain != "" {
 		vsphereDeploymentZone := &infrav1.VSphereDeploymentZone{}

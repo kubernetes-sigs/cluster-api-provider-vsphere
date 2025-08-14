@@ -54,7 +54,7 @@ cd "${TMP_DIR}"
 
 # Download govc
 
-wget "https://github.com/vmware/govmomi/releases/download/${2}/govc_${GOVC_OS}_${GOVC_ARCH}.tar.gz"
+curl --retry 5 --retry-all-errors -sLo "govc_${GOVC_OS}_${GOVC_ARCH}.tar.gz" "https://github.com/vmware/govmomi/releases/download/${2}/govc_${GOVC_OS}_${GOVC_ARCH}.tar.gz"
 tar -xvzf "govc_${GOVC_OS}_${GOVC_ARCH}.tar.gz" govc
 mv govc "${GOBIN}/${1}-${2}"
 

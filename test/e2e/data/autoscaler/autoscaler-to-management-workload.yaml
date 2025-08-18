@@ -46,7 +46,7 @@ spec:
         app: cluster-autoscaler
     spec:
       containers:
-        - image: registry.k8s.io/autoscaling/cluster-autoscaler:${AUTOSCALER_VERSION}
+        - image: gcr.io/k8s-staging-autoscaling/cluster-autoscaler:v20250814-cluster-autoscaler-chart-9.50.1-4-ga9cb59fdd
           name: cluster-autoscaler
           command:
             - /cluster-autoscaler
@@ -71,12 +71,6 @@ spec:
             # Using 6 for additional some buffer and to allow different starting min node group sizes.
             - --max-nodes-total=6
             - --v=4
-          env:
-            # Per default autoscaler uses the preferred apiVersion to retrieve MachineDeployments.
-            # If that apiVersion is v1beta2 the current autoscaler implementation is not able
-            # to resolve infrastructureRefs as the ref format changed. This would break scale from zero.
-            - name: CAPI_VERSION
-              value: v1beta1
           volumeMounts:
             - name: kubeconfig-management-cluster
               mountPath: /management-cluster

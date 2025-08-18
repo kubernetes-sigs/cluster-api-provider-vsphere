@@ -18,12 +18,6 @@ set -o errexit  # exits immediately on any unexpected error (does not bypass tra
 set -o nounset  # will error if variables are used without first being defined
 set -o pipefail # any non-zero exit code in a piped command causes the pipeline to fail with that code
 
-# Fallback for mirror-prow.
-if [[ "${GOVC_URL:-}" == "10.2.224.4" ]]; then
-  export JANITOR_ARGS
-  JANITOR_ARGS="--resource-type=vsphere-project-cluster-api-provider --resource-type=vsphere-project-cloud-provider --resource-type=vsphere-project-image-builder"
-fi
-
 # Sanitize input envvars to not contain newline
 GOVC_USERNAME=$(echo "${GOVC_USERNAME}" | tr -d "\n")
 GOVC_PASSWORD=$(echo "${GOVC_PASSWORD}" | tr -d "\n")

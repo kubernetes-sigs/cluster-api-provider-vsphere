@@ -1,5 +1,7 @@
 github.com/MakeNowJust/heredoc v1.0.0 h1:cXCdzVdstXyiTqTvfqk9SDHpKNjxuom+DOlyEeQ4pzQ=
 github.com/MakeNowJust/heredoc v1.0.0/go.mod h1:mG5amYoWBHf8vpLOuehzbGGw0EHxpZZ6lCpQ4fNJ8LE=
+github.com/Masterminds/semver/v3 v3.3.1 h1:QtNSWtVZ3nBfk8mAOu/B6v7FMJ+NHTIgUPi7rj+4nv4=
+github.com/Masterminds/semver/v3 v3.3.1/go.mod h1:4V+yj/TJE1HU9XfppCwVMZq3I84lprf4nC11bSS5beM=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
 github.com/blang/semver v3.5.1+incompatible h1:cQNTCjp13qL8KC3Nbxr/y2Bqb63oX6wdnnjpJbkM4JQ=
@@ -91,8 +93,8 @@ github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00 h1:n6/
 github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00/go.mod h1:Pm3mSP3c5uWn86xMLZ5Sa7JB9GsEZySvHYXCTK4E9q4=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 h1:C3w9PqII01/Oq1c1nUAm88MOHcQC9l5mIlSMApZMrHA=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
-github.com/onsi/ginkgo/v2 v2.23.4 h1:ktYTpKJAVZnDT4VjxSbiBenUjmlL/5QkBEocaWXiQus=
-github.com/onsi/ginkgo/v2 v2.23.4/go.mod h1:Bt66ApGPBFzHyR+JO10Zbt0Gsp4uWxu5mIOTusL46e8=
+github.com/onsi/ginkgo/v2 v2.24.0 h1:obZz8LAnHicNdbBqvG3ytAFx8fgza+i1IDpBVcHT2YE=
+github.com/onsi/ginkgo/v2 v2.24.0/go.mod h1:ppTWQ1dh9KM/F1XgpeRqelR+zHVwV81DGRSDnFxK7Sk=
 github.com/onsi/gomega v1.38.0 h1:c/WX+w8SLAinvuKKQFh77WEucCnPk4j2OTUr7lt7BeY=
 github.com/onsi/gomega v1.38.0/go.mod h1:OcXcwId0b9QsE7Y49u+BTrL4IdKOBOKnD6VQNTJEB6o=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
@@ -231,8 +233,8 @@ k8s.io/apimachinery v0.34.0-alpha.2 h1:kKK+KUnbsRWJObxY3pChe0IYkEWG5L4Qsmr/iTIuF
 k8s.io/apimachinery v0.34.0-alpha.2/go.mod h1:HYUvaFuBNToT/JW+lhc2D9BYgqj6xhI5eORJ7BnvKpM=
 k8s.io/client-go v0.34.0-alpha.2 h1:3TwS7HoRQZ8hQp9Sud4j+oS0O2N++3lyMVJavogALzw=
 k8s.io/client-go v0.34.0-alpha.2/go.mod h1:DWWpv2S99iGzK+cUwhQBe1ipIU9PVeREVjl/XWHlr4Y=
-k8s.io/cluster-bootstrap v0.33.3 h1:u2NTxJ5CFSBFXaDxLQoOWMly8eni31psVso+caq6uwI=
-k8s.io/cluster-bootstrap v0.33.3/go.mod h1:p970f8u8jf273zyQ5raD8WUu2XyAl0SAWOY82o7i/ds=
+k8s.io/cluster-bootstrap v0.33.4 h1:on2rpd9l+UOhXAeouFn8ROBSo+Ad6U9NELNpmwRxZ44=
+k8s.io/cluster-bootstrap v0.33.4/go.mod h1:SaOAiv+B/RQeUbcmjXKZO62w5BX4oT3ZJ8RFNl3ZoS8=
 k8s.io/component-base v0.34.0-alpha.2 h1:IRXrJ1nZHmzp4sAGYiv8uN2XvOCTelLwWXr5DxJp4cQ=
 k8s.io/component-base v0.34.0-alpha.2/go.mod h1:nk7MlWTLUWnSkaR72wJEH+bD6+zBtPb3CL9EMi2aMWc=
 k8s.io/klog/v2 v2.130.1 h1:n9Xl7H1Xvksem4KFG4PYbdQCQxqc/tTUyrgXaOhHSzk=

@@ -92,22 +92,16 @@ From this point forward changes which should land in the release have to be cher
 2. Create the milestone for the new release via [GitHub UI](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/milestones/new).
 3. Update the [milestone applier config](https://github.com/kubernetes/test-infra/blob/151bab62dc023525f592e6d1fdc2a8de5305cd01/config/prow/plugins.yaml#L523) accordingly (e.g. `release-1.8: v1.8`
    and `main: v1.9`)
-4. Create new jobs based on the jobs running against our `main` branch:
-   1. Copy the `.branches.main` section in `config/jobs/kubernetes-sigs/cluster-api-provider-vsphere/cluster-api-provider-vsphere-prowjob-gen.yaml` over to a new branch specific section (e.g. `.branches.release-1.8`).
-   2. Run `TEST_INFRA_DIR=../../k8s.io/test-infra make generate-test-infra-prowjobs` to regenerate the prowjob files.
+4. Update Jobs:
+   1. Create new jobs based on the jobs running against our `main` branch:
+      1. Copy the `.branches.main` section in `config/jobs/kubernetes-sigs/cluster-api-provider-vsphere/cluster-api-provider-vsphere-prowjob-gen.yaml` over to a new branch specific section (e.g. `.branches.release-1.8`).
+   2. Remove jobs for the old release branch that is not supported anymore by removing the release-branch from `cluster-api-provider-vsphere-prowjob-gen.yaml`.
+   3. Run `TEST_INFRA_DIR=../../k8s.io/test-infra make generate-test-infra-prowjobs` to regenerate the prowjob files.
 5. Verify the jobs and dashboards a day later by taking a look at [testgrid](https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api-provider-vsphere)
-6. Update for the currently supported branches:
+6. Update for the currently supported branches (also remove the release branch that is not supported anymore):
    * `.github/workflows/weekly-security-scan.yaml`: to setup Trivy and govulncheck scanning
    * `.github/workflows/weekly-md-link-check.yaml`: to setup link checking in the CAPI book
    * `.github/workflows/weekly-test-release.yaml`: to verify the release target is working
-
-After the release is cut:
-
-1. Remove tests for old release branches if necessary by removing the release-branch from `cluster-api-provider-vsphere-prowjob-gen.yaml` and regenerating the prowjob files.
-2. Update to remove the not supported release-branch:
-  * `.github/workflows/weekly-security-scan.yaml`: to setup Trivy and govulncheck scanning
-  * `.github/workflows/weekly-md-link-check.yaml`: to setup link checking in the CAPI book
-  * `.github/workflows/weekly-test-release.yaml`: to verify the release target is working
 
 ## Cut a release
 
@@ -162,17 +156,13 @@ After the release is cut:
      ```
 
 5. Publish the release.
-   1. Finalize release notes
-      1. Pay close attention to the `## :question: Sort these by hand` section, as it contains items that need to be manually sorted.
-      2. Ensure consistent formatting of entries (e.g. prefix).
-      3. Merge dependency bump PR entries for the same dependency into a single entry.
-      4. Move minor changes into a single line at the end of each section.
-      5. Sort entries within a section alphabetically.
-      6. Write highlights section based on the initial release notes doc. (for minor releases and important changes only)
-      7. **For minor releases** Modify `Changes since v1.x.y` to `Changes since v1.x`
+   1. Finalize release notes 
+      1. Write highlights section (for important changes only)
+      2. **For minor releases** Modify `Changes since v1.x.y` to `Changes since v1.x`
          **Note**: The release notes tool includes all merges since the previous release branch was branched of.
-   2. Publish the release and ensure release is flagged as `pre-release` for all `beta` and `rc` releases or `latest` for a new release in the most recent release branch.
-6. **For minor releases** Update supported versions in README.md.
+   2. Publish the release and ensure release is flagged as `pre-release` for all `alpha`, `beta` and `rc` releases or `latest` for a new release in the most recent release branch.
+6. **For the rc.0 release** Also [create the release branch](#create-a-release-branch). From now on every PR for the release has to be cherry-picked to the release branch!
+7. **For minor releases** Update supported versions in README.md.
 
 - Cutting a release as of today requires permissions to:
   - Create a release tag on the GitHub repository.

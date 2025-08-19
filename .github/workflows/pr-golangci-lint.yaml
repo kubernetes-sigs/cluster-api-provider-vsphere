@@ -32,3 +32,5 @@ jobs:
         with:
           version: v2.1.0
           working-directory: ${{matrix.working-directory}}
+      - name: Lint API
+        run: make lint-api

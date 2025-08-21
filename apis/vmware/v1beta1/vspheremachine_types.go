@@ -172,7 +172,7 @@ type InterfaceSpec struct {
 
 	// mtu is the Maximum Transmission Unit size in bytes.
 	//
-	// +kubebuilder:validation:Minimum=68
+	// +kubebuilder:validation:Minimum=576
 	// +kubebuilder:validation:Maximum=9000
 	// +optional
 	MTU int32 `json:"mtu,omitempty"`

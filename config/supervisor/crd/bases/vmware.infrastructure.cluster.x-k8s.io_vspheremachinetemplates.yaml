@@ -119,7 +119,7 @@ spec:
                                       size in bytes.
                                     format: int32
                                     maximum: 9000
-                                    minimum: 68
+                                    minimum: 576
                                     type: integer
                                   network:
                                     description: |-
@@ -208,7 +208,7 @@ spec:
                                         Unit size in bytes.
                                       format: int32
                                       maximum: 9000
-                                      minimum: 68
+                                      minimum: 576
                                       type: integer
                                     name:
                                       description: |-

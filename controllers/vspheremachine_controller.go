@@ -210,6 +210,21 @@ func (r *machineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 		return reconcile.Result{}, errors.Wrapf(err, "failed to get Machine for VSphereMachine")
 	}
 	if machine == nil {
+		// Note: If ownerRef was not set, there is nothing to delete. Remove finalizer so deletion can succeed.
+		if !machineContext.GetVSphereMachine().GetDeletionTimestamp().IsZero() {
+			if ctrlutil.ContainsFinalizer(machineContext.GetVSphereMachine(), infrav1.MachineFinalizer) {
+				patchHelper, err := patch.NewHelper(machineContext.GetVSphereMachine(), r.Client)
+				if err != nil {
+					return reconcile.Result{}, err
+				}
+				ctrlutil.RemoveFinalizer(machineContext.GetVSphereMachine(), infrav1.MachineFinalizer)
+				if err := patchHelper.Patch(ctx, machineContext.GetVSphereMachine()); err != nil {
+					return ctrl.Result{}, err
+				}
+			}
+			return ctrl.Result{}, nil
+		}
+
 		log.Info("Waiting for Machine controller to set OwnerRef on VSphereMachine")
 		return reconcile.Result{}, nil
 	}

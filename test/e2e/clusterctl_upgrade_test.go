@@ -276,7 +276,7 @@ func kindManagementClusterNewClusterProxyFunc(name string, kubeconfigPath string
 	if testTarget == VCSimTestTarget {
 		return vcsim.NewClusterProxy(name, kubeconfigPath, scheme)
 	}
-	return framework.NewClusterProxy(name, kubeconfigPath, scheme)
+	return framework.NewClusterProxy(name, kubeconfigPath, scheme, framework.WithMachineLogCollector(framework.DockerLogCollector{}))
 }
 
 func crdShouldBeMigrated(crd apiextensionsv1.CustomResourceDefinition) bool {

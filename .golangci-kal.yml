@@ -70,7 +70,7 @@ linters:
       - ".*_test.go"  # Exclude test files.
     rules:
     ## KAL should only run on API folders.
-    - path-except: "api//*"
+    - path-except: "apis//*"
       linters:
         - kubeapilinter
 

@@ -22,6 +22,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
@@ -355,5 +356,43 @@ func Test_machineReconciler_Metadata(t *testing.T) {
 				capiutil.HasOwner(vSphereMachine.GetOwnerReferences(), clusterv1.GroupVersion.String(), []string{"Machine"}) &&
 				!capiutil.HasOwner(vSphereMachine.GetOwnerReferences(), infrav1.GroupVersion.String(), []string{"VSphereCluster"})
 		}, timeout).Should(BeTrue())
+	})
+
+	t.Run("Should complete deletion even without Machine owner", func(t *testing.T) {
+		g := NewWithT(t)
+
+		vSphereMachine := &infrav1.VSphereMachine{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "vsphere-machine-no-ownerrefs",
+				Namespace: ns.Name,
+				// no ownerRefs
+			},
+			Spec: infrav1.VSphereMachineSpec{
+				VirtualMachineCloneSpec: infrav1.VirtualMachineCloneSpec{
+					Template: "ubuntu-k9s-1.19",
+					Network: infrav1.NetworkSpec{
+						Devices: []infrav1.NetworkDeviceSpec{
+							{NetworkName: "network-1", DHCP4: true},
+						},
+					},
+				},
+			},
+		}
+
+		g.Expect(testEnv.Create(ctx, vSphereMachine)).To(Succeed())
+
+		// Make sure the VSphereMachine has the finalizer.
+		g.Eventually(func(g Gomega) {
+			g.Expect(testEnv.Get(ctx, client.ObjectKeyFromObject(vSphereMachine), vSphereMachine)).To(Succeed())
+			g.Expect(ctrlutil.ContainsFinalizer(vSphereMachine, infrav1.MachineFinalizer)).To(BeTrue())
+		}, timeout).Should(Succeed())
+
+		g.Expect(testEnv.Delete(ctx, vSphereMachine)).To(Succeed())
+
+		// Make sure the VSphereMachine is gone.
+		g.Eventually(func(g Gomega) {
+			err := testEnv.Get(ctx, client.ObjectKeyFromObject(vSphereMachine), vSphereMachine)
+			g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+		}, timeout).Should(Succeed())
 	})
 }

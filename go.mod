@@ -12,7 +12,7 @@ require (
 	// The version of vm-operator should be kept in sync with the manifests at: config/deployments/integration-tests
 	github.com/vmware-tanzu/vm-operator/api v1.8.6
 	github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20240404200847-de75746a9505
-	github.com/vmware/govmomi v0.51.0
+	github.com/vmware/govmomi v0.52.0
 )
 
 require (
@@ -20,11 +20,11 @@ require (
 	github.com/go-logr/logr v1.4.3
 	github.com/go-task/slim-sprig/v3 v3.0.0
 	github.com/google/uuid v1.6.0
-	github.com/onsi/ginkgo/v2 v2.24.0
-	github.com/onsi/gomega v1.38.0
+	github.com/onsi/ginkgo/v2 v2.25.1
+	github.com/onsi/gomega v1.38.1
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.9.1
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.0
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
 	golang.org/x/mod v0.27.0
@@ -47,7 +47,7 @@ require (
 
 require (
 	cel.dev/expr v0.19.1 // indirect
-	github.com/Masterminds/semver/v3 v3.3.1 // indirect
+	github.com/Masterminds/semver/v3 v3.4.0 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
@@ -58,7 +58,7 @@ require (
 	github.com/go-logr/zapr v1.3.0 // indirect
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/gnostic-models v0.6.9 // indirect
-	github.com/google/pprof v0.0.0-20250403155104-27863c87afa6 // indirect
+	github.com/google/pprof v0.0.0-20250820193118-f64d9cf942d6 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.24.0 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
@@ -78,6 +78,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
+	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/net v0.43.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
 	golang.org/x/sync v0.16.0 // indirect
@@ -121,7 +122,7 @@ require (
 	github.com/stoewer/go-strcase v1.3.0 // indirect
 	golang.org/x/time v0.9.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.5.0 // indirect
-	google.golang.org/protobuf v1.36.6 // indirect
+	google.golang.org/protobuf v1.36.7 // indirect
 	gopkg.in/fsnotify.v1 v1.4.7
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

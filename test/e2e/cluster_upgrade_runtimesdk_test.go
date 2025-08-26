@@ -55,7 +55,7 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass with Runt
 
 					// This check ensures that the resourceVersions are stable, i.e. it verifies there are no
 					// continuous reconciles when everything should be stable.
-					framework.ValidateResourceVersionStable(ctx, proxy, namespace, FilterObjectsWithKindAndName(clusterName))
+					framework.ValidateResourceVersionStable(ctx, proxy, namespace, TMPDropVSphereMachineAndFilterObjectsWithKindAndName(clusterName))
 				},
 				// "topology-runtimesdk" is the same as the "topology" flavor but with an additional RuntimeExtension.
 				Flavor:                    ptr.To(testSpecificSettingsGetter().FlavorForMode("topology-runtimesdk")),

@@ -489,6 +489,20 @@ func forcePeriodicDeploymentZoneReconcile(ctx context.Context, c ctrlclient.Clie
 	}()
 }
 
+func TMPDropVSphereMachineAndFilterObjectsWithKindAndName(clusterName string) func(u unstructured.Unstructured) bool {
+	f := FilterObjectsWithKindAndName(clusterName)
+
+	return func(u unstructured.Unstructured) bool {
+		if testMode == SupervisorTestMode {
+			// temporarily drop VSphereMachine while we found a fix for https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/3592
+			if sets.NewString("VSphereMachine").Has(u.GetKind()) {
+				return false
+			}
+		}
+		return f(u)
+	}
+}
+
 func FilterObjectsWithKindAndName(clusterName string) func(u unstructured.Unstructured) bool {
 	f := clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName)
 

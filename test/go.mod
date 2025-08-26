@@ -4,7 +4,7 @@ go 1.24.0
 
 replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.11.0
 
-replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.11.0
+replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.11.1-0.20250826144612-2d5238d88d04
 
 replace sigs.k8s.io/cluster-api-provider-vsphere => ../
 
@@ -78,7 +78,7 @@ require (
 	github.com/go-openapi/jsonreference v0.20.2 // indirect
 	github.com/go-openapi/swag v0.23.0 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
-	github.com/go-viper/mapstructure/v2 v2.3.0 // indirect
+	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/gobuffalo/flect v1.0.3 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect

@@ -29,28 +29,67 @@ Check out the [getting started guide](./docs/getting_started.md) for launching a
 
 ------
 
+# CAPV release support
+
+A Cluster API provider vSphere release correspond to a release in the GitHub repository for this project, and the corresponding images published in the Kubernetes docker registry.
+The CAPV release calendar will be aligned as much as possible to the Kubernetes and the Cluster API release release dates plus an offset for 
+performing test/validation after K8s/CAPI release are available (tentatively one or two weeks after both K8s and CAPI release are available). 
+
+The CAPV team actively supports the latest two minor releases (N, N-1); support in this context means that we:
+
+- Have CI signal with E2E tests, unit tests, CVE scans etc.
+- Accept bug fixes, perform golang or dependency bumps, etc.
+- Periodically cut patch releases
+- On top of supporting the N and N-1 releases, the CAPV team also maintains CI signal for the CAPV N-2 releases in case we have to do an emergency patch release.
+
+If there is a need for an emergency patch, e.g. to fix a critical security issue, please bring this up to maintainers and it will be considered on a case-by-case basis.
+
+All considered, each CAPV minor release is supported for a period of roughly 12 months:
+
+- The first eight months of this timeframe will be considered the standard support period for a minor release.
+- The next four months the minor release will be considered in maintenance mode.
+- At the end of the four-month maintenance mode period, the minor release will be considered EOL (end of life) and cherry picks to the associated branch are to be closed soon afterwards.
+
+The table below documents support matrix for Cluster API provider vSphere versions (older versions omitted).
+
+| Minor Release | Status                  | Supported Until (including maintenance mode)                                         |
+|---------------|-------------------------|--------------------------------------------------------------------------------------|
+| v1.14.x       | Standard support period | in maintenance mode when v1.16.0 will be released, EOL when v1.17.0 will be released |
+| v1.13.x       | Standard support period | in maintenance mode when v1.15.0 will be released, EOL when v1.16.0 will be released |
+| v1.12.x       | Maintenance mode        | Maintenance mode v1.14.0 release date, EOL when v1.15.0 will be released             |
+| v1.11.x       | EOL                     | EOL since v1.14.0 release date                                                       |
+| v1.10.x       | EOL                     | EOL since v1.13.0 release date                                                       |
+| v1.9.x        | EOL                     | EOL since v1.12.0 release date                                                       |
+
 ## Compatibility with Cluster API and Kubernetes Versions
 
-This provider's versions are compatible with the following versions of Cluster API:
+Compatibility between CAPV releases and Cluster API depends on which Cluster API contract versions supported by CAPI and by which contract version is implemented in CAPV.
 
-|                      | Cluster API v1beta1 (v1.6) | Cluster API v1beta1 (v1.7) | Cluster API v1beta1 (v1.8) | Cluster API v1beta1 (v1.9) |
-|----------------------|:--------------------------:|:--------------------------:|:--------------------------:|:--------------------------:|
-| CAPV v1beta1 (v1.9)  |             ✓              |             x              |             x              |             x              |
-| CAPV v1beta1 (v1.10) |             x              |             ✓              |             x              |             x              |
-| CAPV v1beta1 (v1.11) |             x              |             x              |             ✓              |             x              |
-| CAPV v1beta1 (v1.12) |             x              |             x              |             x              |             ✓              |
+CAPV implements following Cluster API contract versions:
 
-As CAPV doesn't dictate supported K8s versions, and it supports whatever CAPI supported, about the provider's compatibility with K8s versions, please refer
-to [CAPI Supported Kubernetes Versions](https://cluster-api.sigs.k8s.io/reference/versions.html).
+|            | Cluster API contract version v1beta1 | Cluster API contract version v1beta1 |
+|------------|:------------------------------------:|:------------------------------------:|
+| CAPV v1.12 |                  ✓                   |                  x                   |
+| CAPV v1.13 |                  ✓                   |                  x                   |
+| CAPV v1.14 |                  ✓                   |                  x                   |
 
-Basically:
+Contract versions supported by Cluster API are documented in the [versions](https://cluster-api.sigs.k8s.io/reference/versions#cluster-api-release-vs-contract-versions) page in the [Cluster API book](https://cluster-api.sigs.k8s.io).
 
-- 4 Kubernetes minor releases for the management cluster (N - N-3)
-- 6 Kubernetes minor releases for the workload cluster (N - N-5)
+Also, please note that this project is not validating all the permutations between Cluster API versions and CAPV versions;
+below you can find the combinations that are tested in CI:
 
-**NOTES:**
-* We aim to cut a CAPV minor release approximately one week after the corresponding CAPI minor release is out.
-* We aim to cut a CAPV minor or patch release with support for a new Kubernetes minor version approximately 3 business days after releases for CAPI and CPI that support the new Kubernetes version are available.
+| CAPV version | CAPI version used in CI |
+|--------------|:-----------------------:|
+| CAPV v1.12   |        CAPI v1.9        |
+| CAPV v1.13   |       CAPI v1.10        |
+| CAPV v1.14   |       CAPI v1.11        |
+
+## Compatibility with Kubernetes Versions
+
+CAPV doesn't dictate supported K8s versions, but in practice compatibility with Kubernetes versions is limited by the
+compatibility matrix of the Cluster API version you are using in combination with CAPV.
+
+Please refer to Cluster API 's [Kubernetes versions matrix](https://cluster-api.sigs.k8s.io/reference/versions#kubernetes-versions-support).
 
 ## Kubernetes versions with published OVAs
 

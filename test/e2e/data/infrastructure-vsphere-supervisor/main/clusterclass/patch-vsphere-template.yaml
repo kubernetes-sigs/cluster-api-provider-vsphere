@@ -19,8 +19,10 @@
             ubuntu-2404-kube-v1.31.0
             {{- else  if eq .builtin.controlPlane.version "v1.32.0" -}}
             ubuntu-2404-kube-v1.32.0
-            {{- else -}}
+            {{- else  if eq .builtin.controlPlane.version "v1.33.0" -}}
             ubuntu-2404-kube-v1.33.0
+            {{- else -}}
+            ubuntu-2404-kube-v1.34.0
             {{- end -}}
       selector:
         apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
@@ -44,8 +46,10 @@
             ubuntu-2404-kube-v1.31.0
             {{- else  if eq .builtin.controlPlane.version "v1.32.0" -}}
             ubuntu-2404-kube-v1.32.0
-            {{- else -}}
+            {{- else  if eq .builtin.controlPlane.version "v1.33.0" -}}
             ubuntu-2404-kube-v1.33.0
+            {{- else -}}
+            ubuntu-2404-kube-v1.34.0
             {{- end -}}
       selector:
         apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1

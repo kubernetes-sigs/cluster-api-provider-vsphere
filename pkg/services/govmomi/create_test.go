@@ -17,7 +17,6 @@ limitations under the License.
 package govmomi
 
 import (
-	"context"
 	"testing"
 
 	"github.com/vmware/govmomi/find"
@@ -33,7 +32,7 @@ import (
 )
 
 func TestCreate(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	model := simulator.VPX()
 	model.Host = 0 // ClusterHost only

@@ -56,7 +56,7 @@ password: '%s'
 		// for linting reasons
 		test := tt
 		content := fmt.Sprintf(contentFmt, tt.username, tt.password)
-		tmpFile, err := os.CreateTemp("", "creds")
+		tmpFile, err := os.CreateTemp(t.TempDir(), "creds")
 		if err != nil {
 			t.Fatal(err)
 		}

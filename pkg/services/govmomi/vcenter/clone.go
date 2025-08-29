@@ -212,6 +212,20 @@ func Clone(ctx context.Context, vmCtx *capvcontext.VMContext, bootstrapData []by
 		Snapshot: snapshotRef,
 	}
 
+	// Set CPU reservation and shares if specified
+	cpuAllocation := types.ResourceAllocationInfo{}
+	if vmCtx.VSphereVM.Spec.CPUReservationMhz > 0 {
+		cpuAllocation.Reservation = ptr.To(vmCtx.VSphereVM.Spec.CPUReservationMhz)
+	}
+	if vmCtx.VSphereVM.Spec.CPUShares > 0 {
+		cpuShares := types.SharesInfo{
+			Shares: vmCtx.VSphereVM.Spec.CPUShares,
+			Level:  types.SharesLevelCustom,
+		}
+		cpuAllocation.Shares = ptr.To(cpuShares)
+	}
+	spec.Config.CpuAllocation = ptr.To(cpuAllocation)
+
 	// For PCI devices, the memory for the VM needs to be reserved
 	// We can replace this once we have another way of reserving memory option
 	// exposed via the API types.

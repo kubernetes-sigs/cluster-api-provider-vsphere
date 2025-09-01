@@ -21,8 +21,12 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	admissionv1 "k8s.io/api/admission/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	featuregatetesting "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
@@ -300,6 +304,99 @@ func TestVSphereMachineTemplate_ValidateInterfaces(t *testing.T) {
 			} else {
 				g.Expect(err).NotTo(HaveOccurred())
 			}
+		})
+	}
+}
+
+func TestVSphereMachineTemplate_ValidateUpdate_Immutability(t *testing.T) {
+	oldTemplate := vmwarev1.VSphereMachineTemplate{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-template",
+			Namespace: "default",
+		},
+		Spec: vmwarev1.VSphereMachineTemplateSpec{
+			Template: vmwarev1.VSphereMachineTemplateResource{
+				Spec: vmwarev1.VSphereMachineSpec{
+					ImageName:    "ubuntu-20.04",
+					ClassName:    "best-effort-small",
+					StorageClass: "fast-storage",
+				},
+			},
+		},
+	}
+
+	newTemplate := oldTemplate.DeepCopy()
+	newTemplate.Spec.Template.Spec.ImageName = "ubuntu-22.04"
+
+	newTemplateSkipImmutabilityAnnotationSet := newTemplate.DeepCopy()
+	newTemplateSkipImmutabilityAnnotationSet.SetAnnotations(map[string]string{clusterv1.TopologyDryRunAnnotation: ""})
+
+	tests := []struct {
+		name        string
+		newTemplate *vmwarev1.VSphereMachineTemplate
+		oldTemplate *vmwarev1.VSphereMachineTemplate
+		req         *admission.Request
+		wantError   bool
+		wantErrMsg  string
+	}{
+		{
+			name:        "return no error if no modification",
+			newTemplate: &oldTemplate,
+			oldTemplate: &oldTemplate,
+			req:         &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(false)}},
+			wantError:   false,
+		},
+		{
+			name:        "don't allow modification of spec.template.spec",
+			newTemplate: newTemplate,
+			oldTemplate: &oldTemplate,
+			req:         &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(false)}},
+			wantError:   true,
+			wantErrMsg:  "VSphereMachineTemplate spec.template.spec field is immutable",
+		},
+		{
+			name:        "don't allow modification even with skip immutability annotation when not dry run",
+			newTemplate: newTemplateSkipImmutabilityAnnotationSet,
+			oldTemplate: &oldTemplate,
+			req:         &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(false)}},
+			wantError:   true,
+			wantErrMsg:  "VSphereMachineTemplate spec.template.spec field is immutable",
+		},
+		{
+			name:        "don't allow modification when dry run but no skip immutability annotation",
+			newTemplate: newTemplate,
+			oldTemplate: &oldTemplate,
+			req:         &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(true)}},
+			wantError:   true,
+			wantErrMsg:  "VSphereMachineTemplate spec.template.spec field is immutable",
+		},
+		{
+			name:        "skip immutability check when dry run and skip immutability annotation set",
+			newTemplate: newTemplateSkipImmutabilityAnnotationSet,
+			oldTemplate: &oldTemplate,
+			req:         &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(true)}},
+			wantError:   false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			webhook := &VSphereMachineTemplate{}
+			ctx := context.Background()
+			if tc.req != nil {
+				ctx = admission.NewContextWithRequest(ctx, *tc.req)
+			}
+			warnings, err := webhook.ValidateUpdate(ctx, tc.oldTemplate, tc.newTemplate)
+			if tc.wantError {
+				g.Expect(err).To(HaveOccurred())
+				if tc.wantErrMsg != "" {
+					g.Expect(err.Error()).To(ContainSubstring(tc.wantErrMsg))
+				}
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
+			}
+			g.Expect(warnings).To(BeEmpty())
 		})
 	}
 }

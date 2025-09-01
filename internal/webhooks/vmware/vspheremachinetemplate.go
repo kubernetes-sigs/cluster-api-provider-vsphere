@@ -82,7 +82,9 @@ func (webhook *VSphereMachineTemplate) ValidateUpdate(ctx context.Context, oldRa
 			return nil, apierrors.NewBadRequest(fmt.Sprintf("failed to compare old and new VSphereMachineTemplate: %v", err))
 		}
 		if !equal {
-			return nil, field.Invalid(field.NewPath("spec", "template", "spec"), newObj, fmt.Sprintf("VSphereMachineTemplate spec.template.spec field is immutable. Please create a new resource instead. Diff: %s", diff))
+			return nil, apierrors.NewInvalid(vmwarev1.GroupVersion.WithKind("VSphereMachineTemplate").GroupKind(), newObj.Name, field.ErrorList{
+				field.Invalid(field.NewPath("spec", "template", "spec"), newObj, fmt.Sprintf("VSphereMachineTemplate spec.template.spec field is immutable. Please create a new resource instead. Diff: %s", diff)),
+			})
 		}
 	}
 

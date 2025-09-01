@@ -298,13 +298,7 @@ spec:
                         type: array
                         x-kubernetes-list-type: atomic
                     type: object
-                    x-kubernetes-validations:
-                    - message: field 'primary' cannot be added or removed after creation
-                      rule: has(self.primary) == has(oldSelf.primary)
                 type: object
-                x-kubernetes-validations:
-                - message: field 'interfaces' cannot be added or removed after creation
-                  rule: has(self.interfaces) == has(oldSelf.interfaces)
               powerOffMode:
                 default: hard
                 description: |-
@@ -366,9 +360,6 @@ spec:
             - className
             - imageName
             type: object
-            x-kubernetes-validations:
-            - message: field 'network' cannot be added or removed after creation
-              rule: has(self.network) == has(oldSelf.network)
           status:
             description: VSphereMachineStatus defines the observed state of VSphereMachine.
             properties:

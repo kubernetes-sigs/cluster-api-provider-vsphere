@@ -38,7 +38,6 @@ type VSphereMachineVolume struct {
 }
 
 // VSphereMachineSpec defines the desired state of VSphereMachine.
-// +kubebuilder:validation:XValidation:rule="has(self.network) == has(oldSelf.network)",message="field 'network' cannot be added or removed after creation"
 type VSphereMachineSpec struct {
 	// ProviderID is the virtual machine's BIOS UUID formatted as
 	// vsphere://12345678-1234-1234-1234-123456789abc.
@@ -102,7 +101,6 @@ type VSphereMachineSpec struct {
 }
 
 // VSphereMachineNetworkSpec defines the network configuration of a VSphereMachine.
-// +kubebuilder:validation:XValidation:rule="has(self.interfaces) == has(oldSelf.interfaces)",message="field 'interfaces' cannot be added or removed after creation"
 // +kubebuilder:validation:MinProperties=1
 type VSphereMachineNetworkSpec struct {
 	// interfaces is the list of network interfaces attached to this VSphereMachine.
@@ -117,7 +115,6 @@ func (r *VSphereMachineNetworkSpec) IsDefined() bool {
 }
 
 // InterfacesSpec defines all the network interfaces of a VSphereMachine from Kubernetes perspective.
-// +kubebuilder:validation:XValidation:rule="has(self.primary) == has(oldSelf.primary)",message="field 'primary' cannot be added or removed after creation"
 // +kubebuilder:validation:MinProperties=1
 type InterfacesSpec struct {
 	// primary is the primary network interface.

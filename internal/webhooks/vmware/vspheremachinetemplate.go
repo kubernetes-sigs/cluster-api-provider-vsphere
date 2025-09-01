@@ -25,12 +25,14 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"sigs.k8s.io/cluster-api/util/topology"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/vmoperator"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-vmware-infrastructure-cluster-x-k8s-io-v1beta1-vspheremachinetemplate,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=vmware.infrastructure.cluster.x-k8s.io,resources=vspheremachinetemplates,versions=v1beta1,name=validation.vspheremachinetemplate.vmware.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1beta1
@@ -60,12 +62,31 @@ func (webhook *VSphereMachineTemplate) ValidateCreate(ctx context.Context, obj r
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *VSphereMachineTemplate) ValidateUpdate(ctx context.Context, _, newRaw runtime.Object) (admission.Warnings, error) {
-	vSphereMachineTemplate, ok := newRaw.(*vmwarev1.VSphereMachineTemplate)
+func (webhook *VSphereMachineTemplate) ValidateUpdate(ctx context.Context, oldRaw runtime.Object, newRaw runtime.Object) (admission.Warnings, error) {
+	newObj, ok := newRaw.(*vmwarev1.VSphereMachineTemplate)
 	if !ok {
 		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a VSphereMachineTemplate but got a %T", newRaw))
 	}
-	return webhook.validate(ctx, nil, vSphereMachineTemplate)
+	oldObj, ok := oldRaw.(*vmwarev1.VSphereMachineTemplate)
+	if !ok {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a VSphereMachineTemplate but got a %T", oldRaw))
+	}
+
+	req, err := admission.RequestFromContext(ctx)
+	if err != nil {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a admission.Request inside context: %v", err))
+	}
+	if !topology.IsDryRunRequest(req, newObj) {
+		equal, diff, err := util.Diff(oldObj.Spec.Template.Spec, newObj.Spec.Template.Spec)
+		if err != nil {
+			return nil, apierrors.NewBadRequest(fmt.Sprintf("failed to compare old and new VSphereMachineTemplate: %v", err))
+		}
+		if !equal {
+			return nil, field.Invalid(field.NewPath("spec", "template", "spec"), newObj, fmt.Sprintf("VSphereMachineTemplate spec.template.spec field is immutable. Please create a new resource instead. Diff: %s", diff))
+		}
+	}
+
+	return webhook.validate(ctx, nil, newObj)
 }
 
 func (webhook *VSphereMachineTemplate) validate(_ context.Context, _, newVSphereMachineTemplate *vmwarev1.VSphereMachineTemplate) (admission.Warnings, error) {

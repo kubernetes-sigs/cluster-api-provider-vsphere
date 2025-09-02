@@ -82,11 +82,11 @@ which contract version is implemented in CAPV.
 
 The following table documents the Cluster API contract versions implemented by supported CAPV versions:
 
-|            | Cluster API contract version v1beta1 | Cluster API contract version v1beta1 |
-|------------|:------------------------------------:|:------------------------------------:|
-| CAPV v1.12 |                  ✓                   |                  x                   |
-| CAPV v1.13 |                  ✓                   |                  x                   |
-| CAPV v1.14 |                  ✓                   |                  x                   |
+| CAPV version | Implements Cluster API contract version |
+|--------------|:---------------------------------------:|
+| CAPV v1.12   |                 v1beta1                 |
+| CAPV v1.13   |                 v1beta1                 |
+| CAPV v1.14   |                 v1beta1                 |
 
 Contract versions supported by Cluster API are documented in the [versions](https://cluster-api.sigs.k8s.io/reference/versions#cluster-api-release-vs-contract-versions) page in the [Cluster API book](https://cluster-api.sigs.k8s.io).
 

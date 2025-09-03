@@ -1057,6 +1057,20 @@ spec:
                   Defaults to LinkedClone, but fails gracefully to FullClone if the source
                   of the clone operation has no snapshots.
                 type: string
+              cpuReservationMhz:
+                description: |-
+                  CPUReservationMhz is the amount of CPU in MHz that is guaranteed available to the virtual machine.
+                  Defaults to the eponymous property value in the template from which the
+                  virtual machine is cloned.
+                format: int64
+                type: integer
+              cpuShares:
+                description: |-
+                  CPUShares are a relative priority to other virtual machines used in case of resource contention.
+                  Defaults to the eponymous property value in the template from which the
+                  virtual machine is cloned.
+                format: int32
+                type: integer
               customVMXKeys:
                 additionalProperties:
                   type: string

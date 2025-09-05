@@ -131,7 +131,7 @@ func (r clusterIdentityReconciler) Reconcile(ctx context.Context, req reconcile.
 	}
 
 	// If this secret is owned by a different VSphereClusterIdentity or a VSphereCluster, mark the identity as not ready and return an error.
-	if !clusterutilv1.IsOwnedByObject(secret, identity) && pkgidentity.IsOwnedByIdentityOrCluster(secret.GetOwnerReferences()) {
+	if !clusterutilv1.IsOwnedByObject(secret, identity, infrav1.GroupVersion.WithKind("VSphereClusterIdentity").GroupKind()) && pkgidentity.IsOwnedByIdentityOrCluster(secret.GetOwnerReferences()) {
 		v1beta1conditions.MarkFalse(identity, infrav1.CredentialsAvailableCondidtion, infrav1.SecretAlreadyInUseReason, clusterv1beta1.ConditionSeverityError, "secret being used by another Cluster/VSphereIdentity")
 		v1beta2conditions.Set(identity, metav1.Condition{
 			Type:    infrav1.VSphereClusterIdentityAvailableV1Beta2Condition,

@@ -69,7 +69,7 @@ var _ = Describe("VSphereClusterIdentity Reconciler", func() {
 				if err := testEnv.Get(ctx, skey, s); err != nil {
 					return false
 				}
-				return clusterutilv1.IsOwnedByObject(s, i)
+				return clusterutilv1.IsOwnedByObject(s, i, infrav1.GroupVersion.WithKind("VSphereClusterIdentity").GroupKind())
 			}, timeout).Should(BeTrue())
 		})
 
@@ -118,7 +118,7 @@ var _ = Describe("VSphereClusterIdentity Reconciler", func() {
 				if err := testEnv.Get(ctx, skey, s); err != nil {
 					return false
 				}
-				return clusterutilv1.IsOwnedByObject(s, i)
+				return clusterutilv1.IsOwnedByObject(s, i, infrav1.GroupVersion.WithKind("VSphereClusterIdentity").GroupKind())
 			}, timeout).Should(BeTrue())
 		})
 

@@ -520,9 +520,6 @@ func TestReconciler_fetchMachineOwnerObjects(t *testing.T) {
 
 func machineDeployment(name, namespace, cluster string) *clusterv1.MachineDeployment {
 	return &clusterv1.MachineDeployment{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "MachineDeployment",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
@@ -533,9 +530,6 @@ func machineDeployment(name, namespace, cluster string) *clusterv1.MachineDeploy
 
 func controlPlane(name, namespace, cluster string) *controlplanev1.KubeadmControlPlane {
 	return &controlplanev1.KubeadmControlPlane{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "KubeadmControlPlane",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,

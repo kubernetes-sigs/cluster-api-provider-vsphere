@@ -269,9 +269,11 @@ const (
 // APIEndpoint represents a reachable Kubernetes API endpoint.
 type APIEndpoint struct {
 	// The hostname on which the API server is serving.
+	// +optional
 	Host string `json:"host"`
 
 	// The port on which the API server is serving.
+	// +optional
 	Port int32 `json:"port"`
 }
 

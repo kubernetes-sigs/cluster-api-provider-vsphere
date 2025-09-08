@@ -348,7 +348,7 @@ func (r *clusterReconciler) reconcileIdentitySecret(ctx context.Context, cluster
 	}
 
 	// If a different VSphereCluster is an owner return an error.
-	if !clusterutilv1.IsOwnedByObject(secret, vsphereCluster) && identity.IsOwnedByIdentityOrCluster(secret.GetOwnerReferences()) {
+	if !clusterutilv1.IsOwnedByObject(secret, vsphereCluster, infrav1.GroupVersion.WithKind("VSphereCluster").GroupKind()) && identity.IsOwnedByIdentityOrCluster(secret.GetOwnerReferences()) {
 		return fmt.Errorf("another cluster has set the OwnerRef for Secret %s/%s", secret.Namespace, secret.Name)
 	}
 

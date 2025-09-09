@@ -490,7 +490,7 @@ func Test_janitor_CleanupVSphere(t *testing.T) {
 
 func queryTestCNSVolumes(ctx context.Context, client *cns.Client, testPrefix string) ([]cnstypes.CnsVolume, error) {
 	// VCSim only implements queryfilters on volume IDs.
-	res, err := client.QueryVolume(ctx, cnstypes.CnsQueryFilter{})
+	res, err := client.QueryVolume(ctx, &cnstypes.CnsQueryFilter{})
 	if err != nil {
 		return nil, err
 	}

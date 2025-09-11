@@ -222,7 +222,7 @@ func (s *Janitor) DeleteCNSVolumes(ctx context.Context, boskosResourceName strin
 	}
 	volumesToDelete := []cnsVolumeToDelete{}
 
-	queryFilter := cnstypes.CnsQueryFilter{
+	queryFilter := &cnstypes.CnsQueryFilter{
 		Labels: []types.KeyValue{
 			{
 				Key:   boskosResourceLabel,

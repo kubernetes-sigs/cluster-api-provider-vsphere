@@ -20,16 +20,28 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
 )
 
 var _ = Describe("VSphereClusterIdentity Reconciler", func() {
 	controllerNamespace := testEnv.Manager.GetControllerManagerContext().Namespace
+	if controllerNamespace != manager.DefaultPodNamespace {
+		ns := &corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: controllerNamespace,
+			},
+		}
+		if err := testEnv.Client.Create(ctx, ns); !apierrors.IsAlreadyExists(err) {
+			Expect(err).ToNot(HaveOccurred())
+		}
+	}
 
 	Context("Reconcile Normal", func() {
 		It("should set the ownerRef on a secret and set Ready condition", func() {

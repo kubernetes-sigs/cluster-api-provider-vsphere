@@ -17,7 +17,6 @@ limitations under the License.
 package govmomi
 
 import (
-	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -33,7 +32,7 @@ import (
 )
 
 func Test_ShouldRetryTask(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	t.Run("when no task is present", func(t *testing.T) {
 		g := NewWithT(t)

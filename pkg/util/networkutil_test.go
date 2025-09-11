@@ -17,7 +17,6 @@ limitations under the License.
 package util
 
 import (
-	"context"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
@@ -89,7 +88,7 @@ func TestNCPSupportFW(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := context.Background()
+			ctx := t.Context()
 			got, err := NCPSupportFW(ctx, tt.client)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NCPSupportFW() error = %v, wantErr %v", err, tt.wantErr)

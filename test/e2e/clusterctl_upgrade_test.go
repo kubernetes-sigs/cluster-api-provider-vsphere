@@ -155,7 +155,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.14
 })
 
 // Note: This test should be changed during "prepare main branch", it should test CAPV n-2 => current (and then corresponding CAPI versions if already available).
-var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.13=>current, CAPI 1.10=>1.11) [vcsim] [supervisor] [ClusterClass]", func() {
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.13=>current, CAPI 1.10=>1.12) [vcsim] [supervisor] [ClusterClass]", func() {
 	const specName = "clusterctl-upgrade-1.13-current" // prefix (clusterctl-upgrade) copied from CAPI
 	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
@@ -209,7 +209,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.13
 })
 
 // Note: This test should be changed during "prepare main branch", it should test CAPV n-3 => current (and then corresponding CAPI versions if already available).
-var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.12=>current, CAPI 1.9=>1.11) [vcsim] [supervisor] [ClusterClass]", func() {
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (CAPV 1.12=>current, CAPI 1.9=>1.12) [vcsim] [supervisor] [ClusterClass]", func() {
 	const specName = "clusterctl-upgrade-1.12-current" // prefix (clusterctl-upgrade) copied from CAPI
 	Setup(specName, func(testSpecificSettingsGetter func() testSettings) {
 		capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {

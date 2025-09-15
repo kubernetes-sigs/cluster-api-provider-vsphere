@@ -427,7 +427,7 @@ generate-e2e-templates-main: $(KUSTOMIZE) ## Generate test templates for the mai
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/ownerrefs-finalizers" > "$(E2E_SUPERVISOR_TEMPLATE_DIR)/main/cluster-template-ownerrefs-finalizers-supervisor.yaml"
 
 .PHONY: generate-e2e-templates-v1.14
-generate-e2e-templates-v1.13: $(KUSTOMIZE)
+generate-e2e-templates-v1.14: $(KUSTOMIZE)
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/v1.14/clusterclass" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/v1.14/clusterclass-quick-start.yaml"
 	"$(KUSTOMIZE)" --load-restrictor LoadRestrictionsNone build "$(E2E_GOVMOMI_TEMPLATE_DIR)/v1.14/workload" > "$(E2E_GOVMOMI_TEMPLATE_DIR)/v1.14/cluster-template-workload.yaml"
 

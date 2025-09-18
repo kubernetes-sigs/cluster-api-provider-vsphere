@@ -15,6 +15,7 @@ require (
 	// The version of vm-operator should be kept in sync with the manifests at: config/deployments/integration-tests
 	github.com/vmware-tanzu/vm-operator/api v1.9.1-0.20250908141901-a9e1dfbc0045
 	github.com/vmware/govmomi v0.51.0
+
 )
 
 require (

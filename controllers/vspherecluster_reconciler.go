@@ -427,6 +427,7 @@ func (r *clusterReconciler) reconcileDeploymentZones(ctx context.Context, cluste
 	failureDomains := clusterv1beta1.FailureDomains{}
 	for _, zone := range deploymentZoneList.Items {
 		if zone.Spec.Server != clusterCtx.VSphereCluster.Spec.Server {
+
 			continue
 		}
 

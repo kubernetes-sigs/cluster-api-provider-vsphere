@@ -6,5 +6,6 @@ resources:
 - leader_election_role.yaml
 - leader_election_role_binding.yaml
 - aggregate_role.yaml
+- serviceaccount.yaml
 patchesStrategicMerge:
 - aggregate_labels.yaml

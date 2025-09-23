@@ -10,10 +10,13 @@ replace sigs.k8s.io/cluster-api-provider-vsphere => ../
 
 replace github.com/vmware-tanzu/vm-operator/pkg/constants/testlabels => github.com/vmware-tanzu/vm-operator/pkg/constants/testlabels v0.0.0-20240404200847-de75746a9505
 
+// The version of vm-operator should be kept in sync with the manifests at: config/deployments/integration-testsz
+replace github.com/vmware-tanzu/vm-operator/api => github.com/vmware-tanzu/vm-operator/api v1.8.6
+
 require (
 	github.com/vmware-tanzu/net-operator-api v0.0.0-20240326163340-1f32d6bf7f9d
 	// The version of vm-operator should be kept in sync with the manifests at: config/deployments/integration-tests
-	github.com/vmware-tanzu/vm-operator/api v1.9.0
+	github.com/vmware-tanzu/vm-operator/api v1.8.6
 	github.com/vmware/govmomi v0.52.0
 )
 
@@ -89,7 +92,6 @@ require (
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/go-github/v53 v53.2.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
-	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/pprof v0.0.0-20250820193118-f64d9cf942d6 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674 // indirect

@@ -6,11 +6,14 @@ replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.11.0-rc.0.0.202509
 
 replace github.com/vmware-tanzu/vm-operator/pkg/constants/testlabels => github.com/vmware-tanzu/vm-operator/pkg/constants/testlabels v0.0.0-20240404200847-de75746a9505
 
+// The version of vm-operator should be kept in sync with the manifests at: config/deployments/integration-tests
+replace github.com/vmware-tanzu/vm-operator/api => github.com/vmware-tanzu/vm-operator/api v1.8.6
+
 require (
 	github.com/vmware-tanzu/net-operator-api v0.0.0-20240326163340-1f32d6bf7f9d
 	github.com/vmware-tanzu/nsx-operator/pkg/apis v0.0.0-20241112044858-9da8637c1b0d
 	// The version of vm-operator should be kept in sync with the manifests at: config/deployments/integration-tests
-	github.com/vmware-tanzu/vm-operator/api v1.9.0
+	github.com/vmware-tanzu/vm-operator/api v1.8.6
 	github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20240404200847-de75746a9505
 	github.com/vmware/govmomi v0.52.0
 )
@@ -58,7 +61,6 @@ require (
 	github.com/go-logr/zapr v1.3.0 // indirect
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/gnostic-models v0.7.0 // indirect
-	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/pprof v0.0.0-20250820193118-f64d9cf942d6 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.26.3 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect

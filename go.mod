@@ -4,7 +4,7 @@ go 1.24.0
 
 replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.11.0-rc.0.0.20250905091528-eb4e38c46ff6
 
-replace github.com/vmware-tanzu/vm-operator/pkg/constants/testlabels => github.com/vmware-tanzu/vm-operator/pkg/constants/testlabels v0.0.0-20240404200847-de75746a9505
+replace github.com/vmware-tanzu/vm-operator/pkg/constants/testlabels => github.com/vmware-tanzu/vm-operator/pkg/constants/testlabels v1.9.1-0.20250908141901-a9e1dfbc0045
 
 // The version of vm-operator should be kept in sync with the manifests at: config/deployments/integration-tests
 replace github.com/vmware-tanzu/vm-operator/api => github.com/vmware-tanzu/vm-operator/api v1.8.6
@@ -13,7 +13,7 @@ require (
 	github.com/vmware-tanzu/net-operator-api v0.0.0-20240326163340-1f32d6bf7f9d
 	github.com/vmware-tanzu/nsx-operator/pkg/apis v0.0.0-20241112044858-9da8637c1b0d
 	// The version of vm-operator should be kept in sync with the manifests at: config/deployments/integration-tests
-	github.com/vmware-tanzu/vm-operator/api v1.8.6
+	github.com/vmware-tanzu/vm-operator/api v1.9.1-0.20250908141901-a9e1dfbc0045
 	github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20240404200847-de75746a9505
 	github.com/vmware/govmomi v0.52.0
 )

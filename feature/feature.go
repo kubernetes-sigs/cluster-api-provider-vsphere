@@ -44,6 +44,11 @@ const (
 	// alpha: v1.11
 	NamespaceScopedZones featuregate.Feature = "NamespaceScopedZones"
 
+	// NodeAutoPlacement is a feature gate for the NodeAutoPlacement functionality for supervisor.
+	//
+	// alpha: v1.15
+	NodeAutoPlacement featuregate.Feature = "NodeAutoPlacement"
+
 	// PriorityQueue is a feature gate that controls if the controller uses the controller-runtime PriorityQueue
 	// instead of the default queue implementation.
 	//
@@ -62,5 +67,6 @@ var defaultCAPVFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	PriorityQueue:        {Default: true, PreRelease: featuregate.Beta},
 	NodeAntiAffinity:     {Default: false, PreRelease: featuregate.Alpha},
 	NamespaceScopedZones: {Default: false, PreRelease: featuregate.Alpha},
+	NodeAutoPlacement:    {Default: false, PreRelease: featuregate.Alpha},
 	MultiNetworks:        {Default: false, PreRelease: featuregate.Alpha},
 }

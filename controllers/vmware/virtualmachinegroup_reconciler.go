@@ -37,6 +37,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	infrautilv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
@@ -191,16 +192,24 @@ func (r *VirtualMachineGroupReconciler) createOrUpdateVMG(ctx context.Context, c
 		return reconcile.Result{RequeueAfter: reconciliationDelay}, nil
 	}
 
-	// Generate all the members of the VirtualMachineGroup.
-	members := make([]vmoprv1.GroupMember, 0, len(currentVSphereMachines))
-	// Sort the VSphereMachines by name for consistent ordering
-	sort.Slice(currentVSphereMachines, func(i, j int) bool {
-		return currentVSphereMachines[i].Name < currentVSphereMachines[j].Name
+	// Generate VM names according to the naming strategy set on the VSphereMachine.
+	vmNames := make([]string, 0, len(currentVSphereMachines))
+	for _, machine := range currentVSphereMachines {
+		name, err := GenerateVirtualMachineName(machine.Name, machine.Spec.NamingStrategy)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		vmNames = append(vmNames, name)
+	}
+	// Sort the VM names alphabetically for consistent ordering
+	sort.Slice(vmNames, func(i, j int) bool {
+		return vmNames[i] < vmNames[j]
 	})
 
-	for _, vm := range currentVSphereMachines {
+	members := make([]vmoprv1.GroupMember, 0, len(currentVSphereMachines))
+	for _, name := range vmNames {
 		members = append(members, vmoprv1.GroupMember{
-			Name: vm.Name,
+			Name: name,
 			Kind: "VirtualMachine",
 		})
 	}
@@ -210,9 +219,14 @@ func (r *VirtualMachineGroupReconciler) createOrUpdateVMG(ctx context.Context, c
 		return reconcile.Result{}, errors.Errorf("Cluster Topology is not defined %s/%s",
 			cluster.Namespace, cluster.Name)
 	}
-	mds := cluster.Spec.Topology.Workers.MachineDeployments
-	mdNames := make([]string, 0, len(mds))
-	for _, md := range mds {
+	machineDeployments := &clusterv1.MachineDeploymentList{}
+	if err := r.Client.List(ctx, machineDeployments,
+		client.InNamespace(cluster.Namespace),
+		client.MatchingLabels{clusterv1.ClusterNameLabel: cluster.Name}); err != nil {
+		return reconcile.Result{}, err
+	}
+	mdNames := []string{}
+	for _, md := range machineDeployments.Items {
 		mdNames = append(mdNames, md.Name)
 	}
 
@@ -401,7 +415,7 @@ func getCurrentVSphereMachines(ctx context.Context, kubeClient client.Client, cl
 	return result, nil
 }
 
-// GenerateVMGPlacementLabels returns labels per MachineDeployment which contain zone info for placed VMs for day-2 operationss
+// GenerateVMGPlacementLabels returns labels per MachineDeployment which contain zone info for placed VMs for day-2 operations.
 func GenerateVMGPlacementLabels(ctx context.Context, vmg *vmoprv1.VirtualMachineGroup, machineDeployments []string) (map[string]string, error) {
 	log := ctrl.LoggerFrom(ctx)
 	labels := make(map[string]string)
@@ -428,6 +442,7 @@ func GenerateVMGPlacementLabels(ctx context.Context, vmg *vmoprv1.VirtualMachine
 			}
 
 			// Check if VM belongs to a Machine Deployment by name (e.g. cluster-1-np-1-vm-xxx contains np-1)
+			// TODO: Establish membership via the machine deployment name label
 			if strings.Contains(member.Name, md) {
 				// Get the VM placement information by member status.
 				if member.Placement == nil {
@@ -447,4 +462,21 @@ func GenerateVMGPlacementLabels(ctx context.Context, vmg *vmoprv1.VirtualMachine
 	}
 
 	return labels, nil
+}
+
+// TODO: de-dup this logic with vmopmachine.go
+// GenerateVirtualMachineName generates the name of a VirtualMachine based on the naming strategy.
+func GenerateVirtualMachineName(machineName string, namingStrategy *vmwarev1.VirtualMachineNamingStrategy) (string, error) {
+	// Per default the name of the VirtualMachine should be equal to the Machine name (this is the same as "{{ .machine.name }}")
+	if namingStrategy == nil || namingStrategy.Template == nil {
+		// Note: No need to trim to max length in this case as valid Machine names will also be valid VirtualMachine names.
+		return machineName, nil
+	}
+
+	name, err := infrautilv1.GenerateMachineNameFromTemplate(machineName, namingStrategy.Template)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to generate name for VirtualMachine")
+	}
+
+	return name, nil
 }

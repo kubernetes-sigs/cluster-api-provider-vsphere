@@ -41,6 +41,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/feature"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/context/vmware"
 	infrautilv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
@@ -163,16 +164,21 @@ func (v *VmopMachineService) SyncFailureReason(_ context.Context, machineCtx cap
 	return supervisorMachineCtx.VSphereMachine.Status.FailureReason != nil || supervisorMachineCtx.VSphereMachine.Status.FailureMessage != nil, nil
 }
 
+type affinityInfo struct {
+	affinitySpec  *vmoprv1.AffinitySpec
+	vmGroupName   string
+	failureDomain *string
+
+	// TODO: is this needed for the single zone case?
+	// zones []topologyv1.Zone
+}
+
 // ReconcileNormal reconciles create and update events for VM Operator VMs.
 func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx capvcontext.MachineContext) (bool, error) {
 	log := ctrl.LoggerFrom(ctx)
 	supervisorMachineCtx, ok := machineCtx.(*vmware.SupervisorMachineContext)
 	if !ok {
 		return false, errors.New("received unexpected SupervisorMachineContext type")
-	}
-
-	if supervisorMachineCtx.Machine.Spec.FailureDomain != "" {
-		supervisorMachineCtx.VSphereMachine.Spec.FailureDomain = ptr.To(supervisorMachineCtx.Machine.Spec.FailureDomain)
 	}
 
 	// If debug logging is enabled, report the number of vms in the cluster before and after the reconcile
@@ -187,6 +193,112 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 
 	// Set the VM state. Will get reset throughout the reconcile
 	supervisorMachineCtx.VSphereMachine.Status.VMStatus = vmwarev1.VirtualMachineStatePending
+
+	var affInfo affinityInfo
+	if feature.Gates.Enabled(feature.NodeAutoPlacement) &&
+		!infrautilv1.IsControlPlaneMachine(machineCtx.GetVSphereMachine()) {
+		// Check for the presence of a VirtualMachineGroup with the name and namespace same as the name of the Cluster
+		vmOperatorVMGroup := &vmoprv1.VirtualMachineGroup{}
+		key := client.ObjectKey{
+			Namespace: supervisorMachineCtx.Cluster.Namespace,
+			Name:      supervisorMachineCtx.Cluster.Name,
+		}
+		err := v.Client.Get(ctx, key, vmOperatorVMGroup)
+		if err != nil {
+			if !apierrors.IsNotFound(err) {
+				return false, err
+			}
+			if apierrors.IsNotFound(err) {
+				log.V(4).Info("VirtualMachineGroup not found, requeueing")
+				return true, nil
+			}
+		}
+
+		// Check if the current machine is a member of the boot order
+		// in the VirtualMachineGroup.
+		if !v.checkVirtualMachineGroupMembership(vmOperatorVMGroup, supervisorMachineCtx) {
+			log.V(4).Info("Waiting for VirtualMachineGroup membership, requeueing")
+			return true, nil
+		}
+
+		// Initialize the affinityInfo for the VM
+		affInfo = affinityInfo{
+			vmGroupName: vmOperatorVMGroup.Name,
+		}
+
+		// Check the presence of the node-pool label on the VirtualMachineGroup object
+		nodePool := supervisorMachineCtx.Machine.Labels[clusterv1.MachineDeploymentNameLabel]
+		if zone, ok := vmOperatorVMGroup.Labels[fmt.Sprintf("zone.cluster.x-k8s.io/%s", nodePool)]; ok && zone != "" {
+			affInfo.failureDomain = ptr.To(zone)
+		}
+
+		// Fetch machine deployments without explicit failureDomain specified
+		// to use when setting the anti-affinity rules
+		machineDeployments := &clusterv1.MachineDeploymentList{}
+		if err := v.Client.List(ctx, machineDeployments,
+			client.InNamespace(supervisorMachineCtx.Cluster.Namespace),
+			client.MatchingLabels{clusterv1.ClusterNameLabel: supervisorMachineCtx.Cluster.Name}); err != nil {
+			return false, err
+		}
+		mdNames := []string{}
+		for _, machineDeployment := range machineDeployments.Items {
+			// Not adding node pool with explicit failureDomain specified to propose anti-affinity behavior
+			// among node pools with automatic placement only.
+			if machineDeployment.Spec.Template.Spec.FailureDomain == "" && machineDeployment.Name != nodePool {
+				mdNames = append(mdNames, machineDeployment.Name)
+			}
+		}
+		// turn to v4 log
+		log.V(2).Info("Gathered anti-affine MDs", "mdNames", mdNames)
+
+		affInfo.affinitySpec = &vmoprv1.AffinitySpec{
+			VMAffinity: &vmoprv1.VMAffinitySpec{
+				RequiredDuringSchedulingPreferredDuringExecution: []vmoprv1.VMAffinityTerm{
+					{
+						LabelSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{
+								clusterv1.MachineDeploymentNameLabel: nodePool,
+								clusterv1.ClusterNameLabel:           supervisorMachineCtx.Cluster.Name,
+							},
+						},
+						TopologyKey: corev1.LabelTopologyZone,
+					},
+				},
+			},
+			VMAntiAffinity: &vmoprv1.VMAntiAffinitySpec{
+				PreferredDuringSchedulingPreferredDuringExecution: []vmoprv1.VMAffinityTerm{
+					{
+						LabelSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{
+								clusterv1.MachineDeploymentNameLabel: nodePool,
+								clusterv1.ClusterNameLabel:           supervisorMachineCtx.Cluster.Name,
+							},
+						},
+						TopologyKey: corev1.LabelHostname,
+					},
+					{
+						LabelSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{
+								clusterv1.ClusterNameLabel: supervisorMachineCtx.Cluster.Name,
+							},
+							MatchExpressions: []metav1.LabelSelectorRequirement{
+								{
+									Key:      clusterv1.MachineDeploymentNameLabel,
+									Operator: metav1.LabelSelectorOpIn,
+									Values:   mdNames,
+								},
+							},
+						},
+						TopologyKey: corev1.LabelTopologyZone,
+					},
+				},
+			},
+		}
+	}
+
+	if supervisorMachineCtx.Machine.Spec.FailureDomain != "" {
+		supervisorMachineCtx.VSphereMachine.Spec.FailureDomain = ptr.To(supervisorMachineCtx.Machine.Spec.FailureDomain)
+	}
 
 	// Check for the presence of an existing object
 	vmOperatorVM := &vmoprv1.VirtualMachine{}
@@ -208,7 +320,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 	}
 
 	// Reconcile the VM Operator VirtualMachine.
-	if err := v.reconcileVMOperatorVM(ctx, supervisorMachineCtx, vmOperatorVM); err != nil {
+	if err := v.reconcileVMOperatorVM(ctx, supervisorMachineCtx, vmOperatorVM, &affInfo); err != nil {
 		v1beta1conditions.MarkFalse(supervisorMachineCtx.VSphereMachine, infrav1.VMProvisionedCondition, vmwarev1.VMCreationFailedReason, clusterv1beta1.ConditionSeverityWarning,
 			"failed to create or update VirtualMachine: %v", err)
 		v1beta2conditions.Set(supervisorMachineCtx.VSphereMachine, metav1.Condition{
@@ -378,7 +490,7 @@ func (v *VmopMachineService) GetHostInfo(ctx context.Context, machineCtx capvcon
 	return vmOperatorVM.Status.Host, nil
 }
 
-func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervisorMachineCtx *vmware.SupervisorMachineContext, vmOperatorVM *vmoprv1.VirtualMachine) error {
+func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervisorMachineCtx *vmware.SupervisorMachineContext, vmOperatorVM *vmoprv1.VirtualMachine, affinityInfo *affinityInfo) error {
 	// All Machine resources should define the version of Kubernetes to use.
 	if supervisorMachineCtx.Machine.Spec.Version == "" {
 		return errors.Errorf(
@@ -472,7 +584,7 @@ func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervis
 		}
 
 		// Assign the VM's labels.
-		vmOperatorVM.Labels = getVMLabels(supervisorMachineCtx, vmOperatorVM.Labels)
+		vmOperatorVM.Labels = getVMLabels(supervisorMachineCtx, vmOperatorVM.Labels, affinityInfo)
 
 		addResourcePolicyAnnotations(supervisorMachineCtx, vmOperatorVM)
 
@@ -492,6 +604,15 @@ func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervis
 				return fmt.Errorf("VM modifier returned result of the wrong type: %T", typedModified)
 			}
 			vmOperatorVM = typedModified
+		}
+
+		if affinityInfo != nil && affinityInfo.affinitySpec != nil {
+			if vmOperatorVM.Spec.Affinity == nil {
+				vmOperatorVM.Spec.Affinity = affinityInfo.affinitySpec
+			}
+			if vmOperatorVM.Spec.GroupName == "" {
+				vmOperatorVM.Spec.GroupName = affinityInfo.vmGroupName
+			}
 		}
 
 		// Make sure the VSphereMachine owns the VM Operator VirtualMachine.
@@ -735,7 +856,7 @@ func (v *VmopMachineService) addVolumes(ctx context.Context, supervisorMachineCt
 
 		if zone := supervisorMachineCtx.VSphereMachine.Spec.FailureDomain; zonal && zone != nil {
 			topology := []map[string]string{
-				{kubeTopologyZoneLabelKey: *zone},
+				{corev1.LabelTopologyZone: *zone},
 			}
 			b, err := json.Marshal(topology)
 			if err != nil {
@@ -777,7 +898,7 @@ func (v *VmopMachineService) addVolumes(ctx context.Context, supervisorMachineCt
 }
 
 // getVMLabels returns the labels applied to a VirtualMachine.
-func getVMLabels(supervisorMachineCtx *vmware.SupervisorMachineContext, vmLabels map[string]string) map[string]string {
+func getVMLabels(supervisorMachineCtx *vmware.SupervisorMachineContext, vmLabels map[string]string, affinityInfo *affinityInfo) map[string]string {
 	if vmLabels == nil {
 		vmLabels = map[string]string{}
 	}
@@ -791,7 +912,11 @@ func getVMLabels(supervisorMachineCtx *vmware.SupervisorMachineContext, vmLabels
 
 	// Get the labels that determine the VM's placement inside of a stretched
 	// cluster.
-	topologyLabels := getTopologyLabels(supervisorMachineCtx)
+	var failureDomain *string
+	if affinityInfo != nil && affinityInfo.failureDomain != nil {
+		failureDomain = affinityInfo.failureDomain
+	}
+	topologyLabels := getTopologyLabels(supervisorMachineCtx, failureDomain)
 	for k, v := range topologyLabels {
 		vmLabels[k] = v
 	}
@@ -799,6 +924,9 @@ func getVMLabels(supervisorMachineCtx *vmware.SupervisorMachineContext, vmLabels
 	// Ensure the VM has a label that can be used when searching for
 	// resources associated with the target cluster.
 	vmLabels[clusterv1.ClusterNameLabel] = supervisorMachineCtx.GetClusterContext().Cluster.Name
+
+	// Ensure the VM has the machine deployment name label
+	vmLabels[clusterv1.MachineDeploymentNameLabel] = supervisorMachineCtx.Machine.Labels[clusterv1.MachineDeploymentNameLabel]
 
 	return vmLabels
 }
@@ -809,10 +937,16 @@ func getVMLabels(supervisorMachineCtx *vmware.SupervisorMachineContext, vmLabels
 //
 //	and thus the code is optimized as such. However, in the future
 //	this function may return a more diverse topology.
-func getTopologyLabels(supervisorMachineCtx *vmware.SupervisorMachineContext) map[string]string {
+func getTopologyLabels(supervisorMachineCtx *vmware.SupervisorMachineContext, failureDomain *string) map[string]string {
+	// TODO: Make it so that we always set the zone label, might require enquiring the zones present (when unset)
 	if fd := supervisorMachineCtx.VSphereMachine.Spec.FailureDomain; fd != nil && *fd != "" {
 		return map[string]string{
-			kubeTopologyZoneLabelKey: *fd,
+			corev1.LabelTopologyZone: *fd,
+		}
+	}
+	if failureDomain != nil && *failureDomain != "" {
+		return map[string]string{
+			corev1.LabelTopologyZone: *failureDomain,
 		}
 	}
 	return nil
@@ -822,4 +956,17 @@ func getTopologyLabels(supervisorMachineCtx *vmware.SupervisorMachineContext) ma
 // This is also the name used by VSphereMachineTemplate and KubeadmConfigTemplate.
 func getMachineDeploymentNameForCluster(cluster *clusterv1.Cluster) string {
 	return fmt.Sprintf("%s-workers-0", cluster.Name)
+}
+
+// checkVirtualMachineGroupMembership checks if the machine is in the first boot order group
+// and performs logic if a match is found.
+func (v *VmopMachineService) checkVirtualMachineGroupMembership(vmOperatorVMGroup *vmoprv1.VirtualMachineGroup, supervisorMachineCtx *vmware.SupervisorMachineContext) bool {
+	if len(vmOperatorVMGroup.Spec.BootOrder) > 0 {
+		for _, member := range vmOperatorVMGroup.Spec.BootOrder[0].Members {
+			if member.Name == supervisorMachineCtx.Machine.Name {
+				return true
+			}
+		}
+	}
+	return false
 }

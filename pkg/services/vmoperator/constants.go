@@ -19,6 +19,8 @@ package vmoperator
 
 const (
 	kubeTopologyZoneLabelKey = "topology.kubernetes.io/zone"
+	kubeHostNameLabelKey     = "kubernetes.io/hostname"
+	nodePoolLabelKey         = "node-pool"
 
 	// ControlPlaneVMClusterModuleGroupName is the name used for the control plane Cluster Module.
 	ControlPlaneVMClusterModuleGroupName = "control-plane-group"

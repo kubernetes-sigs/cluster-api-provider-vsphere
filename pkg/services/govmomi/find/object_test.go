@@ -45,7 +45,7 @@ type resourceCount struct {
 func TestObjectFunc(t *testing.T) {
 	g := NewWithT(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	sim, authSession, resources, err := setupSimulatorAndSession(simulator.VPX())
 	g.Expect(err).ToNot(HaveOccurred(), "a vcsim instance and authSession should be established")

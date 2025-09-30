@@ -17,7 +17,6 @@ limitations under the License.
 package webhooks
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -56,7 +55,7 @@ func TestVSphereDeploymentZone_Default(t *testing.T) {
 				},
 			}
 			webhook := VSphereDeploymentZone{}
-			g.Expect(webhook.Default(context.Background(), &vdz)).NotTo(HaveOccurred())
+			g.Expect(webhook.Default(t.Context(), &vdz)).NotTo(HaveOccurred())
 			g.Expect(vdz.Spec.ControlPlane).NotTo(BeNil())
 			g.Expect(*vdz.Spec.ControlPlane).To(Equal(tt.expectedVal))
 		})

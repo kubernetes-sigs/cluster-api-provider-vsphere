@@ -167,6 +167,16 @@ type VirtualMachineCloneSpec struct {
 	// virtual machine is cloned.
 	// +optional
 	NumCoresPerSocket int32 `json:"numCoresPerSocket,omitempty"`
+	// CPUReservationMhz is the amount of CPU in MHz that is guaranteed available to the virtual machine.
+	// Defaults to the eponymous property value in the template from which the
+	// virtual machine is cloned.
+	// +optional
+	CPUReservationMhz int64 `json:"cpuReservationMhz,omitempty"`
+	// CPUShares are a relative priority to other virtual machines used in case of resource contention.
+	// Defaults to the eponymous property value in the template from which the
+	// virtual machine is cloned.
+	// +optional
+	CPUShares int32 `json:"cpuShares,omitempty"`
 	// MemoryMiB is the size of a virtual machine's memory, in MiB.
 	// Defaults to the eponymous property value in the template from which the
 	// virtual machine is cloned.

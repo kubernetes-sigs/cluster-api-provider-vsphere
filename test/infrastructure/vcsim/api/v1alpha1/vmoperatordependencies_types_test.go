@@ -37,7 +37,7 @@ func TestVMOperatorDependencies_SetVCenterFromVCenterSimulator(t *testing.T) {
 			fields: fields{
 				TypeMeta: v1.TypeMeta{
 					Kind:       "VMOperatorDependencies",
-					APIVersion: v1.SchemeGroupVersion.String(),
+					APIVersion: GroupVersion.String(),
 				},
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "name",

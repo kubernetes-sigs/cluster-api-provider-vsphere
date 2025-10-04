@@ -55,6 +55,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
@@ -84,6 +85,7 @@ var (
 	healthAddr                  string
 	managerOptions              = flags.ManagerOptions{}
 	logOptions                  = logs.NewOptions()
+	webhookPort                 int
 	// vcsim specific flags.
 	vSphereVMConcurrency              int
 	virtualMachineConcurrency         int
@@ -169,6 +171,9 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&healthAddr, "health-addr", ":9440",
 		"The address the health endpoint binds to.")
 
+	fs.IntVar(&webhookPort, "webhook-port", 9443,
+		"Webhook Server port")
+
 	flags.AddManagerOptions(fs, &managerOptions)
 
 	feature.MutableGates.AddFlag(fs)
@@ -245,13 +250,11 @@ func main() {
 				},
 			},
 		},
-		// WebhookServer: webhook.NewServer(
-		//	webhook.Options{
-		//		Port:    webhookPort,
-		//		CertDir: webhookCertDir,
-		//		TLSOpts: tlsOptionOverrides,
-		//	},
-		// ),
+		WebhookServer: webhook.NewServer(
+			webhook.Options{
+				Port: webhookPort,
+			},
+		),
 	}
 
 	mgr, err := ctrl.NewManager(restConfig, ctrlOptions)

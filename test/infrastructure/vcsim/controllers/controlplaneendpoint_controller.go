@@ -22,7 +22,6 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/klog/v2"
 	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
 	inmemoryserver "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
 	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
@@ -31,9 +30,10 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	vcsimv1 "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/api/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/controllers/backends"
+	inmemorybackend "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/controllers/backends/inmemory"
 )
 
 type ControlPlaneEndpointReconciler struct {
@@ -78,52 +78,23 @@ func (r *ControlPlaneEndpointReconciler) Reconcile(ctx context.Context, req ctrl
 		}
 	}()
 
+	backendReconciler := r.backendReconcilerFactory(ctx, controlPlaneEndpoint)
+
 	// Handle deleted machines
 	if !controlPlaneEndpoint.DeletionTimestamp.IsZero() {
-		return ctrl.Result{}, r.reconcileDelete(ctx, controlPlaneEndpoint)
+		return backendReconciler.ReconcileDelete(ctx, controlPlaneEndpoint)
 	}
 
 	// Handle non-deleted machines
-	return ctrl.Result{}, r.reconcileNormal(ctx, controlPlaneEndpoint)
+	return backendReconciler.ReconcileNormal(ctx, controlPlaneEndpoint)
 }
 
-func (r *ControlPlaneEndpointReconciler) reconcileNormal(ctx context.Context, controlPlaneEndpoint *vcsimv1.ControlPlaneEndpoint) error {
-	log := ctrl.LoggerFrom(ctx)
-	log.Info("Reconciling VCSim ControlPlaneEndpoint")
-
-	// Initialize a listener for the workload cluster.
-	// IMPORTANT: The fact that both the listener and the resourceGroup for a workload cluster have
-	// the same name is used as assumptions in other part of the implementation.
-	listenerName := klog.KObj(controlPlaneEndpoint).String()
-	listener, err := r.APIServerMux.InitWorkloadClusterListener(listenerName)
-	if err != nil {
-		return errors.Wrapf(err, "failed to init the listener for the control plane endpoint")
+func (r *ControlPlaneEndpointReconciler) backendReconcilerFactory(_ context.Context, _ *vcsimv1.ControlPlaneEndpoint) backends.ControlPlaneEndpointReconciler {
+	return &inmemorybackend.ControlPlaneEndpointReconciler{
+		InMemoryManager: r.InMemoryManager,
+		APIServerMux:    r.APIServerMux,
+		PodIP:           r.PodIP,
 	}
-
-	controlPlaneEndpoint.Status.Host = r.PodIP // NOTE: we are replacing the listener ip with the pod ip so it will be accessible from other pods as well
-	controlPlaneEndpoint.Status.Port = listener.Port()
-
-	return nil
-}
-
-func (r *ControlPlaneEndpointReconciler) reconcileDelete(ctx context.Context, controlPlaneEndpoint *vcsimv1.ControlPlaneEndpoint) error {
-	log := ctrl.LoggerFrom(ctx)
-	log.Info("Reconciling delete VCSim ControlPlaneEndpoint")
-	listenerName := klog.KObj(controlPlaneEndpoint).String()
-
-	// Delete the resource group hosting all the cloud resources belonging the workload cluster;
-	if resourceGroup, err := r.APIServerMux.ResourceGroupByWorkloadCluster(listenerName); err == nil {
-		r.InMemoryManager.DeleteResourceGroup(resourceGroup)
-	}
-
-	// Delete the listener for the workload cluster;
-	if err := r.APIServerMux.DeleteWorkloadClusterListener(listenerName); err != nil {
-		return errors.Wrapf(err, "failed to delete the listener for the control plane endpoint")
-	}
-
-	controllerutil.RemoveFinalizer(controlPlaneEndpoint, vcsimv1.ControlPlaneEndpointFinalizer)
-
-	return nil
 }
 
 // SetupWithManager will add watches for this controller.

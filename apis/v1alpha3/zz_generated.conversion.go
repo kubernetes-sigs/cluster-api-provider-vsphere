@@ -1802,6 +1802,8 @@ func autoConvert_v1beta1_VirtualMachineCloneSpec_To_v1alpha3_VirtualMachineClone
 	}
 	out.NumCPUs = in.NumCPUs
 	out.NumCoresPerSocket = in.NumCoresPerSocket
+	// WARNING: in.CPUReservationMhz requires manual conversion: does not exist in peer-type
+	// WARNING: in.CPUShares requires manual conversion: does not exist in peer-type
 	out.MemoryMiB = in.MemoryMiB
 	out.DiskGiB = in.DiskGiB
 	// WARNING: in.AdditionalDisksGiB requires manual conversion: does not exist in peer-type

@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
 
 	"github.com/pkg/errors"
 	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
@@ -164,13 +165,11 @@ func (v *VmopMachineService) SyncFailureReason(_ context.Context, machineCtx cap
 	return supervisorMachineCtx.VSphereMachine.Status.FailureReason != nil || supervisorMachineCtx.VSphereMachine.Status.FailureMessage != nil, nil
 }
 
+// affinityInfo is an internal to store VM affinity information.
 type affinityInfo struct {
 	affinitySpec  *vmoprv1.AffinitySpec
 	vmGroupName   string
 	failureDomain *string
-
-	// TODO: is this needed for the single zone case?
-	// zones []topologyv1.Zone
 }
 
 // ReconcileNormal reconciles create and update events for VM Operator VMs.
@@ -197,7 +196,6 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 	var affInfo affinityInfo
 	if feature.Gates.Enabled(feature.NodeAutoPlacement) &&
 		!infrautilv1.IsControlPlaneMachine(machineCtx.GetVSphereMachine()) {
-		// Check for the presence of a VirtualMachineGroup with the name and namespace same as the name of the Cluster
 		vmOperatorVMGroup := &vmoprv1.VirtualMachineGroup{}
 		key := client.ObjectKey{
 			Namespace: supervisorMachineCtx.Cluster.Namespace,
@@ -214,26 +212,24 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 			}
 		}
 
-		// Check if the current machine is a member of the boot order
-		// in the VirtualMachineGroup.
+		// Proceed only if the machine is a member of the VirtualMachineGroup.
 		if !v.checkVirtualMachineGroupMembership(vmOperatorVMGroup, supervisorMachineCtx) {
 			log.V(4).Info("Waiting for VirtualMachineGroup membership, requeueing")
 			return true, nil
 		}
 
-		// Initialize the affinityInfo for the VM
 		affInfo = affinityInfo{
 			vmGroupName: vmOperatorVMGroup.Name,
 		}
 
-		// Check the presence of the node-pool label on the VirtualMachineGroup object
+		// Reuse the label from the node pool -> zone mapping.
 		nodePool := supervisorMachineCtx.Machine.Labels[clusterv1.MachineDeploymentNameLabel]
 		if zone, ok := vmOperatorVMGroup.Labels[fmt.Sprintf("zone.cluster.x-k8s.io/%s", nodePool)]; ok && zone != "" {
 			affInfo.failureDomain = ptr.To(zone)
 		}
 
 		// Fetch machine deployments without explicit failureDomain specified
-		// to use when setting the anti-affinity rules
+		// to use when setting the anti-affinity rules.
 		machineDeployments := &clusterv1.MachineDeploymentList{}
 		if err := v.Client.List(ctx, machineDeployments,
 			client.InNamespace(supervisorMachineCtx.Cluster.Namespace),
@@ -242,14 +238,11 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 		}
 		mdNames := []string{}
 		for _, machineDeployment := range machineDeployments.Items {
-			// Not adding node pool with explicit failureDomain specified to propose anti-affinity behavior
-			// among node pools with automatic placement only.
 			if machineDeployment.Spec.Template.Spec.FailureDomain == "" && machineDeployment.Name != nodePool {
 				mdNames = append(mdNames, machineDeployment.Name)
 			}
 		}
-		// turn to v4 log
-		log.V(2).Info("Gathered anti-affine MDs", "mdNames", mdNames)
+		sort.Strings(mdNames)
 
 		affInfo.affinitySpec = &vmoprv1.AffinitySpec{
 			VMAffinity: &vmoprv1.VMAffinitySpec{
@@ -258,7 +251,6 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 						LabelSelector: &metav1.LabelSelector{
 							MatchLabels: map[string]string{
 								clusterv1.MachineDeploymentNameLabel: nodePool,
-								clusterv1.ClusterNameLabel:           supervisorMachineCtx.Cluster.Name,
 							},
 						},
 						TopologyKey: corev1.LabelTopologyZone,
@@ -271,16 +263,12 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 						LabelSelector: &metav1.LabelSelector{
 							MatchLabels: map[string]string{
 								clusterv1.MachineDeploymentNameLabel: nodePool,
-								clusterv1.ClusterNameLabel:           supervisorMachineCtx.Cluster.Name,
 							},
 						},
 						TopologyKey: corev1.LabelHostname,
 					},
 					{
 						LabelSelector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{
-								clusterv1.ClusterNameLabel: supervisorMachineCtx.Cluster.Name,
-							},
 							MatchExpressions: []metav1.LabelSelectorRequirement{
 								{
 									Key:      clusterv1.MachineDeploymentNameLabel,
@@ -926,7 +914,9 @@ func getVMLabels(supervisorMachineCtx *vmware.SupervisorMachineContext, vmLabels
 	vmLabels[clusterv1.ClusterNameLabel] = supervisorMachineCtx.GetClusterContext().Cluster.Name
 
 	// Ensure the VM has the machine deployment name label
-	vmLabels[clusterv1.MachineDeploymentNameLabel] = supervisorMachineCtx.Machine.Labels[clusterv1.MachineDeploymentNameLabel]
+	if !infrautilv1.IsControlPlaneMachine(supervisorMachineCtx.Machine) {
+		vmLabels[clusterv1.MachineDeploymentNameLabel] = supervisorMachineCtx.Machine.Labels[clusterv1.MachineDeploymentNameLabel]
+	}
 
 	return vmLabels
 }

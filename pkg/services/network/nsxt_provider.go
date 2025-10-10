@@ -223,7 +223,7 @@ func (np *nsxtNetworkProvider) ConfigureVirtualMachine(_ context.Context, cluste
 	}
 	vm.Spec.Network.Interfaces = append(vm.Spec.Network.Interfaces, vmoprv1.VirtualMachineNetworkInterfaceSpec{
 		Name: fmt.Sprintf("eth%d", len(vm.Spec.Network.Interfaces)),
-		Network: vmoprv1common.PartialObjectRef{
+		Network: &vmoprv1common.PartialObjectRef{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       NetworkGVKNSXT.Kind,
 				APIVersion: NetworkGVKNSXT.GroupVersion().String(),

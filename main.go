@@ -94,6 +94,7 @@ var (
 	vSphereVMConcurrency              int
 	vSphereClusterIdentityConcurrency int
 	vSphereDeploymentZoneConcurrency  int
+	virtualMachineGroupConcurrency    int
 	skipCRDMigrationPhases            []string
 
 	managerOptions = capiflags.ManagerOptions{}
@@ -140,6 +141,9 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	fs.IntVar(&vSphereDeploymentZoneConcurrency, "vspheredeploymentzone-concurrency", 10,
 		"Number of vSphere deployment zones to process simultaneously")
+
+	fs.IntVar(&virtualMachineGroupConcurrency, "virtualmachinegroup-concurrency", 10,
+		"Number of virtual machine group to process simultaneously")
 
 	fs.StringVar(
 		&managerOpts.PodName,
@@ -480,6 +484,12 @@ func setupSupervisorControllers(ctx context.Context, controllerCtx *capvcontext.
 
 	if err := vmware.AddServiceAccountProviderControllerToManager(ctx, controllerCtx, mgr, clusterCache, concurrency(providerServiceAccountConcurrency)); err != nil {
 		return err
+	}
+
+	if feature.Gates.Enabled(feature.NamespaceScopedZones) && feature.Gates.Enabled(feature.NodeAutoPlacement) {
+		if err := vmware.AddVirtualMachineGroupControllerToManager(ctx, controllerCtx, mgr, concurrency(virtualMachineGroupConcurrency)); err != nil {
+			return err
+		}
 	}
 
 	return vmware.AddServiceDiscoveryControllerToManager(ctx, controllerCtx, mgr, clusterCache, concurrency(serviceDiscoveryConcurrency))

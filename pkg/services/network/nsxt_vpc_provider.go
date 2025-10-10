@@ -224,7 +224,7 @@ func (vp *nsxtVPCNetworkProvider) ConfigureVirtualMachine(_ context.Context, clu
 		networkName := clusterCtx.VSphereCluster.Name
 		vm.Spec.Network.Interfaces = append(vm.Spec.Network.Interfaces, vmoprv1.VirtualMachineNetworkInterfaceSpec{
 			Name: PrimaryInterfaceName,
-			Network: vmoprv1common.PartialObjectRef{
+			Network: &vmoprv1common.PartialObjectRef{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       NetworkGVKNSXTVPCSubnetSet.Kind,
 					APIVersion: NetworkGVKNSXTVPCSubnetSet.GroupVersion().String(),
@@ -243,7 +243,7 @@ func (vp *nsxtVPCNetworkProvider) ConfigureVirtualMachine(_ context.Context, clu
 		}
 		vmInterface := vmoprv1.VirtualMachineNetworkInterfaceSpec{
 			Name: PrimaryInterfaceName,
-			Network: vmoprv1common.PartialObjectRef{
+			Network: &vmoprv1common.PartialObjectRef{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       primary.Network.Kind,
 					APIVersion: primary.Network.APIVersion,
@@ -281,7 +281,7 @@ func setVMSecondaryInterfaces(machine *vmwarev1.VSphereMachine, vm *vmoprv1.Virt
 		}
 		vmInterface := vmoprv1.VirtualMachineNetworkInterfaceSpec{
 			Name: secondaryInterface.Name,
-			Network: vmoprv1common.PartialObjectRef{
+			Network: &vmoprv1common.PartialObjectRef{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       secondaryInterface.Network.Kind,
 					APIVersion: secondaryInterface.Network.APIVersion,

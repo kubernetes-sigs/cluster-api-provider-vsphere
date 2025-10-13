@@ -19,6 +19,7 @@ package vmoperator
 import (
 	"context"
 	"fmt"
+	"slices"
 	"testing"
 	"time"
 
@@ -68,8 +69,7 @@ func updateReconciledVMStatus(ctx context.Context, vmService VmopMachineService,
 	Expect(err).ShouldNot(HaveOccurred())
 }
 
-// verifyVMAffinityRules is a helper method to assert the VM affinity rules.
-func verifyVMAffinityRules(vmopVM *vmoprv1.VirtualMachine, machineDeploymentName, clusterName string) {
+func verifyVMAffinityRules(vmopVM *vmoprv1.VirtualMachine, machineDeploymentName string) {
 	Expect(vmopVM.Spec.Affinity.VMAffinity).ShouldNot(BeNil())
 	Expect(vmopVM.Spec.Affinity.VMAffinity.RequiredDuringSchedulingPreferredDuringExecution).To(HaveLen(1))
 
@@ -78,21 +78,38 @@ func verifyVMAffinityRules(vmopVM *vmoprv1.VirtualMachine, machineDeploymentName
 	Expect(vmAffinityTerm.TopologyKey).To(Equal(corev1.LabelTopologyZone))
 }
 
-// verifyVMAntiAffinityRules is a helper method to assert the VM anti-affinity rules.
-func verifyVMAntiAffinityRules(vmopVM *vmoprv1.VirtualMachine, machineDeploymentName, clusterName string) {
+func verifyVMAntiAffinityRules(vmopVM *vmoprv1.VirtualMachine, machineDeploymentName string, extraMDs ...string) {
 	Expect(vmopVM.Spec.Affinity.VMAntiAffinity).ShouldNot(BeNil())
-	Expect(vmopVM.Spec.Affinity.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution).To(HaveLen(2))
 
-	// First anti-affinity term - same machine deployment, different hosts
-	antiAffinityTerm1 := vmopVM.Spec.Affinity.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution[0]
+	expectedNumAntiAffinityTerms := 1
+	if len(extraMDs) > 0 {
+		expectedNumAntiAffinityTerms = 2
+	}
+
+	antiAffinityTerms := vmopVM.Spec.Affinity.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution
+	Expect(antiAffinityTerms).To(HaveLen(expectedNumAntiAffinityTerms))
+
+	// First anti-affinity constraint - same machine deployment, different hosts
+	antiAffinityTerm1 := antiAffinityTerms[0]
 	Expect(antiAffinityTerm1.LabelSelector.MatchLabels).To(HaveKeyWithValue(clusterv1.MachineDeploymentNameLabel, machineDeploymentName))
 	Expect(antiAffinityTerm1.TopologyKey).To(Equal(corev1.LabelHostname))
 
 	// Second anti-affinity term - different machine deployments
-	antiAffinityTerm2 := vmopVM.Spec.Affinity.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution[1]
-	Expect(antiAffinityTerm2.LabelSelector.MatchExpressions).To(HaveLen(1))
-	Expect(antiAffinityTerm2.LabelSelector.MatchExpressions[0].Key).To(Equal(clusterv1.MachineDeploymentNameLabel))
-	Expect(antiAffinityTerm2.LabelSelector.MatchExpressions[0].Operator).To(Equal(metav1.LabelSelectorOpIn))
+	if len(extraMDs) > 0 {
+		isSortedAlphabetically := func(actual []string) (bool, error) {
+			return slices.IsSorted(actual), nil
+		}
+		antiAffinityTerm2 := antiAffinityTerms[1]
+		Expect(antiAffinityTerm2.LabelSelector.MatchExpressions).To(HaveLen(1))
+		Expect(antiAffinityTerm2.LabelSelector.MatchExpressions[0].Key).To(Equal(clusterv1.MachineDeploymentNameLabel))
+		Expect(antiAffinityTerm2.LabelSelector.MatchExpressions[0].Operator).To(Equal(metav1.LabelSelectorOpIn))
+
+		Expect(antiAffinityTerm2.LabelSelector.MatchExpressions[0].Values).To(HaveLen(len(extraMDs)))
+		Expect(antiAffinityTerm2.LabelSelector.MatchExpressions[0].Values).To(
+			WithTransform(isSortedAlphabetically, BeTrue()),
+			"Expected extra machine deployments to be sorted alphabetically",
+		)
+	}
 }
 
 const (
@@ -110,6 +127,32 @@ const (
 	missingK8SVersionFailure = "missing kubernetes version"
 	clusterNameLabel         = clusterv1.ClusterNameLabel
 )
+
+func createMachineDeployment(name, namespace, clusterName, failureDomain string) *clusterv1.MachineDeployment {
+	md := &clusterv1.MachineDeployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+			Labels: map[string]string{
+				clusterv1.ClusterNameLabel: clusterName,
+			},
+		},
+		Spec: clusterv1.MachineDeploymentSpec{
+			Template: clusterv1.MachineTemplateSpec{
+				Spec: clusterv1.MachineSpec{
+					// FailureDomain will be set conditionally below
+				},
+			},
+		},
+	}
+
+	// Only set failure domain if it's provided and not empty
+	if failureDomain != "" {
+		md.Spec.Template.Spec.FailureDomain = failureDomain
+	}
+
+	return md
+}
 
 var _ = Describe("VirtualMachine tests", func() {
 
@@ -779,22 +822,7 @@ var _ = Describe("VirtualMachine tests", func() {
 					Expect(vmService.Client.Create(ctx, vmGroup)).To(Succeed())
 
 					// Create a MachineDeployment for the worker
-					machineDeployment := &clusterv1.MachineDeployment{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      machineDeploymentName,
-							Namespace: corev1.NamespaceDefault,
-							Labels: map[string]string{
-								clusterv1.ClusterNameLabel: clusterName,
-							},
-						},
-						Spec: clusterv1.MachineDeploymentSpec{
-							Template: clusterv1.MachineTemplateSpec{
-								Spec: clusterv1.MachineSpec{
-									// No failure domain set
-								},
-							},
-						},
-					}
+					machineDeployment := createMachineDeployment(machineDeploymentName, corev1.NamespaceDefault, clusterName, "")
 					Expect(vmService.Client.Create(ctx, machineDeployment)).To(Succeed())
 				})
 
@@ -831,10 +859,10 @@ var _ = Describe("VirtualMachine tests", func() {
 					Expect(vmopVM.Spec.Affinity).ShouldNot(BeNil())
 
 					By("Verify VM affinity rules are set correctly")
-					verifyVMAffinityRules(vmopVM, machineDeploymentName, clusterName)
+					verifyVMAffinityRules(vmopVM, machineDeploymentName)
 
 					By("Verify VM anti-affinity rules are set correctly")
-					verifyVMAntiAffinityRules(vmopVM, machineDeploymentName, clusterName)
+					verifyVMAntiAffinityRules(vmopVM, machineDeploymentName)
 
 					By("Verify that worker machine has machine deploymet label set")
 					Expect(vmopVM.Labels[clusterv1.MachineDeploymentNameLabel]).To(Equal(machineDeploymentName))
@@ -895,22 +923,7 @@ var _ = Describe("VirtualMachine tests", func() {
 					Expect(vmService.Client.Create(ctx, vmGroup)).To(Succeed())
 
 					// Create a MachineDeployment for the worker with no explicit failure domain
-					machineDeployment := &clusterv1.MachineDeployment{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      machineDeploymentName,
-							Namespace: corev1.NamespaceDefault,
-							Labels: map[string]string{
-								clusterv1.ClusterNameLabel: fdClusterName,
-							},
-						},
-						Spec: clusterv1.MachineDeploymentSpec{
-							Template: clusterv1.MachineTemplateSpec{
-								Spec: clusterv1.MachineSpec{
-									// No failure domain set on template
-								},
-							},
-						},
-					}
+					machineDeployment := createMachineDeployment(machineDeploymentName, corev1.NamespaceDefault, fdClusterName, "")
 					Expect(vmService.Client.Create(ctx, machineDeployment)).To(Succeed())
 
 					// Provide valid bootstrap data
@@ -940,10 +953,10 @@ var _ = Describe("VirtualMachine tests", func() {
 					Expect(vmopVM.Spec.Affinity).ShouldNot(BeNil())
 
 					By("Verify VM affinity rules are set correctly")
-					verifyVMAffinityRules(vmopVM, machineDeploymentName, fdClusterName)
+					verifyVMAffinityRules(vmopVM, machineDeploymentName)
 
 					By("Verify VM anti-affinity rules are set correctly")
-					verifyVMAntiAffinityRules(vmopVM, machineDeploymentName, fdClusterName)
+					verifyVMAntiAffinityRules(vmopVM, machineDeploymentName)
 
 					By("Verify that worker machine has correct labels including topology")
 					Expect(vmopVM.Labels[clusterv1.MachineDeploymentNameLabel]).To(Equal(machineDeploymentName))
@@ -951,6 +964,64 @@ var _ = Describe("VirtualMachine tests", func() {
 
 					By("Verify that GroupName is set from VirtualMachineGroup")
 					Expect(vmopVM.Spec.GroupName).To(Equal(fdClusterName))
+				})
+
+				Context("For multiple machine deployments", func() {
+					const (
+						otherMdName1 = "other-md-1"
+						otherMdName2 = "other-md-2"
+					)
+
+					BeforeEach(func() {
+						otherMd1 := createMachineDeployment(otherMdName1, corev1.NamespaceDefault, clusterName, "")
+						Expect(vmService.Client.Create(ctx, otherMd1)).To(Succeed())
+
+						otherMd2 := createMachineDeployment(otherMdName2, corev1.NamespaceDefault, clusterName, "")
+						Expect(vmService.Client.Create(ctx, otherMd2)).To(Succeed())
+
+						// Create a MachineDeployment with failure domain
+						otherMdWithFd := createMachineDeployment("other-md-with-fd", corev1.NamespaceDefault, clusterName, "zone-1")
+						Expect(vmService.Client.Create(ctx, otherMdWithFd)).To(Succeed())
+					})
+
+					Specify("Reconcile valid machine with additional anti-affinity term added", func() {
+						expectReconcileError = false
+						expectVMOpVM = true
+						expectedImageName = imageName
+						expectedRequeue = true
+
+						// Provide valid bootstrap data
+						By("bootstrap data is created")
+						secretName := machine.GetName() + "-data"
+						secret := &corev1.Secret{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      secretName,
+								Namespace: machine.GetNamespace(),
+							},
+							Data: map[string][]byte{
+								"value": []byte(bootstrapData),
+							},
+						}
+						Expect(vmService.Client.Create(ctx, secret)).To(Succeed())
+
+						machine.Spec.Bootstrap.DataSecretName = &secretName
+
+						By("VirtualMachine is created")
+						requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
+						Expect(err).ShouldNot(HaveOccurred())
+						Expect(requeue).Should(BeTrue())
+
+						By("Verify that worker machine has affinity spec set")
+						vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
+						Expect(vmopVM).ShouldNot(BeNil())
+						Expect(vmopVM.Spec.Affinity).ShouldNot(BeNil())
+
+						By("Verify VM affinity rules are set correctly")
+						verifyVMAffinityRules(vmopVM, machineDeploymentName)
+
+						By("Verify VM anti-affinity rules are set correctly")
+						verifyVMAntiAffinityRules(vmopVM, machineDeploymentName, otherMdName1, otherMdName2)
+					})
 				})
 			})
 

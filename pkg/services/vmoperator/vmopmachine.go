@@ -267,20 +267,25 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 						},
 						TopologyKey: corev1.LabelHostname,
 					},
-					{
-						LabelSelector: &metav1.LabelSelector{
-							MatchExpressions: []metav1.LabelSelectorRequirement{
-								{
-									Key:      clusterv1.MachineDeploymentNameLabel,
-									Operator: metav1.LabelSelectorOpIn,
-									Values:   mdNames,
-								},
-							},
-						},
-						TopologyKey: corev1.LabelTopologyZone,
-					},
 				},
 			},
+		}
+		if len(mdNames) > 0 {
+			affInfo.affinitySpec.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution = append(
+				affInfo.affinitySpec.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution,
+				vmoprv1.VMAffinityTerm{
+					LabelSelector: &metav1.LabelSelector{
+						MatchExpressions: []metav1.LabelSelectorRequirement{
+							{
+								Key:      clusterv1.MachineDeploymentNameLabel,
+								Operator: metav1.LabelSelectorOpIn,
+								Values:   mdNames,
+							},
+						},
+					},
+					TopologyKey: corev1.LabelTopologyZone,
+				},
+			)
 		}
 	}
 

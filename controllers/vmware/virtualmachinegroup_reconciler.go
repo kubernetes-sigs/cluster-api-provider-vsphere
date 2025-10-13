@@ -243,6 +243,9 @@ func (r *VirtualMachineGroupReconciler) createOrUpdateVMG(ctx context.Context, c
 		// Do not update per-md-zone label once set, as placement decision should not change without user explicitly
 		// ask.
 		placementDecisionLabels, err := GenerateVMGPlacementLabels(ctx, desiredVMG, mdNames)
+		if err != nil {
+			return err
+		}
 		if len(placementDecisionLabels) > 0 {
 			for k, v := range placementDecisionLabels {
 				if _, exists := desiredVMG.Labels[k]; exists {
@@ -445,14 +448,17 @@ func GenerateVMGPlacementLabels(ctx context.Context, vmg *vmoprv1.VirtualMachine
 			// TODO: Establish membership via the machine deployment name label
 			if strings.Contains(member.Name, md) {
 				// Get the VM placement information by member status.
+				// VMs that have undergone placement do not have Placement info set, skip.
 				if member.Placement == nil {
-					return nil, errors.Errorf("VM %s in VMG %s/%s has no placement info. Placement is nil)", member.Name, vmg.Namespace, vmg.Name)
+					log.V(4).Info("VM in VMG has no placement info. Placement is nil", "VM", member.Name, "VMG", vmg.Name, "Namespace", vmg.Namespace)
+					continue
 				}
 
-				// Get the VM placement information by member status.
+				// Skip to next member if Zone is empty.
 				zone := member.Placement.Zone
 				if zone == "" {
-					return nil, errors.Errorf("VM %s in VMG %s/%s has no placement info. Zone is empty", member.Name, vmg.Namespace, vmg.Name)
+					log.V(4).Info("VM in VMG has no placement info. Zone is empty", "VM", member.Name, "VMG", vmg.Name, "Namespace", vmg.Namespace)
+					continue
 				}
 
 				log.Info(fmt.Sprintf("VM %s in VMG %s/%s has been placed in zone %s", member.Name, vmg.Namespace, vmg.Name, zone))

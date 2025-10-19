@@ -21,6 +21,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -41,6 +43,8 @@ type VirtualMachineReconciler struct {
 	Client client.Client
 
 	IsVMReady func() bool
+
+	overrideGetManagerContainer func(ctx context.Context) (*corev1.Container, error)
 }
 
 func (r *VirtualMachineReconciler) ReconcileNormal(ctx context.Context, cluster *clusterv1beta1.Cluster, machine *clusterv1beta1.Machine, virtualMachine client.Object) (_ ctrl.Result, reterr error) {
@@ -58,7 +62,7 @@ func (r *VirtualMachineReconciler) ReconcileNormal(ctx context.Context, cluster 
 		return reconcile.Result{RequeueAfter: 5 * time.Second}, nil // keep requeueing since we don't have a watch on machines // TODO: check if we can avoid this
 	}
 
-	// Check if the infrastructure is ready and the Bios UUID to be set (required for computing the Provide ID), otherwise return and wait for the vsphereVM object to be updated
+	// Check if the infrastructure is ready and the Bios UUID to be set (required for computing the Provider ID), otherwise return and wait for the vsphereVM object to be updated
 	if !r.IsVMReady() {
 		log.Info("Waiting for machine infrastructure to become ready")
 		return reconcile.Result{}, nil // TODO: check if we can avoid this
@@ -87,16 +91,14 @@ func (r *VirtualMachineReconciler) ReconcileNormal(ctx context.Context, cluster 
 }
 
 // reconcileCertificates reconcile the cluster certificates in the management cluster, as required by the CAPI contract.
-// TODO: change the implementation so we have logs when creating, we fail if certificates are missing after CP has been generated.
-func (r *VirtualMachineReconciler) reconcileCertificates(ctx context.Context, cluster *clusterv1beta1.Cluster, machine *clusterv1beta1.Machine, virtualMachine client.Object) (ctrl.Result, error) {
+func (r *VirtualMachineReconciler) reconcileCertificates(ctx context.Context, cluster *clusterv1beta1.Cluster, _ *clusterv1beta1.Machine, virtualMachine client.Object) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("DEBUG: reconcileCertificates")
 
 	secretHandler := caSecretHandler{
-		client:            r.Client,
-		cluster:           cluster,
-		virtualMachine:    virtualMachine,
-		virtualMachineGVK: virtualMachine.GetObjectKind().GroupVersionKind(), // FIXME: gvk is not always set, infer it from schema.
+		client:         r.Client,
+		cluster:        cluster,
+		virtualMachine: virtualMachine,
 	}
 
 	if err := secretHandler.LookupOrGenerate(ctx); err != nil {
@@ -106,8 +108,7 @@ func (r *VirtualMachineReconciler) reconcileCertificates(ctx context.Context, cl
 }
 
 // reconcileKubeConfig reconcile the cluster admin kubeconfig in the management cluster, as required by the CAPI contract.
-// TODO: change the implementation so we have logs when creating
-func (r *VirtualMachineReconciler) reconcileKubeConfig(ctx context.Context, cluster *clusterv1beta1.Cluster, machine *clusterv1beta1.Machine, virtualMachine client.Object) (ctrl.Result, error) {
+func (r *VirtualMachineReconciler) reconcileKubeConfig(ctx context.Context, cluster *clusterv1beta1.Cluster, _ *clusterv1beta1.Machine, virtualMachine client.Object) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("DEBUG: reconcileKubeConfig")
 	// If the secret with the CA is not yet in cache, wait fo in a bit before giving up.
@@ -124,10 +125,9 @@ func (r *VirtualMachineReconciler) reconcileKubeConfig(ctx context.Context, clus
 	}
 
 	secretHandler := kubeConfigSecretHandler{
-		client:            r.Client,
-		cluster:           cluster,
-		virtualMachine:    virtualMachine,
-		virtualMachineGVK: virtualMachine.GetObjectKind().GroupVersionKind(), // FIXME: gvk is not always set, infer it from schema.
+		client:         r.Client,
+		cluster:        cluster,
+		virtualMachine: virtualMachine,
 	}
 
 	// Note: the kubemarkControlPlane doesn't support implement kubeconfig client certificate renewal,
@@ -146,12 +146,17 @@ func (r *VirtualMachineReconciler) reconcilePods(ctx context.Context, cluster *c
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("DEBUG: reconcilePods")
 
+	controlPlaneEndpoint, err := r.getControPlaneEndPoint(ctx, cluster, virtualMachine)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	podHandler := controlPlanePodHandler{
-		client:               r.Client,
-		cluster:              cluster,
-		controlPlaneEndpoint: nil, // FIXME: fetch the controlPlaneEndpoint
-		virtualMachine:       virtualMachine,
-		virtualMachineGVK:    virtualMachine.GetObjectKind().GroupVersionKind(), // FIXME: gvk is not always set, infer it from schema.
+		client:                      r.Client,
+		cluster:                     cluster,
+		controlPlaneEndpoint:        controlPlaneEndpoint,
+		virtualMachine:              virtualMachine,
+		overrideGetManagerContainer: r.overrideGetManagerContainer,
 	}
 
 	// Create RBAC rules for the pod to run.
@@ -165,6 +170,8 @@ func (r *VirtualMachineReconciler) reconcilePods(ctx context.Context, cluster *c
 		return ctrl.Result{}, err
 	}
 
+	// TODO: Change this logic, we should generate if there is not a pod for this VM.
+	//   PodList must be used for join CP
 	if len(pods.Items) < 1 {
 		log.Info("Scaling up control plane replicas to 1")
 		if err := podHandler.Generate(ctx, *machine.Spec.Version); err != nil {
@@ -175,18 +182,22 @@ func (r *VirtualMachineReconciler) reconcilePods(ctx context.Context, cluster *c
 	}
 
 	// Wait for the pod to become running.
-	log.Info("Waiting for Control plane pods to become running")
-	// TODO: watch for CP pods in the backing cluster and drop requeueAfter
+	// TODO: Detect pod is up, figure it out the path forward to VM readiness.
 	return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 }
 
 func (r *VirtualMachineReconciler) ReconcileDelete(ctx context.Context, cluster *clusterv1beta1.Cluster, machine *clusterv1beta1.Machine, virtualMachine client.Object) (_ ctrl.Result, reterr error) {
+	controlPlaneEndpoint, err := r.getControPlaneEndPoint(ctx, cluster, virtualMachine)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	podHandler := controlPlanePodHandler{
-		client:               r.Client,
-		cluster:              cluster,
-		controlPlaneEndpoint: nil, // FIXME: fetch the controlPlaneEndpoint
-		virtualMachine:       virtualMachine,
-		virtualMachineGVK:    virtualMachine.GetObjectKind().GroupVersionKind(), // FIXME: gvk is not always set, infer it from schema.
+		client:                      r.Client,
+		cluster:                     cluster,
+		controlPlaneEndpoint:        controlPlaneEndpoint,
+		virtualMachine:              virtualMachine,
+		overrideGetManagerContainer: r.overrideGetManagerContainer,
 	}
 
 	// Delete all pods
@@ -211,4 +222,48 @@ func (r *VirtualMachineReconciler) ReconcileDelete(ctx context.Context, cluster 
 
 	controllerutil.RemoveFinalizer(virtualMachine, vcsimv1.VMFinalizer)
 	return ctrl.Result{}, nil
+}
+
+func (r *VirtualMachineReconciler) getControPlaneEndPoint(ctx context.Context, cluster *clusterv1beta1.Cluster, virtualMachine client.Object) (*vcsimv1.ControlPlaneEndpoint, error) {
+	controlPlaneEndpoint := &vcsimv1.ControlPlaneEndpoint{}
+	if name, ok := virtualMachine.GetAnnotations()["control-plane-endpoint.vcsim.infrastructure.cluster.x-k8s.io"]; ok {
+		if err := r.Client.Get(ctx, client.ObjectKey{
+			Namespace: virtualMachine.GetNamespace(),
+			Name:      name,
+		}, controlPlaneEndpoint); err != nil {
+			return nil, err
+		}
+	} else {
+		l := &vcsimv1.ControlPlaneEndpointList{}
+		if err := r.Client.List(ctx, l); err != nil {
+			return nil, err
+		}
+		found := false
+		for _, cpe := range l.Items {
+			if cpe.Status.Host != cluster.Spec.ControlPlaneEndpoint.Host || cpe.Status.Port != cluster.Spec.ControlPlaneEndpoint.Port {
+				continue
+			}
+
+			originalVirtualMachine := virtualMachine.(*vmoprv1.VirtualMachine).DeepCopy()
+			patch := client.MergeFrom(originalVirtualMachine)
+
+			annotations := virtualMachine.GetAnnotations()
+			if annotations == nil {
+				annotations = map[string]string{}
+			}
+			annotations["control-plane-endpoint.vcsim.infrastructure.cluster.x-k8s.io"] = cpe.Name
+
+			if err := r.Client.Patch(ctx, virtualMachine, patch); err != nil {
+				return nil, err
+			}
+
+			controlPlaneEndpoint = &cpe
+			found = true
+			break
+		}
+		if !found {
+			return nil, errors.Errorf("unable to find a ControlPlaneEndpoint for host %s, port %d", cluster.Spec.ControlPlaneEndpoint.Host, cluster.Spec.ControlPlaneEndpoint.Port)
+		}
+	}
+	return controlPlaneEndpoint, nil
 }

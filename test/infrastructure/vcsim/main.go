@@ -62,6 +62,7 @@ import (
 	topologyv1 "sigs.k8s.io/cluster-api-provider-vsphere/internal/apis/topology/v1alpha1"
 	vcsimv1 "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/api/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/controllers"
+	"sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/controllers/backends/kubernetes"
 )
 
 var (
@@ -87,12 +88,14 @@ var (
 	logOptions                  = logs.NewOptions()
 	webhookPort                 int
 	// vcsim specific flags.
-	vSphereVMConcurrency              int
-	virtualMachineConcurrency         int
-	vCenterSimulatorConcurrency       int
-	controlPlaneEndpointConcurrency   int
-	envsubstConcurrency               int
-	vmOperatorDependenciesConcurrency int
+	vSphereVMConcurrency                                     int
+	virtualMachineConcurrency                                int
+	vCenterSimulatorConcurrency                              int
+	controlPlaneEndpointConcurrency                          int
+	envsubstConcurrency                                      int
+	vmOperatorDependenciesConcurrency                        int
+	generateFilesControlPlaneVirtualMachineKubernetesBackend bool
+	generateFilesWorkerVirtualMachineKubernetesBackend       bool
 )
 
 func init() {
@@ -174,6 +177,12 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&webhookPort, "webhook-port", 9443,
 		"Webhook Server port")
 
+	flag.BoolVar(&generateFilesControlPlaneVirtualMachineKubernetesBackend, "generate-control-plane-virtual-machine-kubernetes-backend-files", false,
+		"when this flag is set this binary generates files for the kubernetes backend of a control plane virtual machine and then exits")
+
+	flag.BoolVar(&generateFilesWorkerVirtualMachineKubernetesBackend, "generate-worker-virtual-machine-kubernetes-backend-files", false,
+		"when this flag is set this binary generates files for the kubernetes backend of a worker virtual machine and then exits")
+
 	flags.AddManagerOptions(fs, &managerOptions)
 
 	feature.MutableGates.AddFlag(fs)
@@ -204,6 +213,20 @@ func main() {
 
 	// Note: setupLog can only be used after ctrl.SetLogger was called
 	setupLog.Info(fmt.Sprintf("Version: %s (git commit: %s)", version.Get().String(), version.Get().GitCommit))
+
+	// If the generateFilesControlPlaneVirtualMachineKubernetesBackend flag is set this binary generates control plane files for
+	// the kubernetes backend of a control plane virtual machine then it exits.
+	// Note: we are using the manager instead of another binary for convenience.
+	if generateFilesControlPlaneVirtualMachineKubernetesBackend {
+		doGenerateControlPlaneFiles()
+	}
+
+	// If the generateFilesWorkerVirtualMachineKubernetesBackend flag is set this binary generates workers files for
+	// the kubernetes backend of a control plane virtual machine then it exits.
+	// Note: we are using the manager instead of another binary for convenience.
+	if generateFilesWorkerVirtualMachineKubernetesBackend {
+		doGenerateWorkersFiles()
+	}
 
 	restConfig := ctrl.GetConfigOrDie()
 	restConfig.QPS = restConfigQPS
@@ -299,6 +322,42 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+}
+
+func doGenerateControlPlaneFiles() {
+	restConfig := ctrl.GetConfigOrDie()
+	restConfig.UserAgent = remote.DefaultClusterAPIUserAgent(controllerName)
+
+	c, err := client.New(restConfig, client.Options{Scheme: scheme})
+	if err != nil {
+		setupLog.Error(err, "unable to generate client")
+		os.Exit(1)
+	}
+
+	ctx := ctrl.LoggerInto(ctrl.SetupSignalHandler(), setupLog)
+	if err := kubernetes.GenerateControlPlaneFiles(ctx, c); err != nil {
+		setupLog.Error(err, "unable to generate control plane files")
+		os.Exit(1)
+	}
+	os.Exit(0)
+}
+
+func doGenerateWorkersFiles() {
+	restConfig := ctrl.GetConfigOrDie()
+	restConfig.UserAgent = remote.DefaultClusterAPIUserAgent(controllerName)
+
+	c, err := client.New(restConfig, client.Options{Scheme: scheme})
+	if err != nil {
+		setupLog.Error(err, "unable to generate client")
+		os.Exit(1)
+	}
+
+	ctx := ctrl.LoggerInto(ctrl.SetupSignalHandler(), setupLog)
+	if err := kubernetes.GenerateWorkerFiles(ctx, c); err != nil {
+		setupLog.Error(err, "unable to generate workers files")
+		os.Exit(1)
+	}
+	os.Exit(0)
 }
 
 func setupChecks(mgr ctrl.Manager, _ bool) {

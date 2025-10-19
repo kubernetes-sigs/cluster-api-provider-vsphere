@@ -24,17 +24,12 @@ import (
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
-	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
-	"sigs.k8s.io/cluster-api/util/kubeconfig"
-	"sigs.k8s.io/cluster-api/util/secret"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	vcsimv1 "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/api/v1alpha1"
@@ -46,60 +41,6 @@ const (
 	dnsDomain   = "cluster.local"
 )
 
-// caSecretHandler implement handling for the secrets storing the control plane certificate authorities.
-type caSecretHandler struct {
-	// TODO: in a follow up iteration we want to make it possible to store those objects in a dedicate ns on a separated cluster
-	//  this brings in the limitation that objects for two clusters with the same name cannot be hosted in a single namespace as well as the need to rethink owner references.
-	client client.Client
-
-	cluster           *clusterv1beta1.Cluster
-	virtualMachine    client.Object
-	virtualMachineGVK schema.GroupVersionKind
-}
-
-func (ca *caSecretHandler) LookupOrGenerate(ctx context.Context) error {
-	certificates := secret.NewCertificatesForInitialControlPlane(&bootstrapv1.ClusterConfiguration{})
-
-	// Generate cluster certificates on the management cluster if not already there.
-	// Note: the code is taking care of service cleanup during the deletion workflow,
-	// so this controllerRef is mostly used to express a semantic relation.
-	controllerRef := metav1.NewControllerRef(ca.virtualMachine, ca.virtualMachineGVK)
-	if err := certificates.LookupOrGenerate(ctx, ca.client, client.ObjectKeyFromObject(ca.cluster), *controllerRef); err != nil {
-		return errors.Wrap(err, "failed to generate cluster certificates on the management cluster")
-	}
-
-	// TODO: generate certificates on the backing cluster, they are required by generate files
-
-	return nil
-}
-
-// kubeConfigSecretHandler implement handling for the secret storing the cluster admin kubeconfig.
-type kubeConfigSecretHandler struct {
-	// TODO: in a follow up iteration we want to make it possible to store those objects in a dedicate ns on a separated cluster
-	//  this brings in the limitation that objects for two clusters with the same name cannot be hosted in a single namespace as well as the need to rethink owner references.
-	client client.Client
-
-	cluster           *clusterv1beta1.Cluster
-	virtualMachine    client.Object
-	virtualMachineGVK schema.GroupVersionKind
-}
-
-func (ca *kubeConfigSecretHandler) LookupOrGenerate(ctx context.Context) error {
-	// If the secret with the KubeConfig already exists, then no-op.
-	if k, _ := secret.GetFromNamespacedName(ctx, ca.client, client.ObjectKeyFromObject(ca.cluster), secret.Kubeconfig); k != nil {
-		return nil
-	}
-
-	// Otherwise it is required to generate the secret storing the cluster admin kubeconfig.
-	// Note: the code is taking care of service cleanup during the deletion workflow,
-	// so this controllerRef is mostly used to express a semantic relation.
-	controllerRef := metav1.NewControllerRef(ca.virtualMachine, ca.virtualMachineGVK)
-	if err := kubeconfig.CreateSecretWithOwner(ctx, ca.client, client.ObjectKeyFromObject(ca.cluster), ca.cluster.Spec.ControlPlaneEndpoint.String(), *controllerRef); err != nil {
-		return errors.Wrap(err, "failed to generate cluster certificates on the management cluster")
-	}
-	return nil
-}
-
 // controlPlanePodHandler implement handling for the Pod implementing a control plane.
 type controlPlanePodHandler struct {
 	// TODO: in a follow up iteration we want to make it possible to store those objects in a dedicate ns on a separated cluster
@@ -109,118 +50,31 @@ type controlPlanePodHandler struct {
 	controlPlaneEndpoint *vcsimv1.ControlPlaneEndpoint
 	cluster              *clusterv1beta1.Cluster
 	virtualMachine       client.Object
-	virtualMachineGVK    schema.GroupVersionKind
+
+	overrideGetManagerContainer func(ctx context.Context) (*corev1.Container, error)
 }
 
-func (p *controlPlanePodHandler) LookupAndGenerateRBAC(ctx context.Context) error {
-	// TODO: think about cleanup or comment that cleanup of RBAC rules won't happen.
-	role := &rbacv1.Role{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: p.virtualMachine.GetNamespace(),
-			Name:      "kubemark-control-plane",
-		},
-		Rules: []rbacv1.PolicyRule{
-			{
-				// TODO: consider if to restrict this somehow
-				Verbs:     []string{"get"},
-				APIGroups: []string{""}, // "" indicates the core API group
-				Resources: []string{"secrets"},
-			},
-		},
+func (h *controlPlanePodHandler) Generate(ctx context.Context, kubernetesVersion string) error {
+	managerContainerFunc := h.getManagerContainer
+	if h.overrideGetManagerContainer != nil {
+		managerContainerFunc = h.overrideGetManagerContainer
 	}
-	if err := p.client.Get(ctx, client.ObjectKeyFromObject(role), role); err != nil {
-		switch {
-		case apierrors.IsNotFound(err):
-			if err := p.client.Create(ctx, role); err != nil {
-				return errors.Wrap(err, "failed to create kubemark-control-plane Role")
-			}
-			break
-		case apierrors.IsAlreadyExists(err):
-			break
-		default:
-			return errors.Wrap(err, "failed to get kubemark-control-plane Role")
-		}
-	}
-	roleBinding := &rbacv1.RoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: p.virtualMachine.GetNamespace(),
-			Name:      "kubemark-control-plane",
-		},
-		Subjects: []rbacv1.Subject{
-			{
-				Kind:     "User",
-				APIGroup: "rbac.authorization.k8s.io",
-				// TODO: create a service account and use it here instead of default + use it in the Pod
-				Name:      "system:serviceaccount:default:default",
-				Namespace: p.virtualMachine.GetNamespace(),
-			},
-		},
-		RoleRef: rbacv1.RoleRef{
-			APIGroup: "rbac.authorization.k8s.io",
-			Kind:     "Role",
-			Name:     "kubemark-control-plane",
-		},
-	}
-	if err := p.client.Get(ctx, client.ObjectKeyFromObject(roleBinding), roleBinding); err != nil {
-		switch {
-		case apierrors.IsNotFound(err):
-			if err := p.client.Create(ctx, roleBinding); err != nil {
-				return errors.Wrap(err, "failed to create kubemark-control-plane RoleBinding")
-			}
-			break
-		case apierrors.IsAlreadyExists(err):
-			break
-		default:
-			return errors.Wrap(err, "failed to get kubemark-control-plane RoleBinding")
-		}
-	}
-	return nil
-}
-
-func (p *controlPlanePodHandler) Generate(ctx context.Context, kubernetesVersion string) error {
-	// Gets info about the Pod is running the manager in.
-	managerPodNamespace := os.Getenv("POD_NAMESPACE")
-	managerPodName := os.Getenv("POD_NAME")
-	managerPodUID := types.UID(os.Getenv("POD_UID"))
-
-	// Gets the Pod is running the manager in from the management cluster and validate it is the right one.
-	managerPod := &corev1.Pod{}
-	managerPodKey := types.NamespacedName{Namespace: managerPodNamespace, Name: managerPodName}
-	if err := p.client.Get(ctx, managerPodKey, managerPod); err != nil {
-		return errors.Wrap(err, "failed to get manager pod")
-	}
-	if managerPod.UID != managerPodUID {
-		return errors.Errorf("manager pod UID does not match, expected %s, got %s", managerPodUID, managerPod.UID)
-	}
-
-	// Identify the Container is running the manager in, so we can get the image currently in use for the manager.
-	managerContainer := &corev1.Container{}
-	for i := range managerPod.Spec.Containers {
-		c := managerPod.Spec.Containers[i]
-		if c.Name == "manager" {
-			managerContainer = &c
-		}
-	}
-
-	if managerContainer == nil {
-		return errors.New("failed to get container from manager pod")
+	managerContainer, err := managerContainerFunc(ctx)
+	if err != nil {
+		return errors.Wrap(err, "failed to get manager container")
 	}
 
 	// Generate the control plane Pod in the BackingCluster.
-	// TODO: think about owerRef.
-	//  Note: the code is taking care of service cleanup during the deletion workflow,
-	//  so this ownerRef is mostly used to express a semantic relation.
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: p.virtualMachine.GetNamespace(),
-			//  Kubernetes will generate a name with the cluster name as a prefix.
-			GenerateName: fmt.Sprintf("%s-control-plane-", p.virtualMachine.GetName()),
+			Namespace: h.virtualMachine.GetNamespace(),
+			Name:      h.virtualMachine.GetName(),
 			Labels: map[string]string{
 				// Following labels will be used to identify the control plane pods later on.
-				"control-plane-endpoint.vcsim.infrastructure.cluster.x-k8s.io": p.controlPlaneEndpoint.Name,
+				"control-plane-endpoint.vcsim.infrastructure.cluster.x-k8s.io": h.controlPlaneEndpoint.Name,
 
 				// Useful labels
-				clusterv1beta1.ClusterNameLabel:         p.cluster.Name,
+				clusterv1beta1.ClusterNameLabel:         h.cluster.Name,
 				clusterv1beta1.MachineControlPlaneLabel: "",
 			},
 		},
@@ -228,7 +82,7 @@ func (p *controlPlanePodHandler) Generate(ctx context.Context, kubernetesVersion
 			InitContainers: []corev1.Container{
 				// Use an init container to generate all the key, certificates and KubeConfig files
 				// required for the control plane to run.
-				generateFilesContainer(managerContainer.Image, p.cluster.Name, p.cluster.Spec.ControlPlaneEndpoint.Host),
+				generateControlPlaneFilesContainer(managerContainer.Image, h.cluster.Name, h.cluster.Spec.ControlPlaneEndpoint.Host),
 			},
 			Containers: []corev1.Container{
 				// Stacked etcd member for this control plane instance.
@@ -266,13 +120,13 @@ func (p *controlPlanePodHandler) Generate(ctx context.Context, kubernetesVersion
 		},
 	}
 
-	if err := p.client.Create(ctx, pod); err != nil {
+	if err := h.client.Create(ctx, pod); err != nil {
 		return errors.Wrap(err, "failed to create control plane pod")
 	}
 
 	// Wait for the pod to show up in the cache
 	if err := wait.PollUntilContextTimeout(ctx, 250*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
-		if err := p.client.Get(ctx, client.ObjectKeyFromObject(pod), pod); err != nil {
+		if err := h.client.Get(ctx, client.ObjectKeyFromObject(pod), pod); err != nil {
 			if apierrors.IsNotFound(err) {
 				return false, nil
 			}
@@ -285,36 +139,69 @@ func (p *controlPlanePodHandler) Generate(ctx context.Context, kubernetesVersion
 	return nil
 }
 
-func (p *controlPlanePodHandler) GetPods(ctx context.Context) (*corev1.PodList, error) {
+func (h *controlPlanePodHandler) getManagerContainer(ctx context.Context) (*corev1.Container, error) {
+	// Gets info about the Pod is running the manager in.
+	managerPodNamespace := os.Getenv("POD_NAMESPACE")
+	managerPodName := os.Getenv("POD_NAME")
+	managerPodUID := types.UID(os.Getenv("POD_UID"))
+
+	// Gets the Pod is running the manager in from the management cluster and validate it is the right one.
+	managerPod := &corev1.Pod{}
+	managerPodKey := types.NamespacedName{Namespace: managerPodNamespace, Name: managerPodName}
+	if err := h.client.Get(ctx, managerPodKey, managerPod); err != nil {
+		return nil, errors.Wrap(err, "failed to get manager pod")
+	}
+	if managerPod.UID != managerPodUID {
+		return nil, errors.Errorf("manager pod UID does not match, expected %s, got %s", managerPodUID, managerPod.UID)
+	}
+
+	// Identify the Container is running the manager in, so we can get the image currently in use for the manager.
+	managerContainer := &corev1.Container{}
+	for i := range managerPod.Spec.Containers {
+		c := managerPod.Spec.Containers[i]
+		if c.Name == "manager" {
+			managerContainer = &c
+		}
+	}
+
+	if managerContainer == nil {
+		return nil, errors.New("failed to get container from manager pod")
+	}
+	return managerContainer, nil
+}
+
+func (h *controlPlanePodHandler) GetPods(ctx context.Context) (*corev1.PodList, error) {
 	options := []client.ListOption{
-		client.InNamespace(p.virtualMachine.GetNamespace()),
+		client.InNamespace(h.virtualMachine.GetNamespace()),
 		client.MatchingLabels{
-			"control-plane-endpoint.vcsim.infrastructure.cluster.x-k8s.io": p.controlPlaneEndpoint.GetName(),
+			"control-plane-endpoint.vcsim.infrastructure.cluster.x-k8s.io": h.controlPlaneEndpoint.GetName(),
+			clusterv1beta1.ClusterNameLabel:                                h.cluster.Name,
+			clusterv1beta1.MachineControlPlaneLabel:                        "",
 		},
 	}
 
 	// TODO: live client or wait for cache update ...
 	pods := &corev1.PodList{}
-	if err := p.client.List(ctx, pods, options...); err != nil {
+	if err := h.client.List(ctx, pods, options...); err != nil {
 		return nil, errors.Wrap(err, "failed to list control plane pods")
 	}
 	return pods, nil
 }
 
-func (p *controlPlanePodHandler) Delete(ctx context.Context, podName string) error {
+func (h *controlPlanePodHandler) Delete(ctx context.Context, podName string) error {
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: p.virtualMachine.GetNamespace(),
+			Namespace: h.virtualMachine.GetNamespace(),
 			Name:      podName,
 		},
 	}
-	if err := p.client.Delete(ctx, pod); err != nil {
+	if err := h.client.Delete(ctx, pod); err != nil {
 		return errors.Wrap(err, "failed to delete control plane pod")
 	}
 	return nil
 }
 
-func generateFilesContainer(managerImage string, clusterName string, controlPaneEndPointHost string) corev1.Container {
+func generateControlPlaneFilesContainer(managerImage string, clusterName string, controlPaneEndPointHost string) corev1.Container {
 	c := corev1.Container{
 		Name: "generate-files",
 		// Note: we are using the manager instead of another binary for convenience (the manager is already built and packaged
@@ -323,7 +210,7 @@ func generateFilesContainer(managerImage string, clusterName string, controlPane
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		Command: []string{
 			"/manager",
-			"--generate-control-plane-files",
+			"--generate-control-plane-virtual-machine-kubernetes-backend-files",
 		},
 		Env: []corev1.EnvVar{
 			{

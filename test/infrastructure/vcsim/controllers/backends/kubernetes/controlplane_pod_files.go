@@ -35,12 +35,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// GenerateFiles generates control plane files for the current pod.
-// The implementation assumes this code to be run as init container in the control plane pod; also
-// it assume that secrets with cluster certificate authorities are mirrored in the backing cluster.
+// GenerateControlPlaneFiles generates control plane files for the current pod.
+// The implementation assumes this code to be run as init container in the control plane pod
 // Note: we are using the manager instead of another binary for convenience (the manager is already built and packaged
 // into an image that is published during the release process).
-func GenerateFiles(ctx context.Context, client client.Client) error {
+func GenerateControlPlaneFiles(ctx context.Context, client client.Client) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Gets the info about current pod.
@@ -155,7 +154,7 @@ func GenerateFiles(ctx context.Context, client client.Client) error {
 		CurrentContext: clusterKey.Name,
 	}
 	if err := clientcmd.WriteToFile(schedulerKubeConfig, "/etc/kubernetes/scheduler.conf"); err != nil {
-		return errors.Wrap(err, "failed to serialize scheduler kubeconfig")
+		return errors.Wrap(err, "failed to write scheduler kubeconfig")
 	}
 
 	controllerManagerClient, err := ca.NewCertAndKey(controllerManagerClientCertificateConfig())
@@ -185,7 +184,7 @@ func GenerateFiles(ctx context.Context, client client.Client) error {
 		CurrentContext: clusterKey.Name,
 	}
 	if err := clientcmd.WriteToFile(controllerManagerKubeConfig, "/etc/kubernetes/controller-manager.conf"); err != nil {
-		return errors.Wrap(err, "failed to serialize scheduler kubeconfig")
+		return errors.Wrap(err, "failed to write scheduler kubeconfig")
 	}
 
 	adminClient, err := ca.NewCertAndKey(adminClientCertificateConfig())
@@ -207,7 +206,7 @@ func GenerateFiles(ctx context.Context, client client.Client) error {
 			},
 		},
 		AuthInfos: map[string]*api.AuthInfo{
-			"controller-manager": {
+			"admin": {
 				ClientKeyData:         certs.EncodePrivateKeyPEM(adminClient.key),
 				ClientCertificateData: certs.EncodeCertPEM(adminClient.cert),
 			},
@@ -215,7 +214,7 @@ func GenerateFiles(ctx context.Context, client client.Client) error {
 		CurrentContext: clusterKey.Name,
 	}
 	if err := clientcmd.WriteToFile(adminKubeConfig, "/etc/kubernetes/admin.conf"); err != nil {
-		return errors.Wrap(err, "failed to serialize admin kubeconfig")
+		return errors.Wrap(err, "failed to write admin kubeconfig")
 	}
 
 	log.Info("All file generated!")
@@ -250,6 +249,16 @@ func (kp *KeyCertPair) WriteCertAndKey(path, name string) error {
 		return err
 	}
 	if err := os.WriteFile(filepath.Join(path, fmt.Sprintf("%s.key", name)), certs.EncodePrivateKeyPEM(kp.key), os.FileMode(0600)); err != nil {
+		return err
+	}
+	if err := os.WriteFile(filepath.Join(path, fmt.Sprintf("%s.crt", name)), certs.EncodeCertPEM(kp.cert), os.FileMode(0600)); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (kp *KeyCertPair) WriteCert(path, name string) error {
+	if err := os.MkdirAll(path, os.FileMode(0755)); err != nil {
 		return err
 	}
 	if err := os.WriteFile(filepath.Join(path, fmt.Sprintf("%s.crt", name)), certs.EncodeCertPEM(kp.cert), os.FileMode(0600)); err != nil {

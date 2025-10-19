@@ -17,15 +17,23 @@ limitations under the License.
 package kubernetes
 
 import (
+	"context"
 	"fmt"
+	"os"
 	"testing"
 
 	. "github.com/onsi/gomega"
+	vmopv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/klog/v2/textlogger"
+	"k8s.io/utils/ptr"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -42,6 +50,243 @@ var (
 func init() {
 	_ = corev1.AddToScheme(testScheme)
 	_ = vcsimv1.AddToScheme(testScheme)
+	_ = vmopv1.AddToScheme(testScheme)
+	_ = clusterv1.AddToScheme(testScheme)
+	_ = rbacv1.AddToScheme(testScheme)
+}
+
+func TestControlPlaneInPod(t *testing.T) {
+	g := NewWithT(t)
+	ctx = ctrl.LoggerInto(ctx, textlogger.NewLogger(textlogger.NewConfig(textlogger.Verbosity(5), textlogger.Output(os.Stdout))))
+
+	// Create client
+	config, err := clientcmd.NewDefaultClientConfigLoadingRules().Load()
+	g.Expect(err).NotTo(HaveOccurred())
+
+	restConfig, err := clientcmd.NewDefaultClientConfig(*config, nil).ClientConfig()
+	g.Expect(err).NotTo(HaveOccurred())
+
+	c, err := client.New(restConfig, client.Options{Scheme: testScheme})
+	g.Expect(err).NotTo(HaveOccurred())
+
+	// Create or Get ControlPlaneEndpoint
+	rcpe := &ControlPlaneEndpointReconciler{
+		Client: c,
+	}
+
+	cpe := &vcsimv1.ControlPlaneEndpoint{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: metav1.NamespaceDefault,
+		},
+	}
+
+	err = c.Create(ctx, cpe)
+	if !apierrors.IsAlreadyExists(err) {
+		g.Expect(err).NotTo(HaveOccurred())
+	}
+	err = c.Get(ctx, client.ObjectKeyFromObject(cpe), cpe)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	// Reconcile & Patch ControlPlaneEndpoint
+	originalCPE := cpe.DeepCopy()
+	patch := client.MergeFrom(originalCPE)
+
+	res, err := rcpe.ReconcileNormal(ctx, cpe)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(res.IsZero()).To(BeTrue())
+	g.Expect(cpe.Status.Host).ToNot(BeEmpty())
+	g.Expect(cpe.Status.Port).ToNot(BeZero())
+
+	err = c.Status().Patch(ctx, cpe, patch)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	// Create or Get Cluster
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: metav1.NamespaceDefault,
+		},
+		Spec: clusterv1.ClusterSpec{
+			ControlPlaneEndpoint: clusterv1.APIEndpoint{
+				Host: cpe.Status.Host,
+				Port: cpe.Status.Port,
+			},
+		},
+	}
+	err = c.Create(ctx, cluster)
+	if !apierrors.IsAlreadyExists(err) {
+		g.Expect(err).NotTo(HaveOccurred())
+	}
+	err = c.Get(ctx, client.ObjectKeyFromObject(cluster), cluster)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	// Create or Get Machine
+	machine := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: metav1.NamespaceDefault,
+		},
+		Spec: clusterv1.MachineSpec{
+			ClusterName: cluster.Name,
+			Version:     ptr.To("v1.33.0"),
+		},
+	}
+	err = c.Create(ctx, machine)
+	if !apierrors.IsAlreadyExists(err) {
+		g.Expect(err).NotTo(HaveOccurred())
+	}
+	err = c.Get(ctx, client.ObjectKeyFromObject(machine), machine)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	// Create or Get VirtualMachine
+	virtualMachine := &vmopv1.VirtualMachine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: metav1.NamespaceDefault,
+		},
+	}
+	err = c.Create(ctx, virtualMachine)
+	if !apierrors.IsAlreadyExists(err) {
+		g.Expect(err).NotTo(HaveOccurred())
+	}
+	err = c.Get(ctx, client.ObjectKeyFromObject(virtualMachine), virtualMachine)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	// Reconcile VM
+	rvm := &VirtualMachineReconciler{
+		Client:    c,
+		IsVMReady: func() bool { return true },
+		overrideGetManagerContainer: func(ctx context.Context) (*corev1.Container, error) {
+			return &corev1.Container{
+				Image: "gcr.io/broadcom-451918/cluster-api-vcsim-controller-amd64:dev",
+			}, nil
+		},
+	}
+
+	res, err = rvm.reconcileCertificates(ctx, cluster, machine, virtualMachine)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(res.IsZero()).To(BeTrue())
+
+	res, err = rvm.reconcileKubeConfig(ctx, cluster, machine, virtualMachine)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(res.IsZero()).To(BeTrue())
+
+	res, err = rvm.reconcilePods(ctx, cluster, machine, virtualMachine)
+	g.Expect(err).NotTo(HaveOccurred())
+}
+
+func TestWorkerInPodWithKindNode(t *testing.T) {
+	g := NewWithT(t)
+	ctx = ctrl.LoggerInto(ctx, textlogger.NewLogger(textlogger.NewConfig(textlogger.Verbosity(5), textlogger.Output(os.Stdout))))
+
+	// Create client
+	config, err := clientcmd.NewDefaultClientConfigLoadingRules().Load()
+	g.Expect(err).NotTo(HaveOccurred())
+
+	restConfig, err := clientcmd.NewDefaultClientConfig(*config, nil).ClientConfig()
+	g.Expect(err).NotTo(HaveOccurred())
+
+	c, err := client.New(restConfig, client.Options{Scheme: testScheme})
+	g.Expect(err).NotTo(HaveOccurred())
+
+	// Create or Get ControlPlaneEndpoint
+	rcpe := &ControlPlaneEndpointReconciler{
+		Client: c,
+	}
+
+	cpe := &vcsimv1.ControlPlaneEndpoint{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: metav1.NamespaceDefault,
+		},
+	}
+
+	err = c.Create(ctx, cpe)
+	if !apierrors.IsAlreadyExists(err) {
+		g.Expect(err).NotTo(HaveOccurred())
+	}
+	err = c.Get(ctx, client.ObjectKeyFromObject(cpe), cpe)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	// Reconcile & Patch ControlPlaneEndpoint
+	originalCPE := cpe.DeepCopy()
+	patch := client.MergeFrom(originalCPE)
+
+	res, err := rcpe.ReconcileNormal(ctx, cpe)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(res.IsZero()).To(BeTrue())
+	g.Expect(cpe.Status.Host).ToNot(BeEmpty())
+	g.Expect(cpe.Status.Port).ToNot(BeZero())
+
+	err = c.Status().Patch(ctx, cpe, patch)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	// Create or Get Cluster
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: metav1.NamespaceDefault,
+		},
+		Spec: clusterv1.ClusterSpec{
+			ControlPlaneEndpoint: clusterv1.APIEndpoint{
+				Host: cpe.Status.Host,
+				Port: cpe.Status.Port,
+			},
+		},
+	}
+	err = c.Create(ctx, cluster)
+	if !apierrors.IsAlreadyExists(err) {
+		g.Expect(err).NotTo(HaveOccurred())
+	}
+	err = c.Get(ctx, client.ObjectKeyFromObject(cluster), cluster)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	// Create or Get Machine
+	machine := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-worker",
+			Namespace: metav1.NamespaceDefault,
+		},
+		Spec: clusterv1.MachineSpec{
+			ClusterName: cluster.Name,
+			Version:     ptr.To("v1.33.0"),
+		},
+	}
+	err = c.Create(ctx, machine)
+	if !apierrors.IsAlreadyExists(err) {
+		g.Expect(err).NotTo(HaveOccurred())
+	}
+	err = c.Get(ctx, client.ObjectKeyFromObject(machine), machine)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	// Create or Get VirtualMachine
+	virtualMachine := &vmopv1.VirtualMachine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-worker",
+			Namespace: metav1.NamespaceDefault,
+		},
+	}
+	err = c.Create(ctx, virtualMachine)
+	if !apierrors.IsAlreadyExists(err) {
+		g.Expect(err).NotTo(HaveOccurred())
+	}
+	err = c.Get(ctx, client.ObjectKeyFromObject(virtualMachine), virtualMachine)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	w := workerPodHandler{
+		client:               c,
+		controlPlaneEndpoint: cpe,
+		cluster:              cluster,
+		virtualMachine:       virtualMachine,
+		overrideGetManagerContainer: func(ctx context.Context) (*corev1.Container, error) {
+			return &corev1.Container{
+				Image: "gcr.io/broadcom-451918/cluster-api-vcsim-controller-amd64:dev",
+			}, nil
+		},
+	}
+
+	w.Generate(ctx, *machine.Spec.Version)
 }
 
 func TestLBServiceHandler(t *testing.T) {

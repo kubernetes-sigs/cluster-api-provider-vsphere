@@ -35,6 +35,7 @@ func (src *VSphereVM) ConvertTo(dstRaw conversion.Hub) error {
 	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
 		return err
 	}
+	dst.Spec.Resources = restored.Spec.Resources
 	dst.Spec.TagIDs = restored.Spec.TagIDs
 	dst.Spec.AdditionalDisksGiB = restored.Spec.AdditionalDisksGiB
 	dst.Spec.PowerOffMode = restored.Spec.PowerOffMode

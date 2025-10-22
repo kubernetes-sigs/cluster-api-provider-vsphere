@@ -39,6 +39,7 @@ func (src *VSphereMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
 		return err
 	}
+	dst.Spec.Template.Spec.Resources = restored.Spec.Template.Spec.Resources
 	dst.Spec.Template.Spec.TagIDs = restored.Spec.Template.Spec.TagIDs
 	dst.Spec.Template.Spec.AdditionalDisksGiB = restored.Spec.Template.Spec.AdditionalDisksGiB
 	dst.Spec.Template.Spec.PowerOffMode = restored.Spec.Template.Spec.PowerOffMode

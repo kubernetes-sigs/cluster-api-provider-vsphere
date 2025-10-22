@@ -1459,6 +1459,77 @@ spec:
                   ResourcePool is the name, inventory path, managed object reference or the managed
                   object ID in which the virtual machine is created/located.
                 type: string
+              resources:
+                description: |-
+                  resources is the definition of the VM's cpu and memory
+                  reservations, limits and shares.
+                minProperties: 1
+                properties:
+                  limits:
+                    description: |-
+                      limits is the definition of the VM's cpu (in hertz, rounded up to the nearest MHz)
+                      and memory (in bytes, rounded up to the nearest MiB) limits
+                    minProperties: 1
+                    properties:
+                      cpu:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: cpu is the definition of the cpu quantity for
+                          the given VM hardware policy
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                      memory:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: memory is the definition of the memory quantity
+                          for the given VM hardware policy
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                    type: object
+                  requests:
+                    description: |-
+                      requests is the definition of the VM's cpu (in hertz, rounded up to the nearest MHz)
+                      and memory (in bytes, rounded up to the nearest MiB) reservations
+                    minProperties: 1
+                    properties:
+                      cpu:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: cpu is the definition of the cpu quantity for
+                          the given VM hardware policy
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                      memory:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: memory is the definition of the memory quantity
+                          for the given VM hardware policy
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                    type: object
+                  shares:
+                    description: shares is the definition of the VM's cpu and memory
+                      shares
+                    minProperties: 1
+                    properties:
+                      cpu:
+                        description: cpu is the number of spu shares to assign to
+                          the VM
+                        format: int32
+                        minimum: 1
+                        type: integer
+                      memory:
+                        description: memory is the number of memory shares to assign
+                          to the VM
+                        format: int32
+                        minimum: 1
+                        type: integer
+                    type: object
+                type: object
               server:
                 description: |-
                   Server is the IP address or FQDN of the vSphere server on which

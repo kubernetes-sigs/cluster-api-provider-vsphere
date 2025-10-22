@@ -36,6 +36,7 @@ func (src *VSphereMachine) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	dst.Spec.Resources = restored.Spec.Resources
 	dst.Spec.AdditionalDisksGiB = restored.Spec.AdditionalDisksGiB
 	dst.Spec.TagIDs = restored.Spec.TagIDs
 	dst.Spec.PowerOffMode = restored.Spec.PowerOffMode

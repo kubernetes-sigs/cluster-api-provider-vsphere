@@ -21,6 +21,7 @@ import (
 
 	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	apitypes "k8s.io/apimachinery/pkg/types"
+	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -70,11 +71,16 @@ func AddVirtualMachineGroupControllerToManager(ctx context.Context, controllerMa
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(reconciler.ClusterToVirtualMachineGroup),
 		).
+		Watches(
+			&vmwarev1.VSphereMachine{},
+			handler.EnqueueRequestsFromMapFunc(reconciler.VSphereMachineToVirtualMachineGroup),
+		).
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, controllerManagerCtx.WatchFilterValue))
 
 	return builder.Complete(reconciler)
 }
 
+// ClusterToVirtualMachineGroup maps Cluster events to VirtualMachineGroup reconcile requests.
 func (r VirtualMachineGroupReconciler) ClusterToVirtualMachineGroup(ctx context.Context, a ctrlclient.Object) []reconcile.Request {
 	cluster, ok := a.(*clusterv1.Cluster)
 	if !ok {
@@ -86,6 +92,39 @@ func (r VirtualMachineGroupReconciler) ClusterToVirtualMachineGroup(ctx context.
 		NamespacedName: apitypes.NamespacedName{
 			Namespace: cluster.Namespace,
 			Name:      cluster.Name,
+		},
+	}}
+}
+
+// VsphereMachineToVirtualMachineGroup maps VSphereMachine events to VirtualMachineGroup reconcile requests.
+// This handler only processes VSphereMachine objects for Day-2 operations, ensuring VSphereMachine state stays
+// in sync with its owning VMG. If no corresponding VMG is found, this is a no-op.
+
+func (r VirtualMachineGroupReconciler) VSphereMachineToVirtualMachineGroup(ctx context.Context, a ctrlclient.Object) []reconcile.Request {
+	vSphereMachine, ok := a.(*vmwarev1.VSphereMachine)
+	if !ok {
+		return nil
+	}
+
+	clusterName, ok := vSphereMachine.Labels[clusterv1.ClusterNameLabel]
+	if !ok || clusterName == "" {
+		return nil
+	}
+
+	vmg := &vmoprv1.VirtualMachineGroup{}
+	err := r.Client.Get(ctx, apitypes.NamespacedName{
+		Namespace: vSphereMachine.Namespace,
+		Name:      clusterName,
+	}, vmg)
+
+	if err != nil {
+		return nil
+	}
+
+	return []reconcile.Request{{
+		NamespacedName: apitypes.NamespacedName{
+			Namespace: vmg.Namespace,
+			Name:      vmg.Name,
 		},
 	}}
 }

@@ -69,61 +69,6 @@ func (r *VirtualMachineGroupReconciler) Reconcile(ctx context.Context, req ctrl.
 		return reconcile.Result{}, nil
 	}
 
-	vmg := &vmoprv1.VirtualMachineGroup{}
-	key := &client.ObjectKey{
-		Namespace: cluster.Namespace,
-		Name:      cluster.Name,
-	}
-
-	if err := r.Client.Get(ctx, *key, vmg); err != nil {
-		if !apierrors.IsNotFound(err) {
-			log.Error(err, "failed to get VirtualMachineGroup")
-			return ctrl.Result{}, err
-		}
-		vmg = &vmoprv1.VirtualMachineGroup{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      key.Name,
-				Namespace: key.Namespace,
-			},
-		}
-	}
-
-	// // Proceed only if multiple zones are available.
-	// // If there is only one zone(default), node automatic placement is unnecessary
-	// // because all Machine Deployments will be scheduled into that single zone.
-	// // The VSphereCluster resource discovers the underlying zones,
-	// // which we treat as the source of truth.
-	// vsphereClusterList := &vmwarev1.VSphereClusterList{}
-	// labelKey := clusterv1.ClusterNameLabel
-	// if err := r.Client.List(ctx, vsphereClusterList,
-	// 	client.InNamespace(cluster.Namespace),
-	// 	client.MatchingLabels(map[string]string{labelKey: cluster.Name}),
-	// ); err != nil {
-	// 	return reconcile.Result{}, fmt.Errorf("failed to list VSphereClusters in namespace %s: %w", cluster.Namespace, err)
-	// }
-
-	// vsphereCluster := &vmwarev1.VSphereCluster{}
-	// switch len(vsphereClusterList.Items) {
-	// case 0:
-	// 	return reconcile.Result{}, fmt.Errorf("no VSphereCluster found with label %s=%s in namespace %s", labelKey, cluster.Name, cluster.Namespace)
-	// case 1:
-	// 	vsphereCluster = &vsphereClusterList.Items[0]
-	// default:
-	// 	return reconcile.Result{}, fmt.Errorf("found %d VSphereClusters with label %s=%s in namespace %s; expected exactly 1", len(vsphereClusterList.Items), labelKey, cluster.Name, cluster.Namespace)
-	// }
-
-	// // Fetch the VSphereCluster instance.
-	// if vsphereCluster.Status.Ready != true {
-	// 	log.Info("Waiting for VSphereCluster to be ready with failure domain discovered")
-	// 	return reconcile.Result{RequeueAfter: reconciliationDelay}, nil
-
-	// }
-
-	// if len(vsphereCluster.Status.FailureDomains) <= 1 {
-	// 	log.Info("Single or no zone detected; skipping node automatic placement")
-	// 	return reconcile.Result{}, nil
-	// }
-
 	// If ControlPlane haven't initialized, requeue it since VSphereMachines of MachineDeployment will only be created after
 	// ControlPlane is initialized.
 	if !conditions.IsTrue(cluster, clusterv1.ClusterControlPlaneInitializedCondition) {
@@ -132,69 +77,59 @@ func (r *VirtualMachineGroupReconciler) Reconcile(ctx context.Context, req ctrl.
 	}
 
 	// Continue with the main logic.
-	return r.createOrUpdateVMG(ctx, cluster, vmg)
+	return r.createOrUpdateVMG(ctx, cluster)
 
 }
 
 // createOrUpdateVMG Create or Update VirtualMachineGroup
-func (r *VirtualMachineGroupReconciler) createOrUpdateVMG(ctx context.Context, cluster *clusterv1.Cluster, desiredVMG *vmoprv1.VirtualMachineGroup) (_ reconcile.Result, reterr error) {
+func (r *VirtualMachineGroupReconciler) createOrUpdateVMG(ctx context.Context, cluster *clusterv1.Cluster) (_ reconcile.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	// Calculate expected Machines of all MachineDeployments.
-	expectedMachines := getExpectedMachines(cluster)
-	if expectedMachines == 0 {
-		log.Info("none of MachineDeployments specifies replica and node auto replacement doesn't support this scenario")
-		return reconcile.Result{}, nil
-	}
-
 	// Calculate current Machines of all MachineDeployments.
-	currentVSphereMachines, err := getCurrentVSphereMachines(ctx, r.Client, cluster.Namespace, cluster.Name)
+	current, err := getCurrentVSphereMachines(ctx, r.Client, cluster.Namespace, cluster.Name)
 	if err != nil {
 		return reconcile.Result{}, errors.Wrapf(err, "failed to get current VSphereMachine of cluster %s/%s",
 			cluster.Name, cluster.Namespace)
 	}
 
-	// Wait until all VSphereMachines are create, this could happen during initial deployment or day-2 like cluster update.
-	current := int32(len(currentVSphereMachines))
-	if current < expectedMachines {
-		// Only check timeout if VMG doesn't exist.
-		// if desiredVMG.CreationTimestamp.IsZero() {
-		// 	if _, err := r.isMDDefined(ctx, cluster); err != nil {
-		// 		log.Error(err, "cluster MachineDeployments are not defined")
-		// 		return reconcile.Result{}, nil
-		// 	}
+	desiredVMG := &vmoprv1.VirtualMachineGroup{}
+	key := &client.ObjectKey{
+		Namespace: cluster.Namespace,
+		Name:      cluster.Name,
+	}
 
-		// 	mdList := &clusterv1.MachineDeploymentList{}
-		// 	if err := r.Client.List(ctx, mdList,
-		// 		client.InNamespace(cluster.Namespace),
-		// 		client.MatchingLabels{clusterv1.ClusterNameLabel: cluster.Name},
-		// 	); err != nil {
-		// 		return reconcile.Result{}, errors.Errorf("failed to list MachineDeployments: %w", err)
-		// 	}
+	if err := r.Client.Get(ctx, *key, desiredVMG); err != nil {
+		if !apierrors.IsNotFound(err) {
+			log.Error(err, "failed to get VirtualMachineGroup")
+			return ctrl.Result{}, err
+		}
 
-		// 	// If no deployments exist, report error
-		// 	if len(mdList.Items) == 0 {
-		// 		return reconcile.Result{}, errors.Errorf("no MachineDeployments found for cluster %s/%s", cluster.Namespace, cluster.Name)
-		// 	}
+		// Calculate expected Machines of all MachineDeployments.
+		expected := getExpectedVSphereMachines(cluster)
+		if expected == 0 {
+			log.Info("none of MachineDeployments specifies replica and node auto replacement doesn't support this scenario")
+			return reconcile.Result{}, nil
+		}
 
-		// 	// Check one MachineDeployment's creation timestamp
-		// 	firstMD := mdList.Items[0]
-		// 	if time.Since(firstMD.CreationTimestamp.Time) > 1*time.Minute {
-		// 		log.Error(errors.New("timeout waiting for VSphereMachines"), "1 minute timeout after MachineDeployment creation",
-		// 			"MachineDeployment", firstMD.Name, "Cluster", cluster.Namespace+"/"+cluster.Name)
+		// Wait for all intended VSphereMachines corresponding to MachineDeployment to exist only during initial Cluster creation.
+		current := int32(len(current))
+		if current < expected {
+			log.Info("current VSphereMachines do not match expected", "Expected:", expected,
+				"Current:", current, "ClusterName", cluster.Name, "Namespace", cluster.Namespace)
+			return reconcile.Result{RequeueAfter: reconciliationDelay}, nil
+		}
 
-		// 		return reconcile.Result{}, nil
-		// 	}
-		// }
-
-		log.Info("current VSphereMachines do not match expected", "Expected:", expectedMachines,
-			"Current:", current, "ClusterName", cluster.Name, "Namespace", cluster.Namespace)
-		return reconcile.Result{RequeueAfter: reconciliationDelay}, nil
+		desiredVMG = &vmoprv1.VirtualMachineGroup{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      key.Name,
+				Namespace: key.Namespace,
+			},
+		}
 	}
 
 	// Generate VM names according to the naming strategy set on the VSphereMachine.
-	vmNames := make([]string, 0, len(currentVSphereMachines))
-	for _, machine := range currentVSphereMachines {
+	vmNames := make([]string, 0, len(current))
+	for _, machine := range current {
 		name, err := GenerateVirtualMachineName(machine.Name, machine.Spec.NamingStrategy)
 		if err != nil {
 			return reconcile.Result{}, err
@@ -206,7 +141,7 @@ func (r *VirtualMachineGroupReconciler) createOrUpdateVMG(ctx context.Context, c
 		return vmNames[i] < vmNames[j]
 	})
 
-	members := make([]vmoprv1.GroupMember, 0, len(currentVSphereMachines))
+	members := make([]vmoprv1.GroupMember, 0, len(current))
 	for _, name := range vmNames {
 		members = append(members, vmoprv1.GroupMember{
 			Name: name,
@@ -242,7 +177,7 @@ func (r *VirtualMachineGroupReconciler) createOrUpdateVMG(ctx context.Context, c
 		// Add per-md-zone label for day-2 operations once placement of a VM belongs to MachineDeployment is done
 		// Do not update per-md-zone label once set, as placement decision should not change without user explicitly
 		// ask.
-		placementDecisionLabels, err := GenerateVMGPlacementLabels(ctx, desiredVMG, mdNames)
+		placementDecisionLabels, err := GenerateVMGPlacementAnnotations(ctx, desiredVMG, mdNames)
 		if err != nil {
 			return err
 		}
@@ -318,9 +253,9 @@ func (r *VirtualMachineGroupReconciler) isExplicitPlacement(cluster *clusterv1.C
 	return false, nil
 }
 
-// getExpectedMachines returns the total number of replicas across all
+// getExpectedVSphereMachines returns the total number of replicas across all
 // MachineDeployments in the Cluster's Topology.Workers.
-func getExpectedMachines(cluster *clusterv1.Cluster) int32 {
+func getExpectedVSphereMachines(cluster *clusterv1.Cluster) int32 {
 	if !cluster.Spec.Topology.IsDefined() {
 		return 0
 	}
@@ -336,66 +271,6 @@ func getExpectedMachines(cluster *clusterv1.Cluster) int32 {
 
 func getCurrentVSphereMachines(ctx context.Context, kubeClient client.Client, clusterNamespace, clusterName string) ([]vmwarev1.VSphereMachine, error) {
 	log := ctrl.LoggerFrom(ctx)
-
-	// // List MachineDeployments for the cluster.
-	// var mdList clusterv1.MachineDeploymentList
-	// if err := kubeClient.List(ctx, &mdList,
-	// 	client.InNamespace(clusterNamespace),
-	// 	client.MatchingLabels{clusterv1.ClusterNameLabel: clusterName},
-	// ); err != nil {
-	// 	return nil, errors.Wrapf(err, "failed to list MachineDeployments for cluster %s/%s", clusterNamespace, clusterName)
-	// }
-	// validMDs := make(map[string]struct{})
-	// for _, md := range mdList.Items {
-	// 	validMDs[md.Name] = struct{}{}
-	// }
-	// log.V(6).Info("Identified active MachineDeployments", "count", len(validMDs))
-
-	// // List MachineSets and filter those owned by a valid MachineDeployment.
-	// var msList clusterv1.MachineSetList
-	// if err := kubeClient.List(ctx, &msList,
-	// 	client.InNamespace(clusterNamespace),
-	// 	client.MatchingLabels{clusterv1.ClusterNameLabel: clusterName},
-	// ); err != nil {
-	// 	return nil, errors.Wrapf(err, "failed to list MachineSets for cluster %s/%s", clusterNamespace, clusterName)
-	// }
-	// validMS := make(map[string]struct{})
-	// for _, ms := range msList.Items {
-	// 	for _, owner := range ms.OwnerReferences {
-	// 		if owner.Kind == "MachineDeployment" && owner.APIVersion == clusterv1.GroupVersion.String() {
-	// 			if _, ok := validMDs[owner.Name]; ok {
-	// 				validMS[ms.Name] = struct{}{}
-	// 				break
-	// 			}
-	// 		}
-	// 	}
-	// }
-	// log.V(6).Info("Filtered MachineSets owned by valid MachineDeployments", "count", len(validMS))
-
-	// // List Machines and filter those owned by valid MachineSets (skip control plane).
-	// var machineList clusterv1.MachineList
-	// if err := kubeClient.List(ctx, &machineList,
-	// 	client.InNamespace(clusterNamespace),
-	// 	client.MatchingLabels{clusterv1.ClusterNameLabel: clusterName},
-	// ); err != nil {
-	// 	return nil, errors.Wrapf(err, "failed to list Machines for cluster %s/%s", clusterNamespace, clusterName)
-	// }
-
-	// workerMachines := make(map[string]struct{})
-	// for _, m := range machineList.Items {
-	// 	if _, isControlPlane := m.Labels[clusterv1.MachineControlPlaneLabel]; isControlPlane {
-	// 		continue
-	// 	}
-	// 	for _, owner := range m.OwnerReferences {
-	// 		if owner.Kind == "MachineSet" && owner.APIVersion == clusterv1.GroupVersion.String() {
-	// 			if _, ok := validMS[owner.Name]; ok {
-	// 				workerMachines[m.Name] = struct{}{}
-	// 				break
-	// 			}
-	// 		}
-	// 	}
-	// }
-	// log.V(5).Info("Identified worker Machines linked to MachineSets", "count", len(workerMachines))
 
 	// List VSphereMachine objects
 	var vsMachineList vmwarev1.VSphereMachineList
@@ -418,10 +293,10 @@ func getCurrentVSphereMachines(ctx context.Context, kubeClient client.Client, cl
 	return result, nil
 }
 
-// GenerateVMGPlacementLabels returns labels per MachineDeployment which contain zone info for placed VMs for day-2 operations.
-func GenerateVMGPlacementLabels(ctx context.Context, vmg *vmoprv1.VirtualMachineGroup, machineDeployments []string) (map[string]string, error) {
+// GenerateVMGPlacementAnnotations returns annotations per MachineDeployment which contains zone info for placed VMs for day-2 operations.
+func GenerateVMGPlacementAnnotations(ctx context.Context, vmg *vmoprv1.VirtualMachineGroup, machineDeployments []string) (map[string]string, error) {
 	log := ctrl.LoggerFrom(ctx)
-	labels := make(map[string]string)
+	annotations := make(map[string]string)
 
 	// For each member in status
 	for _, member := range vmg.Status.Members {
@@ -436,11 +311,11 @@ func GenerateVMGPlacementLabels(ctx context.Context, vmg *vmoprv1.VirtualMachine
 		}
 
 		// Check if this VM belongs to any of our target Machine Deployments
-		// Use machine deployment name as the label key.
+		// Use machine deployment name as the annotation key prefix.
 		for _, md := range machineDeployments {
 			// Check if we already found placement for this Machine Deployments
-			if _, found := labels[md]; found {
-				log.Info(fmt.Sprintf("Skipping Machine Deployment %s, placement already found", md))
+			if _, found := annotations[fmt.Sprintf("zone.cluster.x-k8s.io/%s", md)]; found {
+				log.Info(fmt.Sprintf("Skipping Machine Deployment %s, placement already found in annotations", md))
 				continue
 			}
 
@@ -462,12 +337,12 @@ func GenerateVMGPlacementLabels(ctx context.Context, vmg *vmoprv1.VirtualMachine
 				}
 
 				log.Info(fmt.Sprintf("VM %s in VMG %s/%s has been placed in zone %s", member.Name, vmg.Namespace, vmg.Name, zone))
-				labels[fmt.Sprintf("zone.cluster.x-k8s.io/%s", md)] = zone
+				annotations[fmt.Sprintf("zone.cluster.x-k8s.io/%s", md)] = zone
 			}
 		}
 	}
 
-	return labels, nil
+	return annotations, nil
 }
 
 // TODO: de-dup this logic with vmopmachine.go

@@ -222,9 +222,10 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 			vmGroupName: vmOperatorVMGroup.Name,
 		}
 
-		// Reuse the label from the node pool -> zone mapping.
+		// Set the zone label using the annotation of the machine deployment:zone mapping from VMG.
+		// This is for new VMs created during day-2 operations in VC 9.1.
 		nodePool := supervisorMachineCtx.Machine.Labels[clusterv1.MachineDeploymentNameLabel]
-		if zone, ok := vmOperatorVMGroup.Labels[fmt.Sprintf("zone.cluster.x-k8s.io/%s", nodePool)]; ok && zone != "" {
+		if zone, ok := vmOperatorVMGroup.Annotations[fmt.Sprintf("zone.cluster.x-k8s.io/%s", nodePool)]; ok && zone != "" {
 			affInfo.failureDomain = ptr.To(zone)
 		}
 

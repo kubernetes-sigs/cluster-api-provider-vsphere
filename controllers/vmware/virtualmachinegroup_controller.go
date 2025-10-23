@@ -26,8 +26,10 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
+	ctrlbldr "sigs.k8s.io/controller-runtime/pkg/builder"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -38,7 +40,6 @@ import (
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters/status,verbs=get
 // +kubebuilder:rbac:groups=vmoperator.vmware.com,resources=virtualmachinegroups,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=vmoperator.vmware.com,resources=virtualmachinegroups/status,verbs=get
-// +kubebuilder:rbac:groups=vmware.infrastructure.cluster.x-k8s.io,resources=vsphereclusters,verbs=get;list;watch
 // +kubebuilder:rbac:groups=vmware.infrastructure.cluster.x-k8s.io,resources=vspheremachines,verbs=get;list;watch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinedeployments,verbs=get;list;watch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines,verbs=get;list;watch
@@ -53,7 +54,7 @@ func AddVirtualMachineGroupControllerToManager(ctx context.Context, controllerMa
 		Recorder: mgr.GetEventRecorderFor("virtualmachinegroup-controller"),
 	}
 
-	// Predicate: only allow VMG with the cluster-name label
+	// Predicate: only allow VMG with the cluster-name label. Ensures the controller only works on VMG objects created by CAPV.
 	hasClusterNameLabel := predicate.NewPredicateFuncs(func(obj ctrlclient.Object) bool {
 		labels := obj.GetLabels()
 		if labels == nil {
@@ -74,6 +75,13 @@ func AddVirtualMachineGroupControllerToManager(ctx context.Context, controllerMa
 		Watches(
 			&vmwarev1.VSphereMachine{},
 			handler.EnqueueRequestsFromMapFunc(reconciler.VSphereMachineToVirtualMachineGroup),
+			ctrlbldr.WithPredicates(
+				predicate.Funcs{
+					UpdateFunc:  func(e event.UpdateEvent) bool { return false },
+					CreateFunc:  func(event.CreateEvent) bool { return true },
+					DeleteFunc:  func(event.DeleteEvent) bool { return true },
+					GenericFunc: func(event.GenericEvent) bool { return false },
+				}),
 		).
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, controllerManagerCtx.WatchFilterValue))
 

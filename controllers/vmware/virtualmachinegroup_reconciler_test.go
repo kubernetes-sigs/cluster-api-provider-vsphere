@@ -36,6 +36,7 @@ const (
 
 func TestGetExpectedVSphereMachines(t *testing.T) {
 	g := NewWithT(t)
+	ctx := context.Background()
 
 	tests := []struct {
 		name     string
@@ -64,8 +65,9 @@ func TestGetExpectedVSphereMachines(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		fakeClient := fake.NewClientBuilder().WithScheme(s).WithObjects(tt.cluster).Build()
 		t.Run(tt.name, func(t *testing.T) {
-			g.Expect(getExpectedVSphereMachines(tt.cluster)).To(Equal(tt.expected))
+			g.Expect(getExpectedVSphereMachines(ctx, fakeClient, tt.cluster)).To(Equal(tt.expected))
 		})
 	}
 }
@@ -74,12 +76,12 @@ func TestGetCurrentVSphereMachines(t *testing.T) {
 	g := NewWithT(t)
 	ctx := context.Background()
 
-	// VM names are based on CAPI Machine names, not VSphereMachine names, but we use VSM objects here.
+	// VM names are based on CAPI Machine names, not VSphereMachine names, but we use VSphereMachine here.
 	vsm1 := newVSphereMachine("vsm-1", mdName1, false, nil)
 	vsm2 := newVSphereMachine("vsm-2", mdName2, false, nil)
 	vsmDeleting := newVSphereMachine("vsm-3", mdName1, true, nil) // Deleting
 	vsmControlPlane := newVSphereMachine("vsm-cp", "cp-md", false, nil)
-	vsmControlPlane.Labels[clusterv1.MachineControlPlaneLabel] = "true" // Should be filtered by label in production, but here filtered implicitly by only listing MD-labelled objects
+	vsmControlPlane.Labels[clusterv1.MachineControlPlaneLabel] = "true"
 
 	tests := []struct {
 		name    string
@@ -94,7 +96,7 @@ func TestGetCurrentVSphereMachines(t *testing.T) {
 				vsmDeleting,
 				vsmControlPlane,
 			},
-			want: 2, // Should exclude vsm-3 (deleting) and vsm-cp (no MD label used in the actual listing logic)
+			want: 2, // Should exclude vsm-3 (deleting) and vsm-cp (control plane VSphereMachine)
 		},
 		{
 			name:    "No VSphereMachines found",
@@ -110,7 +112,7 @@ func TestGetCurrentVSphereMachines(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(len(got)).To(Equal(tt.want))
 
-			// Check that the correct machines are present (e.g., vsm1 and vsm2)
+			// Check that the correct Machines are present
 			if tt.want > 0 {
 				names := make([]string, len(got))
 				for i, vsm := range got {
@@ -191,7 +193,7 @@ func TestGenerateVMGPlacementAnnotations(t *testing.T) {
 					Members: []vmoprv1.VirtualMachineGroupMemberStatus{
 						// First VM sets the placement
 						newVMGMemberStatus(vmName1, "VirtualMachine", true, zoneA),
-						// Second VM is ignored (logic skips finding placement twice)
+						// Second VM is ignored
 						newVMGMemberStatus(vmNameUnplaced, "VirtualMachine", true, zoneB),
 					},
 				},
@@ -208,7 +210,7 @@ func TestGenerateVMGPlacementAnnotations(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: clusterName, Namespace: clusterNamespace},
 				Status: vmoprv1.VirtualMachineGroupStatus{
 					Members: []vmoprv1.VirtualMachineGroupMemberStatus{
-						newVMGMemberStatus(vmNameWrongKind, "Pod", true, zoneA),
+						newVMGMemberStatus(vmNameWrongKind, "VirtualMachineGroup", true, zoneA),
 					},
 				},
 			},
@@ -220,7 +222,6 @@ func TestGenerateVMGPlacementAnnotations(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Mock client is needed for the logging in the function, but not used for API calls
 			ctx := ctrl.LoggerInto(context.Background(), ctrl.LoggerFrom(context.Background()))
 
 			got, err := GenerateVMGPlacementAnnotations(ctx, tt.vmg, tt.machineDeployments)
@@ -240,7 +241,7 @@ func TestVirtualMachineGroupReconciler_ReconcileFlow(t *testing.T) {
 	ctx := context.Background()
 
 	// Initial objects for the successful VMG creation path (Expected: 1, Current: 1)
-	cluster := newCluster(clusterName, clusterNamespace, true, 1, 0) // Expect 1 machine
+	cluster := newCluster(clusterName, clusterNamespace, true, 1, 0)
 	vsm1 := newVSphereMachine("vsm-1", mdName1, false, nil)
 	md1 := newMachineDeployment(mdName1)
 
@@ -271,13 +272,13 @@ func TestVirtualMachineGroupReconciler_ReconcileFlow(t *testing.T) {
 		{
 			name: "Requeue: ControlPlane Not Initialized",
 			initialObjects: []client.Object{
-				newCluster(clusterName, clusterNamespace, false, 1, 0), // Not Initialized
+				newCluster(clusterName, clusterNamespace, false, 1, 0),
 			},
 			expectedResult: reconcile.Result{RequeueAfter: reconciliationDelay},
 			checkVMGExists: false,
 		},
 		{
-			name: "Requeue: VMG Not Found, Machines Missing (0/1)",
+			name: "Requeue: VMG Not Found",
 			initialObjects: []client.Object{
 				cluster.DeepCopy(),
 				md1.DeepCopy(),
@@ -286,7 +287,7 @@ func TestVirtualMachineGroupReconciler_ReconcileFlow(t *testing.T) {
 			checkVMGExists: false,
 		},
 		{
-			name: "Success: VMG Created (1/1)",
+			name: "Success: VMG Created",
 			initialObjects: []client.Object{
 				cluster.DeepCopy(),
 				md1.DeepCopy(),
@@ -301,7 +302,7 @@ func TestVirtualMachineGroupReconciler_ReconcileFlow(t *testing.T) {
 				cluster.DeepCopy(),
 				md1.DeepCopy(),
 				vsm1.DeepCopy(),
-				&vmoprv1.VirtualMachineGroup{ // Pre-existing VMG
+				&vmoprv1.VirtualMachineGroup{
 					ObjectMeta: metav1.ObjectMeta{Name: clusterName, Namespace: clusterNamespace},
 				},
 			},
@@ -333,7 +334,9 @@ func TestVirtualMachineGroupReconciler_ReconcileFlow(t *testing.T) {
 				// Check that the core fields were set by the MutateFn
 				g.Expect(vmg.Labels).To(HaveKeyWithValue(clusterv1.ClusterNameLabel, clusterName))
 				g.Expect(vmg.Spec.BootOrder).To(HaveLen(1))
-				g.Expect(vmg.Spec.BootOrder[0].Members).To(HaveLen(int(getExpectedVSphereMachines(cluster))))
+				expected, err := getExpectedVSphereMachines(ctx, fakeClient, tt.initialObjects[0].(*clusterv1.Cluster))
+				g.Expect(err).NotTo(HaveOccurred(), "Should get expected Machines")
+				g.Expect(vmg.Spec.BootOrder[0].Members).To(HaveLen(int(expected)))
 
 				// VMG members should match the VSphereMachine (name: vsm-1)
 				g.Expect(vmg.Spec.BootOrder[0].Members[0].Name).To(ContainElement("vsm-1"))
@@ -343,9 +346,6 @@ func TestVirtualMachineGroupReconciler_ReconcileFlow(t *testing.T) {
 		})
 	}
 }
-
-// Helper function to create a *string
-func stringPtr(s string) *string { return &s }
 
 // Helper function to create a basic Cluster object
 func newCluster(name, namespace string, initialized bool, replicasMD1, replicasMD2 int32) *clusterv1.Cluster {

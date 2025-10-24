@@ -729,7 +729,7 @@ var _ = Describe("VirtualMachine tests", func() {
 			}
 		})
 
-		Context("With auto placement feature gate enabled", func() {
+		Context("With node auto placement feature gate enabled", func() {
 			BeforeEach(func() {
 				t := GinkgoT()
 				featuregatetesting.SetFeatureGateDuringTest(t, feature.Gates, feature.NodeAutoPlacement, true)
@@ -864,7 +864,7 @@ var _ = Describe("VirtualMachine tests", func() {
 					By("Verify VM anti-affinity rules are set correctly")
 					verifyVMAntiAffinityRules(vmopVM, machineDeploymentName)
 
-					By("Verify that worker machine has machine deploymet label set")
+					By("Verify that worker machine has machine deployment label set")
 					Expect(vmopVM.Labels[clusterv1.MachineDeploymentNameLabel]).To(Equal(machineDeploymentName))
 
 					By("Verify that GroupName is set from VirtualMachineGroup")
@@ -898,12 +898,12 @@ var _ = Describe("VirtualMachine tests", func() {
 					supervisorMachineContext = util.CreateMachineContext(fdClusterContext, machine, vsphereMachine)
 					supervisorMachineContext.ControllerManagerContext = fdControllerManagerContext
 
-					// Create a VirtualMachineGroup for the cluster with zone label
+					// Create a VirtualMachineGroup for the cluster with per-md zone annotation
 					vmGroup := &vmoprv1.VirtualMachineGroup{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      fdClusterName,
 							Namespace: corev1.NamespaceDefault,
-							Labels: map[string]string{
+							Annotations: map[string]string{
 								fmt.Sprintf("zone.cluster.x-k8s.io/%s", machineDeploymentName): failureDomainName,
 							},
 						},

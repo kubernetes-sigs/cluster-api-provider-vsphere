@@ -207,14 +207,19 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 				return false, err
 			}
 			if apierrors.IsNotFound(err) {
-				log.V(4).Info("VirtualMachineGroup not found, requeueing")
+				log.V(4).Info("VirtualMachineGroup not found, requeueing", "Name", key.Name, "Namespace", key.Namespace)
 				return true, nil
 			}
 		}
 
 		// Proceed only if the machine is a member of the VirtualMachineGroup.
 		if !v.checkVirtualMachineGroupMembership(vmOperatorVMGroup, supervisorMachineCtx) {
-			log.V(4).Info("Waiting for VirtualMachineGroup membership, requeueing")
+			v1beta2conditions.Set(supervisorMachineCtx.VSphereMachine, metav1.Condition{
+				Type:   infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: infrav1.VSphereMachineVirtualMachineWaitingForVirtualMachineGroupV1Beta2Reason,
+			})
+			log.V(4).Info("Waiting for VirtualMachineGroup membership, requeueing", "VM Name", supervisorMachineCtx.Machine.Name)
 			return true, nil
 		}
 
@@ -222,7 +227,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 			vmGroupName: vmOperatorVMGroup.Name,
 		}
 
-		// Set the zone label using the annotation of the machine deployment:zone mapping from VMG.
+		// Set the zone label using the annotation of the per-md zone mapping from VMG.
 		// This is for new VMs created during day-2 operations in VC 9.1.
 		nodePool := supervisorMachineCtx.Machine.Labels[clusterv1.MachineDeploymentNameLabel]
 		if zone, ok := vmOperatorVMGroup.Annotations[fmt.Sprintf("zone.cluster.x-k8s.io/%s", nodePool)]; ok && zone != "" {
@@ -842,10 +847,13 @@ func (v *VmopMachineService) addVolumes(ctx context.Context, supervisorMachineCt
 			},
 		}
 
+		// Before VC 9.1:
 		// The CSI zone annotation must be set when using a zonal storage class,
 		// which is required when the cluster has multiple (3) zones.
 		// Single zone clusters (legacy/default) do not support zonal storage and must not
 		// have the zone annotation set.
+		// Since VC 9.1: With Node Auto Placement enabled, failureDomain is optional and CAPV no longer
+		// sets PVC annotations. PVC placement now follows the StorageClass behavior (Immediate or WaitForFirstConsumer).
 		zonal := len(supervisorMachineCtx.VSphereCluster.Status.FailureDomains) > 1
 
 		if zone := supervisorMachineCtx.VSphereMachine.Spec.FailureDomain; zonal && zone != nil {
@@ -904,8 +912,7 @@ func getVMLabels(supervisorMachineCtx *vmware.SupervisorMachineContext, vmLabels
 		vmLabels[k] = v
 	}
 
-	// Get the labels that determine the VM's placement inside of a stretched
-	// cluster.
+	// Get the labels that determine the VM's placement
 	var failureDomain *string
 	if affinityInfo != nil && affinityInfo.failureDomain != nil {
 		failureDomain = affinityInfo.failureDomain
@@ -934,12 +941,13 @@ func getVMLabels(supervisorMachineCtx *vmware.SupervisorMachineContext, vmLabels
 //	and thus the code is optimized as such. However, in the future
 //	this function may return a more diverse topology.
 func getTopologyLabels(supervisorMachineCtx *vmware.SupervisorMachineContext, failureDomain *string) map[string]string {
-	// TODO: Make it so that we always set the zone label, might require enquiring the zones present (when unset)
+	// This is for explicit placement.
 	if fd := supervisorMachineCtx.VSphereMachine.Spec.FailureDomain; fd != nil && *fd != "" {
 		return map[string]string{
 			corev1.LabelTopologyZone: *fd,
 		}
 	}
+	// This is for automatic placement.
 	if failureDomain != nil && *failureDomain != "" {
 		return map[string]string{
 			corev1.LabelTopologyZone: *failureDomain,

@@ -51,6 +51,14 @@ type VirtualMachineGroupReconciler struct {
 	Recorder record.EventRecorder
 }
 
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters,verbs=get;list;watch
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters/status,verbs=get
+// +kubebuilder:rbac:groups=vmoperator.vmware.com,resources=virtualmachinegroups,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=vmoperator.vmware.com,resources=virtualmachinegroups/status,verbs=get
+// +kubebuilder:rbac:groups=vmware.infrastructure.cluster.x-k8s.io,resources=vspheremachines,verbs=get;list;watch
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinedeployments,verbs=get;list;watch
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines,verbs=get;list;watch
+
 func (r *VirtualMachineGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
 
@@ -105,7 +113,12 @@ func (r *VirtualMachineGroupReconciler) createOrUpdateVMG(ctx context.Context, c
 		}
 
 		// Calculate expected Machines of all MachineDeployments.
-		expected := getExpectedVSphereMachines(cluster)
+		expected, err := getExpectedVSphereMachines(ctx, r.Client, cluster)
+		if err != nil {
+			log.Error(err, "failed to get expected Machines of all MachineDeployment")
+			return ctrl.Result{}, err
+		}
+
 		if expected == 0 {
 			log.Info("none of MachineDeployments specifies replica and node auto replacement doesn't support this scenario")
 			return reconcile.Result{}, nil
@@ -215,60 +228,31 @@ func (r *VirtualMachineGroupReconciler) createOrUpdateVMG(ctx context.Context, c
 	return reconcile.Result{}, err
 }
 
-// isMDDefined checks if there are any MachineDeployments for the given cluster
-// by listing objects with the cluster.x-k8s.io/cluster-name label.
-func (r *VirtualMachineGroupReconciler) isMDDefined(ctx context.Context, cluster *clusterv1.Cluster) (bool, error) {
-	mdList := &clusterv1.MachineDeploymentList{}
-	if err := r.Client.List(ctx, mdList, client.InNamespace(cluster.Namespace), client.MatchingLabels{clusterv1.ClusterNameLabel: cluster.Name}); err != nil {
-		return false, errors.Wrapf(err, "failed to list MachineDeployments for cluster %s/%s",
-			cluster.Namespace, cluster.Name)
-	}
-
-	if len(mdList.Items) == 0 {
-		return false, errors.Errorf("no MachineDeployments found for cluster %s/%s",
-			cluster.Namespace, cluster.Name)
-	}
-
-	return true, nil
-}
-
-// isExplicitPlacement checks if any MachineDeployment has an explicit failure domain set.
-func (r *VirtualMachineGroupReconciler) isExplicitPlacement(cluster *clusterv1.Cluster) (bool, error) {
-	// First, ensure MachineDeployments are defined
-	mdDefined, err := r.isMDDefined(context.Background(), cluster)
-	if !mdDefined {
-		return false, err
-	}
-
-	// Iterate through MachineDeployments to find if an explicit failure domain is set.
-	mds := cluster.Spec.Topology.Workers.MachineDeployments
-	for _, md := range mds {
-		// If a failure domain is specified for any MachineDeployment, it indicates
-		// explicit placement is configured, so return true.
-		if md.FailureDomain != "" {
-			return true, nil
-		}
-	}
-
-	return false, nil
-}
-
 // getExpectedVSphereMachines returns the total number of replicas across all
-// MachineDeployments in the Cluster's Topology.Workers.
-func getExpectedVSphereMachines(cluster *clusterv1.Cluster) int32 {
-	if !cluster.Spec.Topology.IsDefined() {
-		return 0
+// MachineDeployments belonging to the Cluster
+func getExpectedVSphereMachines(ctx context.Context, kubeClient client.Client, cluster *clusterv1.Cluster) (int32, error) {
+	var mdList clusterv1.MachineDeploymentList
+	if err := kubeClient.List(
+		ctx,
+		&mdList,
+		client.InNamespace(cluster.Namespace),
+		client.MatchingLabels{clusterv1.ClusterNameLabel: cluster.Name},
+	); err != nil {
+		return 0, errors.Wrap(err, "failed to list MachineDeployments")
 	}
 
 	var total int32
-	for _, md := range cluster.Spec.Topology.Workers.MachineDeployments {
-		if md.Replicas != nil {
-			total += *md.Replicas
+	for _, md := range mdList.Items {
+		if md.Spec.Replicas != nil {
+			total += *md.Spec.Replicas
 		}
 	}
-	return total
+
+	return total, nil
 }
 
+// getCurrentVSphereMachines returns the list of VSphereMachines belonging to the Cluster’s MachineDeployments.
+// VSphereMachines marked for removal are excluded from the result.
 func getCurrentVSphereMachines(ctx context.Context, kubeClient client.Client, clusterNamespace, clusterName string) ([]vmwarev1.VSphereMachine, error) {
 	log := ctrl.LoggerFrom(ctx)
 
@@ -321,7 +305,7 @@ func GenerateVMGPlacementAnnotations(ctx context.Context, vmg *vmoprv1.VirtualMa
 
 			// Check if VM belongs to a Machine Deployment by name (e.g. cluster-1-np-1-vm-xxx contains np-1)
 			// TODO: Establish membership via the machine deployment name label
-			if strings.Contains(member.Name, md) {
+			if strings.Contains(member.Name, "-"+md+"-") {
 				// Get the VM placement information by member status.
 				// VMs that have undergone placement do not have Placement info set, skip.
 				if member.Placement == nil {
@@ -345,7 +329,7 @@ func GenerateVMGPlacementAnnotations(ctx context.Context, vmg *vmoprv1.VirtualMa
 	return annotations, nil
 }
 
-// TODO: de-dup this logic with vmopmachine.go
+// Duplicated this logic from pkg/services/vmoperator/vmopmachine.go
 // GenerateVirtualMachineName generates the name of a VirtualMachine based on the naming strategy.
 func GenerateVirtualMachineName(machineName string, namingStrategy *vmwarev1.VirtualMachineNamingStrategy) (string, error) {
 	// Per default the name of the VirtualMachine should be equal to the Machine name (this is the same as "{{ .machine.name }}")

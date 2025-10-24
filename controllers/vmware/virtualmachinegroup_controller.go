@@ -89,7 +89,7 @@ func AddVirtualMachineGroupControllerToManager(ctx context.Context, controllerMa
 }
 
 // ClusterToVirtualMachineGroup maps Cluster events to VirtualMachineGroup reconcile requests.
-func (r VirtualMachineGroupReconciler) ClusterToVirtualMachineGroup(ctx context.Context, a ctrlclient.Object) []reconcile.Request {
+func (r *VirtualMachineGroupReconciler) ClusterToVirtualMachineGroup(ctx context.Context, a ctrlclient.Object) []reconcile.Request {
 	cluster, ok := a.(*clusterv1.Cluster)
 	if !ok {
 		return nil
@@ -104,11 +104,10 @@ func (r VirtualMachineGroupReconciler) ClusterToVirtualMachineGroup(ctx context.
 	}}
 }
 
-// VsphereMachineToVirtualMachineGroup maps VSphereMachine events to VirtualMachineGroup reconcile requests.
-// This handler only processes VSphereMachine objects for Day-2 operations, ensuring VSphereMachine state stays
-// in sync with its owning VMG. If no corresponding VMG is found, this is a no-op.
-
-func (r VirtualMachineGroupReconciler) VSphereMachineToVirtualMachineGroup(ctx context.Context, a ctrlclient.Object) []reconcile.Request {
+// VSphereMachineToVirtualMachineGroup maps VSphereMachine events to VirtualMachineGroup reconcile requests.
+// This handler only processes VSphereMachine objects for Day-2 operations when VMG could be found, ensuring
+// VMG member list in sync with VSphereMachines. If no corresponding VMG is found, this is a no-op.
+func (r *VirtualMachineGroupReconciler) VSphereMachineToVirtualMachineGroup(ctx context.Context, a ctrlclient.Object) []reconcile.Request {
 	vSphereMachine, ok := a.(*vmwarev1.VSphereMachine)
 	if !ok {
 		return nil

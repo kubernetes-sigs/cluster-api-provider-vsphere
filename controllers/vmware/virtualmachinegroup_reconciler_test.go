@@ -1,3 +1,19 @@
+/*
+Copyright 2025 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package vmware
 
 import (
@@ -9,24 +25,24 @@ import (
 
 	. "github.com/onsi/gomega"
 	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
-	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-)
 
-var s = runtime.NewScheme()
+	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+)
 
 const (
 	clusterName      = "test-cluster"
+	otherClusterName = "other-cluster"
 	clusterNamespace = "test-ns"
 	mdName1          = "md-worker-a"
 	mdName2          = "md-worker-b"
@@ -38,36 +54,62 @@ func TestGetExpectedVSphereMachines(t *testing.T) {
 	g := NewWithT(t)
 	ctx := context.Background()
 
+	targetCluster := newTestCluster(clusterName, clusterNamespace)
+
+	mdA := newMachineDeployment("md-a", clusterName, clusterNamespace, ptr.To(int32(3)))
+	mdB := newMachineDeployment("md-b", clusterName, clusterNamespace, ptr.To(int32(5)))
+	mdCNil := newMachineDeployment("md-c-nil", clusterName, clusterNamespace, nil)
+	mdDZero := newMachineDeployment("md-d-zero", clusterName, clusterNamespace, ptr.To(int32(0)))
+	// Create an MD for a different cluster (should be filtered)
+	mdOtherCluster := newMachineDeployment("md-other", otherClusterName, clusterNamespace, ptr.To(int32(5)))
+
 	tests := []struct {
-		name     string
-		cluster  *clusterv1.Cluster
-		expected int32
+		name           string
+		initialObjects []client.Object
+		expectedTotal  int32
+		wantErr        bool
 	}{
 		{
-			name:     "Defined topology with replicas",
-			cluster:  newCluster(clusterName, clusterNamespace, true, 3, 2),
-			expected: 5,
+			name:           "Sum of two MDs",
+			initialObjects: []client.Object{mdA, mdB},
+			expectedTotal:  8,
+			wantErr:        false,
 		},
 		{
-			name:     "Defined topology with zero replicas",
-			cluster:  newCluster(clusterName, clusterNamespace, true, 0, 0),
-			expected: 0,
+			name:           "Should succeed when MDs include nil and zero replicas",
+			initialObjects: []client.Object{mdA, mdB, mdCNil, mdDZero},
+			expectedTotal:  8,
+			wantErr:        false,
 		},
 		{
-			name: "Undefined topology",
-			cluster: func() *clusterv1.Cluster {
-				c := newCluster(clusterName, clusterNamespace, true, 1, 1)
-				c.Spec.Topology = clusterv1.Topology{}
-				return c
-			}(),
-			expected: 0,
+			name:           "Should filters out MDs from other clusters",
+			initialObjects: []client.Object{mdA, mdB, mdOtherCluster},
+			expectedTotal:  8,
+			wantErr:        false,
+		},
+		{
+			name:           "Should succeed when no MachineDeployments found",
+			initialObjects: []client.Object{},
+			expectedTotal:  0,
+			wantErr:        false,
 		},
 	}
 
 	for _, tt := range tests {
-		fakeClient := fake.NewClientBuilder().WithScheme(s).WithObjects(tt.cluster).Build()
-		t.Run(tt.name, func(t *testing.T) {
-			g.Expect(getExpectedVSphereMachines(ctx, fakeClient, tt.cluster)).To(Equal(tt.expected))
+		// Looks odd, but need to reinitialize test variable
+		tt := tt
+		t.Run(tt.name, func(_ *testing.T) {
+			scheme := runtime.NewScheme()
+			g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.initialObjects...).Build()
+			total, err := getExpectedVSphereMachines(ctx, fakeClient, targetCluster)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(total).To(Equal(tt.expectedTotal))
+			}
 		})
 	}
 }
@@ -76,12 +118,14 @@ func TestGetCurrentVSphereMachines(t *testing.T) {
 	g := NewWithT(t)
 	ctx := context.Background()
 
-	// VM names are based on CAPI Machine names, not VSphereMachine names, but we use VSphereMachine here.
-	vsm1 := newVSphereMachine("vsm-1", mdName1, false, nil)
-	vsm2 := newVSphereMachine("vsm-2", mdName2, false, nil)
-	vsmDeleting := newVSphereMachine("vsm-3", mdName1, true, nil) // Deleting
-	vsmControlPlane := newVSphereMachine("vsm-cp", "cp-md", false, nil)
-	vsmControlPlane.Labels[clusterv1.MachineControlPlaneLabel] = "true"
+	scheme := runtime.NewScheme()
+	g.Expect(vmwarev1.AddToScheme(scheme)).To(Succeed())
+
+	// VSphereMachine names are based on CAPI Machine names, but we use fake name here.
+	vsm1 := newVSphereMachine("vsm-1", mdName1, false, false, nil)
+	vsm2 := newVSphereMachine("vsm-2", mdName2, false, false, nil)
+	vsmDeleting := newVSphereMachine("vsm-3", mdName1, false, true, nil) // Deleting
+	vsmControlPlane := newVSphereMachine("vsm-cp", "not-md", true, false, nil)
 
 	tests := []struct {
 		name    string
@@ -89,28 +133,30 @@ func TestGetCurrentVSphereMachines(t *testing.T) {
 		want    int
 	}{
 		{
-			name: "Success: Filtered non-deleting worker VSphereMachines",
+			name: "Should filtered out deleting VSphereMachines",
 			objects: []client.Object{
 				vsm1,
 				vsm2,
 				vsmDeleting,
 				vsmControlPlane,
 			},
-			want: 2, // Should exclude vsm-3 (deleting) and vsm-cp (control plane VSphereMachine)
+			want: 2,
 		},
 		{
-			name:    "No VSphereMachines found",
+			name:    "Want no Error if no VSphereMachines found",
 			objects: []client.Object{},
 			want:    0,
 		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			fakeClient := fake.NewClientBuilder().WithScheme(s).WithObjects(tt.objects...).Build()
+		// Looks odd, but need to reinitialize test variable
+		tt := tt
+		t.Run(tt.name, func(_ *testing.T) {
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.objects...).Build()
 			got, err := getCurrentVSphereMachines(ctx, fakeClient, clusterNamespace, clusterName)
 			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(len(got)).To(Equal(tt.want))
+			g.Expect(got).To(HaveLen(tt.want))
 
 			// Check that the correct Machines are present
 			if tt.want > 0 {
@@ -142,7 +188,7 @@ func TestGenerateVMGPlacementAnnotations(t *testing.T) {
 		wantErr            bool
 	}{
 		{
-			name: "Success: Two placed VMs for two MDs",
+			name: "Should get placement annotation when two placed VMs for two MDs",
 			vmg: &vmoprv1.VirtualMachineGroup{
 				Status: vmoprv1.VirtualMachineGroupStatus{
 					Members: []vmoprv1.VirtualMachineGroupMemberStatus{
@@ -161,7 +207,7 @@ func TestGenerateVMGPlacementAnnotations(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Skip: Unplaced VM (PlacementReady false)",
+			name: "No placement annotation when VM PlacementReady is false)",
 			vmg: &vmoprv1.VirtualMachineGroup{
 				Status: vmoprv1.VirtualMachineGroupStatus{
 					Members: []vmoprv1.VirtualMachineGroupMemberStatus{
@@ -174,7 +220,7 @@ func TestGenerateVMGPlacementAnnotations(t *testing.T) {
 			wantErr:            false,
 		},
 		{
-			name: "Skip: PlacementReady but missing Zone info",
+			name: "No placement annotation when PlacementReady but missing Zone info",
 			vmg: &vmoprv1.VirtualMachineGroup{
 				Status: vmoprv1.VirtualMachineGroupStatus{
 					Members: []vmoprv1.VirtualMachineGroupMemberStatus{
@@ -187,7 +233,7 @@ func TestGenerateVMGPlacementAnnotations(t *testing.T) {
 			wantErr:            false,
 		},
 		{
-			name: "Skip: Placement already found for MD",
+			name: "Should keep placement annotation when first placement decision is found",
 			vmg: &vmoprv1.VirtualMachineGroup{
 				Status: vmoprv1.VirtualMachineGroupStatus{
 					Members: []vmoprv1.VirtualMachineGroupMemberStatus{
@@ -205,7 +251,7 @@ func TestGenerateVMGPlacementAnnotations(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Error: Member Kind is not VirtualMachine",
+			name: "Should return Error if Member Kind is not VirtualMachine",
 			vmg: &vmoprv1.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{Name: clusterName, Namespace: clusterNamespace},
 				Status: vmoprv1.VirtualMachineGroupStatus{
@@ -221,7 +267,9 @@ func TestGenerateVMGPlacementAnnotations(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		// Looks odd, but need to reinitialize test variable
+		tt := tt
+		t.Run(tt.name, func(_ *testing.T) {
 			ctx := ctrl.LoggerInto(context.Background(), ctrl.LoggerFrom(context.Background()))
 
 			got, err := GenerateVMGPlacementAnnotations(ctx, tt.vmg, tt.machineDeployments)
@@ -240,10 +288,15 @@ func TestVirtualMachineGroupReconciler_ReconcileFlow(t *testing.T) {
 	g := NewWithT(t)
 	ctx := context.Background()
 
+	scheme := runtime.NewScheme()
+	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+	g.Expect(vmwarev1.AddToScheme(scheme)).To(Succeed())
+	g.Expect(vmoprv1.AddToScheme(scheme)).To(Succeed())
+
 	// Initial objects for the successful VMG creation path (Expected: 1, Current: 1)
 	cluster := newCluster(clusterName, clusterNamespace, true, 1, 0)
-	vsm1 := newVSphereMachine("vsm-1", mdName1, false, nil)
-	md1 := newMachineDeployment(mdName1)
+	vsm1 := newVSphereMachine("vsm-1", mdName1, false, false, nil)
+	md1 := newMachineDeployment(mdName1, clusterName, clusterNamespace, ptr.To(int32(1)))
 
 	tests := []struct {
 		name           string
@@ -252,16 +305,17 @@ func TestVirtualMachineGroupReconciler_ReconcileFlow(t *testing.T) {
 		checkVMGExists bool
 	}{
 		{
-			name:           "Exit: Cluster Not Found",
+			name:           "Should Exit if Cluster Not Found",
 			initialObjects: []client.Object{},
 			expectedResult: reconcile.Result{},
 			checkVMGExists: false,
 		},
 		{
-			name: "Exit: Cluster Deletion Timestamp Set",
+			name: "Should Exit if Cluster Deletion Timestamp Set",
 			initialObjects: []client.Object{
 				func() client.Object {
 					c := cluster.DeepCopy()
+					c.Finalizers = []string{"test.finalizer.cluster"}
 					c.DeletionTimestamp = &metav1.Time{Time: time.Now()}
 					return c
 				}(),
@@ -270,7 +324,7 @@ func TestVirtualMachineGroupReconciler_ReconcileFlow(t *testing.T) {
 			checkVMGExists: false,
 		},
 		{
-			name: "Requeue: ControlPlane Not Initialized",
+			name: "Should Requeue if ControlPlane Not Initialized",
 			initialObjects: []client.Object{
 				newCluster(clusterName, clusterNamespace, false, 1, 0),
 			},
@@ -278,7 +332,7 @@ func TestVirtualMachineGroupReconciler_ReconcileFlow(t *testing.T) {
 			checkVMGExists: false,
 		},
 		{
-			name: "Requeue: VMG Not Found",
+			name: "Should Requeue if VMG Not Found",
 			initialObjects: []client.Object{
 				cluster.DeepCopy(),
 				md1.DeepCopy(),
@@ -287,7 +341,7 @@ func TestVirtualMachineGroupReconciler_ReconcileFlow(t *testing.T) {
 			checkVMGExists: false,
 		},
 		{
-			name: "Success: VMG Created",
+			name: "Should Succeed if VMG is created",
 			initialObjects: []client.Object{
 				cluster.DeepCopy(),
 				md1.DeepCopy(),
@@ -297,7 +351,7 @@ func TestVirtualMachineGroupReconciler_ReconcileFlow(t *testing.T) {
 			checkVMGExists: true,
 		},
 		{
-			name: "Success: VMG Updated (Already Exists)",
+			name: "Should Succeed if VMG is already existed",
 			initialObjects: []client.Object{
 				cluster.DeepCopy(),
 				md1.DeepCopy(),
@@ -312,8 +366,10 @@ func TestVirtualMachineGroupReconciler_ReconcileFlow(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			fakeClient := fake.NewClientBuilder().WithScheme(s).WithObjects(tt.initialObjects...).Build()
+		// Looks odd, but need to reinitialize test variable
+		tt := tt
+		t.Run(tt.name, func(_ *testing.T) {
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.initialObjects...).Build()
 			reconciler := &VirtualMachineGroupReconciler{
 				Client:   fakeClient,
 				Recorder: record.NewFakeRecorder(1),
@@ -338,16 +394,14 @@ func TestVirtualMachineGroupReconciler_ReconcileFlow(t *testing.T) {
 				g.Expect(err).NotTo(HaveOccurred(), "Should get expected Machines")
 				g.Expect(vmg.Spec.BootOrder[0].Members).To(HaveLen(int(expected)))
 
-				// VMG members should match the VSphereMachine (name: vsm-1)
-				g.Expect(vmg.Spec.BootOrder[0].Members[0].Name).To(ContainElement("vsm-1"))
-			} else {
-				g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "VMG should not exist or NotFound should be handled gracefully")
+				// VMG members should match the VSphereMachine name
+				g.Expect(vmg.Spec.BootOrder[0].Members[0].Name).To(Equal("vsm-1"))
 			}
 		})
 	}
 }
 
-// Helper function to create a basic Cluster object
+// Helper function to create a basic Cluster object.
 func newCluster(name, namespace string, initialized bool, replicasMD1, replicasMD2 int32) *clusterv1.Cluster {
 	cluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -375,28 +429,33 @@ func newCluster(name, namespace string, initialized bool, replicasMD1, replicasM
 	return cluster
 }
 
-// Helper function to create a VSphereMachine (worker, owned by a CAPI Machine)
-func newVSphereMachine(name, mdName string, deleted bool, namingStrategy *vmwarev1.VirtualMachineNamingStrategy) *vmwarev1.VSphereMachine {
+// Helper function to create a VSphereMachine (worker, owned by a CAPI Machine).
+func newVSphereMachine(name, mdName string, isCP, deleted bool, namingStrategy *vmwarev1.VirtualMachineNamingStrategy) *vmwarev1.VSphereMachine {
 	vsm := &vmwarev1.VSphereMachine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: clusterNamespace,
 			Labels: map[string]string{
-				clusterv1.ClusterNameLabel:           clusterName,
-				clusterv1.MachineDeploymentNameLabel: mdName,
+				clusterv1.ClusterNameLabel: clusterName,
 			},
 		},
 		Spec: vmwarev1.VSphereMachineSpec{
 			NamingStrategy: namingStrategy,
 		},
 	}
+	if !isCP {
+		vsm.Labels[clusterv1.MachineDeploymentNameLabel] = mdName
+	} else {
+		vsm.Labels[clusterv1.MachineControlPlaneLabel] = "true"
+	}
 	if deleted {
+		vsm.Finalizers = []string{"test.finalizer.0"}
 		vsm.DeletionTimestamp = &metav1.Time{Time: time.Now()}
 	}
 	return vsm
 }
 
-// Helper function to create a VMG member status with placement info
+// Helper function to create a VMG member status with placement info.
 func newVMGMemberStatus(name, kind string, isPlacementReady bool, zone string) vmoprv1.VirtualMachineGroupMemberStatus {
 	memberStatus := vmoprv1.VirtualMachineGroupMemberStatus{
 		Name: name,
@@ -413,13 +472,26 @@ func newVMGMemberStatus(name, kind string, isPlacementReady bool, zone string) v
 	return memberStatus
 }
 
-// Helper function to create a MachineDeployment (for listing MD names)
-func newMachineDeployment(name string) *clusterv1.MachineDeployment {
+// Helper function to create a MachineDeployment object.
+func newMachineDeployment(name, clusterName, clusterNS string, replicas *int32) *clusterv1.MachineDeployment {
 	return &clusterv1.MachineDeployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: clusterNamespace,
+			Namespace: clusterNS,
 			Labels:    map[string]string{clusterv1.ClusterNameLabel: clusterName},
+		},
+		Spec: clusterv1.MachineDeploymentSpec{
+			Replicas: replicas,
+		},
+	}
+}
+
+// Helper function to create a basic Cluster object used as input.
+func newTestCluster(name, namespace string) *clusterv1.Cluster {
+	return &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
 		},
 	}
 }

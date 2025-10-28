@@ -21,8 +21,6 @@ import (
 
 	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	apitypes "k8s.io/apimachinery/pkg/types"
-	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
-	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -34,6 +32,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 )
 
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters,verbs=get;list;watch
@@ -77,7 +78,7 @@ func AddVirtualMachineGroupControllerToManager(ctx context.Context, controllerMa
 			handler.EnqueueRequestsFromMapFunc(reconciler.VSphereMachineToVirtualMachineGroup),
 			ctrlbldr.WithPredicates(
 				predicate.Funcs{
-					UpdateFunc:  func(e event.UpdateEvent) bool { return false },
+					UpdateFunc:  func(event.UpdateEvent) bool { return false },
 					CreateFunc:  func(event.CreateEvent) bool { return true },
 					DeleteFunc:  func(event.DeleteEvent) bool { return true },
 					GenericFunc: func(event.GenericEvent) bool { return false },
@@ -89,7 +90,7 @@ func AddVirtualMachineGroupControllerToManager(ctx context.Context, controllerMa
 }
 
 // ClusterToVirtualMachineGroup maps Cluster events to VirtualMachineGroup reconcile requests.
-func (r *VirtualMachineGroupReconciler) ClusterToVirtualMachineGroup(ctx context.Context, a ctrlclient.Object) []reconcile.Request {
+func (r *VirtualMachineGroupReconciler) ClusterToVirtualMachineGroup(_ context.Context, a ctrlclient.Object) []reconcile.Request {
 	cluster, ok := a.(*clusterv1.Cluster)
 	if !ok {
 		return nil

@@ -30,6 +30,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -38,7 +39,6 @@ import (
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	infrautilv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 const (
@@ -72,6 +72,7 @@ func (r *VirtualMachineGroupReconciler) Reconcile(ctx context.Context, req ctrl.
 	}
 
 	log = log.WithValues("Cluster", klog.KObj(cluster))
+
 	// If Cluster is deleted, just return as VirtualMachineGroup will be GCed and no extra processing needed.
 	if !cluster.DeletionTimestamp.IsZero() {
 		return reconcile.Result{}, nil
@@ -86,10 +87,9 @@ func (r *VirtualMachineGroupReconciler) Reconcile(ctx context.Context, req ctrl.
 
 	// Continue with the main logic.
 	return r.createOrUpdateVMG(ctx, cluster)
-
 }
 
-// createOrUpdateVMG Create or Update VirtualMachineGroup
+// createOrUpdateVMG Create or Update VirtualMachineGroup.
 func (r *VirtualMachineGroupReconciler) createOrUpdateVMG(ctx context.Context, cluster *clusterv1.Cluster) (_ reconcile.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
 
@@ -228,8 +228,7 @@ func (r *VirtualMachineGroupReconciler) createOrUpdateVMG(ctx context.Context, c
 	return reconcile.Result{}, err
 }
 
-// getExpectedVSphereMachines returns the total number of replicas across all
-// MachineDeployments belonging to the Cluster
+// MachineDeployments belonging to the Cluster.
 func getExpectedVSphereMachines(ctx context.Context, kubeClient client.Client, cluster *clusterv1.Cluster) (int32, error) {
 	var mdList clusterv1.MachineDeploymentList
 	if err := kubeClient.List(
@@ -329,8 +328,8 @@ func GenerateVMGPlacementAnnotations(ctx context.Context, vmg *vmoprv1.VirtualMa
 	return annotations, nil
 }
 
-// Duplicated this logic from pkg/services/vmoperator/vmopmachine.go
 // GenerateVirtualMachineName generates the name of a VirtualMachine based on the naming strategy.
+// Duplicated this logic from pkg/services/vmoperator/vmopmachine.go.
 func GenerateVirtualMachineName(machineName string, namingStrategy *vmwarev1.VirtualMachineNamingStrategy) (string, error) {
 	// Per default the name of the VirtualMachine should be equal to the Machine name (this is the same as "{{ .machine.name }}")
 	if namingStrategy == nil || namingStrategy.Template == nil {

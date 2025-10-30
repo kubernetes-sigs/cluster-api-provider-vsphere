@@ -27,7 +27,7 @@ providers:
     type: CoreProvider
     versions:
       - name: "v1.12.99"
-        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20250912/core-components.yaml"
+        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20251029/core-components.yaml"
         type: "url"
         contract: v1beta2
         files:
@@ -67,7 +67,7 @@ providers:
     type: BootstrapProvider
     versions:
       - name: "v1.12.99"
-        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20250912/bootstrap-components.yaml"
+        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20251029/bootstrap-components.yaml"
         type: "url"
         contract: v1beta2
         files:
@@ -107,7 +107,7 @@ providers:
     type: ControlPlaneProvider
     versions:
       - name: "v1.12.99"
-        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20250912/control-plane-components.yaml"
+        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20251029/control-plane-components.yaml"
         type: "url"
         contract: v1beta2
         files:
@@ -335,15 +335,17 @@ variables:
   SERVICE_ACCOUNTS_CM_NAME: "service-accounts-cm"
 
 intervals:
-  default/wait-autoscaler: ["5m", "10s"]
   default/wait-controllers: ["5m", "10s"]
   default/wait-cluster: ["5m", "10s"]
   default/wait-control-plane: ["10m", "10s"]
   default/wait-worker-nodes: ["10m", "10s"]
   default/wait-delete-cluster: ["5m", "10s"]
-  default/wait-machine-upgrade: ["15m", "1m"]
+  default/wait-machine-upgrade: ["15m", "10s"]
+  default/wait-control-plane-upgrade: ["15m", "10s"]
+  default/wait-machine-deployment-upgrade: ["10m", "10s"]
   default/wait-nodes-ready: ["10m", "10s"]
   default/wait-machine-remediation: ["15m", "10s"]
+  default/wait-autoscaler: ["5m", "10s"]
   mhc-remediation/mhc-remediation: ["30m", "10s"]
   node-drain/wait-control-plane: ["15m", "10s"]
   node-drain/wait-deployment-available: ["3m", "10s"]

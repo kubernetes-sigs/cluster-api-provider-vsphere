@@ -26,7 +26,7 @@ providers:
   - name: cluster-api
     type: CoreProvider
     versions:
-      - name: "v1.11.99"
+      - name: "{go://sigs.k8s.io/cluster-api@v1.11}"
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.11}/core-components.yaml"
         type: "url"
         contract: v1beta2
@@ -66,7 +66,7 @@ providers:
   - name: kubeadm
     type: BootstrapProvider
     versions:
-      - name: "v1.11.99"
+      - name: "{go://sigs.k8s.io/cluster-api@v1.11}"
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.11}/bootstrap-components.yaml"
         type: "url"
         contract: v1beta2
@@ -106,7 +106,7 @@ providers:
   - name: kubeadm
     type: ControlPlaneProvider
     versions:
-      - name: "v1.11.99"
+      - name: "{go://sigs.k8s.io/cluster-api@v1.11}"
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.11}/control-plane-components.yaml"
         type: "url"
         contract: v1beta2

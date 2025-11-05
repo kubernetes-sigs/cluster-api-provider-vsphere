@@ -321,7 +321,7 @@ func setupTopologyMutationHookHandlers(runtimeExtensionWebhookServer *server.Ser
 func setupLifecycleHookHandlers(mgr ctrl.Manager, runtimeExtensionWebhookServer *server.Server) {
 	// Create the ExtensionHandlers for the lifecycle hooks
 	// NOTE: it is not mandatory to group all the ExtensionHandlers using a struct, what is important
-	// is to have HandlerFunc with the signature defined in sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.
+	// is to have HandlerFunc with the signature defined in sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.
 	lifecycleExtensionHandlers := lifecycle.NewExtensionHandlers(mgr.GetClient())
 
 	if err := runtimeExtensionWebhookServer.AddExtensionHandler(server.ExtensionHandler{
@@ -352,9 +352,36 @@ func setupLifecycleHookHandlers(mgr ctrl.Manager, runtimeExtensionWebhookServer 
 	}
 
 	if err := runtimeExtensionWebhookServer.AddExtensionHandler(server.ExtensionHandler{
+		Hook:        runtimehooksv1.BeforeControlPlaneUpgrade,
+		Name:        "before-control-plane-upgrade",
+		HandlerFunc: lifecycleExtensionHandlers.DoBeforeControlPlaneUpgrade,
+	}); err != nil {
+		setupLog.Error(err, "Error adding handler")
+		os.Exit(1)
+	}
+
+	if err := runtimeExtensionWebhookServer.AddExtensionHandler(server.ExtensionHandler{
 		Hook:        runtimehooksv1.AfterControlPlaneUpgrade,
 		Name:        "after-control-plane-upgrade",
 		HandlerFunc: lifecycleExtensionHandlers.DoAfterControlPlaneUpgrade,
+	}); err != nil {
+		setupLog.Error(err, "Error adding handler")
+		os.Exit(1)
+	}
+
+	if err := runtimeExtensionWebhookServer.AddExtensionHandler(server.ExtensionHandler{
+		Hook:        runtimehooksv1.BeforeWorkersUpgrade,
+		Name:        "before-workers-upgrade",
+		HandlerFunc: lifecycleExtensionHandlers.DoBeforeWorkersUpgrade,
+	}); err != nil {
+		setupLog.Error(err, "Error adding handler")
+		os.Exit(1)
+	}
+
+	if err := runtimeExtensionWebhookServer.AddExtensionHandler(server.ExtensionHandler{
+		Hook:        runtimehooksv1.AfterWorkersUpgrade,
+		Name:        "after-workers-upgrade",
+		HandlerFunc: lifecycleExtensionHandlers.DoAfterWorkersUpgrade,
 	}); err != nil {
 		setupLog.Error(err, "Error adding handler")
 		os.Exit(1)

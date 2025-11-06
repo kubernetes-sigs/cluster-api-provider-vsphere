@@ -2,9 +2,9 @@ module sigs.k8s.io/cluster-api-provider-vsphere/test
 
 go 1.24.0
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.11.0-rc.0.0.20251029133204-08b15d92faf7 // CAPI main from Oct 29th
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.12.0-beta.0
 
-replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.11.0-rc.0.0.20251029133204-08b15d92faf7 // CAPI main from Oct 29th
+replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.12.0-beta.0.0.20251106035851-870e8a6e96c6 // commit with https://github.com/kubernetes-sigs/cluster-api/pull/12956
 
 replace sigs.k8s.io/cluster-api-provider-vsphere => ../
 
@@ -36,7 +36,7 @@ require (
 	k8s.io/component-base v0.34.1
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/utils v0.0.0-20250604170112-4c0f3b243397
-	sigs.k8s.io/cluster-api v1.11.0-rc.0.0.20251029133204-08b15d92faf7
+	sigs.k8s.io/cluster-api v1.12.0-beta.0
 	sigs.k8s.io/cluster-api-provider-vsphere v0.0.0-00010101000000-000000000000
 	sigs.k8s.io/cluster-api/test v0.0.0-00010101000000-000000000000
 	sigs.k8s.io/controller-runtime v0.22.4

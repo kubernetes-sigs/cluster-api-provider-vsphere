@@ -187,20 +187,24 @@ func (r *VirtualMachineGroupReconciler) createOrUpdateVMG(ctx context.Context, c
 			desiredVMG.Labels[clusterv1.ClusterNameLabel] = cluster.Name
 		}
 
+		if desiredVMG.Annotations == nil {
+			desiredVMG.Annotations = make(map[string]string)
+		}
+
 		// Add per-md-zone label for day-2 operations once placement of a VM belongs to MachineDeployment is done
 		// Do not update per-md-zone label once set, as placement decision should not change without user explicitly
 		// ask.
-		placementDecisionLabels, err := GenerateVMGPlacementAnnotations(ctx, desiredVMG, mdNames)
+		placementDecisionAnnotations, err := GenerateVMGPlacementAnnotations(ctx, desiredVMG, mdNames)
 		if err != nil {
 			return err
 		}
-		if len(placementDecisionLabels) > 0 {
-			for k, v := range placementDecisionLabels {
-				if _, exists := desiredVMG.Labels[k]; exists {
+		if len(placementDecisionAnnotations) > 0 {
+			for k, v := range placementDecisionAnnotations {
+				if _, exists := desiredVMG.Annotations[k]; exists {
 					// Skip if the label already exists
 					continue
 				}
-				desiredVMG.Labels[k] = v
+				desiredVMG.Annotations[k] = v
 			}
 		}
 
@@ -304,7 +308,7 @@ func GenerateVMGPlacementAnnotations(ctx context.Context, vmg *vmoprv1.VirtualMa
 
 			// Check if VM belongs to a Machine Deployment by name (e.g. cluster-1-np-1-vm-xxx contains np-1)
 			// TODO: Establish membership via the machine deployment name label
-			if strings.Contains(member.Name, "-"+md+"-") {
+			if strings.Contains(member.Name, md+"-") {
 				// Get the VM placement information by member status.
 				// VMs that have undergone placement do not have Placement info set, skip.
 				if member.Placement == nil {

@@ -218,7 +218,7 @@ func Test_buildIPAMDeviceConfigs(t *testing.T) {
 		// The IPAddressClaimed condition should not be added
 		config, err := buildIPAMDeviceConfigs(ctx, vmCtx, networkStatus)
 		g.Expect(err).NotTo(gomega.HaveOccurred())
-		g.Expect(config[0].IPAMAddresses).To(gomega.HaveLen(0))
+		g.Expect(config[0].IPAMAddresses).To(gomega.BeEmpty())
 	})
 }
 
@@ -435,7 +435,7 @@ func Test_BuildState(t *testing.T) {
 
 		state, err := BuildState(ctx, vmCtx, networkStatus)
 		g.Expect(err).NotTo(gomega.HaveOccurred())
-		g.Expect(state).To(gomega.HaveLen(0))
+		g.Expect(state).To(gomega.BeEmpty())
 	})
 
 	t.Run("when one device has no pool and is DHCP true, and one device has a IPAddressPool", func(_ *testing.T) {

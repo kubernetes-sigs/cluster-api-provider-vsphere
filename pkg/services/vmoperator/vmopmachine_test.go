@@ -73,6 +73,7 @@ const (
 	className                = "test-className"
 	imageName                = "test-imageName"
 	storageClass             = "test-storageClass"
+	encryptionClass          = "test-encryptionClass"
 	resourcePolicyName       = "test-resourcePolicy"
 	minHardwareVersion       = int32(17)
 	vmIP                     = "127.0.0.1"
@@ -120,7 +121,7 @@ var _ = Describe("VirtualMachine tests", func() {
 		vsphereCluster = util.CreateVSphereCluster(clusterName)
 		vsphereCluster.Status.ResourcePolicyName = resourcePolicyName
 		machine = util.CreateMachine(machineName, clusterName, k8sVersion, controlPlaneLabelTrue)
-		vsphereMachine = util.CreateVSphereMachine(machineName, clusterName, className, imageName, storageClass, controlPlaneLabelTrue)
+		vsphereMachine = util.CreateVSphereMachine(machineName, clusterName, className, imageName, storageClass, encryptionClass, controlPlaneLabelTrue)
 		clusterContext, controllerManagerContext := util.CreateClusterContext(cluster, vsphereCluster)
 		supervisorMachineContext = util.CreateMachineContext(clusterContext, machine, vsphereMachine)
 		supervisorMachineContext.ControllerManagerContext = controllerManagerContext
@@ -152,6 +153,7 @@ var _ = Describe("VirtualMachine tests", func() {
 				Expect(vmopVM.Spec.ImageName).To(Equal(expectedImageName))
 				Expect(vmopVM.Spec.ClassName).To(Equal(className))
 				Expect(vmopVM.Spec.StorageClass).To(Equal(storageClass))
+				Expect(vmopVM.Spec.Crypto.EncryptionClassName).To(Equal(encryptionClass))
 				Expect(vmopVM.Spec.Reserved).ToNot(BeNil())
 				Expect(vmopVM.Spec.Reserved.ResourcePolicyName).To(Equal(resourcePolicyName))
 				Expect(vmopVM.Spec.MinHardwareVersion).To(Equal(minHardwareVersion))
@@ -655,6 +657,100 @@ var _ = Describe("VirtualMachine tests", func() {
 				Expect(vmopVM.Spec.Volumes[i]).To(BeEquivalentTo(vmVolume))
 			}
 		})
+
+		Specify("PVC creation and verification", func() {
+			expectReconcileError = false
+			expectVMOpVM = true
+			expectedImageName = imageName
+			expectedRequeue = true
+
+			etcdCapacity := resource.MustParse("1Gi")
+			containerdCapacity := resource.MustParse("6Gi")
+
+			vsphereMachine.Spec.Volumes = []vmwarev1.VSphereMachineVolume{
+				{
+					Name:         "etcd",
+					StorageClass: storageClass,
+					Capacity: corev1.ResourceList{
+						corev1.ResourceStorage: etcdCapacity,
+					},
+				},
+				{
+					Name:                "containerd",
+					EncryptionClassName: ptr.To(encryptionClass),
+					Capacity: corev1.ResourceList{
+						corev1.ResourceStorage: containerdCapacity,
+					},
+				},
+			}
+
+			By("VirtualMachine is created with volumes")
+			requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
+			verifyOutput(supervisorMachineContext)
+
+			By("Verifying PVCs are created")
+			for _, volume := range vsphereMachine.Spec.Volumes {
+				pvcName := volumeName(vsphereMachine, volume)
+				pvc := &corev1.PersistentVolumeClaim{}
+				pvcKey := types.NamespacedName{
+					Namespace: vsphereMachine.Namespace,
+					Name:      pvcName,
+				}
+
+				err := vmService.Client.Get(ctx, pvcKey, pvc)
+				Expect(err).NotTo(HaveOccurred())
+
+				By("Verifying PVC metadata")
+				Expect(pvc.Name).To(Equal(pvcName))
+				Expect(pvc.Namespace).To(Equal(vsphereMachine.Namespace))
+
+				By("Verifying PVC spec")
+				Expect(pvc.Spec.AccessModes).To(ContainElement(corev1.ReadWriteOnce))
+				Expect(pvc.Spec.Resources.Requests).To(HaveKeyWithValue(corev1.ResourceStorage, volume.Capacity[corev1.ResourceStorage]))
+				Expect(pvc.Spec.StorageClassName).NotTo(BeNil())
+
+				// Verify storage class - should use volume-specific or fallback to machine-level
+				expectedStorageClass := volume.StorageClass
+				if expectedStorageClass == "" {
+					expectedStorageClass = vsphereMachine.Spec.StorageClass
+				}
+				Expect(*pvc.Spec.StorageClassName).To(Equal(expectedStorageClass))
+
+				By("Verifying owner reference")
+				Expect(pvc.OwnerReferences).To(HaveLen(1))
+				ownerRef := pvc.OwnerReferences[0]
+				Expect(ownerRef.Kind).To(Equal("VSphereMachine"))
+				Expect(ownerRef.Name).To(Equal(vsphereMachine.Name))
+				Expect(ownerRef.UID).To(Equal(vsphereMachine.UID))
+
+				By("Verifying encryption class annotation when set")
+				if volume.EncryptionClassName != nil && *volume.EncryptionClassName != "" {
+					Expect(pvc.Annotations).To(HaveKey(csiEncryptionClassAnnotationKey))
+					Expect(pvc.Annotations[csiEncryptionClassAnnotationKey]).To(Equal(*volume.EncryptionClassName))
+				}
+			}
+
+			By("Verifying etcd PVC has volume-specific storage class")
+			etcdPVC := &corev1.PersistentVolumeClaim{}
+			etcdPVCKey := types.NamespacedName{
+				Namespace: vsphereMachine.Namespace,
+				Name:      volumeName(vsphereMachine, vsphereMachine.Spec.Volumes[0]),
+			}
+			err := vmService.Client.Get(ctx, etcdPVCKey, etcdPVC)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(*etcdPVC.Spec.StorageClassName).To(Equal(storageClass))
+
+			By("Verifying containerd PVC has encryption class annotation")
+			containerdPVC := &corev1.PersistentVolumeClaim{}
+			containerdPVCKey := types.NamespacedName{
+				Namespace: vsphereMachine.Namespace,
+				Name:      volumeName(vsphereMachine, vsphereMachine.Spec.Volumes[1]),
+			}
+			err = vmService.Client.Get(ctx, containerdPVCKey, containerdPVC)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(containerdPVC.Annotations).To(HaveKey(csiEncryptionClassAnnotationKey))
+			Expect(containerdPVC.Annotations[csiEncryptionClassAnnotationKey]).To(Equal(encryptionClass))
+		})
 	})
 
 	Context("Delete tests", func() {
@@ -719,7 +815,7 @@ var _ = Describe("VirtualMachine tests", func() {
 var _ = Describe("GetMachinesInCluster", func() {
 
 	initObjs := []client.Object{
-		util.CreateVSphereMachine(machineName, clusterName, className, imageName, storageClass, controlPlaneLabelTrue),
+		util.CreateVSphereMachine(machineName, clusterName, className, imageName, storageClass, encryptionClass, controlPlaneLabelTrue),
 	}
 
 	controllerManagerContext := fake.NewControllerManagerContext(initObjs...)

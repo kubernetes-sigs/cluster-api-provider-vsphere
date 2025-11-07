@@ -119,7 +119,7 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 			// Make sure the VSphereCluster exists.
 			Eventually(func() error {
 				return testEnv.Get(ctx, key, instance)
-			}, timeout).Should(BeNil())
+			}, timeout).Should(Succeed())
 
 			By("setting the OwnerRef on the VSphereCluster")
 			Eventually(func() error {
@@ -132,7 +132,7 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 					UID:        "blah",
 				})
 				return ph.Patch(ctx, instance, patch.WithStatusObservedGeneration{})
-			}, timeout).Should(BeNil())
+			}, timeout).Should(Succeed())
 
 			Eventually(func() bool {
 				if err := testEnv.Get(ctx, key, instance); err != nil {
@@ -432,7 +432,7 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				zoneOne.Status.Ready = ptr.To(true)
 				return ph.Patch(ctx, zoneOne, patch.WithStatusObservedGeneration{})
-			}, timeout).Should(BeNil())
+			}, timeout).Should(Succeed())
 
 			Eventually(func() bool {
 				if err := testEnv.Get(ctx, key, instance); err != nil {
@@ -451,7 +451,7 @@ var _ = Describe("VIM based VSphere ClusterReconciler", func() {
 					Expect(err).ShouldNot(HaveOccurred())
 					zoneOne.Status.Ready = ptr.To(true)
 					return ph.Patch(ctx, zoneOne, patch.WithStatusObservedGeneration{})
-				}, timeout).Should(BeNil())
+				}, timeout).Should(Succeed())
 			})
 
 			It("should remove the FailureDomainsAvailable condition from the cluster", func() {

@@ -2,6 +2,8 @@ module sigs.k8s.io/cluster-api-provider-vsphere/packaging
 
 go 1.22.7
 
+godebug default=go1.22
+
 replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.9.1
 
 replace sigs.k8s.io/cluster-api-provider-vsphere => ../

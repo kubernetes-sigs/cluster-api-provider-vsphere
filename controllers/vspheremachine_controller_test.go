@@ -166,7 +166,7 @@ var _ = Describe("VsphereMachineReconciler", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			capiCluster.Status.InfrastructureReady = true
 			return ph.Patch(ctx, capiCluster, patch.WithStatusObservedGeneration{})
-		}, timeout).Should(BeNil())
+		}, timeout).Should(Succeed())
 
 		Eventually(func() bool {
 			return isPresentAndFalseWithReason(infraMachine, infrav1.VMProvisionedCondition, infrav1.WaitingForClusterInfrastructureReason)
@@ -199,7 +199,7 @@ var _ = Describe("VsphereMachineReconciler", func() {
 					DataSecretName: ptr.To("some-secret"),
 				}
 				return ph.Patch(ctx, capiMachine, patch.WithStatusObservedGeneration{})
-			}, timeout).Should(BeNil())
+			}, timeout).Should(Succeed())
 
 			Eventually(func() int {
 				vms := infrav1.VSphereVMList{}

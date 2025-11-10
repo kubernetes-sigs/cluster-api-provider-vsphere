@@ -176,8 +176,8 @@ func TestGenerateVMGPlacementAnnotations(t *testing.T) {
 
 	// Define object names for members
 	vmName1 := fmt.Sprintf("%s-%s-vm-1", clusterName, mdName1)
-	vmName2 := fmt.Sprintf("%s-%s-vm-1", clusterName, mdName2)
-	vmNameUnplaced := fmt.Sprintf("%s-%s-vm-2", clusterName, mdName1)
+	vmName2 := fmt.Sprintf("%s-%s-vm-2", clusterName, mdName2)
+	vmNameUnplaced := fmt.Sprintf("%s-%s-vm-unplaced", clusterName, mdName1)
 	vmNameWrongKind := "not-a-vm"
 
 	tests := []struct {
@@ -199,10 +199,10 @@ func TestGenerateVMGPlacementAnnotations(t *testing.T) {
 					},
 				},
 			},
-			machineDeployments: []string{clusterName + mdName1, clusterName + mdName2},
+			machineDeployments: []string{clusterName + "-" + mdName1, clusterName + "-" + mdName2},
 			wantAnnotations: map[string]string{
-				fmt.Sprintf("zone.cluster.x-k8s.io/%s", clusterName+mdName1): zoneA,
-				fmt.Sprintf("zone.cluster.x-k8s.io/%s", clusterName+mdName2): zoneB,
+				fmt.Sprintf("zone.cluster.x-k8s.io/%s", clusterName+"-"+mdName1): zoneA,
+				fmt.Sprintf("zone.cluster.x-k8s.io/%s", clusterName+"-"+mdName2): zoneB,
 			},
 			wantErr: false,
 		},
@@ -211,11 +211,11 @@ func TestGenerateVMGPlacementAnnotations(t *testing.T) {
 			vmg: &vmoprv1.VirtualMachineGroup{
 				Status: vmoprv1.VirtualMachineGroupStatus{
 					Members: []vmoprv1.VirtualMachineGroupMemberStatus{
-						newVMGMemberStatus(vmName1, "VirtualMachine", false, ""),
+						newVMGMemberStatus(vmNameUnplaced, "VirtualMachine", false, ""),
 					},
 				},
 			},
-			machineDeployments: []string{clusterName + mdName1},
+			machineDeployments: []string{clusterName + "-" + mdName1},
 			wantAnnotations:    map[string]string{},
 			wantErr:            false,
 		},
@@ -228,7 +228,7 @@ func TestGenerateVMGPlacementAnnotations(t *testing.T) {
 					},
 				},
 			},
-			machineDeployments: []string{clusterName + mdName1},
+			machineDeployments: []string{clusterName + "-" + mdName1},
 			wantAnnotations:    map[string]string{},
 			wantErr:            false,
 		},
@@ -240,13 +240,13 @@ func TestGenerateVMGPlacementAnnotations(t *testing.T) {
 						// First VM sets the placement
 						newVMGMemberStatus(vmName1, "VirtualMachine", true, zoneA),
 						// Second VM is ignored
-						newVMGMemberStatus(vmNameUnplaced, "VirtualMachine", true, zoneB),
+						newVMGMemberStatus(vmName1, "VirtualMachine", true, zoneB),
 					},
 				},
 			},
-			machineDeployments: []string{clusterName + mdName1},
+			machineDeployments: []string{clusterName + "-" + mdName1},
 			wantAnnotations: map[string]string{
-				fmt.Sprintf("zone.cluster.x-k8s.io/%s", clusterName+mdName1): zoneA,
+				fmt.Sprintf("zone.cluster.x-k8s.io/%s", clusterName+"-"+mdName1): zoneA,
 			},
 			wantErr: false,
 		},
@@ -260,7 +260,7 @@ func TestGenerateVMGPlacementAnnotations(t *testing.T) {
 					},
 				},
 			},
-			machineDeployments: []string{clusterName + mdName1},
+			machineDeployments: []string{clusterName + "-" + mdName1},
 			wantAnnotations:    nil,
 			wantErr:            true,
 		},

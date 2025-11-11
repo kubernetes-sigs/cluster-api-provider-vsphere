@@ -210,3 +210,47 @@ kind::prepullImage () {
     echo "+ image $image already present in the system, skipping pre-pull"
   fi
 }
+
+# junit::createJunitReportE2Esh creates a junit report file for the e2e.sh script.
+junit::createJunitReportE2Esh() {
+  failure="$1"
+  output_file="$2"
+  timestamp="$(date -u +%Y-%m-%dT%H:%M:%S)"
+
+  # Set variables to use for a successful run.
+  status="passed"
+  body="<system-out>hack/e2e.sh script succeeded</system-out>"
+
+  # Change variables to use for a failed run.
+  if [[ "$failure" != 0 ]]; then
+    status="failed"
+    body="$(junit::createJunitReportE2EshFailureBody "${3}")"
+  fi
+
+  # Write header
+  cat > "$output_file" << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="e2e.sh Suite" tests="1" failures="${failure}" errors="0" skipped="0" time="0.1">
+    <testsuite name="Preparation" tests="1" failures="${failure}" errors="0" skipped="0" time="0.1" timestamp="${timestamp}">
+        <testcase name="hack_e2e_sh" classname="Preparation.hack_e2e_sh" status="${status}" time="0.1">
+${body}
+        </testcase>
+    </testsuite>
+</testsuites>
+EOF
+}
+
+junit::createJunitReportE2EshFailureBody() {
+  failure_data_file="${1}"
+  cat << EOF
+          <failure message="hack/e2e.sh script failed">
+              <![CDATA[
+EOF
+  # Erorr case, write the content of the failure data file to the output file.
+  # Note: the sed ensures that the content does not close the CDATA section.
+  sed 's/]]>/]]>]]&gt;<![CDATA[/g' "${failure_data_file}"
+  cat << EOF
+            ]]>
+          </failure>
+EOF
+}

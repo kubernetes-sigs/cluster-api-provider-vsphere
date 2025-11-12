@@ -173,7 +173,7 @@ func Clone(ctx context.Context, vmCtx *capvcontext.VMContext, bootstrapData []by
 		numCPUs = 2
 	}
 	numCoresPerSocket := vmCtx.VSphereVM.Spec.NumCoresPerSocket
-	if numCoresPerSocket == 0 {
+	if numCoresPerSocket < 0 {
 		numCoresPerSocket = numCPUs
 	}
 	memMiB := vmCtx.VSphereVM.Spec.MemoryMiB

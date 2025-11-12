@@ -50,18 +50,21 @@ const (
 	zoneB            = "zone-b"
 )
 
-func TestGetExpectedVSphereMachines(t *testing.T) {
+func TestGetExpectedVSphereMachineCount(t *testing.T) {
 	g := NewWithT(t)
 	ctx := context.Background()
 
+	scheme := runtime.NewScheme()
+	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+
 	targetCluster := newTestCluster(clusterName, clusterNamespace)
 
-	mdA := newMachineDeployment("md-a", clusterName, clusterNamespace, ptr.To(int32(3)))
-	mdB := newMachineDeployment("md-b", clusterName, clusterNamespace, ptr.To(int32(5)))
-	mdCNil := newMachineDeployment("md-c-nil", clusterName, clusterNamespace, nil)
-	mdDZero := newMachineDeployment("md-d-zero", clusterName, clusterNamespace, ptr.To(int32(0)))
+	mdA := newMachineDeployment("md-a", clusterName, clusterNamespace, true, ptr.To(int32(3)))
+	mdB := newMachineDeployment("md-b", clusterName, clusterNamespace, true, ptr.To(int32(5)))
+	mdCNil := newMachineDeployment("md-c-nil", clusterName, clusterNamespace, false, nil)
+	mdDZero := newMachineDeployment("md-d-zero", clusterName, clusterNamespace, true, ptr.To(int32(0)))
 	// Create an MD for a different cluster (should be filtered)
-	mdOtherCluster := newMachineDeployment("md-other", otherClusterName, clusterNamespace, ptr.To(int32(5)))
+	mdOtherCluster := newMachineDeployment("md-other", otherClusterName, clusterNamespace, true, ptr.To(int32(5)))
 
 	tests := []struct {
 		name           string
@@ -76,7 +79,7 @@ func TestGetExpectedVSphereMachines(t *testing.T) {
 			wantErr:        false,
 		},
 		{
-			name:           "Should succeed when MDs include nil and zero replicas",
+			name:           "Should get count when MDs include nil and zero replicas",
 			initialObjects: []client.Object{mdA, mdB, mdCNil, mdDZero},
 			expectedTotal:  8,
 			wantErr:        false,
@@ -98,12 +101,10 @@ func TestGetExpectedVSphereMachines(t *testing.T) {
 	for _, tt := range tests {
 		// Looks odd, but need to reinitialize test variable
 		tt := tt
-		t.Run(tt.name, func(_ *testing.T) {
-			scheme := runtime.NewScheme()
-			g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
-
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
 			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.initialObjects...).Build()
-			total, err := getExpectedVSphereMachines(ctx, fakeClient, targetCluster)
+			total, err := getExpectedVSphereMachineCount(ctx, fakeClient, targetCluster)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -122,8 +123,10 @@ func TestGetCurrentVSphereMachines(t *testing.T) {
 	g.Expect(vmwarev1.AddToScheme(scheme)).To(Succeed())
 
 	// VSphereMachine names are based on CAPI Machine names, but we use fake name here.
-	vsm1 := newVSphereMachine("vsm-1", mdName1, false, false, nil)
-	vsm2 := newVSphereMachine("vsm-2", mdName2, false, false, nil)
+	vsmName1 := fmt.Sprintf("%s-%s", mdName1, "vsm-1")
+	vsmName2 := fmt.Sprintf("%s-%s", mdName2, "vsm-2")
+	vsm1 := newVSphereMachine(vsmName1, mdName1, false, false, nil)
+	vsm2 := newVSphereMachine(vsmName2, mdName2, false, false, nil)
 	vsmDeleting := newVSphereMachine("vsm-3", mdName1, false, true, nil) // Deleting
 	vsmControlPlane := newVSphereMachine("vsm-cp", "not-md", true, false, nil)
 
@@ -152,7 +155,8 @@ func TestGetCurrentVSphereMachines(t *testing.T) {
 	for _, tt := range tests {
 		// Looks odd, but need to reinitialize test variable
 		tt := tt
-		t.Run(tt.name, func(_ *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
 			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.objects...).Build()
 			got, err := getCurrentVSphereMachines(ctx, fakeClient, clusterNamespace, clusterName)
 			g.Expect(err).NotTo(HaveOccurred())
@@ -165,120 +169,168 @@ func TestGetCurrentVSphereMachines(t *testing.T) {
 					names[i] = vsm.Name
 				}
 				sort.Strings(names)
-				g.Expect(names).To(Equal([]string{"vsm-1", "vsm-2"}))
+				g.Expect(names).To(Equal([]string{vsmName1, vsmName2}))
 			}
 		})
 	}
 }
-
-func TestGenerateVMGPlacementAnnotations(t *testing.T) {
+func TestGenerateVirtualMachineGroupAnnotations(t *testing.T) {
 	g := NewWithT(t)
+	ctx := context.Background()
 
-	// Define object names for members
-	vmName1 := fmt.Sprintf("%s-%s-vm-1", clusterName, mdName1)
-	vmName2 := fmt.Sprintf("%s-%s-vm-2", clusterName, mdName2)
-	vmNameUnplaced := fmt.Sprintf("%s-%s-vm-unplaced", clusterName, mdName1)
-	vmNameWrongKind := "not-a-vm"
+	scheme := runtime.NewScheme()
+	g.Expect(vmwarev1.AddToScheme(scheme)).To(Succeed())
+
+	baseVMG := &vmoprv1.VirtualMachineGroup{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        clusterName,
+			Namespace:   clusterNamespace,
+			Annotations: make(map[string]string),
+		},
+	}
+
+	// VSphereMachines corresponding to the VMG members
+	vsmName1 := fmt.Sprintf("%s-%s", mdName1, "vsm-1")
+	vsmName2 := fmt.Sprintf("%s-%s", mdName2, "vsm-2")
+	vsm1 := newVSphereMachine(vsmName1, mdName1, false, false, nil)
+	vsm2 := newVSphereMachine(vsmName2, mdName2, false, false, nil)
+	vsmMissingLabel := newVSphereMachine("vsm-nolabel", mdName2, false, false, nil)
+	vsmMissingLabel.Labels = nil // Explicitly remove labels for test case
 
 	tests := []struct {
-		name               string
-		vmg                *vmoprv1.VirtualMachineGroup
-		machineDeployments []string
-		wantAnnotations    map[string]string
-		wantErr            bool
+		name                 string
+		vmg                  *vmoprv1.VirtualMachineGroup
+		machineDeployments   []string
+		initialClientObjects []client.Object
+		expectedAnnotations  map[string]string
+		wantErr              bool
 	}{
 		{
-			name: "Should get placement annotation when two placed VMs for two MDs",
+			name: "Placement found for two distinct MDs",
 			vmg: &vmoprv1.VirtualMachineGroup{
+				ObjectMeta: baseVMG.ObjectMeta,
 				Status: vmoprv1.VirtualMachineGroupStatus{
 					Members: []vmoprv1.VirtualMachineGroupMemberStatus{
-						// Placed member for MD1 in Zone A
-						newVMGMemberStatus(vmName1, "VirtualMachine", true, zoneA),
-						// Placed member for MD2 in Zone B
-						newVMGMemberStatus(vmName2, "VirtualMachine", true, zoneB),
+						newVMGMemberStatus(vsmName1, "VirtualMachine", true, true, zoneA),
+						newVMGMemberStatus(vsmName2, "VirtualMachine", true, true, zoneB),
 					},
 				},
 			},
-			machineDeployments: []string{clusterName + "-" + mdName1, clusterName + "-" + mdName2},
-			wantAnnotations: map[string]string{
-				fmt.Sprintf("zone.cluster.x-k8s.io/%s", clusterName+"-"+mdName1): zoneA,
-				fmt.Sprintf("zone.cluster.x-k8s.io/%s", clusterName+"-"+mdName2): zoneB,
+			machineDeployments:   []string{mdName1, mdName2},
+			initialClientObjects: []client.Object{vsm1, vsm2},
+			expectedAnnotations: map[string]string{
+				fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, mdName1): zoneA,
+				fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, mdName2): zoneB,
 			},
 			wantErr: false,
 		},
 		{
-			name: "No placement annotation when VM PlacementReady is false)",
-			vmg: &vmoprv1.VirtualMachineGroup{
-				Status: vmoprv1.VirtualMachineGroupStatus{
-					Members: []vmoprv1.VirtualMachineGroupMemberStatus{
-						newVMGMemberStatus(vmNameUnplaced, "VirtualMachine", false, ""),
-					},
-				},
-			},
-			machineDeployments: []string{clusterName + "-" + mdName1},
-			wantAnnotations:    map[string]string{},
-			wantErr:            false,
-		},
-		{
-			name: "No placement annotation when PlacementReady but missing Zone info",
-			vmg: &vmoprv1.VirtualMachineGroup{
-				Status: vmoprv1.VirtualMachineGroupStatus{
-					Members: []vmoprv1.VirtualMachineGroupMemberStatus{
-						newVMGMemberStatus(vmName1, "VirtualMachine", true, ""),
-					},
-				},
-			},
-			machineDeployments: []string{clusterName + "-" + mdName1},
-			wantAnnotations:    map[string]string{},
-			wantErr:            false,
-		},
-		{
-			name: "Should keep placement annotation when first placement decision is found",
-			vmg: &vmoprv1.VirtualMachineGroup{
-				Status: vmoprv1.VirtualMachineGroupStatus{
-					Members: []vmoprv1.VirtualMachineGroupMemberStatus{
-						// First VM sets the placement
-						newVMGMemberStatus(vmName1, "VirtualMachine", true, zoneA),
-						// Second VM is ignored
-						newVMGMemberStatus(vmName1, "VirtualMachine", true, zoneB),
-					},
-				},
-			},
-			machineDeployments: []string{clusterName + "-" + mdName1},
-			wantAnnotations: map[string]string{
-				fmt.Sprintf("zone.cluster.x-k8s.io/%s", clusterName+"-"+mdName1): zoneA,
+			name: "Skip as placement already exists in VMG Annotations",
+			vmg: func() *vmoprv1.VirtualMachineGroup {
+				v := baseVMG.DeepCopy()
+				v.Annotations = map[string]string{fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, mdName1): zoneA}
+				v.Status.Members = []vmoprv1.VirtualMachineGroupMemberStatus{
+					newVMGMemberStatus(vsmName1, "VirtualMachine", true, true, zoneB),
+				}
+				return v
+			}(),
+			machineDeployments:   []string{mdName1},
+			initialClientObjects: []client.Object{vsm1},
+			// Should retain existing zone-a
+			expectedAnnotations: map[string]string{
+				fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, mdName1): zoneA,
 			},
 			wantErr: false,
 		},
 		{
-			name: "Should return Error if Member Kind is not VirtualMachine",
+			name: "Skip if Member Kind is not VirtualMachine",
 			vmg: &vmoprv1.VirtualMachineGroup{
-				ObjectMeta: metav1.ObjectMeta{Name: clusterName, Namespace: clusterNamespace},
+				ObjectMeta: baseVMG.ObjectMeta,
 				Status: vmoprv1.VirtualMachineGroupStatus{
 					Members: []vmoprv1.VirtualMachineGroupMemberStatus{
-						newVMGMemberStatus(vmNameWrongKind, "VirtualMachineGroup", true, zoneA),
+						newVMGMemberStatus("VMG-1", "VirtualMachineGroup", true, true, "zone-x"),
 					},
 				},
 			},
-			machineDeployments: []string{clusterName + "-" + mdName1},
-			wantAnnotations:    nil,
-			wantErr:            true,
+			machineDeployments:   []string{},
+			initialClientObjects: []client.Object{},
+			expectedAnnotations:  map[string]string{},
+			wantErr:              false,
+		},
+		{
+			name: "Skip if VSphereMachine Missing MachineDeployment Label",
+			vmg: &vmoprv1.VirtualMachineGroup{
+				ObjectMeta: baseVMG.ObjectMeta,
+				Status: vmoprv1.VirtualMachineGroupStatus{
+					Members: []vmoprv1.VirtualMachineGroupMemberStatus{
+						newVMGMemberStatus("vsm-nolabel", "VirtualMachine", true, true, zoneA),
+					},
+				},
+			},
+			machineDeployments:   []string{mdName1},
+			initialClientObjects: []client.Object{vsmMissingLabel},
+			expectedAnnotations:  map[string]string{},
+			wantErr:              false,
+		},
+		{
+			name: "Skip if VSphereMachine is Not Found in API",
+			vmg: &vmoprv1.VirtualMachineGroup{
+				ObjectMeta: baseVMG.ObjectMeta,
+				Status: vmoprv1.VirtualMachineGroupStatus{
+					Members: []vmoprv1.VirtualMachineGroupMemberStatus{
+						newVMGMemberStatus("non-existent-vm", "VirtualMachine", true, true, zoneA),
+					},
+				},
+			},
+			machineDeployments:   []string{mdName1},
+			initialClientObjects: []client.Object{vsm1},
+			expectedAnnotations:  map[string]string{},
+			wantErr:              false,
+		},
+		{
+			name: "Skip if placement is nil",
+			vmg: &vmoprv1.VirtualMachineGroup{
+				ObjectMeta: baseVMG.ObjectMeta,
+				Status: vmoprv1.VirtualMachineGroupStatus{
+					Members: []vmoprv1.VirtualMachineGroupMemberStatus{
+						newVMGMemberStatus(vsmName1, "VirtualMachine", true, false, zoneA),
+					},
+				},
+			},
+			machineDeployments:   []string{mdName1},
+			initialClientObjects: []client.Object{vsm1},
+			expectedAnnotations:  map[string]string{},
+			wantErr:              false,
+		},
+		{
+			name: "Skip if Zone is empty string",
+			vmg: &vmoprv1.VirtualMachineGroup{
+				ObjectMeta: baseVMG.ObjectMeta,
+				Status: vmoprv1.VirtualMachineGroupStatus{
+					Members: []vmoprv1.VirtualMachineGroupMemberStatus{
+						newVMGMemberStatus(vsmName1, "VirtualMachine", true, true, ""),
+					},
+				},
+			},
+			machineDeployments:   []string{mdName1},
+			initialClientObjects: []client.Object{vsm1},
+			expectedAnnotations:  map[string]string{},
+			wantErr:              false,
 		},
 	}
 
 	for _, tt := range tests {
 		// Looks odd, but need to reinitialize test variable
 		tt := tt
-		t.Run(tt.name, func(_ *testing.T) {
-			ctx := ctrl.LoggerInto(context.Background(), ctrl.LoggerFrom(context.Background()))
-
-			got, err := GenerateVMGPlacementAnnotations(ctx, tt.vmg, tt.machineDeployments)
-
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.initialClientObjects...).Build()
+			annotations, err := GenerateVirtualMachineGroupAnnotations(ctx, fakeClient, tt.vmg, tt.machineDeployments)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(got).To(Equal(tt.wantAnnotations))
+				g.Expect(annotations).To(Equal(tt.expectedAnnotations))
 			}
 		})
 	}
@@ -296,7 +348,7 @@ func TestVirtualMachineGroupReconciler_ReconcileFlow(t *testing.T) {
 	// Initial objects for the successful VMG creation path (Expected: 1, Current: 1)
 	cluster := newCluster(clusterName, clusterNamespace, true, 1, 0)
 	vsm1 := newVSphereMachine("vsm-1", mdName1, false, false, nil)
-	md1 := newMachineDeployment(mdName1, clusterName, clusterNamespace, ptr.To(int32(1)))
+	md1 := newMachineDeployment(mdName1, clusterName, clusterNamespace, true, ptr.To(int32(1)))
 
 	tests := []struct {
 		name           string
@@ -368,7 +420,8 @@ func TestVirtualMachineGroupReconciler_ReconcileFlow(t *testing.T) {
 	for _, tt := range tests {
 		// Looks odd, but need to reinitialize test variable
 		tt := tt
-		t.Run(tt.name, func(_ *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
 			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.initialObjects...).Build()
 			reconciler := &VirtualMachineGroupReconciler{
 				Client:   fakeClient,
@@ -390,7 +443,7 @@ func TestVirtualMachineGroupReconciler_ReconcileFlow(t *testing.T) {
 				// Check that the core fields were set by the MutateFn
 				g.Expect(vmg.Labels).To(HaveKeyWithValue(clusterv1.ClusterNameLabel, clusterName))
 				g.Expect(vmg.Spec.BootOrder).To(HaveLen(1))
-				expected, err := getExpectedVSphereMachines(ctx, fakeClient, tt.initialObjects[0].(*clusterv1.Cluster))
+				expected, err := getExpectedVSphereMachineCount(ctx, fakeClient, tt.initialObjects[0].(*clusterv1.Cluster))
 				g.Expect(err).NotTo(HaveOccurred(), "Should get expected Machines")
 				g.Expect(vmg.Spec.BootOrder[0].Members).To(HaveLen(int(expected)))
 
@@ -456,7 +509,7 @@ func newVSphereMachine(name, mdName string, isCP, deleted bool, namingStrategy *
 }
 
 // Helper function to create a VMG member status with placement info.
-func newVMGMemberStatus(name, kind string, isPlacementReady bool, zone string) vmoprv1.VirtualMachineGroupMemberStatus {
+func newVMGMemberStatus(name, kind string, isPlacementReady, placement bool, zone string) vmoprv1.VirtualMachineGroupMemberStatus {
 	memberStatus := vmoprv1.VirtualMachineGroupMemberStatus{
 		Name: name,
 		Kind: kind,
@@ -467,23 +520,32 @@ func newVMGMemberStatus(name, kind string, isPlacementReady bool, zone string) v
 			Type:   vmoprv1.VirtualMachineGroupMemberConditionPlacementReady,
 			Status: metav1.ConditionTrue,
 		})
+	}
+
+	if placement {
 		memberStatus.Placement = &vmoprv1.VirtualMachinePlacementStatus{Zone: zone}
 	}
+
 	return memberStatus
 }
 
 // Helper function to create a MachineDeployment object.
-func newMachineDeployment(name, clusterName, clusterNS string, replicas *int32) *clusterv1.MachineDeployment {
-	return &clusterv1.MachineDeployment{
+func newMachineDeployment(name, clusterName, clusterNS string, isReplicaSet bool, replicas *int32) *clusterv1.MachineDeployment {
+	md := &clusterv1.MachineDeployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: clusterNS,
 			Labels:    map[string]string{clusterv1.ClusterNameLabel: clusterName},
 		},
-		Spec: clusterv1.MachineDeploymentSpec{
-			Replicas: replicas,
-		},
 	}
+
+	if isReplicaSet {
+		md.Spec = clusterv1.MachineDeploymentSpec{
+			Replicas: replicas,
+		}
+	}
+
+	return md
 }
 
 // Helper function to create a basic Cluster object used as input.

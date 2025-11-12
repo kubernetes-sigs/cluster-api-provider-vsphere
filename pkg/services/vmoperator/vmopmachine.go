@@ -213,7 +213,11 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 		}
 
 		// Proceed only if the machine is a member of the VirtualMachineGroup.
-		if !v.checkVirtualMachineGroupMembership(vmOperatorVMGroup, supervisorMachineCtx) {
+		isMember, err := v.checkVirtualMachineGroupMembership(vmOperatorVMGroup, supervisorMachineCtx)
+		if err != nil {
+			return true, errors.Wrapf(err, "%s", fmt.Sprintf("failed to check if VirtualMachine %s is a member of VirtualMachineGroup %s/%s", supervisorMachineCtx.VSphereMachine.Name, vmOperatorVMGroup.Name, vmOperatorVMGroup.Namespace))
+		}
+		if !isMember {
 			v1beta2conditions.Set(supervisorMachineCtx.VSphereMachine, metav1.Condition{
 				Type:   infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
 				Status: metav1.ConditionFalse,
@@ -847,13 +851,12 @@ func (v *VmopMachineService) addVolumes(ctx context.Context, supervisorMachineCt
 			},
 		}
 
-		// Before VC 9.1:
 		// The CSI zone annotation must be set when using a zonal storage class,
 		// which is required when the cluster has multiple (3) zones.
 		// Single zone clusters (legacy/default) do not support zonal storage and must not
 		// have the zone annotation set.
-		// Since VC 9.1: With Node Auto Placement enabled, failureDomain is optional and CAPV no longer
-		// sets PVC annotations. PVC placement now follows the StorageClass behavior (Immediate or WaitForFirstConsumer).
+		// However, with Node Auto Placement enabled, failureDomain is optional and CAPV no longer
+		// sets PVC annotations. PVC placement now follows the StorageClass behavior (Immediate or WaitForFirstConsumer).Í
 		zonal := len(supervisorMachineCtx.VSphereCluster.Status.FailureDomains) > 1
 
 		if zone := supervisorMachineCtx.VSphereMachine.Spec.FailureDomain; zonal && zone != nil {
@@ -964,13 +967,17 @@ func getMachineDeploymentNameForCluster(cluster *clusterv1.Cluster) string {
 
 // checkVirtualMachineGroupMembership checks if the machine is in the first boot order group
 // and performs logic if a match is found.
-func (v *VmopMachineService) checkVirtualMachineGroupMembership(vmOperatorVMGroup *vmoprv1.VirtualMachineGroup, supervisorMachineCtx *vmware.SupervisorMachineContext) bool {
+func (v *VmopMachineService) checkVirtualMachineGroupMembership(vmOperatorVMGroup *vmoprv1.VirtualMachineGroup, supervisorMachineCtx *vmware.SupervisorMachineContext) (bool, error) {
 	if len(vmOperatorVMGroup.Spec.BootOrder) > 0 {
 		for _, member := range vmOperatorVMGroup.Spec.BootOrder[0].Members {
-			if member.Name == supervisorMachineCtx.Machine.Name {
-				return true
+			virtualMachineName, err := GenerateVirtualMachineName(supervisorMachineCtx.Machine.Name, supervisorMachineCtx.VSphereMachine.Spec.NamingStrategy)
+			if err != nil {
+				return false, err
+			}
+			if member.Name == virtualMachineName {
+				return true, nil
 			}
 		}
 	}
-	return false
+	return false, nil
 }

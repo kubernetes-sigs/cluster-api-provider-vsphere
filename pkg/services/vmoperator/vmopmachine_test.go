@@ -826,6 +826,49 @@ var _ = Describe("VirtualMachine tests", func() {
 					Expect(vmService.Client.Create(ctx, machineDeployment)).To(Succeed())
 				})
 
+				Specify("Requeue valid Machine but not a member of the VirtualMachineGroup yet", func() {
+					machineDeploymentNotMemberName := "test-md-not-member"
+					workerMachineNotMember := "test-worker-machine-not-member"
+					machineNotMember := util.CreateMachine(workerMachineNotMember, clusterName, k8sVersion, false)
+					machineNotMember.Labels[clusterv1.MachineDeploymentNameLabel] = machineDeploymentNotMemberName
+
+					vsphereMachineNotMember := util.CreateVSphereMachine(workerMachineNotMember, clusterName, className, imageName, storageClass, false)
+
+					clusterContext, controllerManagerContext := util.CreateClusterContext(cluster, vsphereCluster)
+					supervisorMachineContext = util.CreateMachineContext(clusterContext, machineNotMember, vsphereMachineNotMember)
+					supervisorMachineContext.ControllerManagerContext = controllerManagerContext
+
+					// Create a MachineDeployment for the worker
+					machineDeploymentNotMember := createMachineDeployment(machineDeploymentNotMemberName, corev1.NamespaceDefault, clusterName, "")
+					Expect(vmService.Client.Create(ctx, machineDeploymentNotMember)).To(Succeed())
+
+					expectReconcileError = false
+					expectVMOpVM = false
+					expectedImageName = imageName
+					expectedRequeue = true
+
+					// Provide valid bootstrap data
+					By("bootstrap data is created")
+					secretName := machineNotMember.GetName() + "-data"
+					secret := &corev1.Secret{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      secretName,
+							Namespace: machineNotMember.GetNamespace(),
+						},
+						Data: map[string][]byte{
+							"value": []byte(bootstrapData),
+						},
+					}
+					Expect(vmService.Client.Create(ctx, secret)).To(Succeed())
+
+					machineNotMember.Spec.Bootstrap.DataSecretName = &secretName
+
+					By("VirtualMachine is not created")
+					requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
+					Expect(err).ShouldNot(HaveOccurred())
+					Expect(requeue).Should(BeTrue())
+				})
+
 				Specify("Reconcile valid Machine with no failure domain set", func() {
 					expectReconcileError = false
 					expectVMOpVM = true

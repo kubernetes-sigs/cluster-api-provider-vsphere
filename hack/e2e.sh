@@ -108,15 +108,14 @@ on_exit() {
   fi
 
   # Create a junit file for running this script.
-
-  # Delete output file from this script because it contains a duplicate output
-  if [[ $(find "${ORIGINAL_ARTIFACTS}" -maxdepth 1 -name 'junit\.*\.xmla' | wc -l) -gt 0 ]]; then
-    # There are junit files in artifacts
+  if [[ $(find "${ORIGINAL_ARTIFACTS}" -maxdepth 1 -name 'junit\.*\.xml' | wc -l) -gt 0 ]]; then
+    # There are junit files in artifacts so the script succeeded.
     junit::createJunitReportE2Esh 0 "${ORIGINAL_ARTIFACTS}/junit.e2e-sh.xml"
   else
+    # No junit files in artifacts so the script failed.
     junit::createJunitReportE2Esh 1 "${ORIGINAL_ARTIFACTS}/junit.e2e-sh.xml" "${ORIGINAL_ARTIFACTS}/${E2E_SH_LOG_FILE}"
   fi
-  # Cleanup the additionally written log file, the same content will be in build-log.txt.
+  # Always cleanup the additionally written log file used for the junit report, the same content will be in build-log.txt.
   rm "${ORIGINAL_ARTIFACTS}/${E2E_SH_LOG_FILE}"
 }
 

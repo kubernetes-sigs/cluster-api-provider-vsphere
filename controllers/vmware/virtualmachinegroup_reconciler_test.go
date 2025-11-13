@@ -207,15 +207,16 @@ func TestGenerateVirtualMachineGroupAnnotations(t *testing.T) {
 	}{
 		{
 			name: "Placement found for two distinct MDs",
-			vmg: &vmoprv1.VirtualMachineGroup{
-				ObjectMeta: baseVMG.ObjectMeta,
-				Status: vmoprv1.VirtualMachineGroupStatus{
+			vmg: func() *vmoprv1.VirtualMachineGroup {
+				v := baseVMG.DeepCopy()
+				v.Status = vmoprv1.VirtualMachineGroupStatus{
 					Members: []vmoprv1.VirtualMachineGroupMemberStatus{
 						newVMGMemberStatus(vsmName1, "VirtualMachine", true, true, zoneA),
 						newVMGMemberStatus(vsmName2, "VirtualMachine", true, true, zoneB),
 					},
-				},
-			},
+				}
+				return v
+			}(),
 			machineDeployments:   []string{mdName1, mdName2},
 			initialClientObjects: []client.Object{vsm1, vsm2},
 			expectedAnnotations: map[string]string{
@@ -244,14 +245,15 @@ func TestGenerateVirtualMachineGroupAnnotations(t *testing.T) {
 		},
 		{
 			name: "Skip if Member Kind is not VirtualMachine",
-			vmg: &vmoprv1.VirtualMachineGroup{
-				ObjectMeta: baseVMG.ObjectMeta,
-				Status: vmoprv1.VirtualMachineGroupStatus{
+			vmg: func() *vmoprv1.VirtualMachineGroup {
+				v := baseVMG.DeepCopy()
+				v.Status = vmoprv1.VirtualMachineGroupStatus{
 					Members: []vmoprv1.VirtualMachineGroupMemberStatus{
 						newVMGMemberStatus("VMG-1", "VirtualMachineGroup", true, true, "zone-x"),
 					},
-				},
-			},
+				}
+				return v
+			}(),
 			machineDeployments:   []string{},
 			initialClientObjects: []client.Object{},
 			expectedAnnotations:  map[string]string{},
@@ -259,14 +261,15 @@ func TestGenerateVirtualMachineGroupAnnotations(t *testing.T) {
 		},
 		{
 			name: "Skip if VSphereMachine Missing MachineDeployment Label",
-			vmg: &vmoprv1.VirtualMachineGroup{
-				ObjectMeta: baseVMG.ObjectMeta,
-				Status: vmoprv1.VirtualMachineGroupStatus{
+			vmg: func() *vmoprv1.VirtualMachineGroup {
+				v := baseVMG.DeepCopy()
+				v.Status = vmoprv1.VirtualMachineGroupStatus{
 					Members: []vmoprv1.VirtualMachineGroupMemberStatus{
 						newVMGMemberStatus("vsm-nolabel", "VirtualMachine", true, true, zoneA),
 					},
-				},
-			},
+				}
+				return v
+			}(),
 			machineDeployments:   []string{mdName1},
 			initialClientObjects: []client.Object{vsmMissingLabel},
 			expectedAnnotations:  map[string]string{},
@@ -274,14 +277,15 @@ func TestGenerateVirtualMachineGroupAnnotations(t *testing.T) {
 		},
 		{
 			name: "Skip if VSphereMachine is Not Found in API",
-			vmg: &vmoprv1.VirtualMachineGroup{
-				ObjectMeta: baseVMG.ObjectMeta,
-				Status: vmoprv1.VirtualMachineGroupStatus{
+			vmg: func() *vmoprv1.VirtualMachineGroup {
+				v := baseVMG.DeepCopy()
+				v.Status = vmoprv1.VirtualMachineGroupStatus{
 					Members: []vmoprv1.VirtualMachineGroupMemberStatus{
 						newVMGMemberStatus("non-existent-vm", "VirtualMachine", true, true, zoneA),
 					},
-				},
-			},
+				}
+				return v
+			}(),
 			machineDeployments:   []string{mdName1},
 			initialClientObjects: []client.Object{vsm1},
 			expectedAnnotations:  map[string]string{},
@@ -289,14 +293,15 @@ func TestGenerateVirtualMachineGroupAnnotations(t *testing.T) {
 		},
 		{
 			name: "Skip if placement is nil",
-			vmg: &vmoprv1.VirtualMachineGroup{
-				ObjectMeta: baseVMG.ObjectMeta,
-				Status: vmoprv1.VirtualMachineGroupStatus{
+			vmg: func() *vmoprv1.VirtualMachineGroup {
+				v := baseVMG.DeepCopy()
+				v.Status = vmoprv1.VirtualMachineGroupStatus{
 					Members: []vmoprv1.VirtualMachineGroupMemberStatus{
 						newVMGMemberStatus(vsmName1, "VirtualMachine", true, false, zoneA),
 					},
-				},
-			},
+				}
+				return v
+			}(),
 			machineDeployments:   []string{mdName1},
 			initialClientObjects: []client.Object{vsm1},
 			expectedAnnotations:  map[string]string{},
@@ -304,14 +309,15 @@ func TestGenerateVirtualMachineGroupAnnotations(t *testing.T) {
 		},
 		{
 			name: "Skip if Zone is empty string",
-			vmg: &vmoprv1.VirtualMachineGroup{
-				ObjectMeta: baseVMG.ObjectMeta,
-				Status: vmoprv1.VirtualMachineGroupStatus{
+			vmg: func() *vmoprv1.VirtualMachineGroup {
+				v := baseVMG.DeepCopy()
+				v.Status = vmoprv1.VirtualMachineGroupStatus{
 					Members: []vmoprv1.VirtualMachineGroupMemberStatus{
 						newVMGMemberStatus(vsmName1, "VirtualMachine", true, true, ""),
 					},
-				},
-			},
+				}
+				return v
+			}(),
 			machineDeployments:   []string{mdName1},
 			initialClientObjects: []client.Object{vsm1},
 			expectedAnnotations:  map[string]string{},

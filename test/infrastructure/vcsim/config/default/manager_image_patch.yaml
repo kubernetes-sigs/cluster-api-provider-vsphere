@@ -7,5 +7,5 @@ spec:
   template:
     spec:
       containers:
-      - image: gcr.io/k8s-staging-capi-vsphere/cluster-api-vcsim-controller:main
+      - image: gcr.io/broadcom-451918/cluster-api-vcsim-controller-amd64:dev
         name: manager

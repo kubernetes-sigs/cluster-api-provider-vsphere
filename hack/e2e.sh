@@ -36,6 +36,13 @@ if [[ "${ARTIFACTS}" != "${REPO_ROOT}/_artifacts" ]]; then
   ARTIFACTS=$(mktemp -d)
 fi
 
+E2E_SH_LOG_FILE="e2e-sh-log.txt"
+
+# Redirect all output of this script additionally to a file in artifacts,
+# so we can create a junit file with its content in case of general CI failures.
+# This way the bash script's log can be analyzed using k8s-triage.
+exec &> >(stdbuf -oL tee "${ARTIFACTS}/${E2E_SH_LOG_FILE}")
+
 # shellcheck source=./hack/ensure-go.sh
 source "${REPO_ROOT}/hack/ensure-go.sh"
 
@@ -56,7 +63,9 @@ on_exit() {
     [[ -z ${HEART_BEAT_PID:-} ]] || kill -9 "${HEART_BEAT_PID}"
 
     # If Boskos is being used then release the vsphere project.
-    [ -z "${BOSKOS_HOST:-}" ] || docker run -e VSPHERE_USERNAME -e VSPHERE_PASSWORD gcr.io/k8s-staging-capi-vsphere/extra/boskosctl:latest release --boskos-host="${BOSKOS_HOST}" --resource-owner="${BOSKOS_RESOURCE_OWNER}" --resource-name="${BOSKOS_RESOURCE_NAME}" --vsphere-server="${VSPHERE_SERVER}" --vsphere-tls-thumbprint="${VSPHERE_TLS_THUMBPRINT}" --vsphere-folder="${BOSKOS_RESOURCE_FOLDER}" --vsphere-resource-pool="${BOSKOS_RESOURCE_POOL}"
+    if [[ "${BOSKOS_HOST:-}" != "" && "${BOSKOS_RESOURCE_NAME:-}" != "" ]]; then
+      docker run -e VSPHERE_USERNAME -e VSPHERE_PASSWORD gcr.io/k8s-staging-capi-vsphere/extra/boskosctl:latest release --boskos-host="${BOSKOS_HOST}" --resource-owner="${BOSKOS_RESOURCE_OWNER}" --resource-name="${BOSKOS_RESOURCE_NAME}" --vsphere-server="${VSPHERE_SERVER}" --vsphere-tls-thumbprint="${VSPHERE_TLS_THUMBPRINT}" --vsphere-folder="${BOSKOS_RESOURCE_FOLDER}" --vsphere-resource-pool="${BOSKOS_RESOURCE_POOL}"
+    fi
   fi
 
   # Cleanup VSPHERE_PASSWORD from temporary artifacts directory.
@@ -101,6 +110,17 @@ on_exit() {
     # Move all artifacts to the original artifacts location.
     mv "${ARTIFACTS}"/* "${ORIGINAL_ARTIFACTS}/"
   fi
+
+  # Create a junit file for running this script.
+  if [[ $(find "${ORIGINAL_ARTIFACTS}" -maxdepth 1 -name 'junit\.*\.xml' | wc -l) -gt 0 ]]; then
+    # There are junit files in artifacts so the script succeeded.
+    junit::createJunitReportE2Esh 0 "${ORIGINAL_ARTIFACTS}/junit.e2e-sh.xml"
+  else
+    # No junit files in artifacts so the script failed.
+    junit::createJunitReportE2Esh 1 "${ORIGINAL_ARTIFACTS}/junit.e2e-sh.xml" "${ORIGINAL_ARTIFACTS}/${E2E_SH_LOG_FILE}"
+  fi
+  # Always cleanup the additionally written log file used for the junit report, the same content will be in build-log.txt.
+  rm "${ORIGINAL_ARTIFACTS}/${E2E_SH_LOG_FILE}"
 }
 
 trap on_exit EXIT

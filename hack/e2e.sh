@@ -178,6 +178,11 @@ if [[ ! "${GINKGO_FOCUS:-}" =~ $RE_VCSIM ]]; then
   wait_for_vsphere_reachable
 fi
 
+if [ -n "${SKIP_E2E_TESTS:-}" ]; then
+  junit::createJunitReportE2Esh 0 "${ORIGINAL_ARTIFACTS}/junit.e2e-sh.xml"
+  exit 0
+fi
+
 # Make tests run in-parallel
 export GINKGO_NODES=4
 

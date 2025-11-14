@@ -947,7 +947,7 @@ var _ = Describe("VirtualMachine tests", func() {
 							Name:      fdClusterName,
 							Namespace: corev1.NamespaceDefault,
 							Annotations: map[string]string{
-								fmt.Sprintf("zone.cluster.x-k8s.io/%s", machineDeploymentName): failureDomainName,
+								fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, machineDeploymentName): failureDomainName,
 							},
 						},
 						Spec: vmoprv1.VirtualMachineGroupSpec{

@@ -37,14 +37,6 @@ import (
 	capvcontext "sigs.k8s.io/cluster-api-provider-vsphere/pkg/context"
 )
 
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters,verbs=get;list;watch
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters/status,verbs=get
-// +kubebuilder:rbac:groups=vmoperator.vmware.com,resources=virtualmachinegroups,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=vmoperator.vmware.com,resources=virtualmachinegroups/status,verbs=get
-// +kubebuilder:rbac:groups=vmware.infrastructure.cluster.x-k8s.io,resources=vspheremachines,verbs=get;list;watch
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinedeployments,verbs=get;list;watch
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines,verbs=get;list;watch
-
 // AddVirtualMachineGroupControllerToManager adds the VirtualMachineGroup controller to the provided manager.
 func AddVirtualMachineGroupControllerToManager(ctx context.Context, controllerManagerCtx *capvcontext.ControllerManagerContext, mgr manager.Manager, options controller.Options) error {
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "virtualmachinegroup")
@@ -62,15 +54,24 @@ func AddVirtualMachineGroupControllerToManager(ctx context.Context, controllerMa
 		Watches(
 			&vmoprv1.VirtualMachineGroup{},
 			handler.EnqueueRequestForOwner(mgr.GetScheme(), reconciler.Client.RESTMapper(), &clusterv1.Cluster{}),
+			ctrlbldr.WithPredicates(predicates.ResourceIsChanged(mgr.GetScheme(), predicateLog)),
 		).
 		Watches(
 			&vmwarev1.VSphereMachine{},
 			handler.EnqueueRequestsFromMapFunc(reconciler.VSphereMachineToCluster),
 			ctrlbldr.WithPredicates(
 				predicate.Funcs{
-					UpdateFunc:  func(event.UpdateEvent) bool { return false },
-					CreateFunc:  func(event.CreateEvent) bool { return true },
-					DeleteFunc:  func(event.DeleteEvent) bool { return true },
+					UpdateFunc: func(event.UpdateEvent) bool { return false },
+					CreateFunc: func(e event.CreateEvent) bool {
+						// Only handle VSphereMachine which belongs to a MachineDeployment
+						_, found := e.Object.GetLabels()[clusterv1.MachineDeploymentNameLabel]
+						return found
+					},
+					DeleteFunc: func(e event.DeleteEvent) bool {
+						// Only handle VSphereMachine which belongs to a MachineDeployment
+						_, found := e.Object.GetLabels()[clusterv1.MachineDeploymentNameLabel]
+						return found
+					},
 					GenericFunc: func(event.GenericEvent) bool { return false },
 				}),
 		).
@@ -80,9 +81,7 @@ func AddVirtualMachineGroupControllerToManager(ctx context.Context, controllerMa
 }
 
 // VSphereMachineToCluster maps VSphereMachine events to Cluster reconcile requests.
-// This handler only processes VSphereMachine objects for Day-2 operations when VMG could be found, ensuring
-// VMG member list in sync with VSphereMachines. If no corresponding VMG is found, this is a no-op.
-func (r *VirtualMachineGroupReconciler) VSphereMachineToCluster(ctx context.Context, a ctrlclient.Object) []reconcile.Request {
+func (r *VirtualMachineGroupReconciler) VSphereMachineToCluster(_ context.Context, a ctrlclient.Object) []reconcile.Request {
 	vSphereMachine, ok := a.(*vmwarev1.VSphereMachine)
 	if !ok {
 		return nil
@@ -93,17 +92,10 @@ func (r *VirtualMachineGroupReconciler) VSphereMachineToCluster(ctx context.Cont
 		return nil
 	}
 
-	vmg := &vmoprv1.VirtualMachineGroup{}
-	err := r.Client.Get(ctx, apitypes.NamespacedName{Namespace: vSphereMachine.Namespace, Name: clusterName}, vmg)
-
-	if err != nil {
-		return nil
-	}
-
 	return []reconcile.Request{{
 		NamespacedName: apitypes.NamespacedName{
-			Namespace: vmg.Namespace,
-			Name:      vmg.Name,
+			Namespace: vSphereMachine.Namespace,
+			Name:      clusterName,
 		},
 	}}
 }

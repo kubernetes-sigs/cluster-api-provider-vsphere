@@ -250,6 +250,7 @@ rules:
   - vmoperator.vmware.com
   resources:
   - virtualmachinegroups
+  - virtualmachinegroups/status
   - virtualmachineimages
   - virtualmachineimages/status
   - virtualmachines
@@ -265,12 +266,6 @@ rules:
   - patch
   - update
   - watch
-- apiGroups:
-  - vmoperator.vmware.com
-  resources:
-  - virtualmachinegroups/status
-  verbs:
-  - get
 - apiGroups:
   - vmware.com
   resources:

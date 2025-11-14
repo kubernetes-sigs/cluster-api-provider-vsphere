@@ -249,6 +249,8 @@ rules:
 - apiGroups:
   - vmoperator.vmware.com
   resources:
+  - virtualmachinegroups
+  - virtualmachinegroups/status
   - virtualmachineimages
   - virtualmachineimages/status
   - virtualmachines

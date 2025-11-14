@@ -29,6 +29,7 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/pkg/errors"
+	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
 	"github.com/vmware/govmomi/simulator"
 	"golang.org/x/tools/go/packages"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
@@ -89,6 +90,7 @@ func init() {
 	utilruntime.Must(admissionv1.AddToScheme(scheme))
 	utilruntime.Must(clusterv1.AddToScheme(scheme))
 	utilruntime.Must(infrav1.AddToScheme(scheme))
+	utilruntime.Must(vmoprv1.AddToScheme(scheme))
 
 	// Get the root of the current file to use in CRD paths.
 	_, filename, _, ok := goruntime.Caller(0)

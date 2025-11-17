@@ -57,6 +57,16 @@ rules:
   - list
   - watch
 - apiGroups:
+  - encryption.vmware.com
+  resources:
+  - encryptionclasses
+  verbs:
+  - create
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
   - vsphereclusteridentities

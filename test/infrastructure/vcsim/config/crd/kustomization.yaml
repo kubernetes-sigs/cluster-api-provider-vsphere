@@ -11,6 +11,7 @@ resources:
   - bases/vcsim.infrastructure.cluster.x-k8s.io_controlplaneendpoints.yaml
   - bases/vcsim.infrastructure.cluster.x-k8s.io_envvars.yaml
   - bases/vcsim.infrastructure.cluster.x-k8s.io_vmoperatordependencies.yaml
+  - bases/encryption.vmware.com_encryptionclasses.yaml
 
 patchesStrategicMerge:
   # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix.

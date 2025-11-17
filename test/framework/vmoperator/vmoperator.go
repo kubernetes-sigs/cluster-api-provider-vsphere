@@ -38,6 +38,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -445,6 +447,65 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 					return false, nil
 				}
 				log.Info("Created vm-operator VirtualMachineClass", "VirtualMachineClass", klog.KObj(vmClass))
+			}
+			return true, nil
+		})
+		if retryError != nil {
+			return retryError
+		}
+	}
+
+	// Create EncryptionClass in K8s
+	encryptionClassGVR := schema.GroupVersionResource{
+		Group:    "encryption.vmware.com",
+		Version:  "v1alpha1",
+		Resource: "encryptionclasses",
+	}
+	for _, ec := range config.Spec.EncryptionClasses {
+		metadata := map[string]interface{}{
+			"name":      ec.Name,
+			"namespace": config.Namespace,
+		}
+		// Add default label if this is the default EncryptionClass
+		if ec.Default {
+			metadata["labels"] = map[string]interface{}{
+				"encryption.vmware.com/default": "true",
+			}
+		}
+
+		spec := map[string]interface{}{}
+		spec["keyProvider"] = ec.KeyProvider
+		spec["keyID"] = ec.KeyID
+
+		encryptionClass := &unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"apiVersion": "encryption.vmware.com/v1alpha1",
+				"kind":       "EncryptionClass",
+				"metadata":   metadata,
+				"spec":       spec,
+			},
+		}
+		_ = wait.PollUntilContextTimeout(ctx, 250*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
+			retryError = nil
+			existing := &unstructured.Unstructured{}
+			existing.SetGroupVersionKind(schema.GroupVersionKind{
+				Group:   encryptionClassGVR.Group,
+				Version: encryptionClassGVR.Version,
+				Kind:    "EncryptionClass",
+			})
+			if err := c.Get(ctx, client.ObjectKey{
+				Name:      ec.Name,
+				Namespace: config.Namespace,
+			}, existing); err != nil {
+				if !apierrors.IsNotFound(err) {
+					retryError = errors.Wrapf(err, "failed to get EncryptionClass %s", ec.Name)
+					return false, nil
+				}
+				if err := c.Create(ctx, encryptionClass); err != nil {
+					retryError = errors.Wrapf(err, "failed to create EncryptionClass %s", ec.Name)
+					return false, nil
+				}
+				log.Info("Created EncryptionClass", "EncryptionClass", klog.KRef(config.Namespace, ec.Name))
 			}
 			return true, nil
 		})

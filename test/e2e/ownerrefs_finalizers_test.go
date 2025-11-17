@@ -238,6 +238,7 @@ var (
 				"VirtualMachineClassBinding":      func(_ types.NamespacedName, _ []metav1.OwnerReference) error { return nil },
 				"VirtualMachineClass":             func(_ types.NamespacedName, _ []metav1.OwnerReference) error { return nil },
 				"VMOperatorDependencies":          func(_ types.NamespacedName, _ []metav1.OwnerReference) error { return nil },
+				"EncryptionClass":                 func(_ types.NamespacedName, _ []metav1.OwnerReference) error { return nil },
 			}
 		}
 

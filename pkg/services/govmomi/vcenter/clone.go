@@ -20,6 +20,7 @@ package vcenter
 import (
 	"context"
 	"fmt"
+	"math"
 	"math/rand"
 	"time"
 
@@ -30,6 +31,7 @@ import (
 	"github.com/vmware/govmomi/property"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/utils/ptr"
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -210,6 +212,48 @@ func Clone(ctx context.Context, vmCtx *capvcontext.VMContext, bootstrapData []by
 		// are generated.
 		PowerOn:  false,
 		Snapshot: snapshotRef,
+	}
+
+	// Set CPU reservations, limits and shares if specified
+	if !vmCtx.VSphereVM.Spec.Resources.Requests.CPU.IsZero() || !vmCtx.VSphereVM.Spec.Resources.Limits.CPU.IsZero() || vmCtx.VSphereVM.Spec.Resources.Shares.CPU > 0 {
+		cpuAllocation := types.ResourceAllocationInfo{}
+		if !vmCtx.VSphereVM.Spec.Resources.Requests.CPU.IsZero() {
+			cpuReservationMhz := convertQuantityToMhz(vmCtx.VSphereVM.Spec.Resources.Requests.CPU)
+			cpuAllocation.Reservation = ptr.To(cpuReservationMhz)
+		}
+		if !vmCtx.VSphereVM.Spec.Resources.Limits.CPU.IsZero() {
+			cpuLimitMhz := convertQuantityToMhz(vmCtx.VSphereVM.Spec.Resources.Limits.CPU)
+			cpuAllocation.Limit = ptr.To(cpuLimitMhz)
+		}
+		if vmCtx.VSphereVM.Spec.Resources.Shares.CPU > 0 {
+			cpuShares := types.SharesInfo{
+				Shares: vmCtx.VSphereVM.Spec.Resources.Shares.CPU,
+				Level:  types.SharesLevelCustom,
+			}
+			cpuAllocation.Shares = ptr.To(cpuShares)
+		}
+		spec.Config.CpuAllocation = ptr.To(cpuAllocation)
+	}
+
+	// Set memory reservations, limits and shares if specified
+	if !vmCtx.VSphereVM.Spec.Resources.Requests.Memory.IsZero() || !vmCtx.VSphereVM.Spec.Resources.Limits.Memory.IsZero() || vmCtx.VSphereVM.Spec.Resources.Shares.Memory > 0 {
+		memoryAllocation := types.ResourceAllocationInfo{}
+		if !vmCtx.VSphereVM.Spec.Resources.Requests.Memory.IsZero() {
+			memoryReservationMiB := convertQuantityToMiB(vmCtx.VSphereVM.Spec.Resources.Requests.Memory)
+			memoryAllocation.Reservation = ptr.To(memoryReservationMiB)
+		}
+		if !vmCtx.VSphereVM.Spec.Resources.Limits.Memory.IsZero() {
+			memoryLimitMiB := convertQuantityToMiB(vmCtx.VSphereVM.Spec.Resources.Limits.Memory)
+			memoryAllocation.Limit = ptr.To(memoryLimitMiB)
+		}
+		if vmCtx.VSphereVM.Spec.Resources.Shares.Memory > 0 {
+			memoryShares := types.SharesInfo{
+				Shares: vmCtx.VSphereVM.Spec.Resources.Shares.Memory,
+				Level:  types.SharesLevelCustom,
+			}
+			memoryAllocation.Shares = ptr.To(memoryShares)
+		}
+		spec.Config.MemoryAllocation = ptr.To(memoryAllocation)
 	}
 
 	// For PCI devices, the memory for the VM needs to be reserved
@@ -501,6 +545,16 @@ func createDataDisks(ctx context.Context, dataDiskDefs []infrav1.VSphereDisk, de
 	}
 
 	return additionalDisks, nil
+}
+
+// convertQuantityToMhz converts a quantity to MHz, rounding up to the nearest MHz.
+func convertQuantityToMhz(quantity resource.Quantity) int64 {
+	return int64(math.Ceil(float64(quantity.Value()) / float64(1000000)))
+}
+
+// convertQuantityToMiB converts a quantity to MiB, rounding up to the nearest MiB.
+func convertQuantityToMiB(quantity resource.Quantity) int64 {
+	return int64(math.Ceil(float64(quantity.Value()) / float64(1024) / float64(1024)))
 }
 
 type unitNumberAssigner struct {

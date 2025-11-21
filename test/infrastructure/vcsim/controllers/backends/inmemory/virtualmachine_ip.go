@@ -1,5 +1,5 @@
 /*
-Copyright 2024 The Kubernetes Authors.
+Copyright 2025 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package inmemory
 
 import (
 	"context"
@@ -30,7 +30,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 )
 
-type vmIPReconciler struct {
+type virtualMachineIPReconciler struct {
 	Client client.Client
 
 	IsVMWaitingforIP  func() bool
@@ -38,7 +38,7 @@ type vmIPReconciler struct {
 	GetVMPath         func() string
 }
 
-func (r *vmIPReconciler) ReconcileIP(ctx context.Context) (ctrl.Result, error) {
+func (r *virtualMachineIPReconciler) ReconcileIP(ctx context.Context) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// No op if f the VM is still provisioning, or it already has an IP, return.

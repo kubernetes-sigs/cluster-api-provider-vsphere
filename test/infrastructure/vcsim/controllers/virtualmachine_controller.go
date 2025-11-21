@@ -23,9 +23,7 @@ import (
 
 	"github.com/pkg/errors"
 	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
@@ -37,16 +35,16 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
 	vcsimhelpers "sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers/vcsim"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 	"sigs.k8s.io/cluster-api-provider-vsphere/test/framework/vmoperator"
 	vcsimv1 "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/api/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/controllers/backends"
+	inmemorybackend "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/controllers/backends/inmemory"
 )
 
 type VirtualMachineReconciler struct {
@@ -140,83 +138,6 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	log = log.WithValues("VSphereCluster", klog.KObj(vsphereCluster))
 	ctx = ctrl.LoggerInto(ctx, log)
 
-	// Compute the resource group unique name.
-	resourceGroup := klog.KObj(cluster).String()
-	r.InMemoryManager.AddResourceGroup(resourceGroup)
-
-	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
-
-	// Create default Namespaces.
-	for _, nsName := range []string{metav1.NamespaceDefault, metav1.NamespacePublic, metav1.NamespaceSystem} {
-		ns := &corev1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: nsName,
-				Labels: map[string]string{
-					"kubernetes.io/metadata.name": nsName,
-				},
-			},
-		}
-
-		if err := inmemoryClient.Get(ctx, client.ObjectKeyFromObject(ns), ns); err != nil {
-			if !apierrors.IsNotFound(err) {
-				return ctrl.Result{}, errors.Wrapf(err, "failed to get %s Namespace", nsName)
-			}
-
-			if err := inmemoryClient.Create(ctx, ns); err != nil && !apierrors.IsAlreadyExists(err) {
-				return ctrl.Result{}, errors.Wrapf(err, "failed to create %s Namespace", nsName)
-			}
-		}
-	}
-
-	if _, err := r.APIServerMux.WorkloadClusterByResourceGroup(resourceGroup); err != nil {
-		l := &vcsimv1.ControlPlaneEndpointList{}
-		if err := r.Client.List(ctx, l); err != nil {
-			return ctrl.Result{}, err
-		}
-		found := false
-		for _, c := range l.Items {
-			c := c
-			if c.Status.Host != cluster.Spec.ControlPlaneEndpoint.Host || c.Status.Port != cluster.Spec.ControlPlaneEndpoint.Port {
-				continue
-			}
-
-			listenerName := klog.KObj(&c).String()
-			log.Info("Registering ResourceGroup for ControlPlaneEndpoint", "ResourceGroup", resourceGroup, "ControlPlaneEndpoint", listenerName)
-			err := r.APIServerMux.RegisterResourceGroup(listenerName, resourceGroup)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-			found = true
-			break
-		}
-		if !found {
-			return ctrl.Result{}, errors.Errorf("unable to find a ControlPlaneEndpoint for host %s, port %d", cluster.Spec.ControlPlaneEndpoint.Host, cluster.Spec.ControlPlaneEndpoint.Port)
-		}
-	}
-
-	// Check if there is a conditionsTracker in the resource group.
-	// The conditionsTracker is an object stored in memory with the scope of storing conditions used for keeping
-	// track of the provisioning process of the fake node, etcd, api server, etc for this specific virtualMachine.
-	// (the process managed by this controller).
-	// NOTE: The type of the in memory conditionsTracker object doesn't matter as soon as it implements Cluster API's conditions interfaces.
-	// Unfortunately vmoprv1.VirtualMachine isn't a condition getter, so we fallback on using a infrav1.VSphereVM.
-	conditionsTracker := &infrav1.VSphereVM{}
-	if err := inmemoryClient.Get(ctx, client.ObjectKeyFromObject(virtualMachine), conditionsTracker); err != nil {
-		if !apierrors.IsNotFound(err) {
-			return ctrl.Result{}, errors.Wrap(err, "failed to get conditionsTracker")
-		}
-
-		conditionsTracker = &infrav1.VSphereVM{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      virtualMachine.Name,
-				Namespace: virtualMachine.Namespace,
-			},
-		}
-		if err := inmemoryClient.Create(ctx, conditionsTracker); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "failed to create conditionsTracker")
-		}
-	}
-
 	// Initialize the patch helper
 	patchHelper, err := patch.NewHelper(virtualMachine, r.Client)
 	if err != nil {
@@ -229,89 +150,46 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		if err := patchHelper.Patch(ctx, virtualMachine); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
-
-		// NOTE: Patch on conditionsTracker will only track of provisioning process of the fake node, etcd, api server, etc.
-		if err := inmemoryClient.Update(ctx, conditionsTracker); err != nil {
-			reterr = kerrors.NewAggregate([]error{reterr, err})
-		}
 	}()
+
+	backendReconciler := r.backendReconcilerFactory(ctx, cluster, machine, virtualMachine)
 
 	// Handle deleted machines
 	if !vSphereMachine.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, cluster, machine, virtualMachine, conditionsTracker)
+		return backendReconciler.ReconcileDelete(ctx, cluster, machine, virtualMachine)
 	}
 
 	// Handle non-deleted machines
-	return r.reconcileNormal(ctx, cluster, machine, virtualMachine, conditionsTracker)
+	return backendReconciler.ReconcileNormal(ctx, cluster, machine, virtualMachine)
 }
 
-func (r *VirtualMachineReconciler) reconcileNormal(ctx context.Context, cluster *clusterv1beta1.Cluster, machine *clusterv1beta1.Machine, virtualMachine *vmoprv1.VirtualMachine, conditionsTracker *infrav1.VSphereVM) (ctrl.Result, error) {
-	ipReconciler := r.getVMIpReconciler(cluster, virtualMachine)
-	if ret, err := ipReconciler.ReconcileIP(ctx); !ret.IsZero() || err != nil {
-		return ret, err
-	}
-
-	bootstrapReconciler := r.getVMBootstrapReconciler(virtualMachine)
-	if ret, err := bootstrapReconciler.reconcileBoostrap(ctx, cluster, machine, conditionsTracker); !ret.IsZero() || err != nil {
-		return ret, err
-	}
-
-	return ctrl.Result{}, nil
-}
-
-func (r *VirtualMachineReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1beta1.Cluster, machine *clusterv1beta1.Machine, virtualMachine *vmoprv1.VirtualMachine, conditionsTracker *infrav1.VSphereVM) (ctrl.Result, error) {
-	bootstrapReconciler := r.getVMBootstrapReconciler(virtualMachine)
-	if ret, err := bootstrapReconciler.reconcileDelete(ctx, cluster, machine, conditionsTracker); !ret.IsZero() || err != nil {
-		return ret, err
-	}
-
-	controllerutil.RemoveFinalizer(virtualMachine, vcsimv1.VMFinalizer)
-	return ctrl.Result{}, nil
-}
-
-func (r *VirtualMachineReconciler) getVMIpReconciler(cluster *clusterv1beta1.Cluster, virtualMachine *vmoprv1.VirtualMachine) *vmIPReconciler {
-	return &vmIPReconciler{
-		Client: r.Client,
-
-		// Type specific functions; those functions wraps the differences between govmomi and supervisor types,
-		// thus allowing to use the same vmIPReconciler in both scenarios.
+func (r *VirtualMachineReconciler) backendReconcilerFactory(_ context.Context, cluster *clusterv1beta1.Cluster, machine *clusterv1beta1.Machine, virtualMachine *vmoprv1.VirtualMachine) backends.VirtualMachineReconciler {
+	return &inmemorybackend.VirtualMachineReconciler{
+		Client:          r.Client,
+		InMemoryManager: r.InMemoryManager,
+		APIServerMux:    r.APIServerMux,
+		GetProviderID: func() string {
+			// Computes the ProviderID for the node hosted on the virtualMachine
+			return util.ConvertUUIDToProviderID(virtualMachine.Status.BiosUUID)
+		},
 		GetVCenterSession: func(ctx context.Context) (*session.Session, error) {
 			// Return a connection to the vCenter where the virtualMachine is hosted
-			return r.getVCenterSession(ctx)
-		},
-		IsVMWaitingforIP: func() bool {
-			// A virtualMachine is waiting for an IP when PoweredOn but without an Ip.
-			return virtualMachine.Status.PowerState == vmoprv1.VirtualMachinePowerStateOn && (virtualMachine.Status.Network == nil || (virtualMachine.Status.Network.PrimaryIP4 == "" && virtualMachine.Status.Network.PrimaryIP6 == ""))
+			return vmoperator.GetVCenterSession(ctx, r.Client)
 		},
 		GetVMPath: func() string {
 			// The vm operator always create VMs under a sub-folder with named like the cluster.
 			datacenter := 0
 			return vcsimhelpers.VMPath(datacenter, path.Join(cluster.Name, virtualMachine.Name))
 		},
-	}
-}
-
-func (r *VirtualMachineReconciler) getVMBootstrapReconciler(virtualMachine *vmoprv1.VirtualMachine) *vmBootstrapReconciler {
-	return &vmBootstrapReconciler{
-		Client:          r.Client,
-		InMemoryManager: r.InMemoryManager,
-		APIServerMux:    r.APIServerMux,
-
-		// Type specific functions; those functions wraps the differences between govmomi and supervisor types,
-		// thus allowing to use the same vmBootstrapReconciler in both scenarios.
 		IsVMReady: func() bool {
 			// A virtualMachine is ready to provision fake objects hosted on it when PoweredOn, with a primary Ip assigned and BiosUUID is set (bios id is required when provisioning the node to compute the Provider ID).
 			return virtualMachine.Status.PowerState == vmoprv1.VirtualMachinePowerStateOn && virtualMachine.Status.Network != nil && (virtualMachine.Status.Network.PrimaryIP4 != "" || virtualMachine.Status.Network.PrimaryIP6 != "") && virtualMachine.Status.BiosUUID != ""
 		},
-		GetProviderID: func() string {
-			// Computes the ProviderID for the node hosted on the virtualMachine
-			return util.ConvertUUIDToProviderID(virtualMachine.Status.BiosUUID)
+		IsVMWaitingforIP: func() bool {
+			// A virtualMachine is waiting for an IP when PoweredOn but without an Ip.
+			return virtualMachine.Status.PowerState == vmoprv1.VirtualMachinePowerStateOn && (virtualMachine.Status.Network == nil || (virtualMachine.Status.Network.PrimaryIP4 == "" && virtualMachine.Status.Network.PrimaryIP6 == ""))
 		},
 	}
-}
-
-func (r *VirtualMachineReconciler) getVCenterSession(ctx context.Context) (*session.Session, error) {
-	return vmoperator.GetVCenterSession(ctx, r.Client)
 }
 
 // SetupWithManager will add watches for this controller.

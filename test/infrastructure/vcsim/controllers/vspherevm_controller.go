@@ -21,7 +21,6 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -39,7 +38,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
@@ -47,6 +45,8 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/session"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 	vcsimv1 "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/api/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/controllers/backends"
+	inmemorybackend "sigs.k8s.io/cluster-api-provider-vsphere/test/infrastructure/vcsim/controllers/backends/inmemory"
 )
 
 // TODO: implement support for CAPV deployed in arbitrary ns (TBD if we need this).
@@ -144,82 +144,6 @@ func (r *VSphereVMReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	log = log.WithValues("VSphereCluster", klog.KObj(vSphereCluster))
 	ctx = ctrl.LoggerInto(ctx, log)
 
-	// Compute the resource group unique name.
-	resourceGroup := klog.KObj(cluster).String()
-	r.InMemoryManager.AddResourceGroup(resourceGroup)
-
-	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
-
-	// Create default Namespaces.
-	for _, nsName := range []string{metav1.NamespaceDefault, metav1.NamespacePublic, metav1.NamespaceSystem} {
-		ns := &corev1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: nsName,
-				Labels: map[string]string{
-					"kubernetes.io/metadata.name": nsName,
-				},
-			},
-		}
-
-		if err := inmemoryClient.Get(ctx, client.ObjectKeyFromObject(ns), ns); err != nil {
-			if !apierrors.IsNotFound(err) {
-				return ctrl.Result{}, errors.Wrapf(err, "failed to get %s Namespace", nsName)
-			}
-
-			if err := inmemoryClient.Create(ctx, ns); err != nil && !apierrors.IsAlreadyExists(err) {
-				return ctrl.Result{}, errors.Wrapf(err, "failed to create %s Namespace", nsName)
-			}
-		}
-	}
-
-	if _, err := r.APIServerMux.WorkloadClusterByResourceGroup(resourceGroup); err != nil {
-		l := &vcsimv1.ControlPlaneEndpointList{}
-		if err := r.Client.List(ctx, l); err != nil {
-			return ctrl.Result{}, err
-		}
-		found := false
-		for _, c := range l.Items {
-			c := c
-			if c.Status.Host != cluster.Spec.ControlPlaneEndpoint.Host || c.Status.Port != cluster.Spec.ControlPlaneEndpoint.Port {
-				continue
-			}
-
-			listenerName := klog.KObj(&c).String()
-			log.Info("Registering ResourceGroup for ControlPlaneEndpoint", "ResourceGroup", resourceGroup, "ControlPlaneEndpoint", listenerName)
-			err := r.APIServerMux.RegisterResourceGroup(listenerName, resourceGroup)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-			found = true
-			break
-		}
-		if !found {
-			return ctrl.Result{}, errors.Errorf("unable to find a ControlPlaneEndpoint for host %s, port %d", cluster.Spec.ControlPlaneEndpoint.Host, cluster.Spec.ControlPlaneEndpoint.Port)
-		}
-	}
-
-	// Check if there is a conditionsTracker in the resource group.
-	// The conditionsTracker is an object stored in memory with the scope of storing conditions used for keeping
-	// track of the provisioning process of the fake node, etcd, api server, etc for this specific vSphereVM.
-	// (the process managed by this controller).
-	// NOTE: The type of the in memory conditionsTracker object doesn't matter as soon as it implements Cluster API's conditions interfaces.
-	conditionsTracker := &infrav1.VSphereVM{}
-	if err := inmemoryClient.Get(ctx, client.ObjectKeyFromObject(vSphereVM), conditionsTracker); err != nil {
-		if !apierrors.IsNotFound(err) {
-			return ctrl.Result{}, errors.Wrap(err, "failed to get conditionsTracker")
-		}
-
-		conditionsTracker = &infrav1.VSphereVM{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      vSphereVM.Name,
-				Namespace: vSphereVM.Namespace,
-			},
-		}
-		if err := inmemoryClient.Create(ctx, conditionsTracker); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "failed to create conditionsTracker")
-		}
-	}
-
 	// Initialize the patch helper
 	patchHelper, err := patch.NewHelper(vSphereVM, r.Client)
 	if err != nil {
@@ -232,82 +156,43 @@ func (r *VSphereVMReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		if err := patchHelper.Patch(ctx, vSphereVM); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
-
-		// NOTE: Patch on conditionsTracker will only track of provisioning process of the fake node, etcd, api server, etc.
-		if err := inmemoryClient.Update(ctx, conditionsTracker); err != nil {
-			reterr = kerrors.NewAggregate([]error{reterr, err})
-		}
 	}()
+
+	backendReconciler := r.backendReconcilerFactory(ctx, vSphereCluster, vSphereVM)
 
 	// Handle deleted machines
 	if !vSphereMachine.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, cluster, vSphereCluster, machine, vSphereVM, conditionsTracker)
+		return backendReconciler.ReconcileDelete(ctx, cluster, machine, vSphereVM)
 	}
 
 	// Handle non-deleted machines
-	return r.reconcileNormal(ctx, cluster, vSphereCluster, machine, vSphereVM, conditionsTracker)
+	return backendReconciler.ReconcileNormal(ctx, cluster, machine, vSphereVM)
 }
 
-func (r *VSphereVMReconciler) reconcileNormal(ctx context.Context, cluster *clusterv1beta1.Cluster, vSphereCluster *infrav1.VSphereCluster, machine *clusterv1beta1.Machine, vSphereVM *infrav1.VSphereVM, conditionsTracker *infrav1.VSphereVM) (ctrl.Result, error) {
-	ipReconciler := r.getVMIpReconciler(vSphereCluster, vSphereVM)
-	if ret, err := ipReconciler.ReconcileIP(ctx); !ret.IsZero() || err != nil {
-		return ret, err
-	}
-
-	bootstrapReconciler := r.getVMBootstrapReconciler(vSphereVM)
-	if ret, err := bootstrapReconciler.reconcileBoostrap(ctx, cluster, machine, conditionsTracker); !ret.IsZero() || err != nil {
-		return ret, err
-	}
-
-	return ctrl.Result{}, nil
-}
-
-func (r *VSphereVMReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1beta1.Cluster, _ *infrav1.VSphereCluster, machine *clusterv1beta1.Machine, vSphereVM *infrav1.VSphereVM, conditionsTracker *infrav1.VSphereVM) (ctrl.Result, error) {
-	bootstrapReconciler := r.getVMBootstrapReconciler(vSphereVM)
-	if ret, err := bootstrapReconciler.reconcileDelete(ctx, cluster, machine, conditionsTracker); !ret.IsZero() || err != nil {
-		return ret, err
-	}
-
-	controllerutil.RemoveFinalizer(vSphereVM, vcsimv1.VMFinalizer)
-	return ctrl.Result{}, nil
-}
-
-func (r *VSphereVMReconciler) getVMIpReconciler(vSphereCluster *infrav1.VSphereCluster, vSphereVM *infrav1.VSphereVM) *vmIPReconciler {
-	return &vmIPReconciler{
-		Client: r.Client,
-
-		// Type specific functions; those functions wraps the differences between govmomi and supervisor types,
-		// thus allowing to use the same vmIPReconciler in both scenarios.
+func (r *VSphereVMReconciler) backendReconcilerFactory(_ context.Context, vSphereCluster *infrav1.VSphereCluster, vSphereVM *infrav1.VSphereVM) backends.VirtualMachineReconciler {
+	return &inmemorybackend.VirtualMachineReconciler{
+		Client:          r.Client,
+		InMemoryManager: r.InMemoryManager,
+		APIServerMux:    r.APIServerMux,
+		GetProviderID: func() string {
+			// Computes the ProviderID for the node hosted on the vSphereVM
+			return util.ConvertUUIDToProviderID(vSphereVM.Spec.BiosUUID)
+		},
 		GetVCenterSession: func(ctx context.Context) (*session.Session, error) {
 			// Return a connection to the vCenter where the vSphereVM is hosted
 			return r.getVCenterSession(ctx, vSphereCluster, vSphereVM)
-		},
-		IsVMWaitingforIP: func() bool {
-			// A vSphereVM is waiting for an IP when not ready VMProvisioned condition is false with reason WaitingForIPAllocation
-			return !vSphereVM.Status.Ready && v1beta1conditions.IsFalse(vSphereVM, infrav1.VMProvisionedCondition) && v1beta1conditions.GetReason(vSphereVM, infrav1.VMProvisionedCondition) == infrav1.WaitingForIPAllocationReason
 		},
 		GetVMPath: func() string {
 			// Return vmref of the VM as it is populated already by CAPV
 			return vSphereVM.Status.VMRef
 		},
-	}
-}
-
-func (r *VSphereVMReconciler) getVMBootstrapReconciler(vSphereVM *infrav1.VSphereVM) *vmBootstrapReconciler {
-	return &vmBootstrapReconciler{
-		Client:          r.Client,
-		InMemoryManager: r.InMemoryManager,
-		APIServerMux:    r.APIServerMux,
-
-		// Type specific functions; those functions wraps the differences between govmomi and supervisor types,
-		// thus allowing to use the same vmBootstrapReconciler in both scenarios.
 		IsVMReady: func() bool {
 			// A vSphereVM is ready to provision fake objects hosted on it when both ready and BiosUUID is set (bios id is required when provisioning the node to compute the Provider ID)
 			return vSphereVM.Status.Ready && vSphereVM.Spec.BiosUUID != ""
 		},
-		GetProviderID: func() string {
-			// Computes the ProviderID for the node hosted on the vSphereVM
-			return util.ConvertUUIDToProviderID(vSphereVM.Spec.BiosUUID)
+		IsVMWaitingforIP: func() bool {
+			// A vSphereVM is waiting for an IP when not ready VMProvisioned condition is false with reason WaitingForIPAllocation
+			return !vSphereVM.Status.Ready && v1beta1conditions.IsFalse(vSphereVM, infrav1.VMProvisionedCondition) && v1beta1conditions.GetReason(vSphereVM, infrav1.VMProvisionedCondition) == infrav1.WaitingForIPAllocationReason
 		},
 	}
 }

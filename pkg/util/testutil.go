@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -112,7 +113,7 @@ func CreateMachine(machineName, clusterName, k8sVersion string, controlPlaneLabe
 	return machine
 }
 
-func CreateVSphereMachine(machineName, clusterName, className, imageName, storageClass string, controlPlaneLabel bool) *vmwarev1.VSphereMachine {
+func CreateVSphereMachine(machineName, clusterName, className, imageName, storageClass, encryptionClass string, controlPlaneLabel bool) *vmwarev1.VSphereMachine {
 	vsphereMachine := &vmwarev1.VSphereMachine{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: vmwarev1.GroupVersion.String(),
@@ -136,6 +137,10 @@ func CreateVSphereMachine(machineName, clusterName, className, imageName, storag
 		labels := vsphereMachine.GetLabels()
 		labels[clusterv1.MachineControlPlaneLabel] = ""
 		vsphereMachine.SetLabels(labels)
+	}
+	if encryptionClass != "" {
+		vsphereMachine.Spec.Crypto = &vmwarev1.VirtualMachineCryptoSpec{}
+		vsphereMachine.Spec.Crypto.EncryptionClassName = ptr.To(encryptionClass)
 	}
 	return vsphereMachine
 }

@@ -45,6 +45,9 @@ type VMOperatorDependenciesSpec struct {
 
 	// VirtualMachineClasses defines a list of VirtualMachineClasses to be bound to the namespace where this object is created.
 	VirtualMachineClasses []VirtualMachineClass `json:"virtualMachineClasses,omitempty"`
+
+	// EncryptionClasses defines a list of EncryptionClasses to be created in the namespace where this object is created.
+	EncryptionClasses []EncryptionClass `json:"encryptionClasses,omitempty"`
 }
 
 // VMOperatorRef provide a reference to the running instance of vm-operator.
@@ -78,6 +81,14 @@ type VirtualMachineClass struct {
 	Name   string            `json:"name,omitempty"`
 	Cpus   int64             `json:"cpus,omitempty"`
 	Memory resource.Quantity `json:"memory,omitempty"`
+}
+
+type EncryptionClass struct {
+	Name        string `json:"name,omitempty"`
+	KeyProvider string `json:"keyProvider,omitempty"`
+	KeyID       string `json:"keyID,omitempty"`
+	// Default indicates if this EncryptionClass should be marked as default
+	Default bool `json:"default,omitempty"`
 }
 
 type ContentLibraryItemFilesConfig struct {
@@ -179,7 +190,7 @@ func (d *VMOperatorDependencies) SetVCenterFromVCenterSimulator(vCenterSimulator
 		)
 	}
 
-	//  Add default storage and vm class for vcsim in not otherwise specified.
+	// Add default storage and vm class for vcsim if not otherwise specified.
 	if len(d.Spec.StorageClasses) == 0 {
 		d.Spec.StorageClasses = []StorageClass{
 			{
@@ -194,6 +205,17 @@ func (d *VMOperatorDependencies) SetVCenterFromVCenterSimulator(vCenterSimulator
 				Name:   "vcsim-default-vm-class",
 				Cpus:   2,
 				Memory: resource.MustParse("4G"),
+			},
+		}
+	}
+	// Add default encryption class for vcsim if not otherwise specified.
+	if len(d.Spec.EncryptionClasses) == 0 {
+		d.Spec.EncryptionClasses = []EncryptionClass{
+			{
+				Name:        "vcsim-default-encryption-class",
+				KeyProvider: "vcsim-key-provider",
+				KeyID:       "vcsim-key-id",
+				Default:     true,
 			},
 		}
 	}

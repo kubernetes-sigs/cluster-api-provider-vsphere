@@ -43,6 +43,23 @@ spec:
               VMOperatorDependenciesSpec defines the desired state of the VMOperatorDependencies in
               the namespace where this object is created.
             properties:
+              encryptionClasses:
+                description: EncryptionClasses defines a list of EncryptionClasses
+                  to be created in the namespace where this object is created.
+                items:
+                  properties:
+                    default:
+                      description: Default indicates if this EncryptionClass should
+                        be marked as default
+                      type: boolean
+                    keyID:
+                      type: string
+                    keyProvider:
+                      type: string
+                    name:
+                      type: string
+                  type: object
+                type: array
               operatorRef:
                 description: OperatorRef provides a reference to the running instance
                   of vm-operator.

@@ -35,6 +35,15 @@ type VSphereMachineVolume struct {
 	// StorageClass defaults to VSphereMachineSpec.StorageClass
 	// +optional
 	StorageClass string `json:"storageClass,omitempty"`
+	// encryptionClassName describes the name of the EncryptionClass resource
+	// used to encrypt this volume. Defaults to VSphereMachineSpec.Crypto.EncryptionClassName.
+	//
+	// Please note, this field is not required to encrypt the volume. If the
+	// underlying platform has a default key provider, the volume may still be fully
+	// or partially encrypted depending on the specified storage.
+	// +optional
+	// +kubebuilder:validation:MaxLength=253
+	EncryptionClassName *string `json:"encryptionClassName,omitempty"`
 }
 
 // VSphereMachineSpec defines the desired state of VSphereMachine.
@@ -62,6 +71,10 @@ type VSphereMachineSpec struct {
 	// underlying virtual machine.
 	// +optional
 	StorageClass string `json:"storageClass,omitempty"`
+
+	// crypto describes the desired encryption state of the VirtualMachine.
+	// +optional
+	Crypto *VirtualMachineCryptoSpec `json:"crypto,omitempty"`
 
 	// Volumes is the set of PVCs to be created and attached to the VSphereMachine
 	// +optional

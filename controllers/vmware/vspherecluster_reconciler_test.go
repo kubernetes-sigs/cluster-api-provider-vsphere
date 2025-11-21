@@ -53,6 +53,7 @@ var _ = Describe("Cluster Controller Tests", func() {
 		className             = "test-className"
 		imageName             = "test-imageName"
 		storageClass          = "test-storageClass"
+		encryptionClass       = "test-encryptionClass"
 		testIP                = "127.0.0.1"
 	)
 	var (
@@ -69,7 +70,7 @@ var _ = Describe("Cluster Controller Tests", func() {
 		cluster = util.CreateCluster(clusterName)
 		vsphereCluster = util.CreateVSphereCluster(clusterName)
 		clusterCtx, controllerManagerContext = util.CreateClusterContext(cluster, vsphereCluster)
-		vsphereMachine = util.CreateVSphereMachine(machineName, clusterName, className, imageName, storageClass, controlPlaneLabelTrue)
+		vsphereMachine = util.CreateVSphereMachine(machineName, clusterName, className, imageName, storageClass, encryptionClass, controlPlaneLabelTrue)
 
 		reconciler = &ClusterReconciler{
 			Client:          controllerManagerContext.Client,

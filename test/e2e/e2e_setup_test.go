@@ -420,6 +420,22 @@ func setupNamespaceWithVMOperatorDependenciesVCenter(managementClusterProxy fram
 		},
 	}
 
+	// Add EncryptionClass if configured
+	if e2eConfig.HasVariable("VSPHERE_ENCRYPTION_CLASS_NAME") {
+		encryptionClass := vcsimv1.EncryptionClass{
+			Name:        e2eConfig.MustGetVariable("VSPHERE_ENCRYPTION_CLASS_NAME"),
+			KeyProvider: e2eConfig.MustGetVariable("VSPHERE_ENCRYPTION_CLASS_KEY_PROVIDER"),
+			KeyID:       e2eConfig.MustGetVariable("VSPHERE_ENCRYPTION_CLASS_KEY_ID"),
+		}
+		// Check if this should be the default EncryptionClass
+		if e2eConfig.HasVariable("VSPHERE_ENCRYPTION_CLASS_DEFAULT") {
+			if e2eConfig.MustGetVariable("VSPHERE_ENCRYPTION_CLASS_DEFAULT") == "true" {
+				encryptionClass.Default = true
+			}
+		}
+		dependenciesConfig.Spec.EncryptionClasses = []vcsimv1.EncryptionClass{encryptionClass}
+	}
+
 	items := e2eConfig.MustGetVariable("VSPHERE_CONTENT_LIBRARY_ITEMS")
 	if items != "" {
 		for _, i := range strings.Split(e2eConfig.MustGetVariable("VSPHERE_CONTENT_LIBRARY_ITEMS"), ",") {

@@ -46,6 +46,10 @@ import (
 	infrautilv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
 )
 
+const (
+	csiEncryptionClassAnnotationKey = "csi.vsphere.encryption-class"
+)
+
 // VmopMachineService reconciles VM Operator VM.
 type VmopMachineService struct {
 	Client                                client.Client
@@ -415,6 +419,16 @@ func (v *VmopMachineService) reconcileVMOperatorVM(ctx context.Context, supervis
 		if vmOperatorVM.Spec.StorageClass == "" {
 			vmOperatorVM.Spec.StorageClass = supervisorMachineCtx.VSphereMachine.Spec.StorageClass
 		}
+		// Sets VM crypto based on VSphereMachine input
+		if supervisorMachineCtx.VSphereMachine.Spec.Crypto != nil {
+			vmOperatorVM.Spec.Crypto = &vmoprv1.VirtualMachineCryptoSpec{}
+			if supervisorMachineCtx.VSphereMachine.Spec.Crypto.EncryptionClassName != nil {
+				vmOperatorVM.Spec.Crypto.EncryptionClassName = *supervisorMachineCtx.VSphereMachine.Spec.Crypto.EncryptionClassName
+			}
+			vmOperatorVM.Spec.Crypto.UseDefaultKeyProvider = supervisorMachineCtx.VSphereMachine.Spec.Crypto.UseDefaultKeyProvider
+		} else {
+			vmOperatorVM.Spec.Crypto = nil
+		}
 		vmOperatorVM.Spec.PowerState = vmoprv1.VirtualMachinePowerStateOn
 		if supervisorMachineCtx.VSphereCluster.Status.ResourcePolicyName != "" {
 			if vmOperatorVM.Spec.Reserved == nil {
@@ -710,6 +724,13 @@ func (v *VmopMachineService) addVolumes(ctx context.Context, supervisorMachineCt
 		if volume.StorageClass == "" {
 			storageClassName = supervisorMachineCtx.VSphereMachine.Spec.StorageClass
 		}
+		var encryptionClassName string
+		if volume.EncryptionClassName != nil {
+			encryptionClassName = *volume.EncryptionClassName
+		}
+		if encryptionClassName == "" && supervisorMachineCtx.VSphereMachine.Spec.Crypto != nil && supervisorMachineCtx.VSphereMachine.Spec.Crypto.EncryptionClassName != nil {
+			encryptionClassName = *supervisorMachineCtx.VSphereMachine.Spec.Crypto.EncryptionClassName
+		}
 
 		pvc := &corev1.PersistentVolumeClaim{
 			ObjectMeta: metav1.ObjectMeta{
@@ -733,6 +754,7 @@ func (v *VmopMachineService) addVolumes(ctx context.Context, supervisorMachineCt
 		// have the zone annotation set.
 		zonal := len(supervisorMachineCtx.VSphereCluster.Status.FailureDomains) > 1
 
+		annotations := map[string]string{}
 		if zone := supervisorMachineCtx.VSphereMachine.Spec.FailureDomain; zonal && zone != nil {
 			topology := []map[string]string{
 				{kubeTopologyZoneLabelKey: *zone},
@@ -741,9 +763,15 @@ func (v *VmopMachineService) addVolumes(ctx context.Context, supervisorMachineCt
 			if err != nil {
 				return errors.Errorf("failed to marshal zone topology %q: %s", *zone, err)
 			}
-			pvc.Annotations = map[string]string{
-				"csi.vsphere.volume-requested-topology": string(b),
-			}
+			annotations["csi.vsphere.volume-requested-topology"] = string(b)
+		}
+
+		if encryptionClassName != "" {
+			annotations[csiEncryptionClassAnnotationKey] = encryptionClassName
+		}
+
+		if len(annotations) > 0 {
+			pvc.Annotations = annotations
 		}
 
 		if _, err := ctrlutil.CreateOrPatch(ctx, v.Client, pvc, func() error {

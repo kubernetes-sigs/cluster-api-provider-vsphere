@@ -359,7 +359,7 @@ func isMemberUpdateAllowed(ctx context.Context, kubeClient client.Client, target
 		}
 
 		// If FailureDomain is NOT set. Requires placement or placement Annotation. Fall through to full VMG Annotation check.
-		logger.V(5).Info("New member's CAPI Machine lacks FailureDomain. Falling through to full VMG Ready and Annotation check.", "MachineName", machineOwnerName)
+		logger.V(5).Info("New member's CAPI Machine lacks FailureDomain. Falling through to  VMG Annotation check.", "MachineName", machineOwnerName)
 
 		// If no Placement Annotations, skip member update and wait for it.
 		annotations := vmg.GetAnnotations()
@@ -368,6 +368,9 @@ func isMemberUpdateAllowed(ctx context.Context, kubeClient client.Client, target
 		}
 
 		mdLabelName := vsphereMachine.Labels[clusterv1.MachineDeploymentNameLabel]
+		if mdLabelName == "" {
+			return false, errors.Wrapf(nil, "VSphereMachine doesn't have MachineDeployment name label %s", klog.KObj(vsphereMachine))
+		}
 
 		annotationKey := fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, mdLabelName)
 

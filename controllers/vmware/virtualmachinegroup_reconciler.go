@@ -40,7 +40,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
-	infrautilv1 "sigs.k8s.io/cluster-api-provider-vsphere/pkg/util"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/vmoperator"
 )
 
 const (
@@ -167,7 +167,7 @@ func (r *VirtualMachineGroupReconciler) createOrUpdateVirtualMachineGroup(ctx co
 	// Generate VM names according to the naming strategy set on the VSphereMachine.
 	vmNames := make([]string, 0, len(currentVSphereMachines))
 	for _, machine := range currentVSphereMachines {
-		name, err := GenerateVirtualMachineName(machine.Name, machine.Spec.NamingStrategy)
+		name, err := vmoperator.GenerateVirtualMachineName(machine.Name, machine.Spec.NamingStrategy)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
@@ -535,21 +535,4 @@ func generateVirtualMachineGroupAnnotations(ctx context.Context, kubeClient clie
 	}
 
 	return nil
-}
-
-// GenerateVirtualMachineName generates the name of a VirtualMachine based on the naming strategy.
-// Duplicated this logic from pkg/services/vmoperator/vmopmachine.go.
-func GenerateVirtualMachineName(machineName string, namingStrategy *vmwarev1.VirtualMachineNamingStrategy) (string, error) {
-	// Per default the name of the VirtualMachine should be equal to the Machine name (this is the same as "{{ .machine.name }}")
-	if namingStrategy == nil || namingStrategy.Template == nil {
-		// Note: No need to trim to max length in this case as valid Machine names will also be valid VirtualMachine names.
-		return machineName, nil
-	}
-
-	name, err := infrautilv1.GenerateMachineNameFromTemplate(machineName, namingStrategy.Template)
-	if err != nil {
-		return "", errors.Wrapf(err, "failed to generate name for VirtualMachine %s", machineName)
-	}
-
-	return name, nil
 }

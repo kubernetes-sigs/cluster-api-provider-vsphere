@@ -121,11 +121,9 @@ func TestIsMemberUpdateAllowed(t *testing.T) {
 		wantErr         bool
 	}{
 		{
-			name:         "Allow member update if VirtualMachineGroup not existed",
-			targetMember: []vmoprv1.GroupMember{member(memberName1)},
-			vmgInput: &vmoprv1.VirtualMachineGroup{
-				ObjectMeta: metav1.ObjectMeta{Name: vmgName, Namespace: vmgNamespace},
-			},
+			name:            "Allow member update if VirtualMachineGroup not existed",
+			targetMember:    []vmoprv1.GroupMember{member(memberName1)},
+			vmgInput:        baseVMG.DeepCopy(),
 			mdNames:         []string{mdName1},
 			existingObjects: nil,
 			wantAllowed:     true,
@@ -134,17 +132,8 @@ func TestIsMemberUpdateAllowed(t *testing.T) {
 		{
 			name:         "Allow member update if it is removing",
 			targetMember: []vmoprv1.GroupMember{},
-			vmgInput: func() *vmoprv1.VirtualMachineGroup {
-				v := baseVMG.DeepCopy()
-				v.Spec.BootOrder = []vmoprv1.VirtualMachineGroupBootOrderGroup{
-					{Members: []vmoprv1.GroupMember{
-						{
-							Name: memberName1,
-							Kind: memberKind,
-						}}}}
-				return v
-			}(),
-			mdNames: []string{mdName1},
+			vmgInput:     baseVMG.DeepCopy(),
+			mdNames:      []string{mdName1},
 			existingObjects: func() []runtime.Object {
 				v := baseVMG.DeepCopy()
 				v.Spec.BootOrder = []vmoprv1.VirtualMachineGroupBootOrderGroup{
@@ -328,7 +317,7 @@ func TestIsMemberUpdateAllowed(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(gotAllowed).To(Equal(true))
+				g.Expect(gotAllowed).To(Equal(tt.wantAllowed))
 			}
 		})
 	}

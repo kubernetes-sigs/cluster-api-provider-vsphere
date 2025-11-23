@@ -199,15 +199,31 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 	// Set the VM state. Will get reset throughout the reconcile
 	supervisorMachineCtx.VSphereMachine.Status.VMStatus = vmwarev1.VirtualMachineStatePending
 
+	// Get the VirtualMachine object Key
+	vmOperatorVM := &vmoprv1.VirtualMachine{}
+	vmKey, err := virtualMachineObjectKey(supervisorMachineCtx.Machine.Name, supervisorMachineCtx.Machine.Namespace, supervisorMachineCtx.VSphereMachine.Spec.NamingStrategy)
+	if err != nil {
+		return false, err
+	}
+
+	// When creating a new cluster and the user doesn't provide info about placement of VMs in a specific failure domain,
+	// CAPV will define affinity rules to ensure proper placement of the machine.
+	//
+	// - All the machines belonging to the same MachineDeployment should be placed in the same failure domain - required.
+	// - All the machines belonging to the same MachineDeployment should be spread across esxi hosts in the same failure domain - best-efforts.
+	// - Different MachineDeployments and corresponding VMs should be spread across failure domains - best-efforts.
+	//
+	// Note: Control plane VM placement doesn't follow the above rules, and the assumption
+	// is that failureDomain is always set for control plane VMs.
 	var affInfo *affinityInfo
 	if feature.Gates.Enabled(feature.NodeAutoPlacement) &&
 		!infrautilv1.IsControlPlaneMachine(machineCtx.GetVSphereMachine()) {
-		vmOperatorVMGroup := &vmoprv1.VirtualMachineGroup{}
+		vmGroup := &vmoprv1.VirtualMachineGroup{}
 		key := client.ObjectKey{
 			Namespace: supervisorMachineCtx.Cluster.Namespace,
 			Name:      supervisorMachineCtx.Cluster.Name,
 		}
-		err := v.Client.Get(ctx, key, vmOperatorVMGroup)
+		err := v.Client.Get(ctx, key, vmGroup)
 		if err != nil {
 			if !apierrors.IsNotFound(err) {
 				return false, err
@@ -222,11 +238,8 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 			return true, nil
 		}
 
-		// Proceed only if the machine is a member of the VirtualMachineGroup.
-		isMember, err := v.checkVirtualMachineGroupMembership(vmOperatorVMGroup, supervisorMachineCtx)
-		if err != nil {
-			return true, errors.Wrapf(err, "%s", fmt.Sprintf("failed to check if VirtualMachine %s is a member of VirtualMachineGroup %s", supervisorMachineCtx.VSphereMachine.Name, klog.KObj(vmOperatorVMGroup)))
-		}
+		// Proceed only if the VSphereMachine is a member of the VirtualMachineGroup.
+		isMember := v.checkVirtualMachineGroupMembership(vmGroup, vmKey.Name)
 		if !isMember {
 			v1beta2conditions.Set(supervisorMachineCtx.VSphereMachine, metav1.Condition{
 				Type:   infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
@@ -238,18 +251,19 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 		}
 
 		affInfo = &affinityInfo{
-			vmGroupName: vmOperatorVMGroup.Name,
+			vmGroupName: vmGroup.Name,
 		}
 
 		// Set the zone label using the annotation of the per-md zone mapping from VirtualMachineGroup.
 		// This is for new VMs created during day-2 operations when Node Auto Placement is enabled.
 		mdName := supervisorMachineCtx.Machine.Labels[clusterv1.MachineDeploymentNameLabel]
-		if fd, ok := vmOperatorVMGroup.Annotations[fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, mdName)]; ok && fd != "" {
+		if fd, ok := vmGroup.Annotations[fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, mdName)]; ok && fd != "" {
 			affInfo.failureDomain = fd
 		}
 
-		// Fetch machine deployments without explicit failureDomain specified
-		// to use when setting the anti-affinity rules.
+		// VM in a MachineDeployment ideally should be placed in a different failure domain than VMs
+		// in other MachineDeployments.
+		// In order to do so, collect names of all the MachineDeployments except the one the VM belongs to.
 		machineDeployments := &clusterv1.MachineDeploymentList{}
 		if err := v.Client.List(ctx, machineDeployments,
 			client.InNamespace(supervisorMachineCtx.Cluster.Namespace),
@@ -266,6 +280,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 
 		affInfo.affinitySpec = vmoprv1.AffinitySpec{
 			VMAffinity: &vmoprv1.VMAffinitySpec{
+				// All the machines belonging to the same MachineDeployment should be placed in the same failure domain - required.
 				RequiredDuringSchedulingPreferredDuringExecution: []vmoprv1.VMAffinityTerm{
 					{
 						LabelSelector: &metav1.LabelSelector{
@@ -278,6 +293,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 				},
 			},
 			VMAntiAffinity: &vmoprv1.VMAntiAffinitySpec{
+				// All the machines belonging to the same MachineDeployment should be spread across esxi hosts in the same failure domain - best-efforts.
 				PreferredDuringSchedulingPreferredDuringExecution: []vmoprv1.VMAffinityTerm{
 					{
 						LabelSelector: &metav1.LabelSelector{
@@ -291,6 +307,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 			},
 		}
 		if len(othermMDNames) > 0 {
+			// Different MachineDeployments and corresponding VMs should be spread across failure domains - best-efforts.
 			affInfo.affinitySpec.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution = append(
 				affInfo.affinitySpec.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution,
 				vmoprv1.VMAffinityTerm{
@@ -309,25 +326,22 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 		}
 	}
 
+	// If the failureDomain is explicitly define for a machine, forward this info to the VM.
+	// Note: for consistency, affinity rules will be set on all the VMs, no matter if they are explicitly assigned to a failureDomain or not.
 	if supervisorMachineCtx.Machine.Spec.FailureDomain != "" {
 		supervisorMachineCtx.VSphereMachine.Spec.FailureDomain = ptr.To(supervisorMachineCtx.Machine.Spec.FailureDomain)
 	}
 
 	// Check for the presence of an existing object
-	vmOperatorVM := &vmoprv1.VirtualMachine{}
-	key, err := virtualMachineObjectKey(supervisorMachineCtx.Machine.Name, supervisorMachineCtx.Machine.Namespace, supervisorMachineCtx.VSphereMachine.Spec.NamingStrategy)
-	if err != nil {
-		return false, err
-	}
-	if err := v.Client.Get(ctx, *key, vmOperatorVM); err != nil {
+	if err := v.Client.Get(ctx, *vmKey, vmOperatorVM); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return false, err
 		}
 		// Define the VM Operator VirtualMachine resource to reconcile.
 		vmOperatorVM = &vmoprv1.VirtualMachine{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      key.Name,
-				Namespace: key.Namespace,
+				Name:      vmKey.Name,
+				Namespace: vmKey.Namespace,
 			},
 		}
 	}
@@ -988,18 +1002,14 @@ func getMachineDeploymentNameForCluster(cluster *clusterv1.Cluster) string {
 }
 
 // checkVirtualMachineGroupMembership checks if the machine is in the first boot order group
-// and performs logic if a match is found.
-func (v *VmopMachineService) checkVirtualMachineGroupMembership(vmOperatorVMGroup *vmoprv1.VirtualMachineGroup, supervisorMachineCtx *vmware.SupervisorMachineContext) (bool, error) {
+// and performs logic if a match is found, as first boot order contains all the worker VMs.
+func (v *VmopMachineService) checkVirtualMachineGroupMembership(vmOperatorVMGroup *vmoprv1.VirtualMachineGroup, virtualMachineName string) bool {
 	if len(vmOperatorVMGroup.Spec.BootOrder) > 0 {
 		for _, member := range vmOperatorVMGroup.Spec.BootOrder[0].Members {
-			virtualMachineName, err := GenerateVirtualMachineName(supervisorMachineCtx.Machine.Name, supervisorMachineCtx.VSphereMachine.Spec.NamingStrategy)
-			if err != nil {
-				return false, err
-			}
 			if member.Name == virtualMachineName {
-				return true, nil
+				return true
 			}
 		}
 	}
-	return false, nil
+	return false
 }

@@ -282,7 +282,7 @@ variables:
   KUBERNETES_VERSION_UPGRADE_FROM: "v1.33.0"
   KUBERNETES_VERSION_UPGRADE_TO: "v1.34.0"
   KUBERNETES_VERSION_LATEST_CI: "ci/latest-1.35"
-  CPI_IMAGE_K8S_VERSION: "v1.34.0"
+  CPI_IMAGE_K8S_VERSION: "v1.35.0-beta.0"
   CNI: "./data/cni/calico/calico.yaml"
   AUTOSCALER_WORKLOAD: "./data/autoscaler/autoscaler-to-management-workload.yaml"
   CONTROL_PLANE_MACHINE_COUNT: 1

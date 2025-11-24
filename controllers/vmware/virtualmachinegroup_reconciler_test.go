@@ -59,7 +59,7 @@ const (
 	failureDomainA    = "zone-a"
 )
 
-func TestIsMemberUpdateAllowed(t *testing.T) {
+func TestIsCreateOrPatchAllowed(t *testing.T) {
 	ctx := context.Background()
 
 	baseVMG := &vmoprv1.VirtualMachineGroup{
@@ -115,25 +115,21 @@ func TestIsMemberUpdateAllowed(t *testing.T) {
 		name            string
 		targetMember    []vmoprv1.GroupMember
 		vmgInput        *vmoprv1.VirtualMachineGroup
-		mdNames         []string
 		existingObjects []runtime.Object
 		wantAllowed     bool
 		wantErr         bool
 	}{
 		{
-			name:            "Allow member update if VirtualMachineGroup not existed",
+			name:            "Allow Create if VirtualMachineGroup not existed",
 			targetMember:    []vmoprv1.GroupMember{member(memberName1)},
 			vmgInput:        baseVMG.DeepCopy(),
-			mdNames:         []string{mdName1},
 			existingObjects: nil,
-			wantAllowed:     true,
 			wantErr:         false,
 		},
 		{
-			name:         "Allow member update if it is removing",
+			name:         "Allow Patch if it is removing members",
 			targetMember: []vmoprv1.GroupMember{},
 			vmgInput:     baseVMG.DeepCopy(),
-			mdNames:      []string{mdName1},
 			existingObjects: func() []runtime.Object {
 				v := baseVMG.DeepCopy()
 				v.Spec.BootOrder = []vmoprv1.VirtualMachineGroupBootOrderGroup{
@@ -144,14 +140,45 @@ func TestIsMemberUpdateAllowed(t *testing.T) {
 						}}}}
 				return []runtime.Object{v}
 			}(),
-			wantAllowed: true,
-			wantErr:     false,
+			wantErr: false,
 		},
 		{
-			name:         "Allow member update when VMG Ready and All Annotations Present",
+			name:         "Allow Patch if no new member",
+			targetMember: []vmoprv1.GroupMember{member(memberName1)}, // No new members
+			vmgInput:     baseVMG.DeepCopy(),
+			existingObjects: func() []runtime.Object {
+				v := baseVMG.DeepCopy()
+				// Annotation for mdName1 is missing
+				v.Spec.BootOrder = []vmoprv1.VirtualMachineGroupBootOrderGroup{{Members: []vmoprv1.GroupMember{
+					{
+						Name: memberName1,
+						Kind: memberKind,
+					},
+				}}}
+				return []runtime.Object{v}
+			}(),
+			wantErr: false,
+		},
+		{
+			name:         "Block Patch if VirtualMachineGroup is not Placement Ready",
+			targetMember: []vmoprv1.GroupMember{member(memberName1), member(memberName2)},
+			vmgInput:     baseVMG.DeepCopy(),
+			existingObjects: func() []runtime.Object {
+				v := baseVMG.DeepCopy()
+				v.Spec.BootOrder = []vmoprv1.VirtualMachineGroupBootOrderGroup{
+					{Members: []vmoprv1.GroupMember{
+						{
+							Name: memberName1,
+							Kind: memberKind,
+						}}}}
+				return []runtime.Object{v}
+			}(),
+			wantErr: true,
+		},
+		{
+			name:         "Allow Patch when VMG Ready and All Annotations Present",
 			targetMember: []vmoprv1.GroupMember{member(memberName1)},
 			vmgInput:     baseVMG.DeepCopy(),
-			mdNames:      []string{mdName1},
 			existingObjects: func() []runtime.Object {
 				v := baseVMG.DeepCopy()
 				conditions.Set(v, metav1.Condition{
@@ -168,16 +195,17 @@ func TestIsMemberUpdateAllowed(t *testing.T) {
 
 				return []runtime.Object{v}
 			}(),
-			wantAllowed: true,
-			wantErr:     false,
+			wantErr: false,
 		},
 		{
-			name:         "Skip member update if new member VSphereMachine Not Found",
+			name:         "Block Patch if new member VSphereMachine Not Found",
 			targetMember: []vmoprv1.GroupMember{member(memberName1), member(memberName2)}, // vm-02 is new
 			vmgInput:     baseVMG.DeepCopy(),
-			mdNames:      []string{mdName1},
 			existingObjects: func() []runtime.Object {
 				v := baseVMG.DeepCopy()
+				conditions.Set(v, metav1.Condition{
+					Type:   vmoprv1.ReadyConditionType,
+					Status: metav1.ConditionTrue})
 				v.Spec.BootOrder = []vmoprv1.VirtualMachineGroupBootOrderGroup{{Members: []vmoprv1.GroupMember{
 					{
 						Name: memberName1,
@@ -187,16 +215,17 @@ func TestIsMemberUpdateAllowed(t *testing.T) {
 				// vm-02 VSphereMachine is missing
 				return []runtime.Object{v, makeVSphereMachineOwned(memberName1, vmgNamespace, ownerMachineName1, mdName1), makeCAPIMachine(ownerMachineName1, vmgNamespace, ptr.To(failureDomainA))}
 			}(),
-			wantAllowed: false,
-			wantErr:     false,
+			wantErr: true,
 		},
 		{
-			name:         "Skip member update if VSphereMachine found but CAPI Machine missing",
+			name:         "Block Patch if VSphereMachine found but CAPI Machine missing",
 			targetMember: []vmoprv1.GroupMember{member(memberName1), member(memberName2)}, // vm-02 is new
 			vmgInput:     baseVMG.DeepCopy(),
-			mdNames:      []string{mdName1},
 			existingObjects: func() []runtime.Object {
 				v := baseVMG.DeepCopy()
+				conditions.Set(v, metav1.Condition{
+					Type:   vmoprv1.ReadyConditionType,
+					Status: metav1.ConditionTrue})
 				v.Spec.BootOrder = []vmoprv1.VirtualMachineGroupBootOrderGroup{{Members: []vmoprv1.GroupMember{
 					{
 						Name: memberName1,
@@ -206,58 +235,45 @@ func TestIsMemberUpdateAllowed(t *testing.T) {
 				// vm-02 VSphereMachine exists but has no owner ref
 				return []runtime.Object{v, makeVSphereMachineOwned(memberName1, vmgNamespace, "ownerMachineName1", mdName1), makeCAPIMachine("ownerMachineName1", vmgNamespace, ptr.To(failureDomainA)), makeVSphereMachineNoOwner(memberName2, vmgNamespace)}
 			}(),
-			wantAllowed: false,
-			wantErr:     false,
+			wantErr: true,
 		},
 		{
-			name:         "Allow member update if all new members have Machine FailureDomain specified",
+			name:         "Allow Patch if all new members have Machine FailureDomain specified",
 			targetMember: []vmoprv1.GroupMember{member(memberName1), member(memberName2)}, // vm-02 is new
 			vmgInput:     baseVMG.DeepCopy(),
-			mdNames:      []string{mdName1},
 			existingObjects: func() []runtime.Object {
 				v := baseVMG.DeepCopy()
+				conditions.Set(v, metav1.Condition{
+					Type:   vmoprv1.ReadyConditionType,
+					Status: metav1.ConditionTrue})
 				v.Spec.BootOrder = []vmoprv1.VirtualMachineGroupBootOrderGroup{{Members: []vmoprv1.GroupMember{
 					{
 						Name: memberName1,
 						Kind: memberKind,
 					},
 				}}}
-				// m-02 (owner of vownerMachineName2) has FailureDomain set
+				// m-02 (owner of ownerMachineName2) has FailureDomain set
 				return []runtime.Object{
 					v,
 					makeVSphereMachineOwned(memberName1, vmgNamespace, "ownerMachineName1", mdName1), makeCAPIMachine("ownerMachineName1", vmgNamespace, nil),
 					makeVSphereMachineOwned(memberName2, vmgNamespace, "ownerMachineName2", mdName2), makeCAPIMachine("ownerMachineName2", vmgNamespace, ptr.To(failureDomainA)),
 				}
 			}(),
-			wantAllowed: true, // Allowed because new members don't require VMO placement
-			wantErr:     false,
+			// Allowed because new members don't require placement
+			wantErr: false,
 		},
 		{
-			name:         "Allow member update if no new member",
-			targetMember: []vmoprv1.GroupMember{member(memberName1)}, // No new members
-			vmgInput:     baseVMG.DeepCopy(),
-			mdNames:      []string{mdName1}, // Expects mdName1 annotation
-			existingObjects: func() []runtime.Object {
-				v := baseVMG.DeepCopy()
-				// Annotation for mdName1 is missing
-				v.Spec.BootOrder = []vmoprv1.VirtualMachineGroupBootOrderGroup{{Members: []vmoprv1.GroupMember{
-					{
-						Name: memberName1,
-						Kind: memberKind,
-					},
-				}}}
-				return []runtime.Object{v}
-			}(),
-			wantAllowed: true,
-			wantErr:     false,
-		},
-		{
-			name:         "Skip member update if new member Machine requires placement annotation",
+			name:         "Block Patch if placement annotation is missing",
 			targetMember: []vmoprv1.GroupMember{member(memberName1), member(memberName2)}, // vm-02 is new and requires placement
 			vmgInput:     baseVMG.DeepCopy(),
-			mdNames:      []string{mdName1},
 			existingObjects: func() []runtime.Object {
 				v := baseVMG.DeepCopy()
+				conditions.Set(v, metav1.Condition{
+					Type:   vmoprv1.ReadyConditionType,
+					Status: metav1.ConditionTrue})
+				v.Annotations = map[string]string{
+					fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, mdName1): zoneA,
+				}
 				v.Spec.BootOrder = []vmoprv1.VirtualMachineGroupBootOrderGroup{{Members: []vmoprv1.GroupMember{
 					{
 						Name: memberName1,
@@ -271,16 +287,17 @@ func TestIsMemberUpdateAllowed(t *testing.T) {
 					makeVSphereMachineOwned(memberName2, vmgNamespace, "ownerMachineName2", mdName2), makeUnplacedCAPIMachine("ownerMachineName2", vmgNamespace),
 				}
 			}(),
-			wantAllowed: false,
-			wantErr:     false,
+			wantErr: true,
 		},
 		{
-			name:         "Allow new member Machine since required placement annotation exists",
+			name:         "Allow Patch Machine since required placement annotation exists",
 			targetMember: []vmoprv1.GroupMember{member(memberName1), member(memberName2)}, // vm-02 is new and requires placement
 			vmgInput:     baseVMG.DeepCopy(),
-			mdNames:      []string{mdName1},
 			existingObjects: func() []runtime.Object {
 				v := baseVMG.DeepCopy()
+				conditions.Set(v, metav1.Condition{
+					Type:   vmoprv1.ReadyConditionType,
+					Status: metav1.ConditionTrue})
 				v.Annotations = map[string]string{
 					fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, mdName1): zoneA,
 					fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, mdName2): zoneB,
@@ -297,8 +314,7 @@ func TestIsMemberUpdateAllowed(t *testing.T) {
 					makeVSphereMachineOwned(memberName2, vmgNamespace, "ownerMachineName2", mdName2), makeUnplacedCAPIMachine("ownerMachineName2", vmgNamespace),
 				}
 			}(),
-			wantAllowed: true,
-			wantErr:     false,
+			wantErr: false,
 		},
 	}
 
@@ -311,13 +327,12 @@ func TestIsMemberUpdateAllowed(t *testing.T) {
 
 			vmgInput := tt.vmgInput.DeepCopy()
 
-			gotAllowed, err := isMemberUpdateAllowed(ctx, kubeClient, tt.targetMember, vmgInput)
+			err := isCreateOrPatchAllowed(ctx, kubeClient, tt.targetMember, vmgInput)
 
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(gotAllowed).To(Equal(tt.wantAllowed))
 			}
 		})
 	}
@@ -715,25 +730,26 @@ func TestVirtualMachineGroupReconciler_ReconcileFlow(t *testing.T) {
 				cluster.DeepCopy(),
 				md1.DeepCopy(),
 				vsm1.DeepCopy(),
-				&vmoprv1.VirtualMachineGroup{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      clusterName,
-						Namespace: clusterNamespace,
-						Labels:    map[string]string{clusterv1.ClusterNameLabel: cluster.Name},
-					},
-					Spec: vmoprv1.VirtualMachineGroupSpec{
-						BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
+				func() client.Object {
+					v := vmoprv1.VirtualMachineGroup{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      clusterName,
+							Namespace: clusterNamespace,
+							Labels:    map[string]string{clusterv1.ClusterNameLabel: cluster.Name},
+						}}
+					v.Spec.BootOrder = []vmoprv1.VirtualMachineGroupBootOrderGroup{
+						{Members: []vmoprv1.GroupMember{
 							{
-								Members: []vmoprv1.GroupMember{
-									{
-										Name: vsm1.Name,
-										Kind: "VSphereMachine",
-									},
-								},
-							},
-						},
-					},
-				},
+								Name: vsm1.Name,
+								Kind: memberKind,
+							}}}}
+
+					conditions.Set(&v, metav1.Condition{
+						Type:   vmoprv1.ReadyConditionType,
+						Status: metav1.ConditionTrue,
+					})
+					return v.DeepCopyObject().(client.Object)
+				}(),
 			},
 		},
 	}

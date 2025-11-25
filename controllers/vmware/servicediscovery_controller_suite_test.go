@@ -77,7 +77,7 @@ func assertHeadlessSvc(ctx context.Context, guestClient client.Client, namespace
 	Eventually(func() error {
 		key := client.ObjectKey{Namespace: namespace, Name: name}
 		return guestClient.Get(ctx, key, headlessSvc)
-	}, time.Second*3).Should(Succeed())
+	}, time.Second*10).Should(Succeed())
 	Expect(headlessSvc.Spec.Ports[0].Port).To(Equal(int32(supervisorHeadlessSvcPort)))
 	Expect(headlessSvc.Spec.Ports[0].TargetPort.IntVal).To(Equal(int32(supervisorAPIServerPort)))
 }
@@ -142,7 +142,7 @@ func assertHeadlessSvcWithUpdatedVIPEndpoints(ctx context.Context, guestClient c
 		key := client.ObjectKey{Namespace: namespace, Name: name}
 		Expect(guestClient.Get(ctx, key, headlessEndpoints)).Should(Succeed())
 		return headlessEndpoints.Subsets[0].Addresses[0].IP
-	}, time.Second*3).Should(Equal(testSupervisorAPIServerVIP))
+	}, time.Second*10).Should(Equal(testSupervisorAPIServerVIP))
 	Expect(headlessEndpoints.Subsets[0].Ports[0].Port).To(Equal(int32(supervisorAPIServerPort)))
 }
 

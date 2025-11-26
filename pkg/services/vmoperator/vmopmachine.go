@@ -47,7 +47,8 @@ import (
 )
 
 const (
-	csiEncryptionClassAnnotationKey = "csi.vsphere.encryption-class"
+	csiVolumeRequestedTopologyAnnotationKey = "csi.vsphere.volume-requested-topology"
+	csiEncryptionClassAnnotationKey         = "csi.vsphere.encryption-class"
 )
 
 // VmopMachineService reconciles VM Operator VM.
@@ -763,7 +764,7 @@ func (v *VmopMachineService) addVolumes(ctx context.Context, supervisorMachineCt
 			if err != nil {
 				return errors.Errorf("failed to marshal zone topology %q: %s", *zone, err)
 			}
-			annotations["csi.vsphere.volume-requested-topology"] = string(b)
+			annotations[csiVolumeRequestedTopologyAnnotationKey] = string(b)
 		}
 
 		if encryptionClassName != "" {

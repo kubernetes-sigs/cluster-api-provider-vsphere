@@ -82,6 +82,8 @@ const (
 	// Additional key we are adding to the VcCredsSecret for sake of convenience (not supported in vm-operator).
 
 	thumbprintSecretKey = "CAPV-TEST-Thumbprint" //nolint:gosec
+
+	defaultEncryptionClassLabel = "encryption.vmware.com/default"
 )
 
 // ReconcileDependencies reconciles dependencies for the vm-operator.
@@ -469,7 +471,7 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 		// Add default label if this is the default EncryptionClass
 		if ec.Default {
 			metadata["labels"] = map[string]interface{}{
-				"encryption.vmware.com/default": "true",
+				defaultEncryptionClassLabel: "true",
 			}
 		}
 
@@ -498,11 +500,11 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 				Namespace: config.Namespace,
 			}, existing); err != nil {
 				if !apierrors.IsNotFound(err) {
-					retryError = errors.Wrapf(err, "failed to get EncryptionClass %s", ec.Name)
+					retryError = errors.Wrapf(err, "failed to get EncryptionClass %s/%s", config.Namespace, ec.Name)
 					return false, nil
 				}
 				if err := c.Create(ctx, encryptionClass); err != nil {
-					retryError = errors.Wrapf(err, "failed to create EncryptionClass %s", ec.Name)
+					retryError = errors.Wrapf(err, "failed to create EncryptionClass %s/%s", config.Namespace, ec.Name)
 					return false, nil
 				}
 				log.Info("Created EncryptionClass", "EncryptionClass", klog.KRef(config.Namespace, ec.Name))

@@ -20,23 +20,22 @@ package vmware
 import (
 	"context"
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 
 	"github.com/pkg/errors"
 	vmoprv1 "github.com/vmware-tanzu/vm-operator/api/v1alpha2"
-	"golang.org/x/exp/slices"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
@@ -107,428 +106,330 @@ func (r *VirtualMachineGroupReconciler) Reconcile(ctx context.Context, req ctrl.
 		return reconcile.Result{}, nil
 	}
 
-	return r.createOrUpdateVirtualMachineGroup(ctx, cluster)
+	return r.reconcileNormal(ctx, cluster)
 }
 
 // createOrUpdateVirtualMachineGroup Create or Update VirtualMachineGroup.
-func (r *VirtualMachineGroupReconciler) createOrUpdateVirtualMachineGroup(ctx context.Context, cluster *clusterv1.Cluster) (reconcile.Result, error) {
-	log := ctrl.LoggerFrom(ctx)
-
-	// Get current VSphereMachines of all MachineDeployments.
-	currentVSphereMachines, err := getCurrentVSphereMachines(ctx, r.Client, cluster.Namespace, cluster.Name)
+func (r *VirtualMachineGroupReconciler) reconcileNormal(ctx context.Context, cluster *clusterv1.Cluster) (reconcile.Result, error) {
+	// Get all the data required for computing the desired VMG.
+	currentVMG, err := r.getVirtualMachineGroup(ctx, cluster)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	vSphereMachines, err := r.getVSphereMachines(ctx, cluster)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	machineDeployments, err := r.getMachineDeployments(ctx, cluster)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
 
-	vmg := &vmoprv1.VirtualMachineGroup{}
-	key := &client.ObjectKey{
-		Namespace: cluster.Namespace,
-		Name:      cluster.Name,
-	}
-
-	if err := r.Client.Get(ctx, *key, vmg); err != nil {
-		if !apierrors.IsNotFound(err) {
-			return reconcile.Result{}, errors.Wrapf(err, "failed to get VirtualMachineGroup %s", klog.KObj(vmg))
-		}
-
-		// If the VirtualMachineGroup does not exist yet,
-		// calculate expected VSphereMachine count of all MachineDeployments.
-		expectedVSphereMachineCount, err := getExpectedVSphereMachineCount(ctx, r.Client, cluster)
-		if err != nil {
-			return reconcile.Result{}, errors.Wrapf(err, "failed to get expected Machines of all MachineDeployment, Cluster %s", klog.KObj(cluster))
-		}
-
-		// Since CAPV retrieves placement decisions from the VirtualMachineGroup to guide
-		// day-2 worker VM placement. At least one VM is expected for each MachineDeployment.
-		// If no worker of MachineDeployment is defined,the controller
-		// interprets this as an intentional configuration, just logs the observation and no-op.
-		if expectedVSphereMachineCount == 0 {
-			log.Info("Found 0 desired VSphereMachine of MachineDeployment, stop reconcile")
+	// Before initial placement VirtualMachineGroup does not exist yet.
+	if currentVMG == nil {
+		// VirtualMachineGroup creation starts the initial placement process that should take care
+		// of spreading VSphereMachines across failure domains in an ideal way / according to user intent.
+		// The initial placement can be performed only when all the VSphereMachines to be considered for the
+		// placement decision exists; if this condition is not met, return (watches will trigger new
+		// reconcile whenever new VSphereMachines are created).
+		// Note: In case there are no MachineDeployments, or all the MachineDeployments have zero replicas,
+		// no placement decision is required, and thus no VirtualMachineGroup will be created.
+		if !shouldCreateVirtualMachineGroup(ctx, machineDeployments, vSphereMachines) {
 			return reconcile.Result{}, nil
 		}
 
-		// Wait for all intended VSphereMachines corresponding to MachineDeployment to exist only during initial Cluster creation.
-		// For day-2, VirtualMachineGroup exists and should not run into here  wait for VSphereMachines.
-		currentVSphereMachineCount := int32(len(currentVSphereMachines))
-		if currentVSphereMachineCount != expectedVSphereMachineCount {
-			log.Info("Waiting for expected VSphereMachines required for the initial placement call", "Expected:", expectedVSphereMachineCount,
-				"Current:", currentVSphereMachineCount, "Cluster", klog.KObj(cluster))
-			return reconcile.Result{}, nil
-		}
-
-		vmg = &vmoprv1.VirtualMachineGroup{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      key.Name,
-				Namespace: key.Namespace,
-			},
-		}
-	}
-
-	// Generate VM names according to the naming strategy set on the VSphereMachine.
-	vmNames := make([]string, 0, len(currentVSphereMachines))
-	for _, machine := range currentVSphereMachines {
-		name, err := vmoperator.GenerateVirtualMachineName(machine.Name, machine.Spec.NamingStrategy)
+		// Computes the new VirtualMachineGroup including all the VSphereMachines to be considered
+		// for the initial placement decision.
+		newVMG, err := computeVirtualMachineGroup(ctx, cluster, machineDeployments, vSphereMachines, nil)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
-		vmNames = append(vmNames, name)
-	}
-	// Sort the VM names alphabetically for consistent ordering
-	slices.Sort(vmNames)
 
-	members := make([]vmoprv1.GroupMember, 0, len(currentVSphereMachines))
-	for _, name := range vmNames {
-		members = append(members, vmoprv1.GroupMember{
-			Name: name,
-			Kind: "VirtualMachine",
-		})
+		// FIXME: Log. Details?
+		if err := r.Client.Create(ctx, newVMG); err != nil {
+			return reconcile.Result{}, errors.Wrapf(err, "failed to create new VMG")
+		}
+		return reconcile.Result{}, nil
 	}
 
-	// The core purpose of isCreateOrPatchAllowed is to prevent the VirtualMachineGroup from being updated with new members
-	// that require placement, unless the VirtualMachineGroup
-	// has successfully completed its initial placement and added the required
-	// placement annotations. This stabilizes placement decisions before allowing new VMs
-	// to be added under the group.
+	// If the VirtualMachineGroup exist, either the placement decision is being performed, or
+	// the placement decision has been already completed. In both cases, the VirtualMachineGroup
+	// must be keep up to date with the changes that happens to MachineDeployments and vSphereMachines.
 	//
-	// The CreateOrPatch is allowed if:
-	// 1. The VirtualMachineGroup is being initially created.
-	// 2. The update won't add new member:
-	//    1) scale-down operation
-	//    2) no member change.
-	// 3. When the VirtualMachineGroup is placement Ready, continue to check following.
-	//    1) The new member's underlying CAPI Machine has a FailureDomain set (will skip placement process).
-	//    2) The new member requires placement annotation AND the VirtualMachineGroup has the corresponding
-	//       placement annotation for the member's MachineDeployment.
+	// However, while the initial placement decision is being performed, the addition of new
+	// vSphereMachines to the VirtualMachineGroup must be deferred to prevent race conditions.
 	//
-	// This prevents member updates that could lead to new VMs being created
-	// without necessary zone labels, resulting in undesired placement.
-	err = isCreateOrPatchAllowed(ctx, r.Client, members, vmg)
+	// After initial placement, new vSphereMachines will be added to the VirtualMachineGroup for
+	// sake of consistency, but those machines will be placed in the same failureDomain
+	// already used for the other vSphereMachines in the same MachineDeployment (new vSphereMachines
+	// will align to the initial placement decision).
+
+	// Computes the updated VirtualMachineGroup including reflecting changes in the cluster.
+	updatedVMG, err := computeVirtualMachineGroup(ctx, cluster, machineDeployments, vSphereMachines, currentVMG)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
 
-	// Use CreateOrPatch to create or update the VirtualMachineGroup.
-	_, err = controllerutil.CreateOrPatch(ctx, r.Client, vmg, func() error {
-		return r.reconcileVirtualMachineGroup(ctx, vmg, cluster, members)
-	})
-
-	return reconcile.Result{}, err
+	// FIXME: Log. Diff? Details?
+	if err := r.Client.Patch(ctx, updatedVMG, client.MergeFromWithOptions(currentVMG, client.MergeFromWithOptimisticLock{})); err != nil {
+		return reconcile.Result{}, errors.Wrapf(err, "failed to patch VMG")
+	}
+	return reconcile.Result{}, nil
 }
 
-// reconcileVirtualMachineGroup mutates the VirtualMachineGroup object to reflect the necessary spec and metadata changes.
-func (r *VirtualMachineGroupReconciler) reconcileVirtualMachineGroup(ctx context.Context, vmg *vmoprv1.VirtualMachineGroup, cluster *clusterv1.Cluster, members []vmoprv1.GroupMember) error {
-	// Set the desired labels
-	if vmg.Labels == nil {
-		vmg.Labels = make(map[string]string)
-	}
-	// Always ensure cluster name label is set
-	vmg.Labels[clusterv1.ClusterNameLabel] = cluster.Name
-
-	if vmg.Annotations == nil {
-		vmg.Annotations = make(map[string]string)
-	}
-
-	// Get all the names of MachineDeployments of the Cluster.
-	machineDeployments := &clusterv1.MachineDeploymentList{}
-	if err := r.Client.List(ctx, machineDeployments,
-		client.InNamespace(cluster.Namespace),
-		client.MatchingLabels{clusterv1.ClusterNameLabel: cluster.Name}); err != nil {
-		return err
-	}
-	mdNames := []string{}
-	for _, md := range machineDeployments.Items {
-		// Skip MachineDeployment marked for removal.
-		if !md.DeletionTimestamp.IsZero() {
-			mdNames = append(mdNames, md.Name)
-		}
-	}
-
-	// Add per-md-zone label for day-2 operations once placement of a VM belongs to MachineDeployment is done.
-	// Do not update per-md-zone label once set, as placement decision should not change without user explicitly
-	// set failureDomain.
-	if err := generateVirtualMachineGroupAnnotations(ctx, r.Client, vmg, mdNames); err != nil {
-		return err
-	}
-
-	vmg.Spec.BootOrder = []vmoprv1.VirtualMachineGroupBootOrderGroup{
-		{
-			Members: members,
+// computeVirtualMachineGroup gets the desired VirtualMachineGroup.
+func computeVirtualMachineGroup(ctx context.Context, cluster *clusterv1.Cluster, mds []clusterv1.MachineDeployment, vSphereMachines []vmwarev1.VSphereMachine, existingVMG *vmoprv1.VirtualMachineGroup) (*vmoprv1.VirtualMachineGroup, error) {
+	// Create an empty VirtualMachineGroup
+	vmg := &vmoprv1.VirtualMachineGroup{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        cluster.Name,
+			Namespace:   cluster.Namespace,
+			Annotations: map[string]string{},
 		},
 	}
 
-	// Set the owner reference
-	if err := controllerutil.SetControllerReference(cluster, vmg, r.Client.Scheme()); err != nil {
-		return errors.Wrapf(err, "failed to mark Cluster %s as owner of VirtualMachineGroup %s", klog.KObj(cluster), klog.KObj(vmg))
+	// If there is an VirtualMachineGroup, clone it into the desired VirtualMachineGroup
+	// and clean up all the info that must be re-computed during this reconcile.
+	if existingVMG != nil {
+		vmg = existingVMG.DeepCopy()
+		vmg.Annotations = make(map[string]string)
+		for key, value := range existingVMG.Annotations {
+			if !strings.HasPrefix(key, ZoneAnnotationPrefix+"/") {
+				vmg.Annotations[key] = value
+			}
+		}
+	}
+	vmg.Spec.BootOrder = []vmoprv1.VirtualMachineGroupBootOrderGroup{{}}
+
+	// Compute the info required to compute the VirtualMachineGroup.
+
+	// Get the mapping between the virtualMachine name that will be generated by a vSphereMachine
+	// and the MachineDeployment that controls the vSphereMachine.
+	virtualMachineNameToMachineDeployment, err := getVirtualMachineNameToMachineDeploymentMapping(ctx, vSphereMachines)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil
+	// Sort virtualMachine names to ensure VirtualMachineGroup is generated in a consistent way across reconcile.
+	sortedVirtualMachineNames := slices.Sorted(maps.Keys(virtualMachineNameToMachineDeployment))
+
+	// Get the mapping between the MachineDeployment and failure domain, which is one of:
+	// - the failureDomain explicitly assigned by the user to a MachineDeployment (by setting spec.template.spec.failureDomain).
+	// - the failureDomain selected by the placement decision for a MachineDeployment
+	// Note: if a MachineDeployment is not included in this mapping, the MachineDeployment is still pending a placement decision.
+	machineDeploymentToFailureDomain := getMachineDeploymentToFailureDomainMapping(ctx, mds, existingVMG, virtualMachineNameToMachineDeployment)
+
+	// Set the annotations on the VirtualMachineGroup surfacing the failure domain selected during the
+	// placement decision for each MachineDeployment.
+	// Note: when a MachineDeployment will be deleted, the corresponding annotation will be removed (not added anymore by this func).
+	for md, failureDomain := range machineDeploymentToFailureDomain {
+		vmg.Annotations[fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, md)] = failureDomain
+	}
+
+	// Compute the list of Members for the VirtualMachineGroup.
+
+	// If the VirtualMachineGroup is being created, ensure that all the existing VirtualMachines are
+	// included in the VirtualMachineGroup for the initial placement decision.
+	if existingVMG == nil {
+		for _, virtualMachineName := range sortedVirtualMachineNames {
+			vmg.Spec.BootOrder[0].Members = append(vmg.Spec.BootOrder[0].Members, vmoprv1.GroupMember{
+				Name: virtualMachineName,
+				Kind: "VirtualMachine",
+			})
+		}
+		return vmg, nil
+	}
+
+	// If the VirtualMachineGroup exists, keep this list of VirtualMachine up to date.
+	// Note: while the initial placement decision is being performed, the addition of new
+	// VirtualMachine to the VirtualMachineGroup must be deferred to prevent race conditions.
+	//
+	// After initial placement, new VirtualMachine will be added to the VirtualMachineGroup for
+	// sake of consistency, but those machines will be placed in the same failureDomain
+	// already used for the other VirtualMachine in the same MachineDeployment (new VirtualMachine
+	// will align to the initial placement decision).
+
+	existingVirtualMachineNames := sets.New[string]()
+	if len(existingVMG.Spec.BootOrder) > 0 {
+		for _, member := range existingVMG.Spec.BootOrder[0].Members {
+			existingVirtualMachineNames.Insert(member.Name)
+		}
+	}
+
+	for _, virtualMachineName := range sortedVirtualMachineNames {
+		// If a VirtualMachine is already part of the VirtualMachineGroup, keep it in the VirtualMachineGroup
+		// Note: when a VirtualMachine will be deleted, the corresponding member will be removed (not added anymore by this func)
+		if existingVirtualMachineNames.Has(virtualMachineName) {
+			vmg.Spec.BootOrder[0].Members = append(vmg.Spec.BootOrder[0].Members, vmoprv1.GroupMember{
+				Name: virtualMachineName,
+				Kind: "VirtualMachine",
+			})
+			continue
+		}
+
+		// If a VirtualMachine is not yet in the VirtualMachineGroup, it should be added only if
+		// the VirtualMachine is controlled by a MachineDeployment for which the placement decision is already
+		// completed.
+		// Note: If the placement decision for the MachineDeployment controlling a VirtualMachine is still pending,
+		// this logic defers adding the VirtualMachine in the VirtualMachineGroup to prevent race conditions.
+		md := virtualMachineNameToMachineDeployment[virtualMachineName]
+		if _, isPlaced := machineDeploymentToFailureDomain[md]; isPlaced {
+			vmg.Spec.BootOrder[0].Members = append(vmg.Spec.BootOrder[0].Members, vmoprv1.GroupMember{
+				Name: virtualMachineName,
+				Kind: "VirtualMachine",
+			})
+		}
+	}
+
+	return vmg, nil
 }
 
-// isCreateOrPatchAllowed checks if a VirtualMachineGroup is allowd to create or patch by check if BootOrder.Members update is allowed.
-func isCreateOrPatchAllowed(ctx context.Context, kubeClient client.Client, targetMember []vmoprv1.GroupMember, vmg *vmoprv1.VirtualMachineGroup) error {
-	logger := log.FromContext(ctx)
-	key := client.ObjectKey{
-		Namespace: vmg.Namespace,
-		Name:      vmg.Name,
-	}
-
-	// Retrieve the current VirtualMachineGroup state
-	currentVMG := &vmoprv1.VirtualMachineGroup{}
-	if err := kubeClient.Get(ctx, key, currentVMG); err != nil {
-		if apierrors.IsNotFound(err) {
-			// 1. If VirtualMachineGroup is not found, allow CreateOrPatch as it should be in initial creation phase.
-			logger.V(6).Info("VirtualMachineGroup not created yet, allowing create")
-			return nil
+// getMachineDeploymentToFailureDomainMapping returns the mapping between MachineDeployment and failure domain.
+// The mapping is computed according to following rules:
+//   - If the MachineDeployment is explicitly assigned to a failure domain by setting spec.template.spec.failureDomain,
+//     use this value for the mapping.
+//   - If the annotations on the VirtualMachineGroup already has the failure domain selected during the
+//     initial placement decision for a MachineDeployment, use it.
+//   - If annotations on the VirtualMachineGroup are not yet set, try to get the failure domain selected
+//     during the initial placement decision from VirtualMachineGroup status (placement decision just completed).
+//   - If none of the above rules are satisfied, the MachineDeployment is still pending a placement decision.
+//
+// Note: In case the failure domain is explicitly assigned by setting spec.template.spec.failureDomain, the mapping always
+// report the latest value for this field (even if there might still be Machines yet to be rolled out to the new failure domain).
+func getMachineDeploymentToFailureDomainMapping(_ context.Context, mds []clusterv1.MachineDeployment, existingVMG *vmoprv1.VirtualMachineGroup, virtualMachineNameToMachineDeployment map[string]string) map[string]string {
+	machineDeploymentToFailureDomainMapping := map[string]string{}
+	for _, md := range mds {
+		if !md.DeletionTimestamp.IsZero() {
+			continue
 		}
-		return errors.Wrapf(err, "failed to get VirtualMachineGroup %s/%s, blocking patch", vmg.Namespace, vmg.Name)
-	}
-	// Copy retrieved data back to the input pointer for consistency.
-	*vmg = *currentVMG
 
-	// Get current member names from VirtualMachineGroup Spec.BootOrder.
-	currentMemberNames := make(map[string]struct{})
-	if len(vmg.Spec.BootOrder) > 0 {
-		for _, m := range vmg.Spec.BootOrder[0].Members {
-			currentMemberNames[m.Name] = struct{}{}
+		// If the MachineDeployment is explicitly assigned to a failure domain by setting spec.template.spec.failureDomain, use this value for the mapping.
+		if md.Spec.Template.Spec.FailureDomain != "" {
+			machineDeploymentToFailureDomainMapping[md.Name] = md.Spec.Template.Spec.FailureDomain
+			continue
 		}
-	}
 
-	// 2. If removing members, allow immediately since it doesn't impact placement or placement annotation set.
-	if len(targetMember) < len(currentMemberNames) {
-		logger.V(6).Info("Scaling down detected (fewer target members), allowing patch.")
-		return nil
-	}
-
-	var newMembers []vmoprv1.GroupMember
-	for _, m := range targetMember {
-		if _, exists := currentMemberNames[m.Name]; !exists {
-			newMembers = append(newMembers, m)
+		// If the MachineDeployment is not explicitly assigned to a failure domain (spec.template.spec.failureDomain is empty),
+		// and VirtualMachineGroup does not exist yet, the MachineDeployment is still pending a placement decision.
+		if existingVMG == nil {
+			continue
 		}
-	}
 
-	// If no new member added, allow patch.
-	if len(newMembers) == 0 {
-		logger.V(6).Info("No new member detected, allowing patch.")
-		return nil
-	}
-
-	// 3. If initial placement is still in progress, block adding new member.
-	if !conditions.IsTrue(vmg, vmoprv1.ReadyConditionType) {
-		return fmt.Errorf("waiting for VirtualMachineGroup %s to get condition %s to true, temporarily blocking patch", klog.KObj(vmg), vmoprv1.ReadyConditionType)
-	}
-
-	// 4. Check newly added members for Machine.Spec.FailureDomain via VSphereMachine.If a member belongs to a Machine
-	// which has failureDomain specified, allow it since it will skip the placement
-	// process. If not, continue to check if the belonging MachineDeployment has got placement annotation.
-	for _, newMember := range newMembers {
-		vsphereMachineKey := types.NamespacedName{
-			Namespace: vmg.Namespace,
-			Name:      newMember.Name, // Member Name is the VSphereMachine Name.
+		// If the VirtualMachineGroup exist, check if the placement decision for the MachineDeployment
+		// has been already surfaced into the VirtualMachineGroup annotations.
+		if failureDomain := existingVMG.Annotations[fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, md.Name)]; failureDomain != "" {
+			machineDeploymentToFailureDomainMapping[md.Name] = failureDomain
+			continue
 		}
-		vsphereMachine := &vmwarev1.VSphereMachine{}
-		if err := kubeClient.Get(ctx, vsphereMachineKey, vsphereMachine); err != nil {
-			if apierrors.IsNotFound(err) {
-				return errors.Wrapf(err, "VSphereMachine for new member %s not found, temporarily blocking patch", newMember.Name)
+
+		// If the placement decision for the MachineDeployment, try to get the failure domain selected
+		// during the initial placement decision from VirtualMachineGroup status (placement decision just completed).
+		// Note: this info will surface in VirtualMachineGroup annotations at the end of the current reconcile.
+		for _, member := range existingVMG.Status.Members {
+			// Ignore members controller by other MachineDeployments
+			if memberMD := virtualMachineNameToMachineDeployment[member.Name]; memberMD != md.Name {
+				continue
 			}
-			return errors.Wrapf(err, "failed to get VSphereMachine %s", klog.KRef(newMember.Name, vmg.Namespace))
-		}
 
-		var machineOwnerName string
-		for _, owner := range vsphereMachine.OwnerReferences {
-			if owner.Kind == "Machine" {
-				machineOwnerName = owner.Name
+			// Consider only VirtualMachineGroup members for which the placement decision has been completed.
+			// Note: given that all the VirtualMachines in a MachineDeployment must be placed in the
+			// same failure domain / zone, the mapping can be inferred as soon as one member is placed.
+			if !conditions.IsTrue(&member, vmoprv1.VirtualMachineGroupMemberConditionPlacementReady) {
+				continue
+			}
+			if member.Placement != nil && member.Placement.Zone != "" {
+				// FIXME: log
+				machineDeploymentToFailureDomainMapping[md.Name] = member.Placement.Zone
 				break
 			}
 		}
+	}
+	return machineDeploymentToFailureDomainMapping
+}
 
-		if machineOwnerName == "" {
-			// VSphereMachine found but owner Machine reference is missing
-			return fmt.Errorf("VSphereMachine %s found but owner Machine reference is missing, temporarily blocking patch", newMember.Name)
-		}
-
-		machineKey := types.NamespacedName{
-			Namespace: vmg.Namespace,
-			Name:      machineOwnerName,
-		}
-		machine := &clusterv1.Machine{}
-
-		if err := kubeClient.Get(ctx, machineKey, machine); err != nil {
-			if apierrors.IsNotFound(err) {
-				return errors.Wrapf(err, "Machine %s not found via owner reference, temporarily blocking patch", klog.KRef(machineOwnerName, vmg.Namespace))
-			}
-			return errors.Wrapf(err, "failed to get CAPI Machine %s", klog.KRef(machineOwnerName, vmg.Namespace))
-		}
-
-		// If FailureDomain is set on CAPI Machine, placement process will be skipped. Allow update for this member.
-		fd := machine.Spec.FailureDomain
-		if fd != "" {
-			logger.V(6).Info("New member's Machine has FailureDomain specified. Allowing patch", "Member", newMember.Name)
+// getVirtualMachineNameToMachineDeploymentMapping returns the mapping between VirtualMachine name and corresponding MachineDeployment.
+// The mapping is inferred from vSphereMachines; please note:
+// - The name of the VirtualMachine generated by a vSphereMachines can be computed in a deterministic way (it is not required to wait for the VirtualMachine to exist)
+// - The name of the MachineDeployment corresponding to a vSphereMachine can be derived from the annotation that is propagated by CAPI.
+func getVirtualMachineNameToMachineDeploymentMapping(_ context.Context, vSphereMachines []vmwarev1.VSphereMachine) (map[string]string, error) {
+	virtualMachineNameToMachineDeployment := map[string]string{}
+	for _, vsphereMachine := range vSphereMachines {
+		if !vsphereMachine.DeletionTimestamp.IsZero() {
 			continue
 		}
 
-		// 5. If FailureDomain is NOT set. Requires placement or placement Annotation. Fall through to Annotation check.
-		// If no Placement Annotations, block member update and wait for it.
-		annotations := vmg.GetAnnotations()
-		if len(annotations) == 0 {
-			return fmt.Errorf("waiting for placement annotation to add VMG member %s, temporarily blocking patch", newMember.Name)
+		virtualMachineName, err := vmoperator.GenerateVirtualMachineName(vsphereMachine.Name, vsphereMachine.Spec.NamingStrategy)
+		if err != nil {
+			return nil, err
 		}
-
-		mdLabelName := vsphereMachine.Labels[clusterv1.MachineDeploymentNameLabel]
-		if mdLabelName == "" {
-			return fmt.Errorf("VSphereMachine doesn't have MachineDeployment name label %s, blocking patch", klog.KObj(vsphereMachine))
+		if md := vsphereMachine.Labels[clusterv1.MachineDeploymentNameLabel]; md != "" {
+			virtualMachineNameToMachineDeployment[virtualMachineName] = md
 		}
+	}
+	return virtualMachineNameToMachineDeployment, nil
+}
 
-		annotationKey := fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, mdLabelName)
-		if _, found := annotations[annotationKey]; !found {
-			return fmt.Errorf("waiting for placement annotation %s to add VMG member %s, temporarily blocking patch", annotationKey, newMember.Name)
+// shouldCreateVirtualMachineGroup should return true when the conditions to create a VirtualMachineGroup are met.
+func shouldCreateVirtualMachineGroup(ctx context.Context, mds []clusterv1.MachineDeployment, vSphereMachines []vmwarev1.VSphereMachine) bool {
+	log := ctrl.LoggerFrom(ctx)
+
+	// Gets the total number or worker machines that should exist in the cluster at a given time.
+	// Note. Deleting MachineDeployment are ignored.
+	var expectedVSphereMachineCount int32
+	for _, md := range mds {
+		if md.DeletionTimestamp.IsZero() {
+			expectedVSphereMachineCount += ptr.Deref(md.Spec.Replicas, 0)
 		}
 	}
 
-	logger.V(6).Info("All newly added members either existed or have satisfied placement requirements, allowing patch")
-	return nil
+	// In case there are no MachineDeployments or all the MachineDeployments have zero replicas, there is
+	// no need to create a VirtualMachineGroup.
+	if expectedVSphereMachineCount == 0 {
+		return false
+	}
+
+	// If the number of workers VSphereMachines matches the number of expected replicas in the MachineDeployments,
+	// then all the VSphereMachines required for the initial placement decision do exist, then it is possible to create
+	// the VirtualMachineGroup.
+	// FIXME: we should probably include in the count only machines for MD included above (otherwise machines from deleting MS might lead to false positives / negatives
+	currentVSphereMachineCount := int32(len(vSphereMachines))
+	if currentVSphereMachineCount != expectedVSphereMachineCount {
+		log.Info(fmt.Sprintf("Waiting for VSphereMachines required for the initial placement (expected %d, current %d)", expectedVSphereMachineCount, currentVSphereMachineCount))
+		return false
+	}
+	return true
 }
 
-// getExpectedVSphereMachineCount get expected total count of Machines belonging to the Cluster.
-func getExpectedVSphereMachineCount(ctx context.Context, kubeClient client.Client, cluster *clusterv1.Cluster) (int32, error) {
-	var mdList clusterv1.MachineDeploymentList
-	if err := kubeClient.List(
-		ctx,
-		&mdList,
+func (r *VirtualMachineGroupReconciler) getVirtualMachineGroup(ctx context.Context, cluster *clusterv1.Cluster) (*vmoprv1.VirtualMachineGroup, error) {
+	vmg := &vmoprv1.VirtualMachineGroup{}
+	if err := r.Client.Get(ctx, client.ObjectKeyFromObject(cluster), vmg); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return nil, errors.Wrapf(err, "failed to get VirtualMachineGroup %s", klog.KObj(vmg))
+		}
+		return nil, nil
+	}
+	return vmg, nil
+}
+
+func (r *VirtualMachineGroupReconciler) getVSphereMachines(ctx context.Context, cluster *clusterv1.Cluster) ([]vmwarev1.VSphereMachine, error) {
+	var vsMachineList vmwarev1.VSphereMachineList
+	if err := r.Client.List(ctx, &vsMachineList,
+		client.InNamespace(cluster.Namespace),
+		client.MatchingLabels{clusterv1.ClusterNameLabel: cluster.Name},
+		client.HasLabels{clusterv1.MachineDeploymentNameLabel},
+	); err != nil {
+		return nil, errors.Wrap(err, "failed to get VSphereMachines")
+	}
+	return vsMachineList.Items, nil
+}
+
+func (r *VirtualMachineGroupReconciler) getMachineDeployments(ctx context.Context, cluster *clusterv1.Cluster) ([]clusterv1.MachineDeployment, error) {
+	machineDeployments := &clusterv1.MachineDeploymentList{}
+	if err := r.Client.List(ctx, machineDeployments,
 		client.InNamespace(cluster.Namespace),
 		client.MatchingLabels{clusterv1.ClusterNameLabel: cluster.Name},
 	); err != nil {
-		return 0, errors.Wrap(err, "failed to list MachineDeployments")
+		return nil, errors.Wrap(err, "failed to list MachineDeployments")
 	}
-
-	var total int32
-	for _, md := range mdList.Items {
-		// Skip MachineDeployment marked for removal
-		if md.DeletionTimestamp.IsZero() && md.Spec.Replicas != nil {
-			total += *md.Spec.Replicas
-		}
-	}
-
-	return total, nil
-}
-
-// getCurrentVSphereMachines returns the list of VSphereMachines belonging to the Cluster’s MachineDeployments.
-// VSphereMachines marked for removal are excluded from the result.
-func getCurrentVSphereMachines(ctx context.Context, kubeClient client.Client, clusterNamespace, clusterName string) ([]vmwarev1.VSphereMachine, error) {
-	// List VSphereMachine objects
-	var vsMachineList vmwarev1.VSphereMachineList
-	if err := kubeClient.List(ctx, &vsMachineList,
-		client.InNamespace(clusterNamespace),
-		client.MatchingLabels{clusterv1.ClusterNameLabel: clusterName},
-		client.HasLabels{clusterv1.MachineDeploymentNameLabel},
-	); err != nil {
-		return nil, errors.Wrapf(err, "failed to list VSphereMachines of Cluster %s", klog.KRef(clusterNamespace, clusterName))
-	}
-
-	var result []vmwarev1.VSphereMachine
-	for _, vs := range vsMachineList.Items {
-		if vs.DeletionTimestamp.IsZero() {
-			result = append(result, vs)
-		}
-	}
-	return result, nil
-}
-
-// generateVirtualMachineGroupAnnotations checks the VMG status for placed members, verifies their ownership
-// by fetching the corresponding VSphereMachine, and extracts the zone information to persist it
-// as an annotation on the VMG object for Day-2 operations. It will also clean up
-// any existing placement annotations that correspond to MachineDeployments that no longer exist.
-//
-// The function attempts to find at least one successfully placed VM (VirtualMachineGroupMemberConditionPlacementReady==True)
-// for each MachineDeployment and records its zone. Once a Zone is recorded for an MD, subsequent VMs
-// belonging to that same MD are skipped.
-func generateVirtualMachineGroupAnnotations(ctx context.Context, kubeClient client.Client, vmg *vmoprv1.VirtualMachineGroup, machineDeployments []string) error {
-	log := ctrl.LoggerFrom(ctx)
-	log.V(5).Info(fmt.Sprintf("Generating annotations for VirtualMachineGroup %s/%s", vmg.Name, vmg.Namespace))
-
-	if vmg.Annotations == nil {
-		vmg.Annotations = make(map[string]string)
-	}
-	annotations := vmg.Annotations
-
-	// If a MachineDeployment has been deleted, its corresponding placement annotation
-	// on the VirtualMachineGroup should also be removed to avoid configuration drift.
-	activeMDs := sets.New(machineDeployments...)
-
-	// Iterate over existing VirtualMachineGroup annotations and delete those that are stale.
-	for key := range annotations {
-		if !strings.HasPrefix(key, ZoneAnnotationPrefix+"/") {
-			// Skip non-placement annotations
-			continue
-		}
-
-		mdName := strings.TrimPrefix(key, ZoneAnnotationPrefix+"/")
-
-		// If the MD name is NOT in the list of currently active MDs, delete the annotation.
-		if !activeMDs.Has(mdName) {
-			log.Info(fmt.Sprintf("Cleaning up stale placement annotation for none-existed MachineDeployment %s", mdName))
-			delete(annotations, key)
-		}
-	}
-
-	// Iterate through the VirtualMachineGroup's members in Status.
-	for _, member := range vmg.Status.Members {
-		ns := vmg.Namespace
-
-		// Skip it if member's VirtualMachineGroupMemberConditionPlacementReady is still not true.
-		if !conditions.IsTrue(&member, vmoprv1.VirtualMachineGroupMemberConditionPlacementReady) {
-			continue
-		}
-
-		// Get VSphereMachine which share the same Name of the member Name and get the MachineDeployment Name it belonged to.
-		vsmKey := types.NamespacedName{
-			Name:      member.Name,
-			Namespace: vmg.Namespace,
-		}
-		vsm := &vmwarev1.VSphereMachine{}
-		if err := kubeClient.Get(ctx, vsmKey, vsm); err != nil {
-			if apierrors.IsNotFound(err) {
-				log.Info(fmt.Sprintf("VSphereMachine %s/%s by member Name %s is not found, skipping it", member.Name, ns, member.Name))
-				continue
-			}
-			return errors.Wrapf(err, "failed to get VSphereMachine %s/%s", member.Name, ns)
-		}
-
-		mdName, found := vsm.Labels[clusterv1.MachineDeploymentNameLabel]
-		if !found {
-			log.Info(fmt.Sprintf("Failed to get MachineDeployment label from VSphereMachine %s/%s, skipping it", member.Name, ns))
-			continue
-		}
-
-		// If we already found placement for this MachineDeployment, continue and move to next member.
-		if _, found := annotations[fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, mdName)]; found {
-			continue
-		}
-
-		// Check if this VM belongs to any of our target MachineDeployments.
-		if !activeMDs.Has(mdName) {
-			log.V(5).Info("Skipping member as its MachineDeployment name is not in the known list.",
-				"VMName", member.Name, "MDName", mdName)
-			continue
-		}
-
-		// Get the VM placement information by member status.
-		// VMs that have undergone placement do not have Placement info set, skip.
-		// VMs of Machine with failureDomain specified do not have Placement info set, skip.
-		if member.Placement == nil {
-			log.V(5).Info(fmt.Sprintf("VM %s in VMG %s/%s has no placement info. Placement is nil", member.Name, vmg.Name, ns))
-			continue
-		}
-
-		// Skip to next member if Zone is empty.
-		zone := member.Placement.Zone
-		if zone == "" {
-			log.V(5).Info(fmt.Sprintf("VM %s in VMG %s/%s has no placement info. Zone is empty", member.Name, "VMG", ns))
-			continue
-		}
-
-		log.V(5).Info(fmt.Sprintf("VM %s in VMG %s/%s has been placed in zone %s", member.Name, ns, vmg.Name, zone))
-		annotations[fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, mdName)] = zone
-	}
-
-	return nil
+	return machineDeployments.Items, nil
 }

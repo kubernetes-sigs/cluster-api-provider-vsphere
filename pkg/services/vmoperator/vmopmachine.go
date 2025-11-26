@@ -949,6 +949,11 @@ func getVMLabels(supervisorMachineCtx *vmware.SupervisorMachineContext, vmLabels
 		vmLabels[k] = v
 	}
 
+	// FIXME:
+	//  if the zone label is set, it should be immutable
+	//  failure domain from machine should be used if set to set the zone label
+	//  if failure domain from machine is not set, use the failure domain from VMG annotation
+
 	// Set the labels that determine the VM's placement.
 	// Note: if the failureDomain is not set, auto placement will happen according to affinity rules on VM during initial Cluster creation.
 	// For VM created during day-2 operation like scaling up, we should expect the failureDomain to be always set.

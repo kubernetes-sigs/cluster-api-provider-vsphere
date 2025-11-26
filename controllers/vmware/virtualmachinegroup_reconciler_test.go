@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/vmoperator"
 )
 
 func Test_shouldCreateVirtualMachineGroup(t *testing.T) {
@@ -248,7 +249,7 @@ func Test_getMachineDeploymentToFailureDomainMapping(t *testing.T) {
 			existingVMG: &vmoprv1.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, "md1"): "zone1", // Previously md1 was assigned to zone1
+						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md1"): "zone1", // Previously md1 was assigned to zone1
 					},
 				},
 			},
@@ -265,7 +266,7 @@ func Test_getMachineDeploymentToFailureDomainMapping(t *testing.T) {
 			existingVMG: &vmoprv1.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, "md1"): "zone1", // Placement decision for md1 already reported into annotation
+						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md1"): "zone1", // Placement decision for md1 already reported into annotation
 					},
 				},
 				Status: vmoprv1.VirtualMachineGroupStatus{
@@ -425,8 +426,20 @@ func TestVirtualMachineGroupReconciler_computeVirtualMachineGroup(t *testing.T) 
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: cluster.Namespace,
 					Name:      cluster.Name,
+					Labels: map[string]string{
+						clusterv1.ClusterNameLabel: cluster.Name,
+					},
 					Annotations: map[string]string{
-						fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, "md3"): "zone1", // failureDomain for md3 is explicitly set by the user
+						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md3"): "zone1", // failureDomain for md3 is explicitly set by the user
+					},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: clusterv1.GroupVersion.String(),
+							Kind:       "Cluster",
+							Name:       cluster.Name,
+							UID:        cluster.UID,
+							Controller: ptr.To(true),
+						},
 					},
 				},
 				Spec: vmoprv1.VirtualMachineGroupSpec{
@@ -464,8 +477,20 @@ func TestVirtualMachineGroupReconciler_computeVirtualMachineGroup(t *testing.T) 
 					Namespace: cluster.Namespace,
 					Name:      cluster.Name,
 					UID:       types.UID("uid"),
+					Labels: map[string]string{
+						clusterv1.ClusterNameLabel: cluster.Name,
+					},
 					Annotations: map[string]string{
-						fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, "md3"): "zone1", // failureDomain for md3 is explicitly set by the user
+						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md3"): "zone1", // failureDomain for md3 is explicitly set by the user
+					},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: clusterv1.GroupVersion.String(),
+							Kind:       "Cluster",
+							Name:       cluster.Name,
+							UID:        cluster.UID,
+							Controller: ptr.To(true),
+						},
 					},
 				},
 				Spec: vmoprv1.VirtualMachineGroupSpec{
@@ -488,9 +513,21 @@ func TestVirtualMachineGroupReconciler_computeVirtualMachineGroup(t *testing.T) 
 					Namespace: cluster.Namespace,
 					Name:      cluster.Name,
 					UID:       types.UID("uid"),
+					Labels: map[string]string{
+						clusterv1.ClusterNameLabel: cluster.Name,
+					},
 					Annotations: map[string]string{
-						fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, "md3"): "zone1", // failureDomain for md3 is explicitly set by the user
-						fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, "md4"): "zone2", // failureDomain for md4 is explicitly set by the user
+						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md3"): "zone1", // failureDomain for md3 is explicitly set by the user
+						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md4"): "zone2", // failureDomain for md4 is explicitly set by the user
+					},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: clusterv1.GroupVersion.String(),
+							Kind:       "Cluster",
+							Name:       cluster.Name,
+							UID:        cluster.UID,
+							Controller: ptr.To(true),
+						},
 					},
 				},
 				Spec: vmoprv1.VirtualMachineGroupSpec{
@@ -531,10 +568,22 @@ func TestVirtualMachineGroupReconciler_computeVirtualMachineGroup(t *testing.T) 
 					Namespace: cluster.Namespace,
 					Name:      cluster.Name,
 					UID:       types.UID("uid"),
+					Labels: map[string]string{
+						clusterv1.ClusterNameLabel: cluster.Name,
+					},
 					Annotations: map[string]string{
-						fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, "md1"): "zone4", // failureDomain for md1 set by initial placement
-						fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, "md2"): "zone5", // failureDomain for md2 set by initial placement
-						fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, "md3"): "zone1", // failureDomain for md3 is explicitly set by the user
+						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md1"): "zone4", // failureDomain for md1 set by initial placement
+						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md2"): "zone5", // failureDomain for md2 set by initial placement
+						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md3"): "zone1", // failureDomain for md3 is explicitly set by the user
+					},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: clusterv1.GroupVersion.String(),
+							Kind:       "Cluster",
+							Name:       cluster.Name,
+							UID:        cluster.UID,
+							Controller: ptr.To(true),
+						},
 					},
 				},
 				Spec: vmoprv1.VirtualMachineGroupSpec{
@@ -557,11 +606,23 @@ func TestVirtualMachineGroupReconciler_computeVirtualMachineGroup(t *testing.T) 
 					Namespace: cluster.Namespace,
 					Name:      cluster.Name,
 					UID:       types.UID("uid"),
+					Labels: map[string]string{
+						clusterv1.ClusterNameLabel: cluster.Name,
+					},
 					Annotations: map[string]string{
-						fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, "md1"): "zone4", // failureDomain for md1 set by initial placement
+						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md1"): "zone4", // failureDomain for md1 set by initial placement
 						// annotation for md2 deleted, md2 does not exist anymore
-						fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, "md3"): "zone1", // failureDomain for md3 is explicitly set by the user
-						fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, "md4"): "zone2", // failureDomain for md4 is explicitly set by the user
+						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md3"): "zone1", // failureDomain for md3 is explicitly set by the user
+						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md4"): "zone2", // failureDomain for md4 is explicitly set by the user
+					},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: clusterv1.GroupVersion.String(),
+							Kind:       "Cluster",
+							Name:       cluster.Name,
+							UID:        cluster.UID,
+							Controller: ptr.To(true),
+						},
 					},
 				},
 				Spec: vmoprv1.VirtualMachineGroupSpec{
@@ -692,8 +753,9 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 					Name:      clusterInitialized.Name,
 					UID:       types.UID("uid"),
 					Annotations: map[string]string{
-						fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, "md2"): "zone1", // failureDomain for md2 is explicitly set by the user
+						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md2"): "zone1", // failureDomain for md2 is explicitly set by the user
 					},
+					// Not setting labels and ownerReferences for sake of simplicity
 				},
 				Spec: vmoprv1.VirtualMachineGroupSpec{
 					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
@@ -1406,8 +1468,9 @@ func TestVirtualMachineGroupReconciler_ReconcileFlow(t *testing.T) {
 					Name:      clusterInitialized.Name,
 					UID:       types.UID("uid"),
 					Annotations: map[string]string{
-						fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, "md2"): "zone1", // failureDomain for md2 is explicitly set by the user
+						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md2"): "zone1", // failureDomain for md2 is explicitly set by the user
 					},
+					// Not setting labels and ownerReferences for sake of simplicity
 				},
 				Spec: vmoprv1.VirtualMachineGroupSpec{
 					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
@@ -1428,8 +1491,9 @@ func TestVirtualMachineGroupReconciler_ReconcileFlow(t *testing.T) {
 					Name:      clusterInitialized.Name,
 					UID:       types.UID("uid"),
 					Annotations: map[string]string{
-						fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, "md2"): "zone1", // failureDomain for md2 is explicitly set by the user
+						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md2"): "zone1", // failureDomain for md2 is explicitly set by the user
 					},
+					// Not setting labels and ownerReferences for sake of simplicity
 				},
 				Spec: vmoprv1.VirtualMachineGroupSpec{
 					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
@@ -1640,8 +1704,9 @@ func newCluster(name, namespace string, initialized bool, replicasMD1, replicasM
 					Name:      clusterInitialized.Name,
 					UID:       types.UID("uid"),
 					Annotations: map[string]string{
-						fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, "md2"): "zone1", // failureDomain for md2 is explicitly set by the user
+						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md2"): "zone1", // failureDomain for md2 is explicitly set by the user
 					},
+					// Not setting labels and ownerReferences for sake of simplicity
 				},
 				Spec: vmoprv1.VirtualMachineGroupSpec{
 					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
@@ -1662,9 +1727,10 @@ func newCluster(name, namespace string, initialized bool, replicasMD1, replicasM
 					Name:      clusterInitialized.Name,
 					UID:       types.UID("uid"),
 					Annotations: map[string]string{
-						fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, "md2"): "zone1", // failureDomain for md2 is explicitly set by the user
-						fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, "md4"): "zone2", // failureDomain for md4 is explicitly set by the user
+						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md2"): "zone1", // failureDomain for md2 is explicitly set by the user
+						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md4"): "zone2", // failureDomain for md4 is explicitly set by the user
 					},
+					// Not setting labels and ownerReferences for sake of simplicity
 				},
 				Spec: vmoprv1.VirtualMachineGroupSpec{
 					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
@@ -1708,9 +1774,10 @@ func newCluster(name, namespace string, initialized bool, replicasMD1, replicasM
 					Name:      clusterInitialized.Name,
 					UID:       types.UID("uid"),
 					Annotations: map[string]string{
-						fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, "md2"): "zone1", // failureDomain for md2 is explicitly set by the user
-						fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, "md4"): "zone2", // failureDomain for md4 is explicitly set by the user
+						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md2"): "zone1", // failureDomain for md2 is explicitly set by the user
+						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md4"): "zone2", // failureDomain for md4 is explicitly set by the user
 					},
+					// Not setting labels and ownerReferences for sake of simplicity
 				},
 				Spec: vmoprv1.VirtualMachineGroupSpec{
 					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
@@ -1735,9 +1802,10 @@ func newCluster(name, namespace string, initialized bool, replicasMD1, replicasM
 					Name:      clusterInitialized.Name,
 					UID:       types.UID("uid"),
 					Annotations: map[string]string{
-						fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, "md2"): "zone1", // failureDomain for md2 is explicitly set by the user
+						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md2"): "zone1", // failureDomain for md2 is explicitly set by the user
 						// md4 deleted
 					},
+					// Not setting labels and ownerReferences for sake of simplicity
 				},
 				Spec: vmoprv1.VirtualMachineGroupSpec{
 					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
@@ -1776,9 +1844,10 @@ func newCluster(name, namespace string, initialized bool, replicasMD1, replicasM
 					Name:      clusterInitialized.Name,
 					UID:       types.UID("uid"),
 					Annotations: map[string]string{
-						fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, "md1"): "zone4", // failureDomain for md1 set by initial placement
-						fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, "md2"): "zone1", // failureDomain for md2 is explicitly set by the user
+						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md1"): "zone4", // failureDomain for md1 set by initial placement
+						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md2"): "zone1", // failureDomain for md2 is explicitly set by the user
 					},
+					// Not setting labels and ownerReferences for sake of simplicity
 				},
 				Spec: vmoprv1.VirtualMachineGroupSpec{
 					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
@@ -1800,9 +1869,10 @@ func newCluster(name, namespace string, initialized bool, replicasMD1, replicasM
 					Name:      clusterInitialized.Name,
 					UID:       types.UID("uid"),
 					Annotations: map[string]string{
-						fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, "md1"): "zone4", // failureDomain for md1 set by initial placement
-						fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, "md2"): "zone1", // failureDomain for md2 is explicitly set by the user
+						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md1"): "zone4", // failureDomain for md1 set by initial placement
+						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md2"): "zone1", // failureDomain for md2 is explicitly set by the user
 					},
+					// Not setting labels and ownerReferences for sake of simplicity
 				},
 				Spec: vmoprv1.VirtualMachineGroupSpec{
 					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
@@ -1840,9 +1910,10 @@ func newCluster(name, namespace string, initialized bool, replicasMD1, replicasM
 					Name:      clusterInitialized.Name,
 					UID:       types.UID("uid"),
 					Annotations: map[string]string{
-						fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, "md1"): "zone4", // failureDomain for md1 set by initial placement
-						fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, "md2"): "zone1", // failureDomain for md2 is explicitly set by the user
+						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md1"): "zone4", // failureDomain for md1 set by initial placement
+						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md2"): "zone1", // failureDomain for md2 is explicitly set by the user
 					},
+					// Not setting labels and ownerReferences for sake of simplicity
 				},
 				Spec: vmoprv1.VirtualMachineGroupSpec{
 					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
@@ -1864,10 +1935,11 @@ func newCluster(name, namespace string, initialized bool, replicasMD1, replicasM
 					Name:      clusterInitialized.Name,
 					UID:       types.UID("uid"),
 					Annotations: map[string]string{
-						fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, "md1"): "zone4", // failureDomain for md1 set by initial placement
-						fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, "md2"): "zone1", // failureDomain for md2 is explicitly set by the user
-						fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, "md3"): "zone2", // failureDomain for md3 is explicitly set by the user
+						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md1"): "zone4", // failureDomain for md1 set by initial placement
+						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md2"): "zone1", // failureDomain for md2 is explicitly set by the user
+						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md3"): "zone2", // failureDomain for md3 is explicitly set by the user
 					},
+					// Not setting labels and ownerReferences for sake of simplicity
 				},
 				Spec: vmoprv1.VirtualMachineGroupSpec{
 					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
@@ -1907,10 +1979,11 @@ func newCluster(name, namespace string, initialized bool, replicasMD1, replicasM
 					Name:      clusterInitialized.Name,
 					UID:       types.UID("uid"),
 					Annotations: map[string]string{
-						fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, "md1"): "zone4", // failureDomain for md1 set by initial placement
-						fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, "md2"): "zone1", // failureDomain for md2 is explicitly set by the user
-						fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, "md3"): "zone2", // failureDomain for md3 is explicitly set by the user
+						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md1"): "zone4", // failureDomain for md1 set by initial placement
+						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md2"): "zone1", // failureDomain for md2 is explicitly set by the user
+						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md3"): "zone2", // failureDomain for md3 is explicitly set by the user
 					},
+					// Not setting labels and ownerReferences for sake of simplicity
 				},
 				Spec: vmoprv1.VirtualMachineGroupSpec{
 					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
@@ -1935,10 +2008,11 @@ func newCluster(name, namespace string, initialized bool, replicasMD1, replicasM
 					Name:      clusterInitialized.Name,
 					UID:       types.UID("uid"),
 					Annotations: map[string]string{
-						fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, "md1"): "zone4", // failureDomain for md1 set by initial placement
-						fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, "md2"): "zone1", // failureDomain for md2 is explicitly set by the user
+						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md1"): "zone4", // failureDomain for md1 set by initial placement
+						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md2"): "zone1", // failureDomain for md2 is explicitly set by the user
 						// md3 deleted
 					},
+					// Not setting labels and ownerReferences for sake of simplicity
 				},
 				Spec: vmoprv1.VirtualMachineGroupSpec{
 					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
@@ -1989,6 +2063,14 @@ func newCluster(name, namespace string, initialized bool, replicasMD1, replicasM
 			}
 
 			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(vmg.Labels).To(HaveKeyWithValue(clusterv1.ClusterNameLabel, tt.cluster.Name))
+			g.Expect(vmg.OwnerReferences).To(ContainElement(metav1.OwnerReference{
+				APIVersion: clusterv1.GroupVersion.String(),
+				Kind:       "Cluster",
+				Name:       tt.cluster.Name,
+				UID:        tt.cluster.UID,
+				Controller: ptr.To(true),
+			}))
 			g.Expect(vmg.Annotations).To(Equal(tt.wantVMG.Annotations))
 			g.Expect(vmg.Spec.BootOrder).To(Equal(tt.wantVMG.Spec.BootOrder))
 		})

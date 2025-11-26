@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"sort"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -33,6 +34,7 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -105,6 +107,8 @@ func (r *VirtualMachineGroupReconciler) Reconcile(ctx context.Context, req ctrl.
 }
 
 func (r *VirtualMachineGroupReconciler) reconcileNormal(ctx context.Context, cluster *clusterv1.Cluster) (reconcile.Result, error) {
+	log := ctrl.LoggerFrom(ctx)
+
 	// Get all the data required for computing the desired VMG.
 	currentVMG, err := r.getVirtualMachineGroup(ctx, cluster)
 	if err != nil {
@@ -139,7 +143,7 @@ func (r *VirtualMachineGroupReconciler) reconcileNormal(ctx context.Context, clu
 			return reconcile.Result{}, err
 		}
 
-		// FIXME: Log. Details? (add k/v pair for first 50 VM names + ... if necessary)
+		log.Info("Creating VirtualMachineGroup", "members", nameList(memberNames(newVMG)))
 		if err := r.Client.Create(ctx, newVMG); err != nil {
 			return reconcile.Result{}, errors.Wrapf(err, "failed to create new VMG")
 		}
@@ -164,7 +168,14 @@ func (r *VirtualMachineGroupReconciler) reconcileNormal(ctx context.Context, clu
 		return reconcile.Result{}, err
 	}
 
-	// FIXME: Log. Diff? Details? delta VM names
+	existingVirtualMachineNames := sets.New[string](memberNames(currentVMG)...)
+	updatedVirtualMachineNames := sets.New[string](memberNames(updatedVMG)...)
+
+	addedVirtualMachineNames := updatedVirtualMachineNames.Difference(existingVirtualMachineNames)
+	deletedVirtualMachineNames := existingVirtualMachineNames.Difference(updatedVirtualMachineNames)
+	if addedVirtualMachineNames.Len() > 0 || deletedVirtualMachineNames.Len() > 0 {
+		log.Info("Updating VirtualMachineGroup", "addedMembers", nameList(addedVirtualMachineNames.UnsortedList()), "deletedMembers", nameList(deletedVirtualMachineNames.UnsortedList()))
+	}
 	if err := r.Client.Patch(ctx, updatedVMG, client.MergeFromWithOptions(currentVMG, client.MergeFromWithOptimisticLock{})); err != nil {
 		return reconcile.Result{}, errors.Wrapf(err, "failed to patch VMG")
 	}
@@ -179,7 +190,7 @@ func computeVirtualMachineGroup(ctx context.Context, cluster *clusterv1.Cluster,
 			Name:        cluster.Name,
 			Namespace:   cluster.Namespace,
 			Annotations: map[string]string{},
-		}, // FIXME: looks like we lost the ownerRef and the ClusterNameLabel
+		},
 	}
 
 	// If there is an VirtualMachineGroup, clone it into the desired VirtualMachineGroup
@@ -194,6 +205,19 @@ func computeVirtualMachineGroup(ctx context.Context, cluster *clusterv1.Cluster,
 		}
 	}
 	vmg.Spec.BootOrder = []vmoprv1.VirtualMachineGroupBootOrderGroup{{}}
+
+	// Add cluster label and ownerReference to the cluster.
+	if vmg.Labels == nil {
+		vmg.Labels = map[string]string{}
+	}
+	vmg.Labels[clusterv1.ClusterNameLabel] = cluster.Name
+	vmg.OwnerReferences = util.EnsureOwnerRef(vmg.OwnerReferences, metav1.OwnerReference{
+		APIVersion: clusterv1.GroupVersion.String(),
+		Kind:       "Cluster",
+		Name:       cluster.Name,
+		UID:        cluster.UID,
+		Controller: ptr.To(true),
+	})
 
 	// Compute the info required to compute the VirtualMachineGroup.
 
@@ -242,13 +266,7 @@ func computeVirtualMachineGroup(ctx context.Context, cluster *clusterv1.Cluster,
 	// sake of consistency, but those Machines will be placed in the same failureDomain
 	// already used for the other VirtualMachines in the same MachineDeployment (new VirtualMachine
 	// will align to the initial placement decision).
-
-	existingVirtualMachineNames := sets.New[string]()
-	if len(existingVMG.Spec.BootOrder) > 0 {
-		for _, member := range existingVMG.Spec.BootOrder[0].Members {
-			existingVirtualMachineNames.Insert(member.Name)
-		}
-	}
+	existingVirtualMachineNames := sets.New[string](memberNames(existingVMG)...)
 
 	for _, virtualMachineName := range sortedVirtualMachineNames {
 		// If a VirtualMachine is already part of the VirtualMachineGroup, keep it in the VirtualMachineGroup
@@ -290,7 +308,9 @@ func computeVirtualMachineGroup(ctx context.Context, cluster *clusterv1.Cluster,
 //
 // Note: In case the failure domain is explicitly assigned by setting spec.template.spec.failureDomain, the mapping always
 // report the latest value for this field (even if there might still be Machines yet to be rolled out to the new failure domain).
-func getMachineDeploymentToFailureDomainMapping(_ context.Context, mds []clusterv1.MachineDeployment, existingVMG *vmoprv1.VirtualMachineGroup, virtualMachineNameToMachineDeployment map[string]string) map[string]string {
+func getMachineDeploymentToFailureDomainMapping(ctx context.Context, mds []clusterv1.MachineDeployment, existingVMG *vmoprv1.VirtualMachineGroup, virtualMachineNameToMachineDeployment map[string]string) map[string]string {
+	log := ctrl.LoggerFrom(ctx)
+
 	machineDeploymentToFailureDomainMapping := map[string]string{}
 	for _, md := range mds {
 		if !md.DeletionTimestamp.IsZero() {
@@ -333,7 +353,7 @@ func getMachineDeploymentToFailureDomainMapping(_ context.Context, mds []cluster
 				continue
 			}
 			if member.Placement != nil && member.Placement.Zone != "" {
-				// FIXME: log
+				log.Info(fmt.Sprintf("MachineDeployment %s has been placed to failure domanin %s", md.Name, member.Placement.Zone), "MachineDeployment", klog.KObj(&md))
 				machineDeploymentToFailureDomainMapping[md.Name] = member.Placement.Zone
 				break
 			}
@@ -371,10 +391,13 @@ func shouldCreateVirtualMachineGroup(ctx context.Context, mds []clusterv1.Machin
 	// Gets the total number or worker machines that should exist in the cluster at a given time.
 	// Note. Deleting MachineDeployment are ignored.
 	var expectedVSphereMachineCount int32
+	mdNames := sets.Set[string]{}
 	for _, md := range mds {
-		if md.DeletionTimestamp.IsZero() {
-			expectedVSphereMachineCount += ptr.Deref(md.Spec.Replicas, 0)
+		if !md.DeletionTimestamp.IsZero() {
+			continue
 		}
+		expectedVSphereMachineCount += ptr.Deref(md.Spec.Replicas, 0)
+		mdNames.Insert(md.Name)
 	}
 
 	// In case there are no MachineDeployments or all the MachineDeployments have zero replicas, there is
@@ -383,15 +406,26 @@ func shouldCreateVirtualMachineGroup(ctx context.Context, mds []clusterv1.Machin
 		return false
 	}
 
-	// filter down VSphereMachines to the non-deleting MDs
+	// Filter down VSphereMachines to the ones belonging to the MachineDeployment considered above.
+	// Note: if at least one of those VSphereMachines is deleting, wait for the deletion to complete.
+	currentVSphereMachineCount := int32(0)
+	for _, vSphereMachine := range vSphereMachines {
+		md := vSphereMachine.Labels[clusterv1.MachineDeploymentNameLabel]
+		if !mdNames.Has(md) {
+			continue
+		}
 
-	// => if any of these VSphereMachines deleting => return false
+		if !vSphereMachine.DeletionTimestamp.IsZero() {
+			log.Info("Waiting for VSphereMachines required for the initial placement to be deleted")
+			return false
+		}
+
+		currentVSphereMachineCount++
+	}
 
 	// If the number of workers VSphereMachines matches the number of expected replicas in the MachineDeployments,
 	// then all the VSphereMachines required for the initial placement decision do exist, then it is possible to create
 	// the VirtualMachineGroup.
-	// FIXME: we should probably include in the count only machines for MD included above (otherwise machines from deleting MS might lead to false positives / negatives
-	currentVSphereMachineCount := int32(len(vSphereMachines))
 	if currentVSphereMachineCount != expectedVSphereMachineCount {
 		log.Info(fmt.Sprintf("Waiting for VSphereMachines required for the initial placement (expected %d, current %d)", expectedVSphereMachineCount, currentVSphereMachineCount))
 		return false
@@ -431,4 +465,24 @@ func (r *VirtualMachineGroupReconciler) getMachineDeployments(ctx context.Contex
 		return nil, errors.Wrap(err, "failed to list MachineDeployments")
 	}
 	return machineDeployments.Items, nil
+}
+
+func memberNames(vmg *vmoprv1.VirtualMachineGroup) []string {
+	names := []string{}
+	if len(vmg.Spec.BootOrder) > 0 {
+		for _, member := range vmg.Spec.BootOrder[0].Members {
+			names = append(names, member.Name)
+		}
+	}
+	return names
+}
+
+func nameList(names []string) string {
+	sort.Strings(names)
+	switch {
+	case len(names) <= 20:
+		return strings.Join(names, ", ")
+	default:
+		return fmt.Sprintf("%s, ... (%d more)", strings.Join(names[:20], ", "), len(names)-20)
+	}
 }

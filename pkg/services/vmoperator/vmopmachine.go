@@ -224,22 +224,26 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 			Name:      supervisorMachineCtx.Cluster.Name,
 		}
 		err := v.Client.Get(ctx, key, vmGroup)
+
+		// The VirtualMachineGroup controller is going to create the vmg only when all the machines required for the placement
+		// decision exist. If the vmg does not exist yet, requeue.
 		if err != nil {
 			if !apierrors.IsNotFound(err) {
 				return false, err
 			}
 
 			v1beta2conditions.Set(supervisorMachineCtx.VSphereMachine, metav1.Condition{
-				Type:   infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
-				Status: metav1.ConditionFalse,
-				Reason: infrav1.VSphereMachineVirtualMachineWaitingForVirtualMachineGroupV1Beta2Reason,
-				// FIXME: we should provide more details about this case in the message (vs other cases where we set this reason)
+				Type:    infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  infrav1.VSphereMachineVirtualMachineWaitingForVirtualMachineGroupV1Beta2Reason,
+				Message: "Waiting for all the VSphereMachine's VMGroup required for the placement decision to exist",
 			})
 			log.V(4).Info(fmt.Sprintf("Waiting for VirtualMachineGroup %s, requeueing", key.Name), "VirtualMachineGroup", klog.KRef(key.Namespace, key.Name))
 			return true, nil
 		}
 
-		// Proceed only if the VSphereMachine is a member of the VirtualMachineGroup.
+		// The VirtualMachineGroup controller is going to add a VM in the vmg only when the creation of this
+		// VM does not impact the placement decision. If the VM is not yet included in the member list, requeue.
 		isMember := v.checkVirtualMachineGroupMembership(vmGroup, vmKey.Name)
 		if !isMember {
 			v1beta2conditions.Set(supervisorMachineCtx.VSphereMachine, metav1.Condition{
@@ -951,14 +955,11 @@ func getVMLabels(supervisorMachineCtx *vmware.SupervisorMachineContext, vmLabels
 		vmLabels[k] = v
 	}
 
-	// FIXME:
-	//  if the zone label is set, it should be immutable
-	//  failure domain from machine should be used if set to set the zone label
-	//  if failure domain from machine is not set, use the failure domain from VMG annotation
-
 	// Set the labels that determine the VM's placement.
 	// Note: if the failureDomain is not set, auto placement will happen according to affinity rules on VM during initial Cluster creation.
 	// For VM created during day-2 operation like scaling up, we should expect the failureDomain to be always set.
+	// Note: It is important that the value zone label is set on a vm must never change once it is set,
+	// because the zone in the VirtualMachineGroup might change in case this info is derived from spec.template.spec.failureDomain.
 	var failureDomain string
 	if affinityInfo != nil && affinityInfo.failureDomain != "" {
 		failureDomain = affinityInfo.failureDomain

@@ -8,15 +8,15 @@ replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.12.1
 
 replace sigs.k8s.io/cluster-api-provider-vsphere => ../
 
-replace github.com/vmware-tanzu/vm-operator/pkg/constants/testlabels => github.com/vmware-tanzu/vm-operator/pkg/constants/testlabels v1.9.1-0.20251003150112-9b458d311c4c
+replace github.com/vmware-tanzu/vm-operator/pkg/constants/testlabels => github.com/vmware-tanzu/vm-operator/pkg/constants/testlabels v1.9.1-0.20251029150609-93918c59a719
 
 // The version of vm-operator should be kept in sync with the manifests at: config/deployments/integration-tests
-replace github.com/vmware-tanzu/vm-operator/api => github.com/vmware-tanzu/vm-operator/api v1.9.1-0.20251003150112-9b458d311c4c
+replace github.com/vmware-tanzu/vm-operator/api => github.com/vmware-tanzu/vm-operator/api v1.9.1-0.20251029150609-93918c59a719
 
 require (
 	github.com/vmware-tanzu/net-operator-api v0.0.0-20240326163340-1f32d6bf7f9d
 	// The version of vm-operator should be kept in sync with the manifests at: config/deployments/integration-tests
-	github.com/vmware-tanzu/vm-operator/api v1.9.1-0.20251003150112-9b458d311c4c
+	github.com/vmware-tanzu/vm-operator/api v1.9.1-0.20251029150609-93918c59a719
 	github.com/vmware/govmomi v0.52.0
 )
 

@@ -135,8 +135,8 @@ github.com/vmware-tanzu/net-operator-api v0.0.0-20240326163340-1f32d6bf7f9d h1:c
 github.com/vmware-tanzu/net-operator-api v0.0.0-20240326163340-1f32d6bf7f9d/go.mod h1:JbFOh22iDsT5BowJe0GgpMI5e2/S7cWaJlv9LdURVQM=
 github.com/vmware-tanzu/nsx-operator/pkg/apis v0.0.0-20241112044858-9da8637c1b0d h1:z9lrzKVtNlujduv9BilzPxuge/LE2F0N1ms3TP4JZvw=
 github.com/vmware-tanzu/nsx-operator/pkg/apis v0.0.0-20241112044858-9da8637c1b0d/go.mod h1:Q4JzNkNMvjo7pXtlB5/R3oME4Nhah7fAObWgghVmtxk=
-github.com/vmware-tanzu/vm-operator/api v1.9.1-0.20251003150112-9b458d311c4c h1:XISTT0dw/XwMlyyiOPHPsXCxfI1Ro2Zuozi6eIacXGo=
-github.com/vmware-tanzu/vm-operator/api v1.9.1-0.20251003150112-9b458d311c4c/go.mod h1:nWTPpxfe4gHuuYuFcrs86+NMxfkqPk3a3IlvI8TCWak=
+github.com/vmware-tanzu/vm-operator/api v1.9.1-0.20251029150609-93918c59a719 h1:nb/5ytRj7E/5eo9UzLfaR29JytMtbGpqMVs3hjaRwZ0=
+github.com/vmware-tanzu/vm-operator/api v1.9.1-0.20251029150609-93918c59a719/go.mod h1:nWTPpxfe4gHuuYuFcrs86+NMxfkqPk3a3IlvI8TCWak=
 github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20240404200847-de75746a9505 h1:y4wXx1FUFqqSgJ/xUOEM1DLS2Uu0KaeLADWpzpioGTU=
 github.com/vmware-tanzu/vm-operator/external/ncp v0.0.0-20240404200847-de75746a9505/go.mod h1:5rqRJ9zGR+KnKbkGx373WgN8xJpvAj99kHnfoDYRO5I=
 github.com/vmware/govmomi v0.52.0 h1:JyxQ1IQdllrY7PJbv2am9mRsv3p9xWlIQ66bv+XnyLw=

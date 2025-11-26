@@ -42,11 +42,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/vmoperator"
 )
 
-const (
-	// ZoneAnnotationPrefix is the prefix used for placement decision annotations which will be set on VirtualMachineGroup.
-	ZoneAnnotationPrefix = "zone.vmware.infrastructure.cluster.x-k8s.io"
-)
-
 // VirtualMachineGroupReconciler reconciles VirtualMachineGroup.
 type VirtualMachineGroupReconciler struct {
 	Client   client.Client
@@ -91,7 +86,7 @@ func (r *VirtualMachineGroupReconciler) Reconcile(ctx context.Context, req ctrl.
 	}
 
 	// Note: VirtualMachineGroup is going to have same name and namespace of the cluster.
-	// Using cluster here, because VirtualMachineGroup is created only after initial placement completes.
+	// Using cluster here, because VirtualMachineGroup is created only once we are ready.
 	log = log.WithValues("VirtualMachineGroup", klog.KObj(cluster))
 	ctx = ctrl.LoggerInto(ctx, log)
 
@@ -100,7 +95,7 @@ func (r *VirtualMachineGroupReconciler) Reconcile(ctx context.Context, req ctrl.
 		return reconcile.Result{}, nil
 	}
 
-	// If ControlPlane haven't initialized, requeue it since CAPV will only start to reconcile VSphereMachines of
+	// If ControlPlane haven't initialized, return since CAPV will only start to reconcile VSphereMachines of
 	// MachineDeployment after ControlPlane is initialized.
 	if !conditions.IsTrue(cluster, clusterv1.ClusterControlPlaneInitializedCondition) {
 		return reconcile.Result{}, nil
@@ -109,7 +104,6 @@ func (r *VirtualMachineGroupReconciler) Reconcile(ctx context.Context, req ctrl.
 	return r.reconcileNormal(ctx, cluster)
 }
 
-// createOrUpdateVirtualMachineGroup Create or Update VirtualMachineGroup.
 func (r *VirtualMachineGroupReconciler) reconcileNormal(ctx context.Context, cluster *clusterv1.Cluster) (reconcile.Result, error) {
 	// Get all the data required for computing the desired VMG.
 	currentVMG, err := r.getVirtualMachineGroup(ctx, cluster)
@@ -130,8 +124,8 @@ func (r *VirtualMachineGroupReconciler) reconcileNormal(ctx context.Context, clu
 		// VirtualMachineGroup creation starts the initial placement process that should take care
 		// of spreading VSphereMachines across failure domains in an ideal way / according to user intent.
 		// The initial placement can be performed only when all the VSphereMachines to be considered for the
-		// placement decision exists; if this condition is not met, return (watches will trigger new
-		// reconcile whenever new VSphereMachines are created).
+		// placement decision exist. If this condition is not met, return (watches will trigger new
+		// reconciles whenever new VSphereMachines are created).
 		// Note: In case there are no MachineDeployments, or all the MachineDeployments have zero replicas,
 		// no placement decision is required, and thus no VirtualMachineGroup will be created.
 		if !shouldCreateVirtualMachineGroup(ctx, machineDeployments, vSphereMachines) {
@@ -145,19 +139,19 @@ func (r *VirtualMachineGroupReconciler) reconcileNormal(ctx context.Context, clu
 			return reconcile.Result{}, err
 		}
 
-		// FIXME: Log. Details?
+		// FIXME: Log. Details? (add k/v pair for first 50 VM names + ... if necessary)
 		if err := r.Client.Create(ctx, newVMG); err != nil {
 			return reconcile.Result{}, errors.Wrapf(err, "failed to create new VMG")
 		}
 		return reconcile.Result{}, nil
 	}
 
-	// If the VirtualMachineGroup exist, either the placement decision is being performed, or
-	// the placement decision has been already completed. In both cases, the VirtualMachineGroup
-	// must be keep up to date with the changes that happens to MachineDeployments and vSphereMachines.
+	// If the VirtualMachineGroup exists, either the initial placement is in progress or
+	// the initial placement has been already completed. In both cases, the VirtualMachineGroup
+	// must be kept up to date with the changes that happen to MachineDeployments and vSphereMachines.
 	//
-	// However, while the initial placement decision is being performed, the addition of new
-	// vSphereMachines to the VirtualMachineGroup must be deferred to prevent race conditions.
+	// However, while the initial placement is in progress, the addition of new
+	// VSphereMachines to the VirtualMachineGroup must be deferred to prevent race conditions.
 	//
 	// After initial placement, new vSphereMachines will be added to the VirtualMachineGroup for
 	// sake of consistency, but those machines will be placed in the same failureDomain
@@ -170,7 +164,7 @@ func (r *VirtualMachineGroupReconciler) reconcileNormal(ctx context.Context, clu
 		return reconcile.Result{}, err
 	}
 
-	// FIXME: Log. Diff? Details?
+	// FIXME: Log. Diff? Details? delta VM names
 	if err := r.Client.Patch(ctx, updatedVMG, client.MergeFromWithOptions(currentVMG, client.MergeFromWithOptimisticLock{})); err != nil {
 		return reconcile.Result{}, errors.Wrapf(err, "failed to patch VMG")
 	}
@@ -185,7 +179,7 @@ func computeVirtualMachineGroup(ctx context.Context, cluster *clusterv1.Cluster,
 			Name:        cluster.Name,
 			Namespace:   cluster.Namespace,
 			Annotations: map[string]string{},
-		},
+		}, // FIXME: looks like we lost the ownerRef and the ClusterNameLabel
 	}
 
 	// If there is an VirtualMachineGroup, clone it into the desired VirtualMachineGroup
@@ -194,7 +188,7 @@ func computeVirtualMachineGroup(ctx context.Context, cluster *clusterv1.Cluster,
 		vmg = existingVMG.DeepCopy()
 		vmg.Annotations = make(map[string]string)
 		for key, value := range existingVMG.Annotations {
-			if !strings.HasPrefix(key, ZoneAnnotationPrefix+"/") {
+			if !strings.HasPrefix(key, vmoperator.ZoneAnnotationPrefix+"/") {
 				vmg.Annotations[key] = value
 			}
 		}
@@ -203,14 +197,14 @@ func computeVirtualMachineGroup(ctx context.Context, cluster *clusterv1.Cluster,
 
 	// Compute the info required to compute the VirtualMachineGroup.
 
-	// Get the mapping between the virtualMachine name that will be generated by a vSphereMachine
+	// Get the mapping between the VirtualMachine name that will be generated from a VSphereMachine
 	// and the MachineDeployment that controls the vSphereMachine.
 	virtualMachineNameToMachineDeployment, err := getVirtualMachineNameToMachineDeploymentMapping(ctx, vSphereMachines)
 	if err != nil {
 		return nil, err
 	}
 
-	// Sort virtualMachine names to ensure VirtualMachineGroup is generated in a consistent way across reconcile.
+	// Sort VirtualMachine names to ensure VirtualMachineGroup is generated in a consistent way across reconciles.
 	sortedVirtualMachineNames := slices.Sorted(maps.Keys(virtualMachineNameToMachineDeployment))
 
 	// Get the mapping between the MachineDeployment and failure domain, which is one of:
@@ -223,7 +217,7 @@ func computeVirtualMachineGroup(ctx context.Context, cluster *clusterv1.Cluster,
 	// placement decision for each MachineDeployment.
 	// Note: when a MachineDeployment will be deleted, the corresponding annotation will be removed (not added anymore by this func).
 	for md, failureDomain := range machineDeploymentToFailureDomain {
-		vmg.Annotations[fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, md)] = failureDomain
+		vmg.Annotations[fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, md)] = failureDomain
 	}
 
 	// Compute the list of Members for the VirtualMachineGroup.
@@ -240,13 +234,13 @@ func computeVirtualMachineGroup(ctx context.Context, cluster *clusterv1.Cluster,
 		return vmg, nil
 	}
 
-	// If the VirtualMachineGroup exists, keep this list of VirtualMachine up to date.
-	// Note: while the initial placement decision is being performed, the addition of new
-	// VirtualMachine to the VirtualMachineGroup must be deferred to prevent race conditions.
+	// If the VirtualMachineGroup exists, keep the list of VirtualMachines up to date.
+	// Note: while the initial placement is in progress, the addition of new
+	// VirtualMachines to the VirtualMachineGroup must be deferred to prevent race conditions.
 	//
 	// After initial placement, new VirtualMachine will be added to the VirtualMachineGroup for
-	// sake of consistency, but those machines will be placed in the same failureDomain
-	// already used for the other VirtualMachine in the same MachineDeployment (new VirtualMachine
+	// sake of consistency, but those Machines will be placed in the same failureDomain
+	// already used for the other VirtualMachines in the same MachineDeployment (new VirtualMachine
 	// will align to the initial placement decision).
 
 	existingVirtualMachineNames := sets.New[string]()
@@ -317,16 +311,17 @@ func getMachineDeploymentToFailureDomainMapping(_ context.Context, mds []cluster
 
 		// If the VirtualMachineGroup exist, check if the placement decision for the MachineDeployment
 		// has been already surfaced into the VirtualMachineGroup annotations.
-		if failureDomain := existingVMG.Annotations[fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, md.Name)]; failureDomain != "" {
+		if failureDomain := existingVMG.Annotations[fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, md.Name)]; failureDomain != "" {
 			machineDeploymentToFailureDomainMapping[md.Name] = failureDomain
 			continue
 		}
 
-		// If the placement decision for the MachineDeployment, try to get the failure domain selected
-		// during the initial placement decision from VirtualMachineGroup status (placement decision just completed).
+		// If the placement decision for the MachineDeployment is not yet surfaced in the annotation, try to get
+		// the failure domain selected during the initial placement decision from VirtualMachineGroup status
+		// (placement decision just completed).
 		// Note: this info will surface in VirtualMachineGroup annotations at the end of the current reconcile.
 		for _, member := range existingVMG.Status.Members {
-			// Ignore members controller by other MachineDeployments
+			// Ignore members controlled by other MachineDeployments
 			if memberMD := virtualMachineNameToMachineDeployment[member.Name]; memberMD != md.Name {
 				continue
 			}
@@ -348,8 +343,8 @@ func getMachineDeploymentToFailureDomainMapping(_ context.Context, mds []cluster
 }
 
 // getVirtualMachineNameToMachineDeploymentMapping returns the mapping between VirtualMachine name and corresponding MachineDeployment.
-// The mapping is inferred from vSphereMachines; please note:
-// - The name of the VirtualMachine generated by a vSphereMachines can be computed in a deterministic way (it is not required to wait for the VirtualMachine to exist)
+// The mapping is inferred from vSphereMachines. Please note:
+// - The name of the VirtualMachine generated by a VSphereMachine can be computed in a deterministic way (it is not required to wait for the VirtualMachine to exist)
 // - The name of the MachineDeployment corresponding to a vSphereMachine can be derived from the annotation that is propagated by CAPI.
 func getVirtualMachineNameToMachineDeploymentMapping(_ context.Context, vSphereMachines []vmwarev1.VSphereMachine) (map[string]string, error) {
 	virtualMachineNameToMachineDeployment := map[string]string{}
@@ -387,6 +382,10 @@ func shouldCreateVirtualMachineGroup(ctx context.Context, mds []clusterv1.Machin
 	if expectedVSphereMachineCount == 0 {
 		return false
 	}
+
+	// filter down VSphereMachines to the non-deleting MDs
+
+	// => if any of these VSphereMachines deleting => return false
 
 	// If the number of workers VSphereMachines matches the number of expected replicas in the MachineDeployments,
 	// then all the VSphereMachines required for the initial placement decision do exist, then it is possible to create

@@ -233,6 +233,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 				Type:   infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
 				Status: metav1.ConditionFalse,
 				Reason: infrav1.VSphereMachineVirtualMachineWaitingForVirtualMachineGroupV1Beta2Reason,
+				// FIXME: we should provide more details about this case in the message (vs other cases where we set this reason)
 			})
 			log.V(4).Info(fmt.Sprintf("Waiting for VirtualMachineGroup %s, requeueing", key.Name), "VirtualMachineGroup", klog.KRef(key.Namespace, key.Name))
 			return true, nil
@@ -245,6 +246,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 				Type:   infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
 				Status: metav1.ConditionFalse,
 				Reason: infrav1.VSphereMachineVirtualMachineWaitingForVirtualMachineGroupV1Beta2Reason,
+				// FIXME: we should provide more details about this case in the message (vs other cases where we set this reason)
 			})
 			log.V(4).Info(fmt.Sprintf("Waiting for VirtualMachineGroup %s membership, requeueing", key.Name), "VirtualMachineGroup", klog.KRef(key.Namespace, key.Name))
 			return true, nil

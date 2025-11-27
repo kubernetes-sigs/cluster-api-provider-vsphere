@@ -189,14 +189,16 @@ func (r *VirtualMachineGroupReconciler) createOrUpdateVirtualMachineGroup(ctx co
 	// has successfully completed its initial placement and added the required
 	// placement annotations. This stabilizes placement decisions before allowing new VMs
 	// to be added under the group.
-	//s
+	//
 	// The CreateOrPatch is allowed if:
 	// 1. The VirtualMachineGroup is being initially created.
-	// 2. The update is a scale-down operation.
-	// 3. The VirtualMachineGroup is placement Ready.
-	// 4. The new member's underlying CAPI Machine has a FailureDomain set (will skip placement process).
-	// 5. The new member requires placement annotation AND the VirtualMachineGroup has the corresponding
-	//    placement annotation for the member's MachineDeployment.
+	// 2. The update won't add new member:
+	//    1) scale-down operation
+	//    2) no member change.
+	// 3. When the VirtualMachineGroup is placement Ready, continue to check following.
+	//    1) The new member's underlying CAPI Machine has a FailureDomain set (will skip placement process).
+	//    2) The new member requires placement annotation AND the VirtualMachineGroup has the corresponding
+	//       placement annotation for the member's MachineDeployment.
 	//
 	// This prevents member updates that could lead to new VMs being created
 	// without necessary zone labels, resulting in undesired placement.
@@ -468,7 +470,7 @@ func generateVirtualMachineGroupAnnotations(ctx context.Context, kubeClient clie
 		}
 	}
 
-	// Iterate through the VMG's members in Status.
+	// Iterate through the VirtualMachineGroup's members in Status.
 	for _, member := range vmg.Status.Members {
 		ns := vmg.Namespace
 

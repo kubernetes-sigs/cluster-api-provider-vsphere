@@ -225,7 +225,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 		}
 		err := v.Client.Get(ctx, key, vmGroup)
 
-		// The VirtualMachineGroup controller is going to create the vmg only when all the machines required for the placement
+		// The VirtualMachineGroup controller is going to create the vmg only when all the VSphereMachines required for the placement
 		// decision exist. If the vmg does not exist yet, requeue.
 		if err != nil {
 			if !apierrors.IsNotFound(err) {
@@ -236,7 +236,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 				Type:    infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  infrav1.VSphereMachineVirtualMachineWaitingForVirtualMachineGroupV1Beta2Reason,
-				Message: "Waiting for all the VSphereMachine's VMGroup required for the placement decision to exist",
+				Message: fmt.Sprintf("Waiting for VSphereMachine's VirtualMachineGroup %s to exist", key),
 			})
 			log.V(4).Info(fmt.Sprintf("Waiting for VirtualMachineGroup %s, requeueing", key.Name), "VirtualMachineGroup", klog.KRef(key.Namespace, key.Name))
 			return true, nil
@@ -247,10 +247,10 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 		isMember := v.checkVirtualMachineGroupMembership(vmGroup, vmKey.Name)
 		if !isMember {
 			v1beta2conditions.Set(supervisorMachineCtx.VSphereMachine, metav1.Condition{
-				Type:   infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
-				Status: metav1.ConditionFalse,
-				Reason: infrav1.VSphereMachineVirtualMachineWaitingForVirtualMachineGroupV1Beta2Reason,
-				// FIXME: we should provide more details about this case in the message (vs other cases where we set this reason)
+				Type:    infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  infrav1.VSphereMachineVirtualMachineWaitingForVirtualMachineGroupV1Beta2Reason,
+				Message: fmt.Sprintf("Waiting for VirtualMachineGroup %s membership", klog.KRef(key.Namespace, key.Name)),
 			})
 			log.V(4).Info(fmt.Sprintf("Waiting for VirtualMachineGroup %s membership, requeueing", key.Name), "VirtualMachineGroup", klog.KRef(key.Namespace, key.Name))
 			return true, nil

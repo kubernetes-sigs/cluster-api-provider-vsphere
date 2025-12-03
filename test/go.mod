@@ -2,9 +2,9 @@ module sigs.k8s.io/cluster-api-provider-vsphere/test
 
 go 1.24.0
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.12.0-rc.0
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.12.0-rc.1
 
-replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.12.0-rc.0.0.20251125194835-9d0e8cc7c165
+replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.12.0-rc.1
 
 replace sigs.k8s.io/cluster-api-provider-vsphere => ../
 

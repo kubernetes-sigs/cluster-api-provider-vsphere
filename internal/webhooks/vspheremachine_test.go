@@ -17,7 +17,6 @@ limitations under the License.
 package webhooks
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -35,7 +34,7 @@ func TestVsphereMachine_Default(t *testing.T) {
 		Spec: infrav1.VSphereMachineSpec{},
 	}
 	webhook := &VSphereMachine{}
-	g.Expect(webhook.Default(context.Background(), m)).ToNot(HaveOccurred())
+	g.Expect(webhook.Default(t.Context(), m)).ToNot(HaveOccurred())
 
 	g.Expect(m.Spec.Datacenter).To(Equal("*"))
 }
@@ -135,7 +134,7 @@ func TestVSphereMachine_ValidateCreate(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(*testing.T) {
 			webhook := &VSphereMachine{}
-			_, err := webhook.ValidateCreate(context.Background(), tc.vsphereMachine)
+			_, err := webhook.ValidateCreate(t.Context(), tc.vsphereMachine)
 			if tc.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -212,7 +211,7 @@ func TestVSphereMachine_ValidateUpdate(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(*testing.T) {
 			webhook := &VSphereMachine{}
-			_, err := webhook.ValidateUpdate(context.Background(), tc.oldVSphereMachine, tc.vsphereMachine)
+			_, err := webhook.ValidateUpdate(t.Context(), tc.oldVSphereMachine, tc.vsphereMachine)
 			if tc.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {

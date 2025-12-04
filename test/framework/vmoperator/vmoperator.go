@@ -534,7 +534,7 @@ func ReconcileDependencies(ctx context.Context, c client.Client, dependenciesCon
 				Namespace: config.Namespace,
 			},
 			Spec: vmoprv1.VirtualMachineImageSpec{
-				ProviderRef: vmoprv1common.LocalObjectRef{
+				ProviderRef: &vmoprv1common.LocalObjectRef{
 					Kind: "ContentLibraryItem",
 				},
 			},

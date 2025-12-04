@@ -18,6 +18,7 @@ limitations under the License.
 package vcsim
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 
@@ -48,7 +49,7 @@ func (s Simulator) Run(commandStr string, buffers ...*gbytes.Buffer) error {
 	pwd, _ := s.server.URL.User.Password()
 	govcURL := fmt.Sprintf("https://%s:%s@%s", s.server.URL.User.Username(), pwd, s.server.URL.Host)
 
-	cmd := govcCommand(govcURL, commandStr, buffers...)
+	cmd := govcCommand(context.Background(), govcURL, commandStr, buffers...)
 	return cmd.Run()
 }
 

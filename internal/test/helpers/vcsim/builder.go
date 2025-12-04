@@ -17,6 +17,7 @@ limitations under the License.
 package vcsim
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
@@ -107,7 +108,7 @@ func (b *Builder) Build() (*Simulator, error) {
 
 	govcURL := fmt.Sprintf("https://%s:%s@%s", serverURL.User.Username(), pwd, serverURL.Host)
 	for _, op := range b.operations {
-		cmd := govcCommand(govcURL, op)
+		cmd := govcCommand(context.Background(), govcURL, op)
 		if _, err := cmd.Output(); err != nil {
 			simr.Destroy()
 			return nil, err
@@ -117,10 +118,10 @@ func (b *Builder) Build() (*Simulator, error) {
 	return simr, nil
 }
 
-func govcCommand(govcURL, commandStr string, buffers ...*gbytes.Buffer) *exec.Cmd {
+func govcCommand(ctx context.Context, govcURL, commandStr string, buffers ...*gbytes.Buffer) *exec.Cmd {
 	govcBinPath := os.Getenv("GOVC_BIN_PATH")
 	args := strings.Split(commandStr, " ")
-	cmd := exec.Command(govcBinPath, args...) //nolint:gosec // Non-production code
+	cmd := exec.CommandContext(ctx, govcBinPath, args...) //nolint:gosec // Non-production code
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, fmt.Sprintf("GOVC_URL=%s", govcURL), "GOVC_INSECURE=true")
 

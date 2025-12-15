@@ -774,23 +774,28 @@ var _ = Describe("VirtualMachine tests", func() {
 				Expect(vmopVM).ShouldNot(BeNil())
 				Expect(vmopVM.Spec.Affinity).To(BeNil())
 
-				By("Verify that control plane machine has correct labels")
+				By("Verify that control plane machine has role label")
 				Expect(vmopVM.Labels[nodeSelectorKey]).To(Equal(roleControlPlane))
+
+				By("Verify that control plane machine has topology label")
+				Expect(vmopVM.Labels[corev1.LabelTopologyZone]).To(Equal(supervisorMachineContext.Machine.Spec.FailureDomain))
 
 				By("Verify that machine-deployment label is not set for control plane")
 				Expect(vmopVM.Labels).ToNot(HaveKey(clusterv1.MachineDeploymentNameLabel))
+
 			})
 
 			Context("For worker machine", func() {
 				var (
 					machineDeploymentName string
+					workerMachineName     string
 					vmGroup               *vmoprv1.VirtualMachineGroup
 				)
 
 				BeforeEach(func() {
 					// Create a worker machine (no control plane label)
 					machineDeploymentName = "test-md"
-					workerMachineName := "test-worker-machine"
+					workerMachineName = "test-worker-machine"
 					machine = util.CreateMachine(workerMachineName, clusterName, k8sVersion, false)
 					machine.Labels[clusterv1.MachineDeploymentNameLabel] = machineDeploymentName
 
@@ -800,234 +805,140 @@ var _ = Describe("VirtualMachine tests", func() {
 					supervisorMachineContext = util.CreateMachineContext(clusterContext, machine, vsphereMachine)
 					supervisorMachineContext.ControllerManagerContext = controllerManagerContext
 
-					// Create a VirtualMachineGroup for the cluster
-					vmGroup = &vmoprv1.VirtualMachineGroup{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      clusterName,
-							Namespace: corev1.NamespaceDefault,
-						},
-						Spec: vmoprv1.VirtualMachineGroupSpec{
-							BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
-								{
-									Members: []vmoprv1.GroupMember{
-										{
-											Name: workerMachineName,
-											Kind: "VirtualMachine",
-										},
-									},
-								},
-							},
-						},
-					}
-					Expect(vmService.Client.Create(ctx, vmGroup)).To(Succeed())
-
 					// Create a MachineDeployment for the worker
 					machineDeployment := createMachineDeployment(machineDeploymentName, corev1.NamespaceDefault, clusterName, "")
 					Expect(vmService.Client.Create(ctx, machineDeployment)).To(Succeed())
 				})
 
-				Specify("Requeue valid Machine but not a member of the VirtualMachineGroup yet", func() {
-					machineDeploymentNotMemberName := "test-md-not-member"
-					workerMachineNotMember := "test-worker-machine-not-member"
-					machineNotMember := util.CreateMachine(workerMachineNotMember, clusterName, k8sVersion, false)
-					machineNotMember.Labels[clusterv1.MachineDeploymentNameLabel] = machineDeploymentNotMemberName
+				Context("when VirtualMachineGroup does not exist yet", func() {
+					Specify("requeue the Machine waiting for VirtualMachineGroup creation", func() {
+						// No VMG created yet
+						machineDeploymentNoVMGName := "test-md-no-vmg"
+						workerMachineNoVMG := "test-worker-machine-no-vmg"
+						machineNoVMG := util.CreateMachine(workerMachineNoVMG, clusterName, k8sVersion, false)
+						machineNoVMG.Labels[clusterv1.MachineDeploymentNameLabel] = machineDeploymentNoVMGName
 
-					vsphereMachineNotMember := util.CreateVSphereMachine(workerMachineNotMember, clusterName, className, imageName, storageClass, false)
+						vsphereMachineNoVMG := util.CreateVSphereMachine(workerMachineNoVMG, clusterName, className, imageName, storageClass, false)
 
-					clusterContext, controllerManagerContext := util.CreateClusterContext(cluster, vsphereCluster)
-					supervisorMachineContext = util.CreateMachineContext(clusterContext, machineNotMember, vsphereMachineNotMember)
-					supervisorMachineContext.ControllerManagerContext = controllerManagerContext
+						clusterContext, controllerManagerContext := util.CreateClusterContext(cluster, vsphereCluster)
+						supervisorMachineContext = util.CreateMachineContext(clusterContext, machineNoVMG, vsphereMachineNoVMG)
+						supervisorMachineContext.ControllerManagerContext = controllerManagerContext
 
-					// Create a MachineDeployment for the worker
-					machineDeploymentNotMember := createMachineDeployment(machineDeploymentNotMemberName, corev1.NamespaceDefault, clusterName, "")
-					Expect(vmService.Client.Create(ctx, machineDeploymentNotMember)).To(Succeed())
+						// Create a MachineDeployment for the worker
+						machineDeploymentNoVMG := createMachineDeployment(machineDeploymentNoVMGName, corev1.NamespaceDefault, clusterName, "")
+						Expect(vmService.Client.Create(ctx, machineDeploymentNoVMG)).To(Succeed())
 
-					expectReconcileError = false
-					expectVMOpVM = false
-					expectedImageName = imageName
-					expectedRequeue = true
+						expectReconcileError = false
+						expectVMOpVM = false
+						expectedImageName = imageName
+						expectedRequeue = true
 
-					// Provide valid bootstrap data
-					By("bootstrap data is created")
-					secretName := machineNotMember.GetName() + "-data"
-					secret := &corev1.Secret{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      secretName,
-							Namespace: machineNotMember.GetNamespace(),
-						},
-						Data: map[string][]byte{
-							"value": []byte(bootstrapData),
-						},
-					}
-					Expect(vmService.Client.Create(ctx, secret)).To(Succeed())
-
-					machineNotMember.Spec.Bootstrap.DataSecretName = &secretName
-
-					By("VirtualMachine is not created")
-					requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
-					Expect(err).ShouldNot(HaveOccurred())
-					Expect(requeue).Should(BeTrue())
-				})
-
-				Specify("Reconcile valid Machine with no failure domain set", func() {
-					expectReconcileError = false
-					expectVMOpVM = true
-					expectedImageName = imageName
-					expectedRequeue = true
-
-					// Provide valid bootstrap data
-					By("bootstrap data is created")
-					secretName := machine.GetName() + "-data"
-					secret := &corev1.Secret{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      secretName,
-							Namespace: machine.GetNamespace(),
-						},
-						Data: map[string][]byte{
-							"value": []byte(bootstrapData),
-						},
-					}
-					Expect(vmService.Client.Create(ctx, secret)).To(Succeed())
-
-					machine.Spec.Bootstrap.DataSecretName = &secretName
-
-					By("VirtualMachine is created")
-					requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
-					Expect(err).ShouldNot(HaveOccurred())
-					Expect(requeue).Should(BeTrue())
-
-					By("Verify that worker machine has affinity spec set")
-					vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
-					Expect(vmopVM).ShouldNot(BeNil())
-					Expect(vmopVM.Spec.Affinity).ShouldNot(BeNil())
-
-					By("Verify VM affinity rules are set correctly")
-					verifyVMAffinityRules(vmopVM, machineDeploymentName)
-
-					By("Verify VM anti-affinity rules are set correctly")
-					verifyVMAntiAffinityRules(vmopVM, machineDeploymentName)
-
-					By("Verify that worker machine has machine deployment label set")
-					Expect(vmopVM.Labels[clusterv1.MachineDeploymentNameLabel]).To(Equal(machineDeploymentName))
-
-					By("Verify that GroupName is set from VirtualMachineGroup")
-					Expect(vmopVM.Spec.GroupName).To(Equal(clusterName))
-				})
-
-				Specify("Reconcile machine with failure domain set", func() {
-					expectReconcileError = false
-					expectVMOpVM = true
-					expectedImageName = imageName
-					expectedRequeue = true
-
-					failureDomainName := "zone-1"
-					machineDeploymentName := "test-md-with-fd"
-					workerMachineName := "test-worker-machine-with-fd"
-					fdClusterName := "test-cluster-fd"
-
-					// Create a separate cluster for this test to avoid VirtualMachineGroup conflicts
-					fdCluster := util.CreateCluster(fdClusterName)
-					fdVSphereCluster := util.CreateVSphereCluster(fdClusterName)
-					fdVSphereCluster.Status.ResourcePolicyName = resourcePolicyName
-
-					// Create a worker machine with failure domain
-					machine = util.CreateMachine(workerMachineName, fdClusterName, k8sVersion, false)
-					machine.Labels[clusterv1.MachineDeploymentNameLabel] = machineDeploymentName
-					machine.Spec.FailureDomain = failureDomainName
-
-					vsphereMachine = util.CreateVSphereMachine(workerMachineName, fdClusterName, className, imageName, storageClass, false)
-
-					fdClusterContext, fdControllerManagerContext := util.CreateClusterContext(fdCluster, fdVSphereCluster)
-					supervisorMachineContext = util.CreateMachineContext(fdClusterContext, machine, vsphereMachine)
-					supervisorMachineContext.ControllerManagerContext = fdControllerManagerContext
-
-					// Create a VirtualMachineGroup for the cluster with per-md zone annotation
-					vmGroup := &vmoprv1.VirtualMachineGroup{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      fdClusterName,
-							Namespace: corev1.NamespaceDefault,
-							Annotations: map[string]string{
-								fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, machineDeploymentName): failureDomainName,
+						// Provide valid bootstrap data
+						By("bootstrap data is created")
+						secretName := machineNoVMG.GetName() + "-data"
+						secret := &corev1.Secret{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      secretName,
+								Namespace: machineNoVMG.GetNamespace(),
 							},
-						},
-						Spec: vmoprv1.VirtualMachineGroupSpec{
-							BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
-								{
-									Members: []vmoprv1.GroupMember{
-										{
-											Name: workerMachineName,
-											Kind: "VirtualMachine",
+							Data: map[string][]byte{
+								"value": []byte(bootstrapData),
+							},
+						}
+						Expect(vmService.Client.Create(ctx, secret)).To(Succeed())
+
+						machineNoVMG.Spec.Bootstrap.DataSecretName = &secretName
+
+						By("VirtualMachine is not created")
+						requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
+						Expect(err).ShouldNot(HaveOccurred())
+						Expect(requeue).Should(BeTrue())
+						vm := &vmoprv1.VirtualMachine{}
+						nsname := types.NamespacedName{
+							Namespace: vsphereMachineNoVMG.Namespace,
+							Name:      vsphereMachineNoVMG.Name,
+						}
+						err := vmService.Client.Get(ctx, nsname, vm)
+
+						Expect(apierrors.IsNotFound(err)).To(BeTrue())
+					})
+				})
+
+				Context("when VirtualMachineGroup exists", func() {
+					BeforeEach(func() {
+						// Create a VirtualMachineGroup for the cluster
+						vmGroup = &vmoprv1.VirtualMachineGroup{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      clusterName,
+								Namespace: corev1.NamespaceDefault,
+							},
+							Spec: vmoprv1.VirtualMachineGroupSpec{
+								BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
+									{
+										Members: []vmoprv1.GroupMember{
+											{
+												Name: workerMachineName,
+												Kind: "VirtualMachine",
+											},
 										},
 									},
 								},
 							},
-						},
-					}
-					Expect(vmService.Client.Create(ctx, vmGroup)).To(Succeed())
+						}
+						Expect(vmService.Client.Create(ctx, vmGroup)).To(Succeed())
+					})
+					Specify("Requeue valid Machine but not a member of the VirtualMachineGroup yet", func() {
+						machineDeploymentNotMemberName := "test-md-not-member"
+						workerMachineNotMember := "test-worker-machine-not-member"
+						machineNotMember := util.CreateMachine(workerMachineNotMember, clusterName, k8sVersion, false)
+						machineNotMember.Labels[clusterv1.MachineDeploymentNameLabel] = machineDeploymentNotMemberName
 
-					// Create a MachineDeployment for the worker with no explicit failure domain
-					machineDeployment := createMachineDeployment(machineDeploymentName, corev1.NamespaceDefault, fdClusterName, "")
-					Expect(vmService.Client.Create(ctx, machineDeployment)).To(Succeed())
+						vsphereMachineNotMember := util.CreateVSphereMachine(workerMachineNotMember, clusterName, className, imageName, storageClass, false)
 
-					// Provide valid bootstrap data
-					By("bootstrap data is created")
-					secretName := machine.GetName() + "-data"
-					secret := &corev1.Secret{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      secretName,
-							Namespace: machine.GetNamespace(),
-						},
-						Data: map[string][]byte{
-							"value": []byte(bootstrapData),
-						},
-					}
-					Expect(vmService.Client.Create(ctx, secret)).To(Succeed())
+						clusterContext, controllerManagerContext := util.CreateClusterContext(cluster, vsphereCluster)
+						supervisorMachineContext = util.CreateMachineContext(clusterContext, machineNotMember, vsphereMachineNotMember)
+						supervisorMachineContext.ControllerManagerContext = controllerManagerContext
 
-					machine.Spec.Bootstrap.DataSecretName = &secretName
+						// Create a MachineDeployment for the worker
+						machineDeploymentNotMember := createMachineDeployment(machineDeploymentNotMemberName, corev1.NamespaceDefault, clusterName, "")
+						Expect(vmService.Client.Create(ctx, machineDeploymentNotMember)).To(Succeed())
 
-					By("VirtualMachine is created with auto placement and failure domain")
-					requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
-					Expect(err).ShouldNot(HaveOccurred())
-					Expect(requeue).Should(BeTrue())
+						expectReconcileError = false
+						expectVMOpVM = false
+						expectedImageName = imageName
+						expectedRequeue = true
 
-					By("Verify that worker machine has affinity spec set")
-					vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
-					Expect(vmopVM).ShouldNot(BeNil())
-					Expect(vmopVM.Spec.Affinity).ShouldNot(BeNil())
+						// Provide valid bootstrap data
+						By("bootstrap data is created")
+						secretName := machineNotMember.GetName() + "-data"
+						secret := &corev1.Secret{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      secretName,
+								Namespace: machineNotMember.GetNamespace(),
+							},
+							Data: map[string][]byte{
+								"value": []byte(bootstrapData),
+							},
+						}
+						Expect(vmService.Client.Create(ctx, secret)).To(Succeed())
 
-					By("Verify VM affinity rules are set correctly")
-					verifyVMAffinityRules(vmopVM, machineDeploymentName)
+						machineNotMember.Spec.Bootstrap.DataSecretName = &secretName
 
-					By("Verify VM anti-affinity rules are set correctly")
-					verifyVMAntiAffinityRules(vmopVM, machineDeploymentName)
+						By("VirtualMachine is not created")
+						requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
+						Expect(err).ShouldNot(HaveOccurred())
+						Expect(requeue).Should(BeTrue())
+						vm := &vmoprv1.VirtualMachine{}
+						nsname := types.NamespacedName{
+							Namespace: vsphereMachineNotMember.Namespace,
+							Name:      vsphereMachineNotMember.Name,
+						}
+						err := vmService.Client.Get(ctx, nsname, vm)
 
-					By("Verify that worker machine has correct labels including topology")
-					Expect(vmopVM.Labels[clusterv1.MachineDeploymentNameLabel]).To(Equal(machineDeploymentName))
-					Expect(vmopVM.Labels[corev1.LabelTopologyZone]).To(Equal(failureDomainName))
-
-					By("Verify that GroupName is set from VirtualMachineGroup")
-					Expect(vmopVM.Spec.GroupName).To(Equal(fdClusterName))
-				})
-
-				Context("For multiple machine deployments", func() {
-					const (
-						otherMdName1 = "other-md-1"
-						otherMdName2 = "other-md-2"
-					)
-
-					BeforeEach(func() {
-						otherMd1 := createMachineDeployment(otherMdName1, corev1.NamespaceDefault, clusterName, "")
-						Expect(vmService.Client.Create(ctx, otherMd1)).To(Succeed())
-
-						otherMd2 := createMachineDeployment(otherMdName2, corev1.NamespaceDefault, clusterName, "")
-						Expect(vmService.Client.Create(ctx, otherMd2)).To(Succeed())
-
-						// Create a MachineDeployment with failure domain
-						otherMdWithFd := createMachineDeployment("other-md-with-fd", corev1.NamespaceDefault, clusterName, "zone-1")
-						Expect(vmService.Client.Create(ctx, otherMdWithFd)).To(Succeed())
+						Expect(apierrors.IsNotFound(err)).To(BeTrue())
 					})
 
-					Specify("Reconcile valid machine with additional anti-affinity term added", func() {
+					Specify("Reconcile valid Machine with no failure domain set", func() {
 						expectReconcileError = false
 						expectVMOpVM = true
 						expectedImageName = imageName
@@ -1063,7 +974,166 @@ var _ = Describe("VirtualMachine tests", func() {
 						verifyVMAffinityRules(vmopVM, machineDeploymentName)
 
 						By("Verify VM anti-affinity rules are set correctly")
-						verifyVMAntiAffinityRules(vmopVM, machineDeploymentName, otherMdName1, otherMdName2)
+						verifyVMAntiAffinityRules(vmopVM, machineDeploymentName)
+
+						By("Verify that worker machine has machine deployment label set")
+						Expect(vmopVM.Labels[clusterv1.MachineDeploymentNameLabel]).To(Equal(machineDeploymentName))
+
+						By("Verify that GroupName is set from VirtualMachineGroup")
+						Expect(vmopVM.Spec.GroupName).To(Equal(clusterName))
+					})
+
+					Specify("Reconcile machine with failure domain set", func() {
+						expectReconcileError = false
+						expectVMOpVM = true
+						expectedImageName = imageName
+						expectedRequeue = true
+
+						failureDomainName := "zone-1"
+						machineDeploymentName := "test-md-with-fd"
+						workerMachineName := "test-worker-machine-with-fd"
+						fdClusterName := "test-cluster-fd"
+
+						// Create a separate cluster for this test to avoid VirtualMachineGroup conflicts
+						fdCluster := util.CreateCluster(fdClusterName)
+						fdVSphereCluster := util.CreateVSphereCluster(fdClusterName)
+						fdVSphereCluster.Status.ResourcePolicyName = resourcePolicyName
+
+						// Create a worker machine with failure domain
+						machine = util.CreateMachine(workerMachineName, fdClusterName, k8sVersion, false)
+						machine.Labels[clusterv1.MachineDeploymentNameLabel] = machineDeploymentName
+						machine.Spec.FailureDomain = failureDomainName
+
+						vsphereMachine = util.CreateVSphereMachine(workerMachineName, fdClusterName, className, imageName, storageClass, false)
+
+						fdClusterContext, fdControllerManagerContext := util.CreateClusterContext(fdCluster, fdVSphereCluster)
+						supervisorMachineContext = util.CreateMachineContext(fdClusterContext, machine, vsphereMachine)
+						supervisorMachineContext.ControllerManagerContext = fdControllerManagerContext
+
+						// Create a VirtualMachineGroup for the cluster with per-md zone annotation
+						vmGroup := &vmoprv1.VirtualMachineGroup{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      fdClusterName,
+								Namespace: corev1.NamespaceDefault,
+								Annotations: map[string]string{
+									fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, machineDeploymentName): failureDomainName,
+								},
+							},
+							Spec: vmoprv1.VirtualMachineGroupSpec{
+								BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
+									{
+										Members: []vmoprv1.GroupMember{
+											{
+												Name: workerMachineName,
+												Kind: "VirtualMachine",
+											},
+										},
+									},
+								},
+							},
+						}
+						Expect(vmService.Client.Create(ctx, vmGroup)).To(Succeed())
+
+						// Create a MachineDeployment for the worker with no explicit failure domain
+						machineDeployment := createMachineDeployment(machineDeploymentName, corev1.NamespaceDefault, fdClusterName, "")
+						Expect(vmService.Client.Create(ctx, machineDeployment)).To(Succeed())
+
+						// Provide valid bootstrap data
+						By("bootstrap data is created")
+						secretName := machine.GetName() + "-data"
+						secret := &corev1.Secret{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      secretName,
+								Namespace: machine.GetNamespace(),
+							},
+							Data: map[string][]byte{
+								"value": []byte(bootstrapData),
+							},
+						}
+						Expect(vmService.Client.Create(ctx, secret)).To(Succeed())
+
+						machine.Spec.Bootstrap.DataSecretName = &secretName
+
+						By("VirtualMachine is created with auto placement and failure domain")
+						requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
+						Expect(err).ShouldNot(HaveOccurred())
+						Expect(requeue).Should(BeTrue())
+
+						By("Verify that worker machine has affinity spec set")
+						vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
+						Expect(vmopVM).ShouldNot(BeNil())
+						Expect(vmopVM.Spec.Affinity).ShouldNot(BeNil())
+
+						By("Verify VM affinity rules are set correctly")
+						verifyVMAffinityRules(vmopVM, machineDeploymentName)
+
+						By("Verify VM anti-affinity rules are set correctly")
+						verifyVMAntiAffinityRules(vmopVM, machineDeploymentName)
+
+						By("Verify that worker machine has correct labels including topology")
+						Expect(vmopVM.Labels[clusterv1.MachineDeploymentNameLabel]).To(Equal(machineDeploymentName))
+						Expect(vmopVM.Labels[corev1.LabelTopologyZone]).To(Equal(failureDomainName))
+
+						By("Verify that GroupName is set from VirtualMachineGroup")
+						Expect(vmopVM.Spec.GroupName).To(Equal(fdClusterName))
+					})
+
+					Context("For multiple machine deployments", func() {
+						const (
+							otherMdName1 = "other-md-1"
+							otherMdName2 = "other-md-2"
+						)
+
+						BeforeEach(func() {
+							otherMd1 := createMachineDeployment(otherMdName1, corev1.NamespaceDefault, clusterName, "")
+							Expect(vmService.Client.Create(ctx, otherMd1)).To(Succeed())
+
+							otherMd2 := createMachineDeployment(otherMdName2, corev1.NamespaceDefault, clusterName, "")
+							Expect(vmService.Client.Create(ctx, otherMd2)).To(Succeed())
+
+							// Create a MachineDeployment with failure domain
+							otherMdWithFd := createMachineDeployment("other-md-with-fd", corev1.NamespaceDefault, clusterName, "zone-1")
+							Expect(vmService.Client.Create(ctx, otherMdWithFd)).To(Succeed())
+						})
+
+						Specify("Reconcile valid machine with additional anti-affinity term added", func() {
+							expectReconcileError = false
+							expectVMOpVM = true
+							expectedImageName = imageName
+							expectedRequeue = true
+
+							// Provide valid bootstrap data
+							By("bootstrap data is created")
+							secretName := machine.GetName() + "-data"
+							secret := &corev1.Secret{
+								ObjectMeta: metav1.ObjectMeta{
+									Name:      secretName,
+									Namespace: machine.GetNamespace(),
+								},
+								Data: map[string][]byte{
+									"value": []byte(bootstrapData),
+								},
+							}
+							Expect(vmService.Client.Create(ctx, secret)).To(Succeed())
+
+							machine.Spec.Bootstrap.DataSecretName = &secretName
+
+							By("VirtualMachine is created")
+							requeue, err = vmService.ReconcileNormal(ctx, supervisorMachineContext)
+							Expect(err).ShouldNot(HaveOccurred())
+							Expect(requeue).Should(BeTrue())
+
+							By("Verify that worker machine has affinity spec set")
+							vmopVM = getReconciledVM(ctx, vmService, supervisorMachineContext)
+							Expect(vmopVM).ShouldNot(BeNil())
+							Expect(vmopVM.Spec.Affinity).ShouldNot(BeNil())
+
+							By("Verify VM affinity rules are set correctly")
+							verifyVMAffinityRules(vmopVM, machineDeploymentName)
+
+							By("Verify VM anti-affinity rules are set correctly")
+							verifyVMAntiAffinityRules(vmopVM, machineDeploymentName, otherMdName1, otherMdName2)
+						})
 					})
 				})
 			})

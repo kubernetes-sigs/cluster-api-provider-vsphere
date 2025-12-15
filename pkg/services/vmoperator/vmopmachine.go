@@ -238,7 +238,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 				Reason:  infrav1.VSphereMachineVirtualMachineWaitingForVirtualMachineGroupV1Beta2Reason,
 				Message: fmt.Sprintf("Waiting for VSphereMachine's VirtualMachineGroup %s to exist", key),
 			})
-			log.V(4).Info(fmt.Sprintf("Waiting for VirtualMachineGroup %s, requeueing", key.Name), "VirtualMachineGroup", klog.KRef(key.Namespace, key.Name))
+			log.V(4).Info(fmt.Sprintf("Waiting for VirtualMachineGroup %s to exist, requeueing", key.Name), "VirtualMachineGroup", klog.KRef(key.Namespace, key.Name))
 			return true, nil
 		}
 
@@ -250,9 +250,9 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 				Type:    infrav1.VSphereMachineVirtualMachineProvisionedV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  infrav1.VSphereMachineVirtualMachineWaitingForVirtualMachineGroupV1Beta2Reason,
-				Message: fmt.Sprintf("Waiting for VirtualMachineGroup %s membership", klog.KRef(key.Namespace, key.Name)),
+				Message: fmt.Sprintf("Waiting for VirtualMachineGroup %s to have %s as a member", klog.KObj(vmGroup), vmKey.Name),
 			})
-			log.V(4).Info(fmt.Sprintf("Waiting for VirtualMachineGroup %s membership, requeueing", key.Name), "VirtualMachineGroup", klog.KRef(key.Namespace, key.Name))
+			log.V(4).Info(fmt.Sprintf("Waiting for VirtualMachineGroup %s to have the vm as a member, requeueing", key.Name), "VirtualMachineGroup", klog.KObj(vmGroup))
 			return true, nil
 		}
 
@@ -261,7 +261,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 		}
 
 		// Set the zone label using the annotation of the per-md zone mapping from VirtualMachineGroup.
-		// This is for new VMs created during day-2 operations when Node Auto Placement is enabled.
+		// This is for new VMs created after initial placement decision/with a failureDomain defined by the user.
 		mdName := supervisorMachineCtx.Machine.Labels[clusterv1.MachineDeploymentNameLabel]
 		if fd, ok := vmGroup.Annotations[fmt.Sprintf("%s/%s", ZoneAnnotationPrefix, mdName)]; ok && fd != "" {
 			affInfo.failureDomain = fd
@@ -276,13 +276,13 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 			client.MatchingLabels{clusterv1.ClusterNameLabel: supervisorMachineCtx.Cluster.Name}); err != nil {
 			return false, err
 		}
-		othermMDNames := []string{}
+		otherMDNames := []string{}
 		for _, machineDeployment := range machineDeployments.Items {
 			if machineDeployment.Spec.Template.Spec.FailureDomain == "" && machineDeployment.Name != mdName {
-				othermMDNames = append(othermMDNames, machineDeployment.Name)
+				otherMDNames = append(otherMDNames, machineDeployment.Name)
 			}
 		}
-		sort.Strings(othermMDNames)
+		sort.Strings(otherMDNames)
 
 		affInfo.affinitySpec = vmoprv1.AffinitySpec{
 			VMAffinity: &vmoprv1.VMAffinitySpec{
@@ -312,7 +312,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 				},
 			},
 		}
-		if len(othermMDNames) > 0 {
+		if len(otherMDNames) > 0 {
 			// Different MachineDeployments and corresponding VMs should be spread across failure domains - best-efforts.
 			affInfo.affinitySpec.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution = append(
 				affInfo.affinitySpec.VMAntiAffinity.PreferredDuringSchedulingPreferredDuringExecution,
@@ -322,7 +322,7 @@ func (v *VmopMachineService) ReconcileNormal(ctx context.Context, machineCtx cap
 							{
 								Key:      clusterv1.MachineDeploymentNameLabel,
 								Operator: metav1.LabelSelectorOpIn,
-								Values:   othermMDNames,
+								Values:   otherMDNames,
 							},
 						},
 					},

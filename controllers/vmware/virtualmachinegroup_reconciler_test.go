@@ -43,6 +43,23 @@ func Test_shouldCreateVirtualMachineGroup(t *testing.T) {
 		want            bool
 	}{
 		{
+			name: "Should not create a VMG if the expected VSphereMachines do not exist yet",
+			mds: []clusterv1.MachineDeployment{
+				*createMD("md1", "test-cluster", "", 2),
+				*createMD("md2", "test-cluster", "", 1),
+				*createMD("md3", "test-cluster", "zone1", 1),
+			},
+			vSphereMachines: []vmwarev1.VSphereMachine{
+				*createVSphereMachine("m1", "test-cluster", "md1", ""),
+				*createVSphereMachine("m2", "test-cluster", "md1", "", func(vm *vmwarev1.VSphereMachine) {
+					vm.DeletionTimestamp = ptr.To(metav1.Now())
+				}),
+				*createVSphereMachine("m3", "test-cluster", "md2", ""),
+				*createVSphereMachine("m4", "test-cluster", "md3", "zone1"),
+			},
+			want: false, // tot replicas = 4, 3 VSphereMachine exist, 1 VSphereMachine in deleting.
+		},
+		{
 			name: "Should create a VMG if all the expected VSphereMachines exists",
 			mds: []clusterv1.MachineDeployment{
 				*createMD("md1", "test-cluster", "", 2),
@@ -444,9 +461,10 @@ func TestVirtualMachineGroupReconciler_computeVirtualMachineGroup(t *testing.T) 
 					UID:       types.UID("uid"),
 					Labels: map[string]string{
 						clusterv1.ClusterNameLabel: cluster.Name,
-					},
+						"other-label":              "foo-bar"},
 					Annotations: map[string]string{
 						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md3"): "zone1", // failureDomain for md3 is explicitly set by the user
+						"other-annotation": "foo-bar",
 					},
 					OwnerReferences: []metav1.OwnerReference{
 						{
@@ -480,10 +498,12 @@ func TestVirtualMachineGroupReconciler_computeVirtualMachineGroup(t *testing.T) 
 					UID:       types.UID("uid"),
 					Labels: map[string]string{
 						clusterv1.ClusterNameLabel: cluster.Name,
+						"other-label":              "foo-bar",
 					},
 					Annotations: map[string]string{
 						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md3"): "zone1", // failureDomain for md3 is explicitly set by the user
 						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md4"): "zone2", // failureDomain for md4 is explicitly set by the user
+						"other-annotation": "foo-bar", // Other annotation without ZoneAnnotationPrefix should be preserved
 					},
 					OwnerReferences: []metav1.OwnerReference{
 						{

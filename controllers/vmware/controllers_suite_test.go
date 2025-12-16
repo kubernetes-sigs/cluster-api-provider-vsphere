@@ -41,6 +41,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	topologyv1 "sigs.k8s.io/cluster-api-provider-vsphere/internal/apis/topology/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/internal/test/helpers"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/manager"
 )
@@ -73,6 +74,7 @@ func setup(ctx context.Context) (*helpers.TestEnvironment, clustercache.ClusterC
 	utilruntime.Must(clusterv1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(vmwarev1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(vmoprv1.AddToScheme(scheme.Scheme))
+	utilruntime.Must(topologyv1.AddToScheme(scheme.Scheme))
 
 	testEnv := helpers.NewTestEnvironment(ctx)
 

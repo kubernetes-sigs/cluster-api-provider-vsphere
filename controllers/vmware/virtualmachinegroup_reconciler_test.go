@@ -25,6 +25,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -208,15 +209,19 @@ func Test_getMachineDeploymentToFailureDomainMapping(t *testing.T) {
 	tests := []struct {
 		name                                  string
 		mds                                   []clusterv1.MachineDeployment
+		singleZoneName                        string
 		existingVMG                           *vmoprv1.VirtualMachineGroup
 		virtualMachineNameToMachineDeployment map[string]string
 		want                                  map[string]string
 	}{
+		// Multi-zone
+
 		{
 			name: "MachineDeployment mapping should use spec.FailureDomain",
 			mds: []clusterv1.MachineDeployment{
 				*createMD("md1", "test-cluster", "zone1", 1), // failure domain explicitly set
 			},
+			singleZoneName:                        "",
 			existingVMG:                           nil,
 			virtualMachineNameToMachineDeployment: nil,
 			want: map[string]string{
@@ -228,6 +233,7 @@ func Test_getMachineDeploymentToFailureDomainMapping(t *testing.T) {
 			mds: []clusterv1.MachineDeployment{
 				*createMD("md1", "test-cluster", "zone2", 1), // failure domain explicitly set
 			},
+			singleZoneName: "",
 			existingVMG: &vmoprv1.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
@@ -245,6 +251,7 @@ func Test_getMachineDeploymentToFailureDomainMapping(t *testing.T) {
 			mds: []clusterv1.MachineDeployment{
 				*createMD("md1", "test-cluster", "", 1), // failure domain not explicitly set
 			},
+			singleZoneName: "",
 			existingVMG: &vmoprv1.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
@@ -274,6 +281,7 @@ func Test_getMachineDeploymentToFailureDomainMapping(t *testing.T) {
 			mds: []clusterv1.MachineDeployment{
 				*createMD("md1", "test-cluster", "", 1), // failure domain not explicitly set
 			},
+			singleZoneName: "",
 			existingVMG: &vmoprv1.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
@@ -309,7 +317,8 @@ func Test_getMachineDeploymentToFailureDomainMapping(t *testing.T) {
 			mds: []clusterv1.MachineDeployment{
 				*createMD("md1", "test-cluster", "", 1), // failure domain not explicitly set
 			},
-			existingVMG: nil,
+			singleZoneName: "", // multi zone
+			existingVMG:    nil,
 			virtualMachineNameToMachineDeployment: map[string]string{
 				"m1-vm": "md1",
 			},
@@ -322,12 +331,14 @@ func Test_getMachineDeploymentToFailureDomainMapping(t *testing.T) {
 			mds: []clusterv1.MachineDeployment{
 				*createMD("md1", "test-cluster", "", 1), // failure domain not explicitly set
 			},
+			singleZoneName: "",
 			existingVMG: &vmoprv1.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
 						// Placement decision for md1 not yet reported into annotation
 					},
 				},
+				Spec: vmoprv1.VirtualMachineGroupSpec{},
 				// Status empty
 			},
 			virtualMachineNameToMachineDeployment: nil,
@@ -338,6 +349,7 @@ func Test_getMachineDeploymentToFailureDomainMapping(t *testing.T) {
 			mds: []clusterv1.MachineDeployment{
 				*createMD("md1", "test-cluster", "", 1), // failure domain not explicitly set
 			},
+			singleZoneName: "",
 			existingVMG: &vmoprv1.VirtualMachineGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
@@ -365,11 +377,225 @@ func Test_getMachineDeploymentToFailureDomainMapping(t *testing.T) {
 				// "md1" not yet placed
 			},
 		},
+
+		// Single zone
+
+		{
+			name: "MachineDeployment mapping should use single-zone failure domain on create",
+			mds: []clusterv1.MachineDeployment{
+				*createMD("md1", "test-cluster", "", 1), // failure domain not explicitly set
+			},
+			singleZoneName:                        "zone1",
+			existingVMG:                           nil,
+			virtualMachineNameToMachineDeployment: nil,
+			want: map[string]string{
+				"md1": "zone1",
+			},
+		},
+		{
+			name: "MachineDeployment mapping should use single-zone failure domain when a MD is added after creation",
+			mds: []clusterv1.MachineDeployment{
+				*createMD("md1", "test-cluster", "", 1), // failure domain not explicitly set
+			},
+			singleZoneName: "zone1",
+			existingVMG: &vmoprv1.VirtualMachineGroup{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						// Placement decision for md1 not yet reported into annotation
+					},
+				},
+				Spec: vmoprv1.VirtualMachineGroupSpec{
+					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
+						// Placement decision for md1 machines not yet started
+					},
+				},
+				Status: vmoprv1.VirtualMachineGroupStatus{},
+			},
+			virtualMachineNameToMachineDeployment: map[string]string{
+				"m1-vm": "md1",
+			},
+			want: map[string]string{
+				"md1": "zone1",
+			},
+		},
+		{
+			name: "MachineDeployment mapping should not use single-zone failure domain when placement decision for a MD has been already started",
+			mds: []clusterv1.MachineDeployment{
+				*createMD("md1", "test-cluster", "", 1), // failure domain not explicitly set
+			},
+			singleZoneName: "zone1",
+			existingVMG: &vmoprv1.VirtualMachineGroup{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						// Placement decision for md1 not yet reported into annotation
+					},
+				},
+				Spec: vmoprv1.VirtualMachineGroupSpec{
+					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
+						{
+							Members: []vmoprv1.GroupMember{
+								{
+									Name: "m1-vm", // placement decision started
+								},
+							},
+						},
+					},
+				},
+				Status: vmoprv1.VirtualMachineGroupStatus{},
+			},
+			virtualMachineNameToMachineDeployment: map[string]string{
+				"m1-vm": "md1",
+			},
+			want: map[string]string{
+				// "md1" not yet placed
+			},
+		},
+		{
+			name: "MachineDeployment mapping should not use single-zone failure domain when placement decision for a MD is completed",
+			mds: []clusterv1.MachineDeployment{
+				*createMD("md1", "test-cluster", "", 1), // failure domain not explicitly set
+			},
+			singleZoneName: "zone1",
+			existingVMG: &vmoprv1.VirtualMachineGroup{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						// Placement decision for md1 not yet reported into annotation
+					},
+				},
+				Spec: vmoprv1.VirtualMachineGroupSpec{
+					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
+						{
+							Members: []vmoprv1.GroupMember{
+								{
+									Name: "m1-vm", // placement decision started
+								},
+							},
+						},
+					},
+				},
+				Status: vmoprv1.VirtualMachineGroupStatus{
+					Members: []vmoprv1.VirtualMachineGroupMemberStatus{
+						{
+							Name: "m1-vm",
+							Placement: &vmoprv1.VirtualMachinePlacementStatus{
+								Zone: "zone2", // Intentionally picking a different zone to make sure this is the one used.
+							},
+							Conditions: []metav1.Condition{
+								{
+									Type:   vmoprv1.VirtualMachineGroupMemberConditionPlacementReady,
+									Status: metav1.ConditionTrue,
+								},
+							},
+						},
+					},
+				},
+			},
+			virtualMachineNameToMachineDeployment: map[string]string{
+				"m1-vm": "md1",
+			},
+			want: map[string]string{
+				"md1": "zone2",
+			},
+		},
+		{
+			name: "MachineDeployment mapping should not use single-zone failure domain when placement decision for a MD already tracked in an annotation",
+			mds: []clusterv1.MachineDeployment{
+				*createMD("md1", "test-cluster", "", 1), // failure domain not explicitly set
+			},
+			singleZoneName: "zone1",
+			existingVMG: &vmoprv1.VirtualMachineGroup{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md1"): "zone3", // Intentionally picking a different zone to make sure this is the one used.
+					},
+				},
+				Spec: vmoprv1.VirtualMachineGroupSpec{
+					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
+						{
+							Members: []vmoprv1.GroupMember{
+								{
+									Name: "m1-vm", // placement decision started
+								},
+							},
+						},
+					},
+				},
+				Status: vmoprv1.VirtualMachineGroupStatus{
+					Members: []vmoprv1.VirtualMachineGroupMemberStatus{
+						{
+							Name: "m1-vm",
+							Placement: &vmoprv1.VirtualMachinePlacementStatus{
+								Zone: "zone2", // Intentionally picking a different zone to make sure this is not the one used.
+							},
+							Conditions: []metav1.Condition{
+								{
+									Type:   vmoprv1.VirtualMachineGroupMemberConditionPlacementReady,
+									Status: metav1.ConditionTrue,
+								},
+							},
+						},
+					},
+				},
+			},
+			virtualMachineNameToMachineDeployment: map[string]string{
+				"m1-vm": "md1",
+			},
+			want: map[string]string{
+				"md1": "zone3",
+			},
+		},
+		{
+			name: "MachineDeployment mapping should use spec.FailureDomain (this should take priority on everything else)",
+			mds: []clusterv1.MachineDeployment{
+				*createMD("md1", "test-cluster", "zone4", 1), // Intentionally picking a different zone to make sure this is the one used.
+			},
+			singleZoneName: "zone1",
+			existingVMG: &vmoprv1.VirtualMachineGroup{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						fmt.Sprintf("%s/%s", vmoperator.ZoneAnnotationPrefix, "md1"): "zone3", // Intentionally picking a different zone to make sure this is not the one used.
+					},
+				},
+				Spec: vmoprv1.VirtualMachineGroupSpec{
+					BootOrder: []vmoprv1.VirtualMachineGroupBootOrderGroup{
+						{
+							Members: []vmoprv1.GroupMember{
+								{
+									Name: "m1-vm", // placement decision started
+								},
+							},
+						},
+					},
+				},
+				Status: vmoprv1.VirtualMachineGroupStatus{
+					Members: []vmoprv1.VirtualMachineGroupMemberStatus{
+						{
+							Name: "m1-vm",
+							Placement: &vmoprv1.VirtualMachinePlacementStatus{
+								Zone: "zone2", // Intentionally picking a different zone to make sure this is not the one used.
+							},
+							Conditions: []metav1.Condition{
+								{
+									Type:   vmoprv1.VirtualMachineGroupMemberConditionPlacementReady,
+									Status: metav1.ConditionTrue,
+								},
+							},
+						},
+					},
+				},
+			},
+			virtualMachineNameToMachineDeployment: map[string]string{
+				"m1-vm": "md1",
+			},
+			want: map[string]string{
+				"md1": "zone4",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			got := getMachineDeploymentToFailureDomainMapping(ctx, tt.mds, tt.existingVMG, tt.virtualMachineNameToMachineDeployment)
+			got := getMachineDeploymentToFailureDomainMapping(ctx, tt.mds, tt.singleZoneName, tt.existingVMG, tt.virtualMachineNameToMachineDeployment)
 			g.Expect(got).To(Equal(tt.want))
 		})
 	}
@@ -631,7 +857,7 @@ func TestVirtualMachineGroupReconciler_computeVirtualMachineGroup(t *testing.T) 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			got, err := computeVirtualMachineGroup(ctx, cluster, tt.mds, tt.vSphereMachines, tt.existingVMG)
+			got, err := computeVirtualMachineGroup(ctx, cluster, tt.mds, tt.vSphereMachines, "", tt.existingVMG)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(got).To(BeComparableTo(tt.want))
 		})
@@ -1163,7 +1389,7 @@ func TestVirtualMachineGroupReconciler_ReconcileSequence(t *testing.T) {
 				objects = append(objects, &vSphereMachine)
 			}
 
-			c := fake.NewClientBuilder().WithObjects(objects...).Build()
+			c := fake.NewClientBuilder().WithObjects(objects...).WithScheme(scheme.Scheme).Build()
 			r := &VirtualMachineGroupReconciler{
 				Client: c,
 			}

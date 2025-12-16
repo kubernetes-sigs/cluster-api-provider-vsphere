@@ -41,6 +41,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	vmwarev1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/vmware/v1beta1"
+	topologyv1 "sigs.k8s.io/cluster-api-provider-vsphere/internal/apis/topology/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/services/vmoperator"
 )
 
@@ -122,6 +123,10 @@ func (r *VirtualMachineGroupReconciler) reconcileNormal(ctx context.Context, clu
 	if err != nil {
 		return reconcile.Result{}, err
 	}
+	singleZoneName, err := r.getSingleZoneName(ctx, cluster)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
 
 	// Before initial placement VirtualMachineGroup does not exist yet.
 	if currentVMG == nil {
@@ -138,7 +143,7 @@ func (r *VirtualMachineGroupReconciler) reconcileNormal(ctx context.Context, clu
 
 		// Computes the new VirtualMachineGroup including all the VSphereMachines to be considered
 		// for the initial placement decision.
-		newVMG, err := computeVirtualMachineGroup(ctx, cluster, machineDeployments, vSphereMachines, nil)
+		newVMG, err := computeVirtualMachineGroup(ctx, cluster, machineDeployments, vSphereMachines, singleZoneName, nil)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
@@ -163,7 +168,7 @@ func (r *VirtualMachineGroupReconciler) reconcileNormal(ctx context.Context, clu
 	// will align to the initial placement decision).
 
 	// Computes the updated VirtualMachineGroup including reflecting changes in the cluster.
-	updatedVMG, err := computeVirtualMachineGroup(ctx, cluster, machineDeployments, vSphereMachines, currentVMG)
+	updatedVMG, err := computeVirtualMachineGroup(ctx, cluster, machineDeployments, vSphereMachines, singleZoneName, currentVMG)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -183,7 +188,7 @@ func (r *VirtualMachineGroupReconciler) reconcileNormal(ctx context.Context, clu
 }
 
 // computeVirtualMachineGroup gets the desired VirtualMachineGroup.
-func computeVirtualMachineGroup(ctx context.Context, cluster *clusterv1.Cluster, mds []clusterv1.MachineDeployment, vSphereMachines []vmwarev1.VSphereMachine, existingVMG *vmoprv1.VirtualMachineGroup) (*vmoprv1.VirtualMachineGroup, error) {
+func computeVirtualMachineGroup(ctx context.Context, cluster *clusterv1.Cluster, mds []clusterv1.MachineDeployment, vSphereMachines []vmwarev1.VSphereMachine, singleZoneName string, existingVMG *vmoprv1.VirtualMachineGroup) (*vmoprv1.VirtualMachineGroup, error) {
 	// Create an empty VirtualMachineGroup
 	vmg := &vmoprv1.VirtualMachineGroup{
 		ObjectMeta: metav1.ObjectMeta{
@@ -233,9 +238,10 @@ func computeVirtualMachineGroup(ctx context.Context, cluster *clusterv1.Cluster,
 
 	// Get the mapping between the MachineDeployment and failure domain, which is one of:
 	// - the failureDomain explicitly assigned by the user to a MachineDeployment (by setting spec.template.spec.failureDomain).
+	// - in a single-zone environment, the corresponding failure domain.
 	// - the failureDomain selected by the placement decision for a MachineDeployment
 	// Note: if a MachineDeployment is not included in this mapping, the MachineDeployment is still pending a placement decision.
-	machineDeploymentToFailureDomain := getMachineDeploymentToFailureDomainMapping(ctx, mds, existingVMG, virtualMachineNameToMachineDeployment)
+	machineDeploymentToFailureDomain := getMachineDeploymentToFailureDomainMapping(ctx, mds, singleZoneName, existingVMG, virtualMachineNameToMachineDeployment)
 
 	// Set the annotations on the VirtualMachineGroup surfacing the failure domain selected during the
 	// placement decision for each MachineDeployment.
@@ -300,6 +306,7 @@ func computeVirtualMachineGroup(ctx context.Context, cluster *clusterv1.Cluster,
 // The mapping is computed according to following rules:
 //   - If the MachineDeployment is explicitly assigned to a failure domain by setting spec.template.spec.failureDomain,
 //     use this value for the mapping.
+//   - In a single-zone environment, the corresponding failure domain.
 //   - If the annotations on the VirtualMachineGroup already has the failure domain selected during the
 //     initial placement decision for a MachineDeployment, use it.
 //   - If annotations on the VirtualMachineGroup are not yet set, try to get the failure domain selected
@@ -308,7 +315,7 @@ func computeVirtualMachineGroup(ctx context.Context, cluster *clusterv1.Cluster,
 //
 // Note: In case the failure domain is explicitly assigned by setting spec.template.spec.failureDomain, the mapping always
 // report the latest value for this field (even if there might still be Machines yet to be rolled out to the new failure domain).
-func getMachineDeploymentToFailureDomainMapping(ctx context.Context, mds []clusterv1.MachineDeployment, existingVMG *vmoprv1.VirtualMachineGroup, virtualMachineNameToMachineDeployment map[string]string) map[string]string {
+func getMachineDeploymentToFailureDomainMapping(ctx context.Context, mds []clusterv1.MachineDeployment, singleZoneName string, existingVMG *vmoprv1.VirtualMachineGroup, virtualMachineNameToMachineDeployment map[string]string) map[string]string {
 	log := ctrl.LoggerFrom(ctx)
 
 	machineDeploymentToFailureDomainMapping := map[string]string{}
@@ -326,6 +333,12 @@ func getMachineDeploymentToFailureDomainMapping(ctx context.Context, mds []clust
 		// If the MachineDeployment is not explicitly assigned to a failure domain (spec.template.spec.failureDomain is empty),
 		// and VirtualMachineGroup does not exist yet, the MachineDeployment is still pending a placement decision.
 		if existingVMG == nil {
+			// In a single-zone environment, use the corresponding failure domain.
+			// Note: This acts as a replacement to the placement decision.
+			if singleZoneName != "" {
+				log.Info(fmt.Sprintf("MachineDeployment %s has been placed to failure domain %s (single zone)", md.Name, singleZoneName), "MachineDeployment", klog.KObj(&md))
+				machineDeploymentToFailureDomainMapping[md.Name] = singleZoneName
+			}
 			continue
 		}
 
@@ -353,9 +366,32 @@ func getMachineDeploymentToFailureDomainMapping(ctx context.Context, mds []clust
 				continue
 			}
 			if member.Placement != nil && member.Placement.Zone != "" {
-				log.Info(fmt.Sprintf("MachineDeployment %s has been placed to failure domanin %s", md.Name, member.Placement.Zone), "MachineDeployment", klog.KObj(&md))
+				log.Info(fmt.Sprintf("MachineDeployment %s has been placed to failure domain %s", md.Name, member.Placement.Zone), "MachineDeployment", klog.KObj(&md))
 				machineDeploymentToFailureDomainMapping[md.Name] = member.Placement.Zone
 				break
+			}
+		}
+
+		// In a single-zone environment, use the corresponding failure domain.
+		// Note: This acts as a replacement to the placement decision.
+		// Note: The placement from vm operator (even if it is still ongoing) should take priority.
+		if _, ok := machineDeploymentToFailureDomainMapping[md.Name]; !ok && singleZoneName != "" {
+			vmgHasMDVM := false
+			if len(existingVMG.Spec.BootOrder) > 0 {
+				for _, member := range existingVMG.Spec.BootOrder[0].Members {
+					// Ignore members controlled by other MachineDeployments
+					if memberMD := virtualMachineNameToMachineDeployment[member.Name]; memberMD != md.Name {
+						continue
+					}
+
+					// Track that there is a VM for this MD in the VMG; this implies a placement decision is in progress or already completed.
+					vmgHasMDVM = true
+					break
+				}
+			}
+			if !vmgHasMDVM {
+				log.Info(fmt.Sprintf("MachineDeployment %s has been placed to failure domain %s (single zone)", md.Name, singleZoneName), "MachineDeployment", klog.KObj(&md))
+				machineDeploymentToFailureDomainMapping[md.Name] = singleZoneName
 			}
 		}
 	}
@@ -465,6 +501,18 @@ func (r *VirtualMachineGroupReconciler) getMachineDeployments(ctx context.Contex
 		return nil, errors.Wrap(err, "failed to list MachineDeployments")
 	}
 	return machineDeployments.Items, nil
+}
+
+func (r *VirtualMachineGroupReconciler) getSingleZoneName(ctx context.Context, cluster *clusterv1.Cluster) (string, error) {
+	zoneList := &topologyv1.ZoneList{}
+	listOptions := &client.ListOptions{Namespace: cluster.Namespace}
+	if err := r.Client.List(ctx, zoneList, listOptions); err != nil {
+		return "", err
+	}
+	if len(zoneList.Items) == 1 {
+		return zoneList.Items[0].Name, nil
+	}
+	return "", nil
 }
 
 func memberNames(vmg *vmoprv1.VirtualMachineGroup) []string {

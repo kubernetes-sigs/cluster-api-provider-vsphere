@@ -64,6 +64,7 @@ After the Kubernetes minor release:
         checking out the release tag of `https://github.com/kubernetes/cloud-provider-vsphere` and running:
         `helm template charts/vsphere-cpi --namespace kube-system > ../../sigs.k8s.io/cluster-api-provider-vsphere/packaging/flavorgen/cloudprovider/cpi/cpi.yaml`
     * Bump in:
+      * `test/extension/handlers/topologymutation/handler.go`
       * `test/e2e/data/infrastructure-vsphere-govmomi/main/clusterclass/patch-vsphere-template.yaml`
       * `test/e2e/data/infrastructure-vsphere-supervisor/main/clusterclass/patch-vsphere-template.yaml`
     * Prior art: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/pull/3294

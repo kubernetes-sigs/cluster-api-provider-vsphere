@@ -190,6 +190,10 @@ linters:
     # Specific exclude rules for deprecated fields that are still part of the codebase. These
     # should be removed as the referenced deprecated item is removed from the project.
     rules:
+        # Excludes for controller-runtime deprecations that we should migrate away from sooner or later
+      - linters:
+          - staticcheck
+        text: 'SA1019: mgr.GetEventRecorderFor is deprecated'
         # Deprecations for AutoConfigure
       - linters:
           - staticcheck

@@ -26,8 +26,17 @@ providers:
   - name: cluster-api
     type: CoreProvider
     versions:
-      - name: "v1.12.99"
-        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/v1.12.1/core-components.yaml"
+      - name: "v1.13.99"
+        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20251223/core-components.yaml"
+        type: "url"
+        contract: v1beta2
+        files:
+          - sourcePath: "../data/shared/capi/v1.13/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+      - name: "{go://sigs.k8s.io/cluster-api@v1.12}"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.12}/core-components.yaml"
         type: "url"
         contract: v1beta2
         files:
@@ -53,21 +62,21 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-      - name: "{go://sigs.k8s.io/cluster-api@v1.9}"
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.9}/core-components.yaml"
-        type: "url"
-        contract: v1beta1
-        files:
-          - sourcePath: "../data/shared/capi/v1.9/metadata.yaml"
-        replacements:
-          - old: "imagePullPolicy: Always"
-            new: "imagePullPolicy: IfNotPresent"
 
   - name: kubeadm
     type: BootstrapProvider
     versions:
-      - name: "v1.12.99"
-        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/v1.12.1/bootstrap-components.yaml"
+      - name: "v1.13.99"
+        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20251223/bootstrap-components.yaml"
+        type: "url"
+        contract: v1beta2
+        files:
+          - sourcePath: "../data/shared/capi/v1.13/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+      - name: "{go://sigs.k8s.io/cluster-api@v1.12}"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.12}/bootstrap-components.yaml"
         type: "url"
         contract: v1beta2
         files:
@@ -93,21 +102,21 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-      - name: "{go://sigs.k8s.io/cluster-api@v1.9}"
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.9}/bootstrap-components.yaml"
-        type: "url"
-        contract: v1beta1
-        files:
-          - sourcePath: "../data/shared/capi/v1.9/metadata.yaml"
-        replacements:
-          - old: "imagePullPolicy: Always"
-            new: "imagePullPolicy: IfNotPresent"
 
   - name: kubeadm
     type: ControlPlaneProvider
     versions:
-      - name: "v1.12.99"
-        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/v1.12.1/control-plane-components.yaml"
+      - name: "v1.13.99"
+        value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20251223/control-plane-components.yaml"
+        type: "url"
+        contract: v1beta2
+        files:
+          - sourcePath: "../data/shared/capi/v1.13/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+      - name: "{go://sigs.k8s.io/cluster-api@v1.12}"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.12}/control-plane-components.yaml"
         type: "url"
         contract: v1beta2
         files:
@@ -133,15 +142,6 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-      - name: "{go://sigs.k8s.io/cluster-api@v1.9}" # supported release in the v1beta1 series
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.9}/control-plane-components.yaml"
-        type: "url"
-        contract: v1beta1
-        files:
-          - sourcePath: "../data/shared/capi/v1.9/metadata.yaml"
-        replacements:
-          - old: "imagePullPolicy: Always"
-            new: "imagePullPolicy: IfNotPresent"
 
   - name: in-cluster
     type: IPAMProvider
@@ -159,7 +159,7 @@ providers:
   - name: vsphere
     type: InfrastructureProvider
     versions:
-      - name: v1.15.99 # next release
+      - name: v1.16.99 # next release
         # Use manifest from source files
         value: ../../../../cluster-api-provider-vsphere/config/default
         contract: v1beta1
@@ -196,6 +196,16 @@ providers:
           # Disable KUBE_FEATURE_WatchListClient for now in e2e tests because Service informers don't work with vcsim.
           - old: "- name: KUBE_FEATURE_WatchListClient\n          value: \"true\""
             new: "- name: KUBE_FEATURE_WatchListClient\n          value: \"false\""
+      - name: "{go://sigs.k8s.io/cluster-api-provider-vsphere@v1.15}"
+        value: "https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/download/{go://sigs.k8s.io/cluster-api-provider-vsphere@v1.15}/infrastructure-components.yaml"
+        type: "url"
+        contract: v1beta1
+        files:
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/v1.15/cluster-template-workload.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/v1.15/clusterclass-quick-start.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/v1.15/cluster-template-workload-supervisor.yaml"
+          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/v1.15/clusterclass-quick-start-supervisor.yaml"
+          - sourcePath: "../data/shared/capv/v1.15/metadata.yaml"
       - name: "{go://sigs.k8s.io/cluster-api-provider-vsphere@v1.14}"
         value: "https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/download/{go://sigs.k8s.io/cluster-api-provider-vsphere@v1.14}/infrastructure-components.yaml"
         type: "url"
@@ -216,21 +226,11 @@ providers:
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/v1.13/cluster-template-workload-supervisor.yaml"
           - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/v1.13/clusterclass-quick-start-supervisor.yaml"
           - sourcePath: "../data/shared/capv/v1.13/metadata.yaml"
-      - name: "{go://sigs.k8s.io/cluster-api-provider-vsphere@v1.12}"
-        value: "https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/download/{go://sigs.k8s.io/cluster-api-provider-vsphere@v1.12}/infrastructure-components.yaml"
-        type: "url"
-        contract: v1beta1
-        files:
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/v1.12/cluster-template-workload.yaml"
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-govmomi/v1.12/clusterclass-quick-start.yaml"
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/v1.12/cluster-template-workload-supervisor.yaml"
-          - sourcePath: "../../../test/e2e/data/infrastructure-vsphere-supervisor/v1.12/clusterclass-quick-start-supervisor.yaml"
-          - sourcePath: "../data/shared/capv/v1.12/metadata.yaml"
 
   - name: vcsim
     type: RuntimeExtensionProvider # vcsim isn't a provider, but we fake it is so it can be handled by the clusterctl machinery.
     versions:
-      - name: v1.15.99
+      - name: v1.16.99
         # Use manifest from source files
         value: ../../../../cluster-api-provider-vsphere/test/infrastructure/vcsim/config/default
         contract: v1beta1
@@ -255,7 +255,7 @@ providers:
   - name: net-operator
     type: RuntimeExtensionProvider # net-operator isn't a provider, but we fake it is so it can be handled by the clusterctl machinery.
     versions:
-      - name: v1.15.99
+      - name: v1.16.99
         # Use manifest from source files
         value: ../../../../cluster-api-provider-vsphere/test/infrastructure/net-operator/config/default
         contract: v1beta1
@@ -268,7 +268,7 @@ providers:
   - name: capv-test-extension
     type: RuntimeExtensionProvider
     versions:
-      - name: v1.15.99
+      - name: v1.16.99
         # Use manifest from source files
         value: ../../../../cluster-api-provider-vsphere/test/extension/config/default
         contract: v1beta1

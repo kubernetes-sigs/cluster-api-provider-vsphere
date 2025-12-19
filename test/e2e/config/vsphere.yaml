@@ -320,7 +320,7 @@ variables:
   CLUSTER_TOPOLOGY: "true"
   EXP_RUNTIME_SDK: "true"
   EXP_MACHINE_SET_PREFLIGHT_CHECKS: "true"
-  EXP_PRIORITY_QUEUE: "false"
+  EXP_PRIORITY_QUEUE: "true"
   # These IDs correspond to Tesla T4s, they are the decimal representation of the hex values.
   DEVICE_ID: 7864
   VENDOR_ID: 4318
